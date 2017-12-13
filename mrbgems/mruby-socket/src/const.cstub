@@ -1,453 +1,453 @@
-#ifdef AF_INET
+#if defined(AF_INET)
   define_const(AF_INET);
 #endif
-#ifdef PF_INET
+#if defined(PF_INET)
   define_const(PF_INET);
 #endif
-#ifdef AF_INET6
+#if defined(AF_INET6)
   define_const(AF_INET6);
 #endif
-#ifdef PF_INET6
+#if defined(PF_INET6)
   define_const(PF_INET6);
 #endif
-#ifdef AF_LINK
+#if defined(AF_LINK)
   define_const(AF_LINK);
 #endif
-#ifdef PF_LINK
+#if defined(PF_LINK)
   define_const(PF_LINK);
 #endif
-#ifdef AF_LOCAL
+#if defined(AF_LOCAL)
   define_const(AF_LOCAL);
 #endif
-#ifdef PF_LOCAL
+#if defined(PF_LOCAL)
   define_const(PF_LOCAL);
 #endif
-#ifdef AF_UNIX
+#if defined(AF_UNIX)
   define_const(AF_UNIX);
 #endif
-#ifdef PF_UNIX
+#if defined(PF_UNIX)
   define_const(PF_UNIX);
 #endif
-#ifdef AF_MAX
+#if defined(AF_MAX)
   define_const(AF_MAX);
 #endif
-#ifdef AF_UNSPEC
+#if defined(AF_UNSPEC)
   define_const(AF_UNSPEC);
 #endif
-#ifdef PF_UNSPEC
+#if defined(PF_UNSPEC)
   define_const(PF_UNSPEC);
 #endif
-#ifdef AF_ROUTE
+#if defined(AF_ROUTE)
   define_const(AF_ROUTE);
 #endif
-#ifdef PF_ROUTE
+#if defined(PF_ROUTE)
   define_const(PF_ROUTE);
 #endif
-#ifdef AI_CANONNAME
+#if defined(AI_CANONNAME)
   define_const(AI_CANONNAME);
 #endif
-#ifdef AI_FQDN
+#if defined(AI_FQDN)
   define_const(AI_FQDN);
 #endif
-#ifdef AI_NUMERICHOST
+#if defined(AI_NUMERICHOST)
   define_const(AI_NUMERICHOST);
 #endif
-#ifdef AI_NUMERICSERV
+#if defined(AI_NUMERICSERV)
   define_const(AI_NUMERICSERV);
 #endif
-#ifdef AI_PASSIVE
+#if defined(AI_PASSIVE)
   define_const(AI_PASSIVE);
 #endif
-#ifdef IP_ADD_MEMBERSHIP
+#if defined(IP_ADD_MEMBERSHIP)
   define_const(IP_ADD_MEMBERSHIP);
 #endif
-#ifdef IP_ADD_SOURCE_MEMBERSHIP
+#if defined(IP_ADD_SOURCE_MEMBERSHIP)
   define_const(IP_ADD_SOURCE_MEMBERSHIP);
 #endif
-#ifdef IP_BLOCK_SOURCE
+#if defined(IP_BLOCK_SOURCE)
   define_const(IP_BLOCK_SOURCE);
 #endif
-#ifdef IP_DROP_MEMBERSHIP
+#if defined(IP_DROP_MEMBERSHIP)
   define_const(IP_DROP_MEMBERSHIP);
 #endif
-#ifdef IP_DROP_SOURCE_MEMBERSHIP
+#if defined(IP_DROP_SOURCE_MEMBERSHIP)
   define_const(IP_DROP_SOURCE_MEMBERSHIP);
 #endif
-#ifdef IP_FREEBIND
+#if defined(IP_FREEBIND)
   define_const(IP_FREEBIND);
 #endif
-#ifdef IP_HDRINCL
+#if defined(IP_HDRINCL)
   define_const(IP_HDRINCL);
 #endif
-#ifdef IP_IPSEC_POLICY
+#if defined(IP_IPSEC_POLICY)
   define_const(IP_IPSEC_POLICY);
 #endif
-#ifdef IP_MINTTL
+#if defined(IP_MINTTL)
   define_const(IP_MINTTL);
 #endif
-#ifdef IP_MSFILTER
+#if defined(IP_MSFILTER)
   define_const(IP_MSFILTER);
 #endif
-#ifdef IP_MTU
+#if defined(IP_MTU)
   define_const(IP_MTU);
 #endif
-#ifdef IP_MTU_DISCOVER
+#if defined(IP_MTU_DISCOVER)
   define_const(IP_MTU_DISCOVER);
 #endif
-#ifdef IP_MULTICAST_ALL
+#if defined(IP_MULTICAST_ALL)
   define_const(IP_MULTICAST_ALL);
 #endif
-#ifdef IP_MULTICAST_IF
+#if defined(IP_MULTICAST_IF)
   define_const(IP_MULTICAST_IF);
 #endif
-#ifdef IP_MULTICAST_LOOP
+#if defined(IP_MULTICAST_LOOP)
   define_const(IP_MULTICAST_LOOP);
 #endif
-#ifdef IP_MULTICAST_TTL
+#if defined(IP_MULTICAST_TTL)
   define_const(IP_MULTICAST_TTL);
 #endif
-#ifdef IP_OPTIONS
+#if defined(IP_OPTIONS)
   define_const(IP_OPTIONS);
 #endif
-#ifdef IP_ORIGDSTADDR
+#if defined(IP_ORIGDSTADDR)
   define_const(IP_ORIGDSTADDR);
 #endif
-#ifdef IP_PASSSEC
+#if defined(IP_PASSSEC)
   define_const(IP_PASSSEC);
 #endif
-#ifdef IP_PKTINFO
+#if defined(IP_PKTINFO)
   define_const(IP_PKTINFO);
 #endif
-#ifdef IP_PKTOPTIONS
+#if defined(IP_PKTOPTIONS)
   define_const(IP_PKTOPTIONS);
 #endif
-#ifdef IP_PMTUDISC_DO
+#if defined(IP_PMTUDISC_DO)
   define_const(IP_PMTUDISC_DO);
 #endif
-#ifdef IP_PMTUDISC_DONT
+#if defined(IP_PMTUDISC_DONT)
   define_const(IP_PMTUDISC_DONT);
 #endif
-#ifdef IP_PMTUDISC_PROBE
+#if defined(IP_PMTUDISC_PROBE)
   define_const(IP_PMTUDISC_PROBE);
 #endif
-#ifdef IP_PMTUDISC_WANT
+#if defined(IP_PMTUDISC_WANT)
   define_const(IP_PMTUDISC_WANT);
 #endif
-#ifdef IP_RECVDSTADDR
+#if defined(IP_RECVDSTADDR)
   define_const(IP_RECVDSTADDR);
 #endif
-#ifdef IP_RECVERR
+#if defined(IP_RECVERR)
   define_const(IP_RECVERR);
 #endif
-#ifdef IP_RECVOPTS
+#if defined(IP_RECVOPTS)
   define_const(IP_RECVOPTS);
 #endif
-#ifdef IP_RECVORIGDSTADDR
+#if defined(IP_RECVORIGDSTADDR)
   define_const(IP_RECVORIGDSTADDR);
 #endif
-#ifdef IP_RECVRETOPTS
+#if defined(IP_RECVRETOPTS)
   define_const(IP_RECVRETOPTS);
 #endif
-#ifdef IP_RECVTOS
+#if defined(IP_RECVTOS)
   define_const(IP_RECVTOS);
 #endif
-#ifdef IP_RECVTTL
+#if defined(IP_RECVTTL)
   define_const(IP_RECVTTL);
 #endif
-#ifdef IP_RETOPTS
+#if defined(IP_RETOPTS)
   define_const(IP_RETOPTS);
 #endif
-#ifdef IP_ROUTER_ALERT
+#if defined(IP_ROUTER_ALERT)
   define_const(IP_ROUTER_ALERT);
 #endif
-#ifdef IP_TOS
+#if defined(IP_TOS)
   define_const(IP_TOS);
 #endif
-#ifdef IP_TRANSPARENT
+#if defined(IP_TRANSPARENT)
   define_const(IP_TRANSPARENT);
 #endif
-#ifdef IP_TTL
+#if defined(IP_TTL)
   define_const(IP_TTL);
 #endif
-#ifdef IP_UNBLOCK_SOURCE
+#if defined(IP_UNBLOCK_SOURCE)
   define_const(IP_UNBLOCK_SOURCE);
 #endif
-#ifdef IP_XFRM_POLICY
+#if defined(IP_XFRM_POLICY)
   define_const(IP_XFRM_POLICY);
 #endif
-#ifdef IPV6_JOIN_GROUP
+#if defined(IPV6_JOIN_GROUP)
   define_const(IPV6_JOIN_GROUP);
 #endif
-#ifdef IPV6_LEAVE_GROUP
+#if defined(IPV6_LEAVE_GROUP)
   define_const(IPV6_LEAVE_GROUP);
 #endif
-#ifdef IPV6_MULTICAST_HOPS
+#if defined(IPV6_MULTICAST_HOPS)
   define_const(IPV6_MULTICAST_HOPS);
 #endif
-#ifdef IPV6_MULTICAST_IF
+#if defined(IPV6_MULTICAST_IF)
   define_const(IPV6_MULTICAST_IF);
 #endif
-#ifdef IPV6_MULTICAST_LOOP
+#if defined(IPV6_MULTICAST_LOOP)
   define_const(IPV6_MULTICAST_LOOP);
 #endif
-#ifdef IPV6_UNICAST_HOPS
+#if defined(IPV6_UNICAST_HOPS)
   define_const(IPV6_UNICAST_HOPS);
 #endif
-#ifdef IPV6_V6ONLY
+#if defined(IPV6_V6ONLY)
   define_const(IPV6_V6ONLY);
 #endif
-#ifdef IPPROTO_AH
+#if defined(IPPROTO_AH) || defined(_WINSOCKAPI_)
   define_const(IPPROTO_AH);
 #endif
-#ifdef IPPROTO_DSTOPTS
+#if defined(IPPROTO_DSTOPTS) || defined(_WINSOCKAPI_)
   define_const(IPPROTO_DSTOPTS);
 #endif
-#ifdef IPPROTO_ESP
+#if defined(IPPROTO_ESP) || defined(_WINSOCKAPI_)
   define_const(IPPROTO_ESP);
 #endif
-#ifdef IPPROTO_FRAGMENT
+#if defined(IPPROTO_FRAGMENT) || defined(_WINSOCKAPI_)
   define_const(IPPROTO_FRAGMENT);
 #endif
-#ifdef IPPROTO_ICMP
+#if defined(IPPROTO_ICMP) || defined(_WINSOCKAPI_)
   define_const(IPPROTO_ICMP);
 #endif
-#ifdef IPPROTO_ICMPV6
+#if defined(IPPROTO_ICMPV6) || defined(_WINSOCKAPI_)
   define_const(IPPROTO_ICMPV6);
 #endif
-#ifdef IPPROTO_IP
+#if defined(IPPROTO_IP) || defined(_WINSOCKAPI_)
   define_const(IPPROTO_IP);
 #endif
-#ifdef IPPROTO_IPV6
+#if defined(IPPROTO_IPV6) || defined(_WINSOCKAPI_)
   define_const(IPPROTO_IPV6);
 #endif
-#ifdef IPPROTO_NONE
+#if defined(IPPROTO_NONE) || defined(_WINSOCKAPI_)
   define_const(IPPROTO_NONE);
 #endif
-#ifdef IPPROTO_RAW
+#if defined(IPPROTO_RAW) || defined(_WINSOCKAPI_)
   define_const(IPPROTO_RAW);
 #endif
-#ifdef IPPROTO_ROUTING
+#if defined(IPPROTO_ROUTING) || defined(_WINSOCKAPI_)
   define_const(IPPROTO_ROUTING);
 #endif
-#ifdef IPPROTO_TCP
+#if defined(IPPROTO_TCP) || defined(_WINSOCKAPI_)
   define_const(IPPROTO_TCP);
 #endif
-#ifdef IPPROTO_UDP
+#if defined(IPPROTO_UDP) || defined(_WINSOCKAPI_)
   define_const(IPPROTO_UDP);
 #endif
-#ifdef MCAST_BLOCK_SOURCE
+#if defined(MCAST_BLOCK_SOURCE)
   define_const(MCAST_BLOCK_SOURCE);
 #endif
-#ifdef MCAST_JOIN_GROUP
+#if defined(MCAST_JOIN_GROUP)
   define_const(MCAST_JOIN_GROUP);
 #endif
-#ifdef MCAST_JOIN_SOURCE_GROUP
+#if defined(MCAST_JOIN_SOURCE_GROUP)
   define_const(MCAST_JOIN_SOURCE_GROUP);
 #endif
-#ifdef MCAST_LEAVE_GROUP
+#if defined(MCAST_LEAVE_GROUP)
   define_const(MCAST_LEAVE_GROUP);
 #endif
-#ifdef MCAST_LEAVE_SOURCE_GROUP
+#if defined(MCAST_LEAVE_SOURCE_GROUP)
   define_const(MCAST_LEAVE_SOURCE_GROUP);
 #endif
-#ifdef MCAST_MSFILTER
+#if defined(MCAST_MSFILTER)
   define_const(MCAST_MSFILTER);
 #endif
-#ifdef MCAST_UNBLOCK_SOURCE
+#if defined(MCAST_UNBLOCK_SOURCE)
   define_const(MCAST_UNBLOCK_SOURCE);
 #endif
-#ifdef MSG_BCAST
+#if defined(MSG_BCAST)
   define_const(MSG_BCAST);
 #endif
-#ifdef MSG_CTRUNC
+#if defined(MSG_CTRUNC)
   define_const(MSG_CTRUNC);
 #endif
-#ifdef MSG_DONTROUTE
+#if defined(MSG_DONTROUTE)
   define_const(MSG_DONTROUTE);
 #endif
-#ifdef MSG_DONTWAIT
+#if defined(MSG_DONTWAIT)
   define_const(MSG_DONTWAIT);
 #endif
-#ifdef MSG_EOR
+#if defined(MSG_EOR)
   define_const(MSG_EOR);
 #endif
-#ifdef MSG_MCAST
+#if defined(MSG_MCAST)
   define_const(MSG_MCAST);
 #endif
-#ifdef MSG_NOSIGNAL
+#if defined(MSG_NOSIGNAL)
   define_const(MSG_NOSIGNAL);
 #endif
-#ifdef MSG_OOB
+#if defined(MSG_OOB)
   define_const(MSG_OOB);
 #endif
-#ifdef MSG_PEEK
+#if defined(MSG_PEEK)
   define_const(MSG_PEEK);
 #endif
-#ifdef MSG_TRUNC
+#if defined(MSG_TRUNC)
   define_const(MSG_TRUNC);
 #endif
-#ifdef MSG_WAITALL
+#if defined(MSG_WAITALL)
   define_const(MSG_WAITALL);
 #endif
-#ifdef NI_DGRAM
+#if defined(NI_DGRAM)
   define_const(NI_DGRAM);
 #endif
-#ifdef NI_MAXHOST
+#if defined(NI_MAXHOST)
   define_const(NI_MAXHOST);
 #endif
-#ifdef NI_MAXSERV
+#if defined(NI_MAXSERV)
   define_const(NI_MAXSERV);
 #endif
-#ifdef NI_NAMEREQD
+#if defined(NI_NAMEREQD)
   define_const(NI_NAMEREQD);
 #endif
-#ifdef NI_NOFQDN
+#if defined(NI_NOFQDN)
   define_const(NI_NOFQDN);
 #endif
-#ifdef NI_NUMERICHOST
+#if defined(NI_NUMERICHOST)
   define_const(NI_NUMERICHOST);
 #endif
-#ifdef NI_NUMERICSERV
+#if defined(NI_NUMERICSERV)
   define_const(NI_NUMERICSERV);
 #endif
-#ifdef SHUT_RD
+#if defined(SHUT_RD)
   define_const(SHUT_RD);
 #endif
-#ifdef SHUT_WR
+#if defined(SHUT_WR)
   define_const(SHUT_WR);
 #endif
-#ifdef SHUT_RDWR
+#if defined(SHUT_RDWR)
   define_const(SHUT_RDWR);
 #endif
-#ifdef SO_BINDANY
+#if defined(SO_BINDANY)
   define_const(SO_BINDANY);
 #endif
-#ifdef SO_BROADCAST
+#if defined(SO_BROADCAST)
   define_const(SO_BROADCAST);
 #endif
-#ifdef SO_DEBUG
+#if defined(SO_DEBUG)
   define_const(SO_DEBUG);
 #endif
-#ifdef SO_DONTROUTE
+#if defined(SO_DONTROUTE)
   define_const(SO_DONTROUTE);
 #endif
-#ifdef SO_ERROR
+#if defined(SO_ERROR)
   define_const(SO_ERROR);
 #endif
-#ifdef SO_KEEPALIVE
+#if defined(SO_KEEPALIVE)
   define_const(SO_KEEPALIVE);
 #endif
-#ifdef SO_LINGER
+#if defined(SO_LINGER)
   define_const(SO_LINGER);
 #endif
-#ifdef SO_NOSIGPIPE
+#if defined(SO_NOSIGPIPE)
   define_const(SO_NOSIGPIPE);
 #endif
-#ifdef SO_OOBINLINE
+#if defined(SO_OOBINLINE)
   define_const(SO_OOBINLINE);
 #endif
-#ifdef SO_PEERCRED
+#if defined(SO_PEERCRED)
   define_const(SO_PEERCRED);
 #endif
-#ifdef SO_RCVBUF
+#if defined(SO_RCVBUF)
   define_const(SO_RCVBUF);
 #endif
-#ifdef SO_RCVLOWAT
+#if defined(SO_RCVLOWAT)
   define_const(SO_RCVLOWAT);
 #endif
-#ifdef SO_RCVTIMEO
+#if defined(SO_RCVTIMEO)
   define_const(SO_RCVTIMEO);
 #endif
-#ifdef SO_REUSEADDR
+#if defined(SO_REUSEADDR)
   define_const(SO_REUSEADDR);
 #endif
-#ifdef SO_REUSEPORT
+#if defined(SO_REUSEPORT)
   define_const(SO_REUSEPORT);
 #endif
-#ifdef SO_RTABLE
+#if defined(SO_RTABLE)
   define_const(SO_RTABLE);
 #endif
-#ifdef SO_SNDBUF
+#if defined(SO_SNDBUF)
   define_const(SO_SNDBUF);
 #endif
-#ifdef SO_SNDLOWAT
+#if defined(SO_SNDLOWAT)
   define_const(SO_SNDLOWAT);
 #endif
-#ifdef SO_SNDTIMEO
+#if defined(SO_SNDTIMEO)
   define_const(SO_SNDTIMEO);
 #endif
-#ifdef SO_SPLICE
+#if defined(SO_SPLICE)
   define_const(SO_SPLICE);
 #endif
-#ifdef SO_TIMESTAMP
+#if defined(SO_TIMESTAMP)
   define_const(SO_TIMESTAMP);
 #endif
-#ifdef SO_TYPE
+#if defined(SO_TYPE)
   define_const(SO_TYPE);
 #endif
-#ifdef SOCK_DGRAM
+#if defined(SOCK_DGRAM)
   define_const(SOCK_DGRAM);
 #endif
-#ifdef SOCK_RAW
+#if defined(SOCK_RAW)
   define_const(SOCK_RAW);
 #endif
-#ifdef SOCK_SEQPACKET
+#if defined(SOCK_SEQPACKET)
   define_const(SOCK_SEQPACKET);
 #endif
-#ifdef SOCK_STREAM
+#if defined(SOCK_STREAM)
   define_const(SOCK_STREAM);
 #endif
-#ifdef SOL_SOCKET
+#if defined(SOL_SOCKET)
   define_const(SOL_SOCKET);
 #endif
-#ifdef TCP_CONGCTL
+#if defined(TCP_CONGCTL)
   define_const(TCP_CONGCTL);
 #endif
-#ifdef TCP_CONGESTION
+#if defined(TCP_CONGESTION)
   define_const(TCP_CONGESTION);
 #endif
-#ifdef TCP_CORK
+#if defined(TCP_CORK)
   define_const(TCP_CORK);
 #endif
-#ifdef TCP_DEFER_ACCEPT
+#if defined(TCP_DEFER_ACCEPT)
   define_const(TCP_DEFER_ACCEPT);
 #endif
-#ifdef TCP_INFO
+#if defined(TCP_INFO)
   define_const(TCP_INFO);
 #endif
-#ifdef TCP_KEEPCNT
+#if defined(TCP_KEEPCNT)
   define_const(TCP_KEEPCNT);
 #endif
-#ifdef TCP_KEEPIDLE
+#if defined(TCP_KEEPIDLE)
   define_const(TCP_KEEPIDLE);
 #endif
-#ifdef TCP_KEEPINIT
+#if defined(TCP_KEEPINIT)
   define_const(TCP_KEEPINIT);
 #endif
-#ifdef TCP_KEEPINTVL
+#if defined(TCP_KEEPINTVL)
   define_const(TCP_KEEPINTVL);
 #endif
-#ifdef TCP_LINGER2
+#if defined(TCP_LINGER2)
   define_const(TCP_LINGER2);
 #endif
-#ifdef TCP_MAXSEG
+#if defined(TCP_MAXSEG)
   define_const(TCP_MAXSEG);
 #endif
-#ifdef TCP_MD5SIG
+#if defined(TCP_MD5SIG)
   define_const(TCP_MD5SIG);
 #endif
-#ifdef TCP_NODELAY
+#if defined(TCP_NODELAY)
   define_const(TCP_NODELAY);
 #endif
-#ifdef TCP_QUICKACK
+#if defined(TCP_QUICKACK)
   define_const(TCP_QUICKACK);
 #endif
-#ifdef TCP_SACK_ENABLE
+#if defined(TCP_SACK_ENABLE)
   define_const(TCP_SACK_ENABLE);
 #endif
-#ifdef TCP_SYNCNT
+#if defined(TCP_SYNCNT)
   define_const(TCP_SYNCNT);
 #endif
-#ifdef TCP_WINDOW_CLAMP
+#if defined(TCP_WINDOW_CLAMP)
   define_const(TCP_WINDOW_CLAMP);
 #endif
