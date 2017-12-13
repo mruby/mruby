@@ -19,6 +19,8 @@ typedef int mode_t;
 #define close _close
 
 #ifdef _MSC_VER
+#include <sys/stat.h>
+
 static int
 mkstemp(char *p)
 {
