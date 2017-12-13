@@ -10,7 +10,7 @@ IO.readlines("const.def").each { |name|
   next if name.empty?
 
   f.write <<CODE
-#ifdef #{name}
+#if defined(#{name})#{name.start_with?('IPPROTO_') ? ' || defined(_WINSOCKAPI_)' : ''}
   define_const(#{name});
 #endif
 CODE
