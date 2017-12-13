@@ -856,7 +856,7 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
   // #sendmsg_nonblock
   mrb_define_method(mrb, bsock, "setsockopt", mrb_basicsocket_setsockopt, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(2));
   mrb_define_method(mrb, bsock, "shutdown", mrb_basicsocket_shutdown, MRB_ARGS_OPT(1));
-  mrb_define_method(mrb, bsock, "is_socket=", mrb_basicsocket_set_is_socket, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, bsock, "_is_socket=", mrb_basicsocket_set_is_socket, MRB_ARGS_REQ(1));
 
   ipsock = mrb_define_class(mrb, "IPSocket", bsock);
   mrb_define_class_method(mrb, ipsock, "ntop", mrb_ipsocket_ntop, MRB_ARGS_REQ(1));
