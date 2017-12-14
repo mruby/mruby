@@ -267,6 +267,7 @@ mrb_io_alloc(mrb_state *mrb)
   fptr->readable = 0;
   fptr->writable = 0;
   fptr->sync = 0;
+  fptr->is_socket = 0;
   return fptr;
 }
 
