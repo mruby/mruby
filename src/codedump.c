@@ -189,13 +189,13 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       print_lv(mrb, irep, c, RA);
       break;
     case OP_JMP:
-      printf("OP_JMP\t%03d\n", i+GETARG_sBx(c));
+      printf("OP_JMP\t%03d (%d)\n", i+GETARG_sBx(c), GETARG_sBx(c));
       break;
     case OP_JMPIF:
-      printf("OP_JMPIF\tR%d\t%03d\n", GETARG_A(c), i+GETARG_sBx(c));
+      printf("OP_JMPIF\tR%d\t%03d (%d)\n", GETARG_A(c), i+GETARG_sBx(c), GETARG_sBx(c));
       break;
     case OP_JMPNOT:
-      printf("OP_JMPNOT\tR%d\t%03d\n", GETARG_A(c), i+GETARG_sBx(c));
+      printf("OP_JMPNOT\tR%d\t%03d (%d)\n", GETARG_A(c), i+GETARG_sBx(c), GETARG_sBx(c));
       break;
     case OP_SEND:
       printf("OP_SEND\tR%d\t:%s\t%d\n", GETARG_A(c),
