@@ -2071,6 +2071,7 @@ RETRY_TRY_BLOCK:
         while (ci < mrb->c->ci) {
           cipop(mrb);
         }
+        ci[0].ridx = ci[-1].ridx;
         while (mrb->c->eidx > ci->epos) {
           ecall_adjust();
         }
