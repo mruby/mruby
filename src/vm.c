@@ -593,6 +593,9 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
   }
 
   if (MRB_METHOD_CFUNC_P(m)) {
+    if (MRB_METHOD_PROC_P(m)) {
+      ci->proc = MRB_METHOD_PROC(m);
+    }
     return MRB_METHOD_CFUNC(m)(mrb, self);
   }
   return mrb_exec_irep(mrb, self, MRB_METHOD_PROC(m));
