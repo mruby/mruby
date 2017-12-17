@@ -40,7 +40,7 @@ Add the line below to your `build_config.rb`:
 | IO#binmode?                |          |      |
 | IO#bytes                   |          | obsolete |
 | IO#chars                   |          | obsolete |
-| IO#clone, IO#dup           |          |      |
+| IO#clone, IO#dup           |    o     |      |
 | IO#close                   |    o     |      |
 | IO#close_on_exec=          |    o     |      |
 | IO#close_on_exec?          |    o     |      |
