@@ -536,16 +536,16 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
 #endif
 
 static int
-mrb_dup(mrb_state *mrb, int fd)
+mrb_dup(mrb_state *mrb, int fd, mrb_bool *failed)
 {
   int new_fd;
 
+  *failed = FALSE;
   if (fd < 0)
     return fd;
 
   new_fd = dup(fd);
-  if (new_fd == -1)
-    mrb_sys_fail(mrb, 0);
+  if (new_fd == -1) *failed = TRUE;
   return new_fd;
 }
 
@@ -556,6 +556,7 @@ mrb_io_initialize_copy(mrb_state *mrb, mrb_value copy)
   mrb_value buf;
   struct mrb_io *fptr_copy;
   struct mrb_io *fptr_orig;
+  mrb_bool failed = TRUE;
 
   mrb_get_args(mrb, "o", &orig);
   fptr_copy = (struct mrb_io *)DATA_PTR(copy);
@@ -572,8 +573,15 @@ mrb_io_initialize_copy(mrb_state *mrb, mrb_value copy)
   buf = mrb_iv_get(mrb, orig, mrb_intern_cstr(mrb, "@buf"));
   mrb_iv_set(mrb, copy, mrb_intern_cstr(mrb, "@buf"), buf);
 
-  fptr_copy->fd = mrb_dup(mrb, fptr_orig->fd);
-  fptr_copy->fd2 = mrb_dup(mrb, fptr_orig->fd2);
+  fptr_copy->fd = mrb_dup(mrb, fptr_orig->fd, &failed);
+  if (failed) {
+    mrb_sys_fail(mrb, 0);
+  }
+  fptr_copy->fd2 = mrb_dup(mrb, fptr_orig->fd2, &failed);
+  if (failed) {
+    close(fptr_copy->fd);
+    mrb_sys_fail(mrb, 0);
+  }
   fptr_copy->pid = fptr_orig->pid;
   fptr_copy->readable = fptr_orig->readable;
   fptr_copy->writable = fptr_orig->writable;
