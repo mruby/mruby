@@ -5,7 +5,6 @@
 #include "mruby/variable.h"
 #include "mruby/proc.h"
 #include "mruby/string.h"
-#include <alloca.h>
 
 static struct RObject *
 method_object_alloc(mrb_state *mrb, struct RClass *mclass)
@@ -113,7 +112,7 @@ method_call(mrb_state *mrb, mrb_value self)
   mrb_value name = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@name"));
   mrb_value recv = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@recv"));
   struct RClass *owner = mrb_class_ptr(mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@owner")));
-  mrb_int argc, i;
+  mrb_int argc;
   mrb_value *argv, ret, block;
   mrb_sym orig_mid;
 
@@ -121,12 +120,9 @@ method_call(mrb_state *mrb, mrb_value self)
   orig_mid = mrb->c->ci->mid;
   mrb->c->ci->mid = mrb_symbol(name);
   if (mrb_nil_p(proc)) {
-    mrb_value *missing_argv = (mrb_value*)alloca(sizeof(mrb_value) * (argc + 1));
-    missing_argv[0] = name;
-    for(i = 0; i < argc; i++) {
-      missing_argv[i + 1] = argv[i];
-    }
-    ret = mrb_funcall_argv(mrb, recv, mrb_intern_lit(mrb, "method_missing"), argc + 1, missing_argv);
+    mrb_value missing_argv = mrb_ary_new_from_values(mrb, argc, argv);
+    mrb_ary_unshift(mrb, missing_argv, name);
+    ret = mrb_funcall_argv(mrb, recv, mrb_intern_lit(mrb, "method_missing"), argc + 1, RARRAY_PTR(missing_argv));
   }
   else if (!mrb_nil_p(block)) {
     /*
