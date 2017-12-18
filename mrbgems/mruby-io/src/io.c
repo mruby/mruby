@@ -566,6 +566,9 @@ mrb_io_initialize_copy(mrb_state *mrb, mrb_value copy)
   fptr_copy = (struct mrb_io *)mrb_io_alloc(mrb);
   fptr_orig = io_get_open_fptr(mrb, orig);
 
+  DATA_TYPE(copy) = &mrb_io_type;
+  DATA_PTR(copy) = fptr_copy;
+
   buf = mrb_iv_get(mrb, orig, mrb_intern_cstr(mrb, "@buf"));
   mrb_iv_set(mrb, copy, mrb_intern_cstr(mrb, "@buf"), buf);
 
@@ -576,9 +579,6 @@ mrb_io_initialize_copy(mrb_state *mrb, mrb_value copy)
   fptr_copy->writable = fptr_orig->writable;
   fptr_copy->sync = fptr_orig->sync;
   fptr_copy->is_socket = fptr_orig->is_socket;
-
-  DATA_TYPE(copy) = &mrb_io_type;
-  DATA_PTR(copy) = fptr_copy;
 
   return copy;
 }
