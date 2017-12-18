@@ -25,6 +25,7 @@
   #include <io.h>
   #define open  _open
   #define close _close
+  #define dup _dup
   #define read  _read
   #define write _write
   #define lseek _lseek
