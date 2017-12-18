@@ -34,12 +34,15 @@
   typedef int fsize_t;
   typedef long ftime_t;
   typedef long fsuseconds_t;
+  typedef int fmode_t;
+
 #else
   #include <sys/wait.h>
   #include <unistd.h>
   typedef size_t fsize_t;
   typedef time_t ftime_t;
   typedef suseconds_t fsuseconds_t;
+  typedef mode_t fmode_t;
 #endif
 
 #ifdef _MSC_VER
@@ -740,7 +743,7 @@ mrb_cloexec_open(mrb_state *mrb, const char *pathname, mrb_int flags, mrb_int mo
   flags |= O_NOINHERIT;
 #endif
 reopen:
-  fd = open(fname, (int)flags, mode);
+  fd = open(fname, (int)flags, (fmode_t)mode);
   if (fd == -1) {
     if (!retry) {
       switch (errno) {
