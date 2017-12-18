@@ -211,6 +211,35 @@ assert('IO#<<') do
   true
 end
 
+assert('IO#dup for readable') do
+  io = IO.new(IO.sysopen($mrbtest_io_rfname))
+  dup = io.dup
+  assert_true io != dup
+  assert_true io.fileno != dup.fileno
+  assert_equal 'm', dup.sysread(1)
+  assert_equal 'r', io.sysread(1)
+  assert_equal 'u', dup.sysread(1)
+  assert_equal 'b', io.sysread(1)
+  assert_equal 'y', dup.sysread(1)
+  dup.close
+  assert_false io.closed?
+  io.close
+  true
+end
+
+assert('IO#dup for writable') do
+  io = IO.open(IO.sysopen($mrbtest_io_wfname, 'w+'), 'w+')
+  dup = io.dup
+  io.syswrite "mruby"
+  assert_equal 5, dup.sysseek(0, IO::SEEK_CUR)
+  io.sysseek 0, IO::SEEK_SET
+  assert_equal 0, dup.sysseek(0, IO::SEEK_CUR)
+  assert_equal "mruby", dup.sysread(5)
+  dup.close
+  io.close
+  true
+end
+
 assert('IO.for_fd') do
   fd = IO.sysopen($mrbtest_io_rfname)
   io = IO.for_fd(fd)
