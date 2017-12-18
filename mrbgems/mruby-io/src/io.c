@@ -26,6 +26,7 @@
   #define open  _open
   #define close _close
   #define dup _dup
+  #define dup2 _dup2
   #define read  _read
   #define write _write
   #define lseek _lseek
