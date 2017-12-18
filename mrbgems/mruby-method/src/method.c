@@ -1,6 +1,5 @@
 #include "mruby.h"
 #include "mruby/array.h"
-#include "mruby/data.h"
 #include "mruby/class.h"
 #include "mruby/variable.h"
 #include "mruby/proc.h"
