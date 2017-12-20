@@ -511,7 +511,6 @@ mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p)
 
   mrb->c->stack[0] = self;
   ci->proc = p;
-  ci->target_class = MRB_PROC_TARGET_CLASS(p);
   if (MRB_PROC_CFUNC_P(p)) {
     return MRB_PROC_CFUNC(p)(mrb, self);
   }
