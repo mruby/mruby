@@ -1589,13 +1589,22 @@ RETRY_TRY_BLOCK:
       mrb_callinfo *ci = mrb->c->ci;
       mrb_value recv, blk;
       mrb_sym mid = ci->mid;
+      struct RClass* target_class = MRB_PROC_TARGET_CLASS(ci->proc);
 
       mrb_assert(bidx < ci->nregs);
 
-      if (mid == 0 || !ci->target_class) {
+      if (mid == 0 || !target_class) {
         mrb_value exc = mrb_exc_new_str_lit(mrb, E_NOMETHOD_ERROR, "super called outside of method");
         mrb_exc_set(mrb, exc);
         goto L_RAISE;
+      }
+      if (target_class->tt == MRB_TT_MODULE) {
+        target_class = ci->target_class;
+        if (target_class->tt != MRB_TT_ICLASS) {
+          mrb_value exc = mrb_exc_new_str_lit(mrb, E_RUNTIME_ERROR, "superclass info lost [mruby limitations]");
+          mrb_exc_set(mrb, exc);
+          goto L_RAISE;
+        }
       }
       recv = regs[0];
       blk = regs[bidx];
@@ -1606,7 +1615,7 @@ RETRY_TRY_BLOCK:
         regs[bidx] = blk;
         ci = mrb->c->ci;
       }
-      c = ci->target_class->super;
+      c = target_class->super;
       m = mrb_method_search_vm(mrb, &c, mid);
       if (MRB_METHOD_UNDEF_P(m)) {
         mrb_sym missing = mrb_intern_lit(mrb, "method_missing");
