@@ -7,6 +7,8 @@
 #include <mruby.h>
 #include <mruby/array.h>
 
+#ifndef MRB_WITHOUT_FLOAT
+
 #include <math.h>
 
 static void
@@ -717,10 +719,13 @@ math_erfc(mrb_state *mrb, mrb_value obj)
   return mrb_float_value(mrb, x);
 }
 
+#endif
+
 /* ------------------------------------------------------------------------*/
 void
 mrb_mruby_math_gem_init(mrb_state* mrb)
 {
+#ifndef MRB_WITHOUT_FLOAT
   struct RClass *mrb_math;
   mrb_math = mrb_define_module(mrb, "Math");
 
@@ -775,6 +780,7 @@ mrb_mruby_math_gem_init(mrb_state* mrb)
 
   mrb_define_module_function(mrb, mrb_math, "erf",  math_erf,  MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, mrb_math, "erfc", math_erfc, MRB_ARGS_REQ(1));
+#endif
 }
 
 void
