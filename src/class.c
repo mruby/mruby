@@ -443,8 +443,9 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
     p->flags |= MRB_PROC_SCOPE;
     p->c = NULL;
     mrb_field_write_barrier(mrb, (struct RBasic*)c, (struct RBasic*)p);
-    MRB_PROC_SET_TARGET_CLASS(p, c);
-    mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)c);
+    if (!MRB_PROC_ENV_P(p)) {
+      MRB_PROC_SET_TARGET_CLASS(p, c);
+    }
   }
   mc_clear_by_id(mrb, c, mid);
 }
