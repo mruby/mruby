@@ -455,7 +455,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     }
     else if (argc >= CALL_MAXARGS) {
       mrb_value args = mrb_ary_new_from_values(mrb, argc, argv);
-      stack_extend(mrb, ci->nregs);
+      stack_extend(mrb, ci->nregs+2);
       mrb->c->stack[1] = args;
       ci->argc = -1;
       argc = 1;
