@@ -84,7 +84,7 @@ dirname(mrb_state *mrb, const char *path)
 static source_file*
 source_file_new(mrb_state *mrb, mrb_debug_context *dbg, char *filename)
 {
-  source_file *file = NULL;
+  source_file *file;
 
   file = (source_file*)mrb_malloc(mrb, sizeof(source_file));
 
