@@ -193,7 +193,7 @@ mrb_debug_set_break_line(mrb_state *mrb, mrb_debug_context *dbg, const char *fil
     return MRB_DEBUG_BREAK_INVALID_LINENO;
   }
 
-  set_file = mrb_malloc(mrb, strlen(file) + 1);
+  set_file = (char*)mrb_malloc(mrb, strlen(file) + 1);
 
   index = dbg->bpnum;
   dbg->bp[index].bpno = dbg->next_bpno;
@@ -230,14 +230,14 @@ mrb_debug_set_break_method(mrb_state *mrb, mrb_debug_context *dbg, const char *c
   }
 
   if (class_name != NULL) {
-    set_class = mrb_malloc(mrb, strlen(class_name) + 1);
+    set_class = (char*)mrb_malloc(mrb, strlen(class_name) + 1);
     strncpy(set_class, class_name, strlen(class_name) + 1);
   }
   else {
     set_class = NULL;
   }
 
-  set_method = mrb_malloc(mrb, strlen(method_name) + 1);
+  set_method = (char*)mrb_malloc(mrb, strlen(method_name) + 1);
 
   strncpy(set_method, method_name, strlen(method_name) + 1);
 
@@ -503,5 +503,3 @@ mrb_debug_check_breakpoint_method(mrb_state *mrb, mrb_debug_context *dbg, struct
 
   return 0;
 }
-
-
