@@ -1606,6 +1606,12 @@ RETRY_TRY_BLOCK:
         }
       }
       recv = regs[0];
+      if (!mrb_obj_is_kind_of(mrb, recv, target_class)) {
+        mrb_value exc = mrb_exc_new_str_lit(mrb, E_TYPE_ERROR,
+                                            "self has wrong type to call super in this context");
+        mrb_exc_set(mrb, exc);
+        goto L_RAISE;
+      }
       blk = regs[bidx];
       if (!mrb_nil_p(blk) && mrb_type(blk) != MRB_TT_PROC) {
         blk = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
