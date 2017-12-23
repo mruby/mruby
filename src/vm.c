@@ -1419,7 +1419,7 @@ RETRY_TRY_BLOCK:
       if (MRB_METHOD_UNDEF_P(m)) {
         mrb_sym missing = mrb_intern_lit(mrb, "method_missing");
         m = mrb_method_search_vm(mrb, &c, missing);
-        if (MRB_METHOD_UNDEF_P(m)) {
+        if (MRB_METHOD_UNDEF_P(m) || (missing == mrb->c->ci->mid && mrb_obj_eq(mrb, regs[0], recv))) {
           mrb_value args = (argc < 0) ? regs[a+1] : mrb_ary_new_from_values(mrb, n, regs+a+1);
           ERR_PC_SET(mrb, pc);
           mrb_method_missing(mrb, mid, recv, args);
