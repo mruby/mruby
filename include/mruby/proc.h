@@ -96,28 +96,16 @@ MRB_API mrb_value mrb_proc_cfunc_env_get(mrb_state*, mrb_int);
 /* old name */
 #define mrb_cfunc_env_get(mrb, idx) mrb_proc_cfunc_env_get(mrb, idx)
 
-#ifdef MRB_METHOD_TABLE_INLINE
-
-#define MRB_METHOD_FUNC_FL ((uintptr_t)1U<<(sizeof(uintptr_t)*8-1))
+/* move to mruby.h */
+/*#define MRB_METHOD_FUNC_FL (1)
 #define MRB_METHOD_FUNC_P(m) ((uintptr_t)(m)&MRB_METHOD_FUNC_FL)
-#define MRB_METHOD_FUNC(m) ((mrb_func_t)((uintptr_t)(m)&(~MRB_METHOD_FUNC_FL)))
+#define MRB_METHOD_FUNC(m) ((mrb_func_t)(*((void **)(m)&(~MRB_METHOD_FUNC_FL))))
 #define MRB_METHOD_FROM_FUNC(m,fn) m=(mrb_method_t)((struct RProc*)((uintptr_t)(fn)|MRB_METHOD_FUNC_FL))
 #define MRB_METHOD_FROM_PROC(m,pr) m=(mrb_method_t)(struct RProc*)(pr)
 #define MRB_METHOD_PROC_P(m) (!MRB_METHOD_FUNC_P(m))
 #define MRB_METHOD_PROC(m) ((struct RProc*)(m))
-#define MRB_METHOD_UNDEF_P(m) ((m)==0)
+#define MRB_METHOD_UNDEF_P(m) ((m)==0)*/
 
-#else
-
-#define MRB_METHOD_FUNC_P(m) ((m).func_p)
-#define MRB_METHOD_FUNC(m) ((m).func)
-#define MRB_METHOD_FROM_FUNC(m,fn) do{(m).func_p=TRUE;(m).func=(fn);}while(0)
-#define MRB_METHOD_FROM_PROC(m,pr) do{(m).func_p=FALSE;(m).proc=(pr);}while(0)
-#define MRB_METHOD_PROC_P(m) (!MRB_METHOD_FUNC_P(m))
-#define MRB_METHOD_PROC(m) ((m).proc)
-#define MRB_METHOD_UNDEF_P(m) ((m).proc==NULL)
-
-#endif /* MRB_METHOD_TABLE_INLINE */
 
 #define MRB_METHOD_CFUNC_P(m) (MRB_METHOD_FUNC_P(m)?TRUE:(MRB_METHOD_PROC(m)?(MRB_PROC_CFUNC_P(MRB_METHOD_PROC(m))):FALSE))
 #define MRB_METHOD_CFUNC(m) (MRB_METHOD_FUNC_P(m)?MRB_METHOD_FUNC(m):((MRB_METHOD_PROC(m)&&MRB_PROC_CFUNC_P(MRB_METHOD_PROC(m)))?MRB_PROC_CFUNC(MRB_METHOD_PROC(m)):NULL))

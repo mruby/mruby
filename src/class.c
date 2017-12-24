@@ -84,10 +84,10 @@ setup_class(mrb_state *mrb, struct RClass *outer, struct RClass *c, mrb_sym id)
   mrb_obj_iv_set(mrb, (struct RObject*)outer, id, mrb_obj_value(c));
 }
 
-#define make_metaclass(mrb, c) prepare_singleton_class((mrb), (struct RBasic*)(c))
+#define make_metaclass(mrb, c) mrb_prepare_singleton_class((mrb), (struct RBasic*)(c))
 
-static void
-prepare_singleton_class(mrb_state *mrb, struct RBasic *o)
+void
+mrb_prepare_singleton_class(mrb_state *mrb, struct RBasic *o)
 {
   struct RClass *sc, *c;
 
@@ -114,7 +114,7 @@ prepare_singleton_class(mrb_state *mrb, struct RBasic *o)
   }
   else {
     sc->super = o->c;
-    prepare_singleton_class(mrb, (struct RBasic*)sc);
+    mrb_prepare_singleton_class(mrb, (struct RBasic*)sc);
   }
   o->c = sc;
   mrb_field_write_barrier(mrb, (struct RBasic*)o, (struct RBasic*)sc);
@@ -450,7 +450,7 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
   mc_clear_by_id(mrb, c, mid);
 }
 
-MRB_API void
+/*MRB_API void
 mrb_define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t func, mrb_aspec aspec)
 {
   mrb_method_t m;
@@ -459,13 +459,13 @@ mrb_define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t f
   MRB_METHOD_FROM_FUNC(m, func);
   mrb_define_method_raw(mrb, c, mid, m);
   mrb_gc_arena_restore(mrb, ai);
-}
+w}
 
 MRB_API void
 mrb_define_method(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t func, mrb_aspec aspec)
 {
   mrb_define_method_id(mrb, c, mrb_intern_cstr(mrb, name), func, aspec);
-}
+}*/
 
 /* a function to raise NotImplementedError with current method name */
 MRB_API void
@@ -1317,14 +1317,14 @@ mrb_singleton_class(mrb_state *mrb, mrb_value v)
     break;
   }
   obj = mrb_basic_ptr(v);
-  prepare_singleton_class(mrb, obj);
+  mrb_prepare_singleton_class(mrb, obj);
   return mrb_obj_value(obj->c);
 }
 
-MRB_API void
+/*MRB_API void
 mrb_define_singleton_method(mrb_state *mrb, struct RObject *o, const char *name, mrb_func_t func, mrb_aspec aspec)
 {
-  prepare_singleton_class(mrb, (struct RBasic*)o);
+  mrb_prepare_singleton_class(mrb, (struct RBasic*)o);
   mrb_define_method_id(mrb, o->c, mrb_intern_cstr(mrb, name), func, aspec);
 }
 
@@ -1339,7 +1339,7 @@ mrb_define_module_function(mrb_state *mrb, struct RClass *c, const char *name, m
 {
   mrb_define_class_method(mrb, c, name, func, aspec);
   mrb_define_method(mrb, c, name, func, aspec);
-}
+  }*/
 
 #ifdef MRB_METHOD_CACHE
 static void
@@ -2420,7 +2420,7 @@ mrb_mod_module_function(mrb_state *mrb, mrb_value mod)
     rclass = mrb_class_ptr(mod);
     m = mrb_method_search(mrb, rclass, mid);
 
-    prepare_singleton_class(mrb, (struct RBasic*)rclass);
+    mrb_prepare_singleton_class(mrb, (struct RBasic*)rclass);
     ai = mrb_gc_arena_save(mrb);
     mrb_define_method_raw(mrb, rclass->c, mid, m);
     mrb_gc_arena_restore(mrb, ai);
