@@ -165,7 +165,7 @@ class Hash
       elsif none != NONE
         none
       else
-        raise KeyError, "Key not found: #{key}"
+        raise KeyError, "Key not found: #{key.inspect}"
       end
     else
       self[key]
