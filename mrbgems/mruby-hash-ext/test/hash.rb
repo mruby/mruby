@@ -292,3 +292,9 @@ assert("Hash#transform_values") do
   assert_equal(h, h.transform_values!{|v|v.to_s})
   assert_equal({a: "1", b: "2", c: "3"}, h)
 end
+
+assert("Hash#slice") do
+  h = { a: 100, b: 200, c: 300 }
+  assert_equal({:a=>100}, h.slice(:a))
+  assert_equal({:b=>200, :c=>300}, h.slice(:b, :c, :d))
+end
