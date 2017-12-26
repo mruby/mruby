@@ -1,4 +1,4 @@
-unless SocketTest.win?
+unless SocketTest.win? || SocketTest.cygwin?
 
 def unixserver_test_block
   path = SocketTest.tmppath
