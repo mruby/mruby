@@ -15,7 +15,7 @@ assert('Socket::getaddrinfo') do
   assert_equal "127.0.0.1",         a[3]
   assert_equal Socket::AF_INET,     a[4]
   assert_equal Socket::SOCK_DGRAM,  a[5]
-  assert_equal Socket::IPPROTO_UDP, a[6]
+  assert_equal Socket::IPPROTO_UDP, a[6] unless SocketTest.cygwin?
 end
 
 assert('Socket#recvfrom') do
