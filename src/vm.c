@@ -440,6 +440,12 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     if (mrb->c->ci - mrb->c->cibase > MRB_FUNCALL_DEPTH_MAX) {
       mrb_exc_raise(mrb, mrb_obj_value(mrb->stack_err));
     }
+    if (MRB_DMETHOD_CFUNC_P(m)) {
+      int ai = mrb_gc_arena_save(mrb);
+      val = MRB_DMETHOD_CFUNC(m)(mrb, mrb->c->stack, argc);
+      mrb_gc_arena_restore(mrb, ai);
+      return val;
+    }
     ci = cipush(mrb);
     ci->mid = mid;
     ci->stackent = mrb->c->stack;
@@ -1436,6 +1442,14 @@ RETRY_TRY_BLOCK:
         mid = missing;
       }
 
+      if (MRB_DMETHOD_CFUNC_P(m)) {
+        regs[a] = (MRB_DMETHOD_CFUNC(m))(mrb, regs + a, argc);
+        mrb_gc_arena_restore(mrb, ai);
+        mrb_gc_arena_shrink(mrb, ai);
+        if (mrb->exc) goto L_RAISE;
+
+	NEXT;
+      }
       /* push callinfo */
       ci = cipush(mrb);
       ci->mid = mid;
@@ -1644,6 +1658,17 @@ RETRY_TRY_BLOCK:
           argc = -1;
         }
         mrb_ary_unshift(mrb, regs[a+1], mrb_symbol_value(ci->mid));
+      }
+
+      if (MRB_DMETHOD_CFUNC_P(m)) {
+ 	regs[a] = (MRB_DMETHOD_CFUNC(m))(mrb, regs + a, argc);
+        mrb_gc_arena_restore(mrb, ai);
+        mrb_gc_arena_shrink(mrb, ai);
+        if (mrb->exc) {
+	  goto L_RAISE;
+	}
+	  
+	NEXT;
       }
 
       /* push callinfo */

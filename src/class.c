@@ -459,7 +459,7 @@ mrb_define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t f
   MRB_METHOD_FROM_FUNC(m, func);
   mrb_define_method_raw(mrb, c, mid, m);
   mrb_gc_arena_restore(mrb, ai);
-w}
+}
 
 MRB_API void
 mrb_define_method(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t func, mrb_aspec aspec)

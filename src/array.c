@@ -4,6 +4,7 @@
 ** See Copyright Notice in mruby.h
 */
 
+#include <assert.h>
 #include <mruby.h>
 #include <mruby/array.h>
 #include <mruby/class.h>
@@ -809,13 +810,22 @@ aget_index(mrb_state *mrb, mrb_value index)
  */
 
 static mrb_value
-mrb_ary_aget(mrb_state *mrb, mrb_value self)
+mrb_ary_aget(mrb_state *mrb, mrb_value *regs, mrb_int argc)
 {
+  mrb_value self = regs[0];
   struct RArray *a = mrb_ary_ptr(self);
   mrb_int i, len, alen = ARY_LEN(a);
-  mrb_value index;
+  mrb_value index = regs[1];
 
-  if (mrb_get_args(mrb, "o|i", &index, &len) == 1) {
+  if (argc == 0 || argc > 2) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
+  }
+
+  if (argc == 2) {
+    len = mrb_fixnum(regs[2]);
+  }
+    
+  if (argc == 1) {
     switch (mrb_type(index)) {
       /* a[n..m] */
     case MRB_TT_RANGE:
@@ -1220,7 +1230,7 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method(mrb, a, "+",               mrb_ary_plus,         MRB_ARGS_REQ(1)); /* 15.2.12.5.1  */
   mrb_define_method(mrb, a, "*",               mrb_ary_times,        MRB_ARGS_REQ(1)); /* 15.2.12.5.2  */
   mrb_define_method(mrb, a, "<<",              mrb_ary_push_m,       MRB_ARGS_REQ(1)); /* 15.2.12.5.3  */
-  mrb_define_method(mrb, a, "[]",              mrb_ary_aget,         MRB_ARGS_ANY());  /* 15.2.12.5.4  */
+  mrb_define_dmethod(mrb, a, "[]",              mrb_ary_aget,         MRB_ARGS_ANY());  /* 15.2.12.5.4  */
   mrb_define_method(mrb, a, "[]=",             mrb_ary_aset,         MRB_ARGS_ANY());  /* 15.2.12.5.5  */
   mrb_define_method(mrb, a, "clear",           mrb_ary_clear,        MRB_ARGS_NONE()); /* 15.2.12.5.6  */
   mrb_define_method(mrb, a, "concat",          mrb_ary_concat_m,     MRB_ARGS_REQ(1)); /* 15.2.12.5.8  */
@@ -1241,7 +1251,7 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method(mrb, a, "rindex",          mrb_ary_rindex_m,     MRB_ARGS_REQ(1)); /* 15.2.12.5.26 */
   mrb_define_method(mrb, a, "shift",           mrb_ary_shift,        MRB_ARGS_NONE()); /* 15.2.12.5.27 */
   mrb_define_method(mrb, a, "size",            mrb_ary_size,         MRB_ARGS_NONE()); /* 15.2.12.5.28 */
-  mrb_define_method(mrb, a, "slice",           mrb_ary_aget,         MRB_ARGS_ANY());  /* 15.2.12.5.29 */
+  mrb_define_dmethod(mrb, a, "slice",           mrb_ary_aget,         MRB_ARGS_ANY());  /* 15.2.12.5.29 */
   mrb_define_method(mrb, a, "unshift",         mrb_ary_unshift_m,    MRB_ARGS_ANY());  /* 15.2.12.5.30 */
   mrb_define_method(mrb, a, "prepend",         mrb_ary_unshift_m,    MRB_ARGS_ANY());
 

@@ -171,6 +171,7 @@ struct mrb_context {
 #endif
 
 typedef mrb_value (*mrb_func_t)(struct mrb_state *mrb, mrb_value);
+typedef mrb_value (*mrb_dfunc_t)(struct mrb_state *mrb, mrb_value *, mrb_int);
 
 typedef uintptr_t mrb_method_t;
 
@@ -326,11 +327,15 @@ void mrb_prepare_singleton_class(mrb_state *, struct RBasic *);
 
 /* Utilty macros for METHOD */
 #define MRB_METHOD_FUNC_FL (1)
+#define MRB_DMETHOD_FUNC_FL (2)
 #define MRB_METHOD_FUNC_P(m) ((uintptr_t)(m)&MRB_METHOD_FUNC_FL)
+#define MRB_DMETHOD_FUNC_P(m) ((uintptr_t)(m)&MRB_DMETHOD_FUNC_FL)
 #define MRB_METHOD_FUNC(m) (*((mrb_func_t *)(((uintptr_t)(m))&(~MRB_METHOD_FUNC_FL))))
+#define MRB_DMETHOD_FUNC(m) (*(mrb_dfunc_t *)(((uintptr_t)(m))&(~MRB_DMETHOD_FUNC_FL)))
 #define MRB_METHOD_FROM_FUNC(m,fn) m=(mrb_method_t)((struct RProc*)((uintptr_t)(fn)|MRB_METHOD_FUNC_FL))
+#define MRB_DMETHOD_FROM_FUNC(m,fn) m=(mrb_method_t)((struct RProc*)((uintptr_t)(fn)|MRB_DMETHOD_FUNC_FL))
 #define MRB_METHOD_FROM_PROC(m,pr) m=(mrb_method_t)(struct RProc*)(pr)
-#define MRB_METHOD_PROC_P(m) (!MRB_METHOD_FUNC_P(m))
+#define MRB_METHOD_PROC_P(m) (!(MRB_METHOD_FUNC_P(m) || MRB_DMETHOD_FUNC_P(m)))
 #define MRB_METHOD_PROC(m) ((struct RProc*)(m))
 #define MRB_METHOD_UNDEF_P(m) ((m)==0)
 
@@ -342,6 +347,16 @@ void mrb_prepare_singleton_class(mrb_state *, struct RBasic *);
   MRB_METHOD_FROM_FUNC(m_, &tab_## func);                        \
   mrb_define_method_raw(mrb, (c), (mid), m_);                    \
   mrb_gc_arena_restore(mrb, ai_);                                \
+}
+
+#define mrb_define_dmethod_id(mrb, c, mid, func, aspec)  {       \
+  static void *tab_## func = func;                               \
+  mrb_method_t m;                                                \
+  int ai = mrb_gc_arena_save(mrb);                               \
+                                                                 \
+  MRB_DMETHOD_FROM_FUNC(m, &tab_## func);                        \
+  mrb_define_method_raw(mrb, c, mid, m);                         \
+  mrb_gc_arena_restore(mrb, ai);                                 \
 }
 
 
@@ -374,6 +389,10 @@ void mrb_prepare_singleton_class(mrb_state *, struct RBasic *);
 
 #define mrb_define_method(mrb,cla,name,func,aspec) {                   \
     mrb_define_method_id(mrb, cla, mrb_intern_cstr(mrb, name), func, aspec); \
+}
+
+#define mrb_define_dmethod(mrb,cla,name,func,aspec) {                   \
+    mrb_define_dmethod_id(mrb, cla, mrb_intern_cstr(mrb, name), func, aspec); \
 }
 
 
