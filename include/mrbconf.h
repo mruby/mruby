@@ -36,12 +36,6 @@
 /* size of the method cache (need to be the power of 2) */
 //#define MRB_METHOD_CACHE_SIZE (1<<7)
 
-/* add -DMRB_METHOD_TABLE_INLINE unless platform uses MSB of pointers */
-//#define MRB_METHOD_TABLE_INLINE
-/* turn MRB_METHOD_TABLE_INLINE on for linux by default */
-#if !defined(MRB_METHOD_TABLE_INLINE) && defined(__linux__)
-# define MRB_METHOD_TABLE_INLINE
-#endif
 
 /* add -DMRB_INT16 to use 16bit integer for mrb_int; conflict with MRB_INT64 */
 //#define MRB_INT16
