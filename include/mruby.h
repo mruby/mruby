@@ -336,12 +336,12 @@ void mrb_prepare_singleton_class(mrb_state *, struct RBasic *);
 
 #define mrb_define_method_id(mrb, c, mid, func, aspec)  {        \
   static void *tab_## func = func;                               \
-  mrb_method_t m;                                                \
-  int ai = mrb_gc_arena_save(mrb);                               \
+  mrb_method_t m_;                                               \
+  int ai_ = mrb_gc_arena_save(mrb);                              \
                                                                  \
-  MRB_METHOD_FROM_FUNC(m, &tab_## func);                         \
-  mrb_define_method_raw(mrb, c, mid, m);                         \
-  mrb_gc_arena_restore(mrb, ai);                                 \
+  MRB_METHOD_FROM_FUNC(m_, &tab_## func);                        \
+  mrb_define_method_raw(mrb, (c), (mid), m_);			 \
+  mrb_gc_arena_restore(mrb, ai_);                                \
 }
 
 
