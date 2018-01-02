@@ -815,17 +815,10 @@ mrb_ary_aget(mrb_state *mrb, mrb_value *regs, mrb_int argc)
   mrb_value self = regs[0];
   struct RArray *a = mrb_ary_ptr(self);
   mrb_int i, len, alen = ARY_LEN(a);
-  mrb_value index = regs[1];
+  mrb_value index;
 
-  if (argc == 0 || argc > 2) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
-  }
-
-  if (argc == 2) {
-    len = mrb_fixnum(regs[2]);
-  }
     
-  if (argc == 1) {
+  if (mrb_get_args_direct(mrb, argc, regs, "o|i", &index, &len) == 1) {
     switch (mrb_type(index)) {
       /* a[n..m] */
     case MRB_TT_RANGE:

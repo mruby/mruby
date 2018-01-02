@@ -568,51 +568,17 @@ mrb_get_argv(mrb_state *mrb)
   return array_argv;
 }
 
-/*
-  retrieve arguments from mrb_state.
-
-  mrb_get_args(mrb, format, ...)
-
-  returns number of arguments parsed.
-
-  format specifiers:
-
-    string  mruby type     C type                 note
-    ----------------------------------------------------------------------------------------------
-    o:      Object         [mrb_value]
-    C:      class/module   [mrb_value]
-    S:      String         [mrb_value]            when ! follows, the value may be nil
-    A:      Array          [mrb_value]            when ! follows, the value may be nil
-    H:      Hash           [mrb_value]            when ! follows, the value may be nil
-    s:      String         [char*,mrb_int]        Receive two arguments; s! gives (NULL,0) for nil
-    z:      String         [char*]                NUL terminated string; z! gives NULL for nil
-    a:      Array          [mrb_value*,mrb_int]   Receive two arguments; a! gives (NULL,0) for nil
-    f:      Float          [mrb_float]
-    i:      Integer        [mrb_int]
-    b:      Boolean        [mrb_bool]
-    n:      Symbol         [mrb_sym]
-    d:      Data           [void*,mrb_data_type const] 2nd argument will be used to check data type so it won't be modified
-    I:      Inline struct  [void*]
-    &:      Block          [mrb_value]
-    *:      rest argument  [mrb_value*,mrb_int]   The rest of the arguments as an array; *! avoid copy of the stack
-    |:      optional                              Following arguments are optional
-    ?:      optional given [mrb_bool]             true if preceding argument (optional) is given
- */
-MRB_API mrb_int
-mrb_get_args(mrb_state *mrb, const char *format, ...)
+static mrb_int
+  mrb_get_args_aux(mrb_state *mrb, mrb_int argc, mrb_value *array_argv, const char *format, va_list ap)
 {
   const char *fmt = format;
   char c;
   mrb_int i = 0;
-  va_list ap;
-  mrb_int argc = mrb_get_argc(mrb);
   mrb_int arg_i = 0;
-  mrb_value *array_argv = mrb_get_argv(mrb);
   mrb_bool opt = FALSE;
   mrb_bool opt_skip = TRUE;
   mrb_bool given = TRUE;
 
-  va_start(ap, format);
 
 #define ARGV \
   (array_argv ? array_argv : (mrb->c->stack + 1))
@@ -997,8 +963,64 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
   if (!c && argc > i) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
   }
-  va_end(ap);
+
   return i;
+}
+
+/*
+  retrieve arguments from mrb_state.
+
+  mrb_get_args(mrb, format, ...)
+
+  returns number of arguments parsed.
+
+  format specifiers:
+
+    string  mruby type     C type                 note
+    ----------------------------------------------------------------------------------------------
+    o:      Object         [mrb_value]
+    C:      class/module   [mrb_value]
+    S:      String         [mrb_value]            when ! follows, the value may be nil
+    A:      Array          [mrb_value]            when ! follows, the value may be nil
+    H:      Hash           [mrb_value]            when ! follows, the value may be nil
+    s:      String         [char*,mrb_int]        Receive two arguments; s! gives (NULL,0) for nil
+    z:      String         [char*]                NUL terminated string; z! gives NULL for nil
+    a:      Array          [mrb_value*,mrb_int]   Receive two arguments; a! gives (NULL,0) for nil
+    f:      Float          [mrb_float]
+    i:      Integer        [mrb_int]
+    b:      Boolean        [mrb_bool]
+    n:      Symbol         [mrb_sym]
+    d:      Data           [void*,mrb_data_type const] 2nd argument will be used to check data type so it won't be modified
+    I:      Inline struct  [void*]
+    &:      Block          [mrb_value]
+    *:      rest argument  [mrb_value*,mrb_int]   The rest of the arguments as an array; *! avoid copy of the stack
+    |:      optional                              Following arguments are optional
+    ?:      optional given [mrb_bool]             true if preceding argument (optional) is given
+ */
+MRB_API mrb_int
+mrb_get_args(mrb_state *mrb, const char *format, ...)
+{
+  va_list ap;
+  mrb_int rc;
+
+  va_start(ap, format);
+  rc = mrb_get_args_aux(mrb, mrb_get_argc(mrb), mrb_get_argv(mrb), format, ap);
+  va_end(ap);
+
+  return rc;
+}
+
+MRB_API mrb_int
+mrb_get_args_direct(mrb_state *mrb, mrb_int argc, mrb_value *argv, const char *format, ...)
+{
+  va_list ap;
+  mrb_int rc;
+
+  va_start(ap, format);
+  rc = mrb_get_args_aux(mrb, argc, argv + 1, format, ap);
+  va_end(ap);
+
+  return rc;
 }
 
 static struct RClass*

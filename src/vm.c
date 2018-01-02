@@ -442,7 +442,12 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     }
     if (MRB_DMETHOD_CFUNC_P(m)) {
       int ai = mrb_gc_arena_save(mrb);
-      val = MRB_DMETHOD_CFUNC(m)(mrb, mrb->c->stack, argc);
+      mrb->c->stack[n] = self;
+      if (argc > 0) {
+	stack_copy(mrb->c->stack+n+1, argv, argc);
+      }
+      mrb->c->stack[argc+n+1] = blk;
+      val = MRB_DMETHOD_CFUNC(m)(mrb, mrb->c->stack + n, argc);
       mrb_gc_arena_restore(mrb, ai);
       return val;
     }

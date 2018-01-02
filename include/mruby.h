@@ -918,6 +918,7 @@ typedef const char *mrb_args_format;
  * @see mrb_args_format
  */
 MRB_API mrb_int mrb_get_args(mrb_state *mrb, mrb_args_format format, ...);
+MRB_API mrb_int mrb_get_args_direct(mrb_state *mrb, mrb_int argc, mrb_value *argv, const char *format, ...);
 
 static inline mrb_sym
 mrb_get_mid(mrb_state *mrb) /* get method symbol */
