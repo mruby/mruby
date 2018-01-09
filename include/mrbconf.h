@@ -38,9 +38,13 @@
 
 /* add -DMRB_METHOD_TABLE_INLINE unless platform uses MSB of pointers */
 //#define MRB_METHOD_TABLE_INLINE
+/* add -DMRB_WITHOUT_METHOD_TABLE_INLINE to don't use method table inline */
+//#define MRB_WITHOUT_METHOD_TABLE_INLINE
 /* turn MRB_METHOD_TABLE_INLINE on for linux by default */
+#if !defined(MRB_WITHOUT_METHOD_TABLE_INLINE) 
 #if !defined(MRB_METHOD_TABLE_INLINE) && defined(__linux__)
 # define MRB_METHOD_TABLE_INLINE
+#endif
 #endif
 
 /* add -DMRB_INT16 to use 16bit integer for mrb_int; conflict with MRB_INT64 */
