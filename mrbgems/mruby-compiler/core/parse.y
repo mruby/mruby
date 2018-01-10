@@ -2568,7 +2568,7 @@ lambda_body     : tLAMBEG compstmt '}'
                     {
                       $$ = $2;
                     }
-                | keyword_do_LAMBDA compstmt keyword_end
+                | keyword_do_LAMBDA bodystmt keyword_end
                     {
                       $$ = $2;
                     }
