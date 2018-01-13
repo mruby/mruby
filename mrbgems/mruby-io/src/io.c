@@ -684,7 +684,7 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet)
       io_set_process_status(mrb, pid, status);
     }
 #else
-    HANDLE h = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, fptr->pid); 
+    HANDLE h = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, fptr->pid);
     DWORD status;
     if (WaitForSingleObject(h, INFINITE) && GetExitCodeProcess(h, &status))
       if (!quiet)
