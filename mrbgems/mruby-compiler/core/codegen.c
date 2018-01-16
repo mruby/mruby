@@ -149,8 +149,14 @@ new_label(codegen_scope *s)
 static inline int
 genop(codegen_scope *s, mrb_code i)
 {
-  if (s->pc == s->icapa) {
+  if (s->pc >= s->icapa) {
     s->icapa *= 2;
+    if (s->pc >= MAXARG_sBx) {
+      codegen_error(s, "too big code block");
+    }
+    if (s->icapa > MAXARG_sBx) {
+      s->icapa = MAXARG_sBx;
+    }
     s->iseq = (mrb_code *)codegen_realloc(s, s->iseq, sizeof(mrb_code)*s->icapa);
     if (s->lines) {
       s->lines = (uint16_t*)codegen_realloc(s, s->lines, sizeof(short)*s->icapa);
