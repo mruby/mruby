@@ -1744,7 +1744,7 @@ mrb_class_path(mrb_state *mrb, struct RClass *c)
     return mrb_class_find_path(mrb, c);
   }
   else if (mrb_symbol_p(path)) {
-    /* topleve class/module */
+    /* toplevel class/module */
     const char *str;
     mrb_int len;
 
