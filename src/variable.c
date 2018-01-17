@@ -955,27 +955,61 @@ find_class_sym(mrb_state *mrb, struct RClass *outer, struct RClass *c)
   return arg.sym;
 }
 
+static struct RClass*
+outer_class(mrb_state *mrb, struct RClass *c)
+{
+  mrb_value ov;
+
+  ov = mrb_obj_iv_get(mrb, (struct RObject*)c, mrb_intern_lit(mrb, "__outer__"));
+  if (mrb_nil_p(ov)) return NULL;
+  switch (mrb_type(ov)) {
+  case MRB_TT_CLASS:
+  case MRB_TT_MODULE:
+    return mrb_class_ptr(ov);
+  default:
+    break;
+  }
+  return NULL;
+}
+
+static mrb_bool
+detect_outer_loop(mrb_state *mrb, struct RClass *c)
+{
+  struct RClass *t = c;         /* tortoise */
+  struct RClass *h = c;         /* hare */
+
+  for (;;) {
+    if (h == NULL) return FALSE;
+    h = outer_class(mrb, h);
+    if (h == NULL) return FALSE;
+    h = outer_class(mrb, h);
+    t = outer_class(mrb, t);
+    if (t == h) return TRUE;
+  }
+}
+
 mrb_value
 mrb_class_find_path(mrb_state *mrb, struct RClass *c)
 {
-  mrb_value outer, path;
+  struct RClass *outer;
+  mrb_value path;
   mrb_sym name;
   const char *str;
   mrb_int len;
-  mrb_sym osym = mrb_intern_lit(mrb, "__outer__");
 
-  outer = mrb_obj_iv_get(mrb, (struct RObject*)c, osym);
-  if (mrb_nil_p(outer)) return outer;
-  name = find_class_sym(mrb, mrb_class_ptr(outer), c);
+  if (detect_outer_loop(mrb, c)) return mrb_nil_value();
+  outer = outer_class(mrb, c);
+  if (outer == NULL) return mrb_nil_value();
+  name = find_class_sym(mrb, outer, c);
   if (name == 0) return mrb_nil_value();
-  str = mrb_class_name(mrb, mrb_class_ptr(outer));
+  str = mrb_class_name(mrb, outer);
   path = mrb_str_new_capa(mrb, 40);
   mrb_str_cat_cstr(mrb, path, str);
   mrb_str_cat_cstr(mrb, path, "::");
 
   str = mrb_sym2name_len(mrb, name, &len);
   mrb_str_cat(mrb, path, str, len);
-  iv_del(mrb, c->iv, osym, NULL);
+  iv_del(mrb, c->iv, mrb_intern_lit(mrb, "__outer__"), NULL);
   iv_put(mrb, c->iv, mrb_intern_lit(mrb, "__classname__"), path);
   mrb_field_write_barrier_value(mrb, (struct RBasic*)c, path);
   return path;
