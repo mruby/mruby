@@ -226,3 +226,19 @@ assert('2000 times 500us make a second') do
   end
   t.usec == 0
 end
+
+assert('Time.new with Dec 31 23:59:59 1969 raise ArgumentError') do
+  assert_raise(ArgumentError) {Time.new(1969, 12, 31, 23, 59, 59)}
+end
+
+assert('Time.gm with Dec 31 23:59:59 1969 raise ArgumentError') do
+  assert_raise(ArgumentError) {Time.gm(1969, 12, 31, 23, 59, 59)}
+end
+
+assert('Time.new can make less than Dec 31 23:59:58 1969') do
+  Time.new(1969, 12, 31, 23, 59, 58).year == 1969
+end
+
+assert('Time.gm can make less than Dec 31 23:59:58 1969') do
+  Time.gm(1969, 12, 31, 23, 59, 58).year == 1969
+end
