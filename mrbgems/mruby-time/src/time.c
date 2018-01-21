@@ -138,8 +138,14 @@ timegm(struct tm *tm)
   int i;
   unsigned int *nday = (unsigned int*) ndays[is_leapyear(tm->tm_year+1900)];
 
-  for (i = 70; i < tm->tm_year; ++i)
-    r += is_leapyear(i+1900) ? 366*24*60*60 : 365*24*60*60;
+  static const int epoch_year = 70;
+  if(tm->tm_year >= epoch_year) {
+    for (i = epoch_year; i < tm->tm_year; ++i)
+      r += is_leapyear(i+1900) ? 366*24*60*60 : 365*24*60*60;
+  } else {
+    for (i = tm->tm_year; i < epoch_year; ++i)
+      r -= is_leapyear(i+1900) ? 366*24*60*60 : 365*24*60*60;
+  }
   for (i = 0; i < tm->tm_mon; ++i)
     r += nday[i] * 24 * 60 * 60;
   r += (tm->tm_mday - 1) * 24 * 60 * 60;
