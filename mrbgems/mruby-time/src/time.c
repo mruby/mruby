@@ -67,6 +67,11 @@ double round(double x) {
 /* define following macro to use probably faster timegm() on the platform */
 /* #define USE_SYSTEM_TIMEGM */
 
+/* time_t */
+/* If your platform supports time_t as uint (e.g. uint32_t, uint64_t), */
+/* uncomment following macro. */
+/* #define MRB_TIME_T_UINT */
+
 /** end of Time class configuration */
 
 #ifndef NO_GETTIMEOFDAY
@@ -240,13 +245,21 @@ time_alloc(mrb_state *mrb, double sec, double usec, enum mrb_timezone timezone)
 
   mrb_check_num_exact(mrb, (mrb_float)sec);
   mrb_check_num_exact(mrb, (mrb_float)usec);
-
+#ifndef MRB_TIME_T_UINT
   if (sizeof(time_t) == 4 && (sec > (double)INT32_MAX || (double)INT32_MIN > sec)) {
     goto out_of_range;
   }
   if (sizeof(time_t) == 8 && (sec > (double)INT64_MAX || (double)INT64_MIN > sec)) {
     goto out_of_range;
   }
+#else
+  if (sizeof(time_t) == 4 && (sec > (double)UINT32_MAX || (double)0 > sec)) {
+    goto out_of_range;
+  }
+  if (sizeof(time_t) == 8 && (sec > (double)UINT64_MAX || (double)0 > sec)) {
+    goto out_of_range;
+  }
+#endif
   tsec  = (time_t)sec;
   if ((sec > 0 && tsec < 0) || (sec < 0 && (double)tsec > sec)) {
   out_of_range:
@@ -371,9 +384,11 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
   else {
     nowsecs = mktime(&nowtime);
   }
+#ifndef MRB_TIME_T_UINT
   if (nowsecs == (time_t)-1) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "Not a valid time.");
   }
+#endif
 
   return time_alloc(mrb, (double)nowsecs, (double)ausec, timezone);
 }
