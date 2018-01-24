@@ -216,6 +216,10 @@ assert('IO#dup for readable') do
   dup = io.dup
   assert_true io != dup
   assert_true io.fileno != dup.fileno
+  begin
+    assert_true dup.close_on_exec?
+  rescue NotImplementedError
+  end
   assert_equal 'm', dup.sysread(1)
   assert_equal 'r', io.sysread(1)
   assert_equal 'u', dup.sysread(1)
