@@ -384,11 +384,9 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
   else {
     nowsecs = mktime(&nowtime);
   }
-#ifndef MRB_TIME_T_UINT
   if (nowsecs == (time_t)-1) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "Not a valid time.");
   }
-#endif
 
   return time_alloc(mrb, (double)nowsecs, (double)ausec, timezone);
 }
