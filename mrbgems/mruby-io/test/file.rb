@@ -54,7 +54,7 @@ assert('File.extname') do
   assert_equal '', File.extname('.foo')
 end
 
-assert('IO#flock') do
+assert('File#flock') do
   f = File.open $mrbtest_io_rfname
   begin
     assert_equal(f.flock(File::LOCK_SH), 0)
@@ -65,6 +65,22 @@ assert('IO#flock') do
     skip e.message
   ensure
     f.close
+  end
+end
+
+assert('File#mtime') do
+  unless Object.const_defined?(:Time)
+    skip "File#mtime require Time"
+  end
+  begin
+    now = Time.now.to_i
+    mt = 0
+    File.open('mtime-test', 'w') do |f|
+      mt = f.mtime.to_i
+    end
+    assert_equal true, mt >= now
+  ensure
+    File.delete('mtime-test')
   end
 end
 
