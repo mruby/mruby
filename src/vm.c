@@ -2934,9 +2934,6 @@ RETRY_TRY_BLOCK:
     CASE(OP_STOP) {
       /*        stop VM */
     L_STOP:
-      while (mrb->c->ci > mrb->c->cibase) {
-        cipop(mrb);
-      }
       while (mrb->c->eidx > 0) {
         ecall(mrb);
       }
