@@ -6,10 +6,11 @@
 
 #if defined(_WIN32) || defined(_WIN64)
 
+#ifdef _MSC_VER
+
 #define close _close
 #define unlink _unlink
 
-#ifdef _MSC_VER
 static int
 mkstemp(char *p)
 {
