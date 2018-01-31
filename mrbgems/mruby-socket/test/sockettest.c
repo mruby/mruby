@@ -23,6 +23,10 @@ mkstemp(char *p)
     return fd;
   return -1;
 }
+#else
+
+#include <io.h>
+
 #endif
 
 #else
