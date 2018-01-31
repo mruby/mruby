@@ -2,18 +2,49 @@
 #include <stdlib.h>
 
 #include "mruby.h"
+#include "mruby/error.h"
 
-#ifdef _WIN32
-  #define tempnam _tempnam
+#if defined(_WIN32) || defined(_WIN64)
+
+#define close _close
+#define unlink _unlink
+
+#ifdef _MSC_VER
+static int
+mkstemp(char *p)
+{
+  int fd;
+  char* fname = _mktemp(p);
+  if (fname == NULL)
+    return -1;
+  fd = open(fname, O_RDWR | O_CREAT | O_EXCL, _S_IREAD | _S_IWRITE);
+  if (fd >= 0)
+    return fd;
+  return -1;
+}
+#endif
+
+#else
+
+#include <unistd.h>
+
 #endif
 
 mrb_value
 mrb_sockettest_tmppath(mrb_state *mrb, mrb_value klass)
 {
-  char *tmp = tempnam(NULL, "mruby-socket");
-  mrb_value str = mrb_str_new_cstr(mrb, tmp);
-  free(tmp);
-  return str;
+  char name[] = "mruby-socket.XXXXXXXX";
+  int fd = mkstemp(name);
+  if (fd == -1) {
+    mrb_sys_fail(mrb, 0);
+  }
+  if (close(fd) == -1) {
+    mrb_sys_fail(mrb, 0);
+  }
+  if (unlink(name) == -1) {
+    mrb_sys_fail(mrb, 0);
+  }
+  return mrb_str_new_cstr(mrb, name);
 }
 
 mrb_value
