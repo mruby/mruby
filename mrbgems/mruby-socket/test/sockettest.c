@@ -6,8 +6,11 @@
 
 #if defined(_WIN32) || defined(_WIN64)
 
+#include <io.h>
+
 #ifdef _MSC_VER
 
+#include <io.h>
 #define close _close
 #define unlink _unlink
 
@@ -23,10 +26,6 @@ mkstemp(char *p)
     return fd;
   return -1;
 }
-#else
-
-#include <io.h>
-
 #endif
 
 #else
