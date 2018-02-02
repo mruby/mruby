@@ -10,7 +10,8 @@
 
 #ifdef _MSC_VER
 
-#include <io.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 #define close _close
 #define unlink _unlink
 
