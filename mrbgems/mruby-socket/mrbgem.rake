@@ -11,7 +11,7 @@ MRuby::Gem::Specification.new('mruby-socket') do |spec|
     spec.linker.libraries << "ws2_32"
   end
 
-  spec.add_dependency('mruby-io')
-  spec.add_dependency('mruby-pack')
+  spec.add_dependency('mruby-io', :core => 'mruby-io')
+  spec.add_dependency('mruby-pack', :core => 'mruby-pack')
   # spec.add_dependency('mruby-mtest')
 end
