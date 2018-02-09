@@ -1050,6 +1050,9 @@ alias:
       count = ch - '0';
       while (tmpl->idx < tlen && isdigit(tptr[tmpl->idx])) {
         count = count * 10 + (tptr[tmpl->idx++] - '0');
+        if (count < 0) {
+          mrb_raisef(mrb, E_RUNTIME_ERROR, "too big template length");
+        }
       }
       continue;  /* special case */
     } else if (ch == '*')  {
