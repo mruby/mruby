@@ -1,4 +1,10 @@
 MRuby::GemBox.new do |conf|
+  # Use standard IO/File class
+  conf.gem :core => "mruby-io"
+
+  # Use standard Array#pack, String#unpack methods
+  conf.gem :core => "mruby-pack"
+
   # Use standard Kernel#sprintf method
   conf.gem :core => "mruby-sprintf"
 
