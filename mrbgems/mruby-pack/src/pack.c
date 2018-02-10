@@ -833,9 +833,10 @@ pack_x(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, long count, u
 {
   long i;
 
+  if (count < 0) return 0;
   dst = str_len_ensure(mrb, dst, didx + count);
-  for (i = 0; i < count; i++) {
-    RSTRING_PTR(dst)[didx] = '\0';
+  for (i = didx; i < count; i++) {
+    RSTRING_PTR(dst)[i] = '\0';
   }
   return count;
 }
@@ -843,6 +844,7 @@ pack_x(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, long count, u
 static int
 unpack_x(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, unsigned int flags)
 {
+  if (count < 0) return slen;
   if (slen < count) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "x outside of string");
   }
