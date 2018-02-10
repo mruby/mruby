@@ -3974,6 +3974,7 @@ parse_string(parser_state *p)
   int end = intn(p->lex_strterm->cdr->cdr->cdr);
   parser_heredoc_info *hinf = (type & STR_FUNC_HEREDOC) ? parsing_heredoc_inf(p) : NULL;
   int cmd_state = p->cmd_start;
+  int label_p = IS_LABEL_POSSIBLE();
 
   if (beg == 0) beg = -3;       /* should never happen */
   if (end == 0) end = -3;
@@ -4188,7 +4189,7 @@ parse_string(parser_state *p)
     return tREGEXP;
   }
   pylval.nd = new_str(p, tok(p), toklen(p));
-  if (IS_LABEL_POSSIBLE()) {
+  if (label_p) {
     if (IS_LABEL_SUFFIX(0)) {
       p->lstate = EXPR_BEG;
       nextc(p);
