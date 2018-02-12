@@ -806,7 +806,7 @@ unpack_m(mrb_state *mrb, const void *src, int slen, mrb_value ary, unsigned int 
 	  ch[i] = 0;
 	  padding++;
 	}
-      } while (ch[i] == PACK_BASE64_IGNORE);
+      } while (c >= sizeof(base64_dec_tab) || ch[i] == PACK_BASE64_IGNORE);
     }
 
     l = (ch[0] << 18) + (ch[1] << 12) + (ch[2] << 6) + ch[3];
