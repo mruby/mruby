@@ -685,7 +685,7 @@ assert('String#inspect', '15.2.10.5.46') do
   ("\1" * 100).inspect
   end
 
-  assert_equal "\"\\000\"", "\0".inspect
+  assert_equal "\"\\x00\"", "\0".inspect
 end
 
 # Not ISO specified

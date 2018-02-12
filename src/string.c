@@ -2542,10 +2542,10 @@ mrb_str_dump(mrb_state *mrb, mrb_value str)
         }
         else {
           *q++ = '\\';
-          q[2] = '0' + c % 8; c /= 8;
-          q[1] = '0' + c % 8; c /= 8;
-          q[0] = '0' + c % 8;
-          q += 3;
+          *q++ = 'x';
+          q[1] = mrb_digitmap[c % 16]; c /= 16;
+          q[0] = mrb_digitmap[c % 16];
+          q += 2;
         }
     }
   }
@@ -2685,9 +2685,9 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
     }
     else {
       buf[0] = '\\';
-      buf[3] = '0' + c % 8; c /= 8;
-      buf[2] = '0' + c % 8; c /= 8;
-      buf[1] = '0' + c % 8;
+      buf[1] = 'x';
+      buf[3] = mrb_digitmap[c % 16]; c /= 16;
+      buf[2] = mrb_digitmap[c % 16];
       mrb_str_cat(mrb, result, buf, 4);
       continue;
     }
