@@ -835,8 +835,8 @@ pack_x(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, long count, u
 
   if (count < 0) return 0;
   dst = str_len_ensure(mrb, dst, didx + count);
-  for (i = didx; i < count; i++) {
-    RSTRING_PTR(dst)[i] = '\0';
+  for (i = 0; i < count; i++) {
+    RSTRING_PTR(dst)[didx + i] = '\0';
   }
   return count;
 }
