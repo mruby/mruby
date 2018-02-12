@@ -107,6 +107,9 @@ static mrb_value
 str_len_ensure(mrb_state *mrb, mrb_value str, mrb_int len)
 {
   mrb_int n = RSTRING_LEN(str);
+  if (len < 0) {
+    mrb_raise(mrb, E_RANGE_ERROR, "negative (or overflowed) integer");
+  }
   if (len > n) {
     do {
       n *= 2;
@@ -840,7 +843,6 @@ pack_x(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, long count, u
   }
   return count;
 }
-
 static int
 unpack_x(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, unsigned int flags)
 {
@@ -1175,6 +1177,9 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
       if (count > 0) {
         count--;
       }
+    }
+    if (ridx < 0) {
+      mrb_raise(mrb, E_RANGE_ERROR, "negative (or overflowed) template size");
     }
   }
 
