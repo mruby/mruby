@@ -781,7 +781,7 @@ new_dxstr(parser_state *p, node *a)
 static node*
 new_dsym(parser_state *p, node *a)
 {
-  return cons((node*)NODE_DSYM, new_dstr(p, a));
+  return cons((node*)NODE_DSYM, a);
 }
 
 /* (:regx . (s . (opt . enc))) */
@@ -1106,9 +1106,9 @@ heredoc_end(parser_state *p)
         keyword__FILE__
         keyword__ENCODING__
 
-%token <id>  tIDENTIFIER tFID tGVAR tIVAR tCONSTANT tCVAR tLABEL
+%token <id>  tIDENTIFIER tFID tGVAR tIVAR tCONSTANT tCVAR tLABEL_TAG
 %token <nd>  tINTEGER tFLOAT tCHAR tXSTRING tREGEXP
-%token <nd>  tSTRING tSTRING_PART tSTRING_MID tLABEL_END
+%token <nd>  tSTRING tSTRING_PART tSTRING_MID
 %token <nd>  tNTH_REF tBACK_REF
 %token <num> tREGEXP_END
 
@@ -1180,7 +1180,7 @@ heredoc_end(parser_state *p)
 %right keyword_not
 %right '=' tOP_ASGN
 %left modifier_rescue
-%right '?' ':'
+%right '?' ':' tLABEL_TAG
 %nonassoc tDOT2 tDOT3
 %left  tOROP
 %left  tANDOP
@@ -1923,6 +1923,10 @@ arg             : lhs '=' arg_rhs
                       $$ = new_or(p, $1, $3);
                     }
                 | arg '?' arg opt_nl ':' arg
+                    {
+                      $$ = new_if(p, cond($1), $3, $6);
+                    }
+                | arg '?' arg opt_nl tLABEL_TAG arg
                     {
                       $$ = new_if(p, cond($1), $3, $6);
                     }
@@ -2861,7 +2865,7 @@ symbol          : basic_symbol
                 | tSYMBEG tSTRING_BEG string_rep tSTRING
                     {
                       p->lstate = EXPR_ENDARG;
-                      $$ = new_dsym(p, push($3, $4));
+                      $$ = new_dsym(p, new_dstr(p, push($3, $4)));
                     }
                 ;
 
@@ -3266,25 +3270,20 @@ assoc           : arg tASSOC arg
                       void_expr_error(p, $3);
                       $$ = cons($1, $3);
                     }
-                | tLABEL arg
-                    {
-                      void_expr_error(p, $2);
-                      $$ = cons(new_sym(p, $1), $2);
-                    }
-                | tLABEL_END arg
-                    {
-                      void_expr_error(p, $2);
-                      $$ = cons(new_sym(p, new_strsym(p, $1)), $2);
-                    }
-                | tSTRING_BEG tLABEL_END arg
+                | tIDENTIFIER tLABEL_TAG arg
                     {
                       void_expr_error(p, $3);
-                      $$ = cons(new_sym(p, new_strsym(p, $2)), $3);
+                      $$ = cons(new_sym(p, $1), $3);
                     }
-                | tSTRING_BEG string_rep tLABEL_END arg
+                | string tLABEL_TAG arg
                     {
-                      void_expr_error(p, $4);
-                      $$ = cons(new_dsym(p, push($2, $3)), $4);
+                      void_expr_error(p, $3);
+                      if ($1->car == (node*)NODE_DSTR) {
+                        $$ = cons(new_dsym(p, $1), $3);
+                      }
+                      else {
+                        $$ = cons(new_sym(p, new_strsym(p, $1)), $3);
+                      }
                     }
                 ;
 
@@ -3973,8 +3972,6 @@ parse_string(parser_state *p)
   int beg = intn(p->lex_strterm->cdr->cdr->car);
   int end = intn(p->lex_strterm->cdr->cdr->cdr);
   parser_heredoc_info *hinf = (type & STR_FUNC_HEREDOC) ? parsing_heredoc_inf(p) : NULL;
-  int cmd_state = p->cmd_start;
-  int label_p = IS_LABEL_POSSIBLE();
 
   if (beg == 0) beg = -3;       /* should never happen */
   if (end == 0) end = -3;
@@ -4189,13 +4186,6 @@ parse_string(parser_state *p)
     return tREGEXP;
   }
   pylval.nd = new_str(p, tok(p), toklen(p));
-  if (label_p) {
-    if (IS_LABEL_SUFFIX(0)) {
-      p->lstate = EXPR_BEG;
-      nextc(p);
-      return tLABEL_END;
-    }
-  }
 
   return tSTRING;
 }
@@ -5013,14 +5003,19 @@ parser_yylex(parser_state *p)
       p->lstate = EXPR_DOT;
       return tCOLON2;
     }
-    if (IS_END() || ISSPACE(c)) {
+    if (!space_seen && IS_END()) {
       pushback(p, c);
       p->lstate = EXPR_BEG;
-      return ':';
+      return tLABEL_TAG;
+    }
+    if (!ISSPACE(c) || IS_BEG()) {
+      pushback(p, c);
+      p->lstate = EXPR_FNAME;
+      return tSYMBEG;
     }
     pushback(p, c);
-    p->lstate = EXPR_FNAME;
-    return tSYMBEG;
+    p->lstate = EXPR_BEG;
+    return ':';
 
   case '/':
     if (IS_BEG()) {
@@ -5444,11 +5439,10 @@ parser_yylex(parser_state *p)
 
       if (IS_LABEL_POSSIBLE()) {
         if (IS_LABEL_SUFFIX(0)) {
-          p->lstate = EXPR_BEG;
-          nextc(p);
+          p->lstate = EXPR_END;
           tokfix(p);
           pylval.id = intern_cstr(tok(p));
-          return tLABEL;
+          return tIDENTIFIER;
         }
       }
       if (p->lstate != EXPR_DOT) {
