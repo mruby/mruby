@@ -515,7 +515,7 @@ utf8_to_uv(mrb_state *mrb, const char *p, long *lenp)
       c = *p++ & 0xff;
       if ((c & 0xc0) != 0x80) {
         *lenp -= n + 1;
-        mrb_raisef(mrb, E_ARGUMENT_ERROR, "malformed UTF-8 character");
+        mrb_raise(mrb, E_ARGUMENT_ERROR, "malformed UTF-8 character");
       }
       else {
         c &= 0x3f;
@@ -525,7 +525,7 @@ utf8_to_uv(mrb_state *mrb, const char *p, long *lenp)
   }
   n = *lenp - 1;
   if (uv < utf8_limits[n]) {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "redundant UTF-8 sequence");
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "redundant UTF-8 sequence");
   }
   return uv;
 }
