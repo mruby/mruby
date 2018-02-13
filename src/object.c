@@ -569,8 +569,8 @@ arg_error:
     mrb_raise(mrb, E_ARGUMENT_ERROR, "base specified for non string value");
   }
   tmp = convert_type(mrb, val, "Integer", "to_int", FALSE);
-  if (mrb_nil_p(tmp)) {
-    return mrb_to_integer(mrb, val, "to_i");
+  if (mrb_nil_p(tmp) || !mrb_fixnum_p(tmp)) {
+    tmp = mrb_to_integer(mrb, val, "to_i");
   }
   return tmp;
 }
