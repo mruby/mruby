@@ -24,7 +24,8 @@ end
 # load custom rules
 load "#{MRUBY_ROOT}/src/mruby_core.rake"
 load "#{MRUBY_ROOT}/mrblib/mrblib.rake"
-load "#{MRUBY_ROOT}/tools/script_only/script_only.rake"
+
+load "#{MRUBY_ROOT}/tasks/cli.rake"
 
 load "#{MRUBY_ROOT}/tasks/mrbgems.rake"
 load "#{MRUBY_ROOT}/tasks/libmruby.rake"
@@ -74,7 +75,7 @@ MRuby.each_target do |target|
         rbfiles << main_script if has_main_script
 
         irep_file = "#{current_build_dir}/tools/#{bin}/tool__#{bin}__init.c"
-        file exec => libfile("#{build_dir}/lib/libmruby_script_main") if objs.empty?
+        file exec => libfile("#{build_dir}/lib/libmruby_cli_main") if objs.empty?
         objs << objfile(irep_file.pathmap("#{current_build_dir}/tools/#{bin}/%n"))
         file objs.last => irep_file
         file irep_file => rbfiles do |t|
@@ -82,8 +83,6 @@ MRuby.each_target do |target|
           open(irep_file, 'w') do |f|
             sym_name = 'mrb_main_irep'
             mrbc.run f, t.prerequisites, sym_name
-            f.puts %Q[]
-            f.puts %Q[extern const uint8_t #{sym_name}[];]
           end
         end
       end
