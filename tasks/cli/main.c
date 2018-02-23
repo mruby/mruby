@@ -15,7 +15,7 @@ extern const uint8_t mrb_main_irep[];
 int
 main(int argc, char **argv)
 {
-  mrb_state* mrb = NULL;
+  mrb_state* mrb;
   mrb_value ARGV;
   int i;
   int exit_result = EXIT_SUCCESS;
