@@ -18,7 +18,6 @@ main(int argc, char **argv)
   mrb_state* mrb = NULL;
   mrb_value ARGV;
   int i;
-  mrb_value result;
   int exit_result = EXIT_SUCCESS;
 
   /* open mrb_state */
@@ -39,7 +38,7 @@ main(int argc, char **argv)
   mrb_gv_set(mrb, mrb_intern_lit(mrb, "$0"), mrb_str_new_cstr(mrb, argv[0]));
 
   /* load and run script */
-  result = mrb_load_irep(mrb, mrb_main_irep);
+  mrb_load_irep(mrb, mrb_main_irep);
 
   /* check error */
   if (mrb->exc) {
