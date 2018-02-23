@@ -89,6 +89,11 @@ void mrb_gc_mark_mt(mrb_state*, struct RClass*);
 size_t mrb_gc_mark_mt_size(mrb_state*, struct RClass*);
 void mrb_gc_free_mt(mrb_state*, struct RClass*);
 
+extern mrb_int
+  mrb_vm_global_method_state,
+  mrb_vm_global_constant_state,
+  mrb_vm_class_serial;
+
 MRB_END_DECL
 
 #endif  /* MRUBY_CLASS_H */
