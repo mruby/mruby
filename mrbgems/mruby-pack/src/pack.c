@@ -729,7 +729,7 @@ pack_m(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, long count, u
     count -= count % 3;
   }
 
-  dstlen = srclen / 3 * 4;
+  dstlen = (srclen+2) / 3 * 4;
   if (count > 0) {
     dstlen += (srclen / count) + ((srclen % count) == 0 ? 0 : 1);
   }
