@@ -1226,6 +1226,13 @@ MRB_API mrb_value mrb_fiber_resume(mrb_state *mrb, mrb_value fib, mrb_int argc, 
 MRB_API mrb_value mrb_fiber_yield(mrb_state *mrb, mrb_int argc, const mrb_value *argv);
 
 /*
+ * Check if a Fiber is alive
+ *
+ * @mrbgem mruby-fiber
+ */
+MRB_API mrb_value mrb_fiber_alive_p(mrb_state *mrb, mrb_value fib);
+
+/*
  * FiberError reference
  *
  * @mrbgem mruby-fiber
