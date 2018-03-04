@@ -843,7 +843,7 @@ MRB_API struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *o
  * | `i`  | {Integer}      | {mrb_int}         |                                                    |
  * | `b`  | boolean        | {mrb_bool}        |                                                    |
  * | `n`  | {Symbol}       | {mrb_sym}         |                                                    |
- * | `&`  | block          | {mrb_value}       |                                                    |
+ * | `&`  | block          | {mrb_value}       | when && gives raised exception if no block given.  |
  * | `*`  | rest arguments | {mrb_value} *, {mrb_int} | Receive the rest of arguments as an array.  |
  * | &vert; | optional     |                   | After this spec following specs would be optional. |
  * | `?`  | optional given | {mrb_bool}        | `TRUE` if preceding argument is given. Used to check optional argument is given. |
