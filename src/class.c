@@ -593,7 +593,7 @@ mrb_get_argv(mrb_state *mrb)
     n:      Symbol         [mrb_sym]
     d:      Data           [void*,mrb_data_type const] 2nd argument will be used to check data type so it won't be modified
     I:      Inline struct  [void*]
-    &:      Block          [mrb_value]
+    &:      Block          [mrb_value]            when &! gives raised exception if no block given
     *:      rest argument  [mrb_value*,mrb_int]   The rest of the arguments as an array; *! avoid copy of the stack
     |:      optional                              Following arguments are optional
     ?:      optional given [mrb_bool]             true if preceding argument (optional) is given
@@ -936,6 +936,12 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         }
         else {
           bp = mrb->c->stack + mrb->c->ci->argc + 1;
+        }
+        if (*format == '!') {
+          format ++;
+          if (mrb_nil_p(*bp)) {
+            mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
+          }
         }
         *p = *bp;
       }
