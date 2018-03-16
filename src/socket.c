@@ -141,6 +141,10 @@ mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
     hints.ai_socktype = mrb_fixnum(socktype);
   }
 
+  if (mrb_fixnum_p(protocol)) {
+    hints.ai_protocol = mrb_fixnum(protocol);
+  }
+
   lastai = mrb_cv_get(mrb, klass, mrb_intern_lit(mrb, "_lastai"));
   if (mrb_cptr_p(lastai)) {
     freeaddrinfo(mrb_cptr(lastai));
