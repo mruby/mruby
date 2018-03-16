@@ -93,8 +93,9 @@ class IO
       if path[0] == "|"
         io = IO.popen(path[1..-1], (opt[:mode] || "r"))
       else
-        fd = IO.sysopen(path)
-        io = IO.open(fd, opt[:mode] || "r")
+        mode = opt[:mode] || "r"
+        fd = IO.sysopen(path, mode)
+        io = IO.open(fd, mode)
       end
       io.seek(offset) if offset > 0
       str = io.read(length)
