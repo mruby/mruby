@@ -1662,6 +1662,9 @@ RETRY_TRY_BLOCK:
       if (MRB_METHOD_CFUNC_P(m)) {
         mrb_value v;
         ci->nregs = (argc < 0) ? 3 : n+2;
+        if (MRB_METHOD_PROC_P(m)) {
+          ci->proc = MRB_METHOD_PROC(m);
+        }
         v = MRB_METHOD_CFUNC(m)(mrb, recv);
         mrb_gc_arena_restore(mrb, ai);
         if (mrb->exc) goto L_RAISE;
