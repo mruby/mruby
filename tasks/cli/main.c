@@ -12,6 +12,8 @@
 */
 extern const uint8_t mrb_main_irep[];
 
+extern mrb_state *mrb_open_cli();
+
 int
 main(int argc, char **argv)
 {
@@ -21,7 +23,7 @@ main(int argc, char **argv)
   int exit_result = EXIT_SUCCESS;
 
   /* open mrb_state */
-  mrb = mrb_open();
+  mrb = mrb_open_cli();
   if (mrb == NULL) {
     fputs("cannot open mrb_state\n", stderr);
     return EXIT_FAILURE;
