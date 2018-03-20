@@ -274,12 +274,13 @@ mrb_fiber_resume(mrb_state *mrb, mrb_value fib, mrb_int len, const mrb_value *a)
  *  Returns true if the fiber can still be resumed. After finishing
  *  execution of the fiber block this method will always return false.
  */
-static mrb_value
-fiber_alive_p(mrb_state *mrb, mrb_value self)
+MRB_API mrb_value
+mrb_fiber_alive_p(mrb_state *mrb, mrb_value self)
 {
   struct mrb_context *c = fiber_check(mrb, self);
   return mrb_bool_value(c->status != MRB_FIBER_TERMINATED);
 }
+#define fiber_alive_p mrb_fiber_alive_p
 
 static mrb_value
 fiber_eq(mrb_state *mrb, mrb_value self)

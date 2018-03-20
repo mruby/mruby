@@ -829,22 +829,22 @@ MRB_API struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *o
  *
  * Must be a C string composed of the following format specifiers:
  *
- * | char | Ruby type      | C types           | Notes                                               |
+ * | char | Ruby type      | C types           | Notes                                              |
  * |:----:|----------------|-------------------|----------------------------------------------------|
  * | `o`  | {Object}       | {mrb_value}       | Could be used to retrieve any type of argument     |
  * | `C`  | {Class}/{Module} | {mrb_value}     |                                                    |
  * | `S`  | {String}       | {mrb_value}       | when `!` follows, the value may be `nil`           |
  * | `A`  | {Array}        | {mrb_value}       | when `!` follows, the value may be `nil`           |
  * | `H`  | {Hash}         | {mrb_value}       | when `!` follows, the value may be `nil`           |
- * | `s`  | {String}       | char *, {mrb_int} |  Receive two arguments; `s!` gives (`NULL`,`0`) for `nil`       |
+ * | `s`  | {String}       | char *, {mrb_int} | Receive two arguments; `s!` gives (`NULL`,`0`) for `nil`       |
  * | `z`  | {String}       | char *            | `NULL` terminated string; `z!` gives `NULL` for `nil`           |
  * | `a`  | {Array}        | {mrb_value} *, {mrb_int} | Receive two arguments; `a!` gives (`NULL`,`0`) for `nil` |
  * | `f`  | {Float}        | {mrb_float}       |                                                    |
  * | `i`  | {Integer}      | {mrb_int}         |                                                    |
  * | `b`  | boolean        | {mrb_bool}        |                                                    |
  * | `n`  | {Symbol}       | {mrb_sym}         |                                                    |
- * | `&`  | block          | {mrb_value}       |                                                    |
- * | `*`  | rest arguments | {mrb_value} *, {mrb_int} | Receive the rest of arguments as an array.  |
+ * | `&`  | block          | {mrb_value}       | &! raises exception if no block given.             |
+ * | `*`  | rest arguments | {mrb_value} *, {mrb_int} | Receive the rest of arguments as an array; *! avoid copy of the stack.  |
  * | &vert; | optional     |                   | After this spec following specs would be optional. |
  * | `?`  | optional given | {mrb_bool}        | `TRUE` if preceding argument is given. Used to check optional argument is given. |
  *
@@ -1224,6 +1224,13 @@ MRB_API mrb_value mrb_fiber_resume(mrb_state *mrb, mrb_value fib, mrb_int argc, 
  * @mrbgem mruby-fiber
  */
 MRB_API mrb_value mrb_fiber_yield(mrb_state *mrb, mrb_int argc, const mrb_value *argv);
+
+/*
+ * Check if a Fiber is alive
+ *
+ * @mrbgem mruby-fiber
+ */
+MRB_API mrb_value mrb_fiber_alive_p(mrb_state *mrb, mrb_value fib);
 
 /*
  * FiberError reference
