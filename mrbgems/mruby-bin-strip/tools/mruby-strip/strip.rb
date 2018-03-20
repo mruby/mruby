@@ -28,10 +28,8 @@ targets.each do |fname|
 
   # load
   begin
-    File.open fname, 'rb' do |f|
-      iseq = MRubyVM::InstructionSequence.load_from_binary f.read
+    iseq = MRubyVM::InstructionSequence.load_from_binary File.read(fname, mode: 'rb')
     iseq.remove_lvar if $remove_lvar
-    end
   rescue ScriptError
     $stderr.write "can't read irep file #{fname}\n"
     exit 1
