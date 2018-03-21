@@ -516,7 +516,7 @@ mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p)
   }
   ci->nregs = p->body.irep->nregs;
   if (ci->argc < 0) keep = 3;
-  else keep = ci->argc + 1;
+  else keep = ci->argc + 2;
   if (ci->nregs < keep) {
     stack_extend(mrb, keep);
   }
