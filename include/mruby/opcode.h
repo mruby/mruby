@@ -53,99 +53,99 @@ enum {
   /*-----------------------------------------------------------------------
   operation code  operand description
   ------------------------------------------------------------------------*/
-  OP_NOP=0,/*                                                             */
-  OP_MOVE,/*      A B     R(A) := R(B)                                    */
-  OP_LOADL,/*     A Bx    R(A) := Pool(Bx)                                */
-  OP_LOADI,/*     A sBx   R(A) := sBx                                     */
-  OP_LOADSYM,/*   A Bx    R(A) := Syms(Bx)                                */
-  OP_LOADNIL,/*   A       R(A) := nil                                     */
-  OP_LOADSELF,/*  A       R(A) := self                                    */
-  OP_LOADT,/*     A       R(A) := true                                    */
-  OP_LOADF,/*     A       R(A) := false                                   */
+  OP_NOP=0x00,/*                                                                 */
+  OP_MOVE,/*       0x01: A B     R(A) := R(B)                                    */
+  OP_LOADL,/*      0x02: A Bx    R(A) := Pool(Bx)                                */
+  OP_LOADI,/*      0x03: A sBx   R(A) := sBx                                     */
+  OP_LOADSYM,/*    0x04: A Bx    R(A) := Syms(Bx)                                */
+  OP_LOADNIL,/*    0x05: A       R(A) := nil                                     */
+  OP_LOADSELF,/*   0x06: A       R(A) := self                                    */
+  OP_LOADT,/*      0x07: A       R(A) := true                                    */
+  OP_LOADF,/*      0x08: A       R(A) := false                                   */
 
-  OP_GETGLOBAL,/* A Bx    R(A) := getglobal(Syms(Bx))                     */
-  OP_SETGLOBAL,/* A Bx    setglobal(Syms(Bx), R(A))                       */
-  OP_GETSPECIAL,/*A Bx    R(A) := Special[Bx]                             */
-  OP_SETSPECIAL,/*A Bx    Special[Bx] := R(A)                             */
-  OP_GETIV,/*     A Bx    R(A) := ivget(Syms(Bx))                         */
-  OP_SETIV,/*     A Bx    ivset(Syms(Bx),R(A))                            */
-  OP_GETCV,/*     A Bx    R(A) := cvget(Syms(Bx))                         */
-  OP_SETCV,/*     A Bx    cvset(Syms(Bx),R(A))                            */
-  OP_GETCONST,/*  A Bx    R(A) := constget(Syms(Bx))                      */
-  OP_SETCONST,/*  A Bx    constset(Syms(Bx),R(A))                         */
-  OP_GETMCNST,/*  A Bx    R(A) := R(A)::Syms(Bx)                          */
-  OP_SETMCNST,/*  A Bx    R(A+1)::Syms(Bx) := R(A)                        */
-  OP_GETUPVAR,/*  A B C   R(A) := uvget(B,C)                              */
-  OP_SETUPVAR,/*  A B C   uvset(B,C,R(A))                                 */
+  OP_GETGLOBAL,/*  0x09: A Bx    R(A) := getglobal(Syms(Bx))                     */
+  OP_SETGLOBAL,/*  0x0A: A Bx    setglobal(Syms(Bx), R(A))                       */
+  OP_GETSPECIAL,/* 0x0B: A Bx    R(A) := Special[Bx]                             */
+  OP_SETSPECIAL,/* 0x0C: A Bx    Special[Bx] := R(A)                             */
+  OP_GETIV,/*      0x0D: A Bx    R(A) := ivget(Syms(Bx))                         */
+  OP_SETIV,/*      0x0E: A Bx    ivset(Syms(Bx),R(A))                            */
+  OP_GETCV,/*      0x0F: A Bx    R(A) := cvget(Syms(Bx))                         */
+  OP_SETCV,/*      0x10: A Bx    cvset(Syms(Bx),R(A))                            */
+  OP_GETCONST,/*   0x11: A Bx    R(A) := constget(Syms(Bx))                      */
+  OP_SETCONST,/*   0x12: A Bx    constset(Syms(Bx),R(A))                         */
+  OP_GETMCNST,/*   0x13: A Bx    R(A) := R(A)::Syms(Bx)                          */
+  OP_SETMCNST,/*   0x14: A Bx    R(A+1)::Syms(Bx) := R(A)                        */
+  OP_GETUPVAR,/*   0x15: A B C   R(A) := uvget(B,C)                              */
+  OP_SETUPVAR,/*   0x16: A B C   uvset(B,C,R(A))                                 */
 
-  OP_JMP,/*       sBx     pc+=sBx                                         */
-  OP_JMPIF,/*     A sBx   if R(A) pc+=sBx                                 */
-  OP_JMPNOT,/*    A sBx   if !R(A) pc+=sBx                                */
-  OP_ONERR,/*     sBx     rescue_push(pc+sBx)                             */
-  OP_RESCUE,/*    A B C   if A (if C exc=R(A) else R(A) := exc);
-                          if B R(B) := exc.isa?(R(B)); clear(exc)         */
-  OP_POPERR,/*    A       A.times{rescue_pop()}                           */
-  OP_RAISE,/*     A       raise(R(A))                                     */
-  OP_EPUSH,/*     Bx      ensure_push(SEQ[Bx])                            */
-  OP_EPOP,/*      A       A.times{ensure_pop().call}                      */
+  OP_JMP,/*        0x17: sBx     pc+=sBx                                         */
+  OP_JMPIF,/*      0x18: A sBx   if R(A) pc+=sBx                                 */
+  OP_JMPNOT,/*     0x19: A sBx   if !R(A) pc+=sBx                                */
+  OP_ONERR,/*      0x1A: sBx     rescue_push(pc+sBx)                             */
+  OP_RESCUE,/*     0x1B: A B C   if A (if C exc=R(A) else R(A) := exc);
+                               if B R(B) := exc.isa?(R(B)); clear(exc)         */
+  OP_POPERR,/*     0x1C: A       A.times{rescue_pop()}                           */
+  OP_RAISE,/*      0x1D: A       raise(R(A))                                     */
+  OP_EPUSH,/*      0x1E: Bx      ensure_push(SEQ[Bx])                            */
+  OP_EPOP,/*       0x1F: A       A.times{ensure_pop().call}                      */
 
-  OP_SEND,/*      A B C   R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C))    */
-  OP_SENDB,/*     A B C   R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C),&R(A+C+1))*/
-  OP_FSEND,/*     A B C   R(A) := fcall(R(A),Syms(B),R(A+1),...,R(A+C-1)) */
-  OP_CALL,/*      A       R(A) := self.call(frame.argc, frame.argv)       */
-  OP_SUPER,/*     A C     R(A) := super(R(A+1),... ,R(A+C+1))             */
-  OP_ARGARY,/*    A Bx    R(A) := argument array (16=6:1:5:4)             */
-  OP_ENTER,/*     Ax      arg setup according to flags (23=5:5:1:5:5:1:1) */
-  OP_KARG,/*      A B C   R(A) := kdict[Syms(B)]; if C kdict.rm(Syms(B))  */
-  OP_KDICT,/*     A C     R(A) := kdict                                   */
+  OP_SEND,/*       0x20: A B C   R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C))    */
+  OP_SENDB,/*      0x21: A B C   R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C),&R(A+C+1))*/
+  OP_FSEND,/*      0x22: A B C   R(A) := fcall(R(A),Syms(B),R(A+1),...,R(A+C-1)) */
+  OP_CALL,/*       0x23: A       R(A) := self.call(frame.argc, frame.argv)       */
+  OP_SUPER,/*      0x24: A C     R(A) := super(R(A+1),... ,R(A+C+1))             */
+  OP_ARGARY,/*     0x25: A Bx    R(A) := argument array (16=6:1:5:4)             */
+  OP_ENTER,/*      0x26: Ax      arg setup according to flags (23=5:5:1:5:5:1:1) */
+  OP_KARG,/*       0x27: A B C   R(A) := kdict[Syms(B)]; if C kdict.rm(Syms(B))  */
+  OP_KDICT,/*      0x28: A C     R(A) := kdict                                   */
 
-  OP_RETURN,/*    A B     return R(A) (B=normal,in-block return/break)    */
-  OP_TAILCALL,/*  A B C   return call(R(A),Syms(B),*R(C))                 */
-  OP_BLKPUSH,/*   A Bx    R(A) := block (16=6:1:5:4)                      */
+  OP_RETURN,/*     0x29: A B     return R(A) (B=normal,in-block return/break)    */
+  OP_TAILCALL,/*   0x2A: A B C   return call(R(A),Syms(B),*R(C))                 */
+  OP_BLKPUSH,/*    0x2B: A Bx    R(A) := block (16=6:1:5:4)                      */
 
-  OP_ADD,/*       A B C   R(A) := R(A)+R(A+1) (Syms[B]=:+,C=1)            */
-  OP_ADDI,/*      A B C   R(A) := R(A)+C (Syms[B]=:+)                     */
-  OP_SUB,/*       A B C   R(A) := R(A)-R(A+1) (Syms[B]=:-,C=1)            */
-  OP_SUBI,/*      A B C   R(A) := R(A)-C (Syms[B]=:-)                     */
-  OP_MUL,/*       A B C   R(A) := R(A)*R(A+1) (Syms[B]=:*,C=1)            */
-  OP_DIV,/*       A B C   R(A) := R(A)/R(A+1) (Syms[B]=:/,C=1)            */
-  OP_EQ,/*        A B C   R(A) := R(A)==R(A+1) (Syms[B]=:==,C=1)          */
-  OP_LT,/*        A B C   R(A) := R(A)<R(A+1)  (Syms[B]=:<,C=1)           */
-  OP_LE,/*        A B C   R(A) := R(A)<=R(A+1) (Syms[B]=:<=,C=1)          */
-  OP_GT,/*        A B C   R(A) := R(A)>R(A+1)  (Syms[B]=:>,C=1)           */
-  OP_GE,/*        A B C   R(A) := R(A)>=R(A+1) (Syms[B]=:>=,C=1)          */
+  OP_ADD,/*        0x2C: A B C   R(A) := R(A)+R(A+1) (Syms[B]=:+,C=1)            */
+  OP_ADDI,/*       0x2D: A B C   R(A) := R(A)+C (Syms[B]=:+)                     */
+  OP_SUB,/*        0x2E: A B C   R(A) := R(A)-R(A+1) (Syms[B]=:-,C=1)            */
+  OP_SUBI,/*       0x2F: A B C   R(A) := R(A)-C (Syms[B]=:-)                     */
+  OP_MUL,/*        0x30: A B C   R(A) := R(A)*R(A+1) (Syms[B]=:*,C=1)            */
+  OP_DIV,/*        0x31: A B C   R(A) := R(A)/R(A+1) (Syms[B]=:/,C=1)            */
+  OP_EQ,/*         0x32: A B C   R(A) := R(A)==R(A+1) (Syms[B]=:==,C=1)          */
+  OP_LT,/*         0x33: A B C   R(A) := R(A)<R(A+1)  (Syms[B]=:<,C=1)           */
+  OP_LE,/*         0x34: A B C   R(A) := R(A)<=R(A+1) (Syms[B]=:<=,C=1)          */
+  OP_GT,/*         0x35: A B C   R(A) := R(A)>R(A+1)  (Syms[B]=:>,C=1)           */
+  OP_GE,/*         0x36: A B C   R(A) := R(A)>=R(A+1) (Syms[B]=:>=,C=1)          */
 
-  OP_ARRAY,/*     A B C   R(A) := ary_new(R(B),R(B+1)..R(B+C))            */
-  OP_ARYCAT,/*    A B     ary_cat(R(A),R(B))                              */
-  OP_ARYPUSH,/*   A B     ary_push(R(A),R(B))                             */
-  OP_AREF,/*      A B C   R(A) := R(B)[C]                                 */
-  OP_ASET,/*      A B C   R(B)[C] := R(A)                                 */
-  OP_APOST,/*     A B C   *R(A),R(A+1)..R(A+C) := R(A)                    */
+  OP_ARRAY,/*      0x37: A B C   R(A) := ary_new(R(B),R(B+1)..R(B+C))            */
+  OP_ARYCAT,/*     0x38: A B     ary_cat(R(A),R(B))                              */
+  OP_ARYPUSH,/*    0x39: A B     ary_push(R(A),R(B))                             */
+  OP_AREF,/*       0x3A: A B C   R(A) := R(B)[C]                                 */
+  OP_ASET,/*       0x3B: A B C   R(B)[C] := R(A)                                 */
+  OP_APOST,/*      0x3C: A B C   *R(A),R(A+1)..R(A+C) := R(A)                    */
 
-  OP_STRING,/*    A Bx    R(A) := str_dup(Lit(Bx))                        */
-  OP_STRCAT,/*    A B     str_cat(R(A),R(B))                              */
+  OP_STRING,/*     0x3D: A Bx    R(A) := str_dup(Lit(Bx))                        */
+  OP_STRCAT,/*     0x3E: A B     str_cat(R(A),R(B))                              */
 
-  OP_HASH,/*      A B C   R(A) := hash_new(R(B),R(B+1)..R(B+C))           */
-  OP_LAMBDA,/*    A Bz Cz R(A) := lambda(SEQ[Bz],Cz)                      */
-  OP_RANGE,/*     A B C   R(A) := range_new(R(B),R(B+1),C)                */
+  OP_HASH,/*       0x3F: A B C   R(A) := hash_new(R(B),R(B+1)..R(B+C))           */
+  OP_LAMBDA,/*     0x40: A Bz Cz R(A) := lambda(SEQ[Bz],Cz)                      */
+  OP_RANGE,/*      0x41: A B C   R(A) := range_new(R(B),R(B+1),C)                */
 
-  OP_OCLASS,/*    A       R(A) := ::Object                                */
-  OP_CLASS,/*     A B     R(A) := newclass(R(A),Syms(B),R(A+1))           */
-  OP_MODULE,/*    A B     R(A) := newmodule(R(A),Syms(B))                 */
-  OP_EXEC,/*      A Bx    R(A) := blockexec(R(A),SEQ[Bx])                 */
-  OP_METHOD,/*    A B     R(A).newmethod(Syms(B),R(A+1))                  */
-  OP_SCLASS,/*    A B     R(A) := R(B).singleton_class                    */
-  OP_TCLASS,/*    A       R(A) := target_class                            */
+  OP_OCLASS,/*     0x42: A       R(A) := ::Object                                */
+  OP_CLASS,/*      0x43: A B     R(A) := newclass(R(A),Syms(B),R(A+1))           */
+  OP_MODULE,/*     0x44: A B     R(A) := newmodule(R(A),Syms(B))                 */
+  OP_EXEC,/*       0x45: A Bx    R(A) := blockexec(R(A),SEQ[Bx])                 */
+  OP_METHOD,/*     0x46: A B     R(A).newmethod(Syms(B),R(A+1))                  */
+  OP_SCLASS,/*     0x47: A B     R(A) := R(B).singleton_class                    */
+  OP_TCLASS,/*     0x48: A       R(A) := target_class                            */
 
-  OP_DEBUG,/*     A B C   print R(A),R(B),R(C)                            */
-  OP_STOP,/*              stop VM                                         */
-  OP_ERR,/*       Bx      raise RuntimeError with message Lit(Bx)         */
+  OP_DEBUG,/*      0x49: A B C   print R(A),R(B),R(C)                            */
+  OP_STOP,/*               0x4A: stop VM                                         */
+  OP_ERR,/*        0x4B: Bx      raise RuntimeError with message Lit(Bx)         */
 
-  OP_RSVD1,/*             reserved instruction #1                         */
-  OP_RSVD2,/*             reserved instruction #2                         */
-  OP_RSVD3,/*             reserved instruction #3                         */
-  OP_RSVD4,/*             reserved instruction #4                         */
-  OP_RSVD5,/*             reserved instruction #5                         */
+  OP_RSVD1,/*      0x4C:         reserved instruction #1                         */
+  OP_RSVD2,/*      0x4D:         reserved instruction #2                         */
+  OP_RSVD3,/*      0x4E:         reserved instruction #3                         */
+  OP_RSVD4,/*      0x4F:         reserved instruction #4                         */
+  OP_RSVD5,/*      0x50:         reserved instruction #5                         */
 };
 
 #define OP_L_STRICT  1
