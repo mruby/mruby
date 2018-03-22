@@ -34,6 +34,12 @@ mrb_open_core(mrb_allocf f, void *ud)
   mrb->allocf = f;
   mrb->atexit_stack_len = 0;
 
+#ifdef MRB_ENABLE_VM_STAT
+  mrb->global_method_state = 1;
+  mrb->global_constant_state = 1;
+  mrb->class_serial = 1;
+#endif
+
   mrb_gc_init(mrb, &mrb->gc);
   mrb->c = (struct mrb_context*)mrb_malloc(mrb, sizeof(struct mrb_context));
   *mrb->c = mrb_context_zero;

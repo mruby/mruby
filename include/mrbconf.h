@@ -116,6 +116,9 @@
 /* -DMRB_ENABLE_XXXX to enable following features */
 //#define MRB_ENABLE_DEBUG_HOOK /* hooks for debugger */
 
+/* takes VN statistics */
+//#define MRB_ENABLE_VM_STAT
+
 /* end of configuration */
 
 /* define MRB_DISABLE_XXXX from DISABLE_XXX (for compatibility) */

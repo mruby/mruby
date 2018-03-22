@@ -263,6 +263,12 @@ typedef struct mrb_state {
 
   void *ud; /* auxiliary data */
 
+#ifdef MRB_ENABLE_VM_STAT
+  mrb_int global_method_state;
+  mrb_int global_constant_state;
+  mrb_int class_serial;
+#endif
+
 #ifdef MRB_FIXED_STATE_ATEXIT_STACK
   mrb_atexit_func atexit_stack[MRB_FIXED_STATE_ATEXIT_STACK_SIZE];
 #else
