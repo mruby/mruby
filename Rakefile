@@ -25,6 +25,8 @@ end
 load "#{MRUBY_ROOT}/src/mruby_core.rake"
 load "#{MRUBY_ROOT}/mrblib/mrblib.rake"
 
+load "#{MRUBY_ROOT}/tasks/cli.rake"
+
 load "#{MRUBY_ROOT}/tasks/mrbgems.rake"
 load "#{MRUBY_ROOT}/tasks/libmruby.rake"
 
@@ -52,6 +54,8 @@ depfiles = MRuby.targets['host'].bins.map do |bin|
 end
 
 MRuby.each_target do |target|
+  gem_table = target.gems.generate_gem_table target
+
   gems.map do |gem|
     current_dir = gem.dir.relative_path_from(Dir.pwd)
     relative_from_root = gem.dir.relative_path_from(MRUBY_ROOT)
@@ -64,6 +68,49 @@ MRuby.each_target do |target|
     gem.bins.each do |bin|
       exec = exefile("#{build_dir}/bin/#{bin}")
       objs = Dir.glob("#{current_dir}/tools/#{bin}/*.{c,cpp,cxx,cc}").map { |f| objfile(f.pathmap("#{current_build_dir}/tools/#{bin}/%n")) }
+
+      rbfiles = Dir.glob("#{current_dir}/tools/#{bin}/*.rb").sort
+      unless rbfiles.empty?
+        main_script = "#{current_dir}/tools/#{bin}/main.rb"
+        has_main_script = rbfiles.find { |v| v == main_script }
+        rbfiles.reject { |v| v == main_script }
+        rbfiles << main_script if has_main_script
+
+        irep_file = "#{current_build_dir}/tools/#{bin}/tool__#{bin}__init.c"
+        file exec => libfile("#{build_dir}/lib/libmruby_cli_main") if objs.empty?
+        objs << objfile(irep_file.pathmap("#{current_build_dir}/tools/#{bin}/%n"))
+        file objs.last => irep_file
+
+        file irep_file => rbfiles do |t|
+          FileUtils.mkdir_p File.dirname irep_file
+          open(irep_file, 'w') do |f|
+            f.puts '#include <mruby.h>'
+            sym_name = 'mrb_main_irep'
+            mrbc.run f, t.prerequisites, sym_name
+
+            dep_list = target.gems.tsort_dependencies([gem.name], gem_table).select(&:generate_functions)
+            dep_list.each do |d|
+              f.puts %Q[void GENERATED_TMP_mrb_#{d.funcname}_gem_init(mrb_state *mrb);]
+              f.puts %Q[void GENERATED_TMP_mrb_#{d.funcname}_gem_final(mrb_state *mrb);]
+            end
+            f.puts 'mrb_state *mrb_open_cli() {'
+
+            if g.mrb_open_cli_enabled?
+              f.puts '  mrb_state *mrb = mrb_open_core(mrb_default_allocf, NULL);'
+              f.puts '  int ai = mrb_gc_arena_save(mrb);'
+              dep_list.each do |d|
+                f.puts %Q[  GENERATED_TMP_mrb_#{d.funcname}_gem_init(mrb);]
+                f.puts %Q[  mrb_state_atexit(mrb, GENERATED_TMP_mrb_#{d.funcname}_gem_final);]
+              end
+              f.puts '  mrb_gc_arena_restore(mrb, ai);'
+            else
+              f.puts '  mrb_state *mrb = mrb_open();'
+            end
+            f.puts '  return mrb;'
+            f.puts '}'
+          end
+        end
+      end
 
       file exec => objs + [libfile("#{build_dir}/lib/libmruby")] do |t|
         gem_flags = gems.map { |g| g.linker.flags }

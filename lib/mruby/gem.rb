@@ -48,8 +48,15 @@ module MRuby
         @version = "0.0.0"
         @mrblib_dir = "mrblib"
         @objs_dir = "src"
+        @mrb_open_cli = true
         MRuby::Gem.current = self
       end
+
+      def disable_mrb_open_cli
+        @mrb_open_cli = false
+      end
+
+      def mrb_open_cli_enabled?; @mrb_open_cli end
 
       def setup
         MRuby::Gem.current = self
