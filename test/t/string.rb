@@ -20,6 +20,7 @@ assert('String#<=>', '15.2.10.5.1') do
   assert_equal  1, c
   assert_equal(-1, d)
   assert_equal  1, e
+  assert_nil 'a' <=> 1024
 end
 
 assert('String#==', '15.2.10.5.2') do
