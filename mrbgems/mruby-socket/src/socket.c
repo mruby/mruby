@@ -152,10 +152,6 @@ mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
     hints.ai_protocol = (int)mrb_fixnum(protocol);
   }
 
-  if (mrb_fixnum_p(protocol)) {
-    hints.ai_protocol = mrb_fixnum(protocol);
-  }
-
   lastai = mrb_cv_get(mrb, klass, mrb_intern_lit(mrb, "_lastai"));
   if (mrb_cptr_p(lastai)) {
     freeaddrinfo((struct addrinfo*)mrb_cptr(lastai));
