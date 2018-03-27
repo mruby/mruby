@@ -166,6 +166,12 @@ assert("Enumerable#zip") do
   assert_equal [[1, 4, 7], [2, 5, 8], [3, 6, 9]], [1, 2, 3].zip(a, b)
   assert_equal [[1, 4, 7], [2, 5, 8]], [1, 2].zip(a, b)
   assert_equal [[4, 1, 8], [5, 2, nil], [6, nil, nil]], a.zip([1, 2], [8])
+
+  ret = []
+  assert_equal nil, a.zip([1, 2], [8]) { |i| ret << i }
+  assert_equal [[4, 1, 8], [5, 2, nil], [6, nil, nil]], ret
+
+  assert_raise(TypeError) { [1].zip(1) }
 end
 
 assert("Enumerable#to_h") do
