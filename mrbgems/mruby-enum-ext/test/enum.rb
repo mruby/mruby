@@ -170,6 +170,8 @@ assert("Enumerable#zip") do
   ret = []
   assert_equal nil, a.zip([1, 2], [8]) { |i| ret << i }
   assert_equal [[4, 1, 8], [5, 2, nil], [6, nil, nil]], ret
+
+  assert_raise(TypeError) { [1].zip(1) }
 end
 
 assert("Enumerable#to_h") do

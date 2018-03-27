@@ -768,7 +768,12 @@ module Enumerable
 
   def zip(*arg, &block)
     result = block ? nil : []
-    arg = arg.map{|a|a.to_a}
+    arg = arg.map do |a|
+      unless a.respond_to?(:to_a)
+        raise TypeError, "wrong argument type #{a.class} (must respond to :to_a)"
+      end
+      a.to_a
+    end
 
     i = 0
     self.each do |*val|
