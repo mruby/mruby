@@ -610,9 +610,7 @@ module Enumerable
   #     #=> [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
   #
 
-  def each_with_object(obj=nil, &block)
-    raise ArgumentError, "wrong number of arguments (0 for 1)" if obj.nil?
-
+  def each_with_object(obj, &block)
     return to_enum(:each_with_object, obj) unless block
 
     self.each {|*val| block.call(val.__svalue, obj) }
