@@ -1095,9 +1095,6 @@ mrb_gc_arena_restore(mrb_state *mrb, int idx)
   mrb->gc.arena_idx = idx;
 }
 
-MRB_API int mrb_gc_arena_save(mrb_state*);
-MRB_API void mrb_gc_arena_restore(mrb_state*,int);
-
 MRB_API void mrb_garbage_collect(mrb_state*);
 MRB_API void mrb_full_gc(mrb_state*);
 MRB_API void mrb_incremental_gc(mrb_state *);
