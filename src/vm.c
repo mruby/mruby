@@ -1201,11 +1201,11 @@ RETRY_TRY_BLOCK:
       mrb_value *regs_a = regs + a;
       struct REnv *e = uvenv(mrb, c);
 
-      if (!e) {
-        *regs_a = mrb_nil_value();
+      if (e && b < MRB_ENV_STACK_LEN(e)) {
+        *regs_a = e->stack[b];
       }
       else {
-        *regs_a = e->stack[b];
+        *regs_a = mrb_nil_value();
       }
       NEXT;
     }
