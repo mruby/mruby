@@ -2055,9 +2055,6 @@ RETRY_TRY_BLOCK:
           else {
             struct REnv *e = MRB_PROC_ENV(proc);
 
-            if (e == mrb->c->cibase->env && proc != mrb->c->cibase->proc) {
-              goto L_BREAK_ERROR;
-            }
             if (e->cxt != mrb->c) {
               goto L_BREAK_ERROR;
             }
