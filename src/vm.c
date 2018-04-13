@@ -2011,6 +2011,7 @@ RETRY_TRY_BLOCK:
             }
             break;
           }
+          /* fallthrough */
         case OP_R_NORMAL:
         NORMAL_RETURN:
           if (ci == mrb->c->cibase) {
