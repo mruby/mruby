@@ -948,12 +948,7 @@ mrb_vm_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stac
   if (c->ci - c->cibase > cioff) {
     c->ci = c->cibase + cioff;
   }
-  if (mrb->c != c) {
-    if (mrb->c->fib) {
-      mrb_write_barrier(mrb, (struct RBasic*)mrb->c->fib);
-    }
-    mrb->c = c;
-  }
+  mrb->c = c;
   return result;
 }
 
@@ -1944,9 +1939,6 @@ RETRY_TRY_BLOCK:
 
                 while (c->eidx > ci->epos) {
                   ecall_adjust();
-                }
-                if (c->fib) {
-                  mrb_write_barrier(mrb, (struct RBasic*)c->fib);
                 }
                 mrb->c->status = MRB_FIBER_TERMINATED;
                 mrb->c = c->prev;
