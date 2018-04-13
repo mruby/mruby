@@ -344,7 +344,7 @@ add_heap(mrb_state *mrb, mrb_gc *gc)
 
 #define DEFAULT_GC_INTERVAL_RATIO 200
 #define DEFAULT_GC_STEP_RATIO 200
-#define MAJOR_GC_INC_RATIO 200
+#define MAJOR_GC_INC_RATIO 120
 #define is_generational(gc) ((gc)->generational)
 #define is_major_gc(gc) (is_generational(gc) && (gc)->full)
 #define is_minor_gc(gc) (is_generational(gc) && !(gc)->full)
