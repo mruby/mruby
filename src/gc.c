@@ -345,6 +345,7 @@ add_heap(mrb_state *mrb, mrb_gc *gc)
 #define DEFAULT_GC_INTERVAL_RATIO 200
 #define DEFAULT_GC_STEP_RATIO 200
 #define MAJOR_GC_INC_RATIO 120
+#define MAJOR_GC_TOOMANY 10000
 #define is_generational(gc) ((gc)->generational)
 #define is_major_gc(gc) (is_generational(gc) && (gc)->full)
 #define is_minor_gc(gc) (is_generational(gc) && !(gc)->full)
@@ -1209,7 +1210,13 @@ mrb_incremental_gc(mrb_state *mrb)
     }
 
     if (is_major_gc(gc)) {
-      gc->majorgc_old_threshold = gc->live_after_mark/100 * MAJOR_GC_INC_RATIO;
+      size_t threshold = gc->live_after_mark/100 * MAJOR_GC_INC_RATIO;
+
+      if (threshold > MAJOR_GC_TOOMANY) {
+        mrb_full_gc(mrb);
+        threshold = gc->live_after_mark/100 * MAJOR_GC_INC_RATIO;
+      }
+      gc->majorgc_old_threshold = threshold;
       gc->full = FALSE;
     }
     else if (is_minor_gc(gc)) {
