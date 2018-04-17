@@ -463,7 +463,7 @@ class Socket < BasicSocket
   end
 
   def sysaccept
-    Socket._accept(self.fileno)[0]
+    Socket._accept(self.fileno)
   end
 end
 
