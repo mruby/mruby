@@ -1212,12 +1212,15 @@ mrb_incremental_gc(mrb_state *mrb)
     if (is_major_gc(gc)) {
       size_t threshold = gc->live_after_mark/100 * MAJOR_GC_INC_RATIO;
 
-      if (threshold > MAJOR_GC_TOOMANY) {
-        mrb_full_gc(mrb);
-        threshold = gc->live_after_mark/100 * MAJOR_GC_INC_RATIO;
-      }
-      gc->majorgc_old_threshold = threshold;
       gc->full = FALSE;
+      if (threshold < MAJOR_GC_TOOMANY) {
+        gc->majorgc_old_threshold = threshold;
+      }
+      else {
+        /* too many objects allocated during incremental GC, */
+        /* instead of increasing threshold, invoke full GC. */
+        mrb_full_gc(mrb);
+      }
     }
     else if (is_minor_gc(gc)) {
       if (gc->live > gc->majorgc_old_threshold) {
