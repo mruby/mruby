@@ -589,6 +589,20 @@ mrb_socket_gethostname(mrb_state *mrb, mrb_value cls)
 static mrb_value
 mrb_socket_accept(mrb_state *mrb, mrb_value klass)
 {
+  int s1;
+  mrb_int s0;
+
+  mrb_get_args(mrb, "i", &s0);
+  s1 = (int)accept(s0, NULL, NULL);
+  if (s1 == -1) {
+    mrb_sys_fail(mrb, "accept");
+  }
+  return mrb_fixnum_value(s1);
+}
+
+static mrb_value
+mrb_socket_accept2(mrb_state *mrb, mrb_value klass)
+{
   mrb_value ary, sastr;
   int s1;
   mrb_int s0;
@@ -872,6 +886,7 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
 
   sock = mrb_define_class(mrb, "Socket", bsock);
   mrb_define_class_method(mrb, sock, "_accept", mrb_socket_accept, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, sock, "_accept2", mrb_socket_accept2, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, sock, "_bind", mrb_socket_bind, MRB_ARGS_REQ(3));
   mrb_define_class_method(mrb, sock, "_connect", mrb_socket_connect, MRB_ARGS_REQ(3));
   mrb_define_class_method(mrb, sock, "_listen", mrb_socket_listen, MRB_ARGS_REQ(2));
