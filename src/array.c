@@ -344,12 +344,14 @@ mrb_ary_plus(mrb_state *mrb, mrb_value self)
 }
 
 static void
-ary_replace(mrb_state *mrb, struct RArray *a, mrb_value *argv, mrb_int len)
+ary_replace(mrb_state *mrb, struct RArray *a, struct RArray *b)
 {
+  mrb_int len = ARY_LEN(b);
+
   ary_modify(mrb, a);
   if (ARY_CAPA(a) < len)
     ary_expand_capa(mrb, a, len);
-  array_copy(ARY_PTR(a), argv, len);
+  array_copy(ARY_PTR(a), ARY_PTR(b), len);
   mrb_write_barrier(mrb, (struct RBasic*)a);
   ARY_SET_LEN(a, len);
 }
@@ -361,7 +363,7 @@ mrb_ary_replace(mrb_state *mrb, mrb_value self, mrb_value other)
   struct RArray *a2 = mrb_ary_ptr(other);
 
   if (a1 != a2) {
-    ary_replace(mrb, a1, ARY_PTR(a2), ARY_LEN(a2));
+    ary_replace(mrb, a1, a2);
   }
 }
 
@@ -645,7 +647,7 @@ ary_dup(mrb_state *mrb, struct RArray *a)
   mrb_int len = ARY_LEN(a);
   struct RArray *d = ary_new_capa(mrb, len);
 
-  ary_replace(mrb, d, ARY_PTR(a), len);
+  ary_replace(mrb, d, a);
   return d;
 }
 
