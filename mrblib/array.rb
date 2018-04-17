@@ -184,12 +184,6 @@ class Array
     return block.call if ret.nil? && block
     ret
   end
-
-  # internal method to convert multi-value to single value
-  def __svalue
-    return self.first if self.size < 2
-    self
-  end
 end
 
 ##

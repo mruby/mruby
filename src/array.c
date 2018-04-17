@@ -1207,6 +1207,21 @@ mrb_ary_cmp(mrb_state *mrb, mrb_value ary1)
   return ary2;
 }
 
+/* internal method to convert multi-value to single value */
+static mrb_value
+mrb_ary_svalue(mrb_state *mrb, mrb_value ary)
+{
+  mrb_get_args(mrb, "");
+  switch (RARRAY_LEN(ary)) {
+  case 0:
+    return mrb_nil_value();
+  case 1:
+    return RARRAY_PTR(ary)[0];
+  default:
+    return ary;
+  }
+}
+
 void
 mrb_init_array(mrb_state *mrb)
 {
@@ -1248,4 +1263,5 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method(mrb, a, "__ary_eq",        mrb_ary_eq,           MRB_ARGS_REQ(1));
   mrb_define_method(mrb, a, "__ary_cmp",       mrb_ary_cmp,          MRB_ARGS_REQ(1));
   mrb_define_method(mrb, a, "__ary_index",     mrb_ary_index_m,      MRB_ARGS_REQ(1)); /* kept for mruby-array-ext */
+  mrb_define_method(mrb, a, "__svalue",        mrb_ary_svalue,       MRB_ARGS_NONE());
 }
