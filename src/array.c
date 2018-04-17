@@ -285,11 +285,17 @@ mrb_ary_s_create(mrb_state *mrb, mrb_value klass)
   return ary;
 }
 
+static void ary_replace(mrb_state*, struct RArray*, struct RArray*);
+
 static void
 ary_concat(mrb_state *mrb, struct RArray *a, struct RArray *a2)
 {
   mrb_int len;
 
+  if (ARY_LEN(a) == 0) {
+    ary_replace(mrb, a, a2);
+    return;
+  }
   if (ARY_LEN(a2) > ARY_MAX_SIZE - ARY_LEN(a)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
   }
