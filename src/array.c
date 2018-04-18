@@ -684,11 +684,7 @@ mrb_ary_set(mrb_state *mrb, mrb_value ary, mrb_int n, mrb_value val)
 static struct RArray*
 ary_dup(mrb_state *mrb, struct RArray *a)
 {
-  mrb_int len = ARY_LEN(a);
-  struct RArray *d = ary_new_capa(mrb, len);
-
-  ary_replace(mrb, d, a);
-  return d;
+  return ary_new_from_values(mrb, ARY_LEN(a), ARY_PTR(a));
 }
 
 MRB_API mrb_value
