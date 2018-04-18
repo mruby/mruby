@@ -77,14 +77,21 @@ array_copy(mrb_value *dst, const mrb_value *src, mrb_int size)
   }
 }
 
-MRB_API mrb_value
-mrb_ary_new_from_values(mrb_state *mrb, mrb_int size, const mrb_value *vals)
+static struct RArray*
+ary_new_from_values(mrb_state *mrb, mrb_int size, const mrb_value *vals)
 {
   struct RArray *a = ary_new_capa(mrb, size);
 
   array_copy(ARY_PTR(a), vals, size);
   ARY_SET_LEN(a, size);
 
+  return a;
+}
+
+MRB_API mrb_value
+mrb_ary_new_from_values(mrb_state *mrb, mrb_int size, const mrb_value *vals)
+{
+  struct RArray *a = ary_new_from_values(mrb, size, vals);
   return mrb_obj_value(a);
 }
 
