@@ -563,6 +563,7 @@ mrb_io_initialize_copy(mrb_state *mrb, mrb_value copy)
   mrb_get_args(mrb, "o", &orig);
   fptr_orig = io_get_open_fptr(mrb, orig);
   fptr_copy = (struct mrb_io *)DATA_PTR(copy);
+  if (fptr_orig == fptr_copy) return copy;
   if (fptr_copy != NULL) {
     fptr_finalize(mrb, fptr_copy, FALSE);
     mrb_free(mrb, fptr_copy);
