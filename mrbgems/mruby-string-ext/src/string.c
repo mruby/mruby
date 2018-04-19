@@ -309,40 +309,6 @@ mrb_fixnum_chr(mrb_state *mrb, mrb_value num)
 
 /*
  *  call-seq:
- *     string.lines    ->  array of string
- *
- *  Returns strings per line;
- *
- *     a = "abc\ndef"
- *     a.lines    #=> ["abc\n", "def"]
- */
-static mrb_value
-mrb_str_lines(mrb_state *mrb, mrb_value self)
-{
-  mrb_value result;
-  int ai;
-  mrb_int len;
-  char *b = RSTRING_PTR(self);
-  char *p = b, *t;
-  char *e = b + RSTRING_LEN(self);
-
-  mrb_get_args(mrb, "");
-
-  result = mrb_ary_new(mrb);
-  ai = mrb_gc_arena_save(mrb);
-  while (p < e) {
-    t = p;
-    while (p < e && *p != '\n') p++;
-    if (*p == '\n') p++;
-    len = (mrb_int) (p - t);
-    mrb_ary_push(mrb, result, mrb_str_new(mrb, t, len));
-    mrb_gc_arena_restore(mrb, ai);
-  }
-  return result;
-}
-
-/*
- *  call-seq:
  *     string.succ    ->  string
  *
  *  Returns next sequence of the string;
@@ -745,6 +711,31 @@ mrb_str_del_suffix(mrb_state *mrb, mrb_value self)
   return mrb_str_substr(mrb, self, 0, slen-plen);
 }
 
+static mrb_value
+mrb_str_lines(mrb_state *mrb, mrb_value self)
+{
+  mrb_value result;
+  int ai;
+  mrb_int len;
+  char *b = RSTRING_PTR(self);
+  char *p = b, *t;
+  char *e = b + RSTRING_LEN(self);
+
+  mrb_get_args(mrb, "");
+
+  result = mrb_ary_new(mrb);
+  ai = mrb_gc_arena_save(mrb);
+  while (p < e) {
+    t = p;
+    while (p < e && *p != '\n') p++;
+    if (*p == '\n') p++;
+    len = (mrb_int) (p - t);
+    mrb_ary_push(mrb, result, mrb_str_new(mrb, t, len));
+    mrb_gc_arena_restore(mrb, ai);
+  }
+  return result;
+}
+
 void
 mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 {
@@ -763,7 +754,6 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, s, "hex",             mrb_str_hex,             MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "oct",             mrb_str_oct,             MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "chr",             mrb_str_chr,             MRB_ARGS_NONE());
-  mrb_define_method(mrb, s, "lines",           mrb_str_lines,           MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "succ",            mrb_str_succ,            MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "succ!",           mrb_str_succ_bang,       MRB_ARGS_NONE());
   mrb_alias_method(mrb, s, mrb_intern_lit(mrb, "next"), mrb_intern_lit(mrb, "succ"));
@@ -775,6 +765,7 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, s, "delete_suffix!",  mrb_str_del_suffix_bang, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, s, "delete_suffix",   mrb_str_del_suffix,      MRB_ARGS_REQ(1));
 
+  mrb_define_method(mrb, s, "__lines",         mrb_str_lines,           MRB_ARGS_NONE());
   mrb_define_method(mrb, mrb->fixnum_class, "chr", mrb_fixnum_chr, MRB_ARGS_NONE());
 }
 

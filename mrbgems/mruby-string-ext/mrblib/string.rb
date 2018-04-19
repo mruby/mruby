@@ -365,4 +365,25 @@ class String
     self[0, 0] = arg
     self
   end
+
+  ##
+  #  call-seq:
+  #    string.lines                ->  array of string
+  #    string.lines {|s| block}    ->  array of string
+  #
+  #  Returns strings per line;
+  #
+  #    a = "abc\ndef"
+  #    a.lines    #=> ["abc\n", "def"]
+  #
+  #  If a block is given, it works the same as <code>each_line</code>.
+  def lines(&blk)
+    lines = self.__lines
+    if blk
+      lines.each do |line|
+        blk.call(line)
+      end
+    end
+    lines
+  end
 end
