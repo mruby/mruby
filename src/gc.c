@@ -938,7 +938,7 @@ gc_gray_mark(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
     break;
 
   case MRB_TT_ENV:
-    children += (int)obj->flags;
+    children += MRB_ENV_STACK_LEN(obj);
     break;
 
   case MRB_TT_FIBER:
