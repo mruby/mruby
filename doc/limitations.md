@@ -38,7 +38,7 @@ puts [1,2,3]
 3
 ```
 
-#### mruby [1.4.0 (2018-1-16)]
+#### mruby [1.4.1 (2018-4-27)]
 
 ```
 [1, 2, 3]
@@ -61,7 +61,7 @@ end
 
 ```ZeroDivisionError``` is raised.
 
-#### mruby [1.4.0 (2018-1-16)]
+#### mruby [1.4.1 (2018-4-27)]
 
 No exception is raised.
 
@@ -89,7 +89,7 @@ p Liste.new "foobar"
 
 ``` [] ```
 
-#### mruby [1.4.0 (2018-1-16)]
+#### mruby [1.4.1 (2018-4-27)]
 
 ```ArgumentError``` is raised.
 
@@ -119,7 +119,7 @@ false
 true
 ```
 
-#### mruby [1.4.0 (2018-1-16)]
+#### mruby [1.4.1 (2018-4-27)]
 
 ```
 true
@@ -142,7 +142,7 @@ defined?(Foo)
 nil
 ```
 
-#### mruby [1.4.0 (2018-1-16)]
+#### mruby [1.4.1 (2018-4-27)]
 
 ```NameError``` is raised.
 
@@ -159,7 +159,7 @@ alias $a $__a__
 
 ``` nil ```
 
-#### mruby [1.4.0 (2018-1-16)]
+#### mruby [1.4.1 (2018-4-27)]
 
 Syntax error
 
@@ -181,7 +181,7 @@ end
 ```ArgumentError``` is raised.
 The re-defined ```+``` operator does not accept any arguments.
 
-#### mruby [1.4.0 (2018-1-16)]
+#### mruby [1.4.1 (2018-4-27)]
 
 ``` 'ab' ```
 Behavior of the operator wasn't changed.
