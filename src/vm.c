@@ -527,6 +527,8 @@ mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p)
     return MRB_PROC_CFUNC(p)(mrb, self);
   }
   ci->nregs = p->body.irep->nregs;
+  ci->env = MRB_PROC_ENV(p);
+  if (ci->env) ci->env->stack[0] = self;
   if (ci->argc < 0) keep = 3;
   else keep = ci->argc + 2;
   if (ci->nregs < keep) {
