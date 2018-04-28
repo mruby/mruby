@@ -47,7 +47,7 @@ MRB_BEGIN_DECL
 /*
  * Tiny release version number.
  */
-#define MRUBY_RELEASE_TEENY 0
+#define MRUBY_RELEASE_TEENY 1
 
 /*
  * The mruby version.
@@ -67,12 +67,12 @@ MRB_BEGIN_DECL
 /*
  * Release month.
  */
-#define MRUBY_RELEASE_MONTH 1
+#define MRUBY_RELEASE_MONTH 4
 
 /*
  * Release day.
  */
-#define MRUBY_RELEASE_DAY 16
+#define MRUBY_RELEASE_DAY 27
 
 /*
  * Release date as a string.
