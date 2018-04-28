@@ -20,9 +20,11 @@ enum_update_hash(mrb_state *mrb, mrb_value self)
   if (mrb_fixnum_p(item_hash)) {
     hv = mrb_fixnum(item_hash);
   }
+#ifndef MRB_WITHOUT_FLOAT
   else if (mrb_float_p(item_hash)) {
     hv = (mrb_int)mrb_float(item_hash);
   }
+#endif
   else {
     mrb_raise(mrb, E_TYPE_ERROR, "can't calculate hash");
   }

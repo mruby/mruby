@@ -2167,10 +2167,13 @@ mrb_str_len_to_inum(mrb_state *mrb, const char *str, mrb_int len, mrb_int base, 
     n *= base;
     n += c;
     if (n > (uint64_t)MRB_INT_MAX + (sign ? 0 : 1)) {
+#ifndef MRB_WITHOUT_FLOAT
       if (base == 10) {
         return mrb_float_value(mrb, mrb_str_to_dbl(mrb, mrb_str_new(mrb, str, len), badcheck));
       }
-      else {
+      else
+#endif
+      {
         mrb_raisef(mrb, E_ARGUMENT_ERROR, "string (%S) too big for integer",
                    mrb_str_new(mrb, str, pend-str));
       }
