@@ -2706,7 +2706,7 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_APOST) {
-      /* A B C  *R(A),R(A+1)..R(A+C) := R(A) */
+      /* A B C  *R(A),R(A+1)..R(A+C) := R(A)[B..] */
       int a = GETARG_A(i);
       mrb_value v = regs[a];
       int pre  = GETARG_B(i);
