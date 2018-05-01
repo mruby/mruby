@@ -3049,8 +3049,8 @@ loop_pop(codegen_scope *s, int val)
   if (val) push();
 }
 
-MRB_API struct RProc*
-mrb_generate_code(mrb_state *mrb, parser_state *p)
+static struct RProc*
+generate_code(mrb_state *mrb, parser_state *p, int val)
 {
   codegen_scope *scope = scope_new(mrb, 0, 0);
   struct RProc *proc;
@@ -3067,7 +3067,7 @@ mrb_generate_code(mrb_state *mrb, parser_state *p)
   MRB_TRY(&scope->jmp) {
     mrb->jmp = &scope->jmp; 
     /* prepare irep */
-    codegen(scope, p->tree, NOVAL);
+    codegen(scope, p->tree, val);
     proc = mrb_proc_new(mrb, scope->irep);
     mrb_irep_decref(mrb, scope->irep);
     mrb_pool_close(scope->mpool);
@@ -3085,4 +3085,10 @@ mrb_generate_code(mrb_state *mrb, parser_state *p)
     return NULL;
   }
   MRB_END_EXC(&scope->jmp);
+}
+
+MRB_API struct RProc*
+mrb_generate_code(mrb_state *mrb, parser_state *p)
+{
+  return generate_code(mrb, p, VAL);
 }
