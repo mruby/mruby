@@ -1088,8 +1088,12 @@ gen_vmassignment(codegen_scope *s, node *tree, int rhs, int val)
     t = tree->car;
     n = 0;
     while (t) {
-      genop(s, MKOP_ABC(OP_AREF, cursp(), rhs, n));
-      gen_assignment(s, t->car, cursp(), NOVAL);
+      int sp = cursp();
+
+      genop(s, MKOP_ABC(OP_AREF, sp, rhs, n));
+      push();
+      gen_assignment(s, t->car, sp, NOVAL);
+      pop();
       n++;
       t = t->cdr;
     }
@@ -1103,14 +1107,9 @@ gen_vmassignment(codegen_scope *s, node *tree, int rhs, int val)
         p = p->cdr;
       }
     }
-    if (val) {
-      genop(s, MKOP_AB(OP_MOVE, cursp(), rhs));
-    }
-    else {
-      pop();
-    }
-    push_n(post);
-    pop_n(post);
+    genop(s, MKOP_AB(OP_MOVE, cursp(), rhs));
+    push_n(post+1);
+    pop_n(post+1);
     genop(s, MKOP_ABC(OP_APOST, cursp(), n, post));
     n = 1;
     if (t->car) {               /* rest */
@@ -1124,8 +1123,8 @@ gen_vmassignment(codegen_scope *s, node *tree, int rhs, int val)
         n++;
       }
     }
-    if (!val) {
-      push();
+    if (val) {
+      genop(s, MKOP_AB(OP_MOVE, cursp(), rhs));
     }
   }
 }
