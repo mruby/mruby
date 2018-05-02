@@ -2615,6 +2615,9 @@ mrb_str_cat_cstr(mrb_state *mrb, mrb_value str, const char *ptr)
 MRB_API mrb_value
 mrb_str_cat_str(mrb_state *mrb, mrb_value str, mrb_value str2)
 {
+  if (mrb_str_ptr(str) == mrb_str_ptr(str2)) {
+    mrb_str_modify(mrb, mrb_str_ptr(str));
+  }
   return mrb_str_cat(mrb, str, RSTRING_PTR(str2), RSTRING_LEN(str2));
 }
 
