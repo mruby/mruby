@@ -58,3 +58,10 @@ RUBY
   assert_equal "NilClass", `#{cmd('mruby')} #{script.path}`
   assert_equal 0, $?.exitstatus
 end
+
+assert('mruby -d option') do
+  o = `#{cmd('mruby')} -e #{shellquote('p $DEBUG')}>&1`
+  assert_equal o, "false\n"
+  o = `#{cmd('mruby')} -d -e #{shellquote('p $DEBUG')}>&1`
+  assert_equal o, "true\n"
+end

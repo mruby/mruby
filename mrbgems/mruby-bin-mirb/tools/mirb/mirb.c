@@ -54,6 +54,7 @@
 #include <mruby/proc.h>
 #include <mruby/compile.h>
 #include <mruby/string.h>
+#include <mruby/variable.h>
 
 #ifdef ENABLE_READLINE
 
@@ -219,6 +220,7 @@ is_code_block_open(struct mrb_parser_state *parser)
 struct _args {
   FILE *rfp;
   mrb_bool verbose      : 1;
+  mrb_bool debug        : 1;
   int argc;
   char** argv;
 };
@@ -228,6 +230,7 @@ usage(const char *name)
 {
   static const char *const usage_msg[] = {
   "switches:",
+  "-d           Set $DEBUG to true (same as `mruby -d`)"
   "-v           print version number, then run in verbose mode",
   "--verbose    run in verbose mode",
   "--version    print the version",
@@ -254,6 +257,9 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
 
     item = argv[0] + 1;
     switch (*item++) {
+    case 'd':
+      args->debug = TRUE;
+      break;
     case 'v':
       if (!args->verbose) mrb_show_version(mrb);
       args->verbose = TRUE;
@@ -413,6 +419,7 @@ main(int argc, char **argv)
     }
   }
   mrb_define_global_const(mrb, "ARGV", ARGV);
+  mrb_gv_set(mrb, mrb_intern_lit(mrb, "$DEBUG"), mrb_bool_value(args.debug));
 
 #ifdef ENABLE_READLINE
   history_path = get_history_path(mrb);
