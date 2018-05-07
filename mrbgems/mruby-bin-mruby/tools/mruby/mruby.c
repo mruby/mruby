@@ -27,6 +27,7 @@ struct _args {
   mrb_bool mrbfile      : 1;
   mrb_bool check_syntax : 1;
   mrb_bool verbose      : 1;
+  mrb_bool debug        : 1;
   int argc;
   char** argv;
 };
@@ -38,6 +39,7 @@ usage(const char *name)
   "switches:",
   "-b           load and execute RiteBinary (mrb) file",
   "-c           check syntax only",
+  "-d           Set debugging flags (set $DEBUG to true)"
   "-e 'command' one line of script",
   "-v           print version number, then run in verbose mode",
   "--verbose    run in verbose mode",
@@ -77,6 +79,9 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
       break;
     case 'c':
       args->check_syntax = TRUE;
+      break;
+    case 'd':
+      args->debug = TRUE;
       break;
     case 'e':
       if (item[0]) {
@@ -199,6 +204,7 @@ main(int argc, char **argv)
       }
     }
     mrb_define_global_const(mrb, "ARGV", ARGV);
+    mrb_gv_set(mrb, mrb_intern_lit(mrb, "$DEBUG"), mrb_bool_value(args.debug));
 
     c = mrbc_context_new(mrb);
     if (args.verbose)
