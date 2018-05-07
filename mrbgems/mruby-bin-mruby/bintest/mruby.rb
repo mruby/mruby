@@ -60,8 +60,8 @@ RUBY
 end
 
 assert('mruby -d option') do
-  o = `#{cmd('mruby')} -e #{shellquote('p $DEBUG')}>&1`
-  assert_equal o, "false\n"
-  o = `#{cmd('mruby')} -d -e #{shellquote('p $DEBUG')}>&1`
-  assert_equal o, "true\n"
+  o = `#{cmd('mruby')} -e #{shellquote('p $DEBUG')}`
+  assert_equal "false\n", o
+  o = `#{cmd('mruby')} -d -e #{shellquote('p $DEBUG')}`
+  assert_equal "true\n", o
 end

@@ -12,8 +12,8 @@ assert('regression for #1563') do
 end
 
 assert('mirb -d option') do
-  o, s = Open3.capture2('bin/mirb', :stdin_data => "p $DEBUG\n")
+  o, _ = Open3.capture2('bin/mirb', :stdin_data => "p $DEBUG\n")
   assert_true o.include?('=> false')
-  o, s = Open3.capture2('bin/mirb -d', :stdin_data => "p $DEBUG\n")
+  o, _ = Open3.capture2('bin/mirb -d', :stdin_data => "p $DEBUG\n")
   assert_true o.include?('=> true')
 end
