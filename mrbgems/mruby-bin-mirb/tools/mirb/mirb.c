@@ -53,6 +53,7 @@
 #include <mruby/array.h>
 #include <mruby/proc.h>
 #include <mruby/compile.h>
+#include <mruby/dump.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>
 
@@ -223,6 +224,8 @@ struct _args {
   mrb_bool debug        : 1;
   int argc;
   char** argv;
+  int libc;
+  char **libv;
 };
 
 static void
@@ -230,7 +233,8 @@ usage(const char *name)
 {
   static const char *const usage_msg[] = {
   "switches:",
-  "-d           Set $DEBUG to true (same as `mruby -d`)"
+  "-d           set $DEBUG to true (same as `mruby -d`)"
+  "-r library   same as `mruby -r`",
   "-v           print version number, then run in verbose mode",
   "--verbose    run in verbose mode",
   "--version    print the version",
@@ -244,9 +248,19 @@ usage(const char *name)
     printf("  %s\n", *p++);
 }
 
+static char *
+dup_arg_item(mrb_state *mrb, const char *item)
+{
+  size_t buflen = strlen(item) + 1;
+  char *buf = mrb_malloc(mrb, buflen);
+  memcpy(buf, item, buflen);
+  return buf;
+}
+
 static int
 parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
 {
+  char **origargv = argv;
   static const struct _args args_zero = { 0 };
 
   *args = args_zero;
@@ -259,6 +273,23 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
     switch (*item++) {
     case 'd':
       args->debug = TRUE;
+      break;
+    case 'r':
+      if (!item[0]) {
+        if (argc <= 1) {
+          printf("%s: No library specified for -r\n", *origargv);
+          return EXIT_FAILURE;
+        }
+        argc--; argv++;
+        item = argv[0];
+      }
+      if (args->libc == 0) {
+        args->libv = (char**)mrb_malloc(mrb, sizeof(char*));
+      }
+      else {
+        args->libv = (char**)mrb_realloc(mrb, args->libv, sizeof(char*) * (args->libc + 1));
+      }
+      args->libv[args->libc++] = dup_arg_item(mrb, item);
       break;
     case 'v':
       if (!args->verbose) mrb_show_version(mrb);
@@ -305,6 +336,12 @@ cleanup(mrb_state *mrb, struct _args *args)
   if (args->rfp)
     fclose(args->rfp);
   mrb_free(mrb, args->argv);
+  if (args->libc) {
+    while (args->libc--) {
+      mrb_free(mrb, args->libv[args->libc]);
+    }
+    mrb_free(mrb, args->libv);
+  }
   mrb_close(mrb);
 }
 
@@ -395,6 +432,7 @@ main(int argc, char **argv)
   mrb_bool code_block_open = FALSE;
   int ai;
   unsigned int stack_keep = 0;
+  FILE *lfp;
 
   /* new interpreter instance */
   mrb = mrb_open();
@@ -436,6 +474,19 @@ main(int argc, char **argv)
   print_hint();
 
   cxt = mrbc_context_new(mrb);
+
+  /* Load libraries */
+  for (i = 0; i < args.libc; i++) {
+    lfp = fopen(args.libv[i], "r");
+    if (lfp == NULL) {
+      printf("Cannot open library file. (%s)\n", args.libv[i]);
+      cleanup(mrb, &args);
+      return EXIT_FAILURE;
+    }
+    mrb_load_file_cxt(mrb, lfp, cxt);
+    fclose(lfp);
+  }
+
   cxt->capture_errors = TRUE;
   cxt->lineno = 1;
   mrbc_filename(mrb, cxt, "(mirb)");

@@ -65,3 +65,26 @@ assert('mruby -d option') do
   o = `#{cmd('mruby')} -d -e #{shellquote('p $DEBUG')}`
   assert_equal "true\n", o
 end
+
+assert('mruby -r option') do
+  lib = Tempfile.new('lib.rb')
+  lib.write <<EOS
+class Hoge
+  def hoge
+    :hoge
+  end
+end
+EOS
+  lib.flush
+
+  script = Tempfile.new('test.rb')
+  script.write <<EOS
+print Hoge.new.hoge
+EOS
+  script.flush
+  assert_equal 'hoge', `#{cmd('mruby')} -r #{lib.path} #{script.path}`
+  assert_equal 0, $?.exitstatus
+
+  assert_equal 'hogeClass', `#{cmd('mruby')} -r #{lib.path} -r #{script.path} -e #{shellquote('print Hoge.class')}`
+  assert_equal 0, $?.exitstatus
+end

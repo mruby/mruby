@@ -17,3 +17,18 @@ assert('mirb -d option') do
   o, _ = Open3.capture2('bin/mirb -d', :stdin_data => "p $DEBUG\n")
   assert_true o.include?('=> true')
 end
+
+assert('mirb -r option') do
+  lib = Tempfile.new('lib.rb')
+  lib.write <<EOS
+class Hoge
+  def hoge
+    :hoge
+  end
+end
+EOS
+  lib.flush
+
+  o, _ = Open3.capture2("bin/mirb -r #{lib.path}", :stdin_data => "Hoge.new.hoge\n")
+  assert_true o.include?('=> :hoge')
+end
