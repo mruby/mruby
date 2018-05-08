@@ -61,7 +61,7 @@ static char *
 dup_arg_item(mrb_state *mrb, const char *item)
 {
   size_t buflen = strlen(item) + 1;
-  char *buf = mrb_malloc(mrb, buflen);
+  char *buf = (char*)mrb_malloc(mrb, buflen);
   memcpy(buf, item, buflen);
   return buf;
 }
@@ -210,7 +210,6 @@ main(int argc, char **argv)
   mrbc_context *c;
   mrb_value v;
   mrb_sym zero_sym;
-  FILE *lfp;
 
   if (mrb == NULL) {
     fputs("Invalid mrb_state, exiting mruby\n", stderr);
@@ -257,7 +256,7 @@ main(int argc, char **argv)
 
     /* Load libraries */
     for (i = 0; i < args.libc; i++) {
-      lfp = fopen(args.libv[i], args.mrbfile ? "rb" : "r");
+      FILE *lfp = fopen(args.libv[i], args.mrbfile ? "rb" : "r");
       if (lfp == NULL) {
         printf("Cannot open library file. (%s)\n", args.libv[i]);
         cleanup(mrb, &args);

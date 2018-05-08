@@ -252,7 +252,7 @@ static char *
 dup_arg_item(mrb_state *mrb, const char *item)
 {
   size_t buflen = strlen(item) + 1;
-  char *buf = mrb_malloc(mrb, buflen);
+  char *buf = (char*)mrb_malloc(mrb, buflen);
   memcpy(buf, item, buflen);
   return buf;
 }
@@ -432,7 +432,6 @@ main(int argc, char **argv)
   mrb_bool code_block_open = FALSE;
   int ai;
   unsigned int stack_keep = 0;
-  FILE *lfp;
 
   /* new interpreter instance */
   mrb = mrb_open();
@@ -477,7 +476,7 @@ main(int argc, char **argv)
 
   /* Load libraries */
   for (i = 0; i < args.libc; i++) {
-    lfp = fopen(args.libv[i], "r");
+    FILE *lfp = fopen(args.libv[i], "r");
     if (lfp == NULL) {
       printf("Cannot open library file. (%s)\n", args.libv[i]);
       cleanup(mrb, &args);
