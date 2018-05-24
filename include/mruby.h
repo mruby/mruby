@@ -93,7 +93,7 @@
  */
 MRB_BEGIN_DECL
 
-typedef uint32_t mrb_code;
+typedef uint8_t mrb_code;
 
 /**
  * Required arguments signature type.
@@ -123,9 +123,9 @@ typedef struct {
   mrb_sym mid;
   struct RProc *proc;
   mrb_value *stackent;
-  int nregs;
-  int ridx;
-  int epos;
+  uint16_t nregs;
+  uint16_t ridx;
+  uint16_t epos;
   struct REnv *env;
   mrb_code *pc;                 /* return address */
   mrb_code *err;                /* error position */
@@ -152,10 +152,10 @@ struct mrb_context {
   mrb_callinfo *ci;
   mrb_callinfo *cibase, *ciend;
 
-  mrb_code **rescue;                      /* exception handler stack */
+  uint16_t *rescue;                       /* exception handler stack */
   int rsize;
   struct RProc **ensure;                  /* ensure handler stack */
-  int esize, eidx;
+  uint8_t esize, eidx;
 
   enum mrb_fiber_state status;
   mrb_bool vmexec;
@@ -486,9 +486,10 @@ MRB_API void mrb_define_const(mrb_state*, struct RClass*, const char *name, mrb_
  *     }
  * @param [mrb_state*] mrb_state* The mruby state reference.
  * @param [struct RClass*] RClass* A class the method will be undefined from.
- * @param [const char*] constchar* The name of the method to be undefined.
+ * @param [const char] const char* The name of the method to be undefined.
  */
 MRB_API void mrb_undef_method(mrb_state*, struct RClass*, const char*);
+MRB_API void mrb_undef_method_id(mrb_state*, struct RClass*, mrb_sym);
 
 /**
  * Undefine a class method.
@@ -1197,7 +1198,6 @@ typedef enum call_type {
   CALL_TYPE_MAX
 } call_type;
 
-MRB_API void mrb_define_alias(mrb_state *mrb, struct RClass *klass, const char *name1, const char *name2);
 MRB_API const char *mrb_class_name(mrb_state *mrb, struct RClass* klass);
 MRB_API void mrb_define_global_const(mrb_state *mrb, const char *name, mrb_value val);
 

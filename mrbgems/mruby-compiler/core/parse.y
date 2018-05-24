@@ -5534,6 +5534,7 @@ parser_init_cxt(parser_state *p, mrbc_context *cxt)
   }
   p->capture_errors = cxt->capture_errors;
   p->no_optimize = cxt->no_optimize;
+  p->on_eval = cxt->on_eval;
   if (cxt->partial_hook) {
     p->cxt = cxt;
   }
@@ -6646,6 +6647,20 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
   case NODE_HEREDOC:
     printf("NODE_HEREDOC (<<%s):\n", ((parser_heredoc_info*)tree)->term);
     dump_recur(mrb, ((parser_heredoc_info*)tree)->doc, offset+1);
+    break;
+
+  case NODE_LITERAL_DELIM:
+    printf("NODE_LITERAL_DELIM\n");
+    break;
+
+  case NODE_SYMBOLS:
+    printf("NODE_SYMBOLS:\n");
+    dump_recur(mrb, tree, offset+1);
+    break;
+
+  case NODE_WORDS:
+    printf("NODE_SYMBOLS:\n");
+    dump_recur(mrb, tree, offset+1);
     break;
 
   default:

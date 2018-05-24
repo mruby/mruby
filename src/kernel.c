@@ -1266,5 +1266,5 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "class_defined?",             mrb_krn_class_defined,           MRB_ARGS_REQ(1));
 
   mrb_include_module(mrb, mrb->object_class, mrb->kernel_module);
-  mrb_alias_method(mrb, mrb->module_class, mrb_intern_lit(mrb, "dup"), mrb_intern_lit(mrb, "clone"));
+  mrb_define_alias(mrb, mrb->module_class, "dup", "clone"); /* XXX */
 }

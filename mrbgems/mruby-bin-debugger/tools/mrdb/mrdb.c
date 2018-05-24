@@ -517,7 +517,7 @@ check_method_breakpoint(mrb_state *mrb, mrb_irep *irep, mrb_code *pc, mrb_value 
   bpno = dbg->method_bpno;
   dbg->method_bpno = 0;
 
-  switch(GET_OPCODE(*pc)) {
+  switch(*pc) {
     case OP_SEND:
     case OP_SENDB:
       c = mrb_class(mrb, regs[GETARG_A(*pc)]);

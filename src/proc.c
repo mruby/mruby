@@ -10,7 +10,7 @@
 #include <mruby/opcode.h>
 
 static mrb_code call_iseq[] = {
-  MKOP_A(OP_CALL, 0),
+  OP_CALL,
 };
 
 struct RProc*
@@ -223,7 +223,7 @@ mrb_proc_arity(mrb_state *mrb, mrb_value self)
 {
   struct RProc *p = mrb_proc_ptr(self);
   struct mrb_irep *irep;
-  mrb_code *iseq;
+  mrb_code *pc;
   mrb_aspec aspec;
   int ma, op, ra, pa, arity;
 
@@ -237,13 +237,13 @@ mrb_proc_arity(mrb_state *mrb, mrb_value self)
     return mrb_fixnum_value(0);
   }
 
-  iseq = irep->iseq;
+  pc = irep->iseq;
   /* arity is depend on OP_ENTER */
-  if (GET_OPCODE(*iseq) != OP_ENTER) {
+  if (*pc != OP_ENTER) {
     return mrb_fixnum_value(0);
   }
 
-  aspec = GETARG_Ax(*iseq);
+  aspec = PEEK_W(pc+1);
   ma = MRB_ASPEC_REQ(aspec);
   op = MRB_ASPEC_OPT(aspec);
   ra = MRB_ASPEC_REST(aspec);
