@@ -1069,6 +1069,16 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
+    CASE(OP_LOADI, BB) {
+      SET_INT_VALUE(regs[a], b);
+      NEXT;
+    }
+
+    CASE(OP_LOADINEG, BB) {
+      SET_INT_VALUE(regs[a], -b);
+      NEXT;
+    }
+
     CASE(OP_LOADI__1,B) goto L_LOADI;
     CASE(OP_LOADI_0,B) goto L_LOADI;
     CASE(OP_LOADI_1,B) goto L_LOADI;
@@ -1131,12 +1141,12 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_GETIV, BB) {
-      regs[a] = mrb_vm_iv_get(mrb, syms[b]);
+      regs[a] = mrb_iv_get(mrb, regs[0], syms[b]);
       NEXT;
     }
 
     CASE(OP_SETIV, BB) {
-      mrb_vm_iv_set(mrb, syms[b], regs[a]);
+      mrb_iv_set(mrb, regs[0], syms[b], regs[a]);
       NEXT;
     }
 
@@ -2470,7 +2480,7 @@ RETRY_TRY_BLOCK:
 #ifdef MRB_WORD_BOXING
         {
           mrb_float x = mrb_float(regs[a]);
-          SET_FLOAT_VALUE(mrb, regs[a], x - GETARG_C(i));
+          SET_FLOAT_VALUE(mrb, regs[a], x - c);
         }
 #else
         mrb_float(regs_a[0]) -= c;
