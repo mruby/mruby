@@ -279,6 +279,9 @@ static void
 init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
 {
   switch (mrb_type(obj)) {
+    case MRB_TT_ICLASS:
+      copy_class(mrb, dest, obj);
+      return;
     case MRB_TT_CLASS:
     case MRB_TT_MODULE:
       copy_class(mrb, dest, obj);
