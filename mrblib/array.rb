@@ -83,20 +83,18 @@ class Array
     self
   end
 
-  def _inspect
+  def _inspect(recur_list)
     return "[]" if self.size == 0
-    "["+self.map{|x|x.inspect}.join(", ")+"]"
+    return "[...]" if recur_list[self.object_id]
+    recur_list[self.object_id] = true
+    "["+self.map{|x|x._inspect(recur_list)}.join(", ")+"]"
   end
   ##
   # Return the contents of this array as a string.
   #
   # ISO 15.2.12.5.31 (x)
   def inspect
-    begin
-      self._inspect
-    rescue SystemStackError
-      "[...]"
-    end
+    self._inspect({})
   end
   # ISO 15.2.12.5.32 (x)
   alias to_s inspect

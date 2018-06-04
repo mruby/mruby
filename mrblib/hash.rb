@@ -193,10 +193,12 @@ class Hash
   end
 
   # internal method for Hash inspection
-  def _inspect
+  def _inspect(recur_list)
     return "{}" if self.size == 0
+    return "{...}" if recur_list[self.object_id]
+    recur_list[self.object_id] = true
     "{"+self.map {|k,v|
-      k._inspect + "=>" + v._inspect
+      k._inspect(recur_list) + "=>" + v._inspect(recur_list)
     }.join(", ")+"}"
   end
   ##
@@ -204,11 +206,7 @@ class Hash
  #
   # ISO 15.2.13.4.30 (x)
   def inspect
-    begin
-      self._inspect
-    rescue SystemStackError
-      "{...}"
-    end
+    self._inspect({})
   end
   # ISO 15.2.13.4.31 (x)
   alias to_s inspect
