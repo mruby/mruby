@@ -51,7 +51,7 @@
 #endif
 
 #ifdef _WIN32
-const char *inet_ntop(int af, const void *src, char *dst, socklen_t cnt)
+static const char *inet_ntop(int af, const void *src, char *dst, socklen_t cnt)
 {
     if (af == AF_INET)
     {
@@ -76,7 +76,7 @@ const char *inet_ntop(int af, const void *src, char *dst, socklen_t cnt)
     return NULL;
 }
 
-int inet_pton(int af, const char *src, void *dst)
+static int inet_pton(int af, const char *src, void *dst)
 {
     struct addrinfo hints, *res, *ressave;
 
