@@ -99,3 +99,19 @@ assert('Object#instance_eval with begin-rescue-ensure execution order') do
   hell_raiser = HellRaiser.new
   assert_equal([:enter_raise_hell, :begin, :rescue, :ensure], hell_raiser.raise_hell)
 end
+
+assert('Kernel.#eval(strinng) Issue #4021') do
+  assert_equal('FOO') { (eval <<'EOS').call }
+foo = "FOO"
+Proc.new { foo }
+EOS
+  assert_equal('FOO') {
+    def do_eval(code)
+      eval(code)
+    end
+    do_eval(<<'EOS').call
+foo = "FOO"
+Proc.new { foo }
+EOS
+  }
+end
