@@ -1235,6 +1235,7 @@ MRB_API mrb_value mrb_fiber_alive_p(mrb_state *mrb, mrb_value fib);
  * @mrbgem mruby-fiber
  */
 #define E_FIBER_ERROR (mrb_exc_get(mrb, "FiberError"))
+MRB_API void mrb_stack_extend(mrb_state*, int);
 
 /* memory pool implementation */
 typedef struct mrb_pool mrb_pool;
