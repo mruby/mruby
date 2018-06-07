@@ -348,7 +348,7 @@ mrb_obj_clone(mrb_state *mrb, mrb_value self)
   mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)p->c);
   clone = mrb_obj_value(p);
   init_copy(mrb, clone, self);
-  p->flags = mrb_obj_ptr(self)->flags;
+  p->flags |= mrb_obj_ptr(self)->flags & MRB_FLAG_IS_FROZEN;
 
   return clone;
 }
