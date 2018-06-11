@@ -1398,6 +1398,7 @@ RETRY_TRY_BLOCK:
     CASE(OP_SEND) {
       /* A B C  R(A) := call(R(A),Syms(B),R(A+1),...,R(A+C)) */
       int a = GETARG_A(i);
+      int b = GETARG_B(i);
       int n = GETARG_C(i);
       int argc = (n == CALL_MAXARGS) ? -1 : n;
       int bidx = (argc < 0) ? a+2 : a+n+1;
@@ -1405,7 +1406,7 @@ RETRY_TRY_BLOCK:
       struct RClass *c;
       mrb_callinfo *ci = mrb->c->ci;
       mrb_value recv, blk;
-      mrb_sym mid = syms[GETARG_B(i)];
+      mrb_sym mid = syms[b];
 
       mrb_assert(bidx < ci->nregs);
 
