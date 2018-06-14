@@ -155,14 +155,18 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
   # store the last gem selection and make the re-build
   # of the test gem depending on a change to the gem
   # selection
-  active_gems = "#{build_dir}/active_gems.lst"
-  FileUtils.mkdir_p File.dirname(active_gems)
-  open(active_gems, 'w+') do |f|
-    build.gems.each do |g|
-      f.puts g.name
-    end
+  active_gems_path = "#{build_dir}/active_gems_path.lst"
+  active_gem_list = if File.exist? active_gems_path
+                      File.read active_gems_path
+                    else
+                      FileUtils.mkdir_p File.dirname(active_gems_path)
+                      nil
+                    end
+  current_gem_list = build.gems.map(&:name).join("\n")
+  if active_gem_list != current_gem_list
+    File.write active_gems_path, current_gem_list
   end
-  file clib => active_gems
+  file clib => active_gems_path
 
   file mlib => clib
   file clib => init do |t|
