@@ -203,8 +203,8 @@ mrb_addrinfo_getnameinfo(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_SOCKET_ERROR, "invalid sockaddr");
   }
   error = getnameinfo((struct sockaddr *)RSTRING_PTR(sastr), (socklen_t)RSTRING_LEN(sastr), RSTRING_PTR(host), NI_MAXHOST, RSTRING_PTR(serv), NI_MAXSERV, (int)flags);
-  if (error != 0) {
-    mrb_raisef(mrb, E_SOCKET_ERROR, "getnameinfo: %s", gai_strerror(error));
+  if (error) {
+    mrb_raisef(mrb, E_SOCKET_ERROR, "getnameinfo: %S", mrb_str_new_cstr(mrb, gai_strerror(error)));
   }
   ary = mrb_ary_new_capa(mrb, 2);
   mrb_str_resize(mrb, host, strlen(RSTRING_PTR(host)));
@@ -469,12 +469,12 @@ mrb_basicsocket_setsockopt(mrb_state *mrb, mrb_value self)
     }
   } else if (argc == 1) {
     if (strcmp(mrb_obj_classname(mrb, so), "Socket::Option") != 0)
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "not an instance of Socket::Option");
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "not an instance of Socket::Option");
     level = mrb_fixnum(mrb_funcall(mrb, so, "level", 0));
     optname = mrb_fixnum(mrb_funcall(mrb, so, "optname", 0));
     optval = mrb_funcall(mrb, so, "data", 0);
   } else {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%d for 3)", argc);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%S for 3)", mrb_fixnum_value(argc));
   }
 
   s = socket_fd(mrb, self);
@@ -682,7 +682,7 @@ mrb_socket_sockaddr_family(mrb_state *mrb, mrb_value klass)
 
   mrb_get_args(mrb, "S", &str);
   if ((size_t)RSTRING_LEN(str) < offsetof(struct sockaddr, sa_family) + sizeof(sa->sa_family)) {
-    mrb_raisef(mrb, E_SOCKET_ERROR, "invalid sockaddr (too short)");
+    mrb_raise(mrb, E_SOCKET_ERROR, "invalid sockaddr (too short)");
   }
   sa = (const struct sockaddr *)RSTRING_PTR(str);
   return mrb_fixnum_value(sa->sa_family);
@@ -700,7 +700,7 @@ mrb_socket_sockaddr_un(mrb_state *mrb, mrb_value klass)
 
   mrb_get_args(mrb, "S", &path);
   if ((size_t)RSTRING_LEN(path) > sizeof(sunp->sun_path) - 1) {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "too long unix socket path (max: %ubytes)", (unsigned int)sizeof(sunp->sun_path) - 1);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "too long unix socket path (max: %S bytes)", mrb_fixnum_value(sizeof(sunp->sun_path) - 1));
   }
   s = mrb_str_buf_new(mrb, sizeof(struct sockaddr_un));
   sunp = (struct sockaddr_un *)RSTRING_PTR(s);
