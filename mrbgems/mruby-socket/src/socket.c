@@ -19,6 +19,7 @@
 #else
   #include <sys/types.h>
   #include <sys/socket.h>
+  #include <sys/param.h>
   #include <sys/un.h>
   #include <netinet/in.h>
   #include <netinet/tcp.h>
@@ -41,6 +42,14 @@
 #include "error.h"
 
 #include "mruby/ext/io.h"
+
+#if !defined(HAVE_SA_LEN)
+#if (defined(BSD) && (BSD >= 199006))
+#define HAVE_SA_LEN  1
+#else
+#define HAVE_SA_LEN  0
+#endif
+#endif
 
 #define E_SOCKET_ERROR             (mrb_class_get(mrb, "SocketError"))
 
@@ -214,7 +223,11 @@ mrb_addrinfo_unix_path(mrb_state *mrb, mrb_value self)
   sastr = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "@sockaddr"));
   if (((struct sockaddr *)RSTRING_PTR(sastr))->sa_family != AF_UNIX)
     mrb_raise(mrb, E_SOCKET_ERROR, "need AF_UNIX address");
-  return mrb_str_new_cstr(mrb, ((struct sockaddr_un *)RSTRING_PTR(sastr))->sun_path);
+  if (RSTRING_LEN(sastr) < offsetof(struct sockaddr_un, sun_path) + 1) {
+    return mrb_str_new(mrb, "", 0);
+  } else {
+    return mrb_str_new_cstr(mrb, ((struct sockaddr_un *)RSTRING_PTR(sastr))->sun_path);
+  }
 }
 #endif
 
@@ -664,19 +677,15 @@ mrb_socket_listen(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_socket_sockaddr_family(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value sa;
+  const struct sockaddr *sa;
+  mrb_value str;
 
-  mrb_get_args(mrb, "S", &sa);
-#ifdef __linux__
-  if ((size_t)RSTRING_LEN(sa) < offsetof(struct sockaddr, sa_family) + sizeof(sa_family_t)) {
+  mrb_get_args(mrb, "S", &str);
+  if ((size_t)RSTRING_LEN(str) < offsetof(struct sockaddr, sa_family) + sizeof(sa->sa_family)) {
     mrb_raisef(mrb, E_SOCKET_ERROR, "invalid sockaddr (too short)");
   }
-#else
-  if ((size_t)RSTRING_LEN(sa) < sizeof(struct sockaddr)) {
-    mrb_raisef(mrb, E_SOCKET_ERROR, "invalid sockaddr (too short)");
-  }
-#endif
-  return mrb_fixnum_value(((struct sockaddr *)RSTRING_PTR(sa))->sa_family);
+  sa = (const struct sockaddr *)RSTRING_PTR(str);
+  return mrb_fixnum_value(sa->sa_family);
 }
 
 static mrb_value
@@ -695,6 +704,9 @@ mrb_socket_sockaddr_un(mrb_state *mrb, mrb_value klass)
   }
   s = mrb_str_buf_new(mrb, sizeof(struct sockaddr_un));
   sunp = (struct sockaddr_un *)RSTRING_PTR(s);
+#if HAVE_SA_LEN
+  sunp->sun_len = sizeof(struct sockaddr_un);
+#endif
   sunp->sun_family = AF_UNIX;
   memcpy(sunp->sun_path, RSTRING_PTR(path), RSTRING_LEN(path));
   sunp->sun_path[RSTRING_LEN(path)] = '\0';
