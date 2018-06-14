@@ -664,19 +664,15 @@ mrb_socket_listen(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_socket_sockaddr_family(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value sa;
+  const struct sockaddr *sa;
+  mrb_value str;
 
-  mrb_get_args(mrb, "S", &sa);
-#ifdef __linux__
-  if ((size_t)RSTRING_LEN(sa) < offsetof(struct sockaddr, sa_family) + sizeof(sa_family_t)) {
+  mrb_get_args(mrb, "S", &str);
+  if ((size_t)RSTRING_LEN(str) < offsetof(struct sockaddr, sa_family) + sizeof(sa_family_t)) {
     mrb_raisef(mrb, E_SOCKET_ERROR, "invalid sockaddr (too short)");
   }
-#else
-  if ((size_t)RSTRING_LEN(sa) < sizeof(struct sockaddr)) {
-    mrb_raisef(mrb, E_SOCKET_ERROR, "invalid sockaddr (too short)");
-  }
-#endif
-  return mrb_fixnum_value(((struct sockaddr *)RSTRING_PTR(sa))->sa_family);
+  sa = (const struct sockaddr *)RSTRING_PTR(str);
+  return mrb_fixnum_value(sa->sa_family);
 }
 
 static mrb_value
