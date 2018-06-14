@@ -681,7 +681,7 @@ mrb_socket_sockaddr_family(mrb_state *mrb, mrb_value klass)
   mrb_value str;
 
   mrb_get_args(mrb, "S", &str);
-  if ((size_t)RSTRING_LEN(str) < offsetof(struct sockaddr, sa_family) + sizeof(sa_family_t)) {
+  if ((size_t)RSTRING_LEN(str) < offsetof(struct sockaddr, sa_family) + sizeof(sa->sa_family)) {
     mrb_raisef(mrb, E_SOCKET_ERROR, "invalid sockaddr (too short)");
   }
   sa = (const struct sockaddr *)RSTRING_PTR(str);
