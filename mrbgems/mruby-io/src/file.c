@@ -114,11 +114,13 @@ mrb_file_s_unlink(mrb_state *mrb, mrb_value obj)
 
   mrb_get_args(mrb, "*", &argv, &argc);
   for (i = 0; i < argc; i++) {
+    const char *utf8_path;
     pathv = mrb_convert_type(mrb, argv[i], MRB_TT_STRING, "String", "to_str");
-    path = mrb_locale_from_utf8(mrb_string_value_cstr(mrb, &pathv), -1);
+    utf8_path = mrb_string_value_cstr(mrb, &pathv);
+    path = mrb_locale_from_utf8(utf8_path, -1);
     if (UNLINK(path) < 0) {
       mrb_locale_free(path);
-      mrb_sys_fail(mrb, path);
+      mrb_sys_fail(mrb, utf8_path);
     }
     mrb_locale_free(path);
   }
@@ -415,10 +417,11 @@ mrb_file_s_chmod(mrb_state *mrb, mrb_value klass) {
 
   mrb_get_args(mrb, "i*", &mode, &filenames, &argc);
   for (i = 0; i < argc; i++) {
-    char *path = mrb_locale_from_utf8(mrb_str_to_cstr(mrb, filenames[i]), -1);
+    const char *utf8_path = mrb_str_to_cstr(mrb, filenames[i]);
+    char *path = mrb_locale_from_utf8(utf8_path, -1);
     if (CHMOD(path, mode) == -1) {
       mrb_locale_free(path);
-      mrb_sys_fail(mrb, path);
+      mrb_sys_fail(mrb, utf8_path);
     }
     mrb_locale_free(path);
   }
