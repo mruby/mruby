@@ -780,7 +780,7 @@ reopen:
     mrb_str_modify(mrb, mrb_str_ptr(emsg));
     mrb_sys_fail(mrb, RSTRING_PTR(emsg));
   }
-  mrb_utf8_free(fname);
+  mrb_locale_free(fname);
 
   if (fd <= 2) {
     mrb_fd_cloexec(mrb, fd);

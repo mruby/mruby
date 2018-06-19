@@ -310,7 +310,7 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
   }
   home = mrb_locale_from_utf8(home, -1);
   path = mrb_str_new_cstr(mrb, home);
-  mrb_utf8_free(home);
+  mrb_locale_free(home);
   return path;
 #else
   argc = mrb_get_argc(mrb);
@@ -327,7 +327,7 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
   }
   home = mrb_locale_from_utf8(home, -1);
   path = mrb_str_new_cstr(mrb, home);
-  mrb_utf8_free(home);
+  mrb_locale_free(home);
   return path;
 #endif
 }
