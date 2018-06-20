@@ -164,10 +164,11 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
                       nil
                     end
   current_gem_list = build.gems.map(&:name).join("\n")
-  if active_gem_list != current_gem_list
-    File.write active_gems_path, current_gem_list
+  task active_gems_path do |t|
+    FileUtils.mkdir_p File.dirname t.name
+    File.write t.name, current_gem_list
   end
-  file clib => active_gems_path
+  file clib => active_gems_path if active_gem_list != current_gem_list
 
   file mlib => clib
   file clib => [init, build.mrbcfile] do |t|
