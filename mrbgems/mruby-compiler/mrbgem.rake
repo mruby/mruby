@@ -27,6 +27,7 @@ MRuby::Gem::Specification.new 'mruby-compiler' do |spec|
 
   # Parser
   file "#{current_build_dir}/core/y.tab.c" => ["#{current_dir}/core/parse.y"] do |t|
+    FileUtils.mkdir_p File.dirname t.name
     yacc.run t.name, t.prerequisites.first
   end
 
