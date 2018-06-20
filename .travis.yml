@@ -17,4 +17,6 @@ addons:
 env:
     MRUBY_CONFIG=travis_config.rb
 env: MRUBY_CONFIG=travis_config.rb
-script: "./minirake all test"
+before_script:
+  - gem install minitest
+script: "./minirake all test libtest"
