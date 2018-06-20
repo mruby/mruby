@@ -23,7 +23,7 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
   mrbtest_objs = []
 
   driver_obj = objfile("#{build_dir}/driver")
-  driver = "#{spec.dir}/driver.c"
+  # driver = "#{spec.dir}/driver.c"
 
   assert_c = "#{build_dir}/assert.c"
   assert_rb = "#{MRUBY_ROOT}/test/assert.rb"
