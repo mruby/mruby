@@ -31,7 +31,7 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
   mrbtest_objs << assert_lib
 
   file assert_lib => assert_c
-  file assert_c => assert_rb do |t|
+  file assert_c => [assert_rb, build.mrbcfile] do |t|
     open(t.name, 'w') do |f|
       mrbc.run f, assert_rb, 'mrbtest_assert_irep'
     end
@@ -45,7 +45,7 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
     dep_list = build.gems.tsort_dependencies(g.test_dependencies, gem_table).select(&:generate_functions)
 
     file test_rbobj => g.test_rbireps
-    file g.test_rbireps => [g.test_rbfiles].flatten do |t|
+    file g.test_rbireps => [g.test_rbfiles, build.mrbcfile].flatten do |t|
       FileUtils.mkdir_p File.dirname(t.name)
       open(t.name, 'w') do |f|
         g.print_gem_test_header(f)
@@ -169,7 +169,7 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
   file clib => active_gems_path
 
   file mlib => clib
-  file clib => init do |t|
+  file clib => [init, build.mrbcfile] do |t|
     _pp "GEN", "*.rb", "#{clib.relative_path}"
     FileUtils.mkdir_p File.dirname(clib)
     open(clib, 'w') do |f|
