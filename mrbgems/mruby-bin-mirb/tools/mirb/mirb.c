@@ -661,6 +661,12 @@ done:
 
   if (args.rfp) fclose(args.rfp);
   mrb_free(mrb, args.argv);
+  if (args.libv) {
+    for (i = 0; i < args.libc; ++i) {
+      mrb_free(mrb, args.libv[i]);
+    }
+    mrb_free(mrb, args.libv);
+  }
   mrbc_context_free(mrb, cxt);
   mrb_close(mrb);
 
