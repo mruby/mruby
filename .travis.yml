@@ -17,4 +17,4 @@ addons:
 env:
     MRUBY_CONFIG=travis_config.rb
 env: MRUBY_CONFIG=travis_config.rb
-script: "./minirake all test"
+script: "./minirake -j4 all test"
