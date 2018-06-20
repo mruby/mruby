@@ -171,7 +171,7 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
   file clib => active_gems_path if active_gem_list != current_gem_list
 
   file mlib => clib
-  file clib => [init, build.mrbcfile] do |t|
+  file clib => [init, build.mrbcfile] do |_t|
     _pp "GEN", "*.rb", "#{clib.relative_path}"
     FileUtils.mkdir_p File.dirname(clib)
     open(clib, 'w') do |f|
