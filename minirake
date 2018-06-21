@@ -550,7 +550,7 @@ class RakeApp
     puts "rake aborted!"
     $rake_failed.each do |ex|
       puts ex.message
-      if $trace
+      if $trace || $verbose
         puts ex.backtrace.join("\n")
       else
         puts ex.backtrace.find {|str| str =~ /#{@rakefile}/ } || ""
