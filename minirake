@@ -113,6 +113,7 @@ module MiniRake
         @running = true
         return Fiber.new do
           self.execute
+          $rake_root_fiber.transfer
         end
       end
 
@@ -318,7 +319,7 @@ module MiniRake
         command: cmd,
         process_waiter: Process.detach(pid)
       }
-      Fiber.yield
+      $rake_root_fiber.transfer
     end
 
     def desc(text)
@@ -529,7 +530,7 @@ class RakeApp
               next
             end
 
-            f.resume
+            f.transfer
           end
         end
 
@@ -577,7 +578,7 @@ class RakeApp
       if st.exitstatus != 0
         raise "Command Failed: [#{ent[:command]}]"
       end
-      ent[:fiber].resume
+      ent[:fiber].transfer
     end
   end
 end
