@@ -529,6 +529,8 @@ class RakeApp
               next
             end
 
+            wait_process while $rake_fiber_table.size >= $rake_jobs
+
             f.resume
           end
         end
@@ -577,6 +579,9 @@ class RakeApp
       if st.exitstatus != 0
         raise "Command Failed: [#{ent[:command]}]"
       end
+
+      wait_process while $rake_fiber_table.size >= $rake_jobs
+
       ent[:fiber].resume
     end
   end
