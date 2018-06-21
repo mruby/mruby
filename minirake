@@ -530,6 +530,8 @@ class RakeApp
               next
             end
 
+            wait_process while $rake_fiber_table.size >= $rake_jobs
+
             f.transfer
           end
         end
@@ -551,7 +553,7 @@ class RakeApp
     puts "rake aborted!"
     $rake_failed.each do |ex|
       puts ex.message
-      if $trace
+      if $trace || $verbose
         puts ex.backtrace.join("\n")
       else
         puts ex.backtrace.find {|str| str =~ /#{@rakefile}/ } || ""
@@ -578,10 +580,14 @@ class RakeApp
       if st.exitstatus != 0
         raise "Command Failed: [#{ent[:command]}]"
       end
+
+      wait_process while $rake_fiber_table.size >= $rake_jobs
+
       ent[:fiber].transfer
     end
   end
-end
+
+  end
 
 if __FILE__ == $0 then
   RakeApp.new.run
