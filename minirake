@@ -562,8 +562,9 @@ class RakeApp
     exit 1
   end
 
-  def wait_process
-    Thread.pass
+  def wait_process(count = 0)
+    dur = [0.0001 * (10 ** count), 1].min
+    sleep dur
 
     exited = []
     $rake_fiber_table.each do |pid, v|
@@ -581,10 +582,12 @@ class RakeApp
         raise "Command Failed: [#{ent[:command]}]"
       end
 
-      wait_process while $rake_fiber_table.size >= $rake_jobs
+      fail 'task scheduling bug!' if $rake_fiber_table.size >= $rake_jobs
 
       ent[:fiber].transfer
     end
+
+    wait_process(count + 1) if !$rake_fiber_table.empty? && exited.empty?
   end
 
   end
