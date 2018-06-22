@@ -113,6 +113,7 @@ module MiniRake
         @running = true
         return Fiber.new do
           self.execute
+          $rake_root_fiber.transfer
         end
       end
 
@@ -318,7 +319,7 @@ module MiniRake
         command: cmd,
         process_waiter: Process.detach(pid)
       }
-      Fiber.yield
+      $rake_root_fiber.transfer
     end
 
     def desc(text)
@@ -531,7 +532,7 @@ class RakeApp
 
             wait_process while $rake_fiber_table.size >= $rake_jobs
 
-            f.resume
+            f.transfer
           end
         end
 
@@ -582,10 +583,11 @@ class RakeApp
 
       wait_process while $rake_fiber_table.size >= $rake_jobs
 
-      ent[:fiber].resume
+      ent[:fiber].transfer
     end
   end
-end
+
+  end
 
 if __FILE__ == $0 then
   RakeApp.new.run
