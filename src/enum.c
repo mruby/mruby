@@ -27,6 +27,8 @@ enum_update_hash(mrb_state *mrb, mrb_value self)
 #endif
   else {
     mrb_raise(mrb, E_TYPE_ERROR, "can't calculate hash");
+    /* not reached */
+    hv = 0;
   }
   hash ^= (hv << (index % 16));
 
