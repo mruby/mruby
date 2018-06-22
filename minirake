@@ -562,7 +562,7 @@ class RakeApp
   end
 
   def wait_process
-    sleep 0.1
+    Thread.pass
 
     exited = []
     $rake_fiber_table.each do |pid, v|
