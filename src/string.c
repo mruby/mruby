@@ -709,7 +709,7 @@ mrb_str_resize(mrb_state *mrb, mrb_value str, mrb_int len)
   struct RString *s = mrb_str_ptr(str);
 
   if (len < 0) {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative (or overflowed) string size");
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative (or overflowed) string size");
   }
   mrb_str_modify(mrb, s);
   slen = RSTR_LEN(s);
