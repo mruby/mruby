@@ -21,8 +21,6 @@
 #define FLAG_BYTEORDER_BIG 2
 #define FLAG_BYTEORDER_LIL 4
 #define FLAG_BYTEORDER_NATIVE 8
-#define FLAG_SRC_MALLOC 1
-#define FLAG_SRC_STATIC 0
 
 #define SIZE_ERROR_MUL(nmemb, size) ((size_t)(nmemb) > SIZE_MAX / (size))
 
@@ -76,7 +74,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
     if (SIZE_ERROR_MUL(irep->ilen, sizeof(mrb_code))) {
       return NULL;
     }
-    if ((flags & FLAG_SRC_MALLOC) == 0 &&
+    if ((flags & MRB_READ_FLAG_SRC_MALLOC) == 0 &&
         (flags & FLAG_BYTEORDER_NATIVE)) {
       irep->iseq = (mrb_code*)src;
       src += sizeof(uint32_t) * irep->ilen;
@@ -118,7 +116,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
       tt = *src++; /* pool TT */
       pool_data_len = bin_to_uint16(src); /* pool data length */
       src += sizeof(uint16_t);
-      if (flags & FLAG_SRC_MALLOC) {
+      if (flags & MRB_READ_FLAG_SRC_MALLOC) {
         s = mrb_str_new(mrb, (char *)src, pool_data_len);
       }
       else {
@@ -174,7 +172,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
         continue;
       }
 
-      if (flags & FLAG_SRC_MALLOC) {
+      if (flags & MRB_READ_FLAG_SRC_MALLOC) {
         irep->syms[i] = mrb_intern(mrb, (char *)src, snl);
       }
       else {
@@ -413,7 +411,7 @@ read_section_debug(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, uint8_t
   for (i = 0; i < filenames_len; ++i) {
     uint16_t f_len = bin_to_uint16(bin);
     bin += sizeof(uint16_t);
-    if (flags & FLAG_SRC_MALLOC) {
+    if (flags & MRB_READ_FLAG_SRC_MALLOC) {
       filenames[i] = mrb_intern(mrb, (const char *)bin, (size_t)f_len);
     }
     else {
@@ -492,7 +490,7 @@ read_section_lv(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, uint8_t fl
   uint32_t syms_len;
   mrb_sym *syms;
   mrb_sym (*intern_func)(mrb_state*, const char*, size_t) =
-    (flags & FLAG_SRC_MALLOC)? mrb_intern : mrb_intern_static;
+    (flags & MRB_READ_FLAG_SRC_MALLOC)? mrb_intern : mrb_intern_static;
 
   bin = start;
   header = (struct rite_section_lv_header const*)bin;
@@ -615,11 +613,17 @@ mrb_irep*
 mrb_read_irep(mrb_state *mrb, const uint8_t *bin)
 {
 #ifdef MRB_USE_ETEXT_EDATA
-  uint8_t flags = mrb_ro_data_p((char*)bin) ? FLAG_SRC_STATIC : FLAG_SRC_MALLOC;
+  uint8_t flags = mrb_ro_data_p((char*)bin) ? MRB_READ_FLAG_SRC_STATIC : MRB_READ_FLAG_SRC_MALLOC;
 #else
-  uint8_t flags = FLAG_SRC_STATIC;
+  uint8_t flags = MRB_READ_FLAG_SRC_STATIC;
 #endif
 
+  return read_irep(mrb, bin, flags);
+}
+
+mrb_irep*
+mrb_read_irep_flags(mrb_state *mrb, const uint8_t *bin, uint8_t flags)
+{
   return read_irep(mrb, bin, flags);
 }
 
@@ -691,7 +695,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
   if (fread(buf+header_size, buf_size-header_size, 1, fp) == 0) {
     goto irep_exit;
   }
-  irep = read_irep(mrb, buf, FLAG_SRC_MALLOC);
+  irep = read_irep(mrb, buf, MRB_READ_FLAG_SRC_MALLOC);
 
 irep_exit:
   mrb_free(mrb, buf);

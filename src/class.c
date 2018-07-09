@@ -18,6 +18,11 @@
 
 KHASH_DEFINE(mt, mrb_sym, mrb_method_t, TRUE, kh_int_hash_func, kh_int_hash_equal)
 
+mrb_int
+  mrb_vm_global_method_state = 1,
+  mrb_vm_global_constant_state = 1,
+  mrb_vm_class_serial = 1;
+
 void
 mrb_gc_mark_mt(mrb_state *mrb, struct RClass *c)
 {
@@ -1353,6 +1358,8 @@ mc_clear_all(mrb_state *mrb)
 {
   struct mrb_cache_entry *mc = mrb->cache;
   int i;
+
+  mrb_vm_global_method_state += 1;
 
   for (i=0; i<MRB_METHOD_CACHE_SIZE; i++) {
     mc[i].c = 0;
