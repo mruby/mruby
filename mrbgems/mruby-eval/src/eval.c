@@ -325,6 +325,7 @@ f_instance_eval(mrb_state *mrb, mrb_value self)
     proc = create_proc_from_string(mrb, s, len, mrb_nil_value(), file, line);
     MRB_PROC_SET_TARGET_CLASS(proc, mrb_class_ptr(cv));
     mrb_assert(!MRB_PROC_CFUNC_P(proc));
+    mrb->c->ci->target_class = mrb_class_ptr(cv);
     return exec_irep(mrb, self, proc);
   }
   else {
