@@ -1770,7 +1770,7 @@ RETRY_TRY_BLOCK:
       }
 
       /* no rest arguments */
-      if (argc < len) {
+      if (argc-kargs < len) {
         int mlen = m2;
         if (argc < m1+m2) {
           mlen = m1 < argc ? argc - m1 : 0;
@@ -1778,7 +1778,6 @@ RETRY_TRY_BLOCK:
         regs[blk_pos] = *blk; /* move block */
         if (kd) regs[len + 1] = kdict;
  
-        SET_NIL_VALUE(regs[argc+1]);
         /* copy mandatory and optional arguments */
         if (argv0 != argv) {
           value_move(&regs[1], argv, argc-mlen); /* m1 + o */
@@ -1798,7 +1797,7 @@ RETRY_TRY_BLOCK:
           regs[m1+o+1] = mrb_ary_new_capa(mrb, 0);
         }
         /* skip initailizer of passed arguments */
-        if (o > 0 && argc-kargs >= m1+m2)
+        if (o > 0 && argc-kargs > m1+m2)
           pc += (argc - kargs - m1 - m2)*3;
       }
       else {
