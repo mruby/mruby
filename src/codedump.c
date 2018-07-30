@@ -285,10 +285,6 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       printf("OP_KARG\tR%d\t:%s\t", a, mrb_sym2name(mrb, irep->syms[b]));
       print_lv_a(mrb, irep, a);
       break;
-    CASE(OP_KDICT, B):
-      printf("OP_KDICT\tR%d\t\t", a);
-      print_lv_a(mrb, irep, a);
-      break;
     CASE(OP_RETURN, B):
       printf("OP_RETURN\tR%d\t\t", a);
       print_lv_a(mrb, irep, a);

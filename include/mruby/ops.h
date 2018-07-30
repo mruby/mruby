@@ -66,7 +66,6 @@ OPCODE(ENTER,      W)        /* arg setup according to flags (23=m5:o5:r1:m5:k5:
 OPCODE(KEY_P,      BB)       /* R(a) = kdict.key?(Syms(b))                      # todo */
 OPCODE(KEYEND,     Z)        /* raise unless kdict.empty?                       # todo */
 OPCODE(KARG,       BB)       /* R(a) = kdict[Syms(b)]; kdict.delete(Syms(b))    # todo */
-OPCODE(KDICT,      B)        /* R(a) = kdict                                    # todo */
 OPCODE(RETURN,     B)        /* return R(a) (normal) */
 OPCODE(RETURN_BLK, B)        /* return R(a) (in-block return) */
 OPCODE(BREAK,      B)        /* break R(a) */

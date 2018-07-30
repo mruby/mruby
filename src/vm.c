@@ -1872,11 +1872,6 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
-    CASE(OP_KDICT, B) {
-      regs[a] = regs[mrb->c->ci->argc];
-      NEXT;
-    }
-
     CASE(OP_BREAK, B) {
       c = OP_R_BREAK;
       goto L_RETURN;
