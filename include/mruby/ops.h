@@ -61,15 +61,16 @@ OPCODE(SEND,       BBB)      /* R(a) = call(R(a),Syms(b),R(a+1),...,R(a+c)) */
 OPCODE(SENDB,      BBB)      /* R(a) = call(R(a),Syms(Bx),R(a+1),...,R(a+c),&R(a+c+1)) */
 OPCODE(CALL,       Z)        /* R(0) = self.call(frame.argc, frame.argv) */
 OPCODE(SUPER,      BB)       /* R(a) = super(R(a+1),... ,R(a+b+1)) */
-OPCODE(ARGARY,     BS)       /* R(a) = argument array (16=6:1:5:4) */
-OPCODE(ENTER,      W)        /* arg setup according to flags (23=5:5:1:5:5:1:1) */
-OPCODE(KARG,       BB)       /* R(a) = kdict[Syms(Bx)]                          # todo */
-OPCODE(KARG2,      BB)       /* R(a) = kdict[Syms(Bx)]; kdict.rm(Syms(b))       # todo */
+OPCODE(ARGARY,     BS)       /* R(a) = argument array (16=m5:r1:m5:d1:lv4) */
+OPCODE(ENTER,      W)        /* arg setup according to flags (23=m5:o5:r1:m5:k5:d1:b1) */
+OPCODE(KEY_P,      BB)       /* R(a) = kdict.key?(Syms(b))                      # todo */
+OPCODE(KEYEND,     Z)        /* raise unless kdict.empty?                       # todo */
+OPCODE(KARG,       BB)       /* R(a) = kdict[Syms(b)]; kdict.delete(Syms(b))    # todo */
 OPCODE(KDICT,      B)        /* R(a) = kdict                                    # todo */
 OPCODE(RETURN,     B)        /* return R(a) (normal) */
 OPCODE(RETURN_BLK, B)        /* return R(a) (in-block return) */
 OPCODE(BREAK,      B)        /* break R(a) */
-OPCODE(BLKPUSH,    BS)       /* R(a) = block (16=6:1:5:4) */
+OPCODE(BLKPUSH,    BS)       /* R(a) = block (16=m5:r1:m5:d1:lv4) */
 OPCODE(ADD,        BB)       /* R(a) = R(a)+R(a+1) (Syms[b]=:+) */
 OPCODE(ADDI,       BBB)      /* R(a) = R(a)+mrb_int(c) (Syms[b]=:+) */
 OPCODE(SUB,        BB)       /* R(a) = R(a)-R(a+1) (Syms[b]=:-) */

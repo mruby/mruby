@@ -208,6 +208,54 @@ mrb_hash_init_copy(mrb_state *mrb, mrb_value self)
   return vret;
 }
 
+void
+mrb_hash_check_kdict(mrb_state *mrb, mrb_value self)
+{
+  khash_t(ht) *orig_h;
+  khiter_t k;
+  int nosym = FALSE;
+
+  orig_h = RHASH_TBL(self);
+  if (!orig_h || kh_size(orig_h) == 0) return;
+  for (k = kh_begin(orig_h); k != kh_end(orig_h); k++) {
+    if (kh_exist(orig_h, k)) {
+        mrb_value key = kh_key(orig_h, k);
+
+        if (!mrb_symbol_p(key)) nosym = TRUE;
+    }
+  }
+  if (nosym) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "keyword argument hash with non symbol keys");
+  }
+}
+
+MRB_API mrb_value
+mrb_hash_dup(mrb_state *mrb, mrb_value self)
+{
+  struct RHash* copy;
+  khash_t(ht) *orig_h;
+
+  orig_h = RHASH_TBL(self);
+  copy = (struct RHash*)mrb_obj_alloc(mrb, MRB_TT_HASH, mrb->hash_class);
+  copy->ht = kh_init(ht, mrb);
+
+  if (orig_h && kh_size(orig_h) > 0) {
+    int ai = mrb_gc_arena_save(mrb);
+    khash_t(ht) *copy_h = copy->ht;
+    khiter_t k, copy_k;
+
+    for (k = kh_begin(orig_h); k != kh_end(orig_h); k++) {
+      if (kh_exist(orig_h, k)) {
+        copy_k = kh_put(ht, mrb, copy_h, KEY(kh_key(orig_h, k)));
+        mrb_gc_arena_restore(mrb, ai);
+        kh_val(copy_h, copy_k).v = kh_val(orig_h, k).v;
+        kh_val(copy_h, copy_k).n = kh_size(copy_h)-1;
+      }
+    }
+  }
+  return mrb_obj_value(copy);
+}
+
 MRB_API mrb_value
 mrb_hash_get(mrb_state *mrb, mrb_value hash, mrb_value key)
 {
@@ -716,13 +764,21 @@ mrb_hash_size_m(mrb_state *mrb, mrb_value self)
  *     {}.empty?   #=> true
  *
  */
-MRB_API mrb_value
+MRB_API mrb_bool
 mrb_hash_empty_p(mrb_state *mrb, mrb_value self)
 {
   khash_t(ht) *h = RHASH_TBL(self);
 
-  if (h) return mrb_bool_value(kh_size(h) == 0);
-  return mrb_true_value();
+  if (h) return kh_size(h) == 0;
+  return TRUE;
+}
+
+static mrb_value
+mrb_hash_empty_m(mrb_state *mrb, mrb_value self)
+{
+  if (mrb_hash_empty_p(mrb, self))
+    return mrb_true_value();
+  return mrb_false_value();
 }
 
 /* 15.2.13.4.29 (x)*/
@@ -833,21 +889,29 @@ mrb_hash_values(mrb_state *mrb, mrb_value hash)
  *
  */
 
-static mrb_value
-mrb_hash_has_key(mrb_state *mrb, mrb_value hash)
+MRB_API mrb_bool
+mrb_hash_key_p(mrb_state *mrb, mrb_value hash, mrb_value key)
 {
-  mrb_value key;
   khash_t(ht) *h;
   khiter_t k;
-
-  mrb_get_args(mrb, "o", &key);
 
   h = RHASH_TBL(hash);
   if (h) {
     k = kh_get(ht, mrb, h, key);
-    return mrb_bool_value(k != kh_end(h));
+    return k != kh_end(h);
   }
-  return mrb_false_value();
+  return FALSE;
+}
+
+static mrb_value
+mrb_hash_has_key(mrb_state *mrb, mrb_value hash)
+{
+  mrb_value key;
+  mrb_bool key_p;
+
+  mrb_get_args(mrb, "o", &key);
+  key_p = mrb_hash_key_p(mrb, hash, key);
+  return mrb_bool_value(key_p);
 }
 
 /* 15.2.13.4.14 */
@@ -904,7 +968,7 @@ mrb_init_hash(mrb_state *mrb)
   mrb_define_method(mrb, h, "default_proc",    mrb_hash_default_proc,MRB_ARGS_NONE()); /* 15.2.13.4.7  */
   mrb_define_method(mrb, h, "default_proc=",   mrb_hash_set_default_proc,MRB_ARGS_REQ(1)); /* 15.2.13.4.7  */
   mrb_define_method(mrb, h, "__delete",        mrb_hash_delete,      MRB_ARGS_REQ(1)); /* core of 15.2.13.4.8  */
-  mrb_define_method(mrb, h, "empty?",          mrb_hash_empty_p,     MRB_ARGS_NONE()); /* 15.2.13.4.12 */
+  mrb_define_method(mrb, h, "empty?",          mrb_hash_empty_m,     MRB_ARGS_NONE()); /* 15.2.13.4.12 */
   mrb_define_method(mrb, h, "has_key?",        mrb_hash_has_key,     MRB_ARGS_REQ(1)); /* 15.2.13.4.13 */
   mrb_define_method(mrb, h, "has_value?",      mrb_hash_has_value,   MRB_ARGS_REQ(1)); /* 15.2.13.4.14 */
   mrb_define_method(mrb, h, "include?",        mrb_hash_has_key,     MRB_ARGS_REQ(1)); /* 15.2.13.4.15 */

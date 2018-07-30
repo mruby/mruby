@@ -1194,7 +1194,15 @@ mrb_local_variables(mrb_state *mrb, mrb_value self)
     if (!irep->lv) break;
     for (i = 0; i + 1 < irep->nlocals; ++i) {
       if (irep->lv[i].name) {
-        mrb_hash_set(mrb, vars, mrb_symbol_value(irep->lv[i].name), mrb_true_value());
+        mrb_sym sym = irep->lv[i].name;
+        const char *name = mrb_sym2name(mrb, sym);
+        switch (name[0]) {
+        case '*': case '&':
+          break;
+        default:
+          mrb_hash_set(mrb, vars, mrb_symbol_value(sym), mrb_true_value());
+          break;
+        }
       }
     }
     if (!MRB_PROC_ENV_P(proc)) break;

@@ -25,6 +25,7 @@ struct RHash {
 #define mrb_hash_value(p)  mrb_obj_value((void*)(p))
 
 MRB_API mrb_value mrb_hash_new_capa(mrb_state*, mrb_int);
+MRB_API mrb_value mrb_check_hash_type(mrb_state *mrb, mrb_value hash);
 
 /*
  * Initializes a new hash.
@@ -110,7 +111,19 @@ MRB_API mrb_value mrb_hash_delete_key(mrb_state *mrb, mrb_value hash, mrb_value 
  * @return An array with the keys of the hash.
  */
 MRB_API mrb_value mrb_hash_keys(mrb_state *mrb, mrb_value hash);
-MRB_API mrb_value mrb_check_hash_type(mrb_state *mrb, mrb_value hash);
+/*
+ * Check if the hash has the key.
+ *
+ * Equivalent to:
+ *
+ *     hash.key?(key)
+ *
+ * @param mrb The mruby state reference.
+ * @param hash The target hash.
+ * @param key The key to check existence.
+ * @return True if the hash has the key
+ */
+MRB_API mrb_bool mrb_hash_key_p(mrb_state *mrb, mrb_value hash, mrb_value key);
 
 /*
  * Check if the hash is empty
@@ -123,7 +136,7 @@ MRB_API mrb_value mrb_check_hash_type(mrb_state *mrb, mrb_value hash);
  * @param self The target hash.
  * @return True if the hash is empty, false otherwise.
  */
-MRB_API mrb_value mrb_hash_empty_p(mrb_state *mrb, mrb_value self);
+MRB_API mrb_bool mrb_hash_empty_p(mrb_state *mrb, mrb_value self);
 
 /*
  * Gets an array of values.
@@ -150,6 +163,16 @@ MRB_API mrb_value mrb_hash_values(mrb_state *mrb, mrb_value hash);
  * @return The hash
  */
 MRB_API mrb_value mrb_hash_clear(mrb_state *mrb, mrb_value hash);
+
+/*
+ * Copies the hash.
+ *
+ *
+ * @param mrb The mruby state reference.
+ * @param hash The target hash.
+ * @return The copy of the hash
+ */
+MRB_API mrb_value mrb_hash_dup(mrb_state *mrb, mrb_value hash);
 
 /* declaration of struct kh_ht */
 /* be careful when you touch the internal */

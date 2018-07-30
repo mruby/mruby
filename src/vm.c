@@ -969,6 +969,8 @@ check_target_class(mrb_state *mrb)
   return TRUE;
 }
 
+void mrb_hash_check_kdict(mrb_state *mrb, mrb_value self);
+
 MRB_API mrb_value
 mrb_vm_exec(mrb_state *mrb, struct RProc *proc, mrb_code *pc)
 {
@@ -1639,9 +1641,10 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_ARGARY, BS) {
-      int m1 = (b>>10)&0x3f;
-      int r  = (b>>9)&0x1;
-      int m2 = (b>>4)&0x1f;
+      int m1 = (b>>11)&0x3f;
+      int r  = (b>>10)&0x1;
+      int m2 = (b>>5)&0x1f;
+      int kd = (b>>4)&0x1;
       int lv = (b>>0)&0xf;
       mrb_value *stack;
 
@@ -1657,12 +1660,12 @@ RETRY_TRY_BLOCK:
       else {
         struct REnv *e = uvenv(mrb, lv-1);
         if (!e) goto L_NOSUPER;
-        if (MRB_ENV_STACK_LEN(e) <= m1+r+m2+1)
+        if (MRB_ENV_STACK_LEN(e) <= m1+r+m2+kd+1)
           goto L_NOSUPER;
         stack = e->stack + 1;
       }
       if (r == 0) {
-        regs[a] = mrb_ary_new_from_values(mrb, m1+m2, stack);
+        regs[a] = mrb_ary_new_from_values(mrb, m1+m2+kd, stack);
       }
       else {
         mrb_value *pp = NULL;
@@ -1675,7 +1678,7 @@ RETRY_TRY_BLOCK:
           pp = ARY_PTR(ary);
           len = (int)ARY_LEN(ary);
         }
-        regs[a] = mrb_ary_new_capa(mrb, m1+len+m2);
+        regs[a] = mrb_ary_new_capa(mrb, m1+len+m2+kd);
         rest = mrb_ary_ptr(regs[a]);
         if (m1 > 0) {
           stack_copy(ARY_PTR(rest), stack, m1);
@@ -1686,7 +1689,10 @@ RETRY_TRY_BLOCK:
         if (m2 > 0) {
           stack_copy(ARY_PTR(rest)+m1+len, stack+m1+1, m2);
         }
-        ARY_SET_LEN(rest, m1+len+m2);
+        if (kd) {
+          stack_copy(ARY_PTR(rest)+m1+len+m2, stack+m1+m2+1, kd);
+        }
+        ARY_SET_LEN(rest, m1+len+m2+kd);
       }
       regs[a+1] = stack[m1+r+m2];
       mrb_gc_arena_restore(mrb, ai);
@@ -1698,74 +1704,114 @@ RETRY_TRY_BLOCK:
       int o  = MRB_ASPEC_OPT(a);
       int r  = MRB_ASPEC_REST(a);
       int m2 = MRB_ASPEC_POST(a);
+      int kd = (MRB_ASPEC_KEY(a) > 0 || MRB_ASPEC_KDICT(a))? 1 : 0;
       /* unused
-      int k  = MRB_ASPEC_KEY(a);
-      int kd = MRB_ASPEC_KDICT(a);
       int b  = MRB_ASPEC_BLOCK(a);
       */
       int argc = mrb->c->ci->argc;
       mrb_value *argv = regs+1;
-      mrb_value *argv0 = argv;
-      int len = m1 + o + r + m2;
+      mrb_value * const argv0 = argv;
+      int const len = m1 + o + r + m2;
+      int const blk_pos = len + kd + 1;
       mrb_value *blk = &argv[argc < 0 ? 1 : argc];
+      mrb_value kdict;
+      int kargs = kd;
 
+      /* arguments is passed with Array */
       if (argc < 0) {
         struct RArray *ary = mrb_ary_ptr(regs[1]);
         argv = ARY_PTR(ary);
         argc = (int)ARY_LEN(ary);
         mrb_gc_protect(mrb, regs[1]);
       }
+
+      /* strict argument check */
       if (mrb->c->ci->proc && MRB_PROC_STRICT_P(mrb->c->ci->proc)) {
-        if (argc >= 0) {
-          if (argc < m1 + m2 || (r == 0 && argc > len)) {
+        if (argc >= 0 && !(argc <= 1 && kd)) {
+          if (argc < m1 + m2 + kd || (r == 0 && argc > len + kd)) {
             argnum_error(mrb, m1+m2);
             goto L_RAISE;
           }
         }
       }
+      /* extract first argument array to arguments */
       else if (len > 1 && argc == 1 && mrb_array_p(argv[0])) {
         mrb_gc_protect(mrb, argv[0]);
         argc = (int)RARRAY_LEN(argv[0]);
         argv = RARRAY_PTR(argv[0]);
       }
+
+      if (kd) {
+        /* check last arguments is hash if method takes keyword arguments */
+        if (argc == m1+m2) {
+          kdict = mrb_hash_new(mrb);
+          kargs = 0;
+        }
+        else {
+          if (!mrb_hash_p(argv[argc - 1])) {
+            if (r) {
+              kdict = mrb_hash_new(mrb);
+              kargs = 0;
+            }
+            else {
+              mrb_value str = mrb_str_new_lit(mrb, "Excepcted `Hash` as last argument for keyword arguments");
+              mrb_exc_set(mrb, mrb_exc_new_str(mrb, E_ARGUMENT_ERROR, str));
+              goto L_RAISE;
+            }
+          }
+          else {
+            kdict = argv[argc-1];
+          }
+          mrb_hash_check_kdict(mrb, kdict);
+          if (MRB_ASPEC_KEY(a) > 0) {
+            kdict = mrb_hash_dup(mrb, kdict);
+          }
+        }
+      }
+
+      /* no rest arguments */
       if (argc < len) {
         int mlen = m2;
         if (argc < m1+m2) {
-          if (m1 < argc)
-            mlen = argc - m1;
-          else
-            mlen = 0;
+          mlen = m1 < argc ? argc - m1 : 0;
         }
-        regs[len+1] = *blk; /* move block */
+        regs[blk_pos] = *blk; /* move block */
+        if (kd) regs[len + 1] = kdict;
+ 
         SET_NIL_VALUE(regs[argc+1]);
+        /* copy mandatory and optional arguments */
         if (argv0 != argv) {
           value_move(&regs[1], argv, argc-mlen); /* m1 + o */
         }
         if (argc < m1) {
           stack_clear(&regs[argc+1], m1-argc);
         }
+        /* copy post mandatory arguments */
         if (mlen) {
           value_move(&regs[len-m2+1], &argv[argc-mlen], mlen);
         }
         if (mlen < m2) {
           stack_clear(&regs[len-m2+mlen+1], m2-mlen);
         }
+        /* initalize rest arguments with empty Array */
         if (r) {
           regs[m1+o+1] = mrb_ary_new_capa(mrb, 0);
         }
-        if (o > 0 && argc >= m1+m2)
-          pc += (argc - m1 - m2)*3;
+        /* skip initailizer of passed arguments */
+        if (o > 0 && argc-kargs >= m1+m2)
+          pc += (argc - kargs - m1 - m2)*3;
       }
       else {
         int rnum = 0;
         if (argv0 != argv) {
-          regs[len+1] = *blk; /* move block */
+          regs[blk_pos] = *blk; /* move block */
+          if (kd) regs[len + 1] = kdict;
           value_move(&regs[1], argv, m1+o);
         }
         if (r) {
           mrb_value ary;
 
-          rnum = argc-m1-o-m2;
+          rnum = argc-m1-o-m2-kargs;
           ary = mrb_ary_new_from_values(mrb, rnum, argv+m1+o);
           regs[m1+o+1] = ary;
         }
@@ -1775,29 +1821,60 @@ RETRY_TRY_BLOCK:
           }
         }
         if (argv0 == argv) {
-          regs[len+1] = *blk; /* move block */
+          regs[blk_pos] = *blk; /* move block */
+          if (kd) regs[len + 1] = kdict;
         }
         pc += o*3;
       }
-      mrb->c->ci->argc = len;
+
+      /* format arguments for generated code */
+      mrb->c->ci->argc = len + kd;
+
       /* clear local (but non-argument) variables */
-      if (irep->nlocals-len-2 > 0) {
-        stack_clear(&regs[len+2], irep->nlocals-len-2);
+      if (irep->nlocals-blk_pos-1 > 0) {
+        stack_clear(&regs[blk_pos+1], irep->nlocals-blk_pos-1);
       }
       JUMP;
     }
 
     CASE(OP_KARG, BB) {
-      /* not implemented yet */
+      mrb_value k = mrb_symbol_value(syms[b]);
+      mrb_value kdict = regs[mrb->c->ci->argc];
+
+      if (!mrb_hash_key_p(mrb, kdict, k)) {
+        mrb_value str = mrb_format(mrb, "missing keyword: %S", k);
+        mrb_exc_set(mrb, mrb_exc_new_str(mrb, E_ARGUMENT_ERROR, str));
+        goto L_RAISE;
+      }
+      regs[a] = mrb_hash_get(mrb, kdict, k);
+      mrb_hash_delete_key(mrb, kdict, k);
       NEXT;
     }
-    CASE(OP_KARG2, BB) {
-      /* not implemented yet */
+
+    CASE(OP_KEY_P, BB) {
+      mrb_value k = mrb_symbol_value(syms[b]);
+      mrb_value kdict = regs[mrb->c->ci->argc];
+      mrb_bool key_p = mrb_hash_key_p(mrb, kdict, k);
+
+      regs[a] = mrb_bool_value(key_p);
+      NEXT;
+    }
+
+    CASE(OP_KEYEND, Z) {
+      mrb_value kdict = regs[mrb->c->ci->argc];
+
+      if (mrb_hash_p(kdict) && !mrb_hash_empty_p(mrb, kdict)) {
+        mrb_value keys = mrb_hash_keys(mrb, kdict);
+        mrb_value key1 = RARRAY_PTR(keys)[0];
+        mrb_value str = mrb_format(mrb, "unknown keyword: %S", key1);
+        mrb_exc_set(mrb, mrb_exc_new_str(mrb, E_ARGUMENT_ERROR, str));
+        goto L_RAISE;
+      }
       NEXT;
     }
 
     CASE(OP_KDICT, B) {
-      /* not implemented yet */
+      regs[a] = regs[mrb->c->ci->argc];
       NEXT;
     }
 
@@ -2064,9 +2141,10 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_BLKPUSH, BS) {
-      int m1 = (b>>10)&0x3f;
-      int r  = (b>>9)&0x1;
-      int m2 = (b>>4)&0x1f;
+      int m1 = (b>>11)&0x3f;
+      int r  = (b>>10)&0x1;
+      int m2 = (b>>5)&0x1f;
+      int kd = (b>>4)&0x1;
       int lv = (b>>0)&0xf;
       mrb_value *stack;
 
@@ -2084,7 +2162,7 @@ RETRY_TRY_BLOCK:
         localjump_error(mrb, LOCALJUMP_ERROR_YIELD);
         goto L_RAISE;
       }
-      regs[a] = stack[m1+r+m2];
+      regs[a] = stack[m1+r+m2+kd];
       NEXT;
     }
 

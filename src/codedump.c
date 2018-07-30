@@ -78,6 +78,16 @@ codedump(mrb_state *mrb, mrb_irep *irep)
   printf("irep %p nregs=%d nlocals=%d pools=%d syms=%d reps=%d\n", (void*)irep,
          irep->nregs, irep->nlocals, (int)irep->plen, (int)irep->slen, (int)irep->rlen);
 
+  if (irep->lv) {
+    int i;
+
+    printf("local variable names:\n");
+    for (i = 1; i < irep->nlocals; ++i) {
+      char const *n = mrb_sym2name(mrb, irep->lv[i - 1].name);
+      printf("  R%d:%s\n", irep->lv[i - 1].r, n? n : "");
+    }
+  }
+
   pc = irep->iseq;
   pcend = pc + irep->ilen;
   while (pc < pcend) {
@@ -246,10 +256,11 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       printf("OP_SUPER\tR%d\t%d\n", a, b);
       break;
     CASE(OP_ARGARY, BS):
-      printf("OP_ARGARY\tR%d\t%d:%d:%d:%d", a,
-             (b>>10)&0x3f,
-             (b>>9)&0x1,
-             (b>>4)&0x1f,
+      printf("OP_ARGARY\tR%d\t%d:%d:%d:%d (%d)", a,
+             (b>>11)&0x3f,
+             (b>>10)&0x1,
+             (b>>5)&0x1f,
+             (b>>4)&0x1,
              (b>>0)&0xf);
       print_lv_a(mrb, irep, a);
       break;
@@ -263,32 +274,39 @@ codedump(mrb_state *mrb, mrb_irep *irep)
              (a>>1)&0x1,
              a & 0x1);
       break;
-    CASE(OP_KARG, BB):
-      printf("OP_KARG\tR(%d)\tK(%d)\n", a, b);
+    CASE(OP_KEY_P, BB):
+      printf("OP_KEY_P\tR%d\t:%s\t", a, mrb_sym2name(mrb, irep->syms[b]));
+      print_lv_a(mrb, irep, a);
       break;
-    CASE(OP_KARG2, BB):
-      printf("OP_KARG2\tR(%d)\tK(%d)\n", a, b);
+    CASE(OP_KEYEND, Z):
+      printf("OP_KEYEND\n");
+      break;
+    CASE(OP_KARG, BB):
+      printf("OP_KARG\tR%d\t:%s\t", a, mrb_sym2name(mrb, irep->syms[b]));
+      print_lv_a(mrb, irep, a);
       break;
     CASE(OP_KDICT, B):
-      printf("OP_KDICt\tR(%d)\n", a);
+      printf("OP_KDICT\tR%d\t\t", a);
+      print_lv_a(mrb, irep, a);
       break;
     CASE(OP_RETURN, B):
-      printf("OP_RETURN\tR%d", a);
+      printf("OP_RETURN\tR%d\t\t", a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_RETURN_BLK, B):
-      printf("OP_RETURN_BLK\tR%d", a);
+      printf("OP_RETURN_BLK\tR%d\t\t", a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_BREAK, B):
-      printf("OP_BREAK\tR%d", a);
+      printf("OP_BREAK\tR%d\t\t", a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_BLKPUSH, BS):
-      printf("OP_BLKPUSH\tR%d\t%d:%d:%d:%d", a,
-             (b>>10)&0x3f,
-             (b>>9)&0x1,
-             (b>>4)&0x1f,
+      printf("OP_BLKPUSH\tR%d\t%d:%d:%d:%d (%d)", a,
+             (b>>11)&0x3f,
+             (b>>10)&0x1,
+             (b>>5)&0x1f,
+             (b>>4)&0x1,
              (b>>0)&0xf);
       print_lv_a(mrb, irep, a);
       break;

@@ -77,7 +77,7 @@ with `"`, either `OP_EXT1` or `OP_EXT2` or `OP_EXT2` can be prefixed.
 |OP_SENDB"        |BBB          |R(a) = call(R(a),Syms(Bx),R(a+1),...,R(a+c),&R(a+c+1))
 |OP_CALL'         |B            |R(a) = self.call(frame.argc, frame.argv)
 |OP_SUPER'        |BB           |R(a) = super(R(a+1),... ,R(a+b+1))
-|OP_ARGARY'       |BS           |R(a) = argument array (16=6:1:5:4)
+|OP_ARGARY'       |BS           |R(a) = argument array (16=5:1:5:1:4)
 |OP_ENTER         |W            |arg setup according to flags (23=5:5:1:5:5:1:1)
 |OP_KARG"         |BB           |R(a) = kdict[Syms(Bx)]                          # todo
 |OP_KARG2"        |BB           |R(a) = kdict[Syms(Bx)]; kdict.rm(Syms(b))       # todo
@@ -85,7 +85,7 @@ with `"`, either `OP_EXT1` or `OP_EXT2` or `OP_EXT2` can be prefixed.
 |OP_RETURN'       |B            |return R(a) (normal)
 |OP_RETURN_BLK'   |B            |return R(a) (in-block return)
 |OP_BREAK'        |B            |break R(a)
-|OP_BLKPUSH'      |BS           |R(a) = block (16=6:1:5:4)
+|OP_BLKPUSH'      |BS           |R(a) = block (16=5:1:5:1:4)
 |OP_ADD"          |BB           |R(a) = R(a)+R(a+1) (Syms[b]=:+)
 |OP_ADDI"         |BBB          |R(a) = R(a)+mrb_int(c) (Syms[b]=:+)
 |OP_SUB"          |BB           |R(a) = R(a)-R(a+1) (Syms[b]=:-)
@@ -207,7 +207,7 @@ with `"`, either `OP_EXT1` or `OP_EXT2` or `OP_EXT2` can be prefixed.
 |OP_SENDB"        |BBB          |R(a) = call(R(a),Syms(Bx),R(a+1),...,R(a+c),&R(a+c+1))
 |OP_CALL'         |B            |R(a) = self.call(frame.argc, frame.argv)
 |OP_SUPER'        |BB           |R(a) = super(R(a+1),... ,R(a+b+1))
-|OP_ARGARY'       |BS           |R(a) = argument array (16=6:1:5:4)
+|OP_ARGARY'       |BS           |R(a) = argument array (16=5:1:5:1:4)
 |OP_ENTER         |W            |arg setup according to flags (23=5:5:1:5:5:1:1)
 |OP_KARG"         |BB           |R(a) = kdict[Syms(Bx)]                          # todo
 |OP_KARG2"        |BB           |R(a) = kdict[Syms(Bx)]; kdict.rm(Syms(b))       # todo
@@ -215,7 +215,7 @@ with `"`, either `OP_EXT1` or `OP_EXT2` or `OP_EXT2` can be prefixed.
 |OP_RETURN'       |B            |return R(a) (normal)
 |OP_RETURN_BLK'   |B            |return R(a) (in-block return)
 |OP_BREAK'        |B            |break R(a)
-|OP_BLKPUSH'      |BS           |R(a) = block (16=6:1:5:4)
+|OP_BLKPUSH'      |BS           |R(a) = block (16=5:1:5:1:4)
 |OP_ADD"          |BB           |R(a) = R(a)+R(a+1) (Syms[b]=:+)
 |OP_ADDI"         |BBB          |R(a) = R(a)+mrb_int(c) (Syms[b]=:+)
 |OP_SUB"          |BB           |R(a) = R(a)-R(a+1) (Syms[b]=:-)

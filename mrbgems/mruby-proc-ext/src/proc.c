@@ -149,7 +149,15 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
       a = mrb_ary_new(mrb);
       mrb_ary_push(mrb, a, sname);
       if (i < max && irep->lv[i].name) {
-        mrb_ary_push(mrb, a, mrb_symbol_value(irep->lv[i].name));
+        mrb_sym sym = irep->lv[i].name;
+        const char *name = mrb_sym2name(mrb, sym);
+        switch (name[0]) {
+        case '*': case '&':
+          break;
+        default:
+          mrb_ary_push(mrb, a, mrb_symbol_value(sym));
+          break;
+        }
       }
       mrb_ary_push(mrb, parameters, a);
     }
