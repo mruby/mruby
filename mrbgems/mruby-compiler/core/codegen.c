@@ -296,15 +296,8 @@ on_eval(codegen_scope *s)
   return FALSE;
 }
 
-struct mrb_insn_data {
-  uint8_t insn;
-  uint16_t a;
-  uint16_t b;
-  uint8_t c;
-};
-
 struct mrb_insn_data
-mrb_decode_insn(codegen_scope *s, mrb_code *pc)
+mrb_decode_insn(mrb_code *pc)
 {
   struct mrb_insn_data data = { 0 };
   mrb_code insn = READ_B();
@@ -353,7 +346,7 @@ mrb_decode_insn(codegen_scope *s, mrb_code *pc)
   return data;
 }
 
-struct mrb_insn_data
+static struct mrb_insn_data
 mrb_last_insn(codegen_scope *s)
 {
   if (s->pc == s->lastpc) {
@@ -362,7 +355,7 @@ mrb_last_insn(codegen_scope *s)
     data.insn = OP_NOP;
     return data;
   }
-  return mrb_decode_insn(s, &s->iseq[s->lastpc]);
+  return mrb_decode_insn(&s->iseq[s->lastpc]);
 }
 
 static mrb_bool
