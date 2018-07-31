@@ -252,18 +252,18 @@ copy_class(mrb_state *mrb, mrb_value dst, mrb_value src)
   struct RClass *sc = mrb_class_ptr(src);
   /* if the origin is not the same as the class, then the origin and
      the current class need to be copied */
-  if (sc->flags & MRB_FLAG_IS_PREPENDED) {
+  if (sc->flags & MRB_FL_CLASS_IS_PREPENDED) {
     struct RClass *c0 = sc->super;
     struct RClass *c1 = dc;
 
     /* copy prepended iclasses */
-    while (!(c0->flags & MRB_FLAG_IS_ORIGIN)) {
+    while (!(c0->flags & MRB_FL_CLASS_IS_ORIGIN)) {
       c1->super = mrb_class_ptr(mrb_obj_dup(mrb, mrb_obj_value(c0)));
       c1 = c1->super;
       c0 = c0->super;
     }
     c1->super = mrb_class_ptr(mrb_obj_dup(mrb, mrb_obj_value(c0)));
-    c1->super->flags |= MRB_FLAG_IS_ORIGIN;
+    c1->super->flags |= MRB_FL_CLASS_IS_ORIGIN;
   }
   if (sc->mt) {
     dc->mt = kh_copy(mt, mrb, sc->mt);
@@ -348,7 +348,7 @@ mrb_obj_clone(mrb_state *mrb, mrb_value self)
   mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)p->c);
   clone = mrb_obj_value(p);
   init_copy(mrb, clone, self);
-  p->flags |= mrb_obj_ptr(self)->flags & MRB_FLAG_IS_FROZEN;
+  p->flags |= mrb_obj_ptr(self)->flags & MRB_FL_OBJ_IS_FROZEN;
 
   return clone;
 }
@@ -706,7 +706,7 @@ mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass* kl
   struct RClass* oldklass;
   khash_t(st)* set = kh_init(st, mrb);
 
-  if (!recur && (klass->flags & MRB_FLAG_IS_PREPENDED)) {
+  if (!recur && (klass->flags & MRB_FL_CLASS_IS_PREPENDED)) {
     MRB_CLASS_ORIGIN(klass);
     prepended = TRUE;
   }
