@@ -20,7 +20,9 @@ typedef struct symbol_name {
 } symbol_name;
 
 #ifdef MRB_ENABLE_BUILTIN_SYMBOLS
-#include "builtin_symbols.h"
+# include "builtin_symbols.h"
+# define MRB_BUILTIN_SYMBOLS_PIVOT (UINT32_MAX - MRB_BUILTIN_SYMBOLS_MAX)
+# define MRB_BUILTIN_SYMBOL_P(sym) ((sym) > MRB_BUILTIN_SYMBOLS_PIVOT)
 #endif
 
 static inline khint_t
@@ -31,15 +33,15 @@ sym_hash_func(mrb_state *mrb, mrb_sym s)
   const char *p;
 
 #ifdef MRB_ENABLE_BUILTIN_SYMBOLS
-  if ((int32_t)s >= 0) {
+  if (MRB_BUILTIN_SYMBOL_P(s)) {
+    len = builtin_symbols_table[~s].len;
+    p = builtin_symbols_table[~s].name;
+  }
+  else {
 #endif
     len = mrb->symtbl[s].len;
     p = mrb->symtbl[s].name;
 #ifdef MRB_ENABLE_BUILTIN_SYMBOLS
-  }
-  else {
-    len = builtin_symbols_table[~s].len;
-    p = builtin_symbols_table[~s].name;
   }
 #endif
 
@@ -53,8 +55,8 @@ sym_hash_func(mrb_state *mrb, mrb_sym s)
 static inline int
 sym_hash_equal(mrb_state *mrb, mrb_sym a, mrb_sym b)
 {
-  const symbol_name *ap = (int32_t)a >= 0 ? &mrb->symtbl[a] : &builtin_symbols_table[~a];
-  const symbol_name *bp = (int32_t)b >= 0 ? &mrb->symtbl[b] : &builtin_symbols_table[~b];
+  const symbol_name *ap = MRB_BUILTIN_SYMBOL_P(a) ? &builtin_symbols_table[~a] : &mrb->symtbl[a];
+  const symbol_name *bp = MRB_BUILTIN_SYMBOL_P(b) ? &builtin_symbols_table[~b] : &mrb->symtbl[b];
 
   return ap->len == bp->len && memcmp(ap->name, bp->name, ap->len) == 0;
 }
@@ -177,7 +179,7 @@ MRB_API const char*
 mrb_sym2name_len(mrb_state *mrb, mrb_sym sym, mrb_int *lenp)
 {
 #ifdef MRB_ENABLE_BUILTIN_SYMBOLS
-  if ((int32_t)sym < 0 && ~sym < MRB_BUILTIN_SYMBOLS_MAX) {
+  if (MRB_BUILTIN_SYMBOL_P(sym)) {
     if (lenp) *lenp = builtin_symbols_table[~sym].len;
     return builtin_symbols_table[~sym].name;
   }
