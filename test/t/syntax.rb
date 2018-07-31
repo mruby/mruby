@@ -511,6 +511,7 @@ assert 'keyword arguments' do
 
   def m(a=1, **k) [a, k] end
   assert_equal [1, {}], m
+  assert_equal [1, {a: 1}], m(a: 1)
   assert_equal [2, {a: 1, b: 2}], m(2, a: 1, b: 2)
   assert_equal [{a: 1}, {b: 2}], m({a: 1}, {b: 2})
 
