@@ -215,14 +215,14 @@ future, the simpler behavior will be adopted to CRuby as well.
 #### Ruby [ruby 2.5.1p57 (2018-03-29 revision 63029)]
 
 ```
-$ ruby -e 'def m(*r,**k) p [r,k] end; m("a"'=>1,:b=>2)'
+$ ruby -e 'def m(*r,**k) p [r,k] end; m("a"=>1,:b=>2)'
 [[{"a"=>1}], {:b=>2}]
 ```
 
 #### mruby []
 
 ```
-$ ./bin/mruby -e 'def m(*r,**k) p [r,k] end; m("a"'=>1,:b=>2)'
+$ ./bin/mruby -e 'def m(*r,**k) p [r,k] end; m("a"=>1,:b=>2)'
 trace (most recent call last):
 	[0] -e:1
 -e:1: keyword argument hash with non symbol keys (ArgumentError)
