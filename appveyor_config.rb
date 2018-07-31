@@ -48,3 +48,30 @@ MRuby::Build.new('cxx_abi') do |conf|
 
   build_mrbc_exec
 end
+
+MRuby::Build.new("host+builtin-symbols") do |conf|
+  toolchain :visualcpp
+
+  # include all core GEMs
+  conf.gembox 'full-core'
+  conf.compilers.each do |c|
+    c.defines += %w(MRB_GC_FIXED_ARENA MRB_ENABLE_BUILTIN_SYMBOLS)
+  end
+  conf.enable_bintest
+  conf.enable_test
+end
+
+MRuby::Build.new('cxx_abi+builtin-symbols') do |conf|
+  toolchain :visualcpp
+
+  conf.gembox 'full-core'
+  conf.compilers.each do |c|
+    c.defines += %w(MRB_GC_FIXED_ARENA MRB_ENABLE_BUILTIN_SYMBOLS)
+  end
+  conf.enable_bintest
+  conf.enable_test
+
+  enable_cxx_abi
+
+  build_mrbc_exec
+end
