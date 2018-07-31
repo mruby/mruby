@@ -172,6 +172,12 @@ typedef void mrb_value;
 #define mrb_test(o)   mrb_bool(o)
 MRB_API mrb_bool mrb_regexp_p(struct mrb_state*, mrb_value);
 
+#ifdef MRB_ENABLE_BUILTIN_SYMBOLS
+#define MRB_BUILTIN_SYMBOLS_MAX 401
+#else
+#define MRB_BUILTIN_SYMBOLS_MAX 0
+#endif
+
 /*
  * Returns a float in Ruby.
  */

@@ -115,6 +115,7 @@
 
 /* -DMRB_ENABLE_XXXX to enable following features */
 //#define MRB_ENABLE_DEBUG_HOOK /* hooks for debugger */
+//#define MRB_ENABLE_BUILTIN_SYMBOLS /* builtin symbols */
 
 /* end of configuration */
 

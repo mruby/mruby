@@ -19,19 +19,48 @@ typedef struct symbol_name {
   const char *name;
 } symbol_name;
 
+#ifdef MRB_ENABLE_BUILTIN_SYMBOLS
+#include "builtin_symbols.h"
+#endif
+
 static inline khint_t
 sym_hash_func(mrb_state *mrb, mrb_sym s)
 {
   khint_t h = 0;
-  size_t i, len = mrb->symtbl[s].len;
-  const char *p = mrb->symtbl[s].name;
+  size_t i, len;
+  const char *p;
+
+#ifdef MRB_ENABLE_BUILTIN_SYMBOLS
+  if ((int32_t)s >= 0) {
+#endif
+    len = mrb->symtbl[s].len;
+    p = mrb->symtbl[s].name;
+#ifdef MRB_ENABLE_BUILTIN_SYMBOLS
+  }
+  else {
+    len = builtin_symbols_table[~s].len;
+    p = builtin_symbols_table[~s].name;
+  }
+#endif
 
   for (i=0; i<len; i++) {
     h = (h << 5) - h + *p++;
   }
   return h;
 }
+
+#ifdef MRB_ENABLE_BUILTIN_SYMBOLS
+static inline int
+sym_hash_equal(mrb_state *mrb, mrb_sym a, mrb_sym b)
+{
+  const symbol_name *ap = (int32_t)a >= 0 ? &mrb->symtbl[a] : &builtin_symbols_table[~a];
+  const symbol_name *bp = (int32_t)b >= 0 ? &mrb->symtbl[b] : &builtin_symbols_table[~b];
+
+  return ap->len == bp->len && memcmp(ap->name, bp->name, ap->len) == 0;
+}
+#else
 #define sym_hash_equal(mrb,a, b) (mrb->symtbl[a].len == mrb->symtbl[b].len && memcmp(mrb->symtbl[a].name, mrb->symtbl[b].name, mrb->symtbl[a].len) == 0)
+#endif
 
 KHASH_DECLARE(n2s, mrb_sym, mrb_sym, FALSE)
 KHASH_DEFINE (n2s, mrb_sym, mrb_sym, FALSE, sym_hash_func, sym_hash_equal)
@@ -147,6 +176,13 @@ mrb_check_intern_str(mrb_state *mrb, mrb_value str)
 MRB_API const char*
 mrb_sym2name_len(mrb_state *mrb, mrb_sym sym, mrb_int *lenp)
 {
+#ifdef MRB_ENABLE_BUILTIN_SYMBOLS
+  if ((int32_t)sym < 0 && ~sym < MRB_BUILTIN_SYMBOLS_MAX) {
+    if (lenp) *lenp = builtin_symbols_table[~sym].len;
+    return builtin_symbols_table[~sym].name;
+  }
+#endif
+
   if (sym == 0 || mrb->symidx < sym) {
     if (lenp) *lenp = 0;
     return NULL;
@@ -173,7 +209,23 @@ mrb_free_symtbl(mrb_state *mrb)
 void
 mrb_init_symtbl(mrb_state *mrb)
 {
+#ifdef MRB_ENABLE_BUILTIN_SYMBOLS
+  int i;
+#endif
+
   mrb->name2sym = kh_init(n2s, mrb);
+
+#ifdef MRB_ENABLE_BUILTIN_SYMBOLS
+  if (mrb->symcapa < 100) {
+    if (mrb->symcapa == 0) mrb->symcapa = 100;
+    else mrb->symcapa = (size_t)(mrb->symcapa * 6 / 5);
+    mrb->symtbl = (symbol_name*)mrb_realloc(mrb, mrb->symtbl, sizeof(symbol_name)*(mrb->symcapa+1));
+  }
+
+  for (i = 1; i <= MRB_BUILTIN_SYMBOLS_MAX; i ++) {
+    kh_put(n2s, mrb, mrb->name2sym, (mrb_sym)-i);
+  }
+#endif
 }
 
 /**********************************************************************
