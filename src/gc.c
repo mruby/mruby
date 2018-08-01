@@ -548,21 +548,39 @@ add_gray_list(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
   gc->gray_list = obj;
 }
 
+static int
+ci_nregs(mrb_callinfo *ci)
+{
+  struct RProc *p = ci->proc;
+  int n = 0;
+
+  if (!p) {
+    if (ci->argc < 0) return 3;
+    return ci->argc+2;
+  }
+  if (!MRB_PROC_CFUNC_P(p) && p->body.irep) {
+    n = p->body.irep->nregs;
+  }
+  if (ci->argc < 0) {
+    if (n < 3) n = 3; /* self + args + blk */
+  }
+  if (ci->argc > n) {
+    n = ci->argc + 2; /* self + blk */
+  }
+  return n;
+}
+
 static void
 mark_context_stack(mrb_state *mrb, struct mrb_context *c)
 {
   size_t i;
   size_t e;
   mrb_value nil;
-  mrb_int nregs;
 
   if (c->stack == NULL) return;
   e = c->stack - c->stbase;
   if (c->ci) {
-    nregs = c->ci->argc + 2;
-    if (c->ci->nregs > nregs)
-      nregs = c->ci->nregs;
-    e += nregs;
+    e += ci_nregs(c->ci);
   }
   if (c->stbase + e > c->stend) e = c->stend - c->stbase;
   for (i=0; i<e; i++) {
@@ -950,7 +968,9 @@ gc_gray_mark(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
       if (!c) break;
       /* mark stack */
       i = c->stack - c->stbase;
-      if (c->ci) i += c->ci->nregs;
+      if (c->ci) {
+        i += ci_nregs(c->ci);
+      }
       if (c->stbase + i > c->stend) i = c->stend - c->stbase;
       children += i;
 
