@@ -220,29 +220,40 @@ flo_mul(mrb_state *mrb, mrb_value x)
 }
 
 static void
-flodivmod(mrb_state *mrb, mrb_float x, mrb_float y, mrb_float *divp, mrb_float *modp)
+flodivmod(mrb_state *mrb, double x, double y, mrb_float *divp, mrb_float *modp)
 {
-  mrb_float div;
-  mrb_float mod;
+  double div, mod;
 
+  if (isnan(y)) {
+    /* y is NaN so all results are NaN */
+    div = mod = y;
+    goto exit;
+  }
   if (y == 0.0) {
-    if (x > 0.0) div = INFINITY;
-    else if (x < 0.0) div = -INFINITY;
-    else div = NAN;             /* x == 0.0 */
+    if (x == 0) div = NAN;
+    else if (x > 0.0) div = INFINITY;
+    else div = -INFINITY;       /* x < 0.0 */
     mod = NAN;
+    goto exit;
+  }
+  if ((x == 0.0) || (isinf(y) && !isinf(x))) {
+    mod = x;
   }
   else {
     mod = fmod(x, y);
-    if (isinf(x) && isfinite(y))
-      div = x;
-    else
-      div = (x - mod) / y;
-    if (y*mod < 0) {
-      mod += y;
-      div -= 1.0;
-    }
   }
-
+  if (isinf(x) && !isinf(y)) {
+    div = x;
+  }
+  else {
+    div = (x - mod) / y;
+    if (modp && divp) div = round(div);
+  }
+  if (y*mod < 0) {
+    mod += y;
+    div -= 1.0;
+  }
+ exit:
   if (modp) *modp = mod;
   if (divp) *divp = div;
 }
