@@ -254,6 +254,7 @@ create_proc_from_string(mrb_state *mrb, char *s, mrb_int len, mrb_value binding,
       if (ci->argc < 0) bidx = 2;
       else bidx += 1;
       MRB_ENV_SET_BIDX(e, bidx);
+      ci->env = e;
     }
     proc->e.env = e;
     proc->flags |= MRB_PROC_ENVSET;
