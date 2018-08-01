@@ -123,7 +123,6 @@ typedef struct {
   mrb_sym mid;
   struct RProc *proc;
   mrb_value *stackent;
-  uint16_t nregs;
   uint16_t ridx;
   uint16_t epos;
   struct REnv *env;
