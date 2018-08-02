@@ -22,9 +22,6 @@ struct RClass {
 };
 
 #define mrb_class_ptr(v)    ((struct RClass*)(mrb_ptr(v)))
-#define RCLASS_SUPER(v)     (((struct RClass*)(mrb_ptr(v)))->super)
-#define RCLASS_IV_TBL(v)    (((struct RClass*)(mrb_ptr(v)))->iv)
-#define RCLASS_M_TBL(v)     (((struct RClass*)(mrb_ptr(v)))->mt)
 
 static inline struct RClass*
 mrb_class(mrb_state *mrb, mrb_value v)
