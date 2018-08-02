@@ -1141,7 +1141,7 @@ RETRY_TRY_BLOCK:
       /* A Bx   R(A) := ivget(Bx) */
       int a = GETARG_A(i);
       int bx = GETARG_Bx(i);
-      mrb_value val = mrb_vm_iv_get(mrb, syms[bx]);
+      mrb_value val = mrb_iv_get(mrb, regs[0], syms[bx]);
       regs[a] = val;
       NEXT;
     }
@@ -1150,7 +1150,7 @@ RETRY_TRY_BLOCK:
       /* A Bx   ivset(Syms(Bx),R(A)) */
       int a = GETARG_A(i);
       int bx = GETARG_Bx(i);
-      mrb_vm_iv_set(mrb, syms[bx], regs[a]);
+      mrb_iv_set(mrb, regs[0], syms[bx], regs[a]);
       NEXT;
     }
 

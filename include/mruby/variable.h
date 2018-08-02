@@ -31,8 +31,6 @@ struct global_entry {
 
 mrb_value mrb_vm_special_get(mrb_state*, mrb_sym);
 void mrb_vm_special_set(mrb_state*, mrb_sym, mrb_value);
-mrb_value mrb_vm_iv_get(mrb_state*, mrb_sym);
-void mrb_vm_iv_set(mrb_state*, mrb_sym, mrb_value);
 mrb_value mrb_vm_cv_get(mrb_state*, mrb_sym);
 void mrb_vm_cv_set(mrb_state*, mrb_sym, mrb_value);
 mrb_value mrb_vm_const_get(mrb_state*, mrb_sym);
