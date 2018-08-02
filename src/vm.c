@@ -1131,8 +1131,7 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_GETIV, BB) {
-      mrb_value val = mrb_vm_iv_get(mrb, syms[b]);
-      regs[a] = val;
+      regs[a] = mrb_vm_iv_get(mrb, syms[b]);
       NEXT;
     }
 

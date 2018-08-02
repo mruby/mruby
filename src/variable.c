@@ -498,20 +498,6 @@ mrb_iv_remove(mrb_state *mrb, mrb_value obj, mrb_sym sym)
   return mrb_undef_value();
 }
 
-mrb_value
-mrb_vm_iv_get(mrb_state *mrb, mrb_sym sym)
-{
-  /* get self */
-  return mrb_iv_get(mrb, mrb->c->stack[0], sym);
-}
-
-void
-mrb_vm_iv_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
-{
-  /* get self */
-  mrb_iv_set(mrb, mrb->c->stack[0], sym, v);
-}
-
 static int
 iv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 {
