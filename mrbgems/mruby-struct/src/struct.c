@@ -24,19 +24,18 @@ struct_class(mrb_state *mrb)
 }
 
 static inline mrb_value
-struct_ivar_get(mrb_state *mrb, mrb_value c, mrb_sym id)
+struct_ivar_get(mrb_state *mrb, mrb_value cls, mrb_sym id)
 {
-  struct RClass* kclass;
+  struct RClass* c = mrb_class_ptr(cls);
   struct RClass* sclass = struct_class(mrb);
   mrb_value ans;
 
   for (;;) {
-    ans = mrb_iv_get(mrb, c, id);
+    ans = mrb_iv_get(mrb, mrb_obj_value(c), id);
     if (!mrb_nil_p(ans)) return ans;
-    kclass = RCLASS_SUPER(c);
-    if (kclass == 0 || kclass == sclass)
+    c = c->super;
+    if (c == sclass || c == 0)
       return mrb_nil_value();
-    c = mrb_obj_value(kclass);
   }
 }
 
