@@ -575,7 +575,7 @@ mrb_obj_ivar_defined(mrb_state *mrb, mrb_value self)
   mrb_sym sym;
 
   mrb_get_args(mrb, "n", &sym);
-  mrb_iv_check(mrb, sym);
+  mrb_iv_name_sym_check(mrb, sym);
   return mrb_bool_value(mrb_iv_defined(mrb, self, sym));
 }
 
@@ -605,7 +605,7 @@ mrb_obj_ivar_get(mrb_state *mrb, mrb_value self)
   mrb_sym iv_name;
 
   mrb_get_args(mrb, "n", &iv_name);
-  mrb_iv_check(mrb, iv_name);
+  mrb_iv_name_sym_check(mrb, iv_name);
   return mrb_iv_get(mrb, self, iv_name);
 }
 
@@ -636,7 +636,7 @@ mrb_obj_ivar_set(mrb_state *mrb, mrb_value self)
   mrb_value val;
 
   mrb_get_args(mrb, "no", &iv_name, &val);
-  mrb_iv_check(mrb, iv_name);
+  mrb_iv_name_sym_check(mrb, iv_name);
   mrb_iv_set(mrb, self, iv_name, val);
   return val;
 }
@@ -951,7 +951,7 @@ mrb_obj_remove_instance_variable(mrb_state *mrb, mrb_value self)
   mrb_value val;
 
   mrb_get_args(mrb, "n", &sym);
-  mrb_iv_check(mrb, sym);
+  mrb_iv_name_sym_check(mrb, sym);
   val = mrb_iv_remove(mrb, self, sym);
   if (mrb_undef_p(val)) {
     mrb_name_error(mrb, sym, "instance variable %S not defined", mrb_sym2str(mrb, sym));

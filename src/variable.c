@@ -393,7 +393,7 @@ mrb_iv_defined(mrb_state *mrb, mrb_value obj, mrb_sym sym)
 #define identchar(c) (ISALNUM(c) || (c) == '_' || !ISASCII(c))
 
 MRB_API mrb_bool
-mrb_iv_p(mrb_state *mrb, mrb_sym iv_name)
+mrb_iv_name_sym_p(mrb_state *mrb, mrb_sym iv_name)
 {
   const char *s;
   mrb_int i, len;
@@ -409,9 +409,9 @@ mrb_iv_p(mrb_state *mrb, mrb_sym iv_name)
 }
 
 MRB_API void
-mrb_iv_check(mrb_state *mrb, mrb_sym iv_name)
+mrb_iv_name_sym_check(mrb_state *mrb, mrb_sym iv_name)
 {
-  if (!mrb_iv_p(mrb, iv_name)) {
+  if (!mrb_iv_name_sym_p(mrb, iv_name)) {
     mrb_name_error(mrb, iv_name, "'%S' is not allowed as an instance variable name", mrb_sym2str(mrb, iv_name));
   }
 }
