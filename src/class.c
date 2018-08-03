@@ -1480,7 +1480,7 @@ mrb_mod_attr_reader(mrb_state *mrb, mrb_value mod)
     mrb_str_cat_lit(mrb, str, "@");
     mrb_str_cat_str(mrb, str, name);
     sym = mrb_intern_str(mrb, str);
-    mrb_iv_check(mrb, sym);
+    mrb_iv_name_sym_check(mrb, sym);
     name = mrb_symbol_value(sym);
     p = mrb_proc_new_cfunc_with_env(mrb, attr_reader, 1, &name);
     MRB_METHOD_FROM_PROC(m, p);
@@ -1525,7 +1525,7 @@ mrb_mod_attr_writer(mrb_state *mrb, mrb_value mod)
     mrb_str_cat_lit(mrb, str, "@");
     mrb_str_cat_str(mrb, str, name);
     sym = mrb_intern_str(mrb, str);
-    mrb_iv_check(mrb, sym);
+    mrb_iv_name_sym_check(mrb, sym);
     attr = mrb_symbol_value(sym);
 
     /* prepare method name (name=) */
