@@ -150,3 +150,16 @@ end
 #
 #   conf.test_runner.command = 'env'
 # end
+
+MRuby::CrossBuild.new('wasm') do |conf|
+  toolchain :clang
+
+  conf.cc do |cc|
+    cc.command = 'clang'
+    cc.flags = %w(-c -emit-llvm --target=wasm32-unknown-unknown-wasm -O3 -fvisibility=hidden --sysroot=../wasmception/sysroot)
+    cc.defines = %w(MRB_DISABLE_STDIO)
+    cc.compile_options = '%{flags} -o %{outfile} %{infile}'
+  end
+
+  conf.bins = []
+end
