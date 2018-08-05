@@ -927,10 +927,11 @@ argnum_error(mrb_state *mrb, mrb_int num)
 #define BYTECODE_DECODER(x) (x)
 #endif
 
-
+#ifndef MRB_DISABLE_DIRECT_THREADING
 #if defined __GNUC__ || defined __clang__ || defined __INTEL_COMPILER
 #define DIRECT_THREADED
 #endif
+#endif /* ifndef MRB_DISABLE_DIRECT_THREADING */
 
 #ifndef DIRECT_THREADED
 
