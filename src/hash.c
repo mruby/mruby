@@ -8,7 +8,6 @@
 #include <mruby/array.h>
 #include <mruby/class.h>
 #include <mruby/hash.h>
-#include <mruby/khash.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>
 
@@ -47,7 +46,7 @@ mrb_hash_ht_hash_func(mrb_state *mrb, mrb_value key)
   return kh_int_hash_func(mrb, h);
 }
 
-static inline khint_t
+static inline mrb_bool
 mrb_hash_ht_hash_equal(mrb_state *mrb, mrb_value a, mrb_value b)
 {
   enum mrb_vtype t = mrb_type(a);
@@ -89,7 +88,251 @@ mrb_hash_ht_hash_equal(mrb_state *mrb, mrb_value a, mrb_value b)
   }
 }
 
-KHASH_DEFINE (ht, mrb_value, mrb_hash_value, TRUE, mrb_hash_ht_hash_func, mrb_hash_ht_hash_equal)
+/* return non zero to break the loop */
+typedef int (sg_foreach_func)(mrb_state *mrb,mrb_value key,mrb_value val, void *data);
+
+#ifndef MRB_SG_SEGMENT_SIZE
+#define MRB_SG_SEGMENT_SIZE 5
+#endif
+
+typedef struct segment {
+  mrb_value key[MRB_SG_SEGMENT_SIZE];
+  mrb_value val[MRB_SG_SEGMENT_SIZE];
+  struct segment *next;
+} segment;
+
+/* Instance variable table structure */
+typedef struct seglist {
+  segment *rootseg;
+  size_t size;
+  size_t last_len;
+} seglist;
+
+/* Creates the instance variable table. */
+static seglist*
+sg_new(mrb_state *mrb)
+{
+  seglist *t;
+
+  t = (seglist*)mrb_malloc(mrb, sizeof(seglist));
+  t->size = 0;
+  t->rootseg =  NULL;
+  t->last_len = 0;
+
+  return t;
+}
+
+/* Set the value for the symbol in the instance variable table. */
+static void
+sg_put(mrb_state *mrb, seglist *t, mrb_value key, mrb_value val)
+{
+  segment *seg;
+  segment *prev = NULL;
+  size_t i;
+
+  if (t == NULL) return;
+  seg = t->rootseg;
+  while (seg) {
+    for (i=0; i<MRB_SG_SEGMENT_SIZE; i++) {
+      mrb_value k = seg->key[i];
+      /* Found room in last segment after last_len */
+      if (!seg->next && i >= t->last_len) {
+        seg->key[i] = key;
+        seg->val[i] = val;
+        t->last_len = i+1;
+        t->size++;
+        return;
+      }
+      if (mrb_hash_ht_hash_equal(mrb, k, key)) {
+        seg->val[i] = val;
+        return;
+      }
+    }
+    prev = seg;
+    seg = seg->next;
+  }
+
+  /* Not found */
+  t->size++;
+
+  seg = (segment*)mrb_malloc(mrb, sizeof(segment));
+  if (!seg) return;
+  seg->next = NULL;
+  seg->key[0] = key;
+  seg->val[0] = val;
+  t->last_len = 1;
+  if (prev) {
+    prev->next = seg;
+  }
+  else {
+    t->rootseg = seg;
+  }
+}
+
+/* Get a value for a symbol from the instance variable table. */
+static mrb_bool
+sg_get(mrb_state *mrb, seglist *t, mrb_value key, mrb_value *vp)
+{
+  segment *seg;
+  size_t i;
+
+  if (t == NULL) return FALSE;
+  seg = t->rootseg;
+  while (seg) {
+    for (i=0; i<MRB_SG_SEGMENT_SIZE; i++) {
+      mrb_value k = seg->key[i];
+
+      if (!seg->next && i >= t->last_len) {
+        return FALSE;
+      }
+      if (mrb_hash_ht_hash_equal(mrb, k, key)) {
+        if (vp) *vp = seg->val[i];
+        return TRUE;
+      }
+    }
+    seg = seg->next;
+  }
+  return FALSE;
+}
+
+/* Deletes the value for the symbol from the instance variable table. */
+static mrb_bool
+sg_del(mrb_state *mrb, seglist *t, mrb_value key, mrb_value *vp)
+{
+  segment *seg;
+  size_t i;
+
+  if (t == NULL) return FALSE;
+  seg = t->rootseg;
+  while (seg) {
+    for (i=0; i<MRB_SG_SEGMENT_SIZE; i++) {
+      mrb_value k = seg->key[i];
+
+      if (!seg->next && i >= t->last_len) {
+        /* not found */
+        return FALSE;
+      }
+      if (mrb_hash_ht_hash_equal(mrb, k, key)) {
+        segment *sg0;
+        size_t i0;
+
+        t->size--;
+        if (vp) *vp = seg->val[i];
+        sg0 = seg;
+        i0 = i;
+        while (seg) {
+          for (i++; i<MRB_SG_SEGMENT_SIZE; i++) {
+            if (!seg->next && i >= t->last_len) {
+              t->last_len--;
+              if (t->last_len == 0 && sg0 != seg) {
+                sg0->next = NULL;
+                t->last_len = MRB_SG_SEGMENT_SIZE;
+                mrb_free(mrb, seg);
+              }
+              return TRUE;
+            }
+            sg0->key[i0] = seg->key[i];
+            sg0->val[i0] = seg->val[i];
+            i0 = i;
+          }
+          sg0 = seg;
+          seg = seg->next;
+        }
+        t->last_len--;
+        return TRUE;
+      }
+    }
+    seg = seg->next;
+  }
+  return FALSE;
+}
+
+/* Iterates over the instance variable table. */
+static void
+sg_foreach(mrb_state *mrb, seglist *t, sg_foreach_func *func, void *p)
+{
+  segment *seg;
+  size_t i;
+
+  if (t == NULL) return;
+  seg = t->rootseg;
+  while (seg) {
+    for (i=0; i<MRB_SG_SEGMENT_SIZE; i++) {
+      /* no value in last segment after last_len */
+      if (!seg->next && i >= t->last_len) {
+        return;
+      }
+      if ((*func)(mrb, seg->key[i], seg->val[i], p) != 0)
+        return;
+    }
+    seg = seg->next;
+  }
+}
+
+/* Get the size of the instance variable table. */
+static size_t
+sg_size(mrb_state *mrb, seglist *t)
+{
+  segment *seg;
+  size_t size = 0;
+
+  if (t == NULL) return 0;
+  if (t->size > 0) return t->size;
+  seg = t->rootseg;
+  while (seg) {
+    if (seg->next == NULL) {
+      size += t->last_len;
+      return size;
+    }
+    seg = seg->next;
+    size += MRB_SG_SEGMENT_SIZE;
+  }
+  /* empty seglist */
+  return 0;
+}
+
+/* Copy the instance variable table. */
+static seglist*
+sg_copy(mrb_state *mrb, seglist *t)
+{
+  segment *seg;
+  seglist *t2;
+
+  size_t i;
+
+  seg = t->rootseg;
+  t2 = sg_new(mrb);
+
+  while (seg != NULL) {
+    for (i=0; i<MRB_SG_SEGMENT_SIZE; i++) {
+      mrb_value key = seg->key[i];
+      mrb_value val = seg->val[i];
+
+      if ((seg->next == NULL) && (i >= t->last_len)) {
+        return t2;
+      }
+      sg_put(mrb, t2, key, val);
+    }
+    seg = seg->next;
+  }
+  return t2;
+}
+
+/* Free memory of the instance variable table. */
+static void
+sg_free(mrb_state *mrb, seglist *t)
+{
+  segment *seg;
+
+  if (!t) return;
+  seg = t->rootseg;
+  while (seg) {
+    segment *p = seg;
+    seg = seg->next;
+    mrb_free(mrb, p);
+  }
+  mrb_free(mrb, t);
+}
 
 static void mrb_hash_modify(mrb_state *mrb, mrb_value hash);
 
@@ -105,37 +348,43 @@ mrb_hash_ht_key(mrb_state *mrb, mrb_value key)
 
 #define KEY(key) mrb_hash_ht_key(mrb, key)
 
+static int
+hash_mark_i(mrb_state *mrb, mrb_value key, mrb_value val, void *p)
+{
+  mrb_gc_mark_value(mrb, key);
+  mrb_gc_mark_value(mrb, val);
+  return 0;
+}
+
 void
 mrb_gc_mark_hash(mrb_state *mrb, struct RHash *hash)
 {
-  khiter_t k;
-  khash_t(ht) *h = hash->ht;
-
-  if (!h) return;
-  for (k = kh_begin(h); k != kh_end(h); k++) {
-    if (kh_exist(h, k)) {
-      mrb_value key = kh_key(h, k);
-      mrb_value val = kh_value(h, k).v;
-
-      mrb_gc_mark_value(mrb, key);
-      mrb_gc_mark_value(mrb, val);
-    }
-  }
+  sg_foreach(mrb, hash->ht, hash_mark_i, NULL);
 }
 
 size_t
 mrb_gc_mark_hash_size(mrb_state *mrb, struct RHash *hash)
 {
   if (!hash->ht) return 0;
-  return kh_size(hash->ht)*2;
+  return sg_size(mrb, hash->ht)*2;
 }
 
 void
 mrb_gc_free_hash(mrb_state *mrb, struct RHash *hash)
 {
-  if (hash->ht) kh_destroy(ht, mrb, hash->ht);
+  sg_free(mrb, hash->ht);
 }
 
+MRB_API mrb_value
+mrb_hash_new(mrb_state *mrb)
+{
+  struct RHash *h;
+
+  h = (struct RHash*)mrb_obj_alloc(mrb, MRB_TT_HASH, mrb->hash_class);
+  h->ht = 0;
+  h->iv = 0;
+  return mrb_obj_value(h);
+}
 
 MRB_API mrb_value
 mrb_hash_new_capa(mrb_state *mrb, mrb_int capa)
@@ -143,19 +392,11 @@ mrb_hash_new_capa(mrb_state *mrb, mrb_int capa)
   struct RHash *h;
 
   h = (struct RHash*)mrb_obj_alloc(mrb, MRB_TT_HASH, mrb->hash_class);
-  /* khash needs 1/4 empty space so it is not resized immediately */
-  if (capa == 0)
-    h->ht = 0;
-  else
-    h->ht = kh_init_size(ht, mrb, (khint_t)(capa*4/3));
+  /* preallocate segment list */
+  h->ht = sg_new(mrb);
+  /* capacity ignored */
   h->iv = 0;
   return mrb_obj_value(h);
-}
-
-MRB_API mrb_value
-mrb_hash_new(mrb_state *mrb)
-{
-  return mrb_hash_new_capa(mrb, 0);
 }
 
 static mrb_value mrb_hash_default(mrb_state *mrb, mrb_value hash);
@@ -166,7 +407,7 @@ mrb_hash_init_copy(mrb_state *mrb, mrb_value self)
 {
   mrb_value orig;
   struct RHash* copy;
-  khash_t(ht) *orig_h;
+  seglist *orig_h;
   mrb_value ifnone, vret;
 
   mrb_get_args(mrb, "o", &orig);
@@ -177,22 +418,7 @@ mrb_hash_init_copy(mrb_state *mrb, mrb_value self)
 
   orig_h = RHASH_TBL(self);
   copy = (struct RHash*)mrb_obj_alloc(mrb, MRB_TT_HASH, mrb->hash_class);
-  copy->ht = kh_init(ht, mrb);
-
-  if (orig_h && kh_size(orig_h) > 0) {
-    khash_t(ht) *copy_h = copy->ht;
-    khiter_t k, copy_k;
-
-    for (k = kh_begin(orig_h); k != kh_end(orig_h); k++) {
-      if (kh_exist(orig_h, k)) {
-        int ai = mrb_gc_arena_save(mrb);
-        copy_k = kh_put(ht, mrb, copy_h, KEY(kh_key(orig_h, k)));
-        mrb_gc_arena_restore(mrb, ai);
-        kh_val(copy_h, copy_k).v = kh_val(orig_h, k).v;
-        kh_val(copy_h, copy_k).n = kh_size(copy_h)-1;
-      }
-    }
-  }
+  copy->ht = sg_copy(mrb, orig_h);
 
   if (MRB_RHASH_DEFAULT_P(self)) {
     copy->flags |= MRB_HASH_DEFAULT;
@@ -208,65 +434,54 @@ mrb_hash_init_copy(mrb_state *mrb, mrb_value self)
   return vret;
 }
 
+static int
+check_kdict_i(mrb_state *mrb, mrb_value key, mrb_value val, void *data)
+{
+  if (!mrb_symbol_p(key)) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "keyword argument hash with non symbol keys");
+  }
+  return 0;
+}
+
 void
 mrb_hash_check_kdict(mrb_state *mrb, mrb_value self)
 {
-  khash_t(ht) *orig_h;
-  khiter_t k;
-  int nosym = FALSE;
+  seglist *sg;
 
-  orig_h = RHASH_TBL(self);
-  if (!orig_h || kh_size(orig_h) == 0) return;
-  for (k = kh_begin(orig_h); k != kh_end(orig_h); k++) {
-    if (kh_exist(orig_h, k)) {
-        mrb_value key = kh_key(orig_h, k);
-
-        if (!mrb_symbol_p(key)) nosym = TRUE;
-    }
-  }
-  if (nosym) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "keyword argument hash with non symbol keys");
-  }
+  sg = RHASH_TBL(self);
+  if (!sg || sg_size(mrb, sg) == 0) return;
+  sg_foreach(mrb, sg, check_kdict_i, NULL);
 }
 
 MRB_API mrb_value
 mrb_hash_dup(mrb_state *mrb, mrb_value self)
 {
   struct RHash* copy;
-  khash_t(ht) *orig_h;
+  seglist *orig_h;
 
   orig_h = RHASH_TBL(self);
   copy = (struct RHash*)mrb_obj_alloc(mrb, MRB_TT_HASH, mrb->hash_class);
-  copy->ht = kh_init(ht, mrb);
-
-  if (orig_h && kh_size(orig_h) > 0) {
-    int ai = mrb_gc_arena_save(mrb);
-    khash_t(ht) *copy_h = copy->ht;
-    khiter_t k, copy_k;
-
-    for (k = kh_begin(orig_h); k != kh_end(orig_h); k++) {
-      if (kh_exist(orig_h, k)) {
-        copy_k = kh_put(ht, mrb, copy_h, KEY(kh_key(orig_h, k)));
-        mrb_gc_arena_restore(mrb, ai);
-        kh_val(copy_h, copy_k).v = kh_val(orig_h, k).v;
-        kh_val(copy_h, copy_k).n = kh_size(copy_h)-1;
-      }
-    }
-  }
+  copy->ht = orig_h ? sg_copy(mrb, orig_h) : NULL;
   return mrb_obj_value(copy);
+}
+
+MRB_API mrb_bool
+mrb_hash_has_key_p(mrb_state *mrb, mrb_value hash, mrb_value key)
+{
+  if (sg_get(mrb, RHASH_TBL(hash), key, NULL)) {
+    return TRUE;
+  }
+  return FALSE;
 }
 
 MRB_API mrb_value
 mrb_hash_get(mrb_state *mrb, mrb_value hash, mrb_value key)
 {
-  khash_t(ht) *h = RHASH_TBL(hash);
-  khiter_t k;
+  mrb_value val;
   mrb_sym mid;
 
-  if (h) {
-    k = kh_get(ht, mrb, h, key);
-    if (k != kh_end(h))
-      return kh_value(h, k).v;
+  if (sg_get(mrb, RHASH_TBL(hash), key, &val)) {
+    return val;
   }
 
   mid = mrb_intern_lit(mrb, "default");
@@ -280,15 +495,11 @@ mrb_hash_get(mrb_state *mrb, mrb_value hash, mrb_value key)
 MRB_API mrb_value
 mrb_hash_fetch(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value def)
 {
-  khash_t(ht) *h = RHASH_TBL(hash);
-  khiter_t k;
+  mrb_value val;
 
-  if (h) {
-    k = kh_get(ht, mrb, h, key);
-    if (k != kh_end(h))
-      return kh_value(h, k).v;
+  if (sg_get(mrb, RHASH_TBL(hash), key, &val)) {
+    return val;
   }
-
   /* not found */
   return def;
 }
@@ -296,25 +507,9 @@ mrb_hash_fetch(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value def)
 MRB_API void
 mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val)
 {
-  khash_t(ht) *h;
-  khiter_t k;
-  int r;
-
   mrb_hash_modify(mrb, hash);
-  h = RHASH_TBL(hash);
 
-  if (!h) h = RHASH_TBL(hash) = kh_init(ht, mrb);
-  k = kh_put2(ht, mrb, h, key, &r);
-  kh_value(h, k).v = val;
-
-  if (r != 0) {
-    /* expand */
-    int ai = mrb_gc_arena_save(mrb);
-    key = kh_key(h, k) = KEY(key);
-    mrb_gc_arena_restore(mrb, ai);
-    kh_value(h, k).n = kh_size(h)-1;
-  }
-
+  sg_put(mrb, RHASH_TBL(hash), key, val);
   mrb_field_write_barrier_value(mrb, (struct RBasic*)RHASH(hash), key);
   mrb_field_write_barrier_value(mrb, (struct RBasic*)RHASH(hash), val);
   return;
@@ -332,24 +527,16 @@ mrb_check_hash_type(mrb_state *mrb, mrb_value hash)
   return mrb_check_convert_type(mrb, hash, MRB_TT_HASH, "Hash", "to_hash");
 }
 
-MRB_API khash_t(ht)*
-mrb_hash_tbl(mrb_state *mrb, mrb_value hash)
-{
-  khash_t(ht) *h = RHASH_TBL(hash);
-
-  if (!h) {
-    return RHASH_TBL(hash) = kh_init(ht, mrb);
-  }
-  return h;
-}
-
 static void
 mrb_hash_modify(mrb_state *mrb, mrb_value hash)
 {
   if (MRB_FROZEN_P(mrb_hash_ptr(hash))) {
     mrb_raise(mrb, E_FROZEN_ERROR, "can't modify frozen hash");
   }
-  mrb_hash_tbl(mrb, hash);
+
+  if (!RHASH_TBL(hash)) {
+    RHASH_TBL(hash) = sg_new(mrb);
+  }
 }
 
 /* 15.2.13.4.16 */
@@ -589,23 +776,11 @@ mrb_hash_set_default_proc(mrb_state *mrb, mrb_value hash)
 MRB_API mrb_value
 mrb_hash_delete_key(mrb_state *mrb, mrb_value hash, mrb_value key)
 {
-  khash_t(ht) *h = RHASH_TBL(hash);
-  khiter_t k;
-  mrb_value delVal;
-  mrb_int n;
+  seglist *sg = RHASH_TBL(hash);
+  mrb_value del_val;
 
-  if (h) {
-    k = kh_get(ht, mrb, h, key);
-    if (k != kh_end(h)) {
-      delVal = kh_value(h, k).v;
-      n = kh_value(h, k).n;
-      kh_del(ht, mrb, h, k);
-      for (k = kh_begin(h); k != kh_end(h); k++) {
-        if (!kh_exist(h, k)) continue;
-        if (kh_value(h, k).n > n) kh_value(h, k).n--;
-      }
-      return delVal;
-    }
+  if (sg_del(mrb, sg, key, &del_val)) {
+    return del_val;
   }
 
   /* not found */
@@ -657,22 +832,14 @@ mrb_hash_delete(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_hash_shift(mrb_state *mrb, mrb_value hash)
 {
-  khash_t(ht) *h = RHASH_TBL(hash);
-  khiter_t k;
-  mrb_value delKey, delVal;
+  seglist *sg = RHASH_TBL(hash);
 
   mrb_hash_modify(mrb, hash);
-  if (h && kh_size(h) > 0) {
-    for (k = kh_begin(h); k != kh_end(h); k++) {
-      if (!kh_exist(h, k)) continue;
-
-      delKey = kh_key(h, k);
-      mrb_gc_protect(mrb, delKey);
-      delVal = mrb_hash_delete_key(mrb, hash, delKey);
-      mrb_gc_protect(mrb, delVal);
-
-      return mrb_assoc_new(mrb, delKey, delVal);
-    }
+  if (sg && sg_size(mrb, sg) > 0) {
+    mrb_value del_key = sg->rootseg->key[0];
+    mrb_value del_val = sg->rootseg->val[0];
+    sg_del(mrb, sg, del_key, NULL);
+    return mrb_assoc_new(mrb, del_key, del_val);
   }
 
   if (MRB_RHASH_DEFAULT_P(hash)) {
@@ -701,10 +868,13 @@ mrb_hash_shift(mrb_state *mrb, mrb_value hash)
 MRB_API mrb_value
 mrb_hash_clear(mrb_state *mrb, mrb_value hash)
 {
-  khash_t(ht) *h = RHASH_TBL(hash);
+  seglist *sg = RHASH_TBL(hash);
 
   mrb_hash_modify(mrb, hash);
-  if (h) kh_clear(ht, mrb, h);
+  if (sg) {
+    sg_free(mrb, sg);
+    RHASH_TBL(hash) = NULL;
+  }
   return hash;
 }
 
@@ -754,10 +924,19 @@ mrb_hash_aset(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_hash_size_m(mrb_state *mrb, mrb_value self)
 {
-  khash_t(ht) *h = RHASH_TBL(self);
+  seglist *sg = RHASH_TBL(self);
 
-  if (!h) return mrb_fixnum_value(0);
-  return mrb_fixnum_value(kh_size(h));
+  if (!sg) return mrb_fixnum_value(0);
+  return mrb_fixnum_value(sg_size(mrb, sg));
+}
+
+MRB_API mrb_bool
+mrb_hash_empty_p(mrb_state *mrb, mrb_value self)
+{
+  seglist *sg = RHASH_TBL(self);
+
+  if (!sg) return TRUE;
+  return sg_size(mrb, sg) == 0;
 }
 
 /* 15.2.13.4.12 */
@@ -770,21 +949,10 @@ mrb_hash_size_m(mrb_state *mrb, mrb_value self)
  *     {}.empty?   #=> true
  *
  */
-MRB_API mrb_bool
-mrb_hash_empty_p(mrb_state *mrb, mrb_value self)
-{
-  khash_t(ht) *h = RHASH_TBL(self);
-
-  if (h) return kh_size(h) == 0;
-  return TRUE;
-}
-
 static mrb_value
 mrb_hash_empty_m(mrb_state *mrb, mrb_value self)
 {
-  if (mrb_hash_empty_p(mrb, self))
-    return mrb_true_value();
-  return mrb_false_value();
+  return mrb_bool_value(mrb_hash_empty_p(mrb, self));
 }
 
 /* 15.2.13.4.29 (x)*/
@@ -799,6 +967,13 @@ static mrb_value
 mrb_hash_to_hash(mrb_state *mrb, mrb_value hash)
 {
   return hash;
+}
+
+static int
+hash_keys_i(mrb_state *mrb, mrb_value key, mrb_value val, void *p)
+{
+  mrb_ary_push(mrb, *(mrb_value*)p, key);
+  return 0;
 }
 
 /* 15.2.13.4.19 */
@@ -817,31 +992,22 @@ mrb_hash_to_hash(mrb_state *mrb, mrb_value hash)
 MRB_API mrb_value
 mrb_hash_keys(mrb_state *mrb, mrb_value hash)
 {
-  khash_t(ht) *h = RHASH_TBL(hash);
-  khiter_t k;
-  mrb_int end;
+  seglist *sg = RHASH_TBL(hash);
+  size_t size;
   mrb_value ary;
-  mrb_value *p;
 
-  if (!h || kh_size(h) == 0) return mrb_ary_new(mrb);
-  ary = mrb_ary_new_capa(mrb, kh_size(h));
-  end = kh_size(h)-1;
-  mrb_ary_set(mrb, ary, end, mrb_nil_value());
-  p = RARRAY_PTR(ary);
-  for (k = kh_begin(h); k != kh_end(h); k++) {
-    if (kh_exist(h, k)) {
-      mrb_value kv = kh_key(h, k);
-      mrb_hash_value hv = kh_value(h, k);
-
-      if (hv.n <= end) {
-        p[hv.n] = kv;
-      }
-      else {
-        p[end] = kv;
-      }
-    }
-  }
+  if (!sg || (size = sg_size(mrb, sg)) == 0)
+    return mrb_ary_new(mrb);
+  ary = mrb_ary_new_capa(mrb, size);
+  sg_foreach(mrb, sg, hash_keys_i, (void*)&ary);
   return ary;
+}
+
+static int
+hash_vals_i(mrb_state *mrb, mrb_value key, mrb_value val, void *p)
+{
+  mrb_ary_push(mrb, *(mrb_value*)p, val);
+  return 0;
 }
 
 /* 15.2.13.4.28 */
@@ -860,19 +1026,14 @@ mrb_hash_keys(mrb_state *mrb, mrb_value hash)
 MRB_API mrb_value
 mrb_hash_values(mrb_state *mrb, mrb_value hash)
 {
-  khash_t(ht) *h = RHASH_TBL(hash);
-  khiter_t k;
+  seglist *sg = RHASH_TBL(hash);
+  size_t size;
   mrb_value ary;
 
-  if (!h) return mrb_ary_new(mrb);
-  ary = mrb_ary_new_capa(mrb, kh_size(h));
-  for (k = kh_begin(h); k != kh_end(h); k++) {
-    if (kh_exist(h, k)) {
-      mrb_hash_value hv = kh_value(h, k);
-
-      mrb_ary_set(mrb, ary, hv.n, hv.v);
-    }
-  }
+  if (!sg || (size = sg_size(mrb, sg)) == 0)
+    return mrb_ary_new(mrb);
+  ary = mrb_ary_new_capa(mrb, size);
+  sg_foreach(mrb, sg, hash_vals_i, (void*)&ary);
   return ary;
 }
 
@@ -898,13 +1059,11 @@ mrb_hash_values(mrb_state *mrb, mrb_value hash)
 MRB_API mrb_bool
 mrb_hash_key_p(mrb_state *mrb, mrb_value hash, mrb_value key)
 {
-  khash_t(ht) *h;
-  khiter_t k;
+  seglist *sg;
 
-  h = RHASH_TBL(hash);
-  if (h) {
-    k = kh_get(ht, mrb, h, key);
-    return k != kh_end(h);
+  sg = RHASH_TBL(hash);
+  if (sg_get(mrb, sg, key, NULL)) {
+    return TRUE;
   }
   return FALSE;
 }
@@ -918,6 +1077,23 @@ mrb_hash_has_key(mrb_state *mrb, mrb_value hash)
   mrb_get_args(mrb, "o", &key);
   key_p = mrb_hash_key_p(mrb, hash, key);
   return mrb_bool_value(key_p);
+}
+
+struct has_v_arg {
+  mrb_bool found;
+  mrb_value val;
+};
+
+static int
+hash_has_value_i(mrb_state *mrb, mrb_value key, mrb_value val, void *p)
+{
+  struct has_v_arg *arg = (struct has_v_arg*)p;
+  
+  if (mrb_equal(mrb, arg->val, val)) {
+    arg->found = TRUE;
+    return 1;
+  }
+  return 0;
 }
 
 /* 15.2.13.4.14 */
@@ -939,30 +1115,28 @@ static mrb_value
 mrb_hash_has_value(mrb_state *mrb, mrb_value hash)
 {
   mrb_value val;
-  khash_t(ht) *h;
-  khiter_t k;
-
+  struct has_v_arg arg;
+  
   mrb_get_args(mrb, "o", &val);
-  h = RHASH_TBL(hash);
+  arg.found = FALSE;
+  arg.val = val;
+  sg_foreach(mrb, RHASH_TBL(hash), hash_has_value_i, &arg);
+  return mrb_bool_value(arg.found);
+}
 
-  if (h) {
-    for (k = kh_begin(h); k != kh_end(h); k++) {
-      if (!kh_exist(h, k)) continue;
+static int
+merge_i(mrb_state *mrb, mrb_value key, mrb_value val, void *data)
+{
+  seglist *h1 = (seglist*)data;
 
-      if (mrb_equal(mrb, kh_value(h, k).v, val)) {
-        return mrb_true_value();
-      }
-    }
-  }
-  return mrb_false_value();
+  sg_put(mrb, h1, key, val);
+  return 0;
 }
 
 MRB_API void
 mrb_hash_merge(mrb_state *mrb, mrb_value hash1, mrb_value hash2)
 {
-  khash_t(ht) *h1;
-  khash_t(ht) *h2;
-  khiter_t k;
+  seglist *h1, *h2;
 
   mrb_hash_modify(mrb, hash1);
   hash2 = mrb_ensure_hash_type(mrb, hash2);
@@ -971,22 +1145,10 @@ mrb_hash_merge(mrb_state *mrb, mrb_value hash1, mrb_value hash2)
 
   if (!h2) return;
   if (!h1) {
-    RHASH_TBL(hash1) = kh_copy(ht, mrb, h2);
+    RHASH_TBL(hash1) = sg_copy(mrb, h2);
     return;
   }
-  for (k = kh_begin(h2); k != kh_end(h2); k++) {
-    khiter_t k1;
-    int r;
-
-    if (!kh_exist(h2, k)) continue;
-    k1 = kh_put2(ht, mrb, h1, kh_key(h2, k), &r);
-    kh_value(h1, k1).v = kh_value(h2,k).v;
-    if (r != 0) {
-      /* expand */
-      kh_key(h1, k1) = kh_key(h2, k);
-      kh_value(h1, k1).n = kh_size(h1)-1;
-    }
-  }
+  sg_foreach(mrb, h2, merge_i, h1);
   mrb_write_barrier(mrb, (struct RBasic*)RHASH(hash1));
   return;
 }
