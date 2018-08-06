@@ -45,6 +45,14 @@ enum mrb_special_consts {
 #define MRB_SYMBOL_FLAG   0x0e
 #define MRB_SPECIAL_SHIFT 8
 
+#if defined(MRB_64BIT)
+#define MRB_SYMBOL_BITSIZE  (sizeof(mrb_sym) * CHAR_BIT)
+#define MRB_SYMBOL_MAX      UINT32_MAX
+#else
+#define MRB_SYMBOL_BITSIZE  (sizeof(mrb_sym) * CHAR_BIT - MRB_SPECIAL_SHIFT)
+#define MRB_SYMBOL_MAX      (UINT32_MAX >> MRB_SPECIAL_SHIFT)
+#endif
+
 typedef union mrb_value {
   union {
     void *p;
@@ -54,7 +62,7 @@ typedef union mrb_value {
     };
     struct {
       unsigned int sym_flag : MRB_SPECIAL_SHIFT;
-      mrb_sym sym : (sizeof(mrb_sym) * CHAR_BIT);
+      mrb_sym sym : MRB_SYMBOL_BITSIZE;
     };
     struct RBasic *bp;
 #ifndef MRB_WITHOUT_FLOAT
