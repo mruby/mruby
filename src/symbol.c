@@ -12,6 +12,10 @@
 #include <mruby/dump.h>
 #include <mruby/class.h>
 
+#ifdef USE_PRESYM
+#include "mruby/presym.h"
+#endif
+
 /* ------------------------------------------------------ */
 typedef struct symbol_name {
   mrb_bool lit : 1;
@@ -19,19 +23,49 @@ typedef struct symbol_name {
   const char *name;
 } symbol_name;
 
+static inline size_t
+sname_len(mrb_state *mrb, mrb_sym s)
+{
+#ifdef USE_PRESYM
+  if (s > presym_sym_max) {
+    return mrb->symtbl[s-presym_sym_max].len;
+  } else if (s == 0) {
+    return mrb->symtbl[s].len;
+  } else {
+    const char *p = presym_sym2name(s);
+    return strlen(p);
+  }
+#endif
+  return mrb->symtbl[s].len;
+}
+
+static inline const char *
+sname_name(mrb_state *mrb, mrb_sym s)
+{
+#ifdef USE_PRESYM
+  if (s > presym_sym_max) {
+    return mrb->symtbl[s-presym_sym_max].name;
+  } else if (s == 0) {
+    return mrb->symtbl[s].name;
+  } else {
+    return presym_sym2name(s);
+  }
+#endif
+  return mrb->symtbl[s].name;
+}
+
 static inline khint_t
 sym_hash_func(mrb_state *mrb, mrb_sym s)
 {
   khint_t h = 0;
-  size_t i, len = mrb->symtbl[s].len;
-  const char *p = mrb->symtbl[s].name;
-
+  size_t i, len = sname_len(mrb, s);
+  const char *p = sname_name(mrb, s);
   for (i=0; i<len; i++) {
     h = (h << 5) - h + *p++;
   }
   return h;
 }
-#define sym_hash_equal(mrb,a, b) (mrb->symtbl[a].len == mrb->symtbl[b].len && memcmp(mrb->symtbl[a].name, mrb->symtbl[b].name, mrb->symtbl[a].len) == 0)
+#define sym_hash_equal(mrb,a, b) (sname_len(mrb, a) == sname_len(mrb, b) && memcmp(sname_name(mrb, a), sname_name(mrb, b), sname_len(mrb, a)) == 0)
 
 KHASH_DECLARE(n2s, mrb_sym, mrb_sym, FALSE)
 KHASH_DEFINE (n2s, mrb_sym, mrb_sym, FALSE, sym_hash_func, sym_hash_equal)
@@ -53,8 +87,17 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
   khiter_t k;
   mrb_sym sym;
   char *p;
+  size_t symtbl_size;
 
   sym_validate_len(mrb, len);
+
+#ifdef USE_PRESYM
+  const struct name2presym *ps = presym_find(name, len);
+  if (ps) {
+    return ps->sym;
+  }
+#endif
+
   if (sname) {
     sname->lit = lit;
     sname->len = (uint16_t)len;
@@ -66,12 +109,25 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
 
   /* registering a new symbol */
   sym = ++mrb->symidx;
-  if (mrb->symcapa < sym) {
+
+#ifdef USE_PRESYM
+  symtbl_size = sym - presym_sym_max;
+#else
+  symtbl_size = sym;
+#endif
+
+  if (mrb->symcapa < symtbl_size) {
     if (mrb->symcapa == 0) mrb->symcapa = 100;
     else mrb->symcapa = (size_t)(mrb->symcapa * 6 / 5);
     mrb->symtbl = (symbol_name*)mrb_realloc(mrb, mrb->symtbl, sizeof(symbol_name)*(mrb->symcapa+1));
   }
+
+#ifdef USE_PRESYM
+  sname = &mrb->symtbl[sym-presym_sym_max];
+#else
   sname = &mrb->symtbl[sym];
+#endif
+
   sname->len = (uint16_t)len;
   if (lit || mrb_ro_data_p(name)) {
     sname->name = name;
@@ -121,6 +177,14 @@ mrb_check_intern(mrb_state *mrb, const char *name, size_t len)
   khiter_t k;
 
   sym_validate_len(mrb, len);
+
+#ifdef USE_PRESYM
+  const struct name2presym *ps = presym_find(name, len);
+  if (ps) {
+    return mrb_symbol_value(ps->sym);
+  }
+#endif
+
   sname->len = (uint16_t)len;
   sname->name = name;
 
@@ -152,8 +216,8 @@ mrb_sym2name_len(mrb_state *mrb, mrb_sym sym, mrb_int *lenp)
     return NULL;
   }
 
-  if (lenp) *lenp = mrb->symtbl[sym].len;
-  return mrb->symtbl[sym].name;
+  if (lenp) *lenp = sname_len(mrb, sym);
+  return sname_name(mrb, sym);
 }
 
 void
@@ -161,8 +225,14 @@ mrb_free_symtbl(mrb_state *mrb)
 {
   mrb_sym i, lim;
 
-  for (i=1, lim=mrb->symidx+1; i<lim; i++) {
-    if (!mrb->symtbl[i].lit) {
+#ifdef USE_PRESYM
+  lim=mrb->symidx-presym_sym_max+1;
+#else
+  lim=mrb->symidx+1;
+#endif
+
+  for (i=1; i<lim; i++) {
+      if (!mrb->symtbl[i].lit) {
       mrb_free(mrb, (char*)mrb->symtbl[i].name);
     }
   }
@@ -174,6 +244,9 @@ void
 mrb_init_symtbl(mrb_state *mrb)
 {
   mrb->name2sym = kh_init(n2s, mrb);
+#ifdef USE_PRESYM
+  mrb->symidx = presym_sym_max;
+#endif
 }
 
 /**********************************************************************

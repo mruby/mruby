@@ -34,6 +34,7 @@ MRuby::Build.new do |conf|
   #   cc.option_define = '-D%s'
   #   cc.compile_options = "%{flags} -MMD -o %{outfile} -c %{infile}"
   # end
+  conf.cc.defines = %w(USE_PRESYM)
 
   # mrbc settings
   # conf.mrbc do |mrbc|
@@ -123,6 +124,7 @@ MRuby::Build.new('test') do |conf|
   conf.enable_test
 
   conf.gembox 'default'
+  conf.cc.defines = %w(USE_PRESYM)
 end
 
 #MRuby::Build.new('bench') do |conf|
