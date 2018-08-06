@@ -32,6 +32,8 @@ load "#{MRUBY_ROOT}/tasks/benchmark.rake"
 
 load "#{MRUBY_ROOT}/tasks/gitlab.rake"
 
+load "#{MRUBY_ROOT}/tasks/presym.rake"
+
 ##############################
 # generic build targets, rules
 task :default => :all

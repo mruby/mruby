@@ -60,6 +60,7 @@ sym_hash_func(mrb_state *mrb, mrb_sym s)
   khint_t h = 0;
   size_t i, len = sname_len(mrb, s);
   const char *p = sname_name(mrb, s);
+
   for (i=0; i<len; i++) {
     h = (h << 5) - h + *p++;
   }
@@ -232,7 +233,7 @@ mrb_free_symtbl(mrb_state *mrb)
 #endif
 
   for (i=1; i<lim; i++) {
-      if (!mrb->symtbl[i].lit) {
+    if (!mrb->symtbl[i].lit) {
       mrb_free(mrb, (char*)mrb->symtbl[i].name);
     }
   }
@@ -244,6 +245,7 @@ void
 mrb_init_symtbl(mrb_state *mrb)
 {
   mrb->name2sym = kh_init(n2s, mrb);
+
 #ifdef USE_PRESYM
   mrb->symidx = presym_sym_max;
 #endif
