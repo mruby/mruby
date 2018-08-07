@@ -99,7 +99,7 @@ class String
     raise FrozenError, "can't modify frozen String" if frozen?
     return to_enum(:gsub!, *args) if args.length == 1 && !block
     str = self.gsub(*args, &block)
-    return nil if str == self
+    return nil unless self.index(args[0])
     self.replace(str)
   end
 
@@ -161,7 +161,7 @@ class String
   def sub!(*args, &block)
     raise FrozenError, "can't modify frozen String" if frozen?
     str = self.sub(*args, &block)
-    return nil if str == self
+    return nil unless self.index(args[0])
     self.replace(str)
   end
 
