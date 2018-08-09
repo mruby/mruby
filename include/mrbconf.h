@@ -58,6 +58,9 @@
 # endif
 #endif
 
+#define MRB_COMPLEX_NUMBERS
+#define MRB_RATIONAL_NUMBERS
+
 /* represent mrb_value in boxed double; conflict with MRB_USE_FLOAT and MRB_WITHOUT_FLOAT */
 //#define MRB_NAN_BOXING
 

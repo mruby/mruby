@@ -76,6 +76,24 @@ typedef unsigned int stack_type;
 #define nint(x) ((node*)(intptr_t)(x))
 #define intn(x) ((int)(intptr_t)(x))
 
+#if defined(MRB_COMPLEX_NUMBERS) || defined(MRB_RATIONAL_NUMBERS)
+  #define MRB_SUFFIX_SUPPORT
+
+  #ifdef MRB_RATIONAL_NUMBERS
+    #define NUM_SUFFIX_R   (1<<0)
+  #else
+    #define NUM_SUFFIX_R   0
+  #endif
+
+  #ifdef MRB_COMPLEX_NUMBERS
+    #define NUM_SUFFIX_I   (1<<1)
+  #else
+    #define NUM_SUFFIX_I   0
+  #endif
+
+  #define NUM_SUFFIX_ALL (NUM_SUFFIX_R | NUM_SUFFIX_I)
+#endif
+
 static inline mrb_sym
 intern_cstr_gen(parser_state *p, const char *s)
 {
@@ -778,19 +796,62 @@ new_op_asgn(parser_state *p, node *a, mrb_sym op, node *b)
   return list4((node*)NODE_OP_ASGN, a, nsym(op), b);
 }
 
+#ifdef MRB_COMPLEX_NUMBERS
+static node*
+new_imaginary(parser_state *p, node *imaginary);
+#endif
+
+#ifdef MRB_RATIONAL_NUMBERS
+static node*
+new_rational(parser_state *p, node *rational)
+{
+  return new_call(p, new_const(p, intern_cstr("Rational")), intern_cstr("new"), list1(list1(rational)), 1);
+}
+#endif
+
 /* (:int . i) */
 static node*
-new_int(parser_state *p, const char *s, int base)
+new_int(parser_state *p, const char *s, int base, int suffix)
 {
-  return list3((node*)NODE_INT, (node*)strdup(s), nint(base));
+  node* result = list3((node*)NODE_INT, (node*)strdup(s), nint(base));
+#ifdef MRB_RATIONAL_NUMBERS
+  if (suffix & NUM_SUFFIX_R) {
+    result = new_rational(p, result);
+  }
+#endif
+#ifdef MRB_COMPLEX_NUMBERS
+  if (suffix & NUM_SUFFIX_I) {
+    result = new_imaginary(p, result);
+  }
+#endif
+  return result;
 }
 
 #ifndef MRB_WITHOUT_FLOAT
 /* (:float . i) */
 static node*
-new_float(parser_state *p, const char *s)
+new_float(parser_state *p, const char *s, int suffix)
 {
-  return cons((node*)NODE_FLOAT, (node*)strdup(s));
+  node* result = cons((node*)NODE_FLOAT, (node*)strdup(s));
+#ifdef MRB_RATIONAL_NUMBERS
+  if (suffix & NUM_SUFFIX_R) {
+    result = new_rational(p, result);
+  }
+#endif
+#ifdef MRB_COMPLEX_NUMBERS
+  if (suffix & NUM_SUFFIX_I) {
+    result = new_imaginary(p, result);
+  }
+#endif
+  return result;
+}
+#endif
+
+#ifdef MRB_COMPLEX_NUMBERS
+static node*
+new_imaginary(parser_state *p, node *imaginary)
+{
+  return new_call(p, new_const(p, intern_cstr("Complex")), intern_cstr("new"), list1(list2(new_int(p, "0", 10, 0), imaginary)), 1);
 }
 #endif
 
@@ -3051,7 +3112,7 @@ var_ref         : variable
                       char buf[16];
 
                       snprintf(buf, sizeof(buf), "%d", p->lineno);
-                      $$ = new_int(p, buf, 10);
+                      $$ = new_int(p, buf, 10, 0);
                     }
                 | keyword__ENCODING__
                     {
@@ -4358,6 +4419,45 @@ parse_string(parser_state *p)
   return tSTRING;
 }
 
+#ifdef MRB_SUFFIX_SUPPORT
+static int
+number_literal_suffix(parser_state *p, int mask)
+{
+  int c, result = 0;
+  node *list = 0;
+  int column = p->column;
+
+  while ((c = nextc(p)) != -1) {
+    list = push(list, (node*)(intptr_t)c);
+
+    if ((mask & NUM_SUFFIX_I) && c == 'i') {
+      result |= (mask & NUM_SUFFIX_I);
+      mask &= ~NUM_SUFFIX_I;
+      /* r after i, rational of complex is disallowed */
+      mask &= ~NUM_SUFFIX_R;
+      continue;
+    }
+    if ((mask & NUM_SUFFIX_R) && c == 'r') {
+      result |= (mask & NUM_SUFFIX_R);
+      mask &= ~NUM_SUFFIX_R;
+      continue;
+    }
+    if (!ISASCII(c) || ISALPHA(c) || c == '_') {
+      p->column = column;
+      if (p->pb) {
+        p->pb = append((node*)list, p->pb);
+      }
+      else {
+        p->pb = list;
+      }
+      return 0;
+    }
+    pushback(p, c);
+    break;
+  }
+  return result;
+}
+#endif
 
 static int
 heredoc_identifier(parser_state *p)
@@ -4929,6 +5029,7 @@ parser_yylex(parser_state *p)
   case '5': case '6': case '7': case '8': case '9':
   {
     int is_float, seen_point, seen_e, nondigit;
+    int suffix;
 
     is_float = seen_point = seen_e = nondigit = 0;
     p->lstate = EXPR_ENDARG;
@@ -4962,7 +5063,10 @@ parser_yylex(parser_state *p)
           no_digits();
         }
         else if (nondigit) goto trailing_uc;
-        pylval.nd = new_int(p, tok(p), 16);
+        #ifdef MRB_SUFFIX_SUPPORT
+        suffix = number_literal_suffix(p, NUM_SUFFIX_ALL);
+        #endif
+        pylval.nd = new_int(p, tok(p), 16, suffix);
         return tINTEGER;
       }
       if (c == 'b' || c == 'B') {
@@ -4986,7 +5090,10 @@ parser_yylex(parser_state *p)
           no_digits();
         }
         else if (nondigit) goto trailing_uc;
-        pylval.nd = new_int(p, tok(p), 2);
+        #ifdef MRB_SUFFIX_SUPPORT
+        suffix = number_literal_suffix(p, NUM_SUFFIX_ALL);
+        #endif
+        pylval.nd = new_int(p, tok(p), 2, suffix);
         return tINTEGER;
       }
       if (c == 'd' || c == 'D') {
@@ -5010,7 +5117,10 @@ parser_yylex(parser_state *p)
           no_digits();
         }
         else if (nondigit) goto trailing_uc;
-        pylval.nd = new_int(p, tok(p), 10);
+        #ifdef MRB_SUFFIX_SUPPORT
+        suffix = number_literal_suffix(p, NUM_SUFFIX_ALL);
+        #endif
+        pylval.nd = new_int(p, tok(p), 10, suffix);
         return tINTEGER;
       }
       if (c == '_') {
@@ -5043,7 +5153,10 @@ parser_yylex(parser_state *p)
           pushback(p, c);
           tokfix(p);
           if (nondigit) goto trailing_uc;
-          pylval.nd = new_int(p, tok(p), 8);
+          #ifdef MRB_SUFFIX_SUPPORT
+          suffix = number_literal_suffix(p, NUM_SUFFIX_ALL);
+          #endif
+          pylval.nd = new_int(p, tok(p), 8, suffix);
           return tINTEGER;
         }
         if (nondigit) {
@@ -5060,7 +5173,10 @@ parser_yylex(parser_state *p)
       }
       else {
         pushback(p, c);
-        pylval.nd = new_int(p, "0", 10);
+        #ifdef MRB_SUFFIX_SUPPORT
+        suffix = number_literal_suffix(p, NUM_SUFFIX_ALL);
+        #endif
+        pylval.nd = new_int(p, "0", 10, suffix);
         return tINTEGER;
       }
     }
@@ -5134,7 +5250,7 @@ parser_yylex(parser_state *p)
     if (is_float) {
 #ifdef MRB_WITHOUT_FLOAT
       yywarning_s(p, "floating point numbers are not supported", tok(p));
-      pylval.nd = new_int(p, "0", 10);
+      pylval.nd = new_int(p, "0", 10, 0);
       return tINTEGER;
 #else
       double d;
@@ -5149,11 +5265,17 @@ parser_yylex(parser_state *p)
         yywarning_s(p, "float %s out of range", tok(p));
         errno = 0;
       }
-      pylval.nd = new_float(p, tok(p));
+      #ifdef MRB_SUFFIX_SUPPORT
+      suffix = number_literal_suffix(p, NUM_SUFFIX_ALL);
+      #endif
+      pylval.nd = new_float(p, tok(p), suffix);
       return tFLOAT;
 #endif
     }
-    pylval.nd = new_int(p, tok(p), 10);
+    #ifdef MRB_SUFFIX_SUPPORT
+    suffix = number_literal_suffix(p, NUM_SUFFIX_ALL);
+    #endif
+    pylval.nd = new_int(p, tok(p), 10, suffix);
     return tINTEGER;
   }
 
