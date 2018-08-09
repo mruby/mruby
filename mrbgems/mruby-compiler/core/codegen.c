@@ -2376,6 +2376,7 @@ codegen(codegen_scope *s, node *tree, int val)
           codegen(s, tree, VAL);
           pop();
           genop(s, MKOP_ABC(OP_SEND, cursp(), sym, 0));
+          push();
         }
         else {
           codegen(s, tree, NOVAL);
