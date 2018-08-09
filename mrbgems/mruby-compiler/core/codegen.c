@@ -2339,9 +2339,8 @@ codegen(codegen_scope *s, node *tree, int val)
 
       case NODE_INT:
         if (val) {
-          tree = tree->cdr;
-          char *p = (char*)tree->car;
-          int base = nint(tree->cdr->car);
+          char *p = (char*)tree->cdr->car;
+          int base = nint(tree->cdr->cdr->car);
           mrb_int i;
           mrb_code co;
           mrb_bool overflow;
