@@ -2323,12 +2323,11 @@ codegen(codegen_scope *s, node *tree, int val)
   case NODE_NEGATE:
     {
       nt = nint(tree->car);
-      tree = tree->cdr;
       switch (nt) {
 #ifndef MRB_WITHOUT_FLOAT
       case NODE_FLOAT:
         if (val) {
-          char *p = (char*)tree;
+          char *p = (char*)tree->cdr;
           mrb_float f = mrb_float_read(p, NULL);
           int off = new_lit(s, mrb_float_value(s->mrb, -f));
 
@@ -2340,6 +2339,7 @@ codegen(codegen_scope *s, node *tree, int val)
 
       case NODE_INT:
         if (val) {
+          tree = tree->cdr;
           char *p = (char*)tree->car;
           int base = nint(tree->cdr->car);
           mrb_int i;
@@ -2373,13 +2373,10 @@ codegen(codegen_scope *s, node *tree, int val)
 
       default:
         if (val) {
-          int sym = new_msym(s, mrb_intern_lit(s->mrb, "-"));
-
-          genop(s, MKOP_ABx(OP_LOADI, cursp(), 0));
-          push();
+          int sym = new_msym(s, mrb_intern_lit(s->mrb, "-@"));
           codegen(s, tree, VAL);
-          pop(); pop();
-          genop(s, MKOP_ABC(OP_SUB, cursp(), sym, 2));
+          pop();
+          genop(s, MKOP_ABC(OP_SEND, cursp(), sym, 0));
         }
         else {
           codegen(s, tree, NOVAL);
