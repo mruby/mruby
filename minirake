@@ -95,7 +95,7 @@ module MiniRake
     def done?; @done end
     def running?; @running end
 
-    # Invoke the task if it is needed.  Prerequites are invoked first.
+    # Invoke the task if it is needed. Prerequisites are invoked first.
     def invoke
       puts "Invoke #{name} (already=[#{@already_invoked}], needed=[#{needed?}])" if $trace
       return if @already_invoked

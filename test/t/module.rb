@@ -699,7 +699,7 @@ end
     end
   end
 
-  # these assertions will not run without a #assert_seperately method
+  # these assertions will not run without a #assert_separately method
   #assert 'test_prepend_optmethod' do
   #  bug7983 = '[ruby-dev:47124] [Bug #7983]'
   #  assert_separately [], %{
@@ -807,7 +807,7 @@ end
     assert_equal([m, c2, m, c1], c2.ancestors[0, 4], "should accesisble prepended module in superclass")
   end
 
-  # requires #assert_seperately
+  # requires #assert_separately
   #assert 'Module#prepend call super' do
   #  assert_separately([], <<-'end;') #do
   #    bug10847 = '[ruby-core:68093] [Bug #10847]'
