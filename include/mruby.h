@@ -783,7 +783,7 @@ MRB_API struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *o
 #define MRB_ARGS_REQ(n)     ((mrb_aspec)((n)&0x1f) << 18)
 
 /**
- * Funtion takes n optional arguments
+ * Function takes n optional arguments
  *
  * @param n
  *      The number of optional arguments.
@@ -791,7 +791,7 @@ MRB_API struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *o
 #define MRB_ARGS_OPT(n)     ((mrb_aspec)((n)&0x1f) << 13)
 
 /**
- * Funtion takes n1 mandatory arguments and n2 optional arguments
+ * Function takes n1 mandatory arguments and n2 optional arguments
  *
  * @param n1
  *      The number of required arguments.
