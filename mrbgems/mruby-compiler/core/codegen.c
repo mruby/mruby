@@ -200,7 +200,7 @@ genop_peep(codegen_scope *s, mrb_code i, int val)
       switch (c0) {
       case OP_MOVE:
         if (GETARG_A(i) == GETARG_A(i0)) {
-          /* skip overriden OP_MOVE */
+          /* skip overridden OP_MOVE */
           s->pc--;
           s->iseq[s->pc] = i;
         }
