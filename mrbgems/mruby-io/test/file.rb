@@ -73,12 +73,12 @@ assert('File#mtime') do
     skip "File#mtime require Time"
   end
   begin
-    now = Time.now.to_i
-    mt = 0
     File.open("#{$mrbtest_io_wfname}.mtime", 'w') do |f|
-      mt = f.mtime.to_i
+      assert_equal Time, f.mtime.class
+      File.open("#{$mrbtest_io_wfname}.mtime", 'r') do |f2|
+        assert_equal true, f.mtime == f2.mtime
+      end
     end
-    assert_equal true, mt >= now
   ensure
     File.delete("#{$mrbtest_io_wfname}.mtime")
   end
