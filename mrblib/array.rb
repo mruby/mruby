@@ -66,7 +66,7 @@ class Array
   #
   # ISO 15.2.12.5.15
   def initialize(size=0, obj=nil, &block)
-    raise TypeError, "expected Integer for 1st argument" unless size.kind_of? Integer
+    raise TypeError, "expected Integer for 1st argument" unless size.kind_of? Integral
     raise ArgumentError, "negative array size" if size < 0
 
     self.clear
