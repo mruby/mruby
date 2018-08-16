@@ -2480,7 +2480,7 @@ RETRY_TRY_BLOCK:
 #ifdef MRB_WORD_BOXING
         {
           mrb_float x = mrb_float(regs[a]);
-          SET_FLOAT_VALUE(mrb, regs[a], x - c);
+          SET_FLOAT_VALUE(mrb, regs[a], (mrb_float)x - (mrb_float)c);
         }
 #else
         mrb_float(regs_a[0]) -= c;
