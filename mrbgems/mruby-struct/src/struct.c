@@ -123,18 +123,29 @@ mrb_struct_ref(mrb_state *mrb, mrb_value obj)
 static mrb_sym
 mrb_id_attrset(mrb_state *mrb, mrb_sym id)
 {
+#define STACKED_ALLOC_MAX 32
+#define STACKED_STRING_MAX (STACKED_ALLOC_MAX - 1) /* '=' character */
+
   const char *name;
   char *buf;
   mrb_int len;
   mrb_sym mid;
+  char stacked[STACKED_ALLOC_MAX];
 
   name = mrb_sym2name_len(mrb, id, &len);
-  buf = (char *)mrb_malloc(mrb, (size_t)len+1);
+  if (len > STACKED_STRING_MAX) {
+    buf = (char *)mrb_malloc(mrb, (size_t)len+1);
+  }
+  else {
+    buf = stacked;
+  }
   memcpy(buf, name, (size_t)len);
   buf[len] = '=';
 
   mid = mrb_intern(mrb, buf, len+1);
-  mrb_free(mrb, buf);
+  if (buf != stacked) {
+    mrb_free(mrb, buf);
+  }
   return mid;
 }
 
