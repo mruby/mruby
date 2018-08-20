@@ -85,46 +85,46 @@ MRuby::Build.new do |conf|
   # conf.enable_bintest
 end
 
-MRuby::Build.new('host-debug') do |conf|
-  # load specific toolchain settings
-
-  # Gets set by the VS command prompts.
-  if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
-    toolchain :visualcpp
-  else
-    toolchain :gcc
-  end
-
-  enable_debug
-
-  # include the default GEMs
-  conf.gembox 'default'
-
-  # C compiler settings
-  conf.cc.defines = %w(MRB_ENABLE_DEBUG_HOOK)
-
-  # Generate mruby debugger command (require mruby-eval)
-  conf.gem :core => "mruby-bin-debugger"
-
-  # bintest
-  # conf.enable_bintest
-end
-
-MRuby::Build.new('test') do |conf|
-  # Gets set by the VS command prompts.
-  if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
-    toolchain :visualcpp
-  else
-    toolchain :gcc
-  end
-
-  enable_debug
-  conf.enable_bintest
-  conf.enable_test
-
-  conf.gembox 'default'
-end
-
+#MRuby::Build.new('host-debug') do |conf|
+#  # load specific toolchain settings
+#
+#  # Gets set by the VS command prompts.
+#  if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
+#    toolchain :visualcpp
+#  else
+#    toolchain :gcc
+#  end
+#
+#  enable_debug
+#
+#  # include the default GEMs
+#  conf.gembox 'default'
+#
+#  # C compiler settings
+#  conf.cc.defines = %w(MRB_ENABLE_DEBUG_HOOK)
+#
+#  # Generate mruby debugger command (require mruby-eval)
+#  conf.gem :core => "mruby-bin-debugger"
+#
+#  # bintest
+#  # conf.enable_bintest
+#end
+#
+#MRuby::Build.new('test') do |conf|
+#  # Gets set by the VS command prompts.
+#  if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
+#    toolchain :visualcpp
+#  else
+#    toolchain :gcc
+#  end
+#
+#  enable_debug
+#  conf.enable_bintest
+#  conf.enable_test
+#
+#  conf.gembox 'default'
+#end
+#
 #MRuby::Build.new('bench') do |conf|
 #  # Gets set by the VS command prompts.
 #  if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
@@ -150,3 +150,18 @@ end
 #
 #   conf.test_runner.command = 'env'
 # end
+
+MRuby::CrossBuild.new('wasm') do |conf|
+  toolchain :clang
+
+  conf.gem :core => 'mruby-print'
+
+  conf.cc do |cc|
+    cc.command = 'clang'
+    cc.flags = %w(-c -emit-llvm --target=wasm32-unknown-unknown-wasm -O3 -fvisibility=hidden --sysroot=../wasmception/sysroot)
+    cc.defines = %w(MRB_DISABLE_STDIO MRB_DISABLE_DIRECT_THREADING)
+    cc.compile_options = '%{flags} -o %{outfile} %{infile}'
+  end
+
+  conf.bins = []
+end
