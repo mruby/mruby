@@ -154,6 +154,8 @@ end
 MRuby::CrossBuild.new('wasm') do |conf|
   toolchain :clang
 
+  conf.gem :core => 'mruby-print'
+
   conf.cc do |cc|
     cc.command = 'clang'
     cc.flags = %w(-c -emit-llvm --target=wasm32-unknown-unknown-wasm -O3 -fvisibility=hidden --sysroot=../wasmception/sysroot)
