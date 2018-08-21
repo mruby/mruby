@@ -81,6 +81,20 @@ mrb_t_printstr(mrb_state *mrb, mrb_value self)
   return argv;
 }
 
+mrb_int mrb_symbol_lit_count(mrb_state *mrb);
+
+static mrb_value
+mrb_t_lit_symbols_count(mrb_state *mrb, mrb_value self)
+{
+  return mrb_fixnum_value(mrb_symbol_lit_count(mrb));
+}
+
+static mrb_value
+mrb_t_symbols_count(mrb_state *mrb, mrb_value self)
+{
+  return mrb_fixnum_value(mrb->symidx);
+}
+
 void
 mrb_init_test_driver(mrb_state *mrb, mrb_bool verbose)
 {
@@ -88,6 +102,8 @@ mrb_init_test_driver(mrb_state *mrb, mrb_bool verbose)
 
   krn = mrb->kernel_module;
   mrb_define_method(mrb, krn, "__t_printstr__", mrb_t_printstr, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, krn, "__t_lit_symbols_count__", mrb_t_lit_symbols_count, MRB_ARGS_NONE());
+  mrb_define_method(mrb, krn, "__t_symbols_count__", mrb_t_symbols_count, MRB_ARGS_NONE());
 
   mrbtest = mrb_define_module(mrb, "Mrbtest");
 

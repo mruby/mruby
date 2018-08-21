@@ -216,6 +216,8 @@ def report()
   t_print("   KO: #{$ko_test}\n")
   t_print("Crash: #{$kill_test}\n")
 
+  t_print("literal symbols / all symbols : #{__t_lit_symbols_count__} / #{__t_symbols_count__}\n") if respond_to? :__t_lit_symbols_count__
+
   if Object.const_defined?(:Time)
     t_time = Time.now - $test_start
     t_print(" Time: #{t_time.round(2)} seconds\n")

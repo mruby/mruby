@@ -492,3 +492,15 @@ mrb_init_symbol(mrb_state *mrb)
   mrb_define_method(mrb, sym, "inspect",         sym_inspect,    MRB_ARGS_NONE());              /* 15.2.11.3.5(x)  */
   mrb_define_method(mrb, sym, "<=>",             sym_cmp,        MRB_ARGS_REQ(1));
 }
+
+MRB_API mrb_int
+mrb_symbol_lit_count(mrb_state *mrb)
+{
+  mrb_int i, result = 0;
+
+  for (i = 1; i < mrb->symidx; ++i) {
+    if (mrb->symtbl[i].lit) { ++result; }
+  }
+
+  return result;
+}

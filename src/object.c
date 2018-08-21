@@ -308,27 +308,24 @@ inspect_type(mrb_state *mrb, mrb_value val)
 }
 
 static mrb_value
-convert_type(mrb_state *mrb, mrb_value val, const char *tname, const char *method, mrb_bool raise)
+convert_type(mrb_state *mrb, mrb_value val, mrb_sym tname, mrb_sym method, mrb_bool raise)
 {
-  mrb_sym m = 0;
-
-  m = mrb_intern_cstr(mrb, method);
-  if (!mrb_respond_to(mrb, val, m)) {
+  if (!mrb_respond_to(mrb, val, method)) {
     if (raise) {
-      mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S into %S", inspect_type(mrb, val), mrb_str_new_cstr(mrb, tname));
+      mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S into %S", inspect_type(mrb, val), mrb_symbol_value(tname));
     }
     return mrb_nil_value();
   }
-  return mrb_funcall_argv(mrb, val, m, 0, 0);
+  return mrb_funcall_argv(mrb, val, method, 0, 0);
 }
 
 MRB_API mrb_value
-mrb_check_to_integer(mrb_state *mrb, mrb_value val, const char *method)
+mrb_check_to_integer_id(mrb_state *mrb, mrb_value val, mrb_sym method)
 {
   mrb_value v;
 
   if (mrb_fixnum_p(val)) return val;
-  v = convert_type(mrb, val, "Integer", method, FALSE);
+  v = convert_type(mrb, val, mrb_intern_lit(mrb, "Integer"), method, FALSE);
   if (mrb_nil_p(v) || !mrb_fixnum_p(v)) {
     return mrb_nil_value();
   }
@@ -336,7 +333,7 @@ mrb_check_to_integer(mrb_state *mrb, mrb_value val, const char *method)
 }
 
 MRB_API mrb_value
-mrb_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, const char *tname, const char *method)
+mrb_convert_type_id(mrb_state *mrb, mrb_value val, enum mrb_vtype type, mrb_sym tname, mrb_sym method)
 {
   mrb_value v;
 
@@ -344,13 +341,13 @@ mrb_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, const char 
   v = convert_type(mrb, val, tname, method, TRUE);
   if (mrb_type(v) != type) {
     mrb_raisef(mrb, E_TYPE_ERROR, "%S cannot be converted to %S by #%S", val,
-               mrb_str_new_cstr(mrb, tname), mrb_str_new_cstr(mrb, method));
+               mrb_symbol_value(tname), mrb_symbol_value(method));
   }
   return v;
 }
 
 MRB_API mrb_value
-mrb_check_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, const char *tname, const char *method)
+mrb_check_convert_type_id(mrb_state *mrb, mrb_value val, enum mrb_vtype type, mrb_sym tname, mrb_sym method)
 {
   mrb_value v;
 
@@ -506,16 +503,16 @@ mrb_obj_is_kind_of(mrb_state *mrb, mrb_value obj, struct RClass *c)
 }
 
 static mrb_value
-mrb_to_integer(mrb_state *mrb, mrb_value val, const char *method)
+mrb_to_integer(mrb_state *mrb, mrb_value val, mrb_sym method)
 {
   mrb_value v;
 
   if (mrb_fixnum_p(val)) return val;
-  v = convert_type(mrb, val, "Integer", method, TRUE);
+  v = convert_type(mrb, val, mrb_intern_lit(mrb, "Integer"), method, TRUE);
   if (!mrb_obj_is_kind_of(mrb, v, mrb->fixnum_class)) {
     mrb_value type = inspect_type(mrb, val);
     mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S to Integer (%S#%S gives %S)",
-               type, type, mrb_str_new_cstr(mrb, method), inspect_type(mrb, v));
+               type, type, mrb_symbol_value(method), inspect_type(mrb, v));
   }
   return v;
 }
@@ -523,7 +520,7 @@ mrb_to_integer(mrb_state *mrb, mrb_value val, const char *method)
 MRB_API mrb_value
 mrb_to_int(mrb_state *mrb, mrb_value val)
 {
-  return mrb_to_integer(mrb, val, "to_int");
+  return mrb_to_integer(mrb, val, mrb_intern_lit(mrb, "to_int"));
 }
 
 MRB_API mrb_value
@@ -568,9 +565,9 @@ mrb_convert_to_integer(mrb_state *mrb, mrb_value val, mrb_int base)
 arg_error:
     mrb_raise(mrb, E_ARGUMENT_ERROR, "base specified for non string value");
   }
-  tmp = convert_type(mrb, val, "Integer", "to_int", FALSE);
+  tmp = convert_type(mrb, val, mrb_intern_lit(mrb, "Integer"), mrb_intern_lit(mrb, "to_int"), FALSE);
   if (mrb_nil_p(tmp) || !mrb_fixnum_p(tmp)) {
-    tmp = mrb_to_integer(mrb, val, "to_i");
+    tmp = mrb_to_integer(mrb, val, mrb_intern_lit(mrb, "to_i"));
   }
   return tmp;
 }

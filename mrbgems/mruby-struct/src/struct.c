@@ -222,7 +222,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass *kl
       mrb_warn(mrb, "redefining constant Struct::%S", name);
       mrb_const_remove(mrb, mrb_obj_value(klass), id);
     }
-    c = mrb_define_class_under(mrb, klass, RSTRING_PTR(name), klass);
+    c = mrb_define_class_under_id(mrb, klass, mrb_intern_str(mrb, name), klass);
   }
   MRB_SET_INSTANCE_TT(c, MRB_TT_ARRAY);
   nstr = mrb_obj_value(c);

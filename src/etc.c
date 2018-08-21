@@ -197,7 +197,7 @@ mrb_regexp_p(mrb_state *mrb, mrb_value v)
   if (mrb->flags & MRB_STATE_NO_REGEXP) {
     return FALSE;
   }
-  if ((mrb->flags & MRB_STATE_REGEXP) || mrb_class_defined(mrb, REGEXP_CLASS)) {
+  if ((mrb->flags & MRB_STATE_REGEXP) || mrb_class_defined_id(mrb, mrb_intern_lit(mrb, REGEXP_CLASS))) {
     mrb->flags |= MRB_STATE_REGEXP;
     return mrb_obj_is_kind_of(mrb, v, mrb_class_get(mrb, REGEXP_CLASS));
   }
