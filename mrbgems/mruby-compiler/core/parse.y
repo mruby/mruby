@@ -1179,7 +1179,7 @@ heredoc_end(parser_state *p)
 %type <nd> heredoc words symbols
 %type <num> call_op call_op2     /* 0:'&.', 1:'.', 2:'::' */
 
-%type <nd> args_tail opt_args_tail f_kwarg f_kw arg_value f_kwrest
+%type <nd> args_tail opt_args_tail f_kwarg f_kw f_kwrest
 %type <nd> f_block_kwarg f_block_kw block_args_tail opt_block_args_tail
 %type <id> f_label
 
@@ -3103,11 +3103,9 @@ f_arglist       : '(' f_args rparen
 f_label         : tIDENTIFIER tLABEL_TAG
                 ;
 
-arg_value       : arg
-                ;
-
-f_kw            : f_label arg_value
+f_kw            : f_label arg
                     {
+                      void_expr_error(p, $2);
                       $$ = new_kw_arg(p, $1, $2);
                     }
                 | f_label
@@ -3450,8 +3448,9 @@ assoc           : arg tASSOC arg
                         $$ = cons(new_sym(p, new_strsym(p, $1)), $3);
                       }
                     }
-                | tDSTAR arg_value
+                | tDSTAR arg
                     {
+                      void_expr_error(p, $2);
                       $$ = cons(cons((node*)NODE_KW_REST_ARGS, 0), $2);
                     }
                 ;
