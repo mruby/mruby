@@ -6403,6 +6403,19 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     }
     break;
 
+  case NODE_KW_HASH:
+    printf("NODE_KW_HASH:\n");
+    while (tree) {
+      dump_prefix(tree, offset+1);
+      printf("key:\n");
+      mrb_parser_dump(mrb, tree->car->car, offset+2);
+      dump_prefix(tree, offset+1);
+      printf("value:\n");
+      mrb_parser_dump(mrb, tree->car->cdr, offset+2);
+      tree = tree->cdr;
+    }
+    break;
+
   case NODE_SPLAT:
     printf("NODE_SPLAT:\n");
     mrb_parser_dump(mrb, tree, offset+1);
