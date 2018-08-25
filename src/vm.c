@@ -1069,16 +1069,6 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
-    CASE(OP_LOADI, BB) {
-      SET_INT_VALUE(regs[a], b);
-      NEXT;
-    }
-
-    CASE(OP_LOADINEG, BB) {
-      SET_INT_VALUE(regs[a], -b);
-      NEXT;
-    }
-
     CASE(OP_LOADI__1,B) goto L_LOADI;
     CASE(OP_LOADI_0,B) goto L_LOADI;
     CASE(OP_LOADI_1,B) goto L_LOADI;
