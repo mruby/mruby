@@ -416,7 +416,11 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_HASHADD, BB):
-      printf("OP_HASHADD\tR%d\t%d", a, b);
+      printf("OP_HASHADD\tR%d\t%d\t", a, b);
+      print_lv_a(mrb, irep, a);
+      break;
+    CASE(OP_HASHCAT, B):
+      printf("OP_HASHCAT\tR%d\t", a);
       print_lv_a(mrb, irep, a);
       break;
 

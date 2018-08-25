@@ -1874,15 +1874,32 @@ codegen(codegen_scope *s, node *tree, int val)
       mrb_bool update = FALSE;
 
       while (tree) {
-        if (nt == NODE_KW_HASH &&
-            nint(tree->car->car->car) == NODE_KW_REST_ARGS) {
-          tree = tree->cdr;
-          continue;
+        if (nint(tree->car->car->car) == NODE_KW_REST_ARGS) {
+          if (len > 0) {
+            pop_n(len*2);
+            if (!update) {
+              genop_2(s, OP_HASH, cursp(), len);
+            }
+            else {
+              pop();
+              genop_2(s, OP_HASHADD, cursp(), len);
+            }
+            push();
+          }
+          codegen(s, tree->car->cdr, VAL);
+          if (len > 0) {
+            pop(); pop();
+            genop_1(s, OP_HASHCAT, cursp());
+            push();
+          }
+          update = TRUE;
+          len = 0;
         }
-
-        codegen(s, tree->car->car, val);
-        codegen(s, tree->car->cdr, val);
-        len++;
+        else {
+          codegen(s, tree->car->car, VAL);
+          codegen(s, tree->car->cdr, VAL);
+          len++;
+        }
         tree = tree->cdr;
         if (val && len == 255) {
           pop_n(len*2);
@@ -1905,7 +1922,9 @@ codegen(codegen_scope *s, node *tree, int val)
         }
         else {
           pop();
-          genop_2(s, OP_HASHADD, cursp(), len);
+          if (len > 0) {
+            genop_2(s, OP_HASHADD, cursp(), len);
+          }
         }
         push();
       }

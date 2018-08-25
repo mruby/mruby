@@ -94,6 +94,7 @@ OPCODE(STRING,     BB)       /* R(a) = str_dup(Lit(b)) */
 OPCODE(STRCAT,     B)        /* str_cat(R(a),R(a+1)) */
 OPCODE(HASH,       BB)       /* R(a) = hash_new(R(a),R(a+1)..R(a+b)) */
 OPCODE(HASHADD,    BB)       /* R(a) = hash_push(R(a),R(a+1)..R(a+b)) */
+OPCODE(HASHCAT,    B)        /* R(a) = hash_cat(R(a),R(a+1)) */
 OPCODE(LAMBDA,     BB)       /* R(a) = lambda(SEQ[b],L_LAMBDA) */
 OPCODE(BLOCK,      BB)       /* R(a) = lambda(SEQ[b],L_BLOCK) */
 OPCODE(METHOD,     BB)       /* R(a) = lambda(SEQ[b],L_METHOD) */

@@ -2710,6 +2710,11 @@ RETRY_TRY_BLOCK:
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
+    CASE(OP_HASHCAT, B) {
+      mrb_hash_merge(mrb, regs[a], regs[a+1]);
+      mrb_gc_arena_restore(mrb, ai);
+      NEXT;
+    }
 
     CASE(OP_LAMBDA, BB)
     c = OP_L_LAMBDA;
