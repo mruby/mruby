@@ -48,7 +48,7 @@ print_lv_ab(mrb_state *mrb, mrb_irep *irep, uint16_t a, uint16_t b)
 #endif
 
 static void
-print_header(mrb_irep *irep, int i)
+print_header(mrb_irep *irep, ptrdiff_t i)
 {
   int32_t line;
 
@@ -60,7 +60,7 @@ print_header(mrb_irep *irep, int i)
     printf("%5d ", line);
   }
 
-  printf("%03d ", i);
+  printf("%03d ", (int)i);
 }
 
 #define CASE(insn,ops) case insn: FETCH_ ## ops (); L_ ## insn
@@ -91,7 +91,7 @@ codedump(mrb_state *mrb, mrb_irep *irep)
   pc = irep->iseq;
   pcend = pc + irep->ilen;
   while (pc < pcend) {
-    int i;
+    ptrdiff_t i;
     uint32_t a;
     uint16_t b;
     uint8_t c;

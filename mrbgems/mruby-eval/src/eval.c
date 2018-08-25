@@ -154,7 +154,7 @@ patch_irep(mrb_state *mrb, mrb_irep *irep, int bnest, mrb_irep *top)
         if (arg != 0) {
           /* must replace */
           irep->iseq[i] = insn = OP_SETUPVAR;
-          irep->iseq[i+1] = b;
+          irep->iseq[i+1] = (mrb_code)b;
           irep->iseq[i+2] = arg >> 8;
           irep->iseq[i+3] = arg & 0xff;
         }
@@ -169,7 +169,7 @@ patch_irep(mrb_state *mrb, mrb_irep *irep, int bnest, mrb_irep *top)
         int lev = c+1;
         mrb_irep *tmp = search_irep(top, bnest, lev, irep);
         if (potential_upvar_p(tmp->lv, b, irep_argc(tmp), tmp->nlocals)) {
-          mrb_code arg = search_variable(mrb, tmp->lv[b-1].name, bnest);
+          uint16_t arg = search_variable(mrb, tmp->lv[b-1].name, bnest);
           if (arg != 0) {
             /* must replace */
             irep->iseq[i] = OP_GETUPVAR;
@@ -188,7 +188,7 @@ patch_irep(mrb_state *mrb, mrb_irep *irep, int bnest, mrb_irep *top)
         int lev = c+1;
         mrb_irep *tmp = search_irep(top, bnest, lev, irep);
         if (potential_upvar_p(tmp->lv, b, irep_argc(tmp), tmp->nlocals)) {
-          mrb_code arg = search_variable(mrb, tmp->lv[b-1].name, bnest);
+          uint16_t arg = search_variable(mrb, tmp->lv[b-1].name, bnest);
           if (arg != 0) {
             /* must replace */
             irep->iseq[i] = OP_SETUPVAR;

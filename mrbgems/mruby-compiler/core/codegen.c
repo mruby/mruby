@@ -400,7 +400,7 @@ genjmp2(codegen_scope *s, mrb_code i, uint16_t a, int pc, int val)
   }
   else {
     gen_B(s, i);
-    gen_B(s, a);
+    gen_B(s, (uint8_t)a);
     pos = s->pc;
     gen_S(s, pc);
   }
@@ -494,10 +494,10 @@ gen_addsub(codegen_scope *s, uint8_t op, uint16_t dst, uint16_t idx)
       if (data.b >= 128) goto normal;
       s->pc = s->lastpc;
       if (op == OP_ADD) {
-        genop_3(s, OP_ADDI, dst, idx, data.b);
+        genop_3(s, OP_ADDI, dst, idx, (uint8_t)data.b);
       }
       else {
-        genop_3(s, OP_SUBI, dst, idx, data.b);
+        genop_3(s, OP_SUBI, dst, idx, (uint8_t)data.b);
       }
       break;
     default:
@@ -2441,7 +2441,7 @@ codegen(codegen_scope *s, node *tree, int val)
 #endif
             if (i == -1) genop_1(s, OP_LOADI__1, cursp());
             else if (i >= -0xffff) {
-              genop_2(s, OP_LOADINEG, cursp(), -i);
+              genop_2(s, OP_LOADINEG, cursp(), (uint16_t)-i);
             }
             else {
               int off = new_lit(s, mrb_fixnum_value(i));

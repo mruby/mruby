@@ -218,7 +218,7 @@ stack_extend_alloc(mrb_state *mrb, int room)
 }
 
 MRB_API void
-mrb_stack_extend(mrb_state *mrb, int room)
+mrb_stack_extend(mrb_state *mrb, mrb_int room)
 {
   if (mrb->c->stack + room >= mrb->c->stend) {
     stack_extend_alloc(mrb, room);
