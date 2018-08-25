@@ -2704,9 +2704,8 @@ RETRY_TRY_BLOCK:
       int i;
       int lim = a+b*2+1;
 
-      for (i=a+1; i<lim; i++) {
+      for (i=a+1; i<lim; i+=2) {
         mrb_hash_set(mrb, hash, regs[i], regs[i+1]);
-        b+=2;
       }
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
