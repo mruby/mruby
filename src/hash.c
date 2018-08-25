@@ -951,6 +951,39 @@ mrb_hash_has_value(mrb_state *mrb, mrb_value hash)
   return mrb_false_value();
 }
 
+MRB_API void
+mrb_hash_merge(mrb_state *mrb, mrb_value hash1, mrb_value hash2)
+{
+  khash_t(ht) *h1;
+  khash_t(ht) *h2;
+  khiter_t k;
+
+  mrb_hash_modify(mrb, hash1);
+  hash2 = mrb_check_hash_type(mrb, hash2);
+  h1 = RHASH_TBL(hash1);
+  h2 = RHASH_TBL(hash2);
+
+  if (!h1) {
+    RHASH_TBL(hash1) = kh_copy(ht, mrb, h2);
+    return;
+  }
+  for (k = kh_begin(h2); k != kh_end(h2); k++) {
+    khiter_t k1;
+    int r;
+
+    if (!kh_exist(h2, k)) continue;
+    k1 = kh_put2(ht, mrb, h1, kh_key(h2, k), &r);
+    kh_value(h1, k1).v = kh_value(h2,k).v;
+    if (r != 0) {
+      /* expand */
+      kh_key(h1, k1) = kh_key(h2, k);
+      kh_value(h1, k1).n = kh_size(h1)-1;
+    }
+  }
+  mrb_write_barrier(mrb, (struct RBasic*)RHASH(hash1));
+  return;
+}
+
 void
 mrb_init_hash(mrb_state *mrb)
 {

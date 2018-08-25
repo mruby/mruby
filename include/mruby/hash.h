@@ -174,6 +174,16 @@ MRB_API mrb_value mrb_hash_clear(mrb_state *mrb, mrb_value hash);
  */
 MRB_API mrb_value mrb_hash_dup(mrb_state *mrb, mrb_value hash);
 
+/*
+ * Merges two hashes. The first hash will be modified by the
+ * second hash.
+ *
+ * @param mrb The mruby state reference.
+ * @param hash1 The target hash.
+ * @param hash2 Updating hash
+ */
+MRB_API void mrb_hash_merge(mrb_state *mrb, mrb_value hash1, mrb_value hash2);
+
 /* declaration of struct kh_ht */
 /* be careful when you touch the internal */
 typedef struct {
