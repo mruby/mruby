@@ -1197,6 +1197,7 @@ typedef enum call_type {
   CALL_TYPE_MAX
 } call_type;
 
+MRB_API void mrb_define_alias(mrb_state *mrb, struct RClass *c, const char *a, const char *b);
 MRB_API const char *mrb_class_name(mrb_state *mrb, struct RClass* klass);
 MRB_API void mrb_define_global_const(mrb_state *mrb, const char *name, mrb_value val);
 
