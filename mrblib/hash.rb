@@ -341,11 +341,6 @@ class Hash
     }
     self.replace(h)
   end
-
-  def __update(h)
-    h.each_key{|k| self[k] = h[k]}
-    self
-  end
 end
 
 ##

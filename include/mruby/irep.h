@@ -44,7 +44,7 @@ typedef struct mrb_irep {
   uint16_t *lines;
   struct mrb_irep_debug_info* debug_info;
 
-  int ilen, plen, slen, rlen, refcnt;
+  uint16_t ilen, plen, slen, rlen, refcnt;
 } mrb_irep;
 
 #define MRB_ISEQ_NO_FREE 1
@@ -57,6 +57,15 @@ void mrb_irep_incref(mrb_state*, struct mrb_irep*);
 void mrb_irep_decref(mrb_state*, struct mrb_irep*);
 void mrb_irep_cutref(mrb_state*, struct mrb_irep*);
 void mrb_irep_remove_lv(mrb_state *mrb, mrb_irep *irep);
+
+struct mrb_insn_data {
+  uint8_t insn;
+  uint16_t a;
+  uint16_t b;
+  uint8_t c;
+};
+
+struct mrb_insn_data mrb_decode_insn(mrb_code *pc);
 
 MRB_END_DECL
 

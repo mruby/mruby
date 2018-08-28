@@ -1953,8 +1953,8 @@ mrb_mod_alias(mrb_state *mrb, mrb_value mod)
   return mrb_nil_value();
 }
 
-static void
-undef_method(mrb_state *mrb, struct RClass *c, mrb_sym a)
+void
+mrb_undef_method_id(mrb_state *mrb, struct RClass *c, mrb_sym a)
 {
   if (!mrb_obj_respond_to(mrb, c, a)) {
     mrb_name_error(mrb, a, "undefined method '%S' for class '%S'", mrb_sym2str(mrb, a), mrb_obj_value(c));
@@ -1970,7 +1970,7 @@ undef_method(mrb_state *mrb, struct RClass *c, mrb_sym a)
 MRB_API void
 mrb_undef_method(mrb_state *mrb, struct RClass *c, const char *name)
 {
-  undef_method(mrb, c, mrb_intern_cstr(mrb, name));
+  mrb_undef_method_id(mrb, c, mrb_intern_cstr(mrb, name));
 }
 
 MRB_API void
@@ -1988,7 +1988,7 @@ mrb_mod_undef(mrb_state *mrb, mrb_value mod)
 
   mrb_get_args(mrb, "*", &argv, &argc);
   while (argc--) {
-    undef_method(mrb, c, to_sym(mrb, *argv));
+    mrb_undef_method_id(mrb, c, to_sym(mrb, *argv));
     argv++;
   }
   return mrb_nil_value();

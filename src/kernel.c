@@ -1194,7 +1194,15 @@ mrb_local_variables(mrb_state *mrb, mrb_value self)
     if (!irep->lv) break;
     for (i = 0; i + 1 < irep->nlocals; ++i) {
       if (irep->lv[i].name) {
-        mrb_hash_set(mrb, vars, mrb_symbol_value(irep->lv[i].name), mrb_true_value());
+        mrb_sym sym = irep->lv[i].name;
+        const char *name = mrb_sym2name(mrb, sym);
+        switch (name[0]) {
+        case '*': case '&':
+          break;
+        default:
+          mrb_hash_set(mrb, vars, mrb_symbol_value(sym), mrb_true_value());
+          break;
+        }
       }
     }
     if (!MRB_PROC_ENV_P(proc)) break;
@@ -1266,5 +1274,5 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "class_defined?",             mrb_krn_class_defined,           MRB_ARGS_REQ(1));
 
   mrb_include_module(mrb, mrb->object_class, mrb->kernel_module);
-  mrb_alias_method(mrb, mrb->module_class, mrb_intern_lit(mrb, "dup"), mrb_intern_lit(mrb, "clone"));
+  mrb_define_alias(mrb, mrb->module_class, "dup", "clone"); /* XXX */
 }
