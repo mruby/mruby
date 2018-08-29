@@ -151,11 +151,11 @@ new_label(codegen_scope *s)
 static void
 emit_B(codegen_scope *s, uint32_t pc, uint8_t i)
 {
+  if (pc >= MAXARG_S || s->icapa >= MAXARG_S) {
+    codegen_error(s, "too big code block");
+  }
   if (pc >= s->icapa) {
     s->icapa *= 2;
-    if (pc >= MAXARG_S) {
-      codegen_error(s, "too big code block");
-    }
     if (s->icapa > MAXARG_S) {
       s->icapa = MAXARG_S;
     }
@@ -184,7 +184,8 @@ emit_S(codegen_scope *s, int pc, uint16_t i)
 static void
 gen_B(codegen_scope *s, uint8_t i)
 {
-  emit_B(s, s->pc++, i);
+  emit_B(s, s->pc, i);
+  s->pc++;
 }
 
 static void
@@ -248,7 +249,6 @@ genop_2(codegen_scope *s, mrb_code i, uint16_t a, uint16_t b)
 static void
 genop_3(codegen_scope *s, mrb_code i, uint16_t a, uint16_t b, uint8_t c)
 {
-  s->lastpc = s->pc;
   genop_2(s, i, a, b);
   gen_B(s, c);
 }
@@ -256,7 +256,6 @@ genop_3(codegen_scope *s, mrb_code i, uint16_t a, uint16_t b, uint8_t c)
 static void
 genop_2S(codegen_scope *s, mrb_code i, uint16_t a, uint16_t b)
 {
-  s->lastpc = s->pc;
   genop_1(s, i, a);
   gen_S(s, b);
 }
