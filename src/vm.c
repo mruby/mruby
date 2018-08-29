@@ -2954,6 +2954,7 @@ RETRY_TRY_BLOCK:
       while (mrb->c->eidx > 0) {
         ecall(mrb);
       }
+      mrb->c->cibase->ridx = 0;
       ERR_PC_CLR(mrb);
       mrb->jmp = prev_jmp;
       if (mrb->exc) {
