@@ -45,7 +45,6 @@ print_lv_ab(mrb_state *mrb, mrb_irep *irep, uint16_t a, uint16_t b)
   if (b > 0) print_r(mrb, irep, b);
   printf("\n");
 }
-#endif
 
 static void
 print_header(mrb_irep *irep, ptrdiff_t i)
@@ -68,7 +67,6 @@ print_header(mrb_irep *irep, ptrdiff_t i)
 static void
 codedump(mrb_state *mrb, mrb_irep *irep)
 {
-#ifndef MRB_DISABLE_STDIO
   int ai;
   mrb_code *pc, *pcend;
   mrb_code ins;
@@ -526,7 +524,6 @@ codedump(mrb_state *mrb, mrb_irep *irep)
     mrb_gc_arena_restore(mrb, ai);
   }
   printf("\n");
-#endif
 }
 
 static void
@@ -539,9 +536,12 @@ codedump_recur(mrb_state *mrb, mrb_irep *irep)
     codedump_recur(mrb, irep->reps[i]);
   }
 }
+#endif
 
 void
 mrb_codedump_all(mrb_state *mrb, struct RProc *proc)
 {
+#ifndef MRB_DISABLE_STDIO
   codedump_recur(mrb, proc->body.irep);
+#endif
 }
