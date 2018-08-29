@@ -461,7 +461,7 @@ gen_return(codegen_scope *s, uint8_t op, uint16_t src)
       s->pc = s->lastpc;
       genop_1(s, op, data.b);
     }
-    else {
+    else if (data.insn != OP_RETURN) {
       genop_1(s, op, src);
     }
   }
