@@ -152,9 +152,9 @@ struct mrb_context {
   mrb_callinfo *cibase, *ciend;
 
   uint16_t *rescue;                       /* exception handler stack */
-  int rsize;
+  uint16_t rsize;
   struct RProc **ensure;                  /* ensure handler stack */
-  uint8_t esize, eidx;
+  uint16_t esize, eidx;
 
   enum mrb_fiber_state status;
   mrb_bool vmexec;
