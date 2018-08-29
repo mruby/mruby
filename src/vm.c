@@ -1239,11 +1239,24 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_ONERR, S) {
+      /* check rescue stack */
+      if (mrb->c->ci->ridx == UINT16_MAX) {
+        mrb_value exc = mrb_exc_new_str_lit(mrb, E_RUNTIME_ERROR, "too many nested rescues");
+        mrb_exc_set(mrb, exc);
+        goto L_RAISE;
+      }
+      /* expand rescue stack */
       if (mrb->c->rsize <= mrb->c->ci->ridx) {
         if (mrb->c->rsize == 0) mrb->c->rsize = RESCUE_STACK_INIT_SIZE;
-        else mrb->c->rsize *= 2;
-        mrb->c->rescue = (uint16_t*)mrb_realloc(mrb, mrb->c->rescue, sizeof(uint16_t) * mrb->c->rsize);
+        else {
+          mrb->c->rsize *= 2;
+          if (mrb->c->rsize <= mrb->c->ci->ridx) {
+            mrb->c->rsize = UINT16_MAX;
+          }
+        }
+        mrb->c->rescue = (uint16_t*)mrb_realloc(mrb, mrb->c->rescue, sizeof(uint16_t)*mrb->c->rsize);
       }
+      /* push rescue stack */
       mrb->c->rescue[mrb->c->ci->ridx++] = a;
       NEXT;
     }
@@ -1292,12 +1305,24 @@ RETRY_TRY_BLOCK:
       struct RProc *p;
 
       p = mrb_closure_new(mrb, irep->reps[a]);
-      /* push ensure_stack */
+      /* check ensure stack */
+      if (mrb->c->eidx == UINT16_MAX) {
+        mrb_value exc = mrb_exc_new_str_lit(mrb, E_RUNTIME_ERROR, "too many nested ensures");
+        mrb_exc_set(mrb, exc);
+        goto L_RAISE;
+      }
+      /* expand ensure stack */
       if (mrb->c->esize <= mrb->c->eidx+1) {
         if (mrb->c->esize == 0) mrb->c->esize = ENSURE_STACK_INIT_SIZE;
-        else mrb->c->esize *= 2;
-        mrb->c->ensure = (struct RProc **)mrb_realloc(mrb, mrb->c->ensure, sizeof(struct RProc*) * mrb->c->esize);
+        else {
+          mrb->c->esize *= 2;
+          if (mrb->c->esize <= mrb->c->eidx) {
+            mrb->c->esize = UINT16_MAX;
+          }
+        }
+        mrb->c->ensure = (struct RProc**)mrb_realloc(mrb, mrb->c->ensure, sizeof(struct RProc*)*mrb->c->esize);
       }
+      /* push ensure stack */
       mrb->c->ensure[mrb->c->eidx++] = p;
       mrb->c->ensure[mrb->c->eidx] = NULL;
       mrb_gc_arena_restore(mrb, ai);
