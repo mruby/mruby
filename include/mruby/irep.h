@@ -44,7 +44,8 @@ typedef struct mrb_irep {
   uint16_t *lines;
   struct mrb_irep_debug_info* debug_info;
 
-  uint16_t ilen, plen, slen, rlen, refcnt;
+  uint16_t ilen, plen, slen, rlen;
+  uint32_t refcnt;
 } mrb_irep;
 
 #define MRB_ISEQ_NO_FREE 1
