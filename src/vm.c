@@ -1240,7 +1240,7 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_ONERR, S) {
       /* check rescue stack */
-      if (mrb->c->ci->ridx == UINT16_MAX) {
+      if (mrb->c->ci->ridx == UINT16_MAX-1) {
         mrb_value exc = mrb_exc_new_str_lit(mrb, E_RUNTIME_ERROR, "too many nested rescues");
         mrb_exc_set(mrb, exc);
         goto L_RAISE;
@@ -1306,7 +1306,7 @@ RETRY_TRY_BLOCK:
 
       p = mrb_closure_new(mrb, irep->reps[a]);
       /* check ensure stack */
-      if (mrb->c->eidx == UINT16_MAX) {
+      if (mrb->c->eidx == UINT16_MAX-1) {
         mrb_value exc = mrb_exc_new_str_lit(mrb, E_RUNTIME_ERROR, "too many nested ensures");
         mrb_exc_set(mrb, exc);
         goto L_RAISE;
