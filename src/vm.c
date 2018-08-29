@@ -2618,7 +2618,12 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_ARYDUP, B) {
       mrb_value ary = regs[a];
-      ary = mrb_ary_new_from_values(mrb, RARRAY_LEN(ary), RARRAY_PTR(ary));
+      if (mrb_array_p(ary)) {
+        ary = mrb_ary_new_from_values(mrb, RARRAY_LEN(ary), RARRAY_PTR(ary));
+      }
+      else {
+        ary = mrb_ary_new_from_values(mrb, 1, &ary);
+      }
       regs[a] = ary;
       NEXT;
     }
