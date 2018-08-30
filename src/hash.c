@@ -321,6 +321,12 @@ mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val)
 }
 
 MRB_API mrb_value
+mrb_ensure_hash_type(mrb_state *mrb, mrb_value hash)
+{
+  return mrb_convert_type(mrb, hash, MRB_TT_HASH, "Hash", "to_hash");
+}
+
+MRB_API mrb_value
 mrb_check_hash_type(mrb_state *mrb, mrb_value hash)
 {
   return mrb_check_convert_type(mrb, hash, MRB_TT_HASH, "Hash", "to_hash");
@@ -959,7 +965,7 @@ mrb_hash_merge(mrb_state *mrb, mrb_value hash1, mrb_value hash2)
   khiter_t k;
 
   mrb_hash_modify(mrb, hash1);
-  hash2 = mrb_check_hash_type(mrb, hash2);
+  hash2 = mrb_ensure_hash_type(mrb, hash2);
   h1 = RHASH_TBL(hash1);
   h2 = RHASH_TBL(hash2);
 
