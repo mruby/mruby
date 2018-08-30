@@ -58,7 +58,7 @@ end
 
 assert('String instance_eval') do
   obj = Object.new
-  obj.instance_variable_set :@test, 'test'
+  obj.instance_eval{ @test = 'test' }
   assert_raise(ArgumentError) { obj.instance_eval(0) { } }
   assert_raise(ArgumentError) { obj.instance_eval('0', 'test', 0, 'test') }
   assert_equal(['test.rb', 10]) { obj.instance_eval('[__FILE__, __LINE__]', 'test.rb', 10)}

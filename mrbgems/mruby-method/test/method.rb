@@ -149,7 +149,7 @@ assert 'Method#source_location' do
   assert_equal [filename, lineno], klass.new.method(:find_me_if_you_can).source_location
 
   lineno = __LINE__ + 1
-  klass.define_singleton_method(:s_find_me_if_you_can) {}
+  class <<klass; define_method(:s_find_me_if_you_can) {}; end
   assert_equal [filename, lineno], klass.method(:s_find_me_if_you_can).source_location
 
   klass = Class.new { def respond_to_missing?(m, b); m == :nothing; end }
@@ -243,7 +243,7 @@ assert 'owner' do
 
   assert_equal(c, c.new.method(:foo).owner)
   assert_equal(c, c2.new.method(:foo).owner)
-  assert_equal(c.singleton_class, c2.method(:bar).owner)
+  assert_equal((class <<c; self; end), c2.method(:bar).owner)
 end
 
 assert 'owner missing' do
@@ -413,12 +413,14 @@ assert 'UnboundMethod#bind' do
   assert_equal(:meth, m.bind(1).call)
   assert_equal(:meth, m.bind(:sym).call)
   assert_equal(:meth, m.bind(Object.new).call)
-  sc = Class.new {
-    class << self
+  sc = nil
+  Class.new {
+    sc = class << self
       def foo
       end
+      self
     end
-  }.singleton_class
+  }
   assert_raise(TypeError) { sc.instance_method(:foo).bind([]) }
   assert_raise(TypeError) { Array.instance_method(:each).bind(1) }
   assert_kind_of Method, Object.instance_method(:object_id).bind(Object.new)

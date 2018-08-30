@@ -35,7 +35,7 @@ assert('IO', '15.2.20.2') do
 end
 
 assert('IO', '15.2.20.3') do
-  assert_include(IO.included_modules, Enumerable)
+  assert_include(IO.ancestors, Enumerable)
 end
 
 assert('IO.open', '15.2.20.4.1') do

@@ -26,7 +26,7 @@ end
 assert 'Module#singleton_class?' do
   mod = Module.new
   cls = Class.new
-  scl = cls.singleton_class
+  scl = (class <<cls; self; end)
 
   assert_false mod.singleton_class?
   assert_false cls.singleton_class?

@@ -36,7 +36,7 @@ end
 
 assert('Class#new', '15.2.3.3.3') do
   assert_raise(TypeError, 'Singleton should raise TypeError') do
-    "a".singleton_class.new
+    (class <<"a"; self; end).new
   end
 
   class TestClass
@@ -293,15 +293,7 @@ assert('singleton tests') do
     end
   end
 
-  assert_false baz.singleton_methods.include? :run_foo_mod
-  assert_false baz.singleton_methods.include? :run_baz
-
-  assert_raise(NoMethodError, 'should raise NoMethodError') do
-    baz.run_foo_mod
-  end
-  assert_raise(NoMethodError, 'should raise NoMethodError') do
-    baz.run_baz
-  end
+  assert_equal :run_baz, baz
 
   assert_raise(NoMethodError, 'should raise NoMethodError') do
     bar.run_foo_mod
@@ -318,8 +310,8 @@ assert('singleton tests') do
     self
   end
 
-  assert_true baz.singleton_methods.include? :run_baz
-  assert_true baz.singleton_methods.include? :run_foo_mod
+  assert_true baz.respond_to? :run_baz
+  assert_true baz.respond_to? :run_foo_mod
   assert_equal 100, baz.run_foo_mod
   assert_equal 300, baz.run_baz
 
@@ -439,13 +431,4 @@ end
 assert('class with non-class/module outer raises TypeError') do
   assert_raise(TypeError) { class 0::C1; end }
   assert_raise(TypeError) { class []::C2; end }
-end
-
-assert("remove_method doesn't segfault if the passed in argument isn't a symbol") do
-  klass = Class.new
-  assert_raise(TypeError) { klass.remove_method nil }
-  assert_raise(TypeError) { klass.remove_method 123 }
-  assert_raise(TypeError) { klass.remove_method 1.23 }
-  assert_raise(NameError) { klass.remove_method "hello" }
-  assert_raise(TypeError) { klass.remove_method Class.new }
 end
