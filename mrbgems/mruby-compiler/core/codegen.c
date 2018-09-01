@@ -2378,9 +2378,9 @@ codegen(codegen_scope *s, node *tree, int val)
 #endif
       {
         if (i == -1) genop_1(s, OP_LOADI__1, cursp());
-        else if (i < 0) genop_2(s, OP_LOADINEG, cursp(), -i);
-        else if (i < 8) genop_1(s, OP_LOADI_0 + i, cursp());
-        else if (i <= 0xffff) genop_2(s, OP_LOADI, cursp(), i);
+        else if (i < 0) genop_2(s, OP_LOADINEG, cursp(), (uint16_t)-i);
+        else if (i < 8) genop_1(s, OP_LOADI_0 + (uint8_t)i, cursp());
+        else if (i <= 0xffff) genop_2(s, OP_LOADI, cursp(), (uint16_t)i);
         else {
           int off = new_lit(s, mrb_fixnum_value(i));
           genop_2(s, OP_LOADL, cursp(), off);

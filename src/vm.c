@@ -176,7 +176,7 @@ envadjust(mrb_state *mrb, mrb_value *oldbase, mrb_value *newbase, size_t oldsize
 /** def rec ; $deep =+ 1 ; if $deep > 1000 ; return 0 ; end ; rec ; end  */
 
 static void
-stack_extend_alloc(mrb_state *mrb, int room)
+stack_extend_alloc(mrb_state *mrb, mrb_int room)
 {
   mrb_value *oldbase = mrb->c->stbase;
   mrb_value *newstack;
@@ -333,7 +333,7 @@ ecall(mrb_state *mrb)
   struct REnv *env;
   ptrdiff_t cioff;
   int ai = mrb_gc_arena_save(mrb);
-  uint8_t i = --c->eidx;
+  uint16_t i = --c->eidx;
   int nregs;
 
   if (i<0) return;
