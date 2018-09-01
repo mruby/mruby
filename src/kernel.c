@@ -17,7 +17,8 @@
 MRB_API mrb_bool
 mrb_func_basic_p(mrb_state *mrb, mrb_value obj, mrb_sym mid, mrb_func_t func)
 {
-  mrb_method_t m = mrb_method_search(mrb, mrb_class(mrb, obj), mid);
+  struct RClass *c = mrb_class(mrb, obj);
+  mrb_method_t m = mrb_method_search_vm(mrb, &c, mid);
   struct RProc *p;
 
   if (MRB_METHOD_UNDEF_P(m)) return FALSE;
