@@ -979,7 +979,7 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
   codegen(s, tree->car, VAL); /* receiver */
   if (safe) {
     int recv = cursp()-1;
-    gen_move(s, cursp(), recv, 0);
+    gen_move(s, cursp(), recv, 1);
     skip = genjmp2(s, OP_JMPNIL, cursp(), 0, val);
   }
   idx = new_sym(s, sym);
