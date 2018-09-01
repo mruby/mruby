@@ -92,20 +92,6 @@ assert('Kernel#__id__', '15.3.1.3.3') do
   assert_equal Fixnum, __id__.class
 end
 
-assert('Kernel#__send__', '15.3.1.3.4') do
-  # test with block
-  l = __send__(:lambda) do
-    true
-  end
-
-  assert_true l.call
-  assert_equal Proc, l.class
-  # test with argument
-  assert_true __send__(:respond_to?, :nil?)
-  # test without argument and without block
-  assert_equal String, __send__(:to_s).class
-end
-
 assert('Kernel#block_given?', '15.3.1.3.6') do
   def bg_try(&b)
     if block_given?
@@ -438,20 +424,6 @@ assert('Kernel#respond_to?', '15.3.1.3.43') do
   assert_true Test4RespondTo.new.respond_to?(:valid_method)
   assert_true Test4RespondTo.new.respond_to?('valid_method')
   assert_false Test4RespondTo.new.respond_to?(:test_method)
-end
-
-assert('Kernel#send', '15.3.1.3.44') do
-  # test with block
-  l = send(:lambda) do
-    true
-  end
-
-  assert_true l.call
-  assert_equal l.class, Proc
-  # test with argument
-  assert_true send(:respond_to?, :nil?)
-  # test without argument and without block
-  assert_equal send(:to_s).class, String
 end
 
 assert('Kernel#to_s', '15.3.1.3.46') do

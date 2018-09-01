@@ -536,61 +536,61 @@ end
   #end
 
   # mruby has no visibility control
-  assert 'Module#prepend visibility' do
-    bug8005 = '[ruby-core:53106] [Bug #8005]'
-    c = Class.new do
-      prepend Module.new {}
-      def foo() end
-      protected :foo
-    end
-    a = c.new
-    assert_true a.respond_to?(:foo), bug8005
-    assert_nothing_raised(bug8005) {a.send :foo}
-  end
+  # assert 'Module#prepend visibility' do
+  #   bug8005 = '[ruby-core:53106] [Bug #8005]'
+  #   c = Class.new do
+  #     prepend Module.new {}
+  #     def foo() end
+  #     protected :foo
+  #   end
+  #   a = c.new
+  #   assert_true a.respond_to?(:foo), bug8005
+  #   assert_nothing_raised(bug8005) {a.send :foo}
+  # end
 
   # mruby has no visibility control
-  assert 'Module#prepend inherited visibility' do
-    bug8238 = '[ruby-core:54105] [Bug #8238]'
-    module Test4PrependVisibilityInherited
-      class A
-        def foo() A; end
-        private :foo
-      end
-      class B < A
-        public :foo
-        prepend Module.new
-      end
-    end
-    assert_equal(Test4PrependVisibilityInherited::A, Test4PrependVisibilityInherited::B.new.foo, "#{bug8238}")
-  end
+  # assert 'Module#prepend inherited visibility' do
+  #   bug8238 = '[ruby-core:54105] [Bug #8238]'
+  #   module Test4PrependVisibilityInherited
+  #     class A
+  #       def foo() A; end
+  #       private :foo
+  #     end
+  #     class B < A
+  #       public :foo
+  #       prepend Module.new
+  #     end
+  #   end
+  #   assert_equal(Test4PrependVisibilityInherited::A, Test4PrependVisibilityInherited::B.new.foo, "#{bug8238}")
+  # end
 
-  assert 'Module#prepend super in alias' do
-    skip "super does not currently work in aliased methods"
-    bug7842 = '[Bug #7842]'
+  # assert 'Module#prepend super in alias' do
+  #   skip "super does not currently work in aliased methods"
+  #   bug7842 = '[Bug #7842]'
 
-    p = labeled_module("P") do
-      def m; "P"+super; end
-    end
+  #   p = labeled_module("P") do
+  #     def m; "P"+super; end
+  #   end
 
-    a = labeled_class("A") do
-      def m; "A"; end
-    end
+  #   a = labeled_class("A") do
+  #     def m; "A"; end
+  #   end
 
-    b = labeled_class("B", a) do
-      def m; "B"+super; end
-      alias m2 m
-      prepend p
-      alias m3 m
-    end
+  #   b = labeled_class("B", a) do
+  #     def m; "B"+super; end
+  #     alias m2 m
+  #     prepend p
+  #     alias m3 m
+  #   end
 
-    assert_nothing_raised do
-      assert_equal("BA", b.new.m2, bug7842)
-    end
+  #   assert_nothing_raised do
+  #     assert_equal("BA", b.new.m2, bug7842)
+  #   end
 
-    assert_nothing_raised do
-      assert_equal("PBA", b.new.m3, bug7842)
-    end
-  end
+  #   assert_nothing_raised do
+  #     assert_equal("PBA", b.new.m3, bug7842)
+  #   end
+  # end
 
   assert 'Module#prepend each class' do
     m = labeled_module("M")

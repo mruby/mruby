@@ -102,10 +102,7 @@ end
 
 assert 'Method#call for regression' do
   obj = BasicObject.new
-  def obj.foo
-    :ok
-  end
-  assert_equal :ok, Kernel.instance_method(:send).bind(obj).call(:foo), "https://github.com/ksss/mruby-method/issues/4"
+  assert_equal String, Kernel.instance_method(:inspect).bind(obj).call().class, "https://github.com/ksss/mruby-method/issues/4"
 end
 
 assert 'Method#call with undefined method' do

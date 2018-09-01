@@ -34,7 +34,7 @@ assert('Kernel.eval', '15.3.1.2.3') do
   }
   assert_equal(2) {
     a = 10
-    Kernel.eval 'def f(a); b=a.send(:+, 1); end'
+    Kernel.eval 'def f(a); b=a+1; end'
     f(1)
   }
 end
