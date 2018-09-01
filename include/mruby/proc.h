@@ -88,7 +88,7 @@ MRB_API struct RProc *mrb_closure_new_cfunc(mrb_state *mrb, mrb_func_t func, int
 void mrb_proc_copy(struct RProc *a, struct RProc *b);
 
 /* implementation of #send method */
-MRB_API mrb_value mrb_f_send(mrb_state *mrb, mrb_value self);
+mrb_value mrb_f_send(mrb_state *mrb, mrb_value self);
 
 /* following functions are defined in mruby-proc-ext so please include it when using */
 MRB_API struct RProc *mrb_proc_new_cfunc_with_env(mrb_state*, mrb_func_t, mrb_int, const mrb_value*);
