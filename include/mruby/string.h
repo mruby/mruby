@@ -102,7 +102,7 @@ MRB_API mrb_int mrb_str_index(mrb_state*, mrb_value, const char*, mrb_int, mrb_i
 #define mrb_str_index_lit(mrb, str, lit, off) mrb_str_index(mrb, str, lit, mrb_strlen_lit(lit), off);
 
 /*
- * Appends self to other. Returns self as a concatnated string.
+ * Appends self to other. Returns self as a concatenated string.
  *
  *
  *  Example:
@@ -126,10 +126,10 @@ MRB_API mrb_int mrb_str_index(mrb_state*, mrb_value, const char*, mrb_int, mrb_i
  *       str1 = mrb_str_new_lit(mrb, "abc");
  *       str2 = mrb_str_new_lit(mrb, "def");
  *
- *       // Concatnates str2 to str1.
+ *       // Concatenates str2 to str1.
  *       mrb_str_concat(mrb, str1, str2);
  *
- *      // Prints new Concatnated Ruby string.
+ *      // Prints new Concatenated Ruby string.
  *      mrb_p(mrb, str1);
  *
  *      mrb_close(mrb);
@@ -178,10 +178,10 @@ MRB_API void mrb_str_concat(mrb_state*, mrb_value, mrb_value);
  *       mrb_p(mrb, a);
  *       mrb_p(mrb, b);
  *
- *       // Concatnates both Ruby strings.
+ *       // Concatenates both Ruby strings.
  *       c = mrb_str_plus(mrb, a, b);
  *
- *      // Prints new Concatnated Ruby string.
+ *      // Prints new Concatenated Ruby string.
  *      mrb_p(mrb, c);
  *
  *      mrb_close(mrb);
@@ -193,7 +193,7 @@ MRB_API void mrb_str_concat(mrb_state*, mrb_value, mrb_value);
  *
  *     => "abc"  # First string
  *     => "def"  # Second string
- *     => "abcdef" # First & Second concatnated.
+ *     => "abcdef" # First & Second concatenated.
  *
  * @param [mrb_state] mrb The current mruby state.
  * @param [mrb_value] a First string to concatenate.
