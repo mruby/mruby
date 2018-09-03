@@ -111,7 +111,7 @@ p(mrb_state *mrb, mrb_value obj, int prompt)
   if (!mrb_string_p(val)) {
     val = mrb_obj_as_string(mrb, obj);
   }
-  msg = mrb_locale_from_utf8(RSTRING_PTR(val), RSTRING_LEN(val));
+  msg = mrb_locale_from_utf8(RSTRING_PTR(val), (int)RSTRING_LEN(val));
   fwrite(msg, strlen(msg), 1, stdout);
   mrb_locale_free(msg);
   putc('\n', stdout);
