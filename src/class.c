@@ -1981,7 +1981,14 @@ mrb_mod_const_get(mrb_state *mrb, mrb_value mod)
     end = (end == -1) ? len : end;
     id = mrb_intern(mrb, ptr+off, end-off);
     mod = mrb_const_get_sym(mrb, mod, id);
-    off = (end == len) ? end : end+2;
+    if (end == len)
+      off = end;
+    else {
+      off = end + 2;
+      if (off == len) {         /* trailing "::" */
+        mrb_name_error(mrb, id, "wrong constant name '%S'", path);
+      }
+    }
   }
 
   return mod;
