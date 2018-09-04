@@ -293,17 +293,21 @@ EOS
       @build_mrbtest_lib_only
     end
 
+    def verbose_flag
+      $verbose ? ' -v' : ''
+    end
+
     def run_test
       puts ">>> Test #{name} <<<"
       mrbtest = exefile("#{build_dir}/bin/mrbtest")
-      sh "#{filename mrbtest.relative_path}#{$verbose ? ' -v' : ''}"
+      sh "#{filename mrbtest.relative_path}#{verbose_flag}"
       puts
     end
 
     def run_bintest
       targets = @gems.select { |v| File.directory? "#{v.dir}/bintest" }.map { |v| filename v.dir }
       targets << filename(".") if File.directory? "./bintest"
-      sh "ruby test/bintest.rb #{targets.join ' '}"
+      sh "ruby test/bintest.rb#{verbose_flag} #{targets.join ' '}"
     end
 
     def print_build_summary
