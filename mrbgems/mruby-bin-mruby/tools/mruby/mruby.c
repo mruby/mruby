@@ -258,7 +258,8 @@ main(int argc, char **argv)
     for (i = 0; i < args.libc; i++) {
       FILE *lfp = fopen(args.libv[i], args.mrbfile ? "rb" : "r");
       if (lfp == NULL) {
-        printf("Cannot open library file. (%s)\n", args.libv[i]);
+        printf("Cannot open library file: %s\n", args.libv[i]);
+        mrbc_context_free(mrb, c);
         cleanup(mrb, &args);
         return EXIT_FAILURE;
       }
