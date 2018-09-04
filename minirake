@@ -590,7 +590,7 @@ class RakeApp
     wait_process(count + 1) if !$rake_fiber_table.empty? && exited.empty?
   end
 
-  end
+end
 
 if __FILE__ == $0 then
   RakeApp.new.run
