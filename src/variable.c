@@ -732,24 +732,23 @@ mod_const_check(mrb_state *mrb, mrb_value mod)
 }
 
 static mrb_value
-const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym, mrb_bool top)
+const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym)
 {
   struct RClass *c = base;
   mrb_value v;
   mrb_bool retry = FALSE;
   mrb_value name;
-  struct RClass *oclass = mrb->object_class;
 
 L_RETRY:
   while (c) {
-    if (top || c != oclass || base == oclass) {
+    if (c->iv) {
       if (iv_get(mrb, c->iv, sym, &v))
         return v;
     }
     c = c->super;
   }
   if (!retry && base->tt == MRB_TT_MODULE) {
-    c = oclass;
+    c = mrb->object_class;
     retry = TRUE;
     goto L_RETRY;
   }
@@ -761,7 +760,7 @@ MRB_API mrb_value
 mrb_const_get(mrb_state *mrb, mrb_value mod, mrb_sym sym)
 {
   mod_const_check(mrb, mod);
-  return const_get(mrb, mrb_class_ptr(mod), sym, FALSE);
+  return const_get(mrb, mrb_class_ptr(mod), sym);
 }
 
 mrb_value
@@ -796,7 +795,7 @@ mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
     }
     proc = proc->upper;
   }
-  return const_get(mrb, c, sym, TRUE);
+  return const_get(mrb, c, sym);
 }
 
 MRB_API void
