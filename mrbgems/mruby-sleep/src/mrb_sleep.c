@@ -37,25 +37,17 @@
 
 #include "mruby.h"
 
-mrb_value mrb_f_sleep_sleep(mrb_state *mrb, mrb_value self)
-{   
+static mrb_value
+mrb_f_sleep(mrb_state *mrb, mrb_value self)
+{
     time_t beg, end;
-    mrb_value *argv;
-    mrb_int argc;
-    int iargc;
-    
-    beg = time(0);
-    mrb_get_args(mrb, "*", &argv, &argc);
-    
-    iargc = (int)argc;
-    
-    /* not implemented forever sleep (called without an argument)*/
-    if (iargc == 0 || iargc >= 2) {
-        mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
-    }
+    mrb_int sec;
 
-    if (mrb_fixnum_p(argv[0]) && mrb_fixnum(argv[0]) >= 0) {
-        sleep(mrb_fixnum(argv[0]));
+    beg = time(0);
+    /* not implemented forever sleep (called without an argument)*/
+    mrb_get_args(mrb, "i", &sec);
+    if (sec >= 0) {
+        sleep(sec);
     } else {
         mrb_raise(mrb, E_ARGUMENT_ERROR, "time interval must be positive integer");
     }
@@ -64,10 +56,10 @@ mrb_value mrb_f_sleep_sleep(mrb_state *mrb, mrb_value self)
     return mrb_fixnum_value(end);
 }
 
-mrb_value mrb_f_usleep_usleep(mrb_state *mrb, mrb_value self)
-{   
-    mrb_int argc;
-    mrb_value *argv;
+static mrb_value
+mrb_f_usleep(mrb_state *mrb, mrb_value self)
+{
+    mrb_int usec;
 #ifdef _WIN32
     FILETIME st_ft,ed_ft;
     unsigned __int64 st_time = 0;
@@ -80,18 +72,14 @@ mrb_value mrb_f_usleep_usleep(mrb_state *mrb, mrb_value self)
 #ifdef _WIN32
     GetSystemTimeAsFileTime(&st_ft);
 #else
-    gettimeofday( &st_tm, NULL );
+    gettimeofday(&st_tm, NULL);
 #endif
 
-    mrb_get_args(mrb, "*", &argv, &argc);
-
     /* not implemented forever sleep (called without an argument)*/
-    if(argc == 0 || argc >= 2) {
-        mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
-    }
+    mrb_get_args(mrb, "i", &usec);
 
-    if (mrb_fixnum_p(argv[0]) && mrb_fixnum(argv[0]) >= 0) {
-        usleep(mrb_fixnum(argv[0]));
+    if (usec >= 0) {
+        usleep(usec);
     } else {
         mrb_raise(mrb, E_ARGUMENT_ERROR, "time interval must be positive integer");
     }
@@ -108,11 +96,12 @@ mrb_value mrb_f_usleep_usleep(mrb_state *mrb, mrb_value self)
 
     slp_tm = (ed_time - st_time) / 10;
 #else
-    gettimeofday( &ed_tm, NULL );
+    gettimeofday(&ed_tm, NULL);
 
-    if ( st_tm.tv_usec > ed_tm.tv_usec ) {
+    if (st_tm.tv_usec > ed_tm.tv_usec) {
         slp_tm = 1000000 + ed_tm.tv_usec - st_tm.tv_usec;
-    } else {
+    }
+    else {
         slp_tm = ed_tm.tv_usec - st_tm.tv_usec;
     }
 #endif
@@ -120,18 +109,20 @@ mrb_value mrb_f_usleep_usleep(mrb_state *mrb, mrb_value self)
     return mrb_fixnum_value(slp_tm);
 }
 
-void mrb_mruby_sleep_gem_init(mrb_state *mrb)
+void
+mrb_mruby_sleep_gem_init(mrb_state *mrb)
 {
     struct RClass *sleep;
 
     sleep = mrb_define_module(mrb, "Sleep");
-    mrb_define_class_method(mrb, sleep, "sleep",    mrb_f_sleep_sleep,      MRB_ARGS_REQ(1));
-    mrb_define_class_method(mrb, sleep, "usleep",   mrb_f_usleep_usleep,    MRB_ARGS_REQ(1));
+    mrb_define_class_method(mrb, sleep, "sleep",    mrb_f_sleep,     MRB_ARGS_REQ(1));
+    mrb_define_class_method(mrb, sleep, "usleep",   mrb_f_usleep,    MRB_ARGS_REQ(1));
 
-    mrb_define_method(mrb, mrb->kernel_module, "sleep",   mrb_f_sleep_sleep,    MRB_ARGS_REQ(1));
-    mrb_define_method(mrb, mrb->kernel_module, "usleep",  mrb_f_usleep_usleep,  MRB_ARGS_REQ(1));
+    mrb_define_method(mrb, mrb->kernel_module, "sleep",   mrb_f_sleep,   MRB_ARGS_REQ(1));
+    mrb_define_method(mrb, mrb->kernel_module, "usleep",  mrb_f_usleep,  MRB_ARGS_REQ(1));
 }
 
-void mrb_mruby_sleep_gem_final(mrb_state *mrb)
+void
+mrb_mruby_sleep_gem_final(mrb_state *mrb)
 {
 }
