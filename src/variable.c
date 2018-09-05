@@ -1069,8 +1069,10 @@ mrb_class_find_path(mrb_state *mrb, struct RClass *c)
 
   str = mrb_sym2name_len(mrb, name, &len);
   mrb_str_cat(mrb, path, str, len);
-  iv_del(mrb, c->iv, mrb_intern_lit(mrb, "__outer__"), NULL);
-  iv_put(mrb, c->iv, mrb_intern_lit(mrb, "__classname__"), path);
-  mrb_field_write_barrier_value(mrb, (struct RBasic*)c, path);
+  if (RSTRING_PTR(path)[0] != '#') {
+    iv_del(mrb, c->iv, mrb_intern_lit(mrb, "__outer__"), NULL);
+    iv_put(mrb, c->iv, mrb_intern_lit(mrb, "__classname__"), path);
+    mrb_field_write_barrier_value(mrb, (struct RBasic*)c, path);
+  }
   return path;
 }
