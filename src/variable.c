@@ -790,7 +790,7 @@ mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
   proc = mrb->c->ci->proc;
   while (proc) {
     c2 = MRB_PROC_TARGET_CLASS(proc);
-    if (c2 && iv_get(mrb, c2->iv, sym, &v)) { 
+    if (c2 && iv_get(mrb, c2->iv, sym, &v)) {
       return v;
     }
     proc = proc->upper;
@@ -988,25 +988,25 @@ struct csym_arg {
   struct RClass *c;
   mrb_sym sym;
 };
- 
+
 static int
 csym_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 {
   struct csym_arg *a = (struct csym_arg*)p;
   struct RClass *c = a->c;
- 
+
   if (mrb_type(v) == c->tt && mrb_class_ptr(v) == c) {
     a->sym = sym;
     return 1;     /* stop iteration */
   }
   return 0;
 }
- 
+
 static mrb_sym
 find_class_sym(mrb_state *mrb, struct RClass *outer, struct RClass *c)
 {
   struct csym_arg arg;
- 
+
   if (!outer) return 0;
   if (outer == c) return 0;
   arg.c = c;

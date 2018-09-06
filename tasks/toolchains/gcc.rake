@@ -55,7 +55,7 @@ MRuby::Toolchain.new(:gcc) do |conf, _params|
       @header_search_paths
     end
   end
-  
+
   def conf.enable_sanitizer(*opts)
     fail 'sanitizer already set' if @sanitizer_list
 

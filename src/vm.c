@@ -1818,7 +1818,7 @@ RETRY_TRY_BLOCK:
         }
         regs[blk_pos] = *blk; /* move block */
         if (kd) regs[len + 1] = kdict;
- 
+
         /* copy mandatory and optional arguments */
         if (argv0 != argv) {
           value_move(&regs[1], argv, argc-mlen); /* m1 + o */
@@ -2077,7 +2077,7 @@ RETRY_TRY_BLOCK:
           break;
         case OP_R_BREAK:
           if (MRB_PROC_STRICT_P(proc)) goto NORMAL_RETURN;
-          if (MRB_PROC_ORPHAN_P(proc)) { 
+          if (MRB_PROC_ORPHAN_P(proc)) {
             mrb_value exc;
 
           L_BREAK_ERROR:
