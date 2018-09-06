@@ -37,25 +37,38 @@
 
 #include "mruby.h"
 
+/* not implemented forever sleep (called without an argument)*/
 static mrb_value
 mrb_f_sleep(mrb_state *mrb, mrb_value self)
 {
-    time_t beg, end;
+    time_t beg = time(0);
+    time_t end;
+#ifndef MRB_WITHOUT_FLOAT
+    mrb_float sec;
+
+    mrb_get_args(mrb, "f", &sec);
+    if (sec >= 0) {
+        usleep(sec * 1000000);
+    }
+    else {
+        mrb_raise(mrb, E_ARGUMENT_ERROR, "time interval must be positive integer");
+    }
+#else
     mrb_int sec;
 
-    beg = time(0);
-    /* not implemented forever sleep (called without an argument)*/
     mrb_get_args(mrb, "i", &sec);
     if (sec >= 0) {
         sleep(sec);
     } else {
         mrb_raise(mrb, E_ARGUMENT_ERROR, "time interval must be positive integer");
     }
+#endif
     end = time(0) - beg;
 
     return mrb_fixnum_value(end);
 }
 
+/* mruby special; needed for mruby without float numbers */
 static mrb_value
 mrb_f_usleep(mrb_state *mrb, mrb_value self)
 {
