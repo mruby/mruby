@@ -1,5 +1,5 @@
 /*
-** mrb_sleep - sleep class for mruby
+** mrb_sleep - sleep methods for mruby
 **
 ** Copyright (c) mod_mruby developers 2012-
 **
@@ -112,12 +112,6 @@ mrb_f_usleep(mrb_state *mrb, mrb_value self)
 void
 mrb_mruby_sleep_gem_init(mrb_state *mrb)
 {
-    struct RClass *sleep;
-
-    sleep = mrb_define_module(mrb, "Sleep");
-    mrb_define_class_method(mrb, sleep, "sleep",    mrb_f_sleep,     MRB_ARGS_REQ(1));
-    mrb_define_class_method(mrb, sleep, "usleep",   mrb_f_usleep,    MRB_ARGS_REQ(1));
-
     mrb_define_method(mrb, mrb->kernel_module, "sleep",   mrb_f_sleep,   MRB_ARGS_REQ(1));
     mrb_define_method(mrb, mrb->kernel_module, "usleep",  mrb_f_usleep,  MRB_ARGS_REQ(1));
 }
