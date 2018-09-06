@@ -969,6 +969,7 @@ mrb_hash_merge(mrb_state *mrb, mrb_value hash1, mrb_value hash2)
   h1 = RHASH_TBL(hash1);
   h2 = RHASH_TBL(hash2);
 
+  if (!h2) return;
   if (!h1) {
     RHASH_TBL(hash1) = kh_copy(ht, mrb, h2);
     return;
