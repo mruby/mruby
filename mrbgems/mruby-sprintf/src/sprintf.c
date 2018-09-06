@@ -1057,17 +1057,21 @@ retry:
             need = BIT_DIGITS(i);
         }
         need += (flags&FPREC) ? prec : 6;
+        if (need < 0) {
+        too_big_width:
+          mrb_raise(mrb, E_ARGUMENT_ERROR,
+                    (width > prec ? "width too big" : "prec too big"));
+        }
         if ((flags&FWIDTH) && need < width)
           need = width;
         need += 20;
         if (need <= 0) {
-          mrb_raise(mrb, E_ARGUMENT_ERROR,
-                    (width > prec ? "width too big" : "prec too big"));
+          goto too_big_width;
         }
 
         CHECK(need);
         n = snprintf(&buf[blen], need, fbuf, fval);
-        if (n < 0) {
+        if (n < 0 || n >= need) {
           mrb_raise(mrb, E_RUNTIME_ERROR, "formatting error");
         }
         blen += n;
