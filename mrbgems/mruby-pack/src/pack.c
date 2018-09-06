@@ -598,19 +598,21 @@ unpack_a(mrb_state *mrb, const void *src, int slen, mrb_value ary, long count, u
   }
   copylen = slen;
 
-  if (flags & PACK_FLAG_Z) {  /* "Z" */
+  if (slen >= 0 && flags & PACK_FLAG_Z) {  /* "Z" */
     if ((cp = (const char *)memchr(sptr, '\0', slen)) != NULL) {
       copylen = (int)(cp - sptr);
       if (count == -1) {
         slen = copylen + 1;
       }
     }
-  } else if (!(flags & PACK_FLAG_a)) {  /* "A" */
+  }
+  else if (!(flags & PACK_FLAG_a)) {  /* "A" */
     while (copylen > 0 && (sptr[copylen - 1] == '\0' || isspace(sptr[copylen - 1]))) {
       copylen--;
     }
   }
 
+  if (copylen < 0) copylen = 0;
   dst = mrb_str_new(mrb, sptr, (mrb_int)copylen);
   mrb_ary_push(mrb, ary, dst);
   return slen;
