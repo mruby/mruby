@@ -1190,7 +1190,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
 }
 
 static mrb_value
-mrb_pack_unpack(mrb_state *mrb, mrb_value str)
+pack_unpack(mrb_state *mrb, mrb_value str, int single)
 {
   mrb_value result;
   struct tmpl tmpl;
@@ -1272,9 +1272,23 @@ mrb_pack_unpack(mrb_state *mrb, mrb_value str)
         count--;
       }
     }
+    if (single) break;
   }
 
+  if (single) return RARRAY_PTR(result)[0];
   return result;
+}
+
+static mrb_value
+mrb_pack_unpack(mrb_state *mrb, mrb_value str)
+{
+  return pack_unpack(mrb, str, 0);
+}
+
+static mrb_value
+mrb_pack_unpack1(mrb_state *mrb, mrb_value str)
+{
+  return pack_unpack(mrb, str, 1);
 }
 
 void
@@ -1285,6 +1299,7 @@ mrb_mruby_pack_gem_init(mrb_state *mrb)
 
   mrb_define_method(mrb, mrb->array_class, "pack", mrb_pack_pack, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, mrb->string_class, "unpack", mrb_pack_unpack, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, mrb->string_class, "unpack1", mrb_pack_unpack1, MRB_ARGS_REQ(1));
 }
 
 void
