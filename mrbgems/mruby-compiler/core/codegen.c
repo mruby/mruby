@@ -1786,7 +1786,7 @@ codegen(codegen_scope *s, node *tree, int val)
             push();
           }
           codegen(s, tree->car->cdr, VAL);
-          if (len > 0) {
+          if (len > 0 || update) {
             pop(); pop();
             genop_1(s, OP_HASHCAT, cursp());
             push();
