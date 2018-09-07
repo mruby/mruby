@@ -377,21 +377,23 @@ is_namespace(enum mrb_vtype tt)
 static inline void
 assign_class_name(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
 {
-  if (is_namespace(obj->tt) && is_namespace(mrb_type(v)) && ISUPPER(mrb_sym2name(mrb, sym)[0])) {
+  if (is_namespace(obj->tt) && is_namespace(mrb_type(v))) {
     struct RObject *c = mrb_obj_ptr(v);
-    mrb_sym id_classname = mrb_intern_lit(mrb, "__classname__");
-    mrb_value o = mrb_obj_iv_get(mrb, c, id_classname);
-
-    if (mrb_nil_p(o)) {
-      mrb_sym id_outer = mrb_intern_lit(mrb, "__outer__");
-      o = mrb_obj_iv_get(mrb, c, id_outer);
+    if (obj != c && ISUPPER(mrb_sym2name(mrb, sym)[0])) {
+      mrb_sym id_classname = mrb_intern_lit(mrb, "__classname__");
+      mrb_value o = mrb_obj_iv_get(mrb, c, id_classname);
 
       if (mrb_nil_p(o)) {
-        if ((struct RClass *)obj == mrb->object_class) {
-          mrb_obj_iv_set(mrb, c, id_classname, mrb_symbol_value(sym));
-        }
-        else {
-          mrb_obj_iv_set(mrb, c, id_outer, mrb_obj_value(obj));
+        mrb_sym id_outer = mrb_intern_lit(mrb, "__outer__");
+        o = mrb_obj_iv_get(mrb, c, id_outer);
+
+        if (mrb_nil_p(o)) {
+          if ((struct RClass *)obj == mrb->object_class) {
+            mrb_obj_iv_set(mrb, c, id_classname, mrb_symbol_value(sym));
+          }
+          else {
+            mrb_obj_iv_set(mrb, c, id_outer, mrb_obj_value(obj));
+          }
         }
       }
     }
