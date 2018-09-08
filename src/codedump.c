@@ -516,7 +516,7 @@ codedump(mrb_state *mrb, mrb_irep *irep)
 #undef OPCODE
       }
       break;
-      
+
     default:
       printf("OP_unknown (0x%x)\n", ins);
       break;

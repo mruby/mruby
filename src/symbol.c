@@ -387,8 +387,8 @@ id:
         switch (*m) {
           case '!': case '?': case '=': ++m;
           default: break;
-            }
         }
+      }
       break;
   }
   return *m ? FALSE : TRUE;

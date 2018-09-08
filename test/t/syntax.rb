@@ -454,15 +454,15 @@ assert('multiline comments work correctly') do
 =begin
 this is a comment with nothing after begin and end
 =end
-=begin  this is a comment 
+=begin  this is a comment
 this is a comment with extra after =begin
 =end
 =begin
 this is a comment that has =end with spaces after it
-=end  
+=end
 =begin this is a comment
 this is a comment that has extra after =begin and =end with spaces after it
-=end  
+=end
   line = __LINE__
 =begin	this is a comment
 this is a comment that has extra after =begin and =end with tabs after it

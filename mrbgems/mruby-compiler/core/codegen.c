@@ -419,7 +419,7 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
   }
   else {
     struct mrb_insn_data data = mrb_last_insn(s);
-  
+
     switch (data.insn) {
     case OP_MOVE:
       if (dst == src) return;             /* remove useless MOVE */
@@ -456,7 +456,7 @@ gen_return(codegen_scope *s, uint8_t op, uint16_t src)
   }
   else {
     struct mrb_insn_data data = mrb_last_insn(s);
-  
+
     if (data.insn == OP_MOVE && src == data.a) {
       s->pc = s->lastpc;
       genop_1(s, op, data.b);
@@ -764,7 +764,7 @@ lambda_body(codegen_scope *s, node *tree, int blk)
     kd = tail && tail->cdr->cdr->car? 1 : 0;
     /* block argument? */
     ba = tail && tail->cdr->cdr->cdr->car ? 1 : 0;
- 
+
     if (ma > 0x1f || oa > 0x1f || pa > 0x1f || ka > 0x1f) {
       codegen_error(s, "too many formal arguments");
     }
@@ -3118,7 +3118,7 @@ generate_code(mrb_state *mrb, parser_state *p, int val)
   scope->filename_index = p->current_filename_index;
 
   MRB_TRY(&scope->jmp) {
-    mrb->jmp = &scope->jmp; 
+    mrb->jmp = &scope->jmp;
     /* prepare irep */
     codegen(scope, p->tree, val);
     proc = mrb_proc_new(mrb, scope->irep);

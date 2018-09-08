@@ -231,7 +231,7 @@ ary_expand_capa(mrb_state *mrb, struct RArray *a, mrb_int len)
 static void
 ary_shrink_capa(mrb_state *mrb, struct RArray *a)
 {
-  
+
   mrb_int capa;
 
   if (ARY_EMBED_P(a)) return;
