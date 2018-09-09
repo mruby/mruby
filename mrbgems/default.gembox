@@ -69,10 +69,10 @@ MRuby::GemBox.new do |conf|
   conf.gem :core => "mruby-enum-lazy"
 
   # Use Complex class
-  #conf.gem :core => "mruby-complex"
+  # conf.gem :core => "mruby-complex"
 
   # Use Rational class
-  #conf.gem :core => "mruby-rational"
+  # conf.gem :core => "mruby-rational"
 
   # Use toplevel object (main) methods extension
   conf.gem :core => "mruby-toplevel-ext"
