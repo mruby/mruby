@@ -798,14 +798,17 @@ new_op_asgn(parser_state *p, node *a, mrb_sym op, node *b)
 
 #ifdef MRB_COMPLEX_NUMBERS
 static node*
-new_imaginary(parser_state *p, node *imaginary);
+new_imaginary(parser_state *p, node *imaginary)
+{
+  return new_call(p, new_const(p, intern_cstr("Kernel")), intern_cstr("Complex"), list1(list2(list3((node*)NODE_INT, (node*)strdup("0"), nint(10)), imaginary)), 1);
+}
 #endif
 
 #ifdef MRB_RATIONAL_NUMBERS
 static node*
 new_rational(parser_state *p, node *rational)
 {
-  return new_call(p, new_const(p, intern_cstr("Rational")), intern_cstr("new"), list1(list1(rational)), 1);
+  return new_call(p, new_const(p, intern_cstr("Kernel")), intern_cstr("Rational"), list1(list1(rational)), 1);
 }
 #endif
 
@@ -844,14 +847,6 @@ new_float(parser_state *p, const char *s, int suffix)
   }
 #endif
   return result;
-}
-#endif
-
-#ifdef MRB_COMPLEX_NUMBERS
-static node*
-new_imaginary(parser_state *p, node *imaginary)
-{
-  return new_call(p, new_const(p, intern_cstr("Complex")), intern_cstr("new"), list1(list2(new_int(p, "0", 10, 0), imaginary)), 1);
 }
 #endif
 
