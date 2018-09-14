@@ -200,7 +200,7 @@ check_name_arg(mrb_state *mrb, int posarg, const char *name, mrb_int len)
 
 #define GETNUM(n, val) \
   for (; p < end && ISDIGIT(*p); p++) {\
-    if (n > MRB_INT_MAX/10) {\
+    if (n > (MRB_INT_MAX - (*p - '0'))/10) {\
       mrb_raise(mrb, E_ARGUMENT_ERROR, #val " too big"); \
     } \
     n = 10 * n + (*p - '0'); \
@@ -1056,18 +1056,18 @@ retry:
           if (i > 0)
             need = BIT_DIGITS(i);
         }
-        need += (flags&FPREC) ? prec : 6;
-        if (need < 0) {
+        if (need > MRB_INT_MAX - ((flags&FPREC) ? prec : 6)) {
         too_big_width:
           mrb_raise(mrb, E_ARGUMENT_ERROR,
                     (width > prec ? "width too big" : "prec too big"));
         }
+        need += (flags&FPREC) ? prec : 6;
         if ((flags&FWIDTH) && need < width)
           need = width;
-        need += 20;
-        if (need <= 0) {
+        if (need > MRB_INT_MAX - 20) {
           goto too_big_width;
         }
+        need += 20;
 
         CHECK(need);
         n = snprintf(&buf[blen], need, fbuf, fval);
