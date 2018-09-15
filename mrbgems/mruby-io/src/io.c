@@ -408,7 +408,7 @@ mrb_value
 mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
 {
   mrb_raise(mrb, E_NOTIMP_ERROR, "IO#popen is not supported on the platform");
-  return mrb_false_value();w
+  return mrb_false_value();
 }
 #else
 mrb_value
