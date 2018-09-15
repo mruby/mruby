@@ -7,6 +7,11 @@
 #ifndef MRUBY_COMMON_H
 #define MRUBY_COMMON_H
 
+#ifdef __APPLE__
+  #ifndef __TARGETCONDITIONALS__
+  #include "TargetConditionals.h"
+  #endif
+#endif
 
 #ifdef __cplusplus
 #ifdef MRB_ENABLE_CXX_ABI
