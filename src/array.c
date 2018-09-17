@@ -853,14 +853,14 @@ static mrb_value
 mrb_ary_aget(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
-  mrb_int i, len, alen = ARY_LEN(a);
+  mrb_int i, len, alen;
   mrb_value index;
 
   if (mrb_get_args(mrb, "o|i", &index, &len) == 1) {
     switch (mrb_type(index)) {
       /* a[n..m] */
     case MRB_TT_RANGE:
-      if (mrb_range_beg_len(mrb, index, &i, &len, alen, TRUE) == 1) {
+      if (mrb_range_beg_len(mrb, index, &i, &len, ARY_LEN(a), TRUE) == 1) {
         return ary_subseq(mrb, a, i, len);
       }
       else {
@@ -874,6 +874,7 @@ mrb_ary_aget(mrb_state *mrb, mrb_value self)
   }
 
   i = aget_index(mrb, index);
+  alen = ARY_LEN(a);
   if (i < 0) i += alen;
   if (i < 0 || alen < i) return mrb_nil_value();
   if (len < 0) return mrb_nil_value();
@@ -953,9 +954,10 @@ mrb_ary_delete_at(mrb_state *mrb, mrb_value self)
   mrb_int   index;
   mrb_value val;
   mrb_value *ptr;
-  mrb_int len, alen = ARY_LEN(a);
+  mrb_int len, alen;
 
   mrb_get_args(mrb, "i", &index);
+  alen = ARY_LEN(a);
   if (index < 0) index += alen;
   if (index < 0 || alen <= index) return mrb_nil_value();
 
@@ -980,16 +982,17 @@ static mrb_value
 mrb_ary_first(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
-  mrb_int size, alen = ARY_LEN(a);
+  mrb_int size, alen;
 
   if (mrb_get_argc(mrb) == 0) {
-    return (alen > 0)? ARY_PTR(a)[0]: mrb_nil_value();
+    return (ARY_LEN(a) > 0)? ARY_PTR(a)[0]: mrb_nil_value();
   }
   mrb_get_args(mrb, "|i", &size);
   if (size < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "negative array size");
   }
 
+  alen = ARY_LEN(a);
   if (size > alen) size = alen;
   if (ARY_SHARED_P(a)) {
     return ary_subseq(mrb, a, 0, size);
@@ -1001,10 +1004,13 @@ static mrb_value
 mrb_ary_last(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
-  mrb_int size, alen = ARY_LEN(a);
+  mrb_int n, size, alen;
 
-  if (mrb_get_args(mrb, "|i", &size) == 0)
-    return (alen > 0)? ARY_PTR(a)[alen - 1]: mrb_nil_value();
+  n = mrb_get_args(mrb, "|i", &size);
+  alen = ARY_LEN(a);
+  if (n == 0) {
+    return (alen > 0) ? ARY_PTR(a)[alen - 1]: mrb_nil_value();
+  }
 
   if (size < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "negative array size");

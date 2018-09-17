@@ -175,7 +175,7 @@ static mrb_value
 mrb_ary_slice_bang(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
-  mrb_int i, j, k, len, alen = ARY_LEN(a);
+  mrb_int i, j, k, len, alen;
   mrb_value val;
   mrb_value *ptr;
   mrb_value ary;
@@ -188,7 +188,7 @@ mrb_ary_slice_bang(mrb_state *mrb, mrb_value self)
     mrb_get_args(mrb, "o|i", &index, &len);
     switch (mrb_type(index)) {
     case MRB_TT_RANGE:
-      if (mrb_range_beg_len(mrb, index, &i, &len, alen, TRUE) == 1) {
+      if (mrb_range_beg_len(mrb, index, &i, &len, ARY_LEN(a), TRUE) == 1) {
         goto delete_pos_len;
       }
       else {
@@ -205,6 +205,7 @@ mrb_ary_slice_bang(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "ii", &i, &len);
  delete_pos_len:
+  alen = ARY_LEN(a);
   if (i < 0) i += alen;
   if (i < 0 || alen < i) return mrb_nil_value();
   if (len < 0) return mrb_nil_value();
