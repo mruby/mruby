@@ -209,7 +209,7 @@ mrb_fd_cloexec(mrb_state *mrb, int fd)
 #endif
 }
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !TARGET_OS_IPHONE
 static int
 mrb_cloexec_pipe(mrb_state *mrb, int fildes[2])
 {
