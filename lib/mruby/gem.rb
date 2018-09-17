@@ -339,7 +339,7 @@ module MRuby
         default_gems = []
         each do |g|
           g.dependencies.each do |dep|
-            default_gems << default_gem_params(dep) unless gem_table.key? dep[:gem]
+            default_gems << default_gem_params(dep) unless gem_table.key?(dep[:gem]) || dep[:default][:weak]
           end
         end
 
@@ -351,12 +351,16 @@ module MRuby
           spec.setup
 
           spec.dependencies.each do |dep|
-            default_gems << default_gem_params(dep) unless gem_table.key? dep[:gem]
+            default_gems << default_gem_params(dep) unless gem_table.key?(dep[:gem]) || dep[:default][:weak]
           end
           gem_table[spec.name] = spec
         end
 
         each do |g|
+          g.dependencies.delete_if do |dep|
+            gem_table[dep[:gem]].nil? && dep[:default][:weak]
+          end
+
           g.dependencies.each do |dep|
             name = dep[:gem]
             req_versions = dep[:requirements]
