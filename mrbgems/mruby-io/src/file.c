@@ -115,7 +115,7 @@ mrb_file_s_unlink(mrb_state *mrb, mrb_value obj)
   mrb_get_args(mrb, "*", &argv, &argc);
   for (i = 0; i < argc; i++) {
     const char *utf8_path;
-    pathv = mrb_convert_type(mrb, argv[i], MRB_TT_STRING, "String", "to_str");
+    pathv = mrb_ensure_string_type(mrb, argv[i]);
     utf8_path = mrb_string_value_cstr(mrb, &pathv);
     path = mrb_locale_from_utf8(utf8_path, -1);
     if (UNLINK(path) < 0) {

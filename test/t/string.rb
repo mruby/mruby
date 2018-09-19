@@ -253,19 +253,6 @@ assert('String#chomp!', '15.2.10.5.10') do
   assert_equal 'abc', e
 end
 
-assert('String#chomp! uses the correct length') do
-  class A
-    def to_str
-      $s.replace("AA")
-      "A"
-    end
-  end
-
-  $s = "AAA"
-  $s.chomp!(A.new)
-  assert_equal $s, "A"
-end
-
 assert('String#chop', '15.2.10.5.11') do
   a = ''.chop
   b = 'abc'.chop

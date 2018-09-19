@@ -854,10 +854,6 @@ typedef const char *mrb_args_format;
 /**
  * Retrieve arguments from mrb_state.
  *
- * When applicable, implicit conversions (such as `to_str`, `to_ary`, `to_hash`) are
- * applied to received arguments.
- * Used inside a function of mrb_func_t type.
- *
  * @param mrb The current MRuby state.
  * @param format [mrb_args_format] is a list of format specifiers
  * @param ... The passing variadic arguments must be a pointer of retrieving type.
@@ -1187,6 +1183,7 @@ MRB_API void mrb_gc_unregister(mrb_state *mrb, mrb_value obj);
 
 MRB_API mrb_value mrb_to_int(mrb_state *mrb, mrb_value val);
 #define mrb_int(mrb, val) mrb_fixnum(mrb_to_int(mrb, val))
+MRB_API mrb_value mrb_to_str(mrb_state *mrb, mrb_value val);
 MRB_API void mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t);
 
 typedef enum call_type {

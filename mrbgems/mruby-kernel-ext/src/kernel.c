@@ -141,8 +141,7 @@ mrb_f_float(mrb_state *mrb, mrb_value self)
  *     String(arg)   -> string
  *
  *  Returns <i>arg</i> as an <code>String</code>.
- *
- *  First tries to call its <code>to_str</code> method, then its to_s method.
+ *  converted using <code>to_s</code> method.
  *
  *     String(self)        #=> "main"
  *     String(self.class)  #=> "Object"
@@ -154,10 +153,7 @@ mrb_f_string(mrb_state *mrb, mrb_value self)
   mrb_value arg, tmp;
 
   mrb_get_args(mrb, "o", &arg);
-  tmp = mrb_check_convert_type(mrb, arg, MRB_TT_STRING, "String", "to_str");
-  if (mrb_nil_p(tmp)) {
-    tmp = mrb_check_convert_type(mrb, arg, MRB_TT_STRING, "String", "to_s");
-  }
+  tmp = mrb_convert_type(mrb, arg, MRB_TT_STRING, "String", "to_s");
   return tmp;
 }
 

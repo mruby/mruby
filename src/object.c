@@ -580,6 +580,33 @@ mrb_Float(mrb_state *mrb, mrb_value val)
 #endif
 
 MRB_API mrb_value
+mrb_to_str(mrb_state *mrb, mrb_value val)
+{
+  if (!mrb_string_p(val)) {
+    mrb_value type = inspect_type(mrb, val);
+    mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S to String", type);
+  }
+  return val;
+}
+
+MRB_API mrb_value
+mrb_ensure_string_type(mrb_state *mrb, mrb_value str)
+{
+  if (!mrb_string_p(str)) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "%S cannot be converted to String",
+               inspect_type(mrb, str));
+  }
+  return str;
+}
+
+MRB_API mrb_value
+mrb_check_string_type(mrb_state *mrb, mrb_value str)
+{
+  if (!mrb_string_p(str)) return mrb_nil_value();
+  return str;
+}
+
+MRB_API mrb_value
 mrb_inspect(mrb_state *mrb, mrb_value obj)
 {
   return mrb_obj_as_string(mrb, mrb_funcall(mrb, obj, "inspect", 0));

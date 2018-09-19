@@ -956,15 +956,7 @@ str_eql(mrb_state *mrb, const mrb_value str1, const mrb_value str2)
 MRB_API mrb_bool
 mrb_str_equal(mrb_state *mrb, mrb_value str1, mrb_value str2)
 {
-  if (mrb_immediate_p(str2)) return FALSE;
-  if (!mrb_string_p(str2)) {
-    if (mrb_nil_p(str2)) return FALSE;
-    if (!mrb_respond_to(mrb, str2, mrb_intern_lit(mrb, "to_str"))) {
-      return FALSE;
-    }
-    str2 = mrb_funcall(mrb, str2, "to_str", 0);
-    return mrb_equal(mrb, str2, str1);
-  }
+  if (!mrb_string_p(str2)) return FALSE;
   return str_eql(mrb, str1, str2);
 }
 
@@ -992,14 +984,8 @@ mrb_str_equal_m(mrb_state *mrb, mrb_value str1)
 MRB_API mrb_value
 mrb_str_to_str(mrb_state *mrb, mrb_value str)
 {
-  mrb_value s;
-
   if (!mrb_string_p(str)) {
-    s = mrb_check_convert_type(mrb, str, MRB_TT_STRING, "String", "to_str");
-    if (mrb_nil_p(s)) {
-      s = mrb_convert_type(mrb, str, MRB_TT_STRING, "String", "to_s");
-    }
-    return s;
+    return mrb_convert_type(mrb, str, MRB_TT_STRING, "String", "to_s");
   }
   return str;
 }
@@ -1714,18 +1700,6 @@ mrb_ptr_to_str(mrb_state *mrb, void *p)
   return mrb_obj_value(p_str);
 }
 
-MRB_API mrb_value
-mrb_string_type(mrb_state *mrb, mrb_value str)
-{
-  return mrb_convert_type(mrb, str, MRB_TT_STRING, "String", "to_str");
-}
-
-MRB_API mrb_value
-mrb_check_string_type(mrb_state *mrb, mrb_value str)
-{
-  return mrb_check_convert_type(mrb, str, MRB_TT_STRING, "String", "to_str");
-}
-
 /* 15.2.10.5.30 */
 /*
  *  call-seq:
@@ -2379,7 +2353,6 @@ mrb_str_to_f(mrb_state *mrb, mrb_value self)
 /*
  *  call-seq:
  *     str.to_s     => str
- *     str.to_str   => str
  *
  *  Returns the receiver.
  */
@@ -2783,7 +2756,6 @@ mrb_init_string(mrb_state *mrb)
 #endif
   mrb_define_method(mrb, s, "to_i",            mrb_str_to_i,            MRB_ARGS_ANY());  /* 15.2.10.5.39 */
   mrb_define_method(mrb, s, "to_s",            mrb_str_to_s,            MRB_ARGS_NONE()); /* 15.2.10.5.40 */
-  mrb_define_method(mrb, s, "to_str",          mrb_str_to_s,            MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "to_sym",          mrb_str_intern,          MRB_ARGS_NONE()); /* 15.2.10.5.41 */
   mrb_define_method(mrb, s, "upcase",          mrb_str_upcase,          MRB_ARGS_NONE()); /* 15.2.10.5.42 */
   mrb_define_method(mrb, s, "upcase!",         mrb_str_upcase_bang,     MRB_ARGS_NONE()); /* 15.2.10.5.43 */

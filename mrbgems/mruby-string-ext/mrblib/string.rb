@@ -12,8 +12,8 @@ class String
   #     String.try_convert(/re/)      #=> nil
   #
   def self.try_convert(obj)
-    if obj.respond_to?(:to_str)
-      obj.to_str
+    if self === obj
+      obj
     else
       nil
     end
@@ -142,7 +142,7 @@ class String
   #    "abcdef".casecmp("ABCDEF")    #=> 0
   #
   def casecmp(str)
-    self.downcase <=> str.to_str.downcase
+    self.downcase <=> str.__to_str.downcase
   rescue NoMethodError
     nil
   end

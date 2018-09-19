@@ -163,7 +163,7 @@ mrb_str_concat_m(mrb_state *mrb, mrb_value self)
   if (mrb_fixnum_p(str))
     str = mrb_fixnum_chr(mrb, str);
   else
-    str = mrb_string_type(mrb, str);
+    str = mrb_ensure_string_type(mrb, str);
   mrb_str_concat(mrb, self, str);
   return self;
 }
@@ -191,7 +191,7 @@ mrb_str_start_with(mrb_state *mrb, mrb_value self)
   for (i = 0; i < argc; i++) {
     size_t len_l, len_r;
     int ai = mrb_gc_arena_save(mrb);
-    sub = mrb_string_type(mrb, argv[i]);
+    sub = mrb_ensure_string_type(mrb, argv[i]);
     mrb_gc_arena_restore(mrb, ai);
     len_l = RSTRING_LEN(self);
     len_r = RSTRING_LEN(sub);
@@ -220,7 +220,7 @@ mrb_str_end_with(mrb_state *mrb, mrb_value self)
   for (i = 0; i < argc; i++) {
     size_t len_l, len_r;
     int ai = mrb_gc_arena_save(mrb);
-    sub = mrb_string_type(mrb, argv[i]);
+    sub = mrb_ensure_string_type(mrb, argv[i]);
     mrb_gc_arena_restore(mrb, ai);
     len_l = RSTRING_LEN(self);
     len_r = RSTRING_LEN(sub);
