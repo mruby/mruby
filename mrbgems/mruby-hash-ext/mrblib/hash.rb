@@ -62,25 +62,6 @@ class Hash
 
   ##
   # call-seq:
-  #     Hash.try_convert(obj) -> hash or nil
-  #
-  # Try to convert <i>obj</i> into a hash, using to_hash method.
-  # Returns converted hash or nil if <i>obj</i> cannot be converted
-  # for any reason.
-  #
-  #     Hash.try_convert({1=>2})   # => {1=>2}
-  #     Hash.try_convert("1=>2")   # => nil
-  #
-  def self.try_convert(obj)
-    if obj.respond_to?(:to_hash)
-      obj.to_hash
-    else
-      nil
-    end
-  end
-
-  ##
-  # call-seq:
   #     hsh.merge!(other_hash)                                 -> hsh
   #     hsh.merge!(other_hash){|key, oldval, newval| block}    -> hsh
   #

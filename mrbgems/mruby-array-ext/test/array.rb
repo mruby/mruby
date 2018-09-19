@@ -1,13 +1,6 @@
 ##
 # Array(Ext) Test
 
-assert("Array.try_convert") do
-  assert_nil Array.try_convert(0)
-  assert_nil Array.try_convert(nil)
-  assert_equal [], Array.try_convert([])
-  assert_equal [1,2,3], Array.try_convert([1,2,3])
-end
-
 assert("Array#assoc") do
   s1 = [ "colors", "red", "blue", "green" ]
   s2 = [ "letters", "a", "b", "c" ]
