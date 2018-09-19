@@ -830,6 +830,7 @@ mrb_obj_ceqq(mrb_state *mrb, mrb_value self)
 }
 
 mrb_value mrb_obj_equal_m(mrb_state *mrb, mrb_value);
+
 void
 mrb_init_kernel(mrb_state *mrb)
 {
@@ -871,6 +872,7 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "respond_to?",                obj_respond_to,                  MRB_ARGS_ANY());     /* 15.3.1.3.43 */
   mrb_define_method(mrb, krn, "to_s",                       mrb_any_to_s,                    MRB_ARGS_NONE());    /* 15.3.1.3.46 */
   mrb_define_method(mrb, krn, "__case_eqq",                 mrb_obj_ceqq,                    MRB_ARGS_REQ(1));    /* internal */
+  mrb_define_method(mrb, krn, "__to_int",                   mrb_to_int,                      MRB_ARGS_NONE()); /* internal */
 
   mrb_define_method(mrb, krn, "class_defined?",             mrb_krn_class_defined,           MRB_ARGS_REQ(1));
 

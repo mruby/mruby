@@ -1124,14 +1124,16 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
       o = mrb_ary_ref(mrb, ary, aidx);
       if (type == PACK_TYPE_INTEGER) {
         o = mrb_to_int(mrb, o);
+      }
 #ifndef MRB_WITHOUT_FLOAT
-      } else if (type == PACK_TYPE_FLOAT) {
+      else if (type == PACK_TYPE_FLOAT) {
         if (!mrb_float_p(o)) {
           mrb_float f = mrb_to_flo(mrb, o);
           o = mrb_float_value(mrb, f);
         }
+      }
 #endif
-      } else if (type == PACK_TYPE_STRING) {
+      else if (type == PACK_TYPE_STRING) {
         if (!mrb_string_p(o)) {
           mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S into String", mrb_class_path(mrb, mrb_obj_class(mrb, o)));
         }

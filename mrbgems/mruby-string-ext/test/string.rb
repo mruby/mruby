@@ -31,18 +31,6 @@ assert('String#setbyte') do
   assert_equal("Hello", str1)
 end
 
-assert("String#setbyte raises IndexError if arg conversion resizes String") do
-  $s = "01234\n"
-  class Tmp
-      def to_i
-          $s.chomp! ''
-          95
-      end
-  end
-  tmp = Tmp.new
-  assert_raise(IndexError) { $s.setbyte(5, tmp) }
-end
-
 assert('String#byteslice') do
   str1 = "hello"
   assert_equal("e", str1.byteslice(1))

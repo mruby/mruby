@@ -93,9 +93,8 @@ mrb_f_method(mrb_state *mrb, mrb_value self)
  *  (<code>0</code>, <code>0b</code>, and <code>0x</code>) are honored.
  *  In any case, strings should be strictly conformed to numeric
  *  representation. This behavior is different from that of
- *  <code>String#to_i</code>.  Non string values will be converted using
- *  <code>to_int</code>, and <code>to_i</code>. Passing <code>nil</code>
- *  raises a TypeError.
+ *  <code>String#to_i</code>.  Non string values will be treated as integers.
+ *  Passing <code>nil</code> raises a TypeError.
  *
  *     Integer(123.999)    #=> 123
  *     Integer("0x1a")     #=> 26

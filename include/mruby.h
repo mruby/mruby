@@ -716,7 +716,6 @@ MRB_API mrb_value mrb_notimplement_m(mrb_state*, mrb_value);
  * @return [mrb_value] The newly duplicated object.
  */
 MRB_API mrb_value mrb_obj_dup(mrb_state *mrb, mrb_value obj);
-MRB_API mrb_value mrb_check_to_integer(mrb_state *mrb, mrb_value val, const char *method);
 
 /**
  * Returns true if obj responds to the given method. If the method was defined for that

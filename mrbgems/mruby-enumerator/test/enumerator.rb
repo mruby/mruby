@@ -54,12 +54,6 @@ assert 'Enumerator#with_index' do
   assert_equal [[[1, 10], 20], [[2, 11], 21], [[3, 12], 22]], a
 end
 
-assert 'Enumerator#with_index nonnum offset' do
-  s = Object.new
-  def s.to_int; 1 end
-  assert_equal([[1,1],[2,2],[3,3]], @obj.to_enum(:foo, 1, 2, 3).with_index(s).to_a)
-end
-
 assert 'Enumerator#with_index string offset' do
   assert_raise(TypeError){ @obj.to_enum(:foo, 1, 2, 3).with_index('1').to_a }
 end
