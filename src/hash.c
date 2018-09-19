@@ -738,18 +738,6 @@ mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val)
   return;
 }
 
-MRB_API mrb_value
-mrb_ensure_hash_type(mrb_state *mrb, mrb_value hash)
-{
-  return mrb_convert_type(mrb, hash, MRB_TT_HASH, "Hash", "to_hash");
-}
-
-MRB_API mrb_value
-mrb_check_hash_type(mrb_state *mrb, mrb_value hash)
-{
-  return mrb_check_convert_type(mrb, hash, MRB_TT_HASH, "Hash", "to_hash");
-}
-
 static void
 mrb_hash_modify(mrb_state *mrb, mrb_value hash)
 {
@@ -1189,20 +1177,6 @@ mrb_hash_empty_m(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(mrb_hash_empty_p(mrb, self));
 }
 
-/* 15.2.13.4.29 (x)*/
-/*
- * call-seq:
- *    hsh.to_hash   => hsh
- *
- * Returns +self+.
- */
-
-static mrb_value
-mrb_hash_to_hash(mrb_state *mrb, mrb_value hash)
-{
-  return hash;
-}
-
 static int
 hash_keys_i(mrb_state *mrb, mrb_value key, mrb_value val, void *p)
 {
@@ -1439,6 +1413,4 @@ mrb_init_hash(mrb_state *mrb)
   mrb_define_method(mrb, h, "value?",          mrb_hash_has_value,   MRB_ARGS_REQ(1)); /* 15.2.13.4.27 */
   mrb_define_method(mrb, h, "values",          mrb_hash_values,      MRB_ARGS_NONE()); /* 15.2.13.4.28 */
   mrb_define_method(mrb, h, "rehash",          mrb_hash_rehash,      MRB_ARGS_NONE());
-
-  mrb_define_method(mrb, h, "to_hash",         mrb_hash_to_hash,     MRB_ARGS_NONE()); /* 15.2.13.4.29 (x)*/
 }

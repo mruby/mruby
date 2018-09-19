@@ -12,9 +12,7 @@ class Hash
   # ISO 15.2.13.4.1
   def ==(hash)
     return true if self.equal?(hash)
-    begin
-      hash = hash.to_hash
-    rescue NoMethodError
+    unless Hash === hash
       return false
     end
     return false if self.size != hash.size
@@ -32,9 +30,7 @@ class Hash
   # ISO 15.2.13.4.32 (x)
   def eql?(hash)
     return true if self.equal?(hash)
-    begin
-      hash = hash.to_hash
-    rescue NoMethodError
+    unless Hash === hash
       return false
     end
     return false if self.size != hash.size
@@ -153,9 +149,8 @@ class Hash
   #
   # ISO 15.2.13.4.23
   def replace(hash)
-    raise TypeError, "can't convert argument into Hash" unless hash.respond_to?(:to_hash)
+    raise TypeError, "Hash required (#{hash.class} given)" unless Hash === hash
     self.clear
-    hash = hash.to_hash
     hash.each_key{|k|
       self[k] = hash[k]
     }
@@ -178,8 +173,7 @@ class Hash
   #
   # ISO 15.2.13.4.22
   def merge(other, &block)
-    raise TypeError, "can't convert argument into Hash" unless other.respond_to?(:to_hash)
-    other = other.to_hash
+    raise TypeError, "Hash required (#{other.class} given)" unless Hash === other
     h = self.dup
     if block
       other.each_key{|k|

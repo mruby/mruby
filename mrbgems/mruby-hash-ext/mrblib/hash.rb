@@ -27,9 +27,9 @@ class Hash
     length = object.length
     if length == 1
       o = object[0]
-      if o.respond_to?(:to_hash)
+      if Hash === o
         h = self.new
-        object[0].to_hash.each { |k, v| h[k] = v }
+        o.each { |k, v| h[k] = v }
         return h
       elsif o.respond_to?(:to_a)
         h = self.new
@@ -82,7 +82,7 @@ class Hash
   #
 
   def merge!(other, &block)
-    raise TypeError, "can't convert argument into Hash" unless other.respond_to?(:to_hash)
+    raise TypeError, "Hash required (#{other.class} given)" unless Hash === other
     if block
       other.each_key{|k|
         self[k] = (self.has_key?(k))? block.call(k, self[k], other[k]): other[k]
@@ -310,11 +310,7 @@ class Hash
   #     h1 < h1    #=> false
   #
   def <(hash)
-    begin
-      hash = hash.to_hash
-    rescue NoMethodError
-      raise TypeError, "can't convert #{hash.class} to Hash"
-    end
+    raise TypeError, "can't convert #{hash.class} to Hash" unless Hash === hash
     size < hash.size and all? {|key, val|
       hash.key?(key) and hash[key] == val
     }
@@ -334,11 +330,7 @@ class Hash
   #     h1 <= h1   #=> true
   #
   def <=(hash)
-    begin
-      hash = hash.to_hash
-    rescue NoMethodError
-      raise TypeError, "can't convert #{hash.class} to Hash"
-    end
+    raise TypeError, "can't convert #{hash.class} to Hash" unless Hash === hash
     size <= hash.size and all? {|key, val|
       hash.key?(key) and hash[key] == val
     }
@@ -358,11 +350,7 @@ class Hash
   #     h1 > h1    #=> false
   #
   def >(hash)
-    begin
-      hash = hash.to_hash
-    rescue NoMethodError
-      raise TypeError, "can't convert #{hash.class} to Hash"
-    end
+    raise TypeError, "can't convert #{hash.class} to Hash" unless Hash === hash
     size > hash.size and hash.all? {|key, val|
       key?(key) and self[key] == val
     }
@@ -382,11 +370,7 @@ class Hash
   #     h1 >= h1   #=> true
   #
   def >=(hash)
-    begin
-      hash = hash.to_hash
-    rescue NoMethodError
-      raise TypeError, "can't convert #{hash.class} to Hash"
-    end
+    raise TypeError, "can't convert #{hash.class} to Hash" unless Hash === hash
     size >= hash.size and hash.all? {|key, val|
       key?(key) and self[key] == val
     }

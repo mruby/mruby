@@ -184,9 +184,9 @@ mrb_f_array(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     Hash(arg)    -> hash
  *
- *  Converts <i>arg</i> to a <code>Hash</code> by calling
- *  <i>arg</i><code>.to_hash</code>. Returns an empty <code>Hash</code> when
- *  <i>arg</i> is <tt>nil</tt> or <tt>[]</tt>.
+ *  Returns a <code>Hash</code> if <i>arg</i> is a <code>Hash</code>.
+ *  Returns an empty <code>Hash</code> when <i>arg</i> is <tt>nil</tt>
+ *  or <tt>[]</tt>.
  *
  *      Hash([])          #=> {}
  *      Hash(nil)         #=> {}
@@ -197,21 +197,13 @@ mrb_f_array(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_f_hash(mrb_state *mrb, mrb_value self)
 {
-  mrb_value arg, tmp;
+  mrb_value arg;
 
   mrb_get_args(mrb, "o", &arg);
-  if (mrb_nil_p(arg)) {
+  if (mrb_nil_p(arg) || (mrb_array_p(arg) && RARRAY_LEN(arg) == 0)) {
     return mrb_hash_new(mrb);
   }
-  tmp = mrb_check_convert_type(mrb, arg, MRB_TT_HASH, "Hash", "to_hash");
-  if (mrb_nil_p(tmp)) {
-    if (mrb_array_p(arg) && RARRAY_LEN(arg) == 0) {
-      return mrb_hash_new(mrb);
-    }
-    mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S into Hash",
-      mrb_str_new_cstr(mrb, mrb_obj_classname(mrb, arg)));
-  }
-  return tmp;
+  return mrb_ensure_hash_type(mrb, arg);
 }
 
 /*

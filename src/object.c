@@ -624,6 +624,23 @@ mrb_check_array_type(mrb_state *mrb, mrb_value ary)
 }
 
 MRB_API mrb_value
+mrb_ensure_hash_type(mrb_state *mrb, mrb_value hash)
+{
+  if (!mrb_hash_p(hash)) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "%S cannot be converted to Hash",
+               inspect_type(mrb, hash));
+  }
+  return hash;
+}
+
+MRB_API mrb_value
+mrb_check_hash_type(mrb_state *mrb, mrb_value hash)
+{
+  if (!mrb_hash_p(hash)) return mrb_nil_value();
+  return hash;
+}
+
+MRB_API mrb_value
 mrb_inspect(mrb_state *mrb, mrb_value obj)
 {
   return mrb_obj_as_string(mrb, mrb_funcall(mrb, obj, "inspect", 0));
