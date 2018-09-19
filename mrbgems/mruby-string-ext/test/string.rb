@@ -4,13 +4,6 @@
 
 UTF8STRING = ("\343\201\202".size == 1)
 
-assert('String.try_convert') do
-  assert_nil String.try_convert(nil)
-  assert_nil String.try_convert(:foo)
-  assert_equal "", String.try_convert("")
-  assert_equal "1,2,3", String.try_convert("1,2,3")
-end
-
 assert('String#getbyte') do
   str1 = "hello"
   bytes1 = [104, 101, 108, 108, 111]
