@@ -520,7 +520,8 @@ to_str(mrb_state *mrb, mrb_value val)
 static mrb_value
 to_ary(mrb_state *mrb, mrb_value val)
 {
-  return check_type(mrb, val, MRB_TT_ARRAY, "Array", "to_ary");
+  CHECK_TYPE(mrb, val, MRB_TT_ARRAY, "Array");
+  return val;
 }
 
 static mrb_value

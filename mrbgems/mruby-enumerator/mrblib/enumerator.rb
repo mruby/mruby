@@ -624,9 +624,7 @@ module Enumerable
   # use Enumerator to use infinite sequence
   def zip(*args, &block)
     args = args.map do |a|
-      if a.respond_to?(:to_ary)
-        a.to_ary.to_enum(:each)
-      elsif a.respond_to?(:each)
+      if a.respond_to?(:each)
         a.to_enum(:each)
       else
         raise TypeError, "wrong argument type #{a.class} (must respond to :each)"

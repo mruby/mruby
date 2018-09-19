@@ -607,6 +607,23 @@ mrb_check_string_type(mrb_state *mrb, mrb_value str)
 }
 
 MRB_API mrb_value
+mrb_ensure_array_type(mrb_state *mrb, mrb_value ary)
+{
+  if (!mrb_array_p(ary)) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "%S cannot be converted to Array",
+               inspect_type(mrb, ary));
+  }
+  return ary;
+}
+
+MRB_API mrb_value
+mrb_check_array_type(mrb_state *mrb, mrb_value ary)
+{
+  if (!mrb_array_p(ary)) return mrb_nil_value();
+  return ary;
+}
+
+MRB_API mrb_value
 mrb_inspect(mrb_state *mrb, mrb_value obj)
 {
   return mrb_obj_as_string(mrb, mrb_funcall(mrb, obj, "inspect", 0));

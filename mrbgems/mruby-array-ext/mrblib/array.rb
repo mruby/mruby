@@ -773,16 +773,6 @@ class Array
   end
 
   ##
-  #  call-seq:
-  #     ary.to_ary -> ary
-  #
-  #  Returns +self+.
-  #
-  def to_ary
-    self
-  end
-
-  ##
   # call-seq:
   #   ary.dig(idx, ...)                 -> object
   #

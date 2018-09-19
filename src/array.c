@@ -1058,7 +1058,7 @@ mrb_ary_rindex_m(mrb_state *mrb, mrb_value self)
 MRB_API mrb_value
 mrb_ary_splat(mrb_state *mrb, mrb_value v)
 {
-  mrb_value a, recv_class;
+  mrb_value a;
 
   if (mrb_array_p(v)) {
     return v;
@@ -1069,22 +1069,11 @@ mrb_ary_splat(mrb_state *mrb, mrb_value v)
   }
 
   a = mrb_funcall(mrb, v, "to_a", 0);
-  if (mrb_array_p(a)) {
-    return a;
-  }
-  else if (mrb_nil_p(a)) {
+  if (mrb_nil_p(a)) {
     return mrb_ary_new_from_values(mrb, 1, &v);
   }
-  else {
-    recv_class = mrb_obj_value(mrb_obj_class(mrb, v));
-    mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S to Array (%S#to_a gives %S)",
-      recv_class,
-      recv_class,
-      mrb_obj_value(mrb_obj_class(mrb, a))
-    );
-    /* not reached */
-    return mrb_undef_value();
-  }
+  mrb_ensure_array_type(mrb, a);
+  return a;
 }
 
 static mrb_value
@@ -1120,12 +1109,6 @@ mrb_ary_empty_p(mrb_state *mrb, mrb_value self)
   struct RArray *a = mrb_ary_ptr(self);
 
   return mrb_bool_value(ARY_LEN(a) == 0);
-}
-
-MRB_API mrb_value
-mrb_check_array_type(mrb_state *mrb, mrb_value ary)
-{
-  return mrb_check_convert_type(mrb, ary, MRB_TT_ARRAY, "Array", "to_ary");
 }
 
 MRB_API mrb_value
@@ -1181,7 +1164,7 @@ join_ary(mrb_state *mrb, mrb_value ary, mrb_value sep, mrb_value list)
           val = tmp;
           goto str_join;
         }
-        tmp = mrb_check_convert_type(mrb, val, MRB_TT_ARRAY, "Array", "to_ary");
+        tmp = mrb_check_array_type(mrb, val);
         if (!mrb_nil_p(tmp)) {
           val = tmp;
           goto ary_join;
