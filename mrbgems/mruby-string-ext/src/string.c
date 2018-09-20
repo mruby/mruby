@@ -262,12 +262,11 @@ tr_pattern_free(mrb_state *mrb, struct tr_pattern *pat)
 }
 
 static struct tr_pattern*
-tr_parse_pattern(mrb_state *mrb, const mrb_value v_pattern, mrb_bool flag_reverse_enable)
+tr_parse_pattern(mrb_state *mrb, struct tr_pattern *ret, const mrb_value v_pattern, mrb_bool flag_reverse_enable)
 {
   const char *pattern = RSTRING_PTR(v_pattern);
   int pattern_length = RSTRING_LEN(v_pattern);
   mrb_bool flag_reverse = FALSE;
-  struct tr_pattern *ret = NULL;
   struct tr_pattern *pat1;
   int i = 0;
 
@@ -391,8 +390,8 @@ str_tr(mrb_state *mrb, mrb_value str, mrb_value p1, mrb_value p2, mrb_bool squee
   mrb_int lastch = -1;
 
   mrb_str_modify(mrb, mrb_str_ptr(str));
-  pat = tr_parse_pattern(mrb, p1, TRUE);
-  rep = tr_parse_pattern(mrb, p2, FALSE);
+  pat = tr_parse_pattern(mrb, NULL, p1, TRUE);
+  rep = tr_parse_pattern(mrb, NULL, p2, FALSE);
   s = RSTRING_PTR(str);
   len = RSTRING_LEN(str);
 
@@ -534,6 +533,100 @@ mrb_str_tr_s_bang(mrb_state *mrb, mrb_value str)
 
   mrb_get_args(mrb, "SS", &p1, &p2);
   if (str_tr(mrb, str, p1, p2, TRUE)) {
+    return str;
+  }
+  return mrb_nil_value();
+}
+
+static mrb_bool
+str_squeeze(mrb_state *mrb, mrb_value str, mrb_value v_pat)
+{
+  struct tr_pattern *pat = NULL;
+  mrb_int i;
+  char *s;
+  mrb_int len;
+  mrb_bool flag_changed = FALSE;
+  mrb_int lastch = -1;
+
+  mrb_str_modify(mrb, mrb_str_ptr(str));
+  if (!mrb_nil_p(v_pat)) {
+    pat = tr_parse_pattern(mrb, pat, v_pat, TRUE);
+  }
+  s = RSTRING_PTR(str);
+  len = RSTRING_LEN(str);
+
+  if (pat) {
+    for (i = 0; i < len; i++) {
+      mrb_int n = tr_find_character(pat, s[i]);
+
+      if (n >= 0 && s[i] == lastch) {
+        flag_changed = TRUE;
+        memmove(s + i, s + i + 1, len - i);
+        len--;
+        i--;
+      }
+      lastch = s[i];
+    }
+  }
+  else {
+    for (i = 0; i < len; i++) {
+      if (s[i] == lastch) {
+        flag_changed = TRUE;
+        memmove(s + i, s + i + 1, len - i);
+        len--;
+        i--;
+      }
+      lastch = s[i];
+    }
+  }
+  tr_pattern_free(mrb, pat);
+
+  RSTR_SET_LEN(RSTRING(str), len);
+  RSTRING_PTR(str)[len] = 0;
+
+  return flag_changed;
+}
+
+/*
+ * call-seq:
+ *   str.squeeze([other_str])    -> new_str
+ *
+ * Builds a set of characters from the other_str
+ * parameter(s) using the procedure described for String#count. Returns a
+ * new string where runs of the same character that occur in this set are
+ * replaced by a single character. If no arguments are given, all runs of
+ * identical characters are replaced by a single character.
+ *
+ *  "yellow moon".squeeze                  #=> "yelow mon"
+ *  "  now   is  the".squeeze(" ")         #=> " now is the"
+ *  "putters shoot balls".squeeze("m-z")   #=> "puters shot balls"
+ */
+static mrb_value
+mrb_str_squeeze(mrb_state *mrb, mrb_value str)
+{
+  mrb_value pat = mrb_nil_value();
+  mrb_value dup;
+
+  mrb_get_args(mrb, "|S", &pat);
+  dup = mrb_str_dup(mrb, str);
+  str_squeeze(mrb, dup, pat);
+  return dup;
+}
+
+/*
+ * call-seq:
+ *   str.squeeze!([other_str])   -> str or nil
+ *
+ * Squeezes str in place, returning either str, or nil if no
+ * changes were made.
+ */
+static mrb_value
+mrb_str_squeeze_bang(mrb_state *mrb, mrb_value str)
+{
+  mrb_value pat = mrb_nil_value();
+
+  mrb_get_args(mrb, "|S", &pat);
+  if (str_squeeze(mrb, str, pat)) {
     return str;
   }
   return mrb_nil_value();
@@ -928,6 +1021,8 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, s, "tr!",             mrb_str_tr_bang,         MRB_ARGS_REQ(2));
   mrb_define_method(mrb, s, "tr_s",            mrb_str_tr_s,            MRB_ARGS_REQ(2));
   mrb_define_method(mrb, s, "tr_s!",           mrb_str_tr_s_bang,       MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, s, "squeeze",         mrb_str_squeeze,         MRB_ARGS_OPT(1));
+  mrb_define_method(mrb, s, "squeeze!",        mrb_str_squeeze_bang,    MRB_ARGS_OPT(1));
   mrb_define_method(mrb, s, "start_with?",     mrb_str_start_with,      MRB_ARGS_REST());
   mrb_define_method(mrb, s, "end_with?",       mrb_str_end_with,        MRB_ARGS_REST());
   mrb_define_method(mrb, s, "hex",             mrb_str_hex,             MRB_ARGS_NONE());

@@ -173,6 +173,18 @@ assert('String#tr_s!') do
   assert_nil s.tr_s!('l', 'r')
 end
 
+assert('String#squeeze') do
+  assert_equal "yelow mon", "yellow moon".squeeze
+  assert_equal " now is the", "  now   is  the".squeeze(" ")
+  assert_equal "puters shot balls", "putters shoot balls".squeeze("m-z")
+end
+
+assert('String#squeeze!') do
+  s = "  now   is  the"
+  assert_equal " now is the", s.squeeze!(" ")
+  assert_equal " now is the", s
+end
+
 assert('String#start_with?') do
   assert_true "hello".start_with?("heaven", "hell")
   assert_true !"hello".start_with?("heaven", "paradise")
