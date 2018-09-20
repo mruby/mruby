@@ -2056,6 +2056,7 @@ RETRY_TRY_BLOCK:
             struct mrb_context *c;
 
             if (!mrb->c->prev) { /* toplevel return */
+              regs[irep->nlocals] = v;
               goto L_STOP;
             }
             if (mrb->c->prev->ci == mrb->c->prev->cibase) {
