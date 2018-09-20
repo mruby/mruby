@@ -364,7 +364,7 @@ mrb_obj_iv_set(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
 }
 
 static inline mrb_bool
-is_namespace(enum mrb_vtype tt)
+namespace_p(enum mrb_vtype tt)
 {
   return tt == MRB_TT_CLASS || tt == MRB_TT_MODULE ? TRUE : FALSE;
 }
@@ -372,7 +372,7 @@ is_namespace(enum mrb_vtype tt)
 static inline void
 assign_class_name(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
 {
-  if (is_namespace(obj->tt) && is_namespace(mrb_type(v))) {
+  if (namespace_p(obj->tt) && namespace_p(mrb_type(v))) {
     struct RObject *c = mrb_obj_ptr(v);
     if (obj != c && ISUPPER(mrb_sym2name(mrb, sym)[0])) {
       mrb_sym id_classname = mrb_intern_lit(mrb, "__classname__");
