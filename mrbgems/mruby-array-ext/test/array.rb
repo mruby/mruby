@@ -75,6 +75,14 @@ assert("Array#|") do
   assert_equal [1, 2, 3, 1], a
 end
 
+assert("Array#union") do
+  a = [1, 2, 3, 1]
+  b = [1, 4]
+  c = [1, 5]
+
+  assert_equal [1, 2, 3, 4, 5], a.union(b,c)
+end
+
 assert("Array#&") do
   a = [1, 2, 3, 1]
   b = [1, 4]
