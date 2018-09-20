@@ -41,19 +41,22 @@ class Array
   #    c.uniq! { |s| s.first } # => [["student", "sam"], ["teacher", "matz"]]
   #
   def uniq!(&block)
-    ary = self.dup
-    result = []
     if block
       hash = {}
-      while ary.size > 0
-        val = ary.shift
+      self.each do |val|
         key = block.call(val)
-        hash[key] = val unless hash.has_key?(key)
+        hash[key] = val unless hash.key?(key)
       end
-      hash.each_value do |value|
-        result << value
+      result = hash.values
+    elsif self.size > 20
+      hash = {}
+      self.each do |val|
+        hash[val] = val
       end
+      result = hash.values
     else
+      ary = self.dup
+      result = []
       while ary.size > 0
         result << ary.shift
         ary.delete(result.last)
