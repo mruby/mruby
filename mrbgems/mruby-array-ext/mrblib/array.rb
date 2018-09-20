@@ -932,4 +932,29 @@ class Array
       self.map { |row| row[column_index] }
     end
   end
+
+  ##
+  #  call-seq:
+  #    ary.to_h                ->   Hash
+  #    ary.to_h{|item| ... }   ->   Hash
+  #
+  # Returns the result of interpreting <i>aray</i> as an array of
+  # <tt>[key, value]</tt> pairs. If a block is given, it should
+  # return <tt>[key, value]</tt> pairs to construct a hash.
+  #
+  #     [[:foo, :bar], [1, 2]].to_h
+  #       # => {:foo => :bar, 1 => 2}
+  #     [1, 2].to_h{|x| [x, x*2]}
+  #       # => {1 => 2, 2 => 4}
+  #
+  def to_h(&blk)
+    h = {}
+    self.each do |v|
+      v = blk.call(v) if blk
+      raise TypeError, "wrong element type #{v.class}" unless Array === v
+      raise ArgumentError, "wrong array length (expected 2, was #{v.length})" unless v.length == 2
+      h[v[0]] = v[1]
+    end
+    h
+  end
 end
