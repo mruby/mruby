@@ -380,7 +380,7 @@ tr_get_character(const struct tr_pattern *pat, mrb_int n_th)
 }
 
 static mrb_bool
-str_tr(mrb_state *mrb, mrb_value str, mrb_value p1, mrb_value p2)
+str_tr(mrb_state *mrb, mrb_value str, mrb_value p1, mrb_value p2, mrb_bool squeeze)
 {
   struct tr_pattern *pat;
   struct tr_pattern *rep;
@@ -388,6 +388,7 @@ str_tr(mrb_state *mrb, mrb_value str, mrb_value p1, mrb_value p2)
   mrb_int len;
   mrb_int i;
   mrb_bool flag_changed = FALSE;
+  mrb_int lastch = -1;
 
   mrb_str_modify(mrb, mrb_str_ptr(str));
   pat = tr_parse_pattern(mrb, p1, TRUE);
@@ -401,6 +402,7 @@ str_tr(mrb_state *mrb, mrb_value str, mrb_value p1, mrb_value p2)
     if (n >= 0) {
       flag_changed = TRUE;
       if (rep == NULL) {
+      compact:
 	memmove(s + i, s + i + 1, len - i);
 	len--;
 	i--;
@@ -408,11 +410,12 @@ str_tr(mrb_state *mrb, mrb_value str, mrb_value p1, mrb_value p2)
       else {
         mrb_int c = tr_get_character(rep, n);
 
+        if (squeeze && c == lastch) goto compact;
         if (c < 0 || c > 0x80) {
           mrb_raisef(mrb, E_ARGUMENT_ERROR, "character (%S) out of range",
                      mrb_fixnum_value((mrb_int)c));
         }
-	s[i] = c;
+	lastch = s[i] = c;
       }
     }
   }
@@ -471,7 +474,7 @@ mrb_str_tr(mrb_state *mrb, mrb_value str)
 
   mrb_get_args(mrb, "SS", &p1, &p2);
   dup = mrb_str_dup(mrb, str);
-  str_tr(mrb, dup, p1, p2);
+  str_tr(mrb, dup, p1, p2, FALSE);
   return dup;
 }
 
@@ -488,7 +491,49 @@ mrb_str_tr_bang(mrb_state *mrb, mrb_value str)
   mrb_value p1, p2;
 
   mrb_get_args(mrb, "SS", &p1, &p2);
-  if (str_tr(mrb, str, p1, p2)) {
+  if (str_tr(mrb, str, p1, p2, FALSE)) {
+    return str;
+  }
+  return mrb_nil_value();
+}
+
+/*
+ * call-seq:
+ *   str.tr_s(from_str, to_str)   -> new_str
+ *
+ * Processes a copy of str as described under String#tr, then removes
+ * duplicate characters in regions that were affected by the translation.
+ *
+ *  "hello".tr_s('l', 'r')     #=> "hero"
+ *  "hello".tr_s('el', '*')    #=> "h*o"
+ *  "hello".tr_s('el', 'hx')   #=> "hhxo"
+ */
+static mrb_value
+mrb_str_tr_s(mrb_state *mrb, mrb_value str)
+{
+  mrb_value dup;
+  mrb_value p1, p2;
+
+  mrb_get_args(mrb, "SS", &p1, &p2);
+  dup = mrb_str_dup(mrb, str);
+  str_tr(mrb, dup, p1, p2, TRUE);
+  return dup;
+}
+
+/*
+ * call-seq:
+ *   str.tr_s!(from_str, to_str)   -> str or nil
+ *
+ * Performs String#tr_s processing on str in place, returning
+ * str, or nil if no changes were made.
+ */
+static mrb_value
+mrb_str_tr_s_bang(mrb_state *mrb, mrb_value str)
+{
+  mrb_value p1, p2;
+
+  mrb_get_args(mrb, "SS", &p1, &p2);
+  if (str_tr(mrb, str, p1, p2, TRUE)) {
     return str;
   }
   return mrb_nil_value();
@@ -881,6 +926,8 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, s, "<<",              mrb_str_concat_m,        MRB_ARGS_REQ(1));
   mrb_define_method(mrb, s, "tr",              mrb_str_tr,              MRB_ARGS_REQ(2));
   mrb_define_method(mrb, s, "tr!",             mrb_str_tr_bang,         MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, s, "tr_s",            mrb_str_tr_s,            MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, s, "tr_s!",           mrb_str_tr_s_bang,       MRB_ARGS_REQ(2));
   mrb_define_method(mrb, s, "start_with?",     mrb_str_start_with,      MRB_ARGS_REST());
   mrb_define_method(mrb, s, "end_with?",       mrb_str_end_with,        MRB_ARGS_REST());
   mrb_define_method(mrb, s, "hex",             mrb_str_hex,             MRB_ARGS_NONE());

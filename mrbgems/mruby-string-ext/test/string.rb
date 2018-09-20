@@ -160,6 +160,19 @@ assert('String#tr!') do
   assert_equal "ab12222hijklmnopqR", s
 end
 
+assert('String#tr_s') do  
+  assert_equal "hero", "hello".tr_s('l', 'r')
+  assert_equal "h*o", "hello".tr_s('el', '*')
+  assert_equal "hhxo", "hello".tr_s('el', 'hx')
+end
+
+assert('String#tr_s!') do
+  s = "hello"
+  assert_equal "hero", s.tr_s!('l', 'r')
+  assert_equal "hero", s
+  assert_nil s.tr_s!('l', 'r')
+end
+
 assert('String#start_with?') do
   assert_true "hello".start_with?("heaven", "hell")
   assert_true !"hello".start_with?("heaven", "paradise")
