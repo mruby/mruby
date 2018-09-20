@@ -632,6 +632,39 @@ mrb_str_squeeze_bang(mrb_state *mrb, mrb_value str)
   return mrb_nil_value();
 }
 
+/*
+ * call_seq:
+ *   str.count([other_str])   -> integer
+ *
+ * Each other_str parameter defines a set of characters to count.  The
+ * intersection of these sets defines the characters to count in str.  Any
+ * other_str that starts with a caret ^ is negated.  The sequence c1-c2
+ * means all characters between c1 and c2.  The backslash character \ can
+ * be used to escape ^ or - and is otherwise ignored unless it appears at
+ * the end of a sequence or the end of a other_str.
+ */
+static mrb_value
+mrb_str_count(mrb_state *mrb, mrb_value str)
+{
+  mrb_value v_pat = mrb_nil_value();
+  struct tr_pattern *pat = NULL;
+  mrb_int i;
+  char *s;
+  mrb_int len;
+  mrb_int count = 0;
+
+  mrb_get_args(mrb, "S", &v_pat);
+  pat = tr_parse_pattern(mrb, pat, v_pat, TRUE);
+  s = RSTRING_PTR(str);
+  len = RSTRING_LEN(str);
+  for (i = 0; i < len; i++) {
+    mrb_int n = tr_find_character(pat, s[i]);
+
+    if (n >= 0) count++;
+  }
+  return mrb_fixnum_value(count);
+}
+
 static mrb_value
 mrb_str_hex(mrb_state *mrb, mrb_value self)
 {
@@ -1017,6 +1050,7 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, s, "swapcase",        mrb_str_swapcase,        MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "concat",          mrb_str_concat_m,        MRB_ARGS_REQ(1));
   mrb_define_method(mrb, s, "<<",              mrb_str_concat_m,        MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, s, "count",           mrb_str_count,           MRB_ARGS_REQ(1));
   mrb_define_method(mrb, s, "tr",              mrb_str_tr,              MRB_ARGS_REQ(2));
   mrb_define_method(mrb, s, "tr!",             mrb_str_tr_bang,         MRB_ARGS_REQ(2));
   mrb_define_method(mrb, s, "tr_s",            mrb_str_tr_s,            MRB_ARGS_REQ(2));

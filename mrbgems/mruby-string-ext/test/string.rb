@@ -147,6 +147,15 @@ assert('String#casecmp') do
   assert_equal 0, "abcdef".casecmp(o)
 end
 
+assert('String#count') do
+  s = "abccdeff123"
+  assert_equal 1, s.count("a")
+  assert_equal 2, s.count("ab")
+  assert_equal 9, s.count("^c")
+  assert_equal 8, s.count("a-z")
+  assert_equal 4, s.count("a0-9")
+end
+
 assert('String#tr') do  
   assert_equal "ABC", "abc".tr('a-z', 'A-Z')
   assert_equal "hippo", "hello".tr('el', 'ip')
