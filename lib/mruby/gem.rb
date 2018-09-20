@@ -454,5 +454,6 @@ module MRuby
     def new(&block); block.call(self); end
     def config=(obj); @config = obj; end
     def gem(gemdir, &block); @config.gem(gemdir, &block); end
+    def gembox(gemfile); @config.gembox(gemfile); end
   end # GemBox
 end # MRuby
