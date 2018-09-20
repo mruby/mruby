@@ -147,6 +147,19 @@ assert('String#casecmp') do
   assert_equal 0, "abcdef".casecmp(o)
 end
 
+assert('String#tr') do  
+  assert_equal "ABC", "abc".tr('a-z', 'A-Z')
+  assert_equal "hippo", "hello".tr('el', 'ip')
+  assert_equal "Ruby", "Lisp".tr("Lisp", "Ruby")
+  assert_equal "*e**o", "hello".tr('^aeiou', '*')
+end
+
+assert('String#tr!') do
+  s = "abcdefghijklmnopqR"
+  assert_equal "ab12222hijklmnopqR", s.tr!("cdefg", "12")
+  assert_equal "ab12222hijklmnopqR", s
+end
+
 assert('String#start_with?') do
   assert_true "hello".start_with?("heaven", "hell")
   assert_true !"hello".start_with?("heaven", "paradise")

@@ -235,6 +235,265 @@ mrb_str_end_with(mrb_state *mrb, mrb_value self)
   return mrb_false_value();
 }
 
+/*
+  #tr Pattern syntax
+
+  <syntax> ::= (<pattern>)* | '^' (<pattern>)*
+  <pattern> ::= <in order> | <range>
+  <in order> ::= (<ch>)+
+  <range> ::= <ch> '-' <ch>
+*/
+struct tr_pattern {
+  uint8_t type;		// 1:in-order, 2:range
+  mrb_bool flag_reverse;
+  int16_t n;
+  struct tr_pattern *next;
+  char ch[];
+};
+
+static void
+tr_pattern_free(mrb_state *mrb, struct tr_pattern *pat)
+{
+  while (pat) {
+    struct tr_pattern *p = pat->next;
+    mrb_free(mrb, pat);
+    pat = p;
+  }
+}
+
+static struct tr_pattern*
+tr_parse_pattern(mrb_state *mrb, const mrb_value v_pattern, mrb_bool flag_reverse_enable)
+{
+  const char *pattern = RSTRING_PTR(v_pattern);
+  int pattern_length = RSTRING_LEN(v_pattern);
+  mrb_bool flag_reverse = FALSE;
+  struct tr_pattern *ret = NULL;
+  struct tr_pattern *pat1;
+  int i = 0;
+
+  if(flag_reverse_enable && pattern_length >= 2 && pattern[0] == '^') {
+    flag_reverse = TRUE;
+    i++;
+  }
+
+  while (i < pattern_length) {
+    /* is range pattern ? */
+    if ((i+2) < pattern_length && pattern[i] != '\\' && pattern[i+1] == '-') {
+      pat1 = (struct tr_pattern*)mrb_malloc_simple(mrb, sizeof(struct tr_pattern) + 2);
+      if (pat1 == NULL && ret) {
+      nomem:
+        tr_pattern_free(mrb, ret);
+        mrb_exc_raise(mrb, mrb_obj_value(mrb->nomem_err));
+        return NULL;            /* not reached */
+      }
+      pat1->type = 2;
+      pat1->flag_reverse = flag_reverse;
+      pat1->n = pattern[i+2] - pattern[i] + 1;
+      pat1->next = NULL;
+      pat1->ch[0] = pattern[i];
+      pat1->ch[1] = pattern[i+2];
+      i += 3;
+    }
+    else {
+      /* in order pattern. */
+      int start_pos = i++;
+      int len;
+
+      while (i < pattern_length) {
+	if ((i+2) < pattern_length && pattern[i] != '\\' && pattern[i+1] == '-')
+          break;
+	i++;
+      }
+
+      len = i - start_pos;
+      pat1 = (struct tr_pattern*)mrb_malloc_simple(mrb, sizeof(struct tr_pattern) + len);
+      if (pat1 == NULL && ret) {
+        goto nomem;
+      }
+      pat1->type = 1;
+      pat1->flag_reverse = flag_reverse;
+      pat1->n = len;
+      pat1->next = NULL;
+      memcpy(pat1->ch, &pattern[start_pos], len);
+    }
+
+    if (ret == NULL) {
+      ret = pat1;
+    }
+    else {
+      struct tr_pattern *p = ret;
+      while (p->next != NULL) {
+        p = p->next;
+      }
+      p->next = pat1;
+    }
+  }
+
+  return ret;
+}
+
+static mrb_int
+tr_find_character(const struct tr_pattern *pat, int ch)
+{
+  mrb_int ret = -1;
+  mrb_int n_sum = 0;
+  mrb_int flag_reverse = pat ? pat->flag_reverse : 0;
+
+  while (pat != NULL) {
+    if (pat->type == 1) {	/* pat->type == 1  in-order */
+      int i;
+      for (i = 0; i < pat->n; i++) {
+	if (pat->ch[i] == ch) ret = n_sum + i;
+      }
+    }
+    else {                      /* pat->type == 2  range */
+      if (pat->ch[0] <= ch && ch <= pat->ch[1])
+        ret = n_sum + ch - pat->ch[0];
+    }
+    n_sum += pat->n;
+    pat = pat->next;
+  }
+
+  if (flag_reverse) {
+    return (ret < 0) ? MRB_INT_MAX : -1;
+  }
+  return ret;
+}
+
+static mrb_int
+tr_get_character(const struct tr_pattern *pat, mrb_int n_th)
+{
+  mrb_int n_sum = 0;
+  while (pat != NULL) {
+    if (n_th < (n_sum + pat->n)) {
+      mrb_int i = (n_th - n_sum);
+      return (pat->type == 1) ? pat->ch[i] :pat->ch[0] + i;
+    }
+    if (pat->next == NULL) {
+      return (pat->type == 1) ? pat->ch[pat->n - 1] : pat->ch[1];
+    }
+    n_sum += pat->n;
+    pat = pat->next;
+  }
+
+  return -1;
+}
+
+static mrb_bool
+str_tr(mrb_state *mrb, mrb_value str, mrb_value p1, mrb_value p2)
+{
+  struct tr_pattern *pat;
+  struct tr_pattern *rep;
+  char *s;
+  mrb_int len;
+  mrb_int i;
+  mrb_bool flag_changed = FALSE;
+
+  mrb_str_modify(mrb, mrb_str_ptr(str));
+  pat = tr_parse_pattern(mrb, p1, TRUE);
+  rep = tr_parse_pattern(mrb, p2, FALSE);
+  s = RSTRING_PTR(str);
+  len = RSTRING_LEN(str);
+
+  for (i = 0; i < len; i++) {
+    mrb_int n = tr_find_character(pat, s[i]);
+
+    if (n >= 0) {
+      flag_changed = TRUE;
+      if (rep == NULL) {
+	memmove(s + i, s + i + 1, len - i);
+	len--;
+	i--;
+      }
+      else {
+        mrb_int c = tr_get_character(rep, n);
+
+        if (c < 0 || c > 0x80) {
+          mrb_raisef(mrb, E_ARGUMENT_ERROR, "character (%S) out of range",
+                     mrb_fixnum_value((mrb_int)c));
+        }
+	s[i] = c;
+      }
+    }
+  }
+
+  tr_pattern_free(mrb, pat);
+  if (rep) tr_pattern_free(mrb, rep);
+
+  RSTR_SET_LEN(RSTRING(str), len);
+  RSTRING_PTR(str)[len] = 0;
+
+  return flag_changed;
+}
+
+/*
+ * call-seq:
+ *   str.tr(from_str, to_str)   => new_str
+ *
+ * Returns a copy of str with the characters in from_str replaced by the
+ * corresponding characters in to_str.  If to_str is shorter than from_str,
+ * it is padded with its last character in order to maintain the
+ * correspondence.
+ *
+ *  "hello".tr('el', 'ip')      #=> "hippo"
+ *  "hello".tr('aeiou', '*')    #=> "h*ll*"
+ *  "hello".tr('aeiou', 'AA*')  #=> "hAll*"
+ *
+ * Both strings may use the c1-c2 notation to denote ranges of characters,
+ * and from_str may start with a ^, which denotes all characters except
+ * those listed.
+ *
+ *  "hello".tr('a-y', 'b-z')    #=> "ifmmp"
+ *  "hello".tr('^aeiou', '*')   #=> "*e**o"
+ *
+ * The backslash character \ can be used to escape ^ or - and is otherwise
+ * ignored unless it appears at the end of a range or the end of the
+ * from_str or to_str:
+ *
+ *
+ *  "hello^world".tr("\\^aeiou", "*") #=> "h*ll**w*rld"
+ *  "hello-world".tr("a\\-eo", "*")   #=> "h*ll**w*rld"
+ *
+ *  "hello\r\nworld".tr("\r", "")   #=> "hello\nworld"
+ *  "hello\r\nworld".tr("\\r", "")  #=> "hello\r\nwold"
+ *  "hello\r\nworld".tr("\\\r", "") #=> "hello\nworld"
+ *
+ *  "X['\\b']".tr("X\\", "")   #=> "['b']"
+ *  "X['\\b']".tr("X-\\]", "") #=> "'b'"
+ *
+ *  Note: conversion is effective only in ASCII region.
+ */
+static mrb_value
+mrb_str_tr(mrb_state *mrb, mrb_value str)
+{
+  mrb_value dup;
+  mrb_value p1, p2;
+
+  mrb_get_args(mrb, "SS", &p1, &p2);
+  dup = mrb_str_dup(mrb, str);
+  str_tr(mrb, dup, p1, p2);
+  return dup;
+}
+
+/*
+ * call-seq:
+ *   str.tr!(from_str, to_str)   -> str or nil
+ *
+ * Translates str in place, using the same rules as String#tr.
+ * Returns str, or nil if no changes were made.
+ */
+static mrb_value
+mrb_str_tr_bang(mrb_state *mrb, mrb_value str)
+{
+  mrb_value p1, p2;
+
+  mrb_get_args(mrb, "SS", &p1, &p2);
+  if (str_tr(mrb, str, p1, p2)) {
+    return str;
+  }
+  return mrb_nil_value();
+}
+
 static mrb_value
 mrb_str_hex(mrb_state *mrb, mrb_value self)
 {
@@ -620,6 +879,8 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, s, "swapcase",        mrb_str_swapcase,        MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "concat",          mrb_str_concat_m,        MRB_ARGS_REQ(1));
   mrb_define_method(mrb, s, "<<",              mrb_str_concat_m,        MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, s, "tr",              mrb_str_tr,              MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, s, "tr!",             mrb_str_tr_bang,         MRB_ARGS_REQ(2));
   mrb_define_method(mrb, s, "start_with?",     mrb_str_start_with,      MRB_ARGS_REST());
   mrb_define_method(mrb, s, "end_with?",       mrb_str_end_with,        MRB_ARGS_REST());
   mrb_define_method(mrb, s, "hex",             mrb_str_hex,             MRB_ARGS_NONE());
