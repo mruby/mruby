@@ -110,9 +110,6 @@
 /* fixed size state atexit stack */
 //#define MRB_FIXED_STATE_ATEXIT_STACK
 
-/* improve meta programming support */
-//#define MRB_IMPROVE_META_PROGRAMMING
-
 /* -DMRB_DISABLE_XXXX to drop following features */
 //#define MRB_DISABLE_STDIO /* use of stdio */
 
