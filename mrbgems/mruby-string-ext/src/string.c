@@ -632,6 +632,62 @@ mrb_str_squeeze_bang(mrb_state *mrb, mrb_value str)
   return mrb_nil_value();
 }
 
+static mrb_bool
+str_delete(mrb_state *mrb, mrb_value str, mrb_value v_pat)
+{
+  struct tr_pattern *pat = NULL;
+  mrb_int i;
+  char *s;
+  mrb_int len;
+  mrb_bool flag_changed = FALSE;
+
+  mrb_str_modify(mrb, mrb_str_ptr(str));
+  pat = tr_parse_pattern(mrb, pat, v_pat, TRUE);
+  s = RSTRING_PTR(str);
+  len = RSTRING_LEN(str);
+
+  for (i = 0; i < len; i++) {
+    mrb_int n = tr_find_character(pat, s[i]);
+
+    if (n >= 0) {
+      flag_changed = TRUE;
+      memmove(s + i, s + i + 1, len - i);
+      len--;
+      i--;
+    }
+  }
+  tr_pattern_free(mrb, pat);
+
+  RSTR_SET_LEN(RSTRING(str), len);
+  RSTRING_PTR(str)[len] = 0;
+
+  return flag_changed;
+}
+
+static mrb_value
+mrb_str_delete(mrb_state *mrb, mrb_value str)
+{
+  mrb_value pat;
+  mrb_value dup;
+
+  mrb_get_args(mrb, "S", &pat);
+  dup = mrb_str_dup(mrb, str);
+  str_delete(mrb, dup, pat);
+  return dup;
+}
+
+static mrb_value
+mrb_str_delete_bang(mrb_state *mrb, mrb_value str)
+{
+  mrb_value pat;
+
+  mrb_get_args(mrb, "S", &pat);
+  if (str_delete(mrb, str, pat)) {
+    return str;
+  }
+  return mrb_nil_value();
+}
+
 /*
  * call_seq:
  *   str.count([other_str])   -> integer
@@ -1057,6 +1113,8 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, s, "tr_s!",           mrb_str_tr_s_bang,       MRB_ARGS_REQ(2));
   mrb_define_method(mrb, s, "squeeze",         mrb_str_squeeze,         MRB_ARGS_OPT(1));
   mrb_define_method(mrb, s, "squeeze!",        mrb_str_squeeze_bang,    MRB_ARGS_OPT(1));
+  mrb_define_method(mrb, s, "delete",          mrb_str_delete,          MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, s, "delete!",         mrb_str_delete_bang,     MRB_ARGS_REQ(1));
   mrb_define_method(mrb, s, "start_with?",     mrb_str_start_with,      MRB_ARGS_REST());
   mrb_define_method(mrb, s, "end_with?",       mrb_str_end_with,        MRB_ARGS_REST());
   mrb_define_method(mrb, s, "hex",             mrb_str_hex,             MRB_ARGS_NONE());

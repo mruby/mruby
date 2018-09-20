@@ -194,6 +194,20 @@ assert('String#squeeze!') do
   assert_equal " now is the", s
 end
 
+assert('String#delete') do
+  assert_equal "he", "hello".delete("lo")
+  assert_equal "hll", "hello".delete("aeiou")
+  assert_equal "ll", "hello".delete("^l")
+  assert_equal "ho", "hello".delete("ej-m")
+end
+
+assert('String#delete!') do
+  s = "hello"
+  assert_equal "he", s.delete!("lo")
+  assert_equal "he", s
+  assert_nil s.delete!("lz")
+end
+
 assert('String#start_with?') do
   assert_true "hello".start_with?("heaven", "hell")
   assert_true !"hello".start_with?("heaven", "paradise")
