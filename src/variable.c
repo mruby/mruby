@@ -344,6 +344,8 @@ mrb_iv_get(mrb_state *mrb, mrb_value obj, mrb_sym sym)
   return mrb_nil_value();
 }
 
+static inline void assign_class_name(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v);
+
 MRB_API void
 mrb_obj_iv_set(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
 {
@@ -352,12 +354,45 @@ mrb_obj_iv_set(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
   if (MRB_FROZEN_P(obj)) {
     mrb_raisef(mrb, E_FROZEN_ERROR, "can't modify frozen %S", mrb_obj_value(obj));
   }
+  assign_class_name(mrb, obj, sym, v);
   if (!obj->iv) {
     obj->iv = iv_new(mrb);
   }
   t = obj->iv;
   iv_put(mrb, t, sym, v);
   mrb_write_barrier(mrb, (struct RBasic*)obj);
+}
+
+static inline mrb_bool
+namespace_p(enum mrb_vtype tt)
+{
+  return tt == MRB_TT_CLASS || tt == MRB_TT_MODULE ? TRUE : FALSE;
+}
+
+static inline void
+assign_class_name(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
+{
+  if (namespace_p(obj->tt) && namespace_p(mrb_type(v))) {
+    struct RObject *c = mrb_obj_ptr(v);
+    if (obj != c && ISUPPER(mrb_sym2name(mrb, sym)[0])) {
+      mrb_sym id_classname = mrb_intern_lit(mrb, "__classname__");
+      mrb_value o = mrb_obj_iv_get(mrb, c, id_classname);
+
+      if (mrb_nil_p(o)) {
+        mrb_sym id_outer = mrb_intern_lit(mrb, "__outer__");
+        o = mrb_obj_iv_get(mrb, c, id_outer);
+
+        if (mrb_nil_p(o)) {
+          if ((struct RClass *)obj == mrb->object_class) {
+            mrb_obj_iv_set(mrb, c, id_classname, mrb_symbol_value(sym));
+          }
+          else {
+            mrb_obj_iv_set(mrb, c, id_outer, mrb_obj_value(obj));
+          }
+        }
+      }
+    }
+  }
 }
 
 MRB_API void
@@ -1069,8 +1104,10 @@ mrb_class_find_path(mrb_state *mrb, struct RClass *c)
 
   str = mrb_sym2name_len(mrb, name, &len);
   mrb_str_cat(mrb, path, str, len);
-  iv_del(mrb, c->iv, mrb_intern_lit(mrb, "__outer__"), NULL);
-  iv_put(mrb, c->iv, mrb_intern_lit(mrb, "__classname__"), path);
-  mrb_field_write_barrier_value(mrb, (struct RBasic*)c, path);
+  if (RSTRING_PTR(path)[0] != '#') {
+    iv_del(mrb, c->iv, mrb_intern_lit(mrb, "__outer__"), NULL);
+    iv_put(mrb, c->iv, mrb_intern_lit(mrb, "__classname__"), path);
+    mrb_field_write_barrier_value(mrb, (struct RBasic*)c, path);
+  }
   return path;
 }
