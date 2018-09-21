@@ -2054,22 +2054,21 @@ RETRY_TRY_BLOCK:
         case OP_R_NORMAL:
         NORMAL_RETURN:
           if (ci == mrb->c->cibase) {
-            struct mrb_context *c;
+            struct mrb_context *c = mrb->c;
 
-            if (!mrb->c->prev) { /* toplevel return */
+            if (!c->prev) { /* toplevel return */
               regs[irep->nlocals] = v;
               goto L_STOP;
             }
-            if (mrb->c->prev->ci == mrb->c->prev->cibase) {
+            if (c->prev->ci == c->prev->cibase) {
               mrb_value exc = mrb_exc_new_str_lit(mrb, E_FIBER_ERROR, "double resume");
               mrb_exc_set(mrb, exc);
               goto L_RAISE;
             }
-            while (mrb->c->eidx > 0) {
+            while (c->eidx > 0) {
               ecall(mrb);
             }
             /* automatic yield at the end */
-            c = mrb->c;
             c->status = MRB_FIBER_TERMINATED;
             mrb->c = c->prev;
             c->prev = NULL;
