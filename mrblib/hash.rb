@@ -55,10 +55,9 @@ class Hash
   # ISO 15.2.13.4.8
   def delete(key, &block)
     if block && !self.has_key?(key)
-      block.call(key)
-    else
-      self.__delete(key)
+      return block.call(key)
     end
+    self.__delete(key)
   end
 
   ##
@@ -335,11 +334,8 @@ class Hash
   #     h["AA"]    #=> "b"
   #
   def rehash
-    h = {}
-    self.each{|k,v|
-      h[k] = v
-    }
-    self.replace(h)
+    self.size
+    self
   end
 end
 

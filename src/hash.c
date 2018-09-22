@@ -96,16 +96,18 @@ typedef int (sg_foreach_func)(mrb_state *mrb,mrb_value key,mrb_value val, void *
 #endif
 
 typedef struct segment {
-  mrb_value key[MRB_SG_SEGMENT_SIZE];
-  mrb_value val[MRB_SG_SEGMENT_SIZE];
   struct segment *next;
+  struct {
+    mrb_value key;
+    mrb_value val;
+  } e[MRB_SG_SEGMENT_SIZE];
 } segment;
 
 /* Instance variable table structure */
 typedef struct seglist {
   segment *rootseg;
-  size_t size;
-  size_t last_len;
+  mrb_int size;
+  mrb_int last_len;
 } seglist;
 
 /* Creates the instance variable table. */
@@ -128,23 +130,24 @@ sg_put(mrb_state *mrb, seglist *t, mrb_value key, mrb_value val)
 {
   segment *seg;
   segment *prev = NULL;
-  size_t i;
+  mrb_int i;
 
   if (t == NULL) return;
   seg = t->rootseg;
   while (seg) {
     for (i=0; i<MRB_SG_SEGMENT_SIZE; i++) {
-      mrb_value k = seg->key[i];
+      mrb_value k = seg->e[i].key;
       /* Found room in last segment after last_len */
       if (!seg->next && i >= t->last_len) {
-        seg->key[i] = key;
-        seg->val[i] = val;
+        seg->e[i].key = key;
+        seg->e[i].val = val;
         t->last_len = i+1;
-        t->size++;
+        if (t->size >= 0) t->size++;
         return;
       }
+      if (mrb_undef_p(k)) continue;
       if (mrb_hash_ht_hash_equal(mrb, k, key)) {
-        seg->val[i] = val;
+        seg->e[i].val = val;
         return;
       }
     }
@@ -153,13 +156,13 @@ sg_put(mrb_state *mrb, seglist *t, mrb_value key, mrb_value val)
   }
 
   /* Not found */
-  t->size++;
+  if (t->size >= 0) t->size++;
 
   seg = (segment*)mrb_malloc(mrb, sizeof(segment));
   if (!seg) return;
   seg->next = NULL;
-  seg->key[0] = key;
-  seg->val[0] = val;
+  seg->e[0].key = key;
+  seg->e[0].val = val;
   t->last_len = 1;
   if (prev) {
     prev->next = seg;
@@ -174,19 +177,20 @@ static mrb_bool
 sg_get(mrb_state *mrb, seglist *t, mrb_value key, mrb_value *vp)
 {
   segment *seg;
-  size_t i;
+  mrb_int i;
 
   if (t == NULL) return FALSE;
   seg = t->rootseg;
   while (seg) {
     for (i=0; i<MRB_SG_SEGMENT_SIZE; i++) {
-      mrb_value k = seg->key[i];
+      mrb_value k = seg->e[i].key;
 
       if (!seg->next && i >= t->last_len) {
         return FALSE;
       }
+      if (mrb_undef_p(k)) continue;
       if (mrb_hash_ht_hash_equal(mrb, k, key)) {
-        if (vp) *vp = seg->val[i];
+        if (vp) *vp = seg->e[i].val;
         return TRUE;
       }
     }
@@ -195,50 +199,81 @@ sg_get(mrb_state *mrb, seglist *t, mrb_value key, mrb_value *vp)
   return FALSE;
 }
 
+/* Compacts the hash removing delete entries. */
+static void
+sg_compact(mrb_state *mrb, seglist *t)
+{
+  segment *seg = t->rootseg;
+  mrb_int i;
+  segment *seg2 = NULL;
+  mrb_int i2;
+  mrb_int size = 0;
+
+  while (seg) {
+    for (i=0; i<MRB_SG_SEGMENT_SIZE; i++) {
+      mrb_value k = seg->e[i].key;
+
+      if (!seg->next && i >= t->last_len) {
+        goto exit;
+      }
+      if (mrb_undef_p(k)) {     /* found delete key */
+        if (seg2 == NULL) {
+          seg2 = seg;
+          i2 = i;
+        }
+      }
+      else {
+        size++;
+        if (seg2 != NULL) {
+          seg2->e[i2++] = seg->e[i];
+          if (i2 >= MRB_SG_SEGMENT_SIZE) {
+            seg2 = seg2->next;
+            i2 = 0;
+          }
+        }
+      }
+    }
+    seg = seg->next;
+  }
+ exit:
+  /* reached at end */
+  t->size = size;
+  t->last_len = i2;
+  if (seg != seg2) {
+    seg = seg2->next;
+    seg2->next = NULL;
+    while (seg) {
+      seg2 = seg->next;
+      mrb_free(mrb, seg);
+      seg = seg2;
+    }
+  }
+}
+
 /* Deletes the value for the symbol from the instance variable table. */
+/* Deletion is done by overwriting keys by `undef`. */
 static mrb_bool
 sg_del(mrb_state *mrb, seglist *t, mrb_value key, mrb_value *vp)
 {
   segment *seg;
-  size_t i;
+  mrb_int i;
 
   if (t == NULL) return FALSE;
   seg = t->rootseg;
   while (seg) {
     for (i=0; i<MRB_SG_SEGMENT_SIZE; i++) {
-      mrb_value k = seg->key[i];
+      mrb_value k = seg->e[i].key;
 
       if (!seg->next && i >= t->last_len) {
         /* not found */
         return FALSE;
       }
+      if (mrb_undef_p(k)) continue;
       if (mrb_hash_ht_hash_equal(mrb, k, key)) {
-        segment *sg0;
-        size_t i0;
-
-        t->size--;
-        if (vp) *vp = seg->val[i];
-        sg0 = seg;
-        i0 = i;
-        while (seg) {
-          for (i++; i<MRB_SG_SEGMENT_SIZE; i++) {
-            if (!seg->next && i >= t->last_len) {
-              t->last_len--;
-              if (t->last_len == 0 && sg0 != seg) {
-                sg0->next = NULL;
-                t->last_len = MRB_SG_SEGMENT_SIZE;
-                mrb_free(mrb, seg);
-              }
-              return TRUE;
-            }
-            sg0->key[i0] = seg->key[i];
-            sg0->val[i0] = seg->val[i];
-            i0 = i;
-          }
-          sg0 = seg;
-          seg = seg->next;
-        }
-        t->last_len--;
+        if (vp) *vp = k;
+        seg->e[i].key = mrb_undef_value();
+        if (t->size > 0) t->size = -1;
+        else t->size--;         /* count number of deleted */
         return TRUE;
       }
     }
@@ -252,7 +287,7 @@ static void
 sg_foreach(mrb_state *mrb, seglist *t, sg_foreach_func *func, void *p)
 {
   segment *seg;
-  size_t i;
+  mrb_int i;
 
   if (t == NULL) return;
   seg = t->rootseg;
@@ -262,7 +297,8 @@ sg_foreach(mrb_state *mrb, seglist *t, sg_foreach_func *func, void *p)
       if (!seg->next && i >= t->last_len) {
         return;
       }
-      if ((*func)(mrb, seg->key[i], seg->val[i], p) != 0)
+      if (mrb_undef_p(seg->e[i].key)) continue;
+      if ((*func)(mrb, seg->e[i].key, seg->e[i].val, p) != 0)
         return;
     }
     seg = seg->next;
@@ -270,25 +306,14 @@ sg_foreach(mrb_state *mrb, seglist *t, sg_foreach_func *func, void *p)
 }
 
 /* Get the size of the instance variable table. */
-static size_t
+static mrb_int
 sg_size(mrb_state *mrb, seglist *t)
 {
-  segment *seg;
-  size_t size = 0;
-
   if (t == NULL) return 0;
-  if (t->size > 0) return t->size;
-  seg = t->rootseg;
-  while (seg) {
-    if (seg->next == NULL) {
-      size += t->last_len;
-      return size;
-    }
-    seg = seg->next;
-    size += MRB_SG_SEGMENT_SIZE;
+  if (t->size < 0) {
+    sg_compact(mrb, t);
   }
-  /* empty seglist */
-  return 0;
+  return t->size;
 }
 
 /* Copy the instance variable table. */
@@ -297,16 +322,15 @@ sg_copy(mrb_state *mrb, seglist *t)
 {
   segment *seg;
   seglist *t2;
-
-  size_t i;
+  mrb_int i;
 
   seg = t->rootseg;
   t2 = sg_new(mrb);
 
   while (seg != NULL) {
     for (i=0; i<MRB_SG_SEGMENT_SIZE; i++) {
-      mrb_value key = seg->key[i];
-      mrb_value val = seg->val[i];
+      mrb_value key = seg->e[i].key;
+      mrb_value val = seg->e[i].val;
 
       if ((seg->next == NULL) && (i >= t->last_len)) {
         return t2;
@@ -787,24 +811,6 @@ mrb_hash_delete_key(mrb_state *mrb, mrb_value hash, mrb_value key)
   return mrb_nil_value();
 }
 
-/* 15.2.13.4.8  */
-/*
- *  call-seq:
- *     hsh.delete(key)                   -> value
- *     hsh.delete(key) {| key | block }  -> value
- *
- *  Deletes and returns a key-value pair from <i>hsh</i> whose key is
- *  equal to <i>key</i>. If the key is not found, returns the
- *  <em>default value</em>. If the optional code block is given and the
- *  key is not found, pass in the key and return the result of
- *  <i>block</i>.
- *
- *      h = { "a" => 100, "b" => 200 }
- *      h.delete("a")                              #=> 100
- *      h.delete("z")                              #=> nil
- *      h.delete("z") { |el| "#{el} not found" }   #=> "z not found"
- *
- */
 static mrb_value
 mrb_hash_delete(mrb_state *mrb, mrb_value self)
 {
@@ -836,8 +842,8 @@ mrb_hash_shift(mrb_state *mrb, mrb_value hash)
 
   mrb_hash_modify(mrb, hash);
   if (sg && sg_size(mrb, sg) > 0) {
-    mrb_value del_key = sg->rootseg->key[0];
-    mrb_value del_val = sg->rootseg->val[0];
+    mrb_value del_key = sg->rootseg->e[0].key;
+    mrb_value del_val = sg->rootseg->e[0].val;
     sg_del(mrb, sg, del_key, NULL);
     return mrb_assoc_new(mrb, del_key, del_val);
   }

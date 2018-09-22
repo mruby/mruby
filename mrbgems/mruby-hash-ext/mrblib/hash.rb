@@ -461,9 +461,9 @@ class Hash
     return to_enum :transform_keys! unless block
     self.keys.each do |k|
       value = self[k]
-      new_key = block.call(k)
       self.__delete(k)
-      self[new_key] = value
+      k = block.call(k) if block
+      self[k] = value
     end
     self
   end
