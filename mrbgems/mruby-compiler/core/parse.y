@@ -5189,7 +5189,7 @@ parser_yylex(parser_state *p)
   case '5': case '6': case '7': case '8': case '9':
   {
     int is_float, seen_point, seen_e, nondigit;
-    int suffix;
+    int suffix = 0;
 
     is_float = seen_point = seen_e = nondigit = 0;
     p->lstate = EXPR_ENDARG;
