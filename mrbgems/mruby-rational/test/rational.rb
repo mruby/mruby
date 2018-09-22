@@ -9,6 +9,21 @@ assert 'Rational' do
   assert_equal [r.numerator, r.denominator], [5, 1]
 end
 
+assert 'Rational#to_f' do
+  assert_float Rational(2).to_f, 2.0
+  assert_float Rational(9, 4).to_f, 2.25
+  assert_float Rational(-3, 4).to_f, -0.75
+  assert_float Rational(20, 3).to_f, 6.666666666666667
+end
+
+assert 'Rational#to_i' do
+  assert_equal Rational(2, 3).to_i, 0
+  assert_equal Rational(3).to_i, 3
+  assert_equal Rational(300.6).to_i, 300
+  assert_equal Rational(98, 71).to_i, 1
+  assert_equal Rational(-30, 2).to_i, -15
+end
+
 assert 'Rational#*' do
   assert_rational Rational(2, 3)  * Rational(2, 3),  Rational(4, 9)
   assert_rational Rational(900)   * Rational(1),     Rational(900, 1)
