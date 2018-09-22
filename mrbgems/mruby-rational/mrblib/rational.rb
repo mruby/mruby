@@ -10,6 +10,18 @@ class Rational < Numeric
     "(#{to_s})"
   end
 
+  def to_f
+    @numerator.to_f / @denominator.to_f
+  end
+
+  def to_i
+    to_f.to_i
+  end
+
+  def to_r
+    self
+  end
+
   def to_s
     "#{numerator}/#{denominator}"
   end
