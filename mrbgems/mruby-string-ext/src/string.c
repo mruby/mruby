@@ -252,7 +252,7 @@ struct tr_pattern {
 };
 
 static void
-tr_pattern_free(mrb_state *mrb, struct tr_pattern *pat)
+tr_free_pattern(mrb_state *mrb, struct tr_pattern *pat)
 {
   while (pat) {
     struct tr_pattern *p = pat->next;
@@ -281,7 +281,7 @@ tr_parse_pattern(mrb_state *mrb, struct tr_pattern *ret, const mrb_value v_patte
       pat1 = (struct tr_pattern*)mrb_malloc_simple(mrb, sizeof(struct tr_pattern) + 2);
       if (pat1 == NULL && ret) {
       nomem:
-        tr_pattern_free(mrb, ret);
+        tr_free_pattern(mrb, ret);
         mrb_exc_raise(mrb, mrb_obj_value(mrb->nomem_err));
         return NULL;            /* not reached */
       }
@@ -419,8 +419,8 @@ str_tr(mrb_state *mrb, mrb_value str, mrb_value p1, mrb_value p2, mrb_bool squee
     }
   }
 
-  tr_pattern_free(mrb, pat);
-  if (rep) tr_pattern_free(mrb, rep);
+  tr_free_pattern(mrb, pat);
+  if (rep) tr_free_pattern(mrb, rep);
 
   RSTR_SET_LEN(RSTRING(str), len);
   RSTRING_PTR(str)[len] = 0;
@@ -579,7 +579,7 @@ str_squeeze(mrb_state *mrb, mrb_value str, mrb_value v_pat)
       lastch = s[i];
     }
   }
-  tr_pattern_free(mrb, pat);
+  tr_free_pattern(mrb, pat);
 
   RSTR_SET_LEN(RSTRING(str), len);
   RSTRING_PTR(str)[len] = 0;
@@ -656,7 +656,7 @@ str_delete(mrb_state *mrb, mrb_value str, mrb_value v_pat)
       i--;
     }
   }
-  tr_pattern_free(mrb, pat);
+  tr_free_pattern(mrb, pat);
 
   RSTR_SET_LEN(RSTRING(str), len);
   RSTRING_PTR(str)[len] = 0;
@@ -718,7 +718,7 @@ mrb_str_count(mrb_state *mrb, mrb_value str)
 
     if (n >= 0) count++;
   }
-  tr_pattern_free(mrb, pat);
+  tr_free_pattern(mrb, pat);
   return mrb_fixnum_value(count);
 }
 
