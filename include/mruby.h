@@ -385,7 +385,7 @@ MRB_API void mrb_define_class_method(mrb_state *, struct RClass *, const char *,
 MRB_API void mrb_define_singleton_method(mrb_state*, struct RObject*, const char*, mrb_func_t, mrb_aspec);
 
 /**
- *  Defines a module fuction.
+ *  Defines a module function.
  *
  * Example:
  *
@@ -530,7 +530,7 @@ MRB_API void mrb_undef_method_id(mrb_state*, struct RClass*, mrb_sym);
 MRB_API void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
 
 /**
- * Initialize a new object instace of c class.
+ * Initialize a new object instance of c class.
  *
  * Example:
  *
