@@ -543,7 +543,7 @@ str_squeeze(mrb_state *mrb, mrb_value str, mrb_value v_pat)
 {
   struct tr_pattern *pat = NULL;
   mrb_int i;
-  char *s;
+  unsigned char *s;
   mrb_int len;
   mrb_bool flag_changed = FALSE;
   mrb_int lastch = -1;
@@ -552,7 +552,7 @@ str_squeeze(mrb_state *mrb, mrb_value str, mrb_value v_pat)
   if (!mrb_nil_p(v_pat)) {
     pat = tr_parse_pattern(mrb, pat, v_pat, TRUE);
   }
-  s = RSTRING_PTR(str);
+  s = (unsigned char *)RSTRING_PTR(str);
   len = RSTRING_LEN(str);
 
   if (pat) {
