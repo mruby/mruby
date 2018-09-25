@@ -718,6 +718,7 @@ mrb_str_count(mrb_state *mrb, mrb_value str)
 
     if (n >= 0) count++;
   }
+  tr_pattern_free(mrb, pat);
   return mrb_fixnum_value(count);
 }
 
