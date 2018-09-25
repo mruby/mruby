@@ -333,13 +333,17 @@ module MRuby
         end
       end
 
+      def weak_dependency? dep
+        dep[:default] && dep[:default][:weak]
+      end
+
       def generate_gem_table build
         gem_table = @ary.reduce({}) { |res,v| res[v.name] = v; res }
 
         default_gems = []
         each do |g|
           g.dependencies.each do |dep|
-            default_gems << default_gem_params(dep) unless gem_table.key?(dep[:gem]) || dep[:default][:weak]
+            default_gems << default_gem_params(dep) unless gem_table.key?(dep[:gem]) || weak_dependency?(dep)
           end
         end
 
@@ -351,14 +355,14 @@ module MRuby
           spec.setup
 
           spec.dependencies.each do |dep|
-            default_gems << default_gem_params(dep) unless gem_table.key?(dep[:gem]) || dep[:default][:weak]
+            default_gems << default_gem_params(dep) unless gem_table.key?(dep[:gem]) || weak_dependency?(dep)
           end
           gem_table[spec.name] = spec
         end
 
         each do |g|
           g.dependencies.delete_if do |dep|
-            gem_table[dep[:gem]].nil? && dep[:default][:weak]
+            gem_table[dep[:gem]].nil? && weak_dependency?(dep)
           end
 
           g.dependencies.each do |dep|
