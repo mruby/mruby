@@ -1367,6 +1367,26 @@ mrb_hash_merge(mrb_state *mrb, mrb_value hash1, mrb_value hash2)
   return;
 }
 
+/*
+ *  call-seq:
+ *    hsh.rehash -> hsh
+ *
+ *  Rebuilds the hash based on the current hash values for each key. If
+ *  values of key objects have changed since they were inserted, this
+ *  method will reindex <i>hsh</i>.
+ *
+ *     h = {"AAA" => "b"}
+ *     h.keys[0].chop!
+ *     h.rehash   #=> {"AA"=>"b"}
+ *     h["AA"]    #=> "b"
+ */
+static mrb_value
+mrb_hash_rehash(mrb_state *mrb, mrb_value self)
+{
+  sg_compact(mrb, RHASH_TBL(self));
+  return self;
+}
+
 void
 mrb_init_hash(mrb_state *mrb)
 {
@@ -1398,6 +1418,7 @@ mrb_init_hash(mrb_state *mrb)
   mrb_define_method(mrb, h, "store",           mrb_hash_aset,        MRB_ARGS_REQ(2)); /* 15.2.13.4.26 */
   mrb_define_method(mrb, h, "value?",          mrb_hash_has_value,   MRB_ARGS_REQ(1)); /* 15.2.13.4.27 */
   mrb_define_method(mrb, h, "values",          mrb_hash_values,      MRB_ARGS_NONE()); /* 15.2.13.4.28 */
+  mrb_define_method(mrb, h, "rehash",          mrb_hash_rehash,      MRB_ARGS_NONE());
 
   mrb_define_method(mrb, h, "to_hash",         mrb_hash_to_hash,     MRB_ARGS_NONE()); /* 15.2.13.4.29 (x)*/
 }
