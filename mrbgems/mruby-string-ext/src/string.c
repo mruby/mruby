@@ -386,6 +386,7 @@ str_tr(mrb_state *mrb, mrb_value str, mrb_value p1, mrb_value p2, mrb_bool squee
   char *s;
   mrb_int len;
   mrb_int i;
+  mrb_int j;
   mrb_bool flag_changed = FALSE;
   mrb_int lastch = -1;
 
@@ -395,21 +396,22 @@ str_tr(mrb_state *mrb, mrb_value str, mrb_value p1, mrb_value p2, mrb_bool squee
   s = RSTRING_PTR(str);
   len = RSTRING_LEN(str);
 
-  for (i = 0; i < len; i++) {
+  for (i=j=0; i<len; i++,j++) {
     mrb_int n = tr_find_character(pat, s[i]);
 
+    if (i>j) s[j] = s[i];
     if (n >= 0) {
       flag_changed = TRUE;
       if (rep == NULL) {
-      compact:
-	memmove(s + i, s + i + 1, len - i);
-	len--;
-	i--;
+	j--;
       }
       else {
         mrb_int c = tr_get_character(rep, n);
 
-        if (squeeze && c == lastch) goto compact;
+        if (squeeze && c == lastch) {
+          j--;
+          continue;
+        }
         if (c < 0 || c > 0x80) {
           mrb_raisef(mrb, E_ARGUMENT_ERROR, "character (%S) out of range",
                      mrb_fixnum_value((mrb_int)c));
@@ -422,9 +424,10 @@ str_tr(mrb_state *mrb, mrb_value str, mrb_value p1, mrb_value p2, mrb_bool squee
   tr_free_pattern(mrb, pat);
   if (rep) tr_free_pattern(mrb, rep);
 
-  RSTR_SET_LEN(RSTRING(str), len);
-  RSTRING_PTR(str)[len] = 0;
-
+  if (flag_changed) {
+    RSTR_SET_LEN(RSTRING(str), j);
+    RSTRING_PTR(str)[j] = 0;
+  }
   return flag_changed;
 }
 
@@ -542,7 +545,7 @@ static mrb_bool
 str_squeeze(mrb_state *mrb, mrb_value str, mrb_value v_pat)
 {
   struct tr_pattern *pat = NULL;
-  mrb_int i;
+  mrb_int i, j;
   unsigned char *s;
   mrb_int len;
   mrb_bool flag_changed = FALSE;
@@ -556,34 +559,33 @@ str_squeeze(mrb_state *mrb, mrb_value str, mrb_value v_pat)
   len = RSTRING_LEN(str);
 
   if (pat) {
-    for (i = 0; i < len; i++) {
+    for (i=j=0; i<len; i++,j++) {
       mrb_int n = tr_find_character(pat, s[i]);
 
+      if (i>j) s[j] = s[i];
       if (n >= 0 && s[i] == lastch) {
         flag_changed = TRUE;
-        memmove(s + i, s + i + 1, len - i);
-        len--;
-        i--;
+        j--;
       }
       lastch = s[i];
     }
   }
   else {
-    for (i = 0; i < len; i++) {
+    for (i=j=0; i<len; i++,j++) {
+      if (i>j) s[j] = s[i];
       if (s[i] == lastch) {
         flag_changed = TRUE;
-        memmove(s + i, s + i + 1, len - i);
-        len--;
-        i--;
+        j--;
       }
       lastch = s[i];
     }
   }
   tr_free_pattern(mrb, pat);
 
-  RSTR_SET_LEN(RSTRING(str), len);
-  RSTRING_PTR(str)[len] = 0;
-
+  if (flag_changed) {
+    RSTR_SET_LEN(RSTRING(str), j);
+    RSTRING_PTR(str)[j] = 0;
+  }
   return flag_changed;
 }
 
@@ -636,7 +638,7 @@ static mrb_bool
 str_delete(mrb_state *mrb, mrb_value str, mrb_value v_pat)
 {
   struct tr_pattern *pat = NULL;
-  mrb_int i;
+  mrb_int i, j;
   char *s;
   mrb_int len;
   mrb_bool flag_changed = FALSE;
@@ -646,21 +648,20 @@ str_delete(mrb_state *mrb, mrb_value str, mrb_value v_pat)
   s = RSTRING_PTR(str);
   len = RSTRING_LEN(str);
 
-  for (i = 0; i < len; i++) {
+  for (i=j=0; i<len; i++,j++) {
     mrb_int n = tr_find_character(pat, s[i]);
 
+    if (i>j) s[j] = s[i];
     if (n >= 0) {
       flag_changed = TRUE;
-      memmove(s + i, s + i + 1, len - i);
-      len--;
-      i--;
+      j--;
     }
   }
   tr_free_pattern(mrb, pat);
-
-  RSTR_SET_LEN(RSTRING(str), len);
-  RSTRING_PTR(str)[len] = 0;
-
+  if (flag_changed) {
+    RSTR_SET_LEN(RSTRING(str), j);
+    RSTRING_PTR(str)[j] = 0;
+  }
   return flag_changed;
 }
 
