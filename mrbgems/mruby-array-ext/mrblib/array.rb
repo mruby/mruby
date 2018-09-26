@@ -1,3 +1,4 @@
+# coding: cp932
 class Array
   ##
   # call-seq:
@@ -41,26 +42,19 @@ class Array
   #    c.uniq! { |s| s.first } # => [["student", "sam"], ["teacher", "matz"]]
   #
   def uniq!(&block)
+    hash = {}
     if block
-      hash = {}
       self.each do |val|
         key = block.call(val)
         hash[key] = val unless hash.key?(key)
       end
       result = hash.values
-    elsif self.size > 20
+    else
       hash = {}
       self.each do |val|
         hash[val] = val
       end
-      result = hash.values
-    else
-      ary = self.dup
-      result = []
-      while ary.size > 0
-        result << ary.shift
-        ary.delete(result.last)
-      end
+      result = hash.keys
     end
     if result.size == self.size
       nil

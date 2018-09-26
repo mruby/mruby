@@ -16,14 +16,48 @@
 mrb_int mrb_float_id(mrb_float f);
 #endif
 
-static inline khint_t
-mrb_hash_ht_hash_func(mrb_state *mrb, mrb_value key)
-{
-  enum mrb_vtype t = mrb_type(key);
-  mrb_value hv;
-  khint_t h;
+/* return non zero to break the loop */
+typedef int (sg_foreach_func)(mrb_state *mrb,mrb_value key, mrb_value val, void *data);
 
-  switch (t) {
+#ifndef MRB_SG_SEGMENT_SIZE
+#define MRB_SG_SEGMENT_SIZE 5
+#endif
+
+struct segkv {
+  mrb_value key;
+  mrb_value val;
+};
+
+typedef struct segment {
+  struct segment *next;
+  struct segkv e[MRB_SG_SEGMENT_SIZE];
+} segment;
+
+typedef struct segindex {
+  size_t size;
+  size_t capa;
+  struct segkv *table[];
+} segindex;
+
+/* Instance variable table structure */
+typedef struct seglist {
+  segment *rootseg;
+  segment *lastseg;
+  mrb_int size;
+  mrb_int last_len;
+  segindex *index;
+} seglist;
+
+static /* inline */ size_t
+sg_hash_func(mrb_state *mrb, seglist *t, mrb_value key)
+{
+  enum mrb_vtype tt = mrb_type(key);
+  mrb_value hv;
+  size_t h;
+  segindex *index = t->index;
+  size_t capa = index ? index->capa : 0;
+
+  switch (tt) {
   case MRB_TT_STRING:
     h = mrb_str_hash(mrb, key);
     break;
@@ -35,23 +69,26 @@ mrb_hash_ht_hash_func(mrb_state *mrb, mrb_value key)
 #ifndef MRB_WITHOUT_FLOAT
   case MRB_TT_FLOAT:
 #endif
-    h = (khint_t)mrb_obj_id(key);
+    h = (size_t)mrb_obj_id(key);
     break;
 
   default:
     hv = mrb_funcall(mrb, key, "hash", 0);
-    h = (khint_t)t ^ (khint_t)mrb_fixnum(hv);
+    h = (size_t)t ^ (size_t)mrb_fixnum(hv);
     break;
   }
-  return kh_int_hash_func(mrb, h);
+  if (index && (index != t->index || capa != index->capa)) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "hash modified");
+  }
+  return ((h)^((h)<<2)^((h)>>2));
 }
 
 static inline mrb_bool
-mrb_hash_ht_hash_equal(mrb_state *mrb, mrb_value a, mrb_value b)
+sg_hash_equal(mrb_state *mrb, seglist *t, mrb_value a, mrb_value b)
 {
-  enum mrb_vtype t = mrb_type(a);
+  enum mrb_vtype tt = mrb_type(a);
 
-  switch (t) {
+  switch (tt) {
   case MRB_TT_STRING:
     return mrb_str_equal(mrb, a, b);
 
@@ -84,31 +121,17 @@ mrb_hash_ht_hash_equal(mrb_state *mrb, mrb_value a, mrb_value b)
 #endif
 
   default:
-    return mrb_eql(mrb, a, b);
-  }
+    {
+      segindex *index = t->index;
+      size_t capa = index ? index->capa : 0;
+      mrb_bool eql = mrb_eql(mrb, a, b);
+      if (index && (index != t->index || capa != index->capa)) {
+        mrb_raise(mrb, E_RUNTIME_ERROR, "hash modified");
+      }
+      return eql;
+    }
+  } 
 }
-
-/* return non zero to break the loop */
-typedef int (sg_foreach_func)(mrb_state *mrb,mrb_value key,mrb_value val, void *data);
-
-#ifndef MRB_SG_SEGMENT_SIZE
-#define MRB_SG_SEGMENT_SIZE 5
-#endif
-
-typedef struct segment {
-  struct segment *next;
-  struct {
-    mrb_value key;
-    mrb_value val;
-  } e[MRB_SG_SEGMENT_SIZE];
-} segment;
-
-/* Instance variable table structure */
-typedef struct seglist {
-  segment *rootseg;
-  mrb_int size;
-  mrb_int last_len;
-} seglist;
 
 /* Creates the instance variable table. */
 static seglist*
@@ -119,87 +142,87 @@ sg_new(mrb_state *mrb)
   t = (seglist*)mrb_malloc(mrb, sizeof(seglist));
   t->size = 0;
   t->rootseg =  NULL;
+  t->lastseg =  NULL;
   t->last_len = 0;
+  t->index = NULL;
 
   return t;
 }
 
-/* Set the value for the symbol in the instance variable table. */
+#define power2(v) do { \
+  v--;\
+  v |= v >> 1;\
+  v |= v >> 2;\
+  v |= v >> 4;\
+  v |= v >> 8;\
+  v |= v >> 16;\
+  v++;\
+} while (0)
+
+#ifndef UPPER_BOUND
+#define UPPER_BOUND(x) ((x)>>2|(x)>>1)
+#endif
+
+#define SG_MASK(index) ((index->capa)-1)
+
+/* Build index for the segment list */
 static void
-sg_put(mrb_state *mrb, seglist *t, mrb_value key, mrb_value val)
+sg_index(mrb_state *mrb, seglist *t)
 {
+  size_t size = (size_t)t->size;
+  size_t mask;
+  segindex *index = t->index;
   segment *seg;
-  segment *prev = NULL;
-  mrb_int i;
+  size_t i;
 
-  if (t == NULL) return;
+  if (size < MRB_SG_SEGMENT_SIZE) {
+    if (index) {
+    failed:
+      mrb_free(mrb, index);
+      t->index = NULL;
+    }
+    return;
+  }
+  /* allocate index table */
+  if (index && index->size >= UPPER_BOUND(index->capa)) {
+    size = index->capa+1;
+  }
+  power2(size);
+  if (!index || index->capa < size) {
+    index = (segindex*)mrb_realloc_simple(mrb, index, sizeof(segindex)+sizeof(struct segkv*)*size);
+    if (index == NULL) goto failed;
+    t->index = index;
+  }
+  index->size = t->size;
+  index->capa = size;
+  for (i=0; i<size; i++) {
+    index->table[i] = NULL;
+  }
+
+  /* rebuld index */
+  mask = SG_MASK(index);
   seg = t->rootseg;
   while (seg) {
     for (i=0; i<MRB_SG_SEGMENT_SIZE; i++) {
-      mrb_value k = seg->e[i].key;
-      /* Found room in last segment after last_len */
-      if (!seg->next && i >= t->last_len) {
-        seg->e[i].key = key;
-        seg->e[i].val = val;
-        t->last_len = i+1;
-        if (t->size >= 0) t->size++;
+      mrb_value key;
+      size_t k, step = 0;
+
+      if (!seg->next && i >= (size_t)t->last_len) {
         return;
       }
-      if (mrb_undef_p(k)) continue;
-      if (mrb_hash_ht_hash_equal(mrb, k, key)) {
-        seg->e[i].val = val;
-        return;
+      key = seg->e[i].key;
+      if (mrb_undef_p(key)) continue;
+      k = sg_hash_func(mrb, t, key) & mask;
+      while (index->table[k]) {
+        k = (k+(++step)) & mask;
       }
-    }
-    prev = seg;
-    seg = seg->next;
-  }
-
-  /* Not found */
-  if (t->size >= 0) t->size++;
-
-  seg = (segment*)mrb_malloc(mrb, sizeof(segment));
-  if (!seg) return;
-  seg->next = NULL;
-  seg->e[0].key = key;
-  seg->e[0].val = val;
-  t->last_len = 1;
-  if (prev) {
-    prev->next = seg;
-  }
-  else {
-    t->rootseg = seg;
-  }
-}
-
-/* Get a value for a symbol from the instance variable table. */
-static mrb_bool
-sg_get(mrb_state *mrb, seglist *t, mrb_value key, mrb_value *vp)
-{
-  segment *seg;
-  mrb_int i;
-
-  if (t == NULL) return FALSE;
-  seg = t->rootseg;
-  while (seg) {
-    for (i=0; i<MRB_SG_SEGMENT_SIZE; i++) {
-      mrb_value k = seg->e[i].key;
-
-      if (!seg->next && i >= t->last_len) {
-        return FALSE;
-      }
-      if (mrb_undef_p(k)) continue;
-      if (mrb_hash_ht_hash_equal(mrb, k, key)) {
-        if (vp) *vp = seg->e[i].val;
-        return TRUE;
-      }
+      index->table[k] = &seg->e[i];
     }
     seg = seg->next;
   }
-  return FALSE;
 }
 
-/* Compacts the hash removing delete entries. */
+/* Compacts the segment list removing deleted entries. */
 static void
 sg_compact(mrb_state *mrb, seglist *t)
 {
@@ -209,6 +232,10 @@ sg_compact(mrb_state *mrb, seglist *t)
   mrb_int i2;
   mrb_int size = 0;
 
+  if (t->index && (size_t)t->size == t->index->size) {
+    sg_index(mrb, t);
+    return;
+  }
   while (seg) {
     for (i=0; i<MRB_SG_SEGMENT_SIZE; i++) {
       mrb_value k = seg->e[i].key;
@@ -238,16 +265,179 @@ sg_compact(mrb_state *mrb, seglist *t)
  exit:
   /* reached at end */
   t->size = size;
-  t->last_len = i2;
-  if (seg != seg2) {
+  if (seg2) {
     seg = seg2->next;
     seg2->next = NULL;
+    t->last_len = i2;
+    t->lastseg = seg2;
     while (seg) {
       seg2 = seg->next;
       mrb_free(mrb, seg);
       seg = seg2;
     }
   }
+  if (t->index) {
+    sg_index(mrb, t);
+  }
+}
+
+/* Set the value for the key in the indexed segment list. */
+static void
+sg_index_put(mrb_state *mrb, seglist *t, mrb_value key, mrb_value val)
+{
+  segindex *index = t->index;
+  size_t k, sp, step = 0, mask;
+  segment *seg;
+
+  if (index->size >= UPPER_BOUND(index->capa)) {
+    /* need to expand table */
+    sg_compact(mrb, t);
+    index = t->index;
+  }
+  mask = SG_MASK(index);
+  sp = index->capa;
+  k = sg_hash_func(mrb, t, key) & mask;
+  while (index->table[k]) {
+    mrb_value key2 = index->table[k]->key;
+    if (mrb_undef_p(key2)) {
+      if (sp == index->capa) sp = k;
+    }
+    else if (sg_hash_equal(mrb, t, key, key2)) {
+      index->table[k]->val = val;
+      return;
+    }
+    k = (k+(++step)) & mask;
+  }
+  if (sp < index->capa) {
+    k = sp;
+  }
+
+  /* put the value at the last */
+  seg = t->lastseg;
+  if (t->last_len < MRB_SG_SEGMENT_SIZE) {
+    index->table[k] = &seg->e[t->last_len++];
+  }
+  else {                        /* append a new segment */
+    seg->next = (segment*)mrb_malloc(mrb, sizeof(segment));
+    seg = seg->next;
+    seg->next = NULL;
+    t->lastseg = seg;
+    t->last_len = 1;
+    index->table[k] = &seg->e[0];
+  }
+  index->table[k]->key = key;
+  index->table[k]->val = val;
+  index->size++;
+  t->size++;
+}
+
+/* Set the value for the key in the segment list. */
+static void
+sg_put(mrb_state *mrb, seglist *t, mrb_value key, mrb_value val)
+{
+  segment *seg;
+  mrb_int i, deleted = 0;
+
+  if (t == NULL) return;
+  if (t->index) {
+    sg_index_put(mrb, t, key, val);
+    return;
+  }
+  seg = t->rootseg;
+  while (seg) {
+    for (i=0; i<MRB_SG_SEGMENT_SIZE; i++) {
+      mrb_value k = seg->e[i].key;
+      /* Found room in last segment after last_len */
+      if (!seg->next && i >= t->last_len) {
+        seg->e[i].key = key;
+        seg->e[i].val = val;
+        t->last_len = i+1;
+        t->size++;
+        return;
+      }
+      if (mrb_undef_p(k)) {
+        deleted++;
+        continue;
+      }
+      if (sg_hash_equal(mrb, t, k, key)) {
+        seg->e[i].val = val;
+        return;
+      }
+    }
+    seg = seg->next;
+  }
+
+  /* Not found */
+  if (deleted > MRB_SG_SEGMENT_SIZE) {
+    sg_compact(mrb, t);
+  }
+  t->size++;
+
+  seg = (segment*)mrb_malloc(mrb, sizeof(segment));
+  seg->next = NULL;
+  seg->e[0].key = key;
+  seg->e[0].val = val;
+  t->last_len = 1;
+  if (t->rootseg == NULL) {
+    t->rootseg = seg;
+  }
+  else {
+    t->lastseg->next = seg;
+  }
+  t->lastseg = seg;
+  if (t->index == NULL && t->size > MRB_SG_SEGMENT_SIZE*4) {
+    sg_index(mrb, t);
+  }
+}
+
+/* Get a value for a key from the indexed segment list. */
+static mrb_bool
+sg_index_get(mrb_state *mrb, seglist *t, mrb_value key, mrb_value *vp)
+{
+  segindex *index = t->index;
+  size_t mask = SG_MASK(index);
+  size_t k = sg_hash_func(mrb, t, key) & mask;
+  size_t step = 0;
+
+  while (index->table[k]) {
+    if (sg_hash_equal(mrb, t, key, index->table[k]->key)) {
+      if (vp) *vp = index->table[k]->val;
+      return TRUE;
+    }
+    k = (k+(++step)) & mask;
+  }
+  return FALSE;
+}
+
+/* Get a value for a key from the segment list. */
+static mrb_bool
+sg_get(mrb_state *mrb, seglist *t, mrb_value key, mrb_value *vp)
+{
+  segment *seg;
+  mrb_int i;
+
+  if (t == NULL) return FALSE;
+  if (t->index) {
+    return sg_index_get(mrb, t, key, vp);
+  }
+
+  seg = t->rootseg;
+  while (seg) {
+    for (i=0; i<MRB_SG_SEGMENT_SIZE; i++) {
+      mrb_value k = seg->e[i].key;
+
+      if (!seg->next && i >= t->last_len) {
+        return FALSE;
+      }
+      if (mrb_undef_p(k)) continue;
+      if (sg_hash_equal(mrb, t, k, key)) {
+        if (vp) *vp = seg->e[i].val;
+        return TRUE;
+      }
+    }
+    seg = seg->next;
+  }
+  return FALSE;
 }
 
 /* Deletes the value for the symbol from the instance variable table. */
@@ -262,18 +452,17 @@ sg_del(mrb_state *mrb, seglist *t, mrb_value key, mrb_value *vp)
   seg = t->rootseg;
   while (seg) {
     for (i=0; i<MRB_SG_SEGMENT_SIZE; i++) {
-      mrb_value k = seg->e[i].key;
+      mrb_value key2;
 
       if (!seg->next && i >= t->last_len) {
         /* not found */
         return FALSE;
       }
-      if (mrb_undef_p(k)) continue;
-      if (mrb_hash_ht_hash_equal(mrb, k, key)) {
-        if (vp) *vp = k;
+      key2 = seg->e[i].key;
+      if (!mrb_undef_p(key2) && sg_hash_equal(mrb, t, key, key2)) {
+        if (vp) *vp = key2;
         seg->e[i].key = mrb_undef_value();
-        if (t->size > 0) t->size = -1;
-        else t->size--;         /* count number of deleted */
+        t->size--;
         return TRUE;
       }
     }
@@ -290,6 +479,9 @@ sg_foreach(mrb_state *mrb, seglist *t, sg_foreach_func *func, void *p)
   mrb_int i;
 
   if (t == NULL) return;
+  if (t->index && t->index->size-(size_t)t->size > MRB_SG_SEGMENT_SIZE) {
+    sg_compact(mrb, t);
+  }
   seg = t->rootseg;
   while (seg) {
     for (i=0; i<MRB_SG_SEGMENT_SIZE; i++) {
@@ -310,9 +502,6 @@ static mrb_int
 sg_size(mrb_state *mrb, seglist *t)
 {
   if (t == NULL) return 0;
-  if (t->size < 0) {
-    sg_compact(mrb, t);
-  }
   return t->size;
 }
 
@@ -355,13 +544,14 @@ sg_free(mrb_state *mrb, seglist *t)
     seg = seg->next;
     mrb_free(mrb, p);
   }
+  if (t->index) mrb_free(mrb, t->index);
   mrb_free(mrb, t);
 }
 
 static void mrb_hash_modify(mrb_state *mrb, mrb_value hash);
 
 static inline mrb_value
-mrb_hash_ht_key(mrb_state *mrb, mrb_value key)
+ht_key(mrb_state *mrb, mrb_value key)
 {
   if (mrb_string_p(key) && !MRB_FROZEN_P(mrb_str_ptr(key))) {
     key = mrb_str_dup(mrb, key);
@@ -370,7 +560,7 @@ mrb_hash_ht_key(mrb_state *mrb, mrb_value key)
   return key;
 }
 
-#define KEY(key) mrb_hash_ht_key(mrb, key)
+#define KEY(key) ht_key(mrb, key)
 
 static int
 hash_mark_i(mrb_state *mrb, mrb_value key, mrb_value val, void *p)
@@ -487,15 +677,6 @@ mrb_hash_dup(mrb_state *mrb, mrb_value self)
   copy = (struct RHash*)mrb_obj_alloc(mrb, MRB_TT_HASH, mrb->hash_class);
   copy->ht = orig_h ? sg_copy(mrb, orig_h) : NULL;
   return mrb_obj_value(copy);
-}
-
-MRB_API mrb_bool
-mrb_hash_has_key_p(mrb_state *mrb, mrb_value hash, mrb_value key)
-{
-  if (sg_get(mrb, RHASH_TBL(hash), key, NULL)) {
-    return TRUE;
-  }
-  return FALSE;
 }
 
 MRB_API mrb_value
@@ -821,6 +1002,33 @@ mrb_hash_delete(mrb_state *mrb, mrb_value self)
   return mrb_hash_delete_key(mrb, self, key);
 }
 
+/* find first element in segment list, and remove it. */
+static void
+sg_shift(mrb_state *mrb, seglist *t, mrb_value *kp, mrb_value *vp)
+{
+  segment *seg = t->rootseg;
+  mrb_int i;
+
+  while (seg) {
+    for (i=0; i<MRB_SG_SEGMENT_SIZE; i++) {
+      mrb_value key;
+
+      if (!seg->next && i >= t->last_len) {
+        return;
+      }
+      key = seg->e[i].key;
+      if (mrb_undef_p(key)) continue;
+      *kp = key;
+      *vp = seg->e[i].val;
+      /* delete element */
+      seg->e[i].key = mrb_undef_value();
+      t->size--;
+      return;
+    }
+    seg = seg->next;
+  }
+}
+
 /* 15.2.13.4.24 */
 /*
  *  call-seq:
@@ -842,9 +1050,9 @@ mrb_hash_shift(mrb_state *mrb, mrb_value hash)
 
   mrb_hash_modify(mrb, hash);
   if (sg && sg_size(mrb, sg) > 0) {
-    mrb_value del_key = sg->rootseg->e[0].key;
-    mrb_value del_val = sg->rootseg->e[0].val;
-    sg_del(mrb, sg, del_key, NULL);
+    mrb_value del_key, del_val;
+
+    sg_shift(mrb, sg, &del_key, &del_val);
     return mrb_assoc_new(mrb, del_key, del_val);
   }
 

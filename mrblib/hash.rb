@@ -334,7 +334,7 @@ class Hash
   #     h["AA"]    #=> "b"
   #
   def rehash
-    self.size
+    # do nothing (for now)
     self
   end
 end
