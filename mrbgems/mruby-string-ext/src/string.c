@@ -573,7 +573,7 @@ str_squeeze(mrb_state *mrb, mrb_value str, mrb_value v_pat)
   else {
     for (i=j=0; i<len; i++,j++) {
       if (i>j) s[j] = s[i];
-      if (s[i] == lastch) {
+      if (s[i] >= 0 && s[i] == lastch) {
         flag_changed = TRUE;
         j--;
       }
