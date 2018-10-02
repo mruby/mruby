@@ -226,7 +226,7 @@ create_proc_from_string(mrb_state *mrb, char *s, mrb_int len, mrb_value binding,
   struct mrb_parser_state *p;
   struct RProc *proc;
   struct REnv *e;
-  mrb_callinfo *ci = &mrb->c->ci[-1]; /* callinfo of eval caller */
+  mrb_callinfo *ci; /* callinfo of eval caller */
   struct RClass *target_class = NULL;
   int bidx;
 
@@ -276,8 +276,16 @@ create_proc_from_string(mrb_state *mrb, char *s, mrb_int len, mrb_value binding,
     mrbc_context_free(mrb, cxt);
     mrb_raise(mrb, E_SCRIPT_ERROR, "codegen error");
   }
-  target_class = MRB_PROC_TARGET_CLASS(ci->proc);
-  if (!MRB_PROC_CFUNC_P(ci->proc)) {
+  if (mrb->c->ci > mrb->c->cibase) {
+    ci = &mrb->c->ci[-1];
+  }
+  else {
+    ci = mrb->c->cibase;
+  }
+  if (ci->proc) {
+    target_class = MRB_PROC_TARGET_CLASS(ci->proc);
+  }
+  if (ci->proc && !MRB_PROC_CFUNC_P(ci->proc)) {
     if (ci->env) {
       e = ci->env;
     }
@@ -315,10 +323,12 @@ exec_irep(mrb_state *mrb, mrb_value self, struct RProc *proc)
   /* no argument passed from eval() */
   mrb->c->ci->argc = 0;
   if (mrb->c->ci->acc < 0) {
+    ptrdiff_t cioff = mrb->c->ci - mrb->c->cibase;
     mrb_value ret = mrb_top_run(mrb, proc, self, 0);
     if (mrb->exc) {
       mrb_exc_raise(mrb, mrb_obj_value(mrb->exc));
     }
+    mrb->c->ci = mrb->c->cibase + cioff;
     return ret;
   }
   /* clear block */
