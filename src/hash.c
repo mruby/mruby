@@ -982,10 +982,10 @@ MRB_API mrb_value
 mrb_hash_delete_key(mrb_state *mrb, mrb_value hash, mrb_value key)
 {
   seglist *sg = RHASH_TBL(hash);
-  mrb_value del_val;
+  mrb_value del_val,orig_val=mrb_hash_get(mrb,hash,key);
 
   if (sg_del(mrb, sg, key, &del_val)) {
-    return del_val;
+    return orig_val;
   }
 
   /* not found */
