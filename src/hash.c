@@ -226,12 +226,14 @@ sg_index(mrb_state *mrb, seglist *t)
 static void
 sg_compact(mrb_state *mrb, seglist *t)
 {
-  segment *seg = t->rootseg;
+  segment *seg;
   mrb_int i;
   segment *seg2 = NULL;
   mrb_int i2;
   mrb_int size = 0;
 
+  if (t == NULL) return;
+  seg = t->rootseg;
   if (t->index && (size_t)t->size == t->index->size) {
     sg_index(mrb, t);
     return;
