@@ -187,6 +187,18 @@ assert('Abbreviated variable assignment as returns') do
   assert_equal 1, Syntax4AbbrVarAsgnAsReturns::A.new.b
 end
 
+assert('Abbreviated variable assignment of object attribute') do
+  module Syntax4AbbrVarAsgnObjectAttr
+    class A
+      attr_accessor :c
+      def b
+        self.c ||= 1
+      end
+    end
+  end
+  assert_equal 1, Syntax4AbbrVarAsgnObjectAttr::A.new.b
+end
+
 assert('Splat and multiple assignment') do
   *a = *[1,2,3]
   b, *c = *[7,8,9]
