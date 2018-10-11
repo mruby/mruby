@@ -82,12 +82,12 @@ assert('Hash#default_proc', '15.2.13.4.7') do
 end
 
 assert('Hash#delete', '15.2.13.4.8') do
-  a = { 'abc' => 'abc' }
-  b = { 'abc' => 'abc' }
+  a = { 'abc' => 'ABC' }
+  b = { 'abc' => 'ABC' }
   b_tmp_1 = false
   b_tmp_2 = false
 
-  a.delete('abc')
+  assert_equal 'ABC', a.delete('abc')
   b.delete('abc') do |k|
     b_tmp_1 = true
   end

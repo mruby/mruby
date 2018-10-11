@@ -460,7 +460,7 @@ sg_del(mrb_state *mrb, seglist *t, mrb_value key, mrb_value *vp)
       }
       key2 = seg->e[i].key;
       if (!mrb_undef_p(key2) && sg_hash_equal(mrb, t, key, key2)) {
-        if (vp) *vp = key2;
+        if (vp) *vp = seg->e[i].val;
         seg->e[i].key = mrb_undef_value();
         t->size--;
         return TRUE;
