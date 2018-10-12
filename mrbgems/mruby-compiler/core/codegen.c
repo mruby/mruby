@@ -1969,9 +1969,9 @@ codegen(codegen_scope *s, node *tree, int val)
           }
         }
         /* copy receiver and arguments */
-        gen_move(s, cursp(), base, 0);
+        gen_move(s, cursp(), base, 1);
         for (i=0; i<nargs; i++) {
-          gen_move(s, cursp()+i+1, base+i+1, 0);
+          gen_move(s, cursp()+i+1, base+i+1, 1);
         }
         push_n(nargs+2);pop_n(nargs+2); /* space for receiver, arguments and a block */
         genop_3(s, OP_SEND, cursp(), idx, callargs);
@@ -1988,7 +1988,7 @@ codegen(codegen_scope *s, node *tree, int val)
         pop();
         if (val) {
           if (vsp >= 0) {
-            gen_move(s, vsp, cursp(), 0);
+            gen_move(s, vsp, cursp(), 1);
           }
           pos = genjmp2(s, name[0]=='|'?OP_JMPIF:OP_JMPNOT, cursp(), 0, val);
         }
@@ -1998,7 +1998,7 @@ codegen(codegen_scope *s, node *tree, int val)
         codegen(s, tree->cdr->cdr->car, VAL);
         pop();
         if (val && vsp >= 0) {
-          gen_move(s, vsp, cursp(), 0);
+          gen_move(s, vsp, cursp(), 1);
         }
         if (nint(tree->car->car) == NODE_CALL) {
           if (callargs == CALL_MAXARGS) {
