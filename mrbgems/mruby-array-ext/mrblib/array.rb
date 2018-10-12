@@ -143,11 +143,11 @@ class Array
   #
   def union(*args)
     ary = self.dup
-    args.each_with_index do |x,i|
+    args.each do |x|
       ary.concat(x)
-      ary.uniq! if i % 20 == 0
+      ary.uniq!
     end
-    ary.uniq! or ary
+    ary
   end
 
   ##
