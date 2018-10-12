@@ -402,7 +402,8 @@ sg_index_get(mrb_state *mrb, seglist *t, mrb_value key, mrb_value *vp)
   size_t step = 0;
 
   while (index->table[k]) {
-    if (sg_hash_equal(mrb, t, key, index->table[k]->key)) {
+    mrb_value key2 = index->table[k]->key;
+    if (!mrb_undef_p(key2) && sg_hash_equal(mrb, t, key, key2)) {
       if (vp) *vp = index->table[k]->val;
       return TRUE;
     }
