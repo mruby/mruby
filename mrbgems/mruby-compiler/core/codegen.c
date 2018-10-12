@@ -1795,8 +1795,8 @@ codegen(codegen_scope *s, node *tree, int val)
           len = 0;
         }
         else {
-          codegen(s, tree->car->car, VAL);
-          codegen(s, tree->car->cdr, VAL);
+          codegen(s, tree->car->car, val);
+          codegen(s, tree->car->cdr, val);
           len++;
         }
         tree = tree->cdr;
