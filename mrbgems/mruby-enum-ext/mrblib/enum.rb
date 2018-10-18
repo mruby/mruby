@@ -201,9 +201,7 @@ module Enumerable
       ary.push([block.call(e), i])
     }
     if ary.size > 1
-      ary.__sort_sub__(0, ary.size - 1) do |a,b|
-        a <=> b
-      end
+      ary.sort!
     end
     ary.collect{|e,i| orig[i]}
   end
