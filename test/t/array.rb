@@ -386,6 +386,12 @@ assert("Array#rindex") do
   assert_equal 0, $a.rindex(1)
 end
 
+assert('Array#sort!') do
+  a = [3, 2, 1]
+  assert_equal a, a.sort!      # sort! returns self.
+  assert_equal [1, 2, 3], a    # it is sorted.
+end
+
 assert('Array#freeze') do
   a = [].freeze
   assert_raise(RuntimeError) do
