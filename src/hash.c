@@ -717,6 +717,7 @@ mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val)
 {
   mrb_hash_modify(mrb, hash);
 
+  key = KEY(key);
   sg_put(mrb, RHASH_TBL(hash), key, val);
   mrb_field_write_barrier_value(mrb, (struct RBasic*)RHASH(hash), key);
   mrb_field_write_barrier_value(mrb, (struct RBasic*)RHASH(hash), val);
