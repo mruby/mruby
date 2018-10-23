@@ -201,16 +201,16 @@ patch_irep(mrb_state *mrb, mrb_irep *irep, int bnest, mrb_irep *top)
       break;
 
     case OP_EXT1:
-      insn = PEEK_B(irep->iseq+1);
-      i += mrb_insn_size1[insn];
+      insn = PEEK_B(irep->iseq+i+1);
+      i += mrb_insn_size1[insn]+1;
       continue;
     case OP_EXT2:
-      insn = PEEK_B(irep->iseq+1);
-      i += mrb_insn_size2[insn];
+      insn = PEEK_B(irep->iseq+i+1);
+      i += mrb_insn_size2[insn]+1;
       continue;
     case OP_EXT3:
-      insn = PEEK_B(irep->iseq+1);
-      i += mrb_insn_size3[insn];
+      insn = PEEK_B(irep->iseq+i+1);
+      i += mrb_insn_size3[insn]+1;
       continue;
     }
     i+=mrb_insn_size[insn];
