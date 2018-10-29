@@ -84,8 +84,15 @@ class Array
   end
 
   def _inspect
-    return "[]" if self.size == 0
-    "["+self.map{|x|x.inspect}.join(", ")+"]"
+    size = self.size
+    return "[]" if size == 0
+    ary=[]
+    i=0
+    while i<size
+      ary<<self[i].inspect
+      i+=1
+    end
+    "["+ary.join(", ")+"]"
   end
   ##
   # Return the contents of this array as a string.

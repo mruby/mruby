@@ -194,9 +194,16 @@ class Hash
   # internal method for Hash inspection
   def _inspect
     return "{}" if self.size == 0
-    "{"+self.map {|k,v|
-      k._inspect + "=>" + v._inspect
-    }.join(", ")+"}"
+    ary=[]
+    keys=self.keys
+    size=keys.size
+    i=0
+    while i<size
+      k=keys[i]
+      ary<<(k._inspect + "=>" + self[k]._inspect)
+      i+=1
+    end
+    "{"+ary.join(", ")+"}"
   end
   ##
   # Return the contents of this hash as a string.
