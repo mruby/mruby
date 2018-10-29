@@ -102,6 +102,10 @@ module MRuby
       build_mrbtest if test_enabled?
     end
 
+    def debug_enabled?
+      @enable_debug
+    end
+
     def enable_debug
       compilers.each do |c|
         c.defines += %w(MRB_DEBUG)
@@ -110,6 +114,8 @@ module MRuby
         end
       end
       @mrbc.compile_options += ' -g'
+
+      @enable_debug = true
     end
 
     def disable_cxx_exception
