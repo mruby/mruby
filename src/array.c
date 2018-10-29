@@ -1100,6 +1100,7 @@ mrb_ary_clear(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
 
+  mrb_get_args(mrb, "");
   ary_modify(mrb, a);
   if (ARY_SHARED_P(a)) {
     mrb_ary_decref(mrb, a->as.heap.aux.shared);
