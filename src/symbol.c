@@ -187,7 +187,7 @@ static struct reserved_symbol_t reserved_symbols[] = {
   { mrb_sym_gt, ">" },
   { mrb_sym_ge, ">=" },
   { mrb_sym_method_missing, "method_missing" },
-  { 0, NULL },
+  { mrb_sym_null, NULL },
 };
 
 void
@@ -196,7 +196,7 @@ mrb_init_symtbl(mrb_state *mrb)
   int i;
   mrb->name2sym = kh_init(n2s, mrb);
 
-  for (i = 0; reserved_symbols[i].sym != 0; ++i) {
+  for (i = 0; reserved_symbols[i].sym != mrb_sym_null; ++i) {
     mrb_sym s = mrb_intern_static(mrb, reserved_symbols[i].str, strlen(reserved_symbols[i].str));
     mrb_assert(s == reserved_symbols[i].sym);
   }

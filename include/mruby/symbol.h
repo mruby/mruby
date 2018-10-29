@@ -15,6 +15,7 @@
 MRB_BEGIN_DECL
 
 typedef enum mrb_reserved_symbol {
+  mrb_sym_null = 0, // NULL symbol
   mrb_sym_add = 1, // +
   mrb_sym_sub = 2, // -
   mrb_sym_mul = 3, // *
