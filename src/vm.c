@@ -2586,22 +2586,22 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_LT, B) {
-      OP_CMP(<, gt);
+      OP_CMP(<, lt);
       NEXT;
     }
 
     CASE(OP_LE, B) {
-      OP_CMP(<=, ge);
+      OP_CMP(<=, le);
       NEXT;
     }
 
     CASE(OP_GT, B) {
-      OP_CMP(>, lt);
+      OP_CMP(>, gt);
       NEXT;
     }
 
     CASE(OP_GE, B) {
-      OP_CMP(>=, le);
+      OP_CMP(>=, ge);
       NEXT;
     }
 
