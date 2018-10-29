@@ -16,7 +16,7 @@ assert("sleep works") do
 end
 
 assert("sleep would not accept negative value") do
-  e = run_with_catching_error{ sleep -1 }
+  e = run_with_catching_error{ sleep(-1) }
 
   assert_not_equal e, nil
   assert_equal e.class, ArgumentError
@@ -29,7 +29,7 @@ assert("usleep works") do
 end
 
 assert("usleep would not accept negative value") do
-  e = run_with_catching_error{ usleep -100 }
+  e = run_with_catching_error{ usleep(-100) }
 
   assert_not_equal e, nil
   assert_equal e.class, ArgumentError
