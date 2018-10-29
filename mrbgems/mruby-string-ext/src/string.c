@@ -235,6 +235,12 @@ mrb_str_end_with(mrb_state *mrb, mrb_value self)
   return mrb_false_value();
 }
 
+enum tr_pattern_type {
+  TR_UNINITIALIZED = 0,
+  TR_IN_ORDER  = 1,
+  TR_RANGE = 2,
+};
+
 /*
   #tr Pattern syntax
 
@@ -245,18 +251,26 @@ mrb_str_end_with(mrb_state *mrb, mrb_value self)
 */
 struct tr_pattern {
   uint8_t type;		// 1:in-order, 2:range
-  mrb_bool flag_reverse;
-  int16_t n;
+  mrb_bool flag_reverse : 1;
+  mrb_bool flag_on_stack : 1;
+  uint16_t n;
+  union {
+    uint16_t start_pos;
+    char ch[2];
+  } val;
   struct tr_pattern *next;
-  char ch[];
 };
 
-static void
+#define STATIC_TR_PATTERN { TR_UNINITIALIZED, FALSE, TRUE, 0, {}, NULL }
+
+static inline void
 tr_free_pattern(mrb_state *mrb, struct tr_pattern *pat)
 {
   while (pat) {
     struct tr_pattern *p = pat->next;
-    mrb_free(mrb, pat);
+    if (!pat->flag_on_stack) {
+      mrb_free(mrb, pat);
+    }
     pat = p;
   }
 }
@@ -277,20 +291,24 @@ tr_parse_pattern(mrb_state *mrb, struct tr_pattern *ret, const mrb_value v_patte
 
   while (i < pattern_length) {
     /* is range pattern ? */
+    mrb_bool const ret_uninit = (ret->type == TR_UNINITIALIZED);
+    pat1 = ret_uninit
+           ? ret
+           : (struct tr_pattern*)mrb_malloc_simple(mrb, sizeof(struct tr_pattern));
     if ((i+2) < pattern_length && pattern[i] != '\\' && pattern[i+1] == '-') {
-      pat1 = (struct tr_pattern*)mrb_malloc_simple(mrb, sizeof(struct tr_pattern) + 2);
       if (pat1 == NULL && ret) {
       nomem:
         tr_free_pattern(mrb, ret);
         mrb_exc_raise(mrb, mrb_obj_value(mrb->nomem_err));
         return NULL;            /* not reached */
       }
-      pat1->type = 2;
+      pat1->type = TR_RANGE;
       pat1->flag_reverse = flag_reverse;
+      pat1->flag_on_stack = ret_uninit;
       pat1->n = pattern[i+2] - pattern[i] + 1;
       pat1->next = NULL;
-      pat1->ch[0] = pattern[i];
-      pat1->ch[1] = pattern[i+2];
+      pat1->val.ch[0] = pattern[i];
+      pat1->val.ch[1] = pattern[i+2];
       i += 3;
     }
     else {
@@ -305,18 +323,18 @@ tr_parse_pattern(mrb_state *mrb, struct tr_pattern *ret, const mrb_value v_patte
       }
 
       len = i - start_pos;
-      pat1 = (struct tr_pattern*)mrb_malloc_simple(mrb, sizeof(struct tr_pattern) + len);
       if (pat1 == NULL && ret) {
         goto nomem;
       }
-      pat1->type = 1;
+      pat1->type = TR_IN_ORDER;
       pat1->flag_reverse = flag_reverse;
+      pat1->flag_on_stack = ret_uninit;
       pat1->n = len;
       pat1->next = NULL;
-      memcpy(pat1->ch, &pattern[start_pos], len);
+      pat1->val.start_pos = start_pos;
     }
 
-    if (ret == NULL) {
+    if (ret == NULL || ret_uninit) {
       ret = pat1;
     }
     else {
@@ -331,23 +349,26 @@ tr_parse_pattern(mrb_state *mrb, struct tr_pattern *ret, const mrb_value v_patte
   return ret;
 }
 
-static mrb_int
-tr_find_character(const struct tr_pattern *pat, int ch)
+static inline mrb_int
+tr_find_character(const struct tr_pattern *pat, const char *pat_str, int ch)
 {
   mrb_int ret = -1;
   mrb_int n_sum = 0;
   mrb_int flag_reverse = pat ? pat->flag_reverse : 0;
 
   while (pat != NULL) {
-    if (pat->type == 1) {	/* pat->type == 1  in-order */
+    if (pat->type == TR_IN_ORDER) {
       int i;
       for (i = 0; i < pat->n; i++) {
-	if (pat->ch[i] == ch) ret = n_sum + i;
+	if (pat_str[pat->val.start_pos + i] == ch) ret = n_sum + i;
       }
     }
-    else {                      /* pat->type == 2  range */
-      if (pat->ch[0] <= ch && ch <= pat->ch[1])
-        ret = n_sum + ch - pat->ch[0];
+    else if (pat->type == TR_RANGE) {
+      if (pat->val.ch[0] <= ch && ch <= pat->val.ch[1])
+        ret = n_sum + ch - pat->val.ch[0];
+    }
+    else {
+      mrb_assert(FALSE); // should not reach
     }
     n_sum += pat->n;
     pat = pat->next;
@@ -359,17 +380,17 @@ tr_find_character(const struct tr_pattern *pat, int ch)
   return ret;
 }
 
-static mrb_int
-tr_get_character(const struct tr_pattern *pat, mrb_int n_th)
+static inline mrb_int
+tr_get_character(const struct tr_pattern *pat, const char *pat_str, mrb_int n_th)
 {
   mrb_int n_sum = 0;
   while (pat != NULL) {
     if (n_th < (n_sum + pat->n)) {
       mrb_int i = (n_th - n_sum);
-      return (pat->type == 1) ? pat->ch[i] :pat->ch[0] + i;
+      return (pat->type == TR_IN_ORDER) ? pat_str[pat->val.start_pos + i] :pat->val.ch[0] + i;
     }
     if (pat->next == NULL) {
-      return (pat->type == 1) ? pat->ch[pat->n - 1] : pat->ch[1];
+      return (pat->type == TR_IN_ORDER) ? pat_str[pat->val.start_pos + pat->n - 1] : pat->val.ch[1];
     }
     n_sum += pat->n;
     pat = pat->next;
@@ -381,23 +402,24 @@ tr_get_character(const struct tr_pattern *pat, mrb_int n_th)
 static mrb_bool
 str_tr(mrb_state *mrb, mrb_value str, mrb_value p1, mrb_value p2, mrb_bool squeeze)
 {
-  struct tr_pattern *pat;
-  struct tr_pattern *rep;
+  struct tr_pattern pat = STATIC_TR_PATTERN;
+  struct tr_pattern rep_storage = STATIC_TR_PATTERN;
   char *s;
   mrb_int len;
   mrb_int i;
   mrb_int j;
   mrb_bool flag_changed = FALSE;
   mrb_int lastch = -1;
+  struct tr_pattern *rep;
 
   mrb_str_modify(mrb, mrb_str_ptr(str));
-  pat = tr_parse_pattern(mrb, NULL, p1, TRUE);
-  rep = tr_parse_pattern(mrb, NULL, p2, FALSE);
+  tr_parse_pattern(mrb, &pat, p1, TRUE);
+  rep = tr_parse_pattern(mrb, &rep_storage, p2, FALSE);
   s = RSTRING_PTR(str);
   len = RSTRING_LEN(str);
 
   for (i=j=0; i<len; i++,j++) {
-    mrb_int n = tr_find_character(pat, s[i]);
+    mrb_int n = tr_find_character(&pat, RSTRING_PTR(p1), s[i]);
 
     if (i>j) s[j] = s[i];
     if (n >= 0) {
@@ -406,7 +428,7 @@ str_tr(mrb_state *mrb, mrb_value str, mrb_value p1, mrb_value p2, mrb_bool squee
 	j--;
       }
       else {
-        mrb_int c = tr_get_character(rep, n);
+        mrb_int c = tr_get_character(rep, RSTRING_PTR(p2), n);
 
         if (squeeze && c == lastch) {
           j--;
@@ -421,8 +443,8 @@ str_tr(mrb_state *mrb, mrb_value str, mrb_value p1, mrb_value p2, mrb_bool squee
     }
   }
 
-  tr_free_pattern(mrb, pat);
-  if (rep) tr_free_pattern(mrb, rep);
+  tr_free_pattern(mrb, &pat);
+  tr_free_pattern(mrb, rep);
 
   if (flag_changed) {
     RSTR_SET_LEN(RSTRING(str), j);
@@ -544,6 +566,7 @@ mrb_str_tr_s_bang(mrb_state *mrb, mrb_value str)
 static mrb_bool
 str_squeeze(mrb_state *mrb, mrb_value str, mrb_value v_pat)
 {
+  struct tr_pattern pat_storage = STATIC_TR_PATTERN;
   struct tr_pattern *pat = NULL;
   mrb_int i, j;
   char *s;
@@ -553,14 +576,14 @@ str_squeeze(mrb_state *mrb, mrb_value str, mrb_value v_pat)
 
   mrb_str_modify(mrb, mrb_str_ptr(str));
   if (!mrb_nil_p(v_pat)) {
-    pat = tr_parse_pattern(mrb, pat, v_pat, TRUE);
+    pat = tr_parse_pattern(mrb, &pat_storage, v_pat, TRUE);
   }
   s = RSTRING_PTR(str);
   len = RSTRING_LEN(str);
 
   if (pat) {
     for (i=j=0; i<len; i++,j++) {
-      mrb_int n = tr_find_character(pat, s[i]);
+      mrb_int n = tr_find_character(pat, RSTRING_PTR(v_pat), s[i]);
 
       if (i>j) s[j] = s[i];
       if (n >= 0 && s[i] == lastch) {
@@ -637,19 +660,19 @@ mrb_str_squeeze_bang(mrb_state *mrb, mrb_value str)
 static mrb_bool
 str_delete(mrb_state *mrb, mrb_value str, mrb_value v_pat)
 {
-  struct tr_pattern *pat = NULL;
+  struct tr_pattern pat = STATIC_TR_PATTERN;
   mrb_int i, j;
   char *s;
   mrb_int len;
   mrb_bool flag_changed = FALSE;
 
   mrb_str_modify(mrb, mrb_str_ptr(str));
-  pat = tr_parse_pattern(mrb, pat, v_pat, TRUE);
+  tr_parse_pattern(mrb, &pat, v_pat, TRUE);
   s = RSTRING_PTR(str);
   len = RSTRING_LEN(str);
 
   for (i=j=0; i<len; i++,j++) {
-    mrb_int n = tr_find_character(pat, s[i]);
+    mrb_int n = tr_find_character(&pat, RSTRING_PTR(v_pat), s[i]);
 
     if (i>j) s[j] = s[i];
     if (n >= 0) {
@@ -657,7 +680,7 @@ str_delete(mrb_state *mrb, mrb_value str, mrb_value v_pat)
       j--;
     }
   }
-  tr_free_pattern(mrb, pat);
+  tr_free_pattern(mrb, &pat);
   if (flag_changed) {
     RSTR_SET_LEN(RSTRING(str), j);
     RSTRING_PTR(str)[j] = 0;
@@ -704,22 +727,22 @@ static mrb_value
 mrb_str_count(mrb_state *mrb, mrb_value str)
 {
   mrb_value v_pat = mrb_nil_value();
-  struct tr_pattern *pat = NULL;
   mrb_int i;
   char *s;
   mrb_int len;
   mrb_int count = 0;
+  struct tr_pattern pat = STATIC_TR_PATTERN;
 
   mrb_get_args(mrb, "S", &v_pat);
-  pat = tr_parse_pattern(mrb, pat, v_pat, TRUE);
+  tr_parse_pattern(mrb, &pat, v_pat, TRUE);
   s = RSTRING_PTR(str);
   len = RSTRING_LEN(str);
   for (i = 0; i < len; i++) {
-    mrb_int n = tr_find_character(pat, s[i]);
+    mrb_int n = tr_find_character(&pat, RSTRING_PTR(v_pat), s[i]);
 
     if (n >= 0) count++;
   }
-  tr_free_pattern(mrb, pat);
+  tr_free_pattern(mrb, &pat);
   return mrb_fixnum_value(count);
 }
 
