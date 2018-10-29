@@ -788,7 +788,8 @@ obj_free(mrb_state *mrb, struct RBasic *obj, int end)
 
       if (MRB_ENV_STACK_SHARED_P(e)) {
         /* cannot be freed */
-        return;
+        e->stack = NULL;
+        break;
       }
       mrb_free(mrb, e->stack);
       e->stack = NULL;
