@@ -18,6 +18,7 @@
 #include <mruby/opcode.h>
 #include <mruby/re.h>
 #include <mruby/throw.h>
+#include <mruby/symbol.h>
 
 #ifndef MRB_CODEGEN_LEVEL_MAX
 #define MRB_CODEGEN_LEVEL_MAX 1024
@@ -982,8 +983,9 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
     gen_move(s, cursp(), recv, 1);
     skip = genjmp2(s, OP_JMPNIL, cursp(), 0, val);
   }
-  // TODO: don't new when unused
-  idx = new_sym(s, sym);
+  if (!mrb_symbol_constsym_send_p(sym)) {
+    idx = new_sym(s, sym);
+  }
   tree = tree->cdr->cdr->car;
   if (tree) {
     n = gen_values(s, tree->car, VAL, sp?1:0);
@@ -2024,7 +2026,9 @@ codegen(codegen_scope *s, node *tree, int val)
       push(); pop();
       pop(); pop();
 
-      idx = new_sym(s, sym);
+      if (!mrb_symbol_constsym_send_p(sym)) {
+        idx = new_sym(s, sym);
+      }
       if (len == 1 && name[0] == '+')  {
         gen_addsub(s, OP_ADD, cursp());
       }
