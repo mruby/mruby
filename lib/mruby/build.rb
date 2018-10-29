@@ -45,8 +45,10 @@ module MRuby
     include Rake::DSL
     include LoadGems
     attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir
-    attr_reader :libmruby, :gems, :toolchains
+    attr_reader :libmruby_objs, :gems, :toolchains
     attr_writer :enable_bintest, :enable_test
+
+    alias libmruby libmruby_objs
 
     COMPILERS = %w(cc cxx objc asm)
     COMMANDS = COMPILERS + %w(linker archiver yacc gperf git exts mrbc)
@@ -81,7 +83,7 @@ module MRuby
         @mrbc = Command::Mrbc.new(self)
 
         @bins = []
-        @gems, @libmruby = MRuby::Gem::List.new, []
+        @gems, @libmruby_objs = MRuby::Gem::List.new, []
         @build_mrbtest_lib_only = false
         @cxx_exception_enabled = false
         @cxx_exception_disabled = false
@@ -326,6 +328,18 @@ EOS
       end
       puts "================================================"
       puts
+    end
+
+    def libmruby_static
+      libfile("#{build_dir}/lib/libmruby")
+    end
+
+    def libmruby_core_static
+      libfile("#{build_dir}/lib/libmruby_core")
+    end
+
+    def libraries
+      [libmruby_static]
     end
   end # Build
 
