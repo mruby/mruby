@@ -2442,13 +2442,13 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
-    CASE(OP_ADDI, BBB) {
+    CASE(OP_ADDI, BB) {
       /* need to check if + is overridden */
       switch (mrb_type(regs[a])) {
       case MRB_TT_FIXNUM:
         {
           mrb_int x = mrb_fixnum(regs[a]);
-          mrb_int y = (mrb_int)c;
+          mrb_int y = (mrb_int)b;
           mrb_int z;
 
           if (mrb_int_add_overflow(x, y, &z)) {
@@ -2465,22 +2465,23 @@ RETRY_TRY_BLOCK:
 #ifdef MRB_WORD_BOXING
         {
           mrb_float x = mrb_float(regs[a]);
-          SET_FLOAT_VALUE(mrb, regs[a], x + c);
+          SET_FLOAT_VALUE(mrb, regs[a], x + b);
         }
 #else
-        mrb_float(regs[a]) += c;
+        mrb_float(regs[a]) += b;
 #endif
         break;
 #endif
       default:
-        SET_INT_VALUE(regs[a+1], c);
+        SET_INT_VALUE(regs[a+1], b);
         c = 1;
-        goto L_SEND;
+        mid = mrb_sym_add;
+        goto L_SEND_CONSTSYM;
       }
       NEXT;
     }
 
-    CASE(OP_SUBI, BBB) {
+    CASE(OP_SUBI, BB) {
       mrb_value *regs_a = regs + a;
 
       /* need to check if + is overridden */
@@ -2488,7 +2489,7 @@ RETRY_TRY_BLOCK:
       case MRB_TT_FIXNUM:
         {
           mrb_int x = mrb_fixnum(regs_a[0]);
-          mrb_int y = (mrb_int)c;
+          mrb_int y = (mrb_int)b;
           mrb_int z;
 
           if (mrb_int_sub_overflow(x, y, &z)) {
@@ -2505,17 +2506,18 @@ RETRY_TRY_BLOCK:
 #ifdef MRB_WORD_BOXING
         {
           mrb_float x = mrb_float(regs[a]);
-          SET_FLOAT_VALUE(mrb, regs[a], (mrb_float)x - (mrb_float)c);
+          SET_FLOAT_VALUE(mrb, regs[a], (mrb_float)x - (mrb_float)b);
         }
 #else
-        mrb_float(regs_a[0]) -= c;
+        mrb_float(regs_a[0]) -= b;
 #endif
         break;
 #endif
       default:
-        SET_INT_VALUE(regs_a[1], c);
+        SET_INT_VALUE(regs_a[1], b);
         c = 1;
-        goto L_SEND;
+        mid = mrb_sym_sub;
+        goto L_SEND_CONSTSYM;
       }
       NEXT;
     }
