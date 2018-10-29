@@ -20,7 +20,7 @@ MRuby.each_target do
   @bins << mruby_config
 
   make_cfg = "#{build_dir}/lib/libmruby.flags.mak"
-  file mruby_config_path => [libfile("#{build_dir}/lib/libmruby"), make_cfg] do |t|
+  file mruby_config_path => [libmruby_static, make_cfg] do |t|
     FileUtils.copy "#{File.dirname(__FILE__)}/#{mruby_config}", t.name
     config = Hash[open(make_cfg).read.split("\n").map {|x| a = x.split(/\s*=\s*/, 2); [a[0], a[1].gsub('\\"', '"') ]}]
     IO.write(t.name, File.open(t.name) {|f|

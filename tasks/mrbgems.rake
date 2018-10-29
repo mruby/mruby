@@ -5,7 +5,7 @@ MRuby.each_target do
     gems.check self
 
     # loader all gems
-    self.libmruby << objfile("#{build_dir}/mrbgems/gem_init")
+    self.libmruby_objs << objfile("#{build_dir}/mrbgems/gem_init")
     file objfile("#{build_dir}/mrbgems/gem_init") => ["#{build_dir}/mrbgems/gem_init.c", "#{build_dir}/LEGAL"]
     file "#{build_dir}/mrbgems/gem_init.c" => [MRUBY_CONFIG, __FILE__] do |t|
       FileUtils.mkdir_p "#{build_dir}/mrbgems"

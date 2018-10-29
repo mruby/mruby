@@ -87,7 +87,7 @@ module MRuby
           fail "#{name || dir} required to set name, license(s) and author(s)"
         end
 
-        build.libmruby << @objs
+        build.libmruby_objs << @objs
 
         instance_eval(&@build_config_initializer) if @build_config_initializer
       end
