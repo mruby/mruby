@@ -252,7 +252,7 @@ enum tr_pattern_type {
 struct tr_pattern {
   uint8_t type;		// 1:in-order, 2:range
   mrb_bool flag_reverse : 1;
-  mrb_bool flag_on_stack : 1;
+  mrb_bool flag_on_heap : 1;
   uint16_t n;
   union {
     uint16_t start_pos;
@@ -261,14 +261,14 @@ struct tr_pattern {
   struct tr_pattern *next;
 };
 
-#define STATIC_TR_PATTERN { TR_UNINITIALIZED, FALSE, TRUE, 0, {}, NULL }
+#define STATIC_TR_PATTERN { 0 }
 
 static inline void
 tr_free_pattern(mrb_state *mrb, struct tr_pattern *pat)
 {
   while (pat) {
     struct tr_pattern *p = pat->next;
-    if (!pat->flag_on_stack) {
+    if (pat->flag_on_heap) {
       mrb_free(mrb, pat);
     }
     pat = p;
@@ -304,7 +304,7 @@ tr_parse_pattern(mrb_state *mrb, struct tr_pattern *ret, const mrb_value v_patte
       }
       pat1->type = TR_RANGE;
       pat1->flag_reverse = flag_reverse;
-      pat1->flag_on_stack = ret_uninit;
+      pat1->flag_on_heap = !ret_uninit;
       pat1->n = pattern[i+2] - pattern[i] + 1;
       pat1->next = NULL;
       pat1->val.ch[0] = pattern[i];
@@ -328,7 +328,7 @@ tr_parse_pattern(mrb_state *mrb, struct tr_pattern *ret, const mrb_value v_patte
       }
       pat1->type = TR_IN_ORDER;
       pat1->flag_reverse = flag_reverse;
-      pat1->flag_on_stack = ret_uninit;
+      pat1->flag_on_heap = !ret_uninit;
       pat1->n = len;
       pat1->next = NULL;
       pat1->val.start_pos = start_pos;
