@@ -384,13 +384,29 @@ static inline mrb_int
 tr_get_character(const struct tr_pattern *pat, const char *pat_str, mrb_int n_th)
 {
   mrb_int n_sum = 0;
+
   while (pat != NULL) {
     if (n_th < (n_sum + pat->n)) {
       mrb_int i = (n_th - n_sum);
-      return (pat->type == TR_IN_ORDER) ? pat_str[pat->val.start_pos + i] :pat->val.ch[0] + i;
+
+      switch (pat->type) {
+      case TR_IN_ORDER:
+        return pat_str[pat->val.start_pos + i];
+      case TR_RANGE:
+        return pat->val.ch[0]+i;
+      case TR_UNINITIALIZED:
+        return -1;
+      }
     }
     if (pat->next == NULL) {
-      return (pat->type == TR_IN_ORDER) ? pat_str[pat->val.start_pos + pat->n - 1] : pat->val.ch[1];
+      switch (pat->type) {
+      case TR_IN_ORDER:
+        return pat_str[pat->val.start_pos + pat->n - 1];
+      case TR_RANGE:
+        return pat->val.ch[1];
+      case TR_UNINITIALIZED:
+        return -1;
+      }
     }
     n_sum += pat->n;
     pat = pat->next;
@@ -430,11 +446,11 @@ str_tr(mrb_state *mrb, mrb_value str, mrb_value p1, mrb_value p2, mrb_bool squee
       else {
         mrb_int c = tr_get_character(rep, RSTRING_PTR(p2), n);
 
-        if (squeeze && c == lastch) {
+        if (c < 0 || (squeeze && c == lastch)) {
           j--;
           continue;
         }
-        if (c < 0 || c > 0x80) {
+        if (c > 0x80) {
           mrb_raisef(mrb, E_ARGUMENT_ERROR, "character (%S) out of range",
                      mrb_fixnum_value((mrb_int)c));
         }
