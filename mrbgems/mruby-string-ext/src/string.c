@@ -368,7 +368,7 @@ tr_find_character(const struct tr_pattern *pat, const char *pat_str, int ch)
         ret = n_sum + ch - pat->val.ch[0];
     }
     else {
-      mrb_assert(FALSE); // should not reach
+      mrb_assert(pat->type == TR_UNINITIALIZED);
     }
     n_sum += pat->n;
     pat = pat->next;
