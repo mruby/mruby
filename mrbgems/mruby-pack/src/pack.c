@@ -64,7 +64,7 @@ static int littleendian = 0;
 
 const static unsigned char base64chars[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-static signed char base64_dec_tab[128];
+static unsigned char base64_dec_tab[128];
 
 
 static int

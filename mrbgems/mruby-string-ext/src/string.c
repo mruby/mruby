@@ -279,7 +279,7 @@ static struct tr_pattern*
 tr_parse_pattern(mrb_state *mrb, struct tr_pattern *ret, const mrb_value v_pattern, mrb_bool flag_reverse_enable)
 {
   const char *pattern = RSTRING_PTR(v_pattern);
-  int pattern_length = RSTRING_LEN(v_pattern);
+  mrb_int pattern_length = RSTRING_LEN(v_pattern);
   mrb_bool flag_reverse = FALSE;
   struct tr_pattern *pat1;
   int i = 0;
@@ -438,7 +438,8 @@ str_tr(mrb_state *mrb, mrb_value str, mrb_value p1, mrb_value p2, mrb_bool squee
           mrb_raisef(mrb, E_ARGUMENT_ERROR, "character (%S) out of range",
                      mrb_fixnum_value((mrb_int)c));
         }
-	lastch = s[i] = c;
+	lastch = c;
+	s[i] = (char)c;
       }
     }
   }
