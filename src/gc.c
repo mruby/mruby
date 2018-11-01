@@ -274,9 +274,29 @@ mrb_free(mrb_state *mrb, void *p)
   (mrb->allocf)(mrb, p, 0, mrb->allocf_ud);
 }
 
+static mrb_bool
+heap_p(mrb_gc *gc, struct RBasic *object)
+{
+  mrb_heap_page* page;
+
+  page = gc->heaps;
+  while (page) {
+    RVALUE *p;
+
+    p = objects(page);
+    if (&p[0].as.basic <= object && object <= &p[MRB_HEAP_PAGE_SIZE].as.basic) {
+      return TRUE;
+    }
+    page = page->next;
+  }
+  return FALSE;
+}
+
 MRB_API mrb_bool
 mrb_object_dead_p(mrb_state *mrb, struct RBasic *object) {
-  return is_dead(&mrb->gc, object);
+  mrb_gc *gc = &mrb->gc;
+  if (!heap_p(gc, object)) return TRUE;
+  return is_dead(gc, object);
 }
 
 static void
@@ -807,7 +827,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj, int end)
 
           while (ce <= ci) {
             struct REnv *e = ci->env;
-            if (e && !is_dead(&mrb->gc, e) &&
+            if (e && !mrb_object_dead_p(mrb, (struct RBasic*)e) &&
                 e->tt == MRB_TT_ENV && MRB_ENV_STACK_SHARED_P(e)) {
               mrb_env_unshare(mrb, e);
             }
