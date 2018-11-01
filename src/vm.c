@@ -935,7 +935,7 @@ argnum_error(mrb_state *mrb, mrb_int num)
 
 #ifndef DIRECT_THREADED
 
-#define INIT_DISPATCH for (;;) { insn = BYTECODE_DECODER(*pc); pc++; CODE_FETCH_HOOK(mrb, irep, pc, regs); switch (insn) {
+#define INIT_DISPATCH for (;;) { insn = BYTECODE_DECODER(*pc); CODE_FETCH_HOOK(mrb, irep, pc, regs); switch (insn) {
 #define CASE(insn,ops) case insn: pc++; FETCH_ ## ops ();; L_ ## insn ## _BODY:
 #define NEXT break
 #define JUMP NEXT
