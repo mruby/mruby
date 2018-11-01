@@ -149,6 +149,7 @@ end
 
 assert('String#count') do
   s = "abccdeff123"
+  assert_equal 0, s.count("")
   assert_equal 1, s.count("a")
   assert_equal 2, s.count("ab")
   assert_equal 9, s.count("^c")
@@ -161,6 +162,7 @@ assert('String#tr') do
   assert_equal "hippo", "hello".tr('el', 'ip')
   assert_equal "Ruby", "Lisp".tr("Lisp", "Ruby")
   assert_equal "*e**o", "hello".tr('^aeiou', '*')
+  assert_equal "heo", "hello".tr('l', '')
 end
 
 assert('String#tr!') do
