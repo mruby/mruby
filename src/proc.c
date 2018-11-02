@@ -63,12 +63,12 @@ closure_setup(mrb_state *mrb, struct RProc *p)
 {
   mrb_callinfo *ci = mrb->c->ci;
   struct RProc *up = p->upper;
-  struct REnv *e;
+  struct REnv *e = NULL;
 
-  if (ci->env) {
+  if (ci && ci->env) {
     e = ci->env;
   }
-  else {
+  else if (up) {
     struct RClass *tc = MRB_PROC_TARGET_CLASS(p);
 
     e = env_new(mrb, up->body.irep->nlocals);
@@ -78,9 +78,11 @@ closure_setup(mrb_state *mrb, struct RProc *p)
       mrb_field_write_barrier(mrb, (struct RBasic*)e, (struct RBasic*)tc);
     }
   }
-  p->e.env = e;
-  p->flags |= MRB_PROC_ENVSET;
-  mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)e);
+  if (e) {
+    p->e.env = e;
+    p->flags |= MRB_PROC_ENVSET;
+    mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)e);
+  }
 }
 
 struct RProc*
