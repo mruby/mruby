@@ -83,23 +83,10 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
       irep->flags |= MRB_ISEQ_NO_FREE;
     }
     else {
-      irep->iseq = (mrb_code *)mrb_malloc(mrb, sizeof(mrb_code) * irep->ilen);
-      if (flags & FLAG_BYTEORDER_NATIVE) {
-        memcpy(irep->iseq, src, sizeof(uint32_t) * irep->ilen);
-        src += sizeof(uint32_t) * irep->ilen;
-      }
-      else if (flags & FLAG_BYTEORDER_BIG) {
-        for (i = 0; i < irep->ilen; i++) {
-          irep->iseq[i] = (mrb_code)bin_to_uint32(src);     /* iseq */
-          src += sizeof(uint32_t);
-        }
-      }
-      else {
-        for (i = 0; i < irep->ilen; i++) {
-          irep->iseq[i] = (mrb_code)bin_to_uint32l(src);     /* iseq */
-          src += sizeof(uint32_t);
-        }
-      }
+      size_t data_len = sizeof(mrb_code) * irep->ilen;
+      irep->iseq = (mrb_code *)mrb_malloc(mrb, data_len);
+      memcpy(irep->iseq, src, data_len);
+      src += data_len;
     }
   }
 

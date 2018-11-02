@@ -85,26 +85,8 @@ write_iseq_block(mrb_state *mrb, mrb_irep *irep, uint8_t *buf, uint8_t flags)
 
   cur += uint32_to_bin(irep->ilen, cur); /* number of opcode */
   cur += write_padding(cur);
-  switch (flags & DUMP_ENDIAN_NAT) {
-  case DUMP_ENDIAN_BIG:
-    if (bigendian_p()) goto native;
-    for (iseq_no = 0; iseq_no < irep->ilen; iseq_no++) {
-      cur += uint32_to_bin(irep->iseq[iseq_no], cur); /* opcode */
-    }
-    break;
-  case DUMP_ENDIAN_LIL:
-    if (!bigendian_p()) goto native;
-    for (iseq_no = 0; iseq_no < irep->ilen; iseq_no++) {
-      cur += uint32l_to_bin(irep->iseq[iseq_no], cur); /* opcode */
-    }
-    break;
-
-  native:
-  case DUMP_ENDIAN_NAT:
-    memcpy(cur, irep->iseq, irep->ilen * sizeof(mrb_code));
-    cur += irep->ilen * sizeof(mrb_code);
-    break;
-  }
+  memcpy(cur, irep->iseq, irep->ilen * sizeof(mrb_code));
+  cur += irep->ilen * sizeof(mrb_code);
 
   return cur - buf;
 }
