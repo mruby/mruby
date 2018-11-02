@@ -21,7 +21,6 @@
 #include <mruby/opcode.h>
 #include "value_array.h"
 #include <mruby/throw.h>
-#include <mruby/symbol.h>
 
 #ifdef MRB_DISABLE_STDIO
 #if defined(__cplusplus)
@@ -1388,18 +1387,18 @@ RETRY_TRY_BLOCK:
       SET_NIL_VALUE(regs[bidx]);
       goto L_SENDB;
     };
-    L_SEND_CONSTSYM:
+    L_SEND_SYM:
     {
       /* push nil after arguments */
       int bidx = (c == CALL_MAXARGS) ? a+2 : a+c+1;
       SET_NIL_VALUE(regs[bidx]);
-      goto L_SENDB_CONSTSYM;
+      goto L_SENDB_SYM;
     };
 
     CASE(OP_SENDB, BBB)
     L_SENDB:
     mid = syms[b];
-    L_SENDB_CONSTSYM:
+    L_SENDB_SYM:
     {
       int argc = (c == CALL_MAXARGS) ? -1 : c;
       int bidx = (argc < 0) ? a+2 : a+c+1;
@@ -2269,8 +2268,8 @@ RETRY_TRY_BLOCK:
         break;
       default:
         c = 1;
-        mid = mrb_sym_add;
-        goto L_SEND_CONSTSYM;
+        mid = mrb_intern_lit(mrb, "+");
+        goto L_SEND_SYM;
       }
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
@@ -2327,8 +2326,8 @@ RETRY_TRY_BLOCK:
 #endif
       default:
         c = 1;
-        mid = mrb_sym_sub;
-        goto L_SEND_CONSTSYM;
+        mid = mrb_intern_lit(mrb, "-");
+        goto L_SEND_SYM;
       }
       NEXT;
     }
@@ -2384,8 +2383,8 @@ RETRY_TRY_BLOCK:
 #endif
       default:
         c = 1;
-        mid = mrb_sym_mul;
-        goto L_SEND_CONSTSYM;
+        mid = mrb_intern_lit(mrb, "*");
+        goto L_SEND_SYM;
       }
       NEXT;
     }
@@ -2424,8 +2423,8 @@ RETRY_TRY_BLOCK:
 #endif
       default:
         c = 1;
-        mid = mrb_sym_div;
-        goto L_SEND_CONSTSYM;
+        mid = mrb_intern_lit(mrb, "/");
+        goto L_SEND_SYM;
       }
 
 #ifndef MRB_WITHOUT_FLOAT
@@ -2475,8 +2474,8 @@ RETRY_TRY_BLOCK:
       default:
         SET_INT_VALUE(regs[a+1], b);
         c = 1;
-        mid = mrb_sym_add;
-        goto L_SEND_CONSTSYM;
+        mid = mrb_intern_lit(mrb, "+");
+        goto L_SEND_SYM;
       }
       NEXT;
     }
@@ -2516,8 +2515,8 @@ RETRY_TRY_BLOCK:
       default:
         SET_INT_VALUE(regs_a[1], b);
         c = 1;
-        mid = mrb_sym_sub;
-        goto L_SEND_CONSTSYM;
+        mid = mrb_intern_lit(mrb, "-");
+        goto L_SEND_SYM;
       }
       NEXT;
     }
@@ -2525,7 +2524,7 @@ RETRY_TRY_BLOCK:
 #define OP_CMP_BODY(op,v1,v2) (v1(regs[a]) op v2(regs[a+1]))
 
 #ifdef MRB_WITHOUT_FLOAT
-#define OP_CMP(op, sym) do {\
+#define OP_CMP(op) do {\
   int result;\
   /* need to check if - is overridden */\
   switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {\
@@ -2534,8 +2533,8 @@ RETRY_TRY_BLOCK:
     break;\
   default:\
     c = 1;\
-    mid = mrb_sym_ ## sym;\
-    goto L_SEND_CONSTSYM;\
+    mid = mrb_intern_lit(mrb, # op);\
+    goto L_SEND_SYM;\
   }\
   if (result) {\
     SET_TRUE_VALUE(regs[a]);\
@@ -2545,7 +2544,7 @@ RETRY_TRY_BLOCK:
   }\
 } while(0)
 #else
-#define OP_CMP(op, sym) do {\
+#define OP_CMP(op) do {\
   int result;\
   /* need to check if - is overridden */\
   switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {\
@@ -2563,8 +2562,8 @@ RETRY_TRY_BLOCK:
     break;\
   default:\
     c = 1;\
-    mid = mrb_sym_ ## sym;\
-    goto L_SEND_CONSTSYM;\
+    mid = mrb_intern_lit(mrb, # op);\
+    goto L_SEND_SYM;\
   }\
   if (result) {\
     SET_TRUE_VALUE(regs[a]);\
@@ -2580,28 +2579,28 @@ RETRY_TRY_BLOCK:
         SET_TRUE_VALUE(regs[a]);
       }
       else {
-        OP_CMP(==, eq);
+        OP_CMP(==);
       }
       NEXT;
     }
 
     CASE(OP_LT, B) {
-      OP_CMP(<, lt);
+      OP_CMP(<);
       NEXT;
     }
 
     CASE(OP_LE, B) {
-      OP_CMP(<=, le);
+      OP_CMP(<=);
       NEXT;
     }
 
     CASE(OP_GT, B) {
-      OP_CMP(>, gt);
+      OP_CMP(>);
       NEXT;
     }
 
     CASE(OP_GE, B) {
-      OP_CMP(>=, ge);
+      OP_CMP(>=);
       NEXT;
     }
 

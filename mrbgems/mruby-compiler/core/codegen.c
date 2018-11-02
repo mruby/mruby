@@ -18,7 +18,6 @@
 #include <mruby/opcode.h>
 #include <mruby/re.h>
 #include <mruby/throw.h>
-#include <mruby/symbol.h>
 
 #ifndef MRB_CODEGEN_LEVEL_MAX
 #define MRB_CODEGEN_LEVEL_MAX 1024
@@ -974,7 +973,7 @@ static void
 gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
 {
   mrb_sym sym = name ? name : nsym(tree->cdr->car);
-  int idx, skip = 0;
+  int skip = 0;
   int n = 0, noop = 0, sendv = 0, blk = 0;
 
   codegen(s, tree->car, VAL); /* receiver */
@@ -982,9 +981,6 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
     int recv = cursp()-1;
     gen_move(s, cursp(), recv, 1);
     skip = genjmp2(s, OP_JMPNIL, cursp(), 0, val);
-  }
-  if (!mrb_symbol_constsym_send_p(sym)) {
-    idx = new_sym(s, sym);
   }
   tree = tree->cdr->cdr->car;
   if (tree) {
@@ -1047,6 +1043,8 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
       genop_1(s, OP_EQ, cursp());
     }
     else {
+      int idx = new_sym(s, sym);
+
       if (sendv) {
         genop_2(s, blk ? OP_SENDVB : OP_SENDV, cursp(), idx);
       }
@@ -2026,9 +2024,6 @@ codegen(codegen_scope *s, node *tree, int val)
       push(); pop();
       pop(); pop();
 
-      if (!mrb_symbol_constsym_send_p(sym)) {
-        idx = new_sym(s, sym);
-      }
       if (len == 1 && name[0] == '+')  {
         gen_addsub(s, OP_ADD, cursp());
       }
@@ -2054,6 +2049,7 @@ codegen(codegen_scope *s, node *tree, int val)
         genop_1(s, OP_GE, cursp());
       }
       else {
+        idx = new_sym(s, sym);
         genop_3(s, OP_SEND, cursp(), idx, 1);
       }
       if (callargs < 0) {
