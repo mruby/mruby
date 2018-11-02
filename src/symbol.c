@@ -11,6 +11,7 @@
 #include <mruby/string.h>
 #include <mruby/dump.h>
 #include <mruby/class.h>
+#include <mruby/symbol.h>
 
 /* ------------------------------------------------------ */
 typedef struct symbol_name {
@@ -170,10 +171,35 @@ mrb_free_symtbl(mrb_state *mrb)
   kh_destroy(n2s, mrb, mrb->name2sym);
 }
 
+struct reserved_symbol_t {
+  mrb_reserved_symbol sym;
+  char const *str;
+};
+
+static struct reserved_symbol_t reserved_symbols[] = {
+  { mrb_sym_add, "+" },
+  { mrb_sym_sub, "-" },
+  { mrb_sym_mul, "*" },
+  { mrb_sym_div, "/" },
+  { mrb_sym_eq, "==" },
+  { mrb_sym_lt, "<" },
+  { mrb_sym_le, "<=" },
+  { mrb_sym_gt, ">" },
+  { mrb_sym_ge, ">=" },
+  { mrb_sym_method_missing, "method_missing" },
+  { mrb_sym_null, NULL },
+};
+
 void
 mrb_init_symtbl(mrb_state *mrb)
 {
+  int i;
   mrb->name2sym = kh_init(n2s, mrb);
+
+  for (i = 0; reserved_symbols[i].sym != mrb_sym_null; ++i) {
+    mrb_sym s = mrb_intern_static(mrb, reserved_symbols[i].str, strlen(reserved_symbols[i].str));
+    mrb_assert(s == reserved_symbols[i].sym);
+  }
 }
 
 /**********************************************************************

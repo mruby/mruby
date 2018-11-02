@@ -70,17 +70,17 @@ OPCODE(RETURN,     B)        /* return R(a) (normal) */
 OPCODE(RETURN_BLK, B)        /* return R(a) (in-block return) */
 OPCODE(BREAK,      B)        /* break R(a) */
 OPCODE(BLKPUSH,    BS)       /* R(a) = block (16=m5:r1:m5:d1:lv4) */
-OPCODE(ADD,        BB)       /* R(a) = R(a)+R(a+1) (Syms[b]=:+) */
-OPCODE(ADDI,       BBB)      /* R(a) = R(a)+mrb_int(c) (Syms[b]=:+) */
-OPCODE(SUB,        BB)       /* R(a) = R(a)-R(a+1) (Syms[b]=:-) */
-OPCODE(SUBI,       BBB)      /* R(a) = R(a)-C (Syms[b]=:-) */
-OPCODE(MUL,        BB)       /* R(a) = R(a)*R(a+1) (Syms[b]=:*) */
-OPCODE(DIV,        BB)       /* R(a) = R(a)/R(a+1) (Syms[b]=:/) */
-OPCODE(EQ,         BB)       /* R(a) = R(a)==R(a+1) (Syms[b]=:==) */
-OPCODE(LT,         BB)       /* R(a) = R(a)<R(a+1)  (Syms[b]=:<) */
-OPCODE(LE,         BB)       /* R(a) = R(a)<=R(a+1) (Syms[b]=:<=) */
-OPCODE(GT,         BB)       /* R(a) = R(a)>R(a+1)  (Syms[b]=:>) */
-OPCODE(GE,         BB)       /* R(a) = R(a)>=R(a+1) (Syms[b]=:>=) */
+OPCODE(ADD,        B)        /* R(a) = R(a)+R(a+1) */
+OPCODE(ADDI,       BB)       /* R(a) = R(a)+mrb_int(c)  */
+OPCODE(SUB,        B)        /* R(a) = R(a)-R(a+1) */
+OPCODE(SUBI,       BB)       /* R(a) = R(a)-C */
+OPCODE(MUL,        B)        /* R(a) = R(a)*R(a+1) */
+OPCODE(DIV,        B)        /* R(a) = R(a)/R(a+1) */
+OPCODE(EQ,         B)        /* R(a) = R(a)==R(a+1) */
+OPCODE(LT,         B)        /* R(a) = R(a)<R(a+1) */
+OPCODE(LE,         B)        /* R(a) = R(a)<=R(a+1) */
+OPCODE(GT,         B)        /* R(a) = R(a)>R(a+1) */
+OPCODE(GE,         B)        /* R(a) = R(a)>=R(a+1) */
 OPCODE(ARRAY,      BB)       /* R(a) = ary_new(R(a),R(a+1)..R(a+b)) */
 OPCODE(ARRAY2,     BBB)      /* R(a) = ary_new(R(b),R(b+1)..R(b+c)) */
 OPCODE(ARYCAT,     B)        /* ary_cat(R(a),R(a+1)) */

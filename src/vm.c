@@ -21,6 +21,7 @@
 #include <mruby/opcode.h>
 #include "value_array.h"
 #include <mruby/throw.h>
+#include <mruby/symbol.h>
 
 #ifdef MRB_DISABLE_STDIO
 #if defined(__cplusplus)
@@ -1009,6 +1010,7 @@ mrb_vm_exec(mrb_state *mrb, struct RProc *proc, mrb_code *pc)
   uint32_t a;
   uint16_t b;
   uint8_t c;
+  mrb_sym mid;
 
 #ifdef DIRECT_THREADED
   static void *optable[] = {
@@ -1386,9 +1388,18 @@ RETRY_TRY_BLOCK:
       SET_NIL_VALUE(regs[bidx]);
       goto L_SENDB;
     };
+    L_SEND_CONSTSYM:
+    {
+      /* push nil after arguments */
+      int bidx = (c == CALL_MAXARGS) ? a+2 : a+c+1;
+      SET_NIL_VALUE(regs[bidx]);
+      goto L_SENDB_CONSTSYM;
+    };
 
     CASE(OP_SENDB, BBB)
     L_SENDB:
+    mid = syms[b];
+    L_SENDB_CONSTSYM:
     {
       int argc = (c == CALL_MAXARGS) ? -1 : c;
       int bidx = (argc < 0) ? a+2 : a+c+1;
@@ -1396,7 +1407,6 @@ RETRY_TRY_BLOCK:
       struct RClass *cls;
       mrb_callinfo *ci = mrb->c->ci;
       mrb_value recv, blk;
-      mrb_sym mid = syms[b];
 
       mrb_assert(bidx < irep->nregs);
 
@@ -2204,7 +2214,7 @@ RETRY_TRY_BLOCK:
   v1(regs[a]) = v1(regs[a]) op v2(regs[a+1]);\
 } while(0)
 
-    CASE(OP_ADD, BB) {
+    CASE(OP_ADD, B) {
       /* need to check if op is overridden */
       switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {
       case TYPES2(MRB_TT_FIXNUM,MRB_TT_FIXNUM):
@@ -2259,13 +2269,14 @@ RETRY_TRY_BLOCK:
         break;
       default:
         c = 1;
-        goto L_SEND;
+        mid = mrb_sym_add;
+        goto L_SEND_CONSTSYM;
       }
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
-    CASE(OP_SUB, BB) {
+    CASE(OP_SUB, B) {
       /* need to check if op is overridden */
       switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {
       case TYPES2(MRB_TT_FIXNUM,MRB_TT_FIXNUM):
@@ -2316,12 +2327,13 @@ RETRY_TRY_BLOCK:
 #endif
       default:
         c = 1;
-        goto L_SEND;
+        mid = mrb_sym_sub;
+        goto L_SEND_CONSTSYM;
       }
       NEXT;
     }
 
-    CASE(OP_MUL, BB) {
+    CASE(OP_MUL, B) {
       /* need to check if op is overridden */
       switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {
       case TYPES2(MRB_TT_FIXNUM,MRB_TT_FIXNUM):
@@ -2372,12 +2384,13 @@ RETRY_TRY_BLOCK:
 #endif
       default:
         c = 1;
-        goto L_SEND;
+        mid = mrb_sym_mul;
+        goto L_SEND_CONSTSYM;
       }
       NEXT;
     }
 
-    CASE(OP_DIV, BB) {
+    CASE(OP_DIV, B) {
 #ifndef MRB_WITHOUT_FLOAT
       double x, y, f;
 #endif
@@ -2411,7 +2424,8 @@ RETRY_TRY_BLOCK:
 #endif
       default:
         c = 1;
-        goto L_SEND;
+        mid = mrb_sym_div;
+        goto L_SEND_CONSTSYM;
       }
 
 #ifndef MRB_WITHOUT_FLOAT
@@ -2428,13 +2442,13 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
-    CASE(OP_ADDI, BBB) {
+    CASE(OP_ADDI, BB) {
       /* need to check if + is overridden */
       switch (mrb_type(regs[a])) {
       case MRB_TT_FIXNUM:
         {
           mrb_int x = mrb_fixnum(regs[a]);
-          mrb_int y = (mrb_int)c;
+          mrb_int y = (mrb_int)b;
           mrb_int z;
 
           if (mrb_int_add_overflow(x, y, &z)) {
@@ -2451,22 +2465,23 @@ RETRY_TRY_BLOCK:
 #ifdef MRB_WORD_BOXING
         {
           mrb_float x = mrb_float(regs[a]);
-          SET_FLOAT_VALUE(mrb, regs[a], x + c);
+          SET_FLOAT_VALUE(mrb, regs[a], x + b);
         }
 #else
-        mrb_float(regs[a]) += c;
+        mrb_float(regs[a]) += b;
 #endif
         break;
 #endif
       default:
-        SET_INT_VALUE(regs[a+1], c);
+        SET_INT_VALUE(regs[a+1], b);
         c = 1;
-        goto L_SEND;
+        mid = mrb_sym_add;
+        goto L_SEND_CONSTSYM;
       }
       NEXT;
     }
 
-    CASE(OP_SUBI, BBB) {
+    CASE(OP_SUBI, BB) {
       mrb_value *regs_a = regs + a;
 
       /* need to check if + is overridden */
@@ -2474,7 +2489,7 @@ RETRY_TRY_BLOCK:
       case MRB_TT_FIXNUM:
         {
           mrb_int x = mrb_fixnum(regs_a[0]);
-          mrb_int y = (mrb_int)c;
+          mrb_int y = (mrb_int)b;
           mrb_int z;
 
           if (mrb_int_sub_overflow(x, y, &z)) {
@@ -2491,17 +2506,18 @@ RETRY_TRY_BLOCK:
 #ifdef MRB_WORD_BOXING
         {
           mrb_float x = mrb_float(regs[a]);
-          SET_FLOAT_VALUE(mrb, regs[a], (mrb_float)x - (mrb_float)c);
+          SET_FLOAT_VALUE(mrb, regs[a], (mrb_float)x - (mrb_float)b);
         }
 #else
-        mrb_float(regs_a[0]) -= c;
+        mrb_float(regs_a[0]) -= b;
 #endif
         break;
 #endif
       default:
-        SET_INT_VALUE(regs_a[1], c);
+        SET_INT_VALUE(regs_a[1], b);
         c = 1;
-        goto L_SEND;
+        mid = mrb_sym_sub;
+        goto L_SEND_CONSTSYM;
       }
       NEXT;
     }
@@ -2509,7 +2525,7 @@ RETRY_TRY_BLOCK:
 #define OP_CMP_BODY(op,v1,v2) (v1(regs[a]) op v2(regs[a+1]))
 
 #ifdef MRB_WITHOUT_FLOAT
-#define OP_CMP(op) do {\
+#define OP_CMP(op, sym) do {\
   int result;\
   /* need to check if - is overridden */\
   switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {\
@@ -2518,7 +2534,8 @@ RETRY_TRY_BLOCK:
     break;\
   default:\
     c = 1;\
-    goto L_SEND;\
+    mid = mrb_sym_ ## sym;\
+    goto L_SEND_CONSTSYM;\
   }\
   if (result) {\
     SET_TRUE_VALUE(regs[a]);\
@@ -2528,7 +2545,7 @@ RETRY_TRY_BLOCK:
   }\
 } while(0)
 #else
-#define OP_CMP(op) do {\
+#define OP_CMP(op, sym) do {\
   int result;\
   /* need to check if - is overridden */\
   switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {\
@@ -2546,7 +2563,8 @@ RETRY_TRY_BLOCK:
     break;\
   default:\
     c = 1;\
-    goto L_SEND;\
+    mid = mrb_sym_ ## sym;\
+    goto L_SEND_CONSTSYM;\
   }\
   if (result) {\
     SET_TRUE_VALUE(regs[a]);\
@@ -2557,33 +2575,33 @@ RETRY_TRY_BLOCK:
 } while(0)
 #endif
 
-    CASE(OP_EQ, BB) {
+    CASE(OP_EQ, B) {
       if (mrb_obj_eq(mrb, regs[a], regs[a+1])) {
         SET_TRUE_VALUE(regs[a]);
       }
       else {
-        OP_CMP(==);
+        OP_CMP(==, eq);
       }
       NEXT;
     }
 
-    CASE(OP_LT, BB) {
-      OP_CMP(<);
+    CASE(OP_LT, B) {
+      OP_CMP(<, lt);
       NEXT;
     }
 
-    CASE(OP_LE, BB) {
-      OP_CMP(<=);
+    CASE(OP_LE, B) {
+      OP_CMP(<=, le);
       NEXT;
     }
 
-    CASE(OP_GT, BB) {
-      OP_CMP(>);
+    CASE(OP_GT, B) {
+      OP_CMP(>, gt);
       NEXT;
     }
 
-    CASE(OP_GE, BB) {
-      OP_CMP(>=);
+    CASE(OP_GE, B) {
+      OP_CMP(>=, ge);
       NEXT;
     }
 
