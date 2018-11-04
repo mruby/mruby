@@ -1780,11 +1780,9 @@ RETRY_TRY_BLOCK:
 
       /* strict argument check */
       if (mrb->c->ci->proc && MRB_PROC_STRICT_P(mrb->c->ci->proc)) {
-        if (argc >= 0 && !(argc <= 1 && kd)) {
-          if (argc < m1 + m2 + kd || (r == 0 && argc > len + kd)) {
-            argnum_error(mrb, m1+m2);
-            goto L_RAISE;
-          }
+        if (argc < m1 + m2 || (r == 0 && argc > len + kd)) {
+          argnum_error(mrb, m1+m2);
+          goto L_RAISE;
         }
       }
       /* extract first argument array to arguments */
@@ -1810,8 +1808,7 @@ RETRY_TRY_BLOCK:
             kargs = 0;
           }
           else {
-            mrb_value str = mrb_str_new_lit(mrb, "Excepcted `Hash` as last argument for keyword arguments");
-            mrb_exc_set(mrb, mrb_exc_new_str(mrb, E_ARGUMENT_ERROR, str));
+            argnum_error(mrb, m1+m2);
             goto L_RAISE;
           }
           if (MRB_ASPEC_KEY(a) > 0) {
