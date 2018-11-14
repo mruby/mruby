@@ -282,7 +282,7 @@ tr_parse_pattern(mrb_state *mrb, struct tr_pattern *ret, const mrb_value v_patte
   mrb_int pattern_length = RSTRING_LEN(v_pattern);
   mrb_bool flag_reverse = FALSE;
   struct tr_pattern *pat1;
-  int i = 0;
+  mrb_int i = 0;
 
   if(flag_reverse_enable && pattern_length >= 2 && pattern[0] == '^') {
     flag_reverse = TRUE;
@@ -313,8 +313,8 @@ tr_parse_pattern(mrb_state *mrb, struct tr_pattern *ret, const mrb_value v_patte
     }
     else {
       /* in order pattern. */
-      int start_pos = i++;
-      int len;
+      mrb_int start_pos = i++;
+      mrb_int len;
 
       while (i < pattern_length) {
 	if ((i+2) < pattern_length && pattern[i] != '\\' && pattern[i+1] == '-')
@@ -323,6 +323,9 @@ tr_parse_pattern(mrb_state *mrb, struct tr_pattern *ret, const mrb_value v_patte
       }
 
       len = i - start_pos;
+      if (len > UINT16_MAX) {
+        mrb_raise(mrb, E_ARGUMENT_ERROR, "tr pattern too long (max 65536)");
+      }
       if (pat1 == NULL && ret) {
         goto nomem;
       }
