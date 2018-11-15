@@ -913,8 +913,8 @@ argnum_error(mrb_state *mrb, mrb_int num)
   mrb_exc_set(mrb, exc);
 }
 
-#define ERR_PC_SET(mrb, pc) mrb->c->ci->err = pc;
-#define ERR_PC_CLR(mrb)     mrb->c->ci->err = 0;
+#define ERR_PC_SET(mrb) mrb->c->ci->err = pc0;
+#define ERR_PC_CLR(mrb) mrb->c->ci->err = 0;
 #ifdef MRB_ENABLE_DEBUG_HOOK
 #define CODE_FETCH_HOOK(mrb, irep, pc, regs) if ((mrb)->code_fetch_hook) (mrb)->code_fetch_hook((mrb), (irep), (pc), (regs));
 #else
@@ -936,7 +936,7 @@ argnum_error(mrb_state *mrb, mrb_int num)
 #ifndef DIRECT_THREADED
 
 #define INIT_DISPATCH for (;;) { insn = BYTECODE_DECODER(*pc); CODE_FETCH_HOOK(mrb, irep, pc, regs); switch (insn) {
-#define CASE(insn,ops) case insn: pc++; FETCH_ ## ops ();; L_ ## insn ## _BODY:
+#define CASE(insn,ops) case insn: pc0=pc++; FETCH_ ## ops ();; L_ ## insn ## _BODY:
 #define NEXT break
 #define JUMP NEXT
 #define END_DISPATCH }}
@@ -944,7 +944,7 @@ argnum_error(mrb_state *mrb, mrb_int num)
 #else
 
 #define INIT_DISPATCH JUMP; return mrb_nil_value();
-#define CASE(insn,ops) L_ ## insn: pc++; FETCH_ ## ops (); L_ ## insn ## _BODY:
+#define CASE(insn,ops) L_ ## insn: pc0=pc++; FETCH_ ## ops (); L_ ## insn ## _BODY:
 #define NEXT insn=BYTECODE_DECODER(*pc); CODE_FETCH_HOOK(mrb, irep, pc, regs); goto *optable[insn]
 #define JUMP NEXT
 
@@ -999,6 +999,7 @@ MRB_API mrb_value
 mrb_vm_exec(mrb_state *mrb, struct RProc *proc, mrb_code *pc)
 {
   /* mrb_assert(mrb_proc_cfunc_p(proc)) */
+  mrb_code *pc0 = pc;
   mrb_irep *irep = proc->body.irep;
   mrb_value *pool = irep->pool;
   mrb_sym *syms = irep->syms;
@@ -1144,7 +1145,7 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_GETCV, BB) {
       mrb_value val;
-      ERR_PC_SET(mrb, pc);
+      ERR_PC_SET(mrb);
       val = mrb_vm_cv_get(mrb, syms[b]);
       ERR_PC_CLR(mrb);
       regs[a] = val;
@@ -1160,7 +1161,7 @@ RETRY_TRY_BLOCK:
       mrb_value val;
       mrb_sym sym = syms[b];
 
-      ERR_PC_SET(mrb, pc);
+      ERR_PC_SET(mrb);
       val = mrb_vm_const_get(mrb, sym);
       ERR_PC_CLR(mrb);
       regs[a] = val;
@@ -1175,7 +1176,7 @@ RETRY_TRY_BLOCK:
     CASE(OP_GETMCNST, BB) {
       mrb_value val;
 
-      ERR_PC_SET(mrb, pc);
+      ERR_PC_SET(mrb);
       val = mrb_const_get(mrb, regs[a], syms[b]);
       ERR_PC_CLR(mrb);
       regs[a] = val;
@@ -1424,7 +1425,7 @@ RETRY_TRY_BLOCK:
         m = mrb_method_search_vm(mrb, &cls, missing);
         if (MRB_METHOD_UNDEF_P(m) || (missing == mrb->c->ci->mid && mrb_obj_eq(mrb, regs[0], recv))) {
           mrb_value args = (argc < 0) ? regs[a+1] : mrb_ary_new_from_values(mrb, c, regs+a+1);
-          ERR_PC_SET(mrb, pc);
+          ERR_PC_SET(mrb);
           mrb_method_missing(mrb, mid, recv, args);
         }
         if (argc >= 0) {
@@ -1621,7 +1622,7 @@ RETRY_TRY_BLOCK:
         m = mrb_method_search_vm(mrb, &cls, missing);
         if (MRB_METHOD_UNDEF_P(m)) {
           mrb_value args = (argc < 0) ? regs[a+1] : mrb_ary_new_from_values(mrb, b, regs+a+1);
-          ERR_PC_SET(mrb, pc);
+          ERR_PC_SET(mrb);
           mrb_method_missing(mrb, mid, recv, args);
         }
         mid = missing;
@@ -2925,7 +2926,7 @@ RETRY_TRY_BLOCK:
       mrb_value exc;
 
       exc = mrb_exc_new_str(mrb, E_LOCALJUMP_ERROR, msg);
-      ERR_PC_SET(mrb, pc);
+      ERR_PC_SET(mrb);
       mrb_exc_set(mrb, exc);
       goto L_RAISE;
     }
