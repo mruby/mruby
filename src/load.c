@@ -215,12 +215,11 @@ read_section_irep(mrb_state *mrb, const uint8_t *bin, uint8_t flags)
   return read_irep_record(mrb, bin, &len, flags);
 }
 
+/* ignore lineno record */
 static int
 read_lineno_record_1(mrb_state *mrb, const uint8_t *bin, mrb_irep *irep, size_t *len)
 {
   size_t i, fname_len, niseq;
-  char *fname;
-  uint16_t *lines;
 
   *len = 0;
   bin += sizeof(uint32_t); /* record size */
@@ -228,9 +227,6 @@ read_lineno_record_1(mrb_state *mrb, const uint8_t *bin, mrb_irep *irep, size_t 
   fname_len = bin_to_uint16(bin);
   bin += sizeof(uint16_t);
   *len += sizeof(uint16_t);
-  fname = (char *)mrb_malloc(mrb, fname_len + 1);
-  memcpy(fname, bin, fname_len);
-  fname[fname_len] = '\0';
   bin += fname_len;
   *len += fname_len;
 
@@ -241,15 +237,11 @@ read_lineno_record_1(mrb_state *mrb, const uint8_t *bin, mrb_irep *irep, size_t 
   if (SIZE_ERROR_MUL(niseq, sizeof(uint16_t))) {
     return MRB_DUMP_GENERAL_FAILURE;
   }
-  lines = (uint16_t *)mrb_malloc(mrb, niseq * sizeof(uint16_t));
   for (i = 0; i < niseq; i++) {
-    lines[i] = bin_to_uint16(bin);
     bin += sizeof(uint16_t); /* niseq */
     *len += sizeof(uint16_t);
   }
 
-  irep->filename = fname;
-  irep->lines = lines;
   return MRB_DUMP_OK;
 }
 
