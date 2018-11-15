@@ -133,6 +133,10 @@ cons_gen(parser_state *p, node *car, node *cdr)
   c->cdr = cdr;
   c->lineno = p->lineno;
   c->filename_index = p->current_filename_index;
+  /* beginning of next partial file; need to point the previous file */
+  if (p->lineno == 0 && p->current_filename_index > 0) {
+    c->filename_index-- ;
+  }
   return c;
 }
 #define cons(a,b) cons_gen(p,(a),(b))

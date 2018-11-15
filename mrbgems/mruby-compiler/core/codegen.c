@@ -156,7 +156,10 @@ emit_B(codegen_scope *s, uint32_t pc, uint8_t i)
     }
   }
   if (s->lines) {
-    s->lines[pc] = s->lineno;
+    if (s->lineno > 0 || pc == 0)
+      s->lines[pc] = s->lineno;
+    else
+      s->lines[pc] = s->lines[pc-1];
   }
   s->iseq[pc] = i;
 }
