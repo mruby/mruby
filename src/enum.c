@@ -30,7 +30,7 @@ enum_update_hash(mrb_state *mrb, mrb_value self)
     /* not reached */
     hv = 0;
   }
-  hash ^= (hv << (index % 16));
+  hash ^= ((uint32_t)hv << (index % 16));
 
   return mrb_fixnum_value(hash);
 }
