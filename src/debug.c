@@ -122,72 +122,72 @@ mrb_debug_info_alloc(mrb_state *mrb, mrb_irep *irep)
 }
 
 MRB_API mrb_irep_debug_info_file*
-mrb_debug_info_append_file(mrb_state *mrb, mrb_irep_debug_info *info,
+mrb_debug_info_append_file(mrb_state *mrb, mrb_irep_debug_info *d,
                            const char *filename, uint16_t *lines,
                            uint32_t start_pos, uint32_t end_pos)
 {
-  mrb_irep_debug_info_file *ret;
+  mrb_irep_debug_info_file *f;
   uint32_t file_pc_count;
   size_t fn_len;
   mrb_int len;
   uint32_t i;
 
-  if (!info) { return NULL; }
+  if (!d) return NULL;
+  if (start_pos == end_pos) return NULL;
 
   mrb_assert(filename);
   mrb_assert(lines);
 
-  if (info->flen > 0 && strcmp(filename, info->files[info->flen - 1]->filename) == 0) {
+  if (d->flen > 0 && strcmp(filename, d->files[d->flen - 1]->filename) == 0) {
     return NULL;
   }
 
-  ret = (mrb_irep_debug_info_file *)mrb_malloc(mrb, sizeof(*ret));
-  info->files =
-      (mrb_irep_debug_info_file**)(
-          info->files
-          ? mrb_realloc(mrb, info->files, sizeof(mrb_irep_debug_info_file*) * (info->flen + 1))
+  f = (mrb_irep_debug_info_file*)mrb_malloc(mrb, sizeof(*f));
+  d->files = (mrb_irep_debug_info_file**)(
+          d->files
+          ? mrb_realloc(mrb, d->files, sizeof(mrb_irep_debug_info_file*) * (d->flen + 1))
           : mrb_malloc(mrb, sizeof(mrb_irep_debug_info_file*)));
-  info->files[info->flen++] = ret;
+  d->files[d->flen++] = f;
 
   file_pc_count = end_pos - start_pos;
 
-  ret->start_pos = start_pos;
-  info->pc_count = end_pos;
+  f->start_pos = start_pos;
+  d->pc_count = end_pos;
 
   fn_len = strlen(filename);
-  ret->filename_sym = mrb_intern(mrb, filename, fn_len);
+  f->filename_sym = mrb_intern(mrb, filename, fn_len);
   len = 0;
-  ret->filename = mrb_sym2name_len(mrb, ret->filename_sym, &len);
+  f->filename = mrb_sym2name_len(mrb, f->filename_sym, &len);
 
-  ret->line_type = select_line_type(lines + start_pos, end_pos - start_pos);
-  ret->lines.ptr = NULL;
+  f->line_type = select_line_type(lines + start_pos, end_pos - start_pos);
+  f->lines.ptr = NULL;
 
-  switch (ret->line_type) {
+  switch (f->line_type) {
     case mrb_debug_line_ary:
-      ret->line_entry_count = file_pc_count;
-      ret->lines.ary = (uint16_t*)mrb_malloc(mrb, sizeof(uint16_t) * file_pc_count);
+      f->line_entry_count = file_pc_count;
+      f->lines.ary = (uint16_t*)mrb_malloc(mrb, sizeof(uint16_t) * file_pc_count);
       for (i = 0; i < file_pc_count; ++i) {
-        ret->lines.ary[i] = lines[start_pos + i];
+        f->lines.ary[i] = lines[start_pos + i];
       }
       break;
 
     case mrb_debug_line_flat_map: {
       uint16_t prev_line = 0;
       mrb_irep_debug_info_line m;
-      ret->lines.flat_map = (mrb_irep_debug_info_line*)mrb_malloc(mrb, sizeof(mrb_irep_debug_info_line) * 1);
-      ret->line_entry_count = 0;
+      f->lines.flat_map = (mrb_irep_debug_info_line*)mrb_malloc(mrb, sizeof(mrb_irep_debug_info_line) * 1);
+      f->line_entry_count = 0;
       for (i = 0; i < file_pc_count; ++i) {
         if (lines[start_pos + i] == prev_line) { continue; }
 
-        ret->lines.flat_map = (mrb_irep_debug_info_line*)mrb_realloc(
-            mrb, ret->lines.flat_map,
-            sizeof(mrb_irep_debug_info_line) * (ret->line_entry_count + 1));
+        f->lines.flat_map = (mrb_irep_debug_info_line*)mrb_realloc(
+            mrb, f->lines.flat_map,
+            sizeof(mrb_irep_debug_info_line) * (f->line_entry_count + 1));
         m.start_pos = start_pos + i;
         m.line = lines[start_pos + i];
-        ret->lines.flat_map[ret->line_entry_count] = m;
+        f->lines.flat_map[f->line_entry_count] = m;
 
         /* update */
-        ++ret->line_entry_count;
+        ++f->line_entry_count;
         prev_line = lines[start_pos + i];
       }
     } break;
@@ -195,7 +195,7 @@ mrb_debug_info_append_file(mrb_state *mrb, mrb_irep_debug_info *info,
     default: mrb_assert(0); break;
   }
 
-  return ret;
+  return f;
 }
 
 MRB_API void
