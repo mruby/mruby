@@ -1057,6 +1057,8 @@ mrb_hash_shift(mrb_state *mrb, mrb_value hash)
     mrb_value del_key, del_val;
 
     sg_shift(mrb, sg, &del_key, &del_val);
+    mrb_gc_protect(mrb, del_key);
+    mrb_gc_protect(mrb, del_val);
     return mrb_assoc_new(mrb, del_key, del_val);
   }
 
