@@ -838,26 +838,26 @@ write_rite_binary_header(mrb_state *mrb, size_t binary_size, uint8_t *bin, uint8
 }
 
 static mrb_bool
-is_debug_info_defined(mrb_irep *irep)
+debug_info_defined_p(mrb_irep *irep)
 {
   int i;
 
   if (!irep->debug_info) return FALSE;
   for (i=0; i<irep->rlen; i++) {
-    if (!is_debug_info_defined(irep->reps[i])) return FALSE;
+    if (!debug_info_defined_p(irep->reps[i])) return FALSE;
   }
   return TRUE;
 }
 
 static mrb_bool
-is_lv_defined(mrb_irep *irep)
+lv_defined_p(mrb_irep *irep)
 {
   int i;
 
   if (irep->lv) { return TRUE; }
 
   for (i = 0; i < irep->rlen; ++i) {
-    if (is_lv_defined(irep->reps[i])) { return TRUE; }
+    if (lv_defined_p(irep->reps[i])) { return TRUE; }
   }
 
   return FALSE;
@@ -886,7 +886,7 @@ dump_irep(mrb_state *mrb, mrb_irep *irep, uint8_t flags, uint8_t **bin, size_t *
   size_t section_irep_size;
   size_t section_lineno_size = 0, section_lv_size = 0;
   uint8_t *cur = NULL;
-  mrb_bool const debug_info_defined = is_debug_info_defined(irep), lv_defined = is_lv_defined(irep);
+  mrb_bool const debug_info_defined = debug_info_defined_p(irep), lv_defined = lv_defined_p(irep);
   mrb_sym *lv_syms = NULL; uint32_t lv_syms_len = 0;
   mrb_sym *filenames = NULL; uint16_t filenames_len = 0;
 
