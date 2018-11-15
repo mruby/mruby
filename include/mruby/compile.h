@@ -158,8 +158,8 @@ struct mrb_parser_state {
   struct mrb_parser_message warn_buffer[10];
 
   mrb_sym* filename_table;
-  size_t filename_table_length;
-  int current_filename_index;
+  uint16_t filename_table_length;
+  uint16_t current_filename_index;
 
   struct mrb_jmpbuf* jmp;
 };
