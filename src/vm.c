@@ -1892,7 +1892,7 @@ RETRY_TRY_BLOCK:
       mrb_value k = mrb_symbol_value(syms[b]);
       mrb_value kdict = regs[mrb->c->ci->argc];
 
-      if (!mrb_hash_key_p(mrb, kdict, k)) {
+      if (!mrb_hash_p(kdict) || !mrb_hash_key_p(mrb, kdict, k)) {
         mrb_value str = mrb_format(mrb, "missing keyword: %S", k);
         mrb_exc_set(mrb, mrb_exc_new_str(mrb, E_ARGUMENT_ERROR, str));
         goto L_RAISE;
@@ -1905,8 +1905,11 @@ RETRY_TRY_BLOCK:
     CASE(OP_KEY_P, BB) {
       mrb_value k = mrb_symbol_value(syms[b]);
       mrb_value kdict = regs[mrb->c->ci->argc];
-      mrb_bool key_p = mrb_hash_key_p(mrb, kdict, k);
+      mrb_bool key_p = FALSE;
 
+      if (mrb_hash_p(kdict)) {
+        key_p = mrb_hash_key_p(mrb, kdict, k);
+      }
       regs[a] = mrb_bool_value(key_p);
       NEXT;
     }
