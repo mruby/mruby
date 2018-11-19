@@ -352,6 +352,7 @@ MRB_API double mrb_str_to_dbl(mrb_state *mrb, mrb_value str, mrb_bool badcheck);
 
 /*
  * Returns a converted string type.
+ * For type checking, non converting `mrb_to_str` is recommended.
  */
 MRB_API mrb_value mrb_str_to_str(mrb_state *mrb, mrb_value str);
 

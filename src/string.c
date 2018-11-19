@@ -748,9 +748,7 @@ mrb_str_to_cstr(mrb_state *mrb, mrb_value str0)
 MRB_API void
 mrb_str_concat(mrb_state *mrb, mrb_value self, mrb_value other)
 {
-  if (!mrb_string_p(other)) {
-    other = mrb_str_to_str(mrb, other);
-  }
+  other = mrb_str_to_str(mrb, other);
   mrb_str_cat_str(mrb, self, other);
 }
 
@@ -993,15 +991,15 @@ mrb_str_to_str(mrb_state *mrb, mrb_value str)
 MRB_API const char*
 mrb_string_value_ptr(mrb_state *mrb, mrb_value ptr)
 {
-  mrb_value str = mrb_str_to_str(mrb, ptr);
-  return RSTRING_PTR(str);
+  mrb_to_str(mrb, ptr);
+  return RSTRING_PTR(ptr);
 }
 
 MRB_API mrb_int
 mrb_string_value_len(mrb_state *mrb, mrb_value ptr)
 {
-  mrb_value str = mrb_str_to_str(mrb, ptr);
-  return RSTRING_LEN(str);
+  mrb_to_str(mrb, ptr);
+  return RSTRING_LEN(ptr);
 }
 
 void
@@ -2183,7 +2181,7 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, int base, int badcheck)
 MRB_API const char*
 mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr)
 {
-  mrb_value str = mrb_str_to_str(mrb, *ptr);
+  mrb_value str = mrb_to_str(mrb, *ptr);
   struct RString *ps = mrb_str_ptr(str);
   mrb_int len = mrb_str_strlen(mrb, ps);
   char *p = RSTR_PTR(ps);
@@ -2313,7 +2311,7 @@ mrb_str_to_dbl(mrb_state *mrb, mrb_value str, mrb_bool badcheck)
   char *s;
   mrb_int len;
 
-  str = mrb_str_to_str(mrb, str);
+  mrb_to_str(mrb, str);
   s = RSTRING_PTR(str);
   len = RSTRING_LEN(str);
   if (s) {
@@ -2600,7 +2598,7 @@ mrb_str_cat_str(mrb_state *mrb, mrb_value str, mrb_value str2)
 MRB_API mrb_value
 mrb_str_append(mrb_state *mrb, mrb_value str1, mrb_value str2)
 {
-  str2 = mrb_str_to_str(mrb, str2);
+  mrb_to_str(mrb, str2);
   return mrb_str_cat_str(mrb, str1, str2);
 }
 
