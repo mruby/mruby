@@ -22,8 +22,7 @@ assert 'Enumerator.new' do
   assert_equal [1,2,3], Enumerator.new(@obj, :foo, 1,2,3).to_a
   assert_equal [1,2,3], Enumerator.new { |y| i = 0; loop { y << (i += 1) } }.take(3)
   assert_raise(ArgumentError) { Enumerator.new }
-  enum = @obj.to_enum
-  assert_raise(NoMethodError) { enum.each {} }
+  assert_raise(ArgumentError) { @obj.to_enum }
 
   # examples
   fib = Enumerator.new do |y|

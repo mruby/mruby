@@ -614,6 +614,9 @@ module Kernel
   #     enum.first(4) # => [1, 1, 1, 2]
   #
   def to_enum(meth=:each, *args)
+    unless self.respond_to?(meth)
+      raise ArgumentError, "undefined method #{meth}"
+    end
     Enumerator.new self, meth, *args
   end
   alias enum_for to_enum
