@@ -313,6 +313,10 @@ MRB_API mrb_value mrb_str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb
  */
 MRB_API mrb_value mrb_ensure_string_type(mrb_state *mrb, mrb_value str);
 MRB_API mrb_value mrb_check_string_type(mrb_state *mrb, mrb_value str);
+/* obsolete: use mrb_ensure_string_type() instead */
+MRB_API mrb_value mrb_string_type(mrb_state *mrb, mrb_value str);
+
+
 MRB_API mrb_value mrb_str_new_capa(mrb_state *mrb, size_t capa);
 MRB_API mrb_value mrb_str_buf_new(mrb_state *mrb, size_t capa);
 
