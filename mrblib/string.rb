@@ -12,7 +12,7 @@ class String
   def each_line(rs = "\n", &block)
     return to_enum(:each_line, rs, &block) unless block
     return block.call(self) if rs.nil?
-    rs = rs.__to_str
+    rs.__to_str
     offset = 0
     rs_len = rs.length
     this = dup
@@ -67,7 +67,7 @@ class String
       block = nil
     end
     if !replace.nil? || !block
-      replace = replace.__to_str
+      replace.__to_str
     end
     offset = 0
     result = []
@@ -129,12 +129,12 @@ class String
     end
 
     pattern, replace = *args
-    pattern = pattern.__to_str
+    pattern.__to_str
     if args.length == 2 && block
       block = nil
     end
     unless block
-      replace = replace.__to_str
+      replace.__to_str
     end
     result = []
     this = dup
