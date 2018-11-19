@@ -364,6 +364,9 @@ ecall(mrb_state *mrb)
   if (exc) {
     mrb_gc_protect(mrb, mrb_obj_value(exc));
   }
+  if (mrb->c->fib) {
+    mrb_gc_protect(mrb, mrb_obj_value(mrb->c->fib));
+  }
   mrb_run(mrb, p, env->stack[0]);
   mrb->c = c;
   c->ci = c->cibase + cioff;
