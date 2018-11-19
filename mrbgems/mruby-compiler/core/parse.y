@@ -2482,6 +2482,7 @@ f_margs         : f_marg_list
                     }
                 | f_marg_list ',' tSTAR
                     {
+                      local_add_f(p, 0);
                       $$ = list3($1, (node*)-1, 0);
                     }
                 | f_marg_list ',' tSTAR ',' f_marg_list
@@ -2498,11 +2499,16 @@ f_margs         : f_marg_list
                     }
                 | tSTAR
                     {
+                      local_add_f(p, 0);
                       $$ = list3(0, (node*)-1, 0);
                     }
-                | tSTAR ',' f_marg_list
+                | tSTAR ','
                     {
-                      $$ = list3(0, (node*)-1, $3);
+                      local_add_f(p, 0);
+                    }
+                  f_marg_list
+                    {
+                      $$ = list3(0, (node*)-1, $4);
                     }
                 ;
 
