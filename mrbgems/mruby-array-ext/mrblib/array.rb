@@ -1,4 +1,3 @@
-# coding: cp932
 class Array
   ##
   # call-seq:
@@ -927,7 +926,7 @@ class Array
   #
   # Assumes that self is an array of arrays and transposes the rows and columns.
   #
-  # If the length of the subarrays don’t match, an IndexError is raised.
+  # If the length of the subarrays don't match, an IndexError is raised.
   #
   # Examples:
   #
