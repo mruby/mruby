@@ -989,10 +989,10 @@ mrb_str_to_str(mrb_state *mrb, mrb_value str)
 }
 
 MRB_API const char*
-mrb_string_value_ptr(mrb_state *mrb, mrb_value ptr)
+mrb_string_value_ptr(mrb_state *mrb, mrb_value str)
 {
-  mrb_to_str(mrb, ptr);
-  return RSTRING_PTR(ptr);
+  str = mrb_str_to_str(mrb, str);
+  return RSTRING_PTR(str);
 }
 
 MRB_API mrb_int
