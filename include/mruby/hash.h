@@ -18,7 +18,7 @@ MRB_BEGIN_DECL
 struct RHash {
   MRB_OBJECT_HEADER;
   struct iv_tbl *iv;
-  struct seglist *ht;
+  struct htable *ht;
 };
 
 #define mrb_hash_ptr(v)    ((struct RHash*)(mrb_ptr(v)))
