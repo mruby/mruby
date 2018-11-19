@@ -17,6 +17,7 @@ print_r(mrb_state *mrb, mrb_irep *irep, size_t n)
     if (irep->lv[i].r == n) {
       mrb_sym sym = irep->lv[i].name;
       printf(" R%d:%s", (int)n, mrb_sym2name(mrb, sym));
+      break;
     }
   }
 }
@@ -81,8 +82,9 @@ codedump(mrb_state *mrb, mrb_irep *irep)
 
     printf("local variable names:\n");
     for (i = 1; i < irep->nlocals; ++i) {
-      char const *n = mrb_sym2name(mrb, irep->lv[i - 1].name);
-      printf("  R%d:%s\n", irep->lv[i - 1].r, n? n : "");
+      char const *s = mrb_sym2name(mrb, irep->lv[i - 1].name);
+      int n = irep->lv[i - 1].r ? irep->lv[i - 1].r : i;
+      printf("  R%d:%s\n", n, s ? s : "");
     }
   }
 
