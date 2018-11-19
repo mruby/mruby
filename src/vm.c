@@ -973,14 +973,14 @@ mrb_vm_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stac
   stack_clear(c->stack + stack_keep, nregs - stack_keep);
   c->stack[0] = self;
   result = mrb_vm_exec(mrb, proc, irep->iseq);
-  if (c->ci - c->cibase > cioff) {
-    c->ci = c->cibase + cioff;
-  }
   if (mrb->c != c) {
     if (mrb->c->fib) {
       mrb_write_barrier(mrb, (struct RBasic*)mrb->c->fib);
     }
     mrb->c = c;
+  }
+  else if (c->ci - c->cibase > cioff) {
+    c->ci = c->cibase + cioff;
   }
   return result;
 }
