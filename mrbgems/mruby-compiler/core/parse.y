@@ -1078,7 +1078,6 @@ heredoc_end(parser_state *p)
     end_strterm(p);
     p->lex_strterm = p->lex_strterm_before_heredoc;
     p->lex_strterm_before_heredoc = NULL;
-    p->heredoc_end_now = TRUE;
   }
   else {
     /* next heredoc */

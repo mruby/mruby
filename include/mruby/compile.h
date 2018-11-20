@@ -143,7 +143,6 @@ struct mrb_parser_state {
   mrb_ast_node *heredocs_from_nextline;
   mrb_ast_node *parsing_heredoc;
   mrb_ast_node *lex_strterm_before_heredoc;
-  mrb_bool heredoc_end_now:1; /* for mirb */
 
   void *ylval;
 
