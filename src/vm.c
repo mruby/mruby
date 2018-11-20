@@ -55,7 +55,7 @@ void abort(void);
 
 /* Maximum depth of ecall() recursion. */
 #ifndef MRB_ECALL_DEPTH_MAX
-#define MRB_ECALL_DEPTH_MAX 32
+#define MRB_ECALL_DEPTH_MAX 512
 #endif
 
 /* Maximum stack depth. Should be set lower on memory constrained systems.
@@ -337,7 +337,8 @@ ecall(mrb_state *mrb)
   int nregs;
 
   if (i<0) return;
-  if (ci - c->cibase > MRB_ECALL_DEPTH_MAX) {
+  /* restrict total call depth of ecall() */
+  if (++mrb->ecall_nest > MRB_ECALL_DEPTH_MAX) {
     mrb_exc_raise(mrb, mrb_obj_value(mrb->stack_err));
   }
   p = c->ensure[i];
@@ -372,6 +373,7 @@ ecall(mrb_state *mrb)
   c->ci = c->cibase + cioff;
   if (!mrb->exc) mrb->exc = exc;
   mrb_gc_arena_restore(mrb, ai);
+  mrb->ecall_nest--;
 }
 
 #ifndef MRB_FUNCALL_ARGC_MAX
