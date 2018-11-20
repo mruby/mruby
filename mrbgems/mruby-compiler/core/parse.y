@@ -3710,14 +3710,6 @@ nextc(parser_state *p)
   if (c >= 0) {
     p->column++;
   }
-  if (c == '\r') {
-    c = nextc(p);
-    if (c != '\n') {
-      pushback(p, c);
-      return '\r';
-    }
-    return c;
-  }
   return c;
 
   eof:
