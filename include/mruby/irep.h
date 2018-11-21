@@ -48,8 +48,13 @@ typedef struct mrb_irep {
 #define MRB_ISEQ_NO_FREE 1
 
 MRB_API mrb_irep *mrb_add_irep(mrb_state *mrb);
+
+/* @param [const uint8_t*] irep code, expected as a literal */
 MRB_API mrb_value mrb_load_irep(mrb_state*, const uint8_t*);
+
+/* @param [const uint8_t*] irep code, expected as a literal */
 MRB_API mrb_value mrb_load_irep_cxt(mrb_state*, const uint8_t*, mrbc_context*);
+
 void mrb_irep_free(mrb_state*, struct mrb_irep*);
 void mrb_irep_incref(mrb_state*, struct mrb_irep*);
 void mrb_irep_decref(mrb_state*, struct mrb_irep*);
