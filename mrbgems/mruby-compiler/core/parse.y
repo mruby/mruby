@@ -1171,7 +1171,7 @@ heredoc_end(parser_state *p)
 %type <nd> command_args aref_args opt_block_arg block_arg var_ref var_lhs
 %type <nd> command_asgn command_rhs mrhs superclass block_call block_command
 %type <nd> f_block_optarg f_block_opt
-%type <nd> f_arglist f_args f_arg f_arg_item f_optarg f_marg f_marg_list f_margs
+%type <nd> f_arglist f_args f_arg f_arg_item f_optarg f_margs
 %type <nd> assoc_list assocs assoc undef_list backref for_var
 %type <nd> block_param opt_block_param block_param_def f_opt
 %type <nd> bv_decls opt_bv_decl bvar f_larglist lambda_body
@@ -2447,44 +2447,24 @@ for_var         : lhs
                 | mlhs
                 ;
 
-f_marg          : f_norm_arg
-                    {
-                      $$ = new_arg(p, $1);
-                    }
-                | tLPAREN f_margs rparen
-                    {
-                      $$ = new_masgn(p, $2, 0);
-                    }
-                ;
-
-f_marg_list     : f_marg
-                    {
-                      $$ = list1($1);
-                    }
-                | f_marg_list ',' f_marg
-                    {
-                      $$ = push($1, $3);
-                    }
-                ;
-
-f_margs         : f_marg_list
+f_margs         : f_arg
                     {
                       $$ = list3($1,0,0);
                     }
-                | f_marg_list ',' tSTAR f_norm_arg
+                | f_arg ',' tSTAR f_norm_arg
                     {
                       $$ = list3($1, new_arg(p, $4), 0);
                     }
-                | f_marg_list ',' tSTAR f_norm_arg ',' f_marg_list
+                | f_arg ',' tSTAR f_norm_arg ',' f_arg
                     {
                       $$ = list3($1, new_arg(p, $4), $6);
                     }
-                | f_marg_list ',' tSTAR
+                | f_arg ',' tSTAR
                     {
                       local_add_f(p, 0);
                       $$ = list3($1, (node*)-1, 0);
                     }
-                | f_marg_list ',' tSTAR ',' f_marg_list
+                | f_arg ',' tSTAR ',' f_arg
                     {
                       $$ = list3($1, (node*)-1, $5);
                     }
@@ -2492,7 +2472,7 @@ f_margs         : f_marg_list
                     {
                       $$ = list3(0, new_arg(p, $2), 0);
                     }
-                | tSTAR f_norm_arg ',' f_marg_list
+                | tSTAR f_norm_arg ',' f_arg
                     {
                       $$ = list3(0, new_arg(p, $2), $4);
                     }
@@ -2505,7 +2485,7 @@ f_margs         : f_marg_list
                     {
                       local_add_f(p, 0);
                     }
-                  f_marg_list
+                  f_arg
                     {
                       $$ = list3(0, (node*)-1, $4);
                     }
