@@ -734,15 +734,13 @@ lambda_body(codegen_scope *s, node *tree, int blk)
     mrb_aspec a;
     int ma, oa, ra, pa, ka, kd, ba;
     int pos, i;
-    node *n, *opt;
+    node *opt;
+    node *margs, *pargs;
     node *tail;
 
     /* mandatory arguments */
     ma = node_len(tree->car->car);
-    n = tree->car->car;
-    while (n) {
-      n = n->cdr;
-    }
+    margs = tree->car->car;
     tail = tree->car->cdr->cdr->cdr->cdr;
 
     /* optional arguments */
@@ -751,6 +749,7 @@ lambda_body(codegen_scope *s, node *tree, int blk)
     ra = tree->car->cdr->cdr->car ? 1 : 0;
     /* mandatory arugments after rest argument */
     pa = node_len(tree->car->cdr->cdr->cdr->car);
+    pargs = tree->car->cdr->cdr->cdr->car;
     /* keyword arguments */
     ka = tail? node_len(tail->cdr->car) : 0;
     /* keyword dictionary? */
@@ -798,6 +797,7 @@ lambda_body(codegen_scope *s, node *tree, int blk)
       dispatch(s, pos+i*3+1);
     }
 
+    /* keyword arguments */
     if (tail) {
       node *kwds = tail->cdr->car;
       int kwrest = 0;
@@ -836,7 +836,34 @@ lambda_body(codegen_scope *s, node *tree, int blk)
         genop_0(s, OP_KEYEND);
       }
     }
+
+    /* argument destructuring */
+    if (margs) {
+      node *n = margs;
+
+      pos = 1;
+      while (n) {
+        if (nint(n->car->car) == NODE_MASGN) {
+          gen_vmassignment(s, n->car->cdr->car, pos, NOVAL);
+        }
+        pos++;
+        n = n->cdr;
+      }
+    }
+    if (pargs) {
+      node *n = margs;
+
+      pos = ma+oa+ra+1;
+      while (n) {
+        if (nint(n->car->car) == NODE_MASGN) {
+          gen_vmassignment(s, n->car->cdr->car, pos, NOVAL);
+        }
+        pos++;
+        n = n->cdr;
+      }
+    }
   }
+
   codegen(s, tree->cdr->car, VAL);
   pop();
   if (s->pc > 0) {
@@ -1066,6 +1093,7 @@ gen_assignment(codegen_scope *s, node *tree, int sp, int val)
     idx = new_sym(s, nsym(tree));
     genop_2(s, OP_SETGV, sp, idx);
     break;
+  case NODE_ARG:
   case NODE_LVAR:
     idx = lv_idx(s, nsym(tree));
     if (idx > 0) {
@@ -1173,7 +1201,7 @@ gen_vmassignment(codegen_scope *s, node *tree, int rhs, int val)
     pop_n(post+1);
     genop_3(s, OP_APOST, cursp(), n, post);
     n = 1;
-    if (t->car) {               /* rest */
+    if (t->car && t->car != (node*)-1) { /* rest */
       gen_assignment(s, t->car, cursp(), NOVAL);
     }
     if (t->cdr && t->cdr->car) {

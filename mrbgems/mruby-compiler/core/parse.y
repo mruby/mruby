@@ -682,6 +682,25 @@ new_arg(parser_state *p, mrb_sym sym)
   return cons((node*)NODE_ARG, nsym(sym));
 }
 
+static void
+local_add_margs(parser_state *p, node *n)
+{
+  while (n) {
+    if (n->car->car == (node*)NODE_MASGN) {
+      node *t = n->car->cdr->cdr;
+
+      n->car->cdr->cdr = NULL;
+      while (t) {
+        local_add_f(p, sym(t->car));
+        t = t->cdr;
+      }
+      local_add_margs(p, n->car->cdr->car->car);
+      local_add_margs(p, n->car->cdr->car->cdr->cdr->car);
+    }
+    n = n->cdr;
+  }
+}
+
 /* (m o r m2 tail) */
 /* m: (a b c) */
 /* o: ((a . e1) (b . e2)) */
@@ -693,6 +712,8 @@ new_args(parser_state *p, node *m, node *opt, mrb_sym rest, node *m2, node *tail
 {
   node *n;
 
+  local_add_margs(p, m);
+  local_add_margs(p, m2);
   n = cons(m2, tail);
   n = cons(nsym(rest), n);
   n = cons(opt, n);
@@ -3275,9 +3296,15 @@ f_arg_item      : f_norm_arg
                     {
                       $$ = new_arg(p, $1);
                     }
-                | tLPAREN f_margs rparen
+                | tLPAREN
                     {
-                      $$ = new_masgn(p, $2, 0);
+                      $<nd>$ = local_switch(p);
+                    }
+                  f_margs rparen
+                    {
+                      $$ = new_masgn(p, $3, p->locals->car);
+                      local_resume(p, $<nd>2);
+                      local_add_f(p, 0);
                     }
                 ;
 
