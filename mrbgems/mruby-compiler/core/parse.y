@@ -682,6 +682,25 @@ new_arg(parser_state *p, mrb_sym sym)
   return cons((node*)NODE_ARG, nsym(sym));
 }
 
+static void
+local_add_margs(parser_state *p, node *n)
+{
+  while (n) {
+    if (n->car->car == (node*)NODE_MASGN) {
+      node *t = n->car->cdr->cdr;
+
+      n->car->cdr->cdr = NULL;
+      while (t) {
+        local_add_f(p, sym(t->car));
+        t = t->cdr;
+      }
+      local_add_margs(p, n->car->cdr->car->car);
+      local_add_margs(p, n->car->cdr->car->cdr->cdr->car);
+    }
+    n = n->cdr;
+  }
+}
+
 /* (m o r m2 tail) */
 /* m: (a b c) */
 /* o: ((a . e1) (b . e2)) */
@@ -693,6 +712,8 @@ new_args(parser_state *p, node *m, node *opt, mrb_sym rest, node *m2, node *tail
 {
   node *n;
 
+  local_add_margs(p, m);
+  local_add_margs(p, m2);
   n = cons(m2, tail);
   n = cons(nsym(rest), n);
   n = cons(opt, n);
@@ -1171,7 +1192,7 @@ heredoc_end(parser_state *p)
 %type <nd> command_args aref_args opt_block_arg block_arg var_ref var_lhs
 %type <nd> command_asgn command_rhs mrhs superclass block_call block_command
 %type <nd> f_block_optarg f_block_opt
-%type <nd> f_arglist f_args f_arg f_arg_item f_optarg f_marg f_marg_list f_margs
+%type <nd> f_arglist f_args f_arg f_arg_item f_optarg f_margs
 %type <nd> assoc_list assocs assoc undef_list backref for_var
 %type <nd> block_param opt_block_param block_param_def f_opt
 %type <nd> bv_decls opt_bv_decl bvar f_larglist lambda_body
@@ -2447,44 +2468,24 @@ for_var         : lhs
                 | mlhs
                 ;
 
-f_marg          : f_norm_arg
-                    {
-                      $$ = new_arg(p, $1);
-                    }
-                | tLPAREN f_margs rparen
-                    {
-                      $$ = new_masgn(p, $2, 0);
-                    }
-                ;
-
-f_marg_list     : f_marg
-                    {
-                      $$ = list1($1);
-                    }
-                | f_marg_list ',' f_marg
-                    {
-                      $$ = push($1, $3);
-                    }
-                ;
-
-f_margs         : f_marg_list
+f_margs         : f_arg
                     {
                       $$ = list3($1,0,0);
                     }
-                | f_marg_list ',' tSTAR f_norm_arg
+                | f_arg ',' tSTAR f_norm_arg
                     {
                       $$ = list3($1, new_arg(p, $4), 0);
                     }
-                | f_marg_list ',' tSTAR f_norm_arg ',' f_marg_list
+                | f_arg ',' tSTAR f_norm_arg ',' f_arg
                     {
                       $$ = list3($1, new_arg(p, $4), $6);
                     }
-                | f_marg_list ',' tSTAR
+                | f_arg ',' tSTAR
                     {
                       local_add_f(p, 0);
                       $$ = list3($1, (node*)-1, 0);
                     }
-                | f_marg_list ',' tSTAR ',' f_marg_list
+                | f_arg ',' tSTAR ',' f_arg
                     {
                       $$ = list3($1, (node*)-1, $5);
                     }
@@ -2492,7 +2493,7 @@ f_margs         : f_marg_list
                     {
                       $$ = list3(0, new_arg(p, $2), 0);
                     }
-                | tSTAR f_norm_arg ',' f_marg_list
+                | tSTAR f_norm_arg ',' f_arg
                     {
                       $$ = list3(0, new_arg(p, $2), $4);
                     }
@@ -2505,7 +2506,7 @@ f_margs         : f_marg_list
                     {
                       local_add_f(p, 0);
                     }
-                  f_marg_list
+                  f_arg
                     {
                       $$ = list3(0, (node*)-1, $4);
                     }
@@ -3295,9 +3296,15 @@ f_arg_item      : f_norm_arg
                     {
                       $$ = new_arg(p, $1);
                     }
-                | tLPAREN f_margs rparen
+                | tLPAREN
                     {
-                      $$ = new_masgn(p, $2, 0);
+                      $<nd>$ = local_switch(p);
+                    }
+                  f_margs rparen
+                    {
+                      $$ = new_masgn(p, $3, p->locals->car);
+                      local_resume(p, $<nd>2);
+                      local_add_f(p, 0);
                     }
                 ;
 

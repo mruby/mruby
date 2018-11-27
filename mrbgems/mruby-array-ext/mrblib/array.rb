@@ -291,7 +291,7 @@ class Array
   #                              #=> "100 is out of bounds"
   #
 
-  def fetch(n=nil, ifnone=NONE, &block)
+  def fetch(n, ifnone=NONE, &block)
     warn "block supersedes default value argument" if !n.nil? && ifnone != NONE && block
 
     idx = n
