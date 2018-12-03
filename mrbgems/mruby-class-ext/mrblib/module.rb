@@ -4,7 +4,7 @@ class Module
   # call-seq:
   #   mod < other   ->  true, false, or nil
   #
-  # Returns true if <i>mod</i> is a subclass of <i>other</i>. Returns
+  # Returns true if `mod` is a subclass of `other`. Returns
   # <code>nil</code> if there's no relationship between the two.
   # (Think of the relationship in terms of the class definition:
   # "class A < B" implies "A < B".)
@@ -22,8 +22,8 @@ class Module
   # call-seq:
   #   mod <= other   ->  true, false, or nil
   #
-  # Returns true if <i>mod</i> is a subclass of <i>other</i> or
-  # is the same as <i>other</i>. Returns
+  # Returns true if `mod` is a subclass of `other` or
+  # is the same as `other`. Returns
   # <code>nil</code> if there's no relationship between the two.
   # (Think of the relationship in terms of the class definition:
   # "class A < B" implies "A < B".)
