@@ -10,7 +10,6 @@ class Module
   # "class A < B" implies "A < B".)
   #
   def <(other)
-    raise TypeError, 'compared with non class/module' unless other.is_a?(Module)
     if self.equal?(other)
       false
     else
