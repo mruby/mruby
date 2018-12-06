@@ -45,7 +45,7 @@ module MRuby
     include Rake::DSL
     include LoadGems
     attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir
-    attr_reader :libmruby_objs, :gems, :toolchains
+    attr_reader :libmruby_objs, :gems, :toolchains, :locks
     attr_writer :enable_bintest, :enable_test
 
     alias libmruby libmruby_objs
@@ -70,7 +70,7 @@ module MRuby
 
         @file_separator = '/'
         @build_dir = "#{build_dir}/#{@name}"
-        @gem_clone_dir = "#{build_dir}/mrbgems"
+        @gem_clone_dir = "#{@build_dir}/repos"
         @cc = Command::Compiler.new(self, %w(.c))
         @cxx = Command::Compiler.new(self, %w(.cc .cxx .cpp))
         @objc = Command::Compiler.new(self, %w(.m))
@@ -91,6 +91,10 @@ module MRuby
         @enable_bintest = false
         @enable_test = false
         @toolchains = []
+
+        @locks = MRUBY_CONFIG_LOCK['builds'][@name] if MRUBY_CONFIG_LOCK['builds']
+        @locks ||= {}
+        @enable_lock = true
 
         MRuby.targets[@name] = self
       end
@@ -116,6 +120,10 @@ module MRuby
       @mrbc.compile_options += ' -g'
 
       @enable_debug = true
+    end
+
+    def disable_lock
+      @enable_lock = false
     end
 
     def disable_cxx_exception
