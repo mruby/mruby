@@ -667,10 +667,11 @@ eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
     return MRB_PROC_CFUNC(p)(mrb, self);
   }
   nregs = p->body.irep->nregs;
-  mrb_stack_extend(mrb, (nregs < 3) ? 3 : nregs);
+  if (nregs < 3) nregs = 3;
+  mrb_stack_extend(mrb, nregs);
   mrb->c->stack[0] = self;
   mrb->c->stack[1] = self;
-  mrb->c->stack[2] = mrb_nil_value();
+  stack_clear(mrb->c->stack+2, nregs-2);
   ci = cipush(mrb);
   ci->target_class = 0;
   ci->pc = p->body.irep->iseq;
