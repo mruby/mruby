@@ -38,7 +38,7 @@ typedef struct segindex {
   struct segkv *table[];
 } segindex;
 
-/* Instance variable table structure */
+/* hash table structure */
 typedef struct htable {
   segment *rootseg;
   segment *lastseg;
@@ -132,7 +132,7 @@ ht_hash_equal(mrb_state *mrb, htable *t, mrb_value a, mrb_value b)
   } 
 }
 
-/* Creates the instance variable table. */
+/* Creates the hash table. */
 static htable*
 ht_new(mrb_state *mrb)
 {
@@ -346,7 +346,7 @@ ht_index_put(mrb_state *mrb, htable *t, mrb_value key, mrb_value val)
   t->size++;
 }
 
-/* Set the value for the key in the table. */
+/* Set the value for the key in the hash table. */
 static void
 ht_put(mrb_state *mrb, htable *t, mrb_value key, mrb_value val)
 {
@@ -465,7 +465,7 @@ ht_get(mrb_state *mrb, htable *t, mrb_value key, mrb_value *vp)
   return FALSE;
 }
 
-/* Deletes the value for the symbol from the instance variable table. */
+/* Deletes the value for the symbol from the hash table. */
 /* Deletion is done by overwriting keys by `undef`. */
 static mrb_bool
 ht_del(mrb_state *mrb, htable *t, mrb_value key, mrb_value *vp)
@@ -496,7 +496,7 @@ ht_del(mrb_state *mrb, htable *t, mrb_value key, mrb_value *vp)
   return FALSE;
 }
 
-/* Iterates over the instance variable table. */
+/* Iterates over the hash table. */
 static void
 ht_foreach(mrb_state *mrb, htable *t, ht_foreach_func *func, void *p)
 {
@@ -519,14 +519,14 @@ ht_foreach(mrb_state *mrb, htable *t, ht_foreach_func *func, void *p)
   }
 }
 
-/* Iterates over the instance variable table. */
+/* Iterates over the hash table. */
 MRB_API void
 mrb_hash_foreach(mrb_state *mrb, struct RHash *hash, ht_foreach_func *func, void *p)
 {
   ht_foreach(mrb, hash->ht, func, p);
 }
 
-/* Copy the instance variable table. */
+/* Copy the hash table. */
 static htable*
 ht_copy(mrb_state *mrb, htable *t)
 {
@@ -552,7 +552,7 @@ ht_copy(mrb_state *mrb, htable *t)
   return t2;
 }
 
-/* Free memory of the instance variable table. */
+/* Free memory of the hash table. */
 static void
 ht_free(mrb_state *mrb, htable *t)
 {
@@ -1012,7 +1012,7 @@ mrb_hash_delete(mrb_state *mrb, mrb_value self)
   return mrb_hash_delete_key(mrb, self, key);
 }
 
-/* find first element in a hash table, and remove it. */
+/* find first element in the hash table, and remove it. */
 static void
 ht_shift(mrb_state *mrb, htable *t, mrb_value *kp, mrb_value *vp)
 {
