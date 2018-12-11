@@ -230,7 +230,7 @@ usage(const char *name)
 {
   static const char *const usage_msg[] = {
   "switches:",
-  "-d           set $DEBUG to true (same as `mruby -d`)"
+  "-d           set $DEBUG to true (same as `mruby -d`)",
   "-r library   same as `mruby -r`",
   "-v           print version number, then run in verbose mode",
   "--verbose    run in verbose mode",

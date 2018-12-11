@@ -41,7 +41,7 @@ usage(const char *name)
   "switches:",
   "-b           load and execute RiteBinary (mrb) file",
   "-c           check syntax only",
-  "-d           set debugging flags (set $DEBUG to true)"
+  "-d           set debugging flags (set $DEBUG to true)",
   "-e 'command' one line of script",
   "-r library   load the library before executing your script",
   "-v           print version number, then run in verbose mode",

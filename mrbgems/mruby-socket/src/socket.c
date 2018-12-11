@@ -10,6 +10,7 @@
   #include <winsock2.h>
   #include <ws2tcpip.h>
   #include <windows.h>
+  #include <winerror.h>
 
   #define SHUT_RDWR SD_BOTH
   #ifndef _SSIZE_T_DEFINED

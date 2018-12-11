@@ -38,7 +38,7 @@ puts [1,2,3]
 3
 ```
 
-#### mruby [1.4.1 (2018-4-27)]
+#### mruby [2.0.0 (2018-12-11)]
 
 ```
 [1, 2, 3]
@@ -61,7 +61,7 @@ end
 
 ```ZeroDivisionError``` is raised.
 
-#### mruby [1.4.1 (2018-4-27)]
+#### mruby [2.0.0 (2018-12-11)]
 
 No exception is raised.
 
@@ -119,7 +119,7 @@ false
 true
 ```
 
-#### mruby [1.4.1 (2018-4-27)]
+#### mruby [2.0.0 (2018-12-11)]
 
 ```
 true
@@ -142,7 +142,7 @@ defined?(Foo)
 nil
 ```
 
-#### mruby [1.4.1 (2018-4-27)]
+#### mruby [2.0.0 (2018-12-11)]
 
 ```NameError``` is raised.
 
@@ -159,7 +159,7 @@ alias $a $__a__
 
 ``` nil ```
 
-#### mruby [1.4.1 (2018-4-27)]
+#### mruby [2.0.0 (2018-12-11)]
 
 Syntax error
 
@@ -181,7 +181,7 @@ end
 ```ArgumentError``` is raised.
 The re-defined ```+``` operator does not accept any arguments.
 
-#### mruby [1.4.1 (2018-4-27)]
+#### mruby [2.0.0 (2018-12-11)]
 
 ``` 'ab' ```
 Behavior of the operator wasn't changed.
@@ -197,7 +197,7 @@ $ ruby -e 'puts Proc.new {}.binding'
 #<Binding:0x00000e9deabb9950>
 ```
 
-#### mruby [1.4.1 (2018-4-27)]
+#### mruby [2.0.0 (2018-12-11)]
 
 ```
 $ ./bin/mruby -e 'puts Proc.new {}.binding'
