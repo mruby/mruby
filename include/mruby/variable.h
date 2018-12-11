@@ -132,8 +132,8 @@ size_t mrb_gc_mark_iv_size(mrb_state*, struct RObject*);
 void mrb_gc_free_iv(mrb_state*, struct RObject*);
 
 /* return non zero to break the loop */
-typedef int (iv_foreach_func)(mrb_state*,mrb_sym,mrb_value,void*);
-MRB_API void mrb_iv_foreach(mrb_state *mrb, mrb_value obj, iv_foreach_func *func, void *p);
+typedef int (mrb_iv_foreach_func)(mrb_state*,mrb_sym,mrb_value,void*);
+MRB_API void mrb_iv_foreach(mrb_state *mrb, mrb_value obj, mrb_iv_foreach_func *func, void *p);
 
 MRB_END_DECL
 

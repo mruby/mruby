@@ -156,7 +156,7 @@ iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 
 /* Iterates over the instance variable table. */
 static void
-iv_foreach(mrb_state *mrb, iv_tbl *t, iv_foreach_func *func, void *p)
+iv_foreach(mrb_state *mrb, iv_tbl *t, mrb_iv_foreach_func *func, void *p)
 {
   segment *seg;
   size_t i;
@@ -360,7 +360,7 @@ mrb_obj_iv_set(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
 
 /* Iterates over the instance variable table. */
 MRB_API void
-mrb_iv_foreach(mrb_state *mrb, mrb_value obj, iv_foreach_func *func, void *p)
+mrb_iv_foreach(mrb_state *mrb, mrb_value obj, mrb_iv_foreach_func *func, void *p)
 {
   if (!obj_iv_p(obj)) return;
   iv_foreach(mrb, mrb_obj_ptr(obj)->iv, func, p);
