@@ -156,14 +156,13 @@ iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 }
 
 /* Iterates over the instance variable table. */
-static mrb_bool
+static void
 iv_foreach(mrb_state *mrb, iv_tbl *t, iv_foreach_func *func, void *p)
 {
   segment *seg;
   size_t i;
-  int n;
 
-  if (t == NULL) return TRUE;
+  if (t == NULL) return;
   seg = t->rootseg;
   while (seg) {
     for (i=0; i<MRB_IV_SEGMENT_SIZE; i++) {
@@ -171,20 +170,17 @@ iv_foreach(mrb_state *mrb, iv_tbl *t, iv_foreach_func *func, void *p)
 
       /* no value in last segment after last_len */
       if (!seg->next && i >= t->last_len) {
-        return FALSE;
+        return;
       }
       if (key != 0) {
-        n =(*func)(mrb, key, seg->val[i], p);
-        if (n > 0) return FALSE;
-        if (n < 0) {
-          t->size--;
-          seg->key[i] = 0;
+        if ((*func)(mrb, key, seg->val[i], p) != 0) {
+          return;
         }
       }
     }
     seg = seg->next;
   }
-  return TRUE;
+  return;
 }
 
 /* Get the size of the instance variable table. */
