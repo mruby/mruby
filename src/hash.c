@@ -19,7 +19,7 @@ mrb_int mrb_float_id(mrb_float f);
 #ifndef MRB_HT_INIT_SIZE
 #define MRB_HT_INIT_SIZE 4
 #endif
-#define HT_SEG_INCREASE_RATIO 1.2
+#define HT_SEG_INCREASE_RATIO 6 / 5
 
 struct segkv {
   mrb_value key;
