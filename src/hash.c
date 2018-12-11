@@ -498,7 +498,7 @@ ht_del(mrb_state *mrb, htable *t, mrb_value key, mrb_value *vp)
 
 /* Iterates over the hash table. */
 static void
-ht_foreach(mrb_state *mrb, htable *t, ht_foreach_func *func, void *p)
+ht_foreach(mrb_state *mrb, htable *t, mrb_hash_foreach_func *func, void *p)
 {
   segment *seg;
   mrb_int i;
@@ -521,7 +521,7 @@ ht_foreach(mrb_state *mrb, htable *t, ht_foreach_func *func, void *p)
 
 /* Iterates over the hash table. */
 MRB_API void
-mrb_hash_foreach(mrb_state *mrb, struct RHash *hash, ht_foreach_func *func, void *p)
+mrb_hash_foreach(mrb_state *mrb, struct RHash *hash, mrb_hash_foreach_func *func, void *p)
 {
   ht_foreach(mrb, hash->ht, func, p);
 }
