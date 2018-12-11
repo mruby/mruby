@@ -8,7 +8,7 @@ MRuby::Build.new do |conf|
 
     # ... (snip) ...
 
-    conf.gem :git => 'https://github.com/matsumoto-r/mruby-sleep.git'
+    conf.gem :core => 'mruby-sleep'
 end
 ```
 
