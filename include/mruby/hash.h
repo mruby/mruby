@@ -210,6 +210,10 @@ void mrb_gc_mark_hash(mrb_state*, struct RHash*);
 size_t mrb_gc_mark_hash_size(mrb_state*, struct RHash*);
 void mrb_gc_free_hash(mrb_state*, struct RHash*);
 
+/* return non zero to break the loop */
+typedef int (ht_foreach_func)(mrb_state *mrb, mrb_value key, mrb_value val, void *data);
+MRB_API void mrb_hash_foreach(mrb_state *mrb, struct RHash *hash, ht_foreach_func *func, void *p);
+
 MRB_END_DECL
 
 #endif  /* MRUBY_HASH_H */

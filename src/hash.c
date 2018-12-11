@@ -16,9 +16,6 @@
 mrb_int mrb_float_id(mrb_float f);
 #endif
 
-/* return non zero to break the loop */
-typedef int (ht_foreach_func)(mrb_state *mrb,mrb_value key, mrb_value val, void *data);
-
 #ifndef MRB_HT_INIT_SIZE
 #define MRB_HT_INIT_SIZE 4
 #endif
@@ -520,6 +517,13 @@ ht_foreach(mrb_state *mrb, htable *t, ht_foreach_func *func, void *p)
     }
     seg = seg->next;
   }
+}
+
+/* Iterates over the instance variable table. */
+MRB_API void
+mrb_hash_foreach(mrb_state *mrb, struct RHash *hash, ht_foreach_func *func, void *p)
+{
+  ht_foreach(mrb, hash->ht, func, p);
 }
 
 /* Copy the instance variable table. */
