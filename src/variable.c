@@ -9,8 +9,7 @@
 #include <mruby/class.h>
 #include <mruby/proc.h>
 #include <mruby/string.h>
-
-typedef int (iv_foreach_func)(mrb_state*,mrb_sym,mrb_value,void*);
+#include <mruby/variable.h>
 
 #ifndef MRB_IV_SEGMENT_SIZE
 #define MRB_IV_SEGMENT_SIZE 4
@@ -357,6 +356,14 @@ mrb_obj_iv_set(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
   t = obj->iv;
   iv_put(mrb, t, sym, v);
   mrb_write_barrier(mrb, (struct RBasic*)obj);
+}
+
+/* Iterates over the instance variable table. */
+MRB_API void
+mrb_iv_foreach(mrb_state *mrb, mrb_value obj, iv_foreach_func *func, void *p)
+{
+  if (!obj_iv_p(obj)) return;
+  iv_foreach(mrb, mrb_obj_ptr(obj)->iv, func, p);
 }
 
 static inline mrb_bool
