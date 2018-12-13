@@ -9,6 +9,7 @@
 
 #include "common.h"
 #include <mruby/khash.h>
+#include <mruby/htable.h>
 
 /**
  * Hash class
