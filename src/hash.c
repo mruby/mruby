@@ -1133,6 +1133,15 @@ mrb_hash_aset(mrb_state *mrb, mrb_value self)
   return val;
 }
 
+MRB_API mrb_int
+mrb_hash_size(mrb_state *mrb, mrb_value hash)
+{
+  htable *t = RHASH_TBL(hash);
+
+  if (!t) return 0;
+  return t->size;
+}
+
 /* 15.2.13.4.20 */
 /* 15.2.13.4.25 */
 /*
@@ -1150,10 +1159,7 @@ mrb_hash_aset(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_hash_size_m(mrb_state *mrb, mrb_value self)
 {
-  htable *t = RHASH_TBL(self);
-
-  if (!t) return mrb_fixnum_value(0);
-  return mrb_fixnum_value(t->size);
+  return mrb_fixnum_value(mrb_hash_size(mrb, self));
 }
 
 MRB_API mrb_bool

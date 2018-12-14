@@ -166,6 +166,19 @@ MRB_API mrb_value mrb_hash_values(mrb_state *mrb, mrb_value hash);
 MRB_API mrb_value mrb_hash_clear(mrb_state *mrb, mrb_value hash);
 
 /*
+ * Get hash size.
+ *
+ * Equivalent to:
+ *
+ *      hash.size
+ *
+ * @param mrb The mruby state reference.
+ * @param hash The target hash.
+ * @return The hash size.
+ */
+MRB_API mrb_int mrb_hash_size(mrb_state *mrb, mrb_value hash);
+
+/*
  * Copies the hash.
  *
  *
