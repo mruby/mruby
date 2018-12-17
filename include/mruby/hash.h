@@ -8,7 +8,6 @@
 #define MRUBY_HASH_H
 
 #include "common.h"
-#include <mruby/khash.h>
 
 /**
  * Hash class
@@ -198,14 +197,12 @@ MRB_API mrb_value mrb_hash_dup(mrb_state *mrb, mrb_value hash);
  */
 MRB_API void mrb_hash_merge(mrb_state *mrb, mrb_value hash1, mrb_value hash2);
 
-/* declaration of struct kh_ht */
+/* declaration of struct mrb_hash_value */
 /* be careful when you touch the internal */
 typedef struct {
   mrb_value v;
   mrb_int n;
 } mrb_hash_value;
-
-KHASH_DECLARE(ht, mrb_value, mrb_hash_value, TRUE)
 
 /* RHASH_TBL allocates st_table if not available. */
 #define RHASH(obj)   ((struct RHash*)(mrb_ptr(obj)))
