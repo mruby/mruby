@@ -1089,7 +1089,6 @@ mrb_ary_clear(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
 
-  mrb_get_args(mrb, "");
   ary_modify(mrb, a);
   if (ARY_SHARED_P(a)) {
     mrb_ary_decref(mrb, a->as.heap.aux.shared);
@@ -1101,6 +1100,13 @@ mrb_ary_clear(mrb_state *mrb, mrb_value self)
   ARY_SET_EMBED_LEN(a, 0);
 
   return self;
+}
+
+static mrb_value
+mrb_ary_clear_m(mrb_state *mrb, mrb_value self)
+{
+  mrb_get_args(mrb, "");
+  return mrb_ary_clear(mrb, self);
 }
 
 static mrb_value
@@ -1268,7 +1274,7 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method(mrb, a, "<<",              mrb_ary_push_m,       MRB_ARGS_REQ(1)); /* 15.2.12.5.3  */
   mrb_define_method(mrb, a, "[]",              mrb_ary_aget,         MRB_ARGS_ANY());  /* 15.2.12.5.4  */
   mrb_define_method(mrb, a, "[]=",             mrb_ary_aset,         MRB_ARGS_ANY());  /* 15.2.12.5.5  */
-  mrb_define_method(mrb, a, "clear",           mrb_ary_clear,        MRB_ARGS_NONE()); /* 15.2.12.5.6  */
+  mrb_define_method(mrb, a, "clear",           mrb_ary_clear_m,      MRB_ARGS_NONE()); /* 15.2.12.5.6  */
   mrb_define_method(mrb, a, "concat",          mrb_ary_concat_m,     MRB_ARGS_REQ(1)); /* 15.2.12.5.8  */
   mrb_define_method(mrb, a, "delete_at",       mrb_ary_delete_at,    MRB_ARGS_REQ(1)); /* 15.2.12.5.9  */
   mrb_define_method(mrb, a, "empty?",          mrb_ary_empty_p,      MRB_ARGS_NONE()); /* 15.2.12.5.12 */
