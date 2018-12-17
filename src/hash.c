@@ -1159,7 +1159,8 @@ mrb_hash_size(mrb_state *mrb, mrb_value hash)
 static mrb_value
 mrb_hash_size_m(mrb_state *mrb, mrb_value self)
 {
-  return mrb_fixnum_value(mrb_hash_size(mrb, self));
+  mrb_int size = mrb_hash_size(mrb, self);
+  return mrb_fixnum_value(size);
 }
 
 MRB_API mrb_bool
