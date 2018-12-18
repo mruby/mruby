@@ -40,9 +40,9 @@ MRB_API struct RData *mrb_data_object_alloc(mrb_state *mrb, struct RClass* klass
   mrb_data_object_alloc(mrb,klass,ptr,type)
 
 #define Data_Make_Struct(mrb,klass,strct,type,sval,data) do { \
-  sval = mrb_malloc(mrb, sizeof(strct));                     \
-  { static const strct zero = { 0 }; *sval = zero; };\
-  data = Data_Wrap_Struct(mrb,klass,type,sval);\
+  (sval) = mrb_malloc(mrb, sizeof(strct));                     \
+  { static const strct zero = { 0 }; *(sval) = zero; };\
+  (data) = Data_Wrap_Struct(mrb,klass,type,sval);\
 } while (0)
 
 #define RDATA(obj)         ((struct RData *)(mrb_ptr(obj)))

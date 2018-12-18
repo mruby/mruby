@@ -69,11 +69,11 @@ struct RProc {
 #define MRB_PROC_SET_TARGET_CLASS(p,tc) do {\
   if (MRB_PROC_ENV_P(p)) {\
     (p)->e.env->c = (tc);\
-    mrb_field_write_barrier(mrb, (struct RBasic*)(p)->e.env, (struct RBasic*)tc);\
+    mrb_field_write_barrier(mrb, (struct RBasic*)(p)->e.env, (struct RBasic*)(tc));\
   }\
   else {\
     (p)->e.target_class = (tc);\
-    mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)tc);\
+    mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)(tc));\
   }\
 } while (0)
 #define MRB_PROC_SCOPE 2048
@@ -101,8 +101,8 @@ MRB_API mrb_value mrb_proc_cfunc_env_get(mrb_state*, mrb_int);
 #define MRB_METHOD_FUNC_FL ((uintptr_t)1)
 #define MRB_METHOD_FUNC_P(m) (((uintptr_t)(m))&MRB_METHOD_FUNC_FL)
 #define MRB_METHOD_FUNC(m) ((mrb_func_t)((uintptr_t)(m)&(~MRB_METHOD_FUNC_FL)))
-#define MRB_METHOD_FROM_FUNC(m,fn) m=(mrb_method_t)((struct RProc*)((uintptr_t)(fn)|MRB_METHOD_FUNC_FL))
-#define MRB_METHOD_FROM_PROC(m,pr) m=(mrb_method_t)(struct RProc*)(pr)
+#define MRB_METHOD_FROM_FUNC(m,fn) (m)=(mrb_method_t)((struct RProc*)((uintptr_t)(fn)|MRB_METHOD_FUNC_FL))
+#define MRB_METHOD_FROM_PROC(m,pr) (m)=(mrb_method_t)(struct RProc*)(pr)
 #define MRB_METHOD_PROC_P(m) (!MRB_METHOD_FUNC_P(m))
 #define MRB_METHOD_PROC(m) ((struct RProc*)(m))
 #define MRB_METHOD_UNDEF_P(m) ((m)==0)

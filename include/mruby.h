@@ -995,8 +995,8 @@ MRB_API char* mrb_locale_from_utf8(const char *p, int len);
 #define mrb_locale_free(p) free(p)
 #define mrb_utf8_free(p) free(p)
 #else
-#define mrb_utf8_from_locale(p, l) ((char*)p)
-#define mrb_locale_from_utf8(p, l) ((char*)p)
+#define mrb_utf8_from_locale(p, l) ((char*)(p))
+#define mrb_locale_from_utf8(p, l) ((char*)(p))
 #define mrb_locale_free(p)
 #define mrb_utf8_free(p)
 #endif

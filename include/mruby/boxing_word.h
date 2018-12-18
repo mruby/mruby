@@ -129,13 +129,13 @@ mrb_type(mrb_value o)
 } while (0)
 
 #ifndef MRB_WITHOUT_FLOAT
-#define SET_FLOAT_VALUE(mrb,r,v) r = mrb_word_boxing_float_value(mrb, v)
+#define SET_FLOAT_VALUE(mrb,r,v) (r) = mrb_word_boxing_float_value(mrb, v)
 #endif
-#define SET_CPTR_VALUE(mrb,r,v) r = mrb_word_boxing_cptr_value(mrb, v)
+#define SET_CPTR_VALUE(mrb,r,v) (r) = mrb_word_boxing_cptr_value(mrb, v)
 #define SET_NIL_VALUE(r) BOXWORD_SET_VALUE(r, MRB_TT_FALSE, value.i, 0)
 #define SET_FALSE_VALUE(r) BOXWORD_SET_VALUE(r, MRB_TT_FALSE, value.i, 1)
 #define SET_TRUE_VALUE(r) BOXWORD_SET_VALUE(r, MRB_TT_TRUE, value.i, 1)
-#define SET_BOOL_VALUE(r,b) BOXWORD_SET_VALUE(r, b ? MRB_TT_TRUE : MRB_TT_FALSE, value.i, 1)
+#define SET_BOOL_VALUE(r,b) BOXWORD_SET_VALUE(r, (b) ? MRB_TT_TRUE : MRB_TT_FALSE, value.i, 1)
 #define SET_INT_VALUE(r,n) BOXWORD_SET_VALUE(r, MRB_TT_FIXNUM, value.i, (n))
 #define SET_SYM_VALUE(r,v) BOXWORD_SET_VALUE(r, MRB_TT_SYMBOL, value.sym, (v))
 #define SET_OBJ_VALUE(r,v) BOXWORD_SET_VALUE(r, (((struct RObject*)(v))->tt), value.p, (v))
