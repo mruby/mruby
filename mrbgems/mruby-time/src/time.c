@@ -296,7 +296,7 @@ current_mrb_time(mrb_state *mrb)
   struct mrb_time *tm;
 
   tm = (struct mrb_time *)mrb_malloc(mrb, sizeof(*tm));
-#if defined(TIME_UTC)
+#if defined(TIME_UTC) && !defined(__ANDROID__)
   {
     struct timespec ts;
     if (timespec_get(&ts, TIME_UTC) == 0) {
