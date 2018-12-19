@@ -39,15 +39,15 @@ struct RString {
 #define RSTR_UNSET_EMBED_FLAG(s) ((s)->flags &= ~(MRB_STR_EMBED|MRB_STR_EMBED_LEN_MASK))
 #define RSTR_SET_EMBED_LEN(s, n) do {\
   size_t tmp_n = (n);\
-  s->flags &= ~MRB_STR_EMBED_LEN_MASK;\
-  s->flags |= (tmp_n) << MRB_STR_EMBED_LEN_SHIFT;\
+  (s)->flags &= ~MRB_STR_EMBED_LEN_MASK;\
+  (s)->flags |= (tmp_n) << MRB_STR_EMBED_LEN_SHIFT;\
 } while (0)
 #define RSTR_SET_LEN(s, n) do {\
   if (RSTR_EMBED_P(s)) {\
     RSTR_SET_EMBED_LEN((s),(n));\
   }\
   else {\
-    s->as.heap.len = (mrb_int)(n);\
+    (s)->as.heap.len = (mrb_int)(n);\
   }\
 } while (0)
 #define RSTR_EMBED_LEN(s)\
