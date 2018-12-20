@@ -60,19 +60,28 @@ enum {
 #define PACK_BASE64_IGNORE	0xff
 #define PACK_BASE64_PADDING	0xfe
 
-static int littleendian = 0;
-
 const static unsigned char base64chars[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 static unsigned char base64_dec_tab[128];
 
-
-static int
+#ifdef BYTE_ORDER
+# if BYTE_ORDER == BIG_ENDIAN
+#  define littleendian 0
+#  define check_little_endian() (void)0
+# elif BYTE_ORDER == LITTLE_ENDIAN
+#  define littleendian 1
+#  define check_little_endian() (void)0
+# else
+/* can't distinguish endian in compile time */
+static int littleendian = 0;
+static void
 check_little_endian(void)
 {
   unsigned int n = 1;
-  return (*(unsigned char *)&n == 1);
+  littleendian = (*(unsigned char *)&n == 1);
 }
+# endif
+#endif
 
 static unsigned int
 hex2int(unsigned char ch)
@@ -313,21 +322,23 @@ pack_double(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned i
   d = mrb_float(o);
 
   if (flags & PACK_FLAG_LITTLEENDIAN) {
-#ifdef MRB_ENDIAN_BIG
-    for (i = 0; i < 8; ++i) {
-      RSTRING_PTR(str)[sidx + i] = buffer[8 - i - 1];
+    if (littleendian) {
+      memcpy(RSTRING_PTR(str) + sidx, buffer, 8);
     }
-#else
-    memcpy(RSTRING_PTR(str) + sidx, buffer, 8);
-#endif
+    else {
+      for (i = 0; i < 8; ++i) {
+        RSTRING_PTR(str)[sidx + i] = buffer[8 - i - 1];
+      }
+    }
   } else {
-#ifdef MRB_ENDIAN_BIG
-    memcpy(RSTRING_PTR(str) + sidx, buffer, 8);
-#else
-    for (i = 0; i < 8; ++i) {
-      RSTRING_PTR(str)[sidx + i] = buffer[8 - i - 1];
+    if (littleendian) {
+      for (i = 0; i < 8; ++i) {
+        RSTRING_PTR(str)[sidx + i] = buffer[8 - i - 1];
+      }
     }
-#endif
+    else {
+      memcpy(RSTRING_PTR(str) + sidx, buffer, 8);
+    }
   }
 
   return 8;
@@ -341,21 +352,23 @@ unpack_double(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value a
   uint8_t *buffer = (uint8_t *)&d;
 
   if (flags & PACK_FLAG_LITTLEENDIAN) {
-#ifdef MRB_ENDIAN_BIG
-    for (i = 0; i < 8; ++i) {
-      buffer[8 - i - 1] = src[i];
+    if (littleendian) {
+      memcpy(buffer, src, 8);
     }
-#else
-    memcpy(buffer, src, 8);
-#endif
+    else {
+      for (i = 0; i < 8; ++i) {
+        buffer[8 - i - 1] = src[i];
+      }
+    }
   } else {
-#ifdef MRB_ENDIAN_BIG
-    memcpy(buffer, src, 8);
-#else
-    for (i = 0; i < 8; ++i) {
-      buffer[8 - i - 1] = src[i];
+    if (littleendian) {
+      for (i = 0; i < 8; ++i) {
+        buffer[8 - i - 1] = src[i];
+      }
     }
-#endif
+    else {
+      memcpy(buffer, src, 8);
+    }
   }
   mrb_ary_push(mrb, ary, mrb_float_value(mrb, d));
 
@@ -372,21 +385,23 @@ pack_float(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned in
   f = (float)mrb_float(o);
 
   if (flags & PACK_FLAG_LITTLEENDIAN) {
-#ifdef MRB_ENDIAN_BIG
-    for (i = 0; i < 4; ++i) {
-      RSTRING_PTR(str)[sidx + i] = buffer[4 - i - 1];
+    if (littleendian) {
+      memcpy(RSTRING_PTR(str) + sidx, buffer, 4);
     }
-#else
-    memcpy(RSTRING_PTR(str) + sidx, buffer, 4);
-#endif
+    else {
+      for (i = 0; i < 4; ++i) {
+        RSTRING_PTR(str)[sidx + i] = buffer[4 - i - 1];
+      }
+    }
   } else {
-#ifdef MRB_ENDIAN_BIG
-    memcpy(RSTRING_PTR(str) + sidx, buffer, 4);
-#else
-    for (i = 0; i < 4; ++i) {
-      RSTRING_PTR(str)[sidx + i] = buffer[4 - i - 1];
+    if (littleendian) {
+      for (i = 0; i < 4; ++i) {
+        RSTRING_PTR(str)[sidx + i] = buffer[4 - i - 1];
+      }
     }
-#endif
+    else {
+      memcpy(RSTRING_PTR(str) + sidx, buffer, 4);
+    }
   }
 
   return 4;
@@ -400,21 +415,23 @@ unpack_float(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value ar
   uint8_t *buffer = (uint8_t *)&f;
 
   if (flags & PACK_FLAG_LITTLEENDIAN) {
-#ifdef MRB_ENDIAN_BIG
-    for (i = 0; i < 4; ++i) {
-      buffer[4 - i - 1] = src[i];
+    if (littleendian) {
+      memcpy(buffer, src, 4);
     }
-#else
-    memcpy(buffer, src, 4);
-#endif
+    else {
+      for (i = 0; i < 4; ++i) {
+        buffer[4 - i - 1] = src[i];
+      }
+    }
   } else {
-#ifdef MRB_ENDIAN_BIG
-    memcpy(buffer, src, 4);
-#else
-    for (i = 0; i < 4; ++i) {
-      buffer[4 - i - 1] = src[i];
+    if (littleendian) {
+      for (i = 0; i < 4; ++i) {
+        buffer[4 - i - 1] = src[i];
+      }
     }
-#endif
+    else {
+      memcpy(buffer, src, 4);
+    }
   }
   mrb_ary_push(mrb, ary, mrb_float_value(mrb, f));
 
@@ -1297,7 +1314,7 @@ mrb_pack_unpack1(mrb_state *mrb, mrb_value str)
 void
 mrb_mruby_pack_gem_init(mrb_state *mrb)
 {
-  littleendian = check_little_endian();
+  check_little_endian();
   make_base64_dec_tab();
 
   mrb_define_method(mrb, mrb->array_class, "pack", mrb_pack_pack, MRB_ARGS_REQ(1));
