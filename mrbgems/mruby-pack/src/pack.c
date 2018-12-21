@@ -71,7 +71,9 @@ static unsigned char base64_dec_tab[128];
 # elif BYTE_ORDER == LITTLE_ENDIAN
 #  define littleendian 1
 #  define check_little_endian() (void)0
-# else
+# endif
+#endif
+#ifndef littleendian
 /* can't distinguish endian in compile time */
 static int littleendian = 0;
 static void
@@ -80,7 +82,6 @@ check_little_endian(void)
   unsigned int n = 1;
   littleendian = (*(unsigned char *)&n == 1);
 }
-# endif
 #endif
 
 static unsigned int
