@@ -94,20 +94,21 @@ static mrb_value
 mrb_proc_parameters(mrb_state *mrb, mrb_value self)
 {
   struct parameters_type {
-    int size;
+    size_t len;
     const char *name;
+    int size;
   } *p, parameters_list [] = {
-    {0, "req"},
-    {0, "opt"},
-    {0, "rest"},
-    {0, "req"},
-    {0, "block"},
-    {0, NULL}
+    {sizeof("req")   - 1, "req",   0},
+    {sizeof("opt")   - 1, "opt",   0},
+    {sizeof("rest")  - 1, "rest",  0},
+    {sizeof("req")   - 1, "req",   0},
+    {sizeof("block") - 1, "block", 0},
+    {0, NULL, 0}
   };
   const struct RProc *proc = mrb_proc_ptr(self);
   const struct mrb_irep *irep = proc->body.irep;
   mrb_aspec aspec;
-  mrb_value sname, parameters;
+  mrb_value parameters;
   int i, j;
   int max = -1;
 
@@ -126,7 +127,9 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
   }
 
   if (!MRB_PROC_STRICT_P(proc)) {
+    parameters_list[0].len = sizeof("opt") - 1;
     parameters_list[0].name = "opt";
+    parameters_list[3].len = sizeof("opt") - 1;
     parameters_list[3].name = "opt";
   }
 
@@ -141,8 +144,8 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
 
   max = irep->nlocals-1;
   for (i = 0, p = parameters_list; p->name; p++) {
-    if (p->size <= 0) continue;
-    sname = mrb_symbol_value(mrb_intern_cstr(mrb, p->name));
+    mrb_value sname = mrb_symbol_value(mrb_intern_static(mrb, p->name, p->len));
+
     for (j = 0; j < p->size; i++, j++) {
       mrb_value a;
 
