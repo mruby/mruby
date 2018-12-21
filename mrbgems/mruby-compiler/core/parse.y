@@ -3664,8 +3664,10 @@ void_expr_error(parser_state *p, node *n)
     break;
   case NODE_AND:
   case NODE_OR:
-    void_expr_error(p, n->cdr->car);
-    void_expr_error(p, n->cdr->cdr);
+    if (n->cdr) {
+      void_expr_error(p, n->cdr->car);
+      void_expr_error(p, n->cdr->cdr);
+    }
     break;
   case NODE_BEGIN:
     if (n->cdr) {
