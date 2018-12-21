@@ -175,7 +175,7 @@ def assert_nothing_raised(msg = nil)
     yield
     true
   rescue Exception => e
-    msg ||= "Expected not to raise #{exc.join(', ')} but it raised"
+    msg ||= "Expected not to raise #{e} but it raised"
     diff =  "      Class: <#{e.class}>\n" +
             "    Message: #{e.message}"
     $mrbtest_assert.push [$mrbtest_assert_idx, msg, diff]
