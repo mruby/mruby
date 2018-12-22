@@ -64,6 +64,16 @@ const static unsigned char base64chars[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 static unsigned char base64_dec_tab[128];
 
+#if !defined(BYTE_ORDER) && defined(__BYTE_ORDER__)
+# define BYTE_ORDER __BYTE_ORDER__
+#endif
+#if !defined(BIG_ENDIAN) && defined(__ORDER_BIG_ENDIAN__)
+# define BIG_ENDIAN __ORDER_BIG_ENDIAN__
+#endif
+#if !defined(LITTLE_ENDIAN) && defined(__ORDER_LITTLE_ENDIAN__)
+# define LITTLE_ENDIAN __ORDER_LITTLE_ENDIAN__
+#endif
+
 #ifdef BYTE_ORDER
 # if BYTE_ORDER == BIG_ENDIAN
 #  define littleendian 0

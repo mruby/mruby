@@ -60,7 +60,8 @@
 
 /* define on big endian machines; used by MRB_NAN_BOXING, etc. */
 #ifndef MRB_ENDIAN_BIG
-# if BYTE_ORDER == BIG_ENDIAN
+# if (defined(BYTE_ORDER) && defined(BIG_ENDIAN) && BYTE_ORDER == BIG_ENDIAN) || \
+     (defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
 #  define MRB_ENDIAN_BIG
 # endif
 #endif
