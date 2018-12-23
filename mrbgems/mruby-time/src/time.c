@@ -46,7 +46,7 @@ double round(double x) {
 /* #define NO_GMTIME_R */
 
 #ifdef _WIN32
-#if _MSC_VER
+#ifdef _MSC_VER
 /* Win32 platform do not provide gmtime_r/localtime_r; emulate them using gmtime_s/localtime_s */
 #define gmtime_r(tp, tm)    ((gmtime_s((tm), (tp)) == 0) ? (tm) : NULL)
 #define localtime_r(tp, tm)    ((localtime_s((tm), (tp)) == 0) ? (tm) : NULL)
