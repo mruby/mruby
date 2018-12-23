@@ -209,7 +209,7 @@ mrb_fd_cloexec(mrb_state *mrb, int fd)
 #endif
 }
 
-#if !defined(_WIN32) && !TARGET_OS_IPHONE
+#if !defined(_WIN32) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
 static int
 mrb_cloexec_pipe(mrb_state *mrb, int fildes[2])
 {
@@ -403,7 +403,7 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
   DATA_PTR(io)  = fptr;
   return io;
 }
-#elif TARGET_OS_IPHONE
+#elif defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
 mrb_value
 mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
 {
@@ -1011,7 +1011,7 @@ mrb_io_read_data_pending(mrb_state *mrb, mrb_value io)
   return 0;
 }
 
-#if !defined(_WIN32) && !TARGET_OS_IPHONE
+#if !defined(_WIN32) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
 static mrb_value
 mrb_io_s_pipe(mrb_state *mrb, mrb_value klass)
 {
@@ -1313,7 +1313,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_class_method(mrb, io, "for_fd",  mrb_io_s_for_fd,   MRB_ARGS_ANY());
   mrb_define_class_method(mrb, io, "select",  mrb_io_s_select,  MRB_ARGS_ANY());
   mrb_define_class_method(mrb, io, "sysopen", mrb_io_s_sysopen, MRB_ARGS_ANY());
-#if !defined(_WIN32) && !TARGET_OS_IPHONE
+#if !defined(_WIN32) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
   mrb_define_class_method(mrb, io, "_pipe", mrb_io_s_pipe, MRB_ARGS_NONE());
 #endif
 
