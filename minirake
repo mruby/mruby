@@ -483,7 +483,7 @@ class RakeApp
   def run
     handle_options
 
-    if $rake_root_fiber
+    unless $rake_root_fiber
       require 'fiber'
       $rake_root_fiber = Fiber.current
     end
