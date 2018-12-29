@@ -52,6 +52,8 @@ module MRuby
       end
 
       def setup
+        return if defined?(@linker)  # return if already set up
+
         MRuby::Gem.current = self
         MRuby::Build::COMMANDS.each do |command|
           instance_variable_set("@#{command}", @build.send(command).clone)
@@ -334,26 +336,26 @@ module MRuby
       end
 
       def generate_gem_table build
-        gem_table = @ary.reduce({}) { |res,v| res[v.name] = v; res }
+        gem_table = reduce({}) { |res,v| res[v.name] = v; res }
 
-        default_gems = []
+        default_gems = {}
         each do |g|
           g.dependencies.each do |dep|
-            default_gems << default_gem_params(dep) unless gem_table.key? dep[:gem]
+            default_gems[dep[:gem]] ||= default_gem_params(dep)
           end
         end
 
         until default_gems.empty?
-          def_gem = default_gems.pop
+          def_name, def_gem = default_gems.shift
+          next if gem_table[def_name]
 
-          spec = build.gem def_gem[:default]
-          fail "Invalid gem name: #{spec.name} (Expected: #{def_gem[:gem]})" if spec.name != def_gem[:gem]
+          spec = gem_table[def_name] = build.gem(def_gem[:default])
+          fail "Invalid gem name: #{spec.name} (Expected: #{def_name})" if spec.name != def_name
           spec.setup
 
           spec.dependencies.each do |dep|
-            default_gems << default_gem_params(dep) unless gem_table.key? dep[:gem]
+            default_gems[dep[:gem]] ||= default_gem_params(dep)
           end
-          gem_table[spec.name] = spec
         end
 
         each do |g|
@@ -428,7 +430,7 @@ module MRuby
       end
 
       def import_include_paths(g)
-        gem_table = @ary.reduce({}) { |res,v| res[v.name] = v; res }
+        gem_table = reduce({}) { |res,v| res[v.name] = v; res }
         g.dependencies.each do |dep|
           dep_g = gem_table[dep[:gem]]
           # We can do recursive call safely
