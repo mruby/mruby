@@ -336,7 +336,7 @@ module MRuby
       end
 
       def generate_gem_table build
-        gem_table = reduce({}) { |res,v| res[v.name] = v; res }
+        gem_table = each_with_object({}) { |spec, h| h[spec.name] = spec }
 
         default_gems = {}
         each do |g|
@@ -430,7 +430,8 @@ module MRuby
       end
 
       def import_include_paths(g)
-        gem_table = reduce({}) { |res,v| res[v.name] = v; res }
+        gem_table = each_with_object({}) { |spec, h| h[spec.name] = spec }
+
         g.dependencies.each do |dep|
           dep_g = gem_table[dep[:gem]]
           # We can do recursive call safely
