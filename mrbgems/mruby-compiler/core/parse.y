@@ -795,6 +795,13 @@ new_masgn(parser_state *p, node *a, node *b)
   return cons((node*)NODE_MASGN, cons(a, b));
 }
 
+/* (:masgn mlhs mrhs) no check */
+static node*
+new_masgn_param(parser_state *p, node *a, node *b)
+{
+  return cons((node*)NODE_MASGN, cons(a, b));
+}
+
 /* (:asgn lhs rhs) */
 static node*
 new_op_asgn(parser_state *p, node *a, mrb_sym op, node *b)
@@ -3302,7 +3309,7 @@ f_arg_item      : f_norm_arg
                     }
                   f_margs rparen
                     {
-                      $$ = new_masgn(p, $3, p->locals->car);
+                      $$ = new_masgn_param(p, $3, p->locals->car);
                       local_resume(p, $<nd>2);
                       local_add_f(p, 0);
                     }
