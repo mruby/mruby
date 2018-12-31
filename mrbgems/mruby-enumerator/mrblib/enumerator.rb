@@ -128,8 +128,8 @@ class Enumerator
     @feedvalue = nil
     @stop_exc = false
   end
-  attr_accessor :obj, :meth, :args, :fib
-  private :obj, :meth, :args, :fib
+  attr_accessor :obj, :meth, :args
+  attr_reader :fib
 
   def initialize_copy(obj)
     raise TypeError, "can't copy type #{obj.class}" unless obj.kind_of? Enumerator
