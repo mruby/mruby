@@ -59,7 +59,7 @@ assert('Range#initialize', '15.2.14.4.9') do
   assert_equal (1..10), b
   assert_false b.exclude_end?
 
-  assert_raise(NameError) { (0..1).send(:initialize, 1, 3) }
+  assert_raise(NameError) { (0..1).__send__(:initialize, 1, 3) }
 end
 
 assert('Range#last', '15.2.14.4.10') do
