@@ -344,15 +344,21 @@ end
 
 assert('IO#isatty') do
   skip "isatty is not supported on this platform" if MRubyIOTestUtil.win?
-  f1 = File.open("/dev/tty")
-  f2 = File.open($mrbtest_io_rfname)
-
-  assert_true  f1.isatty
-  assert_false f2.isatty
-
-  f1.close
-  f2.close
-  true
+  begin
+    f = File.open("/dev/tty")
+  rescue RuntimeError => e
+    skip e.message
+  else
+    assert_true f.isatty
+  ensure
+    f&.close
+  end
+  begin
+    f = File.open($mrbtest_io_rfname)
+    assert_false f.isatty
+  ensure
+    f&.close
+  end
 end
 
 assert('IO#pos=, IO#seek') do
