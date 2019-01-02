@@ -48,11 +48,11 @@ mrb_range_cover(mrb_state *mrb, mrb_value range)
 
   mrb_get_args(mrb, "o", &val);
 
-  beg = r->edges->beg;
-  end = r->edges->end;
+  beg = RANGE_BEG(r);
+  end = RANGE_END(r);
 
   if (r_le(mrb, beg, val)) {
-    if (r->excl) {
+    if (RANGE_EXCL(r)) {
       if (r_lt(mrb, val, end))
         return mrb_true_value();
     }
@@ -86,10 +86,9 @@ mrb_range_last(mrb_state *mrb, mrb_value range)
 {
   mrb_value num;
   mrb_value array;
-  struct RRange *r = mrb_range_ptr(mrb, range);
 
   if (mrb_get_args(mrb, "|o", &num) == 0) {
-    return r->edges->end;
+    return mrb_range_end(mrb, range);
   }
 
   array = mrb_funcall(mrb, range, "to_a", 0);
@@ -116,9 +115,9 @@ mrb_range_size(mrb_state *mrb, mrb_value range)
   mrb_bool num_p = TRUE;
   mrb_bool excl;
 
-  beg = r->edges->beg;
-  end = r->edges->end;
-  excl = r->excl;
+  beg = RANGE_BEG(r);
+  end = RANGE_END(r);
+  excl = RANGE_EXCL(r);
   if (mrb_fixnum_p(beg)) {
     beg_f = (mrb_float)mrb_fixnum(beg);
   }
