@@ -1,7 +1,7 @@
 ##
 # Float ISO Test
 
-if class_defined?("Float")
+if Object.const_defined?(:Float)
 
 assert('Float', '15.2.9') do
   assert_equal Class, Float.class
@@ -206,4 +206,4 @@ assert('Float#>>') do
   assert_equal(-1, -23.0 >> 128)
 end
 
-end # class_defined?("Float")
+end # const_defined?(:Float)

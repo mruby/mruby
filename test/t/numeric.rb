@@ -15,7 +15,8 @@ end
 
 assert('Numeric#abs', '15.2.7.4.3') do
   assert_equal(1, 1.abs)
-  assert_equal(1.0, -1.abs) if class_defined?("Float")
+  skip unless Object.const_defined?(:Float)
+  assert_equal(1.0, -1.abs)
 end
 
 assert('Numeric#pow') do

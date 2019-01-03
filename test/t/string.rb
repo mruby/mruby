@@ -155,7 +155,7 @@ assert('String#[]=') do
     d[-10] = 'X'
   end
 
-  if class_defined?("Float")
+  if Object.const_defined?(:Float)
    e = 'abc'
    e[1.1] = 'X'
    assert_equal 'aXc', e
@@ -618,7 +618,7 @@ assert('String#to_f', '15.2.10.5.38') do
   assert_float(12345.6789, c)
   assert_float(0, d)
   assert_float(Float::INFINITY, e)
-end if class_defined?("Float")
+end if Object.const_defined?(:Float)
 
 assert('String#to_i', '15.2.10.5.39') do
   a = ''.to_i
