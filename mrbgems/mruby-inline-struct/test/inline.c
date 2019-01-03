@@ -11,12 +11,14 @@ istruct_test_initialize(mrb_state *mrb, mrb_value self)
   mrb_value object;
   mrb_get_args(mrb, "o", &object);
 
-  if (mrb_float_p(object)) {
-    strncpy(string, "float", size-1);
-  }
-  else if (mrb_fixnum_p(object)) {
+  if (mrb_fixnum_p(object)) {
     strncpy(string, "fixnum", size-1);
   }
+#ifndef MRB_WITHOUT_FLOAT
+  else if (mrb_float_p(object)) {
+    strncpy(string, "float", size-1);
+  }
+#endif
   else if (mrb_string_p(object)) {
     strncpy(string, "string", size-1);
   }
