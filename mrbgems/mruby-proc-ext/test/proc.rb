@@ -77,6 +77,19 @@ assert('Kernel#proc') do
   end
 end
 
+assert "Proc#<< and Proc#>>" do
+  add3 = ->(n) { n + 3 }
+  mul2 = ->(n) { n * 2 }
+
+  f1 = mul2 << add3
+  assert_kind_of Proc, f1
+  assert_equal 16, f1.call(5)
+
+  f2 = mul2 >> add3
+  assert_kind_of Proc, f2
+  assert_equal 13, f2.call(5)
+end
+
 assert('mrb_proc_new_cfunc_with_env') do
   ProcExtTest.mrb_proc_new_cfunc_with_env(:test)
   ProcExtTest.mrb_proc_new_cfunc_with_env(:mruby)
