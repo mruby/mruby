@@ -457,11 +457,6 @@ pack_utf8(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, long count, 
   int len = 0;
   uint32_t c = 0;
 
-#ifndef MRB_WITHOUT_FLOAT
-  if (mrb_float_p(o)) {
-    goto range_error;
-  }
-#endif
   c = (uint32_t)mrb_fixnum(o);
 
   /* Unicode character */
@@ -489,9 +484,6 @@ pack_utf8(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, long count, 
     len = 4;
   }
   else {
-#ifndef MRB_WITHOUT_FLOAT
-range_error:
-#endif
     mrb_raise(mrb, E_RANGE_ERROR, "pack(U): value out of range");
   }
 
