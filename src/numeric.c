@@ -1487,10 +1487,12 @@ flo_plus(mrb_state *mrb, mrb_value x)
 void
 mrb_init_numeric(mrb_state *mrb)
 {
-  struct RClass *numeric, *integer, *fixnum;
+  struct RClass *numeric, *integer, *fixnum, *integral;
 #ifndef MRB_WITHOUT_FLOAT
   struct RClass *fl;
 #endif
+
+  integral = mrb_define_module(mrb, "Integral");
 
   /* Numeric Class */
   numeric = mrb_define_class(mrb, "Numeric",  mrb->object_class);                /* 15.2.7 */
@@ -1578,6 +1580,7 @@ mrb_init_numeric(mrb_state *mrb)
 #ifdef NAN
   mrb_define_const(mrb, fl, "NAN", mrb_float_value(mrb, NAN));
 #endif
+
+  mrb_include_module(mrb, fl, integral);
 #endif
-  mrb_define_module(mrb, "Integral");
 }
