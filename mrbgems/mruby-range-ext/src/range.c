@@ -40,7 +40,7 @@ r_lt(mrb_state *mrb, mrb_value a, mrb_value b)
  *     ("a".."z").cover?("cc")   #=> true
  */
 static mrb_value
-mrb_range_cover(mrb_state *mrb, mrb_value range)
+range_cover(mrb_state *mrb, mrb_value range)
 {
   mrb_value val;
   struct RRange *r = mrb_range_ptr(mrb, range);
@@ -82,7 +82,7 @@ mrb_range_cover(mrb_state *mrb, mrb_value range)
  *    (10...20).last(3)  #=> [17, 18, 19]
  */
 static mrb_value
-mrb_range_last(mrb_state *mrb, mrb_value range)
+range_last(mrb_state *mrb, mrb_value range)
 {
   mrb_value num;
   mrb_value array;
@@ -107,7 +107,7 @@ mrb_range_last(mrb_state *mrb, mrb_value range)
  */
 
 static mrb_value
-mrb_range_size(mrb_state *mrb, mrb_value range)
+range_size(mrb_state *mrb, mrb_value range)
 {
   struct RRange *r = mrb_range_ptr(mrb, range);
   mrb_value beg, end;
@@ -164,9 +164,9 @@ mrb_mruby_range_ext_gem_init(mrb_state* mrb)
 {
   struct RClass * s = mrb_class_get(mrb, "Range");
 
-  mrb_define_method(mrb, s, "cover?", mrb_range_cover, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, s, "last",   mrb_range_last,  MRB_ARGS_OPT(1));
-  mrb_define_method(mrb, s, "size",   mrb_range_size,  MRB_ARGS_NONE());
+  mrb_define_method(mrb, s, "cover?", range_cover, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, s, "last",   range_last,  MRB_ARGS_OPT(1));
+  mrb_define_method(mrb, s, "size",   range_size,  MRB_ARGS_NONE());
 }
 
 void
