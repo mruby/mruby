@@ -579,7 +579,7 @@ assert('String#sub', '15.2.10.5.36') do
   str = "abc"
   miss = str.sub("X", "Z")
   assert_equal str, miss
-  assert_not_equal str.object_id, miss.object_id
+  assert_not_same str, miss
 
   a = []
   assert_equal '.abc', "abc".sub("") { |i| a << i; "." }
