@@ -8,6 +8,7 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include <mruby.h>
 #include <mruby/compile.h>
 #include <mruby/proc.h>
@@ -566,9 +567,12 @@ new_lit(codegen_scope *s, mrb_value val)
 #ifndef MRB_WITHOUT_FLOAT
   case MRB_TT_FLOAT:
     for (i=0; i<s->irep->plen; i++) {
+      mrb_float f1, f2;
       pv = &s->irep->pool[i];
       if (mrb_type(*pv) != MRB_TT_FLOAT) continue;
-      if (mrb_float(*pv) == mrb_float(val)) return i;
+      f1 = mrb_float(*pv);
+      f2 = mrb_float(val);
+      if (f1 == f2 && !signbit(f1) == !signbit(f2)) return i;
     }
     break;
 #endif
