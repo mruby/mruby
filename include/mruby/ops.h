@@ -88,7 +88,7 @@ OPCODE(ARYPUSH,    B)        /* ary_push(R(a),R(a+1)) */
 OPCODE(ARYDUP,     B)        /* R(a) = ary_dup(R(a)) */
 OPCODE(AREF,       BBB)      /* R(a) = R(b)[c] */
 OPCODE(ASET,       BBB)      /* R(a)[c] = R(b) */
-OPCODE(APOST,      BBB)      /* *R(a),R(a+1)..R(a+C) = R(a)[b..] */
+OPCODE(APOST,      BBB)      /* *R(a),R(a+1)..R(a+c) = R(a)[b..] */
 OPCODE(INTERN,     B)        /* R(a) = intern(R(a)) */
 OPCODE(STRING,     BB)       /* R(a) = str_dup(Lit(b)) */
 OPCODE(STRCAT,     B)        /* str_cat(R(a),R(a+1)) */
