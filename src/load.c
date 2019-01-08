@@ -7,6 +7,7 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include <mruby/dump.h>
 #include <mruby/irep.h>
 #include <mruby/proc.h>
@@ -39,6 +40,23 @@ offset_crc_body(void)
   struct rite_binary_header header;
   return ((uint8_t *)header.binary_crc - (uint8_t *)&header) + sizeof(header.binary_crc);
 }
+
+#ifndef MRB_WITHOUT_FLOAT
+static double
+str_to_double(mrb_state *mrb, mrb_value str)
+{
+  const char *p = RSTRING_PTR(str);
+  mrb_int len = RSTRING_LEN(str);
+
+  /* `i`, `inf`, `infinity` */
+  if (len > 0 && p[0] == 'i') return INFINITY;
+
+  /* `I`, `-inf`, `-infinity` */
+  if (p[0] == 'I' || (len > 1 && p[0] == '-' && p[1] == 'i')) return -INFINITY;
+
+  return mrb_str_to_dbl(mrb, str, TRUE);
+}
+#endif
 
 static mrb_irep*
 read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flags)
@@ -125,7 +143,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
 
 #ifndef MRB_WITHOUT_FLOAT
       case IREP_TT_FLOAT:
-        irep->pool[i] = mrb_float_pool(mrb, mrb_str_to_dbl(mrb, s, FALSE));
+        irep->pool[i] = mrb_float_pool(mrb, str_to_double(mrb, s));
         break;
 #endif
 
