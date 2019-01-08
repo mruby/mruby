@@ -9,6 +9,7 @@
 #include <mruby.h>
 #include <mruby/class.h>
 #include <mruby/data.h>
+#include <mruby/time.h>
 
 #ifndef MRB_DISABLE_STDIO
 #include <stdio.h>
@@ -165,13 +166,6 @@ timegm(struct tm *tm)
 * on time_t. That means the resolution of time is only precise to the
 * second level. Also, there are only 2 timezones, namely UTC and LOCAL.
 */
-
-enum mrb_timezone {
-  MRB_TIMEZONE_NONE   = 0,
-  MRB_TIMEZONE_UTC    = 1,
-  MRB_TIMEZONE_LOCAL  = 2,
-  MRB_TIMEZONE_LAST   = 3
-};
 
 typedef struct mrb_timezone_name {
   const char name[8];
@@ -343,10 +337,16 @@ mrb_time_now(mrb_state *mrb, mrb_value self)
   return mrb_time_wrap(mrb, mrb_class_ptr(self), current_mrb_time(mrb));
 }
 
+MRB_API mrb_value
+mrb_time_at(mrb_state *mrb, double sec, double usec, enum mrb_timezone zone)
+{
+  return mrb_time_make(mrb, mrb_class_get(mrb, "Time"), sec, usec, zone);
+}
+
 /* 15.2.19.6.1 */
 /* Creates an instance of time at the given time in seconds, etc. */
 static mrb_value
-mrb_time_at(mrb_state *mrb, mrb_value self)
+mrb_time_at_m(mrb_state *mrb, mrb_value self)
 {
   mrb_float f, f2 = 0;
 
@@ -830,7 +830,7 @@ mrb_mruby_time_gem_init(mrb_state* mrb)
   tc = mrb_define_class(mrb, "Time", mrb->object_class);
   MRB_SET_INSTANCE_TT(tc, MRB_TT_DATA);
   mrb_include_module(mrb, tc, mrb_module_get(mrb, "Comparable"));
-  mrb_define_class_method(mrb, tc, "at", mrb_time_at, MRB_ARGS_ARG(1, 1));      /* 15.2.19.6.1 */
+  mrb_define_class_method(mrb, tc, "at", mrb_time_at_m, MRB_ARGS_ARG(1, 1));      /* 15.2.19.6.1 */
   mrb_define_class_method(mrb, tc, "gm", mrb_time_gm, MRB_ARGS_ARG(1,6));       /* 15.2.19.6.2 */
   mrb_define_class_method(mrb, tc, "local", mrb_time_local, MRB_ARGS_ARG(1,6)); /* 15.2.19.6.3 */
   mrb_define_class_method(mrb, tc, "mktime", mrb_time_local, MRB_ARGS_ARG(1,6));/* 15.2.19.6.4 */
