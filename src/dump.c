@@ -6,6 +6,7 @@
 
 #include <string.h>
 #include <limits.h>
+#include <math.h>
 #include <mruby/dump.h>
 #include <mruby/string.h>
 #include <mruby/irep.h>
@@ -90,6 +91,18 @@ write_iseq_block(mrb_state *mrb, mrb_irep *irep, uint8_t *buf, uint8_t flags)
   return cur - buf;
 }
 
+#ifndef MRB_WITHOUT_FLOAT
+static mrb_value
+float_to_str(mrb_state *mrb, mrb_value flt)
+{
+  mrb_float f = mrb_float(flt);
+
+  if (isinf(f)) {
+    return f < 0 ? mrb_str_new_lit(mrb, "I") : mrb_str_new_lit(mrb, "i");
+  }
+  return  mrb_float_to_str(mrb, flt, MRB_FLOAT_FMT);
+}
+#endif
 
 static size_t
 get_pool_block_size(mrb_state *mrb, mrb_irep *irep)
@@ -116,7 +129,7 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep)
 
 #ifndef MRB_WITHOUT_FLOAT
     case MRB_TT_FLOAT:
-      str = mrb_float_to_str(mrb, irep->pool[pool_no], MRB_FLOAT_FMT);
+      str = float_to_str(mrb, irep->pool[pool_no]);
       {
         mrb_int len = RSTRING_LEN(str);
         mrb_assert_int_fit(mrb_int, len, size_t, SIZE_MAX);
@@ -165,7 +178,7 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, uint8_t *buf)
 #ifndef MRB_WITHOUT_FLOAT
     case MRB_TT_FLOAT:
       cur += uint8_to_bin(IREP_TT_FLOAT, cur); /* data type */
-      str = mrb_float_to_str(mrb, irep->pool[pool_no], MRB_FLOAT_FMT);
+      str = float_to_str(mrb, irep->pool[pool_no]);
       break;
 #endif
 
