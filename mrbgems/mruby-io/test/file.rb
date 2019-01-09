@@ -200,11 +200,11 @@ assert('File.symlink') do
 end
 
 assert('File.chmod') do
-  File.open('chmod-test', 'w') {}
+  File.open("#{$mrbtest_io_wfname}.chmod-test", 'w') {}
   begin
-    assert_equal 1, File.chmod(0400, 'chmod-test')
+    assert_equal 1, File.chmod(0400, "#{$mrbtest_io_wfname}.chmod-test")
   ensure
-    File.delete('chmod-test')
+    File.delete("#{$mrbtest_io_wfname}.chmod-test")
   end
 end
 
