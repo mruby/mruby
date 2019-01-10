@@ -1150,7 +1150,7 @@ fix_to_f(mrb_state *mrb, mrb_value num)
  *  (in particular infinite or NaN)
  *  to numerical classes which don't support them.
  *
- *     Float::INFINITY.to_r
+ *     Float::INFINITY.to_i
  *
  *  <em>raises the exception:</em>
  *
@@ -1169,12 +1169,7 @@ mrb_flo_to_fixnum(mrb_state *mrb, mrb_value x)
   else {
     mrb_float d = mrb_float(x);
 
-    if (isinf(d)) {
-      mrb_raise(mrb, E_FLOATDOMAIN_ERROR, d < 0 ? "-Infinity" : "Infinity");
-    }
-    if (isnan(d)) {
-      mrb_raise(mrb, E_FLOATDOMAIN_ERROR, "NaN");
-    }
+    mrb_check_num_exact(mrb, d);
     if (FIXABLE_FLOAT(d)) {
       z = (mrb_int)d;
     }
