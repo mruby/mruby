@@ -12,7 +12,7 @@ assert('regression for #1572') do
   File.write script.path, 'p "ok"'
   system "#{cmd('mrbc')} -g -o #{bin.path} #{script.path}"
   o = `#{cmd('mruby')} -b #{bin.path}`.strip
-  assert_equal o, '"ok"'
+  assert_equal '"ok"', o
 end
 
 assert '$0 value' do
