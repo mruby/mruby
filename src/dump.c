@@ -18,9 +18,9 @@
 
 #ifndef MRB_WITHOUT_FLOAT
 #ifdef MRB_USE_FLOAT
-#define MRB_FLOAT_FMT "%.8e"
+#define MRB_FLOAT_FMT "%.9g"
 #else
-#define MRB_FLOAT_FMT "%.16e"
+#define MRB_FLOAT_FMT "%.17g"
 #endif
 #endif
 
