@@ -10,6 +10,7 @@
 #endif
 #include <limits.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <mruby.h>
 #include <mruby/array.h>
@@ -23,9 +24,9 @@
 #define floor(f) floorf(f)
 #define ceil(f) ceilf(f)
 #define fmod(x,y) fmodf(x,y)
-#define MRB_FLO_TO_STR_FMT "%.8g"
+#define FLO_TO_STR_PREC 8
 #else
-#define MRB_FLO_TO_STR_FMT "%.16g"
+#define FLO_TO_STR_PREC 16
 #endif
 #endif
 
@@ -177,10 +178,49 @@ num_div(mrb_state *mrb, mrb_value x)
 static mrb_value
 flo_to_s(mrb_state *mrb, mrb_value flt)
 {
-  if (isnan(mrb_float(flt))) {
+  mrb_float f = mrb_float(flt);
+
+  if (isinf(f)) {
+    return f < 0 ? mrb_str_new_lit(mrb, "-Infinity")
+                 : mrb_str_new_lit(mrb, "Infinity");
+  }
+  else if (isnan(f)) {
     return mrb_str_new_lit(mrb, "NaN");
   }
-  return mrb_float_to_str(mrb, flt, MRB_FLO_TO_STR_FMT);
+  else {
+    char fmt[] = "%." MRB_STRINGIZE(FLO_TO_STR_PREC) "g";
+    mrb_value str = mrb_float_to_str(mrb, flt, fmt);
+    mrb_int len;
+    char *begp;
+
+    insert_dot_zero:
+    begp = RSTRING_PTR(str);
+    len = RSTRING_LEN(str);
+    for (char *p = begp, *endp = p + len; p < endp; ++p) {
+      if (*p == '.') {
+        return str;
+      }
+      else if (*p == 'e') {
+        ptrdiff_t e_pos = p - begp;
+        mrb_str_cat(mrb, str, ".0", 2);
+        p = RSTRING_PTR(str) + e_pos;
+        memmove(p + 2, p, len - e_pos);
+        memcpy(p, ".0", 2);
+        return str;
+      }
+    }
+
+    if (FLO_TO_STR_PREC + (begp[0] == '-') <= len) {
+      --fmt[sizeof(fmt) - 3];  /* %.16g(%.8g) -> %.15g(%.7g) */
+      str = mrb_float_to_str(mrb, flt, fmt);
+      goto insert_dot_zero;
+    }
+    else {
+      mrb_str_cat(mrb, str, ".0", 2);
+    }
+
+    return str;
+  }
 }
 
 /* 15.2.9.3.2  */
