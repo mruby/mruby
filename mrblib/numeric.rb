@@ -104,11 +104,18 @@ module Integral
     raise ArgumentError, "step can't be 0" if step == 0
     return to_enum(:step, num, step) unless block
 
-    i = if Object.const_defined?(:Float) && num.kind_of?(Float) then self.to_f else self end
+    i = self
+    if Object.const_defined?(:Float) &&
+      (kind_of?(Float) || num.kind_of?(Float) || step.kind_of?(Float))
+      i = i.to_f
+      num = num.to_f unless num == nil
+      step = step.to_f
+    end
+
     if num == nil
       while true
         block.call(i)
-        i+=step
+        i += step
       end
       return self
     end

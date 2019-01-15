@@ -257,19 +257,3 @@ assert('Integer#divmod', '15.2.8.3.30') do
   assert_equal [-2, -1],  25.divmod(-13)
   assert_equal [ 1, -6], -13.divmod(-7)
 end
-
-# Not ISO specified
-
-assert('Integer#step') do
-  a = []
-  b = []
-  1.step(3) do |i|
-    a << i
-  end
-  1.step(6, 2) do |i|
-    b << i
-  end
-
-  assert_equal [1, 2, 3], a
-  assert_equal [1, 3, 5], b
-end
