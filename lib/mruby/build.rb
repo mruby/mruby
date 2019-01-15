@@ -162,8 +162,6 @@ module MRuby
     end
 
     def compile_as_cxx src, cxx_src, obj = nil, includes = []
-      src = File.absolute_path src
-      cxx_src = File.absolute_path cxx_src
       obj = objfile(cxx_src) if obj.nil?
 
       file cxx_src => [src, __FILE__] do |t|
@@ -175,7 +173,7 @@ module MRuby
 #ifndef MRB_ENABLE_CXX_ABI
 extern "C" {
 #endif
-#include "#{src}"
+#include "#{File.absolute_path src}"
 #ifndef MRB_ENABLE_CXX_ABI
 }
 #endif
