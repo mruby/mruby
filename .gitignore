@@ -1,6 +1,8 @@
 # /
 *.bak
+*.bc
 *.d
+*.i
 *.o
 /benchmark/**/*.dat
 /benchmark/*.pdf
@@ -8,6 +10,7 @@
 *.orig
 *.pdb
 *.rej
+*.s
 *.sav
 *.swp
 *.tmp
