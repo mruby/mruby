@@ -1,12 +1,8 @@
-# /
 *.bak
 *.bc
 *.d
 *.i
 *.o
-/benchmark/**/*.dat
-/benchmark/*.pdf
-/benchmark/*.png
 *.orig
 *.pdb
 *.rej
@@ -19,13 +15,20 @@
 .ccmalloc
 .svn
 .vscode
-/.git
+.yardoc
 cscope.files
 cscope.out
 tags
-/src/y.tab.c
+
+/.git
 /bin
 /build
 /mruby-source-*.gem
-doc/api
-.yardoc
+
+/benchmark/**/*.dat
+/benchmark/*.pdf
+/benchmark/*.png
+
+/doc/api
+
+/src/y.tab.c
