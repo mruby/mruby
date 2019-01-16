@@ -154,6 +154,22 @@ num_div(mrb_state *mrb, mrb_value x)
 #endif
 }
 
+static mrb_value
+num_coerce_step_counter(mrb_state *mrb, mrb_value self)
+{
+  mrb_value counter = self, num, step;
+
+  mrb_get_args(mrb, "oo", &num, &step);
+
+#ifndef MRB_WITHOUT_FLOAT
+  if (mrb_float_p(self) || mrb_float_p(num) || mrb_float_p(step)) {
+    counter = mrb_funcall(mrb, counter, "to_f", 0);
+  }
+#endif
+
+  return counter;
+}
+
 #ifndef MRB_WITHOUT_FLOAT
 /********************************************************************
  *
@@ -1542,6 +1558,7 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, numeric, ">=",       num_ge,          MRB_ARGS_REQ(1));
   mrb_define_method(mrb, numeric, "finite?",  num_finite_p,    MRB_ARGS_NONE());
   mrb_define_method(mrb, numeric, "infinite?",num_infinite_p,  MRB_ARGS_NONE());
+  mrb_define_method(mrb, numeric, "__coerce_step_counter", num_coerce_step_counter,  MRB_ARGS_REQ(2));
 
   /* Integer Class */
   integer = mrb_define_class(mrb, "Integer",  numeric);                          /* 15.2.8 */
