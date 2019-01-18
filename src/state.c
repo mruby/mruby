@@ -176,6 +176,8 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
   mrb_free(mrb, irep);
 }
 
+mrb_noreturn void mrb_raise_nomemory(mrb_state *mrb);
+
 mrb_value
 mrb_str_pool(mrb_state *mrb, mrb_value str)
 {
@@ -214,7 +216,11 @@ mrb_str_pool(mrb_state *mrb, mrb_value str)
       ns->as.ary[len] = '\0';
     }
     else {
-      ns->as.heap.ptr = (char *)mrb_malloc(mrb, (size_t)len+1);
+      ns->as.heap.ptr = (char *)mrb_malloc_simple(mrb, (size_t)len+1);
+      if (!ns->as.heap.ptr) {
+        mrb_free(mrb, ns);
+        mrb_raise_nomemory(mrb);
+      }
       ns->as.heap.len = len;
       ns->as.heap.aux.capa = len;
       if (ptr) {
