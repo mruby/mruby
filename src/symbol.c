@@ -73,6 +73,7 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
     mrb->symtbl = (symbol_name*)mrb_realloc(mrb, mrb->symtbl, sizeof(symbol_name)*(symcapa+1));
     mrb->symcapa = symcapa;
   }
+  kh_put_prepare(n2s, mrb, h);
   sname = &mrb->symtbl[sym];
   sname->len = (uint16_t)len;
   if (lit || mrb_ro_data_p(name)) {
