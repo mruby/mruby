@@ -120,7 +120,14 @@ mrb_proc_new_cfunc_with_env(mrb_state *mrb, mrb_func_t func, mrb_int argc, const
   p->flags |= MRB_PROC_ENVSET;
   mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)e);
   MRB_ENV_UNSHARE_STACK(e);
+
+  /* NOTE: Prevents keeping invalid addresses when NoMemoryError is raised from `mrb_malloc()`. */
+  e->stack = NULL;
+  MRB_ENV_SET_STACK_LEN(e, 0);
+
   e->stack = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value) * argc);
+  MRB_ENV_SET_STACK_LEN(e, argc);
+
   if (argv) {
     for (i = 0; i < argc; ++i) {
       e->stack[i] = argv[i];
