@@ -67,9 +67,11 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
   /* registering a new symbol */
   sym = ++mrb->symidx;
   if (mrb->symcapa < sym) {
-    if (mrb->symcapa == 0) mrb->symcapa = 100;
-    else mrb->symcapa = (size_t)(mrb->symcapa * 6 / 5);
-    mrb->symtbl = (symbol_name*)mrb_realloc(mrb, mrb->symtbl, sizeof(symbol_name)*(mrb->symcapa+1));
+    size_t symcapa = mrb->symcapa;
+    if (symcapa == 0) symcapa = 100;
+    else symcapa = (size_t)(symcapa * 6 / 5);
+    mrb->symtbl = (symbol_name*)mrb_realloc(mrb, mrb->symtbl, sizeof(symbol_name)*(symcapa+1));
+    mrb->symcapa = symcapa;
   }
   sname = &mrb->symtbl[sym];
   sname->len = (uint16_t)len;
