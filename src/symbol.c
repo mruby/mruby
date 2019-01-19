@@ -65,7 +65,7 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
   }
 
   /* registering a new symbol */
-  sym = ++mrb->symidx;
+  sym = mrb->symidx + 1;
   if (mrb->symcapa < sym) {
     size_t symcapa = mrb->symcapa;
     if (symcapa == 0) symcapa = 100;
@@ -86,6 +86,7 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
     sname->name = (const char*)p;
     sname->lit = FALSE;
   }
+  mrb->symidx = sym;
   kh_put(n2s, mrb, h, sym);
 
   return sym;
