@@ -96,16 +96,25 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
    __hash_equal: hash comparation function
 */
 #define KHASH_DEFINE(name, khkey_t, khval_t, kh_is_map, __hash_func, __hash_equal) \
-  void kh_alloc_##name(mrb_state *mrb, kh_##name##_t *h)                \
+  mrb_noreturn void mrb_raise_nomemory(mrb_state *mrb);                 \
+  int kh_alloc_simple_##name(mrb_state *mrb, kh_##name##_t *h)          \
   {                                                                     \
     khint_t sz = h->n_buckets;                                          \
     size_t len = sizeof(khkey_t) + (kh_is_map ? sizeof(khval_t) : 0);   \
-    uint8_t *p = (uint8_t*)mrb_malloc(mrb, sizeof(uint8_t)*sz/4+len*sz); \
+    uint8_t *p = (uint8_t*)mrb_malloc_simple(mrb, sizeof(uint8_t)*sz/4+len*sz); \
+    if (!p) { return 1; }                                               \
     h->size = h->n_occupied = 0;                                        \
     h->keys = (khkey_t *)p;                                             \
     h->vals = kh_is_map ? (khval_t *)(p+sizeof(khkey_t)*sz) : NULL;     \
     h->ed_flags = p+len*sz;                                             \
     kh_fill_flags(h->ed_flags, 0xaa, sz/4);                             \
+    return 0;                                                           \
+  }                                                                     \
+  void kh_alloc_##name(mrb_state *mrb, kh_##name##_t *h)                \
+  {                                                                     \
+    if (kh_alloc_simple_##name(mrb, h)) {                               \
+      mrb_raise_nomemory(mrb);                                          \
+    }                                                                   \
   }                                                                     \
   kh_##name##_t *kh_init_##name##_size(mrb_state *mrb, khint_t size) {  \
     kh_##name##_t *h = (kh_##name##_t*)mrb_calloc(mrb, 1, sizeof(kh_##name##_t)); \
@@ -113,7 +122,10 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
       size = KHASH_MIN_SIZE;                                            \
     khash_power2(size);                                                 \
     h->n_buckets = size;                                                \
-    kh_alloc_##name(mrb, h);                                            \
+    if (kh_alloc_simple_##name(mrb, h)) {                               \
+      mrb_free(mrb, h);                                                 \
+      mrb_raise_nomemory(mrb);                                          \
+    }                                                                   \
     return h;                                                           \
   }                                                                     \
   kh_##name##_t *kh_init_##name(mrb_state *mrb) {                       \
