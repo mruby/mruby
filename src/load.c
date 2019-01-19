@@ -513,6 +513,7 @@ read_section_lv(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, uint8_t fl
   int result;
   uint32_t syms_len;
   mrb_sym *syms;
+  mrb_value syms_obj;
   mrb_sym (*intern_func)(mrb_state*, const char*, size_t) =
     (flags & FLAG_SRC_MALLOC)? mrb_intern : mrb_intern_static;
 
@@ -522,7 +523,8 @@ read_section_lv(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, uint8_t fl
 
   syms_len = bin_to_uint32(bin);
   bin += sizeof(uint32_t);
-  syms = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym) * (size_t)syms_len);
+  syms_obj = mrb_str_new(mrb, NULL, sizeof(mrb_sym) * (size_t)syms_len);
+  syms = (mrb_sym*)RSTRING_PTR(syms_obj);
   for (i = 0; i < syms_len; ++i) {
     uint16_t const str_len = bin_to_uint16(bin);
     bin += sizeof(uint16_t);
@@ -542,7 +544,7 @@ read_section_lv(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, uint8_t fl
   }
 
 lv_exit:
-  mrb_free(mrb, syms);
+  mrb_str_resize(mrb, syms_obj, 0);
   return result;
 }
 
