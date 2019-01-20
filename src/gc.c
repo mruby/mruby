@@ -198,6 +198,8 @@ gettimeofday_time(void)
 
 #define objects(p) ((RVALUE *)p->objects)
 
+mrb_noreturn void mrb_raise_nomemory(mrb_state *mrb);
+
 MRB_API void*
 mrb_realloc_simple(mrb_state *mrb, void *p,  size_t len)
 {
@@ -221,12 +223,12 @@ mrb_realloc(mrb_state *mrb, void *p, size_t len)
   if (len == 0) return p2;
   if (p2 == NULL) {
     if (mrb->gc.out_of_memory) {
-      mrb_exc_raise(mrb, mrb_obj_value(mrb->nomem_err));
+      mrb_raise_nomemory(mrb);
       /* mrb_panic(mrb); */
     }
     else {
       mrb->gc.out_of_memory = TRUE;
-      mrb_exc_raise(mrb, mrb_obj_value(mrb->nomem_err));
+      mrb_raise_nomemory(mrb);
     }
   }
   else {

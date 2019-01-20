@@ -240,6 +240,16 @@ mrb_exc_set(mrb_state *mrb, mrb_value exc)
   }
 }
 
+static mrb_noreturn void
+exc_throw(mrb_state *mrb, mrb_value exc)
+{
+  if (!mrb->jmp) {
+    mrb_p(mrb, exc);
+    abort();
+  }
+  MRB_THROW(mrb->jmp);
+}
+
 MRB_API mrb_noreturn void
 mrb_exc_raise(mrb_state *mrb, mrb_value exc)
 {
@@ -247,11 +257,7 @@ mrb_exc_raise(mrb_state *mrb, mrb_value exc)
     mrb_raise(mrb, E_TYPE_ERROR, "exception object expected");
   }
   mrb_exc_set(mrb, exc);
-  if (!mrb->jmp) {
-    mrb_p(mrb, exc);
-    abort();
-  }
-  MRB_THROW(mrb->jmp);
+  exc_throw(mrb, exc);
 }
 
 MRB_API mrb_noreturn void
@@ -481,6 +487,24 @@ mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_value args, char const* fmt,
   va_end(ap);
   exc = mrb_obj_new(mrb, E_NOMETHOD_ERROR, 3, argv);
   mrb_exc_raise(mrb, exc);
+}
+
+mrb_noreturn void
+mrb_core_init_abort(mrb_state *mrb)
+{
+  mrb->exc = NULL;
+  exc_throw(mrb, mrb_nil_value());
+}
+
+mrb_noreturn void
+mrb_raise_nomemory(mrb_state *mrb)
+{
+  if (mrb->nomem_err) {
+    mrb_exc_raise(mrb, mrb_obj_value(mrb->nomem_err));
+  }
+  else {
+    mrb_core_init_abort(mrb);
+  }
 }
 
 void
