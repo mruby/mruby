@@ -422,6 +422,7 @@ read_section_debug(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, uint8_t
   int result;
   uint16_t filenames_len;
   mrb_sym *filenames;
+  mrb_value filenames_obj;
 
   bin = start;
   header = (struct rite_section_debug_header *)bin;
@@ -429,7 +430,8 @@ read_section_debug(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, uint8_t
 
   filenames_len = bin_to_uint16(bin);
   bin += sizeof(uint16_t);
-  filenames = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym) * (size_t)filenames_len);
+  filenames_obj = mrb_str_new(mrb, NULL, sizeof(mrb_sym) * (size_t)filenames_len);
+  filenames = (mrb_sym*)RSTRING_PTR(filenames_obj);
   for (i = 0; i < filenames_len; ++i) {
     uint16_t f_len = bin_to_uint16(bin);
     bin += sizeof(uint16_t);
@@ -453,7 +455,7 @@ read_section_debug(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, uint8_t
   }
 
 debug_exit:
-  mrb_free(mrb, filenames);
+  mrb_str_resize(mrb, filenames_obj, 0);
   return result;
 }
 
