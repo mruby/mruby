@@ -187,9 +187,11 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
   }
   mrb_free(mrb, irep->pool);
   mrb_free(mrb, irep->syms);
-  for (i=0; i<irep->rlen; i++) {
-    if (irep->reps[i])
-      mrb_irep_decref(mrb, irep->reps[i]);
+  if (irep->reps) {
+    for (i=0; i<irep->rlen; i++) {
+      if (irep->reps[i])
+        mrb_irep_decref(mrb, irep->reps[i]);
+    }
   }
   mrb_free(mrb, irep->reps);
   mrb_free(mrb, irep->lv);
