@@ -490,6 +490,26 @@ mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_value args, char const* fmt,
   mrb_exc_raise(mrb, exc);
 }
 
+int
+mrb_core_init_protect(mrb_state *mrb, void (*body)(mrb_state *, void *), void *opaque)
+{
+  struct mrb_jmpbuf *prev_jmp = mrb->jmp;
+  struct mrb_jmpbuf c_jmp;
+  int err = 1;
+
+  MRB_TRY(&c_jmp) {
+    mrb->jmp = &c_jmp;
+    body(mrb, opaque);
+    err = 0;
+  } MRB_CATCH(&c_jmp) {
+    mrb->exc = NULL;
+  } MRB_END_EXC(&c_jmp);
+
+  mrb->jmp = prev_jmp;
+
+  return err;
+}
+
 mrb_noreturn void
 mrb_core_init_abort(mrb_state *mrb)
 {
