@@ -327,14 +327,14 @@ read_debug_record(mrb_state *mrb, const uint8_t *start, mrb_irep* irep, size_t *
 
   if (irep->debug_info) { return MRB_DUMP_INVALID_IREP; }
 
-  irep->debug_info = (mrb_irep_debug_info*)mrb_malloc(mrb, sizeof(mrb_irep_debug_info));
+  irep->debug_info = (mrb_irep_debug_info*)mrb_calloc(mrb, 1, sizeof(mrb_irep_debug_info));
   irep->debug_info->pc_count = (uint32_t)irep->ilen;
 
   record_size = (size_t)bin_to_uint32(bin);
   bin += sizeof(uint32_t);
 
   irep->debug_info->flen = bin_to_uint16(bin);
-  irep->debug_info->files = (mrb_irep_debug_info_file**)mrb_malloc(mrb, sizeof(mrb_irep_debug_info*) * irep->debug_info->flen);
+  irep->debug_info->files = (mrb_irep_debug_info_file**)mrb_calloc(mrb, irep->debug_info->flen, sizeof(mrb_irep_debug_info*));
   bin += sizeof(uint16_t);
 
   for (f_idx = 0; f_idx < irep->debug_info->flen; ++f_idx) {
@@ -342,7 +342,7 @@ read_debug_record(mrb_state *mrb, const uint8_t *start, mrb_irep* irep, size_t *
     uint16_t filename_idx;
     mrb_int len;
 
-    file = (mrb_irep_debug_info_file *)mrb_malloc(mrb, sizeof(*file));
+    file = (mrb_irep_debug_info_file *)mrb_calloc(mrb, 1, sizeof(*file));
     irep->debug_info->files[f_idx] = file;
 
     file->start_pos = bin_to_uint32(bin);
@@ -374,8 +374,8 @@ read_debug_record(mrb_state *mrb, const uint8_t *start, mrb_irep* irep, size_t *
       case mrb_debug_line_flat_map: {
         uint32_t l;
 
-        file->lines.flat_map = (mrb_irep_debug_info_line*)mrb_malloc(
-            mrb, sizeof(mrb_irep_debug_info_line) * (size_t)(file->line_entry_count));
+        file->lines.flat_map = (mrb_irep_debug_info_line*)mrb_calloc(
+            mrb, (size_t)(file->line_entry_count), sizeof(mrb_irep_debug_info_line));
         for (l = 0; l < file->line_entry_count; ++l) {
           file->lines.flat_map[l].start_pos = bin_to_uint32(bin);
           bin += sizeof(uint32_t);
