@@ -490,6 +490,8 @@ mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_value args, char const* fmt,
   mrb_exc_raise(mrb, exc);
 }
 
+void mrb_core_init_printabort(void);
+
 int
 mrb_core_init_protect(mrb_state *mrb, void (*body)(mrb_state *, void *), void *opaque)
 {
@@ -502,7 +504,13 @@ mrb_core_init_protect(mrb_state *mrb, void (*body)(mrb_state *, void *), void *o
     body(mrb, opaque);
     err = 0;
   } MRB_CATCH(&c_jmp) {
-    mrb->exc = NULL;
+    if (mrb->exc) {
+      mrb_p(mrb, mrb_obj_value(mrb->exc));
+      mrb->exc = NULL;
+    }
+    else {
+      mrb_core_init_printabort();
+    }
   } MRB_END_EXC(&c_jmp);
 
   mrb->jmp = prev_jmp;
