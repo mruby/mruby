@@ -239,7 +239,6 @@ typedef struct mrb_state {
 #endif
 
   mrb_sym symidx;
-  struct kh_n2s *name2sym;      /* symbol hash */
   struct symbol_name *symtbl;   /* symbol table */
   size_t symcapa;
 
