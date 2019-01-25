@@ -1,26 +1,6 @@
 ##
 # IO Test
 
-unless Object.respond_to? :assert_nothing_raised
-  def assert_nothing_raised(*exp)
-    ret = true
-    if $mrbtest_assert
-      $mrbtest_assert_idx += 1
-      msg = exp.last.class == String ? exp.pop : ""
-      begin
-        yield
-      rescue Exception => e
-        msg = "#{msg} exception raised."
-        diff = "      Class: <#{e.class}>\n" +
-          "    Message: #{e.message}"
-        $mrbtest_assert.push([$mrbtest_assert_idx, msg, diff])
-        ret = false
-      end
-    end
-    ret
-  end
-end
-
 assert('IO TEST SETUP') do
   MRubyIOTestUtil.io_test_setup
   $cr = MRubyIOTestUtil.win? ? 1 : 0  # "\n" include CR or not
