@@ -1,16 +1,16 @@
 ##
-# IO Test
-
-assert('File', '15.2.21') do
-  File.class == Class
-end
-
-assert('File', '15.2.21.2') do
-  File.superclass == IO
-end
+# File Test
 
 assert('File TEST SETUP') do
   MRubyIOTestUtil.io_test_setup
+end
+
+assert('File', '15.2.21') do
+  assert_equal Class, File.class
+end
+
+assert('File', '15.2.21.2') do
+  assert_equal IO, File.superclass
 end
 
 assert('File#initialize', '15.2.21.4.1') do
@@ -27,7 +27,7 @@ assert('File#path', '15.2.21.4.2') do
   assert_equal $mrbtest_io_rfname, io.path
   io.close
   assert_equal $mrbtest_io_rfname, io.path
-  io.closed?
+  assert_true io.closed?
 end
 
 assert('File.basename') do
