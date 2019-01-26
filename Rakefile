@@ -32,20 +32,25 @@ load "#{MRUBY_ROOT}/tasks/benchmark.rake"
 
 load "#{MRUBY_ROOT}/tasks/gitlab.rake"
 
+def install_D(src, dst)
+  opts = { :verbose => $verbose }
+  FileUtils.rm_f dst, opts
+  FileUtils.mkdir_p File.dirname(dst), opts
+  FileUtils.cp src, dst, opts
+end
+
 ##############################
 # generic build targets, rules
 task :default => :all
 
 bin_path = ENV['INSTALL_DIR'] || "#{MRUBY_ROOT}/bin"
-FileUtils.mkdir_p bin_path, { :verbose => $verbose }
 
 depfiles = MRuby.targets['host'].bins.map do |bin|
   install_path = MRuby.targets['host'].exefile("#{bin_path}/#{bin}")
   source_path = MRuby.targets['host'].exefile("#{MRuby.targets['host'].build_dir}/bin/#{bin}")
 
   file install_path => source_path do |t|
-    FileUtils.rm_f t.name, { :verbose => $verbose }
-    FileUtils.cp t.prerequisites.first, t.name, { :verbose => $verbose }
+    install_D t.prerequisites.first, t.name
   end
 
   install_path
@@ -78,8 +83,7 @@ MRuby.each_target do |target|
         install_path = MRuby.targets['host'].exefile("#{bin_path}/#{bin}")
 
         file install_path => exec do |t|
-          FileUtils.rm_f t.name, { :verbose => $verbose }
-          FileUtils.cp t.prerequisites.first, t.name, { :verbose => $verbose }
+          install_D t.prerequisites.first, t.name
         end
         depfiles += [ install_path ]
       elsif target == MRuby.targets['host-debug']
@@ -87,8 +91,7 @@ MRuby.each_target do |target|
           install_path = MRuby.targets['host-debug'].exefile("#{bin_path}/#{bin}")
 
           file install_path => exec do |t|
-            FileUtils.rm_f t.name, { :verbose => $verbose }
-            FileUtils.cp t.prerequisites.first, t.name, { :verbose => $verbose }
+            install_D t.prerequisites.first, t.name
           end
           depfiles += [ install_path ]
         end
