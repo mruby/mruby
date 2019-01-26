@@ -464,12 +464,11 @@ assert('String#reverse', '15.2.10.5.29') do
 end
 
 assert('String#reverse(UTF-8)', '15.2.10.5.29') do
-  assert_equal "ち", "こんにちは世界"[3]
-  assert_equal nil, "こんにちは世界"[20]
-  assert_equal "世", "こんにちは世界"[-2]
-  assert_equal "世界", "こんにちは世界"[-2..-1]
-  assert_equal "んに", "こんにちは世界"[1,2]
-  assert_equal "世", "こんにちは世界"["世"]
+  a = 'こんにちは世界!'
+  a.reverse
+
+  assert_equal 'こんにちは世界!', a
+  assert_equal '!界世はちにんこ', 'こんにちは世界!'.reverse
 end if UTF8STRING
 
 assert('String#reverse!', '15.2.10.5.30') do
