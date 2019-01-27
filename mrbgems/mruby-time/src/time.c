@@ -263,12 +263,12 @@ time_alloc(mrb_state *mrb, double sec, double usec, enum mrb_timezone timezone)
   tm->sec  = tsec;
   tm->usec = (time_t)llround((sec - tm->sec) * 1.0e6 + usec);
   if (tm->usec < 0) {
-    long sec2 = (long)NDIV(usec,1000000); /* negative div */
+    long sec2 = (long)NDIV(tm->usec,1000000); /* negative div */
     tm->usec -= sec2 * 1000000;
     tm->sec += sec2;
   }
   else if (tm->usec >= 1000000) {
-    long sec2 = (long)(usec / 1000000);
+    long sec2 = (long)(tm->usec / 1000000);
     tm->usec -= sec2 * 1000000;
     tm->sec += sec2;
   }
