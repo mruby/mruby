@@ -30,8 +30,6 @@ assert('IO.open', '15.2.20.4.1') do
   IO.open(fd) do |io|
     assert_equal $mrbtest_io_msg, io.read
   end
-
-  true
 end
 
 assert('IO#close', '15.2.20.5.1') do
@@ -72,8 +70,6 @@ assert('IO#eof?', '15.2.20.5.6') do
   io.read
   assert_true io.eof?
   io.close
-
-  true
 end
 
 assert('IO#flush', '15.2.20.5.7') do
@@ -93,7 +89,6 @@ assert('IO#getc', '15.2.20.5.8') do
   }
   assert_equal nil, io.getc
   io.close
-  true
 end
 
 #assert('IO#gets', '15.2.20.5.9') do
@@ -179,8 +174,6 @@ assert('IO#write', '15.2.20.5.20') do
   io.rewind
   assert_equal "ab123fg", io.read
   io.close
-
-  true
 end
 
 assert('IO#<<') do
@@ -188,7 +181,6 @@ assert('IO#<<') do
   io << "" << ""
   assert_equal 0, io.pos
   io.close
-  true
 end
 
 assert('IO#dup for readable') do
@@ -208,7 +200,6 @@ assert('IO#dup for readable') do
   dup.close
   assert_false io.closed?
   io.close
-  true
 end
 
 assert('IO#dup for writable') do
@@ -221,7 +212,6 @@ assert('IO#dup for writable') do
   assert_equal "mruby", dup.sysread(5)
   dup.close
   io.close
-  true
 end
 
 assert('IO.for_fd') do
@@ -229,13 +219,11 @@ assert('IO.for_fd') do
   io = IO.for_fd(fd)
     assert_equal $mrbtest_io_msg, io.read
   io.close
-  true
 end
 
 assert('IO.new') do
   io = IO.new(0)
   io.close
-  true
 end
 
 assert('IO gc check') do
@@ -280,7 +268,6 @@ assert('IO.sysopen, IO#sysread') do
   io = IO.new fd, "w"
   assert_raise(IOError) { io.sysread(1) }
   io.close
-  true
 end
 
 assert('IO.sysopen, IO#syswrite') do
@@ -294,8 +281,6 @@ assert('IO.sysopen, IO#syswrite') do
   io = IO.new(IO.sysopen($mrbtest_io_rfname), "r")
   assert_raise(IOError) { io.syswrite("a") }
   io.close
-
-  true
 end
 
 assert('IO#_read_buf') do
@@ -319,7 +304,6 @@ assert('IO#_read_buf') do
   assert_equal true, io.eof
   assert_equal true, io.eof?
   io.close
-  io.closed?
 end
 
 assert('IO#isatty') do
@@ -352,7 +336,6 @@ assert('IO#pos=, IO#seek') do
   assert_equal 0, io.seek(0)
   assert_equal 0, io.pos
   io.close
-  io.closed?
 end
 
 assert('IO#rewind') do
@@ -363,7 +346,6 @@ assert('IO#rewind') do
   assert_equal 0, io.rewind
   assert_equal 0, io.pos
   io.close
-  io.closed?
 end
 
 assert('IO#gets') do
@@ -412,7 +394,6 @@ assert('IO#gets') do
   assert_equal nil, io.gets, "gets third line; returns nil"
 
   io.close
-  io.closed?
 end
 
 assert('IO#gets - paragraph mode') do
@@ -423,7 +404,6 @@ assert('IO#gets - paragraph mode') do
   io.write "2" * 10 + "\n"
   assert_equal 34 + $cr * 4, io.pos
   io.close
-  assert_equal true, io.closed?
 
   fd = IO.sysopen $mrbtest_io_wfname
   io = IO.new fd
@@ -434,7 +414,6 @@ assert('IO#gets - paragraph mode') do
   text2 = io.gets("")
   assert_equal para2, text2
   io.close
-  io.closed?
 end
 
 assert('IO.popen') do
@@ -528,7 +507,6 @@ assert('IO#fileno') do
   assert_equal io.fileno, fd
   assert_equal io.to_i, fd
   io.close
-  io.closed?
 end
 
 assert('IO#close_on_exec') do
@@ -550,7 +528,6 @@ assert('IO#close_on_exec') do
   assert_equal(false, io.close_on_exec?)
 
   io.close
-  io.closed?
 
   begin
     r, w = IO.pipe

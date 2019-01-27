@@ -70,8 +70,6 @@ assert("FileTest.size?") do
   assert_raise IOError do
     FileTest.size?(fp2)
   end
-
-  fp1.closed? && fp2.closed?
 end
 
 assert("FileTest.socket?") do
@@ -108,8 +106,6 @@ assert("FileTest.zero?") do
   assert_raise IOError do
     FileTest.zero?(fp2)
   end
-
-  fp1.closed? && fp2.closed?
 end
 
 assert('FileTest TEST CLEANUP') do
