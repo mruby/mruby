@@ -2806,7 +2806,10 @@ codegen(codegen_scope *s, node *tree, int val)
       idx = new_sym(s, nsym(tree->car->cdr));
       genop_2(s, OP_CLASS, cursp(), idx);
       body = tree->cdr->cdr->car;
-      if (!(nint(body->cdr->car) == NODE_BEGIN && body->cdr->cdr == NULL)) {
+      if (nint(body->cdr->car) == NODE_BEGIN && body->cdr->cdr == NULL) {
+        genop_1(s, OP_LOADNIL, cursp());
+      }
+      else {
         idx = scope_body(s, body, val);
         genop_2(s, OP_EXEC, cursp(), idx);
       }
@@ -2834,8 +2837,11 @@ codegen(codegen_scope *s, node *tree, int val)
       pop();
       idx = new_sym(s, nsym(tree->car->cdr));
       genop_2(s, OP_MODULE, cursp(), idx);
-      if (!(nint(tree->cdr->car->cdr->car) == NODE_BEGIN &&
-            tree->cdr->car->cdr->cdr == NULL)) {
+      if (nint(tree->cdr->car->cdr->car) == NODE_BEGIN &&
+          tree->cdr->car->cdr->cdr == NULL) {
+        genop_1(s, OP_LOADNIL, cursp());
+      }
+      else {
         idx = scope_body(s, tree->cdr->car, val);
         genop_2(s, OP_EXEC, cursp(), idx);
       }
@@ -2852,8 +2858,11 @@ codegen(codegen_scope *s, node *tree, int val)
       codegen(s, tree->car, VAL);
       pop();
       genop_1(s, OP_SCLASS, cursp());
-      if (!(nint(tree->cdr->car->cdr->car) == NODE_BEGIN &&
-            tree->cdr->car->cdr->cdr == NULL)) {
+      if (nint(tree->cdr->car->cdr->car) == NODE_BEGIN &&
+          tree->cdr->car->cdr->cdr == NULL) {
+        genop_1(s, OP_LOADNIL, cursp());
+      }
+      else {
         idx = scope_body(s, tree->cdr->car, val);
         genop_2(s, OP_EXEC, cursp(), idx);
       }

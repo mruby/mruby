@@ -236,6 +236,11 @@ assert('class to return the last value') do
   assert_equal(m, :m)
 end
 
+assert('class to return nil if body is empty') do
+  assert_nil(class C end)
+  assert_nil(class << self; end)
+end
+
 assert('raise when superclass is not a class') do
   module FirstModule; end
   assert_raise(TypeError, 'should raise TypeError') do
