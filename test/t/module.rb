@@ -708,6 +708,15 @@ assert('module with non-class/module outer raises TypeError') do
   assert_raise(TypeError) { module []::M2 end }
 end
 
+assert('module to return the last value') do
+  m = module M; :m end
+  assert_equal(m, :m)
+end
+
+assert('module to return nil if body is empty') do
+  assert_nil(module M end)
+end
+
 assert('get constant of parent module in singleton class; issue #3568') do
   actual = module GetConstantInSingletonTest
     EXPECTED = "value"
