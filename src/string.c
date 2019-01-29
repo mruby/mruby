@@ -1587,8 +1587,6 @@ mrb_str_index_m(mrb_state *mrb, mrb_value str)
   return mrb_fixnum_value(pos);
 }
 
-#define STR_REPLACE_SHARED_MIN 10
-
 /* 15.2.10.5.24 */
 /* 15.2.10.5.28 */
 /*
