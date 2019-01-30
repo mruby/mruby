@@ -121,7 +121,7 @@ class Enumerator
 
     @obj = obj
     @meth = meth
-    @args = args.dup
+    @args = args
     @fib = nil
     @dst = nil
     @lookahead = nil
