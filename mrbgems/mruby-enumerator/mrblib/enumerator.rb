@@ -89,7 +89,6 @@ class Enumerator
   include Enumerable
 
   ##
-  # @overload initialize(size = nil, &block)
   # @overload initialize(obj, method = :each, *args)
   #
   # Creates a new Enumerator object, which can be used as an
@@ -561,14 +560,9 @@ module Kernel
   # call-seq:
   #   obj.to_enum(method = :each, *args)                 -> enum
   #   obj.enum_for(method = :each, *args)                -> enum
-  #   obj.to_enum(method = :each, *args) {|*args| block} -> enum
-  #   obj.enum_for(method = :each, *args){|*args| block} -> enum
   #
   # Creates a new Enumerator which will enumerate by calling +method+ on
   # +obj+, passing +args+ if any.
-  #
-  # If a block is given, it will be used to calculate the size of
-  # the enumerator without the need to iterate it (see Enumerator#size).
   #
   # === Examples
   #
@@ -587,17 +581,14 @@ module Kernel
   # It is typical to call to_enum when defining methods for
   # a generic Enumerable, in case no block is passed.
   #
-  # Here is such an example, with parameter passing and a sizing block:
+  # Here is such an example with parameter passing:
   #
   #     module Enumerable
   #       # a generic method to repeat the values of any enumerable
   #       def repeat(n)
   #         raise ArgumentError, "#{n} is negative!" if n < 0
   #         unless block_given?
-  #           return to_enum(__method__, n) do # __method__ is :repeat here
-  #             sz = size     # Call size and multiply by n...
-  #             sz * n if sz  # but return nil if size itself is nil
-  #           end
+  #           return to_enum(__method__, n) # __method__ is :repeat here
   #         end
   #         each do |*val|
   #           n.times { yield *val }
