@@ -205,7 +205,6 @@ module Enumerable
     ary.collect{|e,i| orig[i]}
   end
 
-  NONE = Object.new
   ##
   # call-seq:
   #    enum.first       ->  obj or nil
