@@ -238,27 +238,36 @@ utf8len(const char* p, const char* e)
   return len;
 }
 
-static mrb_int
-utf8_strlen(mrb_value str, mrb_int len)
+mrb_int
+mrb_utf8_len(const char *str, mrb_int byte_len)
 {
   mrb_int total = 0;
-  char* p = RSTRING_PTR(str);
-  char* e = p;
-  if (RSTRING(str)->flags & MRB_STR_NO_UTF) {
-    return RSTRING_LEN(str);
-  }
-  e += len < 0 ? RSTRING_LEN(str) : len;
-  while (p<e) {
+  const char *p = str;
+  const char *e = p + byte_len;
+
+  while (p < e) {
     p += utf8len(p, e);
     total++;
-  }
-  if (RSTRING_LEN(str) == total) {
-    RSTRING(str)->flags |= MRB_STR_NO_UTF;
   }
   return total;
 }
 
-#define RSTRING_CHAR_LEN(s) utf8_strlen(s, -1)
+static mrb_int
+utf8_strlen(mrb_value str)
+{
+  mrb_int byte_len = RSTRING_LEN(str);
+
+  if (RSTRING(str)->flags & MRB_STR_NO_UTF) {
+    return byte_len;
+  }
+  else {
+    mrb_int utf8_len = mrb_utf8_len(RSTRING_PTR(str), byte_len);
+    if (byte_len == utf8_len) RSTRING(str)->flags |= MRB_STR_NO_UTF;
+    return utf8_len;
+  }
+}
+
+#define RSTRING_CHAR_LEN(s) utf8_strlen(s)
 
 /* map character index to byte offset index */
 static mrb_int
