@@ -439,6 +439,10 @@ void mrb_regexp_check(mrb_state *mrb, mrb_value obj);
 #define mrb_str_buf_cat(mrb, str, ptr, len) mrb_str_cat(mrb, str, ptr, len)
 #define mrb_str_buf_append(mrb, str, str2) mrb_str_cat_str(mrb, str, str2)
 
+#ifdef MRB_UTF8_STRING
+mrb_int mrb_utf8_len(const char *str, mrb_int byte_len);
+#endif
+
 MRB_END_DECL
 
 #endif  /* MRUBY_STRING_H */
