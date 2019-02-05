@@ -143,7 +143,6 @@ mrb_check_intern_str(mrb_state *mrb, mrb_value str)
   return mrb_check_intern(mrb, RSTRING_PTR(str), RSTRING_LEN(str));
 }
 
-/* lenp must be a pointer to a size_t variable */
 MRB_API const char*
 mrb_sym2name_len(mrb_state *mrb, mrb_sym sym, mrb_int *lenp)
 {
