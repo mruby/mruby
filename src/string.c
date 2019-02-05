@@ -156,13 +156,6 @@ mrb_str_new(mrb_state *mrb, const char *p, size_t len)
   return mrb_obj_value(str_new(mrb, p, len));
 }
 
-/*
- *  call-seq: (Caution! NULL string)
- *     String.new(str="")   => new_str
- *
- *  Returns a new string object containing a copy of <i>str</i>.
- */
-
 MRB_API mrb_value
 mrb_str_new_cstr(mrb_state *mrb, const char *p)
 {
@@ -748,12 +741,6 @@ mrb_str_to_cstr(mrb_state *mrb, mrb_value str0)
   return RSTR_PTR(s);
 }
 
-/*
- *  call-seq: (Caution! String("abcd") change)
- *     String("abcdefg") = String("abcd") + String("efg")
- *
- *  Returns a new string object containing a copy of <i>str</i>.
- */
 MRB_API void
 mrb_str_concat(mrb_state *mrb, mrb_value self, mrb_value other)
 {
@@ -761,12 +748,6 @@ mrb_str_concat(mrb_state *mrb, mrb_value self, mrb_value other)
   mrb_str_cat_str(mrb, self, other);
 }
 
-/*
- *  call-seq: (Caution! String("abcd") remain)
- *     String("abcdefg") = String("abcd") + String("efg")
- *
- *  Returns a new string object containing a copy of <i>str</i>.
- */
 MRB_API mrb_value
 mrb_str_plus(mrb_state *mrb, mrb_value a, mrb_value b)
 {
@@ -784,10 +765,13 @@ mrb_str_plus(mrb_state *mrb, mrb_value a, mrb_value b)
 /* 15.2.10.5.2  */
 
 /*
- *  call-seq: (Caution! String("abcd") remain) for stack_argument
- *     String("abcdefg") = String("abcd") + String("efg")
+ *  call-seq:
+ *     str + other_str   -> new_str
  *
- *  Returns a new string object containing a copy of <i>str</i>.
+ *  Concatenation---Returns a new <code>String</code> containing
+ *  <i>other_str</i> concatenated to <i>str</i>.
+ *
+ *     "Hello from " + self.to_s   #=> "Hello from main"
  */
 static mrb_value
 mrb_str_plus_m(mrb_state *mrb, mrb_value self)
