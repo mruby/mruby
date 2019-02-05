@@ -15,6 +15,7 @@
 /* ------------------------------------------------------ */
 typedef struct symbol_name {
   mrb_bool lit : 1;
+  uint8_t prev;
   uint16_t len;
   const char *name;
 } symbol_name;
@@ -27,19 +28,48 @@ sym_validate_len(mrb_state *mrb, size_t len)
   }
 }
 
+uint8_t
+symhash(const char *key, size_t len)
+{
+    uint32_t hash, i;
+
+    for(hash = i = 0; i < len; ++i) {
+        hash += key[i];
+        hash += (hash << 10);
+        hash ^= (hash >> 6);
+    }
+    hash += (hash << 3);
+    hash ^= (hash >> 11);
+    hash += (hash << 15);
+    return hash & 0xff;
+}
+
 static mrb_sym
-find_symbol(mrb_state *mrb, const char *name, uint16_t len)
+find_symbol(mrb_state *mrb, const char *name, uint16_t len, uint8_t hash)
 {
   mrb_sym i;
   symbol_name *sname;
 
-  /* search for a symbol */
-  for (i=1; i<=mrb->symidx; i++) {
+  i = mrb->symhash[hash];
+  if (i == 0) return 0;
+  do {
     sname = &mrb->symtbl[i];
     if (sname->len == len && memcmp(sname->name, name, len) == 0) {
       return i;
     }
-  }
+    if (sname->prev == 0xff) {
+      i -= 0xff;
+      sname = &mrb->symtbl[i];
+      while (mrb->symtbl < sname) {
+        if (sname->len == len && memcmp(sname->name, name, len) == 0) {
+          return (mrb_sym)(sname - mrb->symtbl);
+        }
+        sname--;
+      }
+      return 0;
+    }
+    i -= sname->prev;
+  } while (sname->prev > 0);
   return 0;
 }
 
@@ -48,9 +78,11 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
 {
   mrb_sym sym;
   symbol_name *sname;
+  uint8_t hash;
 
   sym_validate_len(mrb, len);
-  sym = find_symbol(mrb, name, len);
+  hash = symhash(name, len);
+  sym = find_symbol(mrb, name, len, hash);
   if (sym > 0) return sym;
 
   /* registering a new symbol */
@@ -73,6 +105,17 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
     sname->name = (const char*)p;
     sname->lit = FALSE;
   }
+  if (mrb->symhash[hash]) {
+    mrb_sym i = sym - mrb->symhash[hash];
+    if (i > 0xff)
+      sname->prev = 0xff;
+    else
+      sname->prev = i;
+  }
+  else {
+    sname->prev = 0;
+  }
+  mrb->symhash[hash] = sym;
 
   return sym;
 }
@@ -107,7 +150,7 @@ mrb_check_intern(mrb_state *mrb, const char *name, size_t len)
   mrb_sym sym;
 
   sym_validate_len(mrb, len);
-  sym = find_symbol(mrb, name, len);
+  sym = find_symbol(mrb, name, len, symhash(name, len));
   if (sym > 0) return mrb_symbol_value(sym);
   return mrb_nil_value();
 }

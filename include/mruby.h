@@ -240,6 +240,7 @@ typedef struct mrb_state {
 
   mrb_sym symidx;
   struct symbol_name *symtbl;   /* symbol table */
+  mrb_sym symhash[256];
   size_t symcapa;
 
 #ifdef MRB_ENABLE_DEBUG_HOOK
