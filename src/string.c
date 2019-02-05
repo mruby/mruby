@@ -20,6 +20,7 @@
 #include <mruby/class.h>
 #include <mruby/range.h>
 #include <mruby/string.h>
+#include <mruby/numeric.h>
 #include <mruby/re.h>
 
 typedef struct mrb_shared_string {
@@ -972,13 +973,22 @@ mrb_str_equal_m(mrb_state *mrb, mrb_value str1)
   return mrb_bool_value(mrb_str_equal(mrb, str1, str2));
 }
 /* ---------------------------------- */
+mrb_value mrb_mod_to_s(mrb_state *mrb, mrb_value klass);
+
 MRB_API mrb_value
 mrb_str_to_str(mrb_state *mrb, mrb_value str)
 {
-  if (!mrb_string_p(str)) {
+  switch (mrb_type(str)) {
+  case MRB_TT_STRING:
+    return str;
+  case MRB_TT_FIXNUM:
+    return mrb_fixnum_to_str(mrb, str, 10);
+  case MRB_TT_CLASS:
+  case MRB_TT_MODULE:
+    return mrb_mod_to_s(mrb, str);
+  default:
     return mrb_convert_type(mrb, str, MRB_TT_STRING, "String", "to_s");
   }
-  return str;
 }
 
 MRB_API const char*

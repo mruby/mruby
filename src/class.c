@@ -1815,7 +1815,7 @@ mrb_define_alias(mrb_state *mrb, struct RClass *klass, const char *name1, const 
  * show information on the thing we're attached to as well.
  */
 
-static mrb_value
+mrb_value
 mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
 {
   mrb_value str;
