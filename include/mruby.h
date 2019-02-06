@@ -242,6 +242,9 @@ typedef struct mrb_state {
   struct symbol_name *symtbl;   /* symbol table */
   mrb_sym symhash[256];
   size_t symcapa;
+#ifndef MRB_ENABLE_SYMBOLL_ALL
+  char symbuf[8];               /* buffer for small symbol names */
+#endif
 
 #ifdef MRB_ENABLE_DEBUG_HOOK
   void (*code_fetch_hook)(struct mrb_state* mrb, struct mrb_irep *irep, mrb_code *pc, mrb_value *regs);
