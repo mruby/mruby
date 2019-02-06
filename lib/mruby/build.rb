@@ -270,8 +270,11 @@ EOS
     def exefile(name)
       if name.is_a?(Array)
         name.flatten.map { |n| exefile(n) }
-      else
+      elsif File.extname(name).empty?
         "#{name}#{exts.executable}"
+      else
+        # `name` sometimes have (non-standard) extension (e.g. `.bat`).
+        name
       end
     end
 

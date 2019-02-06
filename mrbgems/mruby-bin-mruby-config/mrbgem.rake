@@ -1,17 +1,3 @@
-module MRuby
-  class Build
-    def exefile(name)
-      if name.is_a?(Array)
-        name.flatten.map { |n| exefile(n) }
-      elsif name !~ /\./
-        "#{name}#{exts.executable}"
-      else
-        name
-      end
-    end
-  end
-end
-
 MRuby.each_target do
   next if kind_of? MRuby::CrossBuild
 
