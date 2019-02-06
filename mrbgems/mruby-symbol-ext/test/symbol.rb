@@ -1,10 +1,13 @@
+# coding: utf-8
 ##
 # Symbol(Ext) Test
 
-assert('Symbol.all_symbols') do
-  foo = [:__symbol_test_1, :__symbol_test_2, :__symbol_test_3].sort
-  symbols = Symbol.all_symbols.select{|sym|sym.to_s.include? '__symbol_test'}.sort
-  assert_equal foo, symbols
+if Symbol.respond_to?(:all_symbols)
+  assert('Symbol.all_symbols') do
+    foo = [:__symbol_test_1, :__symbol_test_2, :__symbol_test_3].sort
+    symbols = Symbol.all_symbols.select{|sym|sym.to_s.include? '__symbol_test'}.sort
+    assert_equal foo, symbols
+  end
 end
 
 %w[size length].each do |n|

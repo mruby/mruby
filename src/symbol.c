@@ -28,6 +28,7 @@ sym_validate_len(mrb_state *mrb, size_t len)
   }
 }
 
+#ifndef MRB_ENABLE_ALL_SYMBOLS
 static char pack_table[] = "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 static mrb_sym
@@ -100,6 +101,7 @@ sym_inline_unpack(mrb_sym sym, char *buf)
   buf[i] = '\0';
   return buf;
 }
+#endif
 
 uint8_t
 symhash(const char *key, size_t len)
@@ -123,9 +125,11 @@ find_symbol(mrb_state *mrb, const char *name, uint16_t len, uint8_t hash)
   mrb_sym i;
   symbol_name *sname;
 
+#ifndef MRB_ENABLE_ALL_SYMBOLS
   /* inline symbol */
   i = sym_inline_pack(name, len);
   if (i > 0) return i;
+#endif
 
   i = mrb->symhash[hash];
   if (i == 0) return 0;
@@ -247,11 +251,13 @@ mrb_check_intern_str(mrb_state *mrb, mrb_value str)
 MRB_API const char*
 mrb_sym2name_len(mrb_state *mrb, mrb_sym sym, mrb_int *lenp)
 {
+#ifndef MRB_ENABLE_ALL_SYMBOLS
   if (sym & 1) {                /* inline packed symbol */
     sym_inline_unpack(sym, mrb->symbuf);
     if (lenp) *lenp = strlen(mrb->symbuf);
     return mrb->symbuf;
   }
+#endif
 
   sym >>= 1;
   if (sym == 0 || mrb->symidx < sym) {
