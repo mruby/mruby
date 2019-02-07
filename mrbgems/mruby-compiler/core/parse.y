@@ -283,6 +283,20 @@ local_add(parser_state *p, mrb_sym sym)
   }
 }
 
+static void
+local_add_blk(parser_state *p, mrb_sym blk)
+{
+  /* allocate register for block */
+  local_add_f(p, blk ? blk : mrb_intern_lit(p->mrb, "&"));
+}
+
+static void
+local_add_kw(parser_state *p, mrb_sym kwd)
+{
+  /* allocate register for keywords hash */
+  local_add_f(p, kwd ? kwd : mrb_intern_lit(p->mrb, "**"));
+}
+
 static node*
 locals_node(parser_state *p)
 {
@@ -726,13 +740,11 @@ new_args_tail(parser_state *p, node *kws, node *kwrest, mrb_sym blk)
 {
   node *k;
 
-  /* allocate register for keywords hash */
   if (kws || kwrest) {
-    local_add_f(p, (kwrest && kwrest->cdr)? sym(kwrest->cdr) :  mrb_intern_lit(p->mrb, "**"));
+    local_add_kw(p, (kwrest && kwrest->cdr)? sym(kwrest->cdr) : 0);
   }
 
-  /* allocate register for block */
-  local_add_f(p, blk? blk : mrb_intern_lit(p->mrb, "&"));
+  local_add_blk(p, blk);
 
   // allocate register for keywords arguments
   // order is for Proc#parameters
@@ -2567,9 +2579,9 @@ block_param     : f_arg ',' f_block_optarg ',' f_rest_arg opt_block_args_tail
                     {
                       $$ = new_args(p, $1, 0, $3, 0, $4);
                     }
-                | f_arg ','
+                | f_arg ',' opt_block_args_tail
                     {
-                      $$ = new_args(p, $1, 0, 0, 0, 0);
+                      $$ = new_args(p, $1, 0, 0, 0, $3);
                     }
                 | f_arg ',' f_rest_arg ',' f_arg opt_block_args_tail
                     {
@@ -2610,19 +2622,24 @@ block_param     : f_arg ',' f_block_optarg ',' f_rest_arg opt_block_args_tail
                 ;
 
 opt_block_param : none
-                | block_param_def
                     {
+                      local_add_blk(p, 0);
+                      $$ = 0;
+                    }
+                | block_param_def
+                   {
                       p->cmd_start = TRUE;
                       $$ = $1;
                     }
                 ;
 
-block_param_def : '|' opt_bv_decl '|'
+block_param_def : '|' {local_add_blk(p, 0);} opt_bv_decl '|'
                     {
                       $$ = 0;
                     }
                 | tOROP
                     {
+                      local_add_blk(p, 0);
                       $$ = 0;
                     }
                 | '|' block_param opt_bv_decl '|'
