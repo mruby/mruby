@@ -21,6 +21,7 @@ assert 'Enumerator.new' do
   assert_equal [1,2,3], @obj.to_enum(:foo, 1,2,3).to_a
   assert_equal [1,2,3], Enumerator.new(@obj, :foo, 1,2,3).to_a
   assert_equal [1,2,3], Enumerator.new { |y| i = 0; loop { y << (i += 1) } }.take(3)
+  assert_equal [], Enumerator.new(false, :__id__).to_a
   assert_raise(ArgumentError) { Enumerator.new }
   assert_raise(ArgumentError) { @obj.to_enum }
 
@@ -92,11 +93,13 @@ end
 
 assert 'Enumerator#inspect' do
   e = (0..10).each
-  assert_equal("#<Enumerator: 0..10:each>", e.inspect)
-  e = Enumerator.new("FooObject", :foo, 1)
-  assert_equal("#<Enumerator: FooObject:foo(1)>", e.inspect)
-  e = Enumerator.new("FooObject", :foo, 1, 2, 3)
-  assert_equal("#<Enumerator: FooObject:foo(1, 2, 3)>", e.inspect)
+  assert_equal('#<Enumerator: 0..10:each>', e.inspect)
+  e = Enumerator.new('FooObject', :foo, 1)
+  assert_equal('#<Enumerator: "FooObject":foo(1)>', e.inspect)
+  e = Enumerator.new('FooObject', :foo, 1, 2, 3)
+  assert_equal('#<Enumerator: "FooObject":foo(1, 2, 3)>', e.inspect)
+  e = Enumerator.new(nil, :to_s)
+  assert_equal('#<Enumerator: nil:to_s>', e.inspect)
 end
 
 assert 'Enumerator#each' do
