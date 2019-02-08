@@ -118,13 +118,8 @@ class Enumerator
   def initialize(obj=NONE, meth=:each, *args, &block)
     if block
       obj = Generator.new(&block)
-    else
-      if obj == NONE
-        raise ArgumentError, "wrong number of arguments (given 0, expected 1+)"
-      end
-      if @obj && !self.respond_to?(meth)
-        raise NoMethodError, "undefined method #{meth}"
-      end
+    elsif obj == NONE
+      raise ArgumentError, "wrong number of arguments (given 0, expected 1+)"
     end
 
     @obj = obj

@@ -6,11 +6,11 @@ class << @obj
   end
 end
 
-assert 'Enumerator' do
+assert 'Enumerator.class' do
   assert_equal Class, Enumerator.class
 end
 
-assert 'Enumerator' do
+assert 'Enumerator.superclass' do
   assert_equal Object, Enumerator.superclass
 end
 
@@ -418,7 +418,10 @@ assert 'nested iteration' do
 end
 
 assert 'Kernel#to_enum' do
+  e = nil
   assert_equal Enumerator, [].to_enum.class
+  assert_nothing_raised { e = [].to_enum(:_not_implemented_) }
+  assert_raise(NoMethodError) { e.first }
 end
 
 assert 'modifying existing methods' do
