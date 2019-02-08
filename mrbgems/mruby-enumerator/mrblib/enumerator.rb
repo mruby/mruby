@@ -109,14 +109,22 @@ class Enumerator
   #
   #     p fib.take(10) # => [1, 1, 2, 3, 5, 8, 13, 21, 34, 55]
   #
+  # In the second, deprecated, form, a generated Enumerator iterates over the
+  # given object using the given method with the given arguments passed. This
+  # form is left only for internal use.
+  #
+  # Use of this form is discouraged.  Use Kernel#enum_for or Kernel#to_enum
+  # instead.
   def initialize(obj=NONE, meth=:each, *args, &block)
     if block
       obj = Generator.new(&block)
-    elsif obj == NONE
-      raise ArgumentError, "wrong number of arguments (given 0, expected 1+)"
-    end
-    if @obj and !self.respond_to?(meth)
-      raise NoMethodError, "undefined method #{meth}"
+    else
+      if obj == NONE
+        raise ArgumentError, "wrong number of arguments (given 0, expected 1+)"
+      end
+      if @obj && !self.respond_to?(meth)
+        raise NoMethodError, "undefined method #{meth}"
+      end
     end
 
     @obj = obj
@@ -610,9 +618,6 @@ module Kernel
   #     enum.first(4) # => [1, 1, 1, 2]
   #
   def to_enum(meth=:each, *args)
-    unless self.respond_to?(meth)
-      raise ArgumentError, "undefined method #{meth}"
-    end
     Enumerator.new self, meth, *args
   end
   alias enum_for to_enum
