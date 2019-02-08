@@ -109,11 +109,11 @@ class Enumerator
   #
   #     p fib.take(10) # => [1, 1, 2, 3, 5, 8, 13, 21, 34, 55]
   #
-  def initialize(obj=nil, meth=:each, *args, &block)
+  def initialize(obj=NONE, meth=:each, *args, &block)
     if block
       obj = Generator.new(&block)
-    else
-      raise ArgumentError unless obj
+    elsif obj == NONE
+      raise ArgumentError, "wrong number of arguments (given 0, expected 1+)"
     end
     if @obj and !self.respond_to?(meth)
       raise NoMethodError, "undefined method #{meth}"
@@ -221,13 +221,11 @@ class Enumerator
   end
 
   def inspect
-    return "#<#{self.class}: uninitialized>" unless @obj
-
     if @args && @args.size > 0
       args = @args.join(", ")
-      "#<#{self.class}: #{@obj}:#{@meth}(#{args})>"
+      "#<#{self.class}: #{@obj.inspect}:#{@meth}(#{args})>"
     else
-      "#<#{self.class}: #{@obj}:#{@meth}>"
+      "#<#{self.class}: #{@obj.inspect}:#{@meth}>"
     end
   end
 
