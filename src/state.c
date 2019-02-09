@@ -26,6 +26,7 @@ mrb_open_core(mrb_allocf f, void *ud)
   static const struct mrb_context mrb_context_zero = { 0 };
   mrb_state *mrb;
 
+  if (f == NULL) f = mrb_default_allocf;
   mrb = (mrb_state *)(f)(NULL, NULL, sizeof(mrb_state), ud);
   if (mrb == NULL) return NULL;
 
