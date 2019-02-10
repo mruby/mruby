@@ -119,8 +119,8 @@ module MRuby
         @conflicts << {:gem => name, :requirements => req.empty? ? nil : req}
       end
 
-      def self.bin=(bin)
-        @bins = [bin].flatten
+      def bin=(bin)
+        @bins = [bin]
       end
 
       def build_dir
