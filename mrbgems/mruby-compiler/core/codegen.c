@@ -2357,13 +2357,9 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_BACK_REF:
     if (val) {
-      char buf[3];
-      int sym;
+      char buf[] = {'$', nchar(tree)};
+      int sym = new_sym(s, mrb_intern(s->mrb, buf, sizeof(buf)));
 
-      buf[0] = '$';
-      buf[1] = nchar(tree);
-      buf[2] = 0;
-      sym = new_sym(s, mrb_intern_cstr(s->mrb, buf));
       genop_2(s, OP_GETGV, cursp(), sym);
       push();
     }
