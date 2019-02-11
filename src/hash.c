@@ -536,6 +536,7 @@ ht_copy(mrb_state *mrb, htable *t)
 
   seg = t->rootseg;
   t2 = ht_new(mrb);
+  if (t->size == 0) return t2;
 
   while (seg) {
     for (i=0; i<seg->size; i++) {
