@@ -1810,7 +1810,8 @@ RETRY_TRY_BLOCK:
             kdict = argv[argc-1];
             mrb_hash_check_kdict(mrb, kdict);
           }
-          else if (r || argc <= m1+m2+o) {
+          else if (r || argc <= m1+m2+o
+                   || !(mrb->c->ci->proc && MRB_PROC_STRICT_P(mrb->c->ci->proc))) {
             kdict = mrb_hash_new(mrb);
             kargs = 0;
           }
