@@ -823,8 +823,8 @@ lambda_body(codegen_scope *s, node *tree, int blk)
         mrb_assert(nint(kwd->car) == NODE_KW_ARG);
 
         if (def_arg) {
-          genop_2(s, OP_KEY_P, cursp(), new_sym(s, kwd_sym));
-          jmpif_key_p = genjmp2(s, OP_JMPIF, cursp(), 0, 0);
+          genop_2(s, OP_KEY_P, lv_idx(s, kwd_sym), new_sym(s, kwd_sym));
+          jmpif_key_p = genjmp2(s, OP_JMPIF, lv_idx(s, kwd_sym), 0, 0);
           codegen(s, def_arg, VAL);
           pop();
           gen_move(s, lv_idx(s, kwd_sym), cursp(), 0);
