@@ -88,15 +88,11 @@ def assert_true(ret, msg = nil, diff = nil)
 end
 
 def assert_false(ret, msg = nil, diff = nil)
-  if $mrbtest_assert
-    $mrbtest_assert_idx += 1
-    if ret
-      msg = "Expected #{ret.inspect} to be false" unless msg
-      diff = assertion_diff(false, ret) unless diff
-
-      $mrbtest_assert.push([$mrbtest_assert_idx, msg, diff])
-    end
+  if ret
+    msg ||= "Expected #{ret.inspect} to be false"
+    diff ||= assertion_diff(false, ret)
   end
+  assert_true(!ret, msg, diff)
   !ret
 end
 
@@ -171,41 +167,33 @@ def assert_not_include(collection, obj, msg = nil)
 end
 
 def assert_raise(*exc)
-  return true unless $mrbtest_assert
-  $mrbtest_assert_idx += 1
-
   msg = (exc.last.is_a? String) ? exc.pop : nil
-
   begin
     yield
-    msg ||= "Expected to raise #{exc} but nothing was raised."
-    diff = nil
-    $mrbtest_assert.push [$mrbtest_assert_idx, msg, diff]
-    false
   rescue *exc
-    true
+    assert_true(true)
   rescue Exception => e
     msg ||= "Expected to raise #{exc}, not"
     diff = "      Class: <#{e.class}>\n" +
            "    Message: #{e.message}"
-    $mrbtest_assert.push [$mrbtest_assert_idx, msg, diff]
-    false
+    assert_true(false, msg, diff)
+  else
+    msg ||= "Expected to raise #{exc} but nothing was raised."
+    diff = ""
+    assert_true(false, msg, diff)
   end
 end
 
 def assert_nothing_raised(msg = nil)
-  return true unless $mrbtest_assert
-  $mrbtest_assert_idx += 1
-
   begin
     yield
-    true
   rescue Exception => e
     msg ||= "Expected not to raise #{e} but it raised"
     diff =  "      Class: <#{e.class}>\n" +
             "    Message: #{e.message}"
-    $mrbtest_assert.push [$mrbtest_assert_idx, msg, diff]
-    false
+    assert_true(false, msg, diff)
+  else
+    assert_true(true)
   end
 end
 
