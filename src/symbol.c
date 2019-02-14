@@ -29,13 +29,13 @@ sym_validate_len(mrb_state *mrb, size_t len)
 }
 
 #ifndef MRB_ENABLE_ALL_SYMBOLS
-static char pack_table[] = "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+static const char pack_table[] = "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 static mrb_sym
 sym_inline_pack(const char *name, uint16_t len)
 {
   char c;
-  char *p;
+  const char *p;
   int i;
   mrb_sym sym = 0;
   int lower = 1;
