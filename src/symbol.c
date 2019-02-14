@@ -73,9 +73,9 @@ sym_inline_unpack(mrb_sym sym, char *buf)
 {
   int i;
 
-  if (sym == 0) return NULL;
-  if ((sym&1) == 0) return NULL; /* need to be inline sym */
-  if (sym&2) {                   /* all lower case (5bits/char) */
+  mrb_assert(sym&1);
+
+  if (sym&2) {                  /* all lower case (5bits/char) */
     for (i=0; i<6; i++) {
       uint32_t bits;
       char c;
