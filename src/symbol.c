@@ -69,37 +69,32 @@ sym_inline_pack(const char *name, uint16_t len)
 }
 
 static const char*
-sym_inline_unpack(mrb_sym sym, char *buf)
+sym_inline_unpack_with_bit(mrb_sym sym, char *buf, int bit_per_char)
 {
   int i;
 
-  mrb_assert(sym&1);
-
-  if (sym&2) {                  /* all lower case (5bits/char) */
-    for (i=0; i<6; i++) {
-      uint32_t bits;
-      char c;
-
-      bits = sym>>(i*5+2) & 31;
-      if (bits == 0) break;
-      c = pack_table[bits-1];
-      buf[i] = c;
-    }
-    buf[i] = '\0';
-    return buf;
-  }
-
-  for (i=0; i<5; i++) {
+  for (i=0; i<30/bit_per_char; i++) {
     uint32_t bits;
     char c;
 
-    bits = sym>>(i*6+2) & 63;
+    bits = sym>>(i*bit_per_char+2) & (1<<bit_per_char)-1;
     if (bits == 0) break;
     c = pack_table[bits-1];
     buf[i] = c;
   }
   buf[i] = '\0';
   return buf;
+}
+
+static const char*
+sym_inline_unpack(mrb_sym sym, char *buf)
+{
+  mrb_assert(sym&1);
+
+  if (sym&2) {                  /* all lower case (5bits/char) */
+    return sym_inline_unpack_with_bit(sym, buf, 5);
+  }
+  return sym_inline_unpack_with_bit(sym, buf, 6);
 }
 #endif
 
