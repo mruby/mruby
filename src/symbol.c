@@ -34,10 +34,8 @@ static const char pack_table[] = "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRS
 static mrb_sym
 sym_inline_pack(const char *name, uint16_t len)
 {
-  enum {
-    lower_length_max  = (MRB_SYMBOL_BITSIZE - 2) / 5,
-    mix_length_max    = (MRB_SYMBOL_BITSIZE - 2) / 6
-  };
+  const int lower_length_max = (MRB_SYMBOL_BITSIZE - 2) / 5;
+  const int mix_length_max   = (MRB_SYMBOL_BITSIZE - 2) / 6;
 
   char c;
   const char *p;
