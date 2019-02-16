@@ -160,6 +160,10 @@ typedef void mrb_value;
 #ifndef mrb_bool
 #define mrb_bool(o)   (mrb_type(o) != MRB_TT_FALSE)
 #endif
+#if !defined(MRB_SYMBOL_BITSIZE)
+#define MRB_SYMBOL_BITSIZE (sizeof(mrb_sym) * CHAR_BIT)
+#define MRB_SYMBOL_MAX      UINT32_MAX
+#endif
 #ifndef MRB_WITHOUT_FLOAT
 #define mrb_float_p(o) (mrb_type(o) == MRB_TT_FLOAT)
 #endif
