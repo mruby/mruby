@@ -69,32 +69,21 @@ sym_inline_pack(const char *name, uint16_t len)
 }
 
 static const char*
-sym_inline_unpack_with_bit(mrb_sym sym, char *buf, int bit_per_char)
+sym_inline_unpack(mrb_sym sym, char *buf, mrb_int *lenp)
 {
+  int bit_per_char = sym&2 ? 5 : 6;  /* all lower case if `sym&2` is true */
   int i;
 
-  for (i=0; i<30/bit_per_char; i++) {
-    uint32_t bits;
-    char c;
-
-    bits = sym>>(i*bit_per_char+2) & (1<<bit_per_char)-1;
-    if (bits == 0) break;
-    c = pack_table[bits-1];
-    buf[i] = c;
-  }
-  buf[i] = '\0';
-  return buf;
-}
-
-static const char*
-sym_inline_unpack(mrb_sym sym, char *buf)
-{
   mrb_assert(sym&1);
 
-  if (sym&2) {                  /* all lower case (5bits/char) */
-    return sym_inline_unpack_with_bit(sym, buf, 5);
+  for (i=0; i<30/bit_per_char; i++) {
+    uint32_t bits = sym>>(i*bit_per_char+2) & (1<<bit_per_char)-1;
+    if (bits == 0) break;
+    buf[i] = pack_table[bits-1];;
   }
-  return sym_inline_unpack_with_bit(sym, buf, 6);
+  buf[i] = '\0';
+  if (lenp) *lenp = i;
+  return buf;
 }
 #endif
 
@@ -248,9 +237,7 @@ mrb_sym2name_len(mrb_state *mrb, mrb_sym sym, mrb_int *lenp)
 {
 #ifndef MRB_ENABLE_ALL_SYMBOLS
   if (sym & 1) {                /* inline packed symbol */
-    sym_inline_unpack(sym, mrb->symbuf);
-    if (lenp) *lenp = strlen(mrb->symbuf);
-    return mrb->symbuf;
+    return sym_inline_unpack(sym, mrb->symbuf, lenp);
   }
 #endif
 
