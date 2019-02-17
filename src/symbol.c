@@ -34,13 +34,16 @@ static const char pack_table[] = "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRS
 static mrb_sym
 sym_inline_pack(const char *name, uint16_t len)
 {
+  const int lower_length_max = (MRB_SYMBOL_BITSIZE - 2) / 5;
+  const int mix_length_max   = (MRB_SYMBOL_BITSIZE - 2) / 6;
+
   char c;
   const char *p;
   int i;
   mrb_sym sym = 0;
   int lower = 1;
 
-  if (len > 6) return 0;        /* too long */
+  if (len > lower_length_max) return 0; /* too long */
   for (i=0; i<len; i++) {
     uint32_t bits;
 
@@ -64,7 +67,7 @@ sym_inline_pack(const char *name, uint16_t len)
     }
     return sym | 3;
   }
-  if (len == 6) return 0;
+  if (len > mix_length_max) return 0;
   return sym | 1;
 }
 
