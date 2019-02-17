@@ -489,7 +489,7 @@ MRB_API void mrb_define_const(mrb_state*, struct RClass*, const char *name, mrb_
  *     }
  * @param [mrb_state*] mrb_state* The mruby state reference.
  * @param [struct RClass*] RClass* A class the method will be undefined from.
- * @param [const char] const char* The name of the method to be undefined.
+ * @param [const char*] const char* The name of the method to be undefined.
  */
 MRB_API void mrb_undef_method(mrb_state*, struct RClass*, const char*);
 MRB_API void mrb_undef_method_id(mrb_state*, struct RClass*, mrb_sym);
@@ -529,7 +529,7 @@ MRB_API void mrb_undef_method_id(mrb_state*, struct RClass*, mrb_sym);
  *      }
  * @param [mrb_state*] mrb_state* The mruby state reference.
  * @param [RClass*] RClass* A class the class method will be undefined from.
- * @param [constchar*] constchar* The name of the class method to be undefined.
+ * @param [const char*] const char* The name of the class method to be undefined.
  */
 MRB_API void mrb_undef_class_method(mrb_state*, struct RClass*, const char*);
 
