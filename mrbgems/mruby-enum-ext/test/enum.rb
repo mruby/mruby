@@ -135,7 +135,7 @@ end
 assert("Enumerable#reverse_each") do
   r = (1..3)
   a = []
-  assert_equal (1..3), r.reverse_each { |v| a << v }
+  assert_same r, r.reverse_each { |v| a << v }
   assert_equal [3, 2, 1], a
 end
 
