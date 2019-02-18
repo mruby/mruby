@@ -17,8 +17,8 @@
 
 struct backtrace_location {
   int lineno;
-  const char *filename;
   mrb_sym method_id;
+  const char *filename;
 };
 
 typedef void (*each_backtrace_func)(mrb_state*, struct backtrace_location*, void*);
