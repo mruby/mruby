@@ -68,7 +68,7 @@ assert('Enumerable#find', '15.3.2.2.7') do
 end
 
 assert('Enumerable#find_all', '15.3.2.2.8') do
-  assert_true [1,2,3,4,5,6,7,8,9].find_all() {|i| i%2 == 0}, [2,4,6,8]
+  assert_equal [2,4,6,8], [1,2,3,4,5,6,7,8,9].find_all() {|i| i%2 == 0}
 end
 
 assert('Enumerable#grep', '15.3.2.2.9') do
