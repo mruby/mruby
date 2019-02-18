@@ -80,7 +80,7 @@ sym_inline_unpack(mrb_sym sym, char *buf, mrb_int *lenp)
   mrb_assert(sym&1);
 
   for (i=0; i<30/bit_per_char; i++) {
-    uint32_t bits = sym>>(i*bit_per_char+2) & (1<<bit_per_char)-1;
+    uint32_t bits = sym>>(i*bit_per_char+2) & ((1<<bit_per_char)-1);
     if (bits == 0) break;
     buf[i] = pack_table[bits-1];;
   }
