@@ -143,8 +143,8 @@ assert('Module#class_variable_set', '15.2.2.4.18') do
     end
   end
 
-  assert_true Test4ClassVariableSet.class_variable_set(:@@cv, 99)
-  assert_true Test4ClassVariableSet.class_variable_set(:@@foo, 101)
+  assert_equal 99, Test4ClassVariableSet.class_variable_set(:@@cv, 99)
+  assert_equal 101, Test4ClassVariableSet.class_variable_set(:@@foo, 101)
   assert_true Test4ClassVariableSet.class_variables.include? :@@cv
   assert_equal 99, Test4ClassVariableSet.class_variable_get(:@@cv)
   assert_equal 101, Test4ClassVariableSet.new.foo
@@ -238,9 +238,10 @@ assert('Module#remove_method', '15.2.2.4.41') do
     end
   end
 
-  assert_true Test4RemoveMethod::Child.class_eval{ remove_method :hello }
-  assert_true Test4RemoveMethod::Child.instance_methods.include? :hello
-  assert_false Test4RemoveMethod::Child.instance_methods(false).include? :hello
+  klass = Test4RemoveMethod::Child
+  assert_same klass, klass.class_eval{ remove_method :hello }
+  assert_true klass.instance_methods.include? :hello
+  assert_false klass.instance_methods(false).include? :hello
 end
 
 assert('Module.nesting', '15.2.2.2.2') do
