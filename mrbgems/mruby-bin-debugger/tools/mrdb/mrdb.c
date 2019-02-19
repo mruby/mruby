@@ -52,6 +52,7 @@ static const debug_command debug_command_list[] = {
   {"eval",      NULL,           2, 0, 0, DBGCMD_EVAL,           dbgcmd_eval},            /* ev[al] */
   {"help",      NULL,           1, 0, 1, DBGCMD_HELP,           dbgcmd_help},            /* h[elp] */
   {"info",      "breakpoints",  1, 1, 1, DBGCMD_INFO_BREAK,     dbgcmd_info_break},      /* i[nfo] b[reakpoints] */
+  {"info",      "locals",       1, 1, 0, DBGCMD_INFO_LOCAL,     dbgcmd_info_local},      /* i[nfo] l[ocals] */
   {"list",      NULL,           1, 0, 1, DBGCMD_LIST,           dbgcmd_list},            /* l[ist] */
   {"print",     NULL,           1, 0, 0, DBGCMD_PRINT,          dbgcmd_print},           /* p[rint] */
   {"quit",      NULL,           1, 0, 0, DBGCMD_QUIT,           dbgcmd_quit},            /* q[uit] */
