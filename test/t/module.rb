@@ -231,7 +231,7 @@ assert('Module#const_set', '15.2.2.4.23') do
     Const4Test4ConstSet = 42
   end
 
-  assert_true Test4ConstSet.const_set(:Const4Test4ConstSet, 23)
+  assert_equal 23, Test4ConstSet.const_set(:Const4Test4ConstSet, 23)
   assert_equal 23, Test4ConstSet.const_get(:Const4Test4ConstSet)
 end
 
