@@ -47,23 +47,21 @@ def assert(str = 'Assertion failed', iso = '')
     $mrbtest_assert_idx = 0
     yield
     if($mrbtest_assert.size > 0)
-      $asserts.push(assertion_string('Fail: ', str, iso, nil))
+      $asserts.push(assertion_string('Fail: ', str, iso))
       $ko_test += 1
       t_print('F')
     else
       $ok_test += 1
       t_print('.')
     end
+  rescue MRubyTestSkip => e
+    $asserts.push(assertion_string('Skip: ', str, iso, e))
+    t_print('?')
   rescue Exception => e
     bt = e.backtrace if $mrbtest_verbose
-    if e.class.to_s == 'MRubyTestSkip'
-      $asserts.push(assertion_string('Skip: ', str, iso, e, nil))
-      t_print('?')
-    else
-      $asserts.push(assertion_string("#{e.class}: ", str, iso, e, bt))
-      $kill_test += 1
-      t_print('X')
-    end
+    $asserts.push(assertion_string("#{e.class}: ", str, iso, e, bt))
+    $kill_test += 1
+    t_print('X')
   ensure
     $mrbtest_assert = nil
   end
