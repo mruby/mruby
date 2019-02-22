@@ -144,8 +144,6 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
     end
   end
 
-  init = "#{spec.dir}/init_mrbtest.c"
-
   # store the last gem selection and make the re-build
   # of the test gem depending on a change to the gem
   # selection
@@ -164,7 +162,7 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
   file clib => active_gems_path if active_gem_list != current_gem_list
 
   file mlib => clib
-  file clib => [init, build.mrbcfile, __FILE__] do |_t|
+  file clib => [build.mrbcfile, __FILE__] do |_t|
     _pp "GEN", "*.rb", "#{clib.relative_path}"
     FileUtils.mkdir_p File.dirname(clib)
     open(clib, 'w') do |f|
@@ -177,7 +175,8 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
       f.puts %Q[ *   All manual changes will get lost.]
       f.puts %Q[ */]
       f.puts %Q[]
-      f.puts IO.read(init)
+      f.puts %Q[struct mrb_state;]
+      f.puts %Q[typedef struct mrb_state mrb_state;]
       build.gems.each do |g|
         f.puts %Q[void GENERATED_TMP_mrb_#{g.funcname}_gem_test(mrb_state *mrb);]
       end

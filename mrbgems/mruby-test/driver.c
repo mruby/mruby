@@ -18,8 +18,9 @@
 #include <mruby/variable.h>
 #include <mruby/array.h>
 
-void
-mrb_init_mrbtest(mrb_state *);
+extern const uint8_t mrbtest_assert_irep[];
+
+void mrbgemtest_init(mrb_state* mrb);
 
 /* Print a short remark for the user */
 static void
@@ -167,7 +168,8 @@ main(int argc, char **argv)
   }
 
   mrb_init_test_driver(mrb, verbose);
-  mrb_init_mrbtest(mrb);
+  mrb_load_irep(mrb, mrbtest_assert_irep);
+  mrbgemtest_init(mrb);
   ret = eval_test(mrb);
   mrb_close(mrb);
 
