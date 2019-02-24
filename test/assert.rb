@@ -22,7 +22,7 @@ def assertion_string(err, str, iso=nil, e=nil, bt=nil)
   msg += " [#{iso}]" if iso && iso != ''
   msg += " => #{e.cause}" if e && e.respond_to?(:cause)
   msg += " => #{e.message}" if e && !e.respond_to?(:cause)
-  msg += " (mrbgems: #{GEMNAME})" if Object.const_defined?(:GEMNAME)
+  msg += " (#{GEMNAME == 'mruby-test' ? 'core' : "mrbgems: #{GEMNAME}"})"
   if $mrbtest_assert && $mrbtest_assert.size > 0
     $mrbtest_assert.each do |idx, assert_msg, diff|
       msg += "\n - Assertion[#{idx}] Failed: #{assert_msg}\n#{diff}"
