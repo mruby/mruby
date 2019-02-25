@@ -525,7 +525,8 @@ codedump(mrb_state *mrb, mrb_irep *irep)
     }
     mrb_gc_arena_restore(mrb, ai);
   }
-  printf("\n");
+  print_header(irep, pc - irep->iseq);
+  puts("<END OF SEQUENSE>\n"); /* output two new lines */
 }
 
 static void
