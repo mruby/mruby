@@ -21,7 +21,7 @@ struct backtrace_location {
   const char *filename;
 };
 
-typedef void (*each_backtrace_func)(mrb_state*, struct backtrace_location*, void*);
+typedef void (*each_backtrace_func)(mrb_state*, const struct backtrace_location*, void*);
 
 static const mrb_data_type bt_type = { "Backtrace", mrb_free };
 
@@ -57,11 +57,11 @@ each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, mrb_code *pc0, each_backtrace_fu
     else {
       pc = pc0;
     }
-    loc.filename = mrb_debug_get_filename(irep, pc - irep->iseq);
-    loc.lineno = mrb_debug_get_line(irep, pc - irep->iseq);
 
+    loc.lineno = mrb_debug_get_line(irep, pc - irep->iseq);
     if (loc.lineno == -1) continue;
 
+    loc.filename = mrb_debug_get_filename(irep, pc - irep->iseq);
     if (!loc.filename) {
       loc.filename = "(unknown)";
     }
@@ -80,8 +80,6 @@ print_backtrace(mrb_state *mrb, mrb_value backtrace)
   mrb_int n;
   FILE *stream = stderr;
 
-  if (!mrb_array_p(backtrace)) return;
-
   n = RARRAY_LEN(backtrace) - 1;
   if (n == 0) return;
 
@@ -96,7 +94,7 @@ print_backtrace(mrb_state *mrb, mrb_value backtrace)
 }
 
 static int
-packed_bt_len(struct backtrace_location *bt, int n)
+packed_bt_len(const struct backtrace_location *bt, int n)
 {
   int len = 0;
   int i;
@@ -113,7 +111,7 @@ static void
 print_packed_backtrace(mrb_state *mrb, mrb_value packed)
 {
   FILE *stream = stderr;
-  struct backtrace_location *bt;
+  const struct backtrace_location *bt;
   int n, i;
   int ai = mrb_gc_arena_save(mrb);
 
@@ -124,7 +122,7 @@ print_packed_backtrace(mrb_state *mrb, mrb_value packed)
   if (packed_bt_len(bt, n) == 0) return;
   fprintf(stream, "trace (most recent call last):\n");
   for (i = 0; i<n; i++) {
-    struct backtrace_location *entry = &bt[n-i-1];
+    const struct backtrace_location *entry = &bt[n-i-1];
     if (entry->filename == NULL) continue;
     fprintf(stream, "\t[%d] %s:%d", i, entry->filename, entry->lineno);
     if (entry->method_id != 0) {
@@ -172,7 +170,7 @@ mrb_print_backtrace(mrb_state *mrb)
 
 static void
 count_backtrace_i(mrb_state *mrb,
-                 struct backtrace_location *loc,
+                 const struct backtrace_location *loc,
                  void *data)
 {
   int *lenp = (int*)data;
@@ -183,7 +181,7 @@ count_backtrace_i(mrb_state *mrb,
 
 static void
 pack_backtrace_i(mrb_state *mrb,
-                 struct backtrace_location *loc,
+                 const struct backtrace_location *loc,
                  void *data)
 {
   struct backtrace_location **pptr = (struct backtrace_location**)data;
@@ -229,7 +227,7 @@ mrb_keep_backtrace(mrb_state *mrb, mrb_value exc)
 mrb_value
 mrb_unpack_backtrace(mrb_state *mrb, mrb_value backtrace)
 {
-  struct backtrace_location *bt;
+  const struct backtrace_location *bt;
   mrb_int n, i;
   int ai;
 
@@ -244,7 +242,7 @@ mrb_unpack_backtrace(mrb_state *mrb, mrb_value backtrace)
   backtrace = mrb_ary_new_capa(mrb, n);
   ai = mrb_gc_arena_save(mrb);
   for (i = 0; i < n; i++) {
-    struct backtrace_location *entry = &bt[i];
+    const struct backtrace_location *entry = &bt[i];
     mrb_value btline;
 
     if (entry->filename == NULL) continue;
