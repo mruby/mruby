@@ -69,9 +69,6 @@ assert('File#flock') do
 end
 
 assert('File#mtime') do
-  unless Object.const_defined?(:Time)
-    skip "File#mtime require Time"
-  end
   begin
     File.open("#{$mrbtest_io_wfname}.mtime", 'w') do |f|
       assert_equal Time, f.mtime.class
