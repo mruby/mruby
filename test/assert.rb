@@ -20,8 +20,10 @@ end
 def assertion_string(err, str, iso=nil, e=nil, bt=nil)
   msg = "#{err}#{str}"
   msg += " [#{iso}]" if iso && iso != ''
-  msg += " => #{e.cause}" if e && e.respond_to?(:cause)
-  msg += " => #{e.message}" if e && !e.respond_to?(:cause)
+  if e
+    m = e.respond_to?(:cause) ? e.cause : e.message
+    msg += " => #{m}" if m && !m.empty?
+  end
   msg += " (#{GEMNAME == 'mruby-test' ? 'core' : "mrbgems: #{GEMNAME}"})"
   if $mrbtest_assert && $mrbtest_assert.size > 0
     $mrbtest_assert.each do |idx, assert_msg, diff|
