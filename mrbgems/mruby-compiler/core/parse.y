@@ -855,6 +855,21 @@ new_dstr(parser_state *p, node *a)
 static node*
 concat_string(parser_state *p, node *a, node *b)
 {
+  if ((enum node_type)(intptr_t)a->car == NODE_STR) {
+    if ((enum node_type)(intptr_t)b->car == NODE_STR) {
+      /* a == NODE_STR && b == NODE_STR */
+      size_t newlen = (size_t)a->cdr->cdr + (size_t)b->cdr->cdr;
+      char *str = (char*)mrb_pool_realloc(p->pool, a->cdr->car, (size_t)a->cdr->cdr + 1, newlen + 1);
+      memcpy(str + (size_t)a->cdr->cdr, b->cdr->car, (size_t)b->cdr->cdr);
+      str[newlen] = '\0';
+      a->cdr->car = (node*)str;
+      a->cdr->cdr = (node*)newlen;
+      cons_free(b->cdr);
+      cons_free(b);
+      return a;
+    }
+  }
+
   return new_dstr(p, list2(a, b));
 }
 
