@@ -859,18 +859,25 @@ string_node_p(node *n)
 }
 
 static node*
+composite_string_node(parser_state *p, node *a, node *b)
+{
+  size_t newlen = (size_t)a->cdr + (size_t)b->cdr;
+  char *str = (char*)mrb_pool_realloc(p->pool, a->car, (size_t)a->cdr + 1, newlen + 1);
+  memcpy(str + (size_t)a->cdr, b->car, (size_t)b->cdr);
+  str[newlen] = '\0';
+  a->car = (node*)str;
+  a->cdr = (node*)newlen;
+  cons_free(b);
+  return a;
+}
+
+static node*
 concat_string(parser_state *p, node *a, node *b)
 {
   if (string_node_p(a)) {
     if (string_node_p(b)) {
       /* a == NODE_STR && b == NODE_STR */
-      size_t newlen = (size_t)a->cdr->cdr + (size_t)b->cdr->cdr;
-      char *str = (char*)mrb_pool_realloc(p->pool, a->cdr->car, (size_t)a->cdr->cdr + 1, newlen + 1);
-      memcpy(str + (size_t)a->cdr->cdr, b->cdr->car, (size_t)b->cdr->cdr);
-      str[newlen] = '\0';
-      a->cdr->car = (node*)str;
-      a->cdr->cdr = (node*)newlen;
-      cons_free(b->cdr);
+      composite_string_node(p, a->cdr, b->cdr);
       cons_free(b);
       return a;
     }
