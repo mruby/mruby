@@ -852,6 +852,12 @@ new_dstr(parser_state *p, node *a)
   return cons((node*)NODE_DSTR, a);
 }
 
+static node*
+concat_string(parser_state *p, node *a, node *b)
+{
+  return new_dstr(p, list2(a, b));
+}
+
 /* (:str . (s . len)) */
 static node*
 new_xstr(parser_state *p, const char *s, int len)
@@ -1200,7 +1206,7 @@ heredoc_end(parser_state *p)
 %token <nd>  tNTH_REF tBACK_REF
 %token <num> tREGEXP_END
 
-%type <nd> singleton string string_rep string_interp xstring regexp
+%type <nd> singleton string string_fragment string_rep string_interp xstring regexp
 %type <nd> literal numeric cpath symbol
 %type <nd> top_compstmt top_stmts top_stmt
 %type <nd> bodystmt compstmt stmts stmt expr arg primary command command_call method_call
@@ -2852,7 +2858,14 @@ literal         : numeric
                 | symbols
                 ;
 
-string          : tCHAR
+string          : string_fragment
+                | string string_fragment
+                    {
+                      $$ = concat_string(p, $1, $2);
+                    }
+                ;
+
+string_fragment : tCHAR
                 | tSTRING
                 | tSTRING_BEG tSTRING
                     {
@@ -3478,7 +3491,7 @@ assoc           : arg tASSOC arg
                       void_expr_error(p, $3);
                       $$ = cons(new_sym(p, $1), $3);
                     }
-                | string tLABEL_TAG arg
+                | string_fragment tLABEL_TAG arg
                     {
                       void_expr_error(p, $3);
                       if ($1->car == (node*)NODE_DSTR) {
