@@ -852,11 +852,17 @@ new_dstr(parser_state *p, node *a)
   return cons((node*)NODE_DSTR, a);
 }
 
+static int
+string_node_p(node *n)
+{
+  return (int)((enum node_type)(intptr_t)n->car == NODE_STR);
+}
+
 static node*
 concat_string(parser_state *p, node *a, node *b)
 {
-  if ((enum node_type)(intptr_t)a->car == NODE_STR) {
-    if ((enum node_type)(intptr_t)b->car == NODE_STR) {
+  if (string_node_p(a)) {
+    if (string_node_p(b)) {
       /* a == NODE_STR && b == NODE_STR */
       size_t newlen = (size_t)a->cdr->cdr + (size_t)b->cdr->cdr;
       char *str = (char*)mrb_pool_realloc(p->pool, a->cdr->car, (size_t)a->cdr->cdr + 1, newlen + 1);
