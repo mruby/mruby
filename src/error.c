@@ -376,6 +376,7 @@ mrb_warn(mrb_state *mrb, const char *fmt, ...)
   str = mrb_vformat(mrb, fmt, ap);
   fputs("warning: ", stderr);
   fwrite(RSTRING_PTR(str), RSTRING_LEN(str), 1, stderr);
+  putc('\n', stderr);
   va_end(ap);
 #endif
 }
