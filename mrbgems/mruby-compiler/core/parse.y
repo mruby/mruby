@@ -893,6 +893,21 @@ concat_string(parser_state *p, node *a, node *b)
       }
     }
   }
+  else if (string_node_p(b)) {
+    /* a == NODE_DSTR && b == NODE_STR */
+
+    node *c;
+    for (c = a; c->cdr != NULL; c = c->cdr) ;
+    if (string_node_p(c->car)) {
+      /* a->[..., NODE_STR] && b == NODE_STR */
+      composite_string_node(p, c->car->cdr, b->cdr);
+      cons_free(b);
+      return a;
+    }
+
+    push(a, b);
+    return a;
+  }
 
   return new_dstr(p, list2(a, b));
 }
