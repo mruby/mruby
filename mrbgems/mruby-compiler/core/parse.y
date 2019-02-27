@@ -881,6 +881,17 @@ concat_string(parser_state *p, node *a, node *b)
       cons_free(b);
       return a;
     }
+    else {
+      /* a == NODE_STR && b == NODE_DSTR */
+
+      if (string_node_p(b->cdr->car)) {
+        /* a == NODE_STR && b->[NODE_STR, ...] */
+        composite_string_node(p, a->cdr, b->cdr->car->cdr);
+        cons_free(b->cdr->car);
+        b->cdr->car = a;
+        return b;
+      }
+    }
   }
 
   return new_dstr(p, list2(a, b));
