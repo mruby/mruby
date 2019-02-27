@@ -908,6 +908,27 @@ concat_string(parser_state *p, node *a, node *b)
     push(a, b);
     return a;
   }
+  else {
+    /* a == NODE_DSTR && b == NODE_DSTR */
+
+    node *c, *d;
+    for (c = a; c->cdr != NULL; c = c->cdr) ;
+    if (string_node_p(c->car) && string_node_p(b->cdr->car)) {
+      /* a->[..., NODE_STR] && b->[NODE_STR, ...] */
+      d = b->cdr;
+      cons_free(b);
+      composite_string_node(p, c->car->cdr, d->car->cdr);
+      cons_free(d->car);
+      c->cdr = d->cdr;
+      cons_free(d);
+      return a;
+    }
+    else {
+      c->cdr = b->cdr;
+      cons_free(b);
+      return a;
+    }
+  }
 
   return new_dstr(p, list2(a, b));
 }
