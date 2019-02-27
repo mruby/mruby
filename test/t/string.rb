@@ -713,3 +713,10 @@ assert('String#freeze') do
 
   assert_raise(RuntimeError) { str.upcase! }
 end
+
+assert('String literal concatenation') do
+  assert_equal 2, ("A" "B").size
+  assert_equal 3, ('A' "B" 'C').size
+  assert_equal 3, (?A "#{?B}C").size
+  assert_equal 4, (%(A) "B#{?C}" "D").size
+end
