@@ -4568,7 +4568,7 @@ parser_yylex(parser_state *p)
       }
       pushback(p, c);
       if (IS_SPCARG(c)) {
-        yywarning(p, "`**' interpreted as argument prefix");
+        yywarning(p, "'**' interpreted as argument prefix");
         c = tDSTAR;
       }
       else if (IS_BEG()) {
