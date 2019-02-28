@@ -3708,10 +3708,10 @@ yywarn(parser_state *p, const char *s)
   if (! p->capture_errors) {
 #ifndef MRB_DISABLE_STDIO
     if (p->filename) {
-      fprintf(stderr, "%s:%d:%d: %s\n", p->filename, p->lineno, p->column, s);
+      fprintf(stderr, "%s:%d:%d: warning: %s\n", p->filename, p->lineno, p->column, s);
     }
     else {
-      fprintf(stderr, "line %d:%d: %s\n", p->lineno, p->column, s);
+      fprintf(stderr, "line %d:%d: warning: %s\n", p->lineno, p->column, s);
     }
 #endif
   }
