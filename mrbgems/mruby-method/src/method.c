@@ -327,7 +327,7 @@ name_error:
   s = mrb_class_name(mrb, c);
   mrb_raisef(
     mrb, E_NAME_ERROR,
-    "undefined method `%S' for class `%S'",
+    "undefined method '%S' for class '%S'",
     mrb_sym2str(mrb, name),
     mrb_str_new_static(mrb, s, strlen(s))
   );
