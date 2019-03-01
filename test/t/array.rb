@@ -362,10 +362,13 @@ end
 # Not ISO specified
 
 assert("Array (Shared Array Corruption)") do
-  a = [ "a", "b", "c", "d", "e", "f" ]
+  a = ["a", "b", "c", "d", "e", "f"]
   b = a.slice(1, 3)
-  a.clear
-  b.clear
+  assert_equal(["b", "c", "d"], b)
+  assert_same(a, a.clear)
+  assert_equal([], a)
+  assert_same(b, b.clear)
+  assert_equal([], b)
 end
 
 assert("Array (Longish inline array)") do
