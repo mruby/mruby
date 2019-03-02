@@ -119,10 +119,6 @@ module MRuby
         @conflicts << {:gem => name, :requirements => req.empty? ? nil : req}
       end
 
-      def self.bin=(bin)
-        @bins = [bin].flatten
-      end
-
       def build_dir
         "#{build.build_dir}/mrbgems/#{name}"
       end
