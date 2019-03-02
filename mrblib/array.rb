@@ -213,7 +213,11 @@ class Array
           if left + 1 == right
             lval = self[left]
             rval = self[right]
-            if (block&.call(lval, rval) || (lval <=> rval)) > 0
+            cmp = if block then block.call(lval,rval) else lval <=> rval end
+            if cmp.nil?
+              raise ArgumentError, "comparison of #{lval.inspect} and #{rval.inspect} failed"
+            end
+            if cmp > 0
               self[left]  = rval
               self[right] = lval
             end
@@ -245,7 +249,11 @@ class Array
           else
             lval = lary[lidx]
             rval = self[ridx]
-            if (block&.call(lval, rval) || (lval <=> rval)) <= 0
+            cmp = if block then block.call(lval,rval) else lval <=> rval end
+            if cmp.nil?
+              raise ArgumentError, "comparison of #{lval.inspect} and #{rval.inspect} failed"
+            end
+            if cmp <= 0
               self[i] = lval
               lidx += 1
             else
