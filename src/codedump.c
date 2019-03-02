@@ -74,8 +74,8 @@ codedump(mrb_state *mrb, mrb_irep *irep)
   const char *file = NULL, *next_file;
 
   if (!irep) return;
-  printf("irep %p nregs=%d nlocals=%d pools=%d syms=%d reps=%d\n", (void*)irep,
-         irep->nregs, irep->nlocals, (int)irep->plen, (int)irep->slen, (int)irep->rlen);
+  printf("irep %p nregs=%d nlocals=%d pools=%d syms=%d reps=%d iseq=%d\n", (void*)irep,
+         irep->nregs, irep->nlocals, (int)irep->plen, (int)irep->slen, (int)irep->rlen, (int)irep->ilen);
 
   if (irep->lv) {
     int i;
