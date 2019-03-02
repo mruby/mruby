@@ -365,7 +365,7 @@ assert('clone Class') do
     end
   end
 
-  Foo.clone.new.func
+  assert_true(Foo.clone.new.func)
 end
 
 assert('class variable and class << self style class method') do
