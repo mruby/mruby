@@ -122,6 +122,19 @@ prepare_singleton_class(mrb_state *mrb, struct RBasic *o)
   mrb_obj_iv_set(mrb, (struct RObject*)sc, mrb_intern_lit(mrb, "__attached__"), mrb_obj_value(o));
 }
 
+static mrb_value
+class_name_str(mrb_state *mrb, struct RClass* c)
+{
+  mrb_value path = mrb_class_path(mrb, c);
+  if (mrb_nil_p(path)) {
+    path = c->tt == MRB_TT_MODULE ? mrb_str_new_lit(mrb, "#<Module:") :
+                                    mrb_str_new_lit(mrb, "#<Class:");
+    mrb_str_concat(mrb, path, mrb_ptr_to_str(mrb, c));
+    mrb_str_cat_lit(mrb, path, ">");
+  }
+  return path;
+}
+
 static struct RClass*
 class_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym id)
 {
@@ -1696,14 +1709,8 @@ mrb_class_real(struct RClass* cl)
 MRB_API const char*
 mrb_class_name(mrb_state *mrb, struct RClass* c)
 {
-  mrb_value path = mrb_class_path(mrb, c);
-  if (mrb_nil_p(path)) {
-    path = c->tt == MRB_TT_MODULE ? mrb_str_new_lit(mrb, "#<Module:") :
-                                    mrb_str_new_lit(mrb, "#<Class:");
-    mrb_str_concat(mrb, path, mrb_ptr_to_str(mrb, c));
-    mrb_str_cat_lit(mrb, path, ">");
-  }
-  return RSTRING_PTR(path);
+  mrb_value name = class_name_str(mrb, c);
+  return RSTRING_PTR(name);
 }
 
 MRB_API const char*
@@ -1818,12 +1825,10 @@ mrb_define_alias(mrb_state *mrb, struct RClass *klass, const char *name1, const 
 mrb_value
 mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value str;
 
   if (mrb_type(klass) == MRB_TT_SCLASS) {
     mrb_value v = mrb_iv_get(mrb, klass, mrb_intern_lit(mrb, "__attached__"));
-
-    str = mrb_str_new_lit(mrb, "#<Class:");
+    mrb_value str = mrb_str_new_lit(mrb, "#<Class:");
 
     if (class_ptr_p(v)) {
       mrb_str_cat_str(mrb, str, mrb_inspect(mrb, v));
@@ -1834,34 +1839,7 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
     return mrb_str_cat_lit(mrb, str, ">");
   }
   else {
-    struct RClass *c;
-    mrb_value path;
-
-    str = mrb_str_new_capa(mrb, 32);
-    c = mrb_class_ptr(klass);
-    path = mrb_class_path(mrb, c);
-
-    if (mrb_nil_p(path)) {
-      switch (mrb_type(klass)) {
-        case MRB_TT_CLASS:
-          mrb_str_cat_lit(mrb, str, "#<Class:");
-          break;
-
-        case MRB_TT_MODULE:
-          mrb_str_cat_lit(mrb, str, "#<Module:");
-          break;
-
-        default:
-          /* Shouldn't be happened? */
-          mrb_str_cat_lit(mrb, str, "#<??????:");
-          break;
-      }
-      mrb_str_concat(mrb, str, mrb_ptr_to_str(mrb, c));
-      return mrb_str_cat_lit(mrb, str, ">");
-    }
-    else {
-      return path;
-    }
+    return class_name_str(mrb, mrb_class_ptr(klass));
   }
 }
 
