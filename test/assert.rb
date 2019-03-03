@@ -19,11 +19,8 @@ end
 # Create the assertion in a readable way
 def assertion_string(err, str, iso=nil, e=nil, bt=nil)
   msg = "#{err}#{str}"
-  msg += " [#{iso}]" if iso && iso != ''
-  if e
-    m = e.respond_to?(:cause) ? e.cause : e.message
-    msg += " => #{m}" if m && !m.empty?
-  end
+  msg += " [#{iso}]" if iso && !iso.empty?
+  msg += " => #{e}" if e && !e.to_s.empty?
   msg += " (#{GEMNAME == 'mruby-test' ? 'core' : "mrbgems: #{GEMNAME}"})"
   if $mrbtest_assert && $mrbtest_assert.size > 0
     $mrbtest_assert.each do |idx, assert_msg, diff|
@@ -258,12 +255,7 @@ end
 
 ##
 # Skip the test
-class MRubyTestSkip < NotImplementedError
-  attr_accessor :cause
-  def initialize(cause)
-    @cause = cause
-  end
-end
+class MRubyTestSkip < NotImplementedError; end
 
 def skip(cause = "")
   raise MRubyTestSkip.new(cause)
