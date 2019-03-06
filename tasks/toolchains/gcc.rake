@@ -20,7 +20,7 @@ MRuby::Toolchain.new(:gcc) do |conf, _params|
   end
 
   conf.linker do |linker|
-    linker.command = ENV['LD'] || 'gcc'
+    linker.command = ENV['LD'] || ENV['CXX'] || ENV['CC'] || 'gcc'
     linker.flags = [ENV['LDFLAGS'] || %w()]
     linker.libraries = %w(m)
     linker.library_paths = []
