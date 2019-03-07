@@ -1,6 +1,8 @@
 $:.unshift File.dirname(File.dirname(File.expand_path(__FILE__)))
 require 'test/assert.rb'
 
+GEMNAME = ""
+
 def cmd(s)
   case RbConfig::CONFIG['host_os']
   when /mswin(?!ce)|mingw|bccwin/
@@ -30,6 +32,7 @@ ARGV.each do |gem|
   end
 
   Dir["#{gem}/bintest/**/*.rb"].each do |file|
+    GEMNAME.replace(File.basename(gem))
     load file
   end
 end
