@@ -112,7 +112,7 @@ module MRuby
       end
 
       def add_test_dependency(*args)
-        add_dependency(*args) if build.test_enabled?
+        add_dependency(*args) if build.test_enabled? || build.bintest_enabled?
       end
 
       def add_conflict(name, *req)

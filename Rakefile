@@ -123,20 +123,21 @@ end
 desc "run all mruby tests"
 task :test
 MRuby.each_target do
-  next unless test_enabled?
-
-  t = :"test_#{self.name}"
-  task t => ["all"] do
-    run_test
+  if test_enabled?
+    t = :"test_#{self.name}"
+    task t => ["all"] do
+      run_test
+    end
+    task :test => t
   end
-  task :test => t
 
-  next unless bintest_enabled?
-  t = :"bintest_#{self.name}"
-  task t => ["all"] do
-    run_bintest
+  if bintest_enabled?
+    t = :"bintest_#{self.name}"
+    task t => ["all"] do
+      run_bintest
+    end
+    task :test => t
   end
-  task :test => t
 end
 
 desc "clean all built and in-repo installed artifacts"
