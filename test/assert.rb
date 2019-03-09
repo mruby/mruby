@@ -1,6 +1,7 @@
 $ok_test = 0
 $ko_test = 0
 $kill_test = 0
+$warning_test = 0
 $skip_test = 0
 $asserts  = []
 $test_start = Time.now if Object.const_defined?(:Time)
@@ -46,10 +47,14 @@ def assert(str = 'Assertion failed', iso = '')
     $mrbtest_assert = []
     $mrbtest_assert_idx = 0
     yield
-    if($mrbtest_assert.size > 0)
+    if $mrbtest_assert.size > 0
       $asserts.push(assertion_string('Fail: ', str, iso))
       $ko_test += 1
       t_print('F')
+    elsif $mrbtest_assert_idx == 0
+      $asserts.push(assertion_string('Warn: ', str, iso, 'no assertion'))
+      $warning_test += 1
+      t_print('W')
     else
       $ok_test += 1
       t_print('.')
@@ -220,17 +225,18 @@ def report()
     t_print("#{msg}\n")
   end
 
-  $total_test = $ok_test + $ko_test + $kill_test + $skip_test
-  t_print("Total: #{$total_test}\n")
+  $total_test = $ok_test + $ko_test + $kill_test + $warning_test + $skip_test
+  t_print("  Total: #{$total_test}\n")
 
-  t_print("   OK: #{$ok_test}\n")
-  t_print("   KO: #{$ko_test}\n")
-  t_print("Crash: #{$kill_test}\n")
-  t_print(" Skip: #{$skip_test}\n")
+  t_print("     OK: #{$ok_test}\n")
+  t_print("     KO: #{$ko_test}\n")
+  t_print("  Crash: #{$kill_test}\n")
+  t_print("Warning: #{$warning_test}\n")
+  t_print("   Skip: #{$skip_test}\n")
 
   if Object.const_defined?(:Time)
     t_time = Time.now - $test_start
-    t_print(" Time: #{t_time.round(2)} seconds\n")
+    t_print("   Time: #{t_time.round(2)} seconds\n")
   end
 end
 
