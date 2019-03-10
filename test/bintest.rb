@@ -21,6 +21,8 @@ def shellquote(s)
   end
 end
 
+print "bintest - Command Binary Test\n\n"
+
 ARGV.each do |gem|
   case gem
   when '-v'; $mrbtest_verbose = true
