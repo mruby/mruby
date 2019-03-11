@@ -59,7 +59,7 @@ how to use mrbgems look into the folder *examples/mrbgems/*.
 
 ## License
 
-mruby is released under the [MIT License](MITL).
+mruby is released under the [MIT License](LICENSE).
 
 ## Note for License
 
