@@ -1895,18 +1895,20 @@ mrb_mod_undef(mrb_state *mrb, mrb_value mod)
   return mrb_nil_value();
 }
 
-static void
-check_const_name_str(mrb_state *mrb, mrb_value str)
+static mrb_bool
+const_name_p(mrb_state *mrb, const char *name, mrb_int len)
 {
-  if (RSTRING_LEN(str) < 1 || !ISUPPER(*RSTRING_PTR(str))) {
-    mrb_name_error(mrb, mrb_intern_str(mrb, str), "wrong constant name %S", str);
-  }
+  return len > 0 && ISUPPER(name[0]);
 }
 
 static void
 check_const_name_sym(mrb_state *mrb, mrb_sym id)
 {
-  check_const_name_str(mrb, mrb_sym2str(mrb, id));
+  mrb_int len;
+  const char *name = mrb_sym2name_len(mrb, id, &len);
+  if (!const_name_p(mrb, name, len)) {
+    mrb_name_error(mrb, id, "wrong constant name %S", mrb_sym2str(mrb, id));
+  }
 }
 
 static mrb_value
