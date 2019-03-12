@@ -33,62 +33,72 @@ assert('String#byteslice') do
 end
 
 assert('String#dump') do
-  ("\1" * 100).dump     # should not raise an exception - regress #1210
-  "\0".inspect == "\"\\000\"" and
-  "foo".dump == "\"foo\""
+  assert_equal("\"\\x00\"", "\0".dump)
+  assert_equal("\"foo\"", "foo".dump)
+  assert_nothing_raised { ("\1" * 100).dump }   # regress #1210
 end
 
 assert('String#strip') do
   s = "  abc  "
-  "".strip == "" and " \t\r\n\f\v".strip == "" and
-  "\0a\0".strip == "\0a" and
-  "abc".strip     == "abc" and
-  "  abc".strip   == "abc" and
-  "abc  ".strip   == "abc" and
-  "  abc  ".strip == "abc" and
-  s == "  abc  "
+  assert_equal("abc", s.strip)
+  assert_equal("  abc  ", s)
+  assert_equal("", "".strip)
+  assert_equal("", " \t\r\n\f\v".strip)
+  assert_equal("\0a", "\0a\0".strip)
+  assert_equal("abc", "abc".strip)
+  assert_equal("abc", "  abc".strip)
+  assert_equal("abc", "abc  ".strip)
 end
 
 assert('String#lstrip') do
   s = "  abc  "
-  s.lstrip
-  "".lstrip == "" and " \t\r\n\f\v".lstrip == "" and
-  "\0a\0".lstrip == "\0a\0" and
-  "abc".lstrip     == "abc"   and
-  "  abc".lstrip   == "abc"   and
-  "abc  ".lstrip   == "abc  " and
-  "  abc  ".lstrip == "abc  " and
-  s == "  abc  "
+  assert_equal("abc  ", s.lstrip)
+  assert_equal("  abc  ", s)
+  assert_equal("", "".lstrip)
+  assert_equal("", " \t\r\n\f\v".lstrip)
+  assert_equal("\0a\0", "\0a\0".lstrip)
+  assert_equal("abc", "abc".lstrip)
+  assert_equal("abc", "  abc".lstrip)
+  assert_equal("abc  ", "abc  ".lstrip)
 end
 
 assert('String#rstrip') do
   s = "  abc  "
-  s.rstrip
-  "".rstrip == "" and " \t\r\n\f\v".rstrip == "" and
-  "\0a\0".rstrip == "\0a" and
-  "abc".rstrip     == "abc"   and
-  "  abc".rstrip   == "  abc" and
-  "abc  ".rstrip   == "abc"   and
-  "  abc  ".rstrip == "  abc" and
-  s == "  abc  "
+  assert_equal("  abc", s.rstrip)
+  assert_equal("  abc  ", s)
+  assert_equal("", "".rstrip)
+  assert_equal("", " \t\r\n\f\v".rstrip)
+  assert_equal("\0a", "\0a\0".rstrip)
+  assert_equal("abc", "abc".rstrip)
+  assert_equal("  abc", "  abc".rstrip)
+  assert_equal("abc", "abc  ".rstrip)
 end
 
 assert('String#strip!') do
   s = "  abc  "
   t = "abc"
-  s.strip! == "abc" and s == "abc" and t.strip! == nil
+  assert_equal("abc", s.strip!)
+  assert_equal("abc", s)
+  assert_nil(t.strip!)
+  assert_equal("abc", t)
 end
 
 assert('String#lstrip!') do
   s = "  abc  "
   t = "abc  "
-  s.lstrip! == "abc  " and s == "abc  " and t.lstrip! == nil
+  assert_equal("abc  ", s.lstrip!)
+  assert_equal("abc  ", s)
+  assert_nil(t.lstrip!)
+  assert_equal("abc  ", t)
 end
 
 assert('String#rstrip!') do
   s = "  abc  "
   t = "  abc"
-  s.rstrip! == "  abc" and s == "  abc" and t.rstrip! == nil
+  assert_equal("  abc", s.rstrip!)
+  assert_equal("  abc", s)
+  assert_nil(t.rstrip!)
+  assert_equal("  abc", t)
 end
 
 assert('String#swapcase') do
@@ -127,7 +137,7 @@ assert('String#count') do
   assert_equal 4, s.count("a0-9")
 end
 
-assert('String#tr') do  
+assert('String#tr') do
   assert_equal "ABC", "abc".tr('a-z', 'A-Z')
   assert_equal "hippo", "hello".tr('el', 'ip')
   assert_equal "Ruby", "Lisp".tr("Lisp", "Ruby")
@@ -141,7 +151,7 @@ assert('String#tr!') do
   assert_equal "ab12222hijklmnopqR", s
 end
 
-assert('String#tr_s') do  
+assert('String#tr_s') do
   assert_equal "hero", "hello".tr_s('l', 'r')
   assert_equal "h*o", "hello".tr_s('el', '*')
   assert_equal "hhxo", "hello".tr_s('el', 'hx')
