@@ -400,21 +400,20 @@ mod_define_singleton_method(mrb_state *mrb, mrb_value self)
   return mrb_symbol_value(mid);
 }
 
-static void
-check_cv_name_str(mrb_state *mrb, mrb_value str)
+static mrb_bool
+cv_name_p(mrb_state *mrb, const char *name, mrb_int len)
 {
-  const char *s = RSTRING_PTR(str);
-  mrb_int len = RSTRING_LEN(str);
-
-  if (len < 3 || !(s[0] == '@' && s[1] == '@')) {
-    mrb_name_error(mrb, mrb_intern_str(mrb, str), "'%S' is not allowed as a class variable name", str);
-  }
+  return len > 2 && name[0] == '@' && name[1] == '@';
 }
 
 static void
 check_cv_name_sym(mrb_state *mrb, mrb_sym id)
 {
-  check_cv_name_str(mrb, mrb_sym2str(mrb, id));
+  mrb_int len;
+  const char *name = mrb_sym2name_len(mrb, id, &len);
+  if (!cv_name_p(mrb, name, len)) {
+    mrb_name_error(mrb, id, "'%S' is not allowed as a class variable name", mrb_sym2str(mrb, id));
+  }
 }
 
 /* 15.2.2.4.39 */
