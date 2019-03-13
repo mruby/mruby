@@ -213,7 +213,7 @@ end
 ##
 # Report the test result and print all assertions
 # which were reported broken.
-def report()
+def report
   t_print("\n")
 
   $asserts.each do |msg|
@@ -232,6 +232,8 @@ def report()
     t_time = Time.now - $test_start
     t_print(" Time: #{t_time.round(2)} seconds\n")
   end
+
+  $ko_test == 0 && $kill_test == 0
 end
 
 ##
