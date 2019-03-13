@@ -39,4 +39,4 @@ ARGV.each do |gem|
   end
 end
 
-load 'test/report.rb'
+exit report
