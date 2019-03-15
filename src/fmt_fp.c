@@ -1,5 +1,5 @@
 #ifndef MRB_WITHOUT_FLOAT
-#ifdef MRB_DISABLE_STDIO
+#if defined(MRB_DISABLE_STDIO) || defined(_WIN32) || defined(_WIN64)
 /*
 
 Most code in this file originates from musl (src/stdio/vfprintf.c)
