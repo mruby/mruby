@@ -93,7 +93,7 @@ class String
   #    "hello".rstrip!      #=> nil
   #
   def rstrip!
-    raise RuntimeError, "can't modify frozen String" if frozen?
+    raise FrozenError, "can't modify frozen String" if frozen?
     s = self.rstrip
     (s == self) ? nil : self.replace(s)
   end
