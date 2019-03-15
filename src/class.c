@@ -1898,7 +1898,7 @@ mrb_mod_undef(mrb_state *mrb, mrb_value mod)
 static mrb_bool
 const_name_p(mrb_state *mrb, const char *name, mrb_int len)
 {
-  return len > 0 && ISUPPER(name[0]);
+  return len > 0 && ISUPPER(name[0]) && mrb_ident_p(name+1, len-1);
 }
 
 static void

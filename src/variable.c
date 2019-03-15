@@ -428,22 +428,17 @@ mrb_iv_defined(mrb_state *mrb, mrb_value obj, mrb_sym sym)
   return mrb_obj_iv_defined(mrb, mrb_obj_ptr(obj), sym);
 }
 
-#define identchar(c) (ISALNUM(c) || (c) == '_' || !ISASCII(c))
-
 MRB_API mrb_bool
 mrb_iv_name_sym_p(mrb_state *mrb, mrb_sym iv_name)
 {
   const char *s;
-  mrb_int i, len;
+  mrb_int len;
 
   s = mrb_sym2name_len(mrb, iv_name, &len);
   if (len < 2) return FALSE;
   if (s[0] != '@') return FALSE;
   if (s[1] == '@') return FALSE;
-  for (i=1; i<len; i++) {
-    if (!identchar(s[i])) return FALSE;
-  }
-  return TRUE;
+  return mrb_ident_p(s+1, len-1);
 }
 
 MRB_API void
@@ -1113,4 +1108,15 @@ mrb_class_find_path(mrb_state *mrb, struct RClass *c)
     mrb_field_write_barrier_value(mrb, (struct RBasic*)c, path);
   }
   return path;
+}
+
+#define identchar(c) (ISALNUM(c) || (c) == '_' || !ISASCII(c))
+
+mrb_bool
+mrb_ident_p(const char *s, mrb_int len)
+{
+  for (mrb_int i = 0; i < len; i++) {
+    if (!identchar(s[i])) return FALSE;
+  }
+  return TRUE;
 }
