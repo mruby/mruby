@@ -1,16 +1,19 @@
 version: "{build}"
 
-os: Visual Studio 2015
+os: Visual Studio 2017
 
-clone_depth: 50
+shallow_clone: true
 
 
 cache:
-  - win_flex_bison-2.5.10.zip
+  - win_flex_bison
 
 
 environment:
   matrix:
+    # Visual Studio 2017 64bit
+    - visualcpp: C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat
+
     # Visual Studio 2015 64bit
     - visualcpp: C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat
       machine: amd64
@@ -28,11 +31,12 @@ init:
 
 
 install:
-  - if not exist win_flex_bison-2.5.10.zip appveyor DownloadFile "https://github.com/lexxmark/winflexbison/releases/download/v.2.5.10/win_flex_bison-2.5.10.zip"
-  - 7z x -y -owin_flex_bison win_flex_bison-2.5.10.zip > nul
-
+  - if not exist win_flex_bison (
+      appveyor DownloadFile "https://github.com/lexxmark/winflexbison/releases/download/v.2.5.10/win_flex_bison-2.5.10.zip" &
+      7z x -y -owin_flex_bison win_flex_bison-2.5.10.zip
+    )
 
 build_script:
   - set YACC=.\win_flex_bison\win_bison.exe
   - set MRUBY_CONFIG=appveyor_config.rb
-  - ruby .\minirake test all
+  - ruby .\minirake test
