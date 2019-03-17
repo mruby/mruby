@@ -34,6 +34,30 @@ assert('Kernel#instance_variable_defined?', '15.3.1.3.20') do
   assert_false o.instance_variable_defined?("@b")
   assert_true o.instance_variable_defined?("@a"[0,2])
   assert_true o.instance_variable_defined?("@abc"[0,2])
+  assert_raise(NameError) { o.instance_variable_defined?("@0") }
+end
+
+assert('Kernel#instance_variable_get', '15.3.1.3.21') do
+  o = Class.new { attr_accessor :foo, :bar }.new
+  o.foo = "one"
+  o.bar = 2
+  assert_equal("one", o.instance_variable_get(:@foo))
+  assert_equal(2, o.instance_variable_get("@bar"))
+  assert_equal(nil, o.instance_variable_get(:@baz))
+  %w[foo @1].each do |n|
+    assert_raise(NameError) { o.instance_variable_get(n) }
+  end
+end
+
+assert('Kernel#instance_variable_set', '15.3.1.3.22') do
+  o = Class.new { attr_reader :foo, :_bar }.new
+  assert_equal("one", o.instance_variable_set(:@foo, "one"))
+  assert_equal("one", o.foo)
+  assert_equal(2, o.instance_variable_set("@_bar", 2))
+  assert_equal(2, o._bar)
+  %w[@6 @% @@a @ a].each do |n|
+    assert_raise(NameError) { o.instance_variable_set(n, 1) }
+  end
 end
 
 assert('Kernel#instance_variables', '15.3.1.3.23') do
@@ -125,6 +149,7 @@ assert('Module#class_variable_defined?', '15.2.2.4.16') do
 
   assert_true Test4ClassVariableDefined.class_variable_defined?(:@@cv)
   assert_false Test4ClassVariableDefined.class_variable_defined?(:@@noexisting)
+  assert_raise(NameError) { Test4ClassVariableDefined.class_variable_defined?("@@2") }
 end
 
 assert('Module#class_variable_get', '15.2.2.4.17') do
@@ -133,6 +158,10 @@ assert('Module#class_variable_get', '15.2.2.4.17') do
   end
 
   assert_equal 99, Test4ClassVariableGet.class_variable_get(:@@cv)
+  assert_raise(NameError) { Test4ClassVariableGet.class_variable_get(:@@a) }
+  %w[@@a? @@! @a a].each do |n|
+    assert_raise(NameError) { Test4ClassVariableGet.class_variable_get(n) }
+  end
 end
 
 assert('Module#class_variable_set', '15.2.2.4.18') do
@@ -148,6 +177,9 @@ assert('Module#class_variable_set', '15.2.2.4.18') do
   assert_true Test4ClassVariableSet.class_variables.include? :@@cv
   assert_equal 99, Test4ClassVariableSet.class_variable_get(:@@cv)
   assert_equal 101, Test4ClassVariableSet.new.foo
+  %w[@@ @@1 @@x= @x @ x 1].each do |n|
+    assert_raise(NameError) { Test4ClassVariableSet.class_variable_set(n, 1) }
+  end
 end
 
 assert('Module#class_variables', '15.2.2.4.19') do
@@ -223,6 +255,12 @@ assert('Module#remove_class_variable', '15.2.2.4.39') do
 
   assert_equal 99, Test4RemoveClassVariable.remove_class_variable(:@@cv)
   assert_false Test4RemoveClassVariable.class_variables.include? :@@cv
+  assert_raise(NameError) do
+    Test4RemoveClassVariable.remove_class_variable(:@@cv)
+  end
+  assert_raise(NameError) do
+    Test4RemoveClassVariable.remove_class_variable(:@v)
+  end
 end
 
 assert('Module#remove_method', '15.2.2.4.41') do
