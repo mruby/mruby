@@ -437,7 +437,7 @@ mrb_iv_name_sym_p(mrb_state *mrb, mrb_sym iv_name)
   s = mrb_sym2name_len(mrb, iv_name, &len);
   if (len < 2) return FALSE;
   if (s[0] != '@') return FALSE;
-  if (s[1] == '@') return FALSE;
+  if (ISDIGIT(s[1])) return FALSE;
   return mrb_ident_p(s+1, len-1);
 }
 

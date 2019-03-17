@@ -403,7 +403,8 @@ mod_define_singleton_method(mrb_state *mrb, mrb_value self)
 static mrb_bool
 cv_name_p(mrb_state *mrb, const char *name, mrb_int len)
 {
-  return len > 2 && name[0] == '@' && name[1] == '@';
+  return len > 2 && name[0] == '@' && name[1] == '@' &&
+         !ISDIGIT(name[2]) && mrb_ident_p(name+2, len-2);
 }
 
 static void
