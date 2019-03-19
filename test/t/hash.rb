@@ -370,7 +370,7 @@ end
 
 assert('Hash#freeze') do
   h = {}.freeze
-  assert_raise(RuntimeError) do
+  assert_raise(FrozenError) do
     h[:a] = 'b'
   end
 end
