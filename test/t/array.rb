@@ -239,7 +239,7 @@ assert('Array#pop', '15.2.12.5.21') do
   assert_equal([1,2], a)
   assert_equal(3, b)
 
-  assert_raise(RuntimeError) { [].freeze.pop }
+  assert_raise(FrozenError) { [].freeze.pop }
 end
 
 assert('Array#push', '15.2.12.5.22') do
@@ -288,7 +288,7 @@ assert('Array#shift', '15.2.12.5.27') do
   assert_equal([2,3], a)
   assert_equal(1, b)
 
-  assert_raise(RuntimeError) { [].freeze.shift }
+  assert_raise(FrozenError) { [].freeze.shift }
 end
 
 assert('Array#size', '15.2.12.5.28') do
@@ -388,7 +388,7 @@ end
 
 assert('Array#freeze') do
   a = [].freeze
-  assert_raise(RuntimeError) do
+  assert_raise(FrozenError) do
     a[0] = 1
   end
 end

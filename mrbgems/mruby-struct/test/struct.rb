@@ -199,7 +199,7 @@ assert 'Struct#freeze' do
   assert_equal :test, o.m
 
   o.freeze
-  assert_raise(RuntimeError) { o.m = :modify }
-  assert_raise(RuntimeError) { o[:m] = :modify }
+  assert_raise(FrozenError) { o.m = :modify }
+  assert_raise(FrozenError) { o[:m] = :modify }
   assert_equal :test, o.m
 end
