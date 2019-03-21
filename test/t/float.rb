@@ -239,4 +239,10 @@ assert('Float#to_s') do
   end
 end
 
+assert('Float#eql?') do
+  assert_true(5.0.eql?(5.0))
+  assert_false(5.0.eql?(5))
+  assert_false(5.0.eql?("5.0"))
+end
+
 end # const_defined?(:Float)
