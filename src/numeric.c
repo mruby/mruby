@@ -369,7 +369,7 @@ flo_eql(mrb_state *mrb, mrb_value x)
 
   mrb_get_args(mrb, "o", &y);
   if (!mrb_float_p(y)) return mrb_false_value();
-  return mrb_bool_value(mrb_float(x) == (mrb_float)mrb_fixnum(y));
+  return mrb_bool_value(mrb_float(x) == mrb_float(y));
 }
 
 /* 15.2.9.3.7  */
