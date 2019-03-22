@@ -2,7 +2,7 @@
 # Numeric ISO Test
 
 assert('Numeric', '15.2.7') do
-  assert_equal Class, Numeric.class
+  assert_equal(Class, Numeric.class)
 end
 
 assert('Numeric#+@', '15.2.7.4.1') do
@@ -50,10 +50,8 @@ assert('Numeric#step') do
       break if inf && exp.size == act.size
     end
     expr = "#{receiver.inspect}.step(#{args.map(&:inspect).join(', ')})"
-    msg = "#{expr}: counters"
-    diff = assertion_diff(exp, act)
-    assert_true exp.map{|v|[v,v.class]} == act.map{|v|[v,v.class]}, msg, diff
-    assert_same receiver, ret, "#{expr}: return value" unless inf
+    assert_true(exp.eql?(act), "#{expr}: counters", assertion_diff(exp, act))
+    assert_same(receiver, ret, "#{expr}: return value") unless inf
   end
 
   assert_raise(ArgumentError) { 1.step(2, 0) { break } }
