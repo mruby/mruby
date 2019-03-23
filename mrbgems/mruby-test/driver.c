@@ -45,29 +45,21 @@ eval_test(mrb_state *mrb)
   }
 }
 
-static void
-t_printstr(mrb_state *mrb, mrb_value obj)
+/* Implementation of print due to the reason that there might be no print */
+static mrb_value
+t_print(mrb_state *mrb, mrb_value self)
 {
-  char *s;
-  mrb_int len;
+  mrb_value *argv;
+  mrb_int argc;
 
-  if (mrb_string_p(obj)) {
-    s = RSTRING_PTR(obj);
-    len = RSTRING_LEN(obj);
-    fwrite(s, len, 1, stdout);
-    fflush(stdout);
+  mrb_get_args(mrb, "*!", &argv, &argc);
+  for (mrb_int i = 0; i < argc; ++i) {
+    mrb_value s = mrb_obj_as_string(mrb, argv[i]);
+    fwrite(RSTRING_PTR(s), RSTRING_LEN(s), 1, stdout);
   }
-}
+  fflush(stdout);
 
-mrb_value
-mrb_t_printstr(mrb_state *mrb, mrb_value self)
-{
-  mrb_value argv;
-
-  mrb_get_args(mrb, "o", &argv);
-  t_printstr(mrb, argv);
-
-  return argv;
+  return mrb_nil_value();
 }
 
 void
@@ -76,7 +68,7 @@ mrb_init_test_driver(mrb_state *mrb, mrb_bool verbose)
   struct RClass *krn, *mrbtest;
 
   krn = mrb->kernel_module;
-  mrb_define_method(mrb, krn, "__t_printstr__", mrb_t_printstr, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, krn, "t_print", t_print, MRB_ARGS_ANY());
 
   mrbtest = mrb_define_module(mrb, "Mrbtest");
 
