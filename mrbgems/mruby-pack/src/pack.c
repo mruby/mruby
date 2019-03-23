@@ -627,7 +627,7 @@ unpack_a(mrb_state *mrb, const void *src, int slen, mrb_value ary, long count, u
     }
   }
   else if (!(flags & PACK_FLAG_a)) {  /* "A" */
-    while (copylen > 0 && (sptr[copylen - 1] == '\0' || isspace(sptr[copylen - 1]))) {
+    while (copylen > 0 && (sptr[copylen - 1] == '\0' || isspace((unsigned char)sptr[copylen - 1]))) {
       copylen--;
     }
   }
@@ -895,9 +895,9 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, int *dirp, int *typep, int *sizep, 
   int ch, dir, type, size = 0;
   int count = 1;
   unsigned int flags = 0;
-  const char *tptr;
+  const unsigned char *tptr;
 
-  tptr = RSTRING_PTR(tmpl->str);
+  tptr = (const unsigned char *)RSTRING_PTR(tmpl->str);
   tlen = RSTRING_LEN(tmpl->str);
 
   t = tptr[tmpl->idx++];

@@ -5802,7 +5802,7 @@ parser_yylex(parser_state *p)
       mrb_sym ident = intern_cstr(tok(p));
 
       pylval.id = ident;
-      if (last_state != EXPR_DOT && islower(tok(p)[0]) && local_var_p(p, ident)) {
+      if (last_state != EXPR_DOT && islower((unsigned char)tok(p)[0]) && local_var_p(p, ident)) {
         p->lstate = EXPR_END;
       }
     }

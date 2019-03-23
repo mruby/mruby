@@ -2821,7 +2821,7 @@ mrb_float_read(const char *string, char **endPtr)
     int sign, expSign = FALSE;
     double fraction, dblExp;
     const double *d;
-    const char *p;
+    const unsigned char *p;
     int c;
     int exp = 0;                /* Exponent read from "EX" field. */
     int fracExp = 0;            /* Exponent that derives from the fractional
@@ -2836,14 +2836,14 @@ mrb_float_read(const char *string, char **endPtr)
     int mantSize;               /* Number of digits in mantissa. */
     int decPt;                  /* Number of mantissa digits BEFORE decimal
                                  * point. */
-    const char *pExp;           /* Temporarily holds location of exponent
+    const unsigned char *pExp;  /* Temporarily holds location of exponent
                                  * in string. */
 
     /*
      * Strip off leading blanks and check for a sign.
      */
 
-    p = string;
+    p = (const unsigned char *)string;
     while (isspace(*p)) {
       p += 1;
     }
@@ -2905,7 +2905,7 @@ mrb_float_read(const char *string, char **endPtr)
     }
     if (mantSize == 0) {
       fraction = 0.0;
-      p = string;
+      p = (const unsigned char *)string;
       goto done;
     }
     else {
