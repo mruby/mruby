@@ -5,14 +5,12 @@ $skip_test = 0
 $asserts  = []
 $test_start = Time.now if Object.const_defined?(:Time)
 
-# Implementation of print due to the reason that there might be no print
-def t_print(*args)
-  i = 0
-  len = args.size
-  while i < len
-    str = args[i].to_s
-    __t_printstr__ str rescue print str
-    i += 1
+unless RUBY_ENGINE == "mruby"
+  # For bintest on Ruby
+  def t_print(*args)
+    print *args
+    $stdout.flush
+    nil
   end
 end
 
@@ -110,8 +108,8 @@ def assert_not_equal(exp, act_or_msg = nil, msg = nil, &block)
   assert_true(!ret, msg, diff)
 end
 
-def assert_same(*args);  _assert_same(true, *args) end
-def assert_not_same(*args);  _assert_same(false, *args) end
+def assert_same(*args); _assert_same(true, *args) end
+def assert_not_same(*args); _assert_same(false, *args) end
 def _assert_same(affirmed, exp, act, msg = nil)
   unless ret = exp.equal?(act) == affirmed
     exp_str, act_str = [exp, act].map do |o|
