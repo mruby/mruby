@@ -53,6 +53,7 @@ sym_inline_pack(const char *name, uint16_t len)
     if (p == 0) return 0;       /* non alnum char */
     bits = (uint32_t)(p - pack_table)+1;
     if (bits > 27) lower = 0;
+    if (i >= mix_length_max) break;
     sym |= bits<<(i*6+2);
   }
   if (lower) {
