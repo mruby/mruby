@@ -6,6 +6,15 @@
 ** immediately. It's a REPL...
 */
 
+#include <mruby.h>
+#include <mruby/array.h>
+#include <mruby/proc.h>
+#include <mruby/compile.h>
+#include <mruby/dump.h>
+#include <mruby/string.h>
+#include <mruby/variable.h>
+#include <mruby/throw.h>
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -48,15 +57,6 @@
 #define MIRB_SIGLONGJMP(env, val) longjmp(env, val)
 #define SIGJMP_BUF jmp_buf
 #endif
-
-#include <mruby.h>
-#include <mruby/array.h>
-#include <mruby/proc.h>
-#include <mruby/compile.h>
-#include <mruby/dump.h>
-#include <mruby/string.h>
-#include <mruby/variable.h>
-#include <mruby/throw.h>
 
 #ifdef ENABLE_READLINE
 
@@ -373,7 +373,7 @@ check_keyword(const char *buf, const char *word)
   size_t len = strlen(word);
 
   /* skip preceding spaces */
-  while (*p && isspace((unsigned char)*p)) {
+  while (*p && ISSPACE(*p)) {
     p++;
   }
   /* check keyword */
@@ -383,7 +383,7 @@ check_keyword(const char *buf, const char *word)
   p += len;
   /* skip trailing spaces */
   while (*p) {
-    if (!isspace((unsigned char)*p)) return 0;
+    if (!ISSPACE(*p)) return 0;
     p++;
   }
   return 1;

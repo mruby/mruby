@@ -627,7 +627,7 @@ unpack_a(mrb_state *mrb, const void *src, int slen, mrb_value ary, long count, u
     }
   }
   else if (!(flags & PACK_FLAG_a)) {  /* "A" */
-    while (copylen > 0 && (sptr[copylen - 1] == '\0' || isspace(sptr[copylen - 1]))) {
+    while (copylen > 0 && (sptr[copylen - 1] == '\0' || ISSPACE(sptr[copylen - 1]))) {
       copylen--;
     }
   }
@@ -1072,9 +1072,9 @@ alias:
   /* read suffix [0-9*_!<>] */
   while (tmpl->idx < tlen) {
     ch = tptr[tmpl->idx++];
-    if (isdigit(ch)) {
+    if (ISDIGIT(ch)) {
       count = ch - '0';
-      while (tmpl->idx < tlen && isdigit(tptr[tmpl->idx])) {
+      while (tmpl->idx < tlen && ISDIGIT(tptr[tmpl->idx])) {
         count = count * 10 + (tptr[tmpl->idx++] - '0');
         if (count < 0) {
           mrb_raise(mrb, E_RUNTIME_ERROR, "too big template length");

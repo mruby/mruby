@@ -4888,10 +4888,10 @@ parser_yylex(parser_state *p)
     }
     newtok(p);
     /* need support UTF-8 if configured */
-    if ((isalnum(c) || c == '_')) {
+    if ((ISALNUM(c) || c == '_')) {
       int c2 = nextc(p);
       pushback(p, c2);
-      if ((isalnum(c2) || c2 == '_')) {
+      if ((ISALNUM(c2) || c2 == '_')) {
         goto ternary;
       }
     }
@@ -5459,7 +5459,7 @@ parser_yylex(parser_state *p)
       }
       else {
         term = nextc(p);
-        if (isalnum(term)) {
+        if (ISALNUM(term)) {
           yyerror(p, "unknown type of %string");
           return 0;
         }
@@ -5603,7 +5603,7 @@ parser_yylex(parser_state *p)
       do {
         tokadd(p, c);
         c = nextc(p);
-      } while (c >= 0 && isdigit(c));
+      } while (c >= 0 && ISDIGIT(c));
       pushback(p, c);
       if (last_state == EXPR_FNAME) goto gvar;
       tokfix(p);
@@ -5645,7 +5645,7 @@ parser_yylex(parser_state *p)
         }
         return 0;
       }
-      else if (isdigit(c)) {
+      else if (ISDIGIT(c)) {
         if (p->tidx == 1) {
           yyerror_i(p, "'@%c' is not allowed as an instance variable name", c);
         }
@@ -5802,7 +5802,7 @@ parser_yylex(parser_state *p)
       mrb_sym ident = intern_cstr(tok(p));
 
       pylval.id = ident;
-      if (last_state != EXPR_DOT && islower(tok(p)[0]) && local_var_p(p, ident)) {
+      if (last_state != EXPR_DOT && ISLOWER(tok(p)[0]) && local_var_p(p, ident)) {
         p->lstate = EXPR_END;
       }
     }
