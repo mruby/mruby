@@ -306,26 +306,6 @@ mrb_init_symtbl(mrb_state *mrb)
  *
  */
 
-
-/* 15.2.11.3.1  */
-/*
- *  call-seq:
- *     sym == obj   -> true or false
- *
- *  Equality---If <i>sym</i> and <i>obj</i> are exactly the same
- *  symbol, returns <code>true</code>.
- */
-
-static mrb_value
-sym_equal(mrb_state *mrb, mrb_value sym1)
-{
-  mrb_value sym2;
-
-  mrb_get_args(mrb, "o", &sym2);
-
-  return mrb_bool_value(mrb_obj_equal(mrb, sym1, sym2));
-}
-
 /* 15.2.11.3.2  */
 /* 15.2.11.3.3  */
 /*
@@ -585,7 +565,6 @@ mrb_init_symbol(mrb_state *mrb)
   MRB_SET_INSTANCE_TT(sym, MRB_TT_SYMBOL);
   mrb_undef_class_method(mrb,  sym, "new");
 
-  mrb_define_method(mrb, sym, "===",             sym_equal,      MRB_ARGS_REQ(1));              /* 15.2.11.3.1  */
   mrb_define_method(mrb, sym, "id2name",         mrb_sym_to_s,   MRB_ARGS_NONE());              /* 15.2.11.3.2  */
   mrb_define_method(mrb, sym, "to_s",            mrb_sym_to_s,   MRB_ARGS_NONE());              /* 15.2.11.3.3  */
   mrb_define_method(mrb, sym, "to_sym",          sym_to_sym,     MRB_ARGS_NONE());              /* 15.2.11.3.4  */
