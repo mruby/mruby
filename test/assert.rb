@@ -148,10 +148,15 @@ end
 ##
 # Fails unless +exp+ is equal to +act+ in terms of a Float
 def assert_float(exp, act, msg = nil)
-  unless ret = check_float(exp, act)
-    diff = "    Expected |#{exp} - #{act}| (#{(exp-act).abs}) to be <= #{Mrbtest::FLOAT_TOLERANCE}."
+  e, a = exp.to_f, act.to_f
+  if (e.infinite? || a.infinite?) && e != a ||
+     e.nan? && !a.nan? || !e.nan? && a.nan?
+    assert_true(false, msg, "    Expected #{act} to be #{exp}.")
+  elsif (n = (e - a).abs) > Mrbtest::FLOAT_TOLERANCE
+    assert_true(false, msg, "    Expected |#{exp} - #{act}| (#{n}) to be <= #{Mrbtest::FLOAT_TOLERANCE}.")
+  else
+    assert_true(true)
   end
-  assert_true(ret, msg, diff)
 end
 
 def assert_raise(*exc)
@@ -209,19 +214,6 @@ def report
   end
 
   $ko_test == 0 && $kill_test == 0
-end
-
-##
-# Performs fuzzy check for equality on methods returning floats
-def check_float(a, b)
-  tolerance = Mrbtest::FLOAT_TOLERANCE
-  a = a.to_f
-  b = b.to_f
-  if a.finite? and b.finite?
-    (a-b).abs < tolerance
-  else
-    true
-  end
 end
 
 def _eval_assertion(meth, exp, act_or_msg, msg, block)
