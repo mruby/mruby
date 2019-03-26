@@ -2106,7 +2106,7 @@ mrb_mod_eqq(mrb_state *mrb, mrb_value mod)
   return mrb_bool_value(eqq);
 }
 
-MRB_API mrb_value
+static mrb_value
 mrb_mod_module_function(mrb_state *mrb, mrb_value mod)
 {
   mrb_value *argv;

@@ -708,6 +708,9 @@ MRB_API struct RClass * mrb_module_get(mrb_state *mrb, const char *name);
  * @return [struct RClass *] A reference to the module.
 */
 MRB_API struct RClass * mrb_module_get_under(mrb_state *mrb, struct RClass *outer, const char *name);
+/* a function to raise NotImplementedError with current method name */
+MRB_API void mrb_notimplement(mrb_state*);
+/* a function to be replacement of unimplemented method */
 MRB_API mrb_value mrb_notimplement_m(mrb_state*, mrb_value);
 
 /**
@@ -1143,6 +1146,8 @@ MRB_API void mrb_warn(mrb_state *mrb, const char *fmt, ...);
 MRB_API mrb_noreturn void mrb_bug(mrb_state *mrb, const char *fmt, ...);
 MRB_API void mrb_print_backtrace(mrb_state *mrb);
 MRB_API void mrb_print_error(mrb_state *mrb);
+/* function for `raisef` formatting */
+MRB_API mrb_value mrb_vformat(mrb_state *mrb, const char *format, va_list ap);
 
 /* macros to get typical exception objects
    note:

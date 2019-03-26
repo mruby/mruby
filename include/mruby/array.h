@@ -228,6 +228,22 @@ MRB_API mrb_value mrb_ary_unshift(mrb_state *mrb, mrb_value self, mrb_value item
 MRB_API mrb_value mrb_ary_entry(mrb_value ary, mrb_int offset);
 
 /*
+ * Replace subsequence of an array.
+ *
+ * Equivalent to:
+ *
+ *      ary.shift
+ *
+ * @param mrb The mruby state reference.
+ * @param self The array from which the value will be shifted.
+ * @param head Beginning position of a replacement subsequence.
+ * @param len Length of a replacement subsequence.
+ * @param rpl The array of replacement elements.
+ * @return The receiver array.
+ */
+MRB_API mrb_value mrb_ary_splice(mrb_state *mrb, mrb_value self, mrb_int head, mrb_int len, mrb_value rpl);
+
+/*
  * Shifts the first element from the array.
  *
  * Equivalent to:

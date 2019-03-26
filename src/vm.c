@@ -593,7 +593,7 @@ mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p)
  *     k = Klass.new
  *     k.send :hello, "gentle", "readers"   #=> "Hello gentle readers"
  */
-MRB_API mrb_value
+mrb_value
 mrb_f_send(mrb_state *mrb, mrb_value self)
 {
   mrb_sym name;

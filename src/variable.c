@@ -621,7 +621,7 @@ mrb_mod_class_variables(mrb_state *mrb, mrb_value mod)
   return ary;
 }
 
-MRB_API mrb_value
+mrb_value
 mrb_mod_cv_get(mrb_state *mrb, struct RClass *c, mrb_sym sym)
 {
   struct RClass * cls = c;
@@ -714,7 +714,7 @@ mrb_cv_set(mrb_state *mrb, mrb_value mod, mrb_sym sym, mrb_value v)
   mrb_mod_cv_set(mrb, mrb_class_ptr(mod), sym, v);
 }
 
-MRB_API mrb_bool
+mrb_bool
 mrb_mod_cv_defined(mrb_state *mrb, struct RClass * c, mrb_sym sym)
 {
   while (c) {

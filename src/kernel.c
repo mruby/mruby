@@ -492,7 +492,7 @@ mrb_obj_frozen(mrb_state *mrb, mrb_value self)
  *  <code>Hash</code>. Any hash value that exceeds the capacity of a
  *  <code>Fixnum</code> will be truncated before being used.
  */
-MRB_API mrb_value
+static mrb_value
 mrb_obj_hash(mrb_state *mrb, mrb_value self)
 {
   return mrb_fixnum_value(mrb_obj_id(self));
