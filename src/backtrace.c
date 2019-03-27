@@ -28,12 +28,12 @@ static const mrb_data_type bt_type = { "Backtrace", mrb_free };
 static void
 each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, mrb_code *pc0, each_backtrace_func func, void *data)
 {
-  ptrdiff_t i, j;
+  ptrdiff_t i;
 
   if (ciidx >= mrb->c->ciend - mrb->c->cibase)
     ciidx = 10; /* ciidx is broken... */
 
-  for (i=ciidx, j=0; i >= 0; i--,j++) {
+  for (i=ciidx; i >= 0; i--) {
     struct backtrace_location loc;
     mrb_callinfo *ci;
     mrb_irep *irep;
