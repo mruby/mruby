@@ -325,6 +325,10 @@ mrb_sym_to_s(mrb_state *mrb, mrb_value sym)
   mrb_int len;
 
   p = mrb_sym2name_len(mrb, id, &len);
+#ifndef MRB_ENABLE_SYMBOLL_ALL
+  if (p == mrb->symbuf)
+    return mrb_str_new(mrb, p, len);
+#endif
   return mrb_str_new_static(mrb, p, len);
 }
 
