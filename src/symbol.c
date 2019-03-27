@@ -237,11 +237,11 @@ mrb_check_intern_str(mrb_state *mrb, mrb_value str)
 }
 
 MRB_API const char*
-mrb_sym2name_len(mrb_state *mrb, mrb_sym sym, mrb_int *lenp)
+sym2name(mrb_state *mrb, mrb_sym sym, char *buf, mrb_int *lenp)
 {
 #ifndef MRB_ENABLE_ALL_SYMBOLS
   if (sym & 1) {                /* inline packed symbol */
-    return sym_inline_unpack(sym, mrb->symbuf, lenp);
+    return sym_inline_unpack(sym, buf, lenp);
   }
 #endif
 
@@ -253,6 +253,12 @@ mrb_sym2name_len(mrb_state *mrb, mrb_sym sym, mrb_int *lenp)
 
   if (lenp) *lenp = mrb->symtbl[sym].len;
   return mrb->symtbl[sym].name;
+}
+
+MRB_API const char*
+mrb_sym2name_len(mrb_state *mrb, mrb_sym sym, mrb_int *lenp)
+{
+  return sym2name(mrb, sym, mrb->symbuf, lenp);
 }
 
 void
@@ -325,10 +331,9 @@ mrb_sym_to_s(mrb_state *mrb, mrb_value sym)
   mrb_int len;
 
   p = mrb_sym2name_len(mrb, id, &len);
-#ifndef MRB_ENABLE_SYMBOLL_ALL
-  if (p == mrb->symbuf)
+  if (id&1) {                   /* inline symbol */
     return mrb_str_new(mrb, p, len);
-#endif
+  }
   return mrb_str_new_static(mrb, p, len);
 }
 
@@ -545,9 +550,10 @@ sym_cmp(mrb_state *mrb, mrb_value s1)
     const char *p1, *p2;
     int retval;
     mrb_int len, len1, len2;
+    char buf1[8], buf2[8];
 
-    p1 = mrb_sym2name_len(mrb, sym1, &len1);
-    p2 = mrb_sym2name_len(mrb, sym2, &len2);
+    p1 = sym2name(mrb, sym1, buf1, &len1);
+    p2 = sym2name(mrb, sym2, buf2, &len2);
     len = lesser(len1, len2);
     retval = memcmp(p1, p2, len);
     if (retval == 0) {
