@@ -23,8 +23,6 @@ domain_error(mrb_state *mrb, const char *func)
 
 #include <float.h>
 
-#define MATH_TOLERANCE 1E-12
-
 double
 asinh(double x)
 {
@@ -122,7 +120,7 @@ erf(double x)
     term *= xsqr/j;
     sum  += term/(2*j+1);
     ++j;
-  } while (fabs(term/sum) > MATH_TOLERANCE);
+  } while (fabs(term/sum) > DBL_EPSILON);
   return two_sqrtpi*sum;
 }
 
@@ -155,7 +153,7 @@ erfc(double x)
     n += 0.5;
     q1 = q2;
     q2 = b/d;
-  } while (fabs(q1-q2)/q2 > MATH_TOLERANCE);
+  } while (fabs(q1-q2)/q2 > DBL_EPSILON);
   return one_sqrtpi*exp(-x*x)*q2;
 }
 
