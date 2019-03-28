@@ -324,17 +324,9 @@ mrb_init_symtbl(mrb_state *mrb)
  *     :fred.id2name   #=> "fred"
  */
 static mrb_value
-mrb_sym_to_s(mrb_state *mrb, mrb_value sym)
+sym_to_s(mrb_state *mrb, mrb_value sym)
 {
-  mrb_sym id = mrb_symbol(sym);
-  const char *p;
-  mrb_int len;
-
-  p = mrb_sym2name_len(mrb, id, &len);
-  if (id&1) {                   /* inline symbol */
-    return mrb_str_new(mrb, p, len);
-  }
-  return mrb_str_new_static(mrb, p, len);
+  return mrb_sym2str(mrb, mrb_symbol(sym));
 }
 
 /* 15.2.11.3.4  */
@@ -571,13 +563,13 @@ mrb_init_symbol(mrb_state *mrb)
 {
   struct RClass *sym;
 
-  mrb->symbol_class = sym = mrb_define_class(mrb, "Symbol", mrb->object_class);                 /* 15.2.11 */
+  mrb->symbol_class = sym = mrb_define_class(mrb, "Symbol", mrb->object_class);  /* 15.2.11 */
   MRB_SET_INSTANCE_TT(sym, MRB_TT_SYMBOL);
   mrb_undef_class_method(mrb,  sym, "new");
 
-  mrb_define_method(mrb, sym, "id2name",         mrb_sym_to_s,   MRB_ARGS_NONE());              /* 15.2.11.3.2  */
-  mrb_define_method(mrb, sym, "to_s",            mrb_sym_to_s,   MRB_ARGS_NONE());              /* 15.2.11.3.3  */
-  mrb_define_method(mrb, sym, "to_sym",          sym_to_sym,     MRB_ARGS_NONE());              /* 15.2.11.3.4  */
-  mrb_define_method(mrb, sym, "inspect",         sym_inspect,    MRB_ARGS_NONE());              /* 15.2.11.3.5(x)  */
-  mrb_define_method(mrb, sym, "<=>",             sym_cmp,        MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, sym, "id2name", sym_to_s,    MRB_ARGS_NONE());          /* 15.2.11.3.2 */
+  mrb_define_method(mrb, sym, "to_s",    sym_to_s,    MRB_ARGS_NONE());          /* 15.2.11.3.3 */
+  mrb_define_method(mrb, sym, "to_sym",  sym_to_sym,  MRB_ARGS_NONE());          /* 15.2.11.3.4 */
+  mrb_define_method(mrb, sym, "inspect", sym_inspect, MRB_ARGS_NONE());          /* 15.2.11.3.5(x) */
+  mrb_define_method(mrb, sym, "<=>",     sym_cmp,     MRB_ARGS_REQ(1));
 }
