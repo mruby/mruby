@@ -741,12 +741,6 @@ mrb_mruby_math_gem_init(mrb_state* mrb)
   mrb_define_const(mrb, mrb_math, "E", mrb_float_value(mrb, exp(1.0)));
 #endif
 
-#ifdef MRB_USE_FLOAT
-  mrb_define_const(mrb, mrb_math, "TOLERANCE", mrb_float_value(mrb, 1e-5));
-#else
-  mrb_define_const(mrb, mrb_math, "TOLERANCE", mrb_float_value(mrb, 1e-12));
-#endif
-
   mrb_define_module_function(mrb, mrb_math, "sin", math_sin, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, mrb_math, "cos", math_cos, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, mrb_math, "tan", math_tan, MRB_ARGS_REQ(1));
