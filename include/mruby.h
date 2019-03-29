@@ -34,6 +34,7 @@
 #define __STDC_FORMAT_MACROS
 #endif
 
+#include <stdarg.h>
 #include <stdint.h>
 #include <stddef.h>
 #include <limits.h>
