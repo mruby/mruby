@@ -151,11 +151,11 @@ def assert_float(exp, act, msg = nil)
   e, a = exp.to_f, act.to_f
   if (e.infinite? || a.infinite?) && e != a ||
      e.nan? && !a.nan? || !e.nan? && a.nan?
-    assert_true(false, msg, "    Expected #{act} to be #{exp}.")
+    flunk(msg, "    Expected #{act} to be #{exp}.")
   elsif (n = (e - a).abs) > Mrbtest::FLOAT_TOLERANCE
-    assert_true(false, msg, "    Expected |#{exp} - #{act}| (#{n}) to be <= #{Mrbtest::FLOAT_TOLERANCE}.")
+    flunk(msg, "    Expected |#{exp} - #{act}| (#{n}) to be <= #{Mrbtest::FLOAT_TOLERANCE}.")
   else
-    assert_true(true)
+    pass
   end
 end
 
@@ -165,15 +165,15 @@ def assert_raise(*exc)
   begin
     yield
   rescue *exc
-    assert_true(true)
+    pass
   rescue Exception => e
     diff = "    #{exc} exception expected, not\n" \
            "    Class: <#{e.class}>\n" \
            "    Message: <#{e}>"
-    assert_true(false, msg, diff)
+    flunk(msg, diff)
   else
     diff = "    #{exc} expected but nothing was raised."
-    assert_true(false, msg, diff)
+    flunk(msg, diff)
   end
 end
 
@@ -184,10 +184,18 @@ def assert_nothing_raised(msg = nil)
     diff = "    Exception raised:\n" \
            "    Class: <#{e.class}>\n" \
            "    Message: <#{e}>"
-    assert_true(false, msg, diff)
+    flunk(msg, diff)
   else
-    assert_true(true)
+    pass
   end
+end
+
+def pass
+  assert_true(true)
+end
+
+def flunk(msg = nil, diff = "Epic Fail!")
+  assert_true(false, msg, diff)
 end
 
 ##
