@@ -8,7 +8,7 @@ $test_start = Time.now if Object.const_defined?(:Time)
 unless RUBY_ENGINE == "mruby"
   # For bintest on Ruby
   def t_print(*args)
-    print *args
+    print(*args)
     $stdout.flush
     nil
   end
