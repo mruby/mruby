@@ -58,10 +58,10 @@ each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, mrb_code *pc0, each_backtrace_fu
       pc = pc0;
     }
 
-    loc.lineno = mrb_debug_get_line(irep, pc - irep->iseq);
+    loc.lineno = mrb_debug_get_line(mrb, irep, pc - irep->iseq);
     if (loc.lineno == -1) continue;
 
-    loc.filename = mrb_debug_get_filename(irep, pc - irep->iseq);
+    loc.filename = mrb_debug_get_filename(mrb, irep, pc - irep->iseq);
     if (!loc.filename) {
       loc.filename = "(unknown)";
     }

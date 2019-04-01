@@ -484,15 +484,11 @@ mrb_define_method(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t
 MRB_API void
 mrb_notimplement(mrb_state *mrb)
 {
-  const char *str;
-  mrb_int len;
   mrb_callinfo *ci = mrb->c->ci;
 
   if (ci->mid) {
-    str = mrb_sym2name_len(mrb, ci->mid, &len);
-    mrb_raisef(mrb, E_NOTIMP_ERROR,
-      "%S() function is unimplemented on this machine",
-      mrb_str_new_static(mrb, str, (size_t)len));
+    mrb_value str = mrb_sym2str(mrb, ci->mid);
+    mrb_raisef(mrb, E_NOTIMP_ERROR, "%S() function is unimplemented on this machine", str);
   }
 }
 
@@ -1686,11 +1682,7 @@ mrb_class_path(mrb_state *mrb, struct RClass *c)
   }
   else if (mrb_symbol_p(path)) {
     /* toplevel class/module */
-    const char *str;
-    mrb_int len;
-
-    str = mrb_sym2name_len(mrb, mrb_symbol(path), &len);
-    return mrb_str_new(mrb, str, len);
+    return mrb_sym2str(mrb, mrb_symbol(path));
   }
   return mrb_str_dup(mrb, path);
 }

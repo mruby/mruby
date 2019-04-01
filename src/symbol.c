@@ -520,7 +520,14 @@ mrb_sym2name(mrb_state *mrb, mrb_sym sym)
     return name;
   }
   else {
-    mrb_value str = mrb_str_dump(mrb, mrb_str_new_static(mrb, name, len));
+    mrb_value str;
+    if (sym&1) {                /* inline symbol */
+      str = mrb_str_new(mrb, name, len);
+    }
+    else {
+      str = mrb_str_new_static(mrb, name, len);
+    }
+    str = mrb_str_dump(mrb, str);
     return RSTRING_PTR(str);
   }
 }

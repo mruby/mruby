@@ -118,7 +118,7 @@ struct mrb_parser_state {
   FILE *f;
 #endif
   mrbc_context *cxt;
-  char const *filename;
+  mrb_sym filename_sym;
   int lineno;
   int column;
 
@@ -168,7 +168,7 @@ MRB_API void mrb_parser_free(struct mrb_parser_state*);
 MRB_API void mrb_parser_parse(struct mrb_parser_state*,mrbc_context*);
 
 MRB_API void mrb_parser_set_filename(struct mrb_parser_state*, char const*);
-MRB_API char const* mrb_parser_get_filename(struct mrb_parser_state*, uint16_t idx);
+MRB_API mrb_sym mrb_parser_get_filename(struct mrb_parser_state*, uint16_t idx);
 
 /* utility functions */
 #ifndef MRB_DISABLE_STDIO

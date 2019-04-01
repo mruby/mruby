@@ -62,7 +62,7 @@ typedef struct scope {
 
   struct loopinfo *loop;
   int ensure_level;
-  char const *filename;
+  mrb_sym filename_sym;
   uint16_t lineno;
 
   mrb_code *iseq;
@@ -106,8 +106,9 @@ codegen_error(codegen_scope *s, const char *message)
     s = tmp;
   }
 #ifndef MRB_DISABLE_STDIO
-  if (s->filename && s->lineno) {
-    fprintf(stderr, "codegen error:%s:%d: %s\n", s->filename, s->lineno, message);
+  if (s->filename_sym && s->lineno) {
+    const char *filename = mrb_sym2name_len(s->mrb, s->filename_sym, NULL);
+    fprintf(stderr, "codegen error:%s:%d: %s\n", filename, s->lineno, message);
   }
   else {
     fprintf(stderr, "codegen error: %s\n", message);
@@ -1399,13 +1400,14 @@ codegen(codegen_scope *s, node *tree, int val)
     codegen_error(s, "too complex expression");
   }
   if (s->irep && s->filename_index != tree->filename_index) {
-    const char *filename = mrb_parser_get_filename(s->parser, s->filename_index);
+    mrb_sym fname = mrb_parser_get_filename(s->parser, s->filename_index);
+    const char *filename = mrb_sym2name_len(s->mrb, fname, NULL);
 
     mrb_debug_info_append_file(s->mrb, s->irep->debug_info,
                                filename, s->lines, s->debug_start_pos, s->pc);
     s->debug_start_pos = s->pc;
     s->filename_index = tree->filename_index;
-    s->filename = mrb_parser_get_filename(s->parser, tree->filename_index);
+    s->filename_sym = mrb_parser_get_filename(s->parser, tree->filename_index);
   }
 
   nt = nint(tree->car);
@@ -2990,15 +2992,15 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
   }
   p->ai = mrb_gc_arena_save(mrb);
 
-  p->filename = prev->filename;
-  if (p->filename) {
+  p->filename_sym = prev->filename_sym;
+  if (p->filename_sym) {
     p->lines = (uint16_t*)mrb_malloc(mrb, sizeof(short)*p->icapa);
   }
   p->lineno = prev->lineno;
 
   /* debug setting */
   p->debug_start_pos = 0;
-  if (p->filename) {
+  if (p->filename_sym) {
     mrb_debug_info_alloc(mrb, p->irep);
   }
   else {
@@ -3026,8 +3028,9 @@ scope_finish(codegen_scope *s)
   irep->pool = (mrb_value*)codegen_realloc(s, irep->pool, sizeof(mrb_value)*irep->plen);
   irep->syms = (mrb_sym*)codegen_realloc(s, irep->syms, sizeof(mrb_sym)*irep->slen);
   irep->reps = (mrb_irep**)codegen_realloc(s, irep->reps, sizeof(mrb_irep*)*irep->rlen);
-  if (s->filename) {
-    const char *filename = mrb_parser_get_filename(s->parser, s->filename_index);
+  if (s->filename_sym) {
+    mrb_sym fname = mrb_parser_get_filename(s->parser, s->filename_index);
+    const char *filename = mrb_sym2name_len(s->mrb, fname, NULL);
 
     mrb_debug_info_append_file(s->mrb, s->irep->debug_info,
                                filename, s->lines, s->debug_start_pos, s->pc);
@@ -3136,7 +3139,7 @@ generate_code(mrb_state *mrb, parser_state *p, int val)
   }
   scope->mrb = mrb;
   scope->parser = p;
-  scope->filename = p->filename;
+  scope->filename_sym = p->filename_sym;
   scope->filename_index = p->current_filename_index;
 
   MRB_TRY(&scope->jmp) {

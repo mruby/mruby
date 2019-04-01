@@ -3162,7 +3162,7 @@ var_ref         : variable
                     }
                 | keyword__FILE__
                     {
-                      const char *fn = p->filename;
+                      const char *fn = mrb_sym2name_len(p->mrb, p->filename_sym, NULL);
                       if (!fn) {
                         fn = "(null)";
                       }
@@ -3671,8 +3671,9 @@ yyerror(parser_state *p, const char *s)
 
   if (! p->capture_errors) {
 #ifndef MRB_DISABLE_STDIO
-    if (p->filename) {
-      fprintf(stderr, "%s:%d:%d: %s\n", p->filename, p->lineno, p->column, s);
+    if (p->filename_sym) {
+      const char *filename = mrb_sym2name_len(p->mrb, p->filename_sym, NULL);
+      fprintf(stderr, "%s:%d:%d: %s\n", filename, p->lineno, p->column, s);
     }
     else {
       fprintf(stderr, "line %d:%d: %s\n", p->lineno, p->column, s);
@@ -3707,8 +3708,9 @@ yywarn(parser_state *p, const char *s)
 
   if (! p->capture_errors) {
 #ifndef MRB_DISABLE_STDIO
-    if (p->filename) {
-      fprintf(stderr, "%s:%d:%d: warning: %s\n", p->filename, p->lineno, p->column, s);
+    if (p->filename_sym) {
+      const char *filename = mrb_sym2name_len(p->mrb, p->filename_sym, NULL);
+      fprintf(stderr, "%s:%d:%d: warning: %s\n", filename, p->lineno, p->column, s);
     }
     else {
       fprintf(stderr, "line %d:%d: warning: %s\n", p->lineno, p->column, s);
@@ -6012,7 +6014,7 @@ mrb_parser_set_filename(struct mrb_parser_state *p, const char *f)
   mrb_sym* new_table;
 
   sym = mrb_intern_cstr(p->mrb, f);
-  p->filename = mrb_sym2name_len(p->mrb, sym, NULL);
+  p->filename_sym = sym;
   p->lineno = (p->filename_table_length > 0)? 0 : 1;
 
   for (i = 0; i < p->filename_table_length; ++i) {
@@ -6036,11 +6038,11 @@ mrb_parser_set_filename(struct mrb_parser_state *p, const char *f)
   p->filename_table[p->filename_table_length - 1] = sym;
 }
 
-MRB_API char const*
+MRB_API mrb_sym
 mrb_parser_get_filename(struct mrb_parser_state* p, uint16_t idx) {
-  if (idx >= p->filename_table_length) return NULL;
+  if (idx >= p->filename_table_length) return 0;
   else {
-    return mrb_sym2name_len(p->mrb, p->filename_table[idx], NULL);
+    return p->filename_table[idx];
   }
 }
 

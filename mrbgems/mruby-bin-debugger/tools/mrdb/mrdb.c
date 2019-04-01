@@ -569,8 +569,8 @@ mrb_code_fetch_hook(mrb_state *mrb, mrb_irep *irep, mrb_code *pc, mrb_value *reg
     dbg->xphase = DBG_PHASE_RUNNING;
   }
 
-  file = mrb_debug_get_filename(irep, pc - irep->iseq);
-  line = mrb_debug_get_line(irep, pc - irep->iseq);
+  file = mrb_debug_get_filename(mrb, irep, pc - irep->iseq);
+  line = mrb_debug_get_line(mrb, irep, pc - irep->iseq);
 
   switch (dbg->xm) {
   case DBG_STEP:

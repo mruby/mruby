@@ -25,8 +25,8 @@ mrb_proc_source_location(mrb_state *mrb, mrb_value self)
     int32_t line;
     const char *filename;
 
-    filename = mrb_debug_get_filename(irep, 0);
-    line = mrb_debug_get_line(irep, 0);
+    filename = mrb_debug_get_filename(mrb, irep, 0);
+    line = mrb_debug_get_line(mrb, irep, 0);
 
     return (!filename && line == -1)? mrb_nil_value()
         : mrb_assoc_new(mrb, mrb_str_new_cstr(mrb, filename), mrb_fixnum_value(line));
@@ -46,11 +46,11 @@ mrb_proc_inspect(mrb_state *mrb, mrb_value self)
     int32_t line;
     mrb_str_cat_lit(mrb, str, "@");
 
-    filename = mrb_debug_get_filename(irep, 0);
+    filename = mrb_debug_get_filename(mrb, irep, 0);
     mrb_str_cat_cstr(mrb, str, filename ? filename : "-");
     mrb_str_cat_lit(mrb, str, ":");
 
-    line = mrb_debug_get_line(irep, 0);
+    line = mrb_debug_get_line(mrb, irep, 0);
     if (line != -1) {
       str = mrb_format(mrb, "%S:%S", str, mrb_fixnum_value(line));
     }
