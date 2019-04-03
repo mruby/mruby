@@ -42,10 +42,6 @@ mrb_open_core(mrb_allocf f, void *ud)
 
   mrb_init_core(mrb);
 
-#if !defined(MRB_DISABLE_STDIO) && defined(_MSC_VER) && _MSC_VER < 1900
-  _set_output_format(_TWO_DIGIT_EXPONENT);
-#endif
-
   return mrb;
 }
 
