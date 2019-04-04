@@ -38,7 +38,7 @@ To confirm mrdb was installed properly, run mrdb with the `--version` option:
 
 ```bash
 $ mrdb --version
-mruby 2.0.0 (2018-12-11)
+mruby 2.0.1 (2019-4-4)
 ```
 
 ## 2.2 Basic Operation
