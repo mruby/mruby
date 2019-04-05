@@ -25,6 +25,17 @@ assert('Module', '15.2.2') do
   assert_equal Class, Module.class
 end
 
+assert('Module#alias_method', '15.2.2.4.8') do
+  cls = Class.new do
+    def foo
+      "FOO"
+    end
+  end
+
+  assert_same(cls, cls.alias_method(:bar, :foo))
+  assert_equal("FOO", cls.new.bar)
+end
+
 # TODO not implemented ATM assert('Module.constants', '15.2.2.3.1') do
 
 assert('Module#ancestors', '15.2.2.4.9') do
