@@ -212,19 +212,8 @@ static mrb_value
 method_arity(mrb_state *mrb, mrb_value self)
 {
   mrb_value proc = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "proc"));
-  struct RProc *rproc;
-  struct RClass *orig;
-  mrb_value ret;
-
-  if (mrb_nil_p(proc))
-    return mrb_fixnum_value(-1);
-
-  rproc = mrb_proc_ptr(proc);
-  orig = rproc->c;
-  rproc->c = mrb->proc_class;
-  ret = mrb_funcall(mrb, proc, "arity", 0);
-  rproc->c = orig;
-  return ret;
+  mrb_int arity = mrb_nil_p(proc) ? -1 : mrb_proc_arity(mrb_proc_ptr(proc));
+  return mrb_fixnum_value(arity);
 }
 
 static mrb_value

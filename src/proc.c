@@ -221,38 +221,9 @@ mrb_proc_cfunc_p(struct RProc *p)
 
 /* 15.2.17.4.2 */
 static mrb_value
-mrb_proc_arity(mrb_state *mrb, mrb_value self)
+proc_arity(mrb_state *mrb, mrb_value self)
 {
-  struct RProc *p = mrb_proc_ptr(self);
-  struct mrb_irep *irep;
-  mrb_code *pc;
-  mrb_aspec aspec;
-  int ma, op, ra, pa, arity;
-
-  if (MRB_PROC_CFUNC_P(p)) {
-    /* TODO cfunc aspec not implemented yet */
-    return mrb_fixnum_value(-1);
-  }
-
-  irep = p->body.irep;
-  if (!irep) {
-    return mrb_fixnum_value(0);
-  }
-
-  pc = irep->iseq;
-  /* arity is depend on OP_ENTER */
-  if (*pc != OP_ENTER) {
-    return mrb_fixnum_value(0);
-  }
-
-  aspec = PEEK_W(pc+1);
-  ma = MRB_ASPEC_REQ(aspec);
-  op = MRB_ASPEC_OPT(aspec);
-  ra = MRB_ASPEC_REST(aspec);
-  pa = MRB_ASPEC_POST(aspec);
-  arity = ra || (MRB_PROC_STRICT_P(p) && op) ? -(ma + pa + 1) : ma + pa;
-
-  return mrb_fixnum_value(arity);
+  return mrb_fixnum_value(mrb_proc_arity(mrb_proc_ptr(self)));
 }
 
 /* 15.3.1.2.6  */
@@ -287,6 +258,40 @@ proc_lambda(mrb_state *mrb, mrb_value self)
   return blk;
 }
 
+mrb_int
+mrb_proc_arity(const struct RProc *p)
+{
+  struct mrb_irep *irep;
+  mrb_code *pc;
+  mrb_aspec aspec;
+  int ma, op, ra, pa, arity;
+
+  if (MRB_PROC_CFUNC_P(p)) {
+    /* TODO cfunc aspec not implemented yet */
+    return -1;
+  }
+
+  irep = p->body.irep;
+  if (!irep) {
+    return 0;
+  }
+
+  pc = irep->iseq;
+  /* arity is depend on OP_ENTER */
+  if (*pc != OP_ENTER) {
+    return 0;
+  }
+
+  aspec = PEEK_W(pc+1);
+  ma = MRB_ASPEC_REQ(aspec);
+  op = MRB_ASPEC_OPT(aspec);
+  ra = MRB_ASPEC_REST(aspec);
+  pa = MRB_ASPEC_POST(aspec);
+  arity = ra || (MRB_PROC_STRICT_P(p) && op) ? -(ma + pa + 1) : ma + pa;
+
+  return arity;
+}
+
 void
 mrb_init_proc(mrb_state *mrb)
 {
@@ -303,7 +308,7 @@ mrb_init_proc(mrb_state *mrb)
 
   mrb_define_class_method(mrb, mrb->proc_class, "new", mrb_proc_s_new, MRB_ARGS_NONE()|MRB_ARGS_BLOCK());
   mrb_define_method(mrb, mrb->proc_class, "initialize_copy", mrb_proc_init_copy, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, mrb->proc_class, "arity", mrb_proc_arity, MRB_ARGS_NONE());
+  mrb_define_method(mrb, mrb->proc_class, "arity", proc_arity, MRB_ARGS_NONE());
 
   p = mrb_proc_new(mrb, call_irep);
   MRB_METHOD_FROM_PROC(m, p);
