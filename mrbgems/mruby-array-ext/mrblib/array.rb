@@ -936,4 +936,7 @@ class Array
     end
     h
   end
+
+  alias append push
+  alias prepend unshift
 end
