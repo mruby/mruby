@@ -629,6 +629,12 @@ mrb_read_irep(mrb_state *mrb, const uint8_t *bin)
   return read_irep(mrb, bin, (size_t)-1, flags);
 }
 
+MRB_API mrb_irep*
+mrb_read_irep_buf(mrb_state *mrb, const void *buf, size_t bufsize)
+{
+  return read_irep(mrb, (const uint8_t *)buf, bufsize, FLAG_SRC_MALLOC);
+}
+
 void mrb_exc_set(mrb_state *mrb, mrb_value exc);
 
 static void
@@ -663,9 +669,21 @@ mrb_load_irep_cxt(mrb_state *mrb, const uint8_t *bin, mrbc_context *c)
 }
 
 MRB_API mrb_value
+mrb_load_irep_buf_cxt(mrb_state *mrb, const void *buf, size_t bufsize, mrbc_context *c)
+{
+  return load_irep(mrb, mrb_read_irep_buf(mrb, buf, bufsize), c);
+}
+
+MRB_API mrb_value
 mrb_load_irep(mrb_state *mrb, const uint8_t *bin)
 {
   return mrb_load_irep_cxt(mrb, bin, NULL);
+}
+
+MRB_API mrb_value
+mrb_load_irep_buf(mrb_state *mrb, const void *buf, size_t bufsize)
+{
+  return mrb_load_irep_buf_cxt(mrb, buf, bufsize, NULL);
 }
 
 #ifndef MRB_DISABLE_STDIO
