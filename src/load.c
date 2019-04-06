@@ -519,9 +519,13 @@ lv_exit:
 }
 
 static int
-read_binary_header(const uint8_t *bin, size_t *bin_size, uint16_t *crc, uint8_t *flags)
+read_binary_header(const uint8_t *bin, size_t bufsize, size_t *bin_size, uint16_t *crc, uint8_t *flags)
 {
   const struct rite_binary_header *header = (const struct rite_binary_header *)bin;
+
+  if (bufsize < sizeof(struct rite_binary_header)) {
+    return MRB_DUMP_READ_FAULT;
+  }
 
   if (memcmp(header->binary_ident, RITE_BINARY_IDENT, sizeof(header->binary_ident)) == 0) {
     if (bigendian_p())
@@ -548,11 +552,15 @@ read_binary_header(const uint8_t *bin, size_t *bin_size, uint16_t *crc, uint8_t 
   }
   *bin_size = (size_t)bin_to_uint32(header->binary_size);
 
+  if (bufsize < *bin_size) {
+    return MRB_DUMP_READ_FAULT;
+  }
+
   return MRB_DUMP_OK;
 }
 
 static mrb_irep*
-read_irep(mrb_state *mrb, const uint8_t *bin, uint8_t flags)
+read_irep(mrb_state *mrb, const uint8_t *bin, size_t bufsize, uint8_t flags)
 {
   int result;
   mrb_irep *irep = NULL;
@@ -565,7 +573,7 @@ read_irep(mrb_state *mrb, const uint8_t *bin, uint8_t flags)
     return NULL;
   }
 
-  result = read_binary_header(bin, &bin_size, &crc, &flags);
+  result = read_binary_header(bin, bufsize, &bin_size, &crc, &flags);
   if (result != MRB_DUMP_OK) {
     return NULL;
   }
@@ -618,7 +626,7 @@ mrb_read_irep(mrb_state *mrb, const uint8_t *bin)
   uint8_t flags = FLAG_SRC_STATIC;
 #endif
 
-  return read_irep(mrb, bin, flags);
+  return read_irep(mrb, bin, (size_t)-1, flags);
 }
 
 void mrb_exc_set(mrb_state *mrb, mrb_value exc);
@@ -680,7 +688,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
   if (fread(buf, header_size, 1, fp) == 0) {
     goto irep_exit;
   }
-  result = read_binary_header(buf, &buf_size, NULL, &flags);
+  result = read_binary_header(buf, (size_t)-1, &buf_size, NULL, &flags);
   if (result != MRB_DUMP_OK || buf_size <= header_size) {
     goto irep_exit;
   }
@@ -689,7 +697,7 @@ mrb_read_irep_file(mrb_state *mrb, FILE* fp)
   if (fread(buf+header_size, buf_size-header_size, 1, fp) == 0) {
     goto irep_exit;
   }
-  irep = read_irep(mrb, buf, FLAG_SRC_MALLOC);
+  irep = read_irep(mrb, buf, (size_t)-1, FLAG_SRC_MALLOC);
 
 irep_exit:
   mrb_free(mrb, buf);
