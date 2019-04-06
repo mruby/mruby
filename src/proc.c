@@ -213,12 +213,6 @@ mrb_proc_init_copy(mrb_state *mrb, mrb_value self)
   return self;
 }
 
-int
-mrb_proc_cfunc_p(struct RProc *p)
-{
-  return MRB_PROC_CFUNC_P(p);
-}
-
 /* 15.2.17.4.2 */
 static mrb_value
 proc_arity(mrb_state *mrb, mrb_value self)
