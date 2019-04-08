@@ -1083,9 +1083,6 @@ MRB_API mrb_value mrb_Float(mrb_state *mrb, mrb_value val);
 MRB_API mrb_value mrb_inspect(mrb_state *mrb, mrb_value obj);
 MRB_API mrb_bool mrb_eql(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
 
-static inline int mrb_gc_arena_save(mrb_state*);
-static inline void mrb_gc_arena_restore(mrb_state*,int);
-
 static inline int
 mrb_gc_arena_save(mrb_state *mrb)
 {
