@@ -207,12 +207,12 @@ flo_to_s(mrb_state *mrb, mrb_value flt)
     char fmt[] = "%." MRB_STRINGIZE(FLO_TO_STR_PREC) "g";
     mrb_value str = mrb_float_to_str(mrb, flt, fmt);
     mrb_int len;
-    char *begp;
+    char *begp, *p, *endp;
 
     insert_dot_zero:
     begp = RSTRING_PTR(str);
     len = RSTRING_LEN(str);
-    for (char *p = begp, *endp = p + len; p < endp; ++p) {
+    for (p = begp, endp = p + len; p < endp; ++p) {
       if (*p == '.') {
         return str;
       }
