@@ -242,25 +242,27 @@ class String
     end
   end
 
+  def _regexp(re, mid)
+    if String === re
+      if Object.const_defined?(:Regexp)
+        return Regexp.new(re)
+      else
+        raise NotImplementedError, "String##{mid} needs Regexp class"
+      end
+    end
+    re
+  end
+
   ##
   # ISO 15.2.10.5.3
   def =~(re)
-    re =~ self
+    _regexp(re, :=~) =~ self
   end
 
   ##
   # ISO 15.2.10.5.27
   def match(re, &block)
-    if String === re
-      if Object.const_defined?(:Regexp)
-        r = Regexp.new(re)
-        r.match(self, &block)
-      else
-        raise NotImplementedError, "String#match needs Regexp class"
-      end
-    else
-      re.match(self, &block)
-    end
+    _regexp(re, :match).match(self, &block)
   end
 end
 
