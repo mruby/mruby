@@ -746,10 +746,7 @@ mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val)
 static void
 mrb_hash_modify(mrb_state *mrb, mrb_value hash)
 {
-  if (MRB_FROZEN_P(mrb_hash_ptr(hash))) {
-    mrb_raise(mrb, E_FROZEN_ERROR, "can't modify frozen hash");
-  }
-
+  mrb_check_frozen(mrb, mrb_hash_ptr(hash));
   if (!RHASH_TBL(hash)) {
     RHASH_TBL(hash) = ht_new(mrb);
   }
