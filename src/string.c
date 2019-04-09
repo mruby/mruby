@@ -493,20 +493,12 @@ str_index_str(mrb_state *mrb, mrb_value str, mrb_value str2, mrb_int offset)
   return mrb_str_index(mrb, str, ptr, len, offset);
 }
 
-static void
-check_frozen(mrb_state *mrb, struct RString *s)
-{
-  if (MRB_FROZEN_P(s)) {
-    mrb_raise(mrb, E_FROZEN_ERROR, "can't modify frozen string");
-  }
-}
-
 static mrb_value
 str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
 {
   mrb_int len;
 
-  check_frozen(mrb, s1);
+  mrb_check_frozen(mrb, s1);
   if (s1 == s2) return mrb_obj_value(s1);
   s1->flags &= ~MRB_STR_NO_UTF;
   s1->flags |= s2->flags&MRB_STR_NO_UTF;
@@ -646,7 +638,7 @@ mrb_locale_from_utf8(const char *utf8, int len)
 MRB_API void
 mrb_str_modify(mrb_state *mrb, struct RString *s)
 {
-  check_frozen(mrb, s);
+  mrb_check_frozen(mrb, s);
   s->flags &= ~MRB_STR_NO_UTF;
   if (RSTR_SHARED_P(s)) {
     mrb_shared_string *shared = s->as.heap.aux.shared;

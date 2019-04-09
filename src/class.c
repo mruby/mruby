@@ -441,12 +441,7 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
   MRB_CLASS_ORIGIN(c);
   h = c->mt;
 
-  if (MRB_FROZEN_P(c)) {
-    if (c->tt == MRB_TT_MODULE)
-      mrb_raise(mrb, E_FROZEN_ERROR, "can't modify frozen module");
-    else
-      mrb_raise(mrb, E_FROZEN_ERROR, "can't modify frozen class");
-  }
+  mrb_check_frozen(mrb, c);
   if (!h) h = c->mt = kh_init(mt, mrb);
   k = kh_put(mt, mrb, h, mid);
   kh_value(h, k) = m;
