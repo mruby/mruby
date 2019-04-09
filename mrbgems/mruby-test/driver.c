@@ -51,9 +51,10 @@ t_print(mrb_state *mrb, mrb_value self)
 {
   mrb_value *argv;
   mrb_int argc;
+  mrb_int i;
 
   mrb_get_args(mrb, "*!", &argv, &argc);
-  for (mrb_int i = 0; i < argc; ++i) {
+  for (i = 0; i < argc; ++i) {
     mrb_value s = mrb_obj_as_string(mrb, argv[i]);
     fwrite(RSTRING_PTR(s), RSTRING_LEN(s), 1, stdout);
   }
