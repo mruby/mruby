@@ -1116,7 +1116,9 @@ mrb_class_find_path(mrb_state *mrb, struct RClass *c)
 mrb_bool
 mrb_ident_p(const char *s, mrb_int len)
 {
-  for (mrb_int i = 0; i < len; i++) {
+  mrb_int i;
+
+  for (i = 0; i < len; i++) {
     if (!identchar(s[i])) return FALSE;
   }
   return TRUE;
