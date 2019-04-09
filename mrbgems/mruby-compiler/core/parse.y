@@ -221,7 +221,7 @@ parser_strdup(parser_state *p, const char *s)
 #define strdup(s) parser_strdup(p, s)
 
 static void
-itoa(short i, char *s)
+dump_int(short i, char *s)
 {
   char *p = s;
   char *t = s;
@@ -239,6 +239,7 @@ itoa(short i, char *s)
     *p-- = c;
   }
 }
+
 /* xxx ----------------------------- */
 
 static node*
@@ -3191,7 +3192,7 @@ var_ref         : variable
                     {
                       char buf[16];
 
-                      itoa(p->lineno, buf);
+                      dump_int(p->lineno, buf);
                       $$ = new_int(p, buf, 10);
                     }
                 | keyword__ENCODING__
@@ -6144,7 +6145,7 @@ mrb_load_exec(mrb_state *mrb, struct mrb_parser_state *p, mrbc_context *c)
       char buf[256];
 
       strcpy(buf, "line ");
-      itoa(p->error_buffer[0].lineno, buf+5);
+      dump_int(p->error_buffer[0].lineno, buf+5);
       strcat(buf, ": ");
       strcat(buf, p->error_buffer[0].message);
       mrb->exc = mrb_obj_ptr(mrb_exc_new(mrb, E_SYNTAX_ERROR, buf, strlen(buf)));
