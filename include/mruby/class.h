@@ -85,6 +85,7 @@ MRB_API mrb_method_t mrb_method_search_vm(mrb_state*, struct RClass**, mrb_sym);
 MRB_API mrb_method_t mrb_method_search(mrb_state*, struct RClass*, mrb_sym);
 
 MRB_API struct RClass* mrb_class_real(struct RClass* cl);
+mrb_value mrb_instance_new(mrb_state *mrb, mrb_value cv);
 
 void mrb_class_name_class(mrb_state*, struct RClass*, struct RClass*, mrb_sym);
 mrb_value mrb_class_find_path(mrb_state*, struct RClass*);

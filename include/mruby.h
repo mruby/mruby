@@ -570,8 +570,6 @@ MRB_INLINE mrb_value mrb_class_new_instance(mrb_state *mrb, mrb_int argc, const 
   return mrb_obj_new(mrb,c,argc,argv);
 }
 
-MRB_API mrb_value mrb_instance_new(mrb_state *mrb, mrb_value cv);
-
 /**
  * Creates a new instance of Class, Class.
  *

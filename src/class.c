@@ -1498,7 +1498,7 @@ mrb_instance_alloc(mrb_state *mrb, mrb_value cv)
  *
  */
 
-MRB_API mrb_value
+mrb_value
 mrb_instance_new(mrb_state *mrb, mrb_value cv)
 {
   mrb_value obj, blk;
