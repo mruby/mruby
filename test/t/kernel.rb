@@ -247,6 +247,23 @@ assert('Kernel#freeze') do
   assert_equal obj, obj.freeze
   assert_equal 0, 0.freeze
   assert_equal :a, :a.freeze
+  assert_equal true, true.freeze
+  assert_equal false, false.freeze
+  assert_equal nil, nil.freeze
+  skip unless Object.const_defined?(:Float)
+  assert_equal 0.0, 0.0.freeze
+end
+
+assert('Kernel#frozen?') do
+  assert_false "".frozen?
+  assert_true "".freeze.frozen?
+  assert_true 0.frozen?
+  assert_true :a.frozen?
+  assert_true true.frozen?
+  assert_true false.frozen?
+  assert_true nil.frozen?
+  skip unless Object.const_defined?(:Float)
+  assert_true 0.0.frozen?
 end
 
 assert('Kernel#global_variables', '15.3.1.3.14') do
