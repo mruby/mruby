@@ -3716,8 +3716,9 @@ yyerror_c(parser_state *p, const char *msg, char c)
 {
   char buf[256];
 
-  strcpy(buf, msg);
-  strcat(buf, &c);
+  strncpy(buf, msg, sizeof(buf) - 2);
+  buf[sizeof(buf) - 2] = '\0';
+  strncat(buf, &c, 1);
   yyerror(p, buf);
 }
 
@@ -3760,9 +3761,10 @@ yywarning_s(parser_state *p, const char *msg, const char *s)
 {
   char buf[256];
 
-  strcpy(buf, msg);
-  strcat(buf, ": ");
-  strcat(buf, s);
+  strncpy(buf, msg, sizeof(buf) - 1);
+  buf[sizeof(buf) - 1] = '\0';
+  strncat(buf, ": ", sizeof(buf) - strlen(buf) - 1);
+  strncat(buf, s, sizeof(buf) - strlen(buf) - 1);
   yywarning(p, buf);
 }
 
@@ -4326,11 +4328,12 @@ parse_string(parser_state *p)
 
         if (sizeof(s1)+sizeof(s2)+strlen(hinf->term)+1 >= sizeof(buf)) {
           yyerror(p, "can't find heredoc delimiter anywhere before EOF");
+        } else {
+          strcpy(buf, s1);
+          strcat(buf, hinf->term);
+          strcat(buf, s2);
+          yyerror(p, buf);
         }
-        strcpy(buf, s1);
-        strcat(buf, hinf->term);
-        strcat(buf, s2);
-        yyerror(p, buf);
         return 0;
       }
       pylval.nd = new_str(p, tok(p), toklen(p));
@@ -4487,7 +4490,7 @@ parse_string(parser_state *p)
         strcat(msg, "s");
       }
       strcat(msg, " - ");
-      strcat(msg, tok(p));
+      strncat(msg, tok(p), sizeof(msg) - strlen(msg) - 1);
       yyerror(p, msg);
     }
     if (f != 0) {
@@ -4918,7 +4921,7 @@ parser_yylex(parser_state *p)
           char cc = (char)c2;
 
           strcpy(buf, "invalid character syntax; use ?\\");
-          strcat(buf, &cc);
+          strncat(buf, &cc, 1);
           yyerror(p, buf);
         }
       }
@@ -6147,7 +6150,7 @@ mrb_load_exec(mrb_state *mrb, struct mrb_parser_state *p, mrbc_context *c)
       strcpy(buf, "line ");
       dump_int(p->error_buffer[0].lineno, buf+5);
       strcat(buf, ": ");
-      strcat(buf, p->error_buffer[0].message);
+      strncat(buf, p->error_buffer[0].message, sizeof(buf) - strlen(buf) - 1);
       mrb->exc = mrb_obj_ptr(mrb_exc_new(mrb, E_SYNTAX_ERROR, buf, strlen(buf)));
       mrb_parser_free(p);
       return mrb_undef_value();
