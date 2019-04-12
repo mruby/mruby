@@ -486,6 +486,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     ci->argc = (int)argc;
     ci->target_class = c;
     mrb->c->stack = mrb->c->stack + n;
+    if (argc < 0) argc = 1;
     if (mrb->c->stbase <= argv && argv < mrb->c->stend) {
       voff = argv - mrb->c->stbase;
     }
@@ -500,11 +501,10 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
       ci->argc = -1;
       argc = 1;
     }
-    else {
+    else if (MRB_METHOD_PROC_P(m)) {
       struct RProc *p = MRB_METHOD_PROC(m);
 
       ci->proc = p;
-      if (argc < 0) argc = 1;
       mrb_stack_extend(mrb, p->body.irep->nregs + argc);
     }
     if (voff >= 0) {
@@ -520,9 +520,6 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
       int ai = mrb_gc_arena_save(mrb);
 
       ci->acc = CI_ACC_DIRECT;
-      if (MRB_METHOD_PROC_P(m)) {
-        ci->proc = MRB_METHOD_PROC(m);
-      }
       val = MRB_METHOD_CFUNC(m)(mrb, self);
       mrb->c->stack = mrb->c->ci->stackent;
       cipop(mrb);
