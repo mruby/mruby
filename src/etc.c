@@ -205,7 +205,6 @@ mrb_regexp_p(mrb_state *mrb, mrb_value v)
     return mrb_obj_is_kind_of(mrb, v, mrb_class_get(mrb, REGEXP_CLASS));
   }
   else {
-    mrb->flags |= MRB_STATE_REGEXP;
     mrb->flags |= MRB_STATE_NO_REGEXP;
   }
   return FALSE;
