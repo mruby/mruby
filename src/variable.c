@@ -79,10 +79,10 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
   }
 
   /* Not found */
-  t->size++;
   if (matched_seg) {
     matched_seg->key[matched_idx] = sym;
     matched_seg->val[matched_idx] = val;
+    t->size++;
     return;
   }
 
@@ -91,6 +91,7 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
   seg->key[0] = sym;
   seg->val[0] = val;
   t->last_len = 1;
+  t->size++;
   if (prev) {
     prev->next = seg;
   }
