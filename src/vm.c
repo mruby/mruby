@@ -2214,9 +2214,13 @@ RETRY_TRY_BLOCK:
     }
 
 #define TYPES2(a,b) ((((uint16_t)(a))<<8)|(((uint16_t)(b))&0xff))
-#define OP_MATH_BODY(op,v1,v2) do {\
-  v1(regs[a]) = v1(regs[a]) op v2(regs[a+1]);\
-} while(0)
+#define OP_MATH_FLOAT_BODY(op,t1,t2) do {                                   \
+    RETURN_TYPE_OF_##t1 x = t1(regs[a]);                                    \
+    RETURN_TYPE_OF_##t2 y = t2(regs[a+1]);                                  \
+    SET_FLOAT_VALUE(mrb, regs[a], x op y);                                  \
+} while (0)
+#define RETURN_TYPE_OF_mrb_fixnum mrb_int
+#define RETURN_TYPE_OF_mrb_float mrb_float
 
     CASE(OP_ADD, B) {
       /* need to check if op is overridden */
@@ -2239,33 +2243,13 @@ RETRY_TRY_BLOCK:
         break;
 #ifndef MRB_WITHOUT_FLOAT
       case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):
-        {
-          mrb_int x = mrb_fixnum(regs[a]);
-          mrb_float y = mrb_float(regs[a+1]);
-          SET_FLOAT_VALUE(mrb, regs[a], (mrb_float)x + y);
-        }
+        OP_MATH_FLOAT_BODY(+,mrb_fixnum,mrb_float);
         break;
       case TYPES2(MRB_TT_FLOAT,MRB_TT_FIXNUM):
-#ifdef MRB_WORD_BOXING
-        {
-          mrb_float x = mrb_float(regs[a]);
-          mrb_int y = mrb_fixnum(regs[a+1]);
-          SET_FLOAT_VALUE(mrb, regs[a], x + y);
-        }
-#else
-        OP_MATH_BODY(+,mrb_float,mrb_fixnum);
-#endif
+        OP_MATH_FLOAT_BODY(+,mrb_float,mrb_fixnum);
         break;
       case TYPES2(MRB_TT_FLOAT,MRB_TT_FLOAT):
-#ifdef MRB_WORD_BOXING
-        {
-          mrb_float x = mrb_float(regs[a]);
-          mrb_float y = mrb_float(regs[a+1]);
-          SET_FLOAT_VALUE(mrb, regs[a], x + y);
-        }
-#else
-        OP_MATH_BODY(+,mrb_float,mrb_float);
-#endif
+        OP_MATH_FLOAT_BODY(+,mrb_float,mrb_float);
         break;
 #endif
       case TYPES2(MRB_TT_STRING,MRB_TT_STRING):
@@ -2300,33 +2284,13 @@ RETRY_TRY_BLOCK:
         break;
 #ifndef MRB_WITHOUT_FLOAT
       case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):
-        {
-          mrb_int x = mrb_fixnum(regs[a]);
-          mrb_float y = mrb_float(regs[a+1]);
-          SET_FLOAT_VALUE(mrb, regs[a], (mrb_float)x - y);
-        }
+        OP_MATH_FLOAT_BODY(-,mrb_fixnum,mrb_float);
         break;
       case TYPES2(MRB_TT_FLOAT,MRB_TT_FIXNUM):
-#ifdef MRB_WORD_BOXING
-        {
-          mrb_float x = mrb_float(regs[a]);
-          mrb_int y = mrb_fixnum(regs[a+1]);
-          SET_FLOAT_VALUE(mrb, regs[a], x - y);
-        }
-#else
-        OP_MATH_BODY(-,mrb_float,mrb_fixnum);
-#endif
+        OP_MATH_FLOAT_BODY(-,mrb_float,mrb_fixnum);
         break;
       case TYPES2(MRB_TT_FLOAT,MRB_TT_FLOAT):
-#ifdef MRB_WORD_BOXING
-        {
-          mrb_float x = mrb_float(regs[a]);
-          mrb_float y = mrb_float(regs[a+1]);
-          SET_FLOAT_VALUE(mrb, regs[a], x - y);
-        }
-#else
-        OP_MATH_BODY(-,mrb_float,mrb_float);
-#endif
+        OP_MATH_FLOAT_BODY(-,mrb_float,mrb_float);
         break;
 #endif
       default:
@@ -2357,33 +2321,13 @@ RETRY_TRY_BLOCK:
         break;
 #ifndef MRB_WITHOUT_FLOAT
       case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):
-        {
-          mrb_int x = mrb_fixnum(regs[a]);
-          mrb_float y = mrb_float(regs[a+1]);
-          SET_FLOAT_VALUE(mrb, regs[a], (mrb_float)x * y);
-        }
+        OP_MATH_FLOAT_BODY(*,mrb_fixnum,mrb_float);
         break;
       case TYPES2(MRB_TT_FLOAT,MRB_TT_FIXNUM):
-#ifdef MRB_WORD_BOXING
-        {
-          mrb_float x = mrb_float(regs[a]);
-          mrb_int y = mrb_fixnum(regs[a+1]);
-          SET_FLOAT_VALUE(mrb, regs[a], x * y);
-        }
-#else
-        OP_MATH_BODY(*,mrb_float,mrb_fixnum);
-#endif
+        OP_MATH_FLOAT_BODY(*,mrb_float,mrb_fixnum);
         break;
       case TYPES2(MRB_TT_FLOAT,MRB_TT_FLOAT):
-#ifdef MRB_WORD_BOXING
-        {
-          mrb_float x = mrb_float(regs[a]);
-          mrb_float y = mrb_float(regs[a+1]);
-          SET_FLOAT_VALUE(mrb, regs[a], x * y);
-        }
-#else
-        OP_MATH_BODY(*,mrb_float,mrb_float);
-#endif
+        OP_MATH_FLOAT_BODY(*,mrb_float,mrb_float);
         break;
 #endif
       default:
@@ -2466,14 +2410,10 @@ RETRY_TRY_BLOCK:
         break;
 #ifndef MRB_WITHOUT_FLOAT
       case MRB_TT_FLOAT:
-#ifdef MRB_WORD_BOXING
         {
           mrb_float x = mrb_float(regs[a]);
           SET_FLOAT_VALUE(mrb, regs[a], x + b);
         }
-#else
-        mrb_float(regs[a]) += b;
-#endif
         break;
 #endif
       default:
@@ -2507,14 +2447,10 @@ RETRY_TRY_BLOCK:
         break;
 #ifndef MRB_WITHOUT_FLOAT
       case MRB_TT_FLOAT:
-#ifdef MRB_WORD_BOXING
         {
           mrb_float x = mrb_float(regs[a]);
           SET_FLOAT_VALUE(mrb, regs[a], (mrb_float)x - (mrb_float)b);
         }
-#else
-        mrb_float(regs_a[0]) -= b;
-#endif
         break;
 #endif
       default:
