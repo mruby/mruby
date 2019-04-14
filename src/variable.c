@@ -87,7 +87,6 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
   }
 
   seg = (segment*)mrb_malloc(mrb, sizeof(segment));
-  if (!seg) return;
   seg->next = NULL;
   seg->key[0] = sym;
   seg->val[0] = val;
