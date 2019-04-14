@@ -10,6 +10,7 @@
 #include <mruby/array.h>
 #include <mruby/class.h>
 #include <mruby/data.h>
+#include <mruby/istruct.h>
 #include <mruby/hash.h>
 #include <mruby/proc.h>
 #include <mruby/range.h>
@@ -109,8 +110,10 @@ typedef struct {
     struct RHash hash;
     struct RRange range;
     struct RData data;
+    struct RIstruct istruct;
     struct RProc proc;
     struct REnv env;
+    struct RFiber fiber;
     struct RException exc;
     struct RBreak brk;
 #ifdef MRB_WORD_BOXING
