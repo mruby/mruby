@@ -182,7 +182,7 @@ ht_index(mrb_state *mrb, htable *t)
   if (!index || index->capa < size) {
     index = (segindex*)mrb_realloc_simple(mrb, index, sizeof(segindex)+sizeof(struct segkv*)*size);
     if (index == NULL) {
-      mrb_free(mrb, index);
+      mrb_free(mrb, t->index);
       t->index = NULL;
       return;
     }
