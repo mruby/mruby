@@ -399,7 +399,7 @@ mrb_gc_init(mrb_state *mrb, mrb_gc *gc)
 
 static void obj_free(mrb_state *mrb, struct RBasic *obj, int end);
 
-void
+static void
 free_heap(mrb_state *mrb, mrb_gc *gc)
 {
   mrb_heap_page *page = gc->heaps;

@@ -273,8 +273,7 @@ genop_W(codegen_scope *s, mrb_code i, uint32_t a)
 #define NOVAL  0
 #define VAL    1
 
-//static
-mrb_bool
+static mrb_bool
 no_optimize(codegen_scope *s)
 {
   if (s && s->parser && s->parser->no_optimize)

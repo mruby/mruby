@@ -91,7 +91,7 @@ sym_inline_unpack(mrb_sym sym, char *buf, mrb_int *lenp)
 }
 #endif
 
-uint8_t
+static uint8_t
 symhash(const char *key, size_t len)
 {
     uint32_t hash, i;
