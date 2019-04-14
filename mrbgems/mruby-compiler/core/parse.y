@@ -5712,10 +5712,11 @@ parser_yylex(parser_state *p)
       if (!identchar(c)) {
         char buf[36];
         const char s[] = "Invalid char in expression: 0x";
+        const char hexdigits[] = "0123456789ABCDEF";
 
         strcpy(buf, s);
-        buf[sizeof(s)]   = (c & 0xff00) >> 8;
-        buf[sizeof(s)+1] = (c & 0xff);
+        buf[sizeof(s)]   = hexdigits[(c & 0xf0) >> 4];
+        buf[sizeof(s)+1] = hexdigits[(c & 0x0f)];
         buf[sizeof(s)+2] = 0;
         yyerror(p, buf);
         goto retry;
