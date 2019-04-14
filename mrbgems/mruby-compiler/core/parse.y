@@ -5715,9 +5715,9 @@ parser_yylex(parser_state *p)
         const char hexdigits[] = "0123456789ABCDEF";
 
         strcpy(buf, s);
-        buf[sizeof(s)]   = hexdigits[(c & 0xf0) >> 4];
-        buf[sizeof(s)+1] = hexdigits[(c & 0x0f)];
-        buf[sizeof(s)+2] = 0;
+        buf[sizeof(s)-1] = hexdigits[(c & 0xf0) >> 4];
+        buf[sizeof(s)]   = hexdigits[(c & 0x0f)];
+        buf[sizeof(s)+1] = 0;
         yyerror(p, buf);
         goto retry;
       }
