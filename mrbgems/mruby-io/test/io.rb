@@ -3,7 +3,7 @@
 
 assert('IO TEST SETUP') do
   MRubyIOTestUtil.io_test_setup
-  $cr = MRubyIOTestUtil.win? ? 1 : 0  # "\n" include CR or not
+  $cr, $crlf, $cmd = MRubyIOTestUtil.win? ? [1, "\r\n", "cmd /c "] : [0, "\n", ""]
 end
 
 assert('IO', '15.2.20') do
@@ -419,7 +419,7 @@ end
 assert('IO.popen') do
   begin
     $? = nil
-    io = IO.popen("echo mruby-io")
+    io = IO.popen("#{$cmd}echo mruby-io")
     assert_true io.close_on_exec?
     assert_equal Fixnum, io.pid.class
 
@@ -598,7 +598,7 @@ end
 
 assert('`cmd`') do
   begin
-    assert_equal `echo foo`, "foo\n"
+    assert_equal `#{$cmd}echo foo`, "foo#{$crlf}"
   rescue NotImplementedError => e
     skip e.message
   end
