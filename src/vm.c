@@ -2863,11 +2863,11 @@ mrb_top_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int sta
     return mrb_vm_run(mrb, proc, self, stack_keep);
   }
   ci = cipush(mrb);
+  ci->stackent = mrb->c->stack;
   ci->mid = 0;
   ci->acc = CI_ACC_SKIP;
   ci->target_class = mrb->object_class;
   v = mrb_vm_run(mrb, proc, self, stack_keep);
-  cipop(mrb);
 
   return v;
 }
