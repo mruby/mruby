@@ -510,7 +510,7 @@ flo_shift(mrb_state *mrb, mrb_value x, mrb_int width)
 }
 
 static mrb_value
-flo_lshift(mrb_state *mrb, mrb_value x)
+flo_rshift(mrb_state *mrb, mrb_value x)
 {
   mrb_int width;
 
@@ -519,7 +519,7 @@ flo_lshift(mrb_state *mrb, mrb_value x)
 }
 
 static mrb_value
-flo_rshift(mrb_state *mrb, mrb_value x)
+flo_lshift(mrb_state *mrb, mrb_value x)
 {
   mrb_int width;
 
@@ -1608,8 +1608,8 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fl,      "&",         flo_and,        MRB_ARGS_REQ(1));
   mrb_define_method(mrb, fl,      "|",         flo_or,         MRB_ARGS_REQ(1));
   mrb_define_method(mrb, fl,      "^",         flo_xor,        MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, fl,      ">>",        flo_lshift,     MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, fl,      "<<",        flo_rshift,     MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, fl,      ">>",        flo_rshift,     MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, fl,      "<<",        flo_lshift,     MRB_ARGS_REQ(1));
   mrb_define_method(mrb, fl,      "ceil",      flo_ceil,       MRB_ARGS_NONE()); /* 15.2.9.3.8  */
   mrb_define_method(mrb, fl,      "finite?",   flo_finite_p,   MRB_ARGS_NONE()); /* 15.2.9.3.9  */
   mrb_define_method(mrb, fl,      "floor",     flo_floor,      MRB_ARGS_NONE()); /* 15.2.9.3.10 */

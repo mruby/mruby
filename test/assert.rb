@@ -149,11 +149,11 @@ end
 # Fails unless +exp+ is equal to +act+ in terms of a Float
 def assert_float(exp, act, msg = nil)
   e, a = exp.to_f, act.to_f
-  if (e.infinite? || a.infinite?) && e != a ||
+  if e.finite? && a.finite? && (n = (e - a).abs) > Mrbtest::FLOAT_TOLERANCE
+    flunk(msg, "    Expected |#{exp} - #{act}| (#{n}) to be <= #{Mrbtest::FLOAT_TOLERANCE}.")
+  elsif (e.infinite? || a.infinite?) && e != a ||
      e.nan? && !a.nan? || !e.nan? && a.nan?
     flunk(msg, "    Expected #{act} to be #{exp}.")
-  elsif (n = (e - a).abs) > Mrbtest::FLOAT_TOLERANCE
-    flunk(msg, "    Expected |#{exp} - #{act}| (#{n}) to be <= #{Mrbtest::FLOAT_TOLERANCE}.")
   else
     pass
   end
