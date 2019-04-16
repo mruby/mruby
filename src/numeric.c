@@ -212,7 +212,8 @@ flo_to_s(mrb_state *mrb, mrb_value flt)
     insert_dot_zero:
     begp = RSTRING_PTR(str);
     len = RSTRING_LEN(str);
-    for (char *p = begp, *endp = p + len; p < endp; ++p) {
+    char *p, *endp;
+    for (p = begp, endp = p + len; p < endp; ++p) {
       if (*p == '.') {
         return str;
       }
