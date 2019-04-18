@@ -3,7 +3,9 @@
 #
 # ISO 15.2.10
 class String
+  # ISO 15.2.10.3
   include Comparable
+
   ##
   # Calls the given block for each line
   # and pass the respective line.
@@ -264,13 +266,4 @@ class String
   def match(re, &block)
     _regexp(re, :match).match(self, &block)
   end
-end
-
-##
-# String is comparable
-#
-# ISO 15.2.10.3
-module Comparable; end
-class String
-  include Comparable
 end
