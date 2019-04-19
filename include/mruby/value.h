@@ -157,6 +157,12 @@ typedef void mrb_value;
 #ifndef mrb_nil_p
 #define mrb_nil_p(o)  (mrb_type(o) == MRB_TT_FALSE && !mrb_fixnum(o))
 #endif
+#ifndef mrb_false_p
+#define mrb_false_p(o) (mrb_type(o) == MRB_TT_FALSE && !!mrb_fixnum(o))
+#endif
+#ifndef mrb_true_p
+#define mrb_true_p(o)  (mrb_type(o) == MRB_TT_TRUE)
+#endif
 #ifndef mrb_bool
 #define mrb_bool(o)   (mrb_type(o) != MRB_TT_FALSE)
 #endif
