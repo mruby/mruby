@@ -116,6 +116,8 @@ mrb_type(mrb_value o)
 #define mrb_fixnum_p(o) ((o).value.i_flag == MRB_FIXNUM_FLAG)
 #define mrb_undef_p(o) ((o).w == MRB_Qundef)
 #define mrb_nil_p(o)  ((o).w == MRB_Qnil)
+#define mrb_false_p(o) ((o).w == MRB_Qfalse)
+#define mrb_true_p(o)  ((o).w == MRB_Qtrue)
 
 #define BOXWORD_SET_VALUE(o, ttt, attr, v) do { \
   switch (ttt) {\
