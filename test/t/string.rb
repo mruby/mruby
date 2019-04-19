@@ -161,6 +161,9 @@ assert('String#[]=') do
    assert_equal 'aXc', e
   end
 
+  assert_raise(TypeError) { 'a'[0] = 1 }
+  assert_raise(TypeError) { 'a'[:a] = '1' }
+
   # length of args is 2
   a1 = 'abc'
   assert_raise(IndexError) do
@@ -197,6 +200,10 @@ assert('String#[]=') do
   assert_raise(IndexError) do
     b3['XX'] = 'Y'
   end
+
+  assert_raise(TypeError) { 'a'[:a, 0] = '1' }
+  assert_raise(TypeError) { 'a'[0, :a] = '1' }
+  assert_raise(TypeError) { 'a'[0, 1] = 1 }
 end
 
 assert('String#capitalize', '15.2.10.5.7') do
