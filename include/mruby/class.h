@@ -23,7 +23,7 @@ struct RClass {
 
 #define mrb_class_ptr(v)    ((struct RClass*)(mrb_ptr(v)))
 
-static inline struct RClass*
+MRB_INLINE struct RClass*
 mrb_class(mrb_state *mrb, mrb_value v)
 {
   switch (mrb_type(v)) {
