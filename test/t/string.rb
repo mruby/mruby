@@ -509,7 +509,9 @@ assert('String#rindex(UTF-8)', '15.2.10.5.31') do
   assert_equal nil, str.index("さ")
 end if UTF8STRING
 
-# 'String#scan', '15.2.10.5.32' will be tested in mrbgems.
+# assert('String#scan', '15.2.10.5.32') do
+#   # Not implemented yet
+# end
 
 assert('String#size', '15.2.10.5.33') do
   assert_equal 3, 'abc'.size

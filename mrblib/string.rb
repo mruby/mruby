@@ -105,18 +105,15 @@ class String
     self.replace(str)
   end
 
-  ##
-  # Calls the given block for each match of +pattern+
-  # If no block is given return an array with all
-  # matches of +pattern+.
-  #
-  # ISO 15.2.10.5.32
-  def scan(reg, &block)
-    ### *** TODO *** ###
-    unless Object.const_defined?(:Regexp)
-      raise NotImplementedError, "scan not available (yet)"
-    end
-  end
+#  ##
+#  # Calls the given block for each match of +pattern+
+#  # If no block is given return an array with all
+#  # matches of +pattern+.
+#  #
+#  # ISO 15.2.10.5.32
+#  def scan(pattern, &block)
+#    # TODO: String#scan is not implemented yet
+#  end
 
   ##
   # Replace only the first match of +pattern+ with
