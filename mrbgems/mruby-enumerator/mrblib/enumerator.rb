@@ -244,9 +244,10 @@ class Enumerator
   #
   # === Examples
   #
-  #   "Hello, world!".scan(/\w+/)                     #=> ["Hello", "world"]
-  #   "Hello, world!".to_enum(:scan, /\w+/).to_a      #=> ["Hello", "world"]
-  #   "Hello, world!".to_enum(:scan).each(/\w+/).to_a #=> ["Hello", "world"]
+  #   Array.new(3)                     #=> [nil, nil, nil]
+  #   Array.new(3) { |i| i }           #=> [0, 1, 2]
+  #   Array.to_enum(:new, 3).to_a      #=> [0, 1, 2]
+  #   Array.to_enum(:new).each(3).to_a #=> [0, 1, 2]
   #
   #   obj = Object.new
   #
