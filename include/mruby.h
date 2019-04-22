@@ -868,7 +868,7 @@ typedef const char *mrb_args_format;
  */
 MRB_API mrb_int mrb_get_args(mrb_state *mrb, mrb_args_format format, ...);
 
-static inline mrb_sym
+MRB_INLINE mrb_sym
 mrb_get_mid(mrb_state *mrb) /* get method symbol */
 {
   return mrb->c->ci->mid;
@@ -1081,13 +1081,13 @@ MRB_API mrb_value mrb_Float(mrb_state *mrb, mrb_value val);
 MRB_API mrb_value mrb_inspect(mrb_state *mrb, mrb_value obj);
 MRB_API mrb_bool mrb_eql(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
 
-static inline int
+MRB_INLINE int
 mrb_gc_arena_save(mrb_state *mrb)
 {
   return mrb->gc.arena_idx;
 }
 
-static inline void
+MRB_INLINE void
 mrb_gc_arena_restore(mrb_state *mrb, int idx)
 {
   mrb->gc.arena_idx = idx;
@@ -1192,7 +1192,7 @@ MRB_API mrb_value mrb_to_int(mrb_state *mrb, mrb_value val);
 MRB_API mrb_value mrb_to_str(mrb_state *mrb, mrb_value val);
 MRB_API void mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t);
 
-static inline void mrb_check_frozen(mrb_state *mrb, void *o)
+MRB_INLINE void mrb_check_frozen(mrb_state *mrb, void *o)
 {
   if (MRB_FROZEN_P((struct RBasic*)o)) mrb_frozen_error(mrb, o);
 }

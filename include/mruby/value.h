@@ -195,7 +195,7 @@ MRB_INLINE mrb_value mrb_float_value(struct mrb_state *mrb, mrb_float f)
 }
 #endif
 
-static inline mrb_value
+MRB_INLINE mrb_value
 mrb_cptr_value(struct mrb_state *mrb, void *p)
 {
   mrb_value v;
@@ -214,7 +214,7 @@ MRB_INLINE mrb_value mrb_fixnum_value(mrb_int i)
   return v;
 }
 
-static inline mrb_value
+MRB_INLINE mrb_value
 mrb_symbol_value(mrb_sym i)
 {
   mrb_value v;
@@ -222,7 +222,7 @@ mrb_symbol_value(mrb_sym i)
   return v;
 }
 
-static inline mrb_value
+MRB_INLINE mrb_value
 mrb_obj_value(void *p)
 {
   mrb_value v;
@@ -266,7 +266,7 @@ MRB_INLINE mrb_value mrb_true_value(void)
   return v;
 }
 
-static inline mrb_value
+MRB_INLINE mrb_value
 mrb_bool_value(mrb_bool boolean)
 {
   mrb_value v;
@@ -274,7 +274,7 @@ mrb_bool_value(mrb_bool boolean)
   return v;
 }
 
-static inline mrb_value
+MRB_INLINE mrb_value
 mrb_undef_value(void)
 {
   mrb_value v;
