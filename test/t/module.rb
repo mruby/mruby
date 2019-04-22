@@ -651,11 +651,8 @@ assert('Module#to_s') do
   assert_equal 'SetOuter', SetOuter.to_s
   assert_equal 'SetOuter::SetInner', SetOuter::SetInner.to_s
 
-  mod = Module.new
-  cls = Class.new
-
-  assert_equal "#<Module:0x", mod.to_s[0,11]
-  assert_equal "#<Class:0x", cls.to_s[0,10]
+  assert_match "#<Module:0x*>", Module.new.to_s
+  assert_match "#<Class:0x*>", Class.new.to_s
 end
 
 assert('Module#inspect') do
