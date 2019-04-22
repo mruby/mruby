@@ -266,13 +266,13 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       break;
     CASE(OP_ENTER, W):
       printf("OP_ENTER\t%d:%d:%d:%d:%d:%d:%d\n",
-             (a>>18)&0x1f,
-             (a>>13)&0x1f,
-             (a>>12)&0x1,
-             (a>>7)&0x1f,
-             (a>>2)&0x1f,
-             (a>>1)&0x1,
-             a & 0x1);
+             MRB_ASPEC_REQ(a),
+             MRB_ASPEC_OPT(a),
+             MRB_ASPEC_REST(a),
+             MRB_ASPEC_POST(a),
+             MRB_ASPEC_KEY(a),
+             MRB_ASPEC_KDICT(a),
+             MRB_ASPEC_BLOCK(a));
       break;
     CASE(OP_KEY_P, BB):
       printf("OP_KEY_P\tR%d\t:%s\t", a, mrb_sym2name(mrb, irep->syms[b]));
