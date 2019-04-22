@@ -1,3 +1,4 @@
+$undefined = Object.new
 $ok_test = 0
 $ko_test = 0
 $kill_test = 0
@@ -132,6 +133,25 @@ def assert_not_include(*args); _assert_include(false, *args) end
 def _assert_include(affirmed, collection, obj, msg = nil)
   unless ret = collection.include?(obj) == affirmed
     diff = "    Expected #{collection.inspect} to #{'not ' unless affirmed}include #{obj.inspect}."
+  end
+  assert_true(ret, msg, diff)
+end
+
+def assert_predicate(*args); _assert_predicate(true, *args) end
+def assert_not_predicate(*args); _assert_predicate(false, *args) end
+def _assert_predicate(affirmed, obj, op, msg = nil)
+  unless ret = obj.__send__(op) == affirmed
+    diff = "    Expected #{obj.inspect} to #{'not ' unless affirmed}be #{op}."
+  end
+  assert_true(ret, msg, diff)
+end
+
+def assert_operator(*args); _assert_operator(true, *args) end
+def assert_not_operator(*args); _assert_operator(false, *args) end
+def _assert_operator(affirmed, obj1, op, obj2 = $undefined, msg = nil)
+  return _assert_predicate(affirmed, obj1, op, msg) if obj2 == $undefined
+  unless ret = obj1.__send__(op, obj2) == affirmed
+    diff = "    Expected #{obj1.inspect} to #{'not ' unless affirmed}be #{op} #{obj2.inspect}."
   end
   assert_true(ret, msg, diff)
 end
