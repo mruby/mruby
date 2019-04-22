@@ -82,8 +82,8 @@ assert('Float#ceil', '15.2.9.3.8') do
 end
 
 assert('Float#finite?', '15.2.9.3.9') do
-  assert_true 3.123456789.finite?
-  assert_false (1.0 / 0.0).finite?
+  assert_predicate 3.123456789, :finite?
+  assert_not_predicate 1.0 / 0.0, :finite?
 end
 
 assert('Float#floor', '15.2.9.3.10') do
@@ -139,7 +139,7 @@ assert('Float#round', '15.2.9.3.12') do
   nan = 0.0/0.0
   assert_raise(FloatDomainError){ nan.round }
   assert_raise(FloatDomainError){ nan.round(-1) }
-  assert_true(nan.round(1).nan?)
+  assert_predicate(nan.round(1), :nan?)
 end
 
 assert('Float#to_f', '15.2.9.3.13') do
@@ -178,10 +178,10 @@ assert('Float#divmod') do
 end
 
 assert('Float#nan?') do
-  assert_true (0.0/0.0).nan?
-  assert_false 0.0.nan?
-  assert_false (1.0/0.0).nan?
-  assert_false (-1.0/0.0).nan?
+  assert_predicate 0.0/0.0, :nan?
+  assert_not_predicate 0.0, :nan?
+  assert_not_predicate 1.0/0.0, :nan?
+  assert_not_predicate -1.0/0.0, :nan?
 end
 
 assert('Float#<<') do
@@ -240,9 +240,9 @@ assert('Float#to_s') do
 end
 
 assert('Float#eql?') do
-  assert_true(5.0.eql?(5.0))
-  assert_false(5.0.eql?(5))
-  assert_false(5.0.eql?("5.0"))
+  assert_operator(5.0, :eql?, 5.0)
+  assert_not_operator(5.0, :eql?, 5)
+  assert_not_operator(5.0, :eql?, "5.0")
 end
 
 end # const_defined?(:Float)
