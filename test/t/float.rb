@@ -178,10 +178,10 @@ assert('Float#divmod') do
 end
 
 assert('Float#nan?') do
-  assert_predicate 0.0/0.0, :nan?
-  assert_not_predicate 0.0, :nan?
-  assert_not_predicate 1.0/0.0, :nan?
-  assert_not_predicate -1.0/0.0, :nan?
+  assert_predicate(0.0/0.0, :nan?)
+  assert_not_predicate(0.0, :nan?)
+  assert_not_predicate(1.0/0.0, :nan?)
+  assert_not_predicate(-1.0/0.0, :nan?)
 end
 
 assert('Float#<<') do
