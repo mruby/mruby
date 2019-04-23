@@ -66,15 +66,15 @@ mrb_class_name_class(mrb_state *mrb, struct RClass *outer, struct RClass *c, mrb
     name = mrb_class_path(mrb, outer);
     if (mrb_nil_p(name)) {      /* unnamed outer class */
       if (outer != mrb->object_class && outer != c) {
-        mrb_obj_iv_set(mrb, (struct RObject*)c, mrb_intern_lit(mrb, "__outer__"),
-                       mrb_obj_value(outer));
+        mrb_obj_iv_set_force(mrb, (struct RObject*)c, mrb_intern_lit(mrb, "__outer__"),
+                             mrb_obj_value(outer));
       }
       return;
     }
     mrb_str_cat_cstr(mrb, name, "::");
     mrb_str_cat_cstr(mrb, name, mrb_sym2name(mrb, id));
   }
-  mrb_obj_iv_set(mrb, (struct RObject*)c, nsym, name);
+  mrb_obj_iv_set_force(mrb, (struct RObject*)c, nsym, name);
 }
 
 static void

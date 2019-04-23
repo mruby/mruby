@@ -341,19 +341,22 @@ mrb_iv_get(mrb_state *mrb, mrb_value obj, mrb_sym sym)
 
 static inline void assign_class_name(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v);
 
-MRB_API void
-mrb_obj_iv_set(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
+void
+mrb_obj_iv_set_force(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
 {
-  iv_tbl *t;
-
-  mrb_check_frozen(mrb, obj);
   assign_class_name(mrb, obj, sym, v);
   if (!obj->iv) {
     obj->iv = iv_new(mrb);
   }
-  t = obj->iv;
-  iv_put(mrb, t, sym, v);
+  iv_put(mrb, obj->iv, sym, v);
   mrb_write_barrier(mrb, (struct RBasic*)obj);
+}
+
+MRB_API void
+mrb_obj_iv_set(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
+{
+  mrb_check_frozen(mrb, obj);
+  mrb_obj_iv_set_force(mrb, obj, sym, v);
 }
 
 /* Iterates over the instance variable table. */
@@ -385,10 +388,10 @@ assign_class_name(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
 
         if (mrb_nil_p(o)) {
           if ((struct RClass *)obj == mrb->object_class) {
-            mrb_obj_iv_set(mrb, c, id_classname, mrb_symbol_value(sym));
+            mrb_obj_iv_set_force(mrb, c, id_classname, mrb_symbol_value(sym));
           }
           else {
-            mrb_obj_iv_set(mrb, c, id_outer, mrb_obj_value(obj));
+            mrb_obj_iv_set_force(mrb, c, id_outer, mrb_obj_value(obj));
           }
         }
       }

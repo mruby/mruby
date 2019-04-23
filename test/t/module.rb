@@ -653,6 +653,10 @@ assert('Module#to_s') do
 
   assert_match "#<Module:0x*>", Module.new.to_s
   assert_match "#<Class:0x*>", Class.new.to_s
+
+  assert_equal "FrozenClassToS", (FrozenClassToS = Class.new.freeze).to_s
+  assert_equal "Outer::A", (Outer::A = Module.new.freeze).to_s
+  assert_match "#<Module:0x*>::A", (Module.new::A = Class.new.freeze).to_s
 end
 
 assert('Module#inspect') do
