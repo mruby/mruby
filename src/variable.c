@@ -671,6 +671,7 @@ mrb_mod_cv_set(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value v)
     iv_tbl *t = c->iv;
 
     if (iv_get(mrb, t, sym, NULL)) {
+      mrb_check_frozen(mrb, c);
       iv_put(mrb, t, sym, v);
       mrb_write_barrier(mrb, (struct RBasic*)c);
       return;
@@ -698,6 +699,7 @@ mrb_mod_cv_set(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value v)
     c = cls;
   }
 
+  mrb_check_frozen(mrb, c);
   if (!c->iv) {
     c->iv = iv_new(mrb);
   }
