@@ -997,20 +997,6 @@ mrb_string_value_len(mrb_state *mrb, mrb_value ptr)
   return RSTRING_LEN(ptr);
 }
 
-void
-mrb_noregexp(mrb_state *mrb, mrb_value self)
-{
-  mrb_raise(mrb, E_NOTIMP_ERROR, "Regexp class not implemented");
-}
-
-void
-mrb_regexp_check(mrb_state *mrb, mrb_value obj)
-{
-  if (mrb_regexp_p(mrb, obj)) {
-    mrb_noregexp(mrb, obj);
-  }
-}
-
 MRB_API mrb_value
 mrb_str_dup(mrb_state *mrb, mrb_value str)
 {
@@ -1026,7 +1012,6 @@ mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value indx)
 {
   mrb_int idx;
 
-  mrb_regexp_check(mrb, indx);
   switch (mrb_type(indx)) {
     case MRB_TT_FIXNUM:
       idx = mrb_fixnum(indx);
@@ -1119,7 +1104,6 @@ mrb_str_aref_m(mrb_state *mrb, mrb_value str)
   if (argc == 2) {
     mrb_int n1, n2;
 
-    mrb_regexp_check(mrb, a1);
     mrb_get_args(mrb, "ii", &n1, &n2);
     return str_substr(mrb, str, n1, n2);
   }
@@ -1549,7 +1533,6 @@ mrb_str_index_m(mrb_state *mrb, mrb_value str)
     else
       sub = mrb_nil_value();
   }
-  mrb_regexp_check(mrb, sub);
   clen = RSTRING_CHAR_LEN(str);
   if (pos < 0) {
     pos += clen;
@@ -1801,7 +1784,6 @@ mrb_str_rindex(mrb_state *mrb, mrb_value str)
     if (pos < 0) {
       pos += len;
       if (pos < 0) {
-        mrb_regexp_check(mrb, sub);
         return mrb_nil_value();
       }
     }
@@ -1815,7 +1797,6 @@ mrb_str_rindex(mrb_state *mrb, mrb_value str)
       sub = mrb_nil_value();
   }
   pos = chars2bytes(str, 0, pos);
-  mrb_regexp_check(mrb, sub);
 
   switch (mrb_type(sub)) {
     default: {
@@ -1909,16 +1890,11 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
   if (argc == 0 || mrb_nil_p(spat)) {
     split_type = awk;
   }
-  else {
-    if (mrb_string_p(spat)) {
-      split_type = string;
-      if (RSTRING_LEN(spat) == 1 && RSTRING_PTR(spat)[0] == ' ') {
-          split_type = awk;
-      }
-    }
-    else {
-      mrb_noregexp(mrb, str);
-    }
+  else if (!mrb_string_p(spat)) {
+    mrb_raise(mrb, E_TYPE_ERROR, "expected String");
+  }
+  else if (RSTRING_LEN(spat) == 1 && RSTRING_PTR(spat)[0] == ' ') {
+    split_type = awk;
   }
 
   result = mrb_ary_new(mrb);
@@ -1955,7 +1931,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
       }
     }
   }
-  else if (split_type == string) {
+  else {                        /* split_type == string */
     mrb_int str_len = RSTRING_LEN(str);
     mrb_int pat_len = RSTRING_LEN(spat);
     mrb_int idx = 0;
@@ -1975,9 +1951,6 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
       if (lim_p && lim <= ++i) break;
     }
     beg = idx;
-  }
-  else {
-    mrb_noregexp(mrb, str);
   }
   if (RSTRING_LEN(str) > 0 && (lim_p || RSTRING_LEN(str) > beg || lim < 0)) {
     if (RSTRING_LEN(str) == beg) {
