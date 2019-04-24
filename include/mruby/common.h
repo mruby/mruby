@@ -54,12 +54,12 @@ MRB_BEGIN_DECL
 #endif
 
 /** Declare a function as always inlined. */
-#if defined(_MSC_VER)
-# define MRB_INLINE static __inline
-#else
-# define MRB_INLINE static inline
+#if defined _MSC_VER && _MSC_VER < 1900
+# ifndef __cplusplus
+#  define inline __inline
+# endif
 #endif
-
+#define MRB_INLINE static inline
 
 /** Declare a public MRuby API function. */
 #if defined(MRB_BUILD_AS_DLL)

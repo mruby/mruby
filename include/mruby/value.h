@@ -73,9 +73,6 @@ MRB_API double mrb_float_read(const char*, char**);
 #endif
 
 #if defined _MSC_VER && _MSC_VER < 1900
-# ifndef __cplusplus
-#  define inline __inline
-# endif
 # include <stdarg.h>
 MRB_API int mrb_msvc_vsnprintf(char *s, size_t n, const char *format, va_list arg);
 MRB_API int mrb_msvc_snprintf(char *s, size_t n, const char *format, ...);
