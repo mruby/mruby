@@ -539,6 +539,10 @@ read_binary_header(const uint8_t *bin, size_t *bin_size, uint16_t *crc, uint8_t 
     return MRB_DUMP_INVALID_FILE_HEADER;
   }
 
+  if (memcmp(header->binary_version, RITE_BINARY_FORMAT_VER, sizeof(header->binary_version)) != 0) {
+    return MRB_DUMP_INVALID_FILE_HEADER;
+  }
+
   if (crc) {
     *crc = bin_to_uint16(header->binary_crc);
   }
