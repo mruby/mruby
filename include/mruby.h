@@ -84,7 +84,7 @@
 #endif
 #endif
 
-#include "mruby/common.h"
+#include <mruby/common.h>
 #include <mruby/value.h>
 #include <mruby/gc.h>
 #include <mruby/version.h>
