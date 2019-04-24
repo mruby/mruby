@@ -433,6 +433,25 @@ assert('overriding class variable with a module (#3235)') do
   end
 end
 
+assert('class variable for frozen class/module') do
+  module CVarForFrozenModule
+    freeze
+    assert_raise(FrozenError) { @@cv = 1 }
+  end
+
+  class CVarForFrozenClassA
+    @@a = nil
+    freeze
+  end
+  class CVarForFrozenClassB < CVarForFrozenClassA
+    def a=(v)
+      @@a = v
+    end
+  end
+  b = CVarForFrozenClassB.new
+  assert_raise(FrozenError) { b.a = 1 }
+end
+
 assert('class with non-class/module outer raises TypeError') do
   assert_raise(TypeError) { class 0::C1; end }
   assert_raise(TypeError) { class []::C2; end }

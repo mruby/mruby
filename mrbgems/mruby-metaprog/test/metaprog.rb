@@ -171,7 +171,6 @@ assert('Module#class_variable_set', '15.2.2.4.18') do
       @@foo
     end
   end
-
   assert_equal 99, Test4ClassVariableSet.class_variable_set(:@@cv, 99)
   assert_equal 101, Test4ClassVariableSet.class_variable_set(:@@foo, 101)
   assert_true Test4ClassVariableSet.class_variables.include? :@@cv
@@ -180,6 +179,13 @@ assert('Module#class_variable_set', '15.2.2.4.18') do
   %w[@@ @@1 @@x= @x @ x 1].each do |n|
     assert_raise(NameError) { Test4ClassVariableSet.class_variable_set(n, 1) }
   end
+
+  m = Module.new.freeze
+  assert_raise(FrozenError) { m.class_variable_set(:@@cv, 1) }
+
+  parent = Class.new{ class_variable_set(:@@a, nil) }.freeze
+  child = Class.new(parent)
+  assert_raise(FrozenError) { child.class_variable_set(:@@a, 1) }
 end
 
 assert('Module#class_variables', '15.2.2.4.19') do
