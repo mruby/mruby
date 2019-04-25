@@ -356,6 +356,13 @@ assert('singleton tests') do
       end
     end
   end if Object.const_defined?(:Float)
+
+  o = Object.new
+  sc = class << o; self end
+  o.freeze
+  assert_predicate(sc, :frozen?)
+
+  assert_predicate(class << Object.new.freeze; self end, :frozen?)
 end
 
 assert('clone Class') do

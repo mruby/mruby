@@ -120,6 +120,7 @@ prepare_singleton_class(mrb_state *mrb, struct RBasic *o)
   mrb_field_write_barrier(mrb, (struct RBasic*)o, (struct RBasic*)sc);
   mrb_field_write_barrier(mrb, (struct RBasic*)sc, (struct RBasic*)o);
   mrb_obj_iv_set(mrb, (struct RObject*)sc, mrb_intern_lit(mrb, "__attached__"), mrb_obj_value(o));
+  sc->flags |= o->flags & MRB_FL_OBJ_IS_FROZEN;
 }
 
 static mrb_value
