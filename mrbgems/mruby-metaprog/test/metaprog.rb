@@ -122,6 +122,22 @@ assert('Kernel#define_singleton_method') do
   assert_equal :singleton_method_ok, o.test_method
 end
 
+assert('Kernel#singleton_class') do
+  o1 = Object.new
+  assert_same(o1.singleton_class, class << o1; self end)
+
+  o2 = Object.new
+  sc2 = class << o2; self end
+  assert_same(o2.singleton_class, sc2)
+
+  o3 = Object.new
+  sc3 = o3.singleton_class
+  o3.freeze
+  assert_predicate(sc3, :frozen?)
+
+  assert_predicate(Object.new.freeze.singleton_class, :frozen?)
+end
+
 def labeled_module(name, &block)
   Module.new do
     (class <<self; self end).class_eval do
