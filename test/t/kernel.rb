@@ -346,17 +346,15 @@ assert('Kernel#method_missing', '15.3.1.3.30') do
     end
   end
   no_super_test = NoSuperMethodTestClass.new
-  begin
+  msg = "undefined method 'no_super_method_named_this'"
+  assert_raise_with_message(NoMethodError, msg) do
     no_super_test.no_super_method_named_this
-  rescue NoMethodError => e
-    assert_equal "undefined method 'no_super_method_named_this'", e.message
   end
 
   a = String.new
-  begin
+  msg = "undefined method 'no_method_named_this'"
+  assert_raise_with_message(NoMethodError, msg) do
     a.no_method_named_this
-  rescue NoMethodError => e
-    assert_equal "undefined method 'no_method_named_this'", e.message
   end
 end
 

@@ -21,6 +21,14 @@ def labeled_class(name, supklass = Object, &block)
   end
 end
 
+def assert_uninitialized_const(&block)
+  assert_raise_with_message_pattern(NameError, "uninitialized constant *", &block)
+end
+
+def assert_wrong_const_name(&block)
+  assert_raise_with_message_pattern(NameError, "wrong constant name *", &block)
+end
+
 assert('Module', '15.2.2') do
   assert_equal Class, Module.class
 end
@@ -221,7 +229,7 @@ assert('Module#const_defined?', '15.2.2.4.20') do
 
   assert_true Test4ConstDefined.const_defined?(:Const4Test4ConstDefined)
   assert_false Test4ConstDefined.const_defined?(:NotExisting)
-  assert_raise(NameError){ Test4ConstDefined.const_defined?(:wrong_name) }
+  assert_wrong_const_name{ Test4ConstDefined.const_defined?(:wrong_name) }
 end
 
 assert('Module#const_get', '15.2.2.4.21') do
@@ -234,9 +242,9 @@ assert('Module#const_get', '15.2.2.4.21') do
   assert_equal 42, Object.const_get("Test4ConstGet::Const4Test4ConstGet")
 
   assert_raise(TypeError){ Test4ConstGet.const_get(123) }
-  assert_raise(NameError){ Test4ConstGet.const_get(:I_DO_NOT_EXIST) }
-  assert_raise(NameError){ Test4ConstGet.const_get("I_DO_NOT_EXIST::ME_NEITHER") }
-  assert_raise(NameError){ Test4ConstGet.const_get(:wrong_name) }
+  assert_uninitialized_const{ Test4ConstGet.const_get(:I_DO_NOT_EXIST) }
+  assert_uninitialized_const{ Test4ConstGet.const_get("I_DO_NOT_EXIST::ME_NEITHER") }
+  assert_wrong_const_name{ Test4ConstGet.const_get(:wrong_name) }
 end
 
 assert('Module#const_set', '15.2.2.4.23') do
@@ -247,7 +255,7 @@ assert('Module#const_set', '15.2.2.4.23') do
   assert_equal 23, Test4ConstSet.const_set(:Const4Test4ConstSet, 23)
   assert_equal 23, Test4ConstSet.const_get(:Const4Test4ConstSet)
   ["", "wrongNAME", "Wrong-Name"].each do |n|
-    assert_raise(NameError) { Test4ConstSet.const_set(n, 1) }
+    assert_wrong_const_name { Test4ConstSet.const_set(n, 1) }
   end
 end
 
@@ -258,9 +266,11 @@ assert('Module#remove_const', '15.2.2.4.40') do
 
   assert_equal 23, Test4RemoveConst.remove_const(:ExistingConst)
   assert_false Test4RemoveConst.const_defined?(:ExistingConst)
-  assert_raise(NameError) { Test4RemoveConst.remove_const(:NonExistingConst) }
+  assert_raise_with_message_pattern(NameError, "constant * not defined") do
+    Test4RemoveConst.remove_const(:NonExistingConst)
+  end
   %i[x X!].each do |n|
-    assert_raise(NameError) { Test4RemoveConst.remove_const(n) }
+    assert_wrong_const_name { Test4RemoveConst.remove_const(n) }
   end
 end
 
