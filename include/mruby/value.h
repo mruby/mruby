@@ -278,7 +278,10 @@ mrb_undef_value(void)
   return v;
 }
 
-#ifdef MRB_USE_ETEXT_EDATA
+#if defined(MRB_USE_CUSTOM_RO_DATA_P)
+/* If you define `MRB_USE_CUSTOM_RO_DATA_P`, you must implement `mrb_ro_data_p()`. */
+mrb_bool mrb_ro_data_p(const char *p);
+#elif defined(MRB_USE_ETEXT_EDATA)
 #if (defined(__APPLE__) && defined(__MACH__))
 #include <mach-o/getsect.h>
 static inline mrb_bool
