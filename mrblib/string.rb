@@ -165,18 +165,6 @@ class String
   end
 
   ##
-  # Call the given block for each character of
-  # +self+.
-  def each_char(&block)
-    pos = 0
-    while pos < self.size
-      block.call(self[pos])
-      pos += 1
-    end
-    self
-  end
-
-  ##
   # Call the given block for each byte of +self+.
   def each_byte(&block)
     bytes = self.bytes

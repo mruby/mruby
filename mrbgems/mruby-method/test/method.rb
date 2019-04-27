@@ -21,7 +21,7 @@ class Interpreter
   }
   def interpret(string)
     @ret = ""
-    string.each_char {|b| Dispatcher[b].bind(self).call }
+    string.split("").each {|b| Dispatcher[b].bind(self).call }
   end
 end
 

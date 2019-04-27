@@ -84,7 +84,7 @@ end
 
 assert('IO#getc', '15.2.20.5.8') do
   io = IO.new(IO.sysopen($mrbtest_io_rfname))
-  $mrbtest_io_msg.each_char { |ch|
+  $mrbtest_io_msg.split("").each { |ch|
     assert_equal ch, io.getc
   }
   assert_equal nil, io.getc
@@ -127,7 +127,7 @@ end
 assert('IO#readchar', '15.2.20.5.15') do
   # almost same as IO#getc
   IO.open(IO.sysopen($mrbtest_io_rfname)) do |io|
-    $mrbtest_io_msg.each_char { |ch|
+    $mrbtest_io_msg.split("").each { |ch|
       assert_equal ch, io.readchar
     }
     assert_raise(EOFError) do
