@@ -657,19 +657,19 @@ assert('String#chars(UTF-8)') do
 end if UTF8STRING
 
 assert('String#each_char') do
-  s = ""
+  chars = []
   "hello!".each_char do |x|
-    s += x
+    chars << x
   end
-  assert_equal "hello!", s
+  assert_equal ["h", "e", "l", "l", "o", "!"], chars
 end
 
 assert('String#each_char(UTF-8)') do
-  s = ""
+  chars = []
   "こんにちは世界!".each_char do |x|
-    s += x
+    chars << x
   end
-  assert_equal "こんにちは世界!", s
+  assert_equal ["こ", "ん", "に", "ち", "は", "世", "界", "!"], chars
 end if UTF8STRING
 
 assert('String#codepoints') do
