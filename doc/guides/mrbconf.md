@@ -146,6 +146,13 @@ largest value of required alignment.
 * Uses `_etext` and `_edata`.
 * It must be `_etext < data_addr < _edata`.
 
+`MRB_USE_CUSTOM_RO_DATA_P`
+* Takes precedence over `MRB_USE_ETEXT_EDATA`.
+* Please try if both `MRB_USE_ETEXT_EDATA` and `MRB_NO_INIT_ARRAY_START` are not available.
+* The `mrb_ro_data_p()` function is implemented by the user in an arbitrary file.
+* The prototype declaration is `mrb_bool mrb_ro_data_p(const char *ptr)`.
+* Return `TRUE` if `ptr` is in read-only section, otherwise return `FALSE`.
+
 ## Other configuration.
 `MRB_UTF8_STRING`
 * Adds UTF-8 encoding support to character-oriented String instance methods.

@@ -93,6 +93,11 @@
    effective only when MRB_USE_ETEXT_EDATA is defined */
 //#define MRB_NO_INIT_ARRAY_START
 
+/* if do not works both MRB_USE_ETEXT_EDATA and MRB_NO_INIT_ARRAY_START,
+   you can try mrb_ro_data_p() that you have implemented yourself in any file;
+   prototype is `mrb_bool mrb_ro_data_p(const char *ptr)` */
+//#define MRB_USE_CUSTOM_RO_DATA_P
+
 /* turn off generational GC by default */
 //#define MRB_GC_TURN_OFF_GENERATIONAL
 
