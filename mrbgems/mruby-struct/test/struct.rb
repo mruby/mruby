@@ -152,14 +152,14 @@ assert("Struct#dig") do
   assert_equal 1, a.dig(1, 0)
 end
 
-assert("Struct.new removes existing constant") do
-  skip "redefining Struct with same name cause warnings"
-  begin
-    assert_not_equal Struct.new("Test", :a), Struct.new("Test", :a, :b)
-  ensure
-    Struct.remove_const :Test
-  end
-end
+# TODO: suppress redefining Struct warning during test
+# assert("Struct.new removes existing constant") do
+#   begin
+#     assert_not_equal Struct.new("Test", :a), Struct.new("Test", :a, :b)
+#   ensure
+#     Struct.remove_const :Test
+#   end
+# end
 
 assert("Struct#initialize_copy requires struct to be the same type") do
   begin
