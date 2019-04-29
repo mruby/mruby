@@ -132,6 +132,9 @@
 //#define MRB_ENABLE_DEBUG_HOOK /* hooks for debugger */
 //#define MRB_ENABLE_ALL_SYMBOLS /* Symbols.all_symbols */
 
+/* takes VN statistics */
+//#define MRB_ENABLE_VM_STAT
+
 /* end of configuration */
 
 /* define MRB_DISABLE_XXXX from DISABLE_XXX (for compatibility) */

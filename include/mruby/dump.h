@@ -22,6 +22,9 @@ MRB_BEGIN_DECL
 #define DUMP_ENDIAN_NAT 6
 #define DUMP_ENDIAN_MASK 6
 
+#define MRB_READ_FLAG_SRC_MALLOC 1
+#define MRB_READ_FLAG_SRC_STATIC 0
+
 int mrb_dump_irep(mrb_state *mrb, mrb_irep *irep, uint8_t flags, uint8_t **bin, size_t *bin_size);
 #ifndef MRB_DISABLE_STDIO
 int mrb_dump_irep_binary(mrb_state*, mrb_irep*, uint8_t, FILE*);
@@ -31,6 +34,7 @@ MRB_API mrb_value mrb_load_irep_file(mrb_state*,FILE*);
 MRB_API mrb_value mrb_load_irep_file_cxt(mrb_state*, FILE*, mrbc_context*);
 #endif
 MRB_API mrb_irep *mrb_read_irep(mrb_state*, const uint8_t*);
+MRB_API mrb_irep *mrb_read_irep_flags(mrb_state*, const uint8_t*, uint8_t flags);
 
 /* dump/load error code
  *

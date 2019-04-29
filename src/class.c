@@ -1284,6 +1284,10 @@ mc_clear_all(mrb_state *mrb)
   for (i=0; i<MRB_METHOD_CACHE_SIZE; i++) {
     mc[i].c = 0;
   }
+
+#ifdef MRB_ENABLE_VM_STAT
+  mrb->global_method_state += 1;
+#endif
 }
 
 static void
