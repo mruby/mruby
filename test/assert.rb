@@ -247,7 +247,7 @@ def pass
   assert_true(true)
 end
 
-def flunk(msg = nil, diff = "Epic Fail!")
+def flunk(msg = "Epic Fail!", diff = "")
   assert_true(false, msg, diff)
 end
 
