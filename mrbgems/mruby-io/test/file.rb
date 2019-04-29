@@ -1,15 +1,13 @@
 ##
 # File Test
 
-assert('File TEST SETUP') do
-  MRubyIOTestUtil.io_test_setup
-end
+MRubyIOTestUtil.io_test_setup
 
-assert('File', '15.2.21') do
+assert('File.class', '15.2.21') do
   assert_equal Class, File.class
 end
 
-assert('File', '15.2.21.2') do
+assert('File.superclass', '15.2.21.2') do
   assert_equal IO, File.superclass
 end
 
@@ -204,6 +202,4 @@ assert('File.chmod') do
   end
 end
 
-assert('File TEST CLEANUP') do
-  assert_nil MRubyIOTestUtil.io_test_cleanup
-end
+MRubyIOTestUtil.io_test_cleanup

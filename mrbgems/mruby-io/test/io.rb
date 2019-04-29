@@ -1,35 +1,44 @@
 ##
 # IO Test
 
-assert('IO TEST SETUP') do
-  MRubyIOTestUtil.io_test_setup
-  $cr, $crlf, $cmd = MRubyIOTestUtil.win? ? [1, "\r\n", "cmd /c "] : [0, "\n", ""]
+MRubyIOTestUtil.io_test_setup
+$cr, $crlf, $cmd = MRubyIOTestUtil.win? ? [1, "\r\n", "cmd /c "] : [0, "\n", ""]
+
+assert_io_open = ->(meth) do
+  fd = IO.sysopen($mrbtest_io_rfname)
+  assert_equal Fixnum, fd.class
+  io1 = IO.__send__(meth, fd)
+  begin
+    assert_equal IO, io1.class
+    assert_equal $mrbtest_io_msg, io1.read
+  ensure
+    io1.close
+  end
+
+  io2 = IO.__send__(meth, IO.sysopen($mrbtest_io_rfname))do |io|
+    if meth == :open
+      assert_equal $mrbtest_io_msg, io.read
+    else
+      flunk "IO.#{meth} does not take block"
+    end
+  end
+  io2.close unless meth == :open
 end
 
-assert('IO', '15.2.20') do
+assert('IO.class', '15.2.20') do
   assert_equal(Class, IO.class)
 end
 
-assert('IO', '15.2.20.2') do
+assert('IO.superclass', '15.2.20.2') do
   assert_equal(Object, IO.superclass)
 end
 
-assert('IO', '15.2.20.3') do
+assert('IO.ancestors', '15.2.20.3') do
   assert_include(IO.ancestors, Enumerable)
 end
 
 assert('IO.open', '15.2.20.4.1') do
-  fd = IO.sysopen $mrbtest_io_rfname
-  assert_equal Fixnum, fd.class
-  io = IO.open fd
-  assert_equal IO, io.class
-  assert_equal $mrbtest_io_msg, io.read
-  io.close
-
-  fd = IO.sysopen $mrbtest_io_rfname
-  IO.open(fd) do |io|
-    assert_equal $mrbtest_io_msg, io.read
-  end
+  assert_io_open.(:open)
 end
 
 assert('IO#close', '15.2.20.5.1') do
@@ -215,19 +224,15 @@ assert('IO#dup for writable') do
 end
 
 assert('IO.for_fd') do
-  fd = IO.sysopen($mrbtest_io_rfname)
-  io = IO.for_fd(fd)
-    assert_equal $mrbtest_io_msg, io.read
-  io.close
+  assert_io_open.(:for_fd)
 end
 
 assert('IO.new') do
-  io = IO.new(0)
-  io.close
+  assert_io_open.(:new)
 end
 
 assert('IO gc check') do
-  100.times { IO.new(0) }
+  assert_nothing_raised { 100.times { IO.new(0) } }
 end
 
 assert('IO.sysopen("./nonexistent")') do
@@ -604,6 +609,4 @@ assert('`cmd`') do
   end
 end
 
-assert('IO TEST CLEANUP') do
-  assert_nil MRubyIOTestUtil.io_test_cleanup
-end
+MRubyIOTestUtil.io_test_cleanup

@@ -1,9 +1,7 @@
 ##
 # FileTest
 
-assert('FileTest TEST SETUP') do
-  MRubyIOTestUtil.io_test_setup
-end
+MRubyIOTestUtil.io_test_setup
 
 assert("FileTest.directory?") do
   dir = MRubyIOTestUtil.mkdtemp("mruby-io-test.XXXXXX")
@@ -112,6 +110,4 @@ assert("FileTest.zero?") do
   assert_true fp2.closed?
 end
 
-assert('FileTest TEST CLEANUP') do
-  assert_nil MRubyIOTestUtil.io_test_cleanup
-end
+MRubyIOTestUtil.io_test_cleanup
