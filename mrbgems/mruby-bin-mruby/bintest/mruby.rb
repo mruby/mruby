@@ -1,10 +1,16 @@
 require 'tempfile'
+require 'open3'
+
+assert_mruby = ->(exp_out_pattern, exp_err_pattern, exp_success, args) do
+  out, err, stat = Open3.capture3(cmd("mruby"), *args)
+  assert_match(exp_out_pattern, out, "standard output")
+  assert_match(exp_err_pattern, err, "standard error")
+  assert_equal(exp_success, stat.success?, "exit success?")
+end
 
 assert('regression for #1564') do
-  o = `#{cmd('mruby')} -e #{shellquote('<<')} 2>&1`
-  assert_include o, "-e:1:2: syntax error"
-  o = `#{cmd('mruby')} -e #{shellquote('<<-')} 2>&1`
-  assert_include o, "-e:1:3: syntax error"
+  assert_mruby.("", "-e:1:2: syntax error, *", false, %w[-e <<])
+  assert_mruby.("", "-e:1:3: syntax error, *", false, %w[-e <<-])
 end
 
 assert('regression for #1572') do
@@ -66,11 +72,24 @@ RUBY
   assert_equal 0, $?.exitstatus
 end
 
+assert('mruby -c option') do
+  assert_mruby.("Syntax OK\n", "", true, ["-c", "-e", "p 1"])
+  assert_mruby.("", "-e:1:7: syntax error, *", false, ["-c", "-e", "p 1; 1."])
+end
+
 assert('mruby -d option') do
   o = `#{cmd('mruby')} -e #{shellquote('p $DEBUG')}`
   assert_equal "false\n", o
   o = `#{cmd('mruby')} -d -e #{shellquote('p $DEBUG')}`
   assert_equal "true\n", o
+end
+
+assert('mruby -e option (no code specified)') do
+  assert_mruby.("", "* No code specified for -e\n", false, %w[-e])
+end
+
+assert('mruby -h option') do
+  assert_mruby.("Usage: *mruby*", "", true, %w[-h])
 end
 
 assert('mruby -r option') do
@@ -94,4 +113,28 @@ EOS
 
   assert_equal 'hogeClass', `#{cmd('mruby')} -r #{lib.path} -r #{script.path} -e #{shellquote('print Hoge.class')}`
   assert_equal 0, $?.exitstatus
+end
+
+assert('mruby -r option (no library specified)') do
+  assert_mruby.("", "*: No library specified for -r\n", false, %w[-r])
+end
+
+assert('mruby -r option (file not found)') do
+  assert_mruby.("", "*: Cannot open library file: *", false, %w[-r _no_exists_])
+end
+
+assert('mruby invalid short option') do
+  assert_mruby.("", "*: invalid option -1 *", false, %w[-1])
+end
+
+assert('mruby invalid long option') do
+  assert_mruby.("", "*: invalid option --longopt *", false, %w[--longopt])
+end
+
+assert('unhandled exception') do
+  assert_mruby.("", "* EXCEPTION!*", false, %w[-e raise("EXCEPTION!")])
+end
+
+assert('program file not found') do
+  assert_mruby.("", "*: Cannot open program file*", false, %w[_no_exists_])
 end
