@@ -158,7 +158,7 @@ append_cmdline:
     else {
       args->rfp = fopen(argv[0], args->mrbfile ? "rb" : "r");
       if (args->rfp == NULL) {
-        fprintf(stderr, "%s: Cannot open program file. (%s)\n", *origargv, *argv);
+        fprintf(stderr, "%s: Cannot open program file: %s\n", *origargv, *argv);
         return EXIT_FAILURE;
       }
       args->fname = TRUE;
@@ -285,7 +285,7 @@ main(int argc, char **argv)
       n = EXIT_FAILURE;
     }
     else if (args.check_syntax) {
-      printf("Syntax OK\n");
+      puts("Syntax OK");
     }
   }
   cleanup(mrb, &args);
