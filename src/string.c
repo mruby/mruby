@@ -1107,9 +1107,6 @@ mrb_str_aref_m(mrb_state *mrb, mrb_value str)
     mrb_get_args(mrb, "ii", &n1, &n2);
     return str_substr(mrb, str, n1, n2);
   }
-  if (argc != 1) {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%S for 1)", mrb_fixnum_value(argc));
-  }
   return mrb_str_aref(mrb, str, a1);
 }
 
