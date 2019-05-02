@@ -32,8 +32,6 @@ usage(const char *name)
   "-v           print version number, then turn on verbose mode",
   "-g           produce debugging information",
   "-B<symbol>   binary <symbol> output in C language format",
-  "-e           generate little endian iseq data",
-  "-E           generate big endian iseq data",
   "--remove-lv  remove local variables",
   "--verbose    run at verbose mode",
   "--version    print the version",
@@ -121,10 +119,10 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct mrbc_args *args)
         args->flags |= DUMP_DEBUG_INFO;
         break;
       case 'E':
-        args->flags = DUMP_ENDIAN_BIG | (args->flags & ~DUMP_ENDIAN_MASK);
+        /* do nothing, but this switch remains for backward compatibility */
         break;
       case 'e':
-        args->flags = DUMP_ENDIAN_LIL | (args->flags & ~DUMP_ENDIAN_MASK);
+        /* do nothing, but this switch remains for backward compatibility */
         break;
       case 'h':
         return -1;
@@ -156,10 +154,6 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct mrbc_args *args)
     else {
       break;
     }
-  }
-  if (args->verbose && args->initname && (args->flags & DUMP_ENDIAN_MASK) == 0) {
-    fprintf(stderr, "%s: generating %s endian C file. specify -e/-E for cross compiling.\n",
-            args->prog, bigendian_p() ? "big" : "little");
   }
   return i;
 }
