@@ -1230,7 +1230,7 @@ mrb_flo_to_fixnum(mrb_state *mrb, mrb_value x)
       z = (mrb_int)d;
     }
     else {
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "number (%S) too big for integer", x);
+      mrb_raisef(mrb, E_RANGE_ERROR, "number (%S) too big for integer", x);
     }
   }
   return mrb_fixnum_value(z);

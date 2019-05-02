@@ -2112,7 +2112,7 @@ mrb_str_len_to_inum(mrb_state *mrb, const char *str, mrb_int len, mrb_int base, 
       else
 #endif
       {
-        mrb_raisef(mrb, E_ARGUMENT_ERROR, "string (%S) too big for integer",
+        mrb_raisef(mrb, E_RANGE_ERROR, "string (%S) too big for integer",
                    mrb_str_new(mrb, str, pend-str));
       }
     }
