@@ -913,40 +913,39 @@ concat_string(parser_state *p, node *a, node *b)
       }
     }
   }
-  else if (string_node_p(b)) {
-    /* a == NODE_DSTR && b == NODE_STR */
-
-    node *c;
-    for (c = a; c->cdr != NULL; c = c->cdr) ;
-    if (string_node_p(c->car)) {
-      /* a->[..., NODE_STR] && b == NODE_STR */
-      composite_string_node(p, c->car->cdr, b->cdr);
-      cons_free(b);
-      return a;
-    }
-
-    push(a, b);
-    return a;
-  }
   else {
-    /* a == NODE_DSTR && b == NODE_DSTR */
-
-    node *c, *d;
+    node *c; /* last node of a */
     for (c = a; c->cdr != NULL; c = c->cdr) ;
-    if (string_node_p(c->car) && string_node_p(b->cdr->car)) {
-      /* a->[..., NODE_STR] && b->[NODE_STR, ...] */
-      d = b->cdr;
-      cons_free(b);
-      composite_string_node(p, c->car->cdr, d->car->cdr);
-      cons_free(d->car);
-      c->cdr = d->cdr;
-      cons_free(d);
+
+    if (string_node_p(b)) {
+      /* a == NODE_DSTR && b == NODE_STR */
+      if (string_node_p(c->car)) {
+        /* a->[..., NODE_STR] && b == NODE_STR */
+        composite_string_node(p, c->car->cdr, b->cdr);
+        cons_free(b);
+        return a;
+      }
+
+      push(a, b);
       return a;
     }
     else {
-      c->cdr = b->cdr;
-      cons_free(b);
-      return a;
+      /* a == NODE_DSTR && b == NODE_DSTR */
+      if (string_node_p(c->car) && string_node_p(b->cdr->car)) {
+        /* a->[..., NODE_STR] && b->[NODE_STR, ...] */
+        node *d = b->cdr;
+        cons_free(b);
+        composite_string_node(p, c->car->cdr, d->car->cdr);
+        cons_free(d->car);
+        c->cdr = d->cdr;
+        cons_free(d);
+        return a;
+      }
+      else {
+        c->cdr = b->cdr;
+        cons_free(b);
+        return a;
+      }
     }
   }
 
