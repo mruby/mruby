@@ -838,29 +838,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         p = va_arg(ap, mrb_int*);
         if (i < argc) {
-          switch (mrb_type(ARGV[arg_i])) {
-            case MRB_TT_FIXNUM:
-              *p = mrb_fixnum(ARGV[arg_i]);
-              break;
-#ifndef MRB_WITHOUT_FLOAT
-            case MRB_TT_FLOAT:
-              {
-                mrb_float f = mrb_float(ARGV[arg_i]);
-
-                if (!FIXABLE_FLOAT(f)) {
-                  mrb_raise(mrb, E_RANGE_ERROR, "float too big for int");
-                }
-                *p = (mrb_int)f;
-              }
-              break;
-#endif
-            case MRB_TT_STRING:
-              mrb_raise(mrb, E_TYPE_ERROR, "no implicit conversion of String into Integer");
-              break;
-            default:
-              *p = mrb_fixnum(mrb_Integer(mrb, ARGV[arg_i]));
-              break;
-          }
+          *p = mrb_fixnum(mrb_to_int(mrb, ARGV[arg_i]));
           arg_i++;
           i++;
         }
