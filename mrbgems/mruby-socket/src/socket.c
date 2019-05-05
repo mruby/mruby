@@ -38,6 +38,7 @@
 #include "mruby/array.h"
 #include "mruby/class.h"
 #include "mruby/data.h"
+#include "mruby/numeric.h"
 #include "mruby/string.h"
 #include "mruby/variable.h"
 #include "error.h"
@@ -140,7 +141,7 @@ mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
   if (mrb_string_p(service)) {
     servname = mrb_str_to_cstr(mrb, service);
   } else if (mrb_fixnum_p(service)) {
-    servname = mrb_str_to_cstr(mrb, mrb_funcall(mrb, service, "to_s", 0));
+    servname = RSTRING_PTR(mrb_fixnum_to_str(mrb, service, 10));
   } else if (mrb_nil_p(service)) {
     servname = NULL;
   } else {
