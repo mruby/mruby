@@ -60,7 +60,6 @@ MRB_API mrb_irep *mrb_read_irep(mrb_state*, const uint8_t*);
 
 #define RITE_BINARY_EOF                "END\0"
 #define RITE_SECTION_IREP_IDENT        "IREP"
-#define RITE_SECTION_LINENO_IDENT      "LINE"
 #define RITE_SECTION_DEBUG_IDENT       "DBG\0"
 #define RITE_SECTION_LV_IDENT          "LVAR"
 
@@ -90,10 +89,6 @@ struct rite_section_irep_header {
   RITE_SECTION_HEADER;
 
   uint8_t rite_version[4];    /* Rite Instruction Specification Version */
-};
-
-struct rite_section_lineno_header {
-  RITE_SECTION_HEADER;
 };
 
 struct rite_section_debug_header {
