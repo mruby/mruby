@@ -131,7 +131,7 @@ mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
   mrb_get_args(mrb, "oo|oooi", &nodename, &service, &family, &socktype, &protocol, &flags);
 
   if (mrb_string_p(nodename)) {
-    hostname = mrb_str_to_cstr(mrb, nodename);
+    hostname = mrb_string_value_cstr(mrb, &nodename);
   } else if (mrb_nil_p(nodename)) {
     hostname = NULL;
   } else {
@@ -139,7 +139,7 @@ mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
   }
 
   if (mrb_string_p(service)) {
-    servname = mrb_str_to_cstr(mrb, service);
+    servname = mrb_string_value_cstr(mrb, &service);
   } else if (mrb_fixnum_p(service)) {
     servname = RSTRING_PTR(mrb_fixnum_to_str(mrb, service, 10));
   } else if (mrb_nil_p(service)) {

@@ -215,11 +215,9 @@ mrb_io_test_mkdtemp(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_io_test_rmdir(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value str;
-  char *cp;
+  const char *cp;
 
-  mrb_get_args(mrb, "S", &str);
-  cp = mrb_str_to_cstr(mrb, str);
+  mrb_get_args(mrb, "z", &cp);
   if (rmdir(cp) == -1) {
     mrb_sys_fail(mrb, "rmdir");
   }
