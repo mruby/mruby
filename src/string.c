@@ -194,6 +194,15 @@ str_decref(mrb_state *mrb, mrb_shared_string *shared)
   }
 }
 
+static void
+check_null_byte(mrb_state *mrb, mrb_value str)
+{
+  mrb_to_str(mrb, str);
+  if (memchr(RSTRING_PTR(str), '\0', RSTRING_LEN(str))) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "string contains null byte");
+  }
+}
+
 void
 mrb_gc_free_str(mrb_state *mrb, struct RString *str)
 {
@@ -723,14 +732,8 @@ mrb_str_to_cstr(mrb_state *mrb, mrb_value str0)
 {
   struct RString *s;
 
-  if (!mrb_string_p(str0)) {
-    mrb_raise(mrb, E_TYPE_ERROR, "expected String");
-  }
-
+  check_null_byte(mrb, str0);
   s = str_new(mrb, RSTRING_PTR(str0), RSTRING_LEN(str0));
-  if ((strlen(RSTR_PTR(s)) ^ RSTR_LEN(s)) != 0) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "string contains null byte");
-  }
   return RSTR_PTR(s);
 }
 
@@ -2144,20 +2147,27 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, mrb_int base, mrb_bool badchec
 MRB_API const char*
 mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr)
 {
-  mrb_value str = mrb_to_str(mrb, *ptr);
-  struct RString *ps = mrb_str_ptr(str);
-  mrb_int len = mrb_str_strlen(mrb, ps);
-  char *p = RSTR_PTR(ps);
+  struct RString *ps;
+  const char *p;
+  mrb_int len;
 
-  if (!p || p[len] != '\0') {
+  check_null_byte(mrb, *ptr);
+  ps = mrb_str_ptr(*ptr);
+  p = RSTR_PTR(ps);
+  len = RSTR_LEN(ps);
+  if (p[len] == '\0') {
+    return p;
+  }
+  else {
     if (MRB_FROZEN_P(ps)) {
-      *ptr = str = mrb_str_dup(mrb, str);
-      ps = mrb_str_ptr(str);
+      ps = str_new(mrb, p, len);
+      *ptr = mrb_obj_value(ps);
     }
-    mrb_str_modify(mrb, ps);
+    else {
+      mrb_str_modify(mrb, ps);
+    }
     return RSTR_PTR(ps);
   }
-  return p;
 }
 
 MRB_API mrb_value

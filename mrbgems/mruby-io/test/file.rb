@@ -33,6 +33,7 @@ assert('File.basename') do
   assert_equal 'a', File.basename('/a/')
   assert_equal 'b', File.basename('/a/b')
   assert_equal 'b', File.basename('../a/b')
+  assert_raise(ArgumentError) { File.basename("/a/b\0") }
 end
 
 assert('File.dirname') do
@@ -106,6 +107,8 @@ assert('File.realpath') do
       MRubyIOTestUtil.rmdir dir
     end
   end
+
+  assert_raise(ArgumentError) { File.realpath("TO\0DO") }
 end
 
 assert("File.readlink") do
