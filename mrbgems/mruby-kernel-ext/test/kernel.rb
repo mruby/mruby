@@ -65,6 +65,8 @@ assert('Kernel#Float') do
   assert_equal(123.456, Float(123.456))
   assert_equal(123.456, Float("123.456"))
   assert_raise(TypeError) { Float(nil) }
+  assert_raise(ArgumentError) { Float("1.5a") }
+  assert_raise(ArgumentError) { Float("1.5\0") }
 end
 
 assert('Kernel#String') do
