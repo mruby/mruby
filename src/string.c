@@ -2281,22 +2281,7 @@ bad:
 MRB_API double
 mrb_str_to_dbl(mrb_state *mrb, mrb_value str, mrb_bool badcheck)
 {
-  char *s;
-  mrb_int len;
-
-  mrb_to_str(mrb, str);
-  s = RSTRING_PTR(str);
-  len = RSTRING_LEN(str);
-  if (s) {
-    if (badcheck && memchr(s, '\0', len)) {
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "string for Float contains null byte");
-    }
-    if (s[len]) {    /* no sentinel somehow */
-      struct RString *temp_str = str_new(mrb, s, len);
-      s = RSTR_PTR(temp_str);
-    }
-  }
-  return mrb_cstr_to_dbl(mrb, s, badcheck);
+  return mrb_cstr_to_dbl(mrb, mrb_string_value_cstr(mrb, &str), badcheck);
 }
 
 /* 15.2.10.5.39 */
