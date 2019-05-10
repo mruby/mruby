@@ -423,9 +423,9 @@ mrb_file_s_chmod(mrb_state *mrb, mrb_value klass) {
       mrb_sys_fail(mrb, utf8_path);
     }
     mrb_locale_free(path);
+    mrb_gc_arena_restore(mrb, ai);
   }
 
-  mrb_gc_arena_restore(mrb, ai);
   return mrb_fixnum_value(argc);
 }
 
