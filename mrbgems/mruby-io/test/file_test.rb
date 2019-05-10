@@ -20,9 +20,8 @@ assert("FileTest.exist?") do
   assert_equal true,  FileTest.exist?(io), "io obj - exist"
   io.close
   assert_equal true, io.closed?
-  assert_raise IOError do
-    FileTest.exist?(io)
-  end
+  assert_raise(IOError) { FileTest.exist?(io) }
+  assert_raise(TypeError) { File.exist?($mrbtest_io_rfname.to_sym) }
 end
 
 assert("FileTest.file?") do
