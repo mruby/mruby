@@ -1,3 +1,5 @@
 [libfuzzer]
-close_fd_mask=3
-dict=mruby.dict
+close_fd_mask = 3
+dict = mruby.dict
+fork = 8
+only_ascii = 1
