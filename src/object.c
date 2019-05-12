@@ -584,11 +584,7 @@ mrb_Float(mrb_state *mrb, mrb_value val)
 MRB_API mrb_value
 mrb_to_str(mrb_state *mrb, mrb_value val)
 {
-  if (!mrb_string_p(val)) {
-    mrb_value type = inspect_type(mrb, val);
-    mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S to String", type);
-  }
-  return val;
+  return mrb_ensure_string_type(mrb, val);
 }
 
 /* obsolete: use mrb_ensure_string_type() instead */
