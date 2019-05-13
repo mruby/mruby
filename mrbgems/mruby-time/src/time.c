@@ -576,10 +576,9 @@ mrb_time_asctime(mrb_state *mrb, mrb_value self)
 #else
   char buf[256];
 
-  len = snprintf(buf, sizeof(buf), "%s %s %02d %02d:%02d:%02d %s%d",
+  len = snprintf(buf, sizeof(buf), "%s %s %2d %02d:%02d:%02d %.4d",
     wday_names[d->tm_wday], mon_names[d->tm_mon], d->tm_mday,
     d->tm_hour, d->tm_min, d->tm_sec,
-    tm->timezone == MRB_TIMEZONE_UTC ? "UTC " : "",
     d->tm_year + 1900);
 #endif
   return mrb_str_new(mrb, buf, len);
