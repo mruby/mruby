@@ -58,8 +58,8 @@ assert('Time.now', '15.2.19.6.5') do
 end
 
 assert('Time.utc', '15.2.19.6.6') do
-  t = Time.utc(2134)
-  assert_operator(2134, :eql?, t.year)
+  t = Time.utc(2034)
+  assert_operator(2034, :eql?, t.year)
   assert_operator(   1, :eql?, t.month)
   assert_operator(   1, :eql?, t.day)
   assert_operator(   0, :eql?, t.hour)
@@ -72,7 +72,7 @@ assert('Time#+', '15.2.19.7.1') do
   t1 = Time.at(1300000000.0)
   t2 = t1.+(60)
 
-  assert_equal(t2.utc.asctime, "Sun Mar 13 07:07:40 UTC 2011")
+  assert_equal(t2.utc.asctime, "Sun Mar 13 07:07:40 2011")
 
   assert_raise(FloatDomainError) { Time.at(0) + Float::NAN }
   assert_raise(FloatDomainError) { Time.at(0) + Float::INFINITY }
@@ -83,7 +83,7 @@ assert('Time#-', '15.2.19.7.2') do
   t1 = Time.at(1300000000.0)
   t2 = t1.-(60)
 
-  assert_equal(t2.utc.asctime, "Sun Mar 13 07:05:40 UTC 2011")
+  assert_equal(t2.utc.asctime, "Sun Mar 13 07:05:40 2011")
 
   assert_raise(FloatDomainError) { Time.at(0) - Float::NAN }
   assert_raise(FloatDomainError) { Time.at(0) - Float::INFINITY }
@@ -102,11 +102,11 @@ assert('Time#<=>', '15.2.19.7.3') do
 end
 
 assert('Time#asctime', '15.2.19.7.4') do
-  assert_equal("Sun Mar 13 07:06:40 UTC 2011", Time.at(1300000000.0).utc.asctime)
+  assert_equal("Thu Mar  4 05:06:07 1982", Time.gm(1982,3,4,5,6,7).asctime)
 end
 
 assert('Time#ctime', '15.2.19.7.5') do
-  assert_equal("Sun Mar 13 07:06:40 UTC 2011", Time.at(1300000000.0).utc.ctime)
+  assert_equal("Thu Oct 24 15:26:47 2013", Time.gm(2013,10,24,15,26,47).ctime)
 end
 
 assert('Time#day', '15.2.19.7.6') do
@@ -118,7 +118,7 @@ assert('Time#dst?', '15.2.19.7.7') do
 end
 
 assert('Time#getgm', '15.2.19.7.8') do
-  assert_equal("Sun Mar 13 07:06:40 UTC 2011", Time.at(1300000000.0).getgm.asctime)
+  assert_equal("Sun Mar 13 07:06:40 2011", Time.at(1300000000.0).getgm.asctime)
 end
 
 assert('Time#getlocal', '15.2.19.7.9') do
@@ -131,7 +131,7 @@ assert('Time#getlocal', '15.2.19.7.9') do
 end
 
 assert('Time#getutc', '15.2.19.7.10') do
-  assert_equal("Sun Mar 13 07:06:40 UTC 2011", Time.at(1300000000.0).getutc.asctime)
+  assert_equal("Sun Mar 13 07:06:40 2011", Time.at(1300000000.0).getutc.asctime)
 end
 
 assert('Time#gmt?', '15.2.19.7.11') do
@@ -235,11 +235,11 @@ end
 # Not ISO specified
 
 assert('Time#to_s') do
-  assert_equal("Sun Mar 13 07:06:40 UTC 2011", Time.at(1300000000.0).utc.to_s)
+  assert_equal("Sun Mar 13 07:06:40 2011", Time.at(1300000000.0).utc.to_s)
 end
 
 assert('Time#inspect') do
-  assert_equal("Sun Mar 13 07:06:40 UTC 2011", Time.at(1300000000.0).utc.inspect)
+  assert_equal("Sun Mar 13 07:06:40 2011", Time.at(1300000000.0).utc.inspect)
 end
 
 assert('day of week methods') do
