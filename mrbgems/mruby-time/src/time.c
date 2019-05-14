@@ -18,6 +18,7 @@
 #endif
 
 #define NDIV(x,y) (-(-((x)+1)/(y))-1)
+#define TO_S_FMT "%Y-%m-%d %H:%M:%S "
 
 #if defined(_MSC_VER) && _MSC_VER < 1800
 double round(double x) {
@@ -760,7 +761,6 @@ mrb_time_sec(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(tm->datetime.tm_sec);
 }
 
-
 /* 15.2.19.7.24 */
 /* Returns a Float with the time since the epoch in seconds. */
 static mrb_value
@@ -824,6 +824,15 @@ mrb_time_utc_p(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(tm->timezone == MRB_TIMEZONE_UTC);
 }
 
+static mrb_value
+mrb_time_to_s(mrb_state *mrb, mrb_value self)
+{
+  char buf[64];
+  struct mrb_time *tm = time_get_ptr(mrb, self);
+  const char *fmt = tm->timezone == MRB_TIMEZONE_UTC ? TO_S_FMT "UTC" : TO_S_FMT "%z";
+  size_t len = strftime(buf, sizeof(buf), fmt, &tm->datetime);
+  return mrb_str_new(mrb, buf, len);
+}
 
 void
 mrb_mruby_time_gem_init(mrb_state* mrb)
@@ -844,8 +853,8 @@ mrb_mruby_time_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, tc, "<=>"    , mrb_time_cmp    , MRB_ARGS_REQ(1)); /* 15.2.19.7.1 */
   mrb_define_method(mrb, tc, "+"      , mrb_time_plus   , MRB_ARGS_REQ(1)); /* 15.2.19.7.2 */
   mrb_define_method(mrb, tc, "-"      , mrb_time_minus  , MRB_ARGS_REQ(1)); /* 15.2.19.7.3 */
-  mrb_define_method(mrb, tc, "to_s"   , mrb_time_asctime, MRB_ARGS_NONE());
-  mrb_define_method(mrb, tc, "inspect", mrb_time_asctime, MRB_ARGS_NONE());
+  mrb_define_method(mrb, tc, "to_s"   , mrb_time_to_s   , MRB_ARGS_NONE());
+  mrb_define_method(mrb, tc, "inspect", mrb_time_to_s   , MRB_ARGS_NONE());
   mrb_define_method(mrb, tc, "asctime", mrb_time_asctime, MRB_ARGS_NONE()); /* 15.2.19.7.4 */
   mrb_define_method(mrb, tc, "ctime"  , mrb_time_asctime, MRB_ARGS_NONE()); /* 15.2.19.7.5 */
   mrb_define_method(mrb, tc, "day"    , mrb_time_day    , MRB_ARGS_NONE()); /* 15.2.19.7.6 */
