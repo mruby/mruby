@@ -117,6 +117,7 @@ MRB_API void mrb_mod_cv_set(mrb_state *mrb, struct RClass * c, mrb_sym sym, mrb_
 MRB_API void mrb_cv_set(mrb_state *mrb, mrb_value mod, mrb_sym sym, mrb_value v);
 MRB_API mrb_bool mrb_cv_defined(mrb_state *mrb, mrb_value mod, mrb_sym sym);
 mrb_value mrb_obj_iv_inspect(mrb_state*, struct RObject*);
+void mrb_obj_iv_set_force(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v);
 mrb_value mrb_mod_constants(mrb_state *mrb, mrb_value mod);
 mrb_value mrb_f_global_variables(mrb_state *mrb, mrb_value self);
 mrb_value mrb_obj_instance_variables(mrb_state*, mrb_value);
