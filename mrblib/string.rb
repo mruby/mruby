@@ -230,26 +230,16 @@ class String
     end
   end
 
-  def _regexp(re, mid)
-    if String === re
-      if Object.const_defined?(:Regexp)
-        return Regexp.new(re)
-      else
-        raise NotImplementedError, "String##{mid} needs Regexp class"
-      end
-    end
-    re
-  end
-
+  # those two methods requires Regexp that is optional in mruby
   ##
   # ISO 15.2.10.5.3
-  def =~(re)
-    _regexp(re, :=~) =~ self
-  end
+  #def =~(re)
+  # re =~ self
+  #end
 
   ##
   # ISO 15.2.10.5.27
-  def match(re, &block)
-    _regexp(re, :match).match(self, &block)
-  end
+  #def match(re, &block)
+  #  re.match(self, &block)
+  #end
 end
