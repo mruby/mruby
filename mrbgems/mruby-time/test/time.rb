@@ -235,11 +235,11 @@ end
 # Not ISO specified
 
 assert('Time#to_s') do
-  assert_equal("Sun Mar 13 07:06:40 2011", Time.at(1300000000.0).utc.to_s)
+  assert_equal("2003-04-05 06:07:08 UTC", Time.gm(2003,4,5,6,7,8,9).to_s)
 end
 
 assert('Time#inspect') do
-  assert_equal("Sun Mar 13 07:06:40 2011", Time.at(1300000000.0).utc.inspect)
+  assert_match("2013-10-28 16:27:48 [^U]*", Time.local(2013,10,28,16,27,48).inspect)
 end
 
 assert('day of week methods') do
