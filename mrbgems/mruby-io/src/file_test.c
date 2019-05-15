@@ -1,5 +1,5 @@
 /*
-** file.c - File class
+** file_test.c - FileTest class
 */
 
 #include "mruby.h"
