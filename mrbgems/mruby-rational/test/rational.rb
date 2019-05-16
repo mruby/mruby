@@ -1,6 +1,16 @@
 def assert_rational(real, exp)
-  assert_float real.numerator,   exp.numerator        
+  assert_float real.numerator,   exp.numerator
   assert_float real.denominator, exp.denominator
+end
+
+def assert_equal_rational(exp, r1, r2)
+  if exp
+    assert_operator(r1, :==, r2)
+    assert_not_operator(r1, :!=, r2)
+  else
+    assert_not_operator(r1, :==, r2)
+    assert_operator(r1, :!=, r2)
+  end
 end
 
 assert 'Rational' do
@@ -54,4 +64,39 @@ assert 'Rational#/' do
   assert_rational Rational(-2, 9) / Rational(-9, 2), Rational(4, 81)
   assert_rational Rational(9, 8)  / 4,               Rational(9, 32)
   assert_float    Rational(20, 9) / 9.8,             0.22675736961451246
+end
+
+assert 'Rational#==, Rational#!=' do
+  assert_equal_rational(true, Rational(1,1), Rational(1))
+  assert_equal_rational(true, Rational(-1,1), -1r)
+  assert_equal_rational(true, Rational(13,4), 3.25)
+  assert_equal_rational(true, Rational(13,3.25), Rational(4,1))
+  assert_equal_rational(true, Rational(-3,-4), Rational(3,4))
+  assert_equal_rational(true, Rational(-4,5), Rational(4,-5))
+  assert_equal_rational(true, Rational(4,2), 2)
+  assert_equal_rational(true, Rational(-4,2), -2)
+  assert_equal_rational(true, Rational(4,-2), -2)
+  assert_equal_rational(true, Rational(4,2), 2.0)
+  assert_equal_rational(true, Rational(-4,2), -2.0)
+  assert_equal_rational(true, Rational(4,-2), -2.0)
+  assert_equal_rational(true, Rational(8,6), Rational(4,3))
+  assert_equal_rational(false, Rational(13,4), 3)
+  assert_equal_rational(false, Rational(13,4), 3.3)
+  assert_equal_rational(false, Rational(2,1), 1r)
+  assert_equal_rational(false, Rational(1), nil)
+  assert_equal_rational(false, Rational(1), '')
+end
+
+assert 'Fixnum#==(Rational), Fixnum#!=(Rational)' do
+  assert_equal_rational(true, 2, Rational(4,2))
+  assert_equal_rational(true, -2, Rational(-4,2))
+  assert_equal_rational(true, -2, Rational(4,-2))
+  assert_equal_rational(false, 3, Rational(13,4))
+end
+
+assert 'Float#==(Rational), Float#!=(Rational)' do
+  assert_equal_rational(true, 2.0, Rational(4,2))
+  assert_equal_rational(true, -2.0, Rational(-4,2))
+  assert_equal_rational(true, -2.0, Rational(4,-2))
+  assert_equal_rational(false, 3.3, Rational(13,4))
 end
