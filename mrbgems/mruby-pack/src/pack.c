@@ -118,9 +118,9 @@ make_base64_dec_tab(void)
     base64_dec_tab['a' + i] = i + 26;
   for (i = 0; i < 10; i++)
     base64_dec_tab['0' + i] = i + 52;
-  base64_dec_tab['+'] = 62;
-  base64_dec_tab['/'] = 63;
-  base64_dec_tab['='] = PACK_BASE64_PADDING;
+  base64_dec_tab['+'+0] = 62;
+  base64_dec_tab['/'+0] = 63;
+  base64_dec_tab['='+0] = PACK_BASE64_PADDING;
 }
 
 static mrb_value
