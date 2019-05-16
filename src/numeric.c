@@ -484,6 +484,10 @@ flo_shift(mrb_state *mrb, mrb_value x, mrb_int width)
   if (width < 0) {
     while (width++) {
       val /= 2;
+      if (val < 1.0) {
+        val = 0;
+        break;
+      }
     }
 #if defined(_ISOC99_SOURCE)
     val = trunc(val);
