@@ -1,4 +1,7 @@
 class Rational < Numeric
+  # Override #<, #<=, #>, #>= in Numeric
+  prepend Comparable
+
   def initialize(numerator = 0, denominator = 1)
     @numerator = numerator
     @denominator = denominator
@@ -66,6 +69,24 @@ class Rational < Numeric
     end
   end
 
+  def <=>(rhs)
+    case rhs
+    when Fixnum
+      return @numerator <=> rhs if @denominator == 1
+      rhs = Rational(rhs)
+    when Float
+      return to_f <=> rhs
+    end
+    case rhs
+    when Rational
+      (@numerator * rhs.denominator - @denominator * rhs.numerator) <=> 0
+    when Numeric
+      return rhs <=> self
+    else
+      nil
+    end
+  end
+
   def negative?
     numerator.negative?
   end
@@ -86,15 +107,15 @@ def Rational(numerator = 0, denominator = 1)
 end
 
 [Fixnum, Float].each do |cls|
-  [:+, :-, :*, :/, :==].each do |op|
+  [:+, :-, :*, :/, :<=>, :==, :<, :<=, :>, :>=].each do |op|
     cls.instance_exec do
       original_operator_name = "__original_operator_#{op}_rational"
       alias_method original_operator_name, op
       define_method op do |rhs|
         if rhs.is_a? Rational
-          Rational(self).send(op, rhs)
+          Rational(self).__send__(op, rhs)
         else
-          send(original_operator_name, rhs)
+          __send__(original_operator_name, rhs)
         end
       end
     end
