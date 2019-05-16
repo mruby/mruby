@@ -205,17 +205,18 @@ static struct mrb_time*
 time_update_datetime(mrb_state *mrb, struct mrb_time *self, int dealloc)
 {
   struct tm *aid;
+  time_t t = self->sec;
 
   if (self->timezone == MRB_TIMEZONE_UTC) {
-    aid = gmtime_r(&self->sec, &self->datetime);
+    aid = gmtime_r(&t, &self->datetime);
   }
   else {
-    aid = localtime_r(&self->sec, &self->datetime);
+    aid = localtime_r(&t, &self->datetime);
   }
   if (!aid) {
-    mrb_float sec = (mrb_float)self->sec;
+    mrb_float sec = (mrb_float)t;
 
-    mrb_free(mrb, self);
+    if (dealloc) mrb_free(mrb, self);
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "%S out of Time range", mrb_float_value(mrb, sec));
     /* not reached */
     return NULL;
@@ -292,24 +293,24 @@ mrb_time_make(mrb_state *mrb, struct RClass *c, double sec, double usec, enum mr
 static struct mrb_time*
 current_mrb_time(mrb_state *mrb)
 {
+  struct mrb_time tmzero = {0};
   struct mrb_time *tm;
+  time_t sec, usec;
 
-  tm = (struct mrb_time *)mrb_malloc(mrb, sizeof(*tm));
 #if defined(TIME_UTC) && !defined(__ANDROID__)
   {
     struct timespec ts;
     if (timespec_get(&ts, TIME_UTC) == 0) {
-      mrb_free(mrb, tm);
       mrb_raise(mrb, E_RUNTIME_ERROR, "timespec_get() failed for unknown reasons");
     }
-    tm->sec = ts.tv_sec;
-    tm->usec = ts.tv_nsec / 1000;
+    sec = ts.tv_sec;
+    usec = ts.tv_nsec / 1000;
   }
 #elif defined(NO_GETTIMEOFDAY)
   {
     static time_t last_sec = 0, last_usec = 0;
 
-    tm->sec  = time(NULL);
+    sec = time(NULL);
     if (tm->sec != last_sec) {
       last_sec = tm->sec;
       last_usec = 0;
@@ -318,17 +319,20 @@ current_mrb_time(mrb_state *mrb)
       /* add 1 usec to differentiate two times */
       last_usec += 1;
     }
-    tm->usec = last_usec;
+    usec = last_usec;
   }
 #else
   {
     struct timeval tv;
 
     gettimeofday(&tv, NULL);
-    tm->sec = tv.tv_sec;
-    tm->usec = tv.tv_usec;
+    sec = tv.tv_sec;
+    usec = tv.tv_usec;
   }
 #endif
+  tm = (struct mrb_time *)mrb_malloc(mrb, sizeof(*tm));
+  *tm = tmzero;
+  tm->sec = sec; tm->usec = usec;
   tm->timezone = MRB_TIMEZONE_LOCAL;
   time_update_datetime(mrb, tm, TRUE);
 
