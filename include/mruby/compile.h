@@ -105,7 +105,7 @@ struct mrb_parser_heredoc_info {
   mrb_ast_node *doc;
 };
 
-#define MRB_PARSER_TOKBUF_MAX 65536
+#define MRB_PARSER_TOKBUF_MAX (UINT16_MAX-1)
 #define MRB_PARSER_TOKBUF_SIZE 256
 
 /* parser structure */
