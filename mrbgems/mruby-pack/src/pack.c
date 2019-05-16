@@ -1075,10 +1075,11 @@ alias:
     if (ISDIGIT(ch)) {
       count = ch - '0';
       while (tmpl->idx < tlen && ISDIGIT(tptr[tmpl->idx])) {
-        count = count * 10 + (tptr[tmpl->idx++] - '0');
-        if (count < 0) {
+        int ch = tptr[tmpl->idx++] - '0';
+        if (count+ch > INT_MAX/10) {
           mrb_raise(mrb, E_RUNTIME_ERROR, "too big template length");
         }
+        count = count * 10 + ch;
       }
       continue;  /* special case */
     } else if (ch == '*')  {
