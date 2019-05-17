@@ -106,18 +106,26 @@ def Rational(numerator = 0, denominator = 1)
   Rational.new(numerator, denominator)
 end
 
-[Fixnum, Float].each do |cls|
-  [:+, :-, :*, :/, :<=>, :==, :<, :<=, :>, :>=].each do |op|
-    cls.instance_exec do
-      original_operator_name = "__original_operator_#{op}_rational"
-      alias_method original_operator_name, op
-      define_method op do |rhs|
-        if rhs.is_a? Rational
-          Rational(self).__send__(op, rhs)
-        else
-          __send__(original_operator_name, rhs)
-        end
+[:+, :-, :*, :/, :<=>, :==, :<, :<=, :>, :>=].each do |op|
+  Fixnum.instance_exec do
+    original_operator_name = "__original_operator_#{op}_rational"
+    alias_method original_operator_name, op
+    define_method op do |rhs|
+      if rhs.is_a? Rational
+        Rational(self).__send__(op, rhs)
+      else
+        __send__(original_operator_name, rhs)
       end
+    end
+  end
+  Float.instance_exec do
+    original_operator_name = "__original_operator_#{op}_rational"
+    alias_method original_operator_name, op
+    define_method op do |rhs|
+      if rhs.is_a? Rational
+        rhs = rhs.to_f
+      end
+      __send__(original_operator_name, rhs)
     end
   end
 end
