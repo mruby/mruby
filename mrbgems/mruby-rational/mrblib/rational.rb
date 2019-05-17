@@ -94,9 +94,9 @@ class Rational < Numeric
   def _simplify
     a = numerator
     b = denominator
-    a, b = b, a % b while !b.zero?
-    @numerator /= a
-    @denominator /= a
+    a, b = b, a % b until b.zero?
+    @numerator = @numerator.div(a)
+    @denominator = @denominator.div(a)
   end
 
   attr_reader :numerator, :denominator
