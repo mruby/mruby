@@ -44,6 +44,15 @@ mrb_to_flo(mrb_state *mrb, mrb_value val)
   }
   return mrb_float(val);
 }
+
+static mrb_value
+mrb_int_value(mrb_state *mrb, mrb_float f)
+{
+  if (FIXABLE_FLOAT(f)) {
+    return mrb_fixnum_value((mrb_int)f);
+  }
+  return mrb_float_value(mrb, f);
+}
 #endif
 
 /*
@@ -507,10 +516,7 @@ flo_shift(mrb_state *mrb, mrb_value x, mrb_int width)
       val *= 2;
     }
   }
-  if (FIXABLE_FLOAT(val)) {
-    return mrb_fixnum_value((mrb_int)val);
-  }
-  return mrb_float_value(mrb, val);
+  return mrb_int_value(mrb, val);
 }
 
 static mrb_value
@@ -616,10 +622,7 @@ flo_floor(mrb_state *mrb, mrb_value num)
   mrb_float f = floor(mrb_float(num));
 
   mrb_check_num_exact(mrb, f);
-  if (!FIXABLE_FLOAT(f)) {
-    return mrb_float_value(mrb, f);
-  }
-  return mrb_fixnum_value((mrb_int)f);
+  return mrb_int_value(mrb, f);
 }
 
 /* 15.2.9.3.8  */
@@ -642,10 +645,7 @@ flo_ceil(mrb_state *mrb, mrb_value num)
   mrb_float f = ceil(mrb_float(num));
 
   mrb_check_num_exact(mrb, f);
-  if (!FIXABLE_FLOAT(f)) {
-    return mrb_float_value(mrb, f);
-  }
-  return mrb_fixnum_value((mrb_int)f);
+  return mrb_int_value(mrb, f);
 }
 
 /* 15.2.9.3.12 */
@@ -748,10 +748,7 @@ flo_truncate(mrb_state *mrb, mrb_value num)
   if (f < 0.0) f = ceil(f);
 
   mrb_check_num_exact(mrb, f);
-  if (!FIXABLE_FLOAT(f)) {
-    return mrb_float_value(mrb, f);
-  }
-  return mrb_fixnum_value((mrb_int)f);
+  return mrb_int_value(mrb, f);
 }
 
 static mrb_value
