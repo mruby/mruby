@@ -726,7 +726,7 @@ flo_round(mrb_state *mrb, mrb_value num)
     if (!isfinite(number)) return num;
     return mrb_float_value(mrb, number);
   }
-  return mrb_fixnum_value((mrb_int)number);
+  return mrb_int_value(mrb, number);
 }
 
 /* 15.2.9.3.14 */
