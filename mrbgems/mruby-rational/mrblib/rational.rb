@@ -72,14 +72,14 @@ class Rational < Numeric
   def <=>(rhs)
     case rhs
     when Fixnum
-      return @numerator <=> rhs if @denominator == 1
+      return numerator <=> rhs if denominator == 1
       rhs = Rational(rhs)
     when Float
       return to_f <=> rhs
     end
     case rhs
     when Rational
-      (@numerator * rhs.denominator - @denominator * rhs.numerator) <=> 0
+      (numerator * rhs.denominator - denominator * rhs.numerator) <=> 0
     when Numeric
       return rhs <=> self
     else
