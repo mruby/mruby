@@ -2,4 +2,3 @@
 close_fd_mask = 3
 dict = mruby.dict
 fork = 1
-only_ascii = 1
