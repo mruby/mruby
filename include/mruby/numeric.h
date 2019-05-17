@@ -23,7 +23,7 @@ MRB_BEGIN_DECL
 #define NEGFIXABLE(f) TYPED_NEGFIXABLE(f,mrb_int)
 #define FIXABLE(f) TYPED_FIXABLE(f,mrb_int)
 #ifndef MRB_WITHOUT_FLOAT
-#define FIXABLE_FLOAT(f) TYPED_FIXABLE(f,double)
+#define FIXABLE_FLOAT(f) TYPED_FIXABLE(f,mrb_float)
 #endif
 
 #ifndef MRB_WITHOUT_FLOAT
