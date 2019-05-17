@@ -255,7 +255,7 @@ EOS
       if name.is_a?(Array)
         name.flatten.map { |n| filename(n) }
       else
-        '"%s"' % name.gsub('/', file_separator)
+        name.gsub('/', file_separator)
       end
     end
 
@@ -263,7 +263,7 @@ EOS
       if name.is_a?(Array)
         name.flatten.map { |n| cygwin_filename(n) }
       else
-        '"%s"' % `cygpath -w "#{filename(name)}"`.strip
+        `cygpath -w "#{filename(name)}"`.strip
       end
     end
 
