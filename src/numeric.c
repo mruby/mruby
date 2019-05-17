@@ -421,7 +421,7 @@ value_int64(mrb_state *mrb, mrb_value x)
 static mrb_value
 int64_value(mrb_state *mrb, int64_t v)
 {
-  if (FIXABLE(v)) {
+  if (TYPED_FIXABLE(v,int64_t)) {
     return mrb_fixnum_value((mrb_int)v);
   }
   return mrb_float_value(mrb, (mrb_float)v);
