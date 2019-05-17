@@ -136,6 +136,25 @@ mrb_num_div(mrb_state *mrb, mrb_value x, mrb_value y)
 #endif
 }
 
+static mrb_value
+num_idiv(mrb_state *mrb, mrb_value x)
+{
+#ifdef MRB_WITHOUT_FLOAT
+  mrb_value y;
+
+  mrb_get_args(mrb, "o", &y);
+  if (!mrb_fixnum_p(y)) {
+    mrb_raise(mrb, E_TYPE_ERROR, "non fixnum value");
+  }
+  return mrb_fixnum_value(mrb_fixnum(x) / mrb_fixnum(y));
+#else
+  mrb_float y;
+
+  mrb_get_args(mrb, "f", &y);
+  return mrb_int_value(mrb, mrb_to_flo(mrb, x) / y);
+#endif
+}
+
 /* 15.2.9.3.19(x) */
 /*
  *  call-seq:
@@ -1552,6 +1571,7 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, numeric, "**",       num_pow,         MRB_ARGS_REQ(1));
   mrb_define_method(mrb, numeric, "/",        num_div,         MRB_ARGS_REQ(1)); /* 15.2.8.3.4  */
   mrb_define_method(mrb, numeric, "quo",      num_div,         MRB_ARGS_REQ(1)); /* 15.2.7.4.5 (x) */
+  mrb_define_method(mrb, numeric, "div",      num_idiv,        MRB_ARGS_REQ(1));
   mrb_define_method(mrb, numeric, "<=>",      num_cmp,         MRB_ARGS_REQ(1)); /* 15.2.9.3.6  */
   mrb_define_method(mrb, numeric, "<",        num_lt,          MRB_ARGS_REQ(1));
   mrb_define_method(mrb, numeric, "<=",       num_le,          MRB_ARGS_REQ(1));
