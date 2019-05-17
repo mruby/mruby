@@ -36,10 +36,6 @@ MRB_API mrb_value mrb_float_to_str(mrb_state *mrb, mrb_value x, const char *fmt)
 MRB_API mrb_float mrb_to_flo(mrb_state *mrb, mrb_value x);
 #endif
 
-mrb_value mrb_fixnum_plus(mrb_state *mrb, mrb_value x, mrb_value y);
-mrb_value mrb_fixnum_minus(mrb_state *mrb, mrb_value x, mrb_value y);
-mrb_value mrb_fixnum_mul(mrb_state *mrb, mrb_value x, mrb_value y);
-
 #ifndef __has_builtin
   #define __has_builtin(x) 0
 #endif

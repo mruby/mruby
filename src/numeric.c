@@ -787,7 +787,7 @@ int_to_i(mrb_state *mrb, mrb_value num)
   return num;
 }
 
-mrb_value
+static mrb_value
 mrb_fixnum_mul(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mrb_int a;
@@ -1244,7 +1244,7 @@ mrb_flo_to_fixnum(mrb_state *mrb, mrb_value x)
 }
 #endif
 
-mrb_value
+static mrb_value
 mrb_fixnum_plus(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mrb_int a;
@@ -1287,7 +1287,7 @@ fix_plus(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_plus(mrb, self, other);
 }
 
-mrb_value
+static mrb_value
 mrb_fixnum_minus(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mrb_int a;
