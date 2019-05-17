@@ -159,4 +159,70 @@
 # define TRUE 1
 #endif
 
+/*
+** mruby tuning profiles
+**/
+
+/* A profile for micro controllers */
+#if defined(MRB_CONSTRAINED_BASELINE_PROFILE)
+# ifndef KHASH_DEFAULT_SIZE
+#  define KHASH_DEFAULT_SIZE 16
+# endif
+
+# ifndef MRB_STR_BUF_MIN_SIZE
+#  define MRB_STR_BUF_MIN_SIZE 32
+# endif
+
+# ifndef MRB_HEAP_PAGE_SIZE
+#  define MRB_HEAP_PAGE_SIZE 256
+# endif
+
+/* A profile for default mruby */
+#elif defined(MRB_BASELINE_PROFILE)
+
+/* A profile for desktop computers or workstations; rich memory! */
+#elif defined(MRB_MAIN_PROFILE)
+# ifndef MRB_METHOD_CACHE
+#  define MRB_METHOD_CACHE
+# endif
+
+# ifndef MRB_METHOD_CACHE_SIZE
+#  define MRB_METHOD_CACHE_SIZE (1<<10)
+# endif
+
+# ifndef MRB_METHOD_TABLE_INLINE
+#  define MRB_METHOD_TABLE_INLINE
+# endif
+
+# ifndef MRB_IV_SEGMENT_SIZE
+#  define MRB_IV_SEGMENT_SIZE 32
+# endif
+
+# ifndef MRB_HEAP_PAGE_SIZE
+#  define MRB_HEAP_PAGE_SIZE 4096
+# endif
+
+/* A profile for server; mruby vm is long life */
+#elif defined(MRB_HIGH_PROFILE)
+# ifndef MRB_METHOD_CACHE
+#  define MRB_METHOD_CACHE
+# endif
+
+# ifndef MRB_METHOD_CACHE_SIZE
+#  define MRB_METHOD_CACHE_SIZE (1<<12)
+# endif
+
+# ifndef MRB_METHOD_TABLE_INLINE
+#  define MRB_METHOD_TABLE_INLINE
+# endif
+
+# ifndef MRB_IV_SEGMENT_SIZE
+#  define MRB_IV_SEGMENT_SIZE 64
+# endif
+
+# ifndef MRB_HEAP_PAGE_SIZE
+#  define MRB_HEAP_PAGE_SIZE 4096
+# endif
+#endif
+
 #endif  /* MRUBYCONF_H */
