@@ -83,7 +83,7 @@ end
 def Rational(numerator = 0, denominator = 1)
   a = numerator
   b = denominator
-  a, b = b, a % b until b.zero?
+  a, b = b, a % b until b == 0
   Rational._new(numerator.div(a), denominator.div(a))
 end
 

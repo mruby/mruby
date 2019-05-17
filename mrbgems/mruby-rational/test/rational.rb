@@ -100,3 +100,10 @@ assert 'Float#==(Rational), Float#!=(Rational)' do
   assert_equal_rational(true, -2.0, Rational(4,-2))
   assert_equal_rational(false, 3.3, Rational(13,4))
 end
+
+assert 'Rational#negative?' do
+  assert_predicate(Rational(-2,3), :negative?)
+  assert_predicate(Rational(2,-3), :negative?)
+  assert_not_predicate(Rational(2,3), :negative?)
+  assert_not_predicate(Rational(0), :negative?)
+end
