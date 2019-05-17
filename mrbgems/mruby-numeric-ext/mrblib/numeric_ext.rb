@@ -1,4 +1,4 @@
-module Integral
+class Numeric
   def zero?
     self == 0
   end
