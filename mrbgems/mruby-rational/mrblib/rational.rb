@@ -69,7 +69,7 @@ class Rational < Numeric
   end
 end
 
-class << Numeric
+class Numeric
   def to_r
     Rational(self, 1)
   end
