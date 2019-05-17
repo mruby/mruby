@@ -30,13 +30,10 @@ module MRuby
     def _run(options, params={})
       return sh command + ' ' + ( options % params ) if NotFoundCommands.key? @command
       begin
-        fiber, $rake_root_fiber = $rake_root_fiber, nil
         sh build.filename(command) + ' ' + ( options % params )
       rescue RuntimeError
         NotFoundCommands[@command] = true
         _run options, params
-      ensure
-        $rake_root_fiber = fiber
       end
     end
   end
