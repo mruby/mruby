@@ -2,27 +2,8 @@ class Rational < Numeric
   # Override #<, #<=, #>, #>= in Numeric
   prepend Comparable
 
-  def initialize(numerator = 0, denominator = 1)
-    @numerator = numerator
-    @denominator = denominator
-
-    _simplify
-  end
-
   def inspect
     "(#{to_s})"
-  end
-
-  def to_f
-    @numerator.to_f / @denominator.to_f
-  end
-
-  def to_i
-    to_f.to_i
-  end
-
-  def to_r
-    self
   end
 
   def to_s
@@ -86,24 +67,24 @@ class Rational < Numeric
       nil
     end
   end
+end
 
-  def negative?
-    numerator.negative?
+class << Numeric
+  def to_r
+    Rational(self, 1)
   end
+end
 
-  def _simplify
-    a = numerator
-    b = denominator
-    a, b = b, a % b until b.zero?
-    @numerator = @numerator.div(a)
-    @denominator = @denominator.div(a)
-  end
-
-  attr_reader :numerator, :denominator
+class << Rational
+  alias_method :_new, :new
+  undef_method :new
 end
 
 def Rational(numerator = 0, denominator = 1)
-  Rational.new(numerator, denominator)
+  a = numerator
+  b = denominator
+  a, b = b, a % b until b.zero?
+  Rational._new(numerator.div(a), denominator.div(a))
 end
 
 [:+, :-, :*, :/, :<=>, :==, :<, :<=, :>, :>=].each do |op|
