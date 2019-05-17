@@ -112,30 +112,6 @@ num_pow(mrb_state *mrb, mrb_value x)
 #endif
 }
 
-/* 15.2.8.3.4  */
-/* 15.2.9.3.4  */
-/*
- * call-seq:
- *   num / other  ->  num
- *
- * Performs division: the class of the resulting object depends on
- * the class of <code>num</code> and on the magnitude of the
- * result.
- */
-
-mrb_value
-mrb_num_div(mrb_state *mrb, mrb_value x, mrb_value y)
-{
-#ifdef MRB_WITHOUT_FLOAT
-  if (!mrb_fixnum_p(y)) {
-    mrb_raise(mrb, E_TYPE_ERROR, "non fixnum value");
-  }
-  return mrb_fixnum_value(mrb_fixnum(x) / mrb_fixnum(y));
-#else
-  return mrb_float_value(mrb, mrb_to_flo(mrb, x) / mrb_to_flo(mrb, y));
-#endif
-}
-
 static mrb_value
 num_idiv(mrb_state *mrb, mrb_value x)
 {
@@ -154,6 +130,17 @@ num_idiv(mrb_state *mrb, mrb_value x)
   return mrb_int_value(mrb, mrb_to_flo(mrb, x) / y);
 #endif
 }
+
+/* 15.2.8.3.4  */
+/* 15.2.9.3.4  */
+/*
+ * call-seq:
+ *   num / other  ->  num
+ *
+ * Performs division: the class of the resulting object depends on
+ * the class of <code>num</code> and on the magnitude of the
+ * result.
+ */
 
 /* 15.2.9.3.19(x) */
 /*
