@@ -107,7 +107,7 @@ class Complex < Numeric
   def polar
     [abs, arg]
   end
-  
+
   def real?
     false
   end
@@ -147,8 +147,10 @@ class << Complex
   alias_method :rect, :rectangular
 end
 
-def Complex(real, imaginary = 0)
-  Complex.rectangular(real, imaginary)
+module Kernel
+  def Complex(real, imaginary = 0)
+    Complex.rectangular(real, imaginary)
+  end
 end
 
 [Fixnum, Float].each do |cls|

@@ -75,11 +75,13 @@ class Numeric
   end
 end
 
-def Rational(numerator = 0, denominator = 1)
-  a = numerator
-  b = denominator
-  a, b = b, a % b until b == 0
-  Rational._new(numerator.div(a), denominator.div(a))
+module Kernel
+  def Rational(numerator = 0, denominator = 1)
+    a = numerator
+    b = denominator
+    a, b = b, a % b until b == 0
+    Rational._new(numerator.div(a), denominator.div(a))
+  end
 end
 
 [:+, :-, :*, :/, :<=>, :==, :<, :<=, :>, :>=].each do |op|
