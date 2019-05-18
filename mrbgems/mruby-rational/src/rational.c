@@ -29,11 +29,24 @@ rational_denominator(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
-rational_initialize(mrb_state *mrb, mrb_value self)
+rational_new(mrb_state *mrb, mrb_int numerator, mrb_int denominator)
 {
-  struct mrb_rational *p = rational_ptr(self);
-  mrb_get_args(mrb, "ii", &p->numerator, &p->denominator);
-  return self;
+  struct RClass *c = mrb_class_get(mrb, "Rational");
+  struct RIStruct *s = (struct RIStruct*)mrb_obj_alloc(mrb, MRB_TT_ISTRUCT, c);
+  mrb_value rat = mrb_obj_value(s);
+  struct mrb_rational *p = rational_ptr(rat);
+  p->numerator = numerator;
+  p->denominator = denominator;
+  return mrb_obj_value(s);
+}
+
+static mrb_value
+rational_s_new(mrb_state *mrb, mrb_value self)
+{
+  mrb_int numerator, denominator;
+
+  mrb_get_args(mrb, "ii", &numerator, &denominator);
+  return rational_new(mrb, numerator, denominator);
 }
 
 #ifndef MRB_WITHOUT_FLOAT
@@ -70,6 +83,12 @@ rational_negative_p(mrb_state *mrb, mrb_value self)
   return mrb_false_value();
 }
 
+static mrb_value
+fix_to_r(mrb_state *mrb, mrb_value self)
+{
+  return rational_new(mrb, mrb_fixnum(self), 1);
+}
+
 void mrb_mruby_rational_gem_init(mrb_state *mrb)
 {
   struct RClass *rat;
@@ -77,15 +96,17 @@ void mrb_mruby_rational_gem_init(mrb_state *mrb)
   mrb_assert(sizeof(struct mrb_rational) < ISTRUCT_DATA_SIZE);
   rat = mrb_define_class(mrb, "Rational", mrb_class_get(mrb, "Numeric"));
   MRB_SET_INSTANCE_TT(rat, MRB_TT_ISTRUCT);
+  mrb_undef_class_method(mrb, rat, "new");
+  mrb_define_class_method(mrb, rat, "_new", rational_s_new, MRB_ARGS_REQ(2));
   mrb_define_method(mrb, rat, "numerator", rational_numerator, MRB_ARGS_NONE());
   mrb_define_method(mrb, rat, "denominator", rational_denominator, MRB_ARGS_NONE());
-  mrb_define_method(mrb, rat, "initialize", rational_initialize, MRB_ARGS_REQ(2));
 #ifndef MRB_WITHOUT_FLOAT
   mrb_define_method(mrb, rat, "to_f", rational_to_f, MRB_ARGS_NONE());
 #endif
   mrb_define_method(mrb, rat, "to_i", rational_to_i, MRB_ARGS_NONE());
   mrb_define_method(mrb, rat, "to_r", rational_to_r, MRB_ARGS_NONE());
   mrb_define_method(mrb, rat, "negative?", rational_negative_p, MRB_ARGS_NONE());
+  mrb_define_method(mrb, mrb->fixnum_class, "to_r", fix_to_r, MRB_ARGS_NONE());
 }
 
 void

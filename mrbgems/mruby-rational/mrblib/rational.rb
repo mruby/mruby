@@ -75,11 +75,6 @@ class Numeric
   end
 end
 
-class << Rational
-  alias_method :_new, :new
-  undef_method :new
-end
-
 def Rational(numerator = 0, denominator = 1)
   a = numerator
   b = denominator
