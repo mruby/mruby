@@ -1222,12 +1222,13 @@ RETRY_TRY_BLOCK:
       struct RClass *owner;
       struct RProc *proc;
       struct RObject *me;
+      mrb_method_t m;
 
       mrb_value *regs_a = regs + a;
       mrb_sym name = syms[b];
       owner = klass = mrb_class(mrb, *regs_a);
 
-      mrb_method_t m = mrb_method_search_vm(mrb, &owner, name);
+      m = mrb_method_search_vm(mrb, &owner, name);
       if (MRB_METHOD_UNDEF_P(m)) {
         const char *s;
         SET_NIL_VALUE(*regs_a);
