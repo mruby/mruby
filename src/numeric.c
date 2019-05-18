@@ -170,7 +170,7 @@ num_div(mrb_state *mrb, mrb_value x)
 }
 
 static mrb_value
-num_coerce_step_counter(mrb_state *mrb, mrb_value self)
+integral_coerce_step_counter(mrb_state *mrb, mrb_value self)
 {
   mrb_value counter = self, num, step;
 
@@ -1551,6 +1551,7 @@ mrb_init_numeric(mrb_state *mrb)
 #endif
 
   integral = mrb_define_module(mrb, "Integral");
+  mrb_define_method(mrb, integral, "__coerce_step_counter", integral_coerce_step_counter, MRB_ARGS_REQ(2));
 
   /* Numeric Class */
   numeric = mrb_define_class(mrb, "Numeric",  mrb->object_class);                /* 15.2.7 */
@@ -1566,7 +1567,6 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, numeric, ">=",       num_ge,          MRB_ARGS_REQ(1));
   mrb_define_method(mrb, numeric, "finite?",  num_finite_p,    MRB_ARGS_NONE());
   mrb_define_method(mrb, numeric, "infinite?",num_infinite_p,  MRB_ARGS_NONE());
-  mrb_define_method(mrb, numeric, "__coerce_step_counter", num_coerce_step_counter,  MRB_ARGS_REQ(2));
 
   /* Integer Class */
   integer = mrb_define_class(mrb, "Integer",  numeric);                          /* 15.2.8 */
