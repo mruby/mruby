@@ -110,7 +110,7 @@ typedef struct {
     struct RHash hash;
     struct RRange range;
     struct RData data;
-    struct RIstruct istruct;
+    struct RIStruct istruct;
     struct RProc proc;
     struct REnv env;
     struct RFiber fiber;
