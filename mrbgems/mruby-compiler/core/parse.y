@@ -854,6 +854,13 @@ new_op_asgn(parser_state *p, node *a, mrb_sym op, node *b)
   return list4((node*)NODE_OP_ASGN, a, nsym(op), b);
 }
 
+/* (:methref obj method) */
+static node*
+new_methref(parser_state *p, node *obj, mrb_sym method)
+{
+  return cons((node*)NODE_METHREF, cons(obj, nsym(method)));
+}
+
 #ifdef MRB_COMPLEX_NUMBERS
 static node*
 new_imaginary(parser_state *p, node *imaginary)
@@ -1391,6 +1398,7 @@ heredoc_end(parser_state *p)
 %token tAREF tASET        /* [] and []= */
 %token tLSHFT tRSHFT      /* << and >> */
 %token tCOLON2            /* :: */
+%token tMETHREF           /* .: */
 %token tCOLON3            /* :: at EXPR_BEG */
 %token <id> tOP_ASGN      /* +=, -=  etc. */
 %token tASSOC             /* => */
@@ -2595,6 +2603,10 @@ primary         : literal
                 | keyword_retry
                     {
                       $$ = new_retry(p);
+                    }
+                | primary_value tMETHREF operation2
+                    {
+                      $$ = new_methref(p, $1, $3);
                     }
                 ;
 
@@ -5164,12 +5176,28 @@ parser_yylex(parser_state *p)
 
   case '.':
     p->lstate = EXPR_BEG;
-    if ((c = nextc(p)) == '.') {
+    switch (c = nextc(p)) {
+    case '.':
       if ((c = nextc(p)) == '.') {
         return tDOT3;
       }
       pushback(p, c);
       return tDOT2;
+    case ':':
+       switch (c = nextc(p)) {
+       default:
+         if (!identchar(c)) break;
+         /* fallthrough */
+       case '!': case '%': case '&': case '*': case '+':
+	   case '-': case '/': case '<': case '=': case '>':
+	   case '[': case '^': case '`': case '|': case '~':
+         pushback(p, c);
+         p->lstate = EXPR_DOT;
+         return tMETHREF;
+       }
+       pushback(p, c);
+       c = ':';
+       break;
     }
     pushback(p, c);
     if (c >= 0 && ISDIGIT(c)) {
@@ -7091,6 +7119,13 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
 
   case NODE_KW_REST_ARGS:
     printf("NODE_KW_REST_ARGS %s\n", mrb_sym2name(mrb, sym(tree)));
+    break;
+
+  case NODE_METHREF:
+    printf("NODE_METHREF:\n");
+    mrb_parser_dump(mrb, tree->car, offset + 1);
+    dump_prefix(tree, offset + 1);
+    printf("method='%s'\n", mrb_sym2name(mrb, sym(tree->cdr)));
     break;
 
   default:

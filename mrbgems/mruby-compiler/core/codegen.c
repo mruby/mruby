@@ -2379,6 +2379,17 @@ codegen(codegen_scope *s, node *tree, int val)
       push();
     }
     break;
+    
+  case NODE_METHREF:
+    {
+      int sym = new_sym(s, nsym(tree->cdr));
+
+      codegen(s, tree->car, val);
+      pop();
+      genop_2(s, OP_GETMETHREF, cursp(), sym);
+      push();
+    }
+    break;
 
   case NODE_ARG:
     /* should not happen */

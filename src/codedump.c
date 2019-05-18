@@ -222,6 +222,10 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       printf("OP_SETCV\t%s\tR%d", mrb_sym2name(mrb, irep->syms[b]), a);
       print_lv_a(mrb, irep, a);
       break;
+    CASE(OP_GETMETHREF, BB):
+      printf("OP_GETMETHREF\tR%d\t%s", a, mrb_sym2name(mrb, irep->syms[b]));
+      print_lv_a(mrb, irep, a);
+      break;
     CASE(OP_JMP, S):
       printf("OP_JMP\t\t%03d\n", a);
       break;

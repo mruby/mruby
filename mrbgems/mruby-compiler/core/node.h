@@ -96,6 +96,7 @@ enum node_type {
   NODE_LITERAL_DELIM,
   NODE_WORDS,
   NODE_SYMBOLS,
+  NODE_METHREF,
   NODE_LAST
 };
 

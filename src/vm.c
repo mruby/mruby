@@ -1217,6 +1217,47 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
+    CASE(OP_GETMETHREF, BB) {
+      struct RClass *klass;
+      struct RClass *owner;
+      struct RProc *proc;
+      struct RObject *me;
+
+      mrb_value *regs_a = regs + a;
+      mrb_sym name = syms[b];
+      owner = klass = mrb_class(mrb, *regs_a);
+
+      mrb_method_t m = mrb_method_search_vm(mrb, &owner, name);
+      if (MRB_METHOD_UNDEF_P(m)) {
+        const char *s;
+        SET_NIL_VALUE(*regs_a);
+        s = mrb_class_name(mrb, klass);
+        mrb_raisef(
+          mrb, E_NAME_ERROR,
+          "undefined method '%S' for class '%S'",
+          mrb_sym2str(mrb, name),
+          mrb_str_new_static(mrb, s, strlen(s))
+        );
+        NEXT;
+      } else if (MRB_METHOD_PROC_P(m))
+        proc = MRB_METHOD_PROC(m);
+      else
+        proc = mrb_proc_new_cfunc(mrb, MRB_METHOD_FUNC(m));
+
+      while (owner->tt == MRB_TT_ICLASS)
+        owner = owner->c;
+
+      me = (struct RObject*)mrb_obj_alloc(mrb, MRB_TT_OBJECT, mrb_class_get(mrb, "Method"));
+      mrb_obj_iv_set(mrb, me, mrb_intern_lit(mrb, "@owner"), mrb_obj_value(owner));
+      mrb_obj_iv_set(mrb, me, mrb_intern_lit(mrb, "@recv"), *regs_a);
+      mrb_obj_iv_set(mrb, me, mrb_intern_lit(mrb, "@name"), mrb_symbol_value(name));
+      mrb_obj_iv_set(mrb, me, mrb_intern_lit(mrb, "proc"), proc ? mrb_obj_value(proc) : mrb_nil_value());
+      mrb_obj_iv_set(mrb, me, mrb_intern_lit(mrb, "@klass"), mrb_obj_value(klass));
+
+      *regs_a = mrb_obj_value(me);
+      NEXT;
+    }
+
     CASE(OP_JMP, S) {
       pc = irep->iseq+a;
       JUMP;

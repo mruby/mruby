@@ -44,6 +44,7 @@ OPCODE(GETMCNST,   BB)       /* R(a) = R(a)::Syms(b) */
 OPCODE(SETMCNST,   BB)       /* R(a+1)::Syms(b) = R(a) */
 OPCODE(GETUPVAR,   BBB)      /* R(a) = uvget(b,c) */
 OPCODE(SETUPVAR,   BBB)      /* uvset(b,c,R(a)) */
+OPCODE(GETMETHREF, BB)       /* R(a) = R(a).:Syms(b) */
 OPCODE(JMP,        S)        /* pc=a */
 OPCODE(JMPIF,      BS)       /* if R(b) pc=a */
 OPCODE(JMPNOT,     BS)       /* if !R(b) pc=a */

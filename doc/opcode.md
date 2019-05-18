@@ -60,6 +60,7 @@ with `"`, either `OP_EXT1` or `OP_EXT2` or `OP_EXT2` can be prefixed.
 |OP_SETMCNST"     |BB           |R(a+1)::Syms(b) = R(a)
 |OP_GETUPVAR'     |BBB          |R(a) = uvget(b,c)
 |OP_SETUPVAR'     |BBB          |uvset(b,c,R(a))
+|OP_GETMETHREF"   |BB           |R(a) = R(a).:Syms(b)
 |OP_JMP           |S            |pc+=a
 |OP_JMPIF'        |SB           |if R(b) pc+=a
 |OP_JMPNOT'       |SB           |if !R(b) pc+=a
