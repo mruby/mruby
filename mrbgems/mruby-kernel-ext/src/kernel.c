@@ -206,22 +206,6 @@ mrb_f_hash(mrb_state *mrb, mrb_value self)
   return mrb_ensure_hash_type(mrb, arg);
 }
 
-/*
- *  call-seq:
- *     obj.itself -> an_object
- *
- *  Returns <i>obj</i>.
- *
- *      string = 'my string' #=> "my string"
- *      string.itself.object_id == string.object_id #=> true
- *
- */
-static mrb_value
-mrb_f_itself(mrb_state *mrb, mrb_value self)
-{
-  return self;
-}
-
 void
 mrb_mruby_kernel_ext_gem_init(mrb_state *mrb)
 {
@@ -237,7 +221,6 @@ mrb_mruby_kernel_ext_gem_init(mrb_state *mrb)
   mrb_define_module_function(mrb, krn, "String", mrb_f_string, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, krn, "Array", mrb_f_array, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, krn, "Hash", mrb_f_hash, MRB_ARGS_REQ(1));
-  mrb_define_module_function(mrb, krn, "itself", mrb_f_itself, MRB_ARGS_NONE());
 }
 
 void
