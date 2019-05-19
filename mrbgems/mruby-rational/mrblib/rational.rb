@@ -58,11 +58,12 @@ class Rational < Numeric
     when Float
       return to_f <=> rhs
     end
+
     case rhs
     when Rational
       (numerator * rhs.denominator - denominator * rhs.numerator) <=> 0
     when Numeric
-      return rhs <=> self
+      (rhs <=> self)&.-@
     else
       nil
     end
