@@ -824,6 +824,7 @@ mrb_num_mul(mrb_state *mrb, mrb_value x, mrb_value y)
   }
 #endif
   mrb_raise(mrb, E_TYPE_ERROR, "no number multiply");
+  return mrb_nil_value();       /* not reached */
 }
 
 /* 15.2.8.3.3  */
@@ -1295,6 +1296,7 @@ mrb_num_plus(mrb_state *mrb, mrb_value x, mrb_value y)
   }
 #endif
   mrb_raise(mrb, E_TYPE_ERROR, "no number addition");
+  return mrb_nil_value();       /* not reached */
 }
 
 /* 15.2.8.3.1  */
@@ -1351,6 +1353,7 @@ mrb_num_minus(mrb_state *mrb, mrb_value x, mrb_value y)
   }
 #endif
   mrb_raise(mrb, E_TYPE_ERROR, "no number subtraction");
+  return mrb_nil_value();       /* not reached */
 }
 
 /* 15.2.8.3.2  */
