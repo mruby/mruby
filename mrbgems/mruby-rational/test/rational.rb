@@ -1,6 +1,6 @@
-def assert_rational(real, exp)
-  assert_float real.numerator,   exp.numerator
-  assert_float real.denominator, exp.denominator
+def assert_rational(exp, real)
+  assert_float exp.numerator,   real.numerator
+  assert_float exp.denominator, real.denominator
 end
 
 def assert_equal_rational(exp, o1, o2)
@@ -23,55 +23,55 @@ end
 
 assert 'Rational' do
   r = 5r
-  assert_equal Rational, r.class
-  assert_equal [r.numerator, r.denominator], [5, 1]
+  assert_equal(r.class, Rational)
+  assert_equal([5, 1], [r.numerator, r.denominator])
 end
 
 assert 'Rational#to_f' do
-  assert_float Rational(2).to_f, 2.0
-  assert_float Rational(9, 4).to_f, 2.25
-  assert_float Rational(-3, 4).to_f, -0.75
-  assert_float Rational(20, 3).to_f, 6.666666666666667
+  assert_float(2.0, Rational(2).to_f)
+  assert_float(2.25, Rational(9, 4).to_f)
+  assert_float(-0.75, Rational(-3, 4).to_f)
+  assert_float(6.666666666666667, Rational(20, 3).to_f)
 end
 
 assert 'Rational#to_i' do
-  assert_equal Rational(2, 3).to_i, 0
-  assert_equal Rational(3).to_i, 3
-  assert_equal Rational(300.6).to_i, 300
-  assert_equal Rational(98, 71).to_i, 1
-  assert_equal Rational(-30, 2).to_i, -15
+  assert_equal(0, Rational(2, 3).to_i)
+  assert_equal(3, Rational(3).to_i)
+  assert_equal(300, Rational(300.6).to_i)
+  assert_equal(1, Rational(98, 71).to_i)
+  assert_equal(-15, Rational(-30, 2).to_i)
 end
 
 assert 'Rational#*' do
-  assert_rational Rational(2, 3)  * Rational(2, 3),  Rational(4, 9)
-  assert_rational Rational(900)   * Rational(1),     Rational(900, 1)
-  assert_rational Rational(-2, 9) * Rational(-9, 2), Rational(1, 1)
-  assert_rational Rational(9, 8)  * 4,               Rational(9, 2)
-  assert_float    Rational(20, 9) * 9.8,             21.77777777777778
+  assert_rational(Rational(4, 9),    Rational(2, 3)  * Rational(2, 3))
+  assert_rational(Rational(900, 1),  Rational(900)   * Rational(1))
+  assert_rational(Rational(1, 1),    Rational(-2, 9) * Rational(-9, 2))
+  assert_rational(Rational(9, 2),    Rational(9, 8)  * 4)
+  assert_float(   21.77777777777778, Rational(20, 9) * 9.8)
 end
 
 assert 'Rational#+' do
-  assert_rational Rational(2, 3)  + Rational(2, 3),  Rational(4, 3)
-  assert_rational Rational(900)   + Rational(1),     Rational(901, 1)
-  assert_rational Rational(-2, 9) + Rational(-9, 2), Rational(-85, 18)
-  assert_rational Rational(9, 8)  + 4,               Rational(41, 8)
-  assert_float    Rational(20, 9) + 9.8,             12.022222222222222
+  assert_rational(Rational(4, 3),     Rational(2, 3)  + Rational(2, 3))
+  assert_rational(Rational(901, 1),   Rational(900)   + Rational(1))
+  assert_rational(Rational(-85, 18),  Rational(-2, 9) + Rational(-9, 2))
+  assert_rational(Rational(41, 8),    Rational(9, 8)  + 4)
+  assert_float(   12.022222222222222, Rational(20, 9) + 9.8)
 end
 
 assert 'Rational#-' do
-  assert_rational Rational(2, 3)  - Rational(2, 3),  Rational(0, 1)
-  assert_rational Rational(900)   - Rational(1),     Rational(899, 1)
-  assert_rational Rational(-2, 9) - Rational(-9, 2), Rational(77, 18)
-  assert_rational Rational(9, 8)  - 4,               Rational(-23, 8)
-  assert_float    Rational(20, 9) - 9.8,             -7.577777777777778
+  assert_rational(Rational(0, 1),     Rational(2, 3)  - Rational(2, 3))
+  assert_rational(Rational(899, 1),   Rational(900)   - Rational(1))
+  assert_rational(Rational(77, 18),   Rational(-2, 9) - Rational(-9, 2))
+  assert_rational(Rational(-23, 8),   Rational(9, 8)  - 4)
+  assert_float(   -7.577777777777778, Rational(20, 9) - 9.8)
 end
 
 assert 'Rational#/' do
-  assert_rational Rational(2, 3)  / Rational(2, 3),  Rational(1, 1)
-  assert_rational Rational(900)   / Rational(1),     Rational(900, 1)
-  assert_rational Rational(-2, 9) / Rational(-9, 2), Rational(4, 81)
-  assert_rational Rational(9, 8)  / 4,               Rational(9, 32)
-  assert_float    Rational(20, 9) / 9.8,             0.22675736961451246
+  assert_rational(Rational(1, 1),      Rational(2, 3)  / Rational(2, 3))
+  assert_rational(Rational(900, 1),    Rational(900)   / Rational(1))
+  assert_rational(Rational(4, 81),     Rational(-2, 9) / Rational(-9, 2))
+  assert_rational(Rational(9, 32),     Rational(9, 8)  / 4)
+  assert_float(   0.22675736961451246, Rational(20, 9) / 9.8)
 end
 
 assert 'Rational#==, Rational#!=' do
