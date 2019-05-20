@@ -788,7 +788,7 @@ int_to_i(mrb_state *mrb, mrb_value num)
 }
 
 static mrb_value
-mrb_fixnum_mul(mrb_state *mrb, mrb_value x, mrb_value y)
+fixnum_mul(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mrb_int a;
 
@@ -812,6 +812,20 @@ mrb_fixnum_mul(mrb_state *mrb, mrb_value x, mrb_value y)
 #endif
 }
 
+MRB_API mrb_value
+mrb_num_mul(mrb_state *mrb, mrb_value x, mrb_value y)
+{
+  if (mrb_fixnum_p(x)) {
+    return fixnum_mul(mrb, x, y);
+  }
+#ifndef MRB_WITHOUT_FLOAT
+  if (mrb_float_p(x)) {
+    return mrb_float_value(mrb, mrb_float(x) * mrb_to_flo(mrb, y));
+  }
+#endif
+  mrb_raise(mrb, E_TYPE_ERROR, "no number multiply");
+}
+
 /* 15.2.8.3.3  */
 /*
  * call-seq:
@@ -828,7 +842,7 @@ fix_mul(mrb_state *mrb, mrb_value x)
   mrb_value y;
 
   mrb_get_args(mrb, "o", &y);
-  return mrb_fixnum_mul(mrb, x, y);
+  return fixnum_mul(mrb, x, y);
 }
 
 static void
@@ -1245,7 +1259,7 @@ mrb_flo_to_fixnum(mrb_state *mrb, mrb_value x)
 #endif
 
 static mrb_value
-mrb_fixnum_plus(mrb_state *mrb, mrb_value x, mrb_value y)
+fixnum_plus(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mrb_int a;
 
@@ -1269,6 +1283,20 @@ mrb_fixnum_plus(mrb_state *mrb, mrb_value x, mrb_value y)
 #endif
 }
 
+MRB_API mrb_value
+mrb_num_plus(mrb_state *mrb, mrb_value x, mrb_value y)
+{
+  if (mrb_fixnum_p(x)) {
+    return fixnum_plus(mrb, x, y);
+  }
+#ifndef MRB_WITHOUT_FLOAT
+  if (mrb_float_p(x)) {
+    return mrb_float_value(mrb, mrb_float(x) + mrb_to_flo(mrb, y));
+  }
+#endif
+  mrb_raise(mrb, E_TYPE_ERROR, "no number addition");
+}
+
 /* 15.2.8.3.1  */
 /*
  * call-seq:
@@ -1284,11 +1312,11 @@ fix_plus(mrb_state *mrb, mrb_value self)
   mrb_value other;
 
   mrb_get_args(mrb, "o", &other);
-  return mrb_fixnum_plus(mrb, self, other);
+  return fixnum_plus(mrb, self, other);
 }
 
 static mrb_value
-mrb_fixnum_minus(mrb_state *mrb, mrb_value x, mrb_value y)
+fixnum_minus(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mrb_int a;
 
@@ -1311,6 +1339,20 @@ mrb_fixnum_minus(mrb_state *mrb, mrb_value x, mrb_value y)
 #endif
 }
 
+MRB_API mrb_value
+mrb_num_minus(mrb_state *mrb, mrb_value x, mrb_value y)
+{
+  if (mrb_fixnum_p(x)) {
+    return fixnum_minus(mrb, x, y);
+  }
+#ifdef MRB_WITHOUT_FLOAT
+  if (mrb_float_p(x)) {
+    return mrb_float_value(mrb, mrb_float(x) - mrb_to_flo(mrb, y));
+  }
+#endif
+  mrb_raise(mrb, E_TYPE_ERROR, "no number subtraction");
+}
+
 /* 15.2.8.3.2  */
 /* 15.2.8.3.16 */
 /*
@@ -1327,7 +1369,7 @@ fix_minus(mrb_state *mrb, mrb_value self)
   mrb_value other;
 
   mrb_get_args(mrb, "o", &other);
-  return mrb_fixnum_minus(mrb, self, other);
+  return fixnum_minus(mrb, self, other);
 }
 
 
