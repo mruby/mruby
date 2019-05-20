@@ -48,12 +48,9 @@ class Rational < Numeric
   end
 
   def <=>(rhs)
-    case rhs
-    when Fixnum
+    if rhs.is_a?(Integral)
       return numerator <=> rhs if denominator == 1
       rhs = Rational(rhs)
-    when Float
-      return to_f <=> rhs
     end
 
     case rhs
@@ -103,5 +100,5 @@ end
       end
       __send__(original_operator_name, rhs)
     end
-  end
+  end if Object.const_defined?(:Float)
 end
