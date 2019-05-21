@@ -23,7 +23,7 @@ end
 
 assert 'Rational' do
   r = 5r
-  assert_equal(r.class, Rational)
+  assert_equal(Rational, r.class)
   assert_equal([5, 1], [r.numerator, r.denominator])
 end
 
