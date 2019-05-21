@@ -63,8 +63,6 @@ assert 'Complex#==' do
   assert_true  Complex(2, 3)  == Complex(2, 3)
   assert_true  Complex(5)     == 5
   assert_true  Complex(0)     == 0.0
-  assert_false Complex('1/3') == 0.33
-  assert_false Complex('1/2') == '1/2'
 end
 
 assert 'Complex#abs' do
