@@ -7,6 +7,29 @@ struct mrb_complex {
   mrb_float imaginary;
 };
 
+#if defined(MRB_64BIT) || defined(MRB_USE_FLOAT)
+
+#define COMPLEX_USE_ISTRUCT
+/* use TT_ISTRUCT */
+#include <mruby/istruct.h>
+
+#define complex_ptr(mrb, v) (struct mrb_complex*)mrb_istruct_ptr(v)
+
+static mrb_value
+complex_new(mrb_state *mrb, mrb_float real, mrb_float imaginary)
+{
+  struct RClass *c = mrb_class_get(mrb, "Complex");
+  struct RIStruct *s = (struct RIStruct*)mrb_obj_alloc(mrb, MRB_TT_ISTRUCT, c);
+  mrb_value comp = mrb_obj_value(s);
+  struct mrb_complex *p = complex_ptr(mrb, comp);
+  p->real = real;
+  p->imaginary = imaginary;
+
+  return comp;
+}
+
+#else
+/* use TT_DATA */
 #include <mruby/data.h>
 
 static const struct mrb_data_type mrb_complex_type = {"Complex", mrb_free};
@@ -35,6 +58,7 @@ complex_ptr(mrb_state *mrb, mrb_value v)
   }
   return p;
 }
+#endif
 
 static mrb_value
 complex_real(mrb_state *mrb, mrb_value self)
