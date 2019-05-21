@@ -45,7 +45,7 @@ mrb_to_flo(mrb_state *mrb, mrb_value val)
   return mrb_float(val);
 }
 
-static mrb_value
+MRB_API mrb_value
 mrb_int_value(mrb_state *mrb, mrb_float f)
 {
   if (FIXABLE_FLOAT(f)) {

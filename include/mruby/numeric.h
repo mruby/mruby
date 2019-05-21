@@ -34,6 +34,7 @@ MRB_API mrb_value mrb_fixnum_to_str(mrb_state *mrb, mrb_value x, mrb_int base);
 #ifndef MRB_WITHOUT_FLOAT
 MRB_API mrb_value mrb_float_to_str(mrb_state *mrb, mrb_value x, const char *fmt);
 MRB_API mrb_float mrb_to_flo(mrb_state *mrb, mrb_value x);
+MRB_API mrb_value mrb_int_value(mrb_state *mrb, mrb_float f);
 #endif
 
 MRB_API mrb_value mrb_num_plus(mrb_state *mrb, mrb_value x, mrb_value y);
