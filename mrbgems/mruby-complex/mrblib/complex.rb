@@ -23,43 +23,43 @@ class Complex < Numeric
   end
 
   def +@
-    Complex(real, imaginary)
+    Complex._new(real, imaginary)
   end
 
   def -@
-    Complex(-real, -imaginary)
+    Complex._new(-real, -imaginary)
   end
 
   def +(rhs)
     if rhs.is_a? Complex
-      Complex(real + rhs.real, imaginary + rhs.imaginary)
+      Complex._new(real + rhs.real, imaginary + rhs.imaginary)
     elsif rhs.is_a? Numeric
-      Complex(real + rhs, imaginary)
+      Complex._new(real + rhs, imaginary)
     end
   end
 
   def -(rhs)
     if rhs.is_a? Complex
-      Complex(real - rhs.real, imaginary - rhs.imaginary)
+      Complex._new(real - rhs.real, imaginary - rhs.imaginary)
     elsif rhs.is_a? Numeric
-      Complex(real - rhs, imaginary)
+      Complex._new(real - rhs, imaginary)
     end
   end
 
   def *(rhs)
     if rhs.is_a? Complex
-      Complex(real * rhs.real - imaginary * rhs.imaginary, real * rhs.imaginary + rhs.real * imaginary)
+      Complex._new(real * rhs.real - imaginary * rhs.imaginary, real * rhs.imaginary + rhs.real * imaginary)
     elsif rhs.is_a? Numeric
-      Complex(real * rhs, imaginary * rhs)
+      Complex._new(real * rhs, imaginary * rhs)
     end
   end
 
   def /(rhs)
     if rhs.is_a? Complex
       div = rhs.real * rhs.real + rhs.imaginary * rhs.imaginary
-      Complex((real * rhs.real + imaginary * rhs.imaginary) / div, (rhs.real * imaginary - real * rhs.imaginary) / div)
+      Complex._new((real * rhs.real + imaginary * rhs.imaginary) / div, (rhs.real * imaginary - real * rhs.imaginary) / div)
     elsif rhs.is_a? Numeric
-      Complex(real / rhs, imaginary / rhs)
+      Complex._new(real / rhs, imaginary / rhs)
     end
   end
   alias_method :quo, :/
@@ -92,14 +92,6 @@ class Complex < Numeric
   end
   alias_method :conj, :conjugate
 
-  def numerator
-    self
-  end
-
-  def denominator
-    1
-  end
-
   def fdiv(numeric)
     Complex(real.to_f / numeric, imaginary.to_f / numeric)
   end
@@ -117,34 +109,12 @@ class Complex < Numeric
   end
   alias_method :rect, :rectangular
 
-  def to_c
-    self
-  end
-
-  def to_f
-    raise RangeError.new "can't convert #{to_s} into Float" unless imaginary.zero?
-    real.to_f
-  end
-
-  def to_i
-    raise RangeError.new "can't convert #{to_s} into Integer" unless imaginary.zero?
-    real.to_i
-  end
-
   def to_r
     raise RangeError.new "can't convert #{to_s} into Rational" unless imaginary.zero?
     Rational(real, 1)
   end
 
-  attr_reader :real, :imaginary
   alias_method :imag, :imaginary
-end
-
-class << Complex
-  alias_method :_new, :new
-  undef_method :new
-
-  alias_method :rect, :rectangular
 end
 
 module Kernel

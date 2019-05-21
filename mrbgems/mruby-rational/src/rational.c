@@ -37,7 +37,7 @@ rational_new(mrb_state *mrb, mrb_int numerator, mrb_int denominator)
   struct mrb_rational *p = rational_ptr(rat);
   p->numerator = numerator;
   p->denominator = denominator;
-  return mrb_obj_value(s);
+  return rat;
 }
 
 static mrb_value
