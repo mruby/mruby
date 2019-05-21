@@ -65,7 +65,7 @@ mrb_int_value(mrb_state *mrb, mrb_float f)
  *    2.0**3      #=> 8.0
  */
 static mrb_value
-num_pow(mrb_state *mrb, mrb_value x)
+integral_pow(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
 #ifndef MRB_WITHOUT_FLOAT
@@ -113,7 +113,7 @@ num_pow(mrb_state *mrb, mrb_value x)
 }
 
 static mrb_value
-num_idiv(mrb_state *mrb, mrb_value x)
+integral_idiv(mrb_state *mrb, mrb_value x)
 {
 #ifdef MRB_WITHOUT_FLOAT
   mrb_value y;
@@ -151,7 +151,7 @@ num_idiv(mrb_state *mrb, mrb_value x)
  */
 
 static mrb_value
-num_div(mrb_state *mrb, mrb_value x)
+integral_div(mrb_state *mrb, mrb_value x)
 {
 #ifdef MRB_WITHOUT_FLOAT
   mrb_value y;
@@ -1479,7 +1479,7 @@ cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
  *  basis for the tests in <code>Comparable</code>.
  */
 static mrb_value
-num_cmp(mrb_state *mrb, mrb_value self)
+integral_cmp(mrb_state *mrb, mrb_value self)
 {
   mrb_value other;
   mrb_int n;
@@ -1499,7 +1499,7 @@ cmperr(mrb_state *mrb, mrb_value v1, mrb_value v2)
 }
 
 static mrb_value
-num_lt(mrb_state *mrb, mrb_value self)
+integral_lt(mrb_state *mrb, mrb_value self)
 {
   mrb_value other;
   mrb_int n;
@@ -1512,7 +1512,7 @@ num_lt(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
-num_le(mrb_state *mrb, mrb_value self)
+integral_le(mrb_state *mrb, mrb_value self)
 {
   mrb_value other;
   mrb_int n;
@@ -1525,7 +1525,7 @@ num_le(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
-num_gt(mrb_state *mrb, mrb_value self)
+integral_gt(mrb_state *mrb, mrb_value self)
 {
   mrb_value other;
   mrb_int n;
@@ -1538,7 +1538,7 @@ num_gt(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
-num_ge(mrb_state *mrb, mrb_value self)
+integral_ge(mrb_state *mrb, mrb_value self)
 {
   mrb_value other;
   mrb_int n;
@@ -1593,20 +1593,19 @@ mrb_init_numeric(mrb_state *mrb)
 #endif
 
   integral = mrb_define_module(mrb, "Integral");
-  mrb_define_method(mrb, integral, "__coerce_step_counter", integral_coerce_step_counter, MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, integral,"**",       integral_pow,    MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, integral,"/",        integral_div,    MRB_ARGS_REQ(1)); /* 15.2.8.3.4  */
+  mrb_define_method(mrb, integral,"quo",      integral_div,    MRB_ARGS_REQ(1)); /* 15.2.7.4.5 (x) */
+  mrb_define_method(mrb, integral,"div",      integral_idiv,   MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, integral,"<=>",      integral_cmp,    MRB_ARGS_REQ(1)); /* 15.2.9.3.6  */
+  mrb_define_method(mrb, integral,"<",        integral_lt,     MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, integral,"<=",       integral_le,     MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, integral,">",        integral_gt,     MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, integral,">=",       integral_ge,     MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, integral,"__coerce_step_counter", integral_coerce_step_counter, MRB_ARGS_REQ(2));
 
   /* Numeric Class */
   numeric = mrb_define_class(mrb, "Numeric",  mrb->object_class);                /* 15.2.7 */
-
-  mrb_define_method(mrb, numeric, "**",       num_pow,         MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, numeric, "/",        num_div,         MRB_ARGS_REQ(1)); /* 15.2.8.3.4  */
-  mrb_define_method(mrb, numeric, "quo",      num_div,         MRB_ARGS_REQ(1)); /* 15.2.7.4.5 (x) */
-  mrb_define_method(mrb, numeric, "div",      num_idiv,        MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, numeric, "<=>",      num_cmp,         MRB_ARGS_REQ(1)); /* 15.2.9.3.6  */
-  mrb_define_method(mrb, numeric, "<",        num_lt,          MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, numeric, "<=",       num_le,          MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, numeric, ">",        num_gt,          MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, numeric, ">=",       num_ge,          MRB_ARGS_REQ(1));
   mrb_define_method(mrb, numeric, "finite?",  num_finite_p,    MRB_ARGS_NONE());
   mrb_define_method(mrb, numeric, "infinite?",num_infinite_p,  MRB_ARGS_NONE());
 
