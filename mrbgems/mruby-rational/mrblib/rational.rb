@@ -1,7 +1,4 @@
 class Rational < Numeric
-  # Override #<, #<=, #>, #>= in Numeric
-  prepend Comparable
-
   def inspect
     "(#{to_s})"
   end
