@@ -1597,10 +1597,10 @@ mrb_init_numeric(mrb_state *mrb)
 
   integral = mrb_define_module(mrb, "Integral");
   mrb_define_method(mrb, integral,"**",       integral_pow,    MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, integral,"/",        integral_div,    MRB_ARGS_REQ(1)); /* 15.2.8.3.4  */
+  mrb_define_method(mrb, integral,"/",        integral_div,    MRB_ARGS_REQ(1)); /* 15.2.{8,9}.3.6  */
   mrb_define_method(mrb, integral,"quo",      integral_div,    MRB_ARGS_REQ(1)); /* 15.2.7.4.5 (x) */
   mrb_define_method(mrb, integral,"div",      integral_idiv,   MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, integral,"<=>",      integral_cmp,    MRB_ARGS_REQ(1)); /* 15.2.9.3.6  */
+  mrb_define_method(mrb, integral,"<=>",      integral_cmp,    MRB_ARGS_REQ(1)); /* 15.2.{8,9}.3.1  */
   mrb_define_method(mrb, integral,"<",        integral_lt,     MRB_ARGS_REQ(1));
   mrb_define_method(mrb, integral,"<=",       integral_le,     MRB_ARGS_REQ(1));
   mrb_define_method(mrb, integral,">",        integral_gt,     MRB_ARGS_REQ(1));
