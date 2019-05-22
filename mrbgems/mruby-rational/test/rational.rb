@@ -27,6 +27,19 @@ assert 'Rational' do
   assert_equal([5, 1], [r.numerator, r.denominator])
 end
 
+assert 'Kernel#Rational' do
+  r = Rational(4,10)
+  assert_equal(2, r.numerator)
+  assert_equal(5, r.denominator)
+
+  r = Rational(3)
+  assert_equal(3, r.numerator)
+  assert_equal(1, r.denominator)
+
+  assert_raise(ArgumentError) { Rational() }
+  assert_raise(ArgumentError) { Rational(1,2,3) }
+end
+
 assert 'Rational#to_f' do
   assert_float(2.0, Rational(2).to_f)
   assert_float(2.25, Rational(9, 4).to_f)
