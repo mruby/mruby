@@ -71,7 +71,7 @@ class Numeric
 end
 
 module Kernel
-  def Rational(numerator = 0, denominator = 1)
+  def Rational(numerator, denominator = 1)
     a = numerator
     b = denominator
     a, b = b, a % b until b == 0
