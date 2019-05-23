@@ -1,5 +1,5 @@
 def assert_complex(real, exp)
-  assert_float real.real,      exp.real           
+  assert_float real.real,      exp.real
   assert_float real.imaginary, exp.imaginary
 end
 
@@ -125,4 +125,10 @@ assert 'Complex::to_i' do
   assert_raise(RangeError) do
     Complex(1, 2).to_i
   end
+end
+
+assert 'Complex#frozen?' do
+  assert_predicate(1i, :frozen?)
+  assert_predicate(Complex(2,3), :frozen?)
+  assert_predicate(4+5i, :frozen?)
 end
