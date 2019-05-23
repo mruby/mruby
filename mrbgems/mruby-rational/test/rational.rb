@@ -278,3 +278,9 @@ assert 'Rational#negative?' do
   assert_not_predicate(Rational(2,3), :negative?)
   assert_not_predicate(Rational(0), :negative?)
 end
+
+assert 'Rational#frozen?' do
+  assert_predicate(1r, :frozen?)
+  assert_predicate(Rational(2,3), :frozen?)
+  assert_predicate(4/5r, :frozen?)
+end

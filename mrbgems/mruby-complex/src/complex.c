@@ -24,6 +24,7 @@ complex_new(mrb_state *mrb, mrb_float real, mrb_float imaginary)
   struct mrb_complex *p = complex_ptr(mrb, comp);
   p->real = real;
   p->imaginary = imaginary;
+  MRB_SET_FROZEN_FLAG(s);
 
   return comp;
 }
