@@ -1,17 +1,6 @@
 class Complex < Numeric
-  def initialize(real, imaginary)
-    real = real.to_f unless real.is_a? Numeric
-    imaginary = imaginary.to_f unless imaginary.is_a? Numeric
-    @real = real
-    @imaginary = imaginary
-  end
-
   def self.polar(abs, arg = 0)
     Complex(abs * Math.cos(arg), abs * Math.sin(arg))
-  end
-
-  def self.rectangular(real, imaginary = 0)
-    _new(real, imaginary)
   end
 
   def inspect
@@ -23,43 +12,43 @@ class Complex < Numeric
   end
 
   def +@
-    Complex._new(real, imaginary)
+    Complex(real, imaginary)
   end
 
   def -@
-    Complex._new(-real, -imaginary)
+    Complex(-real, -imaginary)
   end
 
   def +(rhs)
     if rhs.is_a? Complex
-      Complex._new(real + rhs.real, imaginary + rhs.imaginary)
+      Complex(real + rhs.real, imaginary + rhs.imaginary)
     elsif rhs.is_a? Numeric
-      Complex._new(real + rhs, imaginary)
+      Complex(real + rhs, imaginary)
     end
   end
 
   def -(rhs)
     if rhs.is_a? Complex
-      Complex._new(real - rhs.real, imaginary - rhs.imaginary)
+      Complex(real - rhs.real, imaginary - rhs.imaginary)
     elsif rhs.is_a? Numeric
-      Complex._new(real - rhs, imaginary)
+      Complex(real - rhs, imaginary)
     end
   end
 
   def *(rhs)
     if rhs.is_a? Complex
-      Complex._new(real * rhs.real - imaginary * rhs.imaginary, real * rhs.imaginary + rhs.real * imaginary)
+      Complex(real * rhs.real - imaginary * rhs.imaginary, real * rhs.imaginary + rhs.real * imaginary)
     elsif rhs.is_a? Numeric
-      Complex._new(real * rhs, imaginary * rhs)
+      Complex(real * rhs, imaginary * rhs)
     end
   end
 
   def /(rhs)
     if rhs.is_a? Complex
       div = rhs.real * rhs.real + rhs.imaginary * rhs.imaginary
-      Complex._new((real * rhs.real + imaginary * rhs.imaginary) / div, (rhs.real * imaginary - real * rhs.imaginary) / div)
+      Complex((real * rhs.real + imaginary * rhs.imaginary) / div, (rhs.real * imaginary - real * rhs.imaginary) / div)
     elsif rhs.is_a? Numeric
-      Complex._new(real / rhs, imaginary / rhs)
+      Complex(real / rhs, imaginary / rhs)
     end
   end
   alias_method :quo, :/
@@ -115,12 +104,6 @@ class Complex < Numeric
   end
 
   alias_method :imag, :imaginary
-end
-
-module Kernel
-  def Complex(real, imaginary = 0)
-    Complex.rectangular(real, imaginary)
-  end
 end
 
 [Fixnum, Float].each do |cls|

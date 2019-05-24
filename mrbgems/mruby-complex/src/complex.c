@@ -76,11 +76,11 @@ complex_imaginary(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
-complex_s_new(mrb_state *mrb, mrb_value self)
+complex_s_rect(mrb_state *mrb, mrb_value self)
 {
-  mrb_float real, imaginary;
+  mrb_float real, imaginary = 0.0;
 
-  mrb_get_args(mrb, "ff", &real, &imaginary);
+  mrb_get_args(mrb, "f|f", &real, &imaginary);
   return complex_new(mrb, real, imaginary);
 }
 
@@ -125,7 +125,8 @@ void mrb_mruby_complex_gem_init(mrb_state *mrb)
   comp = mrb_define_class(mrb, "Complex", mrb_class_get(mrb, "Numeric"));
   //MRB_SET_INSTANCE_TT(comp, MRB_TT_ISTRUCT);
   mrb_undef_class_method(mrb, comp, "new");
-  mrb_define_class_method(mrb, comp, "_new", complex_s_new, MRB_ARGS_REQ(2));
+  mrb_define_class_method(mrb, comp, "rectangular", complex_s_rect, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
+  mrb_define_method(mrb, mrb->kernel_module, "Complex", complex_s_rect, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_method(mrb, comp, "real", complex_real, MRB_ARGS_NONE());
   mrb_define_method(mrb, comp, "imaginary", complex_imaginary, MRB_ARGS_NONE());
 #ifndef MRB_WITHOUT_FLOAT
