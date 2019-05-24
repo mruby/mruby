@@ -72,7 +72,7 @@ assert('Time#+', '15.2.19.7.1') do
   t1 = Time.at(1300000000.0)
   t2 = t1.+(60)
 
-  assert_equal(t2.utc.asctime, "Sun Mar 13 07:07:40 2011")
+  assert_equal("Sun Mar 13 07:07:40 2011", t2.utc.asctime)
 
   assert_raise(FloatDomainError) { Time.at(0) + Float::NAN }
   assert_raise(FloatDomainError) { Time.at(0) + Float::INFINITY }
@@ -83,7 +83,7 @@ assert('Time#-', '15.2.19.7.2') do
   t1 = Time.at(1300000000.0)
   t2 = t1.-(60)
 
-  assert_equal(t2.utc.asctime, "Sun Mar 13 07:05:40 2011")
+  assert_equal("Sun Mar 13 07:05:40 2011", t2.utc.asctime)
 
   assert_raise(FloatDomainError) { Time.at(0) - Float::NAN }
   assert_raise(FloatDomainError) { Time.at(0) - Float::INFINITY }
