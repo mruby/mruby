@@ -63,15 +63,14 @@ mrb_f_caller(mrb_state *mrb, mrb_value self)
 
 /*
  *  call-seq:
- *     __method__         -> symbol
+ *     __callee__         -> symbol
  *
- *  Returns the name at the definition of the current method as a
- *  Symbol.
+ *  Returns the called name of the current method as a Symbol.
  *  If called outside of a method, it returns <code>nil</code>.
  *
  */
 static mrb_value
-mrb_f_method(mrb_state *mrb, mrb_value self)
+mrb_f_callee(mrb_state *mrb, mrb_value self)
 {
   mrb_callinfo *ci = mrb->c->ci;
   ci--;
@@ -213,7 +212,7 @@ mrb_mruby_kernel_ext_gem_init(mrb_state *mrb)
 
   mrb_define_module_function(mrb, krn, "fail", mrb_f_raise, MRB_ARGS_OPT(2));
   mrb_define_module_function(mrb, krn, "caller", mrb_f_caller, MRB_ARGS_OPT(2));
-  mrb_define_method(mrb, krn, "__method__", mrb_f_method, MRB_ARGS_NONE());
+  mrb_define_method(mrb, krn, "__callee__", mrb_f_callee, MRB_ARGS_NONE());
   mrb_define_module_function(mrb, krn, "Integer", mrb_f_integer, MRB_ARGS_ANY());
 #ifndef MRB_WITHOUT_FLOAT
   mrb_define_module_function(mrb, krn, "Float", mrb_f_float, MRB_ARGS_REQ(1));
