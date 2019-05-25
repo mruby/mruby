@@ -449,9 +449,6 @@ str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
   if (clen == 0) {
     len = 0;
   }
-  else if (beg < 0) {
-    beg = clen + beg;
-  }
   if (beg > clen) return mrb_nil_value();
   if (beg < 0) {
     beg += clen;
