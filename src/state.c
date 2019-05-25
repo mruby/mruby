@@ -57,38 +57,6 @@ mrb_default_allocf(mrb_state *mrb, void *p, size_t size, void *ud)
   }
 }
 
-struct alloca_header {
-  struct alloca_header *next;
-  char buf[1];
-};
-
-MRB_API void*
-mrb_alloca(mrb_state *mrb, size_t size)
-{
-  struct alloca_header *p;
-
-  p = (struct alloca_header*) mrb_malloc(mrb, sizeof(struct alloca_header)+size);
-  p->next = mrb->mems;
-  mrb->mems = p;
-  return (void*)p->buf;
-}
-
-static void
-mrb_alloca_free(mrb_state *mrb)
-{
-  struct alloca_header *p;
-  struct alloca_header *tmp;
-
-  if (mrb == NULL) return;
-  p = mrb->mems;
-
-  while (p) {
-    tmp = p;
-    p = p->next;
-    mrb_free(mrb, tmp);
-  }
-}
-
 MRB_API mrb_state*
 mrb_open(void)
 {
@@ -256,7 +224,6 @@ mrb_close(mrb_state *mrb)
   mrb_gc_free_gv(mrb);
   mrb_free_context(mrb, mrb->root_c);
   mrb_free_symtbl(mrb);
-  mrb_alloca_free(mrb);
   mrb_gc_destroy(mrb, &mrb->gc);
   mrb_free(mrb, mrb);
 }
