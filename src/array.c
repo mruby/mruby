@@ -858,7 +858,7 @@ mrb_ary_aget(mrb_state *mrb, mrb_value self)
     switch (mrb_type(index)) {
       /* a[n..m] */
     case MRB_TT_RANGE:
-      if (mrb_range_beg_len(mrb, index, &i, &len, ARY_LEN(a), TRUE) == 1) {
+      if (mrb_range_beg_len(mrb, index, &i, &len, ARY_LEN(a), TRUE) == MRB_RANGE_OK) {
         return ary_subseq(mrb, a, i, len);
       }
       else {
@@ -927,13 +927,13 @@ mrb_ary_aset(mrb_state *mrb, mrb_value self)
   if (mrb_get_args(mrb, "oo|o", &v1, &v2, &v3) == 2) {
     /* a[n..m] = v */
     switch (mrb_range_beg_len(mrb, v1, &i, &len, RARRAY_LEN(self), FALSE)) {
-    case 0:                   /* not range */
+    case MRB_RANGE_TYPE_MISMATCH:
       mrb_ary_set(mrb, self, aget_index(mrb, v1), v2);
       break;
-    case 1:                   /* range */
+    case MRB_RANGE_OK:
       mrb_ary_splice(mrb, self, i, len, v2);
       break;
-    case 2:                   /* out of range */
+    case MRB_RANGE_OUT:
       mrb_raisef(mrb, E_RANGE_ERROR, "%S out of range", v1);
       break;
     }

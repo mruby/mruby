@@ -1041,9 +1041,9 @@ num_index:
 
           len = RSTRING_CHAR_LEN(str);
           switch (mrb_range_beg_len(mrb, indx, &beg, &len, len, TRUE)) {
-          case 1:
+          case MRB_RANGE_OK:
             return str_subseq(mrb, str, beg, len);
-          case 2:
+          case MRB_RANGE_OUT:
             return mrb_nil_value();
           default:
             break;

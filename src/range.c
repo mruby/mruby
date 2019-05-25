@@ -352,7 +352,7 @@ mrb_get_values_at(mrb_state *mrb, mrb_value obj, mrb_int olen, mrb_int argc, con
     if (mrb_fixnum_p(argv[i])) {
       mrb_ary_push(mrb, result, func(mrb, obj, mrb_fixnum(argv[i])));
     }
-    else if (mrb_range_beg_len(mrb, argv[i], &beg, &len, olen, FALSE) == 1) {
+    else if (mrb_range_beg_len(mrb, argv[i], &beg, &len, olen, FALSE) == MRB_RANGE_OK) {
       mrb_int const end = olen < beg + len ? olen : beg + len;
       for (j = beg; j < end; ++j) {
         mrb_ary_push(mrb, result, func(mrb, obj, j));
@@ -398,13 +398,13 @@ mrb_range_new(mrb_state *mrb, mrb_value beg, mrb_value end, mrb_bool excl)
   return mrb_range_value(r);
 }
 
-MRB_API mrb_int
+MRB_API enum mrb_range_beg_len
 mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp, mrb_int len, mrb_bool trunc)
 {
   mrb_int beg, end;
   struct RRange *r;
 
-  if (mrb_type(range) != MRB_TT_RANGE) return 0;
+  if (mrb_type(range) != MRB_TT_RANGE) return MRB_RANGE_TYPE_MISMATCH;
   r = mrb_range_ptr(mrb, range);
 
   beg = mrb_int(mrb, RANGE_BEG(r));
@@ -412,11 +412,11 @@ mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp,
 
   if (beg < 0) {
     beg += len;
-    if (beg < 0) return 2;
+    if (beg < 0) return MRB_RANGE_OUT;
   }
 
   if (trunc) {
-    if (beg > len) return 2;
+    if (beg > len) return MRB_RANGE_OUT;
     if (end > len) end = len;
   }
 
@@ -427,7 +427,7 @@ mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp,
 
   *begp = beg;
   *lenp = len;
-  return 1;
+  return MRB_RANGE_OK;
 }
 
 void
