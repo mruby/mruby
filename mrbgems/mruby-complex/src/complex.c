@@ -126,6 +126,7 @@ void mrb_mruby_complex_gem_init(mrb_state *mrb)
   //MRB_SET_INSTANCE_TT(comp, MRB_TT_ISTRUCT);
   mrb_undef_class_method(mrb, comp, "new");
   mrb_define_class_method(mrb, comp, "rectangular", complex_s_rect, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
+  mrb_define_class_method(mrb, comp, "rect", complex_s_rect, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_method(mrb, mrb->kernel_module, "Complex", complex_s_rect, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_method(mrb, comp, "real", complex_real, MRB_ARGS_NONE());
   mrb_define_method(mrb, comp, "imaginary", complex_imaginary, MRB_ARGS_NONE());
