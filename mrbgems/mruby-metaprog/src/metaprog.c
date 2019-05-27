@@ -186,7 +186,7 @@ method_entry_loop(mrb_state *mrb, struct RClass* klass, khash_t(st)* set)
   }
 }
 
-mrb_value
+static mrb_value
 mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass* klass, int obj)
 {
   khint_t i;
@@ -565,8 +565,6 @@ mrb_mod_included_modules(mrb_state *mrb, mrb_value self)
   return result;
 }
 
-mrb_value mrb_class_instance_method_list(mrb_state*, mrb_bool, struct RClass*, int);
-
 /* 15.2.2.4.33 */
 /*
  *  call-seq:
@@ -657,7 +655,7 @@ mrb_mod_s_constants(mrb_state *mrb, mrb_value mod)
   return mrb_nil_value();       /* not reached */
 }
 
-mrb_value
+static mrb_value
 mrb_mod_s_nesting(mrb_state *mrb, mrb_value mod)
 {
   struct RProc *proc;
