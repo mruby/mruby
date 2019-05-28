@@ -277,6 +277,13 @@ mrb_free(mrb_state *mrb, void *p)
   (mrb->allocf)(mrb, p, 0, mrb->allocf_ud);
 }
 
+MRB_API void*
+mrb_alloca(mrb_state *mrb, size_t size)
+{
+  mrb_value str = mrb_str_new(mrb, NULL, size);
+  return RSTRING_PTR(str);
+}
+
 static mrb_bool
 heap_p(mrb_gc *gc, struct RBasic *object)
 {

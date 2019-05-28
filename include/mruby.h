@@ -1246,6 +1246,8 @@ MRB_API void mrb_pool_close(struct mrb_pool*);
 MRB_API void* mrb_pool_alloc(struct mrb_pool*, size_t);
 MRB_API void* mrb_pool_realloc(struct mrb_pool*, void*, size_t oldlen, size_t newlen);
 MRB_API mrb_bool mrb_pool_can_realloc(struct mrb_pool*, void*, size_t);
+/* temporary memory allocation, only effective while GC arena is kept */
+MRB_API void* mrb_alloca(mrb_state *mrb, size_t);
 
 MRB_API void mrb_state_atexit(mrb_state *mrb, mrb_atexit_func func);
 
