@@ -64,11 +64,10 @@ class Rational < Numeric
   end
 
   def ==(rhs)
-    if rhs.is_a?(Integral)
-      return numerator == rhs if denominator == 1
-      rhs = Rational(rhs)
+    return true if self.equal?(rhs)
+    if rhs.is_a?(Integral) && denominator == 1
+      return numerator == rhs
     end
-
     if rhs.is_a?(Rational)
       numerator * rhs.denominator == denominator * rhs.numerator
     else
