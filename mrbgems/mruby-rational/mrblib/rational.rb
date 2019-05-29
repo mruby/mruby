@@ -62,6 +62,19 @@ class Rational < Numeric
       nil
     end
   end
+
+  def ==(rhs)
+    if rhs.is_a?(Integral)
+      return numerator == rhs if denominator == 1
+      rhs = Rational(rhs)
+    end
+
+    if rhs.is_a?(Rational)
+      numerator * rhs.denominator == denominator * rhs.numerator
+    else
+      rhs == self
+    end
+  end
 end
 
 class Numeric
