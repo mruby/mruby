@@ -166,3 +166,12 @@ task :doc do
     puts "  $ gem install yard-mruby"
   end
 end
+
+desc 'build ossfuzz fuzzers'
+task :ossfuzz do
+  begin
+
+  rescue
+    puts "ERROR: Building ossfuzz fuzzers."
+  end
+end
