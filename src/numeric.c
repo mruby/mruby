@@ -1347,7 +1347,7 @@ mrb_num_minus(mrb_state *mrb, mrb_value x, mrb_value y)
   if (mrb_fixnum_p(x)) {
     return fixnum_minus(mrb, x, y);
   }
-#ifdef MRB_WITHOUT_FLOAT
+#ifndef MRB_WITHOUT_FLOAT
   if (mrb_float_p(x)) {
     return mrb_float_value(mrb, mrb_float(x) - mrb_to_flo(mrb, y));
   }
