@@ -268,9 +268,9 @@ assert("Array#bsearch") do
   end
 end
 
-assert("Array#bsearch_index") do
-  # tested through Array#bsearch
-end
+# tested through Array#bsearch
+#assert("Array#bsearch_index") do
+#end
 
 assert("Array#delete_if") do
   a = [1, 2, 3, 4, 5]
