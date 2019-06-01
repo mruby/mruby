@@ -63,6 +63,10 @@
 # endif
 #endif
 
+#if defined(MRB_32BIT) && defined(MRB_INT64)
+#error MRB_INT64 cannot be used on 32-bit architecture
+#endif
+
 #define MRB_COMPLEX_NUMBERS
 #define MRB_RATIONAL_NUMBERS
 

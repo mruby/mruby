@@ -11,10 +11,6 @@
 # error MRB_INT16 is too small for MRB_WORD_BOXING.
 #endif
 
-#if defined(MRB_INT64) && !defined(MRB_64BIT)
-#error MRB_INT64 cannot be used with MRB_WORD_BOXING in 32-bit mode.
-#endif
-
 #ifndef MRB_WITHOUT_FLOAT
 struct RFloat {
   MRB_OBJECT_HEADER;
