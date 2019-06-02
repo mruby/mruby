@@ -40,12 +40,13 @@ complex_new(mrb_state *mrb, mrb_float real, mrb_float imaginary)
 {
   struct RClass *c = mrb_class_get(mrb, "Complex");
   struct mrb_complex *p;
+  struct RData *d;
 
-  p = (struct mrb_complex*)mrb_malloc(mrb, sizeof(struct mrb_complex));
+  Data_Make_Struct(mrb, c, struct mrb_complex, &mrb_complex_type, p, d);
   p->real = real;
   p->imaginary = imaginary;
 
-  return mrb_obj_value(Data_Wrap_Struct(mrb, c, &mrb_complex_type, p));
+  return mrb_obj_value(d);
 }
 
 static struct mrb_complex*
