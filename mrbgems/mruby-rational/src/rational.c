@@ -1,6 +1,7 @@
 #include <mruby.h>
 #include <mruby/class.h>
 #include <mruby/string.h>
+#include <mruby/numeric.h>
 
 struct mrb_rational {
   mrb_int numerator;
@@ -86,7 +87,52 @@ rational_s_new(mrb_state *mrb, mrb_value self)
 {
   mrb_int numerator, denominator;
 
+#ifdef MRB_WITHOUT_FLOAT
   mrb_get_args(mrb, "ii", &numerator, &denominator);
+#else
+
+#define DROP_PRECISION(cond, num, denom) \
+  do { \
+      while (cond) { \
+        num /= 2; \
+        denom /= 2; \
+      } \
+  } while (0)
+
+  mrb_value numv, denomv;
+
+  mrb_get_args(mrb, "oo", &numv, &denomv);
+  if (mrb_fixnum_p(numv)) {
+    numerator = mrb_fixnum(numv);
+
+    if (mrb_fixnum_p(denomv)) {
+      denominator = mrb_fixnum(denomv);
+    }
+    else {
+      mrb_float denomf = mrb_to_flo(mrb, denomv);
+
+      DROP_PRECISION(denomf < MRB_INT_MIN || denomf > MRB_INT_MAX, numerator, denomf);
+      denominator = denomf;
+    }
+  }
+  else {
+    mrb_float numf = mrb_to_flo(mrb, numv);
+
+    if (mrb_fixnum_p(denomv)) {
+      denominator = mrb_fixnum(denomv);
+    }
+    else {
+      mrb_float denomf = mrb_to_flo(mrb, denomv);
+
+      DROP_PRECISION(denomf < MRB_INT_MIN || denomf > MRB_INT_MAX, numf, denomf);
+      denominator = denomf;
+    }
+
+    DROP_PRECISION(numf < MRB_INT_MIN || numf > MRB_INT_MAX, numf, denominator);
+    numerator = numf;
+  }
+#endif
+
   return rational_new(mrb, numerator, denominator);
 }
 
@@ -105,6 +151,9 @@ static mrb_value
 rational_to_i(mrb_state *mrb, mrb_value self)
 {
   struct mrb_rational *p = rational_ptr(mrb, self);
+  if (p->denominator == 0) {
+    mrb_raise(mrb, mrb_exc_get(mrb, "StandardError"), "divided by 0");
+  }
   return mrb_fixnum_value(p->numerator / p->denominator);
 }
 
