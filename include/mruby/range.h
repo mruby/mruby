@@ -24,6 +24,7 @@ struct RRange {
   mrb_value beg;
   mrb_value end;
   mrb_bool excl;
+  mrb_bool initialized;
 };
 # define mrb_gc_free_range(mrb, p) ((void)0)
 # define RANGE_BEG(p) ((p)->beg)
@@ -37,6 +38,7 @@ struct RRange {
   MRB_OBJECT_HEADER;
   mrb_range_edges *edges;
   mrb_bool excl;
+  mrb_bool initialized;
 };
 # define mrb_gc_free_range(mrb, p) mrb_free(mrb, (p)->edges)
 # define RANGE_BEG(p) ((p)->edges->beg)

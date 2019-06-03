@@ -10,9 +10,8 @@
 #include <mruby/string.h>
 #include <mruby/array.h>
 
-#define RANGE_INITIALIZED_MASK 1
-#define RANGE_INITIALIZED(p) ((p)->flags |= RANGE_INITIALIZED_MASK)
-#define RANGE_INITIALIZED_P(p) ((p)->flags & RANGE_INITIALIZED_MASK)
+#define RANGE_INITIALIZED(p) ((p)->initialized = TRUE)
+#define RANGE_INITIALIZED_P(p) (p)->initialized
 
 static void
 r_check(mrb_state *mrb, mrb_value a, mrb_value b)
