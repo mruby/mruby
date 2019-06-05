@@ -684,8 +684,8 @@ assert('Issue 1467') do
     include M1
   end
 
-  C1.new
-  C2.new
+  assert_kind_of(M1, C1.new)
+  assert_kind_of(M1, C2.new)
 end
 
 assert('clone Module') do
@@ -699,7 +699,7 @@ assert('clone Module') do
     include M1.clone
   end
 
-  B.new.foo
+  assert_true(B.new.foo)
 end
 
 assert('Module#module_function') do
