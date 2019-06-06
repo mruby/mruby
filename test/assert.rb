@@ -15,6 +15,36 @@ unless RUBY_ENGINE == "mruby"
   end
 end
 
+class Array
+  def _assertion_join
+    join("-")
+  end
+end
+
+class String
+  def _assertion_indent(indent)
+    indent = indent.to_s
+    off = 0
+    str = self
+    while nl = index("\n", off)
+      nl += 1
+      nl += 1 while slice(nl) == "\n"
+      break if nl >= size
+      str = indent.dup if off == 0
+      str += slice(off, nl - off) + indent
+      off = nl
+    end
+
+    if off == 0
+      str = indent + self
+    else
+      str += slice(off..-1)
+    end
+
+    str
+  end
+end
+
 ##
 # Create the assertion in a readable way
 def assertion_string(err, str, iso=nil, e=nil, bt=nil)
@@ -22,14 +52,14 @@ def assertion_string(err, str, iso=nil, e=nil, bt=nil)
   msg += " [#{iso}]" if iso && !iso.empty?
   msg += " => #{e}" if e && !e.to_s.empty?
   msg += " (#{GEMNAME == 'mruby-test' ? 'core' : "mrbgems: #{GEMNAME}"})"
-  if $mrbtest_assert && $mrbtest_assert.size > 0
+  if $mrbtest_assert
     $mrbtest_assert.each do |idx, assert_msg, diff|
       msg += "\n - Assertion[#{idx}]"
       msg += " #{assert_msg}." if assert_msg && !assert_msg.empty?
       msg += "\n#{diff}" if diff && !diff.empty?
     end
   end
-  msg += "\nbacktrace:\n\t#{bt.join("\n\t")}" if bt
+  msg += "\nbacktrace:\n        #{bt.join("\n        ")}" if bt
   msg
 end
 
@@ -44,13 +74,35 @@ end
 def assert(str = 'Assertion failed', iso = '')
   t_print(str, (iso != '' ? " [#{iso}]" : ''), ' : ') if $mrbtest_verbose
   begin
+    $mrbtest_child_noassert ||= [0]
+    $mrbtest_child_noassert << 0
+    parent_asserts = $asserts
+    $asserts = []
+    parent_mrbtest_assert = $mrbtest_assert
     $mrbtest_assert = []
-    $mrbtest_assert_idx = 0
+
+    if $mrbtest_assert_idx && !$mrbtest_assert_idx.empty?
+      $mrbtest_assert_idx[-1] += 1
+      $mrbtest_assert_idx << 0
+    else
+      $mrbtest_assert_idx = [0]
+      class << $mrbtest_assert_idx
+        alias to_s _assertion_join
+      end
+    end
+
     yield
-    if($mrbtest_assert.size > 0)
-      $asserts.push(assertion_string('Fail: ', str, iso))
-      $ko_test += 1
-      t_print('F')
+    if $mrbtest_assert.size > 0
+      if $mrbtest_assert.size == $mrbtest_child_noassert[-1]
+        $asserts.push(assertion_string('Info: ', str, iso))
+        $mrbtest_child_noassert[-2] += 1
+        $ok_test += 1
+        t_print('.')
+      else
+        $asserts.push(assertion_string('Fail: ', str, iso))
+        $ko_test += 1
+        t_print('F')
+      end
     else
       $ok_test += 1
       t_print('.')
@@ -58,6 +110,7 @@ def assert(str = 'Assertion failed', iso = '')
   rescue MRubyTestSkip => e
     $asserts.push(assertion_string('Skip: ', str, iso, e))
     $skip_test += 1
+    $mrbtest_child_noassert[-2] += 1
     t_print('?')
   rescue Exception => e
     bt = e.backtrace if $mrbtest_verbose
@@ -65,7 +118,25 @@ def assert(str = 'Assertion failed', iso = '')
     $kill_test += 1
     t_print('X')
   ensure
-    $mrbtest_assert = nil
+    if $mrbtest_assert_idx.size > 1
+      $asserts.each do |mesg|
+        idx = $mrbtest_assert_idx[0..-2]._assertion_join
+        mesg = mesg._assertion_indent("    ")
+
+        # Give `mesg` as a `diff` argument to avoid adding extra periods.
+        parent_mrbtest_assert << [idx, nil, mesg]
+      end
+    else
+      parent_asserts.concat $asserts
+    end
+    $asserts = parent_asserts
+
+    $mrbtest_assert = parent_mrbtest_assert
+    $mrbtest_assert_idx.pop
+    $mrbtest_assert_idx = nil if $mrbtest_assert_idx.empty?
+    $mrbtest_child_noassert.pop
+
+    nil
   end
   t_print("\n") if $mrbtest_verbose
 end
@@ -76,11 +147,11 @@ def assertion_diff(exp, act)
 end
 
 def assert_true(obj, msg = nil, diff = nil)
-  if $mrbtest_assert
-    $mrbtest_assert_idx += 1
+  if $mrbtest_assert_idx && $mrbtest_assert_idx.size > 0
+    $mrbtest_assert_idx[-1] += 1
     unless obj == true
       diff ||= "    Expected #{obj.inspect} to be true."
-      $mrbtest_assert.push([$mrbtest_assert_idx, msg, diff])
+      $mrbtest_assert.push([$mrbtest_assert_idx.to_s, msg, diff])
     end
   end
   obj
