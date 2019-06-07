@@ -99,6 +99,18 @@ assert('Kernel#singleton_methods', '15.3.1.3.45') do
   assert_equal singleton_methods.class, Array
 end
 
+assert('Kernel.global_variables', '15.3.1.2.4') do
+  assert_equal Array, Kernel.global_variables.class
+end
+
+assert('Kernel#global_variables', '15.3.1.3.14') do
+  variables = global_variables
+  assert_equal Array, variables.class
+  1.upto(9) do |i|
+    assert_equal variables.include?(:"$#{i}"), true
+  end
+end
+
 assert('Kernel.local_variables', '15.3.1.2.7') do
   a, b = 0, 1
   a += b

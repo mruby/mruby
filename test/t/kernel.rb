@@ -31,10 +31,6 @@ end
 
 # Kernel.eval is provided by the mruby-gem mrbgem. '15.3.1.2.3'
 
-assert('Kernel.global_variables', '15.3.1.2.4') do
-  assert_equal Array, Kernel.global_variables.class
-end
-
 assert('Kernel.iterator?', '15.3.1.2.5') do
   assert_false Kernel.iterator?
 end
@@ -266,10 +262,6 @@ assert('Kernel#frozen?') do
   assert_true 0.0.frozen?
 end
 
-assert('Kernel#global_variables', '15.3.1.3.14') do
-  assert_equal Array, global_variables.class
-end
-
 assert('Kernel#hash', '15.3.1.3.15') do
   assert_equal hash, hash
 end
@@ -486,13 +478,6 @@ assert('Kernel#respond_to_missing?') do
 
   assert_true Test4RespondToMissing.new.respond_to?(:a_method)
   assert_false Test4RespondToMissing.new.respond_to?(:no_method)
-end
-
-assert('Kernel#global_variables') do
-  variables = global_variables
-  1.upto(9) do |i|
-    assert_equal variables.include?(:"$#{i}"), true
-  end
 end
 
 assert('stack extend') do
