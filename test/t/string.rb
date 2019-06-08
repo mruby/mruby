@@ -694,10 +694,6 @@ assert('String interpolation (mrb_str_concat for shared strings)') do
   assert_equal "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:", "#{a}:"
 end
 
-assert('Check the usage of a NUL character') do
-  "qqq\0ppp"
-end
-
 assert('String#bytes') do
   str1 = "hello"
   bytes1 = [104, 101, 108, 108, 111]
