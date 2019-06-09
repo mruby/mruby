@@ -1723,7 +1723,7 @@ mrb_obj_respond_to_with_private(mrb_state *mrb, struct RClass* c, mrb_sym mid, m
     return FALSE;
   }
 #ifdef MRB_ENABLE_METHOD_VISIBILITY
-  if (!priv && !MRB_IS_METHOD_PUBLIC(m)) {
+  if (priv == FALSE && !MRB_IS_METHOD_PUBLIC(m)) {
     return FALSE;
   }
 #endif
