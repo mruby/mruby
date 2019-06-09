@@ -165,7 +165,7 @@ mrb_local_variables(mrb_state *mrb, mrb_value self)
 KHASH_DECLARE(st, mrb_sym, char, FALSE)
 
 static void
-method_entry_loop(mrb_state *mrb, struct RClass* klass, khash_t(st)* set, mrb_method_flag_t flag)
+method_entry_loop(mrb_state *mrb, struct RClass* klass, khash_t(st)* set, int flag)
 {
   khint_t i;
 
@@ -187,7 +187,7 @@ method_entry_loop(mrb_state *mrb, struct RClass* klass, khash_t(st)* set, mrb_me
 }
 
 static mrb_value
-mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass* klass, mrb_method_flag_t flag)
+mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass* klass, int flag)
 {
   khint_t i;
   mrb_value ary;
@@ -225,7 +225,7 @@ mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass* kl
 }
 
 static mrb_value
-mrb_obj_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj, mrb_method_flag_t flag)
+mrb_obj_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj, int flag)
 {
   return mrb_class_instance_method_list(mrb, recur, mrb_class(mrb, obj), flag);
 }
