@@ -1416,11 +1416,11 @@ RETRY_TRY_BLOCK:
         if (MRB_METHOD_UNDEF_P(m) || (missing == mrb->c->ci->mid && mrb_obj_eq(mrb, regs[0], recv))) {
           mrb_value args = (argc < 0) ? regs[a+1] : mrb_ary_new_from_values(mrb, c, regs+a+1);
           ERR_PC_SET(mrb);
-          if (is_method_unreachable == FALSE) {
+          if (!is_method_unreachable) {
             mrb_method_missing(mrb, mid, recv, args);
           } else {
 #ifdef MRB_ENABLE_METHOD_VISIBILITY
-            if (is_method_private == TRUE) {
+            if (is_method_private) {
               mrb_no_method_error(mrb, mid, args, "private method '%S' called", mrb_sym2str(mrb, mid));
             } else {
               mrb_no_method_error(mrb, mid, args, "protected method '%S' called", mrb_sym2str(mrb, mid));
