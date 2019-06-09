@@ -1431,6 +1431,7 @@ mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
     c = c->super;
   }
   MRB_METHOD_FROM_PROC(m, NULL);
+  MRB_METHOD_SET_VISIBILITY(m, MRB_METHOD_PUBLIC);
   return m;                  /* no method */
 }
 
