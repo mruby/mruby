@@ -701,9 +701,9 @@ mrb_obj_missing(mrb_state *mrb, mrb_value mod)
 #endif
 
 static inline mrb_bool
-basic_obj_respond_to(mrb_state *mrb, mrb_value obj, mrb_sym id, int pub)
+basic_obj_respond_to(mrb_state *mrb, mrb_value obj, mrb_sym id, mrb_bool priv)
 {
-  return mrb_respond_to(mrb, obj, id);
+  return mrb_respond_to_with_private(mrb, obj, id, priv);
 }
 
 /* 15.3.1.3.43 */
@@ -729,7 +729,7 @@ obj_respond_to(mrb_state *mrb, mrb_value self)
   mrb_bool priv = FALSE, respond_to_p;
 
   mrb_get_args(mrb, "n|b", &id, &priv);
-  respond_to_p = basic_obj_respond_to(mrb, self, id, !priv);
+  respond_to_p = basic_obj_respond_to(mrb, self, id, priv);
   if (!respond_to_p) {
     rtm_id = mrb_intern_lit(mrb, "respond_to_missing?");
     if (basic_obj_respond_to(mrb, self, rtm_id, !priv)) {

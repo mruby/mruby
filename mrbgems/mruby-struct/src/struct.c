@@ -190,8 +190,10 @@ make_struct_define_accessors(mrb_state *mrb, mrb_value members, struct RClass *c
       struct RProc *aref = mrb_proc_new_cfunc_with_env(mrb, mrb_struct_ref, 1, &at);
       struct RProc *aset = mrb_proc_new_cfunc_with_env(mrb, mrb_struct_set_m, 1, &at);
       MRB_METHOD_FROM_PROC(m, aref);
+      MRB_METHOD_SET_VISIBILITY(m, MRB_METHOD_PUBLIC);
       mrb_define_method_raw(mrb, c, id, m);
       MRB_METHOD_FROM_PROC(m, aset);
+      MRB_METHOD_SET_VISIBILITY(m, MRB_METHOD_PUBLIC);
       mrb_define_method_raw(mrb, c, mrb_id_attrset(mrb, id), m);
       mrb_gc_arena_restore(mrb, ai);
     }

@@ -154,6 +154,11 @@ largest value of required alignment.
 * Return `TRUE` if `ptr` is in read-only section, otherwise return `FALSE`.
 
 ## Other configuration.
+
+`MRB_ENABLE_METHOD_VISIBILITY`
+* Adds method visibility support.
+* Cannot be used with `MRB_METHOD_TABLE_INLINE`.
+
 `MRB_UTF8_STRING`
 * Adds UTF-8 encoding support to character-oriented String instance methods.
 * If it isn't defined, they only support the US-ASCII encoding.

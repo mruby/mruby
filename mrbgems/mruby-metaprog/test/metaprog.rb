@@ -75,21 +75,110 @@ assert('Kernel#instance_variables', '15.3.1.3.23') do
 end
 
 assert('Kernel#methods', '15.3.1.3.31') do
-  assert_equal Array, methods.class
+  if Mrbtest::METHOD_VISIBILITY
+    class A1
+      def f; true; end
+      protected
+      def g; true; end
+      private 
+      def h; true; end
+    end
+    class B1 < A1
+      def a; true; end
+      protected
+      def b; true; end
+      private
+      def c; true; end
+    end
+    b = B1.new
+    class << b
+      def i; true; end
+      protected
+      def j; true; end
+      private
+      def k; true; end
+    end
+    pmethods = b.methods
+    assert_equal Array, pmethods.class
+    assert_true  pmethods.include?(:f)
+    assert_true  pmethods.include?(:g)
+    assert_false pmethods.include?(:h)
+    assert_true  pmethods.include?(:a)
+    assert_true  pmethods.include?(:b)
+    assert_false pmethods.include?(:c)
+    assert_true  pmethods.include?(:i)
+    assert_true  pmethods.include?(:j)
+    assert_false pmethods.include?(:k)
+    pmethods = b.methods(false)
+    assert_equal Array, pmethods.class
+    assert_equal 2, pmethods.size
+    assert_true  pmethods.include?(:i)
+    assert_true  pmethods.include?(:j)
+  else
+    assert_equal Array, public_methods.class
+  end
 end
 
 assert('Kernel#private_methods', '15.3.1.3.36') do
-  assert_equal Array, private_methods.class
+  if Mrbtest::METHOD_VISIBILITY
+    class A2
+      def f; true; end
+      private
+      def g; true; end
+    end
+    class B2 < A2
+      private
+      def h; true; end
+    end
+    b = B2.new
+    pmethods = b.private_methods
+    assert_equal Array, pmethods.class
+    assert_true  pmethods.include?(:g)
+    assert_true  pmethods.include?(:h)
+    assert_false pmethods.include?(:f)
+    pmethods = b.private_methods(false)
+    assert_equal Array, pmethods.class
+    assert_equal [:h], pmethods
+  else
+    assert_equal Array, public_methods.class
+  end
 end
 
 assert('Kernel#protected_methods', '15.3.1.3.37') do
-  assert_equal Array, protected_methods.class
+  if Mrbtest::METHOD_VISIBILITY
+    class A3
+      def f; true; end
+      protected
+      def g; true; end
+    end
+    class B3 < A3
+      protected
+      def h; true; end
+    end
+    b = B3.new
+    pmethods = b.protected_methods
+    assert_equal Array, pmethods.class
+    assert_equal 2, pmethods.size
+    assert_true  pmethods.include?(:g)
+    assert_true  pmethods.include?(:h)
+    pmethods = b.protected_methods(false)
+    assert_equal Array, pmethods.class
+    assert_equal [:h], pmethods
+  else
+    assert_equal Array, public_methods.class
+  end
 end
 
 assert('Kernel#public_methods', '15.3.1.3.38') do
   assert_equal Array, public_methods.class
   class Foo
     def foo
+    end
+    if Mrbtest::METHOD_VISIBILITY
+      private
+      def f; end
+      protected
+      def g; end
     end
   end
   assert_equal [:foo], Foo.new.public_methods(false)

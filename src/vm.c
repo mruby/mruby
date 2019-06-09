@@ -1384,6 +1384,10 @@ RETRY_TRY_BLOCK:
       struct RClass *cls;
       mrb_callinfo *ci = mrb->c->ci;
       mrb_value recv, blk;
+#ifdef MRB_ENABLE_METHOD_VISIBILITY
+      mrb_bool is_method_private;
+#endif
+      mrb_bool is_method_unreachable = FALSE;
 
       mrb_assert(bidx < irep->nregs);
 
@@ -1397,13 +1401,32 @@ RETRY_TRY_BLOCK:
       }
       cls = mrb_class(mrb, recv);
       m = mrb_method_search_vm(mrb, &cls, mid);
-      if (MRB_METHOD_UNDEF_P(m)) {
+#ifdef MRB_ENABLE_METHOD_VISIBILITY
+      if (MRB_IS_METHOD_PRIVATE(m) && !mrb_obj_eq(mrb, regs[0], recv)) {
+        is_method_unreachable = TRUE;
+        is_method_private = TRUE;
+      } else if (MRB_IS_METHOD_PROTECTED(m) && !mrb_obj_is_kind_of(mrb, regs[0], mrb_class(mrb, recv))) {
+        is_method_unreachable = TRUE;
+        is_method_private = FALSE;
+      } 
+#endif
+      if (MRB_METHOD_UNDEF_P(m) || is_method_unreachable) {
         mrb_sym missing = mrb_intern_lit(mrb, "method_missing");
         m = mrb_method_search_vm(mrb, &cls, missing);
         if (MRB_METHOD_UNDEF_P(m) || (missing == mrb->c->ci->mid && mrb_obj_eq(mrb, regs[0], recv))) {
           mrb_value args = (argc < 0) ? regs[a+1] : mrb_ary_new_from_values(mrb, c, regs+a+1);
           ERR_PC_SET(mrb);
-          mrb_method_missing(mrb, mid, recv, args);
+          if (!is_method_unreachable) {
+            mrb_method_missing(mrb, mid, recv, args);
+          } else {
+#ifdef MRB_ENABLE_METHOD_VISIBILITY
+            if (is_method_private) {
+              mrb_no_method_error(mrb, mid, args, "private method '%S' called", mrb_sym2str(mrb, mid));
+            } else {
+              mrb_no_method_error(mrb, mid, args, "protected method '%S' called", mrb_sym2str(mrb, mid));
+            } 
+#endif
+          }
         }
         if (argc >= 0) {
           if (a+2 >= irep->nregs) {
@@ -1423,6 +1446,9 @@ RETRY_TRY_BLOCK:
       ci->stackent = mrb->c->stack;
       ci->target_class = cls;
       ci->argc = argc;
+#ifdef MRB_ENABLE_METHOD_VISIBILITY
+      ci->method_visibility = mrb->c->ci[-1].method_visibility;
+#endif
 
       ci->pc = pc;
       ci->acc = a;
@@ -2699,6 +2725,13 @@ RETRY_TRY_BLOCK:
       mrb_method_t m;
 
       MRB_METHOD_FROM_PROC(m, p);
+#ifdef MRB_ENABLE_METHOD_VISIBILITY
+      if (mrb->c->ci->target_class == target) {
+        MRB_METHOD_SET_VISIBILITY(m, mrb->c->ci->method_visibility);
+      } else {
+        MRB_METHOD_SET_VISIBILITY(m, MRB_METHOD_PUBLIC);
+      }
+#endif 
       mrb_define_method_raw(mrb, target, syms[b], m);
       mrb_gc_arena_restore(mrb, ai);
       NEXT;

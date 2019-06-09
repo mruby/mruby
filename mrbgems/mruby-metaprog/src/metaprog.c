@@ -7,17 +7,11 @@
 #include "mruby/string.h"
 
 typedef enum {
-  NOEX_PUBLIC    = 0x00,
-  NOEX_NOSUPER   = 0x01,
-  NOEX_PRIVATE   = 0x02,
-  NOEX_PROTECTED = 0x04,
-  NOEX_MASK      = 0x06,
-  NOEX_BASIC     = 0x08,
-  NOEX_UNDEF     = NOEX_NOSUPER,
-  NOEX_MODFUNC   = 0x12,
-  NOEX_SUPER     = 0x20,
-  NOEX_VCALL     = 0x40,
-  NOEX_RESPONDS  = 0x80
+  MF_PUBLIC    = 0x01,
+  MF_PRIVATE   = 0x02,
+  MF_PROTECTED = 0x04,
+  
+  MF_SINGLETON_METHODS = 0x08
 } mrb_method_flag_t;
 
 static mrb_value
@@ -171,7 +165,7 @@ mrb_local_variables(mrb_state *mrb, mrb_value self)
 KHASH_DECLARE(st, mrb_sym, char, FALSE)
 
 static void
-method_entry_loop(mrb_state *mrb, struct RClass* klass, khash_t(st)* set)
+method_entry_loop(mrb_state *mrb, struct RClass* klass, khash_t(st)* set, mrb_method_flag_t flag)
 {
   khint_t i;
 
@@ -181,13 +175,19 @@ method_entry_loop(mrb_state *mrb, struct RClass* klass, khash_t(st)* set)
     if (kh_exist(h, i)) {
       mrb_method_t m = kh_value(h, i);
       if (MRB_METHOD_UNDEF_P(m)) continue;
+#ifdef MRB_ENABLE_METHOD_VISIBILITY
+      if (!(((flag & MF_PUBLIC) != 0)    && MRB_IS_METHOD_PUBLIC(m)) &&
+          !(((flag & MF_PRIVATE) != 0)   && MRB_IS_METHOD_PRIVATE(m)) &&
+          !(((flag & MF_PROTECTED) != 0) && MRB_IS_METHOD_PROTECTED(m)))
+        continue;
+#endif
       kh_put(st, mrb, set, kh_key(h, i));
     }
   }
 }
 
 static mrb_value
-mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass* klass, int obj)
+mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass* klass, mrb_method_flag_t flag)
 {
   khint_t i;
   mrb_value ary;
@@ -202,9 +202,9 @@ mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass* kl
 
   oldklass = 0;
   while (klass && (klass != oldklass)) {
-    method_entry_loop(mrb, klass, set);
+    method_entry_loop(mrb, klass, set, flag);
     if ((klass->tt == MRB_TT_ICLASS && !prepended) ||
-        (klass->tt == MRB_TT_SCLASS)) {
+        (klass->tt == MRB_TT_SCLASS && (flag & MF_SINGLETON_METHODS) == 0)) {
     }
     else {
       if (!recur) break;
@@ -227,7 +227,7 @@ mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass* kl
 static mrb_value
 mrb_obj_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj, mrb_method_flag_t flag)
 {
-  return mrb_class_instance_method_list(mrb, recur, mrb_class(mrb, obj), 0);
+  return mrb_class_instance_method_list(mrb, recur, mrb_class(mrb, obj), flag);
 }
 /* 15.3.1.3.31 */
 /*
@@ -253,7 +253,7 @@ mrb_obj_methods_m(mrb_state *mrb, mrb_value self)
 {
   mrb_bool recur = TRUE;
   mrb_get_args(mrb, "|b", &recur);
-  return mrb_obj_methods(mrb, recur, self, (mrb_method_flag_t)0); /* everything but private */
+  return mrb_obj_methods(mrb, recur, self, MF_PUBLIC | MF_PROTECTED | MF_SINGLETON_METHODS);
 }
 
 /* 15.3.1.3.36 */
@@ -270,7 +270,7 @@ mrb_obj_private_methods(mrb_state *mrb, mrb_value self)
 {
   mrb_bool recur = TRUE;
   mrb_get_args(mrb, "|b", &recur);
-  return mrb_obj_methods(mrb, recur, self, NOEX_PRIVATE); /* private attribute not define */
+  return mrb_obj_methods(mrb, recur, self, MF_PRIVATE); /* private attribute not define */
 }
 
 /* 15.3.1.3.37 */
@@ -287,7 +287,7 @@ mrb_obj_protected_methods(mrb_state *mrb, mrb_value self)
 {
   mrb_bool recur = TRUE;
   mrb_get_args(mrb, "|b", &recur);
-  return mrb_obj_methods(mrb, recur, self, NOEX_PROTECTED); /* protected attribute not define */
+  return mrb_obj_methods(mrb, recur, self, MF_PROTECTED); /* protected attribute not define */
 }
 
 /* 15.3.1.3.38 */
@@ -304,7 +304,7 @@ mrb_obj_public_methods(mrb_state *mrb, mrb_value self)
 {
   mrb_bool recur = TRUE;
   mrb_get_args(mrb, "|b", &recur);
-  return mrb_obj_methods(mrb, recur, self, NOEX_PUBLIC); /* public attribute not define */
+  return mrb_obj_methods(mrb, recur, self, MF_PUBLIC); /* public attribute not define */
 }
 
 static mrb_value
@@ -318,12 +318,12 @@ mrb_obj_singleton_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj)
   klass = mrb_class(mrb, obj);
 
   if (klass && (klass->tt == MRB_TT_SCLASS)) {
-      method_entry_loop(mrb, klass, set);
+      method_entry_loop(mrb, klass, set, MF_PUBLIC | MF_PROTECTED);
       klass = klass->super;
   }
   if (recur) {
       while (klass && ((klass->tt == MRB_TT_SCLASS) || (klass->tt == MRB_TT_ICLASS))) {
-        method_entry_loop(mrb, klass, set);
+        method_entry_loop(mrb, klass, set, MF_PUBLIC | MF_PROTECTED);
         klass = klass->super;
       }
   }
@@ -396,6 +396,7 @@ mod_define_singleton_method(mrb_state *mrb, mrb_value self)
   mrb_proc_copy(p, mrb_proc_ptr(blk));
   p->flags |= MRB_PROC_STRICT;
   MRB_METHOD_FROM_PROC(m, p);
+  MRB_METHOD_SET_VISIBILITY(m, MRB_METHOD_PUBLIC);
   mrb_define_method_raw(mrb, mrb_class_ptr(mrb_singleton_class(mrb, self)), mid, m);
   return mrb_symbol_value(mid);
 }
@@ -599,7 +600,7 @@ mrb_mod_instance_methods(mrb_state *mrb, mrb_value mod)
   struct RClass *c = mrb_class_ptr(mod);
   mrb_bool recur = TRUE;
   mrb_get_args(mrb, "|b", &recur);
-  return mrb_class_instance_method_list(mrb, recur, c, 0);
+  return mrb_class_instance_method_list(mrb, recur, c, MF_PUBLIC | MF_PROTECTED);
 }
 
 static void

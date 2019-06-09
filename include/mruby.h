@@ -120,6 +120,26 @@ typedef void* (*mrb_allocf) (struct mrb_state *mrb, void*, size_t, void *ud);
 #define MRB_FIXED_STATE_ATEXIT_STACK_SIZE 5
 #endif
 
+enum mrb_method_visibility {
+  MRB_METHOD_PUBLIC = 0,
+  MRB_METHOD_PRIVATE,
+  MRB_METHOD_PROTECTED
+};
+
+#ifdef MRB_ENABLE_METHOD_VISIBILITY
+#define MRB_METHOD_VISIBILITY(method) ((method).method_visibility)
+#define MRB_METHOD_SET_VISIBILITY(method, visibility) (method).method_visibility = (visibility)
+#define MRB_IS_METHOD_PUBLIC(method) ((method).method_visibility == MRB_METHOD_PUBLIC)
+#define MRB_IS_METHOD_PRIVATE(method) ((method).method_visibility == MRB_METHOD_PRIVATE)
+#define MRB_IS_METHOD_PROTECTED(method) ((method).method_visibility == MRB_METHOD_PROTECTED)
+#else
+#define MRB_METHOD_VISIBILITY(method) MRB_METHOD_PUBLIC
+#define MRB_METHOD_SET_VISIBILITY(method, visibility)
+#define MRB_IS_METHOD_PUBLIC(method) TRUE
+#define MRB_IS_METHOD_PRIVATE(method) FALSE
+#define MRB_IS_METHOD_PROTECTED(method) FALSE
+#endif
+
 typedef struct {
   mrb_sym mid;
   struct RProc *proc;
@@ -132,6 +152,9 @@ typedef struct {
   int argc;
   int acc;
   struct RClass *target_class;
+#ifdef MRB_ENABLE_METHOD_VISIBILITY
+  enum mrb_method_visibility method_visibility;
+#endif
 } mrb_callinfo;
 
 enum mrb_fiber_state {
@@ -181,6 +204,9 @@ typedef struct {
     struct RProc *proc;
     mrb_func_t func;
   };
+#ifdef MRB_ENABLE_METHOD_VISIBILITY
+  enum mrb_method_visibility method_visibility;
+#endif
 } mrb_method_t;
 #endif
 
@@ -355,6 +381,60 @@ MRB_API void mrb_prepend_module(mrb_state*, struct RClass*, struct RClass*);
  * @param [mrb_aspec] aspec The method parameters declaration.
  */
 MRB_API void mrb_define_method(mrb_state *mrb, struct RClass *cla, const char *name, mrb_func_t func, mrb_aspec aspec);
+
+/**
+ * Defines a private function in ruby.
+ *
+ * If you're creating a gem it may look something like this
+ *
+ * Example:
+ *
+ *     !!!c
+ *     mrb_value example_method(mrb_state* mrb, mrb_value self)
+ *     {
+ *          puts("Executing example command!");
+ *          return self;
+ *     }
+ *
+ *     void mrb_example_gem_init(mrb_state* mrb)
+ *     {
+ *           mrb_define_private_method(mrb, mrb->kernel_module, "example_method", example_method, MRB_ARGS_NONE());
+ *     }
+ *
+ * @param [mrb_state *] mrb The MRuby state reference.
+ * @param [struct RClass *] cla The class pointer where the method will be defined.
+ * @param [const char *] name The name of the method being defined.
+ * @param [mrb_func_t] func The function pointer to the method definition.
+ * @param [mrb_aspec] aspec The method parameters declaration.
+ */
+MRB_API void mrb_define_private_method(mrb_state *mrb, struct RClass *cla, const char *name, mrb_func_t func, mrb_aspec aspec);
+
+/**
+ * Defines a protected function in ruby.
+ *
+ * If you're creating a gem it may look something like this
+ *
+ * Example:
+ *
+ *     !!!c
+ *     mrb_value example_method(mrb_state* mrb, mrb_value self)
+ *     {
+ *          puts("Executing example command!");
+ *          return self;
+ *     }
+ *
+ *     void mrb_example_gem_init(mrb_state* mrb)
+ *     {
+ *           mrb_define_protected_method(mrb, mrb->kernel_module, "example_method", example_method, MRB_ARGS_NONE());
+ *     }
+ *
+ * @param [mrb_state *] mrb The MRuby state reference.
+ * @param [struct RClass *] cla The class pointer where the method will be defined.
+ * @param [const char *] name The name of the method being defined.
+ * @param [mrb_func_t] func The function pointer to the method definition.
+ * @param [mrb_aspec] aspec The method parameters declaration.
+ */
+MRB_API void mrb_define_protected_method(mrb_state *mrb, struct RClass *cla, const char *name, mrb_func_t func, mrb_aspec aspec);
 
 /**
  * Defines a class method.
@@ -759,6 +839,49 @@ MRB_API mrb_value mrb_obj_dup(mrb_state *mrb, mrb_value obj);
  * @return [mrb_bool] A boolean value.
  */
 MRB_API mrb_bool mrb_obj_respond_to(mrb_state *mrb, struct RClass* c, mrb_sym mid);
+
+/**
+ * Returns true if obj responds to the given method. If the method was defined for that
+ * class it returns true, it returns false otherwise.
+ *
+ *      Example:
+ *      # Ruby style
+ *      class ExampleClass
+ *        def example_method
+ *        end
+ *      end
+ *
+ *      ExampleClass.new.respond_to?(:example_method, false) # => true
+ *
+ *      // C style
+ *      void
+ *      mrb_example_gem_init(mrb_state* mrb) {
+ *        struct RClass *example_class;
+ *        mrb_sym mid;
+ *        mrb_bool obj_resp;
+ *
+ *        example_class = mrb_define_class(mrb, "ExampleClass", mrb->object_class);
+ *        mrb_define_method(mrb, example_class, "example_method", exampleMethod, MRB_ARGS_NONE());
+ *        mid = mrb_intern_str(mrb, mrb_str_new_lit(mrb, "example_method" ));
+ *        obj_resp = mrb_obj_respond_to_with_private(mrb, example_class, mid, FALSE); // => 1(true in Ruby world)
+ *
+ *        // If mrb_obj_respond_to returns 1 then puts "True"
+ *        // If mrb_obj_respond_to returns 0 then puts "False"
+ *        if (obj_resp == 1) {
+ *          puts("True");
+ *        }
+ *        else if (obj_resp == 0) {
+ *          puts("False");
+ *        }
+ *      }
+ *
+ * @param [mrb_state*] mrb The current mruby state.
+ * @param [struct RClass *] c A reference to a class.
+ * @param [mrb_sym] mid A symbol referencing a method id.
+ * @param {mrb_bool} priv Include private and protected method in the search. 
+ * @return [mrb_bool] A boolean value.
+ */
+MRB_API mrb_bool mrb_obj_respond_to_with_private(mrb_state *mrb, struct RClass* c, mrb_sym mid, mrb_bool priv);
 
 /**
  * Defines a new class under a given module
@@ -1205,6 +1328,7 @@ MRB_API void mrb_define_global_const(mrb_state *mrb, const char *name, mrb_value
 
 MRB_API mrb_value mrb_attr_get(mrb_state *mrb, mrb_value obj, mrb_sym id);
 
+MRB_API mrb_bool mrb_respond_to_with_private(mrb_state *mrb, mrb_value obj, mrb_sym mid, mrb_bool priv);
 MRB_API mrb_bool mrb_respond_to(mrb_state *mrb, mrb_value obj, mrb_sym mid);
 MRB_API mrb_bool mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, struct RClass* c);
 MRB_API mrb_bool mrb_func_basic_p(mrb_state *mrb, mrb_value obj, mrb_sym mid, mrb_func_t func);

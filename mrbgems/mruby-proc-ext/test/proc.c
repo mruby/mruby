@@ -19,6 +19,7 @@ proc_new_cfunc_with_env(mrb_state *mrb, mrb_value self)
   n_val = mrb_symbol_value(n);
   p = mrb_proc_new_cfunc_with_env(mrb, return_func_name, 1, &n_val);
   MRB_METHOD_FROM_PROC(m, p);
+  MRB_METHOD_SET_VISIBILITY(m, MRB_METHOD_PUBLIC);
   mrb_define_method_raw(mrb, mrb_class_ptr(self), n, m);
   return self;
 }
@@ -41,6 +42,7 @@ cfunc_env_get(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "na", &n, &argv, &argc);
   p = mrb_proc_new_cfunc_with_env(mrb, return_env, argc, argv);
   MRB_METHOD_FROM_PROC(m, p);
+  MRB_METHOD_SET_VISIBILITY(m, MRB_METHOD_PUBLIC);
   mrb_define_method_raw(mrb, mrb_class_ptr(self), n, m);
   return self;
 }
