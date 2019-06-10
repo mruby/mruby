@@ -965,16 +965,8 @@ mrb_f_global_variables(mrb_state *mrb, mrb_value self)
 {
   iv_tbl *t = mrb->globals;
   mrb_value ary = mrb_ary_new(mrb);
-  size_t i;
-  char buf[3];
 
   iv_foreach(mrb, t, gv_i, &ary);
-  buf[0] = '$';
-  buf[2] = 0;
-  for (i = 1; i <= 9; ++i) {
-    buf[1] = (char)(i + '0');
-    mrb_ary_push(mrb, ary, mrb_symbol_value(mrb_intern(mrb, buf, 2)));
-  }
   return ary;
 }
 

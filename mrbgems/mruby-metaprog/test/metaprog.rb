@@ -104,11 +104,14 @@ assert('Kernel.global_variables', '15.3.1.2.4') do
 end
 
 assert('Kernel#global_variables', '15.3.1.3.14') do
-  variables = global_variables
-  assert_equal Array, variables.class
-  1.upto(9) do |i|
-    assert_equal variables.include?(:"$#{i}"), true
-  end
+  variables1 = global_variables
+  assert_equal Array, variables1.class
+  assert_not_include(variables1, :$kernel_global_variables_test)
+
+  $kernel_global_variables_test = nil
+  variables2 = global_variables
+  assert_include(variables2, :$kernel_global_variables_test)
+  assert_equal(1, variables2.size - variables1.size)
 end
 
 assert('Kernel.local_variables', '15.3.1.2.7') do
