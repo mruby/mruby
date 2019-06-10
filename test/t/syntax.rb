@@ -423,10 +423,11 @@ assert('parenthesed do-block in cmdarg') do
 end
 
 assert('method definition in cmdarg') do
-  if false
+  result = class MethodDefinitionInCmdarg
+    def self.bar(arg); arg end
     bar def foo; self.each do end end
   end
-  true
+  assert_equal(:foo, result)
 end
 
 assert('optional argument in the rhs default expressions') do
