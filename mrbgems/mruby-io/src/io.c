@@ -79,7 +79,7 @@ io_get_open_fptr(mrb_state *mrb, mrb_value self)
 {
   struct mrb_io *fptr;
 
-  fptr = (struct mrb_io *)mrb_get_datatype(mrb, self, &mrb_io_type);
+  fptr = (struct mrb_io *)mrb_data_get_ptr(mrb, self, &mrb_io_type);
   if (fptr == NULL) {
     mrb_raise(mrb, E_IO_ERROR, "uninitialized stream.");
   }
@@ -955,7 +955,7 @@ mrb_value
 mrb_io_closed(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr;
-  fptr = (struct mrb_io *)mrb_get_datatype(mrb, io, &mrb_io_type);
+  fptr = (struct mrb_io *)mrb_data_get_ptr(mrb, io, &mrb_io_type);
   if (fptr == NULL || fptr->fd >= 0) {
     return mrb_false_value();
   }
