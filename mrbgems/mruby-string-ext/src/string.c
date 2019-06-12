@@ -29,7 +29,7 @@ mrb_str_setbyte(mrb_state *mrb, mrb_value str)
 
   len = RSTRING_LEN(str);
   if (pos < -len || len <= pos)
-    mrb_raisef(mrb, E_INDEX_ERROR, "index %S is out of array", mrb_fixnum_value(pos));
+    mrb_raisef(mrb, E_INDEX_ERROR, "index %S out of string", mrb_fixnum_value(pos));
   if (pos < 0)
     pos += len;
 
