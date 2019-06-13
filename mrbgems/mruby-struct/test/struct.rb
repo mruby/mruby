@@ -181,6 +181,10 @@ assert("Struct.new does not allow array") do
   end
 end
 
+assert("Struct.new does not allow invalid class name") do
+  assert_raise(NameError) { Struct.new("Test-", :a) }
+end
+
 assert("Struct.new generates subclass of Struct") do
   begin
     original_struct = Struct

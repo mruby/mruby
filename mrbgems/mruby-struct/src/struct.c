@@ -212,7 +212,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass *kl
     /* old style: should we warn? */
     mrb_to_str(mrb, name);
     id = mrb_obj_to_sym(mrb, name);
-    if (!is_const_id(mrb, mrb_sym2name_len(mrb, id, NULL))) {
+    if (!mrb_const_name_p(mrb, RSTRING_PTR(name), RSTRING_LEN(name))) {
       mrb_name_error(mrb, id, "identifier %S needs to be constant", name);
     }
     if (mrb_const_defined_at(mrb, mrb_obj_value(klass), id)) {

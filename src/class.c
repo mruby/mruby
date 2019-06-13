@@ -77,6 +77,12 @@ mrb_class_name_class(mrb_state *mrb, struct RClass *outer, struct RClass *c, mrb
   mrb_obj_iv_set_force(mrb, (struct RObject*)c, nsym, name);
 }
 
+mrb_bool
+mrb_const_name_p(mrb_state *mrb, const char *name, mrb_int len)
+{
+  return len > 0 && ISUPPER(name[0]) && mrb_ident_p(name+1, len-1);
+}
+
 static void
 setup_class(mrb_state *mrb, struct RClass *outer, struct RClass *c, mrb_sym id)
 {
@@ -1852,18 +1858,12 @@ mrb_mod_undef(mrb_state *mrb, mrb_value mod)
   return mrb_nil_value();
 }
 
-static mrb_bool
-const_name_p(mrb_state *mrb, const char *name, mrb_int len)
-{
-  return len > 0 && ISUPPER(name[0]) && mrb_ident_p(name+1, len-1);
-}
-
 static void
 check_const_name_sym(mrb_state *mrb, mrb_sym id)
 {
   mrb_int len;
   const char *name = mrb_sym2name_len(mrb, id, &len);
-  if (!const_name_p(mrb, name, len)) {
+  if (!mrb_const_name_p(mrb, name, len)) {
     mrb_name_error(mrb, id, "wrong constant name %S", mrb_sym2str(mrb, id));
   }
 }
