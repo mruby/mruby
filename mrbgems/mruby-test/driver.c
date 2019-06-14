@@ -231,6 +231,12 @@ mrb_init_test_driver(mrb_state *mrb, mrb_bool verbose)
 #endif
 #endif
 
+#ifdef MRB_ENABLE_METHOD_VISIBILITY
+  mrb_define_const(mrb, mrbtest, "METHOD_VISIBILITY", mrb_true_value());
+#else
+  mrb_define_const(mrb, mrbtest, "METHOD_VISIBILITY", mrb_false_value());
+#endif
+
   if (verbose) {
     mrb_gv_set(mrb, mrb_intern_lit(mrb, "$mrbtest_verbose"), mrb_true_value());
   }

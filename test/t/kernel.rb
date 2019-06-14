@@ -414,6 +414,9 @@ assert('Kernel#respond_to?', '15.3.1.3.43') do
 
     def test_method; end
     undef test_method
+
+    private
+    def private_method; end
   end
 
   assert_raise TypeError do
@@ -432,6 +435,11 @@ assert('Kernel#respond_to?', '15.3.1.3.43') do
   assert_true Test4RespondTo.new.respond_to?(:valid_method)
   assert_true Test4RespondTo.new.respond_to?('valid_method')
   assert_false Test4RespondTo.new.respond_to?(:test_method)
+
+  if Mrbtest::METHOD_VISIBILITY
+    assert_false Test4RespondTo.new.respond_to?(:private_method)
+    assert_true  Test4RespondTo.new.respond_to?(:private_method, true)
+  end
 end
 
 assert('Kernel#to_s', '15.3.1.3.46') do

@@ -306,6 +306,7 @@ mrb_init_proc(mrb_state *mrb)
 
   p = mrb_proc_new(mrb, call_irep);
   MRB_METHOD_FROM_PROC(m, p);
+  MRB_METHOD_SET_VISIBILITY(m, MRB_METHOD_PUBLIC);
   mrb_define_method_raw(mrb, mrb->proc_class, mrb_intern_lit(mrb, "call"), m);
   mrb_define_method_raw(mrb, mrb->proc_class, mrb_intern_lit(mrb, "[]"), m);
 

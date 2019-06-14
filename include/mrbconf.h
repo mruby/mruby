@@ -74,6 +74,9 @@
 # endif
 #endif
 
+/* enable support for method visibility */
+#define MRB_ENABLE_METHOD_VISIBILITY
+
 /* represent mrb_value in boxed double; conflict with MRB_USE_FLOAT and MRB_WITHOUT_FLOAT */
 //#define MRB_NAN_BOXING
 
