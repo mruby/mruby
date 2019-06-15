@@ -4758,8 +4758,7 @@ parser_yylex(parser_state *p)
       space_seen = 1;
       break;
     case '.':
-      if ((c = nextc(p)) != '.') {
-        pushback(p, c);
+      if (!peek(p, '.')) {
         pushback(p, '.');
         goto retry;
       }
