@@ -4729,68 +4729,68 @@ parser_yylex(parser_state *p)
     /* fall through */
   case -2:      /* end of a file */
   case '\n':
-    maybe_heredoc:
+  maybe_heredoc:
     heredoc_treat_nextline(p);
-  switch (p->lstate) {
-  case EXPR_BEG:
-  case EXPR_FNAME:
-  case EXPR_DOT:
-  case EXPR_CLASS:
-  case EXPR_VALUE:
-    p->lineno++;
-    p->column = 0;
-    if (p->parsing_heredoc != NULL) {
-      if (p->lex_strterm) {
-        return parse_string(p);
-      }
-    }
-    goto retry;
-  default:
-    break;
-  }
-  if (p->parsing_heredoc != NULL) {
-    return '\n';
-  }
-  while ((c = nextc(p))) {
-    switch (c) {
-    case ' ': case '\t': case '\f': case '\r':
-    case '\13': /* '\v' */
-      space_seen = 1;
-      break;
-    case '#': /* comment as a whitespace */
-      pushback(p, '#');
-      goto retry;
-    case '\n': /* consecutive newlines */
+    switch (p->lstate) {
+    case EXPR_BEG:
+    case EXPR_FNAME:
+    case EXPR_DOT:
+    case EXPR_CLASS:
+    case EXPR_VALUE:
       p->lineno++;
       p->column = 0;
-      pushback(p, '\n');
+      if (p->parsing_heredoc != NULL) {
+        if (p->lex_strterm) {
+          return parse_string(p);
+        }
+      }
       goto retry;
-    case '.':
-      if (!peek(p, '.')) {
-        pushback(p, '.');
-        goto retry;
-      }
-      pushback(p, c);
-      goto normal_newline;
-    case '&':
-      if (peek(p, '.')) {
-        pushback(p, '&');
-        goto retry;
-      }
-      pushback(p, c);
-      goto normal_newline;
-    case -1:                  /* EOF */
-    case -2:                  /* end of a file */
-      goto normal_newline;
     default:
-      pushback(p, c);
-      goto normal_newline;
+      break;
     }
-  }
+    if (p->parsing_heredoc != NULL) {
+      return '\n';
+    }
+    while ((c = nextc(p))) {
+      switch (c) {
+      case ' ': case '\t': case '\f': case '\r':
+      case '\13': /* '\v' */
+        space_seen = 1;
+        break;
+      case '#': /* comment as a whitespace */
+        pushback(p, '#');
+        goto retry;
+      case '\n': /* consecutive newlines */
+        p->lineno++;
+        p->column = 0;
+        pushback(p, '\n');
+        goto retry;
+      case '.':
+        if (!peek(p, '.')) {
+          pushback(p, '.');
+          goto retry;
+        }
+        pushback(p, c);
+        goto normal_newline;
+      case '&':
+        if (peek(p, '.')) {
+          pushback(p, '&');
+          goto retry;
+        }
+        pushback(p, c);
+        goto normal_newline;
+      case -1:                  /* EOF */
+      case -2:                  /* end of a file */
+        goto normal_newline;
+      default:
+        pushback(p, c);
+        goto normal_newline;
+      }
+    }
   normal_newline:
-  p->cmd_start = TRUE;
-  p->lstate = EXPR_BEG;
-  return '\n';
+    p->cmd_start = TRUE;
+    p->lstate = EXPR_BEG;
+    return '\n';
 
   case '*':
     if ((c = nextc(p)) == '*') {
