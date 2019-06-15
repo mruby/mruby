@@ -4762,6 +4762,15 @@ parser_yylex(parser_state *p)
         pushback(p, '.');
         goto retry;
       }
+      pushback(p, c);
+      goto normal_newline;
+    case '&':
+      if (peek(p, '.')) {
+        pushback(p, '&');
+        goto retry;
+      }
+      pushback(p, c);
+      goto normal_newline;
     case -1:                  /* EOF */
     case -2:                  /* end of a file */
       goto normal_newline;
