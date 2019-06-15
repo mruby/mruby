@@ -4757,6 +4757,14 @@ parser_yylex(parser_state *p)
     case '\13': /* '\v' */
       space_seen = 1;
       break;
+    case '#': /* comment as a whitespace */
+      pushback(p, '#');
+      goto retry;
+    case '\n': /* consecutive newlines */
+      p->lineno++;
+      p->column = 0;
+      pushback(p, '\n');
+      goto retry;
     case '.':
       if (!peek(p, '.')) {
         pushback(p, '.');
