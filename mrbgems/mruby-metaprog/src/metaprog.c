@@ -641,6 +641,7 @@ mrb_mod_remove_method(mrb_state *mrb, mrb_value mod)
   mrb_value *argv;
 
   mrb_get_args(mrb, "*", &argv, &argc);
+  mrb_check_frozen(mrb, mrb_obj_ptr(mod));
   while (argc--) {
     remove_method(mrb, mod, mrb_obj_to_sym(mrb, *argv));
     argv++;
