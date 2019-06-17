@@ -384,16 +384,17 @@ struct_aref_sym(mrb_state *mrb, mrb_value obj, mrb_sym id)
 static mrb_value
 struct_aref_int(mrb_state *mrb, mrb_value s, mrb_int i)
 {
-  if (i < 0) i = RSTRUCT_LEN(s) + i;
-  if (i < 0)
-      mrb_raisef(mrb, E_INDEX_ERROR,
-                 "offset %S too small for struct(size:%S)",
-                 mrb_fixnum_value(i), mrb_fixnum_value(RSTRUCT_LEN(s)));
-  if (RSTRUCT_LEN(s) <= i)
+  mrb_int idx = i < 0 ? RSTRUCT_LEN(s) + i : i;
+
+  if (idx < 0)
+    mrb_raisef(mrb, E_INDEX_ERROR,
+               "offset %S too small for struct(size:%S)",
+               mrb_fixnum_value(i), mrb_fixnum_value(RSTRUCT_LEN(s)));
+  if (RSTRUCT_LEN(s) <= idx)
     mrb_raisef(mrb, E_INDEX_ERROR,
                "offset %S too large for struct(size:%S)",
                mrb_fixnum_value(i), mrb_fixnum_value(RSTRUCT_LEN(s)));
-  return RSTRUCT_PTR(s)[i];
+  return RSTRUCT_PTR(s)[idx];
 }
 
 /* 15.2.18.4.2  */
