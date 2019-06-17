@@ -129,10 +129,9 @@ mrb_id_attrset(mrb_state *mrb, mrb_sym id)
   mrb_sym mid;
 
   name = mrb_sym2name_len(mrb, id, &len);
-  buf = (char *)mrb_malloc(mrb, (size_t)len+2);
+  buf = (char *)mrb_malloc(mrb, (size_t)len+1);
   memcpy(buf, name, (size_t)len);
   buf[len] = '=';
-  buf[len+1] = '\0';
 
   mid = mrb_intern(mrb, buf, len+1);
   mrb_free(mrb, buf);
