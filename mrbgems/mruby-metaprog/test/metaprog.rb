@@ -298,6 +298,9 @@ assert('Module#remove_class_variable', '15.2.2.4.39') do
   assert_raise(NameError) do
     Test4RemoveClassVariable.remove_class_variable(:@v)
   end
+  assert_raise(FrozenError) do
+    Test4RemoveClassVariable.freeze.remove_class_variable(:@@cv)
+  end
 end
 
 assert('Module#remove_method', '15.2.2.4.41') do
@@ -305,9 +308,9 @@ assert('Module#remove_method', '15.2.2.4.41') do
     class Parent
       def hello
       end
-     end
+    end
 
-     class Child < Parent
+    class Child < Parent
       def hello
       end
     end
@@ -317,6 +320,7 @@ assert('Module#remove_method', '15.2.2.4.41') do
   assert_same klass, klass.class_eval{ remove_method :hello }
   assert_true klass.instance_methods.include? :hello
   assert_false klass.instance_methods(false).include? :hello
+  assert_raise(FrozenError) { klass.freeze.remove_method :m }
 end
 
 assert('Module.nesting', '15.2.2.2.2') do

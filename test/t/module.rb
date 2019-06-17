@@ -262,6 +262,7 @@ assert('Module#remove_const', '15.2.2.4.40') do
   %i[x X!].each do |n|
     assert_raise(NameError) { Test4RemoveConst.remove_const(n) }
   end
+  assert_raise(FrozenError) { Test4RemoveConst.freeze.remove_const(:A) }
 end
 
 assert('Module#const_missing', '15.2.2.4.22') do
