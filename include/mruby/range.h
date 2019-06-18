@@ -14,7 +14,7 @@
  */
 MRB_BEGIN_DECL
 
-#if defined(MRB_NAN_BOXING) || defined(MRB_WORD_BOXING)
+#if defined(MRB_NAN_BOXING) && defined(MRB_64BIT) || defined(MRB_WORD_BOXING)
 # define MRB_RANGE_EMBED
 #endif
 
