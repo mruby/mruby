@@ -3,7 +3,7 @@
  */
 
 #include "mruby.h"
-#include "error.h"
+#include "mruby/error.h"
 #include "mruby/array.h"
 #include "mruby/class.h"
 #include "mruby/numeric.h"

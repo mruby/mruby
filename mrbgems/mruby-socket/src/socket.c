@@ -41,7 +41,7 @@
 #include "mruby/numeric.h"
 #include "mruby/string.h"
 #include "mruby/variable.h"
-#include "error.h"
+#include "mruby/error.h"
 
 #include "mruby/ext/io.h"
 
