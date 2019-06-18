@@ -5,8 +5,7 @@
 static mrb_value
 mrb_mod_name(mrb_state *mrb, mrb_value self)
 {
-  mrb_value name = mrb_class_path(mrb, mrb_class_ptr(self));
-  return mrb_nil_p(name)? name : mrb_str_dup(mrb, name);
+  return mrb_class_path(mrb, mrb_class_ptr(self));
 }
 
 static mrb_value
