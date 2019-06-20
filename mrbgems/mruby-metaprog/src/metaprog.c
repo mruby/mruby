@@ -117,6 +117,7 @@ mrb_obj_ivar_set(mrb_state *mrb, mrb_value self)
 }
 
 /* 15.3.1.2.7 */
+/* 15.3.1.3.28 */
 /*
  *  call-seq:
  *     local_variables   -> array
@@ -688,7 +689,7 @@ mrb_mruby_metaprog_gem_init(mrb_state* mrb)
   struct RClass *mod = mrb->module_class;
 
   mrb_define_method(mrb, krn, "global_variables", mrb_f_global_variables, MRB_ARGS_NONE()); /* 15.3.1.3.14 (15.3.1.2.4) */
-  mrb_define_method(mrb, krn, "local_variables", mrb_local_variables, MRB_ARGS_NONE()); /* 15.3.1.3.28 */
+  mrb_define_method(mrb, krn, "local_variables", mrb_local_variables, MRB_ARGS_NONE()); /* 15.3.1.3.28 (15.3.1.2.7) */
 
   mrb_define_method(mrb, krn, "singleton_class", mrb_singleton_class, MRB_ARGS_NONE());
   mrb_define_method(mrb, krn, "instance_variable_defined?", mrb_obj_ivar_defined, MRB_ARGS_REQ(1)); /* 15.3.1.3.20 */
