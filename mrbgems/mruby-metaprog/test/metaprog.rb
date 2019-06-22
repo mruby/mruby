@@ -1,17 +1,3 @@
-assert('Kernel#__send__', '15.3.1.3.4') do
-  # test with block
-  l = __send__(:lambda) do
-    true
-  end
-
-  assert_true l.call
-  assert_equal Proc, l.class
-  # test with argument
-  assert_true __send__(:respond_to?, :nil?)
-  # test without argument and without block
-  assert_equal String, __send__(:to_s).class
-end
-
 assert('Kernel#send', '15.3.1.3.44') do
   # test with block
   l = send(:lambda) do
