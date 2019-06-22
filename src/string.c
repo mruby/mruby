@@ -1710,11 +1710,13 @@ mrb_str_reverse_bang(mrb_state *mrb, mrb_value str)
       str_reverse(p, p + clen - 1);
       p += clen;
     }
+    goto bytes;
   }
 #endif
 
-  mrb_str_modify(mrb, s);
   if (RSTR_LEN(s) > 1) {
+    mrb_str_modify(mrb, s);
+   bytes:
     p = RSTR_PTR(s);
     e = p + RSTR_LEN(s) - 1;
     str_reverse(p, e);
