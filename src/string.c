@@ -1671,6 +1671,18 @@ mrb_ptr_to_str(mrb_state *mrb, void *p)
   return mrb_obj_value(p_str);
 }
 
+static inline void
+str_reverse(char *p, char *e)
+{
+  char c;
+
+  while (p < e) {
+    c = *p;
+    *p++ = *e;
+    *e-- = c;
+  }
+}
+
 /* 15.2.10.5.30 */
 /*
  *  call-seq:
@@ -1714,17 +1726,12 @@ mrb_str_reverse_bang(mrb_state *mrb, mrb_value str)
   {
     struct RString *s = mrb_str_ptr(str);
     char *p, *e;
-    char c;
 
     mrb_str_modify(mrb, s);
     if (RSTR_LEN(s) > 1) {
       p = RSTR_PTR(s);
       e = p + RSTR_LEN(s) - 1;
-      while (p < e) {
-      c = *p;
-      *p++ = *e;
-      *e-- = c;
-      }
+      str_reverse(p, e);
     }
     return str;
   }
