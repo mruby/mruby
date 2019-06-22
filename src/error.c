@@ -485,10 +485,10 @@ mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_value args, char const* fmt,
 }
 
 MRB_API mrb_noreturn void
-mrb_frozen_error(mrb_state *mrb, void *frozen_obj)
+mrb_frozen_error(mrb_state *mrb, mrb_value frozen_obj)
 {
   mrb_raisef(mrb, E_FROZEN_ERROR, "can't modify frozen %S",
-             mrb_obj_value(mrb_class(mrb, mrb_obj_value(frozen_obj))));
+             mrb_obj_value(mrb_class(mrb, frozen_obj)));
 }
 
 void

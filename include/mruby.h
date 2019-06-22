@@ -1133,7 +1133,7 @@ MRB_API mrb_noreturn void mrb_exc_raise(mrb_state *mrb, mrb_value exc);
 MRB_API mrb_noreturn void mrb_raise(mrb_state *mrb, struct RClass *c, const char *msg);
 MRB_API mrb_noreturn void mrb_raisef(mrb_state *mrb, struct RClass *c, const char *fmt, ...);
 MRB_API mrb_noreturn void mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...);
-MRB_API mrb_noreturn void mrb_frozen_error(mrb_state *mrb, void *frozen_obj);
+MRB_API mrb_noreturn void mrb_frozen_error(mrb_state *mrb, mrb_value frozen_obj);
 MRB_API void mrb_warn(mrb_state *mrb, const char *fmt, ...);
 MRB_API mrb_noreturn void mrb_bug(mrb_state *mrb, const char *fmt, ...);
 MRB_API void mrb_print_backtrace(mrb_state *mrb);
@@ -1189,7 +1189,7 @@ MRB_API void mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t);
 
 MRB_INLINE void mrb_check_frozen(mrb_state *mrb, void *o)
 {
-  if (MRB_FROZEN_P((struct RBasic*)o)) mrb_frozen_error(mrb, o);
+  if (MRB_FROZEN_P((struct RBasic*)o)) mrb_frozen_error(mrb, mrb_obj_value(o));
 }
 
 typedef enum call_type {

@@ -405,6 +405,12 @@ assert('Kernel#remove_instance_variable', '15.3.1.3.41') do
   assert_raise(NameError) { tri.remove }
   assert_raise(NameError) { tri.remove_instance_variable(:var) }
   assert_raise(FrozenError) { tri.freeze.remove }
+
+  assert_raise(FrozenError) { 1.remove_instance_variable '@a' }
+  assert_raise(FrozenError) { nil.remove_instance_variable '@a' }
+  assert_raise(FrozenError) { 1.0.remove_instance_variable '@a' }
+  assert_raise(FrozenError) { true.remove_instance_variable '@a' }
+  assert_raise(FrozenError) { :a.remove_instance_variable '@a' }
 end
 
 # Kernel#require is defined in mruby-require. '15.3.1.3.42'

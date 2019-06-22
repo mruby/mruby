@@ -521,7 +521,9 @@ mrb_obj_iv_inspect(mrb_state *mrb, struct RObject *obj)
 MRB_API mrb_value
 mrb_iv_remove(mrb_state *mrb, mrb_value obj, mrb_sym sym)
 {
-  mrb_check_frozen(mrb, mrb_obj_ptr(obj));
+  if (mrb_immediate_p(obj) || MRB_FROZEN_P(mrb_obj_ptr(obj)))
+    mrb_frozen_error(mrb, obj);
+
   if (obj_iv_p(obj)) {
     iv_tbl *t = mrb_obj_ptr(obj)->iv;
     mrb_value val;
