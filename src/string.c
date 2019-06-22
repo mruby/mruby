@@ -1712,15 +1712,14 @@ mrb_str_reverse_bang(mrb_state *mrb, mrb_value str)
     }
   }
 #endif
-  {
-    mrb_str_modify(mrb, s);
-    if (RSTR_LEN(s) > 1) {
-      p = RSTR_PTR(s);
-      e = p + RSTR_LEN(s) - 1;
-      str_reverse(p, e);
-    }
-    return str;
+
+  mrb_str_modify(mrb, s);
+  if (RSTR_LEN(s) > 1) {
+    p = RSTR_PTR(s);
+    e = p + RSTR_LEN(s) - 1;
+    str_reverse(p, e);
   }
+  return str;
 }
 
 /* ---------------------------------- */
