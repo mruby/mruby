@@ -44,20 +44,13 @@ class String
         pointer += 1
       end
     else
-      matched_length = 0
-      separator_length = separator.length
-      while pointer < string.length
-        c = string[pointer]
-        pointer += 1
-        matched_length += 1 if c == separator[matched_length]
-        next unless matched_length == separator_length
-
+      while (pointer = string.index(separator, start))
+        pointer += separator.length
         if self.class == String
           yield string[start...pointer]
         else
           yield self.class.new(string[start...pointer])
         end
-        matched_length = 0
         start = pointer
       end
     end
