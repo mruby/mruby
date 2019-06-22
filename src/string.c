@@ -1700,8 +1700,8 @@ mrb_str_reverse_bang(mrb_state *mrb, mrb_value str)
   mrb_int utf8_len = RSTRING_CHAR_LEN(str);
   mrb_int len = RSTR_LEN(s);
 
-  if (utf8_len == len) goto bytes;
-  if (utf8_len > 1) {
+  if (utf8_len < 2) return str;
+  if (utf8_len < len) {
     mrb_str_modify(mrb, s);
     p = RSTR_PTR(s);
     e = p + RSTR_LEN(s);
@@ -1711,8 +1711,6 @@ mrb_str_reverse_bang(mrb_state *mrb, mrb_value str)
       p += clen;
     }
   }
-
- bytes:
 #endif
   {
     mrb_str_modify(mrb, s);
