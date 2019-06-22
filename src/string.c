@@ -1693,40 +1693,28 @@ str_reverse(char *p, char *e)
 static mrb_value
 mrb_str_reverse_bang(mrb_state *mrb, mrb_value str)
 {
+  struct RString *s = mrb_str_ptr(str);
+  char *p, *e;
+
 #ifdef MRB_UTF8_STRING
   mrb_int utf8_len = RSTRING_CHAR_LEN(str);
-  mrb_int len = RSTRING_LEN(str);
+  mrb_int len = RSTR_LEN(s);
 
   if (utf8_len == len) goto bytes;
   if (utf8_len > 1) {
-    char *buf;
-    char *p, *e, *r;
-
-    mrb_str_modify(mrb, mrb_str_ptr(str));
-    len = RSTRING_LEN(str);
-    buf = (char*)mrb_malloc(mrb, (size_t)len);
-    p = buf;
-    e = buf + len;
-
-    memcpy(buf, RSTRING_PTR(str), len);
-    r = RSTRING_PTR(str) + len;
-
+    mrb_str_modify(mrb, s);
+    p = RSTR_PTR(s);
+    e = p + RSTR_LEN(s);
     while (p<e) {
       mrb_int clen = utf8len(p, e);
-      r -= clen;
-      memcpy(r, p, clen);
+      str_reverse(p, p + clen - 1);
       p += clen;
     }
-    mrb_free(mrb, buf);
   }
-  return str;
 
  bytes:
 #endif
   {
-    struct RString *s = mrb_str_ptr(str);
-    char *p, *e;
-
     mrb_str_modify(mrb, s);
     if (RSTR_LEN(s) > 1) {
       p = RSTR_PTR(s);
