@@ -11,18 +11,63 @@ class String
   # and pass the respective line.
   #
   # ISO 15.2.10.5.15
-  def each_line(rs = "\n", &block)
-    return to_enum(:each_line, rs, &block) unless block
-    return block.call(self) if rs.nil?
-    rs.__to_str
-    offset = 0
-    rs_len = rs.length
-    this = dup
-    while pos = this.index(rs, offset)
-      block.call(this[offset, pos + rs_len - offset])
-      offset = pos + rs_len
+  def each_line(separator = "\n", getline_args = nil)
+    return to_enum(:each_line, separator, getline_args) unless block_given?
+
+    if separator.nil?
+      yield self
+      return self
     end
-    block.call(this[offset, this.size - offset]) if this.size > offset
+    raise TypeError unless separator.is_a?(String)
+
+    start = 0
+    pointer = 0
+    string = dup
+
+    if separator.empty?
+      matched_newlines = 0
+      while pointer < string.length
+        c = string[pointer]
+        if c == "\n"
+          matched_newlines += 1
+        elsif matched_newlines > 1 && self.class == String
+          yield string[start...pointer]
+          matched_newlines = 0
+          start = pointer
+        elsif matched_newlines > 1
+          yield self.class.new(string[start...pointer])
+          matched_newlines = 0
+          start = pointer
+        else
+          matched_newlines = 0
+        end
+        pointer += 1
+      end
+    else
+      matched_length = 0
+      separator_length = separator.length
+      while pointer < string.length
+        c = string[pointer]
+        pointer += 1
+        matched_length += 1 if c == separator[matched_length]
+        next unless matched_length == separator_length
+
+        if self.class == String
+          yield string[start...pointer]
+        else
+          yield self.class.new(string[start...pointer])
+        end
+        matched_length = 0
+        start = pointer
+      end
+    end
+    return self if start == string.length
+
+    if self.class == String
+      yield string[start..-1]
+    else
+      yield self.class.new(string[start..-1])
+    end
     self
   end
 
