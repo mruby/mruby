@@ -11,7 +11,7 @@ class String
   # and pass the respective line.
   #
   # ISO 15.2.10.5.15
-  def each_line(separator = "\n", getline_args = nil)
+  def each_line(separator = "\n")
     return to_enum(:each_line, separator, getline_args) unless block_given?
 
     if separator.nil?
@@ -20,22 +20,25 @@ class String
     end
     raise TypeError unless separator.is_a?(String)
 
-    start = 0
     pointer = 0
+    start = 0
     string = dup
+    self_len = length
+    sep_len = separator.length
+    should_yield_subclass_instances = self.class != String
 
     if separator.empty?
       matched_newlines = 0
-      while pointer < string.length
+      while pointer < self_len
         c = string[pointer]
         if c == "\n"
           matched_newlines += 1
-        elsif matched_newlines > 1 && self.class == String
-          yield string[start...pointer]
+        elsif matched_newlines > 1 && should_yield_subclass_instances
+          yield self.class.new(string[start, pointer - start])
           matched_newlines = 0
           start = pointer
         elsif matched_newlines > 1
-          yield self.class.new(string[start...pointer])
+          yield string[start, pointer - start]
           matched_newlines = 0
           start = pointer
         else
@@ -45,21 +48,21 @@ class String
       end
     else
       while (pointer = string.index(separator, start))
-        pointer += separator.length
-        if self.class == String
-          yield string[start...pointer]
+        pointer += sep_len
+        if should_yield_subclass_instances
+          yield self.class.new(string[start, pointer - start])
         else
-          yield self.class.new(string[start...pointer])
+          yield string[start, pointer - start]
         end
         start = pointer
       end
     end
-    return self if start == string.length
+    return self if start == self_len
 
-    if self.class == String
-      yield string[start..-1]
+    if should_yield_subclass_instances
+      yield self.class.new(string[start, self_len - start])
     else
-      yield self.class.new(string[start..-1])
+      yield string[start, self_len - start]
     end
     self
   end
