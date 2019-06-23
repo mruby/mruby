@@ -1378,10 +1378,21 @@ mrb_hash_merge(mrb_state *mrb, mrb_value hash1, mrb_value hash2)
  *  values of key objects have changed since they were inserted, this
  *  method will reindex <i>hsh</i>.
  *
- *     h = {"AAA" => "b"}
- *     h.keys[0].chop!
- *     h.rehash   #=> {"AA"=>"b"}
- *     h["AA"]    #=> "b"
+ *     keys = (1..17).map{|n| [n]}
+ *     k = keys[0]
+ *     h = {}
+ *     keys.each{|key| h[key] = key[0]}
+ *     h     #=> { [1]=> 1, [2]=> 2, [3]=> 3, [4]=> 4, [5]=> 5, [6]=> 6, [7]=> 7,
+ *                 [8]=> 8, [9]=> 9,[10]=>10,[11]=>11,[12]=>12,[13]=>13,[14]=>14,
+ *                [15]=>15,[16]=>16,[17]=>17}
+ *     h[k]  #=> 1
+ *     k[0] = keys.size + 1
+ *     h     #=> {[18]=> 1, [2]=> 2, [3]=> 3, [4]=> 4, [5]=> 5, [6]=> 6, [7]=> 7,
+ *                 [8]=> 8, [9]=> 9,[10]=>10,[11]=>11,[12]=>12,[13]=>13,[14]=>14,
+ *                [15]=>15,[16]=>16,[17]=>17}
+ *     h[k]  #=> nil
+ *     h.rehash
+ *     h[k]  #=> 1
  */
 static mrb_value
 mrb_hash_rehash(mrb_state *mrb, mrb_value self)
