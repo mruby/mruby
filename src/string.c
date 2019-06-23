@@ -215,44 +215,83 @@ mrb_gc_free_str(mrb_state *mrb, struct RString *str)
 }
 
 #ifdef MRB_UTF8_STRING
-static const char utf8len_codepage[256] =
-{
-  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
-  3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,1,1,1,1,1,1,1,1,1,1,1,
-};
-
 static mrb_int
 utf8len(const char* p, const char* e)
 {
-  mrb_int len;
-  mrb_int i;
+  const signed char* str = (const signed char*) p;
+  mrb_int i = 0;
+  mrb_int iBefore = 0;
+  mrb_int count = 0;
 
-  len = utf8len_codepage[(unsigned char)*p];
-  if (len > e - p) return 1;
-  for (i = 1; i < len; ++i)
-    if ((p[i] & 0xc0) != 0x80)
-      return 1;
-  return len;
+  while (p + i < e) {
+ascii:
+    i++;
+  }
+
+  count += i - iBefore;
+
+  while (str[i]) {
+    if (str[i] > 0) {
+      iBefore = i;
+      goto ascii;
+    } else {
+      switch (0xF0 & str[i]) {
+      case 0xE0:
+        i += 3;
+        break;
+      case 0xF0:
+        i += 4;
+        break;
+      default:
+        i += 2;
+        break;
+      }
+    }
+
+    return i;
+  }
+  return -1;
 }
 
 mrb_int
 mrb_utf8_len(const char *str, mrb_int byte_len)
 {
-  mrb_int total = 0;
-  const char *p = str;
-  const char *e = p + byte_len;
+  const signed char* s = (const signed char*) str;
+  size_t i = 0;
+  size_t iBefore = 0;
+  size_t count = 0;
 
-  while (p < e) {
-    p += utf8len(p, e);
-    total++;
+  (void)(byte_len);
+
+  while (s[i] > 0) {
+ascii:
+    i++;
   }
-  return total;
+
+  count += i - iBefore;
+
+  while (s[i]) {
+    if (s[i] > 0) {
+      iBefore = i;
+      goto ascii;
+    } else {
+      switch (0xF0 & s[i]) {
+      case 0xE0:
+        i += 3;
+        break;
+      case 0xF0:
+        i += 4;
+        break;
+      default:
+        i += 2;
+        break;
+      }
+    }
+
+    count++;
+  }
+
+  return count;
 }
 
 static mrb_int
@@ -276,30 +315,82 @@ utf8_strlen(mrb_value str)
 static mrb_int
 chars2bytes(mrb_value s, mrb_int off, mrb_int idx)
 {
-  mrb_int i, b, n;
   const char *p = RSTRING_PTR(s) + off;
   const char *e = RSTRING_END(s);
+  const signed char* str = (const signed char*) p;
+  mrb_int i = 0;
+  mrb_int iBefore = 0;
+  mrb_int count = 0;
 
-  for (b=i=0; p<e && i<idx; i++) {
-    n = utf8len(p, e);
-    b += n;
-    p += n;
+  while (str[i] > 0 && count < idx) {
+ascii:
+    i++;
   }
-  return b;
+
+  count += i - iBefore;
+
+  while (str[i] && count < idx) {
+    if (str[i] > 0) {
+      iBefore = i;
+      goto ascii;
+    } else {
+      switch (0xF0 & str[i]) {
+      case 0xE0:
+        i += 3;
+        break;
+      case 0xF0:
+        i += 4;
+        break;
+      default:
+        i += 2;
+        break;
+      }
+    }
+
+    count++;
+  }
+
+  return i;
 }
 
 /* map byte offset to character index */
 static mrb_int
 bytes2chars(char *p, mrb_int bi)
 {
-  mrb_int i, b, n;
+  const signed char* str = (const signed char*) p;
+  mrb_int i = 0;
+  mrb_int iBefore = 0;
+  mrb_int count = 0;
 
-  for (b=i=0; b<bi; i++) {
-    n = utf8len_codepage[(unsigned char)*p];
-    b += n;
-    p += n;
+  while (str[i] > 0 && i < bi) {
+ascii:
+    i++;
   }
-  if (b != bi) return -1;
+
+  count += i - iBefore;
+
+  while (str[i] && i < bi) {
+    if (str[i] > 0) {
+      iBefore = i;
+      goto ascii;
+    } else {
+      switch (0xF0 & str[i]) {
+      case 0xE0:
+        i += 3;
+        break;
+      case 0xF0:
+        i += 4;
+        break;
+      default:
+        i += 2;
+        break;
+      }
+    }
+
+    count++;
+  }
+
+  if (i != bi) return -1;
   return i;
 }
 
