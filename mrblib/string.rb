@@ -11,11 +11,11 @@ class String
   # and pass the respective line.
   #
   # ISO 15.2.10.5.15
-  def each_line(separator = "\n")
-    return to_enum(:each_line, separator, getline_args) unless block_given?
+  def each_line(separator = "\n", &block)
+    return to_enum(:each_line, separator) unless block
 
     if separator.nil?
-      yield self
+      block.call(self)
       return self
     end
     raise TypeError unless separator.is_a?(String)
@@ -34,11 +34,11 @@ class String
         if c == "\n"
           matched_newlines += 1
         elsif matched_newlines > 1 && should_yield_subclass_instances
-          yield self.class.new(string[start, pointer - start])
+          block.call(self.class.new(string[start, pointer - start]))
           matched_newlines = 0
           start = pointer
         elsif matched_newlines > 1
-          yield string[start, pointer - start]
+          block.call(string[start, pointer - start])
           matched_newlines = 0
           start = pointer
         else
@@ -50,9 +50,9 @@ class String
       while (pointer = string.index(separator, start))
         pointer += sep_len
         if should_yield_subclass_instances
-          yield self.class.new(string[start, pointer - start])
+          block.call(self.class.new(string[start, pointer - start]))
         else
-          yield string[start, pointer - start]
+          block.call(string[start, pointer - start])
         end
         start = pointer
       end
@@ -60,9 +60,9 @@ class String
     return self if start == self_len
 
     if should_yield_subclass_instances
-      yield self.class.new(string[start, self_len - start])
+      block.call(self.class.new(string[start, self_len - start]))
     else
-      yield string[start, self_len - start]
+      block.call(string[start, self_len - start])
     end
     self
   end
