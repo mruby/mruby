@@ -20,42 +20,26 @@ class String
     end
     raise TypeError unless separator.is_a?(String)
 
-    pointer = 0
+    paragraph_mode = false
+    if separator.empty?
+      paragraph_mode = true
+      separator = "\n\n"
+    end
     start = 0
     string = dup
     self_len = length
     sep_len = separator.length
     should_yield_subclass_instances = self.class != String
 
-    if separator.empty?
-      matched_newlines = 0
-      while pointer < self_len
-        c = string[pointer]
-        if c == "\n"
-          matched_newlines += 1
-        elsif matched_newlines > 1 && should_yield_subclass_instances
-          block.call(self.class.new(string[start, pointer - start]))
-          matched_newlines = 0
-          start = pointer
-        elsif matched_newlines > 1
-          block.call(string[start, pointer - start])
-          matched_newlines = 0
-          start = pointer
-        else
-          matched_newlines = 0
-        end
-        pointer += 1
+    while (pointer = string.index(separator, start))
+      pointer += sep_len
+      pointer += 1 while paragraph_mode && string[pointer] == "\n"
+      if should_yield_subclass_instances
+        block.call(self.class.new(string[start, pointer - start]))
+      else
+        block.call(string[start, pointer - start])
       end
-    else
-      while (pointer = string.index(separator, start))
-        pointer += sep_len
-        if should_yield_subclass_instances
-          block.call(self.class.new(string[start, pointer - start]))
-        else
-          block.call(string[start, pointer - start])
-        end
-        start = pointer
-      end
+      start = pointer
     end
     return self if start == self_len
 
