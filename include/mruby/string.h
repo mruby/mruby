@@ -23,6 +23,9 @@ struct RString {
   union {
     struct {
       mrb_int len;
+#ifdef MRB_UTF8_STRING
+      mrb_int char_len;
+#endif
       union {
         mrb_int capa;
         struct mrb_shared_string *shared;

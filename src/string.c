@@ -258,14 +258,20 @@ mrb_utf8_len(const char *str, mrb_int byte_len)
 static mrb_int
 utf8_strlen(mrb_value str)
 {
+  mrb_int char_len = RSTRING(str)->as.heap.char_len;
   mrb_int byte_len = RSTRING_LEN(str);
 
-  if (RSTRING(str)->flags & MRB_STR_NO_UTF) {
+  if (char_len > 0) {
+    return char_len;
+  }
+  else if (RSTRING(str)->flags & MRB_STR_NO_UTF) {
+    RSTRING(str)->as.heap.char_len = byte_len;
     return byte_len;
   }
   else {
     mrb_int utf8_len = mrb_utf8_len(RSTRING_PTR(str), byte_len);
     if (byte_len == utf8_len) RSTRING(str)->flags |= MRB_STR_NO_UTF;
+    RSTRING(str)->as.heap.char_len = utf8_len;
     return utf8_len;
   }
 }
@@ -678,6 +684,9 @@ mrb_str_modify(mrb_state *mrb, struct RString *s)
       str_decref(mrb, shared);
     }
     RSTR_UNSET_SHARED_FLAG(s);
+#ifdef MRB_UTF8_STRING
+    s->as.heap.char_len = 0;
+#endif
     return;
   }
   if (RSTR_NOFREE_P(s) || RSTR_FSHARED_P(s)) {
