@@ -215,83 +215,224 @@ mrb_gc_free_str(mrb_state *mrb, struct RString *str)
 }
 
 #ifdef MRB_UTF8_STRING
+static inline mrb_int
+utf8_sequence_len(const unsigned char lead)
+{
+  if (lead < 0x80)
+    return 1;
+  else if ((lead >> 5) == 0x6)
+    return 2;
+  else if ((lead >> 4) == 0xe)
+    return 3;
+  else if ((lead >> 3) == 0x1e)
+    return 4;
+  else
+    return 0;
+}
+
 static mrb_int
 utf8len(const char* p, const char* e)
 {
-  const signed char* str = (const signed char*) p;
-  mrb_int i = 0;
-  mrb_int iBefore = 0;
-  mrb_int count = 0;
-
-  while (p + i < e) {
-ascii:
-    i++;
-  }
-
-  count += i - iBefore;
-
-  while (str[i]) {
-    if (str[i] > 0) {
-      iBefore = i;
-      goto ascii;
-    } else {
-      switch (0xF0 & str[i]) {
-      case 0xE0:
-        i += 3;
-        break;
-      case 0xF0:
-        i += 4;
-        break;
-      default:
-        i += 2;
+  mrb_int length = 0;
+  mrb_int sequence_length = 0;
+  const unsigned char* pointer = (unsigned char*) p;
+  const unsigned char* end = (unsigned char*) e;
+  sequence_length = utf8_sequence_len(*pointer);
+  switch (sequence_length) {
+    case 0:
+      // invalid lead, treating as binary data
+      // fall through
+    case 1:
+      // ASCII or binary data
+      length++;
+      pointer++;
+      break;
+    case 2:
+      if (++pointer == end) {
+        // not enough room
+        length++;
         break;
       }
-    }
-
-    return i;
+      if ((*pointer >> 6) != 0x2) {
+        // incomplete sequence, treating as binary data
+        length += 2;
+        break;
+      }
+      // valid two byte code point
+      length++;
+      pointer++;
+      break;
+    case 3:
+      if (++pointer == end) {
+        // not enough room
+        length++;
+        break;
+      }
+      if ((*pointer >> 6) != 0x2) {
+        // incomplete sequence, treating as binary data
+        length += 2;
+        break;
+      }
+      if (++pointer == end) {
+        // not enough room
+        length += 2;
+        break;
+      }
+      if ((*pointer >> 6) != 0x2) {
+        // incomplete sequence, treating as binary data
+        length += 3;
+        break;
+      }
+      // valid three byte code point
+      length++;
+      pointer++;
+      break;
+    case 4:
+      if (++pointer == end) {
+        // not enough room
+        length++;
+        break;
+      }
+      if ((*pointer >> 6) != 0x2) {
+        // incomplete sequence, treating as binary data
+        length += 2;
+        break;
+      }
+      if (++pointer == end) {
+        // not enough room
+        length += 2;
+        break;
+      }
+      if ((*pointer >> 6) != 0x2) {
+        // incomplete sequence, treating as binary data
+        length += 3;
+        break;
+      }
+      if (++pointer == end) {
+        // not enough room
+        length += 3;
+        break;
+      }
+      if ((*pointer >> 6) != 0x2) {
+        // incomplete sequence, treating as binary data
+        length += 4;
+        break;
+      }
+      // valid four byte code point
+      length++;
+      pointer++;
+      break;
+    default:
+      return -1;
   }
-  return -1;
+  return length;
 }
 
 mrb_int
 mrb_utf8_len(const char *str, mrb_int byte_len)
 {
-  const signed char* s = (const signed char*) str;
-  size_t i = 0;
-  size_t iBefore = 0;
-  size_t count = 0;
-
-  (void)(byte_len);
-
-  while (s[i] > 0) {
-ascii:
-    i++;
-  }
-
-  count += i - iBefore;
-
-  while (s[i]) {
-    if (s[i] > 0) {
-      iBefore = i;
-      goto ascii;
-    } else {
-      switch (0xF0 & s[i]) {
-      case 0xE0:
-        i += 3;
+  const char *e = str + byte_len;
+  mrb_int length = 0;
+  mrb_int sequence_length = 0;
+  const unsigned char* pointer = (unsigned char*) str;
+  const unsigned char* end = (unsigned char*) e;
+  while (pointer < end) {
+    sequence_length = utf8_sequence_len(*pointer);
+    switch (sequence_length) {
+      case 0:
+        // invalid lead, treating as binary data
+        // fall through
+      case 1:
+        // ASCII or binary data
+        length++;
+        pointer++;
         break;
-      case 0xF0:
-        i += 4;
+      case 2:
+        if (++pointer == end) {
+          // not enough room
+          length++;
+          break;
+        }
+        if ((*pointer >> 6) != 0x2) {
+          // incomplete sequence, treating as binary data
+          length += 2;
+          pointer++;
+          break;
+        }
+        // valid two byte code point
+        length++;
+        pointer++;
+        break;
+      case 3:
+        if (++pointer == end) {
+          // not enough room
+          length++;
+          break;
+        }
+        if ((*pointer >> 6) != 0x2) {
+          // incomplete sequence, treating as binary data
+          length += 2;
+          break;
+        }
+        if (++pointer == end) {
+          // not enough room
+          length += 2;
+          pointer++;
+          break;
+        }
+        if ((*pointer >> 6) != 0x2) {
+          // incomplete sequence, treating as binary data
+          length += 3;
+          pointer++;
+          break;
+        }
+        // valid three byte code point
+        length++;
+        pointer++;
+        break;
+      case 4:
+        if (++pointer == end) {
+          // not enough room
+          length++;
+          break;
+        }
+        if ((*pointer >> 6) != 0x2) {
+          // incomplete sequence, treating as binary data
+          length += 2;
+          pointer++;
+          break;
+        }
+        if (++pointer == end) {
+          // not enough room
+          length += 2;
+          break;
+        }
+        if ((*pointer >> 6) != 0x2) {
+          // incomplete sequence, treating as binary data
+          length += 3;
+          pointer++;
+          break;
+        }
+        if (++pointer == end) {
+          // not enough room
+          length += 3;
+          break;
+        }
+        if ((*pointer >> 6) != 0x2) {
+          // incomplete sequence, treating as binary data
+          length += 4;
+          pointer++;
+          break;
+        }
+        // valid four byte code point
+        length++;
+        pointer++;
         break;
       default:
-        i += 2;
-        break;
-      }
+        return -1;
     }
-
-    count++;
   }
-
-  return count;
+  return length;
 }
 
 static mrb_int
@@ -315,83 +456,204 @@ utf8_strlen(mrb_value str)
 static mrb_int
 chars2bytes(mrb_value s, mrb_int off, mrb_int idx)
 {
+  mrb_int length = 0;
+  mrb_int sequence_length = 0;
   const char *p = RSTRING_PTR(s) + off;
   const char *e = RSTRING_END(s);
-  const signed char* str = (const signed char*) p;
-  mrb_int i = 0;
-  mrb_int iBefore = 0;
-  mrb_int count = 0;
-
-  while (str[i] > 0 && count < idx) {
-ascii:
-    i++;
-  }
-
-  count += i - iBefore;
-
-  while (str[i] && count < idx) {
-    if (str[i] > 0) {
-      iBefore = i;
-      goto ascii;
-    } else {
-      switch (0xF0 & str[i]) {
-      case 0xE0:
-        i += 3;
+  const unsigned char* pointer = (unsigned char*) p;
+  const unsigned char* end = (unsigned char*) e;
+  while (pointer < end && length < idx) {
+    sequence_length = utf8_sequence_len(*pointer);
+    switch (sequence_length) {
+      case 0:
+        // invalid lead, treating as binary data
+        // fall through
+      case 1:
+        // ASCII or binary data
+        length++;
+        pointer++;
         break;
-      case 0xF0:
-        i += 4;
+      case 2:
+        if (++pointer == end) {
+          // not enough room
+          length++;
+          break;
+        }
+        if ((*pointer >> 6) != 0x2) {
+          // incomplete sequence, treating as binary data
+          length += 2;
+          break;
+        }
+        // valid two byte code point
+        length++;
+        pointer++;
+        break;
+      case 3:
+        if (++pointer == end) {
+          // not enough room
+          length++;
+          break;
+        }
+        if ((*pointer >> 6) != 0x2) {
+          // incomplete sequence, treating as binary data
+          length += 2;
+          break;
+        }
+        if (++pointer == end) {
+          // not enough room
+          length += 2;
+          break;
+        }
+        if ((*pointer >> 6) != 0x2) {
+          // incomplete sequence, treating as binary data
+          length += 3;
+          break;
+        }
+        // valid three byte code point
+        length++;
+        pointer++;
+        break;
+      case 4:
+        if (++pointer == end) {
+          // not enough room
+          length++;
+          break;
+        }
+        if ((*pointer >> 6) != 0x2) {
+          // incomplete sequence, treating as binary data
+          length += 2;
+          break;
+        }
+        if (++pointer == end) {
+          // not enough room
+          length += 2;
+          break;
+        }
+        if ((*pointer >> 6) != 0x2) {
+          // incomplete sequence, treating as binary data
+          length += 3;
+          break;
+        }
+        if (++pointer == end) {
+          // not enough room
+          length += 3;
+          break;
+        }
+        if ((*pointer >> 6) != 0x2) {
+          // incomplete sequence, treating as binary data
+          length += 4;
+          break;
+        }
+        // valid four byte code point
+        length++;
+        pointer++;
         break;
       default:
-        i += 2;
-        break;
-      }
+        return -1;
     }
-
-    count++;
   }
-
-  return i;
+  return (char*)pointer - p;
 }
 
 /* map byte offset to character index */
 static mrb_int
 bytes2chars(char *p, mrb_int bi)
 {
-  const signed char* str = (const signed char*) p;
-  mrb_int i = 0;
-  mrb_int iBefore = 0;
-  mrb_int count = 0;
-
-  while (str[i] > 0 && i < bi) {
-ascii:
-    i++;
-  }
-
-  count += i - iBefore;
-
-  while (str[i] && i < bi) {
-    if (str[i] > 0) {
-      iBefore = i;
-      goto ascii;
-    } else {
-      switch (0xF0 & str[i]) {
-      case 0xE0:
-        i += 3;
+  mrb_int length = 0;
+  mrb_int sequence_length = 0;
+  const char* pointer = p;
+  const char* end = p + bi;
+  while (pointer < end) {
+    sequence_length = utf8_sequence_len(*pointer);
+    switch (sequence_length) {
+      case 0:
+        // invalid lead, treating as binary data
+        // fall through
+      case 1:
+        // ASCII or binary data
+        length++;
+        pointer++;
         break;
-      case 0xF0:
-        i += 4;
+      case 2:
+        if (++pointer == end) {
+          // not enough room
+          length++;
+          break;
+        }
+        if ((*pointer >> 6) != 0x2) {
+          // incomplete sequence, treating as binary data
+          length += 2;
+          break;
+        }
+        // valid two byte code point
+        length++;
+        pointer++;
+        break;
+      case 3:
+        if (++pointer == end) {
+          // not enough room
+          length++;
+          break;
+        }
+        if ((*pointer >> 6) != 0x2) {
+          // incomplete sequence, treating as binary data
+          length += 2;
+          break;
+        }
+        if (++pointer == end) {
+          // not enough room
+          length += 2;
+          break;
+        }
+        if ((*pointer >> 6) != 0x2) {
+          // incomplete sequence, treating as binary data
+          length += 3;
+          break;
+        }
+        // valid three byte code point
+        length++;
+        pointer++;
+        break;
+      case 4:
+        if (++pointer == end) {
+          // not enough room
+          length++;
+          break;
+        }
+        if ((*pointer >> 6) != 0x2) {
+          // incomplete sequence, treating as binary data
+          length += 2;
+          break;
+        }
+        if (++pointer == end) {
+          // not enough room
+          length += 2;
+          break;
+        }
+        if ((*pointer >> 6) != 0x2) {
+          // incomplete sequence, treating as binary data
+          length += 3;
+          break;
+        }
+        if (++pointer == end) {
+          // not enough room
+          length += 3;
+          break;
+        }
+        if ((*pointer >> 6) != 0x2) {
+          // incomplete sequence, treating as binary data
+          length += 4;
+          break;
+        }
+        // valid four byte code point
+        length++;
+        pointer++;
         break;
       default:
-        i += 2;
-        break;
-      }
+        return -1;
     }
-
-    count++;
   }
-
-  if (i != bi) return -1;
-  return i;
+  return length;
 }
 
 #define BYTES_ALIGN_CHECK(pos) if (pos < 0) return mrb_nil_value();
