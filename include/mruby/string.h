@@ -438,6 +438,9 @@ mrb_value mrb_str_inspect(mrb_state *mrb, mrb_value str);
 #define mrb_str_buf_cat(mrb, str, ptr, len) mrb_str_cat(mrb, str, ptr, len)
 #define mrb_str_buf_append(mrb, str, str2) mrb_str_cat_str(mrb, str, str2)
 
+mrb_bool mrb_str_beg_len(mrb_int str_len, mrb_int *begp, mrb_int *lenp);
+mrb_value mrb_str_byte_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len);
+
 #ifdef MRB_UTF8_STRING
 mrb_int mrb_utf8_len(const char *str, mrb_int byte_len);
 #endif
