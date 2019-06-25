@@ -141,7 +141,6 @@ mrb_type(mrb_value o)
 #define SET_OBJ_VALUE(r,v) do {                                             \
   (r).w = 0;                                                                \
   (r).value.p = (v);                                                        \
-  if ((r).value.bp) (r).value.bp->tt = ((struct RObject*)(v))->tt;          \
 } while (0)
 
 #endif  /* MRUBY_BOXING_WORD_H */
