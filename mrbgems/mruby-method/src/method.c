@@ -270,16 +270,16 @@ method_to_s(mrb_state *mrb, mrb_value self)
   mrb_str_cat_lit(mrb, str, ": ");
   rklass = mrb_class_ptr(klass);
   if (mrb_class_ptr(owner) == rklass) {
-    mrb_str_cat_str(mrb, str, mrb_funcall(mrb, owner, "to_s", 0));
+    mrb_str_cat_str(mrb, str, mrb_str_to_str(mrb, owner));
     mrb_str_cat_lit(mrb, str, "#");
-    mrb_str_cat_str(mrb, str, mrb_funcall(mrb, name, "to_s", 0));
+    mrb_str_cat_str(mrb, str, mrb_str_to_str(mrb, name));
   }
   else {
     mrb_str_cat_cstr(mrb, str, mrb_class_name(mrb, rklass));
     mrb_str_cat_lit(mrb, str, "(");
-    mrb_str_cat_str(mrb, str, mrb_funcall(mrb, owner, "to_s", 0));
+    mrb_str_cat_str(mrb, str, mrb_str_to_str(mrb, owner));
     mrb_str_cat_lit(mrb, str, ")#");
-    mrb_str_cat_str(mrb, str, mrb_funcall(mrb, name, "to_s", 0));
+    mrb_str_cat_str(mrb, str, mrb_str_to_str(mrb, name));
   }
   mrb_str_cat_lit(mrb, str, ">");
   return str;
