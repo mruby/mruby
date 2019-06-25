@@ -15,18 +15,15 @@ struct mrb_complex {
 
 #define complex_ptr(mrb, v) (struct mrb_complex*)mrb_istruct_ptr(v)
 
-static mrb_value
-complex_new(mrb_state *mrb, mrb_float real, mrb_float imaginary)
+static struct RBasic*
+complex_alloc(mrb_state *mrb, struct RClass *c, struct mrb_complex **p)
 {
-  struct RClass *c = mrb_class_get(mrb, "Complex");
-  struct RIStruct *s = (struct RIStruct*)mrb_obj_alloc(mrb, MRB_TT_ISTRUCT, c);
-  mrb_value comp = mrb_obj_value(s);
-  struct mrb_complex *p = complex_ptr(mrb, comp);
-  p->real = real;
-  p->imaginary = imaginary;
-  MRB_SET_FROZEN_FLAG(s);
+  struct RIStruct *s;
 
-  return comp;
+  s = (struct RIStruct*)mrb_obj_alloc(mrb, MRB_TT_ISTRUCT, c);
+  *p = (struct mrb_complex*)s->inline_data;
+
+  return (struct RBasic*)s;
 }
 
 #else
@@ -35,17 +32,14 @@ complex_new(mrb_state *mrb, mrb_float real, mrb_float imaginary)
 
 static const struct mrb_data_type mrb_complex_type = {"Complex", mrb_free};
 
-static mrb_value
-complex_new(mrb_state *mrb, mrb_float real, mrb_float imaginary)
+static struct RBasic*
+complex_alloc(mrb_state *mrb, struct RClass *c, struct mrb_complex **p)
 {
-  struct RClass *c = mrb_class_get(mrb, "Complex");
-  struct mrb_complex *p;
+  struct RData *d;
 
-  p = (struct mrb_complex*)mrb_malloc(mrb, sizeof(struct mrb_complex));
-  p->real = real;
-  p->imaginary = imaginary;
+  Data_Make_Struct(mrb, c, struct mrb_complex, &mrb_complex_type, *p, d);
 
-  return mrb_obj_value(Data_Wrap_Struct(mrb, c, &mrb_complex_type, p));
+  return (struct RBasic*)d;
 }
 
 static struct mrb_complex*
@@ -60,6 +54,19 @@ complex_ptr(mrb_state *mrb, mrb_value v)
   return p;
 }
 #endif
+
+static mrb_value
+complex_new(mrb_state *mrb, mrb_float real, mrb_float imaginary)
+{
+  struct RClass *c = mrb_class_get(mrb, "Complex");
+  struct mrb_complex *p;
+  struct RBasic *comp = complex_alloc(mrb, c, &p);
+  p->real = real;
+  p->imaginary = imaginary;
+  MRB_SET_FROZEN_FLAG(comp);
+
+  return mrb_obj_value(comp);
+}
 
 static mrb_value
 complex_real(mrb_state *mrb, mrb_value self)
