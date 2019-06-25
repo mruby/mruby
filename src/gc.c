@@ -506,7 +506,7 @@ mrb_gc_unregister(mrb_state *mrb, mrb_value obj)
   a = mrb_ary_ptr(table);
   mrb_ary_modify(mrb, a);
   for (i = 0; i < ARY_LEN(a); i++) {
-    if (mrb_obj_eq(mrb, ARY_PTR(a)[i], obj)) {
+    if (mrb_ptr(ARY_PTR(a)[i]) == mrb_ptr(obj)) {
       mrb_int len = ARY_LEN(a)-1;
       mrb_value *ptr = ARY_PTR(a);
 
