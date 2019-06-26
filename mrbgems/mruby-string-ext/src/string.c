@@ -42,44 +42,32 @@ mrb_str_setbyte(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_byteslice(mrb_state *mrb, mrb_value str)
 {
-  mrb_value a1;
-  mrb_int len;
+  mrb_value a1, a2;
+  mrb_int str_len = RSTRING_LEN(str), beg, len;
+  mrb_bool empty = TRUE;
 
-  if (mrb_get_argc(mrb) == 2) {
-    mrb_int pos;
-    mrb_get_args(mrb, "ii", &pos, &len);
-    return mrb_str_substr(mrb, str, pos, len);
+  if (mrb_get_args(mrb, "o|o", &a1, &a2) == 2) {
+    beg = mrb_fixnum(mrb_to_int(mrb, a1));
+    len = mrb_fixnum(mrb_to_int(mrb, a2));
+    goto subseq;
   }
-  mrb_get_args(mrb, "o|i", &a1, &len);
-  switch (mrb_type(a1)) {
-  case MRB_TT_RANGE:
-    {
-      mrb_int beg;
-
-      len = RSTRING_LEN(str);
-      switch (mrb_range_beg_len(mrb, a1, &beg, &len, len, TRUE)) {
-      case MRB_RANGE_TYPE_MISMATCH:
-        break;
-      case MRB_RANGE_OK:
-        return mrb_str_substr(mrb, str, beg, len);
-      case MRB_RANGE_OUT:
-        mrb_raisef(mrb, E_RANGE_ERROR, "%S out of range", a1);
-        break;
-      }
-      return mrb_nil_value();
+  if (mrb_type(a1) == MRB_TT_RANGE) {
+    if (mrb_range_beg_len(mrb, a1, &beg, &len, str_len, TRUE) == MRB_RANGE_OK) {
+      goto subseq;
     }
-#ifndef MRB_WITHOUT_FLOAT
-  case MRB_TT_FLOAT:
-    a1 = mrb_fixnum_value((mrb_int)mrb_float(a1));
-    /* fall through */
-#endif
-  case MRB_TT_FIXNUM:
-    return mrb_str_substr(mrb, str, mrb_fixnum(a1), 1);
-  default:
-    mrb_raise(mrb, E_TYPE_ERROR, "wrong type of argument");
+    return mrb_nil_value();
   }
-  /* not reached */
-  return mrb_nil_value();
+
+  beg = mrb_fixnum(mrb_to_int(mrb, a1));
+  len = 1;
+  empty = FALSE;
+subseq:
+  if (mrb_str_beg_len(str_len, &beg, &len) && (empty || len != 0)) {
+    return mrb_str_byte_subseq(mrb, str, beg, len);
+  }
+  else {
+    return mrb_nil_value();
+  }
 }
 
 /*

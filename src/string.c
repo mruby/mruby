@@ -410,8 +410,8 @@ str_make_shared(mrb_state *mrb, struct RString *orig, struct RString *s)
   }
 }
 
-static mrb_value
-byte_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
+mrb_value
+mrb_str_byte_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 {
   struct RString *orig, *s;
 
@@ -434,32 +434,33 @@ str_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
   beg = chars2bytes(str, 0, beg);
   len = chars2bytes(str, beg, len);
 
-  return byte_subseq(mrb, str, beg, len);
+  return mrb_str_byte_subseq(mrb, str, beg, len);
 }
 #else
-#define str_subseq(mrb, str, beg, len) byte_subseq(mrb, str, beg, len)
+#define str_subseq(mrb, str, beg, len) mrb_str_byte_subseq(mrb, str, beg, len)
 #endif
+
+mrb_bool
+mrb_str_beg_len(mrb_int str_len, mrb_int *begp, mrb_int *lenp)
+{
+  if (str_len < *begp || *lenp < 0) return FALSE;
+  if (*begp < 0) {
+    *begp += str_len;
+    if (*begp < 0) return FALSE;
+  }
+  if (*lenp > str_len - *begp)
+    *lenp = str_len - *begp;
+  if (*lenp <= 0) {
+    *lenp = 0;
+  }
+  return TRUE;
+}
 
 static mrb_value
 str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 {
-  mrb_int clen = RSTRING_CHAR_LEN(str);
-
-  if (len < 0) return mrb_nil_value();
-  if (clen == 0) {
-    len = 0;
-  }
-  if (beg > clen) return mrb_nil_value();
-  if (beg < 0) {
-    beg += clen;
-    if (beg < 0) return mrb_nil_value();
-  }
-  if (len > clen - beg)
-    len = clen - beg;
-  if (len <= 0) {
-    len = 0;
-  }
-  return str_subseq(mrb, str, beg, len);
+  return mrb_str_beg_len(RSTRING_CHAR_LEN(str), &beg, &len) ?
+    str_subseq(mrb, str, beg, len) : mrb_nil_value();
 }
 
 MRB_API mrb_int
@@ -1919,7 +1920,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
         }
       }
       else if (ISSPACE(c)) {
-        mrb_ary_push(mrb, result, byte_subseq(mrb, str, beg, end-beg));
+        mrb_ary_push(mrb, result, mrb_str_byte_subseq(mrb, str, beg, end-beg));
         mrb_gc_arena_restore(mrb, ai);
         skip = TRUE;
         beg = idx;
@@ -1944,7 +1945,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
       else {
         end = chars2bytes(str, idx, 1);
       }
-      mrb_ary_push(mrb, result, byte_subseq(mrb, str, idx, end));
+      mrb_ary_push(mrb, result, mrb_str_byte_subseq(mrb, str, idx, end));
       mrb_gc_arena_restore(mrb, ai);
       idx += end + pat_len;
       if (lim_p && lim <= ++i) break;
@@ -1956,7 +1957,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
       tmp = mrb_str_new_empty(mrb, str);
     }
     else {
-      tmp = byte_subseq(mrb, str, beg, RSTRING_LEN(str)-beg);
+      tmp = mrb_str_byte_subseq(mrb, str, beg, RSTRING_LEN(str)-beg);
     }
     mrb_ary_push(mrb, result, tmp);
   }
