@@ -44,6 +44,8 @@ assert('Kernel#instance_variable_set', '15.3.1.3.22') do
   %w[@6 @% @@a @ a].each do |n|
     assert_raise(NameError) { o.instance_variable_set(n, 1) }
   end
+  assert_raise(FrozenError) { o.freeze.instance_variable_set(:@a, 2) }
+  assert_raise(FrozenError, ArgumentError) { nil.instance_variable_set(:@a, 2) }
 end
 
 assert('Kernel#instance_variables', '15.3.1.3.23') do
@@ -121,6 +123,8 @@ assert('Kernel#define_singleton_method') do
   end
   assert_equal :test_method, ret
   assert_equal :singleton_method_ok, o.test_method
+  assert_raise(TypeError) { 2.define_singleton_method(:f){} }
+  assert_raise(FrozenError) { [].freeze.define_singleton_method(:f){} }
 end
 
 assert('Kernel#singleton_class') do
