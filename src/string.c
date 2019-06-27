@@ -1078,50 +1078,28 @@ range_arg:
 }
 
 static mrb_value
-mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value indx)
+mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen)
 {
-  mrb_int idx;
+  mrb_int beg, len;
 
-  switch (mrb_type(indx)) {
-    case MRB_TT_FIXNUM:
-      idx = mrb_fixnum(indx);
-
-num_index:
-      str = str_substr(mrb, str, idx, 1);
-      if (!mrb_nil_p(str) && RSTRING_LEN(str) == 0) return mrb_nil_value();
+  switch (str_convert_range(mrb, str, indx, alen, &beg, &len)) {
+    case STR_CHAR_RANGE_CORRECTED:
+      return str_subseq(mrb, str, beg, len);
+    case STR_CHAR_RANGE:
+      str = str_substr(mrb, str, beg, len);
+      if (mrb_undef_p(alen) && !mrb_nil_p(str) && RSTRING_LEN(str) == 0) return mrb_nil_value();
       return str;
-
-    case MRB_TT_STRING:
-      if (str_index_str(mrb, str, indx, 0) != -1)
+    case STR_BYTE_RANGE_CORRECTED:
+      if (mrb_string_p(indx)) {
         return mrb_str_dup(mrb, indx);
-      return mrb_nil_value();
-
-    case MRB_TT_RANGE:
-      goto range_arg;
-
-    default:
-      indx = mrb_Integer(mrb, indx);
-      if (mrb_nil_p(indx)) {
-      range_arg:
-        {
-          mrb_int beg, len;
-
-          len = RSTRING_CHAR_LEN(str);
-          switch (mrb_range_beg_len(mrb, indx, &beg, &len, len, TRUE)) {
-          case MRB_RANGE_OK:
-            return str_subseq(mrb, str, beg, len);
-          case MRB_RANGE_OUT:
-            return mrb_nil_value();
-          default:
-            break;
-          }
-        }
-        mrb_raise(mrb, E_TYPE_ERROR, "can't convert to Fixnum");
       }
-      idx = mrb_fixnum(indx);
-      goto num_index;
+      else {
+        return mrb_str_byte_subseq(mrb, str, beg, len);
+      }
+    case STR_OUT_OF_RANGE:
+    default:
+      return mrb_nil_value();
   }
-  return mrb_nil_value();    /* not reached */
 }
 
 /* 15.2.10.5.6  */
@@ -1168,16 +1146,12 @@ static mrb_value
 mrb_str_aref_m(mrb_state *mrb, mrb_value str)
 {
   mrb_value a1, a2;
-  mrb_int argc;
 
-  argc = mrb_get_args(mrb, "o|o", &a1, &a2);
-  if (argc == 2) {
-    mrb_int n1, n2;
-
-    mrb_get_args(mrb, "ii", &n1, &n2);
-    return str_substr(mrb, str, n1, n2);
+  if (mrb_get_args(mrb, "o|o", &a1, &a2) == 1) {
+    a2 = mrb_undef_value();
   }
-  return mrb_str_aref(mrb, str, a1);
+
+  return mrb_str_aref(mrb, str, a1, a2);
 }
 
 static mrb_noreturn void
