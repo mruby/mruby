@@ -240,7 +240,7 @@ ht_compact(mrb_state *mrb, htable *t)
       if (!seg->next && i >= t->last_len) {
         goto exit;
       }
-      if (mrb_undef_p(k)) {     /* found delete key */
+      if (mrb_undef_p(k)) {     /* found deleted key */
         if (seg2 == NULL) {
           seg2 = seg;
           i2 = i;
@@ -543,6 +543,7 @@ ht_copy(mrb_state *mrb, htable *t)
       mrb_value key = seg->e[i].key;
       mrb_value val = seg->e[i].val;
 
+      if (mrb_undef_p(key)) continue; /* skip deleted key */
       if ((seg->next == NULL) && (i >= t->last_len)) {
         return t2;
       }
