@@ -38,7 +38,7 @@ We don't have a mailing list, but you can use [GitHub issues](https://github.com
 
 ## How to compile and install (mruby and gems)
 
-See the [doc/guides/compile.md](doc/guides/compile.md) file.
+See the [compile.md](https://github.com/mruby/mruby/blob/master/doc/guides/compile.md) file.
 
 ## Running Tests
 
@@ -54,12 +54,12 @@ Or
 
 mruby contains a package manager called *mrbgems*. To create extensions
 in C and/or Ruby you should create a *GEM*. For a documentation of how to
-use mrbgems consult the file [doc/guides/mrbgems.md](doc/guides/mrbgems.md). For example code of
-how to use mrbgems look into the folder *examples/mrbgems/*.
+use mrbgems consult the file [mrbgems.md](https://github.com/mruby/mruby/blob/master/doc/guides/mrbgems.md).
+For example code of how to use mrbgems look into the folder *examples/mrbgems/*.
 
 ## License
 
-mruby is released under the [MIT License](LICENSE).
+mruby is released under the [MIT License](https://github.com/mruby/mruby/blob/master/LICENSE).
 
 ## Note for License
 
@@ -88,5 +88,5 @@ file in your pull request.
 
 [ISO-standard]: http://www.iso.org/iso/iso_catalogue/catalogue_tc/catalogue_detail.htm?csnumber=59579
 [build-status-img]: https://travis-ci.org/mruby/mruby.svg?branch=master
-[contribution-guidelines]: CONTRIBUTING.md
+[contribution-guidelines]: https://github.com/mruby/mruby/blob/master/CONTRIBUTING.md
 [travis-ci]: https://travis-ci.org/mruby/mruby
