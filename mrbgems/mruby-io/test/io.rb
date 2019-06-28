@@ -5,24 +5,26 @@ MRubyIOTestUtil.io_test_setup
 $cr, $crlf, $cmd = MRubyIOTestUtil.win? ? [1, "\r\n", "cmd /c "] : [0, "\n", ""]
 
 def assert_io_open(meth)
-  fd = IO.sysopen($mrbtest_io_rfname)
-  assert_equal Fixnum, fd.class
-  io1 = IO.__send__(meth, fd)
-  begin
-    assert_equal IO, io1.class
-    assert_equal $mrbtest_io_msg, io1.read
-  ensure
-    io1.close
-  end
-
-  io2 = IO.__send__(meth, IO.sysopen($mrbtest_io_rfname))do |io|
-    if meth == :open
-      assert_equal $mrbtest_io_msg, io.read
-    else
-      flunk "IO.#{meth} does not take block"
+  assert do
+    fd = IO.sysopen($mrbtest_io_rfname)
+    assert_equal Fixnum, fd.class
+    io1 = IO.__send__(meth, fd)
+    begin
+      assert_equal IO, io1.class
+      assert_equal $mrbtest_io_msg, io1.read
+    ensure
+      io1.close
     end
+
+    io2 = IO.__send__(meth, IO.sysopen($mrbtest_io_rfname))do |io|
+      if meth == :open
+        assert_equal $mrbtest_io_msg, io.read
+      else
+        flunk "IO.#{meth} does not take block"
+      end
+    end
+    io2.close unless meth == :open
   end
-  io2.close unless meth == :open
 end
 
 assert('IO.class', '15.2.20') do
