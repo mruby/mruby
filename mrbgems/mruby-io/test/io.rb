@@ -4,7 +4,7 @@
 MRubyIOTestUtil.io_test_setup
 $cr, $crlf, $cmd = MRubyIOTestUtil.win? ? [1, "\r\n", "cmd /c "] : [0, "\n", ""]
 
-assert_io_open = ->(meth) do
+def assert_io_open(meth)
   fd = IO.sysopen($mrbtest_io_rfname)
   assert_equal Fixnum, fd.class
   io1 = IO.__send__(meth, fd)
@@ -38,7 +38,7 @@ assert('IO.ancestors', '15.2.20.3') do
 end
 
 assert('IO.open', '15.2.20.4.1') do
-  assert_io_open.(:open)
+  assert_io_open(:open)
 end
 
 assert('IO#close', '15.2.20.5.1') do
@@ -224,11 +224,11 @@ assert('IO#dup for writable') do
 end
 
 assert('IO.for_fd') do
-  assert_io_open.(:for_fd)
+  assert_io_open(:for_fd)
 end
 
 assert('IO.new') do
-  assert_io_open.(:new)
+  assert_io_open(:new)
 end
 
 assert('IO gc check') do
