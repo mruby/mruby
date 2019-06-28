@@ -2,7 +2,7 @@
 ##
 # String(Ext) Test
 
-UTF8STRING = ("\343\201\202".size == 1)
+UTF8STRING = __ENCODING__ == "UTF-8"
 
 assert('String#getbyte') do
   str1 = "hello"
