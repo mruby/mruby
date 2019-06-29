@@ -427,13 +427,18 @@ mrb_str_byte_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
   }
   return mrb_obj_value(s);
 }
+
+static void
+str_range_to_bytes(mrb_value str, mrb_int *pos, mrb_int *len)
+{
+  *pos = chars2bytes(str, 0, *pos);
+  *len = chars2bytes(str, *pos, *len);
+}
 #ifdef MRB_UTF8_STRING
 static inline mrb_value
 str_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 {
-  beg = chars2bytes(str, 0, beg);
-  len = chars2bytes(str, beg, len);
-
+  str_range_to_bytes(str, &beg, &len);
   return mrb_str_byte_subseq(mrb, str, beg, len);
 }
 #else
@@ -1010,51 +1015,91 @@ mrb_str_dup(mrb_state *mrb, mrb_value str)
   return str_replace(mrb, dup, s);
 }
 
-static mrb_value
-mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value indx)
+enum str_convert_range {
+  /* `beg` and `len` are byte unit in `0 ... str.bytesize` */
+  STR_BYTE_RANGE_CORRECTED = 1,
+
+  /* `beg` and `len` are char unit in any range */
+  STR_CHAR_RANGE = 2,
+
+  /* `beg` and `len` are char unit in `0 ... str.size` */
+  STR_CHAR_RANGE_CORRECTED = 3,
+
+  /* `beg` is out of range */
+  STR_OUT_OF_RANGE = -1
+};
+
+static enum str_convert_range
+str_convert_range(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen, mrb_int *beg, mrb_int *len)
 {
-  mrb_int idx;
+  if (!mrb_undef_p(alen)) {
+    *beg = mrb_int(mrb, indx);
+    *len = mrb_int(mrb, alen);
+    return STR_CHAR_RANGE;
+  }
+  else {
+    switch (mrb_type(indx)) {
+      case MRB_TT_FIXNUM:
+        *beg = mrb_fixnum(indx);
+        *len = 1;
+        return STR_CHAR_RANGE;
 
-  switch (mrb_type(indx)) {
-    case MRB_TT_FIXNUM:
-      idx = mrb_fixnum(indx);
+      case MRB_TT_STRING:
+        *beg = str_index_str(mrb, str, indx, 0);
+        if (*beg < 0) { break; }
+        *len = RSTRING_LEN(indx);
+        return STR_BYTE_RANGE_CORRECTED;
 
-num_index:
-      str = str_substr(mrb, str, idx, 1);
-      if (!mrb_nil_p(str) && RSTRING_LEN(str) == 0) return mrb_nil_value();
-      return str;
+      case MRB_TT_RANGE:
+        goto range_arg;
 
-    case MRB_TT_STRING:
-      if (str_index_str(mrb, str, indx, 0) != -1)
-        return mrb_str_dup(mrb, indx);
-      return mrb_nil_value();
-
-    case MRB_TT_RANGE:
-      goto range_arg;
-
-    default:
-      indx = mrb_Integer(mrb, indx);
-      if (mrb_nil_p(indx)) {
-      range_arg:
-        {
-          mrb_int beg, len;
-
-          len = RSTRING_CHAR_LEN(str);
-          switch (mrb_range_beg_len(mrb, indx, &beg, &len, len, TRUE)) {
+      default:
+        indx = mrb_to_int(mrb, indx);
+        if (mrb_fixnum_p(indx)) {
+          *beg = mrb_fixnum(indx);
+          *len = 1;
+          return STR_CHAR_RANGE;
+        }
+range_arg:
+        *len = RSTRING_CHAR_LEN(str);
+        switch (mrb_range_beg_len(mrb, indx, beg, len, *len, TRUE)) {
           case MRB_RANGE_OK:
-            return str_subseq(mrb, str, beg, len);
+            return STR_CHAR_RANGE_CORRECTED;
           case MRB_RANGE_OUT:
-            return mrb_nil_value();
+            return STR_OUT_OF_RANGE;
           default:
             break;
-          }
         }
+
         mrb_raise(mrb, E_TYPE_ERROR, "can't convert to Fixnum");
-      }
-      idx = mrb_fixnum(indx);
-      goto num_index;
+    }
   }
-  return mrb_nil_value();    /* not reached */
+  return STR_OUT_OF_RANGE;
+}
+
+static mrb_value
+mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen)
+{
+  mrb_int beg, len;
+
+  switch (str_convert_range(mrb, str, indx, alen, &beg, &len)) {
+    case STR_CHAR_RANGE_CORRECTED:
+      return str_subseq(mrb, str, beg, len);
+    case STR_CHAR_RANGE:
+      str = str_substr(mrb, str, beg, len);
+      if (mrb_undef_p(alen) && !mrb_nil_p(str) && RSTRING_LEN(str) == 0) return mrb_nil_value();
+      return str;
+    case STR_BYTE_RANGE_CORRECTED:
+      if (mrb_string_p(indx)) {
+        return mrb_str_dup(mrb, indx);
+      }
+      else {
+        return mrb_str_byte_subseq(mrb, str, beg, len);
+      }
+    case STR_OUT_OF_RANGE:
+    default:
+      return mrb_nil_value();
+  }
 }
 
 /* 15.2.10.5.6  */
@@ -1101,16 +1146,114 @@ static mrb_value
 mrb_str_aref_m(mrb_state *mrb, mrb_value str)
 {
   mrb_value a1, a2;
-  mrb_int argc;
 
-  argc = mrb_get_args(mrb, "o|o", &a1, &a2);
-  if (argc == 2) {
-    mrb_int n1, n2;
-
-    mrb_get_args(mrb, "ii", &n1, &n2);
-    return str_substr(mrb, str, n1, n2);
+  if (mrb_get_args(mrb, "o|o", &a1, &a2) == 1) {
+    a2 = mrb_undef_value();
   }
-  return mrb_str_aref(mrb, str, a1);
+
+  return mrb_str_aref(mrb, str, a1, a2);
+}
+
+static mrb_noreturn void
+str_out_of_index(mrb_state *mrb, mrb_value index)
+{
+  mrb_raisef(mrb, E_INDEX_ERROR, "index %S out of string", index);
+}
+
+static mrb_value
+str_replace_partial(mrb_state *mrb, mrb_value src, mrb_int pos, mrb_int end, mrb_value rep)
+{
+  const mrb_int shrink_threshold = 256;
+  struct RString *str = mrb_str_ptr(src);
+  mrb_int len = RSTR_LEN(str);
+  mrb_int replen, newlen;
+  char *strp;
+
+  if (end > len) { end = len; }
+
+  if (pos < 0 || pos > len) {
+    str_out_of_index(mrb, mrb_fixnum_value(pos));
+  }
+
+  replen = (mrb_nil_p(rep) ? 0 : RSTRING_LEN(rep));
+  newlen = replen + len - (end - pos);
+
+  if (newlen >= MRB_INT_MAX || newlen < replen /* overflowed */) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "string size too big");
+  }
+
+  mrb_str_modify(mrb, str);
+
+  if (len < newlen || len - newlen >= shrink_threshold) {
+    resize_capa(mrb, str, newlen);
+  }
+
+  strp = RSTR_PTR(str);
+
+  memmove(strp + newlen - (len - end), strp + end, len - end);
+  if (!mrb_nil_p(rep)) {
+    memcpy(strp + pos, RSTRING_PTR(rep), replen);
+  }
+  RSTR_SET_LEN(str, newlen);
+  strp[newlen] = '\0';
+
+  return src;
+}
+
+static void
+mrb_str_aset(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen, mrb_value replace)
+{
+  mrb_int beg, len, charlen;
+
+  replace = mrb_to_str(mrb, replace);
+
+  switch (str_convert_range(mrb, str, indx, alen, &beg, &len)) {
+    case STR_OUT_OF_RANGE:
+    default:
+      mrb_raise(mrb, E_INDEX_ERROR, "string not matched");
+    case STR_CHAR_RANGE:
+      if (len < 0) {
+        mrb_raisef(mrb, E_INDEX_ERROR, "negative length %S", alen);
+      }
+      charlen = RSTRING_CHAR_LEN(str);
+      if (beg < 0) { beg += charlen; }
+      if (beg < 0 || beg > charlen) { str_out_of_index(mrb, indx); }
+      /* fall through */
+    case STR_CHAR_RANGE_CORRECTED:
+      str_range_to_bytes(str, &beg, &len);
+      /* fall through */
+    case STR_BYTE_RANGE_CORRECTED:
+      str_replace_partial(mrb, str, beg, beg + len, replace);
+  }
+}
+
+/*
+ * call-seq:
+ *    str[fixnum] = replace
+ *    str[fixnum, fixnum] = replace
+ *    str[range] = replace
+ *    str[regexp] = replace
+ *    str[regexp, fixnum] = replace
+ *    str[other_str] = replace
+ *
+ * Modify +self+ by replacing the content of +self+.
+ * The portion of the string affected is determined using the same criteria as +String#[]+.
+ */
+static mrb_value
+mrb_str_aset_m(mrb_state *mrb, mrb_value str)
+{
+  mrb_value indx, alen, replace;
+
+  switch (mrb_get_args(mrb, "oo|S!", &indx, &alen, &replace)) {
+    case 2:
+      replace = alen;
+      alen = mrb_undef_value();
+      break;
+    case 3:
+      break;
+  }
+  mrb_str_aset(mrb, str, indx, alen, replace);
+  return str;
 }
 
 /* 15.2.10.5.8  */
@@ -2678,6 +2821,7 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "+",               mrb_str_plus_m,          MRB_ARGS_REQ(1)); /* 15.2.10.5.4  */
   mrb_define_method(mrb, s, "*",               mrb_str_times,           MRB_ARGS_REQ(1)); /* 15.2.10.5.5  */
   mrb_define_method(mrb, s, "[]",              mrb_str_aref_m,          MRB_ARGS_ANY());  /* 15.2.10.5.6  */
+  mrb_define_method(mrb, s, "[]=",             mrb_str_aset_m,          MRB_ARGS_ANY());
   mrb_define_method(mrb, s, "capitalize",      mrb_str_capitalize,      MRB_ARGS_NONE()); /* 15.2.10.5.7  */
   mrb_define_method(mrb, s, "capitalize!",     mrb_str_capitalize_bang, MRB_ARGS_NONE()); /* 15.2.10.5.8  */
   mrb_define_method(mrb, s, "chomp",           mrb_str_chomp,           MRB_ARGS_ANY());  /* 15.2.10.5.9  */

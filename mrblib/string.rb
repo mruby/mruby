@@ -177,60 +177,6 @@ class String
     self
   end
 
-  ##
-  # Modify +self+ by replacing the content of +self+.
-  # The portion of the string affected is determined using the same criteria as +String#[]+.
-  def []=(*args)
-    anum = args.size
-    if anum == 2
-      pos, value = args[0], args[1].__to_str
-      case pos
-      when String
-        posnum = self.index(pos)
-        if posnum
-          b = self[0, posnum]
-          a = self[(posnum + pos.length)..-1]
-          self.replace([b, value, a].join(''))
-        else
-          raise IndexError, "string not matched"
-        end
-      when Range
-        head = pos.begin
-        tail = pos.end
-        tail += self.length if tail < 0
-        unless pos.exclude_end?
-          tail += 1
-        end
-        return self[head, tail-head]=value
-      else
-        pos = pos.__to_int
-        pos += self.length if pos < 0
-        if pos < 0 || pos > self.length
-          raise IndexError, "index #{args[0]} out of string"
-        end
-        b = self[0, pos]
-        a = self[pos + 1..-1]
-        self.replace([b, value, a].join(''))
-      end
-      return value
-    elsif anum == 3
-      pos, len, value = args[0].__to_int, args[1].__to_int, args[2].__to_str
-      pos += self.length if pos < 0
-      if pos < 0 || pos > self.length
-        raise IndexError, "index #{args[0]} out of string"
-      end
-      if len < 0
-        raise IndexError, "negative length #{len}"
-      end
-      b = self[0, pos]
-      a = self[pos + len..-1]
-      self.replace([b, value, a].join(''))
-      return value
-    else
-      raise ArgumentError, "wrong number of arguments (#{anum} for 2..3)"
-    end
-  end
-
   # those two methods requires Regexp that is optional in mruby
   ##
   # ISO 15.2.10.5.3

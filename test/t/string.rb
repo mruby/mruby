@@ -209,6 +209,56 @@ assert('String#[]=') do
   assert_raise(TypeError) { 'a'[0, 1] = 1 }
 end
 
+assert('String[]=(UTF-8)') do
+  a = "➀➁➂➃➄"
+  a[3] = "⚃"
+  assert_equal "➀➁➂⚃➄", a
+
+  b = "➀➁➂➃➄"
+  b[3, 0] = "⛄"
+  assert_equal "➀➁➂⛄➃➄", b
+
+  c = "➀➁➂➃➄"
+  c[3, 2] = "⚃⚄"
+  assert_equal "➀➁➂⚃⚄", c
+
+  d = "➀➁➂➃➄"
+  d[5] = "⛄"
+  assert_equal "➀➁➂➃➄⛄", d
+
+  e = "➀➁➂➃➄"
+  e[5, 0] = "⛄"
+  assert_equal "➀➁➂➃➄⛄", e
+
+  f = "➀➁➂➃➄"
+  f[5, 2] = "⛄"
+  assert_equal "➀➁➂➃➄⛄", f
+
+  g = "➀➁➂➃➄"
+  assert_raise(IndexError) { g[6] = "⛄" }
+
+  h = "➀➁➂➃➄"
+  assert_raise(IndexError) { h[6, 0] = "⛄" }
+
+  i = "➀➁➂➃➄"
+  assert_raise(IndexError) { i[6, 2] = "⛄" }
+
+  j = "➀➁➂➃➄"
+  j["➃"] = "⚃"
+  assert_equal "➀➁➂⚃➄", j
+
+  k = "➀➁➂➃➄"
+  assert_raise(IndexError) { k["⛄"] = "⛇" }
+
+  l = "➀➁➂➃➄"
+  assert_nothing_raised { l["➂"] = "" }
+  assert_equal "➀➁➃➄", l
+
+  m = "➀➁➂➃➄"
+  assert_raise(TypeError) { m["➂"] = nil }
+  assert_equal "➀➁➂➃➄", m
+end if UTF8STRING
+
 assert('String#capitalize', '15.2.10.5.7') do
   a = 'abc'
   a.capitalize
