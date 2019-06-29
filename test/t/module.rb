@@ -275,6 +275,16 @@ assert('Module#const_missing', '15.2.2.4.22') do
   assert_equal 42, Test4ConstMissing.const_get(:ConstDoesntExist)
 end
 
+assert('Module#extend_object', '15.2.2.4.25') do
+  cls = Class.new
+  mod = Module.new { def foo; end }
+  a = cls.new
+  b = cls.new
+  assert_same a, mod.extend_object(a)
+  assert_true a.respond_to?(:foo)
+  assert_false b.respond_to?(:foo)
+end
+
 assert('Module#include', '15.2.2.4.27') do
   module Test4Include
     Const4Include = 42
