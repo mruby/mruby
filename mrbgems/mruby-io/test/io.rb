@@ -4,25 +4,27 @@
 MRubyIOTestUtil.io_test_setup
 $cr, $crlf, $cmd = MRubyIOTestUtil.win? ? [1, "\r\n", "cmd /c "] : [0, "\n", ""]
 
-assert_io_open = ->(meth) do
-  fd = IO.sysopen($mrbtest_io_rfname)
-  assert_equal Fixnum, fd.class
-  io1 = IO.__send__(meth, fd)
-  begin
-    assert_equal IO, io1.class
-    assert_equal $mrbtest_io_msg, io1.read
-  ensure
-    io1.close
-  end
-
-  io2 = IO.__send__(meth, IO.sysopen($mrbtest_io_rfname))do |io|
-    if meth == :open
-      assert_equal $mrbtest_io_msg, io.read
-    else
-      flunk "IO.#{meth} does not take block"
+def assert_io_open(meth)
+  assert do
+    fd = IO.sysopen($mrbtest_io_rfname)
+    assert_equal Fixnum, fd.class
+    io1 = IO.__send__(meth, fd)
+    begin
+      assert_equal IO, io1.class
+      assert_equal $mrbtest_io_msg, io1.read
+    ensure
+      io1.close
     end
+
+    io2 = IO.__send__(meth, IO.sysopen($mrbtest_io_rfname))do |io|
+      if meth == :open
+        assert_equal $mrbtest_io_msg, io.read
+      else
+        flunk "IO.#{meth} does not take block"
+      end
+    end
+    io2.close unless meth == :open
   end
-  io2.close unless meth == :open
 end
 
 assert('IO.class', '15.2.20') do
@@ -38,7 +40,7 @@ assert('IO.ancestors', '15.2.20.3') do
 end
 
 assert('IO.open', '15.2.20.4.1') do
-  assert_io_open.(:open)
+  assert_io_open(:open)
 end
 
 assert('IO#close', '15.2.20.5.1') do
@@ -224,11 +226,11 @@ assert('IO#dup for writable') do
 end
 
 assert('IO.for_fd') do
-  assert_io_open.(:for_fd)
+  assert_io_open(:for_fd)
 end
 
 assert('IO.new') do
-  assert_io_open.(:new)
+  assert_io_open(:new)
 end
 
 assert('IO gc check') do

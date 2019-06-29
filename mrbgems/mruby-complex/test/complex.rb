@@ -1,6 +1,8 @@
 def assert_complex(real, exp)
-  assert_float real.real,      exp.real
-  assert_float real.imaginary, exp.imaginary
+  assert do
+    assert_float real.real,      exp.real
+    assert_float real.imaginary, exp.imaginary
+  end
 end
 
 assert 'Complex' do
