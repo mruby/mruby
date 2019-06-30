@@ -59,6 +59,7 @@ assert('Module#append_features', '15.2.2.4.10') do
   end
 
   assert_equal Test4AppendFeatures2, Test4AppendFeatures2.const_get(:Const4AppendFeatures2)
+  assert_raise(FrozenError) { Module.new.append_features Class.new.freeze }
 end
 
 assert('Module#attr NameError') do
@@ -275,6 +276,18 @@ assert('Module#const_missing', '15.2.2.4.22') do
   assert_equal 42, Test4ConstMissing.const_get(:ConstDoesntExist)
 end
 
+assert('Module#extend_object', '15.2.2.4.25') do
+  cls = Class.new
+  mod = Module.new { def foo; end }
+  a = cls.new
+  b = cls.new
+  mod.extend_object(b)
+  assert_false a.respond_to?(:foo)
+  assert_true b.respond_to?(:foo)
+  assert_raise(FrozenError) { mod.extend_object(cls.new.freeze) }
+  assert_raise(FrozenError, TypeError) { mod.extend_object(1) }
+end
+
 assert('Module#include', '15.2.2.4.27') do
   module Test4Include
     Const4Include = 42
@@ -288,6 +301,7 @@ assert('Module#include', '15.2.2.4.27') do
 
   assert_equal 42, Test4Include2.const_get(:Const4Include)
   assert_equal Test4Include2, Test4Include2.include_result
+  assert_raise(FrozenError) { Module.new.freeze.include Test4Include }
 end
 
 assert('Module#include?', '15.2.2.4.28') do
@@ -396,6 +410,15 @@ assert('Module#define_method') do
   assert_raise(TypeError) do
     Class.new { define_method(:n1, nil) }
   end
+end
+
+assert 'Module#prepend_features' do
+  mod = Module.new { def m; :mod end }
+  cls = Class.new { def m; :cls end }
+  assert_equal :cls, cls.new.m
+  mod.prepend_features(cls)
+  assert_equal :mod, cls.new.m
+  assert_raise(FrozenError) { Module.new.prepend_features(Class.new.freeze) }
 end
 
 # @!group prepend
@@ -632,6 +655,10 @@ end
   #    end
   #  end;
   #end
+
+  assert 'Module#prepend to frozen class' do
+    assert_raise(FrozenError) { Class.new.freeze.prepend Module.new }
+  end
 # @!endgroup prepend
 
 assert('Module#to_s') do

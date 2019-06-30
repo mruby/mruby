@@ -1070,8 +1070,8 @@ include_module_at(mrb_state *mrb, struct RClass *c, struct RClass *ins_pos, stru
 MRB_API void
 mrb_include_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
 {
-  int changed = include_module_at(mrb, c, find_origin(c), m, 1);
-  if (changed < 0) {
+  mrb_check_frozen(mrb, c);
+  if (include_module_at(mrb, c, find_origin(c), m, 1) < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "cyclic include detected");
   }
 }
@@ -1082,6 +1082,7 @@ mrb_prepend_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
   struct RClass *origin;
   int changed = 0;
 
+  mrb_check_frozen(mrb, c);
   if (!(c->flags & MRB_FL_CLASS_IS_PREPENDED)) {
     origin = (struct RClass*)mrb_obj_alloc(mrb, MRB_TT_ICLASS, c);
     origin->flags |= MRB_FL_CLASS_IS_ORIGIN | MRB_FL_CLASS_IS_INHERITED;

@@ -240,6 +240,9 @@ assert('Kernel#extend', '15.3.1.3.13') do
 
   assert_true a.respond_to?(:test_method)
   assert_false b.respond_to?(:test_method)
+
+  assert_raise(FrozenError) { Object.new.freeze.extend(Test4ExtendModule) }
+  assert_raise(FrozenError, TypeError) { :sym.extend(Test4ExtendModule) }
 end
 
 assert('Kernel#extend works on toplevel', '15.3.1.3.13') do
