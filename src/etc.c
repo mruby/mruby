@@ -65,24 +65,10 @@ mrb_data_get_ptr(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
 MRB_API mrb_sym
 mrb_obj_to_sym(mrb_state *mrb, mrb_value name)
 {
-  mrb_sym id;
-
-  switch (mrb_type(name)) {
-    default:
-      name = mrb_check_string_type(mrb, name);
-      if (mrb_nil_p(name)) {
-        name = mrb_inspect(mrb, name);
-        mrb_raisef(mrb, E_TYPE_ERROR, "%S is not a symbol", name);
-        /* not reached */
-      }
-      /* fall through */
-    case MRB_TT_STRING:
-      name = mrb_str_intern(mrb, name);
-      /* fall through */
-    case MRB_TT_SYMBOL:
-      id = mrb_symbol(name);
-  }
-  return id;
+  if (mrb_symbol_p(name)) return mrb_symbol(name);
+  if (mrb_string_p(name)) return mrb_intern_str(mrb, name);
+  mrb_raisef(mrb, E_TYPE_ERROR, "%S is not a symbol nor a string", mrb_inspect(mrb, name));
+  return 0;  /* not reached */
 }
 
 MRB_API mrb_int
