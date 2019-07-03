@@ -573,20 +573,20 @@ mrb_get_argv(mrb_state *mrb)
     string  mruby type     C type                 note
     ----------------------------------------------------------------------------------------------
     o:      Object         [mrb_value]
-    C:      class/module   [mrb_value]
+    C:      Class/Module   [mrb_value]
     S:      String         [mrb_value]            when ! follows, the value may be nil
     A:      Array          [mrb_value]            when ! follows, the value may be nil
     H:      Hash           [mrb_value]            when ! follows, the value may be nil
     s:      String         [char*,mrb_int]        Receive two arguments; s! gives (NULL,0) for nil
     z:      String         [char*]                NUL terminated string; z! gives NULL for nil
     a:      Array          [mrb_value*,mrb_int]   Receive two arguments; a! gives (NULL,0) for nil
-    f:      Float          [mrb_float]
-    i:      Integer        [mrb_int]
-    b:      Boolean        [mrb_bool]
-    n:      Symbol         [mrb_sym]
-    d:      Data           [void*,mrb_data_type const] 2nd argument will be used to check data type so it won't be modified
-    I:      Inline struct  [void*]
-    &:      Block          [mrb_value]            &! raises exception if no block given
+    f:      Fixnum/Float   [mrb_float]
+    i:      Fixnum/Float   [mrb_int]
+    b:      boolean        [mrb_bool]
+    n:      String/Symbol  [mrb_sym]
+    d:      data           [void*,mrb_data_type const] 2nd argument will be used to check data type so it won't be modified; when ! follows, the value may be nil
+    I:      inline struct  [void*]
+    &:      block          [mrb_value]            &! raises exception if no block given
     *:      rest argument  [mrb_value*,mrb_int]   The rest of the arguments as an array; *! avoid copy of the stack
     |:      optional                              Following arguments are optional
     ?:      optional given [mrb_bool]             true if preceding argument (optional) is given
