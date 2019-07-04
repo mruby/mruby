@@ -1184,7 +1184,7 @@ str_replace_partial(mrb_state *mrb, mrb_value src, mrb_int pos, mrb_int end, mrb
 
   mrb_str_modify(mrb, str);
 
-  if (len < newlen || len - newlen >= shrink_threshold) {
+  if (len < newlen) {
     resize_capa(mrb, str, newlen);
   }
 
@@ -1196,6 +1196,10 @@ str_replace_partial(mrb_state *mrb, mrb_value src, mrb_int pos, mrb_int end, mrb
   }
   RSTR_SET_LEN(str, newlen);
   strp[newlen] = '\0';
+
+  if (len - newlen >= shrink_threshold) {
+    resize_capa(mrb, str, newlen);
+  }
 
   return src;
 }
