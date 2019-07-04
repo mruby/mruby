@@ -260,12 +260,12 @@ utf8_strlen(mrb_value str)
 {
   mrb_int byte_len = RSTRING_LEN(str);
 
-  if (RSTRING(str)->flags & MRB_STR_NO_UTF) {
+  if (RSTRING(str)->flags & MRB_STR_NO_MULTI_BYTE) {
     return byte_len;
   }
   else {
     mrb_int utf8_len = mrb_utf8_len(RSTRING_PTR(str), byte_len);
-    if (byte_len == utf8_len) RSTRING(str)->flags |= MRB_STR_NO_UTF;
+    if (byte_len == utf8_len) RSTRING(str)->flags |= MRB_STR_NO_MULTI_BYTE;
     return utf8_len;
   }
 }
@@ -512,8 +512,8 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
 
   mrb_check_frozen(mrb, s1);
   if (s1 == s2) return mrb_obj_value(s1);
-  s1->flags &= ~MRB_STR_NO_UTF;
-  s1->flags |= s2->flags&MRB_STR_NO_UTF;
+  s1->flags &= ~MRB_STR_NO_MULTI_BYTE;
+  s1->flags |= s2->flags&MRB_STR_NO_MULTI_BYTE;
   len = RSTR_LEN(s2);
   if (RSTR_SHARED_P(s1)) {
     str_decref(mrb, s1->as.heap.aux.shared);
@@ -651,7 +651,7 @@ MRB_API void
 mrb_str_modify(mrb_state *mrb, struct RString *s)
 {
   mrb_check_frozen(mrb, s);
-  s->flags &= ~MRB_STR_NO_UTF;
+  s->flags &= ~MRB_STR_NO_MULTI_BYTE;
   if (RSTR_SHARED_P(s)) {
     mrb_shared_string *shared = s->as.heap.aux.shared;
 
