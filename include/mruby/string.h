@@ -87,7 +87,7 @@ MRB_API mrb_int mrb_str_strlen(mrb_state*, struct RString*);
 #define MRB_STR_FSHARED   2
 #define MRB_STR_NOFREE    4
 #define MRB_STR_POOL      8
-#define MRB_STR_NO_UTF   16
+#define MRB_STR_ASCII    16
 #define MRB_STR_EMBED    32
 #define MRB_STR_EMBED_LEN_MASK 0x7c0
 #define MRB_STR_EMBED_LEN_SHIFT 6
