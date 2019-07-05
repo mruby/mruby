@@ -68,6 +68,20 @@ struct RString {
 #define RSTR_SET_NOFREE_FLAG(s) ((s)->flags |= MRB_STR_NOFREE)
 #define RSTR_UNSET_NOFREE_FLAG(s) ((s)->flags &= ~MRB_STR_NOFREE)
 
+#ifdef MRB_UTF8_STRING
+# define RSTR_ASCII_P(s) ((s)->flags & MRB_STR_ASCII)
+# define RSTR_SET_ASCII_FLAG(s) ((s)->flags |= MRB_STR_ASCII)
+# define RSTR_UNSET_ASCII_FLAG(s) ((s)->flags &= ~MRB_STR_ASCII)
+# define RSTR_WRITE_ASCII_FLAG(s, v) (RSTR_UNSET_ASCII_FLAG(s), (s)->flags |= v)
+# define RSTR_COPY_ASCII_FLAG(dst, src) RSTR_WRITE_ASCII_FLAG(dst, RSTR_ASCII_P(src))
+#else
+# define RSTR_ASCII_P(s) (void)0
+# define RSTR_SET_ASCII_FLAG(s) (void)0
+# define RSTR_UNSET_ASCII_FLAG(s) (void)0
+# define RSTR_WRITE_ASCII_FLAG(s, v) (void)0
+# define RSTR_COPY_ASCII_FLAG(dst, src) (void)0
+#endif
+
 #define RSTR_POOL_P(s) ((s)->flags & MRB_STR_POOL)
 #define RSTR_SET_POOL_FLAG(s) ((s)->flags |= MRB_STR_POOL)
 
