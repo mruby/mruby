@@ -503,9 +503,11 @@ mrb_sym2str(mrb_state *mrb, mrb_sym sym)
   const char *name = mrb_sym2name_len(mrb, sym, &len);
 
   if (!name) return mrb_undef_value(); /* can't happen */
+#ifndef MRB_ENABLE_ALL_SYMBOLS
   if (sym&1) {                         /* inline symbol */
     return mrb_str_new(mrb, name, len);
   }
+#endif
   return mrb_str_new_static(mrb, name, len);
 }
 
@@ -521,12 +523,12 @@ mrb_sym2name(mrb_state *mrb, mrb_sym sym)
   }
   else {
     mrb_value str;
-    if (sym&1) {                /* inline symbol */
+#ifndef MRB_ENABLE_ALL_SYMBOLS
+    if (sym&1)                /* inline symbol */
       str = mrb_str_new(mrb, name, len);
-    }
-    else {
+    else
+#endif
       str = mrb_str_new_static(mrb, name, len);
-    }
     str = mrb_str_dump(mrb, str);
     return RSTRING_PTR(str);
   }
