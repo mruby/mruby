@@ -172,17 +172,17 @@ integral_div(mrb_state *mrb, mrb_value x)
 static mrb_value
 integral_coerce_step_counter(mrb_state *mrb, mrb_value self)
 {
-  mrb_value counter = self, num, step;
+  mrb_value num, step;
 
   mrb_get_args(mrb, "oo", &num, &step);
 
 #ifndef MRB_WITHOUT_FLOAT
   if (mrb_float_p(self) || mrb_float_p(num) || mrb_float_p(step)) {
-    counter = mrb_funcall(mrb, counter, "to_f", 0);
+    return mrb_Float(mrb, self);
   }
 #endif
 
-  return counter;
+  return self;
 }
 
 #ifndef MRB_WITHOUT_FLOAT
