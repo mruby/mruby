@@ -36,6 +36,8 @@ assert('Range#max') do
   assert_equal 10, (1..10).max
   assert_equal 9, (1...10).max
   assert_equal 4294967295, (0...2**32).max
+  assert_equal 'l', ('f'..'l').max
+  assert_equal 'e', ('a'...'f').max
 
   # returns the maximum value in the Float range when called with no arguments
   assert_equal 908.1111, (303.20..908.1111).max
@@ -45,6 +47,7 @@ assert('Range#max') do
 
   # returns nil when the endpoint is less than the start point
   assert_equal nil, (100..10).max
+  assert_equal nil, ('z'..'l').max
 
   # returns nil when the endpoint equals the start point and the range is exclusive
   assert_equal nil, (5...5).max
@@ -82,18 +85,22 @@ assert('Range#max given a block') do
   # returns nil when the endpoint is less than the start point
   assert_equal nil, ((100..10).max { |x, y| x <=> y })
   assert_equal nil, ((5...5).max { |x, y| x <=> y })
+  assert_equal nil, (('z'..'l').max { |x, y| x <=> y })
 end
 
 assert('Range#min') do
   # returns the minimum value in the range when called with no arguments
   assert_equal 1, (1..10).min
   assert_equal 1, (1...10).min
+  assert_equal 'f', ('f'..'l').min
+  assert_equal 'f', ('f'...'l').min
 
   # returns the minimum value in the Float range when called with no arguments
   assert_equal 303.20, (303.20..908.1111).min
 
   # returns nil when the start point is greater than the endpoint
   assert_equal nil, (100..10).min
+  assert_equal nil, ('z'..'l').min
 
   # returns nil when the endpoint equals the start point and the range is exclusive
   assert_equal nil, (5...5).max
@@ -131,4 +138,5 @@ assert('Range#min given a block') do
   # returns nil when the start point is greater than the endpoint
   assert_equal nil, ((100..10).min { |x, y| x <=> y })
   assert_equal nil, ((5...5).min { |x, y| x <=> y })
+  assert_equal nil, (('z'..'l').min { |x, y| x <=> y })
 end
