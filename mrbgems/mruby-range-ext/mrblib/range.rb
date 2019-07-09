@@ -25,4 +25,43 @@ class Range
     end
     ary
   end
+
+  def max(&block)
+    val = self.first
+    last = self.last
+    return super if block
+
+    # fast path for numerics
+    if (val.kind_of?(Fixnum) || val.kind_of?(Float)) && (last.kind_of?(Fixnum) || last.kind_of?(Float))
+      raise TypeError if exclude_end? && !last.kind_of?(Fixnum)
+      return nil if val > last
+      return nil if val == last && exclude_end?
+
+      max = last
+      max -= 1 if exclude_end?
+      return max
+    end
+
+    # delegate to Enumerable
+    super
+  end
+
+  def min(&block)
+    val = self.first
+    last = self.last
+    return super if block
+
+    # fast path for numerics
+    if (val.kind_of?(Fixnum) || val.kind_of?(Float)) && (last.kind_of?(Fixnum) || last.kind_of?(Float))
+      raise TypeError if exclude_end? && !last.kind_of?(Fixnum)
+      return nil if val > last
+      return nil if val == last && exclude_end?
+
+      min = val
+      return min
+    end
+
+    # delegate to Enumerable
+    super
+  end
 end
