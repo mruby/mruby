@@ -160,16 +160,11 @@ range_size(mrb_state *mrb, mrb_value range)
 }
 
 void
-mrb_mruby_range_ext_gem_init(mrb_state* mrb)
+mrb_init_range_range_ext(mrb_state* mrb)
 {
   struct RClass * s = mrb_class_get(mrb, "Range");
 
   mrb_define_method(mrb, s, "cover?", range_cover, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, s, "last",   range_last,  MRB_ARGS_OPT(1));
   mrb_define_method(mrb, s, "size",   range_size,  MRB_ARGS_NONE());
-}
-
-void
-mrb_mruby_range_ext_gem_final(mrb_state* mrb)
-{
 }
