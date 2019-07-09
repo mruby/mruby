@@ -494,7 +494,7 @@ sym_inspect(mrb_state *mrb, mrb_value sym)
   name = mrb_sym2name_len(mrb, id, &len);
   str = mrb_str_new(mrb, 0, len+1);
   sp = RSTRING_PTR(str);
-  RSTRING_PTR(str)[0] = ':';
+  sp[0] = ':';
   memcpy(sp+1, name, len);
   mrb_assert_int_fit(mrb_int, len, size_t, SIZE_MAX);
   if (!symname_p(name) || strlen(name) != (size_t)len) {
@@ -503,6 +503,9 @@ sym_inspect(mrb_state *mrb, mrb_value sym)
     sp[0] = ':';
     sp[1] = '"';
   }
+#ifdef MRB_UTF8_STRING
+  if (SYMBOL_INLINE_P(id)) RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+#endif
   return str;
 }
 
@@ -513,7 +516,11 @@ mrb_sym2str(mrb_state *mrb, mrb_sym sym)
   const char *name = mrb_sym2name_len(mrb, sym, &len);
 
   if (!name) return mrb_undef_value(); /* can't happen */
-  if (SYMBOL_INLINE_P(sym)) return mrb_str_new(mrb, name, len);
+  if (SYMBOL_INLINE_P(sym)) {
+    mrb_value str = mrb_str_new(mrb, name, len);
+    RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+    return str;
+  }
   return mrb_str_new_static(mrb, name, len);
 }
 
