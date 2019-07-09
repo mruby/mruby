@@ -87,6 +87,7 @@ end
 assert('Range#min') do
   # returns the minimum value in the range when called with no arguments
   assert_equal 1, (1..10).min
+  assert_equal 1, (1...10).min
 
   # returns the minimum value in the Float range when called with no arguments
   assert_equal 303.20, (303.20..908.1111).min

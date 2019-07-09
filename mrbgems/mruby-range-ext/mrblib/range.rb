@@ -58,7 +58,6 @@ class Range
       return nil if val == last && exclude_end?
 
       min = val
-      min -= 1 if exclude_end?
       return min
     end
 
