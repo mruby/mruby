@@ -304,12 +304,73 @@ bytes2chars(char *p, mrb_int bi)
   return i;
 }
 
+static mrb_int
+str_index_str_by_char_search(mrb_state *mrb, const char *p, const char *pend, const char *s, const mrb_int slen, mrb_int off)
+{
+  /* Based on Quick Search algorithm (Boyer-Moore-Horspool algorithm) */
+
+  ptrdiff_t qstable[1 << CHAR_BIT];
+
+  /* Preprocessing */
+  {
+    size_t i;
+
+    for (i = 0; i < 1 << CHAR_BIT; i ++) {
+      qstable[i] = slen;
+    }
+    for (i = 0; i < slen; i ++) {
+      qstable[(unsigned char)s[i]] = slen - (i + 1);
+    }
+  }
+
+  /* Searching */
+  if (p < pend && pend - p >= slen) {
+    for (;;) {
+      const char *pivot;
+
+      if (memcmp(p, s, slen) == 0) {
+        return off;
+      }
+
+      pivot = p + qstable[(unsigned char)p[slen - 1]];
+      if (pivot > pend || pivot < p /* overflowed */) { return -1; }
+
+      do {
+        p += utf8len(p, pend);
+        off ++;
+      } while (p < pivot);
+    }
+  }
+
+  return -1;
+}
+
+static mrb_int
+str_index_str_by_char(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
+{
+  const char *p = RSTRING_PTR(str);
+  const char *pend = p + RSTRING_LEN(str);
+  const char *s = RSTRING_PTR(sub);
+  const mrb_int slen = RSTRING_LEN(sub);
+  mrb_int off = pos;
+
+  for (; pos > 0; pos --) {
+    if (pend - p < 1) { return -1; }
+    p += utf8len(p, pend);
+  }
+
+  if (slen < 1) { return off; }
+
+  return str_index_str_by_char_search(mrb, p, pend, s, slen, off);
+}
+
 #define BYTES_ALIGN_CHECK(pos) if (pos < 0) return mrb_nil_value();
 #else
 #define RSTRING_CHAR_LEN(s) RSTRING_LEN(s)
 #define chars2bytes(p, off, ci) (ci)
 #define bytes2chars(p, bi) (bi)
 #define BYTES_ALIGN_CHECK(pos)
+#define str_index_str_by_char(mrb, str, sub, pos) str_index_str(mrb, str, sub, pos)
 #endif
 
 static inline mrb_int
@@ -1680,15 +1741,13 @@ mrb_str_index_m(mrb_state *mrb, mrb_value str)
     else
       sub = mrb_nil_value();
   }
-  clen = RSTRING_CHAR_LEN(str);
   if (pos < 0) {
+    clen = RSTRING_CHAR_LEN(str);
     pos += clen;
     if (pos < 0) {
       return mrb_nil_value();
     }
   }
-  if (pos > clen) return mrb_nil_value();
-  pos = chars2bytes(str, 0, pos);
 
   switch (mrb_type(sub)) {
     default: {
@@ -1702,12 +1761,11 @@ mrb_str_index_m(mrb_state *mrb, mrb_value str)
     }
     /* fall through */
     case MRB_TT_STRING:
-      pos = str_index_str(mrb, str, sub, pos);
+      pos = str_index_str_by_char(mrb, str, sub, pos);
       break;
   }
 
   if (pos == -1) return mrb_nil_value();
-  pos = bytes2chars(RSTRING_PTR(str), pos);
   BYTES_ALIGN_CHECK(pos);
   return mrb_fixnum_value(pos);
 }
