@@ -468,6 +468,17 @@ assert('String#index', '15.2.10.5.22') do
   assert_equal nil, "hello".index("", 6)
 end
 
+assert('String#index(UTF-8)', '15.2.10.5.22') do
+  assert_equal 0, '⓿➊➋➌➍➎'.index('⓿')
+  assert_nil '⓿➊➋➌➍➎'.index('➓')
+  assert_equal 6, '⓿➊➋➌➍➎⓿➊➋➌➍➎'.index('⓿', 1)
+  assert_equal 6, "⓿➊➋➌➍➎".index("", 6)
+  assert_equal nil, "⓿➊➋➌➍➎".index("", 7)
+  assert_equal 0, '⓿➊➋➌➍➎'.index("\xe2")
+  assert_equal nil, '⓿➊➋➌➍➎'.index("\xe3")
+  assert_equal 6, "\xd1\xd1\xd1\xd1\xd1\xd1⓿➊➋➌➍➎".index('⓿')
+end if UTF8STRING
+
 assert('String#initialize', '15.2.10.5.23') do
   a = ''
   a.initialize('abc')
