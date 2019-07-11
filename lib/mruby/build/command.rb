@@ -127,13 +127,49 @@ module MRuby
     end
 
     private
+
+    #
+    # === Examples of +.d+ file style:
+    #
+    # ==== GCC 8.2.0
+    #
+    #   /build/host/src/array.o: \
+    #    /src/array.c \
+    #    /include/mruby/common.h \
+    #    /include/mruby/value.h \
+    #    /include/mruby/common.h \
+    #    /src/value_array.h
+    #
+    # ==== Clang 7.0.0
+    #
+    #   /build/host/src/array.o: \
+    #     /src/array.c \
+    #     /include/mruby/common.h \
+    #     /include/mruby/value.h \
+    #     /src/value_array.h
+    #
+    # ==== Clang 8.0.7 (Android)
+    #
+    #   /build/host/src/array.o: \
+    #     /src/array.c \
+    #     /include/mruby/common.h \
+    #     /include/mruby/value.h \
+    #     /src/value_array.h
+    #
+    #   /include/mruby/common.h:
+    #
+    #   /include/mruby/value.h:
+    #
+    #   /src/value_array.h:
+    #
     def get_dependencies(file)
       file = file.ext('d') unless File.extname(file) == '.d'
+      deps = []
       if File.exist?(file)
-        File.read(file).gsub("\\\n ", "").scan(/^\S+:\s+(.+)$/).flatten.map {|s| s.split(' ') }.flatten
-      else
-        []
-      end + [ MRUBY_CONFIG ]
+        File.foreach(file){|line| deps << $1 if /^ +(.*?)(?: \\)?$/ =~ line}
+        deps.uniq!
+      end
+      deps << MRUBY_CONFIG
     end
   end
 
