@@ -127,13 +127,40 @@ module MRuby
     end
 
     private
+
+    #
+    # === Example of +.d+ file
+    #
+    # ==== Without <tt>-MP</tt> compiler flag
+    #
+    #   /build/host/src/array.o: \
+    #     /src/array.c \
+    #     /include/mruby/common.h \
+    #     /include/mruby/value.h \
+    #     /src/value_array.h
+    #
+    # ==== With <tt>-MP</tt> compiler flag
+    #
+    #   /build/host/src/array.o: \
+    #     /src/array.c \
+    #     /include/mruby/common.h \
+    #     /include/mruby/value.h \
+    #     /src/value_array.h
+    #
+    #   /include/mruby/common.h:
+    #
+    #   /include/mruby/value.h:
+    #
+    #   /src/value_array.h:
+    #
     def get_dependencies(file)
       file = file.ext('d') unless File.extname(file) == '.d'
+      deps = []
       if File.exist?(file)
-        File.read(file).gsub("\\\n ", "").scan(/^\S+:\s+(.+)$/).flatten.map {|s| s.split(' ') }.flatten
-      else
-        []
-      end + [ MRUBY_CONFIG ]
+        File.foreach(file){|line| deps << $1 if /^ +(.*?)(?: *\\)?$/ =~ line}
+        deps.uniq!
+      end
+      deps << MRUBY_CONFIG
     end
   end
 
