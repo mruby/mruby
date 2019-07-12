@@ -22,7 +22,6 @@ module MRuby
 
     def initialize(name, &block)
       @name, @initializer = name.to_s, block
-      MRuby::Toolchain.toolchains ||= {}
       MRuby::Toolchain.toolchains[@name] = self
     end
 
@@ -30,13 +29,8 @@ module MRuby
       conf.instance_exec(conf, params, &@initializer)
     end
 
-    def self.load
-      Dir.glob("#{MRUBY_ROOT}/tasks/toolchains/*.rake").each do |file|
-        Kernel.load file
-      end
-    end
+    self.toolchains = {}
   end
-  Toolchain.load
 
   class Build
     class << self
@@ -196,10 +190,15 @@ EOS
     end
 
     def toolchain(name, params={})
-      tc = Toolchain.toolchains[name.to_s]
-      fail "Unknown #{name} toolchain" unless tc
+      name = name.to_s
+      tc = Toolchain.toolchains[name] || begin
+        path = "#{MRUBY_ROOT}/tasks/toolchains/#{name}.rake"
+        fail "Unknown #{name} toolchain" unless File.exist?(path)
+        load path
+        Toolchain.toolchains[name]
+      end
       tc.setup(self, params)
-      @toolchains.unshift name.to_s
+      @toolchains.unshift name
     end
 
     def primary_toolchain
