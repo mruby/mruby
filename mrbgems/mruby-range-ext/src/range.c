@@ -1,3 +1,7 @@
+#ifdef MRB_WITHOUT_FLOAT
+# error Conflict 'MRB_WITHOUT_FLOAT' configuration in your 'build_config.rb'
+#endif
+
 #include <mruby.h>
 #include <mruby/range.h>
 #include <math.h>
