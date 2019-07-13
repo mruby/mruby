@@ -50,7 +50,7 @@ assert 'Complex#-' do
 end
 
 assert 'Complex#-@' do
-  assert_complex -Complex(1, 2), (-1 - 2i)
+  assert_complex(-Complex(1, 2), (-1 - 2i))
 end
 
 assert 'Complex#/' do
