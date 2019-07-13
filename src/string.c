@@ -313,7 +313,7 @@ str_index_str_by_char_search(mrb_state *mrb, const char *p, const char *pend, co
 
   /* Preprocessing */
   {
-    size_t i;
+    mrb_int i;
 
     for (i = 0; i < 1 << CHAR_BIT; i ++) {
       qstable[i] = slen;
