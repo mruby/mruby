@@ -65,22 +65,20 @@ module Enumerable
   end
 
   ##
-  # Call the given block for each element
-  # which is yield by +each+. Return
-  # +ifnone+ if no block value was true.
-  # Otherwise return the first block value
-  # which had was true.
+  # Return the first element for which
+  # value from the block is true. If no
+  # object matches, calls +ifnone+ and
+  # returns its result. Otherwise returns
+  # +nil+.
   #
   # ISO 15.3.2.2.4
   def detect(ifnone=nil, &block)
-    ret = ifnone
     self.each{|*val|
       if block.call(*val)
-        ret = val.__svalue
-        break
+        return val.__svalue
       end
     }
-    ret
+    ifnone.call unless ifnone.nil?
   end
 
   ##

@@ -45,7 +45,7 @@ end
 
 assert('Enumerable#detect', '15.3.2.2.4') do
   assert_equal 1, [1,2,3].detect() { true }
-  assert_equal 'a', [1,2,3].detect("a") { false }
+  assert_equal 'a', [1,2,3].detect(->{"a"}) { false }
 end
 
 assert('Array#each_with_index', '15.3.2.2.5') do
@@ -64,7 +64,7 @@ end
 
 assert('Enumerable#find', '15.3.2.2.7') do
   assert_equal 1, [1,2,3].find() { true }
-  assert_equal 'a', [1,2,3].find("a") { false }
+  assert_equal 'a', [1,2,3].find(->{"a"}) { false }
 end
 
 assert('Enumerable#find_all', '15.3.2.2.8') do
