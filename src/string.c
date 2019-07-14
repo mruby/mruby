@@ -706,7 +706,7 @@ mrb_locale_from_utf8(const char *utf8, int len)
 }
 #endif
 
-void
+MRB_API void
 mrb_str_modify_keep_ascii(mrb_state *mrb, struct RString *s)
 {
   mrb_check_frozen(mrb, s);
