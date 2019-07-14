@@ -233,7 +233,9 @@ utf8len(const char* p, const char* e)
   mrb_int len;
   mrb_int i;
 
+  if ((unsigned char)*p < 0x80) return 1;
   len = utf8len_codepage[(unsigned char)*p];
+  if (len == 1) return 1;
   if (len > e - p) return 1;
   for (i = 1; i < len; ++i)
     if ((p[i] & 0xc0) != 0x80)
