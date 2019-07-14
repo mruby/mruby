@@ -1002,7 +1002,7 @@ alias:
   case 'm':
     dir = PACK_DIR_BASE64;
     type = PACK_TYPE_STRING;
-    flags |= PACK_FLAG_WIDTH;
+    flags |= PACK_FLAG_WIDTH | PACK_FLAG_COUNT2;
     break;
   case 'N':  /* = "L>" */
     dir = PACK_DIR_LONG;
@@ -1196,7 +1196,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
       default:
         break;
       }
-      if (dir == PACK_DIR_STR) { /* always consumes 1 entry */
+      if (dir == PACK_DIR_STR || dir == PACK_DIR_BASE64) { /* always consumes 1 entry */
         aidx++;
         break;
       }
@@ -1249,6 +1249,9 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
       case PACK_DIR_STR:
         srcidx += unpack_a(mrb, sptr, srclen - srcidx, result, count, flags);
         break;
+      case PACK_DIR_BASE64:
+        srcidx += unpack_m(mrb, sptr, srclen - srcidx, result, flags);
+        break;
       }
       continue;
     }
@@ -1275,9 +1278,6 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
       case PACK_DIR_QUAD:
         srcidx += unpack_q(mrb, sptr, srclen - srcidx, result, flags);
         break;
-      case PACK_DIR_BASE64:
-        srcidx += unpack_m(mrb, sptr, srclen - srcidx, result, flags);
-        break;
 #ifndef MRB_WITHOUT_FLOAT
       case PACK_DIR_FLOAT:
         srcidx += unpack_float(mrb, sptr, srclen - srcidx, result, flags);
@@ -1299,7 +1299,12 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
     if (single) break;
   }
 
-  if (single) return RARRAY_PTR(result)[0];
+  if (single) {
+    if (RARRAY_LEN(result) > 0) {
+      return RARRAY_PTR(result)[0];
+    }
+    return mrb_nil_value();
+  }
   return result;
 }
 

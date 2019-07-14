@@ -35,6 +35,17 @@ assert('"YWJ...".unpack("m") should "abc..xyzABC..XYZ"') do
   assert_equal ary, "YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXpBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWg==\n".unpack("m")
 end
 
+assert('["A", "B"].pack') do
+  assert_equal "QQ==\n", ["A", "B"].pack("m50")
+  assert_equal ["A"], "QQ==\n".unpack("m50")
+  assert_equal "QQ==Qg==", ["A", "B"].pack("m0 m0")
+  assert_equal ["A", "B"], "QQ==Qg==".unpack("m10 m10")
+end
+
+assert('["abc..xyzABC..XYZ"].pack("m0")') do
+  assert_pack "m0", "YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXpBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWg==", ["abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"]
+end
+
 # pack & unpack 'H'
 assert('["3031"].pack("H*")') do
   assert_pack "H*", "01", ["3031"]
