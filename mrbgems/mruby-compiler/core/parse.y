@@ -233,7 +233,7 @@ parser_strdup(parser_state *p, const char *s)
 #define strdup(s) parser_strdup(p, s)
 
 static void
-dump_int(short i, char *s)
+dump_int(uint16_t i, char *s)
 {
   char *p = s;
   char *t = s;
