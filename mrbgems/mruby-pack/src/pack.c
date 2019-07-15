@@ -1299,7 +1299,12 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
     if (single) break;
   }
 
-  if (single) return RARRAY_PTR(result)[0];
+  if (single) {
+    if (RARRAY_LEN(result) > 0) {
+      return RARRAY_PTR(result)[0];
+    }
+    return mrb_nil_value();
+  }
   return result;
 }
 
