@@ -107,7 +107,8 @@ MRB_API mrb_int mrb_str_strlen(mrb_state*, struct RString*);
 #define MRB_STR_EMBED_LEN_SHIFT 6
 
 void mrb_gc_free_str(mrb_state*, struct RString*);
-MRB_API void mrb_str_modify(mrb_state*, struct RString*);
+
+MRB_API void mrb_str_modify_keep_ascii(mrb_state *mrb, struct RString *s);
 
 /*
  * Finds the index of a substring in a string
@@ -454,6 +455,13 @@ mrb_value mrb_str_inspect(mrb_state *mrb, mrb_value str);
 
 mrb_bool mrb_str_beg_len(mrb_int str_len, mrb_int *begp, mrb_int *lenp);
 mrb_value mrb_str_byte_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len);
+
+MRB_INLINE void
+mrb_str_modify(mrb_state *mrb, struct RString *s)
+{
+  mrb_str_modify_keep_ascii(mrb, s);
+  RSTR_UNSET_ASCII_FLAG(s);
+}
 
 #ifdef MRB_UTF8_STRING
 mrb_int mrb_utf8_len(const char *str, mrb_int byte_len);

@@ -709,10 +709,9 @@ mrb_locale_from_utf8(const char *utf8, int len)
 #endif
 
 MRB_API void
-mrb_str_modify(mrb_state *mrb, struct RString *s)
+mrb_str_modify_keep_ascii(mrb_state *mrb, struct RString *s)
 {
   mrb_check_frozen(mrb, s);
-  RSTR_UNSET_ASCII_FLAG(s);
   if (RSTR_SHARED_P(s)) {
     mrb_shared_string *shared = s->as.heap.aux.shared;
 
@@ -1341,7 +1340,7 @@ mrb_str_capitalize_bang(mrb_state *mrb, mrb_value str)
   mrb_bool modify = FALSE;
   struct RString *s = mrb_str_ptr(str);
 
-  mrb_str_modify(mrb, s);
+  mrb_str_modify_keep_ascii(mrb, s);
   if (RSTR_LEN(s) == 0 || !RSTR_PTR(s)) return mrb_nil_value();
   p = RSTR_PTR(s); pend = RSTR_PTR(s) + RSTR_LEN(s);
   if (ISLOWER(*p)) {
@@ -1400,7 +1399,7 @@ mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
   struct RString *s = mrb_str_ptr(str);
 
   argc = mrb_get_args(mrb, "|S", &rs);
-  mrb_str_modify(mrb, s);
+  mrb_str_modify_keep_ascii(mrb, s);
   len = RSTR_LEN(s);
   if (argc == 0) {
     if (len == 0) return mrb_nil_value();
@@ -1499,7 +1498,7 @@ mrb_str_chop_bang(mrb_state *mrb, mrb_value str)
 {
   struct RString *s = mrb_str_ptr(str);
 
-  mrb_str_modify(mrb, s);
+  mrb_str_modify_keep_ascii(mrb, s);
   if (RSTR_LEN(s) > 0) {
     mrb_int len;
 #ifdef MRB_UTF8_STRING
@@ -1568,7 +1567,7 @@ mrb_str_downcase_bang(mrb_state *mrb, mrb_value str)
   mrb_bool modify = FALSE;
   struct RString *s = mrb_str_ptr(str);
 
-  mrb_str_modify(mrb, s);
+  mrb_str_modify_keep_ascii(mrb, s);
   p = RSTR_PTR(s);
   pend = RSTR_PTR(s) + RSTR_LEN(s);
   while (p < pend) {
@@ -2538,7 +2537,7 @@ mrb_str_upcase_bang(mrb_state *mrb, mrb_value str)
   char *p, *pend;
   mrb_bool modify = FALSE;
 
-  mrb_str_modify(mrb, s);
+  mrb_str_modify_keep_ascii(mrb, s);
   p = RSTRING_PTR(str);
   pend = RSTRING_END(str);
   while (p < pend) {
