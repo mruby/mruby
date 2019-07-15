@@ -16,7 +16,7 @@
 #include <mruby/data.h>
 
 struct backtrace_location {
-  int lineno;
+  int32_t lineno;
   mrb_sym method_id;
   const char *filename;
 };

@@ -24,7 +24,7 @@ typedef struct mrbc_context {
   mrb_sym *syms;
   int slen;
   char *filename;
-  short lineno;
+  uint16_t lineno;
   int (*partial_hook)(struct mrb_parser_state*);
   void *partial_data;
   struct RClass *target_class;
@@ -67,7 +67,7 @@ enum mrb_lex_state_enum {
 
 /* saved error message */
 struct mrb_parser_message {
-  int lineno;
+  uint16_t lineno;
   int column;
   char* message;
 };
@@ -119,7 +119,7 @@ struct mrb_parser_state {
 #endif
   mrbc_context *cxt;
   mrb_sym filename_sym;
-  int lineno;
+  uint16_t lineno;
   int column;
 
   enum mrb_lex_state_enum lstate;
