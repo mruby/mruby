@@ -1,7 +1,3 @@
-#ifdef MRB_WITHOUT_FLOAT
-# error Conflict 'MRB_WITHOUT_FLOAT' configuration in your 'build_config.rb'
-#endif
-
 #include <mruby.h>
 #include <mruby/range.h>
 #include <math.h>
@@ -110,6 +106,7 @@ range_last(mrb_state *mrb, mrb_value range)
  *    ('a'..'z').size  #=> nil
  */
 
+#ifndef MRB_WITHOUT_FLOAT
 static mrb_value
 range_size(mrb_state *mrb, mrb_value range)
 {
@@ -162,6 +159,28 @@ range_size(mrb_state *mrb, mrb_value range)
   }
   return mrb_nil_value();
 }
+#else
+static mrb_value
+range_size(mrb_state *mrb, mrb_value range)
+{
+  struct RRange *r = mrb_range_ptr(mrb, range);
+  mrb_value beg, end;
+  mrb_int excl;
+
+  beg = RANGE_BEG(r);
+  end = RANGE_END(r);
+  excl = RANGE_EXCL(r) ? 0 : 1;
+
+  if (mrb_fixnum_p(beg) && mrb_fixnum_p(end)) {
+    mrb_int a = mrb_fixnum(beg);
+    mrb_int b = mrb_fixnum(end);
+    mrb_int c = b - a + excl;
+
+    return mrb_fixnum_value(c);
+  }
+  return mrb_nil_value();
+}
+#endif /* MRB_WITHOUT_FLOAT */
 
 void
 mrb_mruby_range_ext_gem_init(mrb_state* mrb)
