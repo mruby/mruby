@@ -770,6 +770,13 @@ mrb_str_modify_keep_ascii(mrb_state *mrb, struct RString *s)
   }
 }
 
+MRB_API void
+mrb_str_modify(mrb_state *mrb, struct RString *s)
+{
+  mrb_str_modify_keep_ascii(mrb, s);
+  RSTR_UNSET_ASCII_FLAG(s);
+}
+
 MRB_API mrb_value
 mrb_str_resize(mrb_state *mrb, mrb_value str, mrb_int len)
 {
