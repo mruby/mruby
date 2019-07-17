@@ -352,11 +352,13 @@ end
 
 assert('Hash#inspect') do
   h = { "c" => 300, "a" => 100, "d" => 400, "c" => 300  }
+  h["recur"] = h
   ret = h.to_s
 
   assert_include ret, '"c"=>300'
   assert_include ret, '"a"=>100'
   assert_include ret, '"d"=>400'
+  assert_include ret, '"recur"=>{...}'
 end
 
 assert('Hash#rehash') do

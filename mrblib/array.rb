@@ -83,13 +83,15 @@ class Array
     self
   end
 
-  def _inspect
+  def _inspect(recur_list)
     size = self.size
     return "[]" if size == 0
+    return "[...]" if recur_list[self.object_id]
+    recur_list[self.object_id] = true
     ary=[]
     i=0
     while i<size
-      ary<<self[i].inspect
+      ary<<self[i]._inspect(recur_list)
       i+=1
     end
     "["+ary.join(", ")+"]"
@@ -99,11 +101,7 @@ class Array
   #
   # ISO 15.2.12.5.31 (x)
   def inspect
-    begin
-      self._inspect
-    rescue SystemStackError
-      "[...]"
-    end
+    self._inspect({})
   end
   # ISO 15.2.12.5.32 (x)
   alias to_s inspect

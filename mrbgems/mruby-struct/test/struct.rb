@@ -116,9 +116,10 @@ assert('struct dup') do
 end
 
 assert('struct inspect') do
-  c = Struct.new(:m1, :m2, :m3, :m4, :m5)
-  cc = c.new(1,2,3,4,5)
-  assert_equal "#<struct m1=1, m2=2, m3=3, m4=4, m5=5>", cc.inspect
+  c = Struct.new(:m1, :m2, :m3, :m4, :m5, :recur)
+  cc = c.new(1,2,3,4,5,nil)
+  cc.recur = cc
+  assert_equal "#<struct m1=1, m2=2, m3=3, m4=4, m5=5, recur=#<struct #{cc.class}:...>>", cc.inspect
 end
 
 assert('Struct#length, Struct#size') do

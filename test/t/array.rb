@@ -346,11 +346,12 @@ end
 
 assert('Array#to_s', '15.2.12.5.31 / 15.2.12.5.32') do
   a = [2, 3,   4, 5]
+  a[4] = a
   r1 = a.to_s
   r2 = a.inspect
 
   assert_equal(r2, r1)
-  assert_equal("[2, 3, 4, 5]", r1)
+  assert_equal("[2, 3, 4, 5, [...]]", r1)
 end
 
 assert('Array#==', '15.2.12.5.33') do
