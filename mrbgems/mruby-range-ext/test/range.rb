@@ -10,6 +10,8 @@ end
 assert('Range#first') do
   assert_equal 10, (10..20).first
   assert_equal [10, 11, 12], (10..20).first(3)
+
+  skip unless Object.const_defined?(:Float)
   assert_equal [0, 1, 2], (0..Float::INFINITY).first(3)
 end
 
@@ -23,12 +25,14 @@ end
 assert('Range#size') do
   assert_equal 42, (1..42).size
   assert_equal 41, (1...42).size
+  assert_nil ('a'..'z').size
+
+  skip unless Object.const_defined?(:Float)
   assert_equal 6, (1...6.3).size
   assert_equal 5, (1...6.0).size
   assert_equal 5, (1.1...6).size
   assert_equal 15, (1.0..15.9).size
   assert_equal Float::INFINITY, (0..Float::INFINITY).size
-  assert_nil ('a'..'z').size
 end
 
 assert('Range#max') do
@@ -36,12 +40,6 @@ assert('Range#max') do
   assert_equal 10, (1..10).max
   assert_equal 9, (1...10).max
   assert_equal 4294967295, (0...2**32).max
-
-  # returns the maximum value in the Float range when called with no arguments
-  assert_equal 908.1111, (303.20..908.1111).max
-
-  # raises TypeError when called on an exclusive range and a non Integer value
-  assert_raise(TypeError) { (303.20...908.1111).max }
 
   # returns nil when the endpoint is less than the start point
   assert_equal nil, (100..10).max
@@ -51,6 +49,14 @@ assert('Range#max') do
 
   # returns the endpoint when the endpoint equals the start point and the range is inclusive
   assert_equal 5, (5..5).max
+
+  skip unless Object.const_defined?(:Float)
+
+  # returns the maximum value in the Float range when called with no arguments
+  assert_equal 908.1111, (303.20..908.1111).max
+
+  # raises TypeError when called on an exclusive range and a non Integer value
+  assert_raise(TypeError) { (303.20...908.1111).max }
 
   # returns nil when the endpoint is less than the start point in a Float range
   assert_equal nil, (3003.20..908.1111).max
@@ -89,9 +95,6 @@ assert('Range#min') do
   assert_equal 1, (1..10).min
   assert_equal 1, (1...10).min
 
-  # returns the minimum value in the Float range when called with no arguments
-  assert_equal 303.20, (303.20..908.1111).min
-
   # returns nil when the start point is greater than the endpoint
   assert_equal nil, (100..10).min
 
@@ -100,6 +103,11 @@ assert('Range#min') do
 
   # returns the endpoint when the endpoint equals the start point and the range is inclusive
   assert_equal 5, (5..5).max
+
+  skip unless Object.const_defined?(:Float)
+
+  # returns the minimum value in the Float range when called with no arguments
+  assert_equal 303.20, (303.20..908.1111).min
 
   # returns nil when the start point is greater than the endpoint in a Float range
   assert_equal nil, (3003.20..908.1111).max

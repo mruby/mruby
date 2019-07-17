@@ -32,7 +32,7 @@ class Range
     return super if block
 
     # fast path for numerics
-    if (val.kind_of?(Fixnum) || val.kind_of?(Float)) && (last.kind_of?(Fixnum) || last.kind_of?(Float))
+    if val.kind_of?(Numeric) && last.kind_of?(Numeric)
       raise TypeError if exclude_end? && !last.kind_of?(Fixnum)
       return nil if val > last
       return nil if val == last && exclude_end?
@@ -52,7 +52,7 @@ class Range
     return super if block
 
     # fast path for numerics
-    if (val.kind_of?(Fixnum) || val.kind_of?(Float)) && (last.kind_of?(Fixnum) || last.kind_of?(Float))
+    if val.kind_of?(Numeric) && last.kind_of?(Numeric)
       return nil if val > last
       return nil if val == last && exclude_end?
 
