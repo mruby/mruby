@@ -104,18 +104,18 @@ class Complex < Numeric
   end
 
   alias_method :imag, :imaginary
-end
 
-[Fixnum, Float].each do |cls|
-  [:+, :-, :*, :/, :==].each do |op|
-    cls.instance_exec do
-      original_operator_name = "__original_operator_#{op}_complex"
-      alias_method original_operator_name, op
-      define_method op do |rhs|
-        if rhs.is_a? Complex
-          Complex(self).send(op, rhs)
-        else
-          send(original_operator_name, rhs)
+  [Fixnum, Float].each do |cls|
+    [:+, :-, :*, :/, :==].each do |op|
+      cls.instance_exec do
+        original_operator_name = "__original_operator_#{op}_complex"
+        alias_method original_operator_name, op
+        define_method op do |rhs|
+          if rhs.is_a? Complex
+            Complex(self).send(op, rhs)
+          else
+            send(original_operator_name, rhs)
+          end
         end
       end
     end

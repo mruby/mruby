@@ -89,28 +89,29 @@ module Kernel
     a, b = b, a % b until b == 0
     Rational._new(numerator.div(a), denominator.div(a))
   end
-end
 
-[:+, :-, :*, :/, :<=>, :==, :<, :<=, :>, :>=].each do |op|
-  Fixnum.instance_eval do
-    original_operator_name = "__original_operator_#{op}_rational"
-    alias_method original_operator_name, op
-    define_method op do |rhs|
-      if rhs.is_a? Rational
-        Rational(self).__send__(op, rhs)
-      else
+  [:+, :-, :*, :/, :<=>, :==, :<, :<=, :>, :>=].each do |op|
+    Fixnum.instance_eval do
+      original_operator_name = "__original_operator_#{op}_rational"
+      alias_method original_operator_name, op
+      define_method op do |rhs|
+        if rhs.is_a? Rational
+          Rational(self).__send__(op, rhs)
+        else
+          __send__(original_operator_name, rhs)
+        end
+      end
+    end
+    Float.instance_eval do
+      original_operator_name = "__original_operator_#{op}_rational"
+      alias_method original_operator_name, op
+      define_method op do |rhs|
+        if rhs.is_a? Rational
+          rhs = rhs.to_f
+        end
         __send__(original_operator_name, rhs)
       end
-    end
+    end if Object.const_defined?(:Float)
   end
-  Float.instance_eval do
-    original_operator_name = "__original_operator_#{op}_rational"
-    alias_method original_operator_name, op
-    define_method op do |rhs|
-      if rhs.is_a? Rational
-        rhs = rhs.to_f
-      end
-      __send__(original_operator_name, rhs)
-    end
-  end if Object.const_defined?(:Float)
 end
+
