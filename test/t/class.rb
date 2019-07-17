@@ -36,7 +36,7 @@ end
 
 assert('Class#new', '15.2.3.3.3') do
   assert_raise(TypeError, 'Singleton should raise TypeError') do
-    "a".singleton_class.new
+    (class <<"a"; self; end).new
   end
 
   class TestClass
@@ -236,6 +236,11 @@ assert('class to return the last value') do
   assert_equal(m, :m)
 end
 
+assert('class to return nil if body is empty') do
+  assert_nil(class C end)
+  assert_nil(class << self; end)
+end
+
 assert('raise when superclass is not a class') do
   module FirstModule; end
   assert_raise(TypeError, 'should raise TypeError') do
@@ -293,15 +298,7 @@ assert('singleton tests') do
     end
   end
 
-  assert_false baz.singleton_methods.include? :run_foo_mod
-  assert_false baz.singleton_methods.include? :run_baz
-
-  assert_raise(NoMethodError, 'should raise NoMethodError') do
-    baz.run_foo_mod
-  end
-  assert_raise(NoMethodError, 'should raise NoMethodError') do
-    baz.run_baz
-  end
+  assert_equal :run_baz, baz
 
   assert_raise(NoMethodError, 'should raise NoMethodError') do
     bar.run_foo_mod
@@ -318,8 +315,8 @@ assert('singleton tests') do
     self
   end
 
-  assert_true baz.singleton_methods.include? :run_baz
-  assert_true baz.singleton_methods.include? :run_foo_mod
+  assert_true baz.respond_to? :run_baz
+  assert_true baz.respond_to? :run_foo_mod
   assert_equal 100, baz.run_foo_mod
   assert_equal 300, baz.run_baz
 
@@ -358,7 +355,14 @@ assert('singleton tests') do
         7
       end
     end
-  end if class_defined?("Float")
+  end if Object.const_defined?(:Float)
+
+  o = Object.new
+  sc = class << o; self end
+  o.freeze
+  assert_predicate(sc, :frozen?)
+
+  assert_predicate(class << Object.new.freeze; self end, :frozen?)
 end
 
 assert('clone Class') do
@@ -368,7 +372,7 @@ assert('clone Class') do
     end
   end
 
-  Foo.clone.new.func
+  assert_true(Foo.clone.new.func)
 end
 
 assert('class variable and class << self style class method') do
@@ -436,16 +440,26 @@ assert('overriding class variable with a module (#3235)') do
   end
 end
 
+assert('class variable for frozen class/module') do
+  module CVarForFrozenModule
+    freeze
+    assert_raise(FrozenError) { @@cv = 1 }
+  end
+
+  class CVarForFrozenClassA
+    @@a = nil
+    freeze
+  end
+  class CVarForFrozenClassB < CVarForFrozenClassA
+    def a=(v)
+      @@a = v
+    end
+  end
+  b = CVarForFrozenClassB.new
+  assert_raise(FrozenError) { b.a = 1 }
+end
+
 assert('class with non-class/module outer raises TypeError') do
   assert_raise(TypeError) { class 0::C1; end }
   assert_raise(TypeError) { class []::C2; end }
-end
-
-assert("remove_method doesn't segfault if the passed in argument isn't a symbol") do
-  klass = Class.new
-  assert_raise(TypeError) { klass.remove_method nil }
-  assert_raise(TypeError) { klass.remove_method 123 }
-  assert_raise(TypeError) { klass.remove_method 1.23 }
-  assert_raise(NameError) { klass.remove_method "hello" }
-  assert_raise(TypeError) { klass.remove_method Class.new }
 end

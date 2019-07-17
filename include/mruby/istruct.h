@@ -19,12 +19,12 @@ MRB_BEGIN_DECL
 
 #define ISTRUCT_DATA_SIZE (sizeof(void*) * 3)
 
-struct RIstruct {
+struct RIStruct {
   MRB_OBJECT_HEADER;
   char inline_data[ISTRUCT_DATA_SIZE];
 };
 
-#define RISTRUCT(obj)         ((struct RIstruct*)(mrb_ptr(obj)))
+#define RISTRUCT(obj)         ((struct RIStruct*)(mrb_ptr(obj)))
 #define ISTRUCT_PTR(obj)      (RISTRUCT(obj)->inline_data)
 
 MRB_INLINE mrb_int mrb_istruct_size()

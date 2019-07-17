@@ -36,7 +36,7 @@ dbgcmd_print(mrb_state *mrb, mrdb_state *mrdb)
     expr = mrb_str_cat_cstr(mrb, expr, mrdb->words[wcnt]);
   }
 
-  result = mrb_debug_eval(mrb, mrdb->dbg, RSTRING_PTR(expr), RSTRING_LEN(expr), NULL);
+  result = mrb_debug_eval(mrb, mrdb->dbg, RSTRING_PTR(expr), RSTRING_LEN(expr), NULL, 0);
 
   /* $print_no = result */
   s = mrb_str_cat_lit(mrb, result, "\0");
@@ -55,4 +55,27 @@ dbgcmd_state
 dbgcmd_eval(mrb_state *mrb, mrdb_state *mrdb)
 {
   return dbgcmd_print(mrb, mrdb);
+}
+
+dbgcmd_state
+dbgcmd_info_local(mrb_state *mrb, mrdb_state *mrdb)
+{
+  mrb_value result;
+  mrb_value s;
+  int ai;
+
+  ai = mrb_gc_arena_save(mrb);
+
+  result = mrb_debug_eval(mrb, mrdb->dbg, "local_variables", 0, NULL, 1);
+
+  s = mrb_str_cat_lit(mrb, result, "\0");
+  printf("$%lu = %s\n", (unsigned long)mrdb->print_no++, RSTRING_PTR(s));
+
+  if (mrdb->print_no == 0) {
+    mrdb->print_no = 1;
+  }
+
+  mrb_gc_arena_restore(mrb, ai);
+
+  return DBGST_PROMPT;
 }

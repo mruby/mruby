@@ -1,5 +1,5 @@
 /*
-** file.c - File class
+** file_test.c - FileTest class
 */
 
 #include "mruby.h"
@@ -42,16 +42,9 @@ extern struct mrb_data_type mrb_io_type;
 static int
 mrb_stat0(mrb_state *mrb, mrb_value obj, struct stat *st, int do_lstat)
 {
-  mrb_value tmp;
-  mrb_value io_klass, str_klass;
-
-  io_klass  = mrb_obj_value(mrb_class_get(mrb, "IO"));
-  str_klass = mrb_obj_value(mrb_class_get(mrb, "String"));
-
-  tmp = mrb_funcall(mrb, obj, "is_a?", 1, io_klass);
-  if (mrb_test(tmp)) {
+  if (mrb_obj_is_kind_of(mrb, obj, mrb_class_get(mrb, "IO"))) {
     struct mrb_io *fptr;
-    fptr = (struct mrb_io *)mrb_get_datatype(mrb, obj, &mrb_io_type);
+    fptr = (struct mrb_io *)mrb_data_get_ptr(mrb, obj, &mrb_io_type);
 
     if (fptr && fptr->fd >= 0) {
       return fstat(fptr->fd, st);
@@ -60,10 +53,8 @@ mrb_stat0(mrb_state *mrb, mrb_value obj, struct stat *st, int do_lstat)
     mrb_raise(mrb, E_IO_ERROR, "closed stream");
     return -1;
   }
-
-  tmp = mrb_funcall(mrb, obj, "is_a?", 1, str_klass);
-  if (mrb_test(tmp)) {
-    char *path = mrb_locale_from_utf8(mrb_str_to_cstr(mrb, obj), -1);
+  else {
+    char *path = mrb_locale_from_utf8(mrb_string_value_cstr(mrb, &obj), -1);
     int ret;
     if (do_lstat) {
       ret = LSTAT(path, st);
@@ -73,8 +64,6 @@ mrb_stat0(mrb_state *mrb, mrb_value obj, struct stat *st, int do_lstat)
     mrb_locale_free(path);
     return ret;
   }
-
-  return -1;
 }
 
 static int

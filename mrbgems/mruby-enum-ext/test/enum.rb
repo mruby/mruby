@@ -128,14 +128,14 @@ assert("Enumerable#any? (enhancement)") do
 end
 
 assert("Enumerable#each_with_object") do
-  assert_true [2, 4, 6, 8, 10, 12, 14, 16, 18, 20], (1..10).each_with_object([]) { |i, a| a << i*2 }
+  assert_equal [2, 4, 6, 8, 10, 12, 14, 16, 18, 20], (1..10).each_with_object([]) { |i, a| a << i*2 }
   assert_raise(ArgumentError) { (1..10).each_with_object() { |i, a| a << i*2 } }
 end
 
 assert("Enumerable#reverse_each") do
   r = (1..3)
   a = []
-  assert_equal (1..3), r.reverse_each { |v| a << v }
+  assert_same r, r.reverse_each { |v| a << v }
   assert_equal [3, 2, 1], a
 end
 
@@ -188,4 +188,6 @@ assert("Enumerable#to_h") do
   assert_equal h0, h
   # mruby-enum-ext also provides nil.to_h
   assert_equal Hash.new, nil.to_h
+
+  assert_equal({1=>4,3=>8}, c.new.to_h{|k,v|[k,v*2]})
 end

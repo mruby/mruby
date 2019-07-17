@@ -67,8 +67,8 @@ module MRuby
       path && build.filename("#{path}/#{name}").sub(/^"(.*)"$/, '\1')
     end
 
-    def all_flags(_defineds=[], _include_paths=[], _flags=[])
-      define_flags = [defines, _defineds].flatten.map{ |d| option_define % d }
+    def all_flags(_defines=[], _include_paths=[], _flags=[])
+      define_flags = [defines, _defines].flatten.map{ |d| option_define % d }
       include_path_flags = [include_paths, _include_paths].flatten.map do |f|
         if MRUBY_BUILD_HOST_IS_CYGWIN
           option_include_path % cygwin_filename(f)
@@ -79,14 +79,14 @@ module MRuby
       [flags, define_flags, include_path_flags, _flags].flatten.join(' ')
     end
 
-    def run(outfile, infile, _defineds=[], _include_paths=[], _flags=[])
+    def run(outfile, infile, _defines=[], _include_paths=[], _flags=[])
       FileUtils.mkdir_p File.dirname(outfile)
       _pp "CC", infile.relative_path, outfile.relative_path
       if MRUBY_BUILD_HOST_IS_CYGWIN
-        _run compile_options, { :flags => all_flags(_defineds, _include_paths, _flags),
+        _run compile_options, { :flags => all_flags(_defines, _include_paths, _flags),
                                 :infile => cygwin_filename(infile), :outfile => cygwin_filename(outfile) }
       else
-        _run compile_options, { :flags => all_flags(_defineds, _include_paths, _flags),
+        _run compile_options, { :flags => all_flags(_defines, _include_paths, _flags),
                                 :infile => filename(infile), :outfile => filename(outfile) }
       end
     end
@@ -127,13 +127,40 @@ module MRuby
     end
 
     private
+
+    #
+    # === Example of +.d+ file
+    #
+    # ==== Without <tt>-MP</tt> compiler flag
+    #
+    #   /build/host/src/array.o: \
+    #     /src/array.c \
+    #     /include/mruby/common.h \
+    #     /include/mruby/value.h \
+    #     /src/value_array.h
+    #
+    # ==== With <tt>-MP</tt> compiler flag
+    #
+    #   /build/host/src/array.o: \
+    #     /src/array.c \
+    #     /include/mruby/common.h \
+    #     /include/mruby/value.h \
+    #     /src/value_array.h
+    #
+    #   /include/mruby/common.h:
+    #
+    #   /include/mruby/value.h:
+    #
+    #   /src/value_array.h:
+    #
     def get_dependencies(file)
       file = file.ext('d') unless File.extname(file) == '.d'
+      deps = []
       if File.exist?(file)
-        File.read(file).gsub("\\\n ", "").scan(/^\S+:\s+(.+)$/).flatten.map {|s| s.split(' ') }.flatten
-      else
-        []
-      end + [ MRUBY_CONFIG ]
+        File.foreach(file){|line| deps << $1 if /^ +(.*?)(?: *\\)?$/ =~ line}
+        deps.uniq!
+      end
+      deps << MRUBY_CONFIG
     end
   end
 

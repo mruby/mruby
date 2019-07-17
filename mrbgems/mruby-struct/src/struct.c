@@ -24,19 +24,18 @@ struct_class(mrb_state *mrb)
 }
 
 static inline mrb_value
-struct_ivar_get(mrb_state *mrb, mrb_value c, mrb_sym id)
+struct_ivar_get(mrb_state *mrb, mrb_value cls, mrb_sym id)
 {
-  struct RClass* kclass;
+  struct RClass* c = mrb_class_ptr(cls);
   struct RClass* sclass = struct_class(mrb);
   mrb_value ans;
 
   for (;;) {
-    ans = mrb_iv_get(mrb, c, id);
+    ans = mrb_iv_get(mrb, mrb_obj_value(c), id);
     if (!mrb_nil_p(ans)) return ans;
-    kclass = RCLASS_SUPER(c);
-    if (kclass == 0 || kclass == sclass)
+    c = c->super;
+    if (c == sclass || c == 0)
       return mrb_nil_value();
-    c = mrb_obj_value(kclass);
   }
 }
 
@@ -88,10 +87,7 @@ mrb_struct_s_members_m(mrb_state *mrb, mrb_value klass)
 static void
 mrb_struct_modify(mrb_state *mrb, mrb_value strct)
 {
-  if (MRB_FROZEN_P(mrb_basic_ptr(strct))) {
-    mrb_raise(mrb, E_FROZEN_ERROR, "can't modify frozen struct");
-  }
-
+  mrb_check_frozen(mrb, mrb_basic_ptr(strct));
   mrb_write_barrier(mrb, mrb_basic_ptr(strct));
 }
 
@@ -127,19 +123,29 @@ mrb_struct_ref(mrb_state *mrb, mrb_value obj)
 static mrb_sym
 mrb_id_attrset(mrb_state *mrb, mrb_sym id)
 {
+#define ONSTACK_ALLOC_MAX 32
+#define ONSTACK_STRLEN_MAX (ONSTACK_ALLOC_MAX - 1) /* '=' character */
+
   const char *name;
   char *buf;
   mrb_int len;
   mrb_sym mid;
+  char onstack[ONSTACK_ALLOC_MAX];
 
   name = mrb_sym2name_len(mrb, id, &len);
-  buf = (char *)mrb_malloc(mrb, (size_t)len+2);
+  if (len > ONSTACK_STRLEN_MAX) {
+    buf = (char *)mrb_malloc(mrb, (size_t)len+1);
+  }
+  else {
+    buf = onstack;
+  }
   memcpy(buf, name, (size_t)len);
   buf[len] = '=';
-  buf[len+1] = '\0';
 
   mid = mrb_intern(mrb, buf, len+1);
-  mrb_free(mrb, buf);
+  if (buf != onstack) {
+    mrb_free(mrb, buf);
+  }
   return mid;
 }
 
@@ -162,20 +168,6 @@ mrb_struct_set_m(mrb_state *mrb, mrb_value obj)
   return val;
 }
 
-static mrb_bool
-is_local_id(mrb_state *mrb, const char *name)
-{
-  if (!name) return FALSE;
-  return !ISUPPER(name[0]);
-}
-
-static mrb_bool
-is_const_id(mrb_state *mrb, const char *name)
-{
-  if (!name) return FALSE;
-  return ISUPPER(name[0]);
-}
-
 static void
 make_struct_define_accessors(mrb_state *mrb, mrb_value members, struct RClass *c)
 {
@@ -186,19 +178,15 @@ make_struct_define_accessors(mrb_state *mrb, mrb_value members, struct RClass *c
 
   for (i=0; i<len; i++) {
     mrb_sym id = mrb_symbol(ptr_members[i]);
-    const char *name = mrb_sym2name_len(mrb, id, NULL);
-
-    if (is_local_id(mrb, name) || is_const_id(mrb, name)) {
-      mrb_method_t m;
-      mrb_value at = mrb_fixnum_value(i);
-      struct RProc *aref = mrb_proc_new_cfunc_with_env(mrb, mrb_struct_ref, 1, &at);
-      struct RProc *aset = mrb_proc_new_cfunc_with_env(mrb, mrb_struct_set_m, 1, &at);
-      MRB_METHOD_FROM_PROC(m, aref);
-      mrb_define_method_raw(mrb, c, id, m);
-      MRB_METHOD_FROM_PROC(m, aset);
-      mrb_define_method_raw(mrb, c, mrb_id_attrset(mrb, id), m);
-      mrb_gc_arena_restore(mrb, ai);
-    }
+    mrb_method_t m;
+    mrb_value at = mrb_fixnum_value(i);
+    struct RProc *aref = mrb_proc_new_cfunc_with_env(mrb, mrb_struct_ref, 1, &at);
+    struct RProc *aset = mrb_proc_new_cfunc_with_env(mrb, mrb_struct_set_m, 1, &at);
+    MRB_METHOD_FROM_PROC(m, aref);
+    mrb_define_method_raw(mrb, c, id, m);
+    MRB_METHOD_FROM_PROC(m, aset);
+    mrb_define_method_raw(mrb, c, mrb_id_attrset(mrb, id), m);
+    mrb_gc_arena_restore(mrb, ai);
   }
 }
 
@@ -214,9 +202,9 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass *kl
   }
   else {
     /* old style: should we warn? */
-    name = mrb_str_to_str(mrb, name);
+    mrb_to_str(mrb, name);
     id = mrb_obj_to_sym(mrb, name);
-    if (!is_const_id(mrb, mrb_sym2name_len(mrb, id, NULL))) {
+    if (!mrb_const_name_p(mrb, RSTRING_PTR(name), RSTRING_LEN(name))) {
       mrb_name_error(mrb, id, "identifier %S needs to be constant", name);
     }
     if (mrb_const_defined_at(mrb, mrb_obj_value(klass), id)) {
@@ -303,17 +291,19 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
       }
     }
     rest = mrb_ary_new_from_values(mrb, argcnt, pargv);
-    for (i=0; i<RARRAY_LEN(rest); i++) {
+    for (i=0; i<argcnt; i++) {
       id = mrb_obj_to_sym(mrb, RARRAY_PTR(rest)[i]);
       mrb_ary_set(mrb, rest, i, mrb_symbol_value(id));
     }
-  }
-  st = make_struct(mrb, name, rest, mrb_class_ptr(klass));
-  if (!mrb_nil_p(b)) {
-    mrb_yield_with_class(mrb, b, 1, &st, st, mrb_class_ptr(st));
-  }
+    st = make_struct(mrb, name, rest, mrb_class_ptr(klass));
+    if (!mrb_nil_p(b)) {
+      mrb_yield_with_class(mrb, b, 1, &st, st, mrb_class_ptr(st));
+    }
 
-  return st;
+    return st;
+  }
+  /* not reached */
+  return mrb_nil_value();
 }
 
 static mrb_int
@@ -398,23 +388,24 @@ struct_aref_sym(mrb_state *mrb, mrb_value obj, mrb_sym id)
       return ptr[i];
     }
   }
-  mrb_raisef(mrb, E_INDEX_ERROR, "'%S' is not a struct member", mrb_sym2str(mrb, id));
+  mrb_name_error(mrb, id, "no member '%S' in struct", mrb_sym2str(mrb, id));
   return mrb_nil_value();       /* not reached */
 }
 
 static mrb_value
 struct_aref_int(mrb_state *mrb, mrb_value s, mrb_int i)
 {
-  if (i < 0) i = RSTRUCT_LEN(s) + i;
-  if (i < 0)
-      mrb_raisef(mrb, E_INDEX_ERROR,
-                 "offset %S too small for struct(size:%S)",
-                 mrb_fixnum_value(i), mrb_fixnum_value(RSTRUCT_LEN(s)));
-  if (RSTRUCT_LEN(s) <= i)
+  mrb_int idx = i < 0 ? RSTRUCT_LEN(s) + i : i;
+
+  if (idx < 0)
+    mrb_raisef(mrb, E_INDEX_ERROR,
+               "offset %S too small for struct(size:%S)",
+               mrb_fixnum_value(i), mrb_fixnum_value(RSTRUCT_LEN(s)));
+  if (RSTRUCT_LEN(s) <= idx)
     mrb_raisef(mrb, E_INDEX_ERROR,
                "offset %S too large for struct(size:%S)",
                mrb_fixnum_value(i), mrb_fixnum_value(RSTRUCT_LEN(s)));
-  return RSTRUCT_PTR(s)[i];
+  return RSTRUCT_PTR(s)[idx];
 }
 
 /* 15.2.18.4.2  */

@@ -7,19 +7,6 @@
 #include <mruby/dump.h>
 #include <mruby/variable.h>
 
-#ifdef MRB_DISABLE_STDIO
-static void
-p(mrb_state *mrb, mrb_value obj)
-{
-  mrb_value val = mrb_inspect(mrb, obj);
-
-  fwrite(RSTRING_PTR(val), RSTRING_LEN(val), 1, stdout);
-  putc('\n', stdout);
-}
-#else
-#define p(mrb,obj) mrb_p(mrb,obj)
-#endif
-
 struct _args {
   FILE *rfp;
   char* cmdline;
@@ -41,7 +28,7 @@ usage(const char *name)
   "switches:",
   "-b           load and execute RiteBinary (mrb) file",
   "-c           check syntax only",
-  "-d           set debugging flags (set $DEBUG to true)"
+  "-d           set debugging flags (set $DEBUG to true)",
   "-e 'command' one line of script",
   "-r library   load the library before executing your script",
   "-v           print version number, then run in verbose mode",
@@ -119,14 +106,17 @@ append_cmdline:
         }
       }
       else {
-        printf("%s: No code specified for -e\n", *origargv);
-        return EXIT_SUCCESS;
+        fprintf(stderr, "%s: No code specified for -e\n", *origargv);
+        return EXIT_FAILURE;
       }
       break;
+    case 'h':
+      usage(*origargv);
+      exit(EXIT_SUCCESS);
     case 'r':
       if (!item[0]) {
         if (argc <= 1) {
-          printf("%s: No library specified for -r\n", *origargv);
+          fprintf(stderr, "%s: No library specified for -r\n", *origargv);
           return EXIT_FAILURE;
         }
         argc--; argv++;
@@ -158,6 +148,7 @@ append_cmdline:
         exit(EXIT_SUCCESS);
       }
     default:
+      fprintf(stderr, "%s: invalid option %s (-h will show valid options)\n", *origargv, *argv);
       return EXIT_FAILURE;
     }
   }
@@ -167,7 +158,7 @@ append_cmdline:
     else {
       args->rfp = fopen(argv[0], args->mrbfile ? "rb" : "r");
       if (args->rfp == NULL) {
-        printf("%s: Cannot open program file. (%s)\n", *origargv, *argv);
+        fprintf(stderr, "%s: Cannot open program file: %s\n", *origargv, *argv);
         return EXIT_FAILURE;
       }
       args->fname = TRUE;
@@ -212,14 +203,13 @@ main(int argc, char **argv)
   mrb_sym zero_sym;
 
   if (mrb == NULL) {
-    fputs("Invalid mrb_state, exiting mruby\n", stderr);
+    fprintf(stderr, "%s: Invalid mrb_state, exiting mruby\n", *argv);
     return EXIT_FAILURE;
   }
 
   n = parse_args(mrb, argc, argv, &args);
   if (n == EXIT_FAILURE || (args.cmdline == NULL && args.rfp == NULL)) {
     cleanup(mrb, &args);
-    usage(argv[0]);
     return n;
   }
   else {
@@ -258,7 +248,8 @@ main(int argc, char **argv)
     for (i = 0; i < args.libc; i++) {
       FILE *lfp = fopen(args.libv[i], args.mrbfile ? "rb" : "r");
       if (lfp == NULL) {
-        printf("Cannot open library file. (%s)\n", args.libv[i]);
+        fprintf(stderr, "%s: Cannot open library file: %s\n", *argv, args.libv[i]);
+        mrbc_context_free(mrb, c);
         cleanup(mrb, &args);
         return EXIT_FAILURE;
       }
@@ -288,19 +279,16 @@ main(int argc, char **argv)
     mrb_gc_arena_restore(mrb, ai);
     mrbc_context_free(mrb, c);
     if (mrb->exc) {
-      if (mrb_undef_p(v)) {
-        mrb_p(mrb, mrb_obj_value(mrb->exc));
-      }
-      else {
+      if (!mrb_undef_p(v)) {
         mrb_print_error(mrb);
       }
-      n = -1;
+      n = EXIT_FAILURE;
     }
     else if (args.check_syntax) {
-      printf("Syntax OK\n");
+      puts("Syntax OK");
     }
   }
   cleanup(mrb, &args);
 
-  return n == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
+  return n;
 }

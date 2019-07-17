@@ -50,15 +50,21 @@ You can use mrbconfs with following ways:
 * When defined single precision floating point type(C type `float`) is used as `mrb_float`.
 * Else double precision floating point type(C type `double`) is used as `mrb_float`.
 
+`MRB_WITHOUT_FLOAT`
+* When defined removes floating point numbers from mruby.
+* It makes mruby easier to handle in "Microcontroller without FPU" and "Kernel Space".
+
 `MRB_INT16`
 * When defined `int16_t` will be defined as `mrb_int`.
-* Conflicts with `MRB_INT64`.
+* Conflicts with `MRB_INT32` and `MRB_INT64`.
+
+`MRB_INT32`
+* When defined, or both `MRB_INT16` and `MRB_INT64` are not defined on 32-bit CPU mode, `int32_t` will be defined as `mrb_int`.
+* Conflicts with `MRB_INT16` and `MRB_INT64`.
 
 `MRB_INT64`
-* When defined `int64_t` will be defined as `mrb_int`.
-* Conflicts with `MRB_INT16`.
-* When `MRB_INT16` or `MRB_INT64` isn't defined `int`(most of the times 32-bit integer)
-will be defined as `mrb_int`.
+* When defined, or both `MRB_INT16` and `MRB_INT32` are not defined on 64-bit CPU mode, `int64_t` will be defined as `mrb_int`.
+* Conflicts with `MRB_INT16` and `MRB_INT32`.
 
 ## Garbage collector configuration.
 
@@ -115,7 +121,7 @@ largest value of required alignment.
 
 `MRB_NAN_BOXING`
 * If defined represent `mrb_value` in boxed `double`.
-* Conflicts with `MRB_USE_FLOAT`.
+* Conflicts with `MRB_USE_FLOAT` and `MRB_WITHOUT_FLOAT`.
 
 `MRB_WORD_BOXING`
 * If defined represent `mrb_value` as a word.
@@ -125,6 +131,27 @@ largest value of required alignment.
 `MRB_IV_SEGMENT_SIZE`
 * Default value is `4`.
 * Specifies size of each segment in segment list.
+
+## Reduce heap memory configuration.
+
+`MRB_USE_ETEXT_EDATA`
+* If you specify the address of a read-only section when creating a symbol or string, that string will be used as it is.
+* Heap memory can be saved.
+* Uses `_etext` and `__init_array_start`.
+* It must be `_etext < data_addr < &__init_array_start`.
+
+`MRB_NO_INIT_ARRAY_START`
+* Ignored if `MRB_USE_ETEXT_EDATA` is not defined.
+* Please try if `__init_array_start` is not available.
+* Uses `_etext` and `_edata`.
+* It must be `_etext < data_addr < _edata`.
+
+`MRB_USE_CUSTOM_RO_DATA_P`
+* Takes precedence over `MRB_USE_ETEXT_EDATA`.
+* Please try if both `MRB_USE_ETEXT_EDATA` and `MRB_NO_INIT_ARRAY_START` are not available.
+* The `mrb_ro_data_p()` function is implemented by the user in an arbitrary file.
+* The prototype declaration is `mrb_bool mrb_ro_data_p(const char *ptr)`.
+* Return `TRUE` if `ptr` is in read-only section, otherwise return `FALSE`.
 
 ## Other configuration.
 `MRB_UTF8_STRING`
@@ -144,3 +171,20 @@ largest value of required alignment.
 `MRB_STR_BUF_MIN_SIZE`
 * Default value is `128`.
 * Specifies initial capacity of `RString` created by `mrb_str_buf_new` function..
+
+`MRB_METHOD_CACHE`
+* Improve performance for method dispatch.
+
+`MRB_METHOD_CACHE_SIZE`
+* Default value is `128`.
+* Ignored if `MRB_METHOD_CACHE` is not defined.
+* Need to be the power of 2.
+
+`MRB_METHOD_TABLE_INLINE`
+* Reduce the size of method table.
+* Requires LSB of function pointers to be zero.
+* For example, you might need to specify `--falign-functions=n` (where `n > 1`) for GCC.
+
+`MRB_ENABLE_ALL_SYMBOLS`
+* Make it available `Symbols.all_symbols` in `mrbgems/mruby-symbol-ext`
+* Increase heap memory usage.

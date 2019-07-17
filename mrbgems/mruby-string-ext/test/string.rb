@@ -2,14 +2,7 @@
 ##
 # String(Ext) Test
 
-UTF8STRING = ("\343\201\202".size == 1)
-
-assert('String.try_convert') do
-  assert_nil String.try_convert(nil)
-  assert_nil String.try_convert(:foo)
-  assert_equal "", String.try_convert("")
-  assert_equal "1,2,3", String.try_convert("1,2,3")
-end
+UTF8STRING = __ENCODING__ == "UTF-8"
 
 assert('String#getbyte') do
   str1 = "hello"
@@ -31,83 +24,132 @@ assert('String#setbyte') do
   assert_equal("Hello", str1)
 end
 
-assert("String#setbyte raises IndexError if arg conversion resizes String") do
-  $s = "01234\n"
-  class Tmp
-      def to_i
-          $s.chomp! ''
-          95
-      end
-  end
-  tmp = Tmp.new
-  assert_raise(IndexError) { $s.setbyte(5, tmp) }
-end
-
 assert('String#byteslice') do
   str1 = "hello"
+  str2 = "\u3042ab"  # "\xE3\x81\x82ab"
+
+  assert_equal("h", str1.byteslice(0))
   assert_equal("e", str1.byteslice(1))
+  assert_equal(nil, str1.byteslice(5))
   assert_equal("o", str1.byteslice(-1))
+  assert_equal(nil, str1.byteslice(-6))
+  assert_equal("\xE3", str2.byteslice(0))
+  assert_equal("\x81", str2.byteslice(1))
+  assert_equal(nil, str2.byteslice(5))
+  assert_equal("b", str2.byteslice(-1))
+  assert_equal(nil, str2.byteslice(-6))
+
+  assert_equal("", str1.byteslice(0, 0))
+  assert_equal(str1, str1.byteslice(0, 6))
+  assert_equal("el", str1.byteslice(1, 2))
+  assert_equal("", str1.byteslice(5, 1))
+  assert_equal("o", str1.byteslice(-1, 6))
+  assert_equal(nil, str1.byteslice(-6, 1))
+  assert_equal(nil, str1.byteslice(0, -1))
+  assert_equal("", str2.byteslice(0, 0))
+  assert_equal(str2, str2.byteslice(0, 6))
+  assert_equal("\x81\x82", str2.byteslice(1, 2))
+  assert_equal("", str2.byteslice(5, 1))
+  assert_equal("b", str2.byteslice(-1, 6))
+  assert_equal(nil, str2.byteslice(-6, 1))
+  assert_equal(nil, str2.byteslice(0, -1))
+
   assert_equal("ell", str1.byteslice(1..3))
   assert_equal("el", str1.byteslice(1...3))
+  assert_equal("h", str1.byteslice(0..0))
+  assert_equal("", str1.byteslice(5..0))
+  assert_equal("o", str1.byteslice(4..5))
+  assert_equal(nil, str1.byteslice(6..0))
+  assert_equal("", str1.byteslice(-1..0))
+  assert_equal("llo", str1.byteslice(-3..5))
+  assert_equal("\x81\x82a", str2.byteslice(1..3))
+  assert_equal("\x81\x82", str2.byteslice(1...3))
+  assert_equal("\xE3", str2.byteslice(0..0))
+  assert_equal("", str2.byteslice(5..0))
+  assert_equal("b", str2.byteslice(4..5))
+  assert_equal(nil, str2.byteslice(6..0))
+  assert_equal("", str2.byteslice(-1..0))
+  assert_equal("\x82ab", str2.byteslice(-3..5))
+
+  assert_raise(ArgumentError) { str1.byteslice }
+  assert_raise(ArgumentError) { str1.byteslice(1, 2, 3) }
+  assert_raise(TypeError) { str1.byteslice("1") }
+  assert_raise(TypeError) { str1.byteslice("1", 2) }
+  assert_raise(TypeError) { str1.byteslice(1, "2") }
+  assert_raise(TypeError) { str1.byteslice(1..2, 3) }
+
+  skip unless Object.const_defined?(:Float)
+  assert_equal("o", str1.byteslice(4.0))
+  assert_equal("\x82ab", str2.byteslice(2.0, 3.0))
 end
 
 assert('String#dump') do
-  ("\1" * 100).dump     # should not raise an exception - regress #1210
-  "\0".inspect == "\"\\000\"" and
-  "foo".dump == "\"foo\""
+  assert_equal("\"\\x00\"", "\0".dump)
+  assert_equal("\"foo\"", "foo".dump)
+  assert_nothing_raised { ("\1" * 100).dump }   # regress #1210
 end
 
 assert('String#strip') do
   s = "  abc  "
-  "".strip == "" and " \t\r\n\f\v".strip == "" and
-  "\0a\0".strip == "\0a" and
-  "abc".strip     == "abc" and
-  "  abc".strip   == "abc" and
-  "abc  ".strip   == "abc" and
-  "  abc  ".strip == "abc" and
-  s == "  abc  "
+  assert_equal("abc", s.strip)
+  assert_equal("  abc  ", s)
+  assert_equal("", "".strip)
+  assert_equal("", " \t\r\n\f\v".strip)
+  assert_equal("\0a", "\0a\0".strip)
+  assert_equal("abc", "abc".strip)
+  assert_equal("abc", "  abc".strip)
+  assert_equal("abc", "abc  ".strip)
 end
 
 assert('String#lstrip') do
   s = "  abc  "
-  s.lstrip
-  "".lstrip == "" and " \t\r\n\f\v".lstrip == "" and
-  "\0a\0".lstrip == "\0a\0" and
-  "abc".lstrip     == "abc"   and
-  "  abc".lstrip   == "abc"   and
-  "abc  ".lstrip   == "abc  " and
-  "  abc  ".lstrip == "abc  " and
-  s == "  abc  "
+  assert_equal("abc  ", s.lstrip)
+  assert_equal("  abc  ", s)
+  assert_equal("", "".lstrip)
+  assert_equal("", " \t\r\n\f\v".lstrip)
+  assert_equal("\0a\0", "\0a\0".lstrip)
+  assert_equal("abc", "abc".lstrip)
+  assert_equal("abc", "  abc".lstrip)
+  assert_equal("abc  ", "abc  ".lstrip)
 end
 
 assert('String#rstrip') do
   s = "  abc  "
-  s.rstrip
-  "".rstrip == "" and " \t\r\n\f\v".rstrip == "" and
-  "\0a\0".rstrip == "\0a" and
-  "abc".rstrip     == "abc"   and
-  "  abc".rstrip   == "  abc" and
-  "abc  ".rstrip   == "abc"   and
-  "  abc  ".rstrip == "  abc" and
-  s == "  abc  "
+  assert_equal("  abc", s.rstrip)
+  assert_equal("  abc  ", s)
+  assert_equal("", "".rstrip)
+  assert_equal("", " \t\r\n\f\v".rstrip)
+  assert_equal("\0a", "\0a\0".rstrip)
+  assert_equal("abc", "abc".rstrip)
+  assert_equal("  abc", "  abc".rstrip)
+  assert_equal("abc", "abc  ".rstrip)
 end
 
 assert('String#strip!') do
   s = "  abc  "
   t = "abc"
-  s.strip! == "abc" and s == "abc" and t.strip! == nil
+  assert_equal("abc", s.strip!)
+  assert_equal("abc", s)
+  assert_nil(t.strip!)
+  assert_equal("abc", t)
 end
 
 assert('String#lstrip!') do
   s = "  abc  "
   t = "abc  "
-  s.lstrip! == "abc  " and s == "abc  " and t.lstrip! == nil
+  assert_equal("abc  ", s.lstrip!)
+  assert_equal("abc  ", s)
+  assert_nil(t.lstrip!)
+  assert_equal("abc  ", t)
 end
 
 assert('String#rstrip!') do
   s = "  abc  "
   t = "  abc"
-  s.rstrip! == "  abc" and s == "  abc" and t.rstrip! == nil
+  assert_equal("  abc", s.rstrip!)
+  assert_equal("  abc", s)
+  assert_nil(t.rstrip!)
+  assert_equal("  abc", t)
 end
 
 assert('String#swapcase') do
@@ -126,12 +168,6 @@ assert('String#concat') do
   assert_equal "Hello World!", "Hello " << "World" << 33
   assert_equal "Hello World!", "Hello ".concat("World").concat(33)
 
-  o = Object.new
-  def o.to_str
-    "to_str"
-  end
-  assert_equal "hi to_str", "hi " << o
-
   assert_raise(TypeError) { "".concat(Object.new) }
 end
 
@@ -140,11 +176,69 @@ assert('String#casecmp') do
   assert_equal 0, "aBcDeF".casecmp("abcdef")
   assert_equal(-1, "abcdef".casecmp("abcdefg"))
   assert_equal 0, "abcdef".casecmp("ABCDEF")
-  o = Object.new
-  def o.to_str
-    "ABCDEF"
-  end
-  assert_equal 0, "abcdef".casecmp(o)
+end
+
+assert('String#count') do
+  s = "abccdeff123"
+  assert_equal 0, s.count("")
+  assert_equal 1, s.count("a")
+  assert_equal 2, s.count("ab")
+  assert_equal 9, s.count("^c")
+  assert_equal 8, s.count("a-z")
+  assert_equal 4, s.count("a0-9")
+end
+
+assert('String#tr') do
+  assert_equal "ABC", "abc".tr('a-z', 'A-Z')
+  assert_equal "hippo", "hello".tr('el', 'ip')
+  assert_equal "Ruby", "Lisp".tr("Lisp", "Ruby")
+  assert_equal "*e**o", "hello".tr('^aeiou', '*')
+  assert_equal "heo", "hello".tr('l', '')
+end
+
+assert('String#tr!') do
+  s = "abcdefghijklmnopqR"
+  assert_equal "ab12222hijklmnopqR", s.tr!("cdefg", "12")
+  assert_equal "ab12222hijklmnopqR", s
+end
+
+assert('String#tr_s') do
+  assert_equal "hero", "hello".tr_s('l', 'r')
+  assert_equal "h*o", "hello".tr_s('el', '*')
+  assert_equal "hhxo", "hello".tr_s('el', 'hx')
+end
+
+assert('String#tr_s!') do
+  s = "hello"
+  assert_equal "hero", s.tr_s!('l', 'r')
+  assert_equal "hero", s
+  assert_nil s.tr_s!('l', 'r')
+end
+
+assert('String#squeeze') do
+  assert_equal "yelow mon", "yellow moon".squeeze
+  assert_equal " now is the", "  now   is  the".squeeze(" ")
+  assert_equal "puters shot balls", "putters shoot balls".squeeze("m-z")
+end
+
+assert('String#squeeze!') do
+  s = "  now   is  the"
+  assert_equal " now is the", s.squeeze!(" ")
+  assert_equal " now is the", s
+end
+
+assert('String#delete') do
+  assert_equal "he", "hello".delete("lo")
+  assert_equal "hll", "hello".delete("aeiou")
+  assert_equal "ll", "hello".delete("^l")
+  assert_equal "ho", "hello".delete("ej-m")
+end
+
+assert('String#delete!') do
+  s = "hello"
+  assert_equal "he", s.delete!("lo")
+  assert_equal "he", s
+  assert_nil s.delete!("lz")
 end
 
 assert('String#start_with?') do
@@ -614,19 +708,19 @@ assert('String#chars(UTF-8)') do
 end if UTF8STRING
 
 assert('String#each_char') do
-  s = ""
+  chars = []
   "hello!".each_char do |x|
-    s += x
+    chars << x
   end
-  assert_equal "hello!", s
+  assert_equal ["h", "e", "l", "l", "o", "!"], chars
 end
 
 assert('String#each_char(UTF-8)') do
-  s = ""
+  chars = []
   "こんにちは世界!".each_char do |x|
-    s += x
+    chars << x
   end
-  assert_equal "こんにちは世界!", s
+  assert_equal ["こ", "ん", "に", "ち", "は", "世", "界", "!"], chars
 end if UTF8STRING
 
 assert('String#codepoints') do

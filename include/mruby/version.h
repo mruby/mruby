@@ -27,7 +27,7 @@ MRB_BEGIN_DECL
 /*
  * The version of Ruby used by mruby.
  */
-#define MRUBY_RUBY_VERSION "1.9"
+#define MRUBY_RUBY_VERSION "2.0"
 
 /*
  * Ruby engine.
@@ -37,12 +37,12 @@ MRB_BEGIN_DECL
 /*
  * Major release version number.
  */
-#define MRUBY_RELEASE_MAJOR 1
+#define MRUBY_RELEASE_MAJOR 2
 
 /*
  * Minor release version number.
  */
-#define MRUBY_RELEASE_MINOR 4
+#define MRUBY_RELEASE_MINOR 0
 
 /*
  * Tiny release version number.
@@ -62,7 +62,7 @@ MRB_BEGIN_DECL
 /*
  * Release year.
  */
-#define MRUBY_RELEASE_YEAR 2018
+#define MRUBY_RELEASE_YEAR 2019
 
 /*
  * Release month.
@@ -72,12 +72,26 @@ MRB_BEGIN_DECL
 /*
  * Release day.
  */
-#define MRUBY_RELEASE_DAY 27
+#define MRUBY_RELEASE_DAY 4
 
 /*
  * Release date as a string.
  */
-#define MRUBY_RELEASE_DATE MRB_STRINGIZE(MRUBY_RELEASE_YEAR) "-" MRB_STRINGIZE(MRUBY_RELEASE_MONTH) "-" MRB_STRINGIZE(MRUBY_RELEASE_DAY)
+#define MRUBY_RELEASE_DATE    \
+  MRUBY_RELEASE_YEAR_STR "-"  \
+  MRUBY_RELEASE_MONTH_STR "-" \
+  MRUBY_RELEASE_DAY_STR
+#define MRUBY_RELEASE_YEAR_STR MRB_STRINGIZE(MRUBY_RELEASE_YEAR)
+#if MRUBY_RELEASE_MONTH < 10
+#define MRUBY_RELEASE_MONTH_STR "0" MRB_STRINGIZE(MRUBY_RELEASE_MONTH)
+#else
+#define MRUBY_RELEASE_MONTH_STR MRB_STRINGIZE(MRUBY_RELEASE_MONTH)
+#endif
+#if MRUBY_RELEASE_DAY < 10
+#define MRUBY_RELEASE_DAY_STR "0" MRB_STRINGIZE(MRUBY_RELEASE_DAY)
+#else
+#define MRUBY_RELEASE_DAY_STR MRB_STRINGIZE(MRUBY_RELEASE_DAY)
+#endif
 
 /*
  * The year mruby was first created.

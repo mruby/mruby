@@ -39,15 +39,15 @@ struct RString {
 #define RSTR_UNSET_EMBED_FLAG(s) ((s)->flags &= ~(MRB_STR_EMBED|MRB_STR_EMBED_LEN_MASK))
 #define RSTR_SET_EMBED_LEN(s, n) do {\
   size_t tmp_n = (n);\
-  s->flags &= ~MRB_STR_EMBED_LEN_MASK;\
-  s->flags |= (tmp_n) << MRB_STR_EMBED_LEN_SHIFT;\
+  (s)->flags &= ~MRB_STR_EMBED_LEN_MASK;\
+  (s)->flags |= (tmp_n) << MRB_STR_EMBED_LEN_SHIFT;\
 } while (0)
 #define RSTR_SET_LEN(s, n) do {\
   if (RSTR_EMBED_P(s)) {\
     RSTR_SET_EMBED_LEN((s),(n));\
   }\
   else {\
-    s->as.heap.len = (mrb_int)(n);\
+    (s)->as.heap.len = (mrb_int)(n);\
   }\
 } while (0)
 #define RSTR_EMBED_LEN(s)\
@@ -68,6 +68,20 @@ struct RString {
 #define RSTR_SET_NOFREE_FLAG(s) ((s)->flags |= MRB_STR_NOFREE)
 #define RSTR_UNSET_NOFREE_FLAG(s) ((s)->flags &= ~MRB_STR_NOFREE)
 
+#ifdef MRB_UTF8_STRING
+# define RSTR_ASCII_P(s) ((s)->flags & MRB_STR_ASCII)
+# define RSTR_SET_ASCII_FLAG(s) ((s)->flags |= MRB_STR_ASCII)
+# define RSTR_UNSET_ASCII_FLAG(s) ((s)->flags &= ~MRB_STR_ASCII)
+# define RSTR_WRITE_ASCII_FLAG(s, v) (RSTR_UNSET_ASCII_FLAG(s), (s)->flags |= v)
+# define RSTR_COPY_ASCII_FLAG(dst, src) RSTR_WRITE_ASCII_FLAG(dst, RSTR_ASCII_P(src))
+#else
+# define RSTR_ASCII_P(s) (void)0
+# define RSTR_SET_ASCII_FLAG(s) (void)0
+# define RSTR_UNSET_ASCII_FLAG(s) (void)0
+# define RSTR_WRITE_ASCII_FLAG(s, v) (void)0
+# define RSTR_COPY_ASCII_FLAG(dst, src) (void)0
+#endif
+
 #define RSTR_POOL_P(s) ((s)->flags & MRB_STR_POOL)
 #define RSTR_SET_POOL_FLAG(s) ((s)->flags |= MRB_STR_POOL)
 
@@ -87,13 +101,14 @@ MRB_API mrb_int mrb_str_strlen(mrb_state*, struct RString*);
 #define MRB_STR_FSHARED   2
 #define MRB_STR_NOFREE    4
 #define MRB_STR_POOL      8
-#define MRB_STR_NO_UTF   16
+#define MRB_STR_ASCII    16
 #define MRB_STR_EMBED    32
 #define MRB_STR_EMBED_LEN_MASK 0x7c0
 #define MRB_STR_EMBED_LEN_SHIFT 6
 
 void mrb_gc_free_str(mrb_state*, struct RString*);
-MRB_API void mrb_str_modify(mrb_state*, struct RString*);
+
+MRB_API void mrb_str_modify_keep_ascii(mrb_state *mrb, struct RString *s);
 
 /*
  * Finds the index of a substring in a string
@@ -102,7 +117,7 @@ MRB_API mrb_int mrb_str_index(mrb_state*, mrb_value, const char*, mrb_int, mrb_i
 #define mrb_str_index_lit(mrb, str, lit, off) mrb_str_index(mrb, str, lit, mrb_strlen_lit(lit), off);
 
 /*
- * Appends self to other. Returns self as a concatnated string.
+ * Appends self to other. Returns self as a concatenated string.
  *
  *
  *  Example:
@@ -126,10 +141,10 @@ MRB_API mrb_int mrb_str_index(mrb_state*, mrb_value, const char*, mrb_int, mrb_i
  *       str1 = mrb_str_new_lit(mrb, "abc");
  *       str2 = mrb_str_new_lit(mrb, "def");
  *
- *       // Concatnates str2 to str1.
+ *       // Concatenates str2 to str1.
  *       mrb_str_concat(mrb, str1, str2);
  *
- *      // Prints new Concatnated Ruby string.
+ *      // Prints new Concatenated Ruby string.
  *      mrb_p(mrb, str1);
  *
  *      mrb_close(mrb);
@@ -178,10 +193,10 @@ MRB_API void mrb_str_concat(mrb_state*, mrb_value, mrb_value);
  *       mrb_p(mrb, a);
  *       mrb_p(mrb, b);
  *
- *       // Concatnates both Ruby strings.
+ *       // Concatenates both Ruby strings.
  *       c = mrb_str_plus(mrb, a, b);
  *
- *      // Prints new Concatnated Ruby string.
+ *      // Prints new Concatenated Ruby string.
  *      mrb_p(mrb, c);
  *
  *      mrb_close(mrb);
@@ -193,7 +208,7 @@ MRB_API void mrb_str_concat(mrb_state*, mrb_value, mrb_value);
  *
  *     => "abc"  # First string
  *     => "def"  # Second string
- *     => "abcdef" # First & Second concatnated.
+ *     => "abcdef" # First & Second concatenated.
  *
  * @param [mrb_state] mrb The current mruby state.
  * @param [mrb_value] a First string to concatenate.
@@ -311,9 +326,12 @@ MRB_API mrb_value mrb_str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb
  * @param [mrb_value] str Ruby string.
  * @return [mrb_value] A Ruby string.
  */
+MRB_API mrb_value mrb_ensure_string_type(mrb_state *mrb, mrb_value str);
+MRB_API mrb_value mrb_check_string_type(mrb_state *mrb, mrb_value str);
+/* obsolete: use mrb_ensure_string_type() instead */
 MRB_API mrb_value mrb_string_type(mrb_state *mrb, mrb_value str);
 
-MRB_API mrb_value mrb_check_string_type(mrb_state *mrb, mrb_value str);
+
 MRB_API mrb_value mrb_str_new_capa(mrb_state *mrb, size_t capa);
 MRB_API mrb_value mrb_str_buf_new(mrb_state *mrb, size_t capa);
 
@@ -349,10 +367,13 @@ MRB_API mrb_value mrb_str_dup(mrb_state *mrb, mrb_value str);
 MRB_API mrb_value mrb_str_intern(mrb_state *mrb, mrb_value self);
 
 MRB_API mrb_value mrb_str_to_inum(mrb_state *mrb, mrb_value str, mrb_int base, mrb_bool badcheck);
+MRB_API mrb_value mrb_cstr_to_inum(mrb_state *mrb, const char *s, mrb_int base, mrb_bool badcheck);
 MRB_API double mrb_str_to_dbl(mrb_state *mrb, mrb_value str, mrb_bool badcheck);
+MRB_API double mrb_cstr_to_dbl(mrb_state *mrb, const char *s, mrb_bool badcheck);
 
 /*
  * Returns a converted string type.
+ * For type checking, non converting `mrb_to_str` is recommended.
  */
 MRB_API mrb_value mrb_str_to_str(mrb_state *mrb, mrb_value str);
 
@@ -427,13 +448,24 @@ mrb_value mrb_str_dump(mrb_state *mrb, mrb_value str);
  */
 mrb_value mrb_str_inspect(mrb_state *mrb, mrb_value str);
 
-void mrb_noregexp(mrb_state *mrb, mrb_value self);
-void mrb_regexp_check(mrb_state *mrb, mrb_value obj);
-
 /* For backward compatibility */
 #define mrb_str_cat2(mrb, str, ptr) mrb_str_cat_cstr(mrb, str, ptr)
 #define mrb_str_buf_cat(mrb, str, ptr, len) mrb_str_cat(mrb, str, ptr, len)
 #define mrb_str_buf_append(mrb, str, str2) mrb_str_cat_str(mrb, str, str2)
+
+mrb_bool mrb_str_beg_len(mrb_int str_len, mrb_int *begp, mrb_int *lenp);
+mrb_value mrb_str_byte_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len);
+
+MRB_INLINE void
+mrb_str_modify(mrb_state *mrb, struct RString *s)
+{
+  mrb_str_modify_keep_ascii(mrb, s);
+  RSTR_UNSET_ASCII_FLAG(s);
+}
+
+#ifdef MRB_UTF8_STRING
+mrb_int mrb_utf8_len(const char *str, mrb_int byte_len);
+#endif
 
 MRB_END_DECL
 

@@ -73,9 +73,6 @@ MRB_API double mrb_float_read(const char*, char**);
 #endif
 
 #if defined _MSC_VER && _MSC_VER < 1900
-# ifndef __cplusplus
-#  define inline __inline
-# endif
 # include <stdarg.h>
 MRB_API int mrb_msvc_vsnprintf(char *s, size_t n, const char *format, va_list arg);
 MRB_API int mrb_msvc_snprintf(char *s, size_t n, const char *format, ...);
@@ -157,8 +154,18 @@ typedef void mrb_value;
 #ifndef mrb_nil_p
 #define mrb_nil_p(o)  (mrb_type(o) == MRB_TT_FALSE && !mrb_fixnum(o))
 #endif
+#ifndef mrb_false_p
+#define mrb_false_p(o) (mrb_type(o) == MRB_TT_FALSE && !!mrb_fixnum(o))
+#endif
+#ifndef mrb_true_p
+#define mrb_true_p(o)  (mrb_type(o) == MRB_TT_TRUE)
+#endif
 #ifndef mrb_bool
 #define mrb_bool(o)   (mrb_type(o) != MRB_TT_FALSE)
+#endif
+#if !defined(MRB_SYMBOL_BITSIZE)
+#define MRB_SYMBOL_BITSIZE (sizeof(mrb_sym) * CHAR_BIT)
+#define MRB_SYMBOL_MAX      UINT32_MAX
 #endif
 #ifndef MRB_WITHOUT_FLOAT
 #define mrb_float_p(o) (mrb_type(o) == MRB_TT_FLOAT)
@@ -170,7 +177,6 @@ typedef void mrb_value;
 #define mrb_cptr_p(o) (mrb_type(o) == MRB_TT_CPTR)
 #define mrb_exception_p(o) (mrb_type(o) == MRB_TT_EXCEPTION)
 #define mrb_test(o)   mrb_bool(o)
-MRB_API mrb_bool mrb_regexp_p(struct mrb_state*, mrb_value);
 
 /*
  * Returns a float in Ruby.
@@ -185,7 +191,7 @@ MRB_INLINE mrb_value mrb_float_value(struct mrb_state *mrb, mrb_float f)
 }
 #endif
 
-static inline mrb_value
+MRB_INLINE mrb_value
 mrb_cptr_value(struct mrb_state *mrb, void *p)
 {
   mrb_value v;
@@ -204,7 +210,7 @@ MRB_INLINE mrb_value mrb_fixnum_value(mrb_int i)
   return v;
 }
 
-static inline mrb_value
+MRB_INLINE mrb_value
 mrb_symbol_value(mrb_sym i)
 {
   mrb_value v;
@@ -212,7 +218,7 @@ mrb_symbol_value(mrb_sym i)
   return v;
 }
 
-static inline mrb_value
+MRB_INLINE mrb_value
 mrb_obj_value(void *p)
 {
   mrb_value v;
@@ -256,7 +262,7 @@ MRB_INLINE mrb_value mrb_true_value(void)
   return v;
 }
 
-static inline mrb_value
+MRB_INLINE mrb_value
 mrb_bool_value(mrb_bool boolean)
 {
   mrb_value v;
@@ -264,7 +270,7 @@ mrb_bool_value(mrb_bool boolean)
   return v;
 }
 
-static inline mrb_value
+MRB_INLINE mrb_value
 mrb_undef_value(void)
 {
   mrb_value v;
@@ -272,7 +278,10 @@ mrb_undef_value(void)
   return v;
 }
 
-#ifdef MRB_USE_ETEXT_EDATA
+#if defined(MRB_USE_CUSTOM_RO_DATA_P)
+/* If you define `MRB_USE_CUSTOM_RO_DATA_P`, you must implement `mrb_ro_data_p()`. */
+mrb_bool mrb_ro_data_p(const char *p);
+#elif defined(MRB_USE_ETEXT_EDATA)
 #if (defined(__APPLE__) && defined(__MACH__))
 #include <mach-o/getsect.h>
 static inline mrb_bool

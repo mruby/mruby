@@ -1,6 +1,6 @@
 assert('ObjectSpace.count_objects') do
   h = {}
-  f = Fiber.new {} if Object.const_defined? :Fiber
+  f = Fiber.new {} if Object.const_defined?(:Fiber)
   ObjectSpace.count_objects(h)
   assert_kind_of(Hash, h)
   assert_true(h.keys.all? {|x| x.is_a?(Symbol) || x.is_a?(Integer) })
@@ -56,5 +56,5 @@ assert('ObjectSpace.each_object') do
 end
 
 assert 'Check class pointer of ObjectSpace.each_object.' do
-  ObjectSpace.each_object { |obj| !obj }
+  assert_nothing_raised { ObjectSpace.each_object { |obj| !obj } }
 end

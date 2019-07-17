@@ -13,8 +13,8 @@ assert('Symbol', '15.2.11') do
 end
 
 assert('Symbol#===', '15.2.11.3.1') do
-  assert_true :abc == :abc
-  assert_false :abc == :cba
+  assert_true :abc === :abc
+  assert_false :abc === :cba
 end
 
 assert('Symbol#id2name', '15.2.11.3.2') do
@@ -27,4 +27,8 @@ end
 
 assert('Symbol#to_sym', '15.2.11.3.4') do
   assert_equal :abc, :abc.to_sym
+end
+
+assert('Symbol#to_proc') do
+  assert_equal 5, :abs.to_proc[-5]
 end

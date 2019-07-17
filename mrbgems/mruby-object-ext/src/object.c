@@ -46,6 +46,22 @@ nil_to_i(mrb_state *mrb, mrb_value obj)
 
 /*
  *  call-seq:
+ *     obj.itself -> an_object
+ *
+ *  Returns <i>obj</i>.
+ *
+ *      string = 'my string' #=> "my string"
+ *      string.itself.object_id == string.object_id #=> true
+ *
+ */
+static mrb_value
+mrb_f_itself(mrb_state *mrb, mrb_value self)
+{
+  return self;
+}
+
+/*
+ *  call-seq:
  *     obj.instance_exec(arg...) {|var...| block }                       -> obj
  *
  *  Executes the given block within the context of the receiver
@@ -103,7 +119,9 @@ mrb_mruby_object_ext_gem_init(mrb_state* mrb)
 #endif
   mrb_define_method(mrb, n, "to_i", nil_to_i,       MRB_ARGS_NONE());
 
-  mrb_define_method(mrb, mrb->kernel_module, "instance_exec", mrb_obj_instance_exec, MRB_ARGS_ANY() | MRB_ARGS_BLOCK());
+  mrb_define_method(mrb, mrb->kernel_module, "itself", mrb_f_itself, MRB_ARGS_NONE());
+
+  mrb_define_method(mrb, mrb_class_get(mrb, "BasicObject"), "instance_exec", mrb_obj_instance_exec, MRB_ARGS_ANY() | MRB_ARGS_BLOCK());
 }
 
 void

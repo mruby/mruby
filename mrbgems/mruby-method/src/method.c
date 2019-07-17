@@ -212,19 +212,8 @@ static mrb_value
 method_arity(mrb_state *mrb, mrb_value self)
 {
   mrb_value proc = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "proc"));
-  struct RProc *rproc;
-  struct RClass *orig;
-  mrb_value ret;
-
-  if (mrb_nil_p(proc))
-    return mrb_fixnum_value(-1);
-
-  rproc = mrb_proc_ptr(proc);
-  orig = rproc->c;
-  rproc->c = mrb->proc_class;
-  ret = mrb_funcall(mrb, proc, "arity", 0);
-  rproc->c = orig;
-  return ret;
+  mrb_int arity = mrb_nil_p(proc) ? -1 : mrb_proc_arity(mrb_proc_ptr(proc));
+  return mrb_fixnum_value(arity);
 }
 
 static mrb_value
@@ -281,16 +270,16 @@ method_to_s(mrb_state *mrb, mrb_value self)
   mrb_str_cat_lit(mrb, str, ": ");
   rklass = mrb_class_ptr(klass);
   if (mrb_class_ptr(owner) == rklass) {
-    mrb_str_cat_str(mrb, str, mrb_funcall(mrb, owner, "to_s", 0));
+    mrb_str_cat_str(mrb, str, mrb_str_to_str(mrb, owner));
     mrb_str_cat_lit(mrb, str, "#");
-    mrb_str_cat_str(mrb, str, mrb_funcall(mrb, name, "to_s", 0));
+    mrb_str_cat_str(mrb, str, mrb_str_to_str(mrb, name));
   }
   else {
     mrb_str_cat_cstr(mrb, str, mrb_class_name(mrb, rklass));
     mrb_str_cat_lit(mrb, str, "(");
-    mrb_str_cat_str(mrb, str, mrb_funcall(mrb, owner, "to_s", 0));
+    mrb_str_cat_str(mrb, str, mrb_str_to_str(mrb, owner));
     mrb_str_cat_lit(mrb, str, ")#");
-    mrb_str_cat_str(mrb, str, mrb_funcall(mrb, name, "to_s", 0));
+    mrb_str_cat_str(mrb, str, mrb_str_to_str(mrb, name));
   }
   mrb_str_cat_lit(mrb, str, ">");
   return str;
@@ -327,7 +316,7 @@ name_error:
   s = mrb_class_name(mrb, c);
   mrb_raisef(
     mrb, E_NAME_ERROR,
-    "undefined method `%S' for class `%S'",
+    "undefined method '%S' for class '%S'",
     mrb_sym2str(mrb, name),
     mrb_str_new_static(mrb, s, strlen(s))
   );
@@ -387,7 +376,7 @@ mrb_mruby_method_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, unbound_method, "bind", unbound_method_bind, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, unbound_method, "super_method", method_super_method, MRB_ARGS_NONE());
   mrb_define_method(mrb, unbound_method, "==", method_eql, MRB_ARGS_REQ(1));
-  mrb_alias_method(mrb, unbound_method, mrb_intern_lit(mrb, "eql?"), mrb_intern_lit(mrb, "=="));
+  mrb_define_alias(mrb,  unbound_method, "eql?", "==");
   mrb_define_method(mrb, unbound_method, "to_s", method_to_s, MRB_ARGS_NONE());
   mrb_define_method(mrb, unbound_method, "inspect", method_to_s, MRB_ARGS_NONE());
   mrb_define_method(mrb, unbound_method, "arity", method_arity, MRB_ARGS_NONE());
@@ -396,11 +385,11 @@ mrb_mruby_method_gem_init(mrb_state* mrb)
 
   mrb_undef_class_method(mrb, method, "new");
   mrb_define_method(mrb, method, "==", method_eql, MRB_ARGS_REQ(1));
-  mrb_alias_method(mrb, method, mrb_intern_lit(mrb, "eql?"), mrb_intern_lit(mrb, "=="));
+  mrb_define_alias(mrb,  method, "eql?", "==");
   mrb_define_method(mrb, method, "to_s", method_to_s, MRB_ARGS_NONE());
   mrb_define_method(mrb, method, "inspect", method_to_s, MRB_ARGS_NONE());
   mrb_define_method(mrb, method, "call", method_call, MRB_ARGS_ANY());
-  mrb_alias_method(mrb, method, mrb_intern_lit(mrb, "[]"), mrb_intern_lit(mrb, "call"));
+  mrb_define_alias(mrb,  method, "[]", "call");
   mrb_define_method(mrb, method, "unbind", method_unbind, MRB_ARGS_NONE());
   mrb_define_method(mrb, method, "super_method", method_super_method, MRB_ARGS_NONE());
   mrb_define_method(mrb, method, "arity", method_arity, MRB_ARGS_NONE());

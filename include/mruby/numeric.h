@@ -23,7 +23,7 @@ MRB_BEGIN_DECL
 #define NEGFIXABLE(f) TYPED_NEGFIXABLE(f,mrb_int)
 #define FIXABLE(f) TYPED_FIXABLE(f,mrb_int)
 #ifndef MRB_WITHOUT_FLOAT
-#define FIXABLE_FLOAT(f) TYPED_FIXABLE(f,double)
+#define FIXABLE_FLOAT(f) TYPED_FIXABLE(f,mrb_float)
 #endif
 
 #ifndef MRB_WITHOUT_FLOAT
@@ -34,12 +34,12 @@ MRB_API mrb_value mrb_fixnum_to_str(mrb_state *mrb, mrb_value x, mrb_int base);
 #ifndef MRB_WITHOUT_FLOAT
 MRB_API mrb_value mrb_float_to_str(mrb_state *mrb, mrb_value x, const char *fmt);
 MRB_API mrb_float mrb_to_flo(mrb_state *mrb, mrb_value x);
+MRB_API mrb_value mrb_int_value(mrb_state *mrb, mrb_float f);
 #endif
 
-mrb_value mrb_fixnum_plus(mrb_state *mrb, mrb_value x, mrb_value y);
-mrb_value mrb_fixnum_minus(mrb_state *mrb, mrb_value x, mrb_value y);
-mrb_value mrb_fixnum_mul(mrb_state *mrb, mrb_value x, mrb_value y);
-mrb_value mrb_num_div(mrb_state *mrb, mrb_value x, mrb_value y);
+MRB_API mrb_value mrb_num_plus(mrb_state *mrb, mrb_value x, mrb_value y);
+MRB_API mrb_value mrb_num_minus(mrb_state *mrb, mrb_value x, mrb_value y);
+MRB_API mrb_value mrb_num_mul(mrb_state *mrb, mrb_value x, mrb_value y);
 
 #ifndef __has_builtin
   #define __has_builtin(x) 0

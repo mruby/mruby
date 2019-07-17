@@ -1,25 +1,6 @@
 class String
 
   ##
-  #  call-seq:
-  #     String.try_convert(obj) -> string or nil
-  #
-  # Try to convert <i>obj</i> into a String, using to_str method.
-  # Returns converted string or nil if <i>obj</i> cannot be converted
-  # for any reason.
-  #
-  #     String.try_convert("str")     #=> "str"
-  #     String.try_convert(/re/)      #=> nil
-  #
-  def self.try_convert(obj)
-    if obj.respond_to?(:to_str)
-      obj.to_str
-    else
-      nil
-    end
-  end
-
-  ##
   # call-seq:
   #    string.clear    ->  string
   #
@@ -112,7 +93,7 @@ class String
   #    "hello".rstrip!      #=> nil
   #
   def rstrip!
-    raise RuntimeError, "can't modify frozen String" if frozen?
+    raise FrozenError, "can't modify frozen String" if frozen?
     s = self.rstrip
     (s == self) ? nil : self.replace(s)
   end
@@ -142,7 +123,7 @@ class String
   #    "abcdef".casecmp("ABCDEF")    #=> 0
   #
   def casecmp(str)
-    self.downcase <=> str.to_str.downcase
+    self.downcase <=> str.__to_str.downcase
   rescue NoMethodError
     nil
   end
@@ -329,11 +310,15 @@ class String
     end
   end
 
+  ##
+  # Call the given block for each character of
+  # +self+.
   def each_char(&block)
     return to_enum :each_char unless block
-
-    split('').each do |i|
-      block.call(i)
+    pos = 0
+    while pos < self.size
+      block.call(self[pos])
+      pos += 1
     end
     self
   end

@@ -26,6 +26,7 @@ mrb_open_core(mrb_allocf f, void *ud)
   static const struct mrb_context mrb_context_zero = { 0 };
   mrb_state *mrb;
 
+  if (f == NULL) f = mrb_default_allocf;
   mrb = (mrb_state *)(f)(NULL, NULL, sizeof(mrb_state), ud);
   if (mrb == NULL) return NULL;
 
@@ -53,38 +54,6 @@ mrb_default_allocf(mrb_state *mrb, void *p, size_t size, void *ud)
   }
   else {
     return realloc(p, size);
-  }
-}
-
-struct alloca_header {
-  struct alloca_header *next;
-  char buf[1];
-};
-
-MRB_API void*
-mrb_alloca(mrb_state *mrb, size_t size)
-{
-  struct alloca_header *p;
-
-  p = (struct alloca_header*) mrb_malloc(mrb, sizeof(struct alloca_header)+size);
-  p->next = mrb->mems;
-  mrb->mems = p;
-  return (void*)p->buf;
-}
-
-static void
-mrb_alloca_free(mrb_state *mrb)
-{
-  struct alloca_header *p;
-  struct alloca_header *tmp;
-
-  if (mrb == NULL) return;
-  p = mrb->mems;
-
-  while (p) {
-    tmp = p;
-    p = p->next;
-    mrb_free(mrb, tmp);
   }
 }
 
@@ -168,10 +137,6 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
   }
   mrb_free(mrb, irep->reps);
   mrb_free(mrb, irep->lv);
-  if (irep->own_filename) {
-    mrb_free(mrb, (void *)irep->filename);
-  }
-  mrb_free(mrb, irep->lines);
   mrb_debug_info_free(mrb, irep->debug_info);
   mrb_free(mrb, irep);
 }
@@ -259,7 +224,6 @@ mrb_close(mrb_state *mrb)
   mrb_gc_free_gv(mrb);
   mrb_free_context(mrb, mrb->root_c);
   mrb_free_symtbl(mrb);
-  mrb_alloca_free(mrb);
   mrb_gc_destroy(mrb, &mrb->gc);
   mrb_free(mrb, mrb);
 }
@@ -273,7 +237,6 @@ mrb_add_irep(mrb_state *mrb)
   irep = (mrb_irep *)mrb_malloc(mrb, sizeof(mrb_irep));
   *irep = mrb_irep_zero;
   irep->refcnt = 1;
-  irep->own_filename = FALSE;
 
   return irep;
 }
