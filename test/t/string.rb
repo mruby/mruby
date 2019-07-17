@@ -45,44 +45,27 @@ assert('String#*', '15.2.10.5.5') do
   assert_raise(TypeError) { 'a' * '1' }
   assert_raise(TypeError) { 'a' * nil }
 end
+
 assert('String#[]', '15.2.10.5.6') do
   # length of args is 1
-  a = 'abc'[0]
-  b = 'abc'[-1]
-  c = 'abc'[10]
-  d = 'abc'[-10]
-  e = 'abc'[1.1]
+  assert_equal 'a', 'abc'[0]
+  assert_equal 'c', 'abc'[-1]
+  assert_nil 'abc'[10]
+  assert_nil 'abc'[-10]
+  assert_equal 'b', 'abc'[1.1] if Object.const_defined?(:Float)
 
   # length of args is 2
-  a1 = 'abc'[0, -1]
-  b1 = 'abc'[10, 0]
-  c1 = 'abc'[-10, 0]
-  d1 = 'abc'[0, 0]
-  e1 = 'abc'[1, 2]
-
-  # args is RegExp
-  # It will be tested in mrbgems.
+  assert_nil 'abc'[0, -1]
+  assert_nil 'abc'[10, 0]
+  assert_nil 'abc'[-10, 0]
+  assert_equal '', 'abc'[0, 0]
+  assert_equal 'bc', 'abc'[1, 2]
 
   # args is String
-  a3 = 'abc'['bc']
-  b3 = 'abc'['XX']
+  assert_equal 'bc', 'abc'['bc']
+  assert_nil 'abc'['XX']
 
-  assert_equal 'a', 'a'
-  # assert_equal 'c', b
-  # assert_nil c
-  # assert_nil d
-  # assert_equal 'b', e
-  # assert_nil a1
-  # assert_nil b1
-  # assert_nil c1
-  # assert_equal '', d1
-  # assert_equal 'bc', e1
-  # assert_equal 'bc', a3
-  # assert_nil b3
-
-  # assert_raise(TypeError) do
-  #   a[nil]
-  # end
+  assert_raise(TypeError) { 'abc'[nil] }
 end
 
 assert('String#[](UTF-8)', '15.2.10.5.6') do
