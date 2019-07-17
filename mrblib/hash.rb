@@ -196,7 +196,7 @@ class Hash
     i=0
     while i<size
       k=keys[i]
-      ary<<(k._inspect + "=>" + self[k]._inspect)
+      ary<<(k._inspect(recur_list) + "=>" + self[k]._inspect(recur_list))
       i+=1
     end
     "{"+ary.join(", ")+"}"
