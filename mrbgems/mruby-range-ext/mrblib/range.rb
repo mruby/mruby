@@ -53,7 +53,6 @@ class Range
 
     # fast path for numerics
     if val.kind_of?(Numeric) && last.kind_of?(Numeric)
-      raise TypeError if exclude_end? && !last.kind_of?(Fixnum)
       return nil if val > last
       return nil if val == last && exclude_end?
 
