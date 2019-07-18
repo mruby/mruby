@@ -37,13 +37,15 @@ end
 assert('String#*', '15.2.10.5.5') do
   assert_equal 'aaaaa', 'a' * 5
   assert_equal '', 'a' * 0
-  assert_equal 'aa', 'a' * 2.1
   assert_raise(ArgumentError) { 'a' * -1 }
+  assert_raise(TypeError) { 'a' * '1' }
+  assert_raise(TypeError) { 'a' * nil }
+
+  skip unless Object.const_defined?(:Float)
+  assert_equal 'aa', 'a' * 2.1
   assert_raise(RangeError) { '' * 1e30 }
   assert_raise(RangeError) { '' * Float::INFINITY }
   assert_raise(RangeError) { '' * Float::NAN }
-  assert_raise(TypeError) { 'a' * '1' }
-  assert_raise(TypeError) { 'a' * nil }
 end
 
 assert('String#[]', '15.2.10.5.6') do
