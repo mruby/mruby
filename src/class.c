@@ -1363,6 +1363,80 @@ mrb_method_search(mrb_state *mrb, struct RClass* c, mrb_sym mid)
   return m;
 }
 
+#define ONSTACK_ALLOC_MAX 32
+
+static mrb_sym
+prepare_name_common(mrb_state *mrb, mrb_sym sym, const char *prefix, const char *suffix)
+{
+  char onstack[ONSTACK_ALLOC_MAX];
+  mrb_int sym_len;
+  const char *sym_str = mrb_sym2name_len(mrb, sym, &sym_len);
+  size_t prefix_len = prefix ? strlen(prefix) : 0;
+  size_t suffix_len = suffix ? strlen(suffix) : 0;
+  size_t name_len = sym_len + prefix_len + suffix_len;
+  char *buf = name_len > sizeof(onstack) ? (char *)mrb_alloca(mrb, name_len) : onstack;
+  char *p = buf;
+
+  if (prefix_len > 0) {
+    memcpy(p, prefix, prefix_len);
+    p += prefix_len;
+  }
+
+  memcpy(p, sym_str, sym_len);
+  p += sym_len;
+
+  if (suffix_len > 0) {
+    memcpy(p, suffix, suffix_len);
+    p += suffix_len;
+  }
+
+  return mrb_intern(mrb, buf, name_len);
+}
+
+static mrb_value
+prepare_ivar_name(mrb_state *mrb, mrb_sym sym)
+{
+  sym = prepare_name_common(mrb, sym, "@", NULL);
+  mrb_iv_name_sym_check(mrb, sym);
+  return mrb_symbol_value(sym);
+}
+
+static mrb_sym
+prepare_writer_name(mrb_state *mrb, mrb_sym sym)
+{
+  return prepare_name_common(mrb, sym, NULL, "=");
+}
+
+static mrb_value
+mod_attr_define(mrb_state *mrb, mrb_value mod, mrb_value (*accessor)(mrb_state *, mrb_value), mrb_sym (*access_name)(mrb_state *, mrb_sym))
+{
+  struct RClass *c = mrb_class_ptr(mod);
+  mrb_value *argv;
+  mrb_int argc, i;
+  int ai;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  ai = mrb_gc_arena_save(mrb);
+  for (i=0; i<argc; i++) {
+    mrb_value name;
+    mrb_sym method;
+    struct RProc *p;
+    mrb_method_t m;
+
+    method = to_sym(mrb, argv[i]);
+    name = prepare_ivar_name(mrb, method);
+    if (access_name) {
+      method = access_name(mrb, method);
+    }
+
+    p = mrb_proc_new_cfunc_with_env(mrb, accessor, 1, &name);
+    MRB_METHOD_FROM_PROC(m, p);
+    mrb_define_method_raw(mrb, c, method, m);
+    mrb_gc_arena_restore(mrb, ai);
+  }
+  return mrb_nil_value();
+}
+
 static mrb_value
 attr_reader(mrb_state *mrb, mrb_value obj)
 {
@@ -1373,33 +1447,7 @@ attr_reader(mrb_state *mrb, mrb_value obj)
 static mrb_value
 mrb_mod_attr_reader(mrb_state *mrb, mrb_value mod)
 {
-  struct RClass *c = mrb_class_ptr(mod);
-  mrb_value *argv;
-  mrb_int argc, i;
-  int ai;
-
-  mrb_get_args(mrb, "*", &argv, &argc);
-  ai = mrb_gc_arena_save(mrb);
-  for (i=0; i<argc; i++) {
-    mrb_value name, str;
-    mrb_sym method, sym;
-    struct RProc *p;
-    mrb_method_t m;
-
-    method = to_sym(mrb, argv[i]);
-    name = mrb_sym2str(mrb, method);
-    str = mrb_str_new_capa(mrb, RSTRING_LEN(name)+1);
-    mrb_str_cat_lit(mrb, str, "@");
-    mrb_str_cat_str(mrb, str, name);
-    sym = mrb_intern_str(mrb, str);
-    mrb_iv_name_sym_check(mrb, sym);
-    name = mrb_symbol_value(sym);
-    p = mrb_proc_new_cfunc_with_env(mrb, attr_reader, 1, &name);
-    MRB_METHOD_FROM_PROC(m, p);
-    mrb_define_method_raw(mrb, c, method, m);
-    mrb_gc_arena_restore(mrb, ai);
-  }
-  return mrb_nil_value();
+  return mod_attr_define(mrb, mod, attr_reader, NULL);
 }
 
 static mrb_value
@@ -1416,42 +1464,7 @@ attr_writer(mrb_state *mrb, mrb_value obj)
 static mrb_value
 mrb_mod_attr_writer(mrb_state *mrb, mrb_value mod)
 {
-  struct RClass *c = mrb_class_ptr(mod);
-  mrb_value *argv;
-  mrb_int argc, i;
-  int ai;
-
-  mrb_get_args(mrb, "*", &argv, &argc);
-  ai = mrb_gc_arena_save(mrb);
-  for (i=0; i<argc; i++) {
-    mrb_value name, str, attr;
-    mrb_sym method, sym;
-    struct RProc *p;
-    mrb_method_t m;
-
-    method = to_sym(mrb, argv[i]);
-
-    /* prepare iv name (@name) */
-    name = mrb_sym2str(mrb, method);
-    str = mrb_str_new_capa(mrb, RSTRING_LEN(name)+1);
-    mrb_str_cat_lit(mrb, str, "@");
-    mrb_str_cat_str(mrb, str, name);
-    sym = mrb_intern_str(mrb, str);
-    mrb_iv_name_sym_check(mrb, sym);
-    attr = mrb_symbol_value(sym);
-
-    /* prepare method name (name=) */
-    str = mrb_str_new_capa(mrb, RSTRING_LEN(str));
-    mrb_str_cat_str(mrb, str, name);
-    mrb_str_cat_lit(mrb, str, "=");
-    method = mrb_intern_str(mrb, str);
-
-    p = mrb_proc_new_cfunc_with_env(mrb, attr_writer, 1, &attr);
-    MRB_METHOD_FROM_PROC(m, p);
-    mrb_define_method_raw(mrb, c, method, m);
-    mrb_gc_arena_restore(mrb, ai);
-  }
-  return mrb_nil_value();
+  return mod_attr_define(mrb, mod, attr_writer, prepare_writer_name);
 }
 
 static mrb_value
