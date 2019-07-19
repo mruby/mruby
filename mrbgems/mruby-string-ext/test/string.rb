@@ -298,12 +298,6 @@ assert('String#oct') do
   assert_equal (-8), "-10".oct
 end
 
-assert('String#chr') do
-  assert_equal "a", "abcde".chr
-  # test Fixnum#chr as well
-  assert_equal "a", 97.chr
-end
-
 assert('String#lines') do
   assert_equal ["Hel\n", "lo\n", "World!"], "Hel\nlo\nWorld!".lines
   assert_equal ["Hel\n", "lo\n", "World!\n"], "Hel\nlo\nWorld!\n".lines
@@ -681,8 +675,11 @@ assert('String#ord(UTF-8)') do
 end if UTF8STRING
 
 assert('String#chr') do
+  assert_equal "a", "abcde".chr
   assert_equal "h", "hello!".chr
+  assert_equal "", "".chr
 end
+
 assert('String#chr(UTF-8)') do
   assert_equal "こ", "こんにちは世界!".chr
 end if UTF8STRING
