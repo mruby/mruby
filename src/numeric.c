@@ -702,6 +702,7 @@ flo_round(mrb_state *mrb, mrb_value num)
 
   f = 1.0;
   i = ndigits >= 0 ? ndigits : -ndigits;
+  if (ndigits > DBL_DIG+2) return num;
   while  (--i >= 0)
     f = f*10.0;
 
