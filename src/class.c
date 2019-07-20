@@ -2078,6 +2078,14 @@ mrb_mod_eqq(mrb_state *mrb, mrb_value mod)
 }
 
 static mrb_value
+mrb_mod_dup(mrb_state *mrb, mrb_value self)
+{
+  mrb_value mod = mrb_obj_clone(mrb, self);
+  MRB_UNSET_FROZEN_FLAG(mrb_obj_ptr(mod));
+  return mod;
+}
+
+static mrb_value
 mrb_mod_module_function(mrb_state *mrb, mrb_value mod)
 {
   mrb_value *argv;
@@ -2207,6 +2215,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "method_defined?",         mrb_mod_method_defined,   MRB_ARGS_REQ(1)); /* 15.2.2.4.34 */
   mrb_define_method(mrb, mod, "define_method",           mod_define_method,        MRB_ARGS_ARG(1,1));
   mrb_define_method(mrb, mod, "===",                     mrb_mod_eqq,              MRB_ARGS_REQ(1)); /* 15.2.2.4.7 */
+  mrb_define_method(mrb, mod, "dup",                     mrb_mod_dup,              MRB_ARGS_NONE());
 
   mrb_undef_method(mrb, cls, "append_features");
   mrb_undef_method(mrb, cls, "extend_object");
