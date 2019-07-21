@@ -125,7 +125,7 @@ mrb_str_swapcase(mrb_state *mrb, mrb_value self)
   return str;
 }
 
-static mrb_value mrb_fixnum_chr(mrb_state *mrb, mrb_value num);
+static mrb_value mrb_int_chr(mrb_state *mrb, mrb_value num);
 
 /*
  *  call-seq:
@@ -149,7 +149,7 @@ mrb_str_concat_m(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "o", &str);
   if (mrb_fixnum_p(str))
-    str = mrb_fixnum_chr(mrb, str);
+    str = mrb_int_chr(mrb, str);
   else
     str = mrb_ensure_string_type(mrb, str);
   mrb_str_concat(mrb, self, str);
@@ -837,7 +837,7 @@ mrb_str_chr(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
-mrb_fixnum_chr(mrb_state *mrb, mrb_value num)
+mrb_int_chr(mrb_state *mrb, mrb_value num)
 {
   mrb_int cp = mrb_fixnum(num);
 #ifdef MRB_UTF8_STRING
@@ -1219,7 +1219,7 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, s, "delete_suffix",   mrb_str_del_suffix,      MRB_ARGS_REQ(1));
 
   mrb_define_method(mrb, s, "__lines",         mrb_str_lines,           MRB_ARGS_NONE());
-  mrb_define_method(mrb, mrb->fixnum_class, "chr", mrb_fixnum_chr, MRB_ARGS_NONE());
+  mrb_define_method(mrb, mrb_module_get(mrb, "Integral"), "chr", mrb_int_chr, MRB_ARGS_NONE());
 }
 
 void
