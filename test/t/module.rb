@@ -400,6 +400,29 @@ end
 
 # Not ISO specified
 
+assert('Module#dup') do
+  module TestModuleDup
+    @@cvar = :cvar
+    class << self
+      attr_accessor :cattr
+      def cmeth; :cmeth end
+    end
+    def cvar; @@cvar end
+    def imeth; :imeth end
+    self.cattr = :cattr
+  end
+
+  m = TestModuleDup.dup
+  o = Object.include(m).new
+  assert_equal(:cattr, m.cattr)
+  assert_equal(:cmeth, m.cmeth)
+  assert_equal(:cvar, o.cvar)
+  assert_equal(:imeth, o.imeth)
+  assert_match("#<Module:0x*>", m.to_s)
+  assert_not_predicate(m, :frozen?)
+  assert_not_predicate(TestModuleDup.freeze.dup, :frozen?)
+end
+
 assert('Module#define_method') do
   c = Class.new {
     define_method(:m1) { :ok }

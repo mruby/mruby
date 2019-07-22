@@ -805,5 +805,4 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "__to_str",                   mrb_to_str,                      MRB_ARGS_NONE()); /* internal */
 
   mrb_include_module(mrb, mrb->object_class, mrb->kernel_module);
-  mrb_define_alias(mrb, mrb->module_class, "dup", "clone"); /* XXX */
 }
