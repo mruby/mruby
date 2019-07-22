@@ -2789,6 +2789,9 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
   const char *p, *pend;
   char buf[CHAR_ESC_LEN + 1];
   mrb_value result = mrb_str_new_lit(mrb, "\"");
+#ifdef MRB_UTF8_STRING
+  uint32_t ascii_flag = MRB_STR_ASCII;
+#endif
 
   p = RSTRING_PTR(str); pend = RSTRING_END(str);
   for (;p < pend; p++) {
@@ -2805,6 +2808,7 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
       }
       mrb_str_cat(mrb, result, buf, clen);
       p += clen-1;
+      ascii_flag = 0;
       continue;
     }
 #endif
@@ -2846,7 +2850,10 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
     }
   }
   mrb_str_cat_lit(mrb, result, "\"");
-  RSTR_COPY_ASCII_FLAG(mrb_str_ptr(result), mrb_str_ptr(str));
+#ifdef MRB_UTF8_STRING
+  mrb_str_ptr(str)->flags |= ascii_flag;
+  mrb_str_ptr(result)->flags |= ascii_flag;
+#endif
 
   return result;
 }
