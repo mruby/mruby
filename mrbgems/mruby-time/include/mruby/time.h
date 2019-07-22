@@ -18,7 +18,7 @@ typedef enum mrb_timezone {
   MRB_TIMEZONE_LAST   = 3
 } mrb_timezone;
 
-MRB_API mrb_value mrb_time_at(mrb_state *mrb, double sec, double usec, mrb_timezone timezone);
+MRB_API mrb_value mrb_time_at(mrb_state *mrb, mrb_int sec, mrb_int usec, mrb_timezone timezone);
 
 MRB_END_DECL
 

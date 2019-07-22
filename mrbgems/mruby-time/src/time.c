@@ -4,10 +4,6 @@
 ** See Copyright Notice in mruby.h
 */
 
-#ifdef MRB_WITHOUT_FLOAT
-# error Time conflicts 'MRB_WITHOUT_FLOAT' configuration in your 'build_config.rb'
-#endif
-
 #include <math.h>
 #include <time.h>
 #include <mruby.h>
@@ -202,6 +198,18 @@ struct mrb_time {
 
 static const struct mrb_data_type mrb_time_type = { "Time", mrb_free };
 
+#ifndef MRB_WITHOUT_FLOAT
+void mrb_check_num_exact(mrb_state *mrb, mrb_float num);
+typedef mrb_float mrb_sec;
+#define time_sec_args(mrb, v) mrb_get_args(mrb, "f", v);
+#define mrb_sec_value(mrb, sec) mrb_float_value(mrb, sec)
+#else
+#define mrb_check_num_exact(mrb, num)
+typedef mrb_int mrb_sec;
+#define time_sec_args(mrb, v) mrb_get_args(mrb, "i", v);
+#define mrb_sec_value(mrb, sec) mrb_fixnum_value(sec)
+#endif
+
 /** Updates the datetime of a mrb_time based on it's timezone and
     seconds setting. Returns self on success, NULL of failure.
     if `dealloc` is set `true`, it frees `self` on error. */
@@ -218,10 +226,10 @@ time_update_datetime(mrb_state *mrb, struct mrb_time *self, int dealloc)
     aid = localtime_r(&t, &self->datetime);
   }
   if (!aid) {
-    mrb_float sec = (mrb_float)t;
+    mrb_sec sec = (mrb_sec)t;
 
     if (dealloc) mrb_free(mrb, self);
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "%S out of Time range", mrb_float_value(mrb, sec));
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "%S out of Time range", mrb_sec_value(mrb, sec));
     /* not reached */
     return NULL;
   }
@@ -238,36 +246,33 @@ mrb_time_wrap(mrb_state *mrb, struct RClass *tc, struct mrb_time *tm)
   return mrb_obj_value(Data_Wrap_Struct(mrb, tc, &mrb_time_type, tm));
 }
 
-void mrb_check_num_exact(mrb_state *mrb, mrb_float num);
-
 /* Allocates a mrb_time object and initializes it. */
 static struct mrb_time*
-time_alloc(mrb_state *mrb, double sec, double usec, enum mrb_timezone timezone)
+time_alloc(mrb_state *mrb, mrb_sec sec, mrb_int usec, enum mrb_timezone timezone)
 {
   struct mrb_time *tm;
   time_t tsec = 0;
 
-  mrb_check_num_exact(mrb, (mrb_float)sec);
-  mrb_check_num_exact(mrb, (mrb_float)usec);
+  mrb_check_num_exact(mrb, sec);
 #ifndef MRB_TIME_T_UINT
-  if (sizeof(time_t) == 4 && (sec > (double)INT32_MAX || (double)INT32_MIN > sec)) {
+  if (sizeof(time_t) == 4 && (sec > (mrb_sec)INT32_MAX || (mrb_sec)INT32_MIN > sec)) {
     goto out_of_range;
   }
-  if (sizeof(time_t) == 8 && (sec > (double)INT64_MAX || (double)INT64_MIN > sec)) {
+  if (sizeof(time_t) == 8 && (sec > (mrb_sec)INT64_MAX || (mrb_sec)INT64_MIN > sec)) {
     goto out_of_range;
   }
 #else
-  if (sizeof(time_t) == 4 && (sec > (double)UINT32_MAX || (double)0 > sec)) {
+  if (sizeof(time_t) == 4 && (sec > (mrb_sec)UINT32_MAX || (mrb_sec)0 > sec)) {
     goto out_of_range;
   }
-  if (sizeof(time_t) == 8 && (sec > (double)UINT64_MAX || (double)0 > sec)) {
+  if (sizeof(time_t) == 8 && (sec > (mrb_sec)UINT64_MAX || (mrb_sec)0 > sec)) {
     goto out_of_range;
   }
 #endif
   tsec  = (time_t)sec;
-  if ((sec > 0 && tsec < 0) || (sec < 0 && (double)tsec > sec)) {
+  if ((sec > 0 && tsec < 0) || (sec < 0 && (mrb_sec)tsec > sec)) {
   out_of_range:
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "%S out of Time range", mrb_float_value(mrb, sec));
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "%S out of Time range", mrb_sec_value(mrb, sec));
   }
   tm = (struct mrb_time *)mrb_malloc(mrb, sizeof(struct mrb_time));
   tm->sec  = tsec;
@@ -289,7 +294,7 @@ time_alloc(mrb_state *mrb, double sec, double usec, enum mrb_timezone timezone)
 }
 
 static mrb_value
-mrb_time_make(mrb_state *mrb, struct RClass *c, double sec, double usec, enum mrb_timezone timezone)
+mrb_time_make(mrb_state *mrb, struct RClass *c, mrb_sec sec, mrb_int usec, enum mrb_timezone timezone)
 {
   return mrb_time_wrap(mrb, c, time_alloc(mrb, sec, usec, timezone));
 }
@@ -351,7 +356,7 @@ mrb_time_now(mrb_state *mrb, mrb_value self)
 }
 
 MRB_API mrb_value
-mrb_time_at(mrb_state *mrb, double sec, double usec, enum mrb_timezone zone)
+mrb_time_at(mrb_state *mrb, mrb_int sec, mrb_int usec, enum mrb_timezone zone)
 {
   return mrb_time_make(mrb, mrb_class_get(mrb, "Time"), sec, usec, zone);
 }
@@ -361,10 +366,16 @@ mrb_time_at(mrb_state *mrb, double sec, double usec, enum mrb_timezone zone)
 static mrb_value
 mrb_time_at_m(mrb_state *mrb, mrb_value self)
 {
-  mrb_float f, f2 = 0;
+  mrb_sec sec;
+  mrb_int usec = 0;
 
-  mrb_get_args(mrb, "f|f", &f, &f2);
-  return mrb_time_make(mrb, mrb_class_ptr(self), f, f2, MRB_TIMEZONE_LOCAL);
+#ifndef MRB_WITHOUT_FLOAT
+  mrb_get_args(mrb, "f|i", &sec, &usec);
+#else
+  mrb_get_args(mrb, "i|i", &sec, &usec);
+#endif
+
+  return mrb_time_make(mrb, mrb_class_ptr(self), sec, usec, MRB_TIMEZONE_LOCAL);
 }
 
 static struct mrb_time*
@@ -401,7 +412,7 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
     mrb_raise(mrb, E_ARGUMENT_ERROR, "Not a valid time.");
   }
 
-  return time_alloc(mrb, (double)nowsecs, (double)ausec, timezone);
+  return time_alloc(mrb, (mrb_sec)nowsecs, ausec, timezone);
 }
 
 /* 15.2.19.6.2 */
@@ -487,18 +498,18 @@ mrb_time_cmp(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_time_plus(mrb_state *mrb, mrb_value self)
 {
-  mrb_float f;
+  mrb_sec f;
   struct mrb_time *tm;
 
-  mrb_get_args(mrb, "f", &f);
+  time_sec_args(mrb, &f);
   tm = time_get_ptr(mrb, self);
-  return mrb_time_make(mrb, mrb_obj_class(mrb, self), (double)tm->sec+f, (double)tm->usec, tm->timezone);
+  return mrb_time_make(mrb, mrb_obj_class(mrb, self), (mrb_sec)tm->sec+f, (mrb_int)tm->usec, tm->timezone);
 }
 
 static mrb_value
 mrb_time_minus(mrb_state *mrb, mrb_value self)
 {
-  mrb_float f;
+  mrb_sec f;
   mrb_value other;
   struct mrb_time *tm, *tm2;
 
@@ -506,13 +517,19 @@ mrb_time_minus(mrb_state *mrb, mrb_value self)
   tm = time_get_ptr(mrb, self);
   tm2 = DATA_CHECK_GET_PTR(mrb, other, &mrb_time_type, struct mrb_time);
   if (tm2) {
-    f = (mrb_float)(tm->sec - tm2->sec)
-      + (mrb_float)(tm->usec - tm2->usec) / 1.0e6;
+#ifndef MRB_WITHOUT_FLOAT
+    f = (mrb_sec)(tm->sec - tm2->sec)
+      + (mrb_sec)(tm->usec - tm2->usec) / 1.0e6;
     return mrb_float_value(mrb, f);
+#else
+    f = tm->sec - tm2->sec;
+    if (tm->usec < tm2->usec) f--;
+    return mrb_fixnum_value(f);
+#endif
   }
   else {
-    mrb_get_args(mrb, "f", &f);
-    return mrb_time_make(mrb, mrb_obj_class(mrb, self), (double)tm->sec-f, (double)tm->usec, tm->timezone);
+    time_sec_args(mrb, &f);
+    return mrb_time_make(mrb, mrb_obj_class(mrb, self), (mrb_sec)tm->sec-f, (mrb_int)tm->usec, tm->timezone);
   }
 }
 
@@ -769,6 +786,7 @@ mrb_time_sec(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(tm->datetime.tm_sec);
 }
 
+#ifndef MRB_WITHOUT_FLOAT
 /* 15.2.19.7.24 */
 /* Returns a Float with the time since the epoch in seconds. */
 static mrb_value
@@ -779,32 +797,37 @@ mrb_time_to_f(mrb_state *mrb, mrb_value self)
   tm = time_get_ptr(mrb, self);
   return mrb_float_value(mrb, (mrb_float)tm->sec + (mrb_float)tm->usec/1.0e6);
 }
+#endif
 
 /* 15.2.19.7.25 */
-/* Returns a Fixnum with the time since the epoch in seconds. */
+/* Returns an Integer with the time since the epoch in seconds. */
 static mrb_value
 mrb_time_to_i(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
   tm = time_get_ptr(mrb, self);
+#ifndef MRB_WITHOUT_FLOAT
   if (tm->sec > MRB_INT_MAX || tm->sec < MRB_INT_MIN) {
     return mrb_float_value(mrb, (mrb_float)tm->sec);
   }
+#endif
   return mrb_fixnum_value((mrb_int)tm->sec);
 }
 
 /* 15.2.19.7.26 */
-/* Returns a Float with the time since the epoch in microseconds. */
+/* Returns an Integer with the time since the epoch in microseconds. */
 static mrb_value
 mrb_time_usec(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm;
 
   tm = time_get_ptr(mrb, self);
+#ifndef MRB_WITHOUT_FLOAT
   if (tm->usec > MRB_INT_MAX || tm->usec < MRB_INT_MIN) {
     return mrb_float_value(mrb, (mrb_float)tm->usec);
   }
+#endif
   return mrb_fixnum_value((mrb_int)tm->usec);
 }
 
@@ -882,7 +905,9 @@ mrb_mruby_time_gem_init(mrb_state* mrb)
 
   mrb_define_method(mrb, tc, "sec" , mrb_time_sec, MRB_ARGS_NONE());        /* 15.2.19.7.23 */
   mrb_define_method(mrb, tc, "to_i", mrb_time_to_i, MRB_ARGS_NONE());       /* 15.2.19.7.25 */
+#ifndef MRB_WITHOUT_FLOAT
   mrb_define_method(mrb, tc, "to_f", mrb_time_to_f, MRB_ARGS_NONE());       /* 15.2.19.7.24 */
+#endif
   mrb_define_method(mrb, tc, "usec", mrb_time_usec, MRB_ARGS_NONE());       /* 15.2.19.7.26 */
   mrb_define_method(mrb, tc, "utc" , mrb_time_utc, MRB_ARGS_NONE());        /* 15.2.19.7.27 */
   mrb_define_method(mrb, tc, "utc?", mrb_time_utc_p,MRB_ARGS_NONE());       /* 15.2.19.7.28 */
