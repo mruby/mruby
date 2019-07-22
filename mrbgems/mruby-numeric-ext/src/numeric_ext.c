@@ -9,32 +9,6 @@ to_int(mrb_state *mrb, mrb_value x)
 }
 
 /*
- *  Document-method: Integer#chr
- *  call-seq:
- *     int.chr  ->  string
- *
- *  Returns a string containing the character represented by the +int+'s value
- *  according to +encoding+.
- *
- *     65.chr    #=> "A"
- *     230.chr   #=> "\xE6"
- */
-static mrb_value
-mrb_int_chr(mrb_state *mrb, mrb_value x)
-{
-  mrb_int chr;
-  char c;
-
-  chr = to_int(mrb, x);
-  if (chr >= (1 << CHAR_BIT)) {
-    mrb_raisef(mrb, E_RANGE_ERROR, "%S out of char range", x);
-  }
-  c = (char)chr;
-
-  return mrb_str_new(mrb, &c, 1);
-}
-
-/*
  *  call-seq:
  *     int.allbits?(mask)  ->  true or false
  *
@@ -87,7 +61,6 @@ mrb_mruby_numeric_ext_gem_init(mrb_state* mrb)
 {
   struct RClass *i = mrb_module_get(mrb, "Integral");
 
-  mrb_define_method(mrb, i, "chr", mrb_int_chr, MRB_ARGS_NONE());
   mrb_define_method(mrb, i, "allbits?", mrb_int_allbits, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, i, "anybits?", mrb_int_anybits, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, i, "nobits?", mrb_int_nobits, MRB_ARGS_REQ(1));
