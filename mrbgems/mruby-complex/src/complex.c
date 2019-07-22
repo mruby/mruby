@@ -2,6 +2,10 @@
 #include <mruby/class.h>
 #include <mruby/numeric.h>
 
+#ifdef MRB_WITHOUT_FLOAT
+# error Complex conflicts 'MRB_WITHOUT_FLOAT' configuration in your 'build_config.rb'
+#endif
+
 struct mrb_complex {
   mrb_float real;
   mrb_float imaginary;
@@ -91,7 +95,6 @@ complex_s_rect(mrb_state *mrb, mrb_value self)
   return complex_new(mrb, real, imaginary);
 }
 
-#ifndef MRB_WITHOUT_FLOAT
 static mrb_value
 complex_to_f(mrb_state *mrb, mrb_value self)
 {
@@ -103,7 +106,6 @@ complex_to_f(mrb_state *mrb, mrb_value self)
 
   return mrb_float_value(mrb, p->real);
 }
-#endif
 
 static mrb_value
 complex_to_i(mrb_state *mrb, mrb_value self)
@@ -137,9 +139,7 @@ void mrb_mruby_complex_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, mrb->kernel_module, "Complex", complex_s_rect, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_method(mrb, comp, "real", complex_real, MRB_ARGS_NONE());
   mrb_define_method(mrb, comp, "imaginary", complex_imaginary, MRB_ARGS_NONE());
-#ifndef MRB_WITHOUT_FLOAT
   mrb_define_method(mrb, comp, "to_f", complex_to_f, MRB_ARGS_NONE());
-#endif
   mrb_define_method(mrb, comp, "to_i", complex_to_i, MRB_ARGS_NONE());
   mrb_define_method(mrb, comp, "to_c", complex_to_c, MRB_ARGS_NONE());
 }
