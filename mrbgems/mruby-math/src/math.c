@@ -5,7 +5,7 @@
 */
 
 #ifdef MRB_WITHOUT_FLOAT
-# error Conflict 'MRB_WITHOUT_FLOAT' configuration in your 'build_config.rb'
+# error Math conflicts 'MRB_WITHOUT_FLOAT' configuration in your 'build_config.rb'
 #endif
 
 #include <mruby.h>
