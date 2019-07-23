@@ -167,8 +167,15 @@ end
 assert('String#concat') do
   assert_equal "Hello World!", "Hello " << "World" << 33
   assert_equal "Hello World!", "Hello ".concat("World").concat(33)
-
   assert_raise(TypeError) { "".concat(Object.new) }
+
+  if UTF8STRING
+    assert_equal "H«", "H" << 0xab
+    assert_equal "Hは", "H" << 12399
+  else
+    assert_equal "H\xab", "H" << 0xab
+    assert_raise(RangeError) { "H" << 12399 }
+  end
 end
 
 assert('String#casecmp') do

@@ -414,7 +414,7 @@ class String
       e = max.ord
       while c <= e
         break if exclusive and c == e
-        yield c.chr
+        yield c.chr(__ENCODING__)
         c += 1
       end
       return self

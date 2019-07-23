@@ -5,6 +5,91 @@
 #include <mruby/string.h>
 #include <mruby/range.h>
 
+#define ENC_ASCII_8BIT "ASCII-8BIT"
+#define ENC_BINARY     "BINARY"
+#define ENC_UTF8       "UTF-8"
+
+#define ENC_COMP_P(enc, enc_lit) \
+  str_casecmp_p(RSTRING_PTR(enc), RSTRING_LEN(enc), enc_lit, sizeof(enc_lit"")-1)
+
+#ifdef MRB_WITHOUT_FLOAT
+# define mrb_float_p(o) FALSE
+#endif
+
+static mrb_bool
+str_casecmp_p(const char *s1, mrb_int len1, const char *s2, mrb_int len2)
+{
+  const char *e1, *e2;
+
+  if (len1 != len2) return FALSE;
+  e1 = s1 + len1;
+  e2 = s2 + len2;
+  while (s1 < e1 && s2 < e2) {
+    if (*s1 != *s2 && TOUPPER(*s1) != TOUPPER(*s2)) return FALSE;
+    ++s1;
+    ++s2;
+  }
+  return TRUE;
+}
+
+static mrb_value
+int_chr_binary(mrb_state *mrb, mrb_value num)
+{
+  mrb_int cp = mrb_int(mrb, num);
+  char c;
+  mrb_value str;
+
+  if (cp < 0 || 0xff < cp) {
+    mrb_raisef(mrb, E_RANGE_ERROR, "%S out of char range", num);
+  }
+  c = (char)cp;
+  str = mrb_str_new(mrb, &c, 1);
+  RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+  return str;
+}
+
+#ifdef MRB_UTF8_STRING
+static mrb_value
+int_chr_utf8(mrb_state *mrb, mrb_value num)
+{
+  mrb_int cp = mrb_int(mrb, num);
+  char utf8[4];
+  mrb_int len;
+  mrb_value str;
+  uint32_t ascii_flag = 0;
+
+  if (cp < 0 || 0x10FFFF < cp) {
+    mrb_raisef(mrb, E_RANGE_ERROR, "%S out of char range", num);
+  }
+  if (cp < 0x80) {
+    utf8[0] = (char)cp;
+    len = 1;
+    ascii_flag = MRB_STR_ASCII;
+  }
+  else if (cp < 0x800) {
+    utf8[0] = (char)(0xC0 | (cp >> 6));
+    utf8[1] = (char)(0x80 | (cp & 0x3F));
+    len = 2;
+  }
+  else if (cp < 0x10000) {
+    utf8[0] = (char)(0xE0 |  (cp >> 12));
+    utf8[1] = (char)(0x80 | ((cp >>  6) & 0x3F));
+    utf8[2] = (char)(0x80 | ( cp        & 0x3F));
+    len = 3;
+  }
+  else {
+    utf8[0] = (char)(0xF0 |  (cp >> 18));
+    utf8[1] = (char)(0x80 | ((cp >> 12) & 0x3F));
+    utf8[2] = (char)(0x80 | ((cp >>  6) & 0x3F));
+    utf8[3] = (char)(0x80 | ( cp        & 0x3F));
+    len = 4;
+  }
+  str = mrb_str_new(mrb, utf8, len);
+  mrb_str_ptr(str)->flags |= ascii_flag;
+  return str;
+}
+#endif
+
 static mrb_value
 mrb_str_getbyte(mrb_state *mrb, mrb_value str)
 {
@@ -125,8 +210,6 @@ mrb_str_swapcase(mrb_state *mrb, mrb_value self)
   return str;
 }
 
-static mrb_value mrb_int_chr(mrb_state *mrb, mrb_value num);
-
 /*
  *  call-seq:
  *     str << integer       -> str
@@ -136,7 +219,8 @@ static mrb_value mrb_int_chr(mrb_state *mrb, mrb_value num);
  *
  *  Append---Concatenates the given object to <i>str</i>. If the object is a
  *  <code>Integer</code>, it is considered as a codepoint, and is converted
- *  to a character before concatenation.
+ *  to a character before concatenation
+ *  (equivalent to <code>str.concat(integer.chr(__ENCODING__))</code>).
  *
  *     a = "hello "
  *     a << "world"   #=> "hello world"
@@ -148,8 +232,12 @@ mrb_str_concat_m(mrb_state *mrb, mrb_value self)
   mrb_value str;
 
   mrb_get_args(mrb, "o", &str);
-  if (mrb_fixnum_p(str))
-    str = mrb_int_chr(mrb, str);
+  if (mrb_fixnum_p(str) || mrb_float_p(str))
+#ifdef MRB_UTF8_STRING
+    str = int_chr_utf8(mrb, str);
+#else
+    str = int_chr_binary(mrb, str);
+#endif
   else
     str = mrb_ensure_string_type(mrb, str);
   mrb_str_concat(mrb, self, str);
@@ -800,7 +888,7 @@ mrb_str_count(mrb_state *mrb, mrb_value str)
   tr_parse_pattern(mrb, &pat, v_pat, TRUE);
   tr_compile_pattern(&pat, v_pat, bitmap);
   tr_free_pattern(mrb, &pat);
-  
+
   s = RSTRING_PTR(str);
   len = RSTRING_LEN(str);
   for (i = 0; i < len; i++) {
@@ -836,49 +924,40 @@ mrb_str_chr(mrb_state *mrb, mrb_value self)
   return mrb_str_substr(mrb, self, 0, 1);
 }
 
+/*
+ *  call-seq:
+ *     int.chr([encoding])  ->  string
+ *
+ *  Returns a string containing the character represented by the +int+'s value
+ *  according to +encoding+. +"ASCII-8BIT"+ (+"BINARY"+) and +"UTF-8"+ (only
+ *  with +MRB_UTF8_STRING+) can be specified as +encoding+ (default is
+ *  +"ASCII-8BIT"+).
+ *
+ *     65.chr                  #=> "A"
+ *     230.chr                 #=> "\xE6"
+ *     230.chr("ASCII-8BIT")   #=> "\xE6"
+ *     230.chr("UTF-8")        #=> "\u00E6"
+ */
 static mrb_value
 mrb_int_chr(mrb_state *mrb, mrb_value num)
 {
-  mrb_int cp = mrb_fixnum(num);
+  mrb_value enc;
+  mrb_bool enc_given;
+
+  mrb_get_args(mrb, "|S?", &enc, &enc_given);
+  if (!enc_given ||
+      ENC_COMP_P(enc, ENC_ASCII_8BIT) ||
+      ENC_COMP_P(enc, ENC_BINARY)) {
+    return int_chr_binary(mrb, num);
+  }
 #ifdef MRB_UTF8_STRING
-  char utf8[4];
-  mrb_int len;
-
-  if (cp < 0 || 0x10FFFF < cp) {
-    mrb_raisef(mrb, E_RANGE_ERROR, "%S out of char range", num);
+  else if (ENC_COMP_P(enc, ENC_UTF8)) {
+    return int_chr_utf8(mrb, num);
   }
-  if (cp < 0x80) {
-    utf8[0] = (char)cp;
-    len = 1;
-  }
-  else if (cp < 0x800) {
-    utf8[0] = (char)(0xC0 | (cp >> 6));
-    utf8[1] = (char)(0x80 | (cp & 0x3F));
-    len = 2;
-  }
-  else if (cp < 0x10000) {
-    utf8[0] = (char)(0xE0 |  (cp >> 12));
-    utf8[1] = (char)(0x80 | ((cp >>  6) & 0x3F));
-    utf8[2] = (char)(0x80 | ( cp        & 0x3F));
-    len = 3;
-  }
-  else {
-    utf8[0] = (char)(0xF0 |  (cp >> 18));
-    utf8[1] = (char)(0x80 | ((cp >> 12) & 0x3F));
-    utf8[2] = (char)(0x80 | ((cp >>  6) & 0x3F));
-    utf8[3] = (char)(0x80 | ( cp        & 0x3F));
-    len = 4;
-  }
-  return mrb_str_new(mrb, utf8, len);
-#else
-  char c;
-
-  if (cp < 0 || 0xff < cp) {
-    mrb_raisef(mrb, E_RANGE_ERROR, "%S out of char range", num);
-  }
-  c = (char)cp;
-  return mrb_str_new(mrb, &c, 1);
 #endif
+  else {
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "unknown encoding name - %S", enc);
+  }
 }
 
 /*
@@ -1219,7 +1298,8 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, s, "delete_suffix",   mrb_str_del_suffix,      MRB_ARGS_REQ(1));
 
   mrb_define_method(mrb, s, "__lines",         mrb_str_lines,           MRB_ARGS_NONE());
-  mrb_define_method(mrb, mrb_module_get(mrb, "Integral"), "chr", mrb_int_chr, MRB_ARGS_NONE());
+
+  mrb_define_method(mrb, mrb_module_get(mrb, "Integral"), "chr", mrb_int_chr, MRB_ARGS_OPT(1));
 }
 
 void
