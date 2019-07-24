@@ -958,6 +958,8 @@ mrb_int_chr(mrb_state *mrb, mrb_value num)
   else {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "unknown encoding name - %S", enc);
   }
+  /* not reached */
+  return mrb_nil_value();
 }
 
 /*
