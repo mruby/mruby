@@ -1,6 +1,7 @@
 #include <mruby.h>
 #include <mruby/array.h>
 #include <mruby/class.h>
+#include <mruby/hash.h>
 #include <mruby/proc.h>
 
 /*
@@ -30,6 +31,19 @@ nil_to_f(mrb_state *mrb, mrb_value obj)
   return mrb_float_value(mrb, 0.0);
 }
 #endif
+
+/*
+ *  call-seq:
+ *     nil.to_h    -> {}
+ *
+ *  Always returns an empty hash.
+ */
+
+static mrb_value
+nil_to_h(mrb_state *mrb, mrb_value obj)
+{
+  return mrb_hash_new(mrb);
+}
 
 /*
  *  call-seq:
@@ -117,6 +131,7 @@ mrb_mruby_object_ext_gem_init(mrb_state* mrb)
 #ifndef MRB_WITHOUT_FLOAT
   mrb_define_method(mrb, n, "to_f", nil_to_f,       MRB_ARGS_NONE());
 #endif
+  mrb_define_method(mrb, n, "to_h", nil_to_h,       MRB_ARGS_NONE());
   mrb_define_method(mrb, n, "to_i", nil_to_i,       MRB_ARGS_NONE());
 
   mrb_define_method(mrb, mrb->kernel_module, "itself", mrb_f_itself, MRB_ARGS_NONE());
