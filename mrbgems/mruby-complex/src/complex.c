@@ -132,7 +132,11 @@ void mrb_mruby_complex_gem_init(mrb_state *mrb)
   mrb_assert(sizeof(struct mrb_complex) < ISTRUCT_DATA_SIZE);
 #endif
   comp = mrb_define_class(mrb, "Complex", mrb_class_get(mrb, "Numeric"));
-  //MRB_SET_INSTANCE_TT(comp, MRB_TT_ISTRUCT);
+#ifdef COMPLEX_USE_ISTRUCT
+  MRB_SET_INSTANCE_TT(comp, MRB_TT_ISTRUCT);
+#else
+  MRB_SET_INSTANCE_TT(comp, MRB_TT_DATA);
+#endif
   mrb_undef_class_method(mrb, comp, "new");
   mrb_define_class_method(mrb, comp, "rectangular", complex_s_rect, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_class_method(mrb, comp, "rect", complex_s_rect, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));

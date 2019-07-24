@@ -183,10 +183,13 @@ void mrb_mruby_rational_gem_init(mrb_state *mrb)
 {
   struct RClass *rat;
 
-#ifdef COMPLEX_USE_RATIONAL
-  mrb_assert(sizeof(struct mrb_rational) < ISTRUCT_DATA_SIZE);
-#endif
   rat = mrb_define_class(mrb, "Rational", mrb_class_get(mrb, "Numeric"));
+#ifdef RATIONAL_USE_ISTRUCT
+  MRB_SET_INSTANCE_TT(rat, MRB_TT_ISTRUCT);
+  mrb_assert(sizeof(struct mrb_rational) < ISTRUCT_DATA_SIZE);
+#else
+  MRB_SET_INSTANCE_TT(rat, MRB_TT_DATA);
+#endif
   mrb_undef_class_method(mrb, rat, "new");
   mrb_define_class_method(mrb, rat, "_new", rational_s_new, MRB_ARGS_REQ(2));
   mrb_define_method(mrb, rat, "numerator", rational_numerator, MRB_ARGS_NONE());
