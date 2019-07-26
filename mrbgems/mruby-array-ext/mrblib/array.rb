@@ -903,8 +903,8 @@ class Array
     column_count = nil
     self.each do |row|
       raise TypeError unless row.is_a?(Array)
-      column_count ||= row.count
-      raise IndexError, 'element size differs' unless column_count == row.count
+      column_count ||= row.size
+      raise IndexError, 'element size differs' unless column_count == row.size
     end
 
     Array.new(column_count) do |column_index|
