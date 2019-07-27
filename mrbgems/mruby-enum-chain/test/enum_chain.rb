@@ -14,7 +14,7 @@ end
 
 assert("Enumerable#+") do
   a = [].each
-  b = {}.reverse_each
+  b = {}.each
   c = Object.new # not has #each method
 
   assert_kind_of Enumerator::Chain, a + b
@@ -46,13 +46,13 @@ assert("Enumerator::Chain#each") do
   assert_kind_of Enumerator, aa.each
   assert_equal [1, 2, 3, 1, 2, 3], aa.each.to_a
 
-  aa = a.chain(a.reverse_each)
+  aa = a.chain(6..9)
   assert_kind_of Enumerator, aa.each
-  assert_equal [1, 2, 3, 3, 2, 1], aa.each.to_a
+  assert_equal [1, 2, 3, 6, 7, 8, 9], aa.each.to_a
 
-  aa = a.chain(a.reverse_each, a)
+  aa = a.chain((-3..-2).each_with_index, a)
   assert_kind_of Enumerator, aa.each
-  assert_equal [1, 2, 3, 3, 2, 1, 1, 2, 3], aa.each.to_a
+  assert_equal [1, 2, 3, [-3, 0], [-2, 1], 1, 2, 3], aa.each.to_a
 
   aa = a.chain(Object.new)
   assert_kind_of Enumerator, aa.each
@@ -65,12 +65,22 @@ assert("Enumerator::Chain#size") do
   aa = a.chain(a)
   assert_equal 6, aa.size
 
-  aa = a.chain(a.reverse_each)
+  aa = a.chain(3..4)
   assert_nil aa.size
 
-  aa = a.chain(a.reverse_each, a)
+  aa = a.chain(3..4, a)
   assert_nil aa.size
 
   aa = a.chain(Object.new)
   assert_nil aa.size
+end
+
+assert("Enumerator::Chain#rewind") do
+  rewound = []
+  e1 = [1, 2]
+  e2 = (4..6)
+  (class << e1; self end).define_method(:rewind) { rewound << __id__ }
+  (class << e2; self end).define_method(:rewind) { rewound << __id__ }
+  c = e1.chain(e2).each{}.rewind
+  assert_equal [e2.__id__, e1.__id__], rewound
 end

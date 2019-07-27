@@ -40,8 +40,11 @@ class Enumerator
     end
 
     def rewind
-      @enums.reverse_each do |e|
+      i = @enums.size - 1
+      while 0 <= i
+        e = @enums[i]
         e.rewind if e.respond_to?(:rewind)
+        i -= 1
       end
 
       self
