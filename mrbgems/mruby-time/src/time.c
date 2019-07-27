@@ -4,7 +4,10 @@
 ** See Copyright Notice in mruby.h
 */
 
+#ifndef MRB_WITHOUT_FLOAT
 #include <math.h>
+#endif
+
 #include <time.h>
 #include <mruby.h>
 #include <mruby/class.h>
@@ -26,8 +29,10 @@ double round(double x) {
 }
 #endif
 
-#if !defined(__MINGW64__) && defined(_WIN32)
-# define llround(x) round(x)
+#ifdef MRB_WITHOUT_FLOAT
+# if !defined(__MINGW64__) && defined(_WIN32)
+#  define llround(x) round(x)
+# endif
 #endif
 
 #if defined(__MINGW64__) || defined(__MINGW32__)
@@ -276,7 +281,11 @@ time_alloc(mrb_state *mrb, mrb_sec sec, mrb_int usec, enum mrb_timezone timezone
   }
   tm = (struct mrb_time *)mrb_malloc(mrb, sizeof(struct mrb_time));
   tm->sec  = tsec;
+#ifdef MRB_WITHOUT_FLOAT
+  tm->usec = (time_t)usec;
+#else
   tm->usec = (time_t)llround((sec - tm->sec) * 1.0e6 + usec);
+#endif
   if (tm->usec < 0) {
     long sec2 = (long)NDIV(tm->usec,1000000); /* negative div */
     tm->usec -= sec2 * 1000000;
