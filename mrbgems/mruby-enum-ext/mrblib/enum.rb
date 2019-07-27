@@ -811,10 +811,6 @@ module Enumerable
     h
   end
 
-  def nil.to_h
-    {}
-  end
-
   def uniq(&block)
     hash = {}
     if block
