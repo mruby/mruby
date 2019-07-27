@@ -4731,6 +4731,7 @@ parser_yylex(parser_state *p)
   case '\n':
   maybe_heredoc:
     heredoc_treat_nextline(p);
+    p->column = 0;
     switch (p->lstate) {
     case EXPR_BEG:
     case EXPR_FNAME:
@@ -4738,7 +4739,6 @@ parser_yylex(parser_state *p)
     case EXPR_CLASS:
     case EXPR_VALUE:
       p->lineno++;
-      p->column = 0;
       if (p->parsing_heredoc != NULL) {
         if (p->lex_strterm) {
           return parse_string(p);
@@ -4759,15 +4759,12 @@ parser_yylex(parser_state *p)
         break;
       case '#': /* comment as a whitespace */
         pushback(p, '#');
-        goto retry;
-      case '\n': /* consecutive newlines */
         p->lineno++;
-        p->column = 0;
-        pushback(p, '\n');
         goto retry;
       case '.':
         if (!peek(p, '.')) {
           pushback(p, '.');
+          p->lineno++;
           goto retry;
         }
         pushback(p, c);
@@ -4775,6 +4772,7 @@ parser_yylex(parser_state *p)
       case '&':
         if (peek(p, '.')) {
           pushback(p, '&');
+          p->lineno++;
           goto retry;
         }
         pushback(p, c);
