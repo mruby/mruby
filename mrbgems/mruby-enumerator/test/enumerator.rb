@@ -6,6 +6,17 @@ class << @obj
   end
 end
 
+def assert_take(exp, enumerator)
+  result = []
+  n = exp.size
+  enumerator.each do |v|
+    break if n == 0
+    result << v
+    n -= 1
+  end
+  assert_equal exp, result
+end
+
 assert 'Enumerator.class' do
   assert_equal Class, Enumerator.class
 end
@@ -19,7 +30,7 @@ assert 'Enumerator.new' do
   assert_equal [:x,:y,:z], [:x,:y,:z].each.map{|i| i}.sort
   assert_equal [[:x,1],[:y,2]], {x:1, y:2}.each.map{|i| i}.sort
   assert_equal [1,2,3], @obj.to_enum(:foo, 1,2,3).to_a
-  assert_equal [1,2,3], Enumerator.new { |y| i = 0; loop { y << (i += 1) } }.take(3)
+  assert_take [1,2,3], Enumerator.new { |y| i = 0; loop { y << (i += 1) } }
   assert_raise(ArgumentError) { Enumerator.new }
 
   # examples
@@ -30,7 +41,7 @@ assert 'Enumerator.new' do
       a, b = b, a + b
     end
   end
-  assert_equal [1,1,2,3,5,8,13,21,34,55], fib.take(10)
+  assert_take [1,1,2,3,5,8,13,21,34,55], fib
 end
 
 assert 'Enumerator#initialize_copy' do
