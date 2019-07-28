@@ -12,7 +12,7 @@ assert("Enumerable#chain") do
   assert_raise(NoMethodError) { c.chain }
 end
 
-assert("Enumerable#+") do
+assert("Enumerator#+") do
   a = [].each
   b = {}.each
   c = Object.new # not has #each method
@@ -24,7 +24,7 @@ assert("Enumerable#+") do
   assert_raise(NoMethodError) { c + a }
 end
 
-assert("Enumerator.new") do
+assert("Enumerator::Chain.new") do
   a = []
   b = {}
   c = Object.new # not has #each method
@@ -83,4 +83,15 @@ assert("Enumerator::Chain#rewind") do
   (class << e2; self end).define_method(:rewind) { rewound << __id__ }
   c = e1.chain(e2).each{}.rewind
   assert_equal [e2.__id__, e1.__id__], rewound
+end
+
+assert("Enumerator::Chain#+") do
+  a = [].chain
+  b = {}.chain
+  c = Object.new # not has #each method
+
+  assert_kind_of Enumerator::Chain, a + b
+  assert_kind_of Enumerator::Chain, a + c
+  assert_kind_of Enumerator::Chain, b + a
+  assert_kind_of Enumerator::Chain, b + c
 end

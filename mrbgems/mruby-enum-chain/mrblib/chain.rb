@@ -6,13 +6,13 @@ module Enumerable
   def chain(*args)
     Enumerator::Chain.new(self, *args)
   end
-
-  def +(other)
-    Enumerator::Chain.new(self, other)
-  end
 end
 
 class Enumerator
+  def +(other)
+    Chain.new(self, other)
+  end
+
   class Chain
     include Enumerable
 
@@ -48,6 +48,10 @@ class Enumerator
       end
 
       self
+    end
+
+    def +(other)
+      self.class.new(self, other)
     end
 
     def inspect
