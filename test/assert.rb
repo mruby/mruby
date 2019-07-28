@@ -329,7 +329,7 @@ def assert_raise_with_message_pattern(*args, &block)
 end
 def _assert_raise_with_message(type, exc, exp_msg, msg = nil, &block)
   e = msg ? assert_raise(exc, msg, &block) : assert_raise(exc, &block)
-  e ? ($mrbtest_assert_idx -= 1) : (return e)
+  e ? ($mrbtest_assert_idx[-1]-=1) : (return e)
 
   err_msg = e.message
   unless ret = type == :pattern ? _str_match?(exp_msg, err_msg) : exp_msg == err_msg
