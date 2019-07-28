@@ -7,12 +7,16 @@ $skip_test = 0
 $asserts  = []
 $test_start = Time.now if Object.const_defined?(:Time)
 
+# For bintest on Ruby
 unless RUBY_ENGINE == "mruby"
-  # For bintest on Ruby
   def t_print(*args)
     print(*args)
     $stdout.flush
     nil
+  end
+
+  def _str_match?(pattern, str)
+    File.fnmatch?(pattern, str, File::FNM_EXTGLOB|File::FNM_DOTMATCH)
   end
 end
 
@@ -256,10 +260,7 @@ end
 def assert_match(*args); _assert_match(true, *args) end
 def assert_not_match(*args); _assert_match(false, *args) end
 def _assert_match(affirmed, pattern, str, msg = nil)
-  receiver, *args = RUBY_ENGINE == "mruby" ?
-    [self, :_str_match?, pattern, str] :
-    [File, :fnmatch?, pattern, str, File::FNM_EXTGLOB|File::FNM_DOTMATCH]
-  unless ret = !receiver.__send__(*args) == !affirmed
+  unless ret = _str_match?(pattern, str) == affirmed
     diff = "    Expected #{pattern.inspect} to #{'not ' unless affirmed}match #{str.inspect}."
   end
   assert_true(ret, msg, diff)
@@ -293,8 +294,9 @@ def assert_raise(*exc)
   exc = exc.empty? ? StandardError : exc.size == 1 ? exc[0] : exc
   begin
     yield
-  rescue *exc
+  rescue *exc => e
     pass
+    e
   rescue Exception => e
     diff = "    #{exc} exception expected, not\n" \
            "    Class: <#{e.class}>\n" \
@@ -317,6 +319,28 @@ def assert_nothing_raised(msg = nil)
   else
     pass
   end
+end
+
+def assert_raise_with_message(*args, &block)
+  _assert_raise_with_message(:plain, *args, &block)
+end
+def assert_raise_with_message_pattern(*args, &block)
+  _assert_raise_with_message(:pattern, *args, &block)
+end
+def _assert_raise_with_message(type, exc, exp_msg, msg = nil, &block)
+  e = msg ? assert_raise(exc, msg, &block) : assert_raise(exc, &block)
+  e ? ($mrbtest_assert_idx -= 1) : (return e)
+
+  err_msg = e.message
+  unless ret = type == :pattern ? _str_match?(exp_msg, err_msg) : exp_msg == err_msg
+    diff = "    Expected Exception(#{exc}) was raised, but the message doesn't match.\n"
+    if type == :pattern
+      diff += "    Expected #{exp_msg.inspect} to match #{err_msg.inspect}."
+    else
+      diff += assertion_diff(exp_msg, err_msg)
+    end
+  end
+  assert_true(ret, msg, diff)
 end
 
 def pass
