@@ -258,6 +258,7 @@ mrb_t_pass_result(mrb_state *mrb_dst, mrb_state *mrb_src)
   TEST_COUNT_PASS(ok_test);
   TEST_COUNT_PASS(ko_test);
   TEST_COUNT_PASS(kill_test);
+  TEST_COUNT_PASS(warning_test);
   TEST_COUNT_PASS(skip_test);
 
 #undef TEST_COUNT_PASS
