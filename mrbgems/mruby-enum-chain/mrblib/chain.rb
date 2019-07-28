@@ -20,10 +20,6 @@ class Enumerator
       @enums = args
     end
 
-    def initialize_copy(orig)
-      @enums = orig.__copy_enums
-    end
-
     def each(&block)
       return to_enum unless block_given?
 
@@ -52,12 +48,6 @@ class Enumerator
 
     def inspect
       "#<#{self.class}: #{@enums.inspect}>"
-    end
-
-    def __copy_enums
-      @enums.each_with_object([]) do |e, a|
-        a << e.clone
-      end
     end
   end
 end
