@@ -19,6 +19,8 @@
 #include <string.h>
 #endif
 
+#include <stdlib.h>
+
 #define NDIV(x,y) (-(-((x)+1)/(y))-1)
 #define TO_S_FMT "%Y-%m-%d %H:%M:%S "
 
@@ -931,7 +933,13 @@ mrb_time_to_s(mrb_state *mrb, mrb_value self)
   struct mrb_time *tm = time_get_ptr(mrb, self);
   const char *fmt = tm->timezone == MRB_TIMEZONE_UTC ? TO_S_FMT "UTC" : TO_S_FMT "%z";
   size_t len = strftime(buf, sizeof(buf), fmt, &tm->datetime);
-  return mrb_str_new(mrb, buf, len);
+  char *utf8;
+  mrb_value mrb_string;
+  buf[len] = '\0';
+  utf8 = mrb_utf8_from_locale(buf, (int)len);
+  mrb_string = mrb_str_new_cstr(mrb, utf8);
+  mrb_utf8_free(utf8);
+  return mrb_string;
 }
 
 void
