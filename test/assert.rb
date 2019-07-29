@@ -108,7 +108,7 @@ def assert(str = 'Assertion failed', iso = '')
         $ko_test += 1
         t_print('F')
       end
-    elsif $mrbtest_assert_idx == 0
+    elsif $mrbtest_assert_idx[-1] == 0
       $asserts.push(assertion_string('Warn: ', str, iso, 'no assertion'))
       $warning_test += 1
       t_print('W')
