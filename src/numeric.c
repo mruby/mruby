@@ -891,14 +891,14 @@ static mrb_value
 fix_mod(mrb_state *mrb, mrb_value x)
 {
   mrb_value y;
-  mrb_int a;
+  mrb_int a, b;
 
   mrb_get_args(mrb, "o", &y);
   a = mrb_fixnum(x);
-  if (mrb_fixnum_p(y)) {
-    mrb_int b, mod;
+   if (mrb_fixnum_p(y) && a != MRB_INT_MIN && (b=mrb_fixnum(y)) != MRB_INT_MIN) {
+    mrb_int mod;
 
-    if ((b=mrb_fixnum(y)) == 0) {
+    if (b == 0) {
 #ifdef MRB_WITHOUT_FLOAT
       /* ZeroDivisionError */
       return mrb_fixnum_value(0);
