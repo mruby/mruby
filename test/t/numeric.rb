@@ -8,7 +8,7 @@ def  assert_step(exp, receiver, args, inf: false)
     break if inf && exp.size == act.size
   end
   expr = "#{receiver.inspect}.step(#{args.map(&:inspect).join(', ')})"
-  assert do
+  assert "assert_step" do
     assert_true(exp.eql?(act), "#{expr}: counters", assertion_diff(exp, act))
     assert_same(receiver, ret, "#{expr}: return value") unless inf
   end

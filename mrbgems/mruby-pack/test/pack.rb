@@ -2,7 +2,7 @@ PACK_IS_LITTLE_ENDIAN = "\x01\00".unpack('S')[0] == 0x01
 
 def assert_pack tmpl, packed, unpacked
   t = tmpl.inspect
-  assert do
+  assert "assert_pack" do
     assert_equal packed, unpacked.pack(tmpl), "#{unpacked.inspect}.pack(#{t})"
     assert_equal unpacked, packed.unpack(tmpl), "#{packed.inspect}.unpack(#{t})"
   end

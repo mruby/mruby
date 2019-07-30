@@ -76,7 +76,7 @@ end
 # iso : The ISO reference code of the feature
 #       which will be tested by this
 #       assertion
-def assert(str = 'Assertion failed', iso = '')
+def assert(str = 'assert', iso = '')
   t_print(str, (iso != '' ? " [#{iso}]" : ''), ' : ') if $mrbtest_verbose
   begin
     $mrbtest_child_noassert ||= [0]
@@ -99,10 +99,10 @@ def assert(str = 'Assertion failed', iso = '')
     yield
     if $mrbtest_assert.size > 0
       if $mrbtest_assert.size == $mrbtest_child_noassert[-1]
-        $asserts.push(assertion_string('Info: ', str, iso))
+        $asserts.push(assertion_string('Skip: ', str, iso))
         $mrbtest_child_noassert[-2] += 1
-        $ok_test += 1
-        t_print('.')
+        $skip_test += 1
+        t_print('?')
       else
         $asserts.push(assertion_string('Fail: ', str, iso))
         $ko_test += 1

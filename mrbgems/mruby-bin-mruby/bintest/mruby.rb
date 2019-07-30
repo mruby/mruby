@@ -3,7 +3,7 @@ require 'open3'
 
 def assert_mruby(exp_out, exp_err, exp_success, args)
   out, err, stat = Open3.capture3(cmd("mruby"), *args)
-  assert do
+  assert "assert_mruby" do
     assert_operator(exp_out, :===, out, "standard output")
     assert_operator(exp_err, :===, err, "standard error")
     assert_equal(exp_success, stat.success?, "exit success?")

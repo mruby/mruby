@@ -1,5 +1,5 @@
 def assert_complex(real, exp)
-  assert do
+  assert "assert_complex" do
     assert_float real.real,      exp.real
     assert_float real.imaginary, exp.imaginary
   end

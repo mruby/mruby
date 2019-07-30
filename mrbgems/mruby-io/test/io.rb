@@ -5,7 +5,7 @@ MRubyIOTestUtil.io_test_setup
 $cr, $crlf, $cmd = MRubyIOTestUtil.win? ? [1, "\r\n", "cmd /c "] : [0, "\n", ""]
 
 def assert_io_open(meth)
-  assert do
+  assert "assert_io_open" do
     fd = IO.sysopen($mrbtest_io_rfname)
     assert_equal Fixnum, fd.class
     io1 = IO.__send__(meth, fd)

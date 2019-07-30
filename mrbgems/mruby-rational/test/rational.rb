@@ -23,14 +23,14 @@ class ComplexLikeNumeric < UserDefinedNumeric
 end
 
 def assert_rational(exp, real)
-  assert do
+  assert "assert_rational" do
     assert_float exp.numerator,   real.numerator
     assert_float exp.denominator, real.denominator
   end
 end
 
 def assert_equal_rational(exp, o1, o2)
-  assert do
+  assert "assert_equal_rational" do
     if exp
       assert_operator(o1, :==, o2)
       assert_not_operator(o1, :!=, o2)
