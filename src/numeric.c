@@ -904,7 +904,7 @@ fix_mod(mrb_state *mrb, mrb_value x)
       return mrb_float_value(mrb, NAN);
 #endif
     }
-    fixdivmod(mrb, a, b, 0, &mod);
+    fixdivmod(mrb, a, b, NULL, &mod);
     return mrb_fixnum_value(mod);
   }
 #ifdef MRB_WITHOUT_FLOAT
@@ -913,7 +913,7 @@ fix_mod(mrb_state *mrb, mrb_value x)
   else {
     mrb_float mod;
 
-    flodivmod(mrb, (mrb_float)a, mrb_to_flo(mrb, y), 0, &mod);
+    flodivmod(mrb, (mrb_float)a, mrb_to_flo(mrb, y), NULL, &mod);
     return mrb_float_value(mrb, mod);
   }
 #endif
