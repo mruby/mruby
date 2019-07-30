@@ -901,6 +901,8 @@ fix_mod(mrb_state *mrb, mrb_value x)
       /* ZeroDivisionError */
       return mrb_fixnum_value(0);
 #else
+      if (a > 0) return mrb_float_value(mrb, INFINITY);
+      if (a < 0) return mrb_float_value(mrb, INFINITY);
       return mrb_float_value(mrb, NAN);
 #endif
     }
