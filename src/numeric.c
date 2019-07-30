@@ -1119,7 +1119,7 @@ lshift(mrb_state *mrb, mrb_int val, mrb_int width)
   }
   else {
     if ((width > NUMERIC_SHIFT_WIDTH_MAX) ||
-        (val   < (MRB_INT_MIN >> width))) {
+        (val   <= (MRB_INT_MIN >> width))) {
 #ifdef MRB_WITHOUT_FLOAT
       return mrb_fixnum_value(0);
 #else
