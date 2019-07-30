@@ -320,6 +320,8 @@ flodivmod(mrb_state *mrb, double x, double y, mrb_float *divp, mrb_float *modp)
     div = (x - mod) / y;
     if (modp && divp) div = round(div);
   }
+  if (div == 0) div = 0.0;
+  if (mod == 0) mod = 0.0;
   if (y*mod < 0) {
     mod += y;
     div -= 1.0;
