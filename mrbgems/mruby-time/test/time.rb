@@ -239,7 +239,8 @@ assert('Time#to_s') do
 end
 
 assert('Time#inspect') do
-  assert_match("2013-10-28 16:27:48 [^U]*", Time.local(2013,10,28,16,27,48).inspect)
+  assert_match("2013-10-28 16:27:48 [+-][0-9][0-9][0-9][0-9]",
+               Time.local(2013,10,28,16,27,48).inspect)
 end
 
 assert('day of week methods') do
