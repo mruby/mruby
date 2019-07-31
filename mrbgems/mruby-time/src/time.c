@@ -926,20 +926,45 @@ mrb_time_utc_p(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(tm->timezone == MRB_TIMEZONE_UTC);
 }
 
+static size_t
+time_to_s_utc(mrb_state *mrb, struct mrb_time *tm, char *buf, size_t buf_len)
+{
+  return strftime(buf, buf_len, TO_S_FMT "UTC", &tm->datetime);
+}
+
+static size_t
+time_to_s_local(mrb_state *mrb, struct mrb_time *tm, char *buf, size_t buf_len)
+{
+#if defined(_MSC_VER) && _MSC_VER < 1900 || defined(__MINGW64__) || defined(__MINGW32__)
+  struct tm datetime = {0};
+  time_t utc_sec = timegm(&tm->datetime);
+  size_t len;
+  int offset;
+
+  if (utc_sec == (time_t)-1) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "Not a valid time.");
+  }
+  offset = abs((int)(utc_sec - tm->sec) / 60);
+  datetime.tm_year = 100;
+  datetime.tm_hour = offset / 60;
+  datetime.tm_min = offset % 60;
+  len = strftime(buf, buf_len, TO_S_FMT, &tm->datetime);
+  buf[len++] = utc_sec < tm->sec ? '-' : '+';
+
+  return len + strftime(buf + len, buf_len - len, "%H%M", &datetime);
+#else
+  return strftime(buf, buf_len, TO_S_FMT "%z", &tm->datetime);
+#endif
+}
+
 static mrb_value
 mrb_time_to_s(mrb_state *mrb, mrb_value self)
 {
   char buf[64];
   struct mrb_time *tm = time_get_ptr(mrb, self);
-  const char *fmt = tm->timezone == MRB_TIMEZONE_UTC ? TO_S_FMT "UTC" : TO_S_FMT "%z";
-  size_t len = strftime(buf, sizeof(buf), fmt, &tm->datetime);
-  char *utf8;
-  mrb_value mrb_string;
-  buf[len] = '\0';
-  utf8 = mrb_utf8_from_locale(buf, (int)len);
-  mrb_string = mrb_str_new_cstr(mrb, utf8);
-  mrb_utf8_free(utf8);
-  return mrb_string;
+  mrb_bool utc = tm->timezone == MRB_TIMEZONE_UTC;
+  size_t len = (utc ? time_to_s_utc : time_to_s_local)(mrb, tm, buf, sizeof(buf));
+  return mrb_str_new(mrb, buf, len);
 }
 
 void
