@@ -260,59 +260,143 @@ mrb_raise(mrb_state *mrb, struct RClass *c, const char *msg)
   mrb_exc_raise(mrb, mrb_exc_new_str(mrb, c, mrb_str_new_cstr(mrb, msg)));
 }
 
+/*
+ * <code>vsprintf</code> like formatting.
+ *
+ * The syntax of a format sequence is as follows.
+ *
+ *   %[modifier]specifier
+ *
+ * The modifiers are:
+ *
+ *   ----------+------------------------------------------------------------
+ *   Modifier  | Meaning
+ *   ----------+------------------------------------------------------------
+ *       !     | Convert to string by corresponding `inspect` instead of
+ *             | corresponding `to_s`.
+ *   ----------+------------------------------------------------------------
+ *
+ * The specifiers are:
+ *
+ *   ----------+----------------+--------------------------------------------
+ *   Specifier | Argument Type  | Note
+ *   ----------+----------------+--------------------------------------------
+ *       c     | char           |
+ *      d,i    | mrb_int        |
+ *       f     | mrb_float      |
+ *       l     | char*, mrb_int | Arguments are string and length.
+ *       n     | mrb_sym        |
+ *       s     | char*          | Argument is NUL terminated string.
+ *       t     | mrb_value      | Convert to type (class) of object.
+ *      v,S    | mrb_value      |
+ *       C     | struct RClass* |
+ *       T     | mrb_value      | Convert to real type (class) of object.
+ *       Y     | mrb_value      | Same as `!v` if argument is `true`, `false`
+ *             |                | or `nil`, otherwise same as `T`.
+ *       %     | -              | Convert to percent sign itself (no argument
+ *             |                | taken).
+ *   ----------+----------------+--------------------------------------------
+ */
 MRB_API mrb_value
 mrb_vformat(mrb_state *mrb, const char *format, va_list ap)
 {
-  const char *p = format;
-  const char *b = p;
-  ptrdiff_t size;
-  int ai0 = mrb_gc_arena_save(mrb);
-  mrb_value ary = mrb_ary_new_capa(mrb, 4);
+  const char *chars, *p = format, *b = format, *e;
+  char ch;
+  struct RClass *cls;
+  mrb_int len;
+  mrb_bool inspect = FALSE;
+  mrb_value result = mrb_str_new_capa(mrb, 128), obj, str;
   int ai = mrb_gc_arena_save(mrb);
 
   while (*p) {
     const char c = *p++;
-
+    e = p;
     if (c == '%') {
-      if (*p == 'S') {
-        mrb_value val;
-
-        size = p - b - 1;
-        mrb_ary_push(mrb, ary, mrb_str_new(mrb, b, size));
-        val = va_arg(ap, mrb_value);
-        mrb_ary_push(mrb, ary, mrb_obj_as_string(mrb, val));
-        b = p + 1;
+      if (*p == '!') {
+        inspect = TRUE;
+        ++p;
+      }
+      if (!*p) break;
+      switch (*p) {
+        case 'c':
+          ch = (char)va_arg(ap, int);
+          chars = &ch;
+          len = 1;
+          goto L_cat;
+        case 'd': case 'i':
+          obj = mrb_fixnum_value(va_arg(ap, mrb_int));
+          goto L_cat_obj;
+        case 'f':
+          obj = mrb_float_value(mrb, va_arg(ap, mrb_float));
+          goto L_cat_obj;
+        case 'l':
+          chars = va_arg(ap, char*);
+          len = va_arg(ap, mrb_int);
+        L_cat:
+          if (inspect) {
+            obj = mrb_str_new(mrb, chars, len);
+            goto L_cat_obj;
+          }
+          mrb_str_cat(mrb, result, b,  e - b - 1);
+          mrb_str_cat(mrb, result, chars, len);
+          b = ++p;
+          mrb_gc_arena_restore(mrb, ai);
+          break;
+        case 'n':
+          obj = mrb_symbol_value(va_arg(ap, mrb_sym));
+          goto L_cat_obj;
+        case 's':
+          chars = va_arg(ap, char*);
+          len = strlen(chars);
+          goto L_cat;
+        case 't':
+          cls = mrb_class(mrb, va_arg(ap, mrb_value));
+          goto L_cat_class;
+        case 'v': case 'S':
+          obj = va_arg(ap, mrb_value);
+        L_cat_obj:
+          str = (inspect ? mrb_inspect : mrb_obj_as_string)(mrb, obj);
+          chars = RSTRING_PTR(str);
+          len = RSTRING_LEN(str);
+          inspect = FALSE;
+          goto L_cat;
+        case 'C':
+          cls = va_arg(ap, struct RClass*);
+        L_cat_class:
+          obj = mrb_obj_value(cls);
+          goto L_cat_obj;
+        case 'T':
+          obj = va_arg(ap, mrb_value);
+        L_cat_real_class_of:
+          cls = mrb_obj_class(mrb, obj);
+          goto L_cat_class;
+        case 'Y':
+          obj = va_arg(ap, mrb_value);
+          if (!mrb_test(obj) || mrb_true_p(obj)) {
+            inspect = TRUE;
+            goto L_cat_obj;
+          }
+          else {
+            goto L_cat_real_class_of;
+          }
+        case '%':
+        L_cat_current:
+          chars = p;
+          len = 1;
+          goto L_cat;
+        default:
+          mrb_raisef(mrb, E_ARGUMENT_ERROR, "malformed format string - %%%c", *p);
       }
     }
     else if (c == '\\') {
-      if (*p) {
-        size = p - b - 1;
-        mrb_ary_push(mrb, ary, mrb_str_new(mrb, b, size));
-        mrb_ary_push(mrb, ary, mrb_str_new(mrb, p, 1));
-        b = ++p;
-      }
-      else {
-        break;
-      }
-    }
-    mrb_gc_arena_restore(mrb, ai);
-  }
-  if (b == format) {
-    mrb_gc_arena_restore(mrb, ai0);
-    return mrb_str_new_cstr(mrb, format);
-  }
-  else {
-    mrb_value val;
+      if (!*p) break;
+      goto L_cat_current;
 
-    size = p - b;
-    if (size > 0) {
-      mrb_ary_push(mrb, ary, mrb_str_new(mrb, b, size));
     }
-    val = mrb_ary_join(mrb, ary, mrb_nil_value());
-    mrb_gc_arena_restore(mrb, ai0);
-    mrb_gc_protect(mrb, val);
-    return val;
   }
+
+  mrb_str_cat(mrb, result, b, p - b);
+  return result;
 }
 
 MRB_API mrb_value
