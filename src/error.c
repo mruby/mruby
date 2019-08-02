@@ -282,8 +282,9 @@ mrb_raise(mrb_state *mrb, struct RClass *c, const char *msg)
  *   Specifier | Argument Type  | Note
  *   ----------+----------------+--------------------------------------------
  *       c     | char           |
- *      d,i    | mrb_int        |
+ *       d     | int            |
  *       f     | mrb_float      |
+ *       i     | mrb_int        |
  *       l     | char*, mrb_int | Arguments are string and length.
  *       n     | mrb_sym        |
  *       s     | char*          | Argument is NUL terminated string.
@@ -303,7 +304,7 @@ mrb_vformat(mrb_state *mrb, const char *format, va_list ap)
   const char *chars, *p = format, *b = format, *e;
   char ch;
   struct RClass *cls;
-  mrb_int len;
+  mrb_int len, i;
   mrb_bool inspect = FALSE;
   mrb_value result = mrb_str_new_capa(mrb, 128), obj, str;
   int ai = mrb_gc_arena_save(mrb);
@@ -324,7 +325,8 @@ mrb_vformat(mrb_state *mrb, const char *format, va_list ap)
           len = 1;
           goto L_cat;
         case 'd': case 'i':
-          obj = mrb_fixnum_value(va_arg(ap, mrb_int));
+          i = *p == 'd' ? (mrb_int)va_arg(ap, int) : va_arg(ap, mrb_int);
+          obj = mrb_fixnum_value(i);
           goto L_cat_obj;
         case 'f':
           obj = mrb_float_value(mrb, va_arg(ap, mrb_float));
