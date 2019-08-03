@@ -4,6 +4,11 @@
 #include <mruby/data.h>
 #include <mruby/string.h>
 
+#ifdef MRB_WITHOUT_FLOAT
+typedef mrb_int mrb_float;
+#define mrb_float(o) mrb_fixnum(o)
+#endif
+
 #define NATIVE_TYPES                                                        \
   char c;                                                                   \
   int d;                                                                    \
