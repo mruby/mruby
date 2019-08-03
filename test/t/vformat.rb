@@ -35,15 +35,12 @@ assert('mrb_vformat') do
   assert_format '`d`: -79', ['`d`: %d', n.d(-79)]
   assert_format '`i`: 514', ['`i`: %i', n.i(514)]
   assert_format '`i`: -83', ['`i`: %i', n.i(-83)]
-  assert_format '`f`: 0.0125', ['`f`: %f', n.f(0.0125)]
   assert_format '`t`: NilClass', ['`t`: %t', nil]
   assert_format '`t`: FalseClass', ['`t`: %t', false]
   assert_format '`t`: TrueClass', ['`t`: %t', true]
   assert_format '`t`: Fixnum', ['`t`: %t', 0]
   assert_format '`t`: Hash', ['`t`: %t', k: "value"]
   assert_format_pattern '#<Class:#<Class:#<Hash:0x*>>>', ['%t', sclass({})]
-  assert_format '-Infinity', ['%f', n.f(-Float::INFINITY)]
-  assert_format 'NaN: Not a Number', ['%f: Not a Number', n.f(Float::NAN)]
   assert_format 'string and length', ['string %l length', n.s('andante'), n.i(3)]
   assert_format '`n`: sym', ['`n`: %n', n.n(:sym)]
   assert_format '%C文字列%', ['%s', n.s('%C文字列%')]
@@ -87,4 +84,9 @@ assert('mrb_vformat') do
   assert_implementation_dependent 'termination is \\', ['termination is \\']
   assert_implementation_dependent 'termination is %', ['termination is %']
   assert_implementation_dependent 'termination is %!', ['termination is %!']
+
+  skip unless Object.const_defined?(:Float)
+  assert_format '`f`: 0.0125', ['`f`: %f', n.f(0.0125)]
+  assert_format '-Infinity', ['%f', n.f(-Float::INFINITY)]
+  assert_format 'NaN: Not a Number', ['%f: Not a Number', n.f(Float::NAN)]
 end
