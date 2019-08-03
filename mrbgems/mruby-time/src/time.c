@@ -213,6 +213,16 @@ typedef mrb_int mrb_sec;
 #define mrb_sec_value(mrb, sec) mrb_fixnum_value(sec)
 #endif
 
+#ifdef MRB_TIME_T_UINT
+typedef uint64_t mrb_time_int;
+# define MRB_TIME_MIN 0
+# define MRB_TIME_MAX (sizeof(time_t) <= 4 ? UINT32_MAX : UINT64_MAX)
+#else
+typedef int64_t mrb_time_int;
+# define MRB_TIME_MIN (sizeof(time_t) <= 4 ? INT32_MIN : INT64_MIN)
+# define MRB_TIME_MAX (sizeof(time_t) <= 4 ? INT32_MAX : INT64_MAX)
+#endif
+
 static time_t
 mrb_to_time_t(mrb_state *mrb, mrb_value obj, time_t *usec)
 {
@@ -225,21 +235,9 @@ mrb_to_time_t(mrb_state *mrb, mrb_value obj, time_t *usec)
         mrb_float f = mrb_float(obj);
 
         mrb_check_num_exact(mrb, f);
-# ifndef MRB_TIME_T_UINT
-        if (sizeof(time_t) == 4 && (f > (mrb_float)INT32_MAX || (mrb_float)INT32_MIN > f)) {
+        if (f > (mrb_float)MRB_TIME_MAX || (mrb_float)MRB_TIME_MIN > f) {
           goto out_of_range;
         }
-        if (sizeof(time_t) == 8 && (f > (mrb_float)INT64_MAX || (mrb_float)INT64_MIN > f)) {
-          goto out_of_range;
-        }
-# else
-        if (sizeof(time_t) == 4 && (f > (mrb_float)UINT32_MAX || (mrb_float)0 > f)) {
-          goto out_of_range;
-        }
-        if (sizeof(time_t) == 8 && (f > (mrb_float)UINT64_MAX || (mrb_float)0 > f)) {
-          goto out_of_range;
-        }
-# endif
 
         if (usec) {
           t = (time_t)f;
@@ -256,21 +254,9 @@ mrb_to_time_t(mrb_state *mrb, mrb_value obj, time_t *usec)
       {
         mrb_int i = mrb_int(mrb, obj);
 
-#ifndef MRB_TIME_T_UINT
-        if (sizeof(time_t) == 4 && (i > INT32_MAX || INT32_MIN > i)) {
+        if ((mrb_time_int)i > MRB_TIME_MAX || MRB_TIME_MIN > i) {
           goto out_of_range;
         }
-        if (sizeof(time_t) == 8 && (i > INT64_MAX || INT64_MIN > i)) {
-          goto out_of_range;
-        }
-#else
-        if (sizeof(time_t) == 4 && (i > UINT32_MAX || 0 > i)) {
-          goto out_of_range;
-        }
-        if (sizeof(time_t) == 8 && (i > UINT64_MAX || 0 > i)) {
-          goto out_of_range;
-        }
-#endif
 
         t = (time_t)i;
         if (usec) { *usec = 0; }
@@ -283,7 +269,9 @@ mrb_to_time_t(mrb_state *mrb, mrb_value obj, time_t *usec)
 out_of_range:
   mrb_raisef(mrb, E_ARGUMENT_ERROR, "%S out of Time range", obj);
 
-  return 0; /* suppress compiler warnings */
+  /* not reached */
+  if (usec) { *usec = 0; }
+  return 0;
 }
 
 /** Updates the datetime of a mrb_time based on it's timezone and
