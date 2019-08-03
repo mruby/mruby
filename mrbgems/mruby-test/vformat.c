@@ -14,6 +14,7 @@ typedef mrb_int mrb_float;
   int d;                                                                    \
   mrb_float f;                                                              \
   mrb_int i;                                                                \
+/*  size_t l;                                                             */\
   mrb_sym n;                                                                \
   char *s;                                                                  \
   struct RClass *C
@@ -35,6 +36,7 @@ typedef enum {
   ARG_d,
   ARG_f,
   ARG_i,
+/*  ARG_l,*/
   ARG_n,
   ARG_s,
   ARG_C,
@@ -80,6 +82,7 @@ native_initialize(mrb_state *mrb, mrb_value self)
     case ARG_d: data.d = (int)mrb_fixnum(obj); break;
     case ARG_f: data.f = mrb_float(obj); break;
     case ARG_i: data.i = mrb_fixnum(obj); break;
+/*    case ARG_l: data.l = (size_t)mrb_fixnum(obj); break;*/
     case ARG_n: data.n = mrb_symbol(obj); break;
     case ARG_s: data.s = (char*)mrb_malloc(mrb, RSTRING_LEN(obj) + 1);
                 memcpy(data.s, RSTRING_PTR(obj), RSTRING_LEN(obj));
@@ -97,6 +100,7 @@ NATIVE_DEFINE_TYPE_FUNC(c)
 NATIVE_DEFINE_TYPE_FUNC(d)
 NATIVE_DEFINE_TYPE_FUNC(f)
 NATIVE_DEFINE_TYPE_FUNC(i)
+/*NATIVE_DEFINE_TYPE_FUNC(l)*/
 NATIVE_DEFINE_TYPE_FUNC(n)
 NATIVE_DEFINE_TYPE_FUNC(s)
 NATIVE_DEFINE_TYPE_FUNC(C)
@@ -133,6 +137,7 @@ arg_from_obj(mrb_state *mrb, mrb_value obj, struct RClass *native_class,
   VF_FORMAT2_COND_EXPR(fmt, vf_args, vf_args+1, d) :                        \
   VF_FORMAT2_COND_EXPR(fmt, vf_args, vf_args+1, f) :                        \
   VF_FORMAT2_COND_EXPR(fmt, vf_args, vf_args+1, i) :                        \
+/*  VF_FORMAT2_COND_EXPR(fmt, vf_args, vf_args+1, l) :                    */\
   VF_FORMAT2_COND_EXPR(fmt, vf_args, vf_args+1, n) :                        \
   VF_FORMAT2_COND_EXPR(fmt, vf_args, vf_args+1, s) :                        \
   VF_FORMAT2_COND_EXPR(fmt, vf_args, vf_args+1, C) :                        \
@@ -146,6 +151,7 @@ arg_from_obj(mrb_state *mrb, mrb_value obj, struct RClass *native_class,
   VF_FORMAT_TYPED_COND_EXPR(fmt, n_arg, type_a, v1, d) :                    \
   VF_FORMAT_TYPED_COND_EXPR(fmt, n_arg, type_a, v1, f) :                    \
   VF_FORMAT_TYPED_COND_EXPR(fmt, n_arg, type_a, v1, i) :                    \
+/*  VF_FORMAT_TYPED_COND_EXPR(fmt, n_arg, type_a, v1, l) :                */\
   VF_FORMAT_TYPED_COND_EXPR(fmt, n_arg, type_a, v1, n) :                    \
   VF_FORMAT_TYPED_COND_EXPR(fmt, n_arg, type_a, v1, s) :                    \
   VF_FORMAT_TYPED_COND_EXPR(fmt, n_arg, type_a, v1, C) :                    \
@@ -186,6 +192,7 @@ mrb_init_test_vformat(mrb_state *mrb)
   NATIVE_DEFINE_TYPE_METHOD(d);
   NATIVE_DEFINE_TYPE_METHOD(f);
   NATIVE_DEFINE_TYPE_METHOD(i);
+/*  NATIVE_DEFINE_TYPE_METHOD(l);*/
   NATIVE_DEFINE_TYPE_METHOD(n);
   NATIVE_DEFINE_TYPE_METHOD(s);
   NATIVE_DEFINE_TYPE_METHOD(C);
