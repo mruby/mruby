@@ -160,6 +160,36 @@ mrb_int_mul_overflow(mrb_int multiplier, mrb_int multiplicand, mrb_int *product)
 
 #endif
 
+#ifndef MRB_WITHOUT_FLOAT
+# include <stdint.h>
+# include <float.h>
+
+# define MRB_FLT_RADIX          FLT_RADIX
+
+# ifdef MRB_USE_FLOAT
+#  define MRB_FLT_MANT_DIG      FLT_MANT_DIG
+#  define MRB_FLT_EPSILON       FLT_EPSILON
+#  define MRB_FLT_DIG           FLT_DIG
+#  define MRB_FLT_MIN_EXP       FLT_MIN_EXP
+#  define MRB_FLT_MIN           FLT_MIN
+#  define MRB_FLT_MIN_10_EXP    FLT_MIN_10_EXP
+#  define MRB_FLT_MAX_EXP       FLT_MAX_EXP
+#  define MRB_FLT_MAX           FLT_MAX
+#  define MRB_FLT_MAX_10_EXP    FLT_MAX_10_EXP
+
+# else /* not MRB_USE_FLOAT */
+#  define MRB_FLT_MANT_DIG      DBL_MANT_DIG
+#  define MRB_FLT_EPSILON       DBL_EPSILON
+#  define MRB_FLT_DIG           DBL_DIG
+#  define MRB_FLT_MIN_EXP       DBL_MIN_EXP
+#  define MRB_FLT_MIN           DBL_MIN
+#  define MRB_FLT_MIN_10_EXP    DBL_MIN_10_EXP
+#  define MRB_FLT_MAX_EXP       DBL_MAX_EXP
+#  define MRB_FLT_MAX           DBL_MAX
+#  define MRB_FLT_MAX_10_EXP    DBL_MAX_10_EXP
+# endif /* MRB_USE_FLOAT */
+#endif /* MRB_WITHOUT_FLOAT */
+
 MRB_END_DECL
 
 #endif  /* MRUBY_NUMERIC_H */
