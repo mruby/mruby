@@ -254,15 +254,15 @@ create_proc_from_string(mrb_state *mrb, char *s, mrb_int len, mrb_value binding,
     mrb_value str;
 
     if (file) {
-      str = mrb_format(mrb, " file %S line %S: %S",
-                       mrb_str_new_cstr(mrb, file),
-                       mrb_fixnum_value(p->error_buffer[0].lineno),
-                       mrb_str_new_cstr(mrb, p->error_buffer[0].message));
+      str = mrb_format(mrb, "file %s line %d: %s",
+                       file,
+                       p->error_buffer[0].lineno,
+                       p->error_buffer[0].message);
     }
     else {
-      str = mrb_format(mrb, " line %S: %S",
-                       mrb_fixnum_value(p->error_buffer[0].lineno),
-                       mrb_str_new_cstr(mrb, p->error_buffer[0].message));
+      str = mrb_format(mrb, "line %d: %s",
+                       p->error_buffer[0].lineno,
+                       p->error_buffer[0].message);
     }
     mrb_parser_free(p);
     mrbc_context_free(mrb, cxt);

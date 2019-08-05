@@ -146,7 +146,7 @@ mrb_file_s_rename(mrb_state *mrb, mrb_value obj)
 #endif
     mrb_locale_free(src);
     mrb_locale_free(dst);
-    mrb_sys_fail(mrb, RSTRING_PTR(mrb_format(mrb, "(%S, %S)", from, to)));
+    mrb_sys_fail(mrb, RSTRING_PTR(mrb_format(mrb, "(%v, %v)", from, to)));
   }
   mrb_locale_free(src);
   mrb_locale_free(dst);
@@ -307,7 +307,7 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
     }
     home = pwd->pw_dir;
     if (!mrb_file_is_absolute_path(home)) {
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "non-absolute home of ~%S", username);
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "non-absolute home of ~%v", username);
     }
   }
   home = mrb_locale_from_utf8(home, -1);
@@ -398,7 +398,7 @@ mrb_file_s_symlink(mrb_state *mrb, mrb_value klass)
   if (symlink(src, dst) == -1) {
     mrb_locale_free(src);
     mrb_locale_free(dst);
-    mrb_sys_fail(mrb, mrb_str_to_cstr(mrb, mrb_format(mrb, "(%S, %S)", from, to)));
+    mrb_sys_fail(mrb, RSTRING_PTR(mrb_format(mrb, "(%v, %v)", from, to)));
   }
   mrb_locale_free(src);
   mrb_locale_free(dst);

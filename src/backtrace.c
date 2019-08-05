@@ -246,9 +246,7 @@ mrb_unpack_backtrace(mrb_state *mrb, mrb_value backtrace)
     mrb_value btline;
 
     if (entry->filename == NULL) continue;
-    btline = mrb_format(mrb, "%S:%S",
-                              mrb_str_new_cstr(mrb, entry->filename),
-                              mrb_fixnum_value(entry->lineno));
+    btline = mrb_format(mrb, "%s:%d", entry->filename, entry->lineno);
     if (entry->method_id != 0) {
       mrb_str_cat_lit(mrb, btline, ":in ");
       mrb_str_cat_cstr(mrb, btline, mrb_sym2name(mrb, entry->method_id));

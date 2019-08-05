@@ -1226,7 +1226,7 @@ mrb_str_aref_m(mrb_state *mrb, mrb_value str)
 static mrb_noreturn void
 str_out_of_index(mrb_state *mrb, mrb_value index)
 {
-  mrb_raisef(mrb, E_INDEX_ERROR, "index %S out of string", index);
+  mrb_raisef(mrb, E_INDEX_ERROR, "index %v out of string", index);
 }
 
 static mrb_value
@@ -1286,7 +1286,7 @@ mrb_str_aset(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen, mrb_
       mrb_raise(mrb, E_INDEX_ERROR, "string not matched");
     case STR_CHAR_RANGE:
       if (len < 0) {
-        mrb_raisef(mrb, E_INDEX_ERROR, "negative length %S", alen);
+        mrb_raisef(mrb, E_INDEX_ERROR, "negative length %v", alen);
       }
       charlen = RSTRING_CHAR_LEN(str);
       if (beg < 0) { beg += charlen; }
@@ -1763,7 +1763,7 @@ mrb_str_index_m(mrb_state *mrb, mrb_value str)
 
       tmp = mrb_check_string_type(mrb, sub);
       if (mrb_nil_p(tmp)) {
-        mrb_raisef(mrb, E_TYPE_ERROR, "type mismatch: %S given", sub);
+        mrb_raisef(mrb, E_TYPE_ERROR, "type mismatch: %v given", sub);
       }
       sub = tmp;
     }
@@ -2014,7 +2014,7 @@ mrb_str_rindex(mrb_state *mrb, mrb_value str)
 
       tmp = mrb_check_string_type(mrb, sub);
       if (mrb_nil_p(tmp)) {
-        mrb_raisef(mrb, E_TYPE_ERROR, "type mismatch: %S given", sub);
+        mrb_raisef(mrb, E_TYPE_ERROR, "type mismatch: %v given", sub);
       }
       sub = tmp;
     }
@@ -2265,7 +2265,7 @@ mrb_str_len_to_inum(mrb_state *mrb, const char *str, mrb_int len, mrb_int base, 
       break;
     default:
       if (base < 2 || 36 < base) {
-        mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal radix %S", mrb_fixnum_value(base));
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal radix %i", base);
       }
       break;
   } /* end of switch (base) { */
@@ -2325,8 +2325,7 @@ mrb_str_len_to_inum(mrb_state *mrb, const char *str, mrb_int len, mrb_int base, 
       else
 #endif
       {
-        mrb_raisef(mrb, E_RANGE_ERROR, "string (%S) too big for integer",
-                   mrb_str_new(mrb, str, pend-str));
+        mrb_raisef(mrb, E_RANGE_ERROR, "string (%l) too big for integer", str, pend-str);
       }
     }
   }
@@ -2342,8 +2341,7 @@ mrb_str_len_to_inum(mrb_state *mrb, const char *str, mrb_int len, mrb_int base, 
   mrb_raise(mrb, E_ARGUMENT_ERROR, "string contains null byte");
   /* not reached */
  bad:
-  mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid string for number(%S)",
-             mrb_inspect(mrb, mrb_str_new(mrb, str, pend-str)));
+  mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid string for number(%!l)", str, pend-str);
   /* not reached */
   return mrb_fixnum_value(0);
 }
@@ -2419,7 +2417,7 @@ mrb_str_to_i(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "|i", &base);
   if (base < 0) {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal radix %S", mrb_fixnum_value(base));
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal radix %i", base);
   }
   return mrb_str_to_inum(mrb, self, base, FALSE);
 }
@@ -2444,7 +2442,7 @@ mrb_cstr_to_dbl(mrb_state *mrb, const char * p, mrb_bool badcheck)
   if (p == end) {
     if (badcheck) {
 bad:
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid string for float(%S)", mrb_str_new_cstr(mrb, p));
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid string for float(%s)", p);
       /* not reached */
     }
     return d;

@@ -529,8 +529,8 @@ utf8_to_uv(mrb_state *mrb, const char *p, long *lenp)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "malformed UTF-8 character");
   }
   if (n > *lenp) {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "malformed UTF-8 character (expected %S bytes, given %S bytes)",
-               mrb_fixnum_value(n), mrb_fixnum_value(*lenp));
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "malformed UTF-8 character (expected %d bytes, given %d bytes)",
+               n, *lenp);
   }
   *lenp = n--;
   if (n != 0) {
@@ -976,7 +976,7 @@ alias:
       case 4: t = 'L'; goto alias;
       case 8: t = 'Q'; goto alias;
       default:
-        mrb_raisef(mrb, E_RUNTIME_ERROR, "mruby-pack does not support sizeof(int) == %S", mrb_fixnum_value(sizeof(int)));
+        mrb_raisef(mrb, E_RUNTIME_ERROR, "mruby-pack does not support sizeof(int) == %d", (int)sizeof(int));
     }
     break;
   case 'i':
@@ -985,7 +985,7 @@ alias:
       case 4: t = 'l'; goto alias;
       case 8: t = 'q'; goto alias;
       default:
-        mrb_raisef(mrb, E_RUNTIME_ERROR, "mruby-pack does not support sizeof(int) == %S", mrb_fixnum_value(sizeof(int)));
+        mrb_raisef(mrb, E_RUNTIME_ERROR, "mruby-pack does not support sizeof(int) == %d", (int)sizeof(int));
     }
     break;
   case 'L':
@@ -1086,8 +1086,7 @@ alias:
       count = -1;
     } else if (ch == '_' || ch == '!' || ch == '<' || ch == '>') {
       if (strchr("sSiIlLqQ", (int)t) == NULL) {
-        char ch_str = (char)ch;
-        mrb_raisef(mrb, E_ARGUMENT_ERROR, "'%S' allowed only after types sSiIlLqQ", mrb_str_new(mrb, &ch_str, 1));
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "'%c' allowed only after types sSiIlLqQ", ch);
       }
       if (ch == '_' || ch == '!') {
         flags |= PACK_FLAG_s;
@@ -1156,7 +1155,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
 #endif
       else if (type == PACK_TYPE_STRING) {
         if (!mrb_string_p(o)) {
-          mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S into String", mrb_class_path(mrb, mrb_obj_class(mrb, o)));
+          mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %T into String", o);
         }
       }
 

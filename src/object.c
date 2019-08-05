@@ -297,17 +297,6 @@ mrb_init_object(mrb_state *mrb)
 }
 
 static mrb_value
-inspect_type(mrb_state *mrb, mrb_value val)
-{
-  if (mrb_type(val) == MRB_TT_FALSE || mrb_type(val) == MRB_TT_TRUE) {
-    return mrb_inspect(mrb, val);
-  }
-  else {
-    return mrb_str_new_cstr(mrb, mrb_obj_classname(mrb, val));
-  }
-}
-
-static mrb_value
 convert_type(mrb_state *mrb, mrb_value val, const char *tname, const char *method, mrb_bool raise)
 {
   mrb_sym m = 0;
@@ -315,7 +304,7 @@ convert_type(mrb_state *mrb, mrb_value val, const char *tname, const char *metho
   m = mrb_intern_cstr(mrb, method);
   if (!mrb_respond_to(mrb, val, m)) {
     if (raise) {
-      mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S into %S", inspect_type(mrb, val), mrb_str_new_cstr(mrb, tname));
+      mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %Y into %s", val, tname);
     }
     return mrb_nil_value();
   }
@@ -330,8 +319,7 @@ mrb_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, const char 
   if (mrb_type(val) == type) return val;
   v = convert_type(mrb, val, tname, method, TRUE);
   if (mrb_type(v) != type) {
-    mrb_raisef(mrb, E_TYPE_ERROR, "%S cannot be converted to %S by #%S", val,
-               mrb_str_new_cstr(mrb, tname), mrb_str_new_cstr(mrb, method));
+    mrb_raisef(mrb, E_TYPE_ERROR, "%v cannot be converted to %s by #%s", val, tname, method);
   }
   return v;
 }
@@ -405,13 +393,12 @@ mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t)
         else {
           etype = mrb_obj_classname(mrb, x);
         }
-        mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %S (expected %S)",
-                   mrb_str_new_cstr(mrb, etype), mrb_str_new_cstr(mrb, type->name));
+        mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %s (expected %s)",
+                   etype, type->name);
       }
       type++;
     }
-    mrb_raisef(mrb, E_TYPE_ERROR, "unknown type %S (%S given)",
-               mrb_fixnum_value(t), mrb_fixnum_value(mrb_type(x)));
+    mrb_raisef(mrb, E_TYPE_ERROR, "unknown type %d (%d given)", t, mrb_type(x));
   }
 }
 
@@ -499,15 +486,12 @@ mrb_to_int(mrb_state *mrb, mrb_value val)
 {
 
   if (!mrb_fixnum_p(val)) {
-    mrb_value type;
-
 #ifndef MRB_WITHOUT_FLOAT
     if (mrb_float_p(val)) {
       return mrb_flo_to_fixnum(mrb, val);
     }
 #endif
-    type = inspect_type(mrb, val);
-    mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S to Integer", type);
+    mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %Y to Integer", val);
   }
   return val;
 }
@@ -598,8 +582,7 @@ MRB_API mrb_value
 mrb_ensure_string_type(mrb_state *mrb, mrb_value str)
 {
   if (!mrb_string_p(str)) {
-    mrb_raisef(mrb, E_TYPE_ERROR, "%S cannot be converted to String",
-               inspect_type(mrb, str));
+    mrb_raisef(mrb, E_TYPE_ERROR, "%Y cannot be converted to String", str);
   }
   return str;
 }
@@ -615,8 +598,7 @@ MRB_API mrb_value
 mrb_ensure_array_type(mrb_state *mrb, mrb_value ary)
 {
   if (!mrb_array_p(ary)) {
-    mrb_raisef(mrb, E_TYPE_ERROR, "%S cannot be converted to Array",
-               inspect_type(mrb, ary));
+    mrb_raisef(mrb, E_TYPE_ERROR, "%Y cannot be converted to Array", ary);
   }
   return ary;
 }
@@ -632,8 +614,7 @@ MRB_API mrb_value
 mrb_ensure_hash_type(mrb_state *mrb, mrb_value hash)
 {
   if (!mrb_hash_p(hash)) {
-    mrb_raisef(mrb, E_TYPE_ERROR, "%S cannot be converted to Hash",
-               inspect_type(mrb, hash));
+    mrb_raisef(mrb, E_TYPE_ERROR, "%Y cannot be converted to Hash", hash);
   }
   return hash;
 }

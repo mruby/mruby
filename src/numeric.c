@@ -1257,7 +1257,7 @@ mrb_flo_to_fixnum(mrb_state *mrb, mrb_value x)
       z = (mrb_int)d;
     }
     else {
-      mrb_raisef(mrb, E_RANGE_ERROR, "number (%S) too big for integer", x);
+      mrb_raisef(mrb, E_RANGE_ERROR, "number (%v) too big for integer", x);
     }
   }
   return mrb_fixnum_value(z);
@@ -1389,7 +1389,7 @@ mrb_fixnum_to_str(mrb_state *mrb, mrb_value x, mrb_int base)
   mrb_int val = mrb_fixnum(x);
 
   if (base < 2 || 36 < base) {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid radix %S", mrb_fixnum_value(base));
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid radix %i", base);
   }
 
   if (val == 0) {
@@ -1501,9 +1501,7 @@ integral_cmp(mrb_state *mrb, mrb_value self)
 static void
 cmperr(mrb_state *mrb, mrb_value v1, mrb_value v2)
 {
-  mrb_raisef(mrb, E_ARGUMENT_ERROR, "comparison of %S with %S failed",
-             mrb_obj_value(mrb_class(mrb, v1)),
-             mrb_obj_value(mrb_class(mrb, v2)));
+  mrb_raisef(mrb, E_ARGUMENT_ERROR, "comparison of %t with %t failed", v1, v2);
 }
 
 static mrb_value

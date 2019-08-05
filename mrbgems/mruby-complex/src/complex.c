@@ -101,7 +101,7 @@ complex_to_f(mrb_state *mrb, mrb_value self)
   struct mrb_complex *p = complex_ptr(mrb, self);
 
   if (p->imaginary != 0) {
-    mrb_raisef(mrb, E_RANGE_ERROR, "can't convert %S into Float", self);
+    mrb_raisef(mrb, E_RANGE_ERROR, "can't convert %v into Float", self);
   }
 
   return mrb_float_value(mrb, p->real);
@@ -113,7 +113,7 @@ complex_to_i(mrb_state *mrb, mrb_value self)
   struct mrb_complex *p = complex_ptr(mrb, self);
 
   if (p->imaginary != 0) {
-    mrb_raisef(mrb, E_RANGE_ERROR, "can't convert %S into Float", self);
+    mrb_raisef(mrb, E_RANGE_ERROR, "can't convert %v into Float", self);
   }
   return mrb_int_value(mrb, p->real);
 }

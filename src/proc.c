@@ -153,8 +153,8 @@ mrb_proc_cfunc_env_get(mrb_state *mrb, mrb_int idx)
     mrb_raise(mrb, E_TYPE_ERROR, "Can't get cfunc env from cfunc Proc without REnv.");
   }
   if (idx < 0 || MRB_ENV_STACK_LEN(e) <= idx) {
-    mrb_raisef(mrb, E_INDEX_ERROR, "Env index out of range: %S (expected: 0 <= index < %S)",
-               mrb_fixnum_value(idx), mrb_fixnum_value(MRB_ENV_STACK_LEN(e)));
+    mrb_raisef(mrb, E_INDEX_ERROR, "Env index out of range: %i (expected: 0 <= index < %i)",
+               idx, MRB_ENV_STACK_LEN(e));
   }
 
   return e->stack[idx];

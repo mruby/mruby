@@ -325,7 +325,7 @@ mrb_obj_clone(mrb_state *mrb, mrb_value self)
   mrb_value clone;
 
   if (mrb_immediate_p(self)) {
-    mrb_raisef(mrb, E_TYPE_ERROR, "can't clone %S", self);
+    mrb_raisef(mrb, E_TYPE_ERROR, "can't clone %v", self);
   }
   if (mrb_type(self) == MRB_TT_SCLASS) {
     mrb_raise(mrb, E_TYPE_ERROR, "can't clone singleton class");
@@ -366,7 +366,7 @@ mrb_obj_dup(mrb_state *mrb, mrb_value obj)
   mrb_value dup;
 
   if (mrb_immediate_p(obj)) {
-    mrb_raisef(mrb, E_TYPE_ERROR, "can't dup %S", obj);
+    mrb_raisef(mrb, E_TYPE_ERROR, "can't dup %v", obj);
   }
   if (mrb_type(obj) == MRB_TT_SCLASS) {
     mrb_raise(mrb, E_TYPE_ERROR, "can't dup singleton class");
@@ -641,7 +641,7 @@ mrb_obj_remove_instance_variable(mrb_state *mrb, mrb_value self)
   mrb_iv_name_sym_check(mrb, sym);
   val = mrb_iv_remove(mrb, self, sym);
   if (mrb_undef_p(val)) {
-    mrb_name_error(mrb, sym, "instance variable %S not defined", mrb_sym2str(mrb, sym));
+    mrb_name_error(mrb, sym, "instance variable %n not defined", sym);
   }
   return val;
 }
@@ -649,7 +649,7 @@ mrb_obj_remove_instance_variable(mrb_state *mrb, mrb_value self)
 void
 mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value args)
 {
-  mrb_no_method_error(mrb, name, args, "undefined method '%S'", mrb_sym2str(mrb, name));
+  mrb_no_method_error(mrb, name, args, "undefined method '%n'", name);
 }
 
 /* 15.3.1.3.30 */

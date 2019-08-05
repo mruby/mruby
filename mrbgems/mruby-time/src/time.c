@@ -267,7 +267,7 @@ mrb_to_time_t(mrb_state *mrb, mrb_value obj, time_t *usec)
   return t;
 
 out_of_range:
-  mrb_raisef(mrb, E_ARGUMENT_ERROR, "%S out of Time range", obj);
+  mrb_raisef(mrb, E_ARGUMENT_ERROR, "%v out of Time range", obj);
 
   /* not reached */
   if (usec) { *usec = 0; }
@@ -293,7 +293,7 @@ time_update_datetime(mrb_state *mrb, struct mrb_time *self, int dealloc)
     mrb_sec sec = (mrb_sec)t;
 
     if (dealloc) mrb_free(mrb, self);
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "%S out of Time range", mrb_sec_value(mrb, sec));
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "%v out of Time range", mrb_sec_value(mrb, sec));
     /* not reached */
     return NULL;
   }

@@ -363,7 +363,7 @@ mrb_get_values_at(mrb_state *mrb, mrb_value obj, mrb_int olen, mrb_int argc, con
       }
     }
     else {
-      mrb_raisef(mrb, E_TYPE_ERROR, "invalid values selector: %S", argv[i]);
+      mrb_raisef(mrb, E_TYPE_ERROR, "invalid values selector: %v", argv[i]);
     }
   }
 

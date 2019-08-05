@@ -461,7 +461,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
       stack_init(mrb);
     }
     if (argc < 0) {
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative argc for funcall (%S)", mrb_fixnum_value(argc));
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative argc for funcall (%i)", argc);
     }
     c = mrb_class(mrb, self);
     m = mrb_method_search_vm(mrb, &c, mid);
@@ -878,13 +878,11 @@ argnum_error(mrb_state *mrb, mrb_int num)
     }
   }
   if (mrb->c->ci->mid) {
-    str = mrb_format(mrb, "'%S': wrong number of arguments (%S for %S)",
-                  mrb_sym2str(mrb, mrb->c->ci->mid),
-                  mrb_fixnum_value(argc), mrb_fixnum_value(num));
+    str = mrb_format(mrb, "'%n': wrong number of arguments (%i for %i)",
+                     mrb->c->ci->mid, argc, num);
   }
   else {
-    str = mrb_format(mrb, "wrong number of arguments (%S for %S)",
-                     mrb_fixnum_value(argc), mrb_fixnum_value(num));
+    str = mrb_format(mrb, "wrong number of arguments (%i for %i)", argc, num);
   }
   exc = mrb_exc_new_str(mrb, E_ARGUMENT_ERROR, str);
   mrb_exc_set(mrb, exc);
@@ -1868,7 +1866,7 @@ RETRY_TRY_BLOCK:
       mrb_value kdict = regs[mrb->c->ci->argc];
 
       if (!mrb_hash_p(kdict) || !mrb_hash_key_p(mrb, kdict, k)) {
-        mrb_value str = mrb_format(mrb, "missing keyword: %S", k);
+        mrb_value str = mrb_format(mrb, "missing keyword: %v", k);
         mrb_exc_set(mrb, mrb_exc_new_str(mrb, E_ARGUMENT_ERROR, str));
         goto L_RAISE;
       }
@@ -1895,7 +1893,7 @@ RETRY_TRY_BLOCK:
       if (mrb_hash_p(kdict) && !mrb_hash_empty_p(mrb, kdict)) {
         mrb_value keys = mrb_hash_keys(mrb, kdict);
         mrb_value key1 = RARRAY_PTR(keys)[0];
-        mrb_value str = mrb_format(mrb, "unknown keyword: %S", key1);
+        mrb_value str = mrb_format(mrb, "unknown keyword: %v", key1);
         mrb_exc_set(mrb, mrb_exc_new_str(mrb, E_ARGUMENT_ERROR, str));
         goto L_RAISE;
       }

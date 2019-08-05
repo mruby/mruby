@@ -40,7 +40,7 @@ int_chr_binary(mrb_state *mrb, mrb_value num)
   mrb_value str;
 
   if (cp < 0 || 0xff < cp) {
-    mrb_raisef(mrb, E_RANGE_ERROR, "%S out of char range", num);
+    mrb_raisef(mrb, E_RANGE_ERROR, "%v out of char range", num);
   }
   c = (char)cp;
   str = mrb_str_new(mrb, &c, 1);
@@ -59,7 +59,7 @@ int_chr_utf8(mrb_state *mrb, mrb_value num)
   uint32_t ascii_flag = 0;
 
   if (cp < 0 || 0x10FFFF < cp) {
-    mrb_raisef(mrb, E_RANGE_ERROR, "%S out of char range", num);
+    mrb_raisef(mrb, E_RANGE_ERROR, "%v out of char range", num);
   }
   if (cp < 0x80) {
     utf8[0] = (char)cp;
@@ -114,7 +114,7 @@ mrb_str_setbyte(mrb_state *mrb, mrb_value str)
 
   len = RSTRING_LEN(str);
   if (pos < -len || len <= pos)
-    mrb_raisef(mrb, E_INDEX_ERROR, "index %S out of string", mrb_fixnum_value(pos));
+    mrb_raisef(mrb, E_INDEX_ERROR, "index %i out of string", pos);
   if (pos < 0)
     pos += len;
 
@@ -583,8 +583,7 @@ str_tr(mrb_state *mrb, mrb_value str, mrb_value p1, mrb_value p2, mrb_bool squee
           continue;
         }
         if (c > 0x80) {
-          mrb_raisef(mrb, E_ARGUMENT_ERROR, "character (%S) out of range",
-                     mrb_fixnum_value((mrb_int)c));
+          mrb_raisef(mrb, E_ARGUMENT_ERROR, "character (%i) out of range", c);
         }
 	lastch = c;
 	s[i] = (char)c;
@@ -956,7 +955,7 @@ mrb_int_chr(mrb_state *mrb, mrb_value num)
   }
 #endif
   else {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "unknown encoding name - %S", enc);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "unknown encoding name - %v", enc);
   }
   /* not reached */
   return mrb_nil_value();

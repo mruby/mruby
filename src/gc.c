@@ -542,7 +542,7 @@ mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
         ttype != MRB_TT_ICLASS &&
         ttype != MRB_TT_ENV &&
         ttype != tt) {
-      mrb_raisef(mrb, E_TYPE_ERROR, "allocation failure of %S", mrb_obj_value(cls));
+      mrb_raisef(mrb, E_TYPE_ERROR, "allocation failure of %C", cls);
     }
   }
 

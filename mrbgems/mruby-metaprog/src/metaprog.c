@@ -414,7 +414,7 @@ check_cv_name_sym(mrb_state *mrb, mrb_sym id)
   mrb_int len;
   const char *name = mrb_sym2name_len(mrb, id, &len);
   if (!cv_name_p(mrb, name, len)) {
-    mrb_name_error(mrb, id, "'%S' is not allowed as a class variable name", mrb_sym2str(mrb, id));
+    mrb_name_error(mrb, id, "'%n' is not allowed as a class variable name", id);
   }
 }
 
@@ -454,12 +454,10 @@ mrb_mod_remove_cvar(mrb_state *mrb, mrb_value mod)
   if (!mrb_undef_p(val)) return val;
 
   if (mrb_cv_defined(mrb, mod, id)) {
-    mrb_name_error(mrb, id, "cannot remove %S for %S",
-                   mrb_sym2str(mrb, id), mod);
+    mrb_name_error(mrb, id, "cannot remove %n for %v", id, mod);
   }
 
-  mrb_name_error(mrb, id, "class variable %S not defined for %S",
-                 mrb_sym2str(mrb, id), mod);
+  mrb_name_error(mrb, id, "class variable %n not defined for %v", id, mod);
 
  /* not reached */
  return mrb_nil_value();
@@ -622,8 +620,7 @@ remove_method(mrb_state *mrb, mrb_value mod, mrb_sym mid)
     }
   }
 
-  mrb_name_error(mrb, mid, "method '%S' not defined in %S",
-                 mrb_sym2str(mrb, mid), mod);
+  mrb_name_error(mrb, mid, "method '%n' not defined in %v", mid, mod);
 }
 
 /* 15.2.2.4.41 */
