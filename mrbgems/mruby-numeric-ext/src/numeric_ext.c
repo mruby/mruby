@@ -2,13 +2,6 @@
 #include <mruby.h>
 #include <mruby/numeric.h>
 
-static inline mrb_int
-to_int(mrb_state *mrb, mrb_value x)
-{
-  x = mrb_to_int(mrb, x);
-  return mrb_fixnum(x);
-}
-
 /*
  *  call-seq:
  *     int.allbits?(mask)  ->  true or false
@@ -21,7 +14,7 @@ mrb_int_allbits(mrb_state *mrb, mrb_value self)
   mrb_int n, m;
 
   mrb_get_args(mrb, "i", &m);
-  n = to_int(mrb, self);
+  n = mrb_int(mrb, self);
   return mrb_bool_value((n & m) == m);
 }
 
@@ -37,7 +30,7 @@ mrb_int_anybits(mrb_state *mrb, mrb_value self)
   mrb_int n, m;
 
   mrb_get_args(mrb, "i", &m);
-  n = to_int(mrb, self);
+  n = mrb_int(mrb, self);
   return mrb_bool_value((n & m) != 0);
 }
 
@@ -53,7 +46,7 @@ mrb_int_nobits(mrb_state *mrb, mrb_value self)
   mrb_int n, m;
 
   mrb_get_args(mrb, "i", &m);
-  n = to_int(mrb, self);
+  n = mrb_int(mrb, self);
   return mrb_bool_value((n & m) == 0);
 }
 
