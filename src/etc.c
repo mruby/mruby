@@ -31,14 +31,12 @@ mrb_data_check_type(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
     const mrb_data_type *t2 = DATA_TYPE(obj);
 
     if (t2) {
-      mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %S (expected %S)",
-                 mrb_str_new_cstr(mrb, t2->struct_name), mrb_str_new_cstr(mrb, type->struct_name));
+      mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %s (expected %s)",
+                 t2->struct_name, type->struct_name);
     }
     else {
-      struct RClass *c = mrb_class(mrb, obj);
-
-      mrb_raisef(mrb, E_TYPE_ERROR, "uninitialized %S (expected %S)",
-                 mrb_obj_value(c), mrb_str_new_cstr(mrb, type->struct_name));
+      mrb_raisef(mrb, E_TYPE_ERROR, "uninitialized %t (expected %s)",
+                 obj, type->struct_name);
     }
   }
 }
@@ -67,7 +65,7 @@ mrb_obj_to_sym(mrb_state *mrb, mrb_value name)
 {
   if (mrb_symbol_p(name)) return mrb_symbol(name);
   if (mrb_string_p(name)) return mrb_intern_str(mrb, name);
-  mrb_raisef(mrb, E_TYPE_ERROR, "%S is not a symbol nor a string", mrb_inspect(mrb, name));
+  mrb_raisef(mrb, E_TYPE_ERROR, "%!v is not a symbol nor a string", name);
   return 0;  /* not reached */
 }
 

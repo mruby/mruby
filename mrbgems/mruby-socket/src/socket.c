@@ -171,7 +171,7 @@ mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
 
   error = getaddrinfo(hostname, servname, &hints, &res0);
   if (error) {
-    mrb_raisef(mrb, E_SOCKET_ERROR, "getaddrinfo: %S", mrb_str_new_cstr(mrb, gai_strerror(error)));
+    mrb_raisef(mrb, E_SOCKET_ERROR, "getaddrinfo: %s", gai_strerror(error));
   }
   mrb_cv_set(mrb, klass, mrb_intern_lit(mrb, "_lastai"), mrb_cptr_value(mrb, res0));
 
@@ -206,7 +206,7 @@ mrb_addrinfo_getnameinfo(mrb_state *mrb, mrb_value self)
   }
   error = getnameinfo((struct sockaddr *)RSTRING_PTR(sastr), (socklen_t)RSTRING_LEN(sastr), RSTRING_PTR(host), NI_MAXHOST, RSTRING_PTR(serv), NI_MAXSERV, (int)flags);
   if (error) {
-    mrb_raisef(mrb, E_SOCKET_ERROR, "getnameinfo: %S", mrb_str_new_cstr(mrb, gai_strerror(error)));
+    mrb_raisef(mrb, E_SOCKET_ERROR, "getnameinfo: %s", gai_strerror(error));
   }
   ary = mrb_ary_new_capa(mrb, 2);
   mrb_str_resize(mrb, host, strlen(RSTRING_PTR(host)));
@@ -476,7 +476,7 @@ mrb_basicsocket_setsockopt(mrb_state *mrb, mrb_value self)
     optname = mrb_fixnum(mrb_funcall(mrb, so, "optname", 0));
     optval = mrb_funcall(mrb, so, "data", 0);
   } else {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%S for 3)", mrb_fixnum_value(argc));
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%i for 3)", argc);
   }
 
   s = socket_fd(mrb, self);
@@ -702,7 +702,7 @@ mrb_socket_sockaddr_un(mrb_state *mrb, mrb_value klass)
 
   mrb_get_args(mrb, "S", &path);
   if ((size_t)RSTRING_LEN(path) > sizeof(sunp->sun_path) - 1) {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "too long unix socket path (max: %S bytes)", mrb_fixnum_value(sizeof(sunp->sun_path) - 1));
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "too long unix socket path (max: %d bytes)", (int)sizeof(sunp->sun_path) - 1);
   }
   s = mrb_str_buf_new(mrb, sizeof(struct sockaddr_un));
   sunp = (struct sockaddr_un *)RSTRING_PTR(s);

@@ -2373,7 +2373,7 @@ codegen(codegen_scope *s, node *tree, int val)
       mrb_value str;
       int sym;
 
-      str = mrb_format(mrb, "$%S", mrb_fixnum_value(nint(tree)));
+      str = mrb_format(mrb, "$%d", nint(tree));
       sym = new_sym(s, mrb_intern_str(mrb, str));
       genop_2(s, OP_GETGV, cursp(), sym);
       push();

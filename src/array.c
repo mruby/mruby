@@ -668,7 +668,7 @@ mrb_ary_set(mrb_state *mrb, mrb_value ary, mrb_int n, mrb_value val)
   if (n < 0) {
     n += len;
     if (n < 0) {
-      mrb_raisef(mrb, E_INDEX_ERROR, "index %S out of array", mrb_fixnum_value(n - len));
+      mrb_raisef(mrb, E_INDEX_ERROR, "index %i out of array", n - len);
     }
   }
   if (len <= n) {
@@ -700,7 +700,7 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
   ary_modify(mrb, a);
 
   /* len check */
-  if (len < 0) mrb_raisef(mrb, E_INDEX_ERROR, "negative length (%S)", mrb_fixnum_value(len));
+  if (len < 0) mrb_raisef(mrb, E_INDEX_ERROR, "negative length (%i)", len);
 
   /* range check */
   if (head < 0) {
@@ -734,7 +734,7 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
   }
   if (head >= alen) {
     if (head > ARY_MAX_SIZE - argc) {
-      mrb_raisef(mrb, E_INDEX_ERROR, "index %S too big", mrb_fixnum_value(head));
+      mrb_raisef(mrb, E_INDEX_ERROR, "index %i too big", head);
     }
     len = head + argc;
     if (len > ARY_CAPA(a)) {
@@ -750,7 +750,7 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
     mrb_int newlen;
 
     if (alen - len > ARY_MAX_SIZE - argc) {
-      mrb_raisef(mrb, E_INDEX_ERROR, "index %S too big", mrb_fixnum_value(alen + argc - len));
+      mrb_raisef(mrb, E_INDEX_ERROR, "index %i too big", alen + argc - len);
     }
     newlen = alen + argc - len;
     if (newlen > ARY_CAPA(a)) {
@@ -934,7 +934,7 @@ mrb_ary_aset(mrb_state *mrb, mrb_value self)
       mrb_ary_splice(mrb, self, i, len, v2);
       break;
     case MRB_RANGE_OUT:
-      mrb_raisef(mrb, E_RANGE_ERROR, "%S out of range", v1);
+      mrb_raisef(mrb, E_RANGE_ERROR, "%v out of range", v1);
       break;
     }
     return v2;

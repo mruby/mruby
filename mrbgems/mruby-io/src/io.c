@@ -127,7 +127,7 @@ mrb_io_modestr_to_flags(mrb_state *mrb, const char *mode)
       flags |= FMODE_WRITABLE | FMODE_APPEND | FMODE_CREATE;
       break;
     default:
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal access mode %S", mrb_str_new_cstr(mrb, mode));
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal access mode %s", mode);
   }
 
   while (*m) {
@@ -141,7 +141,7 @@ mrb_io_modestr_to_flags(mrb_state *mrb, const char *mode)
       case ':':
         /* XXX: PASSTHROUGH*/
       default:
-        mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal access mode %S", mrb_str_new_cstr(mrb, mode));
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal access mode %s", mode);
     }
   }
 
@@ -191,8 +191,7 @@ mrb_fd_cloexec(mrb_state *mrb, int fd)
 
   flags = fcntl(fd, F_GETFD);
   if (flags == -1) {
-    mrb_bug(mrb, "mrb_fd_cloexec: fcntl(%S, F_GETFD) failed: %S",
-      mrb_fixnum_value(fd), mrb_fixnum_value(errno));
+    mrb_bug(mrb, "mrb_fd_cloexec: fcntl(%d, F_GETFD) failed: %d", fd, errno);
   }
   if (fd <= 2) {
     flags2 = flags & ~FD_CLOEXEC; /* Clear CLOEXEC for standard file descriptors: 0, 1, 2. */
@@ -202,8 +201,7 @@ mrb_fd_cloexec(mrb_state *mrb, int fd)
   }
   if (flags != flags2) {
     if (fcntl(fd, F_SETFD, flags2) == -1) {
-      mrb_bug(mrb, "mrb_fd_cloexec: fcntl(%S, F_SETFD, %S) failed: %S",
-        mrb_fixnum_value(fd), mrb_fixnum_value(flags2), mrb_fixnum_value(errno));
+      mrb_bug(mrb, "mrb_fd_cloexec: fcntl(%d, F_SETFD, %d) failed: %d", fd, flags2, errno);
     }
   }
 #endif
@@ -381,7 +379,7 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
       CloseHandle(ifd[1]);
       CloseHandle(ofd[0]);
       CloseHandle(ofd[1]);
-      mrb_raisef(mrb, E_IO_ERROR, "command not found: %S", cmd);
+      mrb_raisef(mrb, E_IO_ERROR, "command not found: %v", cmd);
     }
     CloseHandle(pi.hThread);
     CloseHandle(ifd[0]);
@@ -494,7 +492,7 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
           close(fd);
         }
         mrb_proc_exec(pname);
-        mrb_raisef(mrb, E_IO_ERROR, "command not found: %S", cmd);
+        mrb_raisef(mrb, E_IO_ERROR, "command not found: %v", cmd);
         _exit(127);
       }
       result = mrb_nil_value();
@@ -783,9 +781,7 @@ reopen:
       }
     }
 
-    emsg = mrb_format(mrb, "open %S", mrb_str_new_cstr(mrb, pathname));
-    mrb_str_modify(mrb, mrb_str_ptr(emsg));
-    mrb_sys_fail(mrb, RSTRING_PTR(emsg));
+    mrb_sys_fail(mrb, RSTRING_PTR(mrb_format(mrb, "open %s", pathname)));
   }
   mrb_locale_free(fname);
 
@@ -1068,7 +1064,7 @@ mrb_io_s_select(mrb_state *mrb, mrb_value klass)
   mrb_get_args(mrb, "*", &argv, &argc);
 
   if (argc < 1 || argc > 4) {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%S for 1..4)", mrb_fixnum_value(argc));
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%i for 1..4)", argc);
   }
 
   timeout = mrb_nil_value();

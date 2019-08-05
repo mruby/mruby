@@ -31,22 +31,21 @@ mrb_f_caller(mrb_state *mrb, mrb_value self)
         }
       }
       else {
-        v = mrb_to_int(mrb, v);
-        lev = mrb_fixnum(v);
+        lev = mrb_int(mrb, v);
         if (lev < 0) {
-          mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative level (%S)", v);
+          mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative level (%v)", v);
         }
         n = bt_len - lev;
       }
       break;
     case 2:
-      lev = mrb_fixnum(mrb_to_int(mrb, v));
-      n = mrb_fixnum(mrb_to_int(mrb, length));
+      lev = mrb_int(mrb, v);
+      n = mrb_int(mrb, length);
       if (lev < 0) {
-        mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative level (%S)", v);
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative level (%v)", v);
       }
       if (n < 0) {
-        mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative size (%S)", length);
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative size (%v)", length);
       }
       break;
     default:

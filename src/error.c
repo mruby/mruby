@@ -151,14 +151,14 @@ exc_inspect(mrb_state *mrb, mrb_value exc)
   str = mrb_str_new_cstr(mrb, cname);
   if (mrb_string_p(file) && mrb_fixnum_p(line)) {
     if (append_mesg) {
-      str = mrb_format(mrb, "%S:%S: %S (%S)", file, line, mesg, str);
+      str = mrb_format(mrb, "%v:%v: %v (%v)", file, line, mesg, str);
     }
     else {
-      str = mrb_format(mrb, "%S:%S: %S", file, line, str);
+      str = mrb_format(mrb, "%v:%v: %v", file, line, str);
     }
   }
   else if (append_mesg) {
-    str = mrb_format(mrb, "%S: %S", str, mesg);
+    str = mrb_format(mrb, "%v: %v", str, mesg);
   }
   return str;
 }
@@ -523,7 +523,7 @@ exception_call:
 
       break;
     default:
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%S for 0..3)", mrb_fixnum_value(argc));
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%i for 0..3)", argc);
       break;
   }
   if (argc > 0) {
@@ -576,8 +576,7 @@ mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_value args, char const* fmt,
 MRB_API mrb_noreturn void
 mrb_frozen_error(mrb_state *mrb, void *frozen_obj)
 {
-  mrb_raisef(mrb, E_FROZEN_ERROR, "can't modify frozen %S",
-             mrb_obj_value(mrb_class(mrb, mrb_obj_value(frozen_obj))));
+  mrb_raisef(mrb, E_FROZEN_ERROR, "can't modify frozen %t", mrb_obj_value(frozen_obj));
 }
 
 void

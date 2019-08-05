@@ -29,8 +29,7 @@ unbound_method_bind(mrb_state *mrb, mrb_value self)
         if (mrb_type(owner) == MRB_TT_SCLASS) {
           mrb_raise(mrb, E_TYPE_ERROR, "singleton method called for a different object");
         } else {
-          const char *s = mrb_class_name(mrb, mrb_class_ptr(owner));
-          mrb_raisef(mrb, E_TYPE_ERROR, "bind argument must be an instance of %S", mrb_str_new_static(mrb, s, strlen(s)));
+          mrb_raisef(mrb, E_TYPE_ERROR, "bind argument must be an instance of %v", owner);
         }
   }
   me = method_object_alloc(mrb, mrb_class_get(mrb, "Method"));
@@ -289,7 +288,6 @@ static void
 mrb_search_method_owner(mrb_state *mrb, struct RClass *c, mrb_value obj, mrb_sym name, struct RClass **owner, struct RProc **proc, mrb_bool unbound)
 {
   mrb_value ret;
-  const char *s;
 
   *owner = c;
   *proc = method_search_vm(mrb, owner, name);
@@ -313,13 +311,7 @@ mrb_search_method_owner(mrb_state *mrb, struct RClass *c, mrb_value obj, mrb_sym
   return;
 
 name_error:
-  s = mrb_class_name(mrb, c);
-  mrb_raisef(
-    mrb, E_NAME_ERROR,
-    "undefined method '%S' for class '%S'",
-    mrb_sym2str(mrb, name),
-    mrb_str_new_static(mrb, s, strlen(s))
-  );
+  mrb_raisef(mrb, E_NAME_ERROR, "undefined method '%n' for class '%C'", name, c);
 }
 
 static mrb_value
