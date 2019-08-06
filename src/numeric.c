@@ -1498,7 +1498,7 @@ integral_cmp(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(n);
 }
 
-static void
+static mrb_noreturn void
 cmperr(mrb_state *mrb, mrb_value v1, mrb_value v2)
 {
   mrb_raisef(mrb, E_ARGUMENT_ERROR, "comparison of %t with %t failed", v1, v2);
