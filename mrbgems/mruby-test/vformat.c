@@ -166,7 +166,7 @@ vf_s_format(mrb_state *mrb, mrb_value klass)
 {
   mrb_value fmt_str, args[2];
   mrb_int argc = mrb_get_args(mrb, "S|oo", &fmt_str, args, args+1);
-  const char *fmt = mrb_string_value_cstr(mrb, &fmt_str);
+  const char *fmt = RSTRING_CSTR(mrb, fmt_str);
 
   VF_FORMAT_INIT(klass);
 

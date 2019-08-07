@@ -96,6 +96,7 @@ struct RString {
 #define RSTRING_CAPA(s)      RSTR_CAPA(RSTRING(s))
 #define RSTRING_END(s)       (RSTRING_PTR(s) + RSTRING_LEN(s))
 MRB_API mrb_int mrb_str_strlen(mrb_state*, struct RString*);
+#define RSTRING_CSTR(mrb,s)  mrb_string_cstr(mrb, s)
 
 #define MRB_STR_SHARED    1
 #define MRB_STR_FSHARED   2
@@ -337,16 +338,13 @@ MRB_API mrb_value mrb_string_type(mrb_state *mrb, mrb_value str);
 MRB_API mrb_value mrb_str_new_capa(mrb_state *mrb, size_t capa);
 MRB_API mrb_value mrb_str_buf_new(mrb_state *mrb, size_t capa);
 
-MRB_API const char *mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr);
+/* NULL terminated C string from mrb_value */
+MRB_API const char *mrb_string_cstr(mrb_state *mrb, mrb_value str);
+/* NULL terminated C string from mrb_value; `str` will be updated */
+MRB_API const char *mrb_string_value_cstr(mrb_state *mrb, mrb_value *str);
+/* obslete: use RSTRING_PTR() */
 MRB_API const char *mrb_string_value_ptr(mrb_state *mrb, mrb_value str);
-/*
- * Returns the length of the Ruby string.
- *
- *
- * @param [mrb_state] mrb The current mruby state.
- * @param [mrb_value] str Ruby string.
- * @return [mrb_int] The length of the passed in Ruby string.
- */
+/* obslete: use RSTRING_LEN() */
 MRB_API mrb_int mrb_string_value_len(mrb_state *mrb, mrb_value str);
 
 /*

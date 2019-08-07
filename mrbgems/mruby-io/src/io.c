@@ -332,8 +332,8 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
   mrb_get_args(mrb, "S|SH", &cmd, &mode, &opt);
   io = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
 
-  pname = mrb_string_value_cstr(mrb, &cmd);
-  flags = mrb_io_modestr_to_flags(mrb, mrb_string_value_cstr(mrb, &mode));
+  pname = RSTRING_CSTR(mrb, cmd);
+  flags = mrb_io_modestr_to_flags(mrb, RSTRING_CSTR(mrb, mode));
 
   doexec = (strcmp("-", pname) != 0);
   opt_in = option_to_fd(mrb, opt, "in");
@@ -428,8 +428,8 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
   mrb_get_args(mrb, "S|SH", &cmd, &mode, &opt);
   io = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
 
-  pname = mrb_string_value_cstr(mrb, &cmd);
-  flags = mrb_io_modestr_to_flags(mrb, mrb_string_value_cstr(mrb, &mode));
+  pname = RSTRING_CSTR(mrb, cmd);
+  flags = mrb_io_modestr_to_flags(mrb, RSTRING_CSTR(mrb, mode));
 
   doexec = (strcmp("-", pname) != 0);
   opt_in = option_to_fd(mrb, opt, "in");
@@ -626,7 +626,7 @@ mrb_io_initialize(mrb_state *mrb, mrb_value io)
     opt = mrb_hash_new(mrb);
   }
 
-  flags = mrb_io_modestr_to_flags(mrb, mrb_string_value_cstr(mrb, &mode));
+  flags = mrb_io_modestr_to_flags(mrb, RSTRING_CSTR(mrb, mode));
 
   mrb_iv_set(mrb, io, mrb_intern_cstr(mrb, "@buf"), mrb_str_new_cstr(mrb, ""));
 
@@ -780,7 +780,7 @@ reopen:
       }
     }
 
-    mrb_sys_fail(mrb, RSTRING_PTR(mrb_format(mrb, "open %s", pathname)));
+    mrb_sys_fail(mrb, RSTRING_CSTR(mrb, mrb_format(mrb, "open %s", pathname)));
   }
   mrb_locale_free(fname);
 
@@ -807,8 +807,8 @@ mrb_io_s_sysopen(mrb_state *mrb, mrb_value klass)
     perm = 0666;
   }
 
-  pat = mrb_string_value_cstr(mrb, &path);
-  flags = mrb_io_modestr_to_flags(mrb, mrb_string_value_cstr(mrb, &mode));
+  pat = RSTRING_CSTR(mrb, path);
+  flags = mrb_io_modestr_to_flags(mrb, RSTRING_CSTR(mrb, mode));
   modenum = mrb_io_flags_to_modenum(mrb, flags);
   fd = mrb_cloexec_open(mrb, pat, modenum, perm);
   return mrb_fixnum_value(fd);

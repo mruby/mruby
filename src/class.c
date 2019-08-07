@@ -770,7 +770,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         }
         if (i < argc) {
           ss = to_str(mrb, ARGV[arg_i++]);
-          *ps = mrb_string_value_cstr(mrb, &ss);
+          *ps = RSTRING_CSTR(mrb, ss);
           i++;
         }
       }

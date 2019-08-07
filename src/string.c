@@ -1060,6 +1060,7 @@ mrb_str_to_str(mrb_state *mrb, mrb_value str)
   }
 }
 
+/* obslete: use RSTRING_PTR() */
 MRB_API const char*
 mrb_string_value_ptr(mrb_state *mrb, mrb_value str)
 {
@@ -1067,6 +1068,7 @@ mrb_string_value_ptr(mrb_state *mrb, mrb_value str)
   return RSTRING_PTR(str);
 }
 
+/* obslete: use RSTRING_LEN() */
 MRB_API mrb_int
 mrb_string_value_len(mrb_state *mrb, mrb_value ptr)
 {
@@ -2352,6 +2354,7 @@ mrb_cstr_to_inum(mrb_state *mrb, const char *str, mrb_int base, mrb_bool badchec
   return mrb_str_len_to_inum(mrb, str, strlen(str), base, badcheck);
 }
 
+/* obslete: use RSTRING_CSTR() or mrb_string_cstr() */
 MRB_API const char*
 mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr)
 {
@@ -2366,16 +2369,23 @@ mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr)
   if (p[len] == '\0') {
     return p;
   }
-  else {
-    if (MRB_FROZEN_P(ps)) {
-      ps = str_new(mrb, p, len);
-      *ptr = mrb_obj_value(ps);
-    }
-    else {
-      mrb_str_modify(mrb, ps);
-    }
-    return RSTR_PTR(ps);
+  if (MRB_FROZEN_P(ps) || RSTR_CAPA(ps) == len) {
+    ps = str_new(mrb, NULL, len+1);
+    memcpy(RSTR_PTR(ps), p, len);
+    RSTR_SET_LEN(ps, len);
+    *ptr = mrb_obj_value(ps);
   }
+  else {
+    mrb_str_modify(mrb, ps);
+  }
+  RSTR_PTR(ps)[len] = '\0';
+  return RSTR_PTR(ps);
+}
+
+MRB_API const char*
+mrb_string_cstr(mrb_state *mrb, mrb_value str)
+{
+  return mrb_string_value_cstr(mrb, &str);
 }
 
 MRB_API mrb_value
@@ -2489,7 +2499,7 @@ bad:
 MRB_API double
 mrb_str_to_dbl(mrb_state *mrb, mrb_value str, mrb_bool badcheck)
 {
-  return mrb_cstr_to_dbl(mrb, mrb_string_value_cstr(mrb, &str), badcheck);
+  return mrb_cstr_to_dbl(mrb, RSTRING_CSTR(mrb, str), badcheck);
 }
 
 /* 15.2.10.5.39 */
