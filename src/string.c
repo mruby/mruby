@@ -1280,7 +1280,7 @@ mrb_str_aset(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen, mrb_
 {
   mrb_int beg, len, charlen;
 
-  replace = mrb_to_str(mrb, replace);
+  mrb_to_str(mrb, replace);
 
   switch (str_convert_range(mrb, str, indx, alen, &beg, &len)) {
     case STR_OUT_OF_RANGE:
@@ -2394,7 +2394,8 @@ mrb_str_to_inum(mrb_state *mrb, mrb_value str, mrb_int base, mrb_bool badcheck)
   const char *s;
   mrb_int len;
 
-  s = mrb_string_value_ptr(mrb, str);
+  mrb_to_str(mrb, str);
+  s = RSTRING_PTR(str);
   len = RSTRING_LEN(str);
   return mrb_str_len_to_inum(mrb, s, len, base, badcheck);
 }

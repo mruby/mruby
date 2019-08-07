@@ -1186,6 +1186,7 @@ MRB_API void mrb_gc_unregister(mrb_state *mrb, mrb_value obj);
 
 MRB_API mrb_value mrb_to_int(mrb_state *mrb, mrb_value val);
 #define mrb_int(mrb, val) mrb_fixnum(mrb_to_int(mrb, val))
+/* string type checking (contrary to the name, it doesn't convert) */
 MRB_API mrb_value mrb_to_str(mrb_state *mrb, mrb_value val);
 MRB_API void mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t);
 

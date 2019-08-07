@@ -499,30 +499,17 @@ mrb_notimplement_m(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
-#define CHECK_TYPE(mrb, val, t, c) do { \
-  if (mrb_type(val) != (t)) {\
-    mrb_raisef(mrb, E_TYPE_ERROR, "expected %l", c, sizeof(c "")-1);\
-  }\
-} while (0)
-
-static mrb_value
-to_str(mrb_state *mrb, mrb_value val)
-{
-  CHECK_TYPE(mrb, val, MRB_TT_STRING, "String");
-  return val;
-}
-
 static mrb_value
 to_ary(mrb_state *mrb, mrb_value val)
 {
-  CHECK_TYPE(mrb, val, MRB_TT_ARRAY, "Array");
+  mrb_check_type(mrb, val, MRB_TT_ARRAY);
   return val;
 }
 
 static mrb_value
 to_hash(mrb_state *mrb, mrb_value val)
 {
-  CHECK_TYPE(mrb, val, MRB_TT_HASH, "Hash");
+  mrb_check_type(mrb, val, MRB_TT_HASH);
   return val;
 }
 
@@ -686,7 +673,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
           }
         }
         if (i < argc) {
-          *p = to_str(mrb, ARGV[arg_i++]);
+          *p = mrb_to_str(mrb, ARGV[arg_i++]);
           i++;
         }
       }
@@ -747,7 +734,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
           }
         }
         if (i < argc) {
-          ss = to_str(mrb, ARGV[arg_i++]);
+          ss = mrb_to_str(mrb, ARGV[arg_i++]);
           *ps = RSTRING_PTR(ss);
           *pl = RSTRING_LEN(ss);
           i++;
@@ -769,7 +756,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
           }
         }
         if (i < argc) {
-          ss = to_str(mrb, ARGV[arg_i++]);
+          ss = mrb_to_str(mrb, ARGV[arg_i++]);
           *ps = RSTRING_CSTR(mrb, ss);
           i++;
         }
