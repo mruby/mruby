@@ -6,11 +6,11 @@ binaries.
 ## Prerequisites
 
 To compile mruby out of the source code you need the following tools:
-* C Compiler (i.e. ```gcc```)
-* Linker (i.e. ```gcc```)
-* Archive utility (i.e. ```ar```)
-* Parser generator (i.e. ```bison```)
-* Ruby 1.8 or 1.9 (i.e. ```ruby``` or ```jruby```)
+* C Compiler (e.g. ```gcc```)
+* Linker (e.g. ```gcc```)
+* Archive utility (e.g. ```ar```)
+* Parser generator (e.g. ```bison```)
+* Ruby 1.8 or 1.9 (e.g. ```ruby``` or ```jruby```)
 
 Optional:
 * GIT (to update mruby source and integrate mrbgems easier)
@@ -463,7 +463,7 @@ linking with *build/i386/lib/libmruby_core.a*
 ### Minimal Library
 
 To build a minimal mruby library you need to use the Cross Compiling
-feature due to the reason that there are functions (i.e. stdio) which
+feature due to the reason that there are functions (e.g. stdio) which
 can't be disabled for the main build.
 
 ```ruby
@@ -477,7 +477,7 @@ end
 
 This configuration defines a cross compile build called 'Minimal' which
 is using the GCC and compiles for the host machine. It also disables
-all usages of stdio and doesn't compile any binaries (i.e. mrbc).
+all usages of stdio and doesn't compile any binaries (e.g. mrbc).
 
 ## Test Environment
 
