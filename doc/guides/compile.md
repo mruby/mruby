@@ -10,7 +10,7 @@ To compile mruby out of the source code you need the following tools:
 * Linker (e.g. ```gcc```)
 * Archive utility (e.g. ```ar```)
 * Parser generator (e.g. ```bison```)
-* Ruby 1.8 or 1.9 (e.g. ```ruby``` or ```jruby```)
+* Ruby 2.0 or later (e.g. ```ruby``` or ```jruby```)
 
 Optional:
 * GIT (to update mruby source and integrate mrbgems easier)
