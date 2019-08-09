@@ -1,6 +1,7 @@
 #include <mruby.h>
 #include <mruby/class.h>
 #include <mruby/numeric.h>
+#include <math.h>
 
 #ifdef MRB_WITHOUT_FLOAT
 # error Complex conflicts 'MRB_WITHOUT_FLOAT' configuration in your 'build_config.rb'
@@ -10,6 +11,12 @@ struct mrb_complex {
   mrb_float real;
   mrb_float imaginary;
 };
+
+#ifdef MRB_USE_FLOAT
+#define F(x) x##f
+#else
+#define F(x) x
+#endif
 
 #if defined(MRB_64BIT) || defined(MRB_USE_FLOAT)
 
@@ -124,6 +131,93 @@ complex_to_c(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/* Arithmetic on (significand, exponent) pairs avoids premature overflow in
+   complex division */
+struct float_pair {
+  mrb_float s;
+  int x;
+};
+
+static void
+add_pair(struct float_pair *s, struct float_pair const *a,
+         struct float_pair const *b)
+{
+  if (b->s == 0.0F) {
+    *s = *a;
+  } else if (a->s == 0.0F) {
+    *s = *b;
+  } else if (a->x >= b->x) {
+    s->s = a->s + F(ldexp)(b->s, b->x - a->x);
+    s->x = a->x;
+  } else {
+    s->s = F(ldexp)(a->s, a->x - b->x) + b->s;
+    s->x = b->x;
+  }
+}
+
+static void
+mul_pair(struct float_pair *p, struct float_pair const *a,
+         struct float_pair const *b)
+{
+  p->s = a->s * b->s;
+  p->x = a->x + b->x;
+}
+
+static void
+div_pair(struct float_pair *q, struct float_pair const *a,
+         struct float_pair const *b)
+{
+  q->s = a->s / b->s;
+  q->x = a->x - b->x;
+}
+
+static mrb_value
+complex_div(mrb_state *mrb, mrb_value self)
+{
+  mrb_value rhs;
+  struct mrb_complex *a, *b;
+  struct float_pair ar, ai, br, bi;
+  struct float_pair br2, bi2;
+  struct float_pair div;
+  struct float_pair ar_br, ai_bi;
+  struct float_pair ai_br, ar_bi;
+  struct float_pair zr, zi;
+
+  mrb_get_args(mrb, "o", &rhs);
+  a = complex_ptr(mrb, self);
+  b = complex_ptr(mrb, rhs);
+
+  /* Split floating point components into significand and exponent */
+  ar.s = F(frexp)(a->real, &ar.x);
+  ai.s = F(frexp)(a->imaginary, &ai.x);
+  br.s = F(frexp)(b->real, &br.x);
+  bi.s = F(frexp)(b->imaginary, &bi.x);
+
+  /* Perform arithmetic on (significand, exponent) pairs to produce
+     the result: */
+
+  /* the divisor */
+  mul_pair(&br2, &br, &br);
+  mul_pair(&bi2, &bi, &bi);
+  add_pair(&div, &br2, &bi2);
+
+  /* real component */
+  mul_pair(&ar_br, &ar, &br);
+  mul_pair(&ai_bi, &ai, &bi);
+  add_pair(&zr, &ar_br, &ai_bi);
+  div_pair(&zr, &zr, &div);
+
+  /* imaginary component */
+  mul_pair(&ai_br, &ai, &br);
+  mul_pair(&ar_bi, &ar, &bi);
+  ar_bi.s = -ar_bi.s;
+  add_pair(&zi, &ai_br, &ar_bi);
+  div_pair(&zi, &zi, &div);
+
+  /* assemble the result */
+  return complex_new(mrb, F(ldexp)(zr.s, zr.x), F(ldexp)(zi.s, zi.x));
+}
+
 void mrb_mruby_complex_gem_init(mrb_state *mrb)
 {
   struct RClass *comp;
@@ -146,6 +240,7 @@ void mrb_mruby_complex_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, comp, "to_f", complex_to_f, MRB_ARGS_NONE());
   mrb_define_method(mrb, comp, "to_i", complex_to_i, MRB_ARGS_NONE());
   mrb_define_method(mrb, comp, "to_c", complex_to_c, MRB_ARGS_NONE());
+  mrb_define_method(mrb, comp, "__div__", complex_div, MRB_ARGS_REQ(1));
 }
 
 void

@@ -45,8 +45,7 @@ class Complex < Numeric
 
   def /(rhs)
     if rhs.is_a? Complex
-      div = rhs.real * rhs.real + rhs.imaginary * rhs.imaginary
-      Complex((real * rhs.real + imaginary * rhs.imaginary) / div, (rhs.real * imaginary - real * rhs.imaginary) / div)
+      __div__(rhs)
     elsif rhs.is_a? Numeric
       Complex(real / rhs, imaginary / rhs)
     end
@@ -62,7 +61,7 @@ class Complex < Numeric
   end
 
   def abs
-    Math.sqrt(abs2)
+    Math.hypot imaginary, real
   end
   alias_method :magnitude, :abs
 
