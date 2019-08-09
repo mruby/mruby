@@ -70,6 +70,14 @@ end
 assert 'Complex#abs' do
   assert_float Complex(-1).abs,        1
   assert_float Complex(3.0, -4.0).abs, 5.0
+  if 1e39.infinite? then
+    # MRB_USE_FLOAT in effect
+    exp = 125
+  else
+    exp = 1021
+  end
+  assert_true Complex(3.0*2**exp, 4.0*2**exp).abs.finite?
+  assert_float Complex(3.0*2**exp, 4.0*2**exp).abs, 5.0*2**exp
 end
 
 assert 'Complex#abs2' do
