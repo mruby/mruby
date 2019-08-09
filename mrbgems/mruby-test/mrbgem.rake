@@ -15,7 +15,12 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
   mrbtest_lib = libfile("#{build_dir}/mrbtest")
   mrbtest_objs = []
 
-  driver_objs = Dir.glob("#{dir}/*.{c,cpp,cxx,cc,m,asm,s,S}").map do |f|
+  generated_srcs = []
+  driver_objs = Dir.glob("#{dir}/*.{c,cpp,cxx,cc,m,asm,s,S,erb}").map do |f|
+    if File.extname(f) == ".erb"
+      f = f.ext
+      generated_srcs << f
+    end
     objfile(f.relative_path_from(dir).to_s.pathmap("#{build_dir}/%X"))
   end
 
@@ -134,6 +139,10 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
   end
 
   unless build.build_mrbtest_lib_only?
+    rule %r{^#{Regexp.escape dir}/.*\.c$} => "%p.erb" do |t|
+      MRuby::Command::Erb.new(self).run(t.name, t.source)
+    end
+
     file exec => [*driver_objs, mlib, mrbtest_lib, build.libmruby_static] do |t|
       gem_flags = build.gems.map { |g| g.linker.flags }
       gem_flags_before_libraries = build.gems.map { |g| g.linker.flags_before_libraries }
@@ -187,5 +196,9 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
       end
       f.puts %Q[}]
     end
+  end
+
+  task :clean do
+    FileUtils.rm_f generated_srcs, verbose: $verbose
   end
 end

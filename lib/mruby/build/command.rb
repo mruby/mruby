@@ -1,4 +1,5 @@
 require 'forwardable'
+autoload :ERB, 'erb'
 
 module MRuby
   class Command
@@ -326,6 +327,16 @@ module MRuby
         File.delete(out.path)
         exit(-1)
       end
+    end
+  end
+
+  class Command::Erb < Command
+    def run(outfile, infile)
+      FileUtils.mkdir_p File.dirname(outfile)
+      _pp "ERB", infile.relative_path, outfile.relative_path
+      erb = ERB.new(File.read(infile), nil, "%-")
+      erb.filename = infile
+      File.write(outfile, erb.result(instance_exec{binding}))
     end
   end
 

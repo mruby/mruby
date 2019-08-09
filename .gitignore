@@ -32,3 +32,5 @@ tags
 /doc/api
 
 /src/y.tab.c
+
+/mrbgems/mruby-test/vformat.c

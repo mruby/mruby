@@ -1,0 +1,185 @@
+<%# -*- mode: c -*- -%>
+<%
+native_types = {
+  c: {type: "char"          , code: "RSTRING_PTR(obj)[0]"},
+  d: {type: "int"           , code: "(int)mrb_fixnum(obj)"},
+  f: {type: "mrb_float"     , code: "mrb_float(obj)"},
+  i: {type: "mrb_int"       , code: "mrb_fixnum(obj)"},
+  l: {type: "size_t"        , code: "(size_t)mrb_fixnum(obj)"},
+  n: {type: "mrb_sym"       , code: "mrb_symbol(obj)"},
+  s: {type: "const char*"   , code: "str_ensure_null_termination(mrb, &obj)"},
+  C: {type: "struct RClass*", code: "mrb_class_ptr(obj)"},
+}
+arg_types = native_types.merge(v: {type: "mrb_value"})
+args_type_shift = arg_types.size
+vf_argc_max = 2
+-%>
+#include <string.h>
+#include <mruby.h>
+#include <mruby/class.h>
+#include <mruby/data.h>
+#include <mruby/string.h>
+
+#ifdef MRB_WITHOUT_FLOAT
+typedef mrb_int mrb_float;
+#define mrb_float(o) mrb_fixnum(o)
+#endif
+
+typedef enum {
+% arg_types.each_key do |spec|
+  ARG_<%=spec%>,
+% end
+} VFArgumentType;
+
+typedef struct {
+  VFArgumentType type;
+  union {
+% native_types.each do |spec, attrs|
+    <%=attrs[:type]%> <%=spec%>;
+% end
+  };
+  mrb_value obj;
+} VFNative;
+
+typedef struct {
+  VFArgumentType type;
+  union {
+% arg_types.each do |spec, attrs|
+    <%=attrs[:type]%> <%=spec%>;
+% end
+  };
+} VFArgument;
+
+static const char*
+str_ensure_null_termination(mrb_state *mrb, mrb_value *strp)
+{
+  const char *s = RSTRING_PTR(*strp);
+  mrb_int len = RSTRING_LEN(*strp);
+  if (s[len]) {
+    *strp = mrb_str_new(mrb, s, len);
+    return RSTRING_PTR(*strp);
+  }
+  else {
+    return s;
+  }
+}
+
+static void
+native_free(mrb_state *mrb, void *data)
+{
+  VFNative *native = (VFNative*)data;
+  mrb_gc_unregister(mrb, native->obj);
+  mrb_free(mrb, native);
+}
+
+static const struct mrb_data_type native_data_type = {
+  "TestVFormat::Native", native_free
+};
+
+static mrb_value
+native_initialize(mrb_state *mrb, mrb_value self)
+{
+  VFNative data, *datap;
+  mrb_int type;
+  mrb_value obj;
+
+  mrb_get_args(mrb, "io", &type, &obj);
+  data.type = (VFArgumentType)type;
+  switch (data.type) {
+% native_types.each do |spec, attrs|
+    case ARG_<%=spec%>: data.<%=spec%> = <%=attrs[:code]%>; break;
+% end
+    default: mrb_raisef(mrb, E_ARGUMENT_ERROR, "unknown type: %d", data.type);
+  }
+  data.obj = obj;
+  mrb_gc_register(mrb, data.obj);
+  datap = (VFNative*)mrb_malloc(mrb, sizeof(VFNative));
+  *datap = data;
+  mrb_data_init(self, datap, &native_data_type);
+  return self;
+}
+
+% native_types.each_key do |spec|
+static mrb_value
+native_s_<%=spec%>(mrb_state *mrb, mrb_value klass)
+{
+  mrb_value obj, type = mrb_fixnum_value(ARG_<%=spec%>);
+  mrb_get_args(mrb, "o", &obj);
+  return mrb_funcall(mrb, klass, "new", 2, type, obj);
+}
+
+% end
+static void
+args_from_objs(mrb_state *mrb, struct RClass *native_class, mrb_int vf_argc,
+               mrb_value *objs, VFArgument *vf_args, VFArgumentType *types)
+{
+  int i;
+  for (i = 0; i < vf_argc; i++) {
+    if (mrb_obj_is_instance_of(mrb, objs[i], native_class)) {
+      const VFNative *native = (VFNative*)DATA_PTR(objs[i]);
+      vf_args[i] = *(VFArgument*)native;
+      types[i] = native->type;
+    }
+    else {
+      vf_args[i].v = objs[i];
+      vf_args[i].type = types[i] = ARG_v;
+    }
+  }
+}
+
+static uint32_t
+args_type(mrb_int n_types, const VFArgumentType *types)
+{
+  uint32_t t = 0;
+  int i;
+  for (i = 0; i < n_types; i++) {
+    t = (t << <%=args_type_shift%>) | (1 << types[i]);
+  }
+  return t;
+}
+
+static mrb_value
+vf_s_format(mrb_state *mrb, mrb_value klass)
+{
+  VFArgument vf_args[<%=vf_argc_max%>];
+  VFArgumentType types[<%=vf_argc_max%>];
+  const char *fmt;
+  mrb_value *args;
+  mrb_int vf_argc;
+  mrb_int argc = mrb_get_args(mrb, "z*!", &fmt, &args, &vf_argc);
+
+  if (<%=vf_argc_max%> < vf_argc) {
+    mrb_raisef(mrb, E_ARGUMENT_ERROR,
+              "wrong number of arguments (given %i, expected 1..<%=vf_argc_max+1%>)", argc);
+  }
+  args_from_objs(mrb, mrb_class_get_under(mrb, mrb_class_ptr(klass), "Native"),
+                 vf_argc, args, vf_args, types);
+  switch (args_type(vf_argc, types)) {
+    case 0: return mrb_format(mrb, fmt);
+% specs = arg_types.map.with_index{|(s,_),i| [s,i]}
+% 1.upto(vf_argc_max) do |vf_argc|
+%   specs.repeated_permutation(vf_argc) do |perm|
+%     args_type = perm.inject(0){|t,(_,e)| (t << args_type_shift) | (1 << e)}
+%     fmt_param = perm.map.with_index{|(s,_),i| "vf_args[#{i}].#{s}"} * ", "
+    case <%=args_type%>: return mrb_format(mrb, fmt, <%=fmt_param%>);
+%   end
+% end
+    default: return mrb_nil_value();  /* not reached */
+  }
+}
+
+void
+mrb_init_test_vformat(mrb_state *mrb)
+{
+  struct RClass *vf, *n;
+
+  vf = mrb_define_module(mrb, "TestVFormat");
+  mrb_define_class_method(mrb, vf, "format", vf_s_format, MRB_ARGS_ARG(1,<%=vf_argc_max%>));
+
+  n = mrb_define_class_under(mrb, vf, "Native", mrb->object_class);
+  MRB_SET_INSTANCE_TT(n, MRB_TT_DATA);
+% native_types.each_key do |spec|
+  mrb_define_class_method(mrb, n, "<%=spec%>", native_s_<%=spec%>, MRB_ARGS_REQ(1));
+% end
+  mrb_define_method(mrb, n, "initialize", native_initialize, MRB_ARGS_REQ(2));
+}
