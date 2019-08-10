@@ -16,45 +16,6 @@ class String
   def relative_path
     relative_path_from(Dir.pwd)
   end
-
-  # Compatible with 1.9 on 1.8
-  unless (sprintf("%{a}", :a => 1) rescue false)
-    def %(params)
-      if params.is_a?(Hash)
-        str = self.clone
-        params.each do |k, v|
-          str.gsub!("%{#{k}}") { v }
-        end
-        str
-      else
-        if params.is_a?(Array)
-          sprintf(self, *params)
-        else
-          sprintf(self, params)
-        end
-      end
-    end
-  end
-end
-
-class Symbol
-  # Compatible with 1.9 on 1.8
-  unless method_defined?(:to_proc)
-    def to_proc
-      proc { |obj, *args| obj.send(self, *args) }
-    end
-  end
-end
-
-module Enumerable
-  # Compatible with 1.9 on 1.8
-  unless method_defined?(:each_with_object)
-    def each_with_object(memo)
-      return to_enum :each_with_object, memo unless block_given?
-      each { |obj| yield obj, memo }
-      memo
-    end
-  end
 end
 
 $pp_show = true
