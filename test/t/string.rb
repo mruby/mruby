@@ -560,6 +560,13 @@ assert('String#rindex(UTF-8)', '15.2.10.5.31') do
   assert_nil str.rindex('さ')
   assert_equal 12, str.rindex('ち')
   assert_equal 3, str.rindex('ち', 10)
+
+  broken = "\xf0☀\xf1☁\xf2☂\xf3☃\xf0☀\xf1☁\xf2☂\xf3☃"
+  assert_nil broken.rindex("\x81") # "\x81" is a part of "☁" ("\xe2\x98\x81")
+  assert_equal 11, broken.rindex("☁")
+  assert_equal 11, broken.rindex("☁", 12)
+  assert_equal 11, broken.rindex("☁", 11)
+  assert_equal  3, broken.rindex("☁", 10)
 end if UTF8STRING
 
 # assert('String#scan', '15.2.10.5.32') do
