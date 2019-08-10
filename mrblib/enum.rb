@@ -73,6 +73,8 @@ module Enumerable
   #
   # ISO 15.3.2.2.4
   def detect(ifnone=nil, &block)
+    return to_enum :detect, ifnone unless block
+
     self.each{|*val|
       if block.call(*val)
         return val.__svalue
@@ -282,6 +284,8 @@ module Enumerable
   #
   # ISO 15.3.2.2.16
   def partition(&block)
+    return to_enum :partition unless block
+
     ary_T = []
     ary_F = []
     self.each{|*val|
@@ -302,6 +306,8 @@ module Enumerable
   #
   # ISO 15.3.2.2.17
   def reject(&block)
+    return to_enum :reject unless block
+
     ary = []
     self.each{|*val|
       ary.push(val.__svalue) unless block.call(*val)
