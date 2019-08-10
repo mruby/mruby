@@ -557,10 +557,9 @@ end
 
 assert('String#rindex(UTF-8)', '15.2.10.5.31') do
   str = "こんにちは世界!\nこんにちは世界!"
-  assert_nil str.index('さ')
-  assert_equal 3, str.index('ち')
-  assert_equal 12, str.index('ち', 10)
-  assert_equal nil, str.index("さ")
+  assert_nil str.rindex('さ')
+  assert_equal 12, str.rindex('ち')
+  assert_equal 3, str.rindex('ち', 10)
 end if UTF8STRING
 
 # assert('String#scan', '15.2.10.5.32') do
