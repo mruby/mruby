@@ -337,17 +337,67 @@ chars2bytes(mrb_value s, mrb_int off, mrb_int idx)
 
 /* map byte offset to character index */
 static mrb_int
-bytes2chars(char *p, mrb_int bi)
+bytes2chars(char *p, mrb_int len, mrb_int bi)
 {
-  mrb_int i, b, n;
+  const char *e = p + (size_t)len;
+  const char *pivot = p + bi;
+  mrb_int i;
 
-  for (b=i=0; b<bi; i++) {
-    n = utf8len_codepage[(unsigned char)*p];
-    b += n;
-    p += n;
+  for (i = 0; p < pivot; i ++) {
+    p += utf8len(p, e);
   }
-  if (b != bi) return -1;
+  if (p != pivot) return -1;
   return i;
+}
+
+static const char *
+char_adjust(const char *beg, const char *end, const char *ptr)
+{
+  if ((ptr > beg || ptr < end) && (*ptr & 0xc0) == 0x80) {
+    const int utf8_adjust_max = 3;
+    const char *p;
+
+    if (ptr - beg > utf8_adjust_max) {
+      beg = ptr - utf8_adjust_max;
+    }
+
+    p = ptr;
+    while (p > beg) {
+      p --;
+      if ((*p & 0xc0) != 0x80) {
+        int clen = utf8len(p, end);
+        if (clen > ptr - p) return p;
+        break;
+      }
+    }
+  }
+
+  return ptr;
+}
+
+static const char *
+char_backtrack(const char *ptr, const char *end)
+{
+  if (ptr < end) {
+    const int utf8_bytelen_max = 4;
+    const char *p;
+
+    if (end - ptr > utf8_bytelen_max) {
+      ptr = end - utf8_bytelen_max;
+    }
+
+    p = end;
+    while (p > ptr) {
+      p --;
+      if ((*p & 0xc0) != 0x80) {
+        int clen = utf8len_codepage[(unsigned char)*p];
+        if (clen == end - p) { return p; }
+        break;
+      }
+    }
+  }
+
+  return end - 1;
 }
 
 static mrb_int
@@ -412,7 +462,9 @@ str_index_str_by_char(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
 #else
 #define RSTRING_CHAR_LEN(s) RSTRING_LEN(s)
 #define chars2bytes(p, off, ci) (ci)
-#define bytes2chars(p, bi) (bi)
+#define bytes2chars(p, end, bi) (bi)
+#define char_adjust(beg, end, ptr) (ptr)
+#define char_backtrack(ptr, end) ((end) - 1)
 #define BYTES_ALIGN_CHECK(pos)
 #define str_index_str_by_char(mrb, str, sub, pos) str_index_str(mrb, str, sub, pos)
 #endif
@@ -624,7 +676,7 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
 static mrb_int
 str_rindex(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
 {
-  char *s, *sbeg, *t;
+  const char *s, *sbeg, *t;
   struct RString *ps = mrb_str_ptr(str);
   mrb_int len = RSTRING_LEN(sub);
 
@@ -637,11 +689,12 @@ str_rindex(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
   s = RSTR_PTR(ps) + pos;
   t = RSTRING_PTR(sub);
   if (len) {
+    s = char_adjust(sbeg, sbeg + RSTR_LEN(ps), s);
     while (sbeg <= s) {
       if (memcmp(s, t, len) == 0) {
         return (mrb_int)(s - RSTR_PTR(ps));
       }
-      s--;
+      s = char_backtrack(sbeg, s);
     }
     return -1;
   }
@@ -2016,7 +2069,7 @@ mrb_str_rindex(mrb_state *mrb, mrb_value str)
     case MRB_TT_STRING:
       pos = str_rindex(mrb, str, sub, pos);
       if (pos >= 0) {
-        pos = bytes2chars(RSTRING_PTR(str), pos);
+        pos = bytes2chars(RSTRING_PTR(str), RSTRING_LEN(str), pos);
         BYTES_ALIGN_CHECK(pos);
         return mrb_fixnum_value(pos);
       }
