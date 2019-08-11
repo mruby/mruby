@@ -594,6 +594,7 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
     RSTR_SET_EMBED_FLAG(s1);
     memcpy(s1->as.ary, RSTR_PTR(s2), len);
     RSTR_SET_EMBED_LEN(s1, len);
+    RSTR_PTR(s1)[len] = '\0';
   }
   else {
     str_make_shared(mrb, s2, s1);
