@@ -268,10 +268,8 @@ mrb_gc_mark_gv(mrb_state *mrb)
 void
 mrb_gc_free_gv(mrb_state *mrb)
 {
-  if (mrb->globals) {
+  if (mrb->globals)
     iv_free(mrb, mrb->globals);
-    mrb->globals = NULL;
-  }
 }
 
 void
