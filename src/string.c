@@ -60,7 +60,7 @@ str_new(mrb_state *mrb, const char *p, size_t len)
     return str_new_static(mrb, p, len);
   }
   s = mrb_obj_alloc_string(mrb);
-  if (len <= RSTRING_EMBED_LEN_MAX) {
+  if (RSTR_EMBEDDABLE_P(len)) {
     RSTR_SET_EMBED_FLAG(s);
     RSTR_SET_EMBED_LEN(s, len);
     if (p) {
@@ -135,7 +135,7 @@ resize_capa(mrb_state *mrb, struct RString *s, size_t capacity)
     mrb_assert(capacity < MRB_INT_MAX);
 #endif
   if (RSTR_EMBED_P(s)) {
-    if (RSTRING_EMBED_LEN_MAX < capacity) {
+    if (!RSTR_EMBEDDABLE_P(capacity)) {
       char *const tmp = (char *)mrb_malloc(mrb, capacity+1);
       const mrb_int len = RSTR_EMBED_LEN(s);
       memcpy(tmp, s->as.ary, len);
@@ -478,7 +478,7 @@ mrb_str_byte_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
   struct RString *orig, *s;
 
   orig = mrb_str_ptr(str);
-  if (RSTR_EMBED_P(orig) || RSTR_LEN(orig) == 0 || len <= RSTRING_EMBED_LEN_MAX) {
+  if (RSTR_EMBED_P(orig) || RSTR_LEN(orig) == 0 || RSTR_EMBEDDABLE_P(len)) {
     s = str_new(mrb, RSTR_PTR(orig)+beg, len);
   }
   else {
@@ -588,7 +588,7 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
 
   RSTR_UNSET_FSHARED_FLAG(s1);
   RSTR_UNSET_NOFREE_FLAG(s1);
-  if (len <= RSTRING_EMBED_LEN_MAX) {
+  if (RSTR_EMBEDDABLE_P(len)) {
     RSTR_UNSET_SHARED_FLAG(s1);
     RSTR_UNSET_FSHARED_FLAG(s1);
     RSTR_SET_EMBED_FLAG(s1);
@@ -728,7 +728,7 @@ mrb_str_modify_keep_ascii(mrb_state *mrb, struct RString *s)
 
       p = RSTR_PTR(s);
       len = s->as.heap.len;
-      if (len < RSTRING_EMBED_LEN_MAX) {
+      if (RSTR_EMBEDDABLE_P(len)) {
         RSTR_SET_EMBED_FLAG(s);
         RSTR_SET_EMBED_LEN(s, len);
         ptr = RSTR_PTR(s);
@@ -754,7 +754,7 @@ mrb_str_modify_keep_ascii(mrb_state *mrb, struct RString *s)
     RSTR_UNSET_FSHARED_FLAG(s);
     RSTR_UNSET_NOFREE_FLAG(s);
     RSTR_UNSET_FSHARED_FLAG(s);
-    if (len < RSTRING_EMBED_LEN_MAX) {
+    if (RSTR_EMBEDDABLE_P(len)) {
       RSTR_SET_EMBED_FLAG(s);
       RSTR_SET_EMBED_LEN(s, len);
     }
