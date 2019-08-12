@@ -170,7 +170,7 @@ mrb_str_pool(mrb_state *mrb, mrb_value str)
       len = s->as.heap.len;
     }
 
-    if (len < RSTRING_EMBED_LEN_MAX) {
+    if (RSTR_EMBEDDABLE_P(len)) {
       RSTR_SET_EMBED_FLAG(ns);
       RSTR_SET_EMBED_LEN(ns, len);
       if (ptr) {
