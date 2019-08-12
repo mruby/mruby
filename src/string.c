@@ -1264,7 +1264,7 @@ str_replace_partial(mrb_state *mrb, mrb_value src, mrb_int pos, mrb_int end, mrb
 
   memmove(strp + newlen - (len - end), strp + end, len - end);
   if (!mrb_nil_p(rep)) {
-    memcpy(strp + pos, RSTRING_PTR(rep), replen);
+    memmove(strp + pos, RSTRING_PTR(rep), replen);
   }
   RSTR_SET_LEN(str, newlen);
   strp[newlen] = '\0';
