@@ -207,7 +207,7 @@ mrb_define_module(mrb_state *mrb, const char *name)
   return define_module(mrb, mrb_intern_cstr(mrb, name), mrb->object_class);
 }
 
-MRB_API struct RClass*
+struct RClass*
 mrb_vm_define_module(mrb_state *mrb, mrb_value outer, mrb_sym id)
 {
   check_if_class_or_module(mrb, outer);
@@ -304,7 +304,7 @@ mrb_class_inherited(mrb_state *mrb, struct RClass *super, struct RClass *klass)
   }
 }
 
-MRB_API struct RClass*
+struct RClass*
 mrb_vm_define_class(mrb_state *mrb, mrb_value outer, mrb_value super, mrb_sym id)
 {
   struct RClass *s;

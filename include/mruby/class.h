@@ -75,8 +75,8 @@ mrb_class(mrb_state *mrb, mrb_value v)
 
 MRB_API struct RClass* mrb_define_class_id(mrb_state*, mrb_sym, struct RClass*);
 MRB_API struct RClass* mrb_define_module_id(mrb_state*, mrb_sym);
-MRB_API struct RClass *mrb_vm_define_class(mrb_state*, mrb_value, mrb_value, mrb_sym);
-MRB_API struct RClass *mrb_vm_define_module(mrb_state*, mrb_value, mrb_sym);
+struct RClass *mrb_vm_define_class(mrb_state*, mrb_value, mrb_value, mrb_sym);
+struct RClass *mrb_vm_define_module(mrb_state*, mrb_value, mrb_sym);
 MRB_API void mrb_define_method_raw(mrb_state*, struct RClass*, mrb_sym, mrb_method_t);
 MRB_API void mrb_define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t func, mrb_aspec aspec);
 MRB_API void mrb_alias_method(mrb_state*, struct RClass *c, mrb_sym a, mrb_sym b);
