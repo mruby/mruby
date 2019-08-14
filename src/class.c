@@ -1487,7 +1487,7 @@ mrb_instance_new(mrb_state *mrb, mrb_value cv)
   mrb_int argc;
   mrb_sym init;
 
-  mrb_get_args(mrb, "*&", &argv, &argc, &blk);
+  mrb_get_args(mrb, "*!&", &argv, &argc, &blk);
   obj = mrb_instance_alloc(mrb, cv);
   init = mrb_intern_lit(mrb, "initialize");
   if (!mrb_func_basic_p(mrb, obj, init, mrb_bob_init)) {
