@@ -61,6 +61,17 @@ str_init_embed(struct RString *s, const char *p, size_t len)
   RSTR_SET_EMBED_LEN(s, len);
 }
 
+static void
+str_init(mrb_state *mrb, struct RString *s, const char *p, size_t len)
+{
+  if (RSTR_EMBEDDABLE_P(len)) {
+    str_init_embed(s, p, len);
+  }
+  else {
+    str_init_normal(mrb, s, p, len);
+  }
+}
+
 static struct RString*
 str_new_static(mrb_state *mrb, const char *p, size_t len)
 {
@@ -83,19 +94,14 @@ str_new(mrb_state *mrb, const char *p, size_t len)
 {
   struct RString *s;
 
+  if (len >= MRB_INT_MAX) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
+  }
   if (p && mrb_ro_data_p(p)) {
     return str_new_static(mrb, p, len);
   }
   s = mrb_obj_alloc_string(mrb);
-  if (RSTR_EMBEDDABLE_P(len)) {
-    str_init_embed(s, p, len);
-  }
-  else if (len >= MRB_INT_MAX) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
-  }
-  else {
-    str_init_normal(mrb, s, p, len);
-  }
+  str_init(mrb, s, p, len);
   return s;
 }
 
@@ -732,12 +738,7 @@ mrb_str_modify_keep_ascii(mrb_state *mrb, struct RString *s)
       char *p = RSTR_PTR(s);
       size_t len = (size_t)s->as.heap.len;
 
-      if (RSTR_EMBEDDABLE_P(len)) {
-        str_init_embed(s, p, len);
-      }
-      else {
-        str_init_normal(mrb, s, p, len);
-      }
+      str_init(mrb, s, p, len);
       str_decref(mrb, shared);
     }
     RSTR_UNSET_SHARED_FLAG(s);
@@ -749,12 +750,7 @@ mrb_str_modify_keep_ascii(mrb_state *mrb, struct RString *s)
 
     RSTR_UNSET_NOFREE_FLAG(s);
     RSTR_UNSET_FSHARED_FLAG(s);
-    if (RSTR_EMBEDDABLE_P(len)) {
-      str_init_embed(s, p, len);
-    }
-    else {
-      str_init_normal(mrb, s, p, len);
-    }
+    str_init(mrb, s, p, len);
     return;
   }
 }
