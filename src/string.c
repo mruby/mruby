@@ -21,7 +21,6 @@
 #include <mruby/range.h>
 #include <mruby/string.h>
 #include <mruby/numeric.h>
-#include <mruby/re.h>
 
 typedef struct mrb_shared_string {
   mrb_bool nofree : 1;
