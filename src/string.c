@@ -23,10 +23,9 @@
 #include <mruby/numeric.h>
 
 typedef struct mrb_shared_string {
-  mrb_bool nofree : 1;
   int refcnt;
-  char *ptr;
   mrb_int len;
+  char *ptr;
 } mrb_shared_string;
 
 const char mrb_digitmap[] = "0123456789abcdefghijklmnopqrstuvwxyz";
@@ -61,6 +60,15 @@ str_init_embed(struct RString *s, const char *p, size_t len)
 }
 
 static void
+str_init_nofree(struct RString *s, const char *p, size_t len)
+{
+  s->as.heap.ptr = (char *)p;
+  s->as.heap.len = (mrb_int)len;
+  s->as.heap.aux.capa = 0;             /* nofree */
+  RSTR_SET_NOFREE_FLAG(s);
+}
+
+static void
 str_init_shared(mrb_state *mrb, const struct RString *orig, struct RString *s, mrb_shared_string *shared)
 {
   if (shared) {
@@ -69,7 +77,6 @@ str_init_shared(mrb_state *mrb, const struct RString *orig, struct RString *s, m
   else {
     shared = (mrb_shared_string *)mrb_malloc(mrb, sizeof(mrb_shared_string));
     shared->refcnt = 2;
-    shared->nofree = !!RSTR_NOFREE_P(orig);
     shared->ptr = orig->as.heap.ptr;
     shared->len = orig->as.heap.len;
   }
@@ -108,10 +115,7 @@ str_new_static(mrb_state *mrb, const char *p, size_t len)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
   }
   s = mrb_obj_alloc_string(mrb);
-  s->as.heap.len = (mrb_int)len;
-  s->as.heap.aux.capa = 0;             /* nofree */
-  s->as.heap.ptr = (char *)p;
-  s->flags = MRB_STR_NOFREE;
+  str_init_nofree(s, p, len);
 
   return s;
 }
@@ -229,9 +233,7 @@ str_decref(mrb_state *mrb, mrb_shared_string *shared)
 {
   shared->refcnt--;
   if (shared->refcnt == 0) {
-    if (!shared->nofree) {
-      mrb_free(mrb, shared->ptr);
-    }
+    mrb_free(mrb, shared->ptr);
     mrb_free(mrb, shared);
   }
 }
@@ -465,7 +467,11 @@ str_make_shared(mrb_state *mrb, struct RString *orig, struct RString *s)
   mrb_int len = RSTR_LEN(orig);
 
   mrb_assert(!RSTR_EMBED_P(orig));
-  if (RSTR_SHARED_P(orig)) {
+  if (RSTR_NOFREE_P(orig)) {
+    str_init_nofree(s, orig->as.heap.ptr, len);
+    RSTR_UNSET_EMBED_FLAG(s);
+  }
+  else if (RSTR_SHARED_P(orig)) {
     str_init_shared(mrb, orig, s, orig->as.heap.aux.shared);
     RSTR_UNSET_EMBED_FLAG(s);
   }
@@ -478,7 +484,7 @@ str_make_shared(mrb_state *mrb, struct RString *orig, struct RString *s)
     RSTR_UNSET_EMBED_FLAG(s);
   }
   else {
-    if (!RSTR_NOFREE_P(orig) && orig->as.heap.aux.capa > orig->as.heap.len) {
+    if (orig->as.heap.aux.capa > orig->as.heap.len) {
       orig->as.heap.ptr = (char *)mrb_realloc(mrb, orig->as.heap.ptr, len+1);
     }
     str_init_shared(mrb, orig, s, NULL);
@@ -495,11 +501,11 @@ mrb_str_byte_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
   struct RString *orig, *s;
 
   orig = mrb_str_ptr(str);
-  if (RSTR_EMBED_P(orig) || RSTR_LEN(orig) == 0 || RSTR_EMBEDDABLE_P(len)) {
-    s = str_new(mrb, RSTR_PTR(orig)+beg, len);
+  s = mrb_obj_alloc_string(mrb);
+  if (RSTR_EMBEDDABLE_P(len)) {
+    str_init_embed(s, RSTR_PTR(orig)+beg, len);
   }
   else {
-    s = mrb_obj_alloc_string(mrb);
     str_make_shared(mrb, orig, s);
     s->as.heap.ptr += beg;
     s->as.heap.len = len;
@@ -606,7 +612,6 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
   RSTR_UNSET_FSHARED_FLAG(s1);
   RSTR_UNSET_NOFREE_FLAG(s1);
   if (RSTR_EMBEDDABLE_P(len)) {
-    RSTR_UNSET_SHARED_FLAG(s1);
     str_init_embed(s1, RSTR_PTR(s2), len);
   }
   else {
@@ -730,7 +735,7 @@ mrb_str_modify_keep_ascii(mrb_state *mrb, struct RString *s)
   if (RSTR_SHARED_P(s)) {
     mrb_shared_string *shared = s->as.heap.aux.shared;
 
-    if (shared->nofree == 0 && shared->refcnt == 1 && s->as.heap.ptr == shared->ptr) {
+    if (shared->refcnt == 1 && s->as.heap.ptr == shared->ptr) {
       s->as.heap.ptr = shared->ptr;
       s->as.heap.aux.capa = shared->len;
       RSTR_PTR(s)[s->as.heap.len] = '\0';
