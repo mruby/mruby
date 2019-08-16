@@ -956,7 +956,12 @@ gen_values(codegen_scope *s, node *t, int val, int extra)
         }
         else {
           pop_n(n);
-          genop_2(s, OP_ARRAY, cursp(), n);
+          if (n == 0 && is_splat) {
+            genop_1(s, OP_LOADNIL, cursp());
+          }
+          else {
+            genop_2(s, OP_ARRAY, cursp(), n);
+          }
           push();
           codegen(s, t->car, VAL);
           pop(); pop();

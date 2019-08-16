@@ -2441,7 +2441,12 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_ARYCAT, B) {
       mrb_value splat = mrb_ary_splat(mrb, regs[a+1]);
-      mrb_ary_concat(mrb, regs[a], splat);
+      if (mrb_nil_p(regs[a])) {
+        regs[a] = splat;
+      }
+      else {
+        mrb_ary_concat(mrb, regs[a], splat);
+      }
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
