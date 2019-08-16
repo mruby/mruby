@@ -2119,17 +2119,15 @@ inspect_main(mrb_state *mrb, mrb_value mod)
 
 static mrb_code new_iseq[] = {
   OP_ENTER, 0x0, 0x10, 0x1,  /* OP_ENTER     0:0:1:0:0:0:1 */
-  OP_LOADSELF, 0x4,          /* OP_LOADSELF  R4 */
-  OP_SEND, 0x4, 0x0, 0x0,    /* OP_SEND      R4  :allocate  0 */
-  OP_MOVE, 0x3, 0x4,         /* OP_MOVE      R0  R3 */
-  OP_LOADNIL, 0x5,           /* OP_LOADNIL   R5 */
-  OP_MOVE, 0x6, 0x1,         /* OP_MOVE      R6  R1 */
-  OP_ARYCAT, 0x5,            /* OP_ARYCAT    R5 */
-  OP_MOVE, 0x6, 0x2,         /* OP_MOVE      R6  R2 */
-  OP_SENDVB, 0x4, 0x1,       /* OP_SENDVB R4  :initialize */
-  OP_RETURN, 0x3             /* OP_RETURN R0 */
+  OP_LOADSELF, 0x3,          /* OP_LOADSELF  R3 */
+  OP_SEND, 0x3, 0x0, 0x0,    /* OP_SEND      R3  :allocate  0 */
+  OP_MOVE, 0x0, 0x3,         /* OP_MOVE      R0  R3 */
+  OP_MOVE, 0x4, 0x1,         /* OP_MOVE      R4  R1 */
+  OP_MOVE, 0x5, 0x2,         /* OP_MOVE      R5  R2 */
+  OP_SENDVB, 0x3, 0x1,       /* OP_SENDVB    R4  :initialize */
+  OP_RETURN, 0x0             /* OP_RETURN    R0 */
 };
-    
+
 static void
 init_class_new(mrb_state *mrb, struct RClass *cls)
 {
@@ -2146,8 +2144,8 @@ init_class_new(mrb_state *mrb, struct RClass *cls)
   new_irep->flags = MRB_ISEQ_NO_FREE;
   new_irep->iseq = new_iseq;
   new_irep->ilen = sizeof(new_iseq);
-  new_irep->nregs = 7;
-  new_irep->nlocals = 4;
+  new_irep->nregs = 6;
+  new_irep->nlocals = 3;
   p = mrb_proc_new(mrb, new_irep);
   MRB_METHOD_FROM_PROC(m, p);
   mrb_define_method_raw(mrb, cls, mrb_intern_lit(mrb, "new"), m);
