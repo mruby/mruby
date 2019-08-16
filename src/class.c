@@ -1813,24 +1813,28 @@ mrb_mod_alias(mrb_state *mrb, mrb_value mod)
   return mod;
 }
 
+static void
+undef_method(mrb_state *mrb, struct RClass *c, mrb_sym a)
+{
+  mrb_method_t m;
+
+  MRB_METHOD_FROM_PROC(m, NULL);
+  mrb_define_method_raw(mrb, c, a, m);
+}
+
 void
 mrb_undef_method_id(mrb_state *mrb, struct RClass *c, mrb_sym a)
 {
   if (!mrb_obj_respond_to(mrb, c, a)) {
     mrb_name_error(mrb, a, "undefined method '%n' for class '%C'", a, c);
   }
-  else {
-    mrb_method_t m;
-
-    MRB_METHOD_FROM_PROC(m, NULL);
-    mrb_define_method_raw(mrb, c, a, m);
-  }
+  undef_method(mrb, c, a);
 }
 
 MRB_API void
 mrb_undef_method(mrb_state *mrb, struct RClass *c, const char *name)
 {
-  mrb_undef_method_id(mrb, c, mrb_intern_cstr(mrb, name));
+  undef_method(mrb, c, mrb_intern_cstr(mrb, name));
 }
 
 MRB_API void
@@ -2161,7 +2165,6 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_class_method(mrb, cls, "new",               mrb_class_new_class,      MRB_ARGS_OPT(1));
   mrb_define_method(mrb, cls, "allocate",                mrb_instance_alloc,       MRB_ARGS_NONE());
   mrb_define_method(mrb, cls, "superclass",              mrb_class_superclass,     MRB_ARGS_NONE()); /* 15.2.3.3.4 */
-  mrb_define_method(mrb, cls, "new",                     mrb_instance_new,         MRB_ARGS_ANY());  /* 15.2.3.3.3 */
   mrb_define_method(mrb, cls, "initialize",              mrb_class_initialize,     MRB_ARGS_OPT(1)); /* 15.2.3.3.1 */
   mrb_define_method(mrb, cls, "inherited",               mrb_bob_init,             MRB_ARGS_REQ(1));
 
