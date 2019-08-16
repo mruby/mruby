@@ -15,6 +15,7 @@
 #include <mruby/error.h>
 #include <mruby/data.h>
 #include <mruby/istruct.h>
+#include <mruby/opcode.h>
 
 KHASH_DEFINE(mt, mrb_sym, mrb_method_t, TRUE, kh_int_hash_func, kh_int_hash_equal)
 
@@ -2116,6 +2117,42 @@ inspect_main(mrb_state *mrb, mrb_value mod)
   return mrb_str_new_lit(mrb, "main");
 }
 
+static mrb_code new_iseq[] = {
+  OP_ENTER, 0x0, 0x10, 0x1,  /* OP_ENTER     0:0:1:0:0:0:1 */
+  OP_LOADSELF, 0x4,          /* OP_LOADSELF  R4 */
+  OP_SEND, 0x4, 0x0, 0x0,    /* OP_SEND      R4  :allocate  0 */
+  OP_MOVE, 0x3, 0x4,         /* OP_MOVE      R0  R3 */
+  OP_LOADNIL, 0x5,           /* OP_LOADNIL   R5 */
+  OP_MOVE, 0x6, 0x1,         /* OP_MOVE      R6  R1 */
+  OP_ARYCAT, 0x5,            /* OP_ARYCAT    R5 */
+  OP_MOVE, 0x6, 0x2,         /* OP_MOVE      R6  R2 */
+  OP_SENDVB, 0x4, 0x1,       /* OP_SENDVB R4  :initialize */
+  OP_RETURN, 0x3             /* OP_RETURN R0 */
+};
+    
+static void
+init_class_new(mrb_state *mrb, struct RClass *cls)
+{
+  struct RProc *p;
+  mrb_method_t m;
+  mrb_irep *new_irep = (mrb_irep*)mrb_malloc(mrb, sizeof(mrb_irep));
+  static const mrb_irep mrb_irep_zero = { 0 };
+
+  *new_irep = mrb_irep_zero;
+  new_irep->syms = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym)*2);
+  new_irep->syms[0] = mrb_intern_lit(mrb, "allocate");
+  new_irep->syms[1] = mrb_intern_lit(mrb, "initialize");
+  new_irep->slen = 2;
+  new_irep->flags = MRB_ISEQ_NO_FREE;
+  new_irep->iseq = new_iseq;
+  new_irep->ilen = sizeof(new_iseq);
+  new_irep->nregs = 7;
+  new_irep->nlocals = 4;
+  p = mrb_proc_new(mrb, new_irep);
+  MRB_METHOD_FROM_PROC(m, p);
+  mrb_define_method_raw(mrb, cls, mrb_intern_lit(mrb, "new"), m);
+}
+
 void
 mrb_init_class(mrb_state *mrb)
 {
@@ -2168,6 +2205,8 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, cls, "initialize",              mrb_class_initialize,     MRB_ARGS_OPT(1)); /* 15.2.3.3.1 */
   mrb_define_method(mrb, cls, "inherited",               mrb_bob_init,             MRB_ARGS_REQ(1));
 
+  init_class_new(mrb, cls);
+  
   MRB_SET_INSTANCE_TT(mod, MRB_TT_MODULE);
   mrb_define_method(mrb, mod, "extend_object",           mrb_mod_extend_object,    MRB_ARGS_REQ(1)); /* 15.2.2.4.25 */
   mrb_define_method(mrb, mod, "extended",                mrb_bob_init,             MRB_ARGS_REQ(1)); /* 15.2.2.4.26 */

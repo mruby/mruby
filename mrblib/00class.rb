@@ -1,11 +1,3 @@
-class Class
-  def new(*args, &block)
-    obj = self.allocate
-    obj.initialize(*args, &block)
-    obj
-  end
-end
-
 class Module
    # 15.2.2.4.12
   def attr_accessor(*names)
