@@ -1578,18 +1578,17 @@ codegen(codegen_scope *s, node *tree, int val)
       }
       codegen(s, tree->car, VAL);
       pop();
-      pos1 = genjmp2(s, OP_JMPNOT, cursp(), 0, val);
-
-      codegen(s, tree->cdr->car, val);
-      if (elsepart) {
-        if (val) pop();
-        pos2 = genjmp(s, OP_JMP, 0);
-        dispatch(s, pos1);
-        codegen(s, elsepart, val);
-        dispatch(s, pos2);
-      }
-      else {
-        if (val) {
+      if (tree->cdr->car) {
+        pos1 = genjmp2(s, OP_JMPNOT, cursp(), 0, val);
+        codegen(s, tree->cdr->car, val);
+        if (elsepart) {
+          if (val) pop();
+          pos2 = genjmp(s, OP_JMP, 0);
+          dispatch(s, pos1);
+          codegen(s, elsepart, val);
+          dispatch(s, pos2);
+        }
+        else if (val) {
           pop();
           pos2 = genjmp(s, OP_JMP, 0);
           dispatch(s, pos1);
@@ -1599,6 +1598,17 @@ codegen(codegen_scope *s, node *tree, int val)
         }
         else {
           dispatch(s, pos1);
+        }
+      }
+      else {                    /* empty then-part */
+        if (elsepart) {
+          pos1 = genjmp2(s, OP_JMPIF, cursp(), 0, val);
+          codegen(s, elsepart, val);
+          dispatch(s, pos1);
+        }
+        else if (val) {
+          genop_1(s, OP_LOADNIL, cursp());
+          push();
         }
       }
     }
