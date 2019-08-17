@@ -10,16 +10,16 @@ class Array
   # and pass the respective element.
   #
   # ISO 15.2.12.5.10
-  def each(&block)
-    return to_enum :each unless block
+  # def each(&block)
+  #   return to_enum :each unless block
 
-    idx = 0
-    while idx < length
-      block.call(self[idx])
-      idx += 1
-    end
-    self
-  end
+  #   idx = 0
+  #   while idx < length
+  #     block.call(self[idx])
+  #     idx += 1
+  #   end
+  #   self
+  # end
 
   ##
   # Calls the given block for each element of +self+
