@@ -33,7 +33,9 @@ struct RArray {
       } aux;
       mrb_value *ptr;
     } heap;
+#if defined(__cplusplus)
     mrb_value ary[MRB_ARY_EMBED_LEN_MAX];
+#endif
   } as;
 };
 
@@ -46,7 +48,11 @@ struct RArray {
 #define ARY_UNSET_EMBED_FLAG(a) ((a)->flags &= ~(MRB_ARY_EMBED_MASK))
 #define ARY_EMBED_LEN(a) ((mrb_int)(((a)->flags & MRB_ARY_EMBED_MASK) - 1))
 #define ARY_SET_EMBED_LEN(a,len) ((a)->flags = ((a)->flags&~MRB_ARY_EMBED_MASK) | ((uint32_t)(len) + 1))
+#if defined(__cplusplus)
 #define ARY_EMBED_PTR(a) (a)->as.ary
+#else
+#define ARY_EMBED_PTR(a) ((mrb_value*)(&(a)->as))
+#endif
 
 #define ARY_LEN(a) (ARY_EMBED_P(a)?ARY_EMBED_LEN(a):(a)->as.heap.len)
 #define ARY_PTR(a) (ARY_EMBED_P(a)?ARY_EMBED_PTR(a):(a)->as.heap.ptr)
