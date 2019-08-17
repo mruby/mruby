@@ -34,6 +34,9 @@ struct RString {
   } as;
 };
 
+#define RSTR_SET_TYPE_FLAG(s, type) (RSTR_UNSET_TYPE_FLAG(s), (s)->flags |= MRB_STR_##type)
+#define RSTR_UNSET_TYPE_FLAG(s) ((s)->flags &= ~(MRB_STR_TYPE_MASK|MRB_STR_EMBED_LEN_MASK))
+
 #define RSTR_EMBED_P(s) ((s)->flags & MRB_STR_EMBED)
 #define RSTR_SET_EMBED_FLAG(s) ((s)->flags |= MRB_STR_EMBED)
 #define RSTR_UNSET_EMBED_FLAG(s) ((s)->flags &= ~(MRB_STR_EMBED|MRB_STR_EMBED_LEN_MASK))
@@ -103,11 +106,14 @@ MRB_API mrb_int mrb_str_strlen(mrb_state*, struct RString*);
 #define MRB_STR_SHARED    1
 #define MRB_STR_FSHARED   2
 #define MRB_STR_NOFREE    4
-#define MRB_STR_POOL      8
-#define MRB_STR_ASCII    16
-#define MRB_STR_EMBED    32
-#define MRB_STR_EMBED_LEN_MASK 0x7c0
+#define MRB_STR_EMBED     8  /* type flags up to here */
+#define MRB_STR_POOL     16  /* status flags from here */
+#define MRB_STR_ASCII    32
 #define MRB_STR_EMBED_LEN_SHIFT 6
+#define MRB_STR_EMBED_LEN_BITSIZE 5
+#define MRB_STR_EMBED_LEN_MASK (((1 << MRB_STR_EMBED_LEN_BITSIZE) - 1) << MRB_STR_EMBED_LEN_SHIFT)
+#define MRB_STR_TYPE_MASK (MRB_STR_POOL - 1)
+
 
 void mrb_gc_free_str(mrb_state*, struct RString*);
 
