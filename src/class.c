@@ -1537,7 +1537,10 @@ mrb_class_new_class(mrb_state *mrb, mrb_value cv)
   }
   new_class = mrb_obj_value(mrb_class_new(mrb, mrb_class_ptr(super)));
   mid = mrb_intern_lit(mrb, "initialize");
-  if (!mrb_func_basic_p(mrb, new_class, mid, mrb_bob_init)) {
+  if (mrb_func_basic_p(mrb, new_class, mid, mrb_class_initialize)) {
+    mrb_class_initialize(mrb, new_class);
+  }
+  else {
     mrb_funcall_with_block(mrb, new_class, mid, n, &super, blk);
   }
   mrb_class_inherited(mrb, mrb_class_ptr(super), mrb_class_ptr(new_class));
