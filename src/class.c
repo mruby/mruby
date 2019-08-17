@@ -674,7 +674,8 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
           }
         }
         if (i < argc) {
-          *p = mrb_to_str(mrb, ARGV[arg_i++]);
+          *p = ARGV[arg_i++];
+          mrb_to_str(mrb, *p);
           i++;
         }
       }
@@ -735,7 +736,8 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
           }
         }
         if (i < argc) {
-          ss = mrb_to_str(mrb, ARGV[arg_i++]);
+          ss = ARGV[arg_i++];
+          mrb_to_str(mrb, ss);
           *ps = RSTRING_PTR(ss);
           *pl = RSTRING_LEN(ss);
           i++;
@@ -757,7 +759,8 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
           }
         }
         if (i < argc) {
-          ss = mrb_to_str(mrb, ARGV[arg_i++]);
+          ss = ARGV[arg_i++];
+          mrb_to_str(mrb, ss);
           *ps = RSTRING_CSTR(mrb, ss);
           i++;
         }
