@@ -1,5 +1,5 @@
-/*
-** mruby/data.h - Data class
+/**
+** @file mruby/data.h - Data class
 **
 ** See Copyright Notice in mruby.h
 */

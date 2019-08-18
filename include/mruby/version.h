@@ -1,5 +1,5 @@
-/*
-** mruby/version.h - mruby version definition
+/**
+** @file mruby/version.h - mruby version definition
 **
 ** See Copyright Notice in mruby.h
 */

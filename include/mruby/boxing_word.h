@@ -1,5 +1,5 @@
-/*
-** mruby/boxing_word.h - word boxing mrb_value definition
+/**
+** @file mruby/boxing_word.h - word boxing mrb_value definition
 **
 ** See Copyright Notice in mruby.h
 */
