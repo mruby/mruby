@@ -31,6 +31,7 @@ with `"`, either `OP_EXT1` or `OP_EXT2` or `OP_EXT2` can be prefixed.
 
 ## table.1 Instruction Table
 
+```
 |Instruction Name |Operand type |Semantics        
 |-----------------|-------------|-----------------
 |OP_NOP           | -           |                 
@@ -125,3 +126,4 @@ with `"`, either `OP_EXT1` or `OP_EXT2` or `OP_EXT2` can be prefixed.
 |OP_EXT2          |-            |make 2nd operand 16bit
 |OP_EXT3          |-            |make 1st and 2nd operands 16bit
 |OP_STOP          |-            |stop VM
+```

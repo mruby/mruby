@@ -1,7 +1,8 @@
 SRCS=$(shell find src -name '*.c')
 HEADERS=$(shell find include -name '*.h')
+MDDOCS=$(shell find doc -name '*.md')
 
-doxygen : Doxyfile $(SRCS) $(HEADERS)
+doxygen : Doxyfile $(SRCS) $(HEADERS) $(MDDOCS)
 	doxygen Doxyfile
 
 docs : doxygen

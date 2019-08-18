@@ -6,11 +6,11 @@ binaries.
 ## Prerequisites
 
 To compile mruby out of the source code you need the following tools:
-* C Compiler (e.g. ```gcc```)
-* Linker (e.g. ```gcc```)
-* Archive utility (e.g. ```ar```)
-* Parser generator (e.g. ```bison```)
-* Ruby 2.0 or later (e.g. ```ruby``` or ```jruby```)
+* C Compiler (e.g. `gcc`)
+* Linker (e.g. `gcc`)
+* Archive utility (e.g. `ar`)
+* Parser generator (e.g. `bison`)
+* Ruby 2.0 or later (e.g. `ruby` or `jruby`)
 
 Optional:
 * GIT (to update mruby source and integrate mrbgems easier)
@@ -32,10 +32,10 @@ All tools necessary to compile mruby can be set or modified here. In case
 you want to maintain an additional *build_config.rb* you can define a
 customized path using the *$MRUBY_CONFIG* environment variable.
 
-To compile just call ```./minirake``` inside of the mruby source root. To
-generate and execute the test tools call ```./minirake test```. To clean
-all build files call ```./minirake clean```. To see full command line on
-build, call ```./minirake -v```.
+To compile just call `./minirake` inside of the mruby source root. To
+generate and execute the test tools call `./minirake test`. To clean
+all build files call `./minirake clean`. To see full command line on
+build, call `./minirake -v`.
 
 ## Build Configuration
 
@@ -79,7 +79,7 @@ toolchain :android
 ```
 
 Requires the custom standalone Android NDK and the toolchain path
-in ```ANDROID_STANDALONE_TOOLCHAIN```.
+in `ANDROID_STANDALONE_TOOLCHAIN`.
 
 ### Binaries
 
@@ -97,7 +97,7 @@ conf.gem "#{root}/mrbgems/mruby-bin-mirb"
 ### File Separator
 
 Some environments require a different file separator character. It is possible to
-set the character via ```conf.file_separator```.
+set the character via `conf.file_separator`.
 ```ruby
 conf.file_separator = '/'
 ```
@@ -119,7 +119,7 @@ end
 
 C Compiler has header searcher to detect installed library.
 
-If you need a include path of header file use ```search_header_path```:
+If you need a include path of header file use `search_header_path`:
 ```ruby
 # Searches ```iconv.h```.
 # If found it will return include path of the header file.
@@ -127,7 +127,7 @@ If you need a include path of header file use ```search_header_path```:
 fail 'iconv.h not found' unless conf.cc.search_header_path 'iconv.h'
 ```
 
-If you need a full file name of header file use ```search_header```:
+If you need a full file name of header file use `search_header`:
 ```ruby
 # Searches ```iconv.h```.
 # If found it will return full path of the header file.
@@ -136,11 +136,11 @@ iconv_h = conf.cc.search_header 'iconv.h'
 print "iconv.h found: #{iconv_h}\n"
 ```
 
-Header searcher uses compiler's ```include_paths``` by default.
+Header searcher uses compiler's `include_paths` by default.
 When you are using GCC toolchain (including clang toolchain since its base is gcc toolchain)
-it will use compiler specific include paths too. (For example ```/usr/local/include```, ```/usr/include```)
+it will use compiler specific include paths too. (For example `/usr/local/include`, `/usr/include`)
 
-If you need a special header search paths define a singleton method ```header_search_paths``` to C compiler:
+If you need a special header search paths define a singleton method `header_search_paths` to C compiler:
 ```ruby
 def conf.cc.header_search_paths
   ['/opt/local/include'] + include_paths
@@ -222,7 +222,7 @@ See doc/mrbgems/README.md for more option about mrbgems.
 
 Configuration Mrbtest build process.
 
-If you want mrbtest.a only, You should set ```conf.build_mrbtest_lib_only```
+If you want mrbtest.a only, You should set `conf.build_mrbtest_lib_only`
 ```ruby
 conf.build_mrbtest_lib_only
 ```
@@ -230,9 +230,9 @@ conf.build_mrbtest_lib_only
 ### Bintest
 
 Tests for mrbgem tools using CRuby.
-To have bintests place \*.rb scripts to ```bintest/``` directory of mrbgems.
-See ```mruby-bin-*/bintest/*.rb``` if you need examples.
-If you want a temporary files use `tempfile` module of CRuby instead of ```/tmp/```.
+To have bintests place \*.rb scripts to `bintest/` directory of mrbgems.
+See `mruby-bin-*/bintest/*.rb` if you need examples.
+If you want a temporary files use `tempfile` module of CRuby instead of `/tmp/`.
 
 You can enable it with following:
 ```ruby
@@ -247,8 +247,8 @@ correctly. To support mrbgems written in C++, mruby can be
 configured to use C++ exception.
 
 There are two levels of C++ exception handling. The one is
-```enable_cxx_exception``` that enables C++ exception, but
-uses C ABI. The other is ```enable_cxx_abi``` where all
+`enable_cxx_exception` that enables C++ exception, but
+uses C ABI. The other is `enable_cxx_abi` where all
 files are compiled by C++ compiler.
 
 When you mix C++ code, C++ exception would be enabled automatically.
@@ -266,7 +266,7 @@ C++ exception, add following:
 conf.disable_cxx_exception
 ```
 and you will get an error when you try to use C++ gem.
-Note that it must be called before ```enable_cxx_exception``` or ```gem``` method.
+Note that it must be called before `enable_cxx_exception` or `gem` method.
 
 ### Debugging mode
 
@@ -276,17 +276,17 @@ conf.enable_debug
 ```
 
 When debugging mode is enabled
-* Macro ```MRB_DEBUG``` would be defined.
-	* Which means ```mrb_assert()``` macro is enabled.
-* Debug information of irep would be generated by ```mrbc```.
-	* Because ```-g``` flag would be added to ```mrbc``` runner.
+* Macro `MRB_DEBUG` would be defined.
+	* Which means `mrb_assert()` macro is enabled.
+* Debug information of irep would be generated by `mrbc`.
+	* Because `-g` flag would be added to `mrbc` runner.
     * You can have better backtrace of mruby scripts with this.
 
 ## Cross-Compilation
 
 mruby can also be cross-compiled from one platform to another. To
 achieve this the *build_config.rb* needs to contain an instance of
-```MRuby::CrossBuild```. This instance defines the compilation
+`MRuby::CrossBuild`. This instance defines the compilation
 tools and flags for the target platform. An example could look
 like this:
 ```ruby
@@ -298,12 +298,12 @@ MRuby::CrossBuild.new('32bit') do |conf|
 end
 ```
 
-All configuration options of ```MRuby::Build``` can also be used
-in ```MRuby::CrossBuild```.
+All configuration options of `MRuby::Build` can also be used
+in `MRuby::CrossBuild`.
 
 ### Mrbtest in Cross-Compilation
 
-In cross compilation, you can run ```mrbtest``` on emulator if
+In cross compilation, you can run `mrbtest` on emulator if
 you have it by changing configuration of test runner.
 ```ruby
 conf.test_runner do |t|
@@ -350,15 +350,15 @@ in *build/host/src*)
 result will be stored in *build/host/src/y.tab.c*)
 * compile  *build/host/src/y.tab.c* to  *build/host/src/y.tab.o*
 * create *build/host/lib/libmruby_core.a* out of all object files (C only)
-* create ```build/host/bin/mrbc``` by compiling *tools/mrbc/mrbc.c* and
+* create `build/host/bin/mrbc` by compiling *tools/mrbc/mrbc.c* and
 linking with *build/host/lib/libmruby_core.a*
 * create *build/host/mrblib/mrblib.c* by compiling all \*.rb files
-under *mrblib* with ```build/host/bin/mrbc```
+under *mrblib* with `build/host/bin/mrbc`
 * compile *build/host/mrblib/mrblib.c* to *build/host/mrblib/mrblib.o*
 * create *build/host/lib/libmruby.a* out of all object files (C and Ruby)
-* create ```build/host/bin/mruby``` by compiling *mrbgems/mruby-bin-mruby/tools/mruby/mruby.c* and
+* create `build/host/bin/mruby` by compiling *mrbgems/mruby-bin-mruby/tools/mruby/mruby.c* and
 linking with *build/host/lib/libmruby.a*
-* create ```build/host/bin/mirb``` by compiling *mrbgems/mruby-bin-mirb/tools/mirb/mirb.c* and
+* create `build/host/bin/mirb` by compiling *mrbgems/mruby-bin-mirb/tools/mirb/mirb.c* and
 linking with *build/host/lib/libmruby.a*
 
 ```
@@ -427,15 +427,15 @@ in *build/i386/src*)
 result will be stored in *build/i386/src/y.tab.c*)
 * cross-compile *build/i386/src/y.tab.c* to *build/i386/src/y.tab.o*
 * create *build/i386/mrblib/mrblib.c* by compiling all \*.rb files
-under *mrblib* with the native ```build/host/bin/mrbc```
+under *mrblib* with the native `build/host/bin/mrbc`
 * cross-compile *build/host/mrblib/mrblib.c* to *build/host/mrblib/mrblib.o*
 * create *build/i386/lib/libmruby.a* out of all object files (C and Ruby)
-* create ```build/i386/bin/mruby``` by cross-compiling *mrbgems/mruby-bin-mruby/tools/mruby/mruby.c* and
+* create `build/i386/bin/mruby` by cross-compiling *mrbgems/mruby-bin-mruby/tools/mruby/mruby.c* and
 linking with *build/i386/lib/libmruby.a*
-* create ```build/i386/bin/mirb``` by cross-compiling *mrbgems/mruby-bin-mirb/tools/mirb/mirb.c* and
+* create `build/i386/bin/mirb` by cross-compiling *mrbgems/mruby-bin-mirb/tools/mirb/mirb.c* and
 linking with *build/i386/lib/libmruby.a*
 * create *build/i386/lib/libmruby_core.a* out of all object files (C only)
-* create ```build/i386/bin/mrbc``` by cross-compiling *tools/mrbc/mrbc.c* and
+* create `build/i386/bin/mrbc` by cross-compiling *tools/mrbc/mrbc.c* and
 linking with *build/i386/lib/libmruby_core.a*
 
 ```
@@ -482,7 +482,7 @@ all usages of stdio and doesn't compile any binaries (e.g. mrbc).
 ## Test Environment
 
 mruby's build process includes a test environment. In case you start the testing
-of mruby, a native binary called ```mrbtest``` will be generated and executed.
+of mruby, a native binary called `mrbtest` will be generated and executed.
 This binary contains all test cases which are defined under *test/t*. In case
 of a cross-compilation an additional cross-compiled *mrbtest* binary is
 generated. You can copy this binary and run on your target system.

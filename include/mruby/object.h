@@ -8,14 +8,13 @@
 #define MRUBY_OBJECT_H
 
 #define MRB_OBJECT_HEADER \
-  enum mrb_vtype tt:8;   \
-  uint32_t color:3;      \
-  uint32_t flags:21;     \
-  struct RClass *c;      \
-  struct RBasic *gcnext  \
+  enum mrb_vtype tt:8;    \
+  uint32_t color:3;       \
+  uint32_t flags:21;      \
+  struct RClass *c;       \
+  struct RBasic *gcnext
 
 #define MRB_FLAG_TEST(obj, flag) ((obj)->flags & (flag))
-
 
 struct RBasic {
   MRB_OBJECT_HEADER;
