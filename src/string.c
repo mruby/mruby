@@ -24,7 +24,7 @@
 
 typedef struct mrb_shared_string {
   int refcnt;
-  mrb_int len;
+  mrb_int capa;
   char *ptr;
 } mrb_shared_string;
 
@@ -79,7 +79,7 @@ str_init_shared(mrb_state *mrb, const struct RString *orig, struct RString *s, m
     shared = (mrb_shared_string *)mrb_malloc(mrb, sizeof(mrb_shared_string));
     shared->refcnt = 2;
     shared->ptr = orig->as.heap.ptr;
-    shared->len = orig->as.heap.len;
+    shared->capa = orig->as.heap.aux.capa;
   }
   s->as.heap.ptr = orig->as.heap.ptr;
   s->as.heap.len = orig->as.heap.len;
@@ -534,6 +534,7 @@ str_make_shared(mrb_state *mrb, struct RString *orig, struct RString *s)
   else {
     if (orig->as.heap.aux.capa > orig->as.heap.len) {
       orig->as.heap.ptr = (char *)mrb_realloc(mrb, orig->as.heap.ptr, len+1);
+      orig->as.heap.aux.capa = len;
     }
     str_init_shared(mrb, orig, s, NULL);
     orig->as.heap.aux.shared = s->as.heap.aux.shared;
@@ -780,7 +781,7 @@ mrb_str_modify_keep_ascii(mrb_state *mrb, struct RString *s)
     mrb_shared_string *shared = s->as.heap.aux.shared;
 
     if (shared->refcnt == 1 && s->as.heap.ptr == shared->ptr) {
-      s->as.heap.aux.capa = shared->len;
+      s->as.heap.aux.capa = shared->capa;
       s->as.heap.ptr[s->as.heap.len] = '\0';
       mrb_free(mrb, shared);
     }
