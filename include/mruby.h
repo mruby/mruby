@@ -127,8 +127,8 @@ typedef struct {
   uint16_t ridx;
   uint16_t epos;
   struct REnv *env;
-  mrb_code *pc;                 /* return address */
-  mrb_code *err;                /* error position */
+  const mrb_code *pc;           /* return address */
+  const mrb_code *err;          /* error position */
   int argc;
   int acc;
   struct RClass *target_class;
@@ -243,8 +243,8 @@ typedef struct mrb_state {
 #endif
 
 #ifdef MRB_ENABLE_DEBUG_HOOK
-  void (*code_fetch_hook)(struct mrb_state* mrb, struct mrb_irep *irep, mrb_code *pc, mrb_value *regs);
-  void (*debug_op_hook)(struct mrb_state* mrb, struct mrb_irep *irep, mrb_code *pc, mrb_value *regs);
+  void (*code_fetch_hook)(struct mrb_state* mrb, struct mrb_irep *irep, const mrb_code *pc, mrb_value *regs);
+  void (*debug_op_hook)(struct mrb_state* mrb, struct mrb_irep *irep, const mrb_code *pc, mrb_value *regs);
 #endif
 
 #ifdef MRB_BYTECODE_DECODE_OPTION
@@ -1057,7 +1057,7 @@ MRB_API mrb_value mrb_top_self(mrb_state *);
 MRB_API mrb_value mrb_run(mrb_state*, struct RProc*, mrb_value);
 MRB_API mrb_value mrb_top_run(mrb_state*, struct RProc*, mrb_value, unsigned int);
 MRB_API mrb_value mrb_vm_run(mrb_state*, struct RProc*, mrb_value, unsigned int);
-MRB_API mrb_value mrb_vm_exec(mrb_state*, struct RProc*, mrb_code*);
+MRB_API mrb_value mrb_vm_exec(mrb_state*, struct RProc*, const mrb_code*);
 /* compatibility macros */
 #define mrb_toplevel_run_keep(m,p,k) mrb_top_run((m),(p),mrb_top_self(m),(k))
 #define mrb_toplevel_run(m,p) mrb_toplevel_run_keep((m),(p),0)

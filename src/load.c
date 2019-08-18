@@ -102,8 +102,9 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
     }
     else {
       size_t data_len = sizeof(mrb_code) * irep->ilen;
-      irep->iseq = (mrb_code *)mrb_malloc(mrb, data_len);
-      memcpy(irep->iseq, src, data_len);
+      void *buf = mrb_malloc(mrb, data_len);
+      irep->iseq = (mrb_code *)buf;
+      memcpy(buf, src, data_len);
       src += data_len;
     }
   }

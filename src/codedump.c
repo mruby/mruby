@@ -69,7 +69,7 @@ static void
 codedump(mrb_state *mrb, mrb_irep *irep)
 {
   int ai;
-  mrb_code *pc, *pcend;
+  const mrb_code *pc, *pcend;
   mrb_code ins;
   const char *file = NULL, *next_file;
 

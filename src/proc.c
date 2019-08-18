@@ -9,7 +9,7 @@
 #include <mruby/proc.h>
 #include <mruby/opcode.h>
 
-static mrb_code call_iseq[] = {
+static const mrb_code call_iseq[] = {
   OP_CALL,
 };
 
@@ -256,7 +256,7 @@ mrb_int
 mrb_proc_arity(const struct RProc *p)
 {
   struct mrb_irep *irep;
-  mrb_code *pc;
+  const mrb_code *pc;
   mrb_aspec aspec;
   int ma, op, ra, pa, arity;
 

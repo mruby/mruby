@@ -971,10 +971,10 @@ check_target_class(mrb_state *mrb)
 void mrb_hash_check_kdict(mrb_state *mrb, mrb_value self);
 
 MRB_API mrb_value
-mrb_vm_exec(mrb_state *mrb, struct RProc *proc, mrb_code *pc)
+mrb_vm_exec(mrb_state *mrb, struct RProc *proc, const mrb_code *pc)
 {
   /* mrb_assert(MRB_PROC_CFUNC_P(proc)) */
-  mrb_code *pc0 = pc;
+  const mrb_code *pc0 = pc;
   mrb_irep *irep = proc->body.irep;
   mrb_value *pool = irep->pool;
   mrb_sym *syms = irep->syms;

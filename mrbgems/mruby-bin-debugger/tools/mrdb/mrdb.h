@@ -105,7 +105,7 @@ typedef struct mrb_debug_breakpoint {
 typedef struct mrb_debug_context {
   struct mrb_irep *root_irep;
   struct mrb_irep *irep;
-  mrb_code *pc;
+  const mrb_code *pc;
   mrb_value *regs;
 
   const char *prvfile;

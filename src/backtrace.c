@@ -26,7 +26,7 @@ typedef void (*each_backtrace_func)(mrb_state*, const struct backtrace_location*
 static const mrb_data_type bt_type = { "Backtrace", mrb_free };
 
 static void
-each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, mrb_code *pc0, each_backtrace_func func, void *data)
+each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, const mrb_code *pc0, each_backtrace_func func, void *data)
 {
   ptrdiff_t i;
 
@@ -37,7 +37,7 @@ each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, mrb_code *pc0, each_backtrace_fu
     struct backtrace_location loc;
     mrb_callinfo *ci;
     mrb_irep *irep;
-    mrb_code *pc;
+    const mrb_code *pc;
 
     ci = &mrb->c->cibase[i];
 
