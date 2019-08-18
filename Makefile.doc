@@ -1,0 +1,14 @@
+SRCS=$(shell find src -name '*.c')
+HEADERS=$(shell find include -name '*.h')
+
+doxygen : Doxyfile $(SRCS) $(HEADERS)
+	doxygen Doxyfile
+
+docs : doxygen
+
+docserver : docs
+	firefox doxygen/html/index.html 
+
+docsclean :
+	rm -r doxygen
+.PHONY : docserver docsclean
