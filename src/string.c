@@ -1759,28 +1759,25 @@ mrb_str_include(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_str_index_m(mrb_state *mrb, mrb_value str)
 {
-  mrb_value *argv;
-  mrb_int argc;
   mrb_value sub;
-  mrb_int pos, clen;
+  mrb_int pos;
 
-  mrb_get_args(mrb, "*!", &argv, &argc);
-  if (argc == 2) {
-    mrb_get_args(mrb, "oi", &sub, &pos);
-  }
-  else {
-    pos = 0;
-    if (argc > 0)
-      sub = argv[0];
-    else
+  switch (mrb_get_args(mrb, "|oi", &sub, &pos)) {
+    case 0:
       sub = mrb_nil_value();
-  }
-  if (pos < 0) {
-    clen = RSTRING_CHAR_LEN(str);
-    pos += clen;
-    if (pos < 0) {
-      return mrb_nil_value();
-    }
+      /* fall through */
+    case 1:
+      pos = 0;
+      break;
+    case 2:
+      if (pos < 0) {
+        mrb_int clen = RSTRING_CHAR_LEN(str);
+        pos += clen;
+        if (pos < 0) {
+          return mrb_nil_value();
+        }
+      }
+      break;
   }
 
   switch (mrb_type(sub)) {
@@ -2009,28 +2006,25 @@ mrb_str_reverse(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_rindex(mrb_state *mrb, mrb_value str)
 {
-  mrb_value *argv;
-  mrb_int argc;
   mrb_value sub;
   mrb_int pos, len = RSTRING_CHAR_LEN(str);
 
-  mrb_get_args(mrb, "*!", &argv, &argc);
-  if (argc == 2) {
-    mrb_get_args(mrb, "oi", &sub, &pos);
-    if (pos < 0) {
-      pos += len;
-      if (pos < 0) {
-        return mrb_nil_value();
-      }
-    }
-    if (pos > len) pos = len;
-  }
-  else {
-    pos = len;
-    if (argc > 0)
-      sub = argv[0];
-    else
+  switch (mrb_get_args(mrb, "|oi", &sub, &pos)) {
+    case 0:
       sub = mrb_nil_value();
+      /* fall through */
+    case 1:
+      pos = len;
+      break;
+    case 2:
+      if (pos < 0) {
+        pos += len;
+        if (pos < 0) {
+          return mrb_nil_value();
+        }
+      }
+      if (pos > len) pos = len;
+      break;
   }
   pos = chars2bytes(str, 0, pos);
 
