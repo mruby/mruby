@@ -77,7 +77,7 @@ str_init_shared(mrb_state *mrb, const struct RString *orig, struct RString *s, m
   }
   else {
     shared = (mrb_shared_string *)mrb_malloc(mrb, sizeof(mrb_shared_string));
-    shared->refcnt = 2;
+    shared->refcnt = 1;
     shared->ptr = orig->as.heap.ptr;
     shared->len = orig->as.heap.len;
   }
@@ -516,7 +516,7 @@ mrb_memsearch(const void *x0, mrb_int m, const void *y0, mrb_int n)
 static void
 str_make_shared(mrb_state *mrb, struct RString *orig, struct RString *s)
 {
-  mrb_int len = RSTR_LEN(orig);
+  size_t len = (size_t)orig->as.heap.len;
 
   mrb_assert(!RSTR_EMBED_P(orig));
   if (RSTR_NOFREE_P(orig)) {
@@ -536,8 +536,7 @@ str_make_shared(mrb_state *mrb, struct RString *orig, struct RString *s)
       orig->as.heap.ptr = (char *)mrb_realloc(mrb, orig->as.heap.ptr, len+1);
     }
     str_init_shared(mrb, orig, s, NULL);
-    orig->as.heap.aux.shared = s->as.heap.aux.shared;
-    RSTR_SET_TYPE_FLAG(orig, SHARED);
+    str_init_shared(mrb, orig, orig, s->as.heap.aux.shared);
   }
 }
 
