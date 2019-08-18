@@ -1,5 +1,5 @@
-/*
-**"common.h - mruby common platform definition"
+/**
+** @file common.h - mruby common platform definition"
 **
 ** See Copyright Notice in mruby.h
 */

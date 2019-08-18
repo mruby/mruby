@@ -1,5 +1,5 @@
-/*
-** mruby/variable.h - mruby variables
+/**
+** @file mruby/variable.h - mruby variables
 **
 ** See Copyright Notice in mruby.h
 */

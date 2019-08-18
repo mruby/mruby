@@ -1,5 +1,5 @@
-/*
-** mruby/proc.h - Proc class
+/**
+** @file mruby/proc.h - Proc class
 **
 ** See Copyright Notice in mruby.h
 */

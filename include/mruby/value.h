@@ -1,5 +1,5 @@
-/*
-** mruby/value.h - mruby value definitions
+/**
+** @file mruby/value.h - mruby value definitions
 **
 ** See Copyright Notice in mruby.h
 */
@@ -9,12 +9,27 @@
 
 #include "common.h"
 
-/**
+/*
  * MRuby Value definition functions and macros.
  */
 MRB_BEGIN_DECL
 
+/**
+ * @class mrb_sym
+ * @brief mruby Symbol
+ * 
+ * You can create an mrb_sym by simply using mrb_str_intern() or mrb_intern_cstr()
+ */
 typedef uint32_t mrb_sym;
+
+/**
+ * @class mrb_bool
+ * @brief mruby Boolean
+ *
+ * Used internally to represent boolean. Can be TRUE or FALSE.
+ * Not to be confused with Ruby's boolean classes, which can be 
+ * obtained using mrb_false_value() and mrb_true_value()
+ */
 typedef uint8_t mrb_bool;
 struct mrb_state;
 
@@ -178,8 +193,10 @@ typedef void mrb_value;
 #define mrb_exception_p(o) (mrb_type(o) == MRB_TT_EXCEPTION)
 #define mrb_test(o)   mrb_bool(o)
 
-/*
+/**
  * Returns a float in Ruby.
+ *
+ * Takes a float and boxes it into an mrb_value
  */
 #ifndef MRB_WITHOUT_FLOAT
 MRB_INLINE mrb_value mrb_float_value(struct mrb_state *mrb, mrb_float f)
@@ -200,8 +217,10 @@ mrb_cptr_value(struct mrb_state *mrb, void *p)
   return v;
 }
 
-/*
+/**
  * Returns a fixnum in Ruby.
+ *
+ * Takes an integer and boxes it into an mrb_value
  */
 MRB_INLINE mrb_value mrb_fixnum_value(mrb_int i)
 {
@@ -228,8 +247,7 @@ mrb_obj_value(void *p)
   return v;
 }
 
-
-/*
+/**
  * Get a nil mrb_value object.
  *
  * @return
@@ -242,7 +260,7 @@ MRB_INLINE mrb_value mrb_nil_value(void)
   return v;
 }
 
-/*
+/**
  * Returns false in Ruby.
  */
 MRB_INLINE mrb_value mrb_false_value(void)
@@ -252,7 +270,7 @@ MRB_INLINE mrb_value mrb_false_value(void)
   return v;
 }
 
-/*
+/**
  * Returns true in Ruby.
  */
 MRB_INLINE mrb_value mrb_true_value(void)

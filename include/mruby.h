@@ -25,6 +25,10 @@
 ** [ MIT license: http://www.opensource.org/licenses/mit-license.php ]
 */
 
+/**
+ * @file mruby.h
+ */
+
 #ifndef MRUBY_H
 #define MRUBY_H
 
@@ -97,10 +101,13 @@ MRB_BEGIN_DECL
 typedef uint8_t mrb_code;
 
 /**
- * Required arguments signature type.
+ * \class mrb_aspec
+ *
+ * Specifies the number of arguments a function takes
+ *
+ * Example: `MRB_ARGS_REQ(2) | MRB_ARGS_OPT(1)` for a method that expects 2..3 arguments
  */
 typedef uint32_t mrb_aspec;
-
 
 struct mrb_irep;
 struct mrb_state;

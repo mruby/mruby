@@ -1,5 +1,5 @@
-/*
-** mruby/hash.h - Hash class
+/**
+** @file mruby/hash.h - Hash class
 **
 ** See Copyright Notice in mruby.h
 */
