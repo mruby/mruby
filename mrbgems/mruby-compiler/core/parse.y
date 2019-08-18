@@ -5020,10 +5020,10 @@ parser_yylex(parser_state *p)
         }
         if (c2) {
           char buf[256];
-          char cc = (char)c2;
+          char cc[] = { (char)c2, '\0' };
 
           strcpy(buf, "invalid character syntax; use ?\\");
-          strncat(buf, &cc, 1);
+          strncat(buf, cc, 2);
           yyerror(p, buf);
         }
       }
