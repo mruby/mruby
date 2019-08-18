@@ -1259,7 +1259,7 @@ mrb_ary_svalue(mrb_state *mrb, mrb_value ary)
   }
 }
 
-static mrb_code each_iseq[] = {
+static const mrb_code each_iseq[] = {
   OP_ENTER, 0x0, 0x00, 0x1,  /* OP_ENTER     0:0:0:0:0:0:1 */
   OP_JMPIF, 0x1, 0x0, 19,    /* OP_JMPIF     R1  19 */
   OP_LOADSELF, 0x3,          /* OP_LOADSELF  R3 */

@@ -32,7 +32,7 @@ typedef struct mrb_irep {
   uint16_t nregs;          /* Number of register variables */
   uint8_t flags;
 
-  mrb_code *iseq;
+  const mrb_code *iseq;
   mrb_value *pool;
   mrb_sym *syms;
   struct mrb_irep **reps;
@@ -80,7 +80,7 @@ struct mrb_insn_data {
   uint8_t c;
 };
 
-struct mrb_insn_data mrb_decode_insn(mrb_code *pc);
+struct mrb_insn_data mrb_decode_insn(const mrb_code *pc);
 
 MRB_END_DECL
 

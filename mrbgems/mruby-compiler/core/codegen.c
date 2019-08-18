@@ -291,7 +291,7 @@ on_eval(codegen_scope *s)
 }
 
 struct mrb_insn_data
-mrb_decode_insn(mrb_code *pc)
+mrb_decode_insn(const mrb_code *pc)
 {
   struct mrb_insn_data data = { 0 };
   mrb_code insn = READ_B();

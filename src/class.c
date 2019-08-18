@@ -2123,7 +2123,7 @@ inspect_main(mrb_state *mrb, mrb_value mod)
   return mrb_str_new_lit(mrb, "main");
 }
 
-static mrb_code new_iseq[] = {
+static const mrb_code new_iseq[] = {
   OP_ENTER, 0x0, 0x10, 0x1,  /* OP_ENTER     0:0:1:0:0:0:1 */
   OP_LOADSELF, 0x3,          /* OP_LOADSELF  R3 */
   OP_SEND, 0x3, 0x0, 0x0,    /* OP_SEND      R3  :allocate  0 */

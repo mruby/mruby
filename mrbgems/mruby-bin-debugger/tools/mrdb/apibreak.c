@@ -428,7 +428,7 @@ mrb_debug_disable_break_all(mrb_state *mrb, mrb_debug_context *dbg)
 }
 
 static mrb_bool
-check_start_pc_for_line(mrb_state *mrb, mrb_irep *irep, mrb_code *pc, uint16_t line)
+check_start_pc_for_line(mrb_state *mrb, mrb_irep *irep, const mrb_code *pc, uint16_t line)
 {
   if (pc > irep->iseq) {
     if (line == mrb_debug_get_line(mrb, irep, pc - irep->iseq - 1)) {
