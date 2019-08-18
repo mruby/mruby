@@ -134,19 +134,18 @@ mrb_str_byteslice(mrb_state *mrb, mrb_value str)
   if (mrb_get_args(mrb, "o|o", &a1, &a2) == 2) {
     beg = mrb_fixnum(mrb_to_int(mrb, a1));
     len = mrb_fixnum(mrb_to_int(mrb, a2));
-    goto subseq;
   }
-  if (mrb_type(a1) == MRB_TT_RANGE) {
-    if (mrb_range_beg_len(mrb, a1, &beg, &len, str_len, TRUE) == MRB_RANGE_OK) {
-      goto subseq;
+  else if (mrb_type(a1) == MRB_TT_RANGE) {
+    if (mrb_range_beg_len(mrb, a1, &beg, &len, str_len, TRUE) != MRB_RANGE_OK) {
+      return mrb_nil_value();
     }
-    return mrb_nil_value();
+  }
+  else {
+    beg = mrb_fixnum(mrb_to_int(mrb, a1));
+    len = 1;
+    empty = FALSE;
   }
 
-  beg = mrb_fixnum(mrb_to_int(mrb, a1));
-  len = 1;
-  empty = FALSE;
-subseq:
   if (mrb_str_beg_len(str_len, &beg, &len) && (empty || len != 0)) {
     return mrb_str_byte_subseq(mrb, str, beg, len);
   }
