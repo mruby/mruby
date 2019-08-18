@@ -179,7 +179,7 @@ end
 
 assert('File.symlink') do
   target_name = "/usr/bin"
-  symlink_name = "test-bin-dummy"
+  symlink_name = MRubyIOTestUtil.mktemp("test-bin-dummy-XXXXXXXX")
   if !File.exist?(target_name)
     skip("target directory of File.symlink is not found")
   else
