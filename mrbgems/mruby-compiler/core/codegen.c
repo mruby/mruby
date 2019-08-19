@@ -1578,7 +1578,7 @@ codegen(codegen_scope *s, node *tree, int val)
       }
       codegen(s, tree->car, VAL);
       pop();
-      if (tree->cdr->car) {
+      if (val || tree->cdr->car) {
         pos1 = genjmp2(s, OP_JMPNOT, cursp(), 0, val);
         codegen(s, tree->cdr->car, val);
         if (elsepart) {
