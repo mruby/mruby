@@ -542,6 +542,29 @@ str_make_shared(mrb_state *mrb, struct RString *orig, struct RString *s)
 }
 
 mrb_value
+mrb_str_pool(mrb_state *mrb, mrb_value str)
+{
+  struct RString *s = (struct RString *)mrb_malloc(mrb, sizeof(struct RString));
+  struct RString *orig = mrb_str_ptr(str);
+  const char *p = RSTR_PTR(orig);
+  size_t len = (size_t)RSTR_LEN(orig);
+
+  s->tt = MRB_TT_STRING;
+  s->c = mrb->string_class;
+  s->flags = 0;
+
+  if (RSTR_NOFREE_P(orig)) {
+    str_init_nofree(s, p, len);
+  }
+  else {
+    str_init(mrb, s, p, len);
+  }
+  RSTR_SET_POOL_FLAG(s);
+  MRB_SET_FROZEN_FLAG(s);
+  return mrb_obj_value(s);
+}
+
+mrb_value
 mrb_str_byte_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 {
   struct RString *orig, *s;

@@ -141,58 +141,6 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
   mrb_free(mrb, irep);
 }
 
-mrb_value
-mrb_str_pool(mrb_state *mrb, mrb_value str)
-{
-  struct RString *s = mrb_str_ptr(str);
-  struct RString *ns;
-  char *ptr;
-  mrb_int len;
-
-  ns = (struct RString *)mrb_malloc(mrb, sizeof(struct RString));
-  ns->tt = MRB_TT_STRING;
-  ns->c = mrb->string_class;
-
-  if (RSTR_NOFREE_P(s)) {
-    ns->flags = MRB_STR_NOFREE;
-    ns->as.heap.ptr = s->as.heap.ptr;
-    ns->as.heap.len = s->as.heap.len;
-    ns->as.heap.aux.capa = 0;
-  }
-  else {
-    ns->flags = 0;
-    if (RSTR_EMBED_P(s)) {
-      ptr = s->as.ary;
-      len = RSTR_EMBED_LEN(s);
-    }
-    else {
-      ptr = s->as.heap.ptr;
-      len = s->as.heap.len;
-    }
-
-    if (RSTR_EMBEDDABLE_P(len)) {
-      RSTR_SET_EMBED_FLAG(ns);
-      RSTR_SET_EMBED_LEN(ns, len);
-      if (ptr) {
-        memcpy(ns->as.ary, ptr, len);
-      }
-      ns->as.ary[len] = '\0';
-    }
-    else {
-      ns->as.heap.ptr = (char *)mrb_malloc(mrb, (size_t)len+1);
-      ns->as.heap.len = len;
-      ns->as.heap.aux.capa = len;
-      if (ptr) {
-        memcpy(ns->as.heap.ptr, ptr, len);
-      }
-      ns->as.heap.ptr[len] = '\0';
-    }
-  }
-  RSTR_SET_POOL_FLAG(ns);
-  MRB_SET_FROZEN_FLAG(ns);
-  return mrb_obj_value(ns);
-}
-
 void mrb_free_backtrace(mrb_state *mrb);
 
 MRB_API void
