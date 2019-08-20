@@ -54,8 +54,8 @@ str_init_normal(mrb_state *mrb, struct RString *s, const char *p, size_t len)
 static void
 str_init_embed(struct RString *s, const char *p, size_t len)
 {
-  if (p) memcpy(s->as.ary, p, len);
-  s->as.ary[len] = '\0';
+  if (p) memcpy(RSTR_EMBED_PTR(s), p, len);
+  RSTR_EMBED_PTR(s)[len] = '\0';
   RSTR_SET_TYPE_FLAG(s, EMBED);
   RSTR_SET_EMBED_LEN(s, len);
 }
@@ -188,7 +188,7 @@ resize_capa(mrb_state *mrb, struct RString *s, size_t capacity)
 #endif
   if (RSTR_EMBED_P(s)) {
     if (!RSTR_EMBEDDABLE_P(capacity)) {
-      str_init_normal_capa(mrb, s, s->as.ary, RSTR_EMBED_LEN(s), capacity);
+      str_init_normal_capa(mrb, s, RSTR_EMBED_PTR(s), RSTR_EMBED_LEN(s), capacity);
     }
   }
   else {

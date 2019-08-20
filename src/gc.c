@@ -521,7 +521,7 @@ MRB_API struct RBasic*
 mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
 {
   struct RBasic *p;
-  static const RVALUE RVALUE_zero = { { { MRB_TT_FALSE } } };
+  static const RVALUE RVALUE_zero = { { { NULL, NULL, MRB_TT_FALSE } } };
   mrb_gc *gc = &mrb->gc;
 
   if (cls) {

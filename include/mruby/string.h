@@ -16,7 +16,8 @@ MRB_BEGIN_DECL
 
 extern const char mrb_digitmap[];
 
-#define RSTRING_EMBED_LEN_MAX ((mrb_int)(sizeof(void*) * 3 - 1))
+#define RSTRING_EMBED_LEN_MAX \
+  ((mrb_int)(sizeof(void*) * 3 + sizeof(void*) - 32 / CHAR_BIT - 1))
 
 struct RString {
   MRB_OBJECT_HEADER;
@@ -30,8 +31,11 @@ struct RString {
       } aux;
       char *ptr;
     } heap;
-    char ary[RSTRING_EMBED_LEN_MAX + 1];
   } as;
+};
+struct RStringEmbed {
+  MRB_OBJECT_HEADER;
+  char ary[];
 };
 
 #define RSTR_SET_TYPE_FLAG(s, type) (RSTR_UNSET_TYPE_FLAG(s), (s)->flags |= MRB_STR_##type)
@@ -53,11 +57,12 @@ struct RString {
     (s)->as.heap.len = (mrb_int)(n);\
   }\
 } while (0)
+#define RSTR_EMBED_PTR(s) (((struct RStringEmbed*)(s))->ary)
 #define RSTR_EMBED_LEN(s)\
   (mrb_int)(((s)->flags & MRB_STR_EMBED_LEN_MASK) >> MRB_STR_EMBED_LEN_SHIFT)
 #define RSTR_EMBEDDABLE_P(len) ((len) <= RSTRING_EMBED_LEN_MAX)
 
-#define RSTR_PTR(s) ((RSTR_EMBED_P(s)) ? (s)->as.ary : (s)->as.heap.ptr)
+#define RSTR_PTR(s) ((RSTR_EMBED_P(s)) ? RSTR_EMBED_PTR(s) : (s)->as.heap.ptr)
 #define RSTR_LEN(s) ((RSTR_EMBED_P(s)) ? RSTR_EMBED_LEN(s) : (s)->as.heap.len)
 #define RSTR_CAPA(s) (RSTR_EMBED_P(s) ? RSTRING_EMBED_LEN_MAX : (s)->as.heap.aux.capa)
 
