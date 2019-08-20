@@ -20,7 +20,7 @@ Date: Tue, 21 May 2013 04:31:30 GMT
 ```
 
 ## Requirement
-- [iij/mruby-io](https://github.com/iij/mruby-io) mrbgem
+- [mruby-io](https://github.com/mruby/mruby/tree/master/mrbgems/mruby-io) mrbgem
 - [iij/mruby-mtest](https://github.com/iij/mruby-mtest) mrgbem to run tests
 - system must have RFC3493 basic socket interface
 - and some POSIX API...
