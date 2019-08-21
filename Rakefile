@@ -126,7 +126,19 @@ task :all => depfiles do
     print_build_summary
   end
 
-  locks_result = { 'builds' => {} }
+  require 'mruby/source'
+
+  locks_result = {
+    'mruby_version' => {
+      'version' => MRuby::Source::MRUBY_VERSION,
+      'release_no' => MRuby::Source::MRUBY_RELEASE_NO
+    },
+    'builds' => {}
+  }
+  if File.exist? "#{MRUBY_ROOT}/.git"
+    locks_result['mruby_version']['git_commit'] = `git --git-dir '#{MRUBY_ROOT}/.git' --work-tree '#{MRUBY_ROOT}' rev-parse --verify HEAD`.strip
+  end
+
   MRuby.each_target do
     locks_result['builds'][name] = locks
   end
