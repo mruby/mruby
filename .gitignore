@@ -1,3 +1,4 @@
+*.lock
 *.bak
 *.bc
 *.d
