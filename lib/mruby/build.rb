@@ -64,7 +64,7 @@ module MRuby
 
         @file_separator = '/'
         @build_dir = "#{build_dir}/#{@name}"
-        @gem_clone_dir = "#{@build_dir}/repos"
+        @gem_clone_dir = "#{build_dir}/repos/#{@name}"
         @cc = Command::Compiler.new(self, %w(.c))
         @cxx = Command::Compiler.new(self, %w(.cc .cxx .cpp))
         @objc = Command::Compiler.new(self, %w(.m))
