@@ -83,7 +83,7 @@ module MRuby
         # by default the 'master' branch is used
         branch = params[:branch] ? params[:branch] : 'master'
 
-        lock = @locks[url] if @enable_lock
+        lock = locks[url] if lock_enabled?
 
         if File.exist?(gemdir)
           if $pull_gems
@@ -112,8 +112,8 @@ module MRuby
           end
         end
 
-        if @enable_lock
-          @locks[url] = {
+        if lock_enabled?
+          locks[url] = {
             'url' => url,
             'branch' => git.current_branch(gemdir),
             'commit' => git.commit_hash(gemdir),

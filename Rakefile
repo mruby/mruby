@@ -8,10 +8,10 @@ MRUBY_BUILD_HOST_IS_OPENBSD = RUBY_PLATFORM.include?('openbsd')
 $LOAD_PATH << File.join(MRUBY_ROOT, "lib")
 
 # load build systems
-require 'yaml'
 require "mruby-core-ext"
 require "mruby/build"
 require "mruby/gem"
+require "mruby/lockfile"
 
 # load configuration file
 MRUBY_CONFIG = (ENV['MRUBY_CONFIG'] && ENV['MRUBY_CONFIG'] != '') ? ENV['MRUBY_CONFIG'] : "#{MRUBY_ROOT}/build_config.rb"
@@ -125,25 +125,7 @@ task :all => depfiles do
   MRuby.each_target do
     print_build_summary
   end
-
-  require 'mruby/source'
-
-  locks_result = {
-    'mruby_version' => {
-      'version' => MRuby::Source::MRUBY_VERSION,
-      'release_no' => MRuby::Source::MRUBY_RELEASE_NO
-    },
-    'builds' => {}
-  }
-  if File.exist? "#{MRUBY_ROOT}/.git"
-    locks_result['mruby_version']['git_commit'] = `git --git-dir '#{MRUBY_ROOT}/.git' --work-tree '#{MRUBY_ROOT}' rev-parse --verify HEAD`.strip
-  end
-
-  MRuby.each_target do
-    locks_result['builds'][name] = locks
-  end
-
-  File.write MRUBY_CONFIG_LOCK_FILE, YAML.dump(locks_result)
+  MRuby::Lockfile.write
 end
 
 desc "run all mruby tests"
