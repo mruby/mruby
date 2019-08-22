@@ -39,7 +39,7 @@ module MRuby
     include Rake::DSL
     include LoadGems
     attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir
-    attr_reader :libmruby_objs, :gems, :toolchains, :locks
+    attr_reader :libmruby_objs, :gems, :toolchains
     attr_writer :enable_bintest, :enable_test
 
     alias libmruby libmruby_objs
@@ -84,11 +84,8 @@ module MRuby
         @cxx_abi_enabled = false
         @enable_bintest = false
         @enable_test = false
-        @toolchains = []
-
-        @locks = MRUBY_CONFIG_LOCK['builds'][@name] if MRUBY_CONFIG_LOCK['builds']
-        @locks ||= {}
         @enable_lock = true
+        @toolchains = []
 
         MRuby.targets[@name] = self
       end
@@ -118,6 +115,10 @@ module MRuby
 
     def disable_lock
       @enable_lock = false
+    end
+
+    def lock_enabled?
+      Lockfile.enabled? && @enable_lock
     end
 
     def disable_cxx_exception
@@ -231,6 +232,10 @@ EOS
 
     def build_mrbc_exec
       gem :core => 'mruby-bin-mrbc'
+    end
+
+    def locks
+      Lockfile.build(@name)
     end
 
     def mrbcfile
