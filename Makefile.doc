@@ -11,5 +11,5 @@ docserver : docs
 	firefox doxygen/html/index.html 
 
 docsclean :
-	rm -r doxygen
+	rm -rf doxygen
 .PHONY : docserver docsclean
