@@ -32,11 +32,39 @@ MRB_API mrb_noreturn void mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_va
 /* declaration for `fail` method */
 MRB_API mrb_value mrb_f_raise(mrb_state*, mrb_value);
 
+#if defined(MRB_64BIT) || defined(MRB_USE_FLOAT) || defined(MRB_NAN_BOXING) || defined(MRB_WORD_BOXING)
 struct RBreak {
   MRB_OBJECT_HEADER;
   struct RProc *proc;
   mrb_value val;
 };
+#define mrb_break_value_get(brk) ((brk)->val)
+#define mrb_break_value_set(brk, v) ((brk)->val = v)
+#else
+struct RBreak {
+  MRB_OBJECT_HEADER;
+  struct RProc *proc;
+  union mrb_value_value val_val;
+};
+#define RBREAK_VALUE_TT_MASK ((1 << 8) - 1)
+static inline mrb_value
+mrb_break_value_get(struct RBreak *brk)
+{
+  mrb_value val;
+  val.value = brk->val_val;
+  val.tt = brk->flags & RBREAK_VALUE_TT_MASK;
+  return val;
+}
+static inline void
+mrb_break_value_set(struct RBreak *brk, mrb_value val)
+{
+  brk->val_val = val.value;
+  brk->flags &= ~RBREAK_VALUE_TT_MASK;
+  brk->flags |= val.tt;
+}
+#endif  /* MRB_64BIT || MRB_USE_FLOAT || MRB_NAN_BOXING || MRB_WORD_BOXING */
+#define mrb_break_proc_get(brk) ((brk)->proc)
+#define mrb_break_proc_set(brk, p) ((brk)->proc = p)
 
 /**
  * Protect
