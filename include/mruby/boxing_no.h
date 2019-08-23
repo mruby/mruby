@@ -10,15 +10,17 @@
 #define MRB_FIXNUM_SHIFT 0
 #define MRB_TT_HAS_BASIC MRB_TT_OBJECT
 
-typedef struct mrb_value {
-  union {
+union mrb_value_value {
 #ifndef MRB_WITHOUT_FLOAT
-    mrb_float f;
+  mrb_float f;
 #endif
-    void *p;
-    mrb_int i;
-    mrb_sym sym;
-  } value;
+  void *p;
+  mrb_int i;
+  mrb_sym sym;
+};
+
+typedef struct mrb_value {
+  union mrb_value_value value;
   enum mrb_vtype tt;
 } mrb_value;
 

@@ -836,8 +836,8 @@ break_new(mrb_state *mrb, struct RProc *p, mrb_value val)
   struct RBreak *brk;
 
   brk = (struct RBreak*)mrb_obj_alloc(mrb, MRB_TT_BREAK, NULL);
-  brk->proc = p;
-  brk->val = val;
+  mrb_break_proc_set(brk, p);
+  mrb_break_value_set(brk, val);
 
   return brk;
 }
@@ -2100,8 +2100,8 @@ RETRY_TRY_BLOCK:
           }
           if (FALSE) {
           L_BREAK:
-            v = ((struct RBreak*)mrb->exc)->val;
-            proc = ((struct RBreak*)mrb->exc)->proc;
+            v = mrb_break_value_get((struct RBreak*)mrb->exc);
+            proc = mrb_break_proc_get((struct RBreak*)mrb->exc);
             mrb->exc = NULL;
             ci = mrb->c->ci;
           }
