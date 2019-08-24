@@ -15,12 +15,6 @@ require "mruby/lockfile"
 
 # load configuration file
 MRUBY_CONFIG = (ENV['MRUBY_CONFIG'] && ENV['MRUBY_CONFIG'] != '') ? ENV['MRUBY_CONFIG'] : "#{MRUBY_ROOT}/build_config.rb"
-MRUBY_CONFIG_LOCK_FILE = "#{MRUBY_CONFIG}.lock"
-MRUBY_CONFIG_LOCK = if File.exist? MRUBY_CONFIG_LOCK_FILE
-                      YAML.load File.read MRUBY_CONFIG_LOCK_FILE
-                    else
-                      {}
-                    end
 load MRUBY_CONFIG
 
 # load basic rules
