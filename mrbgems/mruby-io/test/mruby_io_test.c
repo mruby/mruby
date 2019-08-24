@@ -44,7 +44,6 @@ mkdtemp(char *temp)
   return path;
 }
 
-#define mktemp(path) _mktemp(path)
 #define umask(mode) _umask(mode)
 #define rmdir(path) _rmdir(path)
 #else
@@ -200,20 +199,6 @@ mrb_io_test_file_cleanup(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
-mrb_io_test_mktemp(mrb_state *mrb, mrb_value klass)
-{
-  mrb_value str;
-  char *cp;
-
-  mrb_get_args(mrb, "S", &str);
-  cp = mrb_str_to_cstr(mrb, str);
-  if (mktemp(cp) == NULL) {
-    mrb_sys_fail(mrb, "mktemp");
-  }
-  return mrb_str_new_cstr(mrb, cp);
-}
-
-static mrb_value
 mrb_io_test_mkdtemp(mrb_state *mrb, mrb_value klass)
 {
   mrb_value str;
@@ -263,7 +248,6 @@ mrb_mruby_io_gem_test(mrb_state* mrb)
   mrb_define_class_method(mrb, io_test, "file_test_setup", mrb_io_test_file_setup, MRB_ARGS_NONE());
   mrb_define_class_method(mrb, io_test, "file_test_cleanup", mrb_io_test_file_cleanup, MRB_ARGS_NONE());
 
-  mrb_define_class_method(mrb, io_test, "mktemp", mrb_io_test_mktemp, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, io_test, "mkdtemp", mrb_io_test_mkdtemp, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, io_test, "rmdir", mrb_io_test_rmdir, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, io_test, "win?", mrb_io_win_p, MRB_ARGS_NONE());

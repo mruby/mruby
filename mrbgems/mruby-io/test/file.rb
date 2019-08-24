@@ -179,20 +179,25 @@ end
 
 assert('File.symlink') do
   target_name = "/usr/bin"
-  symlink_name = MRubyIOTestUtil.mktemp("test-bin-dummy-XXXXXXXX")
   if !File.exist?(target_name)
     skip("target directory of File.symlink is not found")
-  else
-    begin
-      assert_equal 0, File.symlink(target_name, symlink_name)
-      begin
-        assert_equal true, File.symlink?(symlink_name)
-      ensure
-        File.delete symlink_name
-      end
-    rescue NotImplementedError => e
-      skip e.message
-    end
+  end
+
+  begin
+    tmpdir = MRubyIOTestUtil.mkdtemp("mruby-io-test.XXXXXX")
+  rescue => e
+    skip e.message
+  end
+
+  symlink_name = "#{tmpdir}/test-bin-dummy"
+  begin
+    assert_equal 0, File.symlink(target_name, symlink_name)
+    assert_equal true, File.symlink?(symlink_name)
+  rescue NotImplementedError => e
+    skip e.message
+  ensure
+    File.delete symlink_name rescue nil
+    MRubyIOTestUtil.rmdir tmpdir rescue nil
   end
 end
 
