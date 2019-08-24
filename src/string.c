@@ -164,6 +164,8 @@ mrb_str_new_capa(mrb_state *mrb, size_t capa)
   }
   else if (capa >= MRB_INT_MAX) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string capacity size too big");
+    /* not reached */
+    s = NULL;
   }
   else {
     s = str_init_normal_capa(mrb, mrb_obj_alloc_string(mrb), NULL, 0, capa);
