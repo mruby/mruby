@@ -31,6 +31,6 @@ tags
 /benchmark/*.png
 
 /doc/api
-/doxygen/
+/doc/capi
 
 /src/y.tab.c
