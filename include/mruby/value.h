@@ -15,16 +15,17 @@
 MRB_BEGIN_DECL
 
 /**
+ * mruby Symbol.
  * @class mrb_sym
- * @brief mruby Symbol
  * 
  * You can create an mrb_sym by simply using mrb_str_intern() or mrb_intern_cstr()
  */
 typedef uint32_t mrb_sym;
 
 /**
+ * mruby Boolean.
  * @class mrb_bool
- * @brief mruby Boolean
+ * 
  *
  * Used internally to represent boolean. Can be TRUE or FALSE.
  * Not to be confused with Ruby's boolean classes, which can be 

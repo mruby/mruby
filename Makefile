@@ -2,8 +2,6 @@
 # We provide a minimalistic version called minirake inside of our
 # codebase.
 
--include Makefile.doc
-
 RAKE = ruby ./minirake
 
 all :
@@ -14,6 +12,6 @@ test : all
 	$(RAKE) test
 .PHONY : test
 
-clean : docsclean
+clean :
 	$(RAKE) clean
 .PHONY : clean

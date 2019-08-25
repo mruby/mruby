@@ -30,6 +30,7 @@ load "#{MRUBY_ROOT}/tasks/libmruby.rake"
 load "#{MRUBY_ROOT}/tasks/benchmark.rake"
 
 load "#{MRUBY_ROOT}/tasks/gitlab.rake"
+load "#{MRUBY_ROOT}/tasks/doc.rake"
 
 def install_D(src, dst)
   opts = { :verbose => $verbose }
@@ -150,19 +151,9 @@ task :clean do
 end
 
 desc "clean everything!"
-task :deep_clean => ["clean"] do
+task :deep_clean => ["clean", "clean_doc"] do
   MRuby.each_target do |t|
     FileUtils.rm_rf t.gem_clone_dir, { :verbose => $verbose }
   end
   puts "Cleaned up mrbgems build folder"
-end
-
-desc 'generate document'
-task :doc do
-  begin
-    sh "mrbdoc"
-  rescue
-    puts "ERROR: To generate documents, you should install yard-mruby gem."
-    puts "  $ gem install yard-mruby"
-  end
 end
