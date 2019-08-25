@@ -1,7 +1,6 @@
-require 'pathname'
 require 'forwardable'
-require 'tsort'
-require 'shellwords'
+autoload :TSort, 'tsort'
+autoload :Shellwords, 'shellwords'
 
 module MRuby
   module Gem

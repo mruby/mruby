@@ -10,8 +10,6 @@ $LOAD_PATH << File.join(MRUBY_ROOT, "lib")
 # load build systems
 require "mruby-core-ext"
 require "mruby/build"
-require "mruby/gem"
-require "mruby/lockfile"
 
 # load configuration file
 MRUBY_CONFIG = (ENV['MRUBY_CONFIG'] && ENV['MRUBY_CONFIG'] != '') ? ENV['MRUBY_CONFIG'] : "#{MRUBY_ROOT}/build_config.rb"

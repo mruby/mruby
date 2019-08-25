@@ -1,7 +1,11 @@
+require "mruby-core-ext"
 require "mruby/build/load_gems"
 require "mruby/build/command"
 
 module MRuby
+  autoload :Gem, "mruby/gem"
+  autoload :Lockfile, "mruby/lockfile"
+
   class << self
     def targets
       @targets ||= {}
