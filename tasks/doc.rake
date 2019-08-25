@@ -36,3 +36,13 @@ end
 desc 'clean all built docs'
 task :clean_doc => [:clean_api_doc, :clean_capi_doc] do
 end
+
+desc 'clean all built docs'
+task :view_api => [:api_doc] do
+  sh 'xdg-open doc/api/index.html'
+end
+
+desc 'clean all built docs'
+task :view_capi => [:capi_doc] do
+  sh 'xdg-open doc/capi/html/index.html'
+end

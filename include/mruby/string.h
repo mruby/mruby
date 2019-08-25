@@ -136,9 +136,8 @@ MRB_API mrb_int mrb_str_index(mrb_state*, mrb_value, const char*, mrb_int, mrb_i
  * Appends self to other. Returns self as a concatenated string.
  *
  *
- *  Example:
+ * Example:
  *
- *     !!!c
  *     int
  *     main(int argc,
  *          char **argv)
@@ -160,32 +159,30 @@ MRB_API mrb_int mrb_str_index(mrb_state*, mrb_value, const char*, mrb_int, mrb_i
  *       // Concatenates str2 to str1.
  *       mrb_str_concat(mrb, str1, str2);
  *
- *      // Prints new Concatenated Ruby string.
- *      mrb_p(mrb, str1);
+ *       // Prints new Concatenated Ruby string.
+ *       mrb_p(mrb, str1);
  *
- *      mrb_close(mrb);
- *      return 0;
- *    }
+ *       mrb_close(mrb);
+ *       return 0;
+ *     } 
  *
- *
- *  Result:
+ * Result:
  *
  *     => "abcdef"
  *
- * @param [mrb_state] mrb The current mruby state.
- * @param [mrb_value] self String to concatenate.
- * @param [mrb_value] other String to append to self.
+ * @param mrb The current mruby state.
+ * @param self String to concatenate.
+ * @param other String to append to self.
  * @return [mrb_value] Returns a new String appending other to self.
  */
-MRB_API void mrb_str_concat(mrb_state*, mrb_value, mrb_value);
+MRB_API void mrb_str_concat(mrb_state *mrb, mrb_value self, mrb_value other);
 
 /**
  * Adds two strings together.
  *
  *
- *  Example:
+ * Example:
  *
- *     !!!c
  *     int
  *     main(int argc,
  *          char **argv)
@@ -212,41 +209,41 @@ MRB_API void mrb_str_concat(mrb_state*, mrb_value, mrb_value);
  *       // Concatenates both Ruby strings.
  *       c = mrb_str_plus(mrb, a, b);
  *
- *      // Prints new Concatenated Ruby string.
- *      mrb_p(mrb, c);
+ *       // Prints new Concatenated Ruby string.
+ *       mrb_p(mrb, c);
  *
- *      mrb_close(mrb);
- *      return 0;
- *    }
+ *       mrb_close(mrb);
+ *       return 0;
+ *     }
  *
  *
- *  Result:
+ * Result:
  *
  *     => "abc"  # First string
  *     => "def"  # Second string
  *     => "abcdef" # First & Second concatenated.
  *
- * @param [mrb_state] mrb The current mruby state.
- * @param [mrb_value] a First string to concatenate.
- * @param [mrb_value] b Second string to concatenate.
+ * @param mrb The current mruby state.
+ * @param a First string to concatenate.
+ * @param b Second string to concatenate.
  * @return [mrb_value] Returns a new String containing a concatenated to b.
  */
-MRB_API mrb_value mrb_str_plus(mrb_state*, mrb_value, mrb_value);
+MRB_API mrb_value mrb_str_plus(mrb_state *mrb, mrb_value a, mrb_value b);
 
 /**
  * Converts pointer into a Ruby string.
  *
- * @param [mrb_state] mrb The current mruby state.
- * @param [void*] p The pointer to convert to Ruby string.
+ * @param mrb The current mruby state.
+ * @param p The pointer to convert to Ruby string.
  * @return [mrb_value] Returns a new Ruby String.
  */
-MRB_API mrb_value mrb_ptr_to_str(mrb_state *, void*);
+MRB_API mrb_value mrb_ptr_to_str(mrb_state *mrb, void *p);
 
 /**
  * Returns an object as a Ruby string.
  *
- * @param [mrb_state] mrb The current mruby state.
- * @param [mrb_value] obj An object to return as a Ruby string.
+ * @param mrb The current mruby state.
+ * @param obj An object to return as a Ruby string.
  * @return [mrb_value] An object as a Ruby string.
  */
 MRB_API mrb_value mrb_obj_as_string(mrb_state *mrb, mrb_value obj);
@@ -257,7 +254,6 @@ MRB_API mrb_value mrb_obj_as_string(mrb_state *mrb, mrb_value obj);
  *
  * Example:
  *
- *     !!!c
  *     int
  *     main(int argc,
  *          char **argv)
@@ -282,11 +278,11 @@ MRB_API mrb_value mrb_obj_as_string(mrb_state *mrb, mrb_value obj);
  *
  * Result:
  *
- *     => "Hello"
+ *      => "Hello"
  *
- * @param [mrb_state] mrb The current mruby state.
- * @param [mrb_value] str The Ruby string to resize.
- * @param [mrb_value] len The length.
+ * @param mrb The current mruby state.
+ * @param str The Ruby string to resize.
+ * @param len The length.
  * @return [mrb_value] An object as a Ruby string.
  */
 MRB_API mrb_value mrb_str_resize(mrb_state *mrb, mrb_value str, mrb_int len);
@@ -294,9 +290,8 @@ MRB_API mrb_value mrb_str_resize(mrb_state *mrb, mrb_value str, mrb_int len);
 /**
  * Returns a sub string.
  *
- *  Example:
+ * Example:
  *
- *     !!!c
  *     int
  *     main(int argc,
  *     char const **argv)
@@ -322,14 +317,14 @@ MRB_API mrb_value mrb_str_resize(mrb_state *mrb, mrb_value str, mrb_int len);
  *       return 0;
  *     }
  *
- *  Result:
+ * Result:
  *
  *     => "He"
  *
- * @param [mrb_state] mrb The current mruby state.
- * @param [mrb_value] str Ruby string.
- * @param [mrb_int] beg The beginning point of the sub-string.
- * @param [mrb_int] len The end point of the sub-string.
+ * @param mrb The current mruby state.
+ * @param str Ruby string.
+ * @param beg The beginning point of the sub-string.
+ * @param len The end point of the sub-string.
  * @return [mrb_value] An object as a Ruby sub-string.
  */
 MRB_API mrb_value mrb_str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len);
@@ -338,8 +333,8 @@ MRB_API mrb_value mrb_str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb
  * Returns a Ruby string type.
  *
  *
- * @param [mrb_state] mrb The current mruby state.
- * @param [mrb_value] str Ruby string.
+ * @param mrb The current mruby state.
+ * @param str Ruby string.
  * @return [mrb_value] A Ruby string.
  */
 MRB_API mrb_value mrb_ensure_string_type(mrb_state *mrb, mrb_value str);
@@ -364,8 +359,8 @@ MRB_API mrb_int mrb_string_value_len(mrb_state *mrb, mrb_value str);
  * Duplicates a string object.
  *
  *
- * @param [mrb_state] mrb The current mruby state.
- * @param [mrb_value] str Ruby string.
+ * @param mrb The current mruby state.
+ * @param str Ruby string.
  * @return [mrb_value] Duplicated Ruby string.
  */
 MRB_API mrb_value mrb_str_dup(mrb_state *mrb, mrb_value str);
@@ -373,8 +368,8 @@ MRB_API mrb_value mrb_str_dup(mrb_state *mrb, mrb_value str);
 /**
  * Returns a symbol from a passed in Ruby string.
  *
- * @param [mrb_state] mrb The current mruby state.
- * @param [mrb_value] self Ruby string.
+ * @param mrb The current mruby state.
+ * @param self Ruby string.
  * @return [mrb_value] A symbol.
  */
 MRB_API mrb_value mrb_str_intern(mrb_state *mrb, mrb_value self);
@@ -393,9 +388,9 @@ MRB_API mrb_value mrb_str_to_str(mrb_state *mrb, mrb_value str);
 /**
  * Returns true if the strings match and false if the strings don't match.
  *
- * @param [mrb_state] mrb The current mruby state.
- * @param [mrb_value] str1 Ruby string to compare.
- * @param [mrb_value] str2 Ruby string to compare.
+ * @param mrb The current mruby state.
+ * @param str1 Ruby string to compare.
+ * @param str2 Ruby string to compare.
  * @return [mrb_value] boolean value.
  */
 MRB_API mrb_bool mrb_str_equal(mrb_state *mrb, mrb_value str1, mrb_value str2);
@@ -403,10 +398,10 @@ MRB_API mrb_bool mrb_str_equal(mrb_state *mrb, mrb_value str1, mrb_value str2);
 /**
  * Returns a concatenated string comprised of a Ruby string and a C string.
  *
- * @param [mrb_state] mrb The current mruby state.
- * @param [mrb_value] str Ruby string.
- * @param [const char *] ptr A C string.
- * @param [size_t] len length of C string.
+ * @param mrb The current mruby state.
+ * @param str Ruby string.
+ * @param ptr A C string.
+ * @param len length of C string.
  * @return [mrb_value] A Ruby string.
  * @see mrb_str_cat_cstr
  */
@@ -415,9 +410,9 @@ MRB_API mrb_value mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, si
 /**
  * Returns a concatenated string comprised of a Ruby string and a C string.
  *
- * @param [mrb_state] mrb The current mruby state.
- * @param [mrb_value] str Ruby string.
- * @param [const char *] ptr A C string.
+ * @param mrb The current mruby state.
+ * @param str Ruby string.
+ * @param ptr A C string.
  * @return [mrb_value] A Ruby string.
  * @see mrb_str_cat
  */
@@ -446,8 +441,8 @@ MRB_API int mrb_str_cmp(mrb_state *mrb, mrb_value str1, mrb_value str2);
  * - Caller can modify returned string without affecting Ruby string
  *   (e.g. it can be used for mkstemp(3)).
  *
- * @param [mrb_state *] mrb The current mruby state.
- * @param [mrb_value] str Ruby string. Must be an instance of String.
+ * @param mrb The current mruby state.
+ * @param str Ruby string. Must be an instance of String.
  * @return [char *] A newly allocated C string.
  */
 MRB_API char *mrb_str_to_cstr(mrb_state *mrb, mrb_value str);

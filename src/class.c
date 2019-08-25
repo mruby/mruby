@@ -409,7 +409,7 @@ mrb_module_get(mrb_state *mrb, const char *name)
 /*!
  * Defines a class under the namespace of \a outer.
  * \param outer  a class which contains the new class.
- * \param id     name of the new class
+ * \param name     name of the new class
  * \param super  a class from which the new class will derive.
  *               NULL means \c Object class.
  * \return the created class
@@ -1769,6 +1769,7 @@ mrb_alias_method(mrb_state *mrb, struct RClass *c, mrb_sym a, mrb_sym b)
 
 /*!
  * Defines an alias of a method.
+ * \param mrb    the mruby state
  * \param klass  the class which the original method belongs to
  * \param name1  a new name for the method
  * \param name2  the original name of the method

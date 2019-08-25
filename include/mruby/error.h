@@ -69,14 +69,14 @@ mrb_break_value_set(struct RBreak *brk, mrb_value val)
 /**
  * Protect
  *
- * @mrbgem mruby-error
+ * Implemented in the mruby-error mrbgem
  */
 MRB_API mrb_value mrb_protect(mrb_state *mrb, mrb_func_t body, mrb_value data, mrb_bool *state);
 
 /**
  * Ensure
  *
- * @mrbgem mruby-error
+ * Implemented in the mruby-error mrbgem
  */
 MRB_API mrb_value mrb_ensure(mrb_state *mrb, mrb_func_t body, mrb_value b_data,
                              mrb_func_t ensure, mrb_value e_data);
@@ -84,7 +84,7 @@ MRB_API mrb_value mrb_ensure(mrb_state *mrb, mrb_func_t body, mrb_value b_data,
 /**
  * Rescue
  *
- * @mrbgem mruby-error
+ * Implemented in the mruby-error mrbgem
  */
 MRB_API mrb_value mrb_rescue(mrb_state *mrb, mrb_func_t body, mrb_value b_data,
                              mrb_func_t rescue, mrb_value r_data);
@@ -92,7 +92,7 @@ MRB_API mrb_value mrb_rescue(mrb_state *mrb, mrb_func_t body, mrb_value b_data,
 /**
  * Rescue exception
  *
- * @mrbgem mruby-error
+ * Implemented in the mruby-error mrbgem
  */
 MRB_API mrb_value mrb_rescue_exceptions(mrb_state *mrb, mrb_func_t body, mrb_value b_data,
                                         mrb_func_t rescue, mrb_value r_data,
