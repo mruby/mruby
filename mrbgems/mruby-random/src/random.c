@@ -70,7 +70,7 @@ rand_uint32(rand_state *state)
   uint32_t x = seed[0];
   uint32_t y = seed[1];
   uint32_t z = seed[2];
-  uint32_t w = seed[3]; 
+  uint32_t w = seed[3];
   uint32_t t;
 
   t = x ^ (x << 11);
@@ -317,7 +317,7 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
 
       for (;;) {
       retry:
-        r = (mrb_int)rand_uint32(random) % len;
+        r = (mrb_int)(rand_uint32(random) % len);
 
         for (j=0; j<i; j++) {
           if (mrb_fixnum(RARRAY_PTR(result)[j]) == r) {
