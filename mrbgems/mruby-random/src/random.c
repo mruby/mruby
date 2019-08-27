@@ -355,7 +355,7 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
   struct RClass *random;
   struct RClass *array = mrb->array_class;
 
-  mrb_assert(sizeof(rand_state) < ISTRUCT_DATA_SIZE);
+  mrb_assert(sizeof(rand_state) <= ISTRUCT_DATA_SIZE);
 
   mrb_define_method(mrb, mrb->kernel_module, "rand", random_f_rand, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, mrb->kernel_module, "srand", random_f_srand, MRB_ARGS_OPT(1));
