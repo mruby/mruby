@@ -283,6 +283,18 @@ assert('Kernel#hash', '15.3.1.3.15') do
   assert_equal hash, hash
 end
 
+assert('Kernel#initialize_copy', '15.3.1.3.16') do
+  cls = Class.new
+  a = cls.new
+  assert_same a, a.initialize_copy(a)
+  assert_same a, a.initialize_copy(cls.new)
+  assert_same a, a.initialize_copy(cls.new.freeze)
+  assert_raise(ArgumentError) { a.initialize_copy }
+  assert_raise(TypeError) { a.initialize_copy("b") }
+  assert_raise(FrozenError) { a.freeze.initialize_copy(cls.new) }
+  assert_raise(FrozenError) { 1.initialize_copy(2) }
+end
+
 assert('Kernel#inspect', '15.3.1.3.17') do
   s = inspect
 
