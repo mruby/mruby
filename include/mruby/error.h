@@ -44,21 +44,21 @@ struct RBreak {
 struct RBreak {
   MRB_OBJECT_HEADER;
   struct RProc *proc;
-  union mrb_value_value val_val;
+  union mrb_value_union value;
 };
 #define RBREAK_VALUE_TT_MASK ((1 << 8) - 1)
 static inline mrb_value
 mrb_break_value_get(struct RBreak *brk)
 {
   mrb_value val;
-  val.value = brk->val_val;
+  val.value = brk->value;
   val.tt = brk->flags & RBREAK_VALUE_TT_MASK;
   return val;
 }
 static inline void
 mrb_break_value_set(struct RBreak *brk, mrb_value val)
 {
-  brk->val_val = val.value;
+  brk->val_union = val.value;
   brk->flags &= ~RBREAK_VALUE_TT_MASK;
   brk->flags |= val.tt;
 }
