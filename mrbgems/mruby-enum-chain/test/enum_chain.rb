@@ -76,13 +76,24 @@ assert("Enumerator::Chain#size") do
 end
 
 assert("Enumerator::Chain#rewind") do
-  rewound = []
+  rewound = nil
   e1 = [1, 2]
   e2 = (4..6)
-  (class << e1; self end).define_method(:rewind) { rewound << __id__ }
-  (class << e2; self end).define_method(:rewind) { rewound << __id__ }
-  c = e1.chain(e2).each{}.rewind
-  assert_equal [e2.__id__, e1.__id__], rewound
+  (class << e1; self end).define_method(:rewind) { rewound << self }
+  (class << e2; self end).define_method(:rewind) { rewound << self }
+  c = e1.chain(e2)
+
+  rewound = []
+  c.rewind
+  assert_equal [], rewound
+
+  rewound = []
+  c.each{break c}.rewind
+  assert_equal [e1], rewound
+
+  rewound = []
+  c.each{}.rewind
+  assert_equal [e2, e1], rewound
 end
 
 assert("Enumerator::Chain#+") do
