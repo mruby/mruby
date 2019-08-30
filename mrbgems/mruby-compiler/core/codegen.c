@@ -1558,7 +1558,7 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_IF:
     {
-      int pos1, pos2;
+      int pos1, pos2, nil_p = FALSE;
       node *elsepart = tree->cdr->cdr->car;
 
       if (!tree->car) {
@@ -1575,26 +1575,38 @@ codegen(codegen_scope *s, node *tree, int val)
       case NODE_NIL:
         codegen(s, elsepart, val);
         goto exit;
+      case NODE_CALL:
+        {
+          node *n = tree->car->cdr;
+          mrb_sym mid = nsym(n->cdr->car);
+          mrb_sym mnil = mrb_intern_lit(s->mrb, "nil?");
+          if (mid == mnil && n->cdr->cdr->car == NULL) {
+            nil_p = TRUE;
+            codegen(s, n->car, VAL);
+          }
+        }
+        break;
       }
-      codegen(s, tree->car, VAL);
+      if (!nil_p) {
+        codegen(s, tree->car, VAL);
+      }
       pop();
       if (val || tree->cdr->car) {
-        pos1 = genjmp2(s, OP_JMPNOT, cursp(), 0, val);
+        if (nil_p) {
+          pos2 = genjmp2(s, OP_JMPNIL, cursp(), 0, val);
+          pos1 = genjmp(s, OP_JMP, 0);
+          dispatch(s, pos2);
+        }
+        else {
+          pos1 = genjmp2(s, OP_JMPNOT, cursp(), 0, val);
+        }
         codegen(s, tree->cdr->car, val);
-        if (elsepart) {
-          if (val) pop();
+        if (val) pop();
+        if (elsepart || val) {
           pos2 = genjmp(s, OP_JMP, 0);
           dispatch(s, pos1);
           codegen(s, elsepart, val);
           dispatch(s, pos2);
-        }
-        else if (val) {
-          pop();
-          pos2 = genjmp(s, OP_JMP, 0);
-          dispatch(s, pos1);
-          genop_1(s, OP_LOADNIL, cursp());
-          dispatch(s, pos2);
-          push();
         }
         else {
           dispatch(s, pos1);
@@ -1602,11 +1614,16 @@ codegen(codegen_scope *s, node *tree, int val)
       }
       else {                    /* empty then-part */
         if (elsepart) {
-          pos1 = genjmp2(s, OP_JMPIF, cursp(), 0, val);
+          if (nil_p) {
+            pos1 = genjmp2(s, OP_JMPNIL, cursp(), 0, val);
+          }
+          else {
+            pos1 = genjmp2(s, OP_JMPIF, cursp(), 0, val);
+          }
           codegen(s, elsepart, val);
           dispatch(s, pos1);
         }
-        else if (val) {
+        else if (val && !nil_p) {
           genop_1(s, OP_LOADNIL, cursp());
           push();
         }
