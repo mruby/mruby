@@ -3,8 +3,11 @@
 
 def assert_permutation_combination(exp, receiver, meth, *args)
   act = []
-  receiver.__send__(meth, *args) { |v| act << v }
-  assert_equal(exp, act.sort)
+  ret = receiver.__send__(meth, *args) { |v| act << v }
+  assert "assert_#{meth}" do
+    assert_equal(exp, act.sort)
+    assert_same(receiver, ret)
+  end
 end
 
 def assert_permutation(exp, receiver, *args)
