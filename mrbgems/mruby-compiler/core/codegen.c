@@ -1122,6 +1122,10 @@ gen_assignment(codegen_scope *s, node *tree, int sp, int val)
       }
     }
     break;
+  case NODE_NVAR:
+    idx = nint(tree);
+    codegen_error(s, "Can't assign to numbered parameter");
+    break;
   case NODE_IVAR:
     idx = new_sym(s, nsym(tree));
     genop_2(s, OP_SETIV, sp, idx);
@@ -2336,6 +2340,17 @@ codegen(codegen_scope *s, node *tree, int val)
           up = up->prev;
         }
       }
+      push();
+    }
+    break;
+
+  case NODE_NVAR:
+    if (val) {
+      int idx = nint(tree);
+
+      gen_move(s, cursp(), idx, val);
+      if (val && on_eval(s)) genop_0(s, OP_NOP);
+
       push();
     }
     break;

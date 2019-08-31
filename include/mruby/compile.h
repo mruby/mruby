@@ -161,6 +161,7 @@ struct mrb_parser_state {
   uint16_t current_filename_index;
 
   struct mrb_jmpbuf* jmp;
+  mrb_ast_node *nvars;
 };
 
 MRB_API struct mrb_parser_state* mrb_parser_new(mrb_state*);

@@ -74,6 +74,8 @@ typedef unsigned int stack_type;
 #define NUM_SUFFIX_R   (1<<0)
 #define NUM_SUFFIX_I   (1<<1)
 
+#define NUMPARAM_MAX 31
+
 static inline mrb_sym
 intern_cstr_gen(parser_state *p, const char *s)
 {
@@ -313,6 +315,24 @@ static node*
 locals_node(parser_state *p)
 {
   return p->locals ? p->locals->car : NULL;
+}
+
+static void
+nvars_nest(parser_state *p)
+{
+  p->nvars = cons(p->nvars, nint(0));
+}
+
+static void
+nvars_block(parser_state *p)
+{
+  p->nvars = cons(p->nvars, nint(-1));
+}
+
+static void
+nvars_unnest(parser_state *p)
+{
+  p->nvars = p->nvars->car;
 }
 
 /* (:scope (vars..) (prog...)) */
@@ -649,6 +669,19 @@ new_cvar(parser_state *p, mrb_sym sym)
   return cons((node*)NODE_CVAR, nsym(sym));
 }
 
+/* (:nvar . a) */
+static node*
+new_nvar(parser_state *p, int num)
+{
+  if (!p->nvars || intn(p->nvars->cdr) < 0) {
+    yyerror(p, "numbered parameter outside block");
+  } else {
+    int nvars = intn(p->nvars->cdr);
+    p->nvars->cdr = nint(nvars > num ? nvars : num);
+  }
+  return cons((node*)NODE_NVAR, nint(num));
+}
+
 /* (:const . a) */
 static node*
 new_const(parser_state *p, mrb_sym sym)
@@ -806,10 +839,36 @@ new_block_arg(parser_state *p, node *a)
   return cons((node*)NODE_BLOCK_ARG, a);
 }
 
+static node*
+setup_args(parser_state *p, node *a)
+{
+  int nvars = intn(p->nvars->cdr);
+  if (nvars > 0) {
+    int i;
+    char buf[5];
+    mrb_sym sym;
+    // m || opt || rest || tail
+    if (a && (a->car || (a->cdr && a->cdr->car) || (a->cdr->cdr && a->cdr->cdr->car) || (a->cdr->cdr->cdr->cdr && a->cdr->cdr->cdr->cdr->car))) {
+      yyerror(p, "ordinary parameter is defined");
+    } else {
+      node* args = 0;
+      for (i = nvars; i > 0; i--) {
+        sprintf(buf, "@%d", i);
+        sym = intern_cstr(buf);
+        args = cons(new_arg(p, sym), args);
+        p->locals->car = cons(nsym(sym), p->locals->car);
+      }
+      a = new_args(p, args, 0, 0, 0, 0);
+    }
+  }
+  return a;
+}
+
 /* (:block arg body) */
 static node*
 new_block(parser_state *p, node *a, node *b)
 {
+  a = setup_args(p, a);
   return list4((node*)NODE_BLOCK, locals_node(p), a, b);
 }
 
@@ -817,6 +876,7 @@ new_block(parser_state *p, node *a, node *b)
 static node*
 new_lambda(parser_state *p, node *a, node *b)
 {
+  a = setup_args(p, a);
   return list4((node*)NODE_LAMBDA, locals_node(p), a, b);
 }
 
@@ -1334,6 +1394,7 @@ heredoc_end(parser_state *p)
 %token <nd>  tSTRING tSTRING_PART tSTRING_MID
 %token <nd>  tNTH_REF tBACK_REF
 %token <num> tREGEXP_END
+%token <num> tNUMPARAM
 
 %type <nd> singleton string string_fragment string_rep string_interp xstring regexp
 %type <nd> literal numeric cpath symbol
@@ -1466,11 +1527,13 @@ top_stmt        : stmt
                 | keyword_BEGIN
                     {
                       $<nd>$ = local_switch(p);
+                      nvars_block(p);
                     }
                   '{' top_compstmt '}'
                     {
                       yyerror(p, "BEGIN not supported");
                       local_resume(p, $<nd>2);
+                      nvars_unnest(p);
                       $$ = 0;
                     }
                 ;
@@ -1668,6 +1731,7 @@ block_command   : block_call
 cmd_brace_block : tLBRACE_ARG
                     {
                       local_nest(p);
+                      nvars_nest(p);
                     }
                   opt_block_param
                   compstmt
@@ -1675,6 +1739,7 @@ cmd_brace_block : tLBRACE_ARG
                     {
                       $$ = new_block(p, $3, $4);
                       local_unnest(p);
+                      nvars_unnest(p);
                     }
                 ;
 
@@ -2410,6 +2475,7 @@ primary         : literal
                 | tLAMBDA
                     {
                       local_nest(p);
+                      nvars_nest(p);
                       $<num>$ = p->lpar_beg;
                       p->lpar_beg = ++p->paren_nest;
                     }
@@ -2423,6 +2489,7 @@ primary         : literal
                       p->lpar_beg = $<num>2;
                       $$ = new_lambda(p, $3, $5);
                       local_unnest(p);
+                      nvars_unnest(p);
                       p->cmdarg_stack = $<stack>4;
                       CMDARG_LEXPOP();
                     }
@@ -2482,6 +2549,7 @@ primary         : literal
                       if (p->in_def || p->in_single)
                         yyerror(p, "class definition in method body");
                       $<nd>$ = local_switch(p);
+                      nvars_block(p);
                     }
                   bodystmt
                   keyword_end
@@ -2489,6 +2557,7 @@ primary         : literal
                       $$ = new_class(p, $2, $3, $5);
                       SET_LINENO($$, $1);
                       local_resume(p, $<nd>4);
+                      nvars_unnest(p);
                     }
                 | keyword_class
                   tLSHFT expr
@@ -2499,6 +2568,7 @@ primary         : literal
                   term
                     {
                       $<nd>$ = cons(local_switch(p), nint(p->in_single));
+                      nvars_block(p);
                       p->in_single = 0;
                     }
                   bodystmt
@@ -2507,6 +2577,7 @@ primary         : literal
                       $$ = new_sclass(p, $3, $7);
                       SET_LINENO($$, $1);
                       local_resume(p, $<nd>6->car);
+                      nvars_unnest(p);
                       p->in_def = $<num>4;
                       p->in_single = intn($<nd>6->cdr);
                     }
@@ -2516,6 +2587,7 @@ primary         : literal
                       if (p->in_def || p->in_single)
                         yyerror(p, "module definition in method body");
                       $<nd>$ = local_switch(p);
+                      nvars_block(p);
                     }
                   bodystmt
                   keyword_end
@@ -2523,6 +2595,7 @@ primary         : literal
                       $$ = new_module(p, $2, $4);
                       SET_LINENO($$, $1);
                       local_resume(p, $<nd>3);
+                      nvars_unnest(p);
                     }
                 | keyword_def fname
                     {
@@ -2532,6 +2605,7 @@ primary         : literal
                     {
                       p->in_def++;
                       $<nd>$ = local_switch(p);
+                      nvars_block(p);
                     }
                   f_arglist
                   bodystmt
@@ -2540,6 +2614,7 @@ primary         : literal
                       $$ = new_def(p, $2, $5, $6);
                       SET_LINENO($$, $1);
                       local_resume(p, $<nd>4);
+                      nvars_unnest(p);
                       p->in_def--;
                       p->cmdarg_stack = $<stack>3;
                     }
@@ -2554,6 +2629,7 @@ primary         : literal
                       p->in_single++;
                       p->lstate = EXPR_ENDFN; /* force for args */
                       $<nd>$ = local_switch(p);
+                      nvars_block(p);
                     }
                   f_arglist
                   bodystmt
@@ -2562,6 +2638,7 @@ primary         : literal
                       $$ = new_sdef(p, $2, $5, $7, $8);
                       SET_LINENO($$, $1);
                       local_resume(p, $<nd>6);
+                      nvars_unnest(p);
                       p->in_single--;
                       p->cmdarg_stack = $<stack>4;
                     }
@@ -2829,6 +2906,7 @@ lambda_body     : tLAMBEG compstmt '}'
 do_block        : keyword_do_block
                     {
                       local_nest(p);
+                      nvars_nest(p);
                     }
                   opt_block_param
                   bodystmt
@@ -2836,6 +2914,7 @@ do_block        : keyword_do_block
                     {
                       $$ = new_block(p,$3,$4);
                       local_unnest(p);
+                      nvars_unnest(p);
                     }
                 ;
 
@@ -2906,6 +2985,7 @@ method_call     : operation paren_args
 brace_block     : '{'
                     {
                       local_nest(p);
+                      nvars_nest(p);
                       $<num>$ = p->lineno;
                     }
                   opt_block_param
@@ -2914,10 +2994,12 @@ brace_block     : '{'
                       $$ = new_block(p,$3,$4);
                       SET_LINENO($$, $<num>2);
                       local_unnest(p);
+                      nvars_unnest(p);
                     }
                 | keyword_do
                     {
                       local_nest(p);
+                      nvars_nest(p);
                       $<num>$ = p->lineno;
                     }
                   opt_block_param
@@ -2926,6 +3008,7 @@ brace_block     : '{'
                       $$ = new_block(p,$3,$4);
                       SET_LINENO($$, $<num>2);
                       local_unnest(p);
+                      nvars_unnest(p);
                     }
                 ;
 
@@ -3181,6 +3264,10 @@ variable        : tIDENTIFIER
                 | tCVAR
                     {
                       $$ = new_cvar(p, $1);
+                    }
+                | tNUMPARAM
+                    {
+                      $$ = new_nvar(p, $1);
                     }
                 | tCONSTANT
                     {
@@ -5788,14 +5875,36 @@ parser_yylex(parser_state *p)
       }
       else if (ISDIGIT(c)) {
         if (p->tidx == 1) {
-          yyerror_c(p, "wrong instance variable name: @", c);
+          if (last_state == EXPR_FNAME) {
+            yyerror_c(p, "wrong instance variable name: @", c);
+            return 0;
+          }
+          if (c == '0') {
+            yyerror(p, "leading zero is not allowed as a numbered parameter");
+            return 0;
+          }
+          do {
+            tokadd(p, c);
+            c = nextc(p);
+          } while (c >= 0 && ISDIGIT(c));
+          pushback(p, c);
+          tokfix(p);
+          {
+            unsigned long n = strtoul(tok(p) + 1, NULL, 10);
+            if (n > NUMPARAM_MAX || n < 0) {
+              yyerror(p, "too large numbered parameter");
+              return 0;
+            }
+            pylval.num = n;
+          }
+          p->lstate = EXPR_END;
+          return tNUMPARAM;
         }
         else {
           yyerror_c(p, "wrong class variable name: @@", c);
+          return 0;
         }
-        return 0;
-      }
-      if (!identchar(c)) {
+      } else if (!identchar(c)) {
         pushback(p, c);
         return '@';
       }
@@ -6841,6 +6950,10 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
 
   case NODE_CVAR:
     printf("NODE_CVAR %s\n", mrb_sym_name(mrb, sym(tree)));
+    break;
+
+  case NODE_NVAR:
+    printf("NODE_NVAR %d\n", intn(tree));
     break;
 
   case NODE_CONST:
