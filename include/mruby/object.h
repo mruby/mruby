@@ -32,7 +32,6 @@ struct RObject {
 };
 #define mrb_obj_ptr(v)   ((struct RObject*)(mrb_ptr(v)))
 
-#define mrb_immediate_p(x) (mrb_type(x) < MRB_TT_HAS_BASIC)
 #define mrb_special_const_p(x) mrb_immediate_p(x)
 
 struct RFiber {
