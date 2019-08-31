@@ -655,3 +655,12 @@ assert 'keyword arguments' do
   assert_equal([1, 1, [], 2, 3, 2, 4, { h: 5, i: 6 }, l], result)
 =end
 end
+
+
+assert('numbered parameters') do
+  assert_equal(15, [1,2,3,4,5].reduce {@1+@2})
+  assert_equal(3, ->{@1+@2}.call(1,2))
+  assert_equal(4, ->(a=->{@1}){a}.call.call(4))
+  assert_equal(5, -> a: ->{@1} {a}.call.call(5))
+  assert_equal(55, Proc.new do @1 + @2 + @3 + @4 + @5 + @6 + @7 + @8 + @9 + @10 end.call(*[1, 2, 3, 4, 5, 6, 7, 8, 9, 10]))
+end
