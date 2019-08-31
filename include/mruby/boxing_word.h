@@ -28,11 +28,6 @@ struct RCptr {
 };
 
 #define MRB_FIXNUM_SHIFT 1
-#ifdef MRB_WITHOUT_FLOAT
-#define MRB_TT_HAS_BASIC MRB_TT_CPTR
-#else
-#define MRB_TT_HAS_BASIC MRB_TT_FLOAT
-#endif
 
 enum mrb_special_consts {
   MRB_Qnil    = 0,
@@ -41,9 +36,10 @@ enum mrb_special_consts {
   MRB_Qundef  = 6,
 };
 
-#define MRB_FIXNUM_FLAG   0x01
-#define MRB_SYMBOL_FLAG   0x0e
-#define MRB_SPECIAL_SHIFT 8
+#define MRB_IMMEDIATE_MASK  0x07
+#define MRB_FIXNUM_FLAG     0x01
+#define MRB_SYMBOL_FLAG     0x0e
+#define MRB_SPECIAL_SHIFT   8
 
 #if defined(MRB_64BIT)
 #define MRB_SYMBOL_BITSIZE  (sizeof(mrb_sym) * CHAR_BIT)
@@ -113,6 +109,7 @@ mrb_type(mrb_value o)
 }
 
 #define mrb_bool(o)    ((o).w != MRB_Qnil && (o).w != MRB_Qfalse)
+#define mrb_immediate_p(o) ((o).w & MRB_IMMEDIATE_MASK || (o).w == MRB_Qnil)
 #define mrb_fixnum_p(o) ((o).value.i_flag == MRB_FIXNUM_FLAG)
 #define mrb_undef_p(o) ((o).w == MRB_Qundef)
 #define mrb_nil_p(o)  ((o).w == MRB_Qnil)
