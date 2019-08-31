@@ -108,13 +108,13 @@ static const unsigned int IEEE754_INFINITY_BITS_SINGLE = 0x7F800000;
 
 enum mrb_vtype {
   MRB_TT_FALSE = 0,   /*   0 */
-  MRB_TT_FREE,        /*   1 */
-  MRB_TT_TRUE,        /*   2 */
+  MRB_TT_TRUE,        /*   1 */
+  MRB_TT_FLOAT,       /*   2 */
   MRB_TT_FIXNUM,      /*   3 */
   MRB_TT_SYMBOL,      /*   4 */
   MRB_TT_UNDEF,       /*   5 */
-  MRB_TT_FLOAT,       /*   6 */
-  MRB_TT_CPTR,        /*   7 */
+  MRB_TT_CPTR,        /*   6 */
+  MRB_TT_FREE,        /*   7 */
   MRB_TT_OBJECT,      /*   8 */
   MRB_TT_CLASS,       /*   9 */
   MRB_TT_MODULE,      /*  10 */
@@ -160,6 +160,8 @@ typedef void mrb_value;
 #else
 #include "boxing_no.h"
 #endif
+
+#define MRB_TT_HAS_BASIC MRB_TT_FREE
 
 #ifndef mrb_immediate_p
 #define mrb_immediate_p(o) (mrb_type(o) < MRB_TT_HAS_BASIC)

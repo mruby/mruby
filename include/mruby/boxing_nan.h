@@ -20,7 +20,6 @@
 #endif
 
 #define MRB_FIXNUM_SHIFT 0
-#define MRB_TT_HAS_BASIC MRB_TT_OBJECT
 
 #ifdef MRB_ENDIAN_BIG
 #define MRB_ENDIAN_LOHI(a,b) a b
