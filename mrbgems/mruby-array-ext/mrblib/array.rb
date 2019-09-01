@@ -819,7 +819,7 @@ class Array
     size = self.size
     if n == 0
       yield []
-    elsif n <= size
+    elsif 0 < n && n <= size
       i = 0
       while i<size
         result = [self[i]]

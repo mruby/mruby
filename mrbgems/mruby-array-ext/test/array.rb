@@ -392,6 +392,7 @@ assert("Array#permutation") do
   assert_permutation([[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]], a, 3)
   assert_permutation([[]], a, 0)
   assert_permutation([], a, 4)
+  assert_permutation([], a, -1)
 end
 
 assert("Array#combination") do
@@ -402,6 +403,7 @@ assert("Array#combination") do
   assert_combination([[1,2,3,4]], a, 4)
   assert_combination([[]], a, 0)
   assert_combination([], a, 5)
+  assert_combination([], a, -1)
 end
 
 assert('Array#transpose') do
