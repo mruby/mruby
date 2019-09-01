@@ -58,7 +58,7 @@ mrb_break_value_get(struct RBreak *brk)
 static inline void
 mrb_break_value_set(struct RBreak *brk, mrb_value val)
 {
-  brk->val_union = val.value;
+  brk->value = val.value;
   brk->flags &= ~RBREAK_VALUE_TT_MASK;
   brk->flags |= val.tt;
 }
