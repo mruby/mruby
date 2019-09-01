@@ -191,14 +191,21 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
 
   fiber_check_cfunc(mrb, c);
   status = c->status;
-  if (resume && status == MRB_FIBER_TRANSFERRED) {
-    mrb_raise(mrb, E_FIBER_ERROR, "resuming transferred fiber");
-  }
-  if (status == MRB_FIBER_RUNNING || status == MRB_FIBER_RESUMED) {
+  switch (status) {
+  case MRB_FIBER_TRANSFERRED:
+    if (resume) {
+      mrb_raise(mrb, E_FIBER_ERROR, "resuming transferred fiber");
+    }
+    break;
+  case MRB_FIBER_RUNNING:
+  case MRB_FIBER_RESUMED:
     mrb_raise(mrb, E_FIBER_ERROR, "double resume");
-  }
-  if (status == MRB_FIBER_TERMINATED) {
+    break;
+  case MRB_FIBER_TERMINATED:
     mrb_raise(mrb, E_FIBER_ERROR, "resuming dead fiber");
+    break;
+  default:
+    break;
   }
   old_c->status = resume ? MRB_FIBER_RESUMED : MRB_FIBER_TRANSFERRED;
   c->prev = resume ? mrb->c : (c->prev ? c->prev : mrb->root_c);
