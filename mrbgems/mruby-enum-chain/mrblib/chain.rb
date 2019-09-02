@@ -17,13 +17,19 @@ class Enumerator
     include Enumerable
 
     def initialize(*args)
-      @enums = args
+      @enums = args.freeze
+      @pos = -1
     end
 
     def each(&block)
-      return to_enum unless block_given?
+      return to_enum unless block
 
-      @enums.each { |e| e.each(&block) }
+      i = 0
+      while i < @enums.size
+        @pos = i
+        @enums[i].each(&block)
+        i += 1
+      end
 
       self
     end
@@ -36,11 +42,10 @@ class Enumerator
     end
 
     def rewind
-      i = @enums.size - 1
-      while 0 <= i
-        e = @enums[i]
+      while 0 <= @pos && @pos < @enums.size
+        e = @enums[@pos]
         e.rewind if e.respond_to?(:rewind)
-        i -= 1
+        @pos -= 1
       end
 
       self
