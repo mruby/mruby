@@ -126,7 +126,7 @@ true
 true
 ```
 
-## defined?
+## `defined?`
 
 The `defined?` keyword is considered too complex to be fully
 implemented. It is recommended to use `const_defined?` and
@@ -186,7 +186,7 @@ The re-defined `+` operator does not accept any arguments.
 ` 'ab' `
 Behavior of the operator wasn't changed.
 
-## Kernel#binding is not supported
+## `Kernel#binding` is not supported
 
 `Kernel#binding` method is not supported.
 
@@ -238,7 +238,7 @@ Destructured arguments (`b` and `c` in above example) cannot be accessed
 from the default expression of optional arguments and keyword arguments,
 since actual assignment is done after the evaluation of those default
 expressions. Thus:
-    
+
 ```ruby
 def f(a,(b,c),d=b)
   p [a,b,c,d]
@@ -247,3 +247,17 @@ f(1,[2,3])
 ```
 
 CRuby gives `[1,2,3,nil]`. mruby raises `NoMethodError` for `b`.
+
+## `nil?` redefinition in conditional expressions
+
+Redefinition of `nil?` is ignored in conditional expressions.
+
+```ruby
+a = "a"
+def a.nil?
+  true
+end
+puts(a.nil? ? "truthy" : "falsy")
+```
+
+Ruby outputs `falsy`. mruby outputs `truthy`.
