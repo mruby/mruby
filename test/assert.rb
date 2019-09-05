@@ -208,6 +208,13 @@ def assert_nil(obj, msg = nil)
   assert_true(ret, msg, diff)
 end
 
+def assert_not_nil(obj, msg = nil)
+  if ret = obj.nil?
+    diff = "    Expected #{obj.inspect} to not be nil."
+  end
+  assert_false(ret, msg, diff)
+end
+
 def assert_include(*args); _assert_include(true, *args) end
 def assert_not_include(*args); _assert_include(false, *args) end
 def _assert_include(affirmed, collection, obj, msg = nil)
