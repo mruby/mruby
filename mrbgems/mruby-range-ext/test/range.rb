@@ -39,7 +39,7 @@ assert('Range#max') do
   # returns the maximum value in the range when called with no arguments
   assert_equal 10, (1..10).max
   assert_equal 9, (1...10).max
-  assert_equal 1073741823, (0...2**30).max
+  assert_equal 536870911, (0...2**29).max
 
   # returns nil when the endpoint is less than the start point
   assert_equal nil, (100..10).max
