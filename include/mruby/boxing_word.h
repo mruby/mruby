@@ -37,29 +37,39 @@ enum mrb_special_consts {
 };
 
 #define MRB_IMMEDIATE_MASK  0x07
+#define MRB_FIXNUM_MASK     0x01
+#define MRB_SYMBOL_MASK     0x0f
 #define MRB_FIXNUM_FLAG     0x01
 #define MRB_SYMBOL_FLAG     0x0e
-#define MRB_SPECIAL_SHIFT   8
+#define MRB_SYMBOL_SHIFT    8
 
-#if defined(MRB_64BIT)
+#ifdef MRB_64BIT
 #define MRB_SYMBOL_BITSIZE  (sizeof(mrb_sym) * CHAR_BIT)
 #define MRB_SYMBOL_MAX      UINT32_MAX
 #else
-#define MRB_SYMBOL_BITSIZE  (sizeof(mrb_sym) * CHAR_BIT - MRB_SPECIAL_SHIFT)
-#define MRB_SYMBOL_MAX      (UINT32_MAX >> MRB_SPECIAL_SHIFT)
+#define MRB_SYMBOL_BITSIZE  (sizeof(mrb_sym) * CHAR_BIT - MRB_SYMBOL_SHIFT)
+#define MRB_SYMBOL_MAX      (UINT32_MAX >> MRB_SYMBOL_SHIFT)
 #endif
+
+#define BOXWORD_SHIFT_VALUE(o,n,t) \
+  ((((t)(o).w)) >> MRB_##n##_SHIFT)
+#define BOXWORD_SET_SHIFT_VALUE(o,n,v) \
+  ((o).w = (((unsigned long)(v)) << MRB_##n##_SHIFT) | MRB_##n##_FLAG)
+#define BOXWORD_SHIFT_VALUE_P(o,n) \
+  (((o).w & MRB_##n##_MASK) == MRB_##n##_FLAG)
 
 typedef union mrb_value {
   union {
     void *p;
+#ifdef MRB_64BIT
+    /* use struct to avoid bit shift. */
     struct {
-      unsigned int i_flag : MRB_FIXNUM_SHIFT;
-      mrb_int i : (MRB_INT_BIT - MRB_FIXNUM_SHIFT);
+      MRB_ENDIAN_LOHI(
+        mrb_sym sym;
+        ,uint32_t sym_flag;
+      )
     };
-    struct {
-      unsigned int sym_flag : MRB_SPECIAL_SHIFT;
-      mrb_sym sym : MRB_SYMBOL_BITSIZE;
-    };
+#endif
     struct RBasic *bp;
 #ifndef MRB_WITHOUT_FLOAT
     struct RFloat *fp;
@@ -84,33 +94,21 @@ MRB_API mrb_value mrb_word_boxing_float_pool(struct mrb_state*, mrb_float);
 #ifndef MRB_WITHOUT_FLOAT
 #define mrb_float(o)   (o).value.fp->f
 #endif
-#define mrb_fixnum(o)  ((mrb_int)(o).value.i)
+#define mrb_fixnum(o)  BOXWORD_SHIFT_VALUE(o, FIXNUM, mrb_int)
+#ifdef MRB_64BIT
 #define mrb_symbol(o)  (o).value.sym
-
-MRB_INLINE enum mrb_vtype
-mrb_type(mrb_value o)
-{
-  switch (o.w) {
-  case MRB_Qfalse:
-  case MRB_Qnil:
-    return MRB_TT_FALSE;
-  case MRB_Qtrue:
-    return MRB_TT_TRUE;
-  case MRB_Qundef:
-    return MRB_TT_UNDEF;
-  }
-  if (o.value.i_flag == MRB_FIXNUM_FLAG) {
-    return MRB_TT_FIXNUM;
-  }
-  if (o.value.sym_flag == MRB_SYMBOL_FLAG) {
-    return MRB_TT_SYMBOL;
-  }
-  return o.value.bp->tt;
-}
-
+#else
+#define mrb_symbol(o)  BOXWORD_SHIFT_VALUE(o, SYMBOL, mrb_sym)
+#endif
 #define mrb_bool(o)    ((o).w != MRB_Qnil && (o).w != MRB_Qfalse)
+
 #define mrb_immediate_p(o) ((o).w & MRB_IMMEDIATE_MASK || (o).w == MRB_Qnil)
-#define mrb_fixnum_p(o) ((o).value.i_flag == MRB_FIXNUM_FLAG)
+#define mrb_fixnum_p(o) BOXWORD_SHIFT_VALUE_P(o, FIXNUM)
+#ifdef MRB_64BIT
+#define mrb_symbol_p(o) ((o).value.sym_flag == MRB_SYMBOL_FLAG)
+#else
+#define mrb_symbol_p(o) BOXWORD_SHIFT_VALUE_P(o, SYMBOL)
+#endif
 #define mrb_undef_p(o) ((o).w == MRB_Qundef)
 #define mrb_nil_p(o)  ((o).w == MRB_Qnil)
 #define mrb_false_p(o) ((o).w == MRB_Qfalse)
@@ -125,19 +123,33 @@ mrb_type(mrb_value o)
 #define SET_FALSE_VALUE(r) ((r).w = MRB_Qfalse)
 #define SET_TRUE_VALUE(r) ((r).w = MRB_Qtrue)
 #define SET_BOOL_VALUE(r,b) ((b) ? SET_TRUE_VALUE(r) : SET_FALSE_VALUE(r))
-#define SET_INT_VALUE(r,n) do {                                             \
-  (r).w = 0;                                                                \
-  (r).value.i_flag = MRB_FIXNUM_FLAG;                                       \
-  (r).value.i = (n);                                                        \
-} while (0)
-#define SET_SYM_VALUE(r,v)  do {                                            \
-  (r).w = 0;                                                                \
-  (r).value.sym_flag = MRB_SYMBOL_FLAG;                                     \
-  (r).value.sym = (v);                                                      \
-} while (0)
-#define SET_OBJ_VALUE(r,v) do {                                             \
-  (r).w = 0;                                                                \
-  (r).value.p = (v);                                                        \
-} while (0)
+#define SET_INT_VALUE(r,n) BOXWORD_SET_SHIFT_VALUE(r, FIXNUM, n)
+#ifdef MRB_64BIT
+#define SET_SYM_VALUE(r,v) ((r).value.sym = v, (r).value.sym_flag = MRB_SYMBOL_FLAG)
+#else
+#define SET_SYM_VALUE(r,n) BOXWORD_SET_SHIFT_VALUE(r, SYMBOL, n)
+#endif
+#define SET_OBJ_VALUE(r,v) ((r).value.p = v)
+
+MRB_INLINE enum mrb_vtype
+mrb_type(mrb_value o)
+{
+  switch (o.w) {
+  case MRB_Qfalse:
+  case MRB_Qnil:
+    return MRB_TT_FALSE;
+  case MRB_Qtrue:
+    return MRB_TT_TRUE;
+  case MRB_Qundef:
+    return MRB_TT_UNDEF;
+  }
+  if (mrb_fixnum_p(o)) {
+    return MRB_TT_FIXNUM;
+  }
+  if (mrb_symbol_p(o)) {
+    return MRB_TT_SYMBOL;
+  }
+  return o.value.bp->tt;
+}
 
 #endif  /* MRUBY_BOXING_WORD_H */

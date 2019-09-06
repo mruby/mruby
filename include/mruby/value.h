@@ -17,7 +17,7 @@ MRB_BEGIN_DECL
 /**
  * mruby Symbol.
  * @class mrb_sym
- * 
+ *
  * You can create an mrb_sym by simply using mrb_str_intern() or mrb_intern_cstr()
  */
 typedef uint32_t mrb_sym;
@@ -25,10 +25,10 @@ typedef uint32_t mrb_sym;
 /**
  * mruby Boolean.
  * @class mrb_bool
- * 
+ *
  *
  * Used internally to represent boolean. Can be TRUE or FALSE.
- * Not to be confused with Ruby's boolean classes, which can be 
+ * Not to be confused with Ruby's boolean classes, which can be
  * obtained using mrb_false_value() and mrb_true_value()
  */
 typedef uint8_t mrb_bool;
@@ -78,6 +78,11 @@ struct mrb_state;
 # define MRB_PRIx PRIx32
 #endif
 
+#ifdef MRB_ENDIAN_BIG
+# define MRB_ENDIAN_LOHI(a,b) a b
+#else
+# define MRB_ENDIAN_LOHI(a,b) b a
+#endif
 
 #ifndef MRB_WITHOUT_FLOAT
 MRB_API double mrb_float_read(const char*, char**);
@@ -169,6 +174,9 @@ typedef void mrb_value;
 #ifndef mrb_fixnum_p
 #define mrb_fixnum_p(o) (mrb_type(o) == MRB_TT_FIXNUM)
 #endif
+#ifndef mrb_symbol_p
+#define mrb_symbol_p(o) (mrb_type(o) == MRB_TT_SYMBOL)
+#endif
 #ifndef mrb_undef_p
 #define mrb_undef_p(o) (mrb_type(o) == MRB_TT_UNDEF)
 #endif
@@ -191,7 +199,6 @@ typedef void mrb_value;
 #ifndef MRB_WITHOUT_FLOAT
 #define mrb_float_p(o) (mrb_type(o) == MRB_TT_FLOAT)
 #endif
-#define mrb_symbol_p(o) (mrb_type(o) == MRB_TT_SYMBOL)
 #define mrb_array_p(o) (mrb_type(o) == MRB_TT_ARRAY)
 #define mrb_string_p(o) (mrb_type(o) == MRB_TT_STRING)
 #define mrb_hash_p(o) (mrb_type(o) == MRB_TT_HASH)
