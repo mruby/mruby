@@ -246,9 +246,6 @@ flo_to_s(mrb_state *mrb, mrb_value flt)
       str = mrb_float_to_str(mrb, flt, fmt);
       goto insert_dot_zero;
     }
-    else {
-      mrb_str_cat(mrb, str, ".0", 2);
-    }
 
     return str;
   }
