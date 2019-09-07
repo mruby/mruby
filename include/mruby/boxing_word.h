@@ -27,21 +27,20 @@ struct RCptr {
   void *p;
 };
 
-#define MRB_FIXNUM_SHIFT 1
-
 enum mrb_special_consts {
-  MRB_Qnil    = 0,
-  MRB_Qfalse  = 2,
-  MRB_Qtrue   = 4,
-  MRB_Qundef  = 6,
+  MRB_Qnil    =  0,
+  MRB_Qfalse  =  4,
+  MRB_Qtrue   = 12,
+  MRB_Qundef  = 20,
 };
 
+#define MRB_FIXNUM_SHIFT    1
+#define MRB_SYMBOL_SHIFT    2
+#define MRB_FIXNUM_FLAG     (1 << (MRB_FIXNUM_SHIFT - 1))
+#define MRB_SYMBOL_FLAG     (1 << (MRB_SYMBOL_SHIFT - 1))
+#define MRB_FIXNUM_MASK     ((1 << MRB_FIXNUM_SHIFT) - 1)
+#define MRB_SYMBOL_MASK     ((1 << MRB_SYMBOL_SHIFT) - 1)
 #define MRB_IMMEDIATE_MASK  0x07
-#define MRB_FIXNUM_MASK     0x01
-#define MRB_SYMBOL_MASK     0x0f
-#define MRB_FIXNUM_FLAG     0x01
-#define MRB_SYMBOL_FLAG     0x0e
-#define MRB_SYMBOL_SHIFT    8
 
 #ifdef MRB_64BIT
 #define MRB_SYMBOL_BITSIZE  (sizeof(mrb_sym) * CHAR_BIT)
@@ -58,6 +57,17 @@ enum mrb_special_consts {
 #define BOXWORD_SHIFT_VALUE_P(o,n) \
   (((o).w & MRB_##n##_MASK) == MRB_##n##_FLAG)
 
+/*
+ * mrb_value representation:
+ *
+ *   nil   : ...0000 0000 (all bits are zero)
+ *   false : ...0000 0100
+ *   true  : ...0000 1100
+ *   undef : ...0001 0100
+ *   fixnum: ...IIII III1
+ *   symbol: ...SSSS SS10 (high-order 32-bit are symbol value in 64-bit mode)
+ *   object: ...PPPP P000
+ */
 typedef union mrb_value {
   union {
     void *p;
