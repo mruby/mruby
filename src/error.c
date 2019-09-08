@@ -326,7 +326,11 @@ mrb_vformat(mrb_state *mrb, const char *format, va_list ap)
           len = 1;
           goto L_cat;
         case 'd': case 'i':
+#if MRB_INT_MAX < INT_MAX
+          i = (mrb_int)va_arg(ap, int);
+#else
           i = *p == 'd' ? (mrb_int)va_arg(ap, int) : va_arg(ap, mrb_int);
+#endif
           obj = mrb_fixnum_value(i);
           goto L_cat_obj;
 #ifndef MRB_WITHOUT_FLOAT
