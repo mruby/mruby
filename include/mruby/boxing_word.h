@@ -110,7 +110,7 @@ MRB_API mrb_value mrb_word_boxing_float_pool(struct mrb_state*, mrb_float);
 #else
 #define mrb_symbol(o)  BOXWORD_SHIFT_VALUE(o, SYMBOL, mrb_sym)
 #endif
-#define mrb_bool(o)    ((o).w != MRB_Qnil && (o).w != MRB_Qfalse)
+#define mrb_bool(o)    (((o).w & ~(unsigned long)MRB_Qfalse) != 0)
 
 #define mrb_immediate_p(o) ((o).w & MRB_IMMEDIATE_MASK || (o).w == MRB_Qnil)
 #define mrb_fixnum_p(o) BOXWORD_SHIFT_VALUE_P(o, FIXNUM)
