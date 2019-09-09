@@ -882,7 +882,15 @@ const_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
   ary = *(mrb_value*)p;
   s = mrb_sym2name_len(mrb, sym, &len);
   if (len >= 1 && ISUPPER(s[0])) {
-    mrb_ary_push(mrb, ary, mrb_symbol_value(sym));
+    mrb_int i, alen = RARRAY_LEN(ary);
+
+    for (i=0; i<alen; i++) {
+      if (mrb_symbol(RARRAY_PTR(ary)[i]) == sym)
+        break;
+    }
+    if (i==alen) {
+      mrb_ary_push(mrb, ary, mrb_symbol_value(sym));
+    }
   }
   return 0;
 }
