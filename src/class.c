@@ -2204,14 +2204,14 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, bob, "equal?",                  mrb_obj_equal_m,          MRB_ARGS_REQ(1)); /* 15.3.1.3.11 */
   mrb_define_method(mrb, bob, "instance_eval",           mrb_obj_instance_eval,    MRB_ARGS_OPT(1)|MRB_ARGS_BLOCK());  /* 15.3.1.3.18 */
 
-  mrb_define_class_method(mrb, cls, "new",               mrb_class_new_class,      MRB_ARGS_OPT(1));
+  mrb_define_class_method(mrb, cls, "new",               mrb_class_new_class,      MRB_ARGS_OPT(1)|MRB_ARGS_BLOCK());
   mrb_define_method(mrb, cls, "allocate",                mrb_instance_alloc,       MRB_ARGS_NONE());
   mrb_define_method(mrb, cls, "superclass",              mrb_class_superclass,     MRB_ARGS_NONE()); /* 15.2.3.3.4 */
   mrb_define_method(mrb, cls, "initialize",              mrb_class_initialize,     MRB_ARGS_OPT(1)); /* 15.2.3.3.1 */
   mrb_define_method(mrb, cls, "inherited",               mrb_bob_init,             MRB_ARGS_REQ(1));
 
   init_class_new(mrb, cls);
-  
+
   MRB_SET_INSTANCE_TT(mod, MRB_TT_MODULE);
   mrb_define_method(mrb, mod, "extend_object",           mrb_mod_extend_object,    MRB_ARGS_REQ(1)); /* 15.2.2.4.25 */
   mrb_define_method(mrb, mod, "extended",                mrb_bob_init,             MRB_ARGS_REQ(1)); /* 15.2.2.4.26 */
