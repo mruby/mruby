@@ -1022,6 +1022,19 @@ mrb_ary_last(mrb_state *mrb, mrb_value self)
   return mrb_ary_new_from_values(mrb, size, ARY_PTR(a) + alen - size);
 }
 
+MRB_API mrb_int
+mrb_ary_index(mrb_state *mrb, mrb_value ary, mrb_value obj)
+{
+  mrb_int i;
+
+  for (i = 0; i < RARRAY_LEN(ary); i++) {
+    if (mrb_equal(mrb, RARRAY_PTR(ary)[i], obj)) {
+      return i;
+    }
+  }
+  return -1;
+}
+
 static mrb_value
 mrb_ary_index_m(mrb_state *mrb, mrb_value self)
 {
@@ -1029,12 +1042,10 @@ mrb_ary_index_m(mrb_state *mrb, mrb_value self)
   mrb_int i;
 
   mrb_get_args(mrb, "o", &obj);
-  for (i = 0; i < RARRAY_LEN(self); i++) {
-    if (mrb_equal(mrb, RARRAY_PTR(self)[i], obj)) {
-      return mrb_fixnum_value(i);
-    }
-  }
-  return mrb_nil_value();
+
+  i = mrb_ary_index(mrb, self, obj);
+  if (i < 0) return mrb_nil_value();
+  return mrb_fixnum_value(i);
 }
 
 static mrb_value

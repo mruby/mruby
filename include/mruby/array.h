@@ -291,6 +291,16 @@ MRB_API mrb_value mrb_ary_join(mrb_state *mrb, mrb_value ary, mrb_value sep);
  */
 MRB_API mrb_value mrb_ary_resize(mrb_state *mrb, mrb_value ary, mrb_int new_len);
 
+/*
+ * Get index of obj in the array
+ *
+ * @param mrb The mruby state reference.
+ * @param ary The target array.
+ * @param obj The object you want to find from the array.
+ * @return Returns the index of matching elements. If it does not exist, returns -1.
+ */
+MRB_API mrb_int mrb_ary_index(mrb_state *mrb, mrb_value ary, mrb_value obj);
+
 MRB_END_DECL
 
 #endif  /* MRUBY_ARRAY_H */
