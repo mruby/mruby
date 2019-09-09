@@ -406,7 +406,7 @@ ctrl_c_handler(int signo)
 }
 #endif
 
-#ifdef ENABLE_MIRB_UNDERSCORE
+#ifndef DISABLE_MIRB_UNDERSCORE
 void decl_lv_underscore(mrb_state *mrb, mrbc_context *cxt)
 {
   struct RProc *proc;
@@ -491,7 +491,7 @@ main(int argc, char **argv)
 
   cxt = mrbc_context_new(mrb);
 
-#ifdef ENABLE_MIRB_UNDERSCORE
+#ifndef DISABLE_MIRB_UNDERSCORE
   decl_lv_underscore(mrb, cxt);
 #endif
 
@@ -667,7 +667,7 @@ main(int argc, char **argv)
             result = mrb_any_to_s(mrb, result);
           }
           p(mrb, result, 1);
-#ifdef ENABLE_MIRB_UNDERSCORE
+#ifndef DISABLE_MIRB_UNDERSCORE
           *(mrb->c->stack + 1) = result;
 #endif
         }
