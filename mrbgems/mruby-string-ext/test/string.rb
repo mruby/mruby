@@ -4,6 +4,12 @@
 
 UTF8STRING = __ENCODING__ == "UTF-8"
 
+def assert_upto(exp, receiver, *args)
+  act = []
+  receiver.upto(*args) { |v| act << v }
+  assert_equal exp, act
+end
+
 assert('String#getbyte') do
   str1 = "hello"
   bytes1 = [104, 101, 108, 108, 111]
@@ -591,16 +597,15 @@ assert('String#rjust should raise on zero width padding') do
 end
 
 assert('String#upto') do
-  assert_equal %w(a8 a9 b0 b1 b2 b3 b4 b5 b6), "a8".upto("b6").to_a
-  assert_equal ["9", "10", "11"], "9".upto("11").to_a
-  assert_equal [], "25".upto("5").to_a
-  assert_equal ["07", "08", "09", "10", "11"], "07".upto("11").to_a
+  assert_upto %w(a8 a9 b0 b1 b2 b3 b4 b5 b6), "a8", "b6"
+  assert_upto ["9", "10", "11"], "9", "11"
+  assert_upto [], "25", "5"
+  assert_upto ["07", "08", "09", "10", "11"], "07", "11"
+  assert_upto ["9", ":", ";", "<", "=", ">", "?", "@", "A"], "9", "A"
 
-if UTF8STRING
-  assert_equal ["あ", "ぃ", "い", "ぅ", "う", "ぇ", "え", "ぉ", "お"], "あ".upto("お").to_a
-end
-
-  assert_equal ["9", ":", ";", "<", "=", ">", "?", "@", "A"], "9".upto("A").to_a
+  if UTF8STRING
+    assert_upto %w(あ ぃ い ぅ う ぇ え ぉ お), "あ", "お"
+  end
 
   a     = "aa"
   start = "aa"
