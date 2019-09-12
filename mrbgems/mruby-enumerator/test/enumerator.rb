@@ -13,7 +13,7 @@ def assert_take(exp, enumerator)
     result << v
     n -= 1
     break if n == 0
-  end
+  end if n > 0
   assert_equal exp, result
 end
 
