@@ -11,18 +11,43 @@ class String
   # and pass the respective line.
   #
   # ISO 15.2.10.5.15
-  def each_line(rs = "\n", &block)
-    return to_enum(:each_line, rs, &block) unless block
-    return block.call(self) if rs.nil?
-    rs.__to_str
-    offset = 0
-    rs_len = rs.length
-    this = dup
-    while pos = this.index(rs, offset)
-      block.call(this[offset, pos + rs_len - offset])
-      offset = pos + rs_len
+  def each_line(separator = "\n", &block)
+    return to_enum(:each_line, separator) unless block
+
+    if separator.nil?
+      block.call(self)
+      return self
     end
-    block.call(this[offset, this.size - offset]) if this.size > offset
+    raise TypeError unless separator.is_a?(String)
+
+    paragraph_mode = false
+    if separator.empty?
+      paragraph_mode = true
+      separator = "\n\n"
+    end
+    start = 0
+    string = dup
+    self_len = length
+    sep_len = separator.length
+    should_yield_subclass_instances = self.class != String
+
+    while (pointer = string.index(separator, start))
+      pointer += sep_len
+      pointer += 1 while paragraph_mode && string[pointer] == "\n"
+      if should_yield_subclass_instances
+        block.call(self.class.new(string[start, pointer - start]))
+      else
+        block.call(string[start, pointer - start])
+      end
+      start = pointer
+    end
+    return self if start == self_len
+
+    if should_yield_subclass_instances
+      block.call(self.class.new(string[start, self_len - start]))
+    else
+      block.call(string[start, self_len - start])
+    end
     self
   end
 
