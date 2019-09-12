@@ -226,12 +226,12 @@ class IO
     end
   end
 
-  def readline(arg = $/, limit = nil)
+  def readline(arg = "\n", limit = nil)
     case arg
     when String
       rs = arg
     when Fixnum
-      rs = $/
+      rs = "\n"
       limit = arg
     else
       raise ArgumentError
@@ -242,7 +242,7 @@ class IO
     end
 
     if rs == ""
-      rs = $/ + $/
+      rs = "\n\n"
     end
 
     array = []

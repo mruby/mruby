@@ -1529,9 +1529,8 @@ mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
  *     str.chomp(separator="\n")   => new_str
  *
  *  Returns a new <code>String</code> with the given record separator removed
- *  from the end of <i>str</i> (if present). If <code>$/</code> has not been
- *  changed from the default Ruby record separator, then <code>chomp</code> also
- *  removes carriage return characters (that is it will remove <code>\n</code>,
+ *  from the end of <i>str</i> (if present). <code>chomp</code> also removes
+ *  carriage return characters (that is it will remove <code>\n</code>,
  *  <code>\r</code>, and <code>\r\n</code>).
  *
  *     "hello".chomp            #=> "hello"

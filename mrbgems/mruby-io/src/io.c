@@ -1328,7 +1328,4 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method(mrb, io, "closed?",    mrb_io_closed,     MRB_ARGS_NONE());   /* 15.2.20.5.2 */
   mrb_define_method(mrb, io, "pid",        mrb_io_pid,        MRB_ARGS_NONE());   /* 15.2.20.5.2 */
   mrb_define_method(mrb, io, "fileno",     mrb_io_fileno,     MRB_ARGS_NONE());
-
-
-  mrb_gv_set(mrb, mrb_intern_cstr(mrb, "$/"), mrb_str_new_cstr(mrb, "\n"));
 }
