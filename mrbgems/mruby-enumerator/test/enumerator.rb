@@ -10,9 +10,9 @@ def assert_take(exp, enumerator)
   result = []
   n = exp.size
   enumerator.each do |v|
-    break if n == 0
     result << v
     n -= 1
+    break if n == 0
   end
   assert_equal exp, result
 end
@@ -559,4 +559,42 @@ assert 'Enumerable#zip' do
   assert_equal [[1, 10], [2, 11], [3, 12]], ret
 
   assert_raise(TypeError) { [1].zip(1) }
+end
+
+assert 'Enumerator.produce' do
+  assert_raise(ArgumentError) { Enumerator.produce }
+
+  # Without initial object
+  passed_args = []
+  enum = Enumerator.produce {|obj| passed_args << obj; (obj || 0).succ }
+  assert_equal Enumerator, enum.class 
+  assert_take [1, 2, 3], enum
+  assert_equal [nil, 1, 2], passed_args
+
+  # With initial object
+  passed_args = []
+  enum = Enumerator.produce(1) {|obj| passed_args << obj; obj.succ }
+  assert_take [1, 2, 3], enum
+  assert_equal [1, 2], passed_args
+
+  # Raising StopIteration
+  words = %w[The quick brown fox jumps over the lazy dog]
+  enum = Enumerator.produce { words.shift or raise StopIteration }
+  assert_equal %w[The quick brown fox jumps over the lazy dog], enum.to_a
+
+  # Raising StopIteration
+  object = [[[["abc", "def"], "ghi", "jkl"], "mno", "pqr"], "stuv", "wxyz"]
+  enum = Enumerator.produce(object) {|obj|
+    obj.respond_to?(:first) or raise StopIteration
+    obj.first
+  }
+  assert_nothing_raised {
+    assert_equal [
+      [[[["abc", "def"], "ghi", "jkl"], "mno", "pqr"], "stuv", "wxyz"],
+      [[["abc", "def"], "ghi", "jkl"], "mno", "pqr"],
+      [["abc", "def"], "ghi", "jkl"],
+      ["abc", "def"],
+      "abc",
+    ], enum.to_a
+  }
 end
