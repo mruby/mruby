@@ -1,11 +1,7 @@
 MRuby::Toolchain.new(:clang) do |conf, _params|
-  toolchain :gcc
+  toolchain :gcc, default_command: 'clang'
 
-  [conf.cc, conf.objc, conf.asm].each do |cc|
-    cc.command = ENV['CC'] || 'clang'
-    cc.flags << '-Wzero-length-array' unless ENV['CFLAGS']
+  [conf.cc, conf.objc, conf.asm, conf.cxx].each do |compiler|
+    compiler.flags.unshift('-Wzero-length-array')
   end
-  conf.cxx.command = ENV['CXX'] || 'clang++'
-  conf.cxx.flags << '-Wzero-length-array' unless ENV['CXXFLAGS'] || ENV['CFLAGS']
-  conf.linker.command = ENV['LD'] || ENV['CXX'] || ENV['CC'] || 'clang'
 end
