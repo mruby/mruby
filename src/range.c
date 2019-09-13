@@ -196,7 +196,8 @@ range_eq(mrb_state *mrb, mrb_value range)
 {
   struct RRange *rr;
   struct RRange *ro;
-  mrb_value obj, v1, v2;
+  mrb_value obj;
+  mrb_bool v1, v2;
 
   mrb_get_args(mrb, "o", &obj);
 
@@ -207,9 +208,9 @@ range_eq(mrb_state *mrb, mrb_value range)
 
   rr = mrb_range_ptr(mrb, range);
   ro = mrb_range_ptr(mrb, obj);
-  v1 = mrb_funcall(mrb, RANGE_BEG(rr), "==", 1, RANGE_BEG(ro));
-  v2 = mrb_funcall(mrb, RANGE_END(rr), "==", 1, RANGE_END(ro));
-  if (!mrb_bool(v1) || !mrb_bool(v2) || RANGE_EXCL(rr) != RANGE_EXCL(ro)) {
+  v1 = mrb_equal(mrb, RANGE_BEG(rr), RANGE_BEG(ro));
+  v2 = mrb_equal(mrb, RANGE_END(rr), RANGE_END(ro));
+  if (!v1 || !v2 || RANGE_EXCL(rr) != RANGE_EXCL(ro)) {
     return mrb_false_value();
   }
   return mrb_true_value();
