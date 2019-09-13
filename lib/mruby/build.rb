@@ -162,7 +162,7 @@ module MRuby
       compilers.each { |c|
         c.defines += %w(MRB_ENABLE_CXX_EXCEPTION MRB_ENABLE_CXX_ABI)
         c.flags << c.cxx_compile_flag
-        c.flags.delete('-std=gnu99')
+        c.flags = c.flags.flatten - c.cxx_invalid_flags.flatten
       }
       linker.command = cxx.command if toolchains.find { |v| v == 'gcc' }
       @cxx_abi_enabled = true

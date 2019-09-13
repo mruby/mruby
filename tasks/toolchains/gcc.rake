@@ -1,20 +1,23 @@
 MRuby::Toolchain.new(:gcc) do |conf, params|
   default_command = params[:default_command] || 'gcc'
-  compile_flags = %w(-g -O3 -Wall -Wundef -Werror-implicit-function-declaration)
+  compiler_flags = %w(-g -O3 -Wall -Wundef)
+  c_mandatory_flags = %w(-std=gnu99)
+  cxx_invalid_flags = %w(-Wdeclaration-after-statement -Werror-implicit-function-declaration)
 
   [conf.cc, conf.objc, conf.asm, conf.cxx].each do |compiler|
     if compiler == conf.cxx
       compiler.command = ENV['CXX'] || default_command.sub(/cc|$/, '++')
-      compiler.flags = [ENV['CXXFLAGS'] || ENV['CFLAGS'] || compile_flags]
+      compiler.flags = [ENV['CXXFLAGS'] || ENV['CFLAGS'] || compiler_flags]
     else
       compiler.command = ENV['CC'] || default_command
-      compiler.flags = ['-std=gnu99', ENV['CFLAGS'] || [compile_flags, %w(-Wdeclaration-after-statement -Wwrite-strings)]]
+      compiler.flags = [c_mandatory_flags, ENV['CFLAGS'] || [compiler_flags, cxx_invalid_flags, %w(-Wwrite-strings)]]
     end
     compiler.option_include_path = '-I%s'
     compiler.option_define = '-D%s'
     compiler.compile_options = '%{flags} -MMD -o %{outfile} -c %{infile}'
     compiler.cxx_compile_flag = '-x c++ -std=c++03'
     compiler.cxx_exception_flag = '-fexceptions'
+    compiler.cxx_invalid_flags = c_mandatory_flags + cxx_invalid_flags
   end
 
   conf.linker do |linker|

@@ -41,7 +41,7 @@ module MRuby
   class Command::Compiler < Command
     attr_accessor :flags, :include_paths, :defines, :source_exts
     attr_accessor :compile_options, :option_define, :option_include_path, :out_ext
-    attr_accessor :cxx_compile_flag, :cxx_exception_flag
+    attr_accessor :cxx_compile_flag, :cxx_exception_flag, :cxx_invalid_flags
 
     def initialize(build, source_exts=[])
       super(build)
@@ -53,6 +53,7 @@ module MRuby
       @option_include_path = '-I%s'
       @option_define = '-D%s'
       @compile_options = '%{flags} -o %{outfile} -c %{infile}'
+      @cxx_invalid_flags = []
     end
 
     alias header_search_paths include_paths
