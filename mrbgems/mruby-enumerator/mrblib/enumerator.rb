@@ -587,8 +587,12 @@ class Enumerator
         val = init
         y.yield(val)
       end
-      loop do
-        y.yield(val = block.call(val))
+      begin
+        while true
+          y.yield(val = block.call(val))
+        end
+      rescue StopIteration
+        # do nothing
       end
     end
   end
