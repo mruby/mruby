@@ -1280,7 +1280,7 @@ heredoc_end(parser_state *p)
 
 %}
 
-%pure-parser
+%define api.pure
 %parse-param {parser_state *p}
 %lex-param {parser_state *p}
 
