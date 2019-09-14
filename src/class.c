@@ -1333,8 +1333,6 @@ mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
   return m;                  /* no method */
 }
 
-mrb_value mrb_mod_to_s(mrb_state *mrb, mrb_value klass);
-
 MRB_API mrb_method_t
 mrb_method_search(mrb_state *mrb, struct RClass* c, mrb_sym mid)
 {
@@ -1342,8 +1340,7 @@ mrb_method_search(mrb_state *mrb, struct RClass* c, mrb_sym mid)
 
   m = mrb_method_search_vm(mrb, &c, mid);
   if (MRB_METHOD_UNDEF_P(m)) {
-    mrb_value str = mrb_mod_to_s(mrb, mrb_obj_value(c));
-    mrb_name_error(mrb, mid, "undefined method '%n' for class %v", mid, str);
+    mrb_name_error(mrb, mid, "undefined method '%n' for class %C", mid, c);
   }
   return m;
 }
