@@ -5,24 +5,16 @@
 static mrb_bool
 r_le(mrb_state *mrb, mrb_value a, mrb_value b)
 {
-  mrb_value r = mrb_funcall(mrb, a, "<=>", 1, b); /* compare result */
-  /* output :a < b => -1, a = b =>  0, a > b => +1 */
+  mrb_int n = mrb_cmp(mrb, a, b);
 
-  if (mrb_fixnum_p(r)) {
-    mrb_int c = mrb_fixnum(r);
-    if (c == 0 || c == -1) return TRUE;
-  }
-
+  if (n == 0 || n == -1) return TRUE;
   return FALSE;
 }
 
 static mrb_bool
 r_lt(mrb_state *mrb, mrb_value a, mrb_value b)
 {
-  mrb_value r = mrb_funcall(mrb, a, "<=>", 1, b);
-  /* output :a < b => -1, a = b =>  0, a > b => +1 */
-
-  return mrb_fixnum_p(r) && mrb_fixnum(r) == -1;
+  return mrb_cmp(mrb, a, b) == -1;
 }
 
 /*

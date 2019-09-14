@@ -1104,6 +1104,8 @@ MRB_API mrb_value mrb_Float(mrb_state *mrb, mrb_value val);
 #endif
 MRB_API mrb_value mrb_inspect(mrb_state *mrb, mrb_value obj);
 MRB_API mrb_bool mrb_eql(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
+/* mrb_cmp(mrb, obj1, obj2): 1:0:-1; -2 for error */
+MRB_API mrb_int mrb_cmp(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
 
 MRB_INLINE int
 mrb_gc_arena_save(mrb_state *mrb)

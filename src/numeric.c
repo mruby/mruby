@@ -1553,6 +1553,27 @@ integral_ge(mrb_state *mrb, mrb_value self)
   return mrb_false_value();
 }
 
+MRB_API mrb_int
+mrb_cmp(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
+{
+  mrb_value v;
+
+  switch (mrb_type(obj1)) {
+  case MRB_TT_FIXNUM:
+  case MRB_TT_FLOAT:
+    return cmpnum(mrb, obj1, obj2);
+  case MRB_TT_STRING:
+    if (mrb_type(obj2) != MRB_TT_STRING)
+      return -2;
+    return mrb_str_cmp(mrb, obj1, obj2);
+  default:
+    v = mrb_funcall(mrb, obj1, "<=>", 1, obj2);
+    if (mrb_nil_p(v) || !mrb_fixnum_p(v))
+      return -2;
+    return mrb_fixnum(v);
+  }
+}
+
 static mrb_value
 num_finite_p(mrb_state *mrb, mrb_value self)
 {
