@@ -129,7 +129,7 @@ MRB_API void mrb_str_modify_keep_ascii(mrb_state *mrb, struct RString *s);
 /**
  * Finds the index of a substring in a string
  */
-MRB_API mrb_int mrb_str_index(mrb_state*, mrb_value, const char*, mrb_int, mrb_int);
+MRB_API mrb_int mrb_str_index(mrb_state *mrb, mrb_value str, const char *p, mrb_int len, mrb_int offset);
 #define mrb_str_index_lit(mrb, str, lit, off) mrb_str_index(mrb, str, lit, mrb_strlen_lit(lit), off);
 
 /**

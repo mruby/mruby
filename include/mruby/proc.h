@@ -92,8 +92,8 @@ mrb_int mrb_proc_arity(const struct RProc *p);
 mrb_value mrb_f_send(mrb_state *mrb, mrb_value self);
 
 /* following functions are defined in mruby-proc-ext so please include it when using */
-MRB_API struct RProc *mrb_proc_new_cfunc_with_env(mrb_state*, mrb_func_t, mrb_int, const mrb_value*);
-MRB_API mrb_value mrb_proc_cfunc_env_get(mrb_state*, mrb_int);
+MRB_API struct RProc *mrb_proc_new_cfunc_with_env(mrb_state *mrb, mrb_func_t func, mrb_int argc, const mrb_value *argv);
+MRB_API mrb_value mrb_proc_cfunc_env_get(mrb_state *mrb, mrb_int idx);
 /* old name */
 #define mrb_cfunc_env_get(mrb, idx) mrb_proc_cfunc_env_get(mrb, idx)
 

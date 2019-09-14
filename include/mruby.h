@@ -969,11 +969,11 @@ MRB_API mrb_value mrb_funcall(mrb_state *mrb, mrb_value val, const char *name, m
  * @return [mrb_value] mrb_value mruby function value.
  * @see mrb_funcall
  */
-MRB_API mrb_value mrb_funcall_argv(mrb_state *mrb, mrb_value val, mrb_sym name_sym, mrb_int argc, const mrb_value* obj);
+MRB_API mrb_value mrb_funcall_argv(mrb_state *mrb, mrb_value val, mrb_sym name, mrb_int argc, const mrb_value *argv);
 /**
  * Call existing ruby functions with a block.
  */
-MRB_API mrb_value mrb_funcall_with_block(mrb_state*, mrb_value, mrb_sym, mrb_int, const mrb_value*, mrb_value);
+MRB_API mrb_value mrb_funcall_with_block(mrb_state *mrb, mrb_value val, mrb_sym name, mrb_int argc, const mrb_value *argv, mrb_value block);
 /**
  * Create a symbol
  *
@@ -1080,11 +1080,11 @@ MRB_API void mrb_close(mrb_state *mrb);
  */
 MRB_API void* mrb_default_allocf(mrb_state*, void*, size_t, void*);
 
-MRB_API mrb_value mrb_top_self(mrb_state *);
-MRB_API mrb_value mrb_run(mrb_state*, struct RProc*, mrb_value);
-MRB_API mrb_value mrb_top_run(mrb_state*, struct RProc*, mrb_value, unsigned int);
-MRB_API mrb_value mrb_vm_run(mrb_state*, struct RProc*, mrb_value, unsigned int);
-MRB_API mrb_value mrb_vm_exec(mrb_state*, struct RProc*, const mrb_code*);
+MRB_API mrb_value mrb_top_self(mrb_state *mrb);
+MRB_API mrb_value mrb_run(mrb_state *mrb, struct RProc* proc, mrb_value self);
+MRB_API mrb_value mrb_top_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep);
+MRB_API mrb_value mrb_vm_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep);
+MRB_API mrb_value mrb_vm_exec(mrb_state *mrb, struct RProc *proc, const mrb_code *iseq);
 /* compatibility macros */
 #define mrb_toplevel_run_keep(m,p,k) mrb_top_run((m),(p),mrb_top_self(m),(k))
 #define mrb_toplevel_run(m,p) mrb_toplevel_run_keep((m),(p),0)
@@ -1094,8 +1094,8 @@ MRB_API void mrb_p(mrb_state*, mrb_value);
 MRB_API mrb_int mrb_obj_id(mrb_value obj);
 MRB_API mrb_sym mrb_obj_to_sym(mrb_state *mrb, mrb_value name);
 
-MRB_API mrb_bool mrb_obj_eq(mrb_state*, mrb_value, mrb_value);
-MRB_API mrb_bool mrb_obj_equal(mrb_state*, mrb_value, mrb_value);
+MRB_API mrb_bool mrb_obj_eq(mrb_state *mrb, mrb_value a, mrb_value b);
+MRB_API mrb_bool mrb_obj_equal(mrb_state *mrb, mrb_value a, mrb_value b);
 MRB_API mrb_bool mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
 MRB_API mrb_value mrb_convert_to_integer(mrb_state *mrb, mrb_value val, mrb_int base);
 MRB_API mrb_value mrb_Integer(mrb_state *mrb, mrb_value val);
