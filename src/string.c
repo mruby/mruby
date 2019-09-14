@@ -1036,21 +1036,7 @@ mrb_str_cmp_m(mrb_state *mrb, mrb_value str1)
 
   mrb_get_args(mrb, "o", &str2);
   if (!mrb_string_p(str2)) {
-    if (!mrb_respond_to(mrb, str2, mrb_intern_lit(mrb, "to_s"))) {
-      return mrb_nil_value();
-    }
-    else if (!mrb_respond_to(mrb, str2, mrb_intern_lit(mrb, "<=>"))) {
-      return mrb_nil_value();
-    }
-    else {
-      mrb_value tmp = mrb_funcall(mrb, str2, "<=>", 1, str1);
-
-      if (mrb_nil_p(tmp)) return mrb_nil_value();
-      if (!mrb_fixnum_p(tmp)) {
-        return mrb_funcall(mrb, mrb_fixnum_value(0), "-", 1, tmp);
-      }
-      result = -mrb_fixnum(tmp);
-    }
+    return mrb_nil_value();
   }
   else {
     result = mrb_str_cmp(mrb, str1, str2);
