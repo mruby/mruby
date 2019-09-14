@@ -25,6 +25,7 @@ struct RBasic {
 #define MRB_FROZEN_P(o) ((o)->flags & MRB_FL_OBJ_IS_FROZEN)
 #define MRB_SET_FROZEN_FLAG(o) ((o)->flags |= MRB_FL_OBJ_IS_FROZEN)
 #define MRB_UNSET_FROZEN_FLAG(o) ((o)->flags &= ~MRB_FL_OBJ_IS_FROZEN)
+#define mrb_frozen_p(o) MRB_FROZEN_P(o)
 
 struct RObject {
   MRB_OBJECT_HEADER;

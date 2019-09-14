@@ -388,7 +388,7 @@ ary_replace(mrb_state *mrb, struct RArray *a, struct RArray *b)
     mrb_write_barrier(mrb, (struct RBasic*)a);
     return;
   }
-  if (!MRB_FROZEN_P(b) && len > ARY_REPLACE_SHARED_MIN) {
+  if (!mrb_frozen_p(b) && len > ARY_REPLACE_SHARED_MIN) {
     ary_make_shared(mrb, b);
     goto shared_b;
   }

@@ -1221,7 +1221,7 @@ MRB_API void mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t);
 
 MRB_INLINE void mrb_check_frozen(mrb_state *mrb, void *o)
 {
-  if (MRB_FROZEN_P((struct RBasic*)o)) mrb_frozen_error(mrb, o);
+  if (mrb_frozen_p((struct RBasic*)o)) mrb_frozen_error(mrb, o);
 }
 
 typedef enum call_type {

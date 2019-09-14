@@ -535,7 +535,7 @@ str_make_shared(mrb_state *mrb, struct RString *orig, struct RString *s)
   else if (RSTR_FSHARED_P(orig)) {
     str_init_fshared(orig, s, orig->as.heap.aux.fshared);
   }
-  else if (MRB_FROZEN_P(orig) && !RSTR_POOL_P(orig)) {
+  else if (mrb_frozen_p(orig) && !RSTR_POOL_P(orig)) {
     str_init_fshared(orig, s, orig);
   }
   else {
@@ -2405,7 +2405,7 @@ mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr)
   if (p[len] == '\0') {
     return p;
   }
-  if (MRB_FROZEN_P(ps) || RSTR_CAPA(ps) == len) {
+  if (mrb_frozen_p(ps) || RSTR_CAPA(ps) == len) {
     ps = str_new(mrb, NULL, len+1);
     memcpy(RSTR_PTR(ps), p, len);
     RSTR_SET_LEN(ps, len);

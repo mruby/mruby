@@ -436,7 +436,7 @@ mrb_obj_freeze(mrb_state *mrb, mrb_value self)
 {
   if (!mrb_immediate_p(self)) {
     struct RBasic *b = mrb_basic_ptr(self);
-    if (!MRB_FROZEN_P(b)) {
+    if (!mrb_frozen_p(b)) {
       MRB_SET_FROZEN_FLAG(b);
       if (b->c->tt == MRB_TT_SCLASS) MRB_SET_FROZEN_FLAG(b->c);
     }
@@ -447,7 +447,7 @@ mrb_obj_freeze(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_obj_frozen(mrb_state *mrb, mrb_value self)
 {
-  return mrb_bool_value(mrb_immediate_p(self) || MRB_FROZEN_P(mrb_basic_ptr(self)));
+  return mrb_bool_value(mrb_immediate_p(self) || mrb_frozen_p(mrb_basic_ptr(self)));
 }
 
 /* 15.3.1.3.15 */
