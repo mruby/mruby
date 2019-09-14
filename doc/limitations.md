@@ -96,7 +96,7 @@ p Liste.new "foobar"
 ## Method visibility
 
 For simplicity reasons no method visibility (public/private/protected) is
-supported.
+supported. Those methods are defined but they are dummy methods.
 
 ```ruby
 class VisibleTest
@@ -124,6 +124,42 @@ true
 ```
 true
 true
+```
+
+### Visibility Declaration
+
+The declaration form of following visibility methods are not implemented.
+
+* `public`
+* `private`
+* `protected`
+* `module_function`
+
+Especially, `module_function` method is not dummy, but no declaration form.
+
+```
+module TestModule
+  module_function
+  def test_func
+    p 'test_func called'
+  end
+
+  test_func
+end
+
+p 'ok'
+```
+
+#### Ruby [ruby 2.5.5p157 (2019-03-15 revision 67260)]
+
+```
+ok
+```
+
+#### mruby [2.0.1 (2019-4-4)]
+
+```
+test.rb:8: undefined method 'test_func' (NoMethodError)
 ```
 
 ## `defined?`
