@@ -129,10 +129,11 @@ end
 
 assert "IO#read(n) with n > IO::BUF_SIZE" do
   skip "pipe is not supported on this platform" if MRubyIOTestUtil.win?
-  r,w = IO.pipe
-  n = IO::BUF_SIZE+1
-  w.write 'a'*n
-  assert_equal r.read(n), 'a'*n
+  IO.pipe do |r,w|
+    n = IO::BUF_SIZE+1
+    w.write 'a'*n
+    assert_equal 'a'*n, r.read(n)
+  end
 end
 
 assert('IO#readchar', '15.2.20.5.15') do

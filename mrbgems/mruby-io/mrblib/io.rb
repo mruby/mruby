@@ -208,8 +208,7 @@ class IO
 
       if length
         consume = (length <= @buf.bytesize) ? length : @buf.bytesize
-        array.push @buf.byteslice(0, consume)
-        @buf = @buf.byteslice(consume, @buf.bytesize - consume)
+        array.push IO._bufread(@buf, consume)
         length -= consume
         break if length == 0
       else
@@ -255,13 +254,11 @@ class IO
       end
 
       if limit && limit <= @buf.bytesize
-        array.push @buf.byteslice(0, limit)
-        @buf = @buf.byteslice(limit, @buf.bytesize - limit)
+        array.push IO._bufread(@buf, limit)
         break
       elsif idx = @buf.index(rs)
         len = idx + rs.bytesize
-        array.push @buf.byteslice(0, len)
-        @buf = @buf.byteslice(len, @buf.bytesize - len)
+        array.push IO._bufread(@buf, len)
         break
       else
         array.push @buf
@@ -284,9 +281,7 @@ class IO
 
   def readchar
     _read_buf
-    c = @buf.byteslice(0,1)
-    @buf = @buf.byteslice(1, @buf.bytesize)
-    c
+    IO._bufread(@buf, 1)
   end
 
   def getc
