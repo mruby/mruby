@@ -144,22 +144,12 @@ MRB_API mrb_value mrb_word_boxing_float_pool(struct mrb_state*, mrb_float);
 MRB_INLINE enum mrb_vtype
 mrb_type(mrb_value o)
 {
-  switch (o.w) {
-  case MRB_Qfalse:
-  case MRB_Qnil:
-    return MRB_TT_FALSE;
-  case MRB_Qtrue:
-    return MRB_TT_TRUE;
-  case MRB_Qundef:
-    return MRB_TT_UNDEF;
-  }
-  if (mrb_fixnum_p(o)) {
-    return MRB_TT_FIXNUM;
-  }
-  if (mrb_symbol_p(o)) {
-    return MRB_TT_SYMBOL;
-  }
-  return o.value.bp->tt;
+  return !mrb_bool(o)    ? MRB_TT_FALSE :
+         mrb_true_p(o)   ? MRB_TT_TRUE :
+         mrb_fixnum_p(o) ? MRB_TT_FIXNUM :
+         mrb_symbol_p(o) ? MRB_TT_SYMBOL :
+         mrb_undef_p(o)  ? MRB_TT_UNDEF :
+         o.value.bp->tt;
 }
 
 #endif  /* MRUBY_BOXING_WORD_H */
