@@ -140,8 +140,8 @@ class IO
   def eof?
     _check_readable
     begin
-      buf = _read_buf
-      return buf.empty?
+      _read_buf
+      return @buf.empty?
     rescue EOFError
       return true
     end
@@ -177,7 +177,6 @@ class IO
     rescue EOFError => e
       raise e if @buf.empty?
     end
-    @buf
   end
 
   def ungetc(substr)
