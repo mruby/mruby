@@ -126,6 +126,22 @@ class Array
 
   ##
   # call-seq:
+  #    ary.difference(other_ary1, other_ary2, ...)   -> new_ary
+  #
+  # Returns a new array that is a copy of the original array, removing all
+  # occurences of any item that also appear in +other_ary+. The order is
+  # preserved from the original array.
+  #
+  def difference(*args)
+    ary = self.dup
+    args.each do |x|
+      ary = self - x
+    end
+    ary
+  end
+
+  ##
+  # call-seq:
   #    ary & other_ary      -> new_ary
   #
   # Set Intersection---Returns a new array
