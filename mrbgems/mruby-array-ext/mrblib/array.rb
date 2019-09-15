@@ -955,4 +955,5 @@ class Array
 
   alias append push
   alias prepend unshift
+  alias filter! select!
 end

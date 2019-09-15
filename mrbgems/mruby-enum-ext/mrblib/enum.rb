@@ -826,4 +826,5 @@ module Enumerable
     end
     hash.values
   end
+  alias filter select
 end
