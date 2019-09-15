@@ -620,6 +620,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
   i = 0;
   while ((c = *format++)) {
     mrb_value *argv = ARGV;
+    mrb_bool altmode;
 
     switch (c) {
     case '|': case '*': case '&': case '?':
@@ -634,6 +635,14 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         }
       }
       break;
+    }
+
+    if (*format == '!') {
+      format ++;
+      altmode = TRUE;
+    }
+    else {
+      altmode = FALSE;
     }
 
     switch (c) {
@@ -670,18 +679,12 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_value *p;
 
         p = va_arg(ap, mrb_value*);
-        if (*format == '!') {
-          format++;
-          if (i < argc && mrb_nil_p(argv[arg_i])) {
-            *p = argv[arg_i++];
-            i++;
-            break;
-          }
-        }
         if (i < argc) {
           *p = argv[arg_i++];
-          mrb_to_str(mrb, *p);
           i++;
+          if (!(altmode && mrb_nil_p(*p))) {
+            mrb_to_str(mrb, *p);
+          }
         }
       }
       break;
@@ -690,17 +693,12 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_value *p;
 
         p = va_arg(ap, mrb_value*);
-        if (*format == '!') {
-          format++;
-          if (i < argc && mrb_nil_p(argv[arg_i])) {
-            *p = argv[arg_i++];
-            i++;
-            break;
-          }
-        }
         if (i < argc) {
-          *p = to_ary(mrb, argv[arg_i++]);
+          *p = argv[arg_i++];
           i++;
+          if (!(altmode && mrb_nil_p(*p))) {
+            *p = to_ary(mrb, *p);
+          }
         }
       }
       break;
@@ -709,17 +707,12 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_value *p;
 
         p = va_arg(ap, mrb_value*);
-        if (*format == '!') {
-          format++;
-          if (i < argc && mrb_nil_p(argv[arg_i])) {
-            *p = argv[arg_i++];
-            i++;
-            break;
-          }
-        }
         if (i < argc) {
-          *p = to_hash(mrb, argv[arg_i++]);
+          *p = argv[arg_i++];
           i++;
+          if (!(altmode && mrb_nil_p(*p))) {
+            *p = to_hash(mrb, *p);
+          }
         }
       }
       break;
@@ -731,21 +724,18 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         ps = va_arg(ap, char**);
         pl = va_arg(ap, mrb_int*);
-        if (*format == '!') {
-          format++;
-          if (i < argc && mrb_nil_p(argv[arg_i])) {
-            *ps = NULL;
-            *pl = 0;
-            i++; arg_i++;
-            break;
-          }
-        }
         if (i < argc) {
           ss = argv[arg_i++];
-          mrb_to_str(mrb, ss);
-          *ps = RSTRING_PTR(ss);
-          *pl = RSTRING_LEN(ss);
           i++;
+          if (altmode && mrb_nil_p(ss)) {
+            *ps = NULL;
+            *pl = 0;
+          }
+          else {
+            mrb_to_str(mrb, ss);
+            *ps = RSTRING_PTR(ss);
+            *pl = RSTRING_LEN(ss);
+          }
         }
       }
       break;
@@ -755,19 +745,16 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         const char **ps;
 
         ps = va_arg(ap, const char**);
-        if (*format == '!') {
-          format++;
-          if (i < argc && mrb_nil_p(argv[arg_i])) {
-            *ps = NULL;
-            i++; arg_i++;
-            break;
-          }
-        }
         if (i < argc) {
           ss = argv[arg_i++];
-          mrb_to_str(mrb, ss);
-          *ps = RSTRING_CSTR(mrb, ss);
           i++;
+          if (altmode && mrb_nil_p(ss)) {
+            *ps = NULL;
+          }
+          else {
+            mrb_to_str(mrb, ss);
+            *ps = RSTRING_CSTR(mrb, ss);
+          }
         }
       }
       break;
@@ -780,21 +767,19 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         pb = va_arg(ap, mrb_value**);
         pl = va_arg(ap, mrb_int*);
-        if (*format == '!') {
-          format++;
-          if (i < argc && mrb_nil_p(argv[arg_i])) {
+        if (i < argc) {
+          aa = argv[arg_i++];
+          i++;
+          if (altmode && mrb_nil_p(aa)) {
             *pb = 0;
             *pl = 0;
-            i++; arg_i++;
-            break;
           }
-        }
-        if (i < argc) {
-          aa = to_ary(mrb, argv[arg_i++]);
-          a = mrb_ary_ptr(aa);
-          *pb = ARY_PTR(a);
-          *pl = ARY_LEN(a);
-          i++;
+          else {
+            aa = to_ary(mrb, aa);
+            a = mrb_ary_ptr(aa);
+            *pb = ARY_PTR(a);
+            *pl = ARY_LEN(a);
+          }
         }
       }
       break;
@@ -874,17 +859,15 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         datap = va_arg(ap, void**);
         type = va_arg(ap, struct mrb_data_type const*);
-        if (*format == '!') {
-          format++;
-          if (i < argc && mrb_nil_p(argv[arg_i])) {
-            *datap = 0;
-            i++; arg_i++;
-            break;
-          }
-        }
         if (i < argc) {
-          *datap = mrb_data_get_ptr(mrb, argv[arg_i++], type);
-          ++i;
+          mrb_value dd = argv[arg_i++];
+          i++;
+          if (altmode && mrb_nil_p(dd)) {
+            *datap = 0;
+          }
+          else {
+            *datap = mrb_data_get_ptr(mrb, dd, type);
+          }
         }
       }
       break;
@@ -900,11 +883,8 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         else {
           bp = mrb->c->stack + mrb->c->ci->argc + 1;
         }
-        if (*format == '!') {
-          format ++;
-          if (mrb_nil_p(*bp)) {
-            mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
-          }
+        if (altmode && mrb_nil_p(*bp)) {
+          mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
         }
         *p = *bp;
       }
@@ -926,12 +906,8 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       {
         mrb_value **var;
         mrb_int *pl;
-        mrb_bool nocopy = array_argv ? TRUE : FALSE;
+        mrb_bool nocopy = altmode || array_argv ? TRUE : FALSE;
 
-        if (*format == '!') {
-          format++;
-          nocopy = TRUE;
-        }
         var = va_arg(ap, mrb_value**);
         pl = va_arg(ap, mrb_int*);
         if (argc > i) {
