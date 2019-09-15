@@ -826,5 +826,17 @@ module Enumerable
     end
     hash.values
   end
+
+  def filter_map(&blk)
+    return to_enum(:find_index, val) unless blk
+
+    ary = []
+    self.each do |x|
+      x = blk.call(x)
+      ary.push x if x
+    end
+    ary
+  end
+
   alias filter select
 end
