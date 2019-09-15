@@ -123,8 +123,8 @@ class IO
 
   def write(string)
     str = string.is_a?(String) ? string : string.to_s
-    return str.size unless str.size > 0
-    if 0 < @buf.length
+    return 0 if str.empty?
+    unless @buf.empty?
       # reset real pos ignore buf
       seek(pos, SEEK_SET)
     end
@@ -141,7 +141,7 @@ class IO
     _check_readable
     begin
       buf = _read_buf
-      return buf.size == 0
+      return buf.empty?
     rescue EOFError
       return true
     end
@@ -170,7 +170,7 @@ class IO
   end
 
   def _read_buf
-    return @buf if @buf && @buf.size > 0
+    return @buf if @buf && @buf.bytesize > 0
     @buf = sysread(BUF_SIZE)
   end
 
@@ -255,12 +255,12 @@ class IO
 
       if limit && limit <= @buf.size
         array.push @buf[0, limit]
-        @buf = @buf[limit, @buf.size - limit]
+        @buf[0, limit] = ""
         break
       elsif idx = @buf.index(rs)
         len = idx + rs.size
         array.push @buf[0, len]
-        @buf = @buf[len, @buf.size - len]
+        @buf[0, len] = ""
         break
       else
         array.push @buf
@@ -284,7 +284,7 @@ class IO
   def readchar
     _read_buf
     c = @buf[0]
-    @buf = @buf[1, @buf.size]
+    @buf[0] = ""
     c
   end
 
