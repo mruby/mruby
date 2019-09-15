@@ -4526,6 +4526,7 @@ parse_string(parser_state *p)
       case 'm': f |= 4; break;
       case 'u': f |= 16; break;
       case 'n': f |= 32; break;
+      case 'o': break;
       default: tokadd(p, re_opt); break;
       }
     }

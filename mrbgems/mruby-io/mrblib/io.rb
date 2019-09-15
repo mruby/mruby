@@ -123,8 +123,8 @@ class IO
 
   def write(string)
     str = string.is_a?(String) ? string : string.to_s
-    return str.size unless str.size > 0
-    if 0 < @buf.length
+    return 0 if str.empty?
+    unless @buf.empty?
       # reset real pos ignore buf
       seek(pos, SEEK_SET)
     end
@@ -140,8 +140,8 @@ class IO
   def eof?
     _check_readable
     begin
-      buf = _read_buf
-      return buf.size == 0
+      _read_buf
+      return @buf.empty?
     rescue EOFError
       return true
     end
@@ -150,7 +150,7 @@ class IO
 
   def pos
     raise IOError if closed?
-    sysseek(0, SEEK_CUR) - @buf.length
+    sysseek(0, SEEK_CUR) - @buf.bytesize
   end
   alias_method :tell, :pos
 
@@ -170,8 +170,13 @@ class IO
   end
 
   def _read_buf
-    return @buf if @buf && @buf.size > 0
-    @buf = sysread(BUF_SIZE)
+    return @buf if @buf && @buf.bytesize >= 4 # maximum UTF-8 character is 4 bytes
+    @buf ||= ""
+    begin
+      @buf += sysread(BUF_SIZE)
+    rescue EOFError => e
+      raise e if @buf.empty?
+    end
   end
 
   def ungetc(substr)
@@ -253,12 +258,14 @@ class IO
         break
       end
 
-      if limit && limit <= @buf.bytesize
-        array.push IO._bufread(@buf, limit)
+      if limit && limit <= @buf.size
+        array.push @buf[0, limit]
+        @buf[0, limit] = ""
         break
       elsif idx = @buf.index(rs)
-        len = idx + rs.bytesize
-        array.push IO._bufread(@buf, len)
+        len = idx + rs.size
+        array.push @buf[0, len]
+        @buf[0, len] = ""
         break
       else
         array.push @buf
@@ -281,7 +288,9 @@ class IO
 
   def readchar
     _read_buf
-    IO._bufread(@buf, 1)
+    c = @buf[0]
+    @buf[0] = ""
+    c
   end
 
   def getc
