@@ -150,7 +150,7 @@ class IO
 
   def pos
     raise IOError if closed?
-    sysseek(0, SEEK_CUR) - @buf.length
+    sysseek(0, SEEK_CUR) - @buf.bytesize
   end
   alias_method :tell, :pos
 
