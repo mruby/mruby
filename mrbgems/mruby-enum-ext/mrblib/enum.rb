@@ -839,4 +839,21 @@ module Enumerable
   end
 
   alias filter select
+
+  ##
+  # call-seq:
+  #   enum.tally -> a_hash
+  #
+  # Tallys the collection.  Returns a hash where the keys are the
+  # elements and the values are numbers of elements in the collection
+  # that correspond to the key.
+  #
+  #    ["a", "b", "c", "b"].tally #=> {"a"=>1, "b"=>2, "c"=>1}
+  def tally
+    hash = {}
+    self.each do |x|
+      hash[x] = (hash[x]||0)+1
+    end
+    hash
+  end
 end
