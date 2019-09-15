@@ -253,12 +253,14 @@ class IO
         break
       end
 
-      if limit && limit <= @buf.bytesize
-        array.push IO._bufread(@buf, limit)
+      if limit && limit <= @buf.size
+        array.push @buf[0, limit]
+        @buf = @buf[limit, @buf.size - limit]
         break
       elsif idx = @buf.index(rs)
-        len = idx + rs.bytesize
-        array.push IO._bufread(@buf, len)
+        len = idx + rs.size
+        array.push @buf[0, len]
+        @buf = @buf[len, @buf.size - len]
         break
       else
         array.push @buf
@@ -281,7 +283,9 @@ class IO
 
   def readchar
     _read_buf
-    IO._bufread(@buf, 1)
+    c = @buf[0]
+    @buf = @buf[1, @buf.size]
+    c
   end
 
   def getc
