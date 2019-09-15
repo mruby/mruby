@@ -619,6 +619,8 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
   opt = FALSE;
   i = 0;
   while ((c = *format++)) {
+    mrb_value *argv = ARGV;
+
     switch (c) {
     case '|': case '*': case '&': case '?':
       break;
@@ -641,7 +643,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         p = va_arg(ap, mrb_value*);
         if (i < argc) {
-          *p = ARGV[arg_i++];
+          *p = argv[arg_i++];
           i++;
         }
       }
@@ -654,7 +656,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         if (i < argc) {
           mrb_value ss;
 
-          ss = ARGV[arg_i++];
+          ss = argv[arg_i++];
           if (!class_ptr_p(ss)) {
             mrb_raisef(mrb, E_TYPE_ERROR, "%v is not class/module", ss);
           }
@@ -670,14 +672,14 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         p = va_arg(ap, mrb_value*);
         if (*format == '!') {
           format++;
-          if (i < argc && mrb_nil_p(ARGV[arg_i])) {
-            *p = ARGV[arg_i++];
+          if (i < argc && mrb_nil_p(argv[arg_i])) {
+            *p = argv[arg_i++];
             i++;
             break;
           }
         }
         if (i < argc) {
-          *p = ARGV[arg_i++];
+          *p = argv[arg_i++];
           mrb_to_str(mrb, *p);
           i++;
         }
@@ -690,14 +692,14 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         p = va_arg(ap, mrb_value*);
         if (*format == '!') {
           format++;
-          if (i < argc && mrb_nil_p(ARGV[arg_i])) {
-            *p = ARGV[arg_i++];
+          if (i < argc && mrb_nil_p(argv[arg_i])) {
+            *p = argv[arg_i++];
             i++;
             break;
           }
         }
         if (i < argc) {
-          *p = to_ary(mrb, ARGV[arg_i++]);
+          *p = to_ary(mrb, argv[arg_i++]);
           i++;
         }
       }
@@ -709,14 +711,14 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         p = va_arg(ap, mrb_value*);
         if (*format == '!') {
           format++;
-          if (i < argc && mrb_nil_p(ARGV[arg_i])) {
-            *p = ARGV[arg_i++];
+          if (i < argc && mrb_nil_p(argv[arg_i])) {
+            *p = argv[arg_i++];
             i++;
             break;
           }
         }
         if (i < argc) {
-          *p = to_hash(mrb, ARGV[arg_i++]);
+          *p = to_hash(mrb, argv[arg_i++]);
           i++;
         }
       }
@@ -731,7 +733,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         pl = va_arg(ap, mrb_int*);
         if (*format == '!') {
           format++;
-          if (i < argc && mrb_nil_p(ARGV[arg_i])) {
+          if (i < argc && mrb_nil_p(argv[arg_i])) {
             *ps = NULL;
             *pl = 0;
             i++; arg_i++;
@@ -739,7 +741,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
           }
         }
         if (i < argc) {
-          ss = ARGV[arg_i++];
+          ss = argv[arg_i++];
           mrb_to_str(mrb, ss);
           *ps = RSTRING_PTR(ss);
           *pl = RSTRING_LEN(ss);
@@ -755,14 +757,14 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         ps = va_arg(ap, const char**);
         if (*format == '!') {
           format++;
-          if (i < argc && mrb_nil_p(ARGV[arg_i])) {
+          if (i < argc && mrb_nil_p(argv[arg_i])) {
             *ps = NULL;
             i++; arg_i++;
             break;
           }
         }
         if (i < argc) {
-          ss = ARGV[arg_i++];
+          ss = argv[arg_i++];
           mrb_to_str(mrb, ss);
           *ps = RSTRING_CSTR(mrb, ss);
           i++;
@@ -780,7 +782,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         pl = va_arg(ap, mrb_int*);
         if (*format == '!') {
           format++;
-          if (i < argc && mrb_nil_p(ARGV[arg_i])) {
+          if (i < argc && mrb_nil_p(argv[arg_i])) {
             *pb = 0;
             *pl = 0;
             i++; arg_i++;
@@ -788,7 +790,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
           }
         }
         if (i < argc) {
-          aa = to_ary(mrb, ARGV[arg_i++]);
+          aa = to_ary(mrb, argv[arg_i++]);
           a = mrb_ary_ptr(aa);
           *pb = ARY_PTR(a);
           *pl = ARY_LEN(a);
@@ -803,7 +805,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         p = va_arg(ap, void**);
         if (i < argc) {
-          ss = ARGV[arg_i];
+          ss = argv[arg_i];
           if (mrb_type(ss) != MRB_TT_ISTRUCT)
           {
             mrb_raisef(mrb, E_TYPE_ERROR, "%v is not inline struct", ss);
@@ -821,7 +823,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         p = va_arg(ap, mrb_float*);
         if (i < argc) {
-          *p = mrb_to_flo(mrb, ARGV[arg_i]);
+          *p = mrb_to_flo(mrb, argv[arg_i]);
           arg_i++;
           i++;
         }
@@ -834,7 +836,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         p = va_arg(ap, mrb_int*);
         if (i < argc) {
-          *p = mrb_fixnum(mrb_to_int(mrb, ARGV[arg_i]));
+          *p = mrb_fixnum(mrb_to_int(mrb, argv[arg_i]));
           arg_i++;
           i++;
         }
@@ -845,7 +847,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_bool *boolp = va_arg(ap, mrb_bool*);
 
         if (i < argc) {
-          mrb_value b = ARGV[arg_i++];
+          mrb_value b = argv[arg_i++];
           *boolp = mrb_test(b);
           i++;
         }
@@ -859,7 +861,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         if (i < argc) {
           mrb_value ss;
 
-          ss = ARGV[arg_i++];
+          ss = argv[arg_i++];
           *symp = to_sym(mrb, ss);
           i++;
         }
@@ -874,14 +876,14 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         type = va_arg(ap, struct mrb_data_type const*);
         if (*format == '!') {
           format++;
-          if (i < argc && mrb_nil_p(ARGV[arg_i])) {
+          if (i < argc && mrb_nil_p(argv[arg_i])) {
             *datap = 0;
             i++; arg_i++;
             break;
           }
         }
         if (i < argc) {
-          *datap = mrb_data_get_ptr(mrb, ARGV[arg_i++], type);
+          *datap = mrb_data_get_ptr(mrb, argv[arg_i++], type);
           ++i;
         }
       }
@@ -936,10 +938,10 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
           *pl = argc-i;
           if (*pl > 0) {
             if (nocopy) {
-              *var = ARGV+arg_i;
+              *var = argv+arg_i;
             }
             else {
-              mrb_value args = mrb_ary_new_from_values(mrb, *pl, ARGV+arg_i);
+              mrb_value args = mrb_ary_new_from_values(mrb, *pl, argv+arg_i);
               RARRAY(args)->c = NULL;
               *var = RARRAY_PTR(args);
             }
