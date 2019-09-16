@@ -389,10 +389,7 @@ mod_define_singleton_method(mrb_state *mrb, mrb_value self)
   mrb_sym mid;
   mrb_value blk = mrb_nil_value();
 
-  mrb_get_args(mrb, "n&", &mid, &blk);
-  if (mrb_nil_p(blk)) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
-  }
+  mrb_get_args(mrb, "n&!", &mid, &blk);
   p = (struct RProc*)mrb_obj_alloc(mrb, MRB_TT_PROC, mrb->proc_class);
   mrb_proc_copy(p, mrb_proc_ptr(blk));
   p->flags |= MRB_PROC_STRICT;

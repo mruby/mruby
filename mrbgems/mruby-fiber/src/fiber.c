@@ -72,13 +72,10 @@ fiber_init(mrb_state *mrb, mrb_value self)
   mrb_value blk;
   size_t slen;
 
-  mrb_get_args(mrb, "&", &blk);
+  mrb_get_args(mrb, "&!", &blk);
 
   if (f->cxt) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "cannot initialize twice");
-  }
-  if (mrb_nil_p(blk)) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "tried to create Fiber object without a block");
   }
   p = mrb_proc_ptr(blk);
   if (MRB_PROC_CFUNC_P(p)) {

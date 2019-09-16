@@ -100,11 +100,7 @@ mrb_obj_instance_exec(mrb_state *mrb, mrb_value self)
   mrb_value blk;
   struct RClass *c;
 
-  mrb_get_args(mrb, "*&", &argv, &argc, &blk);
-
-  if (mrb_nil_p(blk)) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
-  }
+  mrb_get_args(mrb, "*&!", &argv, &argc, &blk);
 
   switch (mrb_type(self)) {
   case MRB_TT_SYMBOL:
