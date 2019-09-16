@@ -110,10 +110,11 @@ MRB_API mrb_value mrb_proc_cfunc_env_get(mrb_state *mrb, mrb_int idx);
 
 #else
 
-#define MRB_METHOD_FUNC_P(m) ((m).func_p)
+#define MRB_METHOD_FUNC_FL 1
+#define MRB_METHOD_FUNC_P(m) ((m).flags&MRB_METHOD_FUNC_FL)
 #define MRB_METHOD_FUNC(m) ((m).func)
-#define MRB_METHOD_FROM_FUNC(m,fn) do{(m).func_p=TRUE;(m).func=(fn);}while(0)
-#define MRB_METHOD_FROM_PROC(m,pr) do{(m).func_p=FALSE;(m).proc=(pr);}while(0)
+#define MRB_METHOD_FROM_FUNC(m,fn) do{(m).flags=MRB_METHOD_FUNC_FL;(m).func=(fn);}while(0)
+#define MRB_METHOD_FROM_PROC(m,pr) do{(m).flags=0;(m).proc=(pr);}while(0)
 #define MRB_METHOD_PROC_P(m) (!MRB_METHOD_FUNC_P(m))
 #define MRB_METHOD_PROC(m) ((m).proc)
 #define MRB_METHOD_UNDEF_P(m) ((m).proc==NULL)

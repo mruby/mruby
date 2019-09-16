@@ -192,7 +192,7 @@ typedef mrb_value (*mrb_func_t)(struct mrb_state *mrb, mrb_value self);
 typedef uintptr_t mrb_method_t;
 #else
 typedef struct {
-  mrb_bool func_p;
+  uint8_t flags;
   union {
     struct RProc *proc;
     mrb_func_t func;
