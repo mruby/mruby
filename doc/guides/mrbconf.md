@@ -134,21 +134,16 @@ largest value of required alignment.
 
 ## Reduce heap memory configuration.
 
-`MRB_USE_ETEXT_EDATA`
+`MRB_USE_LINK_TIME_RO_DATA_P`
+* Only available on ELF platforms.
 * If you specify the address of a read-only section when creating a symbol or string, that string will be used as it is.
 * Heap memory can be saved.
-* Uses `_etext` and `__init_array_start`.
-* It must be `_etext < data_addr < &__init_array_start`.
-
-`MRB_NO_INIT_ARRAY_START`
-* Ignored if `MRB_USE_ETEXT_EDATA` is not defined.
-* Please try if `__init_array_start` is not available.
-* Uses `_etext` and `_edata`.
-* It must be `_etext < data_addr < _edata`.
+* Uses `__ehdr_start` and `__init_array_start`.
+* It must be `__ehdr_start < data_addr < __init_array_start`.
 
 `MRB_USE_CUSTOM_RO_DATA_P`
-* Takes precedence over `MRB_USE_ETEXT_EDATA`.
-* Please try if both `MRB_USE_ETEXT_EDATA` and `MRB_NO_INIT_ARRAY_START` are not available.
+* Takes precedence over `MRB_USE_LINK_TIME_RO_DATA_P`.
+* Please try if `MRB_USE_LINK_TIME_RO_DATA_P` is not available.
 * The `mrb_ro_data_p()` function is implemented by the user in an arbitrary file.
 * The prototype declaration is `mrb_bool mrb_ro_data_p(const char *ptr)`.
 * Return `TRUE` if `ptr` is in read-only section, otherwise return `FALSE`.

@@ -309,37 +309,25 @@ mrb_undef_value(void)
   return v;
 }
 
+#if defined(MRB_USE_ETEXT_EDATA) && !defined(MRB_USE_LINK_TIME_RO_DATA_P)
+# ifdef __GNUC__
+#  warning MRB_USE_ETEXT_EDATA is deprecated. Define MRB_USE_LINK_TIME_RO_DATA_P instead.
+# endif
+# define MRB_USE_LINK_TIME_RO_DATA_P
+#endif
+
 #if defined(MRB_USE_CUSTOM_RO_DATA_P)
 /* If you define `MRB_USE_CUSTOM_RO_DATA_P`, you must implement `mrb_ro_data_p()`. */
 mrb_bool mrb_ro_data_p(const char *p);
-#elif defined(MRB_USE_ETEXT_EDATA)
-#if (defined(__APPLE__) && defined(__MACH__))
-#include <mach-o/getsect.h>
-static inline mrb_bool
-mrb_ro_data_p(const char *p)
-{
-  return (const char*)get_etext() < p && p < (const char*)get_edata();
-}
-#else
-extern char _etext[];
-#ifdef MRB_NO_INIT_ARRAY_START
-extern char _edata[];
-
-static inline mrb_bool
-mrb_ro_data_p(const char *p)
-{
-  return _etext < p && p < _edata;
-}
-#else
+#elif defined(MRB_USE_LINK_TIME_RO_DATA_P)
+extern char __ehdr_start[];
 extern char __init_array_start[];
 
 static inline mrb_bool
 mrb_ro_data_p(const char *p)
 {
-  return _etext < p && p < (char*)&__init_array_start;
+  return __ehdr_start < p && p < __init_array_start;
 }
-#endif
-#endif
 #else
 # define mrb_ro_data_p(p) FALSE
 #endif
