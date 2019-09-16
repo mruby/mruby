@@ -40,11 +40,7 @@ mrb_mod_module_exec(mrb_state *mrb, mrb_value self)
   mrb_int argc;
   mrb_value blk;
 
-  mrb_get_args(mrb, "*&", &argv, &argc, &blk);
-
-  if (mrb_nil_p(blk)) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
-  }
+  mrb_get_args(mrb, "*&!", &argv, &argc, &blk);
 
   mrb->c->ci->target_class = mrb_class_ptr(self);
   return mrb_yield_cont(mrb, blk, self, argc, argv);

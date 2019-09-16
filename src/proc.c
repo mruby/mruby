@@ -184,11 +184,8 @@ mrb_proc_s_new(mrb_state *mrb, mrb_value proc_class)
   mrb_value proc;
   struct RProc *p;
 
-  mrb_get_args(mrb, "&", &blk);
-  if (mrb_nil_p(blk)) {
-    /* Calling Proc.new without a block is not implemented yet */
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "tried to create Proc object without a block");
-  }
+  /* Calling Proc.new without a block is not implemented yet */
+  mrb_get_args(mrb, "&!", &blk);
   p = (struct RProc *)mrb_obj_alloc(mrb, MRB_TT_PROC, mrb_class_ptr(proc_class));
   mrb_proc_copy(p, mrb_proc_ptr(blk));
   proc = mrb_obj_value(p);
