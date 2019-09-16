@@ -98,9 +98,12 @@ MRB_API mrb_value mrb_proc_cfunc_env_get(mrb_state *mrb, mrb_int idx);
 #define mrb_cfunc_env_get(mrb, idx) mrb_proc_cfunc_env_get(mrb, idx)
 
 #define MRB_METHOD_FUNC_FL 1
+#define MRB_METHOD_NOARG_FL 2
 #ifdef MRB_METHOD_TABLE_INLINE
 
 #define MRB_METHOD_FUNC_P(m) (((uintptr_t)(m))&MRB_METHOD_FUNC_FL)
+#define MRB_METHOD_NOARG_P(m) (((uintptr_t)(m))&MRB_METHOD_NOARG_FL)
+#define MRB_METHOD_NOARG_SET(m) ((m)=(mrb_method_t)(((uintptr_t)(m))|MRB_METHOD_NOARG_FL))
 #define MRB_METHOD_FUNC(m) ((mrb_func_t)((uintptr_t)(m)>>2))
 #define MRB_METHOD_FROM_FUNC(m,fn) ((m)=(mrb_method_t)((((uintptr_t)(fn))<<2)|MRB_METHOD_FUNC_FL))
 #define MRB_METHOD_FROM_PROC(m,pr) ((m)=(mrb_method_t)(pr))
@@ -111,7 +114,9 @@ MRB_API mrb_value mrb_proc_cfunc_env_get(mrb_state *mrb, mrb_int idx);
 #else
 
 #define MRB_METHOD_FUNC_P(m) ((m).flags&MRB_METHOD_FUNC_FL)
+#define MRB_METHOD_NOARG_P(m) ((m).flags&MRB_METHOD_NOARG_FL)
 #define MRB_METHOD_FUNC(m) ((m).func)
+#define MRB_METHOD_NOARG_SET(m) do{(m).flags|=MRB_METHOD_NOARG_FL;}while(0)
 #define MRB_METHOD_FROM_FUNC(m,fn) do{(m).flags=MRB_METHOD_FUNC_FL;(m).func=(fn);}while(0)
 #define MRB_METHOD_FROM_PROC(m,pr) do{(m).flags=0;(m).proc=(pr);}while(0)
 #define MRB_METHOD_PROC_P(m) (!MRB_METHOD_FUNC_P(m))

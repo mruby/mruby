@@ -1435,6 +1435,11 @@ RETRY_TRY_BLOCK:
           ci->proc = p;
           recv = p->body.func(mrb, recv);
         }
+        else if (MRB_METHOD_NOARG_P(m) &&
+                 (argc > 0 || (argc == -1 && RARRAY_LEN(regs[1]) != 0))) {
+          argnum_error(mrb, 0);
+          goto L_RAISE;
+        }
         else {
           recv = MRB_METHOD_FUNC(m)(mrb, recv);
         }
