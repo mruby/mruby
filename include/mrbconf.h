@@ -36,10 +36,9 @@
 /* size of the method cache (need to be the power of 2) */
 //#define MRB_METHOD_CACHE_SIZE (1<<7)
 
-/* add -DMRB_METHOD_TABLE_INLINE to reduce the size of method table */
-/* MRB_METHOD_TABLE_INLINE requires LSB of function pointers to be zero */
-/* you might need to specify --falign-functions=n (where n>1) */
-//#define MRB_METHOD_TABLE_INLINE
+/* add -DMRB_METHOD_T_STRUCT on machines that use higher bits of pointers */
+/* no MRB_METHOD_T_STRUCT requires highest 2 bits of function pointers to be zero */
+//#define MRB_METHOD_T_STRUCT
 
 /* add -DMRB_INT16 to use 16bit integer for mrb_int; conflict with MRB_INT32 and MRB_INT64 */
 //#define MRB_INT16
@@ -190,10 +189,6 @@
 #  define MRB_METHOD_CACHE_SIZE (1<<10)
 # endif
 
-# ifndef MRB_METHOD_TABLE_INLINE
-#  define MRB_METHOD_TABLE_INLINE
-# endif
-
 # ifndef MRB_IV_SEGMENT_SIZE
 #  define MRB_IV_SEGMENT_SIZE 32
 # endif
@@ -210,10 +205,6 @@
 
 # ifndef MRB_METHOD_CACHE_SIZE
 #  define MRB_METHOD_CACHE_SIZE (1<<12)
-# endif
-
-# ifndef MRB_METHOD_TABLE_INLINE
-#  define MRB_METHOD_TABLE_INLINE
 # endif
 
 # ifndef MRB_IV_SEGMENT_SIZE

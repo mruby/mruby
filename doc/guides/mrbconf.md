@@ -180,10 +180,10 @@ largest value of required alignment.
 * Ignored if `MRB_METHOD_CACHE` is not defined.
 * Need to be the power of 2.
 
-`MRB_METHOD_TABLE_INLINE`
-* Reduce the size of method table.
-* Requires LSB of function pointers to be zero.
-* For example, you might need to specify `--falign-functions=n` (where `n > 1`) for GCC.
+`MRB_METHOD_T_STRUCT`
+* Use C struct to represent `mrb_method_t`
+* No `MRB_METHOD_T_STRUCT` requires highest 2 bits of function pointers to be zero
+* Define this macro on machines that use higher bits of pointers
 
 `MRB_ENABLE_ALL_SYMBOLS`
 * Make it available `Symbols.all_symbols` in `mrbgems/mruby-symbol-ext`

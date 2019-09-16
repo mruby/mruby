@@ -188,7 +188,7 @@ struct mrb_context {
  */
 typedef mrb_value (*mrb_func_t)(struct mrb_state *mrb, mrb_value self);
 
-#ifdef MRB_METHOD_TABLE_INLINE
+#ifndef MRB_METHOD_T_STRUCT
 typedef uintptr_t mrb_method_t;
 #else
 typedef struct {
