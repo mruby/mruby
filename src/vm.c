@@ -1558,9 +1558,13 @@ RETRY_TRY_BLOCK:
       struct RClass *cls;
       mrb_callinfo *ci = mrb->c->ci;
       mrb_value recv, blk;
+      struct RProc *p = ci->proc;
       mrb_sym mid = ci->mid;
-      struct RClass* target_class = MRB_PROC_TARGET_CLASS(ci->proc);
+      struct RClass* target_class = MRB_PROC_TARGET_CLASS(p);
 
+      if (MRB_PROC_ENV_P(p) && p->e.env->mid && p->e.env->mid != mid) { /* alias support */
+        mid = p->e.env->mid;    /* restore old mid */
+      }
       mrb_assert(bidx < irep->nregs);
 
       if (mid == 0 || !target_class) {
@@ -2020,7 +2024,7 @@ RETRY_TRY_BLOCK:
             if (MRB_PROC_ENV_P(dst)) {
               struct REnv *e = MRB_PROC_ENV(dst);
 
-              if (!MRB_ENV_STACK_SHARED_P(e) || e->cxt != mrb->c) {
+              if (!MRB_ENV_STACK_SHARED_P(e) || (e->cxt && e->cxt != mrb->c)) {
                 localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
                 goto L_RAISE;
               }

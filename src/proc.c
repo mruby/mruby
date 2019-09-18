@@ -77,6 +77,9 @@ closure_setup(mrb_state *mrb, struct RProc *p)
       e->c = tc;
       mrb_field_write_barrier(mrb, (struct RBasic*)e, (struct RBasic*)tc);
     }
+    if (MRB_PROC_ENV_P(up) && MRB_PROC_ENV(up)->cxt == NULL) {
+      e->mid = MRB_PROC_ENV(up)->mid;
+    }
   }
   if (e) {
     p->e.env = e;
