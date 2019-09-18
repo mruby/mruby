@@ -828,7 +828,7 @@ module Enumerable
   end
 
   def filter_map(&blk)
-    return to_enum(:find_index, val) unless blk
+    return to_enum(:filter_map) unless blk
 
     ary = []
     self.each do |x|
