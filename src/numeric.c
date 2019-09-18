@@ -445,7 +445,6 @@ static mrb_value
 flo_rev(mrb_state *mrb, mrb_value x)
 {
   int64_t v1;
-  mrb_get_args(mrb, "");
   v1 = (int64_t)mrb_float(x);
   return int64_value(mrb, ~v1);
 }
@@ -1577,14 +1576,12 @@ mrb_cmp(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
 static mrb_value
 num_finite_p(mrb_state *mrb, mrb_value self)
 {
-  mrb_get_args(mrb, "");
   return mrb_true_value();
 }
 
 static mrb_value
 num_infinite_p(mrb_state *mrb, mrb_value self)
 {
-  mrb_get_args(mrb, "");
   return mrb_false_value();
 }
 
