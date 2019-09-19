@@ -595,7 +595,7 @@ cv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
 /* 15.2.2.4.19 */
 /*
  *  call-seq:
- *     mod.class_variables   -> array
+ *     mod.class_variables(inherit=true)   -> array
  *
  *  Returns an array of the names of class variables in <i>mod</i>.
  *
@@ -613,11 +613,14 @@ mrb_mod_class_variables(mrb_state *mrb, mrb_value mod)
 {
   mrb_value ary;
   struct RClass *c;
+  mrb_bool inherit = TRUE;
 
+  mrb_get_args(mrb, "|b", &inherit);
   ary = mrb_ary_new(mrb);
   c = mrb_class_ptr(mod);
   while (c) {
     iv_foreach(mrb, c->iv, cv_i, &ary);
+    if (!inherit) break;
     c = c->super;
   }
   return ary;
