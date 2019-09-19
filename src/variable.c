@@ -743,7 +743,13 @@ mrb_vm_cv_get(mrb_state *mrb, mrb_sym sym)
 {
   struct RClass *c;
 
-  c = MRB_PROC_TARGET_CLASS(mrb->c->ci->proc);
+  struct RProc *p = mrb->c->ci->proc;
+
+  for (;;) {
+    c = MRB_PROC_TARGET_CLASS(p);
+    if (c->tt != MRB_TT_SCLASS) break;
+    p = p->upper;
+  }
   return mrb_mod_cv_get(mrb, c, sym);
 }
 
@@ -751,8 +757,13 @@ void
 mrb_vm_cv_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
 {
   struct RClass *c;
+  struct RProc *p = mrb->c->ci->proc;
 
-  c = MRB_PROC_TARGET_CLASS(mrb->c->ci->proc);
+  for (;;) {
+    c = MRB_PROC_TARGET_CLASS(p);
+    if (c->tt != MRB_TT_SCLASS) break;
+    p = p->upper;
+  }
   mrb_mod_cv_set(mrb, c, sym, v);
 }
 
