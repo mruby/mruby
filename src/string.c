@@ -1757,22 +1757,16 @@ mrb_str_include(mrb_state *mrb, mrb_value self)
 /*
  *  call-seq:
  *     str.index(substring [, offset])   => fixnum or nil
- *     str.index(fixnum [, offset])      => fixnum or nil
- *     str.index(regexp [, offset])      => fixnum or nil
  *
  *  Returns the index of the first occurrence of the given
- *  <i>substring</i>,
- *  character (<i>fixnum</i>), or pattern (<i>regexp</i>) in <i>str</i>.
- *  Returns
- *  <code>nil</code> if not found.
+ *  <i>substring</i>. Returns <code>nil</code> if not found.
  *  If the second parameter is present, it
  *  specifies the position in the string to begin the search.
  *
- *     "hello".index('e')             #=> 1
+ *     "hello".index('l')             #=> 2
  *     "hello".index('lo')            #=> 3
  *     "hello".index('a')             #=> nil
- *     "hello".index(101)             #=> 1(101=0x65='e')
- *     "hello".index(/[aeiou]/, -3)   #=> 4
+ *     "hello".index('l', -2)         #=> 3
  */
 static mrb_value
 mrb_str_index_m(mrb_state *mrb, mrb_value str)
@@ -1780,39 +1774,17 @@ mrb_str_index_m(mrb_state *mrb, mrb_value str)
   mrb_value sub;
   mrb_int pos;
 
-  switch (mrb_get_args(mrb, "|oi", &sub, &pos)) {
-    case 0:
-      sub = mrb_nil_value();
-      /* fall through */
-    case 1:
-      pos = 0;
-      break;
-    case 2:
-      if (pos < 0) {
-        mrb_int clen = RSTRING_CHAR_LEN(str);
-        pos += clen;
-        if (pos < 0) {
-          return mrb_nil_value();
-        }
-      }
-      break;
+  if (mrb_get_args(mrb, "S|i", &sub, &pos) == 1) {
+    pos = 0;
   }
-
-  switch (mrb_type(sub)) {
-    default: {
-      mrb_value tmp;
-
-      tmp = mrb_check_string_type(mrb, sub);
-      if (mrb_nil_p(tmp)) {
-        mrb_raisef(mrb, E_TYPE_ERROR, "type mismatch: %v given", sub);
-      }
-      sub = tmp;
+  else if (pos < 0) {
+    mrb_int clen = RSTRING_CHAR_LEN(str);
+    pos += clen;
+    if (pos < 0) {
+      return mrb_nil_value();
     }
-    /* fall through */
-    case MRB_TT_STRING:
-      pos = str_index_str_by_char(mrb, str, sub, pos);
-      break;
   }
+  pos = str_index_str_by_char(mrb, str, sub, pos);
 
   if (pos == -1) return mrb_nil_value();
   BYTES_ALIGN_CHECK(pos);
@@ -3057,7 +3029,7 @@ mrb_init_string(mrb_state *mrb)
 
   mrb_define_method(mrb, s, "hash",            mrb_str_hash_m,          MRB_ARGS_NONE()); /* 15.2.10.5.20 */
   mrb_define_method(mrb, s, "include?",        mrb_str_include,         MRB_ARGS_REQ(1)); /* 15.2.10.5.21 */
-  mrb_define_method(mrb, s, "index",           mrb_str_index_m,         MRB_ARGS_ANY());  /* 15.2.10.5.22 */
+  mrb_define_method(mrb, s, "index",           mrb_str_index_m,         MRB_ARGS_ARG(1,1));  /* 15.2.10.5.22 */
   mrb_define_method(mrb, s, "initialize",      mrb_str_init,            MRB_ARGS_REQ(1)); /* 15.2.10.5.23 */
   mrb_define_method(mrb, s, "initialize_copy", mrb_str_replace,         MRB_ARGS_REQ(1)); /* 15.2.10.5.24 */
   mrb_define_method(mrb, s, "intern",          mrb_str_intern,          MRB_ARGS_NONE()); /* 15.2.10.5.25 */
@@ -3084,7 +3056,7 @@ mrb_init_string(mrb_state *mrb)
 
   mrb_define_method(mrb, s, "getbyte",         mrb_str_getbyte,         MRB_ARGS_REQ(1));
   mrb_define_method(mrb, s, "setbyte",         mrb_str_setbyte,         MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, s, "byteslice",       mrb_str_byteslice,       MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
+  mrb_define_method(mrb, s, "byteslice",       mrb_str_byteslice,       MRB_ARGS_ARG(1,1));
 }
 
 #ifndef MRB_WITHOUT_FLOAT
