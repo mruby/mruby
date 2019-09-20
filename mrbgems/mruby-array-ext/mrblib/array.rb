@@ -129,7 +129,7 @@ class Array
   #    ary.difference(other_ary1, other_ary2, ...)   -> new_ary
   #
   # Returns a new array that is a copy of the original array, removing all
-  # occurences of any item that also appear in +other_ary+. The order is
+  # occurrences of any item that also appear in +other_ary+. The order is
   # preserved from the original array.
   #
   def difference(*args)
