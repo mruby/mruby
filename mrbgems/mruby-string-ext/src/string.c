@@ -1220,8 +1220,8 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, s, "chr",             mrb_str_chr,             MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "succ",            mrb_str_succ,            MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "succ!",           mrb_str_succ_bang,       MRB_ARGS_NONE());
-  mrb_define_alias(mrb,  s, "next",            "succ");
-  mrb_define_alias(mrb,  s, "next!",           "succ!");
+  mrb_define_method(mrb, s, "next",            mrb_str_succ,            MRB_ARGS_NONE());
+  mrb_define_method(mrb, s, "next!",           mrb_str_succ_bang,       MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "ord",             mrb_str_ord,             MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "delete_prefix!",  mrb_str_del_prefix_bang, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, s, "delete_prefix",   mrb_str_del_prefix,      MRB_ARGS_REQ(1));
