@@ -56,6 +56,8 @@ enum mrb_special_consts {
   ((o).w = (((unsigned long)(v)) << MRB_##n##_SHIFT) | MRB_##n##_FLAG)
 #define BOXWORD_SHIFT_VALUE_P(o,n) \
   (((o).w & MRB_##n##_MASK) == MRB_##n##_FLAG)
+#define BOXWORD_OBJ_TYPE_P(o,n) \
+  (!mrb_immediate_p(o) && (o).value.bp->tt == MRB_TT_##n)
 
 /*
  * mrb_value representation:
@@ -123,6 +125,14 @@ MRB_API mrb_value mrb_word_boxing_float_pool(struct mrb_state*, mrb_float);
 #define mrb_nil_p(o)  ((o).w == MRB_Qnil)
 #define mrb_false_p(o) ((o).w == MRB_Qfalse)
 #define mrb_true_p(o)  ((o).w == MRB_Qtrue)
+#ifndef MRB_WITHOUT_FLOAT
+#define mrb_float_p(o) BOXWORD_OBJ_TYPE_P(o, FLOAT)
+#endif
+#define mrb_array_p(o) BOXWORD_OBJ_TYPE_P(o, ARRAY)
+#define mrb_string_p(o) BOXWORD_OBJ_TYPE_P(o, STRING)
+#define mrb_hash_p(o) BOXWORD_OBJ_TYPE_P(o, HASH)
+#define mrb_cptr_p(o) BOXWORD_OBJ_TYPE_P(o, CPTR)
+#define mrb_exception_p(o) BOXWORD_OBJ_TYPE_P(o, EXCEPTION)
 
 #ifndef MRB_WITHOUT_FLOAT
 #define SET_FLOAT_VALUE(mrb,r,v) ((r) = mrb_word_boxing_float_value(mrb, v))

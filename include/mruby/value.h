@@ -197,13 +197,25 @@ typedef void mrb_value;
 #define MRB_SYMBOL_MAX      UINT32_MAX
 #endif
 #ifndef MRB_WITHOUT_FLOAT
+#ifndef mrb_float_p
 #define mrb_float_p(o) (mrb_type(o) == MRB_TT_FLOAT)
 #endif
+#endif
+#ifndef mrb_array_p
 #define mrb_array_p(o) (mrb_type(o) == MRB_TT_ARRAY)
+#endif
+#ifndef mrb_string_p
 #define mrb_string_p(o) (mrb_type(o) == MRB_TT_STRING)
+#endif
+#ifndef mrb_hash_p
 #define mrb_hash_p(o) (mrb_type(o) == MRB_TT_HASH)
+#endif
+#ifndef mrb_cptr_p
 #define mrb_cptr_p(o) (mrb_type(o) == MRB_TT_CPTR)
+#endif
+#ifndef mrb_exception_p
 #define mrb_exception_p(o) (mrb_type(o) == MRB_TT_EXCEPTION)
+#endif
 #define mrb_test(o)   mrb_bool(o)
 
 /**
