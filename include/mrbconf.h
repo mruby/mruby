@@ -88,14 +88,10 @@
 /* number of object per heap page */
 //#define MRB_HEAP_PAGE_SIZE 1024
 
-/* if _etext and _edata available, mruby can reduce memory used by symbols */
-//#define MRB_USE_ETEXT_EDATA
+/* if __ehdr_start is available, mruby can reduce memory used by symbols */
+//#define MRB_USE_LINK_TIME_RO_DATA_P
 
-/* do not use __init_array_start to determine readonly data section;
-   effective only when MRB_USE_ETEXT_EDATA is defined */
-//#define MRB_NO_INIT_ARRAY_START
-
-/* if do not works both MRB_USE_ETEXT_EDATA and MRB_NO_INIT_ARRAY_START,
+/* if MRB_USE_LINK_TIME_RO_DATA_P does not work,
    you can try mrb_ro_data_p() that you have implemented yourself in any file;
    prototype is `mrb_bool mrb_ro_data_p(const char *ptr)` */
 //#define MRB_USE_CUSTOM_RO_DATA_P

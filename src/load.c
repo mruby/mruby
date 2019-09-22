@@ -554,7 +554,7 @@ read_irep(mrb_state *mrb, const uint8_t *bin, size_t bufsize, uint8_t flags)
 mrb_irep*
 mrb_read_irep(mrb_state *mrb, const uint8_t *bin)
 {
-#if defined(MRB_USE_ETEXT_EDATA) || defined(MRB_USE_CUSTOM_RO_DATA_P)
+#if defined(MRB_USE_LINK_TIME_RO_DATA_P) || defined(MRB_USE_CUSTOM_RO_DATA_P)
   uint8_t flags = mrb_ro_data_p((char*)bin) ? FLAG_SRC_STATIC : FLAG_SRC_MALLOC;
 #else
   uint8_t flags = FLAG_SRC_STATIC;
