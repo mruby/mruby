@@ -41,12 +41,15 @@ struct mrb_state;
 #if defined _MSC_VER && _MSC_VER < 1800
 # define PRIo64 "llo"
 # define PRId64 "lld"
+# define PRIu64 "llu"
 # define PRIx64 "llx"
 # define PRIo16 "ho"
 # define PRId16 "hd"
+# define PRIu16 "hu"
 # define PRIx16 "hx"
 # define PRIo32 "o"
 # define PRId32 "d"
+# define PRIu32 "u"
 # define PRIx32 "x"
 #else
 # include <inttypes.h>
