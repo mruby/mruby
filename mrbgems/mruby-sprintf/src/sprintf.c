@@ -845,6 +845,7 @@ retry:
           case 'd':
           case 'i':
             sign = 1;
+            /* fall through */
           default:
             base = 10; break;
         }
