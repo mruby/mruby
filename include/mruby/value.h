@@ -166,10 +166,8 @@ typedef void mrb_value;
 #include "boxing_no.h"
 #endif
 
-#define MRB_TT_HAS_BASIC MRB_TT_FREE
-
 #ifndef mrb_immediate_p
-#define mrb_immediate_p(o) (mrb_type(o) < MRB_TT_HAS_BASIC)
+#define mrb_immediate_p(o) (mrb_type(o) < MRB_TT_FREE)
 #endif
 #ifndef mrb_fixnum_p
 #define mrb_fixnum_p(o) (mrb_type(o) == MRB_TT_FIXNUM)
