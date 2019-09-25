@@ -30,7 +30,7 @@ double round(double x) {
 }
 #endif
 
-#ifdef MRB_WITHOUT_FLOAT
+#ifndef MRB_WITHOUT_FLOAT
 # if !defined(__MINGW64__) && defined(_WIN32)
 #  define llround(x) round(x)
 # endif
