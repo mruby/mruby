@@ -378,7 +378,7 @@ assign_class_name(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
 {
   if (namespace_p(obj->tt) && namespace_p(mrb_type(v))) {
     struct RObject *c = mrb_obj_ptr(v);
-    if (obj != c && ISUPPER(mrb_sym2name(mrb, sym)[0])) {
+    if (obj != c && ISUPPER(mrb_sym_name(mrb, sym)[0])) {
       mrb_sym id_classname = mrb_intern_lit(mrb, "__classname__");
       mrb_value o = mrb_obj_iv_get(mrb, c, id_classname);
 
@@ -435,7 +435,7 @@ mrb_iv_name_sym_p(mrb_state *mrb, mrb_sym iv_name)
   const char *s;
   mrb_int len;
 
-  s = mrb_sym2name_len(mrb, iv_name, &len);
+  s = mrb_sym_name_len(mrb, iv_name, &len);
   if (len < 2) return FALSE;
   if (s[0] != '@') return FALSE;
   if (ISDIGIT(s[1])) return FALSE;
@@ -483,7 +483,7 @@ inspect_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
   else {
     mrb_str_cat_lit(mrb, str, ", ");
   }
-  s = mrb_sym2name_len(mrb, sym, &len);
+  s = mrb_sym_name_len(mrb, sym, &len);
   mrb_str_cat(mrb, str, s, len);
   mrb_str_cat_lit(mrb, str, "=");
   if (mrb_type(v) == MRB_TT_OBJECT) {
@@ -541,7 +541,7 @@ iv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
   mrb_int len;
 
   ary = *(mrb_value*)p;
-  s = mrb_sym2name_len(mrb, sym, &len);
+  s = mrb_sym_name_len(mrb, sym, &len);
   if (len > 1 && s[0] == '@' && s[1] != '@') {
     mrb_ary_push(mrb, ary, mrb_symbol_value(sym));
   }
@@ -585,7 +585,7 @@ cv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
   mrb_int len;
 
   ary = *(mrb_value*)p;
-  s = mrb_sym2name_len(mrb, sym, &len);
+  s = mrb_sym_name_len(mrb, sym, &len);
   if (len > 2 && s[0] == '@' && s[1] == '@') {
     mrb_ary_push(mrb, ary, mrb_symbol_value(sym));
   }
@@ -894,7 +894,7 @@ const_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
   mrb_int len;
 
   ary = *(mrb_value*)p;
-  s = mrb_sym2name_len(mrb, sym, &len);
+  s = mrb_sym_name_len(mrb, sym, &len);
   if (len >= 1 && ISUPPER(s[0])) {
     mrb_int i, alen = RARRAY_LEN(ary);
 
@@ -1117,7 +1117,7 @@ mrb_class_find_path(mrb_state *mrb, struct RClass *c)
   mrb_str_cat_cstr(mrb, path, str);
   mrb_str_cat_cstr(mrb, path, "::");
 
-  str = mrb_sym2name_len(mrb, name, &len);
+  str = mrb_sym_name_len(mrb, name, &len);
   mrb_str_cat(mrb, path, str, len);
   if (RSTRING_PTR(path)[0] != '#') {
     iv_del(mrb, c->iv, mrb_intern_lit(mrb, "__outer__"), NULL);

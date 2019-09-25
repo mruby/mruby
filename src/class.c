@@ -73,7 +73,7 @@ mrb_class_name_class(mrb_state *mrb, struct RClass *outer, struct RClass *c, mrb
       return;
     }
     mrb_str_cat_cstr(mrb, name, "::");
-    mrb_str_cat_cstr(mrb, name, mrb_sym2name(mrb, id));
+    mrb_str_cat_cstr(mrb, name, mrb_sym_name(mrb, id));
   }
   mrb_obj_iv_set_force(mrb, (struct RObject*)c, nsym, name);
 }
@@ -1333,7 +1333,7 @@ prepare_name_common(mrb_state *mrb, mrb_sym sym, const char *prefix, const char 
 {
   char onstack[ONSTACK_ALLOC_MAX];
   mrb_int sym_len;
-  const char *sym_str = mrb_sym2name_len(mrb, sym, &sym_len);
+  const char *sym_str = mrb_sym_name_len(mrb, sym, &sym_len);
   size_t prefix_len = prefix ? strlen(prefix) : 0;
   size_t suffix_len = suffix ? strlen(suffix) : 0;
   size_t name_len = sym_len + prefix_len + suffix_len;
@@ -1633,7 +1633,7 @@ mrb_class_path(mrb_state *mrb, struct RClass *c)
   }
   else if (mrb_symbol_p(path)) {
     /* toplevel class/module */
-    return mrb_sym2str(mrb, mrb_symbol(path));
+    return mrb_sym_str(mrb, mrb_symbol(path));
   }
   return mrb_str_dup(mrb, path);
 }
@@ -1866,7 +1866,7 @@ static void
 check_const_name_sym(mrb_state *mrb, mrb_sym id)
 {
   mrb_int len;
-  const char *name = mrb_sym2name_len(mrb, id, &len);
+  const char *name = mrb_sym_name_len(mrb, id, &len);
   if (!mrb_const_name_p(mrb, name, len)) {
     mrb_name_error(mrb, id, "wrong constant name %n", id);
   }

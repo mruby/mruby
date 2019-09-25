@@ -150,7 +150,7 @@ mrb_local_variables(mrb_state *mrb, mrb_value self)
     for (i = 0; i + 1 < irep->nlocals; ++i) {
       if (irep->lv[i].name) {
         mrb_sym sym = irep->lv[i].name;
-        const char *name = mrb_sym2name(mrb, sym);
+        const char *name = mrb_sym_name(mrb, sym);
         switch (name[0]) {
         case '*': case '&':
           break;
@@ -409,7 +409,7 @@ static void
 check_cv_name_sym(mrb_state *mrb, mrb_sym id)
 {
   mrb_int len;
-  const char *name = mrb_sym2name_len(mrb, id, &len);
+  const char *name = mrb_sym_name_len(mrb, id, &len);
   if (!cv_name_p(mrb, name, len)) {
     mrb_name_error(mrb, id, "'%n' is not allowed as a class variable name", id);
   }

@@ -1092,7 +1092,7 @@ mrb_str_to_str(mrb_state *mrb, mrb_value str)
   case MRB_TT_STRING:
     return str;
   case MRB_TT_SYMBOL:
-    return mrb_sym2str(mrb, mrb_symbol(str));
+    return mrb_sym_str(mrb, mrb_symbol(str));
   case MRB_TT_FIXNUM:
     return mrb_fixnum_to_str(mrb, str, 10);
   case MRB_TT_CLASS:

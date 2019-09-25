@@ -2156,7 +2156,7 @@ RETRY_TRY_BLOCK:
         }
         pc = ci->pc;
         ci = mrb->c->ci;
-        DEBUG(fprintf(stderr, "from :%s\n", mrb_sym2name(mrb, ci->mid)));
+        DEBUG(fprintf(stderr, "from :%s\n", mrb_sym_name(mrb, ci->mid)));
         proc = mrb->c->ci->proc;
         irep = proc->body.irep;
         pool = irep->pool;

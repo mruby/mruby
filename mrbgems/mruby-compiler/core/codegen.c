@@ -108,7 +108,7 @@ codegen_error(codegen_scope *s, const char *message)
   }
 #ifndef MRB_DISABLE_STDIO
   if (s->filename_sym && s->lineno) {
-    const char *filename = mrb_sym2name_len(s->mrb, s->filename_sym, NULL);
+    const char *filename = mrb_sym_name_len(s->mrb, s->filename_sym, NULL);
     fprintf(stderr, "codegen error:%s:%d: %s\n", filename, s->lineno, message);
   }
   else {
@@ -922,7 +922,7 @@ attrsym(codegen_scope *s, mrb_sym a)
   mrb_int len;
   char *name2;
 
-  name = mrb_sym2name_len(s->mrb, a, &len);
+  name = mrb_sym_name_len(s->mrb, a, &len);
   name2 = (char *)codegen_palloc(s,
                                  (size_t)len
                                  + 1 /* '=' */
@@ -1046,7 +1046,7 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
   pop_n(n+1);
   {
     mrb_int symlen;
-    const char *symname = mrb_sym2name_len(s->mrb, sym, &symlen);
+    const char *symname = mrb_sym_name_len(s->mrb, sym, &symlen);
 
     if (!noop && symlen == 1 && symname[0] == '+' && n == 1)  {
       gen_addsub(s, OP_ADD, cursp());
@@ -1406,7 +1406,7 @@ codegen(codegen_scope *s, node *tree, int val)
   }
   if (s->irep && s->filename_index != tree->filename_index) {
     mrb_sym fname = mrb_parser_get_filename(s->parser, s->filename_index);
-    const char *filename = mrb_sym2name_len(s->mrb, fname, NULL);
+    const char *filename = mrb_sym_name_len(s->mrb, fname, NULL);
 
     mrb_debug_info_append_file(s->mrb, s->irep->debug_info,
                                filename, s->lines, s->debug_start_pos, s->pc);
@@ -1987,7 +1987,7 @@ codegen(codegen_scope *s, node *tree, int val)
     {
       mrb_sym sym = nsym(tree->cdr->car);
       mrb_int len;
-      const char *name = mrb_sym2name_len(s->mrb, sym, &len);
+      const char *name = mrb_sym_name_len(s->mrb, sym, &len);
       int idx, callargs = -1, vsp = -1;
 
       if ((len == 2 && name[0] == '|' && name[1] == '|') &&
@@ -3065,7 +3065,7 @@ scope_finish(codegen_scope *s)
   irep->reps = (mrb_irep**)codegen_realloc(s, irep->reps, sizeof(mrb_irep*)*irep->rlen);
   if (s->filename_sym) {
     mrb_sym fname = mrb_parser_get_filename(s->parser, s->filename_index);
-    const char *filename = mrb_sym2name_len(s->mrb, fname, NULL);
+    const char *filename = mrb_sym_name_len(s->mrb, fname, NULL);
 
     mrb_debug_info_append_file(s->mrb, s->irep->debug_info,
                                filename, s->lines, s->debug_start_pos, s->pc);

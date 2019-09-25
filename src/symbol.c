@@ -266,7 +266,7 @@ sym2name_len(mrb_state *mrb, mrb_sym sym, char *buf, mrb_int *lenp)
 }
 
 MRB_API const char*
-mrb_sym2name_len(mrb_state *mrb, mrb_sym sym, mrb_int *lenp)
+mrb_sym_name_len(mrb_state *mrb, mrb_sym sym, mrb_int *lenp)
 {
   return sym2name_len(mrb, sym, mrb->symbuf, lenp);
 }
@@ -336,7 +336,7 @@ mrb_init_symtbl(mrb_state *mrb)
 static mrb_value
 sym_to_s(mrb_state *mrb, mrb_value sym)
 {
-  return mrb_sym2str(mrb, mrb_symbol(sym));
+  return mrb_sym_str(mrb, mrb_symbol(sym));
 }
 
 /* 15.2.11.3.4  */
@@ -491,7 +491,7 @@ sym_inspect(mrb_state *mrb, mrb_value sym)
   mrb_sym id = mrb_symbol(sym);
   char *sp;
 
-  name = mrb_sym2name_len(mrb, id, &len);
+  name = mrb_sym_name_len(mrb, id, &len);
   str = mrb_str_new(mrb, 0, len+1);
   sp = RSTRING_PTR(str);
   sp[0] = ':';
@@ -510,10 +510,10 @@ sym_inspect(mrb_state *mrb, mrb_value sym)
 }
 
 MRB_API mrb_value
-mrb_sym2str(mrb_state *mrb, mrb_sym sym)
+mrb_sym_str(mrb_state *mrb, mrb_sym sym)
 {
   mrb_int len;
-  const char *name = mrb_sym2name_len(mrb, sym, &len);
+  const char *name = mrb_sym_name_len(mrb, sym, &len);
 
   if (!name) return mrb_undef_value(); /* can't happen */
   if (SYMBOL_INLINE_P(sym)) {
@@ -525,13 +525,13 @@ mrb_sym2str(mrb_state *mrb, mrb_sym sym)
 }
 
 MRB_API const char*
-mrb_sym2name(mrb_state *mrb, mrb_sym sym)
+mrb_sym_name(mrb_state *mrb, mrb_sym sym)
 {
   mrb_int len;
-  const char *name = mrb_sym2name_len(mrb, sym, &len);
+  const char *name = mrb_sym_name_len(mrb, sym, &len);
 
   if (!name) return NULL;
-  if (symname_p(name) && strlen(name) == (size_t)len) {
+  if (strlen(name) == (size_t)len) {
     return name;
   }
   else {
