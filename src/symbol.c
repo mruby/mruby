@@ -524,14 +524,14 @@ mrb_sym_str(mrb_state *mrb, mrb_sym sym)
   return mrb_str_new_static(mrb, name, len);
 }
 
-MRB_API const char*
-mrb_sym_name(mrb_state *mrb, mrb_sym sym)
+static const char*
+sym_name(mrb_state *mrb, mrb_sym sym, mrb_bool dump)
 {
   mrb_int len;
   const char *name = mrb_sym_name_len(mrb, sym, &len);
 
   if (!name) return NULL;
-  if (strlen(name) == (size_t)len) {
+  if (strlen(name) == (size_t)len && (!dump || symname_p(name))) {
     return name;
   }
   else {
@@ -540,6 +540,18 @@ mrb_sym_name(mrb_state *mrb, mrb_sym sym)
     str = mrb_str_dump(mrb, str);
     return RSTRING_PTR(str);
   }
+}
+
+MRB_API const char*
+mrb_sym_name(mrb_state *mrb, mrb_sym sym)
+{
+  return sym_name(mrb, sym, FALSE);
+}
+
+MRB_API const char*
+mrb_sym_dump(mrb_state *mrb, mrb_sym sym)
+{
+  return sym_name(mrb, sym, TRUE);
 }
 
 #define lesser(a,b) (((a)>(b))?(b):(a))
