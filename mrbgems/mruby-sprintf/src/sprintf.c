@@ -158,14 +158,14 @@ static void
 check_pos_arg(mrb_state *mrb, int posarg, mrb_int n)
 {
   if (posarg > 0) {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "numbered(%d) after unnumbered(%d)",
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "numbered(%i) after unnumbered(%d)",
                n, posarg);
   }
   if (posarg == -2) {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "numbered(%d) after named", n);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "numbered(%i) after named", n);
   }
   if (n < 1) {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid index - %d$", n);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid index - %i$", n);
   }
 }
 
