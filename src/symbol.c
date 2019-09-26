@@ -551,7 +551,7 @@ sym_cmp(mrb_state *mrb, mrb_value s1)
   mrb_sym sym1, sym2;
 
   mrb_get_args(mrb, "o", &s2);
-  if (mrb_type(s2) != MRB_TT_SYMBOL) return mrb_nil_value();
+  if (!mrb_symbol_p(s2)) return mrb_nil_value();
   sym1 = mrb_symbol(s1);
   sym2 = mrb_symbol(s2);
   if (sym1 == sym2) return mrb_fixnum_value(0);

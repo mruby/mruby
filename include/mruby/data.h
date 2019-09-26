@@ -66,7 +66,7 @@ MRB_API void *mrb_data_check_get_ptr(mrb_state *mrb, mrb_value, const mrb_data_t
 MRB_INLINE void
 mrb_data_init(mrb_value v, void *ptr, const mrb_data_type *type)
 {
-  mrb_assert(mrb_type(v) == MRB_TT_DATA);
+  mrb_assert(mrb_data_p(v));
   DATA_PTR(v) = ptr;
   DATA_TYPE(v) = type;
 }

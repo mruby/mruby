@@ -20,7 +20,7 @@ mrb_f_caller(mrb_state *mrb, mrb_value self)
       n = bt_len - lev;
       break;
     case 1:
-      if (mrb_type(v) == MRB_TT_RANGE) {
+      if (mrb_range_p(v)) {
         mrb_int beg, len;
         if (mrb_range_beg_len(mrb, v, &beg, &len, bt_len, TRUE) == MRB_RANGE_OK) {
           lev = beg;

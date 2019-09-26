@@ -296,7 +296,7 @@ range_eql(mrb_state *mrb, mrb_value range)
 
   if (mrb_obj_equal(mrb, range, obj)) return mrb_true_value();
   if (!mrb_obj_is_kind_of(mrb, obj, mrb->range_class)) return mrb_false_value();
-  if (mrb_type(obj) != MRB_TT_RANGE) return mrb_false_value();
+  if (!mrb_range_p(obj)) return mrb_false_value();
 
   r = mrb_range_ptr(mrb, range);
   o = mrb_range_ptr(mrb, obj);
@@ -391,7 +391,7 @@ mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp,
   mrb_int beg, end;
   struct RRange *r;
 
-  if (mrb_type(range) != MRB_TT_RANGE) return MRB_RANGE_TYPE_MISMATCH;
+  if (!mrb_range_p(range)) return MRB_RANGE_TYPE_MISMATCH;
   r = mrb_range_ptr(mrb, range);
 
   beg = mrb_int(mrb, RANGE_BEG(r));

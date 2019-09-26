@@ -384,7 +384,7 @@ mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t)
         else if (mrb_fixnum_p(x)) {
           etype = "Fixnum";
         }
-        else if (mrb_type(x) == MRB_TT_SYMBOL) {
+        else if (mrb_symbol_p(x)) {
           etype = "Symbol";
         }
         else if (mrb_immediate_p(x)) {

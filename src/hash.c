@@ -92,7 +92,7 @@ ht_hash_equal(mrb_state *mrb, htable *t, mrb_value a, mrb_value b)
     return mrb_str_equal(mrb, a, b);
 
   case MRB_TT_SYMBOL:
-    if (mrb_type(b) != MRB_TT_SYMBOL) return FALSE;
+    if (!mrb_symbol_p(b)) return FALSE;
     return mrb_symbol(a) == mrb_symbol(b);
 
   case MRB_TT_FIXNUM:

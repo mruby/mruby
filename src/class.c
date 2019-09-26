@@ -215,7 +215,7 @@ mrb_vm_define_module(mrb_state *mrb, mrb_value outer, mrb_sym id)
   if (mrb_const_defined_at(mrb, outer, id)) {
     mrb_value old = mrb_const_get(mrb, outer, id);
 
-    if (mrb_type(old) != MRB_TT_MODULE) {
+    if (!mrb_module_p(old)) {
       mrb_raisef(mrb, E_TYPE_ERROR, "%!v is not a module", old);
     }
     return mrb_class_ptr(old);
@@ -312,7 +312,7 @@ mrb_vm_define_class(mrb_state *mrb, mrb_value outer, mrb_value super, mrb_sym id
   struct RClass *c;
 
   if (!mrb_nil_p(super)) {
-    if (mrb_type(super) != MRB_TT_CLASS) {
+    if (!mrb_class_p(super)) {
       mrb_raisef(mrb, E_TYPE_ERROR, "superclass must be a Class (%!v given)", super);
     }
     s = mrb_class_ptr(super);
@@ -324,7 +324,7 @@ mrb_vm_define_class(mrb_state *mrb, mrb_value outer, mrb_value super, mrb_sym id
   if (mrb_const_defined_at(mrb, outer, id)) {
     mrb_value old = mrb_const_get(mrb, outer, id);
 
-    if (mrb_type(old) != MRB_TT_CLASS) {
+    if (!mrb_class_p(old)) {
       mrb_raisef(mrb, E_TYPE_ERROR, "%!v is not a class", old);
     }
     c = mrb_class_ptr(old);
@@ -381,7 +381,7 @@ mrb_exc_get(mrb_state *mrb, const char *name)
   mrb_value c = mrb_const_get(mrb, mrb_obj_value(mrb->object_class),
                               mrb_intern_cstr(mrb, name));
 
-  if (mrb_type(c) != MRB_TT_CLASS) {
+  if (!mrb_class_p(c)) {
     mrb_raise(mrb, mrb->eException_class, "exception corrupted");
   }
   exc = e = mrb_class_ptr(c);
@@ -791,7 +791,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         p = va_arg(ap, void**);
         if (i < argc) {
           ss = argv[arg_i];
-          if (mrb_type(ss) != MRB_TT_ISTRUCT)
+          if (!mrb_istruct_p(ss))
           {
             mrb_raisef(mrb, E_TYPE_ERROR, "%v is not inline struct", ss);
           }
@@ -1789,7 +1789,7 @@ mrb_value
 mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
 {
 
-  if (mrb_type(klass) == MRB_TT_SCLASS) {
+  if (mrb_sclass_p(klass)) {
     mrb_value v = mrb_iv_get(mrb, klass, mrb_intern_lit(mrb, "__attached__"));
     mrb_value str = mrb_str_new_lit(mrb, "#<Class:");
 
