@@ -559,7 +559,7 @@ new_lit(codegen_scope *s, mrb_value val)
       mrb_int len;
       pv = &s->irep->pool[i];
 
-      if (mrb_type(*pv) != MRB_TT_STRING) continue;
+      if (!mrb_string_p(*pv)) continue;
       if ((len = RSTRING_LEN(*pv)) != RSTRING_LEN(val)) continue;
       if (memcmp(RSTRING_PTR(*pv), RSTRING_PTR(val), len) == 0)
         return i;
@@ -570,7 +570,7 @@ new_lit(codegen_scope *s, mrb_value val)
     for (i=0; i<s->irep->plen; i++) {
       mrb_float f1, f2;
       pv = &s->irep->pool[i];
-      if (mrb_type(*pv) != MRB_TT_FLOAT) continue;
+      if (!mrb_float_p(*pv)) continue;
       f1 = mrb_float(*pv);
       f2 = mrb_float(val);
       if (f1 == f2 && !signbit(f1) == !signbit(f2)) return i;

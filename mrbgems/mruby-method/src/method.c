@@ -14,10 +14,10 @@ method_object_alloc(mrb_state *mrb, struct RClass *mclass)
 static void
 bind_check(mrb_state *mrb, mrb_value recv, mrb_value owner)
 {
-  if (mrb_type(owner) != MRB_TT_MODULE &&
+  if (!mrb_module_p(owner) &&
       mrb_class_ptr(owner) != mrb_obj_class(mrb, recv) &&
       !mrb_obj_is_kind_of(mrb, recv, mrb_class_ptr(owner))) {
-    if (mrb_type(owner) == MRB_TT_SCLASS) {
+    if (mrb_sclass_p(owner)) {
       mrb_raise(mrb, E_TYPE_ERROR, "singleton method called for a different object");
     } else {
       mrb_raisef(mrb, E_TYPE_ERROR, "bind argument must be an instance of %v", owner);

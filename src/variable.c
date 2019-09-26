@@ -486,7 +486,7 @@ inspect_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
   s = mrb_sym_name_len(mrb, sym, &len);
   mrb_str_cat(mrb, str, s, len);
   mrb_str_cat_lit(mrb, str, "=");
-  if (mrb_type(v) == MRB_TT_OBJECT) {
+  if (mrb_object_p(v)) {
     ins = mrb_any_to_s(mrb, v);
   }
   else {

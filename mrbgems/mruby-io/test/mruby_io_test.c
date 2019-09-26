@@ -154,16 +154,16 @@ mrb_io_test_io_cleanup(mrb_state *mrb, mrb_value self)
   mrb_value symlinkname = mrb_gv_get(mrb, mrb_intern_cstr(mrb, "$mrbtest_io_symlinkname"));
   mrb_value socketname = mrb_gv_get(mrb, mrb_intern_cstr(mrb, "$mrbtest_io_socketname"));
 
-  if (mrb_type(rfname) == MRB_TT_STRING) {
+  if (mrb_string_p(rfname)) {
     remove(RSTRING_PTR(rfname));
   }
-  if (mrb_type(wfname) == MRB_TT_STRING) {
+  if (mrb_string_p(wfname)) {
     remove(RSTRING_PTR(wfname));
   }
-  if (mrb_type(symlinkname) == MRB_TT_STRING) {
+  if (mrb_string_p(symlinkname)) {
     remove(RSTRING_PTR(symlinkname));
   }
-  if (mrb_type(socketname) == MRB_TT_STRING) {
+  if (mrb_string_p(socketname)) {
     remove(RSTRING_PTR(socketname));
   }
 

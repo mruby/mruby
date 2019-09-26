@@ -455,7 +455,7 @@ mrb_basicsocket_setsockopt(mrb_state *mrb, mrb_value self)
     level = mrb_fixnum(so);
     if (mrb_string_p(optval)) {
       /* that's good */
-    } else if (mrb_type(optval) == MRB_TT_TRUE || mrb_type(optval) == MRB_TT_FALSE) {
+    } else if (mrb_true_p(optval) || mrb_false_p(optval)) {
       mrb_int i = mrb_test(optval) ? 1 : 0;
       optval = mrb_str_new(mrb, (char*)&i, sizeof(i));
     } else if (mrb_fixnum_p(optval)) {

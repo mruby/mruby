@@ -1688,7 +1688,7 @@ mrb_str_eql(mrb_state *mrb, mrb_value self)
   mrb_bool eql_p;
 
   mrb_get_args(mrb, "o", &str2);
-  eql_p = (mrb_type(str2) == MRB_TT_STRING) && str_eql(mrb, self, str2);
+  eql_p = (mrb_string_p(str2)) && str_eql(mrb, self, str2);
 
   return mrb_bool_value(eql_p);
 }
@@ -2977,7 +2977,7 @@ mrb_str_byteslice(mrb_state *mrb, mrb_value str)
     beg = mrb_fixnum(mrb_to_int(mrb, a1));
     len = mrb_fixnum(mrb_to_int(mrb, a2));
   }
-  else if (mrb_type(a1) == MRB_TT_RANGE) {
+  else if (mrb_range_p(a1)) {
     if (mrb_range_beg_len(mrb, a1, &beg, &len, str_len, TRUE) != MRB_RANGE_OK) {
       return mrb_nil_value();
     }

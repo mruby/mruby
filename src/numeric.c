@@ -1562,7 +1562,7 @@ mrb_cmp(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
   case MRB_TT_FLOAT:
     return cmpnum(mrb, obj1, obj2);
   case MRB_TT_STRING:
-    if (mrb_type(obj2) != MRB_TT_STRING)
+    if (!mrb_string_p(obj2))
       return -2;
     return mrb_str_cmp(mrb, obj1, obj2);
   default:

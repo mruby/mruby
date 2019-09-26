@@ -65,7 +65,7 @@ mrb_ary_rassoc(mrb_state *mrb, mrb_value ary)
 
   for (i = 0; i < RARRAY_LEN(ary); ++i) {
     v = RARRAY_PTR(ary)[i];
-    if (mrb_type(v) == MRB_TT_ARRAY &&
+    if (mrb_array_p(v) &&
         RARRAY_LEN(v) > 1 &&
         mrb_equal(mrb, RARRAY_PTR(v)[1], value))
       return v;

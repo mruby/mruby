@@ -11,7 +11,7 @@ mrb_mod_name(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_mod_singleton_class_p(mrb_state *mrb, mrb_value self)
 {
-  return mrb_bool_value(mrb_type(self) == MRB_TT_SCLASS);
+  return mrb_bool_value(mrb_sclass_p(self));
 }
 
 /*

@@ -206,7 +206,7 @@ mrb_proc_init_copy(mrb_state *mrb, mrb_value self)
   mrb_value proc;
 
   mrb_get_args(mrb, "o", &proc);
-  if (mrb_type(proc) != MRB_TT_PROC) {
+  if (!mrb_proc_p(proc)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "not a proc");
   }
   mrb_proc_copy(mrb_proc_ptr(self), mrb_proc_ptr(proc));
@@ -239,7 +239,7 @@ proc_lambda(mrb_state *mrb, mrb_value self)
   if (mrb_nil_p(blk)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "tried to create Proc object without a block");
   }
-  if (mrb_type(blk) != MRB_TT_PROC) {
+  if (!mrb_proc_p(blk)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "not a proc");
   }
   p = mrb_proc_ptr(blk);

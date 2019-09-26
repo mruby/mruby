@@ -816,7 +816,7 @@ mrb_yield_cont(mrb_state *mrb, mrb_value b, mrb_value self, mrb_int argc, const 
   if (mrb_nil_p(b)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
   }
-  if (mrb_type(b) != MRB_TT_PROC) {
+  if (!mrb_proc_p(b)) {
     mrb_raise(mrb, E_TYPE_ERROR, "not a block");
   }
 
@@ -1387,7 +1387,7 @@ RETRY_TRY_BLOCK:
 
       recv = regs[a];
       blk = regs[bidx];
-      if (!mrb_nil_p(blk) && mrb_type(blk) != MRB_TT_PROC) {
+      if (!mrb_nil_p(blk) && !mrb_proc_p(blk)) {
         blk = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
         /* The stack might have been reallocated during mrb_convert_type(),
            see #3622 */
@@ -1447,7 +1447,7 @@ RETRY_TRY_BLOCK:
         mrb_gc_arena_shrink(mrb, ai);
         if (mrb->exc) goto L_RAISE;
         ci = mrb->c->ci;
-        if (mrb_type(blk) == MRB_TT_PROC) {
+        if (mrb_proc_p(blk)) {
           struct RProc *p = mrb_proc_ptr(blk);
           if (p && !MRB_PROC_STRICT_P(p) && MRB_PROC_ENV(p) == ci[-1].env) {
             p->flags |= MRB_PROC_ORPHAN;
@@ -1588,7 +1588,7 @@ RETRY_TRY_BLOCK:
         goto L_RAISE;
       }
       blk = regs[bidx];
-      if (!mrb_nil_p(blk) && mrb_type(blk) != MRB_TT_PROC) {
+      if (!mrb_nil_p(blk) && !mrb_proc_p(blk)) {
         blk = mrb_convert_type(mrb, blk, MRB_TT_PROC, "Proc", "to_proc");
         /* The stack or ci stack might have been reallocated during
            mrb_convert_type(), see #3622 and #3784 */
@@ -1939,7 +1939,7 @@ RETRY_TRY_BLOCK:
         else {
           blk = regs[ci->argc+1];
         }
-        if (mrb_type(blk) == MRB_TT_PROC) {
+        if (mrb_proc_p(blk)) {
           struct RProc *p = mrb_proc_ptr(blk);
 
           if (!MRB_PROC_STRICT_P(p) &&

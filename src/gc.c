@@ -479,7 +479,7 @@ mrb_gc_register(mrb_state *mrb, mrb_value obj)
   if (mrb_immediate_p(obj)) return;
   root = mrb_intern_lit(mrb, GC_ROOT_NAME);
   table = mrb_gv_get(mrb, root);
-  if (mrb_nil_p(table) || mrb_type(table) != MRB_TT_ARRAY) {
+  if (mrb_nil_p(table) || !mrb_array_p(table)) {
     table = mrb_ary_new(mrb);
     mrb_gv_set(mrb, root, table);
   }
@@ -499,7 +499,7 @@ mrb_gc_unregister(mrb_state *mrb, mrb_value obj)
   root = mrb_intern_lit(mrb, GC_ROOT_NAME);
   table = mrb_gv_get(mrb, root);
   if (mrb_nil_p(table)) return;
-  if (mrb_type(table) != MRB_TT_ARRAY) {
+  if (!mrb_array_p(table)) {
     mrb_gv_set(mrb, root, mrb_nil_value());
     return;
   }

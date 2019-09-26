@@ -169,6 +169,11 @@ typedef void mrb_value;
 #include "boxing_no.h"
 #endif
 
+#if !defined(MRB_SYMBOL_BITSIZE)
+#define MRB_SYMBOL_BITSIZE (sizeof(mrb_sym) * CHAR_BIT)
+#define MRB_SYMBOL_MAX      UINT32_MAX
+#endif
+
 #ifndef mrb_immediate_p
 #define mrb_immediate_p(o) (mrb_type(o) < MRB_TT_FREE)
 #endif
@@ -190,13 +195,6 @@ typedef void mrb_value;
 #ifndef mrb_true_p
 #define mrb_true_p(o)  (mrb_type(o) == MRB_TT_TRUE)
 #endif
-#ifndef mrb_bool
-#define mrb_bool(o)   (mrb_type(o) != MRB_TT_FALSE)
-#endif
-#if !defined(MRB_SYMBOL_BITSIZE)
-#define MRB_SYMBOL_BITSIZE (sizeof(mrb_sym) * CHAR_BIT)
-#define MRB_SYMBOL_MAX      UINT32_MAX
-#endif
 #ifndef MRB_WITHOUT_FLOAT
 #ifndef mrb_float_p
 #define mrb_float_p(o) (mrb_type(o) == MRB_TT_FLOAT)
@@ -216,6 +214,51 @@ typedef void mrb_value;
 #endif
 #ifndef mrb_exception_p
 #define mrb_exception_p(o) (mrb_type(o) == MRB_TT_EXCEPTION)
+#endif
+#ifndef mrb_free_p
+#define mrb_free_p(o) (mrb_type(o) == MRB_TT_FREE)
+#endif
+#ifndef mrb_object_p
+#define mrb_object_p(o) (mrb_type(o) == MRB_TT_OBJECT)
+#endif
+#ifndef mrb_class_p
+#define mrb_class_p(o) (mrb_type(o) == MRB_TT_CLASS)
+#endif
+#ifndef mrb_module_p
+#define mrb_module_p(o) (mrb_type(o) == MRB_TT_MODULE)
+#endif
+#ifndef mrb_iclass_p
+#define mrb_iclass_p(o) (mrb_type(o) == MRB_TT_ICLASS)
+#endif
+#ifndef mrb_sclass_p
+#define mrb_sclass_p(o) (mrb_type(o) == MRB_TT_SCLASS)
+#endif
+#ifndef mrb_proc_p
+#define mrb_proc_p(o) (mrb_type(o) == MRB_TT_PROC)
+#endif
+#ifndef mrb_range_p
+#define mrb_range_p(o) (mrb_type(o) == MRB_TT_RANGE)
+#endif
+#ifndef mrb_file_p
+#define mrb_file_p(o) (mrb_type(o) == MRB_TT_FILE)
+#endif
+#ifndef mrb_env_p
+#define mrb_env_p(o) (mrb_type(o) == MRB_TT_ENV)
+#endif
+#ifndef mrb_data_p
+#define mrb_data_p(o) (mrb_type(o) == MRB_TT_DATA)
+#endif
+#ifndef mrb_fiber_p
+#define mrb_fiber_p(o) (mrb_type(o) == MRB_TT_FIBER)
+#endif
+#ifndef mrb_istruct_p
+#define mrb_istruct_p(o) (mrb_type(o) == MRB_TT_ISTRUCT)
+#endif
+#ifndef mrb_break_p
+#define mrb_break_p(o) (mrb_type(o) == MRB_TT_BREAK)
+#endif
+#ifndef mrb_bool
+#define mrb_bool(o)   (mrb_type(o) != MRB_TT_FALSE)
 #endif
 #define mrb_test(o)   mrb_bool(o)
 
