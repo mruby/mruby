@@ -1977,21 +1977,17 @@ mrb_str_reverse(mrb_state *mrb, mrb_value str)
 /* 15.2.10.5.31 */
 /*
  *  call-seq:
- *     str.rindex(substring [, fixnum])   => fixnum or nil
- *     str.rindex(fixnum [, fixnum])   => fixnum or nil
- *     str.rindex(regexp [, fixnum])   => fixnum or nil
+ *     str.rindex(substring [, offset])   => fixnum or nil
  *
- *  Returns the index of the last occurrence of the given <i>substring</i>,
- *  character (<i>fixnum</i>), or pattern (<i>regexp</i>) in <i>str</i>. Returns
- *  <code>nil</code> if not found. If the second parameter is present, it
- *  specifies the position in the string to end the search---characters beyond
- *  this point will not be considered.
+ *  Returns the index of the last occurrence of the given <i>substring</i>.
+ *  Returns <code>nil</code> if not found. If the second parameter is
+ *  present, it specifies the position in the string to end the
+ *  search---characters beyond this point will not be considered.
  *
  *     "hello".rindex('e')             #=> 1
  *     "hello".rindex('l')             #=> 3
  *     "hello".rindex('a')             #=> nil
- *     "hello".rindex(101)             #=> 1
- *     "hello".rindex(/[aeiou]/, -2)   #=> 1
+ *     "hello".rindex('l', 2)          #=> 2
  */
 static mrb_value
 mrb_str_rindex(mrb_state *mrb, mrb_value str)
@@ -1999,46 +1995,25 @@ mrb_str_rindex(mrb_state *mrb, mrb_value str)
   mrb_value sub;
   mrb_int pos, len = RSTRING_CHAR_LEN(str);
 
-  switch (mrb_get_args(mrb, "|oi", &sub, &pos)) {
-    case 0:
-      sub = mrb_nil_value();
-      /* fall through */
-    case 1:
-      pos = len;
-      break;
-    case 2:
+  if (mrb_get_args(mrb, "S|i", &sub, &pos) == 1) {
+    pos = len;
+  }
+  else {
+    if (pos < 0) {
+      pos += len;
       if (pos < 0) {
-        pos += len;
-        if (pos < 0) {
-          return mrb_nil_value();
-        }
+        return mrb_nil_value();
       }
-      if (pos > len) pos = len;
-      break;
+    }
+    if (pos > len) pos = len;
   }
   pos = chars2bytes(str, 0, pos);
-
-  switch (mrb_type(sub)) {
-    default: {
-      mrb_value tmp;
-
-      tmp = mrb_check_string_type(mrb, sub);
-      if (mrb_nil_p(tmp)) {
-        mrb_raisef(mrb, E_TYPE_ERROR, "type mismatch: %v given", sub);
-      }
-      sub = tmp;
-    }
-     /* fall through */
-    case MRB_TT_STRING:
-      pos = str_rindex(mrb, str, sub, pos);
-      if (pos >= 0) {
-        pos = bytes2chars(RSTRING_PTR(str), RSTRING_LEN(str), pos);
-        BYTES_ALIGN_CHECK(pos);
-        return mrb_fixnum_value(pos);
-      }
-      break;
-
-  } /* end of switch (TYPE(sub)) */
+  pos = str_rindex(mrb, str, sub, pos);
+  if (pos >= 0) {
+    pos = bytes2chars(RSTRING_PTR(str), RSTRING_LEN(str), pos);
+    BYTES_ALIGN_CHECK(pos);
+    return mrb_fixnum_value(pos);
+  }
   return mrb_nil_value();
 }
 

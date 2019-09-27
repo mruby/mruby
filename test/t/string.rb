@@ -554,9 +554,16 @@ end if UTF8STRING
 
 assert('String#rindex', '15.2.10.5.31') do
   assert_equal 0, 'abc'.rindex('a')
+  assert_equal 0, 'abc'.rindex('a', 3)
+  assert_nil 'abc'.rindex('a', -4)
   assert_nil 'abc'.rindex('d')
+  assert_equal 6, 'abcabc'.rindex('')
+  assert_equal 3, 'abcabc'.rindex('a')
   assert_equal 0, 'abcabc'.rindex('a', 1)
   assert_equal 3, 'abcabc'.rindex('a', 4)
+  assert_equal 0, 'abcabc'.rindex('a', -4)
+  assert_raise(ArgumentError) { "hello".rindex }
+  assert_raise(TypeError) { "hello".rindex(101) }
 end
 
 assert('String#rindex(UTF-8)', '15.2.10.5.31') do
@@ -564,6 +571,7 @@ assert('String#rindex(UTF-8)', '15.2.10.5.31') do
   assert_nil str.rindex('さ')
   assert_equal 12, str.rindex('ち')
   assert_equal 3, str.rindex('ち', 10)
+  assert_equal 3, str.rindex('ち', -6)
 
   broken = "\xf0☀\xf1☁\xf2☂\xf3☃\xf0☀\xf1☁\xf2☂\xf3☃"
   assert_nil broken.rindex("\x81") # "\x81" is a part of "☁" ("\xe2\x98\x81")
