@@ -2385,10 +2385,6 @@ codegen(codegen_scope *s, node *tree, int val)
     }
     break;
 
-  case NODE_DEFINED:
-    codegen(s, tree, val);
-    break;
-
   case NODE_BACK_REF:
     if (val) {
       char buf[] = {'$', nchar(tree)};
