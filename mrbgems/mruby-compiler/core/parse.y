@@ -21,6 +21,7 @@
 #include <mruby/proc.h>
 #include <mruby/error.h>
 #include <mruby/throw.h>
+#include <mruby/string.h>
 #include "node.h"
 
 #define YYLEX_PARAM p
@@ -6420,6 +6421,28 @@ dump_args(mrb_state *mrb, node *n, int offset)
   }
 }
 
+/*
+ * This function restores the GC arena on return.
+ * For this reason, if a process that further generates an object is
+ * performed at the caller, the string pointer returned as the return
+ * value may become invalid.
+ */
+static const char*
+str_dump(mrb_state *mrb, const char *str, int len)
+{
+  mrb_int ai = mrb_gc_arena_save(mrb);
+  mrb_value s;
+# if INT_MAX > MRB_INT_MAX / 4
+  /* check maximum length with "\xNN" charactor */
+  if (len > MRB_INT_MAX / 4) {
+    len = MRB_INT_MAX / 4;
+  }
+# endif
+  s = mrb_str_new(mrb, str, (mrb_int)len);
+  s = mrb_str_dump(mrb, s);
+  mrb_gc_arena_restore(mrb, ai);
+  return RSTRING_PTR(s);
+}
 #endif
 
 void
@@ -6894,7 +6917,7 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     break;
 
   case NODE_STR:
-    printf("NODE_STR \"%s\" len %d\n", (char*)tree->car, intn(tree->cdr));
+    printf("NODE_STR %s len %d\n", str_dump(mrb, (char*)tree->car, intn(tree->cdr)), intn(tree->cdr));
     break;
 
   case NODE_DSTR:
@@ -6903,7 +6926,7 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     break;
 
   case NODE_XSTR:
-    printf("NODE_XSTR \"%s\" len %d\n", (char*)tree->car, intn(tree->cdr));
+    printf("NODE_XSTR %s len %d\n", str_dump(mrb, (char*)tree->car, intn(tree->cdr)), intn(tree->cdr));
     break;
 
   case NODE_DXSTR:
