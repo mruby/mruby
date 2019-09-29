@@ -95,7 +95,7 @@ MRB_API mrb_value mrb_hash_fetch(mrb_state *mrb, mrb_value hash, mrb_value key, 
  * @param mrb The mruby state reference.
  * @param hash The target hash.
  * @param key The key to delete.
- * @return The deleted value.
+ * @return The deleted value. This value is not protected from GC. Use `mrb_gc_protect()` if necessary.
  */
 MRB_API mrb_value mrb_hash_delete_key(mrb_state *mrb, mrb_value hash, mrb_value key);
 
