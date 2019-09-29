@@ -1051,7 +1051,6 @@ retry:
         fmt_setup(fbuf, sizeof(fbuf), *p, flags, width, prec);
         need = 0;
         if (*p != 'e' && *p != 'E') {
-          i = INT_MIN;
           frexp(fval, &frexp_result);
           i = (mrb_int)frexp_result;
           if (i > 0)
