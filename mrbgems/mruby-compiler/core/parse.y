@@ -6889,7 +6889,7 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     break;
 
   case NODE_NEGATE:
-    printf("NODE_NEGATE\n");
+    printf("NODE_NEGATE:\n");
     mrb_parser_dump(mrb, tree, offset+1);
     break;
 
@@ -6898,7 +6898,7 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     break;
 
   case NODE_DSTR:
-    printf("NODE_DSTR\n");
+    printf("NODE_DSTR:\n");
     dump_recur(mrb, tree, offset+1);
     break;
 
@@ -6907,7 +6907,7 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     break;
 
   case NODE_DXSTR:
-    printf("NODE_DXSTR\n");
+    printf("NODE_DXSTR:\n");
     dump_recur(mrb, tree, offset+1);
     break;
 
@@ -6916,7 +6916,7 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     break;
 
   case NODE_DREGX:
-    printf("NODE_DREGX\n");
+    printf("NODE_DREGX:\n");
     dump_recur(mrb, tree->car, offset+1);
     dump_prefix(tree, offset);
     printf("tail: %s\n", (char*)tree->cdr->cdr->car);
@@ -7100,7 +7100,7 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     break;
 
   case NODE_KW_ARG:
-    printf("NODE_KW_ARG %s\n", mrb_sym_name(mrb, sym(tree->car)));
+    printf("NODE_KW_ARG %s:\n", mrb_sym_name(mrb, sym(tree->car)));
     mrb_parser_dump(mrb, tree->cdr->car, offset + 1);
     break;
 
