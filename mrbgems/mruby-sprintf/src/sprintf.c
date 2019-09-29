@@ -1004,10 +1004,8 @@ retry:
       case 'A': {
         mrb_value val = GETARG();
         double fval;
-        mrb_int i;
         mrb_int need = 6;
         char fbuf[32];
-        int frexp_result;
 
         fval = mrb_float(mrb_Float(mrb, val));
         if (!isfinite(fval)) {
@@ -1051,8 +1049,8 @@ retry:
         fmt_setup(fbuf, sizeof(fbuf), *p, flags, width, prec);
         need = 0;
         if (*p != 'e' && *p != 'E') {
-          frexp(fval, &frexp_result);
-          i = (mrb_int)frexp_result;
+          int i;
+          frexp(fval, &i);
           if (i > 0)
             need = BIT_DIGITS(i);
         }
