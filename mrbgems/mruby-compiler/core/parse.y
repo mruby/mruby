@@ -6935,6 +6935,11 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
            intn(tree));
     break;
 
+  case NODE_DSYM:
+    printf("NODE_DSYM:\n");
+    mrb_parser_dump(mrb, tree, offset+1);
+    break;
+
   case NODE_SELF:
     printf("NODE_SELF\n");
     break;
