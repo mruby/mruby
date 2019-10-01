@@ -6950,6 +6950,10 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     dump_recur(mrb, tree, offset+1);
     break;
 
+  case NODE_LITERAL_DELIM:
+    printf("NODE_LITERAL_DELIM\n");
+    break;
+
   case NODE_SELF:
     printf("NODE_SELF\n");
     break;
