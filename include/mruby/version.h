@@ -106,9 +106,9 @@ MRB_BEGIN_DECL
 /*
  * mruby's version, and release date.
  */
-#define MRUBY_DESCRIPTION      \
-  "mruby " MRUBY_VERSION       \
-  " (" MRUBY_RELEASE_DATE ") " \
+#define MRUBY_DESCRIPTION     \
+  "mruby " MRUBY_VERSION      \
+  " (" MRUBY_RELEASE_DATE ")" \
 
 /*
  * mruby's copyright information.
