@@ -6940,6 +6940,11 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     mrb_parser_dump(mrb, tree, offset+1);
     break;
 
+  case NODE_WORDS:
+    printf("NODE_WORDS:\n");
+    dump_recur(mrb, tree, offset+1);
+    break;
+
   case NODE_SELF:
     printf("NODE_SELF\n");
     break;
