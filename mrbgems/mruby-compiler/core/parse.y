@@ -202,12 +202,11 @@ append_gen(parser_state *p, node *a, node *b)
   node *c = a;
 
   if (!a) return b;
+  if (!b) return a;
   while (c->cdr) {
     c = c->cdr;
   }
-  if (b) {
-    c->cdr = b;
-  }
+  c->cdr = b;
   return a;
 }
 #define append(a,b) append_gen(p,(a),(b))
