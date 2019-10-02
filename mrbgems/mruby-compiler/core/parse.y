@@ -763,6 +763,16 @@ new_args(parser_state *p, node *m, node *opt, mrb_sym rest, node *m2, node *tail
   n = cons(m2, tail);
   n = cons(nsym(rest), n);
   n = cons(opt, n);
+  while (opt) {
+    /* opt: (sym . (opt . lv)) -> (sym . opt) */
+    node *lv = opt->car->cdr->cdr;
+    while (lv) {
+      local_add_f(p, sym(lv->car));
+      lv = lv->cdr;
+    }
+    opt->car->cdr = opt->car->cdr->car;
+    opt = opt->cdr;
+  }
   return cons(m, n);
 }
 
@@ -3502,6 +3512,7 @@ f_arg           : f_arg_item
 f_opt_asgn      : tIDENTIFIER '='
                     {
                       local_add_f(p, $1);
+                      local_nest(p);
                       $$ = $1;
                     }
                 ;
@@ -3509,14 +3520,16 @@ f_opt_asgn      : tIDENTIFIER '='
 f_opt           : f_opt_asgn arg
                     {
                       void_expr_error(p, $2);
-                      $$ = cons(nsym($1), $2);
+                      $$ = cons(nsym($1), cons($2, locals_node(p)));
+                      local_unnest(p);
                     }
                 ;
 
 f_block_opt     : f_opt_asgn primary_value
                     {
                       void_expr_error(p, $2);
-                      $$ = cons(nsym($1), $2);
+                      $$ = cons(nsym($1), cons($2, locals_node(p)));
+                      local_unnest(p);
                     }
                 ;
 
