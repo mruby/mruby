@@ -124,14 +124,18 @@ symhash(const char *key, size_t len)
 }
 
 static mrb_sym
-find_symbol(mrb_state *mrb, const char *name, uint16_t len, uint8_t hash)
+find_symbol(mrb_state *mrb, const char *name, uint16_t len, uint8_t *hashp)
 {
   mrb_sym i;
   symbol_name *sname;
+  uint8_t hash;
 
   /* inline symbol */
   i = sym_inline_pack(name, len);
   if (i > 0) return i;
+
+  hash = symhash(name, len);
+  if (hashp) *hashp = hash;
 
   i = mrb->symhash[hash];
   if (i == 0) return 0;
@@ -164,8 +168,7 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
   uint8_t hash;
 
   sym_validate_len(mrb, len);
-  hash = symhash(name, len);
-  sym = find_symbol(mrb, name, len, hash);
+  sym = find_symbol(mrb, name, len, &hash);
   if (sym > 0) return sym;
 
   /* registering a new symbol */
@@ -233,7 +236,7 @@ mrb_check_intern(mrb_state *mrb, const char *name, size_t len)
   mrb_sym sym;
 
   sym_validate_len(mrb, len);
-  sym = find_symbol(mrb, name, len, symhash(name, len));
+  sym = find_symbol(mrb, name, len, NULL);
   if (sym > 0) return mrb_symbol_value(sym);
   return mrb_nil_value();
 }
