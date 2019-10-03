@@ -797,6 +797,12 @@ new_args_tail(parser_state *p, node *kws, node *kwrest, mrb_sym blk)
   }
   for (k = kws; k; k = k->cdr) {
     if (k->car->cdr->cdr->car) { // allocate keywords with default
+      node *lv = k->car->cdr->cdr->car->cdr;
+      while (lv) {
+        local_add_f(p, sym(lv->car));
+        lv = lv->cdr;
+      }
+      k->car->cdr->cdr->car = k->car->cdr->cdr->car->car;
       local_add_f(p, sym(k->car->cdr->car));
     }
   }
@@ -3302,16 +3308,21 @@ f_arglist       : '(' f_args rparen
                 ;
 
 f_label         : tIDENTIFIER tLABEL_TAG
+                    {
+                      local_nest(p);
+                    }
                 ;
 
 f_kw            : f_label arg
                     {
                       void_expr_error(p, $2);
-                      $$ = new_kw_arg(p, $1, $2);
+                      $$ = new_kw_arg(p, $1, cons($2, locals_node(p)));
+                      local_unnest(p);
                     }
                 | f_label
                     {
                       $$ = new_kw_arg(p, $1, 0);
+                      local_unnest(p);
                     }
                 ;
 
