@@ -47,7 +47,7 @@ OPCODE(SETUPVAR,   BBB)      /* uvset(b,c,R(a)) */
 OPCODE(JMP,        S)        /* pc=a */
 OPCODE(JMPIF,      BS)       /* if R(a) pc=b */
 OPCODE(JMPNOT,     BS)       /* if !R(a) pc=b */
-OPCODE(JMPNIL,     BS)       /* if R(b)==nil pc=a */
+OPCODE(JMPNIL,     BS)       /* if R(a)==nil pc=b */
 OPCODE(ONERR,      S)        /* rescue_push(a) */
 OPCODE(EXCEPT,     B)        /* R(a) = exc */
 OPCODE(RESCUE,     BB)       /* R(b) = R(a).isa?(R(b)) */
