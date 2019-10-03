@@ -45,8 +45,8 @@ OPCODE(SETMCNST,   BB)       /* R(a+1)::Syms(b) = R(a) */
 OPCODE(GETUPVAR,   BBB)      /* R(a) = uvget(b,c) */
 OPCODE(SETUPVAR,   BBB)      /* uvset(b,c,R(a)) */
 OPCODE(JMP,        S)        /* pc=a */
-OPCODE(JMPIF,      BS)       /* if R(b) pc=a */
-OPCODE(JMPNOT,     BS)       /* if !R(b) pc=a */
+OPCODE(JMPIF,      BS)       /* if R(a) pc=b */
+OPCODE(JMPNOT,     BS)       /* if !R(a) pc=b */
 OPCODE(JMPNIL,     BS)       /* if R(b)==nil pc=a */
 OPCODE(ONERR,      S)        /* rescue_push(a) */
 OPCODE(EXCEPT,     B)        /* R(a) = exc */
@@ -58,7 +58,7 @@ OPCODE(EPOP,       B)        /* A.times{ensure_pop().call} */
 OPCODE(SENDV,      BB)       /* R(a) = call(R(a),Syms(b),*R(a+1)) */
 OPCODE(SENDVB,     BB)       /* R(a) = call(R(a),Syms(b),*R(a+1),&R(a+2)) */
 OPCODE(SEND,       BBB)      /* R(a) = call(R(a),Syms(b),R(a+1),...,R(a+c)) */
-OPCODE(SENDB,      BBB)      /* R(a) = call(R(a),Syms(Bx),R(a+1),...,R(a+c),&R(a+c+1)) */
+OPCODE(SENDB,      BBB)      /* R(a) = call(R(a),Syms(b),R(a+1),...,R(a+c),&R(a+c+1)) */
 OPCODE(CALL,       Z)        /* R(0) = self.call(frame.argc, frame.argv) */
 OPCODE(SUPER,      BB)       /* R(a) = super(R(a+1),... ,R(a+b+1)) */
 OPCODE(ARGARY,     BS)       /* R(a) = argument array (16=m5:r1:m5:d1:lv4) */
@@ -71,9 +71,9 @@ OPCODE(RETURN_BLK, B)        /* return R(a) (in-block return) */
 OPCODE(BREAK,      B)        /* break R(a) */
 OPCODE(BLKPUSH,    BS)       /* R(a) = block (16=m5:r1:m5:d1:lv4) */
 OPCODE(ADD,        B)        /* R(a) = R(a)+R(a+1) */
-OPCODE(ADDI,       BB)       /* R(a) = R(a)+mrb_int(c)  */
+OPCODE(ADDI,       BB)       /* R(a) = R(a)+mrb_int(b) */
 OPCODE(SUB,        B)        /* R(a) = R(a)-R(a+1) */
-OPCODE(SUBI,       BB)       /* R(a) = R(a)-C */
+OPCODE(SUBI,       BB)       /* R(a) = R(a)-mrb_int(b) */
 OPCODE(MUL,        B)        /* R(a) = R(a)*R(a+1) */
 OPCODE(DIV,        B)        /* R(a) = R(a)/R(a+1) */
 OPCODE(EQ,         B)        /* R(a) = R(a)==R(a+1) */
