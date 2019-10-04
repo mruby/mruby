@@ -517,14 +517,18 @@ mrb_sym_str(mrb_state *mrb, mrb_sym sym)
 {
   mrb_int len;
   const char *name = mrb_sym_name_len(mrb, sym, &len);
+  mrb_value str;
 
   if (!name) return mrb_undef_value(); /* can't happen */
   if (SYMBOL_INLINE_P(sym)) {
-    mrb_value str = mrb_str_new(mrb, name, len);
+    str = mrb_str_new(mrb, name, len);
     RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
-    return str;
   }
-  return mrb_str_new_static(mrb, name, len);
+  else {
+    str = mrb_str_new_static(mrb, name, len);
+  }
+  MRB_SET_FROZEN_FLAG(mrb_str_ptr(str));
+  return str;
 }
 
 static const char*

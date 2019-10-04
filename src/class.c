@@ -72,6 +72,7 @@ mrb_class_name_class(mrb_state *mrb, struct RClass *outer, struct RClass *c, mrb
       }
       return;
     }
+    name = mrb_str_dup(mrb, name);
     mrb_str_cat_cstr(mrb, name, "::");
     mrb_str_cat_cstr(mrb, name, mrb_sym_name(mrb, id));
   }
