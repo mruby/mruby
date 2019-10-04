@@ -235,6 +235,13 @@ mrb_str_new_static(mrb_state *mrb, const char *p, size_t len)
   return mrb_obj_value(s);
 }
 
+MRB_API mrb_value
+mrb_str_freeze(mrb_state *mrb, const char *p, size_t len)
+{
+  struct RString *s = str_new_static(mrb, p, len);
+  return mrb_obj_value(s);
+}
+
 static void
 str_decref(mrb_state *mrb, mrb_shared_string *shared)
 {

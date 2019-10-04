@@ -431,7 +431,7 @@ mrb_obj_extend_m(mrb_state *mrb, mrb_value self)
   return mrb_obj_extend(mrb, argc, argv, self);
 }
 
-static mrb_value
+MRB_API mrb_value
 mrb_obj_freeze(mrb_state *mrb, mrb_value self)
 {
   if (!mrb_immediate_p(self)) {

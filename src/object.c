@@ -83,13 +83,13 @@ mrb_true(mrb_state *mrb, mrb_value obj)
 static mrb_value
 nil_to_s(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_str_new(mrb, 0, 0);
+  return mrb_str_new_frozen(mrb, 0, 0);
 }
 
 static mrb_value
 nil_inspect(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_str_new_lit(mrb, "nil");
+  return mrb_str_new_lit_frozen(mrb, "nil");
 }
 
 /***********************************************************************
@@ -150,7 +150,7 @@ true_xor(mrb_state *mrb, mrb_value obj)
 static mrb_value
 true_to_s(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_str_new_lit(mrb, "true");
+  return mrb_str_new_lit_frozen(mrb, "true");
 }
 
 /* 15.2.5.3.4  */
@@ -257,7 +257,7 @@ false_or(mrb_state *mrb, mrb_value obj)
 static mrb_value
 false_to_s(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_str_new_lit(mrb, "false");
+  return mrb_str_new_lit_frozen(mrb, "false");
 }
 
 void
