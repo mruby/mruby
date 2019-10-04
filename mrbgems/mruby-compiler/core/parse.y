@@ -747,6 +747,15 @@ local_add_margs(parser_state *p, node *n)
   }
 }
 
+static void
+local_add_lv(parser_state *p, node *lv)
+{
+  while (lv) {
+    local_add_f(p, sym(lv->car));
+    lv = lv->cdr;
+  }
+}
+
 /* (m o r m2 tail) */
 /* m: (a b c) */
 /* o: ((a . e1) (b . e2)) */
@@ -765,11 +774,7 @@ new_args(parser_state *p, node *m, node *opt, mrb_sym rest, node *m2, node *tail
   n = cons(opt, n);
   while (opt) {
     /* opt: (sym . (opt . lv)) -> (sym . opt) */
-    node *lv = opt->car->cdr->cdr;
-    while (lv) {
-      local_add_f(p, sym(lv->car));
-      lv = lv->cdr;
-    }
+    local_add_lv(p, opt->car->cdr->cdr);
     opt->car->cdr = opt->car->cdr->car;
     opt = opt->cdr;
   }
@@ -797,11 +802,7 @@ new_args_tail(parser_state *p, node *kws, node *kwrest, mrb_sym blk)
   }
   for (k = kws; k; k = k->cdr) {
     if (k->car->cdr->cdr->car) { // allocate keywords with default
-      node *lv = k->car->cdr->cdr->car->cdr;
-      while (lv) {
-        local_add_f(p, sym(lv->car));
-        lv = lv->cdr;
-      }
+      local_add_lv(p, k->car->cdr->cdr->car->cdr);
       k->car->cdr->cdr->car = k->car->cdr->cdr->car->car;
       local_add_f(p, sym(k->car->cdr->car));
     }
