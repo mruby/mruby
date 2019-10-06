@@ -7,6 +7,7 @@
 #include <stdarg.h>
 #include <mruby.h>
 #include <mruby/array.h>
+#include <mruby/hash.h>
 #include <mruby/class.h>
 #include <mruby/numeric.h>
 #include <mruby/proc.h>
@@ -549,6 +550,8 @@ mrb_get_argv(mrb_state *mrb)
   return array_argv;
 }
 
+void mrb_hash_check_kdict(mrb_state *mrb, mrb_value self);
+
 /*
   retrieve arguments from mrb_state.
 
@@ -578,6 +581,7 @@ mrb_get_argv(mrb_state *mrb)
     *:      rest argument  [mrb_value*,mrb_int]   The rest of the arguments as an array; *! avoid copy of the stack
     |:      optional                              Following arguments are optional
     ?:      optional given [mrb_bool]             true if preceding argument (optional) is given
+    ':':    keyword args   [mrb_kwargs const]     Get keyword arguments
  */
 MRB_API mrb_int
 mrb_get_args(mrb_state *mrb, const char *format, ...)
@@ -592,6 +596,9 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
   mrb_bool opt = FALSE;
   mrb_bool opt_skip = TRUE;
   mrb_bool given = TRUE;
+  mrb_value kdict;
+  mrb_bool reqkarg = FALSE;
+  mrb_int needargc = 0;
 
   va_start(ap, format);
 
@@ -605,18 +612,31 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       break;
     case '*':
       opt_skip = FALSE;
+      if (!reqkarg) reqkarg = strchr(fmt, ':') ? TRUE : FALSE;
       goto check_exit;
     case '!':
       break;
     case '&': case '?':
       if (opt) opt_skip = FALSE;
       break;
+    case ':':
+      reqkarg = TRUE;
+      break;
     default:
+      if (!opt) needargc ++;
       break;
     }
   }
 
  check_exit:
+  if (reqkarg && argc > needargc && mrb_hash_p(kdict = ARGV[argc - 1])) {
+    mrb_hash_check_kdict(mrb, kdict);
+    argc --;
+  }
+  else {
+    kdict = mrb_nil_value();
+  }
+
   opt = FALSE;
   i = 0;
   while ((c = *format++)) {
@@ -624,7 +644,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
     mrb_bool altmode;
 
     switch (c) {
-    case '|': case '*': case '&': case '?':
+    case '|': case '*': case '&': case '?': case ':':
       break;
     default:
       if (argc <= i) {
@@ -932,6 +952,62 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         }
       }
       break;
+
+    case ':':
+      {
+        mrb_value ksrc = mrb_hash_p(kdict) ? mrb_hash_dup(mrb, kdict) : mrb_hash_new(mrb);
+        const mrb_kwargs *kwargs = va_arg(ap, const mrb_kwargs*);
+        mrb_value *rest;
+
+        if (kwargs == NULL) {
+          rest = NULL;
+        }
+        else {
+          uint32_t kwnum = kwargs->num;
+          uint32_t required = kwargs->required;
+          const char *const *kname = kwargs->table;
+          mrb_value *values = kwargs->values;
+          uint32_t j;
+          const uint32_t keyword_max = 40;
+
+          if (kwnum > keyword_max || required > kwnum) {
+            mrb_raise(mrb, E_ARGUMENT_ERROR, "keyword number is too large");
+          }
+
+          for (j = required; j > 0; j --, kname ++, values ++) {
+            mrb_value k = mrb_symbol_value(mrb_intern_cstr(mrb, *kname));
+            if (!mrb_hash_key_p(mrb, ksrc, k)) {
+              mrb_raisef(mrb, E_ARGUMENT_ERROR, "missing keyword: %s", *kname);
+            }
+            *values = mrb_hash_delete_key(mrb, ksrc, k);
+            mrb_gc_protect(mrb, *values);
+          }
+
+          for (j = kwnum - required; j > 0; j --, kname ++, values ++) {
+            mrb_value k = mrb_symbol_value(mrb_intern_cstr(mrb, *kname));
+            if (mrb_hash_key_p(mrb, ksrc, k)) {
+              *values = mrb_hash_delete_key(mrb, ksrc, k);
+              mrb_gc_protect(mrb, *values);
+            }
+            else {
+              *values = mrb_undef_value();
+            }
+          }
+
+          rest = kwargs->rest;
+        }
+
+        if (rest) {
+          *rest = ksrc;
+        }
+        else if (!mrb_hash_empty_p(mrb, ksrc)) {
+          ksrc = mrb_hash_keys(mrb, ksrc);
+          ksrc = RARRAY_PTR(ksrc)[0];
+          mrb_raisef(mrb, E_ARGUMENT_ERROR, "unknown keyword: %v", ksrc);
+        }
+      }
+      break;
+
     default:
       mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid argument specifier %c", c);
       break;

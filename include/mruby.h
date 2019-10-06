@@ -870,10 +870,66 @@ MRB_API struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *o
  * | `*`  | rest arguments | {mrb_value} *, {mrb_int} | Receive the rest of arguments as an array; `*!` avoid copy of the stack.  |
  * | <code>\|</code> | optional     |                   | After this spec following specs would be optional. |
  * | `?`  | optional given | {mrb_bool}        | `TRUE` if preceding argument is given. Used to check optional argument is given. |
+ * | `:`  | keyword args   | {mrb_kwargs} const | Get keyword arguments. @see mrb_kwargs |
  *
  * @see mrb_get_args
  */
 typedef const char *mrb_args_format;
+
+/**
+ * Get keyword arguments by `mrb_get_args()` with `:` specifier.
+ *
+ * `mrb_kwargs::num` indicates that the number of keyword values.
+ *
+ * `mrb_kwargs::values` is an object array, and the keyword argument corresponding to the string array is assigned.
+ * Note that `undef` is assigned if there is no keyword argument corresponding to `mrb_kwargs::optional`.
+ *
+ * `mrb_kwargs::table` accepts a string array.
+ *
+ * `mrb_kwargs::required` indicates that the specified number of keywords starting from the beginning of the string array are required.
+ *
+ * `mrb_kwargs::rest` is the remaining keyword argument that can be accepted as `**rest` in Ruby.
+ * If `NULL` is specified, `ArgumentError` is raised when there is an undefined keyword.
+ *
+ * Examples:
+ *
+ *      // def method(a: 1, b: 2)
+ *
+ *      uint32_t kw_num = 2;
+ *      const char *kw_names[kw_num] = { "a", "b" };
+ *      uint32_t kw_required = 0;
+ *      mrb_value kw_values[kw_num];
+ *      const mrb_kwargs kwargs = { kw_num, kw_values, kw_names, kw_required, NULL };
+ *
+ *      mrb_get_args(mrb, ":", &kwargs);
+ *      if (mrb_undef_p(kw_values[0])) { kw_values[0] = mrb_fixnum_value(1); }
+ *      if (mrb_undef_p(kw_values[1])) { kw_values[1] = mrb_fixnum_value(2); }
+ *
+ *
+ *      // def method(str, x:, y: 2, z: "default string", **opts)
+ *
+ *      mrb_value str, kw_rest;
+ *      uint32_t kw_num = 3;
+ *      const char *kw_names[kw_num] = { "x", "y", "z" };
+ *      uint32_t kw_required = 1;
+ *      mrb_value kw_values[kw_num];
+ *      const mrb_kwargs kwargs = { kw_num, kw_values, kw_names, kw_required, &kw_rest };
+ *
+ *      mrb_get_args(mrb, "S:", &str, &kwargs);
+ *      // or: mrb_get_args(mrb, ":S", &kwargs, &str);
+ *      if (mrb_undef_p(kw_values[1])) { kw_values[1] = mrb_fixnum_value(2); }
+ *      if (mrb_undef_p(kw_values[2])) { kw_values[2] = mrb_str_new_cstr(mrb, "default string"); }
+ */
+typedef struct mrb_kwargs mrb_kwargs;
+
+struct mrb_kwargs
+{
+  uint32_t num;
+  mrb_value *values;
+  const char *const *table;
+  uint32_t required;
+  mrb_value *rest;
+};
 
 /**
  * Retrieve arguments from mrb_state.
@@ -883,6 +939,7 @@ typedef const char *mrb_args_format;
  * @param ... The passing variadic arguments must be a pointer of retrieving type.
  * @return the number of arguments retrieved.
  * @see mrb_args_format
+ * @see mrb_kwargs
  */
 MRB_API mrb_int mrb_get_args(mrb_state *mrb, mrb_args_format format, ...);
 
