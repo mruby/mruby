@@ -520,32 +520,47 @@ to_hash(mrb_state *mrb, mrb_value val)
 
 #define to_sym(mrb, ss) mrb_obj_to_sym(mrb, ss)
 
+static mrb_value*
+get_argv(mrb_state *mrb, mrb_int *argc)
+{
+  mrb_value *array_argv;
+
+  *argc = mrb->c->ci->argc;
+  if (*argc < 0) {
+    struct RArray *a = mrb_ary_ptr(mrb->c->stack[1]);
+
+    *argc = ARY_LEN(a);
+    array_argv = ARY_PTR(a);
+  }
+  else {
+    array_argv = NULL;
+  }
+
+  return array_argv;
+}
+
 MRB_API mrb_int
 mrb_get_argc(mrb_state *mrb)
 {
-  mrb_int argc = mrb->c->ci->argc;
-
-  if (argc < 0) {
-    struct RArray *a = mrb_ary_ptr(mrb->c->stack[1]);
-
-    argc = ARY_LEN(a);
-  }
+  mrb_int argc;
+  get_argv(mrb, &argc);
   return argc;
 }
 
 MRB_API mrb_value*
 mrb_get_argv(mrb_state *mrb)
 {
-  mrb_int argc = mrb->c->ci->argc;
-  mrb_value *array_argv;
-  if (argc < 0) {
-    struct RArray *a = mrb_ary_ptr(mrb->c->stack[1]);
+  mrb_int argc;
+  mrb_value *array_argv = get_argv(mrb, &argc);
 
-    array_argv = ARY_PTR(a);
-  }
-  else {
+  if (argc == 0) {
     array_argv = NULL;
   }
+  else if (array_argv == NULL) {
+    mrb_value args = mrb_ary_new_from_values(mrb, argc, mrb->c->stack + 1);
+    array_argv = RARRAY_PTR(args);
+  }
+
   return array_argv;
 }
 
@@ -586,9 +601,9 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
   char c;
   mrb_int i = 0;
   va_list ap;
-  mrb_int argc = mrb_get_argc(mrb);
+  mrb_int argc;
   mrb_int arg_i = 0;
-  mrb_value *array_argv = mrb_get_argv(mrb);
+  mrb_value *array_argv = get_argv(mrb, &argc);
   mrb_bool opt = FALSE;
   mrb_bool opt_skip = TRUE;
   mrb_bool given = TRUE;
