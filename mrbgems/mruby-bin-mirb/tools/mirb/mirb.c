@@ -240,7 +240,7 @@ usage(const char *name)
   };
   const char *const *p = usage_msg;
 
-  printf("Usage: %s [switches]\n", name);
+  printf("Usage: %s [switches] [programfile] [arguments]\n", name);
   while (*p)
     printf("  %s\n", *p++);
 }
