@@ -76,6 +76,7 @@ mrb_class_name_class(mrb_state *mrb, struct RClass *outer, struct RClass *c, mrb
     name = mrb_str_dup(mrb, name);
     mrb_str_cat_cstr(mrb, name, "::");
     mrb_str_cat_cstr(mrb, name, mrb_sym_name(mrb, id));
+    MRB_SET_FROZEN_FLAG(mrb_obj_ptr(name));
   }
   mrb_obj_iv_set_force(mrb, (struct RObject*)c, nsym, name);
 }
@@ -1712,7 +1713,7 @@ mrb_class_path(mrb_state *mrb, struct RClass *c)
     /* toplevel class/module */
     return mrb_sym_str(mrb, mrb_symbol(path));
   }
-  return mrb_str_dup(mrb, path);
+  return path;
 }
 
 MRB_API struct RClass*
