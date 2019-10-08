@@ -74,7 +74,7 @@ typedef unsigned int stack_type;
 #define NUM_SUFFIX_R   (1<<0)
 #define NUM_SUFFIX_I   (1<<1)
 
-#define NUMPARAM_MAX 31
+#define NUMPARAM_MAX 9
 
 static inline mrb_sym
 intern_cstr_gen(parser_state *p, const char *s)
@@ -845,7 +845,6 @@ setup_args(parser_state *p, node *a)
   int nvars = intn(p->nvars->cdr);
   if (nvars > 0) {
     int i;
-    char buf[5];
     mrb_sym sym;
     // m || opt || rest || tail
     if (a && (a->car || (a->cdr && a->cdr->car) || (a->cdr->cdr && a->cdr->cdr->car) || (a->cdr->cdr->cdr->cdr && a->cdr->cdr->cdr->cdr->car))) {
@@ -853,7 +852,11 @@ setup_args(parser_state *p, node *a)
     } else {
       node* args = 0;
       for (i = nvars; i > 0; i--) {
-        sprintf(buf, "@%d", i);
+        char buf[3];
+
+        buf[0] = '_';
+        buf[1] = i+'0';
+        buf[3] = '\0';
         sym = intern_cstr(buf);
         args = cons(new_arg(p, sym), args);
         p->locals->car = cons(nsym(sym), p->locals->car);
@@ -2395,6 +2398,10 @@ primary         : literal
                 | heredoc
                 | var_ref
                 | backref
+                | tNUMPARAM
+                    {
+                      $$ = new_nvar(p, $1);
+                    }
                 | tFID
                     {
                       $$ = new_fcall(p, $1, 0);
@@ -3264,10 +3271,6 @@ variable        : tIDENTIFIER
                 | tCVAR
                     {
                       $$ = new_cvar(p, $1);
-                    }
-                | tNUMPARAM
-                    {
-                      $$ = new_nvar(p, $1);
                     }
                 | tCONSTANT
                     {
@@ -5875,36 +5878,14 @@ parser_yylex(parser_state *p)
       }
       else if (ISDIGIT(c)) {
         if (p->tidx == 1) {
-          if (last_state == EXPR_FNAME) {
-            yyerror_c(p, "wrong instance variable name: @", c);
-            return 0;
-          }
-          if (c == '0') {
-            yyerror(p, "leading zero is not allowed as a numbered parameter");
-            return 0;
-          }
-          do {
-            tokadd(p, c);
-            c = nextc(p);
-          } while (c >= 0 && ISDIGIT(c));
-          pushback(p, c);
-          tokfix(p);
-          {
-            unsigned long n = strtoul(tok(p) + 1, NULL, 10);
-            if (n > NUMPARAM_MAX || n < 0) {
-              yyerror(p, "too large numbered parameter");
-              return 0;
-            }
-            pylval.num = n;
-          }
-          p->lstate = EXPR_END;
-          return tNUMPARAM;
+          yyerror_c(p, "wrong instance variable name: @", c);
         }
         else {
           yyerror_c(p, "wrong class variable name: @@", c);
-          return 0;
         }
-      } else if (!identchar(c)) {
+        return 0;
+      }
+      if (!identchar(c)) {
         pushback(p, c);
         return '@';
       }
@@ -5912,6 +5893,30 @@ parser_yylex(parser_state *p)
 
     case '_':
       token_column = newtok(p);
+      tokadd(p, c);
+      c = nextc(p);
+      if (ISDIGIT(c)) {
+        int n = 0;
+
+        while (c >= 0 && ISDIGIT(c)) {
+          n *= 10;
+          n += c - '0';
+          tokadd(p, c);
+          c = nextc(p);
+        }
+        pushback(p, c);
+        if (n == 0) {
+          yyerror(p, "_0 is not available");
+          return 0;
+        }
+        if (n > NUMPARAM_MAX || n < 0) {
+          yyerror(p, "too large numbered parameter");
+          return 0;
+        }
+        pylval.num = n;
+        p->lstate = EXPR_END;
+        return tNUMPARAM;
+      }
       break;
 
     default:
