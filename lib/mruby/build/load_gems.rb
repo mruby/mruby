@@ -113,6 +113,7 @@ module MRuby
         end
 
         if lock_enabled?
+          @gem_dir_to_repo_url[gemdir] = url unless params[:path]
           locks[url] = {
             'url' => url,
             'branch' => git.current_branch(gemdir),

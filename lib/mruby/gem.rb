@@ -91,6 +91,9 @@ module MRuby
         build.libmruby_objs << @objs
 
         instance_eval(&@build_config_initializer) if @build_config_initializer
+
+        repo_url = build.gem_dir_to_repo_url[dir]
+        build.locks[repo_url]['version'] = version if repo_url
       end
 
       def setup_compilers
