@@ -1,11 +1,3 @@
-def assert_module_name(exp, mod)
-  assert "assert_module_name" do
-    act = mod.__send__(:name)
-    assert_equal exp, act
-    assert_predicate act, :frozen?
-  end
-end
-
 assert 'Module#<' do
   a = Class.new
   b = Class.new(a)
@@ -66,17 +58,17 @@ assert 'Module#name' do
     const_set :SetInner, Class.new
   end
 
-  assert_module_name 'Outer', Outer
-  assert_module_name 'Outer::Inner', Outer::Inner
-  assert_module_name 'Outer::SetInner', Outer::SetInner
+  assert_equal 'Outer', Outer.name
+  assert_equal 'Outer::Inner', Outer::Inner.name
+  assert_equal 'Outer::SetInner', Outer::SetInner.name
 
   outer = Module.new do
     const_set :SetInner, Class.new
   end
   Object.const_set :SetOuter, outer
 
-  assert_module_name 'SetOuter', SetOuter
-  assert_module_name 'SetOuter::SetInner', SetOuter::SetInner
+  assert_equal 'SetOuter', SetOuter.name
+  assert_equal 'SetOuter::SetInner', SetOuter::SetInner.name
 
   mod = Module.new
   cls = Class.new
