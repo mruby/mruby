@@ -18,7 +18,6 @@ dbgcmd_print(mrb_state *mrb, mrdb_state *mrdb)
 {
   mrb_value expr;
   mrb_value result;
-  mrb_value s;
   uint8_t wcnt;
   int ai;
 
@@ -39,8 +38,9 @@ dbgcmd_print(mrb_state *mrb, mrdb_state *mrdb)
   result = mrb_debug_eval(mrb, mrdb->dbg, RSTRING_PTR(expr), RSTRING_LEN(expr), NULL, 0);
 
   /* $print_no = result */
-  s = mrb_str_cat_lit(mrb, result, "\0");
-  printf("$%lu = %s\n", (unsigned long)mrdb->print_no++, RSTRING_PTR(s));
+  printf("$%lu = ", (unsigned long)mrdb->print_no++);
+  fwrite(RSTRING_PTR(result), RSTRING_LEN(result), 1, stdout);
+  putc('\n', stdout);
 
   if (mrdb->print_no == 0) {
     mrdb->print_no = 1;
