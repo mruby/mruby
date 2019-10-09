@@ -856,7 +856,7 @@ setup_args(parser_state *p, node *a)
 
         buf[0] = '_';
         buf[1] = i+'0';
-        buf[3] = '\0';
+        buf[2] = '\0';
         sym = intern_cstr(buf);
         args = cons(new_arg(p, sym), args);
         p->locals->car = cons(nsym(sym), p->locals->car);
@@ -5893,30 +5893,6 @@ parser_yylex(parser_state *p)
 
     case '_':
       token_column = newtok(p);
-      tokadd(p, c);
-      c = nextc(p);
-      if (ISDIGIT(c)) {
-        int n = 0;
-
-        while (c >= 0 && ISDIGIT(c)) {
-          n *= 10;
-          n += c - '0';
-          tokadd(p, c);
-          c = nextc(p);
-        }
-        pushback(p, c);
-        if (n == 0) {
-          yyerror(p, "_0 is not available");
-          return 0;
-        }
-        if (n > NUMPARAM_MAX || n < 0) {
-          yyerror(p, "too large numbered parameter");
-          return 0;
-        }
-        pylval.num = n;
-        p->lstate = EXPR_END;
-        return tNUMPARAM;
-      }
       break;
 
     default:
@@ -5975,6 +5951,22 @@ parser_yylex(parser_state *p)
         result = tIVAR;
       break;
 
+    case '_':
+      if (toklen(p) == 2 && ISDIGIT(tok(p)[1])) {
+        int n = tok(p)[1] - '0';
+        if (n == 0) {
+          yyerror(p, "_0 is not available");
+          return 0;
+        }
+        if (n > NUMPARAM_MAX) {
+          yyerror(p, "too large numbered parameter");
+          return 0;
+        }
+        pylval.num = n;
+        p->lstate = EXPR_END;
+        return tNUMPARAM;
+      }
+      /* fall through */
     default:
       if (toklast(p) == '!' || toklast(p) == '?') {
         result = tFID;
