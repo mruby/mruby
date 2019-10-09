@@ -326,7 +326,7 @@ nvars_nest(parser_state *p)
 static void
 nvars_block(parser_state *p)
 {
-  p->nvars = cons(p->nvars, nint(-1));
+  p->nvars = cons(p->nvars, nint(-2));
 }
 
 static void
@@ -673,7 +673,7 @@ new_cvar(parser_state *p, mrb_sym sym)
 static node*
 new_nvar(parser_state *p, int num)
 {
-  if (!p->nvars || intn(p->nvars->cdr) < 0) {
+  if (!p->nvars || intn(p->nvars->cdr) < -1) {
     yyerror(p, "numbered parameter outside block");
   } else {
     int nvars = intn(p->nvars->cdr);
@@ -5954,6 +5954,19 @@ parser_yylex(parser_state *p)
     case '_':
       if (toklen(p) == 2 && ISDIGIT(tok(p)[1])) {
         int n = tok(p)[1] - '0';
+        node *nvars = p->nvars->car;
+
+        while (nvars) {
+          if (intn(nvars->cdr) > 0) {
+            yywarning(p, "numbered parameter in nested block");
+            break;
+          }
+          nvars->cdr = nint(-1);
+          nvars = nvars->car;
+        }
+        if (intn(p->nvars->cdr) < 0) {
+          yywarning(p, "numbered parameter in nested block");
+        }
         if (n == 0) {
           yyerror(p, "_0 is not available");
           return 0;
