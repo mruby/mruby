@@ -13,6 +13,7 @@ end
 assert('String#dump') do
   assert_equal("\"\\x00\"", "\0".dump)
   assert_equal("\"foo\"", "foo".dump)
+  assert_equal('"\xe3\x82\x8b"', "る".dump)
   assert_nothing_raised { ("\1" * 100).dump }   # regress #1210
 end
 
