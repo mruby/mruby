@@ -379,8 +379,8 @@ current_mrb_time(mrb_state *mrb)
     static time_t last_sec = 0, last_usec = 0;
 
     sec = time(NULL);
-    if (tm->sec != last_sec) {
-      last_sec = tm->sec;
+    if (sec != last_sec) {
+      last_sec = sec;
       last_usec = 0;
     }
     else {
