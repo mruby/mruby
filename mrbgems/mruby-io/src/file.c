@@ -147,6 +147,7 @@ mrb_file_s_rename(mrb_state *mrb, mrb_value obj)
     mrb_locale_free(src);
     mrb_locale_free(dst);
     mrb_sys_fail(mrb, RSTRING_CSTR(mrb, mrb_format(mrb, "(%v, %v)", from, to)));
+    return mrb_fixnum_value(-1); /* not reached */
   }
   mrb_locale_free(src);
   mrb_locale_free(dst);
@@ -253,6 +254,7 @@ mrb_file_realpath(mrb_state *mrb, mrb_value klass)
   if (realpath(cpath, RSTRING_PTR(result)) == NULL) {
     mrb_locale_free(cpath);
     mrb_sys_fail(mrb, cpath);
+    return result;              /* not reached */
   }
   mrb_locale_free(cpath);
   mrb_str_resize(mrb, result, strlen(RSTRING_PTR(result)));
