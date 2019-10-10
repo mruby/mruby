@@ -748,12 +748,18 @@ assert('String#upcase!', '15.2.10.5.43') do
 end
 
 assert('String#inspect', '15.2.10.5.46') do
-  # should not raise an exception - regress #1210
-  assert_nothing_raised do
-  ("\1" * 100).inspect
+  assert_equal "\"\\x00\"", "\0".inspect
+  assert_equal "\"foo\"", "foo".inspect
+  if UTF8STRING
+    assert_equal '"る"', "る".inspect
+  else
+    assert_equal '"\xe3\x82\x8b"', "る".inspect
   end
 
-  assert_equal "\"\\x00\"", "\0".inspect
+  # should not raise an exception - regress #1210
+  assert_nothing_raised do
+    ("\1" * 100).inspect
+  end
 end
 
 # Not ISO specified
