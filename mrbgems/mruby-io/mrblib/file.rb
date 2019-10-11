@@ -1,9 +1,4 @@
 class File < IO
-  class FileError < Exception; end
-  class NoFileError < FileError; end
-  class UnableToStat < FileError; end
-  class PermissionError < FileError; end
-
   attr_accessor :path
 
   def initialize(fd_or_path, mode = "r", perm = 0666)
