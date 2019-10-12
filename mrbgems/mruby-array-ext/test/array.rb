@@ -94,9 +94,9 @@ assert("Array#union") do
 end
 
 assert("Array#difference") do
-  a = [1, 2, 3, 1]
-  b = [1, 4]
-  c = [1, 5]
+  a = [1, 2, 3, 1, 6, 7]
+  b = [1, 4, 6]
+  c = [1, 5, 7]
 
   assert_equal [2, 3], a.difference(b,c)
 end

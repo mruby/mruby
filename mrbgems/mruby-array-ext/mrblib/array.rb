@@ -133,9 +133,9 @@ class Array
   # preserved from the original array.
   #
   def difference(*args)
-    ary = self.dup
+    ary = self
     args.each do |x|
-      ary = self - x
+      ary = ary - x
     end
     ary
   end
