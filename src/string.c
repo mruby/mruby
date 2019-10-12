@@ -521,7 +521,7 @@ mrb_memsearch(const void *x0, mrb_int m, const void *y0, mrb_int n)
 }
 
 static void
-str_make_shared(mrb_state *mrb, struct RString *orig, struct RString *s)
+str_share(mrb_state *mrb, struct RString *orig, struct RString *s)
 {
   size_t len = (size_t)orig->as.heap.len;
 
@@ -585,7 +585,7 @@ mrb_str_byte_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
     str_init_embed(s, RSTR_PTR(orig)+beg, len);
   }
   else {
-    str_make_shared(mrb, orig, s);
+    str_share(mrb, orig, s);
     s->as.heap.ptr += beg;
     s->as.heap.len = len;
   }
@@ -691,7 +691,7 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
     str_init_embed(s1, RSTR_PTR(s2), len);
   }
   else {
-    str_make_shared(mrb, s2, s1);
+    str_share(mrb, s2, s1);
   }
 
   return mrb_obj_value(s1);
