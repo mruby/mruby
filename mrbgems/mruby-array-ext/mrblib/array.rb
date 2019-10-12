@@ -90,6 +90,22 @@ class Array
 
   ##
   # call-seq:
+  #    ary.difference(other_ary1, other_ary2, ...)   -> new_ary
+  #
+  # Returns a new array that is a copy of the original array, removing all
+  # occurrences of any item that also appear in +other_ary+. The order is
+  # preserved from the original array.
+  #
+  def difference(*args)
+    ary = self
+    args.each do |x|
+      ary = ary - x
+    end
+    ary
+  end
+
+  ##
+  # call-seq:
   #    ary | other_ary     -> new_ary
   #
   # Set Union---Returns a new array by joining this array with
@@ -120,22 +136,6 @@ class Array
     args.each do |x|
       ary.concat(x)
       ary.uniq!
-    end
-    ary
-  end
-
-  ##
-  # call-seq:
-  #    ary.difference(other_ary1, other_ary2, ...)   -> new_ary
-  #
-  # Returns a new array that is a copy of the original array, removing all
-  # occurrences of any item that also appear in +other_ary+. The order is
-  # preserved from the original array.
-  #
-  def difference(*args)
-    ary = self
-    args.each do |x|
-      ary = ary - x
     end
     ary
   end
