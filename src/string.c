@@ -526,7 +526,7 @@ str_share(mrb_state *mrb, struct RString *orig, struct RString *s)
   size_t len = (size_t)orig->as.heap.len;
 
   mrb_assert(!RSTR_EMBED_P(orig));
-  if (RSTR_NOFREE_P(orig)) {
+  if (RSTR_NOFREE_P(orig) || RSTR_POOL_P(orig)) {
     str_init_nofree(s, orig->as.heap.ptr, len);
   }
   else if (RSTR_SHARED_P(orig)) {
@@ -535,7 +535,7 @@ str_share(mrb_state *mrb, struct RString *orig, struct RString *s)
   else if (RSTR_FSHARED_P(orig)) {
     str_init_fshared(orig, s, orig->as.heap.aux.fshared);
   }
-  else if (mrb_frozen_p(orig) && !RSTR_POOL_P(orig)) {
+  else if (mrb_frozen_p(orig)) {
     str_init_fshared(orig, s, orig);
   }
   else {
