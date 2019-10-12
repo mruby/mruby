@@ -175,6 +175,24 @@ class Array
 
   ##
   # call-seq:
+  #    ary.intersection(other_ary,...)  -> new_ary
+  #
+  # Set Intersection---Returns a new array containing elements common to
+  # this array and <i>other_ary</i>, removing duplicates.
+  #
+  #    ["a", "b", "c"].union(["c", "d", "a"], ["a", "c", "e"])
+  #           #=> ["a", "b", "c", "d", "e"]
+  #
+  def intersection(*args)
+    ary = self
+    args.each do |x|
+      ary = ary & x
+    end
+    ary
+  end
+
+  ##
+  # call-seq:
   #    ary.flatten -> new_ary
   #    ary.flatten(level) -> new_ary
   #
