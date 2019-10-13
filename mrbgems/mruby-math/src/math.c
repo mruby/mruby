@@ -4,11 +4,12 @@
 ** See Copyright Notice in mruby.h
 */
 
-#ifdef MRB_WITHOUT_FLOAT
-# error Math conflicts 'MRB_WITHOUT_FLOAT' configuration in your 'build_config.rb'
-#endif
-
 #include <mruby.h>
+
+#ifdef MRB_WITHOUT_FLOAT
+#error Math conflicts 'MRB_WITHOUT_FLOAT' configuration in your 'build_config.rb'
+#else
+
 #include <mruby/array.h>
 
 #include <math.h>
@@ -781,3 +782,4 @@ void
 mrb_mruby_math_gem_final(mrb_state* mrb)
 {
 }
+#endif

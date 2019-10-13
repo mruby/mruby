@@ -1,3 +1,4 @@
+#include <mruby.h>
 #ifndef MRB_WITHOUT_FLOAT
 #if defined(MRB_DISABLE_STDIO) || defined(_WIN32) || defined(_WIN64)
 /*
@@ -35,7 +36,6 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <float.h>
 #include <ctype.h>
 
-#include <mruby.h>
 #include <mruby/string.h>
 
 struct fmt_args {
@@ -373,7 +373,6 @@ mrb_float_to_str(mrb_state *mrb, mrb_value flo, const char *fmt)
   return f.str;
 }
 #else   /* MRB_DISABLE_STDIO || _WIN32 || _WIN64 */
-#include <mruby.h>
 #include <stdio.h>
 
 mrb_value
