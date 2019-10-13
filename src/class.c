@@ -65,17 +65,22 @@ mrb_class_name_class(mrb_state *mrb, struct RClass *outer, struct RClass *c, mrb
     name = mrb_symbol_value(id);
   }
   else {
-    name = mrb_class_path(mrb, outer);
-    if (mrb_nil_p(name)) {      /* unnamed outer class */
+    const char *n;
+    mrb_int len;
+    mrb_value outer_name = mrb_class_path(mrb, outer);
+
+    if (mrb_nil_p(outer_name)) {      /* unnamed outer class */
       if (outer != mrb->object_class && outer != c) {
         mrb_obj_iv_set_force(mrb, (struct RObject*)c, mrb_intern_lit(mrb, "__outer__"),
                              mrb_obj_value(outer));
       }
       return;
     }
-    name = mrb_str_dup(mrb, name);
-    mrb_str_cat_cstr(mrb, name, "::");
-    mrb_str_cat_cstr(mrb, name, mrb_sym_name(mrb, id));
+    n = mrb_sym_name_len(mrb, id, &len);
+    name = mrb_str_new_capa(mrb, RSTRING_LEN(outer_name) + 2 + len);
+    mrb_str_cat_str(mrb, name, outer_name);
+    mrb_str_cat_lit(mrb, name, "::");
+    mrb_str_cat(mrb, name, n, len);
     MRB_SET_FROZEN_FLAG(mrb_obj_ptr(name));
   }
   mrb_obj_iv_set_force(mrb, (struct RObject*)c, nsym, name);
