@@ -178,10 +178,10 @@ class Array
   #    ary.intersection(other_ary,...)  -> new_ary
   #
   # Set Intersection---Returns a new array containing elements common to
-  # this array and <i>other_ary</i>, removing duplicates.
+  # this array and <i>other_ary</i>s, removing duplicates. The order is
+  # preserved from the original array.
   #
-  #    ["a", "b", "c"].union(["c", "d", "a"], ["a", "c", "e"])
-  #           #=> ["a", "b", "c", "d", "e"]
+  #    [1, 2, 3].intersection([3, 4, 1], [1, 3, 5])  #=> [1, 3]
   #
   def intersection(*args)
     ary = self
