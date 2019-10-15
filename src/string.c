@@ -1318,14 +1318,13 @@ str_replace_partial(mrb_state *mrb, mrb_value src, mrb_int pos, mrb_int end, mrb
   return src;
 }
 
-#define CHAR_ESC_LEN 13 /* sizeof(\x{ hex of 32bit unsigned int } \0) */
 #define IS_EVSTR(p,e) ((p) < (e) && (*(p) == '$' || *(p) == '@' || *(p) == '{'))
 
 static mrb_value
 str_escape(mrb_state *mrb, mrb_value str, mrb_bool inspect)
 {
   const char *p, *pend;
-  char buf[CHAR_ESC_LEN + 1];
+  char buf[4];  /* `\x??` or UTF-8 character */
   mrb_value result = mrb_str_new_lit(mrb, "\"");
 #ifdef MRB_UTF8_STRING
   uint32_t ascii_flag = MRB_STR_ASCII;
