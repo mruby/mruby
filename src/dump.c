@@ -943,7 +943,9 @@ mrb_dump_irep_cfunc(mrb_state *mrb, mrb_irep *irep, uint8_t flags, FILE *fp, con
       return MRB_DUMP_WRITE_FAULT;
     }
     if (fprintf(fp,
+          "#ifdef __cplusplus\n"
           "extern const uint8_t %s[];\n"
+          "#endif\n"
           "const uint8_t\n"
           "#if defined __GNUC__\n"
           "__attribute__((aligned(%u)))\n"
