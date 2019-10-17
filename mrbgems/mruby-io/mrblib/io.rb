@@ -303,6 +303,8 @@ class IO
 
   # 15.2.20.5.3
   def each(&block)
+    return to_enum unless block
+
     while line = self.gets
       block.call(line)
     end
@@ -311,6 +313,8 @@ class IO
 
   # 15.2.20.5.4
   def each_byte(&block)
+    return to_enum(:each_byte) unless block
+
     while char = self.getc
       block.call(char)
     end
