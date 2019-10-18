@@ -372,25 +372,3 @@ STDERR = IO.open(2, "w")
 $stdin  = STDIN
 $stdout = STDOUT
 $stderr = STDERR
-
-module Kernel
-  def print(*args)
-    $stdout.print(*args)
-  end
-
-  def puts(*args)
-    $stdout.puts(*args)
-  end
-
-  def printf(*args)
-    $stdout.printf(*args)
-  end
-
-  def gets(*args)
-    $stdin.gets(*args)
-  end
-
-  def getc(*args)
-    $stdin.getc(*args)
-  end
-end
