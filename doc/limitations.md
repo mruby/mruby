@@ -38,7 +38,7 @@ puts [1,2,3]
 3
 ```
 
-#### mruby [2.0.1 (2019-4-4)]
+#### mruby [2.1.0 (2019-10-18)]
 
 ```
 [1, 2, 3]
@@ -61,7 +61,7 @@ end
 
 `ZeroDivisionError` is raised.
 
-#### mruby [2.0.1 (2019-4-4)]
+#### mruby [2.1.0 (2019-10-18)]
 
 No exception is raised.
 
@@ -89,7 +89,7 @@ p Liste.new "foobar"
 
 ` [] `
 
-#### mruby [2.0.1 (2019-4-4)]
+#### mruby [2.1.0 (2019-10-18)]
 
 `ArgumentError` is raised.
 
@@ -119,7 +119,7 @@ false
 true
 ```
 
-#### mruby [2.0.1 (2019-4-4)]
+#### mruby [2.1.0 (2019-10-18)]
 
 ```
 true
@@ -156,7 +156,7 @@ p 'ok'
 ok
 ```
 
-#### mruby [2.0.1 (2019-4-4)]
+#### mruby [2.1.0 (2019-10-18)]
 
 ```
 test.rb:8: undefined method 'test_func' (NoMethodError)
@@ -178,7 +178,7 @@ defined?(Foo)
 nil
 ```
 
-#### mruby [2.0.1 (2019-4-4)]
+#### mruby [2.1.0 (2019-10-18)]
 
 `NameError` is raised.
 
@@ -195,7 +195,7 @@ alias $a $__a__
 
 ` nil `
 
-#### mruby [2.0.1 (2019-4-4)]
+#### mruby [2.1.0 (2019-10-18)]
 
 Syntax error
 
@@ -217,7 +217,7 @@ end
 `ArgumentError` is raised.
 The re-defined `+` operator does not accept any arguments.
 
-#### mruby [2.0.1 (2019-4-4)]
+#### mruby [2.1.0 (2019-10-18)]
 
 ` 'ab' `
 Behavior of the operator wasn't changed.
@@ -233,7 +233,7 @@ $ ruby -e 'puts Proc.new {}.binding'
 #<Binding:0x00000e9deabb9950>
 ```
 
-#### mruby [2.0.1 (2019-4-4)]
+#### mruby [2.1.0 (2019-10-18)]
 
 ```
 $ ./bin/mruby -e 'puts Proc.new {}.binding'
@@ -255,7 +255,7 @@ $ ruby -e 'def m(*r,**k) p [r,k] end; m("a"=>1,:b=>2)'
 [[{"a"=>1}], {:b=>2}]
 ```
 
-#### mruby [mruby 2.0.1]
+#### mruby [mruby 2.1.0]
 
 ```
 $ ./bin/mruby -e 'def m(*r,**k) p [r,k] end; m("a"=>1,:b=>2)'
