@@ -240,7 +240,7 @@ usage(const char *name)
   };
   const char *const *p = usage_msg;
 
-  printf("Usage: %s [switches]\n", name);
+  printf("Usage: %s [switches] [programfile] [arguments]\n", name);
   while (*p)
     printf("  %s\n", *p++);
 }
@@ -406,6 +406,26 @@ ctrl_c_handler(int signo)
 }
 #endif
 
+#ifndef DISABLE_MIRB_UNDERSCORE
+void decl_lv_underscore(mrb_state *mrb, mrbc_context *cxt)
+{
+  struct RProc *proc;
+  struct mrb_parser_state *parser;
+
+  parser = mrb_parse_string(mrb, "_=nil", cxt);
+  if (parser == NULL) {
+    fputs("create parser state error\n", stderr);
+    mrb_close(mrb);
+    exit(EXIT_FAILURE);
+  }
+
+  proc = mrb_generate_code(mrb, parser);
+  mrb_vm_run(mrb, proc, mrb_top_self(mrb), 0);
+
+  mrb_parser_free(parser);
+}
+#endif
+
 int
 main(int argc, char **argv)
 {
@@ -470,6 +490,10 @@ main(int argc, char **argv)
   print_hint();
 
   cxt = mrbc_context_new(mrb);
+
+#ifndef DISABLE_MIRB_UNDERSCORE
+  decl_lv_underscore(mrb, cxt);
+#endif
 
   /* Load libraries */
   for (i = 0; i < args.libc; i++) {
@@ -643,6 +667,9 @@ main(int argc, char **argv)
             result = mrb_any_to_s(mrb, result);
           }
           p(mrb, result, 1);
+#ifndef DISABLE_MIRB_UNDERSCORE
+          *(mrb->c->stack + 1) = result;
+#endif
         }
       }
       ruby_code[0] = '\0';

@@ -16,7 +16,7 @@
 #include <mruby/data.h>
 
 struct backtrace_location {
-  int lineno;
+  int32_t lineno;
   mrb_sym method_id;
   const char *filename;
 };
@@ -26,7 +26,7 @@ typedef void (*each_backtrace_func)(mrb_state*, const struct backtrace_location*
 static const mrb_data_type bt_type = { "Backtrace", mrb_free };
 
 static void
-each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, mrb_code *pc0, each_backtrace_func func, void *data)
+each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, const mrb_code *pc0, each_backtrace_func func, void *data)
 {
   ptrdiff_t i;
 
@@ -37,7 +37,7 @@ each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, mrb_code *pc0, each_backtrace_fu
     struct backtrace_location loc;
     mrb_callinfo *ci;
     mrb_irep *irep;
-    mrb_code *pc;
+    const mrb_code *pc;
 
     ci = &mrb->c->cibase[i];
 
@@ -128,7 +128,7 @@ print_packed_backtrace(mrb_state *mrb, mrb_value packed)
     if (entry->method_id != 0) {
       const char *method_name;
 
-      method_name = mrb_sym2name(mrb, entry->method_id);
+      method_name = mrb_sym_name(mrb, entry->method_id);
       fprintf(stream, ":in %s", method_name);
       mrb_gc_arena_restore(mrb, ai);
     }
@@ -246,12 +246,10 @@ mrb_unpack_backtrace(mrb_state *mrb, mrb_value backtrace)
     mrb_value btline;
 
     if (entry->filename == NULL) continue;
-    btline = mrb_format(mrb, "%S:%S",
-                              mrb_str_new_cstr(mrb, entry->filename),
-                              mrb_fixnum_value(entry->lineno));
+    btline = mrb_format(mrb, "%s:%d", entry->filename, entry->lineno);
     if (entry->method_id != 0) {
       mrb_str_cat_lit(mrb, btline, ":in ");
-      mrb_str_cat_cstr(mrb, btline, mrb_sym2name(mrb, entry->method_id));
+      mrb_str_cat_cstr(mrb, btline, mrb_sym_name(mrb, entry->method_id));
     }
     mrb_ary_push(mrb, backtrace, btline);
     mrb_gc_arena_restore(mrb, ai);

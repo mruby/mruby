@@ -206,24 +206,40 @@ module MiniRake
       # task with the prerequisites and actions from the rule.  Set the
       # source attribute of the task appropriately for the rule.  Return
       # the enhanced task or nil of no rule was found.
-      def enhance_with_matching_rule(task_name)
+      def enhance_with_matching_rule(task_name, level=0)
+        fail "Rule Recursion Too Deep: #{task_name}" if level >= 16
         RULES.each do |pattern, extensions, block|
-          if pattern.match(task_name)
-            ext = extensions.first
-            deps = extensions[1..-1]
+          next unless  pattern && pattern.match(task_name)
+          sources = extensions.flat_map do |ext|
             case ext
+            when /%/
+              task_name.pathmap(ext)
+            when %r{/}
+              ext
+            when /^\./
+              source = task_name.sub(pattern, ext)
+              source == ext ? task_name.ext(ext) : source
             when String
-              source = task_name.sub(/\.[^.]*$/, ext)
-            when Proc
-              source = ext.call(task_name)
+              ext
+            when Proc, Method
+              ext.arity == 1 ? ext.call(task_name) : ext.call
             else
               fail "Don't know how to handle rule dependent: #{ext.inspect}"
             end
-            if File.exist?(source)
-              task = FileTask.define_task({task_name => [source]+deps}, &block)
-              task.source = source
-              return task
+          end
+          prereqs = sources.map do |source|
+            if File.exist?(source) || TASKS[source]
+              source
+            elsif parent = enhance_with_matching_rule(source, level + 1)
+              parent.name
+            else
+              break nil
             end
+          end
+          if prereqs
+            task = FileTask.define_task(task_name => prereqs, &block)
+            task.source = prereqs.first
+            return task
           end
         end
         nil

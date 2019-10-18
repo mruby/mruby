@@ -372,7 +372,7 @@ mrb_float_to_str(mrb_state *mrb, mrb_value flo, const char *fmt)
   }
   return f.str;
 }
-#else   /* MRB_DISABLE_STDIO */
+#else   /* MRB_DISABLE_STDIO || _WIN32 || _WIN64 */
 #include <mruby.h>
 #include <stdio.h>
 
@@ -384,5 +384,5 @@ mrb_float_to_str(mrb_state *mrb, mrb_value flo, const char *fmt)
   snprintf(buf, sizeof(buf), fmt, mrb_float(flo));
   return mrb_str_new_cstr(mrb, buf);
 }
-#endif  /* MRB_DISABLE_STDIO */
+#endif  /* MRB_DISABLE_STDIO || _WIN32 || _WIN64 */
 #endif

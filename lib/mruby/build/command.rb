@@ -41,7 +41,7 @@ module MRuby
   class Command::Compiler < Command
     attr_accessor :flags, :include_paths, :defines, :source_exts
     attr_accessor :compile_options, :option_define, :option_include_path, :out_ext
-    attr_accessor :cxx_compile_flag, :cxx_exception_flag
+    attr_accessor :cxx_compile_flag, :cxx_exception_flag, :cxx_invalid_flags
 
     def initialize(build, source_exts=[])
       super(build)
@@ -53,6 +53,7 @@ module MRuby
       @option_include_path = '-I%s'
       @option_define = '-D%s'
       @compile_options = '%{flags} -o %{outfile} -c %{infile}'
+      @cxx_invalid_flags = []
     end
 
     alias header_search_paths include_paths
@@ -127,13 +128,40 @@ module MRuby
     end
 
     private
+
+    #
+    # === Example of +.d+ file
+    #
+    # ==== Without <tt>-MP</tt> compiler flag
+    #
+    #   /build/host/src/array.o: \
+    #     /src/array.c \
+    #     /include/mruby/common.h \
+    #     /include/mruby/value.h \
+    #     /src/value_array.h
+    #
+    # ==== With <tt>-MP</tt> compiler flag
+    #
+    #   /build/host/src/array.o: \
+    #     /src/array.c \
+    #     /include/mruby/common.h \
+    #     /include/mruby/value.h \
+    #     /src/value_array.h
+    #
+    #   /include/mruby/common.h:
+    #
+    #   /include/mruby/value.h:
+    #
+    #   /src/value_array.h:
+    #
     def get_dependencies(file)
       file = file.ext('d') unless File.extname(file) == '.d'
+      deps = []
       if File.exist?(file)
-        File.read(file).gsub("\\\n ", "").scan(/^\S+:\s+(.+)$/).flatten.map {|s| s.split(' ') }.flatten
-      else
-        []
-      end + [ MRUBY_CONFIG ]
+        File.foreach(file){|line| deps << $1 if /^ +(.*?)(?: *\\)?$/ =~ line}
+        deps.uniq!
+      end
+      deps << MRUBY_CONFIG
     end
   end
 
@@ -243,15 +271,16 @@ module MRuby
 
   class Command::Git < Command
     attr_accessor :flags
-    attr_accessor :clone_options, :pull_options, :checkout_options
+    attr_accessor :clone_options, :pull_options, :checkout_options, :reset_options
 
     def initialize(build)
       super
       @command = 'git'
       @flags = %w[]
       @clone_options = "clone %{flags} %{url} %{dir}"
-      @pull_options = "pull"
-      @checkout_options = "checkout %{checksum_hash}"
+      @pull_options = "--git-dir '%{repo_dir}/.git' --work-tree '%{repo_dir}' pull"
+      @checkout_options = "--git-dir '%{repo_dir}/.git' --work-tree '%{repo_dir}' checkout %{checksum_hash}"
+      @reset_options = "--git-dir '%{repo_dir}/.git' --work-tree '%{repo_dir}' reset %{checksum_hash}"
     end
 
     def run_clone(dir, url, _flags = [])
@@ -260,19 +289,26 @@ module MRuby
     end
 
     def run_pull(dir, url)
-      root = Dir.pwd
-      Dir.chdir dir
       _pp "GIT PULL", url, dir.relative_path
-      _run pull_options
-      Dir.chdir root
+      _run pull_options, { :repo_dir => dir }
     end
 
     def run_checkout(dir, checksum_hash)
-      root = Dir.pwd
-      Dir.chdir dir
       _pp "GIT CHECKOUT", checksum_hash
-      _run checkout_options, { :checksum_hash => checksum_hash }
-      Dir.chdir root
+      _run checkout_options, { :checksum_hash => checksum_hash, :repo_dir => dir }
+    end
+
+    def run_reset_hard(dir, checksum_hash)
+      _pp "GIT RESET", checksum_hash
+      _run reset_options, { :checksum_hash => checksum_hash, :repo_dir => dir }
+    end
+
+    def commit_hash(dir)
+      `#{@command} --git-dir '#{dir}/.git' --work-tree '#{dir}' rev-parse --verify HEAD`.strip
+    end
+
+    def current_branch(dir)
+      `#{@command} --git-dir '#{dir}/.git' --work-tree '#{dir}' rev-parse --abbrev-ref HEAD`.strip
     end
   end
 

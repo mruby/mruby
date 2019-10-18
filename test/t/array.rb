@@ -298,11 +298,38 @@ assert('Array#size', '15.2.12.5.28') do
 end
 
 assert('Array#slice', '15.2.12.5.29') do
-  a = "12345".slice(1, 3)
-  b = a.slice(0)
+  a = [*(1..100)]
+  b = a.dup
 
-  assert_equal("2:", "#{b}:")
-  assert_equal(2, [1,2,3].[](1))
+  assert_equal(1, a.slice(0))
+  assert_equal(100, a.slice(99))
+  assert_nil(a.slice(100))
+  assert_equal(100, a.slice(-1))
+  assert_equal(99,  a.slice(-2))
+  assert_equal(1,   a.slice(-100))
+  assert_nil(a.slice(-101))
+  assert_equal([1],   a.slice(0,1))
+  assert_equal([100], a.slice(99,1))
+  assert_equal([],    a.slice(100,1))
+  assert_equal([100], a.slice(99,100))
+  assert_equal([100], a.slice(-1,1))
+  assert_equal([99],  a.slice(-2,1))
+  assert_equal([10, 11, 12], a.slice(9, 3))
+  assert_equal([10, 11, 12], a.slice(-91, 3))
+  assert_nil(a.slice(-101, 2))
+  assert_equal([1],   a.slice(0..0))
+  assert_equal([100], a.slice(99..99))
+  assert_equal([],    a.slice(100..100))
+  assert_equal([100], a.slice(99..200))
+  assert_equal([100], a.slice(-1..-1))
+  assert_equal([99],  a.slice(-2..-2))
+  assert_equal([10, 11, 12], a.slice(9..11))
+  assert_equal([10, 11, 12], a.slice(-91..-89))
+  assert_equal([10, 11, 12], a.slice(-91..-89))
+  assert_nil(a.slice(-101..-1))
+  assert_nil(a.slice(10, -3))
+  assert_equal([], a.slice(10..7))
+  assert_equal(b, a)
 end
 
 assert('Array#unshift', '15.2.12.5.30') do
@@ -319,11 +346,12 @@ end
 
 assert('Array#to_s', '15.2.12.5.31 / 15.2.12.5.32') do
   a = [2, 3,   4, 5]
+  a[4] = a
   r1 = a.to_s
   r2 = a.inspect
 
   assert_equal(r2, r1)
-  assert_equal("[2, 3, 4, 5]", r1)
+  assert_equal("[2, 3, 4, 5, [...]]", r1)
 end
 
 assert('Array#==', '15.2.12.5.33') do

@@ -38,7 +38,7 @@ mrb_proc_inspect(mrb_state *mrb, mrb_value self)
 {
   struct RProc *p = mrb_proc_ptr(self);
   mrb_value str = mrb_str_new_lit(mrb, "#<Proc:");
-  mrb_str_concat(mrb, str, mrb_ptr_to_str(mrb, mrb_cptr(self)));
+  mrb_str_cat_str(mrb, str, mrb_ptr_to_str(mrb, mrb_cptr(self)));
 
   if (!MRB_PROC_CFUNC_P(p)) {
     mrb_irep *irep = p->body.irep;
@@ -52,7 +52,7 @@ mrb_proc_inspect(mrb_state *mrb, mrb_value self)
 
     line = mrb_debug_get_line(mrb, irep, 0);
     if (line != -1) {
-      str = mrb_format(mrb, "%S:%S", str, mrb_fixnum_value(line));
+      mrb_str_concat(mrb, str, mrb_fixnum_value(line));
     }
     else {
       mrb_str_cat_lit(mrb, str, "-");
@@ -72,10 +72,7 @@ mrb_kernel_proc(mrb_state *mrb, mrb_value self)
 {
   mrb_value blk;
 
-  mrb_get_args(mrb, "&", &blk);
-  if (mrb_nil_p(blk)) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "tried to create Proc object without a block");
-  }
+  mrb_get_args(mrb, "&!", &blk);
 
   return blk;
 }
@@ -153,7 +150,7 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
       mrb_ary_push(mrb, a, sname);
       if (i < max && irep->lv[i].name) {
         mrb_sym sym = irep->lv[i].name;
-        const char *name = mrb_sym2name(mrb, sym);
+        const char *name = mrb_sym_name(mrb, sym);
         switch (name[0]) {
         case '*': case '&':
           break;

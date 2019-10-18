@@ -186,8 +186,13 @@ assert("Enumerable#to_h") do
   h = c.new.to_h
   assert_equal Hash, h.class
   assert_equal h0, h
-  # mruby-enum-ext also provides nil.to_h
-  assert_equal Hash.new, nil.to_h
-
   assert_equal({1=>4,3=>8}, c.new.to_h{|k,v|[k,v*2]})
+end
+
+assert("Enumerable#filter_map") do
+  assert_equal [4, 8, 12, 16, 20], (1..10).filter_map{|i| i * 2 if i%2==0}
+end
+
+assert("Enumerable#tally") do
+  assert_equal({"a"=>1, "b"=>2, "c"=>1}, ["a", "b", "c", "b"].tally)
 end

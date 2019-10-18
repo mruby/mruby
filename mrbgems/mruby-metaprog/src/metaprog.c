@@ -117,6 +117,7 @@ mrb_obj_ivar_set(mrb_state *mrb, mrb_value self)
 }
 
 /* 15.3.1.2.7 */
+/* 15.3.1.3.28 */
 /*
  *  call-seq:
  *     local_variables   -> array
@@ -149,7 +150,7 @@ mrb_local_variables(mrb_state *mrb, mrb_value self)
     for (i = 0; i + 1 < irep->nlocals; ++i) {
       if (irep->lv[i].name) {
         mrb_sym sym = irep->lv[i].name;
-        const char *name = mrb_sym2name(mrb, sym);
+        const char *name = mrb_sym_name(mrb, sym);
         switch (name[0]) {
         case '*': case '&':
           break;
@@ -186,7 +187,7 @@ method_entry_loop(mrb_state *mrb, struct RClass* klass, khash_t(st)* set)
   }
 }
 
-mrb_value
+static mrb_value
 mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass* klass, int obj)
 {
   khint_t i;
@@ -388,10 +389,7 @@ mod_define_singleton_method(mrb_state *mrb, mrb_value self)
   mrb_sym mid;
   mrb_value blk = mrb_nil_value();
 
-  mrb_get_args(mrb, "n&", &mid, &blk);
-  if (mrb_nil_p(blk)) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
-  }
+  mrb_get_args(mrb, "n&!", &mid, &blk);
   p = (struct RProc*)mrb_obj_alloc(mrb, MRB_TT_PROC, mrb->proc_class);
   mrb_proc_copy(p, mrb_proc_ptr(blk));
   p->flags |= MRB_PROC_STRICT;
@@ -411,9 +409,9 @@ static void
 check_cv_name_sym(mrb_state *mrb, mrb_sym id)
 {
   mrb_int len;
-  const char *name = mrb_sym2name_len(mrb, id, &len);
+  const char *name = mrb_sym_name_len(mrb, id, &len);
   if (!cv_name_p(mrb, name, len)) {
-    mrb_name_error(mrb, id, "'%S' is not allowed as a class variable name", mrb_sym2str(mrb, id));
+    mrb_name_error(mrb, id, "'%n' is not allowed as a class variable name", id);
   }
 }
 
@@ -453,12 +451,10 @@ mrb_mod_remove_cvar(mrb_state *mrb, mrb_value mod)
   if (!mrb_undef_p(val)) return val;
 
   if (mrb_cv_defined(mrb, mod, id)) {
-    mrb_name_error(mrb, id, "cannot remove %S for %S",
-                   mrb_sym2str(mrb, id), mod);
+    mrb_name_error(mrb, id, "cannot remove %n for %v", id, mod);
   }
 
-  mrb_name_error(mrb, id, "class variable %S not defined for %S",
-                 mrb_sym2str(mrb, id), mod);
+  mrb_name_error(mrb, id, "class variable %n not defined for %v", id, mod);
 
  /* not reached */
  return mrb_nil_value();
@@ -565,8 +561,6 @@ mrb_mod_included_modules(mrb_state *mrb, mrb_value self)
   return result;
 }
 
-mrb_value mrb_class_instance_method_list(mrb_state*, mrb_bool, struct RClass*, int);
-
 /* 15.2.2.4.33 */
 /*
  *  call-seq:
@@ -623,8 +617,7 @@ remove_method(mrb_state *mrb, mrb_value mod, mrb_sym mid)
     }
   }
 
-  mrb_name_error(mrb, mid, "method '%S' not defined in %S",
-                 mrb_sym2str(mrb, mid), mod);
+  mrb_name_error(mrb, mid, "method '%n' not defined in %v", mid, mod);
 }
 
 /* 15.2.2.4.41 */
@@ -643,6 +636,7 @@ mrb_mod_remove_method(mrb_state *mrb, mrb_value mod)
   mrb_value *argv;
 
   mrb_get_args(mrb, "*", &argv, &argc);
+  mrb_check_frozen(mrb, mrb_obj_ptr(mod));
   while (argc--) {
     remove_method(mrb, mod, mrb_obj_to_sym(mrb, *argv));
     argv++;
@@ -657,8 +651,29 @@ mrb_mod_s_constants(mrb_state *mrb, mrb_value mod)
   return mrb_nil_value();       /* not reached */
 }
 
-/* implementation of Module.nesting */
-mrb_value mrb_mod_s_nesting(mrb_state*, mrb_value);
+static mrb_value
+mrb_mod_s_nesting(mrb_state *mrb, mrb_value mod)
+{
+  struct RProc *proc;
+  mrb_value ary;
+  struct RClass *c = NULL;
+
+  ary = mrb_ary_new(mrb);
+  proc = mrb->c->ci[-1].proc;   /* callee proc */
+  mrb_assert(!MRB_PROC_CFUNC_P(proc));
+  while (proc) {
+    if (MRB_PROC_SCOPE_P(proc)) {
+      struct RClass *c2 = MRB_PROC_TARGET_CLASS(proc);
+
+      if (c2 != c) {
+        c = c2;
+        mrb_ary_push(mrb, ary, mrb_obj_value(c));
+      }
+    }
+    proc = proc->upper;
+  }
+  return ary;
+}
 
 void
 mrb_mruby_metaprog_gem_init(mrb_state* mrb)
@@ -666,8 +681,8 @@ mrb_mruby_metaprog_gem_init(mrb_state* mrb)
   struct RClass *krn = mrb->kernel_module;
   struct RClass *mod = mrb->module_class;
 
-  mrb_define_method(mrb, krn, "global_variables", mrb_f_global_variables, MRB_ARGS_NONE()); /* 15.3.1.2.4 */
-  mrb_define_method(mrb, krn, "local_variables", mrb_local_variables, MRB_ARGS_NONE()); /* 15.3.1.3.28 */
+  mrb_define_method(mrb, krn, "global_variables", mrb_f_global_variables, MRB_ARGS_NONE()); /* 15.3.1.3.14 (15.3.1.2.4) */
+  mrb_define_method(mrb, krn, "local_variables", mrb_local_variables, MRB_ARGS_NONE()); /* 15.3.1.3.28 (15.3.1.2.7) */
 
   mrb_define_method(mrb, krn, "singleton_class", mrb_singleton_class, MRB_ARGS_NONE());
   mrb_define_method(mrb, krn, "instance_variable_defined?", mrb_obj_ivar_defined, MRB_ARGS_REQ(1)); /* 15.3.1.3.20 */
@@ -682,7 +697,7 @@ mrb_mruby_metaprog_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, krn, "define_singleton_method", mod_define_singleton_method, MRB_ARGS_ANY());
   mrb_define_method(mrb, krn, "send", mrb_f_send, MRB_ARGS_ANY()); /* 15.3.1.3.44 */
 
-  mrb_define_method(mrb, mod, "class_variables", mrb_mod_class_variables, MRB_ARGS_NONE()); /* 15.2.2.4.19 */
+  mrb_define_method(mrb, mod, "class_variables", mrb_mod_class_variables, MRB_ARGS_OPT(1)); /* 15.2.2.4.19 */
   mrb_define_method(mrb, mod, "remove_class_variable", mrb_mod_remove_cvar, MRB_ARGS_REQ(1)); /* 15.2.2.4.39 */
   mrb_define_method(mrb, mod, "class_variable_defined?", mrb_mod_cvar_defined, MRB_ARGS_REQ(1)); /* 15.2.2.4.16 */
   mrb_define_method(mrb, mod, "class_variable_get", mrb_mod_cvar_get, MRB_ARGS_REQ(1)); /* 15.2.2.4.17 */
@@ -693,7 +708,7 @@ mrb_mruby_metaprog_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, mod, "method_removed", mrb_f_nil, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, mod, "constants", mrb_mod_constants, MRB_ARGS_OPT(1)); /* 15.2.2.4.24 */
   mrb_define_class_method(mrb, mod, "constants", mrb_mod_s_constants, MRB_ARGS_ANY()); /* 15.2.2.3.1 */
-  mrb_define_class_method(mrb, mod, "nesting", mrb_mod_s_nesting, MRB_ARGS_REQ(0)); /* 15.2.2.3.2 */
+  mrb_define_class_method(mrb, mod, "nesting", mrb_mod_s_nesting, MRB_ARGS_NONE()); /* 15.2.2.3.2 */
 }
 
 void

@@ -1,7 +1,6 @@
-require 'pathname'
 require 'forwardable'
-require 'tsort'
-require 'shellwords'
+autoload :TSort, 'tsort'
+autoload :Shellwords, 'shellwords'
 
 module MRuby
   module Gem
@@ -92,6 +91,9 @@ module MRuby
         build.libmruby_objs << @objs
 
         instance_eval(&@build_config_initializer) if @build_config_initializer
+
+        repo_url = build.gem_dir_to_repo_url[dir]
+        build.locks[repo_url]['version'] = version if repo_url
       end
 
       def setup_compilers
@@ -267,16 +269,18 @@ module MRuby
       # ~> compare algorithm
       #
       # Example:
+      #    ~> 2     means >= 2.0.0 and < 3.0.0
       #    ~> 2.2   means >= 2.2.0 and < 3.0.0
-      #    ~> 2.2.0 means >= 2.2.0 and < 2.3.0
+      #    ~> 2.2.2 means >= 2.2.2 and < 2.3.0
       def twiddle_wakka_ok?(other)
         gr_or_eql = (self <=> other) >= 0
-        still_minor = (self <=> other.skip_minor) < 0
-        gr_or_eql and still_minor
+        still_major_or_minor = (self <=> other.skip_major_or_minor) < 0
+        gr_or_eql and still_major_or_minor
       end
 
-      def skip_minor
+      def skip_major_or_minor
         a = @ary.dup
+        a << 0 if a.size == 1 # ~> 2 can also be represented as ~> 2.0
         a.slice!(-1)
         a[-1] = a[-1].succ
         a

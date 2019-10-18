@@ -83,11 +83,18 @@ module MRuby
         # by default the 'master' branch is used
         branch = params[:branch] ? params[:branch] : 'master'
 
+        lock = locks[url] if lock_enabled?
+
         if File.exist?(gemdir)
           if $pull_gems
             git.run_pull gemdir, url
-          else
-            gemdir
+            # Jump to the top of the branch
+            git.run_checkout(gemdir, branch)
+            git.run_reset_hard gemdir, "origin/#{branch}"
+          elsif params[:checksum_hash]
+            git.run_reset_hard(gemdir, params[:checksum_hash])
+          elsif lock
+            git.run_reset_hard(gemdir, lock['commit'])
           end
         else
           options = [params[:options]] || []
@@ -96,14 +103,22 @@ module MRuby
           options << "--depth 1" unless params[:checksum_hash]
           FileUtils.mkdir_p "#{gem_clone_dir}"
           git.run_clone gemdir, url, options
+
+          # Jump to the specified commit
+          if params[:checksum_hash]
+            git.run_reset_hard gemdir, params[:checksum_hash]
+          elsif lock
+            git.run_reset_hard gemdir, lock['commit']
+          end
         end
 
-        if params[:checksum_hash]
-          # Jump to the specified commit
-          git.run_checkout gemdir, params[:checksum_hash]
-        else
-          # Jump to the top of the branch
-          git.run_checkout gemdir, branch if $pull_gems
+        if lock_enabled?
+          @gem_dir_to_repo_url[gemdir] = url unless params[:path]
+          locks[url] = {
+            'url' => url,
+            'branch' => git.current_branch(gemdir),
+            'commit' => git.commit_hash(gemdir),
+          }
         end
 
         gemdir << "/#{params[:path]}" if params[:path]

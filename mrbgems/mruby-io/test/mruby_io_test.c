@@ -136,9 +136,9 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
   sun0.sun_family = AF_UNIX;
   snprintf(sun0.sun_path, sizeof(sun0.sun_path), "%s", socketname);
   if (bind(fd3, (struct sockaddr *)&sun0, sizeof(sun0)) == -1) {
-    mrb_raisef(mrb, E_RUNTIME_ERROR, "can't bind AF_UNIX socket to %S: %S",
-               mrb_str_new_cstr(mrb, sun0.sun_path),
-               mrb_fixnum_value(errno));
+    mrb_raisef(mrb, E_RUNTIME_ERROR, "can't bind AF_UNIX socket to %s: %d",
+               sun0.sun_path,
+               errno);
   }
   close(fd3);
 #endif
@@ -154,16 +154,16 @@ mrb_io_test_io_cleanup(mrb_state *mrb, mrb_value self)
   mrb_value symlinkname = mrb_gv_get(mrb, mrb_intern_cstr(mrb, "$mrbtest_io_symlinkname"));
   mrb_value socketname = mrb_gv_get(mrb, mrb_intern_cstr(mrb, "$mrbtest_io_socketname"));
 
-  if (mrb_type(rfname) == MRB_TT_STRING) {
+  if (mrb_string_p(rfname)) {
     remove(RSTRING_PTR(rfname));
   }
-  if (mrb_type(wfname) == MRB_TT_STRING) {
+  if (mrb_string_p(wfname)) {
     remove(RSTRING_PTR(wfname));
   }
-  if (mrb_type(symlinkname) == MRB_TT_STRING) {
+  if (mrb_string_p(symlinkname)) {
     remove(RSTRING_PTR(symlinkname));
   }
-  if (mrb_type(socketname) == MRB_TT_STRING) {
+  if (mrb_string_p(socketname)) {
     remove(RSTRING_PTR(socketname));
   }
 
@@ -215,11 +215,9 @@ mrb_io_test_mkdtemp(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_io_test_rmdir(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value str;
-  char *cp;
+  const char *cp;
 
-  mrb_get_args(mrb, "S", &str);
-  cp = mrb_str_to_cstr(mrb, str);
+  mrb_get_args(mrb, "z", &cp);
   if (rmdir(cp) == -1) {
     mrb_sys_fail(mrb, "rmdir");
   }

@@ -1,5 +1,5 @@
-/*
-** mruby/boxing_nan.h - nan boxing mrb_value definition
+/**
+** @file mruby/boxing_nan.h - nan boxing mrb_value definition
 **
 ** See Copyright Notice in mruby.h
 */
@@ -20,13 +20,6 @@
 #endif
 
 #define MRB_FIXNUM_SHIFT 0
-#define MRB_TT_HAS_BASIC MRB_TT_OBJECT
-
-#ifdef MRB_ENDIAN_BIG
-#define MRB_ENDIAN_LOHI(a,b) a b
-#else
-#define MRB_ENDIAN_LOHI(a,b) b a
-#endif
 
 /* value representation by nan-boxing:
  *   float : FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF

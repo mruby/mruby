@@ -15,8 +15,9 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
   mrbtest_lib = libfile("#{build_dir}/mrbtest")
   mrbtest_objs = []
 
-  driver_obj = objfile("#{build_dir}/driver")
-  # driver = "#{spec.dir}/driver.c"
+  driver_objs = Dir.glob("#{dir}/*.{c,cpp,cxx,cc,m,asm,s,S}").map do |f|
+    objfile(f.relative_path_from(dir).to_s.pathmap("#{build_dir}/%X"))
+  end
 
   assert_c = "#{build_dir}/assert.c"
   assert_rb = "#{MRUBY_ROOT}/test/assert.rb"
@@ -133,7 +134,7 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
   end
 
   unless build.build_mrbtest_lib_only?
-    file exec => [driver_obj, mlib, mrbtest_lib, build.libmruby_static] do |t|
+    file exec => [*driver_objs, mlib, mrbtest_lib, build.libmruby_static] do |t|
       gem_flags = build.gems.map { |g| g.linker.flags }
       gem_flags_before_libraries = build.gems.map { |g| g.linker.flags_before_libraries }
       gem_flags_after_libraries = build.gems.map { |g| g.linker.flags_after_libraries }

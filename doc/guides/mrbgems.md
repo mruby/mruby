@@ -37,6 +37,11 @@ conf.gem :mgem => 'mruby-yaml'
 conf.gem :mgem => 'yaml' # 'mruby-' prefix could be omitted
 ```
 
+For specifying commit hash to checkout use `:checksum_hash` option:
+```ruby
+conf.gem mgem: 'mruby-redis', checksum_hash: '3446d19fc4a3f9697b5ddbf2a904f301c42f2f4e'
+```
+
 If there is missing dependencies, mrbgem dependencies solver will reference
 mrbgem from core or mgem-list.
 

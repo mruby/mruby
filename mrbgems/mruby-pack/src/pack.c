@@ -3,7 +3,7 @@
  */
 
 #include "mruby.h"
-#include "error.h"
+#include "mruby/error.h"
 #include "mruby/array.h"
 #include "mruby/class.h"
 #include "mruby/numeric.h"
@@ -118,9 +118,9 @@ make_base64_dec_tab(void)
     base64_dec_tab['a' + i] = i + 26;
   for (i = 0; i < 10; i++)
     base64_dec_tab['0' + i] = i + 52;
-  base64_dec_tab['+'] = 62;
-  base64_dec_tab['/'] = 63;
-  base64_dec_tab['='] = PACK_BASE64_PADDING;
+  base64_dec_tab['+'+0] = 62;
+  base64_dec_tab['/'+0] = 63;
+  base64_dec_tab['='+0] = PACK_BASE64_PADDING;
 }
 
 static mrb_value
@@ -237,7 +237,7 @@ unpack_l(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
     int32_t sl = ul;
 #ifndef MRB_INT64
     if (!FIXABLE(sl)) {
-      snprintf(msg, sizeof(msg), "cannot unpack to Fixnum: %ld", (long)sl);
+      snprintf(msg, sizeof(msg), "cannot unpack to Fixnum: %" PRId32, sl);
       mrb_raise(mrb, E_RANGE_ERROR, msg);
     }
 #endif
@@ -245,7 +245,7 @@ unpack_l(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
   } else {
 #ifndef MRB_INT64
     if (!POSFIXABLE(ul)) {
-      snprintf(msg, sizeof(msg), "cannot unpack to Fixnum: %lu", (unsigned long)ul);
+      snprintf(msg, sizeof(msg), "cannot unpack to Fixnum: %" PRIu32, ul);
       mrb_raise(mrb, E_RANGE_ERROR, msg);
     }
 #endif
@@ -307,13 +307,13 @@ unpack_q(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
   if (flags & PACK_FLAG_SIGNED) {
     int64_t sll = ull;
     if (!FIXABLE(sll)) {
-      snprintf(msg, sizeof(msg), "cannot unpack to Fixnum: %lld", (long long)sll);
+      snprintf(msg, sizeof(msg), "cannot unpack to Fixnum: %" PRId64, sll);
       mrb_raise(mrb, E_RANGE_ERROR, msg);
     }
     n = sll;
   } else {
     if (!POSFIXABLE(ull)) {
-      snprintf(msg, sizeof(msg), "cannot unpack to Fixnum: %llu", (unsigned long long)ull);
+      snprintf(msg, sizeof(msg), "cannot unpack to Fixnum: %" PRIu64, ull);
       mrb_raise(mrb, E_RANGE_ERROR, msg);
     }
     n = ull;
@@ -529,8 +529,8 @@ utf8_to_uv(mrb_state *mrb, const char *p, long *lenp)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "malformed UTF-8 character");
   }
   if (n > *lenp) {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "malformed UTF-8 character (expected %S bytes, given %S bytes)",
-               mrb_fixnum_value(n), mrb_fixnum_value(*lenp));
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "malformed UTF-8 character (expected %d bytes, given %d bytes)",
+               n, *lenp);
   }
   *lenp = n--;
   if (n != 0) {
@@ -976,7 +976,7 @@ alias:
       case 4: t = 'L'; goto alias;
       case 8: t = 'Q'; goto alias;
       default:
-        mrb_raisef(mrb, E_RUNTIME_ERROR, "mruby-pack does not support sizeof(int) == %S", mrb_fixnum_value(sizeof(int)));
+        mrb_raisef(mrb, E_RUNTIME_ERROR, "mruby-pack does not support sizeof(int) == %d", (int)sizeof(int));
     }
     break;
   case 'i':
@@ -985,7 +985,7 @@ alias:
       case 4: t = 'l'; goto alias;
       case 8: t = 'q'; goto alias;
       default:
-        mrb_raisef(mrb, E_RUNTIME_ERROR, "mruby-pack does not support sizeof(int) == %S", mrb_fixnum_value(sizeof(int)));
+        mrb_raisef(mrb, E_RUNTIME_ERROR, "mruby-pack does not support sizeof(int) == %d", (int)sizeof(int));
     }
     break;
   case 'L':
@@ -1002,7 +1002,7 @@ alias:
   case 'm':
     dir = PACK_DIR_BASE64;
     type = PACK_TYPE_STRING;
-    flags |= PACK_FLAG_WIDTH;
+    flags |= PACK_FLAG_WIDTH | PACK_FLAG_COUNT2;
     break;
   case 'N':  /* = "L>" */
     dir = PACK_DIR_LONG;
@@ -1075,18 +1075,18 @@ alias:
     if (ISDIGIT(ch)) {
       count = ch - '0';
       while (tmpl->idx < tlen && ISDIGIT(tptr[tmpl->idx])) {
-        count = count * 10 + (tptr[tmpl->idx++] - '0');
-        if (count < 0) {
+        int ch = tptr[tmpl->idx++] - '0';
+        if (count+ch > INT_MAX/10) {
           mrb_raise(mrb, E_RUNTIME_ERROR, "too big template length");
         }
+        count = count * 10 + ch;
       }
       continue;  /* special case */
     } else if (ch == '*')  {
       count = -1;
     } else if (ch == '_' || ch == '!' || ch == '<' || ch == '>') {
       if (strchr("sSiIlLqQ", (int)t) == NULL) {
-        char ch_str = (char)ch;
-        mrb_raisef(mrb, E_ARGUMENT_ERROR, "'%S' allowed only after types sSiIlLqQ", mrb_str_new(mrb, &ch_str, 1));
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "'%c' allowed only after types sSiIlLqQ", ch);
       }
       if (ch == '_' || ch == '!') {
         flags |= PACK_FLAG_s;
@@ -1155,7 +1155,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
 #endif
       else if (type == PACK_TYPE_STRING) {
         if (!mrb_string_p(o)) {
-          mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %S into String", mrb_class_path(mrb, mrb_obj_class(mrb, o)));
+          mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %T into String", o);
         }
       }
 
@@ -1195,7 +1195,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
       default:
         break;
       }
-      if (dir == PACK_DIR_STR) { /* always consumes 1 entry */
+      if (dir == PACK_DIR_STR || dir == PACK_DIR_BASE64) { /* always consumes 1 entry */
         aidx++;
         break;
       }
@@ -1248,6 +1248,9 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
       case PACK_DIR_STR:
         srcidx += unpack_a(mrb, sptr, srclen - srcidx, result, count, flags);
         break;
+      case PACK_DIR_BASE64:
+        srcidx += unpack_m(mrb, sptr, srclen - srcidx, result, flags);
+        break;
       }
       continue;
     }
@@ -1274,9 +1277,6 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
       case PACK_DIR_QUAD:
         srcidx += unpack_q(mrb, sptr, srclen - srcidx, result, flags);
         break;
-      case PACK_DIR_BASE64:
-        srcidx += unpack_m(mrb, sptr, srclen - srcidx, result, flags);
-        break;
 #ifndef MRB_WITHOUT_FLOAT
       case PACK_DIR_FLOAT:
         srcidx += unpack_float(mrb, sptr, srclen - srcidx, result, flags);
@@ -1298,7 +1298,12 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
     if (single) break;
   }
 
-  if (single) return RARRAY_PTR(result)[0];
+  if (single) {
+    if (RARRAY_LEN(result) > 0) {
+      return RARRAY_PTR(result)[0];
+    }
+    return mrb_nil_value();
+  }
   return result;
 }
 

@@ -57,7 +57,7 @@ mrb_debug_get_filename(mrb_state *mrb, mrb_irep *irep, ptrdiff_t pc)
     mrb_irep_debug_info_file* f = NULL;
     if (!irep->debug_info) return NULL;
     else if ((f = get_file(irep->debug_info, (uint32_t)pc))) {
-      return mrb_sym2name_len(mrb, f->filename_sym, NULL);
+      return mrb_sym_name_len(mrb, f->filename_sym, NULL);
     }
   }
   return NULL;
@@ -138,7 +138,7 @@ mrb_debug_info_append_file(mrb_state *mrb, mrb_irep_debug_info *d,
   mrb_assert(lines);
 
   if (d->flen > 0) {
-    const char *fn = mrb_sym2name_len(mrb, d->files[d->flen - 1]->filename_sym, NULL);
+    const char *fn = mrb_sym_name_len(mrb, d->files[d->flen - 1]->filename_sym, NULL);
     if (strcmp(filename, fn) == 0)
       return NULL;
   }

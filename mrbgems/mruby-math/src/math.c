@@ -4,6 +4,10 @@
 ** See Copyright Notice in mruby.h
 */
 
+#ifdef MRB_WITHOUT_FLOAT
+# error Math conflicts 'MRB_WITHOUT_FLOAT' configuration in your 'build_config.rb'
+#endif
+
 #include <mruby.h>
 #include <mruby/array.h>
 
@@ -14,8 +18,7 @@ domain_error(mrb_state *mrb, const char *func)
 {
   struct RClass *math = mrb_module_get(mrb, "Math");
   struct RClass *domainerror = mrb_class_get_under(mrb, math, "DomainError");
-  mrb_value str = mrb_str_new_cstr(mrb, func);
-  mrb_raisef(mrb, domainerror, "Numerical argument is out of domain - %S", str);
+  mrb_raisef(mrb, domainerror, "Numerical argument is out of domain - %s", func);
 }
 
 /* math functions not provided by Microsoft Visual C++ 2012 or older */

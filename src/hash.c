@@ -92,7 +92,7 @@ ht_hash_equal(mrb_state *mrb, htable *t, mrb_value a, mrb_value b)
     return mrb_str_equal(mrb, a, b);
 
   case MRB_TT_SYMBOL:
-    if (mrb_type(b) != MRB_TT_SYMBOL) return FALSE;
+    if (!mrb_symbol_p(b)) return FALSE;
     return mrb_symbol(a) == mrb_symbol(b);
 
   case MRB_TT_FIXNUM:
@@ -182,7 +182,7 @@ ht_index(mrb_state *mrb, htable *t)
   if (!index || index->capa < size) {
     index = (segindex*)mrb_realloc_simple(mrb, index, sizeof(segindex)+sizeof(struct segkv*)*size);
     if (index == NULL) {
-      mrb_free(mrb, index);
+      mrb_free(mrb, t->index);
       t->index = NULL;
       return;
     }
@@ -240,7 +240,7 @@ ht_compact(mrb_state *mrb, htable *t)
       if (!seg->next && i >= t->last_len) {
         goto exit;
       }
-      if (mrb_undef_p(k)) {     /* found delete key */
+      if (mrb_undef_p(k)) {     /* found deleted key */
         if (seg2 == NULL) {
           seg2 = seg;
           i2 = i;
@@ -546,6 +546,7 @@ ht_copy(mrb_state *mrb, htable *t)
       if ((seg->next == NULL) && (i >= t->last_len)) {
         return t2;
       }
+      if (mrb_undef_p(key)) continue; /* skip deleted key */
       ht_put(mrb, t2, key, val);
     }
     seg = seg->next;
@@ -575,7 +576,7 @@ static void mrb_hash_modify(mrb_state *mrb, mrb_value hash);
 static inline mrb_value
 ht_key(mrb_state *mrb, mrb_value key)
 {
-  if (mrb_string_p(key) && !MRB_FROZEN_P(mrb_str_ptr(key))) {
+  if (mrb_string_p(key) && !mrb_frozen_p(mrb_str_ptr(key))) {
     key = mrb_str_dup(mrb, key);
     MRB_SET_FROZEN_FLAG(mrb_str_ptr(key));
   }
@@ -746,10 +747,7 @@ mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val)
 static void
 mrb_hash_modify(mrb_state *mrb, mrb_value hash)
 {
-  if (MRB_FROZEN_P(mrb_hash_ptr(hash))) {
-    mrb_raise(mrb, E_FROZEN_ERROR, "can't modify frozen hash");
-  }
-
+  mrb_check_frozen(mrb, mrb_hash_ptr(hash));
   if (!RHASH_TBL(hash)) {
     RHASH_TBL(hash) = ht_new(mrb);
   }
@@ -1381,10 +1379,21 @@ mrb_hash_merge(mrb_state *mrb, mrb_value hash1, mrb_value hash2)
  *  values of key objects have changed since they were inserted, this
  *  method will reindex <i>hsh</i>.
  *
- *     h = {"AAA" => "b"}
- *     h.keys[0].chop!
- *     h.rehash   #=> {"AA"=>"b"}
- *     h["AA"]    #=> "b"
+ *     keys = (1..17).map{|n| [n]}
+ *     k = keys[0]
+ *     h = {}
+ *     keys.each{|key| h[key] = key[0]}
+ *     h     #=> { [1]=> 1, [2]=> 2, [3]=> 3, [4]=> 4, [5]=> 5, [6]=> 6, [7]=> 7,
+ *                 [8]=> 8, [9]=> 9,[10]=>10,[11]=>11,[12]=>12,[13]=>13,[14]=>14,
+ *                [15]=>15,[16]=>16,[17]=>17}
+ *     h[k]  #=> 1
+ *     k[0] = keys.size + 1
+ *     h     #=> {[18]=> 1, [2]=> 2, [3]=> 3, [4]=> 4, [5]=> 5, [6]=> 6, [7]=> 7,
+ *                 [8]=> 8, [9]=> 9,[10]=>10,[11]=>11,[12]=>12,[13]=>13,[14]=>14,
+ *                [15]=>15,[16]=>16,[17]=>17}
+ *     h[k]  #=> nil
+ *     h.rehash
+ *     h[k]  #=> 1
  */
 static mrb_value
 mrb_hash_rehash(mrb_state *mrb, mrb_value self)

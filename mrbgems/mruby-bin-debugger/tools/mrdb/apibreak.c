@@ -95,7 +95,7 @@ check_file_lineno(mrb_state *mrb, struct mrb_irep *irep, const char *file, uint1
   for (f_idx = 0; f_idx < irep->debug_info->flen; ++f_idx) {
     const char *filename;
     info_file = irep->debug_info->files[f_idx];
-    filename = mrb_sym2name_len(mrb, info_file->filename_sym, NULL);
+    filename = mrb_sym_name_len(mrb, info_file->filename_sym, NULL);
     if (!strcmp(filename, file)) {
       result = MRB_DEBUG_BP_FILE_OK;
 
@@ -126,7 +126,7 @@ compare_break_method(mrb_state *mrb, mrb_debug_breakpoint *bp, struct RClass *cl
   mrb_debug_methodpoint *method_p;
   mrb_bool is_defined;
 
-  method_name = mrb_sym2name(mrb, method_sym);
+  method_name = mrb_sym_name(mrb, method_sym);
 
   method_p = &bp->point.methodpoint;
   if (strcmp(method_p->method_name, method_name) == 0) {
@@ -428,7 +428,7 @@ mrb_debug_disable_break_all(mrb_state *mrb, mrb_debug_context *dbg)
 }
 
 static mrb_bool
-check_start_pc_for_line(mrb_state *mrb, mrb_irep *irep, mrb_code *pc, uint16_t line)
+check_start_pc_for_line(mrb_state *mrb, mrb_irep *irep, const mrb_code *pc, uint16_t line)
 {
   if (pc > irep->iseq) {
     if (line == mrb_debug_get_line(mrb, irep, pc - irep->iseq - 1)) {
