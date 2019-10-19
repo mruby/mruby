@@ -1885,7 +1885,8 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
     return mrb_str_cat_lit(mrb, str, ">");
   }
   else {
-    return class_name_str(mrb, mrb_class_ptr(klass));
+    mrb_value str = class_name_str(mrb, mrb_class_ptr(klass));
+    return mrb_frozen_p(mrb_basic_ptr(str)) ? mrb_str_dup(mrb, str) : str;
   }
 }
 
