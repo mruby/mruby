@@ -423,7 +423,7 @@ mrb_any_to_s(mrb_state *mrb, mrb_value obj)
   mrb_str_cat_cstr(mrb, str, cname);
   if (!mrb_immediate_p(obj)) {
     mrb_str_cat_lit(mrb, str, ":");
-    mrb_str_concat(mrb, str, mrb_ptr_to_str(mrb, mrb_ptr(obj)));
+    mrb_str_cat_str(mrb, str, mrb_ptr_to_str(mrb, mrb_ptr(obj)));
   }
   mrb_str_cat_lit(mrb, str, ">");
 
