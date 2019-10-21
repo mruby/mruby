@@ -5,7 +5,6 @@ MRuby::Toolchain.new(:openwrt) do |conf|
     cc.command = ENV['TARGET_CC']
     cc.flags = ENV['TARGET_CFLAGS']
     cc.include_paths = ["#{MRUBY_ROOT}/include"]
-    cc.defines = %w(DISABLE_GEMS)
     cc.option_include_path = '-I%s'
     cc.option_define = '-D%s'
     cc.compile_options = '%{flags} -MMD -o %{outfile} -c %{infile}'
@@ -15,7 +14,6 @@ MRuby::Toolchain.new(:openwrt) do |conf|
     cxx.command = ENV['TARGET_CXX']
     cxx.flags = ENV['TARGET_CXXFLAGS']
     cxx.include_paths = ["#{MRUBY_ROOT}/include"]
-    cxx.defines = %w(DISABLE_GEMS)
     cxx.option_include_path = '-I%s'
     cxx.option_define = '-D%s'
     cxx.compile_options = '%{flags} -MMD -o %{outfile} -c %{infile}'

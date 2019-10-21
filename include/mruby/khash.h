@@ -1,5 +1,5 @@
-/*
-** mruby/khash.c - Hash for mruby
+/**
+** @file mruby/khash.h - Hash for mruby
 **
 ** See Copyright Notice in mruby.h
 */

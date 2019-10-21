@@ -302,7 +302,7 @@ class TCPServer < TCPSocket
   end
 
   def sysaccept
-    Socket._accept(self.fileno)[0]
+    Socket._accept(self.fileno)
   end
 end
 
@@ -463,7 +463,7 @@ class Socket < BasicSocket
   end
 
   def sysaccept
-    Socket._accept(self.fileno)[0]
+    Socket._accept2(self.fileno)
   end
 end
 
@@ -566,7 +566,7 @@ class UNIXServer < UNIXSocket
   end
 
   def sysaccept
-    Socket._accept(self.fileno)[0]
+    Socket._accept(self.fileno)
   end
 end
 

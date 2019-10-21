@@ -1,7 +1,11 @@
+require "mruby-core-ext"
 require "mruby/build/load_gems"
 require "mruby/build/command"
 
 module MRuby
+  autoload :Gem, "mruby/gem"
+  autoload :Lockfile, "mruby/lockfile"
+
   class << self
     def targets
       @targets ||= {}
@@ -22,7 +26,6 @@ module MRuby
 
     def initialize(name, &block)
       @name, @initializer = name.to_s, block
-      MRuby::Toolchain.toolchains ||= {}
       MRuby::Toolchain.toolchains[@name] = self
     end
 
@@ -30,13 +33,8 @@ module MRuby
       conf.instance_exec(conf, params, &@initializer)
     end
 
-    def self.load
-      Dir.glob("#{MRUBY_ROOT}/tasks/toolchains/*.rake").each do |file|
-        Kernel.load file
-      end
-    end
+    self.toolchains = {}
   end
-  Toolchain.load
 
   class Build
     class << self
@@ -45,8 +43,10 @@ module MRuby
     include Rake::DSL
     include LoadGems
     attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir
-    attr_reader :libmruby, :gems, :toolchains
+    attr_reader :libmruby_objs, :gems, :toolchains, :gem_dir_to_repo_url
     attr_writer :enable_bintest, :enable_test
+
+    alias libmruby libmruby_objs
 
     COMPILERS = %w(cc cxx objc asm)
     COMMANDS = COMPILERS + %w(linker archiver yacc gperf git exts mrbc)
@@ -68,7 +68,7 @@ module MRuby
 
         @file_separator = '/'
         @build_dir = "#{build_dir}/#{@name}"
-        @gem_clone_dir = "#{build_dir}/mrbgems"
+        @gem_clone_dir = "#{build_dir}/repos/#{@name}"
         @cc = Command::Compiler.new(self, %w(.c))
         @cxx = Command::Compiler.new(self, %w(.cc .cxx .cpp))
         @objc = Command::Compiler.new(self, %w(.m))
@@ -81,14 +81,16 @@ module MRuby
         @mrbc = Command::Mrbc.new(self)
 
         @bins = []
-        @gems, @libmruby = MRuby::Gem::List.new, []
+        @gems, @libmruby_objs = MRuby::Gem::List.new, []
         @build_mrbtest_lib_only = false
         @cxx_exception_enabled = false
         @cxx_exception_disabled = false
         @cxx_abi_enabled = false
         @enable_bintest = false
         @enable_test = false
+        @enable_lock = true
         @toolchains = []
+        @gem_dir_to_repo_url = {}
 
         MRuby.targets[@name] = self
       end
@@ -100,6 +102,10 @@ module MRuby
       build_mrbtest if test_enabled?
     end
 
+    def debug_enabled?
+      @enable_debug
+    end
+
     def enable_debug
       compilers.each do |c|
         c.defines += %w(MRB_DEBUG)
@@ -108,6 +114,16 @@ module MRuby
         end
       end
       @mrbc.compile_options += ' -g'
+
+      @enable_debug = true
+    end
+
+    def disable_lock
+      @enable_lock = false
+    end
+
+    def lock_enabled?
+      Lockfile.enabled? && @enable_lock
     end
 
     def disable_cxx_exception
@@ -147,15 +163,13 @@ module MRuby
       compilers.each { |c|
         c.defines += %w(MRB_ENABLE_CXX_EXCEPTION MRB_ENABLE_CXX_ABI)
         c.flags << c.cxx_compile_flag
+        c.flags = c.flags.flatten - c.cxx_invalid_flags.flatten
       }
-      compilers.each { |c| c.flags << c.cxx_compile_flag }
       linker.command = cxx.command if toolchains.find { |v| v == 'gcc' }
       @cxx_abi_enabled = true
     end
 
     def compile_as_cxx src, cxx_src, obj = nil, includes = []
-      src = File.absolute_path src
-      cxx_src = File.absolute_path cxx_src
       obj = objfile(cxx_src) if obj.nil?
 
       file cxx_src => [src, __FILE__] do |t|
@@ -167,7 +181,7 @@ module MRuby
 #ifndef MRB_ENABLE_CXX_ABI
 extern "C" {
 #endif
-#include "#{src}"
+#include "#{File.absolute_path src}"
 #ifndef MRB_ENABLE_CXX_ABI
 }
 #endif
@@ -190,10 +204,15 @@ EOS
     end
 
     def toolchain(name, params={})
-      tc = Toolchain.toolchains[name.to_s]
-      fail "Unknown #{name} toolchain" unless tc
+      name = name.to_s
+      tc = Toolchain.toolchains[name] || begin
+        path = "#{MRUBY_ROOT}/tasks/toolchains/#{name}.rake"
+        fail "Unknown #{name} toolchain" unless File.exist?(path)
+        load path
+        Toolchain.toolchains[name]
+      end
       tc.setup(self, params)
-      @toolchains.unshift name.to_s
+      @toolchains.unshift name
     end
 
     def primary_toolchain
@@ -218,6 +237,10 @@ EOS
 
     def build_mrbc_exec
       gem :core => 'mruby-bin-mrbc'
+    end
+
+    def locks
+      Lockfile.build(@name)
     end
 
     def mrbcfile
@@ -249,7 +272,7 @@ EOS
       if name.is_a?(Array)
         name.flatten.map { |n| filename(n) }
       else
-        '"%s"' % name.gsub('/', file_separator)
+        name.gsub('/', file_separator)
       end
     end
 
@@ -257,15 +280,18 @@ EOS
       if name.is_a?(Array)
         name.flatten.map { |n| cygwin_filename(n) }
       else
-        '"%s"' % `cygpath -w "#{filename(name)}"`.strip
+        `cygpath -w "#{filename(name)}"`.strip
       end
     end
 
     def exefile(name)
       if name.is_a?(Array)
         name.flatten.map { |n| exefile(n) }
-      else
+      elsif File.extname(name).empty?
         "#{name}#{exts.executable}"
+      else
+        # `name` sometimes have (non-standard) extension (e.g. `.bat`).
+        name
       end
     end
 
@@ -293,18 +319,22 @@ EOS
       @build_mrbtest_lib_only
     end
 
+    def verbose_flag
+      $verbose ? ' -v' : ''
+    end
+
     def run_test
       puts ">>> Test #{name} <<<"
       mrbtest = exefile("#{build_dir}/bin/mrbtest")
-      sh "#{filename mrbtest.relative_path}#{$verbose ? ' -v' : ''}"
+      sh "#{filename mrbtest.relative_path}#{verbose_flag}"
       puts
-      run_bintest if bintest_enabled?
     end
 
     def run_bintest
+      puts ">>> Bintest #{name} <<<"
       targets = @gems.select { |v| File.directory? "#{v.dir}/bintest" }.map { |v| filename v.dir }
       targets << filename(".") if File.directory? "./bintest"
-      sh "ruby test/bintest.rb #{targets.join ' '}"
+      sh "ruby test/bintest.rb#{verbose_flag} #{targets.join ' '}"
     end
 
     def print_build_summary
@@ -323,6 +353,18 @@ EOS
       end
       puts "================================================"
       puts
+    end
+
+    def libmruby_static
+      libfile("#{build_dir}/lib/libmruby")
+    end
+
+    def libmruby_core_static
+      libfile("#{build_dir}/lib/libmruby_core")
+    end
+
+    def libraries
+      [libmruby_static]
     end
   end # Build
 

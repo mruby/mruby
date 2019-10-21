@@ -1,11 +1,21 @@
 ##
 # Array(Ext) Test
 
-assert("Array.try_convert") do
-  assert_nil Array.try_convert(0)
-  assert_nil Array.try_convert(nil)
-  assert_equal [], Array.try_convert([])
-  assert_equal [1,2,3], Array.try_convert([1,2,3])
+def assert_permutation_combination(exp, receiver, meth, *args)
+  act = []
+  ret = receiver.__send__(meth, *args) { |v| act << v }
+  assert "assert_#{meth}" do
+    assert_equal(exp, act.sort)
+    assert_same(receiver, ret)
+  end
+end
+
+def assert_permutation(exp, receiver, *args)
+  assert_permutation_combination(exp, receiver, :permutation, *args)
+end
+
+def assert_combination(exp, receiver, *args)
+  assert_permutation_combination(exp, receiver, :combination, *args)
 end
 
 assert("Array#assoc") do
@@ -75,6 +85,22 @@ assert("Array#|") do
   assert_equal [1, 2, 3, 1], a
 end
 
+assert("Array#union") do
+  a = [1, 2, 3, 1]
+  b = [1, 4]
+  c = [1, 5]
+
+  assert_equal [1, 2, 3, 4, 5], a.union(b,c)
+end
+
+assert("Array#difference") do
+  a = [1, 2, 3, 1, 6, 7]
+  b = [1, 4, 6]
+  c = [1, 5, 7]
+
+  assert_equal [2, 3], a.difference(b,c)
+end
+
 assert("Array#&") do
   a = [1, 2, 3, 1]
   b = [1, 4]
@@ -83,6 +109,14 @@ assert("Array#&") do
   assert_raise(TypeError) { a & c }
   assert_equal [1], (a & b)
   assert_equal [1, 2, 3, 1], a
+end
+
+assert("Array#intersection") do
+  a = [1, 2, 3, 1, 8, 6, 7, 8]
+  b = [1, 4, 6, 8]
+  c = [1, 5, 7, 8]
+
+  assert_equal [1, 8], a.intersection(b,c)
 end
 
 assert("Array#flatten") do
@@ -267,9 +301,9 @@ assert("Array#bsearch") do
   end
 end
 
-assert("Array#bsearch_index") do
-  # tested through Array#bsearch
-end
+# tested through Array#bsearch
+#assert("Array#bsearch_index") do
+#end
 
 assert("Array#delete_if") do
   a = [1, 2, 3, 4, 5]
@@ -330,25 +364,9 @@ assert('Array#to_h') do
   assert_raise(ArgumentError) { [[1]].to_h }
 end
 
-assert('Array#to_h (Modified)') do
-  class A
-    def to_ary
-      $a.clear
-      nil
-    end
-  end
-  $a = [A.new]
-  assert_raise(TypeError) { $a.to_h }
-end
-
 assert("Array#index (block)") do
   assert_nil (1..10).to_a.index { |i| i % 5 == 0 and i % 7 == 0 }
   assert_equal 34, (1..100).to_a.index { |i| i % 5 == 0 and i % 7 == 0 }
-end
-
-assert("Array#to_ary") do
-  assert_equal [], [].to_ary
-  assert_equal [1,2,3], [1,2,3].to_ary
 end
 
 assert("Array#dig") do
@@ -384,30 +402,24 @@ end
 
 assert("Array#permutation") do
   a = [1, 2, 3]
-  assert_equal([[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]],
-               a.permutation.to_a)
-  assert_equal([[1],[2],[3]],
-               a.permutation(1).to_a)
-  assert_equal([[1,2],[1,3],[2,1],[2,3],[3,1],[3,2]],
-               a.permutation(2).to_a)
-  assert_equal([[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]],
-               a.permutation(3).to_a)
-  assert_equal([[]], a.permutation(0).to_a)
-  assert_equal([], a.permutation(4).to_a)
+  assert_permutation([[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]], a)
+  assert_permutation([[1],[2],[3]], a, 1)
+  assert_permutation([[1,2],[1,3],[2,1],[2,3],[3,1],[3,2]], a, 2)
+  assert_permutation([[1,2,3],[1,3,2],[2,1,3],[2,3,1],[3,1,2],[3,2,1]], a, 3)
+  assert_permutation([[]], a, 0)
+  assert_permutation([], a, 4)
+  assert_permutation([], a, -1)
 end
 
 assert("Array#combination") do
   a = [1, 2, 3, 4]
-  assert_equal([[1],[2],[3],[4]],
-               a.combination(1).to_a)
-  assert_equal([[1,2],[1,3],[1,4],[2,3],[2,4],[3,4]],
-               a.combination(2).to_a)
-  assert_equal([[1,2,3],[1,2,4],[1,3,4],[2,3,4]],
-               a.combination(3).to_a)
-  assert_equal([[1,2,3,4]],
-               a.combination(4).to_a)
-  assert_equal([[]], a.combination(0).to_a)
-  assert_equal([], a.combination(5).to_a)
+  assert_combination([[1],[2],[3],[4]], a, 1)
+  assert_combination([[1,2],[1,3],[1,4],[2,3],[2,4],[3,4]], a, 2)
+  assert_combination([[1,2,3],[1,2,4],[1,3,4],[2,3,4]], a, 3)
+  assert_combination([[1,2,3,4]], a, 4)
+  assert_combination([[]], a, 0)
+  assert_combination([], a, 5)
+  assert_combination([], a, -1)
 end
 
 assert('Array#transpose') do
@@ -418,5 +430,5 @@ assert('Array#transpose') do
   assert_equal([[1], [2], [3]].transpose, [[1,2,3]])
   assert_equal([[1,2], [3,4], [5,6]].transpose, [[1,3,5], [2,4,6]])
   assert_raise(TypeError) { [1].transpose }
-  assert_raise(IndexError) { [[1], [2,3,4]].transpose } 
+  assert_raise(IndexError) { [[1], [2,3,4]].transpose }
 end

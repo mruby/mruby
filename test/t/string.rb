@@ -2,7 +2,7 @@
 ##
 # String ISO Test
 
-UTF8STRING = ("\343\201\202".size == 1)
+UTF8STRING = __ENCODING__ == "UTF-8"
 
 assert('String', '15.2.10') do
   assert_equal Class, String.class
@@ -20,6 +20,7 @@ assert('String#<=>', '15.2.10.5.1') do
   assert_equal  1, c
   assert_equal(-1, d)
   assert_equal  1, e
+  assert_nil 'a' <=> 1024
 end
 
 assert('String#==', '15.2.10.5.2') do
@@ -36,49 +37,37 @@ end
 assert('String#*', '15.2.10.5.5') do
   assert_equal 'aaaaa', 'a' * 5
   assert_equal '', 'a' * 0
-  assert_raise(ArgumentError) do
-    'a' * -1
-  end
+  assert_raise(ArgumentError) { 'a' * -1 }
+  assert_raise(TypeError) { 'a' * '1' }
+  assert_raise(TypeError) { 'a' * nil }
+
+  skip unless Object.const_defined?(:Float)
+  assert_equal 'aa', 'a' * 2.1
+  assert_raise(RangeError) { '' * 1e30 }
+  assert_raise(RangeError) { '' * Float::INFINITY }
+  assert_raise(RangeError) { '' * Float::NAN }
 end
 
 assert('String#[]', '15.2.10.5.6') do
   # length of args is 1
-  a = 'abc'[0]
-  b = 'abc'[-1]
-  c = 'abc'[10]
-  d = 'abc'[-10]
-  e = 'abc'[1.1]
+  assert_equal 'a', 'abc'[0]
+  assert_equal 'c', 'abc'[-1]
+  assert_nil 'abc'[10]
+  assert_nil 'abc'[-10]
+  assert_equal 'b', 'abc'[1.1] if Object.const_defined?(:Float)
 
   # length of args is 2
-  a1 = 'abc'[0, -1]
-  b1 = 'abc'[10, 0]
-  c1 = 'abc'[-10, 0]
-  d1 = 'abc'[0, 0]
-  e1 = 'abc'[1, 2]
-
-  # args is RegExp
-  # It will be tested in mrbgems.
+  assert_nil 'abc'[0, -1]
+  assert_nil 'abc'[10, 0]
+  assert_nil 'abc'[-10, 0]
+  assert_equal '', 'abc'[0, 0]
+  assert_equal 'bc', 'abc'[1, 2]
 
   # args is String
-  a3 = 'abc'['bc']
-  b3 = 'abc'['XX']
+  assert_equal 'bc', 'abc'['bc']
+  assert_nil 'abc'['XX']
 
-  assert_equal 'a', 'a'
-  # assert_equal 'c', b
-  # assert_nil c
-  # assert_nil d
-  # assert_equal 'b', e
-  # assert_nil a1
-  # assert_nil b1
-  # assert_nil c1
-  # assert_equal '', d1
-  # assert_equal 'bc', e1
-  # assert_equal 'bc', a3
-  # assert_nil b3
-
-  # assert_raise(TypeError) do
-  #   a[nil]
-  # end
+  assert_raise(TypeError) { 'abc'[nil] }
 end
 
 assert('String#[](UTF-8)', '15.2.10.5.6') do
@@ -154,11 +143,14 @@ assert('String#[]=') do
     d[-10] = 'X'
   end
 
-  if class_defined?("Float")
+  if Object.const_defined?(:Float)
    e = 'abc'
    e[1.1] = 'X'
    assert_equal 'aXc', e
   end
+
+  assert_raise(TypeError) { 'a'[0] = 1 }
+  assert_raise(TypeError) { 'a'[:a] = '1' }
 
   # length of args is 2
   a1 = 'abc'
@@ -196,7 +188,61 @@ assert('String#[]=') do
   assert_raise(IndexError) do
     b3['XX'] = 'Y'
   end
+
+  assert_raise(TypeError) { 'a'[:a, 0] = '1' }
+  assert_raise(TypeError) { 'a'[0, :a] = '1' }
+  assert_raise(TypeError) { 'a'[0, 1] = 1 }
 end
+
+assert('String[]=(UTF-8)') do
+  a = "➀➁➂➃➄"
+  a[3] = "⚃"
+  assert_equal "➀➁➂⚃➄", a
+
+  b = "➀➁➂➃➄"
+  b[3, 0] = "⛄"
+  assert_equal "➀➁➂⛄➃➄", b
+
+  c = "➀➁➂➃➄"
+  c[3, 2] = "⚃⚄"
+  assert_equal "➀➁➂⚃⚄", c
+
+  d = "➀➁➂➃➄"
+  d[5] = "⛄"
+  assert_equal "➀➁➂➃➄⛄", d
+
+  e = "➀➁➂➃➄"
+  e[5, 0] = "⛄"
+  assert_equal "➀➁➂➃➄⛄", e
+
+  f = "➀➁➂➃➄"
+  f[5, 2] = "⛄"
+  assert_equal "➀➁➂➃➄⛄", f
+
+  g = "➀➁➂➃➄"
+  assert_raise(IndexError) { g[6] = "⛄" }
+
+  h = "➀➁➂➃➄"
+  assert_raise(IndexError) { h[6, 0] = "⛄" }
+
+  i = "➀➁➂➃➄"
+  assert_raise(IndexError) { i[6, 2] = "⛄" }
+
+  j = "➀➁➂➃➄"
+  j["➃"] = "⚃"
+  assert_equal "➀➁➂⚃➄", j
+
+  k = "➀➁➂➃➄"
+  assert_raise(IndexError) { k["⛄"] = "⛇" }
+
+  l = "➀➁➂➃➄"
+  assert_nothing_raised { l["➂"] = "" }
+  assert_equal "➀➁➃➄", l
+
+  m = "➀➁➂➃➄"
+  assert_raise(TypeError) { m["➂"] = nil }
+  assert_equal "➀➁➂➃➄", m
+end if UTF8STRING
 
 assert('String#capitalize', '15.2.10.5.7') do
   a = 'abc'
@@ -250,19 +296,6 @@ assert('String#chomp!', '15.2.10.5.10') do
   assert_equal 'abc', c
   assert_equal "abc\n", d
   assert_equal 'abc', e
-end
-
-assert('String#chomp! uses the correct length') do
-  class A
-    def to_str
-      $s.replace("AA")
-      "A"
-    end
-  end
-
-  $s = "AAA"
-  $s.chomp!(A.new)
-  assert_equal $s, "A"
 end
 
 assert('String#chop', '15.2.10.5.11') do
@@ -418,7 +451,22 @@ assert('String#index', '15.2.10.5.22') do
   assert_equal 3, 'abcabc'.index('a', 1)
   assert_equal 5, "hello".index("", 5)
   assert_equal nil, "hello".index("", 6)
+  assert_equal 3, "hello".index("l", -2)
+  assert_raise(ArgumentError) { "hello".index }
+  assert_raise(TypeError) { "hello".index(101) }
 end
+
+assert('String#index(UTF-8)', '15.2.10.5.22') do
+  assert_equal 0, '⓿➊➋➌➍➎'.index('⓿')
+  assert_nil '⓿➊➋➌➍➎'.index('➓')
+  assert_equal 6, '⓿➊➋➌➍➎⓿➊➋➌➍➎'.index('⓿', 1)
+  assert_equal 6, '⓿➊➋➌➍➎⓿➊➋➌➍➎'.index('⓿', -7)
+  assert_equal 6, "⓿➊➋➌➍➎".index("", 6)
+  assert_equal nil, "⓿➊➋➌➍➎".index("", 7)
+  assert_equal 0, '⓿➊➋➌➍➎'.index("\xe2")
+  assert_equal nil, '⓿➊➋➌➍➎'.index("\xe3")
+  assert_equal 6, "\xd1\xd1\xd1\xd1\xd1\xd1⓿➊➋➌➍➎".index('⓿')
+end if UTF8STRING
 
 assert('String#initialize', '15.2.10.5.23') do
   a = ''
@@ -476,12 +524,12 @@ assert('String#reverse', '15.2.10.5.29') do
 end
 
 assert('String#reverse(UTF-8)', '15.2.10.5.29') do
-  assert_equal "ち", "こんにちは世界"[3]
-  assert_equal nil, "こんにちは世界"[20]
-  assert_equal "世", "こんにちは世界"[-2]
-  assert_equal "世界", "こんにちは世界"[-2..-1]
-  assert_equal "んに", "こんにちは世界"[1,2]
-  assert_equal "世", "こんにちは世界"["世"]
+  a = 'こんにちは世界!'
+  a.reverse
+
+  assert_equal 'こんにちは世界!', a
+  assert_equal '!界世はちにんこ', 'こんにちは世界!'.reverse
+  assert_equal 'あ', 'あ'.reverse
 end if UTF8STRING
 
 assert('String#reverse!', '15.2.10.5.30') do
@@ -498,24 +546,44 @@ assert('String#reverse!(UTF-8)', '15.2.10.5.30') do
 
   assert_equal '!界世はちにんこ', a
   assert_equal '!界世はちにんこ', 'こんにちは世界!'.reverse!
+
+  b = 'あ'
+  b.reverse!
+  assert_equal 'あ', b
 end if UTF8STRING
 
 assert('String#rindex', '15.2.10.5.31') do
   assert_equal 0, 'abc'.rindex('a')
+  assert_equal 0, 'abc'.rindex('a', 3)
+  assert_nil 'abc'.rindex('a', -4)
   assert_nil 'abc'.rindex('d')
+  assert_equal 6, 'abcabc'.rindex('')
+  assert_equal 3, 'abcabc'.rindex('a')
   assert_equal 0, 'abcabc'.rindex('a', 1)
   assert_equal 3, 'abcabc'.rindex('a', 4)
+  assert_equal 0, 'abcabc'.rindex('a', -4)
+  assert_raise(ArgumentError) { "hello".rindex }
+  assert_raise(TypeError) { "hello".rindex(101) }
 end
 
 assert('String#rindex(UTF-8)', '15.2.10.5.31') do
   str = "こんにちは世界!\nこんにちは世界!"
-  assert_nil str.index('さ')
-  assert_equal 3, str.index('ち')
-  assert_equal 12, str.index('ち', 10)
-  assert_equal nil, str.index("さ")
+  assert_nil str.rindex('さ')
+  assert_equal 12, str.rindex('ち')
+  assert_equal 3, str.rindex('ち', 10)
+  assert_equal 3, str.rindex('ち', -6)
+
+  broken = "\xf0☀\xf1☁\xf2☂\xf3☃\xf0☀\xf1☁\xf2☂\xf3☃"
+  assert_nil broken.rindex("\x81") # "\x81" is a part of "☁" ("\xe2\x98\x81")
+  assert_equal 11, broken.rindex("☁")
+  assert_equal 11, broken.rindex("☁", 12)
+  assert_equal 11, broken.rindex("☁", 11)
+  assert_equal  3, broken.rindex("☁", 10)
 end if UTF8STRING
 
-# 'String#scan', '15.2.10.5.32' will be tested in mrbgems.
+# assert('String#scan', '15.2.10.5.32') do
+#   # Not implemented yet
+# end
 
 assert('String#size', '15.2.10.5.33') do
   assert_equal 3, 'abc'.size
@@ -591,7 +659,7 @@ assert('String#sub', '15.2.10.5.36') do
   str = "abc"
   miss = str.sub("X", "Z")
   assert_equal str, miss
-  assert_not_equal str.object_id, miss.object_id
+  assert_not_same str, miss
 
   a = []
   assert_equal '.abc', "abc".sub("") { |i| a << i; "." }
@@ -630,7 +698,7 @@ assert('String#to_f', '15.2.10.5.38') do
   assert_float(12345.6789, c)
   assert_float(0, d)
   assert_float(Float::INFINITY, e)
-end if class_defined?("Float")
+end if Object.const_defined?(:Float)
 
 assert('String#to_i', '15.2.10.5.39') do
   a = ''.to_i
@@ -680,12 +748,18 @@ assert('String#upcase!', '15.2.10.5.43') do
 end
 
 assert('String#inspect', '15.2.10.5.46') do
-  # should not raise an exception - regress #1210
-  assert_nothing_raised do
-  ("\1" * 100).inspect
+  assert_equal "\"\\x00\"", "\0".inspect
+  assert_equal "\"foo\"", "foo".inspect
+  if UTF8STRING
+    assert_equal '"る"', "る".inspect
+  else
+    assert_equal '"\xe3\x82\x8b"', "る".inspect
   end
 
-  assert_equal "\"\\x00\"", "\0".inspect
+  # should not raise an exception - regress #1210
+  assert_nothing_raised do
+    ("\1" * 100).inspect
+  end
 end
 
 # Not ISO specified
@@ -693,10 +767,6 @@ end
 assert('String interpolation (mrb_str_concat for shared strings)') do
   a = "A" * 32
   assert_equal "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA:", "#{a}:"
-end
-
-assert('Check the usage of a NUL character') do
-  "qqq\0ppp"
 end
 
 assert('String#bytes') do
@@ -724,5 +794,90 @@ assert('String#freeze') do
   str = "hello"
   str.freeze
 
-  assert_raise(RuntimeError) { str.upcase! }
+  assert_raise(FrozenError) { str.upcase! }
+end
+
+assert('String literal concatenation') do
+  assert_equal 2, ("A" "B").size
+  assert_equal 3, ('A' "B" 'C').size
+  assert_equal 4, (%(A) "B#{?C}" "D").size
+end
+
+assert('String#getbyte') do
+  str1 = "hello"
+  bytes1 = [104, 101, 108, 108, 111]
+  assert_equal bytes1[0], str1.getbyte(0)
+  assert_equal bytes1[-1], str1.getbyte(-1)
+  assert_equal bytes1[6], str1.getbyte(6)
+
+  str2 = "\xFF"
+  bytes2 = [0xFF]
+  assert_equal bytes2[0], str2.getbyte(0)
+end
+
+assert('String#setbyte') do
+  str1 = "hello"
+  h = "H".getbyte(0)
+  str1.setbyte(0, h)
+  assert_equal(h, str1.getbyte(0))
+  assert_equal("Hello", str1)
+end
+
+assert('String#byteslice') do
+  str1 = "hello"
+  str2 = "\u3042ab"  # "\xE3\x81\x82ab"
+
+  assert_equal("h", str1.byteslice(0))
+  assert_equal("e", str1.byteslice(1))
+  assert_equal(nil, str1.byteslice(5))
+  assert_equal("o", str1.byteslice(-1))
+  assert_equal(nil, str1.byteslice(-6))
+  assert_equal("\xE3", str2.byteslice(0))
+  assert_equal("\x81", str2.byteslice(1))
+  assert_equal(nil, str2.byteslice(5))
+  assert_equal("b", str2.byteslice(-1))
+  assert_equal(nil, str2.byteslice(-6))
+
+  assert_equal("", str1.byteslice(0, 0))
+  assert_equal(str1, str1.byteslice(0, 6))
+  assert_equal("el", str1.byteslice(1, 2))
+  assert_equal("", str1.byteslice(5, 1))
+  assert_equal("o", str1.byteslice(-1, 6))
+  assert_equal(nil, str1.byteslice(-6, 1))
+  assert_equal(nil, str1.byteslice(0, -1))
+  assert_equal("", str2.byteslice(0, 0))
+  assert_equal(str2, str2.byteslice(0, 6))
+  assert_equal("\x81\x82", str2.byteslice(1, 2))
+  assert_equal("", str2.byteslice(5, 1))
+  assert_equal("b", str2.byteslice(-1, 6))
+  assert_equal(nil, str2.byteslice(-6, 1))
+  assert_equal(nil, str2.byteslice(0, -1))
+
+  assert_equal("ell", str1.byteslice(1..3))
+  assert_equal("el", str1.byteslice(1...3))
+  assert_equal("h", str1.byteslice(0..0))
+  assert_equal("", str1.byteslice(5..0))
+  assert_equal("o", str1.byteslice(4..5))
+  assert_equal(nil, str1.byteslice(6..0))
+  assert_equal("", str1.byteslice(-1..0))
+  assert_equal("llo", str1.byteslice(-3..5))
+  assert_equal("\x81\x82a", str2.byteslice(1..3))
+  assert_equal("\x81\x82", str2.byteslice(1...3))
+  assert_equal("\xE3", str2.byteslice(0..0))
+  assert_equal("", str2.byteslice(5..0))
+  assert_equal("b", str2.byteslice(4..5))
+  assert_equal(nil, str2.byteslice(6..0))
+  assert_equal("", str2.byteslice(-1..0))
+  assert_equal("\x82ab", str2.byteslice(-3..5))
+
+  assert_raise(ArgumentError) { str1.byteslice }
+  assert_raise(ArgumentError) { str1.byteslice(1, 2, 3) }
+  assert_raise(TypeError) { str1.byteslice("1") }
+  assert_raise(TypeError) { str1.byteslice("1", 2) }
+  assert_raise(TypeError) { str1.byteslice(1, "2") }
+  assert_raise(TypeError) { str1.byteslice(1..2, 3) }
+
+  skip unless Object.const_defined?(:Float)
+  assert_equal("o", str1.byteslice(4.0))
+  assert_equal("\x82ab", str2.byteslice(2.0, 3.0))
 end

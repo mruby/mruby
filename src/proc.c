@@ -9,8 +9,8 @@
 #include <mruby/proc.h>
 #include <mruby/opcode.h>
 
-static mrb_code call_iseq[] = {
-  MKOP_A(OP_CALL, 0),
+static const mrb_code call_iseq[] = {
+  OP_CALL,
 };
 
 struct RProc*
@@ -63,12 +63,12 @@ closure_setup(mrb_state *mrb, struct RProc *p)
 {
   mrb_callinfo *ci = mrb->c->ci;
   struct RProc *up = p->upper;
-  struct REnv *e;
+  struct REnv *e = NULL;
 
-  if (ci->env) {
+  if (ci && ci->env) {
     e = ci->env;
   }
-  else {
+  else if (up) {
     struct RClass *tc = MRB_PROC_TARGET_CLASS(p);
 
     e = env_new(mrb, up->body.irep->nlocals);
@@ -77,10 +77,15 @@ closure_setup(mrb_state *mrb, struct RProc *p)
       e->c = tc;
       mrb_field_write_barrier(mrb, (struct RBasic*)e, (struct RBasic*)tc);
     }
+    if (MRB_PROC_ENV_P(up) && MRB_PROC_ENV(up)->cxt == NULL) {
+      e->mid = MRB_PROC_ENV(up)->mid;
+    }
   }
-  p->e.env = e;
-  p->flags |= MRB_PROC_ENVSET;
-  mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)e);
+  if (e) {
+    p->e.env = e;
+    p->flags |= MRB_PROC_ENVSET;
+    mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)e);
+  }
 }
 
 struct RProc*
@@ -151,8 +156,8 @@ mrb_proc_cfunc_env_get(mrb_state *mrb, mrb_int idx)
     mrb_raise(mrb, E_TYPE_ERROR, "Can't get cfunc env from cfunc Proc without REnv.");
   }
   if (idx < 0 || MRB_ENV_STACK_LEN(e) <= idx) {
-    mrb_raisef(mrb, E_INDEX_ERROR, "Env index out of range: %S (expected: 0 <= index < %S)",
-               mrb_fixnum_value(idx), mrb_fixnum_value(MRB_ENV_STACK_LEN(e)));
+    mrb_raisef(mrb, E_INDEX_ERROR, "Env index out of range: %i (expected: 0 <= index < %i)",
+               idx, MRB_ENV_STACK_LEN(e));
   }
 
   return e->stack[idx];
@@ -182,11 +187,8 @@ mrb_proc_s_new(mrb_state *mrb, mrb_value proc_class)
   mrb_value proc;
   struct RProc *p;
 
-  mrb_get_args(mrb, "&", &blk);
-  if (mrb_nil_p(blk)) {
-    /* Calling Proc.new without a block is not implemented yet */
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "tried to create Proc object without a block");
-  }
+  /* Calling Proc.new without a block is not implemented yet */
+  mrb_get_args(mrb, "&!", &blk);
   p = (struct RProc *)mrb_obj_alloc(mrb, MRB_TT_PROC, mrb_class_ptr(proc_class));
   mrb_proc_copy(p, mrb_proc_ptr(blk));
   proc = mrb_obj_value(p);
@@ -204,53 +206,18 @@ mrb_proc_init_copy(mrb_state *mrb, mrb_value self)
   mrb_value proc;
 
   mrb_get_args(mrb, "o", &proc);
-  if (mrb_type(proc) != MRB_TT_PROC) {
+  if (!mrb_proc_p(proc)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "not a proc");
   }
   mrb_proc_copy(mrb_proc_ptr(self), mrb_proc_ptr(proc));
   return self;
 }
 
-int
-mrb_proc_cfunc_p(struct RProc *p)
-{
-  return MRB_PROC_CFUNC_P(p);
-}
-
 /* 15.2.17.4.2 */
 static mrb_value
-mrb_proc_arity(mrb_state *mrb, mrb_value self)
+proc_arity(mrb_state *mrb, mrb_value self)
 {
-  struct RProc *p = mrb_proc_ptr(self);
-  struct mrb_irep *irep;
-  mrb_code *iseq;
-  mrb_aspec aspec;
-  int ma, op, ra, pa, arity;
-
-  if (MRB_PROC_CFUNC_P(p)) {
-    /* TODO cfunc aspec not implemented yet */
-    return mrb_fixnum_value(-1);
-  }
-
-  irep = p->body.irep;
-  if (!irep) {
-    return mrb_fixnum_value(0);
-  }
-
-  iseq = irep->iseq;
-  /* arity is depend on OP_ENTER */
-  if (GET_OPCODE(*iseq) != OP_ENTER) {
-    return mrb_fixnum_value(0);
-  }
-
-  aspec = GETARG_Ax(*iseq);
-  ma = MRB_ASPEC_REQ(aspec);
-  op = MRB_ASPEC_OPT(aspec);
-  ra = MRB_ASPEC_REST(aspec);
-  pa = MRB_ASPEC_POST(aspec);
-  arity = ra || (MRB_PROC_STRICT_P(p) && op) ? -(ma + pa + 1) : ma + pa;
-
-  return mrb_fixnum_value(arity);
+  return mrb_fixnum_value(mrb_proc_arity(mrb_proc_ptr(self)));
 }
 
 /* 15.3.1.2.6  */
@@ -272,7 +239,7 @@ proc_lambda(mrb_state *mrb, mrb_value self)
   if (mrb_nil_p(blk)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "tried to create Proc object without a block");
   }
-  if (mrb_type(blk) != MRB_TT_PROC) {
+  if (!mrb_proc_p(blk)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "not a proc");
   }
   p = mrb_proc_ptr(blk);
@@ -283,6 +250,40 @@ proc_lambda(mrb_state *mrb, mrb_value self)
     return mrb_obj_value(p2);
   }
   return blk;
+}
+
+mrb_int
+mrb_proc_arity(const struct RProc *p)
+{
+  struct mrb_irep *irep;
+  const mrb_code *pc;
+  mrb_aspec aspec;
+  int ma, op, ra, pa, arity;
+
+  if (MRB_PROC_CFUNC_P(p)) {
+    /* TODO cfunc aspec not implemented yet */
+    return -1;
+  }
+
+  irep = p->body.irep;
+  if (!irep) {
+    return 0;
+  }
+
+  pc = irep->iseq;
+  /* arity is depend on OP_ENTER */
+  if (*pc != OP_ENTER) {
+    return 0;
+  }
+
+  aspec = PEEK_W(pc+1);
+  ma = MRB_ASPEC_REQ(aspec);
+  op = MRB_ASPEC_OPT(aspec);
+  ra = MRB_ASPEC_REST(aspec);
+  pa = MRB_ASPEC_POST(aspec);
+  arity = ra || (MRB_PROC_STRICT_P(p) && op) ? -(ma + pa + 1) : ma + pa;
+
+  return arity;
 }
 
 void
@@ -299,15 +300,15 @@ mrb_init_proc(mrb_state *mrb)
   call_irep->ilen = 1;
   call_irep->nregs = 2;         /* receiver and block */
 
-  mrb_define_class_method(mrb, mrb->proc_class, "new", mrb_proc_s_new, MRB_ARGS_ANY());
+  mrb_define_class_method(mrb, mrb->proc_class, "new", mrb_proc_s_new, MRB_ARGS_NONE()|MRB_ARGS_BLOCK());
   mrb_define_method(mrb, mrb->proc_class, "initialize_copy", mrb_proc_init_copy, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, mrb->proc_class, "arity", mrb_proc_arity, MRB_ARGS_NONE());
+  mrb_define_method(mrb, mrb->proc_class, "arity", proc_arity, MRB_ARGS_NONE());
 
   p = mrb_proc_new(mrb, call_irep);
   MRB_METHOD_FROM_PROC(m, p);
   mrb_define_method_raw(mrb, mrb->proc_class, mrb_intern_lit(mrb, "call"), m);
   mrb_define_method_raw(mrb, mrb->proc_class, mrb_intern_lit(mrb, "[]"), m);
 
-  mrb_define_class_method(mrb, mrb->kernel_module, "lambda", proc_lambda, MRB_ARGS_NONE()); /* 15.3.1.2.6  */
-  mrb_define_method(mrb, mrb->kernel_module,       "lambda", proc_lambda, MRB_ARGS_NONE()); /* 15.3.1.3.27 */
+  mrb_define_class_method(mrb, mrb->kernel_module, "lambda", proc_lambda, MRB_ARGS_NONE()|MRB_ARGS_BLOCK()); /* 15.3.1.2.6  */
+  mrb_define_method(mrb, mrb->kernel_module,       "lambda", proc_lambda, MRB_ARGS_NONE()|MRB_ARGS_BLOCK()); /* 15.3.1.3.27 */
 }

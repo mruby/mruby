@@ -1,6 +1,7 @@
 #include <mruby.h>
 #include <mruby/array.h>
 #include <mruby/class.h>
+#include <mruby/hash.h>
 #include <mruby/proc.h>
 
 /*
@@ -33,6 +34,19 @@ nil_to_f(mrb_state *mrb, mrb_value obj)
 
 /*
  *  call-seq:
+ *     nil.to_h    -> {}
+ *
+ *  Always returns an empty hash.
+ */
+
+static mrb_value
+nil_to_h(mrb_state *mrb, mrb_value obj)
+{
+  return mrb_hash_new(mrb);
+}
+
+/*
+ *  call-seq:
  *     nil.to_i    -> 0
  *
  *  Always returns zero.
@@ -42,6 +56,22 @@ static mrb_value
 nil_to_i(mrb_state *mrb, mrb_value obj)
 {
   return mrb_fixnum_value(0);
+}
+
+/*
+ *  call-seq:
+ *     obj.itself -> an_object
+ *
+ *  Returns <i>obj</i>.
+ *
+ *      string = 'my string' #=> "my string"
+ *      string.itself.object_id == string.object_id #=> true
+ *
+ */
+static mrb_value
+mrb_f_itself(mrb_state *mrb, mrb_value self)
+{
+  return self;
 }
 
 /*
@@ -70,11 +100,7 @@ mrb_obj_instance_exec(mrb_state *mrb, mrb_value self)
   mrb_value blk;
   struct RClass *c;
 
-  mrb_get_args(mrb, "*&", &argv, &argc, &blk);
-
-  if (mrb_nil_p(blk)) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
-  }
+  mrb_get_args(mrb, "*&!", &argv, &argc, &blk);
 
   switch (mrb_type(self)) {
   case MRB_TT_SYMBOL:
@@ -101,9 +127,12 @@ mrb_mruby_object_ext_gem_init(mrb_state* mrb)
 #ifndef MRB_WITHOUT_FLOAT
   mrb_define_method(mrb, n, "to_f", nil_to_f,       MRB_ARGS_NONE());
 #endif
+  mrb_define_method(mrb, n, "to_h", nil_to_h,       MRB_ARGS_NONE());
   mrb_define_method(mrb, n, "to_i", nil_to_i,       MRB_ARGS_NONE());
 
-  mrb_define_method(mrb, mrb->kernel_module, "instance_exec", mrb_obj_instance_exec, MRB_ARGS_ANY() | MRB_ARGS_BLOCK());
+  mrb_define_method(mrb, mrb->kernel_module, "itself", mrb_f_itself, MRB_ARGS_NONE());
+
+  mrb_define_method(mrb, mrb_class_get(mrb, "BasicObject"), "instance_exec", mrb_obj_instance_exec, MRB_ARGS_ANY() | MRB_ARGS_BLOCK());
 }
 
 void

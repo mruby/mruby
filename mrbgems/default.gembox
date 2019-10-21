@@ -1,4 +1,7 @@
 MRuby::GemBox.new do |conf|
+  # Meta-programming features
+  conf.gem :core => "mruby-metaprog"
+
   # Use standard IO/File class
   conf.gem :core => "mruby-io"
 
@@ -82,6 +85,9 @@ MRuby::GemBox.new do |conf|
 
   # Use class/module extension
   conf.gem :core => "mruby-class-ext"
+
+  # Use Method/UnboundMethod class
+  conf.gem :core => "mruby-method"
 
   # Use mruby-compiler to build other mrbgems
   conf.gem :core => "mruby-compiler"

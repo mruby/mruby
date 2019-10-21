@@ -1,16 +1,14 @@
 ##
-# IO Test
+# File Test
 
-assert('File', '15.2.21') do
-  File.class == Class
+MRubyIOTestUtil.io_test_setup
+
+assert('File.class', '15.2.21') do
+  assert_equal Class, File.class
 end
 
-assert('File', '15.2.21.2') do
-  File.superclass == IO
-end
-
-assert('File TEST SETUP') do
-  MRubyIOTestUtil.io_test_setup
+assert('File.superclass', '15.2.21.2') do
+  assert_equal IO, File.superclass
 end
 
 assert('File#initialize', '15.2.21.4.1') do
@@ -27,7 +25,7 @@ assert('File#path', '15.2.21.4.2') do
   assert_equal $mrbtest_io_rfname, io.path
   io.close
   assert_equal $mrbtest_io_rfname, io.path
-  io.closed?
+  assert_true io.closed?
 end
 
 assert('File.basename') do
@@ -35,6 +33,7 @@ assert('File.basename') do
   assert_equal 'a', File.basename('/a/')
   assert_equal 'b', File.basename('/a/b')
   assert_equal 'b', File.basename('../a/b')
+  assert_raise(ArgumentError) { File.basename("/a/b\0") }
 end
 
 assert('File.dirname') do
@@ -69,18 +68,15 @@ assert('File#flock') do
 end
 
 assert('File#mtime') do
-  unless Object.const_defined?(:Time)
-    skip "File#mtime require Time"
-  end
   begin
-    now = Time.now.to_i
-    mt = 0
-    File.open('mtime-test', 'w') do |f|
-      mt = f.mtime.to_i
+    File.open("#{$mrbtest_io_wfname}.mtime", 'w') do |f|
+      assert_equal Time, f.mtime.class
+      File.open("#{$mrbtest_io_wfname}.mtime", 'r') do |f2|
+        assert_equal true, f.mtime == f2.mtime
+      end
     end
-    assert_equal true, mt >= now
   ensure
-    File.delete('mtime-test')
+    File.delete("#{$mrbtest_io_wfname}.mtime")
   end
 end
 
@@ -111,6 +107,8 @@ assert('File.realpath') do
       MRubyIOTestUtil.rmdir dir
     end
   end
+
+  assert_raise(ArgumentError) { File.realpath("TO\0DO") }
 end
 
 assert("File.readlink") do
@@ -177,37 +175,39 @@ assert('File.path') do
   assert_equal "a/../b/./c", File.path("a/../b/./c")
   assert_raise(TypeError) { File.path(nil) }
   assert_raise(TypeError) { File.path(123) }
-
 end
 
 assert('File.symlink') do
   target_name = "/usr/bin"
-  symlink_name = "test-bin-dummy"
   if !File.exist?(target_name)
     skip("target directory of File.symlink is not found")
-  else
-    begin
-      assert_equal 0, File.symlink(target_name, symlink_name)
-      begin
-        assert_equal true, File.symlink?(symlink_name)
-      ensure
-        File.delete symlink_name
-      end
-    rescue NotImplementedError => e
-      skip e.message
-    end
+  end
+
+  begin
+    tmpdir = MRubyIOTestUtil.mkdtemp("mruby-io-test.XXXXXX")
+  rescue => e
+    skip e.message
+  end
+
+  symlink_name = "#{tmpdir}/test-bin-dummy"
+  begin
+    assert_equal 0, File.symlink(target_name, symlink_name)
+    assert_equal true, File.symlink?(symlink_name)
+  rescue NotImplementedError => e
+    skip e.message
+  ensure
+    File.delete symlink_name rescue nil
+    MRubyIOTestUtil.rmdir tmpdir rescue nil
   end
 end
 
 assert('File.chmod') do
-  File.open('chmod-test', 'w') {}
+  File.open("#{$mrbtest_io_wfname}.chmod-test", 'w') {}
   begin
-    assert_equal 1, File.chmod(0400, 'chmod-test')
+    assert_equal 1, File.chmod(0400, "#{$mrbtest_io_wfname}.chmod-test")
   ensure
-    File.delete('chmod-test')
+    File.delete("#{$mrbtest_io_wfname}.chmod-test")
   end
 end
 
-assert('File TEST CLEANUP') do
-  assert_nil MRubyIOTestUtil.io_test_cleanup
-end
+MRubyIOTestUtil.io_test_cleanup

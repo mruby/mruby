@@ -1,5 +1,5 @@
-/*
-** mruby/compile.h - mruby parser
+/**
+** @file mruby/compile.h - mruby parser
 **
 ** See Copyright Notice in mruby.h
 */
@@ -24,7 +24,7 @@ typedef struct mrbc_context {
   mrb_sym *syms;
   int slen;
   char *filename;
-  short lineno;
+  uint16_t lineno;
   int (*partial_hook)(struct mrb_parser_state*);
   void *partial_data;
   struct RClass *target_class;
@@ -33,6 +33,7 @@ typedef struct mrbc_context {
   mrb_bool no_exec:1;
   mrb_bool keep_lv:1;
   mrb_bool no_optimize:1;
+  mrb_bool on_eval:1;
 
   size_t parser_nerr;
 } mrbc_context;
@@ -66,7 +67,7 @@ enum mrb_lex_state_enum {
 
 /* saved error message */
 struct mrb_parser_message {
-  int lineno;
+  uint16_t lineno;
   int column;
   char* message;
 };
@@ -104,7 +105,7 @@ struct mrb_parser_heredoc_info {
   mrb_ast_node *doc;
 };
 
-#define MRB_PARSER_TOKBUF_MAX 65536
+#define MRB_PARSER_TOKBUF_MAX (UINT16_MAX-1)
 #define MRB_PARSER_TOKBUF_SIZE 256
 
 /* parser structure */
@@ -117,8 +118,8 @@ struct mrb_parser_state {
   FILE *f;
 #endif
   mrbc_context *cxt;
-  char const *filename;
-  int lineno;
+  mrb_sym filename_sym;
+  uint16_t lineno;
   int column;
 
   enum mrb_lex_state_enum lstate;
@@ -142,7 +143,6 @@ struct mrb_parser_state {
   mrb_ast_node *heredocs_from_nextline;
   mrb_ast_node *parsing_heredoc;
   mrb_ast_node *lex_strterm_before_heredoc;
-  mrb_bool heredoc_end_now:1; /* for mirb */
 
   void *ylval;
 
@@ -151,13 +151,14 @@ struct mrb_parser_state {
   mrb_ast_node *tree;
 
   mrb_bool no_optimize:1;
+  mrb_bool on_eval:1;
   mrb_bool capture_errors:1;
   struct mrb_parser_message error_buffer[10];
   struct mrb_parser_message warn_buffer[10];
 
   mrb_sym* filename_table;
-  size_t filename_table_length;
-  int current_filename_index;
+  uint16_t filename_table_length;
+  uint16_t current_filename_index;
 
   struct mrb_jmpbuf* jmp;
 };
@@ -167,7 +168,7 @@ MRB_API void mrb_parser_free(struct mrb_parser_state*);
 MRB_API void mrb_parser_parse(struct mrb_parser_state*,mrbc_context*);
 
 MRB_API void mrb_parser_set_filename(struct mrb_parser_state*, char const*);
-MRB_API char const* mrb_parser_get_filename(struct mrb_parser_state*, uint16_t idx);
+MRB_API mrb_sym mrb_parser_get_filename(struct mrb_parser_state*, uint16_t idx);
 
 /* utility functions */
 #ifndef MRB_DISABLE_STDIO

@@ -37,6 +37,11 @@ conf.gem :mgem => 'mruby-yaml'
 conf.gem :mgem => 'yaml' # 'mruby-' prefix could be omitted
 ```
 
+For specifying commit hash to checkout use `:checksum_hash` option:
+```ruby
+conf.gem mgem: 'mruby-redis', checksum_hash: '3446d19fc4a3f9697b5ddbf2a904f301c42f2f4e'
+```
+
 If there is missing dependencies, mrbgem dependencies solver will reference
 mrbgem from core or mgem-list.
 
@@ -179,11 +184,11 @@ Version requirement supports following operators:
 
 When more than one version requirements is passed, the dependency must satisfy all of it.
 
-You can have default gem to use as depedency when it's not defined in *build_config.rb*.
+You can have default gem to use as dependency when it's not defined in *build_config.rb*.
 When the last argument of `add_dependency` call is `Hash`, it will be treated as default gem information.
 Its format is same as argument of method `MRuby::Build#gem`, expect that it can't be treated as path gem location.
 
-When a special version of depedency is required,
+When a special version of dependency is required,
 use `MRuby::Build#gem` in *build_config.rb* to override default gem.
 
 If you have conflicting GEMs use the following method:

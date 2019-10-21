@@ -4,9 +4,9 @@ MRuby::Gem::Specification.new('mruby-io') do |spec|
   spec.summary = 'IO and File class'
 
   spec.cc.include_paths << "#{build.root}/src"
-  
+
   case RUBY_PLATFORM
-  when /mingw|mswin/
+  when /mingw|mswin|msys/
     spec.linker.libraries += ['Ws2_32']
     #spec.cc.include_paths += ["C:/Windows/system/include"]
     spec.linker.library_paths += ["C:/Windows/system"]
@@ -14,4 +14,5 @@ MRuby::Gem::Specification.new('mruby-io') do |spec|
   if build.kind_of?(MRuby::CrossBuild) && %w(x86_64-w64-mingw32 i686-w64-mingw32).include?(build.host_target)
     spec.linker.libraries += ['ws2_32']
   end
+  spec.add_test_dependency 'mruby-time', core: 'mruby-time'
 end

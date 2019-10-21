@@ -400,6 +400,12 @@
 #if defined(SOL_SOCKET)
   define_const(SOL_SOCKET);
 #endif
+#if defined(SOL_IP)
+  define_const(SOL_IP);
+#endif
+#if defined(SOL_TCP)
+  define_const(SOL_TCP);
+#endif
 #if defined(TCP_CONGCTL)
   define_const(TCP_CONGCTL);
 #endif

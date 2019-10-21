@@ -13,10 +13,9 @@ module Enumerable
   #    a.drop(3)             #=> [4, 5, 0]
 
   def drop(n)
-    raise TypeError, "no implicit conversion of #{n.class} into Integer" unless n.respond_to?(:to_int)
+    n = n.__to_int
     raise ArgumentError, "attempt to drop negative size" if n < 0
 
-    n = n.to_int
     ary = []
     self.each {|*val| n == 0 ? ary << val.__svalue : n -= 1 }
     ary
@@ -57,8 +56,8 @@ module Enumerable
   #    a.take(3)             #=> [1, 2, 3]
 
   def take(n)
-    raise TypeError, "no implicit conversion of #{n.class} into Integer" unless n.respond_to?(:to_int)
-    i = n.to_int
+    n = n.__to_int
+    i = n.to_i
     raise ArgumentError, "attempt to take negative size" if i < 0
     ary = []
     return ary if i == 0
@@ -113,12 +112,12 @@ module Enumerable
   #     [8, 9, 10]
 
   def each_cons(n, &block)
-    raise TypeError, "no implicit conversion of #{n.class} into Integer" unless n.respond_to?(:to_int)
+    n = n.__to_int
     raise ArgumentError, "invalid size" if n <= 0
 
     return to_enum(:each_cons,n) unless block
     ary = []
-    n = n.to_int
+    n = n.to_i
     self.each do |*val|
       ary.shift if ary.size == n
       ary << val.__svalue
@@ -141,12 +140,12 @@ module Enumerable
   #     [10]
 
   def each_slice(n, &block)
-    raise TypeError, "no implicit conversion of #{n.class} into Integer" unless n.respond_to?(:to_int)
+    n = n.__to_int
     raise ArgumentError, "invalid slice size" if n <= 0
 
     return to_enum(:each_slice,n) unless block
     ary = []
-    n = n.to_int
+    n = n.to_i
     self.each do |*val|
       ary << val.__svalue
       if ary.size == n
@@ -201,14 +200,11 @@ module Enumerable
       ary.push([block.call(e), i])
     }
     if ary.size > 1
-      ary.__sort_sub__(0, ary.size - 1) do |a,b|
-        a <=> b
-      end
+      ary.sort!
     end
     ary.collect{|e,i| orig[i]}
   end
 
-  NONE = Object.new
   ##
   # call-seq:
   #    enum.first       ->  obj or nil
@@ -225,9 +221,7 @@ module Enumerable
       end
       return nil
     when 1
-      n = args[0]
-      raise TypeError, "no implicit conversion of #{n.class} into Integer" unless n.respond_to?(:to_int)
-      i = n.to_int
+      i = args[0].__to_int
       raise ArgumentError, "attempt to take negative size" if i < 0
       ary = []
       return ary if i == 0
@@ -610,9 +604,7 @@ module Enumerable
   #     #=> [2, 4, 6, 8, 10, 12, 14, 16, 18, 20]
   #
 
-  def each_with_object(obj=nil, &block)
-    raise ArgumentError, "wrong number of arguments (0 for 1)" if obj.nil?
-
+  def each_with_object(obj, &block)
     return to_enum(:each_with_object, obj) unless block
 
     self.each {|*val| block.call(val.__svalue, obj) }
@@ -677,13 +669,7 @@ module Enumerable
     if nv.nil?
       n = -1
     else
-      unless nv.respond_to?(:to_int)
-        raise TypeError, "no implicit conversion of #{nv.class} into Integer"
-      end
-      n = nv.to_int
-      unless n.kind_of?(Integer)
-        raise TypeError, "no implicit conversion of #{nv.class} into Integer"
-      end
+      n = nv.__to_int
       return nil if n <= 0
     end
 
@@ -742,18 +728,39 @@ module Enumerable
   ##
   #  call-seq:
   #     enum.zip(arg, ...)                  -> an_array_of_array
+  #     enum.zip(arg, ...) { |arr| block }  -> nil
   #
   #  Takes one element from <i>enum</i> and merges corresponding
   #  elements from each <i>args</i>.  This generates a sequence of
   #  <em>n</em>-element arrays, where <em>n</em> is one more than the
   #  count of arguments.  The length of the resulting sequence will be
   #  <code>enum#size</code>.  If the size of any argument is less than
-  #  <code>enum#size</code>, <code>nil</code> values are supplied.
+  #  <code>enum#size</code>, <code>nil</code> values are supplied. If
+  #  a block is given, it is invoked for each output array, otherwise
+  #  an array of arrays is returned.
+  #
+  #     a = [ 4, 5, 6 ]
+  #     b = [ 7, 8, 9 ]
+  #
+  #     a.zip(b)                 #=> [[4, 7], [5, 8], [6, 9]]
+  #     [1, 2, 3].zip(a, b)      #=> [[1, 4, 7], [2, 5, 8], [3, 6, 9]]
+  #     [1, 2].zip(a, b)         #=> [[1, 4, 7], [2, 5, 8]]
+  #     a.zip([1, 2], [8])       #=> [[4, 1, 8], [5, 2, nil], [6, nil, nil]]
+  #
+  #     c = []
+  #     a.zip(b) { |x, y| c << x + y }  #=> nil
+  #     c                               #=> [11, 13, 15]
   #
 
-  def zip(*arg)
-    ary = []
-    arg = arg.map{|a|a.to_a}
+  def zip(*arg, &block)
+    result = block ? nil : []
+    arg = arg.map do |a|
+      unless a.respond_to?(:to_a)
+        raise TypeError, "wrong argument type #{a.class} (must respond to :to_a)"
+      end
+      a.to_a
+    end
+
     i = 0
     self.each do |*val|
       a = []
@@ -763,10 +770,14 @@ module Enumerable
         a.push(arg[idx][i])
         idx += 1
       end
-      ary.push(a)
       i += 1
+      if result.nil?
+        block.call(a)
+      else
+        result.push(a)
+      end
     end
-    ary
+    result
   end
 
   ##
@@ -780,19 +791,24 @@ module Enumerable
   #       # => {:hello => 0, :world => 1}
   #
 
-  def to_h
+  def to_h(&blk)
     h = {}
-    self.each do |*v|
-      v = v.__svalue
-      raise TypeError, "wrong element type #{v.class} (expected Array)" unless v.is_a? Array
-      raise ArgumentError, "element has wrong array length (expected 2, was #{v.size})" if v.size != 2
-      h[v[0]] = v[1]
+    if blk
+      self.each do |v|
+        v = blk.call(v)
+        raise TypeError, "wrong element type #{v.class} (expected Array)" unless v.is_a? Array
+        raise ArgumentError, "element has wrong array length (expected 2, was #{v.size})" if v.size != 2
+        h[v[0]] = v[1]
+      end
+    else
+      self.each do |*v|
+        v = v.__svalue
+        raise TypeError, "wrong element type #{v.class} (expected Array)" unless v.is_a? Array
+        raise ArgumentError, "element has wrong array length (expected 2, was #{v.size})" if v.size != 2
+        h[v[0]] = v[1]
+      end
     end
     h
-  end
-
-  def nil.to_h
-    {}
   end
 
   def uniq(&block)
@@ -809,5 +825,35 @@ module Enumerable
       end
     end
     hash.values
+  end
+
+  def filter_map(&blk)
+    return to_enum(:filter_map) unless blk
+
+    ary = []
+    self.each do |x|
+      x = blk.call(x)
+      ary.push x if x
+    end
+    ary
+  end
+
+  alias filter select
+
+  ##
+  # call-seq:
+  #   enum.tally -> a_hash
+  #
+  # Tallys the collection.  Returns a hash where the keys are the
+  # elements and the values are numbers of elements in the collection
+  # that correspond to the key.
+  #
+  #    ["a", "b", "c", "b"].tally #=> {"a"=>1, "b"=>2, "c"=>1}
+  def tally
+    hash = {}
+    self.each do |x|
+      hash[x] = (hash[x]||0)+1
+    end
+    hash
   end
 end

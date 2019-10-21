@@ -1,28 +1,27 @@
-MRuby::Toolchain.new(:gcc) do |conf, _params|
-  [conf.cc, conf.objc, conf.asm].each do |cc|
-    cc.command = ENV['CC'] || 'gcc'
-    cc.flags = [ENV['CFLAGS'] || %w(-g -std=gnu99 -O3 -Wall -Werror-implicit-function-declaration -Wdeclaration-after-statement -Wwrite-strings)]
-    cc.defines = %w(DISABLE_GEMS)
-    cc.option_include_path = '-I%s'
-    cc.option_define = '-D%s'
-    cc.compile_options = '%{flags} -MMD -o %{outfile} -c %{infile}'
-    cc.cxx_compile_flag = '-x c++ -std=c++03'
-    cc.cxx_exception_flag = '-fexceptions'
-  end
+MRuby::Toolchain.new(:gcc) do |conf, params|
+  default_command = params[:default_command] || 'gcc'
+  compiler_flags = %w(-g -O3 -Wall -Wundef)
+  c_mandatory_flags = %w(-std=gnu99)
+  cxx_invalid_flags = %w(-Wdeclaration-after-statement -Werror-implicit-function-declaration)
 
-  [conf.cxx].each do |cxx|
-    cxx.command = ENV['CXX'] || 'g++'
-    cxx.flags = [ENV['CXXFLAGS'] || ENV['CFLAGS'] || %w(-g -O3 -Wall -Werror-implicit-function-declaration)]
-    cxx.defines = %w(DISABLE_GEMS)
-    cxx.option_include_path = '-I%s'
-    cxx.option_define = '-D%s'
-    cxx.compile_options = '%{flags} -MMD -o %{outfile} -c %{infile}'
-    cxx.cxx_compile_flag = '-x c++ -std=c++03'
-    cxx.cxx_exception_flag = '-fexceptions'
+  [conf.cc, conf.objc, conf.asm, conf.cxx].each do |compiler|
+    if compiler == conf.cxx
+      compiler.command = ENV['CXX'] || default_command.sub(/cc|$/, '++')
+      compiler.flags = [ENV['CXXFLAGS'] || ENV['CFLAGS'] || compiler_flags]
+    else
+      compiler.command = ENV['CC'] || default_command
+      compiler.flags = [c_mandatory_flags, ENV['CFLAGS'] || [compiler_flags, cxx_invalid_flags, %w(-Wwrite-strings)]]
+    end
+    compiler.option_include_path = '-I%s'
+    compiler.option_define = '-D%s'
+    compiler.compile_options = '%{flags} -MMD -o %{outfile} -c %{infile}'
+    compiler.cxx_compile_flag = '-x c++ -std=c++03'
+    compiler.cxx_exception_flag = '-fexceptions'
+    compiler.cxx_invalid_flags = c_mandatory_flags + cxx_invalid_flags
   end
 
   conf.linker do |linker|
-    linker.command = ENV['LD'] || 'gcc'
+    linker.command = ENV['LD'] || ENV['CXX'] || ENV['CC'] || default_command
     linker.flags = [ENV['LDFLAGS'] || %w()]
     linker.libraries = %w(m)
     linker.library_paths = []
@@ -55,7 +54,7 @@ MRuby::Toolchain.new(:gcc) do |conf, _params|
       @header_search_paths
     end
   end
-  
+
   def conf.enable_sanitizer(*opts)
     fail 'sanitizer already set' if @sanitizer_list
 

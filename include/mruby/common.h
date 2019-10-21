@@ -1,5 +1,5 @@
-/*
-**"common.h - mruby common platform definition"
+/**
+** @file common.h - mruby common platform definition"
 **
 ** See Copyright Notice in mruby.h
 */
@@ -7,6 +7,11 @@
 #ifndef MRUBY_COMMON_H
 #define MRUBY_COMMON_H
 
+#ifdef __APPLE__
+  #ifndef __TARGETCONDITIONALS__
+  #include "TargetConditionals.h"
+  #endif
+#endif
 
 #ifdef __cplusplus
 #ifdef MRB_ENABLE_CXX_ABI
@@ -29,7 +34,7 @@
 MRB_BEGIN_DECL
 
 /** Declare a function that never returns. */
-#if __STDC_VERSION__ >= 201112L
+#if defined __STDC_VERSION__ && __STDC_VERSION__ >= 201112L
 # define mrb_noreturn _Noreturn
 #elif defined __GNUC__ && !defined __STRICT_ANSI__
 # define mrb_noreturn __attribute__((noreturn))
@@ -49,14 +54,15 @@ MRB_BEGIN_DECL
 #endif
 
 /** Declare a function as always inlined. */
-#if defined(_MSC_VER)
-# define MRB_INLINE static __inline
-#else
-# define MRB_INLINE static inline
+#if defined _MSC_VER && _MSC_VER < 1900
+# ifndef __cplusplus
+#  define inline __inline
+# endif
 #endif
-
+#define MRB_INLINE static inline
 
 /** Declare a public MRuby API function. */
+#ifndef MRB_API
 #if defined(MRB_BUILD_AS_DLL)
 #if defined(MRB_CORE) || defined(MRB_LIB)
 # define MRB_API __declspec(dllexport)
@@ -65,6 +71,7 @@ MRB_BEGIN_DECL
 #endif
 #else
 # define MRB_API extern
+#endif
 #endif
 
 MRB_END_DECL

@@ -3,12 +3,6 @@ class Symbol
 
   alias intern to_sym
 
-  def to_proc
-    ->(obj,*args,&block) do
-      obj.__send__(self, *args, &block)
-    end
-  end
-
   ##
   # call-seq:
   #   sym.capitalize  -> symbol
@@ -16,7 +10,7 @@ class Symbol
   # Same as <code>sym.to_s.capitalize.intern</code>.
 
   def capitalize
-    (self.to_s.capitalize! || self).to_sym
+    self.to_s.capitalize.to_sym
   end
 
   ##
@@ -26,7 +20,7 @@ class Symbol
   # Same as <code>sym.to_s.downcase.intern</code>.
 
   def downcase
-    (self.to_s.downcase! || self).to_sym
+    self.to_s.downcase.to_sym
   end
 
   ##
@@ -36,7 +30,7 @@ class Symbol
   # Same as <code>sym.to_s.upcase.intern</code>.
 
   def upcase
-    (self.to_s.upcase! || self).to_sym
+    self.to_s.upcase.to_sym
   end
 
   ##
@@ -47,7 +41,7 @@ class Symbol
 
   def casecmp(other)
     return nil unless other.kind_of?(Symbol)
-    lhs =  self.to_s; lhs.upcase!
+    lhs =  self.to_s.upcase
     rhs = other.to_s.upcase
     lhs <=> rhs
   end

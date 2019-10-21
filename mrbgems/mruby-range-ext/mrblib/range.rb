@@ -15,10 +15,7 @@ class Range
 
     raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1)" unless args.length == 1
     nv = args[0]
-    raise TypeError, "no implicit conversion from nil to integer" if nv.nil?
-    raise TypeError, "no implicit conversion of #{nv.class} into Integer" unless nv.respond_to?(:to_int)
-    n = nv.to_int
-    raise TypeError, "no implicit conversion of #{nv.class} into Integer" unless n.kind_of?(Integer)
+    n = nv.__to_int
     raise ArgumentError, "negative array size (or size too big)" unless 0 <= n
     ary = []
     each do |i|
@@ -27,5 +24,43 @@ class Range
       n -= 1
     end
     ary
+  end
+
+  def max(&block)
+    val = self.first
+    last = self.last
+    return super if block
+
+    # fast path for numerics
+    if val.kind_of?(Numeric) && last.kind_of?(Numeric)
+      raise TypeError if exclude_end? && !last.kind_of?(Fixnum)
+      return nil if val > last
+      return nil if val == last && exclude_end?
+
+      max = last
+      max -= 1 if exclude_end?
+      return max
+    end
+
+    # delegate to Enumerable
+    super
+  end
+
+  def min(&block)
+    val = self.first
+    last = self.last
+    return super if block
+
+    # fast path for numerics
+    if val.kind_of?(Numeric) && last.kind_of?(Numeric)
+      return nil if val > last
+      return nil if val == last && exclude_end?
+
+      min = val
+      return min
+    end
+
+    # delegate to Enumerable
+    super
   end
 end

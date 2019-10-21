@@ -89,7 +89,6 @@ class Enumerator
   include Enumerable
 
   ##
-  # @overload initialize(size = nil, &block)
   # @overload initialize(obj, method = :each, *args)
   #
   # Creates a new Enumerator object, which can be used as an
@@ -109,27 +108,30 @@ class Enumerator
   #
   #     p fib.take(10) # => [1, 1, 2, 3, 5, 8, 13, 21, 34, 55]
   #
-  def initialize(obj=nil, meth=:each, *args, &block)
+  # In the second, deprecated, form, a generated Enumerator iterates over the
+  # given object using the given method with the given arguments passed. This
+  # form is left only for internal use.
+  #
+  # Use of this form is discouraged.  Use Kernel#enum_for or Kernel#to_enum
+  # instead.
+  def initialize(obj=NONE, meth=:each, *args, &block)
     if block
       obj = Generator.new(&block)
-    else
-      raise ArgumentError unless obj
-    end
-    if @obj and !self.respond_to?(meth)
-      raise NoMethodError, "undefined method #{meth}"
+    elsif obj == NONE
+      raise ArgumentError, "wrong number of arguments (given 0, expected 1+)"
     end
 
     @obj = obj
     @meth = meth
-    @args = args.dup
+    @args = args
     @fib = nil
     @dst = nil
     @lookahead = nil
     @feedvalue = nil
     @stop_exc = false
   end
-  attr_accessor :obj, :meth, :args, :fib
-  private :obj, :meth, :args, :fib
+  attr_accessor :obj, :meth, :args
+  attr_reader :fib
 
   def initialize_copy(obj)
     raise TypeError, "can't copy type #{obj.class}" unless obj.kind_of? Enumerator
@@ -157,12 +159,10 @@ class Enumerator
   def with_index(offset=0, &block)
     return to_enum :with_index, offset unless block
 
-    offset = if offset.nil?
-      0
-    elsif offset.respond_to?(:to_int)
-      offset.to_int
+    if offset.nil?
+      offset = 0
     else
-      raise TypeError, "no implicit conversion of #{offset.class} into Integer"
+      offset = offset.__to_int
     end
 
     n = offset - 1
@@ -223,13 +223,11 @@ class Enumerator
   end
 
   def inspect
-    return "#<#{self.class}: uninitialized>" unless @obj
-
     if @args && @args.size > 0
       args = @args.join(", ")
-      "#<#{self.class}: #{@obj}:#{@meth}(#{args})>"
+      "#<#{self.class}: #{@obj.inspect}:#{@meth}(#{args})>"
     else
-      "#<#{self.class}: #{@obj}:#{@meth}>"
+      "#<#{self.class}: #{@obj.inspect}:#{@meth}>"
     end
   end
 
@@ -245,9 +243,10 @@ class Enumerator
   #
   # === Examples
   #
-  #   "Hello, world!".scan(/\w+/)                     #=> ["Hello", "world"]
-  #   "Hello, world!".to_enum(:scan, /\w+/).to_a      #=> ["Hello", "world"]
-  #   "Hello, world!".to_enum(:scan).each(/\w+/).to_a #=> ["Hello", "world"]
+  #   Array.new(3)                     #=> [nil, nil, nil]
+  #   Array.new(3) { |i| i }           #=> [0, 1, 2]
+  #   Array.to_enum(:new, 3).to_a      #=> [0, 1, 2]
+  #   Array.to_enum(:new).each(3).to_a #=> [0, 1, 2]
   #
   #   obj = Object.new
   #
@@ -556,6 +555,46 @@ class Enumerator
       self
     end
   end
+
+  ##
+  # call-seq:
+  #    Enumerator.produce(initial = nil) { |val| } -> enumerator
+  #
+  # Creates an infinite enumerator from any block, just called over and
+  # over.  Result of the previous iteration is passed to the next one.
+  # If +initial+ is provided, it is passed to the first iteration, and
+  # becomes the first element of the enumerator; if it is not provided,
+  # first iteration receives +nil+, and its result becomes first
+  # element of the iterator.
+  #
+  # Raising StopIteration from the block stops an iteration.
+  #
+  # Examples of usage:
+  #
+  #   Enumerator.produce(1, &:succ)   # => enumerator of 1, 2, 3, 4, ....
+  #
+  #   Enumerator.produce { rand(10) } # => infinite random number sequence
+  #
+  #   ancestors = Enumerator.produce(node) { |prev| node = prev.parent or raise StopIteration }
+  #   enclosing_section = ancestors.find { |n| n.type == :section }
+  def Enumerator.produce(init=NONE, &block)
+    raise ArgumentError, "no block given" if block.nil?
+    Enumerator.new do |y|
+      if init == NONE
+        val = nil
+      else
+        val = init
+        y.yield(val)
+      end
+      begin
+        while true
+          y.yield(val = block.call(val))
+        end
+      rescue StopIteration
+        # do nothing
+      end
+    end
+  end
 end
 
 module Kernel
@@ -563,14 +602,9 @@ module Kernel
   # call-seq:
   #   obj.to_enum(method = :each, *args)                 -> enum
   #   obj.enum_for(method = :each, *args)                -> enum
-  #   obj.to_enum(method = :each, *args) {|*args| block} -> enum
-  #   obj.enum_for(method = :each, *args){|*args| block} -> enum
   #
   # Creates a new Enumerator which will enumerate by calling +method+ on
   # +obj+, passing +args+ if any.
-  #
-  # If a block is given, it will be used to calculate the size of
-  # the enumerator without the need to iterate it (see Enumerator#size).
   #
   # === Examples
   #
@@ -589,17 +623,14 @@ module Kernel
   # It is typical to call to_enum when defining methods for
   # a generic Enumerable, in case no block is passed.
   #
-  # Here is such an example, with parameter passing and a sizing block:
+  # Here is such an example with parameter passing:
   #
   #     module Enumerable
   #       # a generic method to repeat the values of any enumerable
   #       def repeat(n)
   #         raise ArgumentError, "#{n} is negative!" if n < 0
   #         unless block_given?
-  #           return to_enum(__method__, n) do # __method__ is :repeat here
-  #             sz = size     # Call size and multiply by n...
-  #             sz * n if sz  # but return nil if size itself is nil
-  #           end
+  #           return to_enum(__method__, n) # __method__ is :repeat here
   #         end
   #         each do |*val|
   #           n.times { yield *val }
@@ -621,25 +652,38 @@ end
 
 module Enumerable
   # use Enumerator to use infinite sequence
-  def zip(*arg)
-    ary = []
-    arg = arg.map{|a|a.each}
-    i = 0
-    self.each do |*val|
-      a = []
-      a.push(val.__svalue)
-      idx = 0
-      while idx < arg.size
-        begin
-          a.push(arg[idx].next)
-        rescue StopIteration
-          a.push(nil)
-        end
-        idx += 1
+  def zip(*args, &block)
+    args = args.map do |a|
+      if a.respond_to?(:each)
+        a.to_enum(:each)
+      else
+        raise TypeError, "wrong argument type #{a.class} (must respond to :each)"
       end
-      ary.push(a)
-      i += 1
     end
-    ary
+
+    result = block ? nil : []
+
+    each do |*val|
+      tmp = [val.__svalue]
+      args.each do |arg|
+        v = if arg.nil?
+          nil
+        else
+          begin
+            arg.next
+          rescue StopIteration
+            nil
+          end
+        end
+        tmp.push(v)
+      end
+      if result.nil?
+        block.call(tmp)
+      else
+        result.push(tmp)
+      end
+    end
+
+    result
   end
 end
