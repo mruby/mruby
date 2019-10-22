@@ -827,6 +827,13 @@ new_kw_arg(parser_state *p, mrb_sym kw, node *def_arg)
   return list3((node*)NODE_KW_ARG, nsym(kw), def_arg);
 }
 
+/* (:kw_rest_args . a) */
+static node*
+new_kw_rest_args(parser_state *p, node *a)
+{
+  return cons((node*)NODE_KW_REST_ARGS, a);
+}
+
 /* (:block_arg . a) */
 static node*
 new_block_arg(parser_state *p, node *a)
@@ -2265,6 +2272,30 @@ paren_args      : '(' opt_call_args ')'
                     {
                       $$ = $2;
                     }
+                | '(' tDOT3 rparen
+                    {
+#if 1
+                      mrb_sym r = mrb_intern_lit(p->mrb, "*");
+                      mrb_sym b = mrb_intern_lit(p->mrb, "&");
+                      if (local_var_p(p, r)  && local_var_p(p, b)) {
+                        $$ = cons(list1(new_splat(p, new_lvar(p, r))),
+                                  new_block_arg(p, new_lvar(p, b)));
+                      }
+#else
+                      mrb_sym r = mrb_intern_lit(p->mrb, "*");
+                      mrb_sym k = mrb_intern_lit(p->mrb, "**");
+                      mrb_sym b = mrb_intern_lit(p->mrb, "&");
+                      if (local_var_p(p, r) && local_var_p(p, k) && local_var_p(p, b)) {
+                        $$ = cons(list2(new_splat(p, new_lvar(p, r)),
+                                        new_kw_hash(p, list1(cons(new_kw_rest_args(p, 0), new_lvar(p, k))))),
+                                  new_block_arg(p, new_lvar(p, b)));
+                      }
+#endif
+                      else {
+                        yyerror(p, "unexpected argument forwarding ...");
+                        $$ = 0;
+                      }
+                    }
                 ;
 
 opt_paren_args  : none
@@ -3361,6 +3392,24 @@ f_arglist       : '(' f_args rparen
                       p->lstate = EXPR_BEG;
                       p->cmd_start = TRUE;
                     }
+                | '(' tDOT3 rparen
+                    {
+#if 1
+                      /* til real keyword args implemented */
+                      mrb_sym r = mrb_intern_lit(p->mrb, "*");
+                      mrb_sym b = mrb_intern_lit(p->mrb, "&");
+                      local_add_f(p, r);
+                      $$ = new_args(p, 0, 0, r, 0,
+                                    new_args_tail(p, 0, 0, b));
+#else
+                      mrb_sym r = mrb_intern_lit(p->mrb, "*");
+                      mrb_sym k = mrb_intern_lit(p->mrb, "**");
+                      mrb_sym b = mrb_intern_lit(p->mrb, "&");
+                      local_add_f(p, r); local_add_f(p, k);
+                      $$ = new_args(p, 0, 0, r, 0,
+                                    new_args_tail(p, 0, new_kw_rest_args(p, nsym(k)), b));
+#endif
+                    }
                 | f_args term
                     {
                       $$ = $1;
@@ -3424,11 +3473,11 @@ kwrest_mark     : tPOW
 
 f_kwrest        : kwrest_mark tIDENTIFIER
                     {
-                      $$ = cons((node*)NODE_KW_REST_ARGS, nsym($2));
+                      $$ = new_kw_rest_args(p, nsym($2));
                     }
                 | kwrest_mark
                     {
-                      $$ = cons((node*)NODE_KW_REST_ARGS, 0);
+                      $$ = new_kw_rest_args(p, 0);
                     }
                 ;
 
@@ -3743,7 +3792,7 @@ assoc           : arg tASSOC arg
                 | tDSTAR arg
                     {
                       void_expr_error(p, $2);
-                      $$ = cons(cons((node*)NODE_KW_REST_ARGS, 0), $2);
+                      $$ = cons(new_kw_rest_args(p, 0), $2);
                     }
                 ;
 
