@@ -1388,8 +1388,13 @@ str_escape(mrb_state *mrb, mrb_value str, mrb_bool inspect)
   }
   mrb_str_cat_lit(mrb, result, "\"");
 #ifdef MRB_UTF8_STRING
-  mrb_str_ptr(str)->flags |= ascii_flag;
-  mrb_str_ptr(result)->flags |= ascii_flag;
+  if (inspect) {
+    mrb_str_ptr(str)->flags |= ascii_flag;
+    mrb_str_ptr(result)->flags |= ascii_flag;
+  }
+  else {
+    RSTR_SET_ASCII_FLAG(mrb_str_ptr(result));
+  }
 #endif
 
   return result;
