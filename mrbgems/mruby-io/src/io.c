@@ -907,11 +907,7 @@ mrb_io_syswrite(mrb_state *mrb, mrb_value io)
   }
 
   mrb_get_args(mrb, "S", &str);
-  if (!mrb_string_p(str)) {
-    buf = mrb_funcall(mrb, str, "to_s", 0);
-  } else {
-    buf = str;
-  }
+  buf = str;
 
   if (fptr->fd2 == -1) {
     fd = fptr->fd;
