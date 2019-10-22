@@ -284,12 +284,13 @@ mrb_io_alloc(mrb_state *mrb)
 #endif
 
 static int
-option_to_fd(mrb_state *mrb, mrb_value obj, const char *key)
+option_to_fd(mrb_state *mrb, mrb_value hash, const char *key)
 {
-  mrb_value opt = mrb_funcall(mrb, obj, "[]", 1, mrb_symbol_value(mrb_intern_static(mrb, key, strlen(key))));
-  if (mrb_nil_p(opt)) {
-    return -1;
-  }
+  mrb_value opt;
+
+  if (!mrb_hash_p(hash)) return -1;
+  opt = mrb_hash_fetch(mrb, hash, mrb_symbol_value(mrb_intern_static(mrb, key, strlen(key))), mrb_nil_value());
+  if (mrb_nil_p(opt)) return -1;
 
   switch (mrb_type(opt)) {
     case MRB_TT_DATA: /* IO */
