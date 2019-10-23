@@ -603,7 +603,7 @@ str_range_to_bytes(mrb_value str, mrb_int *pos, mrb_int *len)
 static inline mrb_value
 str_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 {
-  str_range_to_bytes(str, &beg, &len);
+  if (!RSTR_ASCII_P(mrb_str_ptr(str))) str_range_to_bytes(str, &beg, &len);
   return mrb_str_byte_subseq(mrb, str, beg, len);
 }
 #else
