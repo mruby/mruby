@@ -174,8 +174,8 @@ mrb_str_concat_m(mrb_state *mrb, mrb_value self)
     str = int_chr_binary(mrb, str);
 #endif
   else
-    str = mrb_ensure_string_type(mrb, str);
-  mrb_str_concat(mrb, self, str);
+    mrb_ensure_string_type(mrb, str);
+  mrb_str_cat_str(mrb, self, str);
   return self;
 }
 

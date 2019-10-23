@@ -52,7 +52,7 @@ mrb_break_value_get(struct RBreak *brk)
 {
   mrb_value val;
   val.value = brk->value;
-  val.tt = brk->flags & RBREAK_VALUE_TT_MASK;
+  val.tt = (enum mrb_vtype)(brk->flags & RBREAK_VALUE_TT_MASK);
   return val;
 }
 static inline void

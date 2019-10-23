@@ -145,7 +145,7 @@ class_name_str(mrb_state *mrb, struct RClass* c)
   if (mrb_nil_p(path)) {
     path = c->tt == MRB_TT_MODULE ? mrb_str_new_lit(mrb, "#<Module:") :
                                     mrb_str_new_lit(mrb, "#<Class:");
-    mrb_str_concat(mrb, path, mrb_ptr_to_str(mrb, c));
+    mrb_str_cat_str(mrb, path, mrb_ptr_to_str(mrb, c));
     mrb_str_cat_lit(mrb, path, ">");
   }
   return path;
@@ -1885,7 +1885,8 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
     return mrb_str_cat_lit(mrb, str, ">");
   }
   else {
-    return class_name_str(mrb, mrb_class_ptr(klass));
+    mrb_value str = class_name_str(mrb, mrb_class_ptr(klass));
+    return mrb_frozen_p(mrb_basic_ptr(str)) ? mrb_str_dup(mrb, str) : str;
   }
 }
 

@@ -28,8 +28,4 @@ module Kernel
   def gets(*args)
     $stdin.gets(*args)
   end
-
-  def getc(*args)
-    $stdin.getc(*args)
-  end
 end
