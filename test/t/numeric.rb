@@ -1,7 +1,7 @@
 ##
 # Numeric ISO Test
 
-def  assert_step(exp, receiver, args, inf: false)
+def assert_step(exp, receiver, args, inf: false)
   act = []
   ret = receiver.step(*args) do |i|
     act << i
