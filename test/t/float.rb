@@ -239,6 +239,11 @@ assert('Float#to_s') do
   end
 end
 
+assert('Float#inspect') do
+  assert_equal("-3.25", -3.25.inspect)
+  assert_equal("50.0", 50.0.inspect)
+end
+
 assert('Float#eql?') do
   assert_operator(5.0, :eql?, 5.0)
   assert_not_operator(5.0, :eql?, 5)

@@ -195,19 +195,8 @@ integral_coerce_step_counter(mrb_state *mrb, mrb_value self)
  *  representation.
  */
 
-/* 15.2.9.3.16(x) */
-/*
- *  call-seq:
- *     flt.to_s  ->  string
- *
- *  Returns a string containing a representation of self. As well as a
- *  fixed or exponential form of the number, the call may return
- *  "<code>NaN</code>", "<code>Infinity</code>", and
- *  "<code>-Infinity</code>".
- */
-
 static mrb_value
-flo_to_s(mrb_state *mrb, mrb_value flt)
+flo_to_str(mrb_state *mrb, mrb_value flt, mrb_bool add_dot_zero)
 {
   mrb_float f = mrb_float(flt);
 
@@ -246,9 +235,55 @@ flo_to_s(mrb_state *mrb, mrb_value flt)
       str = mrb_float_to_str(mrb, flt, fmt);
       goto insert_dot_zero;
     }
+    else if (add_dot_zero) {
+      mrb_str_cat(mrb, str, ".0", 2);
+    }
 
     return str;
   }
+}
+
+/* 15.2.9.3.16(x) */
+/*
+ *  call-seq:
+ *     flt.to_s  ->  string
+ *
+ *  Returns a string containing a representation of self. As well as a
+ *  fixed or exponential form of the number, the call may return
+ *  "<code>NaN</code>", "<code>Infinity</code>", and
+ *  "<code>-Infinity</code>".
+ *
+ *  Trailing <code>.0</code> is removed.
+ *
+ *     3.0.to_s   #=> 3
+ *     3.25.to_s  #=> 3.25
+ */
+
+static mrb_value
+flo_to_s(mrb_state *mrb, mrb_value flt)
+{
+  return flo_to_str(mrb, flt, FALSE);
+}
+
+/*
+ *  call-seq:
+ *     flt.inspect  ->  string
+ *
+ *  Returns a string containing a representation of self. As well as a
+ *  fixed or exponential form of the number, the call may return
+ *  "<code>NaN</code>", "<code>Infinity</code>", and
+ *  "<code>-Infinity</code>".
+ *
+ *  Trailing <code>.0</code> is added.
+ *
+ *     3.0.to_s   #=> 3.0
+ *     3.25.to_s  #=> 3.25
+ */
+
+static mrb_value
+flo_inspect(mrb_state *mrb, mrb_value flt)
+{
+  return flo_to_str(mrb, flt, TRUE);
 }
 
 /* 15.2.9.3.2  */
@@ -1693,7 +1728,7 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fl,      "eql?",      flo_eql,        MRB_ARGS_REQ(1)); /* 15.2.8.3.16 */
 
   mrb_define_method(mrb, fl,      "to_s",      flo_to_s,       MRB_ARGS_NONE()); /* 15.2.9.3.16(x) */
-  mrb_define_method(mrb, fl,      "inspect",   flo_to_s,       MRB_ARGS_NONE());
+  mrb_define_method(mrb, fl,      "inspect",   flo_inspect,    MRB_ARGS_NONE());
   mrb_define_method(mrb, fl,      "nan?",      flo_nan_p,      MRB_ARGS_NONE());
 
 #ifdef INFINITY
