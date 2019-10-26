@@ -330,16 +330,21 @@ utf8_strlen(mrb_value str)
 static mrb_int
 chars2bytes(mrb_value s, mrb_int off, mrb_int idx)
 {
-  mrb_int i, b, n;
-  const char *p = RSTRING_PTR(s) + off;
-  const char *e = RSTRING_END(s);
-
-  for (b=i=0; p<e && i<idx; i++) {
-    n = utf8len(p, e);
-    b += n;
-    p += n;
+  if (RSTR_ASCII_P(mrb_str_ptr(s))) {
+    return idx;
   }
-  return b;
+  else {
+    mrb_int i, b, n;
+    const char *p = RSTRING_PTR(s) + off;
+    const char *e = RSTRING_END(s);
+
+    for (b=i=0; p<e && i<idx; i++) {
+      n = utf8len(p, e);
+      b += n;
+      p += n;
+    }
+    return b;
+  }
 }
 
 /* map byte offset to character index */
@@ -603,7 +608,7 @@ str_range_to_bytes(mrb_value str, mrb_int *pos, mrb_int *len)
 static inline mrb_value
 str_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 {
-  if (!RSTR_ASCII_P(mrb_str_ptr(str))) str_range_to_bytes(str, &beg, &len);
+  str_range_to_bytes(str, &beg, &len);
   return mrb_str_byte_subseq(mrb, str, beg, len);
 }
 #else
