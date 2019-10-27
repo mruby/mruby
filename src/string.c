@@ -2108,23 +2108,18 @@ mrb_str_rindex(mrb_state *mrb, mrb_value str)
 
 /*
  *  call-seq:
- *     str.split(pattern="\n", [limit])   => anArray
+ *     str.split(separator=nil, [limit])   => anArray
  *
  *  Divides <i>str</i> into substrings based on a delimiter, returning an array
  *  of these substrings.
  *
- *  If <i>pattern</i> is a <code>String</code>, then its contents are used as
- *  the delimiter when splitting <i>str</i>. If <i>pattern</i> is a single
+ *  If <i>separator</i> is a <code>String</code>, then its contents are used as
+ *  the delimiter when splitting <i>str</i>. If <i>separator</i> is a single
  *  space, <i>str</i> is split on whitespace, with leading whitespace and runs
  *  of contiguous whitespace characters ignored.
  *
- *  If <i>pattern</i> is a <code>Regexp</code>, <i>str</i> is divided where the
- *  pattern matches. Whenever the pattern matches a zero-length string,
- *  <i>str</i> is split into individual characters.
- *
- *  If <i>pattern</i> is omitted, the value of <code>$;</code> is used.  If
- *  <code>$;</code> is <code>nil</code> (which is the default), <i>str</i> is
- *  split on whitespace as if ' ' were specified.
+ *  If <i>separator</i> is omitted or <code>nil</code> (which is the default),
+ *  <i>str</i> is split on whitespace as if ' ' were specified.
  *
  *  If the <i>limit</i> parameter is omitted, trailing null fields are
  *  suppressed. If <i>limit</i> is a positive number, at most that number of
@@ -2135,9 +2130,6 @@ mrb_str_rindex(mrb_state *mrb, mrb_value str)
  *
  *     " now's  the time".split        #=> ["now's", "the", "time"]
  *     " now's  the time".split(' ')   #=> ["now's", "the", "time"]
- *     " now's  the time".split(/ /)   #=> ["", "now's", "", "the", "time"]
- *     "hello".split(//)               #=> ["h", "e", "l", "l", "o"]
- *     "hello".split(//, 3)            #=> ["h", "e", "llo"]
  *
  *     "mellow yellow".split("ello")   #=> ["m", "w y", "w"]
  *     "1,2,,3,4,,".split(',')         #=> ["1", "2", "", "3", "4"]
@@ -2150,7 +2142,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
 {
   mrb_int argc;
   mrb_value spat = mrb_nil_value();
-  enum {awk, string, regexp} split_type = string;
+  enum {awk, string} split_type = string;
   mrb_int i = 0;
   mrb_int beg;
   mrb_int end;
