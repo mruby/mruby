@@ -338,9 +338,15 @@ class IO
     i = 0
     len = args.size
     while i < len
-      s = args[i].to_s
-      write s
-      write "\n" if (s[-1] != "\n")
+      if args[i].kind_of?(Array)
+        args[i].each do |arg|
+          self.puts(arg)
+        end
+      else
+        s = args[i].to_s
+        write s
+        write "\n" if (s[-1] != "\n")
+      end
       i += 1
     end
     write "\n" if len == 0
