@@ -1228,8 +1228,6 @@ mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen)
  *     str[fixnum]                 => fixnum or nil
  *     str[fixnum, fixnum]         => new_str or nil
  *     str[range]                  => new_str or nil
- *     str[regexp]                 => new_str or nil
- *     str[regexp, fixnum]         => new_str or nil
  *     str[other_str]              => new_str or nil
  *     str.slice(fixnum)           => fixnum or nil
  *     str.slice(fixnum, fixnum)   => new_str or nil
@@ -1437,8 +1435,6 @@ mrb_str_aset(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen, mrb_
  *    str[fixnum] = replace
  *    str[fixnum, fixnum] = replace
  *    str[range] = replace
- *    str[regexp] = replace
- *    str[regexp, fixnum] = replace
  *    str[other_str] = replace
  *
  * Modify +self+ by replacing the content of +self+.
