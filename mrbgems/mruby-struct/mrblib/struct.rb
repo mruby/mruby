@@ -57,7 +57,7 @@ if Object.const_defined?(:Struct)
       end
       buf = []
       self.each_pair do |k,v|
-        buf.push [k.to_s + "=" + v._inspect(recur_list)]
+        buf.push k.to_s + "=" + v._inspect(recur_list)
       end
       str + buf.join(", ") + ">"
     end
