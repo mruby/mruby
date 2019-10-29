@@ -24,6 +24,14 @@ module MRuby
       target
     end
 
+    def shellquote(s)
+      if ENV['OS'] == 'Windows_NT'
+        "\"#{s}\""
+      else
+        "#{s}"
+      end
+    end
+
     NotFoundCommands = {}
 
     private
@@ -278,9 +286,9 @@ module MRuby
       @command = 'git'
       @flags = %w[]
       @clone_options = "clone %{flags} %{url} %{dir}"
-      @pull_options = "--git-dir '%{repo_dir}/.git' --work-tree '%{repo_dir}' pull"
-      @checkout_options = "--git-dir '%{repo_dir}/.git' --work-tree '%{repo_dir}' checkout %{checksum_hash}"
-      @reset_options = "--git-dir '%{repo_dir}/.git' --work-tree '%{repo_dir}' reset %{checksum_hash}"
+      @pull_options = "--git-dir #{shellquote("%{repo_dir}/.git")} --work-tree #{shellquote("%{repo_dir}")} pull"
+      @checkout_options = "--git-dir #{shellquote("%{repo_dir}/.git")} --work-tree #{shellquote("%{repo_dir}")} checkout %{checksum_hash}"
+      @reset_options = "--git-dir #{shellquote("%{repo_dir}/.git")} --work-tree #{shellquote("%{repo_dir}")} reset %{checksum_hash}"
     end
 
     def run_clone(dir, url, _flags = [])
@@ -304,11 +312,11 @@ module MRuby
     end
 
     def commit_hash(dir)
-      `#{@command} --git-dir '#{dir}/.git' --work-tree '#{dir}' rev-parse --verify HEAD`.strip
+      `#{@command} --git-dir #{shellquote(dir +'/.git')} --work-tree #{shellquote(dir)} rev-parse --verify HEAD`.strip
     end
 
     def current_branch(dir)
-      `#{@command} --git-dir '#{dir}/.git' --work-tree '#{dir}' rev-parse --abbrev-ref HEAD`.strip
+      `#{@command} --git-dir #{shellquote(dir + '/.git')} --work-tree #{shellquote(dir)} rev-parse --abbrev-ref HEAD`.strip
     end
   end
 
