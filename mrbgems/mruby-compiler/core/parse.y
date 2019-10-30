@@ -3722,7 +3722,7 @@ opt_nl          : /* none */
                 | nl
                 ;
 
-rparen          : opt_nl ')'
+rparen          : opt_terms ')'
                 ;
 
 trailer         : /* none */
