@@ -12,6 +12,7 @@
 #include <mruby/class.h>
 #include <mruby/data.h>
 #include <mruby/time.h>
+#include <mruby/string.h>
 
 #ifndef MRB_DISABLE_STDIO
 #include <stdio.h>
@@ -952,7 +953,9 @@ mrb_time_to_s(mrb_state *mrb, mrb_value self)
   struct mrb_time *tm = time_get_ptr(mrb, self);
   mrb_bool utc = tm->timezone == MRB_TIMEZONE_UTC;
   size_t len = (utc ? time_to_s_utc : time_to_s_local)(mrb, tm, buf, sizeof(buf));
-  return mrb_str_new(mrb, buf, len);
+  mrb_value str = mrb_str_new(mrb, buf, len);
+  RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+  return str;
 }
 
 void
