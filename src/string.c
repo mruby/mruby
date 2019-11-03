@@ -2499,8 +2499,6 @@ mrb_cstr_to_dbl(mrb_state *mrb, const char * p, mrb_bool badcheck)
   char buf[DBL_DIG * 4 + 10];
   double d;
 
-  enum {max_width = 20};
-
   if (!p) return 0.0;
   while (ISSPACE(*p)) p++;
 
