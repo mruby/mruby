@@ -793,15 +793,15 @@ new_args_tail(parser_state *p, node *kws, node *kwrest, mrb_sym blk)
 
   local_add_blk(p, blk);
 
-  // allocate register for keywords arguments
-  // order is for Proc#parameters
+  /* allocate register for keywords arguments */
+  /* order is for Proc#parameters */
   for (k = kws; k; k = k->cdr) {
-    if (!k->car->cdr->cdr->car) { // allocate required keywords
+    if (!k->car->cdr->cdr->car) { /* allocate required keywords */
       local_add_f(p, sym(k->car->cdr->car));
     }
   }
   for (k = kws; k; k = k->cdr) {
-    if (k->car->cdr->cdr->car) { // allocate keywords with default
+    if (k->car->cdr->cdr->car) { /* allocate keywords with default */
       local_add_lv(p, k->car->cdr->cdr->car->cdr);
       k->car->cdr->cdr->car = k->car->cdr->cdr->car->car;
       local_add_f(p, sym(k->car->cdr->car));
