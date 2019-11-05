@@ -195,12 +195,6 @@ assert("Array#reverse_each") do
     b << i
   end
   assert_equal [ "d", "c", "b", "a" ], b
-
-  if Object.const_defined?(:Enumerator)
-    assert_equal [ "d", "c", "b", "a" ], a.reverse_each.to_a
-  else
-    true
-  end
 end
 
 assert("Array#rotate") do
