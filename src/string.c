@@ -820,6 +820,7 @@ mrb_str_modify_keep_ascii(mrb_state *mrb, struct RString *s)
     if (shared->refcnt == 1 && s->as.heap.ptr == shared->ptr) {
       s->as.heap.aux.capa = shared->capa;
       s->as.heap.ptr[s->as.heap.len] = '\0';
+      RSTR_UNSET_SHARED_FLAG(s);
       mrb_free(mrb, shared);
     }
     else {
