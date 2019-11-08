@@ -1943,15 +1943,10 @@ mrb_str_intern(mrb_state *mrb, mrb_value self)
 MRB_API mrb_value
 mrb_obj_as_string(mrb_state *mrb, mrb_value obj)
 {
-  mrb_value str;
-
   if (mrb_string_p(obj)) {
     return obj;
   }
-  str = mrb_funcall(mrb, obj, "to_s", 0);
-  if (!mrb_string_p(str))
-    return mrb_any_to_s(mrb, obj);
-  return str;
+  return mrb_str_to_str(mrb, obj);
 }
 
 MRB_API mrb_value
