@@ -3329,11 +3329,13 @@ f_kw            : f_label arg
 
 f_block_kw      : f_label primary_value
                     {
-                      $$ = new_kw_arg(p, $1, $2);
+                      $$ = new_kw_arg(p, $1, cons($2, locals_node(p)));
+                      local_unnest(p);
                     }
                 | f_label
                     {
                       $$ = new_kw_arg(p, $1, 0);
+                      local_unnest(p);
                     }
                 ;
 
