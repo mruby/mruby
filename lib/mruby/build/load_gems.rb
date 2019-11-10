@@ -13,13 +13,12 @@ module MRuby
     end
 
     def gem(gemdir, &block)
-      caller_dir = File.expand_path(File.dirname(/^(.*?):\d/.match(caller.first).to_a[1]))
-
       if gemdir.is_a?(Hash)
         gemdir = load_special_path_gem(gemdir)
       elsif GemBox.path && gemdir.is_a?(String)
         gemdir = File.expand_path(gemdir, File.dirname(GemBox.path))
       else
+        caller_dir = File.expand_path(File.dirname(caller(1,1)[0][/^(.*?):\d/,1]))
         gemdir = File.expand_path(gemdir, caller_dir)
       end
 
