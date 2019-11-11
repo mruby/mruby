@@ -62,7 +62,7 @@ MRuby.each_target do |target|
     relative_from_root = gem.dir.relative_path_from(MRUBY_ROOT)
     current_build_dir = File.expand_path "#{build_dir}/#{relative_from_root}"
 
-    if current_build_dir !~ /^#{build_dir}/
+    if current_build_dir !~ /^#{Regexp.escape(build_dir)}/
       current_build_dir = "#{build_dir}/mrbgems/#{gem.name}"
     end
 
