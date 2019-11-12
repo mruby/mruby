@@ -5765,7 +5765,7 @@ parser_yylex(parser_state *p)
       tokadd(p, '$');
       tokadd(p, c);
       tokfix(p);
-      pylval.id = intern_cstr(tok(p));
+      pylval.id = intern(tok(p), toklen(p));
       return tGVAR;
 
     case '-':
@@ -5775,7 +5775,7 @@ parser_yylex(parser_state *p)
       pushback(p, c);
       gvar:
       tokfix(p);
-      pylval.id = intern_cstr(tok(p));
+      pylval.id = intern(tok(p), toklen(p));
       return tGVAR;
 
     case '&':     /* $&: last match */
@@ -5941,7 +5941,7 @@ parser_yylex(parser_state *p)
         if (IS_LABEL_SUFFIX(0)) {
           p->lstate = EXPR_END;
           tokfix(p);
-          pylval.id = intern_cstr(tok(p));
+          pylval.id = intern(tok(p), toklen(p));
           return tIDENTIFIER;
         }
       }
@@ -6000,7 +6000,7 @@ parser_yylex(parser_state *p)
       }
     }
     {
-      mrb_sym ident = intern_cstr(tok(p));
+      mrb_sym ident = intern(tok(p), toklen(p));
 
       pylval.id = ident;
       if (last_state != EXPR_DOT && ISLOWER(tok(p)[0]) && local_var_p(p, ident)) {
