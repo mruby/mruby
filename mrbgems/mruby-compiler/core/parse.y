@@ -4381,12 +4381,7 @@ parse_string(parser_state *p)
           }
         }
         if ((len-1 == hinf->term_len) && (strncmp(s, hinf->term, len-1) == 0)) {
-          if (c < 0) {
-            p->parsing_heredoc = NULL;
-          }
-          else {
-            return tHEREDOC_END;
-          }
+          return tHEREDOC_END;
         }
       }
       if (c < 0) {
