@@ -65,23 +65,21 @@ mrb_class_name_class(mrb_state *mrb, struct RClass *outer, struct RClass *c, mrb
     name = mrb_symbol_value(id);
   }
   else {
-    const char *n;
-    mrb_int len;
-    mrb_value outer_name = mrb_class_path(mrb, outer);
-
-    if (mrb_nil_p(outer_name)) {      /* unnamed outer class */
+    name = mrb_class_path(mrb, outer);
+    if (mrb_nil_p(name)) {      /* unnamed outer class */
       if (outer != mrb->object_class && outer != c) {
         mrb_obj_iv_set_force(mrb, (struct RObject*)c, mrb_intern_lit(mrb, "__outer__"),
                              mrb_obj_value(outer));
       }
       return;
     }
-    n = mrb_sym_name_len(mrb, id, &len);
-    name = mrb_str_new_capa(mrb, RSTRING_LEN(outer_name) + 2 + len);
-    mrb_str_cat_str(mrb, name, outer_name);
-    mrb_str_cat_lit(mrb, name, "::");
-    mrb_str_cat(mrb, name, n, len);
-    MRB_SET_FROZEN_FLAG(mrb_obj_ptr(name));
+    else {
+      mrb_int len;
+      const char *n = mrb_sym_name_len(mrb, id, &len);
+
+      mrb_str_cat_lit(mrb, name, "::");
+      mrb_str_cat(mrb, name, n, len);
+    }
   }
   mrb_obj_iv_set_force(mrb, (struct RObject*)c, nsym, name);
 }
@@ -1718,7 +1716,7 @@ mrb_class_path(mrb_state *mrb, struct RClass *c)
     /* toplevel class/module */
     return mrb_sym_str(mrb, mrb_symbol(path));
   }
-  return path;
+  return mrb_str_dup(mrb, path);
 }
 
 MRB_API struct RClass*
@@ -1885,8 +1883,7 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
     return mrb_str_cat_lit(mrb, str, ">");
   }
   else {
-    mrb_value str = class_name_str(mrb, mrb_class_ptr(klass));
-    return mrb_frozen_p(mrb_basic_ptr(str)) ? mrb_str_dup(mrb, str) : str;
+    return class_name_str(mrb, mrb_class_ptr(klass));
   }
 }
 
