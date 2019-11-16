@@ -5,7 +5,11 @@
 static mrb_value
 mrb_mod_name(mrb_state *mrb, mrb_value self)
 {
-  return mrb_class_path(mrb, mrb_class_ptr(self));
+  mrb_value name =  mrb_class_path(mrb, mrb_class_ptr(self));
+  if (mrb_string_p(name)) {
+    MRB_SET_FROZEN_FLAG(mrb_basic_ptr(name));
+  }
+  return name;
 }
 
 static mrb_value
