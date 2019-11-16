@@ -1123,7 +1123,7 @@ mrb_class_find_path(mrb_state *mrb, struct RClass *c)
     iv_del(mrb, c->iv, mrb_intern_lit(mrb, "__outer__"), NULL);
     iv_put(mrb, c->iv, mrb_intern_lit(mrb, "__classname__"), path);
     mrb_field_write_barrier_value(mrb, (struct RBasic*)c, path);
-    MRB_SET_FROZEN_FLAG(mrb_obj_ptr(path));
+    path = mrb_str_dup(mrb, path);
   }
   return path;
 }
