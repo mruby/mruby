@@ -80,10 +80,8 @@ assert('mruby -c option') do
 end
 
 assert('mruby -d option') do
-  o = `#{cmd('mruby')} -e #{shellquote('p $DEBUG')}`
-  assert_equal "false\n", o
-  o = `#{cmd('mruby')} -d -e #{shellquote('p $DEBUG')}`
-  assert_equal "true\n", o
+  assert_mruby("false\n", "", true, ["-e", "p $DEBUG"])
+  assert_mruby("true\n", "", true, ["-dep $DEBUG"])
 end
 
 assert('mruby -e option (no code specified)') do
