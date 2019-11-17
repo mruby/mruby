@@ -213,7 +213,7 @@ mrb_mruby_kernel_ext_gem_init(mrb_state *mrb)
   mrb_define_module_function(mrb, krn, "fail", mrb_f_raise, MRB_ARGS_OPT(2));
   mrb_define_module_function(mrb, krn, "caller", mrb_f_caller, MRB_ARGS_OPT(2));
   mrb_define_method(mrb, krn, "__method__", mrb_f_method, MRB_ARGS_NONE());
-  mrb_define_module_function(mrb, krn, "Integer", mrb_f_integer, MRB_ARGS_ANY());
+  mrb_define_module_function(mrb, krn, "Integer", mrb_f_integer, MRB_ARGS_ARG(1,1));
 #ifndef MRB_WITHOUT_FLOAT
   mrb_define_module_function(mrb, krn, "Float", mrb_f_float, MRB_ARGS_REQ(1));
 #endif
