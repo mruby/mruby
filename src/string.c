@@ -246,6 +246,28 @@ str_decref(mrb_state *mrb, mrb_shared_string *shared)
 }
 
 static void
+str_modify_keep_ascii(mrb_state *mrb, struct RString *s)
+{
+  if (RSTR_SHARED_P(s)) {
+    mrb_shared_string *shared = s->as.heap.aux.shared;
+
+    if (shared->refcnt == 1 && s->as.heap.ptr == shared->ptr) {
+      s->as.heap.aux.capa = shared->capa;
+      s->as.heap.ptr[s->as.heap.len] = '\0';
+      RSTR_UNSET_SHARED_FLAG(s);
+      mrb_free(mrb, shared);
+    }
+    else {
+      str_init_modifiable(mrb, s, s->as.heap.ptr, (size_t)s->as.heap.len);
+      str_decref(mrb, shared);
+    }
+  }
+  else if (RSTR_NOFREE_P(s) || RSTR_FSHARED_P(s)) {
+    str_init_modifiable(mrb, s, s->as.heap.ptr, (size_t)s->as.heap.len);
+  }
+}
+
+static void
 check_null_byte(mrb_state *mrb, mrb_value str)
 {
   mrb_to_str(mrb, str);
@@ -814,23 +836,7 @@ MRB_API void
 mrb_str_modify_keep_ascii(mrb_state *mrb, struct RString *s)
 {
   mrb_check_frozen(mrb, s);
-  if (RSTR_SHARED_P(s)) {
-    mrb_shared_string *shared = s->as.heap.aux.shared;
-
-    if (shared->refcnt == 1 && s->as.heap.ptr == shared->ptr) {
-      s->as.heap.aux.capa = shared->capa;
-      s->as.heap.ptr[s->as.heap.len] = '\0';
-      RSTR_UNSET_SHARED_FLAG(s);
-      mrb_free(mrb, shared);
-    }
-    else {
-      str_init_modifiable(mrb, s, s->as.heap.ptr, (size_t)s->as.heap.len);
-      str_decref(mrb, shared);
-    }
-  }
-  else if (RSTR_NOFREE_P(s) || RSTR_FSHARED_P(s)) {
-    str_init_modifiable(mrb, s, s->as.heap.ptr, (size_t)s->as.heap.len);
-  }
+  str_modify_keep_ascii(mrb, s);
 }
 
 MRB_API void
@@ -2423,15 +2429,12 @@ mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr)
   if (p[len] == '\0') {
     return p;
   }
-  if (mrb_frozen_p(ps) || RSTR_CAPA(ps) == len) {
-    ps = str_new(mrb, NULL, len+1);
-    memcpy(RSTR_PTR(ps), p, len);
-    RSTR_SET_LEN(ps, len);
-    *ptr = mrb_obj_value(ps);
-  }
-  else {
-    mrb_str_modify(mrb, ps);
-  }
+
+  /*
+   * Even after str_modify_keep_ascii(), NULL termination is not ensured if
+   * RSTR_SET_LEN() is used explicitly (e.g. String#delete_suffix!).
+   */
+  str_modify_keep_ascii(mrb, ps);
   RSTR_PTR(ps)[len] = '\0';
   return RSTR_PTR(ps);
 }
