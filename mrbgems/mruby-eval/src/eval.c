@@ -110,8 +110,8 @@ patch_irep(mrb_state *mrb, mrb_irep *irep, int bnest, mrb_irep *top)
     insn = iseq[i];
     switch(insn){
     case OP_EPUSH:
-      b = PEEK_S(iseq+i+1);
-      patch_irep(mrb, irep->reps[b], bnest + 1, top);
+      a = PEEK_B(iseq+i+1);
+      patch_irep(mrb, irep->reps[a], bnest + 1, top);
       break;
 
     case OP_LAMBDA:
