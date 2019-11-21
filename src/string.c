@@ -24,7 +24,7 @@
 
 typedef struct mrb_shared_string {
   int refcnt;
-  mrb_int capa;
+  mrb_ssize capa;
   char *ptr;
 } mrb_shared_string;
 
@@ -40,8 +40,8 @@ str_init_normal_capa(mrb_state *mrb, struct RString *s,
   if (p) memcpy(dst, p, len);
   dst[len] = '\0';
   s->as.heap.ptr = dst;
-  s->as.heap.len = (mrb_int)len;
-  s->as.heap.aux.capa = (mrb_int)capa;
+  s->as.heap.len = (mrb_ssize)len;
+  s->as.heap.aux.capa = (mrb_ssize)capa;
   RSTR_UNSET_TYPE_FLAG(s);
   return s;
 }
@@ -66,7 +66,7 @@ static struct RString*
 str_init_nofree(struct RString *s, const char *p, size_t len)
 {
   s->as.heap.ptr = (char *)p;
-  s->as.heap.len = (mrb_int)len;
+  s->as.heap.len = (mrb_ssize)len;
   s->as.heap.aux.capa = 0;             /* nofree */
   RSTR_SET_TYPE_FLAG(s, NOFREE);
   return s;
@@ -118,7 +118,7 @@ str_new_static(mrb_state *mrb, const char *p, size_t len)
   if (RSTR_EMBEDDABLE_P(len)) {
     return str_init_embed(mrb_obj_alloc_string(mrb), p, len);
   }
-  if (len >= MRB_INT_MAX) {
+  if (len >= MRB_SSIZE_MAX) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
   }
   return str_init_nofree(mrb_obj_alloc_string(mrb), p, len);
@@ -130,7 +130,7 @@ str_new(mrb_state *mrb, const char *p, size_t len)
   if (RSTR_EMBEDDABLE_P(len)) {
     return str_init_embed(mrb_obj_alloc_string(mrb), p, len);
   }
-  if (len >= MRB_INT_MAX) {
+  if (len >= MRB_SSIZE_MAX) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
   }
   if (p && mrb_ro_data_p(p)) {
@@ -162,7 +162,7 @@ mrb_str_new_capa(mrb_state *mrb, size_t capa)
   if (RSTR_EMBEDDABLE_P(capa)) {
     s = str_init_embed(mrb_obj_alloc_string(mrb), NULL, 0);
   }
-  else if (capa >= MRB_INT_MAX) {
+  else if (capa >= MRB_SSIZE_MAX) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string capacity size too big");
     /* not reached */
     s = NULL;
@@ -190,8 +190,8 @@ mrb_str_buf_new(mrb_state *mrb, size_t capa)
 static void
 resize_capa(mrb_state *mrb, struct RString *s, size_t capacity)
 {
-#if SIZE_MAX > MRB_INT_MAX
-    mrb_assert(capacity < MRB_INT_MAX);
+#if SIZE_MAX > MRB_SSIZE_MAX
+    mrb_assert(capacity < MRB_SSIZE_MAX);
 #endif
   if (RSTR_EMBED_P(s)) {
     if (!RSTR_EMBEDDABLE_P(capacity)) {
@@ -200,7 +200,7 @@ resize_capa(mrb_state *mrb, struct RString *s, size_t capacity)
   }
   else {
     s->as.heap.ptr = (char*)mrb_realloc(mrb, RSTR_PTR(s), capacity+1);
-    s->as.heap.aux.capa = (mrb_int)capacity;
+    s->as.heap.aux.capa = (mrb_ssize)capacity;
   }
 }
 
@@ -568,7 +568,7 @@ str_share(mrb_state *mrb, struct RString *orig, struct RString *s)
   else {
     if (orig->as.heap.aux.capa > orig->as.heap.len) {
       orig->as.heap.ptr = (char *)mrb_realloc(mrb, orig->as.heap.ptr, len+1);
-      orig->as.heap.aux.capa = len;
+      orig->as.heap.aux.capa = (mrb_ssize)len;
     }
     str_init_shared(mrb, orig, s, NULL);
     str_init_shared(mrb, orig, orig, s->as.heap.aux.shared);
@@ -613,8 +613,8 @@ mrb_str_byte_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
   }
   else {
     str_share(mrb, orig, s);
-    s->as.heap.ptr += beg;
-    s->as.heap.len = len;
+    s->as.heap.ptr += (mrb_ssize)beg;
+    s->as.heap.len = (mrb_ssize)len;
   }
   RSTR_COPY_ASCII_FLAG(s, orig);
   return mrb_obj_value(s);
@@ -961,7 +961,7 @@ mrb_str_times(mrb_state *mrb, mrb_value self)
   if (times < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "negative argument");
   }
-  if (times && MRB_INT_MAX / times < RSTRING_LEN(self)) {
+  if (times && MRB_SSIZE_MAX / times < RSTRING_LEN(self)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "argument too big");
   }
 
@@ -1302,7 +1302,7 @@ str_replace_partial(mrb_state *mrb, mrb_value src, mrb_int pos, mrb_int end, mrb
   replen = (mrb_nil_p(rep) ? 0 : RSTRING_LEN(rep));
   newlen = replen + len - (end - pos);
 
-  if (newlen >= MRB_INT_MAX || newlen < replen /* overflowed */) {
+  if (newlen >= MRB_SSIZE_MAX || newlen < replen /* overflowed */) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "string size too big");
   }
 
@@ -2675,21 +2675,21 @@ mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
 
   capa = RSTR_CAPA(s);
   total = RSTR_LEN(s)+len;
-  if (total >= MRB_INT_MAX) {
+  if (total >= MRB_SSIZE_MAX) {
   size_error:
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
   }
   if (capa <= total) {
     if (capa == 0) capa = 1;
     while (capa <= total) {
-      if (capa <= MRB_INT_MAX / 2) {
+      if (capa <= MRB_SSIZE_MAX / 2) {
         capa *= 2;
       }
       else {
         capa = total+1;
       }
     }
-    if (capa <= total || capa > MRB_INT_MAX) {
+    if (capa <= total || capa > MRB_SSIZE_MAX) {
       goto size_error;
     }
     resize_capa(mrb, s, capa);
@@ -2698,7 +2698,7 @@ mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
       ptr = RSTR_PTR(s) + off;
   }
   memcpy(RSTR_PTR(s) + RSTR_LEN(s), ptr, len);
-  mrb_assert_int_fit(size_t, total, mrb_int, MRB_INT_MAX);
+  mrb_assert_int_fit(size_t, total, mrb_ssize, MRB_SSIZE_MAX);
   RSTR_SET_LEN(s, total);
   RSTR_PTR(s)[total] = '\0';   /* sentinel */
   return str;

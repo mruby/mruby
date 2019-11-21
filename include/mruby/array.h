@@ -17,7 +17,7 @@ MRB_BEGIN_DECL
 
 typedef struct mrb_shared_array {
   int refcnt;
-  mrb_int len;
+  mrb_ssize len;
   mrb_value *ptr;
 } mrb_shared_array;
 
@@ -26,9 +26,9 @@ struct RArray {
   MRB_OBJECT_HEADER;
   union {
     struct {
-      mrb_int len;
+      mrb_ssize len;
       union {
-        mrb_int capa;
+        mrb_ssize capa;
         mrb_shared_array *shared;
       } aux;
       mrb_value *ptr;

@@ -23,9 +23,9 @@ struct RString {
   MRB_OBJECT_HEADER;
   union {
     struct {
-      mrb_int len;
+      mrb_ssize len;
       union {
-        mrb_int capa;
+        mrb_ssize capa;
         struct mrb_shared_string *shared;
         struct RString *fshared;
       } aux;
@@ -54,7 +54,7 @@ struct RStringEmbed {
     RSTR_SET_EMBED_LEN((s),(n));\
   }\
   else {\
-    (s)->as.heap.len = (mrb_int)(n);\
+    (s)->as.heap.len = (mrb_ssize)(n);\
   }\
 } while (0)
 #define RSTR_EMBED_PTR(s) (((struct RStringEmbed*)(s))->ary)
