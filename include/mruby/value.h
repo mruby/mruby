@@ -174,6 +174,14 @@ typedef void mrb_value;
 #define MRB_SYMBOL_MAX      UINT32_MAX
 #endif
 
+#if INTPTR_MAX < MRB_INT_MAX
+  typedef intptr_t mrb_ssize;
+# define MRB_SSIZE_MAX (INTPTR_MAX>>MRB_FIXNUM_SHIFT)
+#else
+  typedef mrb_int mrb_ssize;
+# define MRB_SSIZE_MAX MRB_INT_MAX
+#endif
+
 #ifndef mrb_immediate_p
 #define mrb_immediate_p(o) (mrb_type(o) < MRB_TT_FREE)
 #endif
