@@ -115,8 +115,8 @@ MRB_API mrb_int mrb_str_strlen(mrb_state*, struct RString*);
 #define MRB_STR_POOL     16  /* status flags from here */
 #define MRB_STR_ASCII    32
 #define MRB_STR_EMBED_LEN_SHIFT 6
-#define MRB_STR_EMBED_LEN_BITSIZE 5
-#define MRB_STR_EMBED_LEN_MASK (((1 << MRB_STR_EMBED_LEN_BITSIZE) - 1) << MRB_STR_EMBED_LEN_SHIFT)
+#define MRB_STR_EMBED_LEN_BIT 5
+#define MRB_STR_EMBED_LEN_MASK (((1 << MRB_STR_EMBED_LEN_BIT) - 1) << MRB_STR_EMBED_LEN_SHIFT)
 #define MRB_STR_TYPE_MASK (MRB_STR_POOL - 1)
 
 

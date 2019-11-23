@@ -20,12 +20,12 @@ typedef struct symbol_name {
   const char *name;
 } symbol_name;
 
-#define SYMBOL_INLINE_BIT       1
-#define SYMBOL_INLINE_LOWER_BIT 2
-#define SYMBOL_INLINE           (1 << (SYMBOL_INLINE_BIT - 1))
-#define SYMBOL_INLINE_LOWER     (1 << (SYMBOL_INLINE_LOWER_BIT - 1))
-#define SYMBOL_NORMAL_SHIFT     SYMBOL_INLINE_BIT
-#define SYMBOL_INLINE_SHIFT     SYMBOL_INLINE_LOWER_BIT
+#define SYMBOL_INLINE_BIT_POS       1
+#define SYMBOL_INLINE_LOWER_BIT_POS 2
+#define SYMBOL_INLINE               (1 << (SYMBOL_INLINE_BIT_POS - 1))
+#define SYMBOL_INLINE_LOWER         (1 << (SYMBOL_INLINE_LOWER_BIT_POS - 1))
+#define SYMBOL_NORMAL_SHIFT         SYMBOL_INLINE_BIT_POS
+#define SYMBOL_INLINE_SHIFT         SYMBOL_INLINE_LOWER_BIT_POS
 #ifdef MRB_ENABLE_ALL_SYMBOLS
 # define SYMBOL_INLINE_P(sym) FALSE
 # define SYMBOL_INLINE_LOWER_P(sym) FALSE
@@ -50,8 +50,8 @@ static const char pack_table[] = "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRS
 static mrb_sym
 sym_inline_pack(const char *name, uint16_t len)
 {
-  const int lower_length_max = (MRB_SYMBOL_BITSIZE - 2) / 5;
-  const int mix_length_max   = (MRB_SYMBOL_BITSIZE - 2) / 6;
+  const int lower_length_max = (MRB_SYMBOL_BIT - 2) / 5;
+  const int mix_length_max   = (MRB_SYMBOL_BIT - 2) / 6;
 
   char c;
   const char *p;
