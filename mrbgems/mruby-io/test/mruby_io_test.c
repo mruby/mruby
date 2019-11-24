@@ -177,28 +177,6 @@ mrb_io_test_io_cleanup(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
-mrb_io_test_file_setup(mrb_state *mrb, mrb_value self)
-{
-  mrb_value ary = mrb_io_test_io_setup(mrb, self);
-#if !defined(_WIN32) && !defined(_WIN64)
-  if (symlink("/usr/bin", "test-bin") == -1) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "can't make a symbolic link");
-  }
-#endif
-
-  return ary;
-}
-
-static mrb_value
-mrb_io_test_file_cleanup(mrb_state *mrb, mrb_value self)
-{
-  mrb_io_test_io_cleanup(mrb, self);
-  remove("test-bin");
-
-  return mrb_nil_value();
-}
-
-static mrb_value
 mrb_io_test_mkdtemp(mrb_state *mrb, mrb_value klass)
 {
   mrb_value str;
@@ -244,9 +222,6 @@ mrb_mruby_io_gem_test(mrb_state* mrb)
   struct RClass *io_test = mrb_define_module(mrb, "MRubyIOTestUtil");
   mrb_define_class_method(mrb, io_test, "io_test_setup", mrb_io_test_io_setup, MRB_ARGS_NONE());
   mrb_define_class_method(mrb, io_test, "io_test_cleanup", mrb_io_test_io_cleanup, MRB_ARGS_NONE());
-
-  mrb_define_class_method(mrb, io_test, "file_test_setup", mrb_io_test_file_setup, MRB_ARGS_NONE());
-  mrb_define_class_method(mrb, io_test, "file_test_cleanup", mrb_io_test_file_cleanup, MRB_ARGS_NONE());
 
   mrb_define_class_method(mrb, io_test, "mkdtemp", mrb_io_test_mkdtemp, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, io_test, "rmdir", mrb_io_test_rmdir, MRB_ARGS_REQ(1));
