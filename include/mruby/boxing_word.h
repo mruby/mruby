@@ -43,10 +43,10 @@ enum mrb_special_consts {
 #define MRB_IMMEDIATE_MASK  0x07
 
 #ifdef MRB_64BIT
-#define MRB_SYMBOL_BITSIZE  (sizeof(mrb_sym) * CHAR_BIT)
+#define MRB_SYMBOL_BIT      (sizeof(mrb_sym) * CHAR_BIT)
 #define MRB_SYMBOL_MAX      UINT32_MAX
 #else
-#define MRB_SYMBOL_BITSIZE  (sizeof(mrb_sym) * CHAR_BIT - MRB_SYMBOL_SHIFT)
+#define MRB_SYMBOL_BIT      (sizeof(mrb_sym) * CHAR_BIT - MRB_SYMBOL_SHIFT)
 #define MRB_SYMBOL_MAX      (UINT32_MAX >> MRB_SYMBOL_SHIFT)
 #endif
 
