@@ -189,8 +189,8 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
     }
   }
 
+  argc = opts->argc; argv = opts->argv;
   if (args->cmdline == NULL) {
-    argc = opts->argc; argv = opts->argv;
     if (*argv == NULL) args->rfp = stdin;
     else {
       args->rfp = strcmp(argv[0], "-") == 0 ?
