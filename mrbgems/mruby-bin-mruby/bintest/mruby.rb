@@ -39,6 +39,11 @@ assert '$0 value' do
   assert_equal '"-e"', `#{cmd('mruby')} -e #{shellquote('p $0')}`.chomp
 end
 
+assert 'ARGV value' do
+  assert_mruby(%{["ab", "cde"]\n}, "", true, %w[-e p(ARGV) ab cde])
+  assert_mruby("[]\n", "", true, %w[-e p(ARGV)])
+end
+
 assert('float literal') do
   script, bin = Tempfile.new('test.rb'), Tempfile.new('test.mrb')
   File.write script.path, 'p [3.21, 2e308.infinite?, -2e308.infinite?]'
