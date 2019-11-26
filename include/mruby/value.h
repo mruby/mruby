@@ -173,6 +173,7 @@ typedef void mrb_value;
 #define MRB_SYMBOL_BIT (sizeof(mrb_sym) * CHAR_BIT)
 #define MRB_SYMBOL_MAX UINT32_MAX
 #endif
+#define MRB_SYMBOL_EMBED_LEN_MAX (uint16_t)(sizeof(void*) * 2 - 16 / CHAR_BIT)
 
 #if INTPTR_MAX < MRB_INT_MAX
   typedef intptr_t mrb_ssize;

@@ -13,11 +13,26 @@
 #include <mruby/class.h>
 
 /* ------------------------------------------------------ */
+enum symbol_type {
+  SYMBOL_TYPE_LITERAL = 0,
+  SYMBOL_TYPE_EMBED,
+  SYMBOL_TYPE_ALLOC,
+};
+
 typedef struct symbol_name {
-  mrb_bool lit : 1;
-  uint8_t prev;
-  uint16_t len;
-  const char *name;
+  union {
+    struct {
+      uint8_t type      : 2;
+      uint8_t embed_len : 6;
+      uint8_t prev;
+      uint16_t len;
+      const char *name;
+    };
+    struct {
+      uint16_t padding;  /* space for `type`, `embed_len` and `prev` */
+      char embed_name[MRB_SYMBOL_EMBED_LEN_MAX];
+    };
+  };
 } symbol_name;
 
 #define SYMBOL_INLINE_BIT_POS       1
@@ -26,6 +41,10 @@ typedef struct symbol_name {
 #define SYMBOL_INLINE_LOWER         (1 << (SYMBOL_INLINE_LOWER_BIT_POS - 1))
 #define SYMBOL_NORMAL_SHIFT         SYMBOL_INLINE_BIT_POS
 #define SYMBOL_INLINE_SHIFT         SYMBOL_INLINE_LOWER_BIT_POS
+#define SYMBOL_LEN(sname) \
+  ((sname)->type == SYMBOL_TYPE_EMBED ? (sname)->embed_len : (sname)->len)
+#define SYMBOL_NAME(sname) \
+  ((sname)->type == SYMBOL_TYPE_EMBED ? (sname)->embed_name : (sname)->name)
 #ifdef MRB_ENABLE_ALL_SYMBOLS
 # define SYMBOL_INLINE_P(sym) FALSE
 # define SYMBOL_INLINE_LOWER_P(sym) FALSE
@@ -123,11 +142,17 @@ symhash(const char *key, size_t len)
     return hash & 0xff;
 }
 
+static mrb_bool
+sym_name_eq(const symbol_name *sname, const char *name, uint16_t len)
+{
+  return SYMBOL_LEN(sname) == len && memcmp(SYMBOL_NAME(sname), name, len) == 0;
+}
+
 static mrb_sym
 find_symbol(mrb_state *mrb, const char *name, uint16_t len, uint8_t *hashp)
 {
   mrb_sym i;
-  symbol_name *sname;
+  const symbol_name *sname;
   uint8_t hash;
 
   /* inline symbol */
@@ -141,14 +166,14 @@ find_symbol(mrb_state *mrb, const char *name, uint16_t len, uint8_t *hashp)
   if (i == 0) return 0;
   do {
     sname = &mrb->symtbl[i];
-    if (sname->len == len && memcmp(sname->name, name, len) == 0) {
+    if (sym_name_eq(sname, name, len)) {
       return i<<SYMBOL_NORMAL_SHIFT;
     }
     if (sname->prev == 0xff) {
       i -= 0xff;
       sname = &mrb->symtbl[i];
       while (mrb->symtbl < sname) {
-        if (sname->len == len && memcmp(sname->name, name, len) == 0) {
+        if (sym_name_eq(sname, name, len)) {
           return (mrb_sym)(sname - mrb->symtbl)<<SYMBOL_NORMAL_SHIFT;
         }
         sname--;
@@ -179,17 +204,24 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
     mrb->symtbl = (symbol_name*)mrb_realloc(mrb, mrb->symtbl, sizeof(symbol_name)*(mrb->symcapa+1));
   }
   sname = &mrb->symtbl[sym];
-  sname->len = (uint16_t)len;
   if (lit || mrb_ro_data_p(name)) {
     sname->name = name;
-    sname->lit = TRUE;
+    sname->len = (uint16_t)len;
+    sname->type = SYMBOL_TYPE_LITERAL;
+  }
+  else if (len <= MRB_SYMBOL_EMBED_LEN_MAX) {
+    memcpy(sname->embed_name, name, len);
+    if (len != MRB_SYMBOL_EMBED_LEN_MAX) sname->embed_name[len] = 0;
+    sname->embed_len = (uint8_t)len;
+    sname->type = SYMBOL_TYPE_EMBED;
   }
   else {
     char *p = (char *)mrb_malloc(mrb, len+1);
     memcpy(p, name, len);
     p[len] = 0;
     sname->name = (const char*)p;
-    sname->lit = FALSE;
+    sname->len = (uint16_t)len;
+    sname->type = SYMBOL_TYPE_ALLOC;
   }
   if (mrb->symhash[hash]) {
     mrb_sym i = sym - mrb->symhash[hash];
@@ -256,6 +288,8 @@ mrb_check_intern_str(mrb_state *mrb, mrb_value str)
 static const char*
 sym2name_len(mrb_state *mrb, mrb_sym sym, char *buf, mrb_int *lenp)
 {
+  const symbol_name *sname;
+
   if (SYMBOL_INLINE_P(sym)) return sym_inline_unpack(sym, buf, lenp);
 
   sym >>= SYMBOL_NORMAL_SHIFT;
@@ -264,8 +298,16 @@ sym2name_len(mrb_state *mrb, mrb_sym sym, char *buf, mrb_int *lenp)
     return NULL;
   }
 
-  if (lenp) *lenp = mrb->symtbl[sym].len;
-  return mrb->symtbl[sym].name;
+  sname = &mrb->symtbl[sym];
+  if (lenp) *lenp = SYMBOL_LEN(sname);
+  if (sname->type == SYMBOL_TYPE_EMBED) {
+    if (sname->embed_len == MRB_SYMBOL_EMBED_LEN_MAX) {
+      buf[sname->embed_len] = 0;
+      memcpy(buf, sname->embed_name, sname->embed_len);
+      return buf;
+    }
+  }
+  return SYMBOL_NAME(sname);
 }
 
 MRB_API const char*
@@ -280,7 +322,7 @@ mrb_free_symtbl(mrb_state *mrb)
   mrb_sym i, lim;
 
   for (i=1, lim=mrb->symidx+1; i<lim; i++) {
-    if (!mrb->symtbl[i].lit) {
+    if (mrb->symtbl[i].type == SYMBOL_TYPE_ALLOC) {
       mrb_free(mrb, (char*)mrb->symtbl[i].name);
     }
   }
@@ -574,7 +616,7 @@ sym_cmp(mrb_state *mrb, mrb_value s1)
     const char *p1, *p2;
     int retval;
     mrb_int len, len1, len2;
-    char buf1[8], buf2[8];
+    char buf1[MRB_SYMBOL_EMBED_LEN_MAX+1], buf2[MRB_SYMBOL_EMBED_LEN_MAX+1];
 
     p1 = sym2name_len(mrb, sym1, buf1, &len1);
     p2 = sym2name_len(mrb, sym2, buf2, &len2);
