@@ -64,21 +64,33 @@ options_init(struct options *opts, int argc, char **argv)
 static const char *
 options_opt(struct options *opts)
 {
+  /* concatenated short options (e.g. `-cv`) */
   if (*opts->short_opt && *++opts->opt) {
    short_opt:
     opts->short_opt[0] = *opts->opt;
     opts->short_opt[1] = 0;
     return opts->short_opt;
   }
+
   while (++opts->argv, --opts->argc) {
     opts->opt = *opts->argv;
+
+    /*  empty         || not start with `-`  || `-` */
     if (!opts->opt[0] || opts->opt[0] != '-' || !opts->opt[1]) return NULL;
+
     if (opts->opt[1] == '-') {
+      /* `--` */
+      if (!opts->opt[2]) {
+        ++opts->argv, --opts->argc;
+        return NULL;
+      }
+      /* long option */
       opts->opt += 2;
       *opts->short_opt = 0;
       return opts->opt;
     }
     else {
+      /* short option */
       ++opts->opt;
       goto short_opt;
     }
@@ -90,6 +102,7 @@ static const char *
 options_arg(struct options *opts)
 {
   if (*opts->short_opt && opts->opt[1]) {
+    /* concatenated short option and option argument (e.g. `-rLIBRARY`) */
     *opts->short_opt = 0;
     return opts->opt + 1;
   }
