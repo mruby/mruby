@@ -1,0 +1,205 @@
+#include "carbuncle/core.h"
+#include "carbuncle/game.h"
+#include "carbuncle/screen.h"
+
+#include "raylib.h"
+
+#include <mruby/variable.h>
+#include <mruby/gc.h>
+#include <mruby/string.h>
+#include <mruby/class.h>
+
+/* Constants */
+
+static const char *CURRENT_GAME_SYM = "#current_game";
+static const char *SCREEN_SYM = "#screen";
+
+/* Variables */
+
+static mrb_bool carbuncle_game_is_running = FALSE;
+
+/* Helper functions */
+
+static inline void
+create_window(mrb_state *mrb, mrb_value instance)
+{
+  mrb_value screen_value = mrb_iv_get(mrb, instance, mrb_intern_cstr(mrb, SCREEN_SYM));
+  Screen *screen = mrb_carbuncle_get_screen(mrb, screen_value);
+  mrb_value title_value = mrb_funcall(mrb, screen_value, "title", 0);
+  const char *title = mrb_str_to_cstr(mrb, title_value);
+  InitWindow(screen->width, screen->height, title);
+}
+
+static inline void
+begin_game(mrb_state *mrb, mrb_value self, mrb_value instance)
+{
+  mrb_funcall(mrb, instance, "before_run", 0);
+  mrb_sym current_game = mrb_intern_cstr(mrb, CURRENT_GAME_SYM);
+  mrb_cv_set(mrb, self, current_game, instance);
+  mrb_gc_register(mrb, instance);
+  carbuncle_game_is_running = TRUE;
+  create_window(mrb, instance);
+  mrb_funcall(mrb, instance, "after_run", 0);
+}
+
+static inline void
+check_closing(mrb_state *mrb, mrb_value instance)
+{
+  if (WindowShouldClose())
+  {
+    mrb_value should_close = mrb_funcall(mrb, instance, "close?", 0);
+    if (mrb_test(should_close))
+    {
+      mrb_funcall(mrb, instance, "close", 0);
+    }
+  }  
+}
+
+static inline void
+draw_game(mrb_state *mrb, mrb_value instance)
+{
+  BeginDrawing();
+  ClearBackground(BLACK);
+  mrb_funcall(mrb, instance, "draw", 0);
+  EndDrawing();
+}
+
+static inline void
+game_loop(mrb_state *mrb, mrb_value instance)
+{
+  while (carbuncle_game_is_running)
+  {
+    check_closing(mrb, instance);
+    mrb_funcall(mrb, instance, "update", 1, mrb_float_value(mrb, GetFrameTime()));
+    draw_game(mrb, instance);
+  }
+}
+
+static inline void
+close_game(mrb_state *mrb, mrb_value self, mrb_value instance)
+{
+  mrb_sym current_game = mrb_intern_cstr(mrb, CURRENT_GAME_SYM);
+  mrb_gc_unregister(mrb, instance);
+  mrb_cv_set(mrb, self, current_game, mrb_nil_value());
+  mrb_funcall(mrb, instance, "before_close", 0);
+  CloseWindow();
+  mrb_funcall(mrb, instance, "after_close", 0);
+}
+
+/* Ruby Bindings */
+
+static mrb_value
+mrb_s_game_run(mrb_state *mrb, mrb_value self)
+{
+  mrb_value instance = mrb_funcall(mrb, self, "new", 0);
+  begin_game(mrb, self, instance);
+  game_loop(mrb, instance);
+  close_game(mrb, self, instance);
+  return mrb_nil_value();
+}
+
+static mrb_value
+mrb_s_game_runningQ(mrb_state *mrb, mrb_value self)
+{
+  return mrb_bool_value(carbuncle_game_is_running);
+}
+
+static mrb_value
+mrb_s_game_get_current_game(mrb_state *mrb, mrb_value self)
+{
+  return mrb_cv_get(mrb, self, mrb_intern_cstr(mrb, CURRENT_GAME_SYM));
+}
+
+static mrb_value
+mrb_game_get_screen(mrb_state *mrb, mrb_value self)
+{
+  return mrb_iv_get(mrb, self, mrb_intern_cstr(mrb, SCREEN_SYM));
+}
+
+static mrb_value
+mrb_game_initialize(mrb_state *mrb, mrb_value self)
+{
+  mrb_value new_screen = mrb_carbuncle_screen_new(mrb, self);
+  mrb_iv_set(mrb, self, mrb_intern_cstr(mrb, SCREEN_SYM), new_screen);
+  return self;
+}
+
+static mrb_value
+mrb_game_closeQ(mrb_state *mrb, mrb_value self)
+{
+  return mrb_true_value();
+}
+
+static mrb_value
+mrb_game_dummy(mrb_state *mrb, mrb_value self)
+{
+  return mrb_nil_value();
+}
+
+static mrb_value
+mrb_game_close(mrb_state *mrb, mrb_value self)
+{
+  carbuncle_game_is_running = FALSE;
+  return mrb_nil_value();
+}
+
+static mrb_value
+mrb_game_resize(mrb_state *mrb, mrb_value self)
+{
+  mrb_int width, height;
+  mrb_get_args(mrb, "ii", &width, &height);
+  SetWindowSize(width, height);
+  return mrb_nil_value();
+}
+
+/* Init Game class */
+
+void
+mrb_carbuncle_game_init(mrb_state *mrb, struct RClass *carbuncle)
+{
+  struct RClass *game = mrb_define_class_under(mrb, carbuncle, "Game", mrb->object_class);
+
+  /* Class methods */
+
+  mrb_define_class_method(mrb, game, "run", mrb_s_game_run, MRB_ARGS_NONE());
+
+  mrb_define_class_method(mrb, game, "running?", mrb_s_game_runningQ, MRB_ARGS_NONE());
+  mrb_define_class_method(mrb, game, "current_game", mrb_s_game_get_current_game, MRB_ARGS_NONE());
+
+  /* Getters */
+
+  mrb_define_method(mrb, game, "screen", mrb_game_get_screen, MRB_ARGS_NONE());
+
+  /* Instance Methods */
+  mrb_define_method(mrb, game, "initialize", mrb_game_initialize, MRB_ARGS_NONE());
+  mrb_define_method(mrb, game, "close?", mrb_game_closeQ, MRB_ARGS_NONE());
+  mrb_define_method(mrb, game, "resize", mrb_game_resize, MRB_ARGS_REQ(2));
+
+  /* Game lifecycle */
+  mrb_define_method(mrb, game, "update", mrb_game_dummy, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, game, "draw", mrb_game_dummy, MRB_ARGS_NONE());
+  mrb_define_method(mrb, game, "close", mrb_game_close, MRB_ARGS_NONE());
+
+  /* Lifecycle hooks */
+  mrb_define_method(mrb, game, "before_run", mrb_game_dummy, MRB_ARGS_NONE());
+  mrb_define_method(mrb, game, "after_run", mrb_game_dummy, MRB_ARGS_NONE());
+  mrb_define_method(mrb, game, "before_close", mrb_game_dummy, MRB_ARGS_NONE());
+  mrb_define_method(mrb, game, "after_close", mrb_game_dummy, MRB_ARGS_NONE());
+}
+
+mrb_value
+mrb_carbuncle_get_current_game(mrb_state *mrb)
+{
+  struct RClass *carbuncle = mrb_module_get(mrb, "Carbuncle");
+  struct RClass *game_class = mrb_class_get_under(mrb, carbuncle, "Game");
+  mrb_value class_value = mrb_obj_value(game_class);
+  return mrb_cv_get(mrb, class_value, mrb_intern_cstr(mrb, CURRENT_GAME_SYM));
+}
+
+mrb_bool
+mrb_carbuncle_is_current_game(mrb_state *mrb, mrb_value self)
+{
+  mrb_value class_value = mrb_obj_value(mrb_obj_class(mrb, self));
+  mrb_value current_game = mrb_cv_get(mrb, class_value, mrb_intern_cstr(mrb, CURRENT_GAME_SYM));
+  return mrb_equal(mrb, self, current_game);
+}

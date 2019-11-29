@@ -1,0 +1,8 @@
+MRuby::GemBox.new do |conf|
+  conf.gem :core => "carbuncle/carbuncle-core"
+  conf.gem :core => "carbuncle/carbuncle-math"
+  conf.gem :core => "carbuncle/carbuncle-graphics"
+  conf.gem :core => "carbuncle/carbuncle-audio"
+  conf.gem :core => "carbuncle/carbuncle-input"
+  # conf.gem :core => "carbuncle/carbuncle-bin"
+end

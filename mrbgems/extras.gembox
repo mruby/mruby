@@ -1,0 +1,4 @@
+MRuby::GemBox.new do |conf|
+  conf.gem :core => "mruby-method"
+  conf.gem :core => "mruby-random"
+end
