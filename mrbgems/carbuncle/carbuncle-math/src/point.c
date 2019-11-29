@@ -7,15 +7,15 @@
 #include "raylib.h"
 
 static const struct mrb_data_type point_data_type = {
-  "carbuncle/point", mrb_free
+  "Carbuncle::Point", mrb_free
 };
 
 static mrb_value
-set_values(mrb_state *mrb, mrb_value self, mrb_bool from_initialize)
+set_point_values(mrb_state *mrb, mrb_value self, mrb_bool from_initialize)
 {
   mrb_int argc, x, y;
   mrb_value first;
-  argc = mrb_get_args(mrb, "o|i", &first, &y);
+  argc = mrb_get_args(mrb, "|oi", &first, &y);
   Vector2 *data = DATA_GET_PTR(mrb, self, &point_data_type, Vector2);
   switch (argc)
   {
@@ -56,31 +56,31 @@ set_values(mrb_state *mrb, mrb_value self, mrb_bool from_initialize)
 }
 
 static mrb_value
-initialize(mrb_state *mrb, mrb_value self)
+mrb_point_initialize(mrb_state *mrb, mrb_value self)
 {
   mrb_carbuncle_check_frozen(mrb, self);
   Vector2 *data = mrb_malloc(mrb, sizeof *data);
   DATA_TYPE(self) = &point_data_type;
   DATA_PTR(self) = data;
-  return set_values(mrb, self, TRUE);
+  return set_point_values(mrb, self, TRUE);
 }
 
 static mrb_value
-get_x(mrb_state *mrb, mrb_value self)
+mrb_point_get_x(mrb_state *mrb, mrb_value self)
 {
   Vector2 *point = mrb_carbuncle_get_point(mrb, self);
   return mrb_fixnum_value(point->x);
 }
 
 static mrb_value
-get_y(mrb_state *mrb, mrb_value self)
+mrb_point_get_y(mrb_state *mrb, mrb_value self)
 {
   Vector2 *point = mrb_carbuncle_get_point(mrb, self);
   return mrb_fixnum_value(point->y);
 }
 
 static mrb_value
-set_x(mrb_state *mrb, mrb_value self)
+mrb_point_set_x(mrb_state *mrb, mrb_value self)
 {
   mrb_carbuncle_check_frozen(mrb, self);
   mrb_float x;
@@ -91,7 +91,7 @@ set_x(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
-set_y(mrb_state *mrb, mrb_value self)
+mrb_point_set_y(mrb_state *mrb, mrb_value self)
 {
   mrb_carbuncle_check_frozen(mrb, self);
   mrb_float y;
@@ -102,10 +102,10 @@ set_y(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
-set(mrb_state *mrb, mrb_value self)
+mrb_point_set(mrb_state *mrb, mrb_value self)
 {
   mrb_carbuncle_check_frozen(mrb, self);
-  return set_values(mrb, self, FALSE);
+  return set_point_values(mrb, self, FALSE);
 }
 
 void
@@ -113,15 +113,15 @@ mrb_carbuncle_point_init(mrb_state *mrb)
 {
   struct RClass *point = mrb_carbuncle_define_data_class(mrb, "Point", mrb->object_class);
 
-  mrb_define_method(mrb, point, "initialize", initialize, MRB_ARGS_OPT(2));
+  mrb_define_method(mrb, point, "initialize", mrb_point_initialize, MRB_ARGS_OPT(2));
 
-  mrb_define_method(mrb, point, "x", get_x, MRB_ARGS_NONE());
-  mrb_define_method(mrb, point, "y", get_y, MRB_ARGS_NONE());
+  mrb_define_method(mrb, point, "x", mrb_point_get_x, MRB_ARGS_NONE());
+  mrb_define_method(mrb, point, "y", mrb_point_get_y, MRB_ARGS_NONE());
 
-  mrb_define_method(mrb, point, "x=", set_x, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, point, "y=", set_y, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, point, "x=", mrb_point_set_x, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, point, "y=", mrb_point_set_y, MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, point, "set", set, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
+  mrb_define_method(mrb, point, "set", mrb_point_set, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
 
   mrb_value empty_point = mrb_obj_freeze(mrb, mrb_obj_new(mrb, point, 0, NULL));
   mrb_define_const(mrb, point, "EMPTY", empty_point);

@@ -17,7 +17,7 @@ static const char *GAME_IV_NAME = "#game";
 #define GAME_SYMBOL mrb_intern_cstr(mrb, GAME_IV_NAME)
 
 static const struct mrb_data_type screen_data_type = {
-  "carbuncle/screen", mrb_free
+  "Carbuncle::Screen", mrb_free
 };
 
 static void
