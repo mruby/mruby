@@ -1,9 +1,9 @@
-MRuby::Gem::Specification.new('carbuncle-bin') do |spec|
+MRuby::Gem::Specification.new('mruby-bin-carbuncle') do |spec|
   spec.license = 'MIT'
   spec.author  = 'Ramiro Rojo'
   spec.summary = 'Carbuncle application'
 
-  spec.bins = %w[carbuncle]
+  spec.bins = %w[mruby-carbuncle]
 
   spec.add_dependency 'carbuncle-core'
   spec.add_dependency 'carbuncle-audio'
