@@ -13,11 +13,11 @@ addons:
   apt:
     packages:
       - gperf
+      - xorg-dev
+      - libglu1-mesa-dev
 
 env:
   - MRUBY_CONFIG=travis_config.rb
-before_install:
-  - sudo apt-get install xorg-dev libglu1-mesa-dev
 before_script:
   - gem install git
 script: "./minirake -j4 all test"
