@@ -17,7 +17,7 @@ set_point_values(mrb_state *mrb, mrb_value self, mrb_bool from_initialize)
   mrb_float y;
   mrb_value first;
   mrb_int argc = mrb_get_args(mrb, "|of", &first, &y);
-  Vector2 *data = mruby_carbuncle_get_point(mrb, self);
+  Vector2 *data = mrb_carbuncle_get_point(mrb, self);
   switch (argc)
   {
     case 0: {

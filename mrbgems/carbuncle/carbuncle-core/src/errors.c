@@ -1,7 +1,7 @@
 #include <mruby.h>
 
 static const char *FROZEN_ERROR_MSG = "can't modify frozen %s";
-static const char *ARG_ERROR_MSG = "wrong number of arguments (given %s, expected %d)";
+static const char *ARG_ERROR_MSG = "wrong number of arguments (given %d, expected %s)";
 
 void
 mrb_carbuncle_check_frozen(mrb_state *mrb, mrb_value obj)
@@ -25,5 +25,5 @@ mrb_carbuncle_raise(mrb_state *mrb, const char *name, const char *msg)
 void
 mrb_carbuncle_arg_error(mrb_state *mrb, const char *options, mrb_int argc)
 {
-  mrb_raisef(mrb, E_ARGUMENT_ERROR, ARG_ERROR_MSG, options, argc);
+  mrb_raisef(mrb, E_ARGUMENT_ERROR, ARG_ERROR_MSG, argc, options);
 }
