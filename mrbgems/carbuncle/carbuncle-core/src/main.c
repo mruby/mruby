@@ -15,6 +15,7 @@ mrb_carbuncle_core_gem_init(mrb_state *mrb)
 
   mrb_define_class_under(mrb, carbuncle, "GameIsRunning", base_error);
 
+  mrb_carbuncle_screen_init(mrb, carbuncle);
   mrb_carbuncle_game_init(mrb, carbuncle);
 }
 

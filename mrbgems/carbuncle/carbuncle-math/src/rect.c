@@ -1,3 +1,4 @@
+#include "carbuncle/core.h"
 #include "carbuncle/rect.h"
 
 #include <mruby/data.h>
