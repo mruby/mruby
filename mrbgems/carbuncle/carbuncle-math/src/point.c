@@ -121,19 +121,9 @@ mrb_point_set(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_point_dup(mrb_state *mrb, mrb_value self)
 {
-  mrb_value dup = mrb_obj_dup(mrb, self);
-  copy_struct(mrb, self, dup);
-  return dup;
+  mrb_value object_class = mrb_obj_value(mrb_obj_class(mrb, self));
+  return mrb_funcall(mrb, object_class, "new", 1, self);
 }
-
-static mrb_value
-mrb_point_clone(mrb_state *mrb, mrb_value self)
-{
-  mrb_value dup = mrb_obj_clone(mrb, self);
-  copy_struct(mrb, self, dup);
-  return dup;
-}
-
 
 void
 mrb_carbuncle_point_init(mrb_state *mrb)
@@ -151,7 +141,7 @@ mrb_carbuncle_point_init(mrb_state *mrb)
   mrb_define_method(mrb, point, "set", mrb_point_set, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
 
   mrb_define_method(mrb, point, "dup", mrb_point_dup, MRB_ARGS_NONE());
-  mrb_define_method(mrb, point, "clone", mrb_point_clone, MRB_ARGS_NONE());
+  mrb_define_method(mrb, point, "clone", mrb_point_dup, MRB_ARGS_NONE());
 
   mrb_value empty_point = mrb_obj_freeze(mrb, mrb_obj_new(mrb, point, 0, NULL));
   mrb_define_const(mrb, point, "EMPTY", empty_point);
