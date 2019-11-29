@@ -10,8 +10,11 @@
 #include <mruby/string.h>
 #include <mruby/class.h>
 
-static const char *TITLE_SYM = "#title";
-static const char *GAME_SYM = "#game";
+static const char *TITLE_IV_NAME = "#title";
+static const char *GAME_IV_NAME = "#game";
+
+#define TITLE_SYMBOL mrb_intern_cstr(mrb, TITLE_IV_NAME)
+#define GAME_SYMBOL mrb_intern_cstr(mrb, GAME_IV_NAME)
 
 static const struct mrb_data_type screen_data_type = {
   "carbuncle/screen", mrb_free
@@ -20,7 +23,7 @@ static const struct mrb_data_type screen_data_type = {
 static void
 check_game(mrb_state *mrb, mrb_value self, Screen *screen)
 {
-  mrb_value game = mrb_iv_get(mrb, self, mrb_intern_cstr(mrb, GAME_SYM));
+  mrb_value game = mrb_iv_get(mrb, self, GAME_SYMBOL);
   if (mrb_carbuncle_is_current_game(mrb, game))
   {
     SetWindowSize(screen->width, screen->height);
@@ -31,15 +34,14 @@ static mrb_value
 mrb_screen_initialize(mrb_state *mrb, mrb_value self, Screen *screen)
 {
   mrb_value game;
-  mrb_carbuncle_check_frozen(mrb, self);
   mrb_get_args(mrb, "o", &game);
   Screen *data = mrb_malloc(mrb, sizeof *data);
   data->width = 640;
   data->height = 480;
   DATA_TYPE(self) = &screen_data_type;
   DATA_PTR(self) = data;
-  mrb_iv_set(mrb, self, mrb_intern_cstr(mrb, GAME_SYM), game);
-  mrb_iv_set(mrb, self, mrb_intern_cstr(mrb, TITLE_SYM), mrb_str_new_cstr(mrb, "Carbuncle Game"));
+  mrb_iv_set(mrb, self, GAME_SYMBOL, game);
+  mrb_iv_set(mrb, self, TITLE_SYMBOL, mrb_str_new_cstr(mrb, "Carbuncle Game"));
   return self;
 }
 
@@ -60,13 +62,13 @@ mrb_screen_get_height(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_screen_get_title(mrb_state *mrb, mrb_value self)
 {
-  return mrb_iv_get(mrb, self, mrb_intern_cstr(mrb, TITLE_SYM));
+  return mrb_iv_get(mrb, self, TITLE_SYMBOL);
 }
 
 static mrb_value
 mrb_screen_get_game(mrb_state *mrb, mrb_value self)
 {
-  return mrb_iv_get(mrb, self, mrb_intern_cstr(mrb, GAME_SYM));
+  return mrb_iv_get(mrb, self, GAME_SYMBOL);
 }
 
 static mrb_value
@@ -112,8 +114,8 @@ mrb_screen_set_title(mrb_state *mrb, mrb_value self)
   mrb_carbuncle_check_frozen(mrb, self);
   mrb_get_args(mrb, "o", &value);
   mrb_value string_value = mrb_funcall(mrb, value, "to_s", 0);
-  mrb_iv_set(mrb, self, mrb_intern_cstr(mrb, TITLE_SYM), string_value);
-  mrb_value game = mrb_iv_get(mrb, self, mrb_intern_cstr(mrb, GAME_SYM));
+  mrb_iv_set(mrb, self, TITLE_SYMBOL, string_value);
+  mrb_value game = mrb_iv_get(mrb, self, GAME_SYMBOL);
   if (mrb_carbuncle_is_current_game(mrb, game))
   {
     SetWindowTitle(mrb_string_cstr(mrb, string_value));

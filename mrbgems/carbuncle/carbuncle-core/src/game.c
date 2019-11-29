@@ -11,8 +11,11 @@
 
 /* Constants */
 
-static const char *CURRENT_GAME_SYM = "#carbunce_current_game";
-static const char *SCREEN_SYM = "#screen";
+static const char *CURRENT_GAME_GV_NAME = "#carbunce_current_game";
+static const char *SCREEN_IV_NAME = "#screen";
+
+#define CURRENT_GAME_SYMBOL mrb_intern_cstr(mrb, CURRENT_GAME_GV_NAME)
+#define SCREEN_SYMBOL mrb_intern_cstr(mrb, SCREEN_IV_NAME)
 
 /* Variables */
 
@@ -23,7 +26,7 @@ static mrb_bool carbuncle_game_is_running = FALSE;
 static inline void
 create_window(mrb_state *mrb, mrb_value instance)
 {
-  mrb_value screen_value = mrb_iv_get(mrb, instance, mrb_intern_cstr(mrb, SCREEN_SYM));
+  mrb_value screen_value = mrb_iv_get(mrb, instance, SCREEN_SYMBOL);
   Screen *screen = mrb_carbuncle_get_screen(mrb, screen_value);
   mrb_value title_value = mrb_funcall(mrb, screen_value, "title", 0);
   const char *title = mrb_str_to_cstr(mrb, title_value);
@@ -34,7 +37,7 @@ static inline void
 begin_game(mrb_state *mrb, mrb_value self, mrb_value instance)
 {
   mrb_funcall(mrb, instance, "before_run", 0);
-  mrb_gv_set(mrb, mrb_intern_cstr(mrb, CURRENT_GAME_SYM), instance);
+  mrb_gv_set(mrb, CURRENT_GAME_SYMBOL, instance);
   mrb_gc_register(mrb, instance);
   carbuncle_game_is_running = TRUE;
   create_window(mrb, instance);
@@ -77,9 +80,8 @@ game_loop(mrb_state *mrb, mrb_value instance)
 static inline void
 close_game(mrb_state *mrb, mrb_value self, mrb_value instance)
 {
-  mrb_sym current_game = mrb_intern_cstr(mrb, CURRENT_GAME_SYM);
   mrb_gc_unregister(mrb, instance);
-  mrb_gv_set(mrb, current_game, mrb_nil_value());
+  mrb_gv_set(mrb, CURRENT_GAME_SYMBOL, mrb_nil_value());
   mrb_funcall(mrb, instance, "before_close", 0);
   CloseWindow();
   mrb_funcall(mrb, instance, "after_close", 0);
@@ -106,20 +108,20 @@ mrb_s_game_runningQ(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_s_game_get_current_game(mrb_state *mrb, mrb_value self)
 {
-  return mrb_gv_get(mrb, mrb_intern_cstr(mrb, CURRENT_GAME_SYM));
+  return mrb_gv_get(mrb, CURRENT_GAME_SYMBOL);
 }
 
 static mrb_value
 mrb_game_get_screen(mrb_state *mrb, mrb_value self)
 {
-  return mrb_iv_get(mrb, self, mrb_intern_cstr(mrb, SCREEN_SYM));
+  return mrb_iv_get(mrb, self, SCREEN_SYMBOL);
 }
 
 static mrb_value
 mrb_game_initialize(mrb_state *mrb, mrb_value self)
 {
   mrb_value new_screen = mrb_carbuncle_screen_new(mrb, self);
-  mrb_iv_set(mrb, self, mrb_intern_cstr(mrb, SCREEN_SYM), new_screen);
+  mrb_iv_set(mrb, self, SCREEN_SYMBOL, new_screen);
   return self;
 }
 
@@ -185,13 +187,13 @@ mrb_carbuncle_game_init(mrb_state *mrb, struct RClass *carbuncle)
   mrb_define_method(mrb, game, "before_close", mrb_game_dummy, MRB_ARGS_NONE());
   mrb_define_method(mrb, game, "after_close", mrb_game_dummy, MRB_ARGS_NONE());
 
-  mrb_gv_set(mrb, mrb_intern_cstr(mrb, CURRENT_GAME_SYM), mrb_nil_value());
+  mrb_gv_set(mrb, CURRENT_GAME_SYMBOL, mrb_nil_value());
 }
 
 mrb_value
 mrb_carbuncle_get_current_game(mrb_state *mrb)
 {
-  return mrb_gv_get(mrb, mrb_intern_cstr(mrb, CURRENT_GAME_SYM));
+  return mrb_gv_get(mrb, CURRENT_GAME_SYMBOL);
 }
 
 mrb_bool
