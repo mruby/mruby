@@ -189,7 +189,6 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
     }
     else if (strcmp(opt, "verbose") == 0) {
       args->verbose = TRUE;
-      break;
     }
     else if (strcmp(opt, "copyright") == 0) {
       mrb_show_copyright(mrb);
