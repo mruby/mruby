@@ -3,6 +3,7 @@
 
 #include <mruby/array.h>
 #include <mruby/data.h>
+#include <mruby/numeric.h>
 
 #include "raylib.h"
 
@@ -13,10 +14,10 @@ static const struct mrb_data_type point_data_type = {
 static mrb_value
 set_point_values(mrb_state *mrb, mrb_value self, mrb_bool from_initialize)
 {
-  mrb_int argc, x, y;
+  mrb_float y;
   mrb_value first;
-  argc = mrb_get_args(mrb, "|oi", &first, &y);
-  Vector2 *data = DATA_GET_PTR(mrb, self, &point_data_type, Vector2);
+  mrb_int argc = mrb_get_args(mrb, "|of", &first, &y);
+  Vector2 *data = mruby_carbuncle_get_point(mrb, self);
   switch (argc)
   {
     case 0: {
@@ -30,14 +31,11 @@ set_point_values(mrb_state *mrb, mrb_value self, mrb_bool from_initialize)
     }
     case 1: {
       Vector2 *point = mrb_carbuncle_get_point(mrb, first);
-      data->x = point->x;
-      data->y = point->y;      
+      *data = *point;
       break;
     }
     case 2: {
-      mrb_int x = mrb_fixnum(first);
-      data->x = x;
-      data->y = y;
+      *data = (Vector2){mrb_to_flo(mrb, first), y};
       break;
     }
     default: {
@@ -68,7 +66,6 @@ copy_struct(mrb_state *mrb, mrb_value self, mrb_value clone)
 static mrb_value
 mrb_point_initialize(mrb_state *mrb, mrb_value self)
 {
-  mrb_carbuncle_check_frozen(mrb, self);
   Vector2 *data = mrb_malloc(mrb, sizeof *data);
   DATA_TYPE(self) = &point_data_type;
   DATA_PTR(self) = data;
@@ -79,14 +76,14 @@ static mrb_value
 mrb_point_get_x(mrb_state *mrb, mrb_value self)
 {
   Vector2 *point = mrb_carbuncle_get_point(mrb, self);
-  return mrb_fixnum_value(point->x);
+  return mrb_float_value(mrb, point->x);
 }
 
 static mrb_value
 mrb_point_get_y(mrb_state *mrb, mrb_value self)
 {
   Vector2 *point = mrb_carbuncle_get_point(mrb, self);
-  return mrb_fixnum_value(point->y);
+  return mrb_float_value(mrb, point->y);
 }
 
 static mrb_value
@@ -97,7 +94,7 @@ mrb_point_set_x(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "f", &x);
   Vector2 *point = mrb_carbuncle_get_point(mrb, self);
   point->x = x;
-  return mrb_fixnum_value(x);
+  return mrb_float_value(mrb, x);
 }
 
 static mrb_value
@@ -108,7 +105,7 @@ mrb_point_set_y(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "f", &y);
   Vector2 *point = mrb_carbuncle_get_point(mrb, self);
   point->y = y;
-  return mrb_fixnum_value(y);
+  return  mrb_float_value(mrb, y);
 }
 
 static mrb_value
