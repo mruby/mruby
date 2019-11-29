@@ -55,6 +55,16 @@ set_point_values(mrb_state *mrb, mrb_value self, mrb_bool from_initialize)
   return self;
 }
 
+static void
+copy_struct(mrb_state *mrb, mrb_value self, mrb_value clone)
+{
+  Vector2 *data = mrb_malloc(mrb, sizeof *data);
+  Vector2 *clone_data = mrb_carbuncle_get_point(mrb, clone);
+  DATA_TYPE(clone) = &point_data_type;
+  DATA_PTR(clone) = data;
+  *clone_data = *data;
+}
+
 static mrb_value
 mrb_point_initialize(mrb_state *mrb, mrb_value self)
 {
@@ -108,6 +118,23 @@ mrb_point_set(mrb_state *mrb, mrb_value self)
   return set_point_values(mrb, self, FALSE);
 }
 
+static mrb_value
+mrb_point_dup(mrb_state *mrb, mrb_value self)
+{
+  mrb_value dup = mrb_obj_dup(mrb, self);
+  copy_struct(mrb, self, dup);
+  return dup;
+}
+
+static mrb_value
+mrb_point_clone(mrb_state *mrb, mrb_value self)
+{
+  mrb_value dup = mrb_obj_clone(mrb, self);
+  copy_struct(mrb, self, dup);
+  return dup;
+}
+
+
 void
 mrb_carbuncle_point_init(mrb_state *mrb)
 {
@@ -122,6 +149,9 @@ mrb_carbuncle_point_init(mrb_state *mrb)
   mrb_define_method(mrb, point, "y=", mrb_point_set_y, MRB_ARGS_REQ(1));
 
   mrb_define_method(mrb, point, "set", mrb_point_set, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
+
+  mrb_define_method(mrb, point, "dup", mrb_point_dup, MRB_ARGS_NONE());
+  mrb_define_method(mrb, point, "clone", mrb_point_clone, MRB_ARGS_NONE());
 
   mrb_value empty_point = mrb_obj_freeze(mrb, mrb_obj_new(mrb, point, 0, NULL));
   mrb_define_const(mrb, point, "EMPTY", empty_point);
