@@ -6,8 +6,10 @@
 void
 mrb_carbuncle_math_gem_init(mrb_state *mrb)
 {
+  /*
   mrb_carbuncle_point_init(mrb);
   mrb_carbuncle_rect_init(mrb);
+  */
 }
 
 void
