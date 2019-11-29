@@ -1,4 +1,4 @@
-MRuby::Gem::Specification.new('carbuncle-bin') do |spec|
+MRuby::Gem::Specification.new('mruby-bin-carbuncle') do |spec|
   spec.license = 'MIT'
   spec.author  = 'Ramiro Rojo'
   spec.summary = 'Carbuncle application'
@@ -11,7 +11,7 @@ MRuby::Gem::Specification.new('carbuncle-bin') do |spec|
   spec.add_dependency 'carbuncle-math'
 
   spec.bins = %w[carbuncle]
-  spec.add_dependency('mruby-compiler', :core => 'mruby-compiler')
-  spec.add_dependency('mruby-error', :core => 'mruby-error')
-  spec.add_test_dependency('mruby-print', :core => 'mruby-print')
+  spec.add_dependency('mruby-compiler', core: 'mruby-compiler')
+  spec.add_dependency('mruby-error', core: 'mruby-error')
+  spec.add_test_dependency('mruby-print', core: 'mruby-print')
 end
