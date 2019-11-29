@@ -8,17 +8,12 @@ module Carbuncle
         @raylib_git = raylib_git
       end
 
-      def configure
-        FileUtils.mkdir_p(raylib_gcc_build)
-        Dir.chdir(raylib_gcc_build) do
-          `cmake ..`
-        end
-      end
+      def configure; end
 
-      def build
-        Dir.chdir(raylib_gcc_build) do
-          `make`
-        end
+      def build; end
+
+      def dst_path
+        @dst_path ||= File.join(env.build.build_dir, 'bin')
       end
 
       def raylib_gcc_build
@@ -26,9 +21,11 @@ module Carbuncle
       end
 
       def library_paths
-        [
-          File.join(raylib_gcc_build, 'src')
-        ]
+        []
+      end
+
+      def library_files
+        File.join(raylib_gcc_build, 'src', 'libraylib{*}.{dll,dylib}')
       end
 
       def libraries

@@ -45,13 +45,4 @@ MRuby::Gem::Specification.new('carbuncle-core') do |spec|
   spec.build.linker.libraries += platform.libraries
 
   spec.cxx.flags << '-std=c++11' if spec.build.toolchains.include? 'gcc'
-
-  unless build.is_a?(MRuby::CrossBuild)
-    if RUBY_PLATFORM =~ /darwin/
-      spec.cc.flags << [
-        '-framework OpenGL', '-framework OpenAL', '-x objective-c',
-        '-framework IOKit', '-framework CoreVideo', '-framework Cocoa'
-      ]
-    end
-  end
 end
