@@ -11,7 +11,7 @@
 
 /* Constants */
 
-static const char *CURRENT_GAME_SYM = "#current_game";
+static const char *CURRENT_GAME_SYM = "#carbunce_current_game";
 static const char *SCREEN_SYM = "#screen";
 
 /* Variables */
@@ -34,8 +34,7 @@ static inline void
 begin_game(mrb_state *mrb, mrb_value self, mrb_value instance)
 {
   mrb_funcall(mrb, instance, "before_run", 0);
-  mrb_sym current_game = mrb_intern_cstr(mrb, CURRENT_GAME_SYM);
-  mrb_cv_set(mrb, self, current_game, instance);
+  mrb_gv_set(mrb, mrb_intern_cstr(mrb, CURRENT_GAME_SYM), instance);
   mrb_gc_register(mrb, instance);
   carbuncle_game_is_running = TRUE;
   create_window(mrb, instance);
@@ -80,7 +79,7 @@ close_game(mrb_state *mrb, mrb_value self, mrb_value instance)
 {
   mrb_sym current_game = mrb_intern_cstr(mrb, CURRENT_GAME_SYM);
   mrb_gc_unregister(mrb, instance);
-  mrb_cv_set(mrb, self, current_game, mrb_nil_value());
+  mrb_gv_set(mrb, current_game, mrb_nil_value());
   mrb_funcall(mrb, instance, "before_close", 0);
   CloseWindow();
   mrb_funcall(mrb, instance, "after_close", 0);
@@ -107,7 +106,7 @@ mrb_s_game_runningQ(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_s_game_get_current_game(mrb_state *mrb, mrb_value self)
 {
-  return mrb_cv_get(mrb, self, mrb_intern_cstr(mrb, CURRENT_GAME_SYM));
+  return mrb_gv_get(mrb, mrb_intern_cstr(mrb, CURRENT_GAME_SYM));
 }
 
 static mrb_value
@@ -185,21 +184,19 @@ mrb_carbuncle_game_init(mrb_state *mrb, struct RClass *carbuncle)
   mrb_define_method(mrb, game, "after_run", mrb_game_dummy, MRB_ARGS_NONE());
   mrb_define_method(mrb, game, "before_close", mrb_game_dummy, MRB_ARGS_NONE());
   mrb_define_method(mrb, game, "after_close", mrb_game_dummy, MRB_ARGS_NONE());
+
+  mrb_gv_set(mrb, mrb_intern_cstr(mrb, CURRENT_GAME_SYM), mrb_nil_value());
 }
 
 mrb_value
 mrb_carbuncle_get_current_game(mrb_state *mrb)
 {
-  struct RClass *carbuncle = mrb_module_get(mrb, "Carbuncle");
-  struct RClass *game_class = mrb_class_get_under(mrb, carbuncle, "Game");
-  mrb_value class_value = mrb_obj_value(game_class);
-  return mrb_cv_get(mrb, class_value, mrb_intern_cstr(mrb, CURRENT_GAME_SYM));
+  return mrb_gv_get(mrb, mrb_intern_cstr(mrb, CURRENT_GAME_SYM));
 }
 
 mrb_bool
 mrb_carbuncle_is_current_game(mrb_state *mrb, mrb_value self)
 {
-  mrb_value class_value = mrb_obj_value(mrb_obj_class(mrb, self));
-  mrb_value current_game = mrb_cv_get(mrb, class_value, mrb_intern_cstr(mrb, CURRENT_GAME_SYM));
+  mrb_value current_game = mrb_carbuncle_get_current_game(mrb);
   return mrb_equal(mrb, self, current_game);
 }
