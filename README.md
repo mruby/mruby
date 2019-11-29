@@ -30,7 +30,7 @@ You can also install and compile mruby using [ruby-install](https://github.com/p
 
 ## mruby home-page
 
-The URL of the mruby home-page is: [http://www.mruby.org](http://www.mruby.org).
+The URL of the mruby home-page is: https://mruby.org.
 
 ## Mailing list
 
