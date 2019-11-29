@@ -16,4 +16,6 @@ addons:
 
 env:
   - MRUBY_CONFIG=travis_config.rb
+before_script:
+  - bundle install git
 script: "./minirake -j4 all test"
