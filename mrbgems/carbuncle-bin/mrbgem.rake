@@ -1,4 +1,4 @@
-MRuby::Gem::Specification.new('carbuncle') do |spec|
+MRuby::Gem::Specification.new('carbuncle-bin') do |spec|
   spec.license = 'MIT'
   spec.author  = 'Ramiro Rojo'
   spec.summary = 'Carbuncle application'
