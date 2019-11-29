@@ -11,7 +11,7 @@ MRuby::Build.new do |conf|
 
   conf.gembox 'default'
   conf.gembox 'extras'
-  conf.gembox 'carbuncle'
+  conf.gembox 'carbuncle' if RUBY_PLATFORM =~ /darwin/
 end
 
 MRuby::CrossBuild.new('mingw') do |conf|
