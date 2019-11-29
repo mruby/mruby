@@ -48,8 +48,8 @@ MRuby::Gem::Specification.new('carbuncle-core') do |spec|
 
   unless build.is_a?(MRuby::CrossBuild)
     if RUBY_PLATFORM =~ /darwin/
-      build.cc.flags += [
-        '-framework OpenGL', '-framework OpenAL',
+      spec.cc.flags << [
+        '-framework OpenGL', '-framework OpenAL', '-x objective-c',
         '-framework IOKit', '-framework CoreVideo', '-framework Cocoa'
       ]
     end
