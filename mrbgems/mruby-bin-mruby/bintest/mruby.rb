@@ -128,6 +128,10 @@ assert('mruby -r option (file not found)') do
   assert_mruby("", /\A.*: Cannot open library file: .*\n\z/, false, %w[-r _no_exists_])
 end
 
+assert('mruby --verbose option') do
+  assert_mruby(/\A[^\n]*NODE.*\n:end\n\z/m, "", true, %w[--verbose -e p(:end)])
+end
+
 assert('mruby --') do
   assert_mruby(%{["-x", "1"]\n}, "", true, %w[-e p(ARGV) -- -x 1])
 end
