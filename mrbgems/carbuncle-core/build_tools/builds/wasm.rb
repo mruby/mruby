@@ -34,7 +34,7 @@ module Carbuncle
       end
 
       def libraries
-        ['raylib']
+        []
       end
 
       def dll_path
@@ -42,7 +42,7 @@ module Carbuncle
       end
 
       def flags
-        []
+        [File.join(dll_path, 'libraylib.bc')]
       end
     end
   end
