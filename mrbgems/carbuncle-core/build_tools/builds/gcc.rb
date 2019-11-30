@@ -31,6 +31,10 @@ module Carbuncle
       def libraries
         ['raylib']
       end
+
+      def flags
+        []
+      end
     end
   end
 end

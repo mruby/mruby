@@ -7,6 +7,7 @@ end
 
 require_relative 'build_tools/builds/mingw'
 require_relative 'build_tools/builds/gcc'
+require_relative 'build_tools/builds/wasm'
 
 require_relative 'build_tools/platform_detector'
 
@@ -32,6 +33,9 @@ MRuby::Gem::Specification.new('carbuncle-core') do |spec|
   platform.build
 
   spec.rbfiles = Dir.glob(File.join(dir, 'mrblib', '**', '*.rb'))
+
+  spec.cc.flags << platform.flags
+  spec.build.cc.flags << platform.flags
 
   spec.cc.include_paths << raylib_src
   spec.cxx.include_paths << raylib_src

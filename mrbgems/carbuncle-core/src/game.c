@@ -9,7 +9,16 @@
 #include <mruby/string.h>
 #include <mruby/class.h>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten/emscripten.h>
+#endif
+
 /* Constants */
+
+#ifdef __EMSCRIPTEN__
+  static mrb_state *emscripten_mrb_state = NULL;
+  static mrb_value emscripten_carbuncle_game;
+#endif
 
 static const char *CURRENT_GAME_GV_NAME = "#carbunce_current_game";
 static const char *SCREEN_IV_NAME = "#screen";
@@ -22,6 +31,16 @@ static const char *SCREEN_IV_NAME = "#screen";
 static mrb_bool carbuncle_game_is_running = FALSE;
 
 /* Helper functions */
+
+#ifdef __EMSCRIPTEN__
+static void
+carbuncle_emscripten_game_frame(void)
+{
+  mrb_value dt = mrb_float_value(mrb, GetFrameTime());
+  mrb_funcall(emscripten_mrb_state, emscripten_carbuncle_game, "update", 1, dt);
+  draw_game(emscripten_mrb_state, emscripten_carbuncle_game);
+}
+#endif
 
 static inline void
 create_window(mrb_state *mrb, mrb_value instance)
@@ -69,12 +88,20 @@ draw_game(mrb_state *mrb, mrb_value instance)
 static inline void
 game_loop(mrb_state *mrb, mrb_value instance)
 {
+#ifdef __EMSCRIPTEN__
+  emscripten_mrb_state = mrb;
+  emscripten_carbuncle_game = instance;
+  emscripten_set_main_loop(carbuncle_emscripten_game_frame, 0, 1);
+  emscripten_carbuncle_game = mrb_nil_value();
+  emscripten_mrb_state = NULL;
+#else
   while (carbuncle_game_is_running)
   {
     check_closing(mrb, instance);
     mrb_funcall(mrb, instance, "update", 1, mrb_float_value(mrb, GetFrameTime()));
     draw_game(mrb, instance);
   }
+#endif
 }
 
 static inline void
