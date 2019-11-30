@@ -32,16 +32,6 @@ static mrb_bool carbuncle_game_is_running = FALSE;
 
 /* Helper functions */
 
-#ifdef __EMSCRIPTEN__
-static void
-carbuncle_emscripten_game_frame(void)
-{
-  mrb_value dt = mrb_float_value(mrb, GetFrameTime());
-  mrb_funcall(emscripten_mrb_state, emscripten_carbuncle_game, "update", 1, dt);
-  draw_game(emscripten_mrb_state, emscripten_carbuncle_game);
-}
-#endif
-
 static inline void
 create_window(mrb_state *mrb, mrb_value instance)
 {
@@ -84,6 +74,16 @@ draw_game(mrb_state *mrb, mrb_value instance)
   mrb_funcall(mrb, instance, "draw", 0);
   EndDrawing();
 }
+
+#ifdef __EMSCRIPTEN__
+static void
+carbuncle_emscripten_game_frame(void)
+{
+  mrb_value dt = mrb_float_value(emscripten_mrb_state, GetFrameTime());
+  mrb_funcall(emscripten_mrb_state, emscripten_carbuncle_game, "update", 1, dt);
+  draw_game(emscripten_mrb_state, emscripten_carbuncle_game);
+}
+#endif
 
 static inline void
 game_loop(mrb_state *mrb, mrb_value instance)

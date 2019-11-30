@@ -9,30 +9,25 @@ module Carbuncle
       end
 
       def configure
-        FileUtils.mkdir_p(raylib_mingw_build)
-        Dir.chdir(raylib_mingw_build) do
-          `cmake -H. -Bbuild -DPLATFORM=Web -GNinja -DCMAKE_TOOLCHAIN_FILE=#{emscripten_toolchain} ..`
+        FileUtils.mkdir_p(raylib_build_dir)
+        Dir.chdir(raylib_build_dir) do
+          `cmake -DPLATFORM=Web -DCMAKE_TOOLCHAIN_FILE=#{toolset} ..`
         end
       end
 
       def build
-        Dir.chdir(raylib_mingw_build) do
+        Dir.chdir(raylib_build_dir) do
           `cmake --build`
         end
       end
 
-      def emscripten_toolchain
-        @emscripten_toolchain ||= File.join(raylib_git, 'cmake', 'cmake', 'emscripten.cmake')
-      end
-
-      def raylib_mingw_build
-        @raylib_mingw_build ||= File.join(raylib_git, 'build')
+      def raylib_build_dir
+        @raylib_build_dir ||= File.join(raylib_git, 'build')
       end
 
       def toolset
-        @toolset ||= File.join(env.dir, 'build_tools', 'toolchains', 'mingw.cmake')
+        @toolset ||= File.join(raylib_git, 'cmake', 'cmake', 'emscripten.cmake')
       end
-
 
       def library_paths
         [ dll_path ]

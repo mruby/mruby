@@ -31,7 +31,7 @@ check_game(mrb_state *mrb, mrb_value self, Screen *screen)
 }
 
 static mrb_value
-mrb_screen_initialize(mrb_state *mrb, mrb_value self, Screen *screen)
+mrb_screen_initialize(mrb_state *mrb, mrb_value self)
 {
   mrb_value game;
   mrb_get_args(mrb, "o", &game);
@@ -133,6 +133,7 @@ mrb_screen_resize(mrb_state *mrb, mrb_value self)
   screen->width = width;
   screen->height = height;
   check_game(mrb, self, screen);
+  return self;
 }
 
 void
