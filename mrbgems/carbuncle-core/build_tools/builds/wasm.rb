@@ -11,13 +11,13 @@ module Carbuncle
       def configure
         FileUtils.mkdir_p(raylib_build_dir)
         Dir.chdir(raylib_build_dir) do
-          `cmake -DPLATFORM=Web -DCMAKE_TOOLCHAIN_FILE=#{toolset} ..`
+          `cmake -H. -DPLATFORM=Web -DCMAKE_TOOLCHAIN_FILE=#{toolset} ..`
         end
       end
 
       def build
         Dir.chdir(raylib_build_dir) do
-          `cmake --build`
+          `make`
         end
       end
 
@@ -26,11 +26,11 @@ module Carbuncle
       end
 
       def toolset
-        @toolset ||= File.join(raylib_git, 'cmake', 'cmake', 'emscripten.cmake')
+        @toolset ||= File.join(raylib_git, 'cmake', 'emscripten.cmake')
       end
 
       def library_paths
-        [ dll_path ]
+        [dll_path]
       end
 
       def libraries
