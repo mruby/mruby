@@ -14,6 +14,7 @@ struct _args {
   mrb_bool mrbfile      : 1;
   mrb_bool check_syntax : 1;
   mrb_bool verbose      : 1;
+  mrb_bool version      : 1;
   mrb_bool debug        : 1;
   int argc;
   char **argv;
@@ -180,7 +181,10 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
       }
     }
     else if (strcmp(opt, "v") == 0) {
-      if (!args->verbose) mrb_show_version(mrb);
+      if (!args->verbose) {
+        mrb_show_version(mrb);
+        args->version = TRUE;
+      }
       args->verbose = TRUE;
     }
     else if (strcmp(opt, "version") == 0) {
@@ -203,7 +207,10 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
 
   argc = opts->argc; argv = opts->argv;
   if (args->cmdline == NULL) {
-    if (*argv == NULL) args->rfp = stdin;
+    if (*argv == NULL) {
+      if (args->version) exit(EXIT_SUCCESS);
+      args->rfp = stdin;
+    }
     else {
       args->rfp = strcmp(argv[0], "-") == 0 ?
         stdin : fopen(argv[0], args->mrbfile ? "rb" : "r");
