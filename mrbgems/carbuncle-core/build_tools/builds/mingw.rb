@@ -9,22 +9,22 @@ module Carbuncle
       end
 
       def configure
-        FileUtils.mkdir_p(raylib_mingw_build)
-        Dir.chdir(raylib_mingw_build) do
+        FileUtils.mkdir_p(raylib_build_dir)
+        Dir.chdir(raylib_build_dir) do
           `cmake -DPLATFORM=Desktop -DSHARED=ON -DCMAKE_TOOLCHAIN_FILE=#{toolset} ..`
         end
       end
 
       def build
-        Dir.chdir(raylib_mingw_build) do
+        Dir.chdir(raylib_build_dir) do
           `make`
         end
         FileUtils.mkdir_p(dst_path)
         FileUtils.cp(dll_src, dst_path)
       end
 
-      def raylib_mingw_build
-        @raylib_mingw_build ||= File.join(raylib_git, 'build')
+      def raylib_build_dir
+        @raylib_build_dir ||= File.join(raylib_git, 'build')
       end
 
       def toolset
@@ -50,7 +50,7 @@ module Carbuncle
       end
 
       def dll_path
-        @dll_path ||= File.join(raylib_mingw_build, 'src')
+        @dll_path ||= File.join(raylib_build_dir, 'src')
       end
 
       def flags

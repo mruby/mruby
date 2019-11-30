@@ -38,7 +38,7 @@ module Carbuncle
       end
 
       def dll_path
-        @dll_path ||= File.join(raylib_mingw_build, 'src')
+        @dll_path ||= File.join(raylib_build_dir, 'src')
       end
 
       def flags
