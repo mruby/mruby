@@ -11,6 +11,8 @@
 
 #include <math.h>
 
+#include "rlgl.h"
+
 static const char *TEXTURE_SYM = "#texture";
 static const char *POSITION_SYM = "#position";
 static const char *SCALE_SYM = "#scale";
@@ -24,6 +26,83 @@ static const char *COLOR_SYM = "#color";
 #define PIVOT_SYMBOL mrb_intern_cstr(mrb, PIVOT_SYM)
 #define SRC_RECT_SYMBOL mrb_intern_cstr(mrb, SRC_RECT_SYM)
 #define COLOR_SYMBOL mrb_intern_cstr(mrb, COLOR_SYM)
+
+static inline void
+swap_point(float *p1, float *p2)
+{
+  float tmp[2] = { p1[0], p1[1] };
+  p1[0] = p2[0];
+  p1[1] = p2[1];
+  p2[0] = tmp[0];
+  p2[1] = tmp[1];
+}
+
+// Draw a part of a texture (defined by a rectangle) with 'pro' parameters
+// NOTE: origin is relative to destination rectangle size
+static void
+sprite_draw_texture(Texture2D texture, Rectangle src, Rectangle dst, Vector2 origin, float rotation, Color tint)
+{
+  // Check if texture is valid
+  if (texture.id <= 0) { return; }
+
+  float width = (float)texture.width;
+  float height = (float)texture.height;
+
+  bool flip_x = false, flip_y = false;
+
+  if (src.width < 0) { flip_x = true; src.width *= -1; }
+  if (src.height < 0) { flip_y = true; src.height *= -1; }
+
+  rlEnableTexture(texture.id);
+
+  float corners[4][2] = {
+    // Bottom-left corner for texture and quad
+    { src.x/width, src.y/height },
+    // Bottom-right corner for texture and quad
+    { src.x/width, (src.y + src.height)/height },
+    // Top-right corner for texture and quad
+    { (src.x + src.width)/width, (src.y + src.height)/height },
+    // Top-left corner for texture and quad
+    { (src.x + src.width)/width, src.y/height }          
+  };
+
+  if (flip_x)
+  {
+    swap_point(corners[0], corners[3]);
+    swap_point(corners[1], corners[2]);
+  }
+  if (flip_y)
+  {
+    swap_point(corners[0], corners[1]);
+    swap_point(corners[2], corners[3]);
+  }
+
+  rlPushMatrix();
+    rlTranslatef(dst.x, dst.y, 0.0f);
+    rlRotatef(rotation, 0.0f, 0.0f, 1.0f);
+    rlTranslatef(-origin.x, -origin.y, 0.0f);
+    rlBegin(RL_QUADS);
+      rlColor4ub(tint.r, tint.g, tint.b, tint.a);
+      // Normal vector pointing towards viewer
+      rlNormal3f(0.0f, 0.0f, 1.0f);
+      // Bottom-left corner for texture and quad
+      rlTexCoord2f(corners[0][0], corners[0][1]);
+      rlVertex2f(0.0f, 0.0f);
+      // Bottom-right corner for texture and quad
+      rlTexCoord2f(corners[1][0], corners[1][1]);
+      rlVertex2f(0.0f, dst.height);
+      // Top-right corner for texture and quad
+      rlTexCoord2f(corners[2][0], corners[2][1]);
+      rlVertex2f(dst.width, dst.height);
+      // Top-left corner for texture and quad
+      rlTexCoord2f(corners[3][0], corners[3][1]);
+      rlVertex2f(dst.width, 0.0f);
+    rlEnd();
+  rlPopMatrix();
+
+  rlDisableTexture();
+}
+
 
 static const struct mrb_data_type sprite_data_type = {
   "Carbuncle::Sprite", mrb_free
@@ -118,7 +197,7 @@ static mrb_value
 mrb_sprite_get_angle(mrb_state *mrb, mrb_value self)
 {
   struct mrb_Sprite *data = mrb_carbuncle_get_sprite(mrb, self);
-  return mrb_float_value(mrb, data->angle);
+  return mrb_float_value(mrb, data->angle * 180.0f / PI);
 }
 
 static mrb_value
@@ -210,7 +289,7 @@ mrb_sprite_set_angle(mrb_state *mrb, mrb_value self)
   mrb_float value;
   mrb_get_args(mrb, "f", &value);
   struct mrb_Sprite *data = mrb_carbuncle_get_sprite(mrb, self);
-  data->angle = value;
+  data->angle = value * PI / 180.0f;
   return mrb_float_value(mrb, value);
 }
 
@@ -226,23 +305,28 @@ mrb_sprite_draw(mrb_state *mrb, mrb_value self)
 {
   struct mrb_Sprite *data = mrb_carbuncle_get_sprite(mrb, self);
   mrb_value texture = mrb_iv_get(mrb, self, TEXTURE_SYMBOL);
-  Texture2D *texture_data = mrb_carbuncle_get_texture(mrb, texture);
   if (mrb_nil_p(texture))
   {
-    return;
-  }  
-  Rectangle *src_rect = data->src_rect;
+    return self;
+  }
+  Texture2D *texture_data = mrb_carbuncle_get_texture(mrb, texture);
+  Rectangle src_rect = (Rectangle){
+    data->src_rect->x,
+    data->src_rect->y,
+    data->src_rect->width  * (data->scale->x < 0 ? -1 : 1),
+    data->src_rect->height * (data->scale->y < 0 ? -1 : 1)
+  };
   Rectangle dst_rect = (Rectangle){
     data->position->x,
     data->position->y,
-    src_rect->width * data->scale->x,
-    src_rect->height * data->scale->y
+    data->src_rect->width * fabsf(data->scale->x),
+    data->src_rect->height * fabsf(data->scale->y)
   };
   Vector2 origin = (Vector2){
-    src_rect->width * data->pivot->x * fabsf(data->scale->x),
-    src_rect->height * data->pivot->y * fabsf(data->scale->y)
+    - data->src_rect->width * data->pivot->x * fabsf(data->scale->x),
+    - data->src_rect->height * data->pivot->y * fabsf(data->scale->y)
   };
-  DrawTexturePro(*texture_data, *src_rect, dst_rect, origin, data->angle, *(data->color));
+  sprite_draw_texture(*texture_data, src_rect, dst_rect, origin, data->angle, *(data->color));
   return self;
 }
 

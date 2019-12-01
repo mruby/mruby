@@ -50,6 +50,7 @@ begin_game(mrb_state *mrb, mrb_value self, mrb_value instance)
   mrb_gc_register(mrb, instance);
   carbuncle_game_is_running = TRUE;
   create_window(mrb, instance);
+  mrb_funcall(mrb, instance, "load", 0);
   mrb_funcall(mrb, instance, "after_run", 0);
 }
 
@@ -205,6 +206,7 @@ mrb_carbuncle_game_init(mrb_state *mrb, struct RClass *carbuncle)
   mrb_define_method(mrb, game, "resize", mrb_game_resize, MRB_ARGS_REQ(2));
 
   /* Game lifecycle */
+  mrb_define_method(mrb, game, "load", mrb_game_dummy, MRB_ARGS_NONE());
   mrb_define_method(mrb, game, "update", mrb_game_dummy, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, game, "draw", mrb_game_dummy, MRB_ARGS_NONE());
   mrb_define_method(mrb, game, "close", mrb_game_close, MRB_ARGS_NONE());
