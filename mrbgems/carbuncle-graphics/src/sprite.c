@@ -40,7 +40,7 @@ swap_point(float *p1, float *p2)
 // Draw a part of a texture (defined by a rectangle) with 'pro' parameters
 // NOTE: origin is relative to destination rectangle size
 static void
-sprite_draw_texture(Texture2D texture, Rectangle src, Rectangle dst, Vector2 origin, float rotation, Color tint)
+sprite_draw_texture(Texture2D texture, Rectangle src, Rectangle dst, Vector2 origin, float angle, Color tint)
 {
   // Check if texture is valid
   if (texture.id <= 0) { return; }
@@ -79,7 +79,7 @@ sprite_draw_texture(Texture2D texture, Rectangle src, Rectangle dst, Vector2 ori
 
   rlPushMatrix();
     rlTranslatef(dst.x, dst.y, 0.0f);
-    rlRotatef(rotation, 0.0f, 0.0f, 1.0f);
+    rlRotatef(angle, 0.0f, 0.0f, 1.0f);
     rlTranslatef(-origin.x, -origin.y, 0.0f);
     rlBegin(RL_QUADS);
       rlColor4ub(tint.r, tint.g, tint.b, tint.a);
@@ -197,7 +197,7 @@ static mrb_value
 mrb_sprite_get_angle(mrb_state *mrb, mrb_value self)
 {
   struct mrb_Sprite *data = mrb_carbuncle_get_sprite(mrb, self);
-  return mrb_float_value(mrb, data->angle * 180.0f / PI);
+  return mrb_float_value(mrb, data->angle);
 }
 
 static mrb_value
@@ -289,7 +289,7 @@ mrb_sprite_set_angle(mrb_state *mrb, mrb_value self)
   mrb_float value;
   mrb_get_args(mrb, "f", &value);
   struct mrb_Sprite *data = mrb_carbuncle_get_sprite(mrb, self);
-  data->angle = value * PI / 180.0f;
+  data->angle = value;
   return mrb_float_value(mrb, value);
 }
 
@@ -323,8 +323,8 @@ mrb_sprite_draw(mrb_state *mrb, mrb_value self)
     data->src_rect->height * fabsf(data->scale->y)
   };
   Vector2 origin = (Vector2){
-    - data->src_rect->width * data->pivot->x * fabsf(data->scale->x),
-    - data->src_rect->height * data->pivot->y * fabsf(data->scale->y)
+    data->pivot->x * dst_rect.width,
+    data->pivot->y * dst_rect.height
   };
   sprite_draw_texture(*texture_data, src_rect, dst_rect, origin, data->angle, *(data->color));
   return self;
