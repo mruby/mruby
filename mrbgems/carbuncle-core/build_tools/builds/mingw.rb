@@ -9,6 +9,8 @@ module Carbuncle
       end
 
       def configure
+        return if File.exist?(raylib_dll)
+
         FileUtils.mkdir_p(raylib_build_dir)
         Dir.chdir(raylib_build_dir) do
           system("cmake #{cmake_flags.join(' ')} ..")
@@ -25,6 +27,8 @@ module Carbuncle
       end
 
       def build
+        return if File.exist?(raylib_dll)
+
         Dir.chdir(raylib_build_dir) do
           system('make')
         end
@@ -64,6 +68,10 @@ module Carbuncle
 
       def flags
         []
+      end
+
+      def raylib_dll
+        @raylib_dll ||= File.join(dll_path, 'libraylib.dll')
       end
     end
   end
