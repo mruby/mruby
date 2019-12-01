@@ -41,6 +41,9 @@ set_color(mrb_state *mrb, mrb_value self, mrb_bool from_initialize)
       *data = *color;
       break;
     }
+    case 3: {
+      a = data->a;
+    }
     case 4: {
       r = mrb_fixnum(mrb_to_int(mrb, obj));
       data->r = min(255, max(0, r));
