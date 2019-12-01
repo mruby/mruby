@@ -1,14 +1,13 @@
 class Carbuncle::Point
-  %w[x y].permutation(2) do |permutation|
-    eval <<-HEREDOC
-      def #{permutation.join}
-        [#{permutation.join(',')}]
-      end
+  %w[x y].permutation(2) do |fields|
+    define_method(fields.join) do
+      fields.map { |field| send(field) }
+    end
 
-      def #{permutation.join}=(value)
-        #{permutation.map { |p| "self.#{p} = value\n" }}
-        value
+    define_method("#{fields.join}=") do |other|
+      2.times do |index|
+        send(:"#{fields[index]}=", other[index])
       end
-    HEREDOC
+    end
   end
 end

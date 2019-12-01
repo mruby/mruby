@@ -1,6 +1,6 @@
-class Carbuncle::Rect
+class Carbuncle::Color
   (2..4).each do |i|
-    %w[x y w h].permutation(i) do |fields|
+    %w[r g b a].permutation(i) do |fields|
       define_method(fields.join) do
         fields.map { |field| send(field) }
       end
