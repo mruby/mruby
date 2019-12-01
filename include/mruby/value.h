@@ -169,10 +169,8 @@ typedef void mrb_value;
 #include "boxing_no.h"
 #endif
 
-#if !defined(MRB_SYMBOL_BIT)
-#define MRB_SYMBOL_BIT (sizeof(mrb_sym) * CHAR_BIT)
-#define MRB_SYMBOL_MAX UINT32_MAX
-#endif
+#define MRB_SYMBOL_BIT (sizeof(mrb_sym) * CHAR_BIT - MRB_SYMBOL_SHIFT)
+#define MRB_SYMBOL_MAX (UINT32_MAX >> MRB_SYMBOL_SHIFT)
 
 #if INTPTR_MAX < MRB_INT_MAX
   typedef intptr_t mrb_ssize;

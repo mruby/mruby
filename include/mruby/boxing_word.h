@@ -34,41 +34,46 @@ enum mrb_special_consts {
   MRB_Qundef  = 20,
 };
 
-#define MRB_FIXNUM_SHIFT    1
-#define MRB_SYMBOL_SHIFT    2
-#define MRB_FIXNUM_FLAG     (1 << (MRB_FIXNUM_SHIFT - 1))
-#define MRB_SYMBOL_FLAG     (1 << (MRB_SYMBOL_SHIFT - 1))
-#define MRB_FIXNUM_MASK     ((1 << MRB_FIXNUM_SHIFT) - 1)
-#define MRB_SYMBOL_MASK     ((1 << MRB_SYMBOL_SHIFT) - 1)
-#define MRB_IMMEDIATE_MASK  0x07
-
-#ifdef MRB_64BIT
-#define MRB_SYMBOL_BIT      (sizeof(mrb_sym) * CHAR_BIT)
-#define MRB_SYMBOL_MAX      UINT32_MAX
+#if defined(MRB_64BIT) && defined(MRB_INT32)
+#define MRB_FIXNUM_SHIFT        0
 #else
-#define MRB_SYMBOL_BIT      (sizeof(mrb_sym) * CHAR_BIT - MRB_SYMBOL_SHIFT)
-#define MRB_SYMBOL_MAX      (UINT32_MAX >> MRB_SYMBOL_SHIFT)
+#define MRB_FIXNUM_SHIFT        BOXWORD_FIXNUM_SHIFT
 #endif
+#define MRB_SYMBOL_SHIFT        BOXWORD_SYMBOL_SHIFT
+
+#define BOXWORD_FIXNUM_BIT_POS  1
+#define BOXWORD_SYMBOL_BIT_POS  2
+#define BOXWORD_FIXNUM_SHIFT    BOXWORD_FIXNUM_BIT_POS
+#ifdef MRB_64BIT
+#define BOXWORD_SYMBOL_SHIFT    0
+#else
+#define BOXWORD_SYMBOL_SHIFT    BOXWORD_SYMBOL_BIT_POS
+#endif
+#define BOXWORD_FIXNUM_FLAG     (1 << (BOXWORD_FIXNUM_BIT_POS - 1))
+#define BOXWORD_SYMBOL_FLAG     (1 << (BOXWORD_SYMBOL_BIT_POS - 1))
+#define BOXWORD_FIXNUM_MASK     ((1 << BOXWORD_FIXNUM_BIT_POS) - 1)
+#define BOXWORD_SYMBOL_MASK     ((1 << BOXWORD_SYMBOL_BIT_POS) - 1)
+#define BOXWORD_IMMEDIATE_MASK  0x07
 
 #define BOXWORD_SHIFT_VALUE(o,n,t) \
-  ((((t)(o).w)) >> MRB_##n##_SHIFT)
+  (t)(((long)(o).w) >> BOXWORD_##n##_SHIFT)
 #define BOXWORD_SET_SHIFT_VALUE(o,n,v) \
-  ((o).w = (((unsigned long)(v)) << MRB_##n##_SHIFT) | MRB_##n##_FLAG)
+  ((o).w = (((unsigned long)(v)) << BOXWORD_##n##_SHIFT) | BOXWORD_##n##_FLAG)
 #define BOXWORD_SHIFT_VALUE_P(o,n) \
-  (((o).w & MRB_##n##_MASK) == MRB_##n##_FLAG)
+  (((o).w & BOXWORD_##n##_MASK) == BOXWORD_##n##_FLAG)
 #define BOXWORD_OBJ_TYPE_P(o,n) \
   (!mrb_immediate_p(o) && (o).value.bp->tt == MRB_TT_##n)
 
 /*
  * mrb_value representation:
  *
- *   nil   : ...0000 0000 (all bits are zero)
- *   false : ...0000 0100
+ *   nil   : ...0000 0000 (all bits are 0)
+ *   false : ...0000 0100 (mrb_fixnum(v) != 0)
  *   true  : ...0000 1100
  *   undef : ...0001 0100
  *   fixnum: ...IIII III1
- *   symbol: ...SSSS SS10 (high-order 32-bit are symbol value in 64-bit mode)
- *   object: ...PPPP P000
+ *   symbol: ...SSSS SS10 (use only upper 32-bit as symbol value on 64-bit CPU)
+ *   object: ...PPPP P000 (any bits are 1)
  */
 typedef union mrb_value {
   union {
@@ -114,10 +119,10 @@ MRB_API mrb_value mrb_word_boxing_float_pool(struct mrb_state*, mrb_float);
 #endif
 #define mrb_bool(o)    (((o).w & ~(unsigned long)MRB_Qfalse) != 0)
 
-#define mrb_immediate_p(o) ((o).w & MRB_IMMEDIATE_MASK || (o).w == MRB_Qnil)
+#define mrb_immediate_p(o) ((o).w & BOXWORD_IMMEDIATE_MASK || (o).w == MRB_Qnil)
 #define mrb_fixnum_p(o) BOXWORD_SHIFT_VALUE_P(o, FIXNUM)
 #ifdef MRB_64BIT
-#define mrb_symbol_p(o) ((o).value.sym_flag == MRB_SYMBOL_FLAG)
+#define mrb_symbol_p(o) ((o).value.sym_flag == BOXWORD_SYMBOL_FLAG)
 #else
 #define mrb_symbol_p(o) BOXWORD_SHIFT_VALUE_P(o, SYMBOL)
 #endif
@@ -159,7 +164,7 @@ MRB_API mrb_value mrb_word_boxing_float_pool(struct mrb_state*, mrb_float);
 #define SET_BOOL_VALUE(r,b) ((b) ? SET_TRUE_VALUE(r) : SET_FALSE_VALUE(r))
 #define SET_INT_VALUE(r,n) BOXWORD_SET_SHIFT_VALUE(r, FIXNUM, n)
 #ifdef MRB_64BIT
-#define SET_SYM_VALUE(r,v) ((r).value.sym = v, (r).value.sym_flag = MRB_SYMBOL_FLAG)
+#define SET_SYM_VALUE(r,v) ((r).value.sym = v, (r).value.sym_flag = BOXWORD_SYMBOL_FLAG)
 #else
 #define SET_SYM_VALUE(r,n) BOXWORD_SET_SHIFT_VALUE(r, SYMBOL, n)
 #endif

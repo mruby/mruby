@@ -20,6 +20,7 @@
 #endif
 
 #define MRB_FIXNUM_SHIFT 0
+#define MRB_SYMBOL_SHIFT 0
 
 /* value representation by nan-boxing:
  *   float : FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF
