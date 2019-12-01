@@ -1,34 +1,28 @@
 begin
-  require 'git'
+  require 'zip'
 rescue LoadError
-  puts 'Please, install the git gem `gem install git`, it is required to build carbuncle'
+  puts 'Please, install the rubyzip gem `gem install rubyzip`, it is required to build carbuncle'
   exit(1)
 end
+
+require 'open-uri'
 
 require_relative 'build_tools/builds/mingw'
 require_relative 'build_tools/builds/gcc'
 require_relative 'build_tools/builds/wasm'
 
+require_relative 'build_tools/raylib_downloader'
 require_relative 'build_tools/platform_detector'
-
-RAYLIB_GIT = 'https://github.com/raysan5/raylib.git'.freeze
 
 MRuby::Gem::Specification.new('carbuncle-core') do |spec|
   spec.license = 'MIT'
   spec.author  = 'Ramiro Rojo'
   spec.summary = 'Basic module'
 
-  raylib_git = File.join(build.build_dir, 'vendor', 'raylib')
-  raylib_src = File.join(raylib_git, 'src')
+  raylib_dir = Carbuncle::RaylibDownloader.download(build.build_dir)
+  raylib_src = File.join(raylib_dir, 'src')
 
-  if File.exist?(raylib_git)
-    repo = Git.open(raylib_git)
-    repo.pull
-  else
-    Git.clone(RAYLIB_GIT, raylib_git)
-  end
-
-  platform = Carbuncle::PlatformDetector.new(self, raylib_git).detect
+  platform = Carbuncle::PlatformDetector.new(self, raylib_dir).detect
   platform.configure
   platform.build
 
@@ -49,4 +43,6 @@ MRuby::Gem::Specification.new('carbuncle-core') do |spec|
   spec.build.linker.libraries += platform.libraries
 
   spec.cxx.flags << '-std=c++11' if spec.build.toolchains.include? 'gcc'
+
+  spec.add_dependency 'mruby-eval'
 end

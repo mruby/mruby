@@ -11,13 +11,22 @@ module Carbuncle
       def configure
         FileUtils.mkdir_p(raylib_build_dir)
         Dir.chdir(raylib_build_dir) do
-          `cmake -DPLATFORM=Desktop -DSHARED=ON -DCMAKE_TOOLCHAIN_FILE=#{toolset} ..`
+          system("cmake #{cmake_flags.join(' ')} ..")
         end
+      end
+
+      def cmake_flags
+        [
+          '-DPLATFORM=Desktop',
+          '-DSTATIC=OFF',
+          '-DSHARED=ON',
+          "-DCMAKE_TOOLCHAIN_FILE=#{toolset}"
+        ]
       end
 
       def build
         Dir.chdir(raylib_build_dir) do
-          `make`
+          system('make')
         end
         FileUtils.mkdir_p(dst_path)
         FileUtils.cp(dll_src, dst_path)
