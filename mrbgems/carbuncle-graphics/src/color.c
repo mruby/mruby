@@ -3,7 +3,17 @@
 
 #include <mruby/data.h>
 
-#include <stdlib.h>
+static mrb_int
+max(mrb_int a, mrb_int b)
+{
+  return a > b ? a : b;
+}
+
+static mrb_int
+min(mrb_int a, mrb_int b)
+{
+  return a < b ? a : b;
+}
 
 static const struct mrb_data_type color_data_type = {
   "Carbuncle::Color", mrb_free
@@ -153,7 +163,7 @@ mrb_color_grayscaleE(mrb_state *mrb, mrb_value self)
   g = ((mrb_float)color->g) * 0.587;
   b = ((mrb_float)color->b) * 0.114;
   mrb_int avg = max(0, min(255, r + g + b));
-  data->r = data->g = data->b = avg;
+  color->r = color->g = color->b = avg;
   return self;
 }
 
@@ -181,7 +191,7 @@ mrb_color_equal(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "o", &other);
   if (!mrb_carbuncle_color_p(other))
   {
-    return FALSE;
+    return mrb_false_value();
   }
   Color *data = mrb_carbuncle_get_color(mrb, self);
   Color *color = mrb_carbuncle_get_color(mrb, other);
@@ -218,11 +228,11 @@ mrb_carbuncle_color_init(mrb_state *mrb)
   mrb_define_method(mrb, color, "b=", mrb_color_set_blue, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, color, "a=", mrb_color_set_alpha, MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, color, 'grayscale', mrb_color_grayscale, MRB_ARGS_NONE());
-  mrb_define_method(mrb, color, 'invert', mrb_color_invert, MRB_ARGS_NONE());
+  mrb_define_method(mrb, color, "grayscale", mrb_color_grayscale, MRB_ARGS_NONE());
+  mrb_define_method(mrb, color, "invert", mrb_color_invert, MRB_ARGS_NONE());
 
-  mrb_define_method(mrb, color, 'grayscale!', mrb_color_grayscaleE, MRB_ARGS_NONE());
-  mrb_define_method(mrb, color, 'invert!', mrb_color_invertE, MRB_ARGS_NONE());
+  mrb_define_method(mrb, color, "grayscale!", mrb_color_grayscaleE, MRB_ARGS_NONE());
+  mrb_define_method(mrb, color, "invert!", mrb_color_invertE, MRB_ARGS_NONE());
 
   mrb_define_method(mrb, color, "set", mrb_color_set, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(3));
 

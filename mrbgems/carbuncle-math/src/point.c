@@ -53,16 +53,6 @@ set_point_values(mrb_state *mrb, mrb_value self, mrb_bool from_initialize)
   return self;
 }
 
-static void
-copy_struct(mrb_state *mrb, mrb_value self, mrb_value clone)
-{
-  Vector2 *data = mrb_malloc(mrb, sizeof *data);
-  Vector2 *clone_data = mrb_carbuncle_get_point(mrb, clone);
-  DATA_TYPE(clone) = &point_data_type;
-  DATA_PTR(clone) = data;
-  *clone_data = *data;
-}
-
 static mrb_value
 mrb_point_initialize(mrb_state *mrb, mrb_value self)
 {
@@ -122,7 +112,7 @@ mrb_point_equal(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "o", &other);
   if (!mrb_carbuncle_point_p(other))
   {
-    return FALSE;
+    return mrb_false_value();
   }
   Vector2 *data = mrb_carbuncle_get_point(mrb, self);
   Vector2 *point = mrb_carbuncle_get_point(mrb, other);

@@ -153,7 +153,7 @@ mrb_rect_equal(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "o", &other);
   if (!mrb_carbuncle_rect_p(other))
   {
-    return FALSE;
+    return mrb_false_value();
   }
   Rectangle *data = mrb_carbuncle_get_rect(mrb, self);
   Rectangle *rect = mrb_carbuncle_get_rect(mrb, other);
