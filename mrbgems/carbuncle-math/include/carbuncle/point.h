@@ -18,6 +18,9 @@ mrb_carbuncle_get_point(mrb_state *mrb, mrb_value obj);
 mrb_bool
 mrb_carbuncle_point_p(mrb_value obj);
 
+mrb_value
+mrb_carbuncle_point_new(mrb_state *mrb, mrb_float x, mrb_float y);
+
 #ifdef __cplusplus
 }
 #endif

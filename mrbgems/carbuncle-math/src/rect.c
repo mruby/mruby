@@ -146,6 +146,25 @@ mrb_rect_set(mrb_state *mrb, mrb_value self)
   return set_rect_values(mrb, self, FALSE);
 }
 
+static mrb_value
+mrb_rect_equal(mrb_state *mrb, mrb_value self)
+{
+  mrb_value other;
+  mrb_get_args(mrb, "o", &other);
+  if (!mrb_carbuncle_rect_p(other))
+  {
+    return FALSE;
+  }
+  Rectangle *data = mrb_carbuncle_get_rect(mrb, self);
+  Rectangle *rect = mrb_carbuncle_get_rect(mrb, other);
+  return mrb_bool_value(
+    data->x == rect->x &&
+    data->y == rect->y &&
+    data->width == rect->width &&
+    data->height == rect->height
+  );
+}
+
 void
 mrb_carbuncle_rect_init(mrb_state *mrb)
 {
@@ -170,6 +189,8 @@ mrb_carbuncle_rect_init(mrb_state *mrb)
 
   mrb_define_method(mrb, rect, "set", mrb_rect_set, MRB_ARGS_OPT(4));
 
+  mrb_define_method(mrb, rect, "==", mrb_rect_equal, MRB_ARGS_REQ(1));
+
   mrb_value empty_rect = mrb_obj_freeze(mrb, mrb_obj_new(mrb, rect, 0, NULL));
   mrb_define_const(mrb, rect, "EMPTY", empty_rect);
 }
@@ -184,4 +205,17 @@ mrb_bool
 mrb_carbuncle_rect_p(mrb_value obj)
 {
   return mrb_data_p(obj) && (DATA_TYPE(obj) == &rect_data_type);
+}
+
+mrb_value
+mrb_carbuncle_rect_new(mrb_state *mrb, mrb_float x, mrb_float y, mrb_float w, mrb_float h)
+{
+  struct RClass *point = mrb_carbuncle_class_get(mrb, "Rect");
+  mrb_value args[4] = {
+    mrb_float_value(mrb, x),
+    mrb_float_value(mrb, y),
+    mrb_float_value(mrb, w),
+    mrb_float_value(mrb, h)
+  };
+  return mrb_obj_new(mrb, point, 4, args);
 }

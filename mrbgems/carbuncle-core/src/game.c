@@ -110,6 +110,7 @@ close_game(mrb_state *mrb, mrb_value self, mrb_value instance)
   mrb_gc_unregister(mrb, instance);
   mrb_gv_set(mrb, CURRENT_GAME_SYMBOL, mrb_nil_value());
   mrb_funcall(mrb, instance, "before_close", 0);
+  HideWindow();
   CloseWindow();
   mrb_funcall(mrb, instance, "after_close", 0);
 }

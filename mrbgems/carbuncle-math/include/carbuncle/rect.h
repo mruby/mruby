@@ -18,6 +18,9 @@ mrb_carbuncle_get_rect(mrb_state *mrb, mrb_value obj);
 mrb_bool
 mrb_carbuncle_rect_p(mrb_value obj);
 
+mrb_value
+mrb_carbuncle_rect_new(mrb_state *mrb, mrb_float x, mrb_float y, mrb_float w, mrb_float h);
+
 #ifdef __cplusplus
 }
 #endif

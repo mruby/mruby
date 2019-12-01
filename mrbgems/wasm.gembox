@@ -1,4 +1,7 @@
 MRuby::GemBox.new do |conf|
+  # Generate mirb command
+  conf.gem :core => "mruby-bin-mirb"
+
   # Meta-programming features
   conf.gem :core => "mruby-metaprog"
 
