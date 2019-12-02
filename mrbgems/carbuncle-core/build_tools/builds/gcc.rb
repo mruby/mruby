@@ -11,40 +11,117 @@ module Carbuncle
         detector.env
       end
 
-      def raylib_git
-        detector.raylib_git
+      def build
+        env.build
+      end
+
+      def configure
+        build_raylib
+        build_freetype
+      end
+
+      def build_raylib
+        return if File.exist?(raylib_lib)
+
+        Carbuncle::RaylibDownloader.download(vendor_dir)
+        FileUtils.mkdir_p(raylib_build_dir)
+        Dir.chdir(raylib_build_dir) do
+          system("cmake #{raylib_cmake_flags.join(' ')} ..")
+          system('make')
+        end
+      end
+
+      def build_freetype
+        return if File.exist?(freetype_lib)
+
+        Carbuncle::FreetypeDownloader.download(vendor_dir)
+        FileUtils.mkdir_p(freetype_build_dir)
+        Dir.chdir(freetype_build_dir) do
+          system("cmake #{freetype_cmake_flags.join(' ')} ..")
+          system('make')
+        end
+      end
+
+      def raylib_cmake_flags
+        [
+          '-DPLATFORM=Desktop',
+          '-DSTATIC=ON'
+        ]
+      end
+
+      def freetype_cmake_flags
+        []
+      end
+
+      def vendor_dir
+        @vendor_dir ||= File.join(build.build_dir, 'vendor')
+      end
+
+      def raylib_dir
+        @raylib_dir ||= File.join(vendor_dir, 'raylib', RaylibDownloader::RAYLIB_SUBDIR)
       end
 
       def freetype_dir
-        detector.freetype_dir
+        @freetype_dir ||= File.join(vendor_dir, 'freetype', FreetypeDownloader::FREETYPE_SUBDIR)
       end
 
-      def configure; end
+      def raylib_build_dir
+        @raylib_build_dir ||= File.join(raylib_dir, 'build')
+      end
 
-      def build; end
+      def freetype_build_dir
+        @freetype_build_dir ||= File.join(freetype_dir, 'build')
+      end
 
       def dst_path
         @dst_path ||= File.join(env.build.build_dir, 'bin')
       end
 
-      def raylib_gcc_build
-        @raylib_gcc_build ||= File.join(raylib_git, 'build')
+      def include_paths
+        [
+          File.join(raylib_dir, 'src'),
+          File.join(freetype_dir, 'include'),
+          File.join(freetype_build_dir, 'include')
+        ]
       end
 
       def library_paths
-        []
-      end
-
-      def library_files
-        File.join(raylib_gcc_build, 'src', 'libraylib{*}.{dll,dylib}')
+        [
+          raylib_lib_dir,
+          freetype_build_dir
+        ]
       end
 
       def libraries
-        ['raylib']
+        %w[raylib freetype]
+      end
+
+      def raylib_lib_dir
+        @raylib_lib_dir ||= File.join(raylib_build_dir, 'src')
       end
 
       def flags
+        return darwin_flags if detector.darwin?
+
         []
+      end
+
+      def darwin_flags
+        [
+          '-F OpenGL',
+          '-F OpenAL',
+          '-F CoreVideo',
+          '-F IOKit',
+          '-F Cocoa'
+        ]
+      end
+
+      def raylib_lib
+        @raylib_lib ||= File.join(raylib_lib_dir, 'libraylib.a')
+      end
+
+      def freetype_lib
+        @freetype_lib ||= File.join(freetype_build_dir, 'libfreetype.a')
       end
     end
   end

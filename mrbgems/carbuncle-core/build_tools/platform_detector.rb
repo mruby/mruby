@@ -24,5 +24,9 @@ module Carbuncle
     def mingw?
       env.build.cc.command.include?('mingw')
     end
+
+    def darwin?
+      RUBY_PLATFORM =~ /darwin/
+    end
   end
 end
