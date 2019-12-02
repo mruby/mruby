@@ -54,6 +54,11 @@ load_main_file(mrb_state *mrb)
   FILE *file = fopen(MAIN_FILENAME, "r");
   mrb_load_file(mrb, file);
   fclose(file);
+  if (mrb->exc)
+  {
+    mrb_print_error(mrb);
+    exit(EXIT_FAILURE);
+  }
 }
 
 static void
