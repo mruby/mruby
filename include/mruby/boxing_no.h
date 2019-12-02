@@ -8,6 +8,7 @@
 #define MRUBY_BOXING_NO_H
 
 #define MRB_FIXNUM_SHIFT 0
+#define MRB_SYMBOL_SHIFT 0
 
 union mrb_value_union {
 #ifndef MRB_WITHOUT_FLOAT
