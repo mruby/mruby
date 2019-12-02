@@ -1,11 +1,22 @@
 module Carbuncle
   module Builds
     class Wasm
-      attr_reader :env, :raylib_git
+      attr_reader :detector
 
-      def initialize(env, raylib_git)
-        @env = env
-        @raylib_git = raylib_git
+      def initialize(detector)
+        @detector = detector
+      end
+
+      def env
+        detector.env
+      end
+
+      def raylib_git
+        detector.raylib_git
+      end
+
+      def freetype_dir
+        detector.freetype_dir
       end
 
       def configure

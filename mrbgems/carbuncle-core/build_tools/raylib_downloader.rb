@@ -1,16 +1,18 @@
 module Carbuncle
   module RaylibDownloader
+    RAYLIB_URL = 'https://github.com/raysan5/raylib/archive/2.5.0.zip'.freeze
+    RAYLIB_SUBDIR = 'raylib-2.5.0'.freeze
+
     class << self
-      def download(build_dir)
-        raylib_url = 'https://github.com/raysan5/raylib/archive/2.5.0.zip'
-        vendor_dir = File.join(build_dir, 'vendor')
+      def download(vendor_dir)
+        puts('Downloading Raylib...')
         raylib_zip = File.join(vendor_dir, 'raylib.zip')
         raylib_dir = File.join(vendor_dir, 'raylib')
 
-        unless File.exist?(raylib_zip)
+        unless File.exist?(RAYLIB_URL)
           FileUtils.mkdir_p(vendor_dir)
           open(raylib_zip, 'wb') do |file|
-            file << open(raylib_url).read
+            file << open(RAYLIB_URL).read
           end
         end
 
@@ -24,7 +26,7 @@ module Carbuncle
           end
         end
 
-        File.join(raylib_dir, 'raylib-2.5.0')
+        puts('Raylib downloaded')
       end
     end
   end

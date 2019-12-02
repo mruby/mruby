@@ -1,4 +1,7 @@
 MRuby::GemBox.new do |conf|
+  conf.gem :github => 'yui-knk/mruby-set'
+  conf.gem :github => 'iij/mruby-regexp-pcre'
+
   conf.gem :core => "mruby-method"
   conf.gem :core => "mruby-random"
   conf.gem :core => "mruby-eval"

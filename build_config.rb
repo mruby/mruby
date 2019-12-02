@@ -16,7 +16,7 @@ MRuby::Build.new do |conf|
 end
 
 if ENV.fetch('BUILD_MINGW', false)
-  MRuby::CrossBuild.new('mingw') do |conf|
+  MRuby::CrossBuild.new('win32') do |conf|
     toolchain :gcc
 
     conf.cc.command = 'x86_64-w64-mingw32-gcc'
@@ -26,6 +26,8 @@ if ENV.fetch('BUILD_MINGW', false)
     conf.linker.libraries += %w[wsock32 ws2_32]
 
     conf.exts.executable = '.exe'
+
+    conf.cc.flags << '-DPCRE_STATIC'
 
     conf.gembox 'default'
     conf.gembox 'extras'

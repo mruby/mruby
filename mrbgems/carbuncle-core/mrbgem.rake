@@ -12,6 +12,7 @@ require_relative 'build_tools/builds/gcc'
 require_relative 'build_tools/builds/wasm'
 
 require_relative 'build_tools/raylib_downloader'
+require_relative 'build_tools/freetype_downloader'
 require_relative 'build_tools/platform_detector'
 
 MRuby::Gem::Specification.new('carbuncle-core') do |spec|
@@ -19,23 +20,19 @@ MRuby::Gem::Specification.new('carbuncle-core') do |spec|
   spec.author  = 'Ramiro Rojo'
   spec.summary = 'Basic module'
 
-  raylib_dir = Carbuncle::RaylibDownloader.download(build.build_dir)
-  raylib_src = File.join(raylib_dir, 'src')
-
-  platform = Carbuncle::PlatformDetector.new(self, raylib_dir).detect
+  platform = Carbuncle::PlatformDetector.new(self).detect
   platform.configure
-  platform.build
 
   spec.rbfiles = Dir.glob(File.join(dir, 'mrblib', '**', '*.rb'))
 
   spec.cc.flags << platform.flags
   spec.build.cc.flags << platform.flags
 
-  spec.cc.include_paths << raylib_src
-  spec.cxx.include_paths << raylib_src
+  spec.cc.include_paths << platform.include_paths
+  spec.cxx.include_paths << platform.include_paths
 
-  spec.build.cc.include_paths += [raylib_src, File.join(dir, 'include')]
-  spec.build.cxx.include_paths += [raylib_src, File.join(dir, 'include')]
+  spec.build.cc.include_paths += platform.include_paths + [File.join(dir, 'include')]
+  spec.build.cxx.include_paths += platform.include_paths + [File.join(dir, 'include')]
 
   spec.linker.library_paths += platform.library_paths
   spec.linker.libraries += platform.libraries
@@ -45,4 +42,5 @@ MRuby::Gem::Specification.new('carbuncle-core') do |spec|
   spec.cxx.flags << '-std=c++11' if spec.build.toolchains.include? 'gcc'
 
   spec.add_dependency 'mruby-eval'
+  spec.add_dependency 'carbuncle-support'
 end
