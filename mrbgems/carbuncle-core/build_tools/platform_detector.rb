@@ -10,6 +10,7 @@ module Carbuncle
       if env.build.toolchains.include?('gcc')
         return Carbuncle::Builds::Mingw.new(self) if mingw?
         return Carbuncle::Builds::Wasm.new(self) if wasm?
+        return Carbuncle::Builds::CLang.new(self) if darwin?
 
         return Carbuncle::Builds::GCC.new(self)
       end

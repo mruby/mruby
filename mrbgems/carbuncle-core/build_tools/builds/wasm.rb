@@ -55,6 +55,10 @@ module Carbuncle
       def flags
         [File.join(dll_path, 'libraylib.bc')]
       end
+
+      def linker_flags
+        []
+      end
     end
   end
 end

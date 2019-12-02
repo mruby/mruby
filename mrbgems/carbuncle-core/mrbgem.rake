@@ -10,6 +10,7 @@ require 'open-uri'
 require_relative 'build_tools/builds/mingw'
 require_relative 'build_tools/builds/gcc'
 require_relative 'build_tools/builds/wasm'
+require_relative 'build_tools/builds/clang'
 
 require_relative 'build_tools/raylib_downloader'
 require_relative 'build_tools/freetype_downloader'
@@ -36,8 +37,10 @@ MRuby::Gem::Specification.new('carbuncle-core') do |spec|
 
   spec.linker.library_paths += platform.library_paths
   spec.linker.libraries += platform.libraries
+  spec.linker.flags += platform.linker_flags
   spec.build.linker.library_paths += platform.library_paths
   spec.build.linker.libraries += platform.libraries
+  spec.build.linker.flags += platform.linker_flags
 
   spec.cxx.flags << '-std=c++11' if spec.build.toolchains.include? 'gcc'
 

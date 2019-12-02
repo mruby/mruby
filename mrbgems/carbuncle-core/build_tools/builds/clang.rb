@@ -1,6 +1,6 @@
 module Carbuncle
   module Builds
-    class GCC
+    class CLang
       attr_reader :detector
 
       def initialize(detector)
@@ -45,12 +45,15 @@ module Carbuncle
       def raylib_cmake_flags
         [
           '-DPLATFORM=Desktop',
-          '-DSTATIC=ON'
+          '-DSTATIC=ON',
+          "-DCMAKE_TOOLCHAIN_FILE=#{toolset}"
         ]
       end
 
       def freetype_cmake_flags
-        []
+        [
+          "-DCMAKE_TOOLCHAIN_FILE=#{toolset}"
+        ]
       end
 
       def vendor_dir
@@ -105,7 +108,13 @@ module Carbuncle
       end
 
       def linker_flags
-        []
+        [
+          '-framework OpenGL',
+          '-framework OpenAL',
+          '-framework IOKit',
+          '-framework CoreVideo',
+          '-framework Cocoa'
+        ]
       end
 
       def raylib_lib
@@ -114,6 +123,10 @@ module Carbuncle
 
       def freetype_lib
         @freetype_lib ||= File.join(freetype_build_dir, 'libfreetype.a')
+      end
+
+      def toolset
+        @toolset ||= File.join(env.dir, 'build_tools', 'toolchains', 'clang.cmake')
       end
     end
   end

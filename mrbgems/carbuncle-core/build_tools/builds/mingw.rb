@@ -117,6 +117,10 @@ module Carbuncle
         []
       end
 
+      def linker_flags
+        []
+      end
+
       def raylib_dll
         @raylib_dll ||= File.join(raylib_dll_dir, 'libraylib.dll')
       end

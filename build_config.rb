@@ -5,6 +5,8 @@ MRuby::Build.new do |conf|
   # Gets set by the VS command prompts.
   if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
     toolchain :visualcpp
+  elsif RUBY_PLATFORM =~ /darwin/
+    toolchain :clang
   else
     toolchain :gcc
   end
