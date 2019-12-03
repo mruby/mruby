@@ -63,6 +63,13 @@ mrb_mouse_releaseQ(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+mrb_mouse_upQ(mrb_state *mrb, mrb_value self)
+{
+  mrb_int key = convert_mouse_key(mrb);
+  return mrb_bool_value(IsMouseButtonUp(key));
+}
+
+static mrb_value
 mrb_mouse_get_x(mrb_state *mrb, mrb_value self)
 {
   return mrb_fixnum_value(GetMouseX());
@@ -133,6 +140,7 @@ mrb_carbuncle_mouse_init(mrb_state *mrb)
   mrb_define_module_function(mrb, mouse, "press?", mrb_mouse_pressQ, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, mouse, "down?", mrb_mouse_downQ, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, mouse, "release?", mrb_mouse_releaseQ, MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, mouse, "up?", mrb_mouse_upQ, MRB_ARGS_REQ(1));
 
   mrb_define_module_function(mrb, mouse, "x", mrb_mouse_get_x, MRB_ARGS_NONE());
   mrb_define_module_function(mrb, mouse, "y", mrb_mouse_get_y, MRB_ARGS_NONE());

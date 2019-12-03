@@ -7,6 +7,50 @@
 
 #include "raylib.h"
 
+#define CARBUNCLE_KEYBOAR_SIZE 84
+
+static const mrb_int CARBUNCLE_KEYBOARD_VALUES[CARBUNCLE_KEYBOAR_SIZE] = {
+  KEY_BACKSPACE, KEY_SPACE,
+  KEY_ESCAPE, KEY_ESCAPE,
+  KEY_ENTER, KEY_ENTER,
+  KEY_DELETE, KEY_DELETE,
+  KEY_RIGHT, KEY_LEFT, KEY_DOWN, KEY_UP,
+  KEY_RIGHT, KEY_LEFT, KEY_DOWN, KEY_UP,
+  KEY_RIGHT, KEY_LEFT, KEY_DOWN, KEY_UP,
+  KEY_F1, KEY_F2, KEY_F3, KEY_F4, KEY_F5, KEY_F6,
+  KEY_F7, KEY_F8, KEY_F9, KEY_F10, KEY_F11, KEY_F12,
+  KEY_LEFT_SHIFT, KEY_LEFT_CONTROL, KEY_LEFT_ALT,
+  KEY_RIGHT_SHIFT, KEY_RIGHT_CONTROL, KEY_RIGHT_ALT,
+  KEY_ZERO, KEY_ONE, KEY_TWO, KEY_THREE, KEY_FOUR,
+  KEY_FIVE, KEY_SIX, KEY_SEVEN, KEY_EIGHT, KEY_NINE,
+  KEY_ZERO, KEY_ONE, KEY_TWO, KEY_THREE, KEY_FOUR,
+  KEY_FIVE, KEY_SIX, KEY_SEVEN, KEY_EIGHT, KEY_NINE,
+  KEY_A, KEY_B, KEY_C, KEY_D, KEY_E, KEY_F, KEY_G, KEY_H, KEY_I, KEY_J,
+  KEY_K, KEY_L, KEY_M, KEY_N, KEY_O, KEY_P, KEY_Q, KEY_R, KEY_S, KEY_T,
+  KEY_U, KEY_V, KEY_W, KEY_X, KEY_Y, KEY_Z
+};
+
+static const char *CARBUNCLE_KEYBOARD_NAMES[CARBUNCLE_KEYBOAR_SIZE] = {
+  "BACKSPACE", "SPACE",
+  "ESCAPE", "ESC",
+  "ENTER", "RETURN",
+  "DELETE", "DEL",
+  "RIGHT", "LEFT", "DOWN", "UP",
+  "ARROW_RIGHT", "ARROW_LEFT", "ARROW_DOWN", "ARROW_UP",
+  "RIGHT_ARROW", "LEFT_ARROW", "DOWN_ARROW", "UP_ARROW",
+  "F1", "F2", "F3", "F4", "F5", "F6",
+  "F7", "F8", "F9", "F10", "F11", "F12",
+  "LEFT_SHIFT", "LEFT_CONTROL", "LEFT_ALT",
+  "RIGHT_SHIFT", "RIGHT_CONTROL", "RIGHT_ALT",
+  "ZERO", "ONE", "TWO", "THREE", "FOUR",
+  "FIVE", "SIX", "SEVEN", "EIGHT", "NINE",
+  "0", "1", "2", "3", "4",
+  "5", "6", "7", "8", "9",
+  "A", "B", "C", "D", "E", "F", "G", "H", "I", "J",
+  "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T",
+  "U", "V", "W", "X", "Y", "Z"
+};
+
 static inline mrb_int
 get_keyboard_value(mrb_state *mrb, mrb_value name)
 {
@@ -59,6 +103,13 @@ mrb_keyboard_releaseQ(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(IsKeyReleased(key));
 }
 
+static mrb_value
+mrb_keyboard_upQ(mrb_state *mrb, mrb_value self)
+{
+  mrb_int key = convert_keyboard_key(mrb);
+  return mrb_bool_value(IsKeyUp(key));
+}
+
 void
 mrb_carbuncle_keyboard_init(mrb_state *mrb)
 {
@@ -68,85 +119,10 @@ mrb_carbuncle_keyboard_init(mrb_state *mrb)
   mrb_define_module_function(mrb, keyboard, "press?", mrb_keyboard_pressQ, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, keyboard, "down?", mrb_keyboard_downQ, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, keyboard, "release?", mrb_keyboard_releaseQ, MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, keyboard, "up?", mrb_keyboard_upQ, MRB_ARGS_REQ(1));
 
-  mrb_define_const(mrb, keyboard, "BACKSPACE", mrb_fixnum_value(KEY_BACKSPACE));
-  mrb_define_const(mrb, keyboard, "SPACE", mrb_fixnum_value(KEY_SPACE));
-  mrb_define_const(mrb, keyboard, "ESCAPE", mrb_fixnum_value(KEY_ESCAPE));
-  mrb_define_const(mrb, keyboard, "ESC", mrb_fixnum_value(KEY_ESCAPE));
-  mrb_define_const(mrb, keyboard, "ENTER", mrb_fixnum_value(KEY_ENTER));
-  mrb_define_const(mrb, keyboard, "RETURN", mrb_fixnum_value(KEY_ENTER));
-  mrb_define_const(mrb, keyboard, "DELETE", mrb_fixnum_value(KEY_DELETE));
-  mrb_define_const(mrb, keyboard, "DEL", mrb_fixnum_value(KEY_DELETE));
-  mrb_define_const(mrb, keyboard, "RIGHT", mrb_fixnum_value(KEY_RIGHT));
-  mrb_define_const(mrb, keyboard, "LEFT", mrb_fixnum_value(KEY_LEFT));
-  mrb_define_const(mrb, keyboard, "DOWN", mrb_fixnum_value(KEY_DOWN));
-  mrb_define_const(mrb, keyboard, "UP", mrb_fixnum_value(KEY_UP));
-  mrb_define_const(mrb, keyboard, "ARROW_RIGHT", mrb_fixnum_value(KEY_RIGHT));
-  mrb_define_const(mrb, keyboard, "ARROW_LEFT", mrb_fixnum_value(KEY_LEFT));
-  mrb_define_const(mrb, keyboard, "ARROW_DOWN", mrb_fixnum_value(KEY_DOWN));
-  mrb_define_const(mrb, keyboard, "ARROW_UP", mrb_fixnum_value(KEY_UP));  
-  mrb_define_const(mrb, keyboard, "F1", mrb_fixnum_value(KEY_F1));
-  mrb_define_const(mrb, keyboard, "F2", mrb_fixnum_value(KEY_F2));
-  mrb_define_const(mrb, keyboard, "F3", mrb_fixnum_value(KEY_F3));
-  mrb_define_const(mrb, keyboard, "F4", mrb_fixnum_value(KEY_F4));
-  mrb_define_const(mrb, keyboard, "F5", mrb_fixnum_value(KEY_F5));
-  mrb_define_const(mrb, keyboard, "F6", mrb_fixnum_value(KEY_F6));
-  mrb_define_const(mrb, keyboard, "F7", mrb_fixnum_value(KEY_F7));
-  mrb_define_const(mrb, keyboard, "F8", mrb_fixnum_value(KEY_F8));
-  mrb_define_const(mrb, keyboard, "F9", mrb_fixnum_value(KEY_F9));
-  mrb_define_const(mrb, keyboard, "F10", mrb_fixnum_value(KEY_F10));
-  mrb_define_const(mrb, keyboard, "F11", mrb_fixnum_value(KEY_F11));
-  mrb_define_const(mrb, keyboard, "F12", mrb_fixnum_value(KEY_F12));
-  mrb_define_const(mrb, keyboard, "LEFT_SHIFT", mrb_fixnum_value(KEY_LEFT_SHIFT));
-  mrb_define_const(mrb, keyboard, "LEFT_CONTROL", mrb_fixnum_value(KEY_LEFT_CONTROL));
-  mrb_define_const(mrb, keyboard, "LEFT_ALT", mrb_fixnum_value(KEY_LEFT_ALT));
-  mrb_define_const(mrb, keyboard, "RIGHT_SHIFT", mrb_fixnum_value(KEY_RIGHT_SHIFT));
-  mrb_define_const(mrb, keyboard, "RIGHT_CONTROL", mrb_fixnum_value(KEY_RIGHT_CONTROL));
-  mrb_define_const(mrb, keyboard, "RIGHT_ALT", mrb_fixnum_value(KEY_RIGHT_ALT));
-  mrb_define_const(mrb, keyboard, "ZERO", mrb_fixnum_value(KEY_ZERO));
-  mrb_define_const(mrb, keyboard, "ONE", mrb_fixnum_value(KEY_ONE));
-  mrb_define_const(mrb, keyboard, "TWO", mrb_fixnum_value(KEY_TWO));
-  mrb_define_const(mrb, keyboard, "THREE", mrb_fixnum_value(KEY_THREE));
-  mrb_define_const(mrb, keyboard, "FOUR", mrb_fixnum_value(KEY_FOUR));
-  mrb_define_const(mrb, keyboard, "FIVE", mrb_fixnum_value(KEY_FIVE));
-  mrb_define_const(mrb, keyboard, "SIX", mrb_fixnum_value(KEY_SIX));
-  mrb_define_const(mrb, keyboard, "SEVEN", mrb_fixnum_value(KEY_SEVEN));
-  mrb_define_const(mrb, keyboard, "EIGHT", mrb_fixnum_value(KEY_EIGHT));
-  mrb_define_const(mrb, keyboard, "NINE", mrb_fixnum_value(KEY_NINE));
-  mrb_define_const(mrb, keyboard, "0", mrb_fixnum_value(KEY_ZERO));
-  mrb_define_const(mrb, keyboard, "1", mrb_fixnum_value(KEY_ONE));
-  mrb_define_const(mrb, keyboard, "2", mrb_fixnum_value(KEY_TWO));
-  mrb_define_const(mrb, keyboard, "3", mrb_fixnum_value(KEY_THREE));
-  mrb_define_const(mrb, keyboard, "4", mrb_fixnum_value(KEY_FOUR));
-  mrb_define_const(mrb, keyboard, "5", mrb_fixnum_value(KEY_FIVE));
-  mrb_define_const(mrb, keyboard, "6", mrb_fixnum_value(KEY_SIX));
-  mrb_define_const(mrb, keyboard, "7", mrb_fixnum_value(KEY_SEVEN));
-  mrb_define_const(mrb, keyboard, "8", mrb_fixnum_value(KEY_EIGHT));
-  mrb_define_const(mrb, keyboard, "9", mrb_fixnum_value(KEY_NINE));
-  mrb_define_const(mrb, keyboard, "A", mrb_fixnum_value(KEY_A));
-  mrb_define_const(mrb, keyboard, "B", mrb_fixnum_value(KEY_B));
-  mrb_define_const(mrb, keyboard, "C", mrb_fixnum_value(KEY_C));
-  mrb_define_const(mrb, keyboard, "D", mrb_fixnum_value(KEY_D));
-  mrb_define_const(mrb, keyboard, "E", mrb_fixnum_value(KEY_E));
-  mrb_define_const(mrb, keyboard, "F", mrb_fixnum_value(KEY_F));
-  mrb_define_const(mrb, keyboard, "G", mrb_fixnum_value(KEY_G));
-  mrb_define_const(mrb, keyboard, "H", mrb_fixnum_value(KEY_H));
-  mrb_define_const(mrb, keyboard, "I", mrb_fixnum_value(KEY_I));
-  mrb_define_const(mrb, keyboard, "J", mrb_fixnum_value(KEY_J));
-  mrb_define_const(mrb, keyboard, "K", mrb_fixnum_value(KEY_K));
-  mrb_define_const(mrb, keyboard, "L", mrb_fixnum_value(KEY_L));
-  mrb_define_const(mrb, keyboard, "M", mrb_fixnum_value(KEY_M));
-  mrb_define_const(mrb, keyboard, "N", mrb_fixnum_value(KEY_N));
-  mrb_define_const(mrb, keyboard, "O", mrb_fixnum_value(KEY_O));
-  mrb_define_const(mrb, keyboard, "P", mrb_fixnum_value(KEY_P));
-  mrb_define_const(mrb, keyboard, "Q", mrb_fixnum_value(KEY_Q));
-  mrb_define_const(mrb, keyboard, "R", mrb_fixnum_value(KEY_R));
-  mrb_define_const(mrb, keyboard, "S", mrb_fixnum_value(KEY_S));
-  mrb_define_const(mrb, keyboard, "T", mrb_fixnum_value(KEY_T));
-  mrb_define_const(mrb, keyboard, "U", mrb_fixnum_value(KEY_U));
-  mrb_define_const(mrb, keyboard, "V", mrb_fixnum_value(KEY_V));
-  mrb_define_const(mrb, keyboard, "W", mrb_fixnum_value(KEY_W));
-  mrb_define_const(mrb, keyboard, "X", mrb_fixnum_value(KEY_X));
-  mrb_define_const(mrb, keyboard, "Y", mrb_fixnum_value(KEY_Y));
-  mrb_define_const(mrb, keyboard, "Z", mrb_fixnum_value(KEY_Z));
+  for (mrb_int i = 0; i < CARBUNCLE_KEYBOAR_SIZE; ++i)
+  {
+    mrb_define_const(mrb, keyboard, CARBUNCLE_KEYBOARD_NAMES[i], mrb_fixnum_value(CARBUNCLE_KEYBOARD_VALUES[i]));
+  }
 }
