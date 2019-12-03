@@ -34,7 +34,17 @@ static void
 close_game(const char *msg)
 {
   puts(msg);
-  exit(1);
+  exit(EXIT_FAILURE);
+}
+
+static void
+check_mruby_error(mrb_state *mrb)
+{
+  if (mrb->exc)
+  {
+    mrb_print_error(mrb);
+    exit(EXIT_FAILURE);
+  }
 }
 
 static void
@@ -54,11 +64,7 @@ load_main_file(mrb_state *mrb)
   FILE *file = fopen(MAIN_FILENAME, "r");
   mrb_load_file(mrb, file);
   fclose(file);
-  if (mrb->exc)
-  {
-    mrb_print_error(mrb);
-    exit(EXIT_FAILURE);
-  }
+  check_mruby_error(mrb);
 }
 
 static void
@@ -70,15 +76,13 @@ choose_game(mrb_state *mrb)
   if (len <= 0)
   {
     close_game(NO_CARBUNCLE_GAME_MSG);
-    return;
   }
   if (len == 1)
   {
     mrb_funcall(mrb, mrb_ary_entry(games, 0), "run", 0);
-    return;
+    check_mruby_error(mrb);
   }
   close_game(MULTIPLE_GAME_MSG);
-
 }
 
 int
@@ -89,5 +93,5 @@ main(int argc, char **argv)
   load_main_file(mrb);
   choose_game(mrb);
   mrb_close(mrb);
-  return 0;
+  return EXIT_SUCCESS;
 }
