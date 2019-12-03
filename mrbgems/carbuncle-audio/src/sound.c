@@ -31,7 +31,7 @@ mrb_sound_free(mrb_state *mrb, void *p)
     {
       StopSound(sound->data);
     }
-    CloseSound(sound->data);
+    UnloadSound(sound->data);
   }
 }
 
