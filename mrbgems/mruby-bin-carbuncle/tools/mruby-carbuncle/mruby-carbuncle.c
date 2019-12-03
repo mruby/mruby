@@ -6,6 +6,7 @@
 #include "carbuncle/core.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 
 #include <raylib.h>
 
@@ -31,10 +32,19 @@ const char *NO_MAIN_FILE_MSG = "Cannot load file main.rb, it wasn't found.";
 const char *CANNOT_CHANGE_DIRECTORY_MSG = "Cannot load file main.rb, it wasn't found.";
 
 static void
+wait_for_close()
+{
+  char key[1];
+  puts("Press any key to continue...");
+  fgets(key, 1, stdin);  
+  exit(EXIT_FAILURE);
+}
+
+static void
 close_game(const char *msg)
 {
   puts(msg);
-  exit(EXIT_FAILURE);
+  wait_for_close();
 }
 
 static void
@@ -43,7 +53,7 @@ check_mruby_error(mrb_state *mrb)
   if (mrb->exc)
   {
     mrb_print_error(mrb);
-    exit(EXIT_FAILURE);
+    wait_for_close();
   }
 }
 
