@@ -4,4 +4,5 @@ MRuby::Gem::Specification.new('carbuncle-input') do |spec|
   spec.summary = 'Input module'
 
   spec.add_dependency 'carbuncle-core'
+  spec.add_dependency 'carbuncle-math'
 end
