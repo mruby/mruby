@@ -11,6 +11,7 @@
 #include <mruby.h>
 #include <mruby/class.h>
 #include <mruby/data.h>
+#include <mruby/numeric.h>
 #include <mruby/time.h>
 
 #ifndef MRB_DISABLE_STDIO
@@ -222,6 +223,13 @@ typedef int64_t mrb_time_int;
 # define MRB_TIME_MIN (sizeof(time_t) <= 4 ? INT32_MIN : INT64_MIN)
 # define MRB_TIME_MAX (sizeof(time_t) <= 4 ? INT32_MAX : INT64_MAX)
 #endif
+
+static mrb_bool
+fixable_time_t_p(time_t v)
+{
+  if (MRB_INT_MIN <= MRB_TIME_MIN && MRB_TIME_MAX <= MRB_INT_MAX) return TRUE;
+  return FIXABLE(v);
+}
 
 static time_t
 mrb_to_time_t(mrb_state *mrb, mrb_value obj, time_t *usec)
@@ -868,7 +876,7 @@ mrb_time_to_i(mrb_state *mrb, mrb_value self)
 
   tm = time_get_ptr(mrb, self);
 #ifndef MRB_WITHOUT_FLOAT
-  if (tm->sec > MRB_INT_MAX || tm->sec < MRB_INT_MIN) {
+  if (!fixable_time_t_p(tm->sec)) {
     return mrb_float_value(mrb, (mrb_float)tm->sec);
   }
 #endif
@@ -884,7 +892,7 @@ mrb_time_usec(mrb_state *mrb, mrb_value self)
 
   tm = time_get_ptr(mrb, self);
 #ifndef MRB_WITHOUT_FLOAT
-  if (tm->usec > MRB_INT_MAX || tm->usec < MRB_INT_MIN) {
+  if (!fixable_time_t_p(tm->usec)) {
     return mrb_float_value(mrb, (mrb_float)tm->usec);
   }
 #endif
