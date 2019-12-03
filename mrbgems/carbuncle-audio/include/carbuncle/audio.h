@@ -1,5 +1,5 @@
-#ifndef CARBUNCLE_AUIO_H
-#define CARBUNCLE_AUIO_H
+#ifndef CARBUNCLE_AUDIO_H
+#define CARBUNCLE_AUDIO_H
 
 #include <mruby.h>
 #include "raylib.h"
