@@ -254,7 +254,8 @@ mrb_to_time_t(mrb_state *mrb, mrb_value obj, time_t *usec)
       {
         mrb_int i = mrb_int(mrb, obj);
 
-        if ((mrb_time_int)i > MRB_TIME_MAX || MRB_TIME_MIN > i) {
+        if ((MRB_INT_MAX > MRB_TIME_MAX && (mrb_time_int)i > MRB_TIME_MAX) ||
+            (MRB_TIME_MIN > MRB_INT_MIN && MRB_TIME_MIN > i)) {
           goto out_of_range;
         }
 
