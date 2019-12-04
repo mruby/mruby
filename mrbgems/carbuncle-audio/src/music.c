@@ -47,6 +47,8 @@ mrb_music_initialize(mrb_state *mrb, mrb_value self)
   mrb_carbuncle_check_file(mrb, name);
   struct mrb_Music *music = mrb_malloc(mrb, sizeof *music);
   music->data = LoadMusicStream(name);
+  //SetMusicVolume(music->data, 1);
+  //SetMusicPitch(music->data, 1);
   music->volume = 1;
   music->pitch = 1;
   DATA_PTR(self) = music;
@@ -142,6 +144,7 @@ mrb_value
 mrb_music_play(mrb_state *mrb, mrb_value self)
 {
   Music *music = mrb_carbuncle_get_music(mrb, self);
+  PlayMusicStream(*music);
   return self;
 }
 
@@ -149,6 +152,7 @@ mrb_value
 mrb_music_pause(mrb_state *mrb, mrb_value self)
 {
   Music *music = mrb_carbuncle_get_music(mrb, self);
+  PauseMusicStream(*music);
   return self;
 }
 
@@ -156,6 +160,7 @@ mrb_value
 mrb_music_stop(mrb_state *mrb, mrb_value self)
 {
   Music *music = mrb_carbuncle_get_music(mrb, self);
+  StopMusicStream(*music);
   return self;
 }
 
@@ -163,6 +168,7 @@ mrb_value
 mrb_music_resume(mrb_state *mrb, mrb_value self)
 {
   Music *music = mrb_carbuncle_get_music(mrb, self);
+  ResumeMusicStream(*music);
   return self;
 }
 
