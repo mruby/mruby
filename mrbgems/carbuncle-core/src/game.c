@@ -45,6 +45,7 @@ create_window(mrb_state *mrb, mrb_value instance)
 static inline void
 begin_game(mrb_state *mrb, mrb_value self, mrb_value instance)
 {
+  SetTraceLogLevel(LOG_ERROR);
   mrb_funcall(mrb, instance, "before_run", 0);
   mrb_gv_set(mrb, CURRENT_GAME_SYMBOL, instance);
   mrb_gc_register(mrb, instance);

@@ -8,10 +8,16 @@
 extern "C" {
 #endif
 
+struct mrb_Font
+{
+  Font data;
+  mrb_int size;
+};
+
 void
 mrb_carbuncle_font_init(mrb_state *mrb);
 
-Font *
+struct mrb_Font *
 mrb_carbuncle_get_font(mrb_state *mrb, mrb_value obj);
 
 mrb_bool
