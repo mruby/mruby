@@ -1,4 +1,10 @@
+## Carbuncle
 [![Build Status][build-status-img]][travis-ci]
+
+A set of mrbgems for Mruby, designed to build games quickly using ruby as a base.
+This parts from mruby 2.1.0 as a base,  to be pre configured to be build quickly, however, the gems could be compiled by themselves.
+
+# Mruby original readme
 
 ## What is mruby
 
