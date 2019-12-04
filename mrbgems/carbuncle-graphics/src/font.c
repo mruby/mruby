@@ -56,7 +56,10 @@ mrb_font_free(mrb_state *mrb, void *ptr)
   struct mrb_Font *font = ptr;
   if (font)
   {
-    mrb_free(mrb, font->glyphs.list);
+    if (font->glyphs.list)
+    {
+      mrb_free(mrb, font->glyphs.list);
+    }
     UnloadFont(font->data);
     mrb_free(mrb, font);
   }
@@ -86,6 +89,7 @@ mrb_font_initialize(mrb_state *mrb, mrb_value self)
     size = mrb_fixnum(mrb_to_int(mrb, mrb_funcall(mrb, font_class, "default_size", 0)));
   }
   struct mrb_Font *font = mrb_malloc(mrb, sizeof *font);
+  font->glyphs.list = NULL;
   if (name)
   {
     mrb_carbuncle_check_file(mrb, name);
