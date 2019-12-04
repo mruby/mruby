@@ -1,6 +1,7 @@
 #include "carbuncle/core.h"
 #include "carbuncle/game.h"
 #include "carbuncle/screen.h"
+#include "carbuncle/audio_manager.h"
 
 #include "raylib.h"
 
@@ -83,6 +84,7 @@ static void
 carbuncle_emscripten_game_frame(void)
 {
   mrb_value dt = mrb_float_value(emscripten_mrb_state, GetFrameTime());
+  carbuncle_audio_manager_update();
   mrb_funcall(emscripten_mrb_state, emscripten_carbuncle_game, "update", 1, dt);
   draw_game(emscripten_mrb_state, emscripten_carbuncle_game);
 }

@@ -1,5 +1,6 @@
 #include "carbuncle/core.h"
 #include "carbuncle/music.h"
+#include "carbuncle/audio_manager.h"
 
 #include <mruby/data.h>
 
@@ -31,6 +32,7 @@ mrb_music_free(mrb_state *mrb, void *p)
     {
       StopMusicStream(music->data);
     }
+    carbuncle_audio_manager_unregister(&(music->data));
     UnloadMusicStream(music->data);
   }
 }
@@ -53,6 +55,7 @@ mrb_music_initialize(mrb_state *mrb, mrb_value self)
   music->pitch = 1;
   DATA_PTR(self) = music;
   DATA_TYPE(self) = &music_data_type;
+  carbuncle_audio_manager_register(&(music->data));
   return self;
 }
 
