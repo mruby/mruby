@@ -52,7 +52,11 @@ module Carbuncle
 
       def freetype_cmake_flags
         [
-          "-DCMAKE_TOOLCHAIN_FILE=#{toolset}"
+          "-DCMAKE_TOOLCHAIN_FILE=#{toolset}",
+          '-DCMAKE_DISABLE_FIND_PACKAGE_PNG',
+          '-DCMAKE_DISABLE_FIND_PACKAGE_HarfBuzz',
+          '-DCMAKE_DISABLE_FIND_PACKAGE_ZLIB',
+          '-DCMAKE_DISABLE_FIND_PACKAGE_BZip2'
         ]
       end
 
