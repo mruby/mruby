@@ -39,8 +39,8 @@ swap_point(float *p1, float *p2)
 
 // Draw a part of a texture (defined by a rectangle) with 'pro' parameters
 // NOTE: origin is relative to destination rectangle size
-static void
-sprite_draw_texture(Texture2D texture, Rectangle src, Rectangle dst, Vector2 origin, float angle, Color tint)
+void
+mrb_carbuncle_sprite_draw_texture(Texture2D texture, Rectangle src, Rectangle dst, Vector2 origin, float angle, Color tint)
 {
   // Check if texture is valid
   if (texture.id <= 0) { return; }
@@ -52,8 +52,6 @@ sprite_draw_texture(Texture2D texture, Rectangle src, Rectangle dst, Vector2 ori
 
   if (src.width < 0) { flip_x = true; src.width *= -1; }
   if (src.height < 0) { flip_y = true; src.height *= -1; }
-
-  rlEnableTexture(texture.id);
 
   float corners[4][2] = {
     // Bottom-left corner for texture and quad
@@ -99,8 +97,6 @@ sprite_draw_texture(Texture2D texture, Rectangle src, Rectangle dst, Vector2 ori
       rlVertex2f(dst.width, 0.0f);
     rlEnd();
   rlPopMatrix();
-
-  rlDisableTexture();
 }
 
 
@@ -326,7 +322,9 @@ mrb_sprite_draw(mrb_state *mrb, mrb_value self)
     data->pivot->x * dst_rect.width,
     data->pivot->y * dst_rect.height
   };
-  sprite_draw_texture(*texture_data, src_rect, dst_rect, origin, data->angle, *(data->color));
+  rlEnableTexture(texture_data->id);
+  mrb_carbuncle_sprite_draw_texture(*texture_data, src_rect, dst_rect, origin, data->angle, *(data->color));
+  rlDisableTexture();
   return self;
 }
 

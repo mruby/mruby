@@ -46,7 +46,9 @@ module Carbuncle
         [
           '-DPLATFORM=Desktop',
           '-DSTATIC=ON',
-          "-DCMAKE_TOOLCHAIN_FILE=#{toolset}"
+          "-DCMAKE_TOOLCHAIN_FILE=#{toolset}",
+          '-DSUPPORT_FILEFORMAT_BMP=ON',
+          '-DSUPPORT_FILEFORMAT_JPG=ON'
         ]
       end
 

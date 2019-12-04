@@ -5,6 +5,7 @@
 #include "carbuncle/sprite.h"
 #include "carbuncle/font.h"
 #include "carbuncle/text.h"
+#include "carbuncle/plane.h"
 
 void
 mrb_carbuncle_graphics_gem_init(mrb_state *mrb)
@@ -14,6 +15,7 @@ mrb_carbuncle_graphics_gem_init(mrb_state *mrb)
   mrb_carbuncle_sprite_init(mrb);
   mrb_carbuncle_font_init(mrb);
   mrb_carbuncle_text_init(mrb);
+  mrb_carbuncle_plane_init(mrb);
 }
 
 void

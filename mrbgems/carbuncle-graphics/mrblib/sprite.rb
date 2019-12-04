@@ -12,8 +12,20 @@ module Carbuncle
       color.alpha = value
     end
 
-    def z=(value)
-      @z = value.to_f
+    def ox
+      pivot.x * width
+    end
+
+    def oy
+      pivot.y * height
+    end
+
+    def ox=(value)
+      pivot.x = value.to_f / width
+    end
+
+    def oy=(value)
+      pivot.y = value.to_f / height
     end
   end
 end

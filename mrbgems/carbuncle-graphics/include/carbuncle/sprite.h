@@ -27,6 +27,9 @@ mrb_carbuncle_get_sprite(mrb_state *mrb, mrb_value obj);
 mrb_bool
 mrb_carbuncle_sprite_p(mrb_value obj);
 
+void
+mrb_carbuncle_sprite_draw_texture(Texture2D texture, Rectangle src, Rectangle dst, Vector2 origin, float angle, Color tint);
+
 #ifdef __cplusplus
 }
 #endif

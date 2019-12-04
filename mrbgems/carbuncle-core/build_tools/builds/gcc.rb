@@ -45,7 +45,9 @@ module Carbuncle
       def raylib_cmake_flags
         [
           '-DPLATFORM=Desktop',
-          '-DSTATIC=ON'
+          '-DSTATIC=ON',
+          '-DSUPPORT_FILEFORMAT_BMP=ON',
+          '-DSUPPORT_FILEFORMAT_JPG=ON'
         ]
       end
 
