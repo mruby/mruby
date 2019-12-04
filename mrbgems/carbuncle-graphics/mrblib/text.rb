@@ -8,5 +8,17 @@ module Carbuncle
     def value=(value)
       @value = value&.to_s || ''
     end
+
+    def size
+      font.measure_text(value)
+    end
+
+    def width
+      size.x
+    end
+
+    def height
+      size.y
+    end
   end
 end
