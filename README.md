@@ -1,5 +1,5 @@
 ## Carbuncle
-[![Build Status][build-status-img]][travis-ci]
+[![Build Status](https://travis-ci.com/holywyvern/carbuncle.svg?branch=carbuncle-main)](https://travis-ci.com/holywyvern/carbuncle)
 
 A set of mrbgems for Mruby, designed to build games quickly using ruby as a base.
 This parts from mruby 2.1.0 as a base,  to be pre configured to be build quickly, however, the gems could be compiled by themselves.
