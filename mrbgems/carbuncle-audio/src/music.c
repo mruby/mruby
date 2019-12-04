@@ -42,6 +42,15 @@ static const struct mrb_data_type music_data_type = {
 mrb_value
 mrb_music_initialize(mrb_state *mrb, mrb_value self)
 {
+  const char *name;
+  mrb_get_args(mrb, "z", &name);
+  mrb_carbuncle_check_file(mrb, name);
+  struct mrb_Music *music = mrb_malloc(mrb, sizeof *music);
+  music->data = LoadMusicStream(name);
+  music->volume = 1;
+  music->pitch = 1;
+  DATA_PTR(self) = music;
+  DATA_TYPE(self) = &music_data_type;
   return self;
 }
 
@@ -163,7 +172,6 @@ mrb_carbuncle_music_init(mrb_state *mrb)
   struct RClass *music = mrb_carbuncle_define_data_class(mrb, "Sound", mrb->object_class);
 
   mrb_define_method(mrb, music, "initialize", mrb_music_initialize, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, music, "initialize_copy", mrb_music_initialize, MRB_ARGS_REQ(1));
 
   mrb_define_method(mrb, music, "playing?", mrb_music_playingQ, MRB_ARGS_NONE());
 
