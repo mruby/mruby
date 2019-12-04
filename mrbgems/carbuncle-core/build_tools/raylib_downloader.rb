@@ -9,7 +9,7 @@ module Carbuncle
         raylib_zip = File.join(vendor_dir, 'raylib.zip')
         raylib_dir = File.join(vendor_dir, 'raylib')
 
-        unless File.exist?(RAYLIB_URL)
+        unless File.exist?(raylib_zip)
           FileUtils.mkdir_p(vendor_dir)
           open(raylib_zip, 'wb') do |file|
             file << open(RAYLIB_URL).read

@@ -9,7 +9,7 @@ module Carbuncle
         freetype_zip = File.join(vendor_dir, 'freetype.zip')
         freetype_dir = File.join(vendor_dir, 'freetype')
 
-        unless File.exist?(FREETYPE_URL)
+        unless File.exist?(freetype_zip)
           FileUtils.mkdir_p(vendor_dir)
           open(freetype_zip, 'wb') do |file|
             file << open(FREETYPE_URL).read
