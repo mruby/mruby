@@ -5,6 +5,7 @@
 #include <mruby/data.h>
 #include <mruby/variable.h>
 #include <mruby/string.h>
+#include <mruby/array.h>
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -128,6 +129,23 @@ mrb_font_measure_text(mrb_state *mrb, mrb_value self)
   return mrb_carbuncle_point_new(mrb, point.x, point.y);
 }
 
+static mrb_value
+mrb_font_get_characters(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_Font *font = mrb_carbuncle_get_font(mrb, self);
+  int arena = mrb_gc_arena_save(mrb);
+  mrb_value result = mrb_ary_new_capa(mrb, font->glyphs.size);
+  for (size_t i = 0; i < font->glyphs.size; ++i)
+  {
+    char str[5];
+    carbuncle_utf8_encode(str, font->glyphs.list[i]);
+    mrb_ary_push(mrb, result, mrb_str_new_cstr(mrb, str));
+  }
+  mrb_gc_protect(mrb, result);
+  mrb_gc_arena_restore(mrb, arena);
+  return result;
+}
+
 void
 mrb_carbuncle_font_init(mrb_state *mrb)
 {
@@ -143,6 +161,8 @@ mrb_carbuncle_font_init(mrb_state *mrb)
   mrb_define_method(mrb, font, "dispose", mrb_font_dispose, MRB_ARGS_NONE());
 
   mrb_define_method(mrb, font, "measure_text", mrb_font_measure_text, MRB_ARGS_REQ(1));
+
+  mrb_define_method(mrb, font, "characters", mrb_font_get_characters, MRB_ARGS_NONE());
 }
 
 struct mrb_Font *
