@@ -280,8 +280,9 @@ mrb_free(mrb_state *mrb, void *p)
 MRB_API void*
 mrb_alloca(mrb_state *mrb, size_t size)
 {
-  mrb_value str = mrb_str_new(mrb, NULL, size);
-  return RSTRING_PTR(str);
+  struct RString *s;
+  s = (struct RString*)mrb_obj_alloc(mrb, MRB_TT_STRING, mrb->string_class);
+  return s->as.heap.ptr = (char*)mrb_malloc(mrb, size);
 }
 
 static mrb_bool
