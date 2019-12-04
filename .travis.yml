@@ -19,5 +19,5 @@ addons:
 env:
   - MRUBY_CONFIG=travis_config.rb
 before_script:
-  - gem install git
+  - gem install git && gem install rubyzip
 script: "./minirake -j4 all test"
