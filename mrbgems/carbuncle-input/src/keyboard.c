@@ -51,6 +51,49 @@ static const char *CARBUNCLE_KEYBOARD_NAMES[CARBUNCLE_KEYBOAR_SIZE] = {
   "U", "V", "W", "X", "Y", "Z"
 };
 
+static int
+keyboard_utf8_encode(char *out, uint32_t utf)
+{
+  if (utf <= 0x7F) {
+    // Plain ASCII
+    out[0] = (char) utf;
+    out[1] = 0;
+    return 1;
+  }
+  else if (utf <= 0x07FF) {
+    // 2-byte unicode
+    out[0] = (char) (((utf >> 6) & 0x1F) | 0xC0);
+    out[1] = (char) (((utf >> 0) & 0x3F) | 0x80);
+    out[2] = 0;
+    return 2;
+  }
+  else if (utf <= 0xFFFF) {
+    // 3-byte unicode
+    out[0] = (char) (((utf >> 12) & 0x0F) | 0xE0);
+    out[1] = (char) (((utf >>  6) & 0x3F) | 0x80);
+    out[2] = (char) (((utf >>  0) & 0x3F) | 0x80);
+    out[3] = 0;
+    return 3;
+  }
+  else if (utf <= 0x10FFFF) {
+    // 4-byte unicode
+    out[0] = (char) (((utf >> 18) & 0x07) | 0xF0);
+    out[1] = (char) (((utf >> 12) & 0x3F) | 0x80);
+    out[2] = (char) (((utf >>  6) & 0x3F) | 0x80);
+    out[3] = (char) (((utf >>  0) & 0x3F) | 0x80);
+    out[4] = 0;
+    return 4;
+  }
+  else { 
+    // error - use replacement character
+    out[0] = (char) 0xEF;  
+    out[1] = (char) 0xBF;
+    out[2] = (char) 0xBD;
+    out[3] = 0;
+    return 0;
+  }
+}
+
 static inline mrb_int
 get_keyboard_value(mrb_state *mrb, mrb_value name)
 {
@@ -110,6 +153,16 @@ mrb_keyboard_upQ(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(IsKeyUp(key));
 }
 
+static mrb_value
+mrb_keyboard_get_character(mrb_state *mrb, mrb_value self)
+{
+  char character[5];
+  int key = GetKeyPressed();
+  if (key <= 0) { return mrb_nil_value(); }
+  keyboard_utf8_encode(character, key);
+  return mrb_str_new_cstr(mrb, character);
+}
+
 void
 mrb_carbuncle_keyboard_init(mrb_state *mrb)
 {
@@ -120,6 +173,8 @@ mrb_carbuncle_keyboard_init(mrb_state *mrb)
   mrb_define_module_function(mrb, keyboard, "down?", mrb_keyboard_downQ, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, keyboard, "release?", mrb_keyboard_releaseQ, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, keyboard, "up?", mrb_keyboard_upQ, MRB_ARGS_REQ(1));
+
+  mrb_define_module_function(mrb, keyboard, "character", mrb_keyboard_get_character, MRB_ARGS_NONE());
 
   for (mrb_int i = 0; i < CARBUNCLE_KEYBOAR_SIZE; ++i)
   {
