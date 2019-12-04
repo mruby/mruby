@@ -17,6 +17,7 @@ module Carbuncle
 
       def configure
         build_raylib
+        build_freetype
       end
 
       def build_raylib
@@ -31,7 +32,7 @@ module Carbuncle
       end
 
       def build_freetype
-        return if File.exist?(freetype_dll)
+        return if File.exist?(freetype_lib)
 
         Carbuncle::FreetypeDownloader.download(vendor_dir)
         FileUtils.mkdir_p(freetype_build_dir)
@@ -40,7 +41,7 @@ module Carbuncle
           system('make')
         end
         FileUtils.mkdir_p(dst_path)
-        FileUtils.cp(freetype_dll, dst_path)
+        FileUtils.cp(freetype_lib, dst_path)
       end
 
       def raylib_cmake_flags
@@ -54,7 +55,7 @@ module Carbuncle
 
       def freetype_cmake_flags
         [
-          '-D BUILD_SHARED_LIBS:BOOL=true',
+          '-D BUILD_SHARED_LIBS:BOOL=false',
           "-DCMAKE_TOOLCHAIN_FILE=#{toolset}"
         ]
       end
@@ -97,12 +98,13 @@ module Carbuncle
 
       def library_paths
         [
-          raylib_lib_dir
+          raylib_lib_dir,
+          freetype_build_dir
         ]
       end
 
       def libraries
-        %w[raylib_static kernel32 user32 shell32 winmm gdi32 opengl32]
+        %w[raylib_static freetype kernel32 user32 shell32 winmm gdi32 opengl32]
       end
 
       def raylib_lib_dir
@@ -121,8 +123,8 @@ module Carbuncle
         @raylib_lib ||= File.join(raylib_lib_dir, 'libraylib_static.a')
       end
 
-      def freetype_dll
-        @freetype_dll ||= File.join(freetype_build_dir, 'libfreetype.dll')
+      def freetype_lib
+        @freetype_lib ||= File.join(freetype_build_dir, 'libfreetype.a')
       end
     end
   end

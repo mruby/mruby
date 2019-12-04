@@ -6,7 +6,48 @@
 #include <mruby/variable.h>
 #include <mruby/string.h>
 
-#define MAX_FONT_SIZE 32767
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
+#define DEFAULT_FONT_CAPA 63
+
+static FT_Library carbuncle_freetype;
+
+static void
+add_char(mrb_state *mrb, struct mrb_Font *font, FT_ULong character)
+{
+  if (font->glyphs.capa <= font->glyphs.size)
+  {
+    size_t new_capa = (font->glyphs.capa * 2) + 1;
+    font->glyphs.list = mrb_realloc(mrb, font->glyphs.list, new_capa * sizeof(int));
+    font->glyphs.capa = new_capa;
+  }
+  font->glyphs.list[font->glyphs.size] = character;
+  font->glyphs.size += 1;
+}
+
+static void
+load_characters(mrb_state *mrb, struct mrb_Font *font, const char *filename)
+{
+  FT_Face face;
+  FT_UInt index;
+  if (FT_New_Face(carbuncle_freetype, filename, 0, &face))
+  {
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "cannot load font '%s'.", filename);
+  }
+  if (FT_Select_Charmap(face, FT_ENCODING_UNICODE))
+  {
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "cannot load font '%s' as unicode.", filename);
+  }
+  FT_ULong character = FT_Get_First_Char(face, &index);
+  while(index)
+  {
+    add_char(mrb, font, character);
+    character = FT_Get_Next_Char(face, character, &index);
+  }
+  FT_Done_Face(face);
+}
+
 
 static void
 mrb_font_free(mrb_state *mrb, void *ptr)
@@ -46,7 +87,11 @@ mrb_font_initialize(mrb_state *mrb, mrb_value self)
   if (name)
   {
     mrb_carbuncle_check_file(mrb, name);
-    font->data = LoadFontEx(name, size, NULL, MAX_FONT_SIZE);
+    font->glyphs.capa = DEFAULT_FONT_CAPA;
+    font->glyphs.size = 0;
+    font->glyphs.list = mrb_malloc(mrb, DEFAULT_FONT_CAPA * sizeof(int));
+    load_characters(mrb, font, name);
+    font->data = LoadFontEx(name, size, font->glyphs.list, font->glyphs.size);
   }
   else
   {
@@ -86,6 +131,10 @@ mrb_font_measure_text(mrb_state *mrb, mrb_value self)
 void
 mrb_carbuncle_font_init(mrb_state *mrb)
 {
+  if (FT_Init_FreeType( &carbuncle_freetype ))
+  {
+    mrb_raise(mrb, mrb->eStandardError_class, "Unable to initialize freetype.");
+  }
   struct RClass *font = mrb_carbuncle_define_data_class(mrb, "Font", mrb->object_class);
 
   mrb_define_method(mrb, font, "initialize", mrb_font_initialize, MRB_ARGS_OPT(2));

@@ -10,6 +10,11 @@ extern "C" {
 
 struct mrb_Font
 {
+  struct {
+    size_t size;
+    size_t capa;
+    int *list;
+  } glyphs;
   Font data;
   mrb_int size;
 };
