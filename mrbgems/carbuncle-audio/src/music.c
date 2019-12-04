@@ -169,7 +169,7 @@ mrb_music_resume(mrb_state *mrb, mrb_value self)
 void
 mrb_carbuncle_music_init(mrb_state *mrb)
 {
-  struct RClass *music = mrb_carbuncle_define_data_class(mrb, "Sound", mrb->object_class);
+  struct RClass *music = mrb_carbuncle_define_data_class(mrb, "Music", mrb->object_class);
 
   mrb_define_method(mrb, music, "initialize", mrb_music_initialize, MRB_ARGS_REQ(1));
 

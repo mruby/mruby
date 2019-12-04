@@ -91,6 +91,7 @@ choose_game(mrb_state *mrb)
   {
     mrb_funcall(mrb, mrb_ary_entry(games, 0), "run", 0);
     check_mruby_error(mrb);
+    return;
   }
   close_game(MULTIPLE_GAME_MSG);
 }
