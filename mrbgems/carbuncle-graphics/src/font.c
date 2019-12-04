@@ -56,6 +56,7 @@ mrb_font_free(mrb_state *mrb, void *ptr)
   struct mrb_Font *font = ptr;
   if (font)
   {
+    mrb_free(mrb, font->glyphs.list);
     UnloadFont(font->data);
     mrb_free(mrb, font);
   }
