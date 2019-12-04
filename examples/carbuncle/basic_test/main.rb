@@ -1,15 +1,18 @@
 require 'scripts/player'
 
 class TestGame < Carbuncle::Game
-  attr_reader :player, :text
+  attr_reader :player, :text, :music, :sound
 
   def load
+    @music = Carbuncle::Music.new('music/test.ogg')
+    @sound = Carbuncle::Sound.new('sound/coin.wav')
     @player = Player.new
     @player.position.set(player_x, player_y)
     @text = Carbuncle::Text.new
     @text.font = Carbuncle::Font.new('fonts/pixel-unicode.ttf', 64)
     @text.value = 'Hëllo Wörld'
     text.position.set((screen.width - text.width) / 2, (screen.height - text.height) / 2)
+    music.play
   end
 
   def player_x
@@ -23,6 +26,7 @@ class TestGame < Carbuncle::Game
   def update(dt)
     player.update(dt)
     text.update(dt)
+    sound.play if Carbuncle::Keyboard.press?(:a)
   end
 
   def draw
