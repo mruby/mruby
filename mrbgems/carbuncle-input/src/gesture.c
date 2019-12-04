@@ -42,6 +42,10 @@ static const char *CARBUNCLE_GESTURE_NAMES[CARBUNCLE_GESTURES_COUNT] = {
   "PINCH_OUT"
 };
 
+#define HOLD_CLASS mrb_class_get_under(mrb, mrb_carbuncle_module_get(mrb, "Gesture"), "Hold")
+#define DRAG_CLASS mrb_class_get_under(mrb, mrb_carbuncle_module_get(mrb, "Gesture"), "Drag")
+#define PINCH_CLASS mrb_class_get_under(mrb, mrb_carbuncle_module_get(mrb, "Gesture"), "Pinch")
+
 static inline mrb_int
 get_gesture_value(mrb_state *mrb, mrb_value name)
 {
@@ -100,6 +104,38 @@ mrb_gesture_enable(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+mrb_gesture_get_hold(mrb_state *mrb, mrb_value self)
+{
+  mrb_value values[1] = {
+    mrb_float_value(mrb, GetGestureHoldDuration())
+  };
+  return mrb_obj_new(mrb, HOLD_CLASS, 1, values);
+}
+
+static mrb_value
+mrb_gesture_get_drag(mrb_state *mrb, mrb_value self)
+{
+  Vector2 vector = GetGestureDragVector();
+  mrb_value values[2] = {
+    mrb_carbuncle_point_new(mrb, vector.x, vector.y),
+    mrb_float_value(mrb, GetGestureDragAngle())
+  };
+  return mrb_obj_new(mrb, DRAG_CLASS, 2, values);
+}
+
+static mrb_value
+mrb_gesture_get_pinch(mrb_state *mrb, mrb_value self)
+{
+  Vector2 vector = GetGesturePinchVector();
+  mrb_value values[2] = {
+    mrb_carbuncle_point_new(mrb, vector.x, vector.y),
+    mrb_float_value(mrb, GetGesturePinchAngle())
+  };
+  return mrb_obj_new(mrb, PINCH_CLASS, 2, values);
+}
+
+
+static mrb_value
 mrb_gesture_disable(mrb_state *mrb, mrb_value self)
 {
   mrb_int gesture = convert_gesture(mrb);
@@ -135,6 +171,10 @@ mrb_carbuncle_gesture_init(mrb_state *mrb)
   struct RClass *gesture = mrb_define_module_under(mrb, carbuncle, "Gesture");
 
   mrb_define_module_function(mrb, gesture, "enabled", mrb_gesture_get_enabled, MRB_ARGS_NONE());
+
+  mrb_define_module_function(mrb, gesture, "hold", mrb_gesture_get_hold, MRB_ARGS_NONE());
+  mrb_define_module_function(mrb, gesture, "drag", mrb_gesture_get_drag, MRB_ARGS_NONE());
+  mrb_define_module_function(mrb, gesture, "pinch", mrb_gesture_get_pinch, MRB_ARGS_NONE());
 
   mrb_define_module_function(mrb, gesture, "enable", mrb_gesture_enable, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, gesture, "disable", mrb_gesture_disable, MRB_ARGS_REQ(1));

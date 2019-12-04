@@ -10,4 +10,12 @@ class Carbuncle::Point
       end
     end
   end
+
+  def to_s
+    inspect
+  end
+
+  def inspect
+    "Point(#{x}, #{y})"
+  end
 end

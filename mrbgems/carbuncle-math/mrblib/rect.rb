@@ -12,4 +12,12 @@ class Carbuncle::Rect
       end
     end
   end
+
+  def to_s
+    inspect
+  end
+
+  def inspect
+    "Rect(#{x}, #{y}, #{w}, #{h})"
+  end
 end

@@ -12,4 +12,12 @@ class Carbuncle::Color
       end
     end
   end
+
+  def to_s
+    inspect
+  end
+
+  def inspect
+    "Color(#{r}, #{g}, #{b}, #{a})"
+  end
 end
