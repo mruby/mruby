@@ -1,9 +1,10 @@
 require 'scripts/player'
 
 class TestGame < Carbuncle::Game
-  attr_reader :player, :text, :music, :sound
+  attr_reader :player, :text, :music, :sound, :plane
 
   def load
+    @plane = Carbuncle::Plane.new(Carbuncle::Texture.new('graphics/backgrounds/bg.png'))
     @music = Carbuncle::Music.new('music/test.ogg')
     @sound = Carbuncle::Sound.new('sound/coin.wav')
     @player = Player.new
@@ -24,12 +25,16 @@ class TestGame < Carbuncle::Game
   end
 
   def update(dt)
+    plane.update(dt)
     player.update(dt)
     text.update(dt)
     sound.play if Carbuncle::Keyboard.press?(:a)
+    plane.ox += dt * plane.width / 3
+    plane.oy += dt * plane.height / 3
   end
 
   def draw
+    plane.draw
     player.draw
     text.draw
   end
