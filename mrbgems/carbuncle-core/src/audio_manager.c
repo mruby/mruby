@@ -1,78 +1,57 @@
 #include "carbuncle/audio_manager.h"
 
-struct AudioEntry
-{
-  Music *value;
-  struct AudioEntry *next;
-  struct AudioEntry *prev;
-};
+static Music **music_streams = NULL;
+static size_t music_capa = 0;
+static size_t music_size = 0;
 
-static struct AudioEntry *MUSIC_STREAMS = NULL;
-static mrb_state *AUDIO_MRB = NULL;
-
-void
-add_music(struct AudioEntry *prev, struct AudioEntry **entry, Music *music)
-{
-  struct AudioEntry *current = *entry;
-  if (current)
-  {
-    add_music(*entry, &(current->next), music);
-  }
-  else
-  {
-    current = *entry = mrb_malloc(AUDIO_MRB, sizeof *current);
-    prev->next = *entry;
-    current->prev = prev;
-    current->next = NULL;
-    current->value = music;
-  }
-}
-
-void
-remove_music(struct AudioEntry **entry, Music *music)
-{
-  struct AudioEntry *current = *entry;
-  if (!current)
-  {
-    return;
-  }
-  if (current->value != music)
-  {
-    remove_music(&(current->next), music);
-    return;
-  }
-  if (current->next) { current->next->prev = current->prev; }
-  if (current->prev) { current->prev->next = current->next; }
-  else { MUSIC_STREAMS = current->next; }
-  mrb_free(AUDIO_MRB, current);
-}
+static mrb_state *audio_mrb = NULL;
 
 void
 carbuncle_audio_manager_init(mrb_state *mrb)
 {
-  AUDIO_MRB = mrb;
+  audio_mrb = mrb;
+  music_size = 0;
+  music_capa = 3;
+  music_streams = mrb_malloc(mrb, music_capa * (sizeof *music_streams));
 }
 
 void
 carbuncle_audio_manager_register(Music *music)
 {
-  add_music(NULL, &MUSIC_STREAMS, music);
+  if (music_size >= music_capa)
+  {
+    music_capa *= 2 + 1;
+    music_streams = mrb_realloc(audio_mrb, music_streams, music_capa * (sizeof *music_streams));
+  }
+  music_streams[music_size] = music;
+  ++music_size;
 }
 
 void
 carbuncle_audio_manager_unregister(Music *music)
 {
-  remove_music(&MUSIC_STREAMS, music);
+  for (size_t i = 0; i < music_size; ++i)
+  {
+    if (music_streams[i] == music)
+    {
+      for (size_t j = i; j < music_size - 1; ++j)
+      {
+        music_streams[j] = music_streams[j + 1];
+      }
+      --music_size;
+      return;
+    }
+  }
 }
+
+#include <stdio.h>
 
 void
 carbuncle_audio_manager_update(void)
 {
-  struct AudioEntry *current = MUSIC_STREAMS;
-  while (current)
+  for (size_t i = 0; i < music_size; ++i)
   {
-    Music music = *(current->value);
+    Music music = *(music_streams[i]);
     if (IsMusicPlaying(music)) { UpdateMusicStream(music); }
-    current = current->next;
   }
 }

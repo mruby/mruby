@@ -103,6 +103,7 @@ game_loop(mrb_state *mrb, mrb_value instance)
   while (carbuncle_game_is_running)
   {
     check_closing(mrb, instance);
+    carbuncle_audio_manager_update();
     mrb_funcall(mrb, instance, "update", 1, mrb_float_value(mrb, GetFrameTime()));
     draw_game(mrb, instance);
   }
