@@ -76,11 +76,6 @@ double round(double x) {
 /* define following macro to use probably faster timegm() on the platform */
 /* #define USE_SYSTEM_TIMEGM */
 
-/* time_t */
-/* If your platform supports time_t as uint (e.g. uint32_t, uint64_t), */
-/* uncomment following macro. */
-/* #define MRB_TIME_T_UINT */
-
 /** end of Time class configuration */
 
 #ifndef NO_GETTIMEOFDAY
@@ -214,15 +209,15 @@ typedef mrb_int mrb_sec;
 #define mrb_sec_value(mrb, sec) mrb_fixnum_value(sec)
 #endif
 
-#ifdef MRB_TIME_T_UINT
-typedef uint64_t mrb_time_int;
-# define MRB_TIME_MIN 0
-# define MRB_TIME_MAX (sizeof(time_t) <= 4 ? UINT32_MAX : UINT64_MAX)
-#else
-typedef int64_t mrb_time_int;
-# define MRB_TIME_MIN (sizeof(time_t) <= 4 ? INT32_MIN : INT64_MIN)
-# define MRB_TIME_MAX (sizeof(time_t) <= 4 ? INT32_MAX : INT64_MAX)
-#endif
+#define MRB_TIME_T_UINT (~(time_t)0 > 0)
+#define MRB_TIME_MIN (                                                      \
+  MRB_TIME_T_UINT ? 0 :                                                     \
+                    (sizeof(time_t) <= 4 ? INT32_MIN : INT64_MIN)           \
+)
+#define MRB_TIME_MAX (                                                      \
+  MRB_TIME_T_UINT ? (sizeof(time_t) <= 4 ? UINT32_MAX : UINT64_MAX) :       \
+                    (sizeof(time_t) <= 4 ? INT32_MAX : INT64_MAX)           \
+)
 
 static mrb_bool
 fixable_time_t_p(time_t v)
@@ -262,7 +257,7 @@ mrb_to_time_t(mrb_state *mrb, mrb_value obj, time_t *usec)
       {
         mrb_int i = mrb_int(mrb, obj);
 
-        if ((MRB_INT_MAX > MRB_TIME_MAX && (mrb_time_int)i > MRB_TIME_MAX) ||
+        if ((MRB_INT_MAX > MRB_TIME_MAX && i > 0 && i > MRB_TIME_MAX) ||
             (MRB_TIME_MIN > MRB_INT_MIN && MRB_TIME_MIN > i)) {
           goto out_of_range;
         }
