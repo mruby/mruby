@@ -6,6 +6,8 @@
 #include <ft2build.h>
 #include FT_FREETYPE_H
 
+#include <carbuncle/avl.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -14,6 +16,7 @@ struct mrb_Font
 {
   FT_Face face;
   mrb_int size;
+  struct mrb_AVL *glyphs;
 };
 
 void
