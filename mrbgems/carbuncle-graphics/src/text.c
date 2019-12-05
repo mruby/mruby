@@ -110,7 +110,6 @@ mrb_text_draw(mrb_state *mrb, mrb_value self)
 {
   const char *message = mrb_str_to_cstr(mrb, mrb_iv_get(mrb, self, VALUE_SYMBOL));
   struct mrb_Text *text = get_text(mrb, self);
-  DrawTextEx(text->font->data, message, *text->position, text->font->size, 0, *text->color);
   return self;
 }
 

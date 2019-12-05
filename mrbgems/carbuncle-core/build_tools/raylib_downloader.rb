@@ -1,7 +1,7 @@
 module Carbuncle
   module RaylibDownloader
     RAYLIB_URL = 'https://github.com/raysan5/raylib/archive/master.zip'.freeze
-    RAYLIB_SUBDIR = 'raylib-2.5.0'.freeze
+    RAYLIB_SUBDIR = 'raylib-master'.freeze
 
     class << self
       def download(vendor_dir)

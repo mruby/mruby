@@ -3,6 +3,8 @@
 
 #include <mruby.h>
 #include "raylib.h"
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -10,12 +12,7 @@ extern "C" {
 
 struct mrb_Font
 {
-  struct {
-    size_t size;
-    size_t capa;
-    int *list;
-  } glyphs;
-  Font data;
+  FT_Face face;
   mrb_int size;
 };
 

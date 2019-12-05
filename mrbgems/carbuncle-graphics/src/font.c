@@ -9,44 +9,31 @@
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
+#include FT_GLYPH_H
+
+#include "microutf8.h"
 
 #define DEFAULT_FONT_CAPA 63
 
 static FT_Library carbuncle_freetype;
 
-static void
-add_char(mrb_state *mrb, struct mrb_Font *font, FT_ULong character)
-{
-  if (font->glyphs.capa <= font->glyphs.size)
-  {
-    size_t new_capa = (font->glyphs.capa * 2) + 1;
-    font->glyphs.list = mrb_realloc(mrb, font->glyphs.list, new_capa * sizeof(int));
-    font->glyphs.capa = new_capa;
-  }
-  font->glyphs.list[font->glyphs.size] = character;
-  font->glyphs.size += 1;
-}
+#include <stdio.h>
 
 static void
-load_characters(mrb_state *mrb, struct mrb_Font *font, const char *filename)
+open_font(mrb_state *mrb, struct mrb_Font *font, const char *filename, size_t size)
 {
-  FT_Face face;
-  FT_UInt index;
-  if (FT_New_Face(carbuncle_freetype, filename, 0, &face))
+  if (FT_New_Face(carbuncle_freetype, filename, 0, &(font->face)))
   {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "cannot load font '%s'.", filename);
   }
-  if (FT_Select_Charmap(face, FT_ENCODING_UNICODE))
+  if (FT_Select_Charmap(font->face, FT_ENCODING_UNICODE))
   {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "cannot load font '%s' as unicode.", filename);
   }
-  FT_ULong character = FT_Get_First_Char(face, &index);
-  while(index)
+  if (FT_Set_Pixel_Sizes(font->face, size, size))
   {
-    add_char(mrb, font, character);
-    character = FT_Get_Next_Char(face, character, &index);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "cannot set font size for font %s.", filename);
   }
-  FT_Done_Face(face);
 }
 
 
@@ -56,11 +43,7 @@ mrb_font_free(mrb_state *mrb, void *ptr)
   struct mrb_Font *font = ptr;
   if (font)
   {
-    if (font->glyphs.list)
-    {
-      mrb_free(mrb, font->glyphs.list);
-    }
-    UnloadFont(font->data);
+    FT_Done_Face(font->face);
     mrb_free(mrb, font);
   }
 }
@@ -79,30 +62,19 @@ mrb_font_initialize(mrb_state *mrb, mrb_value self)
   if (argc < 1)
   {
     mrb_value default_name = mrb_funcall(mrb, font_class, "default_name", 0);
-    if (!mrb_nil_p(default_name))
+    if (mrb_nil_p(default_name))
     {
-      name = mrb_str_to_cstr(mrb, default_name);
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "Cannot load default font when default font is null.");
     }
+    name = mrb_str_to_cstr(mrb, default_name);
   }
   if (argc < 2)
   {
     size = mrb_fixnum(mrb_to_int(mrb, mrb_funcall(mrb, font_class, "default_size", 0)));
   }
   struct mrb_Font *font = mrb_malloc(mrb, sizeof *font);
-  font->glyphs.list = NULL;
-  if (name)
-  {
-    mrb_carbuncle_check_file(mrb, name);
-    font->glyphs.capa = DEFAULT_FONT_CAPA;
-    font->glyphs.size = 0;
-    font->glyphs.list = mrb_malloc(mrb, DEFAULT_FONT_CAPA * sizeof(int));
-    load_characters(mrb, font, name);
-    font->data = LoadFontEx(name, size, font->glyphs.list, font->glyphs.size);
-  }
-  else
-  {
-    font->data = GetFontDefault();
-  }
+  mrb_carbuncle_check_file(mrb, name);
+  open_font(mrb, font, name, size);
   font->size = size;
   DATA_PTR(self) = font;
   DATA_TYPE(self) = &font_data_type;
@@ -127,28 +99,36 @@ mrb_font_dispose(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_font_measure_text(mrb_state *mrb, mrb_value self)
 {
+  Rectangle rect;
+  uint32_t codepoint;
   const char *text;
   mrb_get_args(mrb, "z", &text);
   struct mrb_Font *font = mrb_carbuncle_get_font(mrb, self);
-  Vector2 point = MeasureTextEx(font->data, text, font->size, 0);
-  return mrb_carbuncle_point_new(mrb, point.x, point.y);
-}
-
-static mrb_value
-mrb_font_get_characters(mrb_state *mrb, mrb_value self)
-{
-  struct mrb_Font *font = mrb_carbuncle_get_font(mrb, self);
-  int arena = mrb_gc_arena_save(mrb);
-  mrb_value result = mrb_ary_new_capa(mrb, font->glyphs.size);
-  for (size_t i = 0; i < font->glyphs.size; ++i)
+  rect.x = 0;
+  rect.y = 0;
+  size_t len = utf8_strlen(text);
+  for (size_t i = 0; i < len; ++i)
   {
-    char str[5];
-    carbuncle_utf8_encode(str, font->glyphs.list[i]);
-    mrb_ary_push(mrb, result, mrb_str_new_cstr(mrb, str));
+    text = utf8_decode(text, &codepoint);
+    if(FT_Load_Char(font->face, codepoint, FT_LOAD_TARGET_NORMAL))
+    {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "cannot load font character.");
+    }
+    FT_Glyph glyph;
+		if (FT_Get_Glyph(font->face->glyph, &glyph))
+    {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "cannot load font character.");
+    }
+
+		FT_BBox bbox;
+		FT_Glyph_Get_CBox(glyph, FT_GLYPH_BBOX_PIXELS, &bbox);
+
+		rect.x += bbox.xMax - bbox.xMin;
+		if (rect.y < bbox.yMax - bbox.yMin) rect.y = bbox.yMax - bbox.yMin;
+
+    FT_Done_Glyph(glyph);
   }
-  mrb_gc_protect(mrb, result);
-  mrb_gc_arena_restore(mrb, arena);
-  return result;
+  return mrb_carbuncle_point_new(mrb, rect.x, rect.y);
 }
 
 void
@@ -166,8 +146,6 @@ mrb_carbuncle_font_init(mrb_state *mrb)
   mrb_define_method(mrb, font, "dispose", mrb_font_dispose, MRB_ARGS_NONE());
 
   mrb_define_method(mrb, font, "measure_text", mrb_font_measure_text, MRB_ARGS_REQ(1));
-
-  mrb_define_method(mrb, font, "characters", mrb_font_get_characters, MRB_ARGS_NONE());
 }
 
 struct mrb_Font *
