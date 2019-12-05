@@ -151,7 +151,10 @@ mrb_text_draw(mrb_state *mrb, mrb_value self)
     pen.y += face->glyph->advance.y;
   }
   bmp = mrb_malloc(mrb, width * height * sizeof *bmp);
+  for (size_t i = 0; i < len; ++i)
+  {
   // TODO: Draw glyphs
+  }
   for (size_t i = 0; i < len; ++i)
   {
     FT_Done_Glyph((FT_Glyph)glyphs[i]);
