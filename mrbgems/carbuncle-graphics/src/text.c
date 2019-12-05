@@ -3,6 +3,8 @@
 #include "carbuncle/font.h"
 #include "carbuncle/text.h"
 
+#include <assert.h>
+
 #include "carbuncle/point.h"
 
 #include <mruby/data.h>
@@ -114,50 +116,26 @@ mrb_text_set_position(mrb_state *mrb, mrb_value self)
 static struct mrb_value
 mrb_text_draw(mrb_state *mrb, mrb_value self)
 {
-  uint8_t *bmp;
-  FT_BitmapGlyph *glyphs;
-  FT_Face face;
-  FT_Matrix matrix;
-	FT_Vector pen;
   uint32_t codepoint;
+  mrb_int x, y;
   const char *message = mrb_str_to_cstr(mrb, mrb_iv_get(mrb, self, VALUE_SYMBOL));
   struct mrb_Text *text = get_text(mrb, self);
-  face = text->font->face;
-	matrix.xx = 0x10000;
-	matrix.xy = 0;
-	matrix.yx = 0;
-	matrix.yy = 0x10000;
-	pen.x = 0;
-	pen.y = 0;
   size_t len = utf8_strlen(message);
-	size_t width = 0;
-	size_t height = 0;
-  glyphs = mrb_malloc(mrb, len * sizeof *glyphs);
+  Vector2 advance = *(text->position);
+  Color color = *(text->color);
   for (size_t i = 0; i < len; ++i)
   {
-    FT_Glyph glyph;
     message = utf8_decode(message, &codepoint);
-    FT_Set_Transform(face, &matrix, &pen);
-    FT_Get_Glyph(face->glyph, &glyph);
-    FT_Glyph_To_Bitmap(&glyph, FT_RENDER_MODE_NORMAL, 0, 1);
-
-    FT_BitmapGlyph img = (FT_BitmapGlyph)glyph;
-    glyphs[i] = img;
-
-		if (width < img->bitmap.width + img->left) width = img->bitmap.width + img->left;
-		if (height < img->bitmap.rows + img->top) height = img->bitmap.rows + img->top;
-
-    pen.x += face->glyph->advance.x;
-    pen.y += face->glyph->advance.y;
+    struct mrb_Glyph *glyph = mrb_carbuncle_font_glyph(mrb, text->font, codepoint);
+    assert(glyph);
+    x = advance.x + glyph->left;
+    y = advance.y + glyph->top;
+    assert(glyph->texture.id);
+    DrawTexture(glyph->texture, x, y, color);
+    
+    advance.x += glyph->advance.x;
+    advance.y += glyph->advance.y;
   }
-  bmp = mrb_malloc(mrb, width * height * sizeof *bmp);
-  for (size_t i = 0; i < len; ++i)
-  {
-    // TODO: Draw glyphs
-    FT_Done_Glyph((FT_Glyph)glyphs[i]);
-  }
-  mrb_free(mrb, glyphs);
-  mrb_free(mrb, bmp);
   return self;
 }
 

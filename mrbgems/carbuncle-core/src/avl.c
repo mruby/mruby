@@ -76,6 +76,7 @@ avl_balance_factor(struct avl_node *node)
 static struct avl_node *
 avl_balance(struct avl_node *node)
 {
+  /*
   size_t bf = avl_balance_factor(node);
   if (bf < -1)
   {
@@ -94,11 +95,9 @@ avl_balance(struct avl_node *node)
     }
     return avl_rotate_left(node);
   }
-  else
-  {
-    avl_update_height(node);
-    return node;
-  }
+  */
+  avl_update_height(node);
+  return node;
 }
 
 static struct avl_node *
