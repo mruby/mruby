@@ -17,8 +17,6 @@
 
 static FT_Library carbuncle_freetype;
 
-#include <stdio.h>
-
 static void
 open_font(mrb_state *mrb, struct mrb_Font *font, const char *filename, size_t size)
 {
