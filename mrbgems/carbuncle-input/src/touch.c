@@ -60,26 +60,6 @@ mrb_touch_subscript(mrb_state *mrb, mrb_value self)
   return mrb_carbuncle_point_new(mrb, point.x, point.y);
 }
 
-static mrb_value
-mrb_touch_enable_gesture(mrb_state *mrb, mrb_value self)
-{
-}
-
-static mrb_value
-mrb_touch_disable_gesture(mrb_state *mrb, mrb_value self)
-{
-}
-
-static mrb_value
-mrb_touch_gesture_enableQ(mrb_state *mrb, mrb_value self)
-{
-}
-
-static mrb_value
-mrb_touch_gestureQ(mrb_state *mrb, mrb_value self)
-{
-}
-
 void
 mrb_carbuncle_touch_init(mrb_state *mrb)
 {

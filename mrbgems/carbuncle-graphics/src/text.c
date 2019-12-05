@@ -24,7 +24,7 @@ const char *POSITION_SYM = "#position";
 #define FONT_SYMBOL mrb_intern_cstr(mrb, FONT_SYM)
 #define COLOR_SYMBOL mrb_intern_cstr(mrb, COLOR_SYM)
 #define POSITION_SYMBOL mrb_intern_cstr(mrb, POSITION_SYM)
-#define VALUE_SYMBOL mrb_intern_cstr(mrb, "@value")
+#define VALUE_SYMBOL mrb_intern_cstr(mrb, "#value")
 
 struct mrb_Text
 {
@@ -41,6 +41,26 @@ static struct mrb_Text *
 get_text(mrb_state *mrb, mrb_value obj)
 {
   return DATA_GET_PTR(mrb, obj, &text_data_type, struct mrb_Text);
+}
+
+
+static struct mrb_value
+check_string(mrb_state *mrb, mrb_value self)
+{
+  uint32_t codepoint, max;
+  const char *message = mrb_str_to_cstr(mrb, mrb_iv_get(mrb, self, VALUE_SYMBOL));
+  size_t len = utf8_strlen(message);
+  struct mrb_Text *text = get_text(mrb, self);
+  max = ' ';
+  for (size_t i = 0; i < len; ++i)
+  {
+    message = utf8_decode(message, &codepoint);
+    if (codepoint > max)
+    {
+      max = codepoint;
+    }
+  }
+  mrb_carbuncle_font_check_data(mrb, text->font, max);
 }
 
 static struct mrb_value
@@ -63,6 +83,12 @@ mrb_text_initialize(mrb_state *mrb, mrb_value self)
 }
 
 static struct mrb_value
+mrb_text_get_value(mrb_state *mrb, mrb_value self)
+{
+  return mrb_iv_get(mrb, self, VALUE_SYMBOL);
+}
+
+static struct mrb_value
 mrb_text_get_font(mrb_state *mrb, mrb_value self)
 {
   return mrb_iv_get(mrb, self, FONT_SYMBOL);
@@ -74,13 +100,24 @@ mrb_text_get_color(mrb_state *mrb, mrb_value self)
   return mrb_iv_get(mrb, self, COLOR_SYMBOL);
 }
 
-static struct mrb_value
+static mrb_value
 mrb_text_get_position(mrb_state *mrb, mrb_value self)
 {
   return mrb_iv_get(mrb, self, POSITION_SYMBOL);
 }
 
-static struct mrb_value
+static mrb_value
+mrb_text_set_value(mrb_state *mrb, mrb_value self)
+{
+  mrb_value value;
+  mrb_get_args(mrb, "S", &value);
+  struct mrb_Text *text = get_text(mrb, self);
+  mrb_iv_set(mrb, self, VALUE_SYMBOL, value);
+  check_string(mrb, self);
+  return value;
+}
+
+static mrb_value
 mrb_text_set_font(mrb_state *mrb, mrb_value self)
 {
   mrb_value value;
@@ -88,10 +125,11 @@ mrb_text_set_font(mrb_state *mrb, mrb_value self)
   struct mrb_Text *text = get_text(mrb, self);
   text->font = mrb_carbuncle_get_font(mrb, value);
   mrb_iv_set(mrb, self, FONT_SYMBOL, value);
+  check_string(mrb, self);
   return value;
 }
 
-static struct mrb_value
+static mrb_value
 mrb_text_set_color(mrb_state *mrb, mrb_value self)
 {
   mrb_value value;
@@ -102,7 +140,7 @@ mrb_text_set_color(mrb_state *mrb, mrb_value self)
   return value;
 }
 
-static struct mrb_value
+static mrb_value
 mrb_text_set_position(mrb_state *mrb, mrb_value self)
 {
   mrb_value value;
@@ -113,29 +151,24 @@ mrb_text_set_position(mrb_state *mrb, mrb_value self)
   return value;
 }
 
-static struct mrb_value
+static mrb_value
 mrb_text_draw(mrb_state *mrb, mrb_value self)
 {
-  uint32_t codepoint;
   mrb_int x, y;
   const char *message = mrb_str_to_cstr(mrb, mrb_iv_get(mrb, self, VALUE_SYMBOL));
   struct mrb_Text *text = get_text(mrb, self);
-  size_t len = utf8_strlen(message);
-  Vector2 advance = *(text->position);
+  Vector2 position = *(text->position);
   Color color = *(text->color);
-  for (size_t i = 0; i < len; ++i)
+  if (text->font->dirty)
   {
-    message = utf8_decode(message, &codepoint);
-    struct mrb_Glyph *glyph = mrb_carbuncle_font_glyph(mrb, text->font, codepoint);
-    assert(glyph);
-    x = advance.x + glyph->left;
-    y = advance.y + glyph->top;
-    assert(glyph->texture.id);
-    DrawTexture(glyph->texture, x, y, color);
-    
-    advance.x += glyph->advance.x;
-    advance.y += glyph->advance.y;
+    struct mrb_Font *font = text->font;
+    font->dirty = FALSE;
+    font->font = LoadFontEx(font->filename, font->size, font->chars, font->count);
+    puts("======");
+    printf("%d\n", font->font.charsCount);
+    puts("=====");
   }
+  DrawTextEx(text->font->font, message, position, text->font->size, 0, color);
   return self;
 }
 
@@ -150,6 +183,7 @@ mrb_carbuncle_text_init(mrb_state *mrb)
   mrb_define_method(mrb, text, "color", mrb_text_get_color, MRB_ARGS_NONE());
   mrb_define_method(mrb, text, "position", mrb_text_get_position, MRB_ARGS_NONE());
 
+  mrb_define_method(mrb, text, "value=", mrb_text_set_value, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, text, "font=", mrb_text_set_font, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, text, "color=", mrb_text_set_color, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, text, "position=", mrb_text_set_position, MRB_ARGS_REQ(1));

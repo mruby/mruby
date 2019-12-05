@@ -1,6 +1,8 @@
 #ifndef CARBUNCLE_CORE_H
 #define CARBUNCLE_CORE_H
 
+#define SUPPORT_FILEFORMAT_TTF 1
+
 #include <mruby.h>
 #include <mruby/data.h>
 

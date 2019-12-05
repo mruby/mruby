@@ -7,8 +7,6 @@
 #include FT_FREETYPE_H
 #include FT_GLYPH_H
 
-#include <carbuncle/avl.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -16,16 +14,12 @@ extern "C" {
 struct mrb_Font
 {
   FT_Face face;
+  Font font;
   mrb_int size;
-  struct mrb_AVL *glyphs;
-};
-
-struct mrb_Glyph
-{
-  FT_BitmapGlyph glyph;
-  Texture2D      texture;
-  struct { mrb_int x, y; } advance;
-  mrb_int top, left;
+  char *filename;
+  uint32_t *chars;
+  size_t count;
+  mrb_bool dirty;
 };
 
 void
@@ -37,8 +31,8 @@ mrb_carbuncle_get_font(mrb_state *mrb, mrb_value obj);
 mrb_bool
 mrb_carbuncle_font_p(mrb_value obj);
 
-struct mrb_Glyph *
-mrb_carbuncle_font_glyph(mrb_state *mrb, struct mrb_Font *font, FT_ULong charcode);
+void
+mrb_carbuncle_font_check_data(mrb_state *mrb, struct mrb_Font *font, uint32_t codepoint);
 
 #ifdef __cplusplus
 }
