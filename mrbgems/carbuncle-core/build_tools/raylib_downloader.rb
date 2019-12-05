@@ -1,6 +1,6 @@
 module Carbuncle
   module RaylibDownloader
-    RAYLIB_URL = 'https://github.com/raysan5/raylib/archive/2.5.0.zip'.freeze
+    RAYLIB_URL = 'https://github.com/raysan5/raylib/archive/master.zip'.freeze
     RAYLIB_SUBDIR = 'raylib-2.5.0'.freeze
 
     class << self
