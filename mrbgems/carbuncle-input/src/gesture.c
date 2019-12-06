@@ -80,7 +80,6 @@ convert_gesture(mrb_state *mrb)
 static mrb_value
 mrb_gesture_get_enabled(mrb_state *mrb, mrb_value self)
 {
-  mrb_int size;
   mrb_value result;
   int arena = mrb_gc_arena_save(mrb);
   result = mrb_ary_new(mrb);

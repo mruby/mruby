@@ -29,14 +29,17 @@ mrb_carbuncle_get_font(mrb_state *mrb, mrb_value obj);
 mrb_bool
 mrb_carbuncle_font_p(mrb_value obj);
 
-struct mrb_Glyph
-mrb_carbuncle_font_get_glyph(mrb_state *mrb, struct mrb_Font *font, FT_UInt codepoint);
-
 FT_Face
 mrb_carbuncle_font_get_face(struct mrb_Font *font);
 
+FT_BitmapGlyph *
+mrb_carbuncle_font_load_glyphs(mrb_state *mrb, FT_Face face, size_t len, const char *message);
+
+Vector2
+mrb_carbuncle_font_calculate_size(size_t len, FT_BitmapGlyph *bmps);
+
 void
-mrb_carbuncle_font_unload_glyph(struct mrb_Font *font, FT_UInt codepoint);
+mrb_carbuncle_font_destroy_glyphs(mrb_state *mrb, size_t len, FT_BitmapGlyph *bmps);
 
 #ifdef __cplusplus
 }
