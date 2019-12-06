@@ -25,7 +25,7 @@ struct mrb_Font
   std::map<FT_UInt, struct mrb_Glyph> *glyphs;
 };
 
-extern "C" static void
+static void
 mrb_font_free(mrb_state *mrb, void *ptr)
 {
   auto font = reinterpret_cast<struct mrb_Font *>(ptr);
@@ -33,15 +33,13 @@ mrb_font_free(mrb_state *mrb, void *ptr)
   {
     for (auto it = font->glyphs->begin(); it != font->glyphs->end(); it++ )
     {
-      FT_Done_Glyph(reinterpret_cast<FT_Glyph>(it->second));
+      FT_Done_Glyph(reinterpret_cast<FT_Glyph>(it->second.bmp));
     }
     if (font->face)
     {
       FT_Done_Face(font->face);
     }
     delete font->glyphs;
-    mrb_free(mrb, font->chars);
-    mrb_free(mrb, font->filename);
     mrb_free(mrb, font);
   }
 }
@@ -69,7 +67,7 @@ namespace
     {
       mrb_raisef(mrb, E_ARGUMENT_ERROR, "cannot set font size for font %s.", filename);
     }
-    font->glyphs = new std::map<FT_UInt, FT_Glyph>();
+    font->glyphs = new std::map<FT_UInt, struct mrb_Glyph>();
   }
 }
 
@@ -97,13 +95,10 @@ mrb_font_initialize(mrb_state *mrb, mrb_value self)
   {
     size = mrb_fixnum(mrb_to_int(mrb, mrb_funcall(mrb, font_class, "default_size", 0)));
   }
-  struct mrb_Font *font = mrb_malloc(mrb, sizeof *font);
+  struct mrb_Font *font = reinterpret_cast<struct mrb_Font *>(mrb_malloc(mrb, sizeof *font));
   DATA_PTR(self) = font;
   DATA_TYPE(self) = &font_data_type;
   size_t str_size = strlen(name) + 1;
-  font->filename = mrb_malloc(mrb, str_size);
-  memset(font->filename, '\0', str_size);
-  strcpy(font->filename, name);
   font->face = NULL;
   mrb_carbuncle_check_file(mrb, name);
   font->size = size;
@@ -170,19 +165,19 @@ create_texture(mrb_state *mrb, FT_Face face, FT_BitmapGlyph glyph, struct mrb_Gl
 {
 	size_t width = glyph->bitmap.width + glyph->left;
 	size_t height = glyph->bitmap.rows + glyph->top;
-  Color *pixels = mrb_malloc(mrb, width * height * sizeof *pixels);
+  Color *pixels = reinterpret_cast<Color *>(mrb_malloc(mrb, width * height * sizeof(*pixels)));
   for (size_t y = 0; y < height; ++height)
   {
     for (size_t x = 0; x < width; ++width)
     {
-      if (x < glyph->bitmap.left || y < glyph->bitmap.top)
+      if (x < glyph->left || y < glyph->top)
       {
         pixels[x + y * width] = (Color){255, 255, 255, 0};
       }
       else
       {
-        size_t i = x - glyph->bitmap.left;
-        size_t j = y - glyph->bitmap.top;
+        size_t i = x - glyph->left;
+        size_t j = y - glyph->top;
         size_t w = glyph->bitmap.width;
         pixels[x + y * width] = (Color){
           255, 255, 255, glyph->bitmap.buffer[i + j * w]
@@ -194,7 +189,7 @@ create_texture(mrb_state *mrb, FT_Face face, FT_BitmapGlyph glyph, struct mrb_Gl
   data->texture = LoadTextureFromImage(img);
   data->rect = (Rectangle){0, 0, width, height};
   UnloadImage(img);
-  mrb_free(pixels);
+  mrb_free(mrb, pixels);
 }
 
 extern "C" struct mrb_Glyph
@@ -215,15 +210,15 @@ mrb_carbuncle_font_get_glyph(mrb_state *mrb, struct mrb_Font *font, FT_UInt code
     {
       mrb_raisef(mrb, mrb->eStandardError_class, "Cannot load character %du", codepoint);
     }
-    err = FT_Get_Glyph(font->glyph, &glyph);
+    err = FT_Get_Glyph(font->face->glyph, &glyph);
     if (err)
     {
       mrb_raisef(mrb, mrb->eStandardError_class, "Cannot load character %du", codepoint);
     }
     FT_Glyph_To_Bitmap(&glyph, FT_RENDER_MODE_NORMAL, 0, 1);
-    result->glyph = reinterpret_cast<FT_BitmapGlyph>(glyph);
-    create_texture(mrb, font->face, result->glyph, &result);
-    font->glyphs->insert(codepoint, result);
+    result.bmp = reinterpret_cast<FT_BitmapGlyph>(glyph);
+    create_texture(mrb, font->face, result.bmp, &result);
+    font->glyphs->insert(std::pair<FT_UInt, struct mrb_Glyph>(codepoint, result));
     return result;
   }
 }
