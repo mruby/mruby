@@ -93,7 +93,6 @@ mrb_text_set_value(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "S", &value);
   struct mrb_Text *text = get_text(mrb, self);
   mrb_iv_set(mrb, self, VALUE_SYMBOL, value);
-  check_string(mrb, self);
   return value;
 }
 
@@ -105,7 +104,6 @@ mrb_text_set_font(mrb_state *mrb, mrb_value self)
   struct mrb_Text *text = get_text(mrb, self);
   text->font = mrb_carbuncle_get_font(mrb, value);
   mrb_iv_set(mrb, self, FONT_SYMBOL, value);
-  check_string(mrb, self);
   return value;
 }
 
