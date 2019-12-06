@@ -1355,6 +1355,45 @@ MRB_API void mrb_show_copyright(mrb_state *mrb);
 
 MRB_API mrb_value mrb_format(mrb_state *mrb, const char *format, ...);
 
+/*
+ * MRB_ALLOCV(mrb, type, var, n)
+ *
+ * Define `type *var` variable and assign temporarily allocated memory for
+ * _n_ objects of type _type_. If the allocation size is less than or equal
+ * to `MRB_ALLOCV_ON_STACK_MAX`, allocate on the stack, otherwise use
+ * `mrb_alloca()`.
+ */
+#ifndef MRB_ALLOCV_ON_STACK_MAX
+# define MRB_ALLOCV_ON_STACK_MAX 256
+#endif
+#ifdef _WIN32
+# include <malloc.h>
+# if MRB_ALLOCV_ON_STACK_MAX > _ALLOCA_S_THRESHOLD
+#  define MRB_ALLOCV_ON_STACK_MAX _ALLOCA_S_THRESHOLD
+# endif
+#endif
+#if defined __clang__ && __clang_major__ >= 4 || \
+    defined __GNUC__ && __GNUC__ >= 4 && __GNUC_MINOR__ >= 7
+# define MRB_ALLOCV(mrb, type, var, n)                                  \
+  _MRB_ALLOCV(mrb, type, var, n,                                        \
+    __builtin_alloca_with_align(sizeof(type)*(n), __alignof__(type)*CHAR_BIT))
+#elif defined _WIN32
+# define MRB_ALLOCV(mrb, type, var, n) \
+  _MRB_ALLOCV(mrb, type, var, n, _alloca(sizeof(type)*(n)))
+#elif defined __STDC_NO_VLA__
+# define MRB_ALLOCV(mrb, type, var, n)                                         \
+  type _MRB_ALLOCV_ON_STACK_BUFFER(var)[MRB_ALLOCV_ON_STACK_MAX/sizeof(type)]; \
+  _MRB_ALLOCV(mrb, type, var, n, _MRB_ALLOCV_ON_STACK_BUFFER(var))
+#else
+# define MRB_ALLOCV(mrb, type, var, n)                                  \
+  type _MRB_ALLOCV_ON_STACK_BUFFER(var)[n];                             \
+  _MRB_ALLOCV(mrb, type, var, n, _MRB_ALLOCV_ON_STACK_BUFFER(var))
+#endif
+#define _MRB_ALLOCV(mrb, type, var, n, on_stack_expr)                   \
+  type *var = (type*)(MRB_ALLOCV_ON_STACK_MAX < sizeof(type)*(n) ?      \
+    mrb_alloca(mrb, sizeof(type)*(n)) : on_stack_expr)
+#define _MRB_ALLOCV_ON_STACK_BUFFER(var) mrb_allocv_on_stack_buffer_##var##__
+
 #if 0
 /* memcpy and memset does not work with gdb reverse-next on my box */
 /* use naive memcpy and memset instead */

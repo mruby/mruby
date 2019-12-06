@@ -1407,18 +1407,15 @@ mrb_method_search(mrb_state *mrb, struct RClass* c, mrb_sym mid)
   return m;
 }
 
-#define ONSTACK_ALLOC_MAX 32
-
 static mrb_sym
 prepare_name_common(mrb_state *mrb, mrb_sym sym, const char *prefix, const char *suffix)
 {
-  char onstack[ONSTACK_ALLOC_MAX];
   mrb_int sym_len;
   const char *sym_str = mrb_sym_name_len(mrb, sym, &sym_len);
   size_t prefix_len = prefix ? strlen(prefix) : 0;
   size_t suffix_len = suffix ? strlen(suffix) : 0;
   size_t name_len = sym_len + prefix_len + suffix_len;
-  char *buf = name_len > sizeof(onstack) ? (char *)mrb_alloca(mrb, name_len) : onstack;
+  MRB_ALLOCV(mrb, char, buf, name_len);
   char *p = buf;
 
   if (prefix_len > 0) {

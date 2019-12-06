@@ -120,6 +120,9 @@
 /* fixed size state atexit stack */
 //#define MRB_FIXED_STATE_ATEXIT_STACK
 
+/* maximum size to allocate on the stack in MRB_ALLOCV  */
+//#define MRB_ALLOCV_ON_STACK_MAX 256
+
 /* -DMRB_DISABLE_XXXX to drop following features */
 //#define MRB_DISABLE_STDIO /* use of stdio */
 
