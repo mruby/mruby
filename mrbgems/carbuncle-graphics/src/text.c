@@ -145,18 +145,19 @@ mrb_text_draw(mrb_state *mrb, mrb_value self)
   Color color = *(text->color);
   size_t len = utf8_strlen(message);
   FT_Face face = mrb_carbuncle_font_get_face(text->font);
+  float height = GetScreenHeight();
 	pen.x = text->position->x;
-	pen.y = text->position->y;  
+	pen.y = height - text->position->y;
   for (size_t i = 0; i < len; ++i)
   {
     FT_Set_Transform(face, &matrix, &pen);
     message = utf8_decode(message, &codepoint);
     struct mrb_Glyph data = mrb_carbuncle_font_get_glyph(mrb, text->font, codepoint);
-    Vector2 p = (Vector2){ pen.x, pen.y };
+    Vector2 p = (Vector2){ data.bmp->left, (height - data.bmp->top) };
     DrawTextureRec(data.texture, data.rect, p, color);
     pen.x += face->glyph->advance.x;
     pen.y += face->glyph->advance.y;
-    mrb_carbuncle_font_unload_glyph(mrb, text->font, data);
+    mrb_carbuncle_font_unload_glyph(text->font, codepoint);
   }
   return self;
 }
