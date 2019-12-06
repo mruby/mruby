@@ -15,7 +15,6 @@ struct mrb_Font;
 
 struct mrb_Glyph
 {
-  FT_BitmapGlyph bmp;
   Texture2D texture;
   Rectangle rect;
 };
@@ -31,6 +30,10 @@ mrb_carbuncle_font_p(mrb_value obj);
 
 struct mrb_Glyph
 mrb_carbuncle_font_get_glyph(mrb_state *mrb, struct mrb_Font *font, FT_UInt codepoint);
+
+FT_Face
+mrb_carbuncle_font_get_face(struct mrb_Font *font);
+
 
 #ifdef __cplusplus
 }

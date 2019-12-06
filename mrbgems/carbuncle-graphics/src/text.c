@@ -134,17 +134,29 @@ mrb_text_draw(mrb_state *mrb, mrb_value self)
 {
   mrb_int x, y;
   FT_UInt codepoint;
+	FT_Matrix matrix;
+	matrix.xx = 0x10000;
+	matrix.xy = 0;
+	matrix.yx = 0;
+	matrix.yy = 0x10000;
+	FT_Vector pen;
   const char *message = mrb_str_to_cstr(mrb, mrb_iv_get(mrb, self, VALUE_SYMBOL));
   struct mrb_Text *text = get_text(mrb, self);
-  Vector2 position = *(text->position);
   Color color = *(text->color);
   size_t len = utf8_strlen(message);
+  FT_Face face = mrb_carbuncle_font_get_face(text->font);
+	pen.x = text->position->x;
+	pen.y = text->position->y;  
   for (size_t i = 0; i < len; ++i)
   {
+    FT_Set_Transform(face, &matrix, &pen);
     message = utf8_decode(message, &codepoint);
     struct mrb_Glyph data = mrb_carbuncle_font_get_glyph(mrb, text->font, codepoint);
-    DrawTextureRec(data.texture, data.rect, position, color);
-    position.x += data.rect.width;
+    Vector2 p = (Vector2){ pen.x, pen.y };
+    DrawTextureRec(data.texture, data.rect, p, color);
+    pen.x += face->glyph->advance.x;
+    pen.y += face->glyph->advance.y;
+    mrb_carbuncle_font_unload_glyph(mrb, text->font, data);
   }
   return self;
 }

@@ -166,9 +166,9 @@ create_texture(mrb_state *mrb, FT_Face face, FT_BitmapGlyph glyph, struct mrb_Gl
 	size_t width = glyph->bitmap.width + glyph->left;
 	size_t height = glyph->bitmap.rows + glyph->top;
   Color *pixels = reinterpret_cast<Color *>(mrb_malloc(mrb, width * height * sizeof(*pixels)));
-  for (size_t y = 0; y < height; ++height)
+  for (size_t y = 0; y < height; ++y)
   {
-    for (size_t x = 0; x < width; ++width)
+    for (size_t x = 0; x < width; ++x)
     {
       if (x < glyph->left || y < glyph->top)
       {
@@ -221,4 +221,10 @@ mrb_carbuncle_font_get_glyph(mrb_state *mrb, struct mrb_Font *font, FT_UInt code
     font->glyphs->insert(std::pair<FT_UInt, struct mrb_Glyph>(codepoint, result));
     return result;
   }
+}
+
+extern "C" FT_Face
+mrb_carbuncle_font_get_face(struct mrb_Font *font)
+{
+  return font->face;
 }
