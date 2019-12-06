@@ -1,6 +1,7 @@
 #include <mruby.h>
 
 #include "carbuncle/color.h"
+#include "carbuncle/bitmap.h"
 #include "carbuncle/texture.h"
 #include "carbuncle/sprite.h"
 #include "carbuncle/font.h"
@@ -12,6 +13,7 @@ void
 mrb_carbuncle_graphics_gem_init(mrb_state *mrb)
 {
   mrb_carbuncle_color_init(mrb);
+  mrb_carbuncle_bitmap_init(mrb);
   mrb_carbuncle_texture_init(mrb);
   mrb_carbuncle_sprite_init(mrb);
   mrb_carbuncle_font_init(mrb);

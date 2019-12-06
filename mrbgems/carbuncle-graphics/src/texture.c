@@ -1,5 +1,6 @@
 #include "carbuncle/core.h"
 #include "carbuncle/texture.h"
+#include "carbuncle/bitmap.h"
 
 #include <mruby/data.h>
 #include <mruby/string.h>
@@ -42,10 +43,22 @@ load_from_filename(mrb_state *mrb, mrb_value self, const char *filename)
 static void
 copy_texture(mrb_state *mrb, mrb_value self, mrb_value obj)
 {
-  struct mrb_Texture *texture = mrb_carbuncle_get_texture(mrb, obj);
+  mrb_carbuncle_get_texture(mrb, obj);
+  struct mrb_Texture *texture = DATA_PTR(obj);
   ++(texture->ref_count);
   DATA_PTR(self) = texture;
   DATA_TYPE(self) = &texture_data_type;    
+}
+
+static void
+load_image(mrb_state *mrb, mrb_value self, mrb_value obj)
+{
+  Image *img = mrb_carbuncle_get_bitmap(mrb, obj);
+  struct mrb_Texture *texture = mrb_malloc(mrb, sizeof *texture);
+  texture->base = LoadTextureFromImage(*img);
+  ++(texture->ref_count);
+  DATA_PTR(self) = texture;
+  DATA_TYPE(self) = &texture_data_type;
 }
 
 static mrb_value
@@ -61,6 +74,10 @@ mrb_texture_initialize(mrb_state *mrb, mrb_value self)
   else if (mrb_carbuncle_texture_p(obj))
   {
     copy_texture(mrb, self, obj);
+  }
+  else if (mrb_carbuncle_bitmap_p(obj))
+  {
+    load_image(mrb, self, obj);
   }
   else
   {
@@ -99,6 +116,19 @@ mrb_texture_dispose(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+static mrb_value
+mrb_texture_to_bitmap(mrb_state *mrb, mrb_value self)
+{
+  mrb_value values[2] = { mrb_fixnum_value(1), mrb_fixnum_value(1) };
+  Texture2D *texture = mrb_carbuncle_get_texture(mrb, self);
+  mrb_value img = mrb_obj_new(mrb, mrb_carbuncle_class_get(mrb, "Bitmap"), 2, values);
+  Image *ptr = mrb_carbuncle_get_bitmap(mrb, img);
+  UnloadImage(*ptr);
+  *ptr = GetTextureData(*texture);
+  ImageFormat(ptr, UNCOMPRESSED_R8G8B8A8);
+  return img;
+}
+
 void
 mrb_carbuncle_texture_init(mrb_state *mrb)
 {
@@ -114,6 +144,8 @@ mrb_carbuncle_texture_init(mrb_state *mrb)
   mrb_define_method(mrb, texture, "disposed?", mrb_texture_disposedQ, MRB_ARGS_NONE());
 
   mrb_define_method(mrb, texture, "dispose", mrb_texture_dispose, MRB_ARGS_NONE());
+
+  mrb_define_method(mrb, texture, "to_bitmap", mrb_texture_to_bitmap, MRB_ARGS_NONE());
 }
 
 Texture2D *
