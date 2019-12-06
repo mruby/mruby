@@ -31,6 +31,8 @@ struct mrb_Text
   struct mrb_Font  *font;
   Color            *color;
   Vector2          *position;
+  Texture2D         texture;
+  mrb_bool          empty;
 };
 
 static const struct mrb_data_type text_data_type = {
@@ -41,6 +43,124 @@ static struct mrb_Text *
 get_text(mrb_state *mrb, mrb_value obj)
 {
   return DATA_GET_PTR(mrb, obj, &text_data_type, struct mrb_Text);
+}
+
+void
+glyph_error(mrb_state *mrb)
+{
+  mrb_raise(mrb, mrb->eStandardError_class, "Unable to load font glyphs.");
+}
+
+static FT_BitmapGlyph *
+load_glyphs(mrb_state *mrb, FT_Face face, size_t len, const char *message)
+{
+  FT_UInt codepoint;
+  FT_Glyph glyph;
+  FT_Matrix matrix = (FT_Matrix){ .xx = 0x10000, .xy = 0, .yx = 0, .yy = 0x10000 };
+	FT_Vector pen = (FT_Vector){ .x = 0, .y = 0};  
+  FT_BitmapGlyph *bmps = mrb_malloc(mrb, len * sizeof(*bmps));
+  for (size_t i = 0; i < len; ++i)
+  {
+    FT_Set_Transform(face, &matrix, &pen);
+    message = utf8_decode(message, &codepoint);
+    if (FT_Load_Char(face, codepoint, FT_LOAD_TARGET_NORMAL)) { glyph_error(mrb); }
+    if (FT_Get_Glyph(face->glyph, &glyph)) { glyph_error(mrb); }
+    FT_Glyph_To_Bitmap(&glyph, FT_RENDER_MODE_NORMAL, 0, 1);
+    bmps[i] = (FT_BitmapGlyph)glyph;
+    pen.x += face->glyph->advance.x;
+    pen.y += face->glyph->advance.y;
+  }
+  return bmps;
+}
+
+static Vector2
+calculate_size(size_t len, FT_BitmapGlyph *bmps)
+{
+  Vector2 result = (Vector2){0, 0};
+	for (size_t i = 0; i < len; ++i)
+  {
+    printf("index: %zu/%zu", i, len);
+    FT_BitmapGlyph bmp = bmps[i];
+    float new_width = bmp->bitmap.width + bmp->left;
+    float new_height = bmp->bitmap.rows + bmp->top;
+		if (result.x < new_width) { result.x = new_width; }
+		if (result.y < new_height) { result.y = new_height; }
+	}  
+  return result;
+}
+
+static float
+get_min_height(size_t len, FT_BitmapGlyph *bmps, float size)
+{
+  float result = size;
+  for (size_t i = 0; i < len; ++i)
+  {
+    float new_height = size - bmps[i]->top;
+    if (result > new_height) { result = new_height; }
+  }
+  return result;
+}
+
+static void
+draw_glyph(Color *pixels, FT_BitmapGlyph bmp, Vector2 size, float min_y)
+{
+	size_t left = bmp->left;
+	size_t top = size.y - bmp->top;
+	for (size_t y = 0; y < bmp->bitmap.rows; y++)
+  {
+		for (size_t x = 0; x < bmp->bitmap.width; x++)
+    {
+      size_t i = ((left + x) + (top + y - min_y) * size.x);
+      unsigned char alpha = bmp->bitmap.buffer[x + y * bmp->bitmap.width];
+      pixels[i] = (Color){ 255, 255, 255, alpha };
+    }
+  }
+}
+
+static Texture2D
+create_texture(mrb_state *mrb, size_t len, FT_BitmapGlyph *bmps, Vector2 size)
+{
+  Texture2D texture;
+  size_t byte_size = size.x * size.y * sizeof(Color);
+  Color *pixels = mrb_malloc(mrb, byte_size);
+  memset(pixels, 0, byte_size);
+  float min_y = get_min_height(len, bmps, size.y);
+  for (size_t i = 0; i  < len; ++i)
+  {
+    draw_glyph(pixels, bmps[i], size, min_y);
+  }
+  Image img = LoadImageEx(pixels, size.x, size.y);
+  texture = LoadTextureFromImage(img);
+  UnloadImage(img);
+  mrb_free(mrb, pixels);
+  return texture;
+}
+
+static Vector2
+destroy_glyphs(mrb_state *mrb, size_t len, FT_BitmapGlyph *bmps)
+{
+  for (size_t i = 0; i < len; ++i)
+  {
+    FT_Done_Glyph((FT_Glyph)bmps[i]);
+  }
+  mrb_free(mrb, bmps);
+}
+
+static void
+update_text(mrb_state *mrb, struct mrb_Text *text, const char *message)
+{
+	text->empty = FALSE;
+  size_t len = utf8_strlen(message);
+  if (len <= 0)
+  {
+    text->empty = TRUE;
+    return;
+  }
+  FT_Face face = mrb_carbuncle_font_get_face(text->font);
+  FT_BitmapGlyph *bmps = load_glyphs(mrb, face, len, message);
+	Vector2 size = calculate_size(len, bmps);
+  text->texture = create_texture(mrb, len, bmps, size);
+  destroy_glyphs(mrb, len, bmps);
 }
 
 static struct mrb_value
@@ -59,6 +179,7 @@ mrb_text_initialize(mrb_state *mrb, mrb_value self)
   text->position = mrb_carbuncle_get_point(mrb, position);
   DATA_PTR(self) = text;
   DATA_TYPE(self) = &text_data_type;
+  update_text(mrb, text, "");
   return self;
 }
 
@@ -93,6 +214,8 @@ mrb_text_set_value(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "S", &value);
   struct mrb_Text *text = get_text(mrb, self);
   mrb_iv_set(mrb, self, VALUE_SYMBOL, value);
+  const char *message = mrb_str_to_cstr(mrb, value);
+  update_text(mrb, text, message);
   return value;
 }
 
@@ -104,6 +227,8 @@ mrb_text_set_font(mrb_state *mrb, mrb_value self)
   struct mrb_Text *text = get_text(mrb, self);
   text->font = mrb_carbuncle_get_font(mrb, value);
   mrb_iv_set(mrb, self, FONT_SYMBOL, value);
+  const char *message = mrb_str_to_cstr(mrb, mrb_iv_get(mrb, self, VALUE_SYMBOL));
+  update_text(mrb, text, message);
   return value;
 }
 
@@ -132,33 +257,9 @@ mrb_text_set_position(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_text_draw(mrb_state *mrb, mrb_value self)
 {
-  mrb_int x, y;
-  FT_UInt codepoint;
-	FT_Matrix matrix;
-	matrix.xx = 0x10000;
-	matrix.xy = 0;
-	matrix.yx = 0;
-	matrix.yy = 0x10000;
-	FT_Vector pen;
-  const char *message = mrb_str_to_cstr(mrb, mrb_iv_get(mrb, self, VALUE_SYMBOL));
   struct mrb_Text *text = get_text(mrb, self);
-  Color color = *(text->color);
-  size_t len = utf8_strlen(message);
-  FT_Face face = mrb_carbuncle_font_get_face(text->font);
-  float height = GetScreenHeight();
-	pen.x = text->position->x;
-	pen.y = height - text->position->y;
-  for (size_t i = 0; i < len; ++i)
-  {
-    FT_Set_Transform(face, &matrix, &pen);
-    message = utf8_decode(message, &codepoint);
-    struct mrb_Glyph data = mrb_carbuncle_font_get_glyph(mrb, text->font, codepoint);
-    Vector2 p = (Vector2){ data.bmp->left, (height - data.bmp->top) };
-    DrawTextureRec(data.texture, data.rect, p, color);
-    pen.x += face->glyph->advance.x;
-    pen.y += face->glyph->advance.y;
-    mrb_carbuncle_font_unload_glyph(text->font, codepoint);
-  }
+  if (text->empty) { return self; }
+  DrawTextureV(text->texture, *(text->position), *(text->color));
   return self;
 }
 

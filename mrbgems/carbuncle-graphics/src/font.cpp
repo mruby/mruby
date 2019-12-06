@@ -35,6 +35,10 @@ mrb_font_free(mrb_state *mrb, void *ptr)
     {
       FT_Done_Face(font->face);
     }
+    for (auto it = font->glyphs->begin(); it != font->glyphs->end(); ++it)
+    {
+      UnloadTexture(it->second.texture);
+    }
     delete font->glyphs;
     mrb_free(mrb, font);
   }
