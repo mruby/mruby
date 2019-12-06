@@ -22,7 +22,8 @@ if ENV.fetch('BUILD_MINGW', false)
     toolchain :gcc
 
     conf.cc.command = 'x86_64-w64-mingw32-gcc'
-    conf.linker.command = 'x86_64-w64-mingw32-gcc'
+    conf.cxx.command = 'x86_64-w64-mingw32-g++'
+    conf.linker.command = 'x86_64-w64-mingw32-ld'
     conf.archiver.command = 'x86_64-w64-mingw32-ar'
 
     conf.linker.libraries += %w[wsock32 ws2_32]
