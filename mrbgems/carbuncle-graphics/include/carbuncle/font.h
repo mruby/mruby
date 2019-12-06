@@ -17,6 +17,7 @@ struct mrb_Glyph
 {
   FT_BitmapGlyph bmp;
   Texture2D texture;
+  Rectangle rect;
 };
 
 void

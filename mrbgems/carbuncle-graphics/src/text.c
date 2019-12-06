@@ -144,7 +144,9 @@ mrb_text_draw(mrb_state *mrb, mrb_value self)
   for (size_t i = 0; i < len; ++i)
   {
     message = utf8_decode(message, &codepoint);
-    struct mrb_Glyph *texture = mrb_carbuncle_font_get_glyph(mrb, text->font, codepoint);
+    struct mrb_Glyph data = mrb_carbuncle_font_get_glyph(mrb, text->font, codepoint);
+    DrawTextureRec(data.texture, data.rect, position, color);
+    position.x += data.rect.width;
   }
   return self;
 }

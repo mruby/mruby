@@ -165,10 +165,9 @@ mrb_carbuncle_font_p(mrb_value obj)
   return mrb_data_p(obj) && (DATA_TYPE(obj) == &font_data_type);
 }
 
-static Texture2D
-create_texture(mrb_state *mrb, FT_Face face, FT_BitmapGlyph glyph)
+static void
+create_texture(mrb_state *mrb, FT_Face face, FT_BitmapGlyph glyph, struct mrb_Glyph *data)
 {
-  Texture2D result;
 	size_t width = glyph->bitmap.width + glyph->left;
 	size_t height = glyph->bitmap.rows + glyph->top;
   Color *pixels = mrb_malloc(mrb, width * height * sizeof *pixels);
@@ -192,10 +191,10 @@ create_texture(mrb_state *mrb, FT_Face face, FT_BitmapGlyph glyph)
     }
   }
   Image img = LoadImageEx(pixels, width, height);
-  result = LoadTextureFromImage(img);
+  data->texture = LoadTextureFromImage(img);
+  data->rect = (Rectangle){0, 0, width, height};
   UnloadImage(img);
   mrb_free(pixels);
-  return result;
 }
 
 extern "C" struct mrb_Glyph
@@ -223,7 +222,7 @@ mrb_carbuncle_font_get_glyph(mrb_state *mrb, struct mrb_Font *font, FT_UInt code
     }
     FT_Glyph_To_Bitmap(&glyph, FT_RENDER_MODE_NORMAL, 0, 1);
     result->glyph = reinterpret_cast<FT_BitmapGlyph>(glyph);
-    result->texture = create_texture(mrb, font->face, result->glyph);
+    create_texture(mrb, font->face, result->glyph, &result);
     font->glyphs->insert(codepoint, result);
     return result;
   }
