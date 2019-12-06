@@ -16,47 +16,30 @@
 #include <stdio.h>
 #include <string.h>
 
-#define DEFAULT_FONT_CAPA 95
+#include <map>
 
-static FT_Library carbuncle_freetype;
-
-static void
-open_font(mrb_state *mrb, struct mrb_Font *font, const char *filename, size_t size)
+struct mrb_Font
 {
-  if (FT_New_Face(carbuncle_freetype, filename, 0, &(font->face)))
-  {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "cannot load font '%s'.", filename);
-  }
-  if (FT_Select_Charmap(font->face, FT_ENCODING_UNICODE))
-  {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "cannot load font '%s' as unicode.", filename);
-  }
-  if (FT_Set_Pixel_Sizes(font->face, size, size))
-  {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "cannot set font size for font %s.", filename);
-  }
-  font->chars = mrb_malloc(mrb, DEFAULT_FONT_CAPA * sizeof(int));
-  for (size_t i = 0; i < DEFAULT_FONT_CAPA; ++i)
-  {
-    font->chars[i] = ' ' + i;
-  }
-  font->count = DEFAULT_FONT_CAPA;
-  font->font = LoadFontEx(filename, size, font->chars, font->count);
-  font->dirty = FALSE;
-}
+  FT_Face face;
+  mrb_int size;
+  std::map<FT_UInt, struct mrb_Glyph> *glyphs;
+};
 
-
-static void
+extern "C" static void
 mrb_font_free(mrb_state *mrb, void *ptr)
 {
-  struct mrb_Font *font = ptr;
+  auto font = reinterpret_cast<struct mrb_Font *>(ptr);
   if (font)
   {
+    for (auto it = font->glyphs->begin(); it != font->glyphs->end(); it++ )
+    {
+      FT_Done_Glyph(reinterpret_cast<FT_Glyph>(it->second));
+    }
     if (font->face)
     {
       FT_Done_Face(font->face);
     }
-    UnloadFont(font->font);
+    delete font->glyphs;
     mrb_free(mrb, font->chars);
     mrb_free(mrb, font->filename);
     mrb_free(mrb, font);
@@ -66,6 +49,33 @@ mrb_font_free(mrb_state *mrb, void *ptr)
 static const struct mrb_data_type font_data_type = {
   "Carbuncle::Font", mrb_font_free
 };
+
+namespace
+{
+  FT_Library carbuncle_freetype;
+
+  void
+  open_font(mrb_state *mrb, struct mrb_Font *font, const char *filename, size_t size)
+  {
+    if (FT_New_Face(carbuncle_freetype, filename, 0, &(font->face)))
+    {
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "cannot load font '%s'.", filename);
+    }
+    if (FT_Select_Charmap(font->face, FT_ENCODING_UNICODE))
+    {
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "cannot load font '%s' as unicode.", filename);
+    }
+    if (FT_Set_Pixel_Sizes(font->face, 0, size))
+    {
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "cannot set font size for font %s.", filename);
+    }
+    font->glyphs = new std::map<FT_UInt, FT_Glyph>();
+  }
+}
+
+  
+  
+
 
 static mrb_value
 mrb_font_initialize(mrb_state *mrb, mrb_value self)
@@ -123,11 +133,10 @@ mrb_font_measure_text(mrb_state *mrb, mrb_value self)
   const char *text;
   struct mrb_Font *data = mrb_carbuncle_get_font(mrb, self);
   mrb_get_args(mrb, "z", &text);
-  MeasureTextEx(data->font, text, data->size, 0);
   return mrb_carbuncle_point_new(mrb, rect.x, rect.y);
 }
 
-void
+extern "C" void
 mrb_carbuncle_font_init(mrb_state *mrb)
 {
   if (FT_Init_FreeType( &carbuncle_freetype ))
@@ -144,58 +153,78 @@ mrb_carbuncle_font_init(mrb_state *mrb)
   mrb_define_method(mrb, font, "measure_text", mrb_font_measure_text, MRB_ARGS_REQ(1));
 }
 
-struct mrb_Font *
+extern "C" struct mrb_Font *
 mrb_carbuncle_get_font(mrb_state *mrb, mrb_value obj)
 {
   return DATA_GET_DISPOSABLE_PTR(mrb, obj, &font_data_type, struct mrb_Font);
 }
 
-mrb_bool
+extern "C" mrb_bool
 mrb_carbuncle_font_p(mrb_value obj)
 {
   return mrb_data_p(obj) && (DATA_TYPE(obj) == &font_data_type);
 }
 
-static int
-reorder_codepoints(mrb_state *mrb, struct mrb_Font *font, uint32_t codepoint)
+static Texture2D
+create_texture(mrb_state *mrb, FT_Face face, FT_BitmapGlyph glyph)
 {
-  uint32_t min = ' ';
-  uint32_t max = codepoint;
-  size_t new_count;
-  if ((codepoint - min) < font->count)
+  Texture2D result;
+	size_t width = glyph->bitmap.width + glyph->left;
+	size_t height = glyph->bitmap.rows + glyph->top;
+  Color *pixels = mrb_malloc(mrb, width * height * sizeof *pixels);
+  for (size_t y = 0; y < height; ++height)
   {
-    return 0;
-  }
-  for (size_t i = 0; i < font->count; ++i)
-  {
-    if (min > font->chars[i])
+    for (size_t x = 0; x < width; ++width)
     {
-      min = font->chars[i];
+      if (x < glyph->bitmap.left || y < glyph->bitmap.top)
+      {
+        pixels[x + y * width] = (Color){255, 255, 255, 0};
+      }
+      else
+      {
+        size_t i = x - glyph->bitmap.left;
+        size_t j = y - glyph->bitmap.top;
+        size_t w = glyph->bitmap.width;
+        pixels[x + y * width] = (Color){
+          255, 255, 255, glyph->bitmap.buffer[i + j * w]
+        };
+      }
     }
-    if (max < font->chars[i])
-    {
-      max = font->chars[i];
-    }
   }
-  new_count = max - min + 1;
-  if (new_count < font->count)
-  {
-    return 0;
-  }
-  font->chars = mrb_realloc(mrb, font->chars, new_count * sizeof *(font->chars));
-  font->count = new_count;
-  for (size_t i = 0; i < font->count; ++i)
-  {
-    font->chars[i] = min + i;
-  }
-  return 1;
+  Image img = LoadImageEx(pixels, width, height);
+  result = LoadTextureFromImage(img);
+  UnloadImage(img);
+  mrb_free(pixels);
+  return result;
 }
 
-void
-mrb_carbuncle_font_check_data(mrb_state *mrb, struct mrb_Font *font, uint32_t codepoint)
+extern "C" struct mrb_Glyph
+mrb_carbuncle_font_get_glyph(mrb_state *mrb, struct mrb_Font *font, FT_UInt codepoint)
 {
-  if (reorder_codepoints(mrb, font, codepoint))
+  FT_Error err;
+  auto pair = font->glyphs->find(codepoint);
+  if (pair != font->glyphs->end())
   {
-    font->dirty = TRUE;
+    return pair->second;
+  }
+  else
+  {
+    FT_Glyph glyph;
+    struct mrb_Glyph result;
+    err = FT_Load_Char(font->face, codepoint, FT_LOAD_TARGET_NORMAL);
+    if (err)
+    {
+      mrb_raisef(mrb, mrb->eStandardError_class, "Cannot load character %du", codepoint);
+    }
+    err = FT_Get_Glyph(font->glyph, &glyph);
+    if (err)
+    {
+      mrb_raisef(mrb, mrb->eStandardError_class, "Cannot load character %du", codepoint);
+    }
+    FT_Glyph_To_Bitmap(&glyph, FT_RENDER_MODE_NORMAL, 0, 1);
+    result->glyph = reinterpret_cast<FT_BitmapGlyph>(glyph);
+    result->texture = create_texture(mrb, font->face, result->glyph);
+    font->glyphs->insert(codepoint, result);
+    return result;
   }
 }

@@ -43,26 +43,6 @@ get_text(mrb_state *mrb, mrb_value obj)
   return DATA_GET_PTR(mrb, obj, &text_data_type, struct mrb_Text);
 }
 
-
-static struct mrb_value
-check_string(mrb_state *mrb, mrb_value self)
-{
-  uint32_t codepoint, max;
-  const char *message = mrb_str_to_cstr(mrb, mrb_iv_get(mrb, self, VALUE_SYMBOL));
-  size_t len = utf8_strlen(message);
-  struct mrb_Text *text = get_text(mrb, self);
-  max = ' ';
-  for (size_t i = 0; i < len; ++i)
-  {
-    message = utf8_decode(message, &codepoint);
-    if (codepoint > max)
-    {
-      max = codepoint;
-    }
-  }
-  mrb_carbuncle_font_check_data(mrb, text->font, max);
-}
-
 static struct mrb_value
 mrb_text_initialize(mrb_state *mrb, mrb_value self)
 {
@@ -155,20 +135,17 @@ static mrb_value
 mrb_text_draw(mrb_state *mrb, mrb_value self)
 {
   mrb_int x, y;
+  FT_UInt codepoint;
   const char *message = mrb_str_to_cstr(mrb, mrb_iv_get(mrb, self, VALUE_SYMBOL));
   struct mrb_Text *text = get_text(mrb, self);
   Vector2 position = *(text->position);
   Color color = *(text->color);
-  if (text->font->dirty)
+  size_t len = utf8_strlen(message);
+  for (size_t i = 0; i < len; ++i)
   {
-    struct mrb_Font *font = text->font;
-    font->dirty = FALSE;
-    font->font = LoadFontEx(font->filename, font->size, font->chars, font->count);
-    puts("======");
-    printf("%d\n", font->font.charsCount);
-    puts("=====");
+    message = utf8_decode(message, &codepoint);
+    struct mrb_Glyph *texture = mrb_carbuncle_font_get_glyph(mrb, text->font, codepoint);
   }
-  DrawTextEx(text->font->font, message, position, text->font->size, 0, color);
   return self;
 }
 

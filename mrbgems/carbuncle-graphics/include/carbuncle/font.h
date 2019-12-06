@@ -11,15 +11,12 @@
 extern "C" {
 #endif
 
-struct mrb_Font
+struct mrb_Font;
+
+struct mrb_Glyph
 {
-  FT_Face face;
-  Font font;
-  mrb_int size;
-  char *filename;
-  uint32_t *chars;
-  size_t count;
-  mrb_bool dirty;
+  FT_BitmapGlyph bmp;
+  Texture2D texture;
 };
 
 void
@@ -31,8 +28,8 @@ mrb_carbuncle_get_font(mrb_state *mrb, mrb_value obj);
 mrb_bool
 mrb_carbuncle_font_p(mrb_value obj);
 
-void
-mrb_carbuncle_font_check_data(mrb_state *mrb, struct mrb_Font *font, uint32_t codepoint);
+struct mrb_Glyph
+mrb_carbuncle_font_get_glyph(mrb_state *mrb, struct mrb_Font *font, FT_UInt codepoint);
 
 #ifdef __cplusplus
 }
