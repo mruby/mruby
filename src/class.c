@@ -620,11 +620,11 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       goto check_exit;
     case '!':
       break;
-    case '&': case '?':
-      if (opt) opt_skip = FALSE;
-      break;
     case ':':
       reqkarg = TRUE;
+      /* fall through */
+    case '&': case '?':
+      if (opt) opt_skip = FALSE;
       break;
     default:
       if (!opt) needargc ++;
