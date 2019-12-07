@@ -1,7 +1,7 @@
 module Carbuncle
   module FreetypeDownloader
-    FREETYPE_URL = 'https://download.savannah.gnu.org/releases/freetype/ft2100.zip'.freeze
-    FREETYPE_SUBDIR = 'freetype-2.10.0'.freeze
+    FREETYPE_URL = 'https://download.savannah.gnu.org/releases/freetype/ft2101.zip'.freeze
+    FREETYPE_SUBDIR = 'freetype-2.10.1'.freeze
 
     class << self
       def download(vendor_dir)

@@ -9,7 +9,8 @@ class Player < Carbuncle::Sprite
     @pose = 0
     @animation_time = 0
     @animation_step = (1.0 / 60.0) * 8
-    pivot.set(0, 1)
+    pivot.set(0.5, 1)
+    @attacking = false
     update_rect
   end
 
@@ -19,19 +20,25 @@ class Player < Carbuncle::Sprite
   end
 
   def update_input(dt)
-    dx, dy = 0, 0
-    if Carbuncle::Keyboard.down?(:up)
-      dy -= 40
-    elsif Carbuncle::Keyboard.down?(:down)
-      dy += 40
-    end
-    if Carbuncle::Keyboard.down?(:left)
-      dx -= 40
+    return if attacking?
+
+    dx = 0
+    if Carbuncle::Keyboard.press?(:a)
+      attack!
+    elsif Carbuncle::Keyboard.down?(:left)
+      dx -= 80
+      scale.x = 1
+      @frame = 0 if @pose != 4
+      @pose = 4
     elsif Carbuncle::Keyboard.down?(:right)
-      dx += 40
+      dx += 80
+      @frame = 0 if @pose != 5
+      @pose = 5
+    else
+      @frame = 0 if @pose != 0
+      @pose = 0
     end
     position.x += dx * dt
-    position.y += dy * dt
   end
 
   def update_frame(dt)
@@ -39,11 +46,25 @@ class Player < Carbuncle::Sprite
     while @animation_time > animation_step
       @animation_time -= animation_step
       @frame = (@frame + 1) % 4
+      if attacking? && @frame == 0
+        @attacking = false
+        @frame = 0
+      end
       update_rect
     end
   end
 
   def update_rect
     src_rect.set(frame * frame_width, pose * frame_height, frame_width, frame_height)
+  end
+
+  def attacking?
+    @attacking
+  end
+
+  def attack!
+    @attacking = true
+    @pose = rand > 0.5 ? 6 : 7
+    @frame = 0
   end
 end

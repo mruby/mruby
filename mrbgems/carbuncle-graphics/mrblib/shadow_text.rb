@@ -12,6 +12,14 @@ module Carbuncle
       def color=(value)
         @text.color = value
       end
+
+      def opacity
+        color.alpha
+      end
+
+      def opacity=(value)
+        color.alpha = value
+      end
     end
 
     attr_accessor :offset
@@ -44,6 +52,10 @@ module Carbuncle
       @foreground_text.color
     end
 
+    def opacity
+      color.alpha
+    end
+
     def position
       @foreground_text.position
     end
@@ -55,6 +67,10 @@ module Carbuncle
 
     def color=(value)
       @foreground_text.color = value
+    end
+
+    def opacity=(value)
+      color.alpha = value
     end
 
     def value=(value)

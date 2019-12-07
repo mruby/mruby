@@ -8,16 +8,16 @@ module Carbuncle
       color.alpha
     end
 
-    def opacity=(value)
-      color.alpha = value
-    end
-
     def ox
       origin.x
     end
 
     def oy
       origin.y
+    end
+
+    def opacity=(value)
+      color.alpha = value
     end
 
     def ox=(value)
