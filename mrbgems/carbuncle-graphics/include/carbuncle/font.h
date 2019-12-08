@@ -69,6 +69,9 @@ mrb_carbuncle_font_calculate_size(size_t len, FT_BitmapGlyph *bmps);
 void
 mrb_carbuncle_font_destroy_glyphs(mrb_state *mrb, size_t len, FT_BitmapGlyph *bmps);
 
+struct mrb_Glyph *
+mrb_carbuncle_font_get_glyph(struct mrb_Font *font, FT_UInt codepoint);
+
 #ifdef __cplusplus
 }
 #endif

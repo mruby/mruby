@@ -396,3 +396,27 @@ mrb_carbuncle_font_destroy_glyphs(mrb_state *mrb, size_t len, FT_BitmapGlyph *bm
   }
   mrb_free(mrb, bmps);
 }
+
+static struct mrb_Glyph *
+find_node(struct mrb_Glyph *current, FT_UInt codepoint)
+{
+  while (current)
+  {
+    if (current->codepoint == codepoint) { return current; }
+    if (current->codepoint < codepoint)
+    {
+      current = current->left;
+    }
+    else
+    {
+      current = current->right;
+    }
+  }
+  return current;
+}
+
+struct mrb_Glyph *
+mrb_carbuncle_font_get_glyph(struct mrb_Font *font, FT_UInt codepoint)
+{
+  return find_node(font->glyphs.root, codepoint);
+}

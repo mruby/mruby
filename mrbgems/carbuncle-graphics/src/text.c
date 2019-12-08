@@ -26,17 +26,32 @@ const char *POSITION_SYM = "#position";
 #define POSITION_SYMBOL mrb_intern_cstr(mrb, POSITION_SYM)
 #define VALUE_SYMBOL mrb_intern_cstr(mrb, "#value")
 
+#define DEFAULT_CAPA 31
+
 struct mrb_Text
 {
-  struct mrb_Font  *font;
-  Color            *color;
-  Vector2          *position;
-  Texture2D         texture;
-  mrb_bool          empty;
+  struct mrb_Font   *font;
+  Color             *color;
+  Vector2           *position;
+  Texture2D          texture;
+  size_t             len;
+  size_t             capa;
+  struct mrb_Glyph **glyphs;
 };
 
+static void
+mrb_free_text(mrb_state *mrb, mrb_value *ptr)
+{
+  if (ptr)
+  {
+    struct mrb_Text *text = ptr;
+    mrb_free(mrb, text->glyphs);
+    mrb_free(mrb, ptr);
+  }
+}
+
 static const struct mrb_data_type text_data_type = {
-  "Carbuncle::Text", mrb_free
+  "Carbuncle::Text", mrb_free_text
 };
 
 static struct mrb_Text *
@@ -93,20 +108,38 @@ create_texture(mrb_state *mrb, size_t len, FT_BitmapGlyph *bmps, Vector2 size)
 }
 
 static void
+update_glyph_capacity(mrb_state *mrb, struct mrb_Text *text, size_t len)
+{
+  while (text->capa < len)
+  {
+    text->capa = text->capa * 2 + 1;
+    text->glyphs = mrb_realloc(mrb, text->glyphs, text->capa * sizeof(struct mrb_Glyph *));
+  }
+}
+
+static void
+load_glyphs(mrb_state *mrb, struct mrb_Text *text, size_t len, const char *message)
+{
+  uint32_t codepoint;
+  for (size_t i = 0; i < len; ++i)
+  {
+    message = utf8_decode(message, &codepoint);
+    text->glyphs[i] = mrb_carbuncle_font_get_glyph(text->font, codepoint);
+  }
+}
+
+static void
 update_text(mrb_state *mrb, struct mrb_Text *text, const char *message)
 {
-	text->empty = FALSE;
   size_t len = utf8_strlen(message);
-  if (len <= 0)
-  {
-    text->empty = TRUE;
-    return;
-  }
+  text->len = len;
   FT_Face face = mrb_carbuncle_font_get_face(text->font);
   FT_BitmapGlyph *bmps = mrb_carbuncle_font_load_glyphs(mrb, face, len, message);
 	Vector2 size = mrb_carbuncle_font_calculate_size(len, bmps);
   text->texture = create_texture(mrb, len, bmps, size);
   mrb_carbuncle_font_destroy_glyphs(mrb, len, bmps);
+  update_glyph_capacity(mrb, text, len);
+  load_glyphs(mrb, text, len, message);
 }
 
 static struct mrb_value
@@ -128,6 +161,9 @@ mrb_text_initialize(mrb_state *mrb, mrb_value self)
   text->font = mrb_carbuncle_get_font(mrb, font);
   text->color = mrb_carbuncle_get_color(mrb, color);
   text->position = mrb_carbuncle_get_point(mrb, position);
+  text->glyphs = mrb_malloc(mrb, DEFAULT_CAPA * sizeof(struct mrb_Glyph *));
+  text->capa = DEFAULT_CAPA;
+  text->len = 0;
   DATA_PTR(self) = text;
   DATA_TYPE(self) = &text_data_type;
   update_text(mrb, text, "");
@@ -209,7 +245,7 @@ static mrb_value
 mrb_text_draw(mrb_state *mrb, mrb_value self)
 {
   struct mrb_Text *text = get_text(mrb, self);
-  if (text->empty) { return self; }
+  if (!text->len) { return self; }
   DrawTextureV(text->texture, *(text->position), *(text->color));
   return self;
 }
