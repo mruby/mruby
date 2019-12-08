@@ -2492,8 +2492,9 @@ mrb_str_to_i(mrb_state *mrb, mrb_value self)
 
 #ifndef MRB_WITHOUT_FLOAT
 MRB_API double
-mrb_cstr_to_dbl(mrb_state *mrb, const char * p, mrb_bool badcheck)
+mrb_cstr_to_dbl(mrb_state *mrb, const char * s, mrb_bool badcheck)
 {
+  const char *p = s;
   char *end;
   char buf[DBL_DIG * 4 + 10];
   double d;
@@ -2508,7 +2509,7 @@ mrb_cstr_to_dbl(mrb_state *mrb, const char * p, mrb_bool badcheck)
   if (p == end) {
     if (badcheck) {
 bad:
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid string for float(%s)", p);
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid string for float(%!s)", s);
       /* not reached */
     }
     return d;
