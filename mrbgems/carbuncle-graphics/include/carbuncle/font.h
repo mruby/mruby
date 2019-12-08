@@ -37,6 +37,7 @@ struct mrb_Font
     FT_UInt max_width;
     FT_UInt min_height;
     FT_UInt max_height;
+    FT_UInt total_width;
   } metrics;
   struct 
   {

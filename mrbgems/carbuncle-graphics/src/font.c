@@ -122,6 +122,8 @@ set_node_data(struct mrb_Glyph *node, FT_BitmapGlyph bmp)
 {
   node->advance.x = bmp->root.advance.x;
   node->advance.x = bmp->root.advance.y;
+  node->margin.x = bmp->left;
+  node->margin.y = bmp->top;
 }
 
 static inline struct mrb_Glyph *
@@ -177,21 +179,28 @@ load_glyph(mrb_state *mrb, struct mrb_Font *font, FT_ULong codepoint)
 static inline void
 build_font_atlas(mrb_state *mrb, struct mrb_Font *font)
 {
+  size_t size = font->metrics.total_width * font->metrics.max_height * sizeof(Color *);
+  Color *colors = mrb_malloc(mrb, size);
+  memset(colors, 0, size);
+  mrb_free(mrb, colors);
 }
 
 static inline void
 load_glyphs(mrb_state *mrb, struct mrb_Font *font)
 {
-  FT_UInt min_h, max_h, w, index;
+  FT_UInt min_h, max_h, w, index, total_w;
   FT_ULong character = FT_Get_First_Char(font->face, &index);
   FT_BitmapGlyph bmp = load_glyph(mrb, font, character);
   w = bmp->bitmap.width;
-  min_h = bmp->bitmap.rows + bmp->top;
+  min_h = bmp->bitmap.rows;
+  max_h = min_h;
+  total_w = w;
   character = FT_Get_Next_Char(font->face, character, &index);
   while (character)
   {
     bmp = load_glyph(mrb, font, character);
-    FT_UInt new_h = bmp->bitmap.rows + bmp->top;
+    FT_UInt new_h = bmp->bitmap.rows;
+    total_w += bmp->bitmap.width;
     w = w < bmp->bitmap.width ? bmp->bitmap.width : w;
     min_h = min_h > new_h ? new_h : min_h;
     max_h = max_h < new_h ? new_h : max_h;
@@ -200,6 +209,7 @@ load_glyphs(mrb_state *mrb, struct mrb_Font *font)
   font->metrics.max_width  = w;
   font->metrics.min_height = min_h;
   font->metrics.max_height = max_h;
+  font->metrics.total_width = total_w;
   build_font_atlas(mrb, font);
 }
 
