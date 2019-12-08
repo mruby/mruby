@@ -112,7 +112,12 @@ update_text(mrb_state *mrb, struct mrb_Text *text, const char *message)
 static struct mrb_value
 mrb_text_initialize(mrb_state *mrb, mrb_value self)
 {
-  mrb_value font = mrb_obj_new(mrb, mrb_carbuncle_class_get(mrb, "Font"), 0, NULL);
+  mrb_value font = mrb_nil_value();
+  mrb_get_args(mrb, "|o", &font);
+  if (mrb_nil_p(font))
+  {
+    font = mrb_obj_new(mrb, mrb_carbuncle_class_get(mrb, "Font"), 0, NULL);
+  }
   mrb_value color = mrb_carbuncle_color_new(mrb, 255, 255, 255, 255);
   mrb_value position = mrb_carbuncle_point_new(mrb, 0, 0);
   mrb_iv_set(mrb, self, FONT_SYMBOL, font);
@@ -214,7 +219,7 @@ mrb_carbuncle_text_init(mrb_state *mrb)
 {
   struct RClass *text = mrb_carbuncle_define_data_class(mrb, "Text", mrb->object_class);
 
-  mrb_define_method(mrb, text, "initialize", mrb_text_initialize, MRB_ARGS_NONE());
+  mrb_define_method(mrb, text, "initialize", mrb_text_initialize, MRB_ARGS_OPT(1));
 
   mrb_define_method(mrb, text, "font", mrb_text_get_font, MRB_ARGS_NONE());
   mrb_define_method(mrb, text, "color", mrb_text_get_color, MRB_ARGS_NONE());
