@@ -37,6 +37,7 @@ struct mrb_Text
   size_t             len;
   size_t             capa;
   struct mrb_Glyph **glyphs;
+  mrb_int            min_y;
 };
 
 static void
@@ -121,10 +122,14 @@ static void
 load_glyphs(mrb_state *mrb, struct mrb_Text *text, size_t len, const char *message)
 {
   uint32_t codepoint;
+  text->min_y = text->font->metrics.max_height;
   for (size_t i = 0; i < len; ++i)
   {
     message = utf8_decode(message, &codepoint);
-    text->glyphs[i] = mrb_carbuncle_font_get_glyph(text->font, codepoint);
+    struct mrb_Glyph *glyph = mrb_carbuncle_font_get_glyph(text->font, codepoint);
+    text->glyphs[i] = glyph;
+    mrb_int min_y = text->font->metrics.max_height - glyph->margin.y;
+    if (min_y < text->min_y) { text->min_y = min_y; }
   }
 }
 
