@@ -4,6 +4,7 @@ require 'scripts/player'
 
 class TestGame < Carbuncle::Game
   def load
+    @t = 0
     load_music
     load_background
     load_text
@@ -34,8 +35,7 @@ class TestGame < Carbuncle::Game
       (screen.width - @text.width) / 2,
       (screen.height - @text.height) / 2
     )
-    @help = ShadowText.new
-    @help.font = Font.new('fonts/pixel-unicode.ttf', 24)
+    @help = ShadowText.new(Font.new('fonts/pixel-unicode.ttf', 24))
     @help.value = "Move with left or right, press 'a' to attack, 's' for screenshot."
     @help.position.set(
       (screen.width - @help.width) / 2,
@@ -61,6 +61,8 @@ class TestGame < Carbuncle::Game
     @player.update(dt)
     @help.update(dt)
     take_screenshot if Keyboard.press?(:s)
+    @t = (@t + dt) % 2
+    @text.value = @t > 1 ? 'Welcöme to Carbüncle' : 'Welcome to Carbuncle'
   end
 
   def take_screenshot
