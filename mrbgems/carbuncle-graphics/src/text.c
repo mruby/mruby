@@ -123,7 +123,6 @@ load_glyphs(mrb_state *mrb, struct mrb_Text *text, size_t len, const char *messa
 {
   uint32_t codepoint;
   text->min_y = text->font->metrics.max_height;
-  printf("Printing... \"%s\"\n", message);
   for (size_t i = 0; i < len; ++i)
   {
     message = utf8_decode(message, &codepoint);
@@ -258,7 +257,7 @@ mrb_text_draw(mrb_state *mrb, mrb_value self)
     struct mrb_Glyph *glyph = text->glyphs[i];
     Vector2 pos = (Vector2){
       position.x + glyph->margin.x,
-      position.y + glyph->margin.y
+      position.y + text->min_y - glyph->margin.y
     };
     DrawTextureRec(text->font->texture, glyph->rect, pos, color);
     position.x += glyph->rect.width - glyph->margin.x;
