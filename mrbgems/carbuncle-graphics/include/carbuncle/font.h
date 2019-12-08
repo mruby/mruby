@@ -11,14 +11,41 @@
 extern "C" {
 #endif
 
-struct mrb_Font;
-
 struct mrb_Glyph
 {
+  FT_ULong codepoint;
   FT_BitmapGlyph bmp;
-  Texture2D texture;
   Rectangle rect;
+  Vector2 advance;
+  Vector2 margin;
+  struct mrb_Glyph *left;
+  struct mrb_Glyph *right;
+  mrb_int node_height;
+  size_t row;
 };
+
+struct mrb_GlyphMap
+{
+  size_t count;
+  struct mrb_Glyph *root;
+};
+
+struct mrb_FontMetrics
+{
+  size_t max_width;
+  size_t min_height;
+  size_t max_height;
+};
+
+struct mrb_Font
+{
+  FT_Face face;
+  mrb_int size;
+  struct mrb_GlyphMap glyphs;
+  struct mrb_FontMetrics metrics;
+  Texture2D texture;
+};
+
 
 void
 mrb_carbuncle_font_init(mrb_state *mrb);
@@ -29,17 +56,8 @@ mrb_carbuncle_get_font(mrb_state *mrb, mrb_value obj);
 mrb_bool
 mrb_carbuncle_font_p(mrb_value obj);
 
-FT_Face
-mrb_carbuncle_font_get_face(struct mrb_Font *font);
-
-FT_BitmapGlyph *
-mrb_carbuncle_font_load_glyphs(mrb_state *mrb, FT_Face face, size_t len, const char *message);
-
-Vector2
-mrb_carbuncle_font_calculate_size(size_t len, FT_BitmapGlyph *bmps);
-
-void
-mrb_carbuncle_font_destroy_glyphs(mrb_state *mrb, size_t len, FT_BitmapGlyph *bmps);
+struct mrb_Glyph *
+mrb_carbuncle_font_get_glyph(struct mrb_Font *font, FT_UInt codepoint);
 
 #ifdef __cplusplus
 }

@@ -24,11 +24,10 @@ module Carbuncle
 
     attr_accessor :offset
 
-    def initialize
-      @shadow_text = Carbuncle::Text.new
+    def initialize(font = nil)
+      @shadow_text = Carbuncle::Text.new(font)
       @shadow_text.color.set(64, 64, 64)
-      @foreground_text = Carbuncle::Text.new
-      @foreground_text.font = @shadow_text.font
+      @foreground_text = Carbuncle::Text.new(@shadow_text.font)
       @offset = Carbuncle::Point.new(2, 2)
     end
 
