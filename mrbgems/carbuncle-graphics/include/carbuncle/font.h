@@ -15,6 +15,7 @@ struct mrb_Glyph
 {
   FT_ULong codepoint;
   FT_BitmapGlyph bmp;
+  size_t offset;
   Rectangle rect;
   Vector2 advance;
   Vector2 margin;
@@ -39,12 +40,7 @@ struct mrb_Font
     size_t max_height;
     size_t total_width;
   } metrics;
-  struct 
-  {
-    size_t width;
-    size_t height;
-    Texture2D texture;
-  } atlas;
+  Texture2D texture;
 };
 
 
