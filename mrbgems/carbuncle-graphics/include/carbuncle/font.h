@@ -34,10 +34,10 @@ struct mrb_Font
   } glyphs;
   struct
   {
-    FT_UInt max_width;
-    FT_UInt min_height;
-    FT_UInt max_height;
-    FT_UInt total_width;
+    size_t max_width;
+    size_t min_height;
+    size_t max_height;
+    size_t total_width;
   } metrics;
   struct 
   {

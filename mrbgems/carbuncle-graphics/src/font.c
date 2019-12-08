@@ -25,6 +25,7 @@ free_glyph(mrb_state *mrb, struct mrb_Glyph *glyph)
   {
     free_glyph(mrb, glyph->left);
     free_glyph(mrb, glyph->right);
+    FT_Done_Glyph((FT_Glyph)glyph->bmp);
     mrb_free(mrb, glyph);
   }
 }
@@ -35,14 +36,9 @@ mrb_font_free(mrb_state *mrb, void *ptr)
   struct mrb_Font *font = ptr;
   if (font)
   {
-    if (font->glyphs.root)
-    {
-      free_glyph(mrb, font->glyphs.root);
-    }
-    if (font->face)
-    {
-      FT_Done_Face(font->face);
-    }
+    UnloadTexture(font->atlas.texture);
+    free_glyph(mrb, font->glyphs.root);
+    FT_Done_Face(font->face);
     mrb_free(mrb, font);
   }
 }
@@ -176,19 +172,46 @@ load_glyph(mrb_state *mrb, struct mrb_Font *font, FT_ULong codepoint)
   return bmp;
 }
 
+static inline size_t
+draw_glyph(struct mrb_Glyph *glyph, size_t offset, Color *colors, size_t total_width)
+{
+  
+  if (!glyph) { return offset; }
+  offset = draw_glyph(glyph->left, offset, colors, total_width);
+  offset = draw_glyph(glyph->right, offset, colors, total_width);
+  for (size_t y = 0; y < glyph->bmp->bitmap.width; ++y)
+  {
+    for (size_t i = 0; i < glyph->bmp->bitmap.rows; ++i)
+    {
+      size_t x = i + offset;
+      colors[x + y * total_width] = (Color){
+        255, 255, 255, glyph->bmp->bitmap.buffer[i + y * glyph->bmp->bitmap.rows]
+      };
+    }
+  }
+  glyph->rect = (Rectangle) {
+    offset, 0, glyph->bmp->bitmap.width, glyph->bmp->bitmap.rows
+  };
+  return offset + glyph->bmp->bitmap.width;
+}
+
 static inline void
 build_font_atlas(mrb_state *mrb, struct mrb_Font *font)
 {
   size_t size = font->metrics.total_width * font->metrics.max_height * sizeof(Color *);
   Color *colors = mrb_malloc(mrb, size);
   memset(colors, 0, size);
+  draw_glyph(font->glyphs.root, 0, colors, font->metrics.total_width);
+  Image img = LoadImageEx(colors, font->metrics.total_width, font->metrics.max_height);
+  font->atlas.texture = LoadTextureFromImage(img);
+  UnloadImage(img);
   mrb_free(mrb, colors);
 }
 
 static inline void
 load_glyphs(mrb_state *mrb, struct mrb_Font *font)
 {
-  FT_UInt min_h, max_h, w, index, total_w;
+  size_t min_h, max_h, w, index, total_w;
   FT_ULong character = FT_Get_First_Char(font->face, &index);
   FT_BitmapGlyph bmp = load_glyph(mrb, font, character);
   w = bmp->bitmap.width;
@@ -199,7 +222,7 @@ load_glyphs(mrb_state *mrb, struct mrb_Font *font)
   while (character)
   {
     bmp = load_glyph(mrb, font, character);
-    FT_UInt new_h = bmp->bitmap.rows;
+    size_t new_h = bmp->bitmap.rows;
     total_w += bmp->bitmap.width;
     w = w < bmp->bitmap.width ? bmp->bitmap.width : w;
     min_h = min_h > new_h ? new_h : min_h;
