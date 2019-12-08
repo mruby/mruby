@@ -61,53 +61,6 @@ get_text(mrb_state *mrb, mrb_value obj)
   return DATA_GET_PTR(mrb, obj, &text_data_type, struct mrb_Text);
 }
 
-static float
-get_min_height(size_t len, FT_BitmapGlyph *bmps, float size)
-{
-  float result = size;
-  for (size_t i = 0; i < len; ++i)
-  {
-    float new_height = size - bmps[i]->top;
-    if (result > new_height) { result = new_height; }
-  }
-  return result;
-}
-
-static void
-draw_glyph(Color *pixels, FT_BitmapGlyph bmp, Vector2 size, float min_y)
-{
-	size_t left = bmp->left;
-	size_t top = size.y - bmp->top;
-	for (size_t y = 0; y < bmp->bitmap.rows; y++)
-  {
-		for (size_t x = 0; x < bmp->bitmap.width; x++)
-    {
-      size_t i = ((left + x) + (top + y - min_y) * size.x);
-      unsigned char alpha = bmp->bitmap.buffer[x + y * bmp->bitmap.width];
-      pixels[i] = (Color){ 255, 255, 255, alpha };
-    }
-  }
-}
-
-static Texture2D
-create_texture(mrb_state *mrb, size_t len, FT_BitmapGlyph *bmps, Vector2 size)
-{
-  Texture2D texture;
-  size_t byte_size = size.x * size.y * sizeof(Color);
-  Color *pixels = mrb_malloc(mrb, byte_size);
-  memset(pixels, 0, byte_size);
-  float min_y = get_min_height(len, bmps, size.y);
-  for (size_t i = 0; i  < len; ++i)
-  {
-    draw_glyph(pixels, bmps[i], size, min_y);
-  }
-  Image img = LoadImageEx(pixels, size.x, size.y);
-  texture = LoadTextureFromImage(img);
-  UnloadImage(img);
-  mrb_free(mrb, pixels);
-  return texture;
-}
-
 static void
 update_glyph_capacity(mrb_state *mrb, struct mrb_Text *text, size_t len)
 {
@@ -138,12 +91,6 @@ update_text(mrb_state *mrb, struct mrb_Text *text, const char *message)
 {
   size_t len = utf8_strlen(message);
   text->len = len;
-  FT_Face face = mrb_carbuncle_font_get_face(text->font);
-  FT_BitmapGlyph *bmps = mrb_carbuncle_font_load_glyphs(mrb, face, len, message);
-	Vector2 size = mrb_carbuncle_font_calculate_size(len, bmps);
-  text->texture = create_texture(mrb, len, bmps, size);
-  mrb_carbuncle_font_destroy_glyphs(mrb, len, bmps);
-  update_glyph_capacity(mrb, text, len);
   load_glyphs(mrb, text, len, message);
 }
 
@@ -260,7 +207,8 @@ mrb_text_draw(mrb_state *mrb, mrb_value self)
       position.y + text->min_y - glyph->margin.y
     };
     DrawTextureRec(text->font->texture, glyph->rect, pos, color);
-    position.x += glyph->rect.width - glyph->margin.x;
+    position.x += glyph->advance.x;
+    position.y += glyph->advance.y;
   }
   return self;
 }

@@ -29,6 +29,8 @@ struct mrb_FontCursor
 
 struct mrb_FontState
 {
+  struct mrb_Font *font;
+  FT_Face face;
   FT_ULong codepoint;
   FT_BitmapGlyph bmp;
   struct mrb_Glyph *current;
@@ -134,14 +136,13 @@ balance(struct mrb_Glyph *current)
 static inline void
 set_node_data(struct mrb_Glyph *node, struct mrb_FontState *state)
 {
+  FT_Face face = state->face;
   FT_BitmapGlyph bmp = state->bmp;
   node->left = NULL;
   node->right = NULL;
   node->codepoint = state->codepoint;
   node->bmp = state->bmp;
   node->node_height = 1;
-  node->advance.x = bmp->root.advance.x;
-  node->advance.y = bmp->root.advance.y;
   node->margin.x = bmp->left;
   node->margin.y = bmp->top;
   if (state->cursor.offset + bmp->bitmap.width > MAX_ATLAS_WIDTH)
@@ -155,6 +156,8 @@ set_node_data(struct mrb_Glyph *node, struct mrb_FontState *state)
   node->rect.height = bmp->bitmap.rows;
   state->cursor.offset += node->rect.width;
   state->current = node;
+  node->advance.x = (bmp->root.advance.x / face->units_per_EM) >> 6;
+  node->advance.y = (bmp->root.advance.y / face->units_per_EM) >> 6;
 }
 
 static inline struct mrb_Glyph *
@@ -253,6 +256,8 @@ static inline void
 load_glyphs(mrb_state *mrb, struct mrb_Font *font)
 {
   struct mrb_FontState state = (struct mrb_FontState){
+    .font = font,
+    .face = font->face,
     .current = NULL,
     .bmp = NULL,
     .cursor = (struct mrb_FontCursor){
@@ -349,13 +354,27 @@ mrb_font_dispose(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_font_measure_text(mrb_state *mrb, mrb_value self)
 {
+  uint32_t codepoint;
   const char *text;
   struct mrb_Font *data = mrb_carbuncle_get_font(mrb, self);
   mrb_get_args(mrb, "z", &text);
   size_t len = utf8_strlen(text);
-  FT_BitmapGlyph *bmps = mrb_carbuncle_font_load_glyphs(mrb, data->face, len, text);
-	Vector2 size = mrb_carbuncle_font_calculate_size(len, bmps);
-  mrb_carbuncle_font_destroy_glyphs(mrb, len, bmps);
+  Vector2 size = { 0, 0 };
+  Vector2 pen = { 0, 0 };
+  for (size_t i = 0; i < len; ++i)
+  {
+    text = utf8_decode(text, &codepoint);
+    struct mrb_Glyph *glyph = mrb_carbuncle_font_get_glyph(data, codepoint);
+    if (glyph)
+    {
+      float new_w = pen.x + glyph->bmp->bitmap.width + glyph->bmp->left;
+      float new_h = pen.y + glyph->bmp->bitmap.rows + glyph->bmp->top;
+      if (new_w > size.x) { size.x = new_w; }
+      if (new_h > size.y) { size.y = new_h; }
+      pen.x += glyph->advance.x;
+      pen.y += glyph->advance.y;
+    }
+  }
   return mrb_carbuncle_point_new(mrb, size.x, size.y);
 }
 
@@ -386,61 +405,6 @@ mrb_bool
 mrb_carbuncle_font_p(mrb_value obj)
 {
   return mrb_data_p(obj) && (DATA_TYPE(obj) == &font_data_type);
-}
-
-FT_Face
-mrb_carbuncle_font_get_face(struct mrb_Font *font)
-{
-  return font->face;
-}
-
-
-
-FT_BitmapGlyph *
-mrb_carbuncle_font_load_glyphs(mrb_state *mrb, FT_Face face, size_t len, const char *message)
-{
-  FT_UInt codepoint;
-  FT_Glyph glyph;
-  FT_Matrix matrix = (FT_Matrix){ .xx = 0x10000, .xy = 0, .yx = 0, .yy = 0x10000 };
-	FT_Vector pen = (FT_Vector){ .x = 0, .y = 0};
-  FT_BitmapGlyph *bmps = mrb_malloc(mrb, len * sizeof(*bmps));
-  for (size_t i = 0; i < len; ++i)
-  {
-    FT_Set_Transform(face, &matrix, &pen);
-    message = utf8_decode(message, &codepoint);
-    if (FT_Load_Char(face, codepoint, FT_LOAD_TARGET_NORMAL)) { glyph_error(mrb); }
-    if (FT_Get_Glyph(face->glyph, &glyph)) { glyph_error(mrb); }
-    FT_Glyph_To_Bitmap(&glyph, FT_RENDER_MODE_NORMAL, 0, 1);
-    bmps[i] = (FT_BitmapGlyph)glyph;
-    pen.x += face->glyph->advance.x;
-    pen.y += face->glyph->advance.y;
-  }
-  return bmps;
-}
-
-Vector2
-mrb_carbuncle_font_calculate_size(size_t len, FT_BitmapGlyph *bmps)
-{
-  Vector2 result = (Vector2){0, 0};
-	for (size_t i = 0; i < len; ++i)
-  {
-    FT_BitmapGlyph bmp = bmps[i];
-    float new_width = bmp->bitmap.width + bmp->left;
-    float new_height = bmp->bitmap.rows + bmp->top;
-		if (result.x < new_width) { result.x = new_width; }
-		if (result.y < new_height) { result.y = new_height; }
-	}  
-  return result;
-}
-
-void
-mrb_carbuncle_font_destroy_glyphs(mrb_state *mrb, size_t len, FT_BitmapGlyph *bmps)
-{
-  for (size_t i = 0; i < len; ++i)
-  {
-    FT_Done_Glyph((FT_Glyph)bmps[i]);
-  }
-  mrb_free(mrb, bmps);
 }
 
 static struct mrb_Glyph *
