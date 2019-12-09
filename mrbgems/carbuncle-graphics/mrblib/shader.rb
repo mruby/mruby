@@ -21,5 +21,15 @@ module Carbuncle
         @uniform_values[symbol] = type
       end
     end
+
+    def uniforms
+      @uniform_values.dup
+    end
+
+    def uniforms=(values)
+      values.each_pair do |key, value|
+        send(key, value)
+      end
+    end
   end
 end
