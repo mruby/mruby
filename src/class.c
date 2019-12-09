@@ -542,14 +542,11 @@ MRB_API mrb_value*
 mrb_get_argv(mrb_state *mrb)
 {
   mrb_int argc = mrb->c->ci->argc;
-  mrb_value *array_argv;
+  mrb_value *array_argv = mrb->c->stack + 1;
   if (argc < 0) {
-    struct RArray *a = mrb_ary_ptr(mrb->c->stack[1]);
+    struct RArray *a = mrb_ary_ptr(*array_argv);
 
     array_argv = ARY_PTR(a);
-  }
-  else {
-    array_argv = NULL;
   }
   return array_argv;
 }
@@ -594,9 +591,10 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
   char c;
   mrb_int i = 0;
   va_list ap;
-  mrb_int argc = mrb_get_argc(mrb);
   mrb_int arg_i = 0;
-  mrb_value *array_argv = mrb_get_argv(mrb);
+  mrb_int argc = mrb->c->ci->argc;
+  mrb_value *array_argv = mrb->c->stack+1;
+  mrb_bool argv_on_stack = argc >= 0;
   mrb_bool opt = FALSE;
   mrb_bool opt_skip = TRUE;
   mrb_bool given = TRUE;
@@ -604,10 +602,14 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
   mrb_bool reqkarg = FALSE;
   mrb_int needargc = 0;
 
+  if (!argv_on_stack) {
+    struct RArray *a = mrb_ary_ptr(*array_argv);
+    array_argv = ARY_PTR(a);
+    argc = ARY_LEN(a);
+  }
   va_start(ap, format);
 
-#define ARGV \
-  (array_argv ? array_argv : (mrb->c->stack + 1))
+#define ARGV array_argv
 
   while ((c = *fmt++)) {
     switch (c) {
@@ -931,7 +933,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       {
         mrb_value **var;
         mrb_int *pl;
-        mrb_bool nocopy = altmode || array_argv ? TRUE : FALSE;
+        mrb_bool nocopy = altmode || argv_on_stack ? TRUE : FALSE;
 
         var = va_arg(ap, mrb_value**);
         pl = va_arg(ap, mrb_int*);
