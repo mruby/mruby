@@ -26,7 +26,7 @@ const char *POSITION_SYM = "#position";
 #define POSITION_SYMBOL mrb_intern_cstr(mrb, POSITION_SYM)
 #define VALUE_SYMBOL mrb_intern_cstr(mrb, "#value")
 
-#define DEFAULT_CAPA 31
+#define DEFAULT_CAPA 32
 
 struct mrb_Text
 {
@@ -64,9 +64,14 @@ get_text(mrb_state *mrb, mrb_value obj)
 static void
 update_glyph_capacity(mrb_state *mrb, struct mrb_Text *text, size_t len)
 {
-  while (text->capa < len)
+  mrb_bool change = FALSE;
+  while (text->capa <= len)
   {
     text->capa = text->capa * 2 + 1;
+    change = TRUE;
+  }
+  if (change)
+  {
     text->glyphs = mrb_realloc(mrb, text->glyphs, text->capa * sizeof(struct mrb_Glyph *));
   }
 }
@@ -80,9 +85,13 @@ load_glyphs(mrb_state *mrb, struct mrb_Text *text, size_t len, const char *messa
   {
     message = utf8_decode(message, &codepoint);
     struct mrb_Glyph *glyph = mrb_carbuncle_font_get_glyph(text->font, codepoint);
-    text->glyphs[i] = glyph;
-    mrb_int min_y = text->font->metrics.max_height - glyph->margin.y;
-    if (min_y < text->min_y) { text->min_y = min_y; }
+    if (!glyph) {glyph = mrb_carbuncle_font_get_glyph(text->font, 0xFFFD); }
+    if (glyph)
+    {
+      text->glyphs[i] = glyph;
+      mrb_int min_y = text->font->metrics.max_height - glyph->margin.y;
+      if (min_y < text->min_y) { text->min_y = min_y; }
+    }
   }
 }
 
@@ -91,6 +100,7 @@ update_text(mrb_state *mrb, struct mrb_Text *text, const char *message)
 {
   size_t len = utf8_strlen(message);
   text->len = len;
+  update_glyph_capacity(mrb, text, len);
   load_glyphs(mrb, text, len, message);
 }
 
@@ -202,13 +212,16 @@ mrb_text_draw(mrb_state *mrb, mrb_value self)
   for (size_t i = 0; i < text->len; ++i)
   {
     struct mrb_Glyph *glyph = text->glyphs[i];
-    Vector2 pos = (Vector2){
-      position.x + glyph->margin.x,
-      position.y + text->min_y - glyph->margin.y
-    };
-    DrawTextureRec(text->font->texture, glyph->rect, pos, color);
-    position.x += glyph->advance.x;
-    position.y += glyph->advance.y;
+    if (glyph)
+    {
+      Vector2 pos = (Vector2){
+        position.x + glyph->margin.x,
+        position.y + text->min_y - glyph->margin.y
+      };
+      DrawTextureRec(text->font->texture, glyph->rect, pos, color);
+      position.x += glyph->advance.x;
+      position.y += glyph->advance.y;
+    }
   }
   return self;
 }

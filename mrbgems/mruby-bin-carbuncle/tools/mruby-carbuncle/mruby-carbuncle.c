@@ -53,6 +53,7 @@ check_mruby_error(mrb_state *mrb)
   if (mrb->exc)
   {
     mrb_print_error(mrb);
+    mrb_print_backtrace(mrb);
     wait_for_close();
   }
 }
