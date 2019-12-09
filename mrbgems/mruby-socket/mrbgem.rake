@@ -1,6 +1,6 @@
 MRuby::Gem::Specification.new('mruby-socket') do |spec|
   spec.license = 'MIT'
-  spec.authors = 'Internet Initiative Japan'
+  spec.authors = ['Internet Initiative Japan', 'mruby developers']
   spec.summary = 'standard socket class'
 
   spec.cc.include_paths << "#{build.root}/src"

@@ -171,6 +171,7 @@ Add the line below to your `build_config.rb`:
 ## License
 
 Copyright (c) 2013 Internet Initiative Japan Inc.
+Copyright (c) 2017 mruby developers
 
 Permission is hereby granted, free of charge, to any person obtaining a 
 copy of this software and associated documentation files (the "Software"), 

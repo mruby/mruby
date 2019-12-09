@@ -2,6 +2,7 @@
 ** mrb_sleep - sleep methods for mruby
 **
 ** Copyright (c) mod_mruby developers 2012-
+** Copyright (c) mruby developers 2018
 **
 ** Permission is hereby granted, free of charge, to any person obtaining
 ** a copy of this software and associated documentation files (the

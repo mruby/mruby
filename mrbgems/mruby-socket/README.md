@@ -35,6 +35,7 @@ Date: Tue, 21 May 2013 04:31:30 GMT
 ## License
 
 Copyright (c) 2013 Internet Initiative Japan Inc.
+Copyright (c) 2017 mruby developers
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files (the "Software"),
