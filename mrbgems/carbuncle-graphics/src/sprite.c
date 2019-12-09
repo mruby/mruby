@@ -340,36 +340,36 @@ mrb_sprite_dispose(mrb_state *mrb, mrb_value self)
 void
 mrb_carbuncle_sprite_init(mrb_state *mrb)
 {
-  struct RClass *texture = mrb_carbuncle_define_data_class(mrb, "Sprite", mrb->object_class);
-  mrb_define_method(mrb, texture, "initialize", mrb_sprite_initialize, MRB_ARGS_OPT(1));
+  struct RClass *sprite = mrb_carbuncle_define_data_class(mrb, "Sprite", mrb->object_class);
+  mrb_define_method(mrb, sprite, "initialize", mrb_sprite_initialize, MRB_ARGS_OPT(1));
 
-  mrb_define_method(mrb, texture, "disposed?", mrb_sprite_disposedQ, MRB_ARGS_NONE());
+  mrb_define_method(mrb, sprite, "disposed?", mrb_sprite_disposedQ, MRB_ARGS_NONE());
 
-  mrb_define_method(mrb, texture, "texture", mrb_sprite_get_texture, MRB_ARGS_NONE());
-  mrb_define_method(mrb, texture, "position", mrb_sprite_get_position, MRB_ARGS_NONE());
-  mrb_define_method(mrb, texture, "scale", mrb_sprite_get_scale, MRB_ARGS_NONE());
-  mrb_define_method(mrb, texture, "pivot", mrb_sprite_get_pivot, MRB_ARGS_NONE());
-  mrb_define_method(mrb, texture, "src_rect", mrb_sprite_get_src_rect, MRB_ARGS_NONE());
-  mrb_define_method(mrb, texture, "color", mrb_sprite_get_color, MRB_ARGS_NONE());
-  mrb_define_method(mrb, texture, "angle", mrb_sprite_get_angle, MRB_ARGS_NONE());
+  mrb_define_method(mrb, sprite, "texture", mrb_sprite_get_texture, MRB_ARGS_NONE());
+  mrb_define_method(mrb, sprite, "position", mrb_sprite_get_position, MRB_ARGS_NONE());
+  mrb_define_method(mrb, sprite, "scale", mrb_sprite_get_scale, MRB_ARGS_NONE());
+  mrb_define_method(mrb, sprite, "pivot", mrb_sprite_get_pivot, MRB_ARGS_NONE());
+  mrb_define_method(mrb, sprite, "src_rect", mrb_sprite_get_src_rect, MRB_ARGS_NONE());
+  mrb_define_method(mrb, sprite, "color", mrb_sprite_get_color, MRB_ARGS_NONE());
+  mrb_define_method(mrb, sprite, "angle", mrb_sprite_get_angle, MRB_ARGS_NONE());
 
-  mrb_define_method(mrb, texture, "width", mrb_sprite_get_width, MRB_ARGS_NONE());
-  mrb_define_method(mrb, texture, "height", mrb_sprite_get_height, MRB_ARGS_NONE());
-  mrb_define_method(mrb, texture, "w", mrb_sprite_get_width, MRB_ARGS_NONE());
-  mrb_define_method(mrb, texture, "h", mrb_sprite_get_height, MRB_ARGS_NONE());
+  mrb_define_method(mrb, sprite, "width", mrb_sprite_get_width, MRB_ARGS_NONE());
+  mrb_define_method(mrb, sprite, "height", mrb_sprite_get_height, MRB_ARGS_NONE());
+  mrb_define_method(mrb, sprite, "w", mrb_sprite_get_width, MRB_ARGS_NONE());
+  mrb_define_method(mrb, sprite, "h", mrb_sprite_get_height, MRB_ARGS_NONE());
 
-  mrb_define_method(mrb, texture, "texture=", mrb_sprite_set_texture, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, texture, "position=", mrb_sprite_set_position, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, texture, "scale=", mrb_sprite_set_scale, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, texture, "pivot=", mrb_sprite_set_pivot, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, texture, "src_rect=", mrb_sprite_set_src_rect, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, texture, "color=", mrb_sprite_set_color, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, texture, "angle=", mrb_sprite_set_angle, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, sprite, "texture=", mrb_sprite_set_texture, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, sprite, "position=", mrb_sprite_set_position, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, sprite, "scale=", mrb_sprite_set_scale, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, sprite, "pivot=", mrb_sprite_set_pivot, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, sprite, "src_rect=", mrb_sprite_set_src_rect, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, sprite, "color=", mrb_sprite_set_color, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, sprite, "angle=", mrb_sprite_set_angle, MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, texture, "update", mrb_sprite_update, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, texture, "draw", mrb_sprite_draw, MRB_ARGS_NONE());
+  mrb_define_method(mrb, sprite, "update", mrb_sprite_update, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, sprite, "draw", mrb_sprite_draw, MRB_ARGS_NONE());
 
-  mrb_define_method(mrb, texture, "dispose", mrb_sprite_dispose, MRB_ARGS_NONE());
+  mrb_define_method(mrb, sprite, "dispose", mrb_sprite_dispose, MRB_ARGS_NONE());
 }
 
 struct mrb_Sprite *
