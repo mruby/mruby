@@ -22,6 +22,8 @@ module Carbuncle
       end
     end
 
+    delegate :x, :y, :x=, :y=, to: :position
+
     attr_accessor :offset
 
     def initialize(font = nil)
