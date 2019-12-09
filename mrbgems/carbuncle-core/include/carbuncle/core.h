@@ -82,6 +82,9 @@ carbuncle_utf8_encode(char *out, uint32_t utf)
   }
 }
 
+mrb_value
+mrb_carbuncle_call_block(mrb_state *mrb, mrb_value block);
+
 #ifdef __cplusplus
 }
 #endif

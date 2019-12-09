@@ -33,3 +33,9 @@ mrb_carbuncle_get(mrb_state *mrb)
 {
   return CARBUNCLE_MODULE;
 }
+
+mrb_value
+mrb_carbuncle_call_block(mrb_state *mrb, mrb_value block)
+{
+  return mrb_funcall(mrb, block, "call", 0);
+}

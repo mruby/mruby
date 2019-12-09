@@ -8,6 +8,9 @@
 #include "carbuncle/text.h"
 #include "carbuncle/plane.h"
 #include "carbuncle/viewport.h"
+#include "carbuncle/canvas.h"
+#include "carbuncle/nine_patch.h"
+#include "carbuncle/shader.h"
 
 void
 mrb_carbuncle_graphics_gem_init(mrb_state *mrb)
@@ -20,6 +23,9 @@ mrb_carbuncle_graphics_gem_init(mrb_state *mrb)
   mrb_carbuncle_text_init(mrb);
   mrb_carbuncle_plane_init(mrb);
   mrb_carbuncle_viewport_init(mrb);
+  mrb_carbuncle_canvas_init(mrb);
+  mrb_carbuncle_nine_patch_init(mrb);
+  mrb_carbuncle_shader_init(mrb);
 }
 
 void
