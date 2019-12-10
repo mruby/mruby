@@ -50,5 +50,5 @@ mrb_carbuncle_core_gem_init(mrb_state *mrb)
 void
 mrb_carbuncle_core_gem_final(mrb_state *mrb)
 {
-  /* finalizer */
+  carbuncle_audio_manager_final(mrb);
 }

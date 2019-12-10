@@ -34,9 +34,12 @@ carbuncle_audio_manager_unregister(Music *music)
   {
     if (music_streams[i] == music)
     {
-      for (size_t j = i; j < music_size - 1; ++j)
+      for (size_t j = i; j < music_size; ++j)
       {
-        music_streams[j] = music_streams[j + 1];
+        if (j > 0)
+        {
+          music_streams[j - 1] = music_streams[j];
+        }
       }
       --music_size;
       return;
@@ -54,4 +57,10 @@ carbuncle_audio_manager_update(void)
     Music music = *(music_streams[i]);
     if (IsMusicPlaying(music)) { UpdateMusicStream(music); }
   }
+}
+
+void
+carbuncle_audio_manager_final(mrb_state *mrb)
+{
+  mrb_free(mrb, music_streams);
 }

@@ -20,6 +20,9 @@ carbuncle_audio_manager_unregister(Music *music);
 void
 carbuncle_audio_manager_update(void);
 
+void
+carbuncle_audio_manager_final(mrb_state *mrb);
+
 #ifdef __cplusplus
 }
 #endif
