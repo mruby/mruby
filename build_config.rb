@@ -53,3 +53,23 @@ if ENV.fetch('BUILD_WEB', false)
     conf.gembox 'carbuncle'
   end
 end
+
+if ENV.fetch('BUILD_IOS', false) && RUBY_PLATFORM ~= /darwin/
+  MRuby::CrossBuild.new('ios') do |conf|
+    toolchain :clang
+
+    sdk_path = '/Applications/Xcode.app/Contents/Developer/Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS9.2.sdk'
+    arch = '-arch arm64 -arch armv7 -arch armv7s'
+
+    conf.cc.flags << arch
+    conf.cc.include_paths << "#{sdk_path}/usr/include"
+    conf.linker.flags << arch
+    conf.linker.library_paths << "#{sdk_path}/usr/lib"
+
+    conf.bins = []
+
+    conf.gembox 'default'
+    conf.gembox 'extras'
+    conf.gembox 'carbuncle'
+  end
+end
