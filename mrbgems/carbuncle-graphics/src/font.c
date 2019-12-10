@@ -58,7 +58,6 @@ mrb_font_free(mrb_state *mrb, void *ptr)
   {
     UnloadTexture(font->texture);
     free_glyph(mrb, font->glyphs.root);
-    FT_Done_Face(font->face);
     mrb_free(mrb, font);
   }
 }
@@ -304,6 +303,7 @@ open_font(mrb_state *mrb, struct mrb_Font *font, const char *filename, size_t si
   }
   font->glyphs.root = NULL;
   load_glyphs(mrb, font);
+  FT_Done_Face(font->face);
 }
 
 static mrb_value

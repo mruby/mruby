@@ -46,7 +46,10 @@ mrb_free_text(mrb_state *mrb, mrb_value *ptr)
   if (ptr)
   {
     struct mrb_Text *text = ptr;
-    mrb_free(mrb, text->glyphs);
+    if (text->glyphs)
+    {
+      mrb_free(mrb, text->glyphs);
+    }
     mrb_free(mrb, ptr);
   }
 }
