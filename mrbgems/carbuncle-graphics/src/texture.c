@@ -17,11 +17,14 @@ static void
 mrb_texture_free(mrb_state *mrb, void *ptr)
 {
   struct mrb_Texture *texture = (struct mrb_Texture *)ptr;
-  --(texture->ref_count);
-  if (texture->ref_count <= 0)
+  if (texture)
   {
-    UnloadTexture(texture->base);
-    mrb_free(mrb, texture);
+    --(texture->ref_count);
+    if (texture->ref_count <= 0)
+    {
+      UnloadTexture(texture->base);
+      mrb_free(mrb, texture);
+    }
   }
 }
 
