@@ -14,6 +14,7 @@
 #include "rlgl.h"
 
 #include <mruby/class.h>
+#include <mruby/error.h>
 
 #define UNIFORM_SYMBOL mrb_intern_cstr(mrb, "@uniform_values")
 #define UNIFORM_TYPES  mrb_intern_cst(mrb, "@uniform_types")
@@ -250,6 +251,32 @@ mrb_shader_send_uniform_value(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+mrb_value
+mrb_shader_begin_render(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_Shader *data = get_shader(mrb, self);
+  mrb_value block = mrb_nil_value();
+  mrb_get_args(mrb, "|&", &block);
+  BeginShaderMode(data->shader);
+  if (!mrb_nil_p(block))
+  {
+    mrb_bool raised = FALSE;
+    mrb_value result = mrb_protect(mrb, mrb_carbuncle_call_block, block, &raised);
+    EndShaderMode();
+    if (raised) {
+      mrb_exc_raise(mrb, result);
+    }
+  }
+  return self;
+}
+
+mrb_value
+mrb_shader_end_render(mrb_state *mrb, mrb_value self)
+{
+  EndShaderMode();
+  return self;
+}
+
 void
 mrb_carbuncle_shader_init(mrb_state *mrb)
 {
@@ -267,4 +294,8 @@ mrb_carbuncle_shader_init(mrb_state *mrb)
 
   mrb_define_method(mrb, shader, "find_uniform_location", mrb_shader_find_uniform_location, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, shader, "send_uniform_value", mrb_shader_send_uniform_value, MRB_ARGS_REQ(2));
+
+  mrb_define_method(mrb, shader, "render", mrb_shader_begin_render, MRB_ARGS_BLOCK());
+  mrb_define_method(mrb, shader, "begin_render", mrb_shader_begin_render, MRB_ARGS_NONE());
+  mrb_define_method(mrb, shader, "end_render", mrb_shader_end_render, MRB_ARGS_NONE());
 }
