@@ -1,17 +1,23 @@
 #include "carbuncle/core.h"
+#include "carbuncle/point.h"
+#include "carbuncle/vector3.h"
+#include "carbuncle/vector4.h"
+#include "carbuncle/rect.h"
+#include "carbuncle/color.h"
+#include "carbuncle/matrix.h"
+#include "carbuncle/texture.h"
 #include "carbuncle/shader.h"
+
+#include <stdlib.h>
 
 #include "raylib.h"
 #include "rlgl.h"
 
 #include <mruby/class.h>
 
-#define UNIFORM_RECT   997
-#define UNIFORM_COLOR  998
-#define UNIFORM_MATRIX 999
-
 #define UNIFORM_SYMBOL mrb_intern_cstr(mrb, "@uniform_values")
 #define UNIFORM_TYPES  mrb_intern_cst(mrb, "@uniform_types")
+
 struct mrb_Shader
 {
   mrb_bool default_shader;
@@ -55,29 +61,68 @@ load_shader(mrb_state *mrb, struct mrb_Shader *shader, const char *vertex, const
   if (free_fragment) { RL_FREE(fragment); }
 }
 
-static mrb_value
-symbol_for(mrb_state *mrb, const char *value)
+static void
+send_integer(struct mrb_Shader *shader, mrb_int location, int value)
 {
-  return mrb_symbol_value(mrb_intern_cstr(mrb, value));
+  SetShaderValue(shader->shader, location, &value, UNIFORM_INT);
 }
 
 static void
-add_uniform(mrb_state *mrb, mrb_value self, struct mrb_Shader *shader, const char *name, mrb_value class_value)
+send_float(struct mrb_Shader *shader, mrb_int location, float value)
 {
-  mrb_funcall(mrb, self, "define_uniform", 2, symbol_for(mrb, name), class_value);
+  SetShaderValue(shader->shader, location, &value, UNIFORM_FLOAT);
 }
 
 static void
-set_default_shader_locations(mrb_state *mrb, mrb_value self)
+send_point(struct mrb_Shader *shader, mrb_int location, Vector2 *point)
 {
-  struct mrb_Shader *shader = get_shader(mrb, self);
-  add_uniform(mrb, self, shader, "mvp", mrb_obj_value(mrb_class_get(mrb, "Matrix")));
-  add_uniform(mrb, self, shader, "proyection",  mrb_obj_value(mrb_class_get(mrb, "Matrix")));
-  add_uniform(mrb, self, shader, "view", mrb_obj_value(mrb_class_get(mrb, "Matrix")));
-  add_uniform(mrb, self, shader, "colDiffuse", mrb_obj_value(mrb_class_get(mrb, "Color")));
-  add_uniform(mrb, self, shader, "texture0", mrb_obj_value(mrb_class_get(mrb, "Texture")));
-  add_uniform(mrb, self, shader, "texture1", mrb_obj_value(mrb_class_get(mrb, "Texture")));
-  add_uniform(mrb, self, shader, "texture2", mrb_obj_value(mrb_class_get(mrb, "Texture")));
+  float value[2] = { point->x, point->y };
+  SetShaderValue(shader->shader, location, &value, UNIFORM_VEC2);
+}
+
+static void
+send_vector3(struct mrb_Shader *shader, mrb_int location, Vector3 *vector)
+{
+  float value[3] = { vector->x, vector->y, vector->z };
+  SetShaderValue(shader->shader, location, &value, UNIFORM_VEC3);
+}
+
+static void
+send_vector4(struct mrb_Shader *shader, mrb_int location, Vector4 *vector)
+{
+  float value[4] = { vector->x, vector->y, vector->z, vector->w };
+  SetShaderValue(shader->shader, location, &value, UNIFORM_VEC4);
+}
+
+static void
+send_rect(struct mrb_Shader *shader, mrb_int location, Rectangle *rect)
+{
+  float value[4] = { rect->x, rect->y, rect->width, rect->height };
+  SetShaderValue(shader->shader, location, &value, UNIFORM_VEC4);
+}
+
+static void
+send_color(struct mrb_Shader *shader, mrb_int location, Color *color)
+{
+  float value[4] = {
+    (float)color->r / 255.0f,
+    (float)color->g / 255.0f,
+    (float)color->b / 255.0f,
+    (float)color->a / 255.0f
+  };
+  SetShaderValue(shader->shader, location, &value, UNIFORM_VEC4);
+}
+
+static void
+send_matrix(struct mrb_Shader *shader, mrb_int location, Matrix *matrix)
+{
+  SetShaderValueMatrix(shader->shader, location, *matrix);
+}
+
+static void
+send_texture(struct mrb_Shader *shader, mrb_int location, Texture *texture)
+{
+  SetShaderValueTexture(shader->shader, location, *texture);
 }
 
 mrb_value
@@ -116,7 +161,6 @@ mrb_shader_initialize(mrb_state *mrb, mrb_value self)
       break;
     }
   }
-  set_default_shader_locations(mrb, self);
   return self;
 }
 
@@ -151,6 +195,61 @@ mrb_shader_dispose(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+mrb_value
+mrb_shader_find_uniform_location(mrb_state *mrb, mrb_value self)
+{
+  const char *name;
+  struct mrb_Shader *shader = get_shader(mrb, self);
+  mrb_get_args(mrb, "z", &name);
+  return mrb_fixnum_value(GetShaderLocation(shader->shader, name));
+}
+
+mrb_value
+mrb_shader_send_uniform_value(mrb_state *mrb, mrb_value self)
+{
+  mrb_int location;
+  mrb_value obj;
+  struct mrb_Shader *shader = get_shader(mrb, self);
+  mrb_get_args(mrb, "io", &location, &obj);
+  if (mrb_fixnum_p(obj))
+  {
+    send_integer(shader, location, mrb_fixnum(obj));
+  }
+  else if (mrb_float_p(obj))
+  {
+    send_float(shader, location, mrb_float(obj));
+  }
+  else if (mrb_carbuncle_point_p(obj))
+  {
+    send_point(shader, location, mrb_carbuncle_get_point(mrb, obj));
+  }
+  else if (mrb_carbuncle_vector3_p(obj))
+  {
+    send_vector3(shader, location, mrb_carbuncle_get_vector3(mrb, obj));
+  }
+  else if (mrb_carbuncle_vector4_p(obj))
+  {
+    send_vector4(shader, location, mrb_carbuncle_get_vector4(mrb, obj));
+  }
+  else if (mrb_carbuncle_rect_p(obj))
+  {
+    send_rect(shader, location, mrb_carbuncle_get_rect(mrb, obj));
+  }
+  else if (mrb_carbuncle_color_p(obj))
+  {
+    send_color(shader, location, mrb_carbuncle_get_color(mrb, obj));
+  }
+  else if (mrb_carbuncle_matrix_p(obj))
+  {
+    send_matrix(shader, location, mrb_carbuncle_get_matrix(mrb, obj));
+  }
+  else if (mrb_carbuncle_texture_p(obj))
+  {
+    send_texture(shader, location, mrb_carbuncle_get_texture(mrb, obj));
+  }
+  return self;
+}
+
 void
 mrb_carbuncle_shader_init(mrb_state *mrb)
 {
@@ -165,4 +264,7 @@ mrb_carbuncle_shader_init(mrb_state *mrb)
 
   mrb_define_method(mrb, shader, "disposed?", mrb_shader_disposedQ, MRB_ARGS_NONE());
   mrb_define_method(mrb, shader, "dispose", mrb_shader_dispose, MRB_ARGS_NONE());
+
+  mrb_define_method(mrb, shader, "find_uniform_location", mrb_shader_find_uniform_location, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, shader, "send_uniform_value", mrb_shader_send_uniform_value, MRB_ARGS_REQ(2));
 }

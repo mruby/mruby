@@ -1,24 +1,49 @@
 module Carbuncle
   class Shader
-    def define_uniform(name, type)
-      symbol = name.to_s.to_sym
-      @uniform_types ||= {}
-      @uniform_values ||= {}
-      raise ArgumentError, "'#{name}' is already defined as attribute." if @uniforms[symbol].present?
+    VALID_UNIFORM_CLASSES = [
+      Integer, Float,
+      Carbuncle::Point, Carbuncle::Vector3, Carbuncle::Vector4,
+      Carbuncle::Rect, Carbuncle::Color, Carbuncle::Matrix,
+      Carbuncle::Texture
+    ].freeze
 
-      @uniform_types[symbol] = type
-      @uniform_values[symbol] = type.new
-
-      invalid_type = "Invalid type for uniform '#{name}', expected '#{type.name}', but #{value.class.name} was set."
-
-      define_method symbol do
-        @uniform_values[symbol]
+    def add_uniform(name, uniform_class, value = nil)
+      symbol = name.to_sym
+      variable = name.to_s.underscore
+      @uniform_types[symbol]  = uniform_class
+      @uniform_values[symbol] = value.presence || uniform_class.new
+      @uniform_locations[symbol] = find_uniform_location(name)
+      if @uniform_locations[symbol].zero?
+        raise ArgumentError, "Couldn't find location for uniform '#{name}'"
+      end
+      unless VALID_UNIFORM_CLASSES.include?(uniform_class)
+        raise ArgumentError, "#{uniform_class.name} is not a valid uniform type."
       end
 
-      define_method :"#{symbol}=" do |value|
-        raise ArgumentError, invalid_type unless value.is_a?(type)
+      define_method(variable) { @uniform_values[symbol] }
+      define_method(:"#{variable}=") { |new_value| assign_uniform(symbol, new_value) }
+    end
 
-        @uniform_values[symbol] = type
+    def update(dt = 0)
+      update_uniforms
+    end
+
+    def assign_uniform(name, value)
+      symbol = name.to_sym
+      klass = @uniform_types[symbol]
+      unless @uniform_types.key?(symbol)
+        raise ArgumentError, "Uniform '#{name}' does not exists on shader."
+      end
+      unless value.is_a?(klass)
+        raise ArgumentError, "Uniform '#{name}' should be of type #{klass.name}"
+      end
+
+      @uniform_values[symbol] = value
+    end
+
+    def update_uniforms
+      @uniform_values.each do |symbol, value|
+        send_uniform_value(@uniform_locations[symbol], value)
       end
     end
 
@@ -27,8 +52,8 @@ module Carbuncle
     end
 
     def uniforms=(values)
-      values.each_pair do |key, value|
-        send(key, value)
+      values.each do |name, value|
+        assign_uniform(name, value)
       end
     end
   end
