@@ -54,7 +54,7 @@ if ENV.fetch('BUILD_WEB', false)
   end
 end
 
-if ENV.fetch('BUILD_IOS', false) && RUBY_PLATFORM ~= /darwin/
+if ENV.fetch('BUILD_IOS', false) && (RUBY_PLATFORM =~ /darwin/)
   MRuby::CrossBuild.new('ios') do |conf|
     toolchain :clang
 

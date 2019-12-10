@@ -15,9 +15,12 @@
 
 #include <mruby/class.h>
 #include <mruby/error.h>
+#include <mruby/hash.h>
+#include <mruby/variable.h>
 
-#define UNIFORM_SYMBOL mrb_intern_cstr(mrb, "@uniform_values")
-#define UNIFORM_TYPES  mrb_intern_cst(mrb, "@uniform_types")
+#define UNIFORM_VALUES_SYMBOL    mrb_intern_cstr(mrb, "@uniform_values")
+#define UNIFORM_TYPES_SYMBOL     mrb_intern_cstr(mrb, "@uniform_types")
+#define UNIFORM_LOCATIONS_SYMBOL mrb_intern_cstr(mrb, "@uniform_locations")
 
 struct mrb_Shader
 {
@@ -136,6 +139,9 @@ mrb_shader_initialize(mrb_state *mrb, mrb_value self)
   argc = mrb_get_args(mrb, "|zz", &first, &second);
   DATA_PTR(self) = shader;
   DATA_TYPE(self) = &shader_data_type;
+  mrb_iv_set(mrb, self, UNIFORM_LOCATIONS_SYMBOL, mrb_hash_new(mrb));
+  mrb_iv_set(mrb, self, UNIFORM_TYPES_SYMBOL, mrb_hash_new(mrb));
+  mrb_iv_set(mrb, self, UNIFORM_VALUES_SYMBOL, mrb_hash_new(mrb));
   switch (argc)
   {
     case 0:
