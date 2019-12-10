@@ -25,8 +25,7 @@ set_point_values(mrb_state *mrb, mrb_value self, mrb_bool from_initialize)
       {
         mrb_carbuncle_arg_error(mrb, "1 or 2", argc);
       }
-      data->x = 0;
-      data->y = 0;
+      data->x = data->y = 0;
       break;
     }
     case 1: {
