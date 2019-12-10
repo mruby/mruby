@@ -29,6 +29,7 @@ mrb_s_carbuncle_toggle_debug_draw(mrb_state *mrb, mrb_value self)
 void
 mrb_carbuncle_core_gem_init(mrb_state *mrb)
 {
+  InitAudioDevice();
   carbuncle_audio_manager_init(mrb);
   struct RClass *carbuncle = mrb_define_module(mrb, "Carbuncle");
   
@@ -51,4 +52,5 @@ void
 mrb_carbuncle_core_gem_final(mrb_state *mrb)
 {
   carbuncle_audio_manager_final(mrb);
+  CloseAudioDevice();
 }

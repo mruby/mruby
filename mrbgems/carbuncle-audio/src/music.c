@@ -16,7 +16,7 @@ min(mrb_float a, mrb_float b)
   return a < b ? a : b;
 }
 
-static struct mrb_Music
+struct mrb_Music
 {
   Music data;
   mrb_float volume, pitch;
@@ -34,6 +34,7 @@ mrb_music_free(mrb_state *mrb, void *p)
     }
     carbuncle_audio_manager_unregister(&(music->data));
     UnloadMusicStream(music->data);
+    mrb_free(mrb, p);
   }
 }
 
@@ -49,8 +50,8 @@ mrb_music_initialize(mrb_state *mrb, mrb_value self)
   mrb_carbuncle_check_file(mrb, name);
   struct mrb_Music *music = mrb_malloc(mrb, sizeof *music);
   music->data = LoadMusicStream(name);
-  //SetMusicVolume(music->data, 1);
-  //SetMusicPitch(music->data, 1);
+  SetMusicVolume(music->data, 1);
+  SetMusicPitch(music->data, 1);
   music->volume = 1;
   music->pitch = 1;
   DATA_PTR(self) = music;

@@ -52,7 +52,6 @@ begin_game(mrb_state *mrb, mrb_value self, mrb_value instance)
   mrb_gc_register(mrb, instance);
   carbuncle_game_is_running = TRUE;
   create_window(mrb, instance);
-  InitAudioDevice();
   mrb_funcall(mrb, instance, "load", 0);
   mrb_funcall(mrb, instance, "after_run", 0);
 }
@@ -119,7 +118,6 @@ close_game(mrb_state *mrb, mrb_value self, mrb_value instance)
   mrb_gc_unregister(mrb, instance);
   mrb_gv_set(mrb, CURRENT_GAME_SYMBOL, mrb_nil_value());
   mrb_funcall(mrb, instance, "before_close", 0);
-  CloseAudioDevice();
   HideWindow();
   CloseWindow();
   mrb_funcall(mrb, instance, "after_close", 0);
