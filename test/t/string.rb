@@ -687,31 +687,35 @@ assert('String#sub!', '15.2.10.5.37') do
 end
 
 assert('String#to_f', '15.2.10.5.38') do
-  a = ''.to_f
-  b = '123456789'.to_f
-  c = '12345.6789'.to_f
-  d = '1e-2147483648'.to_f
-  e = '1e2147483648'.to_f
-
-  assert_float(0.0, a)
-  assert_float(123456789.0, b)
-  assert_float(12345.6789, c)
-  assert_float(0, d)
-  assert_float(Float::INFINITY, e)
+  assert_operator(0.0, :eql?, ''.to_f)
+  assert_operator(123456789.0, :eql?, '123456789'.to_f)
+  assert_operator(12345.6789, :eql?, '12345.6789'.to_f)
+  assert_operator(0.0, :eql?, '1e-2147483648'.to_f)
+  assert_operator(Float::INFINITY, :eql?, '1e2147483648'.to_f)
+  assert_operator(0.0, :eql?, 'a'.to_f)
+  assert_operator(4.0, :eql?, '4a5'.to_f)
+  assert_operator(12.0, :eql?, '1_2__3'.to_f)
+  assert_operator(123.0, :eql?, '1_2_3'.to_f)
+  assert_operator(68.0, :eql?, '68_'.to_f)
+  assert_operator(68.0, :eql?, '68._7'.to_f)
+  assert_operator(68.7, :eql?, '68.7_'.to_f)
+  assert_operator(0.0, :eql?, '_68'.to_f)
+  assert_operator(12.34, :eql?, '1_2.3_4'.to_f)
+  assert_operator(12.3, :eql?, '1_2.3__4'.to_f)
+  assert_operator(0.9, :eql?, '.9'.to_f)
 end if Object.const_defined?(:Float)
 
 assert('String#to_i', '15.2.10.5.39') do
-  a = ''.to_i
-  b = '32143'.to_i
-  c = 'a'.to_i(16)
-  d = '100'.to_i(2)
-  e = '1_000'.to_i
-
-  assert_equal 0, a
-  assert_equal 32143, b
-  assert_equal 10, c
-  assert_equal 4, d
-  assert_equal 1_000, e
+  assert_operator 0, :eql?, ''.to_i
+  assert_operator 32143, :eql?, '32143'.to_i
+  assert_operator 10, :eql?, 'a'.to_i(16)
+  assert_operator 4, :eql?, '100'.to_i(2)
+  assert_operator 1_000, :eql?, '1_000'.to_i
+  assert_operator 0, :eql?, 'a'.to_i
+  assert_operator 4, :eql?, '4a5'.to_i
+  assert_operator 12, :eql?, '1_2__3'.to_i
+  assert_operator 123, :eql?, '1_2_3'.to_i
+  assert_operator 68, :eql?, '68_'.to_i
 end
 
 assert('String#to_s', '15.2.10.5.40') do
