@@ -1,15 +1,15 @@
 module Carbuncle
-  class Rect
+  class Vector4
     include Enumerable
 
     (2..4).each do |i|
-      %w[x y w h].permutation(i) do |fields|
+      %w[x y z w].permutation(i) do |fields|
         define_method(fields.join) do
           fields.map { |field| send(field) }
         end
 
         define_method("#{fields.join}=") do |other|
-          i.times do |index|
+          2.times do |index|
             send(:"#{fields[index]}=", other[index])
           end
         end
@@ -21,7 +21,7 @@ module Carbuncle
     end
 
     def inspect
-      "Rect(#{x}, #{y}, #{w}, #{h})"
+      "Vector4(#{x}, #{y}, #{z}, #{w})"
     end
 
     def size
@@ -29,7 +29,7 @@ module Carbuncle
     end
 
     def each(&block)
-      [x, y, w, h].each(&block)
+      [x, y, z, w].each(&block)
     end
   end
 end
