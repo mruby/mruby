@@ -6,11 +6,18 @@
 #include <mruby.h>
 #include <mruby/data.h>
 
+#include "raylib.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #define DATA_GET_DISPOSABLE_PTR(mrb, obj, type, cast) (cast *)mrb_check_disposed(mrb, obj, type);
+
+#ifdef CARBUNCLE_DEBUG
+extern mrb_bool mrb_carbuncle_debug_drawing;
+extern mrb_int mrb_carbuncle_debug_color_index;
+#endif
 
 void
 mrb_carbuncle_raise(mrb_state *mrb, const char *name, const char *msg);
@@ -38,6 +45,11 @@ mrb_carbuncle_module_get(mrb_state *mrb, const char *name);
 
 struct RClass *
 mrb_carbuncle_get(mrb_state *mrb);
+
+#ifdef CARBUNCLE_DEBUG
+void
+mrb_carbuncle_draw_debug_rect(Rectangle rect, Vector2 origin, float rotation);
+#endif
 
 static inline int
 carbuncle_utf8_encode(char *out, uint32_t utf)

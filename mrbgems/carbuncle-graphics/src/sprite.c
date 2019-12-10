@@ -322,6 +322,9 @@ mrb_sprite_draw(mrb_state *mrb, mrb_value self)
     data->pivot->x * dst_rect.width,
     data->pivot->y * dst_rect.height
   };
+#ifdef CARBUNCLE_DEBUG
+  mrb_carbuncle_draw_debug_rect(dst_rect, origin, data->angle);
+#endif
   rlEnableTexture(texture_data->id);
   mrb_carbuncle_sprite_draw_texture(*texture_data, src_rect, dst_rect, origin, data->angle, *(data->color));
   rlDisableTexture();

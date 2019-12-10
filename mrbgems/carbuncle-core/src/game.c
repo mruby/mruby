@@ -73,6 +73,9 @@ check_closing(mrb_state *mrb, mrb_value instance)
 static inline void
 draw_game(mrb_state *mrb, mrb_value instance)
 {
+#ifdef CARBUNCLE_DEBUG
+  mrb_carbuncle_debug_color_index = 0;
+#endif
   BeginDrawing();
   ClearBackground(BLACK);
   mrb_funcall(mrb, instance, "draw", 0);

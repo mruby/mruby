@@ -332,6 +332,9 @@ mrb_nine_patch_draw(mrb_state *mrb, mrb_value self)
     patch->pivot->x * patch->width,
     patch->pivot->y * patch->height
   };
+#ifdef CARBUNCLE_DEBUG
+  mrb_carbuncle_draw_debug_rect(dest, offset, patch->angle);
+#endif
   DrawTextureNPatch(*(patch->texture), info, dest, offset, patch->angle, *(patch->color));
   return self;
 }
