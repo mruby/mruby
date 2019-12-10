@@ -55,11 +55,15 @@ assert('Kernel#Integer') do
   assert_operator(0, :eql?, Integer("0"))
   assert_operator(0, :eql?, Integer("00000"))
   assert_operator(123, :eql?, Integer('1_2_3'))
+  assert_operator(123, :eql?, Integer("\t\r\n\f\v 123 \t\r\n\f\v"))
   assert_raise(TypeError) { Integer(nil) }
   assert_raise(ArgumentError) { Integer('a') }
   assert_raise(ArgumentError) { Integer('4a5') }
   assert_raise(ArgumentError) { Integer('1_2__3') }
   assert_raise(ArgumentError) { Integer('68_') }
+  assert_raise(ArgumentError) { Integer('_68') }
+  assert_raise(ArgumentError) { Integer(' _68') }
+  assert_raise(ArgumentError) { Integer('6 8') }
   assert_raise(ArgumentError) { Integer("15\0") }
   assert_raise(ArgumentError) { Integer("15.0") }
   skip unless Object.const_defined?(:Float)
@@ -74,7 +78,9 @@ assert('Kernel#Float') do
   assert_operator(123.0, :eql?, Float('1_2_3'))
   assert_operator(12.34, :eql?, Float('1_2.3_4'))
   assert_operator(0.9, :eql?, Float('.9'))
+  assert_operator(0.9, :eql?, Float(" \t\r\n\f\v.9 \t\r\n\f\v"))
   assert_raise(TypeError) { Float(nil) }
+  assert_raise(ArgumentError) { Float("1. 5") }
   assert_raise(ArgumentError) { Float("1.5a") }
   assert_raise(ArgumentError) { Float("1.5\0") }
   assert_raise(ArgumentError) { Float('a') }
@@ -84,6 +90,7 @@ assert('Kernel#Float') do
   assert_raise(ArgumentError) { Float('68._7') }
   assert_raise(ArgumentError) { Float('68.7_') }
   assert_raise(ArgumentError) { Float('_68') }
+  assert_raise(ArgumentError) { Float(' _68') }
   assert_raise(ArgumentError) { Float('1_2.3__4') }
 end
 

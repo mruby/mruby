@@ -2354,7 +2354,7 @@ mrb_str_len_to_inum(mrb_state *mrb, const char *str, mrb_int len, mrb_int base, 
     if (*(p - 1) == '0')
       p--;
   }
-  if (p == pend) {
+  if (p == pend || *p == '_') {
     if (badcheck) goto bad;
     return mrb_fixnum_value(0);
   }

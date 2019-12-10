@@ -699,10 +699,14 @@ assert('String#to_f', '15.2.10.5.38') do
   assert_operator(68.0, :eql?, '68_'.to_f)
   assert_operator(68.0, :eql?, '68._7'.to_f)
   assert_operator(68.7, :eql?, '68.7_'.to_f)
+  assert_operator(6.0, :eql?, '6 8.7'.to_f)
+  assert_operator(68.0, :eql?, '68. 7'.to_f)
   assert_operator(0.0, :eql?, '_68'.to_f)
+  assert_operator(0.0, :eql?, ' _68'.to_f)
   assert_operator(12.34, :eql?, '1_2.3_4'.to_f)
   assert_operator(12.3, :eql?, '1_2.3__4'.to_f)
   assert_operator(0.9, :eql?, '.9'.to_f)
+  assert_operator(0.9, :eql?, "\t\r\n\f\v .9 \t\r\n\f\v".to_f)
 end if Object.const_defined?(:Float)
 
 assert('String#to_i', '15.2.10.5.39') do
@@ -716,6 +720,10 @@ assert('String#to_i', '15.2.10.5.39') do
   assert_operator 12, :eql?, '1_2__3'.to_i
   assert_operator 123, :eql?, '1_2_3'.to_i
   assert_operator 68, :eql?, '68_'.to_i
+  assert_operator 0, :eql?, '_68'.to_i
+  assert_operator 0, :eql?, ' _68'.to_i
+  assert_operator 68, :eql?, "\t\r\n\f\v 68 \t\r\n\f\v".to_i
+  assert_operator 6, :eql?, ' 6 8 '.to_i
 end
 
 assert('String#to_s', '15.2.10.5.40') do
