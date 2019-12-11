@@ -304,4 +304,7 @@ mrb_carbuncle_shader_init(mrb_state *mrb)
   mrb_define_method(mrb, shader, "render", mrb_shader_begin_render, MRB_ARGS_BLOCK());
   mrb_define_method(mrb, shader, "begin_render", mrb_shader_begin_render, MRB_ARGS_NONE());
   mrb_define_method(mrb, shader, "end_render", mrb_shader_end_render, MRB_ARGS_NONE());
+  mrb_define_method(mrb, shader, "draw", mrb_shader_begin_render, MRB_ARGS_BLOCK());
+  mrb_define_method(mrb, shader, "begin_draw", mrb_shader_begin_render, MRB_ARGS_NONE());
+  mrb_define_method(mrb, shader, "end_draw", mrb_shader_end_render, MRB_ARGS_NONE());  
 }

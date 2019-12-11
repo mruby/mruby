@@ -34,6 +34,7 @@ module Carbuncle
       unless @uniform_types.key?(symbol)
         raise ArgumentError, "Uniform '#{name}' does not exists on shader."
       end
+
       value = value.to_f if klass == Float
       value = value.to_i if klass == Integer
       unless value.is_a?(klass)
