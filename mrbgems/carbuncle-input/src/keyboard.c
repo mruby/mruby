@@ -7,9 +7,9 @@
 
 #include "raylib.h"
 
-#define CARBUNCLE_KEYBOAR_SIZE 84
+#define CARBUNCLE_KEYBOARD_SIZE 84
 
-static const mrb_int CARBUNCLE_KEYBOARD_VALUES[CARBUNCLE_KEYBOAR_SIZE] = {
+static const mrb_int CARBUNCLE_KEYBOARD_VALUES[CARBUNCLE_KEYBOARD_SIZE] = {
   KEY_BACKSPACE, KEY_SPACE,
   KEY_ESCAPE, KEY_ESCAPE,
   KEY_ENTER, KEY_ENTER,
@@ -30,7 +30,7 @@ static const mrb_int CARBUNCLE_KEYBOARD_VALUES[CARBUNCLE_KEYBOAR_SIZE] = {
   KEY_U, KEY_V, KEY_W, KEY_X, KEY_Y, KEY_Z
 };
 
-static const char *CARBUNCLE_KEYBOARD_NAMES[CARBUNCLE_KEYBOAR_SIZE] = {
+static const char *CARBUNCLE_KEYBOARD_NAMES[CARBUNCLE_KEYBOARD_SIZE] = {
   "BACKSPACE", "SPACE",
   "ESCAPE", "ESC",
   "ENTER", "RETURN",
@@ -133,7 +133,7 @@ mrb_carbuncle_keyboard_init(mrb_state *mrb)
 
   mrb_define_module_function(mrb, keyboard, "character", mrb_keyboard_get_character, MRB_ARGS_NONE());
 
-  for (mrb_int i = 0; i < CARBUNCLE_KEYBOAR_SIZE; ++i)
+  for (mrb_int i = 0; i < CARBUNCLE_KEYBOARD_SIZE; ++i)
   {
     mrb_define_const(mrb, keyboard, CARBUNCLE_KEYBOARD_NAMES[i], mrb_fixnum_value(CARBUNCLE_KEYBOARD_VALUES[i]));
   }
