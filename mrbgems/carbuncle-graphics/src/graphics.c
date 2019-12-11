@@ -2,6 +2,7 @@
 #include "carbuncle/point.h"
 #include "carbuncle/rect.h"
 #include "carbuncle/color.h"
+#include "carbuncle/matrix.h"
 #include "carbuncle/graphics.h"
 
 #include "raylib.h"
@@ -88,6 +89,15 @@ mrb_s_graphics_get_style(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+mrb_s_graphics_get_model_view(mrb_state *mrb, mrb_value self)
+{
+  mrb_value matrix = mrb_obj_new(mrb, mrb_carbuncle_class_get(mrb, "Matrix"), 0, NULL);
+  Matrix *data = mrb_carbuncle_get_matrix(mrb, matrix);
+  *data = GetMatrixModelview();
+  return matrix;
+}
+
+static mrb_value
 mrb_s_graphics_get_shader_version(mrb_state *mrb, mrb_value self)
 {
 #if (defined(__linux__) && !defined(__ANDROID__)) || defined(__APPLE__) || defined(_WIN32)
@@ -142,6 +152,16 @@ mrb_s_graphics_set_style(mrb_state *mrb, mrb_value self)
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "Unknown Graphics style '%s'.", mrb_str_to_cstr(mrb, str));
   }
   return first;
+}
+
+static mrb_value
+mrb_s_graphics_set_model_view(mrb_state *mrb, mrb_value self)
+{
+  mrb_value obj;
+  mrb_get_args(mrb, "o", &obj);
+  Matrix *matrix = mrb_carbuncle_get_matrix(mrb, obj);
+  SetMatrixModelview(*matrix);
+  return obj;
 }
 
 static mrb_value
@@ -582,6 +602,8 @@ mrb_carbuncle_graphics_init(mrb_state *mrb)
   mrb_define_module_function(mrb, graphics, "end_color", mrb_s_graphics_get_end_color, MRB_ARGS_NONE());
   mrb_define_module_function(mrb, graphics, "style", mrb_s_graphics_get_style, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, graphics, "mode", mrb_s_graphics_get_style, MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, graphics, "model_view", mrb_s_graphics_get_model_view, MRB_ARGS_NONE());
+  mrb_define_module_function(mrb, graphics, "modelview", mrb_s_graphics_get_model_view, MRB_ARGS_NONE());
   mrb_define_module_function(mrb, graphics, "shader_version", mrb_s_graphics_get_shader_version, MRB_ARGS_NONE());
   
   mrb_define_module_function(mrb, graphics, "color=", mrb_s_graphics_set_color, MRB_ARGS_REQ(1));
@@ -589,6 +611,8 @@ mrb_carbuncle_graphics_init(mrb_state *mrb)
   mrb_define_module_function(mrb, graphics, "end_color=", mrb_s_graphics_set_end_color, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, graphics, "style=", mrb_s_graphics_set_style, MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, graphics, "mode=", mrb_s_graphics_set_style, MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, graphics, "model_view=", mrb_s_graphics_set_model_view, MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, graphics, "modelview=", mrb_s_graphics_set_model_view, MRB_ARGS_REQ(1));
 
   mrb_define_module_function(mrb, graphics, "draw_pixel", mrb_s_graphics_draw_pixel, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_module_function(mrb, graphics, "draw_line", mrb_s_graphics_draw_line, MRB_ARGS_REQ(2)|MRB_ARGS_OPT(2));
