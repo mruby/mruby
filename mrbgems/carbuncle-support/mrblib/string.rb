@@ -7,4 +7,8 @@ class String
       .tr(' ', '_')
       .downcase
   end
+
+  def strip_heredoc
+    gsub(/^#{scan(/^[ \t]*(?=\S)/).min}/, ''.freeze)
+  end
 end

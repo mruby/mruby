@@ -70,7 +70,7 @@ mrb_matrix_get_subscript(mrb_state *mrb, mrb_value self)
         default: { mrb_raisef(mrb, E_ARGUMENT_ERROR, "Matrix index j (%d) out of range", j); }
       }
     }
-    case 4:
+    case 3:
     {
       switch(j)
       {
@@ -91,6 +91,7 @@ mrb_matrix_set_subscript(mrb_state *mrb, mrb_value self)
 {
   mrb_int i, j;
   mrb_float value;
+  mrb_carbuncle_check_frozen(mrb, self);
   Matrix *matrix = mrb_carbuncle_get_matrix(mrb, self);
   mrb_get_args(mrb, "iif", &i, &j, &value);
   switch (i)
@@ -105,6 +106,7 @@ mrb_matrix_set_subscript(mrb_state *mrb, mrb_value self)
         case 3: { matrix->m3 = value; break; }
         default: { mrb_raisef(mrb, E_ARGUMENT_ERROR, "Matrix index j (%d) out of range", j); }
       }
+      break;
     }
     case 1:
     {
@@ -116,6 +118,7 @@ mrb_matrix_set_subscript(mrb_state *mrb, mrb_value self)
         case 3: { matrix->m7 = value; break; }
         default: { mrb_raisef(mrb, E_ARGUMENT_ERROR, "Matrix index j (%d) out of range", j); }
       }
+      break;
     }
     case 2:
     {
@@ -127,8 +130,9 @@ mrb_matrix_set_subscript(mrb_state *mrb, mrb_value self)
         case 3: { matrix->m11 = value; break; }
         default: { mrb_raisef(mrb, E_ARGUMENT_ERROR, "Matrix index j (%d) out of range", j); }
       }
+      break;
     }
-    case 4:
+    case 3:
     {
       switch(j)
       {
@@ -138,6 +142,7 @@ mrb_matrix_set_subscript(mrb_state *mrb, mrb_value self)
         case 3: { matrix->m15 = value; break; }
         default: { mrb_raisef(mrb, E_ARGUMENT_ERROR, "Matrix index j (%d) out of range", j); }
       }
+      break;
     }
     default: { mrb_raisef(mrb, E_ARGUMENT_ERROR, "Matrix index i (%d) out of range", i); }
   }
@@ -155,6 +160,8 @@ mrb_carbuncle_matrix_init(mrb_state *mrb)
   mrb_define_method(mrb, matrix, "[]", mrb_matrix_get_subscript, MRB_ARGS_REQ(2));
 
   mrb_define_method(mrb, matrix, "[]=", mrb_matrix_set_subscript, MRB_ARGS_REQ(3));
+
+  mrb_define_const(mrb, matrix, "IDENTITY", mrb_obj_freeze(mrb, mrb_obj_new(mrb, matrix, 0, NULL)));
 }
 
 Matrix *
