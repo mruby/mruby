@@ -1060,7 +1060,7 @@ mrb_io_s_select(mrb_state *mrb, mrb_value klass)
   mrb_get_args(mrb, "*", &argv, &argc);
 
   if (argc < 1 || argc > 4) {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%i for 1..4)", argc);
+    mrb_num_args_error(mrb, argc, 1, 4);
   }
 
   timeout = mrb_nil_value();

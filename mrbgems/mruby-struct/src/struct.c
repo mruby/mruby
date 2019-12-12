@@ -274,7 +274,7 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
   name = mrb_nil_value();
   mrb_get_args(mrb, "*&", &argv, &argc, &b);
   if (argc == 0) { /* special case to avoid crash */
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
+    mrb_num_args_error(mrb, argc, 1, -1);
   }
   else {
     pargv = argv;

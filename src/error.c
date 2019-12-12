@@ -530,7 +530,7 @@ exception_call:
 
       break;
     default:
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (%i for 0..3)", argc);
+      mrb_num_args_error(mrb, argc, 0, 3);
       break;
   }
   if (argc > 0) {
@@ -584,6 +584,19 @@ MRB_API mrb_noreturn void
 mrb_frozen_error(mrb_state *mrb, void *frozen_obj)
 {
   mrb_raisef(mrb, E_FROZEN_ERROR, "can't modify frozen %t", mrb_obj_value(frozen_obj));
+}
+
+MRB_API mrb_noreturn void
+mrb_num_args_error(mrb_state *mrb, mrb_int argc, int min, int max)
+{
+#define FMT(exp) "wrong number of arguments (given %i, expected " exp ")"
+  if (min == max)
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, FMT("%d"), argc, min);
+  else if (max < 0)
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, FMT("%d+"), argc, min);
+  else
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, FMT("%d..%d"), argc, min, max);
+#undef FMT
 }
 
 void
