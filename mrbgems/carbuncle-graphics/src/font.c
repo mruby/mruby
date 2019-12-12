@@ -12,7 +12,6 @@
 #include FT_GLYPH_H
 
 #include "microutf8.h"
-#include "microutf8.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -355,27 +354,10 @@ mrb_font_dispose(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_font_measure_text(mrb_state *mrb, mrb_value self)
 {
-  uint32_t codepoint;
   const char *text;
-  struct mrb_Font *data = mrb_carbuncle_get_font(mrb, self);
+  struct mrb_Font *font = mrb_carbuncle_get_font(mrb, self);
   mrb_get_args(mrb, "z", &text);
-  size_t len = utf8_strlen(text);
-  Vector2 size = { 0, 0 };
-  Vector2 pen = { 0, 0 };
-  for (size_t i = 0; i < len; ++i)
-  {
-    text = utf8_decode(text, &codepoint);
-    struct mrb_Glyph *glyph = mrb_carbuncle_font_get_glyph(data, codepoint);
-    if (glyph)
-    {
-      float new_w = pen.x + glyph->bmp->bitmap.width + glyph->bmp->left;
-      float new_h = pen.y + glyph->bmp->bitmap.rows + glyph->bmp->top;
-      if (new_w > size.x) { size.x = new_w; }
-      if (new_h > size.y) { size.y = new_h; }
-      pen.x += glyph->advance.x;
-      pen.y += glyph->advance.y;
-    }
-  }
+  Vector2 size = mrb_carbuncle_font_measure_text(font, text);
   return mrb_carbuncle_point_new(mrb, size.x, size.y);
 }
 
@@ -424,6 +406,30 @@ find_node(struct mrb_Glyph *current, FT_UInt codepoint)
     }
   }
   return current;
+}
+
+Vector2
+mrb_carbuncle_font_measure_text(struct mrb_Font *font, const char *text)
+{
+  uint32_t codepoint;
+  size_t len = utf8_strlen(text);
+  Vector2 size = { 0, 0 };
+  Vector2 pen = { 0, 0 };
+  for (size_t i = 0; i < len; ++i)
+  {
+    text = utf8_decode(text, &codepoint);
+    struct mrb_Glyph *glyph = mrb_carbuncle_font_get_glyph(font, codepoint);
+    if (glyph)
+    {
+      float new_w = pen.x + glyph->bmp->bitmap.width + glyph->bmp->left;
+      float new_h = pen.y + glyph->bmp->bitmap.rows + glyph->bmp->top;
+      if (new_w > size.x) { size.x = new_w; }
+      if (new_h > size.y) { size.y = new_h; }
+      pen.x += glyph->advance.x;
+      pen.y += glyph->advance.y;
+    }
+  }
+  return size;
 }
 
 struct mrb_Glyph *

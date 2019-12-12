@@ -41,7 +41,7 @@ struct mrb_Text
 };
 
 static void
-mrb_free_text(mrb_state *mrb, mrb_value *ptr)
+mrb_free_text(mrb_state *mrb, void *ptr)
 {
   if (ptr)
   {
