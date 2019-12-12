@@ -61,6 +61,7 @@ assert('Kernel#Integer') do
   assert_raise(ArgumentError) { Integer('4a5') }
   assert_raise(ArgumentError) { Integer('1_2__3') }
   assert_raise(ArgumentError) { Integer('68_') }
+  assert_raise(ArgumentError) { Integer('68_ ') }
   assert_raise(ArgumentError) { Integer('_68') }
   assert_raise(ArgumentError) { Integer(' _68') }
   assert_raise(ArgumentError) { Integer('6 8') }
@@ -89,6 +90,7 @@ assert('Kernel#Float') do
   assert_raise(ArgumentError) { Float('68_') }
   assert_raise(ArgumentError) { Float('68._7') }
   assert_raise(ArgumentError) { Float('68.7_') }
+  assert_raise(ArgumentError) { Float('68.7_ ') }
   assert_raise(ArgumentError) { Float('_68') }
   assert_raise(ArgumentError) { Float(' _68') }
   assert_raise(ArgumentError) { Float('1_2.3__4') }

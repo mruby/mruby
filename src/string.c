@@ -2393,9 +2393,10 @@ mrb_str_len_to_inum(mrb_state *mrb, const char *str, mrb_int len, mrb_int base, 
   }
   val = (mrb_int)n;
   if (badcheck) {
-    if (p == str) goto bad; /* no number */
+    if (p == str) goto bad;             /* no number */
+    if (*(p - 1) == '_') goto bad;      /* trailing '_' */
     while (p<pend && ISSPACE(*p)) p++;
-    if (p<pend) goto bad;       /* trailing garbage */
+    if (p<pend) goto bad;               /* trailing garbage */
   }
 
   return mrb_fixnum_value(sign ? val : -val);
