@@ -21,7 +21,10 @@ MRB_BEGIN_DECL
 
 struct RIStruct {
   MRB_OBJECT_HEADER;
-  char inline_data[ISTRUCT_DATA_SIZE];
+  union {
+    intptr_t inline_alignment[3];
+    char inline_data[ISTRUCT_DATA_SIZE];
+  };
 };
 
 #define RISTRUCT(obj)         ((struct RIStruct*)(mrb_ptr(obj)))
