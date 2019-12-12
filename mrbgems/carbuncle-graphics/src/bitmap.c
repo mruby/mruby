@@ -8,6 +8,7 @@
 #include <string.h>
 
 #include <mruby/string.h>
+#include <mruby/numeric.h>
 
 static void
 mrb_bitmap_free(mrb_state *mrb, void *ptr)
@@ -23,6 +24,19 @@ mrb_bitmap_free(mrb_state *mrb, void *ptr)
 static const struct mrb_data_type bitmap_data_type = {
   "Carbuncle::Bitmap", mrb_bitmap_free
 };
+
+static Color
+get_blt_color(mrb_state *mrb, mrb_value obj)
+{
+  if (mrb_carbuncle_color_p(obj))
+  {
+    return *mrb_carbuncle_get_color(mrb, obj);
+  }
+  mrb_int opacity = mrb_fixnum(mrb_to_int(mrb, obj));
+  if (opacity > 255) { opacity = 255; }
+  if (opacity < 0) { opacity = 0; }
+  return (Color){255, 255, 255, opacity };
+}
 
 static mrb_value
 mrb_bitmap_initialize(mrb_state *mrb, mrb_value self)
@@ -166,7 +180,7 @@ mrb_bitmap_blt(mrb_state *mrb, mrb_value self)
       {
         src_rect = (Rectangle) { 0, 0, src.width, src.height };
         dst_rect = *mrb_carbuncle_get_rect(mrb, arg2);
-        color    = *mrb_carbuncle_get_color(mrb, arg3);
+        color    = get_blt_color(mrb, arg3);
       }
       else
       {
@@ -183,7 +197,7 @@ mrb_bitmap_blt(mrb_state *mrb, mrb_value self)
       src = *mrb_carbuncle_get_bitmap(mrb, arg1);
       dst_rect = *mrb_carbuncle_get_rect(mrb, arg2);
       src_rect = *mrb_carbuncle_get_rect(mrb, arg3);
-      color = *mrb_carbuncle_get_color(mrb, arg4);
+      color = get_blt_color(mrb, arg4);
       break;
     }
     default: { mrb_carbuncle_arg_error(mrb, "2, 3, or 4", argc); }
