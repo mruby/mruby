@@ -101,6 +101,27 @@ mrb_bitmap_save(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+mrb_bitmap_get_rect(mrb_state *mrb, mrb_value self)
+{
+  Image *image = mrb_carbuncle_get_bitmap(mrb, self);
+  return mrb_carbuncle_rect_new(mrb, 0, 0, image->width, image->height);
+}
+
+static mrb_value
+mrb_bitmap_get_width(mrb_state *mrb, mrb_value self)
+{
+  Image *image = mrb_carbuncle_get_bitmap(mrb, self);
+  return mrb_fixnum_value(image->width);
+}
+
+static mrb_value
+mrb_bitmap_get_height(mrb_state *mrb, mrb_value self)
+{
+  Image *image = mrb_carbuncle_get_bitmap(mrb, self);
+  return mrb_fixnum_value(image->height);
+}
+
+static mrb_value
 mrb_bitmap_get_subscript(mrb_state *mrb, mrb_value self)
 {
   Image *img = mrb_carbuncle_get_bitmap(mrb, self);
@@ -233,6 +254,9 @@ mrb_carbuncle_bitmap_init(mrb_state *mrb)
 
   mrb_define_method(mrb, bitmap, "save", mrb_bitmap_save, MRB_ARGS_REQ(1));
 
+  mrb_define_method(mrb, bitmap, "rect", mrb_bitmap_get_rect, MRB_ARGS_NONE());
+  mrb_define_method(mrb, bitmap, "width", mrb_bitmap_get_width, MRB_ARGS_NONE());
+  mrb_define_method(mrb, bitmap, "height", mrb_bitmap_get_height, MRB_ARGS_NONE());
   mrb_define_method(mrb, bitmap, "[]", mrb_bitmap_get_subscript, MRB_ARGS_REQ(2));
 
   mrb_define_method(mrb, bitmap, "[]=", mrb_bitmap_set_subscript, MRB_ARGS_REQ(3));
