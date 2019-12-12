@@ -44,6 +44,7 @@ struct mrb_Font
   struct mrb_GlyphMap glyphs;
   struct mrb_FontMetrics metrics;
   Texture2D texture;
+  Image image;
 };
 
 

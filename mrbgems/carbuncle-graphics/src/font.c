@@ -57,6 +57,7 @@ mrb_font_free(mrb_state *mrb, void *ptr)
   if (font)
   {
     UnloadTexture(font->texture);
+    UnloadImage(font->image);
     free_glyph(mrb, font->glyphs.root);
     mrb_free(mrb, font);
   }
@@ -237,7 +238,7 @@ build_font_atlas(mrb_state *mrb, struct mrb_Font *font, struct mrb_FontState *st
   draw_glyph(font->glyphs.root, colors, state);
   Image img = LoadImageEx(colors, MAX_ATLAS_WIDTH, height);
   font->texture = LoadTextureFromImage(img);
-  UnloadImage(img);
+  font->image = img;
   mrb_free(mrb, colors);
 }
 
