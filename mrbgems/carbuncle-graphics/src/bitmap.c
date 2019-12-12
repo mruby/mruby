@@ -1,6 +1,7 @@
 #include "carbuncle/core.h"
 #include "carbuncle/color.h"
 #include "carbuncle/rect.h"
+#include "carbuncle/font.h"
 #include "carbuncle/point.h"
 
 #include "carbuncle/bitmap.h"
@@ -9,6 +10,9 @@
 
 #include <mruby/string.h>
 #include <mruby/numeric.h>
+#include <mruby/variable.h>
+
+#define FONT_SYMBOL mrb_intern_cstr(mrb, "#font")
 
 static void
 mrb_bitmap_free(mrb_state *mrb, void *ptr)
@@ -72,6 +76,7 @@ mrb_bitmap_initialize(mrb_state *mrb, mrb_value self)
   ImageFormat(img, UNCOMPRESSED_R8G8B8A8);
   DATA_PTR(self) = img;
   DATA_TYPE(self) = &bitmap_data_type;
+  mrb_iv_set(mrb, self, FONT_SYMBOL, mrb_nil_value());
   return self;
 }
 
@@ -98,6 +103,18 @@ mrb_bitmap_save(mrb_state *mrb, mrb_value self)
   Image *image = mrb_carbuncle_get_bitmap(mrb, self);
   ExportImage(*image, filename);
   return self;
+}
+
+static mrb_value
+mrb_bitmap_get_font(mrb_state *mrb, mrb_value self)
+{
+  mrb_value font = mrb_iv_get(mrb, self, FONT_SYMBOL);
+  if (mrb_nil_p(font))
+  {
+    font = mrb_obj_new(mrb, mrb_carbuncle_class_get(mrb, "Font"), 0, NULL);
+    mrb_iv_set(mrb, self, FONT_SYMBOL, font);
+  }
+  return font;
 }
 
 static mrb_value
@@ -140,6 +157,16 @@ mrb_bitmap_get_subscript(mrb_state *mrb, mrb_value self)
     pixels[index + 3]
   };
   return mrb_carbuncle_color_new(mrb, color.r, color.g, color.b, color.a);
+}
+
+static mrb_value
+mrb_bitmap_set_font(mrb_state *mrb, mrb_value self)
+{
+  mrb_value value;
+  mrb_get_args(mrb, "o", &value);
+  mrb_carbuncle_get_font(mrb, value);
+  mrb_iv_set(mrb, self, FONT_SYMBOL, value);
+  return value;
 }
 
 static mrb_value
@@ -254,11 +281,13 @@ mrb_carbuncle_bitmap_init(mrb_state *mrb)
 
   mrb_define_method(mrb, bitmap, "save", mrb_bitmap_save, MRB_ARGS_REQ(1));
 
+  mrb_define_method(mrb, bitmap, "font", mrb_bitmap_get_font, MRB_ARGS_NONE());
   mrb_define_method(mrb, bitmap, "rect", mrb_bitmap_get_rect, MRB_ARGS_NONE());
   mrb_define_method(mrb, bitmap, "width", mrb_bitmap_get_width, MRB_ARGS_NONE());
   mrb_define_method(mrb, bitmap, "height", mrb_bitmap_get_height, MRB_ARGS_NONE());
   mrb_define_method(mrb, bitmap, "[]", mrb_bitmap_get_subscript, MRB_ARGS_REQ(2));
 
+  mrb_define_method(mrb, bitmap, "font=", mrb_bitmap_set_font, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, bitmap, "[]=", mrb_bitmap_set_subscript, MRB_ARGS_REQ(3));
 
   mrb_define_method(mrb, bitmap, "blt", mrb_bitmap_blt, MRB_ARGS_REQ(2)|MRB_ARGS_OPT(2));
