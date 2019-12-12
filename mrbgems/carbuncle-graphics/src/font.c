@@ -1,6 +1,7 @@
 #include "carbuncle/core.h"
 #include "carbuncle/font.h"
 #include "carbuncle/point.h"
+#include "carbuncle/rect.h"
 
 #include <mruby/data.h>
 #include <mruby/variable.h>
@@ -361,6 +362,16 @@ mrb_font_measure_text(mrb_state *mrb, mrb_value self)
   return mrb_carbuncle_point_new(mrb, size.x, size.y);
 }
 
+static mrb_value
+mrb_font_text_rect(mrb_state *mrb, mrb_value self)
+{
+  const char *text;
+  struct mrb_Font *font = mrb_carbuncle_get_font(mrb, self);
+  mrb_get_args(mrb, "z", &text);
+  Vector2 size = mrb_carbuncle_font_measure_text(font, text);
+  return mrb_carbuncle_rect_new(mrb, 0, 0, size.x, size.y);
+}
+
 void
 mrb_carbuncle_font_init(mrb_state *mrb)
 {
@@ -376,6 +387,7 @@ mrb_carbuncle_font_init(mrb_state *mrb)
   mrb_define_method(mrb, font, "dispose", mrb_font_dispose, MRB_ARGS_NONE());
 
   mrb_define_method(mrb, font, "measure_text", mrb_font_measure_text, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, font, "text_rect", mrb_font_text_rect, MRB_ARGS_REQ(1));
 }
 
 struct mrb_Font *
