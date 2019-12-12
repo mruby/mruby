@@ -1,5 +1,7 @@
 #include "carbuncle/core.h"
 #include "carbuncle/color.h"
+#include "carbuncle/rect.h"
+#include "carbuncle/point.h"
 
 #include "carbuncle/bitmap.h"
 
@@ -31,9 +33,17 @@ mrb_bitmap_initialize(mrb_state *mrb, mrb_value self)
   Image *img = mrb_malloc(mrb, sizeof *img);
   if (argc == 1)
   {
-    const char *filename = mrb_str_to_cstr(mrb, obj);
-    mrb_carbuncle_check_file(mrb, filename);
-    *img = LoadImage(filename);
+    if (mrb_carbuncle_bitmap_p(obj))
+    {
+      Image *src = mrb_carbuncle_get_bitmap(mrb, obj);
+      *img = ImageCopy(*src);
+    }
+    else
+    {
+      const char *filename = mrb_str_to_cstr(mrb, obj);
+      mrb_carbuncle_check_file(mrb, filename);
+      *img = LoadImage(filename);
+    }
   }
   else
   {
@@ -119,6 +129,70 @@ mrb_bitmap_set_subscript(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+mrb_bitmap_blt(mrb_state *mrb, mrb_value self)
+{
+  Image src;
+  Rectangle src_rect, dst_rect;
+  Color color;
+  mrb_int argc = mrb_get_argc(mrb);
+  Image *dst = mrb_carbuncle_get_bitmap(mrb, self);
+  switch (argc)
+  {
+    case 2:
+    {
+      mrb_value arg1, arg2;
+      mrb_get_args(mrb, "oo", &arg1, &arg2);
+      src = *mrb_carbuncle_get_bitmap(mrb, arg1);
+      color = WHITE;
+      if (mrb_carbuncle_point_p(arg2))
+      {
+        Vector2 *p = mrb_carbuncle_get_point(mrb, arg2);
+        src_rect = (Rectangle) { 0, 0, src.width, src.height };
+        dst_rect = (Rectangle) { p->x, p->y, src.width, src.height };
+      }
+      else
+      {
+        src_rect = (Rectangle) { 0, 0, src.width, src.height };
+        dst_rect = *mrb_carbuncle_get_rect(mrb, arg2);
+      }
+      break;
+    }
+    case 3:
+    {
+      mrb_value arg1, arg2, arg3;
+      mrb_get_args(mrb, "ooo", &arg1, &arg2, &arg3);
+      src = *mrb_carbuncle_get_bitmap(mrb, arg1);
+      if (mrb_carbuncle_color_p(arg3))
+      {
+        src_rect = (Rectangle) { 0, 0, src.width, src.height };
+        dst_rect = *mrb_carbuncle_get_rect(mrb, arg2);
+        color    = *mrb_carbuncle_get_color(mrb, arg3);
+      }
+      else
+      {
+        dst_rect = *mrb_carbuncle_get_rect(mrb, arg2);
+        src_rect = *mrb_carbuncle_get_rect(mrb, arg3);
+        color = WHITE;
+      }
+      break;
+    }
+    case 4:
+    {
+      mrb_value arg1, arg2, arg3, arg4;
+      mrb_get_args(mrb, "oooo", &arg1, &arg2, &arg3, &arg4);
+      src = *mrb_carbuncle_get_bitmap(mrb, arg1);
+      dst_rect = *mrb_carbuncle_get_rect(mrb, arg2);
+      src_rect = *mrb_carbuncle_get_rect(mrb, arg3);
+      color = *mrb_carbuncle_get_color(mrb, arg4);
+      break;
+    }
+    default: { mrb_carbuncle_arg_error(mrb, "2, 3, or 4", argc); }
+  }
+  ImageDraw(dst, src, src_rect, dst_rect, color);
+  return self;
+}
+
+static mrb_value
 mrb_s_bitmap_get_screenshot(mrb_state *mrb, mrb_value self)
 {
   mrb_value values[2] = {
@@ -138,6 +212,7 @@ mrb_carbuncle_bitmap_init(mrb_state *mrb)
   struct RClass *bitmap = mrb_carbuncle_define_data_class(mrb, "Bitmap", mrb->object_class);
 
   mrb_define_method(mrb, bitmap, "initialize", mrb_bitmap_initialize, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
+  mrb_define_method(mrb, bitmap, "initialize_copy", mrb_bitmap_initialize, MRB_ARGS_REQ(1));
 
   mrb_define_method(mrb, bitmap, "disposed?", mrb_bitmap_disposedQ, MRB_ARGS_NONE());
   mrb_define_method(mrb, bitmap, "dispose", mrb_bitmap_dispose, MRB_ARGS_NONE());
@@ -147,6 +222,9 @@ mrb_carbuncle_bitmap_init(mrb_state *mrb)
   mrb_define_method(mrb, bitmap, "[]", mrb_bitmap_get_subscript, MRB_ARGS_REQ(2));
 
   mrb_define_method(mrb, bitmap, "[]=", mrb_bitmap_set_subscript, MRB_ARGS_REQ(3));
+
+  mrb_define_method(mrb, bitmap, "blt", mrb_bitmap_blt, MRB_ARGS_REQ(2)|MRB_ARGS_OPT(2));
+  mrb_define_method(mrb, bitmap, "draw_bitmap", mrb_bitmap_blt, MRB_ARGS_REQ(2)|MRB_ARGS_OPT(2));
 
   mrb_define_class_method(mrb, bitmap, "screenshot", mrb_s_bitmap_get_screenshot, MRB_ARGS_NONE());
 }
