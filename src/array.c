@@ -1304,6 +1304,7 @@ init_ary_each(mrb_state *mrb, struct RClass *ary)
   each_irep->nregs = 7;
   each_irep->nlocals = 3;
   p = mrb_proc_new(mrb, each_irep);
+  p->flags |= MRB_PROC_SCOPE | MRB_PROC_STRICT;
   MRB_METHOD_FROM_PROC(m, p);
   mrb_define_method_raw(mrb, ary, mrb_intern_lit(mrb, "each"), m);
 }
