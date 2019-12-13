@@ -6,7 +6,7 @@ jobs:
   Ubuntu-1604:
     runs-on: ubuntu-16.04
     env:
-      MRUBY_CONFIG: travis_config.rb
+      MRUBY_TARGET: travis
     steps:
     - uses: actions/checkout@v1
     - name: apt
@@ -19,7 +19,7 @@ jobs:
   Ubuntu-1804-gcc:
     runs-on: ubuntu-18.04
     env:
-      MRUBY_CONFIG: travis_config.rb
+      MRUBY_TARGET: travis
       CC: gcc
       CXX: g++
     steps:
@@ -34,7 +34,7 @@ jobs:
   Ubuntu-1804-clang:
     runs-on: ubuntu-18.04
     env:
-      MRUBY_CONFIG: travis_config.rb
+      MRUBY_TARGET: travis
       CC: clang
       CXX: clang++
     steps:
@@ -49,7 +49,7 @@ jobs:
   macOS:
     runs-on: macos-latest
     env:
-      MRUBY_CONFIG: travis_config.rb
+      MRUBY_TARGET: travis
     steps:
     - uses: actions/checkout@v1
     - name: brew
@@ -68,7 +68,7 @@ jobs:
     - name: build
       run: rake -E 'STDOUT.sync=true' test
       env:
-        MRUBY_CONFIG: travis_config.rb
+        MRUBY_TARGET: travis
         CFLAGS: -g -O1 -Wall -Wundef
 
   Windows-Cygwin:
@@ -94,9 +94,26 @@ jobs:
       shell: cmd
       run: C:\tools\cygwin\bin\ruby.exe /usr/bin/rake -E 'STDOUT.sync=true' -m
       env:
-        MRUBY_CONFIG: travis_config.rb
+        MRUBY_TARGET: travis
     - name: test
       shell: cmd
       run: C:\tools\cygwin\bin\ruby.exe /usr/bin/rake -E 'STDOUT.sync=true' test
       env:
-        MRUBY_CONFIG: travis_config.rb
+        MRUBY_TARGET: travis
+
+  Windows-VC:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: chocolatey
+      run: choco install -y ruby gperf
+    - name: build and test
+      shell: cmd
+      run: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        rake -E "STDOUT.sync=true" -m -j4 -v test
+      env:
+        MRUBY_TARGET: appveyor
+        # TODO(take-cheeze): Re-enable /O2
+        CFLAGS: "/c /nologo /W3 /we4013 /Zi /MD /D_CRT_SECURE_NO_WARNINGS"
+        CXXFLAGS: "/c /nologo /W3 /Zi /MD /EHs /D_CRT_SECURE_NO_WARNINGS"
