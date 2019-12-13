@@ -3,6 +3,7 @@
 #include <mruby/class.h>
 #include <mruby/data.h>
 #include <mruby/string.h>
+#include <mruby/variable.h>
 
 #ifdef MRB_WITHOUT_FLOAT
 typedef mrb_int mrb_float;
@@ -87,7 +88,10 @@ native_initialize(mrb_state *mrb, mrb_value self)
     case ARG_s: data.s = (char*)mrb_malloc(mrb, RSTRING_LEN(obj) + 1);
                 memcpy(data.s, RSTRING_PTR(obj), RSTRING_LEN(obj));
                 data.s[RSTRING_LEN(obj)] = '\0'; break;
-    case ARG_C: data.C = mrb_class_ptr(obj); break;
+    case ARG_C:
+      data.C = mrb_class_ptr(obj);
+      mrb_iv_set(mrb, self, mrb_intern_lit(mrb, "_class"), mrb_obj_value(data.C));
+      break;
     default: mrb_raise(mrb, E_ARGUMENT_ERROR, "unknown type");
   }
   datap = (VFNative*)mrb_malloc(mrb, sizeof(VFNative));
