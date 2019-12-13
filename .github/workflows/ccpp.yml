@@ -9,6 +9,8 @@ jobs:
     
     steps:
     - uses: actions/checkout@v1
+    - name: apt
+      run: sudo apt install ruby gperf
     - name: build and test
       run: ./minirake -j4 all test
       env:
