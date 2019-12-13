@@ -1,4 +1,4 @@
-name: C/C++ CI
+name: Ubuntu CI
 
 on: [push]
 
@@ -10,7 +10,7 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: apt
-      run: sudo apt install ruby gperf
+      run: sudo apt install ruby gperf bison
     - name: build and test
       run: ./minirake -j4 all test
       env:
