@@ -1,0 +1,27 @@
+name: Build & Test
+
+on: [push]
+
+jobs:
+  build:
+    runs-on:
+    - ubuntu-16.04
+    - ubuntu-18.04
+    - macos-latest
+    - windows-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: apt
+      run: sudo apt install ruby gperf bison
+      if: runner.os == 'Linux'
+    - name: brew
+      run: brew install ruby gperf bison
+      if: runner.os == 'macOS'
+    - name: chocolatey
+      run: chocolatey install -y ruby winflexbison gperf mingw
+      if: runner.os == 'Windows'
+    - name: build and test
+      run: ./minirake -j4 all test
+      env:
+        MRUBY_CONFIG: travis_config.rb
