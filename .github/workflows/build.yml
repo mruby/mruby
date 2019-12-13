@@ -43,6 +43,6 @@ jobs:
     - name: chocolatey
       run: chocolatey install -y ruby winflexbison gperf mingw
     - name: build and test
-      run: ruby ./minirake -j4 all test
+      run: ruby ./minirake -j1 all test
       env:
         MRUBY_CONFIG: travis_config.rb
