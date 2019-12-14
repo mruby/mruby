@@ -41,12 +41,13 @@ jobs:
     steps:
     - uses: actions/checkout@v1
     - name: chocolatey
-      run: choco install -y ruby winflexbison gperf
+      run: choco install -y ruby winflexbison gperf 
     - name: build and test
       run: rake -E '$stdout.sync=true' test
       env:
         MRUBY_CONFIG: travis_config.rb
         YACC: win_bison
+        LDFLAGS: -fno-asynchronous-unwind-tables
 
   Windows-VC:
     runs-on: windows-latest
