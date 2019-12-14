@@ -36,24 +36,26 @@ jobs:
       env:
         MRUBY_CONFIG: travis_config.rb
 
-  WindowsMinGW:
+  Windows-MinGW:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v1
     - name: chocolatey
-      run: chocolatey install -y ruby winflexbison gperf
+      run: choco install -y ruby winflexbison gperf
     - name: build and test
       run: rake -E '$stdout.sync=true' test
       env:
         MRUBY_CONFIG: travis_config.rb
+        YACC: win_bison
 
-  WindowsVC:
+  Windows-VC:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v1
     - name: chocolatey
-      run: chocolatey install -y ruby winflexbison gperf
+      run: choco install -y ruby winflexbison gperf
     - name: build and test
       run: rake -E '$stdout.sync=true' test
       env:
         MRUBY_CONFIG: appveyor_config.rb
+        YACC: win_bison
