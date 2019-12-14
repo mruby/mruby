@@ -43,7 +43,7 @@ jobs:
     - name: chocolatey
       run: chocolatey install -y ruby winflexbison gperf
     - name: build and test
-      run: rake -E $stdout.sync=true test
+      run: rake -E '$stdout.sync=true' test
       env:
         MRUBY_CONFIG: travis_config.rb
 
@@ -54,6 +54,6 @@ jobs:
     - name: chocolatey
       run: chocolatey install -y ruby winflexbison gperf
     - name: build and test
-      run: rake -E $stdout.sync=true test
+      run: rake -E '$stdout.sync=true' test
       env:
         MRUBY_CONFIG: appveyor_config.rb
