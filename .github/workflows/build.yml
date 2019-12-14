@@ -58,7 +58,7 @@ jobs:
     - name: chocolatey
       run: choco install -y ruby winflexbison gperf 
     - name: build and test
-      run: rake -E '$stdout.sync=true' -v test
+      run: rake -E '$stdout.sync=true' test
       env:
         MRUBY_CONFIG: travis_config.rb
         YACC: win_bison
@@ -72,8 +72,7 @@ jobs:
       run: choco install -y ruby winflexbison gperf
     - name: build and test
       run: |
-        "C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        rake -E '$stdout.sync=true' -v test
+        cmd.exe /c "call C:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\VC\Auxiliary\Build\vcvars64.bat & rake -E '$stdout.sync=true' -v test"
       env:
         MRUBY_CONFIG: appveyor_config.rb
         YACC: win_bison
