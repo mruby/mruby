@@ -14,7 +14,20 @@ jobs:
       env:
         MRUBY_CONFIG: travis_config.rb
 
-  Ubuntu-1804:
+  Ubuntu-1804-gcc:
+    runs-on: ubuntu-18.04
+    steps:
+    - uses: actions/checkout@v1
+    - name: apt
+      run: sudo apt install ruby gperf bison gcc g++
+    - name: build and test
+      run: ./minirake -j4 all test
+      env:
+        MRUBY_CONFIG: travis_config.rb
+        CC: gcc
+        CXX: g++
+
+  Ubuntu-1804-clang:
     runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v1
@@ -24,6 +37,8 @@ jobs:
       run: ./minirake -j4 all test
       env:
         MRUBY_CONFIG: travis_config.rb
+        CC: clang
+        CXX: clang++
 
   macOS:
     runs-on: macos-latest
@@ -48,6 +63,7 @@ jobs:
         MRUBY_CONFIG: travis_config.rb
         YACC: win_bison
         LDFLAGS: -fno-asynchronous-unwind-tables
+        CFLAGS: -g -O0 -Wall -Wundef
 
   Windows-VC:
     runs-on: windows-latest
