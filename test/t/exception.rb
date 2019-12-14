@@ -352,8 +352,10 @@ assert('Exception 19') do
   assert_equal [true, true], Class4Exception19.new.a
 end
 
-assert('Exception#inspect without message') do
+assert('Exception#inspect') do
   assert_equal "Exception", Exception.new.inspect
+  assert_equal "Exception", Exception.new("").inspect
+  assert_equal "error! (Exception)", Exception.new("error!").inspect
 end
 
 assert('Exception#backtrace') do

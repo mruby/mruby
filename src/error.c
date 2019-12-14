@@ -13,7 +13,6 @@
 #include <mruby/proc.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>
-#include <mruby/debug.h>
 #include <mruby/error.h>
 #include <mruby/class.h>
 #include <mruby/throw.h>
@@ -131,34 +130,10 @@ exc_message(mrb_state *mrb, mrb_value exc)
 static mrb_value
 exc_inspect(mrb_state *mrb, mrb_value exc)
 {
-  mrb_value str, mesg, file, line;
-  mrb_bool append_mesg;
-  const char *cname;
-
-  mesg = mrb_attr_get(mrb, exc, mrb_intern_lit(mrb, "mesg"));
-  file = mrb_attr_get(mrb, exc, mrb_intern_lit(mrb, "file"));
-  line = mrb_attr_get(mrb, exc, mrb_intern_lit(mrb, "line"));
-
-  append_mesg = !mrb_nil_p(mesg);
-  if (append_mesg) {
-    mesg = mrb_obj_as_string(mrb, mesg);
-    append_mesg = RSTRING_LEN(mesg) > 0;
-  }
-
-  cname = mrb_obj_classname(mrb, exc);
-  str = mrb_str_new_cstr(mrb, cname);
-  if (mrb_string_p(file) && mrb_fixnum_p(line)) {
-    if (append_mesg) {
-      str = mrb_format(mrb, "%v:%v: %v (%v)", file, line, mesg, str);
-    }
-    else {
-      str = mrb_format(mrb, "%v:%v: %v", file, line, str);
-    }
-  }
-  else if (append_mesg) {
-    str = mrb_format(mrb, "%v: %v", str, mesg);
-  }
-  return str;
+  mrb_value mesg = mrb_attr_get(mrb, exc, mrb_intern_lit(mrb, "mesg"));
+  mrb_value cname = mrb_mod_to_s(mrb, mrb_obj_value(mrb_obj_class(mrb, exc)));
+  mesg = mrb_obj_as_string(mrb, mesg);
+  return RSTRING_LEN(mesg) == 0 ? cname : mrb_format(mrb, "%v (%v)", mesg, cname);
 }
 
 void mrb_keep_backtrace(mrb_state *mrb, mrb_value exc);
@@ -192,33 +167,6 @@ exc_set_backtrace(mrb_state *mrb, mrb_value exc)
   return backtrace;
 }
 
-static void
-exc_debug_info(mrb_state *mrb, struct RObject *exc)
-{
-  mrb_callinfo *ci = mrb->c->ci;
-  const mrb_code *pc = ci->pc;
-
-  if (mrb_obj_iv_defined(mrb, exc, mrb_intern_lit(mrb, "file"))) return;
-  while (ci >= mrb->c->cibase) {
-    const mrb_code *err = ci->err;
-
-    if (!err && pc) err = pc - 1;
-    if (err && ci->proc && !MRB_PROC_CFUNC_P(ci->proc)) {
-      mrb_irep *irep = ci->proc->body.irep;
-
-      int32_t const line = mrb_debug_get_line(mrb, irep, err - irep->iseq);
-      char const* file = mrb_debug_get_filename(mrb, irep, err - irep->iseq);
-      if (line != -1 && file) {
-        mrb_obj_iv_set(mrb, exc, mrb_intern_lit(mrb, "file"), mrb_str_new_cstr(mrb, file));
-        mrb_obj_iv_set(mrb, exc, mrb_intern_lit(mrb, "line"), mrb_fixnum_value(line));
-        return;
-      }
-    }
-    pc = ci->pc;
-    ci--;
-  }
-}
-
 void
 mrb_exc_set(mrb_state *mrb, mrb_value exc)
 {
@@ -232,7 +180,6 @@ mrb_exc_set(mrb_state *mrb, mrb_value exc)
       mrb->gc.arena_idx--;
     }
     if (!mrb->gc.out_of_memory && !mrb_frozen_p(mrb->exc)) {
-      exc_debug_info(mrb, mrb->exc);
       mrb_keep_backtrace(mrb, exc);
     }
   }
