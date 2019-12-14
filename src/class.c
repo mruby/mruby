@@ -2323,7 +2323,9 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "dup",                     mrb_mod_dup,              MRB_ARGS_NONE());
 
   mrb_undef_method(mrb, cls, "append_features");
+  mrb_undef_method(mrb, cls, "prepend_features");
   mrb_undef_method(mrb, cls, "extend_object");
+  mrb_undef_method(mrb, cls, "module_function");
 
   mrb->top_self = (struct RObject*)mrb_obj_alloc(mrb, MRB_TT_OBJECT, mrb->object_class);
   mrb_define_singleton_method(mrb, mrb->top_self, "inspect", inspect_main, MRB_ARGS_NONE());
