@@ -80,6 +80,22 @@ assert('File#mtime') do
   end
 end
 
+assert('File#size and File#truncate') do
+  fname = "#{$mrbtest_io_wfname}.resize"
+  begin
+    File.open(fname, 'w') do |f|
+      assert_equal 0, f.size
+      assert_equal 0, f.truncate(100)
+      assert_equal 100, f.size
+      assert_equal 0, f.pos
+      assert_equal 0, f.truncate(5)
+      assert_equal 5, f.size
+    end
+  ensure
+    File.delete(fname)
+  end
+end
+
 assert('File.join') do
   assert_equal "", File.join()
   assert_equal "a", File.join("a")
