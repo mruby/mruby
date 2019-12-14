@@ -1,5 +1,6 @@
 MRuby::Build.new('debug') do |conf|
   toolchain :gcc
+  yacc.command = ENV['YACC'] || 'bison'
   enable_debug
 
   # include all core GEMs
@@ -14,6 +15,7 @@ end
 
 MRuby::Build.new('full-debug') do |conf|
   toolchain :gcc
+  yacc.command = ENV['YACC'] || 'bison'
   enable_debug
 
   # include all core GEMs
@@ -25,6 +27,7 @@ end
 
 MRuby::Build.new do |conf|
   toolchain :gcc
+  yacc.command = ENV['YACC'] || 'bison'
 
   # include all core GEMs
   conf.gembox 'full-core'
@@ -38,6 +41,7 @@ end
 
 MRuby::Build.new('cxx_abi') do |conf|
   toolchain :gcc
+  yacc.command = ENV['YACC'] || 'bison'
 
   conf.gembox 'full-core'
   conf.cc.flags += %w(-fpermissive)
