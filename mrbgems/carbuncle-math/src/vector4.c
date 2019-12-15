@@ -2,7 +2,7 @@
 #include "carbuncle/vector4.h"
 
 #include <mruby/numeric.h>
-
+#include <mruby/class.h>
 static const struct mrb_data_type vector4_data_type = {
   "Carbuncle::Vector4", mrb_free
 };
@@ -160,7 +160,9 @@ mrb_vector4_equal(mrb_state *mrb, mrb_value self)
 void
 mrb_init_carbuncle_vector4(mrb_state *mrb)
 {
-  struct RClass *vector = mrb_carbuncle_define_data_class(mrb, "Vector4", mrb->object_class);
+  struct RClass *carbuncle = mrb_carbuncle_get(mrb);
+  struct RClass *vector = mrb_define_class_under(mrb, carbuncle, "Vector4", mrb->object_class);
+  MRB_SET_INSTANCE_TT(vector, MRB_TT_DATA);
 
   mrb_define_method(mrb, vector, "initialize", mrb_vector4_initialize, MRB_ARGS_OPT(2));
   mrb_define_method(mrb, vector, "initialize_copy", mrb_vector4_initialize, MRB_ARGS_REQ(1));

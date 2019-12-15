@@ -139,7 +139,8 @@ mrb_screen_resize(mrb_state *mrb, mrb_value self)
 void
 mrb_init_carbuncle_screen(mrb_state *mrb)
 {
-  struct RClass *screen = mrb_carbuncle_define_data_class(mrb, "Screen", mrb->object_class);
+  struct RClass *screen = mrb_define_class_under(mrb, mrb_module_get(mrb, "Carbuncle"), "Screen", mrb->object_class);
+  MRB_SET_INSTANCE_TT(screen, MRB_TT_DATA);
 
   mrb_define_method(mrb, screen, "initialize", mrb_screen_initialize, MRB_ARGS_REQ(1));
 

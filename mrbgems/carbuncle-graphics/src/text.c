@@ -7,6 +7,7 @@
 
 #include "carbuncle/point.h"
 
+#include <mruby/class.h>
 #include <mruby/data.h>
 #include <mruby/variable.h>
 #include <mruby/string.h>
@@ -232,7 +233,9 @@ mrb_text_draw(mrb_state *mrb, mrb_value self)
 void
 mrb_init_carbuncle_text(mrb_state *mrb)
 {
-  struct RClass *text = mrb_carbuncle_define_data_class(mrb, "Text", mrb->object_class);
+  struct RClass *carbuncle = mrb_carbuncle_get(mrb);
+  struct RClass *text = mrb_define_class_under(mrb, carbuncle, "Text", mrb->object_class);
+  MRB_SET_INSTANCE_TT(text, MRB_TT_DATA);
 
   mrb_define_method(mrb, text, "initialize", mrb_text_initialize, MRB_ARGS_OPT(1));
 

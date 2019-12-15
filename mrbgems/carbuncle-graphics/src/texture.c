@@ -2,6 +2,7 @@
 #include "carbuncle/texture.h"
 #include "carbuncle/bitmap.h"
 
+#include <mruby/class.h>
 #include <mruby/data.h>
 #include <mruby/string.h>
 
@@ -135,7 +136,10 @@ mrb_texture_to_bitmap(mrb_state *mrb, mrb_value self)
 void
 mrb_init_carbuncle_texture(mrb_state *mrb)
 {
-  struct RClass *texture = mrb_carbuncle_define_data_class(mrb, "Texture", mrb->object_class);
+  struct RClass *carbuncle = mrb_carbuncle_get(mrb);
+  struct RClass *texture = mrb_define_class_under(mrb, carbuncle, "Texture", mrb->object_class);
+  MRB_SET_INSTANCE_TT(texture, MRB_TT_DATA);
+  
   mrb_define_method(mrb, texture, "initialize", mrb_texture_initialize, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, texture, "initialize_copy", mrb_texture_initialize, MRB_ARGS_REQ(1));
 

@@ -582,7 +582,8 @@ mrb_s_graphics_draw_triangle(mrb_state *mrb, mrb_value self)
 void
 mrb_init_carbuncle_graphics(mrb_state *mrb)
 {
-  struct RClass *graphics = mrb_define_module_under(mrb, mrb_carbuncle_get(mrb), "Graphics");
+  struct RClass *carbuncle = mrb_carbuncle_get(mrb);
+  struct RClass *graphics = mrb_define_module_under(mrb, carbuncle, "Graphics");
 
   carbuncle_graphics_style = MODE_FILL;
 

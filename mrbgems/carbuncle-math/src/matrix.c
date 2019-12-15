@@ -1,6 +1,9 @@
 #include "carbuncle/core.h"
 #include "carbuncle/matrix.h"
 
+#include <mruby/data.h>
+#include <mruby/class.h>
+
 static const struct mrb_data_type matrix_data_type = {
   "Carbuncle::Matrix", mrb_free
 };
@@ -152,7 +155,9 @@ mrb_matrix_set_subscript(mrb_state *mrb, mrb_value self)
 void
 mrb_init_carbuncle_matrix(mrb_state *mrb)
 {
-  struct RClass *matrix = mrb_carbuncle_define_data_class(mrb, "Matrix", mrb->object_class);
+  struct RClass *carbuncle = mrb_carbuncle_get(mrb);
+  struct RClass *matrix = mrb_define_class_under(mrb, carbuncle, "Matrix", mrb->object_class);
+  MRB_SET_INSTANCE_TT(matrix, MRB_TT_DATA);
 
   mrb_define_method(mrb, matrix, "initialize", mrb_matrix_initialize, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, matrix, "initialize_copy", mrb_matrix_initialize, MRB_ARGS_REQ(1));

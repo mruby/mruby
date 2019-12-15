@@ -10,6 +10,7 @@
 
 #include <mruby/variable.h>
 #include <mruby/error.h>
+#include <mruby/class.h>
 
 struct mrb_Canvas
 {
@@ -277,7 +278,9 @@ mrb_canvas_draw(mrb_state *mrb, mrb_value self)
 void
 mrb_init_carbuncle_canvas(mrb_state *mrb)
 {
-  struct RClass *canvas = mrb_carbuncle_define_data_class(mrb, "Canvas", mrb->object_class);
+  struct RClass *carbuncle = mrb_carbuncle_get(mrb);
+  struct RClass *canvas = mrb_define_class_under(mrb, carbuncle, "Canvas", mrb->object_class);
+  MRB_SET_INSTANCE_TT(canvas, MRB_TT_DATA);
 
   mrb_define_method(mrb, canvas, "initialize", mrb_canvas_initialize, MRB_ARGS_REQ(2));
 

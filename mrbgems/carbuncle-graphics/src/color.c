@@ -2,6 +2,7 @@
 #include "carbuncle/color.h"
 
 #include <mruby/data.h>
+#include <mruby/class.h>
 
 static mrb_int
 max(mrb_int a, mrb_int b)
@@ -209,7 +210,10 @@ mrb_color_equal(mrb_state *mrb, mrb_value self)
 void
 mrb_init_carbuncle_color(mrb_state *mrb)
 {
-  struct RClass *color = mrb_carbuncle_define_data_class(mrb, "Color", mrb->object_class);
+  struct RClass *carbuncle = mrb_carbuncle_get(mrb);
+  struct RClass *color = mrb_define_class_under(mrb, carbuncle, "Color", mrb->object_class);
+  MRB_SET_INSTANCE_TT(color, MRB_TT_DATA);
+
   mrb_define_method(mrb, color, "initialize", mrb_color_initialize, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(3));
   mrb_define_method(mrb, color, "initialize_copy", mrb_color_initialize, MRB_ARGS_REQ(1));
 

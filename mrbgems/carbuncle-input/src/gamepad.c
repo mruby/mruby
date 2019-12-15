@@ -2,6 +2,8 @@
 #include "carbuncle/gamepad.h"
 #include "carbuncle/point.h"
 
+#include <mruby/class.h>
+#include <mruby/data.h>
 #include <mruby/array.h>
 #include <mruby/variable.h>
 #include <mruby/string.h>
@@ -288,7 +290,9 @@ mrb_s_gamepad_get_subscript(mrb_state *mrb, mrb_value self)
 void
 mrb_init_carbuncle_gamepad(mrb_state *mrb)
 {
-  struct RClass *gamepad = mrb_carbuncle_define_data_class(mrb, "Gamepad", mrb->object_class);
+  struct RClass *carbuncle = mrb_carbuncle_get(mrb);
+  struct RClass *gamepad = mrb_define_class_under(mrb, carbuncle, "Gamepad", mrb->object_class);
+  MRB_SET_INSTANCE_TT(gamepad, MRB_TT_DATA);
 
   mrb_define_method(mrb, gamepad, "initialize", mrb_gamepad_initialize, MRB_ARGS_REQ(1));
 

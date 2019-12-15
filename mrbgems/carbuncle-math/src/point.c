@@ -4,6 +4,7 @@
 #include <mruby/array.h>
 #include <mruby/data.h>
 #include <mruby/numeric.h>
+#include <mruby/class.h>
 
 #include "raylib.h"
 
@@ -123,7 +124,9 @@ mrb_point_equal(mrb_state *mrb, mrb_value self)
 void
 mrb_init_carbuncle_point(mrb_state *mrb)
 {
-  struct RClass *point = mrb_carbuncle_define_data_class(mrb, "Point", mrb->object_class);
+  struct RClass *carbuncle = mrb_carbuncle_get(mrb);
+  struct RClass *point = mrb_define_class_under(mrb, carbuncle, "Point", mrb->object_class);
+  MRB_SET_INSTANCE_TT(point, MRB_TT_DATA);
 
   mrb_define_method(mrb, point, "initialize", mrb_point_initialize, MRB_ARGS_OPT(2));
   mrb_define_method(mrb, point, "initialize_copy", mrb_point_initialize, MRB_ARGS_REQ(1));

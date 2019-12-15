@@ -14,6 +14,7 @@
 #include "rlgl.h"
 
 #include <mruby/class.h>
+#include <mruby/data.h>
 #include <mruby/error.h>
 #include <mruby/hash.h>
 #include <mruby/variable.h>
@@ -286,7 +287,9 @@ mrb_shader_end_render(mrb_state *mrb, mrb_value self)
 void
 mrb_init_carbuncle_shader(mrb_state *mrb)
 {
-  struct RClass *shader = mrb_carbuncle_define_data_class(mrb, "Shader", mrb->object_class);
+  struct RClass *carbuncle = mrb_carbuncle_get(mrb);
+  struct RClass *shader = mrb_define_class_under(mrb, carbuncle, "Shader", mrb->object_class);
+  MRB_SET_INSTANCE_TT(shader, MRB_TT_DATA);
 
   mrb_define_method(mrb, shader, "initialize", mrb_shader_initialize, MRB_ARGS_OPT(2));
 

@@ -1,6 +1,7 @@
 #include "carbuncle/core.h"
 #include "carbuncle/sound.h"
 
+#include <mruby/class.h>
 #include <mruby/data.h>
 
 static inline float
@@ -152,7 +153,9 @@ mrb_sound_resume(mrb_state *mrb, mrb_value self)
 void
 mrb_init_carbuncle_sound(mrb_state *mrb)
 {
-  struct RClass *sound = mrb_carbuncle_define_data_class(mrb, "Sound", mrb->object_class);
+  struct RClass *carbuncle = mrb_carbuncle_get(mrb);
+  struct RClass *sound = mrb_define_class_under(mrb, carbuncle, "Sound", mrb->object_class);
+  MRB_SET_INSTANCE_TT(sound, MRB_TT_DATA);
 
   mrb_define_method(mrb, sound, "initialize", mrb_sound_initialize, MRB_ARGS_REQ(1));
 

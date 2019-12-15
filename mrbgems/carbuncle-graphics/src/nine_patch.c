@@ -8,6 +8,8 @@
 #include "raylib.h"
 
 #include <mruby/variable.h>
+#include <mruby/class.h>
+#include <mruby/data.h>
 
 struct mrb_9Patch
 {
@@ -30,7 +32,7 @@ static const struct mrb_data_type nine_patch_data_type = {
 #define PIVOT_SYMBOL mrb_intern_cstr(mrb, "#pivot")
 #define COLOR_SYMBOL mrb_intern_cstr(mrb, "#color")
 
-static struct mrb_Canvas *
+static struct mrb_9Patch *
 get_nine_patch(mrb_state *mrb, mrb_value obj)
 {
   return DATA_GET_DISPOSABLE_PTR(mrb, obj, &nine_patch_data_type, struct mrb_9Patch);
@@ -342,7 +344,9 @@ mrb_nine_patch_draw(mrb_state *mrb, mrb_value self)
 void
 mrb_init_carbuncle_nine_patch(mrb_state *mrb)
 {
-  struct RClass *nine_patch = mrb_carbuncle_define_data_class(mrb, "NinePatch", mrb->object_class);
+  struct RClass *carbuncle = mrb_carbuncle_get(mrb);
+  struct RClass *nine_patch = mrb_define_class_under(mrb, carbuncle, "NinePatch", mrb->object_class);
+  MRB_SET_INSTANCE_TT(nine_patch, MRB_TT_DATA);
 
   mrb_define_method(mrb, nine_patch, "initialize", mrb_nine_patch_initialize, MRB_ARGS_OPT(1));
 

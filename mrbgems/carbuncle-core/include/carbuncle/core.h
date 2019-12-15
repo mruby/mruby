@@ -22,9 +22,6 @@ extern mrb_int mrb_carbuncle_debug_color_index;
 void
 mrb_carbuncle_raise(mrb_state *mrb, const char *name, const char *msg);
 
-struct RClass *
-mrb_carbuncle_define_data_class(mrb_state *mrb, const char *name, struct RClass *super);
-
 void
 mrb_carbuncle_check_frozen(mrb_state *mrb, mrb_value obj);
 

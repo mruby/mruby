@@ -3,6 +3,7 @@
 #include "carbuncle/rect.h"
 #include "carbuncle/color.h"
 
+#include <mruby/class.h>
 #include <mruby/data.h>
 #include <mruby/variable.h>
 #include <mruby/array.h>

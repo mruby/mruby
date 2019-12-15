@@ -7,6 +7,7 @@
 #include <mruby/variable.h>
 #include <mruby/string.h>
 #include <mruby/array.h>
+#include <mruby/class.h>
 
 #include <ft2build.h>
 #include FT_FREETYPE_H
@@ -379,7 +380,9 @@ mrb_init_carbuncle_font(mrb_state *mrb)
   {
     mrb_raise(mrb, mrb->eStandardError_class, "Unable to initialize freetype.");
   }
-  struct RClass *font = mrb_carbuncle_define_data_class(mrb, "Font", mrb->object_class);
+  struct RClass *carbuncle = mrb_carbuncle_get(mrb);
+  struct RClass *font = mrb_define_class_under(mrb, carbuncle, "Font", mrb->object_class);
+  MRB_SET_INSTANCE_TT(font, MRB_TT_DATA);
 
   mrb_define_method(mrb, font, "initialize", mrb_font_initialize, MRB_ARGS_OPT(2));
 

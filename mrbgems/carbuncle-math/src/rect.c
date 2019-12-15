@@ -2,6 +2,7 @@
 #include "carbuncle/rect.h"
 
 #include <mruby/data.h>
+#include <mruby/class.h>
 #include <mruby/numeric.h>
 
 static const struct mrb_data_type rect_data_type = {
@@ -168,7 +169,9 @@ mrb_rect_equal(mrb_state *mrb, mrb_value self)
 void
 mrb_init_carbuncle_rect(mrb_state *mrb)
 {
-  struct RClass *rect = mrb_carbuncle_define_data_class(mrb, "Rect", mrb->object_class);
+  struct RClass *carbuncle = mrb_carbuncle_get(mrb);
+  struct RClass *rect = mrb_define_class_under(mrb, carbuncle, "Rect", mrb->object_class);
+  MRB_SET_INSTANCE_TT(rect, MRB_TT_DATA);
 
   mrb_define_method(mrb, rect, "initialize", mrb_rect_initialize, MRB_ARGS_OPT(4));
   mrb_define_method(mrb, rect, "initialize_copy", mrb_rect_initialize, MRB_ARGS_REQ(1));

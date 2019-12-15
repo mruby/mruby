@@ -6,6 +6,7 @@
 #include "carbuncle/point.h"
 #include "carbuncle/rect.h"
 
+#include <mruby/class.h>
 #include <mruby/data.h>
 #include <mruby/variable.h>
 
@@ -343,7 +344,10 @@ mrb_sprite_dispose(mrb_state *mrb, mrb_value self)
 void
 mrb_init_carbuncle_sprite(mrb_state *mrb)
 {
-  struct RClass *sprite = mrb_carbuncle_define_data_class(mrb, "Sprite", mrb->object_class);
+  struct RClass *carbuncle = mrb_carbuncle_get(mrb);
+  struct RClass *sprite = mrb_define_class_under(mrb, carbuncle, "Sprite", mrb->object_class);
+  MRB_SET_INSTANCE_TT(sprite, MRB_TT_DATA);
+  
   mrb_define_method(mrb, sprite, "initialize", mrb_sprite_initialize, MRB_ARGS_OPT(1));
 
   mrb_define_method(mrb, sprite, "disposed?", mrb_sprite_disposedQ, MRB_ARGS_NONE());

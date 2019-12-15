@@ -8,6 +8,8 @@
 #include "carbuncle/plane.h"
 
 #include <mruby/variable.h>
+#include <mruby/class.h>
+#include <mruby/data.h>
 
 #include <math.h>
 
@@ -250,7 +252,9 @@ mrb_plane_dispose(mrb_state *mrb, mrb_value self)
 void
 mrb_init_carbuncle_plane(mrb_state *mrb)
 {
-  struct RClass *plane = mrb_carbuncle_define_data_class(mrb, "Plane", mrb->object_class);
+  struct RClass *carbuncle = mrb_carbuncle_get(mrb);
+  struct RClass *plane = mrb_define_class_under(mrb, carbuncle, "Plane", mrb->object_class);
+  MRB_SET_INSTANCE_TT(plane, MRB_TT_DATA);
 
   mrb_define_method(mrb, plane, "initialize", mrb_plane_initialize, MRB_ARGS_OPT(1));
 

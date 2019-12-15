@@ -13,6 +13,7 @@
 #include <mruby/string.h>
 #include <mruby/numeric.h>
 #include <mruby/variable.h>
+#include <mruby/class.h>
 
 #define FONT_SYMBOL mrb_intern_cstr(mrb, "#font")
 
@@ -462,7 +463,9 @@ mrb_s_bitmap_get_screenshot(mrb_state *mrb, mrb_value self)
 void
 mrb_init_carbuncle_bitmap(mrb_state *mrb)
 {
-  struct RClass *bitmap = mrb_carbuncle_define_data_class(mrb, "Bitmap", mrb->object_class);
+  struct RClass *carbuncle = mrb_carbuncle_get(mrb);
+  struct RClass *bitmap = mrb_define_class_under(mrb, carbuncle, "Bitmap", mrb->object_class);
+  MRB_SET_INSTANCE_TT(bitmap, MRB_TT_DATA);
 
   mrb_define_method(mrb, bitmap, "initialize", mrb_bitmap_initialize, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_method(mrb, bitmap, "initialize_copy", mrb_bitmap_initialize, MRB_ARGS_REQ(1));
