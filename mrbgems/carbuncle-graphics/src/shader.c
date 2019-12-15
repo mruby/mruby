@@ -284,7 +284,7 @@ mrb_shader_end_render(mrb_state *mrb, mrb_value self)
 }
 
 void
-mrb_carbuncle_shader_init(mrb_state *mrb)
+mrb_init_carbuncle_shader(mrb_state *mrb)
 {
   struct RClass *shader = mrb_carbuncle_define_data_class(mrb, "Shader", mrb->object_class);
 

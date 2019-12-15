@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 void
-mrb_carbuncle_text_init(mrb_state *mrb);
+mrb_init_carbuncle_text(mrb_state *mrb);
 
 #ifdef __cplusplus
 }

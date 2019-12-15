@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 void
-mrb_carbuncle_keyboard_init(mrb_state *mrb);
+mrb_init_carbuncle_keyboard(mrb_state *mrb);
 
 #ifdef __cplusplus
 }

@@ -49,7 +49,7 @@ struct mrb_Font
 
 
 void
-mrb_carbuncle_font_init(mrb_state *mrb);
+mrb_init_carbuncle_font(mrb_state *mrb);
 
 struct mrb_Font *
 mrb_carbuncle_get_font(mrb_state *mrb, mrb_value obj);

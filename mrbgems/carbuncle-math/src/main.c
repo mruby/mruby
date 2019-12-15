@@ -9,11 +9,11 @@
 void
 mrb_carbuncle_math_gem_init(mrb_state *mrb)
 {
-  mrb_carbuncle_matrix_init(mrb);
-  mrb_carbuncle_point_init(mrb);
-  mrb_carbuncle_rect_init(mrb);
-  mrb_carbuncle_vector3_init(mrb);
-  mrb_carbuncle_vector4_init(mrb);
+  mrb_init_carbuncle_matrix(mrb);
+  mrb_init_carbuncle_point(mrb);
+  mrb_init_carbuncle_rect(mrb);
+  mrb_init_carbuncle_vector3(mrb);
+  mrb_init_carbuncle_vector4(mrb);
 }
 
 void

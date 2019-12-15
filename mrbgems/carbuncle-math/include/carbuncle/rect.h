@@ -10,7 +10,7 @@ extern "C" {
 #endif
 
 void
-mrb_carbuncle_rect_init(mrb_state *mrb);
+mrb_init_carbuncle_rect(mrb_state *mrb);
 
 Rectangle *
 mrb_carbuncle_get_rect(mrb_state *mrb, mrb_value obj);

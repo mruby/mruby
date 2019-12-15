@@ -164,7 +164,7 @@ mrb_gesture_detectQ(mrb_state *mrb, mrb_value self)
 }
 
 void
-mrb_carbuncle_gesture_init(mrb_state *mrb)
+mrb_init_carbuncle_gesture(mrb_state *mrb)
 {
   struct RClass *carbuncle = mrb_carbuncle_get(mrb);
   struct RClass *gesture = mrb_define_module_under(mrb, carbuncle, "Gesture");

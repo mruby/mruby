@@ -340,7 +340,7 @@ mrb_nine_patch_draw(mrb_state *mrb, mrb_value self)
 }
 
 void
-mrb_carbuncle_nine_patch_init(mrb_state *mrb)
+mrb_init_carbuncle_nine_patch(mrb_state *mrb)
 {
   struct RClass *nine_patch = mrb_carbuncle_define_data_class(mrb, "NinePatch", mrb->object_class);
 

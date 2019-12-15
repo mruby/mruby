@@ -207,7 +207,7 @@ mrb_color_equal(mrb_state *mrb, mrb_value self)
 }
 
 void
-mrb_carbuncle_color_init(mrb_state *mrb)
+mrb_init_carbuncle_color(mrb_state *mrb)
 {
   struct RClass *color = mrb_carbuncle_define_data_class(mrb, "Color", mrb->object_class);
   mrb_define_method(mrb, color, "initialize", mrb_color_initialize, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(3));

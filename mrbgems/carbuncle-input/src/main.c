@@ -9,11 +9,11 @@
 void
 mrb_carbuncle_input_gem_init(mrb_state *mrb)
 {
-  mrb_carbuncle_keyboard_init(mrb);
-  mrb_carbuncle_mouse_init(mrb);
-  mrb_carbuncle_touch_init(mrb);
-  mrb_carbuncle_gesture_init(mrb);
-  mrb_carbuncle_gamepad_init(mrb);
+  mrb_init_carbuncle_keyboard(mrb);
+  mrb_init_carbuncle_mouse(mrb);
+  mrb_init_carbuncle_touch(mrb);
+  mrb_init_carbuncle_gesture(mrb);
+  mrb_init_carbuncle_gamepad(mrb);
 }
 
 void

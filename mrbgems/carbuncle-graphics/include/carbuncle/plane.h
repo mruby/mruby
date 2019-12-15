@@ -8,7 +8,7 @@ extern "C" {
 #endif
 
 void
-mrb_carbuncle_plane_init(mrb_state *mrb);
+mrb_init_carbuncle_plane(mrb_state *mrb);
 
 #ifdef __cplusplus
 }

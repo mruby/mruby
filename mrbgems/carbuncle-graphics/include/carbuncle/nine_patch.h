@@ -8,7 +8,7 @@ extern "C" {
 #endif
 
 void
-mrb_carbuncle_nine_patch_init(mrb_state *mrb);
+mrb_init_carbuncle_nine_patch(mrb_state *mrb);
 
 #ifdef __cplusplus
 }

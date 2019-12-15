@@ -19,7 +19,7 @@ mrb_audio_readyQ(mrb_state *mrb, mrb_value self)
 }
 
 void
-mrb_carbuncle_audio_init(mrb_state *mrb)
+mrb_init_carbuncle_audio(mrb_state *mrb)
 {
   struct RClass *carbuncle = mrb_carbuncle_get(mrb);
   struct RClass *audio = mrb_define_module_under(mrb, carbuncle, "Audio");

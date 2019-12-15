@@ -72,7 +72,7 @@ mrb_viewport_draw(mrb_state *mrb, mrb_value self)
 }
 
 void
-mrb_carbuncle_viewport_init(mrb_state *mrb)
+mrb_init_carbuncle_viewport(mrb_state *mrb)
 {
   struct RClass *carbuncle = mrb_carbuncle_get(mrb);
   struct RClass *container = mrb_define_class_under(mrb, carbuncle, "Container", mrb->object_class);

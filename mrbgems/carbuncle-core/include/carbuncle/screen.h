@@ -13,7 +13,7 @@ typedef struct Screen
 } Screen;
 
 void
-mrb_carbuncle_screen_init(mrb_state *mrb, struct RClass *carbuncle);
+mrb_init_carbuncle_screen(mrb_state *mrb);
 
 Screen *
 mrb_carbuncle_get_screen(mrb_state *mrb, mrb_value obj);

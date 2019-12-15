@@ -150,7 +150,7 @@ mrb_matrix_set_subscript(mrb_state *mrb, mrb_value self)
 }
 
 void
-mrb_carbuncle_matrix_init(mrb_state *mrb)
+mrb_init_carbuncle_matrix(mrb_state *mrb)
 {
   struct RClass *matrix = mrb_carbuncle_define_data_class(mrb, "Matrix", mrb->object_class);
 

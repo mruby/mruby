@@ -286,7 +286,7 @@ mrb_s_gamepad_get_subscript(mrb_state *mrb, mrb_value self)
 }
 
 void
-mrb_carbuncle_gamepad_init(mrb_state *mrb)
+mrb_init_carbuncle_gamepad(mrb_state *mrb)
 {
   struct RClass *gamepad = mrb_carbuncle_define_data_class(mrb, "Gamepad", mrb->object_class);
 

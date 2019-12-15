@@ -150,7 +150,7 @@ mrb_sound_resume(mrb_state *mrb, mrb_value self)
 }
 
 void
-mrb_carbuncle_sound_init(mrb_state *mrb)
+mrb_init_carbuncle_sound(mrb_state *mrb)
 {
   struct RClass *sound = mrb_carbuncle_define_data_class(mrb, "Sound", mrb->object_class);
 

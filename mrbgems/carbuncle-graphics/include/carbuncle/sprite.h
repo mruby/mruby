@@ -19,7 +19,7 @@ struct mrb_Sprite
 };
 
 void
-mrb_carbuncle_sprite_init(mrb_state *mrb);
+mrb_init_carbuncle_sprite(mrb_state *mrb);
 
 struct mrb_Sprite *
 mrb_carbuncle_get_sprite(mrb_state *mrb, mrb_value obj);

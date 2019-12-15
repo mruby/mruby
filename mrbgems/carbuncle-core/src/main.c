@@ -39,8 +39,8 @@ mrb_carbuncle_core_gem_init(mrb_state *mrb)
   mrb_define_class_under(mrb, carbuncle, "FileNotExists", base_error);
   mrb_define_class_under(mrb, carbuncle, "DisposedObject", base_error);
 
-  mrb_carbuncle_game_init(mrb, carbuncle);
-  mrb_carbuncle_screen_init(mrb, carbuncle);
+  mrb_init_carbuncle_game(mrb);
+  mrb_init_carbuncle_screen(mrb);
 
 #ifdef CARBUNCLE_DEBUG
   mrb_define_module_function(mrb, carbuncle, "debug_draw?", mrb_s_carbuncle_debug_drawQ, MRB_ARGS_NONE());

@@ -61,7 +61,7 @@ mrb_touch_subscript(mrb_state *mrb, mrb_value self)
 }
 
 void
-mrb_carbuncle_touch_init(mrb_state *mrb)
+mrb_init_carbuncle_touch(mrb_state *mrb)
 {
   struct RClass *carbuncle = mrb_carbuncle_get(mrb);
   struct RClass *touch = mrb_define_module_under(mrb, carbuncle, "Touch");

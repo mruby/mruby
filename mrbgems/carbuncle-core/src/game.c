@@ -192,9 +192,9 @@ mrb_game_resize(mrb_state *mrb, mrb_value self)
 /* Init Game class */
 
 void
-mrb_carbuncle_game_init(mrb_state *mrb, struct RClass *carbuncle)
+mrb_init_carbuncle_game(mrb_state *mrb)
 {
-  struct RClass *game = mrb_define_class_under(mrb, carbuncle, "Game", mrb->object_class);
+  struct RClass *game = mrb_define_class_under(mrb, mrb_module_get(mrb, "Carbuncle"), "Game", mrb->object_class);
 
   /* Class methods */
 

@@ -133,7 +133,7 @@ mrb_texture_to_bitmap(mrb_state *mrb, mrb_value self)
 }
 
 void
-mrb_carbuncle_texture_init(mrb_state *mrb)
+mrb_init_carbuncle_texture(mrb_state *mrb)
 {
   struct RClass *texture = mrb_carbuncle_define_data_class(mrb, "Texture", mrb->object_class);
   mrb_define_method(mrb, texture, "initialize", mrb_texture_initialize, MRB_ARGS_REQ(1));

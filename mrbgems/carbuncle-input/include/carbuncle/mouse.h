@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 void
-mrb_carbuncle_mouse_init(mrb_state *mrb);
+mrb_init_carbuncle_mouse(mrb_state *mrb);
 
 #ifdef __cplusplus
 }

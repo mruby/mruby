@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 void
-mrb_carbuncle_texture_init(mrb_state *mrb);
+mrb_init_carbuncle_texture(mrb_state *mrb);
 
 Texture2D *
 mrb_carbuncle_get_texture(mrb_state *mrb, mrb_value obj);

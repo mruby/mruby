@@ -275,7 +275,7 @@ mrb_canvas_draw(mrb_state *mrb, mrb_value self)
 }
 
 void
-mrb_carbuncle_canvas_init(mrb_state *mrb)
+mrb_init_carbuncle_canvas(mrb_state *mrb)
 {
   struct RClass *canvas = mrb_carbuncle_define_data_class(mrb, "Canvas", mrb->object_class);
 

@@ -121,7 +121,7 @@ mrb_keyboard_get_character(mrb_state *mrb, mrb_value self)
 }
 
 void
-mrb_carbuncle_keyboard_init(mrb_state *mrb)
+mrb_init_carbuncle_keyboard(mrb_state *mrb)
 {
   struct RClass *carbuncle = mrb_carbuncle_get(mrb);
   struct RClass *keyboard = mrb_define_module_under(mrb, carbuncle, "Keyboard");

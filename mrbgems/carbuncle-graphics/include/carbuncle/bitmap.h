@@ -10,7 +10,7 @@ extern "C" {
 #endif
 
 void
-mrb_carbuncle_bitmap_init(mrb_state *mrb);
+mrb_init_carbuncle_bitmap(mrb_state *mrb);
 
 Image *
 mrb_carbuncle_get_bitmap(mrb_state *mrb, mrb_value obj);

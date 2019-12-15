@@ -10,7 +10,7 @@ extern "C" {
 #endif
 
 void
-mrb_carbuncle_matrix_init(mrb_state *mrb);
+mrb_init_carbuncle_matrix(mrb_state *mrb);
 
 Matrix *
 mrb_carbuncle_get_matrix(mrb_state *mrb, mrb_value obj);

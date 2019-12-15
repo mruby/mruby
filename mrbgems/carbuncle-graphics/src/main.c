@@ -16,18 +16,18 @@
 void
 mrb_carbuncle_graphics_gem_init(mrb_state *mrb)
 {
-  mrb_carbuncle_color_init(mrb);
-  mrb_carbuncle_bitmap_init(mrb);
-  mrb_carbuncle_texture_init(mrb);
-  mrb_carbuncle_sprite_init(mrb);
-  mrb_carbuncle_font_init(mrb);
-  mrb_carbuncle_text_init(mrb);
-  mrb_carbuncle_plane_init(mrb);
-  mrb_carbuncle_viewport_init(mrb);
-  mrb_carbuncle_canvas_init(mrb);
-  mrb_carbuncle_nine_patch_init(mrb);
-  mrb_carbuncle_shader_init(mrb);
-  mrb_carbuncle_graphics_init(mrb);
+  mrb_init_carbuncle_color(mrb);
+  mrb_init_carbuncle_bitmap(mrb);
+  mrb_init_carbuncle_texture(mrb);
+  mrb_init_carbuncle_sprite(mrb);
+  mrb_init_carbuncle_font(mrb);
+  mrb_init_carbuncle_text(mrb);
+  mrb_init_carbuncle_plane(mrb);
+  mrb_init_carbuncle_viewport(mrb);
+  mrb_init_carbuncle_canvas(mrb);
+  mrb_init_carbuncle_nine_patch(mrb);
+  mrb_init_carbuncle_shader(mrb);
+  mrb_init_carbuncle_graphics(mrb);
 }
 
 void

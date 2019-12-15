@@ -341,7 +341,7 @@ mrb_sprite_dispose(mrb_state *mrb, mrb_value self)
 }
 
 void
-mrb_carbuncle_sprite_init(mrb_state *mrb)
+mrb_init_carbuncle_sprite(mrb_state *mrb)
 {
   struct RClass *sprite = mrb_carbuncle_define_data_class(mrb, "Sprite", mrb->object_class);
   mrb_define_method(mrb, sprite, "initialize", mrb_sprite_initialize, MRB_ARGS_OPT(1));

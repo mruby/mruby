@@ -121,7 +121,7 @@ mrb_point_equal(mrb_state *mrb, mrb_value self)
 }
 
 void
-mrb_carbuncle_point_init(mrb_state *mrb)
+mrb_init_carbuncle_point(mrb_state *mrb)
 {
   struct RClass *point = mrb_carbuncle_define_data_class(mrb, "Point", mrb->object_class);
 

@@ -10,7 +10,7 @@ extern "C" {
 #endif
 
 void
-mrb_carbuncle_vector4_init(mrb_state *mrb);
+mrb_init_carbuncle_vector4(mrb_state *mrb);
 
 Vector4 *
 mrb_carbuncle_get_vector4(mrb_state *mrb, mrb_value obj);

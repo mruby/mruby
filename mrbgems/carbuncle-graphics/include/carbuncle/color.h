@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 void
-mrb_carbuncle_color_init(mrb_state *mrb);
+mrb_init_carbuncle_color(mrb_state *mrb);
 
 Color *
 mrb_carbuncle_get_color(mrb_state *mrb, mrb_value obj);

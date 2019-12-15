@@ -248,7 +248,7 @@ mrb_plane_dispose(mrb_state *mrb, mrb_value self)
 
 
 void
-mrb_carbuncle_plane_init(mrb_state *mrb)
+mrb_init_carbuncle_plane(mrb_state *mrb)
 {
   struct RClass *plane = mrb_carbuncle_define_data_class(mrb, "Plane", mrb->object_class);
 

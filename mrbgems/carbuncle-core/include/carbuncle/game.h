@@ -8,7 +8,7 @@ extern "C" {
 #endif
 
 void
-mrb_carbuncle_game_init(mrb_state *mrb, struct RClass *carbuncle);
+mrb_init_carbuncle_game(mrb_state *mrb);
 
 mrb_value
 mrb_carbuncle_get_current_game(mrb_state *mrb);

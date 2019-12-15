@@ -8,7 +8,7 @@ extern "C" {
 #endif
 
 void
-mrb_carbuncle_viewport_init(mrb_state *mrb);
+mrb_init_carbuncle_viewport(mrb_state *mrb);
 
 
 #ifdef __cplusplus

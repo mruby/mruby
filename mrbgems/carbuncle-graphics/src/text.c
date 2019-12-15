@@ -230,7 +230,7 @@ mrb_text_draw(mrb_state *mrb, mrb_value self)
 }
 
 void
-mrb_carbuncle_text_init(mrb_state *mrb)
+mrb_init_carbuncle_text(mrb_state *mrb)
 {
   struct RClass *text = mrb_carbuncle_define_data_class(mrb, "Text", mrb->object_class);
 

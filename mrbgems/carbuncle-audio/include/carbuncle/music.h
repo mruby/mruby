@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 void
-mrb_carbuncle_music_init(mrb_state *mrb);
+mrb_init_carbuncle_music(mrb_state *mrb);
 
 Music *
 mrb_carbuncle_get_music(mrb_state *mrb, mrb_value obj);

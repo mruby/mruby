@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 void
-mrb_carbuncle_audio_init(mrb_state *mrb);
+mrb_init_carbuncle_audio(mrb_state *mrb);
 
 #ifdef __cplusplus
 }

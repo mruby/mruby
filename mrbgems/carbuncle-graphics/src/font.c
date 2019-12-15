@@ -373,7 +373,7 @@ mrb_font_text_rect(mrb_state *mrb, mrb_value self)
 }
 
 void
-mrb_carbuncle_font_init(mrb_state *mrb)
+mrb_init_carbuncle_font(mrb_state *mrb)
 {
   if (FT_Init_FreeType( &carbuncle_freetype ))
   {

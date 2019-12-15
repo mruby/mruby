@@ -132,7 +132,7 @@ mrb_mouse_set_position(mrb_state *mrb, mrb_value self)
 }
 
 void
-mrb_carbuncle_mouse_init(mrb_state *mrb)
+mrb_init_carbuncle_mouse(mrb_state *mrb)
 {
   struct RClass *carbuncle = mrb_carbuncle_get(mrb);
   struct RClass *mouse = mrb_define_module_under(mrb, carbuncle, "Mouse");
