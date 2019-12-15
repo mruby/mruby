@@ -30,6 +30,11 @@ check_game(mrb_state *mrb, mrb_value self, Screen *screen)
   }
 }
 
+/**
+ * Creates a new screen object.
+ * @param game [Carbuncle::Game] The game the screen corresponds to.
+ * @returns self
+ */
 static mrb_value
 mrb_screen_initialize(mrb_state *mrb, mrb_value self)
 {
@@ -45,6 +50,10 @@ mrb_screen_initialize(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/**
+ * The screen's width.
+ * @returns [Integer]
+ */
 static mrb_value
 mrb_screen_get_width(mrb_state *mrb, mrb_value self)
 {
@@ -52,6 +61,10 @@ mrb_screen_get_width(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(screen->width);
 }
 
+/**
+ * The screen's height.
+ * @returns [Integer]
+ */
 static mrb_value
 mrb_screen_get_height(mrb_state *mrb, mrb_value self)
 {
@@ -139,7 +152,8 @@ mrb_screen_resize(mrb_state *mrb, mrb_value self)
 void
 mrb_init_carbuncle_screen(mrb_state *mrb)
 {
-  struct RClass *screen = mrb_define_class_under(mrb, mrb_module_get(mrb, "Carbuncle"), "Screen", mrb->object_class);
+  struct RClass *carbuncle = mrb_carbuncle_get(mrb);
+  struct RClass *screen = mrb_define_class_under(mrb, carbuncle, "Screen", mrb->object_class);
   MRB_SET_INSTANCE_TT(screen, MRB_TT_DATA);
 
   mrb_define_method(mrb, screen, "initialize", mrb_screen_initialize, MRB_ARGS_REQ(1));
