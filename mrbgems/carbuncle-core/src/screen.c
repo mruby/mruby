@@ -10,11 +10,9 @@
 #include <mruby/string.h>
 #include <mruby/class.h>
 
-static const char *TITLE_IV_NAME = "#title";
-static const char *GAME_IV_NAME = "#game";
-
-#define TITLE_SYMBOL mrb_intern_cstr(mrb, TITLE_IV_NAME)
-#define GAME_SYMBOL mrb_intern_cstr(mrb, GAME_IV_NAME)
+#define TITLE_SYMBOL mrb_intern_cstr(mrb, "#title")
+#define GAME_SYMBOL mrb_intern_cstr(mrb, "#game")
+#define CURSOR_SYMBOL mrb_intern_cstr(mrb, "#cursor")
 
 static const struct mrb_data_type screen_data_type = {
   "Carbuncle::Screen", mrb_free
@@ -28,6 +26,14 @@ check_game(mrb_state *mrb, mrb_value self, Screen *screen)
   {
     SetWindowSize(screen->width, screen->height);
   }
+}
+
+static mrb_value
+mrb_cursor_new(mrb_state *mrb, mrb_value game)
+{
+  struct RClass *screen = mrb_carbuncle_class_get(mrb, "Screen");
+  struct RClass *cursor = mrb_class_get_under(mrb, screen, "Cursor");
+  return mrb_obj_new(mrb, cursor, 1, &game);
 }
 
 /**
@@ -47,6 +53,7 @@ mrb_screen_initialize(mrb_state *mrb, mrb_value self)
   DATA_PTR(self) = data;
   mrb_iv_set(mrb, self, GAME_SYMBOL, game);
   mrb_iv_set(mrb, self, TITLE_SYMBOL, mrb_str_new_cstr(mrb, "Carbuncle Game"));
+  mrb_iv_set(mrb, self, CURSOR_SYMBOL, mrb_cursor_new(mrb, game));
   return self;
 }
 
@@ -82,6 +89,12 @@ static mrb_value
 mrb_screen_get_game(mrb_state *mrb, mrb_value self)
 {
   return mrb_iv_get(mrb, self, GAME_SYMBOL);
+}
+
+static mrb_value
+mrb_screen_get_cursor(mrb_state *mrb, mrb_value self)
+{
+  return mrb_iv_get(mrb, self, CURSOR_SYMBOL);
 }
 
 static mrb_value
@@ -149,6 +162,31 @@ mrb_screen_resize(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+static mrb_value
+mrb_cursor_initialize(mrb_state *mrb, mrb_value self)
+{
+  mrb_value game;
+  mrb_get_args(mrb, "o", &game);
+  mrb_iv_set(mrb, self, GAME_SYMBOL, game);
+  return self;
+}
+
+static mrb_value
+mrb_cursor_get_visible(mrb_state *mrb, mrb_value self)
+{
+  return mrb_bool_value(!IsCursorHidden());
+}
+
+static mrb_value
+mrb_cursor_set_visible(mrb_state *mrb, mrb_value self)
+{
+  mrb_bool visible;
+  mrb_get_args(mrb, "b", &visible);
+  if (visible) { ShowCursor(); }
+  else { HideCursor(); }
+  return mrb_bool_value(visible);
+}
+
 void
 mrb_init_carbuncle_screen(mrb_state *mrb)
 {
@@ -163,6 +201,7 @@ mrb_init_carbuncle_screen(mrb_state *mrb)
   mrb_define_method(mrb, screen, "height", mrb_screen_get_height, MRB_ARGS_NONE());
   mrb_define_method(mrb, screen, "title", mrb_screen_get_title, MRB_ARGS_NONE());
   mrb_define_method(mrb, screen, "game", mrb_screen_get_game, MRB_ARGS_NONE());
+  mrb_define_method(mrb, screen, "cursor", mrb_screen_get_cursor, MRB_ARGS_NONE());
 
   /* Setters */
   mrb_define_method(mrb, screen, "width=", mrb_screen_set_width, MRB_ARGS_REQ(1));
@@ -170,6 +209,14 @@ mrb_init_carbuncle_screen(mrb_state *mrb)
   mrb_define_method(mrb, screen, "title=", mrb_screen_set_title, MRB_ARGS_REQ(1));  
 
   mrb_define_method(mrb, screen, "resize", mrb_screen_resize, MRB_ARGS_REQ(2));
+
+  struct RClass *cursor = mrb_define_class_under(mrb, screen, "Cursor", mrb->object_class);
+
+  mrb_define_method(mrb, cursor, "initialize", mrb_cursor_initialize, MRB_ARGS_REQ(1));
+
+  mrb_define_method(mrb, cursor, "visible?", mrb_cursor_get_visible, MRB_ARGS_NONE());
+  mrb_define_method(mrb, cursor, "visible",  mrb_cursor_get_visible, MRB_ARGS_NONE());
+  mrb_define_method(mrb, cursor, "visible=", mrb_cursor_set_visible, MRB_ARGS_REQ(1));
 }
 
 Screen *

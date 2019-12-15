@@ -5,5 +5,6 @@ MRuby::GemBox.new do |conf|
   conf.gem :core => "carbuncle-graphics"
   conf.gem :core => "carbuncle-audio"
   conf.gem :core => "carbuncle-input"
+  conf.gem :core => "carbuncle-scene"
   conf.gem :core => "mruby-bin-carbuncle"
 end

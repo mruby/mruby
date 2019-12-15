@@ -270,9 +270,7 @@ mrb_shader_begin_render(mrb_state *mrb, mrb_value self)
     mrb_bool raised = FALSE;
     mrb_value result = mrb_protect(mrb, mrb_carbuncle_call_block, block, &raised);
     EndShaderMode();
-    if (raised) {
-      mrb_exc_raise(mrb, result);
-    }
+    if (raised) { mrb_exc_raise(mrb, result); }
   }
   return self;
 }
