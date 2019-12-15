@@ -279,7 +279,7 @@ module MRuby
 
   class Command::Git < Command
     attr_accessor :flags
-    attr_accessor :clone_options, :pull_options, :checkout_options, :reset_options
+    attr_accessor :clone_options, :pull_options, :checkout_options, :checkout_detach_options, :reset_options
 
     def initialize(build)
       super
@@ -288,6 +288,7 @@ module MRuby
       @clone_options = "clone %{flags} %{url} %{dir}"
       @pull_options = "--git-dir %{repo_dir}/.git --work-tree %{repo_dir} pull"
       @checkout_options = "--git-dir %{repo_dir}/.git --work-tree %{repo_dir} checkout %{checksum_hash}"
+      @checkout_detach_options = "--git-dir %{repo_dir}/.git --work-tree %{repo_dir} checkout --detach %{checksum_hash}"
       @reset_options = "--git-dir %{repo_dir}/.git --work-tree %{repo_dir} reset %{checksum_hash}"
     end
 
@@ -304,6 +305,11 @@ module MRuby
     def run_checkout(dir, checksum_hash)
       _pp "GIT CHECKOUT", dir, checksum_hash
       _run checkout_options, { :checksum_hash => checksum_hash, :repo_dir => shellquote(dir) }
+    end
+
+    def run_checkout_detach(dir, checksum_hash)
+      _pp "GIT CHECKOUT DETACH", dir, checksum_hash
+      _run checkout_detach_options, { :checksum_hash => checksum_hash, :repo_dir => shellquote(dir) }
     end
 
     def run_reset_hard(dir, checksum_hash)
