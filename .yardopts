@@ -1,6 +1,7 @@
 --markup markdown
 --plugin mruby
 --plugin coderay
+--plugin carbuncle
 --output-dir doc/api
 
 src/**/*.c
