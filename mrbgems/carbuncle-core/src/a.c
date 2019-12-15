@@ -1,3 +1,8 @@
+/**
+ * This file should be called main.c but because of a YARD bug, it requires to be called a.rb to
+ * allow other classes to be documented.
+ */
+
 #include <mruby.h>
 
 #include <stdlib.h>
@@ -32,12 +37,6 @@ mrb_carbuncle_core_gem_init(mrb_state *mrb)
   InitAudioDevice();
   carbuncle_audio_manager_init(mrb);
   struct RClass *carbuncle = mrb_define_module(mrb, "Carbuncle");
-  
-  struct RClass *base_error = mrb_define_class_under(mrb, carbuncle, "Error", mrb->eStandardError_class);
-
-  mrb_define_class_under(mrb, carbuncle, "GameIsRunning", base_error);
-  mrb_define_class_under(mrb, carbuncle, "FileNotExists", base_error);
-  mrb_define_class_under(mrb, carbuncle, "DisposedObject", base_error);
 
   mrb_init_carbuncle_game(mrb);
   mrb_init_carbuncle_screen(mrb);

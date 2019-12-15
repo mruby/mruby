@@ -215,12 +215,22 @@ mrb_cursor_initialize(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/**
+ * @overload visible?
+ *   Returns if the window's cursor is visible.
+ *   @return [true, false]
+ */
 static mrb_value
 mrb_cursor_get_visible(mrb_state *mrb, mrb_value self)
 {
   return mrb_bool_value(!IsCursorHidden());
 }
 
+/**
+ * @overload visible=(value)
+ *   @param [true, false] value
+ *   @return [true, false]
+ */
 static mrb_value
 mrb_cursor_set_visible(mrb_state *mrb, mrb_value self)
 {
@@ -269,7 +279,8 @@ mrb_init_carbuncle_screen(mrb_state *mrb)
 
   /**
    * Handles the window's cursor.
-   * @attr_reader [true, false] Indicates if the cursor is visible or not.
+   * @!attribute [rw] visible
+   *   Indicates if the cursor is visible or not.
    */
   struct RClass *cursor = mrb_define_class_under(mrb, screen, "Cursor", mrb->object_class);
 

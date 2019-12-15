@@ -125,6 +125,11 @@ close_game(mrb_state *mrb, mrb_value self, mrb_value instance)
 
 /* Ruby Bindings */
 
+/**
+ * Runs an instance of this specific game class and initializes its main loop.
+ * @raise [Carbuncle::GameIsRunning] if a game is already running.
+ * @return [nil]
+ */
 static mrb_value
 mrb_s_game_run(mrb_state *mrb, mrb_value self)
 {
@@ -135,24 +140,38 @@ mrb_s_game_run(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
+/**
+ * Returns true if a game is already running
+ * @return [true, false]
+ */
 static mrb_value
 mrb_s_game_runningQ(mrb_state *mrb, mrb_value self)
 {
   return mrb_bool_value(carbuncle_game_is_running);
 }
 
+/**
+ * Returns the current game if its running.
+ * @return [Carbuncle::Game, nil] the current game that's running or nil if no game is running.
+ */
 static mrb_value
 mrb_s_game_get_current_game(mrb_state *mrb, mrb_value self)
 {
   return mrb_gv_get(mrb, CURRENT_GAME_SYMBOL);
 }
 
+/**
+ * @return [Carbuncle::Screen]
+ */
 static mrb_value
 mrb_game_get_screen(mrb_state *mrb, mrb_value self)
 {
   return mrb_iv_get(mrb, self, SCREEN_SYMBOL);
 }
 
+/**
+ * @return [self]
+ */
 static mrb_value
 mrb_game_initialize(mrb_state *mrb, mrb_value self)
 {
@@ -161,18 +180,31 @@ mrb_game_initialize(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/**
+ * An method called when the user clicks on the cross button.
+ * It should return true/false depending if the user can and can't close the screen.
+ * Useful to redirect your close button to another action.
+ * @return [self]
+ */
 static mrb_value
 mrb_game_closeQ(mrb_state *mrb, mrb_value self)
 {
   return mrb_true_value();
 }
 
+/**
+ * @return [self]
+ */
 static mrb_value
 mrb_game_dummy(mrb_state *mrb, mrb_value self)
 {
   return mrb_nil_value();
 }
 
+/**
+ * Closes the game and destroys the game's window.
+ * @return [self]
+ */
 static mrb_value
 mrb_game_close(mrb_state *mrb, mrb_value self)
 {
@@ -180,6 +212,11 @@ mrb_game_close(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
+/**
+ * Resizes the game's window.
+ * @see [Carbuncle::Screen#resize]
+ * @return [nil]
+ */
 static mrb_value
 mrb_game_resize(mrb_state *mrb, mrb_value self)
 {
@@ -194,7 +231,14 @@ mrb_game_resize(mrb_state *mrb, mrb_value self)
 void
 mrb_init_carbuncle_game(mrb_state *mrb)
 {
-  struct RClass *game = mrb_define_class_under(mrb, mrb_module_get(mrb, "Carbuncle"), "Game", mrb->object_class);
+  struct RClass *carbuncle = mrb_carbuncle_get(mrb);
+  /**
+   * This class represents a game. It handles screen creation and the game's main loop.
+   *
+   * @!attribute [r] screen
+   *   The screen attached to this game.
+   */
+  struct RClass *game = mrb_define_class_under(mrb, carbuncle, "Game", mrb->object_class);
 
   /* Class methods */
 
