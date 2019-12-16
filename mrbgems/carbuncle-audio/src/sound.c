@@ -40,6 +40,13 @@ static const struct mrb_data_type sound_data_type = {
   "Carbuncle::Sound", mrb_sound_free
 };
 
+/**
+ * @overload initialize(filename)
+ *   Creates a new Sound object from a filename
+ *   @param [String] filename The name of the audio file.
+ *   @raise [Carbuncle::FileNotFound] If the file does not exists.
+ *   @return [self]
+ */
 mrb_value
 mrb_sound_initialize(mrb_state *mrb, mrb_value self)
 {
@@ -55,6 +62,10 @@ mrb_sound_initialize(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/**
+ * Checks if the sound is playing.
+ * @return [Boolean]
+ */
 mrb_value
 mrb_sound_playingQ(mrb_state *mrb, mrb_value self)
 {
@@ -62,6 +73,10 @@ mrb_sound_playingQ(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(IsSoundPlaying(*sound));
 }
 
+/**
+ * The sound's volume in the rangre from 0..1
+ * @return [Float]
+ */
 mrb_value
 mrb_sound_get_volume(mrb_state *mrb, mrb_value self)
 {
@@ -70,6 +85,10 @@ mrb_sound_get_volume(mrb_state *mrb, mrb_value self)
   return mrb_float_value(mrb, ptr->volume);
 }
 
+/**
+ * The sound's pitch, in the range of -1..1
+ * @return [Float]
+ */
 mrb_value
 mrb_sound_get_pitch(mrb_state *mrb, mrb_value self)
 {
@@ -78,6 +97,9 @@ mrb_sound_get_pitch(mrb_state *mrb, mrb_value self)
   return mrb_float_value(mrb, ptr->pitch);
 }
 
+/**
+ * @return [Float]
+ */
 mrb_value
 mrb_sound_set_volume(mrb_state *mrb, mrb_value self)
 {
@@ -90,6 +112,9 @@ mrb_sound_set_volume(mrb_state *mrb, mrb_value self)
   return mrb_float_value(mrb, ptr->volume);
 }
 
+/**
+ * @return [Float]
+ */
 mrb_value
 mrb_sound_set_pitch(mrb_state *mrb, mrb_value self)
 {
@@ -102,13 +127,21 @@ mrb_sound_set_pitch(mrb_state *mrb, mrb_value self)
   return mrb_float_value(mrb, ptr->pitch);
 }
 
+/**
+ * Checks if the sound is dosposed
+ * @return [Boolean]
+ */
 static mrb_value
 mrb_sound_disposedQ(mrb_state *mrb, mrb_value self)
 {
   return mrb_bool_value(!DATA_PTR(self));
 }
 
-
+/**
+ * Frees the memory associated with this resource.
+ * Be aware, this object can't be used anymore or an error will be thrown.
+ * @return [nil]
+ */
 static mrb_value
 mrb_sound_dispose(mrb_state *mrb, mrb_value self)
 {
@@ -118,6 +151,10 @@ mrb_sound_dispose(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/**
+ * Plays the sound.
+ * @return [nil]
+ */
 mrb_value
 mrb_sound_play(mrb_state *mrb, mrb_value self)
 {
@@ -126,6 +163,10 @@ mrb_sound_play(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/**
+ * Pauses the sound, allowing to be resumed later.
+ * @return [nil]
+ */
 mrb_value
 mrb_sound_pause(mrb_state *mrb, mrb_value self)
 {
@@ -134,6 +175,10 @@ mrb_sound_pause(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/**
+ * Stops the sound, if it's playing, and resets it's position from 0.
+ * @return [nil]
+ */
 mrb_value
 mrb_sound_stop(mrb_state *mrb, mrb_value self)
 {
@@ -142,6 +187,10 @@ mrb_sound_stop(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/**
+ * Resumes the sound from the position it was.
+ * @return [nil]
+ */
 mrb_value
 mrb_sound_resume(mrb_state *mrb, mrb_value self)
 {
@@ -154,6 +203,14 @@ void
 mrb_init_carbuncle_sound(mrb_state *mrb)
 {
   struct RClass *carbuncle = mrb_carbuncle_get(mrb);
+  /**
+   * A sound is any audio file loaded directly from memory and without looping.
+   * Used for sound effects and small audio files.
+   * @!attribute [rw] volume
+   *   The sound's volume in the rangre from 0..1
+   * @!attribute [rw] pitch
+   *   The sound's pitch, in the range of -1..1
+   */  
   struct RClass *sound = mrb_define_class_under(mrb, carbuncle, "Sound", mrb->object_class);
   MRB_SET_INSTANCE_TT(sound, MRB_TT_DATA);
 

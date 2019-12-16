@@ -43,6 +43,13 @@ static const struct mrb_data_type music_data_type = {
   "Carbuncle::Music", mrb_music_free
 };
 
+/**
+ * @overload initialize(filename)
+ *   Creates a new Music object from a filename
+ *   @param [String] filename The name of the audio file.
+ *   @raise [Carbuncle::FileNotFound] If the file does not exists.
+ *   @return [self]
+ */
 mrb_value
 mrb_music_initialize(mrb_state *mrb, mrb_value self)
 {
@@ -61,6 +68,10 @@ mrb_music_initialize(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/**
+ * Checks if the sound is playing.
+ * @return [Boolean]
+ */
 mrb_value
 mrb_music_playingQ(mrb_state *mrb, mrb_value self)
 {
@@ -68,6 +79,9 @@ mrb_music_playingQ(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(IsMusicPlaying(*music));
 }
 
+/**
+ * @return [Float]
+ */
 mrb_value
 mrb_music_get_rate(mrb_state *mrb, mrb_value self)
 {
@@ -75,6 +89,9 @@ mrb_music_get_rate(mrb_state *mrb, mrb_value self)
   return mrb_float_value(mrb, GetMusicTimePlayed(*music) / GetMusicTimeLength(*music));
 }
 
+/**
+ * @return [Float]
+ */
 mrb_value
 mrb_music_get_position(mrb_state *mrb, mrb_value self)
 {
@@ -82,6 +99,9 @@ mrb_music_get_position(mrb_state *mrb, mrb_value self)
   return mrb_float_value(mrb, GetMusicTimePlayed(*music));
 }
 
+/**
+ * @return [Float]
+ */
 mrb_value
 mrb_music_get_size(mrb_state *mrb, mrb_value self)
 {
@@ -89,6 +109,10 @@ mrb_music_get_size(mrb_state *mrb, mrb_value self)
   return mrb_float_value(mrb, GetMusicTimeLength(*music));
 }
 
+/**
+ * The music's volume in the rangre from 0..1
+ * @return [Float]
+ */
 mrb_value
 mrb_music_get_volume(mrb_state *mrb, mrb_value self)
 {
@@ -97,6 +121,10 @@ mrb_music_get_volume(mrb_state *mrb, mrb_value self)
   return mrb_float_value(mrb, ptr->volume);
 }
 
+/**
+ * The music's pitch, in the range of -1..1
+ * @return [Float]
+ */
 mrb_value
 mrb_music_get_pitch(mrb_state *mrb, mrb_value self)
 {
@@ -105,6 +133,9 @@ mrb_music_get_pitch(mrb_state *mrb, mrb_value self)
   return mrb_float_value(mrb, ptr->pitch);
 }
 
+/**
+ * @return [Float]
+ */
 mrb_value
 mrb_music_set_volume(mrb_state *mrb, mrb_value self)
 {
@@ -117,6 +148,9 @@ mrb_music_set_volume(mrb_state *mrb, mrb_value self)
   return mrb_float_value(mrb, ptr->volume);
 }
 
+/**
+ * @return [Float]
+ */
 mrb_value
 mrb_music_set_pitch(mrb_state *mrb, mrb_value self)
 {
@@ -129,13 +163,21 @@ mrb_music_set_pitch(mrb_state *mrb, mrb_value self)
   return mrb_float_value(mrb, ptr->pitch);
 }
 
+/**
+ * Checks if the sound is dosposed
+ * @return [Boolean]
+ */
 static mrb_value
 mrb_music_disposedQ(mrb_state *mrb, mrb_value self)
 {
   return mrb_bool_value(!DATA_PTR(self));
 }
 
-
+/**
+ * Frees the memory associated with this resource.
+ * Be aware, this object can't be used anymore or an error will be thrown.
+ * @return [nil]
+ */
 static mrb_value
 mrb_music_dispose(mrb_state *mrb, mrb_value self)
 {
@@ -145,6 +187,10 @@ mrb_music_dispose(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/**
+ * Plays the current music.
+ * @return [nil]
+ */
 mrb_value
 mrb_music_play(mrb_state *mrb, mrb_value self)
 {
@@ -153,6 +199,10 @@ mrb_music_play(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/**
+ * Pauses the music, allowing to be resumed later.
+ * @return [nil]
+ */
 mrb_value
 mrb_music_pause(mrb_state *mrb, mrb_value self)
 {
@@ -161,6 +211,10 @@ mrb_music_pause(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/**
+ * Stops the music, setting it's position to the beggining.
+ * @return [nil]
+ */
 mrb_value
 mrb_music_stop(mrb_state *mrb, mrb_value self)
 {
@@ -169,6 +223,10 @@ mrb_music_stop(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/**
+ * Resumes a paused music.
+ * @return [nil]
+ */
 mrb_value
 mrb_music_resume(mrb_state *mrb, mrb_value self)
 {
@@ -181,6 +239,24 @@ void
 mrb_init_carbuncle_music(mrb_state *mrb)
 {
   struct RClass *carbuncle = mrb_carbuncle_get(mrb);
+  /**
+   * A Music is an audio file, which is streaming from the disk
+   * instead of being loaded entirely into memory.
+   * @!attribute [r] rate
+   *   The music's playing rate in the range from 0..1.
+   * @!attribute [r] position
+   *   The music's position, in seconds.
+   * @!attribute [r] size
+   *   The music's duration, in seconds.
+   * @!attribute [r] length
+   *   The music's duration, in seconds.
+   * @!attribute [r] count
+   *   The music's duration, in seconds.
+   * @!attribute [rw] volume
+   *   The music's volume in the rangre from 0..1
+   * @!attribute [rw] pitch
+   *   The music's pitch, in the range of -1..1
+   */
   struct RClass *music = mrb_define_class_under(mrb, carbuncle, "Music", mrb->object_class);
   MRB_SET_INSTANCE_TT(music, MRB_TT_DATA);
 
