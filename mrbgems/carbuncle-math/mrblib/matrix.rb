@@ -60,6 +60,19 @@ module Carbuncle
       end
     end
 
+    # @!method initialize
+    #   Creates a new matrix, the values are the values of an Identity matrix.
+    #   @return [self]
+    # @overload initialize(matrix)
+    #   Creates a new matrix, with the same values as the one given.
+    #   @param [Matrix] matrix The matrix to copy.
+    #   @return [self]
+
+    # @overload initialize_copy(matrix)
+    #   Creates a new matrix, with the same values as the one given.
+    #   @param [Matrix] matrix The matrix to copy.
+    #   @return [self]
+
     def each(&block)
       rows.map(&:to_a).flatten.each(&block)
     end

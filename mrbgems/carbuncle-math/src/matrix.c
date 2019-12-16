@@ -8,10 +8,6 @@ static const struct mrb_data_type matrix_data_type = {
   "Carbuncle::Matrix", mrb_free
 };
 
-/**
- * Creates a new matrix, it's value is the identity matrix.
- * @return [self]
- */
 static mrb_value
 mrb_matrix_initialize(mrb_state *mrb, mrb_value self)
 {
