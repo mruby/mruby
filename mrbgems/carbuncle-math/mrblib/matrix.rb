@@ -68,7 +68,7 @@ module Carbuncle
     #   @param [Matrix] matrix The matrix to copy.
     #   @return [self]
 
-    # @overload initialize_copy(matrix)
+    # @!method initialize_copy(matrix)
     #   Creates a new matrix, with the same values as the one given.
     #   @param [Matrix] matrix The matrix to copy.
     #   @return [self]
