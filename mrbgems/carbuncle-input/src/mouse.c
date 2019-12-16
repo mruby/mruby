@@ -135,6 +135,10 @@ void
 mrb_init_carbuncle_mouse(mrb_state *mrb)
 {
   struct RClass *carbuncle = mrb_carbuncle_get(mrb);
+  /**
+   * This class handles mouse input.
+   * On touch screens, the first touch you do at the screen is interpreted as the mouse.
+   */
   struct RClass *mouse = mrb_define_module_under(mrb, carbuncle, "Mouse");
 
   mrb_define_module_function(mrb, mouse, "press?", mrb_mouse_pressQ, MRB_ARGS_REQ(1));

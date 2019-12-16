@@ -167,6 +167,12 @@ void
 mrb_init_carbuncle_gesture(mrb_state *mrb)
 {
   struct RClass *carbuncle = mrb_carbuncle_get(mrb);
+  /**
+   * This class handles touch gestures.
+   * Gestures like swipe, tap and hold are emulated via a mouse on desktop.
+   * On touch screens, gestures are handled by the screen itself.
+   * Gestures should be enable before use.
+   */
   struct RClass *gesture = mrb_define_module_under(mrb, carbuncle, "Gesture");
 
   mrb_define_module_function(mrb, gesture, "enabled", mrb_gesture_get_enabled, MRB_ARGS_NONE());

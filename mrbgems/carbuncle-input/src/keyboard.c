@@ -82,6 +82,13 @@ convert_keyboard_key(mrb_state *mrb)
   return -1;
 }
 
+/**
+ * @overload press?(key)
+ *   Gets if the corresponding key is pressed on the current frame.
+ *   You can pass a symbol, like 'a' or a number like 65 and it will work the same.
+ *   The available names are the same as the constants.
+ *   @param [String, Symbol, Integer] key The key to check.
+ */
 static mrb_value
 mrb_keyboard_pressQ(mrb_state *mrb, mrb_value self)
 {
@@ -89,6 +96,13 @@ mrb_keyboard_pressQ(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(IsKeyPressed(key));
 }
 
+/**
+ * @overload down?(key)
+ *   Gets if the corresponding key is being pressed, by value or key.
+ *   You can pass a symbol, like 'a' or a number like 65 and it will work the same.
+ *   The available names are the same as the constants.
+ *   @param [String, Symbol, Integer] key The key to check.
+ */
 static mrb_value
 mrb_keyboard_downQ(mrb_state *mrb, mrb_value self)
 {
@@ -96,6 +110,13 @@ mrb_keyboard_downQ(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(IsKeyDown(key));
 }
 
+/**
+ * @overload release?(key)
+ *   Gets if the corresponding key is was released on the current frame.
+ *   You can pass a symbol, like 'a' or a number like 65 and it will work the same.
+ *   The available names are the same as the constants.
+ *   @param [String, Symbol, Integer] key The key to check.
+ */
 static mrb_value
 mrb_keyboard_releaseQ(mrb_state *mrb, mrb_value self)
 {
@@ -103,6 +124,13 @@ mrb_keyboard_releaseQ(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(IsKeyReleased(key));
 }
 
+/**
+ * @overload up?(key)
+ *   Gets if the corresponding key is not pressed, by value or key.
+ *   You can pass a symbol, like 'a' or a number like 65 and it will work the same.
+ *   The available names are the same as the constants.
+ *   @param [String, Symbol, Integer] key The key to check.
+ */
 static mrb_value
 mrb_keyboard_upQ(mrb_state *mrb, mrb_value self)
 {
@@ -110,6 +138,10 @@ mrb_keyboard_upQ(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(IsKeyUp(key));
 }
 
+/**
+ * Gets the current pressed character as a string, or nil, if no character was press.
+ * @return [String, nil]
+ */
 static mrb_value
 mrb_keyboard_get_character(mrb_state *mrb, mrb_value self)
 {
@@ -124,6 +156,9 @@ void
 mrb_init_carbuncle_keyboard(mrb_state *mrb)
 {
   struct RClass *carbuncle = mrb_carbuncle_get(mrb);
+  /**
+   * This class handles keyboard input.
+   */
   struct RClass *keyboard = mrb_define_module_under(mrb, carbuncle, "Keyboard");
 
   mrb_define_module_function(mrb, keyboard, "press?", mrb_keyboard_pressQ, MRB_ARGS_REQ(1));

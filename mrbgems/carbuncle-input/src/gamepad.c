@@ -291,6 +291,9 @@ void
 mrb_init_carbuncle_gamepad(mrb_state *mrb)
 {
   struct RClass *carbuncle = mrb_carbuncle_get(mrb);
+  /**
+   * Handles Gamepads, as a limitation, it only allows 4 controllers currently.
+   */
   struct RClass *gamepad = mrb_define_class_under(mrb, carbuncle, "Gamepad", mrb->object_class);
   MRB_SET_INSTANCE_TT(gamepad, MRB_TT_DATA);
 
