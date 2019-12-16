@@ -49,6 +49,8 @@ module Carbuncle
       inspect
     end
 
+    # @!group Vector Operations
+
     # @overload +(number)
     #   Iterates over this vector's values to create a new one with the addition of each value and this number.
     #   @param [Numeric] number
@@ -121,7 +123,7 @@ module Carbuncle
     #   Iterates over this vector's values to create a new one with the modulo of each value by this number.
     #   @param [Numeric] number
     #   @return [Vectorizable]
-    # @overload *(vector)
+    # @overload %(vector)
     #   Iterates over itself and the vector, returning a new vector with the multiplied values.
     #   @param [Vectorizable, Array] vector Anothe vector or array to substract.
     #   @return [Vectorizable]
@@ -133,11 +135,11 @@ module Carbuncle
       end
     end
 
-    # @overload %(number)
+    # @overload **(number)
     #   Iterates over this vector's values to create a new one with the power of each value by this number.
     #   @param [Numeric] number
     #   @return [Vectorizable]
-    # @overload *(vector)
+    # @overload **(vector)
     #   Iterates over itself and the vector, returning a new vector with the power between values.
     #   @param [Vectorizable, Array] vector Anothe vector or array to substract.
     #   @return [Vectorizable]
@@ -149,11 +151,11 @@ module Carbuncle
       end
     end
 
-    # @overload %(number)
+    # @overload <<(number)
     #   Iterates over this vector's values to create a new one with the left shift of each value by this number.
     #   @param [Numeric] number
     #   @return [Vectorizable]
-    # @overload *(vector)
+    # @overload <<(vector)
     #   Iterates over itself and the vector, returning a new vector with the shifted values.
     #   @param [Vectorizable, Array] vector Anothe vector or array to substract.
     #   @return [Vectorizable]
@@ -165,11 +167,11 @@ module Carbuncle
       end
     end
 
-    # @overload %(number)
+    # @overload >>(number)
     #   Iterates over this vector's values to create a new one with the right shift of each value by this number.
     #   @param [Numeric] number
     #   @return [Vectorizable]
-    # @overload *(vector)
+    # @overload >>(vector)
     #   Iterates over itself and the vector, returning a new vector with the shifted values.
     #   @param [Vectorizable, Array] vector Anothe vector or array to substract.
     #   @return [Vectorizable]
