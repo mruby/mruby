@@ -204,9 +204,11 @@ mrb_game_close(mrb_state *mrb, mrb_value self)
 }
 
 /**
- * Resizes the game's window.
- * @see [Carbuncle::Screen#resize]
- * @return [nil]
+ * @overload resize(width, height)
+ *   Resizes the game's window.
+ *   @param [Integer] width The new screen's width.
+ *   @param [Integer] height The new screen's height.
+ *   @return [nil]
  */
 static mrb_value
 mrb_game_resize(mrb_state *mrb, mrb_value self)
