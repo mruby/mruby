@@ -19,10 +19,10 @@ module Carbuncle
 
     # @!attribute xy [rw]
     #   A vectorial operation to extract [x, y] from the point or to assign it
-    #   @return [Array]
+    #   @return [Carbuncle::Point]
     # @!attribute yx [rw]
     #   A vectorial operation to extract [y, x] from the point or to assign it
-    #   @return [Array]
+    #   @return [Carbuncle::Point]
     #   @example vectorial operations
     #    # swap a value with another:
     #    point.xy = point.yx # swaps x and y
