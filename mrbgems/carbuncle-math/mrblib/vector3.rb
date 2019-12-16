@@ -1,6 +1,7 @@
 module Carbuncle
   module Vectorizable; end
 
+  # Represents a point in three dimensional space.
   class Vector3
     include Vectorizable
 

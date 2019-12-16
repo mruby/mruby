@@ -1,6 +1,7 @@
 module Carbuncle
   module Vectorizable; end
 
+  # Represents a point in two dimensional space.
   # @note The point allows vectorial operations, with the values of x and y.
   class Point
     include Vectorizable

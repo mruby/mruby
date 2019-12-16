@@ -1,9 +1,13 @@
 module Carbuncle
+  module Vectorizable; end
+  # A matrix is a table of numbers, in a 4x4 grid.
+  # Useful for doing some mathematical operations.
   class Matrix
     include Enumerable
 
+    # A line is a row or column of a matrix.
     class Line
-      include Enumerable
+      include Carbuncle::Vectorizable
 
       attr_reader :matrix
 
@@ -33,14 +37,6 @@ module Carbuncle
         end
       end
 
-      def each(&block)
-        to_a.each(&block)
-      end
-
-      def to_s
-        inspect
-      end
-
       def inspect
         "#{self.class.name}[#{@index}](#{to_a.join(', ')})"
       end
@@ -50,12 +46,14 @@ module Carbuncle
       end
     end
 
+    # Represents a row in the matrix.
     class Row < Carbuncle::Matrix::Line
       def initialize(matrix, i)
         super(matrix, i, false)
       end
     end
 
+    # Represents a column in the matrix.
     class Column < Carbuncle::Matrix::Line
       def initialize(matrix, j)
         super(matrix, j, true)

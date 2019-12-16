@@ -1,6 +1,7 @@
 module Carbuncle
   module Vectorizable; end
 
+  # Represents a point in fourth dimensional space.
   class Vector4
     include Vectorizable
 

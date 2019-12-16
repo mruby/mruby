@@ -1,6 +1,6 @@
 module Carbuncle
   module Vectorizable; end
-
+  # Represents a rectangle
   class Rect
     include Vectorizable
 
