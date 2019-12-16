@@ -8,7 +8,7 @@ class Complex < Numeric
   end
 
   def to_s
-    "#{real}#{'+' unless imaginary.negative?}#{imaginary}i"
+    "#{real}#{'+' unless imaginary < 0}#{imaginary}i"
   end
 
   def +@
@@ -56,7 +56,7 @@ class Complex < Numeric
     if rhs.is_a? Complex
       real == rhs.real && imaginary == rhs.imaginary
     elsif rhs.is_a? Numeric
-      imaginary.zero? && real == rhs
+      imaginary == 0 && real == rhs
     end
   end
 
@@ -106,14 +106,14 @@ class Complex < Numeric
 
   [Fixnum, Float].each do |cls|
     [:+, :-, :*, :/, :==].each do |op|
-      cls.instance_exec do
+      cls.instance_eval do
         original_operator_name = "__original_operator_#{op}_complex"
         alias_method original_operator_name, op
         define_method op do |rhs|
           if rhs.is_a? Complex
-            Complex(self).send(op, rhs)
+            Complex(self).__send__(op, rhs)
           else
-            send(original_operator_name, rhs)
+            __send__(original_operator_name, rhs)
           end
         end
       end
