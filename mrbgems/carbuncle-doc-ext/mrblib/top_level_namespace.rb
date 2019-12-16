@@ -1,9 +1,12 @@
 # @!parse
 #   # A handle the Standard input, usually a console.
+#   # @return [IO]
 #   STDIN = IO.open(0, "r")
 #   # A handle to the standard output, usually a console.
+#   # @return [IO]
 #   STDOUT = IO.open(1, "w")
 #   # A handle to the standard error, usually a console.
+#   # @return [IO]
 #   STDERR = IO.open(2, "w")
 
 class << self
