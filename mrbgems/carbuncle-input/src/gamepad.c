@@ -187,6 +187,13 @@ convert_gamepad_key(mrb_state *mrb)
   return -1;
 }
 
+/**
+ * @overload initialize(id)
+ * Creates a new instance of the gamepad by its id.
+ * Instead of creating one manually, you can use the Carbuncle::Gamepad[id]`instead.
+ * @return [self]
+ * @see [Gamepad[]]
+ */
 static mrb_value
 mrb_gamepad_initialize(mrb_state *mrb, mrb_value self)
 {
@@ -202,6 +209,11 @@ mrb_gamepad_initialize(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/**
+ * Get the left axis's values.
+ * 0 represents a neutral position, values go in range of -1..1
+ * @return [Carbuncle::Point]
+ */
 static mrb_value
 mrb_gamepad_get_left_axis(mrb_state *mrb, mrb_value self)
 {
@@ -217,6 +229,11 @@ mrb_gamepad_get_left_axis(mrb_state *mrb, mrb_value self)
   return mrb_carbuncle_point_new(mrb, 0, 0);
 }
 
+/**
+ * Get the right axis's values.
+ * 0 represents a neutral position, values go in range of -1..1
+ * @return [Carbuncle::Point]
+ */
 static mrb_value
 mrb_gamepad_get_right_axis(mrb_state *mrb, mrb_value self)
 {
@@ -232,6 +249,10 @@ mrb_gamepad_get_right_axis(mrb_state *mrb, mrb_value self)
   return mrb_carbuncle_point_new(mrb, 0, 0);
 }
 
+/**
+ * Returns the name of the Gamepad, identified by the system.
+ * @return [String]
+ */
 static mrb_value
 mrb_gamepad_get_name(mrb_state *mrb, mrb_value self)
 {
@@ -240,6 +261,9 @@ mrb_gamepad_get_name(mrb_state *mrb, mrb_value self)
   return name ? mrb_str_new_cstr(mrb, name) : mrb_nil_value();
 }
 
+/**
+ * Checks if the current gamepad is available.
+ */
 static mrb_value
 mrb_gamepad_availableQ(mrb_state *mrb, mrb_value self)
 {
@@ -247,6 +271,9 @@ mrb_gamepad_availableQ(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(IsGamepadAvailable(pad->id));
 }
 
+/**
+ * Checks if the Gamepad button is not pressed.
+ */
 static mrb_value
 mrb_gamepad_upQ(mrb_state *mrb, mrb_value self)
 {
@@ -255,6 +282,10 @@ mrb_gamepad_upQ(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(IsGamepadButtonUp(pad->id, button));
 }
 
+/**
+ * Checks if the Gamepad button is down.
+ * Works like Carbuncle::Keyboard#down?
+ */
 static mrb_value
 mrb_gamepad_downQ(mrb_state *mrb, mrb_value self)
 {
@@ -263,6 +294,10 @@ mrb_gamepad_downQ(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(IsGamepadButtonDown(pad->id, button));
 }
 
+/**
+ * Checks if the Gamepad button is pressed on the current frame.
+ * Works like Carbuncle::Keyboard#press?
+ */
 static mrb_value
 mrb_gamepad_pressQ(mrb_state *mrb, mrb_value self)
 {
@@ -271,6 +306,10 @@ mrb_gamepad_pressQ(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(IsGamepadButtonPressed(pad->id, button));
 }
 
+/**
+ * Checks if the Gamepad button is released on the current frame.
+ * Works like Carbuncle::Keyboard#release?
+ */
 static mrb_value
 mrb_gamepad_releaseQ(mrb_state *mrb, mrb_value self)
 {
@@ -279,6 +318,12 @@ mrb_gamepad_releaseQ(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(IsGamepadButtonReleased(pad->id, button));
 }
 
+/**
+ * @overload [](id)
+ * Gets the current Gamepad by id.
+ * @param [Integer] id The id of the Gamepad, in range of 0..3
+ * @return [Carbuncle::Gamepad]
+ */
 static mrb_value
 mrb_s_gamepad_get_subscript(mrb_state *mrb, mrb_value self)
 {
@@ -293,6 +338,12 @@ mrb_init_carbuncle_gamepad(mrb_state *mrb)
   struct RClass *carbuncle = mrb_carbuncle_get(mrb);
   /**
    * Handles Gamepads, as a limitation, it only allows 4 controllers currently.
+   * @!attribute [r] left_axis
+   *   @return [Carbuncle::Point]
+   * @!attribute [r] right_axis
+   *   @return [Carbuncle::Point]
+   * @!attribute [r] name
+   *   @return [String]
    */
   struct RClass *gamepad = mrb_define_class_under(mrb, carbuncle, "Gamepad", mrb->object_class);
   MRB_SET_INSTANCE_TT(gamepad, MRB_TT_DATA);
