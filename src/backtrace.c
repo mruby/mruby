@@ -93,20 +93,6 @@ print_backtrace(mrb_state *mrb, mrb_value backtrace)
   }
 }
 
-static int
-packed_bt_len(const struct backtrace_location *bt, int n)
-{
-  int len = 0;
-  int i;
-
-  for (i=0; i<n; i++) {
-    if (!bt[i].filename && !bt[i].lineno && !bt[i].method_id)
-      continue;
-    len++;
-  }
-  return len;
-}
-
 static void
 print_packed_backtrace(mrb_state *mrb, mrb_value packed)
 {
@@ -117,14 +103,13 @@ print_packed_backtrace(mrb_state *mrb, mrb_value packed)
 
   bt = (struct backtrace_location*)mrb_data_check_get_ptr(mrb, packed, &bt_type);
   if (bt == NULL) return;
-  n = (mrb_int)RDATA(packed)->flags;
+  n = (int)RDATA(packed)->flags;
+  if (n == 0) return;
 
-  if (packed_bt_len(bt, n) == 0) return;
   fprintf(stream, "trace (most recent call last):\n");
   for (i = 0; i<n; i++) {
     const struct backtrace_location *entry = &bt[n-i-1];
-    if (entry->filename == NULL) continue;
-    fprintf(stream, "\t[%d] %s:%d", i, entry->filename, entry->lineno);
+    fprintf(stream, "\t[%d] %s:%d", i, entry->filename, (int)entry->lineno);
     if (entry->method_id != 0) {
       const char *method_name;
 
@@ -175,7 +160,6 @@ count_backtrace_i(mrb_state *mrb,
 {
   int *lenp = (int*)data;
 
-  if (loc->filename == NULL) return;
   (*lenp)++;
 }
 
@@ -187,7 +171,6 @@ pack_backtrace_i(mrb_state *mrb,
   struct backtrace_location **pptr = (struct backtrace_location**)data;
   struct backtrace_location *ptr = *pptr;
 
-  if (loc->filename == NULL) return;
   *ptr = *loc;
   *pptr = ptr+1;
 }
@@ -205,7 +188,7 @@ packed_backtrace(mrb_state *mrb)
   size = len * sizeof(struct backtrace_location);
   ptr = mrb_malloc(mrb, size);
   backtrace = mrb_data_object_alloc(mrb, NULL, ptr, &bt_type);
-  backtrace->flags = (unsigned int)len;
+  backtrace->flags = (uint32_t)len;
   each_backtrace(mrb, ciidx, mrb->c->ci->pc, pack_backtrace_i, &ptr);
   return mrb_obj_value(backtrace);
 }
@@ -245,8 +228,7 @@ mrb_unpack_backtrace(mrb_state *mrb, mrb_value backtrace)
     const struct backtrace_location *entry = &bt[i];
     mrb_value btline;
 
-    if (entry->filename == NULL) continue;
-    btline = mrb_format(mrb, "%s:%d", entry->filename, entry->lineno);
+    btline = mrb_format(mrb, "%s:%d", entry->filename, (int)entry->lineno);
     if (entry->method_id != 0) {
       mrb_str_cat_lit(mrb, btline, ":in ");
       mrb_str_cat_cstr(mrb, btline, mrb_sym_name(mrb, entry->method_id));
