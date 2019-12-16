@@ -9,6 +9,8 @@ module Carbuncle
       #   @return [true, false]
     end
 
+    # @!group Lifecycle methods
+
     # This method is called after the graphics context is created.
     # This method should be overrided your main screen for your game.
     # @example The game starts
@@ -31,6 +33,8 @@ module Carbuncle
     # so you can only draw objects inside this function.
     # @return [nil]
     def draw; end
+
+    # @!group Lifecycle events
 
     # This event is called before the game starts, even before the screen is initialized.
     # If you require to load your assets, use Carbuncle::Game#load instead.
