@@ -51,6 +51,7 @@ module Carbuncle
 
     # @!group Vector Operations
 
+    # @return [Vectorizable]
     # @overload +(number)
     #   Iterates over this vector's values to create a new one with the addition of each value and this number.
     #   @param [Numeric] number
@@ -71,6 +72,7 @@ module Carbuncle
       end
     end
 
+    # @return [Vectorizable]
     # @overload -(number)
     #   Iterates over this vector's values to create a new one with the substraction of each value by this number.
     #   @param [Numeric] number
@@ -87,6 +89,7 @@ module Carbuncle
       end
     end
 
+    # @return [Vectorizable]
     # @overload *(number)
     #   Iterates over this vector's values to create a new one with the multiplication of each value and this number.
     #   @param [Numeric] number
@@ -103,6 +106,7 @@ module Carbuncle
       end
     end
 
+    # @return [Vectorizable]
     # @overload /(number)
     #   Iterates over this vector's values to create a new one with the division of each value by this number.
     #   @param [Numeric] number
@@ -119,6 +123,7 @@ module Carbuncle
       end
     end
 
+    # @return [Vectorizable]
     # @overload %(number)
     #   Iterates over this vector's values to create a new one with the modulo of each value by this number.
     #   @param [Numeric] number
@@ -135,6 +140,7 @@ module Carbuncle
       end
     end
 
+    # @return [Vectorizable]
     # @overload **(number)
     #   Iterates over this vector's values to create a new one with the power of each value by this number.
     #   @param [Numeric] number
@@ -151,6 +157,7 @@ module Carbuncle
       end
     end
 
+    # @return [Vectorizable]
     # @overload <<(number)
     #   Iterates over this vector's values to create a new one with the left shift of each value by this number.
     #   @param [Numeric] number
@@ -167,6 +174,7 @@ module Carbuncle
       end
     end
 
+    # @return [Vectorizable]
     # @overload >>(number)
     #   Iterates over this vector's values to create a new one with the right shift of each value by this number.
     #   @param [Numeric] number
@@ -183,6 +191,7 @@ module Carbuncle
       end
     end
 
+    # @return [Vectorizable]
     # Returns a new vector, with each of it's values negated.
     # @example
     #   -Point.new(1, 2) => Point(-1, -2)
