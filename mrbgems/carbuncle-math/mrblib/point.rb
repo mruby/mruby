@@ -1,10 +1,13 @@
 module Carbuncle
+  module Vectorizable; end
+
+  # @note The point allows vectorial operations, with the values of x and y.
   class Point
-    include Enumerable
+    include Vectorizable
 
     %w[x y].permutation(2) do |fields|
       define_method(fields.join) do
-        fields.map { |field| send(field) }
+        Vectorizable::CLASS[2].new(*fields.map { |field| send(field) })
       end
 
       define_method("#{fields.join}=") do |other|
@@ -14,9 +17,17 @@ module Carbuncle
       end
     end
 
-    def to_s
-      inspect
-    end
+    # @!attribute xy [rw]
+    #   A vectorial operation to extract [x, y] from the point or to assign it
+    #   @return [Array]
+    # @!attribute yx [rw]
+    #   A vectorial operation to extract [y, x] from the point or to assign it
+    #   @return [Array]
+    #   @example vectorial operations
+    #    # swap a value with another:
+    #    point.xy = point.yx # swaps x and y
+    #    # the same as:
+    #    point.x, point.y = point.y, point.x
 
     def inspect
       "Point(#{x}, #{y})"
@@ -26,8 +37,8 @@ module Carbuncle
       2
     end
 
-    def each(&block)
-      [x, y].each(&block)
+    def to_a
+      [x, y]
     end
   end
 end

@@ -1,8 +1,10 @@
 class Carbuncle::Color
+  include Carbuncle::Vectorizable
+
   (2..4).each do |i|
     %w[r g b a].permutation(i) do |fields|
       define_method(fields.join) do
-        fields.map { |field| send(field) }
+        Vectorizable::CLASS[i].new(*fields.map { |field| send(field) })
       end
 
       define_method("#{fields.join}=") do |other|
@@ -13,11 +15,15 @@ class Carbuncle::Color
     end
   end
 
-  def to_s
-    inspect
-  end
-
   def inspect
     "Color(#{r}, #{g}, #{b}, #{a})"
+  end
+
+  def size
+    4
+  end
+
+  def to_a
+    [r, g, b, a]
   end
 end

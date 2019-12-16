@@ -41,6 +41,12 @@ convert_mouse_key(mrb_state *mrb)
   return -1;
 }
 
+/*
+ * @overload press?(key)
+ *   Checks if a button is being pressed on this frame.
+ *   @param [Symbol, Integer, String] key The button to check.
+ *   @return [Boolean]
+ */
 static mrb_value
 mrb_mouse_pressQ(mrb_state *mrb, mrb_value self)
 {
@@ -48,6 +54,13 @@ mrb_mouse_pressQ(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(IsMouseButtonPressed(key));
 }
 
+
+/*
+ * @overload down?(key)
+ *   Checks if a button is down.
+ *   @param [Symbol, Integer, String] key The button to check.
+ *   @return [Boolean]
+ */
 static mrb_value
 mrb_mouse_downQ(mrb_state *mrb, mrb_value self)
 {
@@ -55,6 +68,13 @@ mrb_mouse_downQ(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(IsMouseButtonDown(key));
 }
 
+
+/*
+ * @overload release?(key)
+ *   Checks if a button is being released on this frame.
+ *   @param [Symbol, Integer, String] key The button to check.
+ *   @return [Boolean]
+ */
 static mrb_value
 mrb_mouse_releaseQ(mrb_state *mrb, mrb_value self)
 {
@@ -62,6 +82,12 @@ mrb_mouse_releaseQ(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(IsMouseButtonReleased(key));
 }
 
+/*
+ * @overload up?(key)
+ *   Checks if a button is not being pressed.
+ *   @param [Symbol, Integer, String] key The button to check.
+ *   @return [Boolean]
+ */
 static mrb_value
 mrb_mouse_upQ(mrb_state *mrb, mrb_value self)
 {
@@ -69,30 +95,53 @@ mrb_mouse_upQ(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(IsMouseButtonUp(key));
 }
 
+/*
+ * Gets the x position for the mouse.
+ * x positions are measured from the left side of the screen into the right.
+ * @return [Integer]
+ */
 static mrb_value
 mrb_mouse_get_x(mrb_state *mrb, mrb_value self)
 {
   return mrb_fixnum_value(GetMouseX());
 }
 
+/*
+ * Gets the y position for the mouse.
+ * y positions are measured from the top of the screen into the bottom.
+ * @return [Integer]
+ */
 static mrb_value
 mrb_mouse_get_y(mrb_state *mrb, mrb_value self)
 {
   return mrb_fixnum_value(GetMouseY());
 }
 
+/*
+ * Gets the position for the mouse.
+ * @return [Carbuncle::Point]
+ */
 static mrb_value
 mrb_mouse_get_position(mrb_state *mrb, mrb_value self)
 {
   return mrb_carbuncle_point_new(mrb, GetMouseX(), GetMouseY());
 }
 
+/*
+ * Gets the movement for the mouse wheel.
+ * -1 means up, 1 means down and 0 means no movement.
+ * @return [Integer]
+ */
 static mrb_value
 mrb_mouse_get_wheel_move(mrb_state *mrb, mrb_value self)
 {
   return mrb_fixnum_value(GetMouseWheelMove());
 }
 
+/*
+ * Sets the x coordinate of the mouse.
+ * @return [Integer]
+ */
 static mrb_value
 mrb_mouse_set_x(mrb_state *mrb, mrb_value self)
 {
@@ -102,6 +151,10 @@ mrb_mouse_set_x(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(value);
 }
 
+/*
+ * Sets the y coordinate of the mouse.
+ * @return [Integer]
+ */
 static mrb_value
 mrb_mouse_set_y(mrb_state *mrb, mrb_value self)
 {
@@ -111,6 +164,17 @@ mrb_mouse_set_y(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(value);
 }
 
+/*
+ * @overload set_position(x, y)
+ *   Sets the position of the mouse.
+ *   @param [Integer] x The x coordinate for the mouse.
+ *   @param [Integer] y The y coordinate for the mouse.
+ *   @return [Integer]
+ * @overload set_position(position)
+ *   Sets the position of the mouse.
+ *   @param [Carbuncle::Point] position a position for the mouse.
+ *   @return [Integer]
+ */
 static mrb_value
 mrb_mouse_set_position(mrb_state *mrb, mrb_value self)
 {
