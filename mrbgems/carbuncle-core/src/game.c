@@ -193,7 +193,34 @@ mrb_game_closeQ(mrb_state *mrb, mrb_value self)
 }
 
 /**
- * @return [self]
+ * @overload load
+ *   This method is called after the graphics context is created.
+ *   This method should be overrided your main screen for your game.
+ *   @example The game starts
+ *     class MyGame < Carbuncle::Game
+ *       def load
+ *         # The screen is loaded, so we can load our assets
+ *         SceneManager.set(TitleScene)
+ *       end
+ *     end
+ *   @return [nil]
+ * @overload update(dt)
+ *   This method is called after an update, usually once per frame.
+ *   If the application skips frames, this method won't be called.
+ *   @param [Float] dt The time since the last update.
+ * @overload draw
+ *   This method is called once per frame. This is inside the drawing context,
+ *   so you can only draw objects inside this function.
+ * @overload before_run
+ *   This event is called before the game starts, even before the screen is initialized.
+ *   If you require to load your assets, use Carbuncle::Game#load instead.
+ * @overload after_run
+ *   This event is called after the game starts, even after load.
+ *   You can use this event to trigger your start, if you want to keep it separated from load.
+ * @overload before_close
+ *   This event is called before the game is closed, useful for cleanup.
+ * @overload after_close
+ *   This event is called after the game is closed and the screen is destroyed.
  */
 static mrb_value
 mrb_game_dummy(mrb_state *mrb, mrb_value self)
