@@ -218,7 +218,7 @@ mrb_cursor_initialize(mrb_state *mrb, mrb_value self)
 /**
  * @overload visible?
  *   Returns if the window's cursor is visible.
- *   @return [true, false]
+ *   @return [Boolean]
  */
 static mrb_value
 mrb_cursor_get_visible(mrb_state *mrb, mrb_value self)
@@ -228,8 +228,8 @@ mrb_cursor_get_visible(mrb_state *mrb, mrb_value self)
 
 /**
  * @overload visible=(value)
- *   @param [true, false] value
- *   @return [true, false]
+ *   @param [Boolean] value
+ *   @return [Boolean]
  */
 static mrb_value
 mrb_cursor_set_visible(mrb_state *mrb, mrb_value self)

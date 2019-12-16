@@ -6,7 +6,7 @@ module Carbuncle
       #   @return [Carbuncle::Game]
       # @!method running?
       #   Returns true if a game is running
-      #   @return [true, false]
+      #   @return [Boolean]
     end
 
     # @!group Lifecycle methods

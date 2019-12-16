@@ -142,7 +142,7 @@ mrb_s_game_run(mrb_state *mrb, mrb_value self)
 
 /**
  * Returns true if a game is already running
- * @return [true, false]
+ * @return [Boolean]
  */
 static mrb_value
 mrb_s_game_runningQ(mrb_state *mrb, mrb_value self)
