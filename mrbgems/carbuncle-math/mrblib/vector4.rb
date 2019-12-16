@@ -19,6 +19,18 @@ module Carbuncle
       end
     end
 
+    # @!attribute x [rw]
+    #  The x value of the vector.
+    #  @return [Float]
+    # @!attribute y [rw]
+    #  The y value of the vector.
+    #  @return [Float]
+    # @!attribute z [rw]
+    #  The z value of the vector.
+    #  @return [Float]
+    # @!attribute w [rw]
+    #  The w value of the vector.
+    #  @return [Float]
     # @!attribute xy [rw]
     #   @return [Carbuncle::Point]
     # @!attribute xz [rw]

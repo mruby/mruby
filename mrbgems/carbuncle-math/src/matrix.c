@@ -8,6 +8,10 @@ static const struct mrb_data_type matrix_data_type = {
   "Carbuncle::Matrix", mrb_free
 };
 
+/**
+ * Creates a new matrix, it's value is the identity matrix.
+ * @return [self]
+ */
 static mrb_value
 mrb_matrix_initialize(mrb_state *mrb, mrb_value self)
 {
@@ -32,6 +36,13 @@ mrb_matrix_initialize(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/**
+ * @overload [](i, j)
+ *   Gets a matrix's value by it's indexes.
+ *   @param [Integer] i The value of the row, from 0 to 3.
+ *   @param [Integer] j The value of the column, from 0 to 3.
+ *   @return [Float]
+ */
 static mrb_value
 mrb_matrix_get_subscript(mrb_state *mrb, mrb_value self)
 {
@@ -89,6 +100,14 @@ mrb_matrix_get_subscript(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/**
+ * @overload []=(i, j, value)
+ *   Sets a matrix's value by it's indexes.
+ *   @param [Integer] i The value of the row, from 0 to 3.
+ *   @param [Integer] j The value of the column, from 0 to 3.
+ *   @param [Float] value the value to set at the position
+ *   @return [Float]
+ */
 static mrb_value
 mrb_matrix_set_subscript(mrb_state *mrb, mrb_value self)
 {

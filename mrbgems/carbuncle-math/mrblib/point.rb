@@ -18,6 +18,12 @@ module Carbuncle
       end
     end
 
+    # @!attribute x [rw]
+    #  The x value of the point.
+    #  @return [Float]
+    # @!attribute y [rw]
+    #  The y value of the point.
+    #  @return [Float]
     # @!attribute xy [rw]
     #   A vectorial operation to extract [x, y] from the point or to assign it
     #   @return [Carbuncle::Point]
