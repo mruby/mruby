@@ -1095,7 +1095,6 @@ mrb_str_equal_m(mrb_state *mrb, mrb_value str1)
   return mrb_bool_value(mrb_str_equal(mrb, str1, str2));
 }
 /* ---------------------------------- */
-mrb_value mrb_mod_to_s(mrb_state *mrb, mrb_value klass);
 
 MRB_API mrb_value
 mrb_str_to_str(mrb_state *mrb, mrb_value str)

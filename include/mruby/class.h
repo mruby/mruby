@@ -90,6 +90,7 @@ mrb_value mrb_instance_new(mrb_state *mrb, mrb_value cv);
 void mrb_class_name_class(mrb_state*, struct RClass*, struct RClass*, mrb_sym);
 mrb_bool mrb_const_name_p(mrb_state*, const char*, mrb_int);
 mrb_value mrb_class_find_path(mrb_state*, struct RClass*);
+mrb_value mrb_mod_to_s(mrb_state*, mrb_value);
 void mrb_gc_mark_mt(mrb_state*, struct RClass*);
 size_t mrb_gc_mark_mt_size(mrb_state*, struct RClass*);
 void mrb_gc_free_mt(mrb_state*, struct RClass*);
