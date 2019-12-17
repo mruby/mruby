@@ -31,7 +31,6 @@ MRB_API void
 mrb_print_error(mrb_state *mrb)
 {
   mrb_print_backtrace(mrb);
-  printstr(mrb_funcall(mrb, mrb_obj_value(mrb->exc), "inspect", 0), stderr);
 }
 
 MRB_API void
