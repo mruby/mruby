@@ -88,8 +88,8 @@ exc_exception(mrb_state *mrb, mrb_value self)
  * no message is set).
  */
 
-static mrb_value
-exc_to_s(mrb_state *mrb, mrb_value exc)
+mrb_value
+mrb_exc_to_s(mrb_state *mrb, mrb_value exc)
 {
   mrb_value mesg = mrb_attr_get(mrb, exc, mrb_intern_lit(mrb, "mesg"));
   struct RObject *p;
@@ -596,7 +596,7 @@ mrb_init_exception(mrb_state *mrb)
   mrb_define_class_method(mrb, exception, "exception", mrb_instance_new,  MRB_ARGS_OPT(1));
   mrb_define_method(mrb, exception, "exception",       exc_exception,     MRB_ARGS_OPT(1));
   mrb_define_method(mrb, exception, "initialize",      exc_initialize,    MRB_ARGS_OPT(1));
-  mrb_define_method(mrb, exception, "to_s",            exc_to_s,          MRB_ARGS_NONE());
+  mrb_define_method(mrb, exception, "to_s",            mrb_exc_to_s,      MRB_ARGS_NONE());
   mrb_define_method(mrb, exception, "message",         exc_message,       MRB_ARGS_NONE());
   mrb_define_method(mrb, exception, "inspect",         exc_inspect,       MRB_ARGS_NONE());
   mrb_define_method(mrb, exception, "backtrace",       mrb_exc_backtrace, MRB_ARGS_NONE());
