@@ -52,7 +52,12 @@ module Carbuncle
       end
 
       def freetype_cmake_flags
-        []
+        [
+          '-DCMAKE_DISABLE_FIND_PACKAGE_PNG=ON',
+          '-DCMAKE_DISABLE_FIND_PACKAGE_HarfBuzz=ON',
+          '-DCMAKE_DISABLE_FIND_PACKAGE_ZLIB=ON',
+          '-DCMAKE_DISABLE_FIND_PACKAGE_BZip2=ON'
+	      ]
       end
 
       def vendor_dir
@@ -95,7 +100,7 @@ module Carbuncle
       end
 
       def libraries
-        %w[raylib freetype]
+        %w[raylib freetype m dl pthread X11 xcb GL GLX Xext GLdispatch Xau Xdmcp]
       end
 
       def raylib_lib_dir

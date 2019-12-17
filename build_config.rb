@@ -13,7 +13,7 @@ MRuby::Build.new do |conf|
 
   conf.gembox 'default'
   conf.gembox 'extras'
-  conf.gembox 'carbuncle' if RUBY_PLATFORM =~ /darwin/
+  conf.gembox 'carbuncle'
   enable_debug if ENV.fetch('ENABLE_DEBUG', false)
 end
 
