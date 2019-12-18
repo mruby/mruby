@@ -17,6 +17,7 @@ typedef mrb_int mrb_float;
 /*  size_t l;                                                             */\
   mrb_sym n;                                                                \
   char *s;                                                                  \
+  struct RClass *C
 
 #define NATIVE_DEFINE_TYPE_FUNC(t)                                          \
   static mrb_value                                                          \
@@ -38,6 +39,7 @@ typedef enum {
 /*  ARG_l,*/
   ARG_n,
   ARG_s,
+  ARG_C,
   ARG_v,
 } VFArgumentType;
 
@@ -85,6 +87,7 @@ native_initialize(mrb_state *mrb, mrb_value self)
     case ARG_s: data.s = (char*)mrb_malloc(mrb, RSTRING_LEN(obj) + 1);
                 memcpy(data.s, RSTRING_PTR(obj), RSTRING_LEN(obj));
                 data.s[RSTRING_LEN(obj)] = '\0'; break;
+    case ARG_C: data.C = mrb_class_ptr(obj); break;
     default: mrb_raise(mrb, E_ARGUMENT_ERROR, "unknown type");
   }
   datap = (VFNative*)mrb_malloc(mrb, sizeof(VFNative));
@@ -100,6 +103,7 @@ NATIVE_DEFINE_TYPE_FUNC(i)
 /*NATIVE_DEFINE_TYPE_FUNC(l)*/
 NATIVE_DEFINE_TYPE_FUNC(n)
 NATIVE_DEFINE_TYPE_FUNC(s)
+NATIVE_DEFINE_TYPE_FUNC(C)
 
 static VFArgument*
 arg_from_obj(mrb_state *mrb, mrb_value obj, struct RClass *native_class,
@@ -136,6 +140,7 @@ arg_from_obj(mrb_state *mrb, mrb_value obj, struct RClass *native_class,
 /*  VF_FORMAT2_COND_EXPR(fmt, vf_args, vf_args+1, l) :                    */\
   VF_FORMAT2_COND_EXPR(fmt, vf_args, vf_args+1, n) :                        \
   VF_FORMAT2_COND_EXPR(fmt, vf_args, vf_args+1, s) :                        \
+  VF_FORMAT2_COND_EXPR(fmt, vf_args, vf_args+1, C) :                        \
   VF_FORMAT2_COND_EXPR(fmt, vf_args, vf_args+1, v) :                        \
   mrb_nil_value()  /* not reached */                                        \
 )
@@ -149,6 +154,7 @@ arg_from_obj(mrb_state *mrb, mrb_value obj, struct RClass *native_class,
 /*  VF_FORMAT_TYPED_COND_EXPR(fmt, n_arg, type_a, v1, l) :                */\
   VF_FORMAT_TYPED_COND_EXPR(fmt, n_arg, type_a, v1, n) :                    \
   VF_FORMAT_TYPED_COND_EXPR(fmt, n_arg, type_a, v1, s) :                    \
+  VF_FORMAT_TYPED_COND_EXPR(fmt, n_arg, type_a, v1, C) :                    \
   VF_FORMAT_TYPED_COND_EXPR(fmt, n_arg, type_a, v1, v) :                    \
   mrb_nil_value()  /* not reached */
 #define VF_FORMAT_TYPED_COND_EXPR(fmt, n_arg, type_a, v1, t)                \
@@ -189,5 +195,6 @@ mrb_init_test_vformat(mrb_state *mrb)
 /*  NATIVE_DEFINE_TYPE_METHOD(l);*/
   NATIVE_DEFINE_TYPE_METHOD(n);
   NATIVE_DEFINE_TYPE_METHOD(s);
+  NATIVE_DEFINE_TYPE_METHOD(C);
   mrb_define_method(mrb, n, "initialize", native_initialize, MRB_ARGS_REQ(2));
 }

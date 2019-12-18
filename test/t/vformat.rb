@@ -1,4 +1,3 @@
-# coding: cp932
 def assert_format(exp, args)
   assert_equal(exp, TestVFormat.format(*args))
 end
@@ -45,9 +44,9 @@ assert('mrb_vformat') do
 #  assert_format 'string and length', ['string %l length', n.s('andante'), n.l(3)]
   assert_format '`n`: sym', ['`n`: %n', n.n(:sym)]
   assert_format '%C文字列%', ['%s', n.s('%C文字列%')]
-  assert_format '`C`: Kernel module', ['`C`: %C module', Kernel]
-  assert_format '`C`: NilClass', ['`C`: %C', nil.class]
-  assert_format_pattern '#<Class:#<String:0x*>>', ['%C', sclass("")]
+  assert_format '`C`: Kernel module', ['`C`: %C module', n.C(Kernel)]
+  assert_format '`C`: NilClass', ['`C`: %C', n.C(nil.class)]
+  assert_format_pattern '#<Class:#<String:0x*>>', ['%C', n.C(sclass(""))]
   assert_format '`T`: NilClass', ['`T`: %T', nil]
   assert_format '`T`: FalseClass', ['`T`: %T', false]
   assert_format '`T`: TrueClass', ['`T`: %T', true]
@@ -70,7 +69,7 @@ assert('mrb_vformat') do
   assert_format ':"&.": inspect symbol', ['%!n: inspect symbol', n.n(:'&.')]
   assert_format 'inspect "String"', ['inspect %!v', 'String']
   assert_format 'inspect Array: [1, :x, {}]', ['inspect Array: %!v', [1,:x,{}]]
-  assert_format_pattern '`!C`: #<Class:0x*>', ['`!C`: %!C', Class.new]
+  assert_format_pattern '`!C`: #<Class:0x*>', ['`!C`: %!C', n.C(Class.new)]
   assert_format 'to_s -> to_s: ab,cd', ['to_s -> to_s: %n,%v', n.n(:ab), 'cd']
   assert_format 'to_s -> inspect: x:y', ['to_s -> inspect: %v%!v', 'x', :y]
   assert_format 'inspect -> to_s: "a"b', ['inspect -> to_s: %!v%n', 'a', n.n(:b)]
