@@ -88,7 +88,7 @@ exc_exception(mrb_state *mrb, mrb_value self)
  */
 
 mrb_value
-mrb_exc_to_s(mrb_state *mrb, mrb_value exc)
+exc_to_s(mrb_state *mrb, mrb_value exc)
 {
   mrb_value mesg = mrb_attr_get(mrb, exc, mrb_intern_lit(mrb, "mesg"));
   struct RObject *p;
@@ -127,8 +127,8 @@ exc_message(mrb_state *mrb, mrb_value exc)
  * returns message and class name.
  */
 
-static mrb_value
-exc_inspect(mrb_state *mrb, mrb_value exc)
+mrb_value
+mrb_exc_inspect(mrb_state *mrb, mrb_value exc)
 {
   mrb_value mesg = mrb_attr_get(mrb, exc, mrb_intern_lit(mrb, "mesg"));
   mrb_value cname = mrb_mod_to_s(mrb, mrb_obj_value(mrb_obj_class(mrb, exc)));
@@ -543,9 +543,9 @@ mrb_init_exception(mrb_state *mrb)
   mrb_define_class_method(mrb, exception, "exception", mrb_instance_new,  MRB_ARGS_OPT(1));
   mrb_define_method(mrb, exception, "exception",       exc_exception,     MRB_ARGS_OPT(1));
   mrb_define_method(mrb, exception, "initialize",      exc_initialize,    MRB_ARGS_OPT(1));
-  mrb_define_method(mrb, exception, "to_s",            mrb_exc_to_s,      MRB_ARGS_NONE());
+  mrb_define_method(mrb, exception, "to_s",            exc_to_s,          MRB_ARGS_NONE());
   mrb_define_method(mrb, exception, "message",         exc_message,       MRB_ARGS_NONE());
-  mrb_define_method(mrb, exception, "inspect",         exc_inspect,       MRB_ARGS_NONE());
+  mrb_define_method(mrb, exception, "inspect",         mrb_exc_inspect,   MRB_ARGS_NONE());
   mrb_define_method(mrb, exception, "backtrace",       mrb_exc_backtrace, MRB_ARGS_NONE());
   mrb_define_method(mrb, exception, "set_backtrace",   exc_set_backtrace, MRB_ARGS_REQ(1));
 

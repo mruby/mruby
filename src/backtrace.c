@@ -25,8 +25,7 @@ typedef void (*each_backtrace_func)(mrb_state*, const struct backtrace_location*
 
 static const mrb_data_type bt_type = { "Backtrace", mrb_free };
 
-mrb_value mrb_exc_to_s(mrb_state *mrb, mrb_value exc);
-mrb_value mrb_mod_to_s(mrb_state *mrb, mrb_value klass);
+mrb_value mrb_exc_inspect(mrb_state *mrb, mrb_value exc);
 mrb_value mrb_unpack_backtrace(mrb_state *mrb, mrb_value backtrace);
 
 static void
@@ -82,7 +81,7 @@ print_backtrace(mrb_state *mrb, struct RObject *exc, mrb_value backtrace)
 {
   int i;
   mrb_int n = RARRAY_LEN(backtrace);
-  mrb_value *loc, mesg, cname;
+  mrb_value *loc, mesg;
   FILE *stream = stderr;
 
   if (n != 0) {
@@ -93,21 +92,12 @@ print_backtrace(mrb_state *mrb, struct RObject *exc, mrb_value backtrace)
                 i, (int)RSTRING_LEN(*loc), RSTRING_PTR(*loc));
       }
     }
+    if (mrb_string_p(*loc)) {
+      fprintf(stream, "%.*s: ", (int)RSTRING_LEN(*loc), RSTRING_PTR(*loc));
+    }
   }
-
-  if (n != 0) {
-    fprintf(stream, "%.*s: ", (int)RSTRING_LEN(*loc), RSTRING_PTR(*loc));
-  }
-  mesg = mrb_exc_to_s(mrb, mrb_obj_value(exc));
-  cname = mrb_mod_to_s(mrb, mrb_obj_value(exc->c));
-  if (RSTRING_LEN(mesg) == 0) {
-    fprintf(stream, "%.*s \n", (int)RSTRING_LEN(cname), RSTRING_PTR(cname));
-  }
-  else {
-    fprintf(stream, "%.*s (%.*s)\n",
-            (int)RSTRING_LEN(mesg), RSTRING_PTR(mesg),
-            (int)RSTRING_LEN(cname), RSTRING_PTR(cname));
-  }
+  mesg = mrb_exc_inspect(mrb, mrb_obj_value(exc));
+  fprintf(stream, "%.*s\n", (int)RSTRING_LEN(mesg), RSTRING_PTR(mesg));
 }
 
 /* mrb_print_backtrace
