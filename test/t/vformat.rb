@@ -1,4 +1,25 @@
-# coding: utf-8-emacs
+def assert_format(exp, args)
+  assert_equal(exp, TestVFormat.format(*args))
+end
+
+def assert_format_pattern(exp_pattern, args)
+  assert_match(exp_pattern, TestVFormat.format(*args))
+end
+
+# Pass if ArgumentError is raised or return value is +exp+.
+def assert_implementation_dependent(exp, args)
+  begin
+    ret = TestVFormat.format(*args)
+  rescue ArgumentError
+    return pass
+  end
+  if ret == exp
+    pass
+  else
+    flunk "", "Expected ArgumentError is raised or #{ret.inspect} to be #{exp}."
+  end
+end
+
 def sclass(v)
   class << v
     self
@@ -6,53 +27,66 @@ def sclass(v)
 end
 
 assert('mrb_vformat') do
-  vf = TestVFormat
-  assert_equal '', vf.z('')
-  assert_equal 'No specifier!', vf.z('No specifier!')
-  assert_equal '`c`: C', vf.c('`c`: %c', ?C)
-  assert_equal '`d`: 123', vf.d('`d`: %d', 123)
-  assert_equal '`d`: -79', vf.d('`d`: %d', -79)
-  assert_equal '`i`: 514', vf.i('`i`: %i', 514)
-  assert_equal '`i`: -83', vf.i('`i`: %i', -83)
-  assert_equal '`t`: NilClass', vf.v('`t`: %t', nil)
-  assert_equal '`t`: FalseClass', vf.v('`t`: %t', false)
-  assert_equal '`t`: TrueClass', vf.v('`t`: %t', true)
-  assert_equal '`t`: Fixnum', vf.v('`t`: %t', 0)
-  assert_equal '`t`: Hash', vf.v('`t`: %t', {k: "value"})
-  assert_match '#<Class:#<Class:#<Hash:0x*>>>', vf.v('%t', sclass({}))
-  assert_equal 'string and length', vf.l('string %l length', 'andante', 3)
-  assert_equal '`n`: sym', vf.n('`n`: %n', :sym)
-  assert_equal '%C文字列����%', vf.s('%s', '%C文字列����%')
-  assert_equal '`C`: Kernel module', vf.C('`C`: %C module', Kernel)
-  assert_equal '`C`: NilClass', vf.C('`C`: %C', nil.class)
-  assert_match '#<Class:#<String:0x*>>', vf.C('%C', sclass(""))
-  assert_equal '`T`: NilClass', vf.v('`T`: %T', nil)
-  assert_equal '`T`: FalseClass', vf.v('`T`: %T', false)
-  assert_equal '`T`: TrueClass', vf.v('`T`: %T', true)
-  assert_equal '`T`: Fixnum', vf.v('`T`: %T', 0)
-  assert_equal '`T`: Hash', vf.v('`T`: %T', {k: "value"})
-  assert_match 'Class', vf.v('%T', sclass({}))
-  assert_equal '`Y`: nil', vf.v('`Y`: %Y', nil)
-  assert_equal '`Y`: false', vf.v('`Y`: %Y', false)
-  assert_equal '`Y`: true', vf.v('`Y`: %Y', true)
-  assert_equal '`Y`: Fixnum', vf.v('`Y`: %Y', 0)
-  assert_equal '`Y`: Hash', vf.v('`Y`: %Y', {k: "value"})
-  assert_equal 'Class', vf.v('%Y', sclass({}))
-  assert_match '#<Class:#<String:0x*>>', vf.v('%v', sclass(""))
-  assert_equal '`v`: 1...3', vf.v('`v`: %v', 1...3)
-  assert_equal '`S`: {:a=>1, "b"=>"c"}', vf.v('`S`: %S', {a: 1, "b" => ?c})
-  assert_equal 'percent: %', vf.z('percent: %%')
-  assert_equal '"I": inspect char', vf.c('%!c: inspect char', ?I)
-  assert_equal '709: inspect mrb_int', vf.i('%!d: inspect mrb_int', 709)
-  assert_equal '"a\x00b\xff"', vf.l('%!l', "a\000b\xFFc\000d", 4)
-  assert_equal ':"&.": inspect symbol', vf.n('%!n: inspect symbol', :'&.')
-  assert_equal 'inspect "String"', vf.v('inspect %!v', 'String')
-  assert_equal 'inspect Array: [1, :x, {}]', vf.v('inspect Array: %!v', [1,:x,{}])
-  assert_match '`!C`: #<Class:0x*>', vf.C('`!C`: %!C', Class.new)
-  assert_equal 'escape: \\%a,b,c,d', vf.v('escape: \\\\\%a,b,\c%v', ',d')
+  n = TestVFormat::Native
+  assert_format '', ['']
+  assert_format 'No specifier!', ['No specifier!']
+  assert_format '`c`: C', ['`c`: %c', n.c(?C)]
+  assert_format '`d`: 123', ['`d`: %d', n.d(123)]
+  assert_format '`d`: -79', ['`d`: %d', n.d(-79)]
+  assert_format '`i`: 514', ['`i`: %i', n.i(514)]
+  assert_format '`i`: -83', ['`i`: %i', n.i(-83)]
+  assert_format '`t`: NilClass', ['`t`: %t', nil]
+  assert_format '`t`: FalseClass', ['`t`: %t', false]
+  assert_format '`t`: TrueClass', ['`t`: %t', true]
+  assert_format '`t`: Fixnum', ['`t`: %t', 0]
+  assert_format '`t`: Hash', ['`t`: %t', k: "value"]
+  assert_format_pattern '#<Class:#<Class:#<Hash:0x*>>>', ['%t', sclass({})]
+  assert_format 'string and length', ['string %l length', n.s('andante'), n.l(3)]
+  assert_format '`n`: sym', ['`n`: %n', n.n(:sym)]
+  assert_format '%C文字列%', ['%s', n.s('%C文字列%')]
+  assert_format '`C`: Kernel module', ['`C`: %C module', n.C(Kernel)]
+  assert_format '`C`: NilClass', ['`C`: %C', n.C(nil.class)]
+  assert_format_pattern '#<Class:#<String:0x*>>', ['%C', n.C(sclass(""))]
+  assert_format '`T`: NilClass', ['`T`: %T', nil]
+  assert_format '`T`: FalseClass', ['`T`: %T', false]
+  assert_format '`T`: TrueClass', ['`T`: %T', true]
+  assert_format '`T`: Fixnum', ['`T`: %T', 0]
+  assert_format '`T`: Hash', ['`T`: %T', k: "value"]
+  assert_format_pattern 'Class', ['%T', sclass({})]
+  assert_format '`Y`: nil', ['`Y`: %Y', nil]
+  assert_format '`Y`: false', ['`Y`: %Y', false]
+  assert_format '`Y`: true', ['`Y`: %Y', true]
+  assert_format '`Y`: Fixnum', ['`Y`: %Y', 0]
+  assert_format '`Y`: Hash', ['`Y`: %Y', k: "value"]
+  assert_format 'Class', ['%Y', sclass({})]
+  assert_format_pattern '#<Class:#<String:0x*>>', ['%v', sclass("")]
+  assert_format '`v`: 1...3', ['`v`: %v', 1...3]
+  assert_format '`S`: {:a=>1, "b"=>"c"}', ['`S`: %S', a: 1, "b" => ?c]
+  assert_format 'percent: %', ['percent: %%']
+  assert_format '"I": inspect char', ['%!c: inspect char', n.c(?I)]
+  assert_format '709: inspect mrb_int', ['%!d: inspect mrb_int', n.i(709)]
+  assert_format '"a\x00b\xff"', ['%!l', n.s("a\000b\xFFc\000d"), n.l(4)]
+  assert_format ':"&.": inspect symbol', ['%!n: inspect symbol', n.n(:'&.')]
+  assert_format 'inspect "String"', ['inspect %!v', 'String']
+  assert_format 'inspect Array: [1, :x, {}]', ['inspect Array: %!v', [1,:x,{}]]
+  assert_format_pattern '`!C`: #<Class:0x*>', ['`!C`: %!C', n.C(Class.new)]
+  assert_format 'to_s -> to_s: ab,cd', ['to_s -> to_s: %n,%v', n.n(:ab), 'cd']
+  assert_format 'to_s -> inspect: x:y', ['to_s -> inspect: %v%!v', 'x', :y]
+  assert_format 'inspect -> to_s: "a"b', ['inspect -> to_s: %!v%n', 'a', n.n(:b)]
+  assert_format 'Y -> to_s: nile', ['Y -> to_s: %Y%v', nil, "e"]
+  assert_format '"abc":Z', ['%!s%!n', n.s('abc'), n.n('Z'.to_sym)]
+  assert_format 'escape: \\%a,b,c,d', ['escape: \\\\\%a,b,\c%v', ',d']
+
+  assert_implementation_dependent 'unknown specifier: %^',
+                                  ['unknown specifier: %^']
+  assert_implementation_dependent 'unknown specifier with modifier: %!^',
+                                  ['unknown specifier with modifier: %!^']
+  assert_implementation_dependent 'termination is \\', ['termination is \\']
+  assert_implementation_dependent 'termination is %', ['termination is %']
+  assert_implementation_dependent 'termination is %!', ['termination is %!']
 
   skip unless Object.const_defined?(:Float)
-  assert_equal '`f`: 0.0125', vf.f('`f`: %f', 0.0125)
-  assert_equal '-Infinity', vf.f('%f', -Float::INFINITY)
-  assert_equal 'NaN: Not a Number', vf.f('%f: Not a Number', Float::NAN)
+  assert_format '`f`: 0.0125', ['`f`: %f', n.f(0.0125)]
+  assert_format '-Infinity', ['%f', n.f(-Float::INFINITY)]
+  assert_format 'NaN: Not a Number', ['%f: Not a Number', n.f(Float::NAN)]
 end
