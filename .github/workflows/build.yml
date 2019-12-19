@@ -76,3 +76,5 @@ jobs:
       env:
         MRUBY_CONFIG: appveyor_config.rb
         YACC: win_bison
+        CFLAGS: "/c /nologo /W3 /we4013 /Zi /MD /O0 /D_CRT_SECURE_NO_WARNINGS"
+        CXXFLAGS: "/c /nologo /W3 /Zi /MD /O0 /EHs /D_CRT_SECURE_NO_WARNINGS"
