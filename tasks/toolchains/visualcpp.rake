@@ -2,7 +2,7 @@ MRuby::Toolchain.new(:visualcpp) do |conf, _params|
   conf.cc do |cc|
     cc.command = ENV['CC'] || 'cl.exe'
     # C4013: implicit function declaration
-    cc.flags = [ENV['CFLAGS'] || %w(/c /nologo /W3 /we4013 /Zi /MD /O2 /D_CRT_SECURE_NO_WARNINGS)]
+    cc.flags = [ENV['CFLAGS'] || %w(/c /nologo /W3 /we4013 /Zi /MD /O0 /D_CRT_SECURE_NO_WARNINGS)]
     cc.defines = %w(MRB_STACK_EXTEND_DOUBLING)
     cc.option_include_path = '/I%s'
     cc.option_define = '/D%s'
@@ -13,7 +13,7 @@ MRuby::Toolchain.new(:visualcpp) do |conf, _params|
 
   conf.cxx do |cxx|
     cxx.command = ENV['CXX'] || 'cl.exe'
-    cxx.flags = [ENV['CXXFLAGS'] || ENV['CFLAGS'] || %w(/c /nologo /W3 /Zi /MD /O2 /EHs /D_CRT_SECURE_NO_WARNINGS)]
+    cxx.flags = [ENV['CXXFLAGS'] || ENV['CFLAGS'] || %w(/c /nologo /W3 /Zi /MD /O0 /EHs /D_CRT_SECURE_NO_WARNINGS)]
     cxx.defines = %w(MRB_STACK_EXTEND_DOUBLING)
     cxx.option_include_path = '/I%s'
     cxx.option_define = '/D%s'
