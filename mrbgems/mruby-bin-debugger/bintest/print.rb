@@ -90,8 +90,8 @@ assert('mruby-bin-debugger(print) error') do
 
   # test case
   tc = []
-  tc << {:cmd=>"p (1+2",  :exp=>'$1 = SyntaxError'}
-  tc << {:cmd=>"p bar",   :exp=>'$2 = (eval):2: undefined method'}
+  tc << {:cmd=>"p (1+2",  :exp=>'$1 = line 1: syntax error'}
+  tc << {:cmd=>"p bar",   :exp=>'$2 = undefined method'}
 
   BinTest_MrubyBinDebugger.test(src, tc)
 end
@@ -588,7 +588,7 @@ SRC
   tc << {:cmd=>'p foo=[foo,bar,baz]', :exp=>'$2 = ["foo", "bar", "baz"]'}
 
   tc << {:cmd=>'p undefined=-1',      :exp=>'$3 = -1'}
-  tc << {:cmd=>'p "#{undefined}"',    :exp=>'$4 = (eval):2: undefined method'}
+  tc << {:cmd=>'p "#{undefined}"',    :exp=>'$4 = undefined method'}
 
   BinTest_MrubyBinDebugger.test(src, tc)
 end
@@ -626,7 +626,7 @@ SRC
   tc << {:cmd=>'p [a,b]',           :exp=>'$13 = [20, 10]'}
 
   tc << {:cmd=>'p undefined=-1',    :exp=>'$14 = -1'}
-  tc << {:cmd=>'p "#{undefined}"',  :exp=>'$15 = (eval):2: undefined method'}
+  tc << {:cmd=>'p "#{undefined}"',  :exp=>'$15 = undefined method'}
 
   BinTest_MrubyBinDebugger.test(src, tc)
 end
@@ -694,7 +694,7 @@ SRC
   tc << {:cmd=>'p [a,b]',           :exp=>'$13 = [20, 10]'}
 
   tc << {:cmd=>'p undefined=-1',    :exp=>'$14 = -1'}
-  tc << {:cmd=>'p "#{undefined}"',  :exp=>'$15 = (eval):2: undefined method'}
+  tc << {:cmd=>'p "#{undefined}"',  :exp=>'$15 = undefined method'}
 
   BinTest_MrubyBinDebugger.test(src, tc)
 end
