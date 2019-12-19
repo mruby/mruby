@@ -18,7 +18,7 @@ typedef int mode_t;
 #define open _open
 #define close _close
 
-#if defined(_MSC_VER) || defined(__MINGW32__)
+#if defined(_MSC_VER)
 #include <sys/stat.h>
 
 static int
