@@ -78,7 +78,7 @@ jobs:
         echo '::set-env name=PATH::C:\tools\cygwin\bin;C:\tools\cygwin\usr\bin'
     - name: build and test
       shell: cmd
-      run: bash rake -E '$stdout.sync=true' test
+      run: bash rake -E 'STDOUT.sync=true' test
       env:
         MRUBY_CONFIG: travis_config.rb
 
