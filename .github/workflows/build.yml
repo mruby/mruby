@@ -68,6 +68,13 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v1
+    - uses: actions/cache@v1
+      with:
+        path: C:\Users\runneradmin\AppData\Local\Temp\chocolatey
+        key: ${{ runner.os }}-cygwin-chocolatey-${{ matrix.os }}-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-cygwin-chocolatey-${{ matrix.os }}-
+          ${{ runner.os }}-cygwin-chocolatey-
     - name: chocolatey
       run: choco install -y cygwin
     - name: Install cygwin packages
