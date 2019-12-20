@@ -302,7 +302,11 @@ mrb_vformat(mrb_state *mrb, const char *format, va_list ap)
           mrb_gc_arena_restore(mrb, ai);
           break;
         case 'n':
+#if UINT32_MAX < INT_MAX
+          obj = mrb_symbol_value((mrb_sym)va_arg(ap, int));
+#else
           obj = mrb_symbol_value(va_arg(ap, mrb_sym));
+#endif
           goto L_cat_obj;
         case 's':
           chars = va_arg(ap, char*);
