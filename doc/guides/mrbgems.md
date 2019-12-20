@@ -45,8 +45,8 @@ conf.gem mgem: 'mruby-redis', checksum_hash: '3446d19fc4a3f9697b5ddbf2a904f301c4
 If there is missing dependencies, mrbgem dependencies solver will reference
 mrbgem from core or mgem-list.
 
-To pull all gems from remote GIT repository on build, call ```./minirake -p```,
-or ```./minirake --pull-gems```.
+To pull all gems from remote GIT repository on build, call ```rake -p```,
+or ```rake --pull-gems```.
 
 NOTE: `:bitbucket` option supports only git. Hg is unsupported in this version.
 
@@ -235,7 +235,7 @@ So it is recommended not to put GEM's local header files on include/.
 These exports are retroactive.
 For example: when B depends to C and A depends to B, A will get include paths exported by C.
 
-Exported include_paths are automatically appended to GEM local include_paths by Minirake.
+Exported include_paths are automatically appended to GEM local include_paths by rake.
 You can use `spec.export_include_paths` accessor if you want more complex build.
 
 

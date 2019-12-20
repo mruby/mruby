@@ -44,11 +44,7 @@ See the [compile.md](https://github.com/mruby/mruby/blob/master/doc/guides/compi
 
 To run the tests, execute the following from the project's root directory.
 
-    $ make test
-
-Or
-
-    $ ruby ./minirake test
+    $ rake test
 
 ## Building documentation
 

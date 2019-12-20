@@ -110,7 +110,7 @@ task :gitlab_config do
         'stage' => 'test',
         'image' => ci_docker_tag(compiler),
         'variables' => hash,
-        'script' => 'env; ./minirake --verbose all test'
+        'script' => 'env; rake --verbose all test'
       }
     end
   end

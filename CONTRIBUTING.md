@@ -9,7 +9,7 @@ things in mind before submitting your pull request:
 
 * Work on the latest possible state of **mruby/master**
 * Create a branch which is dedicated to your change
-* Test your changes before creating a pull request (```./minirake test```)
+* Test your changes before creating a pull request (```rake test```)
 * If possible write a test case which confirms your change
 * Don't mix several features or bug-fixes in one pull request
 * Create a meaningful commit message

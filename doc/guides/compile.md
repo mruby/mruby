@@ -32,10 +32,10 @@ All tools necessary to compile mruby can be set or modified here. In case
 you want to maintain an additional *build_config.rb* you can define a
 customized path using the *$MRUBY_CONFIG* environment variable.
 
-To compile just call `./minirake` inside of the mruby source root. To
-generate and execute the test tools call `./minirake test`. To clean
-all build files call `./minirake clean`. To see full command line on
-build, call `./minirake -v`.
+To compile just call `rake` inside of the mruby source root. To
+generate and execute the test tools call `rake test`. To clean
+all build files call `rake clean`. To see full command line on
+build, call `rake -v`.
 
 ## Build Configuration
 
