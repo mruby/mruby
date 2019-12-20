@@ -62,7 +62,7 @@ jobs:
       env:
         MRUBY_CONFIG: travis_config.rb
         YACC: win_bison
-        CFLAGS: -g -O0 -Wall -Wundef
+        CFLAGS: -g -O1 -Wall -Wundef
 
   Windows-VC:
     runs-on: windows-latest
