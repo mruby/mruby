@@ -172,7 +172,7 @@ mrb_local_variables(mrb_state *mrb, mrb_value self)
 KHASH_DECLARE(st, mrb_sym, char, FALSE)
 
 static void
-method_entry_loop(mrb_state *mrb, struct RClass* klass, khash_t(st)* set)
+method_entry_loop(mrb_state *mrb, struct RClass *klass, khash_t(st) *set, khash_t(st) *undef)
 {
   khint_t i;
 
@@ -181,20 +181,28 @@ method_entry_loop(mrb_state *mrb, struct RClass* klass, khash_t(st)* set)
   for (i=0;i<kh_end(h);i++) {
     if (kh_exist(h, i)) {
       mrb_method_t m = kh_value(h, i);
-      if (MRB_METHOD_UNDEF_P(m)) continue;
-      kh_put(st, mrb, set, kh_key(h, i));
+      if (MRB_METHOD_UNDEF_P(m)) {
+        if (undef) {
+          kh_put(st, mrb, undef, kh_key(h, i));
+        }
+      }
+      else if (undef == NULL ||
+               kh_get(st, mrb, undef, kh_key(h, i)) == kh_end(undef)) {
+        kh_put(st, mrb, set, kh_key(h, i));
+      }
     }
   }
 }
 
 static mrb_value
-mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass* klass, int obj)
+mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass *klass, int obj)
 {
   khint_t i;
   mrb_value ary;
   mrb_bool prepended = FALSE;
-  struct RClass* oldklass;
-  khash_t(st)* set = kh_init(st, mrb);
+  struct RClass *oldklass;
+  khash_t(st) *set = kh_init(st, mrb);
+  khash_t(st) *undef = (recur ? kh_init(st, mrb) : NULL);
 
   if (!recur && (klass->flags & MRB_FL_CLASS_IS_PREPENDED)) {
     MRB_CLASS_ORIGIN(klass);
@@ -203,7 +211,7 @@ mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass* kl
 
   oldklass = 0;
   while (klass && (klass != oldklass)) {
-    method_entry_loop(mrb, klass, set);
+    method_entry_loop(mrb, klass, set, undef);
     if ((klass->tt == MRB_TT_ICLASS && !prepended) ||
         (klass->tt == MRB_TT_SCLASS)) {
     }
@@ -221,6 +229,7 @@ mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass* kl
     }
   }
   kh_destroy(st, mrb, set);
+  if (undef) kh_destroy(st, mrb, undef);
 
   return ary;
 }
@@ -313,18 +322,19 @@ mrb_obj_singleton_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj)
 {
   khint_t i;
   mrb_value ary;
-  struct RClass* klass;
-  khash_t(st)* set = kh_init(st, mrb);
+  struct RClass *klass;
+  khash_t(st) *set = kh_init(st, mrb);
+  khash_t(st) *undef = (recur ? kh_init(st, mrb) : NULL);
 
   klass = mrb_class(mrb, obj);
 
   if (klass && (klass->tt == MRB_TT_SCLASS)) {
-      method_entry_loop(mrb, klass, set);
+      method_entry_loop(mrb, klass, set, undef);
       klass = klass->super;
   }
   if (recur) {
       while (klass && ((klass->tt == MRB_TT_SCLASS) || (klass->tt == MRB_TT_ICLASS))) {
-        method_entry_loop(mrb, klass, set);
+        method_entry_loop(mrb, klass, set, undef);
         klass = klass->super;
       }
   }
@@ -336,6 +346,7 @@ mrb_obj_singleton_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj)
     }
   }
   kh_destroy(st, mrb, set);
+  if (undef) kh_destroy(st, mrb, undef);
 
   return ary;
 }
