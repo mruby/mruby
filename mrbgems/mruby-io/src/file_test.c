@@ -7,12 +7,7 @@
 #include "mruby/data.h"
 #include "mruby/string.h"
 #include "mruby/ext/io.h"
-
-#if MRUBY_RELEASE_NO < 10000
-#include "error.h"
-#else
 #include "mruby/error.h"
-#endif
 
 #include <sys/types.h>
 #include <sys/stat.h>

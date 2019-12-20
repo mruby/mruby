@@ -10,12 +10,7 @@
 #include "mruby/string.h"
 #include "mruby/variable.h"
 #include "mruby/ext/io.h"
-
-#if MRUBY_RELEASE_NO < 10000
-#include "error.h"
-#else
 #include "mruby/error.h"
-#endif
 
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -65,14 +60,6 @@ static struct mrb_io *io_get_open_fptr(mrb_state *mrb, mrb_value self);
 static int mrb_io_modestr_to_flags(mrb_state *mrb, const char *modestr);
 static int mrb_io_flags_to_modenum(mrb_state *mrb, int flags);
 static void fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet);
-
-#if MRUBY_RELEASE_NO < 10000
-static struct RClass *
-mrb_module_get(mrb_state *mrb, const char *name)
-{
-  return mrb_class_get(mrb, name);
-}
-#endif
 
 static struct mrb_io *
 io_get_open_fptr(mrb_state *mrb, mrb_value self)
