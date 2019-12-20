@@ -77,5 +77,5 @@ jobs:
         MRUBY_CONFIG: appveyor_config.rb
         YACC: win_bison
         # TODO(take-cheeze): Re-enable /O2
-        CFLAGS: "/c /nologo /W3 /we4013 /Zi /MD /O0 /D_CRT_SECURE_NO_WARNINGS"
-        CXXFLAGS: "/c /nologo /W3 /Zi /MD /O0 /EHs /D_CRT_SECURE_NO_WARNINGS"
+        CFLAGS: "/c /nologo /W3 /we4013 /Zi /MD /D_CRT_SECURE_NO_WARNINGS"
+        CXXFLAGS: "/c /nologo /W3 /Zi /MD /EHs /D_CRT_SECURE_NO_WARNINGS"
