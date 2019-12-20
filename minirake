@@ -343,6 +343,10 @@ module MiniRake
     def desc(text)
     end
   end
+
+  def self.verbose
+    $verbose
+  end
 end
 
 Rake = MiniRake
