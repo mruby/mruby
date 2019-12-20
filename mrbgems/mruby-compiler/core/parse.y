@@ -5952,7 +5952,7 @@ parser_yylex(parser_state *p)
       break;
 
     case '_':
-      if (toklen(p) == 2 && ISDIGIT(tok(p)[1])) {
+      if (toklen(p) == 2 && ISDIGIT(tok(p)[1]) && p->nvars) {
         int n = tok(p)[1] - '0';
         node *nvars = p->nvars->car;
 
