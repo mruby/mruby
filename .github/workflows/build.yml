@@ -85,7 +85,7 @@ jobs:
         echo '::set-env name=PATH::C:\tools\cygwin\bin;C:\tools\cygwin\usr\bin'
     - name: build and test
       shell: cmd
-      run: C:\tools\cygwin\bin\ruby.exe rake test
+      run: C:\tools\cygwin\bin\ruby.exe /usr/bin/rake -E 'STDOUT.sync=true' test
       env:
         MRUBY_CONFIG: travis_config.rb
 
