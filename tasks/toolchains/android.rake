@@ -67,7 +67,7 @@ Set ANDROID_PLATFORM environment variable or set :platform parameter
   end
 
   def home_path
-    @home_path ||= Pathname(
+    @home_path ||= Pathname.new(
       params[:ndk_home] ||
       ENV['ANDROID_NDK_HOME'] ||
       DEFAULT_NDK_HOMES.find { |path|
@@ -124,7 +124,7 @@ Set ANDROID_PLATFORM environment variable or set :platform parameter
         path = home_path.join('toolchains', 'llvm' , 'prebuilt', 'windows*')
         Dir.glob(path.to_s){ |item|
           next if File.file?(item)
-          path = Pathname(item)
+          path = Pathname.new(item)
           break
         }
         path.basename
