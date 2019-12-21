@@ -74,8 +74,6 @@ typedef unsigned int stack_type;
 #define NUM_SUFFIX_R   (1<<0)
 #define NUM_SUFFIX_I   (1<<1)
 
-#define NUMPARAM_MAX 9
-
 static inline mrb_sym
 intern_cstr_gen(parser_state *p, const char *s)
 {
@@ -5954,30 +5952,25 @@ parser_yylex(parser_state *p)
     case '_':
       if (toklen(p) == 2 && ISDIGIT(tok(p)[1]) && p->nvars) {
         int n = tok(p)[1] - '0';
-        node *nvars = p->nvars->car;
 
-        while (nvars) {
-          if (intn(nvars->cdr) > 0) {
-            yywarning(p, "numbered parameter in nested block");
-            break;
+        if (n > 0) {
+          node *nvars = p->nvars->car;
+
+          while (nvars) {
+            if (intn(nvars->cdr) > 0) {
+              yywarning(p, "numbered parameter in nested block");
+              break;
+            }
+            nvars->cdr = nint(-1);
+            nvars = nvars->car;
           }
-          nvars->cdr = nint(-1);
-          nvars = nvars->car;
+          if (intn(p->nvars->cdr) < 0) {
+            yywarning(p, "numbered parameter in nested block");
+          }
+          pylval.num = n;
+          p->lstate = EXPR_END;
+          return tNUMPARAM;
         }
-        if (intn(p->nvars->cdr) < 0) {
-          yywarning(p, "numbered parameter in nested block");
-        }
-        if (n == 0) {
-          yyerror(p, "_0 is not available");
-          return 0;
-        }
-        if (n > NUMPARAM_MAX) {
-          yyerror(p, "too large numbered parameter");
-          return 0;
-        }
-        pylval.num = n;
-        p->lstate = EXPR_END;
-        return tNUMPARAM;
       }
       /* fall through */
     default:
