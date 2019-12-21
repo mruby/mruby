@@ -3538,6 +3538,11 @@ f_bad_arg       : tCONSTANT
                       yyerror(p, "formal argument cannot be a class variable");
                       $$ = 0;
                     }
+                | tNUMPARAM
+                    {
+                      yyerror(p, "formal argument cannot be a numbered parameter");
+                      $$ = 0;
+                    }
                 ;
 
 f_norm_arg      : f_bad_arg
@@ -5968,9 +5973,6 @@ parser_yylex(parser_state *p)
             }
             nvars->cdr = nint(-1);
             nvars = nvars->car;
-          }
-          if (intn(p->nvars->cdr) < 0) {
-            yywarning(p, "numbered parameter in nested block");
           }
           pylval.num = n;
           p->lstate = EXPR_END;
