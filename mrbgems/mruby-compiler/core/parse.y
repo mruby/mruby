@@ -838,7 +838,7 @@ new_block_arg(parser_state *p, node *a)
 }
 
 static node*
-setup_args(parser_state *p, node *a)
+setup_numparams(parser_state *p, node *a)
 {
   int nvars = intn(p->nvars->cdr);
   if (nvars > 0) {
@@ -847,7 +847,8 @@ setup_args(parser_state *p, node *a)
     // m || opt || rest || tail
     if (a && (a->car || (a->cdr && a->cdr->car) || (a->cdr->cdr && a->cdr->cdr->car) || (a->cdr->cdr->cdr->cdr && a->cdr->cdr->cdr->cdr->car))) {
       yyerror(p, "ordinary parameter is defined");
-    } else {
+    }
+    else {
       node* args = 0;
       for (i = nvars; i > 0; i--) {
         char buf[3];
@@ -869,7 +870,7 @@ setup_args(parser_state *p, node *a)
 static node*
 new_block(parser_state *p, node *a, node *b)
 {
-  a = setup_args(p, a);
+  a = setup_numparams(p, a);
   return list4((node*)NODE_BLOCK, locals_node(p), a, b);
 }
 
@@ -877,7 +878,6 @@ new_block(parser_state *p, node *a, node *b)
 static node*
 new_lambda(parser_state *p, node *a, node *b)
 {
-  a = setup_args(p, a);
   return list4((node*)NODE_LAMBDA, locals_node(p), a, b);
 }
 
@@ -2480,7 +2480,6 @@ primary         : literal
                 | tLAMBDA
                     {
                       local_nest(p);
-                      nvars_nest(p);
                       $<num>$ = p->lpar_beg;
                       p->lpar_beg = ++p->paren_nest;
                     }
@@ -2494,7 +2493,6 @@ primary         : literal
                       p->lpar_beg = $<num>2;
                       $$ = new_lambda(p, $3, $5);
                       local_unnest(p);
-                      nvars_unnest(p);
                       p->cmdarg_stack = $<stack>4;
                       CMDARG_LEXPOP();
                     }
