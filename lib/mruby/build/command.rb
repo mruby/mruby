@@ -286,29 +286,29 @@ module MRuby
       @command = 'git'
       @flags = %w[]
       @clone_options = "clone %{flags} %{url} %{dir}"
-      @pull_options = "--git-dir #{shellquote("%{repo_dir}/.git")} --work-tree #{shellquote("%{repo_dir}")} pull"
-      @checkout_options = "--git-dir #{shellquote("%{repo_dir}/.git")} --work-tree #{shellquote("%{repo_dir}")} checkout %{checksum_hash}"
-      @reset_options = "--git-dir #{shellquote("%{repo_dir}/.git")} --work-tree #{shellquote("%{repo_dir}")} reset %{checksum_hash}"
+      @pull_options = "--git-dir %{repo_dir}/.git --work-tree %{repo_dir} pull"
+      @checkout_options = "--git-dir %{repo_dir}/.git --work-tree %{repo_dir} checkout %{checksum_hash}"
+      @reset_options = "--git-dir %{repo_dir}/.git --work-tree %{repo_dir} reset %{checksum_hash}"
     end
 
     def run_clone(dir, url, _flags = [])
       _pp "GIT", url, dir.relative_path
-      _run clone_options, { :flags => [flags, _flags].flatten.join(' '), :url => url, :dir => filename(dir) }
+      _run clone_options, { :flags => [flags, _flags].flatten.join(' '), :url => shellquote(url), :dir => shellquote(filename(dir)) }
     end
 
     def run_pull(dir, url)
       _pp "GIT PULL", url, dir.relative_path
-      _run pull_options, { :repo_dir => dir }
+      _run pull_options, { :repo_dir => shellquote(dir) }
     end
 
     def run_checkout(dir, checksum_hash)
       _pp "GIT CHECKOUT", checksum_hash
-      _run checkout_options, { :checksum_hash => checksum_hash, :repo_dir => dir }
+      _run checkout_options, { :checksum_hash => checksum_hash, :repo_dir => shellquote(dir) }
     end
 
     def run_reset_hard(dir, checksum_hash)
       _pp "GIT RESET", checksum_hash
-      _run reset_options, { :checksum_hash => checksum_hash, :repo_dir => dir }
+      _run reset_options, { :checksum_hash => checksum_hash, :repo_dir => shellquote(dir) }
     end
 
     def commit_hash(dir)
