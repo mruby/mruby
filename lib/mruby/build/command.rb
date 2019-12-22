@@ -302,12 +302,12 @@ module MRuby
     end
 
     def run_checkout(dir, checksum_hash)
-      _pp "GIT CHECKOUT", checksum_hash
+      _pp "GIT CHECKOUT", dir, checksum_hash
       _run checkout_options, { :checksum_hash => checksum_hash, :repo_dir => shellquote(dir) }
     end
 
     def run_reset_hard(dir, checksum_hash)
-      _pp "GIT RESET", checksum_hash
+      _pp "GIT RESET", dir, checksum_hash
       _run reset_options, { :checksum_hash => checksum_hash, :repo_dir => shellquote(dir) }
     end
 
