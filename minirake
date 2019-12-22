@@ -1,2 +1,2 @@
 #! /usr/bin/env ruby
-system "rake", *ARGV
+exec "rake", *ARGV
