@@ -86,14 +86,13 @@ module MRuby
 
         if File.exist?(gemdir)
           if $pull_gems
-            git.run_pull gemdir, url
             # Jump to the top of the branch
-            git.run_checkout(gemdir, branch)
-            git.run_reset_hard gemdir, "origin/#{branch}"
+            git.run_checkout gemdir, branch
+            git.run_pull gemdir, url
           elsif params[:checksum_hash]
-            git.run_reset_hard(gemdir, params[:checksum_hash])
+            git.run_checkout_detach gemdir, params[:checksum_hash]
           elsif lock
-            git.run_reset_hard(gemdir, lock['commit'])
+            git.run_checkout_detach gemdir, lock['commit']
           end
         else
           options = [params[:options]] || []
@@ -105,9 +104,9 @@ module MRuby
 
           # Jump to the specified commit
           if params[:checksum_hash]
-            git.run_reset_hard gemdir, params[:checksum_hash]
+            git.run_checkout_detach gemdir, params[:checksum_hash]
           elsif lock
-            git.run_reset_hard gemdir, lock['commit']
+            git.run_checkout_detach gemdir, lock['commit']
           end
         end
 
