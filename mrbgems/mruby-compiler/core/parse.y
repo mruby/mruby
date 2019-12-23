@@ -3984,6 +3984,13 @@ nextc(parser_state *p)
   if (c >= 0) {
     p->column++;
   }
+  if (c == '\r') {
+    const int lf = nextc(p);
+    if (lf == '\n') {
+      return '\n';
+    }
+    pushback(p, lf);
+  }
   return c;
 
   eof:
