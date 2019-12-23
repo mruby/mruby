@@ -15,7 +15,7 @@ MRuby::Toolchain.new(:gcc) do |conf, params|
     compiler.option_include_path = '-I%s'
     compiler.option_define = '-D%s'
     compiler.compile_options = '%{flags} -MMD -o %{outfile} -c %{infile}'
-    compiler.cxx_compile_flag = '-x c++ -std=c++03'
+    compiler.cxx_compile_flag = '-x c++ -std=gnu++03'
     compiler.cxx_exception_flag = '-fexceptions'
     compiler.cxx_invalid_flags = c_mandatory_flags + cxx_invalid_flags
   end
