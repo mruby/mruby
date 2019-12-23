@@ -11,4 +11,4 @@ matrix:
 
 env:
   - MRUBY_CONFIG=travis_config.rb
-script: "rake -m -E '$stdout.sync=true' all test"
+script: "rake -m && rake test"
