@@ -183,7 +183,7 @@ partial_hook(struct mrb_parser_state *p)
     return -1;
   }
   fn = args->argv[args->idx++];
-  p->f = fopen(fn, "r");
+  p->f = fopen(fn, "rb");
   if (p->f == NULL) {
     fprintf(stderr, "%s: cannot open program file. (%s)\n", args->prog, fn);
     return -1;
@@ -210,7 +210,7 @@ load_file(mrb_state *mrb, struct mrbc_args *args)
   }
   else {
     need_close = TRUE;
-    if ((infile = fopen(input, "r")) == NULL) {
+    if ((infile = fopen(input, "rb")) == NULL) {
       fprintf(stderr, "%s: cannot open program file. (%s)\n", args->prog, input);
       return mrb_nil_value();
     }
