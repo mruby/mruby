@@ -280,7 +280,7 @@ EOS
       if name.is_a?(Array)
         name.flatten.map { |n| cygwin_filename(n) }
       else
-        `cygpath -w "#{filename(name)}"`.strip
+        '"%s"' % `cygpath -w "#{filename(name)}"`.strip
       end
     end
 
