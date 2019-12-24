@@ -1,9 +1,10 @@
 require 'open3'
 require 'tempfile'
+require 'strscan'
 
 class BinTest_MrubyBinDebugger
-  @debug1=false
-  @debug2=true
+#  @debug1=false
+#  @debug2=true
   def self.test(rubysource, testcase)
     script, bin = Tempfile.new(['test', '.rb']), Tempfile.new(['test', '.mrb'])
 
@@ -19,10 +20,20 @@ class BinTest_MrubyBinDebugger
 
     stdin_data = testcase.map{|t| t[:cmd]}.join("\n") << "\n"
 
+    prompt = /^\(#{Regexp.escape(script.path)}:\d+\) /
     ["bin/mrdb #{script.path}","bin/mrdb -b #{bin.path}"].each do |cmd|
       o, s = Open3.capture2(cmd, :stdin_data => stdin_data)
+      scanner = StringScanner.new(o)
+      scanner.skip_until(prompt)
+      testcase.each do |tc|
+        exp = tc[:exp]
+        if exp
+          act = scanner.scan_until(/\n/)
+          break unless assert_operator act, :start_with?, exp
+        end
+        scanner.skip_until(prompt)
+      end
 
-      exp_vals = testcase.map{|t| t.fetch(:exp, nil)}
 =begin
 if @debug1
   o.split("\n").each_with_index do |i,actual|
@@ -41,14 +52,6 @@ end
         assert_true actual.include?(exp) unless exp.nil?
       end
 =end
-      idx = 0
-      exp_vals.each do |exp|
-        next if exp.nil?
-        idx = o.index(exp, idx)
-        assert_false idx.nil?
-        break unless idx
-        idx += 1
-      end
     end
   end
 end
@@ -698,4 +701,3 @@ SRC
 
   BinTest_MrubyBinDebugger.test(src, tc)
 end
-
