@@ -5,6 +5,8 @@ MRUBY_ROOT = File.dirname(File.expand_path(__FILE__))
 MRUBY_BUILD_HOST_IS_CYGWIN = RUBY_PLATFORM.include?('cygwin')
 MRUBY_BUILD_HOST_IS_OPENBSD = RUBY_PLATFORM.include?('openbsd')
 
+$verbose = Rake.verbose == true
+
 $LOAD_PATH << File.join(MRUBY_ROOT, "lib")
 
 # load build systems
