@@ -285,11 +285,9 @@ mrb_define_class(mrb_state *mrb, const char *name, struct RClass *super)
 static mrb_value mrb_bob_init(mrb_state *mrb, mrb_value);
 #ifdef MRB_METHOD_CACHE
 static void mc_clear_all(mrb_state *mrb);
-static void mc_clear_by_class(mrb_state *mrb, struct RClass*);
 static void mc_clear_by_id(mrb_state *mrb, struct RClass*, mrb_sym);
 #else
 #define mc_clear_all(mrb)
-#define mc_clear_by_class(mrb,c)
 #define mc_clear_by_id(mrb,c,s)
 #endif
 
@@ -303,7 +301,7 @@ mrb_class_inherited(mrb_state *mrb, struct RClass *super, struct RClass *klass)
     super = mrb->object_class;
   super->flags |= MRB_FL_CLASS_IS_INHERITED;
   s = mrb_obj_value(super);
-  mc_clear_by_class(mrb, klass);
+  mrb_mc_clear_by_class(mrb, klass);
   mid = mrb_intern_lit(mrb, "inherited");
   if (!mrb_func_basic_p(mrb, s, mid, mrb_bob_init)) {
     mrb_value c = mrb_obj_value(klass);
@@ -1109,7 +1107,7 @@ include_module_at(mrb_state *mrb, struct RClass *c, struct RClass *ins_pos, stru
     m->flags |= MRB_FL_CLASS_IS_INHERITED;
     ins_pos->super = ic;
     mrb_field_write_barrier(mrb, (struct RBasic*)ins_pos, (struct RBasic*)ic);
-    mc_clear_by_class(mrb, ins_pos);
+    mrb_mc_clear_by_class(mrb, ins_pos);
     ins_pos = ic;
   skip:
     m = m->super;
@@ -1322,8 +1320,8 @@ mc_clear_all(mrb_state *mrb)
   }
 }
 
-static void
-mc_clear_by_class(mrb_state *mrb, struct RClass *c)
+void
+mrb_mc_clear_by_class(mrb_state *mrb, struct RClass *c)
 {
   struct mrb_cache_entry *mc = mrb->cache;
   int i;
