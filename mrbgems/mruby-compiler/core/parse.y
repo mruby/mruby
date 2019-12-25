@@ -318,19 +318,19 @@ locals_node(parser_state *p)
 static void
 nvars_nest(parser_state *p)
 {
-  p->nvars = cons(p->nvars, nint(0));
+  p->nvars = cons(nint(0), p->nvars);
 }
 
 static void
 nvars_block(parser_state *p)
 {
-  p->nvars = cons(p->nvars, nint(-2));
+  p->nvars = cons(nint(-2), p->nvars);
 }
 
 static void
 nvars_unnest(parser_state *p)
 {
-  p->nvars = p->nvars->car;
+  p->nvars = p->nvars->cdr;
 }
 
 /* (:scope (vars..) (prog...)) */
@@ -671,11 +671,11 @@ new_cvar(parser_state *p, mrb_sym sym)
 static node*
 new_nvar(parser_state *p, int num)
 {
-  if (!p->nvars || intn(p->nvars->cdr) < -1) {
+  if (!p->nvars || intn(p->nvars->car) < -1) {
     yyerror(p, "numbered parameter outside block");
   } else {
-    int nvars = intn(p->nvars->cdr);
-    p->nvars->cdr = nint(nvars > num ? nvars : num);
+    int nvars = intn(p->nvars->car);
+    p->nvars->car = nint(nvars > num ? nvars : num);
   }
   return cons((node*)NODE_NVAR, nint(num));
 }
@@ -840,7 +840,7 @@ new_block_arg(parser_state *p, node *a)
 static node*
 setup_numparams(parser_state *p, node *a)
 {
-  int nvars = intn(p->nvars->cdr);
+  int nvars = intn(p->nvars->car);
   if (nvars > 0) {
     int i;
     mrb_sym sym;
@@ -5964,15 +5964,15 @@ parser_yylex(parser_state *p)
         int n = tok(p)[1] - '0';
 
         if (n > 0) {
-          node *nvars = p->nvars->car;
+          node *nvars = p->nvars->cdr;
 
           while (nvars) {
-            if (intn(nvars->cdr) > 0) {
+            if (intn(nvars->car) > 0) {
               yywarning(p, "numbered parameter in nested block");
               break;
             }
-            nvars->cdr = nint(-1);
-            nvars = nvars->car;
+            nvars->car = nint(-1);
+            nvars = nvars->cdr;
           }
           pylval.num = n;
           p->lstate = EXPR_END;
