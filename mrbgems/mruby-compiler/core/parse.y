@@ -671,12 +671,9 @@ new_cvar(parser_state *p, mrb_sym sym)
 static node*
 new_nvar(parser_state *p, int num)
 {
-  if (!p->nvars || intn(p->nvars->car) < -1) {
-    yyerror(p, "numbered parameter outside block");
-  } else {
-    int nvars = intn(p->nvars->car);
-    p->nvars->car = nint(nvars > num ? nvars : num);
-  }
+  int nvars = intn(p->nvars->car);
+
+  p->nvars->car = nint(nvars > num ? nvars : num);
   return cons((node*)NODE_NVAR, nint(num));
 }
 
@@ -5962,21 +5959,33 @@ parser_yylex(parser_state *p)
     case '_':
       if (toklen(p) == 2 && ISDIGIT(tok(p)[1]) && p->nvars) {
         int n = tok(p)[1] - '0';
+        int nvar;
 
         if (n > 0) {
           node *nvars = p->nvars->cdr;
 
           while (nvars) {
-            if (intn(nvars->car) > 0) {
-              yywarning(p, "numbered parameter in nested block");
+            nvar = intn(nvars->car);
+            if (nvar == -2) break; /* top of the scope */
+            if (nvar > 0) {
+              yywarning(p, "numbered parameter used in outer block");
               break;
             }
             nvars->car = nint(-1);
             nvars = nvars->cdr;
           }
-          pylval.num = n;
-          p->lstate = EXPR_END;
-          return tNUMPARAM;
+          nvar = intn(p->nvars->car);
+          if (nvar == -1) {
+            yywarning(p, "numbered parameter used in inner block");
+          }
+          if (nvar >= -1) {
+            pylval.num = n;
+            p->lstate = EXPR_END;
+            return tNUMPARAM;
+          }
+          else {
+            yywarning(p, "identifier for numbered parameter; consider another name");
+          }
         }
       }
       /* fall through */
@@ -5986,6 +5995,15 @@ parser_yylex(parser_state *p)
       }
       else {
         if (p->lstate == EXPR_FNAME) {
+          if ((c = nextc(p)) == '=' && !peek(p, '~') && !peek(p, '>') &&
+              (!peek(p, '=') || (peek_n(p, '>', 1)))) {
+            result = tIDENTIFIER;
+            tokadd(p, c);
+            tokfix(p);
+          }
+          else {
+            pushback(p, c);
+          }
           if ((c = nextc(p)) == '=' && !peek(p, '~') && !peek(p, '>') &&
               (!peek(p, '=') || (peek_n(p, '>', 1)))) {
             result = tIDENTIFIER;
