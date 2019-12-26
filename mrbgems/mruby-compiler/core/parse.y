@@ -1952,6 +1952,10 @@ lhs             : variable
                       backref_error(p, $1);
                       $$ = 0;
                     }
+                | tNUMPARAM
+                    {
+                      yyerror(p, "can't assign to numbered parameter");
+                    }
                 ;
 
 cname           : tIDENTIFIER
@@ -3274,6 +3278,10 @@ variable        : tIDENTIFIER
 var_lhs         : variable
                     {
                       assignable(p, $1);
+                    }
+                | tNUMPARAM
+                    {
+                      yyerror(p, "can't assign to numbered parameter");
                     }
                 ;
 
