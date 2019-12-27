@@ -89,7 +89,7 @@ module MRuby
     end
 
     def run(outfile, infile, _defines=[], _include_paths=[], _flags=[])
-      FileUtils.mkdir_p File.dirname(outfile)
+      mkdir_p File.dirname(outfile)
       _pp "CC", infile.relative_path, outfile.relative_path
       if MRUBY_BUILD_HOST_IS_CYGWIN
         _run compile_options, { :flags => all_flags(_defines, _include_paths, _flags),
@@ -205,7 +205,7 @@ module MRuby
     end
 
     def run(outfile, objfiles, _libraries=[], _library_paths=[], _flags=[], _flags_before_libraries=[], _flags_after_libraries=[])
-      FileUtils.mkdir_p File.dirname(outfile)
+      mkdir_p File.dirname(outfile)
       library_flags = [libraries, _libraries].flatten.map { |d| option_library % d }
 
       _pp "LD", outfile.relative_path
@@ -235,7 +235,7 @@ module MRuby
     end
 
     def run(outfile, objfiles)
-      FileUtils.mkdir_p File.dirname(outfile)
+      mkdir_p File.dirname(outfile)
       _pp "AR", outfile.relative_path
       if MRUBY_BUILD_HOST_IS_CYGWIN
         _run archive_options, { :outfile => cygwin_filename(outfile), :objs => cygwin_filename(objfiles).join(' ') }
@@ -255,7 +255,7 @@ module MRuby
     end
 
     def run(outfile, infile)
-      FileUtils.mkdir_p File.dirname(outfile)
+      mkdir_p File.dirname(outfile)
       _pp "YACC", infile.relative_path, outfile.relative_path
       _run compile_options, { :outfile => filename(outfile) , :infile => filename(infile) }
     end
@@ -271,7 +271,7 @@ module MRuby
     end
 
     def run(outfile, infile)
-      FileUtils.mkdir_p File.dirname(outfile)
+      mkdir_p File.dirname(outfile)
       _pp "GPERF", infile.relative_path, outfile.relative_path
       _run compile_options, { :outfile => filename(outfile) , :infile => filename(infile) }
     end

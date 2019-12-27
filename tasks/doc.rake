@@ -25,12 +25,12 @@ end
 
 desc 'clean all built docs'
 task :clean_api_doc do
-  FileUtils.rm_rf 'doc/api'
+  rm_rf 'doc/api'
 end
 
 desc 'clean all built docs'
 task :clean_capi_doc do
-  FileUtils.rm_rf 'doc/capi'
+  rm_rf 'doc/capi'
 end
 
 desc 'clean all built docs'

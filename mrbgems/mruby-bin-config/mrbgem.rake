@@ -17,7 +17,7 @@ unless MRuby::Build.current.kind_of?(MRuby::CrossBuild)
       }]
       tmplt = File.read(tmplt_path)
       File.write(t.name, tmplt.gsub(/(#{Regexp.union(*config.keys)})\b/, config))
-      FileUtils.chmod(0755, t.name)
+      chmod(0755, t.name)
     end
   end
 end

@@ -57,7 +57,7 @@ module MRuby
         if File.exist? mgem_list_dir
           git.run_pull mgem_list_dir, mgem_list_url if $pull_gems
         else
-          FileUtils.mkdir_p mgem_list_dir
+          mkdir_p mgem_list_dir
           git.run_clone mgem_list_dir, mgem_list_url, "--depth 1"
         end
 
@@ -99,7 +99,7 @@ module MRuby
           options << "--recursive"
           options << "--branch \"#{branch}\""
           options << "--depth 1" unless params[:checksum_hash]
-          FileUtils.mkdir_p "#{gem_clone_dir}"
+          mkdir_p "#{gem_clone_dir}"
           git.run_clone gemdir, url, options
 
           # Jump to the specified commit
