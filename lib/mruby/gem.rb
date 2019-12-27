@@ -157,7 +157,7 @@ module MRuby
       def define_gem_init_builder
         file objfile("#{build_dir}/gem_init") => [ "#{build_dir}/gem_init.c", File.join(dir, "mrbgem.rake") ]
         file "#{build_dir}/gem_init.c" => [build.mrbcfile, __FILE__] + [rbfiles].flatten do |t|
-          FileUtils.mkdir_p build_dir
+          mkdir_p build_dir
           generate_gem_init("#{build_dir}/gem_init.c")
         end
       end

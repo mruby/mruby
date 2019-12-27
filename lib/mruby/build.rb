@@ -173,7 +173,7 @@ module MRuby
       obj = objfile(cxx_src) if obj.nil?
 
       file cxx_src => [src, __FILE__] do |t|
-        FileUtils.mkdir_p File.dirname t.name
+        mkdir_p File.dirname t.name
         IO.write t.name, <<EOS
 #define __STDC_CONSTANT_MACROS
 #define __STDC_LIMIT_MACROS

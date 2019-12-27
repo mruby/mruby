@@ -33,10 +33,9 @@ load "#{MRUBY_ROOT}/tasks/gitlab.rake"
 load "#{MRUBY_ROOT}/tasks/doc.rake"
 
 def install_D(src, dst)
-  opts = { :verbose => $verbose }
-  FileUtils.rm_f dst, opts
-  FileUtils.mkdir_p File.dirname(dst), opts
-  FileUtils.cp src, dst, opts
+  rm_f dst
+  mkdir_p File.dirname(dst)
+  cp src, dst
 end
 
 ##############################
@@ -144,16 +143,16 @@ end
 desc "clean all built and in-repo installed artifacts"
 task :clean do
   MRuby.each_target do |t|
-    FileUtils.rm_rf t.build_dir, { :verbose => $verbose }
+    rm_rf t.build_dir
   end
-  FileUtils.rm_f depfiles, { :verbose => $verbose }
+  rm_f depfiles
   puts "Cleaned up target build folder"
 end
 
 desc "clean everything!"
 task :deep_clean => ["clean", "clean_doc"] do
   MRuby.each_target do |t|
-    FileUtils.rm_rf t.gem_clone_dir, { :verbose => $verbose }
+    rm_rf t.gem_clone_dir
   end
   puts "Cleaned up mrbgems build folder"
 end
