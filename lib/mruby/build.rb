@@ -320,7 +320,7 @@ EOS
     end
 
     def verbose_flag
-      $verbose ? ' -v' : ''
+      Rake.verbose ? ' -v' : ''
     end
 
     def run_test
@@ -386,7 +386,7 @@ EOS
     end
 
     def run_test
-      @test_runner.runner_options << ' -v' if $verbose
+      @test_runner.runner_options << verbose_flag
       mrbtest = exefile("#{build_dir}/bin/mrbtest")
       if (@test_runner.command == nil)
         puts "You should run #{mrbtest} on target device."
