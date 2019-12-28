@@ -342,7 +342,7 @@ module MRuby
         _pp "MRBC", f.relative_path, nil, :indent => 2
       end
       cmd = "#{filename @command} #{@compile_options % {:funcname => funcname}} #{filename(infiles).join(' ')}"
-      print("#{cmd}\n") if $verbose
+      puts cmd if Rake.verbose
       IO.popen(cmd, 'r+') do |io|
         out.puts io.read
       end
