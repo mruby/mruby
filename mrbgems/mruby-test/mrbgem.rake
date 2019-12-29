@@ -149,12 +149,7 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
   # of the test gem depending on a change to the gem
   # selection
   active_gems_path = "#{build_dir}/active_gems_path.lst"
-  active_gem_list = if File.exist? active_gems_path
-                      File.read active_gems_path
-                    else
-                      mkdir_p File.dirname(active_gems_path)
-                      nil
-                    end
+  active_gem_list = File.read active_gems_path if File.exist? active_gems_path
   current_gem_list = build.gems.map(&:name).join("\n")
   task active_gems_path do |_t|
     mkdir_p File.dirname(active_gems_path)
