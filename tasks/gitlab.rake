@@ -80,7 +80,7 @@ task :gitlab_config do
             _info += int_conf['16'] ? 'int16 ' : ''
             _info += int_conf['64'] ? 'int64 ' : ''
             _info += boxing_conf['NAN'] ? 'nan ' : ''
-            _info += boxing_conf['word'] ? 'word ' : ''
+            _info += boxing_conf['WORD'] ? 'word ' : ''
             _info += utf8_conf['UTF8'] ? 'utf8 ' : ''
             _info = _info.gsub(/ +/, ' ').strip.tr(' ', '_')
             configs << { '_info' => _info, 'CFLAGS' => "#{bit}#{env}", 'LDFLAGS' => bit.strip.to_s }
