@@ -18,7 +18,15 @@ typedef int mode_t;
 #define open _open
 #define close _close
 
-#if defined(_MSC_VER) || defined(__MINGW32__)
+#if defined(__MINGW64_VERSION_MAJOR)
+# define MRB_MINGW64_VERSION  (__MINGW64_VERSION_MAJOR * 1000 + __MINGW64_VERSION_MINOR)
+#elif defined(__MINGW32_MAJOR_VERSION)
+# define MRB_MINGW32_VERSION  (__MINGW32_MAJOR_VERSION * 1000 + __MINGW32_MINOR_VERSION)
+#endif
+
+#if defined(_MSC_VER) || \
+    (defined(MRB_MINGW32_VERSION) && MRB_MINGW32_VERSION < 3021) || \
+    (defined(MRB_MINGW64_VERSION) && MRB_MINGW64_VERSION < 4000)
 #include <sys/stat.h>
 
 static int
