@@ -1307,7 +1307,6 @@ heredoc_end(parser_state *p)
   p->parsing_heredoc = p->parsing_heredoc->cdr;
   if (p->parsing_heredoc == NULL) {
     p->lstate = EXPR_BEG;
-    p->cmd_start = TRUE;
     end_strterm(p);
     p->lex_strterm = p->lex_strterm_before_heredoc;
     p->lex_strterm_before_heredoc = NULL;
@@ -2346,7 +2345,7 @@ opt_block_arg   : comma block_arg
                 ;
 
 comma           : ','
-                | ','  heredoc_bodies
+                | ','  opt_nl heredoc_bodies
                 ;
 
 args            : arg
@@ -3709,10 +3708,14 @@ assocs          : assoc
                       $$ = list1($1);
                       NODE_LINENO($$, $1);
                     }
-                | assocs ',' assoc
+                | assocs comma assoc
                     {
                       $$ = push($1, $3);
                     }
+                ;
+
+label_tag       : tLABEL_TAG
+                | tLABEL_TAG heredoc_bodies
                 ;
 
 assoc           : arg tASSOC arg
@@ -3721,12 +3724,12 @@ assoc           : arg tASSOC arg
                       void_expr_error(p, $3);
                       $$ = cons($1, $3);
                     }
-                | tIDENTIFIER tLABEL_TAG arg
+                | tIDENTIFIER label_tag arg
                     {
                       void_expr_error(p, $3);
                       $$ = cons(new_sym(p, $1), $3);
                     }
-                | string_fragment tLABEL_TAG arg
+                | string_fragment label_tag arg
                     {
                       void_expr_error(p, $3);
                       if ($1->car == (node*)NODE_DSTR) {
