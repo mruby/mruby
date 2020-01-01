@@ -36,13 +36,14 @@ vf_s_format_c(mrb_state *mrb, mrb_value klass)
 static mrb_value
 vf_s_format_d(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value fmt_str, arg_int;
+  mrb_value fmt_str;
   const char *fmt;
+  mrb_int i;
   int d;
 
-  mrb_get_args(mrb, "Si", &fmt_str, &arg_int);
+  mrb_get_args(mrb, "Si", &fmt_str, &i);
   fmt = RSTRING_CSTR(mrb, fmt_str);
-  d = mrb_fixnum(arg_int);
+  d = (int)i;
 
   return mrb_format(mrb, fmt, d);
 }
@@ -52,13 +53,12 @@ vf_s_format_d(mrb_state *mrb, mrb_value klass)
 static mrb_value
 vf_s_format_f(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value fmt_str, arg_flt;
+  mrb_value fmt_str;
   const char *fmt;
   mrb_float f;
 
-  mrb_get_args(mrb, "Sf", &fmt_str, &arg_flt);
+  mrb_get_args(mrb, "Sf", &fmt_str, &f);
   fmt = RSTRING_CSTR(mrb, fmt_str);
-  f = mrb_float(arg_flt);
 
   return mrb_format(mrb, fmt, f);
 }
@@ -68,13 +68,12 @@ vf_s_format_f(mrb_state *mrb, mrb_value klass)
 static mrb_value
 vf_s_format_i(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value fmt_str, arg_int;
+  mrb_value fmt_str;
   const char *fmt;
   mrb_int i;
 
-  mrb_get_args(mrb, "Si", &fmt_str, &arg_int);
+  mrb_get_args(mrb, "Si", &fmt_str, &i);
   fmt = RSTRING_CSTR(mrb, fmt_str);
-  i = mrb_fixnum(arg_int);
 
   return mrb_format(mrb, fmt, i);
 }
@@ -83,15 +82,16 @@ vf_s_format_i(mrb_state *mrb, mrb_value klass)
 static mrb_value
 vf_s_format_l(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value fmt_str, arg_str, arg_int;
+  mrb_value fmt_str, arg_str;
   const char *fmt;
   const char *s;
+  mrb_int i;
   size_t len;
 
-  mrb_get_args(mrb, "SSi", &fmt_str, &arg_str, &arg_int);
+  mrb_get_args(mrb, "SSi", &fmt_str, &arg_str, &i);
   fmt = RSTRING_CSTR(mrb, fmt_str);
   s = RSTRING_PTR(arg_str);
-  len = (size_t)mrb_fixnum(arg_int);
+  len = (size_t)i;
   if (len > (size_t)RSTRING_LEN(arg_str)) len = (size_t)RSTRING_LEN(arg_str);
 
   return mrb_format(mrb, fmt, s, len);
@@ -101,15 +101,14 @@ vf_s_format_l(mrb_state *mrb, mrb_value klass)
 static mrb_value
 vf_s_format_n(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value fmt_str, arg_sym;
+  mrb_value fmt_str;
   const char *fmt;
-  mrb_sym n;
+  mrb_sym sym;
 
-  mrb_get_args(mrb, "Sn", &fmt_str, &arg_sym);
+  mrb_get_args(mrb, "Sn", &fmt_str, &sym);
   fmt = RSTRING_CSTR(mrb, fmt_str);
-  n = mrb_symbol(arg_sym);
 
-  return mrb_format(mrb, fmt, n);
+  return mrb_format(mrb, fmt, sym);
 }
 
 /* s char* */
