@@ -30,7 +30,6 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 #include <limits.h>
 #include <string.h>
-#include <stdint.h>
 #include <math.h>
 #include <float.h>
 #include <ctype.h>
