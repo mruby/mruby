@@ -481,7 +481,7 @@ exception_call:
 
       break;
     default:
-      mrb_num_args_error(mrb, argc, 0, 3);
+      mrb_argnum_error(mrb, argc, 0, 3);
       break;
   }
   if (argc > 0) {
@@ -538,7 +538,7 @@ mrb_frozen_error(mrb_state *mrb, void *frozen_obj)
 }
 
 MRB_API mrb_noreturn void
-mrb_num_args_error(mrb_state *mrb, mrb_int argc, int min, int max)
+mrb_argnum_error(mrb_state *mrb, mrb_int argc, int min, int max)
 {
 #define FMT(exp) "wrong number of arguments (given %i, expected " exp ")"
   if (min == max)

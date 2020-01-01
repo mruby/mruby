@@ -800,7 +800,7 @@ mrb_hash_init(mrb_state *mrb, mrb_value hash)
   mrb_hash_modify(mrb, hash);
   if (!mrb_nil_p(block)) {
     if (ifnone_p) {
-      mrb_num_args_error(mrb, 1, 0, 0);
+      mrb_argnum_error(mrb, 1, 0, 0);
     }
     RHASH(hash)->flags |= MRB_HASH_PROC_DEFAULT;
     ifnone = block;

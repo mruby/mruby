@@ -384,7 +384,7 @@ mrb_obj_extend(mrb_state *mrb, mrb_int argc, mrb_value *argv, mrb_value obj)
   mrb_int i;
 
   if (argc == 0) {
-    mrb_num_args_error(mrb, argc, 1, -1);
+    mrb_argnum_error(mrb, argc, 1, -1);
   }
   for (i = 0; i < argc; i++) {
     mrb_check_type(mrb, argv[i], MRB_TT_MODULE);

@@ -476,7 +476,7 @@ mrb_basicsocket_setsockopt(mrb_state *mrb, mrb_value self)
     optname = mrb_fixnum(mrb_funcall(mrb, so, "optname", 0));
     optval = mrb_funcall(mrb, so, "data", 0);
   } else {
-    mrb_num_args_error(mrb, argc, 3, 3);
+    mrb_argnum_error(mrb, argc, 3, 3);
   }
 
   s = socket_fd(mrb, self);
