@@ -589,7 +589,6 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
   char c;
   mrb_int i = 0;
   va_list ap;
-  mrb_int arg_i = 0;
   mrb_int argc = mrb->c->ci->argc;
   mrb_value *array_argv = mrb->c->stack+1;
   mrb_bool argv_on_stack = argc >= 0;
@@ -677,8 +676,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         p = va_arg(ap, mrb_value*);
         if (i < argc) {
-          *p = argv[arg_i++];
-          i++;
+          *p = argv[i++];
         }
       }
       break;
@@ -690,12 +688,11 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         if (i < argc) {
           mrb_value ss;
 
-          ss = argv[arg_i++];
+          ss = argv[i++];
           if (!class_ptr_p(ss)) {
             mrb_raisef(mrb, E_TYPE_ERROR, "%v is not class/module", ss);
           }
           *p = ss;
-          i++;
         }
       }
       break;
@@ -705,8 +702,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         p = va_arg(ap, mrb_value*);
         if (i < argc) {
-          *p = argv[arg_i++];
-          i++;
+          *p = argv[i++];
           if (!(altmode && mrb_nil_p(*p))) {
             mrb_to_str(mrb, *p);
           }
@@ -719,8 +715,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         p = va_arg(ap, mrb_value*);
         if (i < argc) {
-          *p = argv[arg_i++];
-          i++;
+          *p = argv[i++];
           if (!(altmode && mrb_nil_p(*p))) {
             *p = to_ary(mrb, *p);
           }
@@ -733,8 +728,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         p = va_arg(ap, mrb_value*);
         if (i < argc) {
-          *p = argv[arg_i++];
-          i++;
+          *p = argv[i++];
           if (!(altmode && mrb_nil_p(*p))) {
             *p = to_hash(mrb, *p);
           }
@@ -750,8 +744,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         ps = va_arg(ap, char**);
         pl = va_arg(ap, mrb_int*);
         if (i < argc) {
-          ss = argv[arg_i++];
-          i++;
+          ss = argv[i++];
           if (altmode && mrb_nil_p(ss)) {
             *ps = NULL;
             *pl = 0;
@@ -771,8 +764,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         ps = va_arg(ap, const char**);
         if (i < argc) {
-          ss = argv[arg_i++];
-          i++;
+          ss = argv[i++];
           if (altmode && mrb_nil_p(ss)) {
             *ps = NULL;
           }
@@ -793,8 +785,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         pb = va_arg(ap, mrb_value**);
         pl = va_arg(ap, mrb_int*);
         if (i < argc) {
-          aa = argv[arg_i++];
-          i++;
+          aa = argv[i++];
           if (altmode && mrb_nil_p(aa)) {
             *pb = 0;
             *pl = 0;
@@ -815,14 +806,12 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         p = va_arg(ap, void**);
         if (i < argc) {
-          ss = argv[arg_i];
+          ss = argv[i++];
           if (!mrb_istruct_p(ss))
           {
             mrb_raisef(mrb, E_TYPE_ERROR, "%v is not inline struct", ss);
           }
           *p = mrb_istruct_ptr(ss);
-          arg_i++;
-          i++;
         }
       }
       break;
@@ -833,9 +822,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         p = va_arg(ap, mrb_float*);
         if (i < argc) {
-          *p = mrb_to_flo(mrb, argv[arg_i]);
-          arg_i++;
-          i++;
+          *p = mrb_to_flo(mrb, argv[i++]);
         }
       }
       break;
@@ -846,9 +833,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         p = va_arg(ap, mrb_int*);
         if (i < argc) {
-          *p = mrb_fixnum(mrb_to_int(mrb, argv[arg_i]));
-          arg_i++;
-          i++;
+          *p = mrb_fixnum(mrb_to_int(mrb, argv[i++]));
         }
       }
       break;
@@ -857,9 +842,8 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_bool *boolp = va_arg(ap, mrb_bool*);
 
         if (i < argc) {
-          mrb_value b = argv[arg_i++];
+          mrb_value b = argv[i++];
           *boolp = mrb_test(b);
-          i++;
         }
       }
       break;
@@ -871,9 +855,8 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         if (i < argc) {
           mrb_value ss;
 
-          ss = argv[arg_i++];
+          ss = argv[i++];
           *symp = to_sym(mrb, ss);
-          i++;
         }
       }
       break;
@@ -885,8 +868,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         datap = va_arg(ap, void**);
         type = va_arg(ap, struct mrb_data_type const*);
         if (i < argc) {
-          mrb_value dd = argv[arg_i++];
-          i++;
+          mrb_value dd = argv[i++];
           if (altmode && mrb_nil_p(dd)) {
             *datap = 0;
           }
@@ -939,16 +921,15 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
           *pl = argc-i;
           if (*pl > 0) {
             if (nocopy) {
-              *var = argv+arg_i;
+              *var = argv+i;
             }
             else {
-              mrb_value args = mrb_ary_new_from_values(mrb, *pl, argv+arg_i);
+              mrb_value args = mrb_ary_new_from_values(mrb, *pl, argv+i);
               RARRAY(args)->c = NULL;
               *var = RARRAY_PTR(args);
             }
           }
           i = argc;
-          arg_i += *pl;
         }
         else {
           *pl = 0;
