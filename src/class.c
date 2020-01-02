@@ -897,7 +897,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       }
       break;
     case '|':
-      if (opt_skip && i == argc) return argc;
+      if (opt_skip && i == argc) goto finish;
       opt = TRUE;
       break;
     case '?':
@@ -1004,6 +1004,8 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
   if (!c && argc > i) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
   }
+
+finish:
   va_end(ap);
   return i;
 }
