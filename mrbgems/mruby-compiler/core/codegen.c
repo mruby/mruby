@@ -599,7 +599,7 @@ new_lit(codegen_scope *s, mrb_value val)
 
   switch (mrb_type(val)) {
   case MRB_TT_STRING:
-    *pv = mrb_str_pool(s->mrb, val);
+    *pv = mrb_str_pool(s->mrb, RSTRING_PTR(val), RSTRING_LEN(val), RSTR_NOFREE_P(RSTRING(val)));
     break;
 
 #ifndef MRB_WITHOUT_FLOAT

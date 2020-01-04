@@ -43,20 +43,24 @@ offset_crc_body(void)
 
 #ifndef MRB_WITHOUT_FLOAT
 static double
-str_to_double(mrb_state *mrb, mrb_value str)
+str_to_double(mrb_state *mrb, const char *p, size_t len)
 {
-  const char *p = RSTRING_PTR(str);
-  mrb_int len = RSTRING_LEN(str);
+  char buf[64];
 
   /* `i`, `inf`, `infinity` */
   if (len > 0 && p[0] == 'i') return INFINITY;
 
   /* `I`, `-inf`, `-infinity` */
   if (p[0] == 'I' || (len > 1 && p[0] == '-' && p[1] == 'i')) return -INFINITY;
+  mrb_assert(len < sizeof(buf));
+  strncpy(buf, p, len);
+  buf[len] = '\0';
 
-  return mrb_str_to_dbl(mrb, str, TRUE);
+  return mrb_cstr_to_dbl(mrb, buf, TRUE);
 }
 #endif
+
+mrb_value mrb_str_len_to_inum(mrb_state *mrb, const char *str, mrb_int len, mrb_int base, int badcheck);
 
 static mrb_irep*
 read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flags)
@@ -119,21 +123,17 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
     irep->pool = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value) * plen);
 
     for (i = 0; i < plen; i++) {
-      mrb_value s;
+      const char *s;
+      mrb_bool st = (flags & FLAG_SRC_MALLOC)==0;
 
       tt = *src++; /* pool TT */
       pool_data_len = bin_to_uint16(src); /* pool data length */
       src += sizeof(uint16_t);
-      if (flags & FLAG_SRC_MALLOC) {
-        s = mrb_str_new(mrb, (char *)src, pool_data_len);
-      }
-      else {
-        s = mrb_str_new_static(mrb, (char *)src, pool_data_len);
-      }
+      s = (const char*)src;
       src += pool_data_len;
       switch (tt) { /* pool data */
       case IREP_TT_FIXNUM: {
-        mrb_value num = mrb_str_to_inum(mrb, s, 10, FALSE);
+        mrb_value num = mrb_str_len_to_inum(mrb, s, pool_data_len, 10, FALSE);
 #ifdef MRB_WITHOUT_FLOAT
         irep->pool[i] = num;
 #else
@@ -144,12 +144,12 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
 
 #ifndef MRB_WITHOUT_FLOAT
       case IREP_TT_FLOAT:
-        irep->pool[i] = mrb_float_pool(mrb, str_to_double(mrb, s));
+        irep->pool[i] = mrb_float_pool(mrb, str_to_double(mrb, s, pool_data_len));
         break;
 #endif
 
       case IREP_TT_STRING:
-        irep->pool[i] = mrb_str_pool(mrb, s);
+        irep->pool[i] = mrb_str_pool(mrb, s, pool_data_len, st);
         break;
 
       default:

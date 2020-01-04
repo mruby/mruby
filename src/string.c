@@ -576,12 +576,9 @@ str_share(mrb_state *mrb, struct RString *orig, struct RString *s)
 }
 
 mrb_value
-mrb_str_pool(mrb_state *mrb, mrb_value str)
+mrb_str_pool(mrb_state *mrb, const char *p, mrb_int len, mrb_bool nofree)
 {
   struct RString *s = (struct RString *)mrb_malloc(mrb, sizeof(struct RString));
-  struct RString *orig = mrb_str_ptr(str);
-  const char *p = RSTR_PTR(orig);
-  size_t len = (size_t)RSTR_LEN(orig);
 
   s->tt = MRB_TT_STRING;
   s->c = mrb->string_class;
@@ -590,7 +587,7 @@ mrb_str_pool(mrb_state *mrb, mrb_value str)
   if (RSTR_EMBEDDABLE_P(len)) {
     str_init_embed(s, p, len);
   }
-  else if (RSTR_NOFREE_P(orig)) {
+  else if (nofree) {
     str_init_nofree(s, p, len);
   }
   else {
@@ -2242,7 +2239,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
   return result;
 }
 
-static mrb_value
+mrb_value
 mrb_str_len_to_inum(mrb_state *mrb, const char *str, mrb_int len, mrb_int base, int badcheck)
 {
   const char *p = str;
@@ -2492,7 +2489,7 @@ mrb_str_to_i(mrb_state *mrb, mrb_value self)
 
 #ifndef MRB_WITHOUT_FLOAT
 MRB_API double
-mrb_cstr_to_dbl(mrb_state *mrb, const char * s, mrb_bool badcheck)
+mrb_cstr_to_dbl(mrb_state *mrb, const char *s, mrb_bool badcheck)
 {
   const char *p = s;
   char *end;
