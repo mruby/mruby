@@ -149,6 +149,7 @@ get_pool_block_size(mrb_state *mrb, mrb_irep *irep)
     default:
       break;
     }
+    size ++; /* NUL terminal */
     mrb_gc_arena_restore(mrb, ai);
   }
 
@@ -201,6 +202,7 @@ write_pool_block(mrb_state *mrb, mrb_irep *irep, uint8_t *buf)
     cur += uint16_to_bin(len, cur); /* data length */
     memcpy(cur, char_ptr, (size_t)len);
     cur += len;
+    *cur ++ = '\0';
 
     mrb_gc_arena_restore(mrb, ai);
   }

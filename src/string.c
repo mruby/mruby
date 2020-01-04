@@ -578,10 +578,17 @@ str_share(mrb_state *mrb, struct RString *orig, struct RString *s)
 mrb_value
 mrb_str_pool(mrb_state *mrb, mrb_value str)
 {
-  struct RString *s = (struct RString *)mrb_malloc(mrb, sizeof(struct RString));
   struct RString *orig = mrb_str_ptr(str);
   const char *p = RSTR_PTR(orig);
   size_t len = (size_t)RSTR_LEN(orig);
+
+  return mrb_str_pool_from_str_len(mrb, p, len, RSTR_NOFREE_P(orig));
+}
+
+mrb_value
+mrb_str_pool_from_str_len(mrb_state *mrb, const char *p, size_t len, mrb_bool nofree)
+{
+  struct RString *s = (struct RString *)mrb_malloc(mrb, sizeof(struct RString));
 
   s->tt = MRB_TT_STRING;
   s->c = mrb->string_class;
@@ -590,7 +597,7 @@ mrb_str_pool(mrb_state *mrb, mrb_value str)
   if (RSTR_EMBEDDABLE_P(len)) {
     str_init_embed(s, p, len);
   }
-  else if (RSTR_NOFREE_P(orig)) {
+  else if (nofree) {
     str_init_nofree(s, p, len);
   }
   else {

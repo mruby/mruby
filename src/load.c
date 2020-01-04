@@ -43,18 +43,15 @@ offset_crc_body(void)
 
 #ifndef MRB_WITHOUT_FLOAT
 static double
-str_to_double(mrb_state *mrb, mrb_value str)
+str_to_double(mrb_state *mrb, const char *p)
 {
-  const char *p = RSTRING_PTR(str);
-  mrb_int len = RSTRING_LEN(str);
-
   /* `i`, `inf`, `infinity` */
-  if (len > 0 && p[0] == 'i') return INFINITY;
+  if (p[0] == 'i') return INFINITY;
 
   /* `I`, `-inf`, `-infinity` */
-  if (p[0] == 'I' || (len > 1 && p[0] == '-' && p[1] == 'i')) return -INFINITY;
+  if (p[0] == 'I' || (p[0] == '-' && p[1] == 'i')) return -INFINITY;
 
-  return mrb_str_to_dbl(mrb, str, TRUE);
+  return mrb_cstr_to_dbl(mrb, p, TRUE);
 }
 #endif
 
@@ -119,21 +116,12 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
     irep->pool = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value) * plen);
 
     for (i = 0; i < plen; i++) {
-      mrb_value s;
-
       tt = *src++; /* pool TT */
       pool_data_len = bin_to_uint16(src); /* pool data length */
       src += sizeof(uint16_t);
-      if (flags & FLAG_SRC_MALLOC) {
-        s = mrb_str_new(mrb, (char *)src, pool_data_len);
-      }
-      else {
-        s = mrb_str_new_static(mrb, (char *)src, pool_data_len);
-      }
-      src += pool_data_len;
       switch (tt) { /* pool data */
       case IREP_TT_FIXNUM: {
-        mrb_value num = mrb_str_to_inum(mrb, s, 10, FALSE);
+        mrb_value num = mrb_cstr_to_inum(mrb, (char *)src, 10, FALSE);
 #ifdef MRB_WITHOUT_FLOAT
         irep->pool[i] = num;
 #else
@@ -144,12 +132,12 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
 
 #ifndef MRB_WITHOUT_FLOAT
       case IREP_TT_FLOAT:
-        irep->pool[i] = mrb_float_pool(mrb, str_to_double(mrb, s));
+        irep->pool[i] = mrb_float_pool(mrb, str_to_double(mrb, (char *)src));
         break;
 #endif
 
       case IREP_TT_STRING:
-        irep->pool[i] = mrb_str_pool(mrb, s);
+        irep->pool[i] = mrb_str_pool_from_str_len(mrb, (char *)src, pool_data_len, !(flags & FLAG_SRC_MALLOC));
         break;
 
       default:
@@ -157,6 +145,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
         irep->pool[i] = mrb_nil_value();
         break;
       }
+      src += pool_data_len + 1; /* + NUL terminal */
       irep->plen++;
       mrb_gc_arena_restore(mrb, ai);
     }
