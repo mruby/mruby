@@ -281,7 +281,7 @@ option_to_fd(mrb_state *mrb, mrb_value hash, const char *key)
 
   switch (mrb_type(opt)) {
     case MRB_TT_DATA: /* IO */
-      return (int)mrb_fixnum(mrb_io_fileno(mrb, opt));
+      return mrb_io_fileno(mrb, opt);
     case MRB_TT_FIXNUM:
       return (int)mrb_fixnum(opt);
     default:
@@ -1190,12 +1190,19 @@ retry:
   return result;
 }
 
-mrb_value
+int
 mrb_io_fileno(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr;
   fptr = io_get_open_fptr(mrb, io);
-  return mrb_fixnum_value(fptr->fd);
+  return fptr->fd;
+}
+
+static mrb_value
+mrb_io_fileno_m(mrb_state *mrb, mrb_value io)
+{
+  int fd = mrb_io_fileno(mrb, io);
+  return mrb_fixnum_value(fd);
 }
 
 mrb_value
@@ -1332,7 +1339,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method(mrb, io, "close_on_exec?", mrb_io_close_on_exec_p,   MRB_ARGS_NONE());
   mrb_define_method(mrb, io, "closed?",    mrb_io_closed,     MRB_ARGS_NONE());   /* 15.2.20.5.2 */
   mrb_define_method(mrb, io, "pid",        mrb_io_pid,        MRB_ARGS_NONE());   /* 15.2.20.5.2 */
-  mrb_define_method(mrb, io, "fileno",     mrb_io_fileno,     MRB_ARGS_NONE());
+  mrb_define_method(mrb, io, "fileno",     mrb_io_fileno_m,   MRB_ARGS_NONE());
 
   mrb_define_class_method(mrb, io, "_bufread",   io_bufread,        MRB_ARGS_REQ(2));
 }
