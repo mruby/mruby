@@ -2492,16 +2492,15 @@ double
 mrb_str_len_to_dbl(mrb_state *mrb, const char *s, size_t len, mrb_bool badcheck)
 {
   char buf[DBL_DIG * 4 + 10];
-  const char *p;
-  const char *pend = s + len;
+  const char *p = s;
+  const char *pend = p + len;
   char *end;
   char *n;
   char prev = 0;
   double d;
 
-  if (!s) return 0.0;
-  while (ISSPACE(*s)) s++;
-  p = s;
+  if (!p) return 0.0;
+  while (ISSPACE(*p)) p++;
 
   if (p[0] == '0' && (p[1] == 'x' || p[1] == 'X')) {
     mrb_value x;
