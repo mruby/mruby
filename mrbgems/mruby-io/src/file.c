@@ -347,7 +347,7 @@ mrb_file_mtime(mrb_state *mrb, mrb_value self)
   int fd;
 
   obj = mrb_obj_value(mrb_class_get(mrb, "Time"));
-  fd = (int)mrb_fixnum(mrb_io_fileno(mrb, self));
+  fd = mrb_io_fileno(mrb, self);
   if (fstat(fd, &st) == -1)
     return mrb_false_value();
   return mrb_funcall(mrb, obj, "at", 1, mrb_fixnum_value(st.st_mtime));
@@ -363,7 +363,7 @@ mrb_file_flock(mrb_state *mrb, mrb_value self)
   int fd;
 
   mrb_get_args(mrb, "i", &operation);
-  fd = (int)mrb_fixnum(mrb_io_fileno(mrb, self));
+  fd = mrb_io_fileno(mrb, self);
 
   while (flock(fd, (int)operation) == -1) {
     switch (errno) {
@@ -393,7 +393,7 @@ mrb_file_size(mrb_state *mrb, mrb_value self)
   mrb_stat st;
   int fd;
 
-  fd = (int)mrb_fixnum(mrb_io_fileno(mrb, self));
+  fd = mrb_io_fileno(mrb, self);
   if (mrb_fstat(fd, &st) == -1) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "fstat failed");
   }
@@ -446,7 +446,7 @@ mrb_file_truncate(mrb_state *mrb, mrb_value self)
   int64_t length;
   mrb_value lenv;
 
-  fd = (int)mrb_fixnum(mrb_io_fileno(mrb, self));
+  fd = mrb_io_fileno(mrb, self);
   mrb_get_args(mrb, "o", &lenv);
   switch (mrb_type(lenv)) {
 #ifndef MRB_WITHOUT_FLOAT
