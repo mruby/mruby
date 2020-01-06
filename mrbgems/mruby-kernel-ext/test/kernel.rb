@@ -80,6 +80,7 @@ assert('Kernel#Float') do
   assert_operator(12.34, :eql?, Float('1_2.3_4'))
   assert_operator(0.9, :eql?, Float('.9'))
   assert_operator(0.9, :eql?, Float(" \t\r\n\f\v.9 \t\r\n\f\v"))
+  assert_operator(16.0, :eql?, Float("0x10"))
   assert_raise(TypeError) { Float(nil) }
   assert_raise(ArgumentError) { Float("1. 5") }
   assert_raise(ArgumentError) { Float("1.5a") }

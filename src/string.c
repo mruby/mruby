@@ -2503,8 +2503,15 @@ mrb_str_len_to_dbl(mrb_state *mrb, const char *s, size_t len, mrb_bool badcheck)
   while (ISSPACE(*s)) s++;
   p = s;
 
-  if (!badcheck && p[0] == '0' && (p[1] == 'x' || p[1] == 'X')) {
-    return 0.0;
+  if (p[0] == '0' && (p[1] == 'x' || p[1] == 'X')) {
+    mrb_value x;
+
+    x = mrb_str_len_to_inum(mrb, p, pend-p, 0, badcheck);
+    if (mrb_fixnum_p(x))
+      d = (double)mrb_fixnum(x);
+    else /* if (mrb_float_p(x)) */
+      d = mrb_float(x);
+    return d;
   }
   while (p < pend) {
     if (!*p) {
