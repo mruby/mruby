@@ -2502,7 +2502,7 @@ mrb_str_len_to_dbl(mrb_state *mrb, const char *s, size_t len, mrb_bool badcheck)
   if (!p) return 0.0;
   while (ISSPACE(*p)) p++;
 
-  if (p[0] == '0' && (p[1] == 'x' || p[1] == 'X')) {
+  if (pend - p > 2 && p[0] == '0' && (p[1] == 'x' || p[1] == 'X')) {
     mrb_value x;
 
     x = mrb_str_len_to_inum(mrb, p, pend-p, 0, badcheck);
