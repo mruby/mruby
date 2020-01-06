@@ -42,21 +42,17 @@ offset_crc_body(void)
 }
 
 #ifndef MRB_WITHOUT_FLOAT
+double mrb_str_len_to_dbl(mrb_state *mrb, const char *s, size_t len, mrb_bool badcheck);
+
 static double
 str_to_double(mrb_state *mrb, const char *p, size_t len)
 {
-  char buf[64];
-
   /* `i`, `inf`, `infinity` */
   if (len > 0 && p[0] == 'i') return INFINITY;
 
   /* `I`, `-inf`, `-infinity` */
   if (p[0] == 'I' || (len > 1 && p[0] == '-' && p[1] == 'i')) return -INFINITY;
-  mrb_assert(len < sizeof(buf));
-  strncpy(buf, p, len);
-  buf[len] = '\0';
-
-  return mrb_cstr_to_dbl(mrb, buf, TRUE);
+  return mrb_str_len_to_dbl(mrb, p, len, TRUE);
 }
 #endif
 
