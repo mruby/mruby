@@ -2505,6 +2505,7 @@ mrb_str_len_to_dbl(mrb_state *mrb, const char *s, size_t len, mrb_bool badcheck)
   if (pend - p > 2 && p[0] == '0' && (p[1] == 'x' || p[1] == 'X')) {
     mrb_value x;
 
+    if (!badcheck) return 0.0;
     x = mrb_str_len_to_inum(mrb, p, pend-p, 0, badcheck);
     if (mrb_fixnum_p(x))
       d = (double)mrb_fixnum(x);
