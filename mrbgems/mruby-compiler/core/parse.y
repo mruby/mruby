@@ -845,7 +845,8 @@ setup_numparams(parser_state *p, node *a)
     if (a && (a->car || (a->cdr && a->cdr->car) || (a->cdr->cdr && a->cdr->cdr->car) || (a->cdr->cdr->cdr->cdr && a->cdr->cdr->cdr->cdr->car))) {
       yyerror(p, "ordinary parameter is defined");
     }
-    else {
+    else if (p->locals) {
+      /* p->locals should not be NULL unless error happens before the point */
       node* args = 0;
       for (i = nvars; i > 0; i--) {
         char buf[3];
