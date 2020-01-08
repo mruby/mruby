@@ -6,7 +6,9 @@
 
 #include <stddef.h>
 #include <stdarg.h>
+#ifndef MRB_WITHOUT_FLOAT
 #include <math.h>
+#endif
 #include <mruby.h>
 #include <mruby/array.h>
 #include <mruby/class.h>
