@@ -10,6 +10,7 @@
 
 #ifndef MRB_WITHOUT_FLOAT
 #include <float.h>
+#include <math.h>
 #endif
 #include <limits.h>
 #include <stddef.h>
@@ -2491,16 +2492,18 @@ mrb_str_to_i(mrb_state *mrb, mrb_value self)
 double
 mrb_str_len_to_dbl(mrb_state *mrb, const char *s, size_t len, mrb_bool badcheck)
 {
-  char buf[DBL_DIG * 4 + 10];
-  const char *p = s;
+  char buf[DBL_DIG * 4 + 20];
+  const char *p = s, *p2;
   const char *pend = p + len;
   char *end;
   char *n;
   char prev = 0;
   double d;
+  mrb_bool dot = FALSE;
 
   if (!p) return 0.0;
   while (p<pend && ISSPACE(*p)) p++;
+  p2 = p;
 
   if (pend - p > 2 && p[0] == '0' && (p[1] == 'x' || p[1] == 'X')) {
     mrb_value x;
@@ -2515,21 +2518,27 @@ mrb_str_len_to_dbl(mrb_state *mrb, const char *s, size_t len, mrb_bool badcheck)
   }
   while (p < pend) {
     if (!*p) {
-      if (badcheck && p < pend) {
+      if (badcheck) {
         mrb_raise(mrb, E_ARGUMENT_ERROR, "string for Float contains null byte");
         /* not reached */
       }
       pend = p;
-      p = s;
+      p = p2;
+      goto nocopy;
+    }
+    if (!badcheck && *p == ' ') {
+      pend = p;
+      p = p2;
       goto nocopy;
     }
     if (*p == '_') break;
     p++;
   }
-  p = s;
+  p = p2;
   n = buf;
   while (p < pend) {
     char c = *p++;
+    if (c == '.') dot = TRUE;
     if (c == '_') {
       /* remove an underscore between digits */
       if (n == buf || !ISDIGIT(prev) || p == pend) {
@@ -2539,6 +2548,11 @@ mrb_str_len_to_dbl(mrb_state *mrb, const char *s, size_t len, mrb_bool badcheck)
     }
     else if (badcheck && prev == '_' && !ISDIGIT(c)) goto bad;
     else {
+      const char *bend = buf+sizeof(buf)-1;
+      if (n==bend) {            /* buffer overflow */
+        if (dot) break;         /* cut off remaining fractions */
+        return INFINITY;
+      }
       *n++ = c;
     }
     prev = c;
