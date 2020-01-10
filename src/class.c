@@ -913,7 +913,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       {
         mrb_value **var;
         mrb_int *pl;
-        mrb_bool nocopy = altmode || argv_on_stack ? FALSE : TRUE;
+        mrb_bool nocopy = (altmode || !argv_on_stack) ? TRUE : FALSE;
 
         var = va_arg(ap, mrb_value**);
         pl = va_arg(ap, mrb_int*);
