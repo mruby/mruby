@@ -7,10 +7,6 @@
 #ifndef MRUBY_BOXING_WORD_H
 #define MRUBY_BOXING_WORD_H
 
-#if defined(MRB_INT16)
-# error MRB_INT16 is too small for MRB_WORD_BOXING.
-#endif
-
 #if defined(MRB_INT64) && !defined(MRB_64BIT)
 #error MRB_INT64 cannot be used with MRB_WORD_BOXING in 32-bit mode.
 #endif

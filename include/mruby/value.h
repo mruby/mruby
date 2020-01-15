@@ -34,10 +34,6 @@ typedef uint32_t mrb_sym;
 typedef uint8_t mrb_bool;
 struct mrb_state;
 
-#if defined(MRB_INT16) && defined(MRB_INT64)
-# error "You can't define MRB_INT16 and MRB_INT64 at the same time."
-#endif
-
 #if defined _MSC_VER && _MSC_VER < 1800
 # define PRIo64 "llo"
 # define PRId64 "lld"
@@ -63,14 +59,6 @@ struct mrb_state;
 # define MRB_PRIo PRIo64
 # define MRB_PRId PRId64
 # define MRB_PRIx PRIx64
-#elif defined(MRB_INT16)
-  typedef int16_t mrb_int;
-# define MRB_INT_BIT 16
-# define MRB_INT_MIN (INT16_MIN>>MRB_FIXNUM_SHIFT)
-# define MRB_INT_MAX (INT16_MAX>>MRB_FIXNUM_SHIFT)
-# define MRB_PRIo PRIo16
-# define MRB_PRId PRId16
-# define MRB_PRIx PRIx16
 #else
   typedef int32_t mrb_int;
 # define MRB_INT_BIT 32

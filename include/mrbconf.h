@@ -40,19 +40,16 @@
 /* no MRB_METHOD_T_STRUCT requires highest 2 bits of function pointers to be zero */
 //#define MRB_METHOD_T_STRUCT
 
-/* add -DMRB_INT16 to use 16bit integer for mrb_int; conflict with MRB_INT32 and MRB_INT64 */
-//#define MRB_INT16
-
-/* add -DMRB_INT32 to use 32bit integer for mrb_int; conflict with MRB_INT16 and MRB_INT64;
+/* add -DMRB_INT32 to use 32bit integer for mrb_int; conflict with MRB_INT64;
    Default for 32-bit CPU mode. */
 //#define MRB_INT32
 
-/* add -DMRB_INT64 to use 64bit integer for mrb_int; conflict with MRB_INT16 and MRB_INT32;
+/* add -DMRB_INT64 to use 64bit integer for mrb_int; conflict with MRB_INT32;
    Default for 64-bit CPU mode. */
 //#define MRB_INT64
 
 /* if no specific integer type is chosen */
-#if !defined(MRB_INT16) && !defined(MRB_INT32) && !defined(MRB_INT64)
+#if !defined(MRB_INT32) && !defined(MRB_INT64)
 # if defined(MRB_64BIT) && !defined(MRB_NAN_BOXING)
 /* Use 64bit integers on 64bit architecture (without MRB_NAN_BOXING) */
 #  define MRB_INT64

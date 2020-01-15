@@ -54,17 +54,13 @@ You can use mrbconfs with following ways:
 * When defined removes floating point numbers from mruby.
 * It makes mruby easier to handle in "Microcontroller without FPU" and "Kernel Space".
 
-`MRB_INT16`
-* When defined `int16_t` will be defined as `mrb_int`.
-* Conflicts with `MRB_INT32` and `MRB_INT64`.
-
 `MRB_INT32`
-* When defined, or both `MRB_INT16` and `MRB_INT64` are not defined on 32-bit CPU mode, `int32_t` will be defined as `mrb_int`.
-* Conflicts with `MRB_INT16` and `MRB_INT64`.
+* When defined, or `MRB_INT64` are not defined on 32-bit CPU mode, `mrb_int` will be defined as `int32_t`.
+* Conflicts with `MRB_INT64`.
 
 `MRB_INT64`
-* When defined, or both `MRB_INT16` and `MRB_INT32` are not defined on 64-bit CPU mode, `int64_t` will be defined as `mrb_int`.
-* Conflicts with `MRB_INT16` and `MRB_INT32`.
+* When defined, or `MRB_INT32` are not defined on 64-bit CPU mode, `mrb_int` will be defined as `int64_t`.
+* Conflicts with `MRB_INT32`.
 
 ## Garbage collector configuration.
 
