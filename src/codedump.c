@@ -130,6 +130,10 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       printf("OP_LOADI\tR%d\t-%d\t", a, b);
       print_lv_a(mrb, irep, a);
       break;
+    CASE(OP_LOADI16, BS):
+      printf("OP_LOADI16\tR%d\t%d\t", a, (int)(int16_t)b);
+      print_lv_a(mrb, irep, a);
+      break;
     CASE(OP_LOADI__1, B):
       printf("OP_LOADI__1\tR%d\t\t", a);
       print_lv_a(mrb, irep, a);

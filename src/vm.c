@@ -1047,6 +1047,11 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
+    CASE(OP_LOADI16, BS) {
+      SET_INT_VALUE(regs[a], (mrb_int)(int16_t)b);
+      NEXT;
+    }
+
     CASE(OP_LOADSYM, BB) {
       SET_SYM_VALUE(regs[a], syms[b]);
       NEXT;
