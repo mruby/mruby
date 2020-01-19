@@ -491,10 +491,6 @@ main(int argc, char **argv)
 
   cxt = mrbc_context_new(mrb);
 
-#ifndef DISABLE_MIRB_UNDERSCORE
-  decl_lv_underscore(mrb, cxt);
-#endif
-
   /* Load libraries */
   for (i = 0; i < args.libc; i++) {
     FILE *lfp = fopen(args.libv[i], "r");
@@ -505,7 +501,12 @@ main(int argc, char **argv)
     }
     mrb_load_file_cxt(mrb, lfp, cxt);
     fclose(lfp);
+    mrbc_cleanup_local_variables(mrb, cxt);
   }
+
+#ifndef DISABLE_MIRB_UNDERSCORE
+  decl_lv_underscore(mrb, cxt);
+#endif
 
   cxt->capture_errors = TRUE;
   cxt->lineno = 1;
