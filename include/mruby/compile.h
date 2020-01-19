@@ -42,6 +42,7 @@ MRB_API mrbc_context* mrbc_context_new(mrb_state *mrb);
 MRB_API void mrbc_context_free(mrb_state *mrb, mrbc_context *cxt);
 MRB_API const char *mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s);
 MRB_API void mrbc_partial_hook(mrb_state *mrb, mrbc_context *c, int (*partial_hook)(struct mrb_parser_state*), void*data);
+MRB_API void mrbc_cleanup_local_variables(mrb_state *mrb, mrbc_context *c);
 
 /* AST node structure */
 typedef struct mrb_ast_node {

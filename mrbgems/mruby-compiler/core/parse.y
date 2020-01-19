@@ -6303,6 +6303,16 @@ mrbc_partial_hook(mrb_state *mrb, mrbc_context *c, int (*func)(struct mrb_parser
 }
 
 MRB_API void
+mrbc_cleanup_local_variables(mrb_state *mrb, mrbc_context *c)
+{
+  if (c->syms) {
+    mrb_free(mrb, c->syms);
+    c->syms = NULL;
+    c->slen = 0;
+  }
+}
+
+MRB_API void
 mrb_parser_set_filename(struct mrb_parser_state *p, const char *f)
 {
   mrb_sym sym;
