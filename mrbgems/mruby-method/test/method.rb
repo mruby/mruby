@@ -77,7 +77,7 @@ end
 
 assert 'instance' do
   assert_kind_of Method, 1.method(:+)
-  assert_kind_of UnboundMethod, Fixnum.instance_method(:+)
+  assert_kind_of UnboundMethod, Integer.instance_method(:+)
 end
 
 assert 'Method#call' do
@@ -404,9 +404,9 @@ assert 'UnboundMethod#arity' do
 end
 
 assert 'UnboundMethod#==' do
-  assert_false(Fixnum.instance_method(:+) == Fixnum.instance_method(:-))
-  assert_true(Fixnum.instance_method(:+) == Fixnum.instance_method(:+))
-  assert_false(Fixnum.instance_method(:+) == Float.instance_method(:+))
+  assert_false(Integer.instance_method(:+) == Integer.instance_method(:-))
+  assert_true(Integer.instance_method(:+) == Integer.instance_method(:+))
+  assert_false(Integer.instance_method(:+) == Float.instance_method(:+))
   assert_true(UnboundMethod.instance_method(:==) == UnboundMethod.instance_method(:eql?))
 end
 

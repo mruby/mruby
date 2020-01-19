@@ -290,7 +290,7 @@ unpack_l(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
 #ifndef MRB_INT64
     if (!FIXABLE(sl)) {
       i32tostr(msg, sizeof(msg), sl);
-      mrb_raisef(mrb, E_RANGE_ERROR, "cannot unpack to Fixnum: %s", msg);
+      mrb_raisef(mrb, E_RANGE_ERROR, "cannot unpack to Integer: %s", msg);
     }
 #endif
     n = sl;
@@ -298,7 +298,7 @@ unpack_l(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
 #ifndef MRB_INT64
     if (!POSFIXABLE(ul)) {
       u32tostr(msg, sizeof(msg), ul);
-      mrb_raisef(mrb, E_RANGE_ERROR, "cannot unpack to Fixnum: %s", msg);
+      mrb_raisef(mrb, E_RANGE_ERROR, "cannot unpack to Integer: %s", msg);
     }
 #endif
     n = ul;
@@ -411,13 +411,13 @@ unpack_q(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
     int64_t sll = ull;
     if (!FIXABLE(sll)) {
       i64tostr(msg, sizeof(msg), sll);
-      mrb_raisef(mrb, E_RANGE_ERROR, "cannot unpack to Fixnum: %s", msg);
+      mrb_raisef(mrb, E_RANGE_ERROR, "cannot unpack to Integer: %s", msg);
     }
     n = (mrb_int)sll;
   } else {
     if (!POSFIXABLE(ull)) {
       u64tostr(msg, sizeof(msg), ull);
-      mrb_raisef(mrb, E_RANGE_ERROR, "cannot unpack to Fixnum: %s", msg);
+      mrb_raisef(mrb, E_RANGE_ERROR, "cannot unpack to Integer: %s", msg);
     }
     n = (mrb_int)ull;
   }

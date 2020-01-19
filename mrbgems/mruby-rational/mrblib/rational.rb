@@ -92,7 +92,7 @@ module Kernel
 
   [:+, :-, :*, :/, :<=>, :==, :<, :<=, :>, :>=].each do |op|
     original_operator_name = :"__original_operator_#{op}_rational"
-    Fixnum.instance_eval do
+    Integer.instance_eval do
       alias_method original_operator_name, op
       define_method op do |rhs|
         if rhs.is_a? Rational

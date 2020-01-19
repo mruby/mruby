@@ -76,7 +76,7 @@ assert('Kernel.raise', '15.3.1.2.12') do
 end
 
 assert('Kernel#__id__', '15.3.1.3.3') do
-  assert_equal Fixnum, __id__.class
+  assert_equal Integer, __id__.class
 end
 
 assert('Kernel#__send__', '15.3.1.3.4') do

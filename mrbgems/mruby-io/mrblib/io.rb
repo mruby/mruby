@@ -186,7 +186,7 @@ class IO
 
   def read(length = nil, outbuf = "")
     unless length.nil?
-      unless length.is_a? Fixnum
+      unless length.is_a? Integer
         raise TypeError.new "can't convert #{length.class} into Integer"
       end
       if length < 0
@@ -229,7 +229,7 @@ class IO
     case arg
     when String
       rs = arg
-    when Fixnum
+    when Integer
       rs = "\n"
       limit = arg
     else

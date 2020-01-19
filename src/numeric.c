@@ -1,5 +1,5 @@
 /*
-** numeric.c - Numeric, Integer, Float, Fixnum class
+** numeric.c - Numeric, Integer, Float class
 **
 ** See Copyright Notice in mruby.h
 */
@@ -378,7 +378,7 @@ flo_mod(mrb_state *mrb, mrb_value x)
  *     (1.0).eql?(1.0)   #=> true
  */
 static mrb_value
-fix_eql(mrb_state *mrb, mrb_value x)
+int_eql(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
 
@@ -771,8 +771,7 @@ flo_nan_p(mrb_state *mrb, mrb_value num)
 /*
  * Document-class: Integer
  *
- *  <code>Integer</code> is the basis for the two concrete classes that
- *  hold whole numbers, <code>Bignum</code> and <code>Fixnum</code>.
+ *  <code>Integer</code> is hold whole numbers.
  *
  */
 
@@ -842,7 +841,7 @@ mrb_num_mul(mrb_state *mrb, mrb_value x, mrb_value y)
  */
 
 static mrb_value
-fix_mul(mrb_state *mrb, mrb_value x)
+int_mul(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
 
@@ -888,7 +887,7 @@ fixdivmod(mrb_state *mrb, mrb_int x, mrb_int y, mrb_int *divp, mrb_int *modp)
  */
 
 static mrb_value
-fix_mod(mrb_state *mrb, mrb_value x)
+int_mod(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
   mrb_int a, b;
@@ -929,7 +928,7 @@ fix_mod(mrb_state *mrb, mrb_value x)
  *  See <code>Numeric#divmod</code>.
  */
 static mrb_value
-fix_divmod(mrb_state *mrb, mrb_value x)
+int_divmod(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
 
@@ -992,7 +991,7 @@ flo_divmod(mrb_state *mrb, mrb_value x)
  */
 
 static mrb_value
-fix_equal(mrb_state *mrb, mrb_value x)
+int_equal(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
 
@@ -1020,7 +1019,7 @@ fix_equal(mrb_state *mrb, mrb_value x)
  */
 
 static mrb_value
-fix_rev(mrb_state *mrb, mrb_value num)
+int_rev(mrb_state *mrb, mrb_value num)
 {
   mrb_int val = mrb_fixnum(num);
 
@@ -1050,7 +1049,7 @@ static mrb_value flo_xor(mrb_state *mrb, mrb_value x);
  */
 
 static mrb_value
-fix_and(mrb_state *mrb, mrb_value x)
+int_and(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
 
@@ -1066,7 +1065,7 @@ fix_and(mrb_state *mrb, mrb_value x)
  */
 
 static mrb_value
-fix_or(mrb_state *mrb, mrb_value x)
+int_or(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
 
@@ -1082,7 +1081,7 @@ fix_or(mrb_state *mrb, mrb_value x)
  */
 
 static mrb_value
-fix_xor(mrb_state *mrb, mrb_value x)
+int_xor(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
 
@@ -1160,7 +1159,7 @@ rshift(mrb_int val, mrb_int width)
  */
 
 static mrb_value
-fix_lshift(mrb_state *mrb, mrb_value x)
+int_lshift(mrb_state *mrb, mrb_value x)
 {
   mrb_int width, val;
 
@@ -1185,7 +1184,7 @@ fix_lshift(mrb_state *mrb, mrb_value x)
  */
 
 static mrb_value
-fix_rshift(mrb_state *mrb, mrb_value x)
+int_rshift(mrb_state *mrb, mrb_value x)
 {
   mrb_int width, val;
 
@@ -1212,7 +1211,7 @@ fix_rshift(mrb_state *mrb, mrb_value x)
 
 #ifndef MRB_NO_FLOAT
 static mrb_value
-fix_to_f(mrb_state *mrb, mrb_value num)
+int_to_f(mrb_state *mrb, mrb_value num)
 {
   return mrb_float_value(mrb, (mrb_float)mrb_fixnum(num));
 }
@@ -1305,7 +1304,7 @@ mrb_num_plus(mrb_state *mrb, mrb_value x, mrb_value y)
  * result.
  */
 static mrb_value
-fix_plus(mrb_state *mrb, mrb_value self)
+int_plus(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
 
@@ -1362,7 +1361,7 @@ mrb_num_minus(mrb_state *mrb, mrb_value x, mrb_value y)
  * result.
  */
 static mrb_value
-fix_minus(mrb_state *mrb, mrb_value self)
+int_minus(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
 
@@ -1419,7 +1418,7 @@ mrb_fixnum_to_str(mrb_state *mrb, mrb_value x, mrb_int base)
  *
  */
 static mrb_value
-fix_to_s(mrb_state *mrb, mrb_value self)
+int_to_s(mrb_state *mrb, mrb_value self)
 {
   mrb_int base = 10;
 
@@ -1599,7 +1598,7 @@ flo_plus(mrb_state *mrb, mrb_value x)
 void
 mrb_init_numeric(mrb_state *mrb)
 {
-  struct RClass *numeric, *integer, *fixnum, *integral;
+  struct RClass *numeric, *integer, *integral;
 #ifndef MRB_NO_FLOAT
   struct RClass *fl;
 #endif
@@ -1622,7 +1621,7 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, numeric, "infinite?",num_infinite_p,  MRB_ARGS_NONE());
 
   /* Integer Class */
-  integer = mrb_define_class(mrb, "Integer",  numeric);                          /* 15.2.8 */
+  mrb->integer_class = integer = mrb_define_class(mrb, "Integer",  numeric);     /* 15.2.8 */
   MRB_SET_INSTANCE_TT(integer, MRB_TT_FIXNUM);
   mrb_undef_class_method(mrb, integer, "new");
   mrb_define_method(mrb, integer, "to_i",     int_to_i,        MRB_ARGS_NONE()); /* 15.2.8.3.24 */
@@ -1634,26 +1633,27 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, integer, "truncate", int_to_i,        MRB_ARGS_NONE()); /* 15.2.8.3.15 (x) */
 #endif
 
-  /* Fixnum Class */
-  mrb->fixnum_class = fixnum = mrb_define_class(mrb, "Fixnum", integer);
-  mrb_define_method(mrb, fixnum,  "+",        fix_plus,        MRB_ARGS_REQ(1)); /* 15.2.8.3.1  */
-  mrb_define_method(mrb, fixnum,  "-",        fix_minus,       MRB_ARGS_REQ(1)); /* 15.2.8.3.2  */
-  mrb_define_method(mrb, fixnum,  "*",        fix_mul,         MRB_ARGS_REQ(1)); /* 15.2.8.3.3  */
-  mrb_define_method(mrb, fixnum,  "%",        fix_mod,         MRB_ARGS_REQ(1)); /* 15.2.8.3.5  */
-  mrb_define_method(mrb, fixnum,  "==",       fix_equal,       MRB_ARGS_REQ(1)); /* 15.2.8.3.7  */
-  mrb_define_method(mrb, fixnum,  "~",        fix_rev,         MRB_ARGS_NONE()); /* 15.2.8.3.8  */
-  mrb_define_method(mrb, fixnum,  "&",        fix_and,         MRB_ARGS_REQ(1)); /* 15.2.8.3.9  */
-  mrb_define_method(mrb, fixnum,  "|",        fix_or,          MRB_ARGS_REQ(1)); /* 15.2.8.3.10 */
-  mrb_define_method(mrb, fixnum,  "^",        fix_xor,         MRB_ARGS_REQ(1)); /* 15.2.8.3.11 */
-  mrb_define_method(mrb, fixnum,  "<<",       fix_lshift,      MRB_ARGS_REQ(1)); /* 15.2.8.3.12 */
-  mrb_define_method(mrb, fixnum,  ">>",       fix_rshift,      MRB_ARGS_REQ(1)); /* 15.2.8.3.13 */
-  mrb_define_method(mrb, fixnum,  "eql?",     fix_eql,         MRB_ARGS_REQ(1)); /* 15.2.8.3.16 */
-#ifndef MRB_NO_FLOAT
-  mrb_define_method(mrb, fixnum,  "to_f",     fix_to_f,        MRB_ARGS_NONE()); /* 15.2.8.3.23 */
+  mrb_define_method(mrb, integer, "+",        int_plus,        MRB_ARGS_REQ(1)); /* 15.2.8.3.1 */
+  mrb_define_method(mrb, integer, "-",        int_minus,       MRB_ARGS_REQ(1)); /* 15.2.8.3.2 */
+  mrb_define_method(mrb, integer, "*",        int_mul,         MRB_ARGS_REQ(1)); /* 15.2.8.3.3 */
+  mrb_define_method(mrb, integer, "%",        int_mod,         MRB_ARGS_REQ(1)); /* 15.2.8.3.5 */
+  mrb_define_method(mrb, integer, "==",       int_equal,       MRB_ARGS_REQ(1)); /* 15.2.8.3.7 */
+  mrb_define_method(mrb, integer, "~",        int_rev,         MRB_ARGS_NONE()); /* 15.2.8.3.8 */
+  mrb_define_method(mrb, integer, "&",        int_and,         MRB_ARGS_REQ(1)); /* 15.2.8.3.9 */
+  mrb_define_method(mrb, integer, "|",        int_or,          MRB_ARGS_REQ(1)); /* 15.2.8.3.10 */
+  mrb_define_method(mrb, integer, "^",        int_xor,         MRB_ARGS_REQ(1)); /* 15.2.8.3.11 */
+  mrb_define_method(mrb, integer, "<<",       int_lshift,      MRB_ARGS_REQ(1)); /* 15.2.8.3.12 */
+  mrb_define_method(mrb, integer, ">>",       int_rshift,      MRB_ARGS_REQ(1)); /* 15.2.8.3.13 */
+  mrb_define_method(mrb, integer, "eql?",     int_eql,         MRB_ARGS_REQ(1)); /* 15.2.8.3.16 */
+#ifndef MRB_WITHOUT_FLOAT
+  mrb_define_method(mrb, integer, "to_f",     int_to_f,        MRB_ARGS_NONE()); /* 15.2.8.3.23 */
 #endif
-  mrb_define_method(mrb, fixnum,  "to_s",     fix_to_s,        MRB_ARGS_OPT(1)); /* 15.2.8.3.25 */
-  mrb_define_method(mrb, fixnum,  "inspect",  fix_to_s,        MRB_ARGS_OPT(1));
-  mrb_define_method(mrb, fixnum,  "divmod",   fix_divmod,      MRB_ARGS_REQ(1)); /* 15.2.8.3.30 (x) */
+  mrb_define_method(mrb, integer, "to_s",     int_to_s,        MRB_ARGS_OPT(1)); /* 15.2.8.3.25 */
+  mrb_define_method(mrb, integer, "inspect",  int_to_s,        MRB_ARGS_OPT(1));
+  mrb_define_method(mrb, integer, "divmod",   int_divmod,      MRB_ARGS_REQ(1)); /* 15.2.8.3.30 (x) */
+
+  /* Fixnum Class for compatibility */
+  mrb_define_const(mrb, mrb->object_class, "Fixnum", mrb_obj_value(integer));
 
 #ifndef MRB_NO_FLOAT
   /* Float Class */

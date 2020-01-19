@@ -638,8 +638,8 @@ void mrb_hash_check_kdict(mrb_state *mrb, mrb_value self);
     z:      String         [const char*]          NUL terminated string; z! gives NULL for nil
     a:      Array          [mrb_value*,mrb_int]   Receive two arguments; a! gives (NULL,0) for nil
     c:      Class/Module   [strcut RClass*]
-    f:      Fixnum/Float   [mrb_float]
-    i:      Fixnum/Float   [mrb_int]
+    f:      Integer/Float  [mrb_float]
+    i:      Integer/Float  [mrb_int]
     b:      boolean        [mrb_bool]
     n:      String/Symbol  [mrb_sym]
     d:      data           [void*,mrb_data_type const] 2nd argument will be used to check data type so it won't be modified; when ! follows, the value may be nil
@@ -1874,7 +1874,7 @@ mrb_module_new(mrb_state *mrb)
  *  called with an explicit receiver, as <code>class</code> is also a
  *  reserved word in Ruby.
  *
- *     1.class      #=> Fixnum
+ *     1.class      #=> Integer
  *     self.class   #=> Object
  */
 
