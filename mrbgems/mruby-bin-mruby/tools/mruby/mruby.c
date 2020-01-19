@@ -317,6 +317,7 @@ main(int argc, char **argv)
         v = mrb_load_file_cxt(mrb, lfp, c);
       }
       fclose(lfp);
+      mrbc_cleanup_local_variables(mrb, c);
     }
 
     /* Load program */
