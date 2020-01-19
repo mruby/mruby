@@ -1,5 +1,5 @@
 /**
-** @file mruby/numeric.h - Numeric, Integer, Float, Fixnum class
+** @file mruby/numeric.h - Numeric, Integer, Float class
 **
 ** See Copyright Notice in mruby.h
 */
@@ -12,7 +12,7 @@
 /**
  * Numeric class and it's sub-classes.
  *
- * Integer, Float and Fixnum
+ * Integer and Float
  */
 MRB_BEGIN_DECL
 

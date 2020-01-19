@@ -593,7 +593,7 @@ end
   #        to_f / other
   #      end
   #    end
-  #    Fixnum.send(:prepend, M)
+  #    Integer.send(:prepend, M)
   #    assert_equal(0.5, 1 / 2, "#{bug7983}")
   #  }
   #  assert_equal(0, 1 / 2)

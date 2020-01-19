@@ -237,7 +237,7 @@ typedef struct mrb_state {
 #ifndef MRB_WITHOUT_FLOAT
   struct RClass *float_class;
 #endif
-  struct RClass *fixnum_class;
+  struct RClass *integer_class;
   struct RClass *true_class;
   struct RClass *false_class;
   struct RClass *nil_class;
@@ -860,8 +860,8 @@ MRB_API struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *o
  * | `s`  | {String}       | char *, {mrb_int} | Receive two arguments; `s!` gives (`NULL`,`0`) for `nil`        |
  * | `z`  | {String}       | char *            | `NULL` terminated string; `z!` gives `NULL` for `nil`           |
  * | `a`  | {Array}        | {mrb_value} *, {mrb_int} | Receive two arguments; `a!` gives (`NULL`,`0`) for `nil` |
- * | `f`  | {Fixnum}/{Float} | {mrb_float}       |                                                    |
- * | `i`  | {Fixnum}/{Float} | {mrb_int}         |                                                    |
+ * | `f`  | {Integer}/{Float} | {mrb_float}    |                                                    |
+ * | `i`  | {Integer}/{Float} | {mrb_int}      |                                                    |
  * | `b`  | boolean        | {mrb_bool}        |                                                    |
  * | `n`  | {String}/{Symbol} | {mrb_sym}         |                                                    |
  * | `d`  | data           | void *, {mrb_data_type} const | 2nd argument will be used to check data type so it won't be modified; when `!` follows, the value may be `nil` |

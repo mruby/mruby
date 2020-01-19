@@ -1194,7 +1194,7 @@ range_arg:
             break;
         }
 
-        mrb_raise(mrb, E_TYPE_ERROR, "can't convert to Fixnum");
+        mrb_raise(mrb, E_TYPE_ERROR, "can't convert to Integer");
     }
   }
   return STR_OUT_OF_RANGE;
@@ -1238,8 +1238,8 @@ mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen)
  *     str.slice(range)            => new_str or nil
  *     str.slice(other_str)        => new_str or nil
  *
- *  Element Reference---If passed a single <code>Fixnum</code>, returns the code
- *  of the character at that position. If passed two <code>Fixnum</code>
+ *  Element Reference---If passed a single <code>Integer</code>, returns the code
+ *  of the character at that position. If passed two <code>Integer</code>
  *  objects, returns a substring starting at the offset given by the first, and
  *  a length given by the second. If given a range, a substring containing
  *  characters at offsets given by the range is returned. In all three cases, if

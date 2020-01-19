@@ -188,7 +188,7 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
  *  called with an explicit receiver, as <code>class</code> is also a
  *  reserved word in Ruby.
  *
- *     1.class      #=> Fixnum
+ *     1.class      #=> Integer
  *     self.class   #=> Object
  */
 static mrb_value
@@ -316,7 +316,7 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
  *  behavior will be documented under the #+initialize_copy+ method of
  *  the class.
  *
- *  Some Class(True False Nil Symbol Fixnum Float) Object  cannot clone.
+ *  Some Class(True False Nil Symbol Integer Float) Object  cannot clone.
  */
 MRB_API mrb_value
 mrb_obj_clone(mrb_state *mrb, mrb_value self)
@@ -455,11 +455,11 @@ mrb_obj_frozen(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     obj.hash    -> fixnum
  *
- *  Generates a <code>Fixnum</code> hash value for this object. This
+ *  Generates a <code>Integer</code> hash value for this object. This
  *  function must have the property that <code>a.eql?(b)</code> implies
  *  <code>a.hash == b.hash</code>. The hash value is used by class
  *  <code>Hash</code>. Any hash value that exceeds the capacity of a
- *  <code>Fixnum</code> will be truncated before being used.
+ *  <code>Integer</code> will be truncated before being used.
  */
 static mrb_value
 mrb_obj_hash(mrb_state *mrb, mrb_value self)

@@ -70,7 +70,7 @@ end
 
 assert("String#% with invalid chr") do
   begin
-    class Fixnum
+    class Integer
       alias_method :chr_, :chr if method_defined?(:chr)
 
       def chr
@@ -82,7 +82,7 @@ assert("String#% with invalid chr") do
       "%c" % 0x80
     end
   ensure
-    class Fixnum
+    class Integer
       if method_defined?(:chr_)
         alias_method :chr, :chr_
         remove_method :chr_

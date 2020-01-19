@@ -610,8 +610,8 @@ mrb_struct_eql(mrb_state *mrb, mrb_value s)
 
 /*
  * call-seq:
- *    struct.length   -> Fixnum
- *    struct.size     -> Fixnum
+ *    struct.length   -> Integer
+ *    struct.size     -> Integer
  *
  * Returns number of struct members.
  */

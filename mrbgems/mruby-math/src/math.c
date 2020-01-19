@@ -629,7 +629,7 @@ math_cbrt(mrb_state *mrb, mrb_value obj)
  *     Math.frexp(numeric)    -> [ fraction, exponent ]
  *
  *  Returns a two-element array containing the normalized fraction (a
- *  <code>Float</code>) and exponent (a <code>Fixnum</code>) of
+ *  <code>Float</code>) and exponent (a <code>Integer</code>) of
  *  <i>numeric</i>.
  *
  *     fraction, exponent = Math.frexp(1234)   #=> [0.6025390625, 11]

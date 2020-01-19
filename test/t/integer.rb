@@ -156,7 +156,7 @@ assert('Integer#<<', '15.2.8.3.12') do
 
   skip unless Object.const_defined?(:Float)
 
-  # Overflow to Fixnum
+  # Overflow to Integer
   assert_float 9223372036854775808.0, 1 << 63
   assert_float(-13835058055282163712.0, -3 << 62)
 end

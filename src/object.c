@@ -342,7 +342,7 @@ static const struct types {
 /*    {MRB_TT_NIL,  "nil"}, */
   {MRB_TT_FALSE,  "false"},
   {MRB_TT_TRUE,   "true"},
-  {MRB_TT_FIXNUM, "Fixnum"},
+  {MRB_TT_FIXNUM, "Integer"},
   {MRB_TT_SYMBOL, "Symbol"},  /* :symbol */
   {MRB_TT_MODULE, "Module"},
   {MRB_TT_OBJECT, "Object"},
@@ -382,7 +382,7 @@ mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t)
           etype = "nil";
         }
         else if (mrb_fixnum_p(x)) {
-          etype = "Fixnum";
+          etype = "Integer";
         }
         else if (mrb_symbol_p(x)) {
           etype = "Symbol";

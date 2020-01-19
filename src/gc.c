@@ -931,7 +931,7 @@ root_scan_phase(mrb_state *mrb, mrb_gc *gc)
 #ifndef MRB_WITHOUT_FLOAT
   mrb_gc_mark(mrb, (struct RBasic*)mrb->float_class);
 #endif
-  mrb_gc_mark(mrb, (struct RBasic*)mrb->fixnum_class);
+  mrb_gc_mark(mrb, (struct RBasic*)mrb->integer_class);
   mrb_gc_mark(mrb, (struct RBasic*)mrb->true_class);
   mrb_gc_mark(mrb, (struct RBasic*)mrb->false_class);
   mrb_gc_mark(mrb, (struct RBasic*)mrb->nil_class);

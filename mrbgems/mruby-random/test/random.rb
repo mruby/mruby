@@ -32,8 +32,8 @@ assert("Random.srand") do
 end
 
 assert("return class of Kernel.rand") do
-  assert_kind_of(Fixnum, rand(3))
-  assert_kind_of(Fixnum, rand(1.5))
+  assert_kind_of(Integer, rand(3))
+  assert_kind_of(Integer, rand(1.5))
   assert_kind_of(Float, rand)
   assert_kind_of(Float, rand(0.5))
 end

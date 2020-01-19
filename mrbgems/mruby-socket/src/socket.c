@@ -145,7 +145,7 @@ mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
   } else if (mrb_nil_p(service)) {
     servname = NULL;
   } else {
-    mrb_raise(mrb, E_TYPE_ERROR, "service must be String, Fixnum, or nil");
+    mrb_raise(mrb, E_TYPE_ERROR, "service must be String, Integer, or nil");
   }
 
   memset(&hints, 0, sizeof(hints));

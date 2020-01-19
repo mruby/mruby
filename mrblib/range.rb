@@ -15,7 +15,7 @@ class Range
     val = self.first
     last = self.last
 
-    if val.kind_of?(Fixnum) && last.kind_of?(Fixnum) # fixnums are special
+    if val.kind_of?(Integer) && last.kind_of?(Integer) # fixnums are special
       lim = last
       lim += 1 unless exclude_end?
       i = val

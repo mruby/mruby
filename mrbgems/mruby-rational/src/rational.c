@@ -200,7 +200,7 @@ void mrb_mruby_rational_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, rat, "to_i", rational_to_i, MRB_ARGS_NONE());
   mrb_define_method(mrb, rat, "to_r", rational_to_r, MRB_ARGS_NONE());
   mrb_define_method(mrb, rat, "negative?", rational_negative_p, MRB_ARGS_NONE());
-  mrb_define_method(mrb, mrb->fixnum_class, "to_r", fix_to_r, MRB_ARGS_NONE());
+  mrb_define_method(mrb, mrb->integer_class, "to_r", fix_to_r, MRB_ARGS_NONE());
 }
 
 void
