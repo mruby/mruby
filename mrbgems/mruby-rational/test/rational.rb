@@ -143,7 +143,7 @@ assert 'Rational#==, Rational#!=' do
   assert_equal_rational(false, 1r, ComplexLikeNumeric.new(2))
 end
 
-assert 'Fixnum#==(Rational), Fixnum#!=(Rational)' do
+assert 'Integer#==(Rational), Integer#!=(Rational)' do
   assert_equal_rational(true, 2, Rational(4,2))
   assert_equal_rational(true, -2, Rational(-4,2))
   assert_equal_rational(true, -2, Rational(4,-2))
@@ -186,7 +186,7 @@ assert 'Rational#<=>' do
   assert_raise(NoMethodError) { 1r <=> ComplexLikeNumeric.new(2) }
 end
 
-assert 'Fixnum#<=>(Rational)' do
+assert 'Integer#<=>(Rational)' do
   assert_cmp(-1, -2, Rational(-9,5))
   assert_cmp(0, 5, 5r)
   assert_cmp(1, 3, Rational(8,3))
@@ -210,7 +210,7 @@ assert 'Rational#<' do
   assert_raise(ArgumentError) { 1r < "2" }
 end
 
-assert 'Fixnum#<(Rational)' do
+assert 'Integer#<(Rational)' do
   assert_not_operator(1, :<, Rational(2,3))
   assert_not_operator(2, :<, 2r)
   assert_operator(-3, :<, Rational(2,3))
@@ -234,7 +234,7 @@ assert 'Rational#<=' do
   assert_raise(ArgumentError) { 1r <= "2" }
 end
 
-assert 'Fixnum#<=(Rational)' do
+assert 'Integer#<=(Rational)' do
   assert_not_operator(1, :<=, Rational(2,3))
   assert_operator(2, :<=, 2r)
   assert_operator(-3, :<=, Rational(2,3))
@@ -258,7 +258,7 @@ assert 'Rational#>' do
   assert_raise(ArgumentError) { 1r > "2" }
 end
 
-assert 'Fixnum#>(Rational)' do
+assert 'Integer#>(Rational)' do
   assert_operator(1, :>, Rational(2,3))
   assert_not_operator(2, :>, 2r)
   assert_not_operator(-3, :>, Rational(2,3))
@@ -282,7 +282,7 @@ assert 'Rational#>=' do
   assert_raise(ArgumentError) { 1r >= "2" }
 end
 
-assert 'Fixnum#>=(Rational)' do
+assert 'Integer#>=(Rational)' do
   assert_operator(1, :>=, Rational(2,3))
   assert_operator(2, :>=, 2r)
   assert_not_operator(-3, :>=, Rational(2,3))

@@ -104,7 +104,7 @@ class Complex < Numeric
 
   alias_method :imag, :imaginary
 
-  [Fixnum, Float].each do |cls|
+  [Integer, Float].each do |cls|
     [:+, :-, :*, :/, :==].each do |op|
       cls.instance_eval do
         original_operator_name = :"__original_operator_#{op}_complex"
