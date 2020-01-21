@@ -688,37 +688,6 @@ class Array
 
   ##
   #  call-seq:
-  #     ary.delete_if { |item| block }  -> ary
-  #     ary.delete_if                   -> Enumerator
-  #
-  #  Deletes every element of +self+ for which block evaluates to +true+.
-  #
-  #  The array is changed instantly every time the block is called, not after
-  #  the iteration is over.
-  #
-  #  See also Array#reject!
-  #
-  #  If no block is given, an Enumerator is returned instead.
-  #
-  #     scores = [ 97, 42, 75 ]
-  #     scores.delete_if {|score| score < 80 }   #=> [97]
-
-  def delete_if(&block)
-    return to_enum :delete_if unless block
-
-    idx = 0
-    while idx < self.size do
-      if block.call(self[idx])
-        self.delete_at(idx)
-      else
-        idx += 1
-      end
-    end
-    self
-  end
-
-  ##
-  #  call-seq:
   #     ary.keep_if { |item| block } -> ary
   #     ary.keep_if                  -> Enumerator
   #

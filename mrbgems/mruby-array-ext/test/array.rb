@@ -299,19 +299,6 @@ end
 #assert("Array#bsearch_index") do
 #end
 
-assert("Array#delete_if") do
-  a = [1, 2, 3, 4, 5]
-  assert_equal [1, 2, 3, 4, 5], a.delete_if { false }
-  assert_equal [1, 2, 3, 4, 5], a
-
-  a = [1, 2, 3, 4, 5]
-  assert_equal [], a.delete_if { true }
-  assert_equal [], a
-
-  a = [ 1, 2, 3, 4, 5 ]
-  assert_equal [1, 2, 3], a.delete_if { |val| val > 3 }
-end
-
 assert("Array#keep_if") do
   a = [1, 2, 3, 4, 5]
   assert_equal [1, 2, 3, 4, 5], a.keep_if { true }
