@@ -1500,8 +1500,7 @@ RETRY_TRY_BLOCK:
         mrb_sym mid;
         struct REnv *e = MRB_PROC_ENV(m);
 
-        mid = e->mid;
-        if (mid) ci->mid = mid;
+        ci->mid = mid = e->mid;
         if (!e->stack) {
           e->stack = mrb->c->stack;
         }
