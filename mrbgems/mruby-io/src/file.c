@@ -599,4 +599,22 @@ mrb_init_file(mrb_state *mrb)
 #endif
   mrb_define_const(mrb, cnst, "NULL", mrb_str_new_cstr(mrb, NULL_FILE));
 
+  mrb_define_const(mrb, cnst, "RDONLY", mrb_fixnum_value(MRB_O_RDONLY));
+  mrb_define_const(mrb, cnst, "WRONLY", mrb_fixnum_value(MRB_O_WRONLY));
+  mrb_define_const(mrb, cnst, "RDWR", mrb_fixnum_value(MRB_O_RDWR));
+  mrb_define_const(mrb, cnst, "APPEND", mrb_fixnum_value(MRB_O_APPEND));
+  mrb_define_const(mrb, cnst, "CREAT", mrb_fixnum_value(MRB_O_CREAT));
+  mrb_define_const(mrb, cnst, "EXCL", mrb_fixnum_value(MRB_O_EXCL));
+  mrb_define_const(mrb, cnst, "TRUNC", mrb_fixnum_value(MRB_O_TRUNC));
+  mrb_define_const(mrb, cnst, "NONBLOCK", mrb_fixnum_value(MRB_O_NONBLOCK));
+  mrb_define_const(mrb, cnst, "NOCTTY", mrb_fixnum_value(MRB_O_NOCTTY));
+  mrb_define_const(mrb, cnst, "BINARY", mrb_fixnum_value(MRB_O_BINARY));
+  mrb_define_const(mrb, cnst, "SHARE_DELETE", mrb_fixnum_value(MRB_O_SHARE_DELETE));
+  mrb_define_const(mrb, cnst, "SYNC", mrb_fixnum_value(MRB_O_SYNC));
+  mrb_define_const(mrb, cnst, "DSYNC", mrb_fixnum_value(MRB_O_DSYNC));
+  mrb_define_const(mrb, cnst, "RSYNC", mrb_fixnum_value(MRB_O_RSYNC));
+  mrb_define_const(mrb, cnst, "NOFOLLOW", mrb_fixnum_value(MRB_O_NOFOLLOW));
+  mrb_define_const(mrb, cnst, "NOATIME", mrb_fixnum_value(MRB_O_NOATIME));
+  mrb_define_const(mrb, cnst, "DIRECT", mrb_fixnum_value(MRB_O_DIRECT));
+  mrb_define_const(mrb, cnst, "TMPFILE", mrb_fixnum_value(MRB_O_TMPFILE));
 }

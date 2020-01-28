@@ -19,13 +19,31 @@ struct mrb_io {
                is_socket:1;
 };
 
-#define FMODE_READABLE             0x00000001
-#define FMODE_WRITABLE             0x00000002
-#define FMODE_READWRITE            (FMODE_READABLE|FMODE_WRITABLE)
-#define FMODE_BINMODE              0x00000004
-#define FMODE_APPEND               0x00000040
-#define FMODE_CREATE               0x00000080
-#define FMODE_TRUNC                0x00000800
+#define MRB_O_RDONLY            0x0000
+#define MRB_O_WRONLY            0x0001
+#define MRB_O_RDWR              0x0002
+#define MRB_O_ACCMODE           (MRB_O_RDONLY | MRB_O_WRONLY | MRB_O_RDWR)
+#define MRB_O_NONBLOCK          0x0004
+#define MRB_O_APPEND            0x0008
+#define MRB_O_SYNC              0x0010
+#define MRB_O_NOFOLLOW          0x0020
+#define MRB_O_CREAT             0x0040
+#define MRB_O_TRUNC             0x0080
+#define MRB_O_EXCL              0x0100
+#define MRB_O_NOCTTY            0x0200
+#define MRB_O_DIRECT            0x0400
+#define MRB_O_BINARY            0x0800
+#define MRB_O_SHARE_DELETE      0x1000
+#define MRB_O_TMPFILE           0x2000
+#define MRB_O_NOATIME           0x4000
+#define MRB_O_DSYNC             0x00008000 /* Ignored with MRB_INT16 and MRB_WITHOUT_FLOAT */
+#define MRB_O_RSYNC             0x00010000 /* Ignored with MRB_INT16 and MRB_WITHOUT_FLOAT */
+
+#define MRB_O_RDONLY_P(f)       ((mrb_bool)(((f) & MRB_O_ACCMODE) == MRB_O_RDONLY))
+#define MRB_O_WRONLY_P(f)       ((mrb_bool)(((f) & MRB_O_ACCMODE) == MRB_O_WRONLY))
+#define MRB_O_RDWR_P(f)         ((mrb_bool)(((f) & MRB_O_ACCMODE) == MRB_O_RDWR))
+#define MRB_O_READABLE_P(f)     ((mrb_bool)((((f) & MRB_O_ACCMODE) | 2) == 2))
+#define MRB_O_WRITABLE_P(f)     ((mrb_bool)(((((f) & MRB_O_ACCMODE) + 1) & 2) == 2))
 
 #define E_IO_ERROR                 (mrb_class_get(mrb, "IOError"))
 #define E_EOF_ERROR                (mrb_class_get(mrb, "EOFError"))

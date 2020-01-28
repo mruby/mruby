@@ -32,6 +32,10 @@
   typedef long fsuseconds_t;
   typedef int fmode_t;
 
+  #ifndef O_TMPFILE
+    #define O_TMPFILE O_TEMPORARY
+  #endif
+
 #else
   #include <sys/wait.h>
   #include <unistd.h>
@@ -51,6 +55,12 @@ typedef mrb_int pid_t;
 #include <stdio.h>
 #include <string.h>
 
+#define OPEN_ACCESS_MODE_FLAGS (O_RDONLY | O_WRONLY | O_RDWR)
+#define OPEN_RDONLY_P(f)       ((mrb_bool)(((f) & OPEN_ACCESS_MODE_FLAGS) == O_RDONLY))
+#define OPEN_WRONLY_P(f)       ((mrb_bool)(((f) & OPEN_ACCESS_MODE_FLAGS) == O_WRONLY))
+#define OPEN_RDWR_P(f)         ((mrb_bool)(((f) & OPEN_ACCESS_MODE_FLAGS) == O_RDWR))
+#define OPEN_READABLE_P(f)     ((mrb_bool)(OPEN_RDONLY_P(f) || OPEN_RDWR_P(f)))
+#define OPEN_WRITABLE_P(f)     ((mrb_bool)(OPEN_WRONLY_P(f) || OPEN_RDWR_P(f)))
 
 static void mrb_io_free(mrb_state *mrb, void *ptr);
 struct mrb_data_type mrb_io_type = { "IO", mrb_io_free };
@@ -58,7 +68,7 @@ struct mrb_data_type mrb_io_type = { "IO", mrb_io_free };
 
 static struct mrb_io *io_get_open_fptr(mrb_state *mrb, mrb_value self);
 static int mrb_io_modestr_to_flags(mrb_state *mrb, const char *modestr);
-static int mrb_io_flags_to_modenum(mrb_state *mrb, int flags);
+static int mrb_io_mode_to_flags(mrb_state *mrb, mrb_value mode);
 static void fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet);
 
 static struct mrb_io *
@@ -100,30 +110,33 @@ io_set_process_status(mrb_state *mrb, pid_t pid, int status)
 static int
 mrb_io_modestr_to_flags(mrb_state *mrb, const char *mode)
 {
-  int flags = 0;
+  int flags;
   const char *m = mode;
 
   switch (*m++) {
     case 'r':
-      flags |= FMODE_READABLE;
+      flags = O_RDONLY;
       break;
     case 'w':
-      flags |= FMODE_WRITABLE | FMODE_CREATE | FMODE_TRUNC;
+      flags = O_WRONLY | O_CREAT | O_TRUNC;
       break;
     case 'a':
-      flags |= FMODE_WRITABLE | FMODE_APPEND | FMODE_CREATE;
+      flags = O_WRONLY | O_CREAT | O_APPEND;
       break;
     default:
       mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal access mode %s", mode);
+      flags = 0; /* not reached */
   }
 
   while (*m) {
     switch (*m++) {
       case 'b':
-        flags |= FMODE_BINMODE;
+#ifdef O_BINARY
+        flags |= O_BINARY;
+#endif
         break;
       case '+':
-        flags |= FMODE_READWRITE;
+        flags = (flags & ~OPEN_ACCESS_MODE_FLAGS) | O_RDWR;
         break;
       case ':':
         /* XXX: PASSTHROUGH*/
@@ -136,38 +149,72 @@ mrb_io_modestr_to_flags(mrb_state *mrb, const char *mode)
 }
 
 static int
-mrb_io_flags_to_modenum(mrb_state *mrb, int flags)
+mrb_io_mode_to_flags(mrb_state *mrb, mrb_value mode)
 {
-  int modenum = 0;
+  if (mrb_nil_p(mode)) {
+    return mrb_io_modestr_to_flags(mrb, "r");
+  }
+  else if (mrb_string_p(mode)) {
+    return mrb_io_modestr_to_flags(mrb, RSTRING_CSTR(mrb, mode));
+  }
+  else {
+    int flags = 0;
+    int flags0 = mrb_int(mrb, mode);
 
-  switch(flags & (FMODE_READABLE|FMODE_WRITABLE|FMODE_READWRITE)) {
-    case FMODE_READABLE:
-      modenum = O_RDONLY;
-      break;
-    case FMODE_WRITABLE:
-      modenum = O_WRONLY;
-      break;
-    case FMODE_READWRITE:
-      modenum = O_RDWR;
-      break;
-  }
+    switch (flags0 & MRB_O_ACCMODE) {
+      case MRB_O_RDONLY:
+        flags |= O_RDONLY;
+        break;
+      case MRB_O_WRONLY:
+        flags |= O_WRONLY;
+        break;
+      case MRB_O_RDWR:
+        flags |= O_RDWR;
+        break;
+      default:
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal access mode %v", mode);
+    }
 
-  if (flags & FMODE_APPEND) {
-    modenum |= O_APPEND;
-  }
-  if (flags & FMODE_TRUNC) {
-    modenum |= O_TRUNC;
-  }
-  if (flags & FMODE_CREATE) {
-    modenum |= O_CREAT;
-  }
+    if (flags0 & MRB_O_APPEND)        flags |= O_APPEND;
+    if (flags0 & MRB_O_CREAT)         flags |= O_CREAT;
+    if (flags0 & MRB_O_EXCL)          flags |= O_EXCL;
+    if (flags0 & MRB_O_TRUNC)         flags |= O_TRUNC;
+#ifdef O_NONBLOCK
+    if (flags0 & MRB_O_NONBLOCK)      flags |= O_NONBLOCK;
+#endif
+#ifdef O_NOCTTY
+    if (flags0 & MRB_O_NOCTTY)        flags |= O_NOCTTY;
+#endif
 #ifdef O_BINARY
-  if (flags & FMODE_BINMODE) {
-    modenum |= O_BINARY;
-  }
+    if (flags0 & MRB_O_BINARY)        flags |= O_BINARY;
+#endif
+#ifdef O_SHARE_DELETE
+    if (flags0 & MRB_O_SHARE_DELETE)  flags |= O_SHARE_DELETE;
+#endif
+#ifdef O_SYNC
+    if (flags0 & MRB_O_SYNC)          flags |= O_SYNC;
+#endif
+#ifdef O_DSYNC
+    if (flags0 & MRB_O_DSYNC)         flags |= O_DSYNC;
+#endif
+#ifdef O_RSYNC
+    if (flags0 & MRB_O_RSYNC)         flags |= O_RSYNC;
+#endif
+#ifdef O_NOFOLLOW
+    if (flags0 & MRB_O_NOFOLLOW)      flags |= O_NOFOLLOW;
+#endif
+#ifdef O_NOATIME
+    if (flags0 & MRB_O_NOATIME)       flags |= O_NOATIME;
+#endif
+#ifdef O_DIRECT
+    if (flags0 & MRB_O_DIRECT)        flags |= O_DIRECT;
+#endif
+#ifdef O_TMPFILE
+    if (flags0 & MRB_O_TMPFILE)       flags |= O_TMPFILE;
 #endif
 
-  return modenum;
+    return flags;
+  }
 }
 
 static void
@@ -317,11 +364,11 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
   ofd[0] = INVALID_HANDLE_VALUE;
   ofd[1] = INVALID_HANDLE_VALUE;
 
-  mrb_get_args(mrb, "S|SH", &cmd, &mode, &opt);
+  mrb_get_args(mrb, "S|oH", &cmd, &mode, &opt);
   io = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
 
   pname = RSTRING_CSTR(mrb, cmd);
-  flags = mrb_io_modestr_to_flags(mrb, RSTRING_CSTR(mrb, mode));
+  flags = mrb_io_mode_to_flags(mrb, mode);
 
   doexec = (strcmp("-", pname) != 0);
   opt_in = option_to_fd(mrb, opt, "in");
@@ -332,14 +379,14 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
   saAttr.bInheritHandle = TRUE;
   saAttr.lpSecurityDescriptor = NULL;
 
-  if (flags & FMODE_READABLE) {
+  if (OPEN_READABLE_P(flags)) {
     if (!CreatePipe(&ofd[0], &ofd[1], &saAttr, 0)
         || !SetHandleInformation(ofd[0], HANDLE_FLAG_INHERIT, 0)) {
       mrb_sys_fail(mrb, "pipe");
     }
   }
 
-  if (flags & FMODE_WRITABLE) {
+  if (OPEN_WRITABLE_P(flags)) {
     if (!CreatePipe(&ifd[0], &ifd[1], &saAttr, 0)
         || !SetHandleInformation(ifd[1], HANDLE_FLAG_INHERIT, 0)) {
       mrb_sys_fail(mrb, "pipe");
@@ -353,11 +400,11 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
     si.dwFlags |= STARTF_USESHOWWINDOW;
     si.wShowWindow = SW_HIDE;
     si.dwFlags |= STARTF_USESTDHANDLES;
-    if (flags & FMODE_READABLE) {
+    if (OPEN_READABLE_P(flags)) {
       si.hStdOutput = ofd[1];
       si.hStdError = ofd[1];
     }
-    if (flags & FMODE_WRITABLE) {
+    if (OPEN_WRITABLE_P(flags)) {
       si.hStdInput = ifd[0];
     }
     if (!CreateProcess(
@@ -381,8 +428,8 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
   fptr->fd = _open_osfhandle((intptr_t)ofd[0], 0);
   fptr->fd2 = _open_osfhandle((intptr_t)ifd[1], 0);
   fptr->pid = pid;
-  fptr->readable = ((flags & FMODE_READABLE) != 0);
-  fptr->writable = ((flags & FMODE_WRITABLE) != 0);
+  fptr->readable = OPEN_READABLE_P(flags);
+  fptr->writable = OPEN_WRITABLE_P(flags);
   fptr->sync = 0;
 
   DATA_TYPE(io) = &mrb_io_type;
@@ -413,18 +460,18 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
   int saved_errno;
   int opt_in, opt_out, opt_err;
 
-  mrb_get_args(mrb, "S|SH", &cmd, &mode, &opt);
+  mrb_get_args(mrb, "S|oH", &cmd, &mode, &opt);
   io = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
 
   pname = RSTRING_CSTR(mrb, cmd);
-  flags = mrb_io_modestr_to_flags(mrb, RSTRING_CSTR(mrb, mode));
+  flags = mrb_io_mode_to_flags(mrb, mode);
 
   doexec = (strcmp("-", pname) != 0);
   opt_in = option_to_fd(mrb, opt, "in");
   opt_out = option_to_fd(mrb, opt, "out");
   opt_err = option_to_fd(mrb, opt, "err");
 
-  if (flags & FMODE_READABLE) {
+  if (OPEN_READABLE_P(flags)) {
     if (pipe(pr) == -1) {
       mrb_sys_fail(mrb, "pipe");
     }
@@ -432,7 +479,7 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
     mrb_fd_cloexec(mrb, pr[1]);
   }
 
-  if (flags & FMODE_WRITABLE) {
+  if (OPEN_WRITABLE_P(flags)) {
     if (pipe(pw) == -1) {
       if (pr[0] != -1) close(pr[0]);
       if (pr[1] != -1) close(pr[1]);
@@ -461,14 +508,14 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
       if (opt_err != -1) {
         dup2(opt_err, 2);
       }
-      if (flags & FMODE_READABLE) {
+      if (OPEN_READABLE_P(flags)) {
         close(pr[0]);
         if (pr[1] != 1) {
           dup2(pr[1], 1);
           close(pr[1]);
         }
       }
-      if (flags & FMODE_WRITABLE) {
+      if (OPEN_WRITABLE_P(flags)) {
         close(pw[1]);
         if (pw[0] != 0) {
           dup2(pw[0], 0);
@@ -487,12 +534,12 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
       break;
 
     default: /* parent */
-      if ((flags & FMODE_READABLE) && (flags & FMODE_WRITABLE)) {
+      if (OPEN_RDWR_P(flags)) {
         close(pr[1]);
         fd = pr[0];
         close(pw[0]);
         write_fd = pw[1];
-      } else if (flags & FMODE_READABLE) {
+      } else if (OPEN_RDONLY_P(flags)) {
         close(pr[1]);
         fd = pr[0];
       } else {
@@ -506,8 +553,8 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
       fptr->fd = fd;
       fptr->fd2 = write_fd;
       fptr->pid = pid;
-      fptr->readable = ((flags & FMODE_READABLE) != 0);
-      fptr->writable = ((flags & FMODE_WRITABLE) != 0);
+      fptr->readable = OPEN_READABLE_P(flags);
+      fptr->writable = OPEN_WRITABLE_P(flags);
       fptr->sync = 0;
 
       DATA_TYPE(io) = &mrb_io_type;
@@ -517,11 +564,11 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
 
     case -1: /* error */
       saved_errno = errno;
-      if (flags & FMODE_READABLE) {
+      if (OPEN_READABLE_P(flags)) {
         close(pr[0]);
         close(pr[1]);
       }
-      if (flags & FMODE_WRITABLE) {
+      if (OPEN_WRITABLE_P(flags)) {
         close(pw[0]);
         close(pw[1]);
       }
@@ -606,7 +653,7 @@ mrb_io_initialize(mrb_state *mrb, mrb_value io)
 
   mode = opt = mrb_nil_value();
 
-  mrb_get_args(mrb, "i|So", &fd, &mode, &opt);
+  mrb_get_args(mrb, "i|oo", &fd, &mode, &opt);
   if (mrb_nil_p(mode)) {
     mode = mrb_str_new_cstr(mrb, "r");
   }
@@ -614,7 +661,7 @@ mrb_io_initialize(mrb_state *mrb, mrb_value io)
     opt = mrb_hash_new(mrb);
   }
 
-  flags = mrb_io_modestr_to_flags(mrb, RSTRING_CSTR(mrb, mode));
+  flags = mrb_io_mode_to_flags(mrb, mode);
 
   mrb_iv_set(mrb, io, mrb_intern_cstr(mrb, "@buf"), mrb_str_new_cstr(mrb, ""));
 
@@ -629,8 +676,8 @@ mrb_io_initialize(mrb_state *mrb, mrb_value io)
   DATA_PTR(io) = fptr;
 
   fptr->fd = (int)fd;
-  fptr->readable = ((flags & FMODE_READABLE) != 0);
-  fptr->writable = ((flags & FMODE_WRITABLE) != 0);
+  fptr->readable = OPEN_READABLE_P(flags);
+  fptr->writable = OPEN_WRITABLE_P(flags);
   fptr->sync = 0;
   return io;
 }
@@ -785,20 +832,16 @@ mrb_io_s_sysopen(mrb_state *mrb, mrb_value klass)
   mrb_value mode = mrb_nil_value();
   mrb_int fd, perm = -1;
   const char *pat;
-  int flags, modenum;
+  int flags;
 
-  mrb_get_args(mrb, "S|Si", &path, &mode, &perm);
-  if (mrb_nil_p(mode)) {
-    mode = mrb_str_new_cstr(mrb, "r");
-  }
+  mrb_get_args(mrb, "S|oi", &path, &mode, &perm);
   if (perm < 0) {
     perm = 0666;
   }
 
   pat = RSTRING_CSTR(mrb, path);
-  flags = mrb_io_modestr_to_flags(mrb, RSTRING_CSTR(mrb, mode));
-  modenum = mrb_io_flags_to_modenum(mrb, flags);
-  fd = mrb_cloexec_open(mrb, pat, modenum, perm);
+  flags = mrb_io_mode_to_flags(mrb, mode);
+  fd = mrb_cloexec_open(mrb, pat, flags, perm);
   return mrb_fixnum_value(fd);
 }
 
