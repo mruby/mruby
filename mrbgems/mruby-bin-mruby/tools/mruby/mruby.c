@@ -6,6 +6,7 @@
 #include <mruby/compile.h>
 #include <mruby/dump.h>
 #include <mruby/variable.h>
+#include <mruby/proc.h>
 
 struct _args {
   FILE *rfp;
@@ -303,6 +304,7 @@ main(int argc, char **argv)
 
     /* Load libraries */
     for (i = 0; i < args.libc; i++) {
+      struct REnv *e;
       FILE *lfp = fopen(args.libv[i], args.mrbfile ? "rb" : "r");
       if (lfp == NULL) {
         fprintf(stderr, "%s: Cannot open library file: %s\n", *argv, args.libv[i]);
@@ -317,6 +319,9 @@ main(int argc, char **argv)
         v = mrb_load_file_cxt(mrb, lfp, c);
       }
       fclose(lfp);
+      e = mrb->c->cibase->env;
+      mrb->c->cibase->env = NULL;
+      mrb_env_unshare(mrb, e);
       mrbc_cleanup_local_variables(mrb, c);
     }
 

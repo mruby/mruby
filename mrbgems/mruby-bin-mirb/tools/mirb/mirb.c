@@ -493,6 +493,7 @@ main(int argc, char **argv)
 
   /* Load libraries */
   for (i = 0; i < args.libc; i++) {
+    struct REnv *e;
     FILE *lfp = fopen(args.libv[i], "r");
     if (lfp == NULL) {
       printf("Cannot open library file. (%s)\n", args.libv[i]);
@@ -501,6 +502,9 @@ main(int argc, char **argv)
     }
     mrb_load_file_cxt(mrb, lfp, cxt);
     fclose(lfp);
+    e = mrb->c->cibase->env;
+    mrb->c->cibase->env = NULL;
+    mrb_env_unshare(mrb, e);
     mrbc_cleanup_local_variables(mrb, cxt);
   }
 

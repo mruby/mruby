@@ -171,6 +171,7 @@ module MRuby
           f.puts %Q[]
           f.puts %Q[void GENERATED_TMP_mrb_#{funcname}_gem_init(mrb_state *mrb) {]
           f.puts %Q[  int ai = mrb_gc_arena_save(mrb);]
+          f.puts %Q[  struct REnv *e;] unless rbfiles.empty?
           f.puts %Q[  mrb_#{funcname}_gem_init(mrb);] if objs != [objfile("#{build_dir}/gem_init")]
           unless rbfiles.empty?
             f.puts %Q[  mrb_load_irep(mrb, gem_mrblib_irep_#{funcname});]
@@ -179,6 +180,9 @@ module MRuby
             f.puts %Q[    mrb_close(mrb);]
             f.puts %Q[    exit(EXIT_FAILURE);]
             f.puts %Q[  }]
+            f.puts %Q[  e = mrb->c->cibase->env;]
+            f.puts %Q[  mrb->c->cibase->env = NULL;]
+            f.puts %Q[  mrb_env_unshare(mrb, e);]
           end
           f.puts %Q[  mrb_gc_arena_restore(mrb, ai);]
           f.puts %Q[}]
@@ -205,6 +209,7 @@ module MRuby
         f.puts %Q[#include <stdlib.h>] unless rbfiles.empty?
         f.puts %Q[#include <mruby.h>]
         f.puts %Q[#include <mruby/irep.h>] unless rbfiles.empty?
+        f.puts %Q[#include <mruby/proc.h>] unless rbfiles.empty?
       end
 
       def print_gem_test_header(f)
