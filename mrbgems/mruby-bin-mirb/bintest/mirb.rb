@@ -32,3 +32,20 @@ EOS
   o, _ = Open3.capture2("bin/mirb -r #{lib.path}", :stdin_data => "Hoge.new.hoge\n")
   assert_true o.include?('=> :hoge')
 end
+
+assert('top level local variables are in file scope') do
+  lib = Tempfile.new('lib.rb')
+  lib.write <<-TESTLIB
+a = 1
+A = -> { a }
+  TESTLIB
+  lib.flush
+
+  o, _ = Open3.capture2("bin/mirb -r #{lib.path}", :stdin_data => <<-TESTCODE)
+a
+a = 5
+A.call
+  TESTCODE
+
+  assert_kind_of Integer, o =~ /\bundefined method 'a' \(NoMethodError\).*=> 5\b.*=> 1\b/m
+end

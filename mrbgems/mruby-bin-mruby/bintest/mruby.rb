@@ -162,3 +162,24 @@ assert('codegen error') do
   code = "def f(#{(1..100).map{|n| "a#{n}"} * ","}); end"
   assert_mruby("", /\Acodegen error:.*\n\z/, false, ["-e", code])
 end
+
+assert('top level local variables are in file scope') do
+  arb, amrb = Tempfile.new('a.rb'), Tempfile.new('a.mrb')
+  brb, bmrb = Tempfile.new('b.rb'), Tempfile.new('b.mrb')
+  crb, cmrb = Tempfile.new('c.rb'), Tempfile.new('c.mrb')
+  drb, dmrb = Tempfile.new('d.rb'), Tempfile.new('d.mrb')
+
+  File.write arb.path, 'a = 1'
+  system "#{cmd('mrbc')} -g -o #{amrb.path} #{arb.path}"
+  File.write brb.path, 'p a'
+  system "#{cmd('mrbc')} -g -o #{bmrb.path} #{brb.path}"
+  assert_mruby("", /:1: undefined method 'a' \(NoMethodError\)\n\z/, false, ["-r", arb.path, brb.path])
+  assert_mruby("", /:1: undefined method 'a' \(NoMethodError\)\n\z/, false, ["-b", "-r", amrb.path, bmrb.path])
+
+  File.write crb.path, 'a, b, c = 1, 2, 3; A = -> { b = -2; [a, b, c] }'
+  system "#{cmd('mrbc')} -g -o #{cmrb.path} #{crb.path}"
+  File.write drb.path, 'a, b = 5, 6; p A.call; p a, b'
+  system "#{cmd('mrbc')} -g -o #{dmrb.path} #{drb.path}"
+  assert_mruby("[1, -2, 3]\n5\n6\n", "", true, ["-r", crb.path, drb.path])
+  assert_mruby("[1, -2, 3]\n5\n6\n", "", true, ["-b", "-r", cmrb.path, dmrb.path])
+end
