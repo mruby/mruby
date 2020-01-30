@@ -8,7 +8,7 @@ mrb_protect(mrb_state *mrb, mrb_func_t body, mrb_value data, mrb_bool *state)
   struct mrb_jmpbuf *prev_jmp = mrb->jmp;
   struct mrb_jmpbuf c_jmp;
   mrb_value result = mrb_nil_value();
-  mrb_int ai = mrb_gc_arena_save(mrb);
+  int ai = mrb_gc_arena_save(mrb);
 
   if (state) { *state = FALSE; }
 
@@ -34,7 +34,7 @@ mrb_ensure(mrb_state *mrb, mrb_func_t body, mrb_value b_data, mrb_func_t ensure,
   struct mrb_jmpbuf *prev_jmp = mrb->jmp;
   struct mrb_jmpbuf c_jmp;
   mrb_value result;
-  mrb_int ai = mrb_gc_arena_save(mrb);
+  int ai = mrb_gc_arena_save(mrb);
 
   MRB_TRY(&c_jmp) {
     mrb->jmp = &c_jmp;
@@ -71,7 +71,7 @@ mrb_rescue_exceptions(mrb_state *mrb, mrb_func_t body, mrb_value b_data, mrb_fun
   mrb_value result;
   mrb_bool error_matched = FALSE;
   mrb_int i;
-  mrb_int ai = mrb_gc_arena_save(mrb);
+  int ai = mrb_gc_arena_save(mrb);
 
   MRB_TRY(&c_jmp) {
     mrb->jmp = &c_jmp;
