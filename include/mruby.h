@@ -70,6 +70,11 @@
 
 #include "mrbconf.h"
 
+#include <mruby/common.h>
+#include <mruby/value.h>
+#include <mruby/gc.h>
+#include <mruby/version.h>
+
 #ifndef MRB_WITHOUT_FLOAT
 #ifndef FLT_EPSILON
 #define FLT_EPSILON (1.19209290e-07f)
@@ -87,11 +92,6 @@
 #define MRB_FLOAT_EPSILON DBL_EPSILON
 #endif
 #endif
-
-#include <mruby/common.h>
-#include <mruby/value.h>
-#include <mruby/gc.h>
-#include <mruby/version.h>
 
 /**
  * MRuby C API entry point
