@@ -402,11 +402,11 @@ mrb_file_size(mrb_state *mrb, mrb_value self)
 #ifdef MRB_WITHOUT_FLOAT
     mrb_raise(mrb, E_RUNTIME_ERROR, "File#size too large for MRB_WITHOUT_FLOAT");
 #else
-    return mrb_float_value(mrb, st.st_size);
+    return mrb_float_value(mrb, (mrb_float)st.st_size);
 #endif
   }
 
-  return mrb_fixnum_value(st.st_size);
+  return mrb_fixnum_value((mrb_int)st.st_size);
 }
 
 static int
