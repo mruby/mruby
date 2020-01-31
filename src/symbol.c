@@ -48,14 +48,14 @@ sym_validate_len(mrb_state *mrb, size_t len)
 static const char pack_table[] = "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 static mrb_sym
-sym_inline_pack(const char *name, uint16_t len)
+sym_inline_pack(const char *name, size_t len)
 {
-  const int lower_length_max = (MRB_SYMBOL_BIT - 2) / 5;
-  const int mix_length_max   = (MRB_SYMBOL_BIT - 2) / 6;
+  const size_t lower_length_max = (MRB_SYMBOL_BIT - 2) / 5;
+  const size_t mix_length_max   = (MRB_SYMBOL_BIT - 2) / 6;
 
   char c;
   const char *p;
-  int i;
+  size_t i;
   mrb_sym sym = 0;
   mrb_bool lower = TRUE;
 
@@ -124,7 +124,7 @@ symhash(const char *key, size_t len)
 }
 
 static mrb_sym
-find_symbol(mrb_state *mrb, const char *name, uint16_t len, uint8_t *hashp)
+find_symbol(mrb_state *mrb, const char *name, size_t len, uint8_t *hashp)
 {
   mrb_sym i;
   symbol_name *sname;
