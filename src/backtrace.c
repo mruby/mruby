@@ -79,7 +79,7 @@ each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, const mrb_code *pc0, each_backtr
 static void
 print_backtrace(mrb_state *mrb, struct RObject *exc, mrb_value backtrace)
 {
-  int i;
+  mrb_int i;
   mrb_int n = RARRAY_LEN(backtrace);
   mrb_value *loc, mesg;
   FILE *stream = stderr;
@@ -89,7 +89,7 @@ print_backtrace(mrb_state *mrb, struct RObject *exc, mrb_value backtrace)
     for (i=n-1,loc=&RARRAY_PTR(backtrace)[i]; i>0; i--,loc--) {
       if (mrb_string_p(*loc)) {
         fprintf(stream, "\t[%d] %.*s\n",
-                i, (int)RSTRING_LEN(*loc), RSTRING_PTR(*loc));
+                (int)i, (int)RSTRING_LEN(*loc), RSTRING_PTR(*loc));
       }
     }
     if (mrb_string_p(*loc)) {

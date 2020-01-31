@@ -222,9 +222,8 @@ static void
 ht_compact(mrb_state *mrb, htable *t)
 {
   segment *seg;
-  mrb_int i;
+  uint16_t i, i2;
   segment *seg2 = NULL;
-  mrb_int i2;
   mrb_int size = 0;
 
   if (t == NULL) return;
