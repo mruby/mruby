@@ -159,7 +159,7 @@ mrb_io_mode_to_flags(mrb_state *mrb, mrb_value mode)
   }
   else {
     int flags = 0;
-    int flags0 = mrb_int(mrb, mode);
+    mrb_int flags0 = mrb_int(mrb, mode);
 
     switch (flags0 & MRB_O_ACCMODE) {
       case MRB_O_RDONLY:
