@@ -88,7 +88,7 @@ flock(int fd, int operation) {
 }
 #endif
 
-mrb_value
+static mrb_value
 mrb_file_s_umask(mrb_state *mrb, mrb_value klass)
 {
 #if defined(_WIN32) || defined(_WIN64)
@@ -264,7 +264,7 @@ mrb_file_realpath(mrb_state *mrb, mrb_value klass)
   return result;
 }
 
-mrb_value
+static mrb_value
 mrb_file__getwd(mrb_state *mrb, mrb_value klass)
 {
   mrb_value path;
@@ -353,7 +353,7 @@ mrb_file_mtime(mrb_state *mrb, mrb_value self)
   return mrb_funcall(mrb, obj, "at", 1, mrb_fixnum_value(st.st_mtime));
 }
 
-mrb_value
+static mrb_value
 mrb_file_flock(mrb_state *mrb, mrb_value self)
 {
 #if defined(sun)

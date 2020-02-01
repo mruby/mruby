@@ -210,7 +210,7 @@ mrb_io_test_rmdir(mrb_state *mrb, mrb_value klass)
   return mrb_true_value();
 }
 
-mrb_value
+static mrb_value
 mrb_io_win_p(mrb_state *mrb, mrb_value klass)
 {
 #if defined(_WIN32) || defined(_WIN64)
