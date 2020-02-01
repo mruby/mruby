@@ -8,7 +8,9 @@
 
 #include <io.h>
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER) || \
+    (defined(MRB_MINGW32_VERSION) && MRB_MINGW32_VERSION < 3021) || \
+    (defined(MRB_MINGW64_VERSION) && MRB_MINGW64_VERSION < 4000)
 
 #include <fcntl.h>
 #include <sys/stat.h>

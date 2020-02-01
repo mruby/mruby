@@ -74,6 +74,16 @@ MRB_BEGIN_DECL
 #endif
 #endif
 
+/** Declare mingw versions */
+#if defined(__MINGW32__) || defined(__MINGW64__)
+# include <_mingw.h>
+# if defined(__MINGW64_VERSION_MAJOR)
+#  define MRB_MINGW64_VERSION  (__MINGW64_VERSION_MAJOR * 1000 + __MINGW64_VERSION_MINOR)
+# elif defined(__MINGW32_MAJOR_VERSION)
+#  define MRB_MINGW32_VERSION  (__MINGW32_MAJOR_VERSION * 1000 + __MINGW32_MINOR_VERSION)
+# endif
+#endif
+
 MRB_END_DECL
 
 #endif  /* MRUBY_COMMON_H */
