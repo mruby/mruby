@@ -85,7 +85,7 @@ mrb_lstat(mrb_state *mrb, mrb_value obj, struct stat *st)
  *    File.directory?(".")
  */
 
-mrb_value
+static mrb_value
 mrb_filetest_s_directory_p(mrb_state *mrb, mrb_value klass)
 {
 #ifndef S_ISDIR
@@ -112,7 +112,7 @@ mrb_filetest_s_directory_p(mrb_state *mrb, mrb_value klass)
  * Returns <code>true</code> if the named file is a pipe.
  */
 
-mrb_value
+static mrb_value
 mrb_filetest_s_pipe_p(mrb_state *mrb, mrb_value klass)
 {
 #if defined(_WIN32) || defined(_WIN64)
@@ -145,7 +145,7 @@ mrb_filetest_s_pipe_p(mrb_state *mrb, mrb_value klass)
  * Returns <code>true</code> if the named file is a symbolic link.
  */
 
-mrb_value
+static mrb_value
 mrb_filetest_s_symlink_p(mrb_state *mrb, mrb_value klass)
 {
 #if defined(_WIN32) || defined(_WIN64)
@@ -188,7 +188,7 @@ mrb_filetest_s_symlink_p(mrb_state *mrb, mrb_value klass)
  * Returns <code>true</code> if the named file is a socket.
  */
 
-mrb_value
+static mrb_value
 mrb_filetest_s_socket_p(mrb_state *mrb, mrb_value klass)
 {
 #if defined(_WIN32) || defined(_WIN64)
@@ -232,7 +232,7 @@ mrb_filetest_s_socket_p(mrb_state *mrb, mrb_value klass)
  * Return <code>true</code> if the named file exists.
  */
 
-mrb_value
+static mrb_value
 mrb_filetest_s_exist_p(mrb_state *mrb, mrb_value klass)
 {
   struct stat st;
@@ -253,7 +253,7 @@ mrb_filetest_s_exist_p(mrb_state *mrb, mrb_value klass)
  * regular file.
  */
 
-mrb_value
+static mrb_value
 mrb_filetest_s_file_p(mrb_state *mrb, mrb_value klass)
 {
 #ifndef S_ISREG
@@ -281,7 +281,7 @@ mrb_filetest_s_file_p(mrb_state *mrb, mrb_value klass)
  * a zero size.
  */
 
-mrb_value
+static mrb_value
 mrb_filetest_s_zero_p(mrb_state *mrb, mrb_value klass)
 {
   struct stat st;
@@ -306,7 +306,7 @@ mrb_filetest_s_zero_p(mrb_state *mrb, mrb_value klass)
  * _file_name_ can be an IO object.
  */
 
-mrb_value
+static mrb_value
 mrb_filetest_s_size(mrb_state *mrb, mrb_value klass)
 {
   struct stat st;
@@ -328,7 +328,7 @@ mrb_filetest_s_size(mrb_state *mrb, mrb_value klass)
  * file otherwise.
  */
 
-mrb_value
+static mrb_value
 mrb_filetest_s_size_p(mrb_state *mrb, mrb_value klass)
 {
   struct stat st;
