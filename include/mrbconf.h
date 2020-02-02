@@ -117,6 +117,9 @@
 /* fixed size state atexit stack */
 //#define MRB_FIXED_STATE_ATEXIT_STACK
 
+/* use Naive string search algorithm */
+//#define MRB_USE_SMALL_STRING_SEARCH
+
 /* -DMRB_DISABLE_XXXX to drop following features */
 //#define MRB_DISABLE_STDIO /* use of stdio */
 
@@ -164,6 +167,10 @@
 
 # ifndef MRB_HEAP_PAGE_SIZE
 #  define MRB_HEAP_PAGE_SIZE 256
+# endif
+
+# ifndef MRB_USE_SMALL_STRING_SEARCH
+#  define MRB_USE_SMALL_STRING_SEARCH
 # endif
 
 /* A profile for default mruby */

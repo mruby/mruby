@@ -179,3 +179,9 @@ largest value of required alignment.
 `MRB_ENABLE_ALL_SYMBOLS`
 * Make it available `Symbols.all_symbols` in `mrbgems/mruby-symbol-ext`
 * Increase heap memory usage.
+
+`MRB_USE_SMALL_STRING_SEARCH`
+* Switches the used string search algorithm to Naive Algorithm
+* Slows down
+* "Call stack memory" usage can probably be reduced to less than 10%
+  (in 32-bit CPU mode, you can expect to reduce usage from more than 1 kilobyte to less than 50 bytes)

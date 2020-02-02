@@ -507,6 +507,7 @@ str_index_str_by_char(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
 static inline mrb_int
 mrb_memsearch_qs(const unsigned char *xs, mrb_int m, const unsigned char *ys, mrb_int n)
 {
+#ifndef MRB_USE_SMALL_STRING_SEARCH
   const unsigned char *x = xs, *xe = xs + m;
   const unsigned char *y = ys;
   int i;
@@ -523,6 +524,15 @@ mrb_memsearch_qs(const unsigned char *xs, mrb_int m, const unsigned char *ys, mr
       return (mrb_int)(y - ys);
   }
   return -1;
+#else
+  const unsigned char *y = ys;
+  for (n -= m; n >= 0; n --, y ++) {
+    if (memcmp(xs, y, m) == 0) {
+      return (mrb_int)(y - ys);
+    }
+  }
+  return -1;
+#endif /* MRB_USE_SMALL_STRING_SEARCH */
 }
 
 static mrb_int
