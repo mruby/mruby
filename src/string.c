@@ -516,7 +516,7 @@ mrb_memsearch_qs(const unsigned char *xs, mrb_int m, const unsigned char *ys, mr
     const unsigned char *ye = ys+n-m+1;
 
     for (;;) {
-      y = memchr(y, xs[0], (size_t)(ye-y));
+      y = (const unsigned char*)memchr(y, xs[0], (size_t)(ye-y));
       if (y == NULL) return -1;
       if (memcmp(xs, y, m) == 0) {
         return (mrb_int)(y - ys);
