@@ -504,25 +504,45 @@ str_index_str_by_char(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
 #define str_index_str_by_char(mrb, str, sub, pos) str_index_str(mrb, str, sub, pos)
 #endif
 
+#ifndef MRB_QS_SHORT_STRING_LENGTH
+#define MRB_QS_SHORT_STRING_LENGTH 2048
+#endif
+
 static inline mrb_int
 mrb_memsearch_qs(const unsigned char *xs, mrb_int m, const unsigned char *ys, mrb_int n)
 {
-  const unsigned char *x = xs, *xe = xs + m;
-  const unsigned char *y = ys;
-  int i;
-  ptrdiff_t qstable[256];
+  if (n + m < MRB_QS_SHORT_STRING_LENGTH) {
+    const unsigned char *y = ys;
+    const unsigned char *ye = ys+n-m+1;
 
-  /* Preprocessing */
-  for (i = 0; i < 256; ++i)
-    qstable[i] = m + 1;
-  for (; x < xe; ++x)
-    qstable[*x] = xe - x;
-  /* Searching */
-  for (; y + m <= ys + n; y += *(qstable + y[m])) {
-    if (*xs == *y && memcmp(xs, y, m) == 0)
-      return (mrb_int)(y - ys);
+    for (;;) {
+      y = memchr(y, xs[0], (size_t)(ye-y));
+      if (y == NULL) return -1;
+      if (memcmp(xs, y, m) == 0) {
+        return (mrb_int)(y - ys);
+      }
+      y++;
+    }
+    return -1;
   }
-  return -1;
+  else {
+    const unsigned char *x = xs, *xe = xs + m;
+    const unsigned char *y = ys;
+    int i;
+    ptrdiff_t qstable[256];
+
+    /* Preprocessing */
+    for (i = 0; i < 256; ++i)
+      qstable[i] = m + 1;
+    for (; x < xe; ++x)
+      qstable[*x] = xe - x;
+    /* Searching */
+    for (; y + m <= ys + n; y += *(qstable + y[m])) {
+      if (*xs == *y && memcmp(xs, y, m) == 0)
+        return (mrb_int)(y - ys);
+    }
+    return -1;
+  }
 }
 
 static mrb_int
