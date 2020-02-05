@@ -38,6 +38,7 @@
 
 #else
   #include <sys/wait.h>
+  #include <sys/time.h>
   #include <unistd.h>
   typedef size_t fsize_t;
   typedef time_t ftime_t;
