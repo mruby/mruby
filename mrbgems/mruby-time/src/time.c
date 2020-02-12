@@ -238,7 +238,7 @@ mrb_to_time_t(mrb_state *mrb, mrb_value obj, time_t *usec)
         mrb_float f = mrb_float(obj);
 
         mrb_check_num_exact(mrb, f);
-        if (f > (mrb_float)MRB_TIME_MAX || (mrb_float)MRB_TIME_MIN > f) {
+        if (f >= ((mrb_float)MRB_TIME_MAX-1.0) || f < ((mrb_float)MRB_TIME_MIN+1.0)) {
           goto out_of_range;
         }
 
