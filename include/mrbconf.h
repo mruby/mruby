@@ -38,7 +38,12 @@
 
 /* add -DMRB_METHOD_T_STRUCT on machines that use higher bits of pointers */
 /* no MRB_METHOD_T_STRUCT requires highest 2 bits of function pointers to be zero */
-//#define MRB_METHOD_T_STRUCT
+#ifndef MRB_METHOD_T_STRUCT
+  // can't use highest 2 bits of function pointers on 32bit Windows.
+# if defined(_WIN32) && !defined(_WIN64)
+#   define MRB_METHOD_T_STRUCT
+# endif
+#endif
 
 /* add -DMRB_INT32 to use 32bit integer for mrb_int; conflict with MRB_INT64;
    Default for 32-bit CPU mode. */

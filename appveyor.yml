@@ -14,9 +14,17 @@ environment:
     # Visual Studio 2017 64bit
     - visualcpp: C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat
 
+    # Visual Studio 2017 32bit
+    - visualcpp: C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat
+      machine: x86
+
     # Visual Studio 2015 64bit
     - visualcpp: C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat
       machine: amd64
+
+    # Visual Studio 2015 32bit
+    - visualcpp: C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat
+      machine: x86
 
     # Visual Studio 2013 64bit
     - visualcpp: C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\vcvarsall.bat
