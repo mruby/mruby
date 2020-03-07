@@ -31,6 +31,7 @@
   typedef long ftime_t;
   typedef long fsuseconds_t;
   typedef int fmode_t;
+  typedef int mrb_io_read_write_size;
 
   #ifndef O_TMPFILE
     #define O_TMPFILE O_TEMPORARY
@@ -44,6 +45,7 @@
   typedef time_t ftime_t;
   typedef suseconds_t fsuseconds_t;
   typedef mode_t fmode_t;
+  typedef ssize_t mrb_io_read_write_size;
 #endif
 
 #ifdef _MSC_VER
@@ -846,15 +848,35 @@ mrb_io_s_sysopen(mrb_state *mrb, mrb_value klass)
   return mrb_fixnum_value(fd);
 }
 
+static mrb_value mrb_io_sysread_common(mrb_state *mrb,
+    mrb_io_read_write_size (*readfunc)(int, void *, fsize_t, off_t),
+    mrb_value io, mrb_value buf, mrb_int maxlen, off_t offset);
+
+static mrb_io_read_write_size
+mrb_sysread_dummy(int fd, void *buf, fsize_t nbytes, off_t offset)
+{
+  return (mrb_io_read_write_size)read(fd, buf, nbytes);
+}
+
 mrb_value
 mrb_io_sysread(mrb_state *mrb, mrb_value io)
 {
-  struct mrb_io *fptr;
   mrb_value buf = mrb_nil_value();
   mrb_int maxlen;
-  int ret;
 
   mrb_get_args(mrb, "i|S", &maxlen, &buf);
+
+  return mrb_io_sysread_common(mrb, mrb_sysread_dummy, io, buf, maxlen, 0);
+}
+
+static mrb_value
+mrb_io_sysread_common(mrb_state *mrb,
+    mrb_io_read_write_size (*readfunc)(int, void *, fsize_t, off_t),
+    mrb_value io, mrb_value buf, mrb_int maxlen, off_t offset)
+{
+  struct mrb_io *fptr;
+  int ret;
+
   if (maxlen < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "negative expanding string size");
   }
@@ -876,7 +898,7 @@ mrb_io_sysread(mrb_state *mrb, mrb_value io)
   if (!fptr->readable) {
     mrb_raise(mrb, E_IO_ERROR, "not opened for reading");
   }
-  ret = read(fptr->fd, RSTRING_PTR(buf), (fsize_t)maxlen);
+  ret = readfunc(fptr->fd, RSTRING_PTR(buf), (fsize_t)maxlen, offset);
   switch (ret) {
     case 0: /* EOF */
       if (maxlen == 0) {
@@ -926,11 +948,12 @@ mrb_io_sysseek(mrb_state *mrb, mrb_value io)
   }
 }
 
-mrb_value
-mrb_io_syswrite(mrb_state *mrb, mrb_value io)
+static mrb_value
+mrb_io_syswrite_common(mrb_state *mrb,
+    mrb_io_read_write_size (*writefunc)(int, const void *, fsize_t, off_t),
+    mrb_value io, mrb_value buf, off_t offset)
 {
   struct mrb_io *fptr;
-  mrb_value str, buf;
   int fd, length;
 
   fptr = io_get_open_fptr(mrb, io);
@@ -938,20 +961,33 @@ mrb_io_syswrite(mrb_state *mrb, mrb_value io)
     mrb_raise(mrb, E_IO_ERROR, "not opened for writing");
   }
 
-  mrb_get_args(mrb, "S", &str);
-  buf = str;
-
   if (fptr->fd2 == -1) {
     fd = fptr->fd;
   } else {
     fd = fptr->fd2;
   }
-  length = write(fd, RSTRING_PTR(buf), (fsize_t)RSTRING_LEN(buf));
+  length = writefunc(fd, RSTRING_PTR(buf), (fsize_t)RSTRING_LEN(buf), offset);
   if (length == -1) {
     mrb_sys_fail(mrb, 0);
   }
 
   return mrb_fixnum_value(length);
+}
+
+static mrb_io_read_write_size
+mrb_syswrite_dummy(int fd, const void *buf, fsize_t nbytes, off_t offset)
+{
+  return (mrb_io_read_write_size)write(fd, buf, nbytes);
+}
+
+mrb_value
+mrb_io_syswrite(mrb_state *mrb, mrb_value io)
+{
+  mrb_value buf;
+
+  mrb_get_args(mrb, "S", &buf);
+
+  return mrb_io_syswrite_common(mrb, mrb_syswrite_dummy, io, buf, 0);
 }
 
 mrb_value
@@ -1329,6 +1365,62 @@ mrb_io_sync(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(fptr->sync);
 }
 
+#ifndef MRB_WITH_IO_PREAD_PWRITE
+# define mrb_io_pread   mrb_notimplement_m
+# define mrb_io_pwrite  mrb_notimplement_m
+#else
+static off_t
+value2off(mrb_state *mrb, mrb_value offv)
+{
+  switch (mrb_type(offv)) {
+#ifndef MRB_WITHOUT_FLOAT
+    case MRB_TT_FLOAT:
+      {
+        mrb_float tmp = mrb_float(offv);
+        if (tmp < INT64_MIN || tmp > INT64_MAX) {
+          /* fall through to use convert by `mrb_int()` (and raise error if out of range) */
+        } else {
+          return (off_t)tmp;
+        }
+      }
+      /* fall through */
+#endif /* MRB_WITHOUT_FLOAT */
+    default:
+      return (off_t)mrb_int(mrb, offv);
+  }
+}
+
+/*
+ * call-seq:
+ *  pread(maxlen, offset, outbuf = "") -> outbuf
+ */
+static mrb_value
+mrb_io_pread(mrb_state *mrb, mrb_value io)
+{
+  mrb_value buf = mrb_nil_value();
+  mrb_value off;
+  mrb_int maxlen;
+
+  mrb_get_args(mrb, "io|S!", &maxlen, &off, &buf);
+
+  return mrb_io_sysread_common(mrb, pread, io, buf, maxlen, value2off(mrb, off));
+}
+
+/*
+ * call-seq:
+ *  pwrite(buffer, offset) -> wrote_bytes
+ */
+static mrb_value
+mrb_io_pwrite(mrb_state *mrb, mrb_value io)
+{
+  mrb_value buf, off;
+
+  mrb_get_args(mrb, "So", &buf, &off);
+
+  return mrb_io_syswrite_common(mrb, pwrite, io, buf, value2off(mrb, off));
+}
+#endif /* MRB_WITH_IO_PREAD_PWRITE */
+
 static mrb_value
 io_bufread(mrb_state *mrb, mrb_value self)
 {
@@ -1384,6 +1476,8 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method(mrb, io, "closed?",    mrb_io_closed,     MRB_ARGS_NONE());   /* 15.2.20.5.2 */
   mrb_define_method(mrb, io, "pid",        mrb_io_pid,        MRB_ARGS_NONE());   /* 15.2.20.5.2 */
   mrb_define_method(mrb, io, "fileno",     mrb_io_fileno_m,   MRB_ARGS_NONE());
+  mrb_define_method(mrb, io, "pread",      mrb_io_pread,      MRB_ARGS_ANY());    /* ruby 2.5 feature */
+  mrb_define_method(mrb, io, "pwrite",     mrb_io_pwrite,     MRB_ARGS_ANY());    /* ruby 2.5 feature */
 
   mrb_define_class_method(mrb, io, "_bufread",   io_bufread,        MRB_ARGS_REQ(2));
 }
