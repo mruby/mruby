@@ -282,7 +282,12 @@ mrb_file__getwd(mrb_state *mrb, mrb_value klass)
 static int
 mrb_file_is_absolute_path(const char *path)
 {
+#ifdef _WIN32
+  if (strlen(path) < 2) return 0;
+  return path[0] >= 64 && path[0] <= 90 && path[1] == ':'; // 64 to 90 is ASCII
+#else
   return (path[0] == '/');
+#endif
 }
 
 static mrb_value
