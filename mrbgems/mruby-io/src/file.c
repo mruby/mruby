@@ -48,6 +48,7 @@
 #if defined(_WIN32) || defined(_WIN64)
   #define PATH_SEPARATOR ";"
   #define FILE_ALT_SEPARATOR "\\"
+  #define VOLUME_SEPARATOR ":"
 #else
   #define PATH_SEPARATOR ":"
 #endif
@@ -279,18 +280,51 @@ mrb_file__getwd(mrb_state *mrb, mrb_value klass)
   return path;
 }
 
+#ifdef _WIN32
+#define IS_FILESEP(x) (x == FILE_SEPARATOR || x == FILE_ALT_SEPARATOR)
+#define IS_VOLSEP(x) (x == VOLUME_SEPARATOR)
+#define IS_DEVICEID(x) (x == '.' || x == '?')
+
+static int 
+is_absolute_traditional_path(const char *path, int len)
+{
+  if (len < 3) return 0;
+  if (IS_FILESEP(path[0])) return 1;
+  return (ISALPHA(path[0]) && IS_VOLSEP(path[1]) && IS_FILESEP(path[2]));
+}
+
+static int 
+is_aboslute_unc_path(const char *path, int len) {
+  if (len < 2) return 0;
+  return (IS_FILESEP(path[0]) && IS_FILESEP(path[1]));
+}
+
+static int 
+is_absolute_device_path(const char *path, int len) {
+  if (len < 4) return 0;
+  return (is_aboslute_unc_path(path, len) && IS_DEVICEID(path[2]) && IS_FILESEP(path[3]));
+}
+
+static int
+mrb_file_is_absolute_path(const char *path, int len)
+{
+  return (
+    is_absolute_traditional_path(path, len) || 
+    is_aboslute_unc_path(path, len) || 
+    is_absolute_device_path(path, len)
+  );
+
+#undef IS_FILESEP
+#undef IS_VOLSEP
+#undef IS_DEVICEID
+
+#else
 static int
 mrb_file_is_absolute_path(const char *path)
 {
-#ifdef _WIN32
-#define IS_PATHSEP(x) (x == '/' || x == '\\')
-  if (isalpha(path[0]))
-    return (strlen(path) > 2 && path[1] == ':' && IS_PATHSEP(path[2]));
-  else
-    return (IS_PATHSEP(path[0]) && IS_PATHSEP(path[1]));
-#undef IS_PATHSEP
-#else
-  return (path[0] == '/');
+#define IS_FILESEP(x) (x == FILE_SEPARATOR)
+  return IS_FILESEP(path[0]);
+#undef IS_FILESEP
 #endif
 }
 
@@ -335,7 +369,7 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
     if (home == NULL) {
       return mrb_nil_value();
     }
-    if (!mrb_file_is_absolute_path(home)) {
+    if (!mrb_file_is_absolute_path(home, strlen(home))) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "non-absolute home");
     }
   } else {
