@@ -283,8 +283,10 @@ static int
 mrb_file_is_absolute_path(const char *path)
 {
 #ifdef _WIN32
-  if (strlen(path) < 2) return 0;
-  return path[0] >= 64 && path[0] <= 90 && path[1] == ':'; // 64 to 90 is ASCII
+#define IS_PATHSEP(x) (x == '/' || x == '\')
+  if (strlen(path) < 3) return 0;
+  return (isalpha(path[0]) && path[1] == ':' && IS_PATHSEP(path[2]));
+#undef IS_PATHSEP
 #else
   return (path[0] == '/');
 #endif
