@@ -64,6 +64,7 @@ mkdtemp(char *temp)
 #include "mruby/error.h"
 #include "mruby/string.h"
 #include "mruby/variable.h"
+#include <mruby/ext/io.h>
 
 static mrb_value
 mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
@@ -219,6 +220,12 @@ mrb_io_win_p(mrb_state *mrb, mrb_value klass)
 #endif
 }
 
+#ifdef MRB_WITH_IO_PREAD_PWRITE
+# define MRB_WITH_IO_PREAD_PWRITE_ENABLED TRUE
+#else
+# define MRB_WITH_IO_PREAD_PWRITE_ENABLED FALSE
+#endif
+
 void
 mrb_mruby_io_gem_test(mrb_state* mrb)
 {
@@ -229,4 +236,6 @@ mrb_mruby_io_gem_test(mrb_state* mrb)
   mrb_define_class_method(mrb, io_test, "mkdtemp", mrb_io_test_mkdtemp, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, io_test, "rmdir", mrb_io_test_rmdir, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, io_test, "win?", mrb_io_win_p, MRB_ARGS_NONE());
+
+  mrb_define_const(mrb, io_test, "MRB_WITH_IO_PREAD_PWRITE", mrb_bool_value(MRB_WITH_IO_PREAD_PWRITE_ENABLED));
 }

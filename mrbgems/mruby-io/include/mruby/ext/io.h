@@ -9,6 +9,14 @@
 extern "C" {
 #endif
 
+#if defined(MRB_WITHOUT_IO_PREAD_PWRITE)
+# undef MRB_WITH_IO_PREAD_PWRITE
+#elif !defined(MRB_WITH_IO_PREAD_PWRITE)
+# if defined(__unix__)
+#  define MRB_WITH_IO_PREAD_PWRITE
+# endif
+#endif
+
 struct mrb_io {
   int fd;   /* file descriptor, or -1 */
   int fd2;  /* file descriptor to write if it's different from fd, or -1 */
