@@ -948,27 +948,8 @@ mrb_io_sysseek(mrb_state *mrb, mrb_value io)
   }
 }
 
-static mrb_value mrb_io_syswrite_common(mrb_state *mrb,
-    mrb_io_read_write_size (*writefunc)(int, const void *, fsize_t, off_t),
-    mrb_value io, mrb_value buf, off_t offset);
-
-static mrb_io_read_write_size
-mrb_syswrite_dummy(int fd, const void *buf, fsize_t nbytes, off_t offset)
-{
-  return (mrb_io_read_write_size)write(fd, buf, nbytes);
-}
-
-mrb_value
-mrb_io_syswrite(mrb_state *mrb, mrb_value io)
-{
-  mrb_value buf;
-
-  mrb_get_args(mrb, "S", &buf);
-
-  return mrb_io_syswrite_common(mrb, mrb_syswrite_dummy, io, buf, 0);
-}
-
-static mrb_value mrb_io_syswrite_common(mrb_state *mrb,
+static mrb_value
+mrb_io_syswrite_common(mrb_state *mrb,
     mrb_io_read_write_size (*writefunc)(int, const void *, fsize_t, off_t),
     mrb_value io, mrb_value buf, off_t offset)
 {
@@ -991,6 +972,22 @@ static mrb_value mrb_io_syswrite_common(mrb_state *mrb,
   }
 
   return mrb_fixnum_value(length);
+}
+
+static mrb_io_read_write_size
+mrb_syswrite_dummy(int fd, const void *buf, fsize_t nbytes, off_t offset)
+{
+  return (mrb_io_read_write_size)write(fd, buf, nbytes);
+}
+
+mrb_value
+mrb_io_syswrite(mrb_state *mrb, mrb_value io)
+{
+  mrb_value buf;
+
+  mrb_get_args(mrb, "S", &buf);
+
+  return mrb_io_syswrite_common(mrb, mrb_syswrite_dummy, io, buf, 0);
 }
 
 mrb_value
