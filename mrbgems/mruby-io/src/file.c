@@ -284,7 +284,7 @@ mrb_file_is_absolute_path(const char *path)
 {
 #ifdef _WIN32
 #define IS_PATHSEP(x) (x == '/' || x == '\\')
-  if (isalpha(path[0]))
+  if (ISALPHA(path[0]))
     return (strlen(path) > 2 && path[1] == ':' && IS_PATHSEP(path[2]));
   else
     return (IS_PATHSEP(path[0]) && IS_PATHSEP(path[1]));
