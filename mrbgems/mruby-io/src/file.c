@@ -287,27 +287,28 @@ mrb_file__getwd(mrb_state *mrb, mrb_value klass)
 #define CHECK_UNCDEV_PATH (IS_FILESEP(path[0]) && IS_FILESEP(path[1]))
 
 static int 
-is_absolute_traditional_path(const char *path, int len)
+is_absolute_traditional_path(const char *path, size_t len)
 {
   if (len < 3) return 0;
   return (ISALPHA(path[0]) && IS_VOLSEP(path[1]) && IS_FILESEP(path[2]));
 }
 
 static int 
-is_aboslute_unc_path(const char *path, int len) {
+is_aboslute_unc_path(const char *path, size_t len) {
   if (len < 2) return 0;
   return (CHECK_UNCDEV_PATH && !IS_DEVICEID(path[2]));
 }
 
 static int 
-is_absolute_device_path(const char *path, int len) {
+is_absolute_device_path(const char *path, size_t len) {
   if (len < 4) return 0;
   return (CHECK_UNCDEV_PATH && IS_DEVICEID(path[2]) && IS_FILESEP(path[3]));
 }
 
 static int
-mrb_file_is_absolute_path(const char *path, int len)
+mrb_file_is_absolute_path(const char *path)
 {
+  size_t len = strlen(path);
   if (IS_FILESEP(path[0])) return 1;
   if (len > 0)
     return (
@@ -366,14 +367,14 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
   path = mrb_str_new_cstr(mrb, home);
   mrb_locale_free(home);
   return path;
-#else
+#else  /* _WIN32 */
   argc = mrb_get_argc(mrb);
   if (argc == 0) {
     home = getenv("USERPROFILE");
     if (home == NULL) {
       return mrb_nil_value();
     }
-    if (!mrb_file_is_absolute_path(home, strlen(home))) {
+    if (!mrb_file_is_absolute_path(home)) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "non-absolute home");
     }
   } else {
