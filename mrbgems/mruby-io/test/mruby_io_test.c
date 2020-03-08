@@ -56,7 +56,6 @@ mkdtemp(char *temp)
 #endif
 
 #include <sys/stat.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 #include "mruby.h"

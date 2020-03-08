@@ -2,7 +2,12 @@
  ** pack.c - Array#pack, String#unpack
  */
 
-#include "mruby.h"
+#include <mruby.h>
+
+#ifdef MRB_DISABLE_STDIO
+# error pack/unpack conflicts 'MRB_DISABLE_STDIO' configuration in your 'build_config.rb'
+#endif
+
 #include "mruby/error.h"
 #include "mruby/array.h"
 #include "mruby/class.h"
@@ -13,7 +18,6 @@
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>
-#include <stdio.h>
 #include <string.h>
 
 struct tmpl {

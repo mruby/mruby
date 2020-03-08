@@ -7,6 +7,11 @@
 */
 
 #include <mruby.h>
+
+#ifdef MRB_DISABLE_STDIO
+# error mruby-bin-mirb conflicts 'MRB_DISABLE_STDIO' configuration in your 'build_config.rb'
+#endif
+
 #include <mruby/array.h>
 #include <mruby/proc.h>
 #include <mruby/compile.h>
@@ -17,7 +22,6 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 #include <ctype.h>
 
 #include <signal.h>

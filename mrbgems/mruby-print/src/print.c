@@ -1,6 +1,10 @@
 #include <mruby.h>
+
+#ifdef MRB_DISABLE_STDIO
+# error print conflicts 'MRB_DISABLE_STDIO' configuration in your 'build_config.rb'
+#endif
+
 #include <mruby/string.h>
-#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #if defined(_WIN32)
