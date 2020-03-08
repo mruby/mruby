@@ -55,7 +55,6 @@ typedef mrb_int pid_t;
 #include <fcntl.h>
 
 #include <errno.h>
-#include <stdio.h>
 #include <string.h>
 
 #define OPEN_ACCESS_MODE_FLAGS (O_RDONLY | O_WRONLY | O_RDWR)

@@ -14,9 +14,7 @@
 #include <mruby/numeric.h>
 #include <mruby/time.h>
 
-#ifndef MRB_DISABLE_STDIO
-#include <stdio.h>
-#else
+#ifdef MRB_DISABLE_STDIO
 #include <string.h>
 #endif
 
