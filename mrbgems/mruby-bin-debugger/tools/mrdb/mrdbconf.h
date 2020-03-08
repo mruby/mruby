@@ -7,7 +7,7 @@
 #define MRDBCONF_H
 
 #ifndef MRB_ENABLE_DEBUG_HOOK
-# error Need 'MRB_ENABLE_DEBUG_HOOK' configuration in your 'build_config.rb'
+# error mruby-bin-debugger need 'MRB_ENABLE_DEBUG_HOOK' configuration in your 'build_config.rb'
 #endif
 
 /* configuration options: */
