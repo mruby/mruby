@@ -5,6 +5,12 @@
 #ifndef MRUBY_IO_H
 #define MRUBY_IO_H
 
+#include <mruby.h>
+
+#ifdef MRB_DISABLE_STDIO
+# error IO and File conflicts 'MRB_DISABLE_STDIO' configuration in your 'build_config.rb'
+#endif
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
