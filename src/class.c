@@ -551,6 +551,14 @@ mrb_get_argv(mrb_state *mrb)
 
 void mrb_hash_check_kdict(mrb_state *mrb, mrb_value self);
 
+#define CASE_WHITESPACES \
+  case ' ': \
+  case '\t': \
+  case '\f': \
+  case '\r': \
+  case '\n': \
+  case '\13' /* '\v' */
+
 /*
   retrieve arguments from mrb_state.
 
@@ -648,6 +656,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
     switch (c) {
     case '|': case '*': case '&': case '?': case ':':
+    CASE_WHITESPACES:
       break;
     default:
       if (argc <= i) {
@@ -670,6 +679,8 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
     }
 
     switch (c) {
+    CASE_WHITESPACES:
+      break;
     case 'o':
       {
         mrb_value *p;
