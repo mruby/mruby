@@ -430,6 +430,7 @@ MRB_API mrb_value
 mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc, const mrb_value *argv, mrb_value blk)
 {
   mrb_value val;
+  int ai = mrb_gc_arena_save(mrb);
 
   if (!mrb->jmp) {
     struct mrb_jmpbuf c_jmp;
@@ -518,19 +519,17 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     mrb->c->stack[argc+1] = blk;
 
     if (MRB_METHOD_CFUNC_P(m)) {
-      int ai = mrb_gc_arena_save(mrb);
-
       ci->acc = CI_ACC_DIRECT;
       val = MRB_METHOD_CFUNC(m)(mrb, self);
       mrb->c->stack = mrb->c->ci->stackent;
       cipop(mrb);
-      mrb_gc_arena_restore(mrb, ai);
     }
     else {
       ci->acc = CI_ACC_SKIP;
       val = mrb_run(mrb, MRB_METHOD_PROC(m), self);
     }
   }
+  mrb_gc_arena_restore(mrb, ai);
   mrb_gc_protect(mrb, val);
   return val;
 }
