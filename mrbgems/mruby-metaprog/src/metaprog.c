@@ -139,7 +139,7 @@ mrb_local_variables(mrb_state *mrb, mrb_value self)
 
   proc = mrb->c->ci[-1].proc;
 
-  if (MRB_PROC_CFUNC_P(proc)) {
+  if (proc == NULL || MRB_PROC_CFUNC_P(proc)) {
     return mrb_ary_new(mrb);
   }
   vars = mrb_hash_new(mrb);
