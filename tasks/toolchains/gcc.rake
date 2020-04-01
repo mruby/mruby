@@ -12,9 +12,9 @@ MRuby::Toolchain.new(:gcc) do |conf, params|
       compiler.command = ENV['CC'] || default_command
       compiler.flags = [c_mandatory_flags, ENV['CFLAGS'] || [compiler_flags, cxx_invalid_flags, %w(-Wwrite-strings)]]
     end
-    compiler.option_include_path = '-I%s'
+    compiler.option_include_path = %q[-I"%s"]
     compiler.option_define = '-D%s'
-    compiler.compile_options = '%{flags} -MMD -o %{outfile} -c %{infile}'
+    compiler.compile_options = %q[%{flags} -MMD -o "%{outfile}" -c "%{infile}"]
     compiler.cxx_compile_flag = '-x c++ -std=gnu++03'
     compiler.cxx_exception_flag = '-fexceptions'
     compiler.cxx_invalid_flags = c_mandatory_flags + cxx_invalid_flags
@@ -27,7 +27,7 @@ MRuby::Toolchain.new(:gcc) do |conf, params|
     linker.library_paths = []
     linker.option_library = '-l%s'
     linker.option_library_path = '-L%s'
-    linker.link_options = '%{flags} -o %{outfile} %{objs} %{flags_before_libraries} %{libs} %{flags_after_libraries}'
+    linker.link_options = '%{flags} -o "%{outfile}" %{objs} %{flags_before_libraries} %{libs} %{flags_after_libraries}'
   end
 
   [[conf.cc, 'c'], [conf.cxx, 'c++']].each do |cc, lang|

@@ -36,9 +36,14 @@ module MRuby
 
     private
     def _run(options, params={})
-      return sh command + ' ' + ( options % params ) if NotFoundCommands.key? @command
+      
+      cmd_string = if NotFoundCommands.key?(@command)
+                     command + ' ' + ( options % params )
+                   else
+                     build.filename(command) + ' ' + ( options % params )
+                   end
       begin
-        sh build.filename(command) + ' ' + ( options % params )
+        sh cmd_string
       rescue RuntimeError
         NotFoundCommands[@command] = true
         _run options, params
@@ -58,9 +63,9 @@ module MRuby
       @source_exts = source_exts
       @include_paths = ["#{MRUBY_ROOT}/include"]
       @defines = %w()
-      @option_include_path = '-I%s'
-      @option_define = '-D%s'
-      @compile_options = '%{flags} -o %{outfile} -c %{infile}'
+      @option_include_path = %q[-I"%s"]
+      @option_define = %q[-D"%s"]
+      @compile_options = %q[%{flags} -o "%{outfile}" -c "%{infile}"]
       @cxx_invalid_flags = []
     end
 
@@ -184,9 +189,9 @@ module MRuby
       @flags_before_libraries, @flags_after_libraries = [], []
       @libraries = []
       @library_paths = []
-      @option_library = '-l%s'
-      @option_library_path = '-L%s'
-      @link_options = "%{flags} -o %{outfile} %{objs} %{flags_before_libraries} %{libs} %{flags_after_libraries}"
+      @option_library = %q[-l"%s"]
+      @option_library_path = %q[-L"%s"]
+      @link_options = %Q[%{flags} -o "%{outfile}" %{objs} %{flags_before_libraries} %{libs} %{flags_after_libraries}]
     end
 
     def all_flags(_library_paths=[], _flags=[])
@@ -217,7 +222,7 @@ module MRuby
                              :libs => library_flags.join(' ') }
       else
         _run link_options, { :flags => all_flags(_library_paths, _flags),
-                             :outfile => filename(outfile) , :objs => filename(objfiles).join(' '),
+                             :outfile => filename(outfile) , :objs => filename(objfiles).map{|f| %Q["#{f}"]}.join(' '),
                              :flags_before_libraries => [flags_before_libraries, _flags_before_libraries].flatten.join(' '),
                              :flags_after_libraries => [flags_after_libraries, _flags_after_libraries].flatten.join(' '),
                              :libs => library_flags.join(' ') }
@@ -231,16 +236,16 @@ module MRuby
     def initialize(build)
       super
       @command = ENV['AR'] || 'ar'
-      @archive_options = 'rs %{outfile} %{objs}'
+      @archive_options = 'rs "%{outfile}" %{objs}'
     end
 
     def run(outfile, objfiles)
       mkdir_p File.dirname(outfile)
       _pp "AR", outfile.relative_path
       if MRUBY_BUILD_HOST_IS_CYGWIN
-        _run archive_options, { :outfile => cygwin_filename(outfile), :objs => cygwin_filename(objfiles).join(' ') }
+        _run archive_options, { :outfile => cygwin_filename(outfile), :objs => cygwin_filename(objfiles).map{|f| %Q["#{f}"]}.join(' ') }
       else
-        _run archive_options, { :outfile => filename(outfile), :objs => filename(objfiles).join(' ') }
+        _run archive_options, { :outfile => filename(outfile), :objs => filename(objfiles).map{|f| %Q["#{f}"]}.join(' ') }
       end
     end
   end
@@ -251,7 +256,7 @@ module MRuby
     def initialize(build)
       super
       @command = 'bison'
-      @compile_options = '-o %{outfile} %{infile}'
+      @compile_options = %q[-o "%{outfile}" "%{infile}"]
     end
 
     def run(outfile, infile)
@@ -267,7 +272,7 @@ module MRuby
     def initialize(build)
       super
       @command = 'gperf'
-      @compile_options = '-L ANSI-C -C -p -j1 -i 1 -g -o -t -N mrb_reserved_word -k"1,3,$" %{infile} > %{outfile}'
+      @compile_options = %q[-L ANSI-C -C -p -j1 -i 1 -g -o -t -N mrb_reserved_word -k"1,3,$" "%{infile}" > "%{outfile}"]
     end
 
     def run(outfile, infile)
@@ -341,7 +346,7 @@ module MRuby
       infiles.each do |f|
         _pp "MRBC", f.relative_path, nil, :indent => 2
       end
-      cmd = "#{filename @command} #{@compile_options % {:funcname => funcname}} #{filename(infiles).join(' ')}"
+      cmd = %Q["#{filename @command}" #{@compile_options % {:funcname => funcname}} #{filename(infiles).map{|f| %Q["#{f}"]}.join(' ')}]
       puts cmd if Rake.verbose
       IO.popen(cmd, 'r+') do |io|
         out.puts io.read

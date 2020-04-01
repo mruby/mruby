@@ -4,9 +4,9 @@ MRuby::Toolchain.new(:visualcpp) do |conf, _params|
     # C4013: implicit function declaration
     cc.flags = [ENV['CFLAGS'] || %w(/c /nologo /W3 /we4013 /Zi /MD /O2 /D_CRT_SECURE_NO_WARNINGS)]
     cc.defines = %w(MRB_STACK_EXTEND_DOUBLING)
-    cc.option_include_path = '/I%s'
+    cc.option_include_path = %q[/I"%s"]
     cc.option_define = '/D%s'
-    cc.compile_options = "%{flags} /Fo%{outfile} %{infile}"
+    cc.compile_options = %Q[%{flags} /Fo"%{outfile}" "%{infile}"]
     cc.cxx_compile_flag = '/TP'
     cc.cxx_exception_flag = '/EHs'
   end
@@ -15,9 +15,9 @@ MRuby::Toolchain.new(:visualcpp) do |conf, _params|
     cxx.command = ENV['CXX'] || 'cl.exe'
     cxx.flags = [ENV['CXXFLAGS'] || ENV['CFLAGS'] || %w(/c /nologo /W3 /Zi /MD /O2 /EHs /D_CRT_SECURE_NO_WARNINGS)]
     cxx.defines = %w(MRB_STACK_EXTEND_DOUBLING)
-    cxx.option_include_path = '/I%s'
+    cxx.option_include_path = %q[/I"%s"]
     cxx.option_define = '/D%s'
-    cxx.compile_options = "%{flags} /Fo%{outfile} %{infile}"
+    cxx.compile_options = %Q[%{flags} /Fo"%{outfile}" "%{infile}"]
     cxx.cxx_compile_flag = '/TP'
     cxx.cxx_exception_flag = '/EHs'
   end
@@ -29,22 +29,22 @@ MRuby::Toolchain.new(:visualcpp) do |conf, _params|
     linker.library_paths = %w()
     linker.option_library = '%s.lib'
     linker.option_library_path = '/LIBPATH:%s'
-    linker.link_options = "%{flags} /OUT:%{outfile} %{objs} %{flags_before_libraries} %{libs} %{flags_after_libraries}"
+    linker.link_options = "%{flags} /OUT:"%{outfile}" %{objs} %{flags_before_libraries} %{libs} %{flags_after_libraries}"
   end
 
   conf.archiver do |archiver|
     archiver.command = ENV['AR'] || 'lib.exe'
-    archiver.archive_options = '/nologo /OUT:%{outfile} %{objs}'
+    archiver.archive_options = '/nologo /OUT:"%{outfile}" %{objs}'
   end
 
   conf.yacc do |yacc|
     yacc.command = ENV['YACC'] || 'bison.exe'
-    yacc.compile_options = '-o %{outfile} %{infile}'
+    yacc.compile_options = %q[-o "%{outfile}" "%{infile}"]
   end
 
   conf.gperf do |gperf|
     gperf.command = 'gperf.exe'
-    gperf.compile_options = '-L ANSI-C -C -p -j1 -i 1 -g -o -t -N mrb_reserved_word -k"1,3,$" %{infile} > %{outfile}'
+    gperf.compile_options = %q[-L ANSI-C -C -p -j1 -i 1 -g -o -t -N mrb_reserved_word -k"1,3,$" "%{infile}" > "%{outfile}"]
   end
 
   conf.exts do |exts|
