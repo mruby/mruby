@@ -29,7 +29,7 @@ MRuby::Toolchain.new(:visualcpp) do |conf, _params|
     linker.library_paths = %w()
     linker.option_library = '%s.lib'
     linker.option_library_path = '/LIBPATH:%s'
-    linker.link_options = "%{flags} /OUT:"%{outfile}" %{objs} %{flags_before_libraries} %{libs} %{flags_after_libraries}"
+    linker.link_options = %Q[%{flags} /OUT:"%{outfile}" %{objs} %{flags_before_libraries} %{libs} %{flags_after_libraries}]
   end
 
   conf.archiver do |archiver|
