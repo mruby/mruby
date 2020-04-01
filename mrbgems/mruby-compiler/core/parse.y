@@ -3967,6 +3967,27 @@ static mrb_bool peeks(parser_state *p, const char *s);
 static mrb_bool skips(parser_state *p, const char *s);
 
 static inline int
+nextc0(parser_state *p)
+{
+  int c;
+#ifndef MRB_DISABLE_STDIO
+  if (p->f) {
+    if (feof(p->f)) return -1;
+    c = fgetc(p->f);
+    if (c == EOF) return -1;
+  }
+  else
+#endif
+    if (!p->s || p->s >= p->send) {
+      return -1;
+    }
+    else {
+      c = (unsigned char)*p->s++;
+    }
+  return c;
+}
+
+static inline int
 nextc(parser_state *p)
 {
   int c;
@@ -3980,30 +4001,18 @@ nextc(parser_state *p)
     cons_free(tmp);
   }
   else {
-#ifndef MRB_DISABLE_STDIO
-    if (p->f) {
-      if (feof(p->f)) goto eof;
-      c = fgetc(p->f);
-      if (c == EOF) goto eof;
-    }
-    else
-#endif
-      if (!p->s || p->s >= p->send) {
-        goto eof;
-      }
-      else {
-        c = (unsigned char)*p->s++;
-      }
+    c = nextc0(p);
+    if (c < 0) goto eof;
   }
   if (c >= 0) {
     p->column++;
   }
   if (c == '\r') {
-    const int lf = nextc(p);
+    const int lf = nextc0(p);
     if (lf == '\n') {
       return '\n';
     }
-    pushback(p, lf);
+    if (lf > 0) pushback(p, lf);
   }
   return c;
 
