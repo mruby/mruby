@@ -37,7 +37,7 @@ MRuby::CrossBuild.new("dreamcast") do |conf|
     cc.command = "#{BIN_PATH}/sh-elf-gcc"	
     cc.include_paths << ["#{KOS_PATH}/include", "#{KOS_PATH}/kernel/arch/dreamcast/include", "#{KOS_PATH}/addons/include", "#{KOS_PATH}/../kos-ports/include"]
     cc.flags << ["-O2", "-fomit-frame-pointer", "-ml", "-m4-single-only", "-ffunction-sections", "-fdata-sections", "-Wall", "-g", "-fno-builtin", "-ml", "-m4-single-only", "-Wl,-Ttext=0x8c010000", "-Wl,--gc-sections", "-T#{KOS_PATH}/utils/ldscripts/shlelf.xc", "-nodefaultlibs"]
-    cc.compile_options = "%{flags} -o %{outfile} -c %{infile}"
+    cc.compile_options = %Q[%{flags} -o "%{outfile}" -c "%{infile}"]
     cc.defines << %w(_arch_dreamcast)
     cc.defines << %w(_arch_sub_pristine)
   end
@@ -65,7 +65,7 @@ MRuby::CrossBuild.new("dreamcast") do |conf|
   # Archiver
   conf.archiver do |archiver|
     archiver.command = "#{BIN_PATH}/sh-elf-ar"
-    archiver.archive_options = 'rcs %{outfile} %{objs}'
+    archiver.archive_options = 'rcs "%{outfile}" %{objs}'
   end
 
   # No executables
