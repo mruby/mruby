@@ -30,14 +30,17 @@ module MRuby
 			@list = []
 			@build_dir = Pathname.new(build_dir)
 			@bin_path = Pathname.new(bin_path)
-			@build_real = @build_dir.children(false).include?('bin')
+			
+			build_bin_dir = @build_dir.join('bin')
+			@build_dir.mkpath if Dir[@build_dir].empty?
+			build_bin_dir.mkpath if Dir[build_bin_dir].empty?
 		end
 
 		def <<(basename)
 			return unless @active
 			@list << basename
-			ext = basename.match(/\.([\d\w]+)\z/)
-			ext = ext ? ext[1] : @extension
+			ext = File.extname(basename)
+			ext = @extension if ext.empty?
 			self.class.add_taskbin(bin_path(basename, ext), build_path(basename, ext))
 		end
 
@@ -53,20 +56,19 @@ module MRuby
 			disable? || @list.empty?
 		end
 
+		def all_executable
+			@list.join(", ")
+		end
+
 		def mrbc
-			exe(MRBC_FILE)
+			executable = exe(MRBC_FILE)
+			return executable if File.exist?(executable)
+			return MRuby.targets['host'].mrbcfile if host_target?
+			raise RuntimeError, "Couldn't find mrbc.exe \nBuild host first."
 		end
 
 		def exe(name)
-			if MRuby::Build.current.name == 'host'
-				build_path(name)
-			elsif exist?(name)
-				bin_path(name)
-			elsif host_target?
-				MRuby.targets['host'].mrbcfile
-			else
-				return nil
-			end
+			exist?(name) ? bin_path(name) : build_path(name)
 		end
 
 		private

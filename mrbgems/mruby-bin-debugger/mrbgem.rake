@@ -5,5 +5,5 @@ MRuby::Gem::Specification.new('mruby-bin-debugger') do |spec|
 
   spec.add_dependency('mruby-eval', :core => 'mruby-eval')
 
-  spec.bins = %w(mrdb)
+  spec.bins << %Q(mrdb)
 end

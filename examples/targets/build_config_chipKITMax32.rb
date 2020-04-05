@@ -64,7 +64,7 @@ MRuby::CrossBuild.new("chipKITMax32") do |conf|
   end
 
   #no executables
-  conf.bins = []
+  conf.bins.disable
 
   #do not build test executable
   conf.build_mrbtest_lib_only
