@@ -12,5 +12,5 @@ MRuby::Gem::Specification.new 'mruby-bin-mrbc' do |spec|
     build.linker.run t.name, t.prerequisites
   end
 
-  build.bins << 'mrbc' unless build.bins.find { |v| v == 'mrbc' }
+  build.bins << 'mrbc'
 end

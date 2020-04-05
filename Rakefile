@@ -46,16 +46,7 @@ task :default => :all
 
 bin_path = ENV['INSTALL_DIR'] || "#{MRUBY_ROOT}/bin"
 
-depfiles = MRuby.targets['host'].bins.map do |bin|
-  install_path = MRuby.targets['host'].exefile("#{bin_path}/#{bin}")
-  source_path = MRuby.targets['host'].exefile("#{MRuby.targets['host'].build_dir}/bin/#{bin}")
-
-  file install_path => source_path do |t|
-    install_D t.prerequisites.first, t.name
-  end
-
-  install_path
-end
+depfiles = MRuby::ExecTools.generate_task { |t| install_D t.prerequisites.first, t.name }
 
 MRuby.each_target do |target|
   gems.map do |gem|
@@ -107,9 +98,9 @@ depfiles += MRuby.targets.map { |n, t|
   t.libraries
 }.flatten
 
-depfiles += MRuby.targets.reject { |n, t| n == 'host' }.map { |n, t|
-  t.bins.map { |bin| t.exefile("#{t.build_dir}/bin/#{bin}") }
-}.flatten
+# depfiles += MRuby.targets.reject { |n, t| n == 'host' }.map { |n, t|
+#   t.bins.map { |bin| t.exefile("#{t.build_dir}/bin/#{bin}") }
+# }.flatten
 
 desc "build all targets, install (locally) in-repo"
 task :all => depfiles do

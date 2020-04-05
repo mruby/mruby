@@ -2,7 +2,7 @@ MRuby::Gem::Specification.new('mruby-bin-mruby') do |spec|
   spec.license = 'MIT'
   spec.author  = 'mruby developers'
   spec.summary = 'mruby command'
-  spec.bins = %w(mruby)
+  spec.bins << %Q(mruby)
   spec.add_dependency('mruby-compiler', :core => 'mruby-compiler')
   spec.add_dependency('mruby-error', :core => 'mruby-error')
   spec.add_test_dependency('mruby-print', :core => 'mruby-print')

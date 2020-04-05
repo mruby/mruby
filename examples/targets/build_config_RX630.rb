@@ -57,7 +57,7 @@ MRuby::CrossBuild.new("RX630") do |conf|
   end
 
   #no executables
-  conf.bins = []
+  conf.bins.disable
 
   #do not build executable test
   conf.build_mrbtest_lib_only
