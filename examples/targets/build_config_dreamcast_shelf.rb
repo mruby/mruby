@@ -69,7 +69,7 @@ MRuby::CrossBuild.new("dreamcast") do |conf|
   end
 
   # No executables
-  conf.bins = []
+  conf.bins.disable
 
   # Do not build executable test
   conf.build_mrbtest_lib_only

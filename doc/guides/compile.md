@@ -471,7 +471,7 @@ MRuby::CrossBuild.new('Minimal') do |conf|
   toolchain :gcc
 
   conf.cc.defines = %w(MRB_DISABLE_STDIO)
-  conf.bins = []
+  conf.bins.disable
 end
 ```
 

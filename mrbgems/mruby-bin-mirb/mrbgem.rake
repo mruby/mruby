@@ -28,6 +28,6 @@ MRuby::Gem::Specification.new('mruby-bin-mirb') do |spec|
     spec.cc.defines << "ENABLE_LINENOISE"
   end
 
-  spec.bins = %w(mirb)
+  spec.bins << %Q(mirb)
   spec.add_dependency('mruby-compiler', :core => 'mruby-compiler')
 end

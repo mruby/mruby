@@ -5,6 +5,7 @@ require "mruby/build/command"
 module MRuby
   autoload :Gem, "mruby/gem"
   autoload :Lockfile, "mruby/lockfile"
+  autoload :ExecTools, "mruby/exec_tools"
 
   class << self
     def targets
@@ -42,8 +43,8 @@ module MRuby
     end
     include Rake::DSL
     include LoadGems
-    attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir
-    attr_reader :libmruby_objs, :gems, :toolchains, :gem_dir_to_repo_url
+    attr_accessor :name, :exts, :file_separator, :build_dir, :gem_clone_dir
+    attr_reader :bins, :libmruby_objs, :gems, :toolchains, :gem_dir_to_repo_url
     attr_writer :enable_bintest, :enable_test
 
     alias libmruby libmruby_objs
@@ -80,7 +81,7 @@ module MRuby
         @git = Command::Git.new(self)
         @mrbc = Command::Mrbc.new(self)
 
-        @bins = []
+        @bins = MRuby::ExecTools.hire(@build_dir)
         @gems, @libmruby_objs = MRuby::Gem::List.new, []
         @build_mrbtest_lib_only = false
         @cxx_exception_enabled = false
@@ -100,6 +101,7 @@ module MRuby
 
       build_mrbc_exec if name == 'host'
       build_mrbtest if test_enabled?
+      @bins.extension = @exts.executable
     end
 
     def debug_enabled?
@@ -244,11 +246,7 @@ EOS
     end
 
     def mrbcfile
-      return @mrbcfile if @mrbcfile
-
-      mrbc_build = MRuby.targets['host']
-      gems.each { |v| mrbc_build = self if v.name == 'mruby-bin-mrbc' }
-      @mrbcfile = mrbc_build.exefile("#{mrbc_build.build_dir}/bin/mrbc")
+      @bins.mrbc
     end
 
     def compilers
@@ -287,11 +285,8 @@ EOS
     def exefile(name)
       if name.is_a?(Array)
         name.flatten.map { |n| exefile(n) }
-      elsif File.extname(name).empty?
-        "#{name}#{exts.executable}"
       else
-        # `name` sometimes have (non-standard) extension (e.g. `.bat`).
-        name
+        @bins.exe(name)
       end
     end
 
@@ -341,7 +336,7 @@ EOS
       puts "================================================"
       puts "      Config Name: #{@name}"
       puts " Output Directory: #{self.build_dir.relative_path}"
-      puts "         Binaries: #{@bins.join(', ')}" unless @bins.empty?
+      puts "         Binaries: #{@bins.all_executable}" unless @bins.empty?
       unless @gems.empty?
         puts "    Included Gems:"
         @gems.map do |gem|
@@ -379,10 +374,6 @@ EOS
       @endian = nil
       @test_runner = Command::CrossTestRunner.new(self)
       super
-    end
-
-    def mrbcfile
-      MRuby.targets['host'].exefile("#{MRuby.targets['host'].build_dir}/bin/mrbc")
     end
 
     def run_test

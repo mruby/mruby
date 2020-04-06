@@ -2,6 +2,7 @@ autoload :YAML, 'yaml'
 
 module MRuby
   autoload :Source, 'mruby/source'
+  autoload :ExecTools, 'mruby/exec_tools'
 
   class Lockfile
     class << self
