@@ -64,7 +64,7 @@ module MRuby
           @exts = Exts.new('.o', '', '.a')
         end
 
-        build_dir = build_dir || ENV['MRUBY_BUILD_DIR'] || "#{MRUBY_ROOT}/build"
+        build_dir = build_dir || MRuby::ExecTools::BUILD_PATH
 
         @file_separator = '/'
         @build_dir = "#{build_dir}/#{@name}"
@@ -189,7 +189,7 @@ EOS
       end
 
       file obj => cxx_src do |t|
-        cxx.run t.name, t.prerequisites.first, [], ["#{MRUBY_ROOT}/src"] + includes
+        cxx.run t.name, t.prerequisites.first, [], ["#{root}/src"] + includes
       end
 
       obj
@@ -206,7 +206,7 @@ EOS
     def toolchain(name, params={})
       name = name.to_s
       tc = Toolchain.toolchains[name] || begin
-        path = "#{MRUBY_ROOT}/tasks/toolchains/#{name}.rake"
+        path = "#{root}/tasks/toolchains/#{name}.rake"
         fail "Unknown #{name} toolchain" unless File.exist?(path)
         load path
         Toolchain.toolchains[name]

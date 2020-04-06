@@ -36,7 +36,11 @@ module MRuby
 
     private
     def _run(options, params={})
-      return sh command + ' ' + ( options % params ) if NotFoundCommands.key? @command
+      if NotFoundCommands.key? @command
+        cmd_line = command + ' ' + ( options % params )
+        warn cmd_line
+        return sh cmd_line
+      end
       begin
         sh build.filename(command) + ' ' + ( options % params )
       rescue RuntimeError

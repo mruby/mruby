@@ -60,6 +60,10 @@ Higher NDK version will be use.
     @params = params
   end
 
+  def host_windows?
+    ENV['OS'] == 'Windows_NT'
+  end
+
   def bin_gcc(command)
     command = command.to_s
 
@@ -153,14 +157,6 @@ Higher NDK version will be use.
 
   def host_platform
     @host_platform ||= case RUBY_PLATFORM
-      when /cygwin|mswin|mingw|bccwin|wince|emx/i
-        path = home_path.join('toolchains', 'llvm' , 'prebuilt', 'windows*')
-        Dir.glob(path.to_s){ |item|
-          next if File.file?(item)
-          path = Pathname.new(item)
-          break
-        }
-        path.basename
       when /x86_64-darwin/i
         'darwin-x86_64'
       when /darwin/i
@@ -170,7 +166,17 @@ Higher NDK version will be use.
       when /linux/i
         'linux-x86'
       else
-        raise NotImplementedError, "Unknown host platform (#{RUBY_PLATFORM})"
+        if host_windows?
+          path = home_path.join('toolchains', 'llvm' , 'prebuilt', 'windows*')
+          Dir.glob(path.to_s){ |item|
+            next if File.file?(item)
+            path = Pathname.new(item)
+            break
+          }
+          path.basename
+        else
+          raise NotImplementedError, "Unknown host platform (#{RUBY_PLATFORM})"
+        end
       end
   end
 
@@ -298,8 +304,7 @@ Higher NDK version will be use.
   def cflags
     flags = []
 
-    case RUBY_PLATFORM
-    when /mswin|mingw|win32/
+    if host_windows?
       # Build for Android dont need window flag
       flags += %W(-U_WIN32 -U_WIN64)
     end
