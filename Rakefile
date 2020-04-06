@@ -120,6 +120,7 @@ task :all => depfiles do
     print_build_summary
   end
   MRuby::Lockfile.write
+  MRuby::Lockfile.print_new_version
 end
 
 desc "run all mruby tests"
