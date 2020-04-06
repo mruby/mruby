@@ -10,6 +10,7 @@ module MRuby
 
 		def self.add_taskbin(build_exe, bin_exe)
 			return if MRuby::Build.current.kind_of?(MRuby::CrossBuild)
+			return if [build_exe, bin_exe].any?(&:nil?)
 			unless BIN_TASK.map(&:values).include?(build_exe)
 				BIN_TASK << { src: build_exe, output: bin_exe }
 			end

@@ -1,11 +1,11 @@
 require "mruby-core-ext"
 require "mruby/build/load_gems"
 require "mruby/build/command"
-require "mruby/build/exec_tools.rb"
 
 module MRuby
   autoload :Gem, "mruby/gem"
   autoload :Lockfile, "mruby/lockfile"
+  autoload :ExecTools, "mruby/exec_tools"
 
   class << self
     def targets

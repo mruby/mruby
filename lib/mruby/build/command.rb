@@ -36,13 +36,13 @@ module MRuby
 
     private
     def _run(options, params={})
+      cmd_line = command + ' ' + ( options % params )
       if NotFoundCommands.key? @command
-        cmd_line = command + ' ' + ( options % params )
         warn cmd_line
         return sh cmd_line
       end
       begin
-        sh cmd_string
+        sh cmd_line
       rescue RuntimeError
         NotFoundCommands[@command] = true
         _run options, params
