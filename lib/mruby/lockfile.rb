@@ -61,10 +61,10 @@ module MRuby
       end
 
       history = flatten_builds[refresh_builds, flatten_builds].compact
-      list = MRuby::ExecTools.list_build
+      list = list_build(MRuby::Build::BUILD_DIR)
       return if history.empty? || list.empty?
 
-      avaible = Hash.new
+      available = Hash.new
       list.each do |name_build|
         past = history.find { |build| build.keys.include?(name_build) }
         next unless past
@@ -73,15 +73,15 @@ module MRuby
         src_version = MRuby::Source::MRUBY_VERSION
 
         if past[name_build] < MRuby::Source::MRUBY_RELEASE_NO
-          avaible[dest_version] = src_version
+          available[dest_version] = src_version
         end
       end
 
-      return if avaible.empty?
+      return if available.empty?
 
       puts "================================================"
       puts " Upgrade Version Avaible"
-      avaible.each { |version| puts "%20s to %s" % version }
+      available.each { |version| puts "%20s to %s" % version }
       puts "================================================"
     end
 
@@ -113,6 +113,10 @@ module MRuby
       end
 
       mruby
+    end
+
+    def list_build(path)
+      Pathname.new(path).children(false).map(&:to_s)
     end
 
     enable

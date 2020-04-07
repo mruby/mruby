@@ -48,13 +48,14 @@ module MRuby
 
     alias libmruby libmruby_objs
 
+    BUILD_DIR = ENV['MRUBY_BUILD_DIR'] || "#{MRUBY_ROOT}/build"
     COMPILERS = %w(cc cxx objc asm)
     COMMANDS = COMPILERS + %w(linker archiver yacc gperf git exts mrbc)
     attr_block MRuby::Build::COMMANDS
 
     Exts = Struct.new(:object, :executable, :library)
 
-    def initialize(name='host', build_dir=nil, &block)
+    def initialize(name='host', build_dir=BUILD_DIR, &block)
       @name = name.to_s
 
       unless MRuby.targets[@name]
@@ -63,8 +64,6 @@ module MRuby
         else
           @exts = Exts.new('.o', '', '.a')
         end
-
-        build_dir = build_dir || MRuby::ExecTools::BUILD_PATH
 
         @file_separator = '/'
         @build_dir = "#{build_dir}/#{@name}"
