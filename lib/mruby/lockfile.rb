@@ -17,9 +17,9 @@ module MRuby
         @enabled
       end
 
-      def build(target_name)
-        instance.build(target_name)
-      end
+      # def build(target_name)
+      #   instance.build(target_name)
+      # end
 
       def write
         instance.write if enabled?
@@ -43,9 +43,9 @@ module MRuby
       read.empty? ? false : @builds
     end
 
-    def build(target_name)
-      read[target_name] ||= {}
-    end
+    # def build(target_name)
+    #   read[target_name] ||= {}
+    # end
 
     def write
       locks = Hash.new
