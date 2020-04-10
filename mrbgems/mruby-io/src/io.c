@@ -1155,6 +1155,7 @@ mrb_io_s_select(mrb_state *mrb, mrb_value klass)
     for (i = 0; i < RARRAY_LEN(read); i++) {
       read_io = RARRAY_PTR(read)[i];
       fptr = io_get_open_fptr(mrb, read_io);
+      if (fptr->fd >= FD_SETSIZE) continue;
       FD_SET(fptr->fd, rp);
       if (mrb_io_read_data_pending(mrb, read_io)) {
         pending++;
@@ -1177,6 +1178,7 @@ mrb_io_s_select(mrb_state *mrb, mrb_value klass)
     FD_ZERO(wp);
     for (i = 0; i < RARRAY_LEN(write); i++) {
       fptr = io_get_open_fptr(mrb, RARRAY_PTR(write)[i]);
+      if (fptr->fd >= FD_SETSIZE) continue;
       FD_SET(fptr->fd, wp);
       if (max < fptr->fd)
         max = fptr->fd;
@@ -1196,6 +1198,7 @@ mrb_io_s_select(mrb_state *mrb, mrb_value klass)
     FD_ZERO(ep);
     for (i = 0; i < RARRAY_LEN(except); i++) {
       fptr = io_get_open_fptr(mrb, RARRAY_PTR(except)[i]);
+      if (fptr->fd >= FD_SETSIZE) continue;
       FD_SET(fptr->fd, ep);
       if (max < fptr->fd)
         max = fptr->fd;
