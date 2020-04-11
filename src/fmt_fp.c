@@ -37,9 +37,19 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <mruby.h>
 #include <mruby/string.h>
 
+struct fmt_args;
+
+typedef void output_func(struct fmt_args *f, const char *s, size_t l);
+
 struct fmt_args {
   mrb_state *mrb;
-  mrb_value str;
+  output_func *output;
+  void *opaque;
+};
+
+struct mrb_cstr {
+  char *buf;
+  size_t len;
 };
 
 #define MAX(a,b) ((a)>(b) ? (a) : (b))
@@ -56,10 +66,37 @@ struct fmt_args {
 
 #define FLAGMASK (ALT_FORM|ZERO_PAD|LEFT_ADJ|PAD_POS|MARK_POS)
 
+static output_func strcat_value;
+static output_func strcat_cstr;
+
+static void
+strcat_value(struct fmt_args *f, const char *s, size_t l)
+{
+  mrb_value str = *(mrb_value*)f->opaque;
+  mrb_str_cat(f->mrb, str, s, l);
+}
+
+static void
+strcat_cstr(struct fmt_args *f, const char *s, size_t l)
+{
+  struct mrb_cstr *cstr = (struct mrb_cstr*)f->opaque;
+
+  if (l > cstr->len) {
+    mrb_state *mrb = f->mrb;
+
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "string buffer too small");
+  }
+
+  memcpy(cstr->buf, s, l);
+
+  cstr->buf += l;
+  cstr->len -= l;
+}
+
 static void
 out(struct fmt_args *f, const char *s, size_t l)
 {
-  mrb_str_cat(f->mrb, f->str, s, l);
+  f->output(f, s, l);
 }
 
 #define PAD_SIZE 256
@@ -377,13 +414,33 @@ MRB_API mrb_value
 mrb_float_to_str(mrb_state *mrb, mrb_value flo, const char *fmt)
 {
   struct fmt_args f;
+  mrb_value str = mrb_str_new_capa(mrb, 24);
 
   f.mrb = mrb;
-  f.str = mrb_str_new_capa(mrb, 24);
+  f.output = strcat_value;
+  f.opaque = (void*)&str;
   if (fmt_core(&f, fmt, mrb_float(flo)) < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid format string");
   }
-  return f.str;
+  return str;
+}
+
+MRB_API int
+mrb_float_to_cstr(mrb_state *mrb, char *buf, size_t len, const char *fmt, mrb_float fval)
+{
+  struct fmt_args f;
+  struct mrb_cstr cstr;
+
+  cstr.buf = buf;
+  cstr.len = len - 1; /* reserve NUL terminator */
+  f.mrb = mrb;
+  f.output = strcat_cstr;
+  f.opaque = (void*)&cstr;
+  if (fmt_core(&f, fmt, fval) < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid format string");
+  }
+  *cstr.buf = '\0';
+  return cstr.buf - buf;
 }
 #else   /* MRB_DISABLE_STDIO || _WIN32 || _WIN64 */
 #include <mruby.h>
@@ -396,6 +453,12 @@ mrb_float_to_str(mrb_state *mrb, mrb_value flo, const char *fmt)
 
   snprintf(buf, sizeof(buf), fmt, mrb_float(flo));
   return mrb_str_new_cstr(mrb, buf);
+}
+
+MRB_API int
+mrb_float_to_cstr(mrb_state *mrb, char *buf, size_t len, const char *fmt, mrb_float fval)
+{
+  return snprintf(buf, len, fmt, fval);
 }
 #endif  /* MRB_DISABLE_STDIO || _WIN32 || _WIN64 */
 #endif
