@@ -359,7 +359,7 @@ fmt_core(struct fmt_args *f, const char *fmt, mrb_float flo)
   }
 }
 
-mrb_value
+MRB_API mrb_value
 mrb_float_to_str(mrb_state *mrb, mrb_value flo, const char *fmt)
 {
   struct fmt_args f;
@@ -375,7 +375,7 @@ mrb_float_to_str(mrb_state *mrb, mrb_value flo, const char *fmt)
 #include <mruby.h>
 #include <stdio.h>
 
-mrb_value
+MRB_API mrb_value
 mrb_float_to_str(mrb_state *mrb, mrb_value flo, const char *fmt)
 {
   char buf[25];
