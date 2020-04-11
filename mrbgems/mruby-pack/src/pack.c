@@ -3,11 +3,6 @@
  */
 
 #include <mruby.h>
-
-#ifdef MRB_DISABLE_STDIO
-# error pack/unpack conflicts 'MRB_DISABLE_STDIO' configuration in your 'build_config.rb'
-#endif
-
 #include "mruby/error.h"
 #include "mruby/array.h"
 #include "mruby/class.h"
@@ -217,6 +212,59 @@ pack_l(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int fl
   return 4;
 }
 
+#ifndef MRB_INT64
+static void
+u32tostr(char *buf, size_t len, uint32_t n)
+{
+#ifdef MRB_DISABLE_STDIO
+  char *bufend = buf + len;
+  char *p = bufend - 1;
+
+  if (len < 1) {
+    return;
+  }
+
+  *p -- = '\0';
+  len --;
+
+  if (n > 0) {
+    for (; len > 0 && n > 0; len --, n /= 10) {
+      *p -- = '0' + (n % 10);
+    }
+    p ++;
+  }
+  else if (len > 0) {
+    *p = '0';
+    len --;
+  }
+
+  memmove(buf, p, bufend - p);
+#else
+  snprintf(buf, len, "%" PRIu32, n);
+#endif /* MRB_DISABLE_STDIO */
+}
+
+static void
+i32tostr(char *buf, size_t len, int32_t n)
+{
+#ifdef MRB_DISABLE_STDIO
+  if (len < 1) {
+    return;
+  }
+
+  if (n < 0) {
+    *buf ++ = '-';
+    len --;
+    n = -n;
+  }
+
+  u32tostr(buf, len, (uint32_t)n);
+#else
+  snprintf(buf, len, "%" PRId32, n);
+#endif /* MRB_DISABLE_STDIO */
+}
+#endif /* MRB_INT64 */
+
 static int
 unpack_l(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
 {
@@ -241,16 +289,16 @@ unpack_l(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
     int32_t sl = ul;
 #ifndef MRB_INT64
     if (!FIXABLE(sl)) {
-      snprintf(msg, sizeof(msg), "cannot unpack to Fixnum: %" PRId32, sl);
-      mrb_raise(mrb, E_RANGE_ERROR, msg);
+      i32tostr(msg, sizeof(msg), sl);
+      mrb_raisef(mrb, E_RANGE_ERROR, "cannot unpack to Fixnum: %s", msg);
     }
 #endif
     n = sl;
   } else {
 #ifndef MRB_INT64
     if (!POSFIXABLE(ul)) {
-      snprintf(msg, sizeof(msg), "cannot unpack to Fixnum: %" PRIu32, ul);
-      mrb_raise(mrb, E_RANGE_ERROR, msg);
+      u32tostr(msg, sizeof(msg), ul);
+      mrb_raisef(mrb, E_RANGE_ERROR, "cannot unpack to Fixnum: %s", msg);
     }
 #endif
     n = ul;
@@ -288,6 +336,57 @@ pack_q(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int fl
   return 8;
 }
 
+static void
+u64tostr(char *buf, size_t len, uint64_t n)
+{
+#ifdef MRB_DISABLE_STDIO
+  char *bufend = buf + len;
+  char *p = bufend - 1;
+
+  if (len < 1) {
+    return;
+  }
+
+  *p -- = '\0';
+  len --;
+
+  if (n > 0) {
+    for (; len > 0 && n > 0; len --, n /= 10) {
+      *p -- = '0' + (n % 10);
+    }
+    p ++;
+  }
+  else if (len > 0) {
+    *p = '0';
+    len --;
+  }
+
+  memmove(buf, p, bufend - p);
+#else
+  snprintf(buf, len, "%" PRIu64, n);
+#endif /* MRB_DISABLE_STDIO */
+}
+
+static void
+i64tostr(char *buf, size_t len, int64_t n)
+{
+#ifdef MRB_DISABLE_STDIO
+  if (len < 1) {
+    return;
+  }
+
+  if (n < 0) {
+    *buf ++ = '-';
+    len --;
+    n = -n;
+  }
+
+  u64tostr(buf, len, (uint64_t)n);
+#else
+  snprintf(buf, len, "%" PRId64, n);
+#endif /* MRB_DISABLE_STDIO */
+}
+
 static int
 unpack_q(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
 {
@@ -311,14 +410,14 @@ unpack_q(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
   if (flags & PACK_FLAG_SIGNED) {
     int64_t sll = ull;
     if (!FIXABLE(sll)) {
-      snprintf(msg, sizeof(msg), "cannot unpack to Fixnum: %" PRId64, sll);
-      mrb_raise(mrb, E_RANGE_ERROR, msg);
+      i64tostr(msg, sizeof(msg), sll);
+      mrb_raisef(mrb, E_RANGE_ERROR, "cannot unpack to Fixnum: %s", msg);
     }
     n = sll;
   } else {
     if (!POSFIXABLE(ull)) {
-      snprintf(msg, sizeof(msg), "cannot unpack to Fixnum: %" PRIu64, ull);
-      mrb_raise(mrb, E_RANGE_ERROR, msg);
+      u64tostr(msg, sizeof(msg), ull);
+      mrb_raisef(mrb, E_RANGE_ERROR, "cannot unpack to Fixnum: %s", msg);
     }
     n = ull;
   }
