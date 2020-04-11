@@ -54,6 +54,8 @@ struct fmt_args {
 #define PAD_POS    (1U<<(' '-' '))
 #define MARK_POS   (1U<<('+'-' '))
 
+#define FLAGMASK (ALT_FORM|ZERO_PAD|LEFT_ADJ|PAD_POS|MARK_POS)
+
 static void
 out(struct fmt_args *f, const char *s, size_t l)
 {
@@ -62,7 +64,7 @@ out(struct fmt_args *f, const char *s, size_t l)
 
 #define PAD_SIZE 256
 static void
-pad(struct fmt_args *f, char c, ptrdiff_t w, ptrdiff_t l, uint8_t fl)
+pad(struct fmt_args *f, char c, ptrdiff_t w, ptrdiff_t l, uint32_t fl)
 {
   char pad[PAD_SIZE];
   if (fl & (LEFT_ADJ | ZERO_PAD) || l >= w) return;
@@ -92,7 +94,7 @@ typedef char compiler_defines_long_double_incorrectly[9-(int)sizeof(long double)
 #endif
 
 static int
-fmt_fp(struct fmt_args *f, long double y, ptrdiff_t w, ptrdiff_t p, uint8_t fl, int t)
+fmt_fp(struct fmt_args *f, long double y, ptrdiff_t w, ptrdiff_t p, uint32_t fl, int t)
 {
   uint32_t big[(LDBL_MANT_DIG+28)/29 + 1          // mantissa expansion
     + (LDBL_MAX_EXP+LDBL_MANT_DIG+28+8)/9]; // exponent expansion
@@ -334,11 +336,19 @@ static int
 fmt_core(struct fmt_args *f, const char *fmt, mrb_float flo)
 {
   ptrdiff_t w, p;
+  uint32_t fl;
 
   if (*fmt != '%') {
     return -1;
   }
   ++fmt;
+
+  /* Read modifier flags */
+  for (fl=0; (unsigned)*fmt-' '<32 && (FLAGMASK&(1U<<(*fmt-' '))); fmt++)
+    fl |= 1U<<(*fmt-' ');
+
+  /* - and 0 flags are mutually exclusive */
+  if (fl & LEFT_ADJ) fl &= ~ZERO_PAD;
 
   for (w = 0; ISDIGIT(*fmt); ++fmt) {
     w = 10 * w + (*fmt - '0');
@@ -357,7 +367,7 @@ fmt_core(struct fmt_args *f, const char *fmt, mrb_float flo)
   switch (*fmt) {
   case 'e': case 'f': case 'g': case 'a':
   case 'E': case 'F': case 'G': case 'A':
-    return fmt_fp(f, flo, w, p, 0, *fmt);
+    return fmt_fp(f, flo, w, p, fl, *fmt);
   default:
     return -1;
   }
