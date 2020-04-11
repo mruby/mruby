@@ -92,7 +92,7 @@ typedef char compiler_defines_long_double_incorrectly[9-(int)sizeof(long double)
 #endif
 
 static int
-fmt_fp(struct fmt_args *f, long double y, ptrdiff_t p, uint8_t fl, int t)
+fmt_fp(struct fmt_args *f, long double y, ptrdiff_t w, ptrdiff_t p, uint8_t fl, int t)
 {
   uint32_t big[(LDBL_MANT_DIG+28)/29 + 1          // mantissa expansion
     + (LDBL_MAX_EXP+LDBL_MANT_DIG+28+8)/9]; // exponent expansion
@@ -117,11 +117,11 @@ fmt_fp(struct fmt_args *f, long double y, ptrdiff_t p, uint8_t fl, int t)
   if (!isfinite(y)) {
     const char *ss = (t&32)?"inf":"INF";
     if (y!=y) ss=(t&32)?"nan":"NAN";
-    pad(f, ' ', 0, 3+pl, fl&~ZERO_PAD);
+    pad(f, ' ', w, 3+pl, fl&~ZERO_PAD);
     out(f, prefix, pl);
     out(f, ss, 3);
-    pad(f, ' ', 0, 3+pl, fl^LEFT_ADJ);
-    return 3+(int)pl;
+    pad(f, ' ', w, 3+pl, fl^LEFT_ADJ);
+    return MAX(w, 3+(int)pl);
   }
 
   y = frexp((double)y, &e2) * 2;
@@ -169,14 +169,14 @@ fmt_fp(struct fmt_args *f, long double y, ptrdiff_t p, uint8_t fl, int t)
     else
       l = (s-buf) + (ebuf-estr);
 
-    pad(f, ' ', 0, pl+l, fl);
+    pad(f, ' ', w, pl+l, fl);
     out(f, prefix, pl);
-    pad(f, '0', 0, pl+l, fl^ZERO_PAD);
+    pad(f, '0', w, pl+l, fl^ZERO_PAD);
     out(f, buf, s-buf);
     pad(f, '0', l-(ebuf-estr)-(s-buf), 0, 0);
     out(f, estr, ebuf-estr);
-    pad(f, ' ', 0, pl+l, fl^LEFT_ADJ);
-    return (int)pl+(int)l;
+    pad(f, ' ', w, pl+l, fl^LEFT_ADJ);
+    return MAX(w, (int)pl+(int)l);
   }
   if (p<0) p=6;
 
@@ -288,9 +288,9 @@ fmt_fp(struct fmt_args *f, long double y, ptrdiff_t p, uint8_t fl, int t)
     l += ebuf-estr;
   }
 
-  pad(f, ' ', 0, pl+l, fl);
+  pad(f, ' ', w, pl+l, fl);
   out(f, prefix, pl);
-  pad(f, '0', 0, pl+l, fl^ZERO_PAD);
+  pad(f, '0', w, pl+l, fl^ZERO_PAD);
 
   if ((t|32)=='f') {
     if (a>r) a=r;
@@ -325,20 +325,24 @@ fmt_fp(struct fmt_args *f, long double y, ptrdiff_t p, uint8_t fl, int t)
     out(f, estr, ebuf-estr);
   }
 
-  pad(f, ' ', 0, pl+l, fl^LEFT_ADJ);
+  pad(f, ' ', w, pl+l, fl^LEFT_ADJ);
 
-  return (int)pl+(int)l;
+  return MAX(w, (int)pl+(int)l);
 }
 
 static int
 fmt_core(struct fmt_args *f, const char *fmt, mrb_float flo)
 {
-  ptrdiff_t p;
+  ptrdiff_t w, p;
 
   if (*fmt != '%') {
     return -1;
   }
   ++fmt;
+
+  for (w = 0; ISDIGIT(*fmt); ++fmt) {
+    w = 10 * w + (*fmt - '0');
+  }
 
   if (*fmt == '.') {
     ++fmt;
@@ -353,7 +357,7 @@ fmt_core(struct fmt_args *f, const char *fmt, mrb_float flo)
   switch (*fmt) {
   case 'e': case 'f': case 'g': case 'a':
   case 'E': case 'F': case 'G': case 'A':
-    return fmt_fp(f, flo, p, 0, *fmt);
+    return fmt_fp(f, flo, w, p, 0, *fmt);
   default:
     return -1;
   }
