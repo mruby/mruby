@@ -1416,7 +1416,7 @@ heredoc_end(parser_state *p)
 
 %type <nd> singleton string string_fragment string_rep string_interp xstring regexp
 %type <nd> literal numeric cpath symbol
-%type <nd> top_compstmt top_stmts top_stmt
+%type <nd> top_compstmt top_stmts top_stmt rassign
 %type <nd> bodystmt compstmt stmts stmt expr arg primary command command_call method_call
 %type <nd> expr_value arg_rhs primary_value
 %type <nd> if_tail opt_else case_body cases opt_rescue exc_list exc_var opt_ensure
@@ -1658,9 +1658,30 @@ stmt            : keyword_alias fsym {p->lstate = EXPR_FNAME;} fsym
                     {
                       $$ = new_masgn(p, $1, new_array(p, $3));
                     }
+                | rassign
                 | expr
                 ;
 
+rassign         : arg tASSOC lhs
+                    {
+                      void_expr_error(p, $1);
+                      $$ = new_asgn(p, $3, $1);
+                    }
+                | arg tASSOC mlhs
+                    {
+                      void_expr_error(p, $1);
+                      $$ = new_masgn(p, $3, $1);
+                    }
+                | rassign tASSOC lhs
+                    {
+                      $$ = new_asgn(p, $3, $1);
+                    }
+                | rassign tASSOC mlhs
+                    {
+                      $$ = new_masgn(p, $3, $1);
+                    }
+                ;
+ 
 command_asgn    : lhs '=' command_rhs
                     {
                       $$ = new_asgn(p, $1, $3);
