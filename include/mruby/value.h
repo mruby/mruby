@@ -149,6 +149,13 @@ typedef void mrb_value;
 
 #endif
 
+#if defined(MRB_WORD_BOXING) || (defined(MRB_NAN_BOXING) && defined(MRB_64BIT))
+struct RCptr {
+  MRB_OBJECT_HEADER;
+  void *p;
+};
+#endif
+
 #if defined(MRB_NAN_BOXING)
 #include "boxing_nan.h"
 #elif defined(MRB_WORD_BOXING)

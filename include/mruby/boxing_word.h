@@ -18,11 +18,6 @@ struct RFloat {
 };
 #endif
 
-struct RCptr {
-  MRB_OBJECT_HEADER;
-  void *p;
-};
-
 enum mrb_special_consts {
   MRB_Qnil    =  0,
   MRB_Qfalse  =  4,
