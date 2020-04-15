@@ -103,6 +103,46 @@ MRuby.each_target do |target|
   end
 end
 
+cfiles = (Dir.glob("#{MRUBY_ROOT}/src/*.c")+
+          Dir.glob("#{MRUBY_ROOT}/build/*/mrbgems/**/{src,core}/*.c")).uniq
+presym_file="#{MRUBY_ROOT}/build/presym"
+desc "preallocated symbols"
+file presym_file =>  cfiles do
+  symbols = cfiles.map do |f|
+    src = File.read(f)
+    [src.scan(/intern_lit\([^\n"]*"([^\n "]*)"/),
+     src.scan(/mrb_define_method\([^\n"]*"([^\n"]*)"/),
+     src.scan(/mrb_define_class\([^\n"]*"([^\n"]*)"/),
+     src.scan(/mrb_define_module\([^\n"]*"([^\n"]*)"/),
+     src.scan(/MRB_SYM\([a-zA-Z0-9_]*\)"/)]
+  end
+  symbols = symbols.flatten.uniq.sort
+  presyms = File.readlines(presym_file, chomp: true) rescue []
+  if presyms != symbols
+    File.write(presym_file, symbols.join("\n"))
+  end
+end
+
+presym_inc=presym_file+".inc"
+file presym_inc => presym_file do
+  presyms = File.readlines(presym_file, chomp: true)
+  File.open(presym_inc, "w") do |f|
+    f.print "/* MRB_PRESYM_CSYM(sym, num) - symbol which is valid C id name */\n"
+    f.print "/* MRB_PRESYM_SYM(sym, num) - symbol which is not valid C id */\n\n"
+    presyms.each.with_index do |sym,i|
+      if /\A[a-zA-Z0-9_]+\Z/ =~ sym
+        f.print "MRB_PRESYM_CSYM(#{sym}, #{i+1})\n"
+      else
+        f.print "MRB_PRESYM_SYM(#{sym}, #{i+1})\n"
+      end
+    end
+    f.print "#define MRB_PRESYM_MAX #{presyms.size}"
+  end
+end
+
+task :gensym => presym_inc
+depfiles += ["gensym"]
+
 depfiles += MRuby.targets.map { |n, t|
   t.libraries
 }.flatten
