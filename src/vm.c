@@ -648,8 +648,7 @@ eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
   }
   ci = mrb->c->ci;
   if (ci->acc == CI_ACC_DIRECT) {
-    ci->target_class = c;
-    return mrb_yield_cont(mrb, blk, self, 1, &self);
+    return mrb_yield_with_class(mrb, blk, 1, &self, self, c);
   }
   ci->target_class = c;
   p = mrb_proc_ptr(blk);
