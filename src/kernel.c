@@ -325,7 +325,7 @@ mrb_obj_clone(mrb_state *mrb, mrb_value self)
   mrb_value clone;
 
   if (mrb_immediate_p(self)) {
-    mrb_raisef(mrb, E_TYPE_ERROR, "can't clone %v", self);
+    return self;
   }
   if (mrb_sclass_p(self)) {
     mrb_raise(mrb, E_TYPE_ERROR, "can't clone singleton class");
@@ -366,7 +366,7 @@ mrb_obj_dup(mrb_state *mrb, mrb_value obj)
   mrb_value dup;
 
   if (mrb_immediate_p(obj)) {
-    mrb_raisef(mrb, E_TYPE_ERROR, "can't dup %v", obj);
+    return obj;
   }
   if (mrb_sclass_p(obj)) {
     mrb_raise(mrb, E_TYPE_ERROR, "can't dup singleton class");

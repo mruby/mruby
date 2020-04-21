@@ -197,17 +197,6 @@ assert('Kernel#dup', '15.3.1.3.9') do
   a.set(2)
   c = a.dup
 
-  immutables = [ 1, :foo, true, false, nil ]
-  error_count = 0
-  immutables.each do |i|
-    begin
-      i.dup
-    rescue TypeError
-      error_count += 1
-    end
-  end
-
-  assert_equal immutables.size, error_count
   assert_equal 2, a.get
   assert_equal 1, b.get
   assert_equal 2, c.get
