@@ -101,18 +101,9 @@ mrb_obj_instance_exec(mrb_state *mrb, mrb_value self)
   struct RClass *c;
 
   mrb_get_args(mrb, "*&!", &argv, &argc, &blk);
-
-  switch (mrb_type(self)) {
-  case MRB_TT_SYMBOL:
-  case MRB_TT_FIXNUM:
-#ifndef MRB_WITHOUT_FLOAT
-  case MRB_TT_FLOAT:
-#endif
-    c = NULL;
-    break;
-  default:
-    c = mrb_class_ptr(mrb_singleton_class(mrb, self));
-    break;
+  c = mrb_singleton_class_ptr(mrb, self);
+  if (mrb->c->ci->acc < 0) {
+    return mrb_yield_with_class(mrb, blk, argc, argv, self, c);
   }
   mrb->c->ci->target_class = c;
   return mrb_yield_cont(mrb, blk, self, argc, argv);
