@@ -317,7 +317,9 @@ MRB_API struct RClass *mrb_define_class(mrb_state *mrb, const char *name, struct
  * @return [struct RClass *] Reference to the newly defined module.
  */
 MRB_API struct RClass *mrb_define_module(mrb_state *mrb, const char *name);
+
 MRB_API mrb_value mrb_singleton_class(mrb_state *mrb, mrb_value val);
+MRB_API struct RClass *mrb_singleton_class_ptr(mrb_state *mrb, mrb_value val);
 
 /**
  * Include a module in another class or module.
