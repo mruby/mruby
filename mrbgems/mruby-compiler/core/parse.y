@@ -730,7 +730,19 @@ new_module(parser_state *p, node *m, node *b)
 static node*
 new_def(parser_state *p, mrb_sym m, node *a, node *b)
 {
-  return list5((node*)NODE_DEF, nsym(m), locals_node(p), a, b);
+  return list5((node*)NODE_DEF, nsym(m), 0, a, b);
+}
+
+static void
+defn_setup(parser_state *p, node *d, node *a, node *b)
+{
+  node *n = d->cdr->cdr;
+
+  n->car = locals_node(p);
+  p->cmdarg_stack = intn(n->cdr->car);
+  n->cdr->car = a;
+  local_resume(p, n->cdr->cdr->car);
+  n->cdr->cdr->car = b;
 }
 
 /* (:sdef obj m lv (arg . body)) */
@@ -738,7 +750,19 @@ static node*
 new_sdef(parser_state *p, node *o, mrb_sym m, node *a, node *b)
 {
   void_expr_error(p, o);
-  return list6((node*)NODE_SDEF, o, nsym(m), locals_node(p), a, b);
+  return list6((node*)NODE_SDEF, o, nsym(m), 0, a, b);
+}
+
+static void
+defs_setup(parser_state *p, node *d, node *a, node *b)
+{
+  node *n = d->cdr->cdr->cdr;
+
+  n->car = locals_node(p);
+  p->cmdarg_stack = intn(n->cdr->car);
+  n->cdr->car = a;
+  local_resume(p, n->cdr->cdr->car);
+  n->cdr->cdr->car = b;
 }
 
 /* (:arg . sym) */
@@ -1415,7 +1439,7 @@ heredoc_end(parser_state *p)
 %token <num> tNUMPARAM
 
 %type <nd> singleton string string_fragment string_rep string_interp xstring regexp
-%type <nd> literal numeric cpath symbol
+%type <nd> literal numeric cpath symbol defn_head defs_head
 %type <nd> top_compstmt top_stmts top_stmt rassign
 %type <nd> bodystmt compstmt stmts stmt expr arg primary command command_call method_call
 %type <nd> expr_value arg_rhs primary_value
@@ -1425,7 +1449,7 @@ heredoc_end(parser_state *p)
 %type <nd> command_args aref_args opt_block_arg block_arg var_ref var_lhs
 %type <nd> command_asgn command_rhs mrhs superclass block_call block_command
 %type <nd> f_block_optarg f_block_opt
-%type <nd> f_arglist f_args f_arg f_arg_item f_optarg f_margs
+%type <nd> f_arglist_paren f_arglist f_args f_arg f_arg_item f_optarg f_margs
 %type <nd> assoc_list assocs assoc undef_list backref for_var
 %type <nd> block_param opt_block_param block_param_def f_opt
 %type <nd> bv_decls opt_bv_decl bvar f_larglist lambda_body
@@ -1681,7 +1705,7 @@ rassign         : arg tASSOC lhs
                       $$ = new_masgn(p, $3, $1);
                     }
                 ;
- 
+
 command_asgn    : lhs '=' command_rhs
                     {
                       $$ = new_asgn(p, $1, $3);
@@ -1745,6 +1769,31 @@ expr            : command_call
                       $$ = call_uni_op(p, cond($2), "!");
                     }
                 | arg
+                ;
+
+
+defn_head       : keyword_def fname
+                    {
+                      $$ = new_def(p, $2, nint(p->cmdarg_stack), local_switch(p));
+                      p->cmdarg_stack = 0;
+                      p->in_def++;
+                      nvars_block(p);
+                    }
+                ;
+
+defs_head       : keyword_def singleton dot_or_colon
+                    {
+                      p->lstate = EXPR_FNAME;
+                    }
+                    fname
+                    {
+                      $$ = new_sdef(p, $2, $5, nint(p->cmdarg_stack), local_switch(p));
+                      p->cmdarg_stack = 0;
+                      p->in_def++;
+                      p->in_single++;
+                      nvars_block(p);
+                      p->lstate = EXPR_ENDFN; /* force for args */
+                    }
                 ;
 
 expr_value      : expr
@@ -2267,6 +2316,21 @@ arg             : lhs '=' arg_rhs
                     {
                       $$ = new_if(p, cond($1), $3, $6);
                     }
+                | defn_head f_arglist_paren '=' arg
+                    {
+                      $$ = $1;
+                      defn_setup(p, $$, $2, $4);
+                      nvars_unnest(p);
+                      p->in_def--;
+                    }
+                | defs_head f_arglist_paren '=' arg
+                    {
+                      $$ = $1;
+                      defs_setup(p, $$, $2, $4);
+                      nvars_unnest(p);
+                      p->in_def--;
+                      p->in_single--;
+                    }
                 | primary
                     {
                       $$ = $1;
@@ -2666,50 +2730,26 @@ primary         : literal
                       local_resume(p, $<nd>3);
                       nvars_unnest(p);
                     }
-                | keyword_def fname
-                    {
-                      $<stack>$ = p->cmdarg_stack;
-                      p->cmdarg_stack = 0;
-                    }
-                    {
-                      p->in_def++;
-                      $<nd>$ = local_switch(p);
-                      nvars_block(p);
-                    }
+                | defn_head
                   f_arglist
                   bodystmt
                   keyword_end
                     {
-                      $$ = new_def(p, $2, $5, $6);
-                      SET_LINENO($$, $1);
-                      local_resume(p, $<nd>4);
+                      $$ = $1;
+                      defn_setup(p, $$, $2, $3);
                       nvars_unnest(p);
                       p->in_def--;
-                      p->cmdarg_stack = $<stack>3;
                     }
-                | keyword_def singleton dot_or_colon
-                    {
-                      p->lstate = EXPR_FNAME;
-                      $<stack>$ = p->cmdarg_stack;
-                      p->cmdarg_stack = 0;
-                    }
-                    fname
-                    {
-                      p->in_single++;
-                      p->lstate = EXPR_ENDFN; /* force for args */
-                      $<nd>$ = local_switch(p);
-                      nvars_block(p);
-                    }
+                | defs_head
                   f_arglist
                   bodystmt
                   keyword_end
                     {
-                      $$ = new_sdef(p, $2, $5, $7, $8);
-                      SET_LINENO($$, $1);
-                      local_resume(p, $<nd>6);
+                      $$ = $1;
+                      defs_setup(p, $$, $2, $3);
                       nvars_unnest(p);
+                      p->in_def--;
                       p->in_single--;
-                      p->cmdarg_stack = $<stack>4;
                     }
                 | keyword_break
                     {
@@ -3420,7 +3460,7 @@ superclass      : /* term */
                     } */
                 ;
 
-f_arglist       : '(' f_args rparen
+f_arglist_paren : '(' f_args rparen
                     {
                       $$ = $2;
                       p->lstate = EXPR_BEG;
@@ -3444,6 +3484,9 @@ f_arglist       : '(' f_args rparen
                                     new_args_tail(p, 0, new_kw_rest_args(p, nsym(k)), b));
 #endif
                     }
+                ;
+
+f_arglist       : f_arglist_paren
                 | f_args term
                     {
                       $$ = $1;
