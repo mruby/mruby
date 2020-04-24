@@ -338,7 +338,7 @@ ecall(mrb_state *mrb)
   uint16_t i = --c->eidx;
   int nregs;
 
-  if (i<0) return;
+  mrb_assert(i != UINT16_MAX);
   /* restrict total call depth of ecall() */
   if (++mrb->ecall_nest > MRB_ECALL_DEPTH_MAX) {
     mrb_exc_raise(mrb, mrb_obj_value(mrb->stack_err));
