@@ -239,6 +239,7 @@ MRB_API mrb_value mrb_ary_entry(mrb_value ary, mrb_int offset);
  * @param head Beginning position of a replacement subsequence.
  * @param len Length of a replacement subsequence.
  * @param rpl The array of replacement elements.
+ *            It is possible to pass `mrb_undef_value()` instead of an empty array.
  * @return The receiver array.
  */
 MRB_API mrb_value mrb_ary_splice(mrb_state *mrb, mrb_value self, mrb_int head, mrb_int len, mrb_value rpl);
