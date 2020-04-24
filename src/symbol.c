@@ -12,6 +12,36 @@
 #include <mruby/dump.h>
 #include <mruby/class.h>
 
+#undef MRB_PRESYM_MAX
+#define MRB_PRESYM_CSYM(sym, num) #sym,
+#define MRB_PRESYM_SYM(sym, num) #sym,
+
+static const char *presym_table[] = {
+#include <../build/presym.inc>
+  NULL
+};
+
+static mrb_sym
+presym_find(const char *name)
+{
+  /* use linear search for now */
+  /* binary search should work better */
+  int i;
+
+  for (i=0; presym_table[i]; i++) {
+    if (strcmp(presym_table[i], name)==0)
+      return i+1;
+  }
+  return 0;
+}
+
+static const char*
+presym_sym2name(mrb_sym sym)
+{
+  if (sym > MRB_PRESYM_MAX) return NULL;
+  return presym_table[sym-1];
+}
+
 /* ------------------------------------------------------ */
 typedef struct symbol_name {
   mrb_bool lit : 1;
@@ -130,6 +160,11 @@ find_symbol(mrb_state *mrb, const char *name, size_t len, uint8_t *hashp)
   symbol_name *sname;
   uint8_t hash;
 
+  /* presym */
+  if (strlen(name) == len) {
+    i = presym_find(name);
+    if (i > 0) return i<<SYMBOL_NORMAL_SHIFT;
+  }
   /* inline symbol */
   i = sym_inline_pack(name, len);
   if (i > 0) return i;
@@ -142,7 +177,7 @@ find_symbol(mrb_state *mrb, const char *name, size_t len, uint8_t *hashp)
   do {
     sname = &mrb->symtbl[i];
     if (sname->len == len && memcmp(sname->name, name, len) == 0) {
-      return i<<SYMBOL_NORMAL_SHIFT;
+      return (i+MRB_PRESYM_MAX)<<SYMBOL_NORMAL_SHIFT;
     }
     if (sname->prev == 0xff) {
       i -= 0xff;
@@ -205,7 +240,7 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
   }
   mrb->symhash[hash] = mrb->symidx = sym;
 
-  return sym<<SYMBOL_NORMAL_SHIFT;
+  return (sym+MRB_PRESYM_MAX)<<SYMBOL_NORMAL_SHIFT;
 }
 
 MRB_API mrb_sym
@@ -261,6 +296,15 @@ sym2name_len(mrb_state *mrb, mrb_sym sym, char *buf, mrb_int *lenp)
   if (SYMBOL_INLINE_P(sym)) return sym_inline_unpack(sym, buf, lenp);
 
   sym >>= SYMBOL_NORMAL_SHIFT;
+  {
+    const char *name = presym_sym2name(sym);
+    if (name) {
+      if (lenp) *lenp = strlen(name);
+      return name;
+    }
+  }
+  sym -= MRB_PRESYM_MAX;
+  
   if (sym == 0 || mrb->symidx < sym) {
     if (lenp) *lenp = 0;
     return NULL;
