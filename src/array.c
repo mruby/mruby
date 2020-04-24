@@ -732,6 +732,10 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
       argv = ARY_PTR(r);
     }
   }
+  else if (mrb_undef_p(rpl)) {
+    argc = 0;
+    argv = NULL;
+  }
   else {
     argc = 1;
     argv = &rpl;
