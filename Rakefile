@@ -104,6 +104,7 @@ MRuby.each_target do |target|
 end
 
 cfiles = (Dir.glob("#{MRUBY_ROOT}/src/*.c")+
+          Dir.glob("#{MRUBY_ROOT}/mrbgems/*/{core,src}/*.c")+
           Dir.glob("#{MRUBY_ROOT}/build/*/mrbgems/**/{src,core}/*.c")).uniq
 presym_file="#{MRUBY_ROOT}/build/presym"
 desc "preallocated symbols"
@@ -114,7 +115,7 @@ file presym_file =>  cfiles do
      src.scan(/mrb_define_method\([^\n"]*"([^\n"]*)"/),
      src.scan(/mrb_define_class\([^\n"]*"([^\n"]*)"/),
      src.scan(/mrb_define_module\([^\n"]*"([^\n"]*)"/),
-     src.scan(/MRB_SYM\([a-zA-Z0-9_]*\)"/)]
+     src.scan(/MRB_SYM\(([a-zA-Z0-9_]+)\)/)]
   end
   symbols = symbols.flatten.uniq.sort
   presyms = File.readlines(presym_file, chomp: true) rescue []
@@ -123,6 +124,7 @@ file presym_file =>  cfiles do
   end
 end
 
+file presym_file => cfiles
 presym_inc=presym_file+".inc"
 file presym_inc => presym_file do
   presyms = File.readlines(presym_file, chomp: true)
