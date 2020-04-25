@@ -467,7 +467,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     c = mrb_class(mrb, self);
     m = mrb_method_search_vm(mrb, &c, mid);
     if (MRB_METHOD_UNDEF_P(m)) {
-      mrb_sym missing = mrb_intern_lit(mrb, "method_missing");
+      mrb_sym missing = MRB_SYM(method_missing);
       mrb_value args = mrb_ary_new_from_values(mrb, argc, argv);
       m = mrb_method_search_vm(mrb, &c, missing);
       if (MRB_METHOD_UNDEF_P(m)) {
@@ -1364,7 +1364,7 @@ RETRY_TRY_BLOCK:
       cls = mrb_class(mrb, recv);
       m = mrb_method_search_vm(mrb, &cls, mid);
       if (MRB_METHOD_UNDEF_P(m)) {
-        mrb_sym missing = mrb_intern_lit(mrb, "method_missing");
+        mrb_sym missing = MRB_SYM(method_missing);
         m = mrb_method_search_vm(mrb, &cls, missing);
         if (MRB_METHOD_UNDEF_P(m) || (missing == mrb->c->ci->mid && mrb_obj_eq(mrb, regs[0], recv))) {
           mrb_value args = (argc < 0) ? regs[a+1] : mrb_ary_new_from_values(mrb, c, regs+a+1);
@@ -1547,7 +1547,7 @@ RETRY_TRY_BLOCK:
       cls = target_class->super;
       m = mrb_method_search_vm(mrb, &cls, mid);
       if (MRB_METHOD_UNDEF_P(m)) {
-        mrb_sym missing = mrb_intern_lit(mrb, "method_missing");
+        mrb_sym missing = MRB_SYM(method_missing);
 
         if (mid != missing) {
           cls = mrb_class(mrb, recv);

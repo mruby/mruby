@@ -379,11 +379,11 @@ assign_class_name(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
   if (namespace_p(obj->tt) && namespace_p(mrb_type(v))) {
     struct RObject *c = mrb_obj_ptr(v);
     if (obj != c && ISUPPER(mrb_sym_name_len(mrb, sym, NULL)[0])) {
-      mrb_sym id_classname = mrb_intern_lit(mrb, "__classname__");
+      mrb_sym id_classname = MRB_SYM(__classname__);
       mrb_value o = mrb_obj_iv_get(mrb, c, id_classname);
 
       if (mrb_nil_p(o)) {
-        mrb_sym id_outer = mrb_intern_lit(mrb, "__outer__");
+        mrb_sym id_outer = MRB_SYM(__outer__);
         o = mrb_obj_iv_get(mrb, c, id_outer);
 
         if (mrb_nil_p(o)) {
@@ -643,8 +643,7 @@ mrb_mod_cv_get(mrb_state *mrb, struct RClass *c, mrb_sym sym)
   if (cls && cls->tt == MRB_TT_SCLASS) {
     mrb_value klass;
 
-    klass = mrb_obj_iv_get(mrb, (struct RObject *)cls,
-                           mrb_intern_lit(mrb, "__attached__"));
+    klass = mrb_obj_iv_get(mrb, (struct RObject *)cls, MRB_SYM(__attached__));
     c = mrb_class_ptr(klass);
     if (c->tt == MRB_TT_CLASS || c->tt == MRB_TT_MODULE) {
       given = FALSE;
@@ -688,8 +687,7 @@ mrb_mod_cv_set(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value v)
   if (cls && cls->tt == MRB_TT_SCLASS) {
     mrb_value klass;
 
-    klass = mrb_obj_iv_get(mrb, (struct RObject*)cls,
-                           mrb_intern_lit(mrb, "__attached__"));
+    klass = mrb_obj_iv_get(mrb, (struct RObject*)cls, MRB_SYM(__attached__));
     switch (mrb_type(klass)) {
     case MRB_TT_CLASS:
     case MRB_TT_MODULE:
@@ -803,7 +801,7 @@ L_RETRY:
     goto L_RETRY;
   }
   name = mrb_symbol_value(sym);
-  return mrb_funcall_argv(mrb, mrb_obj_value(base), mrb_intern_lit(mrb, "const_missing"), 1, &name);
+  return mrb_funcall_argv(mrb, mrb_obj_value(base), MRB_SYM(const_missing), 1, &name);
 }
 
 MRB_API mrb_value
@@ -829,7 +827,7 @@ mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
   while (c2 && c2->tt == MRB_TT_SCLASS) {
     mrb_value klass;
 
-    if (!iv_get(mrb, c2->iv, mrb_intern_lit(mrb, "__attached__"), &klass)) {
+    if (!iv_get(mrb, c2->iv, MRB_SYM(__attached__), &klass)) {
       c2 = NULL;
       break;
     }
@@ -1070,7 +1068,7 @@ outer_class(mrb_state *mrb, struct RClass *c)
 {
   mrb_value ov;
 
-  ov = mrb_obj_iv_get(mrb, (struct RObject*)c, mrb_intern_lit(mrb, "__outer__"));
+  ov = mrb_obj_iv_get(mrb, (struct RObject*)c, MRB_SYM(__outer__));
   if (mrb_nil_p(ov)) return NULL;
   switch (mrb_type(ov)) {
   case MRB_TT_CLASS:
@@ -1120,8 +1118,8 @@ mrb_class_find_path(mrb_state *mrb, struct RClass *c)
   str = mrb_sym_name_len(mrb, name, &len);
   mrb_str_cat(mrb, path, str, len);
   if (RSTRING_PTR(path)[0] != '#') {
-    iv_del(mrb, c->iv, mrb_intern_lit(mrb, "__outer__"), NULL);
-    iv_put(mrb, c->iv, mrb_intern_lit(mrb, "__classname__"), path);
+    iv_del(mrb, c->iv, MRB_SYM(__outer__), NULL);
+    iv_put(mrb, c->iv, MRB_SYM(__classname__), path);
     mrb_field_write_barrier_value(mrb, (struct RBasic*)c, path);
     path = mrb_str_dup(mrb, path);
   }

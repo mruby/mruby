@@ -737,7 +737,7 @@ for_body(codegen_scope *s, node *tree)
   genop_2(s, OP_BLOCK, cursp(), s->irep->rlen-1);
   push();pop(); /* space for a block */
   pop();
-  idx = new_sym(s, mrb_intern_lit(s->mrb, "each"));
+  idx = new_sym(s, MRB_SYM(each));
   genop_3(s, OP_SENDB, cursp(), idx, 0);
 }
 
@@ -1489,14 +1489,14 @@ codegen(codegen_scope *s, node *tree, int val)
               gen_move(s, cursp(), exc, 0);
               push_n(2); pop_n(2); /* space for one arg and a block */
               pop();
-              genop_3(s, OP_SEND, cursp(), new_sym(s, mrb_intern_lit(s->mrb, "__case_eqq")), 1);
+              genop_3(s, OP_SEND, cursp(), new_sym(s, MRB_SYM(__case_eqq)), 1);
             }
             else {
               if (n4) {
                 codegen(s, n4->car, VAL);
               }
               else {
-                genop_2(s, OP_GETCONST, cursp(), new_sym(s, mrb_intern_lit(s->mrb, "StandardError")));
+                genop_2(s, OP_GETCONST, cursp(), new_sym(s, MRB_SYM(StandardError)));
                 push();
               }
               pop();
@@ -1739,7 +1739,7 @@ codegen(codegen_scope *s, node *tree, int val)
             gen_move(s, cursp(), head, 0);
             push(); push(); pop(); pop(); pop();
             if (nint(n->car->car) == NODE_SPLAT) {
-              genop_3(s, OP_SEND, cursp(), new_sym(s, mrb_intern_lit(s->mrb, "__case_eqq")), 1);
+              genop_3(s, OP_SEND, cursp(), new_sym(s, MRB_SYM(__case_eqq)), 1);
             }
             else {
               genop_3(s, OP_SEND, cursp(), new_sym(s, mrb_intern_lit(s->mrb, "===")), 1);
@@ -2266,7 +2266,7 @@ codegen(codegen_scope *s, node *tree, int val)
       pop_n(n+1);
       genop_2S(s, OP_BLKPUSH, cursp(), (ainfo<<4)|(lv & 0xf));
       if (sendv) n = CALL_MAXARGS;
-      genop_3(s, OP_SEND, cursp(), new_sym(s, mrb_intern_lit(s->mrb, "call")), n);
+      genop_3(s, OP_SEND, cursp(), new_sym(s, MRB_SYM(call)), n);
       if (val) push();
     }
     break;
@@ -2618,7 +2618,7 @@ codegen(codegen_scope *s, node *tree, int val)
     {
       node *n;
       int ai = mrb_gc_arena_save(s->mrb);
-      int sym = new_sym(s, mrb_intern_lit(s->mrb, "Kernel"));
+      int sym = new_sym(s, MRB_SYM(Kernel));
 
       genop_1(s, OP_LOADSELF, cursp());
       push();
@@ -2698,7 +2698,7 @@ codegen(codegen_scope *s, node *tree, int val)
       }
       push(); /* space for a block */
       pop_n(argc+2);
-      sym = new_sym(s, mrb_intern_lit(s->mrb, "compile"));
+      sym = new_sym(s, MRB_SYM(compile));
       genop_3(s, OP_SEND, cursp(), sym, argc);
       mrb_gc_arena_restore(s->mrb, ai);
       push();
@@ -2752,7 +2752,7 @@ codegen(codegen_scope *s, node *tree, int val)
       }
       push(); /* space for a block */
       pop_n(argc+2);
-      sym = new_sym(s, mrb_intern_lit(s->mrb, "compile"));
+      sym = new_sym(s, MRB_SYM(compile));
       genop_3(s, OP_SEND, cursp(), sym, argc);
       mrb_gc_arena_restore(s->mrb, ai);
       push();

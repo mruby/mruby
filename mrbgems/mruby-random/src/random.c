@@ -144,7 +144,7 @@ random_check(mrb_state *mrb, mrb_value random) {
 static mrb_value
 random_default(mrb_state *mrb) {
   struct RClass *c = mrb_class_get(mrb, "Random");
-  mrb_value d = mrb_const_get(mrb, mrb_obj_value(c), mrb_intern_lit(mrb, "DEFAULT"));
+  mrb_value d = mrb_const_get(mrb, mrb_obj_value(c), MRB_SYM(DEFAULT));
   if (!mrb_obj_is_kind_of(mrb, d, c)) {
     mrb_raise(mrb, E_TYPE_ERROR, "Random::DEFAULT replaced");
   }
@@ -401,7 +401,7 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, array, "shuffle!", mrb_ary_shuffle_bang, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, array, "sample", mrb_ary_sample, MRB_ARGS_OPT(2));
 
-  mrb_const_set(mrb, mrb_obj_value(random), mrb_intern_lit(mrb, "DEFAULT"),
+  mrb_const_set(mrb, mrb_obj_value(random), MRB_SYM(DEFAULT),
           mrb_obj_new(mrb, random, 0, NULL));
 }
 

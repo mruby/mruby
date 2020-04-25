@@ -114,7 +114,7 @@ mrb_print_backtrace(mrb_state *mrb)
     return;
   }
 
-  backtrace = mrb_obj_iv_get(mrb, mrb->exc, mrb_intern_lit(mrb, "backtrace"));
+  backtrace = mrb_obj_iv_get(mrb, mrb->exc, MRB_SYM(backtrace));
   if (mrb_nil_p(backtrace)) return;
   if (!mrb_array_p(backtrace)) backtrace = mrb_unpack_backtrace(mrb, backtrace);
   print_backtrace(mrb, mrb->exc, backtrace);
@@ -171,7 +171,7 @@ packed_backtrace(mrb_state *mrb)
 void
 mrb_keep_backtrace(mrb_state *mrb, mrb_value exc)
 {
-  mrb_sym sym = mrb_intern_lit(mrb, "backtrace");
+  mrb_sym sym = MRB_SYM(backtrace);
   mrb_value backtrace;
   int ai;
 
@@ -221,7 +221,7 @@ mrb_exc_backtrace(mrb_state *mrb, mrb_value exc)
   mrb_sym attr_name;
   mrb_value backtrace;
 
-  attr_name = mrb_intern_lit(mrb, "backtrace");
+  attr_name = MRB_SYM(backtrace);
   backtrace = mrb_iv_get(mrb, exc, attr_name);
   if (mrb_nil_p(backtrace) || mrb_array_p(backtrace)) {
     return backtrace;

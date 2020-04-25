@@ -58,7 +58,7 @@ void
 mrb_class_name_class(mrb_state *mrb, struct RClass *outer, struct RClass *c, mrb_sym id)
 {
   mrb_value name;
-  mrb_sym nsym = mrb_intern_lit(mrb, "__classname__");
+  mrb_sym nsym = MRB_SYM(__classname__);
 
   if (mrb_obj_iv_defined(mrb, (struct RObject*)c, nsym)) return;
   if (outer == NULL || outer == mrb->object_class) {
@@ -68,7 +68,7 @@ mrb_class_name_class(mrb_state *mrb, struct RClass *outer, struct RClass *c, mrb
     name = mrb_class_path(mrb, outer);
     if (mrb_nil_p(name)) {      /* unnamed outer class */
       if (outer != mrb->object_class && outer != c) {
-        mrb_obj_iv_set_force(mrb, (struct RObject*)c, mrb_intern_lit(mrb, "__outer__"),
+        mrb_obj_iv_set_force(mrb, (struct RObject*)c, MRB_SYM(__outer__),
                              mrb_obj_value(outer));
       }
       return;
@@ -132,7 +132,7 @@ prepare_singleton_class(mrb_state *mrb, struct RBasic *o)
   o->c = sc;
   mrb_field_write_barrier(mrb, (struct RBasic*)o, (struct RBasic*)sc);
   mrb_field_write_barrier(mrb, (struct RBasic*)sc, (struct RBasic*)o);
-  mrb_obj_iv_set(mrb, (struct RObject*)sc, mrb_intern_lit(mrb, "__attached__"), mrb_obj_value(o));
+  mrb_obj_iv_set(mrb, (struct RObject*)sc, MRB_SYM(__attached__), mrb_obj_value(o));
   sc->flags |= o->flags & MRB_FL_OBJ_IS_FROZEN;
 }
 
@@ -302,7 +302,7 @@ mrb_class_inherited(mrb_state *mrb, struct RClass *super, struct RClass *klass)
   super->flags |= MRB_FL_CLASS_IS_INHERITED;
   s = mrb_obj_value(super);
   mrb_mc_clear_by_class(mrb, klass);
-  mid = mrb_intern_lit(mrb, "inherited");
+  mid = MRB_SYM(inherited);
   if (!mrb_func_basic_p(mrb, s, mid, mrb_bob_init)) {
     mrb_value c = mrb_obj_value(klass);
     mrb_funcall_argv(mrb, s, mid, 1, &c);
@@ -1578,7 +1578,7 @@ mrb_instance_new(mrb_state *mrb, mrb_value cv)
 
   mrb_get_args(mrb, "*!&", &argv, &argc, &blk);
   obj = mrb_instance_alloc(mrb, cv);
-  init = mrb_intern_lit(mrb, "initialize");
+  init = MRB_SYM(initialize);
   if (!mrb_func_basic_p(mrb, obj, init, mrb_bob_init)) {
     mrb_funcall_with_block(mrb, obj, init, argc, argv, blk);
   }
@@ -1592,7 +1592,7 @@ mrb_obj_new(mrb_state *mrb, struct RClass *c, mrb_int argc, const mrb_value *arg
   mrb_sym mid;
 
   obj = mrb_instance_alloc(mrb, mrb_obj_value(c));
-  mid = mrb_intern_lit(mrb, "initialize");
+  mid = MRB_SYM(initialize);
   if (!mrb_func_basic_p(mrb, obj, mid, mrb_bob_init)) {
     mrb_funcall_argv(mrb, obj, mid, argc, argv);
   }
@@ -1624,7 +1624,7 @@ mrb_class_new_class(mrb_state *mrb, mrb_value cv)
     super = mrb_obj_value(mrb->object_class);
   }
   new_class = mrb_obj_value(mrb_class_new(mrb, mrb_class_ptr(super)));
-  mid = mrb_intern_lit(mrb, "initialize");
+  mid = MRB_SYM(initialize);
   if (mrb_func_basic_p(mrb, new_class, mid, mrb_class_initialize)) {
     mrb_class_initialize(mrb, new_class);
   }
@@ -1722,7 +1722,7 @@ MRB_API mrb_value
 mrb_class_path(mrb_state *mrb, struct RClass *c)
 {
   mrb_value path;
-  mrb_sym nsym = mrb_intern_lit(mrb, "__classname__");
+  mrb_sym nsym = MRB_SYM(__classname__);
 
   path = mrb_obj_iv_get(mrb, (struct RObject*)c, nsym);
   if (mrb_nil_p(path)) {
@@ -1891,7 +1891,7 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
 {
 
   if (mrb_sclass_p(klass)) {
-    mrb_value v = mrb_iv_get(mrb, klass, mrb_intern_lit(mrb, "__attached__"));
+    mrb_value v = mrb_iv_get(mrb, klass, MRB_SYM(__attached__));
     mrb_value str = mrb_str_new_lit(mrb, "#<Class:");
 
     if (class_ptr_p(v)) {
@@ -2239,8 +2239,8 @@ init_class_new(mrb_state *mrb, struct RClass *cls)
 
   *new_irep = mrb_irep_zero;
   new_irep->syms = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym)*2);
-  new_irep->syms[0] = mrb_intern_lit(mrb, "allocate");
-  new_irep->syms[1] = mrb_intern_lit(mrb, "initialize");
+  new_irep->syms[0] = MRB_SYM(allocate);
+  new_irep->syms[1] = MRB_SYM(initialize);
   new_irep->slen = 2;
   new_irep->flags = MRB_ISEQ_NO_FREE;
   new_irep->iseq = new_iseq;
@@ -2249,7 +2249,7 @@ init_class_new(mrb_state *mrb, struct RClass *cls)
   new_irep->nlocals = 3;
   p = mrb_proc_new(mrb, new_irep);
   MRB_METHOD_FROM_PROC(m, p);
-  mrb_define_method_raw(mrb, cls, mrb_intern_lit(mrb, "new"), m);
+  mrb_define_method_raw(mrb, cls, MRB_SYM(new), m);
 }
 
 void
@@ -2279,10 +2279,10 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_const(mrb, obj, "Class",       mrb_obj_value(cls));
 
   /* name each classes */
-  mrb_class_name_class(mrb, NULL, bob, mrb_intern_lit(mrb, "BasicObject"));
-  mrb_class_name_class(mrb, NULL, obj, mrb_intern_lit(mrb, "Object")); /* 15.2.1 */
-  mrb_class_name_class(mrb, NULL, mod, mrb_intern_lit(mrb, "Module")); /* 15.2.2 */
-  mrb_class_name_class(mrb, NULL, cls, mrb_intern_lit(mrb, "Class"));  /* 15.2.3 */
+  mrb_class_name_class(mrb, NULL, bob, MRB_SYM(BasicObject));
+  mrb_class_name_class(mrb, NULL, obj, MRB_SYM(Object)); /* 15.2.1 */
+  mrb_class_name_class(mrb, NULL, mod, MRB_SYM(Module)); /* 15.2.2 */
+  mrb_class_name_class(mrb, NULL, cls, MRB_SYM(Class));  /* 15.2.3 */
 
   mrb->proc_class = mrb_define_class(mrb, "Proc", mrb->object_class);  /* 15.2.17 */
   MRB_SET_INSTANCE_TT(mrb->proc_class, MRB_TT_PROC);

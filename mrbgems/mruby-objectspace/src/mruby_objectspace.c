@@ -71,8 +71,8 @@ os_count_objects(mrb_state *mrb, mrb_value self)
 
   mrb_objspace_each_objects(mrb, os_count_object_type, &obj_count);
 
-  mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "TOTAL")), mrb_fixnum_value(obj_count.total));
-  mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "FREE")), mrb_fixnum_value(obj_count.freed));
+  mrb_hash_set(mrb, hash, mrb_symbol_value(MRB_SYM(TOTAL)), mrb_fixnum_value(obj_count.total));
+  mrb_hash_set(mrb, hash, mrb_symbol_value(MRB_SYM(FREE)), mrb_fixnum_value(obj_count.freed));
 
   for (i = MRB_TT_FALSE; i < MRB_TT_MAXDEFINE; i++) {
     mrb_value type;

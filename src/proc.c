@@ -200,7 +200,7 @@ mrb_proc_s_new(mrb_state *mrb, mrb_value proc_class)
   p = (struct RProc *)mrb_obj_alloc(mrb, MRB_TT_PROC, mrb_class_ptr(proc_class));
   mrb_proc_copy(p, mrb_proc_ptr(blk));
   proc = mrb_obj_value(p);
-  mrb_funcall_with_block(mrb, proc, mrb_intern_lit(mrb, "initialize"), 0, NULL, proc);
+  mrb_funcall_with_block(mrb, proc, MRB_SYM(initialize), 0, NULL, proc);
   if (!MRB_PROC_STRICT_P(p) &&
       mrb->c->ci > mrb->c->cibase && MRB_PROC_ENV(p) == mrb->c->ci[-1].env) {
     p->flags |= MRB_PROC_ORPHAN;
@@ -325,7 +325,7 @@ mrb_init_proc(mrb_state *mrb)
   p = mrb_proc_new(mrb, call_irep);
   irep_obj->data = NULL;
   MRB_METHOD_FROM_PROC(m, p);
-  mrb_define_method_raw(mrb, mrb->proc_class, mrb_intern_lit(mrb, "call"), m);
+  mrb_define_method_raw(mrb, mrb->proc_class, MRB_SYM(call), m);
   mrb_define_method_raw(mrb, mrb->proc_class, mrb_intern_lit(mrb, "[]"), m);
 
   mrb_define_class_method(mrb, mrb->kernel_module, "lambda", proc_lambda, MRB_ARGS_NONE()|MRB_ARGS_BLOCK()); /* 15.3.1.2.6  */
