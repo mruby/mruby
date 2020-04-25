@@ -45,7 +45,7 @@ exc_initialize(mrb_state *mrb, mrb_value exc)
   mrb_value mesg;
 
   if (mrb_get_args(mrb, "|o", &mesg) == 1) {
-    mrb_iv_set(mrb, exc, mrb_intern_lit(mrb, "mesg"), mesg);
+    mrb_iv_set(mrb, exc, MRB_SYM(mesg), mesg);
   }
   return exc;
 }
@@ -74,7 +74,7 @@ exc_exception(mrb_state *mrb, mrb_value self)
   if (argc == 0) return self;
   if (mrb_obj_equal(mrb, self, a)) return self;
   exc = mrb_obj_clone(mrb, self);
-  mrb_iv_set(mrb, exc, mrb_intern_lit(mrb, "mesg"), a);
+  mrb_iv_set(mrb, exc, MRB_SYM(mesg), a);
 
   return exc;
 }
@@ -90,7 +90,7 @@ exc_exception(mrb_state *mrb, mrb_value self)
 mrb_value
 exc_to_s(mrb_state *mrb, mrb_value exc)
 {
-  mrb_value mesg = mrb_attr_get(mrb, exc, mrb_intern_lit(mrb, "mesg"));
+  mrb_value mesg = mrb_attr_get(mrb, exc, MRB_SYM(mesg));
   struct RObject *p;
 
   if (!mrb_string_p(mesg)) {
@@ -130,7 +130,7 @@ exc_message(mrb_state *mrb, mrb_value exc)
 mrb_value
 mrb_exc_inspect(mrb_state *mrb, mrb_value exc)
 {
-  mrb_value mesg = mrb_attr_get(mrb, exc, mrb_intern_lit(mrb, "mesg"));
+  mrb_value mesg = mrb_attr_get(mrb, exc, MRB_SYM(mesg));
   mrb_value cname = mrb_mod_to_s(mrb, mrb_obj_value(mrb_obj_class(mrb, exc)));
   mesg = mrb_obj_as_string(mrb, mesg);
   return RSTRING_LEN(mesg) == 0 ? cname : mrb_format(mrb, "%v (%v)", mesg, cname);
@@ -154,7 +154,7 @@ set_backtrace(mrb_state *mrb, mrb_value exc, mrb_value backtrace)
       p++;
     }
   }
-  mrb_iv_set(mrb, exc, mrb_intern_lit(mrb, "backtrace"), backtrace);
+  mrb_iv_set(mrb, exc, MRB_SYM(backtrace), backtrace);
 }
 
 static mrb_value
@@ -474,7 +474,7 @@ mrb_make_exception(mrb_state *mrb, mrb_int argc, const mrb_value *argv)
       n = 1;
 exception_call:
       {
-        mrb_sym exc = mrb_intern_lit(mrb, "exception");
+        mrb_sym exc = MRB_SYM(exception);
         if (mrb_respond_to(mrb, argv[0], exc)) {
           mesg = mrb_funcall_argv(mrb, argv[0], exc, n, argv+1);
         }

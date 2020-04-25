@@ -89,6 +89,7 @@
 #include <mruby/common.h>
 #include <mruby/value.h>
 #include <mruby/gc.h>
+#include <mruby/presym.h>
 #include <mruby/version.h>
 
 #ifndef MRB_WITHOUT_FLOAT

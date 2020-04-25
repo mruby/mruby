@@ -667,7 +667,7 @@ main(int argc, char **argv)
         }
         else {
           /* no */
-          if (!mrb_respond_to(mrb, result, mrb_intern_lit(mrb, "inspect"))){
+          if (!mrb_respond_to(mrb, result, MRB_SYM(inspect))){
             result = mrb_any_to_s(mrb, result);
           }
           p(mrb, result, 1);

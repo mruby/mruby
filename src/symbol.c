@@ -13,6 +13,8 @@
 #include <mruby/class.h>
 
 #undef MRB_PRESYM_MAX
+#undef MRB_PRESYM_CSYM
+#undef MRB_PRESYM_SYM
 #define MRB_PRESYM_CSYM(sym, num) #sym,
 #define MRB_PRESYM_SYM(sym, num) #sym,
 

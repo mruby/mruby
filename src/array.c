@@ -1312,11 +1312,11 @@ init_ary_each(mrb_state *mrb, struct RClass *ary)
 
   *each_irep = mrb_irep_zero;
   each_irep->syms = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym)*5);
-  each_irep->syms[0] = mrb_intern_lit(mrb, "each");
-  each_irep->syms[1] = mrb_intern_lit(mrb, "to_enum");
+  each_irep->syms[0] = MRB_SYM(each);
+  each_irep->syms[1] = MRB_SYM(to_enum);
   each_irep->syms[2] = mrb_intern_lit(mrb, "[]");
-  each_irep->syms[3] = mrb_intern_lit(mrb, "call");
-  each_irep->syms[4] = mrb_intern_lit(mrb, "length");
+  each_irep->syms[3] = MRB_SYM(call);
+  each_irep->syms[4] = MRB_SYM(length);
   each_irep->slen = 5;
   each_irep->flags = MRB_ISEQ_NO_FREE;
   each_irep->iseq = each_iseq;
@@ -1326,7 +1326,7 @@ init_ary_each(mrb_state *mrb, struct RClass *ary)
   p = mrb_proc_new(mrb, each_irep);
   p->flags |= MRB_PROC_SCOPE | MRB_PROC_STRICT;
   MRB_METHOD_FROM_PROC(m, p);
-  mrb_define_method_raw(mrb, ary, mrb_intern_lit(mrb, "each"), m);
+  mrb_define_method_raw(mrb, ary, MRB_SYM(each), m);
 }
 
 void

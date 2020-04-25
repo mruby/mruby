@@ -163,17 +163,17 @@ mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
     hints.ai_protocol = (int)mrb_fixnum(protocol);
   }
 
-  lastai = mrb_cv_get(mrb, klass, mrb_intern_lit(mrb, "_lastai"));
+  lastai = mrb_cv_get(mrb, klass, MRB_SYM(_lastai));
   if (mrb_cptr_p(lastai)) {
     freeaddrinfo((struct addrinfo*)mrb_cptr(lastai));
-    mrb_cv_set(mrb, klass, mrb_intern_lit(mrb, "_lastai"), mrb_nil_value());
+    mrb_cv_set(mrb, klass, MRB_SYM(_lastai), mrb_nil_value());
   }
 
   error = getaddrinfo(hostname, servname, &hints, &res0);
   if (error) {
     mrb_raisef(mrb, E_SOCKET_ERROR, "getaddrinfo: %s", gai_strerror(error));
   }
-  mrb_cv_set(mrb, klass, mrb_intern_lit(mrb, "_lastai"), mrb_cptr_value(mrb, res0));
+  mrb_cv_set(mrb, klass, MRB_SYM(_lastai), mrb_cptr_value(mrb, res0));
 
   for (res = res0; res != NULL; res = res->ai_next) {
     sa = mrb_str_new(mrb, (char*)res->ai_addr, res->ai_addrlen);
@@ -183,7 +183,7 @@ mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
   }
 
   freeaddrinfo(res0);
-  mrb_cv_set(mrb, klass, mrb_intern_lit(mrb, "_lastai"), mrb_nil_value());
+  mrb_cv_set(mrb, klass, MRB_SYM(_lastai), mrb_nil_value());
 
   return ary;
 }
@@ -347,7 +347,7 @@ mrb_basicsocket_getsockopt(mrb_state *mrb, mrb_value self)
   optlen = sizeof(opt);
   if (getsockopt(s, (int)level, (int)optname, opt, &optlen) == -1)
     mrb_sys_fail(mrb, "getsockopt");
-  c = mrb_const_get(mrb, mrb_obj_value(mrb_class_get(mrb, "Socket")), mrb_intern_lit(mrb, "Option"));
+  c = mrb_const_get(mrb, mrb_obj_value(mrb_class_get(mrb, "Socket")), MRB_SYM(Option));
   family = socket_family(s);
   data = mrb_str_new(mrb, opt, optlen);
   return mrb_funcall(mrb, c, "new", 4, mrb_fixnum_value(family), mrb_fixnum_value(level), mrb_fixnum_value(optname), data);
@@ -860,7 +860,7 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
 #endif
 
   ai = mrb_define_class(mrb, "Addrinfo", mrb->object_class);
-  mrb_mod_cv_set(mrb, ai, mrb_intern_lit(mrb, "_lastai"), mrb_nil_value());
+  mrb_mod_cv_set(mrb, ai, MRB_SYM(_lastai), mrb_nil_value());
   mrb_define_class_method(mrb, ai, "getaddrinfo", mrb_addrinfo_getaddrinfo, MRB_ARGS_REQ(2)|MRB_ARGS_OPT(4));
   mrb_define_method(mrb, ai, "getnameinfo", mrb_addrinfo_getnameinfo, MRB_ARGS_OPT(1));
 #ifndef _WIN32
@@ -946,7 +946,7 @@ void
 mrb_mruby_socket_gem_final(mrb_state* mrb)
 {
   mrb_value ai;
-  ai = mrb_mod_cv_get(mrb, mrb_class_get(mrb, "Addrinfo"), mrb_intern_lit(mrb, "_lastai"));
+  ai = mrb_mod_cv_get(mrb, mrb_class_get(mrb, "Addrinfo"), MRB_SYM(_lastai));
   if (mrb_cptr_p(ai)) {
     freeaddrinfo((struct addrinfo*)mrb_cptr(ai));
   }

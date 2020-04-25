@@ -33,7 +33,7 @@ mrb_func_basic_p(mrb_state *mrb, mrb_value obj, mrb_sym mid, mrb_func_t func)
 static mrb_bool
 mrb_obj_basic_to_s_p(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_func_basic_p(mrb, obj, mrb_intern_lit(mrb, "to_s"), mrb_any_to_s);
+  return mrb_func_basic_p(mrb, obj, MRB_SYM(to_s), mrb_any_to_s);
 }
 
 /* 15.3.1.3.17 */
@@ -240,7 +240,7 @@ mrb_singleton_class_clone(mrb_state *mrb, mrb_value obj)
     clone->super = klass->super;
     if (klass->iv) {
       mrb_iv_copy(mrb, mrb_obj_value(clone), mrb_obj_value(klass));
-      mrb_obj_iv_set(mrb, (struct RObject*)clone, mrb_intern_lit(mrb, "__attached__"), obj);
+      mrb_obj_iv_set(mrb, (struct RObject*)clone, MRB_SYM(__attached__), obj);
     }
     if (klass->mt) {
       clone->mt = kh_copy(mt, mrb, klass->mt);
@@ -294,7 +294,7 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
     case MRB_TT_MODULE:
       copy_class(mrb, dest, obj);
       mrb_iv_copy(mrb, dest, obj);
-      mrb_iv_remove(mrb, dest, mrb_intern_lit(mrb, "__classname__"));
+      mrb_iv_remove(mrb, dest, MRB_SYM(__classname__));
       break;
     case MRB_TT_OBJECT:
     case MRB_TT_SCLASS:

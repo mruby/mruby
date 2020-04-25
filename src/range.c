@@ -78,7 +78,7 @@ range_ptr_init(mrb_state *mrb, struct RRange *r, mrb_value beg, mrb_value end, m
   if (r) {
     if (RANGE_INITIALIZED_P(r)) {
       /* Ranges are immutable, so that they should be initialized only once. */
-      mrb_name_error(mrb, mrb_intern_lit(mrb, "initialize"), "'initialize' called twice");
+      mrb_name_error(mrb, MRB_SYM(initialize), "'initialize' called twice");
     }
     else {
       range_ptr_alloc_edges(mrb, r);

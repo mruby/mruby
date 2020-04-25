@@ -201,7 +201,7 @@ MRB_API void mrb_hash_merge(mrb_state *mrb, mrb_value hash1, mrb_value hash2);
 /* RHASH_TBL allocates st_table if not available. */
 #define RHASH(obj)   ((struct RHash*)(mrb_ptr(obj)))
 #define RHASH_TBL(h)          (RHASH(h)->ht)
-#define RHASH_IFNONE(h)       mrb_iv_get(mrb, (h), mrb_intern_lit(mrb, "ifnone"))
+#define RHASH_IFNONE(h)       mrb_iv_get(mrb, (h), MRB_SYM(ifnone))
 #define RHASH_PROCDEFAULT(h)  RHASH_IFNONE(h)
 
 #define MRB_HASH_DEFAULT      1
