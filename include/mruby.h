@@ -164,8 +164,8 @@ struct mrb_context {
   struct RProc **ensure;                  /* ensure handler stack */
   uint16_t esize, eidx;
 
-  enum mrb_fiber_state status;
-  mrb_bool vmexec;
+  enum mrb_fiber_state status : 4;
+  mrb_bool vmexec : 1;
   struct RFiber *fib;
 };
 
