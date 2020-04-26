@@ -106,25 +106,34 @@ end
 cfiles = (Dir.glob("#{MRUBY_ROOT}/src/*.c")+
           Dir.glob("#{MRUBY_ROOT}/mrbgems/*/{core,src}/*.c")+
           Dir.glob("#{MRUBY_ROOT}/build/*/mrbgems/**/{src,core}/*.c")).uniq
+rbfiles = (Dir.glob("#{MRUBY_ROOT}/mrblib/*.rb")+
+          Dir.glob("#{MRUBY_ROOT}/mrbgems/*/mrblib/*.rb")+
+          Dir.glob("#{MRUBY_ROOT}/build/*/mrbgems/**/mrblib/*.rb")).uniq
 presym_file="#{MRUBY_ROOT}/build/presym"
+predef_symbols = nil
 desc "preallocated symbols"
-file presym_file =>  cfiles do
-  symbols = cfiles.map do |f|
+file presym_file => cfiles+rbfiles do
+  csymbols = cfiles.map do |f|
     src = File.read(f)
     [src.scan(/intern_lit\([^\n"]*"([^\n "]*)"/),
      src.scan(/mrb_define_method\([^\n"]*"([^\n"]*)"/),
      src.scan(/mrb_define_class\([^\n"]*"([^\n"]*)"/),
      src.scan(/mrb_define_module\([^\n"]*"([^\n"]*)"/),
-     src.scan(/MRB_SYM\(([a-zA-Z0-9_]+)\)/)]
+     src.scan(/MRB_SYM\((\w+)\)/)]
   end
-  symbols = symbols.flatten.uniq.sort
+  rbsymbols = rbfiles.map do |f|
+    src = File.read(f)
+    [src.scan(/\bclass +([A-Z]\w*)/),
+     src.scan(/\bmodule +([A-Z]\w*)/),
+     src.scan(/\bdef +(\w+)/)]
+  end
+  symbols = (csymbols+rbsymbols).flatten.uniq.sort
   presyms = File.readlines(presym_file, chomp: true) rescue []
   if presyms != symbols
     File.write(presym_file, symbols.join("\n"))
   end
 end
 
-file presym_file => cfiles
 presym_inc=presym_file+".inc"
 file presym_inc => presym_file do
   presyms = File.readlines(presym_file, chomp: true)
@@ -132,7 +141,7 @@ file presym_inc => presym_file do
     f.print "/* MRB_PRESYM_CSYM(sym, num) - symbol which is valid C id name */\n"
     f.print "/* MRB_PRESYM_SYM(sym, num) - symbol which is not valid C id */\n\n"
     presyms.each.with_index do |sym,i|
-      if /\A[a-zA-Z0-9_]+\Z/ =~ sym
+      if /\A\w+\Z/ =~ sym
         f.print "MRB_PRESYM_CSYM(#{sym}, #{i+1})\n"
       else
         f.print "MRB_PRESYM_SYM(#{sym}, #{i+1})\n"
