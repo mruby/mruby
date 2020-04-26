@@ -26,13 +26,20 @@ static const char *presym_table[] = {
 static mrb_sym
 presym_find(const char *name)
 {
-  /* use linear search for now */
-  /* binary search should work better */
-  int i;
+  int start = 0;
+  int end = MRB_PRESYM_MAX-1;
 
-  for (i=0; presym_table[i]; i++) {
-    if (strcmp(presym_table[i], name)==0)
-      return i+1;
+  while (start<=end) {
+    int mid = (start+end)/2;
+    int cmp = strcmp(name, presym_table[mid]);
+
+    if (cmp == 0) {
+      return mid+1;
+    } else if (cmp < 0) {
+      end = mid-1;
+    } else {
+      start = mid+1;
+    }
   }
   return 0;
 }
