@@ -70,6 +70,7 @@ mkdtemp(char *temp)
 int wd_save;
 int socket_available_p;
 
+#if !defined(_WIN32) && !defined(_WIN64)
 static int mrb_io_socket_abailable()
 {
   int fd, retval = 1;
@@ -95,6 +96,7 @@ sock_test_out:
   close(fd);
   return retval;
 }
+#endif
 
 static mrb_value
 mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
@@ -111,7 +113,6 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
 #if !defined(_WIN32) && !defined(_WIN64)
   int fd2, fd3;
   struct sockaddr_un sun0;
-#endif
 
   if(!(socket_available_p = mrb_io_socket_abailable())) {
     char *tmpdir;
@@ -122,6 +123,7 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
     else
       assert(!chdir("/tmp"));
   }
+#endif
 
   mask = umask(077);
   fd0 = mkstemp(rfname);
@@ -217,10 +219,12 @@ mrb_io_test_io_cleanup(mrb_state *mrb, mrb_value self)
   mrb_gv_set(mrb, mrb_intern_cstr(mrb, "$mrbtest_io_socketname"), mrb_nil_value());
   mrb_gv_set(mrb, mrb_intern_cstr(mrb, "$mrbtest_io_msg"), mrb_nil_value());
 
+#if !defined(_WIN32) && !defined(_WIN64)
   if(!socket_available_p) {
     assert(!fchdir(wd_save));
     close(wd_save);
   }
+#endif
 
   return mrb_nil_value();
 }
