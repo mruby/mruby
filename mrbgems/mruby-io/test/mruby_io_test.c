@@ -1,6 +1,7 @@
 #include <mruby/common.h>
 #include <sys/types.h>
 #include <errno.h>
+#include <assert.h>
 
 #if defined(_WIN32) || defined(_WIN64)
 
@@ -57,6 +58,7 @@ mkdtemp(char *temp)
 
 #include <sys/stat.h>
 #include <stdlib.h>
+#include <fcntl.h>
 
 #include "mruby.h"
 #include "mruby/array.h"
@@ -65,9 +67,48 @@ mkdtemp(char *temp)
 #include "mruby/variable.h"
 #include <mruby/ext/io.h>
 
+int wd_save;
+int socket_available_p;
+
+static int mrb_io_socket_abailable()
+{
+  int fd, retval = 1;
+  struct sockaddr_un sun0;
+  char socketname[] = "tmp.mruby-io-socket-ok.XXXXXXXX";
+  if (!(fd = mkstemp(socketname))) {
+    retval = 0;
+    goto sock_test_out;
+  }
+  unlink(socketname);
+  close(fd);
+  fd = socket(AF_UNIX, SOCK_STREAM, 0);
+  if (fd == -1) {
+    retval = 0;
+    goto sock_test_out;
+  }
+  sun0.sun_family = AF_UNIX;
+  snprintf(sun0.sun_path, sizeof(sun0.sun_path), "%s", socketname);
+  if (bind(fd, (struct sockaddr *)&sun0, sizeof(sun0)) == -1) {
+    retval = 0;
+  }
+sock_test_out:
+  close(fd);
+  return retval;
+}
+
 static mrb_value
 mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
 {
+  if(!(socket_available_p = mrb_io_socket_abailable())) {
+    char *tmpdir;
+    wd_save = open(".", O_DIRECTORY);
+    tmpdir = getenv("TMPDIR");
+    if (tmpdir)
+      assert(!chdir(tmpdir));
+    else
+      assert(!chdir("/tmp"));
+  }
+
   char rfname[]      = "tmp.mruby-io-test-r.XXXXXXXX";
   char wfname[]      = "tmp.mruby-io-test-w.XXXXXXXX";
   char symlinkname[] = "tmp.mruby-io-test-l.XXXXXXXX";
@@ -175,6 +216,11 @@ mrb_io_test_io_cleanup(mrb_state *mrb, mrb_value self)
   mrb_gv_set(mrb, mrb_intern_cstr(mrb, "$mrbtest_io_symlinkname"), mrb_nil_value());
   mrb_gv_set(mrb, mrb_intern_cstr(mrb, "$mrbtest_io_socketname"), mrb_nil_value());
   mrb_gv_set(mrb, mrb_intern_cstr(mrb, "$mrbtest_io_msg"), mrb_nil_value());
+
+  if(!socket_available_p) {
+    assert(!fchdir(wd_save));
+    close(wd_save);
+  }
 
   return mrb_nil_value();
 }
