@@ -1,7 +1,6 @@
 #include <mruby/common.h>
 #include <sys/types.h>
 #include <errno.h>
-#include <assert.h>
 
 #if defined(_WIN32) || defined(_WIN64)
 
@@ -54,11 +53,12 @@ mkdtemp(char *temp)
   #include <sys/socket.h>
   #include <unistd.h>
   #include <sys/un.h>
+  #include <assert.h>
+  #include <fcntl.h>
 #endif
 
 #include <sys/stat.h>
 #include <stdlib.h>
-#include <fcntl.h>
 
 #include "mruby.h"
 #include "mruby/array.h"
@@ -71,7 +71,7 @@ int wd_save;
 int socket_available_p;
 
 #if !defined(_WIN32) && !defined(_WIN64)
-static int mrb_io_socket_abailable()
+static int mrb_io_socket_available()
 {
   int fd, retval = 1;
   struct sockaddr_un sun0;
@@ -114,7 +114,7 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
   int fd2, fd3;
   struct sockaddr_un sun0;
 
-  if(!(socket_available_p = mrb_io_socket_abailable())) {
+  if(!(socket_available_p = mrb_io_socket_available())) {
     char *tmpdir;
     wd_save = open(".", O_DIRECTORY);
     tmpdir = getenv("TMPDIR");
