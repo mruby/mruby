@@ -99,16 +99,6 @@ sock_test_out:
 static mrb_value
 mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
 {
-  if(!(socket_available_p = mrb_io_socket_abailable())) {
-    char *tmpdir;
-    wd_save = open(".", O_DIRECTORY);
-    tmpdir = getenv("TMPDIR");
-    if (tmpdir)
-      assert(!chdir(tmpdir));
-    else
-      assert(!chdir("/tmp"));
-  }
-
   char rfname[]      = "tmp.mruby-io-test-r.XXXXXXXX";
   char wfname[]      = "tmp.mruby-io-test-w.XXXXXXXX";
   char symlinkname[] = "tmp.mruby-io-test-l.XXXXXXXX";
@@ -122,6 +112,16 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
   int fd2, fd3;
   struct sockaddr_un sun0;
 #endif
+
+  if(!(socket_available_p = mrb_io_socket_abailable())) {
+    char *tmpdir;
+    wd_save = open(".", O_DIRECTORY);
+    tmpdir = getenv("TMPDIR");
+    if (tmpdir)
+      assert(!chdir(tmpdir));
+    else
+      assert(!chdir("/tmp"));
+  }
 
   mask = umask(077);
   fd0 = mkstemp(rfname);
