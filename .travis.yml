@@ -6,14 +6,9 @@ matrix:
   - os: linux
     sudo: false
   - os: osx
-    osx_image: xcode10.3
-    addons:
-      homebrew:
-        update: true
-        packages:
-          - flex
-          - gperf
-          - bison
+    before_install:
+      - brew install bison
+      - export PATH="/usr/local/opt/bison/bin:$PATH"
 
 env:
   - MRUBY_CONFIG=travis_config.rb
