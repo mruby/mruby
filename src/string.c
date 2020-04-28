@@ -463,7 +463,7 @@ str_index_str_by_char_search(mrb_state *mrb, const char *p, const char *pend, co
     }
 
     pivot = p + qstable[(unsigned char)p[slen - 1]];
-    if (pivot > pend || pivot < p /* overflowed */) { return -1; }
+    if (pivot >= pend || pivot < p /* overflowed */) { return -1; }
 
     do {
       p += utf8len(p, pend);
