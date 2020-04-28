@@ -53,7 +53,6 @@ mkdtemp(char *temp)
   #include <sys/socket.h>
   #include <unistd.h>
   #include <sys/un.h>
-  #include <assert.h>
   #include <fcntl.h>
 #endif
 
@@ -117,10 +116,8 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
     char *tmpdir;
     wd_save = open(".", O_DIRECTORY);
     tmpdir = getenv("TMPDIR");
-    if (tmpdir)
-      assert(!chdir(tmpdir));
-    else
-      assert(!chdir("/tmp"));
+    if (tmpdir) chdir(tmpdir);
+    else chdir("/tmp");
   }
 #endif
 
@@ -220,7 +217,7 @@ mrb_io_test_io_cleanup(mrb_state *mrb, mrb_value self)
 
 #if !defined(_WIN32) && !defined(_WIN64)
   if(!socket_available_p) {
-    assert(!fchdir(wd_save));
+    fchdir(wd_save);
     close(wd_save);
   }
 #endif
