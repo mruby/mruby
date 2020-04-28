@@ -73,7 +73,7 @@ int socket_available_p;
 #if !defined(_WIN32) && !defined(_WIN64)
 static int mrb_io_socket_available()
 {
-  int fd, retval = 1;
+  int fd, retval = 0;
   struct sockaddr_un sun0;
   char socketname[] = "tmp.mruby-io-socket-ok.XXXXXXXX";
   if (!(fd = mkstemp(socketname))) {
@@ -87,11 +87,10 @@ static int mrb_io_socket_available()
   }
   sun0.sun_family = AF_UNIX;
   strncpy(sun0.sun_path, socketname, sizeof(sun0.sun_path));
-  if (bind(fd, (struct sockaddr *)&sun0, sizeof(sun0)) == -1) {
-    retval = 0;
+  if (bind(fd, (struct sockaddr *)&sun0, sizeof(sun0)) == 0) {
+    retval = 1;
   }
 sock_test_out:
-  retval = 0;
   unlink(socketname);
   close(fd);
   return retval;
