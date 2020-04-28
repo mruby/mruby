@@ -199,8 +199,6 @@ task :clean do
     rm_rf t.build_dir
   end
   rm_f depfiles
-  rm_f presym_file
-  rm_f presym_inc
   puts "Cleaned up target build folder"
 end
 
@@ -209,5 +207,7 @@ task :deep_clean => ["clean", "clean_doc"] do
   MRuby.each_target do |t|
     rm_rf t.gem_clone_dir
   end
+  rm_f presym_file
+  rm_f presym_inc
   puts "Cleaned up mrbgems build folder"
 end
