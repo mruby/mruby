@@ -93,6 +93,7 @@ static int mrb_io_socket_available()
     retval = 0;
   }
 sock_test_out:
+  unlink(socketname);
   close(fd);
   return retval;
 }
