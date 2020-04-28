@@ -152,7 +152,7 @@ file presym_inc => presym_file do
 end
 
 task :gensym => presym_inc
-depfiles += ["gensym"]
+depfiles.unshift "gensym"
 
 depfiles += MRuby.targets.map { |n, t|
   t.libraries
