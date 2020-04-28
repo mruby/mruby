@@ -1,6 +1,7 @@
 #include <mruby/common.h>
 #include <sys/types.h>
 #include <errno.h>
+#include <string.h>
 
 #if defined(_WIN32) || defined(_WIN64)
 
@@ -8,7 +9,6 @@
 #include <io.h>
 #include <fcntl.h>
 #include <direct.h>
-#include <string.h>
 #include <stdlib.h>
 #include <malloc.h>
 
