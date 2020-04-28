@@ -170,13 +170,8 @@ class IO
   end
 
   def _read_buf
-    return @buf if @buf && @buf.bytesize >= 4 # maximum UTF-8 character is 4 bytes
-    @buf ||= ""
-    begin
-      @buf += sysread(BUF_SIZE)
-    rescue EOFError => e
-      raise e if @buf.empty?
-    end
+    return @buf if @buf && @buf.bytesize > 0
+    sysread(BUF_SIZE, @buf)
   end
 
   def ungetc(substr)
