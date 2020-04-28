@@ -8,4 +8,4 @@ env:
   - MRUBY_CONFIG=travis_config.rb
 
 script:
-  - rake -m && rake test
+  - rake gensym && rake -m && rake test
