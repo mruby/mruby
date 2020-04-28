@@ -67,6 +67,38 @@ mkdtemp(char *temp)
 #include "mruby/variable.h"
 #include <mruby/ext/io.h>
 
+int wd_save;
+int socket_available_p;
+
+#if !defined(_WIN32) && !defined(_WIN64)
+static int mrb_io_socket_available()
+{
+  int fd, retval = 1;
+  struct sockaddr_un sun0;
+  char socketname[] = "tmp.mruby-io-socket-ok.XXXXXXXX";
+  if (!(fd = mkstemp(socketname))) {
+    retval = 0;
+    goto sock_test_out;
+  }
+  unlink(socketname);
+  close(fd);
+  fd = socket(AF_UNIX, SOCK_STREAM, 0);
+  if (fd == -1) {
+    retval = 0;
+    goto sock_test_out;
+  }
+  sun0.sun_family = AF_UNIX;
+  snprintf(sun0.sun_path, sizeof(sun0.sun_path), "%s", socketname);
+  if (bind(fd, (struct sockaddr *)&sun0, sizeof(sun0)) == -1) {
+    retval = 0;
+  }
+sock_test_out:
+  unlink(socketname);
+  close(fd);
+  return retval;
+}
+#endif
+
 static mrb_value
 mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
 {
