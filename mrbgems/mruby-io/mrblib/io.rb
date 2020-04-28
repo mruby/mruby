@@ -182,9 +182,9 @@ class IO
   def ungetc(substr)
     raise TypeError.new "expect String, got #{substr.class}" unless substr.is_a?(String)
     if @buf.empty?
-      @buf = substr.dup
+      @buf.replace(substr)
     else
-      @buf = substr + @buf
+      @buf[0,0] = substr
     end
     nil
   end
