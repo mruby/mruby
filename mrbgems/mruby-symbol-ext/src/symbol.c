@@ -47,7 +47,7 @@ mrb_sym_length(mrb_state *mrb, mrb_value self)
 #ifdef MRB_UTF8_STRING
   mrb_int byte_len;
   const char *name = mrb_sym_name_len(mrb, mrb_symbol(self), &byte_len);
-  len = mrb_utf8_len(name, byte_len);
+  len = mrb_utf8_strlen(name, byte_len);
 #else
   mrb_sym_name_len(mrb, mrb_symbol(self), &len);
 #endif

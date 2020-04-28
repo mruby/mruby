@@ -301,8 +301,8 @@ static const char utf8len_codepage[256] =
   3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,1,1,1,1,1,1,1,1,1,1,1,
 };
 
-static mrb_int
-utf8len(const char* p, const char* e)
+mrb_int
+mrb_utf8len(const char* p, const char* e)
 {
   mrb_int len;
   mrb_int i;
@@ -318,14 +318,14 @@ utf8len(const char* p, const char* e)
 }
 
 mrb_int
-mrb_utf8_len(const char *str, mrb_int byte_len)
+mrb_utf8_strlen(const char *str, mrb_int byte_len)
 {
   mrb_int total = 0;
   const char *p = str;
   const char *e = p + byte_len;
 
   while (p < e) {
-    p += utf8len(p, e);
+    p += mrb_utf8len(p, e);
     total++;
   }
   return total;
@@ -341,7 +341,7 @@ utf8_strlen(mrb_value str)
     return byte_len;
   }
   else {
-    mrb_int utf8_len = mrb_utf8_len(RSTR_PTR(s), byte_len);
+    mrb_int utf8_len = mrb_utf8_strlen(RSTR_PTR(s), byte_len);
     if (byte_len == utf8_len) RSTR_SET_ASCII_FLAG(s);
     return utf8_len;
   }
@@ -362,7 +362,7 @@ chars2bytes(mrb_value s, mrb_int off, mrb_int idx)
     const char *e = RSTRING_END(s);
 
     for (b=i=0; p<e && i<idx; i++) {
-      n = utf8len(p, e);
+      n = mrb_utf8len(p, e);
       b += n;
       p += n;
     }
@@ -379,7 +379,7 @@ bytes2chars(char *p, mrb_int len, mrb_int bi)
   mrb_int i;
 
   for (i = 0; p < pivot; i ++) {
-    p += utf8len(p, e);
+    p += mrb_utf8len(p, e);
   }
   if (p != pivot) return -1;
   return i;
@@ -400,7 +400,7 @@ char_adjust(const char *beg, const char *end, const char *ptr)
     while (p > beg) {
       p --;
       if ((*p & 0xc0) != 0x80) {
-        int clen = utf8len(p, end);
+        int clen = mrb_utf8len(p, end);
         if (clen > ptr - p) return p;
         break;
       }
@@ -466,7 +466,7 @@ str_index_str_by_char_search(mrb_state *mrb, const char *p, const char *pend, co
     if (pivot >= pend || pivot < p /* overflowed */) { return -1; }
 
     do {
-      p += utf8len(p, pend);
+      p += mrb_utf8len(p, pend);
       off ++;
     } while (p < pivot);
   }
@@ -485,7 +485,7 @@ str_index_str_by_char(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
 
   for (; pos > 0; pos --) {
     if (pend - p < 1) { return -1; }
-    p += utf8len(p, pend);
+    p += mrb_utf8len(p, pend);
   }
 
   if (slen < 1) { return off; }
@@ -1362,7 +1362,7 @@ str_escape(mrb_state *mrb, mrb_value str, mrb_bool inspect)
     unsigned char c, cc;
 #ifdef MRB_UTF8_STRING
     if (inspect) {
-      mrb_int clen = utf8len(p, pend);
+      mrb_int clen = mrb_utf8len(p, pend);
       if (clen > 1) {
         mrb_int i;
 
@@ -1665,7 +1665,7 @@ mrb_str_chop_bang(mrb_state *mrb, mrb_value str)
     const char* t = RSTR_PTR(s), *p = t;
     const char* e = p + RSTR_LEN(s);
     while (p<e) {
-      mrb_int clen = utf8len(p, e);
+      mrb_int clen = mrb_utf8len(p, e);
       if (p + clen>=e) break;
       p += clen;
     }
@@ -2037,7 +2037,7 @@ mrb_str_reverse_bang(mrb_state *mrb, mrb_value str)
     p = RSTR_PTR(s);
     e = p + RSTR_LEN(s);
     while (p<e) {
-      mrb_int clen = utf8len(p, e);
+      mrb_int clen = mrb_utf8len(p, e);
       str_reverse(p, p + clen - 1);
       p += clen;
     }

@@ -465,7 +465,8 @@ mrb_bool mrb_str_beg_len(mrb_int str_len, mrb_int *begp, mrb_int *lenp);
 mrb_value mrb_str_byte_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len);
 
 #ifdef MRB_UTF8_STRING
-mrb_int mrb_utf8_len(const char *str, mrb_int byte_len);
+mrb_int mrb_utf8len(const char *str, const char *end);
+mrb_int mrb_utf8_strlen(const char *str, mrb_int byte_len);
 #endif
 
 MRB_END_DECL
