@@ -283,9 +283,10 @@ class IO
 
   def readchar
     _read_buf
-    c = @buf[0]
-    @buf[0] = ""
-    c
+    _readchar(@buf)
+#    c = @buf[0]
+#    @buf[0] = ""
+#    c
   end
 
   def getc
