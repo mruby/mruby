@@ -889,7 +889,8 @@ mrb_io_sysread_common(mrb_state *mrb,
 
   if (RSTRING_LEN(buf) != maxlen) {
     buf = mrb_str_resize(mrb, buf, maxlen);
-  } else {
+  }
+  else {
     mrb_str_modify(mrb, RSTRING(buf));
   }
 
@@ -898,24 +899,15 @@ mrb_io_sysread_common(mrb_state *mrb,
     mrb_raise(mrb, E_IO_ERROR, "not opened for reading");
   }
   ret = readfunc(fptr->fd, RSTRING_PTR(buf), (fsize_t)maxlen, offset);
-  switch (ret) {
-    case 0: /* EOF */
-      if (maxlen == 0) {
-        buf = mrb_str_new_cstr(mrb, "");
-      } else {
-        mrb_raise(mrb, E_EOF_ERROR, "sysread failed: End of File");
-      }
-      break;
-    case -1: /* Error */
-      mrb_sys_fail(mrb, "sysread failed");
-      break;
-    default:
-      if (RSTRING_LEN(buf) != ret) {
-        buf = mrb_str_resize(mrb, buf, ret);
-      }
-      break;
+  if (ret < 0) {
+    mrb_sys_fail(mrb, "sysread failed");
   }
-
+  if (RSTRING_LEN(buf) != ret) {
+    buf = mrb_str_resize(mrb, buf, ret);
+  }
+  if (ret == 0 && maxlen > 0) {
+    mrb_raise(mrb, E_EOF_ERROR, "sysread failed: End of File");
+  }
   return buf;
 }
 
