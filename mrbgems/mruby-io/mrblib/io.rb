@@ -284,15 +284,14 @@ class IO
   def readchar
     _read_buf
     _readchar(@buf)
-#    c = @buf[0]
-#    @buf[0] = ""
-#    c
   end
 
   def getc
     begin
       readchar
     rescue EOFError
+      c = @buf[0]
+      @buf[0,1]="" if c
       nil
     end
   end

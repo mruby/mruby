@@ -1492,14 +1492,25 @@ mrb_io_readchar(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "S", &buf);
   mrb_assert(RSTRING_PTR(buf) > 0);
+  mrb_str_modify(mrb, RSTRING(buf));
 #ifdef MRB_UTF8_STRING
   c = RSTRING_PTR(buf)[0];
   if (c & 0x80) {
     len = mrb_utf8len(RSTRING_PTR(buf), RSTRING_END(buf));
-    if (len == 1 && RSTRING_LEN(buf) < 5) { /* partial UTF-8 */
+    if (len == 1 && RSTRING_LEN(buf) < 4) { /* partial UTF-8 */
+      mrb_int blen = RSTRING_LEN(buf);
+      ssize_t n;
+
+      struct mrb_io *fptr = (struct mrb_io*)io_get_open_fptr(mrb, self);
+
+      if (!fptr->readable) {
+        mrb_raise(mrb, E_IO_ERROR, "not opened for reading");
+      }
       /* refill the buffer */
-      mrb_value b = mrb_io_sysread_common(mrb, mrb_sysread_dummy, self, mrb_nil_value(), 4096, 0);
-      mrb_str_concat(mrb, buf, b);
+      mrb_str_resize(mrb, buf, 4096);
+      n = read(fptr->fd, RSTRING_PTR(buf)+blen, 4096-blen);
+      if (n < 0) mrb_sys_fail(mrb, "sysread failed");
+      mrb_str_resize(mrb, buf, blen+n);
     }
     len = mrb_utf8len(RSTRING_PTR(buf), RSTRING_END(buf));
   }
