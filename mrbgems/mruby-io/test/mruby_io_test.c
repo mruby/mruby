@@ -77,22 +77,21 @@ static int mrb_io_socket_available()
   struct sockaddr_un sun0;
   char socketname[] = "tmp.mruby-io-socket-ok.XXXXXXXX";
   if (!(fd = mkstemp(socketname))) {
-    retval = 0;
     goto sock_test_out;
   }
   unlink(socketname);
   close(fd);
   fd = socket(AF_UNIX, SOCK_STREAM, 0);
   if (fd == -1) {
-    retval = 0;
     goto sock_test_out;
   }
   sun0.sun_family = AF_UNIX;
-  snprintf(sun0.sun_path, sizeof(sun0.sun_path), "%s", socketname);
+  strncpy(sun0.sun_path, socketname, sizeof(sun0.sun_path));
   if (bind(fd, (struct sockaddr *)&sun0, sizeof(sun0)) == -1) {
     retval = 0;
   }
 sock_test_out:
+  retval = 0;
   unlink(socketname);
   close(fd);
   return retval;
@@ -181,7 +180,7 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_RUNTIME_ERROR, "can't make a socket");
   }
   sun0.sun_family = AF_UNIX;
-  snprintf(sun0.sun_path, sizeof(sun0.sun_path), "%s", socketname);
+  strncpy(sun0.sun_path, socketname, sizeof(sun0.sun_path));
   if (bind(fd3, (struct sockaddr *)&sun0, sizeof(sun0)) == -1) {
     mrb_raisef(mrb, E_RUNTIME_ERROR, "can't bind AF_UNIX socket to %s: %d",
                sun0.sun_path,
