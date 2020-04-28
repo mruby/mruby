@@ -199,6 +199,8 @@ task :clean do
     rm_rf t.build_dir
   end
   rm_f depfiles
+  rm_f presym_file
+  rm_f presym_inc
   puts "Cleaned up target build folder"
 end
 
