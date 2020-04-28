@@ -24,21 +24,21 @@ static const char *presym_table[] = {
 };
 
 static mrb_sym
-presym_find(const char *name)
+presym_find(const char *name, size_t len)
 {
   int start = 0;
   int end = MRB_PRESYM_MAX-1;
 
   while (start<=end) {
     int mid = (start+end)/2;
-    int cmp = strcmp(name, presym_table[mid]);
+    int cmp = strncmp(name, presym_table[mid], len);
 
-    if (cmp == 0) {
+    if (cmp == 0 && presym_table[mid][len] == '\0') {
       return mid+1;
-    } else if (cmp < 0) {
-      end = mid-1;
-    } else {
+    } else if (cmp > 0) {
       start = mid+1;
+    } else {
+      end = mid-1;
     }
   }
   return 0;
@@ -170,10 +170,9 @@ find_symbol(mrb_state *mrb, const char *name, size_t len, uint8_t *hashp)
   uint8_t hash;
 
   /* presym */
-  if (strlen(name) == len) {
-    i = presym_find(name);
-    if (i > 0) return i<<SYMBOL_NORMAL_SHIFT;
-  }
+  i = presym_find(name, len);
+  if (i > 0) return i<<SYMBOL_NORMAL_SHIFT;
+
   /* inline symbol */
   i = sym_inline_pack(name, len);
   if (i > 0) return i;
