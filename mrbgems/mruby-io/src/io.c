@@ -1413,14 +1413,13 @@ mrb_io_pwrite(mrb_state *mrb, mrb_value io)
 #endif /* MRB_WITH_IO_PREAD_PWRITE */
 
 static mrb_value
-io_bufread(mrb_state *mrb, mrb_value self)
+io_bufread(mrb_state *mrb, mrb_value str, mrb_int len)
 {
-  mrb_value str, str2;
-  mrb_int len, newlen;
+  mrb_value str2;
+  mrb_int newlen;
   struct RString *s;
   char *p;
 
-  mrb_get_args(mrb, "Si", &str, &len);
   s = RSTRING(str);
   mrb_str_modify(mrb, s);
   p = RSTR_PTR(s);
@@ -1431,6 +1430,40 @@ io_bufread(mrb_state *mrb, mrb_value self)
   RSTR_SET_LEN(s, newlen);
 
   return str2;
+}
+
+static mrb_value
+mrb_io_bufread(mrb_state *mrb, mrb_value self)
+{
+  mrb_value str;
+  mrb_int len;
+
+  mrb_get_args(mrb, "Si", &str, &len);
+  return io_bufread(mrb, str, len);
+}
+
+static mrb_value
+mrb_io_readchar(mrb_state *mrb, mrb_value self)
+{
+  mrb_value buf;
+  unsigned char c;
+  mrb_int len = 1;
+
+  mrb_get_args(mrb, "S", &buf);
+  mrb_assert(RSTRING_PTR(buf) > 0);
+#ifdef MRB_UTF8_STRING
+  c = RSTRING_PTR(buf)[0];
+  if (c & 0x80) {
+    len = mrb_utf8len(RSTRING_PTR(buf), RSTRING_END(buf));
+    if (len == 1 && RSTRING_LEN(buf) < 5) { /* partial UTF-8 */
+      /* refill the buffer */
+      mrb_value b = mrb_io_sysread_common(mrb, mrb_sysread_dummy, self, mrb_nil_value(), 4096, 0);
+      mrb_str_concat(mrb, buf, b);
+    }
+    len = mrb_utf8len(RSTRING_PTR(buf), RSTRING_END(buf));
+  }
+#endif
+  return io_bufread(mrb, buf, len);
 }
 
 void
@@ -1470,5 +1503,6 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method(mrb, io, "pread",      mrb_io_pread,      MRB_ARGS_ANY());    /* ruby 2.5 feature */
   mrb_define_method(mrb, io, "pwrite",     mrb_io_pwrite,     MRB_ARGS_ANY());    /* ruby 2.5 feature */
 
-  mrb_define_class_method(mrb, io, "_bufread",   io_bufread,        MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, io, "_readchar",  mrb_io_readchar,   MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, io, "_bufread",   mrb_io_bufread,    MRB_ARGS_REQ(2));
 }
