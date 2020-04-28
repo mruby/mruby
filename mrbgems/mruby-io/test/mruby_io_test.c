@@ -111,6 +111,14 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
   int i;
 #if !defined(_WIN32) && !defined(_WIN64)
   struct sockaddr_un sun0;
+
+  if(!(socket_available_p = mrb_io_socket_available())) {
+    char *tmpdir;
+    wd_save = open(".", O_DIRECTORY);
+    tmpdir = getenv("TMPDIR");
+    if (tmpdir) chdir(tmpdir);
+    else chdir("/tmp");
+  }
 #endif
 
   mrb_gv_set(mrb, mrb_intern_cstr(mrb, "$mrbtest_io_msg"), mrb_str_new_cstr(mrb, msg));
@@ -210,6 +218,13 @@ mrb_io_test_io_cleanup(mrb_state *mrb, mrb_value self)
   mrb_gv_set(mrb, mrb_intern_cstr(mrb, "$mrbtest_io_symlinkname"), mrb_nil_value());
   mrb_gv_set(mrb, mrb_intern_cstr(mrb, "$mrbtest_io_socketname"), mrb_nil_value());
   mrb_gv_set(mrb, mrb_intern_cstr(mrb, "$mrbtest_io_msg"), mrb_nil_value());
+
+#if !defined(_WIN32) && !defined(_WIN64)
+  if(!socket_available_p) {
+    fchdir(wd_save);
+    close(wd_save);
+  }
+#endif
 
   return mrb_nil_value();
 }
