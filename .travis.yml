@@ -11,4 +11,4 @@ env:
   - MRUBY_TARGET=travis
 
 script:
-  - rake -m && rake test
+  - rake gensym && rake -m && rake test
