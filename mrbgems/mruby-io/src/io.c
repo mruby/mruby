@@ -1487,8 +1487,10 @@ static mrb_value
 mrb_io_readchar(mrb_state *mrb, mrb_value self)
 {
   mrb_value buf;
-  unsigned char c;
   mrb_int len = 1;
+#ifdef MRB_UTF8_STRING
+  unsigned char c;
+#endif
 
   mrb_get_args(mrb, "S", &buf);
   mrb_assert(RSTRING_PTR(buf) > 0);
