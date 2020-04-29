@@ -2759,7 +2759,7 @@ mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
 MRB_API mrb_value
 mrb_str_cat_cstr(mrb_state *mrb, mrb_value str, const char *ptr)
 {
-  return mrb_str_cat(mrb, str, ptr, strlen(ptr));
+  return mrb_str_cat(mrb, str, ptr, ptr ? strlen(ptr) : 0);
 }
 
 MRB_API mrb_value
