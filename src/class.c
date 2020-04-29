@@ -1728,7 +1728,10 @@ mrb_class_real(struct RClass* cl)
 MRB_API const char*
 mrb_class_name(mrb_state *mrb, struct RClass* c)
 {
-  mrb_value name = class_name_str(mrb, c);
+  mrb_value name;
+
+  if (c == NULL) return NULL;
+  name = class_name_str(mrb, c);
   return RSTRING_PTR(name);
 }
 
