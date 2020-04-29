@@ -1493,7 +1493,7 @@ mrb_io_readchar(mrb_state *mrb, mrb_value self)
 #endif
 
   mrb_get_args(mrb, "S", &buf);
-  mrb_assert(RSTRING_PTR(buf) > 0);
+  mrb_assert(RSTRING_PTR(buf) != NULL);
   mrb_str_modify(mrb, RSTRING(buf));
 #ifdef MRB_UTF8_STRING
   c = RSTRING_PTR(buf)[0];
