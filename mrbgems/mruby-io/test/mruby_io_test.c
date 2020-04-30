@@ -54,6 +54,7 @@ mkdtemp(char *temp)
   #include <unistd.h>
   #include <sys/un.h>
   #include <fcntl.h>
+  #include <libgen.h>
 #endif
 
 #include <sys/stat.h>
@@ -66,88 +67,53 @@ mkdtemp(char *temp)
 #include "mruby/variable.h"
 #include <mruby/ext/io.h>
 
-int wd_save;
-int socket_available_p;
-
-#if !defined(_WIN32) && !defined(_WIN64)
-static int mrb_io_socket_available()
-{
-  int fd, retval = 0;
-  struct sockaddr_un sun0;
-  char socketname[] = "tmp.mruby-io-socket-ok.XXXXXXXX";
-  if (!(fd = mkstemp(socketname))) {
-    goto sock_test_out;
-  }
-  unlink(socketname);
-  close(fd);
-  fd = socket(AF_UNIX, SOCK_STREAM, 0);
-  if (fd == -1) {
-    goto sock_test_out;
-  }
-  sun0.sun_family = AF_UNIX;
-  strncpy(sun0.sun_path, socketname, sizeof(sun0.sun_path));
-  if (bind(fd, (struct sockaddr *)&sun0, sizeof(sun0)) == 0) {
-    retval = 1;
-  }
-sock_test_out:
-  unlink(socketname);
-  close(fd);
-  return retval;
-}
-#endif
-
 static mrb_value
 mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
 {
-  char rfname[]      = "tmp.mruby-io-test-r.XXXXXXXX";
-  char wfname[]      = "tmp.mruby-io-test-w.XXXXXXXX";
-  char symlinkname[] = "tmp.mruby-io-test-l.XXXXXXXX";
-  char socketname[]  = "tmp.mruby-io-test-s.XXXXXXXX";
+#define GVNAME(n) "$mrbtest_io_" #n "name"
+  enum {IDX_READ, IDX_WRITE, IDX_LINK, IDX_SOCKET, IDX_COUNT};
+  const char *gvnames[] = {GVNAME(rf), GVNAME(wf), GVNAME(symlink), GVNAME(socket)};
+  char *fnames[IDX_COUNT];
+  int fds[IDX_COUNT];
   char msg[] = "mruby io test\n";
   mode_t mask;
-  int fd0, fd1;
   FILE *fp;
-
+  int i;
 #if !defined(_WIN32) && !defined(_WIN64)
-  int fd2, fd3;
   struct sockaddr_un sun0;
-
-  if(!(socket_available_p = mrb_io_socket_available())) {
-    char *tmpdir;
-    wd_save = open(".", O_DIRECTORY);
-    tmpdir = getenv("TMPDIR");
-    if (tmpdir) chdir(tmpdir);
-    else chdir("/tmp");
-  }
 #endif
 
-  mask = umask(077);
-  fd0 = mkstemp(rfname);
-  fd1 = mkstemp(wfname);
-  if (fd0 == -1 || fd1 == -1) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "can't create temporary file");
-    return mrb_nil_value();
-  }
-  close(fd0);
-  close(fd1);
-
-#if !defined(_WIN32) && !defined(_WIN64)
-  fd2 = mkstemp(symlinkname);
-  fd3 = mkstemp(socketname);
-  if (fd2 == -1 || fd3 == -1) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "can't create temporary file");
-    return mrb_nil_value();
-  }
-#endif
-  umask(mask);
-
-  mrb_gv_set(mrb, mrb_intern_cstr(mrb, "$mrbtest_io_rfname"), mrb_str_new_cstr(mrb, rfname));
-  mrb_gv_set(mrb, mrb_intern_cstr(mrb, "$mrbtest_io_wfname"), mrb_str_new_cstr(mrb, wfname));
-  mrb_gv_set(mrb, mrb_intern_cstr(mrb, "$mrbtest_io_symlinkname"), mrb_str_new_cstr(mrb, symlinkname));
-  mrb_gv_set(mrb, mrb_intern_cstr(mrb, "$mrbtest_io_socketname"), mrb_str_new_cstr(mrb, socketname));
   mrb_gv_set(mrb, mrb_intern_cstr(mrb, "$mrbtest_io_msg"), mrb_str_new_cstr(mrb, msg));
 
-  fp = fopen(rfname, "wb");
+  mask = umask(077);
+  for (i = 0; i < IDX_COUNT; i++) {
+    mrb_value fname = mrb_str_new_capa(mrb, 0);
+#if !defined(_WIN32) && !defined(_WIN64)
+    /*
+     * Workaround for not being able to bind a socket to some file systems
+     * (e.g. vboxsf, NFS). [#4981]
+     */
+    char *tmpdir = getenv("TMPDIR");
+    if (tmpdir && strlen(tmpdir) > 0) {
+      mrb_str_cat_cstr(mrb, fname, tmpdir);
+      if (*(RSTRING_END(fname)-1) != '/') mrb_str_cat_lit(mrb, fname, "/");
+    } else {
+      mrb_str_cat_lit(mrb, fname, "/tmp/");
+    }
+#endif
+    mrb_str_cat_cstr(mrb, fname, gvnames[i]+1);
+    mrb_str_cat_cstr(mrb, fname, ".XXXXXXXX");
+    fnames[i] = RSTRING_PTR(fname);
+    fds[i] = mkstemp(fnames[i]);
+    if (fds[i] == -1) {
+      mrb_raise(mrb, E_RUNTIME_ERROR, "can't create temporary file");
+    }
+    close(fds[i]);
+    mrb_gv_set(mrb, mrb_intern_cstr(mrb, gvnames[i]), fname);
+  }
+  umask(mask);
+
+  fp = fopen(fnames[IDX_READ], "wb");
   if (fp == NULL) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "can't open temporary file");
     return mrb_nil_value();
@@ -155,7 +121,7 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
   fputs(msg, fp);
   fclose(fp);
 
-  fp = fopen(wfname, "wb");
+  fp = fopen(fnames[IDX_WRITE], "wb");
   if (fp == NULL) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "can't open temporary file");
     return mrb_nil_value();
@@ -163,29 +129,29 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
   fclose(fp);
 
 #if !defined(_WIN32) && !defined(_WIN64)
-  unlink(symlinkname);
-  close(fd2);
-  if (symlink(rfname, symlinkname) == -1) {
+  unlink(fnames[IDX_LINK]);
+  if (symlink(basename(fnames[IDX_READ]), fnames[IDX_LINK]) == -1) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "can't make a symbolic link");
   }
 
-  unlink(socketname);
-  close(fd3);
-  fd3 = socket(AF_UNIX, SOCK_STREAM, 0);
-  if (fd3 == -1) {
+  unlink(fnames[IDX_SOCKET]);
+  fds[IDX_SOCKET] = socket(AF_UNIX, SOCK_STREAM, 0);
+  if (fds[IDX_SOCKET] == -1) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "can't make a socket");
   }
   sun0.sun_family = AF_UNIX;
-  strncpy(sun0.sun_path, socketname, sizeof(sun0.sun_path));
-  if (bind(fd3, (struct sockaddr *)&sun0, sizeof(sun0)) == -1) {
+  strncpy(sun0.sun_path, fnames[IDX_SOCKET], sizeof(sun0.sun_path)-1);
+  sun0.sun_path[sizeof(sun0.sun_path)-1] = 0;
+  if (bind(fds[IDX_SOCKET], (struct sockaddr *)&sun0, sizeof(sun0)) == -1) {
     mrb_raisef(mrb, E_RUNTIME_ERROR, "can't bind AF_UNIX socket to %s: %d",
                sun0.sun_path,
                errno);
   }
-  close(fd3);
+  close(fds[IDX_SOCKET]);
 #endif
 
   return mrb_true_value();
+#undef GVNAME
 }
 
 static mrb_value
@@ -214,13 +180,6 @@ mrb_io_test_io_cleanup(mrb_state *mrb, mrb_value self)
   mrb_gv_set(mrb, mrb_intern_cstr(mrb, "$mrbtest_io_symlinkname"), mrb_nil_value());
   mrb_gv_set(mrb, mrb_intern_cstr(mrb, "$mrbtest_io_socketname"), mrb_nil_value());
   mrb_gv_set(mrb, mrb_intern_cstr(mrb, "$mrbtest_io_msg"), mrb_nil_value());
-
-#if !defined(_WIN32) && !defined(_WIN64)
-  if(!socket_available_p) {
-    fchdir(wd_save);
-    close(wd_save);
-  }
-#endif
 
   return mrb_nil_value();
 }
