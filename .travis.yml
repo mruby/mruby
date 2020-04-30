@@ -1,15 +1,14 @@
 language: c
 
-sudo: false
-
-matrix:
+jobs:
   - os: linux
-    sudo: false
   - os: osx
     before_install:
-      - brew install bison
+      - HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 brew install bison
       - export PATH="/usr/local/opt/bison/bin:$PATH"
 
 env:
   - MRUBY_CONFIG=travis_config.rb
-script: "rake -m && rake test"
+
+script:
+  - rake -m && rake test
