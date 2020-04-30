@@ -26,7 +26,7 @@ module MRuby
       end
 
       def instance
-        @instance ||= new("#{MRUBY_CONFIG}.lock")
+        @instance ||= new("#{MRUBY_ROOT}/build/#{MRUBY_TARGET}.lock")
       end
     end
 

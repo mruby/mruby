@@ -8,9 +8,6 @@ MRuby::Build.new do |conf|
     toolchain :gcc
   end
 
-  # Turn on `enable_debug` for better debugging
-  # enable_debug
-
   # Use mrbgems
   # conf.gem 'examples/mrbgems/ruby_extension_example'
   # conf.gem 'examples/mrbgems/c_extension_example' do |g|
@@ -22,8 +19,9 @@ MRuby::Build.new do |conf|
   # conf.gem :github => 'mattn/mruby-onig-regexp'
   # conf.gem :git => 'git@github.com:mattn/mruby-onig-regexp.git', :branch => 'master', :options => '-v'
 
-  # include the default GEMs
-  conf.gembox 'default'
+  # include the GEM box
+  conf.gembox 'full-core'
+
   # C compiler settings
   # conf.cc do |cc|
   #   cc.command = ENV['CC'] || 'gcc'
@@ -81,33 +79,11 @@ MRuby::Build.new do |conf|
   # file separetor
   # conf.file_separator = '/'
 
-  # bintest
-  # conf.enable_bintest
-end
-
-MRuby::Build.new('host-debug') do |conf|
-  # load specific toolchain settings
-
-  # Gets set by the VS command prompts.
-  if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
-    toolchain :visualcpp
-  else
-    toolchain :gcc
-  end
-
+  # Turn on `enable_debug` for better debugging
+  # enable_debug
   enable_debug
-
-  # include the default GEMs
-  conf.gembox 'default'
-
-  # C compiler settings
-  conf.cc.defines = %w(MRB_ENABLE_DEBUG_HOOK)
-
-  # Generate mruby debugger command (require mruby-eval)
-  conf.gem :core => "mruby-bin-debugger"
-
-  # bintest
-  # conf.enable_bintest
+  conf.enable_bintest
+  conf.enable_test
 end
 
 MRuby::Build.new('test') do |conf|
@@ -118,35 +94,5 @@ MRuby::Build.new('test') do |conf|
     toolchain :gcc
   end
 
-  enable_debug
-  conf.enable_bintest
-  conf.enable_test
-
   conf.gembox 'default'
 end
-
-#MRuby::Build.new('bench') do |conf|
-#  # Gets set by the VS command prompts.
-#  if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
-#    toolchain :visualcpp
-#  else
-#    toolchain :gcc
-#    conf.cc.flags << '-O3'
-#  end
-#
-#  conf.gembox 'default'
-#end
-
-# Define cross build settings
-# MRuby::CrossBuild.new('32bit') do |conf|
-#   toolchain :gcc
-#
-#   conf.cc.flags << "-m32"
-#   conf.linker.flags << "-m32"
-#
-#   conf.build_mrbtest_lib_only
-#
-#   conf.gem 'examples/mrbgems/c_and_ruby_extension_example'
-#
-#   conf.test_runner.command = 'env'
-# end
