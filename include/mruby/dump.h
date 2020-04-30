@@ -53,7 +53,7 @@ MRB_API mrb_irep *mrb_read_irep_buf(mrb_state*, const void*, size_t);
 /* Rite Binary File header */
 #define RITE_BINARY_IDENT              "RITE"
 #define RITE_BINARY_IDENT_LIL          "ETIR"
-#define RITE_BINARY_FORMAT_VER         "0006"
+#define RITE_BINARY_FORMAT_VER         "0007"
 #define RITE_COMPILER_NAME             "MATZ"
 #define RITE_COMPILER_VERSION          "0000"
 
