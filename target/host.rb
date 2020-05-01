@@ -80,19 +80,7 @@ MRuby::Build.new do |conf|
   # conf.file_separator = '/'
 
   # Turn on `enable_debug` for better debugging
-  # enable_debug
   enable_debug
   conf.enable_bintest
   conf.enable_test
-end
-
-MRuby::Build.new('test') do |conf|
-  # Gets set by the VS command prompts.
-  if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
-    toolchain :visualcpp
-  else
-    toolchain :gcc
-  end
-
-  conf.gembox 'default'
 end
