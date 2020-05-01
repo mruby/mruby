@@ -709,22 +709,7 @@ write_rite_binary_header(mrb_state *mrb, size_t binary_size, uint8_t *bin, uint8
   uint16_t crc;
   uint32_t offset;
 
-  switch (flags & DUMP_ENDIAN_NAT) {
-  endian_big:
-  case DUMP_ENDIAN_BIG:
-    memcpy(header->binary_ident, RITE_BINARY_IDENT, sizeof(header->binary_ident));
-    break;
-  endian_little:
-  case DUMP_ENDIAN_LIL:
-    memcpy(header->binary_ident, RITE_BINARY_IDENT_LIL, sizeof(header->binary_ident));
-    break;
-
-  case DUMP_ENDIAN_NAT:
-    if (bigendian_p()) goto endian_big;
-    goto endian_little;
-    break;
-  }
-
+  memcpy(header->binary_ident, RITE_BINARY_IDENT, sizeof(header->binary_ident));
   memcpy(header->binary_version, RITE_BINARY_FORMAT_VER, sizeof(header->binary_version));
   memcpy(header->compiler_name, RITE_COMPILER_NAME, sizeof(header->compiler_name));
   memcpy(header->compiler_version, RITE_COMPILER_VERSION, sizeof(header->compiler_version));
@@ -762,21 +747,6 @@ lv_defined_p(mrb_irep *irep)
   }
 
   return FALSE;
-}
-
-static uint8_t
-dump_flags(uint8_t flags, uint8_t native)
-{
-  if (native == FLAG_BYTEORDER_NATIVE) {
-    if ((flags & DUMP_ENDIAN_NAT) == 0) {
-      return (flags & DUMP_DEBUG_INFO) | DUMP_ENDIAN_NAT;
-    }
-    return flags;
-  }
-  if ((flags & DUMP_ENDIAN_NAT) == 0) {
-    return (flags & DUMP_DEBUG_INFO) | DUMP_ENDIAN_BIG;
-  }
-  return flags;
 }
 
 static int
@@ -870,7 +840,7 @@ error_exit:
 int
 mrb_dump_irep(mrb_state *mrb, mrb_irep *irep, uint8_t flags, uint8_t **bin, size_t *bin_size)
 {
-  return dump_irep(mrb, irep, dump_flags(flags, FLAG_BYTEORDER_NONATIVE), bin, bin_size);
+  return dump_irep(mrb, irep, flags, bin, bin_size);
 }
 
 #ifndef MRB_DISABLE_STDIO
@@ -886,7 +856,7 @@ mrb_dump_irep_binary(mrb_state *mrb, mrb_irep *irep, uint8_t flags, FILE* fp)
     return MRB_DUMP_INVALID_ARGUMENT;
   }
 
-  result = dump_irep(mrb, irep, dump_flags(flags, FLAG_BYTEORDER_NONATIVE), &bin, &bin_size);
+  result = dump_irep(mrb, irep, flags, &bin, &bin_size);
   if (result == MRB_DUMP_OK) {
     if (fwrite(bin, sizeof(bin[0]), bin_size, fp) != bin_size) {
       result = MRB_DUMP_WRITE_FAULT;
@@ -895,20 +865,6 @@ mrb_dump_irep_binary(mrb_state *mrb, mrb_irep *irep, uint8_t flags, FILE* fp)
 
   mrb_free(mrb, bin);
   return result;
-}
-
-static mrb_bool
-dump_bigendian_p(uint8_t flags)
-{
-  switch (flags & DUMP_ENDIAN_NAT) {
-  case DUMP_ENDIAN_BIG:
-    return TRUE;
-  case DUMP_ENDIAN_LIL:
-    return FALSE;
-  default:
-  case DUMP_ENDIAN_NAT:
-    return bigendian_p();
-  }
 }
 
 int
@@ -921,23 +877,8 @@ mrb_dump_irep_cfunc(mrb_state *mrb, mrb_irep *irep, uint8_t flags, FILE *fp, con
   if (fp == NULL || initname == NULL || initname[0] == '\0') {
     return MRB_DUMP_INVALID_ARGUMENT;
   }
-  flags = dump_flags(flags, FLAG_BYTEORDER_NATIVE);
   result = dump_irep(mrb, irep, flags, &bin, &bin_size);
   if (result == MRB_DUMP_OK) {
-    if (!dump_bigendian_p(flags)) {
-      if (fprintf(fp, "/* dumped in little endian order.\n"
-                  "   use `mrbc -E` option for big endian CPU. */\n") < 0) {
-        mrb_free(mrb, bin);
-        return MRB_DUMP_WRITE_FAULT;
-      }
-    }
-    else {
-      if (fprintf(fp, "/* dumped in big endian order.\n"
-                  "   use `mrbc -e` option for better performance on little endian CPU. */\n") < 0) {
-        mrb_free(mrb, bin);
-        return MRB_DUMP_WRITE_FAULT;
-      }
-    }
     if (fprintf(fp, "#include <stdint.h>\n") < 0) { /* for uint8_t under at least Darwin */
       mrb_free(mrb, bin);
       return MRB_DUMP_WRITE_FAULT;
