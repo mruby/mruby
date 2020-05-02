@@ -20,7 +20,7 @@ MRuby::Build.new do |conf|
   # conf.gem :git => 'git@github.com:mattn/mruby-onig-regexp.git', :branch => 'master', :options => '-v'
 
   # include the GEM box
-  conf.gembox 'full-core'
+  conf.gembox 'default'
 
   # C compiler settings
   # conf.cc do |cc|
