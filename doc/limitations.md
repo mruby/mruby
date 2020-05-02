@@ -245,8 +245,7 @@ trace (most recent call last):
 ## Keyword arguments
 
 mruby keyword arguments behave slightly different from CRuby 2.5
-to make the behavior simpler and less confusing. Maybe in the
-future, the simpler behavior will be adopted to CRuby as well.
+to make the behavior simpler and less confusing. 
 
 #### Ruby [ruby 2.5.1p57 (2018-03-29 revision 63029)]
 
@@ -263,6 +262,20 @@ trace (most recent call last):
 	[0] -e:1
 -e:1: keyword argument hash with non symbol keys (ArgumentError)
 ```
+
+## `nil?` redefinition in conditional expressions
+
+Redefinition of `nil?` is ignored in conditional expressions.
+
+```ruby
+a = "a"
+def a.nil?
+  true
+end
+puts(a.nil? ? "truthy" : "falsy")
+```
+
+Ruby outputs `falsy`. mruby outputs `truthy`.
 
 ## Argument Destructuring
 
@@ -283,17 +296,3 @@ f(1,[2,3])
 ```
 
 CRuby gives `[1,2,3,nil]`. mruby raises `NoMethodError` for `b`.
-
-## `nil?` redefinition in conditional expressions
-
-Redefinition of `nil?` is ignored in conditional expressions.
-
-```ruby
-a = "a"
-def a.nil?
-  true
-end
-puts(a.nil? ? "truthy" : "falsy")
-```
-
-Ruby outputs `falsy`. mruby outputs `truthy`.

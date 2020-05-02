@@ -40,11 +40,13 @@ We don't have a mailing list, but you can use [GitHub issues](https://github.com
 
 See the [compile.md](https://github.com/mruby/mruby/blob/master/doc/guides/compile.md) file.
 
-## Running Tests
+## How to Build
 
-To run the tests, execute the following from the project's root directory.
+To build mruby, execute the following from the project's root directory.
 
-    $ rake test
+  $ rake TARGET=<target> test
+
+The default `TARGET` is `host`. `TARGET` will be loaded from `target` directory.
 
 Note: `bison` bundled with MacOS is too old to compile `mruby`.
 Try `brew install bison` and follow the instuction shown to update

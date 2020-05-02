@@ -56,7 +56,7 @@ on-demand.
 
 Use C++ style comments only for temporary comment e.g. commenting out some code lines.
 
-#### Insert a break after the method return value:
+#### Insert a break after the function return value:
 
     int
     main(void)
@@ -72,4 +72,5 @@ language itself. Please note the following hints for your Ruby code:
 #### Comply with the Ruby standard (ISO/IEC 30170:2012)
 
 mruby is currently targeting to execute Ruby code which complies to ISO/IEC
-30170:2012 (http://www.iso.org/iso/iso_catalogue/catalogue_tc/catalogue_detail.htm?csnumber=59579).
+30170:2012 (http://www.iso.org/iso/iso_catalogue/catalogue_tc/catalogue_detail.htm?csnumber=59579),
+unless there's a clear reason, e.g. the latest Ruby has changed behavior from ISO.
