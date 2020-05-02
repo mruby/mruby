@@ -750,7 +750,12 @@ retry:
         }
         else if (mrb_fixnum_p(val)) {
           mrb_int n = mrb_fixnum(val);
+#ifndef MRB_UTF8_STRING
+          char buf[1];
 
+          buf[0] = (char)n&0xff;
+          tmp = mrb_str_new(mrb, buf, 1);
+#else
           if (n < 0x80) {
             char buf[1];
 
@@ -761,6 +766,7 @@ retry:
             tmp = mrb_funcall(mrb, val, "chr", 0);
             mrb_check_type(mrb, tmp, MRB_TT_STRING);
           }
+#endif
         }
         else {
           mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid character");
