@@ -9,7 +9,7 @@ MRuby::Build.new do |conf|
   end
 
   # include the GEM box
-  conf.gembox 'full-core'
+  conf.gembox 'default'
 
   # C compiler settings
   conf.cc do |cc|
