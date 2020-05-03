@@ -1474,13 +1474,14 @@ cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
 /* 15.2.9.3.6  */
 /*
  * call-seq:
- *     self.f <=> other.f    => -1, 0, +1
+ *     self.f <=> other.f    => -1, 0, +1, or nil
  *             <  => -1
  *             =  =>  0
  *             >  => +1
  *  Comparison---Returns -1, 0, or +1 depending on whether <i>fix</i> is
  *  less than, equal to, or greater than <i>numeric</i>. This is the
- *  basis for the tests in <code>Comparable</code>.
+ *  basis for the tests in <code>Comparable</code>. When the operands are
+ *  not comparable, it returns nil instead of raising an exception.
  */
 static mrb_value
 integral_cmp(mrb_state *mrb, mrb_value self)
