@@ -31,6 +31,9 @@
 /* exclude floating point numbers */
 //#define MRB_WITHOUT_FLOAT
 
+/* using integer division like: 7 / 2 => 3 */
+//#define MRB_INTEGER_DIVISION
+
 /* add -DMRB_METHOD_CACHE to use method cache to improve performance */
 //#define MRB_METHOD_CACHE
 /* size of the method cache (need to be the power of 2) */
