@@ -1150,7 +1150,6 @@ MRB_API void mrb_close(mrb_state *mrb);
 MRB_API void* mrb_default_allocf(mrb_state*, void*, size_t, void*);
 
 MRB_API mrb_value mrb_top_self(mrb_state *mrb);
-MRB_API mrb_value mrb_run(mrb_state *mrb, struct RProc* proc, mrb_value self);
 MRB_API mrb_value mrb_top_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep);
 MRB_API mrb_value mrb_vm_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep);
 MRB_API mrb_value mrb_vm_exec(mrb_state *mrb, struct RProc *proc, const mrb_code *iseq);

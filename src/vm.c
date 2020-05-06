@@ -324,6 +324,7 @@ cipop(mrb_state *mrb)
 }
 
 void mrb_exc_set(mrb_state *mrb, mrb_value exc);
+static mrb_value mrb_run(mrb_state *mrb, struct RProc* proc, mrb_value self);
 
 static void
 ecall(mrb_state *mrb)
@@ -2808,7 +2809,7 @@ RETRY_TRY_BLOCK:
   MRB_END_EXC(&c_jmp);
 }
 
-MRB_API mrb_value
+static mrb_value
 mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 {
   if (mrb->c->ci->argc < 0) {
