@@ -3856,7 +3856,7 @@ term            : ';' {yyerrok;}
 
 nl              : '\n'
                     {
-                      p->lineno++;
+                      p->lineno += $<num>1;
                       p->column = 0;
                     }
                 ;
@@ -4844,6 +4844,7 @@ static int
 parser_yylex(parser_state *p)
 {
   int32_t c;
+  int nlines = 1;
   int space_seen = 0;
   int cmd_state;
   enum mrb_lex_state_enum last_state;
@@ -4901,6 +4902,7 @@ parser_yylex(parser_state *p)
       break;
     }
     if (p->parsing_heredoc != NULL) {
+      pylval.num = nlines;
       return '\n';
     }
     while ((c = nextc(p))) {
@@ -4910,13 +4912,13 @@ parser_yylex(parser_state *p)
         space_seen = 1;
         break;
       case '#': /* comment as a whitespace */
-        pushback(p, '#');
-        p->lineno++;
-        goto retry;
+        skip(p, '\n');
+        nlines++;
+        break;
       case '.':
         if (!peek(p, '.')) {
           pushback(p, '.');
-          p->lineno++;
+          p->lineno+=nlines; nlines=1;
           goto retry;
         }
         pushback(p, c);
@@ -4924,7 +4926,7 @@ parser_yylex(parser_state *p)
       case '&':
         if (peek(p, '.')) {
           pushback(p, '&');
-          p->lineno++;
+          p->lineno+=nlines; nlines=1;
           goto retry;
         }
         pushback(p, c);
@@ -4940,6 +4942,7 @@ parser_yylex(parser_state *p)
   normal_newline:
     p->cmd_start = TRUE;
     p->lstate = EXPR_BEG;
+    pylval.num = nlines;
     return '\n';
 
   case '*':
@@ -5022,7 +5025,7 @@ parser_yylex(parser_state *p)
             c = nextc(p);
           } while (!(c < 0 || ISSPACE(c)));
           if (c != '\n') skip(p, '\n');
-          p->lineno++;
+          p->lineno+=nlines; nlines=1;
           p->column = 0;
           goto retry;
         }
@@ -5744,7 +5747,7 @@ parser_yylex(parser_state *p)
   case '\\':
     c = nextc(p);
     if (c == '\n') {
-      p->lineno++;
+      p->lineno+=nlines; nlines=1;
       p->column = 0;
       space_seen = 1;
       goto retry; /* skip \\n */
