@@ -2257,8 +2257,17 @@ RETRY_TRY_BLOCK:
         }
         break;
 #else
+  #ifdef MRB_INTEGER_DIVISION
+        {
+		      mrb_int x = mrb_fixnum(regs[a]);
+          mrb_int y = mrb_fixnum(regs[a+1]);
+          SET_INT_VALUE(regs[a], y ? x / y : 0);
+		      NEXT;
+		    }
+  #else
         x = (mrb_float)mrb_fixnum(regs[a]);
         y = (mrb_float)mrb_fixnum(regs[a+1]);
+  #endif
         break;
       case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):
         x = (mrb_float)mrb_fixnum(regs[a]);
