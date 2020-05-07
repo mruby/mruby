@@ -73,29 +73,6 @@ assert('String#% with nan') do
   assert_equal "  NaN", "% 5f" % nan
 end
 
-assert("String#% with invalid chr") do
-  begin
-    class Fixnum
-      alias_method :chr_, :chr if method_defined?(:chr)
-
-      def chr
-        nil
-      end
-    end
-
-    assert_raise TypeError do
-      "%c" % 0x80
-    end
-  ensure
-    class Fixnum
-      if method_defined?(:chr_)
-        alias_method :chr, :chr_
-        remove_method :chr_
-      end
-    end
-  end
-end
-
 assert("String#% %b") do
   assert_equal("..10115", "%0b5" % -5)
 end
