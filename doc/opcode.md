@@ -46,7 +46,7 @@ with `"`, either `OP_EXT1` or `OP_EXT2` or `OP_EXT2` can be prefixed.
 | OP_LOADI_5'      | B            | R(a) = mrb_int(5)                                      |
 | OP_LOADI_6'      | B            | R(a) = mrb_int(6)                                      |
 | OP_LOADI_7'      | B            | R(a) = mrb_int(7)                                      |
-| OP_LOADI_16'     | BsS          | R(a) = mrb_int(b)                                      |
+| OP_LOADI16'      | BsS          | R(a) = mrb_int(b)                                      |
 | OP_LOADSYM"      | BB           | R(a) = Syms(b)                                         |
 | OP_LOADNIL'      | B            | R(a) = nil                                             |
 | OP_LOADSELF'     | B            | R(a) = self                                            |
@@ -69,7 +69,7 @@ with `"`, either `OP_EXT1` or `OP_EXT2` or `OP_EXT2` can be prefixed.
 | OP_JMP           | S            | pc=a                                                   |
 | OP_JMPIF'        | SB           | if R(b) pc=a                                           |
 | OP_JMPNOT'       | SB           | if !R(b) pc=a                                          |
-| OP_ONERR         | sS           | rescue_push(pc+a)                                      |
+| OP_ONERR         | S            | rescue_push(pc+a)                                      |
 | OP_EXCEPT'       | B            | R(a) = exc                                             |
 | OP_RESCUE"       | BB           | R(b) = R(a).isa?(R(b))                                 |
 | OP_POPERR        | B            | a.times{rescue_pop()}                                  |
