@@ -140,7 +140,7 @@ class Hash
   def each_value(&block)
     return to_enum :each_value unless block
 
-    self.keys.each{|k| block.call(self[k])}
+    self.values.each{|v| block.call(v)}
     self
   end
 
@@ -192,11 +192,11 @@ class Hash
     recur_list[self.object_id] = true
     ary=[]
     keys=self.keys
+    vals=self.values
     size=keys.size
     i=0
     while i<size
-      k=keys[i]
-      ary<<(k._inspect(recur_list) + "=>" + self[k]._inspect(recur_list))
+      ary<<(keys[i]._inspect(recur_list) + "=>" + vals[i]._inspect(recur_list))
       i+=1
     end
     "{"+ary.join(", ")+"}"
