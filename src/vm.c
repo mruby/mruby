@@ -1089,13 +1089,13 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_GETSV, BB) {
-      mrb_value val = mrb_vm_special_get(mrb, b);
+      mrb_value val = mrb_vm_special_get(mrb, syms[b]);
       regs[a] = val;
       NEXT;
     }
 
     CASE(OP_SETSV, BB) {
-      mrb_vm_special_set(mrb, b, regs[a]);
+      mrb_vm_special_set(mrb, syms[b], regs[a]);
       NEXT;
     }
 
