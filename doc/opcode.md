@@ -32,7 +32,7 @@ with `"`, either `OP_EXT1` or `OP_EXT2` or `OP_EXT2` can be prefixed.
 
 | Instruction Name | Operand type | Semantics                                              |
 |------------------|--------------|--------------------------------------------------------|
-| OP_NOP           | -            |                                                        |
+| OP_NOP           | -            | no operation                                           |
 | OP_MOVE"         | BB           | R(a) = R(b)                                            |
 | OP_LOADL"        | BB           | R(a) = Pool(b)                                         |
 | OP_LOADI"        | BB           | R(a) = mrb_int(b)                                      |
@@ -54,8 +54,8 @@ with `"`, either `OP_EXT1` or `OP_EXT2` or `OP_EXT2` can be prefixed.
 | OP_LOADF'        | B            | R(a) = false                                           |
 | OP_GETGV"        | BB           | R(a) = getglobal(Syms(b))                              |
 | OP_SETGV"        | BB           | setglobal(Syms(b), R(a))                               |
-| OP_GETSV"        | BB           | R(a) = Special[b]                                      |
-| OP_SETSV"        | BB           | Special[b] = R(a)                                      |
+| OP_GETSV"        | BB           | R(a) = Special[Syms(b)]                                |
+| OP_SETSV"        | BB           | Special[Syms(b)] = R(a)                                |
 | OP_GETIV"        | BB           | R(a) = ivget(Syms(b))                                  |
 | OP_SETIV"        | BB           | ivset(Syms(b),R(a))                                    |
 | OP_GETCV"        | BB           | R(a) = cvget(Syms(b))                                  |
@@ -64,22 +64,23 @@ with `"`, either `OP_EXT1` or `OP_EXT2` or `OP_EXT2` can be prefixed.
 | OP_SETCONST"     | BB           | constset(Syms(b),R(a))                                 |
 | OP_GETMCNST"     | BB           | R(a) = R(a)::Syms(b)                                   |
 | OP_SETMCNST"     | BB           | R(a+1)::Syms(b) = R(a)                                 |
-| OP_GETUPVAR'     | BBB          | R(a) = uvget(b,c)                                      |
-| OP_SETUPVAR'     | BBB          | uvset(b,c,R(a))                                        |
+| OP_GETUPVAR"     | BBB          | R(a) = uvget(b,c)                                      |
+| OP_SETUPVAR"     | BBB          | uvset(b,c,R(a))                                        |
 | OP_JMP           | S            | pc=a                                                   |
-| OP_JMPIF'        | SB           | if R(b) pc=a                                           |
-| OP_JMPNOT'       | SB           | if !R(b) pc=a                                          |
-| OP_ONERR         | S            | rescue_push(pc+a)                                      |
+| OP_JMPIF'        | BS           | if R(a) pc=b                                           |
+| OP_JMPNOT'       | BS           | if !R(a) pc=b                                          |
+| OP_JMPNIL'       | BS           | if R(a)==nil pc=b                                      |
+| OP_ONERR         | S            | rescue_push(a)                                         |
 | OP_EXCEPT'       | B            | R(a) = exc                                             |
 | OP_RESCUE"       | BB           | R(b) = R(a).isa?(R(b))                                 |
-| OP_POPERR        | B            | a.times{rescue_pop()}                                  |
+| OP_POPERR'       | B            | a.times{rescue_pop()}                                  |
 | OP_RAISE'        | B            | raise(R(a))                                            |
 | OP_EPUSH'        | B            | ensure_push(SEQ[a])                                    |
-| OP_EPOP          | B            | A.times{ensure_pop().call}                             |
+| OP_EPOP'         | B            | A.times{ensure_pop().call}                             |
 | OP_SENDV"        | BB           | R(a) = call(R(a),Syms(b),*R(a+1))                      |
 | OP_SENDVB"       | BB           | R(a) = call(R(a),Syms(b),*R(a+1),&R(a+2))              |
 | OP_SEND"         | BBB          | R(a) = call(R(a),Syms(b),R(a+1),...,R(a+c))            |
-| OP_SENDB"        | BBB          | R(a) = call(R(a),Syms(Bx),R(a+1),...,R(a+c),&R(a+c+1)) |
+| OP_SENDB"        | BBB          | R(a) = call(R(a),Syms(b),R(a+1),...,R(a+c),&R(a+c+1))  |
 | OP_CALL          | -            | R(0) = self.call(frame.argc, frame.argv)               |
 | OP_SUPER"        | BB           | R(a) = super(R(a+1),... ,R(a+b+1))                     |
 | OP_ARGARY'       | BS           | R(a) = argument array (16=5:1:5:1:4)                   |
@@ -91,28 +92,31 @@ with `"`, either `OP_EXT1` or `OP_EXT2` or `OP_EXT2` can be prefixed.
 | OP_RETURN_BLK'   | B            | return R(a) (in-block return)                          |
 | OP_BREAK'        | B            | break R(a)                                             |
 | OP_BLKPUSH'      | BS           | R(a) = block (16=5:1:5:1:4)                            |
-| OP_ADD"          | BB           | R(a) = R(a)+R(a+1)                                     |
-| OP_ADDI"         | BBB          | R(a) = R(a)+mrb_int(c)                                 |
-| OP_SUB"          | BB           | R(a) = R(a)-R(a+1)                                     |
-| OP_SUBI"         | BB           | R(a) = R(a)-mrb_int(c)                                 |
-| OP_MUL"          | BB           | R(a) = R(a)*R(a+1)                                     |
-| OP_DIV"          | BB           | R(a) = R(a)/R(a+1)                                     |
-| OP_EQ"           | BB           | R(a) = R(a)==R(a+1)                                    |
-| OP_LT"           | BB           | R(a) = R(a)<R(a+1)                                     |
-| OP_LE"           | BB           | R(a) = R(a)<=R(a+1)                                    |
-| OP_GT"           | BB           | R(a) = R(a)>R(a+1)                                     |
-| OP_GE"           | BB           | R(a) = R(a)>=R(a+1)                                    |
+| OP_ADD'          | B            | R(a) = R(a)+R(a+1)                                     |
+| OP_ADDI"         | BB           | R(a) = R(a)+mrb_int(b)                                 |
+| OP_SUB'          | B            | R(a) = R(a)-R(a+1)                                     |
+| OP_SUBI"         | BB           | R(a) = R(a)-mrb_int(b)                                 |
+| OP_MUL'          | B            | R(a) = R(a)*R(a+1)                                     |
+| OP_DIV'          | B            | R(a) = R(a)/R(a+1)                                     |
+| OP_EQ'           | B            | R(a) = R(a)==R(a+1)                                    |
+| OP_LT'           | B            | R(a) = R(a)<R(a+1)                                     |
+| OP_LE'           | B            | R(a) = R(a)<=R(a+1)                                    |
+| OP_GT'           | B            | R(a) = R(a)>R(a+1)                                     |
+| OP_GE'           | B            | R(a) = R(a)>=R(a+1)                                    |
 | OP_ARRAY"        | BB           | R(a) = ary_new(R(a),R(a+1)..R(a+b))                    |
 | OP_ARRAY2"       | BBB          | R(a) = ary_new(R(b),R(b+1)..R(b+c))                    |
 | OP_ARYCAT'       | B            | ary_cat(R(a),R(a+1))                                   |
 | OP_ARYPUSH'      | B            | ary_push(R(a),R(a+1))                                  |
+| OP_ARYDUP'       | B            | R(a) = ary_dup(R(a))                                   |
 | OP_AREF"         | BBB          | R(a) = R(b)[c]                                         |
 | OP_ASET"         | BBB          | R(a)[c] = R(b)                                         |
 | OP_APOST"        | BBB          | *R(a),R(a+1)..R(a+c) = R(a)[b..]                       |
+| OP_INTERN'       | B            | R(a) = intern(R(a))                                    |
 | OP_STRING"       | BB           | R(a) = str_dup(Lit(b))                                 |
 | OP_STRCAT'       | B            | str_cat(R(a),R(a+1))                                   |
 | OP_HASH"         | BB           | R(a) = hash_new(R(a),R(a+1)..R(a+b))                   |
 | OP_HASHADD"      | BB           | R(a) = hash_push(R(a),R(a+1)..R(a+b))                  |
+| OP_HASHCAT'      | B            | R(a) = hash_cat(R(a),R(a+1))                           |
 | OP_LAMBDA"       | BB           | R(a) = lambda(SEQ[b],OP_L_LAMBDA)                      |
 | OP_BLOCK"        | BB           | R(a) = lambda(SEQ[b],OP_L_BLOCK)                       |
 | OP_METHOD"       | BB           | R(a) = lambda(SEQ[b],OP_L_METHOD)                      |
@@ -128,7 +132,7 @@ with `"`, either `OP_EXT1` or `OP_EXT2` or `OP_EXT2` can be prefixed.
 | OP_SCLASS'       | B            | R(a) = R(a).singleton_class                            |
 | OP_TCLASS'       | B            | R(a) = target_class                                    |
 | OP_DEBUG"        | BBB          | print a,b,c                                            |
-| OP_ERR'          | B            | raise(RuntimeError, Lit(Bx))                           |
+| OP_ERR'          | B            | raise(LocalJumpError, Lit(a))                          |
 | OP_EXT1          | -            | make 1st operand 16bit                                 |
 | OP_EXT2          | -            | make 2nd operand 16bit                                 |
 | OP_EXT3          | -            | make 1st and 2nd operands 16bit                        |
