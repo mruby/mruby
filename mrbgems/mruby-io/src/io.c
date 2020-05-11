@@ -1404,22 +1404,7 @@ mrb_io_sync(mrb_state *mrb, mrb_value self)
 static off_t
 value2off(mrb_state *mrb, mrb_value offv)
 {
-  switch (mrb_type(offv)) {
-#ifndef MRB_WITHOUT_FLOAT
-    case MRB_TT_FLOAT:
-      {
-        mrb_float tmp = mrb_float(offv);
-        if (tmp < INT64_MIN || tmp > INT64_MAX) {
-          /* fall through to use convert by `mrb_int()` (and raise error if out of range) */
-        } else {
-          return (off_t)tmp;
-        }
-      }
-      /* fall through */
-#endif /* MRB_WITHOUT_FLOAT */
-    default:
-      return (off_t)mrb_int(mrb, offv);
-  }
+  return (off_t)mrb_int(mrb, offv);
 }
 
 /*
