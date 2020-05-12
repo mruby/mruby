@@ -8,7 +8,7 @@ jobs:
       - export PATH="/usr/local/opt/bison/bin:$PATH"
 
 env:
-  - MRUBY_CONFIG=travis_config.rb
+  - MRUBY_TARGET=travis
 
 script:
   - rake gensym && rake -m && rake test

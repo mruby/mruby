@@ -39,7 +39,8 @@ init:
   - ruby --version
 
 build_script:
-  - set MRUBY_CONFIG=appveyor_config.rb
+  - set YACC=.\win_flex_bison\win_bison.exe
+  - set MRUBY_TARGET=appveyor
   - rake gensym
   - rake -m -j4
   - rake -E STDOUT.sync=true test
