@@ -111,7 +111,7 @@ rbfiles = (Dir.glob("#{MRUBY_ROOT}/mrblib/*.rb")+
           Dir.glob("#{MRUBY_ROOT}/mrbgems/*/mrblib/*.rb")+
           Dir.glob("#{MRUBY_ROOT}/build/*/mrbgems/**/mrblib/*.rb")).uniq
 presym_file="#{MRUBY_ROOT}/build/presym"
-predef_symbols = nil
+
 desc "preallocated symbols"
 file presym_file => cfiles+rbfiles do
   csymbols = cfiles.map do |f|
