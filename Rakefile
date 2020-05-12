@@ -131,6 +131,7 @@ file presym_file => cfiles+rbfiles do
   symbols = (csymbols+rbsymbols).flatten.uniq.sort
   presyms = File.readlines(presym_file, chomp: true) rescue []
   if presyms != symbols
+    rm_f presym_file
     File.write(presym_file, symbols.join("\n"))
   end
 end
@@ -138,6 +139,7 @@ end
 presym_inc=presym_file+".inc"
 file presym_inc => presym_file do
   presyms = File.readlines(presym_file, chomp: true)
+  rm_f presym_inc
   File.open(presym_inc, "w") do |f|
     f.print "/* MRB_PRESYM_CSYM(sym, num) - symbol which is valid C id name */\n"
     f.print "/* MRB_PRESYM_SYM(sym, num) - symbol which is not valid C id */\n\n"
