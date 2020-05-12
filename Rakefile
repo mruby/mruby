@@ -132,7 +132,11 @@ file presym_file => cfiles+rbfiles do
   presyms = File.readlines(presym_file, chomp: true) rescue []
   if presyms != symbols
     rm_f presym_file
-    File.write(presym_file, symbols.join("\n"))
+    File.open(presym_file, "w") do |f|
+      symbols.each do|line|
+        f.puts line
+      end
+    end
   end
 end
 
