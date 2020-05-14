@@ -2319,14 +2319,35 @@ arg             : lhs '=' arg_rhs
                 | defn_head f_arglist_paren '=' arg
                     {
                       $$ = $1;
+                      void_expr_error(p, $4);
                       defn_setup(p, $$, $2, $4);
+                      nvars_unnest(p);
+                      p->in_def--;
+                    }
+                | defn_head f_arglist_paren '=' arg modifier_rescue arg
+                    {
+                      $$ = $1;
+                      void_expr_error(p, $4);
+                      void_expr_error(p, $6);
+                      defn_setup(p, $$, $2, new_mod_rescue(p, $4, $6));
                       nvars_unnest(p);
                       p->in_def--;
                     }
                 | defs_head f_arglist_paren '=' arg
                     {
                       $$ = $1;
+                      void_expr_error(p, $4);
                       defs_setup(p, $$, $2, $4);
+                      nvars_unnest(p);
+                      p->in_def--;
+                      p->in_single--;
+                    }
+                | defs_head f_arglist_paren '=' arg modifier_rescue arg
+                    {
+                      $$ = $1;
+                      void_expr_error(p, $4);
+                      void_expr_error(p, $6);
+                      defs_setup(p, $$, $2, new_mod_rescue(p, $4, $6));
                       nvars_unnest(p);
                       p->in_def--;
                       p->in_single--;
