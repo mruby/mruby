@@ -15,5 +15,8 @@ enum mruby_presym {
 #include <../build/presym.inc>
 };
 
+#undef MRB_PRESYM_CSYM
+#undef MRB_PRESYM_SYM
+
 #define MRB_SYM(sym) MRB_PRESYM__##sym
 #endif  /* MRUBY_PRESYM_H */
