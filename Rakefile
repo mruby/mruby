@@ -207,7 +207,7 @@ end
 
 desc "preallocated symbols"
 task :gensym => presym_inc
-#task :all => :gensym
+task :all => :gensym
 
 depfiles += MRuby.targets.map { |n, t|
   t.libraries
