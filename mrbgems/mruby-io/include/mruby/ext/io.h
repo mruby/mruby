@@ -18,7 +18,7 @@ extern "C" {
 #if defined(MRB_WITHOUT_IO_PREAD_PWRITE)
 # undef MRB_WITH_IO_PREAD_PWRITE
 #elif !defined(MRB_WITH_IO_PREAD_PWRITE)
-# if defined(__unix__)
+# if defined(__unix__) || defined(__MACH__)
 #  define MRB_WITH_IO_PREAD_PWRITE
 # endif
 #endif
