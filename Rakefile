@@ -146,11 +146,46 @@ file presym_inc => presym_file do
   presyms = File.readlines(presym_file, chomp: true)
   rm_f presym_inc
   File.open(presym_inc, "w") do |f|
+    op_table = {
+      "!" => "not",
+      "!=" => "neq",
+      "!~" => "nmatch",
+      "%" => "mod",
+      "&" => "and",
+      "&&" => "andand",
+      "*" => "mul",
+      "**" => "pow",
+      "+" => "add",
+      "+@" => "plus",
+      "-" => "sub",
+      "-@" => "minus",
+      "/" => "div",
+      "<" => "lt",
+      "<=" => "le",
+      "<<" => "lshift",
+      "<=>" => "cmp",
+      "==" => "eq",
+      "===" => "eqq",
+      "=~" => "match",
+      ">" => "gt",
+      ">=" => "ge",
+      ">>" => "rshift",
+      "[]" => "aref",
+      "[]=" => "aset",
+      "^" => "xor",
+      "`" => "tick",
+      "|" => "or",
+      "||" => "oror",
+      "~" => "neg",
+    }
     f.print "/* MRB_PRESYM_CSYM(sym, num) - symbol which is valid C id name */\n"
+    f.print "/* MRB_PRESYM_OPSYM(op, sym, num) - symbol which is an operator id */\n"
     f.print "/* MRB_PRESYM_SYM(sym, num) - symbol which is not valid C id */\n\n"
     presyms.each.with_index do |sym,i|
       if /\A\w+\Z/ =~ sym
         f.print "MRB_PRESYM_CSYM(#{sym}, #{i+1})\n"
+      elsif op_table.key?(sym)
+        f.print "MRB_PRESYM_OPSYM(#{sym}, #{op_table[sym]}, #{i+1})\n"
       else
         f.print "MRB_PRESYM_SYM(#{sym}, #{i+1})\n"
       end

@@ -14,8 +14,10 @@
 
 #undef MRB_PRESYM_MAX
 #undef MRB_PRESYM_CSYM
+#undef MRB_PRESYM_OPSYM
 #undef MRB_PRESYM_SYM
 #define MRB_PRESYM_CSYM(sym, num) #sym,
+#define MRB_PRESYM_OPSYM(op, sym, num) #op,
 #define MRB_PRESYM_SYM(sym, num) #sym,
 
 static const char *presym_table[] = {
