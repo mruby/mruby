@@ -2142,7 +2142,7 @@ RETRY_TRY_BLOCK:
     OP_MATH_CASE_STRING_##op_name();                                        \
     default:                                                                \
       c = 1;                                                                \
-      mid = mrb_intern_lit(mrb, MRB_STRINGIZE(OP_MATH_OP_##op_name));       \
+      mid = MRB_OPSYM(op_name);                                             \
       goto L_SEND_SYM;                                                      \
   }                                                                         \
   NEXT;
@@ -2229,7 +2229,7 @@ RETRY_TRY_BLOCK:
 #endif
       default:
         c = 1;
-        mid = mrb_intern_lit(mrb, "/");
+        mid = MRB_OPSYM(div);
         goto L_SEND_SYM;
       }
 
@@ -2255,7 +2255,7 @@ RETRY_TRY_BLOCK:
     default:                                                                \
       SET_INT_VALUE(regs[a+1], b);                                          \
       c = 1;                                                                \
-      mid = mrb_intern_lit(mrb, MRB_STRINGIZE(OP_MATH_OP_##op_name));       \
+      mid = MRB_OPSYM(op_name);                                             \
       goto L_SEND_SYM;                                                      \
   }                                                                         \
   NEXT;
@@ -2292,7 +2292,7 @@ RETRY_TRY_BLOCK:
 #define OP_CMP_BODY(op,v1,v2) (v1(regs[a]) op v2(regs[a+1]))
 
 #ifdef MRB_WITHOUT_FLOAT
-#define OP_CMP(op) do {\
+#define OP_CMP(op,sym) do {\
   int result;\
   /* need to check if - is overridden */\
   switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {\
@@ -2301,7 +2301,7 @@ RETRY_TRY_BLOCK:
     break;\
   default:\
     c = 1;\
-    mid = mrb_intern_lit(mrb, # op);\
+    mid = MRB_OPSYM(sym);\
     goto L_SEND_SYM;\
   }\
   if (result) {\
@@ -2312,7 +2312,7 @@ RETRY_TRY_BLOCK:
   }\
 } while(0)
 #else
-#define OP_CMP(op) do {\
+#define OP_CMP(op, sym) do {\
   int result;\
   /* need to check if - is overridden */\
   switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {\
@@ -2330,7 +2330,7 @@ RETRY_TRY_BLOCK:
     break;\
   default:\
     c = 1;\
-    mid = mrb_intern_lit(mrb, # op);\
+    mid = MRB_OPSYM(sym);\
     goto L_SEND_SYM;\
   }\
   if (result) {\
@@ -2347,28 +2347,28 @@ RETRY_TRY_BLOCK:
         SET_TRUE_VALUE(regs[a]);
       }
       else {
-        OP_CMP(==);
+        OP_CMP(==,eq);
       }
       NEXT;
     }
 
     CASE(OP_LT, B) {
-      OP_CMP(<);
+      OP_CMP(<,lt);
       NEXT;
     }
 
     CASE(OP_LE, B) {
-      OP_CMP(<=);
+      OP_CMP(<=,le);
       NEXT;
     }
 
     CASE(OP_GT, B) {
-      OP_CMP(>);
+      OP_CMP(>,gt);
       NEXT;
     }
 
     CASE(OP_GE, B) {
-      OP_CMP(>=);
+      OP_CMP(>=,ge);
       NEXT;
     }
 
