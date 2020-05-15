@@ -373,7 +373,7 @@ ht_put(mrb_state *mrb, htable *t, mrb_value key, mrb_value val)
         deleted++;
         continue;
       }
-      if (ht_hash_equal(mrb, t, k, key)) {
+      if (ht_hash_equal(mrb, t, key, k)) {
         seg->e[i].val = val;
         return;
       }
@@ -454,7 +454,7 @@ ht_get(mrb_state *mrb, htable *t, mrb_value key, mrb_value *vp)
         return FALSE;
       }
       if (mrb_undef_p(k)) continue;
-      if (ht_hash_equal(mrb, t, k, key)) {
+      if (ht_hash_equal(mrb, t, key, k)) {
         if (vp) *vp = seg->e[i].val;
         return TRUE;
       }
