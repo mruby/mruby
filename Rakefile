@@ -112,8 +112,39 @@ rbfiles = (Dir.glob("#{MRUBY_ROOT}/mrblib/*.rb")+
           Dir.glob("#{MRUBY_ROOT}/mrbgems/*/mrblib/*.rb")+
           Dir.glob("#{MRUBY_ROOT}/build/*/mrbgems/**/mrblib/*.rb")).uniq
 presym_file="#{MRUBY_ROOT}/build/presym"
+op_table = {
+  "!" => "not",
+  "!=" => "neq",
+  "!~" => "nmatch",
+  "%" => "mod",
+  "&" => "and",
+  "&&" => "andand",
+  "*" => "mul",
+  "**" => "pow",
+  "+" => "add",
+  "+@" => "plus",
+  "-" => "sub",
+  "-@" => "minus",
+  "/" => "div",
+  "<" => "lt",
+  "<=" => "le",
+  "<<" => "lshift",
+  "<=>" => "cmp",
+  "==" => "eq",
+  "===" => "eqq",
+  "=~" => "match",
+  ">" => "gt",
+  ">=" => "ge",
+  ">>" => "rshift",
+  "[]" => "aref",
+  "[]=" => "aset",
+  "^" => "xor",
+  "`" => "tick",
+  "|" => "or",
+  "||" => "oror",
+  "~" => "neg",
+}
 
-desc "preallocated symbols"
 file presym_file => cfiles+rbfiles do
   csymbols = cfiles.map do |f|
     src = File.read(f)
@@ -121,7 +152,10 @@ file presym_file => cfiles+rbfiles do
      src.scan(/mrb_define_method\([^\n"]*"([^\n"]*)"/),
      src.scan(/mrb_define_class\([^\n"]*"([^\n"]*)"/),
      src.scan(/mrb_define_module\([^\n"]*"([^\n"]*)"/),
-     src.scan(/MRB_SYM\((\w+)\)/)]
+     src.scan(/MRB_SYM\((\w+)\)/),
+     src.scan(/MRB_QSYM\((\w+)\)/).map{|x,|
+       x.sub!(/_p$/, "?") || x.sub!(/_b$/, "!") || x.sub!(/_e$/, "=") || x.sub!(/^a_/, "@") || x.sub!(/^d_/, "$")
+     }.compact]
   end
   rbsymbols = rbfiles.map do |f|
     src = File.read(f)
@@ -129,7 +163,7 @@ file presym_file => cfiles+rbfiles do
      src.scan(/\bmodule +([A-Z]\w*)/),
      src.scan(/\bdef +(\w+)/)]
   end
-  symbols = (csymbols+rbsymbols).flatten.uniq.sort
+  symbols = (csymbols+rbsymbols+op_table.keys).flatten.compact.uniq.sort
   presyms = File.readlines(presym_file, chomp: true) rescue []
   if presyms != symbols
     File.write(presym_file, symbols.join("\n"))
@@ -140,38 +174,6 @@ presym_inc=presym_file+".inc"
 file presym_inc => presym_file do
   presyms = File.readlines(presym_file, chomp: true)
   File.open(presym_inc, "w") do |f|
-    op_table = {
-      "!" => "not",
-      "!=" => "neq",
-      "!~" => "nmatch",
-      "%" => "mod",
-      "&" => "and",
-      "&&" => "andand",
-      "*" => "mul",
-      "**" => "pow",
-      "+" => "add",
-      "+@" => "plus",
-      "-" => "sub",
-      "-@" => "minus",
-      "/" => "div",
-      "<" => "lt",
-      "<=" => "le",
-      "<<" => "lshift",
-      "<=>" => "cmp",
-      "==" => "eq",
-      "===" => "eqq",
-      "=~" => "match",
-      ">" => "gt",
-      ">=" => "ge",
-      ">>" => "rshift",
-      "[]" => "aref",
-      "[]=" => "aset",
-      "^" => "xor",
-      "`" => "tick",
-      "|" => "or",
-      "||" => "oror",
-      "~" => "neg",
-    }
     f.print "/* MRB_PRESYM_CSYM(sym, num) - symbol which is valid C id name */\n"
     f.print "/* MRB_PRESYM_QSYM(sym, name, num) - symbol with alias name */\n"
     f.print "/* MRB_PRESYM_SYM(sym, num) - symbol which is not valid C id */\n\n"
@@ -185,6 +187,9 @@ file presym_inc => presym_file do
         f.print "MRB_PRESYM_QSYM(#{sym}, #{s}, #{i+1})\n"
       elsif /\!\Z/ =~ sym
         s = sym.dup; s[-1] = "_b"
+        f.print "MRB_PRESYM_QSYM(#{sym}, #{s}, #{i+1})\n"
+      elsif /\=\Z/ =~ sym
+        s = sym.dup; s[-1] = "_e"
         f.print "MRB_PRESYM_QSYM(#{sym}, #{s}, #{i+1})\n"
       elsif /\A@/ =~ sym
         s = sym.dup; s[0] = "a_"
@@ -200,8 +205,9 @@ file presym_inc => presym_file do
   end
 end
 
+desc "preallocated symbols"
 task :gensym => presym_inc
-depfiles.unshift "gensym"
+#task :all => :gensym
 
 depfiles += MRuby.targets.map { |n, t|
   t.libraries
