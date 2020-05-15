@@ -132,19 +132,13 @@ file presym_file => cfiles+rbfiles do
   symbols = (csymbols+rbsymbols).flatten.uniq.sort
   presyms = File.readlines(presym_file, chomp: true) rescue []
   if presyms != symbols
-    rm_f presym_file
-    File.open(presym_file, "w") do |f|
-      symbols.each do|line|
-        f.puts line
-      end
-    end
+    File.write(presym_file, symbols.join("\n"))
   end
 end
 
 presym_inc=presym_file+".inc"
 file presym_inc => presym_file do
   presyms = File.readlines(presym_file, chomp: true)
-  rm_f presym_inc
   File.open(presym_inc, "w") do |f|
     op_table = {
       "!" => "not",
