@@ -104,6 +104,7 @@ MRuby.each_target do |target|
   end
 end
 
+mkdir_p "#{MRUBY_ROOT}/build"
 cfiles = (Dir.glob("#{MRUBY_ROOT}/src/*.c")+
           Dir.glob("#{MRUBY_ROOT}/mrbgems/*/{core,src}/*.c")+
           Dir.glob("#{MRUBY_ROOT}/build/*/mrbgems/**/{src,core}/*.c")).uniq
