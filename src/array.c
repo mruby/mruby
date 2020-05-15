@@ -1314,7 +1314,7 @@ init_ary_each(mrb_state *mrb, struct RClass *ary)
   each_irep->syms = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym)*5);
   each_irep->syms[0] = MRB_SYM(each);
   each_irep->syms[1] = MRB_SYM(to_enum);
-  each_irep->syms[2] = MRB_OPSYM(aref);
+  each_irep->syms[2] = MRB_QSYM(aref);
   each_irep->syms[3] = MRB_SYM(call);
   each_irep->syms[4] = MRB_SYM(length);
   each_irep->slen = 5;

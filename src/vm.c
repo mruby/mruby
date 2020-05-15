@@ -2142,7 +2142,7 @@ RETRY_TRY_BLOCK:
     OP_MATH_CASE_STRING_##op_name();                                        \
     default:                                                                \
       c = 1;                                                                \
-      mid = MRB_OPSYM(op_name);                                             \
+      mid = MRB_QSYM(op_name);                                             \
       goto L_SEND_SYM;                                                      \
   }                                                                         \
   NEXT;
@@ -2229,7 +2229,7 @@ RETRY_TRY_BLOCK:
 #endif
       default:
         c = 1;
-        mid = MRB_OPSYM(div);
+        mid = MRB_QSYM(div);
         goto L_SEND_SYM;
       }
 
@@ -2255,7 +2255,7 @@ RETRY_TRY_BLOCK:
     default:                                                                \
       SET_INT_VALUE(regs[a+1], b);                                          \
       c = 1;                                                                \
-      mid = MRB_OPSYM(op_name);                                             \
+      mid = MRB_QSYM(op_name);                                              \
       goto L_SEND_SYM;                                                      \
   }                                                                         \
   NEXT;
@@ -2301,7 +2301,7 @@ RETRY_TRY_BLOCK:
     break;\
   default:\
     c = 1;\
-    mid = MRB_OPSYM(sym);\
+    mid = MRB_QSYM(sym);\
     goto L_SEND_SYM;\
   }\
   if (result) {\
@@ -2330,7 +2330,7 @@ RETRY_TRY_BLOCK:
     break;\
   default:\
     c = 1;\
-    mid = MRB_OPSYM(sym);\
+    mid = MRB_QSYM(sym);\
     goto L_SEND_SYM;\
   }\
   if (result) {\
