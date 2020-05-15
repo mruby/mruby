@@ -9,7 +9,7 @@
 
 #undef MRB_PRESYM_MAX
 #define MRB_PRESYM_CSYM(sym, num) MRB_PRESYM__##sym = (num<<1),
-#define MRB_PRESYM_OPSYM(op, sym, num) MRB_PRESYM_op_##sym = (num<<1),
+#define MRB_PRESYM_QSYM(src, sym, num) MRB_PRESYM_q_##sym = (num<<1),
 #define MRB_PRESYM_SYM(sym, num) 
 
 enum mruby_presym {
@@ -17,9 +17,9 @@ enum mruby_presym {
 };
 
 #undef MRB_PRESYM_CSYM
-#undef MRB_PRESYM_OPSYM
+#undef MRB_PRESYM_QSYM
 #undef MRB_PRESYM_SYM
 
 #define MRB_SYM(sym) MRB_PRESYM__##sym
-#define MRB_OPSYM(sym) MRB_PRESYM_op_##sym
+#define MRB_QSYM(sym) MRB_PRESYM_q_##sym
 #endif  /* MRUBY_PRESYM_H */

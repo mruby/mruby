@@ -173,13 +173,25 @@ file presym_inc => presym_file do
       "~" => "neg",
     }
     f.print "/* MRB_PRESYM_CSYM(sym, num) - symbol which is valid C id name */\n"
-    f.print "/* MRB_PRESYM_OPSYM(op, sym, num) - symbol which is an operator id */\n"
+    f.print "/* MRB_PRESYM_QSYM(sym, name, num) - symbol with alias name */\n"
     f.print "/* MRB_PRESYM_SYM(sym, num) - symbol which is not valid C id */\n\n"
     presyms.each.with_index do |sym,i|
       if /\A\w+\Z/ =~ sym
         f.print "MRB_PRESYM_CSYM(#{sym}, #{i+1})\n"
       elsif op_table.key?(sym)
-        f.print "MRB_PRESYM_OPSYM(#{sym}, #{op_table[sym]}, #{i+1})\n"
+        f.print "MRB_PRESYM_QSYM(#{sym}, #{op_table[sym]}, #{i+1})\n"
+      elsif /\?\Z/ =~ sym
+        s = sym.dup; s[-1] = "_p"
+        f.print "MRB_PRESYM_QSYM(#{sym}, #{s}, #{i+1})\n"
+      elsif /\!\Z/ =~ sym
+        s = sym.dup; s[-1] = "_b"
+        f.print "MRB_PRESYM_QSYM(#{sym}, #{s}, #{i+1})\n"
+      elsif /\A@/ =~ sym
+        s = sym.dup; s[0] = "a_"
+        f.print "MRB_PRESYM_QSYM(#{sym}, #{s}, #{i+1})\n"
+      elsif /\A$/ =~ sym
+        s = sym.dup; s[0] = "d_"
+        f.print "MRB_PRESYM_QSYM(#{sym}, #{s}, #{i+1})\n"
       else
         f.print "MRB_PRESYM_SYM(#{sym}, #{i+1})\n"
       end
