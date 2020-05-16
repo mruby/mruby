@@ -322,7 +322,7 @@ mrb_search_method_owner(mrb_state *mrb, struct RClass *c, mrb_value obj, mrb_sym
     if (unbound) {
       goto name_error;
     }
-    if (!mrb_respond_to(mrb, obj, mrb_intern_lit(mrb, "respond_to_missing?"))) {
+    if (!mrb_respond_to(mrb, obj, MRB_QSYM(respond_to_missing_p))) {
       goto name_error;
     }
     ret = mrb_funcall(mrb, obj, "respond_to_missing?", 2, mrb_symbol_value(name), mrb_true_value());
