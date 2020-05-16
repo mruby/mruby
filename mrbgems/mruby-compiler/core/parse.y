@@ -2085,7 +2085,7 @@ arg             : lhs '=' arg_rhs
                     }
                 | primary_value '[' opt_call_args ']' tOP_ASGN arg_rhs
                     {
-                      $$ = new_op_asgn(p, new_call(p, $1, intern_lit("[]"), $3, '.'), $5, $6);
+                      $$ = new_op_asgn(p, new_call(p, $1, MRB_QSYM(aref), $3, '.'), $5, $6);
                     }
                 | primary_value call_op tIDENTIFIER tOP_ASGN arg_rhs
                     {
@@ -2295,9 +2295,9 @@ paren_args      : '(' opt_call_args ')'
                                   new_block_arg(p, new_lvar(p, b)));
                       }
 #else
-                      mrb_sym r = mrb_intern_lit(p->mrb, "*");
-                      mrb_sym k = mrb_intern_lit(p->mrb, "**");
-                      mrb_sym b = mrb_intern_lit(p->mrb, "&");
+                      mrb_sym r = MRB_QSYM(mul);
+                      mrb_sym k = MRB_QSYM(pow);
+                      mrb_sym b = MRB_QSYM(and);
                       if (local_var_p(p, r) && local_var_p(p, k) && local_var_p(p, b)) {
                         $$ = cons(list2(new_splat(p, new_lvar(p, r)),
                                         new_kw_hash(p, list1(cons(new_kw_rest_args(p, 0), new_lvar(p, k))))),
@@ -3026,7 +3026,7 @@ method_call     : operation paren_args
                     }
                 | primary_value '[' opt_call_args ']'
                     {
-                      $$ = new_call(p, $1, intern_lit("[]"), $3, '.');
+                      $$ = new_call(p, $1, MRB_QSYM(aref), $3, '.');
                     }
                 ;
 
@@ -3409,15 +3409,15 @@ f_arglist       : '(' f_args rparen
                     {
 #if 1
                       /* til real keyword args implemented */
-                      mrb_sym r = mrb_intern_lit(p->mrb, "*");
-                      mrb_sym b = mrb_intern_lit(p->mrb, "&");
+                      mrb_sym r = MRB_QSYM(mul);
+                      mrb_sym b = MRB_QSYM(and);
                       local_add_f(p, r);
                       $$ = new_args(p, 0, 0, r, 0,
                                     new_args_tail(p, 0, 0, b));
 #else
-                      mrb_sym r = mrb_intern_lit(p->mrb, "*");
-                      mrb_sym k = mrb_intern_lit(p->mrb, "**");
-                      mrb_sym b = mrb_intern_lit(p->mrb, "&");
+                      mrb_sym r = MRB_QSYM(mul);
+                      mrb_sym k = MRB_QSYM(pow);
+                      mrb_sym b = MRB_QSYM(and);
                       local_add_f(p, r); local_add_f(p, k);
                       $$ = new_args(p, 0, 0, r, 0,
                                     new_args_tail(p, 0, new_kw_rest_args(p, nsym(k)), b));
@@ -3580,7 +3580,7 @@ f_args          : f_arg ',' f_optarg ',' f_rest_arg opt_args_tail
                     }
                 | /* none */
                     {
-                      local_add_f(p, intern_lit("&"));
+                      local_add_f(p, MRB_QSYM(and));
                       $$ = new_args(p, 0, 0, 0, 0, 0);
                     }
                 ;
@@ -3704,7 +3704,7 @@ f_rest_arg      : restarg_mark tIDENTIFIER
                     }
                 | restarg_mark
                     {
-                      local_add_f(p, intern_lit("*"));
+                      local_add_f(p, MRB_QSYM(and));
                       $$ = -1;
                     }
                 ;
@@ -4961,7 +4961,7 @@ parser_yylex(parser_state *p)
   case '*':
     if ((c = nextc(p)) == '*') {
       if ((c = nextc(p)) == '=') {
-        pylval.id = intern_lit("**");
+        pylval.id = MRB_QSYM(pow);
         p->lstate = EXPR_BEG;
         return tOP_ASGN;
       }
@@ -4979,7 +4979,7 @@ parser_yylex(parser_state *p)
     }
     else {
       if (c == '=') {
-        pylval.id = intern_lit("*");
+        pylval.id = MRB_QSYM(mul);
         p->lstate = EXPR_BEG;
         return tOP_ASGN;
       }
@@ -5095,7 +5095,7 @@ parser_yylex(parser_state *p)
     }
     if (c == '<') {
       if ((c = nextc(p)) == '=') {
-        pylval.id = intern_lit("<<");
+        pylval.id = MRB_QSYM(lshift);
         p->lstate = EXPR_BEG;
         return tOP_ASGN;
       }
@@ -5117,7 +5117,7 @@ parser_yylex(parser_state *p)
     }
     if (c == '>') {
       if ((c = nextc(p)) == '=') {
-        pylval.id = intern_lit(">>");
+        pylval.id = MRB_QSYM(rshift);
         p->lstate = EXPR_BEG;
         return tOP_ASGN;
       }
@@ -5225,7 +5225,7 @@ parser_yylex(parser_state *p)
     if ((c = nextc(p)) == '&') {
       p->lstate = EXPR_BEG;
       if ((c = nextc(p)) == '=') {
-        pylval.id = intern_lit("&&");
+        pylval.id = MRB_QSYM(andand);
         p->lstate = EXPR_BEG;
         return tOP_ASGN;
       }
@@ -5237,7 +5237,7 @@ parser_yylex(parser_state *p)
       return tANDDOT;
     }
     else if (c == '=') {
-      pylval.id = intern_lit("&");
+      pylval.id = MRB_QSYM(and);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -5264,7 +5264,7 @@ parser_yylex(parser_state *p)
     if ((c = nextc(p)) == '|') {
       p->lstate = EXPR_BEG;
       if ((c = nextc(p)) == '=') {
-        pylval.id = intern_lit("||");
+        pylval.id = MRB_QSYM(oror);
         p->lstate = EXPR_BEG;
         return tOP_ASGN;
       }
@@ -5272,7 +5272,7 @@ parser_yylex(parser_state *p)
       return tOROP;
     }
     if (c == '=') {
-      pylval.id = intern_lit("|");
+      pylval.id = MRB_QSYM(or);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -5296,7 +5296,7 @@ parser_yylex(parser_state *p)
       return '+';
     }
     if (c == '=') {
-      pylval.id = intern_lit("+");
+      pylval.id = MRB_QSYM(add);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -5324,7 +5324,7 @@ parser_yylex(parser_state *p)
       return '-';
     }
     if (c == '=') {
-      pylval.id = intern_lit("-");
+      pylval.id = MRB_QSYM(sub);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -5644,7 +5644,7 @@ parser_yylex(parser_state *p)
       return tREGEXP_BEG;
     }
     if ((c = nextc(p)) == '=') {
-      pylval.id = intern_lit("/");
+      pylval.id = MRB_QSYM(div);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -5663,7 +5663,7 @@ parser_yylex(parser_state *p)
 
   case '^':
     if ((c = nextc(p)) == '=') {
-      pylval.id = intern_lit("^");
+      pylval.id = MRB_QSYM(xor);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -5840,7 +5840,7 @@ parser_yylex(parser_state *p)
       }
     }
     if ((c = nextc(p)) == '=') {
-      pylval.id = intern_lit("%");
+      pylval.id = MRB_QSYM(mod);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
