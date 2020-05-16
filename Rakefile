@@ -145,7 +145,7 @@ op_table = {
   "~" => "neg",
 }
 
-file presym_file => cfiles+rbfiles do
+file presym_file => cfiles+rbfiles+[__FILE__] do
   csymbols = cfiles.map do |f|
     src = File.read(f)
     [src.scan(/intern_lit\([^\n"]*"([^\n "]*)"/),
