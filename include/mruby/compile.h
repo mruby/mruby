@@ -180,7 +180,15 @@ MRB_API struct mrb_parser_state* mrb_parse_nstring(mrb_state*,const char*,size_t
 MRB_API struct RProc* mrb_generate_code(mrb_state*, struct mrb_parser_state*);
 MRB_API mrb_value mrb_load_exec(mrb_state *mrb, struct mrb_parser_state *p, mrbc_context *c);
 
-/* program load functions */
+/** program load functions 
+* Please note! Currently due to interactions with the GC calling these functions will 
+* leak one RProc object per function call.
+* To prevent this save the current memory arena before calling and restore the arena
+* right after, like so
+* int ai = mrb_gc_arena_save(mrb);
+* mrb_value status = mrb_load_string(mrb, buffer);
+* mrb_gc_arena_restore(mrb, ai);
+*/
 #ifndef MRB_DISABLE_STDIO
 MRB_API mrb_value mrb_load_file(mrb_state*,FILE*);
 MRB_API mrb_value mrb_load_file_cxt(mrb_state*,FILE*, mrbc_context *cxt);

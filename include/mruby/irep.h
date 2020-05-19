@@ -49,6 +49,16 @@ typedef struct mrb_irep {
 
 MRB_API mrb_irep *mrb_add_irep(mrb_state *mrb);
 
+/** load mruby bytecode functions
+* Please note! Currently due to interactions with the GC calling these functions will
+* leak one RProc object per function call.
+* To prevent this save the current memory arena before calling and restore the arena
+* right after, like so
+* int ai = mrb_gc_arena_save(mrb);
+* mrb_value status = mrb_load_irep(mrb, buffer);
+* mrb_gc_arena_restore(mrb, ai);
+*/
+
 /* @param [const uint8_t*] irep code, expected as a literal */
 MRB_API mrb_value mrb_load_irep(mrb_state*, const uint8_t*);
 
