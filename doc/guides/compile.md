@@ -14,37 +14,53 @@ To compile mruby out of the source code you need the following tools:
 
 Note that `bison` bundled with MacOS is too old to compile `mruby`.
 Try `brew install bison` and follow the instuction shown to update
-the `$PATH` to compile `mruby`.
+the `$PATH` to compile `mruby`. We also encourage to upgrade `ruby`
+on MacOS in similar manner.
 
 Optional:
-* GIT (to update mruby source and integrate mrbgems easier)
+* git (to update mruby source and integrate mrbgems easier)
 * C++ compiler (to use GEMs which include \*.cpp, \*.cxx, \*.cc)
 * Assembler (to use GEMs which include \*.asm)
 
-## Usage
+## Build
 
-Inside of the root directory of the mruby source a file exists
-called *build_config.rb*. This file contains the build configuration
-of mruby and looks like this for example:
+To compile `mruby`, just call `rake` inside of the mruby source
+root. To generate and execute the test tools call `rake test`. To
+clean all build files call `rake clean`. To see full command line on
+build, call `rake -v`.
+
+If you want to compile for the specific configuration, specify
+`MRUBY_TARGET` or `TARGET` environment variable, e.g
+
+```sh
+rake TAGRET=host
+```
+
+The default target is `host`.  The compilation target desciption files
+(with `.rb` suffix) are contained in the `target` directory.
+
+A build description file contains the build configuration of mruby and
+looks like the following for example:
+
 ```ruby
 MRuby::Build.new do |conf|
   toolchain :gcc
 end
 ```
 
-All tools necessary to compile mruby can be set or modified here. In case
-you want to maintain an additional *build_config.rb* you can define a
-customized path using the *$MRUBY_CONFIG* environment variable.
-
-To compile just call `rake` inside of the mruby source root. To
-generate and execute the test tools call `rake test`. To clean
-all build files call `rake clean`. To see full command line on
-build, call `rake -v`.
+All tools necessary to compile mruby can be set or modified here. In
+case you want to try different configuration, you can create a new
+configuration file under `target` and specify the configuration using
+the `MRUBY_TARGET` environment variable.
 
 ## Build Configuration
 
-Inside of the *build_config.rb* the following options can be configured
-based on your environment.
+To create a new configuration, copy the existing configuration in the
+`target` directory, and modify it. We wish you submit a pull-request,
+once you created a new configuration for a new platform.
+
+Inside of the configuration file, the following options can be
+configured based on your environment.
 
 ### Toolchains
 
@@ -88,15 +104,12 @@ in `ANDROID_STANDALONE_TOOLCHAIN`.
 ### Binaries
 
 It is possible to select which tools should be compiled during the compilation
-process. The following tools can be selected:
-* mruby (mruby interpreter)
-* mirb (mruby interactive shell)
+process. For example, 
 
-To select them declare conf.gem as follows:
-```ruby
-conf.gem "#{root}/mrbgems/mruby-bin-mruby"
-conf.gem "#{root}/mrbgems/mruby-bin-mirb"
-```
+* `mruby`
+* `mirb`
+
+The configuration are done via `mrbgems`. See `Mrbgems` section.
 
 ### File Separator
 
@@ -209,16 +222,32 @@ end
 
 ### Mrbgems
 
-Integrate GEMs in the build process.
-```ruby
-# Integrate GEM with additional configuration
-conf.gem 'path/to/gem' do |g|
-  g.cc.flags << ...
-end
+`mruby` comes with the (sort of) packaging system named `mrbgems`. To
+specify `gem`, you can use `conf.gem` in the configuration file.
 
-# Integrate GEM without additional configuration
-conf.gem 'path/to/another/gem'
+```ruby
+# Integrate a bundled Gem you see in `mrbgems` directory
+conf.gem :core => 'mruby-something'
+
+# Integrate a Gem from GitHub
+conf.gem :github => 'someone/mruby-another'
+
+# Integrate a mruby binary Gem
+conf.gem :core => 'mruby-bin-mruby'
+
+# Integrate a interactive mruby binary Gem
+conf.gem :core => 'mruby-bin-mirb'
+
+# Integrate GemBox (set of Gems)
+conf.gembox "default"
 ```
+
+A GemBox is a set of Gems defined in `mrbgems/default.gembox` for example.
+It's just a set of `mrbgem` configurations.
+
+There is a `RubyGem` (gem for CRuby) named `mgem` that help you to
+manage `mrbgems`. Try `gem install mgem`. `mgem` can show you the list
+of registered `mrbgems`.
 
 See doc/mrbgems/README.md for more option about mrbgems.
 
@@ -327,6 +356,10 @@ root directory. The structure of this directory will look like this:
 
 	+- build
 	   |
+	   +-  presym         <- List of preallocated symbolx
+       |
+	   +-  presym.inc     <- C source file for preallocated symbols
+       |
 	   +-  host
 	       |
 	       +- bin          <- Binaries (mirb, mrbc and mruby)
@@ -378,6 +411,10 @@ In case of a cross-compilation to *i386* the *build* directory structure looks
 like this:
 
 	+- build
+	   |
+	   +-  presym         <- List of preallocated symbolx
+       |
+	   +-  presym.inc     <- C source file for preallocated symbols
 	   |
 	   +-  host
 	   |   |
