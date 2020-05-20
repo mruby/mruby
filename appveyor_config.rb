@@ -1,3 +1,8 @@
+def setup_option(conf)
+  conf.compilers.each{|c| c.flags[0].delete("/Zi")}
+  conf.linker.flags << "/DEBUG:NONE"
+end
+
 MRuby::Build.new('full-debug') do |conf|
   toolchain :visualcpp
   enable_debug
@@ -5,6 +10,7 @@ MRuby::Build.new('full-debug') do |conf|
   # include all core GEMs
   conf.gembox 'full-core'
   conf.cc.defines += %w(MRB_GC_STRESS MRB_METHOD_CACHE MRB_ENABLE_DEBUG_HOOK)
+  setup_option(conf)
 
   conf.enable_test
 end
@@ -17,6 +23,7 @@ MRuby::Build.new do |conf|
   conf.compilers.each do |c|
     c.defines += %w(MRB_GC_FIXED_ARENA)
   end
+  setup_option(conf)
   conf.enable_bintest
   conf.enable_test
 end
@@ -28,6 +35,7 @@ MRuby::Build.new('cxx_abi') do |conf|
   conf.compilers.each do |c|
     c.defines += %w(MRB_GC_FIXED_ARENA)
   end
+  setup_option(conf)
   conf.enable_bintest
   conf.enable_test
 
