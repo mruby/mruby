@@ -39,13 +39,31 @@ typedef struct mrb_pool_value {
   } u;
 } mrb_pool_value;
 
+enum mrb_catch_type {
+  MRB_CATCH_RESCUE = 0,
+  MRB_CATCH_ENSURE = 1,
+};
+
+struct mrb_irep_catch_hander {
+  uint8_t type;         /* enum mrb_catch_type */
+  uint8_t begin[2];     /* The starting address to match the hander. Includes this. */
+  uint8_t end[2];       /* The endpoint address that matches the hander. Not Includes this. */
+  uint8_t target[2];    /* The address to jump to if a match is made. */
+};
+
 /* Program data array struct */
 typedef struct mrb_irep {
   uint16_t nlocals;        /* Number of local variables */
   uint16_t nregs;          /* Number of register variables */
+  uint16_t clen;           /* Number of catch handlers */
   uint8_t flags;
 
   const mrb_code *iseq;
+  /*
+   * A catch handler table is placed after the iseq entity.
+   * The reason it doesn't add fields to the structure is to keep the mrb_irep structure from bloating.
+   * The catch handler table can be obtained with `mrb_irep_catch_handler_table(irep)`.
+   */
   const mrb_pool_value *pool;
   const mrb_sym *syms;
   const struct mrb_irep * const *reps;
@@ -106,6 +124,17 @@ struct mrb_insn_data {
 };
 
 struct mrb_insn_data mrb_decode_insn(const mrb_code *pc);
+
+static inline const struct mrb_irep_catch_hander *
+mrb_irep_catch_handler_table(const struct mrb_irep *irep)
+{
+  if (irep->clen > 0) {
+    return (const struct mrb_irep_catch_hander *)(irep->iseq + irep->ilen);
+  }
+  else {
+    return (const struct mrb_irep_catch_hander *)NULL;
+  }
+}
 
 MRB_END_DECL
 
