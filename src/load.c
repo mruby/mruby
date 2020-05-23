@@ -94,27 +94,30 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
   src += sizeof(uint16_t);
 
   /* Binary Data Section */
-  /* ISEQ BLOCK */
+  /* ISEQ BLOCK (and CATCH HANDLER TABLE BLOCK) */
+  irep->clen = bin_to_uint16(src);  /* number of catch handler */
+  src += sizeof(uint16_t);
   irep->ilen = (uint16_t)bin_to_uint32(src);
   src += sizeof(uint32_t);
   src += skip_padding(src);
 
   if (irep->ilen > 0) {
+    size_t data_len = sizeof(mrb_code) * irep->ilen +
+                      sizeof(struct mrb_irep_catch_hander) * irep->clen;
+    mrb_static_assert1(sizeof(struct mrb_irep_catch_hander) == 7);
     if (SIZE_ERROR_MUL(irep->ilen, sizeof(mrb_code))) {
       return NULL;
     }
     if ((flags & FLAG_SRC_MALLOC) == 0) {
       irep->iseq = (mrb_code*)src;
-      src += sizeof(mrb_code) * irep->ilen;
       irep->flags |= MRB_ISEQ_NO_FREE;
     }
     else {
-      size_t data_len = sizeof(mrb_code) * irep->ilen;
       void *buf = mrb_malloc(mrb, data_len);
       irep->iseq = (mrb_code *)buf;
       memcpy(buf, src, data_len);
-      src += data_len;
     }
+    src += data_len;
   }
 
   /* POOL BLOCK */

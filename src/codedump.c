@@ -4,6 +4,7 @@
 #include <mruby/opcode.h>
 #include <mruby/string.h>
 #include <mruby/proc.h>
+#include <mruby/dump.h>
 
 #ifndef MRB_DISABLE_STDIO
 static void
@@ -85,6 +86,34 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       char const *s = mrb_sym_dump(mrb, irep->lv[i - 1].name);
       int n = irep->lv[i - 1].r ? irep->lv[i - 1].r : i;
       printf("  R%d:%s\n", n, s ? s : "");
+    }
+  }
+
+  if (irep->clen > 0) {
+    int i = irep->clen;
+    const struct mrb_irep_catch_hander *e = mrb_irep_catch_handler_table(irep);
+
+    for (; i > 0; i --, e ++) {
+      int begin = bin_to_uint16(e->begin);
+      int end = bin_to_uint16(e->end);
+      int target = bin_to_uint16(e->target);
+      char buf[20];
+      const char *type;
+
+      switch (e->type) {
+        case MRB_CATCH_RESCUE:
+          type = "rescue";
+          break;
+        case MRB_CATCH_ENSURE:
+          type = "ensure";
+          break;
+        default:
+          buf[0] = '\0';
+          snprintf(buf, sizeof(buf), "0x%02x <unknown>", (int)e->type);
+          type = buf;
+          break;
+      }
+      printf("catch type: %-8s begin: %04d end: %04d target: %04d\n", type, begin, end, target);
     }
   }
 

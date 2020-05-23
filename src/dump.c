@@ -255,12 +255,38 @@ write_syms_block(mrb_state *mrb, mrb_irep *irep, uint8_t *buf)
 }
 
 static size_t
+get_catch_table_block_size(mrb_state *mrb, const mrb_irep *irep)
+{
+  size_t size = 0;
+
+  size += sizeof(uint16_t); /* number of catch handler */
+  size += (sizeof(struct mrb_irep_catch_hander)) * irep->clen;
+
+  return size;
+}
+
+static ptrdiff_t
+write_catch_table_block(mrb_state *mrb, const mrb_irep *irep, uint8_t *buf)
+{
+  uint8_t *cur = buf;
+  const struct mrb_irep_catch_hander *e = mrb_irep_catch_handler_table(irep);
+  mrb_static_assert1(sizeof(*e) == 7);
+
+  /* irep->clen has already been written before iseq block */
+  memcpy(cur, (const void *)e, sizeof(*e) * irep->clen);
+  cur += sizeof(*e) * irep->clen;
+
+  return cur - buf;
+}
+
+static size_t
 get_irep_record_size_1(mrb_state *mrb, mrb_irep *irep)
 {
   size_t size = 0;
 
   size += get_irep_header_size(mrb);
   size += get_iseq_block_size(mrb, irep);
+  size += get_catch_table_block_size(mrb, irep);
   size += get_pool_block_size(mrb, irep);
   size += get_syms_block_size(mrb, irep);
   return size;
@@ -295,7 +321,13 @@ write_irep_record(mrb_state *mrb, mrb_irep *irep, uint8_t *bin, size_t *irep_rec
   }
 
   bin += write_irep_header(mrb, irep, bin);
+  /*
+   * The catch handler table is after iseq block, but the number of
+   * elements is placed before iseq block.
+   */
+  bin += uint16_to_bin(irep->clen, bin);
   bin += write_iseq_block(mrb, irep, bin, flags);
+  bin += write_catch_table_block(mrb, irep, bin);
   bin += write_pool_block(mrb, irep, bin);
   bin += write_syms_block(mrb, irep, bin);
 

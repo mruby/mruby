@@ -12,6 +12,7 @@
 #include <mruby.h>
 #include <mruby/compile.h>
 #include <mruby/proc.h>
+#include <mruby/dump.h>
 #include <mruby/numeric.h>
 #include <mruby/string.h>
 #include <mruby/debug.h>
@@ -70,6 +71,7 @@ typedef struct scope {
   uint32_t icapa;
 
   mrb_irep *irep;
+  struct mrb_irep_catch_hander *catch_table;
   uint32_t pcapa, scapa, rcapa;
 
   uint16_t nlocals;
@@ -88,6 +90,15 @@ static void scope_finish(codegen_scope *s);
 static struct loopinfo *loop_push(codegen_scope *s, enum looptype t);
 static void loop_break(codegen_scope *s, node *tree);
 static void loop_pop(codegen_scope *s, int val);
+
+/*
+ * The search for catch handlers starts at the end of the table in mrb_vm_run().
+ * Therefore, the next handler to be added must meet one of the following conditions.
+ * - Larger start position
+ * - Same start position but smaller end position
+ */
+static int catch_hander_new(codegen_scope *s);
+static void catch_hander_set(codegen_scope *s, int ent, enum mrb_catch_type type, uint32_t begin, uint32_t end, uint32_t target);
 
 static void gen_assignment(codegen_scope *s, node *tree, int sp, int val);
 static void gen_vmassignment(codegen_scope *s, node *tree, int rhs, int val);
@@ -3091,9 +3102,18 @@ scope_finish(codegen_scope *s)
   }
   irep->flags = 0;
   if (s->iseq) {
-    irep->iseq = (mrb_code *)codegen_realloc(s, s->iseq, sizeof(mrb_code)*s->pc);
+    size_t catchsize = sizeof(struct mrb_irep_catch_hander) * irep->clen;
+    irep->iseq = (mrb_code *)codegen_realloc(s, s->iseq, sizeof(mrb_code)*s->pc + catchsize);
     irep->ilen = s->pc;
+    if (irep->clen > 0) {
+      memcpy((void *)(irep->iseq + irep->ilen), s->catch_table, catchsize);
+    }
   }
+  else {
+    irep->clen = 0;
+  }
+  mrb_free(s->mrb, s->catch_table);
+  s->catch_table = NULL;
   irep->pool = (mrb_value*)codegen_realloc(s, irep->pool, sizeof(mrb_value)*irep->plen);
   irep->syms = (mrb_sym*)codegen_realloc(s, irep->syms, sizeof(mrb_sym)*irep->slen);
   irep->reps = (mrb_irep**)codegen_realloc(s, irep->reps, sizeof(mrb_irep*)*irep->rlen);
@@ -3194,6 +3214,31 @@ loop_pop(codegen_scope *s, int val)
   dispatch_linked(s, s->loop->pc3);
   s->loop = s->loop->prev;
   if (val) push();
+}
+
+static int
+catch_hander_new(codegen_scope *s)
+{
+  size_t newsize = sizeof(struct mrb_irep_catch_hander) * (s->irep->clen + 1);
+  s->catch_table = (struct mrb_irep_catch_hander *)codegen_realloc(s, (void *)s->catch_table, newsize);
+  return s->irep->clen ++;
+}
+
+static void
+catch_hander_set(codegen_scope *s, int ent, enum mrb_catch_type type, uint32_t begin, uint32_t end, uint32_t target)
+{
+  struct mrb_irep_catch_hander *e;
+
+  mrb_assert(ent >= 0 && ent < s->irep->clen);
+  mrb_assert(begin < MAXARG_S);
+  mrb_assert(end < MAXARG_S);
+  mrb_assert(target < MAXARG_S);
+
+  e = &s->catch_table[ent];
+  uint8_to_bin(type, &e->type);
+  uint16_to_bin(begin, e->begin);
+  uint16_to_bin(end, e->end);
+  uint16_to_bin(target, e->target);
 }
 
 static struct RProc*
