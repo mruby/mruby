@@ -62,13 +62,9 @@ sign) of operands.
 | OP_JMPIF         | BS           | if R(a) pc=b                                           |
 | OP_JMPNOT        | BS           | if !R(a) pc=b                                          |
 | OP_JMPNIL        | BS           | if R(a)==nil pc=b                                      |
-| OP_ONERR         | S            | rescue_push(a)                                         |
 | OP_EXCEPT        | B            | R(a) = exc                                             |
 | OP_RESCUE        | BB           | R(b) = R(a).isa?(R(b))                                 |
-| OP_POPERR        | B            | a.times{rescue_pop()}                                  |
 | OP_RAISEIF       | B            | raise(R(a)) if R(a)                                    |
-| OP_EPUSH         | B            | ensure_push(SEQ[a])                                    |
-| OP_EPOP          | B            | A.times{ensure_pop().call}                             |
 | OP_SENDV         | BB           | R(a) = call(R(a),Syms(b),*R(a+1))                      |
 | OP_SENDVB        | BB           | R(a) = call(R(a),Syms(b),*R(a+1),&R(a+2))              |
 | OP_SEND          | BBB          | R(a) = call(R(a),Syms(b),R(a+1),...,R(a+c))            |
