@@ -625,7 +625,7 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
     ci->argc--;
   }
   else {                     /* variable length arguments */
-    mrb_ary_shift(mrb, regs[0]);
+    regs[0] = mrb_ary_subseq(mrb, regs[0], 1, RARRAY_LEN(regs[0]) - 1);
   }
 
   if (MRB_METHOD_CFUNC_P(m)) {

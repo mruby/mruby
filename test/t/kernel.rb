@@ -100,6 +100,10 @@ assert('Kernel#__send__', '15.3.1.3.4') do
   assert_true __send__(:respond_to?, :nil?)
   # test without argument and without block
   assert_equal String, __send__(:to_s).class
+
+  args = [:respond_to?, :nil?]
+  assert_true __send__(*args)
+  assert_equal [:respond_to?, :nil?], args
 end
 
 assert('Kernel#block_given?', '15.3.1.3.6') do
