@@ -488,12 +488,6 @@ codedump(mrb_state *mrb, mrb_irep *irep)
         printf("OP_ERR\t%s\n", RSTRING_PTR(s));
       }
       break;
-    CASE(OP_EPUSH, B):
-      printf("OP_EPUSH\t\t:I(%d:%p)\n", a, irep->reps[a]);
-      break;
-    CASE(OP_ONERR, S):
-      printf("OP_ONERR\t%03d\n", a);
-      break;
     CASE(OP_EXCEPT, B):
       printf("OP_EXCEPT\tR%d\t\t", a);
       print_lv_a(mrb, irep, a);
@@ -505,12 +499,6 @@ codedump(mrb_state *mrb, mrb_irep *irep)
     CASE(OP_RAISEIF, B):
       printf("OP_RAISEIF\tR%d\t\t", a);
       print_lv_a(mrb, irep, a);
-      break;
-    CASE(OP_POPERR, B):
-      printf("OP_POPERR\t%d\t\t\n", a);
-      break;
-    CASE(OP_EPOP, B):
-      printf("OP_EPOP\t%d\n", a);
       break;
 
     CASE(OP_DEBUG, BBB):

@@ -48,13 +48,9 @@ OPCODE(JMP,        S)        /* pc=a */
 OPCODE(JMPIF,      BS)       /* if R(a) pc=b */
 OPCODE(JMPNOT,     BS)       /* if !R(a) pc=b */
 OPCODE(JMPNIL,     BS)       /* if R(a)==nil pc=b */
-OPCODE(ONERR,      S)        /* rescue_push(a) */
 OPCODE(EXCEPT,     B)        /* R(a) = exc */
 OPCODE(RESCUE,     BB)       /* R(b) = R(a).isa?(R(b)) */
-OPCODE(POPERR,     B)        /* a.times{rescue_pop()} */
 OPCODE(RAISEIF,    B)        /* raise(R(a)) if R(a) */
-OPCODE(EPUSH,      B)        /* ensure_push(SEQ[a]) */
-OPCODE(EPOP,       B)        /* A.times{ensure_pop().call} */
 OPCODE(SENDV,      BB)       /* R(a) = call(R(a),Syms(b),*R(a+1)) */
 OPCODE(SENDVB,     BB)       /* R(a) = call(R(a),Syms(b),*R(a+1),&R(a+2)) */
 OPCODE(SEND,       BBB)      /* R(a) = call(R(a),Syms(b),R(a+1),...,R(a+c)) */
