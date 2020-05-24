@@ -50,6 +50,7 @@ jobs:
       run: rake -m -j4 all test
       env:
         MRUBY_CONFIG: travis_config.rb
+        PATH: "/usr/local/opt/bison/bin:$PATH"
 
   Windows-MinGW:
     runs-on: windows-latest
