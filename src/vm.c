@@ -1216,8 +1216,24 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_EXCEPT, B) {
-      mrb_value exc = mrb_obj_value(mrb->exc);
-      mrb->exc = 0;
+      mrb_value exc;
+
+      if (mrb->exc == NULL) {
+        exc = mrb_nil_value();
+      }
+      else {
+        switch (mrb->exc->tt) {
+        case MRB_TT_BREAK:
+        case MRB_TT_EXCEPTION:
+          exc = mrb_obj_value(mrb->exc);
+          break;
+        default:
+          mrb_assert(!"bad mrb_type");
+          exc = mrb_nil_value();
+          break;
+        }
+        mrb->exc = NULL;
+      }
       regs[a] = exc;
       NEXT;
     }
@@ -1250,9 +1266,17 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
-    CASE(OP_RAISE, B) {
-      mrb_exc_set(mrb, regs[a]);
-      goto L_RAISE;
+    CASE(OP_RAISEIF, B) {
+      mrb_value exc = regs[a];
+      if (mrb_break_p(exc)) {
+        mrb->exc = mrb_obj_ptr(exc);
+        goto L_BREAK;
+      }
+      mrb_exc_set(mrb, exc);
+      if (mrb->exc) {
+        goto L_RAISE;
+      }
+      NEXT;
     }
 
     CASE(OP_EPUSH, B) {

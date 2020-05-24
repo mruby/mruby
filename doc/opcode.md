@@ -74,7 +74,7 @@ with `"`, either `OP_EXT1` or `OP_EXT2` or `OP_EXT2` can be prefixed.
 | OP_EXCEPT'       | B            | R(a) = exc                                             |
 | OP_RESCUE"       | BB           | R(b) = R(a).isa?(R(b))                                 |
 | OP_POPERR'       | B            | a.times{rescue_pop()}                                  |
-| OP_RAISE'        | B            | raise(R(a))                                            |
+| OP_RAISEIF'      | B            | raise(R(a)) if R(a)                                    |
 | OP_EPUSH'        | B            | ensure_push(SEQ[a])                                    |
 | OP_EPOP'         | B            | A.times{ensure_pop().call}                             |
 | OP_SENDV"        | BB           | R(a) = call(R(a),Syms(b),*R(a+1))                      |

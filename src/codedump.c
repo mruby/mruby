@@ -502,8 +502,8 @@ codedump(mrb_state *mrb, mrb_irep *irep)
       printf("OP_RESCUE\tR%d\tR%d", a, b);
       print_lv_ab(mrb, irep, a, b);
       break;
-    CASE(OP_RAISE, B):
-      printf("OP_RAISE\tR%d\t\t", a);
+    CASE(OP_RAISEIF, B):
+      printf("OP_RAISEIF\tR%d\t\t", a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_POPERR, B):

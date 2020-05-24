@@ -52,7 +52,7 @@ OPCODE(ONERR,      S)        /* rescue_push(a) */
 OPCODE(EXCEPT,     B)        /* R(a) = exc */
 OPCODE(RESCUE,     BB)       /* R(b) = R(a).isa?(R(b)) */
 OPCODE(POPERR,     B)        /* a.times{rescue_pop()} */
-OPCODE(RAISE,      B)        /* raise(R(a)) */
+OPCODE(RAISEIF,    B)        /* raise(R(a)) if R(a) */
 OPCODE(EPUSH,      B)        /* ensure_push(SEQ[a]) */
 OPCODE(EPOP,       B)        /* A.times{ensure_pop().call} */
 OPCODE(SENDV,      BB)       /* R(a) = call(R(a),Syms(b),*R(a+1)) */

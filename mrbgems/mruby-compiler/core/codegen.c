@@ -1537,7 +1537,7 @@ codegen(codegen_scope *s, node *tree, int val)
         }
         if (pos1) {
           dispatch(s, pos1);
-          genop_1(s, OP_RAISE, exc);
+          genop_1(s, OP_RAISEIF, exc);
         }
       }
       pop();
