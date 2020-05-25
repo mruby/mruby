@@ -374,14 +374,14 @@ static void
 local_add_blk(parser_state *p, mrb_sym blk)
 {
   /* allocate register for block */
-  local_add_f(p, blk ? blk : mrb_intern_lit(p->mrb, "&"));
+  local_add_f(p, blk ? blk : MRB_QSYM(and));
 }
 
 static void
 local_add_kw(parser_state *p, mrb_sym kwd)
 {
   /* allocate register for keywords hash */
-  local_add_f(p, kwd ? kwd : mrb_intern_lit(p->mrb, "**"));
+  local_add_f(p, kwd ? kwd : MRB_QSYM(pow));
 }
 
 static node*
@@ -995,13 +995,13 @@ new_op_asgn(parser_state *p, node *a, mrb_sym op, node *b)
 static node*
 new_imaginary(parser_state *p, node *imaginary)
 {
-  return new_call(p, new_const(p, intern_lit("Kernel")), intern_lit("Complex"), list1(list2(list3((node*)NODE_INT, (node*)strdup("0"), nint(10)), imaginary)), 1);
+  return new_call(p, new_const(p, MRB_SYM(Kernel)), MRB_SYM(Complex), list1(list2(list3((node*)NODE_INT, (node*)strdup("0"), nint(10)), imaginary)), 1);
 }
 
 static node*
 new_rational(parser_state *p, node *rational)
 {
-  return new_call(p, new_const(p, intern_lit("Kernel")), intern_lit("Rational"), list1(list1(rational)), 1);
+  return new_call(p, new_const(p, MRB_SYM(Kernel)), MRB_SYM(Rational), list1(list1(rational)), 1);
 }
 
 /* (:int . i) */
@@ -5933,7 +5933,7 @@ yyreduce:
   case 35:
 #line 1673 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      (yyval.nd) = new_op_asgn(p, new_call(p, (yyvsp[-5].nd), intern_lit("[]"), (yyvsp[-3].nd), '.'), (yyvsp[-1].id), (yyvsp[0].nd));
+                      (yyval.nd) = new_op_asgn(p, new_call(p, (yyvsp[-5].nd), MRB_QSYM(aref), (yyvsp[-3].nd), '.'), (yyvsp[-1].id), (yyvsp[0].nd));
                     }
 #line 5939 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
@@ -6304,7 +6304,7 @@ yyreduce:
   case 89:
 #line 1904 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      (yyval.nd) = new_call(p, (yyvsp[-3].nd), intern_lit("[]"), (yyvsp[-1].nd), '.');
+                      (yyval.nd) = new_call(p, (yyvsp[-3].nd), MRB_QSYM(aref), (yyvsp[-1].nd), '.');
                     }
 #line 6310 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
@@ -6373,7 +6373,7 @@ yyreduce:
   case 97:
 #line 1943 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      (yyval.nd) = new_call(p, (yyvsp[-3].nd), intern_lit("[]"), (yyvsp[-1].nd), '.');
+                      (yyval.nd) = new_call(p, (yyvsp[-3].nd), MRB_QSYM(aref), (yyvsp[-1].nd), '.');
                     }
 #line 6379 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
@@ -6514,181 +6514,181 @@ yyreduce:
 
   case 120:
 #line 2032 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = intern_lit("|");   }
+                                { (yyval.id) = MRB_QSYM(or);     }
 #line 6519 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 121:
 #line 2033 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = intern_lit("^");   }
+                                { (yyval.id) = MRB_QSYM(xor);    }
 #line 6525 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 122:
 #line 2034 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = intern_lit("&");   }
+                                { (yyval.id) = MRB_QSYM(and);    }
 #line 6531 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 123:
 #line 2035 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = intern_lit("<=>"); }
+                                { (yyval.id) = MRB_QSYM(cmp);    }
 #line 6537 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 124:
 #line 2036 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = intern_lit("==");  }
+                                { (yyval.id) = MRB_QSYM(eq);     }
 #line 6543 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 125:
 #line 2037 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = intern_lit("==="); }
+                                { (yyval.id) = MRB_QSYM(eqq);    }
 #line 6549 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 126:
 #line 2038 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = intern_lit("=~");  }
+                                { (yyval.id) = MRB_QSYM(match);  }
 #line 6555 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 127:
 #line 2039 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = intern_lit("!~");  }
+                                { (yyval.id) = MRB_QSYM(nmatch); }
 #line 6561 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 128:
 #line 2040 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = intern_lit(">");   }
+                                { (yyval.id) = MRB_QSYM(gt);     }
 #line 6567 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 129:
 #line 2041 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = intern_lit(">=");  }
+                                { (yyval.id) = MRB_QSYM(ge);     }
 #line 6573 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 130:
 #line 2042 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = intern_lit("<");   }
+                                { (yyval.id) = MRB_QSYM(lt);     }
 #line 6579 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 131:
 #line 2043 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = intern_lit("<=");  }
+                                { (yyval.id) = MRB_QSYM(le);     }
 #line 6585 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 132:
 #line 2044 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = intern_lit("!=");  }
+                                { (yyval.id) = MRB_QSYM(neq);    }
 #line 6591 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 133:
 #line 2045 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = intern_lit("<<");  }
+                                { (yyval.id) = MRB_QSYM(lshift); }
 #line 6597 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 134:
 #line 2046 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = intern_lit(">>");  }
+                                { (yyval.id) = MRB_QSYM(rshift); }
 #line 6603 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 135:
 #line 2047 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = intern_lit("+");   }
+                                { (yyval.id) = MRB_QSYM(add);    }
 #line 6609 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 136:
 #line 2048 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = intern_lit("-");   }
+                                { (yyval.id) = MRB_QSYM(sub);    }
 #line 6615 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 137:
 #line 2049 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = intern_lit("*");   }
+                                { (yyval.id) = MRB_QSYM(mul);    }
 #line 6621 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 138:
 #line 2050 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = intern_lit("*");   }
+                                { (yyval.id) = MRB_QSYM(mul);    }
 #line 6627 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 139:
 #line 2051 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = intern_lit("/");   }
+                                { (yyval.id) = MRB_QSYM(div);    }
 #line 6633 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 140:
 #line 2052 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = intern_lit("%");   }
+                                { (yyval.id) = MRB_QSYM(mod);    }
 #line 6639 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 141:
 #line 2053 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = intern_lit("**");  }
+                                { (yyval.id) = MRB_QSYM(pow);    }
 #line 6645 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 142:
 #line 2054 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = intern_lit("**");  }
+                                { (yyval.id) = MRB_QSYM(pow);    }
 #line 6651 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 143:
 #line 2055 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = intern_lit("!");   }
+                                { (yyval.id) = MRB_QSYM(not);    }
 #line 6657 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 144:
 #line 2056 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = intern_lit("~");   }
+                                { (yyval.id) = MRB_QSYM(neg);    }
 #line 6663 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 145:
 #line 2057 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = intern_lit("+@");  }
+                                { (yyval.id) = MRB_QSYM(plus);   }
 #line 6669 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 146:
 #line 2058 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = intern_lit("-@");  }
+                                { (yyval.id) = MRB_QSYM(minus);  }
 #line 6675 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 147:
 #line 2059 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = intern_lit("[]");  }
+                                { (yyval.id) = MRB_QSYM(aref);   }
 #line 6681 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 148:
 #line 2060 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = intern_lit("[]="); }
+                                { (yyval.id) = MRB_QSYM(aset);   }
 #line 6687 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 149:
 #line 2061 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = intern_lit("`");   }
+                                { (yyval.id) = MRB_QSYM(tick);   }
 #line 6693 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
@@ -6711,7 +6711,7 @@ yyreduce:
   case 192:
 #line 2087 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      (yyval.nd) = new_op_asgn(p, new_call(p, (yyvsp[-5].nd), intern_lit("[]"), (yyvsp[-3].nd), '.'), (yyvsp[-1].id), (yyvsp[0].nd));
+                      (yyval.nd) = new_op_asgn(p, new_call(p, (yyvsp[-5].nd), MRB_QSYM(aref), (yyvsp[-3].nd), '.'), (yyvsp[-1].id), (yyvsp[0].nd));
                     }
 #line 6717 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
@@ -7095,16 +7095,16 @@ yyreduce:
 #line 2289 "mrbgems/mruby-compiler/core/parse.y"
                     {
 #if 1
-                      mrb_sym r = mrb_intern_lit(p->mrb, "*");
-                      mrb_sym b = mrb_intern_lit(p->mrb, "&");
+                      mrb_sym r = MRB_QSYM(mul);
+                      mrb_sym b = MRB_QSYM(and);
                       if (local_var_p(p, r)  && local_var_p(p, b)) {
                         (yyval.nd) = cons(list1(new_splat(p, new_lvar(p, r))),
                                   new_block_arg(p, new_lvar(p, b)));
                       }
 #else
-                      mrb_sym r = mrb_intern_lit(p->mrb, "*");
-                      mrb_sym k = mrb_intern_lit(p->mrb, "**");
-                      mrb_sym b = mrb_intern_lit(p->mrb, "&");
+                      mrb_sym r = MRB_QSYM(mul);
+                      mrb_sym k = MRB_QSYM(pow);
+                      mrb_sym b = MRB_QSYM(and);
                       if (local_var_p(p, r) && local_var_p(p, k) && local_var_p(p, b)) {
                         (yyval.nd) = cons(list2(new_splat(p, new_lvar(p, r)),
                                         new_kw_hash(p, list1(cons(new_kw_rest_args(p, 0), new_lvar(p, k))))),
@@ -8247,7 +8247,7 @@ yyreduce:
   case 397:
 #line 3012 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      (yyval.nd) = new_call(p, (yyvsp[-2].nd), intern_lit("call"), (yyvsp[0].nd), (yyvsp[-1].num));
+                      (yyval.nd) = new_call(p, (yyvsp[-2].nd), MRB_SYM(call), (yyvsp[0].nd), (yyvsp[-1].num));
                     }
 #line 8253 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
@@ -8255,7 +8255,7 @@ yyreduce:
   case 398:
 #line 3016 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      (yyval.nd) = new_call(p, (yyvsp[-2].nd), intern_lit("call"), (yyvsp[0].nd), tCOLON2);
+                      (yyval.nd) = new_call(p, (yyvsp[-2].nd), MRB_SYM(call), (yyvsp[0].nd), tCOLON2);
                     }
 #line 8261 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
@@ -8279,7 +8279,7 @@ yyreduce:
   case 401:
 #line 3028 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      (yyval.nd) = new_call(p, (yyvsp[-3].nd), intern_lit("[]"), (yyvsp[-1].nd), '.');
+                      (yyval.nd) = new_call(p, (yyvsp[-3].nd), MRB_QSYM(aref), (yyvsp[-1].nd), '.');
                     }
 #line 8285 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
@@ -8795,15 +8795,15 @@ yyreduce:
                     {
 #if 1
                       /* til real keyword args implemented */
-                      mrb_sym r = mrb_intern_lit(p->mrb, "*");
-                      mrb_sym b = mrb_intern_lit(p->mrb, "&");
+                      mrb_sym r = MRB_QSYM(mul);
+                      mrb_sym b = MRB_QSYM(and);
                       local_add_f(p, r);
                       (yyval.nd) = new_args(p, 0, 0, r, 0,
                                     new_args_tail(p, 0, 0, b));
 #else
-                      mrb_sym r = mrb_intern_lit(p->mrb, "*");
-                      mrb_sym k = mrb_intern_lit(p->mrb, "**");
-                      mrb_sym b = mrb_intern_lit(p->mrb, "&");
+                      mrb_sym r = MRB_QSYM(mul);
+                      mrb_sym k = MRB_QSYM(pow);
+                      mrb_sym b = MRB_QSYM(and);
                       local_add_f(p, r); local_add_f(p, k);
                       (yyval.nd) = new_args(p, 0, 0, r, 0,
                                     new_args_tail(p, 0, new_kw_rest_args(p, nsym(k)), b));
@@ -9076,7 +9076,7 @@ yyreduce:
   case 522:
 #line 3582 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      local_add_f(p, mrb_intern_lit(p->mrb, "&"));
+                      local_add_f(p, MRB_QSYM(and));
                       (yyval.nd) = new_args(p, 0, 0, 0, 0, 0);
                     }
 #line 9083 "mrbgems/mruby-compiler/core/y.tab.c"
@@ -9260,7 +9260,7 @@ yyreduce:
   case 545:
 #line 3706 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      local_add_f(p, mrb_intern_lit(p->mrb, "*"));
+                      local_add_f(p, MRB_QSYM(and));
                       (yyval.id) = -1;
                     }
 #line 9267 "mrbgems/mruby-compiler/core/y.tab.c"
@@ -10758,7 +10758,7 @@ parser_yylex(parser_state *p)
   case '*':
     if ((c = nextc(p)) == '*') {
       if ((c = nextc(p)) == '=') {
-        pylval.id = intern_lit("**");
+        pylval.id = MRB_QSYM(pow);
         p->lstate = EXPR_BEG;
         return tOP_ASGN;
       }
@@ -10776,7 +10776,7 @@ parser_yylex(parser_state *p)
     }
     else {
       if (c == '=') {
-        pylval.id = intern_lit("*");
+        pylval.id = MRB_QSYM(mul);
         p->lstate = EXPR_BEG;
         return tOP_ASGN;
       }
@@ -10892,7 +10892,7 @@ parser_yylex(parser_state *p)
     }
     if (c == '<') {
       if ((c = nextc(p)) == '=') {
-        pylval.id = intern_lit("<<");
+        pylval.id = MRB_QSYM(lshift);
         p->lstate = EXPR_BEG;
         return tOP_ASGN;
       }
@@ -10914,7 +10914,7 @@ parser_yylex(parser_state *p)
     }
     if (c == '>') {
       if ((c = nextc(p)) == '=') {
-        pylval.id = intern_lit(">>");
+        pylval.id = MRB_QSYM(rshift);
         p->lstate = EXPR_BEG;
         return tOP_ASGN;
       }
@@ -11022,7 +11022,7 @@ parser_yylex(parser_state *p)
     if ((c = nextc(p)) == '&') {
       p->lstate = EXPR_BEG;
       if ((c = nextc(p)) == '=') {
-        pylval.id = intern_lit("&&");
+        pylval.id = MRB_QSYM(andand);
         p->lstate = EXPR_BEG;
         return tOP_ASGN;
       }
@@ -11034,7 +11034,7 @@ parser_yylex(parser_state *p)
       return tANDDOT;
     }
     else if (c == '=') {
-      pylval.id = intern_lit("&");
+      pylval.id = MRB_QSYM(and);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -11061,7 +11061,7 @@ parser_yylex(parser_state *p)
     if ((c = nextc(p)) == '|') {
       p->lstate = EXPR_BEG;
       if ((c = nextc(p)) == '=') {
-        pylval.id = intern_lit("||");
+        pylval.id = MRB_QSYM(oror);
         p->lstate = EXPR_BEG;
         return tOP_ASGN;
       }
@@ -11069,7 +11069,7 @@ parser_yylex(parser_state *p)
       return tOROP;
     }
     if (c == '=') {
-      pylval.id = intern_lit("|");
+      pylval.id = MRB_QSYM(or);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -11093,7 +11093,7 @@ parser_yylex(parser_state *p)
       return '+';
     }
     if (c == '=') {
-      pylval.id = intern_lit("+");
+      pylval.id = MRB_QSYM(add);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -11121,7 +11121,7 @@ parser_yylex(parser_state *p)
       return '-';
     }
     if (c == '=') {
-      pylval.id = intern_lit("-");
+      pylval.id = MRB_QSYM(sub);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -11441,7 +11441,7 @@ parser_yylex(parser_state *p)
       return tREGEXP_BEG;
     }
     if ((c = nextc(p)) == '=') {
-      pylval.id = intern_lit("/");
+      pylval.id = MRB_QSYM(div);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -11460,7 +11460,7 @@ parser_yylex(parser_state *p)
 
   case '^':
     if ((c = nextc(p)) == '=') {
-      pylval.id = intern_lit("^");
+      pylval.id = MRB_QSYM(xor);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -11637,7 +11637,7 @@ parser_yylex(parser_state *p)
       }
     }
     if ((c = nextc(p)) == '=') {
-      pylval.id = intern_lit("%");
+      pylval.id = MRB_QSYM(mod);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
