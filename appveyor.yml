@@ -38,7 +38,7 @@ init:
   - set PATH=C:\Ruby26-x64\bin;%PATH%
   - ruby --version
 
+
 build_script:
-  - set YACC=.\win_flex_bison\win_bison.exe
   - set MRUBY_TARGET=appveyor
   - rake -E $stdout.sync=true test
