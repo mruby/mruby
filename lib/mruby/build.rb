@@ -276,14 +276,6 @@ EOS
       end
     end
 
-    def cygwin_filename(name)
-      if name.is_a?(Array)
-        name.flatten.map { |n| cygwin_filename(n) }
-      else
-        `cygpath -w "#{filename(name)}"`.strip
-      end
-    end
-
     def exefile(name)
       if name.is_a?(Array)
         name.flatten.map { |n| exefile(n) }
