@@ -1041,7 +1041,7 @@ retry:
         mrb_value val = GETARG();
         double fval;
         mrb_int need = 6;
-        char fbuf[32];
+        char fbuf[64];
 
         fval = mrb_float(mrb_Float(mrb, val));
         if (!isfinite(fval)) {
