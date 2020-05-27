@@ -763,7 +763,7 @@ retry:
             tmp = mrb_str_new(mrb, buf, 1);
           }
           else {
-            tmp = mrb_funcall(mrb, val, "chr", 0);
+            tmp = mrb_funcall_id(mrb, val, MRB_SYM(chr), 0);
             mrb_check_type(mrb, tmp, MRB_TT_STRING);
           }
 #endif

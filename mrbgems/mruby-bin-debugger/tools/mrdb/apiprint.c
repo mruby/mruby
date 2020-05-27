@@ -67,7 +67,7 @@ mrb_debug_eval(mrb_state *mrb, mrb_debug_context *dbg, const char *expr, size_t 
 
     recv = dbg->regs[0];
 
-    v =  mrb_funcall(mrb, recv, "instance_eval", 1, ruby_code);
+    v =  mrb_funcall_id(mrb, recv, MRB_SYM(instance_eval), 1, ruby_code);
   }
 
   if (exc) {

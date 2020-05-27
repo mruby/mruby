@@ -310,7 +310,7 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
     default:
       break;
   }
-  mrb_funcall(mrb, dest, "initialize_copy", 1, obj);
+  mrb_funcall_id(mrb, dest, MRB_SYM(initialize_copy), 1, obj);
 }
 
 /* 15.3.1.3.8  */
@@ -411,8 +411,8 @@ mrb_obj_extend(mrb_state *mrb, mrb_int argc, mrb_value *argv, mrb_value obj)
     mrb_check_type(mrb, argv[i], MRB_TT_MODULE);
   }
   while (argc--) {
-    mrb_funcall(mrb, argv[argc], "extend_object", 1, obj);
-    mrb_funcall(mrb, argv[argc], "extended", 1, obj);
+    mrb_funcall_id(mrb, argv[argc], MRB_SYM(extend_object), 1, obj);
+    mrb_funcall_id(mrb, argv[argc], MRB_SYM(extended), 1, obj);
   }
   return obj;
 }
@@ -749,7 +749,7 @@ obj_respond_to(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "n|b", &id, &priv);
   respond_to_p = basic_obj_respond_to(mrb, self, id, !priv);
   if (!respond_to_p) {
-    rtm_id = mrb_intern_lit(mrb, "respond_to_missing?");
+    rtm_id = MRB_QSYM(respond_to_missing_p);
     if (basic_obj_respond_to(mrb, self, rtm_id, !priv)) {
       mrb_value args[2], v;
       args[0] = mrb_symbol_value(id);

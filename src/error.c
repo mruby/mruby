@@ -114,7 +114,7 @@ exc_to_s(mrb_state *mrb, mrb_value exc)
 static mrb_value
 exc_message(mrb_state *mrb, mrb_value exc)
 {
-  return mrb_funcall(mrb, exc, "to_s", 0);
+  return mrb_funcall_id(mrb, exc, MRB_SYM(to_s), 0);
 }
 
 /*

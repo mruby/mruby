@@ -57,7 +57,7 @@ mrb_f_caller(mrb_state *mrb, mrb_value self)
     return mrb_ary_new(mrb);
   }
 
-  return mrb_funcall(mrb, bt, "[]", 2, mrb_fixnum_value(lev), mrb_fixnum_value(n));
+  return mrb_funcall_id(mrb, bt, MRB_QSYM(aref), 2, mrb_fixnum_value(lev), mrb_fixnum_value(n));
 }
 
 /*

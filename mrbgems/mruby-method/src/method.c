@@ -256,7 +256,7 @@ method_source_location(mrb_state *mrb, mrb_value self)
   rproc = mrb_proc_ptr(proc);
   orig = rproc->c;
   rproc->c = mrb->proc_class;
-  ret = mrb_funcall(mrb, proc, "source_location", 0);
+  ret = mrb_funcall_id(mrb, proc, MRB_SYM(source_location), 0);
   rproc->c = orig;
   return ret;
 }
@@ -278,7 +278,7 @@ method_parameters(mrb_state *mrb, mrb_value self)
   rproc = mrb_proc_ptr(proc);
   orig = rproc->c;
   rproc->c = mrb->proc_class;
-  ret = mrb_funcall(mrb, proc, "parameters", 0);
+  ret = mrb_funcall_id(mrb, proc, MRB_SYM(parameters), 0);
   rproc->c = orig;
   return ret;
 }
@@ -325,7 +325,7 @@ mrb_search_method_owner(mrb_state *mrb, struct RClass *c, mrb_value obj, mrb_sym
     if (!mrb_respond_to(mrb, obj, MRB_QSYM(respond_to_missing_p))) {
       goto name_error;
     }
-    ret = mrb_funcall(mrb, obj, "respond_to_missing?", 2, mrb_symbol_value(name), mrb_true_value());
+    ret = mrb_funcall_id(mrb, obj, MRB_QSYM(respond_to_missing_p), 2, mrb_symbol_value(name), mrb_true_value());
     if (!mrb_test(ret)) {
       goto name_error;
     }
