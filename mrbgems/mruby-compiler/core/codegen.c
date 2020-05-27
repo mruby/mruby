@@ -1603,7 +1603,7 @@ codegen(codegen_scope *s, node *tree, int val)
         {
           node *n = tree->car->cdr;
           mrb_sym mid = nsym(n->cdr->car);
-          mrb_sym mnil = mrb_intern_lit(s->mrb, "nil?");
+          mrb_sym mnil = MRB_QSYM(nil_p);
           if (mid == mnil && n->cdr->cdr->car == NULL) {
             nil_p = TRUE;
             codegen(s, n->car, VAL);

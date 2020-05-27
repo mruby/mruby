@@ -622,7 +622,7 @@ remove_method(mrb_state *mrb, mrb_value mod, mrb_sym mid)
     k = kh_get(mt, mrb, h, mid);
     if (k != kh_end(h)) {
       kh_del(mt, mrb, h, k);
-      mrb_funcall(mrb, mod, "method_removed", 1, mrb_symbol_value(mid));
+      mrb_funcall_id(mrb, mod, MRB_SYM(method_removed), 1, mrb_symbol_value(mid));
       return;
     }
   }

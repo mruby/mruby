@@ -81,8 +81,8 @@ range_last(mrb_state *mrb, mrb_value range)
     return mrb_range_end(mrb, range);
   }
 
-  array = mrb_funcall(mrb, range, "to_a", 0);
-  return mrb_funcall(mrb, array, "last", 1, mrb_to_int(mrb, num));
+  array = mrb_funcall_id(mrb, range, MRB_SYM(to_a), 0);
+  return mrb_funcall_id(mrb, array, MRB_SYM(last), 1, mrb_to_int(mrb, num));
 }
 
 /*
