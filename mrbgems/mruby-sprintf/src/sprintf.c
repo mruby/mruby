@@ -1082,7 +1082,6 @@ retry:
           break;
         }
 
-        fmt_setup(fbuf, sizeof(fbuf), *p, flags, width, prec);
         need = 0;
         if (*p != 'e' && *p != 'E') {
           int i;
@@ -1104,6 +1103,7 @@ retry:
         need += 20;
 
         CHECK(need);
+        fmt_setup(fbuf, sizeof(fbuf), *p, flags, width, prec);
         n = mrb_float_to_cstr(mrb, &buf[blen], need, fbuf, fval);
         if (n < 0 || n >= need) {
           mrb_raise(mrb, E_RUNTIME_ERROR, "formatting error");
