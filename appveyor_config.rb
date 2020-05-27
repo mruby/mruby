@@ -1,6 +1,7 @@
 def setup_option(conf)
-  conf.compilers.each{|c| c.flags[0].delete("/Zi")}
-  conf.linker.flags << "/DEBUG:NONE"
+  conf.cc.flags[0].delete("/Zi") unless ENV['CFLAGS']
+  conf.cxx.flags[0].delete("/Zi") unless ENV['CFLAGS'] || ENV['CXXFLAGS']
+  conf.linker.flags << "/DEBUG:NONE" unless ENV['LDFLAGS']
 end
 
 MRuby::Build.new('full-debug') do |conf|
