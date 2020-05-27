@@ -1031,6 +1031,36 @@ MRB_API mrb_value mrb_get_arg1(mrb_state *mrb);
  */
 MRB_API mrb_value mrb_funcall(mrb_state *mrb, mrb_value val, const char *name, mrb_int argc, ...);
 /**
+ * Call existing ruby functions.
+ *
+ * Example:
+ *
+ *      #include <stdio.h>
+ *      #include <mruby.h>
+ *      #include "mruby/compile.h"
+ *
+ *      int
+ *      main()
+ *      {
+ *        mrb_state *mrb = mrb_open();
+ *
+ *        if (!mrb) { }
+ *        FILE *fp = fopen("test.rb","r");
+ *        mrb_value obj = mrb_load_file(mrb,fp);
+ *        mrb_funcall_id(mrb, obj, MRB_SYM(method_name), 1, mrb_fixnum_value(i));
+ *        fclose(fp);
+ *        mrb_close(mrb);
+ *      }
+ *
+ * @param mrb The current mruby state.
+ * @param val A reference to an mruby value.
+ * @param name The symbol representing the method.
+ * @param argc The number of arguments the method has.
+ * @param ... Variadic values(not type safe!).
+ * @return [mrb_value] mruby function value.
+ */
+MRB_API mrb_value mrb_funcall_id(mrb_state *mrb, mrb_value val, mrb_sym mid, mrb_int argc, ...);
+/**
  * Call existing ruby functions. This is basically the type safe version of mrb_funcall.
  *
  *      #include <stdio.h>
@@ -1039,15 +1069,14 @@ MRB_API mrb_value mrb_funcall(mrb_state *mrb, mrb_value val, const char *name, m
  *      int
  *      main()
  *      {
- *        mrb_int i = 99;
  *        mrb_state *mrb = mrb_open();
+ *        mrb_value obj = mrb_fixnum_value(1);
  *
  *        if (!mrb) { }
- *        mrb_sym m_sym = mrb_intern_lit(mrb, "method_name"); // Symbol for method.
  *
  *        FILE *fp = fopen("test.rb","r");
  *        mrb_value obj = mrb_load_file(mrb,fp);
- *        mrb_funcall_argv(mrb, obj, m_sym, 1, &obj); // Calling ruby function from test.rb.
+ *        mrb_funcall_argv(mrb, obj, MRB_SYM(method_name), 1, &obj); // Calling ruby function from test.rb.
  *        fclose(fp);
  *        mrb_close(mrb);
  *       }
@@ -1065,7 +1094,7 @@ MRB_API mrb_value mrb_funcall_argv(mrb_state *mrb, mrb_value val, mrb_sym name, 
  */
 MRB_API mrb_value mrb_funcall_with_block(mrb_state *mrb, mrb_value val, mrb_sym name, mrb_int argc, const mrb_value *argv, mrb_value block);
 /**
- * Create a symbol
+ * Create a symbol from C string. But usually it's better to use MRB_SYM(sym) and MRB_QSYM(qsym).
  *
  * Example:
  *
@@ -1073,7 +1102,9 @@ MRB_API mrb_value mrb_funcall_with_block(mrb_state *mrb, mrb_value val, mrb_sym 
  *     :pizza # => :pizza
  *
  *     // C style:
- *     mrb_sym m_sym = mrb_intern_lit(mrb, "pizza"); //  => :pizza
+ *     mrb_sym sym1 = mrb_intern_lit(mrb, "pizza"); //  => :pizza
+ *     mrb_sym sym2 = MRB_SYM(pizza);               //  => :pizza
+ *     mrb_sym sym3 = MRB_SYM(pizza_p);             //  => :pizza?
  *
  * @param mrb The current mruby state.
  * @param str The string to be symbolized
