@@ -230,6 +230,15 @@ mrb_vm_define_module(mrb_state *mrb, mrb_value outer, mrb_sym id)
 }
 
 MRB_API struct RClass*
+mrb_define_module_under_id(mrb_state *mrb, struct RClass *outer, mrb_sym name)
+{
+  struct RClass * c = define_module(mrb, name, outer);
+
+  setup_class(mrb, outer, c, name);
+  return c;
+}
+
+MRB_API struct RClass*
 mrb_define_module_under(mrb_state *mrb, struct RClass *outer, const char *name)
 {
   mrb_sym id = mrb_intern_cstr(mrb, name);
@@ -357,6 +366,12 @@ mrb_class_defined(mrb_state *mrb, const char *name)
 }
 
 MRB_API mrb_bool
+mrb_class_defined_id(mrb_state *mrb, mrb_sym name)
+{
+  return mrb_const_defined(mrb, mrb_obj_value(mrb->object_class), name);
+}
+
+MRB_API mrb_bool
 mrb_class_defined_under(mrb_state *mrb, struct RClass *outer, const char *name)
 {
   mrb_value sym = mrb_check_intern_cstr(mrb, name);
@@ -366,10 +381,22 @@ mrb_class_defined_under(mrb_state *mrb, struct RClass *outer, const char *name)
   return mrb_const_defined_at(mrb, mrb_obj_value(outer), mrb_symbol(sym));
 }
 
+MRB_API mrb_bool
+mrb_class_defined_under_id(mrb_state *mrb, struct RClass *outer, mrb_sym name)
+{
+  return mrb_const_defined_at(mrb, mrb_obj_value(outer), name);
+}
+
 MRB_API struct RClass*
 mrb_class_get_under(mrb_state *mrb, struct RClass *outer, const char *name)
 {
   return class_from_sym(mrb, outer, mrb_intern_cstr(mrb, name));
+}
+
+MRB_API struct RClass*
+mrb_class_get_under_id(mrb_state *mrb, struct RClass *outer, mrb_sym name)
+{
+  return class_from_sym(mrb, outer, name);
 }
 
 MRB_API struct RClass*
@@ -379,11 +406,16 @@ mrb_class_get(mrb_state *mrb, const char *name)
 }
 
 MRB_API struct RClass*
-mrb_exc_get(mrb_state *mrb, const char *name)
+mrb_class_get_id(mrb_state *mrb, mrb_sym name)
+{
+  return mrb_class_get_under_id(mrb, mrb->object_class, name);
+}
+
+MRB_API struct RClass*
+mrb_exc_get_id(mrb_state *mrb, mrb_sym name)
 {
   struct RClass *exc, *e;
-  mrb_value c = mrb_const_get(mrb, mrb_obj_value(mrb->object_class),
-                              mrb_intern_cstr(mrb, name));
+  mrb_value c = mrb_const_get(mrb, mrb_obj_value(mrb->object_class), name);
 
   if (!mrb_class_p(c)) {
     mrb_raise(mrb, mrb->eException_class, "exception corrupted");
@@ -405,9 +437,21 @@ mrb_module_get_under(mrb_state *mrb, struct RClass *outer, const char *name)
 }
 
 MRB_API struct RClass*
+mrb_module_get_under_id(mrb_state *mrb, struct RClass *outer, mrb_sym name)
+{
+  return module_from_sym(mrb, outer, name);
+}
+
+MRB_API struct RClass*
 mrb_module_get(mrb_state *mrb, const char *name)
 {
   return mrb_module_get_under(mrb, mrb->object_class, name);
+}
+
+MRB_API struct RClass*
+mrb_module_get_id(mrb_state *mrb, mrb_sym name)
+{
+  return mrb_module_get_under_id(mrb, mrb->object_class, name);
 }
 
 /*!
@@ -427,9 +471,8 @@ mrb_module_get(mrb_state *mrb, const char *name)
  *       \a super, the function just returns the defined class.
  */
 MRB_API struct RClass*
-mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, struct RClass *super)
+mrb_define_class_under_id(mrb_state *mrb, struct RClass *outer, mrb_sym name, struct RClass *super)
 {
-  mrb_sym id = mrb_intern_cstr(mrb, name);
   struct RClass * c;
 
 #if 0
@@ -437,9 +480,15 @@ mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, s
     mrb_warn(mrb, "no super class for '%C::%n', Object assumed", outer, id);
   }
 #endif
-  c = define_class(mrb, id, super, outer);
-  setup_class(mrb, outer, c, id);
+  c = define_class(mrb, name, super, outer);
+  setup_class(mrb, outer, c, name);
   return c;
+}
+
+MRB_API struct RClass*
+mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, struct RClass *super)
+{
+  return mrb_define_class_under_id(mrb, outer, mrb_intern_cstr(mrb, name), super);
 }
 
 MRB_API void
@@ -1894,6 +1943,12 @@ MRB_API void
 mrb_define_alias(mrb_state *mrb, struct RClass *klass, const char *name1, const char *name2)
 {
   mrb_alias_method(mrb, klass, mrb_intern_cstr(mrb, name1), mrb_intern_cstr(mrb, name2));
+}
+
+MRB_API void
+mrb_define_alias_id(mrb_state *mrb, struct RClass *klass, mrb_sym a, mrb_sym b)
+{
+  mrb_alias_method(mrb, klass, a, b);
 }
 
 /*

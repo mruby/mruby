@@ -695,8 +695,8 @@ MRB_API struct RClass* mrb_class_get_id(mrb_state *mrb, mrb_sym name);
  * @param name The name of the class.
  * @return [struct RClass *] A reference to the class.
 */
-MRB_API struct RClass* mrb_exc_get(mrb_state *mrb, const char *name);
 MRB_API struct RClass* mrb_exc_get_id(mrb_state *mrb, mrb_sym name);
+#define mrb_exc_get(mrb, name) mrb_exc_get_id(mrb, mrb_intern_cstr(mrb, name))
 
 /**
  * Returns an mrb_bool. True if inner class was defined, and false if the inner class was not defined.
@@ -1298,25 +1298,25 @@ MRB_API mrb_value mrb_vformat(mrb_state *mrb, const char *format, va_list ap);
    + those E_* macros requires mrb_state* variable named mrb.
    + exception objects obtained from those macros are local to mrb
 */
-#define E_RUNTIME_ERROR             (mrb_exc_get(mrb, "RuntimeError"))
-#define E_TYPE_ERROR                (mrb_exc_get(mrb, "TypeError"))
-#define E_ARGUMENT_ERROR            (mrb_exc_get(mrb, "ArgumentError"))
-#define E_INDEX_ERROR               (mrb_exc_get(mrb, "IndexError"))
-#define E_RANGE_ERROR               (mrb_exc_get(mrb, "RangeError"))
-#define E_NAME_ERROR                (mrb_exc_get(mrb, "NameError"))
-#define E_NOMETHOD_ERROR            (mrb_exc_get(mrb, "NoMethodError"))
-#define E_SCRIPT_ERROR              (mrb_exc_get(mrb, "ScriptError"))
-#define E_SYNTAX_ERROR              (mrb_exc_get(mrb, "SyntaxError"))
-#define E_LOCALJUMP_ERROR           (mrb_exc_get(mrb, "LocalJumpError"))
-#define E_REGEXP_ERROR              (mrb_exc_get(mrb, "RegexpError"))
-#define E_FROZEN_ERROR              (mrb_exc_get(mrb, "FrozenError"))
+#define E_RUNTIME_ERROR             (mrb_exc_get_id(mrb, MRB_SYM(RuntimeError)))
+#define E_TYPE_ERROR                (mrb_exc_get_id(mrb, MRB_SYM(TypeError)))
+#define E_ARGUMENT_ERROR            (mrb_exc_get_id(mrb, MRB_SYM(ArgumentError)))
+#define E_INDEX_ERROR               (mrb_exc_get_id(mrb, MRB_SYM(IndexError)))
+#define E_RANGE_ERROR               (mrb_exc_get_id(mrb, MRB_SYM(RangeError)))
+#define E_NAME_ERROR                (mrb_exc_get_id(mrb, MRB_SYM(NameError)))
+#define E_NOMETHOD_ERROR            (mrb_exc_get_id(mrb, MRB_SYM(NoMethodError)))
+#define E_SCRIPT_ERROR              (mrb_exc_get_id(mrb, MRB_SYM(ScriptError)))
+#define E_SYNTAX_ERROR              (mrb_exc_get_id(mrb, MRB_SYM(SyntaxError)))
+#define E_LOCALJUMP_ERROR           (mrb_exc_get_id(mrb, MRB_SYM(LocalJumpError)))
+#define E_REGEXP_ERROR              (mrb_exc_get_id(mrb, MRB_SYM(RegexpError)))
+#define E_FROZEN_ERROR              (mrb_exc_get_id(mrb, MRB_SYM(FrozenError)))
 
-#define E_NOTIMP_ERROR              (mrb_exc_get(mrb, "NotImplementedError"))
+#define E_NOTIMP_ERROR              (mrb_exc_get_id(mrb, MRB_SYM(NotImplementedError)))
 #ifndef MRB_WITHOUT_FLOAT
-#define E_FLOATDOMAIN_ERROR         (mrb_exc_get(mrb, "FloatDomainError"))
+#define E_FLOATDOMAIN_ERROR         (mrb_exc_get_id(mrb, MRB_SYM(FloatDomainError)))
 #endif
 
-#define E_KEY_ERROR                 (mrb_exc_get(mrb, "KeyError"))
+#define E_KEY_ERROR                 (mrb_exc_get_id(mrb, MRB_SYM(KeyError)))
 
 MRB_API mrb_value mrb_yield(mrb_state *mrb, mrb_value b, mrb_value arg);
 MRB_API mrb_value mrb_yield_argv(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv);
@@ -1346,6 +1346,7 @@ MRB_INLINE void mrb_check_frozen(mrb_state *mrb, void *o)
 }
 
 MRB_API void mrb_define_alias(mrb_state *mrb, struct RClass *c, const char *a, const char *b);
+MRB_API void mrb_define_alias_id(mrb_state *mrb, struct RClass *c, mrb_sym a, mrb_sym b);
 MRB_API const char *mrb_class_name(mrb_state *mrb, struct RClass* klass);
 MRB_API void mrb_define_global_const(mrb_state *mrb, const char *name, mrb_value val);
 
@@ -1382,7 +1383,7 @@ MRB_API mrb_value mrb_fiber_alive_p(mrb_state *mrb, mrb_value fib);
  *
  * Implemented in mruby-fiber
  */
-#define E_FIBER_ERROR (mrb_exc_get(mrb, "FiberError"))
+#define E_FIBER_ERROR (mrb_exc_get_id(mrb, MRB_SYM(FiberError)))
 MRB_API void mrb_stack_extend(mrb_state*, mrb_int);
 
 /* memory pool implementation */
