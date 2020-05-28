@@ -336,10 +336,12 @@ ecall(mrb_state *mrb)
   struct REnv *env;
   ptrdiff_t cioff;
   int ai = mrb_gc_arena_save(mrb);
-  uint16_t i = --c->eidx;
+  uint16_t i;
   int nregs;
 
-  if (i<0) return;
+  if (c->eidx == 0) return;
+  i = --c->eidx;
+
   /* restrict total call depth of ecall() */
   if (++mrb->ecall_nest > MRB_ECALL_DEPTH_MAX) {
     mrb_exc_raise(mrb, mrb_obj_value(mrb->stack_err));
