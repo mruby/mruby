@@ -73,7 +73,7 @@ rational_denominator(mrb_state *mrb, mrb_value self)
 static mrb_value
 rational_new(mrb_state *mrb, mrb_int numerator, mrb_int denominator)
 {
-  struct RClass *c = mrb_class_get(mrb, "Rational");
+  struct RClass *c = mrb_class_get_id(mrb, MRB_SYM(Rational));
   struct mrb_rational *p;
   struct RBasic *rat = rational_alloc(mrb, c, &p);
   p->numerator = numerator;
@@ -91,9 +91,9 @@ rational_s_new(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "ii", &numerator, &denominator);
 #else
 
-#define DROP_PRECISION(f, num, denom) \
+#define DROP_PRECISION(cond, num, denom) \
   do { \
-      while (f < (mrb_float)MRB_INT_MIN || f > (mrb_float)MRB_INT_MAX) { \
+      while (cond) { \
         num /= 2; \
         denom /= 2; \
       } \
@@ -111,8 +111,8 @@ rational_s_new(mrb_state *mrb, mrb_value self)
     else {
       mrb_float denomf = mrb_to_flo(mrb, denomv);
 
-      DROP_PRECISION(denomf, numerator, denomf);
-      denominator = (mrb_int)denomf;
+      DROP_PRECISION(denomf < MRB_INT_MIN || denomf > MRB_INT_MAX, numerator, denomf);
+      denominator = denomf;
     }
   }
   else {
@@ -124,12 +124,12 @@ rational_s_new(mrb_state *mrb, mrb_value self)
     else {
       mrb_float denomf = mrb_to_flo(mrb, denomv);
 
-      DROP_PRECISION(denomf, numf, denomf);
-      denominator = (mrb_int)denomf;
+      DROP_PRECISION(denomf < MRB_INT_MIN || denomf > MRB_INT_MAX, numf, denomf);
+      denominator = denomf;
     }
 
-    DROP_PRECISION(numf, numf, denominator);
-    numerator = (mrb_int)numf;
+    DROP_PRECISION(numf < MRB_INT_MIN || numf > MRB_INT_MAX, numf, denominator);
+    numerator = numf;
   }
 #endif
 
@@ -152,7 +152,7 @@ rational_to_i(mrb_state *mrb, mrb_value self)
 {
   struct mrb_rational *p = rational_ptr(mrb, self);
   if (p->denominator == 0) {
-    mrb_raise(mrb, mrb->eStandardError_class, "divided by 0");
+    mrb_raise(mrb, mrb->eStandardError, "divided by 0");
   }
   return mrb_fixnum_value(p->numerator / p->denominator);
 }
@@ -183,7 +183,7 @@ void mrb_mruby_rational_gem_init(mrb_state *mrb)
 {
   struct RClass *rat;
 
-  rat = mrb_define_class(mrb, "Rational", mrb_class_get(mrb, "Numeric"));
+  rat = mrb_define_class_id(mrb, MRB_SYM(Rational), mrb_class_get_id(mrb, MRB_SYM(Numeric)));
 #ifdef RATIONAL_USE_ISTRUCT
   MRB_SET_INSTANCE_TT(rat, MRB_TT_ISTRUCT);
   mrb_assert(sizeof(struct mrb_rational) < ISTRUCT_DATA_SIZE);
