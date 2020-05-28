@@ -873,6 +873,12 @@ mrb_const_remove(mrb_state *mrb, mrb_value mod, mrb_sym sym)
 }
 
 MRB_API void
+mrb_define_const_id(mrb_state *mrb, struct RClass *mod, mrb_sym name, mrb_value v)
+{
+  mrb_obj_iv_set(mrb, (struct RObject*)mod, name, v);
+}
+
+MRB_API void
 mrb_define_const(mrb_state *mrb, struct RClass *mod, const char *name, mrb_value v)
 {
   mrb_obj_iv_set(mrb, (struct RObject*)mod, mrb_intern_cstr(mrb, name), v);
