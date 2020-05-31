@@ -114,6 +114,15 @@ assert('Kernel.local_variables', '15.3.1.2.7') do
     # Kernel#local_variables: 15.3.1.3.28
     local_variables.sort
   }.call(-1, -2)
+
+  a = Object.new
+  def a.hoge(vars, *, **)
+    Proc.new {
+      x, y = 1, 2
+      local_variables.sort
+    }
+  end
+  assert_equal([:vars, :x, :y]) { a.hoge(0).call }
 end
 
 assert('Kernel#define_singleton_method') do
