@@ -96,27 +96,13 @@ ht_hash_equal(mrb_state *mrb, htable *t, mrb_value a, mrb_value b)
     return mrb_symbol(a) == mrb_symbol(b);
 
   case MRB_TT_FIXNUM:
-    switch (mrb_type(b)) {
-    case MRB_TT_FIXNUM:
-      return mrb_fixnum(a) == mrb_fixnum(b);
-#ifndef MRB_WITHOUT_FLOAT
-    case MRB_TT_FLOAT:
-      return (mrb_float)mrb_fixnum(a) == mrb_float(b);
-#endif
-    default:
-      return FALSE;
-    }
+    if (!mrb_fixnum_p(b)) return FALSE;
+    return mrb_fixnum(a) == mrb_fixnum(b);
 
 #ifndef MRB_WITHOUT_FLOAT
   case MRB_TT_FLOAT:
-    switch (mrb_type(b)) {
-    case MRB_TT_FIXNUM:
-      return mrb_float(a) == (mrb_float)mrb_fixnum(b);
-    case MRB_TT_FLOAT:
-      return mrb_float(a) == mrb_float(b);
-    default:
-      return FALSE;
-    }
+    if (!mrb_float_p(b)) return FALSE;
+    return mrb_float(a) == mrb_float(b);
 #endif
 
   default:
