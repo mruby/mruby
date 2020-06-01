@@ -102,10 +102,10 @@ io_set_process_status(mrb_state *mrb, pid_t pid, int status)
   mrb_value v;
 
   c_status = NULL;
-  if (mrb_class_defined(mrb, "Process")) {
-    c_process = mrb_module_get(mrb, "Process");
-    if (mrb_const_defined(mrb, mrb_obj_value(c_process), mrb_intern_cstr(mrb, "Status"))) {
-      c_status = mrb_class_get_under(mrb, c_process, "Status");
+  if (mrb_class_defined_id(mrb, MRB_SYM(Process))) {
+    c_process = mrb_module_get_id(mrb, MRB_SYM(Process));
+    if (mrb_const_defined(mrb, mrb_obj_value(c_process), MRB_SYM(Status))) {
+      c_status = mrb_class_get_under_id(mrb, c_process, MRB_SYM(Status));
     }
   }
   if (c_status != NULL) {
