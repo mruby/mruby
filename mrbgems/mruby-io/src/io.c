@@ -14,6 +14,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 
 #if defined(_WIN32) || defined(_WIN64)
   #include <winsock.h>
@@ -1064,7 +1065,6 @@ mrb_io_pid(mrb_state *mrb, mrb_value io)
   return mrb_nil_value();
 }
 
-static struct timeval
 time2timeval(mrb_state *mrb, mrb_value time)
 {
   struct timeval t = { 0, 0 };
