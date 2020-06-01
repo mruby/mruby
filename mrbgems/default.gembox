@@ -89,6 +89,9 @@ MRuby::GemBox.new do |conf|
   # Use Method/UnboundMethod class
   conf.gem :core => "mruby-method"
 
+  # Use eval()
+  conf.gem :core => "mruby-eval"
+
   # Use mruby-compiler to build other mrbgems
   conf.gem :core => "mruby-compiler"
 end
