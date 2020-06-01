@@ -1688,10 +1688,10 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fl,      "nan?",      flo_nan_p,      MRB_ARGS_NONE());
 
 #ifdef INFINITY
-  mrb_define_const(mrb, fl, "INFINITY", mrb_float_value(mrb, INFINITY));
+  mrb_define_const_id(mrb, fl, MRB_SYM(INFINITY), mrb_float_value(mrb, INFINITY));
 #endif
 #ifdef NAN
-  mrb_define_const(mrb, fl, "NAN", mrb_float_value(mrb, NAN));
+  mrb_define_const_id(mrb, fl, MRB_SYM(NAN), mrb_float_value(mrb, NAN));
 #endif
 
   mrb_include_module(mrb, fl, integral);

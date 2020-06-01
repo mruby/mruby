@@ -135,7 +135,7 @@ get_opt(mrb_state* mrb)
 
 static void
 random_check(mrb_state *mrb, mrb_value random) {
-  struct RClass *c = mrb_class_get(mrb, "Random");
+  struct RClass *c = mrb_class_get_id(mrb, MRB_SYM(Random));
   if (!mrb_obj_is_kind_of(mrb, random, c) || !mrb_istruct_p(random)) {
     mrb_raise(mrb, E_TYPE_ERROR, "Random instance required");
   }

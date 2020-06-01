@@ -69,7 +69,7 @@ complex_ptr(mrb_state *mrb, mrb_value v)
 static mrb_value
 complex_new(mrb_state *mrb, mrb_float real, mrb_float imaginary)
 {
-  struct RClass *c = mrb_class_get(mrb, "Complex");
+  struct RClass *c = mrb_class_get_id(mrb, MRB_SYM(Complex));
   struct mrb_complex *p;
   struct RBasic *comp = complex_alloc(mrb, c, &p);
   p->real = real;
@@ -224,7 +224,7 @@ void mrb_mruby_complex_gem_init(mrb_state *mrb)
 #ifdef COMPLEX_USE_ISTRUCT
   mrb_assert(sizeof(struct mrb_complex) < ISTRUCT_DATA_SIZE);
 #endif
-  comp = mrb_define_class(mrb, "Complex", mrb_class_get(mrb, "Numeric"));
+  comp = mrb_define_class(mrb, "Complex", mrb_class_get_id(mrb, MRB_SYM(Numeric)));
 #ifdef COMPLEX_USE_ISTRUCT
   MRB_SET_INSTANCE_TT(comp, MRB_TT_ISTRUCT);
 #else

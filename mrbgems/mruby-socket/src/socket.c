@@ -53,7 +53,7 @@
 #endif
 #endif
 
-#define E_SOCKET_ERROR             (mrb_class_get(mrb, "SocketError"))
+#define E_SOCKET_ERROR             mrb_class_get_id(mrb, MRB_SYM(SocketError))
 
 #if !defined(mrb_cptr)
 #define mrb_cptr_value(m,p) mrb_voidp_value((m),(p))
@@ -347,7 +347,7 @@ mrb_basicsocket_getsockopt(mrb_state *mrb, mrb_value self)
   optlen = sizeof(opt);
   if (getsockopt(s, (int)level, (int)optname, opt, &optlen) == -1)
     mrb_sys_fail(mrb, "getsockopt");
-  c = mrb_const_get(mrb, mrb_obj_value(mrb_class_get(mrb, "Socket")), MRB_SYM(Option));
+  c = mrb_const_get(mrb, mrb_obj_value(mrb_class_get_id(mrb, MRB_SYM(Socket))), MRB_SYM(Option));
   family = socket_family(s);
   data = mrb_str_new(mrb, opt, optlen);
   return mrb_funcall_id(mrb, c, MRB_SYM(new), 4, mrb_fixnum_value(family), mrb_fixnum_value(level), mrb_fixnum_value(optname), data);
@@ -869,7 +869,7 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, ai, "unix_path", mrb_addrinfo_unix_path, MRB_ARGS_NONE());
 #endif
 
-  io = mrb_class_get(mrb, "IO");
+  io = mrb_class_get_id(mrb, MRB_SYM(IO));
 
   bsock = mrb_define_class(mrb, "BasicSocket", io);
   mrb_define_method(mrb, bsock, "_recvfrom", mrb_basicsocket_recvfrom, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
@@ -948,7 +948,7 @@ void
 mrb_mruby_socket_gem_final(mrb_state* mrb)
 {
   mrb_value ai;
-  ai = mrb_mod_cv_get(mrb, mrb_class_get(mrb, "Addrinfo"), MRB_SYM(_lastai));
+  ai = mrb_mod_cv_get(mrb, mrb_class_get_id(mrb, MRB_SYM(Addrinfo)), MRB_SYM(_lastai));
   if (mrb_cptr_p(ai)) {
     freeaddrinfo((struct addrinfo*)mrb_cptr(ai));
   }

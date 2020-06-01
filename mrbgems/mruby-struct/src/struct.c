@@ -20,7 +20,7 @@
 static struct RClass *
 struct_class(mrb_state *mrb)
 {
-  return mrb_class_get(mrb, "Struct");
+  return mrb_class_get_id(mrb, MRB_SYM(Struct));
 }
 
 static inline mrb_value
