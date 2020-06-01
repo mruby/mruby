@@ -76,6 +76,7 @@
 #include <mruby/version.h>
 
 #ifndef MRB_WITHOUT_FLOAT
+#include <float.h>
 #ifndef FLT_EPSILON
 #define FLT_EPSILON (1.19209290e-07f)
 #endif
