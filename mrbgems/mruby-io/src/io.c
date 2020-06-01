@@ -1065,6 +1065,7 @@ mrb_io_pid(mrb_state *mrb, mrb_value io)
   return mrb_nil_value();
 }
 
+static struct timeval;
 time2timeval(mrb_state *mrb, mrb_value time)
 {
   struct timeval t = { 0, 0 };
