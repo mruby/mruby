@@ -281,15 +281,6 @@ no_optimize(codegen_scope *s)
   return FALSE;
 }
 
-static
-mrb_bool
-on_eval(codegen_scope *s)
-{
-  if (s && s->parser && s->parser->on_eval)
-    return TRUE;
-  return FALSE;
-}
-
 struct mrb_insn_data
 mrb_decode_insn(const mrb_code *pc)
 {
@@ -407,9 +398,6 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
   if (no_peephole(s)) {
   normal:
     genop_2(s, OP_MOVE, dst, src);
-    if (on_eval(s)) {
-      genop_0(s, OP_NOP);
-    }
     return;
   }
   else {
@@ -674,6 +662,43 @@ lv_idx(codegen_scope *s, mrb_sym id)
   return 0;
 }
 
+static int
+search_upvar(codegen_scope *s, mrb_sym id, int *idx)
+{
+  struct RProc *u;
+  int lv = 0;
+  codegen_scope *up = s->prev;
+
+  while (up) {
+    *idx = lv_idx(up, id);
+    if (*idx > 0) {
+      return lv;
+    }
+    lv ++;
+    up = up->prev;
+  }
+
+  if (lv < 1) lv = 1;
+  u = s->parser->upper;
+  while (u && !MRB_PROC_CFUNC_P(u)) {
+    struct mrb_irep *ir = u->body.irep;
+    uint_fast16_t n = ir->nlocals;
+    const struct mrb_locals *v = ir->lv;
+    for (; n > 1; n --, v ++) {
+      if (v->name == id) {
+        *idx = v->r;
+        return lv - 1;
+      }
+    }
+    if (MRB_PROC_SCOPE_P(u)) break;
+    u = u->upper;
+    lv ++;
+  }
+
+  codegen_error(s, "Can't found local variables");
+  return -1; /* not reached */
+}
+
 static void
 for_body(codegen_scope *s, node *tree)
 {
@@ -786,12 +811,19 @@ lambda_body(codegen_scope *s, node *tree, int blk)
     i = 0;
     while (opt) {
       int idx;
+      mrb_sym id = nsym(opt->car->car);
 
       dispatch(s, pos+i*3+1);
       codegen(s, opt->car->cdr, VAL);
       pop();
-      idx = lv_idx(s, nsym(opt->car->car));
-      gen_move(s, idx, cursp(), 0);
+      idx = lv_idx(s, id);
+      if (idx > 0) {
+        gen_move(s, idx, cursp(), 0);
+      }
+      else {
+        int lv = search_upvar(s, id, &idx);
+        genop_3(s, OP_GETUPVAR, cursp(), idx, lv);
+      }
       i++;
       opt = opt->cdr;
     }
@@ -818,11 +850,19 @@ lambda_body(codegen_scope *s, node *tree, int blk)
         mrb_assert(nint(kwd->car) == NODE_KW_ARG);
 
         if (def_arg) {
+          int idx;
           genop_2(s, OP_KEY_P, lv_idx(s, kwd_sym), new_sym(s, kwd_sym));
           jmpif_key_p = genjmp2(s, OP_JMPIF, lv_idx(s, kwd_sym), 0, 0);
           codegen(s, def_arg, VAL);
           pop();
-          gen_move(s, lv_idx(s, kwd_sym), cursp(), 0);
+          idx = lv_idx(s, kwd_sym);
+          if (idx > 0) {
+            gen_move(s, idx, cursp(), 0);
+          }
+          else {
+            int lv = search_upvar(s, kwd_sym, &idx);
+            genop_3(s, OP_GETUPVAR, cursp(), idx, lv);
+          }
           jmp_def_set = genjmp(s, OP_JMP, 0);
           dispatch(s, jmpif_key_p);
         }
@@ -1103,23 +1143,12 @@ gen_assignment(codegen_scope *s, node *tree, int sp, int val)
     if (idx > 0) {
       if (idx != sp) {
         gen_move(s, idx, sp, val);
-        if (val && on_eval(s)) genop_0(s, OP_NOP);
       }
       break;
     }
     else {                      /* upvar */
-      int lv = 0;
-      codegen_scope *up = s->prev;
-
-      while (up) {
-        idx = lv_idx(up, nsym(tree));
-        if (idx > 0) {
-          genop_3(s, OP_SETUPVAR, sp, idx, lv);
-          break;
-        }
-        lv++;
-        up = up->prev;
-      }
+      int lv = search_upvar(s, nsym(tree), &idx);
+      genop_3(s, OP_SETUPVAR, sp, idx, lv);
     }
     break;
   case NODE_NVAR:
@@ -2324,21 +2353,10 @@ codegen(codegen_scope *s, node *tree, int val)
 
       if (idx > 0) {
         gen_move(s, cursp(), idx, val);
-        if (val && on_eval(s)) genop_0(s, OP_NOP);
       }
       else {
-        int lv = 0;
-        codegen_scope *up = s->prev;
-
-        while (up) {
-          idx = lv_idx(up, nsym(tree));
-          if (idx > 0) {
-            genop_3(s, OP_GETUPVAR, cursp(), idx, lv);
-            break;
-          }
-          lv++;
-          up = up->prev;
-        }
+        int lv = search_upvar(s, nsym(tree), &idx);
+        genop_3(s, OP_GETUPVAR, cursp(), idx, lv);
       }
       push();
     }
@@ -2349,7 +2367,6 @@ codegen(codegen_scope *s, node *tree, int val)
       int idx = nint(tree);
 
       gen_move(s, cursp(), idx, val);
-      if (val && on_eval(s)) genop_0(s, OP_NOP);
 
       push();
     }
