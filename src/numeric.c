@@ -210,26 +210,30 @@ static mrb_value
 flo_to_s(mrb_state *mrb, mrb_value flt)
 {
   mrb_float f = mrb_float(flt);
+  mrb_value str;
 
   if (isinf(f)) {
-    return f < 0 ? mrb_str_new_lit(mrb, "-Infinity")
-                 : mrb_str_new_lit(mrb, "Infinity");
+    str = f < 0 ? mrb_str_new_lit(mrb, "-Infinity")
+                : mrb_str_new_lit(mrb, "Infinity");
+    goto exit;
   }
   else if (isnan(f)) {
-    return mrb_str_new_lit(mrb, "NaN");
+    str = mrb_str_new_lit(mrb, "NaN");
+    goto exit;
   }
   else {
     char fmt[] = "%." MRB_STRINGIZE(FLO_TO_STR_PREC) "g";
-    mrb_value str = mrb_float_to_str(mrb, flt, fmt);
     mrb_int len;
     char *begp, *p, *endp;
+
+    str = mrb_float_to_str(mrb, flt, fmt);
 
     insert_dot_zero:
     begp = RSTRING_PTR(str);
     len = RSTRING_LEN(str);
     for (p = begp, endp = p + len; p < endp; ++p) {
       if (*p == '.') {
-        return str;
+        goto exit;
       }
       else if (*p == 'e') {
         ptrdiff_t e_pos = p - begp;
@@ -237,7 +241,7 @@ flo_to_s(mrb_state *mrb, mrb_value flt)
         p = RSTRING_PTR(str) + e_pos;
         memmove(p + 2, p, len - e_pos);
         memcpy(p, ".0", 2);
-        return str;
+        goto exit;
       }
     }
 
@@ -247,8 +251,12 @@ flo_to_s(mrb_state *mrb, mrb_value flt)
       goto insert_dot_zero;
     }
 
-    return str;
+    goto exit;
   }
+
+  exit:
+  RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+  return str;
 }
 
 /* 15.2.9.3.2  */
@@ -1383,6 +1391,7 @@ mrb_fixnum_to_str(mrb_state *mrb, mrb_value x, mrb_int base)
   char buf[MRB_INT_BIT+1];
   char *b = buf + sizeof buf;
   mrb_int val = mrb_fixnum(x);
+  mrb_value str;
 
   if (base < 2 || 36 < base) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid radix %i", base);
@@ -1403,7 +1412,9 @@ mrb_fixnum_to_str(mrb_state *mrb, mrb_value x, mrb_int base)
     } while (val /= base);
   }
 
-  return mrb_str_new(mrb, b, buf + sizeof(buf) - b);
+  str = mrb_str_new(mrb, b, buf + sizeof(buf) - b);
+  RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+  return str;
 }
 
 /* 15.2.8.3.25 */
