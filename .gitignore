@@ -17,6 +17,7 @@
 .svn
 .vscode
 .yardoc
+.ccls*
 cscope.files
 cscope.out
 tags
