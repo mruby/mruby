@@ -110,7 +110,7 @@ method_eql(mrb_state *mrb, mrb_value self)
 
 static mrb_value
 mcall(mrb_state *mrb, mrb_value recv, mrb_value proc, mrb_value name, struct RClass *owner,
-      int argc, mrb_value *argv, mrb_value block)
+      mrb_int argc, mrb_value *argv, mrb_value block)
 {
   mrb_value ret;
   mrb_sym orig_mid = mrb->c->ci->mid;

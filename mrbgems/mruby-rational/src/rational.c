@@ -112,7 +112,7 @@ rational_s_new(mrb_state *mrb, mrb_value self)
       mrb_float denomf = mrb_to_flo(mrb, denomv);
 
       DROP_PRECISION(denomf < MRB_INT_MIN || denomf > MRB_INT_MAX, numerator, denomf);
-      denominator = denomf;
+      denominator = (mrb_int)denomf;
     }
   }
   else {
@@ -125,11 +125,11 @@ rational_s_new(mrb_state *mrb, mrb_value self)
       mrb_float denomf = mrb_to_flo(mrb, denomv);
 
       DROP_PRECISION(denomf < MRB_INT_MIN || denomf > MRB_INT_MAX, numf, denomf);
-      denominator = denomf;
+      denominator = (mrb_int)denomf;
     }
 
     DROP_PRECISION(numf < MRB_INT_MIN || numf > MRB_INT_MAX, numf, denominator);
-    numerator = numf;
+    numerator = (mrb_int)numf;
   }
 #endif
 
