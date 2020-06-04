@@ -91,9 +91,9 @@ rational_s_new(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "ii", &numerator, &denominator);
 #else
 
-#define DROP_PRECISION(cond, num, denom) \
+#define DROP_PRECISION(f, num, denom) \
   do { \
-      while (cond) { \
+      while (f < (mrb_float)MRB_INT_MIN || f > (mrb_float)MRB_INT_MAX) { \
         num /= 2; \
         denom /= 2; \
       } \
@@ -111,8 +111,8 @@ rational_s_new(mrb_state *mrb, mrb_value self)
     else {
       mrb_float denomf = mrb_to_flo(mrb, denomv);
 
-      DROP_PRECISION(denomf < MRB_INT_MIN || denomf > MRB_INT_MAX, numerator, denomf);
-      denominator = denomf;
+      DROP_PRECISION(denomf, numerator, denomf);
+      denominator = (mrb_int)denomf;
     }
   }
   else {
@@ -124,12 +124,12 @@ rational_s_new(mrb_state *mrb, mrb_value self)
     else {
       mrb_float denomf = mrb_to_flo(mrb, denomv);
 
-      DROP_PRECISION(denomf < MRB_INT_MIN || denomf > MRB_INT_MAX, numf, denomf);
-      denominator = denomf;
+      DROP_PRECISION(denomf, numf, denomf);
+      denominator = (mrb_int)denomf;
     }
 
-    DROP_PRECISION(numf < MRB_INT_MIN || numf > MRB_INT_MAX, numf, denominator);
-    numerator = numf;
+    DROP_PRECISION(numf, numf, denominator);
+    numerator = (mrb_int)numf;
   }
 #endif
 
@@ -152,7 +152,7 @@ rational_to_i(mrb_state *mrb, mrb_value self)
 {
   struct mrb_rational *p = rational_ptr(mrb, self);
   if (p->denominator == 0) {
-    mrb_raise(mrb, mrb->eStandardError, "divided by 0");
+    mrb_raise(mrb, mrb->eStandardError_class, "divided by 0");
   }
   return mrb_fixnum_value(p->numerator / p->denominator);
 }
