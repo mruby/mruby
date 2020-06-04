@@ -73,6 +73,8 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
   uint16_t tt, pool_data_len, snl;
   int plen;
   struct RData *irep_obj = mrb_data_object_alloc(mrb, mrb->object_class, NULL, &tempirep_type);
+  mrb_value *pool;
+  mrb_sym *syms;
   mrb_irep *irep = mrb_add_irep(mrb);
   int ai = mrb_gc_arena_save(mrb);
 
@@ -124,7 +126,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
     if (SIZE_ERROR_MUL(plen, sizeof(mrb_value))) {
       return NULL;
     }
-    irep->pool = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value) * plen);
+    irep->pool = pool = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value) * plen);
 
     for (i = 0; i < plen; i++) {
       const char *s;
@@ -139,26 +141,26 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
       case IREP_TT_FIXNUM: {
         mrb_value num = mrb_str_len_to_inum(mrb, s, pool_data_len, 10, FALSE);
 #ifdef MRB_WITHOUT_FLOAT
-        irep->pool[i] = num;
+        pool[i] = num;
 #else
-        irep->pool[i] = mrb_float_p(num)? mrb_float_pool(mrb, mrb_float(num)) : num;
+        pool[i] = mrb_float_p(num)? mrb_float_pool(mrb, mrb_float(num)) : num;
 #endif
         }
         break;
 
 #ifndef MRB_WITHOUT_FLOAT
       case IREP_TT_FLOAT:
-        irep->pool[i] = mrb_float_pool(mrb, str_to_double(mrb, s, pool_data_len));
+        pool[i] = mrb_float_pool(mrb, str_to_double(mrb, s, pool_data_len));
         break;
 #endif
 
       case IREP_TT_STRING:
-        irep->pool[i] = mrb_str_pool(mrb, s, pool_data_len, st);
+        pool[i] = mrb_str_pool(mrb, s, pool_data_len, st);
         break;
 
       default:
         /* should not happen */
-        irep->pool[i] = mrb_nil_value();
+        pool[i] = mrb_nil_value();
         break;
       }
       irep->plen++;
@@ -173,30 +175,28 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
     if (SIZE_ERROR_MUL(irep->slen, sizeof(mrb_sym))) {
       return NULL;
     }
-    irep->syms = (mrb_sym *)mrb_malloc(mrb, sizeof(mrb_sym) * irep->slen);
+    irep->syms = syms = (mrb_sym *)mrb_malloc(mrb, sizeof(mrb_sym) * irep->slen);
 
     for (i = 0; i < irep->slen; i++) {
       snl = bin_to_uint16(src);               /* symbol name length */
       src += sizeof(uint16_t);
 
       if (snl == MRB_DUMP_NULL_SYM_LEN) {
-        irep->syms[i] = 0;
+        syms[i] = 0;
         continue;
       }
 
       if (flags & FLAG_SRC_MALLOC) {
-        irep->syms[i] = mrb_intern(mrb, (char *)src, snl);
+        syms[i] = mrb_intern(mrb, (char *)src, snl);
       }
       else {
-        irep->syms[i] = mrb_intern_static(mrb, (char *)src, snl);
+        syms[i] = mrb_intern_static(mrb, (char *)src, snl);
       }
       src += snl + 1;
 
       mrb_gc_arena_restore(mrb, ai);
     }
   }
-
-  irep->reps = (mrb_irep**)mrb_calloc(mrb, irep->rlen, sizeof(mrb_irep*));
 
   diff = src - bin;
   mrb_assert_int_fit(ptrdiff_t, diff, size_t, SIZE_MAX);
@@ -214,21 +214,24 @@ read_irep_record(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flags)
   int ai = mrb_gc_arena_save(mrb);
   mrb_irep *irep = read_irep_record_1(mrb, bin, len, flags);
   int i;
+  mrb_irep **reps;
 
   mrb_gc_arena_restore(mrb, ai);
   if (irep == NULL) {
     return NULL;
   }
 
+  reps = (mrb_irep**)mrb_calloc(mrb, irep->rlen, sizeof(mrb_irep*));
+  irep->reps = (const mrb_irep**)reps;
   irep_obj->data = irep;
 
   bin += *len;
   for (i=0; i<irep->rlen; i++) {
     size_t rlen;
 
-    irep->reps[i] = read_irep_record(mrb, bin, &rlen, flags);
+    reps[i] = read_irep_record(mrb, bin, &rlen, flags);
     mrb_gc_arena_restore(mrb, ai);
-    if (irep->reps[i] == NULL) {
+    if (reps[i] == NULL) {
       return NULL;
     }
     bin += rlen;
@@ -257,25 +260,26 @@ read_debug_record(mrb_state *mrb, const uint8_t *start, mrb_irep* irep, size_t *
   size_t record_size;
   uint16_t f_idx;
   int i;
+  mrb_irep_debug_info *debug;
 
   if (irep->debug_info) { return MRB_DUMP_INVALID_IREP; }
 
-  irep->debug_info = (mrb_irep_debug_info*)mrb_calloc(mrb, 1, sizeof(mrb_irep_debug_info));
-  irep->debug_info->pc_count = (uint32_t)irep->ilen;
+  irep->debug_info = debug = (mrb_irep_debug_info*)mrb_calloc(mrb, 1, sizeof(mrb_irep_debug_info));
+  debug->pc_count = (uint32_t)irep->ilen;
 
   record_size = (size_t)bin_to_uint32(bin);
   bin += sizeof(uint32_t);
 
-  irep->debug_info->flen = bin_to_uint16(bin);
-  irep->debug_info->files = (mrb_irep_debug_info_file**)mrb_calloc(mrb, irep->debug_info->flen, sizeof(mrb_irep_debug_info*));
+  debug->flen = bin_to_uint16(bin);
+  debug->files = (mrb_irep_debug_info_file**)mrb_calloc(mrb, irep->debug_info->flen, sizeof(mrb_irep_debug_info*));
   bin += sizeof(uint16_t);
 
-  for (f_idx = 0; f_idx < irep->debug_info->flen; ++f_idx) {
+  for (f_idx = 0; f_idx < debug->flen; ++f_idx) {
     mrb_irep_debug_info_file *file;
     uint16_t filename_idx;
 
     file = (mrb_irep_debug_info_file *)mrb_calloc(mrb, 1, sizeof(*file));
-    irep->debug_info->files[f_idx] = file;
+    debug->files[f_idx] = file;
 
     file->start_pos = bin_to_uint32(bin);
     bin += sizeof(uint32_t);
@@ -329,7 +333,7 @@ read_debug_record(mrb_state *mrb, const uint8_t *start, mrb_irep* irep, size_t *
     size_t len;
     int ret;
 
-    ret = read_debug_record(mrb, bin, irep->reps[i], &len, filenames, filenames_len);
+    ret = read_debug_record(mrb, bin, (mrb_irep*)irep->reps[i], &len, filenames, filenames_len);
     if (ret != MRB_DUMP_OK) return ret;
     bin += len;
   }
@@ -393,25 +397,26 @@ static int
 read_lv_record(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, size_t *record_len, mrb_sym const *syms, uint32_t syms_len)
 {
   const uint8_t *bin = start;
+  struct mrb_locals *lv;
   ptrdiff_t diff;
   int i;
 
-  irep->lv = (struct mrb_locals*)mrb_malloc(mrb, sizeof(struct mrb_locals) * (irep->nlocals - 1));
+  irep->lv = lv = (struct mrb_locals*)mrb_malloc(mrb, sizeof(struct mrb_locals) * (irep->nlocals - 1));
 
   for (i = 0; i + 1< irep->nlocals; ++i) {
     uint16_t const sym_idx = bin_to_uint16(bin);
     bin += sizeof(uint16_t);
     if (sym_idx == RITE_LV_NULL_MARK) {
-      irep->lv[i].name = 0;
-      irep->lv[i].r = 0;
+      lv[i].name = 0;
+      lv[i].r = 0;
     }
     else {
       if (sym_idx >= syms_len) {
         return MRB_DUMP_GENERAL_FAILURE;
       }
-      irep->lv[i].name = syms[sym_idx];
+      lv[i].name = syms[sym_idx];
 
-      irep->lv[i].r = bin_to_uint16(bin);
+      lv[i].r = bin_to_uint16(bin);
     }
     bin += sizeof(uint16_t);
   }
@@ -420,7 +425,7 @@ read_lv_record(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, size_t *rec
     size_t len;
     int ret;
 
-    ret = read_lv_record(mrb, bin, irep->reps[i], &len, syms, syms_len);
+    ret = read_lv_record(mrb, bin, (mrb_irep*)irep->reps[i], &len, syms, syms_len);
     if (ret != MRB_DUMP_OK) return ret;
     bin += len;
   }

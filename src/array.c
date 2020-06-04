@@ -1309,14 +1309,16 @@ init_ary_each(mrb_state *mrb, struct RClass *ary)
   mrb_method_t m;
   mrb_irep *each_irep = (mrb_irep*)mrb_malloc(mrb, sizeof(mrb_irep));
   static const mrb_irep mrb_irep_zero = { 0 };
+  mrb_sym *syms;
 
   *each_irep = mrb_irep_zero;
-  each_irep->syms = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym)*5);
-  each_irep->syms[0] = MRB_SYM(each);
-  each_irep->syms[1] = MRB_SYM(to_enum);
-  each_irep->syms[2] = MRB_QSYM(aref);
-  each_irep->syms[3] = MRB_SYM(call);
-  each_irep->syms[4] = MRB_SYM(length);
+  syms = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym)*5);
+  syms[0] = MRB_SYM(each);
+  syms[1] = MRB_SYM(to_enum);
+  syms[2] = MRB_QSYM(aref);
+  syms[3] = MRB_SYM(call);
+  syms[4] = MRB_SYM(length);
+  each_irep->syms = syms;
   each_irep->slen = 5;
   each_irep->flags = MRB_ISEQ_NO_FREE;
   each_irep->iseq = each_iseq;

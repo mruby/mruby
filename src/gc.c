@@ -868,7 +868,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj, int end)
       struct RProc *p = (struct RProc*)obj;
 
       if (!MRB_PROC_CFUNC_P(p) && p->body.irep) {
-        mrb_irep *irep = p->body.irep;
+        mrb_irep *irep = (mrb_irep*)p->body.irep;
         if (end) {
           mrb_irep_cutref(mrb, irep);
         }

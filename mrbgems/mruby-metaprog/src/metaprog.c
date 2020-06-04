@@ -133,7 +133,7 @@ static mrb_value
 mrb_local_variables(mrb_state *mrb, mrb_value self)
 {
   struct RProc *proc;
-  mrb_irep *irep;
+  const mrb_irep *irep;
   mrb_value vars;
   size_t i;
 

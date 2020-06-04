@@ -39,7 +39,7 @@ each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, const mrb_code *pc0, each_backtr
   for (i=ciidx; i >= 0; i--) {
     struct backtrace_location loc;
     mrb_callinfo *ci;
-    mrb_irep *irep;
+    const mrb_irep *irep;
     const mrb_code *pc;
 
     ci = &mrb->c->cibase[i];
