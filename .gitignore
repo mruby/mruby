@@ -18,6 +18,8 @@
 .vscode
 .yardoc
 .ccls*
+compile_flags.txt
+compile_commands.json
 cscope.files
 cscope.out
 tags
