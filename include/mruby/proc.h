@@ -41,7 +41,7 @@ void mrb_env_unshare(mrb_state*, struct REnv*);
 struct RProc {
   MRB_OBJECT_HEADER;
   union {
-    mrb_irep *irep;
+    const mrb_irep *irep;
     mrb_func_t func;
   } body;
   struct RProc *upper;
@@ -86,8 +86,8 @@ struct RProc {
 
 #define mrb_proc_ptr(v)    ((struct RProc*)(mrb_ptr(v)))
 
-struct RProc *mrb_proc_new(mrb_state*, mrb_irep*);
-struct RProc *mrb_closure_new(mrb_state*, mrb_irep*);
+struct RProc *mrb_proc_new(mrb_state*, const mrb_irep*);
+struct RProc *mrb_closure_new(mrb_state*, const mrb_irep*);
 MRB_API struct RProc *mrb_proc_new_cfunc(mrb_state*, mrb_func_t);
 MRB_API struct RProc *mrb_closure_new_cfunc(mrb_state *mrb, mrb_func_t func, int nlocals);
 void mrb_proc_copy(struct RProc *a, struct RProc *b);

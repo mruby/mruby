@@ -70,6 +70,9 @@ typedef struct scope {
   uint32_t icapa;
 
   mrb_irep *irep;
+  mrb_value *pool;
+  mrb_sym *syms;
+  mrb_irep **reps;
   uint32_t pcapa, scapa, rcapa;
 
   uint16_t nlocals;
@@ -98,10 +101,22 @@ static void raise_error(codegen_scope *s, const char *msg);
 static void
 codegen_error(codegen_scope *s, const char *message)
 {
+  int i;
+
   if (!s) return;
   while (s->prev) {
     codegen_scope *tmp = s->prev;
     mrb_free(s->mrb, s->iseq);
+    mrb_free(s->mrb, s->pool);
+    mrb_free(s->mrb, s->syms);
+    if (s->reps) {
+      /* copied from mrb_irep_free() in state.c */
+      for (i=0; i<s->irep->rlen; i++) {
+        if (s->reps[i])
+          mrb_irep_decref(s->mrb, (mrb_irep*)s->reps[i]);
+      }
+      mrb_free(s->mrb, s->reps);
+    }
     mrb_free(s->mrb, s->lines);
     mrb_pool_close(s->mpool);
     s = tmp;
@@ -545,7 +560,7 @@ new_lit(codegen_scope *s, mrb_value val)
   case MRB_TT_STRING:
     for (i=0; i<s->irep->plen; i++) {
       mrb_int len;
-      pv = &s->irep->pool[i];
+      pv = &s->pool[i];
 
       if (!mrb_string_p(*pv)) continue;
       if ((len = RSTRING_LEN(*pv)) != RSTRING_LEN(val)) continue;
@@ -557,7 +572,7 @@ new_lit(codegen_scope *s, mrb_value val)
   case MRB_TT_FLOAT:
     for (i=0; i<s->irep->plen; i++) {
       mrb_float f1, f2;
-      pv = &s->irep->pool[i];
+      pv = &s->pool[i];
       if (!mrb_float_p(*pv)) continue;
       f1 = mrb_float(*pv);
       f2 = mrb_float(val);
@@ -567,7 +582,7 @@ new_lit(codegen_scope *s, mrb_value val)
 #endif
   case MRB_TT_FIXNUM:
     for (i=0; i<s->irep->plen; i++) {
-      pv = &s->irep->pool[i];
+      pv = &s->pool[i];
       if (!mrb_fixnum_p(*pv)) continue;
       if (mrb_fixnum(*pv) == mrb_fixnum(val)) return i;
     }
@@ -579,10 +594,10 @@ new_lit(codegen_scope *s, mrb_value val)
 
   if (s->irep->plen == s->pcapa) {
     s->pcapa *= 2;
-    s->irep->pool = (mrb_value *)codegen_realloc(s, s->irep->pool, sizeof(mrb_value)*s->pcapa);
+    s->pool = (mrb_value *)codegen_realloc(s, s->pool, sizeof(mrb_value)*s->pcapa);
   }
 
-  pv = &s->irep->pool[s->irep->plen];
+  pv = &s->pool[s->irep->plen];
   i = s->irep->plen++;
 
   switch (mrb_type(val)) {
@@ -620,13 +635,13 @@ new_sym(codegen_scope *s, mrb_sym sym)
 
   len = s->irep->slen;
   for (i=0; i<len; i++) {
-    if (s->irep->syms[i] == sym) return i;
+    if (s->syms[i] == sym) return i;
   }
   if (s->irep->slen >= s->scapa) {
     s->scapa *= 2;
-    s->irep->syms = (mrb_sym*)codegen_realloc(s, s->irep->syms, sizeof(mrb_sym)*s->scapa);
+    s->syms = (mrb_sym*)codegen_realloc(s, s->syms, sizeof(mrb_sym)*s->scapa);
   }
-  s->irep->syms[s->irep->slen] = sym;
+  s->syms[s->irep->slen] = sym;
   return s->irep->slen++;
 }
 
@@ -681,7 +696,7 @@ search_upvar(codegen_scope *s, mrb_sym id, int *idx)
   if (lv < 1) lv = 1;
   u = s->parser->upper;
   while (u && !MRB_PROC_CFUNC_P(u)) {
-    struct mrb_irep *ir = u->body.irep;
+    const struct mrb_irep *ir = u->body.irep;
     uint_fast16_t n = ir->nlocals;
     const struct mrb_locals *v = ir->lv;
     for (; n > 1; n --, v ++) {
@@ -2993,91 +3008,92 @@ scope_add_irep(codegen_scope *s, mrb_irep *irep)
   }
   if (s->irep->rlen == s->rcapa) {
     s->rcapa *= 2;
-    s->irep->reps = (mrb_irep**)codegen_realloc(s, s->irep->reps, sizeof(mrb_irep*)*s->rcapa);
+    s->reps = (mrb_irep**)codegen_realloc(s, s->reps, sizeof(mrb_irep*)*s->rcapa);
   }
-  s->irep->reps[s->irep->rlen] = irep;
+  s->reps[s->irep->rlen] = irep;
   s->irep->rlen++;
 }
 
 static codegen_scope*
-scope_new(mrb_state *mrb, codegen_scope *prev, node *lv)
+scope_new(mrb_state *mrb, codegen_scope *prev, node *nlv)
 {
   static const codegen_scope codegen_scope_zero = { 0 };
   mrb_pool *pool = mrb_pool_open(mrb);
-  codegen_scope *p = (codegen_scope *)mrb_pool_alloc(pool, sizeof(codegen_scope));
+  codegen_scope *s = (codegen_scope *)mrb_pool_alloc(pool, sizeof(codegen_scope));
 
-  if (!p) {
+  if (!s) {
     if (prev)
       codegen_error(prev, "unexpected scope");
     return NULL;
   }
-  *p = codegen_scope_zero;
-  p->mrb = mrb;
-  p->mpool = pool;
-  if (!prev) return p;
-  p->prev = prev;
-  p->ainfo = -1;
-  p->mscope = 0;
+  *s = codegen_scope_zero;
+  s->mrb = mrb;
+  s->mpool = pool;
+  if (!prev) return s;
+  s->prev = prev;
+  s->ainfo = -1;
+  s->mscope = 0;
 
-  p->irep = mrb_add_irep(mrb);
-  scope_add_irep(prev, p->irep);
+  s->irep = mrb_add_irep(mrb);
+  scope_add_irep(prev, s->irep);
 
-  p->rcapa = 8;
-  p->irep->reps = (mrb_irep**)mrb_malloc(mrb, sizeof(mrb_irep*)*p->rcapa);
+  s->rcapa = 8;
+  s->reps = (mrb_irep**)mrb_malloc(mrb, sizeof(mrb_irep*)*s->rcapa);
 
-  p->icapa = 1024;
-  p->iseq = (mrb_code*)mrb_malloc(mrb, sizeof(mrb_code)*p->icapa);
-  p->irep->iseq = NULL;
+  s->icapa = 1024;
+  s->iseq = (mrb_code*)mrb_malloc(mrb, sizeof(mrb_code)*s->icapa);
+  s->irep->iseq = NULL;
 
-  p->pcapa = 32;
-  p->irep->pool = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value)*p->pcapa);
-  p->irep->plen = 0;
+  s->pcapa = 32;
+  s->pool = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value)*s->pcapa);
+  s->irep->plen = 0;
 
-  p->scapa = 256;
-  p->irep->syms = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym)*p->scapa);
-  p->irep->slen = 0;
+  s->scapa = 256;
+  s->syms = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym)*s->scapa);
+  s->irep->slen = 0;
 
-  p->lv = lv;
-  p->sp += node_len(lv)+1;        /* add self */
-  p->nlocals = p->sp;
-  if (lv) {
-    node *n = lv;
+  s->lv = nlv;
+  s->sp += node_len(nlv)+1;        /* add self */
+  s->nlocals = s->sp;
+  if (nlv) {
+    struct mrb_locals *lv;
+    node *n = nlv;
     size_t i = 0;
 
-    p->irep->lv = (struct mrb_locals*)mrb_malloc(mrb, sizeof(struct mrb_locals) * (p->nlocals - 1));
-    for (i=0, n=lv; n; i++,n=n->cdr) {
-      p->irep->lv[i].name = lv_name(n);
+    s->irep->lv = lv = (struct mrb_locals*)mrb_malloc(mrb, sizeof(struct mrb_locals)*(s->nlocals-1));
+    for (i=0, n=nlv; n; i++,n=n->cdr) {
+      lv[i].name = lv_name(n);
       if (lv_name(n)) {
-        p->irep->lv[i].r = lv_idx(p, lv_name(n));
+        lv[i].r = lv_idx(s, lv_name(n));
       }
       else {
-        p->irep->lv[i].r = 0;
+        lv[i].r = 0;
       }
     }
-    mrb_assert(i + 1 == p->nlocals);
+    mrb_assert(i + 1 == s->nlocals);
   }
-  p->ai = mrb_gc_arena_save(mrb);
+  s->ai = mrb_gc_arena_save(mrb);
 
-  p->filename_sym = prev->filename_sym;
-  if (p->filename_sym) {
-    p->lines = (uint16_t*)mrb_malloc(mrb, sizeof(short)*p->icapa);
+  s->filename_sym = prev->filename_sym;
+  if (s->filename_sym) {
+    s->lines = (uint16_t*)mrb_malloc(mrb, sizeof(short)*s->icapa);
   }
-  p->lineno = prev->lineno;
+  s->lineno = prev->lineno;
 
   /* debug setting */
-  p->debug_start_pos = 0;
-  if (p->filename_sym) {
-    mrb_debug_info_alloc(mrb, p->irep);
+  s->debug_start_pos = 0;
+  if (s->filename_sym) {
+    mrb_debug_info_alloc(mrb, s->irep);
   }
   else {
-    p->irep->debug_info = NULL;
+    s->irep->debug_info = NULL;
   }
-  p->parser = prev->parser;
-  p->filename_index = prev->filename_index;
+  s->parser = prev->parser;
+  s->filename_index = prev->filename_index;
 
-  p->rlev = prev->rlev+1;
+  s->rlev = prev->rlev+1;
 
-  return p;
+  return s;
 }
 
 static void
@@ -3091,12 +3107,12 @@ scope_finish(codegen_scope *s)
   }
   irep->flags = 0;
   if (s->iseq) {
-    irep->iseq = (mrb_code *)codegen_realloc(s, s->iseq, sizeof(mrb_code)*s->pc);
+    irep->iseq = (const mrb_code *)codegen_realloc(s, s->iseq, sizeof(mrb_code)*s->pc);
     irep->ilen = s->pc;
   }
-  irep->pool = (mrb_value*)codegen_realloc(s, irep->pool, sizeof(mrb_value)*irep->plen);
-  irep->syms = (mrb_sym*)codegen_realloc(s, irep->syms, sizeof(mrb_sym)*irep->slen);
-  irep->reps = (mrb_irep**)codegen_realloc(s, irep->reps, sizeof(mrb_irep*)*irep->rlen);
+  irep->pool = (const mrb_value*)codegen_realloc(s, s->pool, sizeof(mrb_value)*irep->plen);
+  irep->syms = (const mrb_sym*)codegen_realloc(s, s->syms, sizeof(mrb_sym)*irep->slen);
+  irep->reps = (const mrb_irep**)codegen_realloc(s, s->reps, sizeof(mrb_irep*)*irep->rlen);
   if (s->filename_sym) {
     mrb_sym fname = mrb_parser_get_filename(s->parser, s->filename_index);
     const char *filename = mrb_sym_name_len(s->mrb, fname, NULL);
@@ -3242,13 +3258,14 @@ mrb_irep_remove_lv(mrb_state *mrb, mrb_irep *irep)
 {
   int i;
 
+  if (irep->flags & MRB_IREP_NO_FREE) return;
   if (irep->lv) {
-    mrb_free(mrb, irep->lv);
+    mrb_free(mrb, (void*)irep->lv);
     irep->lv = NULL;
   }
-
+  if (!irep->reps) return;
   for (i = 0; i < irep->rlen; ++i) {
-    mrb_irep_remove_lv(mrb, irep->reps[i]);
+    mrb_irep_remove_lv(mrb, (mrb_irep*)irep->reps[i]);
   }
 }
 

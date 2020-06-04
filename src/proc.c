@@ -15,7 +15,7 @@ static const mrb_code call_iseq[] = {
 };
 
 struct RProc*
-mrb_proc_new(mrb_state *mrb, mrb_irep *irep)
+mrb_proc_new(mrb_state *mrb, const mrb_irep *irep)
 {
   struct RProc *p;
   mrb_callinfo *ci = mrb->c->ci;
@@ -34,7 +34,7 @@ mrb_proc_new(mrb_state *mrb, mrb_irep *irep)
     p->e.target_class = tc;
   }
   p->body.irep = irep;
-  mrb_irep_incref(mrb, irep);
+  mrb_irep_incref(mrb, (mrb_irep*)irep);
 
   return p;
 }
@@ -90,7 +90,7 @@ closure_setup(mrb_state *mrb, struct RProc *p)
 }
 
 struct RProc*
-mrb_closure_new(mrb_state *mrb, mrb_irep *irep)
+mrb_closure_new(mrb_state *mrb, const mrb_irep *irep)
 {
   struct RProc *p = mrb_proc_new(mrb, irep);
 
@@ -181,7 +181,7 @@ mrb_proc_copy(struct RProc *a, struct RProc *b)
   a->flags = b->flags;
   a->body = b->body;
   if (!MRB_PROC_CFUNC_P(a) && a->body.irep) {
-    a->body.irep->refcnt++;
+    mrb_irep_incref(NULL, (mrb_irep*)a->body.irep);
   }
   a->upper = b->upper;
   a->e.env = b->e.env;
@@ -262,7 +262,7 @@ proc_lambda(mrb_state *mrb, mrb_value self)
 mrb_int
 mrb_proc_arity(const struct RProc *p)
 {
-  struct mrb_irep *irep;
+  const mrb_irep *irep;
   const mrb_code *pc;
   mrb_aspec aspec;
   int ma, op, ra, pa, arity;

@@ -107,12 +107,14 @@ void mrb_free_symtbl(mrb_state *mrb);
 void
 mrb_irep_incref(mrb_state *mrb, mrb_irep *irep)
 {
+  if (irep->flags & MRB_IREP_NO_FREE) return;
   irep->refcnt++;
 }
 
 void
 mrb_irep_decref(mrb_state *mrb, mrb_irep *irep)
 {
+  if (irep->flags & MRB_IREP_NO_FREE) return;
   irep->refcnt--;
   if (irep->refcnt == 0) {
     mrb_irep_free(mrb, irep);
@@ -122,12 +124,14 @@ mrb_irep_decref(mrb_state *mrb, mrb_irep *irep)
 void
 mrb_irep_cutref(mrb_state *mrb, mrb_irep *irep)
 {
-  mrb_irep *tmp;
+  mrb_irep **reps;
   int i;
 
+  if (irep->flags & MRB_IREP_NO_FREE) return;
+  reps = (mrb_irep**)irep->reps;
   for (i=0; i<irep->rlen; i++) {
-    tmp = irep->reps[i];
-    irep->reps[i] = NULL;
+    mrb_irep *tmp = reps[i];
+    reps[i] = NULL;
     if (tmp) mrb_irep_decref(mrb, tmp);
   }
 }
@@ -137,6 +141,7 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
 {
   int i;
 
+  if (irep->flags & MRB_IREP_NO_FREE) return;
   if (!(irep->flags & MRB_ISEQ_NO_FREE))
     mrb_free(mrb, (void*)irep->iseq);
   if (irep->pool) for (i=0; i<irep->plen; i++) {
@@ -150,16 +155,16 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
     }
 #endif
   }
-  mrb_free(mrb, irep->pool);
-  mrb_free(mrb, irep->syms);
+  mrb_free(mrb, (void*)irep->pool);
+  mrb_free(mrb, (void*)irep->syms);
   if (irep->reps) {
     for (i=0; i<irep->rlen; i++) {
       if (irep->reps[i])
-        mrb_irep_decref(mrb, irep->reps[i]);
+        mrb_irep_decref(mrb, (mrb_irep*)irep->reps[i]);
     }
+    mrb_free(mrb, (void*)irep->reps);
   }
-  mrb_free(mrb, irep->reps);
-  mrb_free(mrb, irep->lv);
+  mrb_free(mrb, (void*)irep->lv);
   mrb_debug_info_free(mrb, irep->debug_info);
   mrb_free(mrb, irep);
 }

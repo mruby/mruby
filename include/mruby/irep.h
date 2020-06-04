@@ -33,11 +33,11 @@ typedef struct mrb_irep {
   uint8_t flags;
 
   const mrb_code *iseq;
-  mrb_value *pool;
-  mrb_sym *syms;
-  struct mrb_irep **reps;
+  const mrb_value *pool;
+  const mrb_sym *syms;
+  const struct mrb_irep **reps;
 
-  struct mrb_locals *lv;
+  const struct mrb_locals *lv;
   /* debug info */
   struct mrb_irep_debug_info* debug_info;
 
@@ -46,6 +46,7 @@ typedef struct mrb_irep {
 } mrb_irep;
 
 #define MRB_ISEQ_NO_FREE 1
+#define MRB_IREP_NO_FREE 2
 
 MRB_API mrb_irep *mrb_add_irep(mrb_state *mrb);
 

@@ -342,7 +342,7 @@ local_var_p(parser_state *p, mrb_sym sym)
 
   u = p->upper;
   while (u && !MRB_PROC_CFUNC_P(u)) {
-    struct mrb_irep *ir = u->body.irep;
+    const struct mrb_irep *ir = u->body.irep;
     uint_fast16_t n = ir->nlocals;
     const struct mrb_locals *v = ir->lv;
     for (; n > 1; n --, v ++) {

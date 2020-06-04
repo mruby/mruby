@@ -21,7 +21,7 @@ mrb_proc_source_location(mrb_state *mrb, mrb_value self)
     return mrb_nil_value();
   }
   else {
-    mrb_irep *irep = p->body.irep;
+    const mrb_irep *irep = p->body.irep;
     int32_t line;
     const char *filename;
 
@@ -41,7 +41,7 @@ mrb_proc_inspect(mrb_state *mrb, mrb_value self)
   mrb_str_cat_str(mrb, str, mrb_ptr_to_str(mrb, mrb_cptr(self)));
 
   if (!MRB_PROC_CFUNC_P(p)) {
-    mrb_irep *irep = p->body.irep;
+    const mrb_irep *irep = p->body.irep;
     const char *filename;
     int32_t line;
     mrb_str_cat_lit(mrb, str, "@");

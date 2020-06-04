@@ -2315,12 +2315,14 @@ init_class_new(mrb_state *mrb, struct RClass *cls)
   struct RProc *p;
   mrb_method_t m;
   mrb_irep *new_irep = (mrb_irep*)mrb_malloc(mrb, sizeof(mrb_irep));
+  mrb_sym *syms;
   static const mrb_irep mrb_irep_zero = { 0 };
 
   *new_irep = mrb_irep_zero;
-  new_irep->syms = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym)*2);
-  new_irep->syms[0] = MRB_SYM(allocate);
-  new_irep->syms[1] = MRB_SYM(initialize);
+  syms = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym)*2);
+  syms[0] = MRB_SYM(allocate);
+  syms[1] = MRB_SYM(initialize);
+  new_irep->syms = syms;
   new_irep->slen = 2;
   new_irep->flags = MRB_ISEQ_NO_FREE;
   new_irep->iseq = new_iseq;
