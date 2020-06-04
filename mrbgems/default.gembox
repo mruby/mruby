@@ -71,6 +71,10 @@ MRuby::GemBox.new do |conf|
   # Use toplevel object (main) methods extension
   conf.gem :core => "mruby-toplevel-ext"
 
+  # Use Rational/Complex numbers
+  conf.gem :core => "mruby-rational"
+  conf.gem :core => "mruby-complex"
+
   # Generate mirb command
   conf.gem :core => "mruby-bin-mirb"
 
