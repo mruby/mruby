@@ -84,7 +84,7 @@ jobs:
         echo '::set-env name=PATH::C:\tools\cygwin\bin;C:\tools\cygwin\usr\bin'
     - name: build and test
       shell: cmd
-      run: C:\tools\cygwin\bin\ruby.exe /usr/bin/rake -m -j4 -v -E 'STDOUT.sync=true' test
+      run: C:\tools\cygwin\bin\ruby.exe /usr/bin/rake -m -j4 -E 'STDOUT.sync=true' test
       env:
         MRUBY_CONFIG: travis_config.rb
 
@@ -98,7 +98,7 @@ jobs:
       shell: cmd
       run: |
         call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        rake -E "STDOUT.sync=true" -m -j4 -v test
+        rake -E "STDOUT.sync=true" -m -j4 test
       env:
         MRUBY_CONFIG: appveyor_config.rb
         # TODO(take-cheeze): Re-enable /O2
