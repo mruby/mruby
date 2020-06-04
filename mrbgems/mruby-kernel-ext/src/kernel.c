@@ -151,7 +151,7 @@ mrb_f_string(mrb_state *mrb, mrb_value self)
   mrb_value arg = mrb_get_arg1(mrb);
   mrb_value tmp;
 
-  tmp = mrb_convert_type(mrb, arg, MRB_TT_STRING, "String", "to_s");
+  tmp = mrb_convert_type(mrb, arg, MRB_TT_STRING, MRB_SYM(to_s));
   return tmp;
 }
 
@@ -170,7 +170,7 @@ mrb_f_array(mrb_state *mrb, mrb_value self)
   mrb_value arg = mrb_get_arg1(mrb);
   mrb_value tmp;
 
-  tmp = mrb_check_convert_type(mrb, arg, MRB_TT_ARRAY, "Array", "to_a");
+  tmp = mrb_check_convert_type(mrb, arg, MRB_TT_ARRAY, MRB_SYM(to_a));
   if (mrb_nil_p(tmp)) {
     return mrb_ary_new_from_values(mrb, 1, &arg);
   }
