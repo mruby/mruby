@@ -1126,7 +1126,7 @@ mrb_str_to_str(mrb_state *mrb, mrb_value str)
   case MRB_TT_MODULE:
     return mrb_mod_to_s(mrb, str);
   default:
-    return mrb_convert_type(mrb, str, MRB_TT_STRING, "String", "to_s");
+    return mrb_convert_type(mrb, str, MRB_TT_STRING, MRB_SYM(to_s));
   }
 }
 
