@@ -67,6 +67,36 @@ mkdtemp(char *temp)
 #include "mruby/variable.h"
 #include <mruby/ext/io.h>
 
+int wd_save;
+int socket_available_p;
+
+#if !defined(_WIN32) && !defined(_WIN64)
+static int mrb_io_socket_available()
+{
+  int fd, retval = 0;
+  struct sockaddr_un sun0;
+  char socketname[] = "tmp.mruby-io-socket-ok.XXXXXXXX";
+  if (!(fd = mkstemp(socketname))) {
+    goto sock_test_out;
+  }
+  unlink(socketname);
+  close(fd);
+  fd = socket(AF_UNIX, SOCK_STREAM, 0);
+  if (fd == -1) {
+    goto sock_test_out;
+  }
+  sun0.sun_family = AF_UNIX;
+  strncpy(sun0.sun_path, socketname, sizeof(sun0.sun_path));
+  if (bind(fd, (struct sockaddr *)&sun0, sizeof(sun0)) == 0) {
+    retval = 1;
+  }
+sock_test_out:
+  unlink(socketname);
+  close(fd);
+  return retval;
+}
+#endif
+
 static mrb_value
 mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
 {
@@ -81,6 +111,14 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
   int i;
 #if !defined(_WIN32) && !defined(_WIN64)
   struct sockaddr_un sun0;
+
+  if(!(socket_available_p = mrb_io_socket_available())) {
+    char *tmpdir;
+    wd_save = open(".", O_DIRECTORY);
+    tmpdir = getenv("TMPDIR");
+    if (tmpdir) chdir(tmpdir);
+    else chdir("/tmp");
+  }
 #endif
 
   mrb_gv_set(mrb, mrb_intern_cstr(mrb, "$mrbtest_io_msg"), mrb_str_new_cstr(mrb, msg));
@@ -180,6 +218,13 @@ mrb_io_test_io_cleanup(mrb_state *mrb, mrb_value self)
   mrb_gv_set(mrb, mrb_intern_cstr(mrb, "$mrbtest_io_symlinkname"), mrb_nil_value());
   mrb_gv_set(mrb, mrb_intern_cstr(mrb, "$mrbtest_io_socketname"), mrb_nil_value());
   mrb_gv_set(mrb, mrb_intern_cstr(mrb, "$mrbtest_io_msg"), mrb_nil_value());
+
+#if !defined(_WIN32) && !defined(_WIN64)
+  if(!socket_available_p) {
+    fchdir(wd_save);
+    close(wd_save);
+  }
+#endif
 
   return mrb_nil_value();
 }
