@@ -185,6 +185,16 @@ mrb_exc_set(mrb_state *mrb, mrb_value exc)
   }
 }
 
+static mrb_noreturn void
+exc_throw(mrb_state *mrb, mrb_value exc)
+{
+  if (!mrb->jmp) {
+    mrb_p(mrb, exc);
+    abort();
+  }
+  MRB_THROW(mrb->jmp);
+}
+
 MRB_API mrb_noreturn void
 mrb_exc_raise(mrb_state *mrb, mrb_value exc)
 {
@@ -197,11 +207,7 @@ mrb_exc_raise(mrb_state *mrb, mrb_value exc)
     }
     mrb_exc_set(mrb, exc);
   }
-  if (!mrb->jmp) {
-    mrb_p(mrb, exc);
-    abort();
-  }
-  MRB_THROW(mrb->jmp);
+  exc_throw(mrb, exc);
 }
 
 MRB_API mrb_noreturn void
@@ -548,6 +554,52 @@ mrb_argnum_error(mrb_state *mrb, mrb_int argc, int min, int max)
   else
     mrb_raisef(mrb, E_ARGUMENT_ERROR, FMT("%d..%d"), argc, min, max);
 #undef FMT
+}
+
+void mrb_core_init_printabort(void);
+
+int
+mrb_core_init_protect(mrb_state *mrb, void (*body)(mrb_state *, void *), void *opaque)
+{
+  struct mrb_jmpbuf *prev_jmp = mrb->jmp;
+  struct mrb_jmpbuf c_jmp;
+  int err = 1;
+
+  MRB_TRY(&c_jmp) {
+    mrb->jmp = &c_jmp;
+    body(mrb, opaque);
+    err = 0;
+  } MRB_CATCH(&c_jmp) {
+    if (mrb->exc) {
+      mrb_p(mrb, mrb_obj_value(mrb->exc));
+      mrb->exc = NULL;
+    }
+    else {
+      mrb_core_init_printabort();
+    }
+  } MRB_END_EXC(&c_jmp);
+
+  mrb->jmp = prev_jmp;
+
+  return err;
+}
+
+mrb_noreturn void
+mrb_core_init_abort(mrb_state *mrb)
+{
+  mrb->exc = NULL;
+  exc_throw(mrb, mrb_nil_value());
+}
+
+mrb_noreturn void
+mrb_raise_nomemory(mrb_state *mrb)
+{
+  if (mrb->nomem_err) {
+    mrb_exc_raise(mrb, mrb_obj_value(mrb->nomem_err));
+  }
+  else {
+    mrb_core_init_abort(mrb);
+  }
 }
 
 void

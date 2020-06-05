@@ -204,11 +204,14 @@ mrb_debug_info_free(mrb_state *mrb, mrb_irep_debug_info *d)
 
   if (!d) { return; }
 
-  for (i = 0; i < d->flen; ++i) {
-    mrb_assert(d->files[i]);
-    mrb_free(mrb, d->files[i]->lines.ptr);
-    mrb_free(mrb, d->files[i]);
+  if (d->files) {
+    for (i = 0; i < d->flen; ++i) {
+      if (d->files[i]) {
+        mrb_free(mrb, d->files[i]->lines.ptr);
+        mrb_free(mrb, d->files[i]);
+      }
+    }
+    mrb_free(mrb, d->files);
   }
-  mrb_free(mrb, d->files);
   mrb_free(mrb, d);
 }

@@ -8,6 +8,7 @@
 #include <mruby/class.h>
 #include <mruby/proc.h>
 #include <mruby/opcode.h>
+#include <mruby/data.h>
 
 static const mrb_code call_iseq[] = {
   OP_CALL,
@@ -122,7 +123,14 @@ mrb_proc_new_cfunc_with_env(mrb_state *mrb, mrb_func_t func, mrb_int argc, const
   p->flags |= MRB_PROC_ENVSET;
   mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)e);
   MRB_ENV_UNSHARE_STACK(e);
+
+  /* NOTE: Prevents keeping invalid addresses when NoMemoryError is raised from `mrb_malloc()`. */
+  e->stack = NULL;
+  MRB_ENV_SET_STACK_LEN(e, 0);
+
   e->stack = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value) * argc);
+  MRB_ENV_SET_STACK_LEN(e, argc);
+
   if (argv) {
     for (i = 0; i < argc; ++i) {
       e->stack[i] = argv[i];
@@ -286,14 +294,25 @@ mrb_proc_arity(const struct RProc *p)
   return arity;
 }
 
+static void
+tempirep_free(mrb_state *mrb, void *p)
+{
+  if (p) mrb_irep_free(mrb, (mrb_irep *)p);
+}
+
+static const mrb_data_type tempirep_type = { "temporary irep", tempirep_free };
+
 void
 mrb_init_proc(mrb_state *mrb)
 {
   struct RProc *p;
   mrb_method_t m;
-  mrb_irep *call_irep = (mrb_irep *)mrb_malloc(mrb, sizeof(mrb_irep));
+  struct RData *irep_obj = mrb_data_object_alloc(mrb, mrb->object_class, NULL, &tempirep_type);
+  mrb_irep *call_irep;
   static const mrb_irep mrb_irep_zero = { 0 };
 
+  call_irep = (mrb_irep *)mrb_malloc(mrb, sizeof(mrb_irep));
+  irep_obj->data = call_irep;
   *call_irep = mrb_irep_zero;
   call_irep->flags = MRB_ISEQ_NO_FREE;
   call_irep->iseq = call_iseq;
@@ -305,6 +324,7 @@ mrb_init_proc(mrb_state *mrb)
   mrb_define_method(mrb, mrb->proc_class, "arity", proc_arity, MRB_ARGS_NONE());
 
   p = mrb_proc_new(mrb, call_irep);
+  irep_obj->data = NULL;
   MRB_METHOD_FROM_PROC(m, p);
   mrb_define_method_raw(mrb, mrb->proc_class, mrb_intern_lit(mrb, "call"), m);
   mrb_define_method_raw(mrb, mrb->proc_class, mrb_intern_lit(mrb, "[]"), m);
