@@ -440,7 +440,7 @@ mrb_float_to_cstr(mrb_state *mrb, char *buf, size_t len, const char *fmt, mrb_fl
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid format string");
   }
   *cstr.buf = '\0';
-  return (int)cstr.buf - buf;
+  return (int)(cstr.buf - buf);
 }
 #else   /* MRB_DISABLE_STDIO || _WIN32 || _WIN64 */
 #include <mruby.h>
