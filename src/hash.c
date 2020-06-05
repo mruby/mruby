@@ -365,7 +365,7 @@ ht_put(mrb_state *mrb, htable *t, mrb_value key, mrb_value val)
       if (!seg->next && i >= t->last_len) {
         seg->e[i].key = key;
         seg->e[i].val = val;
-        t->last_len = i+1;
+        t->last_len = (uint16_t)i+1;
         t->size++;
         return;
       }
@@ -407,7 +407,7 @@ ht_put(mrb_state *mrb, htable *t, mrb_value key, mrb_value val)
   }
   seg->e[i].key = key;
   seg->e[i].val = val;
-  t->last_len = i+1;
+  t->last_len = (uint16_t)i+1;
   if (t->index == NULL && t->size > MRB_HT_INIT_SIZE*4) {
     ht_index(mrb, t);
   }

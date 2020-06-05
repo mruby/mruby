@@ -160,7 +160,7 @@ fmt_fp(struct fmt_args *f, long double y, ptrdiff_t w, ptrdiff_t p, uint32_t fl,
     out(f, prefix, pl);
     out(f, ss, 3);
     pad(f, ' ', w, 3+pl, fl^LEFT_ADJ);
-    return MAX(w, 3+(int)pl);
+    return (int)MAX(w, 3+pl);
   }
 
   y = frexp((double)y, &e2) * 2;
@@ -215,7 +215,7 @@ fmt_fp(struct fmt_args *f, long double y, ptrdiff_t w, ptrdiff_t p, uint32_t fl,
     pad(f, '0', l-(ebuf-estr)-(s-buf), 0, 0);
     out(f, estr, ebuf-estr);
     pad(f, ' ', w, pl+l, fl^LEFT_ADJ);
-    return MAX(w, (int)pl+(int)l);
+    return (int)MAX(w, pl+l);
   }
   if (p<0) p=6;
 
@@ -366,7 +366,7 @@ fmt_fp(struct fmt_args *f, long double y, ptrdiff_t w, ptrdiff_t p, uint32_t fl,
 
   pad(f, ' ', w, pl+l, fl^LEFT_ADJ);
 
-  return MAX(w, (int)pl+(int)l);
+  return (int)MAX(w, pl+l);
 }
 
 static int
@@ -440,7 +440,7 @@ mrb_float_to_cstr(mrb_state *mrb, char *buf, size_t len, const char *fmt, mrb_fl
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid format string");
   }
   *cstr.buf = '\0';
-  return cstr.buf - buf;
+  return (int)cstr.buf - buf;
 }
 #else   /* MRB_DISABLE_STDIO || _WIN32 || _WIN64 */
 #include <mruby.h>

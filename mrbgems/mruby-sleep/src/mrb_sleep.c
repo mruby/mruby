@@ -30,7 +30,7 @@
 #ifdef _WIN32
     #include <windows.h>
     #define sleep(x) Sleep(x * 1000)
-    #define usleep(x) Sleep((DWORD)((x)<1000) ? 1 : ((x)/1000))
+    #define usleep(x) Sleep((DWORD)(((x)<1000) ? 1 : ((x)/1000)))
 #else
     #include <unistd.h>
     #include <sys/time.h>
