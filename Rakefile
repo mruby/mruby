@@ -173,7 +173,8 @@ end
 
 presym_inc=presym_file+".inc"
 file presym_inc => presym_file do
-  presyms = File.readlines(presym_file, chomp: true)
+  presyms = File.readlines(presym_file)
+  presyms.each{|x| x.chomp!}
   File.open(presym_inc, "w") do |f|
     f.print "/* MRB_PRESYM_CSYM(sym, num) - symbol which is valid C id name */\n"
     f.print "/* MRB_PRESYM_QSYM(sym, name, num) - symbol with alias name */\n"
