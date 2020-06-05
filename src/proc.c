@@ -14,6 +14,23 @@ static const mrb_code call_iseq[] = {
   OP_CALL,
 };
 
+static const mrb_irep call_irep = {
+  .nlocals = 0,
+  .nregs = 2,
+  .flags = MRB_ISEQ_NO_FREE | MRB_IREP_NO_FREE,
+  .iseq = call_iseq,
+  .pool = NULL,
+  .syms = NULL,
+  .reps = NULL,
+  .lv = NULL,
+  .debug_info = NULL,
+  .ilen = 1,
+  .plen = 0,
+  .slen = 0,
+  .rlen = 1,
+  .refcnt = 0,
+};
+
 struct RProc*
 mrb_proc_new(mrb_state *mrb, const mrb_irep *irep)
 {
@@ -293,37 +310,17 @@ mrb_proc_arity(const struct RProc *p)
   return arity;
 }
 
-static void
-tempirep_free(mrb_state *mrb, void *p)
-{
-  if (p) mrb_irep_free(mrb, (mrb_irep *)p);
-}
-
-static const mrb_data_type tempirep_type = { "temporary irep", tempirep_free };
-
 void
 mrb_init_proc(mrb_state *mrb)
 {
   struct RProc *p;
   mrb_method_t m;
-  struct RData *irep_obj = mrb_data_object_alloc(mrb, mrb->object_class, NULL, &tempirep_type);
-  mrb_irep *call_irep;
-  static const mrb_irep mrb_irep_zero = { 0 };
-
-  call_irep = (mrb_irep *)mrb_malloc(mrb, sizeof(mrb_irep));
-  irep_obj->data = call_irep;
-  *call_irep = mrb_irep_zero;
-  call_irep->flags = MRB_ISEQ_NO_FREE;
-  call_irep->iseq = call_iseq;
-  call_irep->ilen = 1;
-  call_irep->nregs = 2;         /* receiver and block */
 
   mrb_define_class_method(mrb, mrb->proc_class, "new", mrb_proc_s_new, MRB_ARGS_NONE()|MRB_ARGS_BLOCK());
   mrb_define_method(mrb, mrb->proc_class, "initialize_copy", mrb_proc_init_copy, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, mrb->proc_class, "arity", proc_arity, MRB_ARGS_NONE());
 
-  p = mrb_proc_new(mrb, call_irep);
-  irep_obj->data = NULL;
+  p = mrb_proc_new(mrb, &call_irep);
   MRB_METHOD_FROM_PROC(m, p);
   mrb_define_method_raw(mrb, mrb->proc_class, MRB_SYM(call), m);
   mrb_define_method_raw(mrb, mrb->proc_class, MRB_QSYM(aref), m);
