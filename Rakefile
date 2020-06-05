@@ -181,24 +181,24 @@ file presym_inc => presym_file do
       if /\A\w+\Z/ =~ sym
         f.print "MRB_PRESYM_CSYM(#{sym}, #{i+1})\n"
       elsif op_table.key?(sym)
-        f.print "MRB_PRESYM_QSYM(#{sym}, #{op_table[sym]}, #{i+1})\n"
+        f.print "MRB_PRESYM_QSYM(\"#{sym}\", #{op_table[sym]}, #{i+1})\n"
       elsif /\?\Z/ =~ sym
         s = sym.dup; s[-1] = "_p"
-        f.print "MRB_PRESYM_QSYM(#{sym}, #{s}, #{i+1})\n"
+        f.print "MRB_PRESYM_QSYM(\"#{sym}\", #{s}, #{i+1})\n"
       elsif /\!\Z/ =~ sym
         s = sym.dup; s[-1] = "_b"
-        f.print "MRB_PRESYM_QSYM(#{sym}, #{s}, #{i+1})\n"
+        f.print "MRB_PRESYM_QSYM(\"#{sym}\", #{s}, #{i+1})\n"
       elsif /\=\Z/ =~ sym
         s = sym.dup; s[-1] = "_e"
-        f.print "MRB_PRESYM_QSYM(#{sym}, #{s}, #{i+1})\n"
+        f.print "MRB_PRESYM_QSYM(\"#{sym}\", #{s}, #{i+1})\n"
       elsif /\A@/ =~ sym
         s = sym.dup; s[0] = "a_"
-        f.print "MRB_PRESYM_QSYM(#{sym}, #{s}, #{i+1})\n"
+        f.print "MRB_PRESYM_QSYM(\"#{sym}\", #{s}, #{i+1})\n"
       elsif /\A$/ =~ sym
         s = sym.dup; s[0] = "d_"
-        f.print "MRB_PRESYM_QSYM(#{sym}, #{s}, #{i+1})\n"
+        f.print "MRB_PRESYM_QSYM(\"#{sym}\", #{s}, #{i+1})\n"
       else
-        f.print "MRB_PRESYM_SYM(#{sym}, #{i+1})\n"
+        f.print "MRB_PRESYM_SYM(\"#{sym}\", #{i+1})\n"
       end
     end
     f.print "#define MRB_PRESYM_MAX #{presyms.size}"

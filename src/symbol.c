@@ -17,8 +17,8 @@
 #undef MRB_PRESYM_QSYM
 #undef MRB_PRESYM_SYM
 #define MRB_PRESYM_CSYM(sym, num) #sym,
-#define MRB_PRESYM_QSYM(sym, name, num) #sym,
-#define MRB_PRESYM_SYM(sym, num) #sym,
+#define MRB_PRESYM_QSYM(str, name, num) str,
+#define MRB_PRESYM_SYM(str, num) str,
 
 static const char *presym_table[] = {
 #include <../build/presym.inc>
