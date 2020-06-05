@@ -1242,33 +1242,45 @@ mrb_mod_dummy_visibility(mrb_state *mrb, mrb_value mod)
   return mod;
 }
 
-MRB_API mrb_value
-mrb_singleton_class(mrb_state *mrb, mrb_value v)
+/* returns mrb_class_ptr(mrb_singleton_class()) */
+/* except that it return NULL for immediate values */
+MRB_API struct RClass*
+mrb_singleton_class_ptr(mrb_state *mrb, mrb_value v)
 {
   struct RBasic *obj;
 
   switch (mrb_type(v)) {
   case MRB_TT_FALSE:
     if (mrb_nil_p(v))
-      return mrb_obj_value(mrb->nil_class);
-    return mrb_obj_value(mrb->false_class);
+      return mrb->nil_class;
+    return mrb->false_class;
   case MRB_TT_TRUE:
-    return mrb_obj_value(mrb->true_class);
+    return mrb->true_class;
   case MRB_TT_CPTR:
-    return mrb_obj_value(mrb->object_class);
+    return mrb->object_class;
   case MRB_TT_SYMBOL:
   case MRB_TT_FIXNUM:
 #ifndef MRB_WITHOUT_FLOAT
   case MRB_TT_FLOAT:
 #endif
-    mrb_raise(mrb, E_TYPE_ERROR, "can't define singleton");
-    return mrb_nil_value();    /* not reached */
+    return NULL;
   default:
     break;
   }
   obj = mrb_basic_ptr(v);
   prepare_singleton_class(mrb, obj);
-  return mrb_obj_value(obj->c);
+  return obj->c;
+}
+
+MRB_API mrb_value
+mrb_singleton_class(mrb_state *mrb, mrb_value v)
+{
+  struct RClass *c = mrb_singleton_class_ptr(mrb, v);
+
+  if (c == NULL) {
+    mrb_raise(mrb, E_TYPE_ERROR, "can't define singleton");
+  }
+  return mrb_obj_value(c);
 }
 
 MRB_API void
@@ -1716,7 +1728,10 @@ mrb_class_real(struct RClass* cl)
 MRB_API const char*
 mrb_class_name(mrb_state *mrb, struct RClass* c)
 {
-  mrb_value name = class_name_str(mrb, c);
+  mrb_value name;
+
+  if (c == NULL) return NULL;
+  name = class_name_str(mrb, c);
   return RSTRING_PTR(name);
 }
 

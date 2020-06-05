@@ -76,6 +76,7 @@
 #include <mruby/version.h>
 
 #ifndef MRB_WITHOUT_FLOAT
+#include <float.h>
 #ifndef FLT_EPSILON
 #define FLT_EPSILON (1.19209290e-07f)
 #endif
@@ -164,8 +165,8 @@ struct mrb_context {
   struct RProc **ensure;                  /* ensure handler stack */
   uint16_t esize, eidx;
 
-  enum mrb_fiber_state status;
-  mrb_bool vmexec;
+  enum mrb_fiber_state status : 4;
+  mrb_bool vmexec : 1;
   struct RFiber *fib;
 };
 
@@ -317,7 +318,9 @@ MRB_API struct RClass *mrb_define_class(mrb_state *mrb, const char *name, struct
  * @return [struct RClass *] Reference to the newly defined module.
  */
 MRB_API struct RClass *mrb_define_module(mrb_state *mrb, const char *name);
+
 MRB_API mrb_value mrb_singleton_class(mrb_state *mrb, mrb_value val);
+MRB_API struct RClass *mrb_singleton_class_ptr(mrb_state *mrb, mrb_value val);
 
 /**
  * Include a module in another class or module.
@@ -1148,7 +1151,6 @@ MRB_API void mrb_close(mrb_state *mrb);
 MRB_API void* mrb_default_allocf(mrb_state*, void*, size_t, void*);
 
 MRB_API mrb_value mrb_top_self(mrb_state *mrb);
-MRB_API mrb_value mrb_run(mrb_state *mrb, struct RProc* proc, mrb_value self);
 MRB_API mrb_value mrb_top_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep);
 MRB_API mrb_value mrb_vm_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep);
 MRB_API mrb_value mrb_vm_exec(mrb_state *mrb, struct RProc *proc, const mrb_code *iseq);

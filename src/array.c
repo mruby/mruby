@@ -732,6 +732,10 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
       argv = ARY_PTR(r);
     }
   }
+  else if (mrb_undef_p(rpl)) {
+    argc = 0;
+    argv = NULL;
+  }
   else {
     argc = 1;
     argv = &rpl;
@@ -802,6 +806,13 @@ ary_subseq(mrb_state *mrb, struct RArray *a, mrb_int beg, mrb_int len)
   ARY_SET_SHARED_FLAG(b);
 
   return mrb_obj_value(b);
+}
+
+mrb_value
+mrb_ary_subseq(mrb_state *mrb, mrb_value ary, mrb_int beg, mrb_int len)
+{
+  struct RArray *a = mrb_ary_ptr(ary);
+  return ary_subseq(mrb, a, beg, len);
 }
 
 static mrb_int

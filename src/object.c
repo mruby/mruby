@@ -83,13 +83,17 @@ mrb_true(mrb_state *mrb, mrb_value obj)
 static mrb_value
 nil_to_s(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_str_new_frozen(mrb, 0, 0);
+  mrb_value str = mrb_str_new_frozen(mrb, 0, 0);
+  RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+  return str;
 }
 
 static mrb_value
 nil_inspect(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_str_new_lit_frozen(mrb, "nil");
+  mrb_value str = mrb_str_new_lit_frozen(mrb, "nil");
+  RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+  return str;
 }
 
 /***********************************************************************
@@ -150,7 +154,9 @@ true_xor(mrb_state *mrb, mrb_value obj)
 static mrb_value
 true_to_s(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_str_new_lit_frozen(mrb, "true");
+  mrb_value str = mrb_str_new_lit_frozen(mrb, "true");
+  RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+  return str;
 }
 
 /* 15.2.5.3.4  */
@@ -257,7 +263,9 @@ false_or(mrb_state *mrb, mrb_value obj)
 static mrb_value
 false_to_s(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_str_new_lit_frozen(mrb, "false");
+  mrb_value str = mrb_str_new_lit_frozen(mrb, "false");
+  RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
+  return str;
 }
 
 void

@@ -100,6 +100,10 @@ assert('Kernel#__send__', '15.3.1.3.4') do
   assert_true __send__(:respond_to?, :nil?)
   # test without argument and without block
   assert_equal String, __send__(:to_s).class
+
+  args = [:respond_to?, :nil?]
+  assert_true __send__(*args)
+  assert_equal [:respond_to?, :nil?], args
 end
 
 assert('Kernel#block_given?', '15.3.1.3.6') do
@@ -197,17 +201,6 @@ assert('Kernel#dup', '15.3.1.3.9') do
   a.set(2)
   c = a.dup
 
-  immutables = [ 1, :foo, true, false, nil ]
-  error_count = 0
-  immutables.each do |i|
-    begin
-      i.dup
-    rescue TypeError
-      error_count += 1
-    end
-  end
-
-  assert_equal immutables.size, error_count
   assert_equal 2, a.get
   assert_equal 1, b.get
   assert_equal 2, c.get

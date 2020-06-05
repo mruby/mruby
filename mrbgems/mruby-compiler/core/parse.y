@@ -9,7 +9,6 @@
 #ifdef PARSER_DEBUG
 # define YYDEBUG 1
 #endif
-#define YYERROR_VERBOSE 1
 #define YYSTACK_USE_ALLOCA 1
 
 #include <ctype.h>
@@ -266,6 +265,7 @@ local_unnest(parser_state *p)
 static mrb_bool
 local_var_p(parser_state *p, mrb_sym sym)
 {
+  struct RProc *u;
   node *l = p->locals;
 
   while (l) {
@@ -275,6 +275,18 @@ local_var_p(parser_state *p, mrb_sym sym)
       n = n->cdr;
     }
     l = l->cdr;
+  }
+
+  u = p->upper;
+  while (u && !MRB_PROC_CFUNC_P(u)) {
+    struct mrb_irep *ir = u->body.irep;
+    uint_fast16_t n = ir->nlocals;
+    const struct mrb_locals *v = ir->lv;
+    for (; n > 1; n --, v ++) {
+      if (v->name == sym) return TRUE;
+    }
+    if (MRB_PROC_SCOPE_P(u)) break;
+    u = u->upper;
   }
   return FALSE;
 }
@@ -827,6 +839,13 @@ new_kw_arg(parser_state *p, mrb_sym kw, node *def_arg)
   return list3((node*)NODE_KW_ARG, nsym(kw), def_arg);
 }
 
+/* (:kw_rest_args . a) */
+static node*
+new_kw_rest_args(parser_state *p, node *a)
+{
+  return cons((node*)NODE_KW_REST_ARGS, a);
+}
+
 /* (:block_arg . a) */
 static node*
 new_block_arg(parser_state *p, node *a)
@@ -1323,7 +1342,8 @@ heredoc_end(parser_state *p)
 
 %}
 
-%pure-parser
+%define parse.error verbose
+%define api.pure
 %parse-param {parser_state *p}
 %lex-param {parser_state *p}
 
@@ -2264,6 +2284,30 @@ arg_rhs         : arg %prec tOP_ASGN
 paren_args      : '(' opt_call_args ')'
                     {
                       $$ = $2;
+                    }
+                | '(' tDOT3 rparen
+                    {
+#if 1
+                      mrb_sym r = mrb_intern_lit(p->mrb, "*");
+                      mrb_sym b = mrb_intern_lit(p->mrb, "&");
+                      if (local_var_p(p, r)  && local_var_p(p, b)) {
+                        $$ = cons(list1(new_splat(p, new_lvar(p, r))),
+                                  new_block_arg(p, new_lvar(p, b)));
+                      }
+#else
+                      mrb_sym r = mrb_intern_lit(p->mrb, "*");
+                      mrb_sym k = mrb_intern_lit(p->mrb, "**");
+                      mrb_sym b = mrb_intern_lit(p->mrb, "&");
+                      if (local_var_p(p, r) && local_var_p(p, k) && local_var_p(p, b)) {
+                        $$ = cons(list2(new_splat(p, new_lvar(p, r)),
+                                        new_kw_hash(p, list1(cons(new_kw_rest_args(p, 0), new_lvar(p, k))))),
+                                  new_block_arg(p, new_lvar(p, b)));
+                      }
+#endif
+                      else {
+                        yyerror(p, "unexpected argument forwarding ...");
+                        $$ = 0;
+                      }
                     }
                 ;
 
@@ -3361,6 +3405,24 @@ f_arglist       : '(' f_args rparen
                       p->lstate = EXPR_BEG;
                       p->cmd_start = TRUE;
                     }
+                | '(' tDOT3 rparen
+                    {
+#if 1
+                      /* til real keyword args implemented */
+                      mrb_sym r = mrb_intern_lit(p->mrb, "*");
+                      mrb_sym b = mrb_intern_lit(p->mrb, "&");
+                      local_add_f(p, r);
+                      $$ = new_args(p, 0, 0, r, 0,
+                                    new_args_tail(p, 0, 0, b));
+#else
+                      mrb_sym r = mrb_intern_lit(p->mrb, "*");
+                      mrb_sym k = mrb_intern_lit(p->mrb, "**");
+                      mrb_sym b = mrb_intern_lit(p->mrb, "&");
+                      local_add_f(p, r); local_add_f(p, k);
+                      $$ = new_args(p, 0, 0, r, 0,
+                                    new_args_tail(p, 0, new_kw_rest_args(p, nsym(k)), b));
+#endif
+                    }
                 | f_args term
                     {
                       $$ = $1;
@@ -3424,11 +3486,11 @@ kwrest_mark     : tPOW
 
 f_kwrest        : kwrest_mark tIDENTIFIER
                     {
-                      $$ = cons((node*)NODE_KW_REST_ARGS, nsym($2));
+                      $$ = new_kw_rest_args(p, nsym($2));
                     }
                 | kwrest_mark
                     {
-                      $$ = cons((node*)NODE_KW_REST_ARGS, 0);
+                      $$ = new_kw_rest_args(p, 0);
                     }
                 ;
 
@@ -3743,7 +3805,7 @@ assoc           : arg tASSOC arg
                 | tDSTAR arg
                     {
                       void_expr_error(p, $2);
-                      $$ = cons(cons((node*)NODE_KW_REST_ARGS, 0), $2);
+                      $$ = cons(new_kw_rest_args(p, 0), $2);
                     }
                 ;
 
@@ -3807,7 +3869,7 @@ term            : ';' {yyerrok;}
 
 nl              : '\n'
                     {
-                      p->lineno++;
+                      p->lineno += $<num>1;
                       p->column = 0;
                     }
                 ;
@@ -4795,6 +4857,7 @@ static int
 parser_yylex(parser_state *p)
 {
   int32_t c;
+  int nlines = 1;
   int space_seen = 0;
   int cmd_state;
   enum mrb_lex_state_enum last_state;
@@ -4852,6 +4915,7 @@ parser_yylex(parser_state *p)
       break;
     }
     if (p->parsing_heredoc != NULL) {
+      pylval.num = nlines;
       return '\n';
     }
     while ((c = nextc(p))) {
@@ -4861,13 +4925,13 @@ parser_yylex(parser_state *p)
         space_seen = 1;
         break;
       case '#': /* comment as a whitespace */
-        pushback(p, '#');
-        p->lineno++;
-        goto retry;
+        skip(p, '\n');
+        nlines++;
+        break;
       case '.':
         if (!peek(p, '.')) {
           pushback(p, '.');
-          p->lineno++;
+          p->lineno+=nlines; nlines=1;
           goto retry;
         }
         pushback(p, c);
@@ -4875,7 +4939,7 @@ parser_yylex(parser_state *p)
       case '&':
         if (peek(p, '.')) {
           pushback(p, '&');
-          p->lineno++;
+          p->lineno+=nlines; nlines=1;
           goto retry;
         }
         pushback(p, c);
@@ -4891,6 +4955,7 @@ parser_yylex(parser_state *p)
   normal_newline:
     p->cmd_start = TRUE;
     p->lstate = EXPR_BEG;
+    pylval.num = nlines;
     return '\n';
 
   case '*':
@@ -4973,7 +5038,7 @@ parser_yylex(parser_state *p)
             c = nextc(p);
           } while (!(c < 0 || ISSPACE(c)));
           if (c != '\n') skip(p, '\n');
-          p->lineno++;
+          p->lineno+=nlines; nlines=1;
           p->column = 0;
           goto retry;
         }
@@ -5695,7 +5760,7 @@ parser_yylex(parser_state *p)
   case '\\':
     c = nextc(p);
     if (c == '\n') {
-      p->lineno++;
+      p->lineno+=nlines; nlines=1;
       p->column = 0;
       space_seen = 1;
       goto retry; /* skip \\n */
@@ -6140,7 +6205,7 @@ parser_init_cxt(parser_state *p, mrbc_context *cxt)
   }
   p->capture_errors = cxt->capture_errors;
   p->no_optimize = cxt->no_optimize;
-  p->on_eval = cxt->on_eval;
+  p->upper = cxt->upper;
   if (cxt->partial_hook) {
     p->cxt = cxt;
   }

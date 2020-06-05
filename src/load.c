@@ -19,9 +19,6 @@
 # error size_t must be at least 32 bits wide
 #endif
 
-#define FLAG_BYTEORDER_BIG 2
-#define FLAG_BYTEORDER_LIL 4
-#define FLAG_BYTEORDER_NATIVE 8
 #define FLAG_SRC_MALLOC 1
 #define FLAG_SRC_STATIC 0
 
@@ -94,8 +91,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
     if (SIZE_ERROR_MUL(irep->ilen, sizeof(mrb_code))) {
       return NULL;
     }
-    if ((flags & FLAG_SRC_MALLOC) == 0 &&
-        (flags & FLAG_BYTEORDER_NATIVE)) {
+    if ((flags & FLAG_SRC_MALLOC) == 0) {
       irep->iseq = (mrb_code*)src;
       src += sizeof(mrb_code) * irep->ilen;
       irep->flags |= MRB_ISEQ_NO_FREE;
@@ -464,19 +460,7 @@ read_binary_header(const uint8_t *bin, size_t bufsize, size_t *bin_size, uint16_
     return MRB_DUMP_READ_FAULT;
   }
 
-  if (memcmp(header->binary_ident, RITE_BINARY_IDENT, sizeof(header->binary_ident)) == 0) {
-    if (bigendian_p())
-      *flags |= FLAG_BYTEORDER_NATIVE;
-    else
-      *flags |= FLAG_BYTEORDER_BIG;
-  }
-  else if (memcmp(header->binary_ident, RITE_BINARY_IDENT_LIL, sizeof(header->binary_ident)) == 0) {
-    if (bigendian_p())
-      *flags |= FLAG_BYTEORDER_LIL;
-    else
-      *flags |= FLAG_BYTEORDER_NATIVE;
-  }
-  else {
+  if (memcmp(header->binary_ident, RITE_BINARY_IDENT, sizeof(header->binary_ident)) != 0) {
     return MRB_DUMP_INVALID_FILE_HEADER;
   }
 

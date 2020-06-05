@@ -110,18 +110,22 @@ assert('File.join') do
 end
 
 assert('File.realpath') do
-  if File::ALT_SEPARATOR
-    readme_path = File._getwd + File::ALT_SEPARATOR + "README.md"
-    assert_equal readme_path, File.realpath("README.md")
-  else
-    dir = MRubyIOTestUtil.mkdtemp("mruby-io-test.XXXXXX")
-    begin
-      dir1 = File.realpath($mrbtest_io_rfname)
-      dir2 = File.realpath("./#{dir}//./../#{$mrbtest_io_symlinkname}")
-      assert_equal dir1, dir2
-    ensure
-      MRubyIOTestUtil.rmdir dir
+  dir = MRubyIOTestUtil.mkdtemp("mruby-io-test.XXXXXX")
+  begin
+    sep = File::ALT_SEPARATOR || File::SEPARATOR
+    relative_path = "#{File.basename(dir)}#{sep}realpath_test"
+    path = "#{File._getwd}#{sep}#{relative_path}"
+    File.open(path, "w"){}
+    assert_equal path, File.realpath(relative_path)
+
+    unless MRubyIOTestUtil.win?
+      path1 = File.realpath($mrbtest_io_rfname)
+      path2 = File.realpath($mrbtest_io_symlinkname)
+      assert_equal path1, path2
     end
+  ensure
+    File.delete path rescue nil
+    MRubyIOTestUtil.rmdir dir
   end
 
   assert_raise(ArgumentError) { File.realpath("TO\0DO") }
@@ -129,7 +133,9 @@ end
 
 assert("File.readlink") do
   begin
-    assert_equal $mrbtest_io_rfname, File.readlink($mrbtest_io_symlinkname)
+    exp = File.basename($mrbtest_io_rfname)
+    act = File.readlink($mrbtest_io_symlinkname)
+    assert_equal exp, act
   rescue NotImplementedError => e
     skip e.message
   end

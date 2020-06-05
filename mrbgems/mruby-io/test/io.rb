@@ -24,6 +24,10 @@ def assert_io_open(meth)
       end
     end
     io2.close unless meth == :open
+
+    assert_raise(RuntimeError) { IO.__send__(meth, 1023) } # For Windows
+    assert_raise(RuntimeError) { IO.__send__(meth, 1 << 26) }
+    assert_raise(RuntimeError) { IO.__send__(meth, 1 << 32) } if (1 << 32).kind_of?(Integer)
   end
 end
 

@@ -6,11 +6,15 @@ binaries.
 ## Prerequisites
 
 To compile mruby out of the source code you need the following tools:
-* C Compiler (e.g. `gcc`)
-* Linker (e.g. `gcc`)
+* C Compiler (e.g. `gcc` or `clang`)
+* Linker (e.g. `gcc` or `clang`)
 * Archive utility (e.g. `ar`)
 * Parser generator (e.g. `bison`)
 * Ruby 2.0 or later (e.g. `ruby` or `jruby`)
+
+Note that `bison` bundled with MacOS is too old to compile `mruby`.
+Try `brew install bison` and follow the instuction shown to update
+the `$PATH` to compile `mruby`.
 
 Optional:
 * GIT (to update mruby source and integrate mrbgems easier)

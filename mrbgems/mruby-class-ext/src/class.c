@@ -43,10 +43,15 @@ mrb_mod_module_exec(mrb_state *mrb, mrb_value self)
   const mrb_value *argv;
   mrb_int argc;
   mrb_value blk;
+  struct RClass *c;
 
   mrb_get_args(mrb, "*&!", &argv, &argc, &blk);
 
-  mrb->c->ci->target_class = mrb_class_ptr(self);
+  c = mrb_class_ptr(self);
+  if (mrb->c->ci->acc < 0) {
+    return mrb_yield_with_class(mrb, blk, argc, argv, self, c);
+  }
+  mrb->c->ci->target_class = c;
   return mrb_yield_cont(mrb, blk, self, argc, argv);
 }
 

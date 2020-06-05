@@ -130,3 +130,24 @@ Proc.new { foo }
 EOS
   }
 end
+
+assert('Calling the same method as the variable name') do
+  hoge = Object.new
+  def hoge.fuga
+    "Hit!"
+  end
+  assert_equal("Hit!") { fuga = "Miss!"; eval "hoge.fuga" }
+  assert_equal("Hit!") { fuga = "Miss!"; -> { eval "hoge.fuga" }.call }
+  assert_equal("Hit!") { -> { fuga = "Miss!"; eval "hoge.fuga" }.call }
+  assert_equal("Hit!") { fuga = "Miss!"; eval("-> { hoge.fuga }").call }
+end
+
+assert('Access numbered parameter from eval') do
+  hoge = Object.new
+  def hoge.fuga(a, &b)
+    b.call(a)
+  end
+  assert_equal(6) {
+    hoge.fuga(3) { _1 + eval("_1") }
+  }
+end

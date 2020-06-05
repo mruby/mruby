@@ -89,7 +89,7 @@ flock(int fd, int operation) {
 }
 #endif
 
-mrb_value
+static mrb_value
 mrb_file_s_umask(mrb_state *mrb, mrb_value klass)
 {
 #if defined(_WIN32) || defined(_WIN64)
@@ -265,7 +265,7 @@ mrb_file_realpath(mrb_state *mrb, mrb_value klass)
   return result;
 }
 
-mrb_value
+static mrb_value
 mrb_file__getwd(mrb_state *mrb, mrb_value klass)
 {
   mrb_value path;
@@ -401,7 +401,7 @@ mrb_file_mtime(mrb_state *mrb, mrb_value self)
   return mrb_funcall(mrb, obj, "at", 1, mrb_fixnum_value(st.st_mtime));
 }
 
-mrb_value
+static mrb_value
 mrb_file_flock(mrb_state *mrb, mrb_value self)
 {
 #if defined(sun)
@@ -458,7 +458,7 @@ mrb_file_size(mrb_state *mrb, mrb_value self)
 }
 
 static int
-mrb_ftruncate(int fd, int64_t length)
+mrb_ftruncate(int fd, mrb_int length)
 {
 #ifndef _WIN32
   return ftruncate(fd, (off_t)length);
@@ -491,32 +491,12 @@ static mrb_value
 mrb_file_truncate(mrb_state *mrb, mrb_value self)
 {
   int fd;
-  int64_t length;
+  mrb_int length;
   mrb_value lenv;
 
   fd = mrb_io_fileno(mrb, self);
   mrb_get_args(mrb, "o", &lenv);
-  switch (mrb_type(lenv)) {
-#ifndef MRB_WITHOUT_FLOAT
-    case MRB_TT_FLOAT:
-      {
-        mrb_float lenf = mrb_float(lenv);
-        if (lenf > INT64_MAX) {
-          mrb_raise(mrb, E_ARGUMENT_ERROR, "length too large");
-        }
-        length = (int64_t)lenf;
-      }
-      break;
-#endif
-    case MRB_TT_FIXNUM:
-    default:
-      {
-        mrb_int leni = mrb_int(mrb, lenv);
-        length = (int64_t)leni;
-      }
-      break;
-  }
-
+  length = mrb_int(mrb, lenv);
   if (mrb_ftruncate(fd, length) != 0) {
     mrb_raise(mrb, E_IO_ERROR, "ftruncate failed");
   }

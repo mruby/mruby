@@ -18,7 +18,7 @@ extern "C" {
 #if defined(MRB_WITHOUT_IO_PREAD_PWRITE)
 # undef MRB_WITH_IO_PREAD_PWRITE
 #elif !defined(MRB_WITH_IO_PREAD_PWRITE)
-# if defined(__unix__)
+# if defined(__unix__) || defined(__MACH__)
 #  define MRB_WITH_IO_PREAD_PWRITE
 # endif
 #endif
@@ -50,8 +50,8 @@ struct mrb_io {
 #define MRB_O_SHARE_DELETE      0x1000
 #define MRB_O_TMPFILE           0x2000
 #define MRB_O_NOATIME           0x4000
-#define MRB_O_DSYNC             0x00008000 /* Ignored with MRB_INT16 and MRB_WITHOUT_FLOAT */
-#define MRB_O_RSYNC             0x00010000 /* Ignored with MRB_INT16 and MRB_WITHOUT_FLOAT */
+#define MRB_O_DSYNC             0x00008000
+#define MRB_O_RSYNC             0x00010000
 
 #define MRB_O_RDONLY_P(f)       ((mrb_bool)(((f) & MRB_O_ACCMODE) == MRB_O_RDONLY))
 #define MRB_O_WRONLY_P(f)       ((mrb_bool)(((f) & MRB_O_ACCMODE) == MRB_O_WRONLY))

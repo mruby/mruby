@@ -324,6 +324,7 @@ cipop(mrb_state *mrb)
 }
 
 void mrb_exc_set(mrb_state *mrb, mrb_value exc);
+static mrb_value mrb_run(mrb_state *mrb, struct RProc* proc, mrb_value self);
 
 static void
 ecall(mrb_state *mrb)
@@ -335,10 +336,12 @@ ecall(mrb_state *mrb)
   struct REnv *env;
   ptrdiff_t cioff;
   int ai = mrb_gc_arena_save(mrb);
-  uint16_t i = --c->eidx;
+  uint16_t i;
   int nregs;
 
-  if (i<0) return;
+  if (c->eidx == 0) return;
+  i = --c->eidx;
+
   /* restrict total call depth of ecall() */
   if (++mrb->ecall_nest > MRB_ECALL_DEPTH_MAX) {
     mrb_exc_raise(mrb, mrb_obj_value(mrb->stack_err));
@@ -624,7 +627,7 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
     ci->argc--;
   }
   else {                     /* variable length arguments */
-    mrb_ary_shift(mrb, regs[0]);
+    regs[0] = mrb_ary_subseq(mrb, regs[0], 1, RARRAY_LEN(regs[0]) - 1);
   }
 
   if (MRB_METHOD_CFUNC_P(m)) {
@@ -648,8 +651,7 @@ eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
   }
   ci = mrb->c->ci;
   if (ci->acc == CI_ACC_DIRECT) {
-    ci->target_class = c;
-    return mrb_yield_cont(mrb, blk, self, 1, &self);
+    return mrb_yield_with_class(mrb, blk, 1, &self, self, c);
   }
   ci->target_class = c;
   p = mrb_proc_ptr(blk);
@@ -724,26 +726,11 @@ mrb_value
 mrb_obj_instance_eval(mrb_state *mrb, mrb_value self)
 {
   mrb_value a, b;
-  mrb_value cv;
-  struct RClass *c;
 
   if (mrb_get_args(mrb, "|S&", &a, &b) == 1) {
     mrb_raise(mrb, E_NOTIMP_ERROR, "instance_eval with string not implemented");
   }
-  switch (mrb_type(self)) {
-  case MRB_TT_SYMBOL:
-  case MRB_TT_FIXNUM:
-#ifndef MRB_WITHOUT_FLOAT
-  case MRB_TT_FLOAT:
-#endif
-    c = 0;
-    break;
-  default:
-    cv = mrb_singleton_class(mrb, self);
-    c = mrb_class_ptr(cv);
-    break;
-  }
-  return eval_under(mrb, self, b, c);
+  return eval_under(mrb, self, b, mrb_singleton_class_ptr(mrb, self));
 }
 
 MRB_API mrb_value
@@ -1062,6 +1049,11 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
+    CASE(OP_LOADI16, BS) {
+      SET_INT_VALUE(regs[a], (mrb_int)(int16_t)b);
+      NEXT;
+    }
+
     CASE(OP_LOADSYM, BB) {
       SET_SYM_VALUE(regs[a], syms[b]);
       NEXT;
@@ -1099,13 +1091,13 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_GETSV, BB) {
-      mrb_value val = mrb_vm_special_get(mrb, b);
+      mrb_value val = mrb_vm_special_get(mrb, syms[b]);
       regs[a] = val;
       NEXT;
     }
 
     CASE(OP_SETSV, BB) {
-      mrb_vm_special_set(mrb, b, regs[a]);
+      mrb_vm_special_set(mrb, syms[b], regs[a]);
       NEXT;
     }
 
@@ -2824,7 +2816,7 @@ RETRY_TRY_BLOCK:
   MRB_END_EXC(&c_jmp);
 }
 
-MRB_API mrb_value
+static mrb_value
 mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 {
   if (mrb->c->ci->argc < 0) {

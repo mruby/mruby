@@ -5,11 +5,6 @@
 */
 
 #include <mruby.h>
-
-#ifdef MRB_DISABLE_STDIO
-# error sprintf conflicts 'MRB_DISABLE_STDIO' configuration in your 'build_config.rb'
-#endif
-
 #include <limits.h>
 #include <string.h>
 #include <mruby/string.h>
@@ -521,6 +516,50 @@ mrb_f_sprintf(mrb_state *mrb, mrb_value obj)
   }
 }
 
+static int
+mrb_int2str(char *buf, size_t len, mrb_int n)
+{
+#ifdef MRB_DISABLE_STDIO
+  char *bufend = buf + len;
+  char *p = bufend - 1;
+
+  if (len < 1) return -1;
+
+  *p -- = '\0';
+  len --;
+
+  if (n < 0) {
+    if (len < 1) return -1;
+
+    *p -- = '-';
+    len --;
+    n = -n;
+  }
+
+  if (n > 0) {
+    for (; n > 0; len --, n /= 10) {
+      if (len < 1) return -1;
+
+      *p -- = '0' + (n % 10);
+    }
+    p ++;
+  }
+  else if (len > 0) {
+    *p = '0';
+    len --;
+  }
+  else {
+    return -1;
+  }
+
+  memmove(buf, p, bufend - p);
+
+  return bufend - p - 1;
+#else
+  return snprintf(buf, len, "%" MRB_PRId, n);
+#endif /* MRB_DISABLE_STDIO */
+}
+
 mrb_value
 mrb_str_format(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value fmt)
 {
@@ -711,7 +750,12 @@ retry:
         }
         else if (mrb_fixnum_p(val)) {
           mrb_int n = mrb_fixnum(val);
+#ifndef MRB_UTF8_STRING
+          char buf[1];
 
+          buf[0] = (char)n&0xff;
+          tmp = mrb_str_new(mrb, buf, 1);
+#else
           if (n < 0x80) {
             char buf[1];
 
@@ -722,6 +766,7 @@ retry:
             tmp = mrb_funcall(mrb, val, "chr", 0);
             mrb_check_type(mrb, tmp, MRB_TT_STRING);
           }
+#endif
         }
         else {
           mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid character");
@@ -869,7 +914,7 @@ retry:
             width--;
           }
           mrb_assert(base == 10);
-          snprintf(nbuf, sizeof(nbuf), "%" MRB_PRId, v);
+          mrb_int2str(nbuf, sizeof(nbuf), v);
           s = nbuf;
           if (v < 0) s++;       /* skip minus sign */
         }
@@ -877,24 +922,12 @@ retry:
           s = nbuf;
           if (v < 0) {
             dots = 1;
+            val = mrb_fix2binstr(mrb, mrb_fixnum_value(v), base);
           }
-          switch (base) {
-          case 2:
-            if (v < 0) {
-              val = mrb_fix2binstr(mrb, mrb_fixnum_value(v), base);
-            }
-            else {
-              val = mrb_fixnum_to_str(mrb, mrb_fixnum_value(v), base);
-            }
-            strncpy(++s, RSTRING_PTR(val), sizeof(nbuf)-1);
-            break;
-          case 8:
-            snprintf(++s, sizeof(nbuf)-1, "%" MRB_PRIo, v);
-            break;
-          case 16:
-            snprintf(++s, sizeof(nbuf)-1, "%" MRB_PRIx, v);
-            break;
+          else {
+            val = mrb_fixnum_to_str(mrb, mrb_fixnum_value(v), base);
           }
+          strncpy(++s, RSTRING_PTR(val), sizeof(nbuf)-1);
           if (v < 0) {
             char d;
 
@@ -1008,7 +1041,7 @@ retry:
         mrb_value val = GETARG();
         double fval;
         mrb_int need = 6;
-        char fbuf[32];
+        char fbuf[64];
 
         fval = mrb_float(mrb_Float(mrb, val));
         if (!isfinite(fval)) {
@@ -1049,7 +1082,6 @@ retry:
           break;
         }
 
-        fmt_setup(fbuf, sizeof(fbuf), *p, flags, width, prec);
         need = 0;
         if (*p != 'e' && *p != 'E') {
           int i;
@@ -1071,7 +1103,8 @@ retry:
         need += 20;
 
         CHECK(need);
-        n = snprintf(&buf[blen], need, fbuf, fval);
+        fmt_setup(fbuf, sizeof(fbuf), *p, flags, width, prec);
+        n = mrb_float_to_cstr(mrb, &buf[blen], need, fbuf, fval);
         if (n < 0 || n >= need) {
           mrb_raise(mrb, E_RUNTIME_ERROR, "formatting error");
         }
@@ -1113,12 +1146,13 @@ fmt_setup(char *buf, size_t size, int c, int flags, mrb_int width, mrb_int prec)
   if (flags & FSPACE) *buf++ = ' ';
 
   if (flags & FWIDTH) {
-    n = snprintf(buf, end - buf, "%d", (int)width);
+    n = mrb_int2str(buf, end - buf, width);
     buf += n;
   }
 
   if (flags & FPREC) {
-    n = snprintf(buf, end - buf, ".%d", (int)prec);
+    *buf ++ = '.';
+    n = mrb_int2str(buf, end - buf, prec);
     buf += n;
   }
 

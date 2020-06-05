@@ -341,7 +341,7 @@ option_to_fd(mrb_state *mrb, mrb_value hash, const char *key)
 }
 
 #ifdef _WIN32
-mrb_value
+static mrb_value
 mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
 {
   mrb_value cmd, io;
@@ -439,14 +439,14 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
   return io;
 }
 #elif defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
-mrb_value
+static mrb_value
 mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
 {
   mrb_raise(mrb, E_NOTIMP_ERROR, "IO#popen is not supported on the platform");
   return mrb_false_value();
 }
 #else
-mrb_value
+static mrb_value
 mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
 {
   mrb_value cmd, io, result;
@@ -596,7 +596,7 @@ mrb_dup(mrb_state *mrb, int fd, mrb_bool *failed)
   return new_fd;
 }
 
-mrb_value
+static mrb_value
 mrb_io_initialize_copy(mrb_state *mrb, mrb_value copy)
 {
   mrb_value orig;
@@ -645,7 +645,44 @@ mrb_io_initialize_copy(mrb_state *mrb, mrb_value copy)
   return copy;
 }
 
-mrb_value
+static void
+check_file_descriptor(mrb_state *mrb, mrb_int fd)
+{
+  struct stat sb;
+  int fdi = (int)fd;
+
+#if MRB_INT_MIN < INT_MIN || MRB_INT_MAX > INT_MAX
+  if (fdi != fd) {
+    goto badfd;
+  }
+#endif
+
+#ifdef _WIN32
+  {
+    DWORD err;
+    int len = sizeof(err);
+
+    if (getsockopt(fdi, SOL_SOCKET, SO_ERROR, (char*)&err, &len) == 0) {
+      return;
+    }
+  }
+
+  if (fdi < 0 || fdi > _getmaxstdio()) {
+    goto badfd;
+  }
+#endif /* _WIN32 */
+
+  if (fstat(fdi, &sb) != 0) {
+    goto badfd;
+  }
+
+  return;
+
+badfd:
+  mrb_sys_fail(mrb, "bad file descriptor");
+}
+
+static mrb_value
 mrb_io_initialize(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr;
@@ -656,6 +693,7 @@ mrb_io_initialize(mrb_state *mrb, mrb_value io)
   mode = opt = mrb_nil_value();
 
   mrb_get_args(mrb, "i|oo", &fd, &mode, &opt);
+  check_file_descriptor(mrb, fd);
   if (mrb_nil_p(mode)) {
     mode = mrb_str_new_cstr(mrb, "r");
   }
@@ -747,7 +785,7 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet)
   }
 }
 
-mrb_value
+static mrb_value
 mrb_io_check_readable(mrb_state *mrb, mrb_value self)
 {
   struct mrb_io *fptr = io_get_open_fptr(mrb, self);
@@ -757,7 +795,7 @@ mrb_io_check_readable(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
-mrb_value
+static mrb_value
 mrb_io_isatty(mrb_state *mrb, mrb_value self)
 {
   struct mrb_io *fptr;
@@ -768,7 +806,7 @@ mrb_io_isatty(mrb_state *mrb, mrb_value self)
   return mrb_true_value();
 }
 
-mrb_value
+static mrb_value
 mrb_io_s_for_fd(mrb_state *mrb, mrb_value klass)
 {
   struct RClass *c = mrb_class_ptr(klass);
@@ -781,7 +819,7 @@ mrb_io_s_for_fd(mrb_state *mrb, mrb_value klass)
   return mrb_io_initialize(mrb, obj);
 }
 
-mrb_value
+static mrb_value
 mrb_io_s_sysclose(mrb_state *mrb, mrb_value klass)
 {
   mrb_int fd;
@@ -792,7 +830,7 @@ mrb_io_s_sysclose(mrb_state *mrb, mrb_value klass)
   return mrb_fixnum_value(0);
 }
 
-int
+static int
 mrb_cloexec_open(mrb_state *mrb, const char *pathname, mrb_int flags, mrb_int mode)
 {
   int fd, retry = FALSE;
@@ -827,7 +865,7 @@ reopen:
   return fd;
 }
 
-mrb_value
+static mrb_value
 mrb_io_s_sysopen(mrb_state *mrb, mrb_value klass)
 {
   mrb_value path = mrb_nil_value();
@@ -857,7 +895,7 @@ mrb_sysread_dummy(int fd, void *buf, fsize_t nbytes, off_t offset)
   return (mrb_io_read_write_size)read(fd, buf, nbytes);
 }
 
-mrb_value
+static mrb_value
 mrb_io_sysread(mrb_state *mrb, mrb_value io)
 {
   mrb_value buf = mrb_nil_value();
@@ -911,7 +949,7 @@ mrb_io_sysread_common(mrb_state *mrb,
   return buf;
 }
 
-mrb_value
+static mrb_value
 mrb_io_sysseek(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr;
@@ -971,7 +1009,7 @@ mrb_syswrite_dummy(int fd, const void *buf, fsize_t nbytes, off_t offset)
   return (mrb_io_read_write_size)write(fd, buf, nbytes);
 }
 
-mrb_value
+static mrb_value
 mrb_io_syswrite(mrb_state *mrb, mrb_value io)
 {
   mrb_value buf;
@@ -981,7 +1019,7 @@ mrb_io_syswrite(mrb_state *mrb, mrb_value io)
   return mrb_io_syswrite_common(mrb, mrb_syswrite_dummy, io, buf, 0);
 }
 
-mrb_value
+static mrb_value
 mrb_io_close(mrb_state *mrb, mrb_value self)
 {
   struct mrb_io *fptr;
@@ -990,7 +1028,7 @@ mrb_io_close(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
-mrb_value
+static mrb_value
 mrb_io_close_write(mrb_state *mrb, mrb_value self)
 {
   struct mrb_io *fptr;
@@ -1001,7 +1039,7 @@ mrb_io_close_write(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
-mrb_value
+static mrb_value
 mrb_io_closed(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr;
@@ -1013,7 +1051,7 @@ mrb_io_closed(mrb_state *mrb, mrb_value io)
   return mrb_true_value();
 }
 
-mrb_value
+static mrb_value
 mrb_io_pid(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr;
@@ -1147,6 +1185,7 @@ mrb_io_s_select(mrb_state *mrb, mrb_value klass)
     for (i = 0; i < RARRAY_LEN(read); i++) {
       read_io = RARRAY_PTR(read)[i];
       fptr = io_get_open_fptr(mrb, read_io);
+      if (fptr->fd >= FD_SETSIZE) continue;
       FD_SET(fptr->fd, rp);
       if (mrb_io_read_data_pending(mrb, read_io)) {
         pending++;
@@ -1169,6 +1208,7 @@ mrb_io_s_select(mrb_state *mrb, mrb_value klass)
     FD_ZERO(wp);
     for (i = 0; i < RARRAY_LEN(write); i++) {
       fptr = io_get_open_fptr(mrb, RARRAY_PTR(write)[i]);
+      if (fptr->fd >= FD_SETSIZE) continue;
       FD_SET(fptr->fd, wp);
       if (max < fptr->fd)
         max = fptr->fd;
@@ -1188,6 +1228,7 @@ mrb_io_s_select(mrb_state *mrb, mrb_value klass)
     FD_ZERO(ep);
     for (i = 0; i < RARRAY_LEN(except); i++) {
       fptr = io_get_open_fptr(mrb, RARRAY_PTR(except)[i]);
+      if (fptr->fd >= FD_SETSIZE) continue;
       FD_SET(fptr->fd, ep);
       if (max < fptr->fd)
         max = fptr->fd;
@@ -1276,7 +1317,7 @@ mrb_io_fileno_m(mrb_state *mrb, mrb_value io)
   return mrb_fixnum_value(fd);
 }
 
-mrb_value
+static mrb_value
 mrb_io_close_on_exec_p(mrb_state *mrb, mrb_value self)
 {
 #if defined(F_GETFD) && defined(F_SETFD) && defined(FD_CLOEXEC)
@@ -1300,7 +1341,7 @@ mrb_io_close_on_exec_p(mrb_state *mrb, mrb_value self)
 #endif
 }
 
-mrb_value
+static mrb_value
 mrb_io_set_close_on_exec(mrb_state *mrb, mrb_value self)
 {
 #if defined(F_GETFD) && defined(F_SETFD) && defined(FD_CLOEXEC)
@@ -1336,7 +1377,7 @@ mrb_io_set_close_on_exec(mrb_state *mrb, mrb_value self)
 #endif
 }
 
-mrb_value
+static mrb_value
 mrb_io_set_sync(mrb_state *mrb, mrb_value self)
 {
   struct mrb_io *fptr;
@@ -1348,7 +1389,7 @@ mrb_io_set_sync(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(b);
 }
 
-mrb_value
+static mrb_value
 mrb_io_sync(mrb_state *mrb, mrb_value self)
 {
   struct mrb_io *fptr;
@@ -1363,22 +1404,7 @@ mrb_io_sync(mrb_state *mrb, mrb_value self)
 static off_t
 value2off(mrb_state *mrb, mrb_value offv)
 {
-  switch (mrb_type(offv)) {
-#ifndef MRB_WITHOUT_FLOAT
-    case MRB_TT_FLOAT:
-      {
-        mrb_float tmp = mrb_float(offv);
-        if (tmp < INT64_MIN || tmp > INT64_MAX) {
-          /* fall through to use convert by `mrb_int()` (and raise error if out of range) */
-        } else {
-          return (off_t)tmp;
-        }
-      }
-      /* fall through */
-#endif /* MRB_WITHOUT_FLOAT */
-    default:
-      return (off_t)mrb_int(mrb, offv);
-  }
+  return (off_t)mrb_int(mrb, offv);
 }
 
 /*
@@ -1452,7 +1478,8 @@ mrb_io_readchar(mrb_state *mrb, mrb_value self)
 #endif
 
   mrb_get_args(mrb, "S", &buf);
-  mrb_assert(RSTRING_PTR(buf) > 0);
+  mrb_assert(RSTRING_LEN(buf) > 0);
+  mrb_assert(RSTRING_PTR(buf) != NULL);
   mrb_str_modify(mrb, RSTRING(buf));
 #ifdef MRB_UTF8_STRING
   c = RSTRING_PTR(buf)[0];

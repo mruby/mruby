@@ -140,7 +140,13 @@ mrb_obj_id(mrb_value obj)
   }
 }
 
+#if defined(MRB_NAN_BOXING) && defined(MRB_64BIT)
+#define mrb_xxx_boxing_cptr_value mrb_nan_boxing_cptr_value
+#endif
+
 #ifdef MRB_WORD_BOXING
+#define mrb_xxx_boxing_cptr_value mrb_word_boxing_cptr_value
+
 #ifndef MRB_WITHOUT_FLOAT
 MRB_API mrb_value
 mrb_word_boxing_float_value(mrb_state *mrb, mrb_float f)
@@ -164,17 +170,20 @@ mrb_word_boxing_float_pool(mrb_state *mrb, mrb_float f)
   return mrb_obj_value(nf);
 }
 #endif  /* MRB_WITHOUT_FLOAT */
+#endif  /* MRB_WORD_BOXING */
 
+#if defined(MRB_WORD_BOXING) || (defined(MRB_NAN_BOXING) && defined(MRB_64BIT))
 MRB_API mrb_value
-mrb_word_boxing_cptr_value(mrb_state *mrb, void *p)
+mrb_xxx_boxing_cptr_value(mrb_state *mrb, void *p)
 {
   mrb_value v;
+  struct RCptr *cptr = (struct RCptr*)mrb_obj_alloc(mrb, MRB_TT_CPTR, mrb->object_class);
 
-  v.value.p = mrb_obj_alloc(mrb, MRB_TT_CPTR, mrb->object_class);
-  v.value.vp->p = p;
+  SET_OBJ_VALUE(v, cptr);
+  cptr->p = p;
   return v;
 }
-#endif  /* MRB_WORD_BOXING */
+#endif
 
 #if defined _MSC_VER && _MSC_VER < 1900
 
