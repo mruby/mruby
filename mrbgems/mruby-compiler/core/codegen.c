@@ -1889,7 +1889,7 @@ codegen(codegen_scope *s, node *tree, int val)
           len++;
         }
         tree = tree->cdr;
-        if (val && len == 255) {
+        if (val && cursp() > 127) {
           pop_n(len*2);
           if (!update) {
             genop_2(s, OP_HASH, cursp(), len);

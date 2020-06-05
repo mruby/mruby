@@ -92,8 +92,8 @@ OPCODE(APOST,      BBB)      /* *R(a),R(a+1)..R(a+c) = R(a)[b..] */
 OPCODE(INTERN,     B)        /* R(a) = intern(R(a)) */
 OPCODE(STRING,     BB)       /* R(a) = str_dup(Lit(b)) */
 OPCODE(STRCAT,     B)        /* str_cat(R(a),R(a+1)) */
-OPCODE(HASH,       BB)       /* R(a) = hash_new(R(a),R(a+1)..R(a+b)) */
-OPCODE(HASHADD,    BB)       /* R(a) = hash_push(R(a),R(a+1)..R(a+b)) */
+OPCODE(HASH,       BB)       /* R(a) = hash_new(R(a),R(a+1)..R(a+b*2-1)) */
+OPCODE(HASHADD,    BB)       /* R(a) = hash_push(R(a),R(a+1)..R(a+b*2)) */
 OPCODE(HASHCAT,    B)        /* R(a) = hash_cat(R(a),R(a+1)) */
 OPCODE(LAMBDA,     BB)       /* R(a) = lambda(SEQ[b],L_LAMBDA) */
 OPCODE(BLOCK,      BB)       /* R(a) = lambda(SEQ[b],L_BLOCK) */
