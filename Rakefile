@@ -164,7 +164,8 @@ file presym_file => cfiles+rbfiles+[__FILE__] do
      src.scan(/\bdef +(\w+)/)]
   end
   symbols = (csymbols+rbsymbols+op_table.keys).flatten.compact.uniq.sort
-  presyms = File.readlines(presym_file, chomp: true) rescue []
+  presyms = File.readlines(presym_file) rescue []
+  presyms.each{|x| x.chomp!}
   if presyms != symbols
     File.write(presym_file, symbols.join("\n"))
   end
