@@ -217,9 +217,7 @@ genop_1(codegen_scope *s, mrb_code i, uint16_t a)
 {
   s->lastpc = s->pc;
   if (a > 0xff) {
-    gen_B(s, OP_EXT1);
-    gen_B(s, i);
-    gen_S(s, a);
+    codegen_error(s, "too big operand");
   }
   else {
     gen_B(s, i);
@@ -231,23 +229,8 @@ static void
 genop_2(codegen_scope *s, mrb_code i, uint16_t a, uint16_t b)
 {
   s->lastpc = s->pc;
-  if (a > 0xff && b > 0xff) {
-    gen_B(s, OP_EXT3);
-    gen_B(s, i);
-    gen_S(s, a);
-    gen_S(s, b);
-  }
-  else if (b > 0xff) {
-    gen_B(s, OP_EXT2);
-    gen_B(s, i);
-    gen_B(s, (uint8_t)a);
-    gen_S(s, b);
-  }
-  else if (a > 0xff) {
-    gen_B(s, OP_EXT1);
-    gen_B(s, i);
-    gen_S(s, a);
-    gen_B(s, (uint8_t)b);
+  if (a > 0xff || b > 0xff) {
+    codegen_error(s, "too big operand");
   }
   else {
     gen_B(s, i);
@@ -309,32 +292,6 @@ mrb_decode_insn(const mrb_code *pc)
 #define OPCODE(i,x) case OP_ ## i: FETCH_ ## x (); break;
 #include "mruby/ops.h"
 #undef OPCODE
-  }
-  switch (insn) {
-  case OP_EXT1:
-    insn = READ_B();
-    switch (insn) {
-#define OPCODE(i,x) case OP_ ## i: FETCH_ ## x ## _1 (); break;
-#include "mruby/ops.h"
-#undef OPCODE
-    }
-    break;
-  case OP_EXT2:
-    insn = READ_B();
-    switch (insn) {
-#define OPCODE(i,x) case OP_ ## i: FETCH_ ## x ## _2 (); break;
-#include "mruby/ops.h"
-#undef OPCODE
-    }
-    break;
-  case OP_EXT3:
-    insn = READ_B();
-    switch (insn) {
-#define OPCODE(i,x) case OP_ ## i: FETCH_ ## x ## _3 (); break;
-#include "mruby/ops.h"
-#undef OPCODE
-    }
-    break;
   default:
     break;
   }
@@ -391,11 +348,8 @@ genjmp2(codegen_scope *s, mrb_code i, uint16_t a, int pc, int val)
 
   s->lastpc = s->pc;
   if (a > 0xff) {
-    gen_B(s, OP_EXT1);
-    gen_B(s, i);
-    gen_S(s, a);
-    pos = s->pc;
-    gen_S(s, pc);
+    codegen_error(s, "too big operand");
+    pos = 0;
   }
   else {
     gen_B(s, i);
@@ -3313,36 +3267,4 @@ uint8_t mrb_insn_size[] = {
 #undef BS
 #undef SB
 #undef BBB
-};
-/* EXT1 instruction sizes */
-uint8_t mrb_insn_size1[] = {
-#define B 3
-#define BB 4
-#define BBB 5
-#define BS 5
-#define SB 5
-#define OPCODE(_,x) x,
-#include "mruby/ops.h"
-#undef OPCODE
-#undef B
-};
-/* EXT2 instruction sizes */
-uint8_t mrb_insn_size2[] = {
-#define B 2
-#define OPCODE(_,x) x,
-#include "mruby/ops.h"
-#undef OPCODE
-#undef BB
-#undef BBB
-#undef BS
-#undef SB
-};
-/* EXT3 instruction sizes */
-#define BB 5
-#define BBB 6
-#define BS 4
-#define SB 5
-uint8_t mrb_insn_size3[] = {
-#define OPCODE(_,x) x,
-#include "mruby/ops.h"
 };

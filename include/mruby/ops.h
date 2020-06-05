@@ -111,8 +111,5 @@ OPCODE(SCLASS,     B)        /* R(a) = R(a).singleton_class */
 OPCODE(TCLASS,     B)        /* R(a) = target_class */
 OPCODE(DEBUG,      BBB)      /* print a,b,c */
 OPCODE(ERR,        B)        /* raise(LocalJumpError, Lit(a)) */
-OPCODE(EXT1,       Z)        /* make 1st operand 16bit */
-OPCODE(EXT2,       Z)        /* make 2nd operand 16bit */
-OPCODE(EXT3,       Z)        /* make 1st and 2nd operands 16bit */
 OPCODE(STOP,       Z)        /* stop VM */
 OPCODE(LOADI16,    BS)       /* R(a) = mrb_int(b) */

@@ -20,14 +20,6 @@ sign) of operands.
 * sS: signed 16bit
 * W: 24bit
 
-First two byte operands may be extended to 16bit. When those byte
-operands are bigger than 256, the instruction will be prefixed by
-`OP_EXT1` (means 1st operand is 16bit) or `OP_EXT2` (means 2nd operand
-is 16bit) or `OP_EXT3` (means 1st and 2nd operands are 16bit).
-
-For instructions marked by `'`, `OP_EXT1` can be prefixed. For those
-with `"`, either `OP_EXT1` or `OP_EXT2` or `OP_EXT2` can be prefixed.
-
 ## table.1 Instruction Table
 
 | Instruction Name | Operand type | Semantics                                              |
@@ -133,8 +125,5 @@ with `"`, either `OP_EXT1` or `OP_EXT2` or `OP_EXT2` can be prefixed.
 | OP_TCLASS'       | B            | R(a) = target_class                                    |
 | OP_DEBUG"        | BBB          | print a,b,c                                            |
 | OP_ERR'          | B            | raise(LocalJumpError, Lit(a))                          |
-| OP_EXT1          | -            | make 1st operand 16bit                                 |
-| OP_EXT2          | -            | make 2nd operand 16bit                                 |
-| OP_EXT3          | -            | make 1st and 2nd operands 16bit                        |
 | OP_STOP          | -            | stop VM                                                |
 |------------------|--------------|--------------------------------------------------------|

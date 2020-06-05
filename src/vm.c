@@ -901,7 +901,7 @@ argnum_error(mrb_state *mrb, mrb_int num)
 #ifndef DIRECT_THREADED
 
 #define INIT_DISPATCH for (;;) { insn = BYTECODE_DECODER(*pc); CODE_FETCH_HOOK(mrb, irep, pc, regs); switch (insn) {
-#define CASE(insn,ops) case insn: pc0=pc++; FETCH_ ## ops ();; L_ ## insn ## _BODY:
+#define CASE(insn,ops) case insn: pc0=pc++; FETCH_ ## ops ();
 #define NEXT break
 #define JUMP NEXT
 #define END_DISPATCH }}
@@ -909,7 +909,7 @@ argnum_error(mrb_state *mrb, mrb_int num)
 #else
 
 #define INIT_DISPATCH JUMP; return mrb_nil_value();
-#define CASE(insn,ops) L_ ## insn: pc0=pc++; FETCH_ ## ops (); L_ ## insn ## _BODY:
+#define CASE(insn,ops) L_ ## insn: pc0=pc++; FETCH_ ## ops ();
 #define NEXT insn=BYTECODE_DECODER(*pc); CODE_FETCH_HOOK(mrb, irep, pc, regs); goto *optable[insn]
 #define JUMP NEXT
 
@@ -1512,7 +1512,7 @@ RETRY_TRY_BLOCK:
           mrb->c->stack[0] = mrb_nil_value();
           a = 0;
           c = OP_R_NORMAL;
-          goto L_OP_RETURN_BODY;
+          goto L_RETURN;
         }
         pool = irep->pool;
         syms = irep->syms;
@@ -2731,37 +2731,6 @@ RETRY_TRY_BLOCK:
       ERR_PC_SET(mrb);
       mrb_exc_set(mrb, exc);
       goto L_RAISE;
-    }
-
-    CASE(OP_EXT1, Z) {
-      insn = READ_B();
-      switch (insn) {
-#define OPCODE(insn,ops) case OP_ ## insn: FETCH_ ## ops ## _1(); goto L_OP_ ## insn ## _BODY;
-#include "mruby/ops.h"
-#undef OPCODE
-      }
-      pc--;
-      NEXT;
-    }
-    CASE(OP_EXT2, Z) {
-      insn = READ_B();
-      switch (insn) {
-#define OPCODE(insn,ops) case OP_ ## insn: FETCH_ ## ops ## _2(); goto L_OP_ ## insn ## _BODY;
-#include "mruby/ops.h"
-#undef OPCODE
-      }
-      pc--;
-      NEXT;
-    }
-    CASE(OP_EXT3, Z) {
-      uint8_t insn = READ_B();
-      switch (insn) {
-#define OPCODE(insn,ops) case OP_ ## insn: FETCH_ ## ops ## _3(); goto L_OP_ ## insn ## _BODY;
-#include "mruby/ops.h"
-#undef OPCODE
-      }
-      pc--;
-      NEXT;
     }
 
     CASE(OP_STOP, Z) {
