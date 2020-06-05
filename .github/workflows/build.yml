@@ -15,6 +15,11 @@ jobs:
       run: rake -m
     - name: test
       run: rake test
+      run: sudo apt install ruby gperf
+    - name: build and test
+      run: rake -m -j4 all test
+      env:
+        MRUBY_TARGET: travis
 
   Ubuntu-1804-gcc:
     runs-on: ubuntu-18.04
@@ -26,10 +31,12 @@ jobs:
     - uses: actions/checkout@v1
     - name: apt
       run: sudo apt install ruby gperf gcc g++
-    - name: build
-      run: rake -m
-    - name: test
-      run: rake test
+    - name: build and test
+      run: rake -m -j4 all test
+      env:
+        MRUBY_TARGET: travis
+        CC: gcc
+        CXX: g++
 
   Ubuntu-1804-clang:
     runs-on: ubuntu-18.04
@@ -41,10 +48,12 @@ jobs:
     - uses: actions/checkout@v1
     - name: apt
       run: sudo apt install ruby gperf
-    - name: build
-      run: rake -m
-    - name: test
-      run: rake test
+    - name: build and test
+      run: rake -m -j4 all test
+      env:
+        MRUBY_TARGET: travis
+        CC: clang
+        CXX: clang++
 
   macOS:
     runs-on: macos-latest
