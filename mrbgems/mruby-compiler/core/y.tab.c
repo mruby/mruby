@@ -12421,7 +12421,7 @@ dump_args(mrb_state *mrb, node *n, int offset)
 static const char*
 str_dump(mrb_state *mrb, const char *str, int len)
 {
-  mrb_int ai = mrb_gc_arena_save(mrb);
+  int ai = mrb_gc_arena_save(mrb);
   mrb_value s;
 # if INT_MAX > MRB_INT_MAX / 4
   /* check maximum length with "\xNN" charactor */
