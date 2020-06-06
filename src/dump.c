@@ -726,7 +726,8 @@ write_rite_binary_header(mrb_state *mrb, size_t binary_size, uint8_t *bin, uint8
   uint32_t offset;
 
   memcpy(header->binary_ident, RITE_BINARY_IDENT, sizeof(header->binary_ident));
-  memcpy(header->binary_version, RITE_BINARY_FORMAT_VER, sizeof(header->binary_version));
+  memcpy(header->major_version, RITE_BINARY_MAJOR_VER, sizeof(header->major_version));
+  memcpy(header->minor_version, RITE_BINARY_MAJOR_VER, sizeof(header->minor_version));
   memcpy(header->compiler_name, RITE_COMPILER_NAME, sizeof(header->compiler_name));
   memcpy(header->compiler_version, RITE_COMPILER_VERSION, sizeof(header->compiler_version));
   mrb_assert(binary_size <= UINT32_MAX);

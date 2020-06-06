@@ -49,7 +49,12 @@ MRB_API mrb_irep *mrb_read_irep_buf(mrb_state*, const void*, size_t);
 
 /* Rite Binary File header */
 #define RITE_BINARY_IDENT              "RITE"
-#define RITE_BINARY_FORMAT_VER         "0007"
+/* Binary Format Version Major:Minor */
+/*   Major: Incompatible to prior versions */
+/*   Minor: Upper-compatible to prior versions */
+#define RITE_BINARY_MAJOR_VER          "01"
+#define RITE_BINARY_MINOR_VER          "00"
+#define RITE_BINARY_FORMAT_VER         RITE_BINARY_MAJOR_VER RITE_BINARY_MINOR_VER
 #define RITE_COMPILER_NAME             "MATZ"
 #define RITE_COMPILER_VERSION          "0000"
 
@@ -66,7 +71,8 @@ MRB_API mrb_irep *mrb_read_irep_buf(mrb_state*, const void*, size_t);
 /* binary header */
 struct rite_binary_header {
   uint8_t binary_ident[4];    /* Binary Identifier */
-  uint8_t binary_version[4];  /* Binary Format Version */
+  uint8_t major_version[2];   /* Binary Format Major Version */
+  uint8_t minor_version[2];   /* Binary Format Minor Version */
   uint8_t binary_crc[2];      /* Binary CRC */
   uint8_t binary_size[4];     /* Binary Size */
   uint8_t compiler_name[4];   /* Compiler name */
