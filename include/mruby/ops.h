@@ -25,6 +25,7 @@ OPCODE(LOADI_4,    B)        /* R(a) = mrb_int(4) */
 OPCODE(LOADI_5,    B)        /* R(a) = mrb_int(5) */
 OPCODE(LOADI_6,    B)        /* R(a) = mrb_int(6) */
 OPCODE(LOADI_7,    B)        /* R(a) = mrb_int(7) */
+OPCODE(LOADI16,    BS)       /* R(a) = mrb_int(b) */
 OPCODE(LOADSYM,    BB)       /* R(a) = Syms(b) */
 OPCODE(LOADNIL,    B)        /* R(a) = nil */
 OPCODE(LOADSELF,   B)        /* R(a) = self */
@@ -112,4 +113,3 @@ OPCODE(TCLASS,     B)        /* R(a) = target_class */
 OPCODE(DEBUG,      BBB)      /* print a,b,c */
 OPCODE(ERR,        B)        /* raise(LocalJumpError, Lit(a)) */
 OPCODE(STOP,       Z)        /* stop VM */
-OPCODE(LOADI16,    BS)       /* R(a) = mrb_int(b) */
