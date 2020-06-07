@@ -15,20 +15,20 @@ static const mrb_code call_iseq[] = {
 };
 
 static const mrb_irep call_irep = {
-  .nlocals = 0,
-  .nregs = 2,
-  .flags = MRB_ISEQ_NO_FREE | MRB_IREP_NO_FREE,
-  .iseq = call_iseq,
-  .pool = NULL,
-  .syms = NULL,
-  .reps = NULL,
-  .lv = NULL,
-  .debug_info = NULL,
-  .ilen = 1,
-  .plen = 0,
-  .slen = 0,
-  .rlen = 1,
-  .refcnt = 0,
+  0,                                   /* nlocals */
+  2,                                   /* nregs */
+  MRB_ISEQ_NO_FREE | MRB_IREP_NO_FREE, /* flags */
+  call_iseq,                           /* iseq */
+  NULL,                                /* pool */
+  NULL,                                /* syms */
+  NULL,                                /* reps */
+  NULL,                                /* lv */
+  NULL,                                /* debug_info */
+  1,                                   /* ilen */
+  0,                                   /* plen */
+  0,                                   /* slen */
+  1,                                   /* rlen */
+  0,                                   /* refcnt */
 };
 
 struct RProc*
