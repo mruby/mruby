@@ -1311,20 +1311,20 @@ static const mrb_sym each_syms[] = {
 };
 
 static const mrb_irep each_irep = {
-  .nlocals = 3,
-  .nregs = 7,
-  .flags = MRB_ISEQ_NO_FREE | MRB_IREP_NO_FREE,
-  .iseq = each_iseq,
-  .pool = NULL,
-  .syms = each_syms,
-  .reps = NULL,
-  .lv = NULL,
-  .debug_info = NULL,
-  .ilen = sizeof(each_iseq),
-  .plen = 0,
-  .slen = sizeof(each_syms),
-  .rlen = 1,
-  .refcnt = 0,
+  3,                                   /* nlocals */
+  7,                                   /* nregs */
+  MRB_ISEQ_NO_FREE | MRB_IREP_NO_FREE, /* flags */
+  each_iseq,                           /* iseq */
+  NULL,                                /* pool */
+  each_syms,                           /* syms */
+  NULL,                                /* reps */
+  NULL,                                /* lv */
+  NULL,                                /* debug_info */
+  sizeof(each_iseq),                   /* ilen */
+  0,                                   /* plen */
+  sizeof(each_syms),                   /* slen */
+  1,                                   /* rlen */
+  0,                                   /* refcnt */
 };
 
 static void
