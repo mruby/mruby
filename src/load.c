@@ -397,11 +397,11 @@ static int
 read_lv_record(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, size_t *record_len, mrb_sym const *syms, uint32_t syms_len)
 {
   const uint8_t *bin = start;
-  struct mrb_locals *lv;
+  struct mrb_lvinfo *lv;
   ptrdiff_t diff;
   int i;
 
-  irep->lv = lv = (struct mrb_locals*)mrb_malloc(mrb, sizeof(struct mrb_locals) * (irep->nlocals - 1));
+  irep->lv = lv = (struct mrb_lvinfo*)mrb_malloc(mrb, sizeof(struct mrb_lvinfo) * (irep->nlocals - 1));
 
   for (i = 0; i + 1< irep->nlocals; ++i) {
     uint16_t const sym_idx = bin_to_uint16(bin);
