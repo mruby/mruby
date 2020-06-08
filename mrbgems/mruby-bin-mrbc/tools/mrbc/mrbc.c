@@ -20,6 +20,7 @@ struct mrbc_args {
   const char *prog;
   const char *outfile;
   const char *initname;
+  mrb_bool dump_struct  : 1;
   mrb_bool check_syntax : 1;
   mrb_bool verbose      : 1;
   mrb_bool remove_lv    : 1;
@@ -36,6 +37,7 @@ usage(const char *name)
   "-v           print version number, then turn on verbose mode",
   "-g           produce debugging information",
   "-B<symbol>   binary <symbol> output in C language format",
+  "-S   	dump C struct (requires -B)",
   "--remove-lv  remove local variables",
   "--verbose    run at verbose mode",
   "--version    print the version",
@@ -104,6 +106,9 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct mrbc_args *args)
         else {
           args->outfile = get_outfilename(mrb, argv[i] + 2, "");
         }
+        break;
+      case 'S':
+        args->dump_struct = TRUE;
         break;
       case 'B':
         if (argv[i][2] == '\0' && argv[i+1]) {
@@ -244,7 +249,12 @@ dump_file(mrb_state *mrb, FILE *wfp, const char *outfile, struct RProc *proc, st
     mrb_irep_remove_lv(mrb, (mrb_irep*)irep);
   }
   if (args->initname) {
-    n = mrb_dump_irep_cfunc(mrb, irep, args->flags, wfp, args->initname);
+    if (args->dump_struct) {
+      n = mrb_dump_irep_cstruct(mrb, irep, args->flags, wfp, args->initname);
+    }
+    else {
+      n = mrb_dump_irep_cfunc(mrb, irep, args->flags, wfp, args->initname);
+    }
     if (n == MRB_DUMP_INVALID_ARGUMENT) {
       fprintf(stderr, "%s: invalid C language symbol name\n", args->initname);
     }
