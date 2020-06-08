@@ -22,6 +22,7 @@ int mrb_dump_irep(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, uint8_t *
 #ifndef MRB_DISABLE_STDIO
 int mrb_dump_irep_binary(mrb_state*, const mrb_irep*, uint8_t, FILE*);
 int mrb_dump_irep_cfunc(mrb_state *mrb, const mrb_irep*, uint8_t flags, FILE *f, const char *initname);
+int mrb_dump_irep_cstruct(mrb_state *mrb, const mrb_irep*, uint8_t flags, FILE *f, const char *initname);
 mrb_irep *mrb_read_irep_file(mrb_state*, FILE*);
 MRB_API mrb_value mrb_load_irep_file(mrb_state*,FILE*);
 MRB_API mrb_value mrb_load_irep_file_cxt(mrb_state*, FILE*, mrbc_context*);

@@ -918,4 +918,152 @@ mrb_dump_irep_cfunc(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *f
   return result;
 }
 
+static struct {
+  const char *op;
+  const char *name;
+} op_table[] = {
+  {"!", "not"},
+  {"!=", "neq"},
+  {"!~", "nmatch"},
+  {"%", "mod"},
+  {"&", "and"},
+  {"&&", "andand"},
+  {"*", "mul"},
+  {"**", "pow"},
+  {"+", "add"},
+  {"+@", "plus"},
+  {"-", "sub"},
+  {"-@", "minus"},
+  {"/", "div"},
+  {"<", "lt"},
+  {"<=", "le"},
+  {"<<", "lshift"},
+  {"<=>", "cmp"},
+  {"==", "eq"},
+  {"===", "eqq"},
+  {"=~", "match"},
+  {">", "gt"},
+  {">=", "ge"},
+  {">>", "rshift"},
+  {"[]", "aref"},
+  {"[]=", "aset"},
+  {"^", "xor"},
+  {"`", "tick"},
+  {"|", "or"},
+  {"||", "oror"},
+  {"~", "neg"},
+  {0},
+};
+
+static int
+dump_sym(mrb_state *mrb, mrb_sym sym, FILE *fp)
+{
+  mrb_int len;
+  const char *name = mrb_sym_name_len(mrb, sym, &len);
+  int i;
+
+  if (len == 0 || len != strlen(name))
+    return MRB_DUMP_INVALID_ARGUMENT;
+  for (i=0; op_table[i].op; i++) {
+    if (strcmp(name, op_table[i].op) == 0) {
+      fprintf(fp, "MRB_QSYM(%s),", op_table[i].name);
+      return MRB_DUMP_OK;
+    }
+  }
+  if (name[0] == '@') {
+    fprintf(fp, "MRB_QSYM(a_%s),", name+1);
+  }
+  else if (name[0] == '$') {
+    fprintf(fp, "MRB_QSYM(d_%s),", name+1);
+  }
+  else if (name[len-1] == '!') {
+    fprintf(fp, "MRB_QSYM(%.*s_b),", (int)len-1, name);
+  }
+  else if (name[len-1] == '?') {
+    fprintf(fp, "MRB_QSYM(%.*s_p),", (int)len-1, name);
+  }
+  else {
+    fprintf(fp, "MRB_SYM(%s),", name);
+  }
+  return MRB_DUMP_OK;
+}
+
+static int
+dump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, const char *name, int *np)
+{
+  int n = *np;                  /* this level */
+  int i, len;
+
+  /* dump reps */
+  /* dump pool */
+  /* dump syms */
+  if (irep->syms) {
+    fprintf(fp,   "static const mrb_sym %s_syms_%d = {", name, n);
+    for (i=0,len=irep->slen; i<len; i++) {
+      if (dump_sym(mrb, irep->syms[i], fp) != MRB_DUMP_OK)
+        return MRB_DUMP_INVALID_ARGUMENT;
+    }
+    fputs("};\n", fp);
+  }
+  /* dump iseq */
+  fprintf(fp,   "static const mrb_code %s_iseq_%d[] = {", name, n);
+  for (i=0,len=irep->ilen; i<len; i++) {
+    if (i%8 == 0) fputs("\n", fp);
+    fprintf(fp, "0x%02x,", irep->iseq[i]);
+  }
+  fputs("};\n", fp);
+  /* dump irep */
+  if (n == 0) {                 /* topleve irep */
+    fprintf(fp, "static const mrb_irep %s = {\n", name);
+  }
+  else {
+    fprintf(fp, "static const mrb_irep %s_%d = {\n", name, n);
+  }
+  fprintf(fp,   "  %d,\t\t\t\t\t/* nlocals */\n", irep->nlocals);
+  fprintf(fp,   "  %d,\t\t\t\t\t/* nregs */\n", irep->nregs);
+  fputs(        "  MRB_ISEQ_NO_FREE|MRB_IREP_NO_FREE,\t/* flags */\n", fp);
+  fprintf(fp,   "  %s_iseq_%d,\t\t\t/* iseq */\n", name, n);
+  if (irep->pool) {
+    fprintf(fp, "  %s_pool_%d,\t\t/* pool */\n", name, n);
+  }
+  else {
+    fputs(      "  NULL,\t\t\t\t\t/* pool */\n", fp);
+  }
+  if (irep->syms) {
+    fprintf(fp, "  %s_syms_%d,\t\t\t/* syms */\n", name, n);
+  }
+  else {
+    fputs(      "  NULL,\t\t\t\t\t/* syms */\n", fp);
+  }
+  if (irep->reps) {
+    fprintf(fp, "  %s_reps_%d,\t\t\t/* reps */\n", name, n);
+  }
+  else {
+    fputs(      "  NULL,\t\t\t\t\t/* reps */\n", fp);
+  }
+  fputs(        "  NULL,\t\t\t\t\t/* lv */\n", fp);
+  fputs(        "  NULL,\t\t\t\t\t/* debug_info */\n", fp);
+  fprintf(fp,   "  %d,\t\t\t\t\t/* ilen */\n", irep->ilen);
+  fprintf(fp,   "  %d,\t\t\t\t\t/* plen */\n", irep->plen);
+  fprintf(fp,   "  %d,\t\t\t\t\t/* slen */\n", irep->slen);
+  fprintf(fp,   "  %d,\t\t\t\t\t/* rlen */\n", irep->rlen);
+  fputs(        "  0,\t\t\t\t\t/* refcnt */\n};\n", fp);
+
+  return MRB_DUMP_OK;
+}
+
+int
+mrb_dump_irep_cstruct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, const char *initname)
+{
+  int n = 0;
+
+  if (fp == NULL || initname == NULL || initname[0] == '\0') {
+    return MRB_DUMP_INVALID_ARGUMENT;
+  }
+  if (fprintf(fp, "#include <mruby.h>\n" "#include <mruby/irep.h>\n\n") < 0) {
+    return MRB_DUMP_WRITE_FAULT;
+  }
+  return dump_irep_struct(mrb, irep, flags, fp, initname, &n);
+}
+
 #endif /* MRB_DISABLE_STDIO */
