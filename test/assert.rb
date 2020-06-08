@@ -56,7 +56,9 @@ def assertion_string(err, str, iso=nil, e=nil, bt=nil)
   msg = "#{err}#{str}"
   msg += " [#{iso}]" if iso && !iso.empty?
   msg += " => #{e}" if e && !e.to_s.empty?
-  msg += " (#{GEMNAME == 'mruby-test' ? 'core' : "mrbgems: #{GEMNAME}"})"
+  if Object.const_defined?(:GEMNAME)
+    msg += " (#{GEMNAME == 'mruby-test' ? 'core' : "mrbgems: #{GEMNAME}"})"
+  end
   if $mrbtest_assert
     $mrbtest_assert.each do |idx, assert_msg, diff|
       msg += "\n - Assertion[#{idx}]"
