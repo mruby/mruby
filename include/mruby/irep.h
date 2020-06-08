@@ -21,7 +21,7 @@ enum irep_pool_type {
   IREP_TT_FLOAT,
 };
 
-struct mrb_locals {
+struct mrb_lvinfo {        /* local variable info (name, idx) */
   mrb_sym name;
   uint16_t r;
 };
@@ -37,7 +37,7 @@ typedef struct mrb_irep {
   const mrb_sym *syms;
   const struct mrb_irep **reps;
 
-  const struct mrb_locals *lv;
+  const struct mrb_lvinfo *lv;
   /* debug info */
   struct mrb_irep_debug_info* debug_info;
 
