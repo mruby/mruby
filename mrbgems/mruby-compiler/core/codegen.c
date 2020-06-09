@@ -70,7 +70,7 @@ typedef struct scope {
   uint32_t icapa;
 
   mrb_irep *irep;
-  mrb_value *pool;
+  mrb_pool_value *pool;
   mrb_sym *syms;
   mrb_irep **reps;
   uint32_t pcapa, scapa, rcapa;
@@ -554,17 +554,17 @@ static inline int
 new_lit(codegen_scope *s, mrb_value val)
 {
   int i;
-  mrb_value *pv;
+  mrb_pool_value *pv;
 
   switch (mrb_type(val)) {
   case MRB_TT_STRING:
     for (i=0; i<s->irep->plen; i++) {
       mrb_int len;
       pv = &s->pool[i];
-
-      if (!mrb_string_p(*pv)) continue;
-      if ((len = RSTRING_LEN(*pv)) != RSTRING_LEN(val)) continue;
-      if (memcmp(RSTRING_PTR(*pv), RSTRING_PTR(val), len) == 0)
+      if (pv->tt & IREP_TT_NFLAG) continue;
+      len = pv->tt>>2;
+      if (RSTRING_LEN(val) != len) continue;
+      if (memcmp(pv->u.str, RSTRING_PTR(val), len) == 0)
         return i;
     }
     break;
@@ -573,8 +573,9 @@ new_lit(codegen_scope *s, mrb_value val)
     for (i=0; i<s->irep->plen; i++) {
       mrb_float f1, f2;
       pv = &s->pool[i];
-      if (!mrb_float_p(*pv)) continue;
-      f1 = mrb_float(*pv);
+      if (pv->tt != IREP_TT_FLOAT) continue;
+      pv = &s->pool[i];
+      f1 = pv->u.f;
       f2 = mrb_float(val);
       if (f1 == f2 && !signbit(f1) == !signbit(f2)) return i;
     }
@@ -582,9 +583,17 @@ new_lit(codegen_scope *s, mrb_value val)
 #endif
   case MRB_TT_FIXNUM:
     for (i=0; i<s->irep->plen; i++) {
+      mrb_int v = mrb_fixnum(val);
       pv = &s->pool[i];
-      if (!mrb_fixnum_p(*pv)) continue;
-      if (mrb_fixnum(*pv) == mrb_fixnum(val)) return i;
+      if (pv->tt == IREP_TT_INT32) {
+        if (v == pv->u.i32) return i;
+      }
+#ifdef MRB_INT64
+      else if (pv->tt == IREP_TT_INT64) {
+        if (v == pv->u.i64) return i;
+      }
+      continue;
+#endif
     }
     break;
   default:
@@ -594,7 +603,7 @@ new_lit(codegen_scope *s, mrb_value val)
 
   if (s->irep->plen == s->pcapa) {
     s->pcapa *= 2;
-    s->pool = (mrb_value *)codegen_realloc(s, s->pool, sizeof(mrb_value)*s->pcapa);
+    s->pool = (mrb_pool_value*)codegen_realloc(s, s->pool, sizeof(mrb_pool_value)*s->pcapa);
   }
 
   pv = &s->pool[s->irep->plen];
@@ -602,18 +611,35 @@ new_lit(codegen_scope *s, mrb_value val)
 
   switch (mrb_type(val)) {
   case MRB_TT_STRING:
-    *pv = mrb_str_pool(s->mrb, RSTRING_PTR(val), RSTRING_LEN(val), RSTR_NOFREE_P(RSTRING(val)));
+    if (RSTR_NOFREE_P(RSTRING(val))) {
+      pv->tt = (RSTRING_LEN(val)<<2) | IREP_TT_SSTR;
+      pv->u.str = RSTRING_PTR(val);
+    }
+    else {
+      char *p;
+      mrb_int len = RSTRING_LEN(val);
+      pv->tt = (len<<2) | IREP_TT_STR;
+      p = (char*)codegen_realloc(s, NULL, len+1);
+      memcpy(p, RSTRING_PTR(val), len);
+      p[len] = '\0';
+      pv->u.str = p;
+    }
     break;
 
 #ifndef MRB_WITHOUT_FLOAT
   case MRB_TT_FLOAT:
-#ifdef MRB_WORD_BOXING
-    *pv = mrb_float_pool(s->mrb, mrb_float(val));
+    pv->tt = IREP_TT_FLOAT;
+    pv->u.f = mrb_float(val);
     break;
 #endif
-#endif
   case MRB_TT_FIXNUM:
-    *pv = val;
+#ifdef MRB_INT64
+    pv->tt = IREP_TT_INT64;
+    pv->u.i64 = mrb_fixnum(val);
+#else
+    pv->tt = IREP_TT_INT32;
+    pv->u.i32 = mrb_fixnum(val);
+#endif
     break;
 
   default:
@@ -3045,7 +3071,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *nlv)
   s->irep->iseq = NULL;
 
   s->pcapa = 32;
-  s->pool = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value)*s->pcapa);
+  s->pool = (mrb_pool_value*)mrb_malloc(mrb, sizeof(mrb_pool_value)*s->pcapa);
   s->irep->plen = 0;
 
   s->scapa = 256;
@@ -3110,7 +3136,7 @@ scope_finish(codegen_scope *s)
     irep->iseq = (const mrb_code *)codegen_realloc(s, s->iseq, sizeof(mrb_code)*s->pc);
     irep->ilen = s->pc;
   }
-  irep->pool = (const mrb_value*)codegen_realloc(s, s->pool, sizeof(mrb_value)*irep->plen);
+  irep->pool = (const mrb_pool_value*)codegen_realloc(s, s->pool, sizeof(mrb_pool_value)*irep->plen);
   irep->syms = (const mrb_sym*)codegen_realloc(s, s->syms, sizeof(mrb_sym)*irep->slen);
   irep->reps = (const mrb_irep**)codegen_realloc(s, s->reps, sizeof(mrb_irep*)*irep->rlen);
   if (s->filename_sym) {

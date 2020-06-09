@@ -90,14 +90,12 @@ write_iseq_block(mrb_state *mrb, const mrb_irep *irep, uint8_t *buf, uint8_t fla
 
 #ifndef MRB_WITHOUT_FLOAT
 static mrb_value
-float_to_str(mrb_state *mrb, mrb_value flt)
+float_to_str(mrb_state *mrb, mrb_float f)
 {
-  mrb_float f = mrb_float(flt);
-
   if (isinf(f)) {
     return f < 0 ? mrb_str_new_lit(mrb, "I") : mrb_str_new_lit(mrb, "i");
   }
-  return  mrb_float_to_str(mrb, flt, MRB_FLOAT_FMT);
+  return  mrb_float_to_str(mrb, mrb_float_value(mrb, f), MRB_FLOAT_FMT);
 }
 #endif
 
@@ -106,44 +104,49 @@ get_pool_block_size(mrb_state *mrb, const mrb_irep *irep)
 {
   int pool_no;
   size_t size = 0;
-  mrb_value str;
 
-  size += sizeof(uint32_t); /* plen */
-  size += irep->plen * (sizeof(uint8_t) + sizeof(uint16_t)); /* len(n) */
+  size += sizeof(uint16_t); /* plen */
+  size += irep->plen * sizeof(uint8_t); /* len(n) */
 
   for (pool_no = 0; pool_no < irep->plen; pool_no++) {
     int ai = mrb_gc_arena_save(mrb);
 
-    switch (mrb_type(irep->pool[pool_no])) {
-    case MRB_TT_FIXNUM:
-      str = mrb_fixnum_to_str(mrb, irep->pool[pool_no], 10);
+    switch (irep->pool[pool_no].tt) {
+    case IREP_TT_INT64:
+#ifdef MRB_INT64
       {
-        mrb_int len = RSTRING_LEN(str);
-        mrb_assert_int_fit(mrb_int, len, size_t, SIZE_MAX);
-        size += (size_t)len;
-      }
-      break;
+        int64_t i = irep->pool[pool_no].u.i64;
 
-#ifndef MRB_WITHOUT_FLOAT
-    case MRB_TT_FLOAT:
-      str = float_to_str(mrb, irep->pool[pool_no]);
-      {
-        mrb_int len = RSTRING_LEN(str);
-        mrb_assert_int_fit(mrb_int, len, size_t, SIZE_MAX);
-        size += (size_t)len;
+        if (i < INT32_MIN || INT32_MAX < i)
+          size += 8;
+        else
+          size += 4;
       }
       break;
+#else
+      /* fall through */
 #endif
+    case IREP_TT_INT32:
+      size += 4;                /* 32bits = 4bytes */
+      break;
 
-    case MRB_TT_STRING:
+    case IREP_TT_FLOAT:
+#ifndef MRB_WITHOUT_FLOAT
       {
-        mrb_int len = RSTRING_LEN(irep->pool[pool_no]);
+        mrb_value str = float_to_str(mrb, irep->pool[pool_no].u.f);
+        mrb_int len = RSTRING_LEN(str);
         mrb_assert_int_fit(mrb_int, len, size_t, SIZE_MAX);
         size += (size_t)len;
       }
+#endif
       break;
 
-    default:
+    default: /*  packed IREP_TT_STRING */ 
+      {
+        mrb_int len = irep->pool[pool_no].tt >> 1; /* unpack length */
+        mrb_assert_int_fit(mrb_int, len, size_t, SIZE_MAX);
+        size += (size_t)len+1;
+      }
       break;
     }
     mrb_gc_arena_restore(mrb, ai);
@@ -157,48 +160,64 @@ write_pool_block(mrb_state *mrb, const mrb_irep *irep, uint8_t *buf)
 {
   int pool_no;
   uint8_t *cur = buf;
-  uint16_t len;
-  mrb_value str;
-  const char *char_ptr;
+  int len;
+  const char *ptr;
 
-  cur += uint32_to_bin(irep->plen, cur); /* number of pool */
+  cur += uint16_to_bin(irep->plen, cur); /* number of pool */
 
   for (pool_no = 0; pool_no < irep->plen; pool_no++) {
     int ai = mrb_gc_arena_save(mrb);
 
-    switch (mrb_type(irep->pool[pool_no])) {
-    case MRB_TT_FIXNUM:
-      cur += uint8_to_bin(IREP_TT_FIXNUM, cur); /* data type */
-      str = mrb_fixnum_to_str(mrb, irep->pool[pool_no], 10);
-      break;
-
-#ifndef MRB_WITHOUT_FLOAT
-    case MRB_TT_FLOAT:
-      cur += uint8_to_bin(IREP_TT_FLOAT, cur); /* data type */
-      str = float_to_str(mrb, irep->pool[pool_no]);
+    switch (irep->pool[pool_no].tt) {
+#ifdef MRB_INT64
+    case IREP_TT_INT64:
+      {
+        int64_t i = irep->pool[pool_no].u.i64;
+        if (i < INT32_MIN || INT32_MAX < i) {
+          cur += uint8_to_bin(IREP_TT_INT64, cur); /* data type */
+          cur += uint32_to_bin((uint32_t)((i>>32) & 0xffffffff), cur); /* i64 hi */
+          cur += uint32_to_bin((uint32_t)((i    ) & 0xffffffff), cur); /* i64 lo */
+        }
+        else {
+          cur += uint8_to_bin(IREP_TT_INT32, cur); /* data type */
+          cur += uint32_to_bin(irep->pool[pool_no].u.i32, cur); /* i32 */
+        }
+      }
       break;
 #endif
-
-    case MRB_TT_STRING:
-      cur += uint8_to_bin(IREP_TT_STRING, cur); /* data type */
-      str = irep->pool[pool_no];
+    case IREP_TT_INT32:
+      cur += uint8_to_bin(IREP_TT_INT32, cur); /* data type */
+      cur += uint32_to_bin(irep->pool[pool_no].u.i32, cur); /* i32 */
       break;
 
-    default:
-      continue;
+    case IREP_TT_FLOAT:
+      cur += uint8_to_bin(IREP_TT_FLOAT, cur); /* data type */
+#ifndef MRB_WITHOUT_FLOAT
+      {
+        mrb_value str = float_to_str(mrb, irep->pool[pool_no].u.f);
+        ptr = RSTRING_PTR(str);
+        len = RSTRING_LEN(str);
+        mrb_assert_int_fit(mrb_int, len, uint16_t, UINT16_MAX);
+        cur += uint16_to_bin((uint16_t)len, cur); /* data length */
+        memcpy(cur, ptr, (size_t)len);
+        cur += len;
+      }
+#else
+      cur += uint16_to_bin(0, cur); /* zero length */
+#endif
+      break;
+
+    default: /* string */
+      cur += uint8_to_bin(IREP_TT_STR, cur); /* data type */
+      ptr = irep->pool[pool_no].u.str;
+      len = irep->pool[pool_no].tt>>2;
+      mrb_assert_int_fit(mrb_int, len, uint16_t, UINT16_MAX);
+      cur += uint16_to_bin((uint16_t)len, cur); /* data length */
+      memcpy(cur, ptr, (size_t)len);
+      cur += len;
+      *cur++ = '\0';
+      break;
     }
-
-    char_ptr = RSTRING_PTR(str);
-    {
-      mrb_int tlen = RSTRING_LEN(str);
-      mrb_assert_int_fit(mrb_int, tlen, uint16_t, UINT16_MAX);
-      len = (uint16_t)tlen;
-    }
-
-    cur += uint16_to_bin(len, cur); /* data length */
-    memcpy(cur, char_ptr, (size_t)len);
-    cur += len;
-
     mrb_gc_arena_restore(mrb, ai);
   }
 

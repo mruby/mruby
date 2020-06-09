@@ -24,10 +24,6 @@ typedef struct mrb_value {
   enum mrb_vtype tt;
 } mrb_value;
 
-#ifndef MRB_WITHOUT_FLOAT
-#define mrb_float_pool(mrb,f) mrb_float_value(mrb,f)
-#endif
-
 #define mrb_ptr(o)      (o).value.p
 #define mrb_cptr(o)     mrb_ptr(o)
 #ifndef MRB_WITHOUT_FLOAT

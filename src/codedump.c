@@ -115,10 +115,21 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       print_lv_ab(mrb, irep, a, b);
       break;
     CASE(OP_LOADL, BB):
-      {
-        mrb_value v = irep->pool[b];
-        mrb_value s = mrb_inspect(mrb, v);
-        printf("OP_LOADL\tR%d\tL(%d)\t; %s", a, b, RSTRING_PTR(s));
+      switch (irep->pool[b].tt) {
+      case IREP_TT_FLOAT:
+        printf("OP_LOADL\tR%d\tL(%d)\t; %f", a, b, (double)irep->pool[b].u.f);
+        break;
+      case IREP_TT_INT32:
+        printf("OP_LOADL\tR%d\tL(%d)\t; %" PRId32, a, b, irep->pool[b].u.i32);
+        break;
+#ifdef MRB_INT64
+      case IREP_TT_INT64:
+        printf("OP_LOADL\tR%d\tL(%d)\t; %" PRId64, a, b, irep->pool[b].u.i64);
+        break;
+#endif
+      default:
+        printf("OP_LOADL\tR%d\tL(%d)\t", a, b);
+        break;
       }
       print_lv_a(mrb, irep, a);
       break;
@@ -404,10 +415,11 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_STRING, BB):
-      {
-        mrb_value v = irep->pool[b];
-        mrb_value s = mrb_str_dump(mrb, mrb_str_new(mrb, RSTRING_PTR(v), RSTRING_LEN(v)));
-        printf("OP_STRING\tR%d\tL(%d)\t; %s", a, b, RSTRING_PTR(s));
+      if ((irep->pool[b].tt & IREP_TT_NFLAG) == 0) {
+        printf("OP_STRING\tR%d\tL(%d)\t; %s", a, b, irep->pool[b].u.str);
+      }
+      else {
+        printf("OP_STRING\tR%d\tL(%d)\t", a, b);
       }
       print_lv_a(mrb, irep, a);
       break;
@@ -453,10 +465,11 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_ERR, B):
-      {
-        mrb_value v = irep->pool[a];
-        mrb_value s = mrb_str_dump(mrb, mrb_str_new(mrb, RSTRING_PTR(v), RSTRING_LEN(v)));
-        printf("OP_ERR\t%s\n", RSTRING_PTR(s));
+      if ((irep->pool[a].tt & IREP_TT_NFLAG) == 0) {
+        printf("OP_ERR\t%s\n", irep->pool[a].u.str);
+      }
+      else {
+        printf("OP_ERR\tL(%d)\n", a);
       }
       break;
     CASE(OP_EPUSH, B):

@@ -966,7 +966,7 @@ mrb_vm_exec(mrb_state *mrb, struct RProc *proc, const mrb_code *pc)
   /* mrb_assert(MRB_PROC_CFUNC_P(proc)) */
   const mrb_code *pc0 = pc;
   const mrb_irep *irep = proc->body.irep;
-  const mrb_value *pool = irep->pool;
+  const mrb_pool_value *pool = irep->pool;
   const mrb_sym *syms = irep->syms;
   mrb_code insn;
   int ai = mrb_gc_arena_save(mrb);
@@ -1013,17 +1013,25 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_LOADL, BB) {
-#ifdef MRB_WORD_BOXING
-      mrb_value val = pool[b];
+      switch (pool[b].tt) {   /* number */
+      case IREP_TT_INT32:
+        regs[a] = mrb_fixnum_value((mrb_int)pool[b].u.i32);
+        break;
+#ifdef MRB_INT64
+      case IREP_TT_INT64:
+        regs[a] = mrb_fixnum_value((mrb_int)pool[b].u.i64);
+        break;
+#endif
 #ifndef MRB_WITHOUT_FLOAT
-      if (mrb_float_p(val)) {
-        val = mrb_float_value(mrb, mrb_float(val));
+      case IREP_TT_FLOAT:
+        regs[a] = mrb_float_value(mrb, pool[b].u.f);
+        break;
+#endif
+      default:
+        /* should not happen (tt:string) */
+        regs[a] = mrb_nil_value();
+        break;
       }
-#endif
-      regs[a] = val;
-#else
-      regs[a] = pool[b];
-#endif
       NEXT;
     }
 
@@ -2499,9 +2507,13 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_STRING, BB) {
-      mrb_value str = mrb_str_dup(mrb, pool[b]);
-
-      regs[a] = str;
+      size_t len = pool[b].tt >> 2;
+      if (pool[b].tt & IREP_TT_SFLAG) {
+        regs[a] = mrb_str_new_static(mrb, pool[b].u.str, len);
+      }
+      else {
+        regs[a] = mrb_str_new(mrb, pool[b].u.str, len);
+      }
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
@@ -2703,10 +2715,11 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_ERR, B) {
-      mrb_value msg = mrb_str_dup(mrb, pool[a]);
+      size_t len = pool[a].tt >> 2;
       mrb_value exc;
 
-      exc = mrb_exc_new_str(mrb, E_LOCALJUMP_ERROR, msg);
+      mrb_assert((pool[a].tt&IREP_TT_NFLAG)==0);
+      exc = mrb_exc_new(mrb, E_LOCALJUMP_ERROR, pool[a].u.str, len);
       ERR_PC_SET(mrb);
       mrb_exc_set(mrb, exc);
       goto L_RAISE;

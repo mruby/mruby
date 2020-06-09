@@ -127,16 +127,6 @@ uint32_to_bin(uint32_t l, uint8_t *bin)
   return sizeof(uint32_t);
 }
 
-static inline size_t
-uint32l_to_bin(uint32_t l, uint8_t *bin)
-{
-  bin[3] = (l >> 24) & 0xff;
-  bin[2] = (l >> 16) & 0xff;
-  bin[1] = (l >> 8) & 0xff;
-  bin[0] = l & 0xff;
-  return sizeof(uint32_t);
-}
-
 static inline uint32_t
 bin_to_uint32(const uint8_t *bin)
 {
@@ -144,15 +134,6 @@ bin_to_uint32(const uint8_t *bin)
          (uint32_t)bin[1] << 16 |
          (uint32_t)bin[2] << 8  |
          (uint32_t)bin[3];
-}
-
-static inline uint32_t
-bin_to_uint32l(const uint8_t *bin)
-{
-  return (uint32_t)bin[3] << 24 |
-         (uint32_t)bin[2] << 16 |
-         (uint32_t)bin[1] << 8  |
-         (uint32_t)bin[0];
 }
 
 static inline uint16_t

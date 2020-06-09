@@ -158,17 +158,6 @@ mrb_word_boxing_float_value(mrb_state *mrb, mrb_float f)
   MRB_SET_FROZEN_FLAG(v.value.bp);
   return v;
 }
-
-MRB_API mrb_value
-mrb_word_boxing_float_pool(mrb_state *mrb, mrb_float f)
-{
-  struct RFloat *nf = (struct RFloat *)mrb_malloc(mrb, sizeof(struct RFloat));
-  nf->tt = MRB_TT_FLOAT;
-  nf->c = mrb->float_class;
-  nf->f = f;
-  MRB_SET_FROZEN_FLAG(nf);
-  return mrb_obj_value(nf);
-}
 #endif  /* MRB_WITHOUT_FLOAT */
 #endif  /* MRB_WORD_BOXING */
 

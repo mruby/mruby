@@ -16,10 +16,28 @@
 MRB_BEGIN_DECL
 
 enum irep_pool_type {
-  IREP_TT_STRING,
-  IREP_TT_FIXNUM,
-  IREP_TT_FLOAT,
+  IREP_TT_STR   = 0,          /* string (need free) */
+  IREP_TT_SSTR  = 2,          /* string (static) */
+  IREP_TT_INT32 = 1,          /* 32bit integer */
+  IREP_TT_INT64 = 3,          /* 64bit integer */
+  IREP_TT_FLOAT = 5,          /* float (double/float) */
 };
+
+#define IREP_TT_NFLAG 1       /* number (non string) flag */
+#define IREP_TT_SFLAG 2       /* static string flag */
+#define IREP_TT_SFLAG 2       /* static string flag */
+
+typedef struct mrb_pool_value {
+  uint32_t tt;     /* packed type and length (for string) */
+  union {
+    const char *str;
+    int32_t i32;
+#ifdef MRB_INT64
+    int64_t i64;
+#endif
+    mrb_float f;
+  } u;
+} mrb_pool_value;
 
 struct mrb_lvinfo {        /* local variable info (name, idx) */
   mrb_sym name;
@@ -33,7 +51,7 @@ typedef struct mrb_irep {
   uint8_t flags;
 
   const mrb_code *iseq;
-  const mrb_value *pool;
+  const mrb_pool_value *pool;
   const mrb_sym *syms;
   const struct mrb_irep **reps;
 
