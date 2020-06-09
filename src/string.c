@@ -583,9 +583,6 @@ str_share(mrb_state *mrb, struct RString *orig, struct RString *s)
   else if (RSTR_FSHARED_P(orig)) {
     str_init_fshared(orig, s, orig->as.heap.aux.fshared);
   }
-  else if (mrb_frozen_p(orig) && !RSTR_POOL_P(orig)) {
-    str_init_fshared(orig, s, orig);
-  }
   else {
     if (orig->as.heap.aux.capa > orig->as.heap.len) {
       orig->as.heap.ptr = (char *)mrb_realloc(mrb, orig->as.heap.ptr, len+1);
@@ -594,29 +591,6 @@ str_share(mrb_state *mrb, struct RString *orig, struct RString *s)
     str_init_shared(mrb, orig, s, NULL);
     str_init_shared(mrb, orig, orig, s->as.heap.aux.shared);
   }
-}
-
-mrb_value
-mrb_str_pool(mrb_state *mrb, const char *p, mrb_int len, mrb_bool nofree)
-{
-  struct RString *s = (struct RString *)mrb_malloc(mrb, sizeof(struct RString));
-
-  s->tt = MRB_TT_STRING;
-  s->c = mrb->string_class;
-  s->flags = 0;
-
-  if (RSTR_EMBEDDABLE_P(len)) {
-    str_init_embed(s, p, len);
-  }
-  else if (nofree) {
-    str_init_nofree(s, p, len);
-  }
-  else {
-    str_init_normal(mrb, s, p, len);
-  }
-  RSTR_SET_POOL_FLAG(s);
-  MRB_SET_FROZEN_FLAG(s);
-  return mrb_obj_value(s);
 }
 
 mrb_value

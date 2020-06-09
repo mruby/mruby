@@ -144,18 +144,14 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
   if (irep->flags & MRB_IREP_NO_FREE) return;
   if (!(irep->flags & MRB_ISEQ_NO_FREE))
     mrb_free(mrb, (void*)irep->iseq);
-  if (irep->pool) for (i=0; i<irep->plen; i++) {
-    if (mrb_string_p(irep->pool[i])) {
-      mrb_gc_free_str(mrb, RSTRING(irep->pool[i]));
-      mrb_free(mrb, mrb_obj_ptr(irep->pool[i]));
+  if (irep->pool) {
+    for (i=0; i<irep->plen; i++) {
+      if ((irep->pool[i].tt & 3) == IREP_TT_STR) {
+        mrb_free(mrb, (void*)irep->pool[i].u.str);
+      }
     }
-#if defined(MRB_WORD_BOXING) && !defined(MRB_WITHOUT_FLOAT)
-    else if (mrb_float_p(irep->pool[i])) {
-      mrb_free(mrb, mrb_obj_ptr(irep->pool[i]));
-    }
-#endif
+    mrb_free(mrb, (void*)irep->pool);
   }
-  mrb_free(mrb, (void*)irep->pool);
   mrb_free(mrb, (void*)irep->syms);
   if (irep->reps) {
     for (i=0; i<irep->rlen; i++) {

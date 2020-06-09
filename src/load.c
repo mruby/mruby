@@ -73,10 +73,10 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
   uint16_t tt, pool_data_len, snl;
   int plen;
   struct RData *irep_obj = mrb_data_object_alloc(mrb, mrb->object_class, NULL, &tempirep_type);
-  mrb_value *pool;
+  mrb_pool_value *pool;
   mrb_sym *syms;
+  mrb_int ai = mrb_gc_arena_save(mrb);
   mrb_irep *irep = mrb_add_irep(mrb);
-  int ai = mrb_gc_arena_save(mrb);
 
   irep_obj->data = irep;
 
@@ -120,51 +120,81 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
   }
 
   /* POOL BLOCK */
-  plen = bin_to_uint32(src); /* number of pool */
-  src += sizeof(uint32_t);
+  plen = bin_to_uint16(src); /* number of pool */
+  src += sizeof(uint16_t);
   if (plen > 0) {
     if (SIZE_ERROR_MUL(plen, sizeof(mrb_value))) {
       return NULL;
     }
-    irep->pool = pool = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value) * plen);
+    irep->pool = pool = (mrb_pool_value*)mrb_calloc(mrb, sizeof(mrb_pool_value), plen);
 
     for (i = 0; i < plen; i++) {
-      const char *s;
       mrb_bool st = (flags & FLAG_SRC_MALLOC)==0;
 
       tt = *src++; /* pool TT */
-      pool_data_len = bin_to_uint16(src); /* pool data length */
-      src += sizeof(uint16_t);
-      s = (const char*)src;
-      src += pool_data_len;
       switch (tt) { /* pool data */
-      case IREP_TT_FIXNUM: {
-        mrb_value num = mrb_str_len_to_inum(mrb, s, pool_data_len, 10, FALSE);
-#ifdef MRB_WITHOUT_FLOAT
-        pool[i] = num;
+      case IREP_TT_INT32:
+        {
+          mrb_int v = (int32_t)bin_to_uint32(src);
+          src += sizeof(uint32_t);
+#ifdef MRB_INT64
+          pool[i].tt = IREP_TT_INT64;
+          pool[i].u.i64 = (int64_t)v;
 #else
-        pool[i] = mrb_float_p(num)? mrb_float_pool(mrb, mrb_float(num)) : num;
+          pool[i].tt = IREP_TT_INT32;
+          pool[i].u.i32 = v;
 #endif
         }
         break;
-
-#ifndef MRB_WITHOUT_FLOAT
-      case IREP_TT_FLOAT:
-        pool[i] = mrb_float_pool(mrb, str_to_double(mrb, s, pool_data_len));
+      case IREP_TT_INT64:
+#ifdef MRB_INT64
+        {
+          uint64_t i = bin_to_uint32(src);
+          src += sizeof(uint32_t);
+          i <<= 32;
+          i |= bin_to_uint32(src);
+          src += sizeof(uint32_t);
+          pool[i].u.i64 = (int64_t)i;
+        }
+#else
+        return NULL;            /* INT64 not supported on MRB_INT32 */
+#endif
         break;
+
+      case IREP_TT_FLOAT:
+#ifndef MRB_WITHOUT_FLOAT
+        pool[i].tt = tt;
+        pool_data_len = bin_to_uint16(src); /* pool data length */
+        src += sizeof(uint16_t);
+        pool[i].u.f = str_to_double(mrb, (const char*)src, pool_data_len);
+        src += pool_data_len;
+        break;
+#else
+        return NULL;            /* MRB_WITHOUT_FLOAT */
 #endif
 
-      case IREP_TT_STRING:
-        pool[i] = mrb_str_pool(mrb, s, pool_data_len, st);
+      case IREP_TT_STR:
+        pool_data_len = bin_to_uint16(src); /* pool data length */
+        src += sizeof(uint16_t);
+        if (st) {
+          pool[i].tt = (pool_data_len<<2) | IREP_TT_SSTR;
+          pool[i].u.str = (const char*)src;
+        }
+        else {
+          char *p;
+          pool[i].tt = (pool_data_len<<2) | IREP_TT_STR;
+          p = (char*)mrb_malloc(mrb, pool_data_len+1);
+          memcpy(p, src, pool_data_len+1);
+          pool[i].u.str = (const char*)p;
+        }
+        src += pool_data_len + 1;
         break;
 
       default:
         /* should not happen */
-        pool[i] = mrb_nil_value();
-        break;
+        return NULL;
       }
-      irep->plen++;
-      mrb_gc_arena_restore(mrb, ai);
+      irep->plen = i+1;
     }
   }
 
@@ -193,7 +223,6 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
         syms[i] = mrb_intern_static(mrb, (char *)src, snl);
       }
       src += snl + 1;
-
       mrb_gc_arena_restore(mrb, ai);
     }
   }
