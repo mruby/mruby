@@ -26,6 +26,7 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
 
   file assert_lib => assert_c
   file assert_c => [assert_rb, build.mrbcfile] do |t|
+    mkdir_p File.dirname(t.name)
     open(t.name, 'w') do |f|
       mrbc.run f, assert_rb, 'mrbtest_assert_irep'
     end
