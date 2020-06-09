@@ -29,7 +29,7 @@ assert('Kernel.block_given?', '15.3.1.2.2') do
   end
 end
 
-# Kernel.eval is provided by the mruby-gem mrbgem. '15.3.1.2.3'
+# Kernel.eval is provided by the mruby-eval mrbgem. '15.3.1.2.3'
 
 assert('Kernel.iterator?', '15.3.1.2.5') do
   assert_false Kernel.iterator?
@@ -59,20 +59,11 @@ assert('Kernel.loop', '15.3.1.2.8') do
   assert_equal 100, i
 end
 
-assert('Kernel.p', '15.3.1.2.9') do
-  # TODO search for a way to test p to stdio
-  assert_true true
-end
+# Kernel.p is provided by the mruby-print mrbgem. '15.3.1.2.9'
 
-assert('Kernel.print', '15.3.1.2.10') do
-  # TODO search for a way to test print to stdio
-  assert_true true
-end
+# Kernel.print is provided by the mruby-print mrbgem. '15.3.1.2.10'
 
-assert('Kernel.puts', '15.3.1.2.11') do
-  # TODO search for a way to test puts to stdio
-  assert_true true
-end
+# Kernel.puts is provided by the mruby-print mrbgem. '15.3.1.2.11'
 
 assert('Kernel.raise', '15.3.1.2.12') do
   assert_raise RuntimeError do
