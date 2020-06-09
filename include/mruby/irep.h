@@ -65,6 +65,7 @@ typedef struct mrb_irep {
 
 #define MRB_ISEQ_NO_FREE 1
 #define MRB_IREP_NO_FREE 2
+#define MRB_IREP_STATIC  3
 
 MRB_API mrb_irep *mrb_add_irep(mrb_state *mrb);
 

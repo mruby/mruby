@@ -930,6 +930,34 @@ mrb_dump_irep_cfunc(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *f
   return result;
 }
 
+static int
+dump_pool(mrb_state *mrb, const mrb_pool_value *p, FILE *fp)
+{
+  if (p->tt & IREP_TT_NFLAG) {  /* number */
+    switch (p->tt) {
+    case IREP_TT_INT32:
+      fprintf(fp, "{IREP_TT_INT32, {.i32=%"PRId32"}},\n", p->u.i32);
+      break;
+    case IREP_TT_INT64:
+      fprintf(fp, "{IREP_TT_INT64, {.i64=%"PRId64"}},\n", p->u.i64);
+      break;
+    case IREP_TT_FLOAT:
+      fprintf(fp, "{IREP_TT_FLOAT, {.f="MRB_FLOAT_FMT"}},\n", p->u.f);
+      break;
+    }
+  }
+  else {                        /* string */
+    int i, len = p->tt>>2;
+    const char *s = p->u.str;
+    fprintf(fp, "{IREP_TT_STR|(%d<<2), {.str=\"", len);
+    for (i=0; i<len; i++) {
+      fprintf(fp, "\\%03o", (int)s[i]);
+    }
+    fputs("\"}},\n", fp);
+  }
+  return MRB_DUMP_OK;
+}
+
 static struct {
   const char *op;
   const char *name;
@@ -994,6 +1022,9 @@ dump_sym(mrb_state *mrb, mrb_sym sym, FILE *fp)
   else if (name[len-1] == '?') {
     fprintf(fp, "MRB_QSYM(%.*s_p),", (int)len-1, name);
   }
+  else if (name[len-1] == '=') {
+    fprintf(fp, "MRB_QSYM(%.*s_e),", (int)len-1, name);
+  }
   else {
     fprintf(fp, "MRB_SYM(%s),", name);
   }
@@ -1001,26 +1032,49 @@ dump_sym(mrb_state *mrb, mrb_sym sym, FILE *fp)
 }
 
 static int
-dump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, const char *name, int *np)
+dump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, const char *name, int n, int *mp)
 {
-  int n = *np;                  /* this level */
   int i, len;
+  int max = *mp;
 
   /* dump reps */
+  if (irep->reps) {
+    for (i=0,len=irep->rlen; i<len; i++) {
+      *mp += len;
+      if (dump_irep_struct(mrb, irep->reps[i], flags, fp, name, max+i, mp) != MRB_DUMP_OK)
+        return MRB_DUMP_INVALID_ARGUMENT;
+    }
+    fprintf(fp,   "static const mrb_irep *%s_reps_%d[%d] = {\n", name, n, len);
+    for (i=0,len=irep->rlen; i<len; i++) {
+      fprintf(fp,   "  &%s_irep_%d,\n", name, max+i);
+    }
+    fputs("};\n", fp);
+  }
   /* dump pool */
+  if (irep->pool) {
+    len=irep->plen;
+    fprintf(fp,   "static const mrb_pool_value %s_pool_%d[%d] = {\n", name, n, len);
+    for (i=0; i<len; i++) {
+      if (dump_pool(mrb, &irep->pool[i], fp) != MRB_DUMP_OK)
+        return MRB_DUMP_INVALID_ARGUMENT;
+    }
+    fputs("};\n", fp);
+  }
   /* dump syms */
   if (irep->syms) {
-    fprintf(fp,   "static const mrb_sym %s_syms_%d = {", name, n);
-    for (i=0,len=irep->slen; i<len; i++) {
+    len=irep->slen;
+    fprintf(fp,   "static const mrb_sym %s_syms_%d[%d] = {", name, n, len);
+    for (i=0; i<len; i++) {
       if (dump_sym(mrb, irep->syms[i], fp) != MRB_DUMP_OK)
         return MRB_DUMP_INVALID_ARGUMENT;
     }
     fputs("};\n", fp);
   }
   /* dump iseq */
-  fprintf(fp,   "static const mrb_code %s_iseq_%d[] = {", name, n);
-  for (i=0,len=irep->ilen; i<len; i++) {
-    if (i%8 == 0) fputs("\n", fp);
+  len=irep->ilen;
+  fprintf(fp,   "static const mrb_code %s_iseq_%d[%d] = {", name, n, len);
+  for (i=0; i<len; i++) {
+    if (i%20 == 0) fputs("\n", fp);
     fprintf(fp, "0x%02x,", irep->iseq[i]);
   }
   fputs("};\n", fp);
@@ -1029,37 +1083,31 @@ dump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, 
     fprintf(fp, "static const mrb_irep %s = {\n", name);
   }
   else {
-    fprintf(fp, "static const mrb_irep %s_%d = {\n", name, n);
+    fprintf(fp, "static const mrb_irep %s_irep_%d = {\n", name, n);
   }
-  fprintf(fp,   "  %d,\t\t\t\t\t/* nlocals */\n", irep->nlocals);
-  fprintf(fp,   "  %d,\t\t\t\t\t/* nregs */\n", irep->nregs);
-  fputs(        "  MRB_ISEQ_NO_FREE|MRB_IREP_NO_FREE,\t/* flags */\n", fp);
-  fprintf(fp,   "  %s_iseq_%d,\t\t\t/* iseq */\n", name, n);
+  fprintf(fp,   "  %d,%d,\n", irep->nlocals, irep->nregs);
+  fprintf(fp,   "  MRB_IREP_STATIC,%s_iseq_%d,\n", name, n);
   if (irep->pool) {
-    fprintf(fp, "  %s_pool_%d,\t\t/* pool */\n", name, n);
+    fprintf(fp, "  %s_pool_%d,", name, n);
   }
   else {
-    fputs(      "  NULL,\t\t\t\t\t/* pool */\n", fp);
+    fputs(      "  NULL,", fp);
   }
   if (irep->syms) {
-    fprintf(fp, "  %s_syms_%d,\t\t\t/* syms */\n", name, n);
+    fprintf(fp, "%s_syms_%d,", name, n);
   }
   else {
-    fputs(      "  NULL,\t\t\t\t\t/* syms */\n", fp);
+    fputs(      "NULL,", fp);
   }
   if (irep->reps) {
-    fprintf(fp, "  %s_reps_%d,\t\t\t/* reps */\n", name, n);
+    fprintf(fp, "%s_reps_%d,\n", name, n);
   }
   else {
-    fputs(      "  NULL,\t\t\t\t\t/* reps */\n", fp);
+    fputs(      "NULL,\n", fp);
   }
   fputs(        "  NULL,\t\t\t\t\t/* lv */\n", fp);
   fputs(        "  NULL,\t\t\t\t\t/* debug_info */\n", fp);
-  fprintf(fp,   "  %d,\t\t\t\t\t/* ilen */\n", irep->ilen);
-  fprintf(fp,   "  %d,\t\t\t\t\t/* plen */\n", irep->plen);
-  fprintf(fp,   "  %d,\t\t\t\t\t/* slen */\n", irep->slen);
-  fprintf(fp,   "  %d,\t\t\t\t\t/* rlen */\n", irep->rlen);
-  fputs(        "  0,\t\t\t\t\t/* refcnt */\n};\n", fp);
+  fprintf(fp,   "  %d,%d,%d,%d,0\n};", irep->ilen, irep->plen, irep->slen, irep->rlen);
 
   return MRB_DUMP_OK;
 }
@@ -1067,15 +1115,14 @@ dump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, 
 int
 mrb_dump_irep_cstruct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, const char *initname)
 {
-  int n = 0;
-
+  int max = 1;
   if (fp == NULL || initname == NULL || initname[0] == '\0') {
     return MRB_DUMP_INVALID_ARGUMENT;
   }
   if (fprintf(fp, "#include <mruby.h>\n" "#include <mruby/irep.h>\n\n") < 0) {
     return MRB_DUMP_WRITE_FAULT;
   }
-  return dump_irep_struct(mrb, irep, flags, fp, initname, &n);
+  return dump_irep_struct(mrb, irep, flags, fp, initname, 0, &max);
 }
 
 #endif /* MRB_DISABLE_STDIO */
