@@ -152,6 +152,7 @@ file presym_file => cfiles+rbfiles+[__FILE__] do
      src.scan(/mrb_define_method\([^\n"]*"([^\n"]*)"/),
      src.scan(/mrb_define_class\([^\n"]*"([^\n"]*)"/),
      src.scan(/mrb_define_module\([^\n"]*"([^\n"]*)"/),
+     src.scan(/mrb_define_module_function\([^\n"]*"([^\n"]*)"/),
      src.scan(/MRB_SYM\((\w+)\)/),
      src.scan(/MRB_QSYM\((\w+)\)/).map{|x,|
        x.sub!(/_p$/, "?") || x.sub!(/_b$/, "!") || x.sub!(/_e$/, "=") || x.sub!(/^a_/, "@") || x.sub!(/^d_/, "$")
@@ -161,7 +162,11 @@ file presym_file => cfiles+rbfiles+[__FILE__] do
     src = File.read(f)
     [src.scan(/\bclass +([A-Z]\w*)/),
      src.scan(/\bmodule +([A-Z]\w*)/),
-     src.scan(/\bdef +(\w+)/)]
+     src.scan(/\bdef +(\w+[!?]?)/),
+     src.scan(/\balias +(\w+[!?]?)/),
+     src.scan(/\b([A-Z]\w+) *=/),
+     src.scan(/(@\w+)/),
+     src.scan(/:(\w+)/)]
   end
   symbols = (csymbols+rbsymbols+op_table.keys).flatten.compact.uniq.sort
   presyms = File.readlines(presym_file) rescue []
