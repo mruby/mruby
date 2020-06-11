@@ -132,7 +132,7 @@ mrb_obj_ivar_set(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_local_variables(mrb_state *mrb, mrb_value self)
 {
-  struct RProc *proc;
+  const struct RProc *proc;
   const mrb_irep *irep;
   mrb_value vars;
   size_t i;
@@ -664,7 +664,7 @@ mrb_mod_s_constants(mrb_state *mrb, mrb_value mod)
 static mrb_value
 mrb_mod_s_nesting(mrb_state *mrb, mrb_value mod)
 {
-  struct RProc *proc;
+  const struct RProc *proc;
   mrb_value ary;
   struct RClass *c = NULL;
 
@@ -683,6 +683,9 @@ mrb_mod_s_nesting(mrb_state *mrb, mrb_value mod)
   }
   return ary;
 }
+
+/* implementation of #send method */
+mrb_value mrb_f_send(mrb_state *mrb, mrb_value self);
 
 void
 mrb_mruby_metaprog_gem_init(mrb_state* mrb)

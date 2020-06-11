@@ -200,7 +200,7 @@ mrb_addrinfo_getnameinfo(mrb_state *mrb, mrb_value self)
   host = mrb_str_buf_new(mrb, NI_MAXHOST);
   serv = mrb_str_buf_new(mrb, NI_MAXSERV);
 
-  sastr = mrb_iv_get(mrb, self, MRB_QSYM(a_sockaddr));
+  sastr = mrb_iv_get(mrb, self, MRB_QSYM(0_sockaddr));
   if (!mrb_string_p(sastr)) {
     mrb_raise(mrb, E_SOCKET_ERROR, "invalid sockaddr");
   }
@@ -222,7 +222,7 @@ mrb_addrinfo_unix_path(mrb_state *mrb, mrb_value self)
 {
   mrb_value sastr;
 
-  sastr = mrb_iv_get(mrb, self, MRB_QSYM(a_sockaddr));
+  sastr = mrb_iv_get(mrb, self, MRB_QSYM(0_sockaddr));
   if (((struct sockaddr *)RSTRING_PTR(sastr))->sa_family != AF_UNIX)
     mrb_raise(mrb, E_SOCKET_ERROR, "need AF_UNIX address");
   if (RSTRING_LEN(sastr) < (mrb_int)offsetof(struct sockaddr_un, sun_path) + 1) {

@@ -265,7 +265,7 @@ local_unnest(parser_state *p)
 static mrb_bool
 local_var_p(parser_state *p, mrb_sym sym)
 {
-  struct RProc *u;
+  const struct RProc *u;
   node *l = p->locals;
 
   while (l) {
@@ -282,7 +282,7 @@ local_var_p(parser_state *p, mrb_sym sym)
     const struct mrb_irep *ir = u->body.irep;
     uint_fast16_t n = ir->nlocals;
     const struct mrb_lvinfo *v = ir->lv;
-    for (; n > 1; n --, v ++) {
+    for (; v && n > 1; n--, v++) {
       if (v->name == sym) return TRUE;
     }
     if (MRB_PROC_SCOPE_P(u)) break;

@@ -80,7 +80,7 @@ static void
 closure_setup(mrb_state *mrb, struct RProc *p)
 {
   mrb_callinfo *ci = mrb->c->ci;
-  struct RProc *up = p->upper;
+  const struct RProc *up = p->upper;
   struct REnv *e = NULL;
 
   if (ci && ci->env) {
@@ -170,7 +170,7 @@ mrb_closure_new_cfunc(mrb_state *mrb, mrb_func_t func, int nlocals)
 MRB_API mrb_value
 mrb_proc_cfunc_env_get(mrb_state *mrb, mrb_int idx)
 {
-  struct RProc *p = mrb->c->ci->proc;
+  const struct RProc *p = mrb->c->ci->proc;
   struct REnv *e;
 
   if (!p || !MRB_PROC_CFUNC_P(p)) {

@@ -741,11 +741,11 @@ mrb_vm_cv_get(mrb_state *mrb, mrb_sym sym)
 {
   struct RClass *c;
 
-  struct RProc *p = mrb->c->ci->proc;
+  const struct RProc *p = mrb->c->ci->proc;
 
   for (;;) {
     c = MRB_PROC_TARGET_CLASS(p);
-    if (c->tt != MRB_TT_SCLASS) break;
+    if (c && c->tt != MRB_TT_SCLASS) break;
     p = p->upper;
   }
   return mrb_mod_cv_get(mrb, c, sym);
@@ -755,11 +755,11 @@ void
 mrb_vm_cv_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
 {
   struct RClass *c;
-  struct RProc *p = mrb->c->ci->proc;
+  const struct RProc *p = mrb->c->ci->proc;
 
   for (;;) {
     c = MRB_PROC_TARGET_CLASS(p);
-    if (c->tt != MRB_TT_SCLASS) break;
+    if (c && c->tt != MRB_TT_SCLASS) break;
     p = p->upper;
   }
   mrb_mod_cv_set(mrb, c, sym, v);
@@ -817,9 +817,10 @@ mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
   struct RClass *c;
   struct RClass *c2;
   mrb_value v;
-  struct RProc *proc;
+  const struct RProc *proc;
 
   c = MRB_PROC_TARGET_CLASS(mrb->c->ci->proc);
+  if (!c) c = mrb->object_class;
   if (iv_get(mrb, c->iv, sym, &v)) {
     return v;
   }
@@ -862,6 +863,7 @@ mrb_vm_const_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
   struct RClass *c;
 
   c = MRB_PROC_TARGET_CLASS(mrb->c->ci->proc);
+  if (!c) c = mrb->object_class;
   mrb_obj_iv_set(mrb, (struct RObject*)c, sym, v);
 }
 

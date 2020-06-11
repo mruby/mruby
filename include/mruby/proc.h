@@ -44,7 +44,7 @@ struct RProc {
     const mrb_irep *irep;
     mrb_func_t func;
   } body;
-  struct RProc *upper;
+  const struct RProc *upper;
   union {
     struct RClass *target_class;
     struct REnv *env;
@@ -93,9 +93,6 @@ MRB_API struct RProc *mrb_closure_new_cfunc(mrb_state *mrb, mrb_func_t func, int
 void mrb_proc_copy(struct RProc *a, struct RProc *b);
 mrb_int mrb_proc_arity(const struct RProc *p);
 
-/* implementation of #send method */
-mrb_value mrb_f_send(mrb_state *mrb, mrb_value self);
-
 /* following functions are defined in mruby-proc-ext so please include it when using */
 MRB_API struct RProc *mrb_proc_new_cfunc_with_env(mrb_state *mrb, mrb_func_t func, mrb_int argc, const mrb_value *argv);
 MRB_API mrb_value mrb_proc_cfunc_env_get(mrb_state *mrb, mrb_int idx);
@@ -136,6 +133,8 @@ MRB_API mrb_value mrb_proc_cfunc_env_get(mrb_state *mrb, mrb_int idx);
 
 #include <mruby/khash.h>
 KHASH_DECLARE(mt, mrb_sym, mrb_method_t, TRUE)
+
+MRB_API mrb_value mrb_load_proc(mrb_state *mrb, const struct RProc *proc);
 
 MRB_END_DECL
 

@@ -330,6 +330,15 @@ mrb_sym_name_len(mrb_state *mrb, mrb_sym sym, mrb_int *lenp)
   return sym2name_len(mrb, sym, mrb->symbuf, lenp);
 }
 
+mrb_bool
+mrb_sym_static_p(mrb_state *mrb, mrb_sym sym)
+{
+  if (SYMBOL_INLINE_P(sym)) return TRUE;
+  sym >>= SYMBOL_NORMAL_SHIFT;
+  if (sym > MRB_PRESYM_MAX) return FALSE;
+  return TRUE;
+}
+
 void
 mrb_free_symtbl(mrb_state *mrb)
 {

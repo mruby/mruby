@@ -2334,6 +2334,9 @@ init_class_new(mrb_state *mrb, struct RClass *cls)
   mrb_define_method_raw(mrb, cls, MRB_SYM(new), m);
 }
 
+/* implementation of #send method */
+mrb_value mrb_f_send(mrb_state *mrb, mrb_value self);
+
 void
 mrb_init_class(mrb_state *mrb)
 {

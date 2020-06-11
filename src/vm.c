@@ -224,7 +224,7 @@ mrb_stack_extend(mrb_state *mrb, mrb_int room)
 static inline struct REnv*
 uvenv(mrb_state *mrb, int up)
 {
-  struct RProc *proc = mrb->c->ci->proc;
+  const struct RProc *proc = mrb->c->ci->proc;
   struct REnv *e;
 
   while (up--) {
@@ -247,8 +247,8 @@ uvenv(mrb_state *mrb, int up)
   return NULL;
 }
 
-static inline struct RProc*
-top_proc(mrb_state *mrb, struct RProc *proc)
+static inline const struct RProc*
+top_proc(mrb_state *mrb, const struct RProc *proc)
 {
   while (proc->upper) {
     if (MRB_PROC_SCOPE_P(proc) || MRB_PROC_STRICT_P(proc))
@@ -327,7 +327,7 @@ cipop(mrb_state *mrb)
 }
 
 void mrb_exc_set(mrb_state *mrb, mrb_value exc);
-static mrb_value mrb_run(mrb_state *mrb, struct RProc* proc, mrb_value self);
+static mrb_value mrb_run(mrb_state *mrb, const struct RProc* proc, mrb_value self);
 
 static void
 ecall(mrb_state *mrb)
@@ -423,7 +423,7 @@ mrb_funcall_id(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc, ...)
 static int
 ci_nregs(mrb_callinfo *ci)
 {
-  struct RProc *p;
+  const struct RProc *p;
   int n = 0;
 
   if (!ci) return 3;
@@ -821,7 +821,7 @@ mrb_yield_cont(mrb_state *mrb, mrb_value b, mrb_value self, mrb_int argc, const 
 }
 
 static struct RBreak*
-break_new(mrb_state *mrb, struct RProc *p, mrb_value val)
+break_new(mrb_state *mrb, const struct RProc *p, mrb_value val)
 {
   struct RBreak *brk;
 
@@ -918,7 +918,7 @@ argnum_error(mrb_state *mrb, mrb_int num)
 #endif
 
 MRB_API mrb_value
-mrb_vm_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep)
+mrb_vm_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, unsigned int stack_keep)
 {
   const mrb_irep *irep = proc->body.irep;
   mrb_value result;
@@ -961,7 +961,7 @@ check_target_class(mrb_state *mrb)
 void mrb_hash_check_kdict(mrb_state *mrb, mrb_value self);
 
 MRB_API mrb_value
-mrb_vm_exec(mrb_state *mrb, struct RProc *proc, const mrb_code *pc)
+mrb_vm_exec(mrb_state *mrb, const struct RProc *proc, const mrb_code *pc)
 {
   /* mrb_assert(MRB_PROC_CFUNC_P(proc)) */
   const mrb_code *pc0 = pc;
@@ -1534,7 +1534,7 @@ RETRY_TRY_BLOCK:
       struct RClass *cls;
       mrb_callinfo *ci = mrb->c->ci;
       mrb_value recv, blk;
-      struct RProc *p = ci->proc;
+      const struct RProc *p = ci->proc;
       mrb_sym mid = ci->mid;
       struct RClass* target_class = MRB_PROC_TARGET_CLASS(p);
 
@@ -1975,7 +1975,7 @@ RETRY_TRY_BLOCK:
       else {
         int acc;
         mrb_value v;
-        struct RProc *dst;
+        const struct RProc *dst;
 
         ci = mrb->c->ci;
         v = regs[a];
@@ -2612,6 +2612,7 @@ RETRY_TRY_BLOCK:
       super = regs[a+1];
       if (mrb_nil_p(base)) {
         baseclass = MRB_PROC_TARGET_CLASS(mrb->c->ci->proc);
+        if (!baseclass) baseclass = mrb->object_class;
         base = mrb_obj_value(baseclass);
       }
       c = mrb_vm_define_class(mrb, base, super, id);
@@ -2628,6 +2629,7 @@ RETRY_TRY_BLOCK:
       base = regs[a];
       if (mrb_nil_p(base)) {
         baseclass = MRB_PROC_TARGET_CLASS(mrb->c->ci->proc);
+        if (!baseclass) baseclass = mrb->object_class;
         base = mrb_obj_value(baseclass);
       }
       cls = mrb_vm_define_module(mrb, base, id);
@@ -2782,7 +2784,7 @@ RETRY_TRY_BLOCK:
 }
 
 static mrb_value
-mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
+mrb_run(mrb_state *mrb, const struct RProc *proc, mrb_value self)
 {
   if (mrb->c->ci->argc < 0) {
     return mrb_vm_run(mrb, proc, self, 3); /* receiver, args and block) */
@@ -2793,7 +2795,7 @@ mrb_run(mrb_state *mrb, struct RProc *proc, mrb_value self)
 }
 
 MRB_API mrb_value
-mrb_top_run(mrb_state *mrb, struct RProc *proc, mrb_value self, unsigned int stack_keep)
+mrb_top_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, unsigned int stack_keep)
 {
   mrb_value v;
 

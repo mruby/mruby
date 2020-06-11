@@ -35,6 +35,11 @@
     * Gray - Marked, But the child objects are unmarked.
     * Black - Marked, the child objects are also marked.
 
+  Extra color
+
+    * Red - Static (ROM object) no need to be collected.
+          - All child objects should be Red as well.
+
   == Two White Types
 
   There're two white color types in a flip-flop fashion: White-A and White-B,
@@ -185,6 +190,7 @@ gettimeofday_time(void)
 #define GC_WHITE_A 1
 #define GC_WHITE_B (1 << 1)
 #define GC_BLACK (1 << 2)
+#define GC_RED 7
 #define GC_WHITES (GC_WHITE_A | GC_WHITE_B)
 #define GC_COLOR_MASK 7
 
@@ -194,7 +200,8 @@ gettimeofday_time(void)
 #define paint_partial_white(s, o) ((o)->color = (s)->current_white_part)
 #define is_gray(o) ((o)->color == GC_GRAY)
 #define is_white(o) ((o)->color & GC_WHITES)
-#define is_black(o) ((o)->color & GC_BLACK)
+#define is_black(o) ((o)->color == GC_BLACK)
+#define is_red(o) ((o)->color == GC_RED)
 #define flip_white_part(s) ((s)->current_white_part = other_white_part(s))
 #define other_white_part(s) ((s)->current_white_part ^ GC_WHITES)
 #define is_dead(s, o) (((o)->color & other_white_part(s) & GC_WHITES) || (o)->tt == MRB_TT_FREE)
@@ -584,7 +591,7 @@ add_gray_list(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
 static int
 ci_nregs(mrb_callinfo *ci)
 {
-  struct RProc *p = ci->proc;
+  const struct RProc *p = ci->proc;
   int n = 0;
 
   if (!p) {

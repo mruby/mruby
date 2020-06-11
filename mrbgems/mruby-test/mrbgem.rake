@@ -28,7 +28,7 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
   file assert_c => [assert_rb, build.mrbcfile] do |t|
     mkdir_p File.dirname(t.name)
     open(t.name, 'w') do |f|
-      mrbc.run f, assert_rb, 'mrbtest_assert_irep'
+      mrbc.run f, assert_rb, 'mrbtest_assert_proc'
     end
   end
 
@@ -56,12 +56,12 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
         f.puts %Q[ *   All manual changes will get lost.]
         f.puts %Q[ */]
         if test_preload.nil?
-          f.puts %Q[extern const uint8_t mrbtest_assert_irep[];]
+          f.puts %Q[extern const struct RProc mrbtest_assert_proc[];]
         else
-          g.build.mrbc.run f, test_preload, "gem_test_irep_#{g.funcname}_preload"
+          g.build.mrbc.run f, test_preload, "gem_test_#{g.funcname}_preload"
         end
         g.test_rbfiles.flatten.each_with_index do |rbfile, i|
-          g.build.mrbc.run f, rbfile, "gem_test_irep_#{g.funcname}_#{i}"
+          g.build.mrbc.run f, rbfile, "gem_test_#{g.funcname}_#{i}_proc"
         end
         f.puts %Q[void mrb_#{g.funcname}_gem_test(mrb_state *mrb);] unless g.test_objs.empty?
         dep_list.each do |d|
@@ -90,9 +90,9 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
             end
             f.puts %Q[  mrb_init_test_driver(mrb2, mrb_test(mrb_gv_get(mrb, mrb_intern_lit(mrb, "$mrbtest_verbose"))));]
             if test_preload.nil?
-              f.puts %Q[  mrb_load_irep(mrb2, mrbtest_assert_irep);]
+              f.puts %Q[  mrb_load_proc(mrb2, mrbtest_assert_proc);]
             else
-              f.puts %Q[  mrb_load_irep(mrb2, gem_test_irep_#{g.funcname}_preload);]
+              f.puts %Q[  mrb_load_proc(mrb2, gem_test_#{g.funcname}_preload);]
             end
             f.puts %Q[  if (mrb2->exc) {]
             f.puts %Q[    mrb_print_error(mrb2);]
@@ -113,7 +113,7 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
 
             f.puts %Q[  mrb_#{g.funcname}_gem_test(mrb2);] if g.custom_test_init?
 
-            f.puts %Q[  mrb_load_irep(mrb2, gem_test_irep_#{g.funcname}_#{i});]
+            f.puts %Q[  mrb_load_proc(mrb2, gem_test_#{g.funcname}_#{i}_proc);]
             f.puts %Q[  ]
 
             f.puts %Q[  mrb_t_pass_result(mrb, mrb2);]
