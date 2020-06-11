@@ -35,7 +35,7 @@ MRB_API mrb_value mrb_f_raise(mrb_state*, mrb_value);
 #if defined(MRB_64BIT) || defined(MRB_USE_FLOAT) || defined(MRB_NAN_BOXING) || defined(MRB_WORD_BOXING)
 struct RBreak {
   MRB_OBJECT_HEADER;
-  struct RProc *proc;
+  const struct RProc *proc;
   mrb_value val;
 };
 #define mrb_break_value_get(brk) ((brk)->val)
@@ -43,7 +43,7 @@ struct RBreak {
 #else
 struct RBreak {
   MRB_OBJECT_HEADER;
-  struct RProc *proc;
+  const struct RProc *proc;
   union mrb_value_union value;
 };
 #define RBREAK_VALUE_TT_MASK ((1 << 8) - 1)

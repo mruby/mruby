@@ -18,7 +18,7 @@
 #include <mruby/variable.h>
 #include <mruby/array.h>
 
-extern const uint8_t mrbtest_assert_irep[];
+extern const struct RProc mrbtest_assert_proc[];
 
 void mrbgemtest_init(mrb_state* mrb);
 void mrb_init_test_vformat(mrb_state* mrb);
@@ -300,7 +300,7 @@ main(int argc, char **argv)
   }
 
   mrb_init_test_driver(mrb, verbose);
-  mrb_load_irep(mrb, mrbtest_assert_irep);
+  mrb_load_proc(mrb, mrbtest_assert_proc);
   mrbgemtest_init(mrb);
   ret = eval_test(mrb);
   mrb_close(mrb);

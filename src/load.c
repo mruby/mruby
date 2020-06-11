@@ -676,6 +676,12 @@ mrb_load_irep_buf(mrb_state *mrb, const void *buf, size_t bufsize)
   return mrb_load_irep_buf_cxt(mrb, buf, bufsize, NULL);
 }
 
+MRB_API mrb_value
+mrb_load_proc(mrb_state *mrb, const struct RProc *proc)
+{
+  return mrb_vm_run(mrb, proc, mrb_top_self(mrb), 0);
+}
+
 #ifndef MRB_DISABLE_STDIO
 
 mrb_irep*

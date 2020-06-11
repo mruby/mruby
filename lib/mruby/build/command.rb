@@ -307,7 +307,7 @@ module MRuby
     def initialize(build)
       super
       @command = nil
-      @compile_options = "-B%{funcname} -o-"
+      @compile_options = "-S -B%{funcname} -o-"
     end
 
     def run(out, infiles, funcname)

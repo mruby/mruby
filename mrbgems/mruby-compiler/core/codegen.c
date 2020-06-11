@@ -706,7 +706,7 @@ lv_idx(codegen_scope *s, mrb_sym id)
 static int
 search_upvar(codegen_scope *s, mrb_sym id, int *idx)
 {
-  struct RProc *u;
+  const struct RProc *u;
   int lv = 0;
   codegen_scope *up = s->prev;
 

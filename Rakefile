@@ -106,11 +106,17 @@ end
 
 mkdir_p "#{MRUBY_ROOT}/build"
 cfiles = (Dir.glob("#{MRUBY_ROOT}/src/*.c")+
-          Dir.glob("#{MRUBY_ROOT}/mrbgems/*/{core,src}/*.c")+
-          Dir.glob("#{MRUBY_ROOT}/build/*/mrbgems/**/{src,core}/*.c")).uniq
-rbfiles = (Dir.glob("#{MRUBY_ROOT}/mrblib/*.rb")+
-          Dir.glob("#{MRUBY_ROOT}/mrbgems/*/mrblib/*.rb")+
-          Dir.glob("#{MRUBY_ROOT}/build/*/mrbgems/**/mrblib/*.rb")).uniq
+          Dir.glob("#{MRUBY_ROOT}/mrbgems/**/*.c")+
+          Dir.glob("#{MRUBY_ROOT}/build/*/mrbgems/**/{src,test,core}/*.c")).uniq
+rbfiles = (Dir.glob("#{MRUBY_ROOT}/{mrblib,test,test/t}/*.rb")+
+           Dir.glob("#{MRUBY_ROOT}/mrbgems/*/{mrblib,test}/*.rb")+
+           Dir.glob("#{MRUBY_ROOT}/build/*/mrbgems/**/{mrblib,test}/*.rb")).uniq
+psfiles = Dir.glob("#{MRUBY_ROOT}/{mrblib,mrbgems,test}/**/presym")
+symbols = []
+psfiles.each do |file|
+  symbols += File.readlines(file).grep_v(/^# /)
+end
+symbols.each{|x| x.chomp!}
 presym_file="#{MRUBY_ROOT}/build/presym"
 op_table = {
   "!" => "not",
@@ -145,30 +151,42 @@ op_table = {
   "~" => "neg",
 }
 
-file presym_file => cfiles+rbfiles+[__FILE__] do
+file presym_file => cfiles+rbfiles+psfiles+[__FILE__] do
   csymbols = cfiles.map do |f|
     src = File.read(f)
     [src.scan(/intern_lit\([^\n"]*"([^\n "]*)"/),
      src.scan(/mrb_define_method\([^\n"]*"([^\n"]*)"/),
+     src.scan(/mrb_define_class_method\([^\n"]*"([^\n"]*)"/),
      src.scan(/mrb_define_class\([^\n"]*"([^\n"]*)"/),
      src.scan(/mrb_define_module\([^\n"]*"([^\n"]*)"/),
      src.scan(/mrb_define_module_function\([^\n"]*"([^\n"]*)"/),
+     src.scan(/mrb_define_const\([^\n"]*"([^\n"]*)"/),
+     src.scan(/mrb_define_global_const\([^\n"]*"([^\n"]*)"/),
      src.scan(/MRB_SYM\((\w+)\)/),
      src.scan(/MRB_QSYM\((\w+)\)/).map{|x,|
-       x.sub!(/_p$/, "?") || x.sub!(/_b$/, "!") || x.sub!(/_e$/, "=") || x.sub!(/^a_/, "@") || x.sub!(/^d_/, "$")
+       x.sub!(/_p$/, "?") || x.sub!(/_b$/, "!") || x.sub!(/_e$/, "=") || x.sub!(/^0_/, "@")  || x.sub!(/^00_/, "@@") 
      }.compact]
   end
   rbsymbols = rbfiles.map do |f|
     src = File.read(f)
+    src.force_encoding(Encoding::BINARY)
     [src.scan(/\bclass +([A-Z]\w*)/),
      src.scan(/\bmodule +([A-Z]\w*)/),
-     src.scan(/\bdef +(\w+[!?]?)/),
+     src.scan(/\bdef +(\w+[!?=]?)/),
      src.scan(/\balias +(\w+[!?]?)/),
-     src.scan(/\b([A-Z]\w+) *=/),
-     src.scan(/(@\w+)/),
-     src.scan(/:(\w+)/)]
+     src.scan(/\b([A-Z]\w*) *=[^=]/),
+     src.scan(/(\$[a-zA-Z_]\w*)/),
+     src.scan(/(\$[$!?]\w*)/),
+     src.scan(/(@@?[a-zA-Z_]\w*)/),
+     src.scan(/[^.]\.([a-zA-Z_]\w*[!?]?)/),
+     src.scan(/\.([a-zA-Z_]\w* *=)/).map{|x|x.map{|s|s.gsub(' ', '')}},
+     src.scan(/\b([a-zA-Z_]\w*):/),
+     src.scan(/:([a-zA-Z_]\w*[!?=]?)/),
+     src.scan(/[\(\[\{ ]:"([^"]+)"/).map{|x|x.map{|s|s.gsub('\#', '#')}},
+     src.scan(/[ \(\[\{]:'([^']+)'/)
+    ]
   end
-  symbols = (csymbols+rbsymbols+op_table.keys).flatten.compact.uniq.sort
+  symbols = (symbols+csymbols+rbsymbols+op_table.keys).flatten.compact.uniq.sort.map{|x| x.gsub("\n", '\n')}
   presyms = File.readlines(presym_file) rescue []
   presyms.each{|x| x.chomp!}
   if presyms != symbols
@@ -182,10 +200,12 @@ file presym_inc => presym_file do
   presyms.each{|x| x.chomp!}
   File.open(presym_inc, "w") do |f|
     f.print "/* MRB_PRESYM_CSYM(sym, num) - symbol which is valid C id name */\n"
-    f.print "/* MRB_PRESYM_QSYM(sym, name, num) - symbol with alias name */\n"
-    f.print "/* MRB_PRESYM_SYM(sym, num) - symbol which is not valid C id */\n\n"
+    f.print "/* MRB_PRESYM_QSYM(name, sym, num) - symbol with alias name */\n"
+    f.print "/* MRB_PRESYM_SYM(name, num) - symbol which is not valid C id */\n"
     presyms.each.with_index do |sym,i|
-      if /\A\w+\Z/ =~ sym
+      if sym.bytes.detect{|x|x>0x80} || /\A\$/ =~ sym
+        f.print "MRB_PRESYM_SYM(\"#{sym}\", #{i+1})\n"
+      elsif /\A\w+\Z/ =~ sym
         f.print "MRB_PRESYM_CSYM(#{sym}, #{i+1})\n"
       elsif op_table.key?(sym)
         f.print "MRB_PRESYM_QSYM(\"#{sym}\", #{op_table[sym]}, #{i+1})\n"
@@ -198,11 +218,11 @@ file presym_inc => presym_file do
       elsif /\=\Z/ =~ sym
         s = sym.dup; s[-1] = "_e"
         f.print "MRB_PRESYM_QSYM(\"#{sym}\", #{s}, #{i+1})\n"
-      elsif /\A@/ =~ sym
-        s = sym.dup; s[0] = "a_"
+      elsif /\A@@/ =~ sym
+        s = sym.dup; s[0,2] = "00_"
         f.print "MRB_PRESYM_QSYM(\"#{sym}\", #{s}, #{i+1})\n"
-      elsif /\A$/ =~ sym
-        s = sym.dup; s[0] = "d_"
+      elsif /\A@/ =~ sym
+        s = sym.dup; s[0] = "0_"
         f.print "MRB_PRESYM_QSYM(\"#{sym}\", #{s}, #{i+1})\n"
       else
         f.print "MRB_PRESYM_SYM(\"#{sym}\", #{i+1})\n"
