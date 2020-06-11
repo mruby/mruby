@@ -670,8 +670,7 @@ mrb_mod_s_nesting(mrb_state *mrb, mrb_value mod)
 
   ary = mrb_ary_new(mrb);
   proc = mrb->c->ci[-1].proc;   /* callee proc */
-  mrb_assert(!MRB_PROC_CFUNC_P(proc));
-  while (proc) {
+  while (proc && !MRB_PROC_CFUNC_P(proc)) {
     if (MRB_PROC_SCOPE_P(proc)) {
       struct RClass *c2 = MRB_PROC_TARGET_CLASS(proc);
 
