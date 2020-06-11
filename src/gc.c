@@ -960,12 +960,11 @@ root_scan_phase(mrb_state *mrb, mrb_gc *gc)
   }
 }
 
+/* rough estimation of number of GC marks (non recursive) */
 static size_t
-gc_gray_mark(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
+gc_gray_counts(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
 {
   size_t children = 0;
-
-  gc_mark_children(mrb, gc, obj);
 
   switch (obj->tt) {
   case MRB_TT_ICLASS:
@@ -1064,7 +1063,9 @@ incremental_marking_phase(mrb_state *mrb, mrb_gc *gc, size_t limit)
   size_t tried_marks = 0;
 
   while (gc->gray_list && tried_marks < limit) {
-    tried_marks += gc_gray_mark(mrb, gc, gc->gray_list);
+    struct RBasic *obj = gc->gray_list;
+    gc_mark_children(mrb, gc, obj);
+    tried_marks += gc_gray_counts(mrb, gc, obj);
   }
 
   return tried_marks;
