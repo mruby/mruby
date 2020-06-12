@@ -13,13 +13,13 @@ end
 %w[size length].each do |n|
   assert("Symbol##{n}") do
     assert_equal 5, :hello.__send__(n)
-    assert_equal 4, :"aA b".__send__(n)
+    assert_equal 4, :"aA\0b".__send__(n)
     if __ENCODING__ == "UTF-8"
       assert_equal 8, :"こんにちは世界!".__send__(n)
-      assert_equal 4, :"aあ b".__send__(n)
+      assert_equal 4, :"aあ\0b".__send__(n)
     else
       assert_equal 22, :"こんにちは世界!".__send__(n)
-      assert_equal 6, :"aあ b".__send__(n)
+      assert_equal 6, :"aあ\0b".__send__(n)
     end
   end
 end

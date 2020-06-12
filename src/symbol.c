@@ -16,13 +16,16 @@
 #undef MRB_PRESYM_CSYM
 #undef MRB_PRESYM_QSYM
 #undef MRB_PRESYM_SYM
-#define MRB_PRESYM_CSYM(sym, num) #sym,
-#define MRB_PRESYM_QSYM(str, name, num) str,
-#define MRB_PRESYM_SYM(str, num) str,
+#define MRB_PRESYM_CSYM(sym, num) {#sym,sizeof(#sym)-1},
+#define MRB_PRESYM_QSYM(str, name, num) {str,sizeof(str)-1},
+#define MRB_PRESYM_SYM(str, num) {str,sizeof(str)-1},
 
-static const char *presym_table[] = {
+static const struct {
+  const char *name;
+  uint16_t len;
+} presym_table[] = {
 #include <../build/presym.inc>
-  NULL
+  {0,0}
 };
 
 static mrb_sym
@@ -33,9 +36,17 @@ presym_find(const char *name, size_t len)
 
   while (start<=end) {
     int mid = (start+end)/2;
-    int cmp = strncmp(name, presym_table[mid], len);
+    size_t plen = presym_table[mid].len;
+    size_t tlen = (plen > len) ? len : plen;
+    int cmp;
 
-    if (cmp == 0 && presym_table[mid][len] == '\0') {
+    cmp = memcmp(name, presym_table[mid].name, tlen);
+    if (cmp == 0) {
+      if (len > plen) cmp = 1;
+      else if (len < plen) cmp = -1;
+    }
+
+    if (cmp == 0) {
       return mid+1;
     } else if (cmp > 0) {
       start = mid+1;
@@ -47,10 +58,11 @@ presym_find(const char *name, size_t len)
 }
 
 static const char*
-presym_sym2name(mrb_sym sym)
+presym_sym2name(mrb_sym sym, mrb_int *lenp)
 {
   if (sym > MRB_PRESYM_MAX) return NULL;
-  return presym_table[sym-1];
+  if (lenp) *lenp = presym_table[sym-1].len;
+  return presym_table[sym-1].name;
 }
 
 /* ------------------------------------------------------ */
@@ -307,11 +319,8 @@ sym2name_len(mrb_state *mrb, mrb_sym sym, char *buf, mrb_int *lenp)
 
   sym >>= SYMBOL_NORMAL_SHIFT;
   {
-    const char *name = presym_sym2name(sym);
-    if (name) {
-      if (lenp) *lenp = strlen(name);
-      return name;
-    }
+    const char *name = presym_sym2name(sym, lenp);
+    if (name) return name;
   }
   sym -= MRB_PRESYM_MAX;
   
