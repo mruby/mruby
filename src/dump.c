@@ -938,9 +938,11 @@ dump_pool(mrb_state *mrb, const mrb_pool_value *p, FILE *fp)
     case IREP_TT_INT32:
       fprintf(fp, "{IREP_TT_INT32, {.i32=%"PRId32"}},\n", p->u.i32);
       break;
+#ifdef MRB_INT64
     case IREP_TT_INT64:
       fprintf(fp, "{IREP_TT_INT64, {.i64=%"PRId64"}},\n", p->u.i64);
       break;
+#endif
     case IREP_TT_FLOAT:
       if (p->u.f == 0) {
         fprintf(fp, "{IREP_TT_FLOAT, {.f=%#.1f}},\n", p->u.f);
