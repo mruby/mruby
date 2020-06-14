@@ -32,7 +32,7 @@ typedef struct mrb_pool_value {
   union {
     const char *str;
     int32_t i32;
-#ifdef MRB_INT64
+#ifdef MRB_64BIT
     int64_t i64;
 #endif
     mrb_float f;

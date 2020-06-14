@@ -113,7 +113,7 @@ get_pool_block_size(mrb_state *mrb, const mrb_irep *irep)
 
     switch (irep->pool[pool_no].tt) {
     case IREP_TT_INT64:
-#ifdef MRB_INT64
+#ifdef MRB_64BIT
       {
         int64_t i = irep->pool[pool_no].u.i64;
 
@@ -169,7 +169,7 @@ write_pool_block(mrb_state *mrb, const mrb_irep *irep, uint8_t *buf)
     int ai = mrb_gc_arena_save(mrb);
 
     switch (irep->pool[pool_no].tt) {
-#ifdef MRB_INT64
+#ifdef MRB_64BIT
     case IREP_TT_INT64:
       {
         int64_t i = irep->pool[pool_no].u.i64;
@@ -938,7 +938,7 @@ dump_pool(mrb_state *mrb, const mrb_pool_value *p, FILE *fp)
     case IREP_TT_INT32:
       fprintf(fp, "{IREP_TT_INT32, {.i32=%"PRId32"}},\n", p->u.i32);
       break;
-#ifdef MRB_INT64
+#ifdef MRB_64BIT
     case IREP_TT_INT64:
       fprintf(fp, "{IREP_TT_INT64, {.i64=%"PRId64"}},\n", p->u.i64);
       break;

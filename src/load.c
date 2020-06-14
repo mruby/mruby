@@ -137,7 +137,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
         {
           mrb_int v = (int32_t)bin_to_uint32(src);
           src += sizeof(uint32_t);
-#ifdef MRB_INT64
+#ifdef MRB_64BIT
           pool[i].tt = IREP_TT_INT64;
           pool[i].u.i64 = (int64_t)v;
 #else
@@ -147,7 +147,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
         }
         break;
       case IREP_TT_INT64:
-#ifdef MRB_INT64
+#ifdef MRB_64BIT
         {
           uint64_t i = bin_to_uint32(src);
           src += sizeof(uint32_t);
@@ -156,10 +156,10 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
           src += sizeof(uint32_t);
           pool[i].u.i64 = (int64_t)i;
         }
-#else
-        return NULL;            /* INT64 not supported on MRB_INT32 */
-#endif
         break;
+#else
+        return NULL;            /* INT64 not supported on MRB_32BIT */
+#endif
 
       case IREP_TT_FLOAT:
 #ifndef MRB_WITHOUT_FLOAT
