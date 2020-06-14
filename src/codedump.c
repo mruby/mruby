@@ -122,7 +122,7 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       case IREP_TT_INT32:
         printf("OP_LOADL\tR%d\tL(%d)\t; %" PRId32, a, b, irep->pool[b].u.i32);
         break;
-#ifdef MRB_INT64
+#ifdef MRB_64BIT
       case IREP_TT_INT64:
         printf("OP_LOADL\tR%d\tL(%d)\t; %" PRId64, a, b, irep->pool[b].u.i64);
         break;

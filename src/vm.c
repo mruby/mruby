@@ -1017,10 +1017,16 @@ RETRY_TRY_BLOCK:
       case IREP_TT_INT32:
         regs[a] = mrb_fixnum_value((mrb_int)pool[b].u.i32);
         break;
-#ifdef MRB_INT64
       case IREP_TT_INT64:
+#if defined(MRB_INT64) && defined(MRB_64BIT)
         regs[a] = mrb_fixnum_value((mrb_int)pool[b].u.i64);
         break;
+#else
+        {
+          mrb_value exc = mrb_exc_new_str_lit(mrb, E_RUNTIME_ERROR, "integer overflow");
+          mrb_exc_set(mrb, exc);
+        }
+        goto L_RAISE;
 #endif
 #ifndef MRB_WITHOUT_FLOAT
       case IREP_TT_FLOAT:

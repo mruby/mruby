@@ -588,7 +588,7 @@ new_lit(codegen_scope *s, mrb_value val)
       if (pv->tt == IREP_TT_INT32) {
         if (v == pv->u.i32) return i;
       }
-#ifdef MRB_INT64
+#ifdef MRB_64BIT
       else if (pv->tt == IREP_TT_INT64) {
         if (v == pv->u.i64) return i;
       }
