@@ -122,13 +122,12 @@ enum mrb_vtype {
   MRB_TT_STRING,      /*  16 */
   MRB_TT_RANGE,       /*  17 */
   MRB_TT_EXCEPTION,   /*  18 */
-  MRB_TT_FILE,        /*  19 */
-  MRB_TT_ENV,         /*  20 */
-  MRB_TT_DATA,        /*  21 */
-  MRB_TT_FIBER,       /*  22 */
-  MRB_TT_ISTRUCT,     /*  23 */
-  MRB_TT_BREAK,       /*  24 */
-  MRB_TT_MAXDEFINE    /*  25 */
+  MRB_TT_ENV,         /*  19 */
+  MRB_TT_DATA,        /*  20 */
+  MRB_TT_FIBER,       /*  21 */
+  MRB_TT_ISTRUCT,     /*  22 */
+  MRB_TT_BREAK,       /*  23 */
+  MRB_TT_MAXDEFINE    /*  24 */
 };
 
 #include <mruby/object.h>
@@ -239,9 +238,6 @@ struct RCptr {
 #endif
 #ifndef mrb_range_p
 #define mrb_range_p(o) (mrb_type(o) == MRB_TT_RANGE)
-#endif
-#ifndef mrb_file_p
-#define mrb_file_p(o) (mrb_type(o) == MRB_TT_FILE)
 #endif
 #ifndef mrb_env_p
 #define mrb_env_p(o) (mrb_type(o) == MRB_TT_ENV)

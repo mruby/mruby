@@ -366,7 +366,6 @@ static const struct types {
   {MRB_TT_STRING, "String"},
   {MRB_TT_RANGE,  "Range"},
 /*    {MRB_TT_BIGNUM,  "Bignum"}, */
-  {MRB_TT_FILE,   "File"},
   {MRB_TT_DATA,   "Data"},  /* internal use: wrapped C pointers */
 /*    {MRB_TT_VARMAP,  "Varmap"}, */ /* internal use: dynamic variables */
 /*    {MRB_TT_NODE,  "Node"}, */ /* internal use: syntax tree node */

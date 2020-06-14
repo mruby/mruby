@@ -89,7 +89,6 @@ os_count_objects(mrb_state *mrb, mrb_value self)
       COUNT_TYPE(T_STRING);
       COUNT_TYPE(T_RANGE);
       COUNT_TYPE(T_EXCEPTION);
-      COUNT_TYPE(T_FILE);
       COUNT_TYPE(T_ENV);
       COUNT_TYPE(T_DATA);
       COUNT_TYPE(T_FIBER);
