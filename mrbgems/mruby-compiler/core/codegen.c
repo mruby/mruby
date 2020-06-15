@@ -6,6 +6,7 @@
 
 #include <ctype.h>
 #include <limits.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -612,13 +613,13 @@ new_lit(codegen_scope *s, mrb_value val)
   switch (mrb_type(val)) {
   case MRB_TT_STRING:
     if (RSTR_NOFREE_P(RSTRING(val))) {
-      pv->tt = (RSTRING_LEN(val)<<2) | IREP_TT_SSTR;
+      pv->tt = (uint32_t)(RSTRING_LEN(val)<<2) | IREP_TT_SSTR;
       pv->u.str = RSTRING_PTR(val);
     }
     else {
       char *p;
       mrb_int len = RSTRING_LEN(val);
-      pv->tt = (len<<2) | IREP_TT_STR;
+      pv->tt = (uint32_t)(len<<2) | IREP_TT_STR;
       p = (char*)codegen_realloc(s, NULL, len+1);
       memcpy(p, RSTRING_PTR(val), len);
       p[len] = '\0';
