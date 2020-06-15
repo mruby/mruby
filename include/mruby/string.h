@@ -35,7 +35,7 @@ struct RString {
 };
 struct RStringEmbed {
   MRB_OBJECT_HEADER;
-  char ary[];
+  char ary[RSTRING_EMBED_LEN_MAX+1];
 };
 
 #define RSTR_SET_TYPE_FLAG(s, type) (RSTR_UNSET_TYPE_FLAG(s), (s)->flags |= MRB_STR_##type)
