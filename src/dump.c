@@ -956,7 +956,7 @@ dump_pool(mrb_state *mrb, const mrb_pool_value *p, FILE *fp)
   else {                        /* string */
     int i, len = p->tt>>2;
     const char *s = p->u.str;
-    fprintf(fp, "{IREP_TT_STR|(%d<<2), {.str=\"", len);
+    fprintf(fp, "{IREP_TT_STR|(%d<<2), {\"", len);
     for (i=0; i<len; i++) {
       fprintf(fp, "\\x%02x", (int)s[i]&0xff);
     }
