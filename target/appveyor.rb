@@ -33,6 +33,8 @@ MRuby::Build.new('cxx_abi') do |conf|
   toolchain :visualcpp
 
   conf.gembox 'full-core'
+  # C compiler settings
+  conf.cc.flags << "/std:c++latest"
   conf.compilers.each do |c|
     c.defines += %w(MRB_GC_FIXED_ARENA)
   end
