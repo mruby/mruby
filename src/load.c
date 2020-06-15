@@ -75,7 +75,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
   struct RData *irep_obj = mrb_data_object_alloc(mrb, mrb->object_class, NULL, &tempirep_type);
   mrb_pool_value *pool;
   mrb_sym *syms;
-  mrb_int ai = mrb_gc_arena_save(mrb);
+  int ai = mrb_gc_arena_save(mrb);
   mrb_irep *irep = mrb_add_irep(mrb);
 
   irep_obj->data = irep;
