@@ -160,7 +160,7 @@ write_pool_block(mrb_state *mrb, const mrb_irep *irep, uint8_t *buf)
 {
   int pool_no;
   uint8_t *cur = buf;
-  int len;
+  mrb_int len;
   const char *ptr;
 
   cur += uint16_to_bin(irep->plen, cur); /* number of pool */
@@ -936,11 +936,11 @@ dump_pool(mrb_state *mrb, const mrb_pool_value *p, FILE *fp)
   if (p->tt & IREP_TT_NFLAG) {  /* number */
     switch (p->tt) {
     case IREP_TT_INT32:
-      fprintf(fp, "{IREP_TT_INT32, {.i32=%"PRId32"}},\n", p->u.i32);
+      fprintf(fp, "{IREP_TT_INT32, {.i32=%" PRId32 "}},\n", p->u.i32);
       break;
 #ifdef MRB_64BIT
     case IREP_TT_INT64:
-      fprintf(fp, "{IREP_TT_INT64, {.i64=%"PRId64"}},\n", p->u.i64);
+      fprintf(fp, "{IREP_TT_INT64, {.i64=%" PRId64 "}},\n", p->u.i64);
       break;
 #endif
     case IREP_TT_FLOAT:
@@ -948,7 +948,7 @@ dump_pool(mrb_state *mrb, const mrb_pool_value *p, FILE *fp)
         fprintf(fp, "{IREP_TT_FLOAT, {.f=%#.1f}},\n", p->u.f);
       }
       else {
-        fprintf(fp, "{IREP_TT_FLOAT, {.f="MRB_FLOAT_FMT"}},\n", p->u.f);
+        fprintf(fp, "{IREP_TT_FLOAT, {.f=" MRB_FLOAT_FMT "}},\n", p->u.f);
       }
       break;
     }
