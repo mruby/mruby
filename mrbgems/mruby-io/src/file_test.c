@@ -66,11 +66,13 @@ mrb_stat(mrb_state *mrb, mrb_value obj, struct stat *st)
   return mrb_stat0(mrb, obj, st, 0);
 }
 
+#ifdef S_ISLNK
 static int
 mrb_lstat(mrb_state *mrb, mrb_value obj, struct stat *st)
 {
   return mrb_stat0(mrb, obj, st, 1);
 }
+#endif
 
 /*
  * Document-method: directory?
