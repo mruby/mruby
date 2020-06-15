@@ -103,31 +103,31 @@ static const unsigned int IEEE754_INFINITY_BITS_SINGLE = 0x7F800000;
 #endif
 
 enum mrb_vtype {
-  MRB_TT_FALSE = 0,   /*   0 */
-  MRB_TT_TRUE,        /*   1 */
-  MRB_TT_FLOAT,       /*   2 */
-  MRB_TT_FIXNUM,      /*   3 */
-  MRB_TT_SYMBOL,      /*   4 */
-  MRB_TT_UNDEF,       /*   5 */
-  MRB_TT_CPTR,        /*   6 */
-  MRB_TT_FREE,        /*   7 */
-  MRB_TT_OBJECT,      /*   8 */
-  MRB_TT_CLASS,       /*   9 */
-  MRB_TT_MODULE,      /*  10 */
-  MRB_TT_ICLASS,      /*  11 */
-  MRB_TT_SCLASS,      /*  12 */
-  MRB_TT_PROC,        /*  13 */
-  MRB_TT_ARRAY,       /*  14 */
-  MRB_TT_HASH,        /*  15 */
-  MRB_TT_STRING,      /*  16 */
-  MRB_TT_RANGE,       /*  17 */
-  MRB_TT_EXCEPTION,   /*  18 */
-  MRB_TT_ENV,         /*  19 */
-  MRB_TT_DATA,        /*  20 */
-  MRB_TT_FIBER,       /*  21 */
-  MRB_TT_ISTRUCT,     /*  22 */
-  MRB_TT_BREAK,       /*  23 */
-  MRB_TT_MAXDEFINE    /*  24 */
+  MRB_TT_FALSE = 0,
+  MRB_TT_TRUE,
+  MRB_TT_FLOAT,
+  MRB_TT_FIXNUM,
+  MRB_TT_SYMBOL,
+  MRB_TT_UNDEF,
+  MRB_TT_CPTR,
+  MRB_TT_FREE,
+  MRB_TT_OBJECT,
+  MRB_TT_CLASS,
+  MRB_TT_MODULE,
+  MRB_TT_ICLASS,
+  MRB_TT_SCLASS,
+  MRB_TT_PROC,
+  MRB_TT_ARRAY,
+  MRB_TT_HASH,
+  MRB_TT_STRING,
+  MRB_TT_RANGE,
+  MRB_TT_EXCEPTION,
+  MRB_TT_ENV,
+  MRB_TT_DATA,
+  MRB_TT_FIBER,
+  MRB_TT_ISTRUCT,
+  MRB_TT_BREAK,
+  MRB_TT_MAXDEFINE
 };
 
 #include <mruby/object.h>
