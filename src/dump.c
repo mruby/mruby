@@ -1086,8 +1086,8 @@ mrb_dump_irep_cstruct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE 
   }
   n = dump_irep_struct(mrb, irep, flags, fp, initname, 0, &max);
   if (n != MRB_DUMP_OK) return n;
-  fprintf(fp, "#ifdef __cplusplus\nextern struct RProc %s[];\n#endif\n", initname);
-  fprintf(fp, "struct RProc %s[] = {{\n", initname);
+  fprintf(fp, "#ifdef __cplusplus\nextern const struct RProc %s[];\n#endif\n", initname);
+  fprintf(fp, "const struct RProc %s[] = {{\n", initname);
   fprintf(fp, "NULL,NULL,MRB_TT_PROC,7,0,{&%s_irep_0},NULL,{NULL},\n}};\n", initname);
   return MRB_DUMP_OK;
 }
