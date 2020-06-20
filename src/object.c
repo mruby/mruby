@@ -47,6 +47,17 @@ mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
   mrb_value result;
 
   if (mrb_obj_eq(mrb, obj1, obj2)) return TRUE;
+#ifndef MRB_WITHOUT_FLOAT
+  /* value mixing with integer and float */
+  if (mrb_fixnum_p(obj1)) {
+    if (mrb_float_p(obj2) && (mrb_float)mrb_fixnum(obj1) == mrb_float(obj2))
+      return TRUE;
+  }
+  else if (mrb_float_p(obj1)) {
+    if (mrb_fixnum_p(obj2) && mrb_float(obj1) == (mrb_float)mrb_fixnum(obj2))
+      return TRUE;
+  }
+#endif
   result = mrb_funcall(mrb, obj1, "==", 1, obj2);
   if (mrb_test(result)) return TRUE;
   return FALSE;
