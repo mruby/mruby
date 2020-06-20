@@ -842,7 +842,7 @@ retry:
       case 'B':
       case 'u': {
         mrb_value val = GETARG();
-        char nbuf[68], *s;
+        char nbuf[69], *s;
         const char *prefix = NULL;
         int sign = 0, dots = 0;
         char sc = 0;
@@ -914,7 +914,7 @@ retry:
             width--;
           }
           mrb_assert(base == 10);
-          mrb_int2str(nbuf, sizeof(nbuf), v);
+          mrb_int2str(nbuf, sizeof(nbuf)-1, v);
           s = nbuf;
           if (v < 0) s++;       /* skip minus sign */
         }
@@ -927,7 +927,7 @@ retry:
           else {
             val = mrb_fixnum_to_str(mrb, mrb_fixnum_value(v), base);
           }
-          strncpy(++s, RSTRING_PTR(val), sizeof(nbuf)-1);
+          strncpy(++s, RSTRING_PTR(val), sizeof(nbuf)-2);
           if (v < 0) {
             char d;
 
