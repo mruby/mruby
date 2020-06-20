@@ -211,9 +211,8 @@ mrb_proc_s_new(mrb_state *mrb, mrb_value proc_class)
 static mrb_value
 mrb_proc_init_copy(mrb_state *mrb, mrb_value self)
 {
-  mrb_value proc;
+  mrb_value proc = mrb_get_arg1(mrb);
 
-  mrb_get_args(mrb, "o", &proc);
   if (!mrb_proc_p(proc)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "not a proc");
   }

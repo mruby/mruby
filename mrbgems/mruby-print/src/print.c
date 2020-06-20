@@ -45,9 +45,8 @@ printstr(mrb_state *mrb, mrb_value obj)
 mrb_value
 mrb_printstr(mrb_state *mrb, mrb_value self)
 {
-  mrb_value argv;
+  mrb_value argv = mrb_get_arg1(mrb);
 
-  mrb_get_args(mrb, "o", &argv);
   printstr(mrb, argv);
 
   return argv;

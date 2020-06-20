@@ -164,9 +164,8 @@ mrb_str_swapcase(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_str_concat_m(mrb_state *mrb, mrb_value self)
 {
-  mrb_value str;
+  mrb_value str = mrb_get_arg1(mrb);
 
-  mrb_get_args(mrb, "o", &str);
   if (mrb_fixnum_p(str) || mrb_float_p(str))
 #ifdef MRB_UTF8_STRING
     str = int_chr_utf8(mrb, str);

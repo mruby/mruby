@@ -1038,10 +1038,9 @@ mrb_ary_last(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_ary_index_m(mrb_state *mrb, mrb_value self)
 {
-  mrb_value obj;
+  mrb_value obj = mrb_get_arg1(mrb);
   mrb_int i;
 
-  mrb_get_args(mrb, "o", &obj);
   for (i = 0; i < RARRAY_LEN(self); i++) {
     if (mrb_equal(mrb, RARRAY_PTR(self)[i], obj)) {
       return mrb_fixnum_value(i);
@@ -1053,10 +1052,9 @@ mrb_ary_index_m(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_ary_rindex_m(mrb_state *mrb, mrb_value self)
 {
-  mrb_value obj;
+  mrb_value obj = mrb_get_arg1(mrb);
   mrb_int i, len;
 
-  mrb_get_args(mrb, "o", &obj);
   for (i = RARRAY_LEN(self) - 1; i >= 0; i--) {
     if (mrb_equal(mrb, RARRAY_PTR(self)[i], obj)) {
       return mrb_fixnum_value(i);
@@ -1230,9 +1228,8 @@ mrb_ary_join_m(mrb_state *mrb, mrb_value ary)
 static mrb_value
 mrb_ary_eq(mrb_state *mrb, mrb_value ary1)
 {
-  mrb_value ary2;
+  mrb_value ary2 = mrb_get_arg1(mrb);
 
-  mrb_get_args(mrb, "o", &ary2);
   if (mrb_obj_equal(mrb, ary1, ary2)) return mrb_true_value();
   if (!mrb_array_p(ary2)) {
     return mrb_false_value();
@@ -1245,9 +1242,8 @@ mrb_ary_eq(mrb_state *mrb, mrb_value ary1)
 static mrb_value
 mrb_ary_cmp(mrb_state *mrb, mrb_value ary1)
 {
-  mrb_value ary2;
+  mrb_value ary2 = mrb_get_arg1(mrb);
 
-  mrb_get_args(mrb, "o", &ary2);
   if (mrb_obj_equal(mrb, ary1, ary2)) return mrb_fixnum_value(0);
   if (!mrb_array_p(ary2)) {
     return mrb_nil_value();

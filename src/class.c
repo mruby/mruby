@@ -549,6 +549,23 @@ mrb_get_argv(mrb_state *mrb)
   return array_argv;
 }
 
+MRB_API mrb_value
+mrb_get_arg1(mrb_state *mrb)
+{
+  mrb_int argc = mrb->c->ci->argc;
+  mrb_value *array_argv = mrb->c->stack + 1;
+  if (argc < 0) {
+    struct RArray *a = mrb_ary_ptr(*array_argv);
+
+    argc = ARY_LEN(a);
+    array_argv = ARY_PTR(a);
+  }
+  if (argc != 1) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
+  }
+  return array_argv[0];
+}
+
 void mrb_hash_check_kdict(mrb_state *mrb, mrb_value self);
 
 /*
@@ -1212,10 +1229,9 @@ mrb_mod_ancestors(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_mod_extend_object(mrb_state *mrb, mrb_value mod)
 {
-  mrb_value obj;
+  mrb_value obj = mrb_get_arg1(mrb);
 
   mrb_check_type(mrb, mod, MRB_TT_MODULE);
-  mrb_get_args(mrb, "o", &obj);
   mrb_include_module(mrb, mrb_class_ptr(mrb_singleton_class(mrb, obj)), mrb_class_ptr(mod));
   return mod;
 }
@@ -1493,9 +1509,8 @@ static mrb_value
 attr_writer(mrb_state *mrb, mrb_value obj)
 {
   mrb_value name = mrb_proc_cfunc_env_get(mrb, 0);
-  mrb_value val;
+  mrb_value val = mrb_get_arg1(mrb);
 
-  mrb_get_args(mrb, "o", &val);
   mrb_iv_set(mrb, obj, to_sym(mrb, name), val);
   return val;
 }
@@ -1663,18 +1678,16 @@ mrb_bob_not(mrb_state *mrb, mrb_value cv)
 mrb_value
 mrb_obj_equal_m(mrb_state *mrb, mrb_value self)
 {
-  mrb_value arg;
+  mrb_value arg = mrb_get_arg1(mrb);
 
-  mrb_get_args(mrb, "o", &arg);
   return mrb_bool_value(mrb_obj_equal(mrb, self, arg));
 }
 
 static mrb_value
 mrb_obj_not_equal_m(mrb_state *mrb, mrb_value self)
 {
-  mrb_value arg;
+  mrb_value arg = mrb_get_arg1(mrb);
 
-  mrb_get_args(mrb, "o", &arg);
   return mrb_bool_value(!mrb_equal(mrb, self, arg));
 }
 
@@ -1975,12 +1988,10 @@ mrb_const_get_sym(mrb_state *mrb, mrb_value mod, mrb_sym id)
 static mrb_value
 mrb_mod_const_get(mrb_state *mrb, mrb_value mod)
 {
-  mrb_value path;
+  mrb_value path = mrb_get_arg1(mrb);
   mrb_sym id;
   char *ptr;
   mrb_int off, end, len;
-
-  mrb_get_args(mrb, "o", &path);
 
   if (mrb_symbol_p(path)) {
     /* const get with symbol */
@@ -2134,10 +2145,9 @@ top_define_method(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_mod_eqq(mrb_state *mrb, mrb_value mod)
 {
-  mrb_value obj;
+  mrb_value obj = mrb_get_arg1(mrb);
   mrb_bool eqq;
 
-  mrb_get_args(mrb, "o", &obj);
   eqq = mrb_obj_is_kind_of(mrb, obj, mrb_class_ptr(mod));
 
   return mrb_bool_value(eqq);

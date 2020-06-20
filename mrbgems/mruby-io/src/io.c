@@ -599,13 +599,12 @@ mrb_dup(mrb_state *mrb, int fd, mrb_bool *failed)
 static mrb_value
 mrb_io_initialize_copy(mrb_state *mrb, mrb_value copy)
 {
-  mrb_value orig;
+  mrb_value orig = mrb_get_arg1(mrb);
   mrb_value buf;
   struct mrb_io *fptr_copy;
   struct mrb_io *fptr_orig;
   mrb_bool failed = TRUE;
 
-  mrb_get_args(mrb, "o", &orig);
   fptr_orig = io_get_open_fptr(mrb, orig);
   fptr_copy = (struct mrb_io *)DATA_PTR(copy);
   if (fptr_orig == fptr_copy) return copy;

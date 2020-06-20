@@ -1061,10 +1061,9 @@ mrb_str_cmp(mrb_state *mrb, mrb_value str1, mrb_value str2)
 static mrb_value
 mrb_str_cmp_m(mrb_state *mrb, mrb_value str1)
 {
-  mrb_value str2;
+  mrb_value str2 = mrb_get_arg1(mrb);
   mrb_int result;
 
-  mrb_get_args(mrb, "o", &str2);
   if (!mrb_string_p(str2)) {
     return mrb_nil_value();
   }
@@ -1106,9 +1105,7 @@ mrb_str_equal(mrb_state *mrb, mrb_value str1, mrb_value str2)
 static mrb_value
 mrb_str_equal_m(mrb_state *mrb, mrb_value str1)
 {
-  mrb_value str2;
-
-  mrb_get_args(mrb, "o", &str2);
+  mrb_value str2 = mrb_get_arg1(mrb);
 
   return mrb_bool_value(mrb_str_equal(mrb, str1, str2));
 }
@@ -1791,10 +1788,9 @@ mrb_str_empty_p(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_str_eql(mrb_state *mrb, mrb_value self)
 {
-  mrb_value str2;
+  mrb_value str2 = mrb_get_arg1(mrb);
   mrb_bool eql_p;
 
-  mrb_get_args(mrb, "o", &str2);
   eql_p = (mrb_string_p(str2)) && str_eql(mrb, self, str2);
 
   return mrb_bool_value(eql_p);

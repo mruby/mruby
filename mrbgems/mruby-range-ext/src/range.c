@@ -34,11 +34,9 @@ r_lt(mrb_state *mrb, mrb_value a, mrb_value b)
 static mrb_value
 range_cover(mrb_state *mrb, mrb_value range)
 {
-  mrb_value val;
   struct RRange *r = mrb_range_ptr(mrb, range);
+  mrb_value val = mrb_get_arg1(mrb);
   mrb_value beg, end;
-
-  mrb_get_args(mrb, "o", &val);
 
   beg = RANGE_BEG(r);
   end = RANGE_END(r);

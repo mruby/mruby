@@ -959,7 +959,20 @@ mrb_get_mid(mrb_state *mrb) /* get method symbol */
  */
 MRB_API mrb_int mrb_get_argc(mrb_state *mrb);
 
+/**
+ * Retrieve an array of arguments from mrb_state.
+ *
+ * Correctly handles *splat arguments.
+ */
 MRB_API mrb_value* mrb_get_argv(mrb_state *mrb);
+
+/**
+ * Retrieve the first and only argument from mrb_state.
+ * Raises ArgumentError unless the number of arguments is exactly one.
+ *
+ * Correctly handles *splat arguments.
+ */
+MRB_API mrb_value mrb_get_arg1(mrb_state *mrb);
 
 /* `strlen` for character string literals (use with caution or `strlen` instead)
     Adjacent string literals are concatenated in C/C++ in translation phase 6.

@@ -291,8 +291,7 @@ mrb_fiber_alive_p(mrb_state *mrb, mrb_value self)
 static mrb_value
 fiber_eq(mrb_state *mrb, mrb_value self)
 {
-  mrb_value other;
-  mrb_get_args(mrb, "o", &other);
+  mrb_value other = mrb_get_arg1(mrb);
 
   if (!mrb_fiber_p(other)) {
     return mrb_false_value();

@@ -182,10 +182,8 @@ range_eq(mrb_state *mrb, mrb_value range)
 {
   struct RRange *rr;
   struct RRange *ro;
-  mrb_value obj;
+  mrb_value obj = mrb_get_arg1(mrb);
   mrb_bool v1, v2;
-
-  mrb_get_args(mrb, "o", &obj);
 
   if (mrb_obj_equal(mrb, range, obj)) return mrb_true_value();
   if (!mrb_obj_is_instance_of(mrb, obj, mrb_obj_class(mrb, range))) { /* same class? */
@@ -211,12 +209,10 @@ range_eq(mrb_state *mrb, mrb_value range)
 static mrb_value
 range_include(mrb_state *mrb, mrb_value range)
 {
-  mrb_value val;
+  mrb_value val = mrb_get_arg1(mrb);
   struct RRange *r = mrb_range_ptr(mrb, range);
   mrb_value beg, end;
   mrb_bool include_p;
-
-  mrb_get_args(mrb, "o", &val);
 
   beg = RANGE_BEG(r);
   end = RANGE_END(r);
@@ -289,10 +285,8 @@ range_inspect(mrb_state *mrb, mrb_value range)
 static mrb_value
 range_eql(mrb_state *mrb, mrb_value range)
 {
-  mrb_value obj;
+  mrb_value obj = mrb_get_arg1(mrb);
   struct RRange *r, *o;
-
-  mrb_get_args(mrb, "o", &obj);
 
   if (mrb_obj_equal(mrb, range, obj)) return mrb_true_value();
   if (!mrb_obj_is_kind_of(mrb, obj, mrb->range_class)) return mrb_false_value();
@@ -312,10 +306,8 @@ range_eql(mrb_state *mrb, mrb_value range)
 static mrb_value
 range_initialize_copy(mrb_state *mrb, mrb_value copy)
 {
-  mrb_value src;
+  mrb_value src = mrb_get_arg1(mrb);
   struct RRange *r;
-
-  mrb_get_args(mrb, "o", &src);
 
   if (mrb_obj_equal(mrb, copy, src)) return copy;
   if (!mrb_obj_is_instance_of(mrb, src, mrb_obj_class(mrb, copy))) {

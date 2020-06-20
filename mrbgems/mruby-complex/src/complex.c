@@ -174,7 +174,7 @@ div_pair(struct float_pair *q, struct float_pair const *a,
 static mrb_value
 complex_div(mrb_state *mrb, mrb_value self)
 {
-  mrb_value rhs;
+  mrb_value rhs = mrb_get_arg1(mrb);
   struct mrb_complex *a, *b;
   struct float_pair ar, ai, br, bi;
   struct float_pair br2, bi2;
@@ -183,7 +183,6 @@ complex_div(mrb_state *mrb, mrb_value self)
   struct float_pair ai_br, ar_bi;
   struct float_pair zr, zi;
 
-  mrb_get_args(mrb, "o", &rhs);
   a = complex_ptr(mrb, self);
   b = complex_ptr(mrb, rhs);
 

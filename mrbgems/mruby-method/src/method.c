@@ -33,9 +33,8 @@ unbound_method_bind(mrb_state *mrb, mrb_value self)
   mrb_value name = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "_name"));
   mrb_value proc = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "_proc"));
   mrb_value klass = mrb_iv_get(mrb, self, mrb_intern_lit(mrb, "_klass"));
-  mrb_value recv;
+  mrb_value recv = mrb_get_arg1(mrb);
 
-  mrb_get_args(mrb, "o", &recv);
   bind_check(mrb, recv, owner);
   me = method_object_alloc(mrb, mrb_class_get(mrb, "Method"));
   mrb_obj_iv_set(mrb, me, mrb_intern_lit(mrb, "_owner"), owner);
@@ -51,11 +50,11 @@ unbound_method_bind(mrb_state *mrb, mrb_value self)
 static mrb_value
 method_eql(mrb_state *mrb, mrb_value self)
 {
-  mrb_value other, receiver, orig_proc, other_proc;
+  mrb_value other = mrb_get_arg1(mrb);
+  mrb_value receiver, orig_proc, other_proc;
   struct RClass *owner, *klass;
   struct RProc *orig_rproc, *other_rproc;
 
-  mrb_get_args(mrb, "o", &other);
   if (!mrb_obj_is_instance_of(mrb, other, mrb_class(mrb, self)))
     return mrb_false_value();
 

@@ -492,10 +492,9 @@ mrb_file_truncate(mrb_state *mrb, mrb_value self)
 {
   int fd;
   mrb_int length;
-  mrb_value lenv;
+  mrb_value lenv = mrb_get_arg1(mrb);
 
   fd = mrb_io_fileno(mrb, self);
-  mrb_get_args(mrb, "o", &lenv);
   length = mrb_int(mrb, lenv);
   if (mrb_ftruncate(fd, length) != 0) {
     mrb_raise(mrb, E_IO_ERROR, "ftruncate failed");

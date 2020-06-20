@@ -160,9 +160,8 @@ set_backtrace(mrb_state *mrb, mrb_value exc, mrb_value backtrace)
 static mrb_value
 exc_set_backtrace(mrb_state *mrb, mrb_value exc)
 {
-  mrb_value backtrace;
+  mrb_value backtrace = mrb_get_arg1(mrb);
 
-  mrb_get_args(mrb, "o", &backtrace);
   set_backtrace(mrb, exc, backtrace);
   return backtrace;
 }

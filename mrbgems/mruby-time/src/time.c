@@ -515,11 +515,10 @@ time_get_ptr(mrb_state *mrb, mrb_value time)
 static mrb_value
 mrb_time_eq(mrb_state *mrb, mrb_value self)
 {
-  mrb_value other;
+  mrb_value other = mrb_get_arg1(mrb);
   struct mrb_time *tm1, *tm2;
   mrb_bool eq_p;
 
-  mrb_get_args(mrb, "o", &other);
   tm1 = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
   tm2 = DATA_CHECK_GET_PTR(mrb, other, &mrb_time_type, struct mrb_time);
   eq_p = tm1 && tm2 && tm1->sec == tm2->sec && tm1->usec == tm2->usec;
@@ -530,10 +529,9 @@ mrb_time_eq(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_time_cmp(mrb_state *mrb, mrb_value self)
 {
-  mrb_value other;
+  mrb_value other = mrb_get_arg1(mrb);
   struct mrb_time *tm1, *tm2;
 
-  mrb_get_args(mrb, "o", &other);
   tm1 = DATA_GET_PTR(mrb, self, &mrb_time_type, struct mrb_time);
   tm2 = DATA_CHECK_GET_PTR(mrb, other, &mrb_time_type, struct mrb_time);
   if (!tm1 || !tm2) return mrb_nil_value();
@@ -556,11 +554,10 @@ mrb_time_cmp(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_time_plus(mrb_state *mrb, mrb_value self)
 {
-  mrb_value o;
+  mrb_value o = mrb_get_arg1(mrb);
   struct mrb_time *tm;
   time_t sec, usec;
 
-  mrb_get_args(mrb, "o", &o);
   tm = time_get_ptr(mrb, self);
   sec = mrb_to_time_t(mrb, o, &usec);
   return mrb_time_make_time(mrb, mrb_obj_class(mrb, self), tm->sec+sec, tm->usec+usec, tm->timezone);
@@ -569,10 +566,9 @@ mrb_time_plus(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_time_minus(mrb_state *mrb, mrb_value self)
 {
-  mrb_value other;
+  mrb_value other = mrb_get_arg1(mrb);
   struct mrb_time *tm, *tm2;
 
-  mrb_get_args(mrb, "o", &other);
   tm = time_get_ptr(mrb, self);
   tm2 = DATA_CHECK_GET_PTR(mrb, other, &mrb_time_type, struct mrb_time);
   if (tm2) {
@@ -770,10 +766,9 @@ mrb_time_initialize(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_time_initialize_copy(mrb_state *mrb, mrb_value copy)
 {
-  mrb_value src;
+  mrb_value src = mrb_get_arg1(mrb);
   struct mrb_time *t1, *t2;
 
-  mrb_get_args(mrb, "o", &src);
   if (mrb_obj_equal(mrb, copy, src)) return copy;
   if (!mrb_obj_is_instance_of(mrb, src, mrb_obj_class(mrb, copy))) {
     mrb_raise(mrb, E_TYPE_ERROR, "wrong argument class");

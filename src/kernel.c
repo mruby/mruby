@@ -71,9 +71,8 @@ mrb_obj_inspect(mrb_state *mrb, mrb_value obj)
 static mrb_value
 mrb_equal_m(mrb_state *mrb, mrb_value self)
 {
-  mrb_value arg;
+  mrb_value arg = mrb_get_arg1(mrb);
 
-  mrb_get_args(mrb, "o", &arg);
   return mrb_bool_value(mrb_equal(mrb, self, arg));
 }
 
@@ -471,9 +470,8 @@ mrb_obj_hash(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_obj_init_copy(mrb_state *mrb, mrb_value self)
 {
-  mrb_value orig;
+  mrb_value orig = mrb_get_arg1(mrb);
 
-  mrb_get_args(mrb, "o", &orig);
   if (mrb_obj_equal(mrb, self, orig)) return self;
   if ((mrb_type(self) != mrb_type(orig)) || (mrb_obj_class(mrb, self) != mrb_obj_class(mrb, orig))) {
       mrb_raise(mrb, E_TYPE_ERROR, "initialize_copy should take same class object");
@@ -744,12 +742,11 @@ obj_respond_to(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_obj_ceqq(mrb_state *mrb, mrb_value self)
 {
-  mrb_value v;
+  mrb_value v = mrb_get_arg1(mrb);
   mrb_int i, len;
   mrb_sym eqq = mrb_intern_lit(mrb, "===");
   mrb_value ary = mrb_ary_splat(mrb, self);
 
-  mrb_get_args(mrb, "o", &v);
   len = RARRAY_LEN(ary);
   for (i=0; i<len; i++) {
     mrb_value c = mrb_funcall_argv(mrb, mrb_ary_entry(ary, i), eqq, 1, &v);

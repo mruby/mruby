@@ -28,9 +28,8 @@ static mrb_value
 mrb_ary_assoc(mrb_state *mrb, mrb_value ary)
 {
   mrb_int i;
-  mrb_value v, k;
-
-  mrb_get_args(mrb, "o", &k);
+  mrb_value v;
+  mrb_value k = mrb_get_arg1(mrb);
 
   for (i = 0; i < RARRAY_LEN(ary); ++i) {
     v = mrb_check_array_type(mrb, RARRAY_PTR(ary)[i]);
@@ -59,9 +58,8 @@ static mrb_value
 mrb_ary_rassoc(mrb_state *mrb, mrb_value ary)
 {
   mrb_int i;
-  mrb_value v, value;
-
-  mrb_get_args(mrb, "o", &value);
+  mrb_value v;
+  mrb_value value = mrb_get_arg1(mrb);
 
   for (i = 0; i < RARRAY_LEN(ary); ++i) {
     v = RARRAY_PTR(ary)[i];
