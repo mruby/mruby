@@ -1683,14 +1683,6 @@ mrb_obj_equal_m(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(mrb_obj_equal(mrb, self, arg));
 }
 
-static mrb_value
-mrb_obj_not_equal_m(mrb_state *mrb, mrb_value self)
-{
-  mrb_value arg = mrb_get_arg1(mrb);
-
-  return mrb_bool_value(!mrb_equal(mrb, self, arg));
-}
-
 MRB_API mrb_bool
 mrb_obj_respond_to(mrb_state *mrb, struct RClass* c, mrb_sym mid)
 {
@@ -2282,7 +2274,6 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, bob, "initialize",              mrb_bob_init,             MRB_ARGS_NONE());
   mrb_define_method(mrb, bob, "!",                       mrb_bob_not,              MRB_ARGS_NONE());
   mrb_define_method(mrb, bob, "==",                      mrb_obj_equal_m,          MRB_ARGS_REQ(1)); /* 15.3.1.3.1  */
-  mrb_define_method(mrb, bob, "!=",                      mrb_obj_not_equal_m,      MRB_ARGS_REQ(1));
   mrb_define_method(mrb, bob, "__id__",                  mrb_obj_id_m,             MRB_ARGS_NONE()); /* 15.3.1.3.4  */
   mrb_define_method(mrb, bob, "__send__",                mrb_f_send,               MRB_ARGS_REQ(1)|MRB_ARGS_REST()|MRB_ARGS_BLOCK());  /* 15.3.1.3.5  */
   mrb_define_method(mrb, bob, "equal?",                  mrb_obj_equal_m,          MRB_ARGS_REQ(1)); /* 15.3.1.3.11 */
