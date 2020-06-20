@@ -91,8 +91,8 @@ module Kernel
   end
 
   [:+, :-, :*, :/, :<=>, :==, :<, :<=, :>, :>=].each do |op|
+    original_operator_name = :"__original_operator_#{op}_rational"
     Fixnum.instance_eval do
-      original_operator_name = "__original_operator_#{op}_rational"
       alias_method original_operator_name, op
       define_method op do |rhs|
         if rhs.is_a? Rational
@@ -103,7 +103,6 @@ module Kernel
       end
     end
     Float.instance_eval do
-      original_operator_name = "__original_operator_#{op}_rational"
       alias_method original_operator_name, op
       define_method op do |rhs|
         if rhs.is_a? Rational
@@ -114,4 +113,3 @@ module Kernel
     end if Object.const_defined?(:Float)
   end
 end
-

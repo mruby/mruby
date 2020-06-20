@@ -107,7 +107,7 @@ class Complex < Numeric
   [Fixnum, Float].each do |cls|
     [:+, :-, :*, :/, :==].each do |op|
       cls.instance_eval do
-        original_operator_name = "__original_operator_#{op}_complex"
+        original_operator_name = :"__original_operator_#{op}_complex"
         alias_method original_operator_name, op
         define_method op do |rhs|
           if rhs.is_a? Complex
