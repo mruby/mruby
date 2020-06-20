@@ -2309,27 +2309,20 @@ static const mrb_code new_iseq[] = {
   OP_RETURN, 0x0             /* OP_RETURN    R0 */
 };
 
+const mrb_sym new_syms[] = { MRB_SYM(allocate), MRB_SYM(initialize) };
+static const mrb_irep new_irep = {
+  3, 6, MRB_IREP_STATIC,
+  new_iseq, NULL, new_syms, NULL, NULL, NULL,
+  sizeof(new_iseq), 0, 2, 0, 0,
+};
+
 static void
 init_class_new(mrb_state *mrb, struct RClass *cls)
 {
   struct RProc *p;
   mrb_method_t m;
-  mrb_irep *new_irep = (mrb_irep*)mrb_malloc(mrb, sizeof(mrb_irep));
-  mrb_sym *syms;
-  static const mrb_irep mrb_irep_zero = { 0 };
 
-  *new_irep = mrb_irep_zero;
-  syms = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym)*2);
-  syms[0] = MRB_SYM(allocate);
-  syms[1] = MRB_SYM(initialize);
-  new_irep->syms = syms;
-  new_irep->slen = 2;
-  new_irep->flags = MRB_ISEQ_NO_FREE;
-  new_irep->iseq = new_iseq;
-  new_irep->ilen = sizeof(new_iseq);
-  new_irep->nregs = 6;
-  new_irep->nlocals = 3;
-  p = mrb_proc_new(mrb, new_irep);
+  p = mrb_proc_new(mrb, &new_irep);
   MRB_METHOD_FROM_PROC(m, p);
   mrb_define_method_raw(mrb, cls, MRB_SYM(new), m);
 }
