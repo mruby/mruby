@@ -866,10 +866,12 @@ static mrb_value
 mrb_ary_aget(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
-  mrb_int i, len, alen;
+  mrb_int i;
+  mrb_int len, alen;
   mrb_value index;
 
-  if (mrb_get_args(mrb, "o|i", &index, &len) == 1) {
+  if (mrb_get_argc(mrb) == 1) {
+    index = mrb_get_arg1(mrb);
     switch (mrb_type(index)) {
       /* a[n..m] */
     case MRB_TT_RANGE:
@@ -886,6 +888,7 @@ mrb_ary_aget(mrb_state *mrb, mrb_value self)
     }
   }
 
+  mrb_get_args(mrb, "oi", &index, &len);
   i = aget_index(mrb, index);
   alen = ARY_LEN(a);
   if (i < 0) i += alen;
@@ -939,7 +942,10 @@ mrb_ary_aset(mrb_state *mrb, mrb_value self)
   mrb_int i, len;
 
   mrb_ary_modify(mrb, mrb_ary_ptr(self));
-  if (mrb_get_args(mrb, "oo|o", &v1, &v2, &v3) == 2) {
+  if (mrb_get_argc(mrb) == 2) {
+    mrb_value *vs = mrb_get_argv(mrb);
+    v1 = vs[0]; v2 = vs[1];
+
     /* a[n..m] = v */
     switch (mrb_range_beg_len(mrb, v1, &i, &len, RARRAY_LEN(self), FALSE)) {
     case MRB_RANGE_TYPE_MISMATCH:
@@ -955,6 +961,7 @@ mrb_ary_aset(mrb_state *mrb, mrb_value self)
     return v2;
   }
 
+  mrb_get_args(mrb, "ooo", &v1, &v2, &v3);
   /* a[n,m] = v */
   mrb_ary_splice(mrb, self, aget_index(mrb, v1), aget_index(mrb, v2), v3);
   return v3;
