@@ -138,9 +138,8 @@ mrb_ary_slice_bang(mrb_state *mrb, mrb_value self)
   mrb_ary_modify(mrb, a);
 
   if (mrb_get_argc(mrb) == 1) {
-    mrb_value index;
+    mrb_value index = mrb_get_arg1(mrb);
 
-    mrb_get_args(mrb, "o|i", &index, &len);
     switch (mrb_type(index)) {
     case MRB_TT_RANGE:
       if (mrb_range_beg_len(mrb, index, &i, &len, ARY_LEN(a), TRUE) == MRB_RANGE_OK) {

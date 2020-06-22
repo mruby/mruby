@@ -2885,25 +2885,32 @@ mrb_str_setbyte(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_byteslice(mrb_state *mrb, mrb_value str)
 {
-  mrb_value a1, a2;
+  mrb_value a1;
   mrb_int str_len = RSTRING_LEN(str), beg, len;
   mrb_bool empty = TRUE;
 
-  if (mrb_get_args(mrb, "o|o", &a1, &a2) == 2) {
-    beg = mrb_fixnum(mrb_to_int(mrb, a1));
-    len = mrb_fixnum(mrb_to_int(mrb, a2));
-  }
-  else if (mrb_range_p(a1)) {
-    if (mrb_range_beg_len(mrb, a1, &beg, &len, str_len, TRUE) != MRB_RANGE_OK) {
-      return mrb_nil_value();
+  len = mrb_get_argc(mrb);
+  switch (len) {
+  case 2:
+    mrb_get_args(mrb, "ii", &beg, &len);
+    break;
+  case 1:
+    a1 = mrb_get_arg1(mrb);
+    if (mrb_range_p(a1)) {
+      if (mrb_range_beg_len(mrb, a1, &beg, &len, str_len, TRUE) != MRB_RANGE_OK) {
+        return mrb_nil_value();
+      }
     }
+    else {
+      beg = mrb_fixnum(mrb_to_int(mrb, a1));
+      len = 1;
+      empty = FALSE;
+    }
+    break;
+  default:
+    mrb_argnum_error(mrb, len, 1, 2);
+    break;
   }
-  else {
-    beg = mrb_fixnum(mrb_to_int(mrb, a1));
-    len = 1;
-    empty = FALSE;
-  }
-
   if (mrb_str_beg_len(str_len, &beg, &len) && (empty || len != 0)) {
     return mrb_str_byte_subseq(mrb, str, beg, len);
   }
