@@ -419,7 +419,6 @@ value_int64(mrb_state *mrb, mrb_value x)
   switch (mrb_type(x)) {
   case MRB_TT_FIXNUM:
     return (int64_t)mrb_fixnum(x);
-    break;
   case MRB_TT_FLOAT:
     return (int64_t)mrb_float(x);
   default:
