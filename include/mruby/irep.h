@@ -53,7 +53,7 @@ typedef struct mrb_irep {
   const mrb_code *iseq;
   const mrb_pool_value *pool;
   const mrb_sym *syms;
-  const struct mrb_irep **reps;
+  const struct mrb_irep * const *reps;
 
   const struct mrb_lvinfo *lv;
   /* debug info */
