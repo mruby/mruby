@@ -53,19 +53,13 @@ static char *
 get_outfilename(mrb_state *mrb, char *infile, const char *ext)
 {
   size_t infilelen;
-  size_t extlen;
+  size_t flen;
   char *outfile;
-  char *p;
 
   infilelen = strlen(infile);
-  extlen = strlen(ext);
-  outfile = (char*)mrb_malloc(mrb, infilelen + extlen + 1);
-  memcpy(outfile, infile, infilelen + 1);
-  if (*ext) {
-    if ((p = strrchr(outfile, '.')) == NULL)
-      p = outfile + infilelen;
-    memcpy(p, ext, extlen + 1);
-  }
+  flen = infilelen + strlen(ext) + 1;
+  outfile = (char*)mrb_malloc(mrb, flen);
+  snprintf(outfile, flen, "%s%s", infile, ext);
 
   return outfile;
 }
