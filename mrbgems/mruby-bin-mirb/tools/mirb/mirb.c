@@ -649,8 +649,8 @@ main(int argc, char **argv)
         /* adjust stack length of toplevel environment */
         if (mrb->c->cibase->env) {
           struct REnv *e = mrb->c->cibase->env;
-          if (e && MRB_ENV_STACK_LEN(e) < proc->body.irep->nlocals) {
-            MRB_ENV_SET_STACK_LEN(e, proc->body.irep->nlocals);
+          if (e && MRB_ENV_LEN(e) < proc->body.irep->nlocals) {
+            MRB_ENV_SET_LEN(e, proc->body.irep->nlocals);
           }
         }
         /* pass a proc for evaluation */

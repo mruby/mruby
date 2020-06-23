@@ -152,7 +152,7 @@ envadjust(mrb_state *mrb, mrb_value *oldbase, mrb_value *newbase, size_t oldsize
     struct REnv *e = ci->env;
     mrb_value *st;
 
-    if (e && MRB_ENV_STACK_SHARED_P(e) &&
+    if (e && MRB_ENV_ONSTACK_P(e) &&
         (st = e->stack) && oldbase <= st && st < oldbase+oldsize) {
       ptrdiff_t off = e->stack - oldbase;
 
@@ -162,7 +162,7 @@ envadjust(mrb_state *mrb, mrb_value *oldbase, mrb_value *newbase, size_t oldsize
     if (ci->proc && MRB_PROC_ENV_P(ci->proc) && ci->env != MRB_PROC_ENV(ci->proc)) {
       e = MRB_PROC_ENV(ci->proc);
 
-      if (e && MRB_ENV_STACK_SHARED_P(e) &&
+      if (e && MRB_ENV_ONSTACK_P(e) &&
           (st = e->stack) && oldbase <= st && st < oldbase+oldsize) {
         ptrdiff_t off = e->stack - oldbase;
 
@@ -297,10 +297,10 @@ mrb_env_unshare(mrb_state *mrb, struct REnv *e)
 {
   if (e == NULL) return;
   else {
-    size_t len = (size_t)MRB_ENV_STACK_LEN(e);
+    size_t len = (size_t)MRB_ENV_LEN(e);
     mrb_value *p;
 
-    if (!MRB_ENV_STACK_SHARED_P(e)) return;
+    if (!MRB_ENV_ONSTACK_P(e)) return;
     if (e->cxt != mrb->c) return;
     if (e == mrb->c->cibase->env) return; /* for mirb */
     p = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value)*len);
@@ -308,7 +308,7 @@ mrb_env_unshare(mrb_state *mrb, struct REnv *e)
       stack_copy(p, e->stack, len);
     }
     e->stack = p;
-    MRB_ENV_UNSHARE_STACK(e);
+    MRB_ENV_CLOSE(e);
     mrb_write_barrier(mrb, (struct RBasic *)e);
   }
 }
@@ -1160,7 +1160,7 @@ RETRY_TRY_BLOCK:
       mrb_value *regs_a = regs + a;
       struct REnv *e = uvenv(mrb, c);
 
-      if (e && b < MRB_ENV_STACK_LEN(e)) {
+      if (e && b < MRB_ENV_LEN(e)) {
         *regs_a = e->stack[b];
       }
       else {
@@ -1175,7 +1175,7 @@ RETRY_TRY_BLOCK:
       if (e) {
         mrb_value *regs_a = regs + a;
 
-        if (b < MRB_ENV_STACK_LEN(e)) {
+        if (b < MRB_ENV_LEN(e)) {
           e->stack[b] = *regs_a;
           mrb_write_barrier(mrb, (struct RBasic*)e);
         }
@@ -1689,7 +1689,7 @@ RETRY_TRY_BLOCK:
       else {
         struct REnv *e = uvenv(mrb, lv-1);
         if (!e) goto L_NOSUPER;
-        if (MRB_ENV_STACK_LEN(e) <= m1+r+m2+kd+1)
+        if (MRB_ENV_LEN(e) <= m1+r+m2+kd+1)
           goto L_NOSUPER;
         stack = e->stack + 1;
       }
@@ -2015,7 +2015,7 @@ RETRY_TRY_BLOCK:
             if (MRB_PROC_ENV_P(dst)) {
               struct REnv *e = MRB_PROC_ENV(dst);
 
-              if (!MRB_ENV_STACK_SHARED_P(e) || (e->cxt && e->cxt != mrb->c)) {
+              if (!MRB_ENV_ONSTACK_P(e) || (e->cxt && e->cxt != mrb->c)) {
                 localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
                 goto L_RAISE;
               }
@@ -2070,7 +2070,7 @@ RETRY_TRY_BLOCK:
             mrb_exc_set(mrb, exc);
             goto L_RAISE;
           }
-          if (!MRB_PROC_ENV_P(proc) || !MRB_ENV_STACK_SHARED_P(MRB_PROC_ENV(proc))) {
+          if (!MRB_PROC_ENV_P(proc) || !MRB_ENV_ONSTACK_P(MRB_PROC_ENV(proc))) {
             goto L_BREAK_ERROR;
           }
           else {
@@ -2170,8 +2170,8 @@ RETRY_TRY_BLOCK:
       if (lv == 0) stack = regs + 1;
       else {
         struct REnv *e = uvenv(mrb, lv-1);
-        if (!e || (!MRB_ENV_STACK_SHARED_P(e) && e->mid == 0) ||
-            MRB_ENV_STACK_LEN(e) <= m1+r+m2+1) {
+        if (!e || (!MRB_ENV_ONSTACK_P(e) && e->mid == 0) ||
+            MRB_ENV_LEN(e) <= m1+r+m2+1) {
           localjump_error(mrb, LOCALJUMP_ERROR_YIELD);
           goto L_RAISE;
         }

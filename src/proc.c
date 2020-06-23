@@ -47,7 +47,7 @@ env_new(mrb_state *mrb, mrb_int nlocals)
   int bidx;
 
   e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, NULL);
-  MRB_ENV_SET_STACK_LEN(e, nlocals);
+  MRB_ENV_SET_LEN(e, nlocals);
   bidx = ci->argc;
   if (ci->argc < 0) bidx = 2;
   else bidx += 1;
@@ -122,14 +122,14 @@ mrb_proc_new_cfunc_with_env(mrb_state *mrb, mrb_func_t func, mrb_int argc, const
   p->e.env = e = env_new(mrb, argc);
   p->flags |= MRB_PROC_ENVSET;
   mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)e);
-  MRB_ENV_UNSHARE_STACK(e);
+  MRB_ENV_CLOSE(e);
 
   /* NOTE: Prevents keeping invalid addresses when NoMemoryError is raised from `mrb_malloc()`. */
   e->stack = NULL;
-  MRB_ENV_SET_STACK_LEN(e, 0);
+  MRB_ENV_SET_LEN(e, 0);
 
   e->stack = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value) * argc);
-  MRB_ENV_SET_STACK_LEN(e, argc);
+  MRB_ENV_SET_LEN(e, argc);
 
   if (argv) {
     for (i = 0; i < argc; ++i) {
@@ -163,9 +163,9 @@ mrb_proc_cfunc_env_get(mrb_state *mrb, mrb_int idx)
   if (!e) {
     mrb_raise(mrb, E_TYPE_ERROR, "Can't get cfunc env from cfunc Proc without REnv.");
   }
-  if (idx < 0 || MRB_ENV_STACK_LEN(e) <= idx) {
+  if (idx < 0 || MRB_ENV_LEN(e) <= idx) {
     mrb_raisef(mrb, E_INDEX_ERROR, "Env index out of range: %i (expected: 0 <= index < %i)",
-               idx, MRB_ENV_STACK_LEN(e));
+               idx, MRB_ENV_LEN(e));
   }
 
   return e->stack[idx];

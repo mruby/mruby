@@ -160,7 +160,7 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
     /* use saved block arg position */
     bidx = MRB_ENV_BIDX(e);
     /* bidx may be useless (e.g. define_method) */
-    if (bidx >= MRB_ENV_STACK_LEN(e))
+    if (bidx >= MRB_ENV_LEN(e))
       return mrb_false_value();
     bp = &e->stack[bidx];
   }

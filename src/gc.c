@@ -716,10 +716,10 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
       struct REnv *e = (struct REnv*)obj;
       mrb_int i, len;
 
-      if (MRB_ENV_STACK_SHARED_P(e) && e->cxt && e->cxt->fib) {
+      if (MRB_ENV_ONSTACK_P(e) && e->cxt && e->cxt->fib) {
         mrb_gc_mark(mrb, (struct RBasic*)e->cxt->fib);
       }
-      len = MRB_ENV_STACK_LEN(e);
+      len = MRB_ENV_LEN(e);
       for (i=0; i<len; i++) {
         mrb_gc_mark_value(mrb, e->stack[i]);
       }
@@ -820,7 +820,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj, int end)
     {
       struct REnv *e = (struct REnv*)obj;
 
-      if (MRB_ENV_STACK_SHARED_P(e)) {
+      if (MRB_ENV_ONSTACK_P(e)) {
         /* cannot be freed */
         e->stack = NULL;
         break;
@@ -842,7 +842,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj, int end)
           while (ce <= ci) {
             struct REnv *e = ci->env;
             if (e && !mrb_object_dead_p(mrb, (struct RBasic*)e) &&
-                e->tt == MRB_TT_ENV && MRB_ENV_STACK_SHARED_P(e)) {
+                e->tt == MRB_TT_ENV && MRB_ENV_ONSTACK_P(e)) {
               mrb_env_unshare(mrb, e);
             }
             ci--;
@@ -990,7 +990,7 @@ gc_gray_counts(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
     break;
 
   case MRB_TT_ENV:
-    children += MRB_ENV_STACK_LEN(obj);
+    children += MRB_ENV_LEN(obj);
     break;
 
   case MRB_TT_FIBER:

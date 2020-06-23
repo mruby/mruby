@@ -88,7 +88,7 @@ create_proc_from_string(mrb_state *mrb, char *s, mrb_int len, mrb_value binding,
       e->mid = ci->mid;
       e->stack = ci[1].stackent;
       e->cxt = mrb->c;
-      MRB_ENV_SET_STACK_LEN(e, ci->proc->body.irep->nlocals);
+      MRB_ENV_SET_LEN(e, ci->proc->body.irep->nlocals);
       bidx = ci->argc;
       if (ci->argc < 0) bidx = 2;
       else bidx += 1;
