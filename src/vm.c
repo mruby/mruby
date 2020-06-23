@@ -1488,12 +1488,7 @@ RETRY_TRY_BLOCK:
       ci->target_class = MRB_PROC_TARGET_CLASS(m);
       ci->proc = m;
       if (MRB_PROC_ENV_P(m)) {
-        struct REnv *e = MRB_PROC_ENV(m);
-
-        ci->mid = e->mid;
-        if (!e->stack) {
-          e->stack = mrb->c->stack;
-        }
+        ci->mid = MRB_PROC_ENV(m)->mid;
       }
 
       /* prepare stack */
