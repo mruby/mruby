@@ -210,9 +210,16 @@ random_m_srand(mrb_state *mrb, mrb_value self)
  *  Shuffles elements in self in place.
  */
 
+#if defined _MSC_VER && _MSC_VER >= 1900
+#pragma optimize( "", off )
+#endif
 static mrb_value
 mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
 {
+ /*
+ * MSC compiler generating invalid instructions with optimization
+ * enabled
+ */
   mrb_int i;
   mrb_value max;
   mrb_value r = mrb_nil_value();
