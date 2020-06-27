@@ -92,7 +92,7 @@ void mrb_gc_mark_mt(mrb_state*, struct RClass*);
 size_t mrb_gc_mark_mt_size(mrb_state*, struct RClass*);
 void mrb_gc_free_mt(mrb_state*, struct RClass*);
 
-#ifdef MRB_METHOD_CACHE
+#ifndef MRB_NO_METHOD_CACHE
 void mrb_mc_clear_by_class(mrb_state *mrb, struct RClass* c);
 #else
 #define mrb_mc_clear_by_class(mrb,c)
