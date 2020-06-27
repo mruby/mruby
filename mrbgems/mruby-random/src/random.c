@@ -215,15 +215,18 @@ mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
 {
   mrb_int i;
   mrb_value max;
+  mrb_value r = mrb_nil_value();
+  rand_state *random;
+
  /*
- * MSC compiler generating invalid instructions with optimization
+ * MSC compiler bug generating invalid instructions with optimization
  * enabled
  */
 #if defined _MSC_VER && _MSC_VER >= 1923
-  volatile
+  volatile mrb_value rr;
+  rr = r;
+  r = rr;
 #endif
-  mrb_value r = mrb_nil_value();
-  rand_state *random;
 
   if (RARRAY_LEN(ary) > 1) {
     mrb_get_args(mrb, "|o", &r);
