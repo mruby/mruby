@@ -31,10 +31,10 @@
 /* exclude floating point numbers */
 //#define MRB_WITHOUT_FLOAT
 
-/* add -DMRB_METHOD_CACHE to use method cache to improve performance */
-//#define MRB_METHOD_CACHE
+/* add -DMRB_NO_METHOD_CACHE to disable method cache to save memory */
+//#define MRB_NO_METHOD_CACHE
 /* size of the method cache (need to be the power of 2) */
-//#define MRB_METHOD_CACHE_SIZE (1<<7)
+//#define MRB_METHOD_CACHE_SIZE (1<<8)
 
 /* add -DMRB_METHOD_T_STRUCT on machines that use higher bits of pointers */
 /* no MRB_METHOD_T_STRUCT requires highest 2 bits of function pointers to be zero */
@@ -160,6 +160,10 @@
 
 /* A profile for micro controllers */
 #if defined(MRB_CONSTRAINED_BASELINE_PROFILE)
+# ifndef MRB_NO_METHOD_CACHE
+#  define MRB_NO_METHOD_CACHE
+# endif
+
 # ifndef KHASH_DEFAULT_SIZE
 #  define KHASH_DEFAULT_SIZE 16
 # endif
@@ -177,10 +181,6 @@
 
 /* A profile for desktop computers or workstations; rich memory! */
 #elif defined(MRB_MAIN_PROFILE)
-# ifndef MRB_METHOD_CACHE
-#  define MRB_METHOD_CACHE
-# endif
-
 # ifndef MRB_METHOD_CACHE_SIZE
 #  define MRB_METHOD_CACHE_SIZE (1<<10)
 # endif
@@ -195,10 +195,6 @@
 
 /* A profile for server; mruby vm is long life */
 #elif defined(MRB_HIGH_PROFILE)
-# ifndef MRB_METHOD_CACHE
-#  define MRB_METHOD_CACHE
-# endif
-
 # ifndef MRB_METHOD_CACHE_SIZE
 #  define MRB_METHOD_CACHE_SIZE (1<<12)
 # endif

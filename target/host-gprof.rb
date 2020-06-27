@@ -5,7 +5,6 @@ MRuby::Build.new do |conf|
   # include the GEM box
   conf.gembox 'full-core'
 
-  conf.cc.defines = %w(MRB_METHOD_CACHE)
   conf.cc.flags << '-pg'
   conf.linker.flags << '-pg'
 

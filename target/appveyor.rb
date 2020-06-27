@@ -10,7 +10,7 @@ MRuby::Build.new('full-debug') do |conf|
 
   # include all core GEMs
   conf.gembox 'full-core'
-  conf.cc.defines += %w(MRB_GC_STRESS MRB_METHOD_CACHE MRB_ENABLE_DEBUG_HOOK)
+  conf.cc.defines += %w(MRB_GC_STRESS MRB_ENABLE_DEBUG_HOOK)
   setup_option(conf)
 
   conf.enable_test

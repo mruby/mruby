@@ -292,7 +292,7 @@ mrb_define_class(mrb_state *mrb, const char *name, struct RClass *super)
 }
 
 static mrb_value mrb_bob_init(mrb_state *mrb, mrb_value);
-#ifdef MRB_METHOD_CACHE
+#ifndef MRB_NO_METHOD_CACHE
 static void mc_clear_all(mrb_state *mrb);
 static void mc_clear_by_id(mrb_state *mrb, struct RClass*, mrb_sym);
 #else
@@ -1404,7 +1404,7 @@ mrb_define_module_function(mrb_state *mrb, struct RClass *c, const char *name, m
   mrb_define_module_function_id(mrb, c, mrb_intern_cstr(mrb, name), func, aspec);
 }
 
-#ifdef MRB_METHOD_CACHE
+#ifndef MRB_NO_METHOD_CACHE
 static void
 mc_clear_all(mrb_state *mrb)
 {
@@ -1456,7 +1456,7 @@ mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
   khiter_t k;
   mrb_method_t m;
   struct RClass *c = *cp;
-#ifdef MRB_METHOD_CACHE
+#ifndef MRB_NO_METHOD_CACHE
   struct RClass *oc = c;
   int h = kh_int_hash_func(mrb, ((intptr_t)oc) ^ mid) & (MRB_METHOD_CACHE_SIZE-1);
   struct mrb_cache_entry *mc = &mrb->cache[h];
@@ -1476,7 +1476,7 @@ mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
         m = kh_value(h, k);
         if (MRB_METHOD_UNDEF_P(m)) break;
         *cp = c;
-#ifdef MRB_METHOD_CACHE
+#ifndef MRB_NO_METHOD_CACHE
         mc->c = oc;
         mc->c0 = c;
         mc->mid = mid;

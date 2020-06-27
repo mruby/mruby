@@ -188,11 +188,11 @@ struct mrb_context {
 };
 
 #ifdef MRB_METHOD_CACHE_SIZE
-# define MRB_METHOD_CACHE
+# undef MRB_NO_METHOD_CACHE
 #else
-/* default method cache size: 128 */
+/* default method cache size: 256 */
 /* cache size needs to be power of 2 */
-# define MRB_METHOD_CACHE_SIZE (1<<7)
+# define MRB_METHOD_CACHE_SIZE (1<<8)
 #endif
 
 /**
@@ -218,7 +218,7 @@ typedef struct {
 } mrb_method_t;
 #endif
 
-#ifdef MRB_METHOD_CACHE
+#ifndef MRB_NO_METHOD_CACHE
 struct mrb_cache_entry {
   struct RClass *c, *c0;
   mrb_sym mid;
@@ -264,7 +264,7 @@ typedef struct mrb_state {
 
   mrb_gc gc;
 
-#ifdef MRB_METHOD_CACHE
+#ifndef MRB_NO_METHOD_CACHE
   struct mrb_cache_entry cache[MRB_METHOD_CACHE_SIZE];
 #endif
 

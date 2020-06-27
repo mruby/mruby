@@ -163,12 +163,12 @@ largest value of required alignment.
 * Default value is `128`.
 * Specifies initial capacity of `RString` created by `mrb_str_buf_new` function..
 
-`MRB_METHOD_CACHE`
-* Improve performance for method dispatch.
+`MRB_NO_METHOD_CACHE`
+* Disable method cache to save memory.
 
 `MRB_METHOD_CACHE_SIZE`
-* Default value is `128`.
-* Ignored if `MRB_METHOD_CACHE` is not defined.
+* Default value is `256`.
+* Ignored if `MRB_NO_METHOD_CACHE` is defined.
 * Need to be the power of 2.
 
 `MRB_METHOD_T_STRUCT`
