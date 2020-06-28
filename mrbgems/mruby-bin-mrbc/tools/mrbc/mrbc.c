@@ -52,14 +52,27 @@ usage(const char *name)
 static char *
 get_outfilename(mrb_state *mrb, char *infile, const char *ext)
 {
-  size_t infilelen;
-  size_t flen;
+  size_t ilen, flen, elen;
   char *outfile;
+  char *p = NULL;
 
-  infilelen = strlen(infile);
-  flen = infilelen + strlen(ext) + 1;
-  outfile = (char*)mrb_malloc(mrb, flen);
-  snprintf(outfile, flen, "%s%s", infile, ext);
+  ilen = strlen(infile);
+  flen = ilen;
+  if (*ext) {
+    elen = strlen(ext);
+    if ((p = strrchr(infile, '.'))) {
+      ilen = p - infile;
+    }
+    flen += elen;
+  }
+  else {
+    flen = ilen;
+  }
+  outfile = (char*)mrb_malloc(mrb, flen+1);
+  strncpy(outfile, infile, ilen+1);
+  if (p) {
+    strncpy(outfile+ilen, ext, elen+1);
+  }
 
   return outfile;
 }
