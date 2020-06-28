@@ -585,7 +585,7 @@ create_lv_sym_table(mrb_state *mrb, const mrb_irep *irep, mrb_sym **syms, uint32
   }
 
   for (i = 0; i + 1 < irep->nlocals; ++i) {
-    mrb_sym const name = irep->lv[i].name;
+    mrb_sym const name = irep->lv[i];
     if (name == 0) continue;
     if (find_filename_index(*syms, *syms_len, name) != -1) continue;
 
@@ -628,16 +628,14 @@ write_lv_record(mrb_state *mrb, const mrb_irep *irep, uint8_t **start, mrb_sym c
   int i;
 
   for (i = 0; i + 1 < irep->nlocals; ++i) {
-    if (irep->lv[i].name == 0) {
+    if (irep->lv[i] == 0) {
       cur += uint16_to_bin(RITE_LV_NULL_MARK, cur);
-      cur += uint16_to_bin(0, cur);
     }
     else {
-      int const sym_idx = find_filename_index(syms, syms_len, irep->lv[i].name);
+      int const sym_idx = find_filename_index(syms, syms_len, irep->lv[i]);
       mrb_assert(sym_idx != -1); /* local variable name must be in syms */
 
       cur += uint16_to_bin(sym_idx, cur);
-      cur += uint16_to_bin(irep->lv[i].r, cur);
     }
   }
 
@@ -656,7 +654,7 @@ get_lv_record_size(mrb_state *mrb, const mrb_irep *irep)
   size_t ret = 0;
   int i;
 
-  ret += (sizeof(uint16_t) + sizeof(uint16_t)) * (irep->nlocals - 1);
+  ret += sizeof(uint16_t) * (irep->nlocals - 1);
 
   for (i = 0; i < irep->rlen; ++i) {
     ret += get_lv_record_size(mrb, irep->reps[i]);
@@ -1033,9 +1031,9 @@ dump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, 
   /* dump lv */
   if (irep->lv) {
     len=irep->nlocals;
-    fprintf(fp,   "static const struct mrb_lvinfo %s_lv_%d[%d] = {", name, n, len);
+    fprintf(fp,   "static const mrb_sym %s_lv_%d[%d] = {", name, n, len);
     for (i=0; i+1<len; i++) {
-      fprintf(fp, "{%u,%d},\n", irep->lv[i].name, irep->lv[i].r);
+      fprintf(fp, "%u, ", irep->lv[i]);
     }
     fputs("};\n", fp);
   }

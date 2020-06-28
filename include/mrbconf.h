@@ -31,6 +31,13 @@
 /* exclude floating point numbers */
 //#define MRB_WITHOUT_FLOAT
 
+/* stop inlining floating point numbers in mrb_value (effective only with MRB_WORD_BOXING)*/
+/* floating numbers are rounded to fit in 30 bits (float) and 62 bits respectively, */
+/* by inlining. If you need full precision of floating numbers on the platform, */
+/* you have to define this option. when mrb_int is 32bit and mrb_float is double, */
+/* this option is set automatically. */
+// #define MRB_NO_FLOAT_INLINE
+
 /* add -DMRB_NO_METHOD_CACHE to disable method cache to save memory */
 //#define MRB_NO_METHOD_CACHE
 /* size of the method cache (need to be the power of 2) */

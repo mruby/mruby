@@ -9,17 +9,9 @@
 static void
 print_r(mrb_state *mrb, const mrb_irep *irep, size_t n)
 {
-  size_t i;
-
   if (n == 0) return;
-
-  for (i=0; i+1<irep->nlocals; i++) {
-    if (irep->lv[i].r == n) {
-      mrb_sym sym = irep->lv[i].name;
-      printf(" R%d:%s", (int)n, mrb_sym_dump(mrb, sym));
-      break;
-    }
-  }
+  if (n > irep->nlocals) return;
+  printf(" R%d:%s", (int)n, mrb_sym_dump(mrb, irep->lv[n-1]));
 }
 
 static void
@@ -82,9 +74,8 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
 
     printf("local variable names:\n");
     for (i = 1; i < irep->nlocals; ++i) {
-      char const *s = mrb_sym_dump(mrb, irep->lv[i - 1].name);
-      int n = irep->lv[i - 1].r ? irep->lv[i - 1].r : i;
-      printf("  R%d:%s\n", n, s ? s : "");
+      char const *s = mrb_sym_dump(mrb, irep->lv[i - 1]);
+      printf("  R%d:%s\n", i, s ? s : "");
     }
   }
 

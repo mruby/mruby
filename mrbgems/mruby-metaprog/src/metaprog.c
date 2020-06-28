@@ -148,8 +148,8 @@ mrb_local_variables(mrb_state *mrb, mrb_value self)
     irep = proc->body.irep;
     if (irep->lv) {
       for (i = 0; i + 1 < irep->nlocals; ++i) {
-        if (irep->lv[i].name) {
-          mrb_sym sym = irep->lv[i].name;
+        if (irep->lv[i]) {
+          mrb_sym sym = irep->lv[i];
           const char *name = mrb_sym_name(mrb, sym);
           switch (name[0]) {
           case '*': case '&':

@@ -11,7 +11,7 @@
 #error MRB_INT64 cannot be used with MRB_WORD_BOXING in 32-bit mode.
 #endif
 
-#ifndef MRB_WITHOUT_FLOAT
+#if !defined(MRB_WITHOUT_FLOAT) || defined(MRB_NO_FLOAT_INLINE)
 struct RFloat {
   MRB_OBJECT_HEADER;
   mrb_float f;
@@ -63,6 +63,7 @@ enum mrb_special_consts {
  *   true  : ...0000 1100
  *   undef : ...0001 0100
  *   fixnum: ...IIII III1
+ *   symbol: ...SSSS SS10 (use only upper 32-bit as symbol value on 64-bit CPU)
  *   symbol: ...SSSS SS10 (use only upper 32-bit as symbol value on 64-bit CPU)
  *   object: ...PPPP P000 (any bits are 1)
  */

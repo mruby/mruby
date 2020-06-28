@@ -39,11 +39,6 @@ typedef struct mrb_pool_value {
   } u;
 } mrb_pool_value;
 
-struct mrb_lvinfo {        /* local variable info (name, idx) */
-  mrb_sym name;
-  uint16_t r;
-};
-
 /* Program data array struct */
 typedef struct mrb_irep {
   uint16_t nlocals;        /* Number of local variables */
@@ -55,7 +50,7 @@ typedef struct mrb_irep {
   const mrb_sym *syms;
   const struct mrb_irep * const *reps;
 
-  const struct mrb_lvinfo *lv;
+  const mrb_sym *lv;
   /* debug info */
   struct mrb_irep_debug_info* debug_info;
 
