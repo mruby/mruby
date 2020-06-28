@@ -148,8 +148,8 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
 
       a = mrb_ary_new(mrb);
       mrb_ary_push(mrb, a, sname);
-      if (i < max && irep->lv[i].name) {
-        mrb_sym sym = irep->lv[i].name;
+      if (i < max && irep->lv[i]) {
+        mrb_sym sym = irep->lv[i];
         const char *name = mrb_sym_name(mrb, sym);
         switch (name[0]) {
         case '*': case '&':

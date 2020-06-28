@@ -426,28 +426,24 @@ static int
 read_lv_record(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, size_t *record_len, mrb_sym const *syms, uint32_t syms_len)
 {
   const uint8_t *bin = start;
-  struct mrb_lvinfo *lv;
+  mrb_sym *lv;
   ptrdiff_t diff;
   int i;
 
-  irep->lv = lv = (struct mrb_lvinfo*)mrb_malloc(mrb, sizeof(struct mrb_lvinfo) * (irep->nlocals - 1));
+  irep->lv = lv = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym) * (irep->nlocals - 1));
 
   for (i = 0; i + 1< irep->nlocals; ++i) {
     uint16_t const sym_idx = bin_to_uint16(bin);
     bin += sizeof(uint16_t);
     if (sym_idx == RITE_LV_NULL_MARK) {
-      lv[i].name = 0;
-      lv[i].r = 0;
+      lv[i] = 0;
     }
     else {
       if (sym_idx >= syms_len) {
         return MRB_DUMP_GENERAL_FAILURE;
       }
-      lv[i].name = syms[sym_idx];
-
-      lv[i].r = bin_to_uint16(bin);
+      lv[i] = syms[sym_idx];
     }
-    bin += sizeof(uint16_t);
   }
 
   for (i = 0; i < irep->rlen; ++i) {

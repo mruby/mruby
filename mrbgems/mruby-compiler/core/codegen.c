@@ -677,10 +677,12 @@ search_upvar(codegen_scope *s, mrb_sym id, int *idx)
   while (u && !MRB_PROC_CFUNC_P(u)) {
     const struct mrb_irep *ir = u->body.irep;
     uint_fast16_t n = ir->nlocals;
-    const struct mrb_lvinfo *v = ir->lv;
-    for (; n > 1; n --, v ++) {
-      if (v->name == id) {
-        *idx = v->r;
+    int i;
+
+    const mrb_sym *v = ir->lv;
+    for (i=1; n > 1; n--, v++, i++) {
+      if (*v == id) {
+        *idx = i;
         return lv - 1;
       }
     }
@@ -3035,19 +3037,13 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *nlv)
   s->sp += node_len(nlv)+1;        /* add self */
   s->nlocals = s->sp;
   if (nlv) {
-    struct mrb_lvinfo *lv;
+    mrb_sym *lv;
     node *n = nlv;
     size_t i = 0;
 
-    s->irep->lv = lv = (struct mrb_lvinfo*)mrb_malloc(mrb, sizeof(struct mrb_lvinfo)*(s->nlocals-1));
+    s->irep->lv = lv = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym)*(s->nlocals-1));
     for (i=0, n=nlv; n; i++,n=n->cdr) {
-      lv[i].name = lv_name(n);
-      if (lv_name(n)) {
-        lv[i].r = lv_idx(s, lv_name(n));
-      }
-      else {
-        lv[i].r = 0;
-      }
+      lv[i] = lv_name(n);
     }
     mrb_assert(i + 1 == s->nlocals);
   }

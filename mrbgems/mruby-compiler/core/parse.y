@@ -280,10 +280,12 @@ local_var_p(parser_state *p, mrb_sym sym)
   u = p->upper;
   while (u && !MRB_PROC_CFUNC_P(u)) {
     const struct mrb_irep *ir = u->body.irep;
-    uint_fast16_t n = ir->nlocals;
-    const struct mrb_lvinfo *v = ir->lv;
-    for (; v && n > 1; n--, v++) {
-      if (v->name == sym) return TRUE;
+    const mrb_sym *v = ir->lv;
+    int i;
+
+    if (!v) break;
+    for (i=0; i < ir->nlocals; i++) {
+      if (v[i] == sym) return TRUE;
     }
     if (MRB_PROC_SCOPE_P(u)) break;
     u = u->upper;
