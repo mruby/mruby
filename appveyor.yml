@@ -32,12 +32,12 @@ environment:
 
     - job_name: Visual Studio 2013 64bit
       visualcpp: C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\vcvarsall.bat
-      appveyor_build_worker_image: Visual Studio 2013
+      appveyor_build_worker_image: Visual Studio 2015
       machine: x86_amd64
 
     - job_name: Visual Studio 2013 32bit
       visualcpp: C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\vcvarsall.bat
-      appveyor_build_worker_image: Visual Studio 2013
+      appveyor_build_worker_image: Visual Studio 2015
       machine: x86
 
 init:
