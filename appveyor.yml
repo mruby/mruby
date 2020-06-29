@@ -1,11 +1,18 @@
 version: "{build}"
 
-os: Visual Studio 2017
+os: Visual Studio 2019
 
 shallow_clone: true
 
 environment:
   matrix:
+    # Visual Studio 2019 64bit
+    - visualcpp: C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat
+
+    # Visual Studio 2019 32bit
+    - visualcpp: C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars32.bat
+      machine: x86
+
     # Visual Studio 2017 64bit
     - visualcpp: C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat
 
@@ -25,15 +32,14 @@ environment:
     - visualcpp: C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\vcvarsall.bat
       machine: amd64
 
-
 init:
   - call "%visualcpp%" %machine%
-  # For using Rubyinstaller's Ruby 2.4 64bit
-  - set PATH=C:\Ruby24-x64\bin;%PATH%
+  # For using Rubyins4aller's Ruby 2.6 64bit
+  # 2.6 is the highest supported Ruby version across all historical
+  # Visual Studio AppVeyor images. Ruby 2.7 is only on the 2019 image.
+  - set PATH=C:\Ruby26-x64\bin;%PATH%
   - ruby --version
-
 
 build_script:
   - set MRUBY_CONFIG=appveyor_config.rb
-  - rake -m
-  - rake -E $stdout.sync=true test
+  - rake -E "$stdout.sync=true" -m -j4 test
