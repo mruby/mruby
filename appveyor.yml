@@ -41,7 +41,7 @@ environment:
       machine: x86
 
 init:
-  - call "%visualcpp%" "%machine%"
+  - call "%visualcpp%" %machine%
   # For using Rubyins4aller's Ruby 2.6 64bit
   # 2.6 is the highest supported Ruby version across all historical
   # Visual Studio AppVeyor images. Ruby 2.7 is only on the 2019 image.
