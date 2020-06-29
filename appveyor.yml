@@ -4,40 +4,44 @@ shallow_clone: true
 
 environment:
   matrix:
-    # Visual Studio 2019 64bit
-    - visualcpp: C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat
+    - job_name: Visual Studio 2019 64bit
+      visualcpp: C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat
       appveyor_build_worker_image: Visual Studio 2019
 
-    # Visual Studio 2019 32bit
-    - visualcpp: C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars32.bat
+    - job_name: Visual Studio 2019 32bit
+      visualcpp: C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars32.bat
       appveyor_build_worker_image: Visual Studio 2019
 
-    # Visual Studio 2017 64bit
-    - visualcpp: C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat
+    - job_name: Visual Studio 2017 64bit
+      visualcpp: C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars64.bat
       appveyor_build_worker_image: Visual Studio 2017
 
-    # Visual Studio 2017 32bit
-    - visualcpp: C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars32.bat
+    - job_name: Visual Studio 2017 32bit
+      visualcpp: C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvars32.bat
       appveyor_build_worker_image: Visual Studio 2017
 
-    # Visual Studio 2015 64bit
-    - visualcpp: C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvars64.bat
+    - job_name: Visual Studio 2015 64bit
+      visualcpp: C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat
       appveyor_build_worker_image: Visual Studio 2015
+      machine: x86_amd64
 
-    # Visual Studio 2015 32bit
-    - visualcpp: C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvars32.bat
+    - job_name: Visual Studio 2015 32bit
+      visualcpp: C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat
       appveyor_build_worker_image: Visual Studio 2015
+      machine: x86
 
-    # Visual Studio 2013 64bit
-    - visualcpp: C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\vcvars64.bat
+    - job_name: Visual Studio 2013 64bit
+      visualcpp: C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\vcvarsall.bat
       appveyor_build_worker_image: Visual Studio 2013
+      machine: x86_amd64
 
-    # Visual Studio 2013 32bit
-    - visualcpp: C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\vcvars32.bat
+    - job_name: Visual Studio 2013 32bit
+      visualcpp: C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\vcvarsall.bat
       appveyor_build_worker_image: Visual Studio 2013
+      machine: x86
 
 init:
-  - call "%visualcpp%"
+  - call "%visualcpp%" "%machine%"
   # For using Rubyins4aller's Ruby 2.6 64bit
   # 2.6 is the highest supported Ruby version across all historical
   # Visual Studio AppVeyor images. Ruby 2.7 is only on the 2019 image.
