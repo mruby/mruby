@@ -101,6 +101,3 @@ jobs:
         rake -E "STDOUT.sync=true" -m -j4 test
       env:
         MRUBY_CONFIG: appveyor_config.rb
-        # TODO(take-cheeze): Re-enable /O2
-        CFLAGS: "/c /nologo /W3 /we4013 /Zi /MD /D_CRT_SECURE_NO_WARNINGS"
-        CXXFLAGS: "/c /nologo /W3 /Zi /MD /EHs /D_CRT_SECURE_NO_WARNINGS"
