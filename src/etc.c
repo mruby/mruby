@@ -107,10 +107,11 @@ mrb_obj_id(mrb_value obj)
     return MakeID(0); /* not define */
   case MRB_TT_FALSE:
     if (mrb_nil_p(obj))
-      return MakeID(1);
-    return MakeID(0);
+      return MakeID(4);
+    else
+      return MakeID(0);
   case MRB_TT_TRUE:
-    return MakeID(1);
+    return MakeID(2);
   case MRB_TT_SYMBOL:
     return MakeID(mrb_symbol(obj));
   case MRB_TT_FIXNUM:
