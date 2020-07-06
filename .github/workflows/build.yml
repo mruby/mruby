@@ -99,4 +99,4 @@ jobs:
       shell: cmd
       run: C:\tools\cygwin\bin\ruby.exe /usr/bin/rake -E 'STDOUT.sync=true' test
       env:
-        MRUBY_CONFIG: travis_config.rb
+        MRUBY_CONFIG: appveyor_config.rb
