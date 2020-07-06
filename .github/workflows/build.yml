@@ -12,7 +12,7 @@ jobs:
     - name: build
       run: rake -m -j4 all
     - name: test
-      run: rake test
+      run: rake test -v
       env:
         MRUBY_CONFIG: travis_config.rb
 
@@ -25,7 +25,7 @@ jobs:
     - name: build
       run: rake -m -j4 all
     - name: test
-      run: rake test
+      run: rake test -v
       env:
         MRUBY_CONFIG: travis_config.rb
         CC: gcc
@@ -40,7 +40,7 @@ jobs:
     - name: build
       run: rake -m -j4 all
     - name: test
-      run: rake test
+      run: rake test -v
       env:
         MRUBY_CONFIG: travis_config.rb
         CC: clang
@@ -55,7 +55,7 @@ jobs:
     - name: build
       run: rake -m -j4 all
     - name: test
-      run: rake test
+      run: rake test -v
       env:
         MRUBY_CONFIG: travis_config.rb
 
@@ -99,4 +99,4 @@ jobs:
       shell: cmd
       run: C:\tools\cygwin\bin\ruby.exe /usr/bin/rake -E 'STDOUT.sync=true' test
       env:
-        MRUBY_CONFIG: appveyor_config.rb
+        MRUBY_CONFIG: travis_config.rb
