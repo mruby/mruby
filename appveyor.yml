@@ -30,11 +30,6 @@ environment:
       appveyor_build_worker_image: Visual Studio 2015
       machine: x86
 
-    - job_name: Visual Studio 2013 64bit
-      visualcpp: C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\vcvarsall.bat
-      appveyor_build_worker_image: Visual Studio 2015
-      machine: x86_amd64
-
 init:
   - call "%visualcpp%" %machine%
   # For using Rubyins4aller's Ruby 2.6 64bit
@@ -45,4 +40,5 @@ init:
 
 build_script:
   - set MRUBY_CONFIG=appveyor_config.rb
-  - rake -E "$stdout.sync=true" -m -j4 test
+  - rake -E "$stdout.sync=true" -m -j4
+  - rake test
