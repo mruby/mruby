@@ -1121,6 +1121,7 @@ mrb_str_to_str(mrb_state *mrb, mrb_value str)
     return mrb_sym_str(mrb, mrb_symbol(str));
   case MRB_TT_FIXNUM:
     return mrb_fixnum_to_str(mrb, str, 10);
+  case MRB_TT_SCLASS:
   case MRB_TT_CLASS:
   case MRB_TT_MODULE:
     return mrb_mod_to_s(mrb, str);

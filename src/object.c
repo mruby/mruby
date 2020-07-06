@@ -338,6 +338,7 @@ mrb_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, const char 
   if (mrb_type(val) == type) return val;
   v = convert_type(mrb, val, tname, method, TRUE);
   if (mrb_type(v) != type) {
+    if (type == MRB_TT_STRING) return mrb_any_to_s(mrb, val);
     mrb_raisef(mrb, E_TYPE_ERROR, "%v cannot be converted to %s by #%s", val, tname, method);
   }
   return v;
