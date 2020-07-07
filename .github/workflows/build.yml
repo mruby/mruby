@@ -5,51 +5,59 @@ on: [push, pull_request]
 jobs:
   Ubuntu-1604:
     runs-on: ubuntu-16.04
+    env:
+      MRUBY_CONFIG: travis_config.rb
     steps:
     - uses: actions/checkout@v1
     - name: apt
       run: sudo apt install ruby gperf
-    - name: build and test
-      run: rake -v test
-      env:
-        MRUBY_CONFIG: travis_config.rb
+    - name: build
+      run: rake -m
+    - name: test
+      run: rake test -v
 
   Ubuntu-1804-gcc:
     runs-on: ubuntu-18.04
+    env:
+      MRUBY_CONFIG: travis_config.rb
+      CC: gcc
+      CXX: g++
     steps:
     - uses: actions/checkout@v1
     - name: apt
       run: sudo apt install ruby gperf gcc g++
-    - name: build and test
-      run: rake -v test
-      env:
-        MRUBY_CONFIG: travis_config.rb
-        CC: gcc
-        CXX: g++
+    - name: build
+      run: rake -m
+    - name: test
+      run: rake test -v
 
   Ubuntu-1804-clang:
     runs-on: ubuntu-18.04
+    env:
+      MRUBY_CONFIG: travis_config.rb
+      CC: clang
+      CXX: clang++
     steps:
     - uses: actions/checkout@v1
     - name: apt
       run: sudo apt install ruby gperf
-    - name: build and test
-      run: rake -v test
-      env:
-        MRUBY_CONFIG: travis_config.rb
-        CC: clang
-        CXX: clang++
+    - name: build
+      run: rake -m
+    - name: test
+      run: rake test -v
 
   macOS:
     runs-on: macos-latest
+    env:
+      MRUBY_CONFIG: travis_config.rb
     steps:
     - uses: actions/checkout@v1
     - name: brew
       run: brew install ruby gperf
-    - name: build and test
-      run: rake -v test
-      env:
-        MRUBY_CONFIG: travis_config.rb
+    - name: build
+      run: rake -m
+    - name: test
+      run: rake test -v
 
   Windows-MinGW:
     runs-on: windows-latest
@@ -82,7 +90,12 @@ jobs:
     - name: Set ENV
       run: |
         echo '::set-env name=PATH::C:\tools\cygwin\bin;C:\tools\cygwin\usr\bin'
-    - name: build and test
+    - name: build
+      shell: cmd
+      run: C:\tools\cygwin\bin\ruby.exe /usr/bin/rake -E 'STDOUT.sync=true' -m
+      env:
+        MRUBY_CONFIG: travis_config.rb
+    - name: test
       shell: cmd
       run: C:\tools\cygwin\bin\ruby.exe /usr/bin/rake -E 'STDOUT.sync=true' -v test
       env:
