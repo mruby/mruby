@@ -14,7 +14,7 @@ jobs:
     - name: build
       run: rake -m
     - name: test
-      run: rake test -v
+      run: rake test
 
   Ubuntu-1804-gcc:
     runs-on: ubuntu-18.04
@@ -29,7 +29,7 @@ jobs:
     - name: build
       run: rake -m
     - name: test
-      run: rake test -v
+      run: rake test
 
   Ubuntu-1804-clang:
     runs-on: ubuntu-18.04
@@ -44,7 +44,7 @@ jobs:
     - name: build
       run: rake -m
     - name: test
-      run: rake test -v
+      run: rake test
 
   macOS:
     runs-on: macos-latest
@@ -57,7 +57,7 @@ jobs:
     - name: build
       run: rake -m
     - name: test
-      run: rake test -v
+      run: rake test
 
   Windows-MinGW:
     runs-on: windows-latest
@@ -66,7 +66,7 @@ jobs:
     - name: chocolatey
       run: choco install -y ruby gperf
     - name: build
-      run: rake -E 'STDOUT.sync=true' -v test
+      run: rake -E 'STDOUT.sync=true' test
       env:
         MRUBY_CONFIG: travis_config.rb
         CFLAGS: -g -O1 -Wall -Wundef
@@ -97,6 +97,6 @@ jobs:
         MRUBY_CONFIG: travis_config.rb
     - name: test
       shell: cmd
-      run: C:\tools\cygwin\bin\ruby.exe /usr/bin/rake -E 'STDOUT.sync=true' -v test
+      run: C:\tools\cygwin\bin\ruby.exe /usr/bin/rake -E 'STDOUT.sync=true' test
       env:
         MRUBY_CONFIG: travis_config.rb

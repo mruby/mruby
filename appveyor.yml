@@ -41,4 +41,4 @@ init:
 build_script:
   - set MRUBY_CONFIG=appveyor_config.rb
   - rake -E "$stdout.sync=true" -m -j4
-  - rake test -v
+  - rake test
