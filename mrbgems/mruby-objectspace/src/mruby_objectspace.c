@@ -196,7 +196,7 @@ os_memsize_of_ivars(mrb_state* mrb, mrb_value obj, mrb_bool recurse, mrb_int *t)
   if(recurse) {
     mrb_int r = (mrb_int)recurse;
     mrb_int *cb_data[2] = { &r, t };
-    mrb_iv_foreach(mrb, obj, os_memsize_ivar_cb, t);
+    mrb_iv_foreach(mrb, obj, os_memsize_ivar_cb, cb_data);
   }
 }
 
@@ -261,8 +261,8 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj, mrb_bool recurse, mrb_int* t
       break;
     }
     case MRB_TT_HASH: {
-      struct htable* htable = RHASH_TBL(obj);
-      /* Need htable & segment struct defs */
+      /*struct htable* htable = RHASH_TBL(obj);
+       * Need htable & segment struct defs */
       break;
     }
     case MRB_TT_ARRAY: {
@@ -302,10 +302,11 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj, mrb_bool recurse, mrb_int* t
       (*t) += sizeof(struct mrb_range_edges);
     #endif
       break;
-    case MRB_TT_FIBER:
-      struct RFiber* fiber = (struct RFiber*)mrb_ptr(obj);
+    case MRB_TT_FIBER: {
+      /*  struct RFiber* fiber = (struct RFiber*)mrb_ptr(obj); */
       (*t) += sizeof(struct mrb_context);
       break;
+    }
     /*  zero heap size types.
      *  immediate VM stack values, contained within mrb_state, mrb_heap_page,
      *  or on C stack */
