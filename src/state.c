@@ -164,8 +164,6 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
   mrb_free(mrb, irep);
 }
 
-void mrb_free_backtrace(mrb_state *mrb);
-
 MRB_API void
 mrb_free_context(mrb_state *mrb, struct mrb_context *c)
 {
