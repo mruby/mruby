@@ -18,7 +18,7 @@
 #if defined(_WIN32) || defined(_WIN64)
   #include <winsock.h>
   #include <io.h>
-  #include <BaseTsd.h>
+  #include <basetsd.h>
   #define open  _open
   #define close _close
   #define dup _dup
