@@ -33,7 +33,10 @@
   typedef long fsuseconds_t;
   typedef int fmode_t;
   typedef int mrb_io_read_write_size;
+  #if !defined(_SSIZE_T_) && !defined(_SSIZE_T_DEFINED) && \
+      !defined(__have_typedef_ssize_t)
   typedef SSIZE_T ssize_t;
+  #endif
 
   #ifndef O_TMPFILE
     #define O_TMPFILE O_TEMPORARY
