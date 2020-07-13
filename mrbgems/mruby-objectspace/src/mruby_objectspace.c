@@ -286,8 +286,8 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj, mrb_bool recurse, mrb_int* t
       break;
     }
     case MRB_TT_PROC: {
-      (*t) += mrb_objspace_page_slot_size();
       struct RProc* proc = mrb_proc_ptr(obj);
+      (*t) += mrb_objspace_page_slot_size();
       (*t) += MRB_ENV_LEN(proc->e.env) * sizeof(mrb_value);
       if(!MRB_PROC_CFUNC_P(proc)) os_memsize_of_irep(mrb, proc->body.irep, t);
       break;
@@ -312,7 +312,7 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj, mrb_bool recurse, mrb_int* t
               sizeof(struct mrb_range_edges);
     #endif
       break;
-    case MRB_TT_FIBER:
+    case MRB_TT_FIBER: {
       struct RFiber* f = (struct RFiber *)mrb_ptr(obj);
       mrb_callinfo *ci_p = f->cxt->cibase;
       ptrdiff_t stack_size = f->cxt->stend - f->cxt->stbase;
@@ -336,6 +336,7 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj, mrb_bool recurse, mrb_int* t
         stack_size +
         ci_size;
       break;
+    }
     case MRB_TT_ISTRUCT:
       (*t) += mrb_objspace_page_slot_size();
       break;
