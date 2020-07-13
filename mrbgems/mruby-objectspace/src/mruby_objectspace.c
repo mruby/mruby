@@ -312,9 +312,30 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj, mrb_bool recurse, mrb_int* t
               sizeof(struct mrb_range_edges);
     #endif
       break;
-    case MRB_TT_FIBER: {
-      /*  struct RFiber* fiber = (struct RFiber*)mrb_ptr(obj); */
-      (*t) += sizeof(struct mrb_context);
+    case MRB_TT_FIBER:
+      struct RFiber* f = (struct RFiber *)mrb_ptr(obj);
+      mrb_callinfo *ci_p = f->cxt->cibase;
+      ptrdiff_t stack_size = f->cxt->stend - f->cxt->stbase;
+      ptrdiff_t ci_size = f->cxt->ciend - f->cxt->cibase;
+      mrb_int i = 0;
+
+      while(ci_p < f->cxt->ciend) {
+        if(ci_p->proc) os_memsize_of_irep(mrb, ci_p->proc->body.irep, t);
+        ci_p++;
+      }
+
+      for(i = 0; i <= f->cxt->esize; i++) {
+         os_memsize_of_irep(mrb, f->cxt->ensure[i]->body.irep, t);
+      }
+
+      (*t) += mrb_objspace_page_slot_size() +
+        sizeof(struct RFiber) +
+        sizeof(struct mrb_context) +
+        sizeof(struct RProc *) * f->cxt->esize +
+        sizeof(uint16_t *) * f->cxt->rsize +
+        stack_size +
+        ci_size;
+      break;
     case MRB_TT_ISTRUCT:
       (*t) += mrb_objspace_page_slot_size();
       break;
