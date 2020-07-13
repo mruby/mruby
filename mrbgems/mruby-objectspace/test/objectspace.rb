@@ -93,9 +93,7 @@ assert 'ObjectSpace.memsize_of' do
   assert_not_equal class_obj_size, 0, 'Class obj not zero'
 
   empty_class_def_size = ObjectSpace.memsize_of Class.new
-
-  # need access to struct iv_tbl
-  # assert_not_equal empty_class_def_size, 0, 'Class def not zero'
+  assert_not_equal empty_class_def_size, 0, 'Class def not zero'
 
   class_without_methods = Class.new do
     @a = 1
@@ -125,12 +123,15 @@ assert 'ObjectSpace.memsize_of' do
   assert_not_equal m_size, 0, 'method size not zero'
 
   # collections
-  assert_equal ObjectSpace.memsize_of([]), 0, 'empty array size zero'
-  assert_not_equal ObjectSpace.memsize_of(Array.new(16)), 0, 'array size non zero'
+  assert_not_equal ObjectSpace.memsize_of([]), 0, 'empty array size not zero'
+  assert_not_equal ObjectSpace.memsize_of(Array.new(16)), 0, 'array size not zero'
 
   # fiber
-  assert_not_equal ObjectSpace.memsize_of(Fiber.new {}), 0, 'fiber non zero'
+  assert_not_equal ObjectSpace.memsize_of(Fiber.new {}), 0, 'fiber not zero'
 
-  skip 'No hash table support yet'
-  assert_equal ObjectSpace.memsize_of({}), 0, 'empty hash size zero'
+  #hash
+  assert_not_equal ObjectSpace.memsize_of({}), 0, 'empty hash size not zero'
+
+  # recursion
+
 end
