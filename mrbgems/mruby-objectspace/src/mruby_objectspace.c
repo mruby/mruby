@@ -251,6 +251,7 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj, mrb_bool recurse, mrb_int* t
     case MRB_TT_SCLASS:
     case MRB_TT_ICLASS:
     case MRB_TT_OBJECT: {
+      (*t) += mrb_objspace_page_slot_size();
       os_memsize_of_ivars(mrb, obj, recurse, t);
       if(mrb_obj_is_kind_of(mrb, obj, mrb_class_get(mrb, "UnboundMethod"))) {
         os_memsize_of_method(mrb, obj, t);
@@ -270,6 +271,7 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj, mrb_bool recurse, mrb_int* t
       len = RARRAY_LEN(obj);
       /* Arrays that do not fit within an RArray perform a heap allocation
       *  storing an array of pointers to the original objects*/
+      (*t) += mrb_objspace_page_slot_size();
       if(len > MRB_ARY_EMBED_LEN_MAX) (*t) += sizeof(mrb_value *) * len;
 
       if(recurse) {
@@ -280,12 +282,14 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj, mrb_bool recurse, mrb_int* t
       break;
     }
     case MRB_TT_PROC: {
+      (*t) += mrb_objspace_page_slot_size();
       struct RProc* proc = mrb_proc_ptr(obj);
       (*t) += MRB_ENV_LEN(proc->e.env) * sizeof(mrb_value);
       if(!MRB_PROC_CFUNC_P(proc)) os_memsize_of_irep(mrb, proc->body.irep, t);
       break;
     }
     case MRB_TT_DATA:
+      (*t) += mrb_objspace_page_slot_size();
       if(mrb_respond_to(mrb, obj, mrb_intern_lit(mrb, "memsize"))) {
         (*t) += mrb_fixnum(mrb_funcall(mrb, obj, "memsize", 0));
       }
@@ -293,23 +297,25 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj, mrb_bool recurse, mrb_int* t
     #ifndef MRB_WITHOUT_FLOAT
     case MRB_TT_FLOAT:
       #ifdef MRB_WORD_BOXING
-        (*t) += sizeof(struct RFloat);
+      (*t) += mrb_objspace_page_slot_size() +
+              sizeof(struct RFloat);
       #endif
       break;
     #endif
     case MRB_TT_RANGE:
     #ifndef MRB_RANGE_EMBED
-      (*t) += sizeof(struct mrb_range_edges);
+      (*t) += mrb_objspace_page_slot_size() +
+              sizeof(struct mrb_range_edges);
     #endif
       break;
     case MRB_TT_FIBER: {
       /*  struct RFiber* fiber = (struct RFiber*)mrb_ptr(obj); */
       (*t) += sizeof(struct mrb_context);
+    case MRB_TT_ISTRUCT:
+      (*t) += mrb_objspace_page_slot_size();
       break;
-    }
     /*  zero heap size types.
-     *  immediate VM stack values, contained within mrb_state, mrb_heap_page,
-     *  or on C stack */
+     *  immediate VM stack values, contained within mrb_state, or on C stack */
     case MRB_TT_TRUE:
     case MRB_TT_FALSE:
     case MRB_TT_FIXNUM:
