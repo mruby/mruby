@@ -192,7 +192,7 @@ os_memsize_ivar_cb(mrb_state *mrb, mrb_sym _name, mrb_value obj, void *data)
 static void
 os_memsize_of_ivars(mrb_state* mrb, mrb_value obj, mrb_bool recurse, mrb_int *t)
 {
-  /* need iv segment table size */
+  (*t) += mrb_obj_iv_tbl_memsize(mrb, obj);
   if(recurse) {
     mrb_int r = (mrb_int)recurse;
     mrb_int *cb_data[2] = { &r, t };
