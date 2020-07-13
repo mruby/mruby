@@ -518,6 +518,20 @@ ht_foreach(mrb_state *mrb, htable *t, mrb_hash_foreach_func *func, void *p)
   }
 }
 
+mrb_int
+os_memsize_of_hash_table(mrb_value obj)
+{
+  struct htable *h = mrb_hash_ptr(obj)->ht;
+  mrb_int segkv_size = 0;
+
+  if(h->index) segkv_size = (sizeof(struct segkv) * h->index->capa);
+
+  return sizeof(htable) +
+    sizeof(segindex) +
+    (sizeof(segment) * h->size) +
+    segkv_size;
+}
+
 /* Iterates over the hash table. */
 MRB_API void
 mrb_hash_foreach(mrb_state *mrb, struct RHash *hash, mrb_hash_foreach_func *func, void *p)

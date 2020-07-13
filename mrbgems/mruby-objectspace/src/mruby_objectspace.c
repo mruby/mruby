@@ -262,8 +262,12 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj, mrb_bool recurse, mrb_int* t
       break;
     }
     case MRB_TT_HASH: {
-      /*struct htable* htable = RHASH_TBL(obj);
-       * Need htable & segment struct defs */
+      (*t) += mrb_objspace_page_slot_size() +
+              os_memsize_of_hash_table(obj);
+      if(recurse) {
+        os_memsize_of_object(mrb, mrb_hash_keys(mrb, obj), recurse, t);
+        os_memsize_of_object(mrb, mrb_hash_values(mrb, obj), recurse, t);
+      }
       break;
     }
     case MRB_TT_ARRAY: {
@@ -325,7 +329,6 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj, mrb_bool recurse, mrb_int* t
     case MRB_TT_FREE:
     case MRB_TT_UNDEF:
     case MRB_TT_ENV:
-    case MRB_TT_ISTRUCT:
     /* never used, silences compiler warning
      * not having a default: clause lets the compiler tell us when there is a new
      * TT not accounted for */
