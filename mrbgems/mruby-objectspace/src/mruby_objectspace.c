@@ -324,8 +324,10 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj, mrb_bool recurse, mrb_int* t
         ci_p++;
       }
 
-      for(i = 0; i <= f->cxt->esize; i++) {
-         os_memsize_of_irep(mrb, f->cxt->ensure[i]->body.irep, t);
+      if(f->cxt->esize) {
+        for(i = 0; i <= f->cxt->esize; i++) {
+          os_memsize_of_irep(mrb, f->cxt->ensure[i]->body.irep, t);
+        }
       }
 
       (*t) += mrb_objspace_page_slot_size() +
