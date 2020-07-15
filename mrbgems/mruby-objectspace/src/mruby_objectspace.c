@@ -373,20 +373,24 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj, mrb_value recurse, mrb_int* 
  *    ObjectSpace.memsize_of(obj, recurse: false) -> Numeric
  *
  *  Returns the amount of heap memory allocated for object in size_t units.
- *  Not all objects cause additional heap allocations beyond their object pointer
- *  in the heap page and may return 0.
  *
  *  The return value depends on the definition of size_t on that platform,
  *  therefore the value is not comparable across platform types.
  *
  *  Immediate values such as integers, booleans, symbols and unboxed float numbers
  *  return 0. Additionally special objects which are small enough to fit inside an
- *  object *  pointer, termed embedded objects, also return 0. Strings and arrays
- *  below a compile-time defined size may be embedded.
+ *  object pointer, termed embedded objects, will return the size of the object pointer.
+ *  Strings and arrays below a compile-time defined size may be embedded.
  *
  *  Setting recurse: true descends into instance variables, array members,
- *  and hash values recursively, calculating the child objects and adding to
- *  the final sum.
+ *  hash keys and hash values recursively, calculating the child objects and adding to
+ *  the final sum. It avoids infinite recursion and over counting objects by
+ *  internally tracking discovered object ids.
+ *
+ *  MRB_TT_DATA objects aren't calculated beyond their original page slot. However,
+ *  if the object implements a memsize method it will call that method and add the
+ *  return value to the total. This provides an opportunity for C based data structures
+ *  to report their memory usage.
  *
  */
 
