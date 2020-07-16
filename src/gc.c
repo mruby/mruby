@@ -1599,6 +1599,13 @@ mrb_objspace_each_objects(mrb_state *mrb, mrb_each_object_callback *callback, vo
   }
 }
 
+const mrb_int
+mrb_objspace_page_slot_size()
+{
+  const mrb_int i = sizeof(RVALUE);
+  return i;
+}
+
 #ifdef GC_TEST
 #ifdef GC_DEBUG
 static mrb_value gc_test(mrb_state *, mrb_value);
