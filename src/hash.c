@@ -519,7 +519,7 @@ ht_foreach(mrb_state *mrb, htable *t, mrb_hash_foreach_func *func, void *p)
 }
 
 mrb_int
-os_memsize_of_hash_table(mrb_value obj)
+mrb_os_memsize_of_hash_table(mrb_value obj)
 {
   struct htable *h = mrb_hash_ptr(obj)->ht;
   mrb_int segkv_size = 0;

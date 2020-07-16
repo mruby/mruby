@@ -270,7 +270,7 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj, mrb_value recurse, mrb_int* 
     }
     case MRB_TT_HASH: {
       (*t) += mrb_objspace_page_slot_size() +
-              os_memsize_of_hash_table(obj);
+              mrb_os_memsize_of_hash_table(obj);
       if(!mrb_nil_p(recurse)) {
         os_memsize_of_object(mrb, mrb_hash_keys(mrb, obj), recurse, t);
         os_memsize_of_object(mrb, mrb_hash_values(mrb, obj), recurse, t);
