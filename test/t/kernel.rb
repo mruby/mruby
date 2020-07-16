@@ -116,6 +116,13 @@ assert('Kernel#block_given?', '15.3.1.3.6') do
       "block"
     end
   end
+
+  def bg_try_in_block
+    -> { block_given? }[]
+  end
+
+  assert_false bg_try_in_block
+  assert_true bg_try_in_block{}
 end
 
 assert('Kernel#class', '15.3.1.3.7') do
