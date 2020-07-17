@@ -408,7 +408,7 @@ os_memsize_of(mrb_state *mrb, mrb_value self)
   const mrb_kwargs kwargs = { 1, kw_values, kw_names, 0, NULL };
 
   mrb_get_args(mrb, "o:", &obj, &kwargs);
-  recurse = mrb_obj_eq(mrb, kw_values[0], mrb_true_value())? mrb_hash_new(mrb) : mrb_nil_value();
+  recurse = (!mrb_undef_p(kw_values[0]) && mrb_test(kw_values[0]))? mrb_hash_new(mrb) : mrb_nil_value();
 
   total = 0;
   os_memsize_of_object(mrb, obj, recurse, &total);
