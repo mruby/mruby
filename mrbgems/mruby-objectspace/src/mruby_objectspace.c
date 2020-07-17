@@ -250,7 +250,10 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj, mrb_value recurse, mrb_int* 
 
   switch(obj.tt) {
     case MRB_TT_STRING:
-      (*t) += RSTRING_LEN(obj);
+      (*t) += mrb_objspace_page_slot_size();
+      if (!RSTR_EMBED_P(RSTRING(obj)) && !RSTR_SHARED_P(RSTRING(obj))) {
+        (*t) += RSTRING_CAPA(obj);
+      }
       break;
     case MRB_TT_CLASS:
     case MRB_TT_MODULE:
