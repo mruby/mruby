@@ -176,83 +176,66 @@ os_each_object(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(d.count);
 }
 
-static void os_memsize_of_object(mrb_state*,mrb_value,mrb_value,mrb_int*);
-
-struct os_memsize_cb_data {
-  mrb_int *t;
-  mrb_value recurse;
-};
-
-static int
-os_memsize_ivar_cb(mrb_state *mrb, mrb_sym _name, mrb_value obj, void *data)
+static mrb_int
+os_memsize_of_ivars(mrb_state* mrb, mrb_value obj)
 {
-  struct os_memsize_cb_data *cb_data = (struct os_memsize_cb_data *)(data);
-  os_memsize_of_object(mrb, obj, cb_data->recurse, cb_data->t);
-  return 0;
+  return mrb_obj_iv_tbl_memsize(mrb, obj);
 }
 
-static void
-os_memsize_of_ivars(mrb_state* mrb, mrb_value obj, mrb_value recurse, mrb_int *t)
+static mrb_int
+os_memsize_of_irep(mrb_state* state, struct mrb_irep *irep)
 {
-  (*t) += mrb_obj_iv_tbl_memsize(mrb, obj);
-  if(!mrb_nil_p(recurse)) {
-    struct os_memsize_cb_data cb_data = {t, recurse};
-    mrb_iv_foreach(mrb, obj, os_memsize_ivar_cb, &cb_data);
-  }
-}
-
-static void
-os_memsize_of_irep(mrb_state* state, struct mrb_irep *irep, mrb_int* t)
-{
-  mrb_int i;
-  (*t) += (irep->slen * sizeof(mrb_sym)) +
-          (irep->plen * sizeof(mrb_code)) +
-          (irep->ilen * sizeof(mrb_code));
+  mrb_int size, i;
+  size = (irep->slen * sizeof(mrb_sym)) +
+         (irep->plen * sizeof(mrb_code)) +
+         (irep->ilen * sizeof(mrb_code));
 
   for(i = 0; i < irep->rlen; i++) {
-    os_memsize_of_irep(state, irep->reps[i], t);
+    size += os_memsize_of_irep(state, irep->reps[i]);
   }
+  return size;
 }
 
-static void
-os_memsize_of_method(mrb_state* mrb, mrb_value method_obj, mrb_int* t)
+static mrb_int
+os_memsize_of_method(mrb_state* mrb, mrb_value method_obj)
 {
+  mrb_int size;
   mrb_value proc_value = mrb_obj_iv_get(mrb, mrb_obj_ptr(method_obj),
                                         mrb_intern_lit(mrb, "_proc"));
   struct RProc *proc = mrb_proc_ptr(proc_value);
 
-  (*t) += sizeof(struct RProc);
-  if(!MRB_PROC_CFUNC_P(proc)) os_memsize_of_irep(mrb, proc->body.irep, t);
+  size = sizeof(struct RProc);
+  if(!MRB_PROC_CFUNC_P(proc)) size += os_memsize_of_irep(mrb, proc->body.irep);
+  return size;
 }
 
-static void
-os_memsize_of_methods(mrb_state* mrb, mrb_value obj, mrb_int* t)
+static mrb_int
+os_memsize_of_methods(mrb_state* mrb, mrb_value obj)
 {
   mrb_value method_list;
+  mrb_int size = 0;
   mrb_int i;
-  if(!mrb_respond_to(mrb, obj, mrb_intern_lit(mrb, "instance_methods"))) return;
+
+  if(!mrb_respond_to(mrb, obj, mrb_intern_lit(mrb, "instance_methods"))) return 0;
   method_list = mrb_funcall(mrb, obj, "instance_methods", 1, mrb_false_value());
   for(i = 0; i < RARRAY_LEN(method_list); i++) {
     mrb_value method = mrb_funcall(mrb, obj, "instance_method", 1,
                                    mrb_ary_ref(mrb, method_list, i));
-    os_memsize_of_method(mrb, method, t);
+    size += os_memsize_of_method(mrb, method);
   }
+  return size;
 }
 
-static void
-os_memsize_of_object(mrb_state* mrb, mrb_value obj, mrb_value recurse, mrb_int* t)
+static mrb_int
+os_memsize_of_object(mrb_state* mrb, mrb_value obj)
 {
-  if(!mrb_nil_p(recurse)) {
-    const mrb_value obj_id = mrb_fixnum_value(mrb_obj_id(obj));
-    if(mrb_hash_key_p(mrb, recurse, obj_id)) return;
-    mrb_hash_set(mrb, recurse, obj_id, mrb_true_value());
-  }
+  mrb_int size = 0;
 
   switch(obj.tt) {
     case MRB_TT_STRING:
-      (*t) += mrb_objspace_page_slot_size();
+      size += mrb_objspace_page_slot_size();
       if (!RSTR_EMBED_P(RSTRING(obj)) && !RSTR_SHARED_P(RSTRING(obj))) {
-        (*t) += RSTRING_CAPA(obj);
+        size += RSTRING_CAPA(obj);
       }
       break;
     case MRB_TT_CLASS:
@@ -261,61 +244,50 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj, mrb_value recurse, mrb_int* 
     case MRB_TT_SCLASS:
     case MRB_TT_ICLASS:
     case MRB_TT_OBJECT: {
-      (*t) += mrb_objspace_page_slot_size();
-      os_memsize_of_ivars(mrb, obj, recurse, t);
+      size += mrb_objspace_page_slot_size();
+      size += os_memsize_of_ivars(mrb, obj);
       if(mrb_obj_is_kind_of(mrb, obj, mrb_class_get(mrb, "UnboundMethod"))) {
-        os_memsize_of_method(mrb, obj, t);
+        size += os_memsize_of_method(mrb, obj);
       }
       else {
-        os_memsize_of_methods(mrb, obj, t);
+        size += os_memsize_of_methods(mrb, obj);
       }
       break;
     }
     case MRB_TT_HASH: {
-      (*t) += mrb_objspace_page_slot_size() +
+      size += mrb_objspace_page_slot_size() +
               mrb_os_memsize_of_hash_table(obj);
-      if(!mrb_nil_p(recurse)) {
-        os_memsize_of_object(mrb, mrb_hash_keys(mrb, obj), recurse, t);
-        os_memsize_of_object(mrb, mrb_hash_values(mrb, obj), recurse, t);
-      }
       break;
     }
     case MRB_TT_ARRAY: {
-      mrb_int len, i;
-      len = RARRAY_LEN(obj);
+      mrb_int len = RARRAY_LEN(obj);
       /* Arrays that do not fit within an RArray perform a heap allocation
       *  storing an array of pointers to the original objects*/
-      (*t) += mrb_objspace_page_slot_size();
-      if(len > MRB_ARY_EMBED_LEN_MAX) (*t) += sizeof(mrb_value *) * len;
-
-      if(!mrb_nil_p(recurse)) {
-        for(i = 0; i < len; i++) {
-          os_memsize_of_object(mrb, ARY_PTR(mrb_ary_ptr(obj))[i], recurse, t);
-        }
-      }
+      size += mrb_objspace_page_slot_size();
+      if(len > MRB_ARY_EMBED_LEN_MAX) size += sizeof(mrb_value *) * len;
       break;
     }
     case MRB_TT_PROC: {
       struct RProc* proc = mrb_proc_ptr(obj);
-      (*t) += mrb_objspace_page_slot_size();
-      (*t) += MRB_ENV_LEN(proc->e.env) * sizeof(mrb_value);
-      if(!MRB_PROC_CFUNC_P(proc)) os_memsize_of_irep(mrb, proc->body.irep, t);
+      size += mrb_objspace_page_slot_size();
+      size += MRB_ENV_LEN(proc->e.env) * sizeof(mrb_value);
+      if(!MRB_PROC_CFUNC_P(proc)) size += os_memsize_of_irep(mrb, proc->body.irep);
       break;
     }
     case MRB_TT_DATA:
-      (*t) += mrb_objspace_page_slot_size();
+      size += mrb_objspace_page_slot_size();
       break;
     #ifndef MRB_WITHOUT_FLOAT
     case MRB_TT_FLOAT:
       #ifdef MRB_WORD_BOXING
-      (*t) += mrb_objspace_page_slot_size() +
+      size += mrb_objspace_page_slot_size() +
               sizeof(struct RFloat);
       #endif
       break;
     #endif
     case MRB_TT_RANGE:
     #ifndef MRB_RANGE_EMBED
-      (*t) += mrb_objspace_page_slot_size() +
+      size += mrb_objspace_page_slot_size() +
               sizeof(struct mrb_range_edges);
     #endif
       break;
@@ -327,17 +299,17 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj, mrb_value recurse, mrb_int* 
       mrb_int i = 0;
 
       while(ci_p < f->cxt->ciend) {
-        if(ci_p->proc) os_memsize_of_irep(mrb, ci_p->proc->body.irep, t);
+        if(ci_p->proc) size += os_memsize_of_irep(mrb, ci_p->proc->body.irep);
         ci_p++;
       }
 
       if(f->cxt->esize) {
         for(i = 0; i <= f->cxt->esize; i++) {
-          os_memsize_of_irep(mrb, f->cxt->ensure[i]->body.irep, t);
+          size += os_memsize_of_irep(mrb, f->cxt->ensure[i]->body.irep);
         }
       }
 
-      (*t) += mrb_objspace_page_slot_size() +
+      size += mrb_objspace_page_slot_size() +
         sizeof(struct RFiber) +
         sizeof(struct mrb_context) +
         sizeof(struct RProc *) * f->cxt->esize +
@@ -347,7 +319,7 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj, mrb_value recurse, mrb_int* 
       break;
     }
     case MRB_TT_ISTRUCT:
-      (*t) += mrb_objspace_page_slot_size();
+      size += mrb_objspace_page_slot_size();
       break;
     /*  zero heap size types.
      *  immediate VM stack values, contained within mrb_state, or on C stack */
@@ -366,6 +338,7 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj, mrb_value recurse, mrb_int* 
     case MRB_TT_MAXDEFINE:
       break;
   }
+  return size;
 }
 
 /*
@@ -394,17 +367,10 @@ os_memsize_of(mrb_state *mrb, mrb_value self)
 {
   mrb_int total;
   mrb_value obj;
-  mrb_value recurse;
-  const char *kw_names[1] = { "recurse" };
-  mrb_value kw_values[1];
-  const mrb_kwargs kwargs = { 1, kw_values, kw_names, 0, NULL };
 
-  mrb_get_args(mrb, "o:", &obj, &kwargs);
-  recurse = (!mrb_undef_p(kw_values[0]) && mrb_test(kw_values[0]))? mrb_hash_new(mrb) : mrb_nil_value();
+  mrb_get_args(mrb, "o", &obj);
 
-  total = 0;
-  os_memsize_of_object(mrb, obj, recurse, &total);
-
+  total = os_memsize_of_object(mrb, obj);
   return mrb_fixnum_value(total);
 }
 

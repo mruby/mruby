@@ -1,4 +1,4 @@
-# coding: utf-8
+# coding: cp932
 assert('ObjectSpace.count_objects') do
   h = {}
   f = Fiber.new {} if Object.const_defined?(:Fiber)
@@ -134,71 +134,4 @@ assert 'ObjectSpace.memsize_of' do
 
   #hash
   assert_not_equal ObjectSpace.memsize_of({}), 0, 'empty hash size not zero'
-
-  # recursion
-  foo_str = 'foo' * 10
-  bar_str = 'bar' * 10
-  caz_str = 'caz' * 10
-  fbc_ary = [foo_str, bar_str, caz_str]
-  assert_operator ObjectSpace.memsize_of(fbc_ary),
-                  :<,
-                  ObjectSpace.memsize_of(fbc_ary, recurse: true),
-                  'basic array recursion'
-
-  big_ary = [ 'a' * 10,
-              [ 'b' * 10,
-                [ 'c' * 10,
-                  [ 'd' * 10,
-                    [ 'e' * 10,
-                      [ 'f' * 10,
-                        ['g' * 10]
-                      ] * 10,
-                    ] * 10,
-                  ] * 10,
-                ] * 10,
-              ] * 10,
-            ] * 10
-  assert_operator ObjectSpace.memsize_of(big_ary),
-                  :<,
-                  ObjectSpace.memsize_of(big_ary, recurse: true),
-                  'large array recursion'
-
-  assert_nothing_raised 'infinite array recursion' do
-    ObjectSpace.memsize_of(fbc_ary.push(fbc_ary))
-  end
-
-  basic_hsh = {a: [foo_str, bar_str], b: caz_str, 'c' => {}}
-  assert_operator ObjectSpace.memsize_of(basic_hsh),
-                  :<,
-                  ObjectSpace.memsize_of(basic_hsh, recurse: true),
-                  'hash recursion with basic keys'
-
-  weird_keys = {big_ary => foo_str}
-  assert_operator ObjectSpace.memsize_of(weird_keys),
-                  :<,
-                  ObjectSpace.memsize_of(weird_keys, recurse: true),
-                  'hash recursion with collection as key'
-
-  basic_hsh.store('d', basic_hsh)
-  assert_nothing_raised 'hash value recursion' do
-    ObjectSpace.memsize_of basic_hsh, recurse: true
-  end
-
-  foo_klass = Class.new do
-    def bar= b
-      @bar = b
-    end
-  end
-
-  fk_one = foo_klass.new
-  fk_one.bar = fbc_ary
-  assert_operator ObjectSpace.memsize_of(fk_one),
-                  :<,
-                  ObjectSpace.memsize_of(fk_one, recurse: true),
-                  'basic ivar recursion'
-
-  fk_one.bar = fk_one
-  assert_nothing_raised 'ivar infinite recursion' do
-    ObjectSpace.memsize_of(fk_one, recurse: true)
-  end
 end
