@@ -260,19 +260,19 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj)
     case MRB_TT_DATA:
       size += mrb_objspace_page_slot_size();
       break;
-    #ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_WITHOUT_FLOAT
     case MRB_TT_FLOAT:
-      #ifdef MRB_WORD_BOXING
+#ifdef MRB_WORD_BOXING
       size += mrb_objspace_page_slot_size() +
               sizeof(struct RFloat);
-      #endif
+#endif
       break;
-    #endif
+#endif
     case MRB_TT_RANGE:
-    #ifndef MRB_RANGE_EMBED
+#ifndef MRB_RANGE_EMBED
       size += mrb_objspace_page_slot_size() +
               sizeof(struct mrb_range_edges);
-    #endif
+#endif
       break;
     case MRB_TT_FIBER: {
       struct RFiber* f = (struct RFiber *)mrb_ptr(obj);
