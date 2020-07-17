@@ -304,9 +304,6 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj, mrb_value recurse, mrb_int* 
     }
     case MRB_TT_DATA:
       (*t) += mrb_objspace_page_slot_size();
-      if(mrb_respond_to(mrb, obj, mrb_intern_lit(mrb, "memsize"))) {
-        (*t) += mrb_fixnum(mrb_funcall(mrb, obj, "memsize", 0));
-      }
       break;
     #ifndef MRB_WITHOUT_FLOAT
     case MRB_TT_FLOAT:
@@ -389,11 +386,6 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj, mrb_value recurse, mrb_int* 
  *  hash keys and hash values recursively, calculating the child objects and adding to
  *  the final sum. It avoids infinite recursion and over counting objects by
  *  internally tracking discovered object ids.
- *
- *  MRB_TT_DATA objects aren't calculated beyond their original page slot. However,
- *  if the object implements a memsize method it will call that method and add the
- *  return value to the total. This provides an opportunity for C based data structures
- *  to report their memory usage.
  *
  */
 
