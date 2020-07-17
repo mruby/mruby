@@ -99,6 +99,18 @@ mrb_obj_id_m(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(mrb_obj_id(self));
 }
 
+static int
+env_bidx(struct REnv *e)
+{
+  int bidx;
+
+  /* use saved block arg position */
+  bidx = MRB_ENV_BIDX(e);
+  /* bidx may be useless (e.g. define_method) */
+  if (bidx >= MRB_ENV_LEN(e)) return -1;
+  return bidx;
+}
+
 /* 15.3.1.2.2  */
 /* 15.3.1.2.5  */
 /* 15.3.1.3.6  */
@@ -129,6 +141,8 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
   mrb_callinfo *ci = &mrb->c->ci[-1];
   mrb_callinfo *cibase = mrb->c->cibase;
   mrb_value *bp;
+  int bidx;
+  struct REnv *e = NULL;
   struct RProc *p;
 
   if (ci <= cibase) {
@@ -139,29 +153,36 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
   /* search method/class/module proc */
   while (p) {
     if (MRB_PROC_SCOPE_P(p)) break;
+    e = MRB_PROC_ENV(p);
     p = p->upper;
   }
   if (p == NULL) return mrb_false_value();
+  if (e) {
+    bidx = env_bidx(e);
+    if (bidx < 0) return mrb_false_value();
+    bp = &e->stack[bidx];
+    goto block_given;
+  }
   /* search ci corresponding to proc */
   while (cibase < ci) {
     if (ci->proc == p) break;
     ci--;
   }
   if (ci == cibase) {
-    return mrb_false_value();
+    /* proc is closure */
+    if (!MRB_PROC_ENV_P(p)) return mrb_false_value();
+    e = MRB_PROC_ENV(p);
+    bidx = env_bidx(e);
+    if (bidx < 0) return mrb_false_value();
+    bp = &e->stack[bidx];
   }
   else if (ci->env) {
-    struct REnv *e = ci->env;
-    int bidx;
-
+    e = ci->env;
     /* top-level does not have block slot (always false) */
-    if (e->stack == mrb->c->stbase)
-      return mrb_false_value();
-    /* use saved block arg position */
-    bidx = MRB_ENV_BIDX(e);
+    if (e->stack == mrb->c->stbase) return mrb_false_value();
+    bidx = env_bidx(e);
     /* bidx may be useless (e.g. define_method) */
-    if (bidx >= MRB_ENV_LEN(e))
-      return mrb_false_value();
+    if (bidx < 0) return mrb_false_value();
     bp = &e->stack[bidx];
   }
   else {
@@ -173,6 +194,7 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
       bp++;
     }
   }
+ block_given:
   if (mrb_nil_p(*bp))
     return mrb_false_value();
   return mrb_true_value();
