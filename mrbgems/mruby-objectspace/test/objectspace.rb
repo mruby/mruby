@@ -130,7 +130,6 @@ assert 'ObjectSpace.memsize_of' do
   # fiber
   empty_fiber_size = ObjectSpace.memsize_of(Fiber.new {})
   assert_not_equal empty_fiber_size, 0, 'empty fiber not zero'
-  assert_operator empty_fiber_size, :<, ObjectSpace.memsize_of(Fiber.new { yield; 1 }), 'Fiber code size growth'
 
   #hash
   assert_not_equal ObjectSpace.memsize_of({}), 0, 'empty hash size not zero'

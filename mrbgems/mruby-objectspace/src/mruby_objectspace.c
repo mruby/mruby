@@ -293,21 +293,8 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj)
       break;
     case MRB_TT_FIBER: {
       struct RFiber* f = (struct RFiber *)mrb_ptr(obj);
-      mrb_callinfo *ci_p = f->cxt->cibase;
       ptrdiff_t stack_size = f->cxt->stend - f->cxt->stbase;
       ptrdiff_t ci_size = f->cxt->ciend - f->cxt->cibase;
-      mrb_int i = 0;
-
-      while(ci_p < f->cxt->ciend) {
-        if(ci_p->proc) size += os_memsize_of_irep(mrb, ci_p->proc->body.irep);
-        ci_p++;
-      }
-
-      if(f->cxt->esize) {
-        for(i = 0; i <= f->cxt->esize; i++) {
-          size += os_memsize_of_irep(mrb, f->cxt->ensure[i]->body.irep);
-        }
-      }
 
       size += mrb_objspace_page_slot_size() +
         sizeof(struct RFiber) +
