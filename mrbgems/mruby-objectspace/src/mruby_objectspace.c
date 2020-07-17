@@ -205,24 +205,7 @@ os_memsize_of_method(mrb_state* mrb, mrb_value method_obj)
   struct RProc *proc = mrb_proc_ptr(proc_value);
 
   size = sizeof(struct RProc);
-  if(!MRB_PROC_CFUNC_P(proc)) size += os_memsize_of_irep(mrb, proc->body.irep);
-  return size;
-}
-
-static mrb_int
-os_memsize_of_methods(mrb_state* mrb, mrb_value obj)
-{
-  mrb_value method_list;
-  mrb_int size = 0;
-  mrb_int i;
-
-  if(!mrb_respond_to(mrb, obj, mrb_intern_lit(mrb, "instance_methods"))) return 0;
-  method_list = mrb_funcall(mrb, obj, "instance_methods", 1, mrb_false_value());
-  for(i = 0; i < RARRAY_LEN(method_list); i++) {
-    mrb_value method = mrb_funcall(mrb, obj, "instance_method", 1,
-                                   mrb_ary_ref(mrb, method_list, i));
-    size += os_memsize_of_method(mrb, method);
-  }
+  if (!MRB_PROC_CFUNC_P(proc)) size += os_memsize_of_irep(mrb, proc->body.irep);
   return size;
 }
 
@@ -240,17 +223,17 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj)
       break;
     case MRB_TT_CLASS:
     case MRB_TT_MODULE:
-    case MRB_TT_EXCEPTION:
     case MRB_TT_SCLASS:
     case MRB_TT_ICLASS:
+      size += mrb_gc_mark_mt_size(mrb, mrb_class_ptr(obj)) * sizeof(mrb_method_t);
+      /* fall through */
+    case MRB_TT_EXCEPTION:
     case MRB_TT_OBJECT: {
       size += mrb_objspace_page_slot_size();
       size += os_memsize_of_ivars(mrb, obj);
-      if(mrb_obj_is_kind_of(mrb, obj, mrb_class_get(mrb, "UnboundMethod"))) {
+      if (mrb_obj_is_kind_of(mrb, obj, mrb_class_get(mrb, "UnboundMethod")) ||
+          mrb_obj_is_kind_of(mrb, obj, mrb_class_get(mrb, "Method"))){
         size += os_memsize_of_method(mrb, obj);
-      }
-      else {
-        size += os_memsize_of_methods(mrb, obj);
       }
       break;
     }
