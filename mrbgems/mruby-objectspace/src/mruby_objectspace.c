@@ -183,7 +183,7 @@ os_memsize_of_ivars(mrb_state* mrb, mrb_value obj)
 }
 
 static mrb_int
-os_memsize_of_irep(mrb_state* state, struct mrb_irep *irep)
+os_memsize_of_irep(mrb_state* state, const struct mrb_irep *irep)
 {
   mrb_int size, i;
   size = (irep->slen * sizeof(mrb_sym)) +
