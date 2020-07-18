@@ -520,11 +520,11 @@ mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, struct RClass* c)
 static mrb_value
 obj_is_instance_of(mrb_state *mrb, mrb_value self)
 {
-  mrb_value arg;
+  struct RClass *c;
 
-  mrb_get_args(mrb, "C", &arg);
+  mrb_get_args(mrb, "c", &c);
 
-  return mrb_bool_value(mrb_obj_is_instance_of(mrb, self, mrb_class_ptr(arg)));
+  return mrb_bool_value(mrb_obj_is_instance_of(mrb, self, c));
 }
 
 /* 15.3.1.3.24 */
@@ -557,11 +557,11 @@ obj_is_instance_of(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_obj_is_kind_of_m(mrb_state *mrb, mrb_value self)
 {
-  mrb_value arg;
+  struct RClass *c;
 
-  mrb_get_args(mrb, "C", &arg);
+  mrb_get_args(mrb, "c", &c);
 
-  return mrb_bool_value(mrb_obj_is_kind_of(mrb, self, mrb_class_ptr(arg)));
+  return mrb_bool_value(mrb_obj_is_kind_of(mrb, self, c));
 }
 
 KHASH_DECLARE(st, mrb_sym, char, FALSE)

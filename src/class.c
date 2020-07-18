@@ -1168,22 +1168,22 @@ mrb_prepend_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
 static mrb_value
 mrb_mod_prepend_features(mrb_state *mrb, mrb_value mod)
 {
-  mrb_value klass;
+  struct RClass *c;
 
   mrb_check_type(mrb, mod, MRB_TT_MODULE);
-  mrb_get_args(mrb, "C", &klass);
-  mrb_prepend_module(mrb, mrb_class_ptr(klass), mrb_class_ptr(mod));
+  mrb_get_args(mrb, "c", &c);
+  mrb_prepend_module(mrb, c, mrb_class_ptr(mod));
   return mod;
 }
 
 static mrb_value
 mrb_mod_append_features(mrb_state *mrb, mrb_value mod)
 {
-  mrb_value klass;
+  struct RClass *c;
 
   mrb_check_type(mrb, mod, MRB_TT_MODULE);
-  mrb_get_args(mrb, "C", &klass);
-  mrb_include_module(mrb, mrb_class_ptr(klass), mrb_class_ptr(mod));
+  mrb_get_args(mrb, "c", &c);
+  mrb_include_module(mrb, c, mrb_class_ptr(mod));
   return mod;
 }
 

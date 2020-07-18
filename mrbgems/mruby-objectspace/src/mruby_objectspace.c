@@ -166,12 +166,8 @@ os_each_object_cb(mrb_state *mrb, struct RBasic *obj, void *ud)
 static mrb_value
 os_each_object(mrb_state *mrb, mrb_value self)
 {
-  mrb_value cls = mrb_nil_value();
-  struct os_each_object_data d;
-  mrb_get_args(mrb, "&!|C", &d.block, &cls);
-
-  d.target_module = mrb_nil_p(cls) ? NULL : mrb_class_ptr(cls);
-  d.count = 0;
+  struct os_each_object_data d = {0};
+  mrb_get_args(mrb, "&!|c", &d.block, &d.target_module);
   mrb_objspace_each_objects(mrb, os_each_object_cb, &d);
   return mrb_fixnum_value(d.count);
 }
@@ -379,10 +375,8 @@ os_memsize_of_all_cb(mrb_state *mrb, struct RBasic *obj, void *d)
 static mrb_value
 os_memsize_of_all(mrb_state *mrb, mrb_value self)
 {
-  mrb_value type = mrb_nil_value();
   struct os_memsize_of_all_cb_data data = { 0 };
-  mrb_get_args(mrb, "|C", &type);
-  data.type = mrb_class_ptr(type);
+  mrb_get_args(mrb, "|c", &data.type);
   mrb_objspace_each_objects(mrb, os_memsize_of_all_cb, &data);
   return mrb_fixnum_value(data.t);
 }
