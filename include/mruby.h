@@ -138,8 +138,6 @@ typedef struct {
   mrb_sym mid;
   struct RProc *proc;
   mrb_value *stackent;
-  uint16_t ridx;
-  uint16_t epos;
   struct REnv *env;
   const mrb_code *pc;           /* return address */
   const mrb_code *err;          /* error position */
@@ -165,11 +163,6 @@ struct mrb_context {
 
   mrb_callinfo *ci;
   mrb_callinfo *cibase, *ciend;
-
-  uint16_t *rescue;                       /* exception handler stack */
-  uint16_t rsize;
-  struct RProc **ensure;                  /* ensure handler stack */
-  uint16_t esize, eidx;
 
   enum mrb_fiber_state status : 4;
   mrb_bool vmexec : 1;
@@ -290,7 +283,6 @@ typedef struct mrb_state {
   mrb_atexit_func *atexit_stack;
 #endif
   uint16_t atexit_stack_len;
-  uint16_t ecall_nest;                    /* prevent infinite recursive ecall() */
 } mrb_state;
 
 /**

@@ -633,7 +633,6 @@ mark_context_stack(mrb_state *mrb, struct mrb_context *c)
 static void
 mark_context(mrb_state *mrb, struct mrb_context *c)
 {
-  int i;
   mrb_callinfo *ci;
 
  start:
@@ -649,10 +648,6 @@ mark_context(mrb_state *mrb, struct mrb_context *c)
       mrb_gc_mark(mrb, (struct RBasic*)ci->proc);
       mrb_gc_mark(mrb, (struct RBasic*)ci->target_class);
     }
-  }
-  /* mark ensure stack */
-  for (i=0; i<c->eidx; i++) {
-    mrb_gc_mark(mrb, (struct RBasic*)c->ensure[i]);
   }
   /* mark fibers */
   mrb_gc_mark(mrb, (struct RBasic*)c->fib);
@@ -1003,9 +998,6 @@ gc_gray_counts(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
       }
       if (c->stbase + i > c->stend) i = c->stend - c->stbase;
       children += i;
-
-      /* mark ensure stack */
-      children += c->eidx;
 
       /* mark closure */
       if (c->cibase) {

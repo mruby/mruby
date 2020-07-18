@@ -48,6 +48,7 @@ OPCODE(JMP,        S)        /* pc=a */
 OPCODE(JMPIF,      BS)       /* if R(a) pc=b */
 OPCODE(JMPNOT,     BS)       /* if !R(a) pc=b */
 OPCODE(JMPNIL,     BS)       /* if R(a)==nil pc=b */
+OPCODE(JMPUNWIND,  S)        /* unwind_and_jump_to(a) */
 OPCODE(EXCEPT,     B)        /* R(a) = exc */
 OPCODE(RESCUE,     BB)       /* R(b) = R(a).isa?(R(b)) */
 OPCODE(RAISEIF,    B)        /* raise(R(a)) if R(a) */

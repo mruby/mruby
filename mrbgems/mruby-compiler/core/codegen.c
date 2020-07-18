@@ -41,7 +41,6 @@ enum looptype {
 struct loopinfo {
   enum looptype type;
   int pc0, pc1, pc2, pc3, acc;
-  int ensure_level;
   struct loopinfo *prev;
 };
 
@@ -62,7 +61,6 @@ typedef struct scope {
   mrb_bool mscope:1;
 
   struct loopinfo *loop;
-  int ensure_level;
   mrb_sym filename_sym;
   uint16_t lineno;
 
@@ -1469,16 +1467,19 @@ codegen(codegen_scope *s, node *tree, int val)
     {
       int noexc, exend, pos1, pos2, tmp;
       struct loopinfo *lp;
+      int catch_entry, begin, end;
 
       if (tree->car == NULL) goto exit;
       lp = loop_push(s, LOOP_BEGIN);
       lp->pc0 = new_label(s);
-      lp->pc1 = genjmp(s, OP_ONERR, 0);
+      catch_entry = catch_hander_new(s);
+      begin = s->pc;
       codegen(s, tree->car, VAL);
       pop();
       lp->type = LOOP_RESCUE;
+      end = s->pc;
       noexc = genjmp(s, OP_JMP, 0);
-      dispatch(s, lp->pc1);
+      catch_hander_set(s, catch_entry, MRB_CATCH_RESCUE, begin, end, s->pc);
       tree = tree->cdr;
       exend = 0;
       pos1 = 0;
@@ -1543,7 +1544,6 @@ codegen(codegen_scope *s, node *tree, int val)
       pop();
       tree = tree->cdr;
       dispatch(s, noexc);
-      genop_1(s, OP_POPERR, 1);
       if (tree->car) {
         codegen(s, tree->car, val);
       }
@@ -1559,14 +1559,22 @@ codegen(codegen_scope *s, node *tree, int val)
     if (!tree->cdr || !tree->cdr->cdr ||
         (nint(tree->cdr->cdr->car) == NODE_BEGIN &&
          tree->cdr->cdr->cdr)) {
+      int catch_entry, begin, end, target;
       int idx;
 
-      s->ensure_level++;
-      idx = scope_body(s, tree->cdr, NOVAL);
-      genop_1(s, OP_EPUSH, idx);
+      catch_entry = catch_hander_new(s);
+      begin = s->pc;
       codegen(s, tree->car, val);
-      s->ensure_level--;
-      genop_1(s, OP_EPOP, 1);
+      end = target = s->pc;
+      push();
+      idx = cursp();
+      genop_1(s, OP_EXCEPT, idx);
+      push();
+      codegen(s, tree->cdr->cdr, NOVAL);
+      pop();
+      genop_1(s, OP_RAISEIF, idx);
+      pop();
+      catch_hander_set(s, catch_entry, MRB_CATCH_ENSURE, begin, end, target);
     }
     else {                      /* empty ensure ignored */
       codegen(s, tree->car, val);
@@ -2028,18 +2036,20 @@ codegen(codegen_scope *s, node *tree, int val)
       if ((len == 2 && name[0] == '|' && name[1] == '|') &&
           (nint(tree->car->car) == NODE_CONST ||
            nint(tree->car->car) == NODE_CVAR)) {
-        int onerr, noexc, exc;
+        int catch_entry, begin, end;
+        int noexc, exc;
         struct loopinfo *lp;
 
-        onerr = genjmp(s, OP_ONERR, 0);
         lp = loop_push(s, LOOP_BEGIN);
-        lp->pc1 = onerr;
+        lp->pc0 = new_label(s);
+        catch_entry = catch_hander_new(s);
+        begin = s->pc;
         exc = cursp();
         codegen(s, tree->car, VAL);
-        lp->type = LOOP_RESCUE;
-        genop_1(s, OP_POPERR, 1);
+        end = s->pc;
         noexc = genjmp(s, OP_JMP, 0);
-        dispatch(s, onerr);
+        lp->type = LOOP_RESCUE;
+        catch_hander_set(s, catch_entry, MRB_CATCH_RESCUE, begin, end, s->pc);
         genop_1(s, OP_EXCEPT, exc);
         genop_1(s, OP_LOADF, exc);
         dispatch(s, noexc);
@@ -2292,11 +2302,8 @@ codegen(codegen_scope *s, node *tree, int val)
       raise_error(s, "unexpected next");
     }
     else if (s->loop->type == LOOP_NORMAL) {
-      if (s->ensure_level > s->loop->ensure_level) {
-        genop_1(s, OP_EPOP, s->ensure_level - s->loop->ensure_level);
-      }
       codegen(s, tree, NOVAL);
-      genjmp(s, OP_JMP, s->loop->pc0);
+      genjmp(s, OP_JMPUNWIND, s->loop->pc0);
     }
     else {
       if (tree) {
@@ -2316,10 +2323,7 @@ codegen(codegen_scope *s, node *tree, int val)
       raise_error(s, "unexpected redo");
     }
     else {
-      if (s->ensure_level > s->loop->ensure_level) {
-        genop_1(s, OP_EPOP, s->ensure_level - s->loop->ensure_level);
-      }
-      genjmp(s, OP_JMP, s->loop->pc2);
+      genjmp(s, OP_JMPUNWIND, s->loop->pc2);
     }
     if (val) push();
     break;
@@ -2327,32 +2331,16 @@ codegen(codegen_scope *s, node *tree, int val)
   case NODE_RETRY:
     {
       const char *msg = "unexpected retry";
+      const struct loopinfo *lp = s->loop;
 
-      if (!s->loop) {
+      while (lp && lp->type != LOOP_RESCUE) {
+        lp = lp->prev;
+      }
+      if (!lp) {
         raise_error(s, msg);
       }
       else {
-        struct loopinfo *lp = s->loop;
-        int n = 0;
-
-        while (lp && lp->type != LOOP_RESCUE) {
-          if (lp->type == LOOP_BEGIN) {
-            n++;
-          }
-          lp = lp->prev;
-        }
-        if (!lp) {
-          raise_error(s, msg);
-        }
-        else {
-          if (n > 0) {
-            genop_1(s, OP_POPERR, n);
-          }
-          if (s->ensure_level > lp->ensure_level) {
-            genop_1(s, OP_EPOP, s->ensure_level - lp->ensure_level);
-          }
-          genjmp(s, OP_JMP, lp->pc0);
-        }
+        genjmp(s, OP_JMPUNWIND, lp->pc0);
       }
       if (val) push();
     }
@@ -3141,7 +3129,6 @@ loop_push(codegen_scope *s, enum looptype t)
   p->type = t;
   p->pc0 = p->pc1 = p->pc2 = p->pc3 = 0;
   p->prev = s->loop;
-  p->ensure_level = s->ensure_level;
   p->acc = cursp();
   s->loop = p;
 
@@ -3157,7 +3144,6 @@ loop_break(codegen_scope *s, node *tree)
   }
   else {
     struct loopinfo *loop;
-    int n = 0;
 
     if (tree) {
       gen_retval(s, tree);
@@ -3166,7 +3152,6 @@ loop_break(codegen_scope *s, node *tree)
     loop = s->loop;
     while (loop) {
       if (loop->type == LOOP_BEGIN) {
-        n++;
         loop = loop->prev;
       }
       else if (loop->type == LOOP_RESCUE) {
@@ -3180,20 +3165,14 @@ loop_break(codegen_scope *s, node *tree)
       raise_error(s, "unexpected break");
       return;
     }
-    if (n > 0) {
-      genop_1(s, OP_POPERR, n);
-    }
 
     if (loop->type == LOOP_NORMAL) {
       int tmp;
 
-      if (s->ensure_level > s->loop->ensure_level) {
-        genop_1(s, OP_EPOP, s->ensure_level - s->loop->ensure_level);
-      }
       if (tree) {
         gen_move(s, loop->acc, cursp(), 0);
       }
-      tmp = genjmp(s, OP_JMP, loop->pc3);
+      tmp = genjmp(s, OP_JMPUNWIND, loop->pc3);
       loop->pc3 = tmp;
     }
     else {

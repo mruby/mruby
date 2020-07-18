@@ -131,8 +131,6 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj)
       size += mrb_objspace_page_slot_size() +
         sizeof(struct RFiber) +
         sizeof(struct mrb_context) +
-        sizeof(struct RProc *) * f->cxt->esize +
-        sizeof(uint16_t *) * f->cxt->rsize +
         sizeof(mrb_value) * stack_size +
         sizeof(mrb_callinfo) * ci_size;
       break;

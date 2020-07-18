@@ -70,6 +70,7 @@ with `"`, either `OP_EXT1` or `OP_EXT2` or `OP_EXT2` can be prefixed.
 | OP_JMPIF'        | BS           | if R(a) pc=b                                           |
 | OP_JMPNOT'       | BS           | if !R(a) pc=b                                          |
 | OP_JMPNIL'       | BS           | if R(a)==nil pc=b                                      |
+| OP_JMPUNWIND     | S            | unwind_and_jump_to(a)                                  |
 | OP_EXCEPT'       | B            | R(a) = exc                                             |
 | OP_RESCUE"       | BB           | R(b) = R(a).isa?(R(b))                                 |
 | OP_RAISEIF'      | B            | raise(R(a)) if R(a)                                    |
