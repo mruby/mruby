@@ -1,4 +1,3 @@
-# coding: cp932
 assert('ObjectSpace.count_objects') do
   h = {}
   f = Fiber.new {} if Object.const_defined?(:Fiber)
@@ -133,4 +132,18 @@ assert 'ObjectSpace.memsize_of' do
 
   #hash
   assert_not_equal ObjectSpace.memsize_of({}), 0, 'empty hash size not zero'
+end
+
+assert 'ObjectSpace.memsize_of_all' do
+  foo_class = Class.new do
+    def initialize
+      @a = 'a'
+      @b = 'b'
+    end
+  end
+
+  foos = Array.new(10) { foo_class.new }
+  foo_size = ObjectSpace.memsize_of(foos.first)
+
+  assert_equal ObjectSpace.memsize_of_all(foo_class), foo_size * foos.size, 'Memsize of all instance'
 end

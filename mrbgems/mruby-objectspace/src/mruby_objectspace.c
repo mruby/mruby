@@ -344,6 +344,38 @@ os_memsize_of(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(total);
 }
 
+struct os_memsize_of_all_cb_data {
+  mrb_int t;
+  struct RClass *type;
+};
+
+static int
+os_memsize_of_all_cb(mrb_state *mrb, struct RBasic *obj, void *d)
+{
+  struct os_memsize_of_all_cb_data *data = (struct os_memsize_of_all_cb_data *)d;
+  if(mrb_class_real(obj->c) == data->type) data->t += os_memsize_of_object(mrb, mrb_obj_value(obj));
+  return 0;
+}
+
+/*
+ *  call-seq:
+ *    ObjectSpace.memsize_of_all([klass]) -> Numeric
+ *
+ *  Return consuming memory size of all living objects of type klass.
+ *
+ */
+
+static mrb_value
+os_memsize_of_all(mrb_state *mrb, mrb_value self)
+{
+  mrb_value type;
+  struct os_memsize_of_all_cb_data data = { 0 };
+  mrb_get_args(mrb, "C", &type);
+  data.type = mrb_class_ptr(type);
+  mrb_objspace_each_objects(mrb, os_memsize_of_all_cb, &data);
+  return mrb_fixnum_value(data.t);
+}
+
 void
 mrb_mruby_objectspace_gem_init(mrb_state *mrb)
 {
@@ -351,6 +383,7 @@ mrb_mruby_objectspace_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, os, "count_objects", os_count_objects, MRB_ARGS_OPT(1));
   mrb_define_class_method(mrb, os, "each_object", os_each_object, MRB_ARGS_OPT(1));
   mrb_define_class_method(mrb, os, "memsize_of", os_memsize_of, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
+  mrb_define_class_method(mrb, os, "memsize_of_all", os_memsize_of_all, MRB_ARGS_REQ(1));
 }
 
 void
