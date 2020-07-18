@@ -353,7 +353,7 @@ static int
 os_memsize_of_all_cb(mrb_state *mrb, struct RBasic *obj, void *d)
 {
   struct os_memsize_of_all_cb_data *data = (struct os_memsize_of_all_cb_data *)d;
-  if(obj->c == data->type) data->t += os_memsize_of_object(mrb, mrb_obj_value(obj));
+  if(mrb_class_real(obj->c) == data->type) data->t += os_memsize_of_object(mrb, mrb_obj_value(obj));
   return 0;
 }
 
