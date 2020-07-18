@@ -66,6 +66,39 @@ mrb_break_value_set(struct RBreak *brk, mrb_value val)
 #define mrb_break_proc_get(brk) ((brk)->proc)
 #define mrb_break_proc_set(brk, p) ((brk)->proc = p)
 
+#define RBREAK_TAG_FOREACH(f) \
+  f(RBREAK_TAG_BREAK, 0) \
+  f(RBREAK_TAG_BREAK_UPPER, 1) \
+  f(RBREAK_TAG_BREAK_INTARGET, 2) \
+  f(RBREAK_TAG_RETURN_BLOCK, 3) \
+  f(RBREAK_TAG_RETURN, 4) \
+  f(RBREAK_TAG_RETURN_TOPLEVEL, 5) \
+  f(RBREAK_TAG_JUMP, 6) \
+  f(RBREAK_TAG_STOP, 7)
+
+#define RBREAK_TAG_DEFINE(tag, i) tag = i,
+enum {
+  RBREAK_TAG_FOREACH(RBREAK_TAG_DEFINE)
+};
+#undef RBREAK_TAG_DEFINE
+
+#define RBREAK_TAG_BIT          3
+#define RBREAK_TAG_BIT_OFF      8
+#define RBREAK_TAG_MASK         (~(~UINT32_C(0) << RBREAK_TAG_BIT))
+
+static inline uint32_t
+mrb_break_tag_get(struct RBreak *brk)
+{
+  return (brk->flags >> RBREAK_TAG_BIT_OFF) & RBREAK_TAG_MASK;
+}
+
+static inline void
+mrb_break_tag_set(struct RBreak *brk, uint32_t tag)
+{
+  brk->flags &= ~(RBREAK_TAG_MASK << RBREAK_TAG_BIT_OFF);
+  brk->flags |= (tag & RBREAK_TAG_MASK) << RBREAK_TAG_BIT_OFF;
+}
+
 /**
  * Protect
  *

@@ -261,6 +261,9 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
     CASE(OP_JMP, S);
       printf("OP_JMP\t\t%03d\n", a);
       break;
+    CASE(OP_JUW, S);
+      printf("OP_JUW\t\t%03d\n", a);
+      break;
     CASE(OP_JMPIF, BS);
       printf("OP_JMPIF\tR%d\t%03d\t", a, b);
       print_lv_a(mrb, irep, a);
