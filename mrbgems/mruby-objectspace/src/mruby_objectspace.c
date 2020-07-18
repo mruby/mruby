@@ -353,7 +353,17 @@ static int
 os_memsize_of_all_cb(mrb_state *mrb, struct RBasic *obj, void *d)
 {
   struct os_memsize_of_all_cb_data *data = (struct os_memsize_of_all_cb_data *)d;
-  if(mrb_obj_is_kind_of(mrb, mrb_obj_value(obj), data->type))
+  switch (obj->tt) {
+  case MRB_TT_FREE: case MRB_TT_ENV:
+  case MRB_TT_BREAK: case MRB_TT_ICLASS:
+    /* internal objects that should not be counted */
+    return 0;
+  default:
+    break;
+  }
+  /* skip Proc objects for methods */
+  if (obj->c == NULL) return 0;
+  if (data->type == NULL || mrb_obj_is_kind_of(mrb, mrb_obj_value(obj), data->type))
     data->t += os_memsize_of_object(mrb, mrb_obj_value(obj));
   return 0;
 }
@@ -369,9 +379,9 @@ os_memsize_of_all_cb(mrb_state *mrb, struct RBasic *obj, void *d)
 static mrb_value
 os_memsize_of_all(mrb_state *mrb, mrb_value self)
 {
-  mrb_value type;
+  mrb_value type = mrb_nil_value();
   struct os_memsize_of_all_cb_data data = { 0 };
-  mrb_get_args(mrb, "C", &type);
+  mrb_get_args(mrb, "|C", &type);
   data.type = mrb_class_ptr(type);
   mrb_objspace_each_objects(mrb, os_memsize_of_all_cb, &data);
   return mrb_fixnum_value(data.t);
