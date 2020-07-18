@@ -357,6 +357,14 @@ os_memsize_of_all_cb(mrb_state *mrb, struct RBasic *obj, void *d)
   return 0;
 }
 
+/*
+ *  call-seq:
+ *    ObjectSpace.memsize_of_all([klass]) -> Numeric
+ *
+ *  Return consuming memory size of all living objects of type klass.
+ *
+ */
+
 static mrb_value
 os_memsize_of_all(mrb_state *mrb, mrb_value self)
 {
