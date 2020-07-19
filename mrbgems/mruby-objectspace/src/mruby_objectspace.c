@@ -210,7 +210,7 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj)
 {
   mrb_int size = 0;
 
-  switch(obj.tt) {
+  switch(mrb_type(obj)) {
     case MRB_TT_STRING:
       size += mrb_objspace_page_slot_size();
       if (!RSTR_EMBED_P(RSTRING(obj)) && !RSTR_SHARED_P(RSTRING(obj))) {
