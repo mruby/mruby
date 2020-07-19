@@ -129,8 +129,8 @@ os_each_object_cb(mrb_state *mrb, struct RBasic *obj, void *ud)
 
   /* filter internal objects */
   switch (obj->tt) {
-  case MRB_TT_ENV:
-  case MRB_TT_ICLASS:
+  case MRB_TT_FREE: case MRB_TT_ENV:
+  case MRB_TT_BREAK: case MRB_TT_ICLASS:
     return MRB_EACH_OBJ_OK;
   default:
     break;
