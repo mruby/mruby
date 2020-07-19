@@ -70,22 +70,11 @@ assert 'ObjectSpace.memsize_of' do
   assert_equal ObjectSpace.memsize_of(true), int_size
   assert_equal ObjectSpace.memsize_of(false), int_size
 
-  float_size = if Object.const_defined? :Float
-                 ObjectSpace.memsize_of 1.0
-               else
-                 nil
-               end
-
-  # need some way of asking if floats are boxed
-  assert_equal float_size, 0 if float_size
-
   assert_not_equal ObjectSpace.memsize_of('a'), 0, 'memsize of str'
 
   if __ENCODING__ == "UTF-8"
     assert_not_equal ObjectSpace.memsize_of("こんにちは世界"), 0, 'memsize of utf8 str'
   end
-
-  assert_not_equal ObjectSpace.memsize_of(0..1), 0, 'range not zero'
 
   # class defs
   class_obj_size = ObjectSpace.memsize_of Class
