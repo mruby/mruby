@@ -353,7 +353,7 @@ os_memsize_of_all_cb(mrb_state *mrb, struct RBasic *obj, void *d)
   case MRB_TT_FREE: case MRB_TT_ENV:
   case MRB_TT_BREAK: case MRB_TT_ICLASS:
     /* internal objects that should not be counted */
-    return 0;
+    return MRB_EACH_OBJ_OK;
   default:
     break;
   }
@@ -361,7 +361,7 @@ os_memsize_of_all_cb(mrb_state *mrb, struct RBasic *obj, void *d)
   if (obj->c == NULL) return 0;
   if (data->type == NULL || mrb_obj_is_kind_of(mrb, mrb_obj_value(obj), data->type))
     data->t += os_memsize_of_object(mrb, mrb_obj_value(obj));
-  return 0;
+  return MRB_EACH_OBJ_OK;
 }
 
 /*
