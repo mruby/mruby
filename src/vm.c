@@ -1018,10 +1018,16 @@ RETRY_TRY_BLOCK:
         regs[a] = mrb_fixnum_value((mrb_int)pool[b].u.i32);
         break;
       case IREP_TT_INT64:
-#if defined(MRB_INT64) && defined(MRB_64BIT)
+#if defined(MRB_INT64)
         regs[a] = mrb_fixnum_value((mrb_int)pool[b].u.i64);
         break;
 #else
+#if defined(MRB_64BIT)
+        if (INT32_MIN <= pool[b].u.i64 && pool[b].u.i64 <= INT32_MAX) {
+          regs[a] = mrb_fixnum_value((mrb_int)pool[b].u.i64);
+          break;
+        }
+#endif
         {
           mrb_value exc = mrb_exc_new_str_lit(mrb, E_RUNTIME_ERROR, "integer overflow");
           mrb_exc_set(mrb, exc);
