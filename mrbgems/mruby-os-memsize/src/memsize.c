@@ -44,6 +44,19 @@ os_memsize_of_method(mrb_state* mrb, mrb_value method_obj)
   return size;
 }
 
+static mrb_bool
+obj_is_kind_of_checked(mrb_state *mrb, mrb_value obj, const char *classname)
+{
+  mrb_value objclass = mrb_obj_value(mrb->object_class);
+
+  if (mrb_const_defined(mrb, objclass, mrb_intern_cstr(mrb, classname))) {
+    struct RClass *klass = mrb_class_get(mrb, classname);
+    return mrb_obj_is_kind_of(mrb, obj, klass);
+  }
+
+  return FALSE;
+}
+
 static mrb_int
 os_memsize_of_object(mrb_state* mrb, mrb_value obj)
 {
@@ -67,8 +80,8 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj)
     case MRB_TT_OBJECT: {
       size += mrb_objspace_page_slot_size();
       size += os_memsize_of_ivars(mrb, obj);
-      if (mrb_obj_is_kind_of(mrb, obj, mrb_class_get(mrb, "UnboundMethod")) ||
-          mrb_obj_is_kind_of(mrb, obj, mrb_class_get(mrb, "Method"))){
+      if (obj_is_kind_of_checked(mrb, obj, "UnboundMethod") ||
+          obj_is_kind_of_checked(mrb, obj, "Method")) {
         size += os_memsize_of_method(mrb, obj);
       }
       break;
