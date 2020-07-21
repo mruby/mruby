@@ -754,16 +754,25 @@ mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value 
   ci = cipush(mrb);
   ci->mid = mid;
   ci->proc = p;
-  ci->stackent = mrb->c->stack;
-  ci->argc = (int)argc;
   ci->target_class = c;
   ci->acc = CI_ACC_SKIP;
-  n = MRB_PROC_CFUNC_P(p) ? (int)(argc+2) : p->body.irep->nregs;
-  mrb->c->stack = mrb->c->stack + n;
+  ci->stackent = mrb->c->stack;
+  mrb->c->stack += n;
+  if (argc >= CALL_MAXARGS) {
+    ci->argc = -1;
+    n = 3;
+  }
+  else {
+    ci->argc = (int)argc;
+    n = argc + 2;
+  }
   mrb_stack_extend(mrb, n);
-
   mrb->c->stack[0] = self;
-  if (argc > 0) {
+  if (ci->argc < 0) {
+    mrb->c->stack[1] = mrb_ary_new_from_values(mrb, argc, argv);
+    argc = 1;
+  }
+  else if (argc > 0) {
     stack_copy(mrb->c->stack+1, argv, argc);
   }
   mrb->c->stack[argc+1] = mrb_nil_value();
