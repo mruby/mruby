@@ -11,6 +11,7 @@ print_r(mrb_state *mrb, const mrb_irep *irep, size_t n)
 {
   if (n == 0) return;
   if (n > irep->nlocals) return;
+  if (!irep->lv[n-1]) return;
   printf(" R%d:%s", (int)n, mrb_sym_dump(mrb, irep->lv[n-1]));
 }
 
