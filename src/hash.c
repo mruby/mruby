@@ -174,6 +174,11 @@ ht_index(mrb_state *mrb, htable *t)
   segment *seg;
   size_t i;
 
+  if (size == 0) {
+    t->index = NULL;
+    mrb_free(mrb, index);
+    return;
+  }
   /* allocate index table */
   if (index && index->size >= UPPER_BOUND(index->capa)) {
     size = index->capa+1;
@@ -194,7 +199,7 @@ ht_index(mrb_state *mrb, htable *t)
     index->table[i] = NULL;
   }
 
-  /* rebuld index */
+  /* rebuild index */
   mask = HT_MASK(index);
   seg = t->rootseg;
   while (seg) {
