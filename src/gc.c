@@ -730,10 +730,11 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
   case MRB_TT_ARRAY:
     {
       struct RArray *a = (struct RArray*)obj;
-      size_t i, e;
+      size_t i, e=ARY_LEN(a);
+      mrb_value *p = ARY_PTR(a);
 
-      for (i=0,e=ARY_LEN(a); i<e; i++) {
-        mrb_gc_mark_value(mrb, ARY_PTR(a)[i]);
+      for (i=0; i<e; i++) {
+        mrb_gc_mark_value(mrb, p[i]);
       }
     }
     break;
