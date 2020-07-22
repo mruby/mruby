@@ -350,7 +350,7 @@ mrb_obj_iv_set_force(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value
     obj->iv = iv_new(mrb);
   }
   iv_put(mrb, obj->iv, sym, v);
-  mrb_write_barrier(mrb, (struct RBasic*)obj);
+  mrb_field_write_barrier_value(mrb, (struct RBasic*)obj, v);
 }
 
 MRB_API void
@@ -680,7 +680,7 @@ mrb_mod_cv_set(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value v)
     if (iv_get(mrb, t, sym, NULL)) {
       mrb_check_frozen(mrb, c);
       iv_put(mrb, t, sym, v);
-      mrb_write_barrier(mrb, (struct RBasic*)c);
+      mrb_field_write_barrier_value(mrb, (struct RBasic*)c, v);
       return;
     }
     c = c->super;
@@ -712,7 +712,7 @@ mrb_mod_cv_set(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value v)
   }
 
   iv_put(mrb, c->iv, sym, v);
-  mrb_write_barrier(mrb, (struct RBasic*)c);
+  mrb_field_write_barrier_value(mrb, (struct RBasic*)c, v);
 }
 
 MRB_API void
