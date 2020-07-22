@@ -76,7 +76,7 @@ mrb_puts(mrb_state *mrb, mrb_value self)
     mrb_value s = mrb_str_to_str(mrb, argv[i]);
     mrb_int len = RSTRING_LEN(s);
     printstr(mrb, RSTRING_PTR(s), len);
-    if (len > 0 && RSTRING_PTR(s)[len-1] != '\n') {
+    if (len == 0 || RSTRING_PTR(s)[len-1] != '\n') {
       printstr(mrb, "\n", 1);
     }
   }
