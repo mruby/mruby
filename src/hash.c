@@ -589,7 +589,7 @@ ht_free(mrb_state *mrb, htable *t)
   mrb_free(mrb, t);
 }
 
-static void mrb_hash_modify(mrb_state *mrb, mrb_value hash);
+static void hash_modify(mrb_state *mrb, mrb_value hash);
 
 static inline mrb_value
 ht_key(mrb_state *mrb, mrb_value key)
@@ -752,7 +752,7 @@ mrb_hash_fetch(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value def)
 MRB_API void
 mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val)
 {
-  mrb_hash_modify(mrb, hash);
+  hash_modify(mrb, hash);
 
   key = KEY(key);
   ht_put(mrb, RHASH_TBL(hash), key, val);
@@ -762,7 +762,7 @@ mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val)
 }
 
 static void
-mrb_hash_modify(mrb_state *mrb, mrb_value hash)
+hash_modify(mrb_state *mrb, mrb_value hash)
 {
   mrb_check_frozen(mrb, mrb_hash_ptr(hash));
   if (!RHASH_TBL(hash)) {
@@ -814,7 +814,7 @@ mrb_hash_init(mrb_state *mrb, mrb_value hash)
 
   ifnone = mrb_nil_value();
   mrb_get_args(mrb, "&|o?", &block, &ifnone, &ifnone_p);
-  mrb_hash_modify(mrb, hash);
+  hash_modify(mrb, hash);
   if (!mrb_nil_p(block)) {
     if (ifnone_p) {
       mrb_argnum_error(mrb, 1, 0, 0);
@@ -932,7 +932,7 @@ mrb_hash_set_default(mrb_state *mrb, mrb_value hash)
 {
   mrb_value ifnone = mrb_get_arg1(mrb);
 
-  mrb_hash_modify(mrb, hash);
+  hash_modify(mrb, hash);
   mrb_iv_set(mrb, hash, MRB_SYM(ifnone), ifnone);
   RHASH(hash)->flags &= ~MRB_HASH_PROC_DEFAULT;
   if (!mrb_nil_p(ifnone)) {
@@ -987,7 +987,7 @@ mrb_hash_set_default_proc(mrb_state *mrb, mrb_value hash)
 {
   mrb_value ifnone = mrb_get_arg1(mrb);
 
-  mrb_hash_modify(mrb, hash);
+  hash_modify(mrb, hash);
   mrb_iv_set(mrb, hash, MRB_SYM(ifnone), ifnone);
   if (!mrb_nil_p(ifnone)) {
     RHASH(hash)->flags |= MRB_HASH_PROC_DEFAULT;
@@ -1020,7 +1020,7 @@ mrb_hash_delete(mrb_state *mrb, mrb_value self)
 {
   mrb_value key = mrb_get_arg1(mrb);
 
-  mrb_hash_modify(mrb, self);
+  hash_modify(mrb, self);
   return mrb_hash_delete_key(mrb, self, key);
 }
 
@@ -1070,7 +1070,7 @@ mrb_hash_shift(mrb_state *mrb, mrb_value hash)
 {
   htable *t = RHASH_TBL(hash);
 
-  mrb_hash_modify(mrb, hash);
+  hash_modify(mrb, hash);
   if (t && t->size > 0) {
     mrb_value del_key = mrb_nil_value();
     mrb_value del_val = mrb_nil_value();
@@ -1109,7 +1109,7 @@ mrb_hash_clear(mrb_state *mrb, mrb_value hash)
 {
   htable *t = RHASH_TBL(hash);
 
-  mrb_hash_modify(mrb, hash);
+  hash_modify(mrb, hash);
   if (t) {
     ht_free(mrb, t);
     RHASH_TBL(hash) = NULL;
@@ -1368,7 +1368,7 @@ mrb_hash_merge(mrb_state *mrb, mrb_value hash1, mrb_value hash2)
 {
   htable *h1, *h2;
 
-  mrb_hash_modify(mrb, hash1);
+  hash_modify(mrb, hash1);
   hash2 = mrb_ensure_hash_type(mrb, hash2);
   h1 = RHASH_TBL(hash1);
   h2 = RHASH_TBL(hash2);
