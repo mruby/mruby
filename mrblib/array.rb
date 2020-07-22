@@ -12,7 +12,7 @@ class Array
   # ISO 15.2.12.5.10
   # def each(&block)
   #   return to_enum :each unless block
-
+  #
   #   idx = 0
   #   while idx < length
   #     block.call(self[idx])
