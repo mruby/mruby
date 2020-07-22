@@ -524,7 +524,7 @@ mrb_ary_push_m(mrb_state *mrb, mrb_value self)
   }
   array_copy(ARY_PTR(a)+len, argv, argc);
   ARY_SET_LEN(a, len2);
-  while (alen--) {
+  while (argc--) {
     mrb_field_write_barrier_value(mrb, (struct RBasic*)a, *argv);
     argv++;
   }
