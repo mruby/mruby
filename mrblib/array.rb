@@ -268,4 +268,8 @@ class Array
   def sort(&block)
     self.dup.sort!(&block)
   end
+
+  def to_a
+    self
+  end
 end
