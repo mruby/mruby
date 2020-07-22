@@ -100,6 +100,7 @@ os_count_objects(mrb_state *mrb, mrb_value self)
       COUNT_TYPE(T_ENV);
       COUNT_TYPE(T_DATA);
       COUNT_TYPE(T_FIBER);
+      COUNT_TYPE(T_ISTRUCT);
 #undef COUNT_TYPE
     default:
       type = mrb_fixnum_value(i); break;
