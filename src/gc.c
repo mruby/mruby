@@ -667,7 +667,6 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
 {
   mrb_assert(is_gray(obj));
   paint_black(obj);
-  gc->gray_list = obj->gcnext;
   mrb_gc_mark(mrb, (struct RBasic*)obj->c);
   switch (obj->tt) {
   case MRB_TT_ICLASS:
@@ -1043,10 +1042,9 @@ gc_gray_counts(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
 static void
 gc_mark_gray_list(mrb_state *mrb, mrb_gc *gc) {
   while (gc->gray_list) {
-    if (is_gray(gc->gray_list))
-      gc_mark_children(mrb, gc, gc->gray_list);
-    else
-      gc->gray_list = gc->gray_list->gcnext;
+    struct RBasic *obj = gc->gray_list;
+    gc->gray_list = obj->gcnext;
+    gc_mark_children(mrb, gc, obj);
   }
 }
 
@@ -1058,6 +1056,7 @@ incremental_marking_phase(mrb_state *mrb, mrb_gc *gc, size_t limit)
 
   while (gc->gray_list && tried_marks < limit) {
     struct RBasic *obj = gc->gray_list;
+    gc->gray_list = obj->gcnext;
     gc_mark_children(mrb, gc, obj);
     tried_marks += gc_gray_counts(mrb, gc, obj);
   }
