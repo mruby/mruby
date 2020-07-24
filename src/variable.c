@@ -1131,9 +1131,16 @@ mrb_class_find_path(mrb_state *mrb, struct RClass *c)
 mrb_int
 mrb_obj_iv_tbl_memsize(mrb_state* mrb, mrb_value obj)
 {
-  size_t ivsize = iv_size(mrb, mrb_obj_ptr(obj)->iv);
-  size_t ivsegs = (ivsize + MRB_IV_SEGMENT_SIZE - 1) / MRB_IV_SEGMENT_SIZE;
-  return sizeof(iv_tbl) + (sizeof(segment) * ivsegs);
+  size_t nseg = 0;
+  segment *seg;
+
+  if (mrb_obj_ptr(obj)->iv == NULL) return 0;
+  seg = mrb_obj_ptr(obj)->iv->rootseg;
+  while (seg) {
+    nseg++;
+    seg = seg->next;
+  }
+  return sizeof(iv_tbl) + sizeof(segment)*nseg;
 }
 
 #define identchar(c) (ISALNUM(c) || (c) == '_' || !ISASCII(c))
