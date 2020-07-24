@@ -12,7 +12,7 @@ assert 'ObjectSpace.memsize_of' do
   assert_not_equal ObjectSpace.memsize_of('a'), 0, 'memsize of str'
 
   if __ENCODING__ == "UTF-8"
-    assert_not_equal ObjectSpace.memsize_of("縺薙ｓ縺ｫ縺｡縺ｯ荳也阜"), 0, 'memsize of utf8 str'
+    assert_not_equal ObjectSpace.memsize_of("こんにちは世界"), 0, 'memsize of utf8 str'
   end
 
   # class defs
@@ -21,20 +21,6 @@ assert 'ObjectSpace.memsize_of' do
 
   empty_class_def_size = ObjectSpace.memsize_of Class.new
   assert_not_equal empty_class_def_size, 0, 'Class def not zero'
-
-  class_without_methods = Class.new do
-    @a = 1
-    @b = 2
-  end
-  class_total_size = empty_class_def_size + (int_size * 2)
-  assert_equal ObjectSpace.memsize_of(class_without_methods), class_total_size, 'class without methods size'
-
-  module_without_methods = Module.new do
-    @a = 1
-    @b = 2
-  end
-  module_total_size = empty_class_def_size + (int_size * 2)
-  assert_equal ObjectSpace.memsize_of(module_without_methods), module_total_size, 'module without methods size'
 
   proc_size = ObjectSpace.memsize_of Proc.new { x = 1; x }
   assert_not_equal proc_size, 0

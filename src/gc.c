@@ -1601,8 +1601,8 @@ mrb_objspace_each_objects(mrb_state *mrb, mrb_each_object_callback *callback, vo
   }
 }
 
-const mrb_int
-mrb_objspace_page_slot_size()
+mrb_int
+mrb_objspace_page_slot_size(void)
 {
   const mrb_int i = sizeof(RVALUE);
   return i;
