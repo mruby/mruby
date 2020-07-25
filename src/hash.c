@@ -73,7 +73,7 @@ ht_hash_func(mrb_state *mrb, htable *t, mrb_value key)
 
   default:
     hv = mrb_funcall(mrb, key, "hash", 0);
-    h = (size_t)t ^ (size_t)mrb_fixnum(hv);
+    h = (size_t)tt ^ (size_t)mrb_fixnum(hv);
     break;
   }
   if (index && (index != t->index || capa != index->capa)) {
