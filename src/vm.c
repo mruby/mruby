@@ -966,7 +966,7 @@ prepare_tagged_break(mrb_state *mrb, uint32_t tag, struct RProc *proc, mrb_value
 #ifndef DIRECT_THREADED
 
 #define INIT_DISPATCH for (;;) { insn = BYTECODE_DECODER(*pc); CODE_FETCH_HOOK(mrb, irep, pc, regs); switch (insn) {
-#define CASE(insn,ops) case insn: pc0=pc++; FETCH_ ## ops ();
+#define CASE(insn,ops) case insn: pc0=pc++; FETCH_ ## ops (); pc_save = pc;
 #define NEXT break
 #define JUMP NEXT
 #define END_DISPATCH }}
@@ -974,7 +974,7 @@ prepare_tagged_break(mrb_state *mrb, uint32_t tag, struct RProc *proc, mrb_value
 #else
 
 #define INIT_DISPATCH JUMP; return mrb_nil_value();
-#define CASE(insn,ops) L_ ## insn: pc0=pc++; FETCH_ ## ops ();
+#define CASE(insn,ops) L_ ## insn: pc0=pc++; FETCH_ ## ops (); pc_save = pc;
 #define NEXT insn=BYTECODE_DECODER(*pc); CODE_FETCH_HOOK(mrb, irep, pc, regs); goto *optable[insn]
 #define JUMP NEXT
 
@@ -1030,6 +1030,7 @@ mrb_vm_exec(mrb_state *mrb, const struct RProc *proc, const mrb_code *pc)
 {
   /* mrb_assert(MRB_PROC_CFUNC_P(proc)) */
   const mrb_code *pc0 = pc;
+  const mrb_code *volatile pc_save = pc;
   const mrb_irep *irep = proc->body.irep;
   const mrb_pool_value *pool = irep->pool;
   const mrb_sym *syms = irep->syms;
@@ -2834,6 +2835,7 @@ RETRY_TRY_BLOCK:
       ci = cipop(mrb);
     }
     exc_catched = TRUE;
+    pc = pc_save;
     goto RETRY_TRY_BLOCK;
   }
   MRB_END_EXC(&c_jmp);
