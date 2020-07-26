@@ -1979,7 +1979,8 @@ RETRY_TRY_BLOCK:
         case OP_R_RETURN:
           /* Fall through to OP_R_NORMAL otherwise */
           if (ci->acc >=0 && MRB_PROC_ENV_P(proc) && !MRB_PROC_STRICT_P(proc)) {
-            mrb_callinfo *cibase = mrb->c->cibase;
+            mrb_callinfo *cibase;
+            cibase = mrb->c->cibase;
             dst = top_proc(mrb, proc);
 
             if (MRB_PROC_ENV_P(dst)) {
@@ -2018,7 +2019,8 @@ RETRY_TRY_BLOCK:
         case OP_R_NORMAL:
         NORMAL_RETURN:
           if (ci == mrb->c->cibase) {
-            struct mrb_context *c = mrb->c;
+            struct mrb_context *c;
+            c = mrb->c;
 
             if (!c->prev) { /* toplevel return */
               regs[irep->nlocals] = v;
