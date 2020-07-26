@@ -162,7 +162,7 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj)
 
 /*
  *  call-seq:
- *    ObjectSpace.memsize_of(obj, recurse: false) -> Numeric
+ *    ObjectSpace.memsize_of(obj) -> Numeric
  *
  *  Returns the amount of heap memory allocated for object in size_t units.
  *
@@ -173,12 +173,6 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj)
  *  return 0. Additionally special objects which are small enough to fit inside an
  *  object pointer, termed embedded objects, will return the size of the object pointer.
  *  Strings and arrays below a compile-time defined size may be embedded.
- *
- *  Setting recurse: true descends into instance variables, array members,
- *  hash keys and hash values recursively, calculating the child objects and adding to
- *  the final sum. It avoids infinite recursion and over counting objects by
- *  internally tracking discovered object ids.
- *
  */
 
 static mrb_value
