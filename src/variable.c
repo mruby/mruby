@@ -11,21 +11,16 @@
 #include <mruby/string.h>
 #include <mruby/variable.h>
 
-#ifndef MRB_IV_SEGMENT_SIZE
-#define MRB_IV_SEGMENT_SIZE 4
-#endif
-
-typedef struct segment {
-  mrb_sym key[MRB_IV_SEGMENT_SIZE];
-  mrb_value val[MRB_IV_SEGMENT_SIZE];
-  struct segment *next;
-} segment;
+struct iv_elem {
+  mrb_sym key;
+  mrb_value val;
+};
 
 /* Instance variable table structure */
 typedef struct iv_tbl {
-  segment *rootseg;
   size_t size;
-  size_t last_len;
+  size_t alloc;
+  struct iv_elem *table;
 } iv_tbl;
 
 /* Creates the instance variable table. */
@@ -36,67 +31,82 @@ iv_new(mrb_state *mrb)
 
   t = (iv_tbl*)mrb_malloc(mrb, sizeof(iv_tbl));
   t->size = 0;
-  t->rootseg =  NULL;
-  t->last_len = 0;
+  t->alloc = 0;
+  t->table = NULL;
 
   return t;
 }
+
+static void iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val);
+
+static void
+iv_rehash(mrb_state *mrb, iv_tbl *t)
+{
+  size_t old_alloc = t->alloc;
+  size_t new_alloc = old_alloc+1;
+  struct iv_elem *old_table = t->table;
+
+  khash_power2(new_alloc);
+  if (old_alloc == new_alloc) return;
+
+  t->alloc = new_alloc;
+  t->size = 0;
+  t->table = (struct iv_elem*)mrb_calloc(mrb, sizeof(struct iv_elem), new_alloc);
+
+  for (size_t i = 0; i < old_alloc; i++) {
+    struct iv_elem *slot = &old_table[i];
+
+    /* key = 0 means empty; val = undef means deleted */
+    if (slot->key != 0 && !mrb_undef_p(slot->val)) {
+      iv_put(mrb, t, slot->key, slot->val);
+    }
+  }
+  mrb_free(mrb, old_table);
+}
+
+#define slot_empty_p(slot) ((slot)->key == 0 && !mrb_undef_p((slot)->val))
 
 /* Set the value for the symbol in the instance variable table. */
 static void
 iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
 {
-  segment *seg;
-  segment *prev = NULL;
-  segment *matched_seg = NULL;
-  size_t matched_idx = 0;
-  size_t i;
+  size_t hash, pos, start;
+  struct iv_elem *dslot = NULL;
 
   if (t == NULL) return;
-  seg = t->rootseg;
-  while (seg) {
-    for (i=0; i<MRB_IV_SEGMENT_SIZE; i++) {
-      mrb_sym key = seg->key[i];
-      /* Found room in last segment after last_len */
-      if (!seg->next && i >= t->last_len) {
-        seg->key[i] = sym;
-        seg->val[i] = val;
-        t->last_len = i+1;
-        t->size++;
-        return;
-      }
-      if (!matched_seg && key == 0) {
-        matched_seg = seg;
-        matched_idx = i;
-      }
-      else if (key == sym) {
-        seg->val[i] = val;
-        return;
-      }
+  if (t->alloc == 0) {
+    iv_rehash(mrb, t);
+  }
+  hash = kh_int_hash_func(mrb, sym);
+  start = pos = hash & (t->alloc-1);
+  for (;;) {
+    struct iv_elem *slot = &t->table[pos];
+
+    if (slot->key == sym) {
+      slot->val = val;
+      return;
     }
-    prev = seg;
-    seg = seg->next;
-  }
-
-  /* Not found */
-  if (matched_seg) {
-    matched_seg->key[matched_idx] = sym;
-    matched_seg->val[matched_idx] = val;
-    t->size++;
-    return;
-  }
-
-  seg = (segment*)mrb_malloc(mrb, sizeof(segment));
-  seg->next = NULL;
-  seg->key[0] = sym;
-  seg->val[0] = val;
-  t->last_len = 1;
-  t->size++;
-  if (prev) {
-    prev->next = seg;
-  }
-  else {
-    t->rootseg = seg;
+    else if (slot_empty_p(slot)) {
+      t->size++;
+      slot->key = sym;
+      slot->val = val;
+      return;
+    }
+    else if (!dslot && mrb_undef_p(slot->val)) { /* deleted */
+      dslot = slot;
+    }
+    pos = (pos+1) & (t->alloc-1);
+    if (pos == start) {         /* not found */
+      if (dslot) {
+        t->size++;
+        dslot->key = sym;
+        dslot->val = val;
+        return;
+      }
+      /* no room */
+      iv_rehash(mrb, t);
+      start = pos = hash & (t->alloc-1);
+    }
   }
 }
 
@@ -104,80 +114,81 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
 static mrb_bool
 iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 {
-  segment *seg;
-  size_t i;
+  size_t hash, pos, start;
 
   if (t == NULL) return FALSE;
-  seg = t->rootseg;
-  while (seg) {
-    for (i=0; i<MRB_IV_SEGMENT_SIZE; i++) {
-      mrb_sym key = seg->key[i];
+  if (t->alloc == 0) return FALSE;
+  if (t->size == 0) return FALSE;
 
-      if (!seg->next && i >= t->last_len) {
-        return FALSE;
-      }
-      if (key == sym) {
-        if (vp) *vp = seg->val[i];
-        return TRUE;
-      }
+  hash = kh_int_hash_func(mrb, sym);
+  start = pos = hash & (t->alloc-1);
+  for (;;) {
+    struct iv_elem *slot = &t->table[pos];
+
+    if (slot->key == sym) {
+      if (vp) *vp = slot->val;
+      return TRUE;
     }
-    seg = seg->next;
+    else if (slot_empty_p(slot)) {
+      return FALSE;
+    }
+    pos = (pos+1) & (t->alloc-1);
+    if (pos == start) {         /* not found */
+      return FALSE;
+    }
   }
-  return FALSE;
 }
 
 /* Deletes the value for the symbol from the instance variable table. */
 static mrb_bool
 iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 {
-  segment *seg;
-  size_t i;
+  size_t hash, pos, start;
 
   if (t == NULL) return FALSE;
-  seg = t->rootseg;
-  while (seg) {
-    for (i=0; i<MRB_IV_SEGMENT_SIZE; i++) {
-      mrb_sym key = seg->key[i];
+  if (t->alloc == 0) return  FALSE;
+  if (t->size == 0) return FALSE;
 
-      if (!seg->next && i >= t->last_len) {
-        return FALSE;
-      }
-      if (key == sym) {
-        t->size--;
-        seg->key[i] = 0;
-        if (vp) *vp = seg->val[i];
-        return TRUE;
-      }
+  hash = kh_int_hash_func(mrb, sym);
+  start = pos = hash & (t->alloc-1);
+  for (;;) {
+    struct iv_elem *slot = &t->table[pos];
+
+    if (slot->key == sym) {
+      if (vp) *vp = slot->val;
+      t->size--;
+      slot->key = 0;
+      slot->val = mrb_undef_value();
+      return TRUE;
     }
-    seg = seg->next;
+    else if (slot_empty_p(slot)) {
+      return FALSE;
+    }
+    pos = (pos+1) & (t->alloc-1);
+    if (pos == start) {         /* not found */
+      return FALSE;
+    }
   }
-  return FALSE;
 }
 
 /* Iterates over the instance variable table. */
 static void
 iv_foreach(mrb_state *mrb, iv_tbl *t, mrb_iv_foreach_func *func, void *p)
 {
-  segment *seg;
   size_t i;
 
   if (t == NULL) return;
-  seg = t->rootseg;
-  while (seg) {
-    for (i=0; i<MRB_IV_SEGMENT_SIZE; i++) {
-      mrb_sym key = seg->key[i];
+  if (t->alloc == 0) return;
+  if (t->size == 0) return;
 
-      /* no value in last segment after last_len */
-      if (!seg->next && i >= t->last_len) {
+  for (i=0; i<t->alloc; i++) {
+    struct iv_elem *slot = &t->table[i];
+
+    if (slot->key && !mrb_undef_p(slot->val)) {
+      if ((*func)(mrb, slot->key, slot->val, p) != 0) {
         return;
       }
-      if (key != 0) {
-        if ((*func)(mrb, key, seg->val[i], p) != 0) {
-          return;
-        }
-      }
     }
-    seg = seg->next;
   }
   return;
 }
@@ -186,47 +197,28 @@ iv_foreach(mrb_state *mrb, iv_tbl *t, mrb_iv_foreach_func *func, void *p)
 static size_t
 iv_size(mrb_state *mrb, iv_tbl *t)
 {
-  segment *seg;
-  size_t size = 0;
-
   if (t == NULL) return 0;
-  if (t->size > 0) return t->size;
-  seg = t->rootseg;
-  while (seg) {
-    if (seg->next == NULL) {
-      size += t->last_len;
-      return size;
-    }
-    seg = seg->next;
-    size += MRB_IV_SEGMENT_SIZE;
-  }
-  /* empty iv_tbl */
-  return 0;
+  return t->size;
 }
 
 /* Copy the instance variable table. */
 static iv_tbl*
 iv_copy(mrb_state *mrb, iv_tbl *t)
 {
-  segment *seg;
   iv_tbl *t2;
-
   size_t i;
 
-  seg = t->rootseg;
+  if (t == NULL) return NULL;
+  if (t->alloc == 0) return NULL;
+  if (t->size == 0) return NULL;
+
   t2 = iv_new(mrb);
+  for (i=0; i<t->alloc; i++) {
+    struct iv_elem *slot = &t->table[i];
 
-  while (seg != NULL) {
-    for (i=0; i<MRB_IV_SEGMENT_SIZE; i++) {
-      mrb_sym key = seg->key[i];
-      mrb_value val = seg->val[i];
-
-      if ((seg->next == NULL) && (i >= t->last_len)) {
-        return t2;
-      }
-      iv_put(mrb, t2, key, val);
+    if (slot->key && !mrb_undef_p(slot->val)) {
+      iv_put(mrb, t2, slot->key, slot->val);
     }
-    seg = seg->next;
   }
   return t2;
 }
@@ -235,14 +227,7 @@ iv_copy(mrb_state *mrb, iv_tbl *t)
 static void
 iv_free(mrb_state *mrb, iv_tbl *t)
 {
-  segment *seg;
-
-  seg = t->rootseg;
-  while (seg) {
-    segment *p = seg;
-    seg = seg->next;
-    mrb_free(mrb, p);
-  }
+  mrb_free(mrb, t->table);
   mrb_free(mrb, t);
 }
 
@@ -1137,16 +1122,9 @@ mrb_class_find_path(mrb_state *mrb, struct RClass *c)
 size_t
 mrb_obj_iv_tbl_memsize(mrb_state* mrb, mrb_value obj)
 {
-  size_t nseg = 0;
-  segment *seg;
-
-  if (mrb_obj_ptr(obj)->iv == NULL) return 0;
-  seg = mrb_obj_ptr(obj)->iv->rootseg;
-  while (seg) {
-    nseg++;
-    seg = seg->next;
-  }
-  return sizeof(iv_tbl) + sizeof(segment)*nseg;
+  iv_tbl *t = mrb_obj_ptr(obj)->iv;
+  if (t == NULL) return 0;
+  return sizeof(iv_tbl) + t->alloc*sizeof(struct iv_elem);
 }
 
 #define identchar(c) (ISALNUM(c) || (c) == '_' || !ISASCII(c))
