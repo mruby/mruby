@@ -80,6 +80,9 @@ mrb_puts(mrb_state *mrb, mrb_value self)
       printstr(mrb, "\n", 1);
     }
   }
+  if (argc == 0) {
+    printstr(mrb, "\n", 1);
+  }
   return mrb_nil_value();
 }
 
