@@ -61,7 +61,6 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
   typedef struct kh_##name {                                            \
     khint_t n_buckets;                                                  \
     khint_t size;                                                       \
-    khint_t n_occupied;                                                 \
     uint8_t *ed_flags;                                                  \
     khkey_t *keys;                                                      \
     khval_t *vals;                                                      \
@@ -73,7 +72,6 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
   void kh_clear_##name(mrb_state *mrb, kh_##name##_t *h);               \
   khint_t kh_get_##name(mrb_state *mrb, kh_##name##_t *h, khkey_t key);           \
   khint_t kh_put_##name(mrb_state *mrb, kh_##name##_t *h, khkey_t key, int *ret); \
-  void kh_put_prepare_##name(mrb_state *mrb, kh_##name##_t *h);                   \
   void kh_resize_##name(mrb_state *mrb, kh_##name##_t *h, khint_t new_n_buckets); \
   void kh_del_##name(mrb_state *mrb, kh_##name##_t *h, khint_t x);                \
   kh_##name##_t *kh_copy_##name(mrb_state *mrb, kh_##name##_t *h);
@@ -103,7 +101,7 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
     size_t len = sizeof(khkey_t) + (kh_is_map ? sizeof(khval_t) : 0);   \
     uint8_t *p = (uint8_t*)mrb_malloc_simple(mrb, sizeof(uint8_t)*sz/4+len*sz); \
     if (!p) { return 1; }                                               \
-    h->size = h->n_occupied = 0;                                        \
+    h->size = 0;                                                        \
     h->keys = (khkey_t *)p;                                             \
     h->vals = kh_is_map ? (khval_t *)(p+sizeof(khkey_t)*sz) : NULL;     \
     h->ed_flags = p+len*sz;                                             \
@@ -143,7 +141,7 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
     (void)mrb;                                                          \
     if (h && h->ed_flags) {                                             \
       kh_fill_flags(h->ed_flags, 0xaa, h->n_buckets/4);                 \
-      h->size = h->n_occupied = 0;                                      \
+      h->size = 0;                                                      \
     }                                                                   \
   }                                                                     \
   khint_t kh_get_##name(mrb_state *mrb, kh_##name##_t *h, khkey_t key)  \
@@ -184,16 +182,12 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
       mrb_free(mrb, old_keys);                                          \
     }                                                                   \
   }                                                                     \
-  void kh_put_prepare_##name(mrb_state *mrb, kh_##name##_t *h)          \
-  {                                                                     \
-    if (h->n_occupied >= khash_upper_bound(h)) {                        \
-      kh_resize_##name(mrb, h, h->n_buckets*2);                         \
-    }                                                                   \
-  }                                                                     \
   khint_t kh_put_##name(mrb_state *mrb, kh_##name##_t *h, khkey_t key, int *ret) \
   {                                                                     \
     khint_t k, del_k, step = 0;                                         \
-    kh_put_prepare_##name(mrb, h);                                      \
+    if (h->size >= khash_upper_bound(h)) {                              \
+      kh_resize_##name(mrb, h, h->n_buckets*2);                         \
+    }                                                                   \
     k = __hash_func(mrb,key) & khash_mask(h);                           \
     del_k = kh_end(h);                                                  \
     while (!__ac_isempty(h->ed_flags, k)) {                             \
@@ -221,7 +215,6 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
       h->keys[k] = key;                                                 \
       h->ed_flags[k/4] &= ~__m_empty[k%4];                              \
       h->size++;                                                        \
-      h->n_occupied++;                                                  \
       if (ret) *ret = 1;                                                \
       return k;                                                         \
     }                                                                   \
@@ -256,7 +249,6 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
 #define kh_destroy(name, mrb, h) kh_destroy_##name(mrb, h)
 #define kh_clear(name, mrb, h) kh_clear_##name(mrb, h)
 #define kh_resize(name, mrb, h, s) kh_resize_##name(mrb, h, s)
-#define kh_put_prepare(name, mrb, h) kh_put_prepare_##name(mrb, h)
 #define kh_put(name, mrb, h, k) kh_put_##name(mrb, h, k, NULL)
 #define kh_put2(name, mrb, h, k, r) kh_put_##name(mrb, h, k, r)
 #define kh_get(name, mrb, h, k) kh_get_##name(mrb, h, k)
