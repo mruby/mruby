@@ -1072,7 +1072,8 @@ mrb_hash_shift(mrb_state *mrb, mrb_value hash)
 
   mrb_hash_modify(mrb, hash);
   if (t && t->size > 0) {
-    mrb_value del_key, del_val;
+    mrb_value del_key = mrb_nil_value();
+    mrb_value del_val = mrb_nil_value();
 
     ht_shift(mrb, t, &del_key, &del_val);
     mrb_gc_protect(mrb, del_key);
