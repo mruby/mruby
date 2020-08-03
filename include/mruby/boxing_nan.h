@@ -30,9 +30,12 @@
  * In order to get enough bit size to save TT, all pointers are shifted 2 bits
  * in the right direction. Also, TTTTTT is the mrb_vtype + 1;
  */
-typedef struct mrb_value {
+typedef uint64_t mrb_value;
+
+struct mrb_value {
   union {
     mrb_float f;
+    uint64_t u;
     union {
       void *p;
       struct {
@@ -44,47 +47,58 @@ typedef struct mrb_value {
           };
         )
       };
-#ifdef MRB_64BIT
-      struct RCptr *vp;
-#endif
     } value;
   };
-} mrb_value;
+};
 
-#define mrb_tt(o)       ((enum mrb_vtype)(((o).value.ttt & 0xfc000)>>14)-1)
-#define mrb_type(o)     (enum mrb_vtype)((uint32_t)0xfff00000 < (o).value.ttt ? mrb_tt(o) : MRB_TT_FLOAT)
-#define mrb_ptr(o)      ((void*)((((uintptr_t)0x3fffffffffff)&((uintptr_t)((o).value.p)))<<2))
-#define mrb_float(o)    (o).f
-#define mrb_fixnum(o)   (o).value.i
-#define mrb_symbol(o)   (o).value.sym
+static inline struct mrb_value
+mrb_val_stru(mrb_value v)
+{
+  struct mrb_value mrb_value_struct_variable = {.u = v};
+  return mrb_value_struct_variable;
+}
+
+#define mrb_tt(o)       ((enum mrb_vtype)((mrb_val_stru(o).value.ttt & 0xfc000)>>14)-1)
+#define mrb_type(o)     (enum mrb_vtype)((uint32_t)0xfff00000 < mrb_val_stru(o).value.ttt ? mrb_tt(o) : MRB_TT_FLOAT)
+#define mrb_ptr(o)      ((void*)((((uintptr_t)0x3fffffffffff)&((uintptr_t)(mrb_val_stru(o).value.p)))<<2))
+#define mrb_float(o)    mrb_val_stru(o).f
+#define mrb_fixnum(o)   mrb_val_stru(o).value.i
+#define mrb_symbol(o)   mrb_val_stru(o).value.sym
 
 #ifdef MRB_64BIT
 MRB_API mrb_value mrb_nan_boxing_cptr_value(struct mrb_state*, void*);
 #define mrb_cptr(o)     (((struct RCptr*)mrb_ptr(o))->p)
 #define BOXNAN_SHIFT_LONG_POINTER(v) (((uintptr_t)(v)>>34)&0x3fff)
 #else
-#define mrb_cptr(o)     ((o).value.p)
+#define mrb_cptr(o)     (mrb_val_stru(o).value.p)
 #define BOXNAN_SHIFT_LONG_POINTER(v) 0
 #endif
 
-#define BOXNAN_SET_VALUE(o, tt, attr, v) do {\
-  (o).attr = (v);\
-  (o).value.ttt = 0xfff00000 | (((tt)+1)<<14);\
+#define BOXNAN_SET_VALUE(o, tt, attr, v) do { \
+  struct mrb_value mrb_value_struct_variable; \
+  mrb_value_struct_variable.attr = (v);\
+  mrb_value_struct_variable.value.ttt = 0xfff00000 | (((tt)+1)<<14);\
+  o = mrb_value_struct_variable.u;\
 } while (0)
 
 #define BOXNAN_SET_OBJ_VALUE(o, tt, v) do {\
-  (o).value.p = (void*)((uintptr_t)(v)>>2);\
-  (o).value.ttt = (0xfff00000|(((tt)+1)<<14)|BOXNAN_SHIFT_LONG_POINTER(v));\
+  struct mrb_value mrb_value_struct_variable;\
+  mrb_value_struct_variable.value.p = (void*)((uintptr_t)(v)>>2);\
+  mrb_value_struct_variable.value.ttt = (0xfff00000|(((tt)+1)<<14)|BOXNAN_SHIFT_LONG_POINTER(v));\
+  o = mrb_value_struct_variable.u;\
 } while (0)
 
 #define SET_FLOAT_VALUE(mrb,r,v) do { \
-  if ((v) != (v)) { \
-    (r).value.ttt = 0x7ff80000; \
-    (r).value.i = 0; \
+  struct mrb_value mrb_value_struct_variable; \
+  if ((v) != (v)) { /* NaN */ \
+    mrb_value_struct_variable.value.ttt = 0x7ff80000; \
+    mrb_value_struct_variable.value.i = 0; \
   } \
   else { \
-    (r).f = v; \
-  }} while(0)
+    mrb_value_struct_variable.f = (v); \
+  } \
+  r = mrb_value_struct_variable.u; \
+} while(0)
 
 #define SET_NIL_VALUE(r) BOXNAN_SET_VALUE(r, MRB_TT_FALSE, value.i, 0)
 #define SET_FALSE_VALUE(r) BOXNAN_SET_VALUE(r, MRB_TT_FALSE, value.i, 1)
