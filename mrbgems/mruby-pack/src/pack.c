@@ -1302,7 +1302,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
         aidx++;
         break;
       }
-      if (count > 0) {
+      if (!(flags & PACK_FLAG_COUNT2) && count > 0) {
         count--;
       }
     }
