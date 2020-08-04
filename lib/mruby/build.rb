@@ -196,6 +196,7 @@ EOS
     end
 
     def enable_bintest
+      raise "bintest works only on 'host' target" unless name == "host"
       @enable_bintest = true
     end
 

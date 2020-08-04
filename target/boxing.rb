@@ -7,7 +7,6 @@ MRuby::Build.new('no_boxing') do |conf|
 
   conf.gembox 'default'
   conf.enable_test
-  conf.enable_bintest
 end
 
 MRuby::Build.new('word_boxing') do |conf|
@@ -18,7 +17,6 @@ MRuby::Build.new('word_boxing') do |conf|
     c.defines += %w(MRB_WORD_BOXING)
   end
   conf.enable_test
-  conf.enable_bintest
 end
 
 MRuby::Build.new('nan_boxing') do |conf|
@@ -29,6 +27,5 @@ MRuby::Build.new('nan_boxing') do |conf|
     c.defines += %w(MRB_NAN_BOXING)
   end
   conf.enable_test
-  conf.enable_bintest
 end
 
