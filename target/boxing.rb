@@ -5,6 +5,9 @@ end
 MRuby::Build.new('no_boxing') do |conf|
   toolchain :gcc
 
+  conf.compilers.each do |c|
+    c.defines += %w(MRB_NO_BOXING)
+  end
   conf.gembox 'default'
   conf.enable_test
 end
