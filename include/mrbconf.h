@@ -53,25 +53,6 @@
 # endif
 #endif
 
-/* add -DMRB_INT32 to use 32bit integer for mrb_int; conflict with MRB_INT64;
-   Default for 32-bit CPU mode. */
-//#define MRB_INT32
-
-/* add -DMRB_INT64 to use 64bit integer for mrb_int; conflict with MRB_INT32;
-   Default for 64-bit CPU mode. */
-//#define MRB_INT64
-
-/* if no specific integer type is chosen */
-#if !defined(MRB_INT32) && !defined(MRB_INT64)
-# if defined(MRB_64BIT) && !defined(MRB_NAN_BOXING)
-/* Use 64bit integers on 64bit architecture (without MRB_NAN_BOXING) */
-#  define MRB_INT64
-# else
-/* Otherwise use 32bit integers */
-#  define MRB_INT32
-# endif
-#endif
-
 /* define on big endian machines; used by MRB_NAN_BOXING, etc. */
 #ifndef MRB_ENDIAN_BIG
 # if (defined(BYTE_ORDER) && defined(BIG_ENDIAN) && BYTE_ORDER == BIG_ENDIAN) || \
@@ -85,6 +66,40 @@
 
 /* represent mrb_value as a word (natural unit of data for the processor) */
 //#define MRB_WORD_BOXING
+
+/* with MRB_WORD_BOXING, embed float values in mrb_value (dropping 2 bit precision) */
+//#define MRB_WBOX_FLOAT_INLINE
+
+/* represent mrb_value as a struct; occupies 2 words */
+//#define MRB_NO_BOXING
+
+/* if no specific boxing type is chosen */
+#if !defined(MRB_NAN_BOXING) && !defined(MRB_WORD_BOXING) && !defined(MRB_NO_BOXING)
+# if defined(MRB_64BIT) && !defined(MRB_INT64)
+#  define MRB_NAN_BOXING
+# else
+#  define MRB_WORD_BOXING
+# endif
+#endif
+
+/* add -DMRB_INT32 to use 32bit integer for mrb_int; conflict with MRB_INT64;
+   Default for 32-bit CPU mode. */
+//#define MRB_INT32
+
+/* add -DMRB_INT64 to use 64bit integer for mrb_int; conflict with MRB_INT32;
+   Default for 64-bit CPU mode (unless using MRB_NAN_BOXING). */
+//#define MRB_INT64
+
+/* if no specific integer type is chosen */
+#if !defined(MRB_INT32) && !defined(MRB_INT64)
+# if defined(MRB_64BIT) && !defined(MRB_NAN_BOXING)
+/* Use 64bit integers on 64bit architecture (without MRB_NAN_BOXING) */
+#  define MRB_INT64
+# else
+/* Otherwise use 32bit integers */
+#  define MRB_INT32
+# endif
+#endif
 
 /* string class to handle UTF-8 encoding */
 //#define MRB_UTF8_STRING
