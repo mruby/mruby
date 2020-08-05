@@ -264,7 +264,7 @@ top_proc(mrb_state *mrb, const struct RProc *proc)
 
 static inline mrb_callinfo*
 cipush(mrb_state *mrb, const mrb_code *pc, int push_stacks, int acc,
-    struct RClass *target_class, struct RProc *proc, mrb_sym mid, int argc)
+    struct RClass *target_class, const struct RProc *proc, mrb_sym mid, int argc)
 {
   struct mrb_context *c = mrb->c;
   mrb_callinfo *ci = c->ci;
