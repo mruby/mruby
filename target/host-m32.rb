@@ -1,0 +1,14 @@
+MRuby::Build.new do |conf|
+  # load specific toolchain settings
+  toolchain :gcc
+
+  # include the GEM box
+  conf.gembox 'full-core'
+
+  conf.cc.flags << '-m32'
+  conf.linker.flags << '-m32'
+
+  # Turn on `enable_debug` for better debugging
+  enable_debug
+  conf.enable_test
+end
