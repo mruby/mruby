@@ -37,13 +37,18 @@ struct mrb_value {
     mrb_float f;
     uint64_t u;
     union {
+#ifdef MRB_64BIT
       void *p;
+#endif
       struct {
         MRB_ENDIAN_LOHI(
           uint32_t ttt;
           ,union {
             mrb_int i;
             mrb_sym sym;
+#ifdef MRB_32BIT
+            void *p;
+#endif
           };
         )
       };
@@ -60,17 +65,18 @@ mrb_val_stru(mrb_value v)
 
 #define mrb_tt(o)       ((enum mrb_vtype)((mrb_val_stru(o).value.ttt & 0xfc000)>>14)-1)
 #define mrb_type(o)     (enum mrb_vtype)((uint32_t)0xfff00000 < mrb_val_stru(o).value.ttt ? mrb_tt(o) : MRB_TT_FLOAT)
-#define mrb_ptr(o)      ((void*)((((uintptr_t)0x3fffffffffff)&((uintptr_t)(mrb_val_stru(o).value.p)))<<2))
 #define mrb_float(o)    mrb_val_stru(o).f
 #define mrb_fixnum(o)   mrb_val_stru(o).value.i
 #define mrb_symbol(o)   mrb_val_stru(o).value.sym
 
 #ifdef MRB_64BIT
+#define mrb_ptr(o)      ((void*)((((uintptr_t)0x3fffffffffff)&((uintptr_t)(mrb_val_stru(o).value.p)))<<2))
 MRB_API mrb_value mrb_nan_boxing_cptr_value(struct mrb_state*, void*);
 #define mrb_cptr(o)     (((struct RCptr*)mrb_ptr(o))->p)
 #define BOXNAN_SHIFT_LONG_POINTER(v) (((uintptr_t)(v)>>34)&0x3fff)
 #else
-#define mrb_cptr(o)     (mrb_val_stru(o).value.p)
+#define mrb_ptr(o)      (mrb_val_stru(o).value.p)
+#define mrb_cptr(o)     mrb_ptr(o)
 #define BOXNAN_SHIFT_LONG_POINTER(v) 0
 #endif
 
@@ -81,12 +87,16 @@ MRB_API mrb_value mrb_nan_boxing_cptr_value(struct mrb_state*, void*);
   o = mrb_value_struct_variable.u;\
 } while (0)
 
+#ifdef MRB_64BIT
 #define BOXNAN_SET_OBJ_VALUE(o, tt, v) do {\
   struct mrb_value mrb_value_struct_variable;\
   mrb_value_struct_variable.value.p = (void*)((uintptr_t)(v)>>2);\
   mrb_value_struct_variable.value.ttt = (0xfff00000|(((tt)+1)<<14)|BOXNAN_SHIFT_LONG_POINTER(v));\
   o = mrb_value_struct_variable.u;\
 } while (0)
+#else
+#define BOXNAN_SET_OBJ_VALUE(o, tt, v) BOXNAN_SET_VALUE(o, tt, value.p, v)
+#endif
 
 #define SET_FLOAT_VALUE(mrb,r,v) do { \
   struct mrb_value mrb_value_struct_variable; \
