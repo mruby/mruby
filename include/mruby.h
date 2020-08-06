@@ -65,7 +65,7 @@
 #if defined __STDC_VERSION__ && __STDC_VERSION__ >= 201112L
 #define mrb_static_assert(exp, str) _Static_assert(exp, str)
 #else
-#define mrb_static_assert(exp, str) mrb_assert(exp)
+#define mrb_static_assert(exp, str) 
 #endif
 
 #include "mrbconf.h"

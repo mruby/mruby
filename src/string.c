@@ -2926,9 +2926,6 @@ mrb_init_string(mrb_state *mrb)
 {
   struct RClass *s;
 
-  mrb_static_assert(RSTRING_EMBED_LEN_MAX < (1 << MRB_STR_EMBED_LEN_BIT),
-                    "pointer size too big for embedded string");
-
   mrb->string_class = s = mrb_define_class(mrb, "String", mrb->object_class);             /* 15.2.10 */
   MRB_SET_INSTANCE_TT(s, MRB_TT_STRING);
 
