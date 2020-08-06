@@ -273,7 +273,6 @@ cipush(mrb_state *mrb, const mrb_code *pc, int push_stacks, int acc,
     struct RClass *target_class, struct RProc *proc, mrb_sym mid, int argc)
 {
   struct mrb_context *c = mrb->c;
-  static const mrb_callinfo ci_zero = { 0 };
   mrb_callinfo *ci = c->ci;
 
   if (ci + 1 == c->ciend) {
@@ -284,7 +283,6 @@ cipush(mrb_state *mrb, const mrb_code *pc, int push_stacks, int acc,
     c->ciend = c->cibase + size * 2;
   }
   ci = ++c->ci;
-  *ci = ci_zero;
   ci->mid = mid;
   ci->proc = proc;
   ci->stackent = c->stack;
@@ -294,6 +292,8 @@ cipush(mrb_state *mrb, const mrb_code *pc, int push_stacks, int acc,
   ci->argc = argc;
   ci->acc = acc;
   ci->target_class = target_class;
+  ci->err = 0;
+  ci->env = 0;
   c->stack += push_stacks;
 
   return ci;
