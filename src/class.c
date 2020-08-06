@@ -293,11 +293,9 @@ mrb_define_class(mrb_state *mrb, const char *name, struct RClass *super)
 
 static mrb_value mrb_bob_init(mrb_state *mrb, mrb_value);
 #ifndef MRB_NO_METHOD_CACHE
-static void mc_clear_all(mrb_state *mrb);
-static void mc_clear_by_id(mrb_state *mrb, struct RClass*, mrb_sym);
+static void mc_clear(mrb_state *mrb);
 #else
-#define mc_clear_all(mrb)
-#define mc_clear_by_id(mrb,c,s)
+#define mc_clear(mrb)
 #endif
 
 static void
@@ -513,7 +511,7 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
       MRB_PROC_SET_TARGET_CLASS(p, c);
     }
   }
-  mc_clear_by_id(mrb, c, mid);
+  mc_clear(mrb);
 }
 
 MRB_API void
@@ -1178,7 +1176,7 @@ include_module_at(mrb_state *mrb, struct RClass *c, struct RClass *ins_pos, stru
   skip:
     m = m->super;
   }
-  mc_clear_all(mrb);
+  mc_clear(mrb);
   return 0;
 }
 
@@ -1406,7 +1404,7 @@ mrb_define_module_function(mrb_state *mrb, struct RClass *c, const char *name, m
 
 #ifndef MRB_NO_METHOD_CACHE
 static void
-mc_clear_all(mrb_state *mrb)
+mc_clear(mrb_state *mrb)
 {
   memset(mrb->cache, 0, MRB_METHOD_CACHE_SIZE*sizeof(mrb->cache[0]));
 }
@@ -1418,29 +1416,12 @@ mrb_mc_clear_by_class(mrb_state *mrb, struct RClass *c)
   int i;
 
   if (c->flags & MRB_FL_CLASS_IS_INHERITED) {
-    mc_clear_all(mrb);
+    mc_clear(mrb);
     c->flags &= ~MRB_FL_CLASS_IS_INHERITED;
     return;
   }
   for (i=0; i<MRB_METHOD_CACHE_SIZE; i++) {
     if (mc[i].c == c) mc[i].c = 0;
-  }
-}
-
-static void
-mc_clear_by_id(mrb_state *mrb, struct RClass *c, mrb_sym mid)
-{
-  struct mrb_cache_entry *mc = mrb->cache;
-  int i;
-
-  if (c->flags & MRB_FL_CLASS_IS_INHERITED) {
-    mc_clear_all(mrb);
-    c->flags &= ~MRB_FL_CLASS_IS_INHERITED;
-    return;
-  }
-  for (i=0; i<MRB_METHOD_CACHE_SIZE; i++) {
-    if (mc[i].c == c || mc[i].mid == mid)
-      mc[i].c = 0;
   }
 }
 #endif
