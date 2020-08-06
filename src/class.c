@@ -587,6 +587,7 @@ void mrb_hash_check_kdict(mrb_state *mrb, mrb_value self);
     s:      String         [char*,mrb_int]        Receive two arguments; s! gives (NULL,0) for nil
     z:      String         [char*]                NUL terminated string; z! gives NULL for nil
     a:      Array          [mrb_value*,mrb_int]   Receive two arguments; a! gives (NULL,0) for nil
+    c:      Class/Module   [strcut RClass*]
     f:      Fixnum/Float   [mrb_float]
     i:      Fixnum/Float   [mrb_int]
     b:      boolean        [mrb_bool]
@@ -710,6 +711,22 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
             mrb_raisef(mrb, E_TYPE_ERROR, "%v is not class/module", ss);
           }
           *p = ss;
+        }
+      }
+      break;
+    case 'c':
+      {
+        struct RClass **p;
+
+        p = va_arg(ap, struct RClass**);
+        if (i < argc) {
+          mrb_value ss;
+
+          ss = argv[i++];
+          if (!class_ptr_p(ss)) {
+            mrb_raisef(mrb, E_TYPE_ERROR, "%v is not class/module", ss);
+          }
+          *p = mrb_class_ptr(ss);
         }
       }
       break;
@@ -1151,22 +1168,22 @@ mrb_prepend_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
 static mrb_value
 mrb_mod_prepend_features(mrb_state *mrb, mrb_value mod)
 {
-  mrb_value klass;
+  struct RClass *c;
 
   mrb_check_type(mrb, mod, MRB_TT_MODULE);
-  mrb_get_args(mrb, "C", &klass);
-  mrb_prepend_module(mrb, mrb_class_ptr(klass), mrb_class_ptr(mod));
+  mrb_get_args(mrb, "c", &c);
+  mrb_prepend_module(mrb, c, mrb_class_ptr(mod));
   return mod;
 }
 
 static mrb_value
 mrb_mod_append_features(mrb_state *mrb, mrb_value mod)
 {
-  mrb_value klass;
+  struct RClass *c;
 
   mrb_check_type(mrb, mod, MRB_TT_MODULE);
-  mrb_get_args(mrb, "C", &klass);
-  mrb_include_module(mrb, mrb_class_ptr(klass), mrb_class_ptr(mod));
+  mrb_get_args(mrb, "c", &c);
+  mrb_include_module(mrb, c, mrb_class_ptr(mod));
   return mod;
 }
 

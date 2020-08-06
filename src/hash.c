@@ -174,6 +174,11 @@ ht_index(mrb_state *mrb, htable *t)
   segment *seg;
   size_t i;
 
+  if (size == 0) {
+    t->index = NULL;
+    mrb_free(mrb, index);
+    return;
+  }
   /* allocate index table */
   if (index && index->size >= UPPER_BOUND(index->capa)) {
     size = index->capa+1;
@@ -194,7 +199,7 @@ ht_index(mrb_state *mrb, htable *t)
     index->table[i] = NULL;
   }
 
-  /* rebuld index */
+  /* rebuild index */
   mask = HT_MASK(index);
   seg = t->rootseg;
   while (seg) {
@@ -516,6 +521,20 @@ ht_foreach(mrb_state *mrb, htable *t, mrb_hash_foreach_func *func, void *p)
     }
     seg = seg->next;
   }
+}
+
+mrb_int
+mrb_os_memsize_of_hash_table(mrb_value obj)
+{
+  struct htable *h = mrb_hash_ptr(obj)->ht;
+  mrb_int segkv_size = 0;
+
+  if(h->index) segkv_size = (sizeof(struct segkv) * h->index->capa);
+
+  return sizeof(htable) +
+    sizeof(segindex) +
+    (sizeof(segment) * h->size) +
+    segkv_size;
 }
 
 /* Iterates over the hash table. */
@@ -1053,7 +1072,8 @@ mrb_hash_shift(mrb_state *mrb, mrb_value hash)
 
   mrb_hash_modify(mrb, hash);
   if (t && t->size > 0) {
-    mrb_value del_key, del_val;
+    mrb_value del_key = mrb_nil_value();
+    mrb_value del_val = mrb_nil_value();
 
     ht_shift(mrb, t, &del_key, &del_val);
     mrb_gc_protect(mrb, del_key);
