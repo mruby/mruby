@@ -102,17 +102,13 @@ void mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value 
 static inline void
 stack_clear(mrb_value *from, size_t count)
 {
-#ifndef MRB_NAN_BOXING
-  const mrb_value mrb_value_zero = { { 0 } };
-
-  while (count-- > 0) {
-    *from++ = mrb_value_zero;
-  }
-#else
+#ifdef MRB_NAN_BOXING
   while (count-- > 0) {
     SET_NIL_VALUE(*from);
     from++;
   }
+#else
+  memset(from, 0, sizeof(mrb_value)*count);
 #endif
 }
 
