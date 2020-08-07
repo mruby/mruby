@@ -149,20 +149,28 @@ integral_idiv(mrb_state *mrb, mrb_value x)
  */
 
 static mrb_value
-integral_div(mrb_state *mrb, mrb_value x)
+integral_div(mrb_state *mrb, mrb_value xv)
 {
 #ifdef MRB_WITHOUT_FLOAT
-  mrb_value y = mrb_get_arg1(mrb);
+  mrb_int y;
 
-  if (!mrb_fixnum_p(y)) {
-    mrb_raise(mrb, E_TYPE_ERROR, "non fixnum value");
+  mrb_get_args(mrb, "i", &y);
+  if (y == 0) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "devided by zero");
   }
-  return mrb_fixnum_value(mrb_fixnum(x) / mrb_fixnum(y));
+  return mrb_float_value(mrb, mrb_fixnum(xv) / y);
 #else
-  mrb_float y;
+  mrb_float x, y;
 
   mrb_get_args(mrb, "f", &y);
-  return mrb_float_value(mrb, mrb_to_flo(mrb, x) / y);
+  x = mrb_to_flo(mrb, xv);
+  if (y == 0) {
+    if (x < 0)
+      return mrb_float_value(mrb, -INFINITY);
+    else
+      return mrb_float_value(mrb, INFINITY);
+  }
+  return mrb_float_value(mrb, x / y);
 #endif
 }
 
@@ -883,7 +891,7 @@ fix_mod(mrb_state *mrb, mrb_value x)
   mrb_int a, b;
 
   a = mrb_fixnum(x);
-   if (mrb_fixnum_p(y) && a != MRB_INT_MIN && (b=mrb_fixnum(y)) != MRB_INT_MIN) {
+  if (mrb_fixnum_p(y) && a != MRB_INT_MIN && (b=mrb_fixnum(y)) != MRB_INT_MIN) {
     mrb_int mod;
 
     if (b == 0) {
