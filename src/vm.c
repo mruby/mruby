@@ -1732,7 +1732,7 @@ RETRY_TRY_BLOCK:
       int const len = m1 + o + r + m2;
       int const blk_pos = len + kd + 1;
       mrb_value *blk = &argv[argc < 0 ? 1 : argc];
-      mrb_value kdict;
+      mrb_value kdict = mrb_nil_value();
       int kargs = kd;
 
       /* arguments is passed with Array */
