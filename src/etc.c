@@ -151,12 +151,12 @@ mrb_obj_id(mrb_value obj)
 MRB_API mrb_value
 mrb_word_boxing_float_value(mrb_state *mrb, mrb_float f)
 {
-  mrb_value v;
+  union mrb_value v;
 
-  v.value.p = mrb_obj_alloc(mrb, MRB_TT_FLOAT, mrb->float_class);
-  v.value.fp->f = f;
-  MRB_SET_FROZEN_FLAG(v.value.bp);
-  return v;
+  v.p = mrb_obj_alloc(mrb, MRB_TT_FLOAT, mrb->float_class);
+  v.fp->f = f;
+  MRB_SET_FROZEN_FLAG(v.bp);
+  return v.w;
 }
 #endif  /* MRB_WITHOUT_FLOAT */
 #endif  /* MRB_WORD_BOXING */
