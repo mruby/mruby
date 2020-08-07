@@ -32,7 +32,7 @@
  */
 typedef uint64_t mrb_value;
 
-union mrb_value {
+union mrb_value_ {
   mrb_float f;
   uint64_t u;
 #ifdef MRB_64BIT
@@ -52,10 +52,10 @@ union mrb_value {
   };
 };
 
-static inline union mrb_value
+static inline union mrb_value_
 mrb_val_union(mrb_value v)
 {
-  union mrb_value x;
+  union mrb_value_ x;
   x.u = v;
   return x;
 }
@@ -77,7 +77,7 @@ mrb_val_union(mrb_value v)
 #endif
 
 #define BOXNAN_SET_VALUE(o, tt, attr, v) do { \
-  union mrb_value mrb_value_union_variable; \
+  union mrb_value_ mrb_value_union_variable; \
   mrb_value_union_variable.attr = (v);\
   mrb_value_union_variable.ttt = 0xfff00000 | (((tt)+1)<<14);\
   o = mrb_value_union_variable.u;\
@@ -85,7 +85,7 @@ mrb_val_union(mrb_value v)
 
 #ifdef MRB_64BIT
 #define BOXNAN_SET_OBJ_VALUE(o, tt, v) do {\
-  union mrb_value mrb_value_union_variable;\
+  union mrb_value_ mrb_value_union_variable;\
   mrb_value_union_variable.p = (void*)((uintptr_t)(v)>>2);\
   mrb_value_union_variable.ttt = (0xfff00000|(((tt)+1)<<14)|BOXNAN_SHIFT_LONG_POINTER(v));\
   o = mrb_value_union_variable.u;\
@@ -95,7 +95,7 @@ mrb_val_union(mrb_value v)
 #endif
 
 #define SET_FLOAT_VALUE(mrb,r,v) do { \
-  union mrb_value mrb_value_union_variable; \
+  union mrb_value_ mrb_value_union_variable; \
   if ((v) != (v)) { /* NaN */ \
     mrb_value_union_variable.ttt = 0x7ff80000; \
     mrb_value_union_variable.i = 0; \
