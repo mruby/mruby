@@ -357,7 +357,9 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
       mrb_ary_push(mrb, result, mrb_fixnum_value(r));
     }
     for (i=0; i<n; i++) {
-      mrb_ary_set(mrb, result, i, RARRAY_PTR(ary)[mrb_fixnum(RARRAY_PTR(result)[i])]);
+      mrb_int idx = mrb_fixnum(RARRAY_PTR(result)[i]);
+      mrb_value elem = RARRAY_PTR(ary)[idx];
+      mrb_ary_set(mrb, result, i, elem);
     }
     return result;
   }
