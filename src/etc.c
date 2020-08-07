@@ -151,7 +151,7 @@ mrb_obj_id(mrb_value obj)
 MRB_API mrb_value
 mrb_word_boxing_float_value(mrb_state *mrb, mrb_float f)
 {
-  union mrb_value v;
+  union mrb_value_ v;
 
   v.p = mrb_obj_alloc(mrb, MRB_TT_FLOAT, mrb->float_class);
   v.fp->f = f;

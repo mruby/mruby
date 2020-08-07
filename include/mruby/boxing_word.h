@@ -68,7 +68,7 @@ enum mrb_special_consts {
  *   object: ...PPPP P000 (any bits are 1)
  */
 typedef uintptr_t mrb_value;
-union mrb_value {
+union mrb_value_ {
   void *p;
 #ifdef MRB_64BIT
   /* use struct to avoid bit shift. */
@@ -87,10 +87,10 @@ union mrb_value {
   uintptr_t w;
 };
 
-static inline union mrb_value
+static inline union mrb_value_
 mrb_val_union(mrb_value v)
 {
-  union mrb_value x;
+  union mrb_value_ x;
   x.w = v;
   return x;
 }
@@ -158,7 +158,7 @@ MRB_API mrb_value mrb_word_boxing_float_value(struct mrb_state*, mrb_float);
 #define SET_INT_VALUE(r,n) BOXWORD_SET_SHIFT_VALUE(r, FIXNUM, n)
 #ifdef MRB_64BIT
 #define SET_SYM_VALUE(r,v) do {\
-  union mrb_value mrb_value_union_variable;\
+  union mrb_value_ mrb_value_union_variable;\
   mrb_value_union_variable.sym = v;\
   mrb_value_union_variable.sym_flag = BOXWORD_SYMBOL_FLAG;\
   (r) = mrb_value_union_variable.w;\
