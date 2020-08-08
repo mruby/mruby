@@ -62,11 +62,17 @@
 #define mrb_assert_int_fit(t1,n,t2,max) ((void)0)
 #endif
 
-#if defined __STDC_VERSION__ && __STDC_VERSION__ >= 201112L
-#define mrb_static_assert(exp, str) _Static_assert(exp, str)
+#if (defined __STDC_VERSION__ && __STDC_VERSION__ >= 201112L) || \
+    (defined __cplusplus && __cplusplus >= 201103L)
+# include <assert.h>
+# define mrb_static_assert(exp, str) static_assert(exp, str)
 #else
-#define mrb_static_assert(exp, str) 
+/* C version of static_assert() */
+#  define mrb_static_assert(cond, str) \
+  do { int assertion_failed[(cond) ? 1 : -1];\
+       (void) assertion_failed; } while(0)
 #endif
+#define mrb_static_assert1(exp) mrb_static_assert(exp, #exp)
 
 #include "mrbconf.h"
 
