@@ -1298,7 +1298,7 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
-    CASE(OP_JUW, S) {
+    CASE(OP_JMPUW, S) {
       CHECKPOINT_RESTORE(RBREAK_TAG_JUMP) {
         struct RBreak *brk = (struct RBreak*)mrb->exc;
         mrb_value target = mrb_break_value_get(brk);

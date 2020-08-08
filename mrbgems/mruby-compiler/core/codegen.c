@@ -2299,7 +2299,7 @@ codegen(codegen_scope *s, node *tree, int val)
     }
     else if (s->loop->type == LOOP_NORMAL) {
       codegen(s, tree, NOVAL);
-      genjmp(s, OP_JUW, s->loop->pc0);
+      genjmp(s, OP_JMPUW, s->loop->pc0);
     }
     else {
       if (tree) {
@@ -2319,7 +2319,7 @@ codegen(codegen_scope *s, node *tree, int val)
       raise_error(s, "unexpected redo");
     }
     else {
-      genjmp(s, OP_JUW, s->loop->pc2);
+      genjmp(s, OP_JMPUW, s->loop->pc2);
     }
     if (val) push();
     break;
@@ -2336,7 +2336,7 @@ codegen(codegen_scope *s, node *tree, int val)
         raise_error(s, msg);
       }
       else {
-        genjmp(s, OP_JUW, lp->pc0);
+        genjmp(s, OP_JMPUW, lp->pc0);
       }
       if (val) push();
     }
@@ -3163,7 +3163,7 @@ loop_break(codegen_scope *s, node *tree)
       if (tree) {
         gen_move(s, loop->acc, cursp(), 0);
       }
-      tmp = genjmp(s, OP_JUW, loop->pc3);
+      tmp = genjmp(s, OP_JMPUW, loop->pc3);
       loop->pc3 = tmp;
     }
     else {
