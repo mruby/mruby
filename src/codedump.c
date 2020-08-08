@@ -83,7 +83,7 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
 
   if (irep->clen > 0) {
     int i = irep->clen;
-    const struct mrb_irep_catch_hander *e = mrb_irep_catch_handler_table(irep);
+    const struct mrb_irep_catch_handler *e = mrb_irep_catch_handler_table(irep);
 
     for (; i > 0; i --, e ++) {
       int begin = bin_to_uint16(e->begin);
