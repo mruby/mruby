@@ -291,6 +291,7 @@ write_catch_table_block(mrb_state *mrb, const mrb_irep *irep, uint8_t *buf)
   const struct mrb_irep_catch_hander *e = mrb_irep_catch_handler_table(irep);
   mrb_static_assert1(sizeof(*e) == 7);
 
+  if (e == NULL) return 0;
   /* irep->clen has already been written before iseq block */
   memcpy(cur, (const void *)e, sizeof(*e) * irep->clen);
   cur += sizeof(*e) * irep->clen;
@@ -1058,7 +1059,7 @@ dump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, 
     fputs("};\n", fp);
   }
   /* dump iseq */
-  len=irep->ilen;
+  len=irep->ilen+sizeof(struct mrb_irep_catch_handler)*irep->clen;
   fprintf(fp,   "static const mrb_code %s_iseq_%d[%d] = {", name, n, len);
   for (i=0; i<len; i++) {
     if (i%20 == 0) fputs("\n", fp);
@@ -1076,7 +1077,7 @@ dump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, 
   }
   /* dump irep */
   fprintf(fp, "static const mrb_irep %s_irep_%d = {\n", name, n);
-  fprintf(fp,   "  %d,%d,\n", irep->nlocals, irep->nregs);
+  fprintf(fp,   "  %d,%d,%d,\n", irep->nlocals, irep->nregs, irep->clen);
   fprintf(fp,   "  MRB_IREP_STATIC,%s_iseq_%d,\n", name, n);
   if (irep->pool) {
     fprintf(fp, "  %s_pool_%d,", name, n);
