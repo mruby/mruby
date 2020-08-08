@@ -166,9 +166,12 @@ integral_div(mrb_state *mrb, mrb_value xv)
   x = mrb_to_flo(mrb, xv);
   if (y == 0) {
     if (x < 0)
-      return mrb_float_value(mrb, -INFINITY);
-    else
-      return mrb_float_value(mrb, INFINITY);
+      y = -INFINITY;
+    else if (x > 0)
+      y = INFINITY;
+    else /* if (x == 0) */
+      y = NAN;
+    return mrb_float_value(mrb, y);
   }
   return mrb_float_value(mrb, x / y);
 #endif
