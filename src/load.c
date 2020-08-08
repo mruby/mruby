@@ -105,8 +105,8 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
 
   if (irep->ilen > 0) {
     size_t data_len = sizeof(mrb_code) * irep->ilen +
-                      sizeof(struct mrb_irep_catch_hander) * irep->clen;
-    mrb_static_assert1(sizeof(struct mrb_irep_catch_hander) == 7);
+                      sizeof(struct mrb_irep_catch_handler) * irep->clen;
+    mrb_static_assert1(sizeof(struct mrb_irep_catch_handler) == 7);
     if (SIZE_ERROR_MUL(irep->ilen, sizeof(mrb_code))) {
       return NULL;
     }

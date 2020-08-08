@@ -71,7 +71,7 @@ typedef struct scope {
   mrb_pool_value *pool;
   mrb_sym *syms;
   mrb_irep **reps;
-  struct mrb_irep_catch_hander *catch_table;
+  struct mrb_irep_catch_handler *catch_table;
   uint32_t pcapa, scapa, rcapa;
 
   uint16_t nlocals;
@@ -97,8 +97,8 @@ static void loop_pop(codegen_scope *s, int val);
  * - Larger start position
  * - Same start position but smaller end position
  */
-static int catch_hander_new(codegen_scope *s);
-static void catch_hander_set(codegen_scope *s, int ent, enum mrb_catch_type type, uint32_t begin, uint32_t end, uint32_t target);
+static int catch_handler_new(codegen_scope *s);
+static void catch_handler_set(codegen_scope *s, int ent, enum mrb_catch_type type, uint32_t begin, uint32_t end, uint32_t target);
 
 static void gen_assignment(codegen_scope *s, node *tree, int sp, int val);
 static void gen_vmassignment(codegen_scope *s, node *tree, int rhs, int val);
@@ -1468,14 +1468,14 @@ codegen(codegen_scope *s, node *tree, int val)
       if (tree->car == NULL) goto exit;
       lp = loop_push(s, LOOP_BEGIN);
       lp->pc0 = new_label(s);
-      catch_entry = catch_hander_new(s);
+      catch_entry = catch_handler_new(s);
       begin = s->pc;
       codegen(s, tree->car, VAL);
       pop();
       lp->type = LOOP_RESCUE;
       end = s->pc;
       noexc = genjmp(s, OP_JMP, 0);
-      catch_hander_set(s, catch_entry, MRB_CATCH_RESCUE, begin, end, s->pc);
+      catch_handler_set(s, catch_entry, MRB_CATCH_RESCUE, begin, end, s->pc);
       tree = tree->cdr;
       exend = 0;
       pos1 = 0;
@@ -1558,7 +1558,7 @@ codegen(codegen_scope *s, node *tree, int val)
       int catch_entry, begin, end, target;
       int idx;
 
-      catch_entry = catch_hander_new(s);
+      catch_entry = catch_handler_new(s);
       begin = s->pc;
       codegen(s, tree->car, val);
       end = target = s->pc;
@@ -1570,7 +1570,7 @@ codegen(codegen_scope *s, node *tree, int val)
       pop();
       genop_1(s, OP_RAISEIF, idx);
       pop();
-      catch_hander_set(s, catch_entry, MRB_CATCH_ENSURE, begin, end, target);
+      catch_handler_set(s, catch_entry, MRB_CATCH_ENSURE, begin, end, target);
     }
     else {                      /* empty ensure ignored */
       codegen(s, tree->car, val);
@@ -2038,14 +2038,14 @@ codegen(codegen_scope *s, node *tree, int val)
 
         lp = loop_push(s, LOOP_BEGIN);
         lp->pc0 = new_label(s);
-        catch_entry = catch_hander_new(s);
+        catch_entry = catch_handler_new(s);
         begin = s->pc;
         exc = cursp();
         codegen(s, tree->car, VAL);
         end = s->pc;
         noexc = genjmp(s, OP_JMP, 0);
         lp->type = LOOP_RESCUE;
-        catch_hander_set(s, catch_entry, MRB_CATCH_RESCUE, begin, end, s->pc);
+        catch_handler_set(s, catch_entry, MRB_CATCH_RESCUE, begin, end, s->pc);
         genop_1(s, OP_EXCEPT, exc);
         genop_1(s, OP_LOADF, exc);
         dispatch(s, noexc);
@@ -3081,7 +3081,7 @@ scope_finish(codegen_scope *s)
   }
   irep->flags = 0;
   if (s->iseq) {
-    size_t catchsize = sizeof(struct mrb_irep_catch_hander) * irep->clen;
+    size_t catchsize = sizeof(struct mrb_irep_catch_handler) * irep->clen;
     irep->iseq = (const mrb_code *)codegen_realloc(s, s->iseq, sizeof(mrb_code)*s->pc + catchsize);
     irep->ilen = s->pc;
     if (irep->clen > 0) {
@@ -3187,17 +3187,17 @@ loop_pop(codegen_scope *s, int val)
 }
 
 static int
-catch_hander_new(codegen_scope *s)
+catch_handler_new(codegen_scope *s)
 {
-  size_t newsize = sizeof(struct mrb_irep_catch_hander) * (s->irep->clen + 1);
-  s->catch_table = (struct mrb_irep_catch_hander *)codegen_realloc(s, (void *)s->catch_table, newsize);
+  size_t newsize = sizeof(struct mrb_irep_catch_handler) * (s->irep->clen + 1);
+  s->catch_table = (struct mrb_irep_catch_handler *)codegen_realloc(s, (void *)s->catch_table, newsize);
   return s->irep->clen ++;
 }
 
 static void
-catch_hander_set(codegen_scope *s, int ent, enum mrb_catch_type type, uint32_t begin, uint32_t end, uint32_t target)
+catch_handler_set(codegen_scope *s, int ent, enum mrb_catch_type type, uint32_t begin, uint32_t end, uint32_t target)
 {
-  struct mrb_irep_catch_hander *e;
+  struct mrb_irep_catch_handler *e;
 
   mrb_assert(ent >= 0 && ent < s->irep->clen);
   mrb_assert(begin < MAXARG_S);

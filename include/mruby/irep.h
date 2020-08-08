@@ -44,7 +44,7 @@ enum mrb_catch_type {
   MRB_CATCH_ENSURE = 1,
 };
 
-struct mrb_irep_catch_hander {
+struct mrb_irep_catch_handler {
   uint8_t type;         /* enum mrb_catch_type */
   uint8_t begin[2];     /* The starting address to match the hander. Includes this. */
   uint8_t end[2];       /* The endpoint address that matches the hander. Not Includes this. */
@@ -125,14 +125,14 @@ struct mrb_insn_data {
 
 struct mrb_insn_data mrb_decode_insn(const mrb_code *pc);
 
-static inline const struct mrb_irep_catch_hander *
+static inline const struct mrb_irep_catch_handler *
 mrb_irep_catch_handler_table(const struct mrb_irep *irep)
 {
   if (irep->clen > 0) {
-    return (const struct mrb_irep_catch_hander *)(irep->iseq + irep->ilen);
+    return (const struct mrb_irep_catch_handler*)(irep->iseq + irep->ilen);
   }
   else {
-    return (const struct mrb_irep_catch_hander *)NULL;
+    return (const struct mrb_irep_catch_handler*)NULL;
   }
 }
 

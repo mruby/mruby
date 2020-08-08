@@ -279,7 +279,7 @@ get_catch_table_block_size(mrb_state *mrb, const mrb_irep *irep)
   size_t size = 0;
 
   size += sizeof(uint16_t); /* number of catch handler */
-  size += (sizeof(struct mrb_irep_catch_hander)) * irep->clen;
+  size += (sizeof(struct mrb_irep_catch_handler)) * irep->clen;
 
   return size;
 }
@@ -288,7 +288,7 @@ static ptrdiff_t
 write_catch_table_block(mrb_state *mrb, const mrb_irep *irep, uint8_t *buf)
 {
   uint8_t *cur = buf;
-  const struct mrb_irep_catch_hander *e = mrb_irep_catch_handler_table(irep);
+  const struct mrb_irep_catch_handler *e = mrb_irep_catch_handler_table(irep);
   mrb_static_assert1(sizeof(*e) == 7);
 
   if (e == NULL) return 0;

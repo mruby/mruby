@@ -788,13 +788,13 @@ break_new(mrb_state *mrb, uint32_t tag, const struct RProc *p, mrb_value val)
 #define MRB_CATCH_FILTER_ENSURE (UINT32_C(1) << MRB_CATCH_ENSURE)
 #define MRB_CATCH_FILTER_ALL    (MRB_CATCH_FILTER_RESCUE | MRB_CATCH_FILTER_ENSURE)
 
-static const struct mrb_irep_catch_hander *
+static const struct mrb_irep_catch_handler *
 catch_handler_find(mrb_state *mrb, mrb_callinfo *ci, const mrb_code *pc, uint32_t filter)
 {
-  mrb_irep *irep;
+  const mrb_irep *irep;
   ptrdiff_t xpc;
   size_t cnt;
-  const struct mrb_irep_catch_hander *e;
+  const struct mrb_irep_catch_handler *e;
 
 /* The comparison operators use `>` and `<=` because pc already points to the next instruction */
 #define catch_cover_p(pc, beg, end) ((pc) > (beg) && (pc) <= (end))
@@ -1042,7 +1042,7 @@ mrb_vm_exec(mrb_state *mrb, const struct RProc *proc, const mrb_code *pc)
   uint16_t b;
   uint8_t c;
   mrb_sym mid;
-  const struct mrb_irep_catch_hander *ch;
+  const struct mrb_irep_catch_handler *ch;
 
 #ifdef DIRECT_THREADED
   static void *optable[] = {
