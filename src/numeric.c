@@ -158,7 +158,7 @@ integral_div(mrb_state *mrb, mrb_value xv)
   if (y == 0) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "devided by zero");
   }
-  return mrb_float_value(mrb, mrb_fixnum(xv) / y);
+  return mrb_fixnum_value(mrb, mrb_fixnum(xv) / y);
 #else
   mrb_float x, y;
 
