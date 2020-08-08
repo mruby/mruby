@@ -17,6 +17,7 @@ static const mrb_code call_iseq[] = {
 static const mrb_irep call_irep = {
   0,                                   /* nlocals */
   2,                                   /* nregs */
+  0,                                   /* clen */
   MRB_ISEQ_NO_FREE | MRB_IREP_NO_FREE, /* flags */
   call_iseq,                           /* iseq */
   NULL,                                /* pool */

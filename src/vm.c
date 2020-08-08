@@ -875,7 +875,7 @@ break_tag_p(struct RBreak *brk, uint32_t tag)
 }
 
 static void
-prepare_tagged_break(mrb_state *mrb, uint32_t tag, struct RProc *proc, mrb_value val)
+prepare_tagged_break(mrb_state *mrb, uint32_t tag, const struct RProc *proc, mrb_value val)
 {
   if (break_tag_p((struct RBreak*)mrb->exc, tag)) {
     mrb_break_tag_set((struct RBreak*)mrb->exc, tag);

@@ -2287,7 +2287,7 @@ static const mrb_code new_iseq[] = {
 
 const mrb_sym new_syms[] = { MRB_SYM(allocate), MRB_SYM(initialize) };
 static const mrb_irep new_irep = {
-  3, 6, MRB_IREP_STATIC,
+  3, 6, 0, MRB_IREP_STATIC,
   new_iseq, NULL, new_syms, NULL, NULL, NULL,
   sizeof(new_iseq), 0, 2, 0, 0,
 };
