@@ -68,9 +68,15 @@
 # define mrb_static_assert(exp, str) static_assert(exp, str)
 #else
 /* C version of static_assert() */
-#  define mrb_static_assert(cond, str) \
-  do { int assertion_failed[(cond) ? 1 : -1];\
-       (void) assertion_failed; } while(0)
+# define _mrb_static_assert_cat0(a, b) a##b
+# define _mrb_static_assert_cat(a, b) _mrb_static_assert_cat0(a, b)
+# ifdef __COUNTER__
+#  define _mrb_static_assert_id(prefix) _mrb_static_assert_cat(prefix, __COUNTER__)
+# else
+#  define _mrb_static_assert_id(prefix) _mrb_static_assert_cat(prefix, __LINE__)
+# endif
+# define mrb_static_assert(exp, str) \
+   struct _mrb_static_assert_id(_mrb_static_assert_) { char x[(exp) ? 1 : -1]; }
 #endif
 #define mrb_static_assert1(exp) mrb_static_assert(exp, #exp)
 
