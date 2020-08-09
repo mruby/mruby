@@ -11,6 +11,11 @@ class File < IO
     end
   end
 
+  def mtime
+    t = self._mtime
+    t && Time.at(t)
+  end
+
   def self.join(*names)
     return "" if names.empty?
 

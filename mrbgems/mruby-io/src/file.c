@@ -390,15 +390,12 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_file_mtime(mrb_state *mrb, mrb_value self)
 {
-  mrb_value obj;
+  int fd = mrb_io_fileno(mrb, self);
   struct stat st;
-  int fd;
 
-  obj = mrb_obj_value(mrb_class_get(mrb, "Time"));
-  fd = mrb_io_fileno(mrb, self);
   if (fstat(fd, &st) == -1)
     return mrb_false_value();
-  return mrb_funcall(mrb, obj, "at", 1, mrb_fixnum_value(st.st_mtime));
+  return mrb_fixnum_value((mrb_int)st.st_mtime);
 }
 
 static mrb_value
@@ -608,7 +605,7 @@ mrb_init_file(mrb_state *mrb)
   mrb_define_class_method(mrb, file, "_gethome",  mrb_file__gethome,   MRB_ARGS_OPT(1));
 
   mrb_define_method(mrb, file, "flock", mrb_file_flock, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, file, "mtime", mrb_file_mtime, MRB_ARGS_NONE());
+  mrb_define_method(mrb, file, "_mtime", mrb_file_mtime, MRB_ARGS_NONE());
   mrb_define_method(mrb, file, "size", mrb_file_size, MRB_ARGS_NONE());
   mrb_define_method(mrb, file, "truncate", mrb_file_truncate, MRB_ARGS_REQ(1));
 
