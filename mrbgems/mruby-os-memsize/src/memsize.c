@@ -11,16 +11,18 @@
 #include <mruby/value.h>
 #include <mruby/range.h>
 
-static mrb_int
+static size_t
 os_memsize_of_ivars(mrb_state* mrb, mrb_value obj)
 {
   return mrb_obj_iv_tbl_memsize(mrb, obj);
 }
 
-static mrb_int
+static size_t
 os_memsize_of_irep(mrb_state* state, const struct mrb_irep *irep)
 {
-  mrb_int size, i;
+  size_t size;
+  int i;
+
   size = (irep->slen * sizeof(mrb_sym)) +
          (irep->plen * sizeof(mrb_code)) +
          (irep->ilen * sizeof(mrb_code));
@@ -31,10 +33,10 @@ os_memsize_of_irep(mrb_state* state, const struct mrb_irep *irep)
   return size;
 }
 
-static mrb_int
+static size_t
 os_memsize_of_method(mrb_state* mrb, mrb_value method_obj)
 {
-  mrb_int size;
+  size_t size;
   mrb_value proc_value = mrb_obj_iv_get(mrb, mrb_obj_ptr(method_obj),
                                         mrb_intern_lit(mrb, "_proc"));
   struct RProc *proc = mrb_proc_ptr(proc_value);
@@ -57,10 +59,10 @@ obj_is_kind_of_checked(mrb_state *mrb, mrb_value obj, const char *classname)
   return FALSE;
 }
 
-static mrb_int
+static size_t
 os_memsize_of_object(mrb_state* mrb, mrb_value obj)
 {
-  mrb_int size = 0;
+  size_t size = 0;
 
   switch(mrb_type(obj)) {
     case MRB_TT_STRING:
@@ -178,17 +180,17 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj)
 static mrb_value
 os_memsize_of(mrb_state *mrb, mrb_value self)
 {
-  mrb_int total;
+  size_t total;
   mrb_value obj;
 
   mrb_get_args(mrb, "o", &obj);
 
   total = os_memsize_of_object(mrb, obj);
-  return mrb_fixnum_value(total);
+  return mrb_fixnum_value((mrb_int)total);
 }
 
 struct os_memsize_of_all_cb_data {
-  mrb_int t;
+  size_t t;
   struct RClass *type;
 };
 
@@ -225,7 +227,7 @@ os_memsize_of_all(mrb_state *mrb, mrb_value self)
   struct os_memsize_of_all_cb_data data = { 0 };
   mrb_get_args(mrb, "|c", &data.type);
   mrb_objspace_each_objects(mrb, os_memsize_of_all_cb, &data);
-  return mrb_fixnum_value(data.t);
+  return mrb_fixnum_value((mrb_int)data.t);
 }
 
 void

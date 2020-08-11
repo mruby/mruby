@@ -413,13 +413,13 @@ unpack_q(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
       i64tostr(msg, sizeof(msg), sll);
       mrb_raisef(mrb, E_RANGE_ERROR, "cannot unpack to Fixnum: %s", msg);
     }
-    n = sll;
+    n = (mrb_int)sll;
   } else {
     if (!POSFIXABLE(ull)) {
       u64tostr(msg, sizeof(msg), ull);
       mrb_raisef(mrb, E_RANGE_ERROR, "cannot unpack to Fixnum: %s", msg);
     }
-    n = ull;
+    n = (mrb_int)ull;
   }
   mrb_ary_push(mrb, ary, mrb_fixnum_value(n));
   return 8;
@@ -828,7 +828,7 @@ unpack_h(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, un
     }
   }
 
-  dst = mrb_str_resize(mrb, dst, dptr - dptr0);
+  dst = mrb_str_resize(mrb, dst, (mrb_int)(dptr - dptr0));
   mrb_ary_push(mrb, ary, dst);
   return (int)(sptr - sptr0);
 }
@@ -951,7 +951,7 @@ unpack_m(mrb_state *mrb, const void *src, int slen, mrb_value ary, unsigned int 
   }
 
 done:
-  dst = mrb_str_resize(mrb, dst, dptr - dptr0);
+  dst = mrb_str_resize(mrb, dst, (mrb_int)(dptr - dptr0));
   mrb_ary_push(mrb, ary, dst);
   return (int)(sptr - sptr0);
 }

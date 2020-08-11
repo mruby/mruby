@@ -1128,7 +1128,7 @@ mrb_class_find_path(mrb_state *mrb, struct RClass *c)
   return path;
 }
 
-mrb_int
+size_t
 mrb_obj_iv_tbl_memsize(mrb_state* mrb, mrb_value obj)
 {
   size_t nseg = 0;

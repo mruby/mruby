@@ -64,7 +64,7 @@ mrb_debug_get_filename(mrb_state *mrb, mrb_irep *irep, ptrdiff_t pc)
 }
 
 MRB_API int32_t
-mrb_debug_get_line(mrb_state *mrb, mrb_irep *irep, ptrdiff_t pc)
+mrb_debug_get_line(mrb_state *mrb, const mrb_irep *irep, size_t pc)
 {
   if (irep && pc >= 0 && pc < irep->ilen) {
     mrb_irep_debug_info_file* f = NULL;

@@ -12177,7 +12177,7 @@ MRB_API void
 mrb_parser_set_filename(struct mrb_parser_state *p, const char *f)
 {
   mrb_sym sym;
-  size_t i;
+  uint16_t i;
   mrb_sym* new_table;
 
   sym = mrb_intern_cstr(p->mrb, f);
@@ -12186,7 +12186,7 @@ mrb_parser_set_filename(struct mrb_parser_state *p, const char *f)
 
   for (i = 0; i < p->filename_table_length; ++i) {
     if (p->filename_table[i] == sym) {
-      p->current_filename_index = (int)i;
+      p->current_filename_index = i;
       return;
     }
   }

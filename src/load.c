@@ -54,7 +54,7 @@ str_to_double(mrb_state *mrb, const char *p, size_t len)
 }
 #endif
 
-mrb_value mrb_str_len_to_inum(mrb_state *mrb, const char *str, mrb_int len, mrb_int base, int badcheck);
+mrb_value mrb_str_len_to_inum(mrb_state *mrb, const char *str, size_t len, mrb_int base, int badcheck);
 
 static void
 tempirep_free(mrb_state *mrb, void *p)

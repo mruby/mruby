@@ -35,7 +35,7 @@ mrb_value mrb_vm_cv_get(mrb_state*, mrb_sym);
 void mrb_vm_cv_set(mrb_state*, mrb_sym, mrb_value);
 mrb_value mrb_vm_const_get(mrb_state*, mrb_sym);
 void mrb_vm_const_set(mrb_state*, mrb_sym, mrb_value);
-mrb_int mrb_obj_iv_tbl_memsize(mrb_state*, mrb_value);
+size_t mrb_obj_iv_tbl_memsize(mrb_state*, mrb_value);
 MRB_API mrb_value mrb_const_get(mrb_state*, mrb_value, mrb_sym);
 MRB_API void mrb_const_set(mrb_state*, mrb_value, mrb_sym, mrb_value);
 MRB_API mrb_bool mrb_const_defined(mrb_state*, mrb_value, mrb_sym);

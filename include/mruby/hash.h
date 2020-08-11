@@ -23,7 +23,7 @@ struct RHash {
 #define mrb_hash_ptr(v)    ((struct RHash*)(mrb_ptr(v)))
 #define mrb_hash_value(p)  mrb_obj_value((void*)(p))
 
-mrb_int mrb_os_memsize_of_hash_table(mrb_value obj);
+size_t mrb_os_memsize_of_hash_table(mrb_value obj);
 MRB_API mrb_value mrb_hash_new_capa(mrb_state *mrb, mrb_int capa);
 MRB_API mrb_value mrb_ensure_hash_type(mrb_state *mrb, mrb_value hash);
 MRB_API mrb_value mrb_check_hash_type(mrb_state *mrb, mrb_value hash);

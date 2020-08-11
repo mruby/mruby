@@ -66,7 +66,7 @@ mrb_f_sleep(mrb_state *mrb, mrb_value self)
 #endif
     end = time(0) - beg;
 
-    return mrb_fixnum_value(end);
+    return mrb_fixnum_value((mrb_int)end);
 }
 
 /* mruby special; needed for mruby without float numbers */
