@@ -120,7 +120,7 @@ mrb_f_usleep(mrb_state *mrb, mrb_value self)
     }
 #endif
 
-    return mrb_fixnum_value(slp_tm);
+    return mrb_fixnum_value((mrb_int)slp_tm);
 }
 
 void
