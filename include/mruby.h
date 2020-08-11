@@ -62,12 +62,16 @@
 #define mrb_assert_int_fit(t1,n,t2,max) ((void)0)
 #endif
 
-#if (defined __STDC_VERSION__ && __STDC_VERSION__ >= 201112L) || \
-    (defined __cplusplus && __cplusplus >= 201103L)
-# include <assert.h>
+#if (defined __cplusplus && __cplusplus >= 201103L) || \
+    (defined _WIN32 && !defined __MINGW32__) || \
+    (defined __GXX_EXPERIMENTAL_CXX0X__)  /* for old G++/Clang++ */
 # define mrb_static_assert(exp, str) static_assert(exp, str)
+#elif defined __STDC_VERSION__ && \
+        ((__STDC_VERSION__ >= 201112L) || \
+         (defined __GNUC__ && __GNUC__ * 100 + __GNUC_MINOR__ >= 406))
+# define mrb_static_assert(exp, str) _Static_assert(exp, str)
 #else
-/* C version of static_assert() */
+# /* alternative implementation of static_assert() */
 # define _mrb_static_assert_cat0(a, b) a##b
 # define _mrb_static_assert_cat(a, b) _mrb_static_assert_cat0(a, b)
 # ifdef __COUNTER__
