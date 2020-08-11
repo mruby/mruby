@@ -70,6 +70,10 @@
 typedef struct stat         mrb_stat;
 # define mrb_stat(path, sb) stat(path, sb)
 # define mrb_fstat(fd, sb)  fstat(fd, sb)
+#elif defined MRB_INT32
+typedef struct __stat32     mrb_stat;
+# define mrb_stat(path, sb) _stat32(path, sb)
+# define mrb_fstat(fd, sb)  _fstat32(fd, sb)
 #else
 typedef struct __stat64     mrb_stat;
 # define mrb_stat(path, sb) _stat64(path, sb)
@@ -393,7 +397,7 @@ mrb_file_mtime(mrb_state *mrb, mrb_value self)
   int fd = mrb_io_fileno(mrb, self);
   struct stat st;
 
-  if (fstat(fd, &st) == -1)
+  if (mrb_fstat(fd, &st) == -1)
     return mrb_false_value();
   return mrb_fixnum_value((mrb_int)st.st_mtime);
 }
