@@ -395,7 +395,7 @@ static mrb_value
 mrb_file_mtime(mrb_state *mrb, mrb_value self)
 {
   int fd = mrb_io_fileno(mrb, self);
-  struct stat st;
+  mrb_stat st;
 
   if (mrb_fstat(fd, &st) == -1)
     return mrb_false_value();
