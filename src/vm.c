@@ -1823,7 +1823,7 @@ RETRY_TRY_BLOCK:
         if (kd) regs[len + 1] = kdict;
 
         /* copy mandatory and optional arguments */
-        if (argv0 != argv) {
+        if (argv0 != argv && argv) {
           value_move(&regs[1], argv, argc-mlen); /* m1 + o */
         }
         if (argc < m1) {
