@@ -63,7 +63,7 @@
 #endif
 
 #if (defined __cplusplus && __cplusplus >= 201103L) || \
-    (defined _WIN32 && !defined __MINGW32__) || \
+    (defined _MSC_VER) || \
     (defined __GXX_EXPERIMENTAL_CXX0X__)  /* for old G++/Clang++ */
 # define mrb_static_assert(exp, str) static_assert(exp, str)
 #elif defined __STDC_VERSION__ && \
