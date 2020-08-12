@@ -1123,8 +1123,14 @@ mrb_ary_clear(mrb_state *mrb, mrb_value self)
   else if (!ARY_EMBED_P(a)){
     mrb_free(mrb, a->as.heap.ptr);
   }
-  ARY_SET_EMBED_LEN(a, 0);
-
+  if (MRB_ARY_EMBED_LEN_MAX > 0) {
+    ARY_SET_EMBED_LEN(a, 0);
+  }
+  else {
+    a->as.heap.ptr = NULL;
+    a->as.heap.aux.capa = 0;
+    ARY_SET_LEN(a, 0);
+  }
   return self;
 }
 
