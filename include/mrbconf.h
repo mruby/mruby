@@ -31,6 +31,10 @@
 /* exclude floating point numbers */
 //#define MRB_WITHOUT_FLOAT
 
+#if defined(MRB_USE_FLOAT) && defined(MRB_WITHOUT_FLOAT)
+#error Cannot define MRB_USE_FLOAT and MRB_WITHOUT_FLOAT at the same time
+#endif
+
 /* stop inlining floating point numbers in mrb_value (effective only with MRB_WORD_BOXING)*/
 /* floating numbers are rounded to fit in 30 bits (float) and 62 bits respectively, */
 /* by inlining. If you need full precision of floating numbers on the platform, */
