@@ -79,11 +79,7 @@
 
 /* if no specific boxing type is chosen */
 #if !defined(MRB_NAN_BOXING) && !defined(MRB_WORD_BOXING) && !defined(MRB_NO_BOXING)
-# if defined(MRB_64BIT) && !defined(MRB_INT64)
-#  define MRB_NAN_BOXING
-# else
-#  define MRB_WORD_BOXING
-# endif
+# define MRB_WORD_BOXING
 #endif
 
 /* add -DMRB_INT32 to use 32bit integer for mrb_int; conflict with MRB_INT64;
