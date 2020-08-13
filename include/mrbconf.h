@@ -47,13 +47,13 @@
 /* size of the method cache (need to be the power of 2) */
 //#define MRB_METHOD_CACHE_SIZE (1<<8)
 
-/* add -DMRB_METHOD_T_STRUCT on machines that use higher bits of pointers */
-/* no MRB_METHOD_T_STRUCT requires highest 2 bits of function pointers to be zero */
-#ifndef MRB_METHOD_T_STRUCT
+/* add -DMRB_USE_METHOD_T_STRUCT on machines that use higher bits of function pointers */
+/* no MRB_USE_METHOD_T_STRUCT requires highest 2 bits of function pointers to be zero */
+#ifndef MRB_USE_METHOD_T_STRUCT
   // can't use highest 2 bits of function pointers at least on 32bit
   // Windows and 32bit Linux.
 # ifdef MRB_32BIT
-#   define MRB_METHOD_T_STRUCT
+#   define MRB_USE_METHOD_T_STRUCT
 # endif
 #endif
 
