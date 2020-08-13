@@ -171,9 +171,9 @@ largest value of required alignment.
 * Ignored if `MRB_NO_METHOD_CACHE` is defined.
 * Need to be the power of 2.
 
-`MRB_METHOD_T_STRUCT`
+`MRB_USE_METHOD_T_STRUCT`
 * Use C struct to represent `mrb_method_t`
-* No `MRB_METHOD_T_STRUCT` requires highest 2 bits of function pointers to be zero
+* No `MRB_USE_METHOD_T_STRUCT` requires highest 2 bits of function pointers to be zero
 * Define this macro on machines that use higher bits of pointers
 
 `MRB_ENABLE_ALL_SYMBOLS`
