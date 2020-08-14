@@ -57,6 +57,17 @@ pull-request.
 
 Some configuration macro names are changed for consistency
 
+== `MRB_NO_FLOAT`
+
+Changed from `MRB_WITHOUT_FLOAT` to conform `USE_XXX` naming
+convention.
+
+== `MRB_USE_FLOAT32`
+
+Changed from `MRB_USE_FLOAT` to make sure `float` here means
+using single precision float, and not the opposite of
+`MRB_NO_FLOAT`.
+
 == `MRB_USE_METHOD_T_STRUCT`
 
 Changed from `MRB_METHOD_T_STRUCT`.

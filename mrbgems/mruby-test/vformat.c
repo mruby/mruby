@@ -48,7 +48,7 @@ vf_s_format_d(mrb_state *mrb, mrb_value klass)
   return mrb_format(mrb, fmt, d);
 }
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 /* f float */
 static mrb_value
 vf_s_format_f(mrb_state *mrb, mrb_value klass)
@@ -167,7 +167,7 @@ mrb_init_test_vformat(mrb_state *mrb)
   
   VF_DEFINE_FORMAT_METHOD(c);
   VF_DEFINE_FORMAT_METHOD(d);
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
   VF_DEFINE_FORMAT_METHOD(f);
 #endif
   VF_DEFINE_FORMAT_METHOD(i);

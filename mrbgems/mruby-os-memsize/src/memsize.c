@@ -111,7 +111,7 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj)
     case MRB_TT_DATA:
       size += mrb_objspace_page_slot_size();
       break;
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
     case MRB_TT_FLOAT:
 #ifdef MRB_WORD_BOXING
       size += mrb_objspace_page_slot_size() +

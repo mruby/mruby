@@ -825,7 +825,7 @@ aget_index(mrb_state *mrb, mrb_value index)
   if (mrb_fixnum_p(index)) {
     return mrb_fixnum(index);
   }
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
   else if (mrb_float_p(index)) {
     return (mrb_int)mrb_float(index);
   }

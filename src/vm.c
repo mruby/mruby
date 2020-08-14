@@ -6,7 +6,7 @@
 
 #include <stddef.h>
 #include <stdarg.h>
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 #include <math.h>
 #endif
 #include <mruby.h>
@@ -1101,7 +1101,7 @@ RETRY_TRY_BLOCK:
         }
         goto L_RAISE;
 #endif
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
       case IREP_TT_FLOAT:
         regs[a] = mrb_float_value(mrb, pool[b].u.f);
         break;
@@ -2265,7 +2265,7 @@ RETRY_TRY_BLOCK:
         SET_INT_VALUE(regs[a], z);                                          \
     }                                                                       \
     break
-#ifdef MRB_WITHOUT_FLOAT
+#ifdef MRB_NO_FLOAT
 #define OP_MATH_CASE_FLOAT(op_name, t1, t2) (void)0
 #define OP_MATH_OVERFLOW_INT(op_name, x, y, z) SET_INT_VALUE(regs[a], z)
 #else
@@ -2305,14 +2305,14 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_DIV, B) {
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
       double x, y, f;
 #endif
 
       /* need to check if op is overridden */
       switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {
       case TYPES2(MRB_TT_FIXNUM,MRB_TT_FIXNUM):
-#ifdef MRB_WITHOUT_FLOAT
+#ifdef MRB_NO_FLOAT
         {
           mrb_int x = mrb_fixnum(regs[a]);
           mrb_int y = mrb_fixnum(regs[a+1]);
@@ -2342,7 +2342,7 @@ RETRY_TRY_BLOCK:
         goto L_SEND_SYM;
       }
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
       if (y == 0) {
         if (x > 0) f = INFINITY;
         else if (x < 0) f = -INFINITY;
@@ -2378,7 +2378,7 @@ RETRY_TRY_BLOCK:
         SET_INT_VALUE(regs[a], z);                                          \
     }                                                                       \
     break
-#ifdef MRB_WITHOUT_FLOAT
+#ifdef MRB_NO_FLOAT
 #define OP_MATHI_CASE_FLOAT(op_name) (void)0
 #else
 #define OP_MATHI_CASE_FLOAT(op_name)                                        \
@@ -2400,7 +2400,7 @@ RETRY_TRY_BLOCK:
 
 #define OP_CMP_BODY(op,v1,v2) (v1(regs[a]) op v2(regs[a+1]))
 
-#ifdef MRB_WITHOUT_FLOAT
+#ifdef MRB_NO_FLOAT
 #define OP_CMP(op,sym) do {\
   int result;\
   /* need to check if - is overridden */\

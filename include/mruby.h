@@ -92,7 +92,7 @@
 #include <mruby/presym.h>
 #include <mruby/version.h>
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 #include <float.h>
 #ifndef FLT_EPSILON
 #define FLT_EPSILON (1.19209290e-07f)
@@ -104,7 +104,7 @@
 #define LDBL_EPSILON (1.08420217248550443401e-19L)
 #endif
 
-#ifdef MRB_USE_FLOAT
+#ifdef MRB_USE_FLOAT32
 #define MRB_FLOAT_EPSILON FLT_EPSILON
 #else
 #define MRB_FLOAT_EPSILON DBL_EPSILON
@@ -245,7 +245,7 @@ typedef struct mrb_state {
   struct RClass *hash_class;
   struct RClass *range_class;
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
   struct RClass *float_class;
 #endif
   struct RClass *fixnum_class;
@@ -1211,7 +1211,7 @@ MRB_API mrb_bool mrb_obj_equal(mrb_state *mrb, mrb_value a, mrb_value b);
 MRB_API mrb_bool mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
 MRB_API mrb_value mrb_convert_to_integer(mrb_state *mrb, mrb_value val, mrb_int base);
 MRB_API mrb_value mrb_Integer(mrb_state *mrb, mrb_value val);
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 MRB_API mrb_value mrb_Float(mrb_state *mrb, mrb_value val);
 #endif
 MRB_API mrb_value mrb_inspect(mrb_state *mrb, mrb_value obj);
@@ -1304,7 +1304,7 @@ MRB_API mrb_value mrb_vformat(mrb_state *mrb, const char *format, va_list ap);
 #define E_FROZEN_ERROR              (mrb_exc_get_id(mrb, MRB_SYM(FrozenError)))
 
 #define E_NOTIMP_ERROR              (mrb_exc_get_id(mrb, MRB_SYM(NotImplementedError)))
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 #define E_FLOATDOMAIN_ERROR         (mrb_exc_get_id(mrb, MRB_SYM(FloatDomainError)))
 #endif
 

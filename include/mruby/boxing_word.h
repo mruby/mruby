@@ -11,7 +11,7 @@
 #error MRB_INT64 cannot be used with MRB_WORD_BOXING in 32-bit mode.
 #endif
 
-#if !defined(MRB_WITHOUT_FLOAT) || defined(MRB_NO_FLOAT_INLINE)
+#if !defined(MRB_NO_FLOAT) || defined(MRB_NO_FLOAT_INLINE)
 struct RFloat {
   MRB_OBJECT_HEADER;
   mrb_float f;
@@ -80,7 +80,7 @@ union mrb_value_ {
   };
 #endif
   struct RBasic *bp;
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
   struct RFloat *fp;
 #endif
   struct RCptr *vp;
@@ -96,13 +96,13 @@ mrb_val_union(mrb_value v)
 }
 
 MRB_API mrb_value mrb_word_boxing_cptr_value(struct mrb_state*, void*);
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 MRB_API mrb_value mrb_word_boxing_float_value(struct mrb_state*, mrb_float);
 #endif
 
 #define mrb_ptr(o)     mrb_val_union(o).p
 #define mrb_cptr(o)    mrb_val_union(o).vp->p
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 #define mrb_float(o)   mrb_val_union(o).fp->f
 #endif
 #define mrb_fixnum(o)  BOXWORD_SHIFT_VALUE(o, FIXNUM, mrb_int)
@@ -124,7 +124,7 @@ MRB_API mrb_value mrb_word_boxing_float_value(struct mrb_state*, mrb_float);
 #define mrb_nil_p(o)  ((o) == MRB_Qnil)
 #define mrb_false_p(o) ((o) == MRB_Qfalse)
 #define mrb_true_p(o)  ((o) == MRB_Qtrue)
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 #define mrb_float_p(o) BOXWORD_OBJ_TYPE_P(o, FLOAT)
 #endif
 #define mrb_array_p(o) BOXWORD_OBJ_TYPE_P(o, ARRAY)
@@ -146,7 +146,7 @@ MRB_API mrb_value mrb_word_boxing_float_value(struct mrb_state*, mrb_float);
 #define mrb_istruct_p(o) BOXWORD_OBJ_TYPE_P(o, ISTRUCT)
 #define mrb_break_p(o) BOXWORD_OBJ_TYPE_P(o, BREAK)
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 #define SET_FLOAT_VALUE(mrb,r,v) ((r) = mrb_word_boxing_float_value(mrb, v))
 #endif
 #define SET_CPTR_VALUE(mrb,r,v) ((r) = mrb_word_boxing_cptr_value(mrb, v))

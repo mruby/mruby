@@ -30,7 +30,7 @@ MRuby::CrossBuild.new("RX630") do |conf|
     cc.compile_options = %Q[%{flags} -o "%{outfile}" -c "%{infile}"]
 
     #configuration for low memory environment
-    cc.defines << %w(MRB_USE_FLOAT)
+    cc.defines << %w(MRB_USE_FLOAT32)
     cc.defines << %w(MRB_HEAP_PAGE_SIZE=64)
     cc.defines << %w(KHASH_DEFAULT_SIZE=8)
     cc.defines << %w(MRB_STR_BUF_MIN_SIZE=20)

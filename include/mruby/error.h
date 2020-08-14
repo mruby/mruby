@@ -32,7 +32,7 @@ MRB_API mrb_noreturn void mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_va
 /* declaration for `fail` method */
 MRB_API mrb_value mrb_f_raise(mrb_state*, mrb_value);
 
-#if defined(MRB_64BIT) || defined(MRB_USE_FLOAT) || defined(MRB_NAN_BOXING) || defined(MRB_WORD_BOXING)
+#if defined(MRB_64BIT) || defined(MRB_USE_FLOAT32) || defined(MRB_NAN_BOXING) || defined(MRB_WORD_BOXING)
 struct RBreak {
   MRB_OBJECT_HEADER;
   const struct RProc *proc;
@@ -62,7 +62,7 @@ mrb_break_value_set(struct RBreak *brk, mrb_value val)
   brk->flags &= ~RBREAK_VALUE_TT_MASK;
   brk->flags |= val.tt;
 }
-#endif  /* MRB_64BIT || MRB_USE_FLOAT || MRB_NAN_BOXING || MRB_WORD_BOXING */
+#endif  /* MRB_64BIT || MRB_USE_FLOAT32 || MRB_NAN_BOXING || MRB_WORD_BOXING */
 #define mrb_break_proc_get(brk) ((brk)->proc)
 #define mrb_break_proc_set(brk, p) ((brk)->proc = p)
 

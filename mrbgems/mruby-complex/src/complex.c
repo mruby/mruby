@@ -3,8 +3,8 @@
 #include <mruby/numeric.h>
 #include <math.h>
 
-#ifdef MRB_WITHOUT_FLOAT
-# error Complex conflicts 'MRB_WITHOUT_FLOAT' configuration in your 'build_config.rb'
+#ifdef MRB_NO_FLOAT
+# error Complex conflicts with 'MRB_NO_FLOAT' configuration
 #endif
 
 struct mrb_complex {
@@ -12,13 +12,13 @@ struct mrb_complex {
   mrb_float imaginary;
 };
 
-#ifdef MRB_USE_FLOAT
+#ifdef MRB_USE_FLOAT32
 #define F(x) x##f
 #else
 #define F(x) x
 #endif
 
-#if defined(MRB_64BIT) || defined(MRB_USE_FLOAT)
+#if defined(MRB_64BIT) || defined(MRB_USE_FLOAT32)
 
 #define COMPLEX_USE_ISTRUCT
 /* use TT_ISTRUCT */

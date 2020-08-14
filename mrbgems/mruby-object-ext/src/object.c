@@ -17,7 +17,7 @@ nil_to_a(mrb_state *mrb, mrb_value obj)
   return mrb_ary_new(mrb);
 }
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 /*
  *  call-seq:
  *     nil.to_f    -> 0.0
@@ -115,7 +115,7 @@ mrb_mruby_object_ext_gem_init(mrb_state* mrb)
   struct RClass * n = mrb->nil_class;
 
   mrb_define_method(mrb, n, "to_a", nil_to_a,       MRB_ARGS_NONE());
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
   mrb_define_method(mrb, n, "to_f", nil_to_f,       MRB_ARGS_NONE());
 #endif
   mrb_define_method(mrb, n, "to_h", nil_to_h,       MRB_ARGS_NONE());

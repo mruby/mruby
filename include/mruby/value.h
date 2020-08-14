@@ -75,9 +75,9 @@ struct mrb_state;
 # define MRB_ENDIAN_LOHI(a,b) b a
 #endif
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 MRB_API double mrb_float_read(const char*, char**);
-#ifdef MRB_USE_FLOAT
+#ifdef MRB_USE_FLOAT32
   typedef float mrb_float;
 #else
   typedef double mrb_float;
@@ -90,7 +90,7 @@ MRB_API int mrb_msvc_vsnprintf(char *s, size_t n, const char *format, va_list ar
 MRB_API int mrb_msvc_snprintf(char *s, size_t n, const char *format, ...);
 # define vsnprintf(s, n, format, arg) mrb_msvc_vsnprintf(s, n, format, arg)
 # define snprintf(s, n, format, ...) mrb_msvc_snprintf(s, n, format, __VA_ARGS__)
-# if _MSC_VER < 1800 && !defined MRB_WITHOUT_FLOAT
+# if _MSC_VER < 1800 && !defined MRB_NO_FLOAT
 #  include <float.h>
 #  define isfinite(n) _finite(n)
 #  define isnan _isnan
@@ -195,7 +195,7 @@ struct RCptr {
 #ifndef mrb_true_p
 #define mrb_true_p(o)  (mrb_type(o) == MRB_TT_TRUE)
 #endif
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 #ifndef mrb_float_p
 #define mrb_float_p(o) (mrb_type(o) == MRB_TT_FLOAT)
 #endif
@@ -264,7 +264,7 @@ struct RCptr {
  *
  * Takes a float and boxes it into an mrb_value
  */
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 MRB_INLINE mrb_value mrb_float_value(struct mrb_state *mrb, mrb_float f)
 {
   mrb_value v;

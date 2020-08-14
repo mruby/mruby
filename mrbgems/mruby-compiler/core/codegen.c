@@ -530,7 +530,7 @@ new_lit(codegen_scope *s, mrb_value val)
         return i;
     }
     break;
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
   case MRB_TT_FLOAT:
     for (i=0; i<s->irep->plen; i++) {
       mrb_float f1, f2;
@@ -588,7 +588,7 @@ new_lit(codegen_scope *s, mrb_value val)
     }
     break;
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
   case MRB_TT_FLOAT:
     pv->tt = IREP_TT_FLOAT;
     pv->u.f = mrb_float(val);
@@ -1330,7 +1330,7 @@ raise_error(codegen_scope *s, const char *msg)
   genop_1(s, OP_ERR, idx);
 }
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 static double
 readint_float(codegen_scope *s, const char *p, int base)
 {
@@ -2442,7 +2442,7 @@ codegen(codegen_scope *s, node *tree, int val)
       mrb_bool overflow;
 
       i = readint_mrb_int(s, p, base, FALSE, &overflow);
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
       if (overflow) {
         double f = readint_float(s, p, base);
         int off = new_lit(s, mrb_float_value(s->mrb, f));
@@ -2473,7 +2473,7 @@ codegen(codegen_scope *s, node *tree, int val)
     }
     break;
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
   case NODE_FLOAT:
     if (val) {
       char *p = (char*)tree;
@@ -2490,7 +2490,7 @@ codegen(codegen_scope *s, node *tree, int val)
     {
       nt = nint(tree->car);
       switch (nt) {
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
       case NODE_FLOAT:
         if (val) {
           char *p = (char*)tree->cdr;
@@ -2511,7 +2511,7 @@ codegen(codegen_scope *s, node *tree, int val)
           mrb_bool overflow;
 
           i = readint_mrb_int(s, p, base, TRUE, &overflow);
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
           if (overflow) {
             double f = readint_float(s, p, base);
             int off = new_lit(s, mrb_float_value(s->mrb, -f));
@@ -2531,7 +2531,7 @@ codegen(codegen_scope *s, node *tree, int val)
               int off = new_lit(s, mrb_fixnum_value(i));
               genop_2(s, OP_LOADL, cursp(), off);
             }
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
           }
 #endif
           push();

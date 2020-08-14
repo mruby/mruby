@@ -25,14 +25,24 @@
 #endif
 
 /* configuration options: */
-/* add -DMRB_USE_FLOAT to use float instead of double for floating point numbers */
-//#define MRB_USE_FLOAT
+/* add -DMRB_USE_FLOAT32 to use float instead of double for floating point numbers */
+//#define MRB_USE_FLOAT32
 
 /* exclude floating point numbers */
-//#define MRB_WITHOUT_FLOAT
+//#define MRB_NO_FLOAT
 
-#if defined(MRB_USE_FLOAT) && defined(MRB_WITHOUT_FLOAT)
-#error Cannot define MRB_USE_FLOAT and MRB_WITHOUT_FLOAT at the same time
+/* obsolete configuration */
+#if defined(MRB_USE_FLOAT)
+# define MRB_USE_FLOAT32
+#endif
+
+/* obsolete configuration */
+#if defined(MRB_WITHOUT_FLOAT)
+# define MRB_NO_FLOAT
+#endif
+
+#if defined(MRB_USE_FLOAT32) && defined(MRB_NO_FLOAT)
+#error Cannot define MRB_USE_FLOAT32 and MRB_NO_FLOAT at the same time
 #endif
 
 /* stop inlining floating point numbers in mrb_value (effective only with MRB_WORD_BOXING)*/
@@ -65,7 +75,7 @@
 # endif
 #endif
 
-/* represent mrb_value in boxed double; conflict with MRB_USE_FLOAT and MRB_WITHOUT_FLOAT */
+/* represent mrb_value in boxed double; conflict with MRB_USE_FLOAT32 and MRB_NO_FLOAT */
 //#define MRB_NAN_BOXING
 
 /* represent mrb_value as a word (natural unit of data for the processor) */

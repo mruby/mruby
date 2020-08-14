@@ -24,7 +24,7 @@ mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
   case MRB_TT_SYMBOL:
     return (mrb_symbol(v1) == mrb_symbol(v2));
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
   case MRB_TT_FLOAT:
     return (mrb_float(v1) == mrb_float(v2));
 #endif
@@ -47,7 +47,7 @@ mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
   mrb_value result;
 
   if (mrb_obj_eq(mrb, obj1, obj2)) return TRUE;
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
   /* value mixing with integer and float */
   if (mrb_fixnum_p(obj1)) {
     if (mrb_float_p(obj2) && (mrb_float)mrb_fixnum(obj1) == mrb_float(obj2))
@@ -330,7 +330,7 @@ static const struct types {
   {MRB_TT_ICLASS, "iClass"},  /* internal use: mixed-in module holder */
   {MRB_TT_SCLASS, "SClass"},
   {MRB_TT_PROC,   "Proc"},
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
   {MRB_TT_FLOAT,  "Float"},
 #endif
   {MRB_TT_ARRAY,  "Array"},
@@ -510,7 +510,7 @@ mrb_to_int(mrb_state *mrb, mrb_value val)
 {
 
   if (!mrb_fixnum_p(val)) {
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
     if (mrb_float_p(val)) {
       return mrb_flo_to_fixnum(mrb, val);
     }
@@ -530,7 +530,7 @@ mrb_convert_to_integer(mrb_state *mrb, mrb_value val, mrb_int base)
     mrb_raise(mrb, E_TYPE_ERROR, "can't convert nil into Integer");
   }
   switch (mrb_type(val)) {
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
     case MRB_TT_FLOAT:
       if (base != 0) goto arg_error;
       return mrb_flo_to_fixnum(mrb, val);
@@ -566,7 +566,7 @@ mrb_Integer(mrb_state *mrb, mrb_value val)
   return mrb_convert_to_integer(mrb, val, 0);
 }
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 MRB_API mrb_value
 mrb_Float(mrb_state *mrb, mrb_value val)
 {

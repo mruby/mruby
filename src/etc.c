@@ -70,7 +70,7 @@ mrb_obj_to_sym(mrb_state *mrb, mrb_value name)
 }
 
 MRB_API mrb_int
-#ifdef MRB_WITHOUT_FLOAT
+#ifdef MRB_NO_FLOAT
 mrb_fixnum_id(mrb_int f)
 #else
 mrb_float_id(mrb_float f)
@@ -80,7 +80,7 @@ mrb_float_id(mrb_float f)
   int len = sizeof(f);
   uint32_t id = 0;
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
   /* normalize -0.0 to 0.0 */
   if (f == 0) f = 0.0;
 #endif
@@ -115,7 +115,7 @@ mrb_obj_id(mrb_value obj)
   case MRB_TT_SYMBOL:
     return MakeID(mrb_symbol(obj));
   case MRB_TT_FIXNUM:
-#ifdef MRB_WITHOUT_FLOAT
+#ifdef MRB_NO_FLOAT
     return MakeID(mrb_fixnum_id(mrb_fixnum(obj)));
 #else
     return MakeID2(mrb_float_id((mrb_float)mrb_fixnum(obj)), MRB_TT_FLOAT);
@@ -147,7 +147,7 @@ mrb_obj_id(mrb_value obj)
 #ifdef MRB_WORD_BOXING
 #define mrb_xxx_boxing_cptr_value mrb_word_boxing_cptr_value
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 MRB_API mrb_value
 mrb_word_boxing_float_value(mrb_state *mrb, mrb_float f)
 {
@@ -158,7 +158,7 @@ mrb_word_boxing_float_value(mrb_state *mrb, mrb_float f)
   MRB_SET_FROZEN_FLAG(v.bp);
   return v.w;
 }
-#endif  /* MRB_WITHOUT_FLOAT */
+#endif  /* MRB_NO_FLOAT */
 #endif  /* MRB_WORD_BOXING */
 
 #if defined(MRB_WORD_BOXING) || (defined(MRB_NAN_BOXING) && defined(MRB_64BIT))
