@@ -43,6 +43,10 @@ in `target/host.rb`. There are many other targets for example:
 `target/host.rb` comes  with comments to help  writing a new
 target description.
 
+If you want to have your target description out of the
+source tree, you can specify the path to the description
+file in `MRUBY_CONFIG`.
+
 = Build Target Contribution
 
 When you write a new target description, please
