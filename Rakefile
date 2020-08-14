@@ -14,8 +14,13 @@ require "mruby-core-ext"
 require "mruby/build"
 
 # load configuration file
-MRUBY_TARGET = ENV['MRUBY_TARGET'] || ENV['TARGET'] || "host"
-MRUBY_CONFIG = "#{MRUBY_ROOT}/target/#{MRUBY_TARGET}.rb"
+if ENV['MRUBY_CONFIG']
+  MRUBY_CONFIG = ENV['MRUBY_CONFIG']
+  MRUBY_TARGET = File.basename(MRUBY_CONFIG, ".rb")
+else
+  MRUBY_TARGET = ENV['MRUBY_TARGET'] || ENV['TARGET'] || "host"
+  MRUBY_CONFIG = "#{MRUBY_ROOT}/target/#{MRUBY_TARGET}.rb"
+end
 load MRUBY_CONFIG
 
 # load basic rules
