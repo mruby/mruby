@@ -899,7 +899,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         }
       }
       break;
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
     case 'f':
       {
         mrb_float *p;
@@ -1343,7 +1343,7 @@ mrb_singleton_class_ptr(mrb_state *mrb, mrb_value v)
     return mrb->object_class;
   case MRB_TT_SYMBOL:
   case MRB_TT_FIXNUM:
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
   case MRB_TT_FLOAT:
 #endif
     return NULL;

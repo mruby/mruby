@@ -112,7 +112,7 @@ mrb_f_integer(mrb_state *mrb, mrb_value self)
   return mrb_convert_to_integer(mrb, arg, base);
 }
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 /*
  *  call-seq:
  *     Float(arg)    -> float
@@ -212,7 +212,7 @@ mrb_mruby_kernel_ext_gem_init(mrb_state *mrb)
   mrb_define_module_function(mrb, krn, "caller", mrb_f_caller, MRB_ARGS_OPT(2));
   mrb_define_method(mrb, krn, "__method__", mrb_f_method, MRB_ARGS_NONE());
   mrb_define_module_function(mrb, krn, "Integer", mrb_f_integer, MRB_ARGS_ARG(1,1));
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
   mrb_define_module_function(mrb, krn, "Float", mrb_f_float, MRB_ARGS_REQ(1));
 #endif
   mrb_define_module_function(mrb, krn, "String", mrb_f_string, MRB_ARGS_REQ(1));

@@ -87,7 +87,7 @@ rational_s_new(mrb_state *mrb, mrb_value self)
 {
   mrb_int numerator, denominator;
 
-#ifdef MRB_WITHOUT_FLOAT
+#ifdef MRB_NO_FLOAT
   mrb_get_args(mrb, "ii", &numerator, &denominator);
 #else
 
@@ -136,7 +136,7 @@ rational_s_new(mrb_state *mrb, mrb_value self)
   return rational_new(mrb, numerator, denominator);
 }
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 static mrb_value
 rational_to_f(mrb_state *mrb, mrb_value self)
 {
@@ -194,7 +194,7 @@ void mrb_mruby_rational_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, rat, "_new", rational_s_new, MRB_ARGS_REQ(2));
   mrb_define_method(mrb, rat, "numerator", rational_numerator, MRB_ARGS_NONE());
   mrb_define_method(mrb, rat, "denominator", rational_denominator, MRB_ARGS_NONE());
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
   mrb_define_method(mrb, rat, "to_f", rational_to_f, MRB_ARGS_NONE());
 #endif
   mrb_define_method(mrb, rat, "to_i", rational_to_i, MRB_ARGS_NONE());

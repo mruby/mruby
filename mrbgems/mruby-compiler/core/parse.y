@@ -981,7 +981,7 @@ new_int(parser_state *p, const char *s, int base, int suffix)
   return result;
 }
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 /* (:float . i) */
 static node*
 new_float(parser_state *p, const char *s, int suffix)
@@ -5661,7 +5661,7 @@ parser_yylex(parser_state *p)
     }
     tokfix(p);
     if (is_float) {
-#ifdef MRB_WITHOUT_FLOAT
+#ifdef MRB_NO_FLOAT
       yywarning_s(p, "floating point numbers are not supported", tok(p));
       pylval.nd = new_int(p, "0", 10, 0);
       return tINTEGER;

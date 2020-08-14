@@ -85,7 +85,7 @@ rand_uint32(rand_state *state)
 }
 #endif  /* XORSHIFT96 */
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 static double
 rand_real(rand_state *t)
 {
@@ -100,7 +100,7 @@ random_rand(mrb_state *mrb, rand_state *t, mrb_value max)
   mrb_value value;
 
   if (mrb_fixnum(max) == 0) {
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
     value = mrb_float_value(mrb, rand_real(t));
 #else
     mrb_raise(mrb, E_ARGUMENT_ERROR, "Float not supported");

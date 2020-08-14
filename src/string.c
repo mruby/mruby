@@ -8,7 +8,7 @@
 # define _CRT_NONSTDC_NO_DEPRECATE
 #endif
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 #include <float.h>
 #include <math.h>
 #endif
@@ -2365,7 +2365,7 @@ mrb_str_len_to_inum(mrb_state *mrb, const char *str, size_t len, mrb_int base, i
     n *= base;
     n += c;
     if (n > (uint64_t)MRB_INT_MAX + (sign ? 0 : 1)) {
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
       if (base == 10) {
         return mrb_float_value(mrb, mrb_str_to_dbl(mrb, mrb_str_new(mrb, str, len), badcheck));
       }
@@ -2476,7 +2476,7 @@ mrb_str_to_i(mrb_state *mrb, mrb_value self)
   return mrb_str_to_inum(mrb, self, base, FALSE);
 }
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 double
 mrb_str_len_to_dbl(mrb_state *mrb, const char *s, size_t len, mrb_bool badcheck)
 {
@@ -2937,7 +2937,7 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "slice",           mrb_str_aref_m,          MRB_ARGS_ANY());  /* 15.2.10.5.34 */
   mrb_define_method(mrb, s, "split",           mrb_str_split_m,         MRB_ARGS_ANY());  /* 15.2.10.5.35 */
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
   mrb_define_method(mrb, s, "to_f",            mrb_str_to_f,            MRB_ARGS_NONE()); /* 15.2.10.5.38 */
 #endif
   mrb_define_method(mrb, s, "to_i",            mrb_str_to_i,            MRB_ARGS_ANY());  /* 15.2.10.5.39 */
@@ -2954,7 +2954,7 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "byteslice",       mrb_str_byteslice,       MRB_ARGS_ARG(1,1));
 }
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 /*
  * Source code for the "strtod" library procedure.
  *

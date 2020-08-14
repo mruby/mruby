@@ -13,8 +13,8 @@
 #include <mruby/numeric.h>
 #include <mruby/debug.h>
 
-#ifndef MRB_WITHOUT_FLOAT
-#ifdef MRB_USE_FLOAT
+#ifndef MRB_NO_FLOAT
+#ifdef MRB_USE_FLOAT32
 #define MRB_FLOAT_FMT "%.9g"
 #else
 #define MRB_FLOAT_FMT "%.17g"
@@ -88,7 +88,7 @@ write_iseq_block(mrb_state *mrb, const mrb_irep *irep, uint8_t *buf, uint8_t fla
   return cur - buf;
 }
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 static mrb_value
 float_to_str(mrb_state *mrb, mrb_float f)
 {
@@ -131,7 +131,7 @@ get_pool_block_size(mrb_state *mrb, const mrb_irep *irep)
       break;
 
     case IREP_TT_FLOAT:
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
       {
         mrb_value str = float_to_str(mrb, irep->pool[pool_no].u.f);
         mrb_int len = RSTRING_LEN(str);
@@ -192,7 +192,7 @@ write_pool_block(mrb_state *mrb, const mrb_irep *irep, uint8_t *buf)
 
     case IREP_TT_FLOAT:
       cur += uint8_to_bin(IREP_TT_FLOAT, cur); /* data type */
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
       {
         mrb_value str = float_to_str(mrb, irep->pool[pool_no].u.f);
         ptr = RSTRING_PTR(str);

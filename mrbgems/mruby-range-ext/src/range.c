@@ -96,7 +96,7 @@ range_last(mrb_state *mrb, mrb_value range)
  *    ('a'..'z').size  #=> nil
  */
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 static mrb_value
 range_size(mrb_state *mrb, mrb_value range)
 {
@@ -170,7 +170,7 @@ range_size(mrb_state *mrb, mrb_value range)
   }
   return mrb_nil_value();
 }
-#endif /* MRB_WITHOUT_FLOAT */
+#endif /* MRB_NO_FLOAT */
 
 void
 mrb_mruby_range_ext_gem_init(mrb_state* mrb)

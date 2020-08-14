@@ -39,7 +39,7 @@ offset_crc_body(void)
   return ((uint8_t *)header.binary_crc - (uint8_t *)&header) + sizeof(header.binary_crc);
 }
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 double mrb_str_len_to_dbl(mrb_state *mrb, const char *s, size_t len, mrb_bool badcheck);
 
 static double
@@ -165,7 +165,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
 #endif
 
       case IREP_TT_FLOAT:
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
         pool[i].tt = tt;
         pool_data_len = bin_to_uint16(src); /* pool data length */
         src += sizeof(uint16_t);
@@ -173,7 +173,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
         src += pool_data_len;
         break;
 #else
-        return NULL;            /* MRB_WITHOUT_FLOAT */
+        return NULL;            /* MRB_NO_FLOAT */
 #endif
 
       case IREP_TT_STR:

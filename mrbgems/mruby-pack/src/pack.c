@@ -425,7 +425,7 @@ unpack_q(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
   return 8;
 }
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 static int
 pack_double(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
@@ -1248,7 +1248,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
       if (type == PACK_TYPE_INTEGER) {
         o = mrb_to_int(mrb, o);
       }
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
       else if (type == PACK_TYPE_FLOAT) {
         if (!mrb_float_p(o)) {
           mrb_float f = mrb_to_flo(mrb, o);
@@ -1284,7 +1284,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
       case PACK_DIR_STR:
         ridx += pack_a(mrb, o, result, ridx, count, flags);
         break;
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
       case PACK_DIR_DOUBLE:
         ridx += pack_double(mrb, o, result, ridx, flags);
         break;
@@ -1381,7 +1381,7 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
       case PACK_DIR_QUAD:
         srcidx += unpack_q(mrb, sptr, srclen - srcidx, result, flags);
         break;
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
       case PACK_DIR_FLOAT:
         srcidx += unpack_float(mrb, sptr, srclen - srcidx, result, flags);
         break;

@@ -12,7 +12,7 @@
 #define ENC_COMP_P(enc, enc_lit) \
   str_casecmp_p(RSTRING_PTR(enc), RSTRING_LEN(enc), enc_lit, sizeof(enc_lit"")-1)
 
-#ifdef MRB_WITHOUT_FLOAT
+#ifdef MRB_NO_FLOAT
 # define mrb_float_p(o) FALSE
 #endif
 

@@ -4,8 +4,8 @@
 ** See Copyright Notice in mruby.h
 */
 
-#ifdef MRB_WITHOUT_FLOAT
-# error Math conflicts 'MRB_WITHOUT_FLOAT' configuration in your 'build_config.rb'
+#ifdef MRB_NO_FLOAT
+# error Math conflicts with 'MRB_NO_FLOAT' configuration
 #endif
 
 #include <mruby.h>

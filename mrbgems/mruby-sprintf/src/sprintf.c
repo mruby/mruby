@@ -10,7 +10,7 @@
 #include <mruby/string.h>
 #include <mruby/hash.h>
 #include <mruby/numeric.h>
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 #include <math.h>
 #endif
 #include <ctype.h>
@@ -20,7 +20,7 @@
 #define EXTENDSIGN(n, l) (((~0U << (n)) >> (((n)*(l)) % BITSPERDIG)) & ~(~0U << (n)))
 
 mrb_value mrb_str_format(mrb_state *, mrb_int, const mrb_value *, mrb_value);
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 static void fmt_setup(char*,size_t,int,int,mrb_int,mrb_int);
 #endif
 
@@ -863,7 +863,7 @@ retry:
 
   bin_retry:
         switch (mrb_type(val)) {
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
           case MRB_TT_FLOAT:
             val = mrb_flo_to_fixnum(mrb, val);
             if (mrb_fixnum_p(val)) goto bin_retry;
@@ -1030,7 +1030,7 @@ retry:
       }
       break;
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
       case 'f':
       case 'g':
       case 'G':
@@ -1131,7 +1131,7 @@ retry:
   return result;
 }
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 static void
 fmt_setup(char *buf, size_t size, int c, int flags, mrb_int width, mrb_int prec)
 {
