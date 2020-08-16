@@ -370,6 +370,17 @@ EOS
     attr_accessor :host_target, :build_target
 
     def initialize(name, build_dir=nil, &block)
+      unless MRuby.targets['host']
+        # add minimal 'host'
+        MRuby::Build.new('host') do |conf|
+          if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
+            toolchain :visualcpp
+          else
+            toolchain :gcc
+          end
+          conf.gem :core => 'mruby-bin-mrbc'
+        end
+      end
       @endian = nil
       @test_runner = Command::CrossTestRunner.new(self)
       super
