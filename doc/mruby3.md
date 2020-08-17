@@ -1,14 +1,6 @@
 User visible changes in `mruby3`
 ===
 
-= New Syntax
-
-We have ported some new syntax from CRuby.
-
-* R-assignment (`12 => x`)
-* Numbered block parameter (`x.map{_1 * 2}`)
-* End-less `def` (`def double(x) = x*2`)
-
 = Build System
 
 You can specify `TARGET` option to `rake` via a command line
@@ -53,7 +45,17 @@ When you write a new target description, please
 contribute. We welcome your contribution as a GitHub
 pull-request.
 
-= Configuration Options
+= Languge Changes
+
+== New Syntax
+
+We have ported some new syntax from CRuby.
+
+* R-assignment (`12 => x`)
+* Numbered block parameter (`x.map{_1 * 2}`)
+* End-less `def` (`def double(x) = x*2`)
+
+= Configuration Options Changed
 
 Some configuration macro names are changed for consistency
 
@@ -74,3 +76,28 @@ Changed from `MRB_METHOD_T_STRUCT`.
 
 To use `struct` version of `mrb_method_t`. More portable but consumes more memory.
 Turned on by default on 32bit platforms.
+
+== `MRB_NO_BOXING`
+
+Uses `struct` to represent `mrb_value`. Consumes more memory
+but easier to inveticate the internal and to debug. It used
+to be default `mrb_value` representation. Now the default is
+`MRB_WORD_BOXING`.
+
+== `MRB_WORD_BOXING`
+
+Pack `mrb_value` in an `intptr_t` integer. Consumes less
+memory compared to `MRB_NO_BOXING` especially on 32 bit
+platforms. `Fixnum` size is 31 bits so some integer values
+does not fit in `Fixnum` integers.
+
+== `MRB_NAN_BOXING`
+
+Pack `mrb_value` in a floating pointer number. Nothing
+changed from previous versions.
+
+= Internal Changes
+
+== `Random` now use `xoshiro128++`.
+
+For better and faster random number generation.
