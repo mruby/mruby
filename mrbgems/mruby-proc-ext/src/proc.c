@@ -91,21 +91,24 @@ static mrb_value
 mrb_proc_parameters(mrb_state *mrb, mrb_value self)
 {
   struct parameters_type {
-    size_t len;
-    const char *name;
+    mrb_sym name;
     int size;
   } *p, parameters_list [] = {
-    {sizeof("req")   - 1, "req",   0},
-    {sizeof("opt")   - 1, "opt",   0},
-    {sizeof("rest")  - 1, "rest",  0},
-    {sizeof("req")   - 1, "req",   0},
-    {sizeof("block") - 1, "block", 0},
-    {0, NULL, 0}
+    {MRB_SYM(req),   0},
+    {MRB_SYM(opt),   0},
+    {MRB_SYM(rest),  0},
+    {MRB_SYM(req),   0},
+    {MRB_SYM(keyrest),   0},
+    {MRB_SYM(block), 0},
+    {MRB_SYM(key),   0},
+    {0, 0}
   };
   const struct RProc *proc = mrb_proc_ptr(self);
   const struct mrb_irep *irep = proc->body.irep;
   mrb_aspec aspec;
   mrb_value parameters;
+  mrb_value krest = mrb_nil_value();
+  mrb_value block = mrb_nil_value();
   int i, j;
   int max = -1;
 
@@ -124,10 +127,8 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
   }
 
   if (!MRB_PROC_STRICT_P(proc)) {
-    parameters_list[0].len = sizeof("opt") - 1;
-    parameters_list[0].name = "opt";
-    parameters_list[3].len = sizeof("opt") - 1;
-    parameters_list[3].name = "opt";
+    parameters_list[0].name = MRB_SYM(opt);
+    parameters_list[3].name = MRB_SYM(opt);
   }
 
   aspec = PEEK_W(irep->iseq+1);
@@ -135,13 +136,15 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
   parameters_list[1].size = MRB_ASPEC_OPT(aspec);
   parameters_list[2].size = MRB_ASPEC_REST(aspec);
   parameters_list[3].size = MRB_ASPEC_POST(aspec);
-  parameters_list[4].size = MRB_ASPEC_BLOCK(aspec);
+  parameters_list[4].size = MRB_ASPEC_KDICT(aspec);
+  parameters_list[5].size = MRB_ASPEC_BLOCK(aspec);
+  parameters_list[6].size = MRB_ASPEC_KEY(aspec);
 
   parameters = mrb_ary_new_capa(mrb, irep->nlocals-1);
 
   max = irep->nlocals-1;
   for (i = 0, p = parameters_list; p->name; p++) {
-    mrb_value sname = mrb_symbol_value(mrb_intern_static(mrb, p->name, p->len));
+    mrb_value sname = mrb_symbol_value(p->name);
 
     for (j = 0; j < p->size; i++, j++) {
       mrb_value a;
@@ -159,9 +162,17 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
           break;
         }
       }
+      if (p->name == MRB_SYM(block)) {
+        block = a; continue;
+      }
+      if (p->name == MRB_SYM(keyrest)) {
+        krest = a; continue;
+      }
       mrb_ary_push(mrb, parameters, a);
     }
   }
+  if (!mrb_nil_p(krest)) mrb_ary_push(mrb, parameters, krest);
+  if (!mrb_nil_p(block)) mrb_ary_push(mrb, parameters, block);
   return parameters;
 }
 

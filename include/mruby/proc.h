@@ -57,7 +57,7 @@ struct RProc {
 #define MRB_ASPEC_REST(a)         (((a) >> 12) & 0x1)
 #define MRB_ASPEC_POST(a)         (((a) >> 7) & 0x1f)
 #define MRB_ASPEC_KEY(a)          (((a) >> 2) & 0x1f)
-#define MRB_ASPEC_KDICT(a)        ((a) & (1<<1))
+#define MRB_ASPEC_KDICT(a)        (((a) >> 1) & 0x1)
 #define MRB_ASPEC_BLOCK(a)        ((a) & 1)
 
 #define MRB_PROC_CFUNC_FL 128
