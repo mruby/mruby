@@ -3791,7 +3791,7 @@ f_rest_arg      : restarg_mark tIDENTIFIER
                     }
                 | restarg_mark
                     {
-                      local_add_f(p, MRB_QSYM(and));
+                      local_add_f(p, MRB_QSYM(mul));
                       $$ = -1;
                     }
                 ;

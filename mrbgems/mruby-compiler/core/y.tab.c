@@ -9442,7 +9442,7 @@ yyreduce:
   case 554:
 #line 3793 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      local_add_f(p, MRB_QSYM(and));
+                      local_add_f(p, MRB_QSYM(mul));
                       (yyval.id) = -1;
                     }
 #line 9449 "mrbgems/mruby-compiler/core/y.tab.c"
