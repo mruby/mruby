@@ -90,7 +90,7 @@ static double
 rand_real(rand_state *t)
 {
   uint32_t x = rand_uint32(t);
-  return x*(1.0/4294967295.0);
+  return x*(1.0/4294967296.0);
 }
 #endif
 
