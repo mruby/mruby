@@ -10,18 +10,37 @@
 #include <mruby/data.h>
 #include <mruby/array.h>
 #include <mruby/istruct.h>
-#if INT32_MAX <= INTPTR_MAX
-# define XORSHIFT96
-# define NSEEDS 3
-#else
-# define NSEEDS 4
-#endif
-#define LASTSEED (NSEEDS-1)
 
 #include <time.h>
 
+/*  Written in 2019 by David Blackman and Sebastiano Vigna (vigna@acm.org)
+
+To the extent possible under law, the author has dedicated all copyright
+and related and neighboring rights to this software to the public domain
+worldwide. This software is distributed without any warranty.
+
+See <http://creativecommons.org/publicdomain/zero/1.0/>. */
+
+#include <stdint.h>
+
+/* This is xoshiro128++ 1.0, one of our 32-bit all-purpose, rock-solid
+   generators. It has excellent speed, a state size (128 bits) that is
+   large enough for mild parallelism, and it passes all tests we are aware
+   of.
+
+   For generating just single-precision (i.e., 32-bit) floating-point
+   numbers, xoshiro128+ is even faster.
+
+   The state must be seeded so that it is not everywhere zero. */
+
+
+static inline uint32_t
+rotl(const uint32_t x, int k) {
+  return (x << k) | (x >> (32 - k));
+}
+
 typedef struct rand_state {
-  uint32_t seed[NSEEDS];
+  uint32_t seed[4];
 } rand_state;
 
 static void
@@ -30,60 +49,35 @@ rand_init(rand_state *t)
   t->seed[0] = 123456789;
   t->seed[1] = 362436069;
   t->seed[2] = 521288629;
-#ifndef XORSHIFT96
   t->seed[3] = 88675123;
-#endif
 }
 
 static uint32_t
 rand_seed(rand_state *t, uint32_t seed)
 {
-  uint32_t old_seed = t->seed[LASTSEED];
+  uint32_t old_seed = t->seed[0];
   rand_init(t);
-  t->seed[LASTSEED] = seed;
+  t->seed[0] = seed;
   return old_seed;
 }
 
-#ifdef XORSHIFT96
 static uint32_t
 rand_uint32(rand_state *state)
 {
-  uint32_t *seed = state->seed;
-  uint32_t x = seed[0];
-  uint32_t y = seed[1];
-  uint32_t z = seed[2];
-  uint32_t t;
+  uint32_t *s = state->seed;
+  const uint32_t result = rotl(s[0] + s[3], 7) + s[0];
+  const uint32_t t = s[1] << 9;
 
-  t = (x ^ (x << 3)) ^ (y ^ (y >> 19)) ^ (z ^ (z << 6));
-  x = y; y = z; z = t;
-  seed[0] = x;
-  seed[1] = y;
-  seed[2] = z;
+  s[2] ^= s[0];
+  s[3] ^= s[1];
+  s[1] ^= s[2];
+  s[0] ^= s[3];
 
-  return z;
+  s[2] ^= t;
+  s[3] = rotl(s[3], 11);
+
+  return result;
 }
-#else  /* XORSHIFT96 */
-static uint32_t
-rand_uint32(rand_state *state)
-{
-  uint32_t *seed = state->seed;
-  uint32_t x = seed[0];
-  uint32_t y = seed[1];
-  uint32_t z = seed[2];
-  uint32_t w = seed[3];
-  uint32_t t;
-
-  t = x ^ (x << 11);
-  x = y; y = z; z = w;
-  w = (w ^ (w >> 19)) ^ (t ^ (t >> 8));
-  seed[0] = x;
-  seed[1] = y;
-  seed[2] = z;
-  seed[3] = w;
-
-  return w;
-}
-#endif  /* XORSHIFT96 */
 
 #ifndef MRB_NO_FLOAT
 static double
@@ -385,7 +379,7 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
   struct RClass *random;
   struct RClass *array = mrb->array_class;
 
-  mrb_assert(sizeof(rand_state) <= ISTRUCT_DATA_SIZE);
+  mrb_static_assert1(sizeof(rand_state) <= ISTRUCT_DATA_SIZE);
 
   mrb_define_method(mrb, mrb->kernel_module, "rand", random_f_rand, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, mrb->kernel_module, "srand", random_f_srand, MRB_ARGS_OPT(1));
