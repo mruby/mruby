@@ -156,7 +156,7 @@ integral_div(mrb_state *mrb, mrb_value xv)
 
   mrb_get_args(mrb, "i", &y);
   if (y == 0) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "devided by zero");
+    mrb_raise(mrb, E_ZERODIV_ERROR, "devided by zero");
   }
   return mrb_fixnum_value(mrb, mrb_fixnum(xv) / y);
 #else
@@ -932,14 +932,7 @@ int_mod(mrb_state *mrb, mrb_value x)
     mrb_int mod;
 
     if (b == 0) {
-#ifdef MRB_NO_FLOAT
-      /* ZeroDivisionError */
-      return mrb_fixnum_value(0);
-#else
-      if (a > 0) return mrb_float_value(mrb, INFINITY);
-      if (a < 0) return mrb_float_value(mrb, INFINITY);
-      return mrb_float_value(mrb, NAN);
-#endif
+      mrb_raise(mrb, E_ZERODIV_ERROR, "divided by 0");
     }
     fixdivmod(mrb, a, b, NULL, &mod);
     return mrb_fixnum_value(mod);
@@ -971,14 +964,7 @@ int_divmod(mrb_state *mrb, mrb_value x)
     mrb_int div, mod;
 
     if (mrb_fixnum(y) == 0) {
-#ifdef MRB_NO_FLOAT
-      return mrb_assoc_new(mrb, mrb_fixnum_value(0), mrb_fixnum_value(0));
-#else
-      return mrb_assoc_new(mrb, ((mrb_fixnum(x) == 0) ?
-                                 mrb_float_value(mrb, NAN):
-                                 mrb_float_value(mrb, INFINITY)),
-                           mrb_float_value(mrb, NAN));
-#endif
+      mrb_raise(mrb, E_ZERODIV_ERROR, "divided by 0");
     }
     fixdivmod(mrb, mrb_fixnum(x), mrb_fixnum(y), &div, &mod);
     return mrb_assoc_new(mrb, mrb_fixnum_value(div), mrb_fixnum_value(mod));

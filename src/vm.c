@@ -2315,12 +2315,13 @@ RETRY_TRY_BLOCK:
         {
           mrb_int x = mrb_fixnum(regs[a]);
           mrb_int y = mrb_fixnum(regs[a+1]);
-          if (y == 0 || (x == MRB_INT_MIN && y == -1)) {
-#ifdef MRB_NO_FLOAT
-            SET_INT_VALUE(regs[a], y ? x / y : 0);
-#else
-            SET_FLOAT_VALUE(mrb, regs[a], (mrb_float)x / (mrb_float)y);
-#endif
+
+          
+          if (y == 0) {
+            mrb_raise(mrb, E_ZERODIV_ERROR, "divided by 0");
+          }
+          else if(x == MRB_INT_MIN && y == -1) {
+            mrb_raise(mrb, E_RANGE_ERROR, "integer overflow in division");
           }
           else {
             mrb_int div, mod;
