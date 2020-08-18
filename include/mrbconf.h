@@ -45,13 +45,6 @@
 #error Cannot define MRB_USE_FLOAT32 and MRB_NO_FLOAT at the same time
 #endif
 
-/* stop inlining floating point numbers in mrb_value (effective only with MRB_WORD_BOXING)*/
-/* floating numbers are rounded to fit in 30 bits (float) and 62 bits respectively, */
-/* by inlining. If you need full precision of floating numbers on the platform, */
-/* you have to define this option. when mrb_int is 32bit and mrb_float is double, */
-/* this option is set automatically. */
-// #define MRB_NO_FLOAT_INLINE
-
 /* add -DMRB_NO_METHOD_CACHE to disable method cache to save memory */
 //#define MRB_NO_METHOD_CACHE
 /* size of the method cache (need to be the power of 2) */
@@ -80,9 +73,6 @@
 
 /* represent mrb_value as a word (natural unit of data for the processor) */
 //#define MRB_WORD_BOXING
-
-/* with MRB_WORD_BOXING, embed float values in mrb_value (dropping 2 bit precision) */
-//#define MRB_WBOX_FLOAT_INLINE
 
 /* represent mrb_value as a struct; occupies 2 words */
 //#define MRB_NO_BOXING
