@@ -63,8 +63,15 @@ end
 
 #### mruby [2.1.2 (2020-08-06)]
 
-No exception is raised.
+No exception is raised. Instead you have to do:
 
+```ruby
+begin
+  1 / 0
+rescue => e
+  raise e
+end
+```
 ## Fiber execution can't cross C function boundary
 
 mruby's `Fiber` is implemented in a similar way to Lua's co-routine. This

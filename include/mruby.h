@@ -1292,6 +1292,7 @@ MRB_API mrb_value mrb_vformat(mrb_state *mrb, const char *format, va_list ap);
 */
 #define E_RUNTIME_ERROR             (mrb_exc_get_id(mrb, MRB_SYM(RuntimeError)))
 #define E_TYPE_ERROR                (mrb_exc_get_id(mrb, MRB_SYM(TypeError)))
+#define E_ZERODIV_ERROR             (mrb_exc_get_id(mrb, MRB_SYM(ZeroDivisionError)))
 #define E_ARGUMENT_ERROR            (mrb_exc_get_id(mrb, MRB_SYM(ArgumentError)))
 #define E_INDEX_ERROR               (mrb_exc_get_id(mrb, MRB_SYM(IndexError)))
 #define E_RANGE_ERROR               (mrb_exc_get_id(mrb, MRB_SYM(RangeError)))

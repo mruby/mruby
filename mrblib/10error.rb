@@ -21,6 +21,10 @@ end
 class TypeError < StandardError
 end
 
+# ISO 15.2.30
+class ZeroDivisionError < StandardError
+end
+
 # ISO 15.2.31
 class NameError < StandardError
   attr_accessor :name

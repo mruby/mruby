@@ -29,7 +29,7 @@
   [:RegexpError, :StandardError, '12.2.27.2'],
   [:RuntimeError, :StandardError, '12.2.28.2'],
   [:TypeError, :StandardError, '12.2.29.2'],
-#  [:ZeroDivisionError, :StandardError, '12.2.30.2'],  # No ZeroDivisionError in mruby
+  [:ZeroDivisionError, :StandardError, '12.2.30.2'],
   [:NameError, :StandardError, '15.2.31.2'],
   [:NoMethodError, :NameError, '15.2.32.2'],
   [:IndexError, :StandardError, '15.2.33.2'],
