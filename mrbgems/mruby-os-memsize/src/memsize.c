@@ -108,17 +108,6 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj)
       if(!MRB_PROC_CFUNC_P(proc)) size += os_memsize_of_irep(mrb, proc->body.irep);
       break;
     }
-    case MRB_TT_DATA:
-      size += mrb_objspace_page_slot_size();
-      break;
-#ifndef MRB_NO_FLOAT
-    case MRB_TT_FLOAT:
-#ifdef MRB_WORD_BOXING
-      size += mrb_objspace_page_slot_size() +
-              sizeof(struct RFloat);
-#endif
-      break;
-#endif
     case MRB_TT_RANGE:
 #ifndef MRB_RANGE_EMBED
       size += mrb_objspace_page_slot_size() +
@@ -131,20 +120,25 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj)
       ptrdiff_t ci_size = f->cxt->ciend - f->cxt->cibase;
 
       size += mrb_objspace_page_slot_size() +
-        sizeof(struct RFiber) +
         sizeof(struct mrb_context) +
         sizeof(mrb_value) * stack_size +
         sizeof(mrb_callinfo) * ci_size;
       break;
     }
-    case MRB_TT_ISTRUCT:
+#ifndef MRB_NO_FLOAT
+    case MRB_TT_FLOAT:
+#endif
+    case MRB_TT_INTEGER:
+      if (mrb_immediate_p(obj))
+        break;
+    case MRB_TT_DATA:
+  case MRB_TT_ISTRUCT:
       size += mrb_objspace_page_slot_size();
       break;
     /*  zero heap size types.
      *  immediate VM stack values, contained within mrb_state, or on C stack */
     case MRB_TT_TRUE:
     case MRB_TT_FALSE:
-    case MRB_TT_INTEGER:
     case MRB_TT_BREAK:
     case MRB_TT_CPTR:
     case MRB_TT_SYMBOL:
