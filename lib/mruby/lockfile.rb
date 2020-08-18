@@ -39,7 +39,7 @@ module MRuby
     end
 
     def write
-      locks = {"mruby_version" => mruby}
+      locks = {"mruby" => mruby}
       locks["builds"] = @builds if @builds
       File.write(@filename, YAML.dump(locks))
     end
