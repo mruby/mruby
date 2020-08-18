@@ -106,7 +106,7 @@ enum mrb_vtype {
   MRB_TT_FALSE = 0,
   MRB_TT_TRUE,
   MRB_TT_FLOAT,
-  MRB_TT_FIXNUM,
+  MRB_TT_INTEGER,
   MRB_TT_SYMBOL,
   MRB_TT_UNDEF,
   MRB_TT_CPTR,
@@ -129,6 +129,9 @@ enum mrb_vtype {
   MRB_TT_BREAK,
   MRB_TT_MAXDEFINE
 };
+
+/* for compatibility */
+#define MRB_TT_FIXNUM MRB_TT_INTEGER
 
 #include <mruby/object.h>
 
@@ -178,7 +181,7 @@ struct RCptr {
 #define mrb_immediate_p(o) (mrb_type(o) < MRB_TT_FREE)
 #endif
 #ifndef mrb_fixnum_p
-#define mrb_fixnum_p(o) (mrb_type(o) == MRB_TT_FIXNUM)
+#define mrb_fixnum_p(o) (mrb_type(o) == MRB_TT_INTEGER)
 #endif
 #ifndef mrb_symbol_p
 #define mrb_symbol_p(o) (mrb_type(o) == MRB_TT_SYMBOL)

@@ -64,7 +64,7 @@ ht_hash_func(mrb_state *mrb, htable *t, mrb_value key)
   case MRB_TT_TRUE:
   case MRB_TT_FALSE:
   case MRB_TT_SYMBOL:
-  case MRB_TT_FIXNUM:
+  case MRB_TT_INTEGER:
 #ifndef MRB_NO_FLOAT
   case MRB_TT_FLOAT:
 #endif
@@ -95,7 +95,7 @@ ht_hash_equal(mrb_state *mrb, htable *t, mrb_value a, mrb_value b)
     if (!mrb_symbol_p(b)) return FALSE;
     return mrb_symbol(a) == mrb_symbol(b);
 
-  case MRB_TT_FIXNUM:
+  case MRB_TT_INTEGER:
     if (!mrb_fixnum_p(b)) return FALSE;
     return mrb_fixnum(a) == mrb_fixnum(b);
 

@@ -35,7 +35,7 @@ MRB_API mrb_float
 mrb_to_flo(mrb_state *mrb, mrb_value val)
 {
   switch (mrb_type(val)) {
-  case MRB_TT_FIXNUM:
+  case MRB_TT_INTEGER:
     return (mrb_float)mrb_fixnum(val);
   case MRB_TT_FLOAT:
     break;
@@ -450,7 +450,7 @@ flo_eq(mrb_state *mrb, mrb_value x)
   mrb_value y = mrb_get_arg1(mrb);
 
   switch (mrb_type(y)) {
-  case MRB_TT_FIXNUM:
+  case MRB_TT_INTEGER:
     return mrb_bool_value(mrb_float(x) == (mrb_float)mrb_fixnum(y));
   case MRB_TT_FLOAT:
     return mrb_bool_value(mrb_float(x) == mrb_float(y));
@@ -463,7 +463,7 @@ static int64_t
 value_int64(mrb_state *mrb, mrb_value x)
 {
   switch (mrb_type(x)) {
-  case MRB_TT_FIXNUM:
+  case MRB_TT_INTEGER:
     return (int64_t)mrb_fixnum(x);
   case MRB_TT_FLOAT:
     return (int64_t)mrb_float(x);
@@ -1031,7 +1031,7 @@ int_equal(mrb_state *mrb, mrb_value x)
   mrb_value y = mrb_get_arg1(mrb);
 
   switch (mrb_type(y)) {
-  case MRB_TT_FIXNUM:
+  case MRB_TT_INTEGER:
     return mrb_bool_value(mrb_fixnum(x) == mrb_fixnum(y));
 #ifndef MRB_NO_FLOAT
   case MRB_TT_FLOAT:
@@ -1477,7 +1477,7 @@ cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
   x = mrb_to_flo(mrb, v1);
 #endif
   switch (mrb_type(v2)) {
-  case MRB_TT_FIXNUM:
+  case MRB_TT_INTEGER:
 #ifdef MRB_NO_FLOAT
     y = mrb_fixnum(v2);
 #else
@@ -1584,7 +1584,7 @@ mrb_cmp(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
   mrb_value v;
 
   switch (mrb_type(obj1)) {
-  case MRB_TT_FIXNUM:
+  case MRB_TT_INTEGER:
   case MRB_TT_FLOAT:
     return cmpnum(mrb, obj1, obj2);
   case MRB_TT_STRING:
@@ -1657,7 +1657,7 @@ mrb_init_numeric(mrb_state *mrb)
 
   /* Integer Class */
   mrb->integer_class = integer = mrb_define_class(mrb, "Integer",  numeric);     /* 15.2.8 */
-  MRB_SET_INSTANCE_TT(integer, MRB_TT_FIXNUM);
+  MRB_SET_INSTANCE_TT(integer, MRB_TT_INTEGER);
   mrb_undef_class_method(mrb, integer, "new");
   mrb_define_method(mrb, integer, "to_i",     int_to_i,        MRB_ARGS_NONE()); /* 15.2.8.3.24 */
   mrb_define_method(mrb, integer, "to_int",   int_to_i,        MRB_ARGS_NONE());

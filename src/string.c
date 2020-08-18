@@ -1093,7 +1093,7 @@ mrb_str_to_str(mrb_state *mrb, mrb_value str)
     return str;
   case MRB_TT_SYMBOL:
     return mrb_sym_str(mrb, mrb_symbol(str));
-  case MRB_TT_FIXNUM:
+  case MRB_TT_INTEGER:
     return mrb_fixnum_to_str(mrb, str, 10);
   case MRB_TT_SCLASS:
   case MRB_TT_CLASS:
@@ -1154,7 +1154,7 @@ str_convert_range(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen,
   }
   else {
     switch (mrb_type(indx)) {
-      case MRB_TT_FIXNUM:
+      case MRB_TT_INTEGER:
         *beg = mrb_fixnum(indx);
         *len = 1;
         return STR_CHAR_RANGE;

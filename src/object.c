@@ -19,7 +19,7 @@ mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
     return TRUE;
 
   case MRB_TT_FALSE:
-  case MRB_TT_FIXNUM:
+  case MRB_TT_INTEGER:
     return (mrb_fixnum(v1) == mrb_fixnum(v2));
   case MRB_TT_SYMBOL:
     return (mrb_symbol(v1) == mrb_symbol(v2));
@@ -322,7 +322,7 @@ static const struct types {
 /*    {MRB_TT_NIL,  "nil"}, */
   {MRB_TT_FALSE,  "false"},
   {MRB_TT_TRUE,   "true"},
-  {MRB_TT_FIXNUM, "Fixnum"},
+  {MRB_TT_INTEGER,"Integer"},
   {MRB_TT_SYMBOL, "Symbol"},  /* :symbol */
   {MRB_TT_MODULE, "Module"},
   {MRB_TT_OBJECT, "Object"},
@@ -536,7 +536,7 @@ mrb_convert_to_integer(mrb_state *mrb, mrb_value val, mrb_int base)
       return mrb_flo_to_fixnum(mrb, val);
 #endif
 
-    case MRB_TT_FIXNUM:
+    case MRB_TT_INTEGER:
       if (base != 0) goto arg_error;
       return val;
 
@@ -574,7 +574,7 @@ mrb_Float(mrb_state *mrb, mrb_value val)
     mrb_raise(mrb, E_TYPE_ERROR, "can't convert nil into Float");
   }
   switch (mrb_type(val)) {
-    case MRB_TT_FIXNUM:
+    case MRB_TT_INTEGER:
       return mrb_float_value(mrb, (mrb_float)mrb_fixnum(val));
 
     case MRB_TT_FLOAT:

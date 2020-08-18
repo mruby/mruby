@@ -81,7 +81,7 @@ os_count_objects(mrb_state *mrb, mrb_value self)
       COUNT_TYPE(T_FALSE);
       COUNT_TYPE(T_FREE);
       COUNT_TYPE(T_TRUE);
-      COUNT_TYPE(T_FIXNUM);
+      COUNT_TYPE(T_INTEGER);
       COUNT_TYPE(T_SYMBOL);
       COUNT_TYPE(T_UNDEF);
       COUNT_TYPE(T_FLOAT);

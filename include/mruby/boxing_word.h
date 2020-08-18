@@ -173,7 +173,7 @@ mrb_type(mrb_value o)
 {
   return !mrb_bool(o)    ? MRB_TT_FALSE :
          mrb_true_p(o)   ? MRB_TT_TRUE :
-         mrb_fixnum_p(o) ? MRB_TT_FIXNUM :
+         mrb_fixnum_p(o) ? MRB_TT_INTEGER :
          mrb_symbol_p(o) ? MRB_TT_SYMBOL :
          mrb_undef_p(o)  ? MRB_TT_UNDEF :
          mrb_val_union(o).bp->tt;

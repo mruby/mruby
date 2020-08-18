@@ -779,7 +779,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj, int end)
   switch (obj->tt) {
     /* immediate - no mark */
   case MRB_TT_TRUE:
-  case MRB_TT_FIXNUM:
+  case MRB_TT_INTEGER:
   case MRB_TT_SYMBOL:
     /* cannot happen */
     return;
