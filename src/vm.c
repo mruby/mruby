@@ -2312,26 +2312,13 @@ RETRY_TRY_BLOCK:
       /* need to check if op is overridden */
       switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {
       case TYPES2(MRB_TT_FIXNUM,MRB_TT_FIXNUM):
-#ifdef MRB_NO_FLOAT
         {
           mrb_int x = mrb_fixnum(regs[a]);
           mrb_int y = mrb_fixnum(regs[a+1]);
           SET_INT_VALUE(regs[a], y ? x / y : 0);
         }
-        break;
-#else
-  #ifdef MRB_INTEGER_DIVISION
-        {
-		      mrb_int x = mrb_fixnum(regs[a]);
-          mrb_int y = mrb_fixnum(regs[a+1]);
-          SET_INT_VALUE(regs[a], y ? x / y : 0);
-		      NEXT;
-		    }
-  #else
-        x = (mrb_float)mrb_fixnum(regs[a]);
-        y = (mrb_float)mrb_fixnum(regs[a+1]);
-  #endif
-        break;
+        NEXT;
+#ifndef MRB_NO_FLOAT
       case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):
         x = (mrb_float)mrb_fixnum(regs[a]);
         y = mrb_float(regs[a+1]);
