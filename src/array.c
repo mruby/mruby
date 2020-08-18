@@ -885,7 +885,7 @@ mrb_ary_aget(mrb_state *mrb, mrb_value self)
       else {
         return mrb_nil_value();
       }
-    case MRB_TT_FIXNUM:
+    case MRB_TT_INTEGER:
       return mrb_ary_ref(mrb, self, mrb_fixnum(index));
     default:
       return mrb_ary_ref(mrb, self, aget_index(mrb, index));

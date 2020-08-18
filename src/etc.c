@@ -114,7 +114,7 @@ mrb_obj_id(mrb_value obj)
     return MakeID(2);
   case MRB_TT_SYMBOL:
     return MakeID(mrb_symbol(obj));
-  case MRB_TT_FIXNUM:
+  case MRB_TT_INTEGER:
 #ifdef MRB_NO_FLOAT
     return MakeID(mrb_fixnum_id(mrb_fixnum(obj)));
 #else

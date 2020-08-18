@@ -35,7 +35,7 @@ mrb_class(mrb_state *mrb, mrb_value v)
     return mrb->true_class;
   case MRB_TT_SYMBOL:
     return mrb->symbol_class;
-  case MRB_TT_FIXNUM:
+  case MRB_TT_INTEGER:
     return mrb->integer_class;
 #ifndef MRB_NO_FLOAT
   case MRB_TT_FLOAT:

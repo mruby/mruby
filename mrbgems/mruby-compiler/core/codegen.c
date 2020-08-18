@@ -543,7 +543,7 @@ new_lit(codegen_scope *s, mrb_value val)
     }
     break;
 #endif
-  case MRB_TT_FIXNUM:
+  case MRB_TT_INTEGER:
     for (i=0; i<s->irep->plen; i++) {
       mrb_int v = mrb_fixnum(val);
       pv = &s->pool[i];
@@ -594,7 +594,7 @@ new_lit(codegen_scope *s, mrb_value val)
     pv->u.f = mrb_float(val);
     break;
 #endif
-  case MRB_TT_FIXNUM:
+  case MRB_TT_INTEGER:
 #ifdef MRB_INT64
     pv->tt = IREP_TT_INT64;
     pv->u.i64 = mrb_fixnum(val);

@@ -872,7 +872,7 @@ retry:
           case MRB_TT_STRING:
             val = mrb_str_to_inum(mrb, val, 0, TRUE);
             goto bin_retry;
-          case MRB_TT_FIXNUM:
+          case MRB_TT_INTEGER:
             v = mrb_fixnum(val);
             break;
           default:

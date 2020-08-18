@@ -144,7 +144,7 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj)
      *  immediate VM stack values, contained within mrb_state, or on C stack */
     case MRB_TT_TRUE:
     case MRB_TT_FALSE:
-    case MRB_TT_FIXNUM:
+    case MRB_TT_INTEGER:
     case MRB_TT_BREAK:
     case MRB_TT_CPTR:
     case MRB_TT_SYMBOL:

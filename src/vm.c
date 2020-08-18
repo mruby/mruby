@@ -2256,7 +2256,7 @@ RETRY_TRY_BLOCK:
   }                                                                         \
   NEXT;
 #define OP_MATH_CASE_FIXNUM(op_name)                                        \
-  case TYPES2(MRB_TT_FIXNUM, MRB_TT_FIXNUM):                                \
+  case TYPES2(MRB_TT_INTEGER, MRB_TT_INTEGER):                                \
     {                                                                       \
       mrb_int x = mrb_fixnum(regs[a]), y = mrb_fixnum(regs[a+1]), z;        \
       if (mrb_int_##op_name##_overflow(x, y, &z))                           \
@@ -2289,7 +2289,7 @@ RETRY_TRY_BLOCK:
 #define OP_MATH_OP_add +
 #define OP_MATH_OP_sub -
 #define OP_MATH_OP_mul *
-#define OP_MATH_TT_fixnum MRB_TT_FIXNUM
+#define OP_MATH_TT_fixnum MRB_TT_INTEGER
 #define OP_MATH_TT_float  MRB_TT_FLOAT
 
     CASE(OP_ADD, B) {
@@ -2311,7 +2311,7 @@ RETRY_TRY_BLOCK:
 
       /* need to check if op is overridden */
       switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {
-      case TYPES2(MRB_TT_FIXNUM,MRB_TT_FIXNUM):
+      case TYPES2(MRB_TT_INTEGER,MRB_TT_INTEGER):
         {
           mrb_int x = mrb_fixnum(regs[a]);
           mrb_int y = mrb_fixnum(regs[a+1]);
@@ -2345,11 +2345,11 @@ RETRY_TRY_BLOCK:
         }
         NEXT;
 #ifndef MRB_NO_FLOAT
-      case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):
+      case TYPES2(MRB_TT_INTEGER,MRB_TT_FLOAT):
         x = (mrb_float)mrb_fixnum(regs[a]);
         y = mrb_float(regs[a+1]);
         break;
-      case TYPES2(MRB_TT_FLOAT,MRB_TT_FIXNUM):
+      case TYPES2(MRB_TT_FLOAT,MRB_TT_INTEGER):
         x = mrb_float(regs[a]);
         y = (mrb_float)mrb_fixnum(regs[a+1]);
         break;
@@ -2391,7 +2391,7 @@ RETRY_TRY_BLOCK:
   }                                                                         \
   NEXT;
 #define OP_MATHI_CASE_FIXNUM(op_name)                                       \
-  case MRB_TT_FIXNUM:                                                       \
+  case MRB_TT_INTEGER:                                                      \
     {                                                                       \
       mrb_int x = mrb_fixnum(regs[a]), y = (mrb_int)b, z;                   \
       if (mrb_int_##op_name##_overflow(x, y, &z))                           \
@@ -2427,7 +2427,7 @@ RETRY_TRY_BLOCK:
   int result;\
   /* need to check if - is overridden */\
   switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {\
-  case TYPES2(MRB_TT_FIXNUM,MRB_TT_FIXNUM):\
+  case TYPES2(MRB_TT_INTEGER,MRB_TT_INTEGER):\
     result = OP_CMP_BODY(op,mrb_fixnum,mrb_fixnum);\
     break;\
   default:\
@@ -2447,13 +2447,13 @@ RETRY_TRY_BLOCK:
   int result;\
   /* need to check if - is overridden */\
   switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {\
-  case TYPES2(MRB_TT_FIXNUM,MRB_TT_FIXNUM):\
+  case TYPES2(MRB_TT_INTEGER,MRB_TT_INTEGER):\
     result = OP_CMP_BODY(op,mrb_fixnum,mrb_fixnum);\
     break;\
-  case TYPES2(MRB_TT_FIXNUM,MRB_TT_FLOAT):\
+  case TYPES2(MRB_TT_INTEGER,MRB_TT_FLOAT):\
     result = OP_CMP_BODY(op,mrb_fixnum,mrb_float);\
     break;\
-  case TYPES2(MRB_TT_FLOAT,MRB_TT_FIXNUM):\
+  case TYPES2(MRB_TT_FLOAT,MRB_TT_INTEGER):\
     result = OP_CMP_BODY(op,mrb_float,mrb_fixnum);\
     break;\
   case TYPES2(MRB_TT_FLOAT,MRB_TT_FLOAT):\
