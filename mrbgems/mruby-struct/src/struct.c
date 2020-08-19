@@ -428,12 +428,8 @@ mrb_struct_aref(mrb_state *mrb, mrb_value s)
   mrb_value idx = mrb_get_arg1(mrb);
 
   if (mrb_string_p(idx)) {
-    mrb_value sym = mrb_check_intern_str(mrb, idx);
-
-    if (mrb_nil_p(sym)) {
-      mrb_name_error(mrb, mrb_intern_str(mrb, idx), "no member '%v' in struct", idx);
-    }
-    idx = sym;
+    mrb_sym sym = mrb_intern_str(mrb, idx);
+    idx = mrb_symbol_value(sym);
   }
   if (mrb_symbol_p(idx)) {
     return struct_aref_sym(mrb, s, mrb_symbol(idx));
@@ -495,12 +491,8 @@ mrb_struct_aset(mrb_state *mrb, mrb_value s)
   mrb_get_args(mrb, "oo", &idx, &val);
 
   if (mrb_string_p(idx)) {
-    mrb_value sym = mrb_check_intern_str(mrb, idx);
-
-    if (mrb_nil_p(sym)) {
-      mrb_name_error(mrb, mrb_intern_str(mrb, idx), "no member '%v' in struct", idx);
-    }
-    idx = sym;
+    mrb_sym sym = mrb_intern_str(mrb, idx);
+    idx = mrb_symbol_value(sym);
   }
   if (mrb_symbol_p(idx)) {
     return mrb_struct_aset_sym(mrb, s, mrb_symbol(idx), val);
