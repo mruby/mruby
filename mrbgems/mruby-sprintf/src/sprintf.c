@@ -192,9 +192,9 @@ check_name_arg(mrb_state *mrb, int posarg, const char *name, size_t len)
 #define GETNTHARG(nth) \
   ((nth >= argc) ? (mrb_raise(mrb, E_ARGUMENT_ERROR, "too few arguments"), mrb_undef_value()) : argv[nth])
 
-#define GETNAMEARG(id, name, len) (\
+#define CHECKNAMEARG(name, len) (\
   check_name_arg(mrb, posarg, name, len),\
-  (posarg = -2, mrb_hash_fetch(mrb, get_hash(mrb, &hash, argc, argv), id, mrb_undef_value())))
+  posarg = -2)
 
 #define GETNUM(n, val) do { \
   if (!(p = get_num(mrb, p, end, &(n)))) \
@@ -236,12 +236,12 @@ get_num(mrb_state *mrb, const char *p, const char *end, mrb_int *valp)
   return p;
 }
 
-static mrb_value
+static void
 get_hash(mrb_state *mrb, mrb_value *hash, mrb_int argc, const mrb_value *argv)
 {
   mrb_value tmp;
 
-  if (!mrb_undef_p(*hash)) return *hash;
+  if (!mrb_undef_p(*hash)) return;
   if (argc != 2) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "one hash required");
   }
@@ -249,7 +249,7 @@ get_hash(mrb_state *mrb, mrb_value *hash, mrb_int argc, const mrb_value *argv)
   if (mrb_nil_p(tmp)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "one hash required");
   }
-  return (*hash = tmp);
+  *hash = tmp;
 }
 
 /*
@@ -690,7 +690,6 @@ retry:
       case '{': {
         const char *start = p;
         char term = (*p == '<') ? '>' : '}';
-        mrb_value symname;
 
         for (; p < end && *p != term; )
           p++;
@@ -698,10 +697,13 @@ retry:
           mrb_raisef(mrb, E_ARGUMENT_ERROR, "name%l after <%n>",
                      start, p - start + 1, id);
         }
-        symname = mrb_str_new(mrb, start + 1, p - start - 1);
-        id = mrb_intern_str(mrb, symname);
-        nextvalue = GETNAMEARG(mrb_symbol_value(id), start, p - start + 1);
-        if (mrb_undef_p(nextvalue)) {
+        CHECKNAMEARG(start, p - start + 1);
+        get_hash(mrb, &hash, argc, argv);
+        id = mrb_check_intern(mrb, start + 1, p - start - 1);
+        if (id) {
+          nextvalue = mrb_hash_fetch(mrb, hash, mrb_symbol_value(id), mrb_undef_value());
+        }
+        if (!id || mrb_undef_p(nextvalue)) {
           mrb_raisef(mrb, E_KEY_ERROR, "key%l not found", start, p - start + 1);
         }
         if (term == '}') goto format_s;
