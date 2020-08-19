@@ -151,7 +151,7 @@ compare_break_method(mrb_state *mrb, mrb_debug_breakpoint *bp, struct RClass *cl
       }
 
       sc = mrb_class_get(mrb, method_p->class_name);
-      ssym = mrb_symbol(mrb_check_intern_cstr(mrb, method_p->method_name));
+      ssym = mrb_check_intern_cstr(mrb, method_p->method_name);
       m = mrb_method_search_vm(mrb, &sc, ssym);
       if (MRB_METHOD_UNDEF_P(m)) {
         return MRB_DEBUG_OK;
