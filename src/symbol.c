@@ -289,24 +289,24 @@ mrb_intern_str(mrb_state *mrb, mrb_value str)
   return mrb_intern(mrb, RSTRING_PTR(str), RSTRING_LEN(str));
 }
 
-MRB_API mrb_value
+MRB_API mrb_sym
 mrb_check_intern(mrb_state *mrb, const char *name, size_t len)
 {
   mrb_sym sym;
 
   sym_validate_len(mrb, len);
   sym = find_symbol(mrb, name, len, NULL);
-  if (sym > 0) return mrb_symbol_value(sym);
-  return mrb_nil_value();
+  if (sym > 0) return sym;
+  return 0;
 }
 
-MRB_API mrb_value
+MRB_API mrb_sym
 mrb_check_intern_cstr(mrb_state *mrb, const char *name)
 {
   return mrb_check_intern(mrb, name, strlen(name));
 }
 
-MRB_API mrb_value
+MRB_API mrb_sym
 mrb_check_intern_str(mrb_state *mrb, mrb_value str)
 {
   return mrb_check_intern(mrb, RSTRING_PTR(str), RSTRING_LEN(str));
