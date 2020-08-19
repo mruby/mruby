@@ -196,16 +196,10 @@ check_name_arg(mrb_state *mrb, int posarg, const char *name, size_t len)
   check_name_arg(mrb, posarg, name, len),\
   (posarg = -2, mrb_hash_fetch(mrb, get_hash(mrb, &hash, argc, argv), id, mrb_undef_value())))
 
-#define GETNUM(n, val) \
-  for (; p < end && ISDIGIT(*p); p++) {\
-    if (n > (MRB_INT_MAX - (*p - '0'))/10) {\
-      mrb_raise(mrb, E_ARGUMENT_ERROR, #val " too big"); \
-    } \
-    n = 10 * n + (*p - '0'); \
-  } \
-  if (p >= end) { \
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "malformed format string - %*[0-9]"); \
-  }
+#define GETNUM(n, val) do { \
+  if (!(p = get_num(mrb, p, end, &(n)))) \
+    mrb_raise(mrb, E_ARGUMENT_ERROR, #val " too big"); \
+} while(0)
 
 #define GETASTER(num) do { \
   mrb_value tmp_v; \
@@ -221,6 +215,26 @@ check_name_arg(mrb_state *mrb, int posarg, const char *name, size_t len)
   } \
   num = mrb_int(mrb, tmp_v); \
 } while (0)
+
+static const char *
+get_num(mrb_state *mrb, const char *p, const char *end, mrb_int *valp)
+{
+  mrb_int next_n = *valp;
+  for (; p < end && ISDIGIT(*p); p++) {
+    if (mrb_int_mul_overflow(10, next_n, &next_n)) {
+      return NULL;
+    }
+    if (INT_MAX - (*p - '0') < next_n) {
+      return NULL;
+    }
+    next_n += *p - '0';
+  }
+  if (p >= end) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "malformed format string - %%*[0-9]");
+  }
+  *valp = next_n;
+  return p;
+}
 
 static mrb_value
 get_hash(mrb_state *mrb, mrb_value *hash, mrb_int argc, const mrb_value *argv)
