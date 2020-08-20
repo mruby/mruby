@@ -247,9 +247,10 @@ EOS
     def mrbcfile
       return @mrbcfile if @mrbcfile
 
-      mrbc_build = MRuby.targets['host']
-      gems.each { |v| mrbc_build = self if v.name == 'mruby-bin-mrbc' }
-      @mrbcfile = mrbc_build.exefile("#{mrbc_build.build_dir}/bin/mrbc")
+      unless gems.detect { |v| v.name == 'mruby-bin-mrbc' }
+        gem :core => "mruby-bin-mrbc"
+      end
+      @mrbcfile = self.exefile("#{self.build_dir}/bin/mrbc")
     end
 
     def compilers
@@ -387,7 +388,8 @@ EOS
     end
 
     def mrbcfile
-      MRuby.targets['host'].exefile("#{MRuby.targets['host'].build_dir}/bin/mrbc")
+      host = MRuby.targets['host']
+      host.exefile("#{host.build_dir}/bin/mrbc")
     end
 
     def run_test

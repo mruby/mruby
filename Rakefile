@@ -52,15 +52,19 @@ task :default => :all
 
 bin_path = ENV['INSTALL_DIR'] || "#{MRUBY_ROOT}/bin"
 
-depfiles = MRuby.targets['host'].bins.map do |bin|
-  install_path = MRuby.targets['host'].exefile("#{bin_path}/#{bin}")
-  source_path = MRuby.targets['host'].exefile("#{MRuby.targets['host'].build_dir}/bin/#{bin}")
+if MRuby.targets['host']
+  target = MRuby.targets['host']
+  depfiles = target.bins.map do |bin|
+    install_path = target.exefile("#{bin_path}/#{bin}")
+    source_path = target.exefile("#{target.build_dir}/bin/#{bin}")
 
-  file install_path => source_path do |t|
-    install_D t.prerequisites.first, t.name
+    file install_path => source_path do |t|
+      install_D t.prerequisites.first, t.name
+    end
+    install_path
   end
-
-  install_path
+else
+  depfiles = []
 end
 
 MRuby.each_target do |target|
