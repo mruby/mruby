@@ -37,7 +37,7 @@ usage(const char *name)
   "-v           print version number, then turn on verbose mode",
   "-g           produce debugging information",
   "-B<symbol>   binary <symbol> output in C language format",
-  "-S   	dump C struct (requires -B)",
+  "-S           dump C struct (requires -B)",
   "--remove-lv  remove local variables",
   "--verbose    run at verbose mode",
   "--version    print the version",
@@ -46,7 +46,7 @@ usage(const char *name)
   };
   const char *const *p = usage_msg;
 
-  printf("Usage: %s [switches] programfile\n", name);
+  printf("Usage: %s [switches] programfile...\n", name);
   while (*p)
     printf("  %s\n", *p++);
 }
