@@ -93,7 +93,7 @@ random_rand(mrb_state *mrb, rand_state *t, mrb_value max)
 {
   mrb_value value;
 
-  if (mrb_fixnum(max) == 0) {
+  if (mrb_integer(max) == 0) {
 #ifndef MRB_NO_FLOAT
     value = mrb_float_value(mrb, rand_real(t));
 #else
@@ -101,7 +101,7 @@ random_rand(mrb_state *mrb, rand_state *t, mrb_value max)
 #endif
   }
   else {
-    value = mrb_fixnum_value(rand_uint32(t) % mrb_fixnum(max));
+    value = mrb_fixnum_value(rand_uint32(t) % mrb_integer(max));
   }
 
   return value;
@@ -119,7 +119,7 @@ get_opt(mrb_state* mrb)
     mrb_int i;
 
     arg = mrb_to_int(mrb, arg);
-    i = mrb_fixnum(arg);
+    i = mrb_integer(arg);
     if (i < 0) {
       arg = mrb_fixnum_value(0 - i);
     }
@@ -161,7 +161,7 @@ random_m_init(mrb_state *mrb, mrb_value self)
     rand_init(t);
   }
   else {
-    rand_seed(t, (uint32_t)mrb_fixnum(seed));
+    rand_seed(t, (uint32_t)mrb_integer(seed));
   }
 
   return self;
@@ -190,7 +190,7 @@ random_m_srand(mrb_state *mrb, mrb_value self)
     seed = (uint32_t)time(NULL) + rand_uint32(t);
   }
   else {
-    seed = (uint32_t)mrb_fixnum(sv);
+    seed = (uint32_t)mrb_integer(sv);
   }
   old_seed = rand_seed(t, seed);
 
@@ -257,7 +257,7 @@ mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
       mrb_value *ptr = RARRAY_PTR(ary);
       mrb_value tmp;
 
-      j = mrb_fixnum(random_rand(mrb, random, max));
+      j = mrb_integer(random_rand(mrb, random, max));
 
       tmp = ptr[i];
       ptr[i] = ptr[j];
@@ -342,7 +342,7 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
         r = (mrb_int)(rand_uint32(random) % len);
 
         for (j=0; j<i; j++) {
-          if (mrb_fixnum(RARRAY_PTR(result)[j]) == r) {
+          if (mrb_integer(RARRAY_PTR(result)[j]) == r) {
             goto retry;         /* retry if duplicate */
           }
         }
@@ -351,7 +351,7 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
       mrb_ary_push(mrb, result, mrb_fixnum_value(r));
     }
     for (i=0; i<n; i++) {
-      mrb_int idx = mrb_fixnum(RARRAY_PTR(result)[i]);
+      mrb_int idx = mrb_integer(RARRAY_PTR(result)[i]);
       mrb_value elem = RARRAY_PTR(ary)[idx];
       mrb_ary_set(mrb, result, i, elem);
     }

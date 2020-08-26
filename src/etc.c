@@ -8,6 +8,7 @@
 #include <mruby/string.h>
 #include <mruby/data.h>
 #include <mruby/class.h>
+#include <mruby/numeric.h>
 
 MRB_API struct RData*
 mrb_data_object_alloc(mrb_state *mrb, struct RClass *klass, void *ptr, const mrb_data_type *type)
@@ -69,21 +70,11 @@ mrb_obj_to_sym(mrb_state *mrb, mrb_value name)
   return 0;  /* not reached */
 }
 
-MRB_API mrb_int
-#ifdef MRB_NO_FLOAT
-mrb_fixnum_id(mrb_int f)
-#else
-mrb_float_id(mrb_float f)
-#endif
+static mrb_int
+make_num_id(const char *p, size_t len)
 {
-  const char *p = (const char*)&f;
-  int len = sizeof(f);
   uint32_t id = 0;
 
-#ifndef MRB_NO_FLOAT
-  /* normalize -0.0 to 0.0 */
-  if (f == 0) f = 0.0;
-#endif
   while (len--) {
     id = id*65599 + *p;
     p++;
@@ -92,6 +83,22 @@ mrb_float_id(mrb_float f)
 
   return (mrb_int)id;
 }
+
+MRB_API mrb_int
+mrb_int_id(mrb_int n)
+{
+  return make_num_id((const char*)&n, sizeof(n));
+}
+
+#ifndef MRB_NO_FLOAT
+MRB_API mrb_int
+mrb_float_id(mrb_float f)
+{
+  /* normalize -0.0 to 0.0 */
+  if (f == 0) f = 0.0;
+  return make_num_id((const char*)&f, sizeof(f));
+}
+#endif
 
 MRB_API mrb_int
 mrb_obj_id(mrb_value obj)
@@ -115,10 +122,8 @@ mrb_obj_id(mrb_value obj)
   case MRB_TT_SYMBOL:
     return MakeID(mrb_symbol(obj));
   case MRB_TT_INTEGER:
+    return MakeID(mrb_int_id(mrb_integer(obj)));
 #ifdef MRB_NO_FLOAT
-    return MakeID(mrb_fixnum_id(mrb_fixnum(obj)));
-#else
-    return MakeID2(mrb_float_id((mrb_float)mrb_fixnum(obj)), MRB_TT_FLOAT);
   case MRB_TT_FLOAT:
     return MakeID(mrb_float_id(mrb_float(obj)));
 #endif
@@ -159,6 +164,20 @@ mrb_word_boxing_float_value(mrb_state *mrb, mrb_float f)
   return v.w;
 }
 #endif  /* MRB_NO_FLOAT */
+
+MRB_API mrb_value
+mrb_word_boxing_int_value(mrb_state *mrb, mrb_int n)
+{
+  if (FIXABLE(n)) return mrb_fixnum_value(n);
+  else {
+    union mrb_value_ v;
+
+    v.p = mrb_obj_alloc(mrb, MRB_TT_INTEGER, mrb->integer_class);
+    v.ip->i = n;
+    MRB_SET_FROZEN_FLAG(v.ip);
+    return v.w;
+  }
+}
 #endif  /* MRB_WORD_BOXING */
 
 #if defined(MRB_WORD_BOXING) || (defined(MRB_NAN_BOXING) && defined(MRB_64BIT))

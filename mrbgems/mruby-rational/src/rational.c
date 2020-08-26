@@ -102,11 +102,11 @@ rational_s_new(mrb_state *mrb, mrb_value self)
   mrb_value numv, denomv;
 
   mrb_get_args(mrb, "oo", &numv, &denomv);
-  if (mrb_fixnum_p(numv)) {
-    numerator = mrb_fixnum(numv);
+  if (mrb_integer_p(numv)) {
+    numerator = mrb_integer(numv);
 
-    if (mrb_fixnum_p(denomv)) {
-      denominator = mrb_fixnum(denomv);
+    if (mrb_integer_p(denomv)) {
+      denominator = mrb_integer(denomv);
     }
     else {
       mrb_float denomf = mrb_to_flo(mrb, denomv);
@@ -118,8 +118,8 @@ rational_s_new(mrb_state *mrb, mrb_value self)
   else {
     mrb_float numf = mrb_to_flo(mrb, numv);
 
-    if (mrb_fixnum_p(denomv)) {
-      denominator = mrb_fixnum(denomv);
+    if (mrb_integer_p(denomv)) {
+      denominator = mrb_integer(denomv);
     }
     else {
       mrb_float denomf = mrb_to_flo(mrb, denomv);
@@ -176,7 +176,7 @@ rational_negative_p(mrb_state *mrb, mrb_value self)
 static mrb_value
 fix_to_r(mrb_state *mrb, mrb_value self)
 {
-  return rational_new(mrb, mrb_fixnum(self), 1);
+  return rational_new(mrb, mrb_integer(self), 1);
 }
 
 void mrb_mruby_rational_gem_init(mrb_state *mrb)

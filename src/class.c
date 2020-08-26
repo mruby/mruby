@@ -913,7 +913,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         p = va_arg(ap, mrb_int*);
         if (i < argc) {
-          *p = mrb_fixnum(mrb_to_int(mrb, argv[i++]));
+          *p = mrb_integer(mrb_to_int(mrb, argv[i++]));
         }
       }
       break;

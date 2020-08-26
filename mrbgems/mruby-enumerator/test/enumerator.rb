@@ -445,7 +445,7 @@ assert 'modifying existing methods' do
   }
 end
 
-assert 'Integral#times' do
+assert 'Integer#times' do
   a = 3
   b = a.times
   c = []

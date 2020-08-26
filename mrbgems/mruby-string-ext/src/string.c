@@ -166,7 +166,7 @@ mrb_str_concat_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value str = mrb_get_arg1(mrb);
 
-  if (mrb_fixnum_p(str) || mrb_float_p(str))
+  if (mrb_integer_p(str) || mrb_float_p(str))
 #ifdef MRB_UTF8_STRING
     str = int_chr_utf8(mrb, str);
 #else
@@ -1231,7 +1231,7 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 
   mrb_define_method(mrb, s, "__lines",         mrb_str_lines,           MRB_ARGS_NONE());
 
-  mrb_define_method(mrb, mrb_module_get(mrb, "Integral"), "chr", mrb_int_chr, MRB_ARGS_OPT(1));
+  mrb_define_method(mrb, mrb_class_get(mrb, "Integer"), "chr", mrb_int_chr, MRB_ARGS_OPT(1));
 }
 
 void

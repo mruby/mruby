@@ -54,16 +54,20 @@ struct mrb_state;
 #if defined(MRB_INT64)
   typedef int64_t mrb_int;
 # define MRB_INT_BIT 64
-# define MRB_INT_MIN (INT64_MIN>>MRB_FIXNUM_SHIFT)
-# define MRB_INT_MAX (INT64_MAX>>MRB_FIXNUM_SHIFT)
+# define MRB_INT_MIN INT64_MIN
+# define MRB_INT_MAX INT64_MAX
+# define MRB_FIXNUM_MIN (INT64_MIN>>MRB_FIXNUM_SHIFT)
+# define MRB_FIXNUM_MAX (INT64_MAX>>MRB_FIXNUM_SHIFT)
 # define MRB_PRIo PRIo64
 # define MRB_PRId PRId64
 # define MRB_PRIx PRIx64
 #else
   typedef int32_t mrb_int;
 # define MRB_INT_BIT 32
-# define MRB_INT_MIN (INT32_MIN>>MRB_FIXNUM_SHIFT)
-# define MRB_INT_MAX (INT32_MAX>>MRB_FIXNUM_SHIFT)
+# define MRB_INT_MIN INT32_MIN
+# define MRB_INT_MAX INT32_MAX
+# define MRB_FIXNUM_MIN (INT32_MIN>>MRB_FIXNUM_SHIFT)
+# define MRB_FIXNUM_MAX (INT32_MAX>>MRB_FIXNUM_SHIFT)
 # define MRB_PRIo PRIo32
 # define MRB_PRId PRId32
 # define MRB_PRIx PRIx32
@@ -180,8 +184,11 @@ struct RCptr {
 #ifndef mrb_immediate_p
 #define mrb_immediate_p(o) (mrb_type(o) < MRB_TT_FREE)
 #endif
+#ifndef mrb_integer_p
+#define mrb_integer_p(o) (mrb_type(o) == MRB_TT_INTEGER)
+#endif
 #ifndef mrb_fixnum_p
-#define mrb_fixnum_p(o) (mrb_type(o) == MRB_TT_INTEGER)
+#define mrb_fixnum_p(o) mrb_integer_p(o)
 #endif
 #ifndef mrb_symbol_p
 #define mrb_symbol_p(o) (mrb_type(o) == MRB_TT_SYMBOL)
@@ -287,14 +294,19 @@ mrb_cptr_value(struct mrb_state *mrb, void *p)
 }
 
 /**
- * Returns a fixnum in Ruby.
- *
- * Takes an integer and boxes it into an mrb_value
+ * Returns an integer in Ruby.
  */
+MRB_INLINE mrb_value mrb_int_value(struct mrb_state *mrb, mrb_int i)
+{
+  mrb_value v;
+  SET_INT_VALUE(mrb, v, i);
+  return v;
+}
+
 MRB_INLINE mrb_value mrb_fixnum_value(mrb_int i)
 {
   mrb_value v;
-  SET_INT_VALUE(v, i);
+  SET_FIXNUM_VALUE(v, i);
   return v;
 }
 

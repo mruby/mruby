@@ -20,7 +20,7 @@ mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
 
   case MRB_TT_FALSE:
   case MRB_TT_INTEGER:
-    return (mrb_fixnum(v1) == mrb_fixnum(v2));
+    return (mrb_integer(v1) == mrb_integer(v2));
   case MRB_TT_SYMBOL:
     return (mrb_symbol(v1) == mrb_symbol(v2));
 
@@ -49,12 +49,12 @@ mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
   if (mrb_obj_eq(mrb, obj1, obj2)) return TRUE;
 #ifndef MRB_NO_FLOAT
   /* value mixing with integer and float */
-  if (mrb_fixnum_p(obj1)) {
-    if (mrb_float_p(obj2) && (mrb_float)mrb_fixnum(obj1) == mrb_float(obj2))
+  if (mrb_integer_p(obj1)) {
+    if (mrb_float_p(obj2) && (mrb_float)mrb_integer(obj1) == mrb_float(obj2))
       return TRUE;
   }
   else if (mrb_float_p(obj1)) {
-    if (mrb_fixnum_p(obj2) && mrb_float(obj1) == (mrb_float)mrb_fixnum(obj2))
+    if (mrb_integer_p(obj2) && mrb_float(obj1) == (mrb_float)mrb_integer(obj2))
       return TRUE;
   }
 #endif
@@ -407,7 +407,7 @@ mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t)
   if (mrb_nil_p(x)) {
     ename = "nil";
   }
-  else if (mrb_fixnum_p(x)) {
+  else if (mrb_integer_p(x)) {
     ename = "Fixnum";
   }
   else if (mrb_symbol_p(x)) {
@@ -509,7 +509,7 @@ MRB_API mrb_value
 mrb_to_int(mrb_state *mrb, mrb_value val)
 {
 
-  if (!mrb_fixnum_p(val)) {
+  if (!mrb_integer_p(val)) {
 #ifndef MRB_NO_FLOAT
     if (mrb_float_p(val)) {
       return mrb_flo_to_fixnum(mrb, val);
@@ -575,7 +575,7 @@ mrb_Float(mrb_state *mrb, mrb_value val)
   }
   switch (mrb_type(val)) {
     case MRB_TT_INTEGER:
-      return mrb_float_value(mrb, (mrb_float)mrb_fixnum(val));
+      return mrb_float_value(mrb, (mrb_float)mrb_integer(val));
 
     case MRB_TT_FLOAT:
       return val;

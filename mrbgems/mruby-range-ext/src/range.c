@@ -109,8 +109,8 @@ range_size(mrb_state *mrb, mrb_value range)
   beg = RANGE_BEG(r);
   end = RANGE_END(r);
   excl = RANGE_EXCL(r);
-  if (mrb_fixnum_p(beg)) {
-    beg_f = (mrb_float)mrb_fixnum(beg);
+  if (mrb_integer_p(beg)) {
+    beg_f = (mrb_float)mrb_integer(beg);
   }
   else if (mrb_float_p(beg)) {
     beg_f = mrb_float(beg);
@@ -118,8 +118,8 @@ range_size(mrb_state *mrb, mrb_value range)
   else {
     num_p = FALSE;
   }
-  if (mrb_fixnum_p(end)) {
-    end_f = (mrb_float)mrb_fixnum(end);
+  if (mrb_integer_p(end)) {
+    end_f = (mrb_float)mrb_integer(end);
   }
   else if (mrb_float_p(end)) {
     end_f = mrb_float(end);
@@ -161,9 +161,9 @@ range_size(mrb_state *mrb, mrb_value range)
   end = RANGE_END(r);
   excl = RANGE_EXCL(r) ? 0 : 1;
 
-  if (mrb_fixnum_p(beg) && mrb_fixnum_p(end)) {
-    mrb_int a = mrb_fixnum(beg);
-    mrb_int b = mrb_fixnum(end);
+  if (mrb_integer_p(beg) && mrb_integer_p(end)) {
+    mrb_int a = mrb_integer(beg);
+    mrb_int b = mrb_integer(end);
     mrb_int c = b - a + excl;
 
     return mrb_fixnum_value(c);

@@ -18,6 +18,11 @@ struct RFloat {
 };
 #endif
 
+struct RInteger {
+  MRB_OBJECT_HEADER;
+  mrb_int i;
+};
+
 enum mrb_special_consts {
   MRB_Qnil    =  0,
   MRB_Qfalse  =  4,
@@ -82,6 +87,7 @@ union mrb_value_ {
 #ifndef MRB_NO_FLOAT
   struct RFloat *fp;
 #endif
+  struct RInteger *ip;
   struct RCptr *vp;
   uintptr_t w;
 };
@@ -98,6 +104,9 @@ MRB_API mrb_value mrb_word_boxing_cptr_value(struct mrb_state*, void*);
 #ifndef MRB_NO_FLOAT
 MRB_API mrb_value mrb_word_boxing_float_value(struct mrb_state*, mrb_float);
 #endif
+MRB_API mrb_value mrb_word_boxing_int_value(struct mrb_state*, mrb_int);
+
+#define mrb_immediate_p(o) ((o) & BOXWORD_IMMEDIATE_MASK || (o) == MRB_Qnil)
 
 #define mrb_ptr(o)     mrb_val_union(o).p
 #define mrb_cptr(o)    mrb_val_union(o).vp->p
@@ -105,6 +114,12 @@ MRB_API mrb_value mrb_word_boxing_float_value(struct mrb_state*, mrb_float);
 #define mrb_float(o)   mrb_val_union(o).fp->f
 #endif
 #define mrb_fixnum(o)  BOXWORD_SHIFT_VALUE(o, FIXNUM, mrb_int)
+MRB_INLINE mrb_int
+mrb_integer_func(mrb_value o) {
+  if (mrb_immediate_p(o)) return mrb_fixnum(o);
+  return mrb_val_union(o).ip->i;
+}
+#define mrb_integer(o) mrb_integer_func(o)
 #ifdef MRB_64BIT
 #define mrb_symbol(o)  mrb_val_union(o).sym
 #else
@@ -112,8 +127,8 @@ MRB_API mrb_value mrb_word_boxing_float_value(struct mrb_state*, mrb_float);
 #endif
 #define mrb_bool(o)    (((o) & ~(unsigned long)MRB_Qfalse) != 0)
 
-#define mrb_immediate_p(o) ((o) & BOXWORD_IMMEDIATE_MASK || (o) == MRB_Qnil)
 #define mrb_fixnum_p(o) BOXWORD_SHIFT_VALUE_P(o, FIXNUM)
+#define mrb_integer_p(o) (BOXWORD_SHIFT_VALUE_P(o, FIXNUM)||BOXWORD_OBJ_TYPE_P(o, INTEGER))
 #ifdef MRB_64BIT
 #define mrb_symbol_p(o) (mrb_val_union(o).sym_flag == BOXWORD_SYMBOL_FLAG)
 #else
@@ -154,7 +169,8 @@ MRB_API mrb_value mrb_word_boxing_float_value(struct mrb_state*, mrb_float);
 #define SET_FALSE_VALUE(r) ((r) = MRB_Qfalse)
 #define SET_TRUE_VALUE(r) ((r) = MRB_Qtrue)
 #define SET_BOOL_VALUE(r,b) ((b) ? SET_TRUE_VALUE(r) : SET_FALSE_VALUE(r))
-#define SET_INT_VALUE(r,n) BOXWORD_SET_SHIFT_VALUE(r, FIXNUM, n)
+#define SET_INT_VALUE(mrb,r,n) ((r) = mrb_word_boxing_int_value(mrb, n))
+#define SET_FIXNUM_VALUE(r,n) BOXWORD_SET_SHIFT_VALUE(r, FIXNUM, n)
 #ifdef MRB_64BIT
 #define SET_SYM_VALUE(r,v) do {\
   union mrb_value_ mrb_value_union_variable;\

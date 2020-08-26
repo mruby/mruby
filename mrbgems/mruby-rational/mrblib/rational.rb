@@ -48,11 +48,11 @@ class Rational < Numeric
   end
 
   def <=>(rhs)
-    if rhs.is_a?(Integral)
+    case rhs
+    when Integer, Float
       return numerator <=> rhs if denominator == 1
       rhs = Rational(rhs)
     end
-
     case rhs
     when Rational
       (numerator * rhs.denominator - denominator * rhs.numerator) <=> 0
@@ -65,14 +65,13 @@ class Rational < Numeric
 
   def ==(rhs)
     return true if self.equal?(rhs)
-    if rhs.is_a?(Integral) && denominator == 1
-      return numerator == rhs
+    case rhs
+    when Integer, Float
+      return numerator == rhs if denominator == 1
+    when Rational
+      return numerator * rhs.denominator == denominator * rhs.numerator
     end
-    if rhs.is_a?(Rational)
-      numerator * rhs.denominator == denominator * rhs.numerator
-    else
-      rhs == self
-    end
+    rhs == self
   end
 end
 

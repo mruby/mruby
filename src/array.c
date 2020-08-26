@@ -822,8 +822,8 @@ mrb_ary_subseq(mrb_state *mrb, mrb_value ary, mrb_int beg, mrb_int len)
 static mrb_int
 aget_index(mrb_state *mrb, mrb_value index)
 {
-  if (mrb_fixnum_p(index)) {
-    return mrb_fixnum(index);
+  if (mrb_integer_p(index)) {
+    return mrb_integer(index);
   }
 #ifndef MRB_NO_FLOAT
   else if (mrb_float_p(index)) {
@@ -886,7 +886,7 @@ mrb_ary_aget(mrb_state *mrb, mrb_value self)
         return mrb_nil_value();
       }
     case MRB_TT_INTEGER:
-      return mrb_ary_ref(mrb, self, mrb_fixnum(index));
+      return mrb_ary_ref(mrb, self, mrb_integer(index));
     default:
       return mrb_ary_ref(mrb, self, aget_index(mrb, index));
     }

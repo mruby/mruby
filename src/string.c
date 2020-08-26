@@ -1155,7 +1155,7 @@ str_convert_range(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen,
   else {
     switch (mrb_type(indx)) {
       case MRB_TT_INTEGER:
-        *beg = mrb_fixnum(indx);
+        *beg = mrb_integer(indx);
         *len = 1;
         return STR_CHAR_RANGE;
 
@@ -1170,8 +1170,8 @@ str_convert_range(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen,
 
       default:
         indx = mrb_to_int(mrb, indx);
-        if (mrb_fixnum_p(indx)) {
-          *beg = mrb_fixnum(indx);
+        if (mrb_integer_p(indx)) {
+          *beg = mrb_integer(indx);
           *len = 1;
           return STR_CHAR_RANGE;
         }
@@ -2498,8 +2498,8 @@ mrb_str_len_to_dbl(mrb_state *mrb, const char *s, size_t len, mrb_bool badcheck)
 
     if (!badcheck) return 0.0;
     x = mrb_str_len_to_inum(mrb, p, pend-p, 0, badcheck);
-    if (mrb_fixnum_p(x))
-      d = (double)mrb_fixnum(x);
+    if (mrb_integer_p(x))
+      d = (double)mrb_integer(x);
     else /* if (mrb_float_p(x)) */
       d = mrb_float(x);
     return d;
@@ -2874,7 +2874,7 @@ mrb_str_byteslice(mrb_state *mrb, mrb_value str)
       }
     }
     else {
-      beg = mrb_fixnum(mrb_to_int(mrb, a1));
+      beg = mrb_integer(mrb_to_int(mrb, a1));
       len = 1;
       empty = FALSE;
     }
