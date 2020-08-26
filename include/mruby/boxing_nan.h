@@ -58,6 +58,7 @@ mrb_val_union(mrb_value v)
 #define mrb_type(o)     (enum mrb_vtype)((uint32_t)0xfff00000 < mrb_val_union(o).ttt ? mrb_tt(o) : MRB_TT_FLOAT)
 #define mrb_float(o)    mrb_val_union(o).f
 #define mrb_fixnum(o)   ((mrb_int)mrb_val_union(o).i)
+#define mrb_integer(o)  mrb_fixnum(o)
 #define mrb_symbol(o)   ((mrb_sym)mrb_val_union(o).i)
 
 #ifdef MRB_64BIT
