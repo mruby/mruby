@@ -47,12 +47,14 @@ module MRuby
         @version = "0.0.0"
         @mrblib_dir = "mrblib"
         @objs_dir = "src"
+        @dependencies = []
+        @conflicts = []
         MRuby::Gem.current = self
       end
 
       def setup
         return if defined?(@linker)  # return if already set up
-
+        
         MRuby::Gem.current = self
         MRuby::Build::COMMANDS.each do |command|
           instance_variable_set("@#{command}", @build.send(command).clone)
@@ -75,7 +77,6 @@ module MRuby
         @bins = []
 
         @requirements = []
-        @dependencies, @conflicts = [], []
         @export_include_paths = []
         @export_include_paths << "#{dir}/include" if File.directory? "#{dir}/include"
 

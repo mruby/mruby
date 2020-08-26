@@ -81,7 +81,8 @@ module MRuby
         @mrbc = Command::Mrbc.new(self)
 
         @bins = []
-        @gems, @libmruby_objs = MRuby::Gem::List.new, []
+        @gems = MRuby::Gem::List.new
+        @libmruby_objs = []
         @build_mrbtest_lib_only = false
         @cxx_exception_enabled = false
         @cxx_exception_disabled = false
@@ -95,11 +96,10 @@ module MRuby
         MRuby.targets[@name] = self
       end
 
-      MRuby::Build.current = MRuby.targets[@name]
-      MRuby.targets[@name].instance_eval(&block)
-
-      build_mrbc_exec if name == 'host'
-      build_mrbtest if test_enabled?
+      current = MRuby.targets[@name]
+      MRuby::Build.current = current
+      current.instance_eval(&block)
+      current.build_mrbtest if current.test_enabled?
     end
 
     def debug_enabled?
@@ -247,8 +247,9 @@ EOS
     def mrbcfile
       return @mrbcfile if @mrbcfile
 
-      unless gems.detect { |v| v.name == 'mruby-bin-mrbc' }
-        gem :core => "mruby-bin-mrbc"
+      unless gems.detect {|v| v.name == 'mruby-bin-mrbc' }
+        build_mrbc_exec
+        gems.detect {|v| v.name == 'mruby-bin-mrbc' }.setup
       end
       @mrbcfile = self.exefile("#{self.build_dir}/bin/mrbc")
     end
