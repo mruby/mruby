@@ -30,6 +30,7 @@ typedef struct mrb_value {
 #define mrb_float(o)    (o).value.f
 #endif
 #define mrb_fixnum(o)   (o).value.i
+#define mrb_integer(o)  mrb_fixnum(o)
 #define mrb_symbol(o)   (o).value.sym
 #define mrb_type(o)     (o).tt
 
@@ -42,7 +43,8 @@ typedef struct mrb_value {
 #define SET_FALSE_VALUE(r) BOXNIX_SET_VALUE(r, MRB_TT_FALSE, value.i, 1)
 #define SET_TRUE_VALUE(r) BOXNIX_SET_VALUE(r, MRB_TT_TRUE, value.i, 1)
 #define SET_BOOL_VALUE(r,b) BOXNIX_SET_VALUE(r, b ? MRB_TT_TRUE : MRB_TT_FALSE, value.i, 1)
-#define SET_INT_VALUE(r,n) BOXNIX_SET_VALUE(r, MRB_TT_INTEGER, value.i, (n))
+#define SET_INT_VALUE(mrb,r,n) BOXNIX_SET_VALUE(r, MRB_TT_INTEGER, value.i, (n))
+#define SET_FIXNUM_VALUE(r,n) BOXNIX_SET_VALUE(r, MRB_TT_INTEGER, value.i, (n))
 #ifndef MRB_NO_FLOAT
 #define SET_FLOAT_VALUE(mrb,r,v) BOXNIX_SET_VALUE(r, MRB_TT_FLOAT, value.f, (v))
 #endif

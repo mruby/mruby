@@ -14,16 +14,6 @@ assert('Integer#+', '15.2.8.3.1') do
 
   assert_raise(TypeError){ 0+nil }
   assert_raise(TypeError){ 1+nil }
-
-  c = Mrbtest::FIXNUM_MAX + 1
-  d = Mrbtest::FIXNUM_MAX.__send__(:+, 1)
-
-  skip unless Object.const_defined?(:Float)
-  e = Mrbtest::FIXNUM_MAX + 1.0
-  assert_equal Float, c.class
-  assert_equal Float, d.class
-  assert_float e, c
-  assert_float e, d
 end
 
 assert('Integer#-', '15.2.8.3.2') do
@@ -32,37 +22,17 @@ assert('Integer#-', '15.2.8.3.2') do
 
   assert_equal 1, a
   assert_equal 1.0, b if Object.const_defined?(:Float)
-
-  c = Mrbtest::FIXNUM_MIN - 1
-  d = Mrbtest::FIXNUM_MIN.__send__(:-, 1)
-
-  skip unless Object.const_defined?(:Float)
-  e = Mrbtest::FIXNUM_MIN - 1.0
-  assert_equal Float, c.class
-  assert_equal Float, d.class
-  assert_float e, c
-  assert_float e, d
 end
 
 assert('Integer#*', '15.2.8.3.3') do
   a = 1*1
-  b = 1*1.0 if Object.const_defined?(:Float)
-
   assert_equal 1, a
-  assert_equal 1.0, b if Object.const_defined?(:Float)
-
+  if Object.const_defined?(:Float)
+    b = 1*1.0 
+    assert_equal 1.0, b
+  end
   assert_raise(TypeError){ 0*nil }
   assert_raise(TypeError){ 1*nil }
-
-  c = Mrbtest::FIXNUM_MAX * 2
-  d = Mrbtest::FIXNUM_MAX.__send__(:*, 2)
-
-  skip unless Object.const_defined?(:Float)
-  e = Mrbtest::FIXNUM_MAX * 2.0
-  assert_equal Float, c.class
-  assert_equal Float, d.class
-  assert_float e, c
-  assert_float e, d
 end
 
 assert('Integer#/', '15.2.8.3.4') do

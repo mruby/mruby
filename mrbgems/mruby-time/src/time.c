@@ -218,11 +218,15 @@ typedef mrb_int mrb_sec;
                     (sizeof(time_t) <= 4 ? INT32_MAX : INT64_MAX)           \
 )
 
+/* return true if time_t is fit in mrb_int */
 static mrb_bool
 fixable_time_t_p(time_t v)
 {
   if (MRB_INT_MIN <= MRB_TIME_MIN && MRB_TIME_MAX <= MRB_INT_MAX) return TRUE;
-  return FIXABLE(v);
+  if (v > (time_t)MRB_INT_MAX) return FALSE;
+  if (MRB_TIME_T_UINT) return TRUE;
+  if (MRB_INT_MIN > (mrb_int)v) return FALSE;
+  return TRUE;
 }
 
 static time_t
@@ -880,11 +884,6 @@ mrb_time_usec(mrb_state *mrb, mrb_value self)
   struct mrb_time *tm;
 
   tm = time_get_ptr(mrb, self);
-#ifndef MRB_NO_FLOAT
-  if (!fixable_time_t_p(tm->usec)) {
-    return mrb_float_value(mrb, (mrb_float)tm->usec);
-  }
-#endif
   return mrb_fixnum_value((mrb_int)tm->usec);
 }
 

@@ -16,8 +16,8 @@
  */
 MRB_BEGIN_DECL
 
-#define TYPED_POSFIXABLE(f,t) ((f) <= (t)MRB_INT_MAX)
-#define TYPED_NEGFIXABLE(f,t) ((f) >= (t)MRB_INT_MIN)
+#define TYPED_POSFIXABLE(f,t) ((f) <= (t)MRB_FIXNUM_MAX)
+#define TYPED_NEGFIXABLE(f,t) ((f) >= (t)MRB_FIXNUM_MIN)
 #define TYPED_FIXABLE(f,t) (TYPED_POSFIXABLE(f,t) && TYPED_NEGFIXABLE(f,t))
 #define POSFIXABLE(f) TYPED_POSFIXABLE(f,mrb_int)
 #define NEGFIXABLE(f) TYPED_NEGFIXABLE(f,mrb_int)
@@ -39,7 +39,6 @@ MRB_API mrb_value mrb_fixnum_to_str(mrb_state *mrb, mrb_value x, mrb_int base);
 MRB_API mrb_value mrb_float_to_str(mrb_state *mrb, mrb_value x, const char *fmt);
 MRB_API int mrb_float_to_cstr(mrb_state *mrb, char *buf, size_t len, const char *fmt, mrb_float f);
 MRB_API mrb_float mrb_to_flo(mrb_state *mrb, mrb_value x);
-MRB_API mrb_value mrb_int_value(mrb_state *mrb, mrb_float f);
 #endif
 
 MRB_API mrb_value mrb_num_plus(mrb_state *mrb, mrb_value x, mrb_value y);

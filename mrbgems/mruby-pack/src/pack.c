@@ -143,7 +143,7 @@ static int
 pack_c(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
   str = str_len_ensure(mrb, str, sidx + 1);
-  RSTRING_PTR(str)[sidx] = (char)mrb_fixnum(o);
+  RSTRING_PTR(str)[sidx] = (char)mrb_integer(o);
   return 1;
 }
 
@@ -163,7 +163,7 @@ pack_s(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int fl
   uint16_t n;
 
   str = str_len_ensure(mrb, str, sidx + 2);
-  n = (uint16_t)mrb_fixnum(o);
+  n = (uint16_t)mrb_integer(o);
   if (flags & PACK_FLAG_LITTLEENDIAN) {
     RSTRING_PTR(str)[sidx+0] = n % 256;
     RSTRING_PTR(str)[sidx+1] = n / 256;
@@ -197,7 +197,7 @@ pack_l(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int fl
   uint32_t n;
 
   str = str_len_ensure(mrb, str, sidx + 4);
-  n = (uint32_t)mrb_fixnum(o);
+  n = (uint32_t)mrb_integer(o);
   if (flags & PACK_FLAG_LITTLEENDIAN) {
     RSTRING_PTR(str)[sidx+0] = (char)(n & 0xff);
     RSTRING_PTR(str)[sidx+1] = (char)(n >> 8);
@@ -313,7 +313,7 @@ pack_q(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int fl
   uint64_t n;
 
   str = str_len_ensure(mrb, str, sidx + 8);
-  n = (uint64_t)mrb_fixnum(o);
+  n = (uint64_t)mrb_integer(o);
   if (flags & PACK_FLAG_LITTLEENDIAN) {
     RSTRING_PTR(str)[sidx+0] = (char)(n & 0xff);
     RSTRING_PTR(str)[sidx+1] = (char)(n >> 8);
@@ -560,7 +560,7 @@ pack_utf8(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, long count, 
   int len = 0;
   uint32_t c = 0;
 
-  c = (uint32_t)mrb_fixnum(o);
+  c = (uint32_t)mrb_integer(o);
 
   /* Unicode character */
   /* from mruby-compiler gem */

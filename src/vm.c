@@ -1115,12 +1115,12 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_LOADI, BB) {
-      SET_INT_VALUE(regs[a], b);
+      SET_FIXNUM_VALUE(regs[a], b);
       NEXT;
     }
 
     CASE(OP_LOADINEG, BB) {
-      SET_INT_VALUE(regs[a], -b);
+      SET_FIXNUM_VALUE(regs[a], -b);
       NEXT;
     }
 
@@ -1134,12 +1134,12 @@ RETRY_TRY_BLOCK:
     CASE(OP_LOADI_6,B) goto L_LOADI;
     CASE(OP_LOADI_7, B) {
     L_LOADI:
-      SET_INT_VALUE(regs[a], (mrb_int)insn - (mrb_int)OP_LOADI_0);
+      SET_FIXNUM_VALUE(regs[a], (mrb_int)insn - (mrb_int)OP_LOADI_0);
       NEXT;
     }
 
     CASE(OP_LOADI16, BS) {
-      SET_INT_VALUE(regs[a], (mrb_int)(int16_t)b);
+      SET_FIXNUM_VALUE(regs[a], (mrb_int)(int16_t)b);
       NEXT;
     }
 
@@ -1302,8 +1302,8 @@ RETRY_TRY_BLOCK:
       CHECKPOINT_RESTORE(RBREAK_TAG_JUMP) {
         struct RBreak *brk = (struct RBreak*)mrb->exc;
         mrb_value target = mrb_break_value_get(brk);
-        mrb_assert(mrb_fixnum_p(target));
-        a = mrb_fixnum(target);
+        mrb_assert(mrb_integer_p(target));
+        a = mrb_integer(target);
         mrb_assert(a >= 0 && a < irep->ilen);
       }
       CHECKPOINT_MAIN(RBREAK_TAG_JUMP) {
@@ -2251,23 +2251,23 @@ RETRY_TRY_BLOCK:
     OP_MATH_CASE_STRING_##op_name();                                        \
     default:                                                                \
       c = 1;                                                                \
-      mid = MRB_QSYM(op_name);                                             \
+      mid = MRB_QSYM(op_name);                                              \
       goto L_SEND_SYM;                                                      \
   }                                                                         \
   NEXT;
 #define OP_MATH_CASE_FIXNUM(op_name)                                        \
-  case TYPES2(MRB_TT_INTEGER, MRB_TT_INTEGER):                                \
+  case TYPES2(MRB_TT_INTEGER, MRB_TT_INTEGER):                              \
     {                                                                       \
-      mrb_int x = mrb_fixnum(regs[a]), y = mrb_fixnum(regs[a+1]), z;        \
+      mrb_int x = mrb_integer(regs[a]), y = mrb_integer(regs[a+1]), z;      \
       if (mrb_int_##op_name##_overflow(x, y, &z))                           \
         OP_MATH_OVERFLOW_INT(op_name, x, y, z);                             \
       else                                                                  \
-        SET_INT_VALUE(regs[a], z);                                          \
+        SET_INT_VALUE(mrb,regs[a], z);                                      \
     }                                                                       \
     break
 #ifdef MRB_NO_FLOAT
 #define OP_MATH_CASE_FLOAT(op_name, t1, t2) (void)0
-#define OP_MATH_OVERFLOW_INT(op_name, x, y, z) SET_INT_VALUE(regs[a], z)
+#define OP_MATH_OVERFLOW_INT(op_name, x, y, z) SET_INT_VALUE(mrb,regs[a], z)
 #else
 #define OP_MATH_CASE_FLOAT(op_name, t1, t2)                                     \
   case TYPES2(OP_MATH_TT_##t1, OP_MATH_TT_##t2):                                \
@@ -2313,8 +2313,8 @@ RETRY_TRY_BLOCK:
       switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {
       case TYPES2(MRB_TT_INTEGER,MRB_TT_INTEGER):
         {
-          mrb_int x = mrb_fixnum(regs[a]);
-          mrb_int y = mrb_fixnum(regs[a+1]);
+          mrb_int x = mrb_integer(regs[a]);
+          mrb_int y = mrb_integer(regs[a+1]);
 
           
           if (y == 0) {
@@ -2341,18 +2341,18 @@ RETRY_TRY_BLOCK:
             if ((mod < 0 && y > 0) || (mod > 0 && y < 0)) {
               div -= 1;
             }
-            SET_INT_VALUE(regs[a], div);
+            SET_INT_VALUE(mrb, regs[a], div);
           }
         }
         NEXT;
 #ifndef MRB_NO_FLOAT
       case TYPES2(MRB_TT_INTEGER,MRB_TT_FLOAT):
-        x = (mrb_float)mrb_fixnum(regs[a]);
+        x = (mrb_float)mrb_integer(regs[a]);
         y = mrb_float(regs[a+1]);
         break;
       case TYPES2(MRB_TT_FLOAT,MRB_TT_INTEGER):
         x = mrb_float(regs[a]);
-        y = (mrb_float)mrb_fixnum(regs[a+1]);
+        y = (mrb_float)mrb_integer(regs[a+1]);
         break;
       case TYPES2(MRB_TT_FLOAT,MRB_TT_FLOAT):
         x = mrb_float(regs[a]);
@@ -2385,7 +2385,7 @@ RETRY_TRY_BLOCK:
     OP_MATHI_CASE_FIXNUM(op_name);                                          \
     OP_MATHI_CASE_FLOAT(op_name);                                           \
     default:                                                                \
-      SET_INT_VALUE(regs[a+1], b);                                          \
+      SET_INT_VALUE(mrb,regs[a+1], b);                                      \
       c = 1;                                                                \
       mid = MRB_QSYM(op_name);                                              \
       goto L_SEND_SYM;                                                      \
@@ -2394,11 +2394,11 @@ RETRY_TRY_BLOCK:
 #define OP_MATHI_CASE_FIXNUM(op_name)                                       \
   case MRB_TT_INTEGER:                                                      \
     {                                                                       \
-      mrb_int x = mrb_fixnum(regs[a]), y = (mrb_int)b, z;                   \
+      mrb_int x = mrb_integer(regs[a]), y = (mrb_int)b, z;                  \
       if (mrb_int_##op_name##_overflow(x, y, &z))                           \
         OP_MATH_OVERFLOW_INT(op_name, x, y, z);                             \
       else                                                                  \
-        SET_INT_VALUE(regs[a], z);                                          \
+        SET_INT_VALUE(mrb,regs[a], z);                                      \
     }                                                                       \
     break
 #ifdef MRB_NO_FLOAT

@@ -252,9 +252,9 @@ mrb_t_pass_result(mrb_state *mrb_dst, mrb_state *mrb_src)
 #define TEST_COUNT_PASS(name)                                           \
   do {                                                                  \
     res_src = mrb_gv_get(mrb_src, mrb_intern_lit(mrb_src, "$" #name));  \
-    if (mrb_fixnum_p(res_src)) {                                        \
+    if (mrb_integer_p(res_src)) {                                       \
       mrb_value res_dst = mrb_gv_get(mrb_dst, mrb_intern_lit(mrb_dst, "$" #name)); \
-      mrb_gv_set(mrb_dst, mrb_intern_lit(mrb_dst, "$" #name), mrb_fixnum_value(mrb_fixnum(res_dst) + mrb_fixnum(res_src))); \
+      mrb_gv_set(mrb_dst, mrb_intern_lit(mrb_dst, "$" #name), mrb_fixnum_value(mrb_integer(res_dst) + mrb_integer(res_src))); \
     }                                                                   \
   } while (FALSE)                                                       \
 

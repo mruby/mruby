@@ -74,7 +74,7 @@ static mrb_value
 mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
 {
   char buf[66], *b = buf + sizeof buf;
-  mrb_int num = mrb_fixnum(x);
+  mrb_int num = mrb_integer(x);
   uint64_t val = (uint64_t)num;
   char d;
 
@@ -764,8 +764,8 @@ retry:
             mrb_raise(mrb, E_ARGUMENT_ERROR, "%c requires a character");
           }
         }
-        else if (mrb_fixnum_p(val)) {
-          mrb_int n = mrb_fixnum(val);
+        else if (mrb_integer_p(val)) {
+          mrb_int n = mrb_integer(val);
 #ifndef MRB_UTF8_STRING
           char buf[1];
 
@@ -882,14 +882,14 @@ retry:
 #ifndef MRB_NO_FLOAT
           case MRB_TT_FLOAT:
             val = mrb_flo_to_fixnum(mrb, val);
-            if (mrb_fixnum_p(val)) goto bin_retry;
+            if (mrb_integer_p(val)) goto bin_retry;
             break;
 #endif
           case MRB_TT_STRING:
             val = mrb_str_to_inum(mrb, val, 0, TRUE);
             goto bin_retry;
           case MRB_TT_INTEGER:
-            v = mrb_fixnum(val);
+            v = mrb_integer(val);
             break;
           default:
             val = mrb_Integer(mrb, val);

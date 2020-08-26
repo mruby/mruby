@@ -339,7 +339,7 @@ option_to_fd(mrb_state *mrb, mrb_value hash, const char *key)
     case MRB_TT_DATA: /* IO */
       return mrb_io_fileno(mrb, opt);
     case MRB_TT_INTEGER:
-      return (int)mrb_fixnum(opt);
+      return (int)mrb_integer(opt);
     default:
       mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong exec redirect action");
       break;
@@ -1077,7 +1077,7 @@ time2timeval(mrb_state *mrb, mrb_value time)
 
   switch (mrb_type(time)) {
     case MRB_TT_INTEGER:
-      t.tv_sec = (ftime_t)mrb_fixnum(time);
+      t.tv_sec = (ftime_t)mrb_integer(time);
       t.tv_usec = 0;
       break;
 

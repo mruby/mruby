@@ -140,7 +140,7 @@ mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
 
   if (mrb_string_p(service)) {
     servname = RSTRING_CSTR(mrb, service);
-  } else if (mrb_fixnum_p(service)) {
+  } else if (mrb_integer_p(service)) {
     servname = RSTRING_PTR(mrb_fixnum_to_str(mrb, service, 10));
   } else if (mrb_nil_p(service)) {
     servname = NULL;
@@ -151,16 +151,16 @@ mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
   memset(&hints, 0, sizeof(hints));
   hints.ai_flags = (int)flags;
 
-  if (mrb_fixnum_p(family)) {
-    hints.ai_family = (int)mrb_fixnum(family);
+  if (mrb_integer_p(family)) {
+    hints.ai_family = (int)mrb_integer(family);
   }
 
-  if (mrb_fixnum_p(socktype)) {
-    hints.ai_socktype = (int)mrb_fixnum(socktype);
+  if (mrb_integer_p(socktype)) {
+    hints.ai_socktype = (int)mrb_integer(socktype);
   }
 
-  if (mrb_fixnum_p(protocol)) {
-    hints.ai_protocol = (int)mrb_fixnum(protocol);
+  if (mrb_integer_p(protocol)) {
+    hints.ai_protocol = (int)mrb_integer(protocol);
   }
 
   lastai = mrb_cv_get(mrb, klass, MRB_SYM(_lastai));
@@ -269,7 +269,7 @@ sa2addrlist(mrb_state *mrb, const struct sockaddr *sa, socklen_t salen)
 static int
 socket_fd(mrb_state *mrb, mrb_value sock)
 {
-  return (int)mrb_fixnum(mrb_funcall_id(mrb, sock, MRB_SYM(fileno), 0));
+  return (int)mrb_integer(mrb_funcall_id(mrb, sock, MRB_SYM(fileno), 0));
 }
 
 static int
@@ -449,21 +449,21 @@ mrb_basicsocket_setsockopt(mrb_state *mrb, mrb_value self)
 
   argc = mrb_get_args(mrb, "o|io", &so, &optname, &optval);
   if (argc == 3) {
-    if (!mrb_fixnum_p(so)) {
+    if (!mrb_integer_p(so)) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "level is not an integer");
     }
-    level = mrb_fixnum(so);
+    level = mrb_integer(so);
     if (mrb_string_p(optval)) {
       /* that's good */
     } else if (mrb_true_p(optval) || mrb_false_p(optval)) {
       mrb_int i = mrb_test(optval) ? 1 : 0;
       optval = mrb_str_new(mrb, (char*)&i, sizeof(i));
-    } else if (mrb_fixnum_p(optval)) {
+    } else if (mrb_integer_p(optval)) {
       if (optname == IP_MULTICAST_TTL || optname == IP_MULTICAST_LOOP) {
-        char uc = (char)mrb_fixnum(optval);
+        char uc = (char)mrb_integer(optval);
         optval = mrb_str_new(mrb, &uc, sizeof(uc));
       } else {
-        mrb_int i = mrb_fixnum(optval);
+        mrb_int i = mrb_integer(optval);
         optval = mrb_str_new(mrb, (char*)&i, sizeof(i));
       }
     } else {
@@ -472,8 +472,8 @@ mrb_basicsocket_setsockopt(mrb_state *mrb, mrb_value self)
   } else if (argc == 1) {
     if (strcmp(mrb_obj_classname(mrb, so), "Socket::Option") != 0)
       mrb_raise(mrb, E_ARGUMENT_ERROR, "not an instance of Socket::Option");
-    level = mrb_fixnum(mrb_funcall_id(mrb, so, MRB_SYM(level), 0));
-    optname = mrb_fixnum(mrb_funcall_id(mrb, so, MRB_SYM(optname), 0));
+    level = mrb_integer(mrb_funcall_id(mrb, so, MRB_SYM(level), 0));
+    optname = mrb_integer(mrb_funcall_id(mrb, so, MRB_SYM(optname), 0));
     optval = mrb_funcall_id(mrb, so, MRB_SYM(data), 0);
   } else {
     mrb_argnum_error(mrb, argc, 3, 3);

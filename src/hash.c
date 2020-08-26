@@ -73,7 +73,7 @@ ht_hash_func(mrb_state *mrb, htable *t, mrb_value key)
 
   default:
     hv = mrb_funcall_id(mrb, key, MRB_SYM(hash), 0);
-    h = (size_t)tt ^ (size_t)mrb_fixnum(hv);
+    h = (size_t)tt ^ (size_t)mrb_integer(hv);
     break;
   }
   if (index && (index != t->index || capa != index->capa)) {
@@ -96,8 +96,8 @@ ht_hash_equal(mrb_state *mrb, htable *t, mrb_value a, mrb_value b)
     return mrb_symbol(a) == mrb_symbol(b);
 
   case MRB_TT_INTEGER:
-    if (!mrb_fixnum_p(b)) return FALSE;
-    return mrb_fixnum(a) == mrb_fixnum(b);
+    if (!mrb_integer_p(b)) return FALSE;
+    return mrb_integer(a) == mrb_integer(b);
 
 #ifndef MRB_NO_FLOAT
   case MRB_TT_FLOAT:
