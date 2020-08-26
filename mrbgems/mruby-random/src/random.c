@@ -34,13 +34,18 @@ See <http://creativecommons.org/publicdomain/zero/1.0/>. */
    The state must be seeded so that it is not everywhere zero. */
 
 
-static inline uint32_t
-rotl(const uint32_t x, int k) {
-  return (x << k) | (x >> (32 - k));
-}
+#ifdef MRB_32BIT
+# define XORSHIFT96
+# define NSEEDS 3
+# define SEEDPOS 2
+#else
+# define NSEEDS 4
+# define SEEDPOS 0
+#endif
+#define LASTSEED (NSEEDS-1)
 
 typedef struct rand_state {
-  uint32_t seed[4];
+  uint32_t seed[NSEEDS];
 } rand_state;
 
 static void
@@ -49,21 +54,45 @@ rand_init(rand_state *t)
   t->seed[0] = 123456789;
   t->seed[1] = 362436069;
   t->seed[2] = 521288629;
+#ifndef XORSHIFT96
   t->seed[3] = 88675123;
+#endif
 }
 
 static uint32_t
 rand_seed(rand_state *t, uint32_t seed)
 {
-  uint32_t old_seed = t->seed[0];
+  uint32_t old_seed = t->seed[SEEDPOS];
   rand_init(t);
-  t->seed[0] = seed;
+  t->seed[SEEDPOS] = seed;
   return old_seed;
 }
+
+#ifndef XORSHIFT96
+static inline uint32_t
+rotl(const uint32_t x, int k) {
+  return (x << k) | (x >> (32 - k));
+}
+#endif
 
 static uint32_t
 rand_uint32(rand_state *state)
 {
+#ifdef XORSHIFT96
+  uint32_t *seed = state->seed;
+  uint32_t x = seed[0];
+  uint32_t y = seed[1];
+  uint32_t z = seed[2];
+  uint32_t t;
+
+  t = (x ^ (x << 3)) ^ (y ^ (y >> 19)) ^ (z ^ (z << 6));
+  x = y; y = z; z = t;
+  seed[0] = x;
+  seed[1] = y;
+  seed[2] = z;
+
+  return z;
+#else
   uint32_t *s = state->seed;
   const uint32_t result = rotl(s[0] + s[3], 7) + s[0];
   const uint32_t t = s[1] << 9;
@@ -77,7 +106,8 @@ rand_uint32(rand_state *state)
   s[3] = rotl(s[3], 11);
 
   return result;
-}
+#endif  /* XORSHIFT96 */
+  }
 
 #ifndef MRB_NO_FLOAT
 static double
