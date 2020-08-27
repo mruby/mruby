@@ -1016,7 +1016,7 @@ static mrb_bool
 check_target_class(mrb_state *mrb)
 {
   if (!mrb->c->ci->target_class) {
-    mrb_value exc = mrb_exc_new_str_lit(mrb, E_TYPE_ERROR, "no target class or module");
+    mrb_value exc = mrb_exc_new_lit(mrb, E_TYPE_ERROR, "no target class or module");
     mrb_exc_set(mrb, exc);
     return FALSE;
   }
@@ -1096,7 +1096,7 @@ RETRY_TRY_BLOCK:
         }
 #endif
         {
-          mrb_value exc = mrb_exc_new_str_lit(mrb, E_RUNTIME_ERROR, "integer overflow");
+          mrb_value exc = mrb_exc_new_lit(mrb, E_RUNTIME_ERROR, "integer overflow");
           mrb_exc_set(mrb, exc);
         }
         goto L_RAISE;
@@ -1357,7 +1357,7 @@ RETRY_TRY_BLOCK:
         {
           mrb_value exc;
 
-          exc = mrb_exc_new_str_lit(mrb, E_TYPE_ERROR,
+          exc = mrb_exc_new_lit(mrb, E_TYPE_ERROR,
                                     "class or module required for rescue clause");
           mrb_exc_set(mrb, exc);
           goto L_RAISE;
@@ -1585,21 +1585,21 @@ RETRY_TRY_BLOCK:
       mrb_assert(bidx < irep->nregs);
 
       if (mid == 0 || !target_class) {
-        mrb_value exc = mrb_exc_new_str_lit(mrb, E_NOMETHOD_ERROR, "super called outside of method");
+        mrb_value exc = mrb_exc_new_lit(mrb, E_NOMETHOD_ERROR, "super called outside of method");
         mrb_exc_set(mrb, exc);
         goto L_RAISE;
       }
       if (target_class->tt == MRB_TT_MODULE) {
         target_class = ci->target_class;
         if (target_class->tt != MRB_TT_ICLASS) {
-          mrb_value exc = mrb_exc_new_str_lit(mrb, E_RUNTIME_ERROR, "superclass info lost [mruby limitations]");
+          mrb_value exc = mrb_exc_new_lit(mrb, E_RUNTIME_ERROR, "superclass info lost [mruby limitations]");
           mrb_exc_set(mrb, exc);
           goto L_RAISE;
         }
       }
       recv = regs[0];
       if (!mrb_obj_is_kind_of(mrb, recv, target_class)) {
-        mrb_value exc = mrb_exc_new_str_lit(mrb, E_TYPE_ERROR,
+        mrb_value exc = mrb_exc_new_lit(mrb, E_TYPE_ERROR,
                                             "self has wrong type to call super in this context");
         mrb_exc_set(mrb, exc);
         goto L_RAISE;
@@ -1700,7 +1700,7 @@ RETRY_TRY_BLOCK:
         mrb_value exc;
 
       L_NOSUPER:
-        exc = mrb_exc_new_str_lit(mrb, E_NOMETHOD_ERROR, "super called outside of method");
+        exc = mrb_exc_new_lit(mrb, E_NOMETHOD_ERROR, "super called outside of method");
         mrb_exc_set(mrb, exc);
         goto L_RAISE;
       }
@@ -2066,7 +2066,7 @@ RETRY_TRY_BLOCK:
               goto CHECKPOINT_LABEL_MAKE(RBREAK_TAG_STOP);
             }
             if (c->prev->ci == c->prev->cibase) {
-              mrb_value exc = mrb_exc_new_str_lit(mrb, E_FIBER_ERROR, "double resume");
+              mrb_value exc = mrb_exc_new_lit(mrb, E_FIBER_ERROR, "double resume");
               mrb_exc_set(mrb, exc);
               goto L_RAISE;
             }
@@ -2099,7 +2099,7 @@ RETRY_TRY_BLOCK:
             mrb_value exc;
 
           L_BREAK_ERROR:
-            exc = mrb_exc_new_str_lit(mrb, E_LOCALJUMP_ERROR,
+            exc = mrb_exc_new_lit(mrb, E_LOCALJUMP_ERROR,
                                       "break from proc-closure");
             mrb_exc_set(mrb, exc);
             goto L_RAISE;
