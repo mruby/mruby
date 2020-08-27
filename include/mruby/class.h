@@ -17,7 +17,7 @@ MRB_BEGIN_DECL
 struct RClass {
   MRB_OBJECT_HEADER;
   struct iv_tbl *iv;
-  struct kh_mt *mt;
+  struct mt_tbl *mt;
   struct RClass *super;
 };
 
@@ -77,6 +77,7 @@ struct RClass *mrb_vm_define_class(mrb_state*, mrb_value, mrb_value, mrb_sym);
 struct RClass *mrb_vm_define_module(mrb_state*, mrb_value, mrb_sym);
 MRB_API void mrb_define_method_raw(mrb_state*, struct RClass*, mrb_sym, mrb_method_t);
 MRB_API void mrb_alias_method(mrb_state*, struct RClass *c, mrb_sym a, mrb_sym b);
+MRB_API void mrb_remove_method(mrb_state *mrb, struct RClass *c, mrb_sym sym);
 
 MRB_API mrb_method_t mrb_method_search_vm(mrb_state*, struct RClass**, mrb_sym);
 MRB_API mrb_method_t mrb_method_search(mrb_state*, struct RClass*, mrb_sym);
@@ -97,6 +98,11 @@ void mrb_mc_clear_by_class(mrb_state *mrb, struct RClass* c);
 #else
 #define mrb_mc_clear_by_class(mrb,c)
 #endif
+
+/* return non zero to break the loop */
+struct mt_elem;
+typedef int (mrb_mt_foreach_func)(mrb_state*,mrb_sym,struct mt_elem*,void*);
+MRB_API void mrb_mt_foreach(mrb_state*, struct RClass*, mrb_mt_foreach_func*, void*);
 
 MRB_END_DECL
 
