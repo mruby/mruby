@@ -120,7 +120,10 @@ int_div(mrb_state *mrb, mrb_value xv)
 
   mrb_get_args(mrb, "o", &yv);
   if (mrb_float_p(yv)) {
-    return mrb_fixnum_value((mrb_int)((mrb_float)mrb_integer(xv)/mrb_float(yv)));
+    double d = mrb_integer(xv)/mrb_float(yv);
+    if (MRB_INT_MIN <= d && d <= MRB_INT_MAX)
+      return mrb_int_value(mrb, (mrb_int)d);
+    return mrb_float_value(mrb, d);
   }
   else
 #endif
@@ -191,7 +194,10 @@ flo_idiv(mrb_state *mrb, mrb_value x)
   mrb_float y;
 
   mrb_get_args(mrb, "f", &y);
-  return mrb_int_value(mrb, (mrb_int)(mrb_to_flo(mrb, x) / y));
+  y = mrb_to_flo(mrb, x) / y;
+  if (MRB_INT_MIN <= y && y <= MRB_INT_MAX)
+    return mrb_int_value(mrb, (mrb_int)y);
+  return mrb_float_value(mrb, y);
 }
 
 static mrb_value
