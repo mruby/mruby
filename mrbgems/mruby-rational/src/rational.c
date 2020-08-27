@@ -109,26 +109,27 @@ rational_s_new(mrb_state *mrb, mrb_value self)
       denominator = mrb_integer(denomv);
     }
     else {
+      mrb_float numf = (mrb_float)numerator;
       mrb_float denomf = mrb_to_flo(mrb, denomv);
 
-      DROP_PRECISION(denomf, numerator, denomf);
+      DROP_PRECISION(denomf, numf, denomf);
+      numerator = (mrb_int)numf;
       denominator = (mrb_int)denomf;
     }
   }
   else {
     mrb_float numf = mrb_to_flo(mrb, numv);
+    mrb_float denomf;
 
     if (mrb_integer_p(denomv)) {
-      denominator = mrb_integer(denomv);
+      denomf = (mrb_float)mrb_integer(denomv);
     }
     else {
-      mrb_float denomf = mrb_to_flo(mrb, denomv);
-
-      DROP_PRECISION(denomf, numf, denomf);
-      denominator = (mrb_int)denomf;
+      denomf = mrb_to_flo(mrb, denomv);
     }
-
-    DROP_PRECISION(numf, numf, denominator);
+    DROP_PRECISION(denomf, numf, denomf);
+    DROP_PRECISION(numf, numf, denomf);
+    denominator = (mrb_int)denomf;
     numerator = (mrb_int)numf;
   }
 #endif
