@@ -168,29 +168,50 @@ mrb_local_variables(mrb_state *mrb, mrb_value self)
   return mrb_hash_keys(mrb, vars);
 }
 
-KHASH_DECLARE(st, mrb_sym, char, FALSE)
+KHASH_DECLARE(st, mrb_sym, char, FALSE);
+KHASH_DEFINE(st, mrb_sym, char, FALSE, kh_int_hash_func, kh_int_hash_equal);
+
+union mt_ptr {
+  struct RProc *proc;
+  mrb_func_t func;
+};
+
+struct mt_elem {
+  union mt_ptr ptr;
+  size_t func_p:1;
+  mrb_sym key:sizeof(mrb_sym)*8-1;
+};
+
+struct mt_set {
+  khash_t(st) *set;
+  khash_t(st) *undef;
+};
+
+static int
+method_entry_i(mrb_state *mrb, mrb_sym mid, struct mt_elem *e, void *p)
+{
+  struct mt_set *s = (struct mt_set*)p;
+
+  if (e->ptr.proc == 0) {
+    if (s->undef) {
+      kh_put(st, mrb, s->undef, mid);
+    }
+  }
+  else if (s->undef == NULL ||
+           kh_get(st, mrb, s->undef, mid) == kh_end(s->undef)) {
+    kh_put(st, mrb, s->set, mid);
+  }
+  return 0;
+}
 
 static void
 method_entry_loop(mrb_state *mrb, struct RClass *klass, khash_t(st) *set, khash_t(st) *undef)
 {
-  khint_t i;
+  struct mt_set s;
 
-  khash_t(mt) *h = klass->mt;
-  if (!h || kh_size(h) == 0) return;
-  for (i=0;i<kh_end(h);i++) {
-    if (kh_exist(h, i)) {
-      mrb_method_t m = kh_value(h, i);
-      if (MRB_METHOD_UNDEF_P(m)) {
-        if (undef) {
-          kh_put(st, mrb, undef, kh_key(h, i));
-        }
-      }
-      else if (undef == NULL ||
-               kh_get(st, mrb, undef, kh_key(h, i)) == kh_end(undef)) {
-        kh_put(st, mrb, set, kh_key(h, i));
-      }
-    }
-  }
+  s.set = set;
+  s.undef = undef;
+  mrb_mt_foreach(mrb, klass, method_entry_i, (void*)&s);
 }
 
 static mrb_value
@@ -608,28 +629,6 @@ mrb_mod_instance_methods(mrb_state *mrb, mrb_value mod)
   return mrb_class_instance_method_list(mrb, recur, c, 0);
 }
 
-static void
-remove_method(mrb_state *mrb, mrb_value mod, mrb_sym mid)
-{
-  struct RClass *c = mrb_class_ptr(mod);
-  khash_t(mt) *h;
-  khiter_t k;
-
-  MRB_CLASS_ORIGIN(c);
-  h = c->mt;
-
-  if (h) {
-    k = kh_get(mt, mrb, h, mid);
-    if (k != kh_end(h)) {
-      kh_del(mt, mrb, h, k);
-      mrb_funcall_id(mrb, mod, MRB_SYM(method_removed), 1, mrb_symbol_value(mid));
-      return;
-    }
-  }
-
-  mrb_name_error(mrb, mid, "method '%n' not defined in %v", mid, mod);
-}
-
 /* 15.2.2.4.41 */
 /*
  *  call-seq:
@@ -644,11 +643,13 @@ mrb_mod_remove_method(mrb_state *mrb, mrb_value mod)
 {
   mrb_int argc;
   mrb_value *argv;
+  struct RClass *c = mrb_class_ptr(mod);
 
   mrb_get_args(mrb, "*", &argv, &argc);
   mrb_check_frozen(mrb, mrb_obj_ptr(mod));
   while (argc--) {
-    remove_method(mrb, mod, mrb_obj_to_sym(mrb, *argv));
+    mrb_remove_method(mrb, c, mrb_obj_to_sym(mrb, *argv));
+    mrb_funcall_id(mrb, mod, MRB_SYM(method_removed), 1, *argv);
     argv++;
   }
   return mod;

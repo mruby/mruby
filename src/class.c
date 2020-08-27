@@ -18,40 +18,259 @@
 #include <mruby/istruct.h>
 #include <mruby/opcode.h>
 
-KHASH_DEFINE(mt, mrb_sym, mrb_method_t, TRUE, kh_int_hash_func, kh_int_hash_equal)
+union mt_ptr {
+  struct RProc *proc;
+  mrb_func_t func;
+};
+
+struct mt_elem {
+  union mt_ptr ptr;
+  size_t func_p:1;
+  mrb_sym key:sizeof(mrb_sym)*8-1;
+};
+
+/* method table structure */
+typedef struct mt_tbl {
+  size_t size;
+  size_t alloc;
+  struct mt_elem *table;
+} mt_tbl;
+
+/* Creates the method table. */
+static mt_tbl*
+mt_new(mrb_state *mrb)
+{
+  mt_tbl *t;
+
+  t = (mt_tbl*)mrb_malloc(mrb, sizeof(mt_tbl));
+  t->size = 0;
+  t->alloc = 0;
+  t->table = NULL;
+
+  return t;
+}
+
+static struct mt_elem *mt_put(mrb_state *mrb, mt_tbl *t, mrb_sym sym, int func_p, union mt_ptr ptr);
+
+static void
+mt_rehash(mrb_state *mrb, mt_tbl *t)
+{
+  size_t old_alloc = t->alloc;
+  size_t new_alloc = old_alloc+1;
+  struct mt_elem *old_table = t->table;
+
+  khash_power2(new_alloc);
+  if (old_alloc == new_alloc) return;
+
+  t->alloc = new_alloc;
+  t->size = 0;
+  t->table = (struct mt_elem*)mrb_calloc(mrb, sizeof(struct mt_elem), new_alloc);
+
+  for (size_t i = 0; i < old_alloc; i++) {
+    struct mt_elem *slot = &old_table[i];
+
+    /* key = 0 means empty or deleted */
+    if (slot->key != 0) {
+      mt_put(mrb, t, slot->key, slot->func_p, slot->ptr);
+    }
+  }
+  mrb_free(mrb, old_table);
+}
+
+#define slot_empty_p(slot) ((slot)->key == 0 && (slot)->func_p == 0)
+
+/* Set the value for the symbol in the method table. */
+static struct mt_elem*
+mt_put(mrb_state *mrb, mt_tbl *t, mrb_sym sym, int func_p, union mt_ptr ptr)
+{
+  size_t hash, pos, start;
+  struct mt_elem *dslot = NULL;
+
+  if (t->alloc == 0) {
+    mt_rehash(mrb, t);
+  }
+  hash = kh_int_hash_func(mrb, sym);
+  start = pos = hash & (t->alloc-1);
+  for (;;) {
+    struct mt_elem *slot = &t->table[pos];
+
+    if (slot->key == sym) {
+      slot->func_p = func_p;
+      slot->ptr = ptr;
+      return slot;
+    }
+    else if (slot->key == 0) {  /* empty or deleted */
+      if (slot->func_p == 0) {  /* empty */
+        t->size++;
+        slot->key = sym;
+        slot->func_p = func_p;
+        slot->ptr = ptr;
+        return slot;
+      }
+      else if (!dslot) {        /* deleted */
+        dslot = slot;
+      }
+    }
+    pos = (pos+1) & (t->alloc-1);
+    if (pos == start) {         /* not found */
+      if (dslot) {
+        t->size++;
+        dslot->key = sym;
+        dslot->func_p = func_p;
+        dslot->ptr = ptr;
+        return dslot;
+      }
+      /* no room */
+      mt_rehash(mrb, t);
+      start = pos = hash & (t->alloc-1);
+    }
+  }
+}
+
+/* Get a value for a symbol from the method table. */
+static struct mt_elem*
+mt_get(mrb_state *mrb, mt_tbl *t, mrb_sym sym)
+{
+  size_t hash, pos, start;
+
+  if (t == NULL) return NULL;
+  if (t->alloc == 0) return NULL;
+  if (t->size == 0) return NULL;
+
+  hash = kh_int_hash_func(mrb, sym);
+  start = pos = hash & (t->alloc-1);
+  for (;;) {
+    struct mt_elem *slot = &t->table[pos];
+
+    if (slot->key == sym) {
+      return slot;
+    }
+    else if (slot_empty_p(slot)) {
+      return NULL;
+    }
+    pos = (pos+1) & (t->alloc-1);
+    if (pos == start) {         /* not found */
+      return NULL;
+    }
+  }
+}
+
+/* Deletes the value for the symbol from the method table. */
+static mrb_bool
+mt_del(mrb_state *mrb, mt_tbl *t, mrb_sym sym)
+{
+  size_t hash, pos, start;
+
+  if (t == NULL) return FALSE;
+  if (t->alloc == 0) return  FALSE;
+  if (t->size == 0) return FALSE;
+
+  hash = kh_int_hash_func(mrb, sym);
+  start = pos = hash & (t->alloc-1);
+  for (;;) {
+    struct mt_elem *slot = &t->table[pos];
+
+    if (slot->key == sym) {
+      t->size--;
+      slot->key = 0;
+      slot->func_p = 1;
+      return TRUE;
+    }
+    else if (slot_empty_p(slot)) {
+      return FALSE;
+    }
+    pos = (pos+1) & (t->alloc-1);
+    if (pos == start) {         /* not found */
+      return FALSE;
+    }
+  }
+}
+
+/* Copy the method table. */
+static struct mt_tbl*
+mt_copy(mrb_state *mrb, mt_tbl *t)
+{
+  mt_tbl *t2;
+  size_t i;
+
+  if (t == NULL) return NULL;
+  if (t->alloc == 0) return NULL;
+  if (t->size == 0) return NULL;
+
+  t2 = mt_new(mrb);
+  for (i=0; i<t->alloc; i++) {
+    struct mt_elem *slot = &t->table[i];
+
+    if (slot->key) {
+      mt_put(mrb, t2, slot->key, slot->func_p, slot->ptr);
+    }
+  }
+  return t2;
+}
+
+/* Free memory of the method table. */
+static void
+mt_free(mrb_state *mrb, mt_tbl *t)
+{
+  mrb_free(mrb, t->table);
+  mrb_free(mrb, t);
+}
+
+MRB_API void
+mrb_mt_foreach(mrb_state *mrb, struct RClass *c, mrb_mt_foreach_func *fn, void *p)
+{
+  mt_tbl *t = c->mt;
+  size_t i;
+
+  if (t == NULL) return;
+  if (t->alloc == 0) return;
+  if (t->size == 0) return;
+
+  for (i=0; i<t->alloc; i++) {
+    struct mt_elem *slot = &t->table[i];
+
+    if (slot->key) {
+      if (fn(mrb, slot->key, slot, p) != 0)
+        return;
+    }
+  }
+  return;
+}
 
 void
 mrb_gc_mark_mt(mrb_state *mrb, struct RClass *c)
 {
-  khiter_t k;
-  khash_t(mt) *h = c->mt;
+  mt_tbl *t = c->mt;
+  size_t i;
 
-  if (!h) return;
-  for (k = kh_begin(h); k != kh_end(h); k++) {
-    if (kh_exist(h, k)) {
-      mrb_method_t m = kh_value(h, k);
+  if (t == NULL) return;
+  if (t->alloc == 0) return;
+  if (t->size == 0) return;
 
-      if (MRB_METHOD_PROC_P(m)) {
-        struct RProc *p = MRB_METHOD_PROC(m);
-        mrb_gc_mark(mrb, (struct RBasic*)p);
-      }
+  for (i=0; i<t->alloc; i++) {
+    struct mt_elem *slot = &t->table[i];
+
+    if (slot->key && !slot->func_p) { /* Proc pointer */
+      struct RProc *p = slot->ptr.proc;
+      mrb_gc_mark(mrb, (struct RBasic*)p);
     }
   }
+  return;
 }
 
 size_t
 mrb_gc_mark_mt_size(mrb_state *mrb, struct RClass *c)
 {
-  khash_t(mt) *h = c->mt;
+  struct mt_tbl *h = c->mt;
 
   if (!h) return 0;
-  return kh_size(h);
+  return h->size;
 }
 
 void
 mrb_gc_free_mt(mrb_state *mrb, struct RClass *c)
 {
-  kh_destroy(mt, mrb, c->mt);
+  if (c->mt) mt_free(mrb, c->mt);
 }
 
 void
@@ -107,7 +326,7 @@ prepare_singleton_class(mrb_state *mrb, struct RBasic *o)
   if (o->c->tt == MRB_TT_SCLASS) return;
   sc = (struct RClass*)mrb_obj_alloc(mrb, MRB_TT_SCLASS, mrb->class_class);
   sc->flags |= MRB_FL_CLASS_IS_INHERITED;
-  sc->mt = kh_init(mt, mrb);
+  sc->mt = mt_new(mrb);
   sc->iv = 0;
   if (o->tt == MRB_TT_CLASS) {
     c = (struct RClass*)o;
@@ -488,25 +707,30 @@ mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, s
 MRB_API void
 mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_t m)
 {
-  khash_t(mt) *h;
-  khiter_t k;
+  mt_tbl *h;
+  union mt_ptr ptr;
+
   MRB_CLASS_ORIGIN(c);
   h = c->mt;
-
   mrb_check_frozen(mrb, c);
-  if (!h) h = c->mt = kh_init(mt, mrb);
-  k = kh_put(mt, mrb, h, mid);
-  kh_value(h, k) = m;
-  if (MRB_METHOD_PROC_P(m) && !MRB_METHOD_UNDEF_P(m)) {
+  if (!h) h = c->mt = mt_new(mrb);
+  if (MRB_METHOD_PROC_P(m)) {
     struct RProc *p = MRB_METHOD_PROC(m);
 
-    p->flags |= MRB_PROC_SCOPE;
-    p->c = NULL;
-    mrb_field_write_barrier(mrb, (struct RBasic*)c, (struct RBasic*)p);
-    if (!MRB_PROC_ENV_P(p)) {
-      MRB_PROC_SET_TARGET_CLASS(p, c);
+    ptr.proc = p;
+    if (p) {
+      p->flags |= MRB_PROC_SCOPE;
+      p->c = NULL;
+      mrb_field_write_barrier(mrb, (struct RBasic*)c, (struct RBasic*)p);
+      if (!MRB_PROC_ENV_P(p)) {
+        MRB_PROC_SET_TARGET_CLASS(p, c);
+      }
     }
   }
+  else {
+    ptr.func = MRB_METHOD_FUNC(m);
+  }
+  mt_put(mrb, h, mid, MRB_METHOD_FUNC_P(m), ptr);
   mc_clear(mrb);
 }
 
@@ -1103,7 +1327,7 @@ boot_defclass(mrb_state *mrb, struct RClass *super)
   else {
     c->super = mrb->object_class;
   }
-  c->mt = kh_init(mt, mrb);
+  c->mt = mt_new(mrb);
   return c;
 }
 
@@ -1111,7 +1335,7 @@ static void
 boot_initmod(mrb_state *mrb, struct RClass *mod)
 {
   if (!mod->mt) {
-    mod->mt = kh_init(mt, mrb);
+    mod->mt = mt_new(mrb);
   }
 }
 
@@ -1201,7 +1425,7 @@ mrb_prepend_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
     origin->super = c->super;
     c->super = origin;
     origin->mt = c->mt;
-    c->mt = kh_init(mt, mrb);
+    c->mt = mt_new(mrb);
     mrb_field_write_barrier(mrb, (struct RBasic*)c, (struct RBasic*)origin);
     c->flags |= MRB_FL_CLASS_IS_PREPENDED;
   }
@@ -1428,7 +1652,6 @@ mrb_mc_clear_by_class(mrb_state *mrb, struct RClass *c)
 MRB_API mrb_method_t
 mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
 {
-  khiter_t k;
   mrb_method_t m;
   struct RClass *c = *cp;
 #ifndef MRB_NO_METHOD_CACHE
@@ -1443,14 +1666,19 @@ mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
 #endif
 
   while (c) {
-    khash_t(mt) *h = c->mt;
+    mt_tbl *h = c->mt;
 
     if (h) {
-      k = kh_get(mt, mrb, h, mid);
-      if (k != kh_end(h)) {
-        m = kh_value(h, k);
-        if (MRB_METHOD_UNDEF_P(m)) break;
+      struct mt_elem *e = mt_get(mrb, h, mid);
+      if (e) {
+        if (e->ptr.proc == 0) break;
         *cp = c;
+        if (e->func_p) {
+          MRB_METHOD_FROM_FUNC(m, e->ptr.func);
+        }
+        else {
+          MRB_METHOD_FROM_PROC(m, e->ptr.proc);
+        }
 #ifndef MRB_NO_METHOD_CACHE
         mc->c = oc;
         mc->c0 = c;
@@ -2003,6 +2231,18 @@ mrb_undef_class_method(mrb_state *mrb, struct RClass *c, const char *name)
   mrb_undef_method(mrb,  mrb_class_ptr(mrb_singleton_class(mrb, mrb_obj_value(c))), name);
 }
 
+MRB_API void
+mrb_remove_method(mrb_state *mrb, struct RClass *c, mrb_sym mid)
+{
+  mt_tbl *h;
+
+  MRB_CLASS_ORIGIN(c);
+  h = c->mt;
+
+  if (h && mt_del(mrb, h, mid)) return;
+  mrb_name_error(mrb, mid, "method '%n' not defined in %C", mid, c);
+}
+
 static mrb_value
 mrb_mod_undef(mrb_state *mrb, mrb_value mod)
 {
@@ -2260,6 +2500,202 @@ mrb_mod_module_function(mrb_state *mrb, mrb_value mod)
   }
 
   return mod;
+}
+
+static struct RClass*
+mrb_singleton_class_clone(mrb_state *mrb, mrb_value obj)
+{
+  struct RClass *klass = mrb_basic_ptr(obj)->c;
+
+  if (klass->tt != MRB_TT_SCLASS)
+    return klass;
+  else {
+    /* copy singleton(unnamed) class */
+    struct RClass *clone = (struct RClass*)mrb_obj_alloc(mrb, klass->tt, mrb->class_class);
+
+    switch (mrb_type(obj)) {
+    case MRB_TT_CLASS:
+    case MRB_TT_SCLASS:
+      break;
+    default:
+      clone->c = mrb_singleton_class_clone(mrb, mrb_obj_value(klass));
+      break;
+    }
+    clone->super = klass->super;
+    if (klass->iv) {
+      mrb_iv_copy(mrb, mrb_obj_value(clone), mrb_obj_value(klass));
+      mrb_obj_iv_set(mrb, (struct RObject*)clone, MRB_SYM(__attached__), obj);
+    }
+    if (klass->mt) {
+      clone->mt = mt_copy(mrb, klass->mt);
+    }
+    else {
+      clone->mt = mt_new(mrb);
+    }
+    clone->tt = MRB_TT_SCLASS;
+    return clone;
+  }
+}
+
+static void
+copy_class(mrb_state *mrb, mrb_value dst, mrb_value src)
+{
+  struct RClass *dc = mrb_class_ptr(dst);
+  struct RClass *sc = mrb_class_ptr(src);
+  /* if the origin is not the same as the class, then the origin and
+     the current class need to be copied */
+  if (sc->flags & MRB_FL_CLASS_IS_PREPENDED) {
+    struct RClass *c0 = sc->super;
+    struct RClass *c1 = dc;
+
+    /* copy prepended iclasses */
+    while (!(c0->flags & MRB_FL_CLASS_IS_ORIGIN)) {
+      c1->super = mrb_class_ptr(mrb_obj_dup(mrb, mrb_obj_value(c0)));
+      c1 = c1->super;
+      c0 = c0->super;
+    }
+    c1->super = mrb_class_ptr(mrb_obj_dup(mrb, mrb_obj_value(c0)));
+    c1->super->flags |= MRB_FL_CLASS_IS_ORIGIN;
+  }
+  if (sc->mt) {
+    dc->mt = mt_copy(mrb, sc->mt);
+  }
+  else {
+    dc->mt = mt_new(mrb);
+  }
+  dc->super = sc->super;
+  MRB_SET_INSTANCE_TT(dc, MRB_INSTANCE_TT(sc));
+}
+
+/* 15.3.1.3.16 */
+static mrb_value
+mrb_obj_init_copy(mrb_state *mrb, mrb_value self)
+{
+  mrb_value orig = mrb_get_arg1(mrb);
+
+  if (mrb_obj_equal(mrb, self, orig)) return self;
+  if ((mrb_type(self) != mrb_type(orig)) || (mrb_obj_class(mrb, self) != mrb_obj_class(mrb, orig))) {
+      mrb_raise(mrb, E_TYPE_ERROR, "initialize_copy should take same class object");
+  }
+  return self;
+}
+
+static void
+init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
+{
+  switch (mrb_type(obj)) {
+    case MRB_TT_ICLASS:
+      copy_class(mrb, dest, obj);
+      return;
+    case MRB_TT_CLASS:
+    case MRB_TT_MODULE:
+      copy_class(mrb, dest, obj);
+      mrb_iv_copy(mrb, dest, obj);
+      mrb_iv_remove(mrb, dest, MRB_SYM(__classname__));
+      break;
+    case MRB_TT_OBJECT:
+    case MRB_TT_SCLASS:
+    case MRB_TT_HASH:
+    case MRB_TT_DATA:
+    case MRB_TT_EXCEPTION:
+      mrb_iv_copy(mrb, dest, obj);
+      break;
+    case MRB_TT_ISTRUCT:
+      mrb_istruct_copy(dest, obj);
+      break;
+
+    default:
+      break;
+  }
+  if (!mrb_func_basic_p(mrb, dest, MRB_SYM(initialize_copy), mrb_obj_init_copy)) {
+    mrb_funcall_id(mrb, dest, MRB_SYM(initialize_copy), 1, obj);
+  }
+}
+
+/* 15.3.1.3.8  */
+/*
+ *  call-seq:
+ *     obj.clone -> an_object
+ *
+ *  Produces a shallow copy of <i>obj</i>---the instance variables of
+ *  <i>obj</i> are copied, but not the objects they reference. Copies
+ *  the frozen state of <i>obj</i>. See also the discussion
+ *  under <code>Object#dup</code>.
+ *
+ *     class Klass
+ *        attr_accessor :str
+ *     end
+ *     s1 = Klass.new      #=> #<Klass:0x401b3a38>
+ *     s1.str = "Hello"    #=> "Hello"
+ *     s2 = s1.clone       #=> #<Klass:0x401b3998 @str="Hello">
+ *     s2.str[1,4] = "i"   #=> "i"
+ *     s1.inspect          #=> "#<Klass:0x401b3a38 @str=\"Hi\">"
+ *     s2.inspect          #=> "#<Klass:0x401b3998 @str=\"Hi\">"
+ *
+ *  This method may have class-specific behavior.  If so, that
+ *  behavior will be documented under the #+initialize_copy+ method of
+ *  the class.
+ *
+ *  Some Class(True False Nil Symbol Integer Float) Object  cannot clone.
+ */
+MRB_API mrb_value
+mrb_obj_clone(mrb_state *mrb, mrb_value self)
+{
+  struct RObject *p;
+  mrb_value clone;
+
+  if (mrb_immediate_p(self)) {
+    return self;
+  }
+  if (mrb_sclass_p(self)) {
+    mrb_raise(mrb, E_TYPE_ERROR, "can't clone singleton class");
+  }
+  p = (struct RObject*)mrb_obj_alloc(mrb, mrb_type(self), mrb_obj_class(mrb, self));
+  p->c = mrb_singleton_class_clone(mrb, self);
+  mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)p->c);
+  clone = mrb_obj_value(p);
+  init_copy(mrb, clone, self);
+  p->flags |= mrb_obj_ptr(self)->flags & MRB_FL_OBJ_IS_FROZEN;
+
+  return clone;
+}
+
+/* 15.3.1.3.9  */
+/*
+ *  call-seq:
+ *     obj.dup -> an_object
+ *
+ *  Produces a shallow copy of <i>obj</i>---the instance variables of
+ *  <i>obj</i> are copied, but not the objects they reference.
+ *  <code>dup</code> copies the frozen state of <i>obj</i>. See also
+ *  the discussion under <code>Object#clone</code>. In general,
+ *  <code>clone</code> and <code>dup</code> may have different semantics
+ *  in descendant classes. While <code>clone</code> is used to duplicate
+ *  an object, including its internal state, <code>dup</code> typically
+ *  uses the class of the descendant object to create the new instance.
+ *
+ *  This method may have class-specific behavior.  If so, that
+ *  behavior will be documented under the #+initialize_copy+ method of
+ *  the class.
+ */
+
+MRB_API mrb_value
+mrb_obj_dup(mrb_state *mrb, mrb_value obj)
+{
+  struct RBasic *p;
+  mrb_value dup;
+
+  if (mrb_immediate_p(obj)) {
+    return obj;
+  }
+  if (mrb_sclass_p(obj)) {
+    mrb_raise(mrb, E_TYPE_ERROR, "can't dup singleton class");
+  }
+  p = mrb_obj_alloc(mrb, mrb_type(obj), mrb_obj_class(mrb, obj));
+  dup = mrb_obj_value(p);
+  init_copy(mrb, dup, obj);
+
+  return dup;
 }
 
 /* implementation of __id__ */
