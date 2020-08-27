@@ -131,7 +131,7 @@ int_div(mrb_state *mrb, mrb_value xv)
     if (y == 0) {
       mrb_raise(mrb, E_ZERODIV_ERROR, "devided by zero");
     }
-    return mrb_fixnum_value(mrb_integer(xv) / y);
+    return mrb_int_value(mrb, mrb_integer(xv) / y);
   }
 }
 
@@ -977,7 +977,7 @@ int_divmod(mrb_state *mrb, mrb_value x)
       mrb_raise(mrb, E_ZERODIV_ERROR, "divided by 0");
     }
     fixdivmod(mrb, mrb_integer(x), mrb_integer(y), &div, &mod);
-    return mrb_assoc_new(mrb, mrb_fixnum_value(div), mrb_fixnum_value(mod));
+    return mrb_assoc_new(mrb, mrb_int_value(mrb, div), mrb_int_value(mrb, mod));
   }
 #ifdef MRB_NO_FLOAT
   mrb_raise(mrb, E_TYPE_ERROR, "non fixnum value");
@@ -1054,12 +1054,12 @@ int_rev(mrb_state *mrb, mrb_value num)
 {
   mrb_int val = mrb_integer(num);
 
-  return mrb_fixnum_value(~val);
+  return mrb_int_value(mrb, ~val);
 }
 
 #ifdef MRB_NO_FLOAT
 #define bit_op(x,y,op1,op2) do {\
-  return mrb_fixnum_value(mrb_integer(x) op2 mrb_integer(y));\
+  return mrb_int_value(mrb, (mrb_integer(x) op2 mrb_integer(y)));\
 } while(0)
 #else
 static mrb_value flo_and(mrb_state *mrb, mrb_value x);
@@ -1140,7 +1140,7 @@ lshift(mrb_state *mrb, mrb_int val, mrb_int width)
       goto bit_overflow;
 #endif
     }
-    return mrb_fixnum_value(val << width);
+    return mrb_int_value(mrb, val << width);
   }
   else {
     if ((width > NUMERIC_SHIFT_WIDTH_MAX) ||
@@ -1151,7 +1151,7 @@ lshift(mrb_state *mrb, mrb_int val, mrb_int width)
       goto bit_overflow;
 #endif
     }
-    return mrb_fixnum_value(val * ((mrb_int)1 << width));
+    return mrb_int_value(mrb, (val * ((mrb_int)1 << width)));
   }
 
 #ifndef MRB_NO_FLOAT
@@ -1167,7 +1167,7 @@ bit_overflow:
 }
 
 static mrb_value
-rshift(mrb_int val, mrb_int width)
+rshift(mrb_state *mrb, mrb_int val, mrb_int width)
 {
   if (width < 0) {              /* mrb_int overflow */
     return mrb_fixnum_value(0);
@@ -1178,7 +1178,7 @@ rshift(mrb_int val, mrb_int width)
     }
     return mrb_fixnum_value(0);
   }
-  return mrb_fixnum_value(val >> width);
+  return mrb_int_value(mrb, val >> width);
 }
 
 /* 15.2.8.3.12 */
@@ -1201,7 +1201,7 @@ int_lshift(mrb_state *mrb, mrb_value x)
   val = mrb_integer(x);
   if (val == 0) return x;
   if (width < 0) {
-    return rshift(val, -width);
+    return rshift(mrb, val, -width);
   }
   return lshift(mrb, val, width);
 }
@@ -1228,7 +1228,7 @@ int_rshift(mrb_state *mrb, mrb_value x)
   if (width < 0) {
     return lshift(mrb, val, -width);
   }
-  return rshift(val, width);
+  return rshift(mrb, val, width);
 }
 
 /* 15.2.8.3.23 */
@@ -1281,7 +1281,7 @@ mrb_flo_to_fixnum(mrb_state *mrb, mrb_value x)
       mrb_raisef(mrb, E_RANGE_ERROR, "number (%v) too big for integer", x);
     }
   }
-  return mrb_fixnum_value(z);
+  return mrb_int_value(mrb, z);
 }
 #endif
 
@@ -1301,7 +1301,7 @@ fixnum_plus(mrb_state *mrb, mrb_value x, mrb_value y)
       return mrb_float_value(mrb, (mrb_float)a + (mrb_float)b);
 #endif
     }
-    return mrb_fixnum_value(c);
+    return mrb_int_value(mrb, c);
   }
 #ifdef MRB_NO_FLOAT
   mrb_raise(mrb, E_TYPE_ERROR, "non fixnum value");
@@ -1357,7 +1357,7 @@ fixnum_minus(mrb_state *mrb, mrb_value x, mrb_value y)
       return mrb_float_value(mrb, (mrb_float)a - (mrb_float)b);
 #endif
     }
-    return mrb_fixnum_value(c);
+    return mrb_int_value(mrb, c);
   }
 #ifdef MRB_NO_FLOAT
   mrb_raise(mrb, E_TYPE_ERROR, "non fixnum value");

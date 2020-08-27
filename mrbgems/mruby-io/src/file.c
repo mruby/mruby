@@ -399,7 +399,7 @@ mrb_file_mtime(mrb_state *mrb, mrb_value self)
 
   if (mrb_fstat(fd, &st) == -1)
     return mrb_false_value();
-  return mrb_fixnum_value((mrb_int)st.st_mtime);
+  return mrb_int_value(mrb, (mrb_int)st.st_mtime);
 }
 
 static mrb_value

@@ -2465,7 +2465,7 @@ codegen(codegen_scope *s, node *tree, int val)
           int off;
 
         lit_int:
-          off = new_lit(s, mrb_fixnum_value(i));
+          off = new_lit(s, mrb_int_value(s->mrb, i));
           genop_2(s, OP_LOADL, cursp(), off);
         }
       }
@@ -2528,7 +2528,7 @@ codegen(codegen_scope *s, node *tree, int val)
               genop_2S(s, OP_LOADI16, cursp(), (uint16_t)i);
             }
             else {
-              int off = new_lit(s, mrb_fixnum_value(i));
+              int off = new_lit(s, mrb_int_value(s->mrb, i));
               genop_2(s, OP_LOADL, cursp(), off);
             }
 #ifndef MRB_NO_FLOAT

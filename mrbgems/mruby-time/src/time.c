@@ -205,7 +205,7 @@ typedef mrb_float mrb_sec;
 #define mrb_sec_value(mrb, sec) mrb_float_value(mrb, sec)
 #else
 typedef mrb_int mrb_sec;
-#define mrb_sec_value(mrb, sec) mrb_fixnum_value(sec)
+#define mrb_sec_value(mrb, sec) mrb_int_value(mrb, sec)
 #endif
 
 #define MRB_TIME_T_UINT (~(time_t)0 > 0)
@@ -585,7 +585,7 @@ mrb_time_minus(mrb_state *mrb, mrb_value self)
     mrb_int f;
     f = tm->sec - tm2->sec;
     if (tm->usec < tm2->usec) f--;
-    return mrb_fixnum_value(f);
+    return mrb_int_value(mrb, f);
 #endif
   }
   else {
@@ -873,7 +873,7 @@ mrb_time_to_i(mrb_state *mrb, mrb_value self)
     return mrb_float_value(mrb, (mrb_float)tm->sec);
   }
 #endif
-  return mrb_fixnum_value((mrb_int)tm->sec);
+  return mrb_int_value(mrb, (mrb_int)tm->sec);
 }
 
 /* 15.2.19.7.26 */
