@@ -938,10 +938,10 @@ retry:
           s = nbuf;
           if (v < 0) {
             dots = 1;
-            val = mrb_fix2binstr(mrb, mrb_fixnum_value(v), base);
+            val = mrb_fix2binstr(mrb, mrb_int_value(mrb, v), base);
           }
           else {
-            val = mrb_fixnum_to_str(mrb, mrb_fixnum_value(v), base);
+            val = mrb_fixnum_to_str(mrb, mrb_int_value(mrb, v), base);
           }
           strncpy(++s, RSTRING_PTR(val), sizeof(nbuf)-2);
           if (v < 0) {

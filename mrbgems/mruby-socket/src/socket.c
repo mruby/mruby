@@ -842,7 +842,7 @@ mrb_win32_basicsocket_syswrite(mrb_state *mrb, mrb_value self)
   n = send(sd, RSTRING_PTR(str), (int)RSTRING_LEN(str), 0);
   if (n == SOCKET_ERROR)
     mrb_sys_fail(mrb, "send");
-  return mrb_fixnum_value(n);
+  return mrb_int_value(mrb, n);
 }
 
 #endif
@@ -938,7 +938,7 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
 
 #define define_const(SYM) \
   do {								\
-    mrb_define_const(mrb, constants, #SYM, mrb_fixnum_value(SYM));	\
+    mrb_define_const(mrb, constants, #SYM, mrb_int_value(mrb, SYM));	\
   } while (0)
 
 #include "const.cstub"

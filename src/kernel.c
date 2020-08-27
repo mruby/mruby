@@ -96,7 +96,7 @@ mrb_equal_m(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_obj_id_m(mrb_state *mrb, mrb_value self)
 {
-  return mrb_fixnum_value(mrb_obj_id(self));
+  return mrb_int_value(mrb, mrb_obj_id(self));
 }
 
 static int
@@ -489,7 +489,7 @@ mrb_obj_frozen(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_obj_hash(mrb_state *mrb, mrb_value self)
 {
-  return mrb_fixnum_value(mrb_obj_id(self));
+  return mrb_int_value(mrb, mrb_obj_id(self));
 }
 
 /* 15.3.1.3.16 */

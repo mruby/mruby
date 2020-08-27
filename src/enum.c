@@ -18,7 +18,7 @@ enum_update_hash(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "iii", &hash, &index, &hv);
   hash ^= ((uint32_t)hv << (index % 16));
 
-  return mrb_fixnum_value(hash);
+  return mrb_int_value(mrb, hash);
 }
 
 void

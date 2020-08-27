@@ -60,14 +60,14 @@ static mrb_value
 rational_numerator(mrb_state *mrb, mrb_value self)
 {
   struct mrb_rational *p = rational_ptr(mrb, self);
-  return mrb_fixnum_value(p->numerator);
+  return mrb_int_value(mrb, p->numerator);
 }
 
 static mrb_value
 rational_denominator(mrb_state *mrb, mrb_value self)
 {
   struct mrb_rational *p = rational_ptr(mrb, self);
-  return mrb_fixnum_value(p->denominator);
+  return mrb_int_value(mrb, p->denominator);
 }
 
 static mrb_value
@@ -154,7 +154,7 @@ rational_to_i(mrb_state *mrb, mrb_value self)
   if (p->denominator == 0) {
     mrb_raise(mrb, mrb->eStandardError_class, "divided by 0");
   }
-  return mrb_fixnum_value(p->numerator / p->denominator);
+  return mrb_int_value(mrb, p->numerator / p->denominator);
 }
 
 static mrb_value

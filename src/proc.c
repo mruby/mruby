@@ -242,7 +242,7 @@ mrb_proc_init_copy(mrb_state *mrb, mrb_value self)
 static mrb_value
 proc_arity(mrb_state *mrb, mrb_value self)
 {
-  return mrb_fixnum_value(mrb_proc_arity(mrb_proc_ptr(self)));
+  return mrb_int_value(mrb, mrb_proc_arity(mrb_proc_ptr(self)));
 }
 
 /* 15.3.1.2.6  */

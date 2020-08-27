@@ -131,7 +131,7 @@ random_rand(mrb_state *mrb, rand_state *t, mrb_value max)
 #endif
   }
   else {
-    value = mrb_fixnum_value(rand_uint32(t) % mrb_integer(max));
+    value = mrb_int_value(mrb, rand_uint32(t) % mrb_integer(max));
   }
 
   return value;
@@ -224,7 +224,7 @@ random_m_srand(mrb_state *mrb, mrb_value self)
   }
   old_seed = rand_seed(t, seed);
 
-  return mrb_fixnum_value((mrb_int)old_seed);
+  return mrb_int_value(mrb, (mrb_int)old_seed);
 }
 
 /*
@@ -378,7 +378,7 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
         }
         break;
       }
-      mrb_ary_push(mrb, result, mrb_fixnum_value(r));
+      mrb_ary_push(mrb, result, mrb_int_value(mrb, r));
     }
     for (i=0; i<n; i++) {
       mrb_int idx = mrb_integer(RARRAY_PTR(result)[i]);
