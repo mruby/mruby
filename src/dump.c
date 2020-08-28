@@ -12,6 +12,7 @@
 #include <mruby/irep.h>
 #include <mruby/numeric.h>
 #include <mruby/debug.h>
+#include <mruby/endian.h>
 
 #ifndef MRB_NO_FLOAT
 #ifdef MRB_USE_FLOAT32
@@ -89,13 +90,25 @@ write_iseq_block(mrb_state *mrb, const mrb_irep *irep, uint8_t *buf, uint8_t fla
 }
 
 #ifndef MRB_NO_FLOAT
-static mrb_value
-float_to_str(mrb_state *mrb, mrb_float f)
+static void
+dump_float(mrb_state *mrb, uint8_t *buf, mrb_float f)
 {
-  if (isinf(f)) {
-    return f < 0 ? mrb_str_new_lit(mrb, "I") : mrb_str_new_lit(mrb, "i");
+  /* dump IEEE754 binary in little endian */
+  union {
+    double f;
+    char s[sizeof(double)];
+  } u = {.f = (double)f};
+
+  if (littleendian) {
+    memcpy(buf, u.s, sizeof(double));
   }
-  return  mrb_float_to_str(mrb, mrb_float_value(mrb, f), MRB_FLOAT_FMT);
+  else {
+    int i;
+
+    for (i=0; i<sizeof(double); i++) {
+      buf[i] = u.s[sizeof(double)-i-1];
+    }
+  }
 }
 #endif
 
@@ -133,10 +146,7 @@ get_pool_block_size(mrb_state *mrb, const mrb_irep *irep)
     case IREP_TT_FLOAT:
 #ifndef MRB_NO_FLOAT
       {
-        mrb_value str = float_to_str(mrb, irep->pool[pool_no].u.f);
-        mrb_int len = RSTRING_LEN(str);
-        mrb_assert_int_fit(mrb_int, len, size_t, SIZE_MAX);
-        size += (size_t)len;
+        size += sizeof(double);
       }
 #endif
       break;
@@ -194,12 +204,9 @@ write_pool_block(mrb_state *mrb, const mrb_irep *irep, uint8_t *buf)
       cur += uint8_to_bin(IREP_TT_FLOAT, cur); /* data type */
 #ifndef MRB_NO_FLOAT
       {
-        mrb_value str = float_to_str(mrb, irep->pool[pool_no].u.f);
-        ptr = RSTRING_PTR(str);
-        len = RSTRING_LEN(str);
-        mrb_assert_int_fit(mrb_int, len, uint16_t, UINT16_MAX);
+        len = sizeof(double);
         cur += uint16_to_bin((uint16_t)len, cur); /* data length */
-        memcpy(cur, ptr, (size_t)len);
+        dump_float(mrb, cur,irep->pool[pool_no].u.f);
         cur += len;
       }
 #else

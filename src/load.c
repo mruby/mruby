@@ -15,6 +15,7 @@
 #include <mruby/debug.h>
 #include <mruby/error.h>
 #include <mruby/data.h>
+#include <mruby/endian.h>
 
 #if SIZE_MAX < UINT32_MAX
 # error size_t must be at least 32 bits wide
@@ -40,17 +41,26 @@ offset_crc_body(void)
 }
 
 #ifndef MRB_NO_FLOAT
-double mrb_str_len_to_dbl(mrb_state *mrb, const char *s, size_t len, mrb_bool badcheck);
-
 static double
 str_to_double(mrb_state *mrb, const char *p, size_t len)
 {
-  /* `i`, `inf`, `infinity` */
-  if (len > 0 && p[0] == 'i') return INFINITY;
+  /* dump IEEE754 little endian binary */
+  union {
+    char s[sizeof(double)];
+    double f;
+  } u;
 
-  /* `I`, `-inf`, `-infinity` */
-  if (p[0] == 'I' || (len > 1 && p[0] == '-' && p[1] == 'i')) return -INFINITY;
-  return mrb_str_len_to_dbl(mrb, p, len, TRUE);
+  mrb_assert(sizeof(double)==len);
+  if (littleendian) {
+    memcpy(u.s, p, sizeof(double));
+  }
+  else {
+    int i;
+    for (i=0; i<sizeof(double); i++) {
+      u.s[i] = p[sizeof(double)-i-1];
+    }
+  }
+  return u.f;
 }
 #endif
 
