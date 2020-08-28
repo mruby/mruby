@@ -122,7 +122,7 @@ complex_to_i(mrb_state *mrb, mrb_value self)
   if (p->imaginary != 0) {
     mrb_raisef(mrb, E_RANGE_ERROR, "can't convert %v into Float", self);
   }
-  return mrb_int_value(mrb, p->real);
+  return mrb_int_value(mrb, (mrb_int)p->real);
 }
 
 static mrb_value

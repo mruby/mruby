@@ -333,7 +333,7 @@ static mrb_value mrb_run(mrb_state *mrb, const struct RProc* proc, mrb_value sel
 #endif
 
 MRB_API mrb_value
-mrb_funcall(mrb_state *mrb, mrb_value self, const char *name, mrb_int argc, ...)
+mrb_funcall(mrb_state *mrb, mrb_value self, const char *name, int argc, ...)
 {
   mrb_value argv[MRB_FUNCALL_ARGC_MAX];
   va_list ap;
@@ -353,7 +353,7 @@ mrb_funcall(mrb_state *mrb, mrb_value self, const char *name, mrb_int argc, ...)
 }
 
 MRB_API mrb_value
-mrb_funcall_id(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc, ...)
+mrb_funcall_id(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, ...)
 {
   mrb_value argv[MRB_FUNCALL_ARGC_MAX];
   va_list ap;
@@ -396,7 +396,7 @@ ci_nregs(mrb_callinfo *ci)
 }
 
 MRB_API mrb_value
-mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc, const mrb_value *argv, mrb_value blk)
+mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, const mrb_value *argv, mrb_value blk)
 {
   mrb_value val;
   int ai = mrb_gc_arena_save(mrb);
@@ -497,7 +497,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
 }
 
 MRB_API mrb_value
-mrb_funcall_argv(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc, const mrb_value *argv)
+mrb_funcall_argv(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, const mrb_value *argv)
 {
   return mrb_funcall_with_block(mrb, self, mid, argc, argv, mrb_nil_value());
 }
@@ -849,7 +849,7 @@ argnum_error(mrb_state *mrb, mrb_int num)
 {
   mrb_value exc;
   mrb_value str;
-  mrb_int argc = mrb->c->ci->argc;
+  int argc = mrb->c->ci->argc;
 
   if (argc < 0) {
     mrb_value args = mrb->c->stack[1];
@@ -1303,7 +1303,7 @@ RETRY_TRY_BLOCK:
         struct RBreak *brk = (struct RBreak*)mrb->exc;
         mrb_value target = mrb_break_value_get(brk);
         mrb_assert(mrb_integer_p(target));
-        a = mrb_integer(target);
+        a = (uint32_t)mrb_integer(target);
         mrb_assert(a >= 0 && a < irep->ilen);
       }
       CHECKPOINT_MAIN(RBREAK_TAG_JUMP) {

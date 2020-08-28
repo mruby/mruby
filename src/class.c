@@ -50,7 +50,7 @@ mt_new(mrb_state *mrb)
   return t;
 }
 
-static struct mt_elem *mt_put(mrb_state *mrb, mt_tbl *t, mrb_sym sym, int func_p, union mt_ptr ptr);
+static struct mt_elem *mt_put(mrb_state *mrb, mt_tbl *t, mrb_sym sym, size_t func_p, union mt_ptr ptr);
 
 static void
 mt_rehash(mrb_state *mrb, mt_tbl *t)
@@ -81,7 +81,7 @@ mt_rehash(mrb_state *mrb, mt_tbl *t)
 
 /* Set the value for the symbol in the method table. */
 static struct mt_elem*
-mt_put(mrb_state *mrb, mt_tbl *t, mrb_sym sym, int func_p, union mt_ptr ptr)
+mt_put(mrb_state *mrb, mt_tbl *t, mrb_sym sym, size_t func_p, union mt_ptr ptr)
 {
   size_t hash, pos, start;
   struct mt_elem *dslot = NULL;
