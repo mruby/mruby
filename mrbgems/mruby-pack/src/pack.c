@@ -9,10 +9,10 @@
 #include "mruby/numeric.h"
 #include "mruby/string.h"
 #include "mruby/variable.h"
+#include "mruby/endian.h"
 
 #include <ctype.h>
 #include <errno.h>
-#include <limits.h>
 #include <string.h>
 
 struct tmpl {
@@ -62,36 +62,6 @@ enum {
 const static unsigned char base64chars[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 static unsigned char base64_dec_tab[128];
-
-#if !defined(BYTE_ORDER) && defined(__BYTE_ORDER__)
-# define BYTE_ORDER __BYTE_ORDER__
-#endif
-#if !defined(BIG_ENDIAN) && defined(__ORDER_BIG_ENDIAN__)
-# define BIG_ENDIAN __ORDER_BIG_ENDIAN__
-#endif
-#if !defined(LITTLE_ENDIAN) && defined(__ORDER_LITTLE_ENDIAN__)
-# define LITTLE_ENDIAN __ORDER_LITTLE_ENDIAN__
-#endif
-
-#ifdef BYTE_ORDER
-# if BYTE_ORDER == BIG_ENDIAN
-#  define littleendian 0
-#  define check_little_endian() (void)0
-# elif BYTE_ORDER == LITTLE_ENDIAN
-#  define littleendian 1
-#  define check_little_endian() (void)0
-# endif
-#endif
-#ifndef littleendian
-/* can't distinguish endian in compile time */
-static int littleendian = 0;
-static void
-check_little_endian(void)
-{
-  unsigned int n = 1;
-  littleendian = (*(unsigned char *)&n == 1);
-}
-#endif
 
 static unsigned int
 hex2int(unsigned char ch)
@@ -1426,7 +1396,6 @@ mrb_pack_unpack1(mrb_state *mrb, mrb_value str)
 void
 mrb_mruby_pack_gem_init(mrb_state *mrb)
 {
-  check_little_endian();
   make_base64_dec_tab();
 
   mrb_define_method(mrb, mrb->array_class, "pack", mrb_pack_pack, MRB_ARGS_REQ(1));
