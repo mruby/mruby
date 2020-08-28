@@ -1040,8 +1040,8 @@ MRB_API mrb_value mrb_get_arg1(mrb_state *mrb);
  * @param ... Variadic values(not type safe!).
  * @return [mrb_value] mruby function value.
  */
-MRB_API mrb_value mrb_funcall(mrb_state *mrb, mrb_value val, const char *name, mrb_int argc, ...);
-MRB_API mrb_value mrb_funcall_id(mrb_state *mrb, mrb_value val, mrb_sym mid, mrb_int argc, ...);
+MRB_API mrb_value mrb_funcall(mrb_state *mrb, mrb_value val, const char *name, int argc, ...);
+MRB_API mrb_value mrb_funcall_id(mrb_state *mrb, mrb_value val, mrb_sym mid, int argc, ...);
 /**
  * Call existing ruby functions. This is basically the type safe version of mrb_funcall.
  *
@@ -1070,11 +1070,11 @@ MRB_API mrb_value mrb_funcall_id(mrb_state *mrb, mrb_value val, mrb_sym mid, mrb
  * @return [mrb_value] mrb_value mruby function value.
  * @see mrb_funcall
  */
-MRB_API mrb_value mrb_funcall_argv(mrb_state *mrb, mrb_value val, mrb_sym name, mrb_int argc, const mrb_value *argv);
+MRB_API mrb_value mrb_funcall_argv(mrb_state *mrb, mrb_value val, mrb_sym name, int argc, const mrb_value *argv);
 /**
  * Call existing ruby functions with a block.
  */
-MRB_API mrb_value mrb_funcall_with_block(mrb_state *mrb, mrb_value val, mrb_sym name, mrb_int argc, const mrb_value *argv, mrb_value block);
+MRB_API mrb_value mrb_funcall_with_block(mrb_state *mrb, mrb_value val, mrb_sym name, int argc, const mrb_value *argv, mrb_value block);
 /**
  * Create a symbol from C string. But usually it's better to use MRB_SYM(sym) and MRB_QSYM(qsym).
  *

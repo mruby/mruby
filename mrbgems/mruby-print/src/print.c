@@ -22,7 +22,7 @@ printstr(mrb_state *mrb, const char *p, size_t len)
 #if defined(_WIN32)
   if (isatty(fileno(stdout))) {
     DWORD written;
-    int wlen = MultiByteToWideChar(CP_UTF8, 0, p, len, NULL, 0);
+    size_t wlen = MultiByteToWideChar(CP_UTF8, 0, p, len, NULL, 0);
     wchar_t* utf16 = (wchar_t*)mrb_malloc(mrb, (wlen+1) * sizeof(wchar_t));
     if (MultiByteToWideChar(CP_UTF8, 0, p, len, utf16, wlen) > 0) {
       utf16[wlen] = 0;
