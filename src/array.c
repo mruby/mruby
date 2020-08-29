@@ -1081,7 +1081,9 @@ mrb_ary_splat(mrb_state *mrb, mrb_value v)
   mrb_value a;
 
   if (mrb_array_p(v)) {
-    return v;
+    struct RArray *a = mrb_ary_ptr(v);
+    a = ary_dup(mrb, a);
+    return mrb_obj_value(a);
   }
 
   if (!mrb_respond_to(mrb, v, mrb_intern_lit(mrb, "to_a"))) {
