@@ -772,13 +772,20 @@ mrb_obj_ceqq(mrb_state *mrb, mrb_value self)
   if (mrb_array_p(self)) {
     ary = self;
   }
-  else if (!mrb_respond_to(mrb, v, mrb_intern_lit(mrb, "to_a"))) {
+  else if (mrb_nil_p(self)) {
+    return mrb_false_value();
+  }
+  else if (!mrb_respond_to(mrb, self, mrb_intern_lit(mrb, "to_a"))) {
     mrb_value c = mrb_funcall_argv(mrb, self, eqq, 1, &v);
     if (mrb_test(c)) return mrb_true_value();
     return mrb_false_value();
   }
   else {
-    ary = mrb_ary_splat(mrb, self);
+    ary = mrb_funcall(mrb, self, "to_a", 0);
+    if (mrb_nil_p(ary)) {
+      return mrb_funcall_argv(mrb, self, eqq, 1, &v);
+    }
+    mrb_ensure_array_type(mrb, ary);
   }
   len = RARRAY_LEN(ary);
   for (i=0; i<len; i++) {
