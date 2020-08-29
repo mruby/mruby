@@ -82,6 +82,9 @@ MRB_BEGIN_DECL
 # elif defined(__MINGW32_MAJOR_VERSION)
 #  define MRB_MINGW32_VERSION  (__MINGW32_MAJOR_VERSION * 1000 + __MINGW32_MINOR_VERSION)
 # endif
+# if defined(__MINGW32__) && !defined(__MINGW64__)
+#   define MRB_MINGW32_LEGACY
+# endif
 #endif
 
 MRB_END_DECL

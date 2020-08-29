@@ -66,7 +66,7 @@
 #define LOCK_UN 8
 #endif
 
-#ifndef _WIN32
+#if !defined(_WIN32) || defined(MRB_MINGW32_LEGACY)
 typedef struct stat         mrb_stat;
 # define mrb_stat(path, sb) stat(path, sb)
 # define mrb_fstat(fd, sb)  fstat(fd, sb)
