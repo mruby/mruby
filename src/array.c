@@ -1078,11 +1078,11 @@ mrb_ary_rindex_m(mrb_state *mrb, mrb_value self)
 MRB_API mrb_value
 mrb_ary_splat(mrb_state *mrb, mrb_value v)
 {
-  mrb_value a;
+  mrb_value ary;
+  struct RArray *a;
 
   if (mrb_array_p(v)) {
-    struct RArray *a = mrb_ary_ptr(v);
-    a = ary_dup(mrb, a);
+    a = ary_dup(mrb, mrb_ary_ptr(v));
     return mrb_obj_value(a);
   }
 
@@ -1090,12 +1090,17 @@ mrb_ary_splat(mrb_state *mrb, mrb_value v)
     return mrb_ary_new_from_values(mrb, 1, &v);
   }
 
-  a = mrb_funcall(mrb, v, "to_a", 0);
-  if (mrb_nil_p(a)) {
+  ary = mrb_funcall(mrb, v, "to_a", 0);
+  if (mrb_nil_p(ary)) {
     return mrb_ary_new_from_values(mrb, 1, &v);
   }
-  mrb_ensure_array_type(mrb, a);
-  return a;
+  mrb_ensure_array_type(mrb, ary);
+  a = mrb_ary_ptr(ary);
+  if (mrb_frozen_p(a)) {
+    a = ary_dup(mrb, a);
+    return mrb_obj_value(a);
+  }
+  return ary;
 }
 
 static mrb_value
