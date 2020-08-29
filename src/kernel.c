@@ -767,8 +767,19 @@ mrb_obj_ceqq(mrb_state *mrb, mrb_value self)
   mrb_value v = mrb_get_arg1(mrb);
   mrb_int i, len;
   mrb_sym eqq = mrb_intern_lit(mrb, "===");
-  mrb_value ary = mrb_ary_splat(mrb, self);
+  mrb_value ary;
 
+  if (mrb_array_p(self)) {
+    ary = self;
+  }
+  else if (!mrb_respond_to(mrb, v, mrb_intern_lit(mrb, "to_a"))) {
+    mrb_value c = mrb_funcall_argv(mrb, self, eqq, 1, &v);
+    if (mrb_test(c)) return mrb_true_value();
+    return mrb_false_value();
+  }
+  else {
+    ary = mrb_ary_splat(mrb, self);
+  }
   len = RARRAY_LEN(ary);
   for (i=0; i<len; i++) {
     mrb_value c = mrb_funcall_argv(mrb, mrb_ary_entry(ary, i), eqq, 1, &v);
