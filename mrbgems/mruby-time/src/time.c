@@ -258,7 +258,7 @@ mrb_to_time_t(mrb_state *mrb, mrb_value obj, time_t *usec)
     default:
     case MRB_TT_INTEGER:
       {
-        mrb_int i = mrb_int(mrb, obj);
+        mrb_int i = mrb_integer(obj);
 
         if ((MRB_INT_MAX > MRB_TIME_MAX && i > 0 && (time_t)i > MRB_TIME_MAX) ||
             (0 > MRB_TIME_MIN && MRB_TIME_MIN > MRB_INT_MIN && MRB_TIME_MIN > i)) {
