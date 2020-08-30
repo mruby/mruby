@@ -1096,11 +1096,8 @@ mrb_ary_splat(mrb_state *mrb, mrb_value v)
   }
   mrb_ensure_array_type(mrb, ary);
   a = mrb_ary_ptr(ary);
-  if (mrb_frozen_p(a)) {
-    a = ary_dup(mrb, a);
-    return mrb_obj_value(a);
-  }
-  return ary;
+  a = ary_dup(mrb, a);
+  return mrb_obj_value(a);
 }
 
 static mrb_value
