@@ -134,13 +134,13 @@ module MRuby
       cwd = Dir.pwd
       is_success = false
       # Change to a tmp dir when compiling so we don't litter compiler artifacts
-      Dir.mktmpdir do |tmpdir|
-        Dir.chdir tmpdir
-        sh(command, infile.path, verbose: false) { |retval, _| is_success = retval }
-      end
+      tmpdir = Dir.mktmpdir
+      Dir.chdir tmpdir
+      sh(command, infile.path, verbose: false) { |retval, _| is_success = retval }
       infile.delete
       Dir.chdir cwd
-
+      # Some systems strangely do not allow removing a temp dir after creation
+      FileUtils.remove_entry(tmpdir) rescue Errno::EACCES
       return is_success
     end
 
