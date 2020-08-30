@@ -31,6 +31,8 @@ MRuby::Toolchain.new(:gcc) do |conf, params|
   end
 
   [[conf.cc, 'c'], [conf.cxx, 'c++']].each do |cc, lang|
+    cc.defines += %w(HAS_MALLOC_TRIM) if cc.has_function? 'malloc_trim', with_header: 'malloc.h'
+
     cc.instance_variable_set :@header_search_language, lang
     def cc.header_search_paths
       if @header_search_command != command
