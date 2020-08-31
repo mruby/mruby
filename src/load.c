@@ -55,7 +55,7 @@ str_to_double(mrb_state *mrb, const char *p, size_t len)
     memcpy(u.s, p, sizeof(double));
   }
   else {
-    int i;
+    size_t i;
     for (i=0; i<sizeof(double); i++) {
       u.s[i] = p[sizeof(double)-i-1];
     }

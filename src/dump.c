@@ -103,7 +103,7 @@ dump_float(mrb_state *mrb, uint8_t *buf, mrb_float f)
     memcpy(buf, u.s, sizeof(double));
   }
   else {
-    int i;
+    size_t i;
 
     for (i=0; i<sizeof(double); i++) {
       buf[i] = u.s[sizeof(double)-i-1];
