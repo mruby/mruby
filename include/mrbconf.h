@@ -101,6 +101,9 @@
 # endif
 #endif
 
+/* call malloc_trim(0) from mrb_full_gc() */
+//#define MRB_USE_MALLOC_TRIM
+
 /* string class to handle UTF-8 encoding */
 //#define MRB_UTF8_STRING
 

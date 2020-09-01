@@ -96,6 +96,11 @@ does not fit in `Fixnum` integers.
 Pack `mrb_value` in a floating pointer number. Nothing
 changed from previous versions.
 
+== `MRB_USE_MALLOC_TRIM`
+
+Call `malloc_trim(0)` from mrb_full_gc() if this macro is defined.
+If you are using glibc malloc, this macro could reduce memory consumption.
+
 = Internal Changes
 
 == `Random` now use `xoshiro128++`.
