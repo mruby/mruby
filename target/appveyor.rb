@@ -4,18 +4,6 @@ def setup_option(conf)
   conf.linker.flags << "/DEBUG:NONE" unless ENV['LDFLAGS']
 end
 
-MRuby::Build.new('full-debug') do |conf|
-  toolchain :visualcpp
-  enable_debug
-
-  # include all core GEMs
-  conf.gembox 'full-core'
-  conf.cc.defines += %w(MRB_GC_STRESS MRB_ENABLE_DEBUG_HOOK)
-  setup_option(conf)
-
-  conf.enable_test
-end
-
 MRuby::Build.new do |conf|
   toolchain :visualcpp
 
