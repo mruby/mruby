@@ -1,5 +1,4 @@
 require 'forwardable'
-require 'tempfile'
 
 module MRuby
   class Command
@@ -127,31 +126,6 @@ module MRuby
       end
     end
 
-    def compiles?(source_text)
-      infile = Tempfile.new ['', '.c']
-      infile.write source_text
-      infile.close
-      cwd = Dir.pwd
-      is_success = false
-      # Change to a tmp dir when compiling so we don't litter compiler artifacts
-      tmpdir = Dir.mktmpdir
-      Dir.chdir tmpdir
-      sh(command, infile.path, verbose: false) { |retval, _| is_success = retval }
-      infile.delete
-      Dir.chdir cwd
-      # Some systems strangely do not allow removing a temp dir after creation
-      FileUtils.remove_entry(tmpdir) rescue Errno::EACCES
-      return is_success
-    end
-
-    def has_header?(header_name)
-      compiles? test_code_template header: header_name
-    end
-
-    def has_function?(function_name, with_header: nil)
-      compiles? test_code_template function: function_name, header: with_header
-    end
-
     private
 
     #
@@ -190,46 +164,6 @@ module MRuby
         #    []
       end.flatten.uniq
       deps << MRUBY_CONFIG
-    end
-
-    def test_code_template(function: nil, header: nil)
-      preamble = ''
-      body = ''
-
-      if header
-        preamble += <<-TEMPLATE
-#if defined __has_include
-#if !__has_include("#{header}")
-#error "Header #{header} not found"
-#endif
-#endif
-#include <#{header}>
-        TEMPLATE
-      end
-
-      if function
-        preamble += <<-TEMPLATE
-#if defined __stub_#{function} || defined __stub___#{function}
-#{function} unavailable
-#endif
-        TEMPLATE
-
-        # This is how autoconf works when using a function prototype.
-        body += <<-TEMPLATE
-  void *a = (void*) &#{function};
-  long long b = (long long) a;
-  return (int) b;
-        TEMPLATE
-      else
-        body = 'return 0;'
-      end
-
-      <<-TEMPLATE
-#{preamble}
-int main(void) {{
-#{body}
-}}
-      TEMPLATE
     end
   end
 
