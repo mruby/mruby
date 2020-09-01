@@ -2029,11 +2029,20 @@ RETRY_TRY_BLOCK:
                 goto L_RAISE;
               }
             }
+            /* check jump destination */
             while (cibase <= ci && ci->proc != dst) {
-              if (ci->acc < 0) {
+              if (ci->acc < 0) { /* jump cross C boudary */
                 localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
                 goto L_RAISE;
               }
+              ci--;
+            }
+            if (ci <= cibase) { /* no jump destination */
+              localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
+              goto L_RAISE;
+            }
+            ci = mrb->c->ci;
+            while (cibase <= ci && ci->proc != dst) {
               CHECKPOINT_RESTORE(RBREAK_TAG_RETURN_BLOCK) {
                 cibase = mrb->c->cibase;
                 dst = top_proc(mrb, proc);
@@ -2045,12 +2054,8 @@ RETRY_TRY_BLOCK:
               pc = ci->pc;
               ci = cipop(mrb);
             }
-            mrb->exc = NULL; /* clear break object */
             proc = ci->proc;
-            if (ci <= cibase) {
-              localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
-              goto L_RAISE;
-            }
+            mrb->exc = NULL; /* clear break object */
             break;
           }
           /* fallthrough */
