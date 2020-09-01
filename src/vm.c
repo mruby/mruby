@@ -2008,7 +2008,6 @@ RETRY_TRY_BLOCK:
       else {
         int acc;
         mrb_value v;
-        const struct RProc *dst;
 
         ci = mrb->c->ci;
         v = regs[a];
@@ -2017,6 +2016,7 @@ RETRY_TRY_BLOCK:
         case OP_R_RETURN:
           /* Fall through to OP_R_NORMAL otherwise */
           if (ci->acc >=0 && MRB_PROC_ENV_P(proc) && !MRB_PROC_STRICT_P(proc)) {
+            const struct RProc *dst;
             mrb_callinfo *cibase;
             cibase = mrb->c->cibase;
             dst = top_proc(mrb, proc);
