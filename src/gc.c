@@ -6,7 +6,7 @@
 
 #include <string.h>
 #include <stdlib.h>
-#ifdef HAS_MALLOC_TRIM
+#ifdef MRB_USE_MALLOC_TRIM
 #include <malloc.h>
 #endif
 #include <mruby.h>
@@ -1322,7 +1322,7 @@ mrb_full_gc(mrb_state *mrb)
     gc->full = FALSE;
   }
 
-#ifdef HAS_MALLOC_TRIM
+#ifdef MRB_USE_MALLOC_TRIM
   malloc_trim(0);
 #endif
   GC_TIME_STOP_AND_REPORT;
