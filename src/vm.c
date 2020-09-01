@@ -333,7 +333,7 @@ static mrb_value mrb_run(mrb_state *mrb, const struct RProc* proc, mrb_value sel
 #endif
 
 MRB_API mrb_value
-mrb_funcall(mrb_state *mrb, mrb_value self, const char *name, int argc, ...)
+mrb_funcall(mrb_state *mrb, mrb_value self, const char *name, mrb_int argc, ...)
 {
   mrb_value argv[MRB_FUNCALL_ARGC_MAX];
   va_list ap;
@@ -353,7 +353,7 @@ mrb_funcall(mrb_state *mrb, mrb_value self, const char *name, int argc, ...)
 }
 
 MRB_API mrb_value
-mrb_funcall_id(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, ...)
+mrb_funcall_id(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc, ...)
 {
   mrb_value argv[MRB_FUNCALL_ARGC_MAX];
   va_list ap;
@@ -396,7 +396,7 @@ ci_nregs(mrb_callinfo *ci)
 }
 
 MRB_API mrb_value
-mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, const mrb_value *argv, mrb_value blk)
+mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc, const mrb_value *argv, mrb_value blk)
 {
   mrb_value val;
   int ai = mrb_gc_arena_save(mrb);
@@ -497,7 +497,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, co
 }
 
 MRB_API mrb_value
-mrb_funcall_argv(mrb_state *mrb, mrb_value self, mrb_sym mid, int argc, const mrb_value *argv)
+mrb_funcall_argv(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc, const mrb_value *argv)
 {
   return mrb_funcall_with_block(mrb, self, mid, argc, argv, mrb_nil_value());
 }
@@ -849,7 +849,7 @@ argnum_error(mrb_state *mrb, mrb_int num)
 {
   mrb_value exc;
   mrb_value str;
-  int argc = mrb->c->ci->argc;
+  mrb_int argc = mrb->c->ci->argc;
 
   if (argc < 0) {
     mrb_value args = mrb->c->stack[1];
@@ -1568,7 +1568,7 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_SUPER, BB) {
-      int argc = (b == CALL_MAXARGS) ? -1 : b;
+      mrb_int argc = (b == CALL_MAXARGS) ? -1 : b;
       int bidx = (argc < 0) ? a+2 : a+b+1;
       mrb_method_t m;
       struct RClass *cls;
@@ -1747,22 +1747,22 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_ENTER, W) {
-      int m1 = MRB_ASPEC_REQ(a);
-      int o  = MRB_ASPEC_OPT(a);
-      int r  = MRB_ASPEC_REST(a);
-      int m2 = MRB_ASPEC_POST(a);
-      int kd = (MRB_ASPEC_KEY(a) > 0 || MRB_ASPEC_KDICT(a))? 1 : 0;
+      mrb_int m1 = MRB_ASPEC_REQ(a);
+      mrb_int o  = MRB_ASPEC_OPT(a);
+      mrb_int r  = MRB_ASPEC_REST(a);
+      mrb_int m2 = MRB_ASPEC_POST(a);
+      mrb_int kd = (MRB_ASPEC_KEY(a) > 0 || MRB_ASPEC_KDICT(a))? 1 : 0;
       /* unused
       int b  = MRB_ASPEC_BLOCK(a);
       */
-      int argc = mrb->c->ci->argc;
+      mrb_int argc = mrb->c->ci->argc;
       mrb_value *argv = regs+1;
       mrb_value * const argv0 = argv;
-      int const len = m1 + o + r + m2;
-      int const blk_pos = len + kd + 1;
+      mrb_int const len = m1 + o + r + m2;
+      mrb_int const blk_pos = len + kd + 1;
       mrb_value *blk = &argv[argc < 0 ? 1 : argc];
       mrb_value kdict = mrb_nil_value();
-      int kargs = kd;
+      mrb_int kargs = kd;
 
       /* arguments is passed with Array */
       if (argc < 0) {
