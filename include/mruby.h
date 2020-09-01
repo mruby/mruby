@@ -929,7 +929,7 @@ typedef const char *mrb_args_format;
  *      const char *kw_names[kw_num] = { "a", "b" };
  *      uint32_t kw_required = 0;
  *      mrb_value kw_values[kw_num];
- *      const mrb_kwargs kwargs = { kw_num, kw_values, kw_names, kw_required, NULL };
+ *      const mrb_kwargs kwargs = { kw_num, kw_required, kw_names, kw_values, NULL };
  *
  *      mrb_get_args(mrb, ":", &kwargs);
  *      if (mrb_undef_p(kw_values[0])) { kw_values[0] = mrb_fixnum_value(1); }
@@ -940,10 +940,10 @@ typedef const char *mrb_args_format;
  *
  *      mrb_value str, kw_rest;
  *      uint32_t kw_num = 3;
- *      const char *kw_names[kw_num] = { "x", "y", "z" };
+ *      const mrb_sym kw_names[kw_num] = { MRB_SYM(x), MRB_SYM(y), MRB_SYM(z) };
  *      uint32_t kw_required = 1;
  *      mrb_value kw_values[kw_num];
- *      const mrb_kwargs kwargs = { kw_num, kw_values, kw_names, kw_required, &kw_rest };
+ *      const mrb_kwargs kwargs = { kw_num, kw_required, kw_names, kw_values, &kw_rest };
  *
  *      mrb_get_args(mrb, "S:", &str, &kwargs);
  *      // or: mrb_get_args(mrb, ":S", &kwargs, &str);
@@ -954,11 +954,11 @@ typedef struct mrb_kwargs mrb_kwargs;
 
 struct mrb_kwargs
 {
-  uint32_t num;
-  mrb_value *values;
-  const char *const *table;
-  uint32_t required;
-  mrb_value *rest;
+  uint32_t num;                 /* number of keyword arguments */
+  uint32_t required;            /* number of required keyword arguments */
+  mrb_sym *table;               /* C array of symbols for keyword names */
+  mrb_value *values;            /* keyword argument values */
+  mrb_value *rest;              /* keyword rest (dict) */
 };
 
 /**
