@@ -1254,7 +1254,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         else {
           uint32_t kwnum = kwargs->num;
           uint32_t required = kwargs->required;
-          const char *const *kname = kwargs->table;
+          const mrb_sym *kname = kwargs->table;
           mrb_value *values = kwargs->values;
           uint32_t j;
           const uint32_t keyword_max = 40;
@@ -1264,16 +1264,16 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
           }
 
           for (j = required; j > 0; j --, kname ++, values ++) {
-            mrb_value k = mrb_symbol_value(mrb_intern_cstr(mrb, *kname));
+            mrb_value k = mrb_symbol_value(*kname);
             if (!mrb_hash_key_p(mrb, ksrc, k)) {
-              mrb_raisef(mrb, E_ARGUMENT_ERROR, "missing keyword: %s", *kname);
+              mrb_raisef(mrb, E_ARGUMENT_ERROR, "missing keyword: %n", *kname);
             }
             *values = mrb_hash_delete_key(mrb, ksrc, k);
             mrb_gc_protect(mrb, *values);
           }
 
           for (j = kwnum - required; j > 0; j --, kname ++, values ++) {
-            mrb_value k = mrb_symbol_value(mrb_intern_cstr(mrb, *kname));
+            mrb_value k = mrb_symbol_value(*kname);
             if (mrb_hash_key_p(mrb, ksrc, k)) {
               *values = mrb_hash_delete_key(mrb, ksrc, k);
               mrb_gc_protect(mrb, *values);
