@@ -1688,7 +1688,7 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, integer, "<<",       int_lshift,      MRB_ARGS_REQ(1)); /* 15.2.8.3.12 */
   mrb_define_method(mrb, integer, ">>",       int_rshift,      MRB_ARGS_REQ(1)); /* 15.2.8.3.13 */
   mrb_define_method(mrb, integer, "eql?",     int_eql,         MRB_ARGS_REQ(1)); /* 15.2.8.3.16 */
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
   mrb_define_method(mrb, integer, "to_f",     int_to_f,        MRB_ARGS_NONE()); /* 15.2.8.3.23 */
 #endif
   mrb_define_method(mrb, integer, "to_s",     int_to_s,        MRB_ARGS_OPT(1)); /* 15.2.8.3.25 */
