@@ -82,13 +82,6 @@ class Numeric
 end
 
 module Kernel
-  def Rational(numerator, denominator = 1)
-    a = numerator
-    b = denominator
-    a, b = b, a % b until b == 0
-    Rational._new(numerator.div(a), denominator.div(a))
-  end
-
   [:+, :-, :*, :/, :<=>, :==, :<, :<=, :>, :>=].each do |op|
     original_operator_name = :"__original_operator_#{op}_rational"
     Integer.instance_eval do
