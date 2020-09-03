@@ -1323,13 +1323,6 @@ MRB_INLINE void mrb_check_frozen(mrb_state *mrb, void *o)
   if (mrb_frozen_p((struct RBasic*)o)) mrb_frozen_error(mrb, o);
 }
 
-typedef enum call_type {
-  CALL_PUBLIC,
-  CALL_FCALL,
-  CALL_VCALL,
-  CALL_TYPE_MAX
-} call_type;
-
 MRB_API void mrb_define_alias(mrb_state *mrb, struct RClass *c, const char *a, const char *b);
 MRB_API const char *mrb_class_name(mrb_state *mrb, struct RClass* klass);
 MRB_API void mrb_define_global_const(mrb_state *mrb, const char *name, mrb_value val);
