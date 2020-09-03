@@ -966,9 +966,9 @@ prepare_tagged_break(mrb_state *mrb, uint32_t tag, const struct RProc *proc, mrb
 
 #define INIT_DISPATCH for (;;) { insn = BYTECODE_DECODER(*pc); CODE_FETCH_HOOK(mrb, irep, pc, regs); switch (insn) {
 #define CASE(insn,ops) case insn: pc0=pc++; FETCH_ ## ops (); pc_save = pc;
-#define NEXT break
+#define NEXT goto L_END_DISPATCH
 #define JUMP NEXT
-#define END_DISPATCH }}
+#define END_DISPATCH L_END_DISPATCH:;}}
 
 #else
 
@@ -2324,7 +2324,7 @@ RETRY_TRY_BLOCK:
           mrb_int div = mrb_num_div_int(mrb, x, y);
           SET_INT_VALUE(mrb, regs[a], div);
         }
-        goto L_DIV_OUT;
+        NEXT;
 #ifndef MRB_NO_FLOAT
       case TYPES2(MRB_TT_INTEGER,MRB_TT_FLOAT):
         x = (mrb_float)mrb_integer(regs[a]);
@@ -2349,7 +2349,6 @@ RETRY_TRY_BLOCK:
       f = mrb_num_div_flo(mrb, x, y);
       SET_FLOAT_VALUE(mrb, regs[a], f);
 #endif
-    L_DIV_OUT:
       NEXT;
     }
 
