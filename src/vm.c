@@ -2309,8 +2309,10 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_DIV, B) {
+      mrb_int mrb_num_div_int(mrb_state *mrb, mrb_int x, mrb_int y);
 #ifndef MRB_NO_FLOAT
-      double x, y, f;
+      mrb_float mrb_num_div_flo(mrb_state *mrb, mrb_float x, mrb_float y);
+      mrb_float x, y, f;
 #endif
 
       /* need to check if op is overridden */
@@ -2319,34 +2321,8 @@ RETRY_TRY_BLOCK:
         {
           mrb_int x = mrb_integer(regs[a]);
           mrb_int y = mrb_integer(regs[a+1]);
-
-          
-          if (y == 0) {
-            mrb_raise(mrb, E_ZERODIV_ERROR, "divided by 0");
-          }
-          else if(x == MRB_INT_MIN && y == -1) {
-            mrb_raise(mrb, E_RANGE_ERROR, "integer overflow in division");
-          }
-          else {
-            mrb_int div, mod;
-            if (y < 0) {
-              if (x < 0)
-                div = -x / -y;
-              else
-                div = - (x / -y);
-            }
-            else {
-              if (x < 0)
-                div = - (-x / y);
-              else
-                div = x / y;
-            }
-            mod = x - div*y;
-            if ((mod < 0 && y > 0) || (mod > 0 && y < 0)) {
-              div -= 1;
-            }
-            SET_INT_VALUE(mrb, regs[a], div);
-          }
+          mrb_int div = mrb_num_div_int(mrb, x, y);
+          SET_INT_VALUE(mrb, regs[a], div);
         }
         goto L_DIV_OUT;
 #ifndef MRB_NO_FLOAT
@@ -2370,14 +2346,7 @@ RETRY_TRY_BLOCK:
       }
 
 #ifndef MRB_NO_FLOAT
-      if (y == 0) {
-        if (x > 0) f = INFINITY;
-        else if (x < 0) f = -INFINITY;
-        else /* if (x == 0) */ f = NAN;
-      }
-      else {
-        f = x / y;
-      }
+      f = mrb_num_div_flo(mrb, x, y);
       SET_FLOAT_VALUE(mrb, regs[a], f);
 #endif
     L_DIV_OUT:

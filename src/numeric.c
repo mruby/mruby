@@ -101,6 +101,41 @@ int_pow(mrb_state *mrb, mrb_value x)
 #endif
 }
 
+
+mrb_int
+mrb_num_div_int(mrb_state *mrb, mrb_int x, mrb_int y)
+{
+  if (y == 0) {
+    mrb_raise(mrb, E_ZERODIV_ERROR, "divided by 0");
+  }
+  else if(x == MRB_INT_MIN && y == -1) {
+    mrb_raise(mrb, E_RANGE_ERROR, "integer overflow in division");
+  }
+  else {
+    mrb_int div, mod;
+
+    if (y < 0) {
+      if (x < 0)
+        div = -x / -y;
+      else
+        div = - (x / -y);
+    }
+    else {
+      if (x < 0)
+        div = - (-x / y);
+      else
+        div = x / y;
+    }
+    mod = x - div * y;
+    if ((mod < 0 && y > 0) || (mod > 0 && y < 0)) {
+      div -= 1;
+    }
+    return div;
+  }
+  /* not reached */
+  return 0;
+}
+
 /* 15.2.8.3.4  */
 /* 15.2.9.3.4  */
 /*
@@ -111,7 +146,6 @@ int_pow(mrb_state *mrb, mrb_value x)
  * the class of <code>num</code> and on the magnitude of the
  * result.
  */
-
 static mrb_value
 int_div(mrb_state *mrb, mrb_value xv)
 {
@@ -208,23 +242,31 @@ flo_idiv(mrb_state *mrb, mrb_value x)
 #endif
 }
 
+mrb_float
+mrb_num_div_flo(mrb_state *mrb, mrb_float x, mrb_float y)
+{
+  mrb_float f;
+
+  if (y == 0) {
+    if (x > 0) f = INFINITY;
+    else if (x < 0) f = -INFINITY;
+    else /* if (x == 0) */ f = NAN;
+  }
+  else {
+    f = x / y;
+  }
+  return f;
+}
+
 static mrb_value
 flo_div(mrb_state *mrb, mrb_value xv)
 {
   mrb_float x, y;
 
-  mrb_get_args(mrb, "f", &y);
   x = mrb_float(xv);
-  if (y == 0) {
-    if (x < 0)
-      y = -INFINITY;
-    else if (x > 0)
-      y = INFINITY;
-    else /* if (x == 0) */
-      y = NAN;
-    return mrb_float_value(mrb, y);
-  }
-  return mrb_float_value(mrb, x / y);
+  mrb_get_args(mrb, "f", &y);
+  x = mrb_num_div_flo(mrb, x, y);
+  return mrb_float_value(mrb, x);
 }
 
 static mrb_value
