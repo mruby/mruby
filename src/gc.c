@@ -591,11 +591,11 @@ add_gray_list(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
   gc->gray_list = obj;
 }
 
-static int
+static mrb_int
 ci_nregs(mrb_callinfo *ci)
 {
   const struct RProc *p = ci->proc;
-  int n = 0;
+  mrb_int n = 0;
 
   if (!p) {
     if (ci->argc < 0) return 3;
