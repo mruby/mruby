@@ -62,7 +62,7 @@ env_new(mrb_state *mrb, mrb_int nlocals)
 {
   struct REnv *e;
   mrb_callinfo *ci = mrb->c->ci;
-  int bidx;
+  mrb_int bidx;
 
   e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, NULL);
   MRB_ENV_SET_LEN(e, nlocals);

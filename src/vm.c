@@ -264,8 +264,8 @@ top_proc(mrb_state *mrb, const struct RProc *proc)
 #define CI_ACC_RESUMED -3
 
 static inline mrb_callinfo*
-cipush(mrb_state *mrb, const mrb_code *pc, int push_stacks, int acc,
-    struct RClass *target_class, const struct RProc *proc, mrb_sym mid, int argc)
+cipush(mrb_state *mrb, const mrb_code *pc, mrb_int push_stacks, mrb_int acc,
+       struct RClass *target_class, const struct RProc *proc, mrb_sym mid, mrb_int argc)
 {
   struct mrb_context *c = mrb->c;
   mrb_callinfo *ci = c->ci;
@@ -371,11 +371,11 @@ mrb_funcall_id(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc, ...)
   return mrb_funcall_argv(mrb, self, mid, argc, argv);
 }
 
-static int
+static mrb_int
 ci_nregs(mrb_callinfo *ci)
 {
   const struct RProc *p;
-  int n = 0;
+  mrb_int n = 0;
 
   if (!ci) return 3;
   p = ci->proc;
@@ -425,7 +425,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     mrb_method_t m;
     struct RClass *c;
     mrb_callinfo *ci;
-    int n = ci_nregs(mrb->c->ci);
+    mrb_int n = ci_nregs(mrb->c->ci);
     ptrdiff_t voff = -1;
 
     if (!mrb->c->stack) {
@@ -506,7 +506,7 @@ mrb_value
 mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p)
 {
   mrb_callinfo *ci = mrb->c->ci;
-  int keep, nregs;
+  mrb_int keep, nregs;
 
   mrb->c->stack[0] = self;
   ci->proc = p;
@@ -691,7 +691,7 @@ mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value 
   mrb_sym mid = mrb->c->ci->mid;
   mrb_callinfo *ci;
   mrb_value val;
-  int n;
+  mrb_int n;
 
   if (mrb_nil_p(b)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
@@ -982,13 +982,13 @@ prepare_tagged_break(mrb_state *mrb, uint32_t tag, const struct RProc *proc, mrb
 #endif
 
 MRB_API mrb_value
-mrb_vm_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, unsigned int stack_keep)
+mrb_vm_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, unsigned mrb_int stack_keep)
 {
   const mrb_irep *irep = proc->body.irep;
   mrb_value result;
   struct mrb_context *c = mrb->c;
   ptrdiff_t cioff = c->ci - c->cibase;
-  unsigned int nregs = irep->nregs;
+  unsigned mrb_int nregs = irep->nregs;
 
   if (!c->stack) {
     stack_init(mrb);
@@ -1411,8 +1411,8 @@ RETRY_TRY_BLOCK:
     mid = syms[b];
     L_SENDB_SYM:
     {
-      int argc = (c == CALL_MAXARGS) ? -1 : c;
-      int bidx = (argc < 0) ? a+2 : a+c+1;
+      mrb_int argc = (c == CALL_MAXARGS) ? -1 : c;
+      mrb_int bidx = (argc < 0) ? a+2 : a+c+1;
       mrb_method_t m;
       struct RClass *cls;
       mrb_callinfo *ci = mrb->c->ci;
@@ -1688,11 +1688,11 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_ARGARY, BS) {
-      int m1 = (b>>11)&0x3f;
-      int r  = (b>>10)&0x1;
-      int m2 = (b>>5)&0x1f;
-      int kd = (b>>4)&0x1;
-      int lv = (b>>0)&0xf;
+      mrb_int m1 = (b>>11)&0x3f;
+      mrb_int r  = (b>>10)&0x1;
+      mrb_int m2 = (b>>5)&0x1f;
+      mrb_int kd = (b>>4)&0x1;
+      mrb_int lv = (b>>0)&0xf;
       mrb_value *stack;
 
       if (mrb->c->ci->mid == 0 || mrb->c->ci->target_class == NULL) {
@@ -1717,13 +1717,13 @@ RETRY_TRY_BLOCK:
       else {
         mrb_value *pp = NULL;
         struct RArray *rest;
-        int len = 0;
+        mrb_int len = 0;
 
         if (mrb_array_p(stack[m1])) {
           struct RArray *ary = mrb_ary_ptr(stack[m1]);
 
           pp = ARY_PTR(ary);
-          len = (int)ARY_LEN(ary);
+          len = ARY_LEN(ary);
         }
         regs[a] = mrb_ary_new_capa(mrb, m1+len+m2+kd);
         rest = mrb_ary_ptr(regs[a]);
@@ -1814,7 +1814,7 @@ RETRY_TRY_BLOCK:
 
       /* no rest arguments */
       if (argc-kargs < len) {
-        int mlen = m2;
+        mrb_int mlen = m2;
         if (argc < m1+m2) {
           mlen = m1 < argc ? argc - m1 : 0;
         }
@@ -1844,7 +1844,7 @@ RETRY_TRY_BLOCK:
           pc += (argc - kargs - m1 - m2)*3;
       }
       else {
-        int rnum = 0;
+        mrb_int rnum = 0;
         if (argv0 != argv) {
           regs[blk_pos] = *blk; /* move block */
           if (kd) regs[len + 1] = kdict;
@@ -2006,7 +2006,7 @@ RETRY_TRY_BLOCK:
         pc = irep->iseq + bin_to_uint16(ch->target);
       }
       else {
-        int acc;
+        mrb_int acc;
         mrb_value v;
 
         ci = mrb->c->ci;
