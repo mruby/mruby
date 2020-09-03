@@ -982,13 +982,13 @@ prepare_tagged_break(mrb_state *mrb, uint32_t tag, const struct RProc *proc, mrb
 #endif
 
 MRB_API mrb_value
-mrb_vm_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, unsigned mrb_int stack_keep)
+mrb_vm_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, mrb_int stack_keep)
 {
   const mrb_irep *irep = proc->body.irep;
   mrb_value result;
   struct mrb_context *c = mrb->c;
   ptrdiff_t cioff = c->ci - c->cibase;
-  unsigned mrb_int nregs = irep->nregs;
+  mrb_int nregs = irep->nregs;
 
   if (!c->stack) {
     stack_init(mrb);
@@ -2851,7 +2851,7 @@ mrb_run(mrb_state *mrb, const struct RProc *proc, mrb_value self)
 }
 
 MRB_API mrb_value
-mrb_top_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, unsigned int stack_keep)
+mrb_top_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, mrb_int stack_keep)
 {
   mrb_value v;
 

@@ -12447,7 +12447,7 @@ mrb_load_exec(mrb_state *mrb, struct mrb_parser_state *p, mrbc_context *c)
   struct RClass *target = mrb->object_class;
   struct RProc *proc;
   mrb_value v;
-  unsigned int keep = 0;
+  mrb_int keep = 0;
 
   if (!p) {
     return mrb_undef_value();
