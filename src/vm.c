@@ -2348,7 +2348,7 @@ RETRY_TRY_BLOCK:
             SET_INT_VALUE(mrb, regs[a], div);
           }
         }
-        NEXT;
+        goto L_DIV_OUT;
 #ifndef MRB_NO_FLOAT
       case TYPES2(MRB_TT_INTEGER,MRB_TT_FLOAT):
         x = (mrb_float)mrb_integer(regs[a]);
@@ -2380,6 +2380,7 @@ RETRY_TRY_BLOCK:
       }
       SET_FLOAT_VALUE(mrb, regs[a], f);
 #endif
+    L_DIV_OUT:
       NEXT;
     }
 
