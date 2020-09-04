@@ -223,7 +223,7 @@ mrb_stack_extend(mrb_state *mrb, mrb_int room)
 }
 
 static inline struct REnv*
-uvenv(mrb_state *mrb, int up)
+uvenv(mrb_state *mrb, mrb_int up)
 {
   const struct RProc *proc = mrb->c->ci->proc;
   struct REnv *e;

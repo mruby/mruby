@@ -115,7 +115,7 @@ rational_new_f(mrb_state *mrb, mrb_float f0)
 
   if (f < 0) { neg = 1; f = -f; }
   while (f != floor(f)) { n <<= 1; f *= 2; }
-  d = f;
+  d = (mrb_int)f;
  
   /* continued fraction and check denominator each step */
   for (i = 0; i < 64; i++) {
