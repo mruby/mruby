@@ -24,7 +24,7 @@ printstr(mrb_state *mrb, const char *p, mrb_int len)
     DWORD written;
     int wlen = MultiByteToWideChar(CP_UTF8, 0, p, (int)len, NULL, 0);
     wchar_t* utf16 = (wchar_t*)mrb_malloc(mrb, (wlen+1) * sizeof(wchar_t));
-    if (MultiByteToWideChar(CP_UTF8, 0, p, len, utf16, wlen) > 0) {
+    if (MultiByteToWideChar(CP_UTF8, 0, p, (int)len, utf16, wlen) > 0) {
       utf16[wlen] = 0;
       WriteConsoleW(GetStdHandle(STD_OUTPUT_HANDLE),
                     utf16, (DWORD)wlen, &written, NULL);

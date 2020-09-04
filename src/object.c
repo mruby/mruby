@@ -369,7 +369,7 @@ convert_type(mrb_state *mrb, mrb_value val, const char *tname, mrb_sym method, m
 }
 
 MRB_API mrb_value
-mrb_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, mrb_sym method)
+mrb_type_convert(mrb_state *mrb, mrb_value val, enum mrb_vtype type, mrb_sym method)
 {
   mrb_value v;
   const char *tname;
@@ -385,7 +385,7 @@ mrb_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, mrb_sym met
 }
 
 MRB_API mrb_value
-mrb_check_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, mrb_sym method)
+mrb_type_convert_check(mrb_state *mrb, mrb_value val, enum mrb_vtype type, mrb_sym method)
 {
   mrb_value v;
 
@@ -584,7 +584,7 @@ mrb_Float(mrb_state *mrb, mrb_value val)
       return mrb_float_value(mrb, mrb_str_to_dbl(mrb, val, TRUE));
 
     default:
-      return mrb_convert_type(mrb, val, MRB_TT_FLOAT, MRB_SYM(to_f));
+      return mrb_type_convert(mrb, val, MRB_TT_FLOAT, MRB_SYM(to_f));
   }
 }
 #endif
