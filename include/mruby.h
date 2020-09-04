@@ -1245,12 +1245,15 @@ MRB_API void mrb_field_write_barrier(mrb_state *, struct RBasic*, struct RBasic*
 } while (0)
 MRB_API void mrb_write_barrier(mrb_state *, struct RBasic*);
 
-MRB_API mrb_value mrb_check_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, mrb_sym method);
+MRB_API mrb_value mrb_type_convert(mrb_state *mrb, mrb_value val, enum mrb_vtype type, mrb_sym method);
+#define mrb_convert_type(mrb, val, type, tname, method) mrb_type_convert(mrb, val, type, mrb_intern_lit(mrb, method))
+MRB_API mrb_value mrb_type_convert_check(mrb_state *mrb, mrb_value val, enum mrb_vtype type, mrb_sym method);
+#define mrb_check_convert_type(mrb, val, type, tname, method) mrb_type_convert_check(mrb, val, type, mrb_intern_lit(mrb, method))
+
 MRB_API mrb_value mrb_any_to_s(mrb_state *mrb, mrb_value obj);
 MRB_API const char * mrb_obj_classname(mrb_state *mrb, mrb_value obj);
 MRB_API struct RClass* mrb_obj_class(mrb_state *mrb, mrb_value obj);
 MRB_API mrb_value mrb_class_path(mrb_state *mrb, struct RClass *c);
-MRB_API mrb_value mrb_convert_type(mrb_state *mrb, mrb_value val, enum mrb_vtype type, mrb_sym method);
 MRB_API mrb_bool mrb_obj_is_kind_of(mrb_state *mrb, mrb_value obj, struct RClass *c);
 MRB_API mrb_value mrb_obj_inspect(mrb_state *mrb, mrb_value self);
 MRB_API mrb_value mrb_obj_clone(mrb_state *mrb, mrb_value self);

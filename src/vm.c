@@ -1423,8 +1423,8 @@ RETRY_TRY_BLOCK:
       recv = regs[a];
       blk = regs[bidx];
       if (!mrb_nil_p(blk) && !mrb_proc_p(blk)) {
-        blk = mrb_convert_type(mrb, blk, MRB_TT_PROC, MRB_SYM(to_proc));
-        /* The stack might have been reallocated during mrb_convert_type(),
+        blk = mrb_type_convert(mrb, blk, MRB_TT_PROC, MRB_SYM(to_proc));
+        /* The stack might have been reallocated during mrb_type_convert(),
            see #3622 */
         regs[bidx] = blk;
       }
@@ -1605,9 +1605,9 @@ RETRY_TRY_BLOCK:
       }
       blk = regs[bidx];
       if (!mrb_nil_p(blk) && !mrb_proc_p(blk)) {
-        blk = mrb_convert_type(mrb, blk, MRB_TT_PROC, MRB_SYM(to_proc));
+        blk = mrb_type_convert(mrb, blk, MRB_TT_PROC, MRB_SYM(to_proc));
         /* The stack or ci stack might have been reallocated during
-           mrb_convert_type(), see #3622 and #3784 */
+           mrb_type_convert(), see #3622 and #3784 */
         regs[bidx] = blk;
         ci = mrb->c->ci;
       }
