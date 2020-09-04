@@ -20,7 +20,7 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
   struct REnv *e;
   mrb_callinfo *ci; /* callinfo of eval caller */
   struct RClass *target_class = NULL;
-  int bidx;
+  mrb_int bidx;
 
   if (!mrb_nil_p(binding)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "Binding of eval must be nil.");
