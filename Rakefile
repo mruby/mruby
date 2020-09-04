@@ -179,8 +179,8 @@ file presym_file => cfiles+rbfiles+psfiles+[__FILE__] do
   end
   rbsymbols = rbfiles.map do |f|
     src = File.read(f)
-    src.gsub!(/#.+(\n|$)/, "\n")
     src.force_encoding(Encoding::BINARY)
+    src.gsub!(/#.+(\n|$)/, "\n")
     [src.scan(/\bclass +([A-Z]\w*)/),
      src.scan(/\bmodule +([A-Z]\w*)/),
      src.scan(/\bdef +(\w+[!?=]?)/),
