@@ -52,9 +52,9 @@ enum mrb_special_consts {
 #define BOXWORD_IMMEDIATE_MASK  0x07
 
 #define BOXWORD_SHIFT_VALUE(o,n,t) \
-  (t)(((long)(o)) >> BOXWORD_##n##_SHIFT)
+  (t)(((intptr_t)(o)) >> BOXWORD_##n##_SHIFT)
 #define BOXWORD_SET_SHIFT_VALUE(o,n,v) \
-  ((o) = (((unsigned long)(v)) << BOXWORD_##n##_SHIFT) | BOXWORD_##n##_FLAG)
+  ((o) = (((uintptr_t)(v)) << BOXWORD_##n##_SHIFT) | BOXWORD_##n##_FLAG)
 #define BOXWORD_SHIFT_VALUE_P(o,n) \
   (((o) & BOXWORD_##n##_MASK) == BOXWORD_##n##_FLAG)
 #define BOXWORD_OBJ_TYPE_P(o,n) \
