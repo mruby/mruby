@@ -174,7 +174,7 @@ file presym_file => cfiles+rbfiles+psfiles+[__FILE__] do
      src.scan(/mrb_define_global_const\([^\n"]*"([^\n"]*)"/),
      src.scan(/MRB_SYM\((\w+)\)/),
      src.scan(/MRB_QSYM\((\w+)\)/).map{|x,|
-       x.sub!(/_p$/, "?") || x.sub!(/_b$/, "!") || x.sub!(/_e$/, "=") || x.sub!(/^0_/, "@")  || x.sub!(/^00_/, "@@") 
+       x.sub!(/_p$/, "?") || x.sub!(/_b$/, "!") || x.sub!(/_e$/, "=") || x.sub!(/^0_/, "@")  || x.sub!(/^00_/, "@@")
      }.compact]
   end
   rbsymbols = rbfiles.map do |f|
@@ -219,13 +219,13 @@ file presym_inc => presym_file do
         f.print "MRB_PRESYM_CSYM(#{sym}, #{i+1})\n"
       elsif op_table.key?(sym)
         f.print "MRB_PRESYM_QSYM(\"#{sym}\", #{op_table[sym]}, #{i+1})\n"
-      elsif /\?\Z/ =~ sym
+      elsif /\A\w+\?\Z/ =~ sym
         s = sym.dup; s[-1] = "_p"
         f.print "MRB_PRESYM_QSYM(\"#{sym}\", #{s}, #{i+1})\n"
-      elsif /\!\Z/ =~ sym
+      elsif /\A\w+\!\Z/ =~ sym
         s = sym.dup; s[-1] = "_b"
         f.print "MRB_PRESYM_QSYM(\"#{sym}\", #{s}, #{i+1})\n"
-      elsif /\=\Z/ =~ sym
+      elsif /\A\w+\=\Z/ =~ sym
         s = sym.dup; s[-1] = "_e"
         f.print "MRB_PRESYM_QSYM(\"#{sym}\", #{s}, #{i+1})\n"
       elsif /\A@@/ =~ sym
