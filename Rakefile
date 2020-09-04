@@ -116,11 +116,11 @@ end
 mkdir_p "#{MRUBY_ROOT}/build"
 cfiles = (Dir.glob("#{MRUBY_ROOT}/src/*.c")+
           Dir.glob("#{MRUBY_ROOT}/mrbgems/**/*.c")+
-          Dir.glob("#{MRUBY_ROOT}/build/*/mrbgems/**/{src,test,core}/*.c")).uniq
+          Dir.glob("#{MRUBY_ROOT}/build/repos/**/{src,test,core}/*.c")).uniq
 rbfiles = (Dir.glob("#{MRUBY_ROOT}/{mrblib,test,test/t}/*.rb")+
            Dir.glob("#{MRUBY_ROOT}/mrbgems/*/{mrblib,test}/*.rb")+
-           Dir.glob("#{MRUBY_ROOT}/build/*/mrbgems/**/{mrblib,test}/*.rb")).uniq
-psfiles = Dir.glob("#{MRUBY_ROOT}/{mrblib,mrbgems,test}/**/presym")
+           Dir.glob("#{MRUBY_ROOT}/build/repos/**/{mrblib,test}/*.rb")).uniq
+psfiles = Dir.glob("#{MRUBY_ROOT}/{mrblib,mrbgems,test,build/repos}/**/presym")
 symbols = []
 psfiles.each do |file|
   symbols += File.readlines(file).grep_v(/^# /)
@@ -185,7 +185,7 @@ file presym_file => cfiles+rbfiles+psfiles+[__FILE__] do
      src.scan(/\balias +(\w+[!?]?)/),
      src.scan(/\b([A-Z]\w*) *=[^=]/),
      src.scan(/(\$[a-zA-Z_]\w*)/),
-     src.scan(/(\$[$!?]\w*)/),
+     src.scan(/(\$[$!?0-9]\w*)/),
      src.scan(/(@@?[a-zA-Z_]\w*)/),
      src.scan(/[^.]\.([a-zA-Z_]\w*[!?]?)/),
      src.scan(/\.([a-zA-Z_]\w* *=)/).map{|x|x.map{|s|s.gsub(' ', '')}},
