@@ -163,7 +163,7 @@ op_table = {
 file presym_file => cfiles+rbfiles+psfiles+[__FILE__] do
   csymbols = cfiles.map do |f|
     src = File.read(f)
-    src.gsub!(/\/\/.+(\n|$)/, "")
+    src.gsub!(/\/\/.+(\n|$)/, "\n")
     [src.scan(/intern_lit\([^\n"]*"([^\n "]*)"/),
      src.scan(/mrb_define_method\([^\n"]*"([^\n"]*)"/),
      src.scan(/mrb_define_class_method\([^\n"]*"([^\n"]*)"/),
@@ -179,7 +179,7 @@ file presym_file => cfiles+rbfiles+psfiles+[__FILE__] do
   end
   rbsymbols = rbfiles.map do |f|
     src = File.read(f)
-    src.gsub!(/#.+(\n|$)/, "")
+    src.gsub!(/#.+(\n|$)/, "\n")
     src.force_encoding(Encoding::BINARY)
     [src.scan(/\bclass +([A-Z]\w*)/),
      src.scan(/\bmodule +([A-Z]\w*)/),
