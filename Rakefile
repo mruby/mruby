@@ -163,6 +163,7 @@ op_table = {
 file presym_file => cfiles+rbfiles+psfiles+[__FILE__] do
   csymbols = cfiles.map do |f|
     src = File.read(f)
+    src.gsub!(/\/\/.+(\n|$)/, "")
     [src.scan(/intern_lit\([^\n"]*"([^\n "]*)"/),
      src.scan(/mrb_define_method\([^\n"]*"([^\n"]*)"/),
      src.scan(/mrb_define_class_method\([^\n"]*"([^\n"]*)"/),
@@ -173,11 +174,12 @@ file presym_file => cfiles+rbfiles+psfiles+[__FILE__] do
      src.scan(/mrb_define_global_const\([^\n"]*"([^\n"]*)"/),
      src.scan(/MRB_SYM\((\w+)\)/),
      src.scan(/MRB_QSYM\((\w+)\)/).map{|x,|
-       x.sub!(/_p$/, "?") || x.sub!(/_b$/, "!") || x.sub!(/_e$/, "=") || x.sub!(/^0_/, "@")  || x.sub!(/^00_/, "@@") 
+       x.sub!(/_p$/, "?") || x.sub!(/_b$/, "!") || x.sub!(/_e$/, "=") || x.sub!(/^0_/, "@")  || x.sub!(/^00_/, "@@")
      }.compact]
   end
   rbsymbols = rbfiles.map do |f|
     src = File.read(f)
+    src.gsub!(/#.+(\n|$)/, "")
     src.force_encoding(Encoding::BINARY)
     [src.scan(/\bclass +([A-Z]\w*)/),
      src.scan(/\bmodule +([A-Z]\w*)/),
