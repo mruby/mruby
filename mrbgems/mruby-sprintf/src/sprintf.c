@@ -699,7 +699,7 @@ retry:
         }
         CHECKNAMEARG(start, p - start + 1);
         get_hash(mrb, &hash, argc, argv);
-        id = mrb_check_intern(mrb, start + 1, p - start - 1);
+        id = mrb_intern_check(mrb, start + 1, p - start - 1);
         if (id) {
           nextvalue = mrb_hash_fetch(mrb, hash, mrb_symbol_value(id), mrb_undef_value());
         }

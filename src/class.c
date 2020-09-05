@@ -575,7 +575,7 @@ mrb_vm_define_class(mrb_state *mrb, mrb_value outer, mrb_value super, mrb_sym id
 MRB_API mrb_bool
 mrb_class_defined(mrb_state *mrb, const char *name)
 {
-  mrb_sym sym = mrb_check_intern_cstr(mrb, name);
+  mrb_sym sym = mrb_intern_check_cstr(mrb, name);
   if (!sym) return FALSE;
   return mrb_const_defined(mrb, mrb_obj_value(mrb->object_class), sym);
 }
@@ -589,7 +589,7 @@ mrb_class_defined_id(mrb_state *mrb, mrb_sym name)
 MRB_API mrb_bool
 mrb_class_defined_under(mrb_state *mrb, struct RClass *outer, const char *name)
 {
-  mrb_sym sym = mrb_check_intern_cstr(mrb, name);
+  mrb_sym sym = mrb_intern_check_cstr(mrb, name);
   if (!sym) return FALSE;
   return mrb_const_defined_at(mrb, mrb_obj_value(outer), sym);
 }

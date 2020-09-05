@@ -1097,10 +1097,15 @@ MRB_API mrb_sym mrb_intern(mrb_state*,const char*,size_t);
 MRB_API mrb_sym mrb_intern_static(mrb_state*,const char*,size_t);
 #define mrb_intern_lit(mrb, lit) mrb_intern_static(mrb, (lit ""), mrb_strlen_lit(lit))
 MRB_API mrb_sym mrb_intern_str(mrb_state*,mrb_value);
-/* mrb_check_intern series functions returns 0 if the symbol is not defined */
-MRB_API mrb_sym mrb_check_intern_cstr(mrb_state*,const char*);
-MRB_API mrb_sym mrb_check_intern(mrb_state*,const char*,size_t);
-MRB_API mrb_sym mrb_check_intern_str(mrb_state*,mrb_value);
+/* mrb_intern_check series functions returns 0 if the symbol is not defined */
+MRB_API mrb_sym mrb_intern_check_cstr(mrb_state*,const char*);
+MRB_API mrb_sym mrb_intern_check(mrb_state*,const char*,size_t);
+MRB_API mrb_sym mrb_intern_check_str(mrb_state*,mrb_value);
+/* mrb_check_intern series functions returns nil if the symbol is not defined */
+/* otherwise returns mrb_value */
+MRB_API mrb_value mrb_check_intern_cstr(mrb_state*,const char*);
+MRB_API mrb_value mrb_check_intern(mrb_state*,const char*,size_t);
+MRB_API mrb_value mrb_check_intern_str(mrb_state*,mrb_value);
 MRB_API const char *mrb_sym_name(mrb_state*,mrb_sym);
 MRB_API const char *mrb_sym_name_len(mrb_state*,mrb_sym,mrb_int*);
 MRB_API const char *mrb_sym_dump(mrb_state*,mrb_sym);
