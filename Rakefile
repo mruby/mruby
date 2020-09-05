@@ -120,11 +120,8 @@ cfiles = (
   Dir.glob("#{MRUBY_ROOT}/build/repos/**/{src,test,core}/*.c")
 ).uniq
 rbfiles = (
-  Dir.glob("#{MRUBY_ROOT}/{mrblib,test,test/t}/*.rb")+
   Dir.glob("#{MRUBY_ROOT}/{mrblib,test,test/t}/**/*.rb")+
-  Dir.glob("#{MRUBY_ROOT}/mrbgems/*/{mrblib,test}/*.rb")+
   Dir.glob("#{MRUBY_ROOT}/mrbgems/*/{mrblib,test}/**/*.rb")+
-  Dir.glob("#{MRUBY_ROOT}/build/repos/**/{mrblib,test}/*.rb")+
   Dir.glob("#{MRUBY_ROOT}/build/repos/**/{mrblib,test}/**/*.rb")
 ).uniq
 psfiles = Dir.glob("#{MRUBY_ROOT}/{mrblib,mrbgems,test,build/repos}/**/presym")
