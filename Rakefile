@@ -219,13 +219,13 @@ file presym_inc => presym_file do
         f.print "MRB_PRESYM_CSYM(#{sym}, #{i+1})\n"
       elsif op_table.key?(sym)
         f.print "MRB_PRESYM_QSYM(\"#{sym}\", #{op_table[sym]}, #{i+1})\n"
-      elsif /\A\w+\?\Z/ =~ sym
+      elsif /\A[A-Za-z_]\w*\?\Z/ =~ sym
         s = sym.dup; s[-1] = "_p"
         f.print "MRB_PRESYM_QSYM(\"#{sym}\", #{s}, #{i+1})\n"
-      elsif /\A\w+\!\Z/ =~ sym
+      elsif /\A[A-Za-z_]\w*\!\Z/ =~ sym
         s = sym.dup; s[-1] = "_b"
         f.print "MRB_PRESYM_QSYM(\"#{sym}\", #{s}, #{i+1})\n"
-      elsif /\A\w+\=\Z/ =~ sym
+      elsif /\A[A-Za-z_]\w*\=\Z/ =~ sym
         s = sym.dup; s[-1] = "_e"
         f.print "MRB_PRESYM_QSYM(\"#{sym}\", #{s}, #{i+1})\n"
       elsif /\A@@/ =~ sym
