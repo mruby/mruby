@@ -24,7 +24,7 @@ MRuby::Toolchain.new(:visualcpp) do |conf, _params|
 
   conf.linker do |linker|
     linker.command = ENV['LD'] || 'link.exe'
-    linker.flags = [ENV['LDFLAGS'] || %w(/NOLOGO /DEBUG /INCREMENTAL:NO /OPT:ICF /OPT:REF)]
+    linker.flags = [ENV['LDFLAGS'] || %w(/NOLOGO /DEBUG /INCREMENTAL:NO /OPT:ICF /OPT:REF /SUBSYSTEM:CONSOLE)]
     linker.libraries = %w()
     linker.library_paths = %w()
     linker.option_library = '%s.lib'
