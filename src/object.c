@@ -94,7 +94,7 @@ mrb_true(mrb_state *mrb, mrb_value obj)
 static mrb_value
 nil_to_s(mrb_state *mrb, mrb_value obj)
 {
-  mrb_value str = mrb_str_new_frozen(mrb, 0, 0);
+  mrb_value str = mrb_str_new_frozen(mrb, NULL, 0);
   RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
   return str;
 }
