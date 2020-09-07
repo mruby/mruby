@@ -136,15 +136,15 @@ mrb_int_mul_overflow(mrb_int multiplier, mrb_int multiplicand, mrb_int *product)
     if (multiplicand > 0) {
       if (multiplier > MRB_INT_MAX / multiplicand) return TRUE;
     }
-    else {
+    else if (multiplicand < 0) {
       if (multiplicand < MRB_INT_MAX / multiplier) return TRUE;
     }
   }
-  else {
+  else if (multiplier < 0) {
     if (multiplicand > 0) {
       if (multiplier < MRB_INT_MAX / multiplicand) return TRUE;
     }
-    else {
+    else if (multiplicand < 0) {
       if (multiplier != 0 && multiplicand < MRB_INT_MAX / multiplier) return TRUE;
     }
   }
