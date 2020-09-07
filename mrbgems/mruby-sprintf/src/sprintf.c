@@ -591,19 +591,19 @@ mrb_str_format(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value fm
   mrb_value str;
   mrb_value hash = mrb_undef_value();
 
-#define CHECK_FOR_WIDTH(f)                                                  \
-  if ((f) & FWIDTH) {                                                       \
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "width given twice");         \
-  }                                                                         \
-  if ((f) & FPREC0) {                                                       \
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "width after precision");     \
+#define CHECK_FOR_WIDTH(f)                                              \
+  if ((f) & FWIDTH) {                                                   \
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "width given twice");              \
+    }                                                                   \
+  if ((f) & FPREC0) {                                                   \
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "width after precision");          \
   }
-#define CHECK_FOR_FLAGS(f)                                                  \
-  if ((f) & FWIDTH) {                                                       \
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "flag after width");          \
-  }                                                                         \
-  if ((f) & FPREC0) {                                                       \
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "flag after precision");      \
+#define CHECK_FOR_FLAGS(f)                                              \
+  if ((f) & FWIDTH) {                                                   \
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "flag after width");               \
+  }                                                                     \
+  if ((f) & FPREC0) {                                                   \
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "flag after precision");           \
   }
 
   ++argc;
