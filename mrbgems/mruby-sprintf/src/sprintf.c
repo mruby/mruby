@@ -198,7 +198,7 @@ check_name_arg(mrb_state *mrb, int posarg, const char *name, size_t len)
 
 #define GETNUM(n, val) do { \
   if (!(p = get_num(mrb, p, end, &(n)))) \
-    mrb_raise(mrb, E_ARGUMENT_ERROR, #val " too big"); \
+    mrb_raise(mrb, E_ARGUMENT_ERROR, #val " too big 1"); \
 } while(0)
 
 #define GETASTER(num) do { \
@@ -1082,7 +1082,7 @@ retry:
             need = width;
 
           if (need < 0) {
-            mrb_raise(mrb, E_ARGUMENT_ERROR, "width too big");
+            mrb_raise(mrb, E_ARGUMENT_ERROR, "width too big 2");
           }
           FILL(' ', need);
           if (flags & FMINUS) {
@@ -1108,7 +1108,7 @@ retry:
         if (need > MRB_INT_MAX - ((flags&FPREC) ? prec : 6)) {
         too_big_width:
           mrb_raise(mrb, E_ARGUMENT_ERROR,
-                    (width > prec ? "width too big" : "prec too big"));
+                    (width > prec ? "width too big 3" : "prec too big"));
         }
         need += (flags&FPREC) ? prec : 6;
         if ((flags&FWIDTH) && need < width)
