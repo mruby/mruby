@@ -224,7 +224,7 @@ get_num(mrb_state *mrb, const char *p, const char *end, mrb_int *valp)
     if (mrb_int_mul_overflow(10, next_n, &next_n)) {
       return NULL;
     }
-    if (INT_MAX - (*p - '0') < next_n) {
+    if (MRB_INT_MAX - (*p - '0') < next_n) {
       return NULL;
     }
     next_n += *p - '0';
