@@ -51,6 +51,8 @@ assert('File.extname') do
   assert_equal '', File.extname('foo/.bar')
   assert_equal '', File.extname('foo.txt/bar')
   assert_equal '', File.extname('.foo')
+  assert_equal '.rb', File.extname('.a.rb')
+  assert_equal '.', File.extname('foo.')
 end
 
 assert('File#flock') do
