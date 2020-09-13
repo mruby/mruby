@@ -191,9 +191,9 @@ class File < IO
 
   def self.extname(filename)
     fname = self.basename(filename)
-    return '' if fname[0] == '.' || fname.index('.').nil?
-    ext = fname.split('.').last
-    ext.empty? ? '' : ".#{ext}"
+    epos = fname.rindex('.')
+    return '' if epos == 0 || epos.nil?
+    return fname[epos..-1]
   end
 
   def self.path(filename)
