@@ -97,15 +97,6 @@ MRuby.each_target do |target|
           install_D t.prerequisites.first, t.name
         end
         depfiles += [ install_path ]
-      elsif target == MRuby.targets['host-debug']
-        unless MRuby.targets['host'].gems.map {|g| g.bins}.include?([bin])
-          install_path = MRuby.targets['host-debug'].exefile("#{bin_path}/#{bin}")
-
-          file install_path => exec do |t|
-            install_D t.prerequisites.first, t.name
-          end
-          depfiles += [ install_path ]
-        end
       else
         depfiles += [ exec ]
       end

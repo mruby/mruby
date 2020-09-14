@@ -1,4 +1,4 @@
-MRuby::Build.new('host-debug') do |conf|
+MRuby::Build.new('host') do |conf|
   # load specific toolchain settings
 
   # Gets set by the VS command prompts.
@@ -19,5 +19,8 @@ MRuby::Build.new('host-debug') do |conf|
   # Generate mruby debugger command (require mruby-eval)
   conf.gem :core => "mruby-bin-debugger"
 
+  # test
+  enable_test
   # bintest
+  enable_bintest
 end
