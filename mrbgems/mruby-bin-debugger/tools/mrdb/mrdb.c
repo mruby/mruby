@@ -504,7 +504,7 @@ get_and_parse_command(mrb_state *mrb, mrdb_state *mrdb)
 }
 
 static int32_t
-check_method_breakpoint(mrb_state *mrb, mrb_irep *irep, const mrb_code *pc, mrb_value *regs)
+check_method_breakpoint(mrb_state *mrb, const mrb_irep *irep, const mrb_code *pc, mrb_value *regs)
 {
   struct RClass* c;
   mrb_sym sym;

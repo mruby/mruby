@@ -84,7 +84,7 @@ free_breakpoint(mrb_state *mrb, mrb_debug_breakpoint *bp)
 }
 
 static uint16_t
-check_file_lineno(mrb_state *mrb, struct mrb_irep *irep, const char *file, uint16_t lineno)
+check_file_lineno(mrb_state *mrb, const struct mrb_irep *irep, const char *file, uint16_t lineno)
 {
   mrb_irep_debug_info_file *info_file;
   uint16_t result = 0;
@@ -428,7 +428,7 @@ mrb_debug_disable_break_all(mrb_state *mrb, mrb_debug_context *dbg)
 }
 
 static mrb_bool
-check_start_pc_for_line(mrb_state *mrb, mrb_irep *irep, const mrb_code *pc, uint16_t line)
+check_start_pc_for_line(mrb_state *mrb, const mrb_irep *irep, const mrb_code *pc, uint16_t line)
 {
   if (pc > irep->iseq) {
     if (line == mrb_debug_get_line(mrb, irep, pc - irep->iseq - 1)) {
