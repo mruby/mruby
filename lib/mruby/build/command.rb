@@ -166,7 +166,7 @@ module MRuby
       file = file.ext('d') unless File.extname(file) == '.d'
       return [MRUBY_CONFIG] unless File.exist?(file)
 
-      deps = "".gsub("\\\n ", "").split("\n").map do |dep_line|
+      deps = File.read(file).gsub("\\\n ", "").split("\n").map do |dep_line|
         # dep_line:
         # - "/build/host/src/array.o:   /src/array.c   /include/mruby/common.h ..."
         # - ""
