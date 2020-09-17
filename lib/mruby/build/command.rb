@@ -133,27 +133,14 @@ module MRuby
     #
     # ==== Without <tt>-MP</tt> compiler flag
     #
-    #   /build/host/src/array.o: \
-    #     /src/array.c \
-    #     /include/mruby/common.h \
-    #     /include/mruby/value.h \
-    #     /src/value_array.h
-    #
-    # ==== Without <tt>-MP</tt> compiler flag (gcc (Ubuntu 9.3.0-10ubuntu2) 9.3.0)
-    #
     #   /build/host/src/array.o: /src/array.c \
-    #    /include/mruby.h /include/mrbconf.h \
-    #    /include/mruby/common.h \
-    #    ...
-    #    /include/mruby/range.h \
-    #    /src/value_array.h
+    #     /include/mruby/common.h /include/mruby/value.h \
+    #     /src/value_array.h
     #
     # ==== With <tt>-MP</tt> compiler flag
     #
-    #   /build/host/src/array.o: \
-    #     /src/array.c \
-    #     /include/mruby/common.h \
-    #     /include/mruby/value.h \
+    #   /build/host/src/array.o: /src/array.c \
+    #     /include/mruby/common.h /include/mruby/value.h \
     #     /src/value_array.h
     #
     #   /include/mruby/common.h:
