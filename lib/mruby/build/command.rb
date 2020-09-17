@@ -139,6 +139,15 @@ module MRuby
     #     /include/mruby/value.h \
     #     /src/value_array.h
     #
+    # ==== Without <tt>-MP</tt> compiler flag (gcc (Ubuntu 9.3.0-10ubuntu2) 9.3.0)
+    #
+    #   /build/host/src/array.o: /src/array.c \
+    #    /include/mruby.h /include/mrbconf.h \
+    #    /include/mruby/common.h \
+    #    ...
+    #    /include/mruby/range.h \
+    #    /src/value_array.h
+    #
     # ==== With <tt>-MP</tt> compiler flag
     #
     #   /build/host/src/array.o: \
@@ -155,11 +164,18 @@ module MRuby
     #
     def get_dependencies(file)
       file = file.ext('d') unless File.extname(file) == '.d'
-      deps = []
-      if File.exist?(file)
-        File.foreach(file){|line| deps << $1 if /^ +(.*?)(?: *\\)?$/ =~ line}
-        deps.uniq!
-      end
+      return [MRUBY_CONFIG] unless File.exist?(file)
+
+      deps = "".gsub("\\\n ", "").split("\n").map do |dep_line|
+        # dep_line:
+        # - "/build/host/src/array.o:   /src/array.c   /include/mruby/common.h ..."
+        # - ""
+        # - "/include/mruby/common.h:"
+        dep_line.scan(/^\S+:\s+(.+)$/).flatten.map { |s| s.split(' ') }.flatten
+        # => ["/src/array.c", "/include/mruby/common.h" , ...]
+        #    []
+        #    []
+      end.flatten.uniq
       deps << MRUBY_CONFIG
     end
   end
