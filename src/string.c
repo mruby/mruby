@@ -1963,9 +1963,6 @@ mrb_str_intern(mrb_state *mrb, mrb_value self)
 MRB_API mrb_value
 mrb_obj_as_string(mrb_state *mrb, mrb_value obj)
 {
-  if (mrb_string_p(obj)) {
-    return obj;
-  }
   return mrb_str_to_str(mrb, obj);
 }
 
