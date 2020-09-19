@@ -25,7 +25,6 @@ enum irep_pool_type {
 
 #define IREP_TT_NFLAG 1       /* number (non string) flag */
 #define IREP_TT_SFLAG 2       /* static string flag */
-#define IREP_TT_SFLAG 2       /* static string flag */
 
 typedef struct mrb_pool_value {
   uint32_t tt;     /* packed type and length (for string) */
