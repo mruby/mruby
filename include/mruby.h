@@ -956,7 +956,7 @@ struct mrb_kwargs
 {
   uint32_t num;                 /* number of keyword arguments */
   uint32_t required;            /* number of required keyword arguments */
-  mrb_sym *table;               /* C array of symbols for keyword names */
+  const mrb_sym *table;         /* C array of symbols for keyword names */
   mrb_value *values;            /* keyword argument values */
   mrb_value *rest;              /* keyword rest (dict) */
 };
