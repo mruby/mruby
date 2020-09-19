@@ -980,7 +980,7 @@ dump_pool(mrb_state *mrb, const mrb_pool_value *p, FILE *fp)
         fprintf(fp, "{IREP_TT_INT64, {.i64=%" PRId64 "}},\n", p->u.i64);
       }
       else {
-        fprintf(fp, "{IREP_TT_INT32, {.i64=%" PRId64 "}},\n", p->u.i64);
+        fprintf(fp, "{IREP_TT_INT32, {.i32=%" PRId32 "}},\n", (int32_t)p->u.i64);
       }
       break;
 #endif
