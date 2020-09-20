@@ -27,13 +27,6 @@
 #define SIZE_ERROR_MUL(nmemb, size) ((size_t)(nmemb) > SIZE_MAX / (size))
 
 static size_t
-skip_padding(const uint8_t *buf)
-{
-  const size_t align = MRB_DUMP_ALIGNMENT;
-  return -(intptr_t)buf & (align-1);
-}
-
-static size_t
 offset_crc_body(void)
 {
   struct rite_binary_header header;
@@ -109,9 +102,8 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
   /* ISEQ BLOCK (and CATCH HANDLER TABLE BLOCK) */
   irep->clen = bin_to_uint16(src);  /* number of catch handler */
   src += sizeof(uint16_t);
-  irep->ilen = (uint16_t)bin_to_uint32(src);
-  src += sizeof(uint32_t);
-  src += skip_padding(src);
+  irep->ilen = bin_to_uint16(src);
+  src += sizeof(uint16_t);
 
   if (irep->ilen > 0) {
     size_t data_len = sizeof(mrb_code) * irep->ilen +
@@ -212,8 +204,8 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
   }
 
   /* SYMS BLOCK */
-  irep->slen = (uint16_t)bin_to_uint32(src);  /* syms length */
-  src += sizeof(uint32_t);
+  irep->slen = bin_to_uint16(src);  /* syms length */
+  src += sizeof(uint16_t);
   if (irep->slen > 0) {
     if (SIZE_ERROR_MUL(irep->slen, sizeof(mrb_sym))) {
       return NULL;

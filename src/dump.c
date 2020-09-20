@@ -29,17 +29,6 @@ static size_t get_irep_record_size_1(mrb_state *mrb, const mrb_irep *irep);
 #endif
 
 static size_t
-write_padding(uint8_t *buf)
-{
-  const size_t align = MRB_DUMP_ALIGNMENT;
-  size_t pad_len = -(intptr_t)buf & (align-1);
-  if (pad_len > 0) {
-    memset(buf, 0, pad_len);
-  }
-  return pad_len;
-}
-
-static size_t
 get_irep_header_size(mrb_state *mrb)
 {
   size_t size = 0;
@@ -69,9 +58,8 @@ get_iseq_block_size(mrb_state *mrb, const mrb_irep *irep)
 {
   size_t size = 0;
 
-  size += sizeof(uint32_t); /* ilen */
-  size += sizeof(uint32_t); /* max padding */
-  size += sizeof(uint32_t) * irep->ilen; /* iseq(n) */
+  size += sizeof(uint16_t); /* ilen */
+  size += irep->ilen * sizeof(mrb_code); /* iseq(n) */
 
   return size;
 }
@@ -81,8 +69,7 @@ write_iseq_block(mrb_state *mrb, const mrb_irep *irep, uint8_t *buf, uint8_t fla
 {
   uint8_t *cur = buf;
 
-  cur += uint32_to_bin(irep->ilen, cur); /* number of opcode */
-  cur += write_padding(cur);
+  cur += uint16_to_bin(irep->ilen, cur); /* number of opcode */
   memcpy(cur, irep->iseq, irep->ilen * sizeof(mrb_code));
   cur += irep->ilen * sizeof(mrb_code);
 
@@ -239,7 +226,7 @@ get_syms_block_size(mrb_state *mrb, const mrb_irep *irep)
   int sym_no;
   mrb_int len;
 
-  size += sizeof(uint32_t); /* slen */
+  size += sizeof(uint16_t); /* slen */
   for (sym_no = 0; sym_no < irep->slen; sym_no++) {
     size += sizeof(uint16_t); /* snl(n) */
     if (irep->syms[sym_no] != 0) {
@@ -258,7 +245,7 @@ write_syms_block(mrb_state *mrb, const mrb_irep *irep, uint8_t *buf)
   uint8_t *cur = buf;
   const char *name;
 
-  cur += uint32_to_bin(irep->slen, cur); /* number of symbol */
+  cur += uint16_to_bin(irep->slen, cur); /* number of symbol */
 
   for (sym_no = 0; sym_no < irep->slen; sym_no++) {
     if (irep->syms[sym_no] != 0) {
