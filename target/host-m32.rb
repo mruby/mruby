@@ -11,4 +11,5 @@ MRuby::Build.new do |conf|
   # Turn on `enable_debug` for better debugging
   enable_debug
   conf.enable_test
+  conf.enable_bintest
 end
