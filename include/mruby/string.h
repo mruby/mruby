@@ -377,8 +377,9 @@ MRB_API double mrb_cstr_to_dbl(mrb_state *mrb, const char *s, mrb_bool badcheck)
 /**
  * Returns a converted string type.
  * For type checking, non converting `mrb_to_str` is recommended.
+ * obsolete: use `mrb_obj_as_string()` instead.
  */
-MRB_API mrb_value mrb_str_to_str(mrb_state *mrb, mrb_value str);
+#define mrb_str_to_str(mrb, str) mrb_obj_as_string(mrb, str)
 
 /**
  * Returns true if the strings match and false if the strings don't match.

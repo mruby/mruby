@@ -872,7 +872,7 @@ mrb_str_to_cstr(mrb_state *mrb, mrb_value str0)
 MRB_API void
 mrb_str_concat(mrb_state *mrb, mrb_value self, mrb_value other)
 {
-  other = mrb_str_to_str(mrb, other);
+  other = mrb_obj_as_string(mrb, other);
   mrb_str_cat_str(mrb, self, other);
 }
 
@@ -1085,30 +1085,11 @@ mrb_str_equal_m(mrb_state *mrb, mrb_value str1)
 }
 /* ---------------------------------- */
 
-MRB_API mrb_value
-mrb_str_to_str(mrb_state *mrb, mrb_value str)
-{
-  switch (mrb_type(str)) {
-  case MRB_TT_STRING:
-    return str;
-  case MRB_TT_SYMBOL:
-    return mrb_sym_str(mrb, mrb_symbol(str));
-  case MRB_TT_INTEGER:
-    return mrb_fixnum_to_str(mrb, str, 10);
-  case MRB_TT_SCLASS:
-  case MRB_TT_CLASS:
-  case MRB_TT_MODULE:
-    return mrb_mod_to_s(mrb, str);
-  default:
-    return mrb_type_convert(mrb, str, MRB_TT_STRING, MRB_SYM(to_s));
-  }
-}
-
 /* obslete: use RSTRING_PTR() */
 MRB_API const char*
 mrb_string_value_ptr(mrb_state *mrb, mrb_value str)
 {
-  str = mrb_str_to_str(mrb, str);
+  str = mrb_obj_as_string(mrb, str);
   return RSTRING_PTR(str);
 }
 
@@ -1937,7 +1918,20 @@ mrb_str_intern(mrb_state *mrb, mrb_value self)
 MRB_API mrb_value
 mrb_obj_as_string(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_str_to_str(mrb, obj);
+  switch (mrb_type(obj)) {
+  case MRB_TT_STRING:
+    return obj;
+  case MRB_TT_SYMBOL:
+    return mrb_sym_str(mrb, mrb_symbol(obj));
+  case MRB_TT_INTEGER:
+    return mrb_fixnum_to_str(mrb, obj, 10);
+  case MRB_TT_SCLASS:
+  case MRB_TT_CLASS:
+  case MRB_TT_MODULE:
+    return mrb_mod_to_s(mrb, obj);
+  default:
+    return mrb_type_convert(mrb, obj, MRB_TT_STRING, MRB_SYM(to_s));
+  }
 }
 
 MRB_API mrb_value

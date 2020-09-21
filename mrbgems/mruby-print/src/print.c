@@ -57,7 +57,7 @@ mrb_print(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "*", &argv, &argc);
   for (i=0; i<argc; i++) {
-    mrb_value s = mrb_str_to_str(mrb, argv[i]);
+    mrb_value s = mrb_obj_as_string(mrb, argv[i]);
     printstr(mrb, RSTRING_PTR(s), RSTRING_LEN(s));
   }
   return mrb_nil_value();
@@ -73,7 +73,7 @@ mrb_puts(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "*", &argv, &argc);
   for (i=0; i<argc; i++) {
-    mrb_value s = mrb_str_to_str(mrb, argv[i]);
+    mrb_value s = mrb_obj_as_string(mrb, argv[i]);
     mrb_int len = RSTRING_LEN(s);
     printstr(mrb, RSTRING_PTR(s), len);
     if (len == 0 || RSTRING_PTR(s)[len-1] != '\n') {
