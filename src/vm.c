@@ -919,28 +919,18 @@ prepare_tagged_break(mrb_state *mrb, uint32_t tag, const struct RProc *proc, mrb
 
 #define CHECKPOINT_RESTORE(tag) \
   do { \
-    DEBUG_ONLY_EXPR(int current_checkpoint_tag = (tag)); \
     if (FALSE) { \
       CHECKPOINT_LABEL_MAKE(tag): \
-      DEBUG_ONLY_EXPR(current_checkpoint_tag = (tag)); \
       do {
 
 #define CHECKPOINT_MAIN(tag) \
       } while (0); \
     } \
-    DEBUG_ONLY_EXPR(mrb_assert((tag) == current_checkpoint_tag)); \
     do {
 
 #define CHECKPOINT_END(tag) \
     } while (0); \
-    DEBUG_ONLY_EXPR(mrb_assert((tag) == current_checkpoint_tag)); \
   } while (0)
-
-#ifdef MRB_DEBUG
-#define DEBUG_ONLY_EXPR(e) e
-#else
-#define DEBUG_ONLY_EXPR(e) ((void)0)
-#endif
 
 #define ERR_PC_SET(mrb) mrb->c->ci->err = pc0;
 #define ERR_PC_CLR(mrb) mrb->c->ci->err = 0;
