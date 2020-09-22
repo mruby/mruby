@@ -35,7 +35,7 @@ offset_crc_body(void)
 
 #ifndef MRB_NO_FLOAT
 static double
-str_to_double(mrb_state *mrb, const char *p, size_t len)
+str_to_double(mrb_state *mrb, const char *p)
 {
   /* dump IEEE754 little endian binary */
   union {
@@ -43,7 +43,6 @@ str_to_double(mrb_state *mrb, const char *p, size_t len)
     double f;
   } u;
 
-  mrb_assert(sizeof(double)==len);
   if (littleendian) {
     memcpy(u.s, p, sizeof(double));
   }
@@ -169,10 +168,8 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
       case IREP_TT_FLOAT:
 #ifndef MRB_NO_FLOAT
         pool[i].tt = tt;
-        pool_data_len = bin_to_uint16(src); /* pool data length */
-        src += sizeof(uint16_t);
-        pool[i].u.f = str_to_double(mrb, (const char*)src, pool_data_len);
-        src += pool_data_len;
+         pool[i].u.f = str_to_double(mrb, (const char*)src);
+        src += sizeof(double);
         break;
 #else
         return NULL;            /* MRB_NO_FLOAT */

@@ -191,10 +191,8 @@ write_pool_block(mrb_state *mrb, const mrb_irep *irep, uint8_t *buf)
       cur += uint8_to_bin(IREP_TT_FLOAT, cur); /* data type */
 #ifndef MRB_NO_FLOAT
       {
-        len = sizeof(double);
-        cur += uint16_to_bin((uint16_t)len, cur); /* data length */
         dump_float(mrb, cur,irep->pool[pool_no].u.f);
-        cur += len;
+        cur += sizeof(double);
       }
 #else
       cur += uint16_to_bin(0, cur); /* zero length */
