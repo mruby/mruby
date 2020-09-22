@@ -15,11 +15,7 @@
 
 #ifndef MRB_NO_FLOAT
 #include <mruby/endian.h>
-#ifdef MRB_USE_FLOAT32
-#define MRB_FLOAT_FMT "%.9g"
-#else
 #define MRB_FLOAT_FMT "%.17g"
-#endif
 #endif
 
 static size_t get_irep_record_size_1(mrb_state *mrb, const mrb_irep *irep);
