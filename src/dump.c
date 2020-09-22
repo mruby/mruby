@@ -323,11 +323,6 @@ write_irep_record(mrb_state *mrb, const mrb_irep *irep, uint8_t *bin, size_t *ir
     return MRB_DUMP_INVALID_IREP;
   }
 
-  *irep_record_size = get_irep_record_size_1(mrb, irep);
-  if (*irep_record_size == 0) {
-    return MRB_DUMP_GENERAL_FAILURE;
-  }
-
   bin += write_irep_header(mrb, irep, bin);
   /*
    * The catch handler table is after iseq block, but the number of
