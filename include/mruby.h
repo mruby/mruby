@@ -876,8 +876,8 @@ MRB_API struct RClass * mrb_define_module_under(mrb_state *mrb, struct RClass *o
  * | `S`  | {String}       | {mrb_value}       | when `!` follows, the value may be `nil`           |
  * | `A`  | {Array}        | {mrb_value}       | when `!` follows, the value may be `nil`           |
  * | `H`  | {Hash}         | {mrb_value}       | when `!` follows, the value may be `nil`           |
- * | `s`  | {String}       | char *, {mrb_int} | Receive two arguments; `s!` gives (`NULL`,`0`) for `nil`        |
- * | `z`  | {String}       | char *            | `NULL` terminated string; `z!` gives `NULL` for `nil`           |
+ * | `s`  | {String}       | const char *, {mrb_int} | Receive two arguments; `s!` gives (`NULL`,`0`) for `nil` |
+ * | `z`  | {String}       | const char *      | `NULL` terminated string; `z!` gives `NULL` for `nil` |
  * | `a`  | {Array}        | {mrb_value} *, {mrb_int} | Receive two arguments; `a!` gives (`NULL`,`0`) for `nil` |
  * | `f`  | {Fixnum}/{Float} | {mrb_float}       |                                                    |
  * | `i`  | {Fixnum}/{Float} | {mrb_int}         |                                                    |

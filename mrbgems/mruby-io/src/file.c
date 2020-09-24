@@ -557,7 +557,8 @@ mrb_file_s_readlink(mrb_state *mrb, mrb_value klass) {
   mrb_raise(mrb, E_NOTIMP_ERROR, "readlink is not supported on this platform");
   return mrb_nil_value(); // unreachable
 #else
-  char *path, *buf, *tmp;
+  const char *path;
+  char *buf, *tmp;
   size_t bufsize = 100;
   ssize_t rc;
   mrb_value ret;

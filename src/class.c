@@ -584,8 +584,8 @@ void mrb_hash_check_kdict(mrb_state *mrb, mrb_value self);
     S:      String         [mrb_value]            when ! follows, the value may be nil
     A:      Array          [mrb_value]            when ! follows, the value may be nil
     H:      Hash           [mrb_value]            when ! follows, the value may be nil
-    s:      String         [char*,mrb_int]        Receive two arguments; s! gives (NULL,0) for nil
-    z:      String         [char*]                NUL terminated string; z! gives NULL for nil
+    s:      String         [const char*,mrb_int]  Receive two arguments; s! gives (NULL,0) for nil
+    z:      String         [const char*]          NUL terminated string; z! gives NULL for nil
     a:      Array          [mrb_value*,mrb_int]   Receive two arguments; a! gives (NULL,0) for nil
     c:      Class/Module   [strcut RClass*]
     f:      Fixnum/Float   [mrb_float]
@@ -772,10 +772,10 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
     case 's':
       {
         mrb_value ss;
-        char **ps = 0;
+        const char **ps = 0;
         mrb_int *pl = 0;
 
-        ps = va_arg(ap, char**);
+        ps = va_arg(ap, const char**);
         pl = va_arg(ap, mrb_int*);
         if (i < argc) {
           ss = argv[i++];

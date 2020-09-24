@@ -515,7 +515,8 @@ static mrb_value
 mrb_ipsocket_ntop(mrb_state *mrb, mrb_value klass)
 {
   mrb_int af, n;
-  char *addr, buf[50];
+  const char *addr;
+  char buf[50];
 
   mrb_get_args(mrb, "is", &af, &addr, &n);
   if ((af == AF_INET && n != 4) || (af == AF_INET6 && n != 16))
@@ -529,7 +530,8 @@ static mrb_value
 mrb_ipsocket_pton(mrb_state *mrb, mrb_value klass)
 {
   mrb_int af, n;
-  char *bp, buf[50];
+  const char *bp;
+  char buf[50];
 
   mrb_get_args(mrb, "is", &af, &bp, &n);
   if ((size_t)n > sizeof(buf) - 1)
