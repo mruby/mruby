@@ -12,7 +12,7 @@ mrb_value mrb_obj_instance_eval(mrb_state *mrb, mrb_value self);
 void mrb_codedump_all(mrb_state*, struct RProc*);
 
 static struct RProc*
-create_proc_from_string(mrb_state *mrb, char *s, mrb_int len, mrb_value binding, const char *file, mrb_int line)
+create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value binding, const char *file, mrb_int line)
 {
   mrbc_context *cxt;
   struct mrb_parser_state *p;
@@ -131,10 +131,10 @@ exec_irep(mrb_state *mrb, mrb_value self, struct RProc *proc)
 static mrb_value
 f_eval(mrb_state *mrb, mrb_value self)
 {
-  char *s;
+  const char *s;
   mrb_int len;
   mrb_value binding = mrb_nil_value();
-  char *file = NULL;
+  const char *file = NULL;
   mrb_int line = 1;
   struct RProc *proc;
 
@@ -154,9 +154,9 @@ f_instance_eval(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "*!&", &argv, &argc, &b);
 
   if (mrb_nil_p(b)) {
-    char *s;
+    const char *s;
     mrb_int len;
-    char *file = NULL;
+    const char *file = NULL;
     mrb_int line = 1;
     mrb_value cv;
     struct RProc *proc;

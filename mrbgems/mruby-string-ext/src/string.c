@@ -1072,7 +1072,8 @@ static mrb_value
 mrb_str_del_prefix_bang(mrb_state *mrb, mrb_value self)
 {
   mrb_int plen, slen;
-  char *ptr, *s;
+  const char *ptr;
+  char *s;
   struct RString *str = RSTRING(self);
 
   mrb_get_args(mrb, "s", &ptr, &plen);
@@ -1105,7 +1106,7 @@ static mrb_value
 mrb_str_del_prefix(mrb_state *mrb, mrb_value self)
 {
   mrb_int plen, slen;
-  char *ptr;
+  const char *ptr;
 
   mrb_get_args(mrb, "s", &ptr, &plen);
   slen = RSTRING_LEN(self);
@@ -1129,7 +1130,8 @@ static mrb_value
 mrb_str_del_suffix_bang(mrb_state *mrb, mrb_value self)
 {
   mrb_int plen, slen;
-  char *ptr, *s;
+  const char *ptr;
+  char *s;
   struct RString *str = RSTRING(self);
 
   mrb_get_args(mrb, "s", &ptr, &plen);
@@ -1160,7 +1162,7 @@ static mrb_value
 mrb_str_del_suffix(mrb_state *mrb, mrb_value self)
 {
   mrb_int plen, slen;
-  char *ptr;
+  const char *ptr;
 
   mrb_get_args(mrb, "s", &ptr, &plen);
   slen = RSTRING_LEN(self);
