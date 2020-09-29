@@ -555,29 +555,6 @@ mrb_argnum_error(mrb_state *mrb, mrb_int argc, int min, int max)
 #undef FMT
 }
 
-MRB_API mrb_value
-mrb_exc_protect(mrb_state *mrb, mrb_value (*body)(mrb_state*, void*), void *a,
-                mrb_value (*resc)(mrb_state*, void*, mrb_value), void *b)
-{
-  struct mrb_jmpbuf *prev_jmp = mrb->jmp;
-  struct mrb_jmpbuf c_jmp;
-  mrb_value v = mrb_undef_value();
-
-  MRB_TRY(&c_jmp) {
-    mrb->jmp = &c_jmp;
-    v = body(mrb, a);
-  } MRB_CATCH(&c_jmp) {
-    if (mrb->exc) {
-      v = resc(mrb, b, mrb_obj_value(mrb->exc));
-      mrb->exc = NULL;
-    }
-  } MRB_END_EXC(&c_jmp);
-
-  mrb->jmp = prev_jmp;
-
-  return v;
-}
-
 void mrb_core_init_printabort(void);
 
 int

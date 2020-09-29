@@ -1293,9 +1293,6 @@ MRB_API void mrb_print_backtrace(mrb_state *mrb);
 MRB_API void mrb_print_error(mrb_state *mrb);
 /* function for `raisef` formatting */
 MRB_API mrb_value mrb_vformat(mrb_state *mrb, const char *format, va_list ap);
-/* function to protect errors during execution */
-MRB_API mrb_value mrb_exc_protect(mrb_state *mrb, mrb_value (*body)(mrb_state*, void*), void *a, mrb_value (*resc)(mrb_state*, void*, mrb_value), void *b);
-
 
 /* macros to get typical exception objects
    note:
