@@ -525,10 +525,7 @@ main(int argc, char **argv)
 
   while (TRUE) {
     char *utf8;
-    struct mrb_jmpbuf c_jmp;
 
-    MRB_TRY(&c_jmp);
-    mrb->jmp = &c_jmp;
     if (args.rfp) {
       if (fgets(last_code_line, sizeof(last_code_line)-1, args.rfp) != NULL)
         goto done;
@@ -687,11 +684,6 @@ main(int argc, char **argv)
     }
     mrb_parser_free(parser);
     cxt->lineno++;
-    MRB_CATCH(&c_jmp) {
-      p(mrb, mrb_obj_value(mrb->exc), 0);
-      mrb->exc = 0;
-    }
-    MRB_END_EXC(&c_jmp);
   }
 
 #ifdef ENABLE_READLINE
