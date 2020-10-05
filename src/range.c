@@ -32,6 +32,8 @@ r_check(mrb_state *mrb, mrb_value a, mrb_value b)
     return;
   }
 
+  if (mrb_nil_p(b)) return;
+
   n = mrb_cmp(mrb, a, b);
   if (n == -2) {                /* can not be compared */
     mrb_raise(mrb, E_ARGUMENT_ERROR, "bad value for range");
@@ -212,15 +214,19 @@ range_include(mrb_state *mrb, mrb_value range)
   mrb_value val = mrb_get_arg1(mrb);
   struct RRange *r = mrb_range_ptr(mrb, range);
   mrb_value beg, end;
-  mrb_bool include_p;
 
   beg = RANGE_BEG(r);
   end = RANGE_END(r);
-  include_p = r_le(mrb, beg, val) &&                 /* beg <= val */
-              (RANGE_EXCL(r) ? r_gt(mrb, end, val)   /* end >  val */
-                             : r_ge(mrb, end, val)); /* end >= val */
-
-  return mrb_bool_value(include_p);
+  if (r_le(mrb, beg, val)) {                   /* beg <= val */
+    if (mrb_nil_p(end)) {
+      return mrb_true_value();
+    }
+    if (RANGE_EXCL(r) ? r_gt(mrb, end, val)    /* end >  val */
+                      : r_ge(mrb, end, val)) { /* end >= val */
+      return mrb_true_value();
+    }
+  }
+  return mrb_false_value();
 }
 
 /* 15.2.14.4.12(x) */
@@ -261,10 +267,10 @@ range_inspect(mrb_state *mrb, mrb_value range)
   struct RRange *r = mrb_range_ptr(mrb, range);
 
   str  = mrb_inspect(mrb, RANGE_BEG(r));
-  str2 = mrb_inspect(mrb, RANGE_END(r));
+  if (!mrb_nil_p(RANGE_END(r))) str2 = mrb_inspect(mrb, RANGE_END(r));
   str  = mrb_str_dup(mrb, str);
   mrb_str_cat(mrb, str, "...", RANGE_EXCL(r) ? 3 : 2);
-  mrb_str_cat_str(mrb, str, str2);
+  if (!mrb_nil_p(RANGE_END(r))) mrb_str_cat_str(mrb, str, str2);
 
   return str;
 }
@@ -381,13 +387,15 @@ MRB_API enum mrb_range_beg_len
 mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp, mrb_int len, mrb_bool trunc)
 {
   mrb_int beg, end;
+  mrb_bool excl;
   struct RRange *r;
 
   if (!mrb_range_p(range)) return MRB_RANGE_TYPE_MISMATCH;
   r = mrb_range_ptr(mrb, range);
 
   beg = mrb_int(mrb, RANGE_BEG(r));
-  end = mrb_int(mrb, RANGE_END(r));
+  end = mrb_nil_p(RANGE_END(r)) ? -1 : mrb_int(mrb, RANGE_END(r));
+  excl = mrb_nil_p(RANGE_END(r)) ? 0 : RANGE_EXCL(r);
 
   if (beg < 0) {
     beg += len;
@@ -400,7 +408,7 @@ mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp,
   }
 
   if (end < 0) end += len;
-  if (!RANGE_EXCL(r) && (!trunc || end < len)) end++;  /* include end point */
+  if (!excl && (!trunc || end < len)) end++;  /* include end point */
   len = end - beg;
   if (len < 0) len = 0;
 

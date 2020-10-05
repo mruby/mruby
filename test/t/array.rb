@@ -57,6 +57,7 @@ assert('Array#[]', '15.2.12.5.4') do
   a = [ "a", "b", "c", "d", "e" ]
   assert_equal(["b", "c"], a[1,2])
   assert_equal(["b", "c", "d"], a[1..-2])
+  assert_equal(["b", "c", "d", "e"], a[1..])
   skip unless Object.const_defined?(:Float)
   assert_equal("b", a[1.1])
 end
@@ -91,6 +92,10 @@ assert('Array#[]=', '15.2.12.5.5') do
   a = [1,2,3,4,5]
   a[2...4] = 6
   assert_equal([1,2,6,5], a)
+
+  a = [1,2,3,4,5]
+  a[2...] = 6
+  assert_equal([1,2,6], a)
 
   # passing self (#3274)
   a = [1,2,3]

@@ -12,8 +12,25 @@ class Range
   def each(&block)
     return to_enum :each unless block
 
-    val = self.first
-    last = self.last
+    val = self.begin
+    last = self.end
+
+    if val.kind_of?(Fixnum) && last.nil?
+      i = val
+      while true
+        block.call(i)
+        i += 1
+      end
+      return self
+    end
+
+    if val.kind_of?(String) && last.nil?
+      if val.respond_to? :__upto_endless
+        return val.__upto_endless(&block)
+      else
+        str_each = true
+      end
+    end
 
     if val.kind_of?(Fixnum) && last.kind_of?(Fixnum) # fixnums are special
       lim = last
@@ -55,6 +72,11 @@ class Range
     h = first.hash ^ last.hash
     h += 1 if self.exclude_end?
     h
+  end
+
+  def to_a
+    raise RangeError, "cannot convert endless range to an array" if self.last.nil?
+    super
   end
 end
 

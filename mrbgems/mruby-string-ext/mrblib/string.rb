@@ -444,4 +444,27 @@ class String
     end
     self
   end
+
+  def __upto_endless(&block)
+    return to_enum(:__upto_endless) unless block
+
+    len = self.length
+    # both edges are all digits
+    bi = self.to_i(10)
+    if bi > 0 or bi == "0"*len
+      while true
+        s = bi.to_s
+        s = s.rjust(len, "0") if s.length < len
+        yield s
+        bi += 1
+      end
+      return self
+    end
+    bs = self
+    while true
+      yield bs
+      bs = bs.succ
+    end
+    self
+  end
 end
