@@ -422,7 +422,6 @@ class String
     # both edges are all digits
     bi = self.to_i(10)
     ei = max.to_i(10)
-    len = self.length
     if (bi > 0 or bi == "0"*len) and (ei > 0 or ei == "0"*maxlen)
       while bi <= ei
         break if exclusive and bi == ei
