@@ -99,10 +99,10 @@ assert('Range#min') do
   assert_equal nil, (100..10).min
 
   # returns nil when the endpoint equals the start point and the range is exclusive
-  assert_equal nil, (5...5).max
+  assert_equal nil, (5...5).min
 
   # returns the endpoint when the endpoint equals the start point and the range is inclusive
-  assert_equal 5, (5..5).max
+  assert_equal 5, (5..5).min
 
   skip unless Object.const_defined?(:Float)
 
@@ -110,7 +110,7 @@ assert('Range#min') do
   assert_equal 303.20, (303.20..908.1111).min
 
   # returns nil when the start point is greater than the endpoint in a Float range
-  assert_equal nil, (3003.20..908.1111).max
+  assert_equal nil, (3003.20..908.1111).min
 end
 
 assert('Range#min given a block') do
