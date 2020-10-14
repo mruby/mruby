@@ -1,4 +1,0 @@
-# List of symbols that cannot be detected by Rakefile
-# Those symbols are not defined (to cause exceptions)
-doesNotExistAsAMethodNameForVerySure
-UnknownConstant

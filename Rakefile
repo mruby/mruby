@@ -108,14 +108,14 @@ mkdir_p "#{MRUBY_ROOT}/build"
 cfiles = (
   Dir.glob("#{MRUBY_ROOT}/src/*.c")+
   Dir.glob("#{MRUBY_ROOT}/mrbgems/**/*.c")+
-  Dir.glob("#{MRUBY_ROOT}/build/repos/**/{src,test,core}/*.c")
+  Dir.glob("#{MRUBY_ROOT}/build/repos/**/{src,core}/*.c")
 ).uniq
 rbfiles = (
-  Dir.glob("#{MRUBY_ROOT}/{mrblib,test,test/t}/**/*.rb")+
-  Dir.glob("#{MRUBY_ROOT}/mrbgems/*/{mrblib,test}/**/*.rb")+
-  Dir.glob("#{MRUBY_ROOT}/build/repos/**/{mrblib,test}/**/*.rb")
+  Dir.glob("#{MRUBY_ROOT}/mrblib/**/*.rb")+
+  Dir.glob("#{MRUBY_ROOT}/mrbgems/*/mrblib/**/*.rb")+
+  Dir.glob("#{MRUBY_ROOT}/build/repos/**/mrblib/**/*.rb")
 ).uniq
-psfiles = Dir.glob("#{MRUBY_ROOT}/{mrblib,mrbgems,test,build/repos}/**/presym")
+psfiles = Dir.glob("#{MRUBY_ROOT}/{mrblib,mrbgems,build/repos}/**/presym")
 symbols = []
 psfiles.each do |file|
   symbols += File.readlines(file).grep_v(/^# /)
