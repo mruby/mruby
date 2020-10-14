@@ -1081,7 +1081,7 @@ dump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, 
     fputs(      "NULL,\n", fp);
   }
   if (irep->lv) {
-    fprintf(fp, "%s_lv_%d,\n", name, n);
+    fprintf(fp, "  %s_lv_%d,\n", name, n);
   }
   else {
     fputs(      "  NULL,\t\t\t\t\t/* lv */\n", fp);
