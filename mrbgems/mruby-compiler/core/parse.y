@@ -2190,9 +2190,17 @@ arg             : lhs '=' arg_rhs
                     {
                       $$ = new_dot2(p, $1, $3);
                     }
+                | arg tDOT2
+                    {
+                      $$ = new_dot2(p, $1, new_nil(p));
+                    }
                 | arg tDOT3 arg
                     {
                       $$ = new_dot3(p, $1, $3);
+                    }
+                | arg tDOT3
+                    {
+                      $$ = new_dot3(p, $1, new_nil(p));
                     }
                 | arg '+' arg
                     {

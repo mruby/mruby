@@ -27,9 +27,11 @@ class Range
   end
 
   def max(&block)
-    val = self.first
-    last = self.last
+    val = self.begin
+    last = self.end
     return super if block
+
+    raise RangeError, "cannot get the maximum of endless range" if last.nil?
 
     # fast path for numerics
     if val.kind_of?(Numeric) && last.kind_of?(Numeric)
@@ -47,9 +49,13 @@ class Range
   end
 
   def min(&block)
-    val = self.first
-    last = self.last
-    return super if block
+    val = self.begin
+    last = self.end
+    if block
+      raise RangeError, "cannot get the minimum of endless range with custom comparison method" if last.nil?
+      return super 
+    end
+    return val if last.nil?
 
     # fast path for numerics
     if val.kind_of?(Numeric) && last.kind_of?(Numeric)
