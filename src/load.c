@@ -434,7 +434,7 @@ read_lv_record(mrb_state *mrb, const uint8_t *start, mrb_irep *irep, size_t *rec
 
   irep->lv = lv = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym) * (irep->nlocals - 1));
 
-  for (i = 0; i + 1< irep->nlocals; ++i) {
+  for (i = 0; i + 1 < irep->nlocals; ++i) {
     uint16_t const sym_idx = bin_to_uint16(bin);
     bin += sizeof(uint16_t);
     if (sym_idx == RITE_LV_NULL_MARK) {
