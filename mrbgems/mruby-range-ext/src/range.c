@@ -42,6 +42,9 @@ range_cover(mrb_state *mrb, mrb_value range)
   end = RANGE_END(r);
 
   if (r_le(mrb, beg, val)) {
+    if (mrb_nil_p(end)) {
+      return mrb_true_value();
+    }
     if (RANGE_EXCL(r)) {
       if (r_lt(mrb, val, end))
         return mrb_true_value();
@@ -76,6 +79,11 @@ range_last(mrb_state *mrb, mrb_value range)
 {
   mrb_value num;
   mrb_value array;
+  struct RRange *r = mrb_range_ptr(mrb, range);
+
+  if (mrb_nil_p(RANGE_END(r))) {
+    mrb_raise(mrb, E_RANGE_ERROR, "cannot get the last element of endless range");
+  }
 
   if (mrb_get_args(mrb, "|o", &num) == 0) {
     return mrb_range_end(mrb, range);
@@ -108,6 +116,10 @@ range_size(mrb_state *mrb, mrb_value range)
 
   beg = RANGE_BEG(r);
   end = RANGE_END(r);
+  if ((mrb_fixnum_p(beg) || mrb_float_p(beg)) && mrb_nil_p(end)) {
+    return mrb_float_value(mrb, INFINITY);
+  }
+
   excl = RANGE_EXCL(r);
   if (mrb_integer_p(beg)) {
     beg_f = (mrb_float)mrb_integer(beg);
@@ -159,6 +171,10 @@ range_size(mrb_state *mrb, mrb_value range)
 
   beg = RANGE_BEG(r);
   end = RANGE_END(r);
+  if (mrb_fixnum_p(beg) && mrb_nil_p(end)) {
+    return mrb_nil_value();
+  }
+
   excl = RANGE_EXCL(r) ? 0 : 1;
 
   if (mrb_integer_p(beg) && mrb_integer_p(end)) {

@@ -90,6 +90,7 @@ assert('String#[] with Range') do
   h1 = 'abc'[3..4]
   i1 = 'abc'[4..5]
   j1 = 'abcdefghijklmnopqrstuvwxyz'[1..3]
+  k1 = 'abcdefghijklmnopqrstuvwxyz'[-3..]
   a2 = 'abc'[1...0]
   b2 = 'abc'[1...1]
   c2 = 'abc'[1...2]
@@ -100,6 +101,7 @@ assert('String#[] with Range') do
   h2 = 'abc'[3...4]
   i2 = 'abc'[4...5]
   j2 = 'abcdefghijklmnopqrstuvwxyz'[1...3]
+  k2 = 'abcdefghijklmnopqrstuvwxyz'[-3...]
 
   assert_equal '', a1
   assert_equal 'b', b1
@@ -111,6 +113,7 @@ assert('String#[] with Range') do
   assert_equal '', h1
   assert_nil i2
   assert_equal 'bcd', j1
+  assert_equal 'xyz', k1
   assert_equal '', a2
   assert_equal '', b2
   assert_equal 'b', c2
@@ -121,6 +124,7 @@ assert('String#[] with Range') do
   assert_equal '', h2
   assert_nil i2
   assert_equal 'bc', j2
+  assert_equal 'xyz', k2
 end
 
 assert('String#[]=') do
