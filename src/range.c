@@ -23,11 +23,11 @@ r_check(mrb_state *mrb, mrb_value a, mrb_value b)
 
   ta = mrb_type(a);
   tb = mrb_type(b);
-#ifdef MRB_WITHOUT_FLOAT
-  if (ta == MRB_TT_FIXNUM && tb == MRB_TT_FIXNUM ) {
+#ifdef MRB_NO_FLOAT
+  if (ta == MRB_TT_INTEGER && tb == MRB_TT_INTEGER ) {
 #else
-  if ((ta == MRB_TT_FIXNUM || ta == MRB_TT_FLOAT) &&
-      (tb == MRB_TT_FIXNUM || tb == MRB_TT_FLOAT)) {
+  if ((ta == MRB_TT_INTEGER || ta == MRB_TT_FLOAT) &&
+      (tb == MRB_TT_INTEGER || tb == MRB_TT_FLOAT)) {
 #endif
     return;
   }
@@ -78,7 +78,7 @@ range_ptr_init(mrb_state *mrb, struct RRange *r, mrb_value beg, mrb_value end, m
   if (r) {
     if (RANGE_INITIALIZED_P(r)) {
       /* Ranges are immutable, so that they should be initialized only once. */
-      mrb_name_error(mrb, mrb_intern_lit(mrb, "initialize"), "'initialize' called twice");
+      mrb_name_error(mrb, MRB_SYM(initialize), "'initialize' called twice");
     }
     else {
       range_ptr_alloc_edges(mrb, r);
@@ -328,8 +328,8 @@ mrb_get_values_at(mrb_state *mrb, mrb_value obj, mrb_int olen, mrb_int argc, con
   result = mrb_ary_new(mrb);
 
   for (i = 0; i < argc; ++i) {
-    if (mrb_fixnum_p(argv[i])) {
-      mrb_ary_push(mrb, result, func(mrb, obj, mrb_fixnum(argv[i])));
+    if (mrb_integer_p(argv[i])) {
+      mrb_ary_push(mrb, result, func(mrb, obj, mrb_integer(argv[i])));
     }
     else if (mrb_range_beg_len(mrb, argv[i], &beg, &len, olen, FALSE) == MRB_RANGE_OK) {
       mrb_int const end = olen < beg + len ? olen : beg + len;

@@ -25,25 +25,61 @@
 #endif
 
 /* configuration options: */
-/* add -DMRB_USE_FLOAT to use float instead of double for floating point numbers */
-//#define MRB_USE_FLOAT
+/* add -DMRB_USE_FLOAT32 to use float instead of double for floating point numbers */
+//#define MRB_USE_FLOAT32
 
 /* exclude floating point numbers */
-//#define MRB_WITHOUT_FLOAT
+//#define MRB_NO_FLOAT
 
-/* add -DMRB_METHOD_CACHE to use method cache to improve performance */
-//#define MRB_METHOD_CACHE
+/* obsolete configuration */
+#if defined(MRB_USE_FLOAT)
+# define MRB_USE_FLOAT32
+#endif
+
+/* obsolete configuration */
+#if defined(MRB_WITHOUT_FLOAT)
+# define MRB_NO_FLOAT
+#endif
+
+#if defined(MRB_USE_FLOAT32) && defined(MRB_NO_FLOAT)
+#error Cannot define MRB_USE_FLOAT32 and MRB_NO_FLOAT at the same time
+#endif
+
+/* add -DMRB_NO_METHOD_CACHE to disable method cache to save memory */
+//#define MRB_NO_METHOD_CACHE
 /* size of the method cache (need to be the power of 2) */
-//#define MRB_METHOD_CACHE_SIZE (1<<7)
+//#define MRB_METHOD_CACHE_SIZE (1<<8)
 
-/* add -DMRB_METHOD_T_STRUCT on machines that use higher bits of pointers */
-/* no MRB_METHOD_T_STRUCT requires highest 2 bits of function pointers to be zero */
-#ifndef MRB_METHOD_T_STRUCT
+/* add -DMRB_USE_METHOD_T_STRUCT on machines that use higher bits of function pointers */
+/* no MRB_USE_METHOD_T_STRUCT requires highest 2 bits of function pointers to be zero */
+#ifndef MRB_USE_METHOD_T_STRUCT
   // can't use highest 2 bits of function pointers at least on 32bit
   // Windows and 32bit Linux.
 # ifdef MRB_32BIT
-#   define MRB_METHOD_T_STRUCT
+#   define MRB_USE_METHOD_T_STRUCT
 # endif
+#endif
+
+/* define on big endian machines; used by MRB_NAN_BOXING, etc. */
+#ifndef MRB_ENDIAN_BIG
+# if (defined(BYTE_ORDER) && defined(BIG_ENDIAN) && BYTE_ORDER == BIG_ENDIAN) || \
+     (defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
+#  define MRB_ENDIAN_BIG
+# endif
+#endif
+
+/* represent mrb_value in boxed double; conflict with MRB_USE_FLOAT32 and MRB_NO_FLOAT */
+//#define MRB_NAN_BOXING
+
+/* represent mrb_value as a word (natural unit of data for the processor) */
+//#define MRB_WORD_BOXING
+
+/* represent mrb_value as a struct; occupies 2 words */
+//#define MRB_NO_BOXING
+
+/* if no specific boxing type is chosen */
+#if !defined(MRB_NAN_BOXING) && !defined(MRB_WORD_BOXING) && !defined(MRB_NO_BOXING)
+# define MRB_WORD_BOXING
 #endif
 
 /* add -DMRB_INT32 to use 32bit integer for mrb_int; conflict with MRB_INT64;
@@ -51,7 +87,7 @@
 //#define MRB_INT32
 
 /* add -DMRB_INT64 to use 64bit integer for mrb_int; conflict with MRB_INT32;
-   Default for 64-bit CPU mode. */
+   Default for 64-bit CPU mode (unless using MRB_NAN_BOXING). */
 //#define MRB_INT64
 
 /* if no specific integer type is chosen */
@@ -65,19 +101,8 @@
 # endif
 #endif
 
-/* define on big endian machines; used by MRB_NAN_BOXING, etc. */
-#ifndef MRB_ENDIAN_BIG
-# if (defined(BYTE_ORDER) && defined(BIG_ENDIAN) && BYTE_ORDER == BIG_ENDIAN) || \
-     (defined(__BYTE_ORDER__) && defined(__ORDER_BIG_ENDIAN__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__)
-#  define MRB_ENDIAN_BIG
-# endif
-#endif
-
-/* represent mrb_value in boxed double; conflict with MRB_USE_FLOAT and MRB_WITHOUT_FLOAT */
-//#define MRB_NAN_BOXING
-
-/* represent mrb_value as a word (natural unit of data for the processor) */
-//#define MRB_WORD_BOXING
+/* call malloc_trim(0) from mrb_full_gc() */
+//#define MRB_USE_MALLOC_TRIM
 
 /* string class to handle UTF-8 encoding */
 //#define MRB_UTF8_STRING
@@ -160,6 +185,10 @@
 
 /* A profile for micro controllers */
 #if defined(MRB_CONSTRAINED_BASELINE_PROFILE)
+# ifndef MRB_NO_METHOD_CACHE
+#  define MRB_NO_METHOD_CACHE
+# endif
+
 # ifndef KHASH_DEFAULT_SIZE
 #  define KHASH_DEFAULT_SIZE 16
 # endif
@@ -177,10 +206,6 @@
 
 /* A profile for desktop computers or workstations; rich memory! */
 #elif defined(MRB_MAIN_PROFILE)
-# ifndef MRB_METHOD_CACHE
-#  define MRB_METHOD_CACHE
-# endif
-
 # ifndef MRB_METHOD_CACHE_SIZE
 #  define MRB_METHOD_CACHE_SIZE (1<<10)
 # endif
@@ -195,10 +220,6 @@
 
 /* A profile for server; mruby vm is long life */
 #elif defined(MRB_HIGH_PROFILE)
-# ifndef MRB_METHOD_CACHE
-#  define MRB_METHOD_CACHE
-# endif
-
 # ifndef MRB_METHOD_CACHE_SIZE
 #  define MRB_METHOD_CACHE_SIZE (1<<12)
 # endif

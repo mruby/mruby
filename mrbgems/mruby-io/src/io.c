@@ -102,14 +102,14 @@ io_set_process_status(mrb_state *mrb, pid_t pid, int status)
   mrb_value v;
 
   c_status = NULL;
-  if (mrb_class_defined(mrb, "Process")) {
-    c_process = mrb_module_get(mrb, "Process");
-    if (mrb_const_defined(mrb, mrb_obj_value(c_process), mrb_intern_cstr(mrb, "Status"))) {
-      c_status = mrb_class_get_under(mrb, c_process, "Status");
+  if (mrb_class_defined_id(mrb, MRB_SYM(Process))) {
+    c_process = mrb_module_get_id(mrb, MRB_SYM(Process));
+    if (mrb_const_defined(mrb, mrb_obj_value(c_process), MRB_SYM(Status))) {
+      c_status = mrb_class_get_under_id(mrb, c_process, MRB_SYM(Status));
     }
   }
   if (c_status != NULL) {
-    v = mrb_funcall(mrb, mrb_obj_value(c_status), "new", 2, mrb_fixnum_value(pid), mrb_fixnum_value(status));
+    v = mrb_funcall_id(mrb, mrb_obj_value(c_status), MRB_SYM(new), 2, mrb_fixnum_value(pid), mrb_fixnum_value(status));
   } else {
     v = mrb_fixnum_value(WEXITSTATUS(status));
   }
@@ -327,19 +327,16 @@ mrb_io_alloc(mrb_state *mrb)
 #endif
 
 static int
-option_to_fd(mrb_state *mrb, mrb_value hash, const char *key)
+option_to_fd(mrb_state *mrb, mrb_value v)
 {
-  mrb_value opt;
+  if (mrb_undef_p(v)) return -1;
+  if (mrb_nil_p(v)) return -1;
 
-  if (!mrb_hash_p(hash)) return -1;
-  opt = mrb_hash_fetch(mrb, hash, mrb_symbol_value(mrb_intern_static(mrb, key, strlen(key))), mrb_nil_value());
-  if (mrb_nil_p(opt)) return -1;
-
-  switch (mrb_type(opt)) {
+  switch (mrb_type(v)) {
     case MRB_TT_DATA: /* IO */
-      return mrb_io_fileno(mrb, opt);
-    case MRB_TT_FIXNUM:
-      return (int)mrb_fixnum(opt);
+      return mrb_io_fileno(mrb, v);
+    case MRB_TT_INTEGER:
+      return (int)mrb_integer(v);
     default:
       mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong exec redirect action");
       break;
@@ -353,8 +350,14 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
 {
   mrb_value cmd, io;
   mrb_value mode = mrb_str_new_cstr(mrb, "r");
-  mrb_value opt  = mrb_hash_new(mrb);
-
+  mrb_value kv[3];
+  mrb_sym knames[3] = {MRB_SYM(in), MRB_SYM(out), MRB_SYM(err)};
+  const mrb_kwargs kw = {
+    3, 0,
+    knames,
+    kv,
+    NULL,
+  };
   struct mrb_io *fptr;
   const char *pname;
   int pid = 0, flags;
@@ -366,23 +369,22 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
   HANDLE ofd[2];
 
   int doexec;
-  int opt_in, opt_out, opt_err;
 
   ifd[0] = INVALID_HANDLE_VALUE;
   ifd[1] = INVALID_HANDLE_VALUE;
   ofd[0] = INVALID_HANDLE_VALUE;
   ofd[1] = INVALID_HANDLE_VALUE;
 
-  mrb_get_args(mrb, "S|oH", &cmd, &mode, &opt);
+  mrb_get_args(mrb, "S|o:", &cmd, &mode, &kw, &kv);
   io = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
 
   pname = RSTRING_CSTR(mrb, cmd);
   flags = mrb_io_mode_to_flags(mrb, mode);
 
   doexec = (strcmp("-", pname) != 0);
-  opt_in = option_to_fd(mrb, opt, "in");
-  opt_out = option_to_fd(mrb, opt, "out");
-  opt_err = option_to_fd(mrb, opt, "err");
+  option_to_fd(mrb, kv[0]);
+  option_to_fd(mrb, kv[1]);
+  option_to_fd(mrb, kv[2]);
 
   saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
   saAttr.bInheritHandle = TRUE;
@@ -458,8 +460,14 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
 {
   mrb_value cmd, io, result;
   mrb_value mode = mrb_str_new_cstr(mrb, "r");
-  mrb_value opt  = mrb_hash_new(mrb);
-
+  mrb_value kv[3];
+  mrb_sym knames[3] = {MRB_SYM(in), MRB_SYM(out), MRB_SYM(err)};
+  const mrb_kwargs kw = {
+    3, 0,
+    knames,
+    kv,
+    NULL,
+  };
   struct mrb_io *fptr;
   const char *pname;
   int pid, flags, fd, write_fd = -1;
@@ -469,16 +477,16 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
   int saved_errno;
   int opt_in, opt_out, opt_err;
 
-  mrb_get_args(mrb, "S|oH", &cmd, &mode, &opt);
+  mrb_get_args(mrb, "S|o:", &cmd, &mode, &kw);
   io = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
 
   pname = RSTRING_CSTR(mrb, cmd);
   flags = mrb_io_mode_to_flags(mrb, mode);
 
   doexec = (strcmp("-", pname) != 0);
-  opt_in = option_to_fd(mrb, opt, "in");
-  opt_out = option_to_fd(mrb, opt, "out");
-  opt_err = option_to_fd(mrb, opt, "err");
+  opt_in = option_to_fd(mrb, kv[0]);
+  opt_out = option_to_fd(mrb, kv[1]);
+  opt_err = option_to_fd(mrb, kv[2]);
 
   if (OPEN_READABLE_P(flags)) {
     if (pipe(pr) == -1) {
@@ -973,10 +981,10 @@ mrb_io_sysseek(mrb_state *mrb, mrb_value io)
     mrb_sys_fail(mrb, "sysseek");
   }
   if (pos > MRB_INT_MAX) {
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
     return mrb_float_value(mrb, (mrb_float)pos);
 #else
-    mrb_raise(mrb, E_IO_ERROR, "sysseek reached too far for MRB_WITHOUT_FLOAT");
+    mrb_raise(mrb, E_IO_ERROR, "sysseek reached too far for MRB_NO_FLOAT");
 #endif
   } else {
     return mrb_fixnum_value(pos);
@@ -1076,12 +1084,12 @@ time2timeval(mrb_state *mrb, mrb_value time)
   struct timeval t = { 0, 0 };
 
   switch (mrb_type(time)) {
-    case MRB_TT_FIXNUM:
-      t.tv_sec = (ftime_t)mrb_fixnum(time);
+    case MRB_TT_INTEGER:
+      t.tv_sec = (ftime_t)mrb_integer(time);
       t.tv_usec = 0;
       break;
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
     case MRB_TT_FLOAT:
       t.tv_sec = (ftime_t)mrb_float(time);
       t.tv_usec = (fsuseconds_t)((mrb_float(time) - t.tv_sec) * 1000000.0);

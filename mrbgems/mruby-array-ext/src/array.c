@@ -148,11 +148,11 @@ mrb_ary_slice_bang(mrb_state *mrb, mrb_value self)
       else {
         return mrb_nil_value();
       }
-    case MRB_TT_FIXNUM:
-      val = mrb_funcall(mrb, self, "delete_at", 1, index);
+    case MRB_TT_INTEGER:
+      val = mrb_funcall_id(mrb, self, MRB_SYM(delete_at), 1, index);
       return val;
     default:
-      val = mrb_funcall(mrb, self, "delete_at", 1, index);
+      val = mrb_funcall_id(mrb, self, MRB_SYM(delete_at), 1, index);
       return val;
     }
   }

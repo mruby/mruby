@@ -8,7 +8,7 @@
 # define _CRT_NONSTDC_NO_DEPRECATE
 #endif
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 #include <float.h>
 #include <math.h>
 #endif
@@ -583,9 +583,6 @@ str_share(mrb_state *mrb, struct RString *orig, struct RString *s)
   else if (RSTR_FSHARED_P(orig)) {
     str_init_fshared(orig, s, orig->as.heap.aux.fshared);
   }
-  else if (mrb_frozen_p(orig) && !RSTR_POOL_P(orig)) {
-    str_init_fshared(orig, s, orig);
-  }
   else {
     if (orig->as.heap.aux.capa > orig->as.heap.len) {
       orig->as.heap.ptr = (char *)mrb_realloc(mrb, orig->as.heap.ptr, len+1);
@@ -594,29 +591,6 @@ str_share(mrb_state *mrb, struct RString *orig, struct RString *s)
     str_init_shared(mrb, orig, s, NULL);
     str_init_shared(mrb, orig, orig, s->as.heap.aux.shared);
   }
-}
-
-mrb_value
-mrb_str_pool(mrb_state *mrb, const char *p, mrb_int len, mrb_bool nofree)
-{
-  struct RString *s = (struct RString *)mrb_malloc(mrb, sizeof(struct RString));
-
-  s->tt = MRB_TT_STRING;
-  s->c = mrb->string_class;
-  s->flags = 0;
-
-  if (RSTR_EMBEDDABLE_P(len)) {
-    str_init_embed(s, p, len);
-  }
-  else if (nofree) {
-    str_init_nofree(s, p, len);
-  }
-  else {
-    str_init_normal(mrb, s, p, len);
-  }
-  RSTR_SET_POOL_FLAG(s);
-  MRB_SET_FROZEN_FLAG(s);
-  return mrb_obj_value(s);
 }
 
 mrb_value
@@ -898,7 +872,7 @@ mrb_str_to_cstr(mrb_state *mrb, mrb_value str0)
 MRB_API void
 mrb_str_concat(mrb_state *mrb, mrb_value self, mrb_value other)
 {
-  other = mrb_str_to_str(mrb, other);
+  other = mrb_obj_as_string(mrb, other);
   mrb_str_cat_str(mrb, self, other);
 }
 
@@ -1111,30 +1085,11 @@ mrb_str_equal_m(mrb_state *mrb, mrb_value str1)
 }
 /* ---------------------------------- */
 
-MRB_API mrb_value
-mrb_str_to_str(mrb_state *mrb, mrb_value str)
-{
-  switch (mrb_type(str)) {
-  case MRB_TT_STRING:
-    return str;
-  case MRB_TT_SYMBOL:
-    return mrb_sym_str(mrb, mrb_symbol(str));
-  case MRB_TT_FIXNUM:
-    return mrb_fixnum_to_str(mrb, str, 10);
-  case MRB_TT_SCLASS:
-  case MRB_TT_CLASS:
-  case MRB_TT_MODULE:
-    return mrb_mod_to_s(mrb, str);
-  default:
-    return mrb_convert_type(mrb, str, MRB_TT_STRING, "String", "to_s");
-  }
-}
-
 /* obslete: use RSTRING_PTR() */
 MRB_API const char*
 mrb_string_value_ptr(mrb_state *mrb, mrb_value str)
 {
-  str = mrb_str_to_str(mrb, str);
+  str = mrb_obj_as_string(mrb, str);
   return RSTRING_PTR(str);
 }
 
@@ -1180,8 +1135,8 @@ str_convert_range(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen,
   }
   else {
     switch (mrb_type(indx)) {
-      case MRB_TT_FIXNUM:
-        *beg = mrb_fixnum(indx);
+      case MRB_TT_INTEGER:
+        *beg = mrb_integer(indx);
         *len = 1;
         return STR_CHAR_RANGE;
 
@@ -1196,8 +1151,8 @@ str_convert_range(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen,
 
       default:
         indx = mrb_to_int(mrb, indx);
-        if (mrb_fixnum_p(indx)) {
-          *beg = mrb_fixnum(indx);
+        if (mrb_integer_p(indx)) {
+          *beg = mrb_integer(indx);
           *len = 1;
           return STR_CHAR_RANGE;
         }
@@ -1212,7 +1167,7 @@ range_arg:
             break;
         }
 
-        mrb_raise(mrb, E_TYPE_ERROR, "can't convert to Fixnum");
+        mrb_raise(mrb, E_TYPE_ERROR, "can't convert to Integer");
     }
   }
   return STR_OUT_OF_RANGE;
@@ -1256,8 +1211,8 @@ mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen)
  *     str.slice(range)            => new_str or nil
  *     str.slice(other_str)        => new_str or nil
  *
- *  Element Reference---If passed a single <code>Fixnum</code>, returns the code
- *  of the character at that position. If passed two <code>Fixnum</code>
+ *  Element Reference---If passed a single <code>Integer</code>, returns the code
+ *  of the character at that position. If passed two <code>Integer</code>
  *  objects, returns a substring starting at the offset given by the first, and
  *  a length given by the second. If given a range, a substring containing
  *  characters at offsets given by the range is returned. In all three cases, if
@@ -1963,7 +1918,20 @@ mrb_str_intern(mrb_state *mrb, mrb_value self)
 MRB_API mrb_value
 mrb_obj_as_string(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_str_to_str(mrb, obj);
+  switch (mrb_type(obj)) {
+  case MRB_TT_STRING:
+    return obj;
+  case MRB_TT_SYMBOL:
+    return mrb_sym_str(mrb, mrb_symbol(obj));
+  case MRB_TT_INTEGER:
+    return mrb_fixnum_to_str(mrb, obj, 10);
+  case MRB_TT_SCLASS:
+  case MRB_TT_CLASS:
+  case MRB_TT_MODULE:
+    return mrb_mod_to_s(mrb, obj);
+  default:
+    return mrb_type_convert(mrb, obj, MRB_TT_STRING, MRB_SYM(to_s));
+  }
 }
 
 MRB_API mrb_value
@@ -2391,7 +2359,7 @@ mrb_str_len_to_inum(mrb_state *mrb, const char *str, size_t len, mrb_int base, i
     n *= base;
     n += c;
     if (n > (uint64_t)MRB_INT_MAX + (sign ? 0 : 1)) {
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
       if (base == 10) {
         return mrb_float_value(mrb, mrb_str_to_dbl(mrb, mrb_str_new(mrb, str, len), badcheck));
       }
@@ -2502,7 +2470,7 @@ mrb_str_to_i(mrb_state *mrb, mrb_value self)
   return mrb_str_to_inum(mrb, self, base, FALSE);
 }
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 double
 mrb_str_len_to_dbl(mrb_state *mrb, const char *s, size_t len, mrb_bool badcheck)
 {
@@ -2524,8 +2492,8 @@ mrb_str_len_to_dbl(mrb_state *mrb, const char *s, size_t len, mrb_bool badcheck)
 
     if (!badcheck) return 0.0;
     x = mrb_str_len_to_inum(mrb, p, pend-p, 0, badcheck);
-    if (mrb_fixnum_p(x))
-      d = (double)mrb_fixnum(x);
+    if (mrb_integer_p(x))
+      d = (double)mrb_integer(x);
     else /* if (mrb_float_p(x)) */
       d = mrb_float(x);
     return d;
@@ -2900,7 +2868,7 @@ mrb_str_byteslice(mrb_state *mrb, mrb_value str)
       }
     }
     else {
-      beg = mrb_fixnum(mrb_to_int(mrb, a1));
+      beg = mrb_integer(mrb_to_int(mrb, a1));
       len = 1;
       empty = FALSE;
     }
@@ -2963,7 +2931,7 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "slice",           mrb_str_aref_m,          MRB_ARGS_ANY());  /* 15.2.10.5.34 */
   mrb_define_method(mrb, s, "split",           mrb_str_split_m,         MRB_ARGS_ANY());  /* 15.2.10.5.35 */
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
   mrb_define_method(mrb, s, "to_f",            mrb_str_to_f,            MRB_ARGS_NONE()); /* 15.2.10.5.38 */
 #endif
   mrb_define_method(mrb, s, "to_i",            mrb_str_to_i,            MRB_ARGS_ANY());  /* 15.2.10.5.39 */
@@ -2980,7 +2948,7 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "byteslice",       mrb_str_byteslice,       MRB_ARGS_ARG(1,1));
 }
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 /*
  * Source code for the "strtod" library procedure.
  *

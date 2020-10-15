@@ -66,11 +66,13 @@ mrb_stat(mrb_state *mrb, mrb_value obj, struct stat *st)
   return mrb_stat0(mrb, obj, st, 0);
 }
 
+#ifdef S_ISLNK
 static int
 mrb_lstat(mrb_state *mrb, mrb_value obj, struct stat *st)
 {
   return mrb_stat0(mrb, obj, st, 1);
 }
+#endif
 
 /*
  * Document-method: directory?
@@ -302,7 +304,7 @@ mrb_filetest_s_size(mrb_state *mrb, mrb_value klass)
   if (mrb_stat(mrb, obj, &st) < 0)
     mrb_sys_fail(mrb, "mrb_stat");
 
-  return mrb_fixnum_value(st.st_size);
+  return mrb_int_value(mrb, st.st_size);
 }
 
 /*
@@ -324,7 +326,7 @@ mrb_filetest_s_size_p(mrb_state *mrb, mrb_value klass)
   if (st.st_size == 0)
     return mrb_nil_value();
 
-  return mrb_fixnum_value(st.st_size);
+  return mrb_int_value(mrb, st.st_size);
 }
 
 void

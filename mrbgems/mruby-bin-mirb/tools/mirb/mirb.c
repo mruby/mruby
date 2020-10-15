@@ -104,13 +104,13 @@ p(mrb_state *mrb, mrb_value obj, int prompt)
   mrb_value val;
   char* msg;
 
-  val = mrb_funcall(mrb, obj, "inspect", 0);
+  val = mrb_funcall_id(mrb, obj, MRB_SYM(inspect), 0);
   if (prompt) {
     if (!mrb->exc) {
       fputs(" => ", stdout);
     }
     else {
-      val = mrb_funcall(mrb, mrb_obj_value(mrb->exc), "inspect", 0);
+      val = mrb_funcall_id(mrb, mrb_obj_value(mrb->exc), MRB_SYM(inspect), 0);
     }
   }
   if (!mrb_string_p(val)) {
@@ -525,10 +525,7 @@ main(int argc, char **argv)
 
   while (TRUE) {
     char *utf8;
-    struct mrb_jmpbuf c_jmp;
 
-    MRB_TRY(&c_jmp);
-    mrb->jmp = &c_jmp;
     if (args.rfp) {
       if (fgets(last_code_line, sizeof(last_code_line)-1, args.rfp) != NULL)
         goto done;
@@ -672,7 +669,7 @@ main(int argc, char **argv)
         }
         else {
           /* no */
-          if (!mrb_respond_to(mrb, result, mrb_intern_lit(mrb, "inspect"))){
+          if (!mrb_respond_to(mrb, result, MRB_SYM(inspect))){
             result = mrb_any_to_s(mrb, result);
           }
           p(mrb, result, 1);
@@ -687,11 +684,6 @@ main(int argc, char **argv)
     }
     mrb_parser_free(parser);
     cxt->lineno++;
-    MRB_CATCH(&c_jmp) {
-      p(mrb, mrb_obj_value(mrb->exc), 0);
-      mrb->exc = 0;
-    }
-    MRB_END_EXC(&c_jmp);
   }
 
 #ifdef ENABLE_READLINE

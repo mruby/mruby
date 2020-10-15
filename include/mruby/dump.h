@@ -18,10 +18,11 @@ MRB_BEGIN_DECL
 
 #define DUMP_DEBUG_INFO 1
 
-int mrb_dump_irep(mrb_state *mrb, mrb_irep *irep, uint8_t flags, uint8_t **bin, size_t *bin_size);
+int mrb_dump_irep(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, uint8_t **bin, size_t *bin_size);
 #ifndef MRB_DISABLE_STDIO
-int mrb_dump_irep_binary(mrb_state*, mrb_irep*, uint8_t, FILE*);
-int mrb_dump_irep_cfunc(mrb_state *mrb, mrb_irep*, uint8_t flags, FILE *f, const char *initname);
+int mrb_dump_irep_binary(mrb_state*, const mrb_irep*, uint8_t, FILE*);
+int mrb_dump_irep_cfunc(mrb_state *mrb, const mrb_irep*, uint8_t flags, FILE *f, const char *initname);
+int mrb_dump_irep_cstruct(mrb_state *mrb, const mrb_irep*, uint8_t flags, FILE *f, const char *initname);
 mrb_irep *mrb_read_irep_file(mrb_state*, FILE*);
 MRB_API mrb_value mrb_load_irep_file(mrb_state*,FILE*);
 MRB_API mrb_value mrb_load_irep_file_cxt(mrb_state*, FILE*, mrbc_context*);
@@ -48,11 +49,16 @@ MRB_API mrb_irep *mrb_read_irep_buf(mrb_state*, const void*, size_t);
 
 /* Rite Binary File header */
 #define RITE_BINARY_IDENT              "RITE"
-#define RITE_BINARY_FORMAT_VER         "0007"
+/* Binary Format Version Major:Minor */
+/*   Major: Incompatible to prior versions */
+/*   Minor: Upper-compatible to prior versions */
+#define RITE_BINARY_MAJOR_VER          "01"
+#define RITE_BINARY_MINOR_VER          "00"
+#define RITE_BINARY_FORMAT_VER         RITE_BINARY_MAJOR_VER RITE_BINARY_MINOR_VER
 #define RITE_COMPILER_NAME             "MATZ"
 #define RITE_COMPILER_VERSION          "0000"
 
-#define RITE_VM_VER                    "0002"
+#define RITE_VM_VER                    "0300"
 
 #define RITE_BINARY_EOF                "END\0"
 #define RITE_SECTION_IREP_IDENT        "IREP"
@@ -65,7 +71,8 @@ MRB_API mrb_irep *mrb_read_irep_buf(mrb_state*, const void*, size_t);
 /* binary header */
 struct rite_binary_header {
   uint8_t binary_ident[4];    /* Binary Identifier */
-  uint8_t binary_version[4];  /* Binary Format Version */
+  uint8_t major_version[2];   /* Binary Format Major Version */
+  uint8_t minor_version[2];   /* Binary Format Minor Version */
   uint8_t binary_crc[2];      /* Binary CRC */
   uint8_t binary_size[4];     /* Binary Size */
   uint8_t compiler_name[4];   /* Compiler name */
@@ -126,16 +133,6 @@ uint32_to_bin(uint32_t l, uint8_t *bin)
   return sizeof(uint32_t);
 }
 
-static inline size_t
-uint32l_to_bin(uint32_t l, uint8_t *bin)
-{
-  bin[3] = (l >> 24) & 0xff;
-  bin[2] = (l >> 16) & 0xff;
-  bin[1] = (l >> 8) & 0xff;
-  bin[0] = l & 0xff;
-  return sizeof(uint32_t);
-}
-
 static inline uint32_t
 bin_to_uint32(const uint8_t *bin)
 {
@@ -143,15 +140,6 @@ bin_to_uint32(const uint8_t *bin)
          (uint32_t)bin[1] << 16 |
          (uint32_t)bin[2] << 8  |
          (uint32_t)bin[3];
-}
-
-static inline uint32_t
-bin_to_uint32l(const uint8_t *bin)
-{
-  return (uint32_t)bin[3] << 24 |
-         (uint32_t)bin[2] << 16 |
-         (uint32_t)bin[1] << 8  |
-         (uint32_t)bin[0];
 }
 
 static inline uint16_t

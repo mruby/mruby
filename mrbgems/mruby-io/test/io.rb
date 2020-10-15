@@ -7,7 +7,7 @@ $cr, $crlf, $cmd = MRubyIOTestUtil.win? ? [1, "\r\n", "cmd /c "] : [0, "\n", ""]
 def assert_io_open(meth)
   assert "assert_io_open" do
     fd = IO.sysopen($mrbtest_io_rfname)
-    assert_equal Fixnum, fd.class
+    assert_equal Integer, fd.class
     io1 = IO.__send__(meth, fd)
     begin
       assert_equal IO, io1.class
@@ -27,7 +27,6 @@ def assert_io_open(meth)
 
     assert_raise(RuntimeError) { IO.__send__(meth, 1023) } # For Windows
     assert_raise(RuntimeError) { IO.__send__(meth, 1 << 26) }
-    assert_raise(RuntimeError) { IO.__send__(meth, 1 << 32) } if (1 << 32).kind_of?(Integer)
   end
 end
 
@@ -433,7 +432,7 @@ assert('IO.popen') do
     $? = nil
     io = IO.popen("#{$cmd}echo mruby-io")
     assert_true io.close_on_exec?
-    assert_equal Fixnum, io.pid.class
+    assert_equal Integer, io.pid.class
 
     out = io.read
     assert_equal out.class, String

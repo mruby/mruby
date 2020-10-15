@@ -516,7 +516,7 @@ SRC
   tc << {:cmd=>'p a+1',   :exp=>'$1 = 2'}
   tc << {:cmd=>'p 2-b',   :exp=>'$2 = -3'}
   tc << {:cmd=>'p c * 3', :exp=>'$3 = 24'}
-  tc << {:cmd=>'p a/b',   :exp=>'$4 = 0.2'}
+  tc << {:cmd=>'p a/b',   :exp=>'$4 = 0'}
   tc << {:cmd=>'p c%b',   :exp=>'$5 = 3'}
   tc << {:cmd=>'p 2**10', :exp=>'$6 = 1024'}
   tc << {:cmd=>'p ~3',    :exp=>'$7 = -4'}
@@ -614,13 +614,13 @@ SRC
   tc << {:cmd=>'p a+=9',   :exp=>'$1 = 10'}
   tc << {:cmd=>'p b-=c',   :exp=>'$2 = 15'}
   tc << {:cmd=>'p bar*=2', :exp=>'$3 = "barbar"'}
-  tc << {:cmd=>'p a/=4',   :exp=>'$4 = 2.5'}
+  tc << {:cmd=>'p a/=4',   :exp=>'$4 = 2'}
   tc << {:cmd=>'p c%=4',   :exp=>'$5 = 2'}
 
   tc << {:cmd=>'p b&=0b0101', :exp=>'$6 = 5'}
   tc << {:cmd=>'p c|=0x10',   :exp=>'$7 = 18'}
 
-  tc << {:cmd=>'p "#{a} #{b} #{c}"',     :exp=>'$8 = "2.5 5 18"'}
+  tc << {:cmd=>'p "#{a} #{b} #{c}"',     :exp=>'$8 = "2 5 18"'}
   tc << {:cmd=>'p "#{foo}#{bar}#{baz}"', :exp=>'$9 = "foobarbarbaz"'}
 
   tc << {:cmd=>'p a,b,c=[10,20,30]',:exp=>'$10 = [10, 20, 30]'}
@@ -682,13 +682,13 @@ SRC
   tc << {:cmd=>'p a+=9',   :exp=>'$1 = 10'}
   tc << {:cmd=>'p b-=c',   :exp=>'$2 = 15'}
   tc << {:cmd=>'p bar*=2', :exp=>'$3 = "barbar"'}
-  tc << {:cmd=>'p a/=4',   :exp=>'$4 = 2.5'}
+  tc << {:cmd=>'p a/=4',   :exp=>'$4 = 2'}
   tc << {:cmd=>'p c%=4',   :exp=>'$5 = 2'}
 
   tc << {:cmd=>'p b&=0b0101', :exp=>'$6 = 5'}
   tc << {:cmd=>'p c|=0x10',   :exp=>'$7 = 18'}
 
-  tc << {:cmd=>'p "#{a} #{b} #{c}"',     :exp=>'$8 = "2.5 5 18"'}
+  tc << {:cmd=>'p "#{a} #{b} #{c}"',     :exp=>'$8 = "2 5 18"'}
   tc << {:cmd=>'p "#{foo}#{bar}#{baz}"', :exp=>'$9 = "foobarbarbaz"'}
 
   tc << {:cmd=>'p a,b,c=[10,20,30]',:exp=>'$10 = [10, 20, 30]'}

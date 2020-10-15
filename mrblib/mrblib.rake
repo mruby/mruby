@@ -11,8 +11,21 @@ MRuby.each_target do
     mkdir_p File.dirname(t.name)
     open(t.name, 'w') do |f|
       _pp "GEN", "*.rb", "#{t.name.relative_path}"
-      f.puts File.read("#{current_dir}/init_mrblib.c")
-      mrbc.run f, rbfiles, 'mrblib_irep'
+      f.puts %Q[/*]
+      f.puts %Q[ * This file is loading the mrblib]
+      f.puts %Q[ *]
+      f.puts %Q[ * IMPORTANT:]
+      f.puts %Q[ *   This file was generated!]
+      f.puts %Q[ *   All manual changes will get lost.]
+      f.puts %Q[ */]
+      mrbc.run f, rbfiles, 'mrblib_proc'
+      f.puts <<INIT_END
+void
+mrb_init_mrblib(mrb_state *mrb)
+{
+  mrb_load_proc(mrb, mrblib_proc);
+}
+INIT_END
     end
   end
 end

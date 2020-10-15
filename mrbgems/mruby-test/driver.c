@@ -224,8 +224,8 @@ mrb_init_test_driver(mrb_state *mrb, mrb_bool verbose)
   mrb_define_const(mrb, mrbtest, "FIXNUM_MIN", mrb_fixnum_value(MRB_INT_MIN));
   mrb_define_const(mrb, mrbtest, "FIXNUM_BIT", mrb_fixnum_value(MRB_INT_BIT));
 
-#ifndef MRB_WITHOUT_FLOAT
-#ifdef MRB_USE_FLOAT
+#ifndef MRB_NO_FLOAT
+#ifdef MRB_USE_FLOAT32
   mrb_define_const(mrb, mrbtest, "FLOAT_TOLERANCE", mrb_float_value(mrb, 1e-6));
 #else
   mrb_define_const(mrb, mrbtest, "FLOAT_TOLERANCE", mrb_float_value(mrb, 1e-12));
@@ -252,9 +252,9 @@ mrb_t_pass_result(mrb_state *mrb_dst, mrb_state *mrb_src)
 #define TEST_COUNT_PASS(name)                                           \
   do {                                                                  \
     res_src = mrb_gv_get(mrb_src, mrb_intern_lit(mrb_src, "$" #name));  \
-    if (mrb_fixnum_p(res_src)) {                                        \
+    if (mrb_integer_p(res_src)) {                                       \
       mrb_value res_dst = mrb_gv_get(mrb_dst, mrb_intern_lit(mrb_dst, "$" #name)); \
-      mrb_gv_set(mrb_dst, mrb_intern_lit(mrb_dst, "$" #name), mrb_fixnum_value(mrb_fixnum(res_dst) + mrb_fixnum(res_src))); \
+      mrb_gv_set(mrb_dst, mrb_intern_lit(mrb_dst, "$" #name), mrb_int_value(mrb_dst, mrb_integer(res_dst) + mrb_integer(res_src))); \
     }                                                                   \
   } while (FALSE)                                                       \
 

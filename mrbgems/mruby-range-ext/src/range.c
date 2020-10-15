@@ -81,8 +81,8 @@ range_last(mrb_state *mrb, mrb_value range)
     return mrb_range_end(mrb, range);
   }
 
-  array = mrb_funcall(mrb, range, "to_a", 0);
-  return mrb_funcall(mrb, array, "last", 1, mrb_to_int(mrb, num));
+  array = mrb_funcall_id(mrb, range, MRB_SYM(to_a), 0);
+  return mrb_funcall_id(mrb, array, MRB_SYM(last), 1, mrb_to_int(mrb, num));
 }
 
 /*
@@ -96,7 +96,7 @@ range_last(mrb_state *mrb, mrb_value range)
  *    ('a'..'z').size  #=> nil
  */
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 static mrb_value
 range_size(mrb_state *mrb, mrb_value range)
 {
@@ -109,8 +109,8 @@ range_size(mrb_state *mrb, mrb_value range)
   beg = RANGE_BEG(r);
   end = RANGE_END(r);
   excl = RANGE_EXCL(r);
-  if (mrb_fixnum_p(beg)) {
-    beg_f = (mrb_float)mrb_fixnum(beg);
+  if (mrb_integer_p(beg)) {
+    beg_f = (mrb_float)mrb_integer(beg);
   }
   else if (mrb_float_p(beg)) {
     beg_f = mrb_float(beg);
@@ -118,8 +118,8 @@ range_size(mrb_state *mrb, mrb_value range)
   else {
     num_p = FALSE;
   }
-  if (mrb_fixnum_p(end)) {
-    end_f = (mrb_float)mrb_fixnum(end);
+  if (mrb_integer_p(end)) {
+    end_f = (mrb_float)mrb_integer(end);
   }
   else if (mrb_float_p(end)) {
     end_f = mrb_float(end);
@@ -161,16 +161,16 @@ range_size(mrb_state *mrb, mrb_value range)
   end = RANGE_END(r);
   excl = RANGE_EXCL(r) ? 0 : 1;
 
-  if (mrb_fixnum_p(beg) && mrb_fixnum_p(end)) {
-    mrb_int a = mrb_fixnum(beg);
-    mrb_int b = mrb_fixnum(end);
+  if (mrb_integer_p(beg) && mrb_integer_p(end)) {
+    mrb_int a = mrb_integer(beg);
+    mrb_int b = mrb_integer(end);
     mrb_int c = b - a + excl;
 
     return mrb_fixnum_value(c);
   }
   return mrb_nil_value();
 }
-#endif /* MRB_WITHOUT_FLOAT */
+#endif /* MRB_NO_FLOAT */
 
 void
 mrb_mruby_range_ext_gem_init(mrb_state* mrb)

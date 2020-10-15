@@ -46,11 +46,11 @@ You can use mrbconfs with following ways:
 
 ## Primitive type configuration.
 
-`MRB_USE_FLOAT`
+`MRB_USE_FLOAT32`
 * When defined single precision floating point type(C type `float`) is used as `mrb_float`.
-* Else double precision floating point type(C type `double`) is used as `mrb_float`.
+* Otherwise double precision floating point type(C type `double`) is used as `mrb_float`.
 
-`MRB_WITHOUT_FLOAT`
+`MRB_NO_FLOAT`
 * When defined removes floating point numbers from mruby.
 * It makes mruby easier to handle in "Microcontroller without FPU" and "Kernel Space".
 
@@ -117,7 +117,7 @@ largest value of required alignment.
 
 `MRB_NAN_BOXING`
 * If defined represent `mrb_value` in boxed `double`.
-* Conflicts with `MRB_USE_FLOAT` and `MRB_WITHOUT_FLOAT`.
+* Conflicts with `MRB_USE_FLOAT32` and `MRB_NO_FLOAT`.
 
 `MRB_WORD_BOXING`
 * If defined represent `mrb_value` as a word.
@@ -163,17 +163,17 @@ largest value of required alignment.
 * Default value is `128`.
 * Specifies initial capacity of `RString` created by `mrb_str_buf_new` function..
 
-`MRB_METHOD_CACHE`
-* Improve performance for method dispatch.
+`MRB_NO_METHOD_CACHE`
+* Disable method cache to save memory.
 
 `MRB_METHOD_CACHE_SIZE`
-* Default value is `128`.
-* Ignored if `MRB_METHOD_CACHE` is not defined.
+* Default value is `256`.
+* Ignored if `MRB_NO_METHOD_CACHE` is defined.
 * Need to be the power of 2.
 
-`MRB_METHOD_T_STRUCT`
+`MRB_USE_METHOD_T_STRUCT`
 * Use C struct to represent `mrb_method_t`
-* No `MRB_METHOD_T_STRUCT` requires highest 2 bits of function pointers to be zero
+* No `MRB_USE_METHOD_T_STRUCT` requires highest 2 bits of function pointers to be zero
 * Define this macro on machines that use higher bits of pointers
 
 `MRB_ENABLE_ALL_SYMBOLS`

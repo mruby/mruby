@@ -38,7 +38,9 @@ init:
   - set PATH=C:\Ruby26-x64\bin;%PATH%
   - ruby --version
 
+
 build_script:
-  - set MRUBY_CONFIG=appveyor_config.rb
-  - rake -m -j4
-  - rake -E STDOUT.sync=true test
+  - set MRUBY_TARGET=appveyor
+  - rake gensym
+  - rake -m all
+  - rake -E $stdout.sync=true test

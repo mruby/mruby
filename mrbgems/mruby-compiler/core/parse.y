@@ -265,7 +265,7 @@ local_unnest(parser_state *p)
 static mrb_bool
 local_var_p(parser_state *p, mrb_sym sym)
 {
-  struct RProc *u;
+  const struct RProc *u;
   node *l = p->locals;
 
   while (l) {
@@ -279,11 +279,13 @@ local_var_p(parser_state *p, mrb_sym sym)
 
   u = p->upper;
   while (u && !MRB_PROC_CFUNC_P(u)) {
-    struct mrb_irep *ir = u->body.irep;
-    uint_fast16_t n = ir->nlocals;
-    const struct mrb_locals *v = ir->lv;
-    for (; n > 1; n --, v ++) {
-      if (v->name == sym) return TRUE;
+    const struct mrb_irep *ir = u->body.irep;
+    const mrb_sym *v = ir->lv;
+    int i;
+
+    if (!v) break;
+    for (i=0; i < ir->nlocals; i++) {
+      if (v[i] == sym) return TRUE;
     }
     if (MRB_PROC_SCOPE_P(u)) break;
     u = u->upper;
@@ -311,14 +313,14 @@ static void
 local_add_blk(parser_state *p, mrb_sym blk)
 {
   /* allocate register for block */
-  local_add_f(p, blk ? blk : mrb_intern_lit(p->mrb, "&"));
+  local_add_f(p, blk ? blk : MRB_QSYM(and));
 }
 
 static void
 local_add_kw(parser_state *p, mrb_sym kwd)
 {
   /* allocate register for keywords hash */
-  local_add_f(p, kwd ? kwd : mrb_intern_lit(p->mrb, "**"));
+  local_add_f(p, kwd ? kwd : MRB_QSYM(pow));
 }
 
 static node*
@@ -730,7 +732,19 @@ new_module(parser_state *p, node *m, node *b)
 static node*
 new_def(parser_state *p, mrb_sym m, node *a, node *b)
 {
-  return list5((node*)NODE_DEF, nsym(m), locals_node(p), a, b);
+  return list5((node*)NODE_DEF, nsym(m), 0, a, b);
+}
+
+static void
+defn_setup(parser_state *p, node *d, node *a, node *b)
+{
+  node *n = d->cdr->cdr;
+
+  n->car = locals_node(p);
+  p->cmdarg_stack = intn(n->cdr->car);
+  n->cdr->car = a;
+  local_resume(p, n->cdr->cdr->car);
+  n->cdr->cdr->car = b;
 }
 
 /* (:sdef obj m lv (arg . body)) */
@@ -738,7 +752,19 @@ static node*
 new_sdef(parser_state *p, node *o, mrb_sym m, node *a, node *b)
 {
   void_expr_error(p, o);
-  return list6((node*)NODE_SDEF, o, nsym(m), locals_node(p), a, b);
+  return list6((node*)NODE_SDEF, o, nsym(m), 0, a, b);
+}
+
+static void
+defs_setup(parser_state *p, node *d, node *a, node *b)
+{
+  node *n = d->cdr->cdr->cdr;
+
+  n->car = locals_node(p);
+  p->cmdarg_stack = intn(n->cdr->car);
+  n->cdr->car = a;
+  local_resume(p, n->cdr->cdr->car);
+  n->cdr->cdr->car = b;
 }
 
 /* (:arg . sym) */
@@ -932,13 +958,13 @@ new_op_asgn(parser_state *p, node *a, mrb_sym op, node *b)
 static node*
 new_imaginary(parser_state *p, node *imaginary)
 {
-  return new_call(p, new_const(p, intern_lit("Kernel")), intern_lit("Complex"), list1(list2(list3((node*)NODE_INT, (node*)strdup("0"), nint(10)), imaginary)), 1);
+  return new_call(p, new_const(p, MRB_SYM(Kernel)), MRB_SYM(Complex), list1(list2(list3((node*)NODE_INT, (node*)strdup("0"), nint(10)), imaginary)), 1);
 }
 
 static node*
 new_rational(parser_state *p, node *rational)
 {
-  return new_call(p, new_const(p, intern_lit("Kernel")), intern_lit("Rational"), list1(list1(rational)), 1);
+  return new_call(p, new_const(p, MRB_SYM(Kernel)), MRB_SYM(Rational), list1(list1(rational)), 1);
 }
 
 /* (:int . i) */
@@ -955,7 +981,7 @@ new_int(parser_state *p, const char *s, int base, int suffix)
   return result;
 }
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 /* (:float . i) */
 static node*
 new_float(parser_state *p, const char *s, int suffix)
@@ -1415,8 +1441,8 @@ heredoc_end(parser_state *p)
 %token <num> tNUMPARAM
 
 %type <nd> singleton string string_fragment string_rep string_interp xstring regexp
-%type <nd> literal numeric cpath symbol
-%type <nd> top_compstmt top_stmts top_stmt
+%type <nd> literal numeric cpath symbol defn_head defs_head
+%type <nd> top_compstmt top_stmts top_stmt rassign
 %type <nd> bodystmt compstmt stmts stmt expr arg primary command command_call method_call
 %type <nd> expr_value arg_rhs primary_value
 %type <nd> if_tail opt_else case_body cases opt_rescue exc_list exc_var opt_ensure
@@ -1425,7 +1451,7 @@ heredoc_end(parser_state *p)
 %type <nd> command_args aref_args opt_block_arg block_arg var_ref var_lhs
 %type <nd> command_asgn command_rhs mrhs superclass block_call block_command
 %type <nd> f_block_optarg f_block_opt
-%type <nd> f_arglist f_args f_arg f_arg_item f_optarg f_margs
+%type <nd> f_arglist_paren f_arglist f_args f_arg f_arg_item f_optarg f_margs
 %type <nd> assoc_list assocs assoc undef_list backref for_var
 %type <nd> block_param opt_block_param block_param_def f_opt
 %type <nd> bv_decls opt_bv_decl bvar f_larglist lambda_body
@@ -1658,7 +1684,28 @@ stmt            : keyword_alias fsym {p->lstate = EXPR_FNAME;} fsym
                     {
                       $$ = new_masgn(p, $1, new_array(p, $3));
                     }
+                | rassign
                 | expr
+                ;
+
+rassign         : arg tASSOC lhs
+                    {
+                      void_expr_error(p, $1);
+                      $$ = new_asgn(p, $3, $1);
+                    }
+                | arg tASSOC mlhs
+                    {
+                      void_expr_error(p, $1);
+                      $$ = new_masgn(p, $3, $1);
+                    }
+                | rassign tASSOC lhs
+                    {
+                      $$ = new_asgn(p, $3, $1);
+                    }
+                | rassign tASSOC mlhs
+                    {
+                      $$ = new_masgn(p, $3, $1);
+                    }
                 ;
 
 command_asgn    : lhs '=' command_rhs
@@ -1671,7 +1718,7 @@ command_asgn    : lhs '=' command_rhs
                     }
                 | primary_value '[' opt_call_args ']' tOP_ASGN command_rhs
                     {
-                      $$ = new_op_asgn(p, new_call(p, $1, intern_lit("[]"), $3, '.'), $5, $6);
+                      $$ = new_op_asgn(p, new_call(p, $1, MRB_QSYM(aref), $3, '.'), $5, $6);
                     }
                 | primary_value call_op tIDENTIFIER tOP_ASGN command_rhs
                     {
@@ -1724,6 +1771,31 @@ expr            : command_call
                       $$ = call_uni_op(p, cond($2), "!");
                     }
                 | arg
+                ;
+
+
+defn_head       : keyword_def fname
+                    {
+                      $$ = new_def(p, $2, nint(p->cmdarg_stack), local_switch(p));
+                      p->cmdarg_stack = 0;
+                      p->in_def++;
+                      nvars_block(p);
+                    }
+                ;
+
+defs_head       : keyword_def singleton dot_or_colon
+                    {
+                      p->lstate = EXPR_FNAME;
+                    }
+                    fname
+                    {
+                      $$ = new_sdef(p, $2, $5, nint(p->cmdarg_stack), local_switch(p));
+                      p->cmdarg_stack = 0;
+                      p->in_def++;
+                      p->in_single++;
+                      nvars_block(p);
+                      p->lstate = EXPR_ENDFN; /* force for args */
+                    }
                 ;
 
 expr_value      : expr
@@ -1902,7 +1974,7 @@ mlhs_node       : variable
                     }
                 | primary_value '[' opt_call_args ']'
                     {
-                      $$ = new_call(p, $1, intern_lit("[]"), $3, '.');
+                      $$ = new_call(p, $1, MRB_QSYM(aref), $3, '.');
                     }
                 | primary_value call_op tIDENTIFIER
                     {
@@ -1941,7 +2013,7 @@ lhs             : variable
                     }
                 | primary_value '[' opt_call_args ']'
                     {
-                      $$ = new_call(p, $1, intern_lit("[]"), $3, '.');
+                      $$ = new_call(p, $1, MRB_QSYM(aref), $3, '.');
                     }
                 | primary_value call_op tIDENTIFIER
                     {
@@ -2029,36 +2101,36 @@ undef_list      : fsym
                     }
                 ;
 
-op              : '|'           { $$ = intern_lit("|");   }
-                | '^'           { $$ = intern_lit("^");   }
-                | '&'           { $$ = intern_lit("&");   }
-                | tCMP          { $$ = intern_lit("<=>"); }
-                | tEQ           { $$ = intern_lit("==");  }
-                | tEQQ          { $$ = intern_lit("==="); }
-                | tMATCH        { $$ = intern_lit("=~");  }
-                | tNMATCH       { $$ = intern_lit("!~");  }
-                | '>'           { $$ = intern_lit(">");   }
-                | tGEQ          { $$ = intern_lit(">=");  }
-                | '<'           { $$ = intern_lit("<");   }
-                | tLEQ          { $$ = intern_lit("<=");  }
-                | tNEQ          { $$ = intern_lit("!=");  }
-                | tLSHFT        { $$ = intern_lit("<<");  }
-                | tRSHFT        { $$ = intern_lit(">>");  }
-                | '+'           { $$ = intern_lit("+");   }
-                | '-'           { $$ = intern_lit("-");   }
-                | '*'           { $$ = intern_lit("*");   }
-                | tSTAR         { $$ = intern_lit("*");   }
-                | '/'           { $$ = intern_lit("/");   }
-                | '%'           { $$ = intern_lit("%");   }
-                | tPOW          { $$ = intern_lit("**");  }
-                | tDSTAR        { $$ = intern_lit("**");  }
-                | '!'           { $$ = intern_lit("!");   }
-                | '~'           { $$ = intern_lit("~");   }
-                | tUPLUS        { $$ = intern_lit("+@");  }
-                | tUMINUS       { $$ = intern_lit("-@");  }
-                | tAREF         { $$ = intern_lit("[]");  }
-                | tASET         { $$ = intern_lit("[]="); }
-                | '`'           { $$ = intern_lit("`");   }
+op              : '|'           { $$ = MRB_QSYM(or);     }
+                | '^'           { $$ = MRB_QSYM(xor);    }
+                | '&'           { $$ = MRB_QSYM(and);    }
+                | tCMP          { $$ = MRB_QSYM(cmp);    }
+                | tEQ           { $$ = MRB_QSYM(eq);     }
+                | tEQQ          { $$ = MRB_QSYM(eqq);    }
+                | tMATCH        { $$ = MRB_QSYM(match);  }
+                | tNMATCH       { $$ = MRB_QSYM(nmatch); }
+                | '>'           { $$ = MRB_QSYM(gt);     }
+                | tGEQ          { $$ = MRB_QSYM(ge);     }
+                | '<'           { $$ = MRB_QSYM(lt);     }
+                | tLEQ          { $$ = MRB_QSYM(le);     }
+                | tNEQ          { $$ = MRB_QSYM(neq);    }
+                | tLSHFT        { $$ = MRB_QSYM(lshift); }
+                | tRSHFT        { $$ = MRB_QSYM(rshift); }
+                | '+'           { $$ = MRB_QSYM(add);    }
+                | '-'           { $$ = MRB_QSYM(sub);    }
+                | '*'           { $$ = MRB_QSYM(mul);    }
+                | tSTAR         { $$ = MRB_QSYM(mul);    }
+                | '/'           { $$ = MRB_QSYM(div);    }
+                | '%'           { $$ = MRB_QSYM(mod);    }
+                | tPOW          { $$ = MRB_QSYM(pow);    }
+                | tDSTAR        { $$ = MRB_QSYM(pow);    }
+                | '!'           { $$ = MRB_QSYM(not);    }
+                | '~'           { $$ = MRB_QSYM(neg);    }
+                | tUPLUS        { $$ = MRB_QSYM(plus);   }
+                | tUMINUS       { $$ = MRB_QSYM(minus);  }
+                | tAREF         { $$ = MRB_QSYM(aref);   }
+                | tASET         { $$ = MRB_QSYM(aset);   }
+                | '`'           { $$ = MRB_QSYM(tick);   }
                 ;
 
 reswords        : keyword__LINE__ | keyword__FILE__ | keyword__ENCODING__
@@ -2085,7 +2157,7 @@ arg             : lhs '=' arg_rhs
                     }
                 | primary_value '[' opt_call_args ']' tOP_ASGN arg_rhs
                     {
-                      $$ = new_op_asgn(p, new_call(p, $1, intern_lit("[]"), $3, '.'), $5, $6);
+                      $$ = new_op_asgn(p, new_call(p, $1, MRB_QSYM(aref), $3, '.'), $5, $6);
                     }
                 | primary_value call_op tIDENTIFIER tOP_ASGN arg_rhs
                     {
@@ -2246,6 +2318,42 @@ arg             : lhs '=' arg_rhs
                     {
                       $$ = new_if(p, cond($1), $3, $6);
                     }
+                | defn_head f_arglist_paren '=' arg
+                    {
+                      $$ = $1;
+                      void_expr_error(p, $4);
+                      defn_setup(p, $$, $2, $4);
+                      nvars_unnest(p);
+                      p->in_def--;
+                    }
+                | defn_head f_arglist_paren '=' arg modifier_rescue arg
+                    {
+                      $$ = $1;
+                      void_expr_error(p, $4);
+                      void_expr_error(p, $6);
+                      defn_setup(p, $$, $2, new_mod_rescue(p, $4, $6));
+                      nvars_unnest(p);
+                      p->in_def--;
+                    }
+                | defs_head f_arglist_paren '=' arg
+                    {
+                      $$ = $1;
+                      void_expr_error(p, $4);
+                      defs_setup(p, $$, $2, $4);
+                      nvars_unnest(p);
+                      p->in_def--;
+                      p->in_single--;
+                    }
+                | defs_head f_arglist_paren '=' arg modifier_rescue arg
+                    {
+                      $$ = $1;
+                      void_expr_error(p, $4);
+                      void_expr_error(p, $6);
+                      defs_setup(p, $$, $2, new_mod_rescue(p, $4, $6));
+                      nvars_unnest(p);
+                      p->in_def--;
+                      p->in_single--;
+                    }
                 | primary
                     {
                       $$ = $1;
@@ -2288,16 +2396,16 @@ paren_args      : '(' opt_call_args ')'
                 | '(' tDOT3 rparen
                     {
 #if 1
-                      mrb_sym r = mrb_intern_lit(p->mrb, "*");
-                      mrb_sym b = mrb_intern_lit(p->mrb, "&");
+                      mrb_sym r = MRB_QSYM(mul);
+                      mrb_sym b = MRB_QSYM(and);
                       if (local_var_p(p, r)  && local_var_p(p, b)) {
                         $$ = cons(list1(new_splat(p, new_lvar(p, r))),
                                   new_block_arg(p, new_lvar(p, b)));
                       }
 #else
-                      mrb_sym r = mrb_intern_lit(p->mrb, "*");
-                      mrb_sym k = mrb_intern_lit(p->mrb, "**");
-                      mrb_sym b = mrb_intern_lit(p->mrb, "&");
+                      mrb_sym r = MRB_QSYM(mul);
+                      mrb_sym k = MRB_QSYM(pow);
+                      mrb_sym b = MRB_QSYM(and);
                       if (local_var_p(p, r) && local_var_p(p, k) && local_var_p(p, b)) {
                         $$ = cons(list2(new_splat(p, new_lvar(p, r)),
                                         new_kw_hash(p, list1(cons(new_kw_rest_args(p, 0), new_lvar(p, k))))),
@@ -2645,50 +2753,26 @@ primary         : literal
                       local_resume(p, $<nd>3);
                       nvars_unnest(p);
                     }
-                | keyword_def fname
-                    {
-                      $<stack>$ = p->cmdarg_stack;
-                      p->cmdarg_stack = 0;
-                    }
-                    {
-                      p->in_def++;
-                      $<nd>$ = local_switch(p);
-                      nvars_block(p);
-                    }
+                | defn_head
                   f_arglist
                   bodystmt
                   keyword_end
                     {
-                      $$ = new_def(p, $2, $5, $6);
-                      SET_LINENO($$, $1);
-                      local_resume(p, $<nd>4);
+                      $$ = $1;
+                      defn_setup(p, $$, $2, $3);
                       nvars_unnest(p);
                       p->in_def--;
-                      p->cmdarg_stack = $<stack>3;
                     }
-                | keyword_def singleton dot_or_colon
-                    {
-                      p->lstate = EXPR_FNAME;
-                      $<stack>$ = p->cmdarg_stack;
-                      p->cmdarg_stack = 0;
-                    }
-                    fname
-                    {
-                      p->in_single++;
-                      p->lstate = EXPR_ENDFN; /* force for args */
-                      $<nd>$ = local_switch(p);
-                      nvars_block(p);
-                    }
+                | defs_head
                   f_arglist
                   bodystmt
                   keyword_end
                     {
-                      $$ = new_sdef(p, $2, $5, $7, $8);
-                      SET_LINENO($$, $1);
-                      local_resume(p, $<nd>6);
+                      $$ = $1;
+                      defs_setup(p, $$, $2, $3);
                       nvars_unnest(p);
+                      p->in_def--;
                       p->in_single--;
-                      p->cmdarg_stack = $<stack>4;
                     }
                 | keyword_break
                     {
@@ -3010,11 +3094,11 @@ method_call     : operation paren_args
                     }
                 | primary_value call_op paren_args
                     {
-                      $$ = new_call(p, $1, intern_lit("call"), $3, $2);
+                      $$ = new_call(p, $1, MRB_SYM(call), $3, $2);
                     }
                 | primary_value tCOLON2 paren_args
                     {
-                      $$ = new_call(p, $1, intern_lit("call"), $3, tCOLON2);
+                      $$ = new_call(p, $1, MRB_SYM(call), $3, tCOLON2);
                     }
                 | keyword_super paren_args
                     {
@@ -3026,7 +3110,7 @@ method_call     : operation paren_args
                     }
                 | primary_value '[' opt_call_args ']'
                     {
-                      $$ = new_call(p, $1, intern_lit("[]"), $3, '.');
+                      $$ = new_call(p, $1, MRB_QSYM(aref), $3, '.');
                     }
                 ;
 
@@ -3399,7 +3483,7 @@ superclass      : /* term */
                     } */
                 ;
 
-f_arglist       : '(' f_args rparen
+f_arglist_paren : '(' f_args rparen
                     {
                       $$ = $2;
                       p->lstate = EXPR_BEG;
@@ -3409,20 +3493,23 @@ f_arglist       : '(' f_args rparen
                     {
 #if 1
                       /* til real keyword args implemented */
-                      mrb_sym r = mrb_intern_lit(p->mrb, "*");
-                      mrb_sym b = mrb_intern_lit(p->mrb, "&");
+                      mrb_sym r = MRB_QSYM(mul);
+                      mrb_sym b = MRB_QSYM(and);
                       local_add_f(p, r);
                       $$ = new_args(p, 0, 0, r, 0,
                                     new_args_tail(p, 0, 0, b));
 #else
-                      mrb_sym r = mrb_intern_lit(p->mrb, "*");
-                      mrb_sym k = mrb_intern_lit(p->mrb, "**");
-                      mrb_sym b = mrb_intern_lit(p->mrb, "&");
+                      mrb_sym r = MRB_QSYM(mul);
+                      mrb_sym k = MRB_QSYM(pow);
+                      mrb_sym b = MRB_QSYM(and);
                       local_add_f(p, r); local_add_f(p, k);
                       $$ = new_args(p, 0, 0, r, 0,
                                     new_args_tail(p, 0, new_kw_rest_args(p, nsym(k)), b));
 #endif
                     }
+                ;
+
+f_arglist       : f_arglist_paren
                 | f_args term
                     {
                       $$ = $1;
@@ -3580,7 +3667,7 @@ f_args          : f_arg ',' f_optarg ',' f_rest_arg opt_args_tail
                     }
                 | /* none */
                     {
-                      local_add_f(p, mrb_intern_lit(p->mrb, "&"));
+                      local_add_f(p, MRB_QSYM(and));
                       $$ = new_args(p, 0, 0, 0, 0, 0);
                     }
                 ;
@@ -3704,7 +3791,7 @@ f_rest_arg      : restarg_mark tIDENTIFIER
                     }
                 | restarg_mark
                     {
-                      local_add_f(p, mrb_intern_lit(p->mrb, "*"));
+                      local_add_f(p, MRB_QSYM(mul));
                       $$ = -1;
                     }
                 ;
@@ -4961,7 +5048,7 @@ parser_yylex(parser_state *p)
   case '*':
     if ((c = nextc(p)) == '*') {
       if ((c = nextc(p)) == '=') {
-        pylval.id = intern_lit("**");
+        pylval.id = MRB_QSYM(pow);
         p->lstate = EXPR_BEG;
         return tOP_ASGN;
       }
@@ -4979,7 +5066,7 @@ parser_yylex(parser_state *p)
     }
     else {
       if (c == '=') {
-        pylval.id = intern_lit("*");
+        pylval.id = MRB_QSYM(mul);
         p->lstate = EXPR_BEG;
         return tOP_ASGN;
       }
@@ -5095,7 +5182,7 @@ parser_yylex(parser_state *p)
     }
     if (c == '<') {
       if ((c = nextc(p)) == '=') {
-        pylval.id = intern_lit("<<");
+        pylval.id = MRB_QSYM(lshift);
         p->lstate = EXPR_BEG;
         return tOP_ASGN;
       }
@@ -5117,7 +5204,7 @@ parser_yylex(parser_state *p)
     }
     if (c == '>') {
       if ((c = nextc(p)) == '=') {
-        pylval.id = intern_lit(">>");
+        pylval.id = MRB_QSYM(rshift);
         p->lstate = EXPR_BEG;
         return tOP_ASGN;
       }
@@ -5225,7 +5312,7 @@ parser_yylex(parser_state *p)
     if ((c = nextc(p)) == '&') {
       p->lstate = EXPR_BEG;
       if ((c = nextc(p)) == '=') {
-        pylval.id = intern_lit("&&");
+        pylval.id = MRB_QSYM(andand);
         p->lstate = EXPR_BEG;
         return tOP_ASGN;
       }
@@ -5237,7 +5324,7 @@ parser_yylex(parser_state *p)
       return tANDDOT;
     }
     else if (c == '=') {
-      pylval.id = intern_lit("&");
+      pylval.id = MRB_QSYM(and);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -5264,7 +5351,7 @@ parser_yylex(parser_state *p)
     if ((c = nextc(p)) == '|') {
       p->lstate = EXPR_BEG;
       if ((c = nextc(p)) == '=') {
-        pylval.id = intern_lit("||");
+        pylval.id = MRB_QSYM(oror);
         p->lstate = EXPR_BEG;
         return tOP_ASGN;
       }
@@ -5272,7 +5359,7 @@ parser_yylex(parser_state *p)
       return tOROP;
     }
     if (c == '=') {
-      pylval.id = intern_lit("|");
+      pylval.id = MRB_QSYM(or);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -5296,7 +5383,7 @@ parser_yylex(parser_state *p)
       return '+';
     }
     if (c == '=') {
-      pylval.id = intern_lit("+");
+      pylval.id = MRB_QSYM(add);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -5324,7 +5411,7 @@ parser_yylex(parser_state *p)
       return '-';
     }
     if (c == '=') {
-      pylval.id = intern_lit("-");
+      pylval.id = MRB_QSYM(sub);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -5574,7 +5661,7 @@ parser_yylex(parser_state *p)
     }
     tokfix(p);
     if (is_float) {
-#ifdef MRB_WITHOUT_FLOAT
+#ifdef MRB_NO_FLOAT
       yywarning_s(p, "floating point numbers are not supported", tok(p));
       pylval.nd = new_int(p, "0", 10, 0);
       return tINTEGER;
@@ -5644,7 +5731,7 @@ parser_yylex(parser_state *p)
       return tREGEXP_BEG;
     }
     if ((c = nextc(p)) == '=') {
-      pylval.id = intern_lit("/");
+      pylval.id = MRB_QSYM(div);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -5663,7 +5750,7 @@ parser_yylex(parser_state *p)
 
   case '^':
     if ((c = nextc(p)) == '=') {
-      pylval.id = intern_lit("^");
+      pylval.id = MRB_QSYM(xor);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -5840,7 +5927,7 @@ parser_yylex(parser_state *p)
       }
     }
     if ((c = nextc(p)) == '=') {
-      pylval.id = intern_lit("%");
+      pylval.id = MRB_QSYM(mod);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -6468,7 +6555,7 @@ mrb_load_exec(mrb_state *mrb, struct mrb_parser_state *p, mrbc_context *c)
   struct RClass *target = mrb->object_class;
   struct RProc *proc;
   mrb_value v;
-  unsigned int keep = 0;
+  mrb_int keep = 0;
 
   if (!p) {
     return mrb_undef_value();
@@ -6488,7 +6575,7 @@ mrb_load_exec(mrb_state *mrb, struct mrb_parser_state *p, mrbc_context *c)
     }
     else {
       if (mrb->exc == NULL) {
-        mrb->exc = mrb_obj_ptr(mrb_exc_new_str_lit(mrb, E_SYNTAX_ERROR, "syntax error"));
+        mrb->exc = mrb_obj_ptr(mrb_exc_new_lit(mrb, E_SYNTAX_ERROR, "syntax error"));
       }
       mrb_parser_free(p);
       return mrb_undef_value();
@@ -6498,7 +6585,7 @@ mrb_load_exec(mrb_state *mrb, struct mrb_parser_state *p, mrbc_context *c)
   mrb_parser_free(p);
   if (proc == NULL) {
     if (mrb->exc == NULL) {
-      mrb->exc = mrb_obj_ptr(mrb_exc_new_str_lit(mrb, E_SCRIPT_ERROR, "codegen error"));
+      mrb->exc = mrb_obj_ptr(mrb_exc_new_lit(mrb, E_SCRIPT_ERROR, "codegen error"));
     }
     return mrb_undef_value();
   }

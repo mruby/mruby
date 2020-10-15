@@ -10,7 +10,7 @@
 #include <mruby/string.h>
 #include <mruby/hash.h>
 #include <mruby/numeric.h>
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 #include <math.h>
 #endif
 #include <ctype.h>
@@ -20,7 +20,7 @@
 #define EXTENDSIGN(n, l) (((~0U << (n)) >> (((n)*(l)) % BITSPERDIG)) & ~(~0U << (n)))
 
 mrb_value mrb_str_format(mrb_state *, mrb_int, const mrb_value *, mrb_value);
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 static void fmt_setup(char*,size_t,int,int,mrb_int,mrb_int);
 #endif
 
@@ -74,7 +74,7 @@ static mrb_value
 mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
 {
   char buf[66], *b = buf + sizeof buf;
-  mrb_int num = mrb_fixnum(x);
+  mrb_int num = mrb_integer(x);
   uint64_t val = (uint64_t)num;
   char d;
 
@@ -192,20 +192,14 @@ check_name_arg(mrb_state *mrb, int posarg, const char *name, size_t len)
 #define GETNTHARG(nth) \
   ((nth >= argc) ? (mrb_raise(mrb, E_ARGUMENT_ERROR, "too few arguments"), mrb_undef_value()) : argv[nth])
 
-#define GETNAMEARG(id, name, len) (\
+#define CHECKNAMEARG(name, len) (\
   check_name_arg(mrb, posarg, name, len),\
-  (posarg = -2, mrb_hash_fetch(mrb, get_hash(mrb, &hash, argc, argv), id, mrb_undef_value())))
+  posarg = -2)
 
-#define GETNUM(n, val) \
-  for (; p < end && ISDIGIT(*p); p++) {\
-    if (n > (MRB_INT_MAX - (*p - '0'))/10) {\
-      mrb_raise(mrb, E_ARGUMENT_ERROR, #val " too big"); \
-    } \
-    n = 10 * n + (*p - '0'); \
-  } \
-  if (p >= end) { \
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "malformed format string - %*[0-9]"); \
-  }
+#define GETNUM(n, val) do { \
+  if (!(p = get_num(mrb, p, end, &(n)))) \
+    mrb_raise(mrb, E_ARGUMENT_ERROR, #val " too big 1"); \
+} while(0)
 
 #define GETASTER(num) do { \
   mrb_value tmp_v; \
@@ -222,12 +216,32 @@ check_name_arg(mrb_state *mrb, int posarg, const char *name, size_t len)
   num = mrb_int(mrb, tmp_v); \
 } while (0)
 
-static mrb_value
+static const char *
+get_num(mrb_state *mrb, const char *p, const char *end, mrb_int *valp)
+{
+  mrb_int next_n = *valp;
+  for (; p < end && ISDIGIT(*p); p++) {
+    if (mrb_int_mul_overflow(10, next_n, &next_n)) {
+      return NULL;
+    }
+    if (MRB_INT_MAX - (*p - '0') < next_n) {
+      return NULL;
+    }
+    next_n += *p - '0';
+  }
+  if (p >= end) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "malformed format string - %%*[0-9]");
+  }
+  *valp = next_n;
+  return p;
+}
+
+static void
 get_hash(mrb_state *mrb, mrb_value *hash, mrb_int argc, const mrb_value *argv)
 {
   mrb_value tmp;
 
-  if (!mrb_undef_p(*hash)) return *hash;
+  if (!mrb_undef_p(*hash)) return;
   if (argc != 2) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "one hash required");
   }
@@ -235,7 +249,7 @@ get_hash(mrb_state *mrb, mrb_value *hash, mrb_int argc, const mrb_value *argv)
   if (mrb_nil_p(tmp)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "one hash required");
   }
-  return (*hash = tmp);
+  *hash = tmp;
 }
 
 /*
@@ -499,7 +513,7 @@ get_hash(mrb_state *mrb, mrb_value *hash, mrb_int argc, const mrb_value *argv)
  *      # => "1f"
  */
 
-mrb_value
+static mrb_value
 mrb_f_sprintf(mrb_state *mrb, mrb_value obj)
 {
   mrb_int argc;
@@ -577,19 +591,19 @@ mrb_str_format(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value fm
   mrb_value str;
   mrb_value hash = mrb_undef_value();
 
-#define CHECK_FOR_WIDTH(f)                                                  \
-  if ((f) & FWIDTH) {                                                       \
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "width given twice");         \
-  }                                                                         \
-  if ((f) & FPREC0) {                                                       \
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "width after precision");     \
+#define CHECK_FOR_WIDTH(f)                                              \
+  if ((f) & FWIDTH) {                                                   \
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "width given twice");              \
+    }                                                                   \
+  if ((f) & FPREC0) {                                                   \
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "width after precision");          \
   }
-#define CHECK_FOR_FLAGS(f)                                                  \
-  if ((f) & FWIDTH) {                                                       \
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "flag after width");          \
-  }                                                                         \
-  if ((f) & FPREC0) {                                                       \
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "flag after precision");      \
+#define CHECK_FOR_FLAGS(f)                                              \
+  if ((f) & FWIDTH) {                                                   \
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "flag after width");               \
+  }                                                                     \
+  if ((f) & FPREC0) {                                                   \
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "flag after precision");           \
   }
 
   ++argc;
@@ -676,7 +690,6 @@ retry:
       case '{': {
         const char *start = p;
         char term = (*p == '<') ? '>' : '}';
-        mrb_value symname;
 
         for (; p < end && *p != term; )
           p++;
@@ -684,10 +697,13 @@ retry:
           mrb_raisef(mrb, E_ARGUMENT_ERROR, "name%l after <%n>",
                      start, p - start + 1, id);
         }
-        symname = mrb_str_new(mrb, start + 1, p - start - 1);
-        id = mrb_intern_str(mrb, symname);
-        nextvalue = GETNAMEARG(mrb_symbol_value(id), start, p - start + 1);
-        if (mrb_undef_p(nextvalue)) {
+        CHECKNAMEARG(start, p - start + 1);
+        get_hash(mrb, &hash, argc, argv);
+        id = mrb_intern_check(mrb, start + 1, p - start - 1);
+        if (id) {
+          nextvalue = mrb_hash_fetch(mrb, hash, mrb_symbol_value(id), mrb_undef_value());
+        }
+        if (!id || mrb_undef_p(nextvalue)) {
           mrb_raisef(mrb, E_KEY_ERROR, "key%l not found", start, p - start + 1);
         }
         if (term == '}') goto format_s;
@@ -748,8 +764,8 @@ retry:
             mrb_raise(mrb, E_ARGUMENT_ERROR, "%c requires a character");
           }
         }
-        else if (mrb_fixnum_p(val)) {
-          mrb_int n = mrb_fixnum(val);
+        else if (mrb_integer_p(val)) {
+          mrb_int n = mrb_integer(val);
 #ifndef MRB_UTF8_STRING
           char buf[1];
 
@@ -763,7 +779,7 @@ retry:
             tmp = mrb_str_new(mrb, buf, 1);
           }
           else {
-            tmp = mrb_funcall(mrb, val, "chr", 0);
+            tmp = mrb_funcall_id(mrb, val, MRB_SYM(chr), 0);
             mrb_check_type(mrb, tmp, MRB_TT_STRING);
           }
 #endif
@@ -863,17 +879,17 @@ retry:
 
   bin_retry:
         switch (mrb_type(val)) {
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
           case MRB_TT_FLOAT:
             val = mrb_flo_to_fixnum(mrb, val);
-            if (mrb_fixnum_p(val)) goto bin_retry;
+            if (mrb_integer_p(val)) goto bin_retry;
             break;
 #endif
           case MRB_TT_STRING:
             val = mrb_str_to_inum(mrb, val, 0, TRUE);
             goto bin_retry;
-          case MRB_TT_FIXNUM:
-            v = mrb_fixnum(val);
+          case MRB_TT_INTEGER:
+            v = mrb_integer(val);
             break;
           default:
             val = mrb_Integer(mrb, val);
@@ -922,10 +938,10 @@ retry:
           s = nbuf;
           if (v < 0) {
             dots = 1;
-            val = mrb_fix2binstr(mrb, mrb_fixnum_value(v), base);
+            val = mrb_fix2binstr(mrb, mrb_int_value(mrb, v), base);
           }
           else {
-            val = mrb_fixnum_to_str(mrb, mrb_fixnum_value(v), base);
+            val = mrb_fixnum_to_str(mrb, mrb_int_value(mrb, v), base);
           }
           strncpy(++s, RSTRING_PTR(val), sizeof(nbuf)-2);
           if (v < 0) {
@@ -1030,7 +1046,7 @@ retry:
       }
       break;
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
       case 'f':
       case 'g':
       case 'G':
@@ -1131,7 +1147,7 @@ retry:
   return result;
 }
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 static void
 fmt_setup(char *buf, size_t size, int c, int flags, mrb_int width, mrb_int prec)
 {
@@ -1160,3 +1176,16 @@ fmt_setup(char *buf, size_t size, int c, int flags, mrb_int width, mrb_int prec)
   *buf = '\0';
 }
 #endif
+
+void
+mrb_mruby_sprintf_gem_init(mrb_state *mrb)
+{
+  struct RClass *krn = mrb->kernel_module;
+  mrb_define_module_function(mrb, krn, "sprintf", mrb_f_sprintf, MRB_ARGS_ANY());
+  mrb_define_module_function(mrb, krn, "format",  mrb_f_sprintf, MRB_ARGS_ANY());
+}
+
+void
+mrb_mruby_sprintf_gem_final(mrb_state *mrb)
+{
+}

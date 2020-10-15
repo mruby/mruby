@@ -57,7 +57,7 @@ mrb_f_caller(mrb_state *mrb, mrb_value self)
     return mrb_ary_new(mrb);
   }
 
-  return mrb_funcall(mrb, bt, "[]", 2, mrb_fixnum_value(lev), mrb_fixnum_value(n));
+  return mrb_funcall_id(mrb, bt, MRB_QSYM(aref), 2, mrb_fixnum_value(lev), mrb_fixnum_value(n));
 }
 
 /*
@@ -84,7 +84,7 @@ mrb_f_method(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     Integer(arg,base=0)    -> integer
  *
- *  Converts <i>arg</i> to a <code>Fixnum</code>.
+ *  Converts <i>arg</i> to a <code>Integer</code>.
  *  Numeric types are converted directly (with floating point numbers
  *  being truncated).    <i>base</i> (0, or between 2 and 36) is a base for
  *  integer string representation.  If <i>arg</i> is a <code>String</code>,
@@ -112,7 +112,7 @@ mrb_f_integer(mrb_state *mrb, mrb_value self)
   return mrb_convert_to_integer(mrb, arg, base);
 }
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 /*
  *  call-seq:
  *     Float(arg)    -> float
@@ -151,7 +151,7 @@ mrb_f_string(mrb_state *mrb, mrb_value self)
   mrb_value arg = mrb_get_arg1(mrb);
   mrb_value tmp;
 
-  tmp = mrb_convert_type(mrb, arg, MRB_TT_STRING, "String", "to_s");
+  tmp = mrb_type_convert(mrb, arg, MRB_TT_STRING, MRB_SYM(to_s));
   return tmp;
 }
 
@@ -170,7 +170,7 @@ mrb_f_array(mrb_state *mrb, mrb_value self)
   mrb_value arg = mrb_get_arg1(mrb);
   mrb_value tmp;
 
-  tmp = mrb_check_convert_type(mrb, arg, MRB_TT_ARRAY, "Array", "to_a");
+  tmp = mrb_type_convert_check(mrb, arg, MRB_TT_ARRAY, MRB_SYM(to_a));
   if (mrb_nil_p(tmp)) {
     return mrb_ary_new_from_values(mrb, 1, &arg);
   }
@@ -212,7 +212,7 @@ mrb_mruby_kernel_ext_gem_init(mrb_state *mrb)
   mrb_define_module_function(mrb, krn, "caller", mrb_f_caller, MRB_ARGS_OPT(2));
   mrb_define_method(mrb, krn, "__method__", mrb_f_method, MRB_ARGS_NONE());
   mrb_define_module_function(mrb, krn, "Integer", mrb_f_integer, MRB_ARGS_ARG(1,1));
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
   mrb_define_module_function(mrb, krn, "Float", mrb_f_float, MRB_ARGS_REQ(1));
 #endif
   mrb_define_module_function(mrb, krn, "String", mrb_f_string, MRB_ARGS_REQ(1));

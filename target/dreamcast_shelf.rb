@@ -1,17 +1,3 @@
-MRuby::Build.new do |conf|
-  # Gets set by the VS command prompts
-  if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
-    toolchain :visualcpp
-  else
-    toolchain :gcc
-  end
-
-  enable_debug
-
-  # Include the default GEMs
-  conf.gembox 'default'
-end
-
 # Cross Compiling configuration for the Sega Dreamcast
 # This configuration requires KallistiOS (KOS)
 # https://dreamcast.wiki

@@ -56,11 +56,11 @@ end
 assert 'Complex#/' do
   assert_complex Complex(2, 3)  / Complex(2, 3) , (1                  + 0i)
   assert_complex Complex(900)   / Complex(1)    , (900                + 0i)
-  assert_complex Complex(-2, 9) / Complex(-9, 2), ((36 / 85)          - (77i / 85))
-  assert_complex Complex(9, 8)  / 4             , ((9 / 4)            + 2i)
+  assert_complex Complex(-2, 9) / Complex(-9, 2), ((36.0 / 85)        - (77i / 85))
+  assert_complex Complex(9, 8)  / 4             , ((9.0 / 4)          + 2i)
   assert_complex Complex(20, 9) / 9.8           , (2.0408163265306123 + 0.9183673469387754i)
   if 1e39.infinite? then
-    # MRB_USE_FLOAT in effect
+    # MRB_USE_FLOAT32 in effect
     ten = 1e21
     one = 1e20
   else
@@ -80,7 +80,7 @@ assert 'Complex#abs' do
   assert_float Complex(-1).abs,        1
   assert_float Complex(3.0, -4.0).abs, 5.0
   if 1e39.infinite? then
-    # MRB_USE_FLOAT in effect
+    # MRB_USE_FLOAT32 in effect
     exp = 125
   else
     exp = 1021

@@ -20,7 +20,7 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
   struct REnv *e;
   mrb_callinfo *ci; /* callinfo of eval caller */
   struct RClass *target_class = NULL;
-  int bidx;
+  mrb_int bidx;
 
   if (!mrb_nil_p(binding)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "Binding of eval must be nil.");
@@ -179,7 +179,7 @@ void
 mrb_mruby_eval_gem_init(mrb_state* mrb)
 {
   mrb_define_module_function(mrb, mrb->kernel_module, "eval", f_eval, MRB_ARGS_ARG(1, 3));
-  mrb_define_method(mrb, mrb_class_get(mrb, "BasicObject"), "instance_eval", f_instance_eval, MRB_ARGS_OPT(3)|MRB_ARGS_BLOCK());
+  mrb_define_method(mrb, mrb_class_get_id(mrb, MRB_SYM(BasicObject)), "instance_eval", f_instance_eval, MRB_ARGS_OPT(3)|MRB_ARGS_BLOCK());
 }
 
 void

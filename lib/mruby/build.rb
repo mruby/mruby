@@ -81,7 +81,8 @@ module MRuby
         @mrbc = Command::Mrbc.new(self)
 
         @bins = []
-        @gems, @libmruby_objs = MRuby::Gem::List.new, []
+        @gems = MRuby::Gem::List.new
+        @libmruby_objs = []
         @build_mrbtest_lib_only = false
         @cxx_exception_enabled = false
         @cxx_exception_disabled = false
@@ -95,11 +96,10 @@ module MRuby
         MRuby.targets[@name] = self
       end
 
-      MRuby::Build.current = MRuby.targets[@name]
-      MRuby.targets[@name].instance_eval(&block)
-
-      build_mrbc_exec if name == 'host'
-      build_mrbtest if test_enabled?
+      current = MRuby.targets[@name]
+      MRuby::Build.current = current
+      current.instance_eval(&block)
+      current.build_mrbtest if current.test_enabled?
     end
 
     def debug_enabled?
@@ -196,6 +196,7 @@ EOS
     end
 
     def enable_bintest
+      raise "bintest works only on 'host' target" unless name == "host"
       @enable_bintest = true
     end
 
@@ -246,9 +247,11 @@ EOS
     def mrbcfile
       return @mrbcfile if @mrbcfile
 
-      mrbc_build = MRuby.targets['host']
-      gems.each { |v| mrbc_build = self if v.name == 'mruby-bin-mrbc' }
-      @mrbcfile = mrbc_build.exefile("#{mrbc_build.build_dir}/bin/mrbc")
+      unless gems.detect {|v| v.name == 'mruby-bin-mrbc' }
+        build_mrbc_exec
+        gems.detect {|v| v.name == 'mruby-bin-mrbc' }.setup
+      end
+      @mrbcfile = self.exefile("#{self.build_dir}/bin/mrbc")
     end
 
     def compilers
@@ -369,13 +372,25 @@ EOS
     attr_accessor :host_target, :build_target
 
     def initialize(name, build_dir=nil, &block)
+      unless MRuby.targets['host']
+        # add minimal 'host'
+        MRuby::Build.new('host') do |conf|
+          if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
+            toolchain :visualcpp
+          else
+            toolchain :gcc
+          end
+          conf.gem :core => 'mruby-bin-mrbc'
+        end
+      end
       @endian = nil
       @test_runner = Command::CrossTestRunner.new(self)
       super
     end
 
     def mrbcfile
-      MRuby.targets['host'].exefile("#{MRuby.targets['host'].build_dir}/bin/mrbc")
+      host = MRuby.targets['host']
+      host.exefile("#{host.build_dir}/bin/mrbc")
     end
 
     def run_test

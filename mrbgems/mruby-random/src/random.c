@@ -10,15 +10,39 @@
 #include <mruby/data.h>
 #include <mruby/array.h>
 #include <mruby/istruct.h>
-#if INT32_MAX <= INTPTR_MAX
-# define XORSHIFT96
-# define NSEEDS 3
-#else
-# define NSEEDS 4
-#endif
-#define LASTSEED (NSEEDS-1)
 
 #include <time.h>
+
+/*  Written in 2019 by David Blackman and Sebastiano Vigna (vigna@acm.org)
+
+To the extent possible under law, the author has dedicated all copyright
+and related and neighboring rights to this software to the public domain
+worldwide. This software is distributed without any warranty.
+
+See <http://creativecommons.org/publicdomain/zero/1.0/>. */
+
+#include <stdint.h>
+
+/* This is xoshiro128++ 1.0, one of our 32-bit all-purpose, rock-solid
+   generators. It has excellent speed, a state size (128 bits) that is
+   large enough for mild parallelism, and it passes all tests we are aware
+   of.
+
+   For generating just single-precision (i.e., 32-bit) floating-point
+   numbers, xoshiro128+ is even faster.
+
+   The state must be seeded so that it is not everywhere zero. */
+
+
+#ifdef MRB_32BIT
+# define XORSHIFT96
+# define NSEEDS 3
+# define SEEDPOS 2
+#else
+# define NSEEDS 4
+# define SEEDPOS 0
+#endif
+#define LASTSEED (NSEEDS-1)
 
 typedef struct rand_state {
   uint32_t seed[NSEEDS];
@@ -38,16 +62,23 @@ rand_init(rand_state *t)
 static uint32_t
 rand_seed(rand_state *t, uint32_t seed)
 {
-  uint32_t old_seed = t->seed[LASTSEED];
+  uint32_t old_seed = t->seed[SEEDPOS];
   rand_init(t);
-  t->seed[LASTSEED] = seed;
+  t->seed[SEEDPOS] = seed;
   return old_seed;
 }
 
-#ifdef XORSHIFT96
+#ifndef XORSHIFT96
+static inline uint32_t
+rotl(const uint32_t x, int k) {
+  return (x << k) | (x >> (32 - k));
+}
+#endif
+
 static uint32_t
 rand_uint32(rand_state *state)
 {
+#ifdef XORSHIFT96
   uint32_t *seed = state->seed;
   uint32_t x = seed[0];
   uint32_t y = seed[1];
@@ -61,36 +92,29 @@ rand_uint32(rand_state *state)
   seed[2] = z;
 
   return z;
-}
-#else  /* XORSHIFT96 */
-static uint32_t
-rand_uint32(rand_state *state)
-{
-  uint32_t *seed = state->seed;
-  uint32_t x = seed[0];
-  uint32_t y = seed[1];
-  uint32_t z = seed[2];
-  uint32_t w = seed[3];
-  uint32_t t;
+#else
+  uint32_t *s = state->seed;
+  const uint32_t result = rotl(s[0] + s[3], 7) + s[0];
+  const uint32_t t = s[1] << 9;
 
-  t = x ^ (x << 11);
-  x = y; y = z; z = w;
-  w = (w ^ (w >> 19)) ^ (t ^ (t >> 8));
-  seed[0] = x;
-  seed[1] = y;
-  seed[2] = z;
-  seed[3] = w;
+  s[2] ^= s[0];
+  s[3] ^= s[1];
+  s[1] ^= s[2];
+  s[0] ^= s[3];
 
-  return w;
-}
+  s[2] ^= t;
+  s[3] = rotl(s[3], 11);
+
+  return result;
 #endif  /* XORSHIFT96 */
+  }
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 static double
 rand_real(rand_state *t)
 {
   uint32_t x = rand_uint32(t);
-  return x*(1.0/4294967295.0);
+  return x*(1.0/4294967296.0);
 }
 #endif
 
@@ -99,15 +123,15 @@ random_rand(mrb_state *mrb, rand_state *t, mrb_value max)
 {
   mrb_value value;
 
-  if (mrb_fixnum(max) == 0) {
-#ifndef MRB_WITHOUT_FLOAT
+  if (mrb_integer(max) == 0) {
+#ifndef MRB_NO_FLOAT
     value = mrb_float_value(mrb, rand_real(t));
 #else
     mrb_raise(mrb, E_ARGUMENT_ERROR, "Float not supported");
 #endif
   }
   else {
-    value = mrb_fixnum_value(rand_uint32(t) % mrb_fixnum(max));
+    value = mrb_int_value(mrb, rand_uint32(t) % mrb_integer(max));
   }
 
   return value;
@@ -125,7 +149,7 @@ get_opt(mrb_state* mrb)
     mrb_int i;
 
     arg = mrb_to_int(mrb, arg);
-    i = mrb_fixnum(arg);
+    i = mrb_integer(arg);
     if (i < 0) {
       arg = mrb_fixnum_value(0 - i);
     }
@@ -135,7 +159,7 @@ get_opt(mrb_state* mrb)
 
 static void
 random_check(mrb_state *mrb, mrb_value random) {
-  struct RClass *c = mrb_class_get(mrb, "Random");
+  struct RClass *c = mrb_class_get_id(mrb, MRB_SYM(Random));
   if (!mrb_obj_is_kind_of(mrb, random, c) || !mrb_istruct_p(random)) {
     mrb_raise(mrb, E_TYPE_ERROR, "Random instance required");
   }
@@ -144,7 +168,7 @@ random_check(mrb_state *mrb, mrb_value random) {
 static mrb_value
 random_default(mrb_state *mrb) {
   struct RClass *c = mrb_class_get(mrb, "Random");
-  mrb_value d = mrb_const_get(mrb, mrb_obj_value(c), mrb_intern_lit(mrb, "DEFAULT"));
+  mrb_value d = mrb_const_get(mrb, mrb_obj_value(c), MRB_SYM(DEFAULT));
   if (!mrb_obj_is_kind_of(mrb, d, c)) {
     mrb_raise(mrb, E_TYPE_ERROR, "Random::DEFAULT replaced");
   }
@@ -167,7 +191,7 @@ random_m_init(mrb_state *mrb, mrb_value self)
     rand_init(t);
   }
   else {
-    rand_seed(t, (uint32_t)mrb_fixnum(seed));
+    rand_seed(t, (uint32_t)mrb_integer(seed));
   }
 
   return self;
@@ -196,11 +220,11 @@ random_m_srand(mrb_state *mrb, mrb_value self)
     seed = (uint32_t)time(NULL) + rand_uint32(t);
   }
   else {
-    seed = (uint32_t)mrb_fixnum(sv);
+    seed = (uint32_t)mrb_integer(sv);
   }
   old_seed = rand_seed(t, seed);
 
-  return mrb_fixnum_value((mrb_int)old_seed);
+  return mrb_int_value(mrb, (mrb_int)old_seed);
 }
 
 /*
@@ -263,7 +287,7 @@ mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
       mrb_value *ptr = RARRAY_PTR(ary);
       mrb_value tmp;
 
-      j = mrb_fixnum(random_rand(mrb, random, max));
+      j = mrb_integer(random_rand(mrb, random, max));
 
       tmp = ptr[i];
       ptr[i] = ptr[j];
@@ -348,16 +372,18 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
         r = (mrb_int)(rand_uint32(random) % len);
 
         for (j=0; j<i; j++) {
-          if (mrb_fixnum(RARRAY_PTR(result)[j]) == r) {
+          if (mrb_integer(RARRAY_PTR(result)[j]) == r) {
             goto retry;         /* retry if duplicate */
           }
         }
         break;
       }
-      mrb_ary_push(mrb, result, mrb_fixnum_value(r));
+      mrb_ary_push(mrb, result, mrb_int_value(mrb, r));
     }
     for (i=0; i<n; i++) {
-      mrb_ary_set(mrb, result, i, RARRAY_PTR(ary)[mrb_fixnum(RARRAY_PTR(result)[i])]);
+      mrb_int idx = mrb_integer(RARRAY_PTR(result)[i]);
+      mrb_value elem = RARRAY_PTR(ary)[idx];
+      mrb_ary_set(mrb, result, i, elem);
     }
     return result;
   }
@@ -383,7 +409,7 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
   struct RClass *random;
   struct RClass *array = mrb->array_class;
 
-  mrb_assert(sizeof(rand_state) <= ISTRUCT_DATA_SIZE);
+  mrb_static_assert1(sizeof(rand_state) <= ISTRUCT_DATA_SIZE);
 
   mrb_define_method(mrb, mrb->kernel_module, "rand", random_f_rand, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, mrb->kernel_module, "srand", random_f_srand, MRB_ARGS_OPT(1));
@@ -401,7 +427,7 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, array, "shuffle!", mrb_ary_shuffle_bang, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, array, "sample", mrb_ary_sample, MRB_ARGS_OPT(2));
 
-  mrb_const_set(mrb, mrb_obj_value(random), mrb_intern_lit(mrb, "DEFAULT"),
+  mrb_const_set(mrb, mrb_obj_value(random), MRB_SYM(DEFAULT),
           mrb_obj_new(mrb, random, 0, NULL));
 }
 

@@ -3,8 +3,8 @@
 #include <mruby/numeric.h>
 #include <math.h>
 
-#ifdef MRB_WITHOUT_FLOAT
-# error Complex conflicts 'MRB_WITHOUT_FLOAT' configuration in your 'build_config.rb'
+#ifdef MRB_NO_FLOAT
+# error Complex conflicts with 'MRB_NO_FLOAT' configuration
 #endif
 
 struct mrb_complex {
@@ -12,13 +12,13 @@ struct mrb_complex {
   mrb_float imaginary;
 };
 
-#ifdef MRB_USE_FLOAT
+#ifdef MRB_USE_FLOAT32
 #define F(x) x##f
 #else
 #define F(x) x
 #endif
 
-#if defined(MRB_64BIT) || defined(MRB_USE_FLOAT)
+#if defined(MRB_64BIT) || defined(MRB_USE_FLOAT32)
 
 #define COMPLEX_USE_ISTRUCT
 /* use TT_ISTRUCT */
@@ -69,7 +69,7 @@ complex_ptr(mrb_state *mrb, mrb_value v)
 static mrb_value
 complex_new(mrb_state *mrb, mrb_float real, mrb_float imaginary)
 {
-  struct RClass *c = mrb_class_get(mrb, "Complex");
+  struct RClass *c = mrb_class_get_id(mrb, MRB_SYM(Complex));
   struct mrb_complex *p;
   struct RBasic *comp = complex_alloc(mrb, c, &p);
   p->real = real;
@@ -122,7 +122,7 @@ complex_to_i(mrb_state *mrb, mrb_value self)
   if (p->imaginary != 0) {
     mrb_raisef(mrb, E_RANGE_ERROR, "can't convert %v into Float", self);
   }
-  return mrb_int_value(mrb, p->real);
+  return mrb_int_value(mrb, (mrb_int)p->real);
 }
 
 static mrb_value
@@ -224,7 +224,7 @@ void mrb_mruby_complex_gem_init(mrb_state *mrb)
 #ifdef COMPLEX_USE_ISTRUCT
   mrb_assert(sizeof(struct mrb_complex) < ISTRUCT_DATA_SIZE);
 #endif
-  comp = mrb_define_class(mrb, "Complex", mrb_class_get(mrb, "Numeric"));
+  comp = mrb_define_class(mrb, "Complex", mrb_class_get_id(mrb, MRB_SYM(Numeric)));
 #ifdef COMPLEX_USE_ISTRUCT
   MRB_SET_INSTANCE_TT(comp, MRB_TT_ISTRUCT);
 #else

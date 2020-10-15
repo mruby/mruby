@@ -44,7 +44,7 @@ mrb_f_sleep(mrb_state *mrb, mrb_value self)
 {
     time_t beg = time(0);
     time_t end;
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
     mrb_float sec;
 
     mrb_get_args(mrb, "f", &sec);

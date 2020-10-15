@@ -11,7 +11,7 @@
 #include <mruby/string.h>
 #include <mruby/variable.h>
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
 /* a function to get hash value of a float number */
 mrb_int mrb_float_id(mrb_float f);
 #endif
@@ -64,16 +64,16 @@ ht_hash_func(mrb_state *mrb, htable *t, mrb_value key)
   case MRB_TT_TRUE:
   case MRB_TT_FALSE:
   case MRB_TT_SYMBOL:
-  case MRB_TT_FIXNUM:
-#ifndef MRB_WITHOUT_FLOAT
+  case MRB_TT_INTEGER:
+#ifndef MRB_NO_FLOAT
   case MRB_TT_FLOAT:
 #endif
     h = (size_t)mrb_obj_id(key);
     break;
 
   default:
-    hv = mrb_funcall(mrb, key, "hash", 0);
-    h = (size_t)tt ^ (size_t)mrb_fixnum(hv);
+    hv = mrb_funcall_id(mrb, key, MRB_SYM(hash), 0);
+    h = (size_t)tt ^ (size_t)mrb_integer(hv);
     break;
   }
   if (index && (index != t->index || capa != index->capa)) {
@@ -95,28 +95,14 @@ ht_hash_equal(mrb_state *mrb, htable *t, mrb_value a, mrb_value b)
     if (!mrb_symbol_p(b)) return FALSE;
     return mrb_symbol(a) == mrb_symbol(b);
 
-  case MRB_TT_FIXNUM:
-    switch (mrb_type(b)) {
-    case MRB_TT_FIXNUM:
-      return mrb_fixnum(a) == mrb_fixnum(b);
-#ifndef MRB_WITHOUT_FLOAT
-    case MRB_TT_FLOAT:
-      return (mrb_float)mrb_fixnum(a) == mrb_float(b);
-#endif
-    default:
-      return FALSE;
-    }
+  case MRB_TT_INTEGER:
+    if (!mrb_integer_p(b)) return FALSE;
+    return mrb_integer(a) == mrb_integer(b);
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
   case MRB_TT_FLOAT:
-    switch (mrb_type(b)) {
-    case MRB_TT_FIXNUM:
-      return mrb_float(a) == (mrb_float)mrb_fixnum(b);
-    case MRB_TT_FLOAT:
-      return mrb_float(a) == mrb_float(b);
-    default:
-      return FALSE;
-    }
+    if (!mrb_float_p(b)) return FALSE;
+    return mrb_float(a) == mrb_float(b);
 #endif
 
   default:
@@ -589,7 +575,7 @@ ht_free(mrb_state *mrb, htable *t)
   mrb_free(mrb, t);
 }
 
-static void mrb_hash_modify(mrb_state *mrb, mrb_value hash);
+static void hash_modify(mrb_state *mrb, mrb_value hash);
 
 static inline mrb_value
 ht_key(mrb_state *mrb, mrb_value key)
@@ -683,7 +669,7 @@ mrb_hash_init_copy(mrb_state *mrb, mrb_value self)
   vret = mrb_obj_value(copy);
   ifnone = RHASH_IFNONE(self);
   if (!mrb_nil_p(ifnone)) {
-      mrb_iv_set(mrb, vret, mrb_intern_lit(mrb, "ifnone"), ifnone);
+    mrb_iv_set(mrb, vret, MRB_SYM(ifnone), ifnone);
   }
   return vret;
 }
@@ -729,7 +715,7 @@ mrb_hash_get(mrb_state *mrb, mrb_value hash, mrb_value key)
     return val;
   }
 
-  mid = mrb_intern_lit(mrb, "default");
+  mid = MRB_SYM(default);
   if (mrb_func_basic_p(mrb, hash, mid, mrb_hash_default)) {
     return hash_default(mrb, hash, key);
   }
@@ -752,7 +738,7 @@ mrb_hash_fetch(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value def)
 MRB_API void
 mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val)
 {
-  mrb_hash_modify(mrb, hash);
+  hash_modify(mrb, hash);
 
   key = KEY(key);
   ht_put(mrb, RHASH_TBL(hash), key, val);
@@ -762,7 +748,7 @@ mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val)
 }
 
 static void
-mrb_hash_modify(mrb_state *mrb, mrb_value hash)
+hash_modify(mrb_state *mrb, mrb_value hash)
 {
   mrb_check_frozen(mrb, mrb_hash_ptr(hash));
   if (!RHASH_TBL(hash)) {
@@ -814,7 +800,7 @@ mrb_hash_init(mrb_state *mrb, mrb_value hash)
 
   ifnone = mrb_nil_value();
   mrb_get_args(mrb, "&|o?", &block, &ifnone, &ifnone_p);
-  mrb_hash_modify(mrb, hash);
+  hash_modify(mrb, hash);
   if (!mrb_nil_p(block)) {
     if (ifnone_p) {
       mrb_argnum_error(mrb, 1, 0, 0);
@@ -824,7 +810,7 @@ mrb_hash_init(mrb_state *mrb, mrb_value hash)
   }
   if (!mrb_nil_p(ifnone)) {
     RHASH(hash)->flags |= MRB_HASH_DEFAULT;
-    mrb_iv_set(mrb, hash, mrb_intern_lit(mrb, "ifnone"), ifnone);
+    mrb_iv_set(mrb, hash, MRB_SYM(ifnone), ifnone);
   }
   return hash;
 }
@@ -856,7 +842,7 @@ hash_default(mrb_state *mrb, mrb_value hash, mrb_value key)
 {
   if (MRB_RHASH_DEFAULT_P(hash)) {
     if (MRB_RHASH_PROCDEFAULT_P(hash)) {
-      return mrb_funcall(mrb, RHASH_PROCDEFAULT(hash), "call", 2, hash, key);
+      return mrb_funcall_id(mrb, RHASH_PROCDEFAULT(hash), MRB_SYM(call), 2, hash, key);
     }
     else {
       return RHASH_IFNONE(hash);
@@ -897,7 +883,7 @@ mrb_hash_default(mrb_state *mrb, mrb_value hash)
   if (MRB_RHASH_DEFAULT_P(hash)) {
     if (MRB_RHASH_PROCDEFAULT_P(hash)) {
       if (!given) return mrb_nil_value();
-      return mrb_funcall(mrb, RHASH_PROCDEFAULT(hash), "call", 2, hash, key);
+      return mrb_funcall_id(mrb, RHASH_PROCDEFAULT(hash), MRB_SYM(call), 2, hash, key);
     }
     else {
       return RHASH_IFNONE(hash);
@@ -932,8 +918,8 @@ mrb_hash_set_default(mrb_state *mrb, mrb_value hash)
 {
   mrb_value ifnone = mrb_get_arg1(mrb);
 
-  mrb_hash_modify(mrb, hash);
-  mrb_iv_set(mrb, hash, mrb_intern_lit(mrb, "ifnone"), ifnone);
+  hash_modify(mrb, hash);
+  mrb_iv_set(mrb, hash, MRB_SYM(ifnone), ifnone);
   RHASH(hash)->flags &= ~MRB_HASH_PROC_DEFAULT;
   if (!mrb_nil_p(ifnone)) {
     RHASH(hash)->flags |= MRB_HASH_DEFAULT;
@@ -987,8 +973,8 @@ mrb_hash_set_default_proc(mrb_state *mrb, mrb_value hash)
 {
   mrb_value ifnone = mrb_get_arg1(mrb);
 
-  mrb_hash_modify(mrb, hash);
-  mrb_iv_set(mrb, hash, mrb_intern_lit(mrb, "ifnone"), ifnone);
+  hash_modify(mrb, hash);
+  mrb_iv_set(mrb, hash, MRB_SYM(ifnone), ifnone);
   if (!mrb_nil_p(ifnone)) {
     RHASH(hash)->flags |= MRB_HASH_PROC_DEFAULT;
     RHASH(hash)->flags |= MRB_HASH_DEFAULT;
@@ -1020,7 +1006,7 @@ mrb_hash_delete(mrb_state *mrb, mrb_value self)
 {
   mrb_value key = mrb_get_arg1(mrb);
 
-  mrb_hash_modify(mrb, self);
+  hash_modify(mrb, self);
   return mrb_hash_delete_key(mrb, self, key);
 }
 
@@ -1070,7 +1056,7 @@ mrb_hash_shift(mrb_state *mrb, mrb_value hash)
 {
   htable *t = RHASH_TBL(hash);
 
-  mrb_hash_modify(mrb, hash);
+  hash_modify(mrb, hash);
   if (t && t->size > 0) {
     mrb_value del_key = mrb_nil_value();
     mrb_value del_val = mrb_nil_value();
@@ -1083,7 +1069,7 @@ mrb_hash_shift(mrb_state *mrb, mrb_value hash)
 
   if (MRB_RHASH_DEFAULT_P(hash)) {
     if (MRB_RHASH_PROCDEFAULT_P(hash)) {
-      return mrb_funcall(mrb, RHASH_PROCDEFAULT(hash), "call", 2, hash, mrb_nil_value());
+      return mrb_funcall_id(mrb, RHASH_PROCDEFAULT(hash), MRB_SYM(call), 2, hash, mrb_nil_value());
     }
     else {
       return RHASH_IFNONE(hash);
@@ -1109,7 +1095,7 @@ mrb_hash_clear(mrb_state *mrb, mrb_value hash)
 {
   htable *t = RHASH_TBL(hash);
 
-  mrb_hash_modify(mrb, hash);
+  hash_modify(mrb, hash);
   if (t) {
     ht_free(mrb, t);
     RHASH_TBL(hash) = NULL;
@@ -1368,7 +1354,7 @@ mrb_hash_merge(mrb_state *mrb, mrb_value hash1, mrb_value hash2)
 {
   htable *h1, *h2;
 
-  mrb_hash_modify(mrb, hash1);
+  hash_modify(mrb, hash1);
   hash2 = mrb_ensure_hash_type(mrb, hash2);
   h1 = RHASH_TBL(hash1);
   h2 = RHASH_TBL(hash2);

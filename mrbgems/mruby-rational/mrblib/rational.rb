@@ -48,11 +48,11 @@ class Rational < Numeric
   end
 
   def <=>(rhs)
-    if rhs.is_a?(Integral)
+    case rhs
+    when Integer, Float
       return numerator <=> rhs if denominator == 1
       rhs = Rational(rhs)
     end
-
     case rhs
     when Rational
       (numerator * rhs.denominator - denominator * rhs.numerator) <=> 0
@@ -65,14 +65,13 @@ class Rational < Numeric
 
   def ==(rhs)
     return true if self.equal?(rhs)
-    if rhs.is_a?(Integral) && denominator == 1
-      return numerator == rhs
+    case rhs
+    when Integer, Float
+      return numerator == rhs if denominator == 1
+    when Rational
+      return numerator * rhs.denominator == denominator * rhs.numerator
     end
-    if rhs.is_a?(Rational)
-      numerator * rhs.denominator == denominator * rhs.numerator
-    else
-      rhs == self
-    end
+    rhs == self
   end
 end
 
@@ -83,16 +82,9 @@ class Numeric
 end
 
 module Kernel
-  def Rational(numerator, denominator = 1)
-    a = numerator
-    b = denominator
-    a, b = b, a % b until b == 0
-    Rational._new(numerator.div(a), denominator.div(a))
-  end
-
   [:+, :-, :*, :/, :<=>, :==, :<, :<=, :>, :>=].each do |op|
     original_operator_name = :"__original_operator_#{op}_rational"
-    Fixnum.instance_eval do
+    Integer.instance_eval do
       alias_method original_operator_name, op
       define_method op do |rhs|
         if rhs.is_a? Rational

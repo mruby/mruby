@@ -6,6 +6,9 @@
 
 #include <string.h>
 #include <stdlib.h>
+#ifdef MRB_USE_MALLOC_TRIM
+#include <malloc.h>
+#endif
 #include <mruby.h>
 #include <mruby/array.h>
 #include <mruby/class.h>
@@ -34,6 +37,11 @@
     * White - Unmarked.
     * Gray - Marked, But the child objects are unmarked.
     * Black - Marked, the child objects are also marked.
+
+  Extra color
+
+    * Red - Static (ROM object) no need to be collected.
+          - All child objects should be Red as well.
 
   == Two White Types
 
@@ -117,7 +125,7 @@ typedef struct {
     struct RException exc;
     struct RBreak brk;
 #ifdef MRB_WORD_BOXING
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
     struct RFloat floatv;
 #endif
     struct RCptr cptr;
@@ -185,6 +193,7 @@ gettimeofday_time(void)
 #define GC_WHITE_A 1
 #define GC_WHITE_B (1 << 1)
 #define GC_BLACK (1 << 2)
+#define GC_RED 7
 #define GC_WHITES (GC_WHITE_A | GC_WHITE_B)
 #define GC_COLOR_MASK 7
 
@@ -194,7 +203,8 @@ gettimeofday_time(void)
 #define paint_partial_white(s, o) ((o)->color = (s)->current_white_part)
 #define is_gray(o) ((o)->color == GC_GRAY)
 #define is_white(o) ((o)->color & GC_WHITES)
-#define is_black(o) ((o)->color & GC_BLACK)
+#define is_black(o) ((o)->color == GC_BLACK)
+#define is_red(o) ((o)->color == GC_RED)
 #define flip_white_part(s) ((s)->current_white_part = other_white_part(s))
 #define other_white_part(s) ((s)->current_white_part ^ GC_WHITES)
 #define is_dead(s, o) (((o)->color & other_white_part(s) & GC_WHITES) || (o)->tt == MRB_TT_FREE)
@@ -581,11 +591,11 @@ add_gray_list(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
   gc->gray_list = obj;
 }
 
-static int
+static mrb_int
 ci_nregs(mrb_callinfo *ci)
 {
-  struct RProc *p = ci->proc;
-  int n = 0;
+  const struct RProc *p = ci->proc;
+  mrb_int n = 0;
 
   if (!p) {
     if (ci->argc < 0) return 3;
@@ -633,7 +643,6 @@ mark_context_stack(mrb_state *mrb, struct mrb_context *c)
 static void
 mark_context(mrb_state *mrb, struct mrb_context *c)
 {
-  int i;
   mrb_callinfo *ci;
 
  start:
@@ -649,10 +658,6 @@ mark_context(mrb_state *mrb, struct mrb_context *c)
       mrb_gc_mark(mrb, (struct RBasic*)ci->proc);
       mrb_gc_mark(mrb, (struct RBasic*)ci->target_class);
     }
-  }
-  /* mark ensure stack */
-  for (i=0; i<c->eidx; i++) {
-    mrb_gc_mark(mrb, (struct RBasic*)c->ensure[i]);
   }
   /* mark fibers */
   mrb_gc_mark(mrb, (struct RBasic*)c->fib);
@@ -765,6 +770,7 @@ mrb_gc_mark(mrb_state *mrb, struct RBasic *obj)
 {
   if (obj == 0) return;
   if (!is_white(obj)) return;
+  if (is_red(obj)) return;
   mrb_assert((obj)->tt != MRB_TT_FREE);
   add_gray_list(mrb, &mrb->gc, obj);
 }
@@ -776,12 +782,12 @@ obj_free(mrb_state *mrb, struct RBasic *obj, int end)
   switch (obj->tt) {
     /* immediate - no mark */
   case MRB_TT_TRUE:
-  case MRB_TT_FIXNUM:
+  case MRB_TT_INTEGER:
   case MRB_TT_SYMBOL:
     /* cannot happen */
     return;
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
   case MRB_TT_FLOAT:
 #ifdef MRB_WORD_BOXING
     break;
@@ -803,12 +809,14 @@ obj_free(mrb_state *mrb, struct RBasic *obj, int end)
   case MRB_TT_SCLASS:
     mrb_gc_free_mt(mrb, (struct RClass*)obj);
     mrb_gc_free_iv(mrb, (struct RObject*)obj);
-    mrb_mc_clear_by_class(mrb, (struct RClass*)obj);
+    if (!end)
+      mrb_mc_clear_by_class(mrb, (struct RClass*)obj);
     break;
   case MRB_TT_ICLASS:
     if (MRB_FLAG_TEST(obj, MRB_FL_CLASS_IS_ORIGIN))
       mrb_gc_free_mt(mrb, (struct RClass*)obj);
-    mrb_mc_clear_by_class(mrb, (struct RClass*)obj);
+    if (!end)
+      mrb_mc_clear_by_class(mrb, (struct RClass*)obj);
     break;
   case MRB_TT_ENV:
     {
@@ -868,7 +876,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj, int end)
       struct RProc *p = (struct RProc*)obj;
 
       if (!MRB_PROC_CFUNC_P(p) && p->body.irep) {
-        mrb_irep *irep = p->body.irep;
+        mrb_irep *irep = (mrb_irep*)p->body.irep;
         if (end) {
           mrb_irep_cutref(mrb, irep);
         }
@@ -924,10 +932,10 @@ root_scan_phase(mrb_state *mrb, mrb_gc *gc)
   mrb_gc_mark(mrb, (struct RBasic*)mrb->hash_class);
   mrb_gc_mark(mrb, (struct RBasic*)mrb->range_class);
 
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
   mrb_gc_mark(mrb, (struct RBasic*)mrb->float_class);
 #endif
-  mrb_gc_mark(mrb, (struct RBasic*)mrb->fixnum_class);
+  mrb_gc_mark(mrb, (struct RBasic*)mrb->integer_class);
   mrb_gc_mark(mrb, (struct RBasic*)mrb->true_class);
   mrb_gc_mark(mrb, (struct RBasic*)mrb->false_class);
   mrb_gc_mark(mrb, (struct RBasic*)mrb->nil_class);
@@ -1003,9 +1011,6 @@ gc_gray_counts(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
       }
       if (c->stbase + i > c->stend) i = c->stend - c->stbase;
       children += i;
-
-      /* mark ensure stack */
-      children += c->eidx;
 
       /* mark closure */
       if (c->cibase) {
@@ -1317,6 +1322,9 @@ mrb_full_gc(mrb_state *mrb)
     gc->full = FALSE;
   }
 
+#ifdef MRB_USE_MALLOC_TRIM
+  malloc_trim(0);
+#endif
   GC_TIME_STOP_AND_REPORT;
 }
 

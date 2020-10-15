@@ -35,7 +35,7 @@ struct RString {
 };
 struct RStringEmbed {
   MRB_OBJECT_HEADER;
-  char ary[];
+  char ary[RSTRING_EMBED_LEN_MAX+1];
 };
 
 #define RSTR_SET_TYPE_FLAG(s, type) (RSTR_UNSET_TYPE_FLAG(s), (s)->flags |= MRB_STR_##type)
@@ -92,9 +92,6 @@ struct RStringEmbed {
 # define RSTR_COPY_ASCII_FLAG(dst, src) (void)0
 #endif
 
-#define RSTR_POOL_P(s) ((s)->flags & MRB_STR_POOL)
-#define RSTR_SET_POOL_FLAG(s) ((s)->flags |= MRB_STR_POOL)
-
 /**
  * Returns a pointer from a Ruby string
  */
@@ -112,13 +109,11 @@ MRB_API mrb_int mrb_str_strlen(mrb_state*, struct RString*);
 #define MRB_STR_FSHARED   2
 #define MRB_STR_NOFREE    4
 #define MRB_STR_EMBED     8  /* type flags up to here */
-#define MRB_STR_POOL     16  /* status flags from here */
-#define MRB_STR_ASCII    32
+#define MRB_STR_ASCII    16
 #define MRB_STR_EMBED_LEN_SHIFT 6
 #define MRB_STR_EMBED_LEN_BIT 5
 #define MRB_STR_EMBED_LEN_MASK (((1 << MRB_STR_EMBED_LEN_BIT) - 1) << MRB_STR_EMBED_LEN_SHIFT)
-#define MRB_STR_TYPE_MASK (MRB_STR_POOL - 1)
-
+#define MRB_STR_TYPE_MASK 15
 
 void mrb_gc_free_str(mrb_state*, struct RString*);
 
@@ -382,8 +377,9 @@ MRB_API double mrb_cstr_to_dbl(mrb_state *mrb, const char *s, mrb_bool badcheck)
 /**
  * Returns a converted string type.
  * For type checking, non converting `mrb_to_str` is recommended.
+ * obsolete: use `mrb_obj_as_string()` instead.
  */
-MRB_API mrb_value mrb_str_to_str(mrb_state *mrb, mrb_value str);
+#define mrb_str_to_str(mrb, str) mrb_obj_as_string(mrb, str)
 
 /**
  * Returns true if the strings match and false if the strings don't match.
@@ -447,7 +443,6 @@ MRB_API int mrb_str_cmp(mrb_state *mrb, mrb_value str1, mrb_value str2);
  */
 MRB_API char *mrb_str_to_cstr(mrb_state *mrb, mrb_value str);
 
-mrb_value mrb_str_pool(mrb_state *mrb, const char *s, mrb_int len, mrb_bool nofree);
 uint32_t mrb_str_hash(mrb_state *mrb, mrb_value str);
 mrb_value mrb_str_dump(mrb_state *mrb, mrb_value str);
 

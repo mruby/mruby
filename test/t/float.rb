@@ -207,7 +207,7 @@ assert('Float#>>') do
 end
 
 assert('Float#to_s') do
-  uses_float = 4e38.infinite?  # enable MRB_USE_FLOAT?
+  uses_float = 4e38.infinite?  # enable MRB_USE_FLOAT32?
 
   assert_equal("Infinity", Float::INFINITY.to_s)
   assert_equal("-Infinity", (-Float::INFINITY).to_s)
@@ -237,6 +237,11 @@ assert('Float#to_s') do
     assert_equal("100000000000000", 100000000000000.0.to_s)
     assert_equal("-100000000000000", -100000000000000.0.to_s)
   end
+end
+
+assert('Float#inspect') do
+  assert_equal("-3.25", -3.25.inspect)
+  assert_equal("50.0", 50.0.inspect)
 end
 
 assert('Float#eql?') do

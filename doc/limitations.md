@@ -17,7 +17,7 @@ Please help to improve it by submitting your findings.
 ## `1/2` gives `0.5`
 
 Since mruby does not have `Bignum`, bigger integers are represented
-by `Float` numbers. To enhance interoperability between `Fixnum`
+by `Float` numbers. To enhance interoperability between `Integer`
 and `Float`, mruby provides `Float#upto` and other iterating
 methods for the `Float` class.  As a side effect, `1/2` gives `0.5`
 not `0`.
@@ -63,8 +63,15 @@ end
 
 #### mruby [2.1.2 (2020-08-06)]
 
-No exception is raised.
+No exception is raised. Instead you have to do:
 
+```ruby
+begin
+  1 / 0
+rescue => e
+  raise e
+end
+```
 ## Fiber execution can't cross C function boundary
 
 mruby's `Fiber` is implemented in a similar way to Lua's co-routine. This
@@ -245,8 +252,7 @@ trace (most recent call last):
 ## Keyword arguments
 
 mruby keyword arguments behave slightly different from CRuby 2.5
-to make the behavior simpler and less confusing. Maybe in the
-future, the simpler behavior will be adopted to CRuby as well.
+to make the behavior simpler and less confusing. 
 
 #### Ruby [ruby 2.5.1p57 (2018-03-29 revision 63029)]
 
@@ -263,6 +269,20 @@ trace (most recent call last):
 	[0] -e:1
 -e:1: keyword argument hash with non symbol keys (ArgumentError)
 ```
+
+## `nil?` redefinition in conditional expressions
+
+Redefinition of `nil?` is ignored in conditional expressions.
+
+```ruby
+a = "a"
+def a.nil?
+  true
+end
+puts(a.nil? ? "truthy" : "falsy")
+```
+
+Ruby outputs `falsy`. mruby outputs `truthy`.
 
 ## Argument Destructuring
 
@@ -283,17 +303,3 @@ f(1,[2,3])
 ```
 
 CRuby gives `[1,2,3,nil]`. mruby raises `NoMethodError` for `b`.
-
-## `nil?` redefinition in conditional expressions
-
-Redefinition of `nil?` is ignored in conditional expressions.
-
-```ruby
-a = "a"
-def a.nil?
-  true
-end
-puts(a.nil? ? "truthy" : "falsy")
-```
-
-Ruby outputs `falsy`. mruby outputs `truthy`.

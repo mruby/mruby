@@ -508,21 +508,23 @@ mrb_ary_push(mrb_state *mrb, mrb_value ary, mrb_value elem)
 static mrb_value
 mrb_ary_push_m(mrb_state *mrb, mrb_value self)
 {
+  mrb_int argc;
   mrb_value *argv;
-  mrb_int len, len2, alen;
+  mrb_int len, len2;
   struct RArray *a;
 
-  mrb_get_args(mrb, "*!", &argv, &alen);
+  argc = mrb_get_argc(mrb);
+  argv = mrb_get_argv(mrb);
   a = mrb_ary_ptr(self);
   ary_modify(mrb, a);
   len = ARY_LEN(a);
-  len2 = len + alen;
+  len2 = len + argc;
   if (ARY_CAPA(a) < len2) {
     ary_expand_capa(mrb, a, len2);
   }
-  array_copy(ARY_PTR(a)+len, argv, alen);
+  array_copy(ARY_PTR(a)+len, argv, argc);
   ARY_SET_LEN(a, len2);
-  while (alen--) {
+  while (argc--) {
     mrb_field_write_barrier_value(mrb, (struct RBasic*)a, *argv);
     argv++;
   }
@@ -820,10 +822,10 @@ mrb_ary_subseq(mrb_state *mrb, mrb_value ary, mrb_int beg, mrb_int len)
 static mrb_int
 aget_index(mrb_state *mrb, mrb_value index)
 {
-  if (mrb_fixnum_p(index)) {
-    return mrb_fixnum(index);
+  if (mrb_integer_p(index)) {
+    return mrb_integer(index);
   }
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
   else if (mrb_float_p(index)) {
     return (mrb_int)mrb_float(index);
   }
@@ -883,8 +885,8 @@ mrb_ary_aget(mrb_state *mrb, mrb_value self)
       else {
         return mrb_nil_value();
       }
-    case MRB_TT_FIXNUM:
-      return mrb_ary_ref(mrb, self, mrb_fixnum(index));
+    case MRB_TT_INTEGER:
+      return mrb_ary_ref(mrb, self, mrb_integer(index));
     default:
       return mrb_ary_ref(mrb, self, aget_index(mrb, index));
     }
@@ -1086,11 +1088,11 @@ mrb_ary_splat(mrb_state *mrb, mrb_value v)
     return mrb_obj_value(a);
   }
 
-  if (!mrb_respond_to(mrb, v, mrb_intern_lit(mrb, "to_a"))) {
+  if (!mrb_respond_to(mrb, v, MRB_SYM(to_a))) {
     return mrb_ary_new_from_values(mrb, 1, &v);
   }
 
-  ary = mrb_funcall(mrb, v, "to_a", 0);
+  ary = mrb_funcall_id(mrb, v, MRB_SYM(to_a), 0);
   if (mrb_nil_p(ary)) {
     return mrb_ary_new_from_values(mrb, 1, &v);
   }
@@ -1121,8 +1123,14 @@ mrb_ary_clear(mrb_state *mrb, mrb_value self)
   else if (!ARY_EMBED_P(a)){
     mrb_free(mrb, a->as.heap.ptr);
   }
-  ARY_SET_EMBED_LEN(a, 0);
-
+  if (MRB_ARY_EMBED_LEN_MAX > 0) {
+    ARY_SET_EMBED_LEN(a, 0);
+  }
+  else {
+    a->as.heap.ptr = NULL;
+    a->as.heap.aux.capa = 0;
+    ARY_SET_LEN(a, 0);
+  }
   return self;
 }
 
@@ -1302,31 +1310,42 @@ static const mrb_code each_iseq[] = {
   OP_RETURN, 0x0             /* OP_RETURN    R3 */
 };
 
+static const mrb_sym each_syms[] = {
+  MRB_SYM(each),
+  MRB_SYM(to_enum),
+  MRB_QSYM(aref),
+  MRB_SYM(call),
+  MRB_SYM(length),
+};
+
+static const mrb_irep each_irep = {
+  3,                                   /* nlocals */
+  7,                                   /* nregs */
+  0,                                   /* clen */
+  MRB_ISEQ_NO_FREE | MRB_IREP_NO_FREE, /* flags */
+  each_iseq,                           /* iseq */
+  NULL,                                /* pool */
+  each_syms,                           /* syms */
+  NULL,                                /* reps */
+  NULL,                                /* lv */
+  NULL,                                /* debug_info */
+  sizeof(each_iseq),                   /* ilen */
+  0,                                   /* plen */
+  sizeof(each_syms),                   /* slen */
+  1,                                   /* rlen */
+  0,                                   /* refcnt */
+};
+
 static void
 init_ary_each(mrb_state *mrb, struct RClass *ary)
 {
   struct RProc *p;
   mrb_method_t m;
-  mrb_irep *each_irep = (mrb_irep*)mrb_malloc(mrb, sizeof(mrb_irep));
-  static const mrb_irep mrb_irep_zero = { 0 };
 
-  *each_irep = mrb_irep_zero;
-  each_irep->syms = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym)*5);
-  each_irep->syms[0] = mrb_intern_lit(mrb, "each");
-  each_irep->syms[1] = mrb_intern_lit(mrb, "to_enum");
-  each_irep->syms[2] = mrb_intern_lit(mrb, "[]");
-  each_irep->syms[3] = mrb_intern_lit(mrb, "call");
-  each_irep->syms[4] = mrb_intern_lit(mrb, "length");
-  each_irep->slen = 5;
-  each_irep->flags = MRB_ISEQ_NO_FREE;
-  each_irep->iseq = each_iseq;
-  each_irep->ilen = sizeof(each_iseq);
-  each_irep->nregs = 7;
-  each_irep->nlocals = 3;
-  p = mrb_proc_new(mrb, each_irep);
+  p = mrb_proc_new(mrb, &each_irep);
   p->flags |= MRB_PROC_SCOPE | MRB_PROC_STRICT;
   MRB_METHOD_FROM_PROC(m, p);
-  mrb_define_method_raw(mrb, ary, mrb_intern_lit(mrb, "each"), m);
+  mrb_define_method_raw(mrb, ary, MRB_SYM(each), m);
 }
 
 void

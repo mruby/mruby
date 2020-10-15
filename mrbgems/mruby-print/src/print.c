@@ -17,22 +17,22 @@
 #endif
 
 static void
-printstr(mrb_state *mrb, const char *p, size_t len)
+printstr(mrb_state *mrb, const char *p, mrb_int len)
 {
 #if defined(_WIN32)
   if (isatty(fileno(stdout))) {
     DWORD written;
-    int wlen = MultiByteToWideChar(CP_UTF8, 0, p, len, NULL, 0);
+    int wlen = MultiByteToWideChar(CP_UTF8, 0, p, (int)len, NULL, 0);
     wchar_t* utf16 = (wchar_t*)mrb_malloc(mrb, (wlen+1) * sizeof(wchar_t));
-    if (MultiByteToWideChar(CP_UTF8, 0, p, len, utf16, wlen) > 0) {
+    if (MultiByteToWideChar(CP_UTF8, 0, p, (int)len, utf16, wlen) > 0) {
       utf16[wlen] = 0;
       WriteConsoleW(GetStdHandle(STD_OUTPUT_HANDLE),
-                    utf16, wlen, &written, NULL);
+                    utf16, (DWORD)wlen, &written, NULL);
     }
     mrb_free(mrb, utf16);
   } else
 #endif
-    fwrite(p, len, 1, stdout);
+    fwrite(p, (size_t)len, 1, stdout);
   fflush(stdout);
 }
 
@@ -57,7 +57,7 @@ mrb_print(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "*", &argv, &argc);
   for (i=0; i<argc; i++) {
-    mrb_value s = mrb_str_to_str(mrb, argv[i]);
+    mrb_value s = mrb_obj_as_string(mrb, argv[i]);
     printstr(mrb, RSTRING_PTR(s), RSTRING_LEN(s));
   }
   return mrb_nil_value();
@@ -73,7 +73,7 @@ mrb_puts(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "*", &argv, &argc);
   for (i=0; i<argc; i++) {
-    mrb_value s = mrb_str_to_str(mrb, argv[i]);
+    mrb_value s = mrb_obj_as_string(mrb, argv[i]);
     mrb_int len = RSTRING_LEN(s);
     printstr(mrb, RSTRING_PTR(s), len);
     if (len == 0 || RSTRING_PTR(s)[len-1] != '\n') {

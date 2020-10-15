@@ -6,73 +6,67 @@ jobs:
   Ubuntu-1604:
     runs-on: ubuntu-16.04
     env:
-      MRUBY_CONFIG: travis_config.rb
+      MRUBY_TARGET: travis
     steps:
     - uses: actions/checkout@v1
     - name: apt
       run: sudo apt install ruby gperf
-    - name: build
-      run: rake -m
-    - name: test
-      run: rake test
+    - name: build and test
+      run: rake -m -j4 gensym all test
 
   Ubuntu-1804-gcc:
     runs-on: ubuntu-18.04
     env:
-      MRUBY_CONFIG: travis_config.rb
+      MRUBY_TARGET: travis
       CC: gcc
       CXX: g++
     steps:
     - uses: actions/checkout@v1
     - name: apt
       run: sudo apt install ruby gperf gcc g++
-    - name: build
-      run: rake -m
-    - name: test
-      run: rake test
+    - name: build and test
+      run: rake -m -j4 gensym all test
 
   Ubuntu-1804-clang:
     runs-on: ubuntu-18.04
     env:
-      MRUBY_CONFIG: travis_config.rb
+      MRUBY_TARGET: travis
       CC: clang
       CXX: clang++
     steps:
     - uses: actions/checkout@v1
     - name: apt
       run: sudo apt install ruby gperf
-    - name: build
-      run: rake -m
-    - name: test
-      run: rake test
+    - name: build and test
+      run: rake -m -j4 gensym all test
 
   macOS:
     runs-on: macos-latest
     env:
-      MRUBY_CONFIG: travis_config.rb
+      MRUBY_TARGET: travis
     steps:
     - uses: actions/checkout@v1
     - name: brew
       run: brew install ruby gperf
-    - name: build
-      run: rake -m
-    - name: test
-      run: rake test
+    - name: build and test
+      run: rake -m -j4 gensym all test
 
   Windows-MinGW:
     runs-on: windows-latest
+    env:
+      MRUBY_TARGET: travis
+      CFLAGS: -g -O1 -Wall -Wundef
     steps:
     - uses: actions/checkout@v1
     - name: chocolatey
       run: choco install -y ruby gperf
     - name: build
-      run: rake -E 'STDOUT.sync=true' test
-      env:
-        MRUBY_CONFIG: travis_config.rb
-        CFLAGS: -g -O1 -Wall -Wundef
+      run: rake -E 'STDOUT.sync=true' -j4 gensym all test
 
   Windows-Cygwin:
     runs-on: windows-latest
+    env:
+      MRUBY_TARGET: travis
     steps:
     - uses: actions/checkout@v1
     - uses: actions/cache@v1
@@ -90,13 +84,23 @@ jobs:
     - name: Set ENV
       run: |
         echo '::set-env name=PATH::C:\tools\cygwin\bin;C:\tools\cygwin\usr\bin'
-    - name: build
+    - name: build and test
       shell: cmd
-      run: C:\tools\cygwin\bin\ruby.exe /usr/bin/rake -E 'STDOUT.sync=true' -m
-      env:
-        MRUBY_CONFIG: travis_config.rb
-    - name: test
+      run: C:\tools\cygwin\bin\ruby.exe /usr/bin/rake -E 'STDOUT.sync=true' -m gensym all test
+
+  Windows-VC:
+    runs-on: windows-latest
+    env:
+      MRUBY_TARGET: appveyor
+      # TODO(take-cheeze): Re-enable /O2
+      CFLAGS: "/c /nologo /W3 /we4013 /Zi /MD /D_CRT_SECURE_NO_WARNINGS"
+      CXXFLAGS: "/c /nologo /W3 /Zi /MD /EHs /D_CRT_SECURE_NO_WARNINGS"
+    steps:
+    - uses: actions/checkout@v1
+    - name: chocolatey
+      run: choco install -y ruby gperf
+    - name: build and test
       shell: cmd
-      run: C:\tools\cygwin\bin\ruby.exe /usr/bin/rake -E 'STDOUT.sync=true' test
-      env:
-        MRUBY_CONFIG: travis_config.rb
+      run: |
+        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        rake -E "STDOUT.sync=true" gensym all test

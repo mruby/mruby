@@ -25,6 +25,7 @@ OPCODE(LOADI_4,    B)        /* R(a) = mrb_int(4) */
 OPCODE(LOADI_5,    B)        /* R(a) = mrb_int(5) */
 OPCODE(LOADI_6,    B)        /* R(a) = mrb_int(6) */
 OPCODE(LOADI_7,    B)        /* R(a) = mrb_int(7) */
+OPCODE(LOADI16,    BS)       /* R(a) = mrb_int(b) */
 OPCODE(LOADSYM,    BB)       /* R(a) = Syms(b) */
 OPCODE(LOADNIL,    B)        /* R(a) = nil */
 OPCODE(LOADSELF,   B)        /* R(a) = self */
@@ -48,13 +49,10 @@ OPCODE(JMP,        S)        /* pc=a */
 OPCODE(JMPIF,      BS)       /* if R(a) pc=b */
 OPCODE(JMPNOT,     BS)       /* if !R(a) pc=b */
 OPCODE(JMPNIL,     BS)       /* if R(a)==nil pc=b */
-OPCODE(ONERR,      S)        /* rescue_push(a) */
+OPCODE(JMPUW,      S)        /* unwind_and_jump_to(a) */
 OPCODE(EXCEPT,     B)        /* R(a) = exc */
 OPCODE(RESCUE,     BB)       /* R(b) = R(a).isa?(R(b)) */
-OPCODE(POPERR,     B)        /* a.times{rescue_pop()} */
-OPCODE(RAISE,      B)        /* raise(R(a)) */
-OPCODE(EPUSH,      B)        /* ensure_push(SEQ[a]) */
-OPCODE(EPOP,       B)        /* A.times{ensure_pop().call} */
+OPCODE(RAISEIF,    B)        /* raise(R(a)) if R(a) */
 OPCODE(SENDV,      BB)       /* R(a) = call(R(a),Syms(b),*R(a+1)) */
 OPCODE(SENDVB,     BB)       /* R(a) = call(R(a),Syms(b),*R(a+1),&R(a+2)) */
 OPCODE(SEND,       BBB)      /* R(a) = call(R(a),Syms(b),R(a+1),...,R(a+c)) */
@@ -111,8 +109,4 @@ OPCODE(SCLASS,     B)        /* R(a) = R(a).singleton_class */
 OPCODE(TCLASS,     B)        /* R(a) = target_class */
 OPCODE(DEBUG,      BBB)      /* print a,b,c */
 OPCODE(ERR,        B)        /* raise(LocalJumpError, Lit(a)) */
-OPCODE(EXT1,       Z)        /* make 1st operand 16bit */
-OPCODE(EXT2,       Z)        /* make 2nd operand 16bit */
-OPCODE(EXT3,       Z)        /* make 1st and 2nd operands 16bit */
 OPCODE(STOP,       Z)        /* stop VM */
-OPCODE(LOADI16,    BS)       /* R(a) = mrb_int(b) */

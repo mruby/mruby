@@ -395,15 +395,15 @@ end
 
 assert('alias_method and remove_method') do
   begin
-    Fixnum.alias_method :to_s_, :to_s
-    Fixnum.remove_method :to_s
+    Integer.alias_method :to_s_, :to_s
+    Integer.remove_method :to_s
 
     assert_nothing_raised do
       # segfaults if mrb_cptr is used
       1.to_s
     end
   ensure
-    Fixnum.alias_method :to_s, :to_s_
-    Fixnum.remove_method :to_s_
+    Integer.alias_method :to_s, :to_s_
+    Integer.remove_method :to_s_
   end
 end

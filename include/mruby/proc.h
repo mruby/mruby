@@ -41,10 +41,10 @@ void mrb_env_unshare(mrb_state*, struct REnv*);
 struct RProc {
   MRB_OBJECT_HEADER;
   union {
-    mrb_irep *irep;
+    const mrb_irep *irep;
     mrb_func_t func;
   } body;
-  struct RProc *upper;
+  const struct RProc *upper;
   union {
     struct RClass *target_class;
     struct REnv *env;
@@ -57,7 +57,7 @@ struct RProc {
 #define MRB_ASPEC_REST(a)         (((a) >> 12) & 0x1)
 #define MRB_ASPEC_POST(a)         (((a) >> 7) & 0x1f)
 #define MRB_ASPEC_KEY(a)          (((a) >> 2) & 0x1f)
-#define MRB_ASPEC_KDICT(a)        ((a) & (1<<1))
+#define MRB_ASPEC_KDICT(a)        (((a) >> 1) & 0x1)
 #define MRB_ASPEC_BLOCK(a)        ((a) & 1)
 
 #define MRB_PROC_CFUNC_FL 128
@@ -86,15 +86,12 @@ struct RProc {
 
 #define mrb_proc_ptr(v)    ((struct RProc*)(mrb_ptr(v)))
 
-struct RProc *mrb_proc_new(mrb_state*, mrb_irep*);
-struct RProc *mrb_closure_new(mrb_state*, mrb_irep*);
+struct RProc *mrb_proc_new(mrb_state*, const mrb_irep*);
+struct RProc *mrb_closure_new(mrb_state*, const mrb_irep*);
 MRB_API struct RProc *mrb_proc_new_cfunc(mrb_state*, mrb_func_t);
 MRB_API struct RProc *mrb_closure_new_cfunc(mrb_state *mrb, mrb_func_t func, int nlocals);
 void mrb_proc_copy(struct RProc *a, struct RProc *b);
 mrb_int mrb_proc_arity(const struct RProc *p);
-
-/* implementation of #send method */
-mrb_value mrb_f_send(mrb_state *mrb, mrb_value self);
 
 /* following functions are defined in mruby-proc-ext so please include it when using */
 MRB_API struct RProc *mrb_proc_new_cfunc_with_env(mrb_state *mrb, mrb_func_t func, mrb_int argc, const mrb_value *argv);
@@ -104,7 +101,8 @@ MRB_API mrb_value mrb_proc_cfunc_env_get(mrb_state *mrb, mrb_int idx);
 
 #define MRB_METHOD_FUNC_FL 1
 #define MRB_METHOD_NOARG_FL 2
-#ifndef MRB_METHOD_T_STRUCT
+
+#ifndef MRB_USE_METHOD_T_STRUCT
 
 #define MRB_METHOD_FUNC_P(m) (((uintptr_t)(m))&MRB_METHOD_FUNC_FL)
 #define MRB_METHOD_NOARG_P(m) (((uintptr_t)(m))&MRB_METHOD_NOARG_FL)
@@ -128,7 +126,7 @@ MRB_API mrb_value mrb_proc_cfunc_env_get(mrb_state *mrb, mrb_int idx);
 #define MRB_METHOD_PROC(m) ((m).proc)
 #define MRB_METHOD_UNDEF_P(m) ((m).proc==NULL)
 
-#endif /* MRB_METHOD_T_STRUCT */
+#endif /* MRB_USE_METHOD_T_STRUCT */
 
 #define MRB_METHOD_CFUNC_P(m) (MRB_METHOD_FUNC_P(m)?TRUE:(MRB_METHOD_PROC(m)?(MRB_PROC_CFUNC_P(MRB_METHOD_PROC(m))):FALSE))
 #define MRB_METHOD_CFUNC(m) (MRB_METHOD_FUNC_P(m)?MRB_METHOD_FUNC(m):((MRB_METHOD_PROC(m)&&MRB_PROC_CFUNC_P(MRB_METHOD_PROC(m)))?MRB_PROC_CFUNC(MRB_METHOD_PROC(m)):NULL))
@@ -136,6 +134,8 @@ MRB_API mrb_value mrb_proc_cfunc_env_get(mrb_state *mrb, mrb_int idx);
 
 #include <mruby/khash.h>
 KHASH_DECLARE(mt, mrb_sym, mrb_method_t, TRUE)
+
+MRB_API mrb_value mrb_load_proc(mrb_state *mrb, const struct RProc *proc);
 
 MRB_END_DECL
 

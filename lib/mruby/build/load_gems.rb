@@ -28,18 +28,19 @@ module MRuby
       Gem.current = nil
       load gemrake
       return nil unless Gem.current
+      current = Gem.current
 
-      Gem.current.dir = gemdir
-      Gem.current.build = self.is_a?(MRuby::Build) ? self : MRuby::Build.current
-      Gem.current.build_config_initializer = block
-      gems << Gem.current
+      current.dir = gemdir
+      current.build = self.is_a?(MRuby::Build) ? self : MRuby::Build.current
+      current.build_config_initializer = block
+      gems << current
 
       cxx_srcs = ['src', 'test', 'tools'].map do |subdir|
-        Dir.glob("#{Gem.current.dir}/#{subdir}/*.{cpp,cxx,cc}")
+        Dir.glob("#{current.dir}/#{subdir}/*.{cpp,cxx,cc}")
       end.flatten
       enable_cxx_exception unless cxx_srcs.empty?
 
-      Gem.current
+      current
     end
 
     def load_special_path_gem(params)

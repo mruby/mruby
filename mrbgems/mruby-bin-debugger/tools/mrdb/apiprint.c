@@ -33,7 +33,7 @@ mrdb_check_syntax(mrb_state *mrb, mrb_debug_context *dbg, const char *expr, size
 mrb_value
 mrb_debug_eval(mrb_state *mrb, mrb_debug_context *dbg, const char *expr, size_t len, mrb_bool *exc, int direct_eval)
 {
-  void (*tmp)(struct mrb_state *, struct mrb_irep *, const mrb_code *, mrb_value *);
+  void (*tmp)(struct mrb_state *, const struct mrb_irep *, const mrb_code *, mrb_value *);
   mrb_value ruby_code;
   mrb_value s;
   mrb_value v;
@@ -67,7 +67,7 @@ mrb_debug_eval(mrb_state *mrb, mrb_debug_context *dbg, const char *expr, size_t 
 
     recv = dbg->regs[0];
 
-    v =  mrb_funcall(mrb, recv, "instance_eval", 1, ruby_code);
+    v =  mrb_funcall_id(mrb, recv, MRB_SYM(instance_eval), 1, ruby_code);
   }
 
   if (exc) {

@@ -1,19 +1,3 @@
-MRuby::Build.new do |conf|
-
-  # Gets set by the VS command prompts.
-  if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
-    toolchain :visualcpp
-  else
-    toolchain :gcc
-  end
-
-  enable_debug
-
-  # include the default GEMs
-  conf.gembox 'default'
-
-end
-
 # Cross Compiling configuration for RX630
 # http://gadget.renesas.com/
 #
@@ -30,7 +14,7 @@ MRuby::CrossBuild.new("RX630") do |conf|
     cc.compile_options = %Q[%{flags} -o "%{outfile}" -c "%{infile}"]
 
     #configuration for low memory environment
-    cc.defines << %w(MRB_USE_FLOAT)
+    cc.defines << %w(MRB_USE_FLOAT32)
     cc.defines << %w(MRB_HEAP_PAGE_SIZE=64)
     cc.defines << %w(KHASH_DEFAULT_SIZE=8)
     cc.defines << %w(MRB_STR_BUF_MIN_SIZE=20)

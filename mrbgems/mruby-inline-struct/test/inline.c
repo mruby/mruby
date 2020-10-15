@@ -10,10 +10,10 @@ istruct_test_initialize(mrb_state *mrb, mrb_value self)
   mrb_int size = mrb_istruct_size();
   mrb_value object = mrb_get_arg1(mrb);
 
-  if (mrb_fixnum_p(object)) {
+  if (mrb_integer_p(object)) {
     strncpy(string, "fixnum", size-1);
   }
-#ifndef MRB_WITHOUT_FLOAT
+#ifndef MRB_NO_FLOAT
   else if (mrb_float_p(object)) {
     strncpy(string, "float", size-1);
   }

@@ -19,7 +19,7 @@ mrb_func_basic_p(mrb_state *mrb, mrb_value obj, mrb_sym mid, mrb_func_t func)
 {
   struct RClass *c = mrb_class(mrb, obj);
   mrb_method_t m = mrb_method_search_vm(mrb, &c, mid);
-  struct RProc *p;
+  const struct RProc *p;
 
   if (MRB_METHOD_UNDEF_P(m)) return FALSE;
   if (MRB_METHOD_FUNC_P(m))
@@ -33,7 +33,7 @@ mrb_func_basic_p(mrb_state *mrb, mrb_value obj, mrb_sym mid, mrb_func_t func)
 static mrb_bool
 mrb_obj_basic_to_s_p(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_func_basic_p(mrb, obj, mrb_intern_lit(mrb, "to_s"), mrb_any_to_s);
+  return mrb_func_basic_p(mrb, obj, MRB_SYM(to_s), mrb_any_to_s);
 }
 
 /* 15.3.1.3.17 */
@@ -96,7 +96,7 @@ mrb_equal_m(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_obj_id_m(mrb_state *mrb, mrb_value self)
 {
-  return mrb_fixnum_value(mrb_obj_id(self));
+  return mrb_int_value(mrb, mrb_obj_id(self));
 }
 
 static int
@@ -143,7 +143,7 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
   mrb_value *bp;
   int bidx;
   struct REnv *e = NULL;
-  struct RProc *p;
+  const struct RProc *p;
 
   if (ci <= cibase) {
     /* toplevel does not have block */
@@ -209,194 +209,13 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
  *  called with an explicit receiver, as <code>class</code> is also a
  *  reserved word in Ruby.
  *
- *     1.class      #=> Fixnum
+ *     1.class      #=> Integer
  *     self.class   #=> Object
  */
 static mrb_value
 mrb_obj_class_m(mrb_state *mrb, mrb_value self)
 {
   return mrb_obj_value(mrb_obj_class(mrb, self));
-}
-
-static struct RClass*
-mrb_singleton_class_clone(mrb_state *mrb, mrb_value obj)
-{
-  struct RClass *klass = mrb_basic_ptr(obj)->c;
-
-  if (klass->tt != MRB_TT_SCLASS)
-    return klass;
-  else {
-    /* copy singleton(unnamed) class */
-    struct RClass *clone = (struct RClass*)mrb_obj_alloc(mrb, klass->tt, mrb->class_class);
-
-    switch (mrb_type(obj)) {
-    case MRB_TT_CLASS:
-    case MRB_TT_SCLASS:
-      break;
-    default:
-      clone->c = mrb_singleton_class_clone(mrb, mrb_obj_value(klass));
-      break;
-    }
-    clone->super = klass->super;
-    if (klass->iv) {
-      mrb_iv_copy(mrb, mrb_obj_value(clone), mrb_obj_value(klass));
-      mrb_obj_iv_set(mrb, (struct RObject*)clone, mrb_intern_lit(mrb, "__attached__"), obj);
-    }
-    if (klass->mt) {
-      clone->mt = kh_copy(mt, mrb, klass->mt);
-    }
-    else {
-      clone->mt = kh_init(mt, mrb);
-    }
-    clone->tt = MRB_TT_SCLASS;
-    return clone;
-  }
-}
-
-static void
-copy_class(mrb_state *mrb, mrb_value dst, mrb_value src)
-{
-  struct RClass *dc = mrb_class_ptr(dst);
-  struct RClass *sc = mrb_class_ptr(src);
-  /* if the origin is not the same as the class, then the origin and
-     the current class need to be copied */
-  if (sc->flags & MRB_FL_CLASS_IS_PREPENDED) {
-    struct RClass *c0 = sc->super;
-    struct RClass *c1 = dc;
-
-    /* copy prepended iclasses */
-    while (!(c0->flags & MRB_FL_CLASS_IS_ORIGIN)) {
-      c1->super = mrb_class_ptr(mrb_obj_dup(mrb, mrb_obj_value(c0)));
-      c1 = c1->super;
-      c0 = c0->super;
-    }
-    c1->super = mrb_class_ptr(mrb_obj_dup(mrb, mrb_obj_value(c0)));
-    c1->super->flags |= MRB_FL_CLASS_IS_ORIGIN;
-  }
-  if (sc->mt) {
-    dc->mt = kh_copy(mt, mrb, sc->mt);
-  }
-  else {
-    dc->mt = kh_init(mt, mrb);
-  }
-  dc->super = sc->super;
-  MRB_SET_INSTANCE_TT(dc, MRB_INSTANCE_TT(sc));
-}
-
-static void
-init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
-{
-  switch (mrb_type(obj)) {
-    case MRB_TT_ICLASS:
-      copy_class(mrb, dest, obj);
-      return;
-    case MRB_TT_CLASS:
-    case MRB_TT_MODULE:
-      copy_class(mrb, dest, obj);
-      mrb_iv_copy(mrb, dest, obj);
-      mrb_iv_remove(mrb, dest, mrb_intern_lit(mrb, "__classname__"));
-      break;
-    case MRB_TT_OBJECT:
-    case MRB_TT_SCLASS:
-    case MRB_TT_HASH:
-    case MRB_TT_DATA:
-    case MRB_TT_EXCEPTION:
-      mrb_iv_copy(mrb, dest, obj);
-      break;
-    case MRB_TT_ISTRUCT:
-      mrb_istruct_copy(dest, obj);
-      break;
-
-    default:
-      break;
-  }
-  mrb_funcall(mrb, dest, "initialize_copy", 1, obj);
-}
-
-/* 15.3.1.3.8  */
-/*
- *  call-seq:
- *     obj.clone -> an_object
- *
- *  Produces a shallow copy of <i>obj</i>---the instance variables of
- *  <i>obj</i> are copied, but not the objects they reference. Copies
- *  the frozen state of <i>obj</i>. See also the discussion
- *  under <code>Object#dup</code>.
- *
- *     class Klass
- *        attr_accessor :str
- *     end
- *     s1 = Klass.new      #=> #<Klass:0x401b3a38>
- *     s1.str = "Hello"    #=> "Hello"
- *     s2 = s1.clone       #=> #<Klass:0x401b3998 @str="Hello">
- *     s2.str[1,4] = "i"   #=> "i"
- *     s1.inspect          #=> "#<Klass:0x401b3a38 @str=\"Hi\">"
- *     s2.inspect          #=> "#<Klass:0x401b3998 @str=\"Hi\">"
- *
- *  This method may have class-specific behavior.  If so, that
- *  behavior will be documented under the #+initialize_copy+ method of
- *  the class.
- *
- *  Some Class(True False Nil Symbol Fixnum Float) Object  cannot clone.
- */
-MRB_API mrb_value
-mrb_obj_clone(mrb_state *mrb, mrb_value self)
-{
-  struct RObject *p;
-  mrb_value clone;
-
-  if (mrb_immediate_p(self)) {
-    return self;
-  }
-  if (mrb_sclass_p(self)) {
-    mrb_raise(mrb, E_TYPE_ERROR, "can't clone singleton class");
-  }
-  p = (struct RObject*)mrb_obj_alloc(mrb, mrb_type(self), mrb_obj_class(mrb, self));
-  p->c = mrb_singleton_class_clone(mrb, self);
-  mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)p->c);
-  clone = mrb_obj_value(p);
-  init_copy(mrb, clone, self);
-  p->flags |= mrb_obj_ptr(self)->flags & MRB_FL_OBJ_IS_FROZEN;
-
-  return clone;
-}
-
-/* 15.3.1.3.9  */
-/*
- *  call-seq:
- *     obj.dup -> an_object
- *
- *  Produces a shallow copy of <i>obj</i>---the instance variables of
- *  <i>obj</i> are copied, but not the objects they reference.
- *  <code>dup</code> copies the frozen state of <i>obj</i>. See also
- *  the discussion under <code>Object#clone</code>. In general,
- *  <code>clone</code> and <code>dup</code> may have different semantics
- *  in descendant classes. While <code>clone</code> is used to duplicate
- *  an object, including its internal state, <code>dup</code> typically
- *  uses the class of the descendant object to create the new instance.
- *
- *  This method may have class-specific behavior.  If so, that
- *  behavior will be documented under the #+initialize_copy+ method of
- *  the class.
- */
-
-MRB_API mrb_value
-mrb_obj_dup(mrb_state *mrb, mrb_value obj)
-{
-  struct RBasic *p;
-  mrb_value dup;
-
-  if (mrb_immediate_p(obj)) {
-    return obj;
-  }
-  if (mrb_sclass_p(obj)) {
-    mrb_raise(mrb, E_TYPE_ERROR, "can't dup singleton class");
-  }
-  p = mrb_obj_alloc(mrb, mrb_type(obj), mrb_obj_class(mrb, obj));
-  dup = mrb_obj_value(p);
-  init_copy(mrb, dup, obj);
-
-  return dup;
 }
 
 static mrb_value
@@ -411,8 +230,8 @@ mrb_obj_extend(mrb_state *mrb, mrb_int argc, mrb_value *argv, mrb_value obj)
     mrb_check_type(mrb, argv[i], MRB_TT_MODULE);
   }
   while (argc--) {
-    mrb_funcall(mrb, argv[argc], "extend_object", 1, obj);
-    mrb_funcall(mrb, argv[argc], "extended", 1, obj);
+    mrb_funcall_id(mrb, argv[argc], MRB_SYM(extend_object), 1, obj);
+    mrb_funcall_id(mrb, argv[argc], MRB_SYM(extended), 1, obj);
   }
   return obj;
 }
@@ -476,20 +295,20 @@ mrb_obj_frozen(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     obj.hash    -> fixnum
  *
- *  Generates a <code>Fixnum</code> hash value for this object. This
+ *  Generates a <code>Integer</code> hash value for this object. This
  *  function must have the property that <code>a.eql?(b)</code> implies
  *  <code>a.hash == b.hash</code>. The hash value is used by class
  *  <code>Hash</code>. Any hash value that exceeds the capacity of a
- *  <code>Fixnum</code> will be truncated before being used.
+ *  <code>Integer</code> will be truncated before being used.
  */
 static mrb_value
 mrb_obj_hash(mrb_state *mrb, mrb_value self)
 {
-  return mrb_fixnum_value(mrb_obj_id(self));
+  return mrb_int_value(mrb, mrb_obj_id(self));
 }
 
 /* 15.3.1.3.16 */
-static mrb_value
+mrb_value
 mrb_obj_init_copy(mrb_state *mrb, mrb_value self)
 {
   mrb_value orig = mrb_get_arg1(mrb);
@@ -500,7 +319,6 @@ mrb_obj_init_copy(mrb_state *mrb, mrb_value self)
   }
   return self;
 }
-
 
 MRB_API mrb_bool
 mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, struct RClass* c)
@@ -563,9 +381,6 @@ mrb_obj_is_kind_of_m(mrb_state *mrb, mrb_value self)
 
   return mrb_bool_value(mrb_obj_is_kind_of(mrb, self, c));
 }
-
-KHASH_DECLARE(st, mrb_sym, char, FALSE)
-KHASH_DEFINE(st, mrb_sym, char, FALSE, kh_int_hash_func, kh_int_hash_equal)
 
 /* 15.3.1.3.32 */
 /*
@@ -749,7 +564,7 @@ obj_respond_to(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "n|b", &id, &priv);
   respond_to_p = basic_obj_respond_to(mrb, self, id, !priv);
   if (!respond_to_p) {
-    rtm_id = mrb_intern_lit(mrb, "respond_to_missing?");
+    rtm_id = MRB_QSYM(respond_to_missing_p);
     if (basic_obj_respond_to(mrb, self, rtm_id, !priv)) {
       mrb_value args[2], v;
       args[0] = mrb_symbol_value(id);
@@ -766,7 +581,7 @@ mrb_obj_ceqq(mrb_state *mrb, mrb_value self)
 {
   mrb_value v = mrb_get_arg1(mrb);
   mrb_int i, len;
-  mrb_sym eqq = mrb_intern_lit(mrb, "===");
+  mrb_sym eqq = MRB_QSYM(eqq);
   mrb_value ary;
 
   if (mrb_array_p(self)) {

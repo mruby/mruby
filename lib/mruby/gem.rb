@@ -47,12 +47,14 @@ module MRuby
         @version = "0.0.0"
         @mrblib_dir = "mrblib"
         @objs_dir = "src"
+        @dependencies = []
+        @conflicts = []
         MRuby::Gem.current = self
       end
 
       def setup
         return if defined?(@linker)  # return if already set up
-
+        
         MRuby::Gem.current = self
         MRuby::Build::COMMANDS.each do |command|
           instance_variable_set("@#{command}", @build.send(command).clone)
@@ -75,7 +77,6 @@ module MRuby
         @bins = []
 
         @requirements = []
-        @dependencies, @conflicts = [], []
         @export_include_paths = []
         @export_include_paths << "#{dir}/include" if File.directory? "#{dir}/include"
 
@@ -174,7 +175,7 @@ module MRuby
       def generate_gem_init(fname)
         open(fname, 'w') do |f|
           print_gem_init_header f
-          build.mrbc.run f, rbfiles, "gem_mrblib_irep_#{funcname}" unless rbfiles.empty?
+          build.mrbc.run f, rbfiles, "gem_mrblib_#{funcname}_proc" unless rbfiles.empty?
           f.puts %Q[void mrb_#{funcname}_gem_init(mrb_state *mrb);]
           f.puts %Q[void mrb_#{funcname}_gem_final(mrb_state *mrb);]
           f.puts %Q[]
@@ -183,7 +184,7 @@ module MRuby
           f.puts %Q[  struct REnv *e;] unless rbfiles.empty?
           f.puts %Q[  mrb_#{funcname}_gem_init(mrb);] if objs != [objfile("#{build_dir}/gem_init")]
           unless rbfiles.empty?
-            f.puts %Q[  mrb_load_irep(mrb, gem_mrblib_irep_#{funcname});]
+            f.puts %Q[  mrb_load_proc(mrb, gem_mrblib_#{funcname}_proc);]
             f.puts %Q[  if (mrb->exc) {]
             f.puts %Q[    mrb_print_error(mrb);]
             f.puts %Q[    mrb_close(mrb);]
@@ -215,10 +216,13 @@ module MRuby
 
       def print_gem_init_header(f)
         print_gem_comment(f)
-        f.puts %Q[#include <stdlib.h>] unless rbfiles.empty?
-        f.puts %Q[#include <mruby.h>]
-        f.puts %Q[#include <mruby/irep.h>] unless rbfiles.empty?
-        f.puts %Q[#include <mruby/proc.h>] unless rbfiles.empty?
+        unless rbfiles.empty?
+          f.puts %Q[#include <stdlib.h>]
+          f.puts %Q[#include <mruby.h>]
+          f.puts %Q[#include <mruby/proc.h>]
+        else
+          f.puts %Q[#include <mruby.h>]
+        end
       end
 
       def print_gem_test_header(f)
@@ -226,7 +230,7 @@ module MRuby
         f.puts %Q[#include <stdio.h>]
         f.puts %Q[#include <stdlib.h>]
         f.puts %Q[#include <mruby.h>]
-        f.puts %Q[#include <mruby/irep.h>]
+        f.puts %Q[#include <mruby/proc.h>]
         f.puts %Q[#include <mruby/variable.h>]
         f.puts %Q[#include <mruby/hash.h>] unless test_args.empty?
       end

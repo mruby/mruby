@@ -4,8 +4,8 @@
 ** See Copyright Notice in mruby.h
 */
 
-#ifdef MRB_WITHOUT_FLOAT
-# error Math conflicts 'MRB_WITHOUT_FLOAT' configuration in your 'build_config.rb'
+#ifdef MRB_NO_FLOAT
+# error Math conflicts with 'MRB_NO_FLOAT' configuration
 #endif
 
 #include <mruby.h>
@@ -16,8 +16,8 @@
 static void
 domain_error(mrb_state *mrb, const char *func)
 {
-  struct RClass *math = mrb_module_get(mrb, "Math");
-  struct RClass *domainerror = mrb_class_get_under(mrb, math, "DomainError");
+  struct RClass *math = mrb_module_get_id(mrb, MRB_SYM(Math));
+  struct RClass *domainerror = mrb_class_get_under_id(mrb, math, MRB_SYM(DomainError));
   mrb_raisef(mrb, domainerror, "Numerical argument is out of domain - %s", func);
 }
 
@@ -629,7 +629,7 @@ math_cbrt(mrb_state *mrb, mrb_value obj)
  *     Math.frexp(numeric)    -> [ fraction, exponent ]
  *
  *  Returns a two-element array containing the normalized fraction (a
- *  <code>Float</code>) and exponent (a <code>Fixnum</code>) of
+ *  <code>Float</code>) and exponent (a <code>Integer</code>) of
  *  <i>numeric</i>.
  *
  *     fraction, exponent = Math.frexp(1234)   #=> [0.6025390625, 11]
@@ -730,18 +730,18 @@ mrb_mruby_math_gem_init(mrb_state* mrb)
   struct RClass *mrb_math;
   mrb_math = mrb_define_module(mrb, "Math");
 
-  mrb_define_class_under(mrb, mrb_math, "DomainError", mrb->eStandardError_class);
+  mrb_define_class_under_id(mrb, mrb_math, MRB_SYM(DomainError), mrb->eStandardError_class);
 
 #ifdef M_PI
-  mrb_define_const(mrb, mrb_math, "PI", mrb_float_value(mrb, M_PI));
+  mrb_define_const_id(mrb, mrb_math, MRB_SYM(PI), mrb_float_value(mrb, M_PI));
 #else
-  mrb_define_const(mrb, mrb_math, "PI", mrb_float_value(mrb, atan(1.0)*4.0));
+  mrb_define_const_id(mrb, mrb_math, MRB_SYM(PI), mrb_float_value(mrb, atan(1.0)*4.0));
 #endif
 
 #ifdef M_E
-  mrb_define_const(mrb, mrb_math, "E", mrb_float_value(mrb, M_E));
+  mrb_define_const_id(mrb, mrb_math, MRB_SYM(E), mrb_float_value(mrb, M_E));
 #else
-  mrb_define_const(mrb, mrb_math, "E", mrb_float_value(mrb, exp(1.0)));
+  mrb_define_const_id(mrb, mrb_math, MRB_SYM(E), mrb_float_value(mrb, exp(1.0)));
 #endif
 
   mrb_define_module_function(mrb, mrb_math, "sin", math_sin, MRB_ARGS_REQ(1));

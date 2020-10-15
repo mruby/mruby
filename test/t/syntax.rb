@@ -345,6 +345,15 @@ assert('splat object in assignment') do
   assert_equal [2], (a = *o)
 end
 
+assert('right-ward assignment') do
+  1 => a
+  assert_equal(1, a)
+  13.divmod(5) => a,b
+  assert_equal([2,3], [a, b])
+  13.divmod(5) => a,b => c, d
+  assert_equal([2,3,2,3], [a, b, c, d])
+end
+
 assert('splat object in case statement') do
   o = Object.new
   def o.to_a

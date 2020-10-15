@@ -21,5 +21,4 @@ MRuby.each_target do
       f.puts "MRUBY_LIBMRUBY_PATH = #{libmruby_static}"
     end
   end
-  task :all => "#{build_dir}/lib/libmruby.flags.mak"
 end

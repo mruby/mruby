@@ -62,10 +62,10 @@ task :gitlab_config do
 
   configs = []
   [true, false].each do |mode_32|
-    ['', 'MRB_USE_FLOAT'].each do |float_conf|
+    ['', 'MRB_USE_FLOAT32'].each do |float_conf|
       ['', 'MRB_NAN_BOXING', 'MRB_WORD_BOXING'].each do |boxing_conf|
         ['', 'MRB_UTF8_STRING'].each do |utf8_conf|
-          next if (float_conf == 'MRB_USE_FLOAT') && (boxing_conf == 'MRB_NAN_BOXING')
+          next if (float_conf == 'MRB_USE_FLOAT32') && (boxing_conf == 'MRB_NAN_BOXING')
           next if (int_conf == 'MRB_INT64') && (boxing_conf == 'MRB_NAN_BOXING')
           next if (int_conf == 'MRB_INT64') && (boxing_conf == 'MRB_WORD_BOXING') && mode_32
           env = [float_conf, int_conf, boxing_conf, utf8_conf].map do |conf|

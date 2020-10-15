@@ -130,6 +130,7 @@ class Enumerator
     @feedvalue = nil
     @stop_exc = false
   end
+
   attr_accessor :obj, :meth, :args
   attr_reader :fib
 
