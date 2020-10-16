@@ -1478,6 +1478,7 @@ heredoc_end(parser_state *p)
 %token tANDOP tOROP       /* && and || */
 %token tMATCH tNMATCH     /* =~ and !~ */
 %token tDOT2 tDOT3        /* .. and ... */
+%token tBDOT2 tBDOT3      /* (.. and (... */
 %token tAREF tASET        /* [] and []= */
 %token tLSHFT tRSHFT      /* << and >> */
 %token tCOLON2            /* :: */
@@ -1514,7 +1515,7 @@ heredoc_end(parser_state *p)
 %right '=' tOP_ASGN
 %left modifier_rescue
 %right '?' ':' tLABEL_TAG
-%nonassoc tDOT2 tDOT3
+%nonassoc tDOT2 tDOT3 tBDOT2 tBDOT3
 %left  tOROP
 %left  tANDOP
 %nonassoc  tCMP tEQ tEQQ tNEQ tMATCH tNMATCH
@@ -2194,6 +2195,10 @@ arg             : lhs '=' arg_rhs
                     {
                       $$ = new_dot2(p, $1, new_nil(p));
                     }
+                | tBDOT2 arg
+                    {
+                      $$ = new_dot2(p, new_nil(p), $2);
+                    }
                 | arg tDOT3 arg
                     {
                       $$ = new_dot3(p, $1, $3);
@@ -2201,6 +2206,10 @@ arg             : lhs '=' arg_rhs
                 | arg tDOT3
                     {
                       $$ = new_dot3(p, $1, new_nil(p));
+                    }
+                | tBDOT3 arg
+                    {
+                      $$ = new_dot3(p, new_nil(p), $2);
                     }
                 | arg '+' arg
                     {
@@ -5440,20 +5449,23 @@ parser_yylex(parser_state *p)
     return '-';
 
   case '.':
-    p->lstate = EXPR_BEG;
-    if ((c = nextc(p)) == '.') {
+    {
+      int is_beg = IS_BEG();
+      p->lstate = EXPR_BEG;
       if ((c = nextc(p)) == '.') {
-        return tDOT3;
+        if ((c = nextc(p)) == '.') {
+          return is_beg ? tBDOT3 : tDOT3;
+        }
+        pushback(p, c);
+        return is_beg ? tBDOT2 : tDOT2;
       }
       pushback(p, c);
-      return tDOT2;
+      if (c >= 0 && ISDIGIT(c)) {
+        yyerror(p, "no .<digit> floating literal anymore; put 0 before dot");
+      }
+      p->lstate = EXPR_DOT;
+      return '.';
     }
-    pushback(p, c);
-    if (c >= 0 && ISDIGIT(c)) {
-      yyerror(p, "no .<digit> floating literal anymore; put 0 before dot");
-    }
-    p->lstate = EXPR_DOT;
-    return '.';
 
     start_num:
   case '0': case '1': case '2': case '3': case '4':

@@ -32,7 +32,7 @@ r_check(mrb_state *mrb, mrb_value a, mrb_value b)
     return;
   }
 
-  if (mrb_nil_p(b)) return;
+  if (mrb_nil_p(a) || mrb_nil_p(b)) return;
 
   n = mrb_cmp(mrb, a, b);
   if (n == -2) {                /* can not be compared */
@@ -217,7 +217,13 @@ range_include(mrb_state *mrb, mrb_value range)
 
   beg = RANGE_BEG(r);
   end = RANGE_END(r);
-  if (r_le(mrb, beg, val)) {                   /* beg <= val */
+  if (mrb_nil_p(beg)) {
+    if (RANGE_EXCL(r) ? r_gt(mrb, end, val)    /* end >  val */
+                      : r_ge(mrb, end, val)) { /* end >= val */
+      return mrb_true_value();
+    }
+  }
+  else if (r_le(mrb, beg, val)) {              /* beg <= val */
     if (mrb_nil_p(end)) {
       return mrb_true_value();
     }
@@ -266,9 +272,14 @@ range_inspect(mrb_state *mrb, mrb_value range)
   mrb_value str;
   struct RRange *r = mrb_range_ptr(mrb, range);
 
-  str  = mrb_inspect(mrb, RANGE_BEG(r));
-  str  = mrb_str_dup(mrb, str);
-  mrb_str_cat(mrb, str, "...", RANGE_EXCL(r) ? 3 : 2);
+  if (!mrb_nil_p(RANGE_BEG(r))) {
+    str  = mrb_inspect(mrb, RANGE_BEG(r));
+    str  = mrb_str_dup(mrb, str);
+    mrb_str_cat(mrb, str, "...", RANGE_EXCL(r) ? 3 : 2);
+  }
+  else {
+    str = mrb_str_new(mrb, "...", RANGE_EXCL(r) ? 3 : 2);
+  }
   if (!mrb_nil_p(RANGE_END(r))) {
     mrb_value str2 = mrb_inspect(mrb, RANGE_END(r));
     mrb_str_cat_str(mrb, str, str2);
