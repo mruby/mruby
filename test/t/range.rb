@@ -9,10 +9,15 @@ assert('Range#==', '15.2.14.4.1') do
   assert_true (1..10) == (1..10)
   assert_false (1..10) == (1..100)
   assert_false (1..10) == (1..)
+  assert_false (1..10) == (..10)
 
   assert_true (1..) == (1..nil)
   assert_true (1..) == (1..)
   assert_false (1..) == (1...)
+
+  assert_true (..1) == (nil..1)
+  assert_true (..1) == (..1)
+  assert_false (..1) == (...1)
 
   skip unless Object.const_defined?(:Float)
   assert_true (1..10) == Range.new(1.0, 10.0)
@@ -22,16 +27,20 @@ end
 assert('Range#===', '15.2.14.4.2') do
   a = (1..10)
   b = (1..)
+  c = (..10)
 
   assert_true a === 5
   assert_false a === 20
   assert_true b === 20
   assert_false b === 0
+  assert_false c === 20
+  assert_true c === 0
 end
 
 assert('Range#begin', '15.2.14.4.3') do
   assert_equal 1, (1..10).begin
   assert_equal 1, (1..).begin
+  assert_nil (..1).begin
 end
 
 assert('Range#each', '15.2.14.4.4') do
@@ -47,6 +56,7 @@ end
 assert('Range#end', '15.2.14.4.5') do
   assert_equal 10, (1..10).end
   assert_nil (1..).end
+  assert_equal 10, (..10).end
 end
 
 assert('Range#exclude_end?', '15.2.14.4.6') do
@@ -54,6 +64,8 @@ assert('Range#exclude_end?', '15.2.14.4.6') do
   assert_false (1..10).exclude_end?
   assert_true (1...).exclude_end?
   assert_false (1..).exclude_end?
+  assert_true (...1).exclude_end?
+  assert_false (..1).exclude_end?
 end
 
 assert('Range#first', '15.2.14.4.7') do
@@ -66,11 +78,15 @@ assert('Range#include?', '15.2.14.4.8') do
   assert_false (1..10).include?(11)
   assert_true (1..).include?(10)
   assert_false (1..).include?(0)
+  assert_true (..10).include?(10)
+  assert_true (..10).include?(0)
 
   assert_true (1...10).include?(9)
   assert_false (1...10).include?(10)
   assert_true (1...).include?(10)
   assert_false (1...).include?(0)
+  assert_false (...10).include?(10)
+  assert_true (...10).include?(0)
 end
 
 assert('Range#initialize', '15.2.14.4.9') do

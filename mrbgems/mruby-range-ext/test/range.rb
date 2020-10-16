@@ -15,6 +15,7 @@ assert('Range#first') do
   assert_equal [10, 11, 12], (10..20).first(3)
   assert_equal 10, (10..).first
   assert_equal [10, 11, 12], (10..).first(3)
+  assert_raise(RangeError) { (..1).first }
 
   skip unless Object.const_defined?(:Float)
   assert_equal [0, 1, 2], (0..Float::INFINITY).first(3)
