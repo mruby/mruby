@@ -45,7 +45,7 @@ When you write a new target description, please
 contribute. We welcome your contribution as a GitHub
 pull-request.
 
-# Languge Changes
+# Language Changes
 
 ## New Syntax
 
