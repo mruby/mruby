@@ -26,6 +26,32 @@ class Range
     ary
   end
 
+  ##
+  # call-seq:
+  #    rng.last    -> obj
+  #    rng.last(n) -> an_array
+  #
+  # Returns the last object in the range,
+  # or an array of the last +n+ elements.
+  #
+  # Note that with no arguments +last+ will return the object that defines
+  # the end of the range even if #exclude_end? is +true+.
+  #
+  #   (10..20).last      #=> 20
+  #   (10...20).last     #=> 20
+  #   (10..20).last(3)   #=> [18, 19, 20]
+  #   (10...20).last(3)  #=> [17, 18, 19]
+  def last(*args)
+    raise RangeError, "cannot get the first element of beginless range" if self.end.nil?
+    return self.end if args.empty?
+
+    raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1)" unless args.length == 1
+    nv = args[0]
+    n = nv.__to_int
+    raise ArgumentError, "negative array size (or size too big)" unless 0 <= n
+    return self.to_a.last(nv)
+  end
+
   def max(&block)
     val = self.begin
     last = self.end

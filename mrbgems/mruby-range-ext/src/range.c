@@ -60,41 +60,6 @@ range_cover(mrb_state *mrb, mrb_value range)
 
 /*
  *  call-seq:
- *     rng.last    -> obj
- *     rng.last(n) -> an_array
- *
- *  Returns the last object in the range,
- *  or an array of the last +n+ elements.
- *
- *  Note that with no arguments +last+ will return the object that defines
- *  the end of the range even if #exclude_end? is +true+.
- *
- *    (10..20).last      #=> 20
- *    (10...20).last     #=> 20
- *    (10..20).last(3)   #=> [18, 19, 20]
- *    (10...20).last(3)  #=> [17, 18, 19]
- */
-static mrb_value
-range_last(mrb_state *mrb, mrb_value range)
-{
-  mrb_value num;
-  mrb_value array;
-  struct RRange *r = mrb_range_ptr(mrb, range);
-
-  if (mrb_nil_p(RANGE_END(r))) {
-    mrb_raise(mrb, E_RANGE_ERROR, "cannot get the last element of endless range");
-  }
-
-  if (mrb_get_args(mrb, "|o", &num) == 0) {
-    return mrb_range_end(mrb, range);
-  }
-
-  array = mrb_funcall_id(mrb, range, MRB_SYM(to_a), 0);
-  return mrb_funcall_id(mrb, array, MRB_SYM(last), 1, mrb_to_int(mrb, num));
-}
-
-/*
- *  call-seq:
  *     rng.size                   -> num
  *
  *  Returns the number of elements in the range. Both the begin and the end of
@@ -194,7 +159,6 @@ mrb_mruby_range_ext_gem_init(mrb_state* mrb)
   struct RClass * s = mrb_class_get(mrb, "Range");
 
   mrb_define_method(mrb, s, "cover?", range_cover, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, s, "last",   range_last,  MRB_ARGS_OPT(1));
   mrb_define_method(mrb, s, "size",   range_size,  MRB_ARGS_NONE());
 }
 
