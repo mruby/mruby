@@ -263,14 +263,16 @@ range_to_s(mrb_state *mrb, mrb_value range)
 static mrb_value
 range_inspect(mrb_state *mrb, mrb_value range)
 {
-  mrb_value str, str2;
+  mrb_value str;
   struct RRange *r = mrb_range_ptr(mrb, range);
 
   str  = mrb_inspect(mrb, RANGE_BEG(r));
-  if (!mrb_nil_p(RANGE_END(r))) str2 = mrb_inspect(mrb, RANGE_END(r));
   str  = mrb_str_dup(mrb, str);
   mrb_str_cat(mrb, str, "...", RANGE_EXCL(r) ? 3 : 2);
-  if (!mrb_nil_p(RANGE_END(r))) mrb_str_cat_str(mrb, str, str2);
+  if (!mrb_nil_p(RANGE_END(r))) {
+    mrb_value str2 = mrb_inspect(mrb, RANGE_END(r));
+    mrb_str_cat_str(mrb, str, str2);
+  }
 
   return str;
 }
