@@ -11,6 +11,7 @@ class Range
   #   (10..20).first(3)  #=> [10, 11, 12]
   #
   def first(*args)
+    raise RangeError, "cannot get the first element of beginless range" if self.begin.nil?
     return self.begin if args.empty?
 
     raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1)" unless args.length == 1
