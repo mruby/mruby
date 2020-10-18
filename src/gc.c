@@ -515,7 +515,7 @@ mrb_gc_unregister(mrb_state *mrb, mrb_value obj)
   for (i = 0; i < ARY_LEN(a); i++) {
     if (mrb_ptr(ARY_PTR(a)[i]) == mrb_ptr(obj)) {
       mrb_int len = ARY_LEN(a)-1;
-      mrb_value *ptr = ARY_PTR(a);
+      mrb_value *ptr = ARY_PTR_NEED_WB(a);
 
       ARY_SET_LEN(a, len);
       memmove(&ptr[i], &ptr[i + 1], (len - i) * sizeof(mrb_value));
@@ -736,7 +736,7 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
     {
       struct RArray *a = (struct RArray*)obj;
       size_t i, e=ARY_LEN(a);
-      mrb_value *p = ARY_PTR(a);
+      const mrb_value *p = ARY_PTR(a);
 
       for (i=0; i<e; i++) {
         mrb_gc_mark_value(mrb, p[i]);

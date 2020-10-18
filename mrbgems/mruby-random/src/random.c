@@ -271,6 +271,9 @@ mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
 #endif
 
   if (RARRAY_LEN(ary) > 1) {
+    struct RArray *ap;
+    mrb_value *ptr;
+
     mrb_get_args(mrb, "|o", &r);
 
     if (mrb_nil_p(r)) {
@@ -280,11 +283,12 @@ mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
       random_check(mrb, r);
       random = random_ptr(r);
     }
-    mrb_ary_modify(mrb, mrb_ary_ptr(ary));
-    max = mrb_fixnum_value(RARRAY_LEN(ary));
-    for (i = RARRAY_LEN(ary) - 1; i > 0; i--)  {
+    ap = mrb_ary_ptr(ary);
+    mrb_ary_modify(mrb, ap);
+    max = mrb_fixnum_value(ARY_LEN(ap));
+    ptr = ARY_PTR_NEED_WB(ap);
+    for (i = ARY_LEN(ap) - 1; i > 0; i--)  {
       mrb_int j;
-      mrb_value *ptr = RARRAY_PTR(ary);
       mrb_value tmp;
 
       j = mrb_integer(random_rand(mrb, random, max));

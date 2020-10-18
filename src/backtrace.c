@@ -81,7 +81,8 @@ print_backtrace(mrb_state *mrb, struct RObject *exc, mrb_value backtrace)
 {
   mrb_int i;
   mrb_int n = RARRAY_LEN(backtrace);
-  mrb_value *loc, mesg;
+  const mrb_value *loc;
+  mrb_value mesg;
   FILE *stream = stderr;
 
   if (n != 0) {

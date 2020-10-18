@@ -50,7 +50,7 @@ eval_test(mrb_state *mrb)
 static mrb_value
 t_print(mrb_state *mrb, mrb_value self)
 {
-  mrb_value *argv;
+  const mrb_value *argv;
   mrb_int argc;
   mrb_int i;
 

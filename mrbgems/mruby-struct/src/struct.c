@@ -84,13 +84,6 @@ mrb_struct_s_members_m(mrb_state *mrb, mrb_value klass)
   return ary;
 }
 
-static void
-mrb_struct_modify(mrb_state *mrb, mrb_value strct)
-{
-  mrb_check_frozen(mrb, mrb_basic_ptr(strct));
-  mrb_write_barrier(mrb, mrb_basic_ptr(strct));
-}
-
 /* 15.2.18.4.6  */
 /*
  *  call-seq:
@@ -114,7 +107,7 @@ static mrb_value
 mrb_struct_ref(mrb_state *mrb, mrb_value obj)
 {
   mrb_int i = mrb_integer(mrb_proc_cfunc_env_get(mrb, 0));
-  mrb_value *ptr = RSTRUCT_PTR(obj);
+  const mrb_value *ptr = RSTRUCT_PTR(obj);
 
   if (!ptr) return mrb_nil_value();
   return ptr[i];
@@ -153,17 +146,9 @@ static mrb_value
 mrb_struct_set_m(mrb_state *mrb, mrb_value obj)
 {
   mrb_int i = mrb_integer(mrb_proc_cfunc_env_get(mrb, 0));
-  mrb_value *ptr;
   mrb_value val = mrb_get_arg1(mrb);
 
-  mrb_struct_modify(mrb, obj);
-  ptr = RSTRUCT_PTR(obj);
-  if (ptr == NULL || i >= RSTRUCT_LEN(obj)) {
-    mrb_ary_set(mrb, obj, i, val);
-  }
-  else {
-    ptr[i] = val;
-  }
+  mrb_ary_set(mrb, obj, i, val);
   return val;
 }
 
@@ -262,12 +247,12 @@ static mrb_value
 mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
 {
   mrb_value name, rest;
-  mrb_value *pargv;
+  const mrb_value *pargv;
   mrb_int argcnt;
   mrb_int i;
   mrb_value b, st;
   mrb_sym id;
-  mrb_value *argv;
+  const mrb_value *argv;
   mrb_int argc;
 
   name = mrb_nil_value();
@@ -321,7 +306,7 @@ num_members(mrb_state *mrb, struct RClass *klass)
 /*
  */
 static mrb_value
-mrb_struct_initialize_withArg(mrb_state *mrb, mrb_int argc, mrb_value *argv, mrb_value self)
+mrb_struct_initialize_withArg(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value self)
 {
   struct RClass *klass = mrb_obj_class(mrb, self);
   mrb_int i, n;
@@ -343,7 +328,7 @@ mrb_struct_initialize_withArg(mrb_state *mrb, mrb_int argc, mrb_value *argv, mrb
 static mrb_value
 mrb_struct_initialize(mrb_state *mrb, mrb_value self)
 {
-  mrb_value *argv;
+  const mrb_value *argv;
   mrb_int argc;
 
   mrb_get_args(mrb, "*!", &argv, &argc);
@@ -371,8 +356,8 @@ mrb_struct_init_copy(mrb_state *mrb, mrb_value copy)
 static mrb_value
 struct_aref_sym(mrb_state *mrb, mrb_value obj, mrb_sym id)
 {
-  mrb_value members, *ptr;
-  const mrb_value *ptr_members;
+  mrb_value members;
+  const mrb_value *ptr_members, *ptr;
   mrb_int i, len;
 
   members = struct_members(mrb, obj);
@@ -440,18 +425,16 @@ mrb_struct_aref(mrb_state *mrb, mrb_value s)
 static mrb_value
 mrb_struct_aset_sym(mrb_state *mrb, mrb_value s, mrb_sym id, mrb_value val)
 {
-  mrb_value members, *ptr;
+  mrb_value members;
   const mrb_value *ptr_members;
   mrb_int i, len;
 
   members = struct_members(mrb, s);
   len = RARRAY_LEN(members);
-  ptr = RSTRUCT_PTR(s);
   ptr_members = RARRAY_PTR(members);
   for (i=0; i<len; i++) {
     if (mrb_symbol(ptr_members[i]) == id) {
-      mrb_struct_modify(mrb, s);
-      ptr[i] = val;
+      mrb_ary_set(mrb, s, i, val);
       return val;
     }
   }
@@ -508,8 +491,8 @@ mrb_struct_aset(mrb_state *mrb, mrb_value s)
     mrb_raisef(mrb, E_INDEX_ERROR,
                "offset %i too large for struct(size:%i)", i, RSTRUCT_LEN(s));
   }
-  mrb_struct_modify(mrb, s);
-  return RSTRUCT_PTR(s)[i] = val;
+  mrb_ary_set(mrb, s, i, val);
+  return val;
 }
 
 /* 15.2.18.4.1  */
@@ -534,7 +517,7 @@ static mrb_value
 mrb_struct_equal(mrb_state *mrb, mrb_value s)
 {
   mrb_value s2 = mrb_get_arg1(mrb);
-  mrb_value *ptr, *ptr2;
+  const mrb_value *ptr, *ptr2;
   mrb_int i, len;
 
   if (mrb_obj_equal(mrb, s, s2)) {
@@ -570,7 +553,7 @@ static mrb_value
 mrb_struct_eql(mrb_state *mrb, mrb_value s)
 {
   mrb_value s2 = mrb_get_arg1(mrb);
-  mrb_value *ptr, *ptr2;
+  const mrb_value *ptr, *ptr2;
   mrb_int i, len;
 
   if (mrb_obj_equal(mrb, s, s2)) {
@@ -646,7 +629,7 @@ static mrb_value
 mrb_struct_values_at(mrb_state *mrb, mrb_value self)
 {
   mrb_int argc;
-  mrb_value *argv;
+  const mrb_value *argv;
 
   mrb_get_args(mrb, "*", &argv, &argc);
 

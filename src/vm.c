@@ -552,7 +552,8 @@ mrb_value
 mrb_f_send(mrb_state *mrb, mrb_value self)
 {
   mrb_sym name;
-  mrb_value block, *argv, *regs;
+  mrb_value block, *regs;
+  const mrb_value *argv;
   mrb_int argc, i, len;
   mrb_method_t m;
   struct RClass *c;
@@ -1705,7 +1706,7 @@ RETRY_TRY_BLOCK:
         regs[a] = mrb_ary_new_from_values(mrb, m1+m2+kd, stack);
       }
       else {
-        mrb_value *pp = NULL;
+        const mrb_value *pp = NULL;
         struct RArray *rest;
         mrb_int len = 0;
 
@@ -1718,16 +1719,16 @@ RETRY_TRY_BLOCK:
         regs[a] = mrb_ary_new_capa(mrb, m1+len+m2+kd);
         rest = mrb_ary_ptr(regs[a]);
         if (m1 > 0) {
-          stack_copy(ARY_PTR(rest), stack, m1);
+          stack_copy(ARY_PTR_NEED_WB(rest), stack, m1);
         }
         if (len > 0) {
-          stack_copy(ARY_PTR(rest)+m1, pp, len);
+          stack_copy(ARY_PTR_NEED_WB(rest)+m1, pp, len);
         }
         if (m2 > 0) {
-          stack_copy(ARY_PTR(rest)+m1+len, stack+m1+1, m2);
+          stack_copy(ARY_PTR_NEED_WB(rest)+m1+len, stack+m1+1, m2);
         }
         if (kd) {
-          stack_copy(ARY_PTR(rest)+m1+len+m2, stack+m1+m2+1, kd);
+          stack_copy(ARY_PTR_NEED_WB(rest)+m1+len+m2, stack+m1+m2+1, kd);
         }
         ARY_SET_LEN(rest, m1+len+m2+kd);
       }
@@ -1746,11 +1747,11 @@ RETRY_TRY_BLOCK:
       int b  = MRB_ASPEC_BLOCK(a);
       */
       mrb_int argc = mrb->c->ci->argc;
-      mrb_value *argv = regs+1;
-      mrb_value * const argv0 = argv;
+      const mrb_value *argv = regs+1;
+      const mrb_value * const argv0 = argv;
       mrb_int const len = m1 + o + r + m2;
       mrb_int const blk_pos = len + kd + 1;
-      mrb_value *blk = &argv[argc < 0 ? 1 : argc];
+      const mrb_value *blk = &argv[argc < 0 ? 1 : argc];
       mrb_value kdict = mrb_nil_value();
       mrb_int kargs = kd;
 

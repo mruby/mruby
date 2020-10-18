@@ -97,7 +97,7 @@ static mrb_value
 mrb_ary_values_at(mrb_state *mrb, mrb_value self)
 {
   mrb_int argc;
-  mrb_value *argv;
+  const mrb_value *argv;
 
   mrb_get_args(mrb, "*", &argv, &argc);
 
@@ -167,7 +167,7 @@ mrb_ary_slice_bang(mrb_state *mrb, mrb_value self)
   if (len > alen - i) len = alen - i;
 
   ary = mrb_ary_new_capa(mrb, len);
-  ptr = ARY_PTR(a);
+  ptr = ARY_PTR_NEED_WB(a);
   for (j = i, k = 0; k < len; ++j, ++k) {
     mrb_ary_push(mrb, ary, ptr[j]);
   }

@@ -64,9 +64,11 @@ struct RArray {
 #define ARY_SET_EMBED_LEN(a,len) ((a)->flags = ((a)->flags&~MRB_ARY_EMBED_MASK) | ((uint32_t)(len) + 1))
 #define ARY_EMBED_PTR(a) ((a)->as.ary)
 #endif
-  
+
 #define ARY_LEN(a) (ARY_EMBED_P(a)?ARY_EMBED_LEN(a):(a)->as.heap.len)
-#define ARY_PTR(a) (ARY_EMBED_P(a)?ARY_EMBED_PTR(a):(a)->as.heap.ptr)
+#define ARY_PTR(a) ((const mrb_value*)ARY_PTR_NEED_WB(a))
+/** Modifiable version of `ARY_PTR()`. But it needs write-barrier. */
+#define ARY_PTR_NEED_WB(a) (ARY_EMBED_P(a)?ARY_EMBED_PTR(a):(a)->as.heap.ptr)
 #define RARRAY_LEN(a) ARY_LEN(RARRAY(a))
 #define RARRAY_PTR(a) ARY_PTR(RARRAY(a))
 #define ARY_SET_LEN(a,n) do {\

@@ -84,7 +84,7 @@ ary_new_from_values(mrb_state *mrb, mrb_int size, const mrb_value *vals)
 {
   struct RArray *a = ary_new_capa(mrb, size);
 
-  array_copy(ARY_PTR(a), vals, size);
+  array_copy(ARY_PTR_NEED_WB(a), vals, size);
   ARY_SET_LEN(a, size);
 
   return a;
@@ -101,11 +101,9 @@ MRB_API mrb_value
 mrb_assoc_new(mrb_state *mrb, mrb_value car, mrb_value cdr)
 {
   struct RArray *a;
+  mrb_value vals[2] = { car, cdr };
 
-  a = ary_new_capa(mrb, 2);
-  ARY_PTR(a)[0] = car;
-  ARY_PTR(a)[1] = cdr;
-  ARY_SET_LEN(a, 2);
+  a = ary_new_from_values(mrb, 2, vals);
   return mrb_obj_value(a);
 }
 
@@ -268,7 +266,7 @@ mrb_ary_resize(mrb_state *mrb, mrb_value ary, mrb_int new_len)
     }
     else {
       ary_expand_capa(mrb, a, new_len);
-      ary_fill_with_nil(ARY_PTR(a) + old_len, new_len - old_len);
+      ary_fill_with_nil(ARY_PTR_NEED_WB(a) + old_len, new_len - old_len);
     }
     ARY_SET_LEN(a, new_len);
   }
@@ -280,7 +278,7 @@ static mrb_value
 mrb_ary_s_create(mrb_state *mrb, mrb_value klass)
 {
   mrb_value ary;
-  mrb_value *vals;
+  const mrb_value *vals;
   mrb_int len;
   struct RArray *a;
 
@@ -312,7 +310,7 @@ ary_concat(mrb_state *mrb, struct RArray *a, struct RArray *a2)
   if (ARY_CAPA(a) < len) {
     ary_expand_capa(mrb, a, len);
   }
-  array_copy(ARY_PTR(a)+ARY_LEN(a), ARY_PTR(a2), ARY_LEN(a2));
+  array_copy(ARY_PTR_NEED_WB(a)+ARY_LEN(a), ARY_PTR(a2), ARY_LEN(a2));
   mrb_write_barrier(mrb, (struct RBasic*)a);
   ARY_SET_LEN(a, len);
 }
@@ -340,7 +338,7 @@ mrb_ary_plus(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a1 = mrb_ary_ptr(self);
   struct RArray *a2;
-  mrb_value *ptr;
+  const mrb_value *ptr;
   mrb_int blen, len1;
 
   mrb_get_args(mrb, "a", &ptr, &blen);
@@ -349,8 +347,8 @@ mrb_ary_plus(mrb_state *mrb, mrb_value self)
   }
   len1 = ARY_LEN(a1);
   a2 = ary_new_capa(mrb, len1 + blen);
-  array_copy(ARY_PTR(a2), ARY_PTR(a1), len1);
-  array_copy(ARY_PTR(a2) + len1, ptr, blen);
+  array_copy(ARY_PTR_NEED_WB(a2), ARY_PTR(a1), len1);
+  array_copy(ARY_PTR_NEED_WB(a2) + len1, ptr, blen);
   ARY_SET_LEN(a2, len1+blen);
 
   return mrb_obj_value(a2);
@@ -394,7 +392,7 @@ ary_replace(mrb_state *mrb, struct RArray *a, struct RArray *b)
   }
   if (ARY_CAPA(a) < len)
     ary_expand_capa(mrb, a, len);
-  array_copy(ARY_PTR(a), ARY_PTR(b), len);
+  array_copy(ARY_PTR_NEED_WB(a), ARY_PTR(b), len);
   mrb_write_barrier(mrb, (struct RBasic*)a);
   ARY_SET_LEN(a, len);
 }
@@ -440,7 +438,7 @@ mrb_ary_times(mrb_state *mrb, mrb_value self)
   len1 = ARY_LEN(a1);
   a2 = ary_new_capa(mrb, len1 * times);
   ARY_SET_LEN(a2, len1 * times);
-  ptr = ARY_PTR(a2);
+  ptr = ARY_PTR_NEED_WB(a2);
   while (times--) {
     array_copy(ptr, ARY_PTR(a1), len1);
     ptr += len1;
@@ -459,7 +457,7 @@ mrb_ary_reverse_bang(mrb_state *mrb, mrb_value self)
     mrb_value *p1, *p2;
 
     ary_modify(mrb, a);
-    p1 = ARY_PTR(a);
+    p1 = ARY_PTR_NEED_WB(a);
     p2 = p1 + len - 1;
 
     while (p1 < p2) {
@@ -478,11 +476,12 @@ mrb_ary_reverse(mrb_state *mrb, mrb_value self)
   mrb_int len = ARY_LEN(a);
 
   if (len > 0) {
-    mrb_value *p1, *p2, *e;
+    const mrb_value *p1, *e;
+    mrb_value *p2;
 
     p1 = ARY_PTR(a);
     e  = p1 + len;
-    p2 = ARY_PTR(b) + len - 1;
+    p2 = ARY_PTR_NEED_WB(b) + len - 1;
     while (p1 < e) {
       *p2-- = *p1++;
     }
@@ -500,7 +499,7 @@ mrb_ary_push(mrb_state *mrb, mrb_value ary, mrb_value elem)
   ary_modify(mrb, a);
   if (len == ARY_CAPA(a))
     ary_expand_capa(mrb, a, len + 1);
-  ARY_PTR(a)[len] = elem;
+  ARY_PTR_NEED_WB(a)[len] = elem;
   ARY_SET_LEN(a, len+1);
   mrb_field_write_barrier_value(mrb, (struct RBasic*)a, elem);
 }
@@ -509,7 +508,7 @@ static mrb_value
 mrb_ary_push_m(mrb_state *mrb, mrb_value self)
 {
   mrb_int argc;
-  mrb_value *argv;
+  const mrb_value *argv;
   mrb_int len, len2;
   struct RArray *a;
 
@@ -522,7 +521,7 @@ mrb_ary_push_m(mrb_state *mrb, mrb_value self)
   if (ARY_CAPA(a) < len2) {
     ary_expand_capa(mrb, a, len2);
   }
-  array_copy(ARY_PTR(a)+len, argv, argc);
+  array_copy(ARY_PTR_NEED_WB(a)+len, argv, argc);
   ARY_SET_LEN(a, len2);
   while (argc--) {
     mrb_field_write_barrier_value(mrb, (struct RBasic*)a, *argv);
@@ -566,7 +565,7 @@ mrb_ary_shift(mrb_state *mrb, mrb_value self)
     goto L_SHIFT;
   }
   else {
-    mrb_value *ptr = ARY_PTR(a);
+    mrb_value *ptr = ARY_PTR_NEED_WB(a);
     mrb_int size = len;
 
     val = *ptr;
@@ -601,7 +600,7 @@ mrb_ary_unshift(mrb_state *mrb, mrb_value self, mrb_value item)
     ary_modify(mrb, a);
     if (ARY_CAPA(a) < len + 1)
       ary_expand_capa(mrb, a, len + 1);
-    ptr = ARY_PTR(a);
+    ptr = ARY_PTR_NEED_WB(a);
     value_move(ptr + 1, ptr, len);
     ptr[0] = item;
   }
@@ -615,7 +614,8 @@ static mrb_value
 mrb_ary_unshift_m(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
-  mrb_value *vals, *ptr;
+  const mrb_value *vals;
+  mrb_value *ptr;
   mrb_int alen, len;
 
   mrb_get_args(mrb, "*!", &vals, &alen);
@@ -639,7 +639,7 @@ mrb_ary_unshift_m(mrb_state *mrb, mrb_value self)
     ary_modify(mrb, a);
     if (ARY_CAPA(a) < len + alen)
       ary_expand_capa(mrb, a, len + alen);
-    ptr = ARY_PTR(a);
+    ptr = ARY_PTR_NEED_WB(a);
     value_move(ptr + alen, ptr, len);
     if (same) vals = ptr;
   }
@@ -682,11 +682,11 @@ mrb_ary_set(mrb_state *mrb, mrb_value ary, mrb_int n, mrb_value val)
   if (len <= n) {
     if (ARY_CAPA(a) <= n)
       ary_expand_capa(mrb, a, n + 1);
-    ary_fill_with_nil(ARY_PTR(a) + len, n + 1 - len);
+    ary_fill_with_nil(ARY_PTR_NEED_WB(a) + len, n + 1 - len);
     ARY_SET_LEN(a, n+1);
   }
 
-  ARY_PTR(a)[n] = val;
+  ARY_PTR_NEED_WB(a)[n] = val;
   mrb_field_write_barrier_value(mrb, (struct RBasic*)a, val);
 }
 
@@ -752,9 +752,9 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
     if (len > ARY_CAPA(a)) {
       ary_expand_capa(mrb, a, head + argc);
     }
-    ary_fill_with_nil(ARY_PTR(a) + alen, head - alen);
+    ary_fill_with_nil(ARY_PTR_NEED_WB(a) + alen, head - alen);
     if (argc > 0) {
-      array_copy(ARY_PTR(a) + head, argv, argc);
+      array_copy(ARY_PTR_NEED_WB(a) + head, argv, argc);
     }
     ARY_SET_LEN(a, len);
   }
@@ -770,13 +770,13 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
     }
 
     if (len != argc) {
-      mrb_value *ptr = ARY_PTR(a);
+      mrb_value *ptr = ARY_PTR_NEED_WB(a);
       tail = head + len;
       value_move(ptr + head + argc, ptr + tail, alen - tail);
       ARY_SET_LEN(a, newlen);
     }
     if (argc > 0) {
-      value_move(ARY_PTR(a) + head, argv, argc);
+      value_move(ARY_PTR_NEED_WB(a) + head, argv, argc);
     }
   }
   mrb_write_barrier(mrb, (struct RBasic*)a);
@@ -832,7 +832,7 @@ aget_index(mrb_state *mrb, mrb_value index)
 #endif
   else {
     mrb_int i, argc;
-    mrb_value *argv;
+    const mrb_value *argv;
 
     mrb_get_args(mrb, "i*!", &i, &argv, &argc);
     return i;
@@ -947,7 +947,7 @@ mrb_ary_aset(mrb_state *mrb, mrb_value self)
 
   ary_modify(mrb, mrb_ary_ptr(self));
   if (mrb_get_argc(mrb) == 2) {
-    mrb_value *vs = mrb_get_argv(mrb);
+    const mrb_value *vs = mrb_get_argv(mrb);
     v1 = vs[0]; v2 = vs[1];
 
     /* a[n..m] = v */
@@ -986,7 +986,7 @@ mrb_ary_delete_at(mrb_state *mrb, mrb_value self)
   if (index < 0 || alen <= index) return mrb_nil_value();
 
   ary_modify(mrb, a);
-  ptr = ARY_PTR(a);
+  ptr = ARY_PTR_NEED_WB(a);
   val = ptr[index];
 
   ptr += index;
