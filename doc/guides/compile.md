@@ -24,40 +24,29 @@ Optional:
 
 ## Build
 
-To compile `mruby`, just call `rake` inside of the mruby source
-root. To generate and execute the test tools call `rake test`. To
-clean all build files call `rake clean`. To see full command line on
-build, call `rake -v`.
-
-If you want to compile for the specific configuration, specify
-`MRUBY_TARGET` or `TARGET` environment variable, e.g
-
-```sh
-rake TAGRET=host
-```
-
-The default target is `host`.  The compilation target desciption files
-(with `.rb` suffix) are contained in the `target` directory.
-
-A build description file contains the build configuration of mruby and
-looks like the following for example:
-
+Inside of the root directory of the mruby source a file exists
+called *build_config.rb*. This file contains the build configuration
+of mruby and looks like this for example:
 ```ruby
 MRuby::Build.new do |conf|
   toolchain :gcc
 end
 ```
 
-All tools necessary to compile mruby can be set or modified here. In
-case you want to try different configuration, you can create a new
-configuration file under `target` and specify the configuration using
-the `MRUBY_TARGET` environment variable.
+All tools necessary to compile mruby can be set or modified here. In case
+you want to maintain an additional *build_config.rb* you can define a
+customized path using the *$MRUBY_CONFIG* environment variable. If the
+path doesn't exist, *build_config/${MRUBY_CONFIG}.rb* is used.
+
+To compile just call `rake` inside of the mruby source root. To
+generate and execute the test tools call `rake test`. To clean
+all build files call `rake clean`. To see full command line on
+build, call `rake -v`.
 
 ## Build Configuration
 
-To create a new configuration, copy the existing configuration in the
-`target` directory, and modify it. We wish you submit a pull-request,
-once you created a new configuration for a new platform.
+We wish you submit a pull-request to *build_config/**PLATFORM**.rb*, once you
+created a new configuration for a new platform.
 
 Inside of the configuration file, the following options can be
 configured based on your environment.

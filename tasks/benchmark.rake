@@ -9,7 +9,11 @@ def bm_files
 end
 
 def build_config_name
-  MRUBY_TARGET
+  if !ENV['MRUBY_CONFIG'].to_s.empty?
+    File.basename(ENV['MRUBY_CONFIG'], '.rb').gsub('build_config_', '')
+  else
+    "build"
+  end
 end
 
 def plot_file

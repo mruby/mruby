@@ -6,7 +6,7 @@ jobs:
   Ubuntu-1604:
     runs-on: ubuntu-16.04
     env:
-      MRUBY_TARGET: travis
+      MRUBY_CONFIG: travis
     steps:
     - uses: actions/checkout@v1
     - name: apt
@@ -17,7 +17,7 @@ jobs:
   Ubuntu-1804-gcc:
     runs-on: ubuntu-18.04
     env:
-      MRUBY_TARGET: travis
+      MRUBY_CONFIG: travis
       CC: gcc
       CXX: g++
     steps:
@@ -30,7 +30,7 @@ jobs:
   Ubuntu-1804-clang:
     runs-on: ubuntu-18.04
     env:
-      MRUBY_TARGET: travis
+      MRUBY_CONFIG: travis
       CC: clang
       CXX: clang++
     steps:
@@ -43,7 +43,7 @@ jobs:
   macOS:
     runs-on: macos-latest
     env:
-      MRUBY_TARGET: travis
+      MRUBY_CONFIG: travis
     steps:
     - uses: actions/checkout@v1
     - name: brew
@@ -54,7 +54,7 @@ jobs:
   Windows-MinGW:
     runs-on: windows-latest
     env:
-      MRUBY_TARGET: travis
+      MRUBY_CONFIG: travis
       CFLAGS: -g -O1 -Wall -Wundef
     steps:
     - uses: actions/checkout@v1
@@ -66,7 +66,7 @@ jobs:
   Windows-Cygwin:
     runs-on: windows-latest
     env:
-      MRUBY_TARGET: travis
+      MRUBY_CONFIG: travis
     steps:
     - uses: actions/checkout@v1
     - uses: actions/cache@v1
@@ -91,7 +91,7 @@ jobs:
   Windows-VC:
     runs-on: windows-latest
     env:
-      MRUBY_TARGET: appveyor
+      MRUBY_CONFIG: appveyor
       # TODO(take-cheeze): Re-enable /O2
       CFLAGS: "/c /nologo /W3 /we4013 /Zi /MD /D_CRT_SECURE_NO_WARNINGS"
       CXXFLAGS: "/c /nologo /W3 /Zi /MD /EHs /D_CRT_SECURE_NO_WARNINGS"

@@ -40,7 +40,7 @@ init:
 
 
 build_script:
-  - set MRUBY_TARGET=appveyor
+  - set MRUBY_CONFIG=appveyor
   - rake gensym
   - rake -m all
   - rake -E $stdout.sync=true test
