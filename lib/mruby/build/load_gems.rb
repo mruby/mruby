@@ -35,9 +35,7 @@ module MRuby
       current.build_config_initializer = block
       gems << current
 
-      cxx_srcs = ['src', 'test', 'tools'].map do |subdir|
-        Dir.glob("#{current.dir}/#{subdir}/*.{cpp,cxx,cc}")
-      end.flatten
+      cxx_srcs = Dir.glob("#{current.dir}/{src,test,tools}/*.{cpp,cxx,cc}")
       enable_cxx_exception unless cxx_srcs.empty?
 
       current
