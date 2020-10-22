@@ -509,7 +509,7 @@ static mrb_value
 mrb_ary_push_m(mrb_state *mrb, mrb_value self)
 {
   mrb_int argc;
-  mrb_value *argv;
+  const mrb_value *argv;
   mrb_int len, len2;
   struct RArray *a;
 
@@ -947,7 +947,7 @@ mrb_ary_aset(mrb_state *mrb, mrb_value self)
 
   ary_modify(mrb, mrb_ary_ptr(self));
   if (mrb_get_argc(mrb) == 2) {
-    mrb_value *vs = mrb_get_argv(mrb);
+    const mrb_value *vs = mrb_get_argv(mrb);
     v1 = vs[0]; v2 = vs[1];
 
     /* a[n..m] = v */
