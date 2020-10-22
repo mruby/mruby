@@ -1154,7 +1154,7 @@ mrb_io_s_pipe(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_io_s_select(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value *argv;
+  const mrb_value *argv;
   mrb_int argc;
   mrb_value read, read_io, write, except, timeout, list;
   struct timeval *tp, timerec;

@@ -552,7 +552,8 @@ mrb_value
 mrb_f_send(mrb_state *mrb, mrb_value self)
 {
   mrb_sym name;
-  mrb_value block, *argv, *regs;
+  mrb_value block, *regs;
+  const mrb_value *argv;
   mrb_int argc, i, len;
   mrb_method_t m;
   struct RClass *c;

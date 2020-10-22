@@ -517,7 +517,7 @@ static mrb_value
 mrb_f_sprintf(mrb_state *mrb, mrb_value obj)
 {
   mrb_int argc;
-  mrb_value *argv;
+  const mrb_value *argv;
 
   mrb_get_args(mrb, "*", &argv, &argc);
 

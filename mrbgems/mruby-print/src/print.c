@@ -53,7 +53,7 @@ static mrb_value
 mrb_print(mrb_state *mrb, mrb_value self)
 {
   mrb_int argc, i;
-  mrb_value *argv;
+  const mrb_value *argv;
 
   mrb_get_args(mrb, "*", &argv, &argc);
   for (i=0; i<argc; i++) {
@@ -69,7 +69,7 @@ static mrb_value
 mrb_puts(mrb_state *mrb, mrb_value self)
 {
   mrb_int argc, i;
-  mrb_value *argv;
+  const mrb_value *argv;
 
   mrb_get_args(mrb, "*", &argv, &argc);
   for (i=0; i<argc; i++) {

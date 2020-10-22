@@ -109,7 +109,7 @@ method_eql(mrb_state *mrb, mrb_value self)
 
 static mrb_value
 mcall(mrb_state *mrb, mrb_value recv, mrb_value proc, mrb_value name, struct RClass *owner,
-      mrb_int argc, mrb_value *argv, mrb_value block)
+      mrb_int argc, const mrb_value *argv, mrb_value block)
 {
   mrb_value ret;
   mrb_sym orig_mid = mrb->c->ci->mid;
@@ -142,7 +142,8 @@ method_call(mrb_state *mrb, mrb_value self)
   mrb_value recv = mrb_iv_get(mrb, self, MRB_SYM(_recv));
   struct RClass *owner = mrb_class_ptr(mrb_iv_get(mrb, self, MRB_SYM(_owner)));
   mrb_int argc;
-  mrb_value *argv, block;
+  const mrb_value *argv;
+  mrb_value block;
 
   mrb_get_args(mrb, "*&", &argv, &argc, &block);
   return mcall(mrb, recv, proc, name, owner, argc, argv, block);
@@ -156,7 +157,8 @@ method_bcall(mrb_state *mrb, mrb_value self)
   mrb_value recv = mrb_iv_get(mrb, self, MRB_SYM(_recv));
   mrb_value owner = mrb_iv_get(mrb, self, MRB_SYM(_owner));
   mrb_int argc;
-  mrb_value *argv, block;
+  const mrb_value *argv;
+  mrb_value block;
 
   mrb_get_args(mrb, "o*&", &recv, &argv, &argc, &block);
   bind_check(mrb, recv, owner);

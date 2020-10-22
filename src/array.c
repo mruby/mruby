@@ -280,7 +280,7 @@ static mrb_value
 mrb_ary_s_create(mrb_state *mrb, mrb_value klass)
 {
   mrb_value ary;
-  mrb_value *vals;
+  const mrb_value *vals;
   mrb_int len;
   struct RArray *a;
 
@@ -340,7 +340,7 @@ mrb_ary_plus(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a1 = mrb_ary_ptr(self);
   struct RArray *a2;
-  mrb_value *ptr;
+  const mrb_value *ptr;
   mrb_int blen, len1;
 
   mrb_get_args(mrb, "a", &ptr, &blen);
@@ -615,7 +615,8 @@ static mrb_value
 mrb_ary_unshift_m(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
-  mrb_value *vals, *ptr;
+  const mrb_value *vals;
+  mrb_value *ptr;
   mrb_int alen, len;
 
   mrb_get_args(mrb, "*!", &vals, &alen);
@@ -832,7 +833,7 @@ aget_index(mrb_state *mrb, mrb_value index)
 #endif
   else {
     mrb_int i, argc;
-    mrb_value *argv;
+    const mrb_value *argv;
 
     mrb_get_args(mrb, "i*!", &i, &argv, &argc);
     return i;

@@ -856,7 +856,7 @@ void mrb_hash_check_kdict(mrb_state *mrb, mrb_value self);
     H:      Hash           [mrb_value]            when ! follows, the value may be nil
     s:      String         [const char*,mrb_int]  Receive two arguments; s! gives (NULL,0) for nil
     z:      String         [const char*]          NUL terminated string; z! gives NULL for nil
-    a:      Array          [mrb_value*,mrb_int]   Receive two arguments; a! gives (NULL,0) for nil
+    a:      Array          [const mrb_value*,mrb_int] Receive two arguments; a! gives (NULL,0) for nil
     c:      Class/Module   [strcut RClass*]
     f:      Integer/Float  [mrb_float]
     i:      Integer/Float  [mrb_int]
@@ -865,7 +865,7 @@ void mrb_hash_check_kdict(mrb_state *mrb, mrb_value self);
     d:      data           [void*,mrb_data_type const] 2nd argument will be used to check data type so it won't be modified; when ! follows, the value may be nil
     I:      inline struct  [void*]
     &:      block          [mrb_value]            &! raises exception if no block given
-    *:      rest argument  [mrb_value*,mrb_int]   The rest of the arguments as an array; *! avoid copy of the stack
+    *:      rest argument  [const mrb_value*,mrb_int] The rest of the arguments as an array; *! avoid copy of the stack
     |:      optional                              Following arguments are optional
     ?:      optional given [mrb_bool]             true if preceding argument (optional) is given
     ':':    keyword args   [mrb_kwargs const]     Get keyword arguments
@@ -1083,10 +1083,10 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       {
         mrb_value aa;
         struct RArray *a;
-        mrb_value **pb;
+        const mrb_value **pb;
         mrb_int *pl;
 
-        pb = va_arg(ap, mrb_value**);
+        pb = va_arg(ap, const mrb_value**);
         pl = va_arg(ap, mrb_int*);
         if (i < argc) {
           aa = argv[i++];
@@ -1215,11 +1215,11 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
     case '*':
       {
-        mrb_value **var;
+        const mrb_value **var;
         mrb_int *pl;
         mrb_bool nocopy = (altmode || !argv_on_stack) ? TRUE : FALSE;
 
-        var = va_arg(ap, mrb_value**);
+        var = va_arg(ap, const mrb_value**);
         pl = va_arg(ap, mrb_int*);
         if (argc > i) {
           *pl = argc-i;
@@ -1754,7 +1754,7 @@ static mrb_value
 mod_attr_define(mrb_state *mrb, mrb_value mod, mrb_value (*accessor)(mrb_state *, mrb_value), mrb_sym (*access_name)(mrb_state *, mrb_sym))
 {
   struct RClass *c = mrb_class_ptr(mod);
-  mrb_value *argv;
+  const mrb_value *argv;
   mrb_int argc, i;
   int ai;
 
@@ -1843,7 +1843,7 @@ mrb_value
 mrb_instance_new(mrb_state *mrb, mrb_value cv)
 {
   mrb_value obj, blk;
-  mrb_value *argv;
+  const mrb_value *argv;
   mrb_int argc;
   mrb_sym init;
 
@@ -2248,7 +2248,7 @@ mrb_mod_undef(mrb_state *mrb, mrb_value mod)
 {
   struct RClass *c = mrb_class_ptr(mod);
   mrb_int argc;
-  mrb_value *argv;
+  const mrb_value *argv;
 
   mrb_get_args(mrb, "*", &argv, &argc);
   while (argc--) {
@@ -2468,7 +2468,7 @@ mrb_mod_dup(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_mod_module_function(mrb_state *mrb, mrb_value mod)
 {
-  mrb_value *argv;
+  const mrb_value *argv;
   mrb_int argc, i;
   mrb_sym mid;
   mrb_method_t m;

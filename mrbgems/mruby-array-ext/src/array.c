@@ -97,7 +97,7 @@ static mrb_value
 mrb_ary_values_at(mrb_state *mrb, mrb_value self)
 {
   mrb_int argc;
-  mrb_value *argv;
+  const mrb_value *argv;
 
   mrb_get_args(mrb, "*", &argv, &argc);
 
