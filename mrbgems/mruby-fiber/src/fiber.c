@@ -255,7 +255,7 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
 static mrb_value
 fiber_resume(mrb_state *mrb, mrb_value self)
 {
-  mrb_value *a;
+  const mrb_value *a;
   mrb_int len;
   mrb_bool vmexec = FALSE;
 
@@ -315,7 +315,7 @@ static mrb_value
 fiber_transfer(mrb_state *mrb, mrb_value self)
 {
   struct mrb_context *c = fiber_check(mrb, self);
-  mrb_value* a;
+  const mrb_value* a;
   mrb_int len;
 
   fiber_check_cfunc(mrb, mrb->c);
@@ -374,7 +374,7 @@ mrb_fiber_yield(mrb_state *mrb, mrb_int len, const mrb_value *a)
 static mrb_value
 fiber_yield(mrb_state *mrb, mrb_value self)
 {
-  mrb_value *a;
+  const mrb_value *a;
   mrb_int len;
 
   mrb_get_args(mrb, "*!", &a, &len);

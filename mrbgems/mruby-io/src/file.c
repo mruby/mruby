@@ -115,7 +115,7 @@ mrb_file_s_umask(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_file_s_unlink(mrb_state *mrb, mrb_value obj)
 {
-  mrb_value *argv;
+  const mrb_value *argv;
   mrb_value pathv;
   mrb_int argc, i;
   char *path;
@@ -533,7 +533,7 @@ static mrb_value
 mrb_file_s_chmod(mrb_state *mrb, mrb_value klass) {
   mrb_int mode;
   mrb_int argc, i;
-  mrb_value *filenames;
+  const mrb_value *filenames;
   int ai = mrb_gc_arena_save(mrb);
 
   mrb_get_args(mrb, "i*", &mode, &filenames, &argc);

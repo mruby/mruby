@@ -642,7 +642,7 @@ static mrb_value
 mrb_mod_remove_method(mrb_state *mrb, mrb_value mod)
 {
   mrb_int argc;
-  mrb_value *argv;
+  const mrb_value *argv;
   struct RClass *c = mrb_class_ptr(mod);
 
   mrb_get_args(mrb, "*", &argv, &argc);

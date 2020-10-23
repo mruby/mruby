@@ -262,12 +262,12 @@ static mrb_value
 mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
 {
   mrb_value name, rest;
-  mrb_value *pargv;
+  const mrb_value *pargv;
   mrb_int argcnt;
   mrb_int i;
   mrb_value b, st;
   mrb_sym id;
-  mrb_value *argv;
+  const mrb_value *argv;
   mrb_int argc;
 
   name = mrb_nil_value();
@@ -321,7 +321,7 @@ num_members(mrb_state *mrb, struct RClass *klass)
 /*
  */
 static mrb_value
-mrb_struct_initialize_withArg(mrb_state *mrb, mrb_int argc, mrb_value *argv, mrb_value self)
+mrb_struct_initialize_withArg(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value self)
 {
   struct RClass *klass = mrb_obj_class(mrb, self);
   mrb_int i, n;
@@ -343,7 +343,7 @@ mrb_struct_initialize_withArg(mrb_state *mrb, mrb_int argc, mrb_value *argv, mrb
 static mrb_value
 mrb_struct_initialize(mrb_state *mrb, mrb_value self)
 {
-  mrb_value *argv;
+  const mrb_value *argv;
   mrb_int argc;
 
   mrb_get_args(mrb, "*!", &argv, &argc);
@@ -646,7 +646,7 @@ static mrb_value
 mrb_struct_values_at(mrb_state *mrb, mrb_value self)
 {
   mrb_int argc;
-  mrb_value *argv;
+  const mrb_value *argv;
 
   mrb_get_args(mrb, "*", &argv, &argc);
 

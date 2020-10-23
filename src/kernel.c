@@ -219,7 +219,7 @@ mrb_obj_class_m(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
-mrb_obj_extend(mrb_state *mrb, mrb_int argc, mrb_value *argv, mrb_value obj)
+mrb_obj_extend(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value obj)
 {
   mrb_int i;
 
@@ -264,7 +264,7 @@ mrb_obj_extend(mrb_state *mrb, mrb_int argc, mrb_value *argv, mrb_value obj)
 static mrb_value
 mrb_obj_extend_m(mrb_state *mrb, mrb_value self)
 {
-  mrb_value *argv;
+  const mrb_value *argv;
   mrb_int argc;
 
   mrb_get_args(mrb, "*", &argv, &argc);
@@ -524,7 +524,7 @@ static mrb_value
 mrb_obj_missing(mrb_state *mrb, mrb_value mod)
 {
   mrb_sym name;
-  mrb_value *a;
+  const mrb_value *a;
   mrb_int alen;
 
   mrb_get_args(mrb, "n*!", &name, &a, &alen);

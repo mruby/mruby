@@ -889,7 +889,7 @@ MRB_API struct RClass* mrb_define_module_under_id(mrb_state *mrb, struct RClass 
  * | `H`  | {Hash}         | {mrb_value}       | when `!` follows, the value may be `nil`           |
  * | `s`  | {String}       | const char *, {mrb_int} | Receive two arguments; `s!` gives (`NULL`,`0`) for `nil` |
  * | `z`  | {String}       | const char *      | `NULL` terminated string; `z!` gives `NULL` for `nil` |
- * | `a`  | {Array}        | {mrb_value} *, {mrb_int} | Receive two arguments; `a!` gives (`NULL`,`0`) for `nil` |
+ * | `a`  | {Array}        | const {mrb_value} *, {mrb_int} | Receive two arguments; `a!` gives (`NULL`,`0`) for `nil` |
  * | `f`  | {Integer}/{Float} | {mrb_float}    |                                                    |
  * | `i`  | {Integer}/{Float} | {mrb_int}      |                                                    |
  * | `b`  | boolean        | {mrb_bool}        |                                                    |
@@ -897,7 +897,7 @@ MRB_API struct RClass* mrb_define_module_under_id(mrb_state *mrb, struct RClass 
  * | `d`  | data           | void *, {mrb_data_type} const | 2nd argument will be used to check data type so it won't be modified; when `!` follows, the value may be `nil` |
  * | `I`  | inline struct  | void *          |                                                    |
  * | `&`  | block          | {mrb_value}       | &! raises exception if no block given.             |
- * | `*`  | rest arguments | {mrb_value} *, {mrb_int} | Receive the rest of arguments as an array; `*!` avoid copy of the stack.  |
+ * | `*`  | rest arguments | const {mrb_value} *, {mrb_int} | Receive the rest of arguments as an array; `*!` avoid copy of the stack.  |
  * | <code>\|</code> | optional     |                   | After this spec following specs would be optional. |
  * | `?`  | optional given | {mrb_bool}        | `TRUE` if preceding argument is given. Used to check optional argument is given. |
  * | `:`  | keyword args   | {mrb_kwargs} const | Get keyword arguments. @see mrb_kwargs |

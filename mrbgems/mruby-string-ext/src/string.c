@@ -194,7 +194,8 @@ mrb_str_concat_m(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_str_start_with(mrb_state *mrb, mrb_value self)
 {
-  mrb_value *argv, sub;
+  const mrb_value *argv;
+  mrb_value sub;
   mrb_int argc, i;
   mrb_get_args(mrb, "*", &argv, &argc);
 
@@ -223,7 +224,8 @@ mrb_str_start_with(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_str_end_with(mrb_state *mrb, mrb_value self)
 {
-  mrb_value *argv, sub;
+  const mrb_value *argv;
+  mrb_value sub;
   mrb_int argc, i;
   mrb_get_args(mrb, "*", &argv, &argc);
 

@@ -149,7 +149,7 @@ static mrb_value
 f_instance_eval(mrb_state *mrb, mrb_value self)
 {
   mrb_value b;
-  mrb_int argc; mrb_value *argv;
+  mrb_int argc; const mrb_value *argv;
 
   mrb_get_args(mrb, "*!&", &argv, &argc, &b);
 

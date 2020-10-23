@@ -22,7 +22,8 @@
 static mrb_value
 hash_values_at(mrb_state *mrb, mrb_value hash)
 {
-  mrb_value *argv, result;
+  const mrb_value *argv;
+  mrb_value result;
   mrb_int argc, i;
   int ai;
 
@@ -49,7 +50,8 @@ hash_values_at(mrb_state *mrb, mrb_value hash)
 static mrb_value
 hash_slice(mrb_state *mrb, mrb_value hash)
 {
-  mrb_value *argv, result;
+  const mrb_value *argv;
+  mrb_value result;
   mrb_int argc, i;
 
   mrb_get_args(mrb, "*", &argv, &argc);
