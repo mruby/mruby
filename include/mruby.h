@@ -991,7 +991,7 @@ MRB_API mrb_int mrb_get_argc(mrb_state *mrb);
  *
  * Correctly handles *splat arguments.
  */
-MRB_API mrb_value* mrb_get_argv(mrb_state *mrb);
+MRB_API const mrb_value *mrb_get_argv(mrb_state *mrb);
 
 /**
  * Retrieve the first and only argument from mrb_state.

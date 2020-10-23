@@ -806,7 +806,7 @@ mrb_get_argc(mrb_state *mrb)
   return argc;
 }
 
-MRB_API mrb_value*
+MRB_API const mrb_value*
 mrb_get_argv(mrb_state *mrb)
 {
   mrb_int argc = mrb->c->ci->argc;
