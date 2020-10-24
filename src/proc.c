@@ -57,22 +57,21 @@ mrb_proc_new(mrb_state *mrb, const mrb_irep *irep)
   return p;
 }
 
-static struct REnv*
-env_new(mrb_state *mrb, mrb_int nlocals)
+struct REnv*
+mrb_env_new(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci, int nstacks, mrb_value *stack, struct RClass *tc)
 {
   struct REnv *e;
-  mrb_callinfo *ci = mrb->c->ci;
   mrb_int bidx;
 
-  e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, NULL);
-  MRB_ENV_SET_LEN(e, nlocals);
+  e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, tc);
+  MRB_ENV_SET_LEN(e, nstacks);
   bidx = ci->argc;
-  if (ci->argc < 0) bidx = 2;
+  if (bidx < 0) bidx = 2;
   else bidx += 1;
   MRB_ENV_SET_BIDX(e, bidx);
   e->mid = ci->mid;
-  e->stack = mrb->c->stack;
-  e->cxt = mrb->c;
+  e->stack = stack;
+  e->cxt = c;
 
   return e;
 }
@@ -90,12 +89,8 @@ closure_setup(mrb_state *mrb, struct RProc *p)
   else if (up) {
     struct RClass *tc = MRB_PROC_TARGET_CLASS(p);
 
-    e = env_new(mrb, up->body.irep->nlocals);
+    e = mrb_env_new(mrb, mrb->c, ci, up->body.irep->nlocals, mrb->c->stack, tc);
     ci->env = e;
-    if (tc) {
-      e->c = tc;
-      mrb_field_write_barrier(mrb, (struct RBasic*)e, (struct RBasic*)tc);
-    }
     if (MRB_PROC_ENV_P(up) && MRB_PROC_ENV(up)->cxt == NULL) {
       e->mid = MRB_PROC_ENV(up)->mid;
     }
@@ -137,14 +132,10 @@ mrb_proc_new_cfunc_with_env(mrb_state *mrb, mrb_func_t func, mrb_int argc, const
   struct REnv *e;
   int i;
 
-  p->e.env = e = env_new(mrb, argc);
+  p->e.env = e = mrb_env_new(mrb, mrb->c, mrb->c->ci, 0, NULL, NULL);
   p->flags |= MRB_PROC_ENVSET;
   mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)e);
   MRB_ENV_CLOSE(e);
-
-  /* NOTE: Prevents keeping invalid addresses when NoMemoryError is raised from `mrb_malloc()`. */
-  e->stack = NULL;
-  MRB_ENV_SET_LEN(e, 0);
 
   e->stack = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value) * argc);
   MRB_ENV_SET_LEN(e, argc);

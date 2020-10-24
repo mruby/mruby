@@ -6,6 +6,7 @@
 #include <mruby/opcode.h>
 #include <mruby/error.h>
 
+struct REnv *mrb_env_new(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci, int nstacks, mrb_value *stack, struct RClass *tc);
 mrb_value mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p);
 mrb_value mrb_obj_instance_eval(mrb_state *mrb, mrb_value self);
 
@@ -20,7 +21,6 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
   struct REnv *e;
   mrb_callinfo *ci; /* callinfo of eval caller */
   struct RClass *target_class = NULL;
-  mrb_int bidx;
 
   if (!mrb_nil_p(binding)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "Binding of eval must be nil.");
@@ -83,16 +83,7 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
       e = ci->env;
     }
     else {
-      e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV,
-                                      (struct RClass*)target_class);
-      e->mid = ci->mid;
-      e->stack = ci[1].stackent;
-      e->cxt = mrb->c;
-      MRB_ENV_SET_LEN(e, ci->proc->body.irep->nlocals);
-      bidx = ci->argc;
-      if (ci->argc < 0) bidx = 2;
-      else bidx += 1;
-      MRB_ENV_SET_BIDX(e, bidx);
+      e = mrb_env_new(mrb, mrb->c, ci, ci->proc->body.irep->nlocals, ci[1].stackent, target_class);
       ci->env = e;
     }
     proc->e.env = e;
