@@ -123,7 +123,7 @@ mrb_obj_id(mrb_value obj)
     return MakeID(mrb_symbol(obj));
   case MRB_TT_INTEGER:
     return MakeID(mrb_int_id(mrb_integer(obj)));
-#ifdef MRB_NO_FLOAT
+#ifndef MRB_NO_FLOAT
   case MRB_TT_FLOAT:
     return MakeID(mrb_float_id(mrb_float(obj)));
 #endif
