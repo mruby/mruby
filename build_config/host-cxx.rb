@@ -3,7 +3,7 @@ MRuby::Build.new do |conf|
 
   enable_debug
   # include the default GEMs
-  conf.gembox 'full-core'
+  conf.gembox 'default'
 
   # C compiler settings
   conf.cc.defines = %w(MRB_ENABLE_DEBUG_HOOK)
