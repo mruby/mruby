@@ -213,12 +213,12 @@ module MRuby
 
       def print_gem_init_header(f)
         print_gem_comment(f)
-        unless rbfiles.empty?
+        if rbfiles.empty?
+          f.puts %Q[#include <mruby.h>]
+        else
           f.puts %Q[#include <stdlib.h>]
           f.puts %Q[#include <mruby.h>]
           f.puts %Q[#include <mruby/proc.h>]
-        else
-          f.puts %Q[#include <mruby.h>]
         end
       end
 
