@@ -43,7 +43,7 @@ class Range
   #   (10..20).last(3)   #=> [18, 19, 20]
   #   (10...20).last(3)  #=> [17, 18, 19]
   def last(*args)
-    raise RangeError, "cannot get the first element of beginless range" if self.end.nil?
+    raise RangeError, "cannot get the last element of endless range" if self.end.nil?
     return self.end if args.empty?
 
     raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1)" unless args.length == 1
