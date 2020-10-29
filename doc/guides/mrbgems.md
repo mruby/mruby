@@ -5,16 +5,15 @@ standardised way into mruby.
 
 ## Usage
 
-By default mrbgems is currently deactivated. As soon as you add a GEM to your
-build configuration (i.e. *build_config.rb*), mrbgems will be activated and the
-extension integrated.
+You have to activate mrbgems explicitly in your build configuration.  To add
+a GEM, add the following line to your build configuration file, for example:
 
-To add a GEM into the *build_config.rb* add the following line for example:
 ```ruby
 conf.gem '/path/to/your/gem/dir'
 ```
 
 You can also use a relative path which would be relative from the mruby root:
+
 ```ruby
 conf.gem 'examples/mrbgems/ruby_extension_example'
 ```
@@ -54,9 +53,9 @@ NOTE: `:bitbucket` option supports only git. Hg is unsupported in this version.
 
 There are instances when you wish to add a collection of mrbgems into mruby at
 once, or be able to substitute mrbgems based on configuration, without having to
-add each gem to the *build_config.rb* file.  A packaged collection of mrbgems
+add each gem to your build configration file.  A packaged collection of mrbgems
 is called a GemBox.  A GemBox is a file that contains a list of mrbgems to load
-into mruby, in the same format as if you were adding them to *build_config.rb*
+into mruby, in the same format as if you were adding them to the build config
 via `config.gem`, but wrapped in an `MRuby::GemBox` object.  GemBoxes are
 loaded into mruby via `config.gembox 'boxname'`.
 
@@ -73,7 +72,7 @@ must be saved with a *.gembox* extension inside the *mrbgems* directory to to be
 picked up by mruby.
 
 To use this example GemBox, we save it as `custom.gembox` inside the *mrbgems*
-directory in mruby, and add the following to our *build_config.rb* file inside
+directory in mruby, and add the following to your build configration file inside
 the build block:
 ```ruby
 conf.gembox 'custom'
@@ -184,12 +183,12 @@ Version requirement supports following operators:
 
 When more than one version requirements is passed, the dependency must satisfy all of it.
 
-You can have default gem to use as dependency when it's not defined in *build_config.rb*.
+You can have default gem to use as dependency when it's not defined in your build configuration.
 When the last argument of `add_dependency` call is `Hash`, it will be treated as default gem information.
 Its format is same as argument of method `MRuby::Build#gem`, expect that it can't be treated as path gem location.
 
 When a special version of dependency is required,
-use `MRuby::Build#gem` in *build_config.rb* to override default gem.
+use `MRuby::Build#gem` in the build configuration to override default gem.
 
 If you have conflicting GEMs use the following method:
 * `spec.add_conflict(gem, *requirements)`

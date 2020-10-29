@@ -8,7 +8,7 @@
 #include <mruby.h>
 
 #ifdef MRB_DISABLE_STDIO
-# error IO and File conflicts 'MRB_DISABLE_STDIO' configuration in your 'build_config.rb'
+# error IO and File conflicts 'MRB_DISABLE_STDIO' in your build configuration
 #endif
 
 #if defined(__cplusplus)

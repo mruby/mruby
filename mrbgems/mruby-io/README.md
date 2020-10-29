@@ -4,7 +4,7 @@ mruby-io
 `IO` and `File` classes for mruby
 
 ## Installation
-Add the line below to your `build_config.rb`:
+Add the line below to your build configuration.
 
 ```
   conf.gem core: 'mruby-io'

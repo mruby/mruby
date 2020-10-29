@@ -1,7 +1,7 @@
 #include <mruby.h>
 
 #ifdef MRB_DISABLE_STDIO
-# error print conflicts 'MRB_DISABLE_STDIO' configuration in your 'build_config.rb'
+# error print conflicts 'MRB_DISABLE_STDIO' in your build configuration
 #endif
 
 #include <mruby/string.h>

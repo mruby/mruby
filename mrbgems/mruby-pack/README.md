@@ -5,7 +5,7 @@ mruby-pack provides `Array#pack` and `String#unpack` for mruby.
 
 
 ## Installation
-Add the line below into your `build_config.rb`:
+Add the line below into your build configuration:
 
 ```
   conf.gem :github => 'iij/mruby-pack'

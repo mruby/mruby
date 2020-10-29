@@ -2,7 +2,8 @@
 mruby sleep module
 
 ## install by mrbgems
- - add conf.gem line to `build_config.rb`
+- add conf.gem line to your build configuration.
+
 ```ruby
 MRuby::Build.new do |conf|
 

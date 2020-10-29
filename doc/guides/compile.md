@@ -24,24 +24,26 @@ Optional:
 
 ## Build
 
-Inside of the root directory of the mruby source a file exists
-called *build_config.rb*. This file contains the build configuration
-of mruby and looks like this for example:
+To compile `mruby` with the default build configuration, just invoke `rake`
+inside of the mruby source root. To generate and execute the test tools call
+`rake test`. To clean all build files call `rake clean`. To see full command
+line on build, call `rake -v`.
+
+You can specify your owne configration file by the `MRUBY_CONFIG` environment
+variable (you can use `CONFIG` for shorthand for `MRUBY_CONFIG`). If the path
+doesn't exist, *build_config/${MRUBY_CONFIG}.rb* is used. The default
+configuration is defined in the `build_config/default_config.rb` file.
+
+Those build configuration files contain the build configurationof mruby, for
+example:
+
 ```ruby
 MRuby::Build.new do |conf|
   toolchain :gcc
 end
 ```
 
-All tools necessary to compile mruby can be set or modified here. In case
-you want to maintain an additional *build_config.rb* you can define a
-customized path using the *$MRUBY_CONFIG* environment variable. If the
-path doesn't exist, *build_config/${MRUBY_CONFIG}.rb* is used.
-
-To compile just call `rake` inside of the mruby source root. To
-generate and execute the test tools call `rake test`. To clean
-all build files call `rake clean`. To see full command line on
-build, call `rake -v`.
+All tools necessary to compile mruby can be set or modified here.
 
 ## Build Configuration
 
@@ -306,11 +308,11 @@ When debugging mode is enabled
 
 ## Cross-Compilation
 
-mruby can also be cross-compiled from one platform to another. To
-achieve this the *build_config.rb* needs to contain an instance of
-`MRuby::CrossBuild`. This instance defines the compilation
-tools and flags for the target platform. An example could look
-like this:
+mruby can also be cross-compiled from one platform to another. To achieve
+cross-compilation, the build configuration needs to contain an instance of
+`MRuby::CrossBuild`. This instance defines the compilation tools and flags
+for the target platform. An example could look like this:
+
 ```ruby
 MRuby::CrossBuild.new('32bit') do |conf|
   toolchain :gcc
@@ -320,8 +322,9 @@ MRuby::CrossBuild.new('32bit') do |conf|
 end
 ```
 
-All configuration options of `MRuby::Build` can also be used
-in `MRuby::CrossBuild`.
+All configuration options of `MRuby::Build` can also be used in
+`MRuby::CrossBuild`. You can find examples under the *build_config*
+directory.
 
 ### Mrbtest in Cross-Compilation
 
