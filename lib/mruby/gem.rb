@@ -81,8 +81,8 @@ module MRuby
 
         @generate_functions = !(@rbfiles.empty? && @objs.empty?)
         @objs << objfile("#{build_dir}/gem_init") if @generate_functions
-        root = MRUBY_ROOT
-        if @dir[0,root.size] == root
+        mgem = MRUBY_ROOT+"/mrbgems"
+        if @dir[0,mgem.size] == mgem
           @cdump = true    # OK to cdump core mrbgems
         else
           @cdump = false   # use mrb dump by default
