@@ -81,6 +81,12 @@ module MRuby
 
         @generate_functions = !(@rbfiles.empty? && @objs.empty?)
         @objs << objfile("#{build_dir}/gem_init") if @generate_functions
+        root = MRUBY_ROOT
+        if @dir[0,root.size] == root
+          @cdump = true    # OK to cdump core mrbgems
+        else
+          @cdump = false   # use mrb dump by default
+        end
 
         if !name || !licenses || !authors
           fail "#{name || dir} required to set name, license(s) and author(s)"
@@ -111,6 +117,10 @@ module MRuby
           return ('A'..'Z').to_a.any? { |vol| Dir.exist?("#{vol}:") }
         end
         return false
+      end
+
+      def enable_cdump
+        @cdump = true
       end
 
       def add_dependency(name, *requirements)
@@ -172,7 +182,13 @@ module MRuby
       def generate_gem_init(fname)
         open(fname, 'w') do |f|
           print_gem_init_header f
-          build.mrbc.run f, rbfiles, "gem_mrblib_#{funcname}_proc" unless rbfiles.empty?
+          unless rbfiles.empty?
+            if @cdump
+              build.mrbc.run f, rbfiles, "gem_mrblib_#{funcname}_proc"
+            else
+              build.mrbc.run f, rbfiles, "gem_mrblib_irep_#{funcname}", false
+            end
+          end
           f.puts %Q[void mrb_#{funcname}_gem_init(mrb_state *mrb);]
           f.puts %Q[void mrb_#{funcname}_gem_final(mrb_state *mrb);]
           f.puts %Q[]
@@ -181,7 +197,11 @@ module MRuby
           f.puts %Q[  struct REnv *e;] unless rbfiles.empty?
           f.puts %Q[  mrb_#{funcname}_gem_init(mrb);] if objs != [objfile("#{build_dir}/gem_init")]
           unless rbfiles.empty?
-            f.puts %Q[  mrb_load_proc(mrb, gem_mrblib_#{funcname}_proc);]
+            if @cdump
+              f.puts %Q[  mrb_load_proc(mrb, gem_mrblib_#{funcname}_proc);]
+            else
+              f.puts %Q[  mrb_load_irep(mrb, gem_mrblib_irep_#{funcname});]
+            end
             f.puts %Q[  if (mrb->exc) {]
             f.puts %Q[    mrb_print_error(mrb);]
             f.puts %Q[    mrb_close(mrb);]
