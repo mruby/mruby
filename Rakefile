@@ -105,7 +105,7 @@ cfiles = (
 ).uniq
 rbfiles = (
   Dir.glob("#{MRUBY_ROOT}/mrblib/**/*.rb")+
-  Dir.glob("#{MRUBY_ROOT}/mrbgems/*/mrblib/**/*.rb")+
+  Dir.glob("#{MRUBY_ROOT}/mrbgems/*/mrblib/**/*.rb").grep_v(/mruby-test/)+
   Dir.glob("#{MRUBY_ROOT}/build/repos/**/mrblib/**/*.rb")
 ).uniq
 psfiles = Dir.glob("#{MRUBY_ROOT}/{mrblib,mrbgems,build/repos}/**/presym")
