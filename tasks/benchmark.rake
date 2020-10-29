@@ -12,7 +12,7 @@ def build_config_name
   if !ENV['MRUBY_CONFIG'].to_s.empty?
     File.basename(ENV['MRUBY_CONFIG'], '.rb').gsub('build_config_', '')
   else
-    "build"
+    "bm"
   end
 end
 
