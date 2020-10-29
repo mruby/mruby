@@ -32,7 +32,7 @@ line on build, call `rake -v`.
 You can specify your owne configration file by the `MRUBY_CONFIG` environment
 variable (you can use `CONFIG` for shorthand for `MRUBY_CONFIG`). If the path
 doesn't exist, *build_config/${MRUBY_CONFIG}.rb* is used. The default
-configuration is defined in the `build_config/default_config.rb` file.
+configuration is defined in the `build_config/default.rb` file.
 
 Those build configuration files contain the build configurationof mruby, for
 example:
