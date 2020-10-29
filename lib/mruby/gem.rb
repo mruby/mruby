@@ -63,9 +63,9 @@ module MRuby
           objfile(f.relative_path_from(@dir).to_s.pathmap("#{build_dir}/%X"))
         end
 
-        @test_rbfiles = Dir.glob("#{dir}/test/**/*.rb").sort
-        @test_objs = Dir.glob("#{dir}/test/*.{c,cpp,cxx,cc,m,asm,s,S}").map do |f|
-          objfile(f.relative_path_from(dir).to_s.pathmap("#{build_dir}/%X"))
+        @test_rbfiles = Dir.glob("#{@dir}/test/**/*.rb").sort
+        @test_objs = Dir.glob("#{@dir}/test/*.{c,cpp,cxx,cc,m,asm,s,S}").map do |f|
+          objfile(f.relative_path_from(@dir).to_s.pathmap("#{build_dir}/%X"))
         end
         @custom_test_init = !@test_objs.empty?
         @test_preload = nil # 'test/assert.rb'
