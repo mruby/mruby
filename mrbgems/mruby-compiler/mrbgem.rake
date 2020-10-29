@@ -5,7 +5,7 @@ MRuby::Gem::Specification.new 'mruby-compiler' do |spec|
 
   lex_def = "#{dir}/core/lex.def"
   core_objs = Dir.glob("#{dir}/core/*.c").map { |f|
-    next nil if build.cxx_exception_enabled? and f =~ /(codegen).c$/
+    next nil if build.cxx_exception_enabled? and f =~ /(codegen|y\.tab)\.c$/
     objfile(f.pathmap("#{build_dir}/core/%n"))
   }.compact
 
