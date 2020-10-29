@@ -3,45 +3,29 @@ User visible changes in `mruby3`
 
 # Build System
 
-You can specify `TARGET` option to `rake` via a command line
-option, or via an environment variable, e.g.
-
-`rake TARGET=host all`
-
-or
-
-`TARGET=host rake all`
-
-It's much easier to switch multiple targets than the
-previous `build_config.rb` system.
-
 ## `presym` target
 
 The first compilation of `mruby` may require generation of a
 static symbol table named `build/presym`. You can generate
 the table by `rake gensym`.
 
-## `target` directory
+## `build_config` directory
 
-Build target specification files are loaded from `target`
-directory. The default `TARGET` is `host` which is described
-in `target/host.rb`. There are many other targets for example:
+Typical build configuration files are located in `build_config`
+directory. For examples:
 
 * `host-gprof`: compiles with `gprof` for performance tuning
 * `host-m32`: compiles in gcc 32bit mode on 64bit platforms
 * `boxing`: compiles all three boxing options
 * `clang-asan`: compiles with `clang`'s Address Sanitizer
 
-`target/host.rb` comes  with comments to help  writing a new
-target description.
+`build_config/${MRUBY_CONFIG}.rb` is used if the path specified
+in `MRUBY_CONFIG` doesn't exist, so you can specify it as
+`rake MRUBY_CONFIG=boxing`.
 
-If you want to have your target description out of the
-source tree, you can specify the path to the description
-file in `MRUBY_CONFIG`.
+# Build Configuration Contribution
 
-# Build Target Contribution
-
-When you write a new target description, please
+When you write a new build configuration description, please
 contribute. We welcome your contribution as a GitHub
 pull-request.
 

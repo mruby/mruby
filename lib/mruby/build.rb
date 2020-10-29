@@ -39,6 +39,17 @@ module MRuby
   class Build
     class << self
       attr_accessor :current
+      def load_config
+        path = ENV['MRUBY_CONFIG']
+        if path.nil? || path.empty?
+          path = "#{MRUBY_ROOT}/build_config.rb"
+        elsif !File.file?(path) && !Pathname.new(path).absolute?
+          f = "#{MRUBY_ROOT}/build_config/#{path}.rb"
+          path = File.exist?(f) ? f : File.extname(path).empty? ? f : path
+        end
+        load path
+        path
+      end
     end
     include Rake::DSL
     include LoadGems
