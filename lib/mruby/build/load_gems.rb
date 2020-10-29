@@ -18,8 +18,7 @@ module MRuby
       elsif GemBox.path && gemdir.is_a?(String)
         gemdir = File.expand_path(gemdir, File.dirname(GemBox.path))
       else
-        caller_dir = File.expand_path(File.dirname(caller(1,1)[0][/^(.*?):\d/,1]))
-        gemdir = File.expand_path(gemdir, caller_dir)
+        gemdir = File.expand_path(gemdir, MRUBY_ROOT)
       end
 
       gemrake = File.join(gemdir, "mrbgem.rake")
