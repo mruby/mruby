@@ -13,9 +13,12 @@ directory. For examples:
 * `boxing`: compiles all three boxing options
 * `clang-asan`: compiles with `clang`'s Address Sanitizer
 
-`build_config/${MRUBY_CONFIG}.rb` is used if the path specified
-in `MRUBY_CONFIG` doesn't exist, so you can specify it as
-`rake MRUBY_CONFIG=boxing`.
+You can specify the build configration file with the
+`MRUBY_CONFIG` environment variable (or `CONFIG` in short).
+If the value specified by `MRUBY_CONFIG` is not the path to
+the configuration file, `build_config/${MRUBY_CONFIG}.rb` is
+used.  So you can specify it as `rake MRUBY_CONFIG=boxing`,
+for example.
 
 # Build Configuration Contribution
 
