@@ -32,7 +32,8 @@ pull-request.
 
 We have ported some new syntax from CRuby.
 
-* R-assignment (`12 => x`)
+* Single line pattern matching (`12 => x`);
+  mruby matches only with local variables at the moment
 * Numbered block parameter (`x.map{_1 * 2}`)
 * End-less `def` (`def double(x) = x*2`)
 
