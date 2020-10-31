@@ -163,6 +163,7 @@ range_initialize(mrb_state *mrb, mrb_value range)
 
   mrb_get_args(mrb, "oo|b", &beg, &end, &exclusive);
   range_ptr_replace(mrb, mrb_range_raw_ptr(range), beg, end, exclusive);
+  mrb_obj_freeze(mrb, range);
   return range;
 }
 
@@ -335,6 +336,7 @@ range_initialize_copy(mrb_state *mrb, mrb_value copy)
 
   r = mrb_range_ptr(mrb, src);
   range_ptr_replace(mrb, mrb_range_raw_ptr(copy), RANGE_BEG(r), RANGE_END(r), RANGE_EXCL(r));
+  mrb_obj_freeze(mrb, copy);
 
   return copy;
 }
