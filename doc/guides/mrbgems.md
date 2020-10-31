@@ -12,11 +12,17 @@ a GEM, add the following line to your build configuration file, for example:
 conf.gem '/path/to/your/gem/dir'
 ```
 
-You can also use a relative path which would be relative from the mruby root:
+You can also use a relative path to specify a gem.
 
 ```ruby
 conf.gem 'examples/mrbgems/ruby_extension_example'
 ```
+
+In that case, 
+
+* if your build configuration file is in the `build_config` directory, it's
+  relative from `MRUBY_ROOT`.
+* otherwise, it is relative from the directory where your build configuration is.
 
 A remote GIT repository location for a GEM is also supported:
 ```ruby

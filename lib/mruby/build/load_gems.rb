@@ -15,10 +15,14 @@ module MRuby
     def gem(gemdir, &block)
       if gemdir.is_a?(Hash)
         gemdir = load_special_path_gem(gemdir)
-      elsif GemBox.path && gemdir.is_a?(String)
+      elsif GemBox.path
         gemdir = File.expand_path(gemdir, File.dirname(GemBox.path))
       else
-        gemdir = File.expand_path(gemdir, MRUBY_ROOT)
+        caller_dir = File.expand_path(File.dirname(caller(1,1)[0][/^(.*?):\d/,1]))
+        if caller_dir == "#{MRUBY_ROOT}/build_config"
+          caller_dir = MRUBY_ROOT
+        end
+        gemdir = File.expand_path(gemdir, caller_dir)
       end
 
       gemrake = File.join(gemdir, "mrbgem.rake")
