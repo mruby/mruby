@@ -5,8 +5,8 @@
 #include <mruby.h>
 #include <mruby/compile.h>
 
-#include "libprotobuf-mutator/src/libfuzzer/libfuzzer_macro.h"
-#include "ruby.pb.h"
+#include <src/libfuzzer/libfuzzer_macro.h>
+#include <ruby.pb.h>
 #include "proto_to_ruby.h"
 
 using namespace ruby_fuzzer;

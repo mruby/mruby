@@ -4,7 +4,7 @@
 #include <ostream>
 #include <sstream>
 #include <stack>
-#include "ruby.pb.h"
+#include <ruby.pb.h>
 
 namespace ruby_fuzzer {
 	class protoConverter
