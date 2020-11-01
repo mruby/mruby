@@ -50,6 +50,24 @@ MRB_BEGIN_DECL
 #define MRUBY_RELEASE_TEENY 0
 
 /*
+ * Patch level.
+ */
+#define MRUBY_PATCHLEVEL -1
+
+/*
+ * Patch level string. (optional)
+ */
+#define MRUBY_PATCHLEVEL_STR "preview"
+
+#ifndef MRUBY_PATCHLEVEL_STR
+# if MRUBY_PATCHLEVEL < 0
+#   define MRUBY_PATCHLEVEL_STR "dev"
+# else
+#   define MRUBY_PATCHLEVEL_STR "p"MRB_STRINGIZE(MRUBY_PATCHLEVEL)
+# endif
+#endif
+
+/*
  * The mruby version.
  */
 #define MRUBY_VERSION MRB_STRINGIZE(MRUBY_RELEASE_MAJOR) "." MRB_STRINGIZE(MRUBY_RELEASE_MINOR) "." MRB_STRINGIZE(MRUBY_RELEASE_TEENY)
@@ -108,6 +126,7 @@ MRB_BEGIN_DECL
  */
 #define MRUBY_DESCRIPTION     \
   "mruby " MRUBY_VERSION      \
+  MRUBY_PATCHLEVEL_STR        \
   " (" MRUBY_RELEASE_DATE ")" \
 
 /*
