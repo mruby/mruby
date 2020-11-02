@@ -346,13 +346,13 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_LAMBDA, BB);
-      printf("OP_LAMBDA\tR%d\tI(%d:%p)\n", a, b, irep->reps[b]);
+      printf("OP_LAMBDA\tR%d\tI(%d:%p)\n", a, b, (void*)irep->reps[b]);
       break;
     CASE(OP_BLOCK, BB);
-      printf("OP_BLOCK\tR%d\tI(%d:%p)\n", a, b, irep->reps[b]);
+      printf("OP_BLOCK\tR%d\tI(%d:%p)\n", a, b, (void*)irep->reps[b]);
       break;
     CASE(OP_METHOD, BB);
-      printf("OP_METHOD\tR%d\tI(%d:%p)\n", a, b, irep->reps[b]);
+      printf("OP_METHOD\tR%d\tI(%d:%p)\n", a, b, (void*)irep->reps[b]);
       break;
     CASE(OP_RANGE_INC, B);
       printf("OP_RANGE_INC\tR%d\n", a);
@@ -477,7 +477,7 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_EXEC, BB);
-      printf("OP_EXEC\tR%d\tI(%d:%p)", a, b, irep->reps[b]);
+      printf("OP_EXEC\tR%d\tI(%d:%p)", a, b, (void*)irep->reps[b]);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_SCLASS, B);
