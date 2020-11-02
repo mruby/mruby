@@ -168,8 +168,8 @@ mrb_local_variables(mrb_state *mrb, mrb_value self)
   return mrb_hash_keys(mrb, vars);
 }
 
-KHASH_DECLARE(st, mrb_sym, char, FALSE);
-KHASH_DEFINE(st, mrb_sym, char, FALSE, kh_int_hash_func, kh_int_hash_equal);
+KHASH_DECLARE(st, mrb_sym, char, FALSE)
+KHASH_DEFINE(st, mrb_sym, char, FALSE, kh_int_hash_func, kh_int_hash_equal)
 
 union mt_ptr {
   struct RProc *proc;
