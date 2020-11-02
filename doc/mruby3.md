@@ -3,12 +3,6 @@ User visible changes in `mruby3`
 
 # Build System
 
-## `presym` target
-
-The first compilation of `mruby` may require generation of a
-static symbol table named `build/presym`. You can generate
-the table by `rake gensym`.
-
 ## `build_config` directory
 
 Typical build configuration files are located in `build_config`
