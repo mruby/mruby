@@ -232,7 +232,6 @@ end
 
 desc "preallocated symbols"
 task :gensym => presym_inc
-task :all => :gensym
 
 depfiles += MRuby.targets.map { |n, t|
   t.libraries
@@ -243,7 +242,7 @@ depfiles += MRuby.targets.reject { |n, t| n == 'host' }.map { |n, t|
 }.flatten
 
 desc "build all targets, install (locally) in-repo"
-task :all => depfiles do
+task :all => :build do
   puts
   puts "Build summary:"
   puts
@@ -251,6 +250,10 @@ task :all => depfiles do
     print_build_summary
   end
   MRuby::Lockfile.write
+end
+
+task :build => :gensym do
+  depfiles.each {|dep| Rake::Task[dep].invoke}
 end
 
 desc "run all mruby tests"
