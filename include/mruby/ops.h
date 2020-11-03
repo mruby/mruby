@@ -14,6 +14,7 @@ operation code    operands      semantics
 OPCODE(NOP,        Z)        /* no operation */
 OPCODE(MOVE,       BB)       /* R(a) = R(b) */
 OPCODE(LOADL,      BB)       /* R(a) = Pool(b) */
+OPCODE(LOADL16,    BS)       /* R(a) = Pool(b) */
 OPCODE(LOADI,      BB)       /* R(a) = mrb_int(b) */
 OPCODE(LOADINEG,   BB)       /* R(a) = mrb_int(-b) */
 OPCODE(LOADI__1,   B)        /* R(a) = mrb_int(-1) */
@@ -27,6 +28,7 @@ OPCODE(LOADI_6,    B)        /* R(a) = mrb_int(6) */
 OPCODE(LOADI_7,    B)        /* R(a) = mrb_int(7) */
 OPCODE(LOADI16,    BS)       /* R(a) = mrb_int(b) */
 OPCODE(LOADSYM,    BB)       /* R(a) = Syms(b) */
+OPCODE(LOADSYM16,  BS)       /* R(a) = Syms(b) */
 OPCODE(LOADNIL,    B)        /* R(a) = nil */
 OPCODE(LOADSELF,   B)        /* R(a) = self */
 OPCODE(LOADT,      B)        /* R(a) = true */
@@ -89,6 +91,7 @@ OPCODE(ASET,       BBB)      /* R(a)[c] = R(b) */
 OPCODE(APOST,      BBB)      /* *R(a),R(a+1)..R(a+c) = R(a)[b..] */
 OPCODE(INTERN,     B)        /* R(a) = intern(R(a)) */
 OPCODE(STRING,     BB)       /* R(a) = str_dup(Lit(b)) */
+OPCODE(STRING16,   BS)       /* R(a) = str_dup(Lit(b)) */
 OPCODE(STRCAT,     B)        /* str_cat(R(a),R(a+1)) */
 OPCODE(HASH,       BB)       /* R(a) = hash_new(R(a),R(a+1)..R(a+b*2-1)) */
 OPCODE(HASHADD,    BB)       /* R(a) = hash_push(R(a),R(a+1)..R(a+b*2)) */

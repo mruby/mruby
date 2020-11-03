@@ -135,7 +135,10 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       printf("OP_MOVE\tR%d\tR%d\t", a, b);
       print_lv_ab(mrb, irep, a, b);
       break;
+    CASE(OP_LOADL16, BS);
+      goto op_loadl;
     CASE(OP_LOADL, BB);
+    op_loadl:
       switch (irep->pool[b].tt) {
       case IREP_TT_FLOAT:
         printf("OP_LOADL\tR%d\tL(%d)\t; %f", a, b, (double)irep->pool[b].u.f);
@@ -182,7 +185,10 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       printf("OP_LOADI_%d\tR%d\t\t", ins-(int)OP_LOADI_0, a);
       print_lv_a(mrb, irep, a);
       break;
+    CASE(OP_LOADSYM16, BS);
+      goto op_loadsym;
     CASE(OP_LOADSYM, BB);
+    op_loadsym:
       printf("OP_LOADSYM\tR%d\t:%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
       print_lv_a(mrb, irep, a);
       break;
@@ -438,7 +444,10 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       printf("OP_INTERN\tR%d", a);
       print_lv_a(mrb, irep, a);
       break;
+    CASE(OP_STRING16, BS);
+      goto op_string;
     CASE(OP_STRING, BB);
+    op_string:
       if ((irep->pool[b].tt & IREP_TT_NFLAG) == 0) {
         printf("OP_STRING\tR%d\tL(%d)\t; %s", a, b, irep->pool[b].u.str);
       }

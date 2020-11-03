@@ -1069,7 +1069,12 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
+    
+    CASE(OP_LOADL16, BS) {
+      goto op_loadl;
+    }
     CASE(OP_LOADL, BB) {
+    op_loadl:
       switch (pool[b].tt) {   /* number */
       case IREP_TT_INT32:
         regs[a] = mrb_int_value(mrb, (mrb_int)pool[b].u.i32);
@@ -1134,6 +1139,11 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_LOADSYM, BB) {
+      SET_SYM_VALUE(regs[a], syms[b]);
+      NEXT;
+    }
+
+    CASE(OP_LOADSYM16, BS) {
       SET_SYM_VALUE(regs[a], syms[b]);
       NEXT;
     }
@@ -2575,8 +2585,13 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
+    CASE(OP_STRING16, BS) {
+      goto op_string;
+    }
     CASE(OP_STRING, BB) {
-      size_t len = pool[b].tt >> 2;
+      size_t len;
+    op_string:
+      len = pool[b].tt >> 2;
       if (pool[b].tt & IREP_TT_SFLAG) {
         regs[a] = mrb_str_new_static(mrb, pool[b].u.str, len);
       }
