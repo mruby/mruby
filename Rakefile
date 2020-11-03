@@ -115,6 +115,7 @@ psfiles.each do |file|
 end
 symbols.each{|x| x.chomp!}
 presym_file="#{MRUBY_ROOT}/build/presym"
+presym_inc="#{presym_file}.inc"
 op_table = {
   "!" => "not",
   "!=" => "neq",
@@ -189,11 +190,11 @@ file presym_file => cfiles+rbfiles+psfiles+[__FILE__] do
   presyms.each{|x| x.chomp!}
   if presyms != symbols
     File.write(presym_file, symbols.join("\n"))
+    Rake::Task[presym_inc].invoke
   end
 end
 
-presym_inc=presym_file+".inc"
-file presym_inc => presym_file do
+task presym_inc do
   presyms = File.readlines(presym_file)
   presyms.each{|x| x.chomp!}
   File.open(presym_inc, "w") do |f|
@@ -231,7 +232,7 @@ file presym_inc => presym_file do
 end
 
 desc "preallocated symbols"
-task :gensym => presym_inc
+task :gensym => presym_file
 
 depfiles += MRuby.targets.map { |n, t|
   t.libraries
