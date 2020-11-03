@@ -10,10 +10,6 @@
 
 #include "mrdbconf.h"
 
-#ifdef _MSC_VER
-# define __func__ __FUNCTION__
-#endif
-
 #define MAX_COMMAND_WORD (16)
 
 typedef enum debug_command_id {

@@ -53,6 +53,10 @@
 #endif
 #endif
 
+#ifdef _MSC_VER
+# define __func__ __FUNCTION__
+#endif
+
 #ifdef MRB_DEBUG
 #include <assert.h>
 #define mrb_assert(p) assert(p)
