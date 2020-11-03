@@ -16,9 +16,6 @@ MRuby::Gem::Specification.new 'mruby-compiler' do |spec|
       build.compile_as_cxx("#{dir}/core/codegen.c", "#{build_dir}/core/codegen.cxx")
   else
     core_objs << objfile("#{build_dir}/core/y.tab")
-    file objfile("#{build_dir}/core/y.tab") => "#{dir}/core/y.tab.c" do |t|
-      cc.run t.name, t.prerequisites.first, [], ["#{dir}/core"]
-    end
   end
 
   # Parser
