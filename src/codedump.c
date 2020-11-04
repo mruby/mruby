@@ -115,7 +115,7 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
     ptrdiff_t i;
     uint32_t a;
     uint16_t b;
-    uint8_t c;
+    uint16_t c;
 
     ai = mrb_gc_arena_save(mrb);
 
@@ -167,6 +167,10 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       break;
     CASE(OP_LOADI16, BS);
       printf("OP_LOADI16\tR%d\t%d\t", a, (int)(int16_t)b);
+      print_lv_a(mrb, irep, a);
+      break;
+    CASE(OP_LOADI32, BSS);
+      printf("OP_LOADI32\tR%d\t%d\t", a, (int)(b<<16)+c);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_LOADI__1, B);

@@ -284,6 +284,14 @@ genop_2S(codegen_scope *s, mrb_code i, uint16_t a, uint16_t b)
 }
 
 static void
+genop_2SS(codegen_scope *s, mrb_code i, uint16_t a, uint32_t b)
+{
+  genop_1(s, i, a);
+  gen_S(s, b>>16);
+  gen_S(s, b&0xffff);
+}
+
+static void
 genop_W(codegen_scope *s, mrb_code i, uint32_t a)
 {
   uint8_t a1 = (a>>16) & 0xff;
@@ -315,7 +323,7 @@ mrb_decode_insn(const mrb_code *pc)
   mrb_code insn = READ_B();
   uint16_t a = 0;
   uint16_t b = 0;
-  uint8_t  c = 0;
+  uint16_t c = 0;
 
   switch (insn) {
 #define FETCH_Z() /* empty */
@@ -2479,11 +2487,13 @@ codegen(codegen_scope *s, node *tree, int val)
           if (i == -1) genop_1(s, OP_LOADI__1, cursp());
           else if (i >= -0xff) genop_2(s, OP_LOADINEG, cursp(), (uint16_t)-i); 
           else if (i >= -0x8000) genop_2S(s, OP_LOADI16, cursp(), (uint16_t)i);
+          else if (i >= -0x80000000) genop_2SS(s, OP_LOADI32, cursp(), (uint32_t)i);
           else goto lit_int;
         }
         else if (i < 8) genop_1(s, OP_LOADI_0 + (uint8_t)i, cursp());
         else if (i <= 0xff) genop_2(s, OP_LOADI, cursp(), (uint16_t)i);
         else if (i <= 0x7fff) genop_2S(s, OP_LOADI16, cursp(), (uint16_t)i);
+        else if (i <= 0x7fffffff) genop_2SS(s, OP_LOADI32, cursp(), (uint32_t)i);
         else {
           int off;
 
@@ -2549,6 +2559,9 @@ codegen(codegen_scope *s, node *tree, int val)
             }
             else if (i >= -0x8000) {
               genop_2S(s, OP_LOADI16, cursp(), (uint16_t)i);
+            }
+            else if (i >= -0x80000000) {
+              genop_2S(s, OP_LOADI32, cursp(), (uint32_t)i);
             }
             else {
               int off = new_lit(s, mrb_int_value(s->mrb, i));
@@ -3301,6 +3314,7 @@ uint8_t mrb_insn_size[] = {
 #define BB 3
 #define BBB 4
 #define BS 4
+#define BSS 6
 #define SB 4
 #define OPCODE(_,x) x,
 #include "mruby/ops.h"
@@ -3308,6 +3322,7 @@ uint8_t mrb_insn_size[] = {
 #undef B
 #undef BB
 #undef BS
+#undef BSS
 #undef SB
 #undef BBB
 };

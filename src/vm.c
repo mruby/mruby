@@ -1030,7 +1030,7 @@ mrb_vm_exec(mrb_state *mrb, const struct RProc *proc, const mrb_code *pc)
   struct mrb_jmpbuf c_jmp;
   uint32_t a;
   uint16_t b;
-  uint8_t c;
+  uint16_t c;
   mrb_sym mid;
   const struct mrb_irep_catch_handler *ch;
 
@@ -1135,6 +1135,11 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_LOADI16, BS) {
       SET_FIXNUM_VALUE(regs[a], (mrb_int)(int16_t)b);
+      NEXT;
+    }
+
+    CASE(OP_LOADI32, BSS) {
+      SET_INT_VALUE(mrb, regs[a], (mrb_int)(b<<16)+c);
       NEXT;
     }
 

@@ -36,6 +36,7 @@ enum mrb_insn {
 #define FETCH_BB() do {a=READ_B(); b=READ_B();} while (0)
 #define FETCH_BBB() do {a=READ_B(); b=READ_B(); c=READ_B();} while (0)
 #define FETCH_BS() do {a=READ_B(); b=READ_S();} while (0)
+#define FETCH_BSS() do {a=READ_B(); b=READ_S(); c=READ_S();} while (0)
 #define FETCH_S() do {a=READ_S();} while (0)
 #define FETCH_W() do {a=READ_W();} while (0)
 

@@ -1,11 +1,12 @@
 /* operand types:
-   + Z: no operand (Z,Z,Z,Z)
-   + B: 8bit (B,S,B,B)
-   + BB: 8+8bit (BB,SB,BS,SS)
-   + BBB: 8+8+8bit (BBB,SBB,BSB,SSB)
-   + BS: 8+16bit (BS,SS,BS,BS)
-   + S: 16bit (S,S,S,S)
-   + W: 24bit (W,W,W,W)
+   + Z: no operand
+   + B: 8bit
+   + BB: 8+8bit
+   + BBB: 8+8+8bit
+   + BS: 8+16bit
+   + BSS: 8+16+16bit
+   + S: 16bit
+   + W: 24bit
 */
 
 /*-----------------------------------------------------------------------
@@ -27,6 +28,7 @@ OPCODE(LOADI_5,    B)        /* R(a) = mrb_int(5) */
 OPCODE(LOADI_6,    B)        /* R(a) = mrb_int(6) */
 OPCODE(LOADI_7,    B)        /* R(a) = mrb_int(7) */
 OPCODE(LOADI16,    BS)       /* R(a) = mrb_int(b) */
+OPCODE(LOADI32,    BSS)      /* R(a) = mrb_int((b<<16)+c) */
 OPCODE(LOADSYM,    BB)       /* R(a) = Syms(b) */
 OPCODE(LOADSYM16,  BS)       /* R(a) = Syms(b) */
 OPCODE(LOADNIL,    B)        /* R(a) = nil */
