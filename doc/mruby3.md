@@ -85,6 +85,43 @@ If you are using glibc malloc, this macro could reduce memory consumption.
 
 # Internal Changes
 
+## New Instructions
+
+`mruby3` introduces a few new instructions.
+
+Instructions that access pool[i]/syms[i] where i>255.
+
+* `OP_LOADL16`
+* `OP_STRING16`
+* `OP_LOADSYM16`
+
+Instructions that load a 32 bit integer.
+
+* `OP_LOADI32`
+
+Instruction that unwinds jump table for rescue/ensure.
+
+* `OP_JMPUW`
+
+Renamed from `OP_RAISE`
+
+* `OP_RAISEIF`
+
+## Removed Instructions
+
+Instructions for old exception handling
+
+* `OP_ONERR`
+* `OP_POPERR`
+* `OP_EPUSH`
+* `OP_EPOP`
+
+No more operand extention
+
+* `OP_EXT1`
+* `OP_EXT2`
+* `OP_EXT3`
+
 ## `Random` now use `xoshiro128++`.
 
 For better and faster random number generation.
