@@ -119,11 +119,11 @@ rational_new_f(mrb_state *mrb, mrb_float f0)
  
   /* continued fraction and check denominator each step */
   for (i = 0; i < 64; i++) {
-    a = n ? d / n : 0;
+    a = (mrb_int)(n ? d / n : 0);
     if (i && !a) break;
- 
-    x = d; d = n; n = x % n;
- 
+
+    x = d; d = (mrb_int)n; n = x % n;
+
     x = a;
     if (k[1] * a + k[0] >= md) {
       x = (md - k[0]) / k[1];
