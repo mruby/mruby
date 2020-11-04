@@ -2561,7 +2561,7 @@ codegen(codegen_scope *s, node *tree, int val)
               genop_2S(s, OP_LOADI16, cursp(), (uint16_t)i);
             }
             else if (i >= -0x80000000) {
-              genop_2S(s, OP_LOADI32, cursp(), (uint32_t)i);
+              genop_2SS(s, OP_LOADI32, cursp(), (uint32_t)i);
             }
             else {
               int off = new_lit(s, mrb_int_value(s->mrb, i));
