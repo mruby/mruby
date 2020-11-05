@@ -209,7 +209,7 @@ class Array
   #    a.flatten(1)              #=> [1, 2, 3, [4, 5]]
   #
   def flatten(depth=nil)
-    res = dup
+    res = Array.new(self)
     res.flatten! depth
     res
   end
