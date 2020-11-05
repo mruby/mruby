@@ -66,6 +66,10 @@ class Array
   #
   # ISO 15.2.12.5.15
   def initialize(size=0, obj=nil, &block)
+    if size.is_a?(Array) && obj==nil && block == nil
+      self.replace(size)
+      return self
+    end
     size = size.__to_int
     raise ArgumentError, "negative array size" if size < 0
 
