@@ -1139,7 +1139,7 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_LOADI32, BSS) {
-      SET_INT_VALUE(mrb, regs[a], (mrb_int)(b<<16)+c);
+      SET_INT_VALUE(mrb, regs[a], ((mrb_int)b<<16)+c);
       NEXT;
     }
 
