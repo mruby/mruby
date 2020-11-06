@@ -611,6 +611,10 @@ flo_shift(mrb_state *mrb, mrb_value x, mrb_int width)
     return x;
   }
   val = mrb_float(x);
+  if (width < -MRB_INT_BIT/2) {
+    if (val < 0) return mrb_fixnum_value(-1);
+    return mrb_fixnum_value(0);
+  }
   if (width < 0) {
     while (width++) {
       val /= 2;
