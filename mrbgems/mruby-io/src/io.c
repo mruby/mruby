@@ -707,7 +707,15 @@ mrb_io_initialize(mrb_state *mrb, mrb_value io)
   mode = opt = mrb_nil_value();
 
   mrb_get_args(mrb, "i|oo", &fd, &mode, &opt);
-  check_file_descriptor(mrb, fd);
+  switch (fd) {
+    case 0: /* STDIN_FILENO */
+    case 1: /* STDOUT_FILENO */
+    case 2: /* STDERR_FILENO */
+      break;
+    default:
+      check_file_descriptor(mrb, fd);
+      break;
+  }
   if (mrb_nil_p(mode)) {
     mode = mrb_str_new_cstr(mrb, "r");
   }
