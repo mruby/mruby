@@ -646,6 +646,7 @@ flo_rshift(mrb_state *mrb, mrb_value x)
   mrb_int width;
 
   mrb_get_args(mrb, "i", &width);
+  if (width == MRB_INT_MIN) return flo_shift(mrb, x, -MRB_INT_BIT);
   return flo_shift(mrb, x, -width);
 }
 
