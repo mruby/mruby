@@ -77,11 +77,13 @@ mrb_open(void)
   return mrb;
 }
 
+#ifndef DISABLE_GEMS
 static void
 init_mrbgems(mrb_state *mrb, void *opaque)
 {
   mrb_init_mrbgems(mrb);
 }
+#endif
 
 MRB_API mrb_state*
 mrb_open_allocf(mrb_allocf f, void *ud)
