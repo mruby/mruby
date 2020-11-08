@@ -41,7 +41,11 @@ union mrb_value_ {
   struct {
     MRB_ENDIAN_LOHI(
       uint32_t ttt;
+#ifdef MRB_64BIT
       ,uint32_t i;
+#else
+      ,union { uint32_t i; void *p; };
+#endif
     )
   };
 };
