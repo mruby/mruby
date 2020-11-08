@@ -161,7 +161,7 @@ mrb_word_boxing_float_value(mrb_state *mrb, mrb_float f)
   v.p = mrb_obj_alloc(mrb, MRB_TT_FLOAT, mrb->float_class);
   v.fp->f = f;
   MRB_SET_FROZEN_FLAG(v.bp);
-  return v.w;
+  return v.value;
 }
 #endif  /* MRB_NO_FLOAT */
 
@@ -175,7 +175,7 @@ mrb_word_boxing_int_value(mrb_state *mrb, mrb_int n)
     v.p = mrb_obj_alloc(mrb, MRB_TT_INTEGER, mrb->integer_class);
     v.ip->i = n;
     MRB_SET_FROZEN_FLAG(v.ip);
-    return v.w;
+    return v.value;
   }
 }
 #endif  /* MRB_WORD_BOXING */

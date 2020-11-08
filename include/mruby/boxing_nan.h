@@ -30,7 +30,9 @@
  * In order to get enough bit size to save TT, all pointers are shifted 2 bits
  * in the right direction. Also, TTTTTT is the mrb_vtype + 1;
  */
-typedef uint64_t mrb_value;
+typedef struct mrb_value {
+  uint64_t u;
+} mrb_value;
 
 union mrb_value_ {
   mrb_float f;
@@ -44,13 +46,16 @@ union mrb_value_ {
       ,uint32_t i;
     )
   };
+  mrb_value value;
 };
+
+mrb_static_assert1(sizeof(mrb_value) == sizeof(union mrb_value_));
 
 static inline union mrb_value_
 mrb_val_union(mrb_value v)
 {
   union mrb_value_ x;
-  x.u = v;
+  x.value = v;
   return x;
 }
 
@@ -75,7 +80,7 @@ mrb_val_union(mrb_value v)
   union mrb_value_ mrb_value_union_variable; \
   mrb_value_union_variable.attr = (v);\
   mrb_value_union_variable.ttt = 0xfff00000 | (((tt)+1)<<14);\
-  o = mrb_value_union_variable.u;\
+  o = mrb_value_union_variable.value;\
 } while (0)
 
 #ifdef MRB_64BIT
@@ -83,7 +88,7 @@ mrb_val_union(mrb_value v)
   union mrb_value_ mrb_value_union_variable;\
   mrb_value_union_variable.p = (void*)((uintptr_t)(v)>>2);\
   mrb_value_union_variable.ttt = (0xfff00000|(((tt)+1)<<14)|BOXNAN_SHIFT_LONG_POINTER(v));\
-  o = mrb_value_union_variable.u;\
+  o = mrb_value_union_variable.value;\
 } while (0)
 #else
 #define BOXNAN_SET_OBJ_VALUE(o, tt, v) BOXNAN_SET_VALUE(o, tt, i, (uint32_t)v)
@@ -98,7 +103,7 @@ mrb_val_union(mrb_value v)
   else { \
     mrb_value_union_variable.f = (v); \
   } \
-  r = mrb_value_union_variable.u; \
+  r = mrb_value_union_variable.value; \
 } while(0)
 
 #define SET_NIL_VALUE(r) BOXNAN_SET_VALUE(r, MRB_TT_FALSE, i, 0)
