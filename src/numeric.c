@@ -853,6 +853,8 @@ flo_round(mrb_state *mrb, mrb_value num)
     if (!isfinite(number)) return num;
     return mrb_float_value(mrb, number);
   }
+  if (!FIXABLE_FLOAT(number))
+    return mrb_float_value(mrb, number);
   return mrb_int_value(mrb, (mrb_int)number);
 }
 
