@@ -1314,7 +1314,7 @@ static const mrb_code each_iseq[] = {
 static const mrb_sym each_syms[] = {
   MRB_SYM(each),
   MRB_SYM(to_enum),
-  MRB_QSYM(aref),
+  MRB_OPSYM(aref),
   MRB_SYM(call),
   MRB_SYM(length),
 };

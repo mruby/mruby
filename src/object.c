@@ -58,7 +58,7 @@ mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
       return TRUE;
   }
 #endif
-  result = mrb_funcall_id(mrb, obj1, MRB_QSYM(eq), 1, obj2);
+  result = mrb_funcall_id(mrb, obj1, MRB_OPSYM(eq), 1, obj2);
   if (mrb_test(result)) return TRUE;
   return FALSE;
 }
@@ -660,5 +660,5 @@ MRB_API mrb_bool
 mrb_eql(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
 {
   if (mrb_obj_eq(mrb, obj1, obj2)) return TRUE;
-  return mrb_test(mrb_funcall_id(mrb, obj1, MRB_QSYM(eql_p), 1, obj2));
+  return mrb_test(mrb_funcall_id(mrb, obj1, MRB_SYM_Q(eql), 1, obj2));
 }

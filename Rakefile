@@ -148,8 +148,21 @@ op_table = {
   "||" => "oror",
   "~" => "neg",
 }
+macro_to_symbol = {
+#      Macro               Symbol
+# [prefix, suffix] => [prefix, suffix]
+  ["CV"  , ""    ] => ["@@"  , ""    ],
+  ["IV"  , ""    ] => ["@"   , ""    ],
+  [""    , "_B"  ] => [""    , "!"   ],
+  [""    , "_Q"  ] => [""    , "?"   ],
+  [""    , "_E"  ] => [""    , "="   ],
+  [""    , ""    ] => [""    , ""    ],
+}
 
 file presym_file => cfiles+rbfiles+psfiles+[__FILE__] do
+  prefix_re = Regexp.union(*macro_to_symbol.keys.uniq.map(&:first))
+  suffix_re = Regexp.union(*macro_to_symbol.keys.uniq.map(&:last))
+  macro_re = /MRB_(#{prefix_re})SYM(#{suffix_re})\((\w+)\)/o
   csymbols = cfiles.map do |f|
     src = File.read(f)
     src.gsub!(/\/\/.+(\n|$)/, "\n")
@@ -161,10 +174,9 @@ file presym_file => cfiles+rbfiles+psfiles+[__FILE__] do
      src.scan(/mrb_define_module_function\([^\n"]*"([^\n"]*)"/),
      src.scan(/mrb_define_const\([^\n"]*"([^\n"]*)"/),
      src.scan(/mrb_define_global_const\([^\n"]*"([^\n"]*)"/),
-     src.scan(/MRB_SYM\((\w+)\)/),
-     src.scan(/MRB_QSYM\((\w+)\)/).map{|x,|
-       x.sub!(/_p$/, "?") || x.sub!(/_b$/, "!") || x.sub!(/_e$/, "=") || x.sub!(/^0_/, "@")  || x.sub!(/^00_/, "@@")
-     }.compact]
+     src.scan(macro_re).map{|prefix, suffix, name|
+       macro_to_symbol[[prefix, suffix]] * name
+     }]
   end
   rbsymbols = rbfiles.map do |f|
     src = File.read(f)
@@ -197,34 +209,20 @@ end
 task presym_inc do
   presyms = File.readlines(presym_file)
   presyms.each{|x| x.chomp!}
+  symbol_to_macro = macro_to_symbol.invert
+  prefix_re = Regexp.union(*symbol_to_macro.keys.uniq.map(&:first))
+  suffix_re = Regexp.union(*symbol_to_macro.keys.uniq.map(&:last))
+  macro_re = /\A(#{prefix_re})?([\w&&\D]\w*)(#{suffix_re})?\z/o
   File.open(presym_inc, "w") do |f|
-    f.print "/* MRB_PRESYM_CSYM(sym, num) - symbol which is valid C id name */\n"
-    f.print "/* MRB_PRESYM_QSYM(name, sym, num) - symbol with alias name */\n"
-    f.print "/* MRB_PRESYM_SYM(name, num) - symbol which is not valid C id */\n"
-    presyms.each.with_index do |sym,i|
-      if sym.bytes.detect{|x|x>0x80} || /\A\$/ =~ sym
-        f.print "MRB_PRESYM_SYM(\"#{sym}\", #{i+1})\n"
-      elsif /\A\w+\Z/ =~ sym
-        f.print "MRB_PRESYM_CSYM(#{sym}, #{i+1})\n"
-      elsif op_table.key?(sym)
-        f.print "MRB_PRESYM_QSYM(\"#{sym}\", #{op_table[sym]}, #{i+1})\n"
-      elsif /\A[A-Za-z_]\w*\?\Z/ =~ sym
-        s = sym.dup; s[-1] = "_p"
-        f.print "MRB_PRESYM_QSYM(\"#{sym}\", #{s}, #{i+1})\n"
-      elsif /\A[A-Za-z_]\w*\!\Z/ =~ sym
-        s = sym.dup; s[-1] = "_b"
-        f.print "MRB_PRESYM_QSYM(\"#{sym}\", #{s}, #{i+1})\n"
-      elsif /\A[A-Za-z_]\w*\=\Z/ =~ sym
-        s = sym.dup; s[-1] = "_e"
-        f.print "MRB_PRESYM_QSYM(\"#{sym}\", #{s}, #{i+1})\n"
-      elsif /\A@@/ =~ sym
-        s = sym.dup; s[0,2] = "00_"
-        f.print "MRB_PRESYM_QSYM(\"#{sym}\", #{s}, #{i+1})\n"
-      elsif /\A@/ =~ sym
-        s = sym.dup; s[0] = "0_"
-        f.print "MRB_PRESYM_QSYM(\"#{sym}\", #{s}, #{i+1})\n"
-      else
-        f.print "MRB_PRESYM_SYM(\"#{sym}\", #{i+1})\n"
+    f.puts "/* MRB_PRESYM_NAMED(lit, num, type, name) */"
+    f.puts "/* MRB_PRESYM_UNNAMED(lit, num) */"
+    presyms.each.with_index(1) do |sym, num|
+      if macro_re =~ sym && (affixes = symbol_to_macro[[$1, $3]])
+        f.puts %|MRB_PRESYM_NAMED("#{sym}", #{num}, #{affixes * 'SYM'}, #{$2})|
+      elsif name = op_table[sym]
+        f.puts %|MRB_PRESYM_NAMED("#{sym}", #{num}, OPSYM, #{name})|
+      elsif
+        f.puts %|MRB_PRESYM_UNNAMED("#{sym}", #{num})|
       end
     end
     f.print "#define MRB_PRESYM_MAX #{presyms.size}"

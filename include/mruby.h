@@ -1080,7 +1080,8 @@ MRB_API mrb_value mrb_funcall_argv(mrb_state *mrb, mrb_value val, mrb_sym name, 
  */
 MRB_API mrb_value mrb_funcall_with_block(mrb_state *mrb, mrb_value val, mrb_sym name, mrb_int argc, const mrb_value *argv, mrb_value block);
 /**
- * Create a symbol from C string. But usually it's better to use MRB_SYM(sym) and MRB_QSYM(qsym).
+ * Create a symbol from C string. But usually it's better to use MRB_SYM,
+ * MRB_OPSYM, MRB_CVSYM, MRB_IVSYM, MRB_SYM_B, MRB_SYM_Q, MRB_SYM_E macros.
  *
  * Example:
  *
@@ -1090,7 +1091,7 @@ MRB_API mrb_value mrb_funcall_with_block(mrb_state *mrb, mrb_value val, mrb_sym 
  *     // C style:
  *     mrb_sym sym1 = mrb_intern_lit(mrb, "pizza"); //  => :pizza
  *     mrb_sym sym2 = MRB_SYM(pizza);               //  => :pizza
- *     mrb_sym sym3 = MRB_SYM(pizza_p);             //  => :pizza?
+ *     mrb_sym sym3 = MRB_SYM_Q(pizza);             //  => :pizza?
  *
  * @param mrb The current mruby state.
  * @param str The string to be symbolized

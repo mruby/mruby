@@ -13,12 +13,8 @@
 #include <mruby/class.h>
 
 #undef MRB_PRESYM_MAX
-#undef MRB_PRESYM_CSYM
-#undef MRB_PRESYM_QSYM
-#undef MRB_PRESYM_SYM
-#define MRB_PRESYM_CSYM(sym, num) {#sym,sizeof(#sym)-1},
-#define MRB_PRESYM_QSYM(str, name, num) {str,sizeof(str)-1},
-#define MRB_PRESYM_SYM(str, num) {str,sizeof(str)-1},
+#define MRB_PRESYM_NAMED(lit, num, type, name) {lit, sizeof(lit)-1},
+#define MRB_PRESYM_UNNAMED(lit, num) {lit, sizeof(lit)-1},
 
 static const struct {
   const char *name;

@@ -113,7 +113,7 @@ io_set_process_status(mrb_state *mrb, pid_t pid, int status)
   } else {
     v = mrb_fixnum_value(WEXITSTATUS(status));
   }
-  mrb_gv_set(mrb, mrb_intern_cstr(mrb, "$?"), v);
+  mrb_gv_set(mrb, mrb_intern_lit(mrb, "$?"), v);
 }
 
 static int
