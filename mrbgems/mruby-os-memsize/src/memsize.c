@@ -12,12 +12,6 @@
 #include <mruby/range.h>
 
 static size_t
-os_memsize_of_ivars(mrb_state* mrb, mrb_value obj)
-{
-  return mrb_obj_iv_tbl_memsize(mrb, obj);
-}
-
-static size_t
 os_memsize_of_irep(mrb_state* state, const struct mrb_irep *irep)
 {
   size_t size;
@@ -81,7 +75,7 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj)
     case MRB_TT_EXCEPTION:
     case MRB_TT_OBJECT: {
       size += mrb_objspace_page_slot_size();
-      size += os_memsize_of_ivars(mrb, obj);
+      size += mrb_obj_iv_tbl_memsize(obj);
       if (obj_is_kind_of_checked(mrb, obj, "UnboundMethod") ||
           obj_is_kind_of_checked(mrb, obj, "Method")) {
         size += os_memsize_of_method(mrb, obj);

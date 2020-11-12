@@ -1120,7 +1120,7 @@ mrb_class_find_path(mrb_state *mrb, struct RClass *c)
 }
 
 size_t
-mrb_obj_iv_tbl_memsize(mrb_state* mrb, mrb_value obj)
+mrb_obj_iv_tbl_memsize(mrb_value obj)
 {
   iv_tbl *t = mrb_obj_ptr(obj)->iv;
   if (t == NULL) return 0;
