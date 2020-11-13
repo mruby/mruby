@@ -1031,7 +1031,7 @@ mrb_gc_free_hash(mrb_state *mrb, struct RHash *h)
 }
 
 size_t
-mrb_os_memsize_of_hash_table(mrb_value self)
+mrb_hash_memsize(mrb_value self)
 {
   struct RHash *h = mrb_hash_ptr(self);
   return h_ar_p(h) ? (ar_ea_capa(h) * sizeof(hash_entry)) :

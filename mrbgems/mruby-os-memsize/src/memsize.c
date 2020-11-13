@@ -84,7 +84,7 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj)
     }
     case MRB_TT_HASH: {
       size += mrb_objspace_page_slot_size() +
-              mrb_os_memsize_of_hash_table(obj);
+              mrb_hash_memsize(obj);
       break;
     }
     case MRB_TT_ARRAY: {
