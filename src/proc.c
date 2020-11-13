@@ -315,7 +315,7 @@ mrb_init_proc(mrb_state *mrb)
   p = mrb_proc_new(mrb, &call_irep);
   MRB_METHOD_FROM_PROC(m, p);
   mrb_define_method_raw(mrb, mrb->proc_class, MRB_SYM(call), m);
-  mrb_define_method_raw(mrb, mrb->proc_class, MRB_QSYM(aref), m);
+  mrb_define_method_raw(mrb, mrb->proc_class, MRB_OPSYM(aref), m);
 
   mrb_define_class_method(mrb, mrb->kernel_module, "lambda", proc_lambda, MRB_ARGS_NONE()|MRB_ARGS_BLOCK()); /* 15.3.1.2.6  */
   mrb_define_method(mrb, mrb->kernel_module,       "lambda", proc_lambda, MRB_ARGS_NONE()|MRB_ARGS_BLOCK()); /* 15.3.1.3.27 */

@@ -564,7 +564,7 @@ obj_respond_to(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "n|b", &id, &priv);
   respond_to_p = basic_obj_respond_to(mrb, self, id, !priv);
   if (!respond_to_p) {
-    rtm_id = MRB_QSYM(respond_to_missing_p);
+    rtm_id = MRB_SYM_Q(respond_to_missing);
     if (basic_obj_respond_to(mrb, self, rtm_id, !priv)) {
       mrb_value args[2], v;
       args[0] = mrb_symbol_value(id);
@@ -581,7 +581,7 @@ mrb_obj_ceqq(mrb_state *mrb, mrb_value self)
 {
   mrb_value v = mrb_get_arg1(mrb);
   mrb_int i, len;
-  mrb_sym eqq = MRB_QSYM(eqq);
+  mrb_sym eqq = MRB_OPSYM(eqq);
   mrb_value ary;
 
   if (mrb_array_p(self)) {
