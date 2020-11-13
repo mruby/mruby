@@ -1034,10 +1034,11 @@ size_t
 mrb_hash_memsize(mrb_value self)
 {
   struct RHash *h = mrb_hash_ptr(self);
-  return h_ar_p(h) ? (ar_ea_capa(h) * sizeof(hash_entry)) :
-                     (ht_ea_capa(h) * sizeof(hash_entry) +
-                      sizeof(hash_table) +
-                      ib_byte_size_for(ib_bit(h)));
+  return mrb_obj_iv_tbl_memsize(self) +
+         (h_ar_p(h) ? (ar_ea_capa(h) * sizeof(hash_entry)) :
+                      (ht_ea_capa(h) * sizeof(hash_entry) +
+                       sizeof(hash_table) +
+                       ib_byte_size_for(ib_bit(h))));
 }
 
 /* Iterates over the key/value pairs. */
