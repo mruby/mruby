@@ -70,31 +70,23 @@ MRB_API mrb_value mrb_num_mul(mrb_state *mrb, mrb_value x, mrb_value y);
 
 #ifdef MRB_HAVE_TYPE_GENERIC_CHECKED_ARITHMETIC_BUILTINS
 
-#ifndef MRB_WORD_BOXING
-# define WBCHK(x) 0
-#else
-# define WBCHK(x) !FIXABLE(x)
-#endif
-
 static inline mrb_bool
 mrb_int_add_overflow(mrb_int augend, mrb_int addend, mrb_int *sum)
 {
-  return __builtin_add_overflow(augend, addend, sum) || WBCHK(*sum);
+  return __builtin_add_overflow(augend, addend, sum);
 }
 
 static inline mrb_bool
 mrb_int_sub_overflow(mrb_int minuend, mrb_int subtrahend, mrb_int *difference)
 {
-  return __builtin_sub_overflow(minuend, subtrahend, difference) || WBCHK(*difference);
+  return __builtin_sub_overflow(minuend, subtrahend, difference);
 }
 
 static inline mrb_bool
 mrb_int_mul_overflow(mrb_int multiplier, mrb_int multiplicand, mrb_int *product)
 {
-  return __builtin_mul_overflow(multiplier, multiplicand, product) || WBCHK(*product);
+  return __builtin_mul_overflow(multiplier, multiplicand, product);
 }
-
-#undef WBCHK
 
 #else
 
