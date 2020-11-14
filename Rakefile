@@ -60,6 +60,9 @@ else
   depfiles = []
 end
 
+cfiles  = Dir.glob("#{MRUBY_ROOT}/src/*.c")
+rbfiles = Dir.glob("#{MRUBY_ROOT}/mrblib/**/*.rb")
+psfiles = []
 MRuby.each_target do |target|
   gems.map do |gem|
     current_dir = gem.dir.relative_path_from(Dir.pwd)
@@ -94,21 +97,16 @@ MRuby.each_target do |target|
         depfiles += [ exec ]
       end
     end
+
+    if gem.cdump?
+      cfiles += Dir.glob(relative_from_root+"/{src,core}/*.c")
+      rbfiles += Dir.glob(relative_from_root+"/mrblib/**/*.rb")
+      psfiles += Dir.glob(relative_from_root+"/**/presym")
+    end
   end
 end
 
 mkdir_p "#{MRUBY_ROOT}/build"
-cfiles = (
-  Dir.glob("#{MRUBY_ROOT}/src/*.c")+
-  Dir.glob("#{MRUBY_ROOT}/mrbgems/**/*.c")+
-  Dir.glob("#{MRUBY_ROOT}/build/repos/**/{src,core}/*.c")
-).uniq
-rbfiles = (
-  Dir.glob("#{MRUBY_ROOT}/mrblib/**/*.rb")+
-  Dir.glob("#{MRUBY_ROOT}/mrbgems/*/mrblib/**/*.rb").grep_v(/mruby-test/)+
-  Dir.glob("#{MRUBY_ROOT}/build/repos/**/mrblib/**/*.rb")
-).uniq
-psfiles = Dir.glob("#{MRUBY_ROOT}/{mrblib,mrbgems,build/repos}/**/presym")
 symbols = []
 psfiles.each do |file|
   symbols += File.readlines(file).grep_v(/^# /)
@@ -197,7 +195,7 @@ file presym_file => cfiles+rbfiles+psfiles+[__FILE__] do
      src.scan(/[ \(\[\{]:'([^']+)'/)
     ]
   end
-  symbols = (symbols+csymbols+rbsymbols+op_table.keys).flatten.compact.uniq.sort.map{|x| x.gsub("\n", '\n')}
+  symbols = (symbols+csymbols+rbsymbols+op_table.keys).flatten.compact.uniq.sort.grep_v(/#/).map{|x| x.gsub("\n", '\n')}
   presyms = File.readlines(presym_file) rescue []
   presyms.each{|x| x.chomp!}
   if presyms != symbols

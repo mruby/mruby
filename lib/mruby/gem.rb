@@ -123,6 +123,10 @@ module MRuby
         @cdump = true
       end
 
+      def cdump?
+        @cdump
+      end
+
       def add_dependency(name, *requirements)
         default_gem = requirements.last.kind_of?(Hash) ? requirements.pop : nil
         requirements = ['>= 0.0.0'] if requirements.empty?

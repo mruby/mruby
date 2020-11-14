@@ -10,7 +10,7 @@
 # implement a meaningful `<=>` operator, as these methods
 # rely on an ordering between members of the collection.
 #
-# @ISO 15.3.2
+# ISO 15.3.2
 module Enumerable
 
   NONE = Object.new
