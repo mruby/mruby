@@ -100,8 +100,7 @@ void mrb_mc_clear_by_class(mrb_state *mrb, struct RClass* c);
 #endif
 
 /* return non zero to break the loop */
-struct mt_elem;
-typedef int (mrb_mt_foreach_func)(mrb_state*,mrb_sym,struct mt_elem*,void*);
+typedef int (mrb_mt_foreach_func)(mrb_state*,mrb_sym,mrb_method_t,void*);
 MRB_API void mrb_mt_foreach(mrb_state*, struct RClass*, mrb_mt_foreach_func*, void*);
 
 MRB_END_DECL

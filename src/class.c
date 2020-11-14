@@ -230,7 +230,16 @@ mrb_mt_foreach(mrb_state *mrb, struct RClass *c, mrb_mt_foreach_func *fn, void *
     struct mt_elem *slot = &t->table[i];
 
     if (slot->key) {
-      if (fn(mrb, slot->key, slot, p) != 0)
+      mrb_method_t m;
+
+      if (slot->func_p) {
+        MRB_METHOD_FROM_FUNC(m, slot->ptr.func);
+      }
+      else {
+        MRB_METHOD_FROM_PROC(m, slot->ptr.proc);
+      }
+
+      if (fn(mrb, slot->key, m, p) != 0)
         return;
     }
   }

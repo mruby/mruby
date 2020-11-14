@@ -171,28 +171,17 @@ mrb_local_variables(mrb_state *mrb, mrb_value self)
 KHASH_DECLARE(st, mrb_sym, char, FALSE)
 KHASH_DEFINE(st, mrb_sym, char, FALSE, kh_int_hash_func, kh_int_hash_equal)
 
-union mt_ptr {
-  struct RProc *proc;
-  mrb_func_t func;
-};
-
-struct mt_elem {
-  union mt_ptr ptr;
-  size_t func_p:1;
-  mrb_sym key:sizeof(mrb_sym)*8-1;
-};
-
 struct mt_set {
   khash_t(st) *set;
   khash_t(st) *undef;
 };
 
 static int
-method_entry_i(mrb_state *mrb, mrb_sym mid, struct mt_elem *e, void *p)
+method_entry_i(mrb_state *mrb, mrb_sym mid, mrb_method_t m, void *p)
 {
   struct mt_set *s = (struct mt_set*)p;
 
-  if (e->ptr.proc == 0) {
+  if (MRB_METHOD_UNDEF_P(m)) {
     if (s->undef) {
       kh_put(st, mrb, s->undef, mid);
     }
