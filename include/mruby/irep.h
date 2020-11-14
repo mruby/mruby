@@ -71,7 +71,8 @@ typedef struct mrb_irep {
   /* debug info */
   struct mrb_irep_debug_info* debug_info;
 
-  uint16_t ilen, plen, slen, rlen;
+  uint16_t ilen, plen, slen;
+  uint8_t rlen;
   uint32_t refcnt;
 } mrb_irep;
 
@@ -119,7 +120,7 @@ struct mrb_insn_data {
   uint8_t insn;
   uint16_t a;
   uint16_t b;
-  uint8_t c;
+  uint16_t c;
 };
 
 struct mrb_insn_data mrb_decode_insn(const mrb_code *pc);
