@@ -32,8 +32,6 @@ module MRuby
       end
     end
 
-    NotFoundCommands = {}
-
     private
     def _run(options, params={})
       sh "#{build.filename(command)} #{options % params}"
