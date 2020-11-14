@@ -46,6 +46,12 @@ mrb_to_flo(mrb_state *mrb, mrb_value val)
 }
 #endif
 
+static void
+int_overflow(mrb_state *mrb, const char *reason)
+{
+  mrb_raisef(mrb, E_RANGE_ERROR, "integer overflow in %s", reason);
+}
+
 /*
  * call-seq:
  *
@@ -88,13 +94,13 @@ int_pow(mrb_state *mrb, mrb_value x)
   for (;;) {
     if (exp & 1) {
       if (mrb_int_mul_overflow(result, base, &result)) {
-        mrb_raise(mrb, E_RANGE_ERROR, "integer overflow in division");
+        int_overflow(mrb, "multiplication");
       }
     }
     exp >>= 1;
     if (exp == 0) break;
     if (mrb_int_mul_overflow(base, base, &base)) {
-      mrb_raise(mrb, E_RANGE_ERROR, "integer overflow in division");
+      int_overflow(mrb, "multiplication");
     }
   }
   return mrb_int_value(mrb, result);
@@ -109,7 +115,7 @@ mrb_num_div_int(mrb_state *mrb, mrb_int x, mrb_int y)
     mrb_raise(mrb, E_ZERODIV_ERROR, "divided by 0");
   }
   else if(x == MRB_INT_MIN && y == -1) {
-    mrb_raise(mrb, E_RANGE_ERROR, "integer overflow in division");
+    int_overflow(mrb, "division");
   }
   else {
     mrb_int div, mod;
@@ -921,9 +927,7 @@ fixnum_mul(mrb_state *mrb, mrb_value x, mrb_value y)
     if (a == 0) return x;
     b = mrb_integer(y);
     if (mrb_int_mul_overflow(a, b, &c)) {
-#ifndef MRB_NO_FLOAT
-      return mrb_float_value(mrb, (mrb_float)a * (mrb_float)b);
-#endif
+      int_overflow(mrb, "multiplication");
     }
     return mrb_fixnum_value(c);
   }
@@ -1198,54 +1202,27 @@ int_xor(mrb_state *mrb, mrb_value x)
 static mrb_value
 lshift(mrb_state *mrb, mrb_int val, mrb_int width)
 {
-  if (width < 0) {              /* mrb_int overflow */
-#ifdef MRB_NO_FLOAT
-    return mrb_fixnum_value(0);
-#else
-    return mrb_float_value(mrb, INFINITY);
-#endif
-  }
+  mrb_assert(width >= 0);
   if (val > 0) {
     if ((width > NUMERIC_SHIFT_WIDTH_MAX) ||
         (val   > (MRB_INT_MAX >> width))) {
-#ifdef MRB_NO_FLOAT
-      return mrb_fixnum_value(-1);
-#else
-      goto bit_overflow;
-#endif
+      int_overflow(mrb, "bit shift");
     }
     return mrb_int_value(mrb, val << width);
   }
   else {
     if ((width > NUMERIC_SHIFT_WIDTH_MAX) ||
         (val   <= (MRB_INT_MIN >> width))) {
-#ifdef MRB_NO_FLOAT
-      return mrb_fixnum_value(0);
-#else
-      goto bit_overflow;
-#endif
+      int_overflow(mrb, "bit shift");
     }
     return mrb_int_value(mrb, (val * ((mrb_int)1 << width)));
   }
-
-#ifndef MRB_NO_FLOAT
-bit_overflow:
-  {
-    mrb_float f = (mrb_float)val;
-    while (width--) {
-      f *= 2;
-    }
-    return mrb_float_value(mrb, f);
-  }
-#endif
 }
 
 static mrb_value
 rshift(mrb_state *mrb, mrb_int val, mrb_int width)
 {
-  if (width < 0) {              /* mrb_int overflow */
-    return mrb_fixnum_value(0);
-  }
+  mrb_assert(width >= 0);
   if (width >= NUMERIC_SHIFT_WIDTH_MAX) {
     if (val < 0) {
       return mrb_fixnum_value(-1);
@@ -1275,6 +1252,7 @@ int_lshift(mrb_state *mrb, mrb_value x)
   val = mrb_integer(x);
   if (val == 0) return x;
   if (width < 0) {
+    if (width == MRB_INT_MIN) return rshift(mrb, val, MRB_INT_BIT);
     return rshift(mrb, val, -width);
   }
   return lshift(mrb, val, width);
@@ -1300,6 +1278,7 @@ int_rshift(mrb_state *mrb, mrb_value x)
   val = mrb_integer(x);
   if (val == 0) return x;
   if (width < 0) {
+    if (width == MRB_INT_MIN) int_overflow(mrb, "bit shift");
     return lshift(mrb, val, -width);
   }
   return rshift(mrb, val, width);
@@ -1371,9 +1350,7 @@ fixnum_plus(mrb_state *mrb, mrb_value x, mrb_value y)
     if (a == 0) return y;
     b = mrb_integer(y);
     if (mrb_int_add_overflow(a, b, &c)) {
-#ifndef MRB_NO_FLOAT
-      return mrb_float_value(mrb, (mrb_float)a + (mrb_float)b);
-#endif
+      int_overflow(mrb, "addition");
     }
     return mrb_int_value(mrb, c);
   }
@@ -1427,9 +1404,7 @@ fixnum_minus(mrb_state *mrb, mrb_value x, mrb_value y)
 
     b = mrb_integer(y);
     if (mrb_int_sub_overflow(a, b, &c)) {
-#ifndef MRB_NO_FLOAT
-      return mrb_float_value(mrb, (mrb_float)a - (mrb_float)b);
-#endif
+      int_overflow(mrb, "subtraction");
     }
     return mrb_int_value(mrb, c);
   }
