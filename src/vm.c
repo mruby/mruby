@@ -1090,11 +1090,7 @@ RETRY_TRY_BLOCK:
           break;
         }
 #endif
-        {
-          mrb_value exc = mrb_exc_new_lit(mrb, E_RUNTIME_ERROR, "integer overflow");
-          mrb_exc_set(mrb, exc);
-        }
-        goto L_RAISE;
+        goto L_INT_OVERFLOW;
 #endif
 #ifndef MRB_NO_FLOAT
       case IREP_TT_FLOAT:
@@ -2250,34 +2246,40 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
+  L_INT_OVERFLOW:
+    {
+      mrb_value exc = mrb_exc_new_lit(mrb, E_RANGE_ERROR, "integer overflow");
+      mrb_exc_set(mrb, exc);
+    }
+    goto L_RAISE;
+
 #define TYPES2(a,b) ((((uint16_t)(a))<<8)|(((uint16_t)(b))&0xff))
 #define OP_MATH(op_name)                                                    \
   /* need to check if op is overridden */                                   \
   switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {                  \
-    OP_MATH_CASE_FIXNUM(op_name);                                           \
-    OP_MATH_CASE_FLOAT(op_name, fixnum, float);                             \
-    OP_MATH_CASE_FLOAT(op_name, float,  fixnum);                            \
+    OP_MATH_CASE_INTEGER(op_name);                                          \
+    OP_MATH_CASE_FLOAT(op_name, integer, float);                            \
+    OP_MATH_CASE_FLOAT(op_name, float,  integer);                           \
     OP_MATH_CASE_FLOAT(op_name, float,  float);                             \
     OP_MATH_CASE_STRING_##op_name();                                        \
     default:                                                                \
       c = 1;                                                                \
-      mid = MRB_OPSYM(op_name);                                              \
+      mid = MRB_OPSYM(op_name);                                             \
       goto L_SEND_SYM;                                                      \
   }                                                                         \
   NEXT;
-#define OP_MATH_CASE_FIXNUM(op_name)                                        \
+#define OP_MATH_CASE_INTEGER(op_name)                                       \
   case TYPES2(MRB_TT_INTEGER, MRB_TT_INTEGER):                              \
     {                                                                       \
       mrb_int x = mrb_integer(regs[a]), y = mrb_integer(regs[a+1]), z;      \
       if (mrb_int_##op_name##_overflow(x, y, &z))                           \
-        OP_MATH_OVERFLOW_INT(op_name, x, y, z);                             \
+        OP_MATH_OVERFLOW_INT();                                             \
       else                                                                  \
         SET_INT_VALUE(mrb,regs[a], z);                                      \
     }                                                                       \
     break
 #ifdef MRB_NO_FLOAT
 #define OP_MATH_CASE_FLOAT(op_name, t1, t2) (void)0
-#define OP_MATH_OVERFLOW_INT(op_name, x, y, z) SET_INT_VALUE(mrb,regs[a], z)
 #else
 #define OP_MATH_CASE_FLOAT(op_name, t1, t2)                                     \
   case TYPES2(OP_MATH_TT_##t1, OP_MATH_TT_##t2):                                \
@@ -2286,9 +2288,8 @@ RETRY_TRY_BLOCK:
       SET_FLOAT_VALUE(mrb, regs[a], z);                                         \
     }                                                                           \
     break
-#define OP_MATH_OVERFLOW_INT(op_name, x, y, z) \
-  SET_FLOAT_VALUE(mrb, regs[a], (mrb_float)x OP_MATH_OP_##op_name (mrb_float)y)
 #endif
+#define OP_MATH_OVERFLOW_INT() goto L_INT_OVERFLOW
 #define OP_MATH_CASE_STRING_add()                                           \
   case TYPES2(MRB_TT_STRING, MRB_TT_STRING):                                \
     regs[a] = mrb_str_plus(mrb, regs[a], regs[a+1]);                        \
@@ -2299,8 +2300,8 @@ RETRY_TRY_BLOCK:
 #define OP_MATH_OP_add +
 #define OP_MATH_OP_sub -
 #define OP_MATH_OP_mul *
-#define OP_MATH_TT_fixnum MRB_TT_INTEGER
-#define OP_MATH_TT_float  MRB_TT_FLOAT
+#define OP_MATH_TT_integer MRB_TT_INTEGER
+#define OP_MATH_TT_float   MRB_TT_FLOAT
 
     CASE(OP_ADD, B) {
       OP_MATH(add);
@@ -2361,21 +2362,21 @@ RETRY_TRY_BLOCK:
 #define OP_MATHI(op_name)                                                   \
   /* need to check if op is overridden */                                   \
   switch (mrb_type(regs[a])) {                                              \
-    OP_MATHI_CASE_FIXNUM(op_name);                                          \
+    OP_MATHI_CASE_INTEGER(op_name);                                         \
     OP_MATHI_CASE_FLOAT(op_name);                                           \
     default:                                                                \
       SET_INT_VALUE(mrb,regs[a+1], b);                                      \
       c = 1;                                                                \
-      mid = MRB_OPSYM(op_name);                                              \
+      mid = MRB_OPSYM(op_name);                                             \
       goto L_SEND_SYM;                                                      \
   }                                                                         \
   NEXT;
-#define OP_MATHI_CASE_FIXNUM(op_name)                                       \
+#define OP_MATHI_CASE_INTEGER(op_name)                                      \
   case MRB_TT_INTEGER:                                                      \
     {                                                                       \
       mrb_int x = mrb_integer(regs[a]), y = (mrb_int)b, z;                  \
       if (mrb_int_##op_name##_overflow(x, y, &z))                           \
-        OP_MATH_OVERFLOW_INT(op_name, x, y, z);                             \
+        OP_MATH_OVERFLOW_INT();                                             \
       else                                                                  \
         SET_INT_VALUE(mrb,regs[a], z);                                      \
     }                                                                       \
