@@ -94,53 +94,42 @@ mrb_int_mul_overflow(mrb_int multiplier, mrb_int multiplicand, mrb_int *product)
 #define MRB_UINT_MAKE(n) MRB_UINT_MAKE2(n)
 #define mrb_uint MRB_UINT_MAKE(MRB_INT_BIT)
 
-#define MRB_INT_OVERFLOW_MASK ((mrb_uint)1 << (MRB_INT_BIT - 1 - MRB_FIXNUM_SHIFT))
+#define MRB_INT_OVERFLOW_MASK ((mrb_uint)1 << (MRB_INT_BIT - 1))
 
 static inline mrb_bool
-mrb_int_add_overflow(mrb_int augend, mrb_int addend, mrb_int *sum)
+mrb_int_add_overflow(mrb_int a, mrb_int b, mrb_int *c)
 {
-  mrb_uint x = (mrb_uint)augend;
-  mrb_uint y = (mrb_uint)addend;
+  mrb_uint x = (mrb_uint)a;
+  mrb_uint y = (mrb_uint)b;
   mrb_uint z = (mrb_uint)(x + y);
-  *sum = (mrb_int)z;
+  *c = (mrb_int)z;
   return !!(((x ^ z) & (y ^ z)) & MRB_INT_OVERFLOW_MASK);
 }
 
 static inline mrb_bool
-mrb_int_sub_overflow(mrb_int minuend, mrb_int subtrahend, mrb_int *difference)
+mrb_int_sub_overflow(mrb_int a, mrb_int b, mrb_int *c)
 {
-  mrb_uint x = (mrb_uint)minuend;
-  mrb_uint y = (mrb_uint)subtrahend;
+  mrb_uint x = (mrb_uint)a;
+  mrb_uint y = (mrb_uint)b;
   mrb_uint z = (mrb_uint)(x - y);
-  *difference = (mrb_int)z;
+  *c = (mrb_int)z;
   return !!(((x ^ z) & (~y ^ z)) & MRB_INT_OVERFLOW_MASK);
 }
 
 static inline mrb_bool
-mrb_int_mul_overflow(mrb_int multiplier, mrb_int multiplicand, mrb_int *product)
+mrb_int_mul_overflow(mrb_int a, mrb_int b, mrb_int *c)
 {
-#if MRB_INT_BIT == 32
-  int64_t n = (int64_t)multiplier * multiplicand;
-  *product = (mrb_int)n;
-  return !FIXABLE(n);
-#else
-  if (multiplier > 0) {
-    if (multiplicand > 0) {
-      if (multiplier > MRB_INT_MAX / multiplicand) return TRUE;
-    }
-    else if (multiplicand < 0) {
-      if (multiplicand < MRB_INT_MAX / multiplier) return TRUE;
-    }
-  }
-  else if (multiplier < 0) {
-    if (multiplicand > 0) {
-      if (multiplier < MRB_INT_MAX / multiplicand) return TRUE;
-    }
-    else if (multiplicand < 0) {
-      if (multiplier != 0 && multiplicand < MRB_INT_MAX / multiplier) return TRUE;
-    }
-  }
-  *product = multiplier * multiplicand;
+#ifdef MRB_INT32
+  int64_t n = (int64_t)a * b;
+  *c = (mrb_int)n;
+  return n <= MRB_INT_MAX && n >= MRB_INT_MIN;
+#else /* MRB_INT64 */
+  if (a > 0 && b > 0 && a > MRB_INT_MAX / b) return TRUE;
+  if (a < 0 && b > 0 && a < MRB_INT_MIN / b) return TRUE;
+  if (a > 0 && b < 0 && b < MRB_INT_MIN / a) return TRUE;
+  if (a < 0 && b < 0 && (a <= MRB_INT_MIN || b <= MRB_INT_MIN || -a > MRB_INT_MAX / -b))
+    return TRUE;
+  *c = a * b;
   return FALSE;
 #endif
 }
