@@ -68,7 +68,7 @@ MRB_API mrb_value mrb_num_mul(mrb_state *mrb, mrb_value x, mrb_value y);
 #endif
 #endif
 
-#if 0 && defined MRB_HAVE_TYPE_GENERIC_CHECKED_ARITHMETIC_BUILTINS
+#ifdef MRB_HAVE_TYPE_GENERIC_CHECKED_ARITHMETIC_BUILTINS
 
 static inline mrb_bool
 mrb_int_add_overflow(mrb_int augend, mrb_int addend, mrb_int *sum)
@@ -122,7 +122,7 @@ mrb_int_mul_overflow(mrb_int a, mrb_int b, mrb_int *c)
 #ifdef MRB_INT32
   int64_t n = (int64_t)a * b;
   *c = (mrb_int)n;
-  return n > MRB_INT_MAX && n < MRB_INT_MIN;
+  return n > MRB_INT_MAX || n < MRB_INT_MIN;
 #else /* MRB_INT64 */
   if (a > 0 && b > 0 && a > MRB_INT_MAX / b) return TRUE;
   if (a < 0 && b > 0 && a < MRB_INT_MIN / b) return TRUE;
