@@ -99,9 +99,9 @@ MRuby.each_target do |target|
     end
 
     if gem.cdump?
-      cfiles += Dir.glob(relative_from_root+"/{src,core}/*.c")
-      rbfiles += Dir.glob(relative_from_root+"/mrblib/**/*.rb")
-      psfiles += Dir.glob(relative_from_root+"/**/presym")
+      cfiles += Dir.glob(gem.dir+"/{src,core}/*.c")
+      rbfiles += Dir.glob(gem.dir+"/mrblib/**/*.rb")
+      psfiles += Dir.glob(gem.dir+"/**/presym")
     end
   end
 end
