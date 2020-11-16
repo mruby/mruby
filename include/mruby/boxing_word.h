@@ -7,10 +7,6 @@
 #ifndef MRUBY_BOXING_WORD_H
 #define MRUBY_BOXING_WORD_H
 
-#if defined(MRB_INT64) && !defined(MRB_64BIT)
-#error MRB_INT64 cannot be used with MRB_WORD_BOXING in 32-bit mode.
-#endif
-
 #ifndef MRB_NO_FLOAT
 struct RFloat {
   MRB_OBJECT_HEADER;

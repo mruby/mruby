@@ -56,8 +56,6 @@ struct mrb_state;
 # define MRB_INT_BIT 64
 # define MRB_INT_MIN INT64_MIN
 # define MRB_INT_MAX INT64_MAX
-# define MRB_FIXNUM_MIN (INT64_MIN>>MRB_FIXNUM_SHIFT)
-# define MRB_FIXNUM_MAX (INT64_MAX>>MRB_FIXNUM_SHIFT)
 # define MRB_PRIo PRIo64
 # define MRB_PRId PRId64
 # define MRB_PRIx PRIx64
@@ -66,11 +64,17 @@ struct mrb_state;
 # define MRB_INT_BIT 32
 # define MRB_INT_MIN INT32_MIN
 # define MRB_INT_MAX INT32_MAX
-# define MRB_FIXNUM_MIN (INT32_MIN>>MRB_FIXNUM_SHIFT)
-# define MRB_FIXNUM_MAX (INT32_MAX>>MRB_FIXNUM_SHIFT)
 # define MRB_PRIo PRIo32
 # define MRB_PRId PRId32
 # define MRB_PRIx PRIx32
+#endif
+
+#if defined(MRB_64BIT) && defined(MRB_INT64)
+# define MRB_FIXNUM_MIN (INT64_MIN>>MRB_FIXNUM_SHIFT)
+# define MRB_FIXNUM_MAX (INT64_MAX>>MRB_FIXNUM_SHIFT)
+#else
+# define MRB_FIXNUM_MIN (INT32_MIN>>MRB_FIXNUM_SHIFT)
+# define MRB_FIXNUM_MAX (INT32_MAX>>MRB_FIXNUM_SHIFT)
 #endif
 
 #ifdef MRB_ENDIAN_BIG
