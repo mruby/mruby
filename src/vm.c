@@ -1069,7 +1069,7 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
-    
+
     CASE(OP_LOADL16, BS) {
       goto op_loadl;
     }
@@ -1135,7 +1135,7 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_LOADI32, BSS) {
-      SET_INT_VALUE(mrb, regs[a], ((mrb_int)b<<16)+c);
+      SET_INT_VALUE(mrb, regs[a], (mrb_int)(((uint32_t)b<<16)+c));
       NEXT;
     }
 
