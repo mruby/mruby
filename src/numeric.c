@@ -52,6 +52,12 @@ int_overflow(mrb_state *mrb, const char *reason)
   mrb_raisef(mrb, E_RANGE_ERROR, "integer overflow in %s", reason);
 }
 
+static void
+int_zerodiv(mrb_state *mrb)
+{
+  mrb_raise(mrb, E_ZERODIV_ERROR, "divided by 0");
+}
+
 /*
  * call-seq:
  *
@@ -67,10 +73,9 @@ int_pow(mrb_state *mrb, mrb_value x)
   mrb_int base = mrb_int(mrb, x);
   mrb_int exp;
 #ifndef MRB_NO_FLOAT
-  mrb_value y;
+  mrb_value y = mrb_get_arg1(mrb);
   mrb_float z;
-
-  mrb_get_args(mrb, "o", &y);
+ 
   if (!mrb_integer_p(y)) {
     mrb_get_args(mrb, "f", &z);
     z = pow((mrb_float)base, z);
@@ -112,7 +117,7 @@ mrb_int
 mrb_num_div_int(mrb_state *mrb, mrb_int x, mrb_int y)
 {
   if (y == 0) {
-    mrb_raise(mrb, E_ZERODIV_ERROR, "divided by 0");
+    int_zerodiv(mrb);
   }
   else if(x == MRB_INT_MIN && y == -1) {
     int_overflow(mrb, "division");
@@ -120,10 +125,8 @@ mrb_num_div_int(mrb_state *mrb, mrb_int x, mrb_int y)
   else {
     mrb_int div = x / y;
 
-    if (div < 0) {
-      if (x != div * y) {
-        div -= 1;
-      }
+    if ((x ^ y) < 0 && x != div * y) {
+      div -= 1;
     }
     return div;
   }
@@ -144,31 +147,11 @@ mrb_num_div_int(mrb_state *mrb, mrb_int x, mrb_int y)
 static mrb_value
 int_div(mrb_state *mrb, mrb_value xv)
 {
-#ifndef MRB_NO_FLOAT
-  mrb_value yv;
+  mrb_int y, div;
 
-  mrb_get_args(mrb, "o", &yv);
-  if (mrb_float_p(yv)) {
-    double d = mrb_integer(xv)/mrb_float(yv);
-#ifdef MRB_INT32
-    if (MRB_INT_MIN <= d && d <= MRB_INT_MAX)
-      return mrb_int_value(mrb, (mrb_int)d);
-    return mrb_float_value(mrb, d);
-#else
-    return mrb_int_value(mrb, (mrb_int)d);
-#endif
-  }
-  else
-#endif
-  {
-    mrb_int y;
-
-    mrb_get_args(mrb, "i", &y);
-    if (y == 0) {
-      mrb_raise(mrb, E_ZERODIV_ERROR, "devided by zero");
-    }
-    return mrb_int_value(mrb, mrb_integer(xv) / y);
-  }
+  mrb_get_args(mrb, "i", &y);
+  div = mrb_num_div_int(mrb, mrb_integer(xv), y);
+  return mrb_int_value(mrb, div);
 }
 
 /* 15.2.9.3.19(x) */
@@ -187,14 +170,11 @@ int_quo(mrb_state *mrb, mrb_value xv)
 
   mrb_get_args(mrb, "i", &y);
   if (y == 0) {
-    mrb_raise(mrb, E_ZERODIV_ERROR, "devided by zero");
+    int_zerodiv(mrb);
   }
   return mrb_fixnum_value(mrb_fixnum(xv) / y);
 #else
-  mrb_float y;
-
-  mrb_get_args(mrb, "f", &y);
-  return mrb_float_value(mrb, (mrb_float)mrb_integer(xv) / y);
+  return int_div(mrb, xv);
 #endif
 }
 
@@ -233,19 +213,13 @@ flo_pow(mrb_state *mrb, mrb_value x)
 }
 
 static mrb_value
-flo_idiv(mrb_state *mrb, mrb_value x)
+flo_idiv(mrb_state *mrb, mrb_value xv)
 {
-  mrb_float y;
+  mrb_int y, div;
 
-  mrb_get_args(mrb, "f", &y);
-  y = mrb_to_flo(mrb, x) / y;
-#ifdef MRB_INT32
-  if (MRB_INT_MIN <= y && y <= MRB_INT_MAX)
-    return mrb_int_value(mrb, (mrb_int)y);
-  return mrb_float_value(mrb, y);
-#else
-  return mrb_int_value(mrb, (mrb_int)y);
-#endif
+  mrb_get_args(mrb, "i", &y);
+  div = mrb_num_div_int(mrb, (mrb_int)mrb_float(xv), y);
+  return mrb_int_value(mrb, (mrb_int)div);
 }
 
 mrb_float
@@ -963,29 +937,23 @@ int_mul(mrb_state *mrb, mrb_value x)
 static void
 fixdivmod(mrb_state *mrb, mrb_int x, mrb_int y, mrb_int *divp, mrb_int *modp)
 {
-  mrb_int div, mod;
-
-  /* TODO: add mrb_assert(y != 0) to make sure */
-
-  if (y < 0) {
-    if (x < 0)
-      div = -x / -y;
-    else
-      div = - (x / -y);
+  if (y == 0) {
+    int_zerodiv(mrb);
+  }
+  else if(x == MRB_INT_MIN && y == -1) {
+    int_overflow(mrb, "division");
   }
   else {
-    if (x < 0)
-      div = - (-x / y);
-    else
-      div = x / y;
+    mrb_int div = x / y;
+    mrb_int mod = x - div * y;
+
+    if ((x ^ y) < 0 && x != div * y) {
+      mod += y;
+      div -= 1;
+    }
+    if (divp) *divp = div;
+    if (modp) *modp = mod;
   }
-  mod = x - div*y;
-  if ((mod < 0 && y > 0) || (mod > 0 && y < 0)) {
-    mod += y;
-    div -= 1;
-  }
-  if (divp) *divp = div;
-  if (modp) *modp = mod;
 }
 
 /* 15.2.8.3.5  */
@@ -1008,9 +976,6 @@ int_mod(mrb_state *mrb, mrb_value x)
   if (mrb_integer_p(y) && a != MRB_INT_MIN && (b=mrb_integer(y)) != MRB_INT_MIN) {
     mrb_int mod;
 
-    if (b == 0) {
-      mrb_raise(mrb, E_ZERODIV_ERROR, "divided by 0");
-    }
     fixdivmod(mrb, a, b, NULL, &mod);
     return mrb_fixnum_value(mod);
   }
@@ -1040,9 +1005,6 @@ int_divmod(mrb_state *mrb, mrb_value x)
   if (mrb_integer_p(y)) {
     mrb_int div, mod;
 
-    if (mrb_integer(y) == 0) {
-      mrb_raise(mrb, E_ZERODIV_ERROR, "divided by 0");
-    }
     fixdivmod(mrb, mrb_integer(x), mrb_integer(y), &div, &mod);
     return mrb_assoc_new(mrb, mrb_int_value(mrb, div), mrb_int_value(mrb, mod));
   }
