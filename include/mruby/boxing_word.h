@@ -131,7 +131,7 @@ mrb_integer_func(mrb_value o) {
 #else
 #define mrb_symbol(o)  BOXWORD_SHIFT_VALUE(o, SYMBOL, mrb_sym)
 #endif
-#define mrb_bool(o)    (((o).w & ~(unsigned long)MRB_Qfalse) != 0)
+#define mrb_bool(o)    (((o).w & ~(uintptr_t)MRB_Qfalse) != 0)
 
 #define mrb_fixnum_p(o) BOXWORD_SHIFT_VALUE_P(o, FIXNUM)
 #define mrb_integer_p(o) (BOXWORD_SHIFT_VALUE_P(o, FIXNUM)||BOXWORD_OBJ_TYPE_P(o, INTEGER))
