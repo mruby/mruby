@@ -118,23 +118,12 @@ mrb_num_div_int(mrb_state *mrb, mrb_int x, mrb_int y)
     int_overflow(mrb, "division");
   }
   else {
-    mrb_int div, mod;
+    mrb_int div = x / y;
 
-    if (y < 0) {
-      if (x < 0)
-        div = -x / -y;
-      else
-        div = - (x / -y);
-    }
-    else {
-      if (x < 0)
-        div = - (-x / y);
-      else
-        div = x / y;
-    }
-    mod = x - div * y;
-    if ((mod < 0 && y > 0) || (mod > 0 && y < 0)) {
-      div -= 1;
+    if (div < 0) {
+      if (x != div * y) {
+        div -= 1;
+      }
     }
     return div;
   }
