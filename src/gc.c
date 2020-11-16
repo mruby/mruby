@@ -780,21 +780,6 @@ obj_free(mrb_state *mrb, struct RBasic *obj, int end)
 {
   DEBUG(fprintf(stderr, "obj_free(%p,tt=%d)\n",obj,obj->tt));
   switch (obj->tt) {
-    /* immediate - no mark */
-  case MRB_TT_TRUE:
-  case MRB_TT_SYMBOL:
-    /* cannot happen */
-    return;
-
-#ifndef MRB_NO_FLOAT
-  case MRB_TT_FLOAT:
-#ifdef MRB_WORD_BOXING
-    break;
-#else
-    return;
-#endif
-#endif
-
   case MRB_TT_OBJECT:
     mrb_gc_free_iv(mrb, (struct RObject*)obj);
     break;
