@@ -98,8 +98,8 @@ MRuby.each_target do |target|
       end
     end
 
+    cfiles += Dir.glob(gem.dir+"/{src,core}/*.c")
     if gem.cdump?
-      cfiles += Dir.glob(gem.dir+"/{src,core}/*.c")
       rbfiles += Dir.glob(gem.dir+"/mrblib/**/*.rb")
       psfiles += Dir.glob(gem.dir+"/**/presym")
     end
@@ -176,6 +176,8 @@ file presym_file => cfiles+rbfiles+psfiles+[__FILE__] do
        macro_to_symbol[[prefix, suffix]] * name
      }]
   end
+  csymbols += File.readlines("#{MRUBY_ROOT}/include/mruby.h").grep(/define E_/).join.scan(/MRB_SYM\((\w+)\)/)
+  
   rbsymbols = rbfiles.map do |f|
     src = File.read(f)
     src.force_encoding(Encoding::BINARY)
