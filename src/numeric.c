@@ -610,7 +610,9 @@ flo_shift(mrb_state *mrb, mrb_value x, mrb_int width)
       val *= 2;
     }
   }
-  return mrb_int_value(mrb, (mrb_int)val);
+  if (FIXABLE_FLOAT(val))
+    return mrb_int_value(mrb, (mrb_int)val);
+  return mrb_float_value(mrb, val);
 }
 
 static mrb_value
