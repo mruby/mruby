@@ -236,6 +236,9 @@ rational_m_int(mrb_state *mrb, mrb_int n, mrb_int d)
     b = a % b;
     a = tmp;
   }
+  if ((n == MRB_INT_MIN || d == MRB_INT_MIN) && a == -1) {
+    mrb_raise(mrb, E_RANGE_ERROR, "integer overflow in rational");
+  }
   return rational_new(mrb, n/a, d/a);
 }
 
