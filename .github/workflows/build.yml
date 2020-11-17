@@ -67,6 +67,7 @@ jobs:
     runs-on: windows-latest
     env:
       MRUBY_CONFIG: travis
+      ACTIONS_ALLOW_UNSECURE_COMMANDS: true
     steps:
     - uses: actions/checkout@v1
     - uses: actions/cache@v1
