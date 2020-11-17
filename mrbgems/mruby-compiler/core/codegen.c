@@ -1361,34 +1361,6 @@ raise_error(codegen_scope *s, const char *msg)
   genop_1(s, OP_ERR, idx);
 }
 
-#ifndef MRB_NO_FLOAT
-static double
-readint_float(codegen_scope *s, const char *p, int base)
-{
-  const char *e = p + strlen(p);
-  double f = 0;
-  int n;
-
-  if (*p == '+') p++;
-  while (p < e) {
-    char c = *p;
-    c = tolower((unsigned char)c);
-    for (n=0; n<base; n++) {
-      if (mrb_digitmap[n] == c) {
-        f *= base;
-        f += n;
-        break;
-      }
-    }
-    if (n == base) {
-      codegen_error(s, "malformed readint input");
-    }
-    p++;
-  }
-  return f;
-}
-#endif
-
 static mrb_int
 readint_mrb_int(codegen_scope *s, const char *p, int base, mrb_bool neg, mrb_bool *overflow)
 {
@@ -2473,16 +2445,10 @@ codegen(codegen_scope *s, node *tree, int val)
       mrb_bool overflow;
 
       i = readint_mrb_int(s, p, base, FALSE, &overflow);
-#ifndef MRB_NO_FLOAT
       if (overflow) {
-        double f = readint_float(s, p, base);
-        int off = new_lit(s, mrb_float_value(s->mrb, f));
-
-        genop_bs(s, OP_LOADL, cursp(), off);
+        codegen_error(s, "integer overflow");
       }
-      else
-#endif
-      {
+      else {
         if (i < 0) {
           if (i == -1) genop_1(s, OP_LOADI__1, cursp());
           else if (i >= -0xff) genop_2(s, OP_LOADINEG, cursp(), (uint16_t)-i); 
@@ -2544,15 +2510,10 @@ codegen(codegen_scope *s, node *tree, int val)
           mrb_bool overflow;
 
           i = readint_mrb_int(s, p, base, TRUE, &overflow);
-#ifndef MRB_NO_FLOAT
           if (overflow) {
-            double f = readint_float(s, p, base);
-            int off = new_lit(s, mrb_float_value(s->mrb, -f));
-
-            genop_bs(s, OP_LOADL, cursp(), off);
+            codegen_error(s, "integer overflow");
           }
           else {
-#endif
             if (i == -1) genop_1(s, OP_LOADI__1, cursp());
             else if (i >= -0xff) {
               genop_2(s, OP_LOADINEG, cursp(), (uint16_t)-i);
@@ -2567,9 +2528,7 @@ codegen(codegen_scope *s, node *tree, int val)
               int off = new_lit(s, mrb_int_value(s->mrb, i));
               genop_bs(s, OP_LOADL, cursp(), off);
             }
-#ifndef MRB_NO_FLOAT
           }
-#endif
           push();
         }
         break;
