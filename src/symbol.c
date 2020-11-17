@@ -94,7 +94,7 @@ static const char pack_table[] = "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRS
 static mrb_sym
 sym_inline_pack(const char *name, size_t len)
 {
-  const size_t pack_length_max   = (MRB_SYMBOL_BIT - 2) / 6;
+  const size_t pack_length_max = (MRB_SYMBOL_BIT - 2) / 6;
 
   char c;
   const char *p;

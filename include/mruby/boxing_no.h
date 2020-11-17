@@ -9,6 +9,8 @@
 
 #define MRB_FIXNUM_SHIFT 0
 #define MRB_SYMBOL_SHIFT 0
+#define MRB_FIXNUM_MIN MRB_INT_MIN
+#define MRB_FIXNUM_MAX MRB_INT_MAX
 
 union mrb_value_union {
 #ifndef MRB_NO_FLOAT

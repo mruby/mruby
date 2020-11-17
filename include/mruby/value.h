@@ -69,14 +69,6 @@ struct mrb_state;
 # define MRB_PRIx PRIx32
 #endif
 
-#if defined(MRB_64BIT) && defined(MRB_INT64)
-# define MRB_FIXNUM_MIN (INT64_MIN>>MRB_FIXNUM_SHIFT)
-# define MRB_FIXNUM_MAX (INT64_MAX>>MRB_FIXNUM_SHIFT)
-#else
-# define MRB_FIXNUM_MIN (INT32_MIN>>MRB_FIXNUM_SHIFT)
-# define MRB_FIXNUM_MAX (INT32_MAX>>MRB_FIXNUM_SHIFT)
-#endif
-
 #ifdef MRB_ENDIAN_BIG
 # define MRB_ENDIAN_LOHI(a,b) a b
 #else
@@ -175,15 +167,6 @@ struct RCptr {
 #endif
 
 #define MRB_SYMBOL_BIT (sizeof(mrb_sym) * CHAR_BIT - MRB_SYMBOL_SHIFT)
-#define MRB_SYMBOL_MAX (UINT32_MAX >> MRB_SYMBOL_SHIFT)
-
-#if INTPTR_MAX < MRB_INT_MAX
-  typedef intptr_t mrb_ssize;
-# define MRB_SSIZE_MAX (INTPTR_MAX>>MRB_FIXNUM_SHIFT)
-#else
-  typedef mrb_int mrb_ssize;
-# define MRB_SSIZE_MAX MRB_INT_MAX
-#endif
 
 #ifndef mrb_immediate_p
 #define mrb_immediate_p(o) (mrb_type(o) < MRB_TT_FREE)
