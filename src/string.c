@@ -2378,7 +2378,7 @@ mrb_str_len_to_inum(mrb_state *mrb, const char *str, size_t len, mrb_int base, i
     if (p<pend) goto bad;               /* trailing garbage */
   }
 
-  return mrb_fixnum_value(sign ? val : -val);
+  return mrb_int_value(mrb, sign ? val : -val);
  nullbyte:
   mrb_raise(mrb, E_ARGUMENT_ERROR, "string contains null byte");
   /* not reached */
