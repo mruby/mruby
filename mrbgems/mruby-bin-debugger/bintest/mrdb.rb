@@ -63,10 +63,7 @@ assert('mruby-bin-debugger(mrdb) command line') do
   # ruby source
   src = "foo = 'foo'\n"
 
-  str = ""
-  103.times {
-    str += "1234567890"
-  }
+  str = ":#{'abcdefghij' * 103}"
   cmd = "p a=#{str}"
 
   # test case
