@@ -773,8 +773,10 @@ lv_defined_p(const mrb_irep *irep)
 
   if (irep->lv) { return TRUE; }
 
-  for (i = 0; i < irep->rlen; ++i) {
-    if (lv_defined_p(irep->reps[i])) { return TRUE; }
+  if (irep->reps) {
+    for (i = 0; i < irep->rlen; ++i) {
+      if (lv_defined_p(irep->reps[i])) { return TRUE; }
+    }
   }
 
   return FALSE;
