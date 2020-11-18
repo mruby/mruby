@@ -307,8 +307,10 @@ get_irep_record_size(mrb_state *mrb, const mrb_irep *irep)
   int irep_no;
 
   size = get_irep_record_size_1(mrb, irep);
-  for (irep_no = 0; irep_no < irep->rlen; irep_no++) {
-    size += get_irep_record_size(mrb, irep->reps[irep_no]);
+  if (irep->reps) {
+    for (irep_no = 0; irep_no < irep->rlen; irep_no++) {
+      size += get_irep_record_size(mrb, irep->reps[irep_no]);
+    }
   }
   return size;
 }
