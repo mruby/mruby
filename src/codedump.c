@@ -545,8 +545,10 @@ codedump_recur(mrb_state *mrb, const mrb_irep *irep)
   int i;
 
   codedump(mrb, irep);
-  for (i=0; i<irep->rlen; i++) {
-    codedump_recur(mrb, irep->reps[i]);
+  if (irep->reps) {
+    for (i=0; i<irep->rlen; i++) {
+      codedump_recur(mrb, irep->reps[i]);
+    }
   }
 }
 #endif
