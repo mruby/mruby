@@ -29,8 +29,8 @@
  *
  * [HT]
  *   Hash Table Implementation. The structure of `Hash` that has IB and is
- *   searched by hash table algorithm. It is used when `Hash` > 16. Collision
- *   resolution strategy is open addressing method.
+ *   searched by hash table algorithm. It is used when `Hash` size > 16.
+ *   Collision resolution strategy is open addressing method.
  *
  * [size]
  *   The number of `Hash` entries (value of `Hash#size`).
@@ -1522,8 +1522,8 @@ mrb_hash_size(mrb_state *mrb, mrb_value hash)
 /* 15.2.13.4.25 */
 /*
  *  call-seq:
- *     hsh.length    ->  fixnum
- *     hsh.size      ->  fixnum
+ *     hsh.length    ->  integer
+ *     hsh.size      ->  integer
  *
  *  Returns the number of key-value pairs in the hash.
  *
@@ -1536,7 +1536,7 @@ static mrb_value
 mrb_hash_size_m(mrb_state *mrb, mrb_value self)
 {
   mrb_int size = mrb_hash_size(mrb, self);
-  return mrb_fixnum_value(size);
+  return mrb_int_value(mrb, size);
 }
 
 MRB_API mrb_bool
