@@ -104,7 +104,7 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
     {0, 0}
   };
   const struct RProc *proc = mrb_proc_ptr(self);
-  const struct mrb_irep *irep = proc->body.irep;
+  const struct mrb_irep *irep;
   mrb_aspec aspec;
   mrb_value parameters;
   mrb_value krest = mrb_nil_value();
@@ -116,6 +116,7 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
     // TODO cfunc aspec is not implemented yet
     return mrb_ary_new(mrb);
   }
+  irep = proc->body.irep;
   if (!irep) {
     return mrb_ary_new(mrb);
   }
