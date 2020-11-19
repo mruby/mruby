@@ -13,7 +13,7 @@ class BinTest_MrubyBinDebugger
     script.flush
 
     # compile
-    `./bin/mrbc -g -o "#{bin.path}" "#{script.path}"`
+    `#{cmd("mrbc")} -g -o "#{bin.path}" "#{script.path}"`
 
     # add mrdb quit
     testcase << {:cmd=>"quit"}
@@ -21,7 +21,7 @@ class BinTest_MrubyBinDebugger
     stdin_data = testcase.map{|t| t[:cmd]}.join("\n") << "\n"
 
     prompt = /^\(#{Regexp.escape(script.path)}:\d+\) /
-    ["bin/mrdb #{script.path}","bin/mrdb -b #{bin.path}"].each do |cmd|
+    ["#{cmd('mrdb')} #{script.path}", "#{cmd('mrdb')} -b #{bin.path}"].each do |cmd|
       o, s = Open3.capture2(cmd, :stdin_data => stdin_data)
       scanner = StringScanner.new(o)
       scanner.skip_until(prompt)
