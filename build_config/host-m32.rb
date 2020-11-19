@@ -9,7 +9,7 @@ MRuby::Build.new do |conf|
   conf.linker.flags << '-m32'
 
   # Turn on `enable_debug` for better debugging
-  enable_debug
+  conf.enable_debug
   conf.enable_test
   conf.enable_bintest
 end
