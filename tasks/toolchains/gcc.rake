@@ -10,7 +10,7 @@ MRuby::Toolchain.new(:gcc) do |conf, params|
       compiler.flags = [ENV['CXXFLAGS'] || ENV['CFLAGS'] || compiler_flags]
     else
       compiler.command = ENV['CC'] || default_command
-      compiler.flags = [c_mandatory_flags, ENV['CFLAGS'] || [compiler_flags, cxx_invalid_flags, %w(-Wwrite-strings)]]
+      compiler.flags = [c_mandatory_flags, ENV['CFLAGS'] || [compiler_flags, cxx_invalid_flags, %w(-Wwrite-strings)]].flatten
     end
     compiler.option_include_path = %q[-I"%s"]
     compiler.option_define = '-D%s'
