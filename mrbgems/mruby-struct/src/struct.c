@@ -123,29 +123,15 @@ mrb_struct_ref(mrb_state *mrb, mrb_value obj)
 static mrb_sym
 mrb_id_attrset(mrb_state *mrb, mrb_sym id)
 {
-#define ONSTACK_ALLOC_MAX 32
-#define ONSTACK_STRLEN_MAX (ONSTACK_ALLOC_MAX - 1) /* '=' character */
-
-  const char *name;
-  char *buf;
   mrb_int len;
   mrb_sym mid;
-  char onstack[ONSTACK_ALLOC_MAX];
+  const char *name = mrb_sym_name_len(mrb, id, &len);
+  MRB_ALLOCV(mrb, char, buf, len+1);
 
-  name = mrb_sym_name_len(mrb, id, &len);
-  if (len > ONSTACK_STRLEN_MAX) {
-    buf = (char *)mrb_malloc(mrb, (size_t)len+1);
-  }
-  else {
-    buf = onstack;
-  }
   memcpy(buf, name, (size_t)len);
   buf[len] = '=';
 
   mid = mrb_intern(mrb, buf, len+1);
-  if (buf != onstack) {
-    mrb_free(mrb, buf);
-  }
   return mid;
 }
 
