@@ -4,12 +4,11 @@ require 'test/assert.rb'
 GEMNAME = ""
 
 def cmd(s)
-  case RbConfig::CONFIG['host_os']
-  when /mswin(?!ce)|mingw|bccwin/
-    "bin\\#{s}.exe"
-  else
-    "bin/#{s}"
+  path = "#{ENV['BUILD_DIR']}/bin/#{s}"
+  if /mswin(?!ce)|mingw|bccwin/ =~ RbConfig::CONFIG['host_os']
+    path = "#{path}.exe".tr("/", "\\")
   end
+  path
 end
 
 def shellquote(s)

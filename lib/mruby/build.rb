@@ -206,7 +206,6 @@ EOS
     end
 
     def enable_bintest
-      raise "bintest works only on 'host' target" unless name == "host"
       @enable_bintest = true
     end
 
@@ -339,7 +338,8 @@ EOS
       puts ">>> Bintest #{name} <<<"
       targets = @gems.select { |v| File.directory? "#{v.dir}/bintest" }.map { |v| filename v.dir }
       targets << filename(".") if File.directory? "./bintest"
-      sh "ruby test/bintest.rb#{verbose_flag} #{targets.join ' '}"
+      env = {"BUILD_DIR" => @build_dir}
+      sh env, "ruby test/bintest.rb#{verbose_flag} #{targets.join ' '}"
     end
 
     def print_build_summary
