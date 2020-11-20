@@ -10,7 +10,7 @@ Rake.verbose(false) if Rake.verbose == Rake::DSL::DEFAULT
 $LOAD_PATH << File.join(MRUBY_ROOT, "lib")
 
 # load build systems
-require "mruby-core-ext"
+require "mruby/core_ext"
 require "mruby/build"
 
 # load configuration file

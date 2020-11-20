@@ -1,4 +1,4 @@
-require "mruby-core-ext"
+require "mruby/core_ext"
 require "mruby/build/load_gems"
 require "mruby/build/command"
 
