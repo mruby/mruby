@@ -1590,7 +1590,10 @@ RETRY_TRY_BLOCK:
         mrb_exc_set(mrb, exc);
         goto L_RAISE;
       }
-      if (target_class->tt == MRB_TT_MODULE) {
+      if (target_class->flags & MRB_FL_CLASS_IS_PREPENDED) {
+        target_class = ci->target_class;
+      }
+      else if (target_class->tt == MRB_TT_MODULE) {
         target_class = ci->target_class;
         if (target_class->tt != MRB_TT_ICLASS) {
           mrb_value exc = mrb_exc_new_lit(mrb, E_RUNTIME_ERROR, "superclass info lost [mruby limitations]");
