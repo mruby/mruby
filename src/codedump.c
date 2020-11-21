@@ -6,7 +6,7 @@
 #include <mruby/proc.h>
 #include <mruby/dump.h>
 
-#ifndef MRB_DISABLE_STDIO
+#ifndef MRB_NO_STDIO
 static void
 print_r(mrb_state *mrb, const mrb_irep *irep, size_t n)
 {
@@ -556,7 +556,7 @@ codedump_recur(mrb_state *mrb, const mrb_irep *irep)
 void
 mrb_codedump_all(mrb_state *mrb, struct RProc *proc)
 {
-#ifndef MRB_DISABLE_STDIO
+#ifndef MRB_NO_STDIO
   codedump_recur(mrb, proc->body.irep);
 #endif
 }

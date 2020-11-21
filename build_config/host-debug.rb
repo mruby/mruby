@@ -14,7 +14,7 @@ MRuby::Build.new('host') do |conf|
   conf.gembox 'full-core'
 
   # C compiler settings
-  conf.cc.defines = %w(MRB_ENABLE_DEBUG_HOOK MRB_NO_BOXING)
+  conf.cc.defines = %w(MRB_USE_DEBUG_HOOK MRB_NO_BOXING)
 
   # Generate mruby debugger command (require mruby-eval)
   conf.gem :core => "mruby-bin-debugger"

@@ -7,13 +7,13 @@
 #ifndef MRB_THROW_H
 #define MRB_THROW_H
 
-#if defined(MRB_ENABLE_CXX_ABI)
+#if defined(MRB_USE_CXX_ABI)
 # if !defined(__cplusplus)
 #  error Trying to use C++ exception handling in C code
 # endif
 #endif
 
-#if defined(MRB_ENABLE_CXX_EXCEPTION)
+#if defined(MRB_USE_CXX_EXCEPTION)
 
 # if defined(__cplusplus)
 
@@ -52,7 +52,7 @@ typedef mrb_int mrb_jmpbuf_impl;
 struct mrb_jmpbuf {
   mrb_jmpbuf_impl impl;
 
-#if defined(MRB_ENABLE_CXX_EXCEPTION)
+#if defined(MRB_USE_CXX_EXCEPTION)
   static mrb_int jmpbuf_id;
 # if defined(__cplusplus)
   mrb_jmpbuf() : impl(jmpbuf_id++) {}

@@ -10,7 +10,7 @@
 #include <mruby/error.h>
 #include <string.h>
 
-#ifndef MRB_DISABLE_STDIO
+#ifndef MRB_NO_STDIO
 static void
 printcstr(const char *str, size_t len, FILE *stream)
 {

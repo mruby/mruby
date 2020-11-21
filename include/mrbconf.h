@@ -148,26 +148,36 @@
 /* fixed size state atexit stack */
 //#define MRB_FIXED_STATE_ATEXIT_STACK
 
-/* -DMRB_DISABLE_XXXX to drop following features */
-//#define MRB_DISABLE_STDIO /* use of stdio */
+/* -DMRB_NO_XXXX to drop following features */
+//#define MRB_NO_STDIO /* use of stdio */
 
-/* -DMRB_ENABLE_XXXX to enable following features */
-//#define MRB_ENABLE_DEBUG_HOOK /* hooks for debugger */
-//#define MRB_ENABLE_ALL_SYMBOLS /* Symbols.all_symbols */
+/* -DMRB_USE_XXXX to enable following features */
+//#define MRB_USE_DEBUG_HOOK /* hooks for debugger */
+//#define MRB_USE_ALL_SYMBOLS /* Symbols.all_symbols */
+
+/* obsolete configurations */
+#if defined(DISABLE_STDIO) || defined(MRB_DISABLE_STDIO)
+# define MRB_NO_STDIO
+#endif
+#ifdef MRB_DISABLE_DIRECT_THREADING
+# define MRB_NO_DIRECT_THREADING
+#endif
+#if defined(ENABLE_DEBUG) || defined(MRB_ENABLE_DEBUG_HOOK)
+# define MRB_USE_DEBUG_HOOK
+#endif
+#ifdef MRB_ENABLE_ALL_SYMBOLS
+# define MRB_USE_ALL_SYMBOLS
+#endif
+#ifdef MRB_ENABLE_CXX_ABI
+# define MRB_USE_CXX_ABI
+#endif
+#ifdef MRB_ENABLE_CXX_EXCEPTION
+# define MRB_USE_CXX_EXCEPTION
+#endif
 
 /* end of configuration */
 
-/* define MRB_DISABLE_XXXX from DISABLE_XXX (for compatibility) */
-#ifdef DISABLE_STDIO
-#define MRB_DISABLE_STDIO
-#endif
-
-/* define MRB_ENABLE_XXXX from ENABLE_XXX (for compatibility) */
-#ifdef ENABLE_DEBUG
-#define MRB_ENABLE_DEBUG_HOOK
-#endif
-
-#ifndef MRB_DISABLE_STDIO
+#ifndef MRB_NO_STDIO
 # include <stdio.h>
 #endif
 

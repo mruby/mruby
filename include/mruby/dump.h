@@ -19,7 +19,7 @@ MRB_BEGIN_DECL
 #define DUMP_DEBUG_INFO 1
 
 int mrb_dump_irep(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, uint8_t **bin, size_t *bin_size);
-#ifndef MRB_DISABLE_STDIO
+#ifndef MRB_NO_STDIO
 int mrb_dump_irep_binary(mrb_state*, const mrb_irep*, uint8_t, FILE*);
 int mrb_dump_irep_cfunc(mrb_state *mrb, const mrb_irep*, uint8_t flags, FILE *f, const char *initname);
 int mrb_dump_irep_cstruct(mrb_state *mrb, const mrb_irep*, uint8_t flags, FILE *f, const char *initname);

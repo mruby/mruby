@@ -69,7 +69,7 @@ typedef struct symbol_name {
   const char *name;
 } symbol_name;
 
-#ifdef MRB_ENABLE_ALL_SYMBOLS
+#ifdef MRB_USE_ALL_SYMBOLS
 #define SYMBOL_SHIFT         0
 # define SYMBOL_INLINE_P(sym) FALSE
 # define sym_inline_pack(name, len) 0
@@ -88,7 +88,7 @@ sym_validate_len(mrb_state *mrb, size_t len)
   }
 }
 
-#ifndef MRB_ENABLE_ALL_SYMBOLS
+#ifndef MRB_USE_ALL_SYMBOLS
 static const char pack_table[] = "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
 static mrb_sym

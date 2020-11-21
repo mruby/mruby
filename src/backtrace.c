@@ -74,7 +74,7 @@ each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, const mrb_code *pc0, each_backtr
   }
 }
 
-#ifndef MRB_DISABLE_STDIO
+#ifndef MRB_NO_STDIO
 
 static void
 print_backtrace(mrb_state *mrb, struct RObject *exc, mrb_value backtrace)

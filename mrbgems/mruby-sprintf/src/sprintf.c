@@ -533,7 +533,7 @@ mrb_f_sprintf(mrb_state *mrb, mrb_value obj)
 static int
 mrb_int2str(char *buf, size_t len, mrb_int n)
 {
-#ifdef MRB_DISABLE_STDIO
+#ifdef MRB_NO_STDIO
   char *bufend = buf + len;
   char *p = bufend - 1;
 
@@ -571,7 +571,7 @@ mrb_int2str(char *buf, size_t len, mrb_int n)
   return bufend - p - 1;
 #else
   return snprintf(buf, len, "%" MRB_PRId, n);
-#endif /* MRB_DISABLE_STDIO */
+#endif /* MRB_NO_STDIO */
 }
 
 mrb_value

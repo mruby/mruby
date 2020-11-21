@@ -4,7 +4,7 @@ MRuby::Gem::Specification.new('mruby-bin-mirb') do |spec|
   spec.summary = 'mirb command'
 
   if spec.build.cc.search_header_path 'readline/readline.h'
-    spec.cc.defines << "ENABLE_READLINE"
+    spec.cc.defines << "MRB_USE_READLINE"
     if spec.build.cc.search_header_path 'termcap.h'
       if MRUBY_BUILD_HOST_IS_CYGWIN || MRUBY_BUILD_HOST_IS_OPENBSD
         if spec.build.cc.search_header_path 'termcap.h'
@@ -34,7 +34,7 @@ MRuby::Gem::Specification.new('mruby-bin-mirb') do |spec|
       end
     end
   elsif spec.build.cc.search_header_path 'linenoise.h'
-    spec.cc.defines << "ENABLE_LINENOISE"
+    spec.cc.defines << "MRB_USE_LINENOISE"
   end
 
   spec.bins = %w(mirb)

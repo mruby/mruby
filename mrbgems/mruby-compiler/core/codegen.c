@@ -129,7 +129,7 @@ codegen_error(codegen_scope *s, const char *message)
     mrb_pool_close(s->mpool);
     s = tmp;
   }
-#ifndef MRB_DISABLE_STDIO
+#ifndef MRB_NO_STDIO
   if (s->filename_sym && s->lineno) {
     const char *filename = mrb_sym_name_len(s->mrb, s->filename_sym, NULL);
     fprintf(stderr, "codegen error:%s:%d: %s\n", filename, s->lineno, message);
@@ -1232,7 +1232,7 @@ gen_assignment(codegen_scope *s, node *tree, int sp, int val)
     break;
 
   default:
-#ifndef MRB_DISABLE_STDIO
+#ifndef MRB_NO_STDIO
     fprintf(stderr, "unknown lhs %d\n", type);
 #endif
     break;

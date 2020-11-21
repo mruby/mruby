@@ -151,7 +151,7 @@ module MRuby
       end
       @cxx_exception_enabled = true
       compilers.each { |c|
-        c.defines += %w(MRB_ENABLE_CXX_EXCEPTION)
+        c.defines += %w(MRB_USE_CXX_EXCEPTION)
         c.flags << c.cxx_exception_flag
       }
       linker.command = cxx.command if toolchains.find { |v| v == 'gcc' }
@@ -171,7 +171,7 @@ module MRuby
         raise "cxx_exception already enabled"
       end
       compilers.each { |c|
-        c.defines += %w(MRB_ENABLE_CXX_EXCEPTION MRB_ENABLE_CXX_ABI)
+        c.defines += %w(MRB_USE_CXX_EXCEPTION MRB_USE_CXX_ABI)
         c.flags << c.cxx_compile_flag
         c.flags = c.flags.flatten - c.cxx_invalid_flags.flatten
       }
@@ -188,11 +188,11 @@ module MRuby
 #define __STDC_CONSTANT_MACROS
 #define __STDC_LIMIT_MACROS
 
-#ifndef MRB_ENABLE_CXX_ABI
+#ifndef MRB_USE_CXX_ABI
 extern "C" {
 #endif
 #include "#{File.absolute_path src}"
-#ifndef MRB_ENABLE_CXX_ABI
+#ifndef MRB_USE_CXX_ABI
 }
 #endif
 EOS
@@ -273,11 +273,11 @@ EOS
       use_mrdb = @gems.find{|g| g.name == "mruby-bin-debugger"}
       compilers.each do |compiler|
         if respond_to?(:enable_gems?) && enable_gems?
-          compiler.defines -= %w(DISABLE_GEMS)
+          compiler.defines -= %w(MRB_NO_GEMS)
         else
-          compiler.defines += %w(DISABLE_GEMS)
+          compiler.defines += %w(MRB_NO_GEMS)
         end
-        compiler.defines |= %w(MRB_ENABLE_DEBUG_HOOK) if use_mrdb
+        compiler.defines |= %w(MRB_USE_DEBUG_HOOK) if use_mrdb
         compiler.define_rules build_dir, File.expand_path(File.join(File.dirname(__FILE__), '..', '..'))
       end
     end

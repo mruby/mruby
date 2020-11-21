@@ -6,12 +6,12 @@
 #ifndef MRDBCONF_H
 #define MRDBCONF_H
 
-#ifndef MRB_ENABLE_DEBUG_HOOK
-# error mruby-bin-debugger need 'MRB_ENABLE_DEBUG_HOOK' in your build configuration
+#ifndef MRB_USE_DEBUG_HOOK
+# error mruby-bin-debugger need 'MRB_USE_DEBUG_HOOK' in your build configuration
 #endif
 
-#ifdef MRB_DISABLE_STDIO
-# error mruby-bin-debugger conflicts 'MRB_DISABLE_STDIO' in your build configuration
+#ifdef MRB_NO_STDIO
+# error mruby-bin-debugger conflicts 'MRB_NO_STDIO' in your build configuration
 #endif
 
 /* configuration options: */

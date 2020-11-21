@@ -11,7 +11,7 @@ You can use mrbconfs with following ways:
  changes `struct` layout and cause memory access error when C and other language(e.g., C++) is mixed.
 
 ## stdio setting.
-`MRB_DISABLE_STDIO`
+`MRB_NO_STDIO`
 * When defined `<stdio.h>` functions won't be used.
 * Some features will be disabled when this is enabled:
   * `mrb_irep` load/dump from/to file.
@@ -19,7 +19,7 @@ You can use mrbconfs with following ways:
   * Printing features in **src/print.c**.
 
 ## Debug macros.
-`MRB_ENABLE_DEBUG_HOOK`
+`MRB_USE_DEBUG_HOOK`
 * When defined code fetch hook and debug OP hook will be enabled.
 * When using any of the hook set function pointer `code_fetch_hook` and/or `debug_op_hook` of `mrb_state`.
 * Fetch hook will be called before any OP.
@@ -176,6 +176,6 @@ largest value of required alignment.
 * No `MRB_USE_METHOD_T_STRUCT` requires highest 2 bits of function pointers to be zero
 * Define this macro on machines that use higher bits of pointers
 
-`MRB_ENABLE_ALL_SYMBOLS`
+`MRB_USE_ALL_SYMBOLS`
 * Make it available `Symbols.all_symbols` in `mrbgems/mruby-symbol-ext`
 * Increase heap memory usage.

@@ -685,7 +685,7 @@ mrb_load_proc(mrb_state *mrb, const struct RProc *proc)
   return mrb_vm_run(mrb, proc, mrb_top_self(mrb), 0);
 }
 
-#ifndef MRB_DISABLE_STDIO
+#ifndef MRB_NO_STDIO
 
 mrb_irep*
 mrb_read_irep_file(mrb_state *mrb, FILE* fp)
@@ -732,4 +732,4 @@ mrb_load_irep_file(mrb_state *mrb, FILE* fp)
 {
   return mrb_load_irep_file_cxt(mrb, fp, NULL);
 }
-#endif /* MRB_DISABLE_STDIO */
+#endif /* MRB_NO_STDIO */

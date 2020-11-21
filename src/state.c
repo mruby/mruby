@@ -77,7 +77,7 @@ mrb_open(void)
   return mrb;
 }
 
-#ifndef DISABLE_GEMS
+#ifndef MRB_NO_GEMS
 static void
 init_mrbgems(mrb_state *mrb, void *opaque)
 {
@@ -94,7 +94,7 @@ mrb_open_allocf(mrb_allocf f, void *ud)
     return NULL;
   }
 
-#ifndef DISABLE_GEMS
+#ifndef MRB_NO_GEMS
   if (mrb_core_init_protect(mrb, init_mrbgems, NULL)) {
     mrb_close(mrb);
     return NULL;

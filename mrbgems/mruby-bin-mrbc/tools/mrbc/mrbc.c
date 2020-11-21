@@ -1,7 +1,7 @@
 #include <mruby.h>
 
-#ifdef MRB_DISABLE_STDIO
-# error mruby-bin-mrbc conflicts 'MRB_DISABLE_STDIO' in your build configuration
+#ifdef MRB_NO_STDIO
+# error mruby-bin-mrbc conflicts 'MRB_NO_STDIO' in your build configuration
 #endif
 
 #include <stdlib.h>
@@ -344,7 +344,7 @@ mrb_init_mrblib(mrb_state *mrb)
 {
 }
 
-#ifndef DISABLE_GEMS
+#ifndef MRB_NO_GEMS
 void
 mrb_init_mrbgems(mrb_state *mrb)
 {
