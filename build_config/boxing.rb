@@ -1,151 +1,21 @@
-MRuby::Build.new('boxing-no-m64-i64') do |conf|
-  toolchain :gcc
+BOXINGS = %w[no word nan]
+BITS = [64, 32]
+INTS = [64, 32]
 
-  conf.cc.flags << '-m64'
-  conf.linker.flags << '-m64'
+BOXINGS.product(BITS, INTS) do |boxing, bit, int|
+  next if boxing == "nan" && int == 64
 
-  conf.gembox 'default'
-  conf.compilers.each do |c|
-    c.defines += %w(MRB_NO_BOXING MRB_INT64)
+  MRuby::Build.new("boxing-#{boxing}-m#{bit}-i#{int}") do |conf|
+    conf.toolchain :gcc
+    conf.gembox 'default'
+    conf.compilers.each do |c|
+      c.defines << "MRB_#{boxing.upcase}_BOXING"
+      c.defines << "MRB_INT#{int}"
+      c.flags << "-m#{bit}"
+    end
+    conf.linker.flags << "-m#{bit}"
+    conf.enable_debug
+    conf.enable_test
+    conf.enable_bintest
   end
-  conf.enable_debug
-  conf.enable_test
-  conf.enable_bintest
-end
-
-MRuby::Build.new('boxing-no-m64-i32') do |conf|
-  toolchain :gcc
-
-  conf.cc.flags << '-m64'
-  conf.linker.flags << '-m64'
-
-  conf.gembox 'default'
-  conf.compilers.each do |c|
-    c.defines += %w(MRB_NO_BOXING MRB_INT32)
-  end
-  conf.enable_debug
-  conf.enable_test
-  conf.enable_bintest
-end
-
-MRuby::Build.new('boxing-no-m32-i64') do |conf|
-  toolchain :gcc
-
-  conf.cc.flags << '-m32'
-  conf.linker.flags << '-m32'
-
-  # Turn on `enable_debug` for better debugging
-  conf.gembox 'default'
-  conf.compilers.each do |c|
-    c.defines += %w(MRB_NO_BOXING MRB_INT64)
-  end
-  conf.enable_debug
-  conf.enable_test
-  conf.enable_bintest
-end
-
-MRuby::Build.new('boxing-no-m32-i32') do |conf|
-  toolchain :gcc
-
-  conf.cc.flags << '-m32'
-  conf.linker.flags << '-m32'
-
-  # Turn on `enable_debug` for better debugging
-  conf.gembox 'default'
-  conf.compilers.each do |c|
-    c.defines += %w(MRB_NO_BOXING MRB_INT32)
-  end
-  conf.enable_debug
-  conf.enable_test
-  conf.enable_bintest
-end
-
-MRuby::Build.new('boxing-word-m64-i64') do |conf|
-  toolchain :gcc
-
-  conf.cc.flags << '-m64'
-  conf.linker.flags << '-m64'
-
-  conf.gembox 'default'
-  conf.compilers.each do |c|
-    c.defines += %w(MRB_WORD_BOXING MRB_INT64)
-  end
-  conf.enable_debug
-  conf.enable_test
-  conf.enable_bintest
-end
-
-MRuby::Build.new('boxing-word-m64-i32') do |conf|
-  toolchain :gcc
-
-  conf.cc.flags << '-m64'
-  conf.linker.flags << '-m64'
-
-  conf.gembox 'default'
-  conf.compilers.each do |c|
-    c.defines += %w(MRB_WORD_BOXING MRB_INT32)
-  end
-  conf.enable_debug
-  conf.enable_test
-  conf.enable_bintest
-end
-
-MRuby::Build.new('boxing-word-m32-i64') do |conf|
-  toolchain :gcc
-
-  conf.cc.flags << '-m32'
-  conf.linker.flags << '-m32'
-
-  conf.gembox 'default'
-  conf.compilers.each do |c|
-    c.defines += %w(MRB_WORD_BOXING MRB_INT64)
-  end
-  conf.enable_debug
-  conf.enable_test
-  conf.enable_bintest
-end
-
-MRuby::Build.new('boxing-word-m32-i32') do |conf|
-  toolchain :gcc
-
-  conf.cc.flags << '-m32'
-  conf.linker.flags << '-m32'
-
-  conf.gembox 'default'
-  conf.compilers.each do |c|
-    c.defines += %w(MRB_WORD_BOXING MRB_INT32)
-  end
-  conf.enable_debug
-  conf.enable_test
-  conf.enable_bintest
-end
-
-MRuby::Build.new('boxing-nan-m64') do |conf|
-  toolchain :gcc
-
-  conf.cc.flags << '-m64'
-  conf.linker.flags << '-m64'
-
-  conf.gembox 'default'
-  conf.compilers.each do |c|
-    c.defines += %w(MRB_NAN_BOXING)
-  end
-  conf.enable_debug
-  conf.enable_test
-  conf.enable_bintest
-end
-
-MRuby::Build.new('boxing-nan-m64') do |conf|
-  toolchain :gcc
-
-  conf.cc.flags << '-m32'
-  conf.linker.flags << '-m32'
-
-  conf.gembox 'default'
-  conf.compilers.each do |c|
-    c.defines += %w(MRB_NAN_BOXING MRB_INT32)
-  end
-  conf.enable_debug
-  conf.enable_test
-  conf.enable_bintest
 end
