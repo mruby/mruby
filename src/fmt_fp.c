@@ -1,5 +1,5 @@
 #ifndef MRB_NO_FLOAT
-#if defined(MRB_DISABLE_STDIO) || defined(_WIN32) || defined(_WIN64)
+#if defined(MRB_NO_STDIO) || defined(_WIN32) || defined(_WIN64)
 /*
 
 Most code in this file originates from musl (src/stdio/vfprintf.c)
@@ -442,7 +442,7 @@ mrb_float_to_cstr(mrb_state *mrb, char *buf, size_t len, const char *fmt, mrb_fl
   *cstr.buf = '\0';
   return (int)(cstr.buf - buf);
 }
-#else   /* MRB_DISABLE_STDIO || _WIN32 || _WIN64 */
+#else   /* MRB_NO_STDIO || _WIN32 || _WIN64 */
 #include <mruby.h>
 #include <stdio.h>
 
@@ -460,5 +460,5 @@ mrb_float_to_cstr(mrb_state *mrb, char *buf, size_t len, const char *fmt, mrb_fl
 {
   return snprintf(buf, len, fmt, fval);
 }
-#endif  /* MRB_DISABLE_STDIO || _WIN32 || _WIN64 */
+#endif  /* MRB_NO_STDIO || _WIN32 || _WIN64 */
 #endif

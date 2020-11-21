@@ -3984,7 +3984,7 @@ yyerror(parser_state *p, const char *s)
   size_t n;
 
   if (! p->capture_errors) {
-#ifndef MRB_DISABLE_STDIO
+#ifndef MRB_NO_STDIO
     if (p->filename_sym) {
       const char *filename = mrb_sym_name_len(p->mrb, p->filename_sym, NULL);
       fprintf(stderr, "%s:%d:%d: %s\n", filename, p->lineno, p->column, s);
@@ -4023,7 +4023,7 @@ yywarn(parser_state *p, const char *s)
   size_t n;
 
   if (! p->capture_errors) {
-#ifndef MRB_DISABLE_STDIO
+#ifndef MRB_NO_STDIO
     if (p->filename_sym) {
       const char *filename = mrb_sym_name_len(p->mrb, p->filename_sym, NULL);
       fprintf(stderr, "%s:%d:%d: warning: %s\n", filename, p->lineno, p->column, s);
@@ -4128,7 +4128,7 @@ nextc0(parser_state *p)
     c = (unsigned char)*p->s++;
   }
   else {
-#ifndef MRB_DISABLE_STDIO
+#ifndef MRB_NO_STDIO
     if (p->f) {
       c = fgetc(p->f);
       if (feof(p->f)) return -1;
@@ -4232,7 +4232,7 @@ peeks(parser_state *p, const char *s)
 {
   size_t len = strlen(s);
 
-#ifndef MRB_DISABLE_STDIO
+#ifndef MRB_NO_STDIO
   if (p->f) {
     int n = 0;
     while (*s) {
@@ -6398,7 +6398,7 @@ mrb_parser_new(mrb_state *mrb)
   p->pool = pool;
 
   p->s = p->send = NULL;
-#ifndef MRB_DISABLE_STDIO
+#ifndef MRB_NO_STDIO
   p->f = NULL;
 #endif
 
@@ -6520,7 +6520,7 @@ mrb_parser_get_filename(struct mrb_parser_state* p, uint16_t idx) {
   }
 }
 
-#ifndef MRB_DISABLE_STDIO
+#ifndef MRB_NO_STDIO
 static struct mrb_parser_state *
 mrb_parse_file_continue(mrb_state *mrb, FILE *f, const void *prebuf, size_t prebufsize, mrbc_context *c)
 {
@@ -6625,7 +6625,7 @@ mrb_load_exec(mrb_state *mrb, struct mrb_parser_state *p, mrbc_context *c)
   return v;
 }
 
-#ifndef MRB_DISABLE_STDIO
+#ifndef MRB_NO_STDIO
 MRB_API mrb_value
 mrb_load_file_cxt(mrb_state *mrb, FILE *f, mrbc_context *c)
 {
@@ -6712,7 +6712,7 @@ mrb_load_string(mrb_state *mrb, const char *s)
   return mrb_load_string_cxt(mrb, s, NULL);
 }
 
-#ifndef MRB_DISABLE_STDIO
+#ifndef MRB_NO_STDIO
 
 static void
 dump_prefix(node *tree, int offset)
@@ -6802,7 +6802,7 @@ str_dump(mrb_state *mrb, const char *str, int len)
 void
 mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
 {
-#ifndef MRB_DISABLE_STDIO
+#ifndef MRB_NO_STDIO
   int nodetype;
 
   if (!tree) return;

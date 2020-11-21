@@ -18,7 +18,7 @@
  *                                     :Tms, :getwd, :$=, :ThreadGroup,
  *                                     :wait2, :$>]
  */
-#ifdef MRB_ENABLE_ALL_SYMBOLS
+#ifdef MRB_USE_ALL_SYMBOLS
 static mrb_value
 mrb_sym_all_symbols(mrb_state *mrb, mrb_value self)
 {
@@ -58,7 +58,7 @@ void
 mrb_mruby_symbol_ext_gem_init(mrb_state* mrb)
 {
   struct RClass *s = mrb->symbol_class;
-#ifdef MRB_ENABLE_ALL_SYMBOLS
+#ifdef MRB_USE_ALL_SYMBOLS
   mrb_define_class_method(mrb, s, "all_symbols", mrb_sym_all_symbols, MRB_ARGS_NONE());
 #endif
   mrb_define_method(mrb, s, "length", mrb_sym_length, MRB_ARGS_NONE());

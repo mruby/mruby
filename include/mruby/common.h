@@ -14,7 +14,7 @@
 #endif
 
 #ifdef __cplusplus
-#ifdef MRB_ENABLE_CXX_ABI
+#ifdef MRB_USE_CXX_ABI
 #define MRB_BEGIN_DECL
 #define MRB_END_DECL
 #else

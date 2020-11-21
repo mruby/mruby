@@ -8,8 +8,8 @@
 
 #include <mruby.h>
 
-#ifdef MRB_DISABLE_STDIO
-# error mruby-bin-mirb conflicts 'MRB_DISABLE_STDIO' in your build configuration
+#ifdef MRB_NO_STDIO
+# error mruby-bin-mirb conflicts 'MRB_NO_STDIO' in your build configuration
 #endif
 
 #include <mruby/array.h>
@@ -26,7 +26,18 @@
 #include <signal.h>
 #include <setjmp.h>
 
+/* obsolete configuration */
 #ifdef ENABLE_READLINE
+# define MRB_USE_READLINE
+#endif
+#ifdef ENABLE_LINENOISE
+# define MRB_USE_LINENOISE
+#endif
+#ifdef DISABLE_MIRB_UNDERSCORE
+# define MRB_NO_MIRB_UNDERSCORE
+#endif
+
+#ifdef MRB_USE_READLINE
 #include <readline/readline.h>
 #include <readline/history.h>
 #define MIRB_ADD_HISTORY(line) add_history(line)
@@ -40,8 +51,8 @@
 #define MIRB_WRITE_HISTORY(path) write_history(path)
 #define MIRB_READ_HISTORY(path) read_history(path)
 #define MIRB_USING_HISTORY() using_history()
-#elif defined(ENABLE_LINENOISE)
-#define ENABLE_READLINE
+#elif defined(MRB_USE_LINENOISE)
+#define MRB_USE_READLINE
 #include <linenoise.h>
 #define MIRB_ADD_HISTORY(line) linenoiseHistoryAdd(line)
 #define MIRB_READLINE(ch) linenoise(ch)
@@ -61,7 +72,7 @@
 #define SIGJMP_BUF jmp_buf
 #endif
 
-#ifdef ENABLE_READLINE
+#ifdef MRB_USE_READLINE
 
 static const char history_file_name[] = ".mirb_history";
 
@@ -352,7 +363,7 @@ print_hint(void)
   printf("mirb - Embeddable Interactive Ruby Shell\n\n");
 }
 
-#ifndef ENABLE_READLINE
+#ifndef MRB_USE_READLINE
 /* Print the command line prompt of the REPL */
 static void
 print_cmdline(int code_block_open)
@@ -393,7 +404,7 @@ check_keyword(const char *buf, const char *word)
 }
 
 
-#ifndef ENABLE_READLINE
+#ifndef MRB_USE_READLINE
 volatile sig_atomic_t input_canceled = 0;
 void
 ctrl_c_handler(int signo)
@@ -409,7 +420,7 @@ ctrl_c_handler(int signo)
 }
 #endif
 
-#ifndef DISABLE_MIRB_UNDERSCORE
+#ifndef MRB_NO_MIRB_UNDERSCORE
 void decl_lv_underscore(mrb_state *mrb, mrbc_context *cxt)
 {
   struct RProc *proc;
@@ -434,7 +445,7 @@ main(int argc, char **argv)
 {
   char ruby_code[4096] = { 0 };
   char last_code_line[1024] = { 0 };
-#ifndef ENABLE_READLINE
+#ifndef MRB_USE_READLINE
   int last_char;
   size_t char_index;
 #else
@@ -478,7 +489,7 @@ main(int argc, char **argv)
   mrb_define_global_const(mrb, "ARGV", ARGV);
   mrb_gv_set(mrb, mrb_intern_lit(mrb, "$DEBUG"), mrb_bool_value(args.debug));
 
-#ifdef ENABLE_READLINE
+#ifdef MRB_USE_READLINE
   history_path = get_history_path(mrb);
   if (history_path == NULL) {
     fputs("failed to get history path\n", stderr);
@@ -511,7 +522,7 @@ main(int argc, char **argv)
     mrbc_cleanup_local_variables(mrb, cxt);
   }
 
-#ifndef DISABLE_MIRB_UNDERSCORE
+#ifndef MRB_NO_MIRB_UNDERSCORE
   decl_lv_underscore(mrb, cxt);
 #endif
 
@@ -531,7 +542,7 @@ main(int argc, char **argv)
       break;
     }
 
-#ifndef ENABLE_READLINE
+#ifndef MRB_USE_READLINE
     print_cmdline(code_block_open);
 
     signal(SIGINT, ctrl_c_handler);
@@ -672,7 +683,7 @@ main(int argc, char **argv)
             result = mrb_any_to_s(mrb, result);
           }
           p(mrb, result, 1);
-#ifndef DISABLE_MIRB_UNDERSCORE
+#ifndef MRB_NO_MIRB_UNDERSCORE
           *(mrb->c->stack + 1) = result;
 #endif
         }
@@ -685,7 +696,7 @@ main(int argc, char **argv)
     cxt->lineno++;
   }
 
-#ifdef ENABLE_READLINE
+#ifdef MRB_USE_READLINE
   MIRB_WRITE_HISTORY(history_path);
   mrb_free(mrb, history_path);
 #endif

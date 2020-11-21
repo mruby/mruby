@@ -186,7 +186,7 @@ pack_l(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int fl
 static void
 u32tostr(char *buf, size_t len, uint32_t n)
 {
-#ifdef MRB_DISABLE_STDIO
+#ifdef MRB_NO_STDIO
   char *bufend = buf + len;
   char *p = bufend - 1;
 
@@ -211,13 +211,13 @@ u32tostr(char *buf, size_t len, uint32_t n)
   memmove(buf, p, bufend - p);
 #else
   snprintf(buf, len, "%" PRIu32, n);
-#endif /* MRB_DISABLE_STDIO */
+#endif /* MRB_NO_STDIO */
 }
 
 static void
 i32tostr(char *buf, size_t len, int32_t n)
 {
-#ifdef MRB_DISABLE_STDIO
+#ifdef MRB_NO_STDIO
   if (len < 1) {
     return;
   }
@@ -231,7 +231,7 @@ i32tostr(char *buf, size_t len, int32_t n)
   u32tostr(buf, len, (uint32_t)n);
 #else
   snprintf(buf, len, "%" PRId32, n);
-#endif /* MRB_DISABLE_STDIO */
+#endif /* MRB_NO_STDIO */
 }
 #endif /* MRB_INT64 */
 
@@ -309,7 +309,7 @@ pack_q(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int fl
 static void
 u64tostr(char *buf, size_t len, uint64_t n)
 {
-#ifdef MRB_DISABLE_STDIO
+#ifdef MRB_NO_STDIO
   char *bufend = buf + len;
   char *p = bufend - 1;
 
@@ -334,13 +334,13 @@ u64tostr(char *buf, size_t len, uint64_t n)
   memmove(buf, p, bufend - p);
 #else
   snprintf(buf, len, "%" PRIu64, n);
-#endif /* MRB_DISABLE_STDIO */
+#endif /* MRB_NO_STDIO */
 }
 
 static void
 i64tostr(char *buf, size_t len, int64_t n)
 {
-#ifdef MRB_DISABLE_STDIO
+#ifdef MRB_NO_STDIO
   if (len < 1) {
     return;
   }
@@ -354,7 +354,7 @@ i64tostr(char *buf, size_t len, int64_t n)
   u64tostr(buf, len, (uint64_t)n);
 #else
   snprintf(buf, len, "%" PRId64, n);
-#endif /* MRB_DISABLE_STDIO */
+#endif /* MRB_NO_STDIO */
 }
 
 static int

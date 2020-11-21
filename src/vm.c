@@ -25,7 +25,7 @@
 #include <mruby/throw.h>
 #include <mruby/dump.h>
 
-#ifdef MRB_DISABLE_STDIO
+#ifdef MRB_NO_STDIO
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -935,7 +935,7 @@ prepare_tagged_break(mrb_state *mrb, uint32_t tag, const struct RProc *proc, mrb
 
 #define ERR_PC_SET(mrb) mrb->c->ci->err = pc0;
 #define ERR_PC_CLR(mrb) mrb->c->ci->err = 0;
-#ifdef MRB_ENABLE_DEBUG_HOOK
+#ifdef MRB_USE_DEBUG_HOOK
 #define CODE_FETCH_HOOK(mrb, irep, pc, regs) if ((mrb)->code_fetch_hook) (mrb)->code_fetch_hook((mrb), (irep), (pc), (regs));
 #else
 #define CODE_FETCH_HOOK(mrb, irep, pc, regs)
@@ -947,11 +947,11 @@ prepare_tagged_break(mrb_state *mrb, uint32_t tag, const struct RProc *proc, mrb
 #define BYTECODE_DECODER(x) (x)
 #endif
 
-#ifndef MRB_DISABLE_DIRECT_THREADING
+#ifndef MRB_NO_DIRECT_THREADING
 #if defined __GNUC__ || defined __clang__ || defined __INTEL_COMPILER
 #define DIRECT_THREADED
 #endif
-#endif /* ifndef MRB_DISABLE_DIRECT_THREADING */
+#endif /* ifndef MRB_NO_DIRECT_THREADING */
 
 #ifndef DIRECT_THREADED
 
@@ -2797,10 +2797,10 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_DEBUG, Z) {
       FETCH_BBB();
-#ifdef MRB_ENABLE_DEBUG_HOOK
+#ifdef MRB_USE_DEBUG_HOOK
       mrb->debug_op_hook(mrb, irep, pc, regs);
 #else
-#ifndef MRB_DISABLE_STDIO
+#ifndef MRB_NO_STDIO
       printf("OP_DEBUG %d %d %d\n", a, b, c);
 #else
       abort();
@@ -2887,12 +2887,12 @@ mrb_top_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, mrb_int st
   return v;
 }
 
-#if defined(MRB_ENABLE_CXX_EXCEPTION) && defined(__cplusplus)
-# if !defined(MRB_ENABLE_CXX_ABI)
+#if defined(MRB_USE_CXX_EXCEPTION) && defined(__cplusplus)
+# if !defined(MRB_USE_CXX_ABI)
 } /* end of extern "C" */
 # endif
 mrb_int mrb_jmpbuf::jmpbuf_id = 0;
-# if !defined(MRB_ENABLE_CXX_ABI)
+# if !defined(MRB_USE_CXX_ABI)
 extern "C" {
 # endif
 #endif

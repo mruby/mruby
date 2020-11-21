@@ -5,7 +5,7 @@
 MRuby::Build.new do |conf|
   toolchain :gcc
   conf.gembox 'default'
-  conf.cc.defines = %w(ENABLE_READLINE)
+  conf.cc.defines = %w(MRB_USE_READLINE)
   conf.gembox 'default'
 
   #lightweight regular expression
@@ -33,7 +33,7 @@ MRuby::CrossBuild.new('core2-32-poky-linux') do |conf|
     cc.flags << %w(-O2 -pipe -g -feliminate-unused-debug-types)
     cc.flags << "--sysroot=#{POKY_EDISON_SYSROOT}"
     cc.compile_options = %Q[%{flags} -o "%{outfile}" -c "%{infile}"]
-    cc.defines = %w(ENABLE_READLINE)
+    cc.defines = %w(MRB_USE_READLINE)
   end
 
   conf.cxx do |cxx|

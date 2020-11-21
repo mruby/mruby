@@ -7,8 +7,8 @@
 
 #include <mruby.h>
 
-#ifdef MRB_DISABLE_STDIO
-# error IO and File conflicts 'MRB_DISABLE_STDIO' in your build configuration
+#ifdef MRB_NO_STDIO
+# error IO and File conflicts 'MRB_NO_STDIO' in your build configuration
 #endif
 
 #if defined(__cplusplus)

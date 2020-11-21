@@ -1,7 +1,7 @@
 #include <mruby.h>
 
-#ifdef MRB_DISABLE_STDIO
-# error mruby-bin-strip conflicts 'MRB_DISABLE_STDIO' in your build configuration
+#ifdef MRB_NO_STDIO
+# error mruby-bin-strip conflicts 'MRB_NO_STDIO' in your build configuration
 #endif
 
 #include <stdlib.h>

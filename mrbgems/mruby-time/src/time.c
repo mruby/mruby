@@ -15,7 +15,7 @@
 #include <mruby/time.h>
 #include <mruby/string.h>
 
-#ifdef MRB_DISABLE_STDIO
+#ifdef MRB_NO_STDIO
 #include <string.h>
 #endif
 
@@ -65,7 +65,7 @@ double round(double x) {
 
 /* asctime(3) */
 /* mruby usually use its own implementation of struct tm to string conversion */
-/* except when DISABLE_STDIO is set. In that case, it uses asctime() or asctime_r(). */
+/* except when MRB_NO_STDIO is set. In that case, it uses asctime() or asctime_r(). */
 /* By default mruby tries to use asctime_r() which is reentrant. */
 /* Undef following macro on platforms that does not have asctime_r(). */
 /* #define NO_ASCTIME_R */
@@ -180,7 +180,7 @@ static const mrb_timezone_name timezone_names[] = {
   { "LOCAL", sizeof("LOCAL") - 1 },
 };
 
-#ifndef MRB_DISABLE_STDIO
+#ifndef MRB_NO_STDIO
 static const char mon_names[12][4] = {
   "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 };
@@ -652,7 +652,7 @@ mrb_time_asctime(mrb_state *mrb, mrb_value self)
   struct tm *d = &tm->datetime;
   int len;
 
-#if defined(MRB_DISABLE_STDIO)
+#if defined(MRB_NO_STDIO)
   char *s;
 # ifdef NO_ASCTIME_R
   s = asctime(d);

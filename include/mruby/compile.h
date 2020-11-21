@@ -115,7 +115,7 @@ struct mrb_parser_state {
   struct mrb_pool *pool;
   mrb_ast_node *cells;
   const char *s, *send;
-#ifndef MRB_DISABLE_STDIO
+#ifndef MRB_NO_STDIO
   /* If both f and s are non-null, it will be taken preferentially from s until s < send. */
   FILE *f;
 #endif
@@ -174,7 +174,7 @@ MRB_API void mrb_parser_set_filename(struct mrb_parser_state*, char const*);
 MRB_API mrb_sym mrb_parser_get_filename(struct mrb_parser_state*, uint16_t idx);
 
 /* utility functions */
-#ifndef MRB_DISABLE_STDIO
+#ifndef MRB_NO_STDIO
 MRB_API struct mrb_parser_state* mrb_parse_file(mrb_state*,FILE*,mrbc_context*);
 #endif
 MRB_API struct mrb_parser_state* mrb_parse_string(mrb_state*,const char*,mrbc_context*);
@@ -191,7 +191,7 @@ MRB_API mrb_value mrb_load_exec(mrb_state *mrb, struct mrb_parser_state *p, mrbc
 * mrb_value status = mrb_load_string(mrb, buffer);
 * mrb_gc_arena_restore(mrb, ai);
 */
-#ifndef MRB_DISABLE_STDIO
+#ifndef MRB_NO_STDIO
 MRB_API mrb_value mrb_load_file(mrb_state*,FILE*);
 MRB_API mrb_value mrb_load_file_cxt(mrb_state*,FILE*, mrbc_context *cxt);
 MRB_API mrb_value mrb_load_detect_file_cxt(mrb_state *mrb, FILE *fp, mrbc_context *c);

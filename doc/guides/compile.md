@@ -503,7 +503,7 @@ can't be disabled for the main build.
 MRuby::CrossBuild.new('Minimal') do |conf|
   toolchain :gcc
 
-  conf.cc.defines = %w(MRB_DISABLE_STDIO)
+  conf.cc.defines = %w(MRB_NO_STDIO)
   conf.bins = []
 end
 ```
