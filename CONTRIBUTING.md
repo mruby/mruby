@@ -33,11 +33,6 @@ mruby should be highly portable to other systems and compilers. For this it is
 recommended to keep your code as close as possible to the C99 standard
 (http://www.open-std.org/jtc1/sc22/WG14/www/docs/n1256.pdf).
 
-Although we target C99, we've heard some compilers in the embedded environment
-still requires declarations of local variables to be at the beginning of a
-scope. Until we confirm the situation has changed, we use the old-style
-variable declaration.
-
 Visual C++ is also an important target for mruby (supported version is 2013 or
 later). For this reason features that are not supported by Visual C++ may not
 be used (e.g. `%z` of `strftime()`).
@@ -49,12 +44,6 @@ NOTE: Old GCC requires `-std=gnu99` option to enable C99 support.
 The dependencies to libraries should be kept to an absolute minimum. This
 increases the portability but makes it also easier to cut away parts of mruby
 on-demand.
-
-#### Don't use C++ style comments
-
-    /* This is the preferred comment style */
-
-Use C++ style comments only for temporary comment e.g. commenting out some code lines.
 
 #### Insert a break after the function return value:
 
