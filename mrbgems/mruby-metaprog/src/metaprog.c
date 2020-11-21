@@ -401,21 +401,12 @@ mrb_obj_singleton_methods_m(mrb_state *mrb, mrb_value self)
   return mrb_obj_singleton_methods(mrb, recur, self);
 }
 
+mrb_value mrb_mod_define_method_m(mrb_state *mrb, struct RClass *c);
+
 static mrb_value
 mod_define_singleton_method(mrb_state *mrb, mrb_value self)
 {
-  struct RProc *p;
-  mrb_method_t m;
-  mrb_sym mid;
-  mrb_value blk = mrb_nil_value();
-
-  mrb_get_args(mrb, "n&!", &mid, &blk);
-  p = (struct RProc*)mrb_obj_alloc(mrb, MRB_TT_PROC, mrb->proc_class);
-  mrb_proc_copy(p, mrb_proc_ptr(blk));
-  p->flags |= MRB_PROC_STRICT;
-  MRB_METHOD_FROM_PROC(m, p);
-  mrb_define_method_raw(mrb, mrb_class_ptr(mrb_singleton_class(mrb, self)), mid, m);
-  return mrb_symbol_value(mid);
+  return mrb_mod_define_method_m(mrb, mrb_class_ptr(mrb_singleton_class(mrb, self)));
 }
 
 static mrb_bool
