@@ -249,10 +249,10 @@ MRB_API mrb_value mrb_ary_entry(mrb_value ary, mrb_int offset);
  *
  * Equivalent to:
  *
- *      ary.shift
+ *      ary[head, len] = rpl
  *
  * @param mrb The mruby state reference.
- * @param self The array from which the value will be shifted.
+ * @param self The array from which the value will be partiality replaced.
  * @param head Beginning position of a replacement subsequence.
  * @param len Length of a replacement subsequence.
  * @param rpl The array of replacement elements.
