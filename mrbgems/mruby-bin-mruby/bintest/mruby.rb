@@ -19,7 +19,7 @@ assert('regression for #1572') do
   script, bin = Tempfile.new('test.rb'), Tempfile.new('test.mrb')
   File.write script.path, 'p "ok"'
   system "#{cmd('mrbc')} -g -o #{bin.path} #{script.path}"
-  o = `#{cmd('mruby')} -b #{bin.path}`.strip
+  o = `#{cmd('mruby')} #{bin.path}`.strip
   assert_equal '"ok"', o
 end
 
@@ -33,7 +33,7 @@ assert '$0 value' do
 
   # .mrb file
   `#{cmd('mrbc')} -o "#{bin.path}" "#{script.path}"`
-  assert_equal "\"#{bin.path}\"", `#{cmd('mruby')} -b "#{bin.path}"`.chomp
+  assert_equal "\"#{bin.path}\"", `#{cmd('mruby')} "#{bin.path}"`.chomp
 
   # one liner
   assert_equal '"-e"', `#{cmd('mruby')} -e #{shellquote('p $0')}`.chomp
@@ -48,7 +48,7 @@ assert('float literal') do
   script, bin = Tempfile.new('test.rb'), Tempfile.new('test.mrb')
   File.write script.path, 'p [3.21, 2e308.infinite?, -2e308.infinite?]'
   system "#{cmd('mrbc')} -g -o #{bin.path} #{script.path}"
-  assert_equal "[3.21, 1, -1]", `#{cmd('mruby')} -b #{bin.path}`.chomp!
+  assert_equal "[3.21, 1, -1]", `#{cmd('mruby')} #{bin.path}`.chomp!
 end
 
 assert '__END__', '8.6' do

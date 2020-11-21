@@ -12,6 +12,11 @@
 #include <mruby/variable.h>
 #include <mruby/proc.h>
 
+#if defined(_WIN32) || defined(_WIN64)
+# include <io.h> /* for setmode */
+# include <fcntl.h>
+#endif
+
 struct _args {
   FILE *rfp;
   char *cmdline;
@@ -218,7 +223,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
     }
     else {
       args->rfp = strcmp(argv[0], "-") == 0 ?
-        stdin : fopen(argv[0], args->mrbfile ? "rb" : "r");
+        stdin : fopen(argv[0], "rb");
       if (args->rfp == NULL) {
         fprintf(stderr, "%s: Cannot open program file: %s\n", opts->program, argv[0]);
         return EXIT_FAILURE;
@@ -228,6 +233,11 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
       argc--; argv++;
     }
   }
+#if defined(_WIN32) || defined(_WIN64)
+  if (args->rfp == stdin) {
+    setmode(_fileno(stdin), O_BINARY);
+  }
+#endif
   args->argv = (char **)mrb_realloc(mrb, args->argv, sizeof(char*) * (argc + 1));
   memcpy(args->argv, argv, (argc+1) * sizeof(char*));
   args->argc = argc;
@@ -309,7 +319,7 @@ main(int argc, char **argv)
     /* Load libraries */
     for (i = 0; i < args.libc; i++) {
       struct REnv *e;
-      FILE *lfp = fopen(args.libv[i], args.mrbfile ? "rb" : "r");
+      FILE *lfp = fopen(args.libv[i], "rb");
       if (lfp == NULL) {
         fprintf(stderr, "%s: Cannot open library file: %s\n", *argv, args.libv[i]);
         mrbc_context_free(mrb, c);
@@ -320,7 +330,7 @@ main(int argc, char **argv)
         v = mrb_load_irep_file_cxt(mrb, lfp, c);
       }
       else {
-        v = mrb_load_file_cxt(mrb, lfp, c);
+        v = mrb_load_detect_file_cxt(mrb, lfp, c);
       }
       fclose(lfp);
       e = mrb->c->cibase->env;
@@ -334,7 +344,7 @@ main(int argc, char **argv)
       v = mrb_load_irep_file_cxt(mrb, args.rfp, c);
     }
     else if (args.rfp) {
-      v = mrb_load_file_cxt(mrb, args.rfp, c);
+      v = mrb_load_detect_file_cxt(mrb, args.rfp, c);
     }
     else {
       char* utf8 = mrb_utf8_from_locale(args.cmdline, -1);
