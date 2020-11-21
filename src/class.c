@@ -1375,8 +1375,10 @@ include_module_at(mrb_state *mrb, struct RClass *c, struct RClass *ins_pos, stru
   void *klass_mt = find_origin(c)->mt;
 
   while (m) {
-    int superclass_seen = 0;
+    int original_seen = FALSE;
+    int superclass_seen = FALSE;
 
+    if (c == ins_pos) original_seen = TRUE;
     if (m->flags & MRB_FL_CLASS_IS_PREPENDED)
       goto skip;
 
@@ -1385,16 +1387,17 @@ include_module_at(mrb_state *mrb, struct RClass *c, struct RClass *ins_pos, stru
 
     p = c->super;
     while (p) {
+      if (c == p) original_seen = TRUE;
       if (p->tt == MRB_TT_ICLASS) {
         if (p->mt == m->mt) {
-          if (!superclass_seen) {
+          if (!superclass_seen && original_seen) {
             ins_pos = p; /* move insert point */
           }
           goto skip;
         }
       } else if (p->tt == MRB_TT_CLASS) {
         if (!search_super) break;
-        superclass_seen = 1;
+        superclass_seen = TRUE;
       }
       p = p->super;
     }
