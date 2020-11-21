@@ -270,12 +270,14 @@ EOS
     end
 
     def define_rules
+      use_mrdb = @gems.find{|g| g.name == "mruby-bin-debugger"}
       compilers.each do |compiler|
         if respond_to?(:enable_gems?) && enable_gems?
           compiler.defines -= %w(DISABLE_GEMS)
         else
           compiler.defines += %w(DISABLE_GEMS)
         end
+        compiler.defines |= %w(MRB_ENABLE_DEBUG_HOOK) if use_mrdb
         compiler.define_rules build_dir, File.expand_path(File.join(File.dirname(__FILE__), '..', '..'))
       end
     end
