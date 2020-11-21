@@ -2,7 +2,7 @@ MRuby::Toolchain.new(:gcc) do |conf, params|
   default_command = params[:default_command] || 'gcc'
   compiler_flags = %w(-g -O3 -Wall -Wundef)
   c_mandatory_flags = %w(-std=gnu99)
-  cxx_invalid_flags = %w(-Wdeclaration-after-statement -Werror-implicit-function-declaration)
+  cxx_invalid_flags = %w(-Werror-implicit-function-declaration)
 
   [conf.cc, conf.objc, conf.asm, conf.cxx].each do |compiler|
     if compiler == conf.cxx
