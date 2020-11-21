@@ -116,6 +116,7 @@ struct mrb_parser_state {
   mrb_ast_node *cells;
   const char *s, *send;
 #ifndef MRB_DISABLE_STDIO
+  /* If both f and s are non-null, it will be taken preferentially from s until s < send. */
   FILE *f;
 #endif
   mrbc_context *cxt;
@@ -193,6 +194,7 @@ MRB_API mrb_value mrb_load_exec(mrb_state *mrb, struct mrb_parser_state *p, mrbc
 #ifndef MRB_DISABLE_STDIO
 MRB_API mrb_value mrb_load_file(mrb_state*,FILE*);
 MRB_API mrb_value mrb_load_file_cxt(mrb_state*,FILE*, mrbc_context *cxt);
+MRB_API mrb_value mrb_load_detect_file_cxt(mrb_state *mrb, FILE *fp, mrbc_context *c);
 #endif
 MRB_API mrb_value mrb_load_string(mrb_state *mrb, const char *s);
 MRB_API mrb_value mrb_load_nstring(mrb_state *mrb, const char *s, size_t len);

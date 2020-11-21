@@ -21,6 +21,7 @@
 #include <mruby/error.h>
 #include <mruby/throw.h>
 #include <mruby/string.h>
+#include <mruby/dump.h>
 #include "node.h"
 
 #define YYLEX_PARAM p
@@ -4122,20 +4123,20 @@ static inline int
 nextc0(parser_state *p)
 {
   int c;
-#ifndef MRB_DISABLE_STDIO
-  if (p->f) {
-    if (feof(p->f)) return -1;
-    c = fgetc(p->f);
-    if (c == EOF) return -1;
+
+  if (p->s && p->s < p->send) {
+    c = (unsigned char)*p->s++;
   }
-  else
+  else {
+#ifndef MRB_DISABLE_STDIO
+    if (p->f) {
+      c = fgetc(p->f);
+      if (feof(p->f)) return -1;
+    }
+    else
 #endif
-    if (!p->s || p->s >= p->send) {
       return -1;
-    }
-    else {
-      c = (unsigned char)*p->s++;
-    }
+  }
   return c;
 }
 
@@ -6520,18 +6521,25 @@ mrb_parser_get_filename(struct mrb_parser_state* p, uint16_t idx) {
 }
 
 #ifndef MRB_DISABLE_STDIO
-MRB_API parser_state*
-mrb_parse_file(mrb_state *mrb, FILE *f, mrbc_context *c)
+static struct mrb_parser_state *
+mrb_parse_file_continue(mrb_state *mrb, FILE *f, const void *prebuf, size_t prebufsize, mrbc_context *c)
 {
   parser_state *p;
 
   p = mrb_parser_new(mrb);
   if (!p) return NULL;
-  p->s = p->send = NULL;
+  p->s = (const char *)prebuf;
+  p->send = (const char *)prebuf + prebufsize;
   p->f = f;
 
   mrb_parser_parse(p, c);
   return p;
+}
+
+MRB_API parser_state*
+mrb_parse_file(mrb_state *mrb, FILE *f, mrbc_context *c)
+{
+  return mrb_parse_file_continue(mrb, f, NULL, 0, c);
 }
 #endif
 
@@ -6628,6 +6636,55 @@ MRB_API mrb_value
 mrb_load_file(mrb_state *mrb, FILE *f)
 {
   return mrb_load_file_cxt(mrb, f, NULL);
+}
+
+#define DETECT_SIZE 64
+
+/*
+ * In order to be recognized as a `.mrb` file, the following three points must be satisfied:
+ * - File starts with "RITE"
+ * - At least `sizeof(struct rite_binary_header)` bytes can be read
+ * - `NUL` is included in the first 64 bytes of the file
+ */
+MRB_API mrb_value
+mrb_load_detect_file_cxt(mrb_state *mrb, FILE *fp, mrbc_context *c)
+{
+  union {
+    char b[DETECT_SIZE];
+    struct rite_binary_header h;
+  } leading;
+  size_t bufsize;
+
+  if (mrb == NULL || fp == NULL) {
+    return mrb_nil_value();
+  }
+
+  bufsize = fread(leading.b, sizeof(char), sizeof(leading), fp);
+  if (bufsize < sizeof(leading.h) ||
+      memcmp(leading.h.binary_ident, RITE_BINARY_IDENT, sizeof(leading.h.binary_ident)) != 0 ||
+      memchr(leading.b, '\0', bufsize) == NULL) {
+    return mrb_load_exec(mrb, mrb_parse_file_continue(mrb, fp, leading.b, bufsize, c), c);
+  }
+  else {
+    size_t binsize;
+    uint8_t *bin;
+    mrb_value bin_obj = mrb_nil_value(); /* temporary string object */
+    mrb_value result;
+
+    binsize = bin_to_uint32(leading.h.binary_size);
+    bin_obj = mrb_str_new(mrb, NULL, binsize);
+    bin = (uint8_t *)RSTRING_PTR(bin_obj);
+    memcpy(bin, leading.b, bufsize);
+    if (binsize > bufsize &&
+        fread(bin + bufsize, binsize - bufsize, 1, fp) == 0) {
+      binsize = bufsize;
+      /* The error is reported by mrb_load_irep_buf_cxt() */
+    }
+
+    result = mrb_load_irep_buf_cxt(mrb, bin, binsize, c);
+    if (mrb_string_p(bin_obj)) mrb_str_resize(mrb, bin_obj, 0);
+    return result;
+  }
 }
 #endif
 
