@@ -45,6 +45,7 @@ iv_rehash(mrb_state *mrb, iv_tbl *t)
   size_t old_alloc = t->alloc;
   size_t new_alloc = old_alloc+1;
   struct iv_elem *old_table = t->table;
+  size_t i;
 
   khash_power2(new_alloc);
   if (old_alloc == new_alloc) return;
@@ -53,7 +54,7 @@ iv_rehash(mrb_state *mrb, iv_tbl *t)
   t->size = 0;
   t->table = (struct iv_elem*)mrb_calloc(mrb, sizeof(struct iv_elem), new_alloc);
 
-  for (size_t i = 0; i < old_alloc; i++) {
+  for (i = 0; i < old_alloc; i++) {
     struct iv_elem *slot = &old_table[i];
 
     /* key = 0 means empty; val = undef means deleted */

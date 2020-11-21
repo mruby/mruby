@@ -58,6 +58,7 @@ mt_rehash(mrb_state *mrb, mt_tbl *t)
   size_t old_alloc = t->alloc;
   size_t new_alloc = old_alloc+1;
   struct mt_elem *old_table = t->table;
+  size_t i;
 
   khash_power2(new_alloc);
   if (old_alloc == new_alloc) return;
@@ -66,7 +67,7 @@ mt_rehash(mrb_state *mrb, mt_tbl *t)
   t->size = 0;
   t->table = (struct mt_elem*)mrb_calloc(mrb, sizeof(struct mt_elem), new_alloc);
 
-  for (size_t i = 0; i < old_alloc; i++) {
+  for (i = 0; i < old_alloc; i++) {
     struct mt_elem *slot = &old_table[i];
 
     /* key = 0 means empty or deleted */
