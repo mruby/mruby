@@ -2820,6 +2820,10 @@ RETRY_TRY_BLOCK:
       goto L_RAISE;
     }
 
+    CASE(OP_SENDVK, BB) {       /* not yet implemented */
+      NEXT;
+    }
+
     CASE(OP_STOP, Z) {
       /*        stop VM */
       CHECKPOINT_RESTORE(RBREAK_TAG_STOP) {
