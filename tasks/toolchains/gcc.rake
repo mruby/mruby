@@ -6,7 +6,7 @@ MRuby::Toolchain.new(:gcc) do |conf, params|
 
   [conf.cc, conf.objc, conf.asm, conf.cxx].each do |compiler|
     if compiler == conf.cxx
-      compiler.command = ENV['CXX'] || default_command.sub(/cc|$/, '++')
+      compiler.command = ENV['CXX'] || conf.cc.command.sub(/g\Kcc|$/, '++')
       compiler.flags = [ENV['CXXFLAGS'] || ENV['CFLAGS'] || compiler_flags]
     else
       compiler.command = ENV['CC'] || default_command
