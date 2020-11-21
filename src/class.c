@@ -1569,7 +1569,6 @@ mrb_singleton_class_ptr(mrb_state *mrb, mrb_value v)
   case MRB_TT_TRUE:
     return mrb->true_class;
   case MRB_TT_CPTR:
-    return mrb->object_class;
   case MRB_TT_SYMBOL:
   case MRB_TT_INTEGER:
 #ifndef MRB_NO_FLOAT
