@@ -2418,10 +2418,9 @@ mrb_mod_method_defined(mrb_state *mrb, mrb_value mod)
   return mrb_bool_value(mrb_obj_respond_to(mrb, mrb_class_ptr(mod), id));
 }
 
-static mrb_value
-mod_define_method(mrb_state *mrb, mrb_value self)
+mrb_value
+mrb_mod_define_method_m(mrb_state *mrb, struct RClass *c)
 {
-  struct RClass *c = mrb_class_ptr(self);
   struct RProc *p;
   mrb_method_t m;
   mrb_sym mid;
@@ -2452,9 +2451,15 @@ mod_define_method(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+mod_define_method(mrb_state *mrb, mrb_value self)
+{
+  return mrb_mod_define_method_m(mrb, mrb_class_ptr(self));
+}
+
+static mrb_value
 top_define_method(mrb_state *mrb, mrb_value self)
 {
-  return mod_define_method(mrb, mrb_obj_value(mrb->object_class));
+  return mrb_mod_define_method_m(mrb, mrb->object_class);
 }
 
 static mrb_value
