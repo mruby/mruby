@@ -20,6 +20,12 @@ class String
   end
 end
 
+def install_D(src, dst)
+  rm_f dst
+  mkdir_p File.dirname(dst)
+  cp src, dst
+end
+
 def _pp(cmd, src, tgt=nil, options={})
   return if Rake.verbose
 

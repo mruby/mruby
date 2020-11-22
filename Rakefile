@@ -33,12 +33,6 @@ load "#{MRUBY_ROOT}/tasks/benchmark.rake"
 load "#{MRUBY_ROOT}/tasks/gitlab.rake"
 load "#{MRUBY_ROOT}/tasks/doc.rake"
 
-def install_D(src, dst)
-  rm_f dst
-  mkdir_p File.dirname(dst)
-  cp src, dst
-end
-
 ##############################
 # generic build targets, rules
 task :default => :all
@@ -177,7 +171,7 @@ file presym_file => cfiles+rbfiles+psfiles+[__FILE__] do
      }]
   end
   csymbols += File.readlines("#{MRUBY_ROOT}/include/mruby.h").grep(/define E_/).join.scan(/MRB_SYM\((\w+)\)/)
-  
+
   rbsymbols = rbfiles.map do |f|
     src = File.read(f)
     src.force_encoding(Encoding::BINARY)
