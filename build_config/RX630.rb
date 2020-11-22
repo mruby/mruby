@@ -17,7 +17,6 @@ MRuby::CrossBuild.new("RX630") do |conf|
     cc.defines << %w(MRB_USE_FLOAT32)
     cc.defines << %w(MRB_HEAP_PAGE_SIZE=64)
     cc.defines << %w(KHASH_DEFAULT_SIZE=8)
-    cc.defines << %w(MRB_STR_BUF_MIN_SIZE=20)
     cc.defines << %w(MRB_GC_STRESS)
     cc.defines << %w(MRB_NO_STDIO) #if you dont need stdio.
     #cc.defines << %w(POOL_PAGE_SIZE=1000) #effective only for use with mruby-eval

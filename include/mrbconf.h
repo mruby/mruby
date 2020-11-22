@@ -133,9 +133,6 @@
 /* page size of memory pool */
 //#define POOL_PAGE_SIZE 16000
 
-/* initial minimum size for string buffer */
-//#define MRB_STR_BUF_MIN_SIZE 128
-
 /* arena size */
 //#define MRB_GC_ARENA_SIZE 100
 
@@ -201,10 +198,6 @@
 
 # ifndef KHASH_DEFAULT_SIZE
 #  define KHASH_DEFAULT_SIZE 16
-# endif
-
-# ifndef MRB_STR_BUF_MIN_SIZE
-#  define MRB_STR_BUF_MIN_SIZE 32
 # endif
 
 # ifndef MRB_HEAP_PAGE_SIZE

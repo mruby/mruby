@@ -175,19 +175,6 @@ mrb_str_new_capa(mrb_state *mrb, size_t capa)
   return mrb_obj_value(s);
 }
 
-#ifndef MRB_STR_BUF_MIN_SIZE
-# define MRB_STR_BUF_MIN_SIZE 128
-#endif
-
-MRB_API mrb_value
-mrb_str_buf_new(mrb_state *mrb, size_t capa)
-{
-  if (capa < MRB_STR_BUF_MIN_SIZE) {
-    capa = MRB_STR_BUF_MIN_SIZE;
-  }
-  return mrb_str_new_capa(mrb, capa);
-}
-
 static void
 resize_capa(mrb_state *mrb, struct RString *s, size_t capacity)
 {

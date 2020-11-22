@@ -339,7 +339,7 @@ MRB_API mrb_value mrb_string_type(mrb_state *mrb, mrb_value str);
 
 
 MRB_API mrb_value mrb_str_new_capa(mrb_state *mrb, size_t capa);
-MRB_API mrb_value mrb_str_buf_new(mrb_state *mrb, size_t capa);
+#define mrb_str_buf_new(mrb, capa) mrb_str_new_capa(mrb, (capa))
 
 /* NULL terminated C string from mrb_value */
 MRB_API const char *mrb_string_cstr(mrb_state *mrb, mrb_value str);

@@ -159,10 +159,6 @@ largest value of required alignment.
 * Specifies default size of khash table bucket.
 * Used in `kh_init_ ## name` function.
 
-`MRB_STR_BUF_MIN_SIZE`
-* Default value is `128`.
-* Specifies initial capacity of `RString` created by `mrb_str_buf_new` function..
-
 `MRB_NO_METHOD_CACHE`
 * Disable method cache to save memory.
 

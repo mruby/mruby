@@ -258,7 +258,7 @@ mrb_file_realpath(mrb_state *mrb, mrb_value klass)
     pathname = s;
   }
   cpath = mrb_locale_from_utf8(RSTRING_CSTR(mrb, pathname), -1);
-  result = mrb_str_buf_new(mrb, PATH_MAX);
+  result = mrb_str_new_capa(mrb, PATH_MAX);
   if (realpath(cpath, RSTRING_PTR(result)) == NULL) {
     mrb_locale_free(cpath);
     mrb_sys_fail(mrb, cpath);
