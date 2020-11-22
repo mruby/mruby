@@ -184,6 +184,7 @@ module MRuby
       end
 
       def generate_gem_init(fname)
+        _pp "GEN", fname.relative_path
         open(fname, 'w') do |f|
           print_gem_init_header f
           unless rbfiles.empty?

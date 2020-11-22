@@ -308,8 +308,8 @@ module MRuby
     def run(out, infiles, funcname, cdump = true)
       @command ||= @build.mrbcfile
       infiles = [infiles].flatten
-      infiles.each do |f|
-        _pp "MRBC", f.relative_path, nil, :indent => 2
+      infiles.each_with_index do |f, i|
+        _pp i == 0 ? "MRBC" : "", f.relative_path, indent: 2
       end
       cmd = %Q["#{filename @command}" #{cdump ? "-S" : ""} #{@compile_options % {:funcname => funcname}} #{filename(infiles).map{|f| %Q["#{f}"]}.join(' ')}]
       puts cmd if Rake.verbose

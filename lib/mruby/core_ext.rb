@@ -26,10 +26,10 @@ def install_D(src, dst)
   cp src, dst
 end
 
-def _pp(cmd, src, tgt=nil, options={})
+def _pp(cmd, src, tgt=nil, indent: nil)
   return if Rake.verbose
 
   width = 5
-  template = options[:indent] ? "%#{width*options[:indent]}s %s %s" : "%-#{width}s %s %s"
+  template = indent ? "%#{width * indent}s %s %s" : "%-#{width}s %s %s"
   puts template % [cmd, src, tgt ? "-> #{tgt}" : nil]
 end
