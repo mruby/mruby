@@ -83,6 +83,21 @@ changed from previous versions.
 Call `malloc_trim(0)` from mrb_full_gc() if this macro is defined.
 If you are using glibc malloc, this macro could reduce memory consumption.
 
+# Command Line Program
+
+## `bin/mruby` (by mrbgems/mruby-bin-mruby)
+
+The mruby3 now automatically detects `*.mrb` files without the `-b`
+switch. Therefore, it can be mixed with the `*.rb` file in combination
+with the `-r` switch and specified at the same time.
+Here's an example that works fine:
+
+```console
+$ bin/mruby app.mrb
+$ bin/mruby -r lib1.mrb -r lib2.rb app.rb
+$ bin/mruby -r lib1.rb -r lib2.rb < app.mrb
+```
+
 # Internal Changes
 
 ## New Instructions
