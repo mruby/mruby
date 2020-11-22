@@ -176,7 +176,7 @@ mrb_str_new_capa(mrb_state *mrb, size_t capa)
 }
 
 #ifndef MRB_STR_BUF_MIN_SIZE
-# define MRB_STR_BUF_MIN_SIZE 128
+# define MRB_STR_BUF_MIN_SIZE 63
 #endif
 
 MRB_API mrb_value
