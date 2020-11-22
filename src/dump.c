@@ -1052,7 +1052,7 @@ dump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, 
   /* dump lv */
   if (irep->lv) {
     len=irep->nlocals;
-    fprintf(fp,   "static const mrb_sym %s_lv_%d[%d] = {", name, n, len);
+    fprintf(fp,   "static const mrb_sym %s_lv_%d[%d] = {", name, n, len-1);
     for (i=0; i+1<len; i++) {
       fprintf(fp, "%uU, ", irep->lv[i]);
     }
