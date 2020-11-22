@@ -14,7 +14,8 @@ require "mruby/core_ext"
 require "mruby/build"
 
 # load configuration file
-MRUBY_CONFIG = MRuby::Build.load_config
+MRUBY_CONFIG = MRuby::Build.mruby_config_path
+load MRUBY_CONFIG
 
 # load basic rules
 MRuby.each_target do |build|
