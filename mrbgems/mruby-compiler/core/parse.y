@@ -6528,8 +6528,13 @@ mrb_parse_file_continue(mrb_state *mrb, FILE *f, const void *prebuf, size_t preb
 
   p = mrb_parser_new(mrb);
   if (!p) return NULL;
-  p->s = (const char *)prebuf;
-  p->send = (const char *)prebuf + prebufsize;
+  if (prebuf) {
+    p->s = (const char *)prebuf;
+    p->send = (const char *)prebuf + prebufsize;
+  }
+  else {
+    p->s = p->send = NULL;
+  }
   p->f = f;
 
   mrb_parser_parse(p, c);
