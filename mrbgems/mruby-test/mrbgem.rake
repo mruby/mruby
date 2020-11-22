@@ -26,6 +26,7 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
 
   file assert_lib => assert_c
   file assert_c => [assert_rb, build.mrbcfile] do |t|
+    _pp "GEN", t.name.relative_path
     mkdir_p File.dirname(t.name)
     open(t.name, 'w') do |f|
       mrbc.run f, assert_rb, 'mrbtest_assert_irep', false
@@ -41,6 +42,7 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
 
     file test_rbobj => g.test_rbireps
     file g.test_rbireps => [g.test_rbfiles, build.mrbcfile].flatten do |t|
+      _pp "GEN", t.name.relative_path
       mkdir_p File.dirname(t.name)
       open(t.name, 'w') do |f|
         g.print_gem_test_header(f)
@@ -148,7 +150,7 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
 
   file mlib => clib
   file clib => ["#{build.build_dir}/mrbgems/active_gems.txt", build.mrbcfile, __FILE__] do |_t|
-    _pp "GEN", "*.rb", "#{clib.relative_path}"
+    _pp "GEN", clib.relative_path
     mkdir_p File.dirname(clib)
     open(clib, 'w') do |f|
       f.puts %Q[/*]

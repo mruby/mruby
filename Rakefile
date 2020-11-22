@@ -195,6 +195,7 @@ file presym_file => cfiles+rbfiles+psfiles+[__FILE__] do
   presyms = File.readlines(presym_file) rescue []
   presyms.each{|x| x.chomp!}
   if presyms != symbols
+    _pp "GEN", presym_file.relative_path
     File.write(presym_file, symbols.join("\n"))
     Rake::Task[presym_inc].invoke
   end
@@ -207,6 +208,7 @@ task presym_inc do
   prefix_re = Regexp.union(*symbol_to_macro.keys.uniq.map(&:first))
   suffix_re = Regexp.union(*symbol_to_macro.keys.uniq.map(&:last))
   macro_re = /\A(#{prefix_re})?([\w&&\D]\w*)(#{suffix_re})?\z/o
+  _pp "GEN", presym_inc.relative_path
   File.open(presym_inc, "w") do |f|
     f.puts "/* MRB_PRESYM_NAMED(lit, num, type, name) */"
     f.puts "/* MRB_PRESYM_UNNAMED(lit, num) */"
