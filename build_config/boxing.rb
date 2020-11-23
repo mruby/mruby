@@ -1,8 +1,8 @@
-BOXINGS = %w[no word nan]
-BITS = [64, 32]
-INTS = [64, 32]
+boxings = %w[no word nan]
+bits = [64, 32]
+ints = [64, 32]
 
-BOXINGS.product(BITS, INTS) do |boxing, bit, int|
+boxings.product(bits, ints) do |boxing, bit, int|
   next if boxing == "nan" && int == 64
 
   MRuby::Build.new("boxing-#{boxing}-m#{bit}-i#{int}") do |conf|
