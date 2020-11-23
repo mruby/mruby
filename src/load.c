@@ -153,12 +153,12 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
       case IREP_TT_INT64:
 #ifdef MRB_64BIT
         {
-          uint64_t i = bin_to_uint32(src);
+          uint64_t i64 = bin_to_uint32(src);
           src += sizeof(uint32_t);
-          i <<= 32;
-          i |= bin_to_uint32(src);
+          i64 <<= 32;
+          i64 |= bin_to_uint32(src);
           src += sizeof(uint32_t);
-          pool[i].u.i64 = (int64_t)i;
+          pool[i].u.i64 = (int64_t)i64;
         }
         break;
 #else
