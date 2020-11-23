@@ -41,15 +41,14 @@ union mrb_value_ {
   uint64_t u;
 #ifdef MRB_64BIT
   void *p;
+# define BOXNAN_IMMEDIATE_VALUE uint32_t i
+#else
+# define BOXNAN_IMMEDIATE_VALUE union { uint32_t i; void *p; }
 #endif
   struct {
     MRB_ENDIAN_LOHI(
       uint32_t ttt;
-#ifdef MRB_64BIT
-      ,uint32_t i;
-#else
-      ,union { uint32_t i; void *p; };
-#endif
+      ,BOXNAN_IMMEDIATE_VALUE;
     )
   };
   mrb_value value;
