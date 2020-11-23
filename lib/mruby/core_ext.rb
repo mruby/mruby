@@ -27,7 +27,7 @@ def install_D(src, dst)
 end
 
 def _pp(cmd, src, tgt=nil, indent: nil)
-  return if Rake.verbose
+  return if Rake.application.options.silent
 
   width = 5
   template = indent ? "%#{width * indent}s %s %s" : "%-#{width}s %s %s"
