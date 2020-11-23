@@ -317,9 +317,9 @@ module MRuby
         out.puts io.read
       end
       # if mrbc execution fail, drop the file
-      if $?.exitstatus != 0
-        File.delete(out.path)
-        exit(-1)
+      unless $?.success?
+        rm_f out.path
+        fail "Command failed with status (#{$?.exitstatus}): [#{cmd[0,42]}...]"
       end
     end
   end
