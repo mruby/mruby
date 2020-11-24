@@ -455,7 +455,7 @@ mrb_file_size(mrb_state *mrb, mrb_value self)
 #endif
   }
 
-  return mrb_fixnum_value((mrb_int)st.st_size);
+  return mrb_int_value(mrb, (mrb_int)st.st_size);
 }
 
 static int

@@ -995,7 +995,7 @@ mrb_io_sysseek(mrb_state *mrb, mrb_value io)
     mrb_raise(mrb, E_IO_ERROR, "sysseek reached too far for MRB_NO_FLOAT");
 #endif
   } else {
-    return mrb_fixnum_value(pos);
+    return mrb_int_value(mrb, pos);
   }
 }
 
@@ -1022,7 +1022,7 @@ mrb_io_syswrite_common(mrb_state *mrb,
     mrb_sys_fail(mrb, 0);
   }
 
-  return mrb_fixnum_value(length);
+  return mrb_int_value(mrb, (mrb_int)length);
 }
 
 static mrb_io_read_write_size
