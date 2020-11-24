@@ -21,33 +21,23 @@ static const struct {
   uint16_t len;
 } presym_table[] = {
 #include <../build/presym.inc>
-  {0,0}
 };
 
 static mrb_sym
 presym_find(const char *name, size_t len)
 {
-  int start = 0;
-  int end = MRB_PRESYM_MAX-1;
-
-  while (start<=end) {
-    int mid = (start+end)/2;
-    size_t plen = presym_table[mid].len;
-    size_t tlen = (plen > len) ? len : plen;
-    int cmp;
-
-    cmp = memcmp(name, presym_table[mid].name, tlen);
+  mrb_sym start, idx, presym_size = MRB_PRESYM_MAX;
+  int cmp;
+  for (start = 0; presym_size != 0; presym_size/=2) {
+    idx = start+presym_size/2;
+    cmp = len-presym_table[idx].len;
     if (cmp == 0) {
-      if (len > plen) cmp = 1;
-      else if (len < plen) cmp = -1;
+      cmp = memcmp(name, presym_table[idx].name, len);
+      if (cmp == 0) return idx+1;
     }
-
-    if (cmp == 0) {
-      return mid+1;
-    } else if (cmp > 0) {
-      start = mid+1;
-    } else {
-      end = mid-1;
+    if (0 < cmp) {
+      start = ++idx;
+      --presym_size;
     }
   }
   return 0;

@@ -192,7 +192,7 @@ file presym_file => cfiles+rbfiles+psfiles+[__FILE__] do
      src.scan(/[ \(\[\{]:'([^']+)'/)
     ]
   end
-  symbols = (symbols+csymbols+rbsymbols+op_table.keys).flatten.compact.uniq.sort.grep_v(/#/).map{|x| x.gsub("\n", '\n')}
+  symbols = (symbols+csymbols+rbsymbols+op_table.keys).flatten.compact.uniq.grep_v(/#/).map{|x| x.gsub("\n", '\n')}.sort_by!{|x| [x.bytesize, x]}
   presyms = File.readlines(presym_file) rescue []
   presyms.each{|x| x.chomp!}
   if presyms != symbols
