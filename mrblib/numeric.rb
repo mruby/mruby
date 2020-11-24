@@ -185,4 +185,4 @@ class Float
     end
     self
   end
-end
+end if Object.const_defined?(:Float)

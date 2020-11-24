@@ -964,12 +964,14 @@ dump_pool(mrb_state *mrb, const mrb_pool_value *p, FILE *fp)
       fprintf(fp, "{IREP_TT_INT32, {.i32=%" PRId32 "}},\n", p->u.i32);
       break;
     case IREP_TT_FLOAT:
+#ifndef MRB_NO_FLOAT
       if (p->u.f == 0) {
         fprintf(fp, "{IREP_TT_FLOAT, {.f=%#.1f}},\n", p->u.f);
       }
       else {
         fprintf(fp, "{IREP_TT_FLOAT, {.f=" MRB_FLOAT_FMT "}},\n", p->u.f);
       }
+#endif
       break;
     }
   }

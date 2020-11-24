@@ -649,10 +649,12 @@ load_irep(mrb_state *mrb, mrb_irep *irep, mrbc_context *c)
 MRB_API mrb_value
 mrb_load_irep_cxt(mrb_state *mrb, const uint8_t *bin, mrbc_context *c)
 {
-  struct RData *irep_obj = mrb_data_object_alloc(mrb, mrb->object_class, NULL, &tempirep_type);
+  struct RData *irep_obj;
   mrb_irep *irep = mrb_read_irep(mrb, bin);
   mrb_value ret;
 
+  if (!irep) return mrb_undef_value();
+  irep_obj = mrb_data_object_alloc(mrb, mrb->object_class, NULL, &tempirep_type);
   irep_obj->data = irep;
   mrb_irep_incref(mrb, irep);
   ret = load_irep(mrb, irep, c);
