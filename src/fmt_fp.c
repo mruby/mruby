@@ -1,3 +1,4 @@
+#include <mrbconf.h>
 #ifndef MRB_NO_FLOAT
 #if defined(MRB_NO_STDIO) || defined(_WIN32) || defined(_WIN64)
 /*
