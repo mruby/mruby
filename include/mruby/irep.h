@@ -34,7 +34,9 @@ typedef struct mrb_pool_value {
 #if defined(MRB_64BIT) || defined(MRB_INT64)
     int64_t i64;
 #endif
+#ifndef MRB_NO_FLOAT
     mrb_float f;
+#endif
   } u;
 } mrb_pool_value;
 
