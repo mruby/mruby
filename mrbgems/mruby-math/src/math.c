@@ -4,13 +4,13 @@
 ** See Copyright Notice in mruby.h
 */
 
+#include <mruby.h>
+
 #ifdef MRB_NO_FLOAT
 # error Math conflicts with 'MRB_NO_FLOAT' configuration
 #endif
 
-#include <mruby.h>
 #include <mruby/array.h>
-
 #include <math.h>
 
 static void
