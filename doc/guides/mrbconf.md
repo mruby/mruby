@@ -123,11 +123,6 @@ largest value of required alignment.
 * If defined represent `mrb_value` as a word.
 * If defined `Float` will be a mruby object with `RBasic`.
 
-## Instance variable configuration.
-`MRB_IV_SEGMENT_SIZE`
-* Default value is `4`.
-* Specifies size of each segment in segment list.
-
 ## Reduce heap memory configuration.
 
 `MRB_USE_LINK_TIME_RO_DATA_P`

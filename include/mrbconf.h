@@ -213,10 +213,6 @@
 #  define MRB_METHOD_CACHE_SIZE (1<<10)
 # endif
 
-# ifndef MRB_IV_SEGMENT_SIZE
-#  define MRB_IV_SEGMENT_SIZE 32
-# endif
-
 # ifndef MRB_HEAP_PAGE_SIZE
 #  define MRB_HEAP_PAGE_SIZE 4096
 # endif
@@ -225,10 +221,6 @@
 #elif defined(MRB_HIGH_PROFILE)
 # ifndef MRB_METHOD_CACHE_SIZE
 #  define MRB_METHOD_CACHE_SIZE (1<<12)
-# endif
-
-# ifndef MRB_IV_SEGMENT_SIZE
-#  define MRB_IV_SEGMENT_SIZE 64
 # endif
 
 # ifndef MRB_HEAP_PAGE_SIZE
