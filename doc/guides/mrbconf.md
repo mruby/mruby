@@ -168,5 +168,5 @@ largest value of required alignment.
 * Define this macro on machines that use higher bits of pointers
 
 `MRB_USE_ALL_SYMBOLS`
-* Make it available `Symbols.all_symbols` in `mrbgems/mruby-symbol-ext`
+* Make it available `Symbol.all_symbols` in `mrbgems/mruby-symbol-ext`
 * Increase heap memory usage.
