@@ -1288,67 +1288,6 @@ mrb_ary_svalue(mrb_state *mrb, mrb_value ary)
   }
 }
 
-static const mrb_code each_iseq[] = {
-  OP_ENTER, 0x0, 0x00, 0x1,  /* OP_ENTER     0:0:0:0:0:0:1 */
-  OP_JMPIF, 0x1, 0x0, 19,    /* OP_JMPIF     R1  19 */
-  OP_LOADSELF, 0x3,          /* OP_LOADSELF  R3 */
-  OP_LOADSYM, 0x4, 0x0,      /* OP_LOADSYM   R4  :each*/
-  OP_SEND, 0x3, 0x1, 0x1,    /* OP_SEND      R3  :to_enum   1 */
-  OP_RETURN, 0x3,            /* OP_RETURN    R3 */
-  OP_LOADI_0, 0x2,           /* OP_LOADI_0   R2 */
-  OP_JMP, 0x0, 43,           /* OP_JMP       49 */
-  OP_MOVE, 0x3, 0x1,         /* OP_MOVE      R3  R1 */
-  OP_LOADSELF, 0x4,          /* OP_LOADSELF  R4 */
-  OP_MOVE, 0x5, 0x2,         /* OP_MOVE      R5  R2 */
-  OP_SEND, 0x4, 0x2, 0x1,    /* OP_SEND      R4  :[]        1 */
-  OP_SEND, 0x3, 0x3, 0x1,    /* OP_SEND      R3  :call      1 */
-  OP_ADDI, 0x2, 1,           /* OP_ADDI      R3  1 */
-  OP_MOVE, 0x3, 0x2,         /* OP_MOVE      R3  R2 */
-  OP_LOADSELF, 0x4,          /* OP_LOADSELF  R4 */
-  OP_SEND, 0x4, 0x4, 0x0,    /* OP_SEND      R4  :length    0 */
-  OP_LT, 0x3,                /* OP_LT        R3 */
-  OP_JMPIF, 0x3, 0x0, 24,    /* OP_JMPIF     R3  24 */
-  OP_RETURN, 0x0             /* OP_RETURN    R3 */
-};
-
-static const mrb_sym each_syms[] = {
-  MRB_SYM(each),
-  MRB_SYM(to_enum),
-  MRB_OPSYM(aref),
-  MRB_SYM(call),
-  MRB_SYM(length),
-};
-
-static const mrb_irep each_irep = {
-  3,                                   /* nlocals */
-  7,                                   /* nregs */
-  0,                                   /* clen */
-  MRB_ISEQ_NO_FREE | MRB_IREP_NO_FREE, /* flags */
-  each_iseq,                           /* iseq */
-  NULL,                                /* pool */
-  each_syms,                           /* syms */
-  NULL,                                /* reps */
-  NULL,                                /* lv */
-  NULL,                                /* debug_info */
-  sizeof(each_iseq),                   /* ilen */
-  0,                                   /* plen */
-  sizeof(each_syms),                   /* slen */
-  1,                                   /* rlen */
-  0,                                   /* refcnt */
-};
-
-static void
-init_ary_each(mrb_state *mrb, struct RClass *ary)
-{
-  struct RProc *p;
-  mrb_method_t m;
-
-  p = mrb_proc_new(mrb, &each_irep);
-  p->flags |= MRB_PROC_SCOPE | MRB_PROC_STRICT;
-  MRB_METHOD_FROM_PROC(m, p);
-  mrb_define_method_raw(mrb, ary, MRB_SYM(each), m);
-}
-
 void
 mrb_init_array(mrb_state *mrb)
 {
@@ -1389,6 +1328,4 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method(mrb, a, "__ary_cmp",       mrb_ary_cmp,          MRB_ARGS_REQ(1));
   mrb_define_method(mrb, a, "__ary_index",     mrb_ary_index_m,      MRB_ARGS_REQ(1));   /* kept for mruby-array-ext */
   mrb_define_method(mrb, a, "__svalue",        mrb_ary_svalue,       MRB_ARGS_NONE());
-
-  init_ary_each(mrb, a);
 }
