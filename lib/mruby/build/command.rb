@@ -39,13 +39,14 @@ module MRuby
   end
 
   class Command::Compiler < Command
-    attr_accessor :flags, :include_paths, :defines, :source_exts
+    attr_accessor :label, :flags, :include_paths, :defines, :source_exts
     attr_accessor :compile_options, :option_define, :option_include_path, :out_ext
     attr_accessor :cxx_compile_flag, :cxx_exception_flag, :cxx_invalid_flags
 
-    def initialize(build, source_exts=[])
+    def initialize(build, source_exts=[], label: "CC")
       super(build)
       @command = ENV['CC'] || 'cc'
+      @label = label
       @flags = [ENV['CFLAGS'] || []]
       @source_exts = source_exts
       @include_paths = ["#{MRUBY_ROOT}/include"]
@@ -78,7 +79,7 @@ module MRuby
 
     def run(outfile, infile, _defines=[], _include_paths=[], _flags=[])
       mkdir_p File.dirname(outfile)
-      _pp "CC", infile.relative_path, outfile.relative_path
+      _pp @label, infile.relative_path, outfile.relative_path
       _run compile_options, { :flags => all_flags(_defines, _include_paths, _flags),
                               :infile => filename(infile), :outfile => filename(outfile) }
     end
