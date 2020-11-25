@@ -30,7 +30,7 @@ MRuby::Build.new do |conf|
   # conf.file_separator = '/'
 
   # Turn on `enable_debug` for better debugging
-  enable_debug
+  conf.enable_debug
   conf.enable_bintest
   conf.enable_test
 end

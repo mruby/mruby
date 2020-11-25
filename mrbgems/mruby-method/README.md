@@ -15,7 +15,7 @@ You need to enable debug option in your build configuration to use
 
 ```ruby
 MRuby::Build.new do |conf|
-  enable_debug
+  conf.enable_debug
 end
 ```
 

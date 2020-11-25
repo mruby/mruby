@@ -8,7 +8,7 @@ MRuby::Build.new('host') do |conf|
     toolchain :gcc
   end
 
-  enable_debug
+  conf.enable_debug
 
   # include the default GEMs
   conf.gembox 'full-core'

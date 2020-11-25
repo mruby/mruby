@@ -9,6 +9,6 @@ MRuby::Build.new do |conf|
   conf.linker.flags << '-pg'
 
   # Turn on `enable_debug` for better debugging
-  enable_debug
+  conf.enable_debug
   conf.enable_test
 end

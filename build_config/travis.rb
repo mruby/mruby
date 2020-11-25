@@ -1,6 +1,6 @@
 MRuby::Build.new('full-debug') do |conf|
   toolchain :gcc
-  enable_debug
+  conf.enable_debug
 
   # include all core GEMs
   conf.gembox 'full-core'
