@@ -78,10 +78,10 @@ module MRuby
         @file_separator = '/'
         @build_dir = "#{build_dir}/#{@name}"
         @gem_clone_dir = "#{build_dir}/repos/#{@name}"
-        @cc = Command::Compiler.new(self, %w(.c))
-        @cxx = Command::Compiler.new(self, %w(.cc .cxx .cpp))
-        @objc = Command::Compiler.new(self, %w(.m))
-        @asm = Command::Compiler.new(self, %w(.S .asm))
+        @cc = Command::Compiler.new(self, %w(.c), label: "CC")
+        @cxx = Command::Compiler.new(self, %w(.cc .cxx .cpp), label: "CXX")
+        @objc = Command::Compiler.new(self, %w(.m), label: "OBJC")
+        @asm = Command::Compiler.new(self, %w(.S .asm), label: "ASM")
         @linker = Command::Linker.new(self)
         @archiver = Command::Archiver.new(self)
         @yacc = Command::Yacc.new(self)
