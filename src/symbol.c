@@ -311,7 +311,7 @@ sym2name_len(mrb_state *mrb, mrb_sym sym, char *buf, mrb_int *lenp)
     if (name) return name;
   }
   sym -= MRB_PRESYM_MAX;
-  
+
   if (sym == 0 || mrb->symidx < sym) {
     if (lenp) *lenp = 0;
     return NULL;
@@ -324,7 +324,11 @@ sym2name_len(mrb_state *mrb, mrb_sym sym, char *buf, mrb_int *lenp)
 MRB_API const char*
 mrb_sym_name_len(mrb_state *mrb, mrb_sym sym, mrb_int *lenp)
 {
+#ifdef MRB_USE_ALL_SYMBOLS
+  return sym2name_len(mrb, sym, NULL, lenp);
+#else
   return sym2name_len(mrb, sym, mrb->symbuf, lenp);
+#endif
 }
 
 mrb_bool
