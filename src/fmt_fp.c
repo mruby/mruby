@@ -1,5 +1,5 @@
-#include <mrbconf.h>
-#ifndef MRB_NO_FLOAT
+#include <mruby.h>
+#if !defined(MRB_NO_FLOAT)
 #if defined(MRB_NO_STDIO) || defined(_WIN32) || defined(_WIN64)
 /*
 
@@ -35,7 +35,6 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <float.h>
 #include <ctype.h>
 
-#include <mruby.h>
 #include <mruby/string.h>
 
 struct fmt_args;
