@@ -20,7 +20,7 @@ static const struct {
   const char *name;
   uint16_t len;
 } presym_table[] = {
-#include <../build/presym.inc>
+#include <mruby/presym.inc>
 };
 
 static mrb_sym
