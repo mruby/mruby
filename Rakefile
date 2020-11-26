@@ -93,7 +93,9 @@ MRuby.each_target do |target|
 end
 
 desc "preallocated symbols"
-task :gensym => MRuby.targets.values.map(&:presym_file)
+task :gensym do
+  MRuby.each_target{|build| Rake::Task[build.presym_file].invoke}
+end
 
 depfiles += MRuby.targets.map { |n, t|
   t.libraries
