@@ -39,7 +39,8 @@ enum looptype {
 
 struct loopinfo {
   enum looptype type;
-  int pc0, pc1, pc2, pc3, acc;
+  uint32_t pc0, pc1, pc2, pc3;
+  int acc;
   struct loopinfo *prev;
 };
 
@@ -53,9 +54,9 @@ typedef struct scope {
   node *lv;
 
   uint16_t sp;
-  uint16_t pc;
-  uint16_t lastpc;
-  uint16_t lastlabel;
+  uint32_t pc;
+  uint32_t lastpc;
+  uint32_t lastlabel;
   int ainfo:15;
   mrb_bool mscope:1;
 
@@ -168,13 +169,15 @@ new_label(codegen_scope *s)
 static void
 emit_B(codegen_scope *s, uint32_t pc, uint8_t i)
 {
-  if (pc >= MAXARG_S || s->icapa >= MAXARG_S) {
-    codegen_error(s, "too big code block");
-  }
   if (pc >= s->icapa) {
-    s->icapa *= 2;
-    if (s->icapa > MAXARG_S) {
-      s->icapa = MAXARG_S;
+    if (pc == UINT32_MAX) {
+      codegen_error(s, "too big code block");
+    }
+    if (pc >= UINT32_MAX / 2) {
+      pc = UINT32_MAX;
+    }
+    else {
+      s->icapa *= 2;
     }
     s->iseq = (mrb_code *)codegen_realloc(s, s->iseq, sizeof(mrb_code)*s->icapa);
     if (s->lines) {
@@ -358,22 +361,39 @@ no_peephole(codegen_scope *s)
   return no_optimize(s) || s->lastlabel == s->pc || s->pc == 0 || s->pc == s->lastpc;
 }
 
-static uint16_t
-genjmp(codegen_scope *s, mrb_code i, uint16_t pc)
+static void
+gen_jmpdst(codegen_scope *s, uint32_t pc)
 {
-  uint16_t pos;
+  if (pc == 0) {
+    gen_S(s, 0);
+  }
+  else {
+    uint32_t pos2 = s->pc+2;
+    int32_t off = pc - pos2;
+
+    if (off > INT16_MAX || INT16_MIN > off) {
+      codegen_error(s, "too big jmp offset");
+    }
+    gen_S(s, (uint16_t)off);
+  }
+}
+
+static uint32_t
+genjmp(codegen_scope *s, mrb_code i, uint32_t pc)
+{
+  uint32_t pos;
 
   s->lastpc = s->pc;
   gen_B(s, i);
   pos = s->pc;
-  gen_S(s, pc);
+  gen_jmpdst(s, pc);
   return pos;
 }
 
-static uint16_t
-genjmp2(codegen_scope *s, mrb_code i, uint16_t a, int pc, int val)
+static uint32_t
+genjmp2(codegen_scope *s, mrb_code i, uint16_t a, uint32_t pc, int val)
 {
-  uint16_t pos;
+  uint32_t pos;
 
   if (!no_peephole(s) && !val) {
     struct mrb_insn_data data = mrb_last_insn(s);
@@ -393,7 +413,7 @@ genjmp2(codegen_scope *s, mrb_code i, uint16_t a, int pc, int val)
     gen_B(s, i);
     gen_B(s, (uint8_t)a);
     pos = s->pc;
-    gen_S(s, pc);
+    gen_jmpdst(s, pc);
   }
   return pos;
 }
@@ -496,19 +516,26 @@ gen_addsub(codegen_scope *s, uint8_t op, uint16_t dst)
   }
 }
 
-static int
-dispatch(codegen_scope *s, uint16_t pos0)
+static uint32_t
+dispatch(codegen_scope *s, uint32_t pos0)
 {
-  uint16_t newpos;
+  int32_t pos1 = pos0 + 2;
+  int32_t offset;
+  int16_t newpos;
 
+  offset = s->pc - pos1;
+  if (offset > INT16_MAX) {
+    codegen_error(s, "too big jmp offset");
+  }
   s->lastlabel = s->pc;
-  newpos = PEEK_S(s->iseq+pos0);
-  emit_S(s, pos0, s->pc);
-  return newpos;
+  newpos = (int16_t)PEEK_S(s->iseq+pos0);
+  emit_S(s, pos0, (uint16_t)offset);
+  if (newpos == 0) return 0;
+  return pos1+newpos;
 }
 
 static void
-dispatch_linked(codegen_scope *s, uint16_t pos)
+dispatch_linked(codegen_scope *s, uint32_t pos)
 {
   if (pos==0) return;
   for (;;) {
@@ -1464,7 +1491,8 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_RESCUE:
     {
-      int noexc, exend, pos1, pos2, tmp;
+      int noexc;
+      uint32_t exend, pos1, pos2, tmp;
       struct loopinfo *lp;
       int catch_entry, begin, end;
 
@@ -1739,7 +1767,7 @@ codegen(codegen_scope *s, node *tree, int val)
   case NODE_CASE:
     {
       int head = 0;
-      int pos1, pos2, pos3, tmp;
+      uint32_t pos1, pos2, pos3, tmp;
       node *n;
 
       pos3 = 0;
@@ -1782,7 +1810,7 @@ codegen(codegen_scope *s, node *tree, int val)
         tree = tree->cdr;
       }
       if (val) {
-        int pos = cursp();
+        uint32_t pos = cursp();
         genop_1(s, OP_LOADNIL, cursp());
         if (pos3) dispatch_linked(s, pos3);
         if (head) pop();

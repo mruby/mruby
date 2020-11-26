@@ -1274,26 +1274,26 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_JMP, S) {
-      pc = irep->iseq+a;
+      pc += (int16_t)a;
       JUMP;
     }
     CASE(OP_JMPIF, BS) {
       if (mrb_test(regs[a])) {
-        pc = irep->iseq+b;
+        pc += (int16_t)b;
         JUMP;
       }
       NEXT;
     }
     CASE(OP_JMPNOT, BS) {
       if (!mrb_test(regs[a])) {
-        pc = irep->iseq+b;
+        pc += (int16_t)b;
         JUMP;
       }
       NEXT;
     }
     CASE(OP_JMPNIL, BS) {
       if (mrb_nil_p(regs[a])) {
-        pc = irep->iseq+b;
+        pc += (int16_t)b;
         JUMP;
       }
       NEXT;
@@ -1306,6 +1306,7 @@ RETRY_TRY_BLOCK:
         mrb_assert(mrb_integer_p(target));
         a = (uint32_t)mrb_integer(target);
         mrb_assert(a >= 0 && a < irep->ilen);
+        a = a - (pc - irep->iseq);
       }
       CHECKPOINT_MAIN(RBREAK_TAG_JUMP) {
         ch = catch_handler_find(mrb, mrb->c->ci, pc, MRB_CATCH_FILTER_ENSURE);
@@ -1319,7 +1320,7 @@ RETRY_TRY_BLOCK:
       CHECKPOINT_END(RBREAK_TAG_JUMP);
 
       mrb->exc = NULL; /* clear break object */
-      pc = irep->iseq + a;
+      pc += (int16_t)a;
       JUMP;
     }
 

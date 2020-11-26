@@ -137,6 +137,11 @@ No more operand extention
 * `OP_EXT2`
 * `OP_EXT3`
 
+## Changed Instructions
+
+Jump addresses used to be specified by absolute offset from the start of `iseq`. Now they are relative offset from the address of the next instruction.
+
+
 ## `Random` now use `xoshiro128++`.
 
 For better and faster random number generation.

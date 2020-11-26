@@ -73,7 +73,8 @@ typedef struct mrb_irep {
   /* debug info */
   struct mrb_irep_debug_info* debug_info;
 
-  uint16_t ilen, plen, slen;
+  uint32_t ilen;
+  uint16_t plen, slen;
   uint8_t rlen;
   uint32_t refcnt;
 } mrb_irep;
