@@ -77,6 +77,9 @@ rational_new(mrb_state *mrb, mrb_int numerator, mrb_int denominator)
   struct mrb_rational *p;
   struct RBasic *rat = rational_alloc(mrb, c, &p);
   if (denominator < 0) {
+    if (numerator == MRB_INT_MIN || denominator == MRB_INT_MIN) {
+      mrb_raise(mrb, E_RANGE_ERROR, "integer overflow in rational");
+    }
     numerator *= -1;
     denominator *= -1;
   }
@@ -115,6 +118,9 @@ rational_new_f(mrb_state *mrb, mrb_float f0)
 
   if (f < 0) { neg = 1; f = -f; }
   while (f != floor(f)) { n <<= 1; f *= 2; }
+  if (!TYPED_FIXABLE(f, rat_float)) {
+    mrb_raise(mrb, E_RANGE_ERROR, "integer overflow in rational");
+  }
   d = (mrb_int)f;
  
   /* continued fraction and check denominator each step */
