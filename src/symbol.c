@@ -73,7 +73,7 @@ typedef struct symbol_name {
 static void
 sym_validate_len(mrb_state *mrb, size_t len)
 {
-  if (len >= RITE_LV_NULL_MARK) {
+  if (len >= UINT16_MAX) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "symbol length too long");
   }
 }

@@ -150,7 +150,7 @@
 
 /* -DMRB_USE_XXXX to enable following features */
 //#define MRB_USE_DEBUG_HOOK /* hooks for debugger */
-//#define MRB_USE_ALL_SYMBOLS /* Symbols.all_symbols */
+//#define MRB_USE_ALL_SYMBOLS /* Symbol.all_symbols */
 
 /* obsolete configurations */
 #if defined(DISABLE_STDIO) || defined(MRB_DISABLE_STDIO)
