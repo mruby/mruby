@@ -54,7 +54,7 @@ MRuby.each_target do |build|
 
   build.compilers.each {|c| c.include_paths << "#{build.build_dir}/include"}
   build.gems.each do |gem|
-    cfiles.concat(Dir.glob(gem.dir+"/{src,core}/*.c"))
+    cfiles.concat(Dir.glob(gem.dir+"/{src,core,tools/*}/*.c"))
     if gem.cdump?
       rbfiles.concat(gem.rbfiles)
       psfiles.concat(Dir.glob(gem.dir+"/**/presym"))
