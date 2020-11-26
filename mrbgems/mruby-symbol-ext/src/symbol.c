@@ -26,8 +26,7 @@ mrb_sym_all_symbols(mrb_state *mrb, mrb_value self)
   mrb_value ary = mrb_ary_new_capa(mrb, mrb->symidx);
 
   for (i=1, lim=mrb->symidx+1; i<lim; i++) {
-    mrb_sym sym = i<<1;
-    mrb_ary_push(mrb, ary, mrb_symbol_value(sym));
+    mrb_ary_push(mrb, ary, mrb_symbol_value(i+MRB_PRESYM_MAX));
   }
 
   return ary;
