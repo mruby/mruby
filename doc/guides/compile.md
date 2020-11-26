@@ -348,10 +348,6 @@ root directory. The structure of this directory will look like this:
 
 	+- build
 	   |
-	   +-  presym         <- List of preallocated symbolx
-       |
-	   +-  presym.inc     <- C source file for preallocated symbols
-       |
 	   +-  host
 	       |
 	       +- bin          <- Binaries (mirb, mrbc and mruby)
@@ -403,10 +399,6 @@ In case of a cross-compilation to *i386* the *build* directory structure looks
 like this:
 
 	+- build
-	   |
-	   +-  presym         <- List of preallocated symbolx
-       |
-	   +-  presym.inc     <- C source file for preallocated symbols
 	   |
 	   +-  host
 	   |   |
