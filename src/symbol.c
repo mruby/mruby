@@ -170,7 +170,7 @@ find_symbol(mrb_state *mrb, const char *name, size_t len, uint8_t *hashp)
       sname = &mrb->symtbl[i];
       while (mrb->symtbl < sname) {
         if (sname->len == len && memcmp(sname->name, name, len) == 0) {
-          return (mrb_sym)(sname - mrb->symtbl)<<SYMBOL_SHIFT;
+          return (mrb_sym)((sname - mrb->symtbl)+MRB_PRESYM_MAX)<<SYMBOL_SHIFT;
         }
         sname--;
       }
