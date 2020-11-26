@@ -41,11 +41,9 @@ macro_to_symbol = {
   [""    , ""    ] => [""    , ""    ],
 }
 
-core_cfiles = nil
-core_rbfiles = nil
+core_cfiles = Dir.glob("#{MRUBY_ROOT}/src/*.c")
+core_rbfiles = Dir.glob("#{MRUBY_ROOT}/mrblib/*.rb")
 MRuby.each_target do |build|
-  core_cfiles ||= Dir.glob("#{MRUBY_ROOT}/src/*.c")
-  core_rbfiles ||= Dir.glob("#{MRUBY_ROOT}/mrblib/*.rb")
   cfiles = core_cfiles.dup
   rbfiles = core_rbfiles.dup
   psfiles = []
@@ -58,8 +56,8 @@ MRuby.each_target do |build|
     if gem.cdump?
       rbfiles.concat(gem.rbfiles)
       psfiles.concat(Dir.glob(gem.dir+"/**/presym"))
-      gem.compilers.each {|c| c.include_paths << "#{build.build_dir}/include"}
     end
+    gem.compilers.each {|c| c.include_paths << "#{build.build_dir}/include"}
   end
 
   file presym_file => [*cfiles, *rbfiles, *psfiles, __FILE__] do
