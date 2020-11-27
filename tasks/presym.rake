@@ -61,8 +61,8 @@ MRuby.each_target do |build|
   end
 
   file presym_file => [*cfiles, *rbfiles, *psfiles, __FILE__] do
-    prefix_re = Regexp.union(*macro_to_symbol.keys.uniq.map(&:first))
-    suffix_re = Regexp.union(*macro_to_symbol.keys.uniq.map(&:last))
+    prefix_re = Regexp.union(*macro_to_symbol.keys.map(&:first).uniq)
+    suffix_re = Regexp.union(*macro_to_symbol.keys.map(&:last).uniq)
     macro_re = /MRB_(#{prefix_re})SYM(#{suffix_re})\((\w+)\)/o
     csymbols = cfiles.map do |f|
       src = File.read(f)
@@ -116,8 +116,8 @@ MRuby.each_target do |build|
     presyms = File.readlines(presym_file)
     presyms.each{|x| x.chomp!}
     symbol_to_macro = macro_to_symbol.invert
-    prefix_re = Regexp.union(*symbol_to_macro.keys.uniq.map(&:first))
-    suffix_re = Regexp.union(*symbol_to_macro.keys.uniq.map(&:last))
+    prefix_re = Regexp.union(*symbol_to_macro.keys.map(&:first).uniq)
+    suffix_re = Regexp.union(*symbol_to_macro.keys.map(&:last).uniq)
     macro_re = /\A(#{prefix_re})?([\w&&\D]\w*)(#{suffix_re})?\z/o
     mkdir_p(File.dirname(presym_inc))
     _pp "GEN", presym_inc.relative_path
