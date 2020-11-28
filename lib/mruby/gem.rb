@@ -51,7 +51,7 @@ module MRuby
 
       def setup
         return if defined?(@linker)  # return if already set up
-        
+
         MRuby::Gem.current = self
         MRuby::Build::COMMANDS.each do |command|
           instance_variable_set("@#{command}", @build.send(command).clone)
@@ -81,12 +81,7 @@ module MRuby
 
         @generate_functions = !(@rbfiles.empty? && @objs.empty?)
         @objs << objfile("#{build_dir}/gem_init") if @generate_functions
-        mgem = MRUBY_ROOT+"/mrbgems"
-        if @dir[0,mgem.size] == mgem
-          @cdump = true    # OK to cdump core mrbgems
-        else
-          @cdump = false   # use mrb dump by default
-        end
+        @cdump = core?  # by default core gems use cdump and others use mrb dump
 
         if !name || !licenses || !authors
           fail "#{name || dir} required to set name, license(s) and author(s)"
@@ -101,7 +96,7 @@ module MRuby
       end
 
       def setup_compilers
-        compilers.each do |compiler|
+        (core? ? [cc] : compilers).each do |compiler|
           compiler.define_rules build_dir, "#{dir}"
           compiler.defines << %Q[MRBGEM_#{funcname.upcase}_VERSION=#{version}]
           compiler.include_paths << "#{dir}/include" if File.directory? "#{dir}/include"
@@ -125,6 +120,10 @@ module MRuby
 
       def cdump?
         @cdump
+      end
+
+      def core?
+        @dir.start_with?("#{MRUBY_ROOT}/mrbgems/")
       end
 
       def add_dependency(name, *requirements)
