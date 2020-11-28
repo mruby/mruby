@@ -277,7 +277,7 @@ write_catch_table_block(mrb_state *mrb, const mrb_irep *irep, uint8_t *buf)
 {
   uint8_t *cur = buf;
   const struct mrb_irep_catch_handler *e = mrb_irep_catch_handler_table(irep);
-  mrb_static_assert1(sizeof(*e) == 7);
+  mrb_static_assert1(sizeof(*e) == 13);
 
   if (e == NULL) return 0;
   /* irep->clen has already been written before iseq block */
