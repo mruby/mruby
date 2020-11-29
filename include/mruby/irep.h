@@ -47,9 +47,9 @@ enum mrb_catch_type {
 
 struct mrb_irep_catch_handler {
   uint8_t type;         /* enum mrb_catch_type */
-  uint8_t begin[2];     /* The starting address to match the hander. Includes this. */
-  uint8_t end[2];       /* The endpoint address that matches the hander. Not Includes this. */
-  uint8_t target[2];    /* The address to jump to if a match is made. */
+  uint8_t begin[4];     /* The starting address to match the hander. Includes this. */
+  uint8_t end[4];       /* The endpoint address that matches the hander. Not Includes this. */
+  uint8_t target[4];    /* The address to jump to if a match is made. */
 };
 
 /* Program data array struct */
@@ -138,6 +138,9 @@ mrb_irep_catch_handler_table(const struct mrb_irep *irep)
     return (const struct mrb_irep_catch_handler*)NULL;
   }
 }
+
+#define mrb_irep_catch_handler_pack(n, v)   uint32_to_bin(n, v)
+#define mrb_irep_catch_handler_unpack(v)    bin_to_uint32(v)
 
 MRB_END_DECL
 

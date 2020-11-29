@@ -3229,9 +3229,9 @@ catch_handler_set(codegen_scope *s, int ent, enum mrb_catch_type type, uint32_t 
 
   e = &s->catch_table[ent];
   uint8_to_bin(type, &e->type);
-  uint16_to_bin(begin, e->begin);
-  uint16_to_bin(end, e->end);
-  uint16_to_bin(target, e->target);
+  mrb_irep_catch_handler_pack(begin, e->begin);
+  mrb_irep_catch_handler_pack(end, e->end);
+  mrb_irep_catch_handler_pack(target, e->target);
 }
 
 static struct RProc*

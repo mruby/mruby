@@ -813,7 +813,7 @@ catch_handler_find(mrb_state *mrb, mrb_callinfo *ci, const mrb_code *pc, uint32_
   e = mrb_irep_catch_handler_table(irep) + cnt - 1;
   for (; cnt > 0; cnt --, e --) {
     if (((UINT32_C(1) << e->type) & filter) &&
-        catch_cover_p(xpc, bin_to_uint16(e->begin), bin_to_uint16(e->end))) {
+        catch_cover_p(xpc, mrb_irep_catch_handler_unpack(e->begin), mrb_irep_catch_handler_unpack(e->end))) {
       return e;
     }
   }
@@ -1312,7 +1312,7 @@ RETRY_TRY_BLOCK:
         ch = catch_handler_find(mrb, mrb->c->ci, pc, MRB_CATCH_FILTER_ENSURE);
         if (ch) {
           /* avoiding a jump from a catch handler into the same handler */
-          if (a < bin_to_uint16(ch->begin) || a >= bin_to_uint16(ch->end)) {
+          if (a < mrb_irep_catch_handler_unpack(ch->begin) || a >= mrb_irep_catch_handler_unpack(ch->end)) {
             THROW_TAGGED_BREAK(mrb, RBREAK_TAG_JUMP, proc, mrb_fixnum_value(a));
           }
         }
@@ -2009,7 +2009,7 @@ RETRY_TRY_BLOCK:
           mrb->c->stack = ci[1].stackent;
         }
         mrb_stack_extend(mrb, irep->nregs);
-        pc = irep->iseq + bin_to_uint16(ch->target);
+        pc = irep->iseq + mrb_irep_catch_handler_unpack(ch->target);
       }
       else {
         mrb_int acc;
