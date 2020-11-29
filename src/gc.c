@@ -467,7 +467,7 @@ mrb_gc_protect(mrb_state *mrb, mrb_value obj)
   gc_protect(mrb, &mrb->gc, mrb_basic_ptr(obj));
 }
 
-#define GC_ROOT_NAME "_gc_root_"
+#define GC_ROOT_SYM MRB_SYM(_gc_root_)
 
 /* mrb_gc_register() keeps the object from GC.
 
@@ -484,7 +484,7 @@ mrb_gc_register(mrb_state *mrb, mrb_value obj)
   mrb_value table;
 
   if (mrb_immediate_p(obj)) return;
-  root = mrb_intern_lit(mrb, GC_ROOT_NAME);
+  root = GC_ROOT_SYM;
   table = mrb_gv_get(mrb, root);
   if (mrb_nil_p(table) || !mrb_array_p(table)) {
     table = mrb_ary_new(mrb);
@@ -503,7 +503,7 @@ mrb_gc_unregister(mrb_state *mrb, mrb_value obj)
   mrb_int i;
 
   if (mrb_immediate_p(obj)) return;
-  root = mrb_intern_lit(mrb, GC_ROOT_NAME);
+  root = GC_ROOT_SYM;
   table = mrb_gv_get(mrb, root);
   if (mrb_nil_p(table)) return;
   if (!mrb_array_p(table)) {
