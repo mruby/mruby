@@ -7,6 +7,13 @@ MRuby.each_target do
 
   file obj => src
   file src => [mrbcfile, __FILE__, *rbfiles] do |t|
+    if presym_enabled?
+      cdump = true
+      suffix = "proc"
+    else
+      cdump = false
+      suffix = "irep"
+    end
     mkdir_p File.dirname(t.name)
     File.open(t.name, 'w') do |f|
       _pp "GEN", "mrblib/*.rb", "#{t.name.relative_path}"
@@ -17,12 +24,16 @@ MRuby.each_target do
       f.puts %Q[ *   This file was generated!]
       f.puts %Q[ *   All manual changes will get lost.]
       f.puts %Q[ */]
-      mrbc.run f, rbfiles, 'mrblib_proc'
+      unless presym_enabled?
+        f.puts %Q[#include <mruby.h>]
+        f.puts %Q[#include <mruby/irep.h>]
+      end
+      mrbc.run f, rbfiles, "mrblib_#{suffix}", cdump
       f.puts <<INIT_END
 void
 mrb_init_mrblib(mrb_state *mrb)
 {
-  mrb_load_proc(mrb, mrblib_proc);
+  mrb_load_#{suffix}(mrb, mrblib_#{suffix});
 }
 INIT_END
     end

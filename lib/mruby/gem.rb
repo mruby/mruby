@@ -124,7 +124,7 @@ module MRuby
       end
 
       def cdump?
-        @cdump
+        build.presym_enabled? && @cdump
       end
 
       def add_dependency(name, *requirements)
@@ -188,7 +188,7 @@ module MRuby
         open(fname, 'w') do |f|
           print_gem_init_header f
           unless rbfiles.empty?
-            if @cdump
+            if cdump?
               build.mrbc.run f, rbfiles, "gem_mrblib_#{funcname}_proc"
             else
               build.mrbc.run f, rbfiles, "gem_mrblib_irep_#{funcname}", false
@@ -202,7 +202,7 @@ module MRuby
           f.puts %Q[  struct REnv *e;] unless rbfiles.empty?
           f.puts %Q[  mrb_#{funcname}_gem_init(mrb);] if objs != [objfile("#{build_dir}/gem_init")]
           unless rbfiles.empty?
-            if @cdump
+            if cdump?
               f.puts %Q[  mrb_load_proc(mrb, gem_mrblib_#{funcname}_proc);]
             else
               f.puts %Q[  mrb_load_irep(mrb, gem_mrblib_irep_#{funcname});]
@@ -252,7 +252,7 @@ module MRuby
         f.puts %Q[#include <stdio.h>]
         f.puts %Q[#include <stdlib.h>]
         f.puts %Q[#include <mruby.h>]
-        f.puts %Q[#include <mruby/proc.h>]
+        f.puts %Q[#include <mruby/irep.h>]
         f.puts %Q[#include <mruby/variable.h>]
         f.puts %Q[#include <mruby/hash.h>] unless test_args.empty?
       end

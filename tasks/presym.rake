@@ -41,9 +41,13 @@ macro_to_symbol = {
   [""    , ""    ] => [""    , ""    ],
 }
 
-core_cfiles = Dir.glob("#{MRUBY_ROOT}/src/*.c")
-core_rbfiles = Dir.glob("#{MRUBY_ROOT}/mrblib/*.rb")
+core_cfiles = nil
+core_rbfiles = nil
 MRuby.each_target do |build|
+  next unless build.presym_enabled?
+
+  core_cfiles ||= Dir.glob("#{MRUBY_ROOT}/src/*.c")
+  core_rbfiles ||= Dir.glob("#{MRUBY_ROOT}/mrblib/*.rb")
   cfiles = core_cfiles.dup
   rbfiles = core_rbfiles.dup
   psfiles = []
@@ -63,7 +67,7 @@ MRuby.each_target do |build|
   file presym_file => [*cfiles, *rbfiles, *psfiles, __FILE__] do
     prefix_re = Regexp.union(*macro_to_symbol.keys.map(&:first).uniq)
     suffix_re = Regexp.union(*macro_to_symbol.keys.map(&:last).uniq)
-    macro_re = /MRB_(#{prefix_re})SYM(#{suffix_re})\((\w+)\)/o
+    macro_re = /MRB_(#{prefix_re})SYM(#{suffix_re})(?:_2)?\((?:.*?)(\w+)\)/o
     csymbols = cfiles.map do |f|
       src = File.read(f)
       src.gsub!(/\/\/.+(\n|$)/, "\n")
@@ -118,14 +122,14 @@ MRuby.each_target do |build|
     symbol_to_macro = macro_to_symbol.invert
     prefix_re = Regexp.union(*symbol_to_macro.keys.map(&:first).uniq)
     suffix_re = Regexp.union(*symbol_to_macro.keys.map(&:last).uniq)
-    macro_re = /\A(#{prefix_re})?([\w&&\D]\w*)(#{suffix_re})?\z/o
+    sym_re = /\A(#{prefix_re})?([\w&&\D]\w*)(#{suffix_re})?\z/o
     mkdir_p(File.dirname(presym_inc))
     _pp "GEN", presym_inc.relative_path
     File.open(presym_inc, "w") do |f|
       f.puts "/* MRB_PRESYM_NAMED(lit, num, type, name) */"
       f.puts "/* MRB_PRESYM_UNNAMED(lit, num) */"
       presyms.each.with_index(1) do |sym, num|
-        if macro_re =~ sym && (affixes = symbol_to_macro[[$1, $3]])
+        if sym_re =~ sym && (affixes = symbol_to_macro[[$1, $3]])
           f.puts %|MRB_PRESYM_NAMED("#{sym}", #{num}, #{affixes * 'SYM'}, #{$2})|
         elsif name = op_table[sym]
           f.puts %|MRB_PRESYM_NAMED("#{sym}", #{num}, OPSYM, #{name})|

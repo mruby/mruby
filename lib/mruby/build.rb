@@ -99,6 +99,7 @@ module MRuby
         @enable_bintest = false
         @enable_test = false
         @enable_lock = true
+        @enable_presym = true
         @toolchains = []
         @gem_dir_to_repo_url = {}
 
@@ -125,6 +126,17 @@ module MRuby
       @mrbc.compile_options += ' -g'
 
       @enable_debug = true
+    end
+
+    def presym_enabled?
+      @enable_presym
+    end
+
+    def disable_presym
+      if @enable_presym
+        @enable_presym = false
+        compilers.each{|c| c.defines << "MRB_NO_PRESYM"}
+      end
     end
 
     def disable_lock

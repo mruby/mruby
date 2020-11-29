@@ -12,15 +12,17 @@
 #include <mruby/dump.h>
 #include <mruby/class.h>
 
-#undef MRB_PRESYM_MAX
-#define MRB_PRESYM_NAMED(lit, num, type, name) {lit, sizeof(lit)-1},
-#define MRB_PRESYM_UNNAMED(lit, num) {lit, sizeof(lit)-1},
+#ifndef MRB_NO_PRESYM
+
+# undef MRB_PRESYM_MAX
+# define MRB_PRESYM_NAMED(lit, num, type, name) {lit, sizeof(lit)-1},
+# define MRB_PRESYM_UNNAMED(lit, num) {lit, sizeof(lit)-1},
 
 static const struct {
   const char *name;
   uint16_t len;
 } presym_table[] = {
-#include <mruby/presym.inc>
+# include <mruby/presym.inc>
 };
 
 static mrb_sym
@@ -50,6 +52,8 @@ presym_sym2name(mrb_sym sym, mrb_int *lenp)
   if (lenp) *lenp = presym_table[sym-1].len;
   return presym_table[sym-1].name;
 }
+
+#endif  /* MRB_NO_PRESYM */
 
 /* ------------------------------------------------------ */
 typedef struct symbol_name {
@@ -147,9 +151,11 @@ find_symbol(mrb_state *mrb, const char *name, size_t len, uint8_t *hashp)
   symbol_name *sname;
   uint8_t hash;
 
+#ifndef MRB_NO_PRESYM
   /* presym */
   i = presym_find(name, len);
   if (i > 0) return i<<SYMBOL_SHIFT;
+#endif
 
   /* inline symbol */
   i = sym_inline_pack(name, len);
@@ -306,10 +312,12 @@ sym2name_len(mrb_state *mrb, mrb_sym sym, char *buf, mrb_int *lenp)
   if (SYMBOL_INLINE_P(sym)) return sym_inline_unpack(sym, buf, lenp);
 
   sym >>= SYMBOL_SHIFT;
+#ifndef MRB_NO_PRESYM
   {
     const char *name = presym_sym2name(sym, lenp);
     if (name) return name;
   }
+#endif
   sym -= MRB_PRESYM_MAX;
 
   if (sym == 0 || mrb->symidx < sym) {

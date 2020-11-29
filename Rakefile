@@ -94,7 +94,9 @@ end
 
 desc "preallocated symbols"
 task :gensym do
-  MRuby.each_target{|build| Rake::Task[build.presym_file].invoke}
+  MRuby.each_target do |build|
+    Rake::Task[build.presym_file].invoke if build.presym_enabled?
+  end
 end
 
 depfiles += MRuby.targets.map { |n, t|
