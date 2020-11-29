@@ -293,6 +293,7 @@ get_irep_record_size_1(mrb_state *mrb, const mrb_irep *irep)
   size_t size = 0;
 
   size += get_irep_header_size(mrb);
+  size += sizeof(uint16_t);
   size += get_iseq_block_size(mrb, irep);
   size += get_catch_table_block_size(mrb, irep);
   size += get_pool_block_size(mrb, irep);
