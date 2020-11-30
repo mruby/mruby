@@ -86,9 +86,9 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
     const struct mrb_irep_catch_handler *e = mrb_irep_catch_handler_table(irep);
 
     for (; i > 0; i --, e ++) {
-      int begin = bin_to_uint16(e->begin);
-      int end = bin_to_uint16(e->end);
-      int target = bin_to_uint16(e->target);
+      uint32_t begin = mrb_irep_catch_handler_unpack(e->begin);
+      uint32_t end = mrb_irep_catch_handler_unpack(e->end);
+      uint32_t target = mrb_irep_catch_handler_unpack(e->target);
       char buf[20];
       const char *type;
 
@@ -105,7 +105,7 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
           type = buf;
           break;
       }
-      printf("catch type: %-8s begin: %04d end: %04d target: %04d\n", type, begin, end, target);
+      printf("catch type: %-8s begin: %04" PRIu32 " end: %04" PRIu32 " target: %04" PRIu32 "\n", type, begin, end, target);
     }
   }
 
