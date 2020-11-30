@@ -1300,13 +1300,13 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_JMPUW, S) {
+      a = (pc - irep->iseq) + (int16_t)a;
       CHECKPOINT_RESTORE(RBREAK_TAG_JUMP) {
         struct RBreak *brk = (struct RBreak*)mrb->exc;
         mrb_value target = mrb_break_value_get(brk);
         mrb_assert(mrb_integer_p(target));
         a = (uint32_t)mrb_integer(target);
         mrb_assert(a >= 0 && a < irep->ilen);
-        a = a - (pc - irep->iseq);
       }
       CHECKPOINT_MAIN(RBREAK_TAG_JUMP) {
         ch = catch_handler_find(mrb, mrb->c->ci, pc, MRB_CATCH_FILTER_ENSURE);
@@ -1320,7 +1320,7 @@ RETRY_TRY_BLOCK:
       CHECKPOINT_END(RBREAK_TAG_JUMP);
 
       mrb->exc = NULL; /* clear break object */
-      pc += (int16_t)a;
+      pc = irep->iseq + a;
       JUMP;
     }
 
