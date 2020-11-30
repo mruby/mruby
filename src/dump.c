@@ -136,8 +136,9 @@ get_pool_block_size(mrb_state *mrb, const mrb_irep *irep)
 
     default: /*  packed IREP_TT_STRING */ 
       {
-        mrb_int len = irep->pool[pool_no].tt >> 1; /* unpack length */
+        mrb_int len = irep->pool[pool_no].tt >> 2; /* unpack length */
         mrb_assert_int_fit(mrb_int, len, size_t, SIZE_MAX);
+        size += sizeof(uint16_t);
         size += (size_t)len+1;
       }
       break;
@@ -293,7 +294,6 @@ get_irep_record_size_1(mrb_state *mrb, const mrb_irep *irep)
   size_t size = 0;
 
   size += get_irep_header_size(mrb);
-  size += sizeof(uint16_t);
   size += get_iseq_block_size(mrb, irep);
   size += get_catch_table_block_size(mrb, irep);
   size += get_pool_block_size(mrb, irep);
@@ -393,6 +393,7 @@ write_section_irep(mrb_state *mrb, const mrb_irep *irep, uint8_t *bin, size_t *l
   if (result != MRB_DUMP_OK) {
     return result;
   }
+  mrb_assert(rsize == get_irep_record_size(mrb, irep));
   *len_p = cur - bin + rsize;
   write_section_irep_header(mrb, *len_p, bin);
 
