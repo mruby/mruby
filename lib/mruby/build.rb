@@ -373,14 +373,6 @@ EOS
     def libraries
       [libmruby_static]
     end
-
-    def presym_file
-      "#{build_dir}/presym"
-    end
-
-    def presym_inc
-      "#{build_dir}/include/mruby/presym.inc"
-    end
   end # Build
 
   class CrossBuild < Build
