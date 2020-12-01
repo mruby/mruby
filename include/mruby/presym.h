@@ -16,7 +16,7 @@
 #define MRB_PRESYM_UNNAMED(lit, num)
 
 enum mruby_presym {
-#include <mruby/presym.inc>
+#include <../build/presym.inc>
 };
 
 #undef MRB_PRESYM_NAMED
