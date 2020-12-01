@@ -364,18 +364,13 @@ no_peephole(codegen_scope *s)
 static void
 gen_jmpdst(codegen_scope *s, uint32_t pc)
 {
-  if (pc == 0) {
-    gen_S(s, 0);
-  }
-  else {
-    uint32_t pos2 = s->pc+2;
-    int32_t off = pc - pos2;
+  uint32_t pos2 = s->pc+2;
+  int32_t off = pc - pos2;
 
-    if (off > INT16_MAX || INT16_MIN > off) {
-      codegen_error(s, "too big jmp offset");
-    }
-    gen_S(s, (uint16_t)off);
+  if (off > INT16_MAX || INT16_MIN > off) {
+    codegen_error(s, "too big jmp offset");
   }
+  gen_S(s, (uint16_t)off);
 }
 
 static uint32_t
@@ -387,6 +382,18 @@ genjmp(codegen_scope *s, mrb_code i, uint32_t pc)
   gen_B(s, i);
   pos = s->pc;
   gen_jmpdst(s, pc);
+  return pos;
+}
+
+static uint32_t
+genjmp_0(codegen_scope *s, mrb_code i)
+{
+  uint32_t pos;
+
+  s->lastpc = s->pc;
+  gen_B(s, i);
+  pos = s->pc;
+  gen_S(s, (uint16_t)0);
   return pos;
 }
 
@@ -414,6 +421,34 @@ genjmp2(codegen_scope *s, mrb_code i, uint16_t a, uint32_t pc, int val)
     gen_B(s, (uint8_t)a);
     pos = s->pc;
     gen_jmpdst(s, pc);
+  }
+  return pos;
+}
+
+static uint32_t
+genjmp2_0(codegen_scope *s, mrb_code i, uint16_t a, int val)
+{
+  uint32_t pos;
+
+  if (!no_peephole(s) && !val) {
+    struct mrb_insn_data data = mrb_last_insn(s);
+
+    if (data.insn == OP_MOVE && data.a == a) {
+      s->pc = s->lastpc;
+      a = data.b;
+    }
+  }
+
+  s->lastpc = s->pc;
+  if (a > 0xff) {
+    codegen_error(s, "too big operand");
+    pos = 0;
+  }
+  else {
+    gen_B(s, i);
+    gen_B(s, (uint8_t)a);
+    pos = s->pc;
+    gen_S(s, (uint16_t)0);
   }
   return pos;
 }
@@ -865,10 +900,10 @@ lambda_body(codegen_scope *s, node *tree, int blk)
     pos = new_label(s);
     for (i=0; i<oa; i++) {
       new_label(s);
-      genjmp(s, OP_JMP, 0);
+      genjmp_0(s, OP_JMP);
     }
     if (oa > 0) {
-      genjmp(s, OP_JMP, 0);
+      genjmp_0(s, OP_JMP);
     }
     opt = tree->car->cdr->car;
     i = 0;
@@ -915,7 +950,7 @@ lambda_body(codegen_scope *s, node *tree, int blk)
         if (def_arg) {
           int idx;
           genop_2(s, OP_KEY_P, lv_idx(s, kwd_sym), new_sym(s, kwd_sym));
-          jmpif_key_p = genjmp2(s, OP_JMPIF, lv_idx(s, kwd_sym), 0, 0);
+          jmpif_key_p = genjmp2_0(s, OP_JMPIF, lv_idx(s, kwd_sym), NOVAL);
           codegen(s, def_arg, VAL);
           pop();
           idx = lv_idx(s, kwd_sym);
@@ -926,7 +961,7 @@ lambda_body(codegen_scope *s, node *tree, int blk)
             int lv = search_upvar(s, kwd_sym, &idx);
             genop_3(s, OP_GETUPVAR, cursp(), idx, lv);
           }
-          jmp_def_set = genjmp(s, OP_JMP, 0);
+          jmp_def_set = genjmp_0(s, OP_JMP);
           dispatch(s, jmpif_key_p);
         }
         genop_2(s, OP_KARG, lv_idx(s, kwd_sym), new_sym(s, kwd_sym));
@@ -1107,7 +1142,7 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
   if (safe) {
     int recv = cursp()-1;
     gen_move(s, cursp(), recv, 1);
-    skip = genjmp2(s, OP_JMPNIL, cursp(), 0, val);
+    skip = genjmp2_0(s, OP_JMPNIL, cursp(), val);
   }
   tree = tree->cdr->cdr->car;
   if (tree) {
@@ -1505,7 +1540,7 @@ codegen(codegen_scope *s, node *tree, int val)
       pop();
       lp->type = LOOP_RESCUE;
       end = s->pc;
-      noexc = genjmp(s, OP_JMP, 0);
+      noexc = genjmp_0(s, OP_JMP);
       catch_handler_set(s, catch_entry, MRB_CATCH_RESCUE, begin, end, s->pc);
       tree = tree->cdr;
       exend = 0;
@@ -1547,7 +1582,7 @@ codegen(codegen_scope *s, node *tree, int val)
               n4 = n4->cdr;
             }
           } while (n4);
-          pos1 = genjmp(s, OP_JMP, 0);
+          pos1 = genjmp_0(s, OP_JMP);
           dispatch_linked(s, pos2);
 
           pop();
@@ -1663,17 +1698,17 @@ codegen(codegen_scope *s, node *tree, int val)
       pop();
       if (val || tree->cdr->car) {
         if (nil_p) {
-          pos2 = genjmp2(s, OP_JMPNIL, cursp(), 0, val);
-          pos1 = genjmp(s, OP_JMP, 0);
+          pos2 = genjmp2_0(s, OP_JMPNIL, cursp(), val);
+          pos1 = genjmp_0(s, OP_JMP);
           dispatch(s, pos2);
         }
         else {
-          pos1 = genjmp2(s, OP_JMPNOT, cursp(), 0, val);
+          pos1 = genjmp2_0(s, OP_JMPNOT, cursp(), val);
         }
         codegen(s, tree->cdr->car, val);
         if (val) pop();
         if (elsepart || val) {
-          pos2 = genjmp(s, OP_JMP, 0);
+          pos2 = genjmp_0(s, OP_JMP);
           dispatch(s, pos1);
           codegen(s, elsepart, val);
           dispatch(s, pos2);
@@ -1685,10 +1720,10 @@ codegen(codegen_scope *s, node *tree, int val)
       else {                    /* empty then-part */
         if (elsepart) {
           if (nil_p) {
-            pos1 = genjmp2(s, OP_JMPNIL, cursp(), 0, val);
+            pos1 = genjmp2_0(s, OP_JMPNIL, cursp(), val);
           }
           else {
-            pos1 = genjmp2(s, OP_JMPIF, cursp(), 0, val);
+            pos1 = genjmp2_0(s, OP_JMPIF, cursp(), val);
           }
           codegen(s, elsepart, val);
           dispatch(s, pos1);
@@ -1707,7 +1742,7 @@ codegen(codegen_scope *s, node *tree, int val)
 
       codegen(s, tree->car, VAL);
       pop();
-      pos = genjmp2(s, OP_JMPNOT, cursp(), 0, val);
+      pos = genjmp2_0(s, OP_JMPNOT, cursp(), val);
       codegen(s, tree->cdr, val);
       dispatch(s, pos);
     }
@@ -1719,7 +1754,7 @@ codegen(codegen_scope *s, node *tree, int val)
 
       codegen(s, tree->car, VAL);
       pop();
-      pos = genjmp2(s, OP_JMPIF, cursp(), 0, val);
+      pos = genjmp2_0(s, OP_JMPIF, cursp(), val);
       codegen(s, tree->cdr, val);
       dispatch(s, pos);
     }
@@ -1730,7 +1765,7 @@ codegen(codegen_scope *s, node *tree, int val)
       struct loopinfo *lp = loop_push(s, LOOP_NORMAL);
 
       lp->pc0 = new_label(s);
-      lp->pc1 = genjmp(s, OP_JMP, 0);
+      lp->pc1 = genjmp_0(s, OP_JMP);
       lp->pc2 = new_label(s);
       codegen(s, tree->cdr, NOVAL);
       dispatch(s, lp->pc1);
@@ -1747,7 +1782,7 @@ codegen(codegen_scope *s, node *tree, int val)
       struct loopinfo *lp = loop_push(s, LOOP_NORMAL);
 
       lp->pc0 = new_label(s);
-      lp->pc1 = genjmp(s, OP_JMP, 0);
+      lp->pc1 = genjmp_0(s, OP_JMP);
       lp->pc2 = new_label(s);
       codegen(s, tree->cdr, NOVAL);
       dispatch(s, lp->pc1);
@@ -1799,7 +1834,7 @@ codegen(codegen_scope *s, node *tree, int val)
           n = n->cdr;
         }
         if (tree->car->car) {
-          pos1 = genjmp(s, OP_JMP, 0);
+          pos1 = genjmp_0(s, OP_JMP);
           dispatch_linked(s, pos2);
         }
         codegen(s, tree->car->cdr, val);
@@ -2074,7 +2109,7 @@ codegen(codegen_scope *s, node *tree, int val)
         exc = cursp();
         codegen(s, tree->car, VAL);
         end = s->pc;
-        noexc = genjmp(s, OP_JMP, 0);
+        noexc = genjmp_0(s, OP_JMP);
         lp->type = LOOP_RESCUE;
         catch_handler_set(s, catch_entry, MRB_CATCH_RESCUE, begin, end, s->pc);
         genop_1(s, OP_EXCEPT, exc);
@@ -2127,10 +2162,10 @@ codegen(codegen_scope *s, node *tree, int val)
           if (vsp >= 0) {
             gen_move(s, vsp, cursp(), 1);
           }
-          pos = genjmp2(s, name[0]=='|'?OP_JMPIF:OP_JMPNOT, cursp(), 0, val);
+          pos = genjmp2_0(s, name[0]=='|'?OP_JMPIF:OP_JMPNOT, cursp(), val);
         }
         else {
-          pos = genjmp2(s, name[0]=='|'?OP_JMPIF:OP_JMPNOT, cursp(), 0, val);
+          pos = genjmp2_0(s, name[0]=='|'?OP_JMPIF:OP_JMPNOT, cursp(), val);
         }
         codegen(s, tree->cdr->cdr->car, VAL);
         pop();
