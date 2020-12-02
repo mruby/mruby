@@ -3265,9 +3265,6 @@ catch_handler_set(codegen_scope *s, int ent, enum mrb_catch_type type, uint32_t 
   struct mrb_irep_catch_handler *e;
 
   mrb_assert(ent >= 0 && ent < s->irep->clen);
-  mrb_assert(begin < MAXARG_S);
-  mrb_assert(end < MAXARG_S);
-  mrb_assert(target < MAXARG_S);
 
   e = &s->catch_table[ent];
   uint8_to_bin(type, &e->type);
