@@ -1069,7 +1069,6 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
-
     CASE(OP_LOADL16, BS) {
       goto op_loadl;
     }
