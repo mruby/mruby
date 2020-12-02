@@ -277,8 +277,8 @@ EOS
           compiler.defines += %w(MRB_NO_GEMS)
         end
         compiler.defines |= %w(MRB_USE_DEBUG_HOOK) if use_mrdb
-        compiler.define_rules build_dir, File.expand_path(File.join(File.dirname(__FILE__), '..', '..'))
       end
+      cc.define_rules(build_dir, MRUBY_ROOT)
     end
 
     def filename(name)
