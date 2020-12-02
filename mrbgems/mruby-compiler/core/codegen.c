@@ -368,16 +368,24 @@ no_peephole(codegen_scope *s)
   return no_optimize(s) || s->lastlabel == s->pc || s->pc == 0 || s->pc == s->lastpc;
 }
 
+#define JMPLINK_START UINT32_MAX
+
 static void
 gen_jmpdst(codegen_scope *s, uint32_t pc)
 {
-  uint32_t pos2 = s->pc+2;
-  int32_t off = pc - pos2;
 
-  if (off > INT16_MAX || INT16_MIN > off) {
-    codegen_error(s, "too big jmp offset");
+  if (pc == JMPLINK_START) {
+    gen_S(s, 0);
   }
-  gen_S(s, (uint16_t)off);
+  else {
+    uint32_t pos2 = s->pc+2;
+    int32_t off = pc - pos2;
+
+    if (off > INT16_MAX || INT16_MIN > off) {
+      codegen_error(s, "too big jump offset");
+    }
+    gen_S(s, (uint16_t)off);
+  }
 }
 
 static uint32_t
@@ -392,17 +400,7 @@ genjmp(codegen_scope *s, mrb_code i, uint32_t pc)
   return pos;
 }
 
-static uint32_t
-genjmp_0(codegen_scope *s, mrb_code i)
-{
-  uint32_t pos;
-
-  s->lastpc = s->pc;
-  gen_B(s, i);
-  pos = s->pc;
-  gen_S(s, (uint16_t)0);
-  return pos;
-}
+#define genjmp_0(s,i) genjmp(s,i,JMPLINK_START)
 
 static uint32_t
 genjmp2(codegen_scope *s, mrb_code i, uint16_t a, uint32_t pc, int val)
@@ -432,33 +430,7 @@ genjmp2(codegen_scope *s, mrb_code i, uint16_t a, uint32_t pc, int val)
   return pos;
 }
 
-static uint32_t
-genjmp2_0(codegen_scope *s, mrb_code i, uint16_t a, int val)
-{
-  uint32_t pos;
-
-  if (!no_peephole(s) && !val) {
-    struct mrb_insn_data data = mrb_last_insn(s);
-
-    if (data.insn == OP_MOVE && data.a == a) {
-      s->pc = s->lastpc;
-      a = data.b;
-    }
-  }
-
-  s->lastpc = s->pc;
-  if (a > 0xff) {
-    codegen_error(s, "too big operand");
-    pos = 0;
-  }
-  else {
-    gen_B(s, i);
-    gen_B(s, (uint8_t)a);
-    pos = s->pc;
-    gen_S(s, (uint16_t)0);
-  }
-  return pos;
-}
+#define genjmp2_0(s,i,a,val) genjmp2(s,i,a,JMPLINK_START,val)
 
 static void
 gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
@@ -561,10 +533,13 @@ gen_addsub(codegen_scope *s, uint8_t op, uint16_t dst)
 static uint32_t
 dispatch(codegen_scope *s, uint32_t pos0)
 {
-  int32_t pos1 = pos0 + 2;
+  int32_t pos1;
   int32_t offset;
   int16_t newpos;
 
+  if (pos0 == JMPLINK_START) return 0;
+
+  pos1 = pos0 + 2;
   offset = s->pc - pos1;
   if (offset > INT16_MAX) {
     codegen_error(s, "too big jmp offset");
@@ -579,7 +554,7 @@ dispatch(codegen_scope *s, uint32_t pos0)
 static void
 dispatch_linked(codegen_scope *s, uint32_t pos)
 {
-  if (pos==0) return;
+  if (pos==JMPLINK_START) return;
   for (;;) {
     pos = dispatch(s, pos);
     if (pos==0) break;
@@ -1550,8 +1525,8 @@ codegen(codegen_scope *s, node *tree, int val)
       noexc = genjmp_0(s, OP_JMP);
       catch_handler_set(s, catch_entry, MRB_CATCH_RESCUE, begin, end, s->pc);
       tree = tree->cdr;
-      exend = 0;
-      pos1 = 0;
+      exend = JMPLINK_START;
+      pos1 = JMPLINK_START;
       if (tree->car) {
         node *n2 = tree->car;
         int exc = cursp();
@@ -1562,8 +1537,8 @@ codegen(codegen_scope *s, node *tree, int val)
           node *n3 = n2->car;
           node *n4 = n3->car;
 
-          if (pos1) dispatch(s, pos1);
-          pos2 = 0;
+          dispatch(s, pos1);
+          pos2 = JMPLINK_START;
           do {
             if (n4 && n4->car && nint(n4->car->car) == NODE_SPLAT) {
               codegen(s, n4->car, VAL);
@@ -1605,7 +1580,7 @@ codegen(codegen_scope *s, node *tree, int val)
           n2 = n2->cdr;
           push();
         }
-        if (pos1) {
+        if (pos1 != JMPLINK_START) {
           dispatch(s, pos1);
           genop_1(s, OP_RAISEIF, exc);
         }
@@ -1812,7 +1787,7 @@ codegen(codegen_scope *s, node *tree, int val)
       uint32_t pos1, pos2, pos3, tmp;
       node *n;
 
-      pos3 = 0;
+      pos3 = JMPLINK_START;
       if (tree->car) {
         head = cursp();
         codegen(s, tree->car, VAL);
@@ -1820,7 +1795,7 @@ codegen(codegen_scope *s, node *tree, int val)
       tree = tree->cdr;
       while (tree) {
         n = tree->car->car;
-        pos1 = pos2 = 0;
+        pos1 = pos2 = JMPLINK_START;
         while (n) {
           codegen(s, n->car, VAL);
           if (head) {
@@ -1848,13 +1823,13 @@ codegen(codegen_scope *s, node *tree, int val)
         if (val) pop();
         tmp = genjmp(s, OP_JMP, pos3);
         pos3 = tmp;
-        if (pos1) dispatch(s, pos1);
+        dispatch(s, pos1);
         tree = tree->cdr;
       }
       if (val) {
         uint32_t pos = cursp();
         genop_1(s, OP_LOADNIL, cursp());
-        if (pos3) dispatch_linked(s, pos3);
+        if (pos3 != JMPLINK_START) dispatch_linked(s, pos3);
         if (head) pop();
         if (cursp() != pos) {
           gen_move(s, cursp(), pos, 0);
@@ -1862,7 +1837,7 @@ codegen(codegen_scope *s, node *tree, int val)
         push();
       }
       else {
-        if (pos3) {
+        if (pos3 != JMPLINK_START) {
           dispatch_linked(s, pos3);
         }
         if (head) {
@@ -3183,7 +3158,7 @@ loop_push(codegen_scope *s, enum looptype t)
   struct loopinfo *p = (struct loopinfo *)codegen_palloc(s, sizeof(struct loopinfo));
 
   p->type = t;
-  p->pc0 = p->pc1 = p->pc2 = p->pc3 = 0;
+  p->pc0 = p->pc1 = p->pc2 = p->pc3 = JMPLINK_START;
   p->prev = s->loop;
   p->acc = cursp();
   s->loop = p;
