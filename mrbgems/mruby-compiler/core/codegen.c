@@ -116,8 +116,15 @@ codegen_error(codegen_scope *s, const char *message)
   while (s->prev) {
     codegen_scope *tmp = s->prev;
     mrb_free(s->mrb, s->iseq);
+    for (int i=0; i<s->irep->plen; i++) {
+      mrb_pool_value *pv = &s->pool[i];
+      if ((pv->tt & 0x3) == IREP_TT_STR) {
+        mrb_free(s->mrb, (void*)pv->u.str);
+      }
+    }
     mrb_free(s->mrb, s->pool);
     mrb_free(s->mrb, s->syms);
+    mrb_free(s->mrb, s->catch_table);
     if (s->reps) {
       /* copied from mrb_irep_free() in state.c */
       for (i=0; i<s->irep->rlen; i++) {
