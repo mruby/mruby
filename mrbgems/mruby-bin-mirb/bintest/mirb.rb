@@ -1,4 +1,5 @@
 require 'open3'
+require 'tempfile'
 
 assert('mirb normal operations') do
   o, s = Open3.capture2(cmd("mirb"), :stdin_data => "a=1\nb=2\na+b\n")
