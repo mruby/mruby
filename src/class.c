@@ -1406,13 +1406,24 @@ include_module_at(mrb_state *mrb, struct RClass *c, struct RClass *ins_pos, stru
     m->flags |= MRB_FL_CLASS_IS_INHERITED;
     ins_pos->super = ic;
     mrb_field_write_barrier(mrb, (struct RBasic*)ins_pos, (struct RBasic*)ic);
-    mrb_mc_clear_by_class(mrb, ins_pos);
     ins_pos = ic;
   skip:
     m = m->super;
   }
   mc_clear(mrb);
   return 0;
+}
+
+static int
+fix_include_module(mrb_state *mrb, struct RBasic *obj, void *data)
+{
+  struct RClass **m = (struct RClass**)data;
+
+  if (obj->tt == MRB_TT_ICLASS && obj->c == m[0] && (obj->flags & MRB_FL_CLASS_IS_ORIGIN) == 0) {
+    struct RClass *ic = (struct RClass*)obj;
+    include_module_at(mrb, ic, ic, m[1], 1);
+  }
+  return MRB_EACH_OBJ_OK;
 }
 
 MRB_API void
@@ -1422,17 +1433,52 @@ mrb_include_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
   if (include_module_at(mrb, c, find_origin(c), m, 1) < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "cyclic include detected");
   }
+  if (c->tt == MRB_TT_MODULE && (c->flags & MRB_FL_CLASS_IS_INHERITED)) {
+    struct RClass *data[2];
+    data[0] = c;
+    data[1] = m;
+    mrb_objspace_each_objects(mrb, fix_include_module, data);
+  }
+}
+
+static int
+fix_prepend_module(mrb_state *mrb, struct RBasic *obj, void *data)
+{
+  struct RClass **m = (struct RClass**)data;
+  struct RClass *c = (struct RClass*)obj;
+
+  if (c->tt == MRB_TT_CLASS || c->tt == MRB_TT_MODULE) {
+    struct RClass *p = c->super;
+    while (p) {
+      if (c == m[0]) break;
+      if (p->tt == MRB_TT_CLASS) break;
+      if (p->c == m[0]) {
+        include_module_at(mrb, c, c, m[1], 0);
+        break; 
+      }
+      c = p;
+      p = p->super;
+    }
+  }
+  return MRB_EACH_OBJ_OK;
 }
 
 MRB_API void
 mrb_prepend_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
 {
   struct RClass *origin;
-  int changed = 0;
 
   mrb_check_frozen(mrb, c);
   if (!(c->flags & MRB_FL_CLASS_IS_PREPENDED)) {
-    origin = (struct RClass*)mrb_obj_alloc(mrb, MRB_TT_ICLASS, c);
+    struct RClass *c0;
+
+    if (c->tt == MRB_TT_ICLASS) {
+      c0 = c->c;
+    }
+    else {
+      c0 = c;
+    }
+    origin = (struct RClass*)mrb_obj_alloc(mrb, MRB_TT_ICLASS, c0);
     origin->flags |= MRB_FL_CLASS_IS_ORIGIN | MRB_FL_CLASS_IS_INHERITED;
     origin->super = c->super;
     c->super = origin;
@@ -1441,9 +1487,15 @@ mrb_prepend_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
     mrb_field_write_barrier(mrb, (struct RBasic*)c, (struct RBasic*)origin);
     c->flags |= MRB_FL_CLASS_IS_PREPENDED;
   }
-  changed = include_module_at(mrb, c, c, m, 0);
-  if (changed < 0) {
+  if (include_module_at(mrb, c, c, m, 0) < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "cyclic prepend detected");
+  }
+  if (c->tt == MRB_TT_MODULE &&
+      (c->flags & (MRB_FL_CLASS_IS_INHERITED|MRB_FL_CLASS_IS_PREPENDED))) {
+    struct RClass *data[2];
+    data[0] = c;
+    data[1] = m;
+    mrb_objspace_each_objects(mrb, fix_prepend_module, data);
   }
 }
 
@@ -1651,7 +1703,6 @@ mrb_mc_clear_by_class(mrb_state *mrb, struct RClass *c)
 
   if (c->flags & MRB_FL_CLASS_IS_INHERITED) {
     mc_clear(mrb);
-    c->flags &= ~MRB_FL_CLASS_IS_INHERITED;
     return;
   }
   for (i=0; i<MRB_METHOD_CACHE_SIZE; i++) {
