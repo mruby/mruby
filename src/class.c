@@ -1449,11 +1449,15 @@ fix_prepend_module(mrb_state *mrb, struct RBasic *obj, void *data)
 
   if (c->tt == MRB_TT_CLASS || c->tt == MRB_TT_MODULE) {
     struct RClass *p = c->super;
+    struct RClass *ins_pos = c;
     while (p) {
       if (c == m[0]) break;
+      if (p == m[0]->super->c) {
+        ins_pos = c;
+      }
       if (p->tt == MRB_TT_CLASS) break;
       if (p->c == m[0]) {
-        include_module_at(mrb, c, c, m[1], 0);
+        include_module_at(mrb, ins_pos, ins_pos, m[1], 0);
         break; 
       }
       c = p;
