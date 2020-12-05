@@ -115,25 +115,27 @@ codegen_error(codegen_scope *s, const char *message)
   if (!s) return;
   while (s->prev) {
     codegen_scope *tmp = s->prev;
-    mrb_free(s->mrb, s->iseq);
-    for (int i=0; i<s->irep->plen; i++) {
-      mrb_pool_value *pv = &s->pool[i];
-      if ((pv->tt & 0x3) == IREP_TT_STR) {
-        mrb_free(s->mrb, (void*)pv->u.str);
+    if (s->irep) {
+      mrb_free(s->mrb, s->iseq);
+      for (int i=0; i<s->irep->plen; i++) {
+        mrb_pool_value *pv = &s->pool[i];
+        if ((pv->tt & 0x3) == IREP_TT_STR) {
+          mrb_free(s->mrb, (void*)pv->u.str);
+        }
       }
-    }
-    mrb_free(s->mrb, s->pool);
-    mrb_free(s->mrb, s->syms);
-    mrb_free(s->mrb, s->catch_table);
-    if (s->reps) {
-      /* copied from mrb_irep_free() in state.c */
-      for (i=0; i<s->irep->rlen; i++) {
-        if (s->reps[i])
-          mrb_irep_decref(s->mrb, (mrb_irep*)s->reps[i]);
+      mrb_free(s->mrb, s->pool);
+      mrb_free(s->mrb, s->syms);
+      mrb_free(s->mrb, s->catch_table);
+      if (s->reps) {
+        /* copied from mrb_irep_free() in state.c */
+        for (i=0; i<s->irep->rlen; i++) {
+          if (s->reps[i])
+            mrb_irep_decref(s->mrb, (mrb_irep*)s->reps[i]);
+        }
+        mrb_free(s->mrb, s->reps);
       }
-      mrb_free(s->mrb, s->reps);
+      mrb_free(s->mrb, s->lines);
     }
-    mrb_free(s->mrb, s->lines);
     mrb_pool_close(s->mpool);
     s = tmp;
   }
@@ -3020,18 +3022,28 @@ codegen(codegen_scope *s, node *tree, int val)
 }
 
 static void
-scope_add_irep(codegen_scope *s, mrb_irep *irep)
+scope_add_irep(codegen_scope *s)
 {
-  if (s->irep == NULL) {
-    s->irep = irep;
+  mrb_irep *irep;
+  codegen_scope *prev = s->prev;
+
+  if (prev->irep == NULL) {
+    irep = mrb_add_irep(s->mrb);
+    prev->irep = s->irep = irep;
     return;
   }
-  if (s->irep->rlen == s->rcapa) {
-    s->rcapa *= 2;
-    s->reps = (mrb_irep**)codegen_realloc(s, s->reps, sizeof(mrb_irep*)*s->rcapa);
+  else {
+    if (prev->irep->rlen == UINT8_MAX) {
+      codegen_error(s, "too many nested blocks/methods");
+    }
+    s->irep = irep = mrb_add_irep(s->mrb);
+    if (prev->irep->rlen == prev->rcapa) {
+      prev->rcapa *= 2;
+      prev->reps = (mrb_irep**)codegen_realloc(s, prev->reps, sizeof(mrb_irep*)*prev->rcapa);
+    }
+    prev->reps[prev->irep->rlen] = irep;
+    prev->irep->rlen++;
   }
-  s->reps[s->irep->rlen] = irep;
-  s->irep->rlen++;
 }
 
 static codegen_scope*
@@ -3054,23 +3066,19 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *nlv)
   s->ainfo = -1;
   s->mscope = 0;
 
-  s->irep = mrb_add_irep(mrb);
-  scope_add_irep(prev, s->irep);
+  scope_add_irep(s);
 
   s->rcapa = 8;
   s->reps = (mrb_irep**)mrb_malloc(mrb, sizeof(mrb_irep*)*s->rcapa);
 
   s->icapa = 1024;
   s->iseq = (mrb_code*)mrb_malloc(mrb, sizeof(mrb_code)*s->icapa);
-  s->irep->iseq = NULL;
 
   s->pcapa = 32;
   s->pool = (mrb_pool_value*)mrb_malloc(mrb, sizeof(mrb_pool_value)*s->pcapa);
-  s->irep->plen = 0;
 
   s->scapa = 256;
   s->syms = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym)*s->scapa);
-  s->irep->slen = 0;
 
   s->lv = nlv;
   s->sp += node_len(nlv)+1;        /* add self */
@@ -3116,7 +3124,7 @@ scope_finish(codegen_scope *s)
   mrb_state *mrb = s->mrb;
   mrb_irep *irep = s->irep;
 
-  if (s->nlocals >= 0x3ff) {
+  if (s->nlocals > 0xff) {
     codegen_error(s, "too many local variables");
   }
   irep->flags = 0;
