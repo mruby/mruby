@@ -9,9 +9,5 @@ MRuby.each_target do
       objfile(dst)
     end
   end
-  self.libmruby_objs << objs
-
-  file libmruby_core_static => objs do |t|
-    archiver.run t.name, t.prerequisites
-  end
+  self.libmruby_core_objs << objs
 end

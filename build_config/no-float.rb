@@ -1,9 +1,3 @@
-MRuby::Build.new("host") do |conf|
-  # load specific toolchain settings
-  toolchain :gcc
-  conf.gem :core => "mruby-bin-mrbc"
-end
-
 # Define cross build settings
 MRuby::CrossBuild.new('no-float') do |conf|
   toolchain :gcc

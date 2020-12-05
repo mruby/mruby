@@ -230,7 +230,7 @@ desc "preallocated symbols"
 task :gensym => presym_file
 
 depfiles += MRuby.targets.map { |n, t|
-  t.libraries
+  t.libmruby_enabled? ? t.libraries : t.libmruby_core_static
 }.flatten
 
 depfiles += MRuby.targets.reject { |n, t| n == 'host' }.map { |n, t|

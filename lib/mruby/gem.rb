@@ -353,6 +353,10 @@ module MRuby
         @ary.each(&b)
       end
 
+      def [](name)
+        @ary.detect {|g| g.name == name}
+      end
+
       def <<(gem)
         unless @ary.detect {|g| g.dir == gem.dir }
           @ary << gem
