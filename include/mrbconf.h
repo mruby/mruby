@@ -153,6 +153,9 @@
 //#define MRB_USE_ALL_SYMBOLS /* Symbol.all_symbols */
 
 /* obsolete configurations */
+#ifdef MRB_METHOD_T_STRUCT
+# define MRB_USE_METHOD_T_STRUCT
+#endif
 #if defined(DISABLE_STDIO) || defined(MRB_DISABLE_STDIO)
 # define MRB_NO_STDIO
 #endif
