@@ -78,6 +78,9 @@ MRuby::GemBox.new do |conf|
   conf.gem :core => "mruby-rational"
   conf.gem :core => "mruby-complex"
 
+  # Generate mrbc command
+  conf.gem :core => "mruby-bin-mrbc"
+
   # Generate mirb command
   conf.gem :core => "mruby-bin-mirb"
 

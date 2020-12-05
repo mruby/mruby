@@ -1,4 +1,6 @@
 MRuby.each_target do
+  next unless libmruby_enabled?
+
   src = "#{build_dir}/mrblib/mrblib.c"
   obj = objfile(src.ext)
   rbfiles = Dir["#{MRUBY_ROOT}/mrblib/*.rb"].sort!

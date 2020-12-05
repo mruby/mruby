@@ -1,4 +1,10 @@
 MRuby.each_target do
+  file libmruby_core_static => libmruby_core_objs.flatten do |t|
+    archiver.run t.name, t.prerequisites
+  end
+
+  next unless libmruby_enabled?
+
   file libmruby_static => libmruby_objs.flatten do |t|
     archiver.run t.name, t.prerequisites
   end

@@ -53,7 +53,7 @@ module MRuby
     include Rake::DSL
     include LoadGems
     attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir
-    attr_reader :libmruby_objs, :gems, :toolchains, :gem_dir_to_repo_url
+    attr_reader :libmruby_core_objs, :libmruby_objs, :gems, :toolchains, :gem_dir_to_repo_url
 
     alias libmruby libmruby_objs
 
@@ -66,7 +66,7 @@ module MRuby
     def initialize(name='host', build_dir=nil, &block)
       @name = name.to_s
 
-      unless MRuby.targets[@name]
+      unless current = MRuby.targets[@name]
         if ENV['OS'] == 'Windows_NT'
           @exts = Exts.new('.o', '.exe', '.a')
         else
@@ -91,7 +91,9 @@ module MRuby
 
         @bins = []
         @gems = MRuby::Gem::List.new
-        @libmruby_objs = []
+        @libmruby_core_objs = []
+        @libmruby_objs = [@libmruby_core_objs]
+        @enable_libmruby = true
         @build_mrbtest_lib_only = false
         @cxx_exception_enabled = false
         @cxx_exception_disabled = false
@@ -102,13 +104,20 @@ module MRuby
         @toolchains = []
         @gem_dir_to_repo_url = {}
 
-        MRuby.targets[@name] = self
+        MRuby.targets[@name] = self.class.current = current = self
       end
 
-      current = MRuby.targets[@name]
-      MRuby::Build.current = current
       current.instance_eval(&block)
+      current.build_mrbc_exec if current.libmruby_enabled? && @name == "host"
       current.build_mrbtest if current.test_enabled?
+    end
+
+    def libmruby_enabled?
+      @enable_libmruby
+    end
+
+    def disable_libmruby
+      @enable_libmruby = false
     end
 
     def debug_enabled?
@@ -255,11 +264,9 @@ EOS
     def mrbcfile
       return @mrbcfile if @mrbcfile
 
-      unless gems.detect {|v| v.name == 'mruby-bin-mrbc' }
-        build_mrbc_exec
-        gems.detect {|v| v.name == 'mruby-bin-mrbc' }.setup
-      end
-      @mrbcfile = self.exefile("#{self.build_dir}/bin/mrbc")
+      gem_name = "mruby-bin-mrbc"
+      gem = gems[gem_name] || MRuby.targets["host"].gems[gem_name]
+      @mrbcfile = exefile("#{gem.build.build_dir}/bin/mrbc")
     end
 
     def compilers
@@ -392,6 +399,7 @@ EOS
             toolchain :gcc
           end
           conf.gem :core => 'mruby-bin-mrbc'
+          conf.disable_libmruby
         end
       end
       @endian = nil
@@ -400,8 +408,7 @@ EOS
     end
 
     def mrbcfile
-      host = MRuby.targets['host']
-      host.exefile("#{host.build_dir}/bin/mrbc")
+      MRuby.targets['host'].mrbcfile
     end
 
     def run_test
