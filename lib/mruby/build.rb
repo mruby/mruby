@@ -402,7 +402,6 @@ EOS
           conf.disable_libmruby
         end
       end
-      @endian = nil
       @test_runner = Command::CrossTestRunner.new(self)
       super
     end
