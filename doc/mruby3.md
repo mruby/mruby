@@ -39,25 +39,31 @@ We have ported some new syntax from CRuby.
 
 # Configuration Options Changed
 
-Some configuration macro names are changed for consistency
+## Renamed for consistency
 
-## `MRB_NO_FLOAT`
+Some configuration macro names are changed for consistency (use `MRB_USE_XXX`
+ or `MRB_NO_XXX`).
 
-Changed from `MRB_WITHOUT_FLOAT` to conform `USE_XXX` naming
-convention.
+|             mruby2             |          mruby3           |
+|--------------------------------|---------------------------|
+| `MRB_ENABLE_ALL_SYMBOLS`       | `MRB_USE_ALL_SYMBOLS`     |
+| `MRB_ENABLE_CXX_ABI`           | `MRB_USE_CXX_ABI`         |
+| `MRB_ENABLE_CXX_EXCEPTION`     | `MRB_USE_CXX_EXCEPTION`   |
+| `MRB_ENABLE_DEBUG_HOOK`        | `MRB_USE_DEBUG_HOOK`      |
+| `MRB_DISABLE_DIRECT_THREADING` | `MRB_NO_DIRECT_THREADING` |
+| `MRB_DISABLE_STDIO`            | `MRB_NO_STDIO`            |
+| `MRB_METHOD_T_STRUCT`          | `MRB_USE_METHOD_T_STRUCT` |
+| `MRB_USE_FLOAT`                | `MRB_USE_FLOAT32`         |
+| `MRB_WITHOUT_FLOAT`            | `MRB_NO_FLOAT`            |
+| `ENABLE_LINENOISE`             | `MRB_USE_LINENOISE`       |
+| `ENABLE_READLINE`              | `MRB_USE_READLINE`        |
+| `DISABLE_MIRB_UNDERSCORE`      | `MRB_NO_MIRB_UNDERSCORE`  |
 
-## `MRB_USE_FLOAT32`
-
-Changed from `MRB_USE_FLOAT` to make sure `float` here means
-using single precision float, and not the opposite of
-`MRB_NO_FLOAT`.
-
-## `MRB_USE_METHOD_T_STRUCT`
-
-Changed from `MRB_METHOD_T_STRUCT`.
-
-To use `struct` version of `mrb_method_t`. More portable but consumes more memory.
-Turned on by default on 32bit platforms.
+* `MRB_USE_FLOAT32` is changed from `MRB_USE_FLOAT` to make sure `float` here
+   means using single precision float, and not the opposite of `MRB_NO_FLOAT`.
+* `MRB_USE_METHOD_T_STRUCT` uses `struct` version of `mrb_method_t`. More
+  portable but consumes more memory. Turned on by default on 32bit platforms.
+* `MRB_` prefix is added to those without.
 
 ## `MRB_NO_BOXING`
 
@@ -140,7 +146,6 @@ No more operand extention
 ## Changed Instructions
 
 Jump addresses used to be specified by absolute offset from the start of `iseq`. Now they are relative offset from the address of the next instruction.
-
 
 ## `Random` now use `xoshiro128++`.
 
