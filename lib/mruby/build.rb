@@ -390,6 +390,8 @@ EOS
     attr_accessor :host_target, :build_target
 
     def initialize(name, build_dir=nil, &block)
+      @test_runner = Command::CrossTestRunner.new(self)
+      super
       unless MRuby.targets['host']
         # add minimal 'host'
         MRuby::Build.new('host') do |conf|
@@ -402,8 +404,6 @@ EOS
           conf.disable_libmruby
         end
       end
-      @test_runner = Command::CrossTestRunner.new(self)
-      super
     end
 
     def mrbcfile
