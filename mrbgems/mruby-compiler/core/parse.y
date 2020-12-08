@@ -2397,7 +2397,7 @@ paren_args      : '(' opt_call_args ')'
                     {
                       $$ = $2;
                     }
-                | '(' tDOT3 rparen
+                | '(' tBDOT3 rparen
                     {
 #if 1
                       mrb_sym r = MRB_OPSYM(mul);
@@ -3493,7 +3493,7 @@ f_arglist_paren : '(' f_args rparen
                       p->lstate = EXPR_BEG;
                       p->cmd_start = TRUE;
                     }
-                | '(' tDOT3 rparen
+                | '(' tBDOT3 rparen
                     {
 #if 1
                       /* til real keyword args implemented */
