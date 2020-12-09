@@ -2397,6 +2397,22 @@ paren_args      : '(' opt_call_args ')'
                     {
                       $$ = $2;
                     }
+                | '(' args comma tBDOT3 rparen
+                    {
+#if 1
+                      mrb_sym r = MRB_OPSYM(mul);
+                      mrb_sym b = MRB_OPSYM(and);
+                      $$ = cons(push($2, new_splat(p, new_lvar(p, r))),
+                                new_block_arg(p, new_lvar(p, b)));
+#else
+                      mrb_sym r = MRB_OPSYM(mul);
+                      mrb_sym k = MRB_OPSYM(pow);
+                      mrb_sym b = MRB_OPSYM(and);
+                      $$ = cons(list2(push($2, new_splat(p, new_lvar(p, r))),
+                                      new_kw_hash(p, list1(cons(new_kw_rest_args(p, 0), new_lvar(p, k))))),
+                                new_block_arg(p, new_lvar(p, b)));
+#endif
+                    }
                 | '(' tBDOT3 rparen
                     {
 #if 1
@@ -3492,6 +3508,24 @@ f_arglist_paren : '(' f_args rparen
                       $$ = $2;
                       p->lstate = EXPR_BEG;
                       p->cmd_start = TRUE;
+                    }
+                | '(' f_arg ',' tBDOT3 rparen
+                    {
+#if 1
+                      /* til real keyword args implemented */
+                      mrb_sym r = MRB_OPSYM(mul);
+                      mrb_sym b = MRB_OPSYM(and);
+                      local_add_f(p, r);
+                      $$ = new_args(p, $2, 0, r, 0,
+                                    new_args_tail(p, 0, 0, b));
+#else
+                      mrb_sym r = MRB_OPSYM(mul);
+                      mrb_sym k = MRB_OPSYM(pow);
+                      mrb_sym b = MRB_OPSYM(and);
+                      local_add_f(p, r); local_add_f(p, k);
+                      $$ = new_args(p, $2, 0, r, 0,
+                                    new_args_tail(p, 0, new_kw_rest_args(p, nsym(k)), b));
+#endif
                     }
                 | '(' tBDOT3 rparen
                     {
