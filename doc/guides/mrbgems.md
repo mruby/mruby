@@ -59,7 +59,7 @@ NOTE: `:bitbucket` option supports only git. Hg is unsupported in this version.
 
 There are instances when you wish to add a collection of mrbgems into mruby at
 once, or be able to substitute mrbgems based on configuration, without having to
-add each gem to your build configration file.  A packaged collection of mrbgems
+add each gem to your build configuration file.  A packaged collection of mrbgems
 is called a GemBox.  A GemBox is a file that contains a list of mrbgems to load
 into mruby, in the same format as if you were adding them to the build config
 via `config.gem`, but wrapped in an `MRuby::GemBox` object.  GemBoxes are
@@ -78,7 +78,7 @@ must be saved with a *.gembox* extension inside the *mrbgems* directory to to be
 picked up by mruby.
 
 To use this example GemBox, we save it as `custom.gembox` inside the *mrbgems*
-directory in mruby, and add the following to your build configration file inside
+directory in mruby, and add the following to your build configuration file inside
 the build block:
 ```ruby
 conf.gembox 'custom'

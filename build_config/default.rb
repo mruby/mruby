@@ -76,7 +76,7 @@ MRuby::Build.new do |conf|
   #   exts.library = '.a'
   # end
 
-  # file separetor
+  # file separator
   # conf.file_separator = '/'
 
   # Turn on `enable_debug` for better debugging

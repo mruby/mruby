@@ -13,7 +13,7 @@ directory. For examples:
 * `boxing`: compiles all three boxing options
 * `clang-asan`: compiles with `clang`'s Address Sanitizer
 
-You can specify the build configration file with the
+You can specify the build configuration file with the
 `MRUBY_CONFIG` environment variable (or `CONFIG` in short).
 If the value specified by `MRUBY_CONFIG` is not the path to
 the configuration file, `build_config/${MRUBY_CONFIG}.rb` is
@@ -68,7 +68,7 @@ Some configuration macro names are changed for consistency (use `MRB_USE_XXX`
 ## `MRB_NO_BOXING`
 
 Uses `struct` to represent `mrb_value`. Consumes more memory
-but easier to inveticate the internal and to debug. It used
+but easier to investigate the internal and to debug. It used
 to be default `mrb_value` representation. Now the default is
 `MRB_WORD_BOXING`.
 
@@ -137,7 +137,7 @@ Instructions for old exception handling
 * `OP_EPUSH`
 * `OP_EPOP`
 
-No more operand extention
+No more operand extension
 
 * `OP_EXT1`
 * `OP_EXT2`

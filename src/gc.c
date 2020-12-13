@@ -45,7 +45,7 @@
 
   == Two White Types
 
-  There're two white color types in a flip-flop fashion: White-A and White-B,
+  There are two white color types in a flip-flop fashion: White-A and White-B,
   which respectively represent the Current White color (the newly allocated
   objects in the current GC cycle) and the Sweep Target White color (the
   dead objects to be swept).

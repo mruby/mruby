@@ -296,7 +296,7 @@ MRB_API mrb_value mrb_ary_clear(mrb_state *mrb, mrb_value self);
  *
  * @param mrb The mruby state reference.
  * @param ary The target array
- * @param sep The separater, can be NULL
+ * @param sep The separator, can be NULL
  */
 MRB_API mrb_value mrb_ary_join(mrb_state *mrb, mrb_value ary, mrb_value sep);
 

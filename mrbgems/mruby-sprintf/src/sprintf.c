@@ -506,7 +506,7 @@ get_hash(mrb_state *mrb, mrb_value *hash, mrb_int argc, const mrb_value *argv)
  *  For more complex formatting, Ruby supports a reference by name.
  *  %<name>s style uses format style, but %{name} style doesn't.
  *
- *  Exapmles:
+ *  Examples:
  *    sprintf("%<foo>d : %<bar>f", { :foo => 1, :bar => 2 })
  *      #=> 1 : 2.000000
  *    sprintf("%{foo}f", { :foo => 1 })
