@@ -2,13 +2,18 @@ MRuby.each_target do
   next unless libmruby_enabled?
 
   src = "#{build_dir}/mrblib/mrblib.c"
-  obj = objfile(src.ext)
   rbfiles = Dir["#{MRUBY_ROOT}/mrblib/*.rb"].sort!
 
-  self.libmruby_objs << obj
+  self.libmruby_objs << objfile(src.ext)
 
-  file obj => src
   file src => [mrbcfile, __FILE__, *rbfiles] do |t|
+    if presym_enabled?
+      cdump = true
+      suffix = "proc"
+    else
+      cdump = false
+      suffix = "irep"
+    end
     mkdir_p File.dirname(t.name)
     File.open(t.name, 'w') do |f|
       _pp "GEN", "mrblib/*.rb", "#{t.name.relative_path}"
@@ -19,14 +24,17 @@ MRuby.each_target do
       f.puts %Q[ *   This file was generated!]
       f.puts %Q[ *   All manual changes will get lost.]
       f.puts %Q[ */]
-      mrbc.run f, rbfiles, 'mrblib_proc'
-      f.puts <<INIT_END
-void
-mrb_init_mrblib(mrb_state *mrb)
-{
-  mrb_load_proc(mrb, mrblib_proc);
-}
-INIT_END
+      unless presym_enabled?
+        f.puts %Q[#include <mruby.h>]
+        f.puts %Q[#include <mruby/irep.h>]
+      end
+      mrbc.run f, rbfiles, "mrblib_#{suffix}", cdump
+      f.puts %Q[void]
+      f.puts %Q[mrb_init_mrblib(mrb_state *mrb)]
+      f.puts %Q[{]
+      f.puts %Q[  mrblib_#{suffix}_init_syms(mrb);] if cdump
+      f.puts %Q[  mrb_load_#{suffix}(mrb, mrblib_#{suffix});]
+      f.puts %Q[}]
     end
   end
 end

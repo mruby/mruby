@@ -88,7 +88,7 @@ intern_gen(parser_state *p, const char *s, size_t len)
 }
 #define intern(s,len) intern_gen(p,(s),(len))
 
-#define intern_lit(s) mrb_intern_lit(p->mrb, s)
+#define intern_op(op) MRB_OPSYM_2(p->mrb, op)
 
 static void
 cons_free_gen(parser_state *p, node *cons)
@@ -314,14 +314,14 @@ static void
 local_add_blk(parser_state *p, mrb_sym blk)
 {
   /* allocate register for block */
-  local_add_f(p, blk ? blk : MRB_OPSYM(and));
+  local_add_f(p, blk ? blk : intern_op(and));
 }
 
 static void
 local_add_kw(parser_state *p, mrb_sym kwd)
 {
   /* allocate register for keywords hash */
-  local_add_f(p, kwd ? kwd : MRB_OPSYM(pow));
+  local_add_f(p, kwd ? kwd : intern_op(pow));
 }
 
 static node*
@@ -959,13 +959,13 @@ new_op_asgn(parser_state *p, node *a, mrb_sym op, node *b)
 static node*
 new_imaginary(parser_state *p, node *imaginary)
 {
-  return new_call(p, new_const(p, MRB_SYM(Kernel)), MRB_SYM(Complex), list1(list2(list3((node*)NODE_INT, (node*)strdup("0"), nint(10)), imaginary)), 1);
+  return new_call(p, new_const(p, MRB_SYM_2(p->mrb, Kernel)), MRB_SYM_2(p->mrb, Complex), list1(list2(list3((node*)NODE_INT, (node*)strdup("0"), nint(10)), imaginary)), 1);
 }
 
 static node*
 new_rational(parser_state *p, node *rational)
 {
-  return new_call(p, new_const(p, MRB_SYM(Kernel)), MRB_SYM(Rational), list1(list1(rational)), 1);
+  return new_call(p, new_const(p, MRB_SYM_2(p->mrb, Kernel)), MRB_SYM_2(p->mrb, Rational), list1(list1(rational)), 1);
 }
 
 /* (:int . i) */
@@ -1706,7 +1706,7 @@ command_asgn    : lhs '=' command_rhs
                     }
                 | primary_value '[' opt_call_args ']' tOP_ASGN command_rhs
                     {
-                      $$ = new_op_asgn(p, new_call(p, $1, MRB_OPSYM(aref), $3, '.'), $5, $6);
+                      $$ = new_op_asgn(p, new_call(p, $1, intern_op(aref), $3, '.'), $5, $6);
                     }
                 | primary_value call_op tIDENTIFIER tOP_ASGN command_rhs
                     {
@@ -1962,7 +1962,7 @@ mlhs_node       : variable
                     }
                 | primary_value '[' opt_call_args ']'
                     {
-                      $$ = new_call(p, $1, MRB_OPSYM(aref), $3, '.');
+                      $$ = new_call(p, $1, intern_op(aref), $3, '.');
                     }
                 | primary_value call_op tIDENTIFIER
                     {
@@ -2001,7 +2001,7 @@ lhs             : variable
                     }
                 | primary_value '[' opt_call_args ']'
                     {
-                      $$ = new_call(p, $1, MRB_OPSYM(aref), $3, '.');
+                      $$ = new_call(p, $1, intern_op(aref), $3, '.');
                     }
                 | primary_value call_op tIDENTIFIER
                     {
@@ -2089,36 +2089,36 @@ undef_list      : fsym
                     }
                 ;
 
-op              : '|'           { $$ = MRB_OPSYM(or);     }
-                | '^'           { $$ = MRB_OPSYM(xor);    }
-                | '&'           { $$ = MRB_OPSYM(and);    }
-                | tCMP          { $$ = MRB_OPSYM(cmp);    }
-                | tEQ           { $$ = MRB_OPSYM(eq);     }
-                | tEQQ          { $$ = MRB_OPSYM(eqq);    }
-                | tMATCH        { $$ = MRB_OPSYM(match);  }
-                | tNMATCH       { $$ = MRB_OPSYM(nmatch); }
-                | '>'           { $$ = MRB_OPSYM(gt);     }
-                | tGEQ          { $$ = MRB_OPSYM(ge);     }
-                | '<'           { $$ = MRB_OPSYM(lt);     }
-                | tLEQ          { $$ = MRB_OPSYM(le);     }
-                | tNEQ          { $$ = MRB_OPSYM(neq);    }
-                | tLSHFT        { $$ = MRB_OPSYM(lshift); }
-                | tRSHFT        { $$ = MRB_OPSYM(rshift); }
-                | '+'           { $$ = MRB_OPSYM(add);    }
-                | '-'           { $$ = MRB_OPSYM(sub);    }
-                | '*'           { $$ = MRB_OPSYM(mul);    }
-                | tSTAR         { $$ = MRB_OPSYM(mul);    }
-                | '/'           { $$ = MRB_OPSYM(div);    }
-                | '%'           { $$ = MRB_OPSYM(mod);    }
-                | tPOW          { $$ = MRB_OPSYM(pow);    }
-                | tDSTAR        { $$ = MRB_OPSYM(pow);    }
-                | '!'           { $$ = MRB_OPSYM(not);    }
-                | '~'           { $$ = MRB_OPSYM(neg);    }
-                | tUPLUS        { $$ = MRB_OPSYM(plus);   }
-                | tUMINUS       { $$ = MRB_OPSYM(minus);  }
-                | tAREF         { $$ = MRB_OPSYM(aref);   }
-                | tASET         { $$ = MRB_OPSYM(aset);   }
-                | '`'           { $$ = MRB_OPSYM(tick);   }
+op              : '|'           { $$ = intern_op(or);     }
+                | '^'           { $$ = intern_op(xor);    }
+                | '&'           { $$ = intern_op(and);    }
+                | tCMP          { $$ = intern_op(cmp);    }
+                | tEQ           { $$ = intern_op(eq);     }
+                | tEQQ          { $$ = intern_op(eqq);    }
+                | tMATCH        { $$ = intern_op(match);  }
+                | tNMATCH       { $$ = intern_op(nmatch); }
+                | '>'           { $$ = intern_op(gt);     }
+                | tGEQ          { $$ = intern_op(ge);     }
+                | '<'           { $$ = intern_op(lt);     }
+                | tLEQ          { $$ = intern_op(le);     }
+                | tNEQ          { $$ = intern_op(neq);    }
+                | tLSHFT        { $$ = intern_op(lshift); }
+                | tRSHFT        { $$ = intern_op(rshift); }
+                | '+'           { $$ = intern_op(add);    }
+                | '-'           { $$ = intern_op(sub);    }
+                | '*'           { $$ = intern_op(mul);    }
+                | tSTAR         { $$ = intern_op(mul);    }
+                | '/'           { $$ = intern_op(div);    }
+                | '%'           { $$ = intern_op(mod);    }
+                | tPOW          { $$ = intern_op(pow);    }
+                | tDSTAR        { $$ = intern_op(pow);    }
+                | '!'           { $$ = intern_op(not);    }
+                | '~'           { $$ = intern_op(neg);    }
+                | tUPLUS        { $$ = intern_op(plus);   }
+                | tUMINUS       { $$ = intern_op(minus);  }
+                | tAREF         { $$ = intern_op(aref);   }
+                | tASET         { $$ = intern_op(aset);   }
+                | '`'           { $$ = intern_op(tick);   }
                 ;
 
 reswords        : keyword__LINE__ | keyword__FILE__ | keyword__ENCODING__
@@ -2145,7 +2145,7 @@ arg             : lhs '=' arg_rhs
                     }
                 | primary_value '[' opt_call_args ']' tOP_ASGN arg_rhs
                     {
-                      $$ = new_op_asgn(p, new_call(p, $1, MRB_OPSYM(aref), $3, '.'), $5, $6);
+                      $$ = new_op_asgn(p, new_call(p, $1, intern_op(aref), $3, '.'), $5, $6);
                     }
                 | primary_value call_op tIDENTIFIER tOP_ASGN arg_rhs
                     {
@@ -2400,14 +2400,14 @@ paren_args      : '(' opt_call_args ')'
                 | '(' args comma tBDOT3 rparen
                     {
 #if 1
-                      mrb_sym r = MRB_OPSYM(mul);
-                      mrb_sym b = MRB_OPSYM(and);
+                      mrb_sym r = intern_op(mul);
+                      mrb_sym b = intern_op(and);
                       $$ = cons(push($2, new_splat(p, new_lvar(p, r))),
                                 new_block_arg(p, new_lvar(p, b)));
 #else
-                      mrb_sym r = MRB_OPSYM(mul);
-                      mrb_sym k = MRB_OPSYM(pow);
-                      mrb_sym b = MRB_OPSYM(and);
+                      mrb_sym r = intern_op(mul);
+                      mrb_sym k = intern_op(pow);
+                      mrb_sym b = intern_op(and);
                       $$ = cons(list2(push($2, new_splat(p, new_lvar(p, r))),
                                       new_kw_hash(p, list1(cons(new_kw_rest_args(p, 0), new_lvar(p, k))))),
                                 new_block_arg(p, new_lvar(p, b)));
@@ -2416,16 +2416,16 @@ paren_args      : '(' opt_call_args ')'
                 | '(' tBDOT3 rparen
                     {
 #if 1
-                      mrb_sym r = MRB_OPSYM(mul);
-                      mrb_sym b = MRB_OPSYM(and);
+                      mrb_sym r = intern_op(mul);
+                      mrb_sym b = intern_op(and);
                       if (local_var_p(p, r)  && local_var_p(p, b)) {
                         $$ = cons(list1(new_splat(p, new_lvar(p, r))),
                                   new_block_arg(p, new_lvar(p, b)));
                       }
 #else
-                      mrb_sym r = MRB_OPSYM(mul);
-                      mrb_sym k = MRB_OPSYM(pow);
-                      mrb_sym b = MRB_OPSYM(and);
+                      mrb_sym r = intern_op(mul);
+                      mrb_sym k = intern_op(pow);
+                      mrb_sym b = intern_op(and);
                       if (local_var_p(p, r) && local_var_p(p, k) && local_var_p(p, b)) {
                         $$ = cons(list2(new_splat(p, new_lvar(p, r)),
                                         new_kw_hash(p, list1(cons(new_kw_rest_args(p, 0), new_lvar(p, k))))),
@@ -3114,11 +3114,11 @@ method_call     : operation paren_args
                     }
                 | primary_value call_op paren_args
                     {
-                      $$ = new_call(p, $1, MRB_SYM(call), $3, $2);
+                      $$ = new_call(p, $1, MRB_SYM_2(p->mrb, call), $3, $2);
                     }
                 | primary_value tCOLON2 paren_args
                     {
-                      $$ = new_call(p, $1, MRB_SYM(call), $3, tCOLON2);
+                      $$ = new_call(p, $1, MRB_SYM_2(p->mrb, call), $3, tCOLON2);
                     }
                 | keyword_super paren_args
                     {
@@ -3130,7 +3130,7 @@ method_call     : operation paren_args
                     }
                 | primary_value '[' opt_call_args ']'
                     {
-                      $$ = new_call(p, $1, MRB_OPSYM(aref), $3, '.');
+                      $$ = new_call(p, $1, intern_op(aref), $3, '.');
                     }
                 ;
 
@@ -3513,15 +3513,15 @@ f_arglist_paren : '(' f_args rparen
                     {
 #if 1
                       /* til real keyword args implemented */
-                      mrb_sym r = MRB_OPSYM(mul);
-                      mrb_sym b = MRB_OPSYM(and);
+                      mrb_sym r = intern_op(mul);
+                      mrb_sym b = intern_op(and);
                       local_add_f(p, r);
                       $$ = new_args(p, $2, 0, r, 0,
                                     new_args_tail(p, 0, 0, b));
 #else
-                      mrb_sym r = MRB_OPSYM(mul);
-                      mrb_sym k = MRB_OPSYM(pow);
-                      mrb_sym b = MRB_OPSYM(and);
+                      mrb_sym r = intern_op(mul);
+                      mrb_sym k = intern_op(pow);
+                      mrb_sym b = intern_op(and);
                       local_add_f(p, r); local_add_f(p, k);
                       $$ = new_args(p, $2, 0, r, 0,
                                     new_args_tail(p, 0, new_kw_rest_args(p, nsym(k)), b));
@@ -3531,15 +3531,15 @@ f_arglist_paren : '(' f_args rparen
                     {
 #if 1
                       /* til real keyword args implemented */
-                      mrb_sym r = MRB_OPSYM(mul);
-                      mrb_sym b = MRB_OPSYM(and);
+                      mrb_sym r = intern_op(mul);
+                      mrb_sym b = intern_op(and);
                       local_add_f(p, r);
                       $$ = new_args(p, 0, 0, r, 0,
                                     new_args_tail(p, 0, 0, b));
 #else
-                      mrb_sym r = MRB_OPSYM(mul);
-                      mrb_sym k = MRB_OPSYM(pow);
-                      mrb_sym b = MRB_OPSYM(and);
+                      mrb_sym r = intern_op(mul);
+                      mrb_sym k = intern_op(pow);
+                      mrb_sym b = intern_op(and);
                       local_add_f(p, r); local_add_f(p, k);
                       $$ = new_args(p, 0, 0, r, 0,
                                     new_args_tail(p, 0, new_kw_rest_args(p, nsym(k)), b));
@@ -3705,7 +3705,7 @@ f_args          : f_arg ',' f_optarg ',' f_rest_arg opt_args_tail
                     }
                 | /* none */
                     {
-                      local_add_f(p, MRB_OPSYM(and));
+                      local_add_f(p, intern_op(and));
                       $$ = new_args(p, 0, 0, 0, 0, 0);
                     }
                 ;
@@ -3829,7 +3829,7 @@ f_rest_arg      : restarg_mark tIDENTIFIER
                     }
                 | restarg_mark
                     {
-                      local_add_f(p, MRB_OPSYM(mul));
+                      local_add_f(p, intern_op(mul));
                       $$ = -1;
                     }
                 ;
@@ -5086,7 +5086,7 @@ parser_yylex(parser_state *p)
   case '*':
     if ((c = nextc(p)) == '*') {
       if ((c = nextc(p)) == '=') {
-        pylval.id = MRB_OPSYM(pow);
+        pylval.id = intern_op(pow);
         p->lstate = EXPR_BEG;
         return tOP_ASGN;
       }
@@ -5104,7 +5104,7 @@ parser_yylex(parser_state *p)
     }
     else {
       if (c == '=') {
-        pylval.id = MRB_OPSYM(mul);
+        pylval.id = intern_op(mul);
         p->lstate = EXPR_BEG;
         return tOP_ASGN;
       }
@@ -5220,7 +5220,7 @@ parser_yylex(parser_state *p)
     }
     if (c == '<') {
       if ((c = nextc(p)) == '=') {
-        pylval.id = MRB_OPSYM(lshift);
+        pylval.id = intern_op(lshift);
         p->lstate = EXPR_BEG;
         return tOP_ASGN;
       }
@@ -5242,7 +5242,7 @@ parser_yylex(parser_state *p)
     }
     if (c == '>') {
       if ((c = nextc(p)) == '=') {
-        pylval.id = MRB_OPSYM(rshift);
+        pylval.id = intern_op(rshift);
         p->lstate = EXPR_BEG;
         return tOP_ASGN;
       }
@@ -5350,7 +5350,7 @@ parser_yylex(parser_state *p)
     if ((c = nextc(p)) == '&') {
       p->lstate = EXPR_BEG;
       if ((c = nextc(p)) == '=') {
-        pylval.id = MRB_OPSYM(andand);
+        pylval.id = intern_op(andand);
         p->lstate = EXPR_BEG;
         return tOP_ASGN;
       }
@@ -5362,7 +5362,7 @@ parser_yylex(parser_state *p)
       return tANDDOT;
     }
     else if (c == '=') {
-      pylval.id = MRB_OPSYM(and);
+      pylval.id = intern_op(and);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -5389,7 +5389,7 @@ parser_yylex(parser_state *p)
     if ((c = nextc(p)) == '|') {
       p->lstate = EXPR_BEG;
       if ((c = nextc(p)) == '=') {
-        pylval.id = MRB_OPSYM(oror);
+        pylval.id = intern_op(oror);
         p->lstate = EXPR_BEG;
         return tOP_ASGN;
       }
@@ -5397,7 +5397,7 @@ parser_yylex(parser_state *p)
       return tOROP;
     }
     if (c == '=') {
-      pylval.id = MRB_OPSYM(or);
+      pylval.id = intern_op(or);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -5421,7 +5421,7 @@ parser_yylex(parser_state *p)
       return '+';
     }
     if (c == '=') {
-      pylval.id = MRB_OPSYM(add);
+      pylval.id = intern_op(add);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -5449,7 +5449,7 @@ parser_yylex(parser_state *p)
       return '-';
     }
     if (c == '=') {
-      pylval.id = MRB_OPSYM(sub);
+      pylval.id = intern_op(sub);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -5772,7 +5772,7 @@ parser_yylex(parser_state *p)
       return tREGEXP_BEG;
     }
     if ((c = nextc(p)) == '=') {
-      pylval.id = MRB_OPSYM(div);
+      pylval.id = intern_op(div);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -5791,7 +5791,7 @@ parser_yylex(parser_state *p)
 
   case '^':
     if ((c = nextc(p)) == '=') {
-      pylval.id = MRB_OPSYM(xor);
+      pylval.id = intern_op(xor);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -5968,7 +5968,7 @@ parser_yylex(parser_state *p)
       }
     }
     if ((c = nextc(p)) == '=') {
-      pylval.id = MRB_OPSYM(mod);
+      pylval.id = intern_op(mod);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }

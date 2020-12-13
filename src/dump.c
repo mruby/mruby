@@ -10,7 +10,6 @@
 #include <mruby/dump.h>
 #include <mruby/string.h>
 #include <mruby/irep.h>
-#include <mruby/numeric.h>
 #include <mruby/debug.h>
 
 #ifndef MRB_NO_FLOAT
@@ -23,6 +22,45 @@ static size_t get_irep_record_size_1(mrb_state *mrb, const mrb_irep *irep);
 #if UINT32_MAX > SIZE_MAX
 # error This code cannot be built on your environment.
 #endif
+
+#define OPERATOR_SYMBOL(sym_name, name) {name, sym_name, sizeof(sym_name)-1}
+struct operator_symbol {
+  const char *name;
+  const char *sym_name;
+  uint16_t sym_name_len;
+};
+static const struct operator_symbol operator_table[] = {
+  OPERATOR_SYMBOL("!", "not"),
+  OPERATOR_SYMBOL("%", "mod"),
+  OPERATOR_SYMBOL("&", "and"),
+  OPERATOR_SYMBOL("*", "mul"),
+  OPERATOR_SYMBOL("+", "add"),
+  OPERATOR_SYMBOL("-", "sub"),
+  OPERATOR_SYMBOL("/", "div"),
+  OPERATOR_SYMBOL("<", "lt"),
+  OPERATOR_SYMBOL(">", "gt"),
+  OPERATOR_SYMBOL("^", "xor"),
+  OPERATOR_SYMBOL("`", "tick"),
+  OPERATOR_SYMBOL("|", "or"),
+  OPERATOR_SYMBOL("~", "neg"),
+  OPERATOR_SYMBOL("!=", "neq"),
+  OPERATOR_SYMBOL("!~", "nmatch"),
+  OPERATOR_SYMBOL("&&", "andand"),
+  OPERATOR_SYMBOL("**", "pow"),
+  OPERATOR_SYMBOL("+@", "plus"),
+  OPERATOR_SYMBOL("-@", "minus"),
+  OPERATOR_SYMBOL("<<", "lshift"),
+  OPERATOR_SYMBOL("<=", "le"),
+  OPERATOR_SYMBOL("==", "eq"),
+  OPERATOR_SYMBOL("=~", "match"),
+  OPERATOR_SYMBOL(">=", "ge"),
+  OPERATOR_SYMBOL(">>", "rshift"),
+  OPERATOR_SYMBOL("[]", "aref"),
+  OPERATOR_SYMBOL("||", "oror"),
+  OPERATOR_SYMBOL("<=>", "cmp"),
+  OPERATOR_SYMBOL("===", "eqq"),
+  OPERATOR_SYMBOL("[]=", "aset"),
+};
 
 static size_t
 get_irep_header_size(mrb_state *mrb)
@@ -138,7 +176,7 @@ get_pool_block_size(mrb_state *mrb, const mrb_irep *irep)
 #endif
       break;
 
-    default: /*  packed IREP_TT_STRING */ 
+    default: /*  packed IREP_TT_STRING */
       {
         mrb_int len = irep->pool[pool_no].tt >> 2; /* unpack length */
         mrb_assert_int_fit(mrb_int, len, size_t, SIZE_MAX);
@@ -888,6 +926,8 @@ mrb_dump_irep_cfunc(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *f
       return MRB_DUMP_WRITE_FAULT;
     }
     if (fprintf(fp,
+          "#include <mruby.h>\n"
+          "#include <mruby/proc.h>\n"
           "#ifdef __cplusplus\n"
           "extern const uint8_t %s[];\n"
           "#endif\n"
@@ -960,26 +1000,132 @@ dump_pool(mrb_state *mrb, const mrb_pool_value *p, FILE *fp)
   return MRB_DUMP_OK;
 }
 
-mrb_bool mrb_sym_static_p(mrb_state *mrb, mrb_sym sym);
-  
-static int
-dump_sym(mrb_state *mrb, mrb_sym sym, FILE *fp)
+static mrb_bool
+sym_name_word_p(const char *name, mrb_int len)
 {
-  const char *name;
-  if (sym == 0) return MRB_DUMP_INVALID_ARGUMENT;
-  name = mrb_sym_name(mrb, sym);
-  if (!name) {
-    fprintf(stderr, "undefined symbol (%d) - define presym\n", sym);
+  if (len == 0) return FALSE;
+  if (name[0] != '_' && !ISALPHA(name[0])) return FALSE;
+  for (int i = 1; i < len; i++) {
+    if (name[i] != '_' && !ISALNUM(name[i])) return FALSE;
   }
-  if (!mrb_sym_static_p(mrb, sym)) {
-    fprintf(stderr, "no static symbol (%s) - define presym\n", name);
+  return TRUE;
+}
+
+static mrb_bool
+sym_name_with_equal_p(const char *name, mrb_int len)
+{
+  return len >= 2 && name[len-1] == '=' && sym_name_word_p(name, len-1);
+}
+
+static mrb_bool
+sym_name_with_question_mark_p(const char *name, mrb_int len)
+{
+  return len >= 2 && name[len-1] == '?' && sym_name_word_p(name, len-1);
+}
+
+static mrb_bool
+sym_name_with_bang_p(const char *name, mrb_int len)
+{
+  return len >= 2 && name[len-1] == '!' && sym_name_word_p(name, len-1);
+}
+
+static mrb_bool
+sym_name_ivar_p(const char *name, mrb_int len)
+{
+  return len >= 2 && name[0] == '@' && sym_name_word_p(name+1, len-1);
+}
+
+static mrb_bool
+sym_name_cvar_p(const char *name, mrb_int len)
+{
+  return len >= 3 && name[0] == '@' && sym_name_ivar_p(name+1, len-1);
+}
+
+const char *
+sym_operator_p(const char *name, mrb_int len)
+{
+  mrb_sym start, idx;
+  mrb_sym table_size = sizeof(operator_table)/sizeof(struct operator_symbol);
+  int cmp;
+  const struct operator_symbol *op_sym;
+  for (start = 0; table_size != 0; table_size/=2) {
+    idx = start+table_size/2;
+    op_sym = &operator_table[idx];
+    cmp = len-op_sym->sym_name_len;
+    if (cmp == 0) {
+      cmp = memcmp(name, op_sym->sym_name, len);
+      if (cmp == 0) return op_sym->name;
+    }
+    if (0 < cmp) {
+      start = ++idx;
+      --table_size;
+    }
   }
-  fprintf(fp, "%d /* %s */,", sym, name);
-  return MRB_DUMP_OK;
+  return NULL;
 }
 
 static int
-dump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, const char *name, int n, int *mp)
+dump_sym(mrb_state *mrb, mrb_sym sym, const char *var_name, int idx, mrb_value init_syms_code, FILE *fp, mrb_bool *presymp)
+{
+  if (sym == 0) return MRB_DUMP_INVALID_ARGUMENT;
+
+  mrb_int len;
+  const char *name = mrb_sym_name_len(mrb, sym, &len), *op_name;
+  if (!name) return MRB_DUMP_INVALID_ARGUMENT;
+  if (presymp) *presymp = TRUE;
+  if (sym_name_word_p(name, len)) {
+    fprintf(fp, "MRB_SYM(%s)", name);
+  }
+  else if (sym_name_with_equal_p(name, len)) {
+    fprintf(fp, "MRB_SYM_E(%.*s)", (int)(len-1), name);
+  }
+  else if (sym_name_with_question_mark_p(name, len)) {
+    fprintf(fp, "MRB_SYM_Q(%.*s)", (int)(len-1), name);
+  }
+  else if (sym_name_with_bang_p(name, len)) {
+    fprintf(fp, "MRB_SYM_B(%.*s)", (int)(len-1), name);
+  }
+  else if (sym_name_ivar_p(name, len)) {
+    fprintf(fp, "MRB_IVSYM(%s)", name+1);
+  }
+  else if (sym_name_cvar_p(name, len)) {
+    fprintf(fp, "MRB_CVSYM(%s)", name+2);
+  }
+  else if ((op_name = sym_operator_p(name, len))) {
+    fprintf(fp, "MRB_OPSYM(%s)", op_name);
+  }
+  else {
+    mrb_assert(var_name);
+    char buf[32];
+    mrb_str_cat_lit(mrb, init_syms_code, "  ");
+    mrb_str_cat_cstr(mrb, init_syms_code, var_name);
+    snprintf(buf, sizeof(buf), "[%d] = ", idx);
+    mrb_str_cat_cstr(mrb, init_syms_code, buf);
+    mrb_str_cat_lit(mrb, init_syms_code, "mrb_intern_lit(mrb, \"");
+    mrb_str_cat_cstr(mrb, init_syms_code, mrb_sym_dump(mrb, sym));
+    mrb_str_cat_lit(mrb, init_syms_code, "\");\n");
+    *presymp = FALSE;
+    fputs("0", fp);
+  }
+  fputs(", ", fp);
+  return MRB_DUMP_OK;
+}
+
+static const char*
+sym_var_name(mrb_state *mrb, const char *initname, const char *key, int n)
+{
+  char buf[32];
+  mrb_value s = mrb_str_new_cstr(mrb, initname);
+  mrb_str_cat_lit(mrb, s, "_");
+  mrb_str_cat_cstr(mrb, s, key);
+  mrb_str_cat_lit(mrb, s, "_");
+  snprintf(buf, sizeof(buf), "%d", n);
+  mrb_str_cat_cstr(mrb, s, buf);
+  return RSTRING_PTR(s);
+}
+
+static int
+dump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, const char *name, int n, mrb_value init_syms_code, int *mp)
 {
   int i, len;
   int max = *mp;
@@ -988,7 +1134,7 @@ dump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, 
   if (irep->reps) {
     for (i=0,len=irep->rlen; i<len; i++) {
       *mp += len;
-      if (dump_irep_struct(mrb, irep->reps[i], flags, fp, name, max+i, mp) != MRB_DUMP_OK)
+      if (dump_irep_struct(mrb, irep->reps[i], flags, fp, name, max+i, init_syms_code, mp) != MRB_DUMP_OK)
         return MRB_DUMP_INVALID_ARGUMENT;
     }
     fprintf(fp,   "static const mrb_irep *%s_reps_%d[%d] = {\n", name, n, len);
@@ -1009,12 +1155,19 @@ dump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, 
   }
   /* dump syms */
   if (irep->syms) {
+    int ai = mrb_gc_arena_save(mrb);
+    const char *var_name = sym_var_name(mrb, name, "syms", n);
+    mrb_bool all_presym = TRUE, presym;
     len=irep->slen;
-    fprintf(fp,   "static const mrb_sym %s_syms_%d[%d] = {", name, n, len);
+    fprintf(fp,   "mrb_DEFINE_SYMS_VAR(%s, %d, (", var_name, len);
     for (i=0; i<len; i++) {
-      dump_sym(mrb, irep->syms[i], fp);
+      dump_sym(mrb, irep->syms[i], var_name, i, init_syms_code, fp, &presym);
+      all_presym &= presym;
     }
-    fputs("};\n", fp);
+    fputs("), ", fp);
+    if (all_presym) fputs("const", fp);
+    fputs(");\n", fp);
+    mrb_gc_arena_restore(mrb, ai);
   }
   /* dump iseq */
   len=irep->ilen+sizeof(struct mrb_irep_catch_handler)*irep->clen;
@@ -1029,7 +1182,7 @@ dump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, 
     len=irep->nlocals;
     fprintf(fp,   "static const mrb_sym %s_lv_%d[%d] = {", name, n, len-1);
     for (i=0; i+1<len; i++) {
-      fprintf(fp, "%uU, ", irep->lv[i]);
+      dump_sym(mrb, irep->lv[i], NULL, 0, mrb_nil_value(), fp, NULL);
     }
     fputs("};\n", fp);
   }
@@ -1070,20 +1223,28 @@ dump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, 
 int
 mrb_dump_irep_cstruct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, const char *initname)
 {
-  int max = 1;
-  int n;
-
   if (fp == NULL || initname == NULL || initname[0] == '\0') {
     return MRB_DUMP_INVALID_ARGUMENT;
   }
   if (fprintf(fp, "#include <mruby.h>\n" "#include <mruby/proc.h>\n\n") < 0) {
     return MRB_DUMP_WRITE_FAULT;
   }
-  n = dump_irep_struct(mrb, irep, flags, fp, initname, 0, &max);
+  fputs("#define mrb_BRACED(...) {__VA_ARGS__}\n", fp);
+  fputs("#define mrb_DEFINE_SYMS_VAR(name, len, syms, qualifier) \\\n", fp);
+  fputs("  static qualifier mrb_sym name[len] = mrb_BRACED syms\n", fp);
+  fputs("\n", fp);
+  mrb_value init_syms_code = mrb_str_new_capa(mrb, 0);
+  int max = 1;
+  int n = dump_irep_struct(mrb, irep, flags, fp, initname, 0, init_syms_code, &max);
   if (n != MRB_DUMP_OK) return n;
   fprintf(fp, "#ifdef __cplusplus\nextern const struct RProc %s[];\n#endif\n", initname);
   fprintf(fp, "const struct RProc %s[] = {{\n", initname);
   fprintf(fp, "NULL,NULL,MRB_TT_PROC,7,0,{&%s_irep_0},NULL,{NULL},\n}};\n", initname);
+  fputs("static void\n", fp);
+  fprintf(fp, "%s_init_syms(mrb_state *mrb)\n", initname);
+  fputs("{\n", fp);
+  fputs(RSTRING_PTR(init_syms_code), fp);
+  fputs("}\n", fp);
   return MRB_DUMP_OK;
 }
 

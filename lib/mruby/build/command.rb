@@ -42,6 +42,7 @@ module MRuby
     attr_accessor :label, :flags, :include_paths, :defines, :source_exts
     attr_accessor :compile_options, :option_define, :option_include_path, :out_ext
     attr_accessor :cxx_compile_flag, :cxx_exception_flag, :cxx_invalid_flags
+    attr_writer :preprocess_options
 
     def initialize(build, source_exts=[], label: "CC")
       super(build)
@@ -55,9 +56,15 @@ module MRuby
       @option_define = %q[-D"%s"]
       @compile_options = %q[%{flags} -o "%{outfile}" -c "%{infile}"]
       @cxx_invalid_flags = []
+      @out_ext = build.exts.object
     end
 
     alias header_search_paths include_paths
+
+    def preprocess_options
+      @preprocess_options ||= @compile_options.sub(/(?:\A|\s)\K-c(?=\s)/, "-E -P")
+    end
+
     def search_header_path(name)
       header_search_paths.find do |v|
         File.exist? build.filename("#{v}/#{name}").sub(/^"(.*)"$/, '\1')
@@ -79,13 +86,20 @@ module MRuby
 
     def run(outfile, infile, _defines=[], _include_paths=[], _flags=[])
       mkdir_p File.dirname(outfile)
-      _pp @label, infile.relative_path, outfile.relative_path
-      _run compile_options, { :flags => all_flags(_defines, _include_paths, _flags),
-                              :infile => filename(infile), :outfile => filename(outfile) }
+      flags = all_flags(_defines, _include_paths, _flags)
+      if File.extname(outfile) == build.exts.object
+        label = @label
+        opts = compile_options
+      else
+        label = "CPP"
+        opts = preprocess_options
+        flags << " -DMRB_PRESYM_SCANNING"
+      end
+      _pp label, infile.relative_path, outfile.relative_path
+      _run opts, flags: flags, infile: filename(infile), outfile: filename(outfile)
     end
 
-    def define_rules(build_dir, source_dir='')
-      @out_ext = build.exts.object
+    def define_rules(build_dir, source_dir='', out_ext=build.exts.object)
       gemrake = File.join(source_dir, "mrbgem.rake")
       rakedep = File.exist?(gemrake) ? [ gemrake ] : []
 
@@ -143,10 +157,10 @@ module MRuby
     #   /src/value_array.h:
     #
     def get_dependencies(file)
-      file = file.ext('d') unless File.extname(file) == '.d'
-      return [MRUBY_CONFIG] unless File.exist?(file)
+      dep_file = "#{file}.d"
+      return [MRUBY_CONFIG] unless File.exist?(dep_file)
 
-      deps = File.read(file).gsub("\\\n ", "").split("\n").map do |dep_line|
+      deps = File.read(dep_file).gsub("\\\n ", "").split("\n").map do |dep_line|
         # dep_line:
         # - "/build/host/src/array.o:   /src/array.c   /include/mruby/common.h ..."
         # - ""
@@ -185,6 +199,10 @@ module MRuby
 
     def library_flags(_libraries)
       [libraries, _libraries].flatten.map{ |d| option_library % d }.join(' ')
+    end
+
+    def run_attrs
+      [@libraries, @library_paths, @flags, @flags_before_libraries, @flags_after_libraries]
     end
 
     def run(outfile, objfiles, _libraries=[], _library_paths=[], _flags=[], _flags_before_libraries=[], _flags_after_libraries=[])

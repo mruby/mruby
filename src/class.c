@@ -2791,7 +2791,8 @@ static const mrb_code new_iseq[] = {
   OP_RETURN, 0x0             /* OP_RETURN    R0 */
 };
 
-const mrb_sym new_syms[] = { MRB_SYM(allocate), MRB_SYM(initialize) };
+MRB_PRESYM_DEFINE_VAR_AND_INITER(new_syms, 2, MRB_SYM(allocate), MRB_SYM(initialize))
+
 static const mrb_irep new_irep = {
   3, 6, 0, MRB_IREP_STATIC,
   new_iseq, NULL, new_syms, NULL, NULL, NULL,
@@ -2804,6 +2805,7 @@ init_class_new(mrb_state *mrb, struct RClass *cls)
   struct RProc *p;
   mrb_method_t m;
 
+  init_new_syms(mrb);
   p = mrb_proc_new(mrb, &new_irep);
   MRB_METHOD_FROM_PROC(m, p);
   mrb_define_method_raw(mrb, cls, MRB_SYM(new), m);

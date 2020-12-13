@@ -3,6 +3,8 @@ MRuby.each_target do
     archiver.run t.name, t.prerequisites
   end
 
+  products << libmruby_core_static
+
   next unless libmruby_enabled?
 
   file libmruby_static => libmruby_objs.flatten do |t|
@@ -27,4 +29,6 @@ MRuby.each_target do
       f.puts "MRUBY_LIBMRUBY_PATH = #{libmruby_static}"
     end
   end
+
+  products << libmruby_static
 end
