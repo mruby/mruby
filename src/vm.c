@@ -1840,11 +1840,11 @@ RETRY_TRY_BLOCK:
         if (mlen < m2) {
           stack_clear(&regs[len-m2+mlen+1], m2-mlen);
         }
-        /* initalize rest arguments with empty Array */
+        /* initialize rest arguments with empty Array */
         if (r) {
           regs[m1+o+1] = mrb_ary_new_capa(mrb, 0);
         }
-        /* skip initailizer of passed arguments */
+        /* skip initializer of passed arguments */
         if (o > 0 && argc-kargs > m1+m2)
           pc += (argc - kargs - m1 - m2)*3;
       }

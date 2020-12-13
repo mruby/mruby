@@ -91,7 +91,7 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
    khval_t: value data type
    kh_is_map: (0: hash set / 1: hash map)
    __hash_func: hash function
-   __hash_equal: hash comparation function
+   __hash_equal: hash comparison function
 */
 #define KHASH_DEFINE(name, khkey_t, khval_t, kh_is_map, __hash_func, __hash_equal) \
   mrb_noreturn void mrb_raise_nomemory(mrb_state *mrb);                 \

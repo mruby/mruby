@@ -67,7 +67,7 @@ assert('mruby-bin-debugger(print) invalid arguments') do
   BinTest_MrubyBinDebugger.test(src, tc)
 end
 
-assert('mruby-bin-debugger(print) nomal') do
+assert('mruby-bin-debugger(print) normal') do
   # ruby source
   src = <<"SRC"
 foo = 'foo'
@@ -99,7 +99,7 @@ assert('mruby-bin-debugger(print) error') do
   BinTest_MrubyBinDebugger.test(src, tc)
 end
 
-# Kernel#instance_eval(string) does't work multiple statements.
+# Kernel#instance_eval(string) doesn't work multiple statements.
 =begin
 assert('mruby-bin-debugger(print) multiple statements') do
   # ruby source
@@ -234,7 +234,7 @@ SRC
   BinTest_MrubyBinDebugger.test(src, tc)
 end
 
-assert('mruby-bin-debugger(print) same name:local variabe') do
+assert('mruby-bin-debugger(print) same name:local variable') do
   # ruby source (bp is break point)
   src = <<"SRC"
 lv = 'top'

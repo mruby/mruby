@@ -13,7 +13,7 @@ To compile mruby out of the source code you need the following tools:
 * Ruby 2.0 or later (e.g. `ruby` or `jruby`)
 
 Note that `bison` bundled with MacOS is too old to compile `mruby`.
-Try `brew install bison` and follow the instuction shown to update
+Try `brew install bison` and follow the instruction shown to update
 the `$PATH` to compile `mruby`. We also encourage to upgrade `ruby`
 on MacOS in similar manner.
 
@@ -29,7 +29,7 @@ inside of the mruby source root. To generate and execute the test tools call
 `rake test`. To clean all build files call `rake clean`. To see full command
 line on build, call `rake -v`.
 
-You can specify your owne configration file by the `MRUBY_CONFIG` environment
+You can specify your owne configuration file by the `MRUBY_CONFIG` environment
 variable (you can use `CONFIG` for shorthand for `MRUBY_CONFIG`). If the path
 doesn't exist, *build_config/${MRUBY_CONFIG}.rb* is used. The default
 configuration is defined in the `build_config/default.rb` file.

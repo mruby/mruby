@@ -20,7 +20,7 @@ if Object.const_defined?(:Struct)
 
     ##
     # Calls the given block for each element of +self+
-    # and pass the name and value of the respectiev
+    # and pass the name and value of the respective
     # element.
     #
     # ISO 15.2.18.4.5

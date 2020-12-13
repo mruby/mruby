@@ -345,9 +345,9 @@ MRB_API mrb_value mrb_str_new_capa(mrb_state *mrb, size_t capa);
 MRB_API const char *mrb_string_cstr(mrb_state *mrb, mrb_value str);
 /* NULL terminated C string from mrb_value; `str` will be updated */
 MRB_API const char *mrb_string_value_cstr(mrb_state *mrb, mrb_value *str);
-/* obslete: use RSTRING_PTR() */
+/* obsolete: use RSTRING_PTR() */
 MRB_API const char *mrb_string_value_ptr(mrb_state *mrb, mrb_value str);
-/* obslete: use RSTRING_LEN() */
+/* obsolete: use RSTRING_LEN() */
 MRB_API mrb_int mrb_string_value_len(mrb_state *mrb, mrb_value str);
 
 /**
@@ -433,7 +433,7 @@ MRB_API int mrb_str_cmp(mrb_state *mrb, mrb_value str1, mrb_value str2);
  * - Returned string does not contain any NUL characters (but terminator).
  * - It raises an ArgumentError exception if Ruby string contains
  *   NUL characters.
- * - Retured string will be freed automatically on next GC.
+ * - Returned string will be freed automatically on next GC.
  * - Caller can modify returned string without affecting Ruby string
  *   (e.g. it can be used for mkstemp(3)).
  *
