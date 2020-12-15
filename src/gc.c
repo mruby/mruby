@@ -107,8 +107,14 @@ struct free_obj {
   struct RBasic *next;
 };
 
+struct RVALUE_initializer {
+  MRB_OBJECT_HEADER;
+  char padding[sizeof(void*) * 4 - sizeof(uint32_t)];
+};
+
 typedef struct {
   union {
+    struct RVALUE_initializer init;  /* must be first member to ensure initialization */
     struct free_obj free;
     struct RBasic basic;
     struct RObject object;
