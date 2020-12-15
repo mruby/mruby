@@ -21,6 +21,7 @@ class String
 end
 
 def install_D(src, dst)
+  _pp "INSTALL", src.relative_path, dst.relative_path
   rm_f dst
   mkdir_p File.dirname(dst)
   cp src, dst
