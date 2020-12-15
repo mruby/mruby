@@ -1458,7 +1458,7 @@ fix_prepend_module(mrb_state *mrb, struct RBasic *obj, void *data)
       if (p->tt == MRB_TT_CLASS) break;
       if (p->c == m[0]) {
         include_module_at(mrb, ins_pos, ins_pos, m[1], 0);
-        break; 
+        break;
       }
       c = p;
       p = p->super;

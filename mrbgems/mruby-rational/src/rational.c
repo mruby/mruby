@@ -96,7 +96,7 @@ rational_new(mrb_state *mrb, mrb_int numerator, mrb_int denominator)
  * md: max denominator value.  Note that machine floating point number
  *     has a finite resolution (10e-16 ish for 64 bit double), so specifying
  *     a "best match with minimal error" is often wrong, because one can
- *     always just retrieve the significand and return that divided by 
+ *     always just retrieve the significand and return that divided by
  *     2**52, which is in a sense accurate, but generally not very useful:
  *     1.0/7.0 would be "2573485501354569/18014398509481984", for example.
  */
@@ -122,7 +122,7 @@ rational_new_f(mrb_state *mrb, mrb_float f0)
     mrb_raise(mrb, E_RANGE_ERROR, "integer overflow in rational");
   }
   d = (mrb_int)f;
- 
+
   /* continued fraction and check denominator each step */
   for (i = 0; i < 64; i++) {
     a = (mrb_int)(n ? d / n : 0);

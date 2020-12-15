@@ -24,7 +24,7 @@ vf_s_format_c(mrb_state *mrb, mrb_value klass)
   mrb_value fmt_str, arg_str;
   const char *fmt;
   char c;
-  
+
   mrb_get_args(mrb, "SS", &fmt_str, &arg_str);
   fmt = RSTRING_CSTR(mrb, fmt_str);
   c = RSTRING_CSTR(mrb, arg_str)[0];
@@ -164,7 +164,7 @@ mrb_init_test_vformat(mrb_state *mrb)
 
 #define VF_DEFINE_FORMAT_METHOD(t) VF_DEFINE_FORMAT_METHOD_n(t,2)
 #define VF_DEFINE_FORMAT_METHOD_n(t,n) mrb_define_class_method(mrb, vf, #t, vf_s_format_##t, MRB_ARGS_REQ(n));
-  
+
   VF_DEFINE_FORMAT_METHOD(c);
   VF_DEFINE_FORMAT_METHOD(d);
 #ifndef MRB_NO_FLOAT

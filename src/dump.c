@@ -138,7 +138,7 @@ get_pool_block_size(mrb_state *mrb, const mrb_irep *irep)
 #endif
       break;
 
-    default: /*  packed IREP_TT_STRING */ 
+    default: /*  packed IREP_TT_STRING */
       {
         mrb_int len = irep->pool[pool_no].tt >> 2; /* unpack length */
         mrb_assert_int_fit(mrb_int, len, size_t, SIZE_MAX);
@@ -961,7 +961,7 @@ dump_pool(mrb_state *mrb, const mrb_pool_value *p, FILE *fp)
 }
 
 mrb_bool mrb_sym_static_p(mrb_state *mrb, mrb_sym sym);
-  
+
 static int
 dump_sym(mrb_state *mrb, mrb_sym sym, FILE *fp)
 {

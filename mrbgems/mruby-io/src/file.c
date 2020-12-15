@@ -290,20 +290,20 @@ mrb_file__getwd(mrb_state *mrb, mrb_value klass)
 #define IS_DEVICEID(x) (x == '.' || x == '?')
 #define CHECK_UNCDEV_PATH (IS_FILESEP(path[0]) && IS_FILESEP(path[1]))
 
-static int 
+static int
 is_absolute_traditional_path(const char *path, size_t len)
 {
   if (len < 3) return 0;
   return (ISALPHA(path[0]) && IS_VOLSEP(path[1]) && IS_FILESEP(path[2]));
 }
 
-static int 
+static int
 is_aboslute_unc_path(const char *path, size_t len) {
   if (len < 2) return 0;
   return (CHECK_UNCDEV_PATH && !IS_DEVICEID(path[2]));
 }
 
-static int 
+static int
 is_absolute_device_path(const char *path, size_t len) {
   if (len < 4) return 0;
   return (CHECK_UNCDEV_PATH && IS_DEVICEID(path[2]) && IS_FILESEP(path[3]));
@@ -316,8 +316,8 @@ mrb_file_is_absolute_path(const char *path)
   if (IS_FILESEP(path[0])) return 1;
   if (len > 0)
     return (
-      is_absolute_traditional_path(path, len) || 
-      is_aboslute_unc_path(path, len) || 
+      is_absolute_traditional_path(path, len) ||
+      is_aboslute_unc_path(path, len) ||
       is_absolute_device_path(path, len)
       );
   else

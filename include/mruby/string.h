@@ -159,7 +159,7 @@ MRB_API mrb_int mrb_str_index(mrb_state *mrb, mrb_value str, const char *p, mrb_
  *
  *       mrb_close(mrb);
  *       return 0;
- *     } 
+ *     }
  *
  * Result:
  *
