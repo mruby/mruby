@@ -35,7 +35,7 @@ assert('Range#size') do
   assert_equal 41, (1...42).size
   assert_nil ('a'..'z').size
   assert_nil ('a'..).size
-  
+
   assert_nil (1..).size unless Object.const_defined?(:Float)
 
   skip unless Object.const_defined?(:Float)

@@ -155,7 +155,7 @@ assert('Range#eql?', '15.2.14.4.14') do
   assert_false (1..).eql? "1.."
   skip unless Object.const_defined?(:Float)
   assert_false (1..10).eql? (Range.new(1.0, 10.0))
-  assert_false (1..).eql? (Range.new(1.0, nil)) 
+  assert_false (1..).eql? (Range.new(1.0, nil))
 end
 
 assert('Range#initialize_copy', '15.2.14.4.15') do

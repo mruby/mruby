@@ -80,7 +80,7 @@ class Range
     last = self.end
     if block
       raise RangeError, "cannot get the minimum of endless range with custom comparison method" if last.nil?
-      return super 
+      return super
     end
     return val if last.nil?
 

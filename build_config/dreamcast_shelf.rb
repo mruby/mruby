@@ -11,7 +11,7 @@ MRuby::CrossBuild.new("dreamcast") do |conf|
   # To compile mruby with DreamSDK, RubyInstaller for Windows should be installed
   DREAMSDK_HOME = ENV["DREAMSDK_HOME"]
   MSYS_ROOT = !(DREAMSDK_HOME.nil? || DREAMSDK_HOME.empty?) ? "#{DREAMSDK_HOME}/msys/1.0" : ""
- 
+
   # Setting paths
   DREAMCAST_PATH = "#{MSYS_ROOT}/opt/toolchains/dc"
   KOS_PATH = "#{DREAMCAST_PATH}/kos"
@@ -37,16 +37,16 @@ MRuby::CrossBuild.new("dreamcast") do |conf|
     cxx.defines = conf.cc.defines.dup
     cxx.compile_options = conf.cc.compile_options.dup
   end
- 
+
   # Linker
   # There is an issue when making the mruby library with KallistiOS:
-  # 'newlib_kill.o' and 'newlib_getpid.o' aren't found so they are explicitly 
+  # 'newlib_kill.o' and 'newlib_getpid.o' aren't found so they are explicitly
   # specified here at least for now.
   conf.linker do |linker|
     linker.command="#{BIN_PATH}/sh-elf-gcc"
     linker.flags << ["#{MSYS_ROOT}/opt/toolchains/dc/kos/kernel/build/newlib_kill.o", "#{MSYS_ROOT}/opt/toolchains/dc/kos/kernel/build/newlib_getpid.o", "-Wl,--start-group -lkallisti -lc -lgcc -Wl,--end-group"]
     linker.library_paths << ["#{KOS_PATH}/lib/dreamcast", "#{KOS_PATH}/addons/lib/dreamcast", "#{KOS_PATH}/../kos-ports/lib"]
-  end  
+  end
 
   # Archiver
   conf.archiver do |archiver|
@@ -62,7 +62,7 @@ MRuby::CrossBuild.new("dreamcast") do |conf|
 
   # Disable C++ exception
   conf.disable_cxx_exception
-  
+
   # Gems from core
   # removing mruby-io
   conf.gem :core => "mruby-metaprog"

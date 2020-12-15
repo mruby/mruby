@@ -75,7 +75,7 @@ int_pow(mrb_state *mrb, mrb_value x)
 #ifndef MRB_NO_FLOAT
   mrb_value y = mrb_get_arg1(mrb);
   mrb_float z;
- 
+
   if (!mrb_integer_p(y)) {
     mrb_get_args(mrb, "f", &z);
     z = pow((mrb_float)base, z);

@@ -28,7 +28,7 @@ assert('Integer#*', '15.2.8.3.3') do
   a = 1*1
   assert_equal 1, a
   if Object.const_defined?(:Float)
-    b = 1*1.0 
+    b = 1*1.0
     assert_equal 1.0, b
   end
   assert_raise(TypeError){ 0*nil }

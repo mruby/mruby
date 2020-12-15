@@ -2498,7 +2498,7 @@ codegen(codegen_scope *s, node *tree, int val)
       else {
         if (i < 0) {
           if (i == -1) genop_1(s, OP_LOADI__1, cursp());
-          else if (i >= -0xff) genop_2(s, OP_LOADINEG, cursp(), (uint16_t)-i); 
+          else if (i >= -0xff) genop_2(s, OP_LOADINEG, cursp(), (uint16_t)-i);
           else if (i >= INT16_MIN) genop_2S(s, OP_LOADI16, cursp(), (uint16_t)i);
           else if (i >= INT32_MIN) genop_2SS(s, OP_LOADI32, cursp(), (uint32_t)i);
           else goto lit_int;
