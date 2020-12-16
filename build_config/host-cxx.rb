@@ -1,5 +1,5 @@
 MRuby::Build.new do |conf|
-  toolchain :gcc
+  conf.toolchain
 
   # include the default GEMs
   conf.gembox 'default'

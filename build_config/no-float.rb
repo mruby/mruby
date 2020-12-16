@@ -1,6 +1,6 @@
 # Define cross build settings
 MRuby::CrossBuild.new('no-float') do |conf|
-  toolchain :gcc
+  conf.toolchain
 
   # include the GEM box
   conf.compilers.each do |c|
