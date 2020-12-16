@@ -1,12 +1,12 @@
 ---
 stages:
-- pretest
-- test
+  - pretest
+  - test
 pretest:
   stage: pretest
   image: registry.gitlab.com/dabroz/mruby:gcc47_0.1
   tags:
-  - linux
+    - linux
   variables:
     CC: gcc-4.7
     CXX: g++-4.7

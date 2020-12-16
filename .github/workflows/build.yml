@@ -8,11 +8,11 @@ jobs:
     env:
       MRUBY_CONFIG: ci/gcc-clang
     steps:
-    - uses: actions/checkout@v1
-    - name: apt
-      run: sudo apt install ruby gperf
-    - name: build and test
-      run: rake -m -j4 gensym all test
+      - uses: actions/checkout@v1
+      - name: apt
+        run: sudo apt install ruby gperf
+      - name: build and test
+        run: rake -m -j4 gensym all test
 
   Ubuntu-1804-gcc:
     runs-on: ubuntu-18.04
@@ -21,11 +21,11 @@ jobs:
       CC: gcc
       CXX: g++
     steps:
-    - uses: actions/checkout@v1
-    - name: apt
-      run: sudo apt install ruby gperf gcc g++
-    - name: build and test
-      run: rake -m -j4 gensym all test
+      - uses: actions/checkout@v1
+      - name: apt
+        run: sudo apt install ruby gperf gcc g++
+      - name: build and test
+        run: rake -m -j4 gensym all test
 
   Ubuntu-1804-clang:
     runs-on: ubuntu-18.04
@@ -34,22 +34,22 @@ jobs:
       CC: clang
       CXX: clang++
     steps:
-    - uses: actions/checkout@v1
-    - name: apt
-      run: sudo apt install ruby gperf
-    - name: build and test
-      run: rake -m -j4 gensym all test
+      - uses: actions/checkout@v1
+      - name: apt
+        run: sudo apt install ruby gperf
+      - name: build and test
+        run: rake -m -j4 gensym all test
 
   macOS:
     runs-on: macos-latest
     env:
       MRUBY_CONFIG: ci/gcc-clang
     steps:
-    - uses: actions/checkout@v1
-    - name: brew
-      run: brew install ruby gperf
-    - name: build and test
-      run: rake -m -j4 gensym all test
+      - uses: actions/checkout@v1
+      - name: brew
+        run: brew install ruby gperf
+      - name: build and test
+        run: rake -m -j4 gensym all test
 
   Windows-MinGW:
     runs-on: windows-latest
@@ -57,11 +57,11 @@ jobs:
       MRUBY_CONFIG: ci/gcc-clang
       CFLAGS: -g -O1 -Wall -Wundef
     steps:
-    - uses: actions/checkout@v1
-    - name: chocolatey
-      run: choco install -y ruby gperf
-    - name: build
-      run: rake -E 'STDOUT.sync=true' -j4 gensym all test
+      - uses: actions/checkout@v1
+      - name: chocolatey
+        run: choco install -y ruby gperf
+      - name: build
+        run: rake -E 'STDOUT.sync=true' -j4 gensym all test
 
   Windows-Cygwin:
     runs-on: windows-latest
@@ -69,25 +69,25 @@ jobs:
       MRUBY_CONFIG: ci/gcc-clang
       ACTIONS_ALLOW_UNSECURE_COMMANDS: true
     steps:
-    - uses: actions/checkout@v1
-    - uses: actions/cache@v1
-      with:
-        path: C:\Users\runneradmin\AppData\Local\Temp\chocolatey
-        key: ${{ runner.os }}-cygwin-chocolatey-${{ matrix.os }}-${{ github.sha }}
-        restore-keys: |
-          ${{ runner.os }}-cygwin-chocolatey-${{ matrix.os }}-
-          ${{ runner.os }}-cygwin-chocolatey-
-    - name: chocolatey
-      run: choco install -y cygwin
-    - name: Install cygwin packages
-      shell: cmd
-      run: C:\tools\cygwin\cygwinsetup.exe -qgnNdO -R C:/tools/cygwin -l C:/tools/cygwin/package -s http://mirrors.kernel.org/sourceware/cygwin/ -P gcc-core,gcc-g++,make,gperf,ruby
-    - name: Set ENV
-      run: |
-        echo '::set-env name=PATH::C:\tools\cygwin\bin;C:\tools\cygwin\usr\bin'
-    - name: build and test
-      shell: cmd
-      run: C:\tools\cygwin\bin\ruby.exe /usr/bin/rake -E 'STDOUT.sync=true' -m gensym all test
+      - uses: actions/checkout@v1
+      - uses: actions/cache@v1
+        with:
+          path: C:\Users\runneradmin\AppData\Local\Temp\chocolatey
+          key: ${{ runner.os }}-cygwin-chocolatey-${{ matrix.os }}-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-cygwin-chocolatey-${{ matrix.os }}-
+            ${{ runner.os }}-cygwin-chocolatey-
+      - name: chocolatey
+        run: choco install -y cygwin
+      - name: Install cygwin packages
+        shell: cmd
+        run: C:\tools\cygwin\cygwinsetup.exe -qgnNdO -R C:/tools/cygwin -l C:/tools/cygwin/package -s http://mirrors.kernel.org/sourceware/cygwin/ -P gcc-core,gcc-g++,make,gperf,ruby
+      - name: Set ENV
+        run: |
+          echo '::set-env name=PATH::C:\tools\cygwin\bin;C:\tools\cygwin\usr\bin'
+      - name: build and test
+        shell: cmd
+        run: C:\tools\cygwin\bin\ruby.exe /usr/bin/rake -E 'STDOUT.sync=true' -m gensym all test
 
   Windows-VC:
     runs-on: windows-latest
@@ -97,11 +97,11 @@ jobs:
       CFLAGS: "/c /nologo /W3 /we4013 /Zi /MD /D_CRT_SECURE_NO_WARNINGS"
       CXXFLAGS: "/c /nologo /W3 /Zi /MD /EHs /D_CRT_SECURE_NO_WARNINGS"
     steps:
-    - uses: actions/checkout@v1
-    - name: chocolatey
-      run: choco install -y ruby gperf
-    - name: build and test
-      shell: cmd
-      run: |
-        call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-        rake -E "STDOUT.sync=true" gensym all test
+      - uses: actions/checkout@v1
+      - name: chocolatey
+        run: choco install -y ruby gperf
+      - name: build and test
+        shell: cmd
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          rake -E "STDOUT.sync=true" gensym all test
