@@ -1,12 +1,6 @@
 MRuby::Build.new('host') do |conf|
   # load specific toolchain settings
-
-  # Gets set by the VS command prompts.
-  if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
-    toolchain :visualcpp
-  else
-    toolchain :gcc
-  end
+  conf.toolchain
 
   conf.enable_debug
 
@@ -20,7 +14,7 @@ MRuby::Build.new('host') do |conf|
   conf.gem :core => "mruby-bin-debugger"
 
   # test
-  enable_test
+  conf.enable_test
   # bintest
-  enable_bintest
+  conf.enable_bintest
 end

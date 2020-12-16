@@ -22,6 +22,18 @@ module MRuby
   class Toolchain
     class << self
       attr_accessor :toolchains
+
+      def guess
+        if cc = ENV["CC"] || ENV["CXX"]
+          return "clang" if cc.include?("clang")
+        else
+          return "clang" if RUBY_PLATFORM =~ /darwin|(?:free|open)bsd/
+          return "gcc" if RUBY_PLATFORM.include?("cygwin")
+          return "visualcpp" if ENV.include?("VisualStudioVersion")
+          return "visualcpp" if ENV.include?("VSINSTALLDIR")
+        end
+        "gcc"
+      end
     end
 
     def initialize(name, &block)
@@ -29,7 +41,7 @@ module MRuby
       MRuby::Toolchain.toolchains[@name] = self
     end
 
-    def setup(conf,params={})
+    def setup(conf, params={})
       conf.instance_exec(conf, params, &@initializer)
     end
 
@@ -221,7 +233,7 @@ EOS
       @enable_bintest
     end
 
-    def toolchain(name, params={})
+    def toolchain(name=Toolchain.guess, params={})
       name = name.to_s
       tc = Toolchain.toolchains[name] || begin
         path = "#{MRUBY_ROOT}/tasks/toolchains/#{name}.rake"

@@ -1,5 +1,5 @@
 MRuby::Build.new('full-debug') do |conf|
-  toolchain :gcc
+  conf.toolchain
   conf.enable_debug
 
   # include all core GEMs
@@ -10,7 +10,7 @@ MRuby::Build.new('full-debug') do |conf|
 end
 
 MRuby::Build.new do |conf|
-  toolchain :gcc
+  conf.toolchain
 
   # include all core GEMs
   conf.gembox 'full-core'
@@ -22,7 +22,7 @@ MRuby::Build.new do |conf|
 end
 
 MRuby::Build.new('cxx_abi') do |conf|
-  toolchain :gcc
+  conf.toolchain
 
   conf.gembox 'full-core'
   conf.cc.flags += %w(-fpermissive)
@@ -31,7 +31,7 @@ MRuby::Build.new('cxx_abi') do |conf|
   end
   conf.enable_test
 
-  enable_cxx_abi
+  conf.enable_cxx_abi
 
-  build_mrbc_exec
+  conf.build_mrbc_exec
 end
