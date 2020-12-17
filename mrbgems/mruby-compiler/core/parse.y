@@ -6826,7 +6826,7 @@ str_dump(mrb_state *mrb, const char *str, int len)
   int ai = mrb_gc_arena_save(mrb);
   mrb_value s;
 # if INT_MAX > MRB_INT_MAX / 4
-  /* check maximum length with "\xNN" charactor */
+  /* check maximum length with "\xNN" character */
   if (len > MRB_INT_MAX / 4) {
     len = MRB_INT_MAX / 4;
   }

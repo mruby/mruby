@@ -298,7 +298,7 @@ is_absolute_traditional_path(const char *path, size_t len)
 }
 
 static int
-is_aboslute_unc_path(const char *path, size_t len) {
+is_absolute_unc_path(const char *path, size_t len) {
   if (len < 2) return 0;
   return (CHECK_UNCDEV_PATH && !IS_DEVICEID(path[2]));
 }
@@ -317,7 +317,7 @@ mrb_file_is_absolute_path(const char *path)
   if (len > 0)
     return (
       is_absolute_traditional_path(path, len) ||
-      is_aboslute_unc_path(path, len) ||
+      is_absolute_unc_path(path, len) ||
       is_absolute_device_path(path, len)
       );
   else

@@ -856,7 +856,7 @@ lambda_body(codegen_scope *s, node *tree, int blk)
     oa = node_len(tree->car->cdr->car);
     /* rest argument? */
     ra = tree->car->cdr->cdr->car ? 1 : 0;
-    /* mandatory arugments after rest argument */
+    /* mandatory arguments after rest argument */
     pa = node_len(tree->car->cdr->cdr->cdr->car);
     pargs = tree->car->cdr->cdr->cdr->car;
     /* keyword arguments */
