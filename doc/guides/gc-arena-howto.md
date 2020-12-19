@@ -3,7 +3,7 @@
 _This is an English translation of [Matz's blog post][matz blog post]
 written in Japanese._
 _Some parts are updated to reflect recent changes._
-[matz blog post]: http://www.rubyist.net/~matz/20130731.html
+[matz blog post]: https://www.rubyist.net/~matz/20130731.html
 
 When you are extending mruby using C language, you may encounter
 mysterious "arena overflow error" or memory leak or very slow
