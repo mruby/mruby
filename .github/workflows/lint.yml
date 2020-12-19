@@ -10,3 +10,14 @@ jobs:
       - uses: actions/checkout@v2
       - name: 🧹 YAML Lint
         uses: ibiqlik/action-yamllint@v3
+  markdownlint:
+    name: 🍸 Markdown
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: 🚀 Use Node.js
+        uses: actions/setup-node@v2.1.4
+        with:
+          node-version: '12.x'
+      - run: npm install -g markdownlint-cli@0.25.0
+      - run: markdownlint '**/*.md'

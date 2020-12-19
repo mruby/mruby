@@ -6,6 +6,7 @@ binaries.
 ## Prerequisites
 
 To compile mruby out of the source code you need the following tools:
+
 * C Compiler (e.g. `gcc` or `clang`)
 * Linker (e.g. `gcc` or `clang`)
 * Archive utility (e.g. `ar`)
@@ -18,6 +19,7 @@ the `$PATH` to compile `mruby`. We also encourage to upgrade `ruby`
 on MacOS in similar manner.
 
 Optional:
+
 * git (to update mruby source and integrate mrbgems easier)
 * C++ compiler (to use GEMs which include \*.cpp, \*.cxx, \*.cc)
 * Assembler (to use GEMs which include \*.asm)
@@ -61,6 +63,7 @@ configure the build environment for specific compiler infrastructures.
 #### GCC
 
 Toolchain configuration for the GNU C Compiler.
+
 ```ruby
 toolchain :gcc
 ```
@@ -69,6 +72,7 @@ toolchain :gcc
 
 Toolchain configuration for the LLVM C Compiler clang. Mainly equal to the
 GCC toolchain.
+
 ```ruby
 toolchain :clang
 ```
@@ -78,6 +82,7 @@ toolchain :clang
 Toolchain configuration for Visual Studio on Windows. If you use the
 [Visual Studio Command Prompt](https://msdn.microsoft.com/en-us/library/ms229859\(v=vs.110\).aspx),
 you normally do not have to specify this manually, since it gets automatically detected by our build process.
+
 ```ruby
 toolchain :visualcpp
 ```
@@ -85,6 +90,7 @@ toolchain :visualcpp
 #### Android
 
 Toolchain configuration for Android.
+
 ```ruby
 toolchain :android
 ```
@@ -95,7 +101,7 @@ in `ANDROID_STANDALONE_TOOLCHAIN`.
 ### Binaries
 
 It is possible to select which tools should be compiled during the compilation
-process. For example, 
+process. For example,
 
 * `mruby`
 * `mirb`
@@ -106,6 +112,7 @@ The configuration are done via `mrbgems`. See `Mrbgems` section.
 
 Some environments require a different file separator character. It is possible to
 set the character via `conf.file_separator`.
+
 ```ruby
 conf.file_separator = '/'
 ```
@@ -113,6 +120,7 @@ conf.file_separator = '/'
 ### C Compiler
 
 Configuration of the C compiler binary, flags and include paths.
+
 ```ruby
 conf.cc do |cc|
   cc.command = ...
@@ -128,6 +136,7 @@ end
 C Compiler has header searcher to detect installed library.
 
 If you need a include path of header file use `search_header_path`:
+
 ```ruby
 # Searches ```iconv.h```.
 # If found it will return include path of the header file.
@@ -136,6 +145,7 @@ fail 'iconv.h not found' unless conf.cc.search_header_path 'iconv.h'
 ```
 
 If you need a full file name of header file use `search_header`:
+
 ```ruby
 # Searches ```iconv.h```.
 # If found it will return full path of the header file.
@@ -149,6 +159,7 @@ When you are using GCC toolchain (including clang toolchain since its base is gc
 it will use compiler specific include paths too. (For example `/usr/local/include`, `/usr/include`)
 
 If you need a special header search paths define a singleton method `header_search_paths` to C compiler:
+
 ```ruby
 def conf.cc.header_search_paths
   ['/opt/local/include'] + include_paths
@@ -158,6 +169,7 @@ end
 ### Linker
 
 Configuration of the Linker binary, flags and library paths.
+
 ```ruby
 conf.linker do |linker|
   linker.command = ...
@@ -175,6 +187,7 @@ end
 ### Archiver
 
 Configuration of the Archiver binary and flags.
+
 ```ruby
 conf.archiver do |archiver|
   archiver.command = ...
@@ -185,6 +198,7 @@ end
 ### Parser Generator
 
 Configuration of the Parser Generator binary and flags.
+
 ```ruby
 conf.yacc do |yacc|
   yacc.command = ...
@@ -195,6 +209,7 @@ end
 ### GPerf
 
 Configuration of the GPerf binary and flags.
+
 ```ruby
 conf.gperf do |gperf|
   gperf.command = ...
@@ -203,6 +218,7 @@ end
 ```
 
 ### File Extensions
+
 ```ruby
 conf.exts do |exts|
   exts.object = ...
@@ -247,6 +263,7 @@ See doc/mrbgems/README.md for more option about mrbgems.
 Configuration Mrbtest build process.
 
 If you want mrbtest.a only, You should set `conf.build_mrbtest_lib_only`
+
 ```ruby
 conf.build_mrbtest_lib_only
 ```
@@ -259,6 +276,7 @@ See `mruby-bin-*/bintest/*.rb` if you need examples.
 If you want a temporary files use `tempfile` module of CRuby instead of `/tmp/`.
 
 You can enable it with following:
+
 ```ruby
 conf.enable_bintest
 ```
@@ -277,6 +295,7 @@ files are compiled by C++ compiler.
 
 When you mix C++ code, C++ exception would be enabled automatically.
 If you need to enable C++ exception explicitly add the following:
+
 ```ruby
 conf.enable_cxx_exception
 ```
@@ -286,20 +305,24 @@ conf.enable_cxx_exception
 If your compiler does not support C++ and you want to ensure
 you don't use mrbgem written in C++, you can explicitly disable
 C++ exception, add following:
+
 ```ruby
 conf.disable_cxx_exception
 ```
+
 and you will get an error when you try to use C++ gem.
 Note that it must be called before `enable_cxx_exception` or `gem` method.
 
 ### Debugging mode
 
 To enable debugging mode add the following:
+
 ```ruby
 conf.enable_debug
 ```
 
 When debugging mode is enabled
+
 * Macro `MRB_DEBUG` would be defined.
 	* Which means `mrb_assert()` macro is enabled.
 * Debug information of irep would be generated by `mrbc`.
@@ -330,6 +353,7 @@ directory.
 
 In cross compilation, you can run `mrbtest` on emulator if
 you have it by changing configuration of test runner.
+
 ```ruby
 conf.test_runner do |t|
   t.command = ... # set emulator. this value must be non nil or false
@@ -369,6 +393,7 @@ root directory. The structure of this directory will look like this:
 	          +- mruby
 
 The compilation workflow will look like this:
+
 * compile all files under *src* (object files will be stored
 in *build/host/src*)
 * generate parser grammar out of *src/parse.y* (generated
@@ -446,6 +471,7 @@ build directory.
 The cross compilation workflow starts in the same way as the normal
 compilation by compiling all *native* libraries and binaries.
 Afterwards the cross compilation process proceeds like this:
+
 * cross-compile all files under *src* (object files will be stored
 in *build/i386/src*)
 * generate parser grammar out of *src/parse.y* (generated
