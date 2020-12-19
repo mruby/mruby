@@ -264,7 +264,7 @@ Example:
 
 ```
 (sample.rb:1) info breakpoints
-Num     Type           Enb What  
+Num     Type           Enb What
 1       breakpoint     y   at sample.rb:3                      -> file name,line number
 2       breakpoint     n   in Sample_class:sample_class_method -> [class:]method name
 3       breakpoint     y   in sample_global_method
@@ -274,8 +274,8 @@ Displaying the specified breakpoint number:
 
 ```
 (foo.rb:1) info breakpoints 1 3
-Num     Type           Enb What  
-1       breakpoint     y   at sample.rb:3  
+Num     Type           Enb What
+1       breakpoint     y   at sample.rb:3
 3       breakpoint     y   in sample_global_method
 ```
 

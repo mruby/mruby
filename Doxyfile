@@ -27,12 +27,12 @@ INPUT                  = README.md \
 # Red for Ruby
 HTML_COLORSTYLE_HUE    = 359
 
-# The following expansions 
+# The following expansions
 ENABLE_PREPROCESSING   = YES
 MACRO_EXPANSION        = YES
 EXPAND_ONLY_PREDEF     = NO
-PREDEFINED             = 
-EXPAND_AS_DEFINED      = 
+PREDEFINED             =
+EXPAND_AS_DEFINED      =
 SKIP_FUNCTION_MACROS   = NO
 
 # This tells doxygen to search the places that make sense
