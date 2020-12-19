@@ -1,5 +1,5 @@
 # Cross Compiling configuration for Intel Galileo on Arduino environment
-# http://arduino.cc/en/ArduinoCertified/IntelGalileo
+# https://arduino.cc/en/ArduinoCertified/IntelGalileo
 #
 # Requires Arduino IDE for Intel Galileo
 MRuby::CrossBuild.new("Galileo") do |conf|
