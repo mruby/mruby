@@ -1,4 +1,8 @@
-unless MRuby::Build.current.kind_of?(MRuby::CrossBuild)
+if MRuby::Build.current.kind_of?(MRuby::CrossBuild)
+  gemname = File.basename File.dirname __FILE__
+  buildname = MRuby::Build.current.name
+  $stderr.puts "WARN  #{gemname} - This mrbgem is ignored within #{buildname}"
+else
   MRuby::Gem::Specification.new('mruby-bin-config') do |spec|
     name = 'mruby-config'
     spec.license = 'MIT'

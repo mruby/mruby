@@ -116,9 +116,10 @@ module MRuby
         @toolchains = []
         @gem_dir_to_repo_url = {}
 
-        MRuby.targets[@name] = self.class.current = current = self
+        MRuby.targets[@name] = current = self
       end
 
+      MRuby::Build.current = current
       current.instance_eval(&block)
       current.build_mrbc_exec if current.libmruby_enabled? && @name == "host"
       current.build_mrbtest if current.test_enabled?
