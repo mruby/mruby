@@ -220,6 +220,7 @@ Example:
 ```
 
 Enabling all breakpoints
+
 ```
 (foo.rb:1) enable 1 3
 ```

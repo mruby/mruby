@@ -18,13 +18,14 @@ You can also use a relative path to specify a gem.
 conf.gem 'examples/mrbgems/ruby_extension_example'
 ```
 
-In that case, 
+In that case,
 
 * if your build configuration file is in the `build_config` directory, it's
   relative from `MRUBY_ROOT`.
 * otherwise, it is relative from the directory where your build configuration is.
 
 A remote GIT repository location for a GEM is also supported:
+
 ```ruby
 conf.gem :git => 'https://github.com/masuidrive/mrbgems-example.git', :branch => 'master'
 conf.gem :github => 'masuidrive/mrbgems-example', :branch => 'master'
@@ -32,17 +33,20 @@ conf.gem :bitbucket => 'mruby/mrbgems-example', :branch => 'master'
 ```
 
 You can specify the sub directory of the repository with `:path` option:
+
 ```ruby
 conf.gem github: 'mruby/mruby', path: 'mrbgems/mruby-socket'
 ```
 
 To use mrbgem from [mgem-list](https://github.com/mruby/mgem-list) use `:mgem` option:
+
 ```ruby
 conf.gem :mgem => 'mruby-yaml'
 conf.gem :mgem => 'yaml' # 'mruby-' prefix could be omitted
 ```
 
 For specifying commit hash to checkout use `:checksum_hash` option:
+
 ```ruby
 conf.gem mgem: 'mruby-redis', checksum_hash: '3446d19fc4a3f9697b5ddbf2a904f301c42f2f4e'
 ```
@@ -66,6 +70,7 @@ via `config.gem`, but wrapped in an `MRuby::GemBox` object.  GemBoxes are
 loaded into mruby via `config.gembox 'boxname'`.
 
 Below we have created a GemBox containing *mruby-time* and *mrbgems-example*:
+
 ```ruby
 MRuby::GemBox.new do |conf|
   conf.gem "#{root}/mrbgems/mruby-time"
@@ -80,14 +85,17 @@ picked up by mruby.
 To use this example GemBox, we save it as `custom.gembox` inside the *mrbgems*
 directory in mruby, and add the following to your build configuration file inside
 the build block:
+
 ```ruby
 conf.gembox 'custom'
 ```
+
 This will cause the *custom* GemBox to be read in during the build process,
 adding *mruby-time* and *mrbgems-example* to the build.
 
 If you want, you can put GemBox outside of mruby directory. In that case you must
 specify an absolute path like below.
+
 ```ruby
 conf.gembox "#{ENV["HOME"]}/mygemboxes/custom"
 ```
@@ -125,6 +133,7 @@ to compile C and Ruby files. *README.md* is a short description of your GEM.
 
 mrbgems expects a specification file called *mrbgem.rake* inside of your
 GEM directory. A typical GEM specification could look like this for example:
+
 ```ruby
 MRuby::Gem::Specification.new('c_and_ruby_extension_example') do |spec|
   spec.license = 'MIT'
@@ -154,6 +163,7 @@ The `license` and `author` properties are required in every GEM!
 
 In case your GEM is depending on other GEMs please use
 `spec.add_dependency(gem, *requirements[, default_get_info])` like:
+
 ```ruby
 MRuby::Gem::Specification.new('c_and_ruby_extension_example') do |spec|
   spec.license = 'MIT'
@@ -177,6 +187,7 @@ end
 The version requirements and default gem information are optional.
 
 Version requirement supports following operators:
+
 * '=': is equal
 * '!=': is not equal
 * '>': is greater
@@ -197,10 +208,12 @@ When a special version of dependency is required,
 use `MRuby::Build#gem` in the build configuration to override default gem.
 
 If you have conflicting GEMs use the following method:
+
 * `spec.add_conflict(gem, *requirements)`
     * The `requirements` argument is same as in `add_dependency` method.
 
 like following code:
+
 ```ruby
 MRuby::Gem::Specification.new 'some-regexp-binding' do |spec|
   spec.license = 'BSD'
@@ -243,7 +256,6 @@ For example: when B depends to C and A depends to B, A will get include paths ex
 Exported include_paths are automatically appended to GEM local include_paths by rake.
 You can use `spec.export_include_paths` accessor if you want more complex build.
 
-
 ## C Extension
 
 mruby can be extended with C. This is possible by using the C API to
@@ -255,6 +267,7 @@ mrbgems expects that you have implemented a C method called
 `mrb_YOURGEMNAME_gem_init(mrb_state)`. `YOURGEMNAME` will be replaced
 by the name of your GEM. If you call your GEM *c_extension_example*, your
 initialisation method could look like this:
+
 ```C
 void
 mrb_c_extension_example_gem_init(mrb_state* mrb) {
@@ -298,7 +311,6 @@ mrb_c_extension_example_gem_final(mrb_state* mrb) {
 mruby can be extended with pure Ruby. It is possible to override existing
 classes or add new ones in this way. Put all Ruby files into the *mrblib*
 folder.
-
 
 ### Pre-Conditions
 

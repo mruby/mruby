@@ -13,7 +13,6 @@ This document is collecting these limitations.
 This document does not contain a complete list of limitations.
 Please help to improve it by submitting your findings.
 
-
 ## `1/2` gives `0.5`
 
 Since mruby does not have `Bignum`, bigger integers are represented
@@ -72,6 +71,7 @@ rescue => e
   raise e
 end
 ```
+
 ## Fiber execution can't cross C function boundary
 
 mruby's `Fiber` is implemented in a similar way to Lua's co-routine. This
@@ -252,7 +252,7 @@ trace (most recent call last):
 ## Keyword arguments
 
 mruby keyword arguments behave slightly different from CRuby 2.5
-to make the behavior simpler and less confusing. 
+to make the behavior simpler and less confusing.
 
 #### Ruby [ruby 2.5.1p57 (2018-03-29 revision 63029)]
 
@@ -290,6 +290,7 @@ Ruby outputs `falsy`. mruby outputs `truthy`.
 def m(a,(b,c),d); p [a,b,c,d]; end
 m(1,[2,3],4)  # => [1,2,3,4]
 ```
+
 Destructured arguments (`b` and `c` in above example) cannot be accessed
 from the default expression of optional arguments and keyword arguments,
 since actual assignment is done after the evaluation of those default
