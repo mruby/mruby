@@ -173,10 +173,10 @@ MRuby::Gem::Specification.new('c_and_ruby_extension_example') do |spec|
   # The version must be between 1.0.0 and 1.5.2 .
   spec.add_dependency('mruby-parser', '>= 1.0.0', '<= 1.5.2')
 
-  # Use any version of mruby-uv from github.
+  # Use any version of mruby-uv from GitHub.
   spec.add_dependency('mruby-uv', '>= 0.0.0', :github => 'mattn/mruby-uv')
 
-  # Use latest mruby-onig-regexp from github. (version requirements can be omitted)
+  # Use latest mruby-onig-regexp from GitHub. (version requirements can be omitted)
   spec.add_dependency('mruby-onig-regexp', :github => 'mattn/mruby-onig-regexp')
 
   # You can add extra mgems active only on test
