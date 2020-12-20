@@ -14,4 +14,4 @@ jobs:
           wget -O - -q https://git.io/misspell | sh -s -- -b .
       - name: 🌶️ Misspell
         run: |
-          find . -type f | xargs ./misspell -error
+          git ls-files --empty-directory | xargs ./misspell -error
