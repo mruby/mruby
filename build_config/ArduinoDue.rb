@@ -1,5 +1,5 @@
 # Cross Compiling configuration for Arduino Due
-# http://arduino.cc/en/Main/ArduinoBoardDue
+# https://arduino.cc/en/Main/ArduinoBoardDue
 #
 # Requires Arduino IDE >= 1.5
 MRuby::CrossBuild.new("ArduinoDue") do |conf|
