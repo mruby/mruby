@@ -1,5 +1,5 @@
 # Cross Compiling configuration for Digilent chipKIT Max32
-# http://www.digilentinc.com/Products/Detail.cfm?Prod=CHIPKIT-MAX32
+# https://www.digilentinc.com/Products/Detail.cfm?Prod=CHIPKIT-MAX32
 #
 # Requires MPIDE (https://github.com/chipKIT32/chipKIT32-MAX)
 #

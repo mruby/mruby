@@ -1,4 +1,4 @@
-# mruby is using Rake (http://rake.rubyforge.org) as a build tool.
+# mruby is using Rake (https://ruby.github.io/rake/) as a build tool.
 
 RAKE = rake
 
