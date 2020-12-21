@@ -1,0 +1,4 @@
+MRuby::GemBox.new do |conf|
+  gembox "stdlib"
+  gembox "math"
+end
