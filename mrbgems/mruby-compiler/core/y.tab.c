@@ -16,7 +16,7 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.  */
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
 
 /* As a special exception, you may create a larger work that contains
    part or all of the Bison parser skeleton and distribute that work
@@ -11845,6 +11845,7 @@ parser_yylex(parser_state *p)
     p->paren_nest++;
     if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
       p->lstate = EXPR_ARG;
+      p->paren_nest--;
       if ((c = nextc(p)) == ']') {
         if ((c = nextc(p)) == '=') {
           return tASET;

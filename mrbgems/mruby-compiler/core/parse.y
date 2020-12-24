@@ -5844,6 +5844,7 @@ parser_yylex(parser_state *p)
     p->paren_nest++;
     if (p->lstate == EXPR_FNAME || p->lstate == EXPR_DOT) {
       p->lstate = EXPR_ARG;
+      p->paren_nest--;
       if ((c = nextc(p)) == ']') {
         if ((c = nextc(p)) == '=') {
           return tASET;
