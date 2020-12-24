@@ -484,7 +484,12 @@ value_int64(mrb_state *mrb, mrb_value x)
   case MRB_TT_INTEGER:
     return (int64_t)mrb_integer(x);
   case MRB_TT_FLOAT:
-    return (int64_t)mrb_float(x);
+    {
+      double f = mrb_float(x);
+
+      if ((mrb_float)INT64_MAX >= f && f >= (mrb_float)INT64_MIN)
+        return (int64_t)f;
+    }
   default:
     mrb_raise(mrb, E_TYPE_ERROR, "cannot convert to Integer");
     break;
@@ -496,17 +501,16 @@ value_int64(mrb_state *mrb, mrb_value x)
 static mrb_value
 int64_value(mrb_state *mrb, int64_t v)
 {
-  if (TYPED_FIXABLE(v,int64_t)) {
-    return mrb_fixnum_value((mrb_int)v);
+  if (!TYPED_FIXABLE(v,int64_t)) {
+    int_overflow(mrb, "bit operation");
   }
-  return mrb_float_value(mrb, (mrb_float)v);
+  return mrb_fixnum_value((mrb_int)v);
 }
 
 static mrb_value
 flo_rev(mrb_state *mrb, mrb_value x)
 {
-  int64_t v1;
-  v1 = (int64_t)mrb_float(x);
+  int64_t v1 = value_int64(mrb, x);
   return int64_value(mrb, ~v1);
 }
 
@@ -516,7 +520,7 @@ flo_and(mrb_state *mrb, mrb_value x)
   mrb_value y = mrb_get_arg1(mrb);
   int64_t v1, v2;
 
-  v1 = (int64_t)mrb_float(x);
+  v1 = value_int64(mrb, x);
   v2 = value_int64(mrb, y);
   return int64_value(mrb, v1 & v2);
 }
@@ -527,7 +531,7 @@ flo_or(mrb_state *mrb, mrb_value x)
   mrb_value y = mrb_get_arg1(mrb);
   int64_t v1, v2;
 
-  v1 = (int64_t)mrb_float(x);
+  v1 = value_int64(mrb, x);
   v2 = value_int64(mrb, y);
   return int64_value(mrb, v1 | v2);
 }
@@ -538,7 +542,7 @@ flo_xor(mrb_state *mrb, mrb_value x)
   mrb_value y = mrb_get_arg1(mrb);
   int64_t v1, v2;
 
-  v1 = (int64_t)mrb_float(x);
+  v1 = value_int64(mrb, x);
   v2 = value_int64(mrb, y);
   return int64_value(mrb, v1 ^ v2);
 }
