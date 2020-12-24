@@ -192,7 +192,14 @@ static mrb_value
 rational_to_f(mrb_state *mrb, mrb_value self)
 {
   struct mrb_rational *p = rational_ptr(mrb, self);
-  mrb_float f = (mrb_float)p->numerator / (mrb_float)p->denominator;
+  mrb_float f;
+
+  if (p->denominator == 0.0) {
+    f = INFINITY;
+  }
+  else {
+    f = (mrb_float)p->numerator / (mrb_float)p->denominator;
+  }
 
   return mrb_float_value(mrb, f);
 }
