@@ -39,7 +39,7 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
 
   /* only occur when memory ran out */
   if (!p) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "Failed to create parser state.");
+    mrb_raise(mrb, E_RUNTIME_ERROR, "Failed to create parser state (out of memory)");
   }
 
   if (0 < p->nerr) {
