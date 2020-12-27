@@ -1351,6 +1351,55 @@ heredoc_treat_nextline(parser_state *p)
 static void
 heredoc_end(parser_state *p)
 {
+  parser_heredoc_info *info = parsing_heredoc_inf(p);
+  if (info->remove_indent) {
+    mrb_bool counting = TRUE;
+    size_t indent = -1;
+    node *list = info->doc;
+    node *list2 = NULL;
+    while (list) {
+      if (list->car->car == NODE_STR) {
+        node *pair = list->car->cdr;
+        const char *str = (char*) pair->car;
+        size_t len = (size_t) pair->cdr;
+        if (counting) {
+          list2 = push(list2, pair);
+        }
+        size_t spaces = 0;
+        for (size_t i = 0; i < len; i++) {
+          if (counting) {
+            if (ISSPACE(str[i])) {
+              ++spaces;
+            }
+            else {
+              counting = FALSE;
+              if (indent == -1 || spaces < indent) {
+                indent = spaces;
+              }
+            }
+          }
+          if (str[i] == '\n') {
+            counting = TRUE;
+            break;
+          }
+        }
+      }
+      else {
+        counting = FALSE;
+      }
+      list = list->cdr;
+    }
+    if (indent > 0) {
+      while (list2) {
+        node *pair = list2->car;
+        const char *str = (char*) pair->car;
+        size_t len = (size_t) pair->cdr;
+        pair->car = (node*) (str + indent);
+        pair->cdr = (node*) (len - indent);
+        list2 = list2->cdr;
+      }
+    }
+  }
   p->parsing_heredoc = p->parsing_heredoc->cdr;
   if (p->parsing_heredoc == NULL) {
     p->lstate = EXPR_BEG;
@@ -1499,7 +1548,7 @@ heredoc_end(parser_state *p)
 %token tANDDOT            /* &. */
 %token tSYMBEG tREGEXP_BEG tWORDS_BEG tSYMBOLS_BEG
 %token tSTRING_BEG tXSTRING_BEG tSTRING_DVAR tLAMBEG
-%token <nd> tHEREDOC_BEG  /* <<, <<- */
+%token <nd> tHEREDOC_BEG  /* <<, <<-, <<~ */
 %token tHEREDOC_END tLITERAL_DELIM tHD_LITERAL_DELIM
 %token <nd> tHD_STRING_PART tHD_STRING_MID
 
@@ -4906,6 +4955,7 @@ heredoc_identifier(parser_state *p)
   int c;
   int type = str_heredoc;
   mrb_bool indent = FALSE;
+  mrb_bool squiggly = FALSE;
   mrb_bool quote = FALSE;
   node *newnode;
   parser_heredoc_info *info;
@@ -4915,8 +4965,11 @@ heredoc_identifier(parser_state *p)
     pushback(p, c);
     return 0;
   }
-  if (c == '-') {
-    indent = TRUE;
+  if (c == '-' || c == '~') {
+    if (c == '-')
+      indent = TRUE;
+    if (c == '~')
+      squiggly = TRUE;
     c = nextc(p);
   }
   if (c == '\'' || c == '"') {
@@ -4943,6 +4996,7 @@ heredoc_identifier(parser_state *p)
     if (! identchar(c)) {
       pushback(p, c);
       if (indent) pushback(p, '-');
+      if (squiggly) pushback(p, '~');
       return 0;
     }
     newtok(p);
@@ -4959,7 +5013,8 @@ heredoc_identifier(parser_state *p)
   if (! quote)
     type |= STR_FUNC_EXPAND;
   info->type = (string_type)type;
-  info->allow_indent = indent;
+  info->allow_indent = indent || squiggly;
+  info->remove_indent = squiggly;
   info->line_head = TRUE;
   info->doc = NULL;
   p->heredocs_from_nextline = push(p->heredocs_from_nextline, newnode);
