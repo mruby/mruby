@@ -1422,10 +1422,10 @@ heredoc_end(parser_state *p)
     node *list = info->doc;
     node *list2 = NULL;
     while (list) {
-      if (list->car->car == NODE_STR) {
+      if (((enum node_type)(intptr_t)list->car->car) == NODE_STR) {
         node *pair = list->car->cdr;
-        const char *str = (char*) pair->car;
-        size_t len = (size_t) pair->cdr;
+        const char *str = (char*)pair->car;
+        size_t len = (size_t)pair->cdr;
         if (counting) {
           list2 = push(list2, pair);
         }
@@ -1456,10 +1456,10 @@ heredoc_end(parser_state *p)
     if (indent > 0) {
       while (list2) {
         node *pair = list2->car;
-        const char *str = (char*) pair->car;
-        size_t len = (size_t) pair->cdr;
-        pair->car = (node*) (str + indent);
-        pair->cdr = (node*) (len - indent);
+        const char *str = (char*)pair->car;
+        size_t len = (size_t)pair->cdr;
+        pair->car = (node*)(str + indent);
+        pair->cdr = (node*)(len - indent);
         list2 = list2->cdr;
       }
     }
