@@ -99,6 +99,7 @@ enum mrb_string_type {
 /* heredoc structure */
 struct mrb_parser_heredoc_info {
   mrb_bool allow_indent:1;
+  mrb_bool remove_indent:1;
   mrb_bool line_head:1;
   enum mrb_string_type type;
   const char *term;
