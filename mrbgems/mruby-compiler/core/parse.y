@@ -1362,26 +1362,29 @@ heredoc_end(parser_state *p)
         node *pair = list->car->cdr;
         const char *str = (char*)pair->car;
         size_t len = (size_t)pair->cdr;
-        if (counting) {
-          list2 = push(list2, pair);
-        }
+        mrb_bool check = counting;
+        mrb_bool empty = TRUE;
+        mrb_bool newline = FALSE;
         size_t spaces = 0;
         for (size_t i = 0; i < len; i++) {
-          if (counting) {
-            if (ISSPACE(str[i])) {
-              ++spaces;
-            }
-            else {
-              counting = FALSE;
-              if (indent == -1 || spaces < indent) {
-                indent = spaces;
-              }
-            }
-          }
           if (str[i] == '\n') {
             counting = TRUE;
+            newline = TRUE;
             break;
           }
+          if (ISSPACE(str[i])) {
+            if (counting)
+              ++spaces;
+          }
+          else {
+            counting = FALSE;
+            empty = FALSE;
+          }
+        }
+        if (check) {
+          if ((indent == -1 || spaces < indent) && (!empty || !newline))
+            indent = spaces;
+          list2 = push(list2, cons((node*)spaces, pair));
         }
       }
       else {
@@ -1391,11 +1394,15 @@ heredoc_end(parser_state *p)
     }
     if (indent > 0) {
       while (list2) {
-        node *pair = list2->car;
-        const char *str = (char*)pair->car;
-        size_t len = (size_t)pair->cdr;
-        pair->car = (node*)(str + indent);
-        pair->cdr = (node*)(len - indent);
+        node *n = list2->car;
+        size_t spaces = (size_t)n->car;
+        if (spaces >= indent) {
+          node *pair = n->cdr;
+          const char *str = (char*)pair->car;
+          size_t len = (size_t)pair->cdr;
+          pair->car = (node*)(str + indent);
+          pair->cdr = (node*)(len - indent);
+        }
         list2 = list2->cdr;
       }
     }
