@@ -288,3 +288,10 @@ assert("Hash#slice") do
   assert_equal({:a=>100}, h.slice(:a))
   assert_equal({:b=>200, :c=>300}, h.slice(:b, :c, :d))
 end
+
+assert("Hash#except") do
+  h = { a: 100, b: 200, c: 300 }
+  assert_equal({:b=>200, :c=>300}, h.except(:a))
+  assert_equal({:a=>100}, h.except(:b, :c, :d))
+  assert_equal(h, h.except)
+end
