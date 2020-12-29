@@ -181,11 +181,14 @@ QQ2
   UUU2
     u#{3}u
   UUU3
-  v = <<~VVV
+  v1 = <<~VVV
 
+    vvv
+    #{"vvv"}
+  VVV
+  v2 = <<~VVV
 \tvvv
-\t\t
-\t#{123}
+  vvv
   VVV
 
   w = %W( 1 #{<<WWW} 3
@@ -227,7 +230,8 @@ ZZZ
   assert_equal "sss\n  sss\n", s
   assert_equal "ttt\n  ttt\n", t
   assert_equal ["u1u\n", "u2u\n", "u\#{3}u\n"], u
-  assert_equal "\nvvv\n\t\n123\n", v
+  assert_equal "\nvvv\nvvv\n", v1
+  assert_equal "\tvvv\n  vvv\n", v2
   assert_equal ["1", "www\n", "3", "4", "5"], w
   assert_equal [1, "foo 222 333\n 444\n5\n bar\n6\n", 9], x
   assert_equal "", z
