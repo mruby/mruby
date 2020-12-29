@@ -190,6 +190,10 @@ QQ2
 \tvvv
   vvv
   VVV
+  v3 = <<~VVV
+    v v v
+      vvv
+  VVV
 
   w = %W( 1 #{<<WWW} 3
 www
@@ -232,6 +236,7 @@ ZZZ
   assert_equal ["u1u\n", "u2u\n", "u\#{3}u\n"], u
   assert_equal "\nvvv\nvvv\n", v1
   assert_equal "\tvvv\n  vvv\n", v2
+  assert_equal "v v v\n  vvv\n", v3
   assert_equal ["1", "www\n", "3", "4", "5"], w
   assert_equal [1, "foo 222 333\n 444\n5\n bar\n6\n", 9], x
   assert_equal "", z

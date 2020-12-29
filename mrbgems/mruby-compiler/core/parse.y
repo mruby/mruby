@@ -4700,12 +4700,12 @@ parse_string(parser_state *p)
       pylval.nd = nd;
       if (head) {
         hinf->indented = push(hinf->indented, cons((node*)spaces, nd->cdr));
-        if ((hinf->indent == -1 || spaces < hinf->indent) && (!empty || !hinf->line_head))
+        if ((hinf->indent == -1 || spaces < hinf->indent) && (!empty || !line_head))
           hinf->indent = spaces;
       }
       return tHD_STRING_MID;
     }
-    if (hinf && hinf->line_head) {
+    if (hinf && hinf->line_head && empty) {
       if (ISSPACE(c)) {
         if (hinf->indent_char == -1)
           hinf->indent_char = c;
