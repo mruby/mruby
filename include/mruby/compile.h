@@ -100,6 +100,9 @@ enum mrb_string_type {
 struct mrb_parser_heredoc_info {
   mrb_bool allow_indent:1;
   mrb_bool remove_indent:1;
+  char indent_char;
+  size_t indent;
+  mrb_ast_node *indented;
   mrb_bool line_head:1;
   enum mrb_string_type type;
   const char *term;
