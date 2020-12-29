@@ -840,7 +840,7 @@ mrb_get_arg1(mrb_state *mrb)
     array_argv = ARY_PTR(a);
   }
   if (argc != 1) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
+    mrb_argnum_error(mrb, argc, 1, 1);
   }
   return array_argv[0];
 }
