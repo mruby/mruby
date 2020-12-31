@@ -1614,11 +1614,6 @@ mrb_objspace_page_slot_size(void)
   return sizeof(RVALUE);
 }
 
-#ifdef GC_TEST
-#ifdef GC_DEBUG
-static mrb_value gc_test(mrb_state *, mrb_value);
-#endif
-#endif
 
 void
 mrb_init_gc(mrb_state *mrb)
@@ -1639,9 +1634,4 @@ mrb_init_gc(mrb_state *mrb)
   mrb_define_class_method(mrb, gc, "step_ratio=", gc_step_ratio_set, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, gc, "generational_mode=", gc_generational_mode_set, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, gc, "generational_mode", gc_generational_mode_get, MRB_ARGS_NONE());
-#ifdef GC_TEST
-#ifdef GC_DEBUG
-  mrb_define_class_method(mrb, gc, "test", gc_test, MRB_ARGS_NONE());
-#endif
-#endif
 }
