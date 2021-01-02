@@ -1752,13 +1752,17 @@ mrb_str_hash(mrb_state *mrb, mrb_value str)
   struct RString *s = mrb_str_ptr(str);
   mrb_int len = RSTR_LEN(s);
   char *p = RSTR_PTR(s);
-  uint32_t key = 0;
+  uint32_t hash = 0;
 
-  while (len--) {
-    key = (key << 6) + (key << 16) - key + *p;
-    p++;
+  for(int i = 0; i < len; ++i) {
+    hash += p[i];
+    hash += (hash << 10);
+    hash ^= (hash >> 6);
   }
-  return key + (key>>5);
+  hash += (hash << 3);
+  hash ^= (hash >> 11);
+  hash += (hash << 15);
+  return hash;
 }
 
 /* 15.2.10.5.20 */
