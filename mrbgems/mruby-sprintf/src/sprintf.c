@@ -75,19 +75,35 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
 {
   char buf[66], *b = buf + sizeof buf;
   mrb_int num = mrb_integer(x);
+  const int mask = base -1;
+  int shift;
+#ifdef MRB_INT64
   uint64_t val = (uint64_t)num;
+#else
+  uint32_t val = (uint32_t)num;
+#endif
   char d;
 
-  if (base != 2) {
+  switch (base) {
+  case 2:
+    shift = 1;
+    break;
+  case 8:
+    shift = 3;
+    break;
+  case 16:
+    shift = 4;
+    break;
+  default:
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid radix %d", base);
   }
-  if (val == 0) {
+  if (num == 0) {
     return mrb_str_new_lit(mrb, "0");
   }
   *--b = '\0';
   do {
-    *--b = mrb_digitmap[(int)(val % base)];
-  } while (val /= base);
+    *--b = mrb_digitmap[(int)(val & mask)];
+  } while (val >>= shift);
 
   if (num < 0) {
     b = remove_sign_bits(b, base);
