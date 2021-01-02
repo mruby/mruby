@@ -70,6 +70,7 @@ typedef unsigned int stack_type;
 #define nsym(x) ((node*)(intptr_t)(x))
 #define nint(x) ((node*)(intptr_t)(x))
 #define intn(x) ((int)(intptr_t)(x))
+#define typen(x) ((enum node_type)(intptr_t)(x))
 
 #define NUM_SUFFIX_R   (1<<0)
 #define NUM_SUFFIX_I   (1<<1)
@@ -779,7 +780,7 @@ static void
 local_add_margs(parser_state *p, node *n)
 {
   while (n) {
-    if (n->car->car == (node*)NODE_MASGN) {
+    if (typen(n->car->car) == NODE_MASGN) {
       node *t = n->car->cdr->cdr;
 
       n->car->cdr->cdr = NULL;
@@ -1015,7 +1016,7 @@ new_dstr(parser_state *p, node *a)
 static int
 string_node_p(node *n)
 {
-  return (int)((enum node_type)(intptr_t)n->car == NODE_STR);
+  return (int)(typen(n->car) == NODE_STR);
 }
 
 static node*
@@ -1207,7 +1208,7 @@ call_with_block(parser_state *p, node *a, node *b)
 {
   node *n;
 
-  switch ((enum node_type)intn(a->car)) {
+  switch (typen(a->car)) {
   case NODE_SUPER:
   case NODE_ZSUPER:
     if (!a->cdr) a->cdr = cons(0, b);
@@ -1281,7 +1282,7 @@ typedef enum mrb_string_type  string_type;
 static node*
 new_strterm(parser_state *p, string_type type, int term, int paren)
 {
-  return cons(nint(type), cons((node*)0, cons(nint(paren), nint(term))));
+  return cons(nint(type), cons(nint(0), cons(nint(paren), nint(term))));
 }
 
 static void
@@ -2047,11 +2048,11 @@ cname           : tIDENTIFIER
 
 cpath           : tCOLON3 cname
                     {
-                      $$ = cons((node*)1, nsym($2));
+                      $$ = cons(nint(1), nsym($2));
                     }
                 | cname
                     {
-                      $$ = cons((node*)0, nsym($1));
+                      $$ = cons(nint(0), nsym($1));
                     }
                 | primary_value tCOLON2 cname
                     {
@@ -2866,11 +2867,11 @@ f_margs         : f_arg
                 | f_arg ',' tSTAR
                     {
                       local_add_f(p, 0);
-                      $$ = list3($1, (node*)-1, 0);
+                      $$ = list3($1, nint(-1), 0);
                     }
                 | f_arg ',' tSTAR ',' f_arg
                     {
-                      $$ = list3($1, (node*)-1, $5);
+                      $$ = list3($1, nint(-1), $5);
                     }
                 | tSTAR f_norm_arg
                     {
@@ -2883,7 +2884,7 @@ f_margs         : f_arg
                 | tSTAR
                     {
                       local_add_f(p, 0);
-                      $$ = list3(0, (node*)-1, 0);
+                      $$ = list3(0, nint(-1), 0);
                     }
                 | tSTAR ','
                     {
@@ -2891,7 +2892,7 @@ f_margs         : f_arg
                     }
                   f_arg
                     {
-                      $$ = list3(0, (node*)-1, $4);
+                      $$ = list3(0, nint(-1), $4);
                     }
                 ;
 
@@ -3072,7 +3073,7 @@ do_block        : keyword_do_block
 
 block_call      : command do_block
                     {
-                      if ($1->car == (node*)NODE_YIELD) {
+                      if (typen($1->car) == NODE_YIELD) {
                         yyerror(p, "block given to yield");
                       }
                       else {
@@ -3865,7 +3866,7 @@ singleton       : var_ref
                         yyerror(p, "can't define singleton method for ().");
                       }
                       else {
-                        switch ((enum node_type)intn($3->car)) {
+                        switch (typen($3->car)) {
                         case NODE_STR:
                         case NODE_DSTR:
                         case NODE_XSTR:
@@ -3920,7 +3921,7 @@ assoc           : arg tASSOC arg
                 | string_fragment label_tag arg
                     {
                       void_expr_error(p, $3);
-                      if ($1->car == (node*)NODE_DSTR) {
+                      if (typen($1->car) == NODE_DSTR) {
                         $$ = cons(new_dsym(p, $1), $3);
                       }
                       else {
@@ -4924,7 +4925,7 @@ number_literal_suffix(parser_state *p)
   int mask = NUM_SUFFIX_R|NUM_SUFFIX_I;
 
   while ((c = nextc(p)) != -1) {
-    list = push(list, (node*)(intptr_t)c);
+    list = push(list, nint(c));
 
     if ((mask & NUM_SUFFIX_I) && c == 'i') {
       result |= (mask & NUM_SUFFIX_I);
@@ -7231,7 +7232,7 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
         if (n2->car) {
           dump_prefix(n2, offset+2);
           printf("rest:\n");
-          if (n2->car == (node*)-1) {
+          if (n2->car == nint(-1)) {
             dump_prefix(n2, offset+2);
             printf("(empty)\n");
           }
@@ -7473,11 +7474,11 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
 
   case NODE_CLASS:
     printf("NODE_CLASS:\n");
-    if (tree->car->car == (node*)0) {
+    if (tree->car->car == nint(0)) {
       dump_prefix(tree, offset+1);
       printf(":%s\n", mrb_sym_name(mrb, sym(tree->car->cdr)));
     }
-    else if (tree->car->car == (node*)1) {
+    else if (tree->car->car == nint(1)) {
       dump_prefix(tree, offset+1);
       printf("::%s\n", mrb_sym_name(mrb, sym(tree->car->cdr)));
     }
@@ -7498,11 +7499,11 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
 
   case NODE_MODULE:
     printf("NODE_MODULE:\n");
-    if (tree->car->car == (node*)0) {
+    if (tree->car->car == nint(0)) {
       dump_prefix(tree, offset+1);
       printf(":%s\n", mrb_sym_name(mrb, sym(tree->car->cdr)));
     }
-    else if (tree->car->car == (node*)1) {
+    else if (tree->car->car == nint(1)) {
       dump_prefix(tree, offset+1);
       printf("::%s\n", mrb_sym_name(mrb, sym(tree->car->cdr)));
     }
