@@ -105,6 +105,9 @@ typedef float rat_float;
 #else
 typedef double rat_float;
 #endif
+
+void mrb_check_num_exact(mrb_state *mrb, mrb_float num);
+
 static mrb_value
 rational_new_f(mrb_state *mrb, mrb_float f0)
 {
@@ -116,6 +119,7 @@ rational_new_f(mrb_state *mrb, mrb_float f0)
   int64_t n = 1;
   int i, neg = 0;
 
+  mrb_check_num_exact(mrb, f0);
   if (f < 0) { neg = 1; f = -f; }
   while (f != floor(f)) { n <<= 1; f *= 2; }
   if (!TYPED_FIXABLE(f, rat_float)) {
