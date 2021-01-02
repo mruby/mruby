@@ -102,8 +102,10 @@ rational_new(mrb_state *mrb, mrb_int numerator, mrb_int denominator)
  */
 #ifdef MRB_INT32
 typedef float rat_float;
+typedef int32_t rat_int;
 #else
 typedef double rat_float;
+typedef int64_t rat_int;
 #endif
 
 void mrb_check_num_exact(mrb_state *mrb, mrb_float num);
@@ -116,7 +118,7 @@ rational_new_f(mrb_state *mrb, mrb_float f0)
   /*  a: continued fraction coefficients. */
   mrb_int a, h[3] = { 0, 1, 0 }, k[3] = { 1, 0, 0 };
   mrb_int x, d;
-  int64_t n = 1;
+  rat_int n = 1;
   int i, neg = 0;
 
   mrb_check_num_exact(mrb, f0);
