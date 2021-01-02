@@ -2216,7 +2216,7 @@ mrb_str_len_to_inum(mrb_state *mrb, const char *str, size_t len, mrb_int base, i
   const char *pend = str + len;
   char sign = 1;
   int c;
-  uint64_t n = 0;
+  mrb_int n = 0;
   mrb_int val;
 
 #define conv_digit(c) \
@@ -2343,15 +2343,17 @@ mrb_str_len_to_inum(mrb_state *mrb, const char *str, size_t len, mrb_int base, i
     if (c < 0 || c >= base) {
       break;
     }
-    n *= base;
-    n += c;
-    if (n > (uint64_t)MRB_INT_MAX) {
-      if (sign == 0 && n == (uint64_t)MRB_INT_MIN) {
+    if (mrb_int_mul_overflow(n, base, &n)) goto overflow;
+    if (MRB_INT_MAX - c < n) {
+      if (sign == 0 && MRB_INT_MAX - n == c - 1) {
+        n = MRB_INT_MIN;
         sign = 1;
         break;
       }
+    overflow:
       mrb_raisef(mrb, E_RANGE_ERROR, "string (%l) too big for integer", str, pend-str);
     }
+    n += c;
   }
   val = (mrb_int)n;
   if (badcheck) {
