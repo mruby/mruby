@@ -894,7 +894,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
   mrb_bool given = TRUE;
   mrb_value kdict;
   mrb_bool reqkarg = FALSE;
-  mrb_int needargc = 0;
+  int argc_min = 0, argc_max = 0;
 
   if (!argv_on_stack) {
     struct RArray *a = mrb_ary_ptr(*array_argv);
@@ -912,6 +912,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       break;
     case '*':
       opt_skip = FALSE;
+      argc_max = -1;
       if (!reqkarg) reqkarg = strchr(fmt, ':') ? TRUE : FALSE;
       goto check_exit;
     case '!':
@@ -923,13 +924,14 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       if (opt) opt_skip = FALSE;
       break;
     default:
-      if (!opt) needargc ++;
+      if (!opt) argc_min++;
+      argc_max++;
       break;
     }
   }
 
  check_exit:
-  if (reqkarg && argc > needargc && mrb_hash_p(kdict = ARGV[argc - 1])) {
+  if (reqkarg && argc > argc_min && mrb_hash_p(kdict = ARGV[argc - 1])) {
     mrb_hash_check_kdict(mrb, kdict);
     argc --;
   }
@@ -952,7 +954,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
           given = FALSE;
         }
         else {
-          mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
+          mrb_argnum_error(mrb, argc, argc_min, argc_max);
         }
       }
       break;
@@ -1315,7 +1317,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 #undef ARGV
 
   if (!c && argc > i) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
+    mrb_argnum_error(mrb, argc, argc_min, argc_max);
   }
 
 finish:
@@ -2232,7 +2234,6 @@ mrb_define_alias_id(mrb_state *mrb, struct RClass *klass, mrb_sym a, mrb_sym b)
 mrb_value
 mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
 {
-
   if (mrb_sclass_p(klass)) {
     mrb_value v = mrb_iv_get(mrb, klass, MRB_SYM(__attached__));
     mrb_value str = mrb_str_new_lit(mrb, "#<Class:");
