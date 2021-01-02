@@ -443,7 +443,6 @@ mrb_float_to_cstr(mrb_state *mrb, char *buf, size_t len, const char *fmt, mrb_fl
   return (int)(cstr.buf - buf);
 }
 #else   /* MRB_NO_STDIO || _WIN32 || _WIN64 */
-#include <mruby.h>
 #include <stdio.h>
 
 MRB_API mrb_value
