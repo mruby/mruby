@@ -172,7 +172,7 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_LOADI32, BSS);
-      printf("OP_LOADI32\tR%d\t%d\t", a, (int)(((uint32_t)b<<16)+c));
+      printf("OP_LOADI32\tR%d\t%d\t", a, (int32_t)(((uint32_t)b<<16)+c));
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_LOADI__1, B);
