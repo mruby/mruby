@@ -4625,6 +4625,93 @@ read_escape(parser_state *p)
   }
 }
 
+static void
+heredoc_count_indent(parser_heredoc_info *hinf, const char *str, size_t len, size_t *indent, size_t *offset)
+{
+  *indent = 0;
+  *offset = 0;
+  for (size_t i = 0; i < len; i++) {
+    size_t size;
+    if (str[i] == '\n')
+      break;
+    else if (str[i] == '\t')
+      size = 8;
+    else if (ISSPACE(str[i]))
+      size = 1;
+    else
+      break;
+    if (*indent + size > hinf->indent)
+      break;
+    *indent += size;
+    *offset += 1;
+  }
+}
+
+static void
+heredoc_remove_indent(parser_state *p, parser_heredoc_info *hinf)
+{
+  if (!hinf->remove_indent)
+    return;
+  node *indented, *n, *pair, *escaped;
+  const char *str;
+  size_t len, indent, offset, start, end;
+  indented = hinf->indented;
+  while (indented) {
+    n = indented->car;
+    pair = n->car;
+    str = (char*)pair->car;
+    len = (size_t)pair->cdr;
+    escaped = n->cdr;
+    if (escaped) {
+      start = 0;
+      while (start < len) {
+        end = escaped ? (size_t)escaped->car : len;
+        heredoc_count_indent(hinf, str + start, end - start, &indent, &offset);
+        if (indent < hinf->indent)
+          hinf->indent = indent;
+        start = end;
+        if (escaped)
+          escaped = escaped->cdr;
+      }
+    }
+    indented = indented->cdr;
+  }
+  if (hinf->indent == 0)
+    return;
+  indented = hinf->indented;
+  while (indented) {
+    n = indented->car;
+    pair = n->car;
+    str = (char*)pair->car;
+    len = (size_t)pair->cdr;
+    escaped = n->cdr;
+    if (escaped) {
+      char *newstr = strndup(str, len);
+      size_t newlen = 0;
+      start = 0;
+      while (start < len) {
+        end = escaped ? (size_t)escaped->car : len;
+        size_t esclen = end - start;
+        heredoc_count_indent(hinf, str + start, esclen, &indent, &offset);
+        esclen -= offset;
+        memcpy(newstr + newlen, str + start + offset, esclen);
+        newlen += esclen;
+        start = end;
+        if (escaped)
+          escaped = escaped->cdr;
+      }
+      newstr[newlen] = '\0';
+      pair->car = (node*)newstr;
+      pair->cdr = (node*)newlen;
+    } else {
+      heredoc_count_indent(hinf, str, len, &indent, &offset);
+      pair->car = (node*)(str + offset);
+      pair->cdr = (node*)(len - offset);
+    }
+    indented = indented->cdr;
+  }
+}
+
 static int
 parse_string(parser_state *p)
 {
@@ -4635,14 +4722,18 @@ parse_string(parser_state *p)
   int end = intn(p->lex_strterm->cdr->cdr->cdr);
   parser_heredoc_info *hinf = (type & STR_FUNC_HEREDOC) ? parsing_heredoc_inf(p) : NULL;
 
+  mrb_bool unindent = hinf && hinf->remove_indent;
   mrb_bool head = hinf && hinf->line_head;
   mrb_bool empty = TRUE;
   size_t spaces = 0;
+  size_t pos = -1;
+  node *escaped = NULL;
 
   if (beg == 0) beg = -3;       /* should never happen */
   if (end == 0) end = -3;
   newtok(p);
   while ((c = nextc(p)) != end || nest_level != 0) {
+    pos++;
     if (hinf && (c == '\n' || c < 0)) {
       mrb_bool line_head;
       tokadd(p, '\n');
@@ -4662,36 +4753,7 @@ parse_string(parser_state *p)
           }
         }
         if ((len-1 == hinf->term_len) && (strncmp(s, hinf->term, len-1) == 0)) {
-          if (hinf->remove_indent && hinf->indent > 0) {
-            node *tmp = hinf->indented;
-            while (tmp) {
-              node *pair = tmp->car;
-              const char *str = (char*)pair->car;
-              size_t len = (size_t)pair->cdr;
-              size_t indent = 0;
-              size_t offset = 0;
-              for (size_t i = 0; i < len; i++) {
-                size_t size;
-                if (str[i] == '\n')
-                  break;
-                else if (str[i] == '\t')
-                  size = 8;
-                else if (ISSPACE(str[i]))
-                  size = 1;
-                else
-                  break;
-                if (indent + size > hinf->indent)
-                  break;
-                indent += size;
-                ++offset;
-              }
-              if (indent > 0) {
-                pair->car = (node*)(str + offset);
-                pair->cdr = (node*)(len - offset);
-              }
-              tmp = tmp->cdr;
-            }
-          }
+          heredoc_remove_indent(p, hinf);
           return tHEREDOC_END;
         }
       }
@@ -4712,14 +4774,14 @@ parse_string(parser_state *p)
       }
       node *nd = new_str(p, tok(p), toklen(p));
       pylval.nd = nd;
-      if (head) {
-        hinf->indented = push(hinf->indented, nd->cdr);
+      if (unindent && head) {
+        hinf->indented = push(hinf->indented, cons(nd->cdr, escaped));
         if ((hinf->indent == -1 || spaces < hinf->indent) && (!empty || !line_head))
           hinf->indent = spaces;
       }
       return tHD_STRING_MID;
     }
-    if (hinf && hinf->line_head && empty) {
+    if (unindent && head && empty) {
       if (c == '\t')
         spaces += 8;
       else if (ISSPACE(c))
@@ -4748,6 +4810,10 @@ parse_string(parser_state *p)
         else if (c == '\n') {
           p->lineno++;
           p->column = 0;
+          if (unindent) {
+            escaped = push(escaped, (node*)pos);
+            pos--;
+          }
           if (type & STR_FUNC_ARRAY) {
             tokadd(p, '\n');
           }
@@ -4800,8 +4866,8 @@ parse_string(parser_state *p)
         node *nd = new_str(p, tok(p), toklen(p));
         pylval.nd = nd;
         if (hinf) {
-          if (head) {
-            hinf->indented = push(hinf->indented, nd->cdr);
+          if (unindent && head) {
+            hinf->indented = push(hinf->indented, cons(nd->cdr, escaped));
             if (hinf->indent == -1 || spaces < hinf->indent)
               hinf->indent = spaces;
           }
