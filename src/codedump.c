@@ -219,7 +219,7 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_SETGV, BB);
-      printf("OP_SETGV\t;%s\tR%d", mrb_sym_dump(mrb, irep->syms[b]), a);
+      printf("OP_SETGV\t:%s\tR%d", mrb_sym_dump(mrb, irep->syms[b]), a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_GETSV, BB);
