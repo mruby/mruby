@@ -251,7 +251,6 @@ HT_ASSERT_SAFE_READ(ea_capa);
 } while (0)
 
 #define U32(v) ((uint32_t)(v))
-#define U64(v) ((uint64_t)(v))
 #define h_ar_p(h) (!h_ht_p(h))
 #define h_ar_on(h) h_ht_off(h)
 #define lesser(a, b) ((a) < (b) ? (a) : (b))
@@ -360,7 +359,13 @@ ea_next_capa_for(uint32_t size, uint32_t max_capa)
     return AR_DEFAULT_CAPA;
   }
   else {
-    uint64_t capa = U64(size) * EA_INCREASE_RATIO, inc = capa - size;
+    /*
+     * For 32-bit CPU, the theoretical value of max EA capa is
+     * `UINT32_MAX / sizeof (hash_entry)`. At this time, if
+     * `EA_INCREASE_RATIO` is the current value, 32-bit range will not be
+     * exceeded during the calculation of `capa`, so `size_t` is used.
+     */
+    size_t capa = size * EA_INCREASE_RATIO, inc = capa - size;
     if (EA_MAX_INCREASE < inc) capa = size + EA_MAX_INCREASE;
     return capa <= max_capa ? U32(capa) : max_capa;
   }
@@ -621,10 +626,13 @@ ib_it_next(index_buckets_iter *it)
    *                \                              `-- bit_pos(34)
    *                 `-- bit(5)
    */
-  uint64_t bit_pos;
-  bit_pos = U64(it->bit) * (it->pos + 1) - 1;
-  it->ary_index = U32(bit_pos / IB_TYPE_BIT);
-  it->shift2 = U32((U64(it->ary_index) + 1) * IB_TYPE_BIT - bit_pos - 1);
+
+  /* Slide to handle as `capa == 32` to avoid 64-bit operations */
+  uint32_t slid_pos = it->pos & (IB_TYPE_BIT - 1);
+  uint32_t slid_bit_pos = it->bit * (slid_pos + 1) - 1;
+  uint32_t slid_ary_index = slid_bit_pos / IB_TYPE_BIT;
+  it->ary_index = slid_ary_index + it->pos / IB_TYPE_BIT * it->bit;
+  it->shift2 = (slid_ary_index + 1) * IB_TYPE_BIT - slid_bit_pos - 1;
   it->ea_index = (ht_ib(it->h)[it->ary_index] >> it->shift2) & it->mask;
   if (IB_TYPE_BIT - it->bit < it->shift2) {
     it->shift1 = IB_TYPE_BIT - it->shift2;
@@ -707,7 +715,9 @@ ib_bit_for(uint32_t size)
 static uint32_t
 ib_byte_size_for(uint32_t ib_bit)
 {
-  uint64_t ary_size = (U64(1) << ib_bit) * ib_bit / IB_TYPE_BIT;
+  uint32_t ary_size = IB_INIT_BIT == 4 ?
+    ib_bit_to_capa(ib_bit) * 2 / IB_TYPE_BIT * ib_bit / 2 :
+    ib_bit_to_capa(ib_bit) / IB_TYPE_BIT * ib_bit;
   return U32(sizeof(uint32_t) * ary_size);
 }
 
