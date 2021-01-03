@@ -650,9 +650,8 @@ main(int argc, char **argv)
         /* generate bytecode */
         struct RProc *proc = mrb_generate_code(mrb, parser);
         if (proc == NULL) {
-          fputs("codegen error\n", stderr);
           mrb_parser_free(parser);
-          break;
+          continue;
         }
 
         if (args.verbose) {
