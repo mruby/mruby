@@ -960,21 +960,6 @@ retry:
             val = mrb_fixnum_to_str(mrb, mrb_int_value(mrb, v), base);
           }
           strncpy(++s, RSTRING_PTR(val), sizeof(nbuf)-2);
-          if (v < 0) {
-            char d;
-
-            s = remove_sign_bits(s, base);
-            switch (base) {
-              case 16: d = 'f'; break;
-              case 8:  d = '7'; break;
-              case 2:  d = '1'; break;
-              default: d = 0; break;
-            }
-
-            if (d && *s != d) {
-              *--s = d;
-            }
-          }
         }
         {
           size_t size;
