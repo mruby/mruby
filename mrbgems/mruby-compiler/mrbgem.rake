@@ -3,15 +3,14 @@ MRuby::Gem::Specification.new 'mruby-compiler' do |spec|
   spec.author  = 'mruby developers'
   spec.summary = 'mruby compiler library'
 
-  as_cxx_srcs = %w[codegen y.tab].map{|name| "#{dir}/core/#{name}.c"}
-  objs = Dir.glob("#{dir}/core/*.c").map do |src|
-    if build.cxx_exception_enabled? && as_cxx_srcs.include?(src)
+  objs = %w[codegen y.tab].map do |name|
+    src = "#{dir}/core/#{name}.c"
+    if build.cxx_exception_enabled?
       build.compile_as_cxx(src)
     else
       objfile(src.pathmap("#{build_dir}/core/%n"))
     end
   end
-  objs << objfile("#{build_dir}/core/y.tab")
   build.libmruby_core_objs << objs
 
   lex_def = "#{dir}/core/lex.def"
