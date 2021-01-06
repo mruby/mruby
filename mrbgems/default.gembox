@@ -1,9 +1,9 @@
 MRuby::GemBox.new do |conf|
-  gembox "stdlib"
-  gembox "stdlib-ext"
-  gembox "stdlib-io"
-  gembox "math"
-  gembox "metaprog"
+  conf.gembox "stdlib"
+  conf.gembox "stdlib-ext"
+  conf.gembox "stdlib-io"
+  conf.gembox "math"
+  conf.gembox "metaprog"
 
   # Generate mrbc command
   conf.gem :core => "mruby-bin-mrbc"
