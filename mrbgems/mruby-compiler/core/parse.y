@@ -4776,7 +4776,7 @@ parse_string(parser_state *p)
       pylval.nd = nd;
       if (unindent && head) {
         hinf->indented = push(hinf->indented, cons(nd->cdr, escaped));
-        if ((hinf->indent == ~0 || spaces < hinf->indent) && (!empty || !line_head))
+        if ((hinf->indent == ~0U || spaces < hinf->indent) && (!empty || !line_head))
           hinf->indent = spaces;
       }
       return tHD_STRING_MID;
@@ -4868,7 +4868,7 @@ parse_string(parser_state *p)
         if (hinf) {
           if (unindent && head) {
             hinf->indented = push(hinf->indented, cons(nd->cdr, escaped));
-            if (hinf->indent == ~0 || spaces < hinf->indent)
+            if (hinf->indent == ~0U || spaces < hinf->indent)
               hinf->indent = spaces;
           }
           hinf->line_head = FALSE;
@@ -5087,7 +5087,7 @@ heredoc_identifier(parser_state *p)
   info->type = (string_type)type;
   info->allow_indent = indent || squiggly;
   info->remove_indent = squiggly;
-  info->indent = ~0;
+  info->indent = ~0U;
   info->indented = NULL;
   info->line_head = TRUE;
   info->doc = NULL;
