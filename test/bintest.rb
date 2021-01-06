@@ -4,7 +4,8 @@ require 'test/assert.rb'
 GEMNAME = ""
 
 def cmd(s)
-  path = "#{ENV['BUILD_DIR']}/bin/#{s}"
+  path = s == "mrbc" ? ENV['MRBCFILE'] : "#{ENV['BUILD_DIR']}/bin/#{s}"
+  path = path.sub(/\.exe\z/, "")
   if /mswin(?!ce)|mingw|bccwin/ =~ RbConfig::CONFIG['host_os']
     path = "#{path}.exe".tr("/", "\\")
   end

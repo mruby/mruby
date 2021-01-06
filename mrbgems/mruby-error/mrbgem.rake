@@ -4,7 +4,7 @@ MRuby::Gem::Specification.new('mruby-error') do |spec|
   spec.summary = 'extensional error handling'
 
   if build.cxx_exception_enabled?
-    @objs << build.compile_as_cxx("#{spec.dir}/src/exception.c", "#{spec.build_dir}/src/exception.cxx")
-    @objs.delete_if { |v| v == objfile("#{spec.build_dir}/src/exception") }
+    objs << build.compile_as_cxx("#{spec.dir}/src/exception.c")
+    objs.delete_if { |v| v == objfile("#{spec.build_dir}/src/exception") }
   end
 end

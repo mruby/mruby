@@ -1,25 +1,21 @@
 MRuby::Toolchain.new(:visualcpp) do |conf, _params|
-  conf.cc do |cc|
-    cc.command = ENV['CC'] || 'cl.exe'
-    # C4013: implicit function declaration
-    cc.flags = [ENV['CFLAGS'] || %w(/c /nologo /W3 /we4013 /Zi /MD /O2 /D_CRT_SECURE_NO_WARNINGS)]
-    cc.defines = %w(MRB_STACK_EXTEND_DOUBLING)
-    cc.option_include_path = %q[/I"%s"]
-    cc.option_define = '/D%s'
-    cc.compile_options = %Q[%{flags} /Fo"%{outfile}" "%{infile}"]
-    cc.cxx_compile_flag = '/TP'
-    cc.cxx_exception_flag = '/EHs'
-  end
-
-  conf.cxx do |cxx|
-    cxx.command = ENV['CXX'] || 'cl.exe'
-    cxx.flags = [ENV['CXXFLAGS'] || ENV['CFLAGS'] || %w(/c /nologo /W3 /Zi /MD /O2 /EHs /D_CRT_SECURE_NO_WARNINGS)]
-    cxx.defines = %w(MRB_STACK_EXTEND_DOUBLING)
-    cxx.option_include_path = %q[/I"%s"]
-    cxx.option_define = '/D%s'
-    cxx.compile_options = %Q[%{flags} /Fo"%{outfile}" "%{infile}"]
-    cxx.cxx_compile_flag = '/TP'
-    cxx.cxx_exception_flag = '/EHs'
+  compiler_flags = %w(/nologo /W3 /MD /O2 /D_CRT_SECURE_NO_WARNINGS)
+  [conf.cc, conf.cxx].each do |compiler|
+    if compiler == conf.cc
+      compiler.command = ENV['CC'] || 'cl.exe'
+      # C4013: implicit function declaration
+      compiler.flags = [*(ENV['CFLAGS'] || compiler_flags + %w(/we4013))]
+    else
+      compiler.command = ENV['CXX'] || 'cl.exe'
+      compiler.flags = [*(ENV['CXXFLAGS'] || ENV['CFLAGS'] || compiler_flags + %w(/EHs))]
+    end
+    compiler.defines = %w(MRB_STACK_EXTEND_DOUBLING)
+    compiler.option_include_path = %q[/I"%s"]
+    compiler.option_define = '/D%s'
+    compiler.compile_options = %Q[/Zi /c /Fo"%{outfile}" %{flags} "%{infile}"]
+    compiler.preprocess_options = %Q[/EP %{flags} "%{infile}" > "%{outfile}"]
+    compiler.cxx_compile_flag = '/TP'
+    compiler.cxx_exception_flag = '/EHs'
   end
 
   conf.linker do |linker|
