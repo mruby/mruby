@@ -2074,7 +2074,7 @@ RETRY_TRY_BLOCK:
               regs[irep->nlocals] = v;
               goto CHECKPOINT_LABEL_MAKE(RBREAK_TAG_STOP);
             }
-            if (c->prev->ci == c->prev->cibase) {
+            if (!c->vmexec && c->prev->ci == c->prev->cibase) {
               mrb_value exc = mrb_exc_new_lit(mrb, E_FIBER_ERROR, "double resume");
               mrb_exc_set(mrb, exc);
               goto L_RAISE;
@@ -2089,8 +2089,14 @@ RETRY_TRY_BLOCK:
             /* automatic yield at the end */
             c->status = MRB_FIBER_TERMINATED;
             mrb->c = c->prev;
-            c->prev = NULL;
             mrb->c->status = MRB_FIBER_RUNNING;
+            c->prev = NULL;
+            if (c->vmexec) {
+              mrb_gc_arena_restore(mrb, ai);
+              c->vmexec = FALSE;
+              mrb->jmp = prev_jmp;
+              return v;
+            }
             ci = mrb->c->ci;
           }
           CHECKPOINT_RESTORE(RBREAK_TAG_RETURN) {

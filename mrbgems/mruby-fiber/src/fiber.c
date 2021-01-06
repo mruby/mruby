@@ -219,8 +219,11 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
     while (b<e) {
       *b++ = *a++;
     }
+    if (vmexec) {
+      c->ci--;                    /* pop dummy callinfo */
+    }
     c->cibase->argc = (int)len;
-    value = c->stack[0] = MRB_PROC_ENV(c->ci->proc)->stack[0];
+    value = c->stack[0] = MRB_PROC_ENV(c->cibase->proc)->stack[0];
   }
   else {
     value = fiber_result(mrb, a, len);
@@ -228,7 +231,7 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
 
   if (vmexec) {
     c->vmexec = TRUE;
-    value = mrb_vm_exec(mrb, c->ci[-1].proc, c->ci->pc);
+    value = mrb_vm_exec(mrb, c->ci->proc, c->ci->pc);
     mrb->c = old_c;
   }
   else {
@@ -354,6 +357,7 @@ mrb_fiber_yield(mrb_state *mrb, mrb_int len, const mrb_value *a)
   if (c->vmexec) {
     c->vmexec = FALSE;
     mrb->c->ci->acc = CI_ACC_RESUMED;
+    c->ci--;                    /* pop callinfo for yield */
   }
   MARK_CONTEXT_MODIFY(mrb->c);
   return fiber_result(mrb, a, len);
