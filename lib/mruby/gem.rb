@@ -7,7 +7,6 @@ module MRuby
     class << self
       attr_accessor :current
     end
-    LinkerConfig = Struct.new(:libraries, :library_paths, :flags, :flags_before_libraries, :flags_after_libraries)
 
     class Specification
       include Rake::DSL
@@ -50,13 +49,13 @@ module MRuby
       end
 
       def setup
-        return if defined?(@linker)  # return if already set up
+        return if defined?(@bins)  # return if already set up
 
         MRuby::Gem.current = self
         MRuby::Build::COMMANDS.each do |command|
           instance_variable_set("@#{command}", @build.send(command).clone)
         end
-        @linker = LinkerConfig.new([], [], [], [], [])
+        @linker.run_attrs.each(&:clear)
 
         @rbfiles = Dir.glob("#{@dir}/mrblib/**/*.rb").sort
         @objs = Dir.glob("#{@dir}/src/*.{c,cpp,cxx,cc,m,asm,s,S}").map do |f|
@@ -72,6 +71,7 @@ module MRuby
         @test_args = {}
 
         @bins = []
+        @cdump = true
 
         @requirements = []
         @export_include_paths = []
@@ -81,7 +81,6 @@ module MRuby
 
         @generate_functions = !(@rbfiles.empty? && @objs.empty?)
         @objs << objfile("#{build_dir}/gem_init") if @generate_functions
-        @cdump = core?  # by default core gems use cdump and others use mrb dump
 
         if !name || !licenses || !authors
           fail "#{name || dir} required to set name, license(s) and author(s)"
@@ -96,10 +95,11 @@ module MRuby
       end
 
       def setup_compilers
-        (core? ? [cc] : compilers).each do |compiler|
-          compiler.define_rules build_dir, "#{dir}"
+        (core? ? [@cc, *(@cxx if build.cxx_exception_enabled?)] : compilers).each do |compiler|
+          compiler.define_rules build_dir, @dir, @build.exts.preprocessed if build.presym_enabled?
+          compiler.define_rules build_dir, @dir, @build.exts.object
           compiler.defines << %Q[MRBGEM_#{funcname.upcase}_VERSION=#{version}]
-          compiler.include_paths << "#{dir}/include" if File.directory? "#{dir}/include"
+          compiler.include_paths << "#{@dir}/include" if File.directory? "#{@dir}/include"
         end
 
         define_gem_init_builder if @generate_functions
@@ -114,12 +114,12 @@ module MRuby
         return false
       end
 
-      def enable_cdump
-        @cdump = true
+      def disable_cdump
+        @cdump = false
       end
 
       def cdump?
-        @cdump
+        build.presym_enabled? && @cdump
       end
 
       def core?
@@ -175,7 +175,6 @@ module MRuby
       end
 
       def define_gem_init_builder
-        file objfile("#{build_dir}/gem_init") => [ "#{build_dir}/gem_init.c", File.join(dir, "mrbgem.rake") ]
         file "#{build_dir}/gem_init.c" => [build.mrbcfile, __FILE__] + [rbfiles].flatten do |t|
           mkdir_p build_dir
           generate_gem_init("#{build_dir}/gem_init.c")
@@ -187,7 +186,7 @@ module MRuby
         open(fname, 'w') do |f|
           print_gem_init_header f
           unless rbfiles.empty?
-            if @cdump
+            if cdump?
               build.mrbc.run f, rbfiles, "gem_mrblib_#{funcname}_proc"
             else
               build.mrbc.run f, rbfiles, "gem_mrblib_irep_#{funcname}", false
@@ -198,10 +197,10 @@ module MRuby
           f.puts %Q[]
           f.puts %Q[void GENERATED_TMP_mrb_#{funcname}_gem_init(mrb_state *mrb) {]
           f.puts %Q[  int ai = mrb_gc_arena_save(mrb);]
-          f.puts %Q[  struct REnv *e;] unless rbfiles.empty?
+          f.puts %Q[  gem_mrblib_#{funcname}_proc_init_syms(mrb);] if !rbfiles.empty? && cdump?
           f.puts %Q[  mrb_#{funcname}_gem_init(mrb);] if objs != [objfile("#{build_dir}/gem_init")]
           unless rbfiles.empty?
-            if @cdump
+            if cdump?
               f.puts %Q[  mrb_load_proc(mrb, gem_mrblib_#{funcname}_proc);]
             else
               f.puts %Q[  mrb_load_irep(mrb, gem_mrblib_irep_#{funcname});]
@@ -211,7 +210,7 @@ module MRuby
             f.puts %Q[    mrb_close(mrb);]
             f.puts %Q[    exit(EXIT_FAILURE);]
             f.puts %Q[  }]
-            f.puts %Q[  e = mrb->c->cibase->env;]
+            f.puts %Q[  struct REnv *e = mrb->c->cibase->env;]
             f.puts %Q[  mrb->c->cibase->env = NULL;]
             f.puts %Q[  mrb_env_unshare(mrb, e);]
           end
@@ -241,8 +240,6 @@ module MRuby
           f.puts %Q[#include <mruby.h>]
         else
           f.puts %Q[#include <stdlib.h>]
-          f.puts %Q[#include <mruby.h>]
-          f.puts %Q[#include <mruby/proc.h>]
         end
       end
 
@@ -251,7 +248,7 @@ module MRuby
         f.puts %Q[#include <stdio.h>]
         f.puts %Q[#include <stdlib.h>]
         f.puts %Q[#include <mruby.h>]
-        f.puts %Q[#include <mruby/proc.h>]
+        f.puts %Q[#include <mruby/irep.h>]
         f.puts %Q[#include <mruby/variable.h>]
         f.puts %Q[#include <mruby/hash.h>] unless test_args.empty?
       end

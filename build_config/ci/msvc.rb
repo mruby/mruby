@@ -1,6 +1,6 @@
 def setup_option(conf)
-  conf.cc.flags[0].delete("/Zi") unless ENV['CFLAGS']
-  conf.cxx.flags[0].delete("/Zi") unless ENV['CFLAGS'] || ENV['CXXFLAGS']
+  conf.cc.compile_options.sub!(%r{/Zi }, "") unless ENV['CFLAGS']
+  conf.cxx.compile_options.sub!(%r{/Zi }, "") unless ENV['CFLAGS'] || ENV['CXXFLAGS']
   conf.linker.flags << "/DEBUG:NONE" unless ENV['LDFLAGS']
 end
 

@@ -152,7 +152,7 @@ intern_gen(parser_state *p, const char *s, size_t len)
 }
 #define intern(s,len) intern_gen(p,(s),(len))
 
-#define intern_lit(s) mrb_intern_lit(p->mrb, s)
+#define intern_op(op) MRB_OPSYM_2(p->mrb, op)
 
 static void
 cons_free_gen(parser_state *p, node *cons)
@@ -378,14 +378,14 @@ static void
 local_add_blk(parser_state *p, mrb_sym blk)
 {
   /* allocate register for block */
-  local_add_f(p, blk ? blk : MRB_OPSYM(and));
+  local_add_f(p, blk ? blk : intern_op(and));
 }
 
 static void
 local_add_kw(parser_state *p, mrb_sym kwd)
 {
   /* allocate register for keywords hash */
-  local_add_f(p, kwd ? kwd : MRB_OPSYM(pow));
+  local_add_f(p, kwd ? kwd : intern_op(pow));
 }
 
 static node*
@@ -1023,13 +1023,13 @@ new_op_asgn(parser_state *p, node *a, mrb_sym op, node *b)
 static node*
 new_imaginary(parser_state *p, node *imaginary)
 {
-  return new_call(p, new_const(p, MRB_SYM(Kernel)), MRB_SYM(Complex), list1(list2(list3((node*)NODE_INT, (node*)strdup("0"), nint(10)), imaginary)), 1);
+  return new_call(p, new_const(p, MRB_SYM_2(p->mrb, Kernel)), MRB_SYM_2(p->mrb, Complex), list1(list2(list3((node*)NODE_INT, (node*)strdup("0"), nint(10)), imaginary)), 1);
 }
 
 static node*
 new_rational(parser_state *p, node *rational)
 {
-  return new_call(p, new_const(p, MRB_SYM(Kernel)), MRB_SYM(Rational), list1(list1(rational)), 1);
+  return new_call(p, new_const(p, MRB_SYM_2(p->mrb, Kernel)), MRB_SYM_2(p->mrb, Rational), list1(list1(rational)), 1);
 }
 
 /* (:int . i) */
@@ -6148,7 +6148,7 @@ yyreduce:
   case 36:
 #line 1709 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      (yyval.nd) = new_op_asgn(p, new_call(p, (yyvsp[-5].nd), MRB_OPSYM(aref), (yyvsp[-3].nd), '.'), (yyvsp[-1].id), (yyvsp[0].nd));
+                      (yyval.nd) = new_op_asgn(p, new_call(p, (yyvsp[-5].nd), intern_op(aref), (yyvsp[-3].nd), '.'), (yyvsp[-1].id), (yyvsp[0].nd));
                     }
 #line 6154 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
@@ -6551,7 +6551,7 @@ yyreduce:
   case 93:
 #line 1965 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      (yyval.nd) = new_call(p, (yyvsp[-3].nd), MRB_OPSYM(aref), (yyvsp[-1].nd), '.');
+                      (yyval.nd) = new_call(p, (yyvsp[-3].nd), intern_op(aref), (yyvsp[-1].nd), '.');
                     }
 #line 6557 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
@@ -6620,7 +6620,7 @@ yyreduce:
   case 101:
 #line 2004 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      (yyval.nd) = new_call(p, (yyvsp[-3].nd), MRB_OPSYM(aref), (yyvsp[-1].nd), '.');
+                      (yyval.nd) = new_call(p, (yyvsp[-3].nd), intern_op(aref), (yyvsp[-1].nd), '.');
                     }
 #line 6626 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
@@ -6761,181 +6761,181 @@ yyreduce:
 
   case 124:
 #line 2093 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = MRB_OPSYM(or);     }
+                                { (yyval.id) = intern_op(or);     }
 #line 6766 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 125:
 #line 2094 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = MRB_OPSYM(xor);    }
+                                { (yyval.id) = intern_op(xor);    }
 #line 6772 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 126:
 #line 2095 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = MRB_OPSYM(and);    }
+                                { (yyval.id) = intern_op(and);    }
 #line 6778 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 127:
 #line 2096 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = MRB_OPSYM(cmp);    }
+                                { (yyval.id) = intern_op(cmp);    }
 #line 6784 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 128:
 #line 2097 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = MRB_OPSYM(eq);     }
+                                { (yyval.id) = intern_op(eq);     }
 #line 6790 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 129:
 #line 2098 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = MRB_OPSYM(eqq);    }
+                                { (yyval.id) = intern_op(eqq);    }
 #line 6796 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 130:
 #line 2099 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = MRB_OPSYM(match);  }
+                                { (yyval.id) = intern_op(match);  }
 #line 6802 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 131:
 #line 2100 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = MRB_OPSYM(nmatch); }
+                                { (yyval.id) = intern_op(nmatch); }
 #line 6808 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 132:
 #line 2101 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = MRB_OPSYM(gt);     }
+                                { (yyval.id) = intern_op(gt);     }
 #line 6814 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 133:
 #line 2102 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = MRB_OPSYM(ge);     }
+                                { (yyval.id) = intern_op(ge);     }
 #line 6820 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 134:
 #line 2103 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = MRB_OPSYM(lt);     }
+                                { (yyval.id) = intern_op(lt);     }
 #line 6826 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 135:
 #line 2104 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = MRB_OPSYM(le);     }
+                                { (yyval.id) = intern_op(le);     }
 #line 6832 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 136:
 #line 2105 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = MRB_OPSYM(neq);    }
+                                { (yyval.id) = intern_op(neq);    }
 #line 6838 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 137:
 #line 2106 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = MRB_OPSYM(lshift); }
+                                { (yyval.id) = intern_op(lshift); }
 #line 6844 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 138:
 #line 2107 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = MRB_OPSYM(rshift); }
+                                { (yyval.id) = intern_op(rshift); }
 #line 6850 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 139:
 #line 2108 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = MRB_OPSYM(add);    }
+                                { (yyval.id) = intern_op(add);    }
 #line 6856 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 140:
 #line 2109 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = MRB_OPSYM(sub);    }
+                                { (yyval.id) = intern_op(sub);    }
 #line 6862 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 141:
 #line 2110 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = MRB_OPSYM(mul);    }
+                                { (yyval.id) = intern_op(mul);    }
 #line 6868 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 142:
 #line 2111 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = MRB_OPSYM(mul);    }
+                                { (yyval.id) = intern_op(mul);    }
 #line 6874 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 143:
 #line 2112 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = MRB_OPSYM(div);    }
+                                { (yyval.id) = intern_op(div);    }
 #line 6880 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 144:
 #line 2113 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = MRB_OPSYM(mod);    }
+                                { (yyval.id) = intern_op(mod);    }
 #line 6886 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 145:
 #line 2114 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = MRB_OPSYM(pow);    }
+                                { (yyval.id) = intern_op(pow);    }
 #line 6892 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 146:
 #line 2115 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = MRB_OPSYM(pow);    }
+                                { (yyval.id) = intern_op(pow);    }
 #line 6898 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 147:
 #line 2116 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = MRB_OPSYM(not);    }
+                                { (yyval.id) = intern_op(not);    }
 #line 6904 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 148:
 #line 2117 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = MRB_OPSYM(neg);    }
+                                { (yyval.id) = intern_op(neg);    }
 #line 6910 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 149:
 #line 2118 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = MRB_OPSYM(plus);   }
+                                { (yyval.id) = intern_op(plus);   }
 #line 6916 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 150:
 #line 2119 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = MRB_OPSYM(minus);  }
+                                { (yyval.id) = intern_op(minus);  }
 #line 6922 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 151:
 #line 2120 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = MRB_OPSYM(aref);   }
+                                { (yyval.id) = intern_op(aref);   }
 #line 6928 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 152:
 #line 2121 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = MRB_OPSYM(aset);   }
+                                { (yyval.id) = intern_op(aset);   }
 #line 6934 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
   case 153:
 #line 2122 "mrbgems/mruby-compiler/core/parse.y"
-                                { (yyval.id) = MRB_OPSYM(tick);   }
+                                { (yyval.id) = intern_op(tick);   }
 #line 6940 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
 
@@ -6958,7 +6958,7 @@ yyreduce:
   case 196:
 #line 2148 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      (yyval.nd) = new_op_asgn(p, new_call(p, (yyvsp[-5].nd), MRB_OPSYM(aref), (yyvsp[-3].nd), '.'), (yyvsp[-1].id), (yyvsp[0].nd));
+                      (yyval.nd) = new_op_asgn(p, new_call(p, (yyvsp[-5].nd), intern_op(aref), (yyvsp[-3].nd), '.'), (yyvsp[-1].id), (yyvsp[0].nd));
                     }
 #line 6964 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
@@ -7426,14 +7426,14 @@ yyreduce:
 #line 2402 "mrbgems/mruby-compiler/core/parse.y"
                     {
 #if 1
-                      mrb_sym r = MRB_OPSYM(mul);
-                      mrb_sym b = MRB_OPSYM(and);
+                      mrb_sym r = intern_op(mul);
+                      mrb_sym b = intern_op(and);
                       (yyval.nd) = cons(push((yyvsp[-3].nd), new_splat(p, new_lvar(p, r))),
                                 new_block_arg(p, new_lvar(p, b)));
 #else
-                      mrb_sym r = MRB_OPSYM(mul);
-                      mrb_sym k = MRB_OPSYM(pow);
-                      mrb_sym b = MRB_OPSYM(and);
+                      mrb_sym r = intern_op(mul);
+                      mrb_sym k = intern_op(pow);
+                      mrb_sym b = intern_op(and);
                       (yyval.nd) = cons(list2(push((yyvsp[-3].nd), new_splat(p, new_lvar(p, r))),
                                       new_kw_hash(p, list1(cons(new_kw_rest_args(p, 0), new_lvar(p, k))))),
                                 new_block_arg(p, new_lvar(p, b)));
@@ -7446,16 +7446,16 @@ yyreduce:
 #line 2418 "mrbgems/mruby-compiler/core/parse.y"
                     {
 #if 1
-                      mrb_sym r = MRB_OPSYM(mul);
-                      mrb_sym b = MRB_OPSYM(and);
+                      mrb_sym r = intern_op(mul);
+                      mrb_sym b = intern_op(and);
                       if (local_var_p(p, r)  && local_var_p(p, b)) {
                         (yyval.nd) = cons(list1(new_splat(p, new_lvar(p, r))),
                                   new_block_arg(p, new_lvar(p, b)));
                       }
 #else
-                      mrb_sym r = MRB_OPSYM(mul);
-                      mrb_sym k = MRB_OPSYM(pow);
-                      mrb_sym b = MRB_OPSYM(and);
+                      mrb_sym r = intern_op(mul);
+                      mrb_sym k = intern_op(pow);
+                      mrb_sym b = intern_op(and);
                       if (local_var_p(p, r) && local_var_p(p, k) && local_var_p(p, b)) {
                         (yyval.nd) = cons(list2(new_splat(p, new_lvar(p, r)),
                                         new_kw_hash(p, list1(cons(new_kw_rest_args(p, 0), new_lvar(p, k))))),
@@ -8555,7 +8555,7 @@ yyreduce:
   case 406:
 #line 3117 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      (yyval.nd) = new_call(p, (yyvsp[-2].nd), MRB_SYM(call), (yyvsp[0].nd), (yyvsp[-1].num));
+                      (yyval.nd) = new_call(p, (yyvsp[-2].nd), MRB_SYM_2(p->mrb, call), (yyvsp[0].nd), (yyvsp[-1].num));
                     }
 #line 8561 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
@@ -8563,7 +8563,7 @@ yyreduce:
   case 407:
 #line 3121 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      (yyval.nd) = new_call(p, (yyvsp[-2].nd), MRB_SYM(call), (yyvsp[0].nd), tCOLON2);
+                      (yyval.nd) = new_call(p, (yyvsp[-2].nd), MRB_SYM_2(p->mrb, call), (yyvsp[0].nd), tCOLON2);
                     }
 #line 8569 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
@@ -8587,7 +8587,7 @@ yyreduce:
   case 410:
 #line 3133 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      (yyval.nd) = new_call(p, (yyvsp[-3].nd), MRB_OPSYM(aref), (yyvsp[-1].nd), '.');
+                      (yyval.nd) = new_call(p, (yyvsp[-3].nd), intern_op(aref), (yyvsp[-1].nd), '.');
                     }
 #line 8593 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
@@ -9103,15 +9103,15 @@ yyreduce:
                     {
 #if 1
                       /* til real keyword args implemented */
-                      mrb_sym r = MRB_OPSYM(mul);
-                      mrb_sym b = MRB_OPSYM(and);
+                      mrb_sym r = intern_op(mul);
+                      mrb_sym b = intern_op(and);
                       local_add_f(p, r);
                       (yyval.nd) = new_args(p, (yyvsp[-3].nd), 0, r, 0,
                                     new_args_tail(p, 0, 0, b));
 #else
-                      mrb_sym r = MRB_OPSYM(mul);
-                      mrb_sym k = MRB_OPSYM(pow);
-                      mrb_sym b = MRB_OPSYM(and);
+                      mrb_sym r = intern_op(mul);
+                      mrb_sym k = intern_op(pow);
+                      mrb_sym b = intern_op(and);
                       local_add_f(p, r); local_add_f(p, k);
                       (yyval.nd) = new_args(p, (yyvsp[-3].nd), 0, r, 0,
                                     new_args_tail(p, 0, new_kw_rest_args(p, nsym(k)), b));
@@ -9125,15 +9125,15 @@ yyreduce:
                     {
 #if 1
                       /* til real keyword args implemented */
-                      mrb_sym r = MRB_OPSYM(mul);
-                      mrb_sym b = MRB_OPSYM(and);
+                      mrb_sym r = intern_op(mul);
+                      mrb_sym b = intern_op(and);
                       local_add_f(p, r);
                       (yyval.nd) = new_args(p, 0, 0, r, 0,
                                     new_args_tail(p, 0, 0, b));
 #else
-                      mrb_sym r = MRB_OPSYM(mul);
-                      mrb_sym k = MRB_OPSYM(pow);
-                      mrb_sym b = MRB_OPSYM(and);
+                      mrb_sym r = intern_op(mul);
+                      mrb_sym k = intern_op(pow);
+                      mrb_sym b = intern_op(and);
                       local_add_f(p, r); local_add_f(p, k);
                       (yyval.nd) = new_args(p, 0, 0, r, 0,
                                     new_args_tail(p, 0, new_kw_rest_args(p, nsym(k)), b));
@@ -9406,7 +9406,7 @@ yyreduce:
   case 533:
 #line 3708 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      local_add_f(p, MRB_OPSYM(and));
+                      local_add_f(p, intern_op(and));
                       (yyval.nd) = new_args(p, 0, 0, 0, 0, 0);
                     }
 #line 9413 "mrbgems/mruby-compiler/core/y.tab.c"
@@ -9590,7 +9590,7 @@ yyreduce:
   case 556:
 #line 3832 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      local_add_f(p, MRB_OPSYM(mul));
+                      local_add_f(p, intern_op(mul));
                       (yyval.id) = -1;
                     }
 #line 9597 "mrbgems/mruby-compiler/core/y.tab.c"
@@ -11216,7 +11216,7 @@ parser_yylex(parser_state *p)
   case '*':
     if ((c = nextc(p)) == '*') {
       if ((c = nextc(p)) == '=') {
-        pylval.id = MRB_OPSYM(pow);
+        pylval.id = intern_op(pow);
         p->lstate = EXPR_BEG;
         return tOP_ASGN;
       }
@@ -11234,7 +11234,7 @@ parser_yylex(parser_state *p)
     }
     else {
       if (c == '=') {
-        pylval.id = MRB_OPSYM(mul);
+        pylval.id = intern_op(mul);
         p->lstate = EXPR_BEG;
         return tOP_ASGN;
       }
@@ -11350,7 +11350,7 @@ parser_yylex(parser_state *p)
     }
     if (c == '<') {
       if ((c = nextc(p)) == '=') {
-        pylval.id = MRB_OPSYM(lshift);
+        pylval.id = intern_op(lshift);
         p->lstate = EXPR_BEG;
         return tOP_ASGN;
       }
@@ -11372,7 +11372,7 @@ parser_yylex(parser_state *p)
     }
     if (c == '>') {
       if ((c = nextc(p)) == '=') {
-        pylval.id = MRB_OPSYM(rshift);
+        pylval.id = intern_op(rshift);
         p->lstate = EXPR_BEG;
         return tOP_ASGN;
       }
@@ -11480,7 +11480,7 @@ parser_yylex(parser_state *p)
     if ((c = nextc(p)) == '&') {
       p->lstate = EXPR_BEG;
       if ((c = nextc(p)) == '=') {
-        pylval.id = MRB_OPSYM(andand);
+        pylval.id = intern_op(andand);
         p->lstate = EXPR_BEG;
         return tOP_ASGN;
       }
@@ -11492,7 +11492,7 @@ parser_yylex(parser_state *p)
       return tANDDOT;
     }
     else if (c == '=') {
-      pylval.id = MRB_OPSYM(and);
+      pylval.id = intern_op(and);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -11519,7 +11519,7 @@ parser_yylex(parser_state *p)
     if ((c = nextc(p)) == '|') {
       p->lstate = EXPR_BEG;
       if ((c = nextc(p)) == '=') {
-        pylval.id = MRB_OPSYM(oror);
+        pylval.id = intern_op(oror);
         p->lstate = EXPR_BEG;
         return tOP_ASGN;
       }
@@ -11527,7 +11527,7 @@ parser_yylex(parser_state *p)
       return tOROP;
     }
     if (c == '=') {
-      pylval.id = MRB_OPSYM(or);
+      pylval.id = intern_op(or);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -11551,7 +11551,7 @@ parser_yylex(parser_state *p)
       return '+';
     }
     if (c == '=') {
-      pylval.id = MRB_OPSYM(add);
+      pylval.id = intern_op(add);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -11579,7 +11579,7 @@ parser_yylex(parser_state *p)
       return '-';
     }
     if (c == '=') {
-      pylval.id = MRB_OPSYM(sub);
+      pylval.id = intern_op(sub);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -11902,7 +11902,7 @@ parser_yylex(parser_state *p)
       return tREGEXP_BEG;
     }
     if ((c = nextc(p)) == '=') {
-      pylval.id = MRB_OPSYM(div);
+      pylval.id = intern_op(div);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -11921,7 +11921,7 @@ parser_yylex(parser_state *p)
 
   case '^':
     if ((c = nextc(p)) == '=') {
-      pylval.id = MRB_OPSYM(xor);
+      pylval.id = intern_op(xor);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }
@@ -12099,7 +12099,7 @@ parser_yylex(parser_state *p)
       }
     }
     if ((c = nextc(p)) == '=') {
-      pylval.id = MRB_OPSYM(mod);
+      pylval.id = intern_op(mod);
       p->lstate = EXPR_BEG;
       return tOP_ASGN;
     }

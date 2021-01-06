@@ -93,7 +93,6 @@
 #include <mruby/common.h>
 #include <mruby/value.h>
 #include <mruby/gc.h>
-#include <mruby/presym.h>
 #include <mruby/version.h>
 
 #ifndef MRB_NO_FLOAT
@@ -1409,6 +1408,8 @@ MRB_API void mrb_show_version(mrb_state *mrb);
 MRB_API void mrb_show_copyright(mrb_state *mrb);
 
 MRB_API mrb_value mrb_format(mrb_state *mrb, const char *format, ...);
+
+#include <mruby/presym.h>
 
 #if 0
 /* memcpy and memset does not work with gdb reverse-next on my box */

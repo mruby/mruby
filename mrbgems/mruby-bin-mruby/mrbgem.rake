@@ -7,6 +7,6 @@ MRuby::Gem::Specification.new('mruby-bin-mruby') do |spec|
   spec.add_test_dependency('mruby-print', :core => 'mruby-print')
 
   if build.cxx_exception_enabled?
-    build.compile_as_cxx("#{spec.dir}/tools/mruby/mruby.c", "#{spec.build_dir}/tools/mruby/mruby.cxx")
+    build.compile_as_cxx("#{spec.dir}/tools/mruby/mruby.c")
   end
 end
