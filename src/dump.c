@@ -1041,8 +1041,8 @@ sym_name_cvar_p(const char *name, mrb_int len)
   return len >= 3 && name[0] == '@' && sym_name_ivar_p(name+1, len-1);
 }
 
-const char *
-sym_operator_p(const char *name, mrb_int len)
+static const char*
+sym_operator_name(const char *sym_name, mrb_int len)
 {
   mrb_sym start, idx;
   mrb_sym table_size = sizeof(operator_table)/sizeof(struct operator_symbol);
@@ -1053,7 +1053,7 @@ sym_operator_p(const char *name, mrb_int len)
     op_sym = &operator_table[idx];
     cmp = len-op_sym->sym_name_len;
     if (cmp == 0) {
-      cmp = memcmp(name, op_sym->sym_name, len);
+      cmp = memcmp(sym_name, op_sym->sym_name, len);
       if (cmp == 0) return op_sym->name;
     }
     if (0 < cmp) {
@@ -1064,15 +1064,27 @@ sym_operator_p(const char *name, mrb_int len)
   return NULL;
 }
 
+static const char*
+sym_var_name(mrb_state *mrb, const char *initname, const char *key, int n)
+{
+  char buf[32];
+  mrb_value s = mrb_str_new_cstr(mrb, initname);
+  mrb_str_cat_lit(mrb, s, "_");
+  mrb_str_cat_cstr(mrb, s, key);
+  mrb_str_cat_lit(mrb, s, "_");
+  snprintf(buf, sizeof(buf), "%d", n);
+  mrb_str_cat_cstr(mrb, s, buf);
+  return RSTRING_PTR(s);
+}
+
 static int
-dump_sym(mrb_state *mrb, mrb_sym sym, const char *var_name, int idx, mrb_value init_syms_code, FILE *fp, mrb_bool *presymp)
+dump_sym(mrb_state *mrb, mrb_sym sym, const char *var_name, int idx, mrb_value init_syms_code, FILE *fp)
 {
   if (sym == 0) return MRB_DUMP_INVALID_ARGUMENT;
 
   mrb_int len;
   const char *name = mrb_sym_name_len(mrb, sym, &len), *op_name;
   if (!name) return MRB_DUMP_INVALID_ARGUMENT;
-  if (presymp) *presymp = TRUE;
   if (sym_name_word_p(name, len)) {
     fprintf(fp, "MRB_SYM(%s)", name);
   }
@@ -1091,37 +1103,40 @@ dump_sym(mrb_state *mrb, mrb_sym sym, const char *var_name, int idx, mrb_value i
   else if (sym_name_cvar_p(name, len)) {
     fprintf(fp, "MRB_CVSYM(%s)", name+2);
   }
-  else if ((op_name = sym_operator_p(name, len))) {
+  else if ((op_name = sym_operator_name(name, len))) {
     fprintf(fp, "MRB_OPSYM(%s)", op_name);
   }
   else {
-    mrb_assert(var_name);
     char buf[32];
+    mrb_value name_obj = mrb_str_new(mrb, name, len);
     mrb_str_cat_lit(mrb, init_syms_code, "  ");
     mrb_str_cat_cstr(mrb, init_syms_code, var_name);
     snprintf(buf, sizeof(buf), "[%d] = ", idx);
     mrb_str_cat_cstr(mrb, init_syms_code, buf);
-    mrb_str_cat_lit(mrb, init_syms_code, "mrb_intern_lit(mrb, \"");
-    mrb_str_cat_cstr(mrb, init_syms_code, mrb_sym_dump(mrb, sym));
-    mrb_str_cat_lit(mrb, init_syms_code, "\");\n");
-    *presymp = FALSE;
+    mrb_str_cat_lit(mrb, init_syms_code, "mrb_intern_lit(mrb, ");
+    mrb_str_cat_str(mrb, init_syms_code, mrb_str_dump(mrb, name_obj));
+    mrb_str_cat_lit(mrb, init_syms_code, ");\n");
     fputs("0", fp);
   }
   fputs(", ", fp);
   return MRB_DUMP_OK;
 }
 
-static const char*
-sym_var_name(mrb_state *mrb, const char *initname, const char *key, int n)
+static int
+dump_syms(mrb_state *mrb, const char *name, const char *key, int n, int syms_len, const mrb_sym *syms, mrb_value init_syms_code, FILE *fp)
 {
-  char buf[32];
-  mrb_value s = mrb_str_new_cstr(mrb, initname);
-  mrb_str_cat_lit(mrb, s, "_");
-  mrb_str_cat_cstr(mrb, s, key);
-  mrb_str_cat_lit(mrb, s, "_");
-  snprintf(buf, sizeof(buf), "%d", n);
-  mrb_str_cat_cstr(mrb, s, buf);
-  return RSTRING_PTR(s);
+  int ai = mrb_gc_arena_save(mrb);
+  mrb_int code_len = RSTRING_LEN(init_syms_code);
+  const char *var_name = sym_var_name(mrb, name, key, n);
+  fprintf(fp, "mrb_DEFINE_SYMS_VAR(%s, %d, (", var_name, syms_len);
+  for (int i=0; i<syms_len; i++) {
+    dump_sym(mrb, syms[i], var_name, i, init_syms_code, fp);
+  }
+  fputs("), ", fp);
+  if (code_len == RSTRING_LEN(init_syms_code)) fputs("const", fp);
+  fputs(");\n", fp);
+  mrb_gc_arena_restore(mrb, ai);
+  return MRB_DUMP_OK;
 }
 
 static int
@@ -1155,19 +1170,7 @@ dump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, 
   }
   /* dump syms */
   if (irep->syms) {
-    int ai = mrb_gc_arena_save(mrb);
-    const char *var_name = sym_var_name(mrb, name, "syms", n);
-    mrb_bool all_presym = TRUE, presym;
-    len=irep->slen;
-    fprintf(fp,   "mrb_DEFINE_SYMS_VAR(%s, %d, (", var_name, len);
-    for (i=0; i<len; i++) {
-      dump_sym(mrb, irep->syms[i], var_name, i, init_syms_code, fp, &presym);
-      all_presym &= presym;
-    }
-    fputs("), ", fp);
-    if (all_presym) fputs("const", fp);
-    fputs(");\n", fp);
-    mrb_gc_arena_restore(mrb, ai);
+    dump_syms(mrb, name, "syms", n, irep->slen, irep->syms, init_syms_code, fp);
   }
   /* dump iseq */
   len=irep->ilen+sizeof(struct mrb_irep_catch_handler)*irep->clen;
@@ -1179,12 +1182,7 @@ dump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, 
   fputs("};\n", fp);
   /* dump lv */
   if (irep->lv) {
-    len=irep->nlocals;
-    fprintf(fp,   "static const mrb_sym %s_lv_%d[%d] = {", name, n, len-1);
-    for (i=0; i+1<len; i++) {
-      dump_sym(mrb, irep->lv[i], NULL, 0, mrb_nil_value(), fp, NULL);
-    }
-    fputs("};\n", fp);
+    dump_syms(mrb, name, "lv", n, irep->nlocals-1, irep->lv, init_syms_code, fp);
   }
   /* dump irep */
   fprintf(fp, "static const mrb_irep %s_irep_%d = {\n", name, n);
