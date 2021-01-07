@@ -4247,7 +4247,7 @@ peekc_n(parser_state *p, int n)
     list = push(list, nint(c0));
   } while(n--);
   if (p->pb) {
-    p->pb = append((node*)list, p->pb);
+    p->pb = append(list, p->pb);
   }
   else {
     p->pb = list;
@@ -4770,7 +4770,7 @@ parse_string(parser_state *p)
       node *nd = new_str(p, tok(p), toklen(p));
       pylval.nd = nd;
       if (unindent && head) {
-        nspaces = push(nspaces, (node*)spaces);
+        nspaces = push(nspaces, nint(spaces));
         heredoc_push_indented(p, hinf, nd->cdr, escaped, nspaces, empty && line_head);
       }
       return tHD_STRING_MID;
@@ -4805,8 +4805,8 @@ parse_string(parser_state *p)
           p->lineno++;
           p->column = 0;
           if (unindent) {
-            nspaces = push(nspaces, (node*)spaces);
-            escaped = push(escaped, (node*)pos);
+            nspaces = push(nspaces, nint(spaces));
+            escaped = push(escaped, nint(pos));
             pos--;
             empty = TRUE;
             spaces = 0;
@@ -4864,7 +4864,7 @@ parse_string(parser_state *p)
         pylval.nd = nd;
         if (hinf) {
           if (unindent && head) {
-            nspaces = push(nspaces, (node*)spaces);
+            nspaces = push(nspaces, nint(spaces));
             heredoc_push_indented(p, hinf, nd->cdr, escaped, nspaces, FALSE);
           }
           hinf->line_head = FALSE;
@@ -5004,7 +5004,7 @@ number_literal_suffix(parser_state *p)
     if (!ISASCII(c) || ISALPHA(c) || c == '_') {
       p->column = column;
       if (p->pb) {
-        p->pb = append((node*)list, p->pb);
+        p->pb = append(list, p->pb);
       }
       else {
         p->pb = list;
