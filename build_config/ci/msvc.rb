@@ -1,3 +1,5 @@
+STDOUT.sync = STDERR.sync = true
+
 def setup_option(conf)
   conf.cc.compile_options.sub!(%r{/Zi }, "") unless ENV['CFLAGS']
   conf.cxx.compile_options.sub!(%r{/Zi }, "") unless ENV['CFLAGS'] || ENV['CXXFLAGS']
@@ -5,7 +7,7 @@ def setup_option(conf)
 end
 
 MRuby::Build.new do |conf|
-  toolchain :visualcpp
+  conf.toolchain :visualcpp
 
   # include all core GEMs
   conf.gembox 'full-core'

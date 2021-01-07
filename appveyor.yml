@@ -41,6 +41,5 @@ init:
 
 build_script:
   - set MRUBY_CONFIG=ci/msvc
-  - rake gensym
-  - rake -m all
-  - rake -E $stdout.sync=true test
+  - rake -m
+  - rake test

@@ -1,3 +1,5 @@
+STDOUT.sync = STDERR.sync = true
+
 MRuby::Build.new('full-debug') do |conf|
   conf.toolchain
   conf.enable_debug
