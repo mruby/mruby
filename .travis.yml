@@ -3,12 +3,9 @@ language: c
 jobs:
   - os: linux
   - os: osx
-    before_install:
-      - HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 brew install bison
-      - export PATH="/usr/local/opt/bison/bin:$PATH"
 
 env:
   - MRUBY_CONFIG=ci/gcc-clang
 
 script:
-  - rake gensym && rake -m && rake test
+  - rake -m && rake test
