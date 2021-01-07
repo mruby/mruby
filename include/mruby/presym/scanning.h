@@ -11,13 +11,18 @@
 
 #undef mrb_intern_lit
 #define mrb_intern_lit(mrb, name) MRB_PRESYM_SCANNING_TAGGED(name)
+#define mrb_intern_cstr(mrb, name) MRB_PRESYM_SCANNING_TAGGED(name)
 #define mrb_define_method(mrb, c, name, f, a) MRB_PRESYM_SCANNING_TAGGED(name)
 #define mrb_define_class_method(mrb, c, name, f, a) MRB_PRESYM_SCANNING_TAGGED(name)
+#define mrb_define_singleton_method(mrb, c, name, f, a) MRB_PRESYM_SCANNING_TAGGED(name)
 #define mrb_define_class(mrb, name, s) MRB_PRESYM_SCANNING_TAGGED(name)
+#define mrb_define_class_under(mrb, o, name, s) MRB_PRESYM_SCANNING_TAGGED(name)
 #define mrb_define_module(mrb, name) MRB_PRESYM_SCANNING_TAGGED(name)
+#define mrb_define_module_under(mrb, o, name) MRB_PRESYM_SCANNING_TAGGED(name)
 #define mrb_define_module_function(mrb, c, name, f, s) MRB_PRESYM_SCANNING_TAGGED(name)
 #define mrb_define_const(mrb, c, name, v) MRB_PRESYM_SCANNING_TAGGED(name)
 #define mrb_define_global_const(mrb, name, v) MRB_PRESYM_SCANNING_TAGGED(name)
+
 
 #define MRB_OPSYM(name) MRB_OPSYM__##name(mrb)
 #define MRB_CVSYM(name) MRB_PRESYM_SCANNING_TAGGED("@@" #name)
