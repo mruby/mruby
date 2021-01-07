@@ -29,8 +29,8 @@
  *   MRB_SYM(xor)    //=> xor    (Word characters)
  *
  * For `MRB_OPSYM`, specify the names corresponding to operators (see
- * `MRuby::Presym::OPERATORS` in `lib/mruby/presym.rb for the names that can
- * be specified for it). Other than that, describe only word characters
+ * `MRuby::Presym::OPERATORS` in `lib/mruby/presym.rb` for the names that
+ * can be specified for it). Other than that, describe only word characters
  * excluding leading and ending punctuations.
  *
  * These macros are expanded to `mrb_intern_lit` if presym is disabled,
