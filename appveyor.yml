@@ -41,5 +41,5 @@ init:
 
 build_script:
   - set MRUBY_CONFIG=ci/msvc
-  - rake -m
-  - rake test
+  - rake -m test:build
+  - rake test:run

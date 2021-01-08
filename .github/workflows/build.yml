@@ -25,7 +25,7 @@ jobs:
       - name: Compiler version
         run: ${{ env.CC }} --version
       - name: Build and test
-        run: rake -m && rake test
+        run: rake -m test:build && rake test:run
 
   Ubuntu-1804-gcc:
     needs: Check-Skip
@@ -40,7 +40,7 @@ jobs:
       - name: Compiler version
         run: ${{ env.CC }} --version
       - name: Build and test
-        run: rake -m && rake test
+        run: rake -m test:build && rake test:run
 
   Ubuntu-1804-clang:
     needs: Check-Skip
@@ -55,7 +55,7 @@ jobs:
       - name: Compiler version
         run: ${{ env.CC }} --version
       - name: Build and test
-        run: rake -m && rake test
+        run: rake -m test:build && rake test:run
 
   macOS:
     needs: Check-Skip
@@ -70,7 +70,7 @@ jobs:
       - name: Compiler version
         run: ${{ env.CC }} --version
       - name: Build and test
-        run: rake -m && rake test
+        run: rake -m test:build && rake test:run
 
   Windows-MinGW:
     needs: Check-Skip
@@ -85,9 +85,7 @@ jobs:
       - name: Compiler version
         run: ${{ env.CC }} --version
       - name: Build and test
-        # If build and test are separated like `rake && rake test`, somehow
-        # it will be fully built even at `rake test`, so it is not separated.
-        run: rake test
+        run: rake -m test:build && rake test:run
 
   Windows-Cygwin:
     needs: Check-Skip
@@ -130,7 +128,7 @@ jobs:
         run: ${{ env.CC }} --version
       - name: Build and test
         shell: cmd
-        run: ruby /usr/bin/rake -m && ruby /usr/bin/rake test
+        run: ruby /usr/bin/rake -m test:build && ruby /usr/bin/rake test:run
       - name: Set PATH for cache archiving (tar)
         # set Windows path so that Cygwin tar is not used for cache archiving
         run: echo '::set-env name=PATH::C:\windows\System32'
@@ -148,4 +146,4 @@ jobs:
         shell: cmd
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-          rake -m && rake test
+          rake -m test:build && rake test:run

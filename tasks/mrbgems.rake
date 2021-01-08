@@ -1,11 +1,12 @@
 MRuby.each_target do
+  active_gems_txt = "#{build_dir}/mrbgems/active_gems.txt"
+
   if enable_gems?
     # set up all gems
     gems.each(&:setup)
     gems.check self
 
     # loader all gems
-    active_gems_txt = "#{build_dir}/mrbgems/active_gems.txt"
     self.libmruby_objs << objfile("#{build_dir}/mrbgems/gem_init")
     file objfile("#{build_dir}/mrbgems/gem_init") => ["#{build_dir}/mrbgems/gem_init.c", "#{build_dir}/LEGAL"]
     file "#{build_dir}/mrbgems/gem_init.c" => [active_gems_txt, MRUBY_CONFIG, __FILE__] do |t|
@@ -50,14 +51,15 @@ MRuby.each_target do
         f.puts %Q[}]
       end
     end
-    file active_gems_txt => :generate_active_gems_txt
-    task :generate_active_gems_txt do |t|
-      def t.timestamp; Time.at(0) end
-      active_gems = gems.sort_by(&:name).inject(""){|s, g| s << "#{g.name}\n"}
-      if !File.exist?(active_gems_txt) || File.read(active_gems_txt) != active_gems
-        mkdir_p File.dirname(active_gems_txt)
-        File.write(active_gems_txt, active_gems)
-      end
+  end
+
+  file active_gems_txt => :generate_active_gems_txt
+  task :generate_active_gems_txt do |t|
+    def t.timestamp; Time.at(0) end
+    active_gems = gems.sort_by(&:name).inject(""){|s, g| s << "#{g.name}\n"}
+    if !File.exist?(active_gems_txt) || File.read(active_gems_txt) != active_gems
+      mkdir_p File.dirname(active_gems_txt)
+      File.write(active_gems_txt, active_gems)
     end
   end
 

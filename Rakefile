@@ -29,6 +29,7 @@ load "#{MRUBY_ROOT}/tasks/mrbgems.rake"
 load "#{MRUBY_ROOT}/tasks/libmruby.rake"
 load "#{MRUBY_ROOT}/tasks/bin.rake"
 load "#{MRUBY_ROOT}/tasks/presym.rake"
+load "#{MRUBY_ROOT}/tasks/test.rake"
 load "#{MRUBY_ROOT}/tasks/benchmark.rake"
 load "#{MRUBY_ROOT}/tasks/gitlab.rake"
 load "#{MRUBY_ROOT}/tasks/doc.rake"
@@ -51,37 +52,17 @@ end
 
 task :build => MRuby.targets.flat_map{|_, build| build.products}
 
-desc "run all mruby tests"
-task :test
-MRuby.each_target do
-  if test_enabled?
-    t = :"test_#{self.name}"
-    task t => ["all"] do
-      run_test
-    end
-    task :test => t
-  end
-
-  if bintest_enabled?
-    t = :"bintest_#{self.name}"
-    task t => ["all"] do
-      run_bintest
-    end
-    task :test => t
-  end
-end
-
 desc "clean all built and in-repo installed artifacts"
 task :clean do
   MRuby.each_target do |build|
-    rm_rf build.products
     rm_rf build.build_dir
+    rm_f build.products
   end
   puts "Cleaned up target build folder"
 end
 
 desc "clean everything!"
-task :deep_clean => ["clean", "clean_doc"] do
+task :deep_clean => %w[clean doc:clean] do
   MRuby.each_target do |build|
     rm_rf build.gem_clone_dir
   end
