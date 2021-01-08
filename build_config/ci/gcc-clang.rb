@@ -1,4 +1,4 @@
-STDOUT.sync = STDERR.sync = true
+STDOUT.sync = STDERR.sync = true unless Rake.application.options.always_multitask
 
 MRuby::Build.new('full-debug') do |conf|
   conf.toolchain
