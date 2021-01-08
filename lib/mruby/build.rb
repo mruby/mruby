@@ -100,7 +100,7 @@ module MRuby
         @cc = Command::Compiler.new(self, %w(.c), label: "CC")
         @cxx = Command::Compiler.new(self, %w(.cc .cxx .cpp), label: "CXX")
         @objc = Command::Compiler.new(self, %w(.m), label: "OBJC")
-        @asm = Command::Compiler.new(self, %w(.S .asm), label: "ASM")
+        @asm = Command::Compiler.new(self, %w(.S .asm .s), label: "ASM")
         @linker = Command::Linker.new(self)
         @archiver = Command::Archiver.new(self)
         @yacc = Command::Yacc.new(self)
@@ -140,7 +140,6 @@ module MRuby
         end
       end
       current.presym = Presym.new(current) if current.presym_enabled?
-      current.build_mrbtest if current.test_enabled?
     end
 
     def libmruby_enabled?
@@ -303,13 +302,10 @@ EOS
     def enable_test
       @enable_test = true
     end
+    alias build_mrbtest enable_test
 
     def test_enabled?
       @enable_test
-    end
-
-    def build_mrbtest
-      gem :core => 'mruby-test' unless @gems['mruby-test']
     end
 
     def build_mrbc_exec
@@ -361,6 +357,19 @@ EOS
         compiler.define_rules(@build_dir, MRUBY_ROOT, @exts.object)
         compiler.define_rules(@build_dir, MRUBY_ROOT, @exts.preprocessed) if presym_enabled?
       end
+    end
+
+    def define_installer(src)
+      dst = "#{self.class.install_dir}/#{File.basename(src)}"
+      file dst => src do
+        install_D src, dst
+      end
+      dst
+    end
+
+    def define_installer_if_needed(bin)
+      exe = exefile("#{build_dir}/bin/#{bin}")
+      host? ? define_installer(exe) : exe
     end
 
     def filename(name)

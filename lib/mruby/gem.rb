@@ -25,8 +25,8 @@ module MRuby
       alias :author= :authors=
 
       attr_accessor :rbfiles, :objs
-      attr_accessor :test_objs, :test_rbfiles, :test_args
-      attr_accessor :test_preload
+      attr_writer :test_objs, :test_rbfiles
+      attr_accessor :test_args, :test_preload
 
       attr_accessor :bins
 
@@ -58,15 +58,8 @@ module MRuby
         @linker.run_attrs.each(&:clear)
 
         @rbfiles = Dir.glob("#{@dir}/mrblib/**/*.rb").sort
-        @objs = Dir.glob("#{@dir}/src/*.{c,cpp,cxx,cc,m,asm,s,S}").map do |f|
-          objfile(f.relative_path_from(@dir).to_s.pathmap("#{build_dir}/%X"))
-        end
+        @objs = srcs_to_objs("src")
 
-        @test_rbfiles = Dir.glob("#{@dir}/test/**/*.rb").sort
-        @test_objs = Dir.glob("#{@dir}/test/*.{c,cpp,cxx,cc,m,asm,s,S}").map do |f|
-          objfile(f.relative_path_from(@dir).to_s.pathmap("#{build_dir}/%X"))
-        end
-        @custom_test_init = !@test_objs.empty?
         @test_preload = nil # 'test/assert.rb'
         @test_args = {}
 
@@ -149,6 +142,14 @@ module MRuby
         "#{build_dir}/gem_test.c"
       end
 
+      def test_objs
+        @test_objs ||= srcs_to_objs("test")
+      end
+
+      def test_rbfiles
+        @test_rbfiles ||= Dir["#{@dir}/test/**/*.rb"].sort!
+      end
+
       def search_package(name, version_query=nil)
         package_query = name
         package_query += " #{version_query}" if version_query
@@ -171,6 +172,13 @@ module MRuby
       def compilers
         MRuby::Build::COMPILERS.map do |c|
           instance_variable_get("@#{c}")
+        end
+      end
+
+      def srcs_to_objs(src_dir_from_gem_dir)
+        exts = compilers.flat_map{|c| c.source_exts} * ","
+        Dir["#{@dir}/#{src_dir_from_gem_dir}/*{#{exts}}"].map do |f|
+          objfile(f.relative_path_from(@dir).to_s.pathmap("#{build_dir}/%X"))
         end
       end
 
@@ -253,12 +261,8 @@ module MRuby
         f.puts %Q[#include <mruby/hash.h>] unless test_args.empty?
       end
 
-      def test_dependencies
-        [@name]
-      end
-
       def custom_test_init?
-        @custom_test_init
+        !test_objs.empty?
       end
 
       def version_ok?(req_versions)
@@ -486,6 +490,10 @@ module MRuby
             g.export_include_paths.uniq!
           end
         end
+      end
+
+      def linker_attrs
+        map{|g| g.linker.run_attrs}.transpose
       end
     end # List
   end # Gem
