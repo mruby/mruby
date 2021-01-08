@@ -1,4 +1,4 @@
-STDOUT.sync = STDERR.sync = true
+STDOUT.sync = STDERR.sync = true unless Rake.application.options.always_multitask
 
 def setup_option(conf)
   conf.cc.compile_options.sub!(%r{/Zi }, "") unless ENV['CFLAGS']
