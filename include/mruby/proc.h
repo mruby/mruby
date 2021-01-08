@@ -133,7 +133,6 @@ MRB_API mrb_value mrb_proc_cfunc_env_get(mrb_state *mrb, mrb_int idx);
 
 
 #include <mruby/khash.h>
-KHASH_DECLARE(mt, mrb_sym, mrb_method_t, TRUE)
 
 MRB_API mrb_value mrb_load_proc(mrb_state *mrb, const struct RProc *proc);
 

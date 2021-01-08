@@ -1,5 +1,4 @@
 #include <mruby.h>
-#include <mruby/khash.h>
 #include <mruby/array.h>
 #include <mruby/string.h>
 
