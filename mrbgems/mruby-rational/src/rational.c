@@ -146,27 +146,24 @@ rational_new_i(mrb_state *mrb, mrb_int n, mrb_int d)
 #include <math.h>
 
 #if defined(MRB_INT32) || defined(MRB_USE_FLOAT32)
-typedef float rat_float;
 #define frexp_rat frexpf
 #define ldexp_rat ldexpf
-#define RAT_MANT_DIG DBL_MANT_DIG
+#define RAT_MANT_DIG FLT_MANT_DIG
+#define RAT_INT_LIMIT 30
 #else
-typedef double rat_float;
 #define frexp_rat frexp
 #define ldexp_rat ldexp
-#define RAT_MANT_DIG FLT_MANT_DIG
+#define RAT_MANT_DIG DBL_MANT_DIG
+#define RAT_INT_LIMIT 62
 #endif
 
 static void
-float_decode_internal(mrb_state *mrb, rat_float f, mrb_int *rf, int *n)
+float_decode_internal(mrb_state *mrb, mrb_float f, mrb_float *rf, int *n)
 {
   f = frexp_rat(f, n);
   f = ldexp_rat(f, RAT_MANT_DIG);
   *n -= RAT_MANT_DIG;
-  if (!TYPED_FIXABLE(f, rat_float)) {
-    mrb_raise(mrb, E_RANGE_ERROR, "integer overflow in rational");
-  }
-  *rf = (mrb_int)f;
+  *rf = f;
 }
 
 void mrb_check_num_exact(mrb_state *mrb, mrb_float num);
@@ -174,22 +171,32 @@ void mrb_check_num_exact(mrb_state *mrb, mrb_float num);
 static mrb_value
 rational_new_f(mrb_state *mrb, mrb_float f0)
 {
-  mrb_int f;
+  mrb_float f;
   int n;
 
   mrb_check_num_exact(mrb, f0);
   float_decode_internal(mrb, f0, &f, &n);
 #if FLT_RADIX == 2
   if (n == 0)
-    return rational_new(mrb, f, 1);
+    return rational_new(mrb, (mrb_int)f, 1);
   if (n > 0)
-    return rational_new(mrb, f<<n, 1);
-  n = -n;
+    return rational_new(mrb, ((mrb_int)f)<<n, 1);
+  if (n < -RAT_INT_LIMIT) {
+    f = ldexp(f, n+RAT_INT_LIMIT);
+    n = RAT_INT_LIMIT;
+  }
+  else {
+    n = -n;
+  }
   return rational_new_i(mrb, f, 1L<<n);
 #else
-  mrb_uint pow = 1;
+  mrb_int pow = 1;
   if (n < 0) {
     n = -n;
+    while (n > RAT_INT_LIMIT) {
+      f /= 2;
+      n--;
+    }
     while (n--) {
       pow *= FLT_RADIX;
     }
