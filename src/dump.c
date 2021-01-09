@@ -926,8 +926,6 @@ mrb_dump_irep_cfunc(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *f
       return MRB_DUMP_WRITE_FAULT;
     }
     if (fprintf(fp,
-          "#include <mruby.h>\n"
-          "#include <mruby/proc.h>\n"
           "#ifdef __cplusplus\n"
           "extern const uint8_t %s[];\n"
           "#endif\n"
