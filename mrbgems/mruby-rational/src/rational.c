@@ -89,66 +89,119 @@ rational_new(mrb_state *mrb, mrb_int numerator, mrb_int denominator)
   return mrb_obj_value(rat);
 }
 
+inline static mrb_int
+i_gcd(mrb_int x, mrb_int y)
+{
+  mrb_uint u, v, t;
+  int shift;
+
+  if (x < 0)
+    x = -x;
+  if (y < 0)
+    y = -y;
+
+  if (x == 0)
+    return y;
+  if (y == 0)
+    return x;
+
+  u = (mrb_uint)x;
+  v = (mrb_uint)y;
+  for (shift = 0; ((u | v) & 1) == 0; ++shift) {
+    u >>= 1;
+    v >>= 1;
+  }
+
+  while ((u & 1) == 0)
+    u >>= 1;
+
+  do {
+    while ((v & 1) == 0)
+      v >>= 1;
+
+    if (u > v) {
+      t = v;
+      v = u;
+      u = t;
+    }
+    v = v - u;
+  } while (v != 0);
+
+  return (mrb_int)(u << shift);
+}
+
+static mrb_value
+rational_new_i(mrb_state *mrb, mrb_int n, mrb_int d)
+{
+  mrb_int a;
+
+  a = i_gcd(n, d);
+  if ((n == MRB_INT_MIN || d == MRB_INT_MIN) && a == -1) {
+    mrb_raise(mrb, E_RANGE_ERROR, "integer overflow in rational");
+  }
+  return rational_new(mrb, n/a, d/a);
+}
+
 #ifndef MRB_NO_FLOAT
 #include <math.h>
-/* f : number to convert.
- * num, denom: returned parts of the rational.
- * md: max denominator value.  Note that machine floating point number
- *     has a finite resolution (10e-16 ish for 64 bit double), so specifying
- *     a "best match with minimal error" is often wrong, because one can
- *     always just retrieve the significand and return that divided by
- *     2**52, which is in a sense accurate, but generally not very useful:
- *     1.0/7.0 would be "2573485501354569/18014398509481984", for example.
- */
-#ifdef MRB_INT32
+
+#if defined(MRB_INT32) || defined(MRB_USE_FLOAT32)
 typedef float rat_float;
-typedef int32_t rat_int;
+#define frexp_rat frexpf
+#define ldexp_rat ldexpf
+#define RAT_MANT_DIG DBL_MANT_DIG
 #else
 typedef double rat_float;
-typedef int64_t rat_int;
+#define frexp_rat frexp
+#define ldexp_rat ldexp
+#define RAT_MANT_DIG FLT_MANT_DIG
 #endif
+
+static void
+float_decode_internal(mrb_state *mrb, rat_float f, mrb_int *rf, int *n)
+{
+  f = frexp_rat(f, n);
+  f = ldexp_rat(f, RAT_MANT_DIG);
+  *n -= RAT_MANT_DIG;
+  if (!TYPED_FIXABLE(f, rat_float)) {
+    mrb_raise(mrb, E_RANGE_ERROR, "integer overflow in rational");
+  }
+  *rf = (mrb_int)f;
+}
 
 void mrb_check_num_exact(mrb_state *mrb, mrb_float num);
 
 static mrb_value
 rational_new_f(mrb_state *mrb, mrb_float f0)
 {
-  rat_float f = (rat_float)f0;
-  mrb_int md = 1000000;
-  /*  a: continued fraction coefficients. */
-  mrb_int a, h[3] = { 0, 1, 0 }, k[3] = { 1, 0, 0 };
-  mrb_int x, d;
-  rat_int n = 1;
-  int i, neg = 0;
+  mrb_int f;
+  int n;
 
   mrb_check_num_exact(mrb, f0);
-  if (f < 0) { neg = 1; f = -f; }
-  while (f != floor(f)) { n <<= 1; f *= 2; }
-  if (!TYPED_FIXABLE(f, rat_float)) {
-    mrb_raise(mrb, E_RANGE_ERROR, "integer overflow in rational");
-  }
-  d = (mrb_int)f;
-
-  /* continued fraction and check denominator each step */
-  for (i = 0; i < 64; i++) {
-    a = (mrb_int)(n ? d / n : 0);
-    if (i && !a) break;
-
-    x = d; d = (mrb_int)n; n = x % n;
-
-    x = a;
-    if (k[1] * a + k[0] >= md) {
-      x = (md - k[0]) / k[1];
-      if (x * 2 >= a || k[1] >= md)
-        i = 65;
-      else
-        break;
+  float_decode_internal(mrb, f0, &f, &n);
+#if FLT_RADIX == 2
+  if (n == 0)
+    return rational_new(mrb, f, 1);
+  if (n > 0)
+    return rational_new(mrb, f<<n, 1);
+  n = -n;
+  return rational_new_i(mrb, f, 1L<<n);
+#else
+  mrb_uint pow = 1;
+  if (n < 0) {
+    n = -n;
+    while (n--) {
+      pow *= FLT_RADIX;
     }
-
-    h[2] = x * h[1] + h[0]; h[0] = h[1]; h[1] = h[2];
-    k[2] = x * k[1] + k[0]; k[0] = k[1]; k[1] = k[2];
+    return rational_new_i(mrb, f, pow);
   }
-  return rational_new(mrb, (neg ? -h[1] : h[1]), k[1]);
+  else {
+    while (n--) {
+      pow *= FLT_RADIX;
+    }
+    return rational_new(mrb, f*pow, 1);
+  }
+#endif
 }
 #endif
 
@@ -244,35 +297,17 @@ fix_to_r(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
-rational_m_int(mrb_state *mrb, mrb_int n, mrb_int d)
-{
-  mrb_int a, b;
-
-  a = n;
-  b = d;
-  while (b != 0) {
-    mrb_int tmp = b;
-    b = a % b;
-    a = tmp;
-  }
-  if ((n == MRB_INT_MIN || d == MRB_INT_MIN) && a == -1) {
-    mrb_raise(mrb, E_RANGE_ERROR, "integer overflow in rational");
-  }
-  return rational_new(mrb, n/a, d/a);
-}
-
-static mrb_value
 rational_m(mrb_state *mrb, mrb_value self)
 {
 #ifdef MRB_NO_FLOAT
   mrb_int n, d = 1;
   mrb_get_args(mrb, "i|i", &n, &d);
-  return rational_m_int(mrb, n, d);
+  return rational_new_i(mrb, n, d);
 #else
   mrb_value a, b = mrb_fixnum_value(1);
   mrb_get_args(mrb, "o|o", &a, &b);
   if (mrb_integer_p(a) && mrb_integer_p(b)) {
-    return rational_m_int(mrb, mrb_integer(a), mrb_integer(b));
+    return rational_new_i(mrb, mrb_integer(a), mrb_integer(b));
   }
   else {
     mrb_float x = mrb_to_flo(mrb, a);
