@@ -284,9 +284,11 @@ static const char utf8len_codepage[256] =
   1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
   1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
   1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-  2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
+  1,1,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,2,
   3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,1,1,1,1,1,1,1,1,1,1,1,
 };
+
+#define utf8_islead(c) ((unsigned char)((c)&0xc0) != 0x80)
 
 mrb_int
 mrb_utf8len(const char* p, const char* e)
@@ -299,7 +301,7 @@ mrb_utf8len(const char* p, const char* e)
   if (len == 1) return 1;
   if (len > e - p) return 1;
   for (i = 1; i < len; ++i)
-    if ((p[i] & 0xc0) != 0x80)
+    if (utf8_islead(p[i]))
       return 1;
   return len;
 }
@@ -307,15 +309,15 @@ mrb_utf8len(const char* p, const char* e)
 mrb_int
 mrb_utf8_strlen(const char *str, mrb_int byte_len)
 {
-  mrb_int total = 0;
+  mrb_int len = 0;
   const char *p = str;
   const char *e = p + byte_len;
 
   while (p < e) {
     p += mrb_utf8len(p, e);
-    total++;
+    len++;
   }
-  return total;
+  return len;
 }
 
 static mrb_int
