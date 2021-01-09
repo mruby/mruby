@@ -53,6 +53,7 @@ struct mrb_state;
 
 #if defined(MRB_INT64)
   typedef int64_t mrb_int;
+  typedef uint64_t mrb_uint;
 # define MRB_INT_BIT 64
 # define MRB_INT_MIN INT64_MIN
 # define MRB_INT_MAX INT64_MAX
@@ -61,6 +62,7 @@ struct mrb_state;
 # define MRB_PRIx PRIx64
 #else
   typedef int32_t mrb_int;
+  typedef uint32_t mrb_uint;
 # define MRB_INT_BIT 32
 # define MRB_INT_MIN INT32_MIN
 # define MRB_INT_MAX INT32_MAX
@@ -170,7 +172,7 @@ struct RCptr {
 
 #if INTPTR_MAX < MRB_INT_MAX
   typedef intptr_t mrb_ssize;
-# define MRB_SSIZE_MAX (INTPTR_MAX>>MRB_FIXNUM_SHIFT)
+# define MRB_SSIZE_MAX INTPTR_MAX
 #else
   typedef mrb_int mrb_ssize;
 # define MRB_SSIZE_MAX MRB_INT_MAX
