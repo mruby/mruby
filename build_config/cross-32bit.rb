@@ -1,6 +1,6 @@
 # Define cross build settings
 MRuby::CrossBuild.new('cross-32bit') do |conf|
-  toolchain :gcc
+  conf.toolchain :gcc
 
   conf.cc.flags << "-m32"
   conf.linker.flags << "-m32"
