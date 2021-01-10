@@ -93,7 +93,6 @@ fiber_init(mrb_state *mrb, mrb_value self)
   }
   c->stbase = (mrb_value *)mrb_malloc(mrb, slen*sizeof(mrb_value));
   c->stend = c->stbase + slen;
-  c->stack = c->stbase;
 
 #ifdef MRB_NAN_BOXING
   {
@@ -110,13 +109,12 @@ fiber_init(mrb_state *mrb, mrb_value self)
 #endif
 
   /* copy receiver from a block */
-  c->stack[0] = mrb->c->stack[0];
+  c->stbase[0] = mrb->c->ci->stack[0];
 
   /* initialize callinfo stack */
   c->cibase = (mrb_callinfo *)mrb_calloc(mrb, FIBER_CI_INIT_SIZE, sizeof(mrb_callinfo));
   c->ciend = c->cibase + FIBER_CI_INIT_SIZE;
   c->ci = c->cibase;
-  c->ci->stackent = c->stack;
 
   /* adjust return callinfo */
   ci = c->ci;
@@ -124,6 +122,7 @@ fiber_init(mrb_state *mrb, mrb_value self)
   ci->proc = p;
   mrb_field_write_barrier(mrb, (struct RBasic*)mrb_obj_ptr(self), (struct RBasic*)p);
   ci->pc = p->body.irep->iseq;
+  ci->stack = c->stbase;
   ci[1] = ci[0];
   c->ci++;                      /* push dummy callinfo */
 
@@ -214,7 +213,7 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
       mrb_raise(mrb, E_FIBER_ERROR, "double resume (current)");
     }
     mrb_stack_extend(mrb, len+2); /* for receiver and (optional) block */
-    b = c->stack+1;
+    b = c->stbase+1;
     e = b + len;
     while (b<e) {
       *b++ = *a++;
@@ -223,7 +222,7 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
       c->ci--;                    /* pop dummy callinfo */
     }
     c->cibase->argc = (int)len;
-    value = c->stack[0] = MRB_PROC_ENV(c->cibase->proc)->stack[0];
+    value = c->stbase[0] = MRB_PROC_ENV(c->cibase->proc)->stack[0];
   }
   else {
     value = fiber_result(mrb, a, len);

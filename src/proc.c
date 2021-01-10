@@ -89,7 +89,7 @@ closure_setup(mrb_state *mrb, struct RProc *p)
   else if (up) {
     struct RClass *tc = MRB_PROC_TARGET_CLASS(p);
 
-    e = mrb_env_new(mrb, mrb->c, ci, up->body.irep->nlocals, mrb->c->stack, tc);
+    e = mrb_env_new(mrb, mrb->c, ci, up->body.irep->nlocals, ci->stack, tc);
     ci->u.env = e;
     if (MRB_PROC_ENV_P(up) && MRB_PROC_ENV(up)->cxt == NULL) {
       e->mid = MRB_PROC_ENV(up)->mid;

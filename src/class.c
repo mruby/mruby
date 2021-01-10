@@ -808,7 +808,7 @@ mrb_get_argc(mrb_state *mrb)
   mrb_int argc = mrb->c->ci->argc;
 
   if (argc < 0) {
-    struct RArray *a = mrb_ary_ptr(mrb->c->stack[1]);
+    struct RArray *a = mrb_ary_ptr(mrb->c->ci->stack[1]);
 
     argc = ARY_LEN(a);
   }
@@ -819,7 +819,7 @@ MRB_API const mrb_value*
 mrb_get_argv(mrb_state *mrb)
 {
   mrb_int argc = mrb->c->ci->argc;
-  mrb_value *array_argv = mrb->c->stack + 1;
+  mrb_value *array_argv = mrb->c->ci->stack + 1;
   if (argc < 0) {
     struct RArray *a = mrb_ary_ptr(*array_argv);
 
@@ -832,7 +832,7 @@ MRB_API mrb_value
 mrb_get_arg1(mrb_state *mrb)
 {
   mrb_int argc = mrb->c->ci->argc;
-  mrb_value *array_argv = mrb->c->stack + 1;
+  mrb_value *array_argv = mrb->c->ci->stack + 1;
   if (argc < 0) {
     struct RArray *a = mrb_ary_ptr(*array_argv);
 
@@ -887,7 +887,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
   mrb_int i = 0;
   va_list ap;
   mrb_int argc = mrb->c->ci->argc;
-  mrb_value *array_argv = mrb->c->stack+1;
+  mrb_value *array_argv = mrb->c->ci->stack+1;
   mrb_bool argv_on_stack = argc >= 0;
   mrb_bool opt = FALSE;
   mrb_bool opt_skip = TRUE;
@@ -1200,10 +1200,10 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         p = va_arg(ap, mrb_value*);
         if (mrb->c->ci->argc < 0) {
-          bp = mrb->c->stack + 2;
+          bp = mrb->c->ci->stack + 2;
         }
         else {
-          bp = mrb->c->stack + mrb->c->ci->argc + 1;
+          bp = mrb->c->ci->stack + mrb->c->ci->argc + 1;
         }
         if (altmode && mrb_nil_p(*bp)) {
           mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");

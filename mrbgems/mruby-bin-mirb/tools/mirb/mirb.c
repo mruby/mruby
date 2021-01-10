@@ -683,7 +683,7 @@ main(int argc, char **argv)
           }
           p(mrb, result, 1);
 #ifndef MRB_NO_MIRB_UNDERSCORE
-          *(mrb->c->stack + 1) = result;
+          *(mrb->c->ci->stack + 1) = result;
 #endif
         }
       }

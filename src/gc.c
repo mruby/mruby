@@ -626,10 +626,13 @@ mark_context_stack(mrb_state *mrb, struct mrb_context *c)
   size_t e;
   mrb_value nil;
 
-  if (c->stack == NULL) return;
-  e = c->stack - c->stbase;
+  if (c->stbase == NULL) return;
   if (c->ci) {
+    e = (c->ci->stack ? c->ci->stack - c->stbase : 0);
     e += ci_nregs(c->ci);
+  }
+  else {
+    e = 0;
   }
   if (c->stbase + e > c->stend) e = c->stend - c->stbase;
   for (i=0; i<e; i++) {
@@ -1001,7 +1004,7 @@ gc_gray_counts(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
       if (!c || c->status == MRB_FIBER_TERMINATED) break;
 
       /* mark stack */
-      i = c->stack - c->stbase;
+      i = c->ci->stack - c->stbase;
 
       if (c->ci) {
         i += ci_nregs(c->ci);

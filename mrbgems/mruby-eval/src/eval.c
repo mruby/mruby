@@ -83,7 +83,7 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
       /* do nothing, because e is assigned already */
     }
     else {
-      e = mrb_env_new(mrb, mrb->c, ci, ci->proc->body.irep->nlocals, ci[1].stackent, target_class);
+      e = mrb_env_new(mrb, mrb->c, ci, ci->proc->body.irep->nlocals, ci->stack, target_class);
       ci->u.env = e;
     }
     proc->e.env = e;
@@ -115,7 +115,7 @@ exec_irep(mrb_state *mrb, mrb_value self, struct RProc *proc)
     return ret;
   }
   /* clear block */
-  mrb->c->stack[1] = mrb_nil_value();
+  mrb->c->ci->stack[1] = mrb_nil_value();
   return mrb_exec_irep(mrb, self, proc);
 }
 

@@ -185,7 +185,7 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
     bp = &e->stack[bidx];
   }
   else {
-    bp = ci[1].stackent+1;
+    bp = ci->stack+1;
     if (ci->argc >= 0) {
       bp += ci->argc;
     }
