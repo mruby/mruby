@@ -46,7 +46,7 @@ mrb_proc_new(mrb_state *mrb, const mrb_irep *irep)
       tc = MRB_PROC_TARGET_CLASS(ci->proc);
     }
     if (tc == NULL) {
-      tc = ci->target_class;
+      tc = mrb_vm_ci_target_class(ci);
     }
     p->upper = ci->proc;
     p->e.target_class = tc;
@@ -83,14 +83,14 @@ closure_setup(mrb_state *mrb, struct RProc *p)
   const struct RProc *up = p->upper;
   struct REnv *e = NULL;
 
-  if (ci && ci->env) {
-    e = ci->env;
+  if (ci && (e = mrb_vm_ci_env(ci)) != NULL) {
+    /* do nothing, because e is assigned already */
   }
   else if (up) {
     struct RClass *tc = MRB_PROC_TARGET_CLASS(p);
 
     e = mrb_env_new(mrb, mrb->c, ci, up->body.irep->nlocals, mrb->c->stack, tc);
-    ci->env = e;
+    ci->u.env = e;
     if (MRB_PROC_ENV_P(up) && MRB_PROC_ENV(up)->cxt == NULL) {
       e->mid = MRB_PROC_ENV(up)->mid;
     }
@@ -211,7 +211,7 @@ mrb_proc_s_new(mrb_state *mrb, mrb_value proc_class)
   proc = mrb_obj_value(p);
   mrb_funcall_with_block(mrb, proc, MRB_SYM(initialize), 0, NULL, proc);
   if (!MRB_PROC_STRICT_P(p) &&
-      mrb->c->ci > mrb->c->cibase && MRB_PROC_ENV(p) == mrb->c->ci[-1].env) {
+      mrb->c->ci > mrb->c->cibase && MRB_PROC_ENV(p) == mrb->c->ci[-1].u.env) {
     p->flags |= MRB_PROC_ORPHAN;
   }
   return proc;

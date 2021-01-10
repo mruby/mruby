@@ -516,8 +516,8 @@ main(int argc, char **argv)
     }
     mrb_load_file_cxt(mrb, lfp, cxt);
     fclose(lfp);
-    e = mrb->c->cibase->env;
-    mrb->c->cibase->env = NULL;
+    e = mrb_vm_ci_env(mrb->c->cibase);
+    mrb_vm_ci_env_set(mrb->c->cibase, NULL);
     mrb_env_unshare(mrb, e);
     mrbc_cleanup_local_variables(mrb, cxt);
   }
@@ -658,8 +658,8 @@ main(int argc, char **argv)
           mrb_codedump_all(mrb, proc);
         }
         /* adjust stack length of toplevel environment */
-        if (mrb->c->cibase->env) {
-          struct REnv *e = mrb->c->cibase->env;
+        if (mrb->c->cibase->u.env) {
+          struct REnv *e = mrb_vm_ci_env(mrb->c->cibase);
           if (e && MRB_ENV_LEN(e) < proc->body.irep->nlocals) {
             MRB_ENV_SET_LEN(e, proc->body.irep->nlocals);
           }

@@ -152,12 +152,14 @@ typedef struct {
   mrb_sym mid;
   const struct RProc *proc;
   mrb_value *stackent;
-  struct REnv *env;
   const mrb_code *pc;           /* return address */
   const mrb_code *err;          /* error position */
   int16_t argc;
   int16_t acc;
-  struct RClass *target_class;
+  union {
+    struct REnv *env;
+    struct RClass *target_class;
+  } u;
 } mrb_callinfo;
 
 enum mrb_fiber_state {

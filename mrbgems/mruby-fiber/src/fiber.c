@@ -120,7 +120,7 @@ fiber_init(mrb_state *mrb, mrb_value self)
 
   /* adjust return callinfo */
   ci = c->ci;
-  ci->target_class = MRB_PROC_TARGET_CLASS(p);
+  mrb_vm_ci_target_class_set(ci, MRB_PROC_TARGET_CLASS(p));
   ci->proc = p;
   mrb_field_write_barrier(mrb, (struct RBasic*)mrb_obj_ptr(self), (struct RBasic*)p);
   ci->pc = p->body.irep->iseq;
@@ -154,7 +154,7 @@ fiber_result(mrb_state *mrb, const mrb_value *a, mrb_int len)
 }
 
 /* mark return from context modifying method */
-#define MARK_CONTEXT_MODIFY(c) (c)->ci->target_class = NULL
+#define MARK_CONTEXT_MODIFY(c) (c)->ci->u.target_class = NULL
 
 static void
 fiber_check_cfunc(mrb_state *mrb, struct mrb_context *c)

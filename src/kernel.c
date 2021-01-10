@@ -176,8 +176,7 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
     if (bidx < 0) return mrb_false_value();
     bp = &e->stack[bidx];
   }
-  else if (ci->env) {
-    e = ci->env;
+  else if ((e = mrb_vm_ci_env(ci)) != NULL) {
     /* top-level does not have block slot (always false) */
     if (e->stack == mrb->c->stbase) return mrb_false_value();
     bidx = env_bidx(e);

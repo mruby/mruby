@@ -133,7 +133,7 @@ stack_init(mrb_state *mrb)
   c->cibase = (mrb_callinfo *)mrb_calloc(mrb, CALLINFO_INIT_SIZE, sizeof(mrb_callinfo));
   c->ciend = c->cibase + CALLINFO_INIT_SIZE;
   c->ci = c->cibase;
-  c->ci->target_class = mrb->object_class;
+  c->ci->u.target_class = mrb->object_class;
   c->ci->stackent = c->stack;
 }
 
@@ -144,7 +144,7 @@ envadjust(mrb_state *mrb, mrb_value *oldbase, mrb_value *newbase, size_t oldsize
 
   if (newbase == oldbase) return;
   while (ci <= mrb->c->ci) {
-    struct REnv *e = ci->env;
+    struct REnv *e = mrb_vm_ci_env(ci);
     mrb_value *st;
 
     if (e && MRB_ENV_ONSTACK_P(e) &&
@@ -154,7 +154,7 @@ envadjust(mrb_state *mrb, mrb_value *oldbase, mrb_value *newbase, size_t oldsize
       e->stack = newbase + off;
     }
 
-    if (ci->proc && MRB_PROC_ENV_P(ci->proc) && ci->env != MRB_PROC_ENV(ci->proc)) {
+    if (ci->proc && MRB_PROC_ENV_P(ci->proc) && e != MRB_PROC_ENV(ci->proc)) {
       e = MRB_PROC_ENV(ci->proc);
 
       if (e && MRB_ENV_ONSTACK_P(e) &&
@@ -240,7 +240,7 @@ uvenv(mrb_state *mrb, mrb_int up)
 
     while (cb <= ci) {
       if (ci->proc == proc) {
-        return ci->env;
+        return mrb_vm_ci_env(ci);
       }
       ci--;
     }
@@ -284,9 +284,8 @@ cipush(mrb_state *mrb, const mrb_code *pc, mrb_int push_stacks, mrb_int acc,
   ci->pc = pc;
   ci->argc = argc;
   ci->acc = acc;
-  ci->target_class = target_class;
+  ci->u.target_class = target_class;
   ci->err = 0;
-  ci->env = 0;
   c->stack += push_stacks;
 
   return ci;
@@ -302,7 +301,7 @@ mrb_env_unshare(mrb_state *mrb, struct REnv *e)
 
     if (!MRB_ENV_ONSTACK_P(e)) return;
     if (e->cxt != mrb->c) return;
-    if (e == mrb->c->cibase->env) return; /* for mirb */
+    if (e == mrb_vm_ci_env(mrb->c->cibase)) return; /* for mirb */
     p = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value)*len);
     if (len > 0) {
       stack_copy(p, e->stack, len);
@@ -317,7 +316,7 @@ static inline mrb_callinfo*
 cipop(mrb_state *mrb)
 {
   struct mrb_context *c = mrb->c;
-  struct REnv *env = c->ci->env;
+  struct REnv *env = mrb_vm_ci_env(c->ci);
 
   mrb->c->stack = c->ci->stackent;
   c->ci--;
@@ -573,7 +572,7 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
   }
 
   ci->mid = name;
-  ci->target_class = c;
+  ci->u.target_class = c;
   regs = mrb->c->stack+1;
   /* remove first symbol from arguments */
   if (ci->argc >= 0) {
@@ -609,7 +608,7 @@ eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
   if (ci->acc == CI_ACC_DIRECT) {
     return mrb_yield_with_class(mrb, blk, 1, &self, self, c);
   }
-  ci->target_class = c;
+  ci->u.target_class = c;
   p = mrb_proc_ptr(blk);
   ci->proc = p;
   ci->argc = 1;
@@ -1005,7 +1004,7 @@ mrb_vm_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, mrb_int sta
 static mrb_bool
 check_target_class(mrb_state *mrb)
 {
-  if (!mrb->c->ci->target_class) {
+  if (!mrb_vm_ci_target_class(mrb->c->ci)) {
     mrb_value exc = mrb_exc_new_lit(mrb, E_TYPE_ERROR, "no target class or module");
     mrb_exc_set(mrb, exc);
     return FALSE;
@@ -1476,11 +1475,11 @@ RETRY_TRY_BLOCK:
         ci = mrb->c->ci;
         if (mrb_proc_p(blk)) {
           struct RProc *p = mrb_proc_ptr(blk);
-          if (p && !MRB_PROC_STRICT_P(p) && MRB_PROC_ENV(p) == ci[-1].env) {
+          if (p && !MRB_PROC_STRICT_P(p) && MRB_PROC_ENV(p) == mrb_vm_ci_env(&ci[-1])) {
             p->flags |= MRB_PROC_ORPHAN;
           }
         }
-        if (!ci->target_class) { /* return from context modifying method (resume/yield) */
+        if (!ci->u.target_class) { /* return from context modifying method (resume/yield) */
           if (ci->acc == CI_ACC_RESUMED) {
             mrb->jmp = prev_jmp;
             return recv;
@@ -1518,7 +1517,7 @@ RETRY_TRY_BLOCK:
 
       /* replace callinfo */
       ci = mrb->c->ci;
-      ci->target_class = MRB_PROC_TARGET_CLASS(m);
+      ci->u.target_class = MRB_PROC_TARGET_CLASS(m);
       ci->proc = m;
       if (MRB_PROC_ENV_P(m)) {
         ci->mid = MRB_PROC_ENV(m)->mid;
@@ -1591,10 +1590,10 @@ RETRY_TRY_BLOCK:
         goto L_RAISE;
       }
       if (target_class->flags & MRB_FL_CLASS_IS_PREPENDED) {
-        target_class = ci->target_class;
+        target_class = mrb_vm_ci_target_class(ci);
       }
       else if (target_class->tt == MRB_TT_MODULE) {
-        target_class = ci->target_class;
+        target_class = mrb_vm_ci_target_class(ci);
         if (target_class->tt != MRB_TT_ICLASS) {
           mrb_value exc = mrb_exc_new_lit(mrb, E_RUNTIME_ERROR, "superclass info lost [mruby limitations]");
           mrb_exc_set(mrb, exc);
@@ -1659,7 +1658,7 @@ RETRY_TRY_BLOCK:
         if (mrb->exc) goto L_RAISE;
         ci = mrb->c->ci;
         mrb_assert(!mrb_break_p(v));
-        if (!ci->target_class) { /* return from context modifying method (resume/yield) */
+        if (!mrb_vm_ci_target_class(ci)) { /* return from context modifying method (resume/yield) */
           if (ci->acc == CI_ACC_RESUMED) {
             mrb->jmp = prev_jmp;
             return v;
@@ -1700,7 +1699,7 @@ RETRY_TRY_BLOCK:
       mrb_int lv = (b>>0)&0xf;
       mrb_value *stack;
 
-      if (mrb->c->ci->mid == 0 || mrb->c->ci->target_class == NULL) {
+      if (mrb->c->ci->mid == 0 || mrb_vm_ci_target_class(mrb->c->ci) == NULL) {
         mrb_value exc;
 
       L_NOSUPER:
@@ -1951,7 +1950,7 @@ RETRY_TRY_BLOCK:
           struct RProc *p = mrb_proc_ptr(blk);
 
           if (!MRB_PROC_STRICT_P(p) &&
-              ci > mrb->c->cibase && MRB_PROC_ENV(p) == ci[-1].env) {
+              ci > mrb->c->cibase && MRB_PROC_ENV(p) == mrb_vm_ci_env(&ci[-1])) {
             p->flags |= MRB_PROC_ORPHAN;
           }
         }
@@ -2203,7 +2202,7 @@ RETRY_TRY_BLOCK:
         mrb_assert(ci == mrb->c->ci);
         mrb_assert(mrb->exc == NULL);
 
-        if (mrb->c->vmexec && !ci->target_class) {
+        if (mrb->c->vmexec && !mrb_vm_ci_target_class(ci)) {
           mrb_gc_arena_restore(mrb, ai);
           mrb->c->vmexec = FALSE;
           mrb->jmp = prev_jmp;
@@ -2780,7 +2779,7 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_TCLASS, B) {
       if (!check_target_class(mrb)) goto L_RAISE;
-      regs[a] = mrb_obj_value(mrb->c->ci->target_class);
+      regs[a] = mrb_obj_value(mrb_vm_ci_target_class(mrb->c->ci));
       NEXT;
     }
 
@@ -2788,7 +2787,7 @@ RETRY_TRY_BLOCK:
       struct RClass *target;
 
       if (!check_target_class(mrb)) goto L_RAISE;
-      target = mrb->c->ci->target_class;
+      target = mrb_vm_ci_target_class(mrb->c->ci);
       mrb_alias_method(mrb, target, syms[a], syms[b]);
       NEXT;
     }
@@ -2796,7 +2795,7 @@ RETRY_TRY_BLOCK:
       struct RClass *target;
 
       if (!check_target_class(mrb)) goto L_RAISE;
-      target = mrb->c->ci->target_class;
+      target = mrb_vm_ci_target_class(mrb->c->ci);
       mrb_undef_method_id(mrb, target, syms[a]);
       NEXT;
     }
@@ -2884,7 +2883,7 @@ mrb_top_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, mrb_int st
     return mrb_vm_run(mrb, proc, self, stack_keep);
   }
   if (mrb->c->ci == mrb->c->cibase) {
-    mrb->c->ci->env = NULL;
+    mrb_vm_ci_env_set(mrb->c->ci, NULL);
     return mrb_vm_run(mrb, proc, self, stack_keep);
   }
   cipush(mrb, NULL, 0, CI_ACC_SKIP, mrb->object_class, NULL, 0, 0);

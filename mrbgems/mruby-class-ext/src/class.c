@@ -1,6 +1,7 @@
 #include "mruby.h"
 #include "mruby/class.h"
 #include "mruby/string.h"
+#include "mruby/proc.h"
 
 static mrb_value
 mrb_mod_name(mrb_state *mrb, mrb_value self)
@@ -51,7 +52,7 @@ mrb_mod_module_exec(mrb_state *mrb, mrb_value self)
   if (mrb->c->ci->acc < 0) {
     return mrb_yield_with_class(mrb, blk, argc, argv, self, c);
   }
-  mrb->c->ci->target_class = c;
+  mrb_vm_ci_target_class_set(mrb->c->ci, c);
   return mrb_yield_cont(mrb, blk, self, argc, argv);
 }
 

@@ -660,9 +660,8 @@ mark_context(mrb_state *mrb, struct mrb_context *c)
   /* mark call stack */
   if (c->cibase) {
     for (ci = c->cibase; ci <= c->ci; ci++) {
-      mrb_gc_mark(mrb, (struct RBasic*)ci->env);
       mrb_gc_mark(mrb, (struct RBasic*)ci->proc);
-      mrb_gc_mark(mrb, (struct RBasic*)ci->target_class);
+      mrb_gc_mark(mrb, (struct RBasic*)ci->u.target_class);
     }
   }
   /* mark fibers */
@@ -840,7 +839,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj, int end)
           mrb_callinfo *ce = c->cibase;
 
           while (ce <= ci) {
-            struct REnv *e = ci->env;
+            struct REnv *e = ci->u.env;
             if (e && !mrb_object_dead_p(mrb, (struct RBasic*)e) &&
                 e->tt == MRB_TT_ENV && MRB_ENV_ONSTACK_P(e)) {
               mrb_env_unshare(mrb, e);

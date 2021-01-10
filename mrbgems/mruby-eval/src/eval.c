@@ -79,19 +79,19 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
     target_class = MRB_PROC_TARGET_CLASS(ci->proc);
   }
   if (ci->proc && !MRB_PROC_CFUNC_P(ci->proc)) {
-    if (ci->env) {
-      e = ci->env;
+    if ((e = mrb_vm_ci_env(ci)) != NULL) {
+      /* do nothing, because e is assigned already */
     }
     else {
       e = mrb_env_new(mrb, mrb->c, ci, ci->proc->body.irep->nlocals, ci[1].stackent, target_class);
-      ci->env = e;
+      ci->u.env = e;
     }
     proc->e.env = e;
     proc->flags |= MRB_PROC_ENVSET;
     mrb_field_write_barrier(mrb, (struct RBasic*)proc, (struct RBasic*)e);
   }
   proc->upper = ci->proc;
-  mrb->c->ci->target_class = target_class;
+  mrb_vm_ci_target_class_set(mrb->c->ci, target_class);
   /* mrb_codedump_all(mrb, proc); */
 
   mrb_parser_free(p);
@@ -157,7 +157,7 @@ f_instance_eval(mrb_state *mrb, mrb_value self)
     proc = create_proc_from_string(mrb, s, len, mrb_nil_value(), file, line);
     MRB_PROC_SET_TARGET_CLASS(proc, mrb_class_ptr(cv));
     mrb_assert(!MRB_PROC_CFUNC_P(proc));
-    mrb->c->ci->target_class = mrb_class_ptr(cv);
+    mrb_vm_ci_target_class_set(mrb->c->ci, mrb_class_ptr(cv));
     return exec_irep(mrb, self, proc);
   }
   else {
