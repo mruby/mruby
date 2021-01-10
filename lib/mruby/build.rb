@@ -515,16 +515,16 @@ EOS
       unless mrbcfile_external? || MRuby.targets['host']
         # add minimal 'host'
         MRuby::Build.new('host') do |conf|
-          if ENV['VisualStudioVersion'] || ENV['VSINSTALLDIR']
-            toolchain :visualcpp
-          else
-            toolchain :gcc
-          end
+          conf.toolchain
           conf.build_mrbc_exec
           conf.disable_libmruby
           conf.disable_presym
         end
       end
+    end
+
+    def mrbcfile
+      mrbcfile_external? ? super : MRuby::targets['host'].mrbcfile
     end
 
     def run_test
