@@ -188,7 +188,7 @@ rational_new_f(mrb_state *mrb, mrb_float f0)
   else {
     n = -n;
   }
-  return rational_new_i(mrb, f, 1L<<n);
+  return rational_new_i(mrb, f, ((mrb_int)1)<<n);
 #else
   mrb_int pow = 1;
   if (n < 0) {
