@@ -60,5 +60,6 @@ MRuby.each_target do |build|
 end
 
 task :clean do
-  rm_f "#{MRuby::Build.install_dir}/mrbtest"
+  host = MRuby.targets["host"]
+  rm_f host.exefile("#{host.class.install_dir}/mrbtest") if host && host.test_enabled?
 end
