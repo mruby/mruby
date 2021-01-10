@@ -225,6 +225,9 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
   }
   else {
     value = fiber_result(mrb, a, len);
+    if (vmexec) {
+      c->ci->stack[c->ci[1].acc] = value;
+    }
   }
 
   if (vmexec) {
