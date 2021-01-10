@@ -155,8 +155,8 @@ typedef struct {
   struct REnv *env;
   const mrb_code *pc;           /* return address */
   const mrb_code *err;          /* error position */
-  mrb_int argc;
-  mrb_int acc;
+  int16_t argc;
+  int16_t acc;
   struct RClass *target_class;
 } mrb_callinfo;
 
