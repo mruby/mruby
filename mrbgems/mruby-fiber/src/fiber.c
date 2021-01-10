@@ -119,9 +119,8 @@ fiber_init(mrb_state *mrb, mrb_value self)
   /* adjust return callinfo */
   ci = c->ci;
   mrb_vm_ci_target_class_set(ci, MRB_PROC_TARGET_CLASS(p));
-  ci->proc = p;
+  mrb_vm_ci_proc_set(ci, p);
   mrb_field_write_barrier(mrb, (struct RBasic*)mrb_obj_ptr(self), (struct RBasic*)p);
-  ci->pc = p->body.irep->iseq;
   ci->stack = c->stbase;
   ci[1] = ci[0];
   c->ci++;                      /* push dummy callinfo */

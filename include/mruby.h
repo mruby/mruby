@@ -152,8 +152,7 @@ typedef struct {
   mrb_sym mid;
   const struct RProc *proc;
   mrb_value *stack;
-  const mrb_code *pc;           /* return address */
-  const mrb_code *err;          /* error position */
+  const mrb_code *pc;           /* current address on iseq of this proc */
   int16_t argc;
   int16_t acc;
   union {

@@ -29,7 +29,7 @@ mrb_value mrb_exc_inspect(mrb_state *mrb, mrb_value exc);
 mrb_value mrb_unpack_backtrace(mrb_state *mrb, mrb_value backtrace);
 
 static void
-each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, const mrb_code *pc0, each_backtrace_func func, void *data)
+each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, each_backtrace_func func, void *data)
 {
   ptrdiff_t i;
 
@@ -50,15 +50,11 @@ each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, const mrb_code *pc0, each_backtr
     irep = ci->proc->body.irep;
     if (!irep) continue;
 
-    if (mrb->c->cibase[i].err) {
-      pc = mrb->c->cibase[i].err;
-    }
-    else if (i+1 <= ciidx) {
-      if (!mrb->c->cibase[i + 1].pc) continue;
-      pc = &mrb->c->cibase[i+1].pc[-1];
+    if (mrb->c->cibase[i].pc) {
+      pc = &mrb->c->cibase[i].pc[-1];
     }
     else {
-      pc = pc0;
+      continue;
     }
 
     loc.lineno = mrb_debug_get_line(mrb, irep, pc - irep->iseq);
@@ -159,12 +155,12 @@ packed_backtrace(mrb_state *mrb)
   int size;
   void *ptr;
 
-  each_backtrace(mrb, ciidx, mrb->c->ci->pc, count_backtrace_i, &len);
+  each_backtrace(mrb, ciidx, count_backtrace_i, &len);
   size = len * sizeof(struct backtrace_location);
   ptr = mrb_malloc(mrb, size);
   backtrace = mrb_data_object_alloc(mrb, NULL, ptr, &bt_type);
   backtrace->flags = (uint32_t)len;
-  each_backtrace(mrb, ciidx, mrb->c->ci->pc, pack_backtrace_i, &ptr);
+  each_backtrace(mrb, ciidx, pack_backtrace_i, &ptr);
   return mrb_obj_value(backtrace);
 }
 

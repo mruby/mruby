@@ -136,6 +136,13 @@ MRB_API mrb_value mrb_proc_cfunc_env_get(mrb_state *mrb, mrb_int idx);
 
 MRB_API mrb_value mrb_load_proc(mrb_state *mrb, const struct RProc *proc);
 
+static inline void
+mrb_vm_ci_proc_set(mrb_callinfo *ci, const struct RProc *p)
+{
+  ci->proc = p;
+  ci->pc = (p && !MRB_PROC_CFUNC_P(p)) ? p->body.irep->iseq : NULL;
+}
+
 static inline struct RClass *
 mrb_vm_ci_target_class(const mrb_callinfo *ci)
 {
