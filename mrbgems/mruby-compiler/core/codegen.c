@@ -110,8 +110,6 @@ static void raise_error(codegen_scope *s, const char *msg);
 static void
 codegen_error(codegen_scope *s, const char *message)
 {
-  int i;
-
   if (!s) return;
   while (s->prev) {
     codegen_scope *tmp = s->prev;
@@ -128,7 +126,7 @@ codegen_error(codegen_scope *s, const char *message)
       mrb_free(s->mrb, s->catch_table);
       if (s->reps) {
         /* copied from mrb_irep_free() in state.c */
-        for (i=0; i<s->irep->rlen; i++) {
+        for (int i=0; i<s->irep->rlen; i++) {
           if (s->reps[i])
             mrb_irep_decref(s->mrb, (mrb_irep*)s->reps[i]);
         }
