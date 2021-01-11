@@ -344,22 +344,42 @@ option_to_fd(mrb_state *mrb, mrb_value v)
   return -1; /* never reached */
 }
 
-#ifdef _WIN32
 static mrb_value
-mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
+mrb_io_s_popen_args(mrb_state *mrb, mrb_value klass,
+                    const char **cmd, int *flags, int *doexec,
+                    int *opt_in, int *opt_out, int *opt_err)
 {
-  mrb_value cmd, io;
-  mrb_value mode = mrb_str_new_cstr(mrb, "r");
-  mrb_value kv[3];
+  mrb_value mode = mrb_nil_value();
+  struct { mrb_value opt_in, opt_out, opt_err; } kv;
   mrb_sym knames[3] = {MRB_SYM(in), MRB_SYM(out), MRB_SYM(err)};
   const mrb_kwargs kw = {
     3, 0,
     knames,
-    kv,
+    &kv.opt_in,
     NULL,
   };
+
+  mrb_get_args(mrb, "z|o:", cmd, &mode, &kw);
+
+  *flags = mrb_io_mode_to_flags(mrb, mode);
+  *doexec = (strcmp("-", *cmd) != 0);
+  *opt_in = option_to_fd(mrb, kv.opt_in);
+  *opt_out = option_to_fd(mrb, kv.opt_out);
+  *opt_err = option_to_fd(mrb, kv.opt_err);
+
+  return mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
+}
+
+#ifdef _WIN32
+static mrb_value
+mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
+{
+  mrb_value io;
+  int doexec;
+  int opt_in, opt_out, opt_err;
+  const char *cmd;
+
   struct mrb_io *fptr;
-  const char *pname;
   int pid = 0, flags;
   STARTUPINFO si;
   PROCESS_INFORMATION pi;
@@ -368,23 +388,13 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
   HANDLE ifd[2];
   HANDLE ofd[2];
 
-  int doexec;
-
   ifd[0] = INVALID_HANDLE_VALUE;
   ifd[1] = INVALID_HANDLE_VALUE;
   ofd[0] = INVALID_HANDLE_VALUE;
   ofd[1] = INVALID_HANDLE_VALUE;
 
-  mrb_get_args(mrb, "S|o:", &cmd, &mode, &kw, &kv);
-  io = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
-
-  pname = RSTRING_CSTR(mrb, cmd);
-  flags = mrb_io_mode_to_flags(mrb, mode);
-
-  doexec = (strcmp("-", pname) != 0);
-  option_to_fd(mrb, kv[0]);
-  option_to_fd(mrb, kv[1]);
-  option_to_fd(mrb, kv[2]);
+  io = mrb_io_s_popen_args(mrb, klass, &cmd, &flags, &doexec,
+                           &opt_in, &opt_out, &opt_err);
 
   saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
   saAttr.bInheritHandle = TRUE;
@@ -419,13 +429,13 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
       si.hStdInput = ifd[0];
     }
     if (!CreateProcess(
-        NULL, (char*)pname, NULL, NULL,
+        NULL, (char*)cmd, NULL, NULL,
         TRUE, CREATE_NEW_PROCESS_GROUP, NULL, NULL, &si, &pi)) {
       CloseHandle(ifd[0]);
       CloseHandle(ifd[1]);
       CloseHandle(ofd[0]);
       CloseHandle(ofd[1]);
-      mrb_raisef(mrb, E_IO_ERROR, "command not found: %v", cmd);
+      mrb_raisef(mrb, E_IO_ERROR, "command not found: %s", cmd);
     }
     CloseHandle(pi.hThread);
     CloseHandle(ifd[0]);
@@ -458,35 +468,19 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value cmd, io, result;
-  mrb_value mode = mrb_str_new_cstr(mrb, "r");
-  mrb_value kv[3];
-  mrb_sym knames[3] = {MRB_SYM(in), MRB_SYM(out), MRB_SYM(err)};
-  const mrb_kwargs kw = {
-    3, 0,
-    knames,
-    kv,
-    NULL,
-  };
+  mrb_value io, result;
+  int doexec;
+  int opt_in, opt_out, opt_err;
+  const char *cmd;
+
   struct mrb_io *fptr;
-  const char *pname;
   int pid, flags, fd, write_fd = -1;
   int pr[2] = { -1, -1 };
   int pw[2] = { -1, -1 };
-  int doexec;
   int saved_errno;
-  int opt_in, opt_out, opt_err;
 
-  mrb_get_args(mrb, "S|o:", &cmd, &mode, &kw);
-  io = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
-
-  pname = RSTRING_CSTR(mrb, cmd);
-  flags = mrb_io_mode_to_flags(mrb, mode);
-
-  doexec = (strcmp("-", pname) != 0);
-  opt_in = option_to_fd(mrb, kv[0]);
-  opt_out = option_to_fd(mrb, kv[1]);
-  opt_err = option_to_fd(mrb, kv[2]);
+  io = mrb_io_s_popen_args(mrb, klass, &cmd, &flags, &doexec,
+                           &opt_in, &opt_out, &opt_err);
 
   if (OPEN_READABLE_P(flags)) {
     if (pipe(pr) == -1) {
@@ -543,8 +537,8 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
         for (fd = 3; fd < NOFILE; fd++) {
           close(fd);
         }
-        mrb_proc_exec(pname);
-        mrb_raisef(mrb, E_IO_ERROR, "command not found: %v", cmd);
+        mrb_proc_exec(cmd);
+        mrb_raisef(mrb, E_IO_ERROR, "command not found: %s", cmd);
         _exit(127);
       }
       result = mrb_nil_value();
