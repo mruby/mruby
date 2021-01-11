@@ -326,6 +326,9 @@ mrb_io_alloc(mrb_state *mrb)
 #define NOFILE 64
 #endif
 
+#if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
+# define mrb_io_s_popen mrb_notimplement_m
+#else
 static int
 option_to_fd(mrb_state *mrb, mrb_value v)
 {
@@ -457,13 +460,6 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
   DATA_PTR(io)  = fptr;
   return io;
 }
-#elif defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
-static mrb_value
-mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
-{
-  mrb_raise(mrb, E_NOTIMP_ERROR, "IO#popen is not supported on the platform");
-  return mrb_false_value();
-}
 #else
 static mrb_value
 mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
@@ -589,7 +585,8 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
   }
   return result;
 }
-#endif
+#endif /* _WIN32 */
+#endif /* TARGET_OS_IPHONE */
 
 static int
 mrb_dup(mrb_state *mrb, int fd, mrb_bool *failed)
@@ -1333,10 +1330,10 @@ mrb_io_fileno_m(mrb_state *mrb, mrb_value io)
   return mrb_fixnum_value(fd);
 }
 
+#if defined(F_GETFD) && defined(F_SETFD) && defined(FD_CLOEXEC)
 static mrb_value
 mrb_io_close_on_exec_p(mrb_state *mrb, mrb_value self)
 {
-#if defined(F_GETFD) && defined(F_SETFD) && defined(FD_CLOEXEC)
   struct mrb_io *fptr;
   int ret;
 
@@ -1350,17 +1347,15 @@ mrb_io_close_on_exec_p(mrb_state *mrb, mrb_value self)
   if ((ret = fcntl(fptr->fd, F_GETFD)) == -1) mrb_sys_fail(mrb, "F_GETFD failed");
   if (!(ret & FD_CLOEXEC)) return mrb_false_value();
   return mrb_true_value();
-
-#else
-  mrb_raise(mrb, E_NOTIMP_ERROR, "IO#close_on_exec? is not supported on the platform");
-  return mrb_false_value();
-#endif
 }
+#else
+# define mrb_io_close_on_exec_p mrb_notimplement_m
+#endif
 
+#if defined(F_GETFD) && defined(F_SETFD) && defined(FD_CLOEXEC)
 static mrb_value
 mrb_io_set_close_on_exec(mrb_state *mrb, mrb_value self)
 {
-#if defined(F_GETFD) && defined(F_SETFD) && defined(FD_CLOEXEC)
   struct mrb_io *fptr;
   int flag, ret;
   mrb_bool b;
@@ -1387,11 +1382,10 @@ mrb_io_set_close_on_exec(mrb_state *mrb, mrb_value self)
   }
 
   return mrb_bool_value(b);
-#else
-  mrb_raise(mrb, E_NOTIMP_ERROR, "IO#close_on_exec= is not supported on the platform");
-  return mrb_nil_value();
-#endif
 }
+#else
+# define mrb_io_set_close_on_exec mrb_notimplement_m
+#endif
 
 static mrb_value
 mrb_io_set_sync(mrb_state *mrb, mrb_value self)
