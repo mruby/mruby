@@ -8,7 +8,6 @@ MRuby::CrossBuild.new('no-float') do |conf|
   end
 
   conf.gem :core => "mruby-bin-mruby"
-  conf.gem :core => "mruby-test"
 
   conf.test_runner.command = 'env'
 
