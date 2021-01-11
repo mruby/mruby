@@ -2,7 +2,7 @@
 MRuby::CrossBuild.new('no-float') do |conf|
   conf.toolchain
 
-  # include the GEM box
+  # Add configuration
   conf.compilers.each do |c|
     c.defines << "MRB_NO_FLOAT"
   end
