@@ -90,10 +90,6 @@ mrb_int_mul_overflow(mrb_int multiplier, mrb_int multiplicand, mrb_int *product)
 
 #else
 
-#define MRB_UINT_MAKE2(n) uint ## n ## _t
-#define MRB_UINT_MAKE(n) MRB_UINT_MAKE2(n)
-#define mrb_uint MRB_UINT_MAKE(MRB_INT_BIT)
-
 #define MRB_INT_OVERFLOW_MASK ((mrb_uint)1 << (MRB_INT_BIT - 1))
 
 static inline mrb_bool
@@ -135,9 +131,6 @@ mrb_int_mul_overflow(mrb_int a, mrb_int b, mrb_int *c)
 }
 
 #undef MRB_INT_OVERFLOW_MASK
-#undef mrb_uint
-#undef MRB_UINT_MAKE
-#undef MRB_UINT_MAKE2
 
 #endif
 
