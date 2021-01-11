@@ -1,4 +1,3 @@
-mrbtest = "#{MRuby::Build.install_dir}/mrbtest"
 all_prerequisites = ->(task_name, prereqs) do
   Rake::Task[task_name].prerequisites.each do |prereq_name|
     next if prereqs[prereq_name]
@@ -21,9 +20,7 @@ MRuby.each_target do |build|
   pps = []
   build_dir = "#{build.build_dir}/"
   mrbc_build_dir = "#{build.mrbc_build.build_dir}/" if build.mrbc_build
-  build.products.each do |product|
-    all_prerequisites.(product, prereqs) unless product == mrbtest
-  end
+  build.products.each{|product| all_prerequisites.(product, prereqs)}
   prereqs.each_key do |prereq|
     next unless File.extname(prereq) == build.exts.object
     next unless prereq.start_with?(build_dir)
