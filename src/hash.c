@@ -365,7 +365,7 @@ ea_next_capa_for(uint32_t size, uint32_t max_capa)
      * `EA_INCREASE_RATIO` is the current value, 32-bit range will not be
      * exceeded during the calculation of `capa`, so `size_t` is used.
      */
-    size_t capa = size * EA_INCREASE_RATIO, inc = capa - size;
+    size_t capa = (size_t)size * EA_INCREASE_RATIO, inc = capa - size;
     if (EA_MAX_INCREASE < inc) capa = size + EA_MAX_INCREASE;
     return capa <= max_capa ? U32(capa) : max_capa;
   }
