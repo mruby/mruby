@@ -212,8 +212,6 @@ MRB_API mrb_value mrb_hash_dup(mrb_state *mrb, mrb_value hash);
 MRB_API void mrb_hash_merge(mrb_state *mrb, mrb_value hash1, mrb_value hash2);
 
 #define RHASH(hash) ((struct RHash*)(mrb_ptr(hash)))
-#define RHASH_IFNONE(hash) mrb_iv_get(mrb, (hash), MRB_SYM(ifnone))
-#define RHASH_PROCDEFAULT(hash) RHASH_IFNONE(hash)
 
 #define MRB_HASH_IB_BIT_BIT         5
 #define MRB_HASH_AR_EA_CAPA_BIT     5

@@ -11,6 +11,7 @@
 #include <mruby/hash.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>
+#include <mruby/presym.h>
 
 /*
  * === Glossary
@@ -254,6 +255,8 @@ HT_ASSERT_SAFE_READ(ea_capa);
 #define h_ar_p(h) (!h_ht_p(h))
 #define h_ar_on(h) h_ht_off(h)
 #define lesser(a, b) ((a) < (b) ? (a) : (b))
+#define RHASH_IFNONE(hash) mrb_iv_get(mrb, (hash), MRB_SYM(ifnone))
+#define RHASH_PROCDEFAULT(hash) RHASH_IFNONE(hash)
 
 static uint32_t ib_upper_bound_for(uint32_t capa);
 static uint32_t ib_bit_to_capa(uint32_t bit);

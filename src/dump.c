@@ -1222,7 +1222,10 @@ mrb_dump_irep_cstruct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE 
   if (fp == NULL || initname == NULL || initname[0] == '\0') {
     return MRB_DUMP_INVALID_ARGUMENT;
   }
-  if (fprintf(fp, "#include <mruby.h>\n" "#include <mruby/proc.h>\n\n") < 0) {
+  if (fprintf(fp, "#include <mruby.h>\n"
+                  "#include <mruby/proc.h>\n"
+                  "#include <mruby/presym.h>\n"
+                  "\n") < 0) {
     return MRB_DUMP_WRITE_FAULT;
   }
   fputs("#define mrb_BRACED(...) {__VA_ARGS__}\n", fp);

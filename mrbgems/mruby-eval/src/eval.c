@@ -5,6 +5,7 @@
 #include <mruby/proc.h>
 #include <mruby/opcode.h>
 #include <mruby/error.h>
+#include <mruby/presym.h>
 
 struct REnv *mrb_env_new(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci, int nstacks, mrb_value *stack, struct RClass *tc);
 mrb_value mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p);

@@ -1,6 +1,7 @@
 #include <mruby.h>
 #include <mruby/class.h>
 #include <mruby/numeric.h>
+#include <mruby/presym.h>
 #include <math.h>
 
 #ifdef MRB_NO_FLOAT

@@ -17,6 +17,7 @@
 #include <mruby/data.h>
 #include <mruby/istruct.h>
 #include <mruby/opcode.h>
+#include <mruby/presym.h>
 
 union mt_ptr {
   struct RProc *proc;

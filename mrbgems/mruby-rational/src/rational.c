@@ -2,6 +2,7 @@
 #include <mruby/class.h>
 #include <mruby/string.h>
 #include <mruby/numeric.h>
+#include <mruby/presym.h>
 
 struct mrb_rational {
   mrb_int numerator;

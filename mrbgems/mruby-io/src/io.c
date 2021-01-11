@@ -11,6 +11,7 @@
 #include "mruby/variable.h"
 #include "mruby/ext/io.h"
 #include "mruby/error.h"
+#include "mruby/presym.h"
 
 #include <sys/types.h>
 #include <sys/stat.h>
