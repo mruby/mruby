@@ -96,7 +96,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
   src += sizeof(uint16_t);
 
   /* number of child irep */
-  irep->rlen = (size_t)bin_to_uint16(src);
+  irep->rlen = (uint8_t)bin_to_uint16(src);
   src += sizeof(uint16_t);
 
   /* Binary Data Section */

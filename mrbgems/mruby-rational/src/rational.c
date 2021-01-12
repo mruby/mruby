@@ -160,8 +160,8 @@ rational_new_i(mrb_state *mrb, mrb_int n, mrb_int d)
 static void
 float_decode_internal(mrb_state *mrb, mrb_float f, mrb_float *rf, int *n)
 {
-  f = frexp_rat(f, n);
-  f = ldexp_rat(f, RAT_MANT_DIG);
+  f = (mrb_float)frexp_rat(f, n);
+  f = (mrb_float)ldexp_rat(f, RAT_MANT_DIG);
   *n -= RAT_MANT_DIG;
   *rf = f;
 }
@@ -188,7 +188,7 @@ rational_new_f(mrb_state *mrb, mrb_float f0)
   else {
     n = -n;
   }
-  return rational_new_i(mrb, f, ((mrb_int)1)<<n);
+  return rational_new_i(mrb, (mrb_int)f, ((mrb_int)1)<<n);
 #else
   mrb_int pow = 1;
   if (n < 0) {
@@ -206,7 +206,7 @@ rational_new_f(mrb_state *mrb, mrb_float f0)
     while (n--) {
       pow *= FLT_RADIX;
     }
-    return rational_new(mrb, f*pow, 1);
+    return rational_new(mrb, (mrb_int)f*pow, 1);
   }
 #endif
 }

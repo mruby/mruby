@@ -235,7 +235,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
   }
 #if defined(_WIN32) || defined(_WIN64)
   if (args->rfp == stdin) {
-    setmode(_fileno(stdin), O_BINARY);
+    _setmode(_fileno(stdin), O_BINARY);
   }
 #endif
   args->argv = (char **)mrb_realloc(mrb, args->argv, sizeof(char*) * (argc + 1));
