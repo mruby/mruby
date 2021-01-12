@@ -80,7 +80,7 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
   FILE *fp;
   int i;
 #if !defined(_WIN32) && !defined(_WIN64)
-  struct sockaddr_un sun0;
+  struct sockaddr_un sun0 = { 0 }; /* Initialize them all because it is environment dependent */
 #endif
 
   mrb_gv_set(mrb, mrb_intern_cstr(mrb, "$mrbtest_io_msg"), mrb_str_new_cstr(mrb, msg));
