@@ -333,8 +333,8 @@ main(int argc, char **argv)
         v = mrb_load_detect_file_cxt(mrb, lfp, c);
       }
       fclose(lfp);
-      e = mrb->c->cibase->env;
-      mrb->c->cibase->env = NULL;
+      e = mrb_vm_ci_env(mrb->c->cibase);
+      mrb_vm_ci_env_set(mrb->c->cibase, NULL);
       mrb_env_unshare(mrb, e);
       mrbc_cleanup_local_variables(mrb, c);
     }

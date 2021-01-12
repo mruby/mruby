@@ -151,13 +151,14 @@ typedef void* (*mrb_allocf) (struct mrb_state *mrb, void*, size_t, void *ud);
 typedef struct {
   mrb_sym mid;
   const struct RProc *proc;
-  mrb_value *stackent;
-  struct REnv *env;
-  const mrb_code *pc;           /* return address */
-  const mrb_code *err;          /* error position */
-  mrb_int argc;
-  mrb_int acc;
-  struct RClass *target_class;
+  mrb_value *stack;
+  const mrb_code *pc;           /* current address on iseq of this proc */
+  int16_t argc;
+  int16_t acc;
+  union {
+    struct REnv *env;
+    struct RClass *target_class;
+  } u;
 } mrb_callinfo;
 
 enum mrb_fiber_state {
@@ -172,8 +173,7 @@ enum mrb_fiber_state {
 struct mrb_context {
   struct mrb_context *prev;
 
-  mrb_value *stack;                       /* stack of virtual machine */
-  mrb_value *stbase, *stend;
+  mrb_value *stbase, *stend;              /* stack of virtual machine */
 
   mrb_callinfo *ci;
   mrb_callinfo *cibase, *ciend;

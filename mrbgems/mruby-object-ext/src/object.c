@@ -105,7 +105,7 @@ mrb_obj_instance_exec(mrb_state *mrb, mrb_value self)
   if (mrb->c->ci->acc < 0) {
     return mrb_yield_with_class(mrb, blk, argc, argv, self, c);
   }
-  mrb->c->ci->target_class = c;
+  mrb_vm_ci_target_class_set(mrb->c->ci, c);
   return mrb_yield_cont(mrb, blk, self, argc, argv);
 }
 

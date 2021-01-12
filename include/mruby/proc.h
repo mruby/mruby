@@ -136,6 +136,74 @@ MRB_API mrb_value mrb_proc_cfunc_env_get(mrb_state *mrb, mrb_int idx);
 
 MRB_API mrb_value mrb_load_proc(mrb_state *mrb, const struct RProc *proc);
 
+static inline void
+mrb_vm_ci_proc_set(mrb_callinfo *ci, const struct RProc *p)
+{
+  ci->proc = p;
+  ci->pc = (p && !MRB_PROC_CFUNC_P(p)) ? p->body.irep->iseq : NULL;
+}
+
+static inline struct RClass *
+mrb_vm_ci_target_class(const mrb_callinfo *ci)
+{
+  if (ci->u.env && ci->u.env->tt == MRB_TT_ENV) {
+    return ci->u.env->c;
+  }
+  else {
+    return ci->u.target_class;
+  }
+}
+
+static inline void
+mrb_vm_ci_target_class_set(mrb_callinfo *ci, struct RClass *tc)
+{
+  struct REnv *e = ci->u.env;
+  if (e) {
+    if (e->tt == MRB_TT_ENV) {
+      e->c = tc;
+    }
+    else {
+      ci->u.target_class = tc;
+    }
+  }
+}
+
+static inline struct REnv *
+mrb_vm_ci_env(const mrb_callinfo *ci)
+{
+  if (ci->u.env && ci->u.env->tt == MRB_TT_ENV) {
+    return ci->u.env;
+  }
+  else {
+    return NULL;
+  }
+}
+
+static inline void
+mrb_vm_ci_env_set(mrb_callinfo *ci, struct REnv *e)
+{
+  if (ci->u.env) {
+    if (ci->u.env->tt == MRB_TT_ENV) {
+      if (e) {
+        e->c = ci->u.env->c;
+        ci->u.env = e;
+      }
+      else {
+        ci->u.target_class = ci->u.env->c;
+      }
+    }
+    else {
+      if (e) {
+        e->c = ci->u.target_class;
+        ci->u.env = e;
+      }
+    }
+  }
+  else {
+    ci->u.env = e;
+  }
+}
+
 MRB_END_DECL
 
 #endif  /* MRUBY_PROC_H */
