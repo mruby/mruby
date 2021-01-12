@@ -17,9 +17,12 @@ namespace :test do |test_ns|
   desc "build all mruby tests"
   task :build => "build:lib"
 
-  namespace :build do
+  namespace :build do |test_build_ns|
     desc "build library tests"
-    task :lib
+    task :lib => :all do
+      MRuby.each_target{|build| build.gem(core: 'mruby-test')}
+      test_build_ns["lib_without_loading_gem"].invoke
+    end
   end
 
   desc "run all mruby tests"
@@ -36,13 +39,13 @@ end
 
 MRuby.each_target do |build|
   if build.test_enabled?
-    t = task "test:build:lib:#{build.name}" => :all do
-      gem = build.gem(core: 'mruby-test')
+    t = task "test:build:lib_without_loading_gem:#{build.name}" do
+      gem = build.gems["mruby-test"]
       gem.setup
       gem.setup_compilers
       Rake::Task[build.define_installer_if_needed("mrbtest")].invoke
     end
-    task "test:build:lib" => t
+    task "test:build:lib_without_loading_gem" => t
 
     t = task "test:run:lib:#{build.name}" do
       build.run_test
