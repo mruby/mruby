@@ -55,8 +55,6 @@ enum mrb_special_consts {
 #define BOXWORD_SYMBOL_MASK     ((1 << BOXWORD_SYMBOL_BIT_POS) - 1)
 #define BOXWORD_IMMEDIATE_MASK  0x07
 
-#define BOXWORD_SHIFT_VALUE(o,n,t) \
-  (t)(((intptr_t)(o).w) >> BOXWORD_##n##_SHIFT)
 #define BOXWORD_SET_SHIFT_VALUE(o,n,v) \
   ((o).w = (((uintptr_t)(v)) << BOXWORD_##n##_SHIFT) | BOXWORD_##n##_FLAG)
 #define BOXWORD_SHIFT_VALUE_P(o,n) \
@@ -123,7 +121,7 @@ MRB_API mrb_value mrb_word_boxing_int_value(struct mrb_state*, mrb_int);
 #ifndef MRB_NO_FLOAT
 #define mrb_float(o)   mrb_val_union(o).fp->f
 #endif
-#define mrb_fixnum(o)  BOXWORD_SHIFT_VALUE(o, FIXNUM, mrb_int)
+#define mrb_fixnum(o)  (mrb_int)(((intptr_t)(o).w) >> BOXWORD_FIXNUM_SHIFT)
 MRB_INLINE mrb_int
 mrb_integer_func(mrb_value o) {
   if (mrb_immediate_p(o)) return mrb_fixnum(o);
@@ -133,7 +131,7 @@ mrb_integer_func(mrb_value o) {
 #ifdef MRB_64BIT
 #define mrb_symbol(o)  mrb_val_union(o).sym
 #else
-#define mrb_symbol(o)  BOXWORD_SHIFT_VALUE(o, SYMBOL, mrb_sym)
+#define mrb_symbol(o)  (mrb_sym)(((o).w) >> BOXWORD_SYMBOL_SHIFT)
 #endif
 #define mrb_bool(o)    (((o).w & ~(uintptr_t)MRB_Qfalse) != 0)
 
