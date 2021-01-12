@@ -626,10 +626,13 @@ mark_context_stack(mrb_state *mrb, struct mrb_context *c)
   size_t e;
   mrb_value nil;
 
-  if (c->stack == NULL) return;
-  e = c->stack - c->stbase;
+  if (c->stbase == NULL) return;
   if (c->ci) {
+    e = (c->ci->stack ? c->ci->stack - c->stbase : 0);
     e += ci_nregs(c->ci);
+  }
+  else {
+    e = 0;
   }
   if (c->stbase + e > c->stend) e = c->stend - c->stbase;
   for (i=0; i<e; i++) {
@@ -660,9 +663,8 @@ mark_context(mrb_state *mrb, struct mrb_context *c)
   /* mark call stack */
   if (c->cibase) {
     for (ci = c->cibase; ci <= c->ci; ci++) {
-      mrb_gc_mark(mrb, (struct RBasic*)ci->env);
       mrb_gc_mark(mrb, (struct RBasic*)ci->proc);
-      mrb_gc_mark(mrb, (struct RBasic*)ci->target_class);
+      mrb_gc_mark(mrb, (struct RBasic*)ci->u.target_class);
     }
   }
   /* mark fibers */
@@ -840,7 +842,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj, int end)
           mrb_callinfo *ce = c->cibase;
 
           while (ce <= ci) {
-            struct REnv *e = ci->env;
+            struct REnv *e = ci->u.env;
             if (e && !mrb_object_dead_p(mrb, (struct RBasic*)e) &&
                 e->tt == MRB_TT_ENV && MRB_ENV_ONSTACK_P(e)) {
               mrb_env_unshare(mrb, e);
@@ -1002,7 +1004,7 @@ gc_gray_counts(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
       if (!c || c->status == MRB_FIBER_TERMINATED) break;
 
       /* mark stack */
-      i = c->stack - c->stbase;
+      i = c->ci->stack - c->stbase;
 
       if (c->ci) {
         i += ci_nregs(c->ci);
