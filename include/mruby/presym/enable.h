@@ -8,11 +8,7 @@
 #define MRUBY_PRESYM_ENABLE_H
 
 #undef MRB_PRESYM_MAX
-#ifdef MRB_USE_ALL_SYMBOLS
-# define MRB_PRESYM_NAMED(lit, num, type, name) MRB_##type##__##name = (num),
-#else
-# define MRB_PRESYM_NAMED(lit, num, type, name) MRB_##type##__##name = (num<<1),
-#endif
+#define MRB_PRESYM_NAMED(lit, num, type, name) MRB_##type##__##name = (num),
 #define MRB_PRESYM_UNNAMED(lit, num)
 
 enum mruby_presym {

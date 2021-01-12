@@ -48,7 +48,7 @@ assert("Symbol#casecmp") do
 end
 
 assert("Symbol#empty?") do
-  assert_true :''.empty?
+  assert_false :'a'.empty?
 end
 
 assert('Symbol#intern') do

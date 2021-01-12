@@ -168,8 +168,6 @@ struct RCptr {
 #include "boxing_no.h"
 #endif
 
-#define MRB_SYMBOL_BIT (sizeof(mrb_sym) * CHAR_BIT - MRB_SYMBOL_SHIFT)
-
 #if INTPTR_MAX < MRB_INT_MAX
   typedef intptr_t mrb_ssize;
 # define MRB_SSIZE_MAX INTPTR_MAX
