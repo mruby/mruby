@@ -26,7 +26,8 @@ union mt_ptr {
 struct mt_elem {
   union mt_ptr ptr;
   size_t func_p:1;
-  mrb_sym key:sizeof(mrb_sym)*8-1;
+  size_t noarg_p:1;
+  mrb_sym key:sizeof(mrb_sym)*8-2;
 };
 
 /* method table structure */
@@ -50,7 +51,7 @@ mt_new(mrb_state *mrb)
   return t;
 }
 
-static struct mt_elem *mt_put(mrb_state *mrb, mt_tbl *t, mrb_sym sym, size_t func_p, union mt_ptr ptr);
+static struct mt_elem *mt_put(mrb_state *mrb, mt_tbl *t, mrb_sym sym, size_t func_p, size_t noarg_p, union mt_ptr ptr);
 
 static void
 mt_rehash(mrb_state *mrb, mt_tbl *t)
@@ -71,7 +72,7 @@ mt_rehash(mrb_state *mrb, mt_tbl *t)
 
     /* key = 0 means empty or deleted */
     if (slot->key != 0) {
-      mt_put(mrb, t, slot->key, slot->func_p, slot->ptr);
+      mt_put(mrb, t, slot->key, slot->func_p, slot->noarg_p, slot->ptr);
     }
   }
   mrb_free(mrb, old_table);
@@ -81,7 +82,7 @@ mt_rehash(mrb_state *mrb, mt_tbl *t)
 
 /* Set the value for the symbol in the method table. */
 static struct mt_elem*
-mt_put(mrb_state *mrb, mt_tbl *t, mrb_sym sym, size_t func_p, union mt_ptr ptr)
+mt_put(mrb_state *mrb, mt_tbl *t, mrb_sym sym, size_t func_p, size_t noarg_p, union mt_ptr ptr)
 {
   size_t hash, pos, start;
   struct mt_elem *dslot = NULL;
@@ -96,6 +97,7 @@ mt_put(mrb_state *mrb, mt_tbl *t, mrb_sym sym, size_t func_p, union mt_ptr ptr)
 
     if (slot->key == sym) {
       slot->func_p = func_p;
+      slot->noarg_p = noarg_p;
       slot->ptr = ptr;
       return slot;
     }
@@ -104,6 +106,7 @@ mt_put(mrb_state *mrb, mt_tbl *t, mrb_sym sym, size_t func_p, union mt_ptr ptr)
         t->size++;
         slot->key = sym;
         slot->func_p = func_p;
+        slot->noarg_p = noarg_p;
         slot->ptr = ptr;
         return slot;
       }
@@ -117,6 +120,7 @@ mt_put(mrb_state *mrb, mt_tbl *t, mrb_sym sym, size_t func_p, union mt_ptr ptr)
         t->size++;
         dslot->key = sym;
         dslot->func_p = func_p;
+        dslot->noarg_p = noarg_p;
         dslot->ptr = ptr;
         return dslot;
       }
@@ -202,7 +206,7 @@ mt_copy(mrb_state *mrb, mt_tbl *t)
     struct mt_elem *slot = &t->table[i];
 
     if (slot->key) {
-      mt_put(mrb, t2, slot->key, slot->func_p, slot->ptr);
+      mt_put(mrb, t2, slot->key, slot->func_p, slot->noarg_p, slot->ptr);
     }
   }
   return t2;
@@ -237,6 +241,9 @@ mrb_mt_foreach(mrb_state *mrb, struct RClass *c, mrb_mt_foreach_func *fn, void *
       }
       else {
         MRB_METHOD_FROM_PROC(m, slot->ptr.proc);
+      }
+      if (slot->noarg_p) {
+        MRB_METHOD_NOARG_SET(m);
       }
 
       if (fn(mrb, slot->key, m, p) != 0)
@@ -739,7 +746,7 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
   else {
     ptr.func = MRB_METHOD_FUNC(m);
   }
-  mt_put(mrb, h, mid, MRB_METHOD_FUNC_P(m), ptr);
+  mt_put(mrb, h, mid, MRB_METHOD_FUNC_P(m), MRB_METHOD_NOARG_P(m), ptr);
   mc_clear(mrb);
 }
 
@@ -1746,6 +1753,9 @@ mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
         }
         else {
           MRB_METHOD_FROM_PROC(m, e->ptr.proc);
+        }
+        if (e->noarg_p) {
+          MRB_METHOD_NOARG_SET(m);
         }
 #ifndef MRB_NO_METHOD_CACHE
         mc->c = oc;
