@@ -135,6 +135,9 @@ rational_new_i(mrb_state *mrb, mrb_int n, mrb_int d)
 {
   mrb_int a;
 
+  if (d == 0) {
+    mrb_raise(mrb, E_ZERODIV_ERROR, "divided by 0 in rational");
+  }
   a = i_gcd(n, d);
   if ((n == MRB_INT_MIN || d == MRB_INT_MIN) && a == -1) {
     mrb_raise(mrb, E_RANGE_ERROR, "integer overflow in rational");
