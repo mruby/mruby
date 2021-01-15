@@ -11883,7 +11883,7 @@ parser_yylex(parser_state *p)
       p->lstate = EXPR_BEG;
       return tLABEL_TAG;
     }
-    if (!ISSPACE(c) || IS_BEG()) {
+    if (!ISSPACE(c) || (IS_BEG() && p->lstate != EXPR_MID )) {
       pushback(p, c);
       p->lstate = EXPR_FNAME;
       return tSYMBEG;
