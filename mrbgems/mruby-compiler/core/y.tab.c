@@ -11883,14 +11883,14 @@ parser_yylex(parser_state *p)
       p->lstate = EXPR_BEG;
       return tLABEL_TAG;
     }
-    if (!ISSPACE(c) || IS_BEG()) {
+    if (IS_END() || ISSPACE(c) || c == '#') {
       pushback(p, c);
-      p->lstate = EXPR_FNAME;
-      return tSYMBEG;
+      p->lstate = EXPR_BEG;
+      return ':';
     }
     pushback(p, c);
-    p->lstate = EXPR_BEG;
-    return ':';
+    p->lstate = EXPR_FNAME;
+    return tSYMBEG;
 
   case '/':
     if (IS_BEG()) {
