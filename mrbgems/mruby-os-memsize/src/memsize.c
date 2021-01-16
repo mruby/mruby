@@ -33,6 +33,7 @@ os_memsize_of_method(mrb_state* mrb, mrb_value method_obj)
   size_t size;
   mrb_value proc_value = mrb_obj_iv_get(mrb, mrb_obj_ptr(method_obj),
                                         mrb_intern_lit(mrb, "_proc"));
+  if (mrb_nil_p(proc_value)) return 0;
   struct RProc *proc = mrb_proc_ptr(proc_value);
 
   size = sizeof(struct RProc);
