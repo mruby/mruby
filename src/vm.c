@@ -1515,7 +1515,7 @@ RETRY_TRY_BLOCK:
         /* pop stackpos */
         ci = cipop(mrb);
         pc = ci->pc;
-        regs[ci->acc] = recv;
+        regs[ci[1].acc] = recv;
         irep = mrb->c->ci->proc->body.irep;
         pool = irep->pool;
         syms = irep->syms;
