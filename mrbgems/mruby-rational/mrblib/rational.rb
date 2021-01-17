@@ -47,6 +47,8 @@ class Rational < Numeric
     end
   end
 
+  alias quo /
+
   def <=>(rhs)
     case rhs
     when Integer, Float
