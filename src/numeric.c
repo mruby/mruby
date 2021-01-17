@@ -39,8 +39,13 @@ mrb_to_flo(mrb_state *mrb, mrb_value val)
     return (mrb_float)mrb_integer(val);
   case MRB_TT_FLOAT:
     break;
-  default:
+  case MRB_TT_STRING:
+  case MRB_TT_FALSE:
+  case MRB_TT_TRUE:
     mrb_raise(mrb, E_TYPE_ERROR, "non float value");
+  default:
+    val = mrb_type_convert(mrb, val, MRB_TT_FLOAT, MRB_SYM(to_f));
+    break;
   }
   return mrb_float(val);
 }
