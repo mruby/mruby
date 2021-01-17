@@ -41,6 +41,11 @@ assert('Float#/', '15.2.9.3.4') do
   assert_float(1.0        , a)
   assert_float(3.123456789, b)
 end
+assert('Float#quo') do
+  a = 3.123456789.quo(3.123456789)
+
+  assert_float(1.0        , a)
+end
 
 assert('Float#%', '15.2.9.3.5') do
   a = 3.125 % 3.125

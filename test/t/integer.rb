@@ -43,6 +43,12 @@ assert('Integer#/', '15.2.8.3.4') do
   assert_equal 2.0, b
 end
 
+assert('Integer#quo') do
+  a = 6.quo(5)
+
+  assert_equal 1.2, a
+end
+
 assert('Integer#%', '15.2.8.3.5') do
   a = 1%1
   b = 1%1.0
