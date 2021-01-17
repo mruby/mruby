@@ -177,9 +177,15 @@ int_quo(mrb_state *mrb, mrb_value xv)
   if (y == 0) {
     int_zerodiv(mrb);
   }
-  return mrb_fixnum_value(mrb_fixnum(xv) / y);
+  return mrb_fixnum_value(mrb_integer(xv) / y);
 #else
-  return int_div(mrb, xv);
+  mrb_float y;
+
+  mrb_get_args(mrb, "f", &y);
+  if (y == 0) {
+    int_zerodiv(mrb);
+  }
+  return mrb_float_value(mrb, mrb_integer(xv) / y);
 #endif
 }
 
