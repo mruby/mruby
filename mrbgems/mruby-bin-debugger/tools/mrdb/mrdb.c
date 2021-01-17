@@ -13,6 +13,7 @@
 #include <mruby/class.h>
 #include <mruby/opcode.h>
 #include <mruby/variable.h>
+#include <mruby/proc.h>
 
 #include "mrdb.h"
 #include "apibreak.h"
@@ -526,7 +527,7 @@ check_method_breakpoint(mrb_state *mrb, const mrb_irep *irep, const mrb_code *pc
       sym = irep->syms[insn.b];
       break;
     case OP_SUPER:
-      c = mrb->c->ci->target_class->super;
+      c = mrb_vm_ci_target_class(mrb->c->ci)->super;
       sym = mrb->c->ci->mid;
       break;
     default:
