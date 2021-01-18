@@ -52,10 +52,10 @@
  *   the number of used slots and the number of empty slots.
  */
 
+#define EA_N_RESERVED_INDICES 2  /* empty and deleted */
 #define EA_INCREASE_RATIO 6 / 5 + 6
 #define EA_MAX_INCREASE UINT16_MAX
-#define EA_MAX_CAPA  /* `- 2` means reserved indices (empty and deleted) */   \
-  U32(lesser(IB_MAX_CAPA - 2, MRB_INT_MAX))
+#define EA_MAX_CAPA U32(lesser(IB_MAX_CAPA - EA_N_RESERVED_INDICES, MRB_INT_MAX))
 #define IB_MAX_CAPA (U32(1) << IB_MAX_BIT)
 #define IB_TYPE_BIT 32
 #define IB_INIT_BIT (                                                         \
@@ -360,7 +360,7 @@ ea_next_capa_for(uint32_t size, uint32_t max_capa)
   }
   else {
     /*
-     * For 32-bit CPU, the theoretical value of max EA capa is
+     * For 32-bit CPU, the theoretical value of maximum EA capacity is
      * `UINT32_MAX / sizeof (hash_entry)`. At this time, if
      * `EA_INCREASE_RATIO` is the current value, 32-bit range will not be
      * exceeded during the calculation of `capa`, so `size_t` is used.
@@ -839,12 +839,16 @@ ht_set(mrb_state *mrb, struct RHash *h, mrb_value key, mrb_value val)
     if (size != ht_ea_n_used(h)) ea_compress(ht_ea(h), ht_ea_n_used(h));
     ht_init(mrb, h, size, ht_ea(h), ht_ea_capa(h), h_ht(h), ++ib_bit_width);
   }
-  else if (ht_ea_capa(h) == ht_ea_n_used(h) && size != ht_ea_n_used(h)) {
-    if (size <= AR_MAX_SIZE) {ht_set_as_ar(mrb, h, key, val); return;}
-    if (ea_next_capa_for(size, EA_MAX_CAPA) <= ht_ea_capa(h)) {
-      ea_compress(ht_ea(h), ht_ea_n_used(h));
-      ht_adjust_ea(mrb, h, size, ht_ea_capa(h));
-      ht_init(mrb, h, size, ht_ea(h), ht_ea_capa(h), h_ht(h), ib_bit_width);
+  else if (size != ht_ea_n_used(h)) {
+    if (ib_capa - EA_N_RESERVED_INDICES <= ht_ea_n_used(h)) goto compress;
+    if (ht_ea_capa(h) == ht_ea_n_used(h)) {
+      if (size <= AR_MAX_SIZE) {ht_set_as_ar(mrb, h, key, val); return;}
+      if (ea_next_capa_for(size, EA_MAX_CAPA) <= ht_ea_capa(h)) {
+       compress:
+        ea_compress(ht_ea(h), ht_ea_n_used(h));
+        ht_adjust_ea(mrb, h, size, ht_ea_capa(h));
+        ht_init(mrb, h, size, ht_ea(h), ht_ea_capa(h), h_ht(h), ib_bit_width);
+      }
     }
   }
   ht_set_without_ib_adjustment(mrb, h, key, val);
