@@ -16,6 +16,7 @@ MRuby::Build.new do |conf|
 
   # include all core GEMs
   conf.gembox 'full-core'
+  conf.gem :core => 'mruby-bin-debugger'
   conf.compilers.each do |c|
     c.defines += %w(MRB_GC_FIXED_ARENA)
   end
