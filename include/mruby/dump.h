@@ -39,10 +39,9 @@ MRB_API mrb_irep *mrb_read_irep_buf(mrb_state*, const void*, size_t);
 #define MRB_DUMP_GENERAL_FAILURE      (-1)
 #define MRB_DUMP_WRITE_FAULT          (-2)
 #define MRB_DUMP_READ_FAULT           (-3)
-#define MRB_DUMP_CRC_ERROR            (-4)
-#define MRB_DUMP_INVALID_FILE_HEADER  (-5)
-#define MRB_DUMP_INVALID_IREP         (-6)
-#define MRB_DUMP_INVALID_ARGUMENT     (-7)
+#define MRB_DUMP_INVALID_FILE_HEADER  (-4)
+#define MRB_DUMP_INVALID_IREP         (-5)
+#define MRB_DUMP_INVALID_ARGUMENT     (-6)
 
 /* null symbol length */
 #define MRB_DUMP_NULL_SYM_LEN         0xFFFF
@@ -73,7 +72,6 @@ struct rite_binary_header {
   uint8_t binary_ident[4];    /* Binary Identifier */
   uint8_t major_version[2];   /* Binary Format Major Version */
   uint8_t minor_version[2];   /* Binary Format Minor Version */
-  uint8_t binary_crc[2];      /* Binary CRC */
   uint8_t binary_size[4];     /* Binary Size */
   uint8_t compiler_name[4];   /* Compiler name */
   uint8_t compiler_version[4];
@@ -156,9 +154,5 @@ bin_to_uint8(const uint8_t *bin)
 }
 
 MRB_END_DECL
-
-/** @internal crc.c */
-uint16_t
-calc_crc_16_ccitt(const uint8_t *src, size_t nbytes, uint16_t crc);
 
 #endif  /* MRUBY_DUMP_H */

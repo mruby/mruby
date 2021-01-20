@@ -37,13 +37,6 @@
     return irep; \
   }
 
-static size_t
-offset_crc_body(void)
-{
-  struct rite_binary_header header;
-  return ((uint8_t *)header.binary_crc - (uint8_t *)&header) + sizeof(header.binary_crc);
-}
-
 #ifndef MRB_NO_FLOAT
 static double
 str_to_double(mrb_state *mrb, const char *p)
@@ -519,7 +512,7 @@ lv_exit:
 }
 
 static int
-read_binary_header(const uint8_t *bin, size_t bufsize, size_t *bin_size, uint16_t *crc, uint8_t *flags)
+read_binary_header(const uint8_t *bin, size_t bufsize, size_t *bin_size, uint8_t *flags)
 {
   const struct rite_binary_header *header = (const struct rite_binary_header *)bin;
 
@@ -540,9 +533,6 @@ read_binary_header(const uint8_t *bin, size_t bufsize, size_t *bin_size, uint16_
     return MRB_DUMP_INVALID_FILE_HEADER;
   }
 
-  if (crc) {
-    *crc = bin_to_uint16(header->binary_crc);
-  }
   *bin_size = (size_t)bin_to_uint32(header->binary_size);
 
   if (bufsize < *bin_size) {
@@ -559,21 +549,14 @@ read_irep(mrb_state *mrb, const uint8_t *bin, size_t bufsize, uint8_t flags)
   struct RProc *proc = NULL;
   mrb_irep *irep = NULL;
   const struct rite_section_header *section_header;
-  uint16_t crc;
   size_t bin_size = 0;
-  size_t n;
 
   if ((mrb == NULL) || (bin == NULL)) {
     return NULL;
   }
 
-  result = read_binary_header(bin, bufsize, &bin_size, &crc, &flags);
+  result = read_binary_header(bin, bufsize, &bin_size, &flags);
   if (result != MRB_DUMP_OK) {
-    return NULL;
-  }
-
-  n = offset_crc_body();
-  if (crc != calc_crc_16_ccitt(bin + n, bin_size - n, 0)) {
     return NULL;
   }
 
@@ -705,7 +688,7 @@ mrb_proc_read_irep_file(mrb_state *mrb, FILE *fp)
   if (fread(buf, header_size, 1, fp) == 0) {
     goto irep_exit;
   }
-  result = read_binary_header(buf, (size_t)-1, &buf_size, NULL, &flags);
+  result = read_binary_header(buf, (size_t)-1, &buf_size, &flags);
   if (result != MRB_DUMP_OK || buf_size <= header_size) {
     goto irep_exit;
   }

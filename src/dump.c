@@ -747,8 +747,6 @@ static int
 write_rite_binary_header(mrb_state *mrb, size_t binary_size, uint8_t *bin, uint8_t flags)
 {
   struct rite_binary_header *header = (struct rite_binary_header *)bin;
-  uint16_t crc;
-  uint32_t offset;
 
   memcpy(header->binary_ident, RITE_BINARY_IDENT, sizeof(header->binary_ident));
   memcpy(header->major_version, RITE_BINARY_MAJOR_VER, sizeof(header->major_version));
@@ -757,10 +755,6 @@ write_rite_binary_header(mrb_state *mrb, size_t binary_size, uint8_t *bin, uint8
   memcpy(header->compiler_version, RITE_COMPILER_VERSION, sizeof(header->compiler_version));
   mrb_assert(binary_size <= UINT32_MAX);
   uint32_to_bin((uint32_t)binary_size, header->binary_size);
-
-  offset = (uint32_t)((&(header->binary_crc[0]) - bin) + sizeof(uint16_t));
-  crc = calc_crc_16_ccitt(bin + offset, binary_size - offset, 0);
-  uint16_to_bin(crc, header->binary_crc);
 
   return MRB_DUMP_OK;
 }
