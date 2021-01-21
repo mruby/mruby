@@ -23,7 +23,6 @@
 #define mrb_define_const(mrb, c, name, v) MRB_PRESYM_SCANNING_TAGGED(name)
 #define mrb_define_global_const(mrb, name, v) MRB_PRESYM_SCANNING_TAGGED(name)
 
-
 #define MRB_OPSYM(name) MRB_OPSYM__##name(mrb)
 #define MRB_CVSYM(name) MRB_PRESYM_SCANNING_TAGGED("@@" #name)
 #define MRB_IVSYM(name) MRB_PRESYM_SCANNING_TAGGED("@" #name)

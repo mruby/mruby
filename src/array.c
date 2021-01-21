@@ -10,7 +10,7 @@
 #include <mruby/string.h>
 #include <mruby/range.h>
 #include <mruby/proc.h>
-#include <mruby/opcode.h>
+#include <mruby/presym.h>
 #include "value_array.h"
 
 #define ARY_DEFAULT_LEN   4

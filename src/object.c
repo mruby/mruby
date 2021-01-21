@@ -9,6 +9,7 @@
 #include <mruby/numeric.h>
 #include <mruby/string.h>
 #include <mruby/class.h>
+#include <mruby/presym.h>
 
 MRB_API mrb_bool
 mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)

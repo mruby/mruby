@@ -17,6 +17,7 @@
 #include <mruby/numeric.h>
 #include <mruby/string.h>
 #include <mruby/class.h>
+#include <mruby/presym.h>
 
 #ifndef MRB_NO_FLOAT
 #ifdef MRB_USE_FLOAT32

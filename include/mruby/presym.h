@@ -7,11 +7,9 @@
 #ifndef MRUBY_PRESYM_H
 #define MRUBY_PRESYM_H
 
-#if defined(MRB_PRESYM_SCANNING)
-# include <mruby/presym/scanning.h>
-#elif defined(MRB_NO_PRESYM)
+#if defined(MRB_NO_PRESYM)
 # include <mruby/presym/disable.h>
-#else
+#elif !defined(MRB_PRESYM_SCANNING)
 # include <mruby/presym/enable.h>
 #endif
 
