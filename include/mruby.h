@@ -150,11 +150,11 @@ typedef void* (*mrb_allocf) (struct mrb_state *mrb, void*, size_t, void *ud);
 
 typedef struct {
   mrb_sym mid;
+  int16_t argc;
+  int16_t acc;
   const struct RProc *proc;
   mrb_value *stack;
   const mrb_code *pc;           /* current address on iseq of this proc */
-  int16_t argc;
-  int16_t acc;
   union {
     struct REnv *env;
     struct RClass *target_class;
