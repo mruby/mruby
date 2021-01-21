@@ -173,6 +173,7 @@ mrb_debug_set_break_line(mrb_state *mrb, mrb_debug_context *dbg, const char *fil
   int32_t index;
   char* set_file;
   uint16_t result;
+  size_t len;
 
   if ((mrb == NULL)||(dbg == NULL)||(file == NULL)) {
     return MRB_DEBUG_INVALID_ARGUMENT;
@@ -195,7 +196,8 @@ mrb_debug_set_break_line(mrb_state *mrb, mrb_debug_context *dbg, const char *fil
     return MRB_DEBUG_BREAK_INVALID_LINENO;
   }
 
-  set_file = (char*)mrb_malloc(mrb, strlen(file) + 1);
+  len = strlen(file) + 1;
+  set_file = (char*)mrb_malloc(mrb, len);
 
   index = dbg->bpnum;
   dbg->bp[index].bpno = dbg->next_bpno;
@@ -205,7 +207,7 @@ mrb_debug_set_break_line(mrb_state *mrb, mrb_debug_context *dbg, const char *fil
   dbg->bp[index].point.linepoint.lineno = lineno;
   dbg->bpnum++;
 
-  strncpy(set_file, file, strlen(file) + 1);
+  strncpy(set_file, file, len);
 
   dbg->bp[index].point.linepoint.file = set_file;
 
@@ -218,6 +220,7 @@ mrb_debug_set_break_method(mrb_state *mrb, mrb_debug_context *dbg, const char *c
   int32_t index;
   char* set_class;
   char* set_method;
+  size_t len;
 
   if ((mrb == NULL) || (dbg == NULL) || (method_name == NULL)) {
     return MRB_DEBUG_INVALID_ARGUMENT;
@@ -232,16 +235,18 @@ mrb_debug_set_break_method(mrb_state *mrb, mrb_debug_context *dbg, const char *c
   }
 
   if (class_name != NULL) {
-    set_class = (char*)mrb_malloc(mrb, strlen(class_name) + 1);
-    strncpy(set_class, class_name, strlen(class_name) + 1);
+    len = strlen(class_name) + 1;
+    set_class = (char*)mrb_malloc(mrb, len);
+    strncpy(set_class, class_name, len);
   }
   else {
     set_class = NULL;
   }
 
-  set_method = (char*)mrb_malloc(mrb, strlen(method_name) + 1);
+  len = strlen(method_name) + 1;
+  set_method = (char*)mrb_malloc(mrb, len);
 
-  strncpy(set_method, method_name, strlen(method_name) + 1);
+  strncpy(set_method, method_name, len);
 
   index = dbg->bpnum;
   dbg->bp[index].bpno = dbg->next_bpno;
