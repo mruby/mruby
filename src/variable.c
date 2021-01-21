@@ -10,6 +10,7 @@
 #include <mruby/proc.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>
+#include <mruby/presym.h>
 
 struct iv_elem {
   mrb_sym key;

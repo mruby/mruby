@@ -22,6 +22,7 @@
 #include <mruby/range.h>
 #include <mruby/string.h>
 #include <mruby/numeric.h>
+#include <mruby/presym.h>
 
 typedef struct mrb_shared_string {
   int refcnt;

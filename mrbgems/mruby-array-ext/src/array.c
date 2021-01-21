@@ -3,6 +3,7 @@
 #include <mruby/array.h>
 #include <mruby/range.h>
 #include <mruby/hash.h>
+#include <mruby/presym.h>
 
 /*
  *  call-seq:

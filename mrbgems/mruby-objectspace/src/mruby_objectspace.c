@@ -10,6 +10,7 @@
 #include <mruby/proc.h>
 #include <mruby/value.h>
 #include <mruby/range.h>
+#include <mruby/presym.h>
 
 struct os_count_struct {
   mrb_int total;

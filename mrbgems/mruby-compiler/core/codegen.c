@@ -15,6 +15,7 @@
 #include <mruby/numeric.h>
 #include <mruby/string.h>
 #include <mruby/debug.h>
+#include <mruby/presym.h>
 #include "node.h"
 #include <mruby/opcode.h>
 #include <mruby/re.h>
