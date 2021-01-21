@@ -1435,12 +1435,21 @@ heredoc_end(parser_state *p)
         keyword__FILE__
         keyword__ENCODING__
 
-%token <id>  tIDENTIFIER tFID tGVAR tIVAR tCONSTANT tCVAR tLABEL_TAG
-%token <nd>  tINTEGER tFLOAT tCHAR tXSTRING tREGEXP
+%token <id>  tIDENTIFIER "local variable or method"
+%token <id>  tFID "method"
+%token <id>  tGVAR "global variable"
+%token <id>  tIVAR "instance variable"
+%token <id>  tCONSTANT "constant"
+%token <id>  tCVAR "class variable"
+%token <id>  tLABEL_TAG "label"
+%token <nd>  tINTEGER "integer literal"
+%token <nd>  tFLOAT "float literal"
+%token <nd>  tCHAR "character literal"
+%token <nd>  tXSTRING tREGEXP
 %token <nd>  tSTRING tSTRING_PART tSTRING_MID
 %token <nd>  tNTH_REF tBACK_REF
 %token <num> tREGEXP_END
-%token <num> tNUMPARAM
+%token <num> tNUMPARAM "numbered paraemeter"
 
 %type <nd> singleton string string_fragment string_rep string_interp xstring regexp
 %type <nd> literal numeric cpath symbol defn_head defs_head
@@ -1468,39 +1477,41 @@ heredoc_end(parser_state *p)
 %type <nd> f_block_kwarg f_block_kw block_args_tail opt_block_args_tail
 %type <id> f_label
 
-%token tUPLUS             /* unary+ */
-%token tUMINUS            /* unary- */
-%token tPOW               /* ** */
-%token tCMP               /* <=> */
-%token tEQ                /* == */
-%token tEQQ               /* === */
-%token tNEQ               /* != */
-%token tGEQ               /* >= */
-%token tLEQ               /* <= */
-%token tANDOP tOROP       /* && and || */
-%token tMATCH tNMATCH     /* =~ and !~ */
-%token tDOT2 tDOT3        /* .. and ... */
+%token tUPLUS             "unary plus"
+%token tUMINUS            "unary minus"
+%token tCMP               "<=>"
+%token tEQ                "=="
+%token tEQQ               "==="
+%token tNEQ               "!="
+%token tGEQ               ">="
+%token tLEQ               "<="
+%token tANDOP             "&&"
+%token tOROP              "||"
+%token tMATCH             "=~"
+%token tNMATCH            "!~"
+%token tDOT2              ".."
+%token tDOT3              "..."
 %token tBDOT2 tBDOT3      /* (.. and (... */
 %token tAREF tASET        /* [] and []= */
-%token tLSHFT tRSHFT      /* << and >> */
-%token tCOLON2            /* :: */
+%token tLSHFT             "<<"
+%token tRSHFT             ">>"
+%token tCOLON2            "::"
 %token tCOLON3            /* :: at EXPR_BEG */
 %token <id> tOP_ASGN      /* +=, -=  etc. */
-%token tASSOC             /* => */
-%token tLPAREN            /* ( */
-%token tLPAREN_ARG        /* ( */
-%token tRPAREN            /* ) */
-%token tLBRACK            /* [ */
-%token tLBRACE            /* { */
-%token tLBRACE_ARG        /* { */
-%token tSTAR              /* * */
-%token tDSTAR             /* ** */
-%token tAMPER             /* & */
-%token tLAMBDA            /* -> */
-%token tANDDOT            /* &. */
-%token tSYMBEG tREGEXP_BEG tWORDS_BEG tSYMBOLS_BEG
-%token tSTRING_BEG tXSTRING_BEG tSTRING_DVAR tLAMBEG
-%token <nd> tHEREDOC_BEG  /* <<, <<-, <<~ */
+%token tASSOC             "=>"
+%token tLPAREN tLPAREN_ARG "("
+%token tRPAREN            ")"
+%token tLBRACK            "["
+%token tLBRACE tLBRACE_ARG "{"
+%token tSTAR              "*"
+%token tPOW tDSTAR        "**"
+%token tAMPER             "&"
+%token tLAMBDA            "->"
+%token tANDDOT            "&."
+%token tSYMBEG "symbol"
+%token tSTRING_BEG "string literal"
+%token tXSTRING_BEG tSTRING_DVAR tREGEXP_BEG tWORDS_BEG tSYMBOLS_BEG tLAMBEG
+%token <nd> tHEREDOC_BEG  "here document"
 %token tHEREDOC_END tLITERAL_DELIM tHD_LITERAL_DELIM
 %token <nd> tHD_STRING_PART tHD_STRING_MID
 
