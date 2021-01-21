@@ -6308,7 +6308,7 @@ parser_yylex(parser_state *p)
       break;
 
     case '_':
-      if (toklen(p) == 2 && ISDIGIT(tok(p)[1]) && p->nvars) {
+      if (p->lstate != EXPR_FNAME && toklen(p) == 2 && ISDIGIT(tok(p)[1]) && p->nvars) {
         int n = tok(p)[1] - '0';
         int nvar;
 
