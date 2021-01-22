@@ -14,7 +14,6 @@
 #include <mruby/error.h>
 #include <mruby/numeric.h>
 #include <mruby/data.h>
-#include <mruby/presym.h>
 
 struct backtrace_location {
   int32_t lineno;

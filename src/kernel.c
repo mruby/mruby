@@ -13,7 +13,6 @@
 #include <mruby/variable.h>
 #include <mruby/error.h>
 #include <mruby/istruct.h>
-#include <mruby/presym.h>
 
 MRB_API mrb_bool
 mrb_func_basic_p(mrb_state *mrb, mrb_value obj, mrb_sym mid, mrb_func_t func)

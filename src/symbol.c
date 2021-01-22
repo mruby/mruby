@@ -11,7 +11,6 @@
 #include <mruby/string.h>
 #include <mruby/dump.h>
 #include <mruby/class.h>
-#include <mruby/presym.h>
 
 #ifndef MRB_NO_PRESYM
 

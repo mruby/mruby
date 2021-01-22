@@ -5,7 +5,6 @@
 #include "mruby/proc.h"
 #include "mruby/class.h"
 #include "mruby/string.h"
-#include "mruby/presym.h"
 
 typedef enum {
   NOEX_PUBLIC    = 0x00,

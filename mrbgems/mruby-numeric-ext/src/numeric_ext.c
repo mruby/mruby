@@ -1,7 +1,6 @@
 #include <limits.h>
 #include <mruby.h>
 #include <mruby/numeric.h>
-#include <mruby/presym.h>
 
 /*
  *  call-seq:

@@ -42,7 +42,6 @@
 #include "mruby/string.h"
 #include "mruby/variable.h"
 #include "mruby/error.h"
-#include "mruby/presym.h"
 
 #include "mruby/ext/io.h"
 

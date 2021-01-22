@@ -11,7 +11,6 @@
 #endif
 
 #include <mruby/array.h>
-#include <mruby/presym.h>
 #include <math.h>
 
 static void

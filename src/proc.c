@@ -9,7 +9,6 @@
 #include <mruby/proc.h>
 #include <mruby/opcode.h>
 #include <mruby/data.h>
-#include <mruby/presym.h>
 
 static const mrb_code call_iseq[] = {
   OP_CALL,

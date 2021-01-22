@@ -11,7 +11,6 @@
 #include <mruby/hash.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>
-#include <mruby/presym.h>
 
 /*
  * === Glossary

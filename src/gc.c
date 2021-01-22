@@ -22,7 +22,6 @@
 #include <mruby/gc.h>
 #include <mruby/error.h>
 #include <mruby/throw.h>
-#include <mruby/presym.h>
 
 /*
   = Tri-color Incremental Garbage Collection

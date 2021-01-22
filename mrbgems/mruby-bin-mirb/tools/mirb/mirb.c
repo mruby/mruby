@@ -18,7 +18,6 @@
 #include <mruby/dump.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>
-#include <mruby/presym.h>
 
 #include <stdlib.h>
 #include <string.h>
