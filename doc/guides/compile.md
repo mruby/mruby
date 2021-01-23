@@ -36,7 +36,7 @@ variable (you can use `CONFIG` for shorthand for `MRUBY_CONFIG`). If the path
 doesn't exist, *build_config/${MRUBY_CONFIG}.rb* is used. The default
 configuration is defined in the `build_config/default.rb` file.
 
-Those build configuration files contain the build configurationof mruby, for
+Those build configuration files contain the build configuration of mruby, for
 example:
 
 ```ruby
