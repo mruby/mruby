@@ -31,7 +31,7 @@ inside of the mruby source root. To generate and execute the test tools call
 `rake test`. To clean all build files call `rake clean`. To see full command
 line on build, call `rake -v`.
 
-You can specify your owne configuration file by the `MRUBY_CONFIG` environment
+You can specify your own configuration file by the `MRUBY_CONFIG` environment
 variable (you can use `CONFIG` for shorthand for `MRUBY_CONFIG`). If the path
 doesn't exist, *build_config/${MRUBY_CONFIG}.rb* is used. The default
 configuration is defined in the `build_config/default.rb` file.
