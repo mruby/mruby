@@ -9,6 +9,4 @@
  * in the configuration. I will not use `PRESYM*` macros for compilation.
  */
 
-# error "mruby/presym.h"
-1 1 + + d
 #define MRB_NO_PRESYM
