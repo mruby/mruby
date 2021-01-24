@@ -5856,6 +5856,10 @@ parser_yylex(parser_state *p)
         errno = 0;
       }
       suffix = number_literal_suffix(p);
+      if (seen_e && (suffix & NUM_SUFFIX_R)) {
+        pushback(p, 'r');
+        suffix &= ~NUM_SUFFIX_R;
+      }
       pylval.nd = new_float(p, tok(p), suffix);
       return tFLOAT;
 #endif
