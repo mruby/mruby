@@ -70,19 +70,36 @@ rational_denominator(mrb_state *mrb, mrb_value self)
   return mrb_int_value(mrb, p->denominator);
 }
 
+static void
+rat_overflow(mrb_state *mrb)
+{
+  mrb_raise(mrb, E_RANGE_ERROR, "integer overflow in rational");
+}
+
+static void
+rat_zerodiv(mrb_state *mrb)
+{
+  mrb_raise(mrb, E_ZERODIV_ERROR, "divided by 0 in rational");
+}
+
 static mrb_value
 rational_new(mrb_state *mrb, mrb_int numerator, mrb_int denominator)
 {
   struct RClass *c = mrb_class_get_id(mrb, MRB_SYM(Rational));
   struct mrb_rational *p;
-  struct RBasic *rat = rational_alloc(mrb, c, &p);
+  struct RBasic *rat;
+
+  if (denominator == 0) {
+    rat_zerodiv(mrb);
+  }
   if (denominator < 0) {
     if (numerator == MRB_INT_MIN || denominator == MRB_INT_MIN) {
-      mrb_raise(mrb, E_RANGE_ERROR, "integer overflow in rational");
+      rat_overflow(mrb);
     }
     numerator *= -1;
     denominator *= -1;
   }
+  rat = rational_alloc(mrb, c, &p);
   p->numerator = numerator;
   p->denominator = denominator;
   MRB_SET_FROZEN_FLAG(rat);
@@ -136,11 +153,11 @@ rational_new_i(mrb_state *mrb, mrb_int n, mrb_int d)
   mrb_int a;
 
   if (d == 0) {
-    mrb_raise(mrb, E_ZERODIV_ERROR, "divided by 0 in rational");
+    rat_zerodiv(mrb);
   }
   a = i_gcd(n, d);
   if ((n == MRB_INT_MIN || d == MRB_INT_MIN) && a == -1) {
-    mrb_raise(mrb, E_RANGE_ERROR, "integer overflow in rational");
+    rat_overflow(mrb);
   }
   return rational_new(mrb, n/a, d/a);
 }
@@ -152,12 +169,13 @@ rational_new_i(mrb_state *mrb, mrb_int n, mrb_int d)
 #define frexp_rat frexpf
 #define ldexp_rat ldexpf
 #define RAT_MANT_DIG FLT_MANT_DIG
-#define RAT_INT_LIMIT 30
+#define RAT_HUGE_VAL HUGE_VALF
 #else
 #define frexp_rat frexp
 #define ldexp_rat ldexp
 #define RAT_MANT_DIG DBL_MANT_DIG
 #define RAT_INT_LIMIT 62
+#define RAT_HUGE_VAL HUGE_VAL
 #endif
 
 static void
@@ -182,10 +200,15 @@ rational_new_f(mrb_state *mrb, mrb_float f0)
 #if FLT_RADIX == 2
   if (n == 0)
     return rational_new(mrb, (mrb_int)f, 1);
-  if (n > 0)
+  if (n > 0) {
+    f = ldexp_rat(f, n);
+    if (f == RAT_HUGE_VAL || f > (mrb_float)MRB_INT_MAX) {
+      rat_overflow(mrb);
+    }
     return rational_new(mrb, ((mrb_int)f)<<n, 1);
+  }
   if (n < -RAT_INT_LIMIT) {
-    f = ldexp(f, n+RAT_INT_LIMIT);
+    f = ldexp_rat(f, n+RAT_INT_LIMIT);
     n = RAT_INT_LIMIT;
   }
   else {
@@ -207,6 +230,9 @@ rational_new_f(mrb_state *mrb, mrb_float f0)
   }
   else {
     while (n--) {
+      if (MRB_INT_MAX/FLT_RADIX < pow) {
+        rat_overflow(mrb);
+      }
       pow *= FLT_RADIX;
     }
     return rational_new(mrb, (mrb_int)f*pow, 1);
@@ -279,7 +305,7 @@ rational_to_i(mrb_state *mrb, mrb_value self)
 {
   struct mrb_rational *p = rational_ptr(mrb, self);
   if (p->denominator == 0) {
-    mrb_raise(mrb, mrb->eStandardError_class, "divided by 0");
+    rat_zerodiv(mrb);
   }
   return mrb_int_value(mrb, p->numerator / p->denominator);
 }
