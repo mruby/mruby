@@ -34,7 +34,7 @@ presym_find(const char *name, size_t len)
   int cmp;
   for (start = 0; presym_size != 0; presym_size/=2) {
     idx = start+presym_size/2;
-    cmp = len-presym_table[idx].len;
+    cmp = (int)(len-presym_table[idx].len);
     if (cmp == 0) {
       cmp = memcmp(name, presym_table[idx].name, len);
       if (cmp == 0) return idx+1;
