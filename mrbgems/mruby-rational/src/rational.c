@@ -183,6 +183,7 @@ static void
 float_decode_internal(mrb_state *mrb, mrb_float f, mrb_float *rf, int *n)
 {
   f = (mrb_float)frexp_rat(f, n);
+  if (isinf(f)) rat_overflow(mrb);
   f = (mrb_float)ldexp_rat(f, RAT_MANT_DIG);
   *n -= RAT_MANT_DIG;
   *rf = f;
