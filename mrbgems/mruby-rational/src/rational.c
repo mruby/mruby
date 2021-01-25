@@ -169,7 +169,7 @@ rational_new_i(mrb_state *mrb, mrb_int n, mrb_int d)
 #define frexp_rat frexpf
 #define ldexp_rat ldexpf
 #define RAT_MANT_DIG FLT_MANT_DIG
-#define RAT_INT_LIMIT 62
+#define RAT_INT_LIMIT 30
 #define RAT_HUGE_VAL HUGE_VALF
 #else
 #define frexp_rat frexp
