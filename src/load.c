@@ -529,7 +529,7 @@ read_binary_header(const uint8_t *bin, size_t bufsize, size_t *bin_size, uint8_t
     return MRB_DUMP_INVALID_FILE_HEADER;
   }
   /* if minor version is different, we can accept the older version */
-  if (memcmp(header->minor_version, RITE_BINARY_MINOR_VER, sizeof(header->minor_version)) <= 0) {
+  if (memcmp(header->minor_version, RITE_BINARY_MINOR_VER, sizeof(header->minor_version)) > 0) {
     return MRB_DUMP_INVALID_FILE_HEADER;
   }
 
