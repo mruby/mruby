@@ -10,7 +10,7 @@ To compile mruby out of the source code you need the following tools:
 * C Compiler (e.g. `gcc` or `clang`)
 * Linker (e.g. `gcc` or `clang`)
 * Archive utility (e.g. `ar`)
-* Parser generator (e.g. `bison`)
+* Parser generator (`bison`)
 * Ruby 2.0 or later (e.g. `ruby` or `jruby`)
 
 Note that `bison` bundled with MacOS is too old to compile `mruby`.
@@ -22,7 +22,6 @@ Optional:
 
 * git (to update mruby source and integrate mrbgems easier)
 * C++ compiler (to use GEMs which include \*.cpp, \*.cxx, \*.cc)
-* Assembler (to use GEMs which include \*.asm)
 
 ## Build
 
@@ -41,7 +40,7 @@ example:
 
 ```ruby
 MRuby::Build.new do |conf|
-  toolchain :gcc
+  conf.toolchain :gcc
 end
 ```
 
@@ -65,7 +64,7 @@ configure the build environment for specific compiler infrastructures.
 Toolchain configuration for the GNU C Compiler.
 
 ```ruby
-toolchain :gcc
+conf.toolchain :gcc
 ```
 
 #### clang
@@ -74,7 +73,7 @@ Toolchain configuration for the LLVM C Compiler clang. Mainly equal to the
 GCC toolchain.
 
 ```ruby
-toolchain :clang
+conf.toolchain :clang
 ```
 
 #### Visual Studio 2010, 2012 and 2013
@@ -84,7 +83,7 @@ Toolchain configuration for Visual Studio on Windows. If you use the
 you normally do not have to specify this manually, since it gets automatically detected by our build process.
 
 ```ruby
-toolchain :visualcpp
+conf.toolchain :visualcpp
 ```
 
 #### Android
@@ -92,7 +91,7 @@ toolchain :visualcpp
 Toolchain configuration for Android.
 
 ```ruby
-toolchain :android
+conf.toolchain :android
 ```
 
 Requires the custom standalone Android NDK and the toolchain path
@@ -338,7 +337,7 @@ for the target platform. An example could look like this:
 
 ```ruby
 MRuby::CrossBuild.new('32bit') do |conf|
-  toolchain :gcc
+  conf.toolchain :gcc
 
   conf.cc.flags << "-m32"
   conf.linker.flags << "-m32"
@@ -537,3 +536,37 @@ of mruby, a native binary called `mrbtest` will be generated and executed.
 This binary contains all test cases which are defined under *test/t*. In case
 of a cross-compilation an additional cross-compiled *mrbtest* binary is
 generated. You can copy this binary and run on your target system.
+
+## Embedding `mruby` in Your Application
+
+After the build, you will get `libmruby.a`. You can link it to your application.
+
+For compiler options and library path, you can use `mruby-config` command for
+convenience. `mruby-config` command prints the configuration used for `libmruby.a`.
+
+```
+$ mruby-config --help
+Usage: mruby-config [switches]
+  switches:
+  --cflags                    print flags passed to compiler
+  --ldflags                   print flags passed to linker
+  --ldflags-before-libs       print flags passed to linker before linked libraries
+  --libs                      print linked libraries
+  --libmruby-path             print libmruby path
+```
+
+For example, when you have a C source file (`c.c`) and try to
+compile and link it with `libmruby.a`, you can run the following command,
+
+```
+gcc `mruby-config --cflags` c.c `mruby-config --ldflags` `mruby-config --libs`
+```
+
+When you use `make`, add following lines in `Makefile`
+
+```
+MRB_CONFIG = <path-to-mruby-config>
+CFLAGS = `$(MRB_CONFIG) --cflags`
+LDFLAGS = `$(MRB_CONFIG) --ldflags`
+LIBS = `$(MRB_CONFIG) --libs`
+```
