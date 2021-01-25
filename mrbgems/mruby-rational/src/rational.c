@@ -166,8 +166,8 @@ rational_new_i(mrb_state *mrb, mrb_int n, mrb_int d)
 #include <math.h>
 
 #if defined(MRB_INT32) || defined(MRB_USE_FLOAT32)
-#define frexp_rat frexpf
-#define ldexp_rat ldexpf
+#define frexp_rat(x,exp) frexpf((float)x, exp)
+#define ldexp_rat(x,exp) ldexpf((float)x, exp)
 #define RAT_MANT_DIG FLT_MANT_DIG
 #define RAT_INT_LIMIT 30
 #define RAT_HUGE_VAL HUGE_VALF

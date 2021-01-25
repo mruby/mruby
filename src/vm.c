@@ -279,8 +279,8 @@ cipush(mrb_state *mrb, mrb_int push_stacks, mrb_int acc,
   ci->mid = mid;
   mrb_vm_ci_proc_set(ci, proc);
   ci->stack = ci[-1].stack + push_stacks;
-  ci->argc = argc;
-  ci->acc = acc;
+  ci->argc = (int16_t)argc;
+  ci->acc = (int16_t)acc;
   ci->u.target_class = target_class;
 
   return ci;
@@ -1282,7 +1282,7 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_JMPUW, S) {
-      a = (pc - irep->iseq) + (int16_t)a;
+      a = (uint32_t)((pc - irep->iseq) + (int16_t)a);
       CHECKPOINT_RESTORE(RBREAK_TAG_JUMP) {
         struct RBreak *brk = (struct RBreak*)mrb->exc;
         mrb_value target = mrb_break_value_get(brk);
@@ -1855,7 +1855,7 @@ RETRY_TRY_BLOCK:
       }
 
       /* format arguments for generated code */
-      mrb->c->ci->argc = len + kd;
+      mrb->c->ci->argc = (int16_t)(len + kd);
 
       /* clear local (but non-argument) variables */
       if (irep->nlocals-blk_pos-1 > 0) {

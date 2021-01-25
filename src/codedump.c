@@ -42,7 +42,7 @@ print_lv_ab(mrb_state *mrb, const mrb_irep *irep, uint16_t a, uint16_t b)
 }
 
 static void
-print_header(mrb_state *mrb, const mrb_irep *irep, ptrdiff_t i)
+print_header(mrb_state *mrb, const mrb_irep *irep, uint32_t i)
 {
   int32_t line;
 
@@ -120,12 +120,12 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
     ai = mrb_gc_arena_save(mrb);
 
     i = pc - irep->iseq;
-    next_file = mrb_debug_get_filename(mrb, irep, i);
+    next_file = mrb_debug_get_filename(mrb, irep, (uint32_t)i);
     if (next_file && file != next_file) {
       printf("file: %s\n", next_file);
       file = next_file;
     }
-    print_header(mrb, irep, i);
+    print_header(mrb, irep, (uint32_t)i);
     ins = READ_B();
     switch (ins) {
     CASE(OP_NOP, Z);
