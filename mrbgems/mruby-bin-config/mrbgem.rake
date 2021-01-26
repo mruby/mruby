@@ -7,7 +7,7 @@ MRuby::Gem::Specification.new('mruby-bin-config') do |spec|
   spec.summary = "#{name} command"
 
   if iscross
-    mruby_config_dir = "#{build.build_dir}/host/bin"
+    mruby_config_dir = "#{build.build_dir}/host-bin"
   else
     mruby_config_dir = "#{build.build_dir}/bin"
   end
@@ -28,7 +28,6 @@ MRuby::Gem::Specification.new('mruby-bin-config') do |spec|
     config = Hash[File.readlines(make_cfg).map!(&:chomp).map! {|l|
       l.gsub('\\"', '"').split(' = ', 2).map! {|s| s.sub(/^(?=.)/, 'echo ')}
     }]
-    pp config
     tmplt = File.read(tmplt_path)
     File.write(t.name, tmplt.gsub(/(#{Regexp.union(*config.keys)})\b/, config))
     chmod(0755, t.name)
