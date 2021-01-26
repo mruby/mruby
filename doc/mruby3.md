@@ -8,6 +8,7 @@ User visible changes in `mruby3`
 Typical build configuration files are located in `build_config`
 directory. For examples:
 
+* `default`: the default configuration
 * `host-gprof`: compiles with `gprof` for performance tuning
 * `host-m32`: compiles in gcc 32bit mode on 64bit platforms
 * `boxing`: compiles all three boxing options
@@ -128,6 +129,10 @@ Renamed from `OP_RAISE`
 
 * `OP_RAISEIF`
 
+Instruction that is reserved for the future keyword argument support.
+
+* OP_SENDVK
+
 ## Removed Instructions
 
 Instructions for old exception handling
@@ -150,3 +155,9 @@ Jump addresses used to be specified by absolute offset from the start of `iseq`.
 ## `Random` now use `xoshiro128++`.
 
 For better and faster random number generation.
+
+## Preallocated Symnol
+
+Preallocated symbols are interned at compile-time. They can be accessed via symbols macros (e.g. `MRB_SYM()`).
+
+See [Symbols](https://github.com/mruby/mruby/blob/master/doc/guides/symbol.md).
