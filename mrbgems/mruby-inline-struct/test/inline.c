@@ -2,6 +2,7 @@
 #include <mruby/class.h>
 #include <mruby/string.h>
 #include <mruby/istruct.h>
+#include <mruby/presym.h>
 
 static mrb_value
 istruct_test_initialize(mrb_state *mrb, mrb_value self)

@@ -1305,31 +1305,28 @@ MRB_API mrb_value mrb_vformat(mrb_state *mrb, const char *format, va_list ap);
 */
 #ifdef MRB_SYM
 /* mruby/presym.h is included earlier */
-# define MRB_E_SYM(sym) MRB_SYM(sym)
+# define MRB_EXC_GET(name) mrb_exc_get_id(mrb, MRB_SYM(name))
 #else
-# define MRB_E_SYM(sym) mrb_intern_lit(mrb, #sym)
+# define MRB_EXC_GET(name) mrb_exc_get_id(mrb, mrb_intern_lit(mrb, #name))
 #endif
-
-#define E_RUNTIME_ERROR      mrb_exc_get_id(mrb, mrb_intern_lit(mrb, "RuntimeError"))
-#define E_TYPE_ERROR         mrb_exc_get_id(mrb, mrb_intern_lit(mrb, "TypeError"))
-#define E_ZERODIV_ERROR      mrb_exc_get_id(mrb, mrb_intern_lit(mrb, "ZeroDivisionError"))
-#define E_ARGUMENT_ERROR     mrb_exc_get_id(mrb, mrb_intern_lit(mrb, "ArgumentError"))
-#define E_INDEX_ERROR        mrb_exc_get_id(mrb, mrb_intern_lit(mrb, "IndexError"))
-#define E_RANGE_ERROR        mrb_exc_get_id(mrb, mrb_intern_lit(mrb, "RangeError"))
-#define E_NAME_ERROR         mrb_exc_get_id(mrb, mrb_intern_lit(mrb, "NameError"))
-#define E_NOMETHOD_ERROR     mrb_exc_get_id(mrb, mrb_intern_lit(mrb, "NoMethodError"))
-#define E_SCRIPT_ERROR       mrb_exc_get_id(mrb, mrb_intern_lit(mrb, "ScriptError"))
-#define E_SYNTAX_ERROR       mrb_exc_get_id(mrb, mrb_intern_lit(mrb, "SyntaxError"))
-#define E_LOCALJUMP_ERROR    mrb_exc_get_id(mrb, mrb_intern_lit(mrb, "LocalJumpError"))
-#define E_REGEXP_ERROR       mrb_exc_get_id(mrb, mrb_intern_lit(mrb, "RegexpError"))
-#define E_FROZEN_ERROR       mrb_exc_get_id(mrb, mrb_intern_lit(mrb, "FrozenError"))
-
-#define E_NOTIMP_ERROR       mrb_exc_get_id(mrb, mrb_intern_lit(mrb, "NotImplementedError"))
+#define E_RUNTIME_ERROR      MRB_EXC_GET(RuntimeError)
+#define E_TYPE_ERROR         MRB_EXC_GET(TypeError)
+#define E_ZERODIV_ERROR      MRB_EXC_GET(ZeroDivisionError)
+#define E_ARGUMENT_ERROR     MRB_EXC_GET(ArgumentError)
+#define E_INDEX_ERROR        MRB_EXC_GET(IndexError)
+#define E_RANGE_ERROR        MRB_EXC_GET(RangeError)
+#define E_NAME_ERROR         MRB_EXC_GET(NameError)
+#define E_NOMETHOD_ERROR     MRB_EXC_GET(NoMethodError)
+#define E_SCRIPT_ERROR       MRB_EXC_GET(ScriptError)
+#define E_SYNTAX_ERROR       MRB_EXC_GET(SyntaxError)
+#define E_LOCALJUMP_ERROR    MRB_EXC_GET(LocalJumpError)
+#define E_REGEXP_ERROR       MRB_EXC_GET(RegexpError)
+#define E_FROZEN_ERROR       MRB_EXC_GET(FrozenError)
+#define E_NOTIMP_ERROR       MRB_EXC_GET(NotImplementedError)
+#define E_KEY_ERROR          MRB_EXC_GET(KeyError)
 #ifndef MRB_NO_FLOAT
-#define E_FLOATDOMAIN_ERROR  mrb_exc_get_id(mrb, mrb_intern_lit(mrb, "FloatDomainError"))
+# define E_FLOATDOMAIN_ERROR  MRB_EXC_GET(FloatDomainError)
 #endif
-
-#define E_KEY_ERROR          mrb_exc_get_id(mrb, mrb_intern_lit(mrb, "KeyError"))
 
 MRB_API mrb_value mrb_yield(mrb_state *mrb, mrb_value b, mrb_value arg);
 MRB_API mrb_value mrb_yield_argv(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv);
@@ -1396,7 +1393,7 @@ MRB_API mrb_value mrb_fiber_alive_p(mrb_state *mrb, mrb_value fib);
  *
  * Implemented in mruby-fiber
  */
-#define E_FIBER_ERROR mrb_exc_get_id(mrb, mrb_intern_lit(mrb, "FiberError"))
+#define E_FIBER_ERROR MRB_EXC_GET(FiberError)
 MRB_API void mrb_stack_extend(mrb_state*, mrb_int);
 
 /* memory pool implementation */

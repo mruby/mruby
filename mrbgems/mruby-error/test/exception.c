@@ -1,6 +1,7 @@
 #include <mruby.h>
 #include <mruby/error.h>
 #include <mruby/array.h>
+#include <mruby/presym.h>
 
 static mrb_value
 protect_cb(mrb_state *mrb, mrb_value b)

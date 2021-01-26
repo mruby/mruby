@@ -36,7 +36,8 @@
     #include <sys/time.h>
 #endif
 
-#include "mruby.h"
+#include <mruby.h>
+#include <mruby/presym.h>
 
 /* not implemented forever sleep (called without an argument)*/
 static mrb_value

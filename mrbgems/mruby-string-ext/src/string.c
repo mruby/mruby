@@ -4,6 +4,7 @@
 #include <mruby/class.h>
 #include <mruby/string.h>
 #include <mruby/range.h>
+#include <mruby/presym.h>
 
 #define ENC_ASCII_8BIT "ASCII-8BIT"
 #define ENC_BINARY     "BINARY"

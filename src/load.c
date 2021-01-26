@@ -16,6 +16,7 @@
 #include <mruby/error.h>
 #include <mruby/data.h>
 #include <mruby/endian.h>
+#include <mruby/presym.h>
 
 #if SIZE_MAX < UINT32_MAX
 # error size_t must be at least 32 bits wide
