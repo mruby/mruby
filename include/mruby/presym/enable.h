@@ -38,4 +38,8 @@ enum mruby_presym {
   static const mrb_sym name[] = {__VA_ARGS__};                                \
   static void init_##name(mrb_state *mrb) {}
 
+/* use MRB_SYM() for E_RUNTIME_ERROR etc. */
+# undef MRB_E_SYM
+# define MRB_E_SYM(sym) MRB_SYM(sym)
+
 #endif  /* MRUBY_PRESYM_ENABLE_H */

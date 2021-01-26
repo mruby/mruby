@@ -1303,6 +1303,13 @@ MRB_API mrb_value mrb_vformat(mrb_state *mrb, const char *format, va_list ap);
    + those E_* macros requires mrb_state* variable named mrb.
    + exception objects obtained from those macros are local to mrb
 */
+#ifdef MRB_SYM
+/* mruby/presym.h is included earlier */
+# define MRB_E_SYM(sym) MRB_SYM(sym)
+#else
+# define MRB_E_SYM(sym) mrb_intern_lit(mrb, #sym)
+#endif
+
 #define E_RUNTIME_ERROR      mrb_exc_get_id(mrb, mrb_intern_lit(mrb, "RuntimeError"))
 #define E_TYPE_ERROR         mrb_exc_get_id(mrb, mrb_intern_lit(mrb, "TypeError"))
 #define E_ZERODIV_ERROR      mrb_exc_get_id(mrb, mrb_intern_lit(mrb, "ZeroDivisionError"))
