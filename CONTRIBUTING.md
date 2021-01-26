@@ -1,6 +1,7 @@
 # How to contribute
 
 mruby is an open-source project which is looking forward to each contribution.
+Contributors agree to license their contribution(s) under MIT license.
 
 ## Your Pull Request
 
@@ -47,11 +48,13 @@ on-demand.
 
 #### Insert a break after the function return value:
 
+    ```C
     int
     main(void)
     {
       ...
     }
+    ```
 
 ### Ruby code
 
