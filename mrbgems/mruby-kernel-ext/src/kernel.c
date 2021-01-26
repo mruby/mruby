@@ -3,6 +3,7 @@
 #include <mruby/array.h>
 #include <mruby/hash.h>
 #include <mruby/range.h>
+#include <mruby/presym.h>
 
 static mrb_value
 mrb_f_caller(mrb_state *mrb, mrb_value self)

@@ -4,6 +4,7 @@
 #include "mruby/variable.h"
 #include "mruby/proc.h"
 #include "mruby/string.h"
+#include "mruby/presym.h"
 
 static struct RObject *
 method_object_alloc(mrb_state *mrb, struct RClass *mclass)

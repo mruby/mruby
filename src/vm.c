@@ -24,6 +24,7 @@
 #include "value_array.h"
 #include <mruby/throw.h>
 #include <mruby/dump.h>
+#include <mruby/presym.h>
 
 #ifdef MRB_NO_STDIO
 #if defined(__cplusplus)

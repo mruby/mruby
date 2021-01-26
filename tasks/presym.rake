@@ -13,8 +13,8 @@ MRuby.each_target do |build|
   presym = build.presym
 
   include_dir = "#{build.build_dir}/include"
-  build.compilers.each{|c| c.include_paths.unshift include_dir}
-  build.gems.each{|gem| gem.compilers.each{|c| c.include_paths.unshift include_dir}}
+  build.compilers.each{|c| c.include_paths << include_dir}
+  build.gems.each{|gem| gem.compilers.each{|c| c.include_paths << include_dir}}
 
   prereqs = {}
   pps = []

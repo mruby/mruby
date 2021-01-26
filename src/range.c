@@ -9,6 +9,7 @@
 #include <mruby/range.h>
 #include <mruby/string.h>
 #include <mruby/array.h>
+#include <mruby/presym.h>
 
 #define RANGE_INITIALIZED_MASK 1
 #define RANGE_INITIALIZED(p) ((p)->flags |= RANGE_INITIALIZED_MASK)
