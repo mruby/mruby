@@ -90,11 +90,11 @@ module MRuby
     def write_table_header(presyms)
       _pp "GEN", table_header_path.relative_path
       File.open(table_header_path, "w:binary") do |f|
-        f.puts "const uint16_t presym_length_table[] = {"
+        f.puts "static const uint16_t presym_length_table[] = {"
         presyms.each{|sym| f.puts "  #{sym.bytesize},"}
         f.puts "};"
         f.puts
-        f.puts "const char * const presym_name_table[] = {"
+        f.puts "static const char * const presym_name_table[] = {"
         presyms.each{|sym| f.puts %|  "#{sym}",|}
         f.puts "};"
       end
