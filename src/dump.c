@@ -1036,14 +1036,16 @@ sym_name_cvar_p(const char *name, mrb_int len)
 static const char*
 sym_operator_name(const char *sym_name, mrb_int len)
 {
-  mrb_sym start, idx;
   mrb_sym table_size = sizeof(operator_table)/sizeof(struct operator_symbol);
+  if (operator_table[table_size-1].sym_name_len < len) return NULL;
+
+  mrb_sym start, idx;
   int cmp;
   const struct operator_symbol *op_sym;
   for (start = 0; table_size != 0; table_size/=2) {
     idx = start+table_size/2;
     op_sym = &operator_table[idx];
-    cmp = (int)(len-op_sym->sym_name_len);
+    cmp = (int)len-(int)op_sym->sym_name_len;
     if (cmp == 0) {
       cmp = memcmp(sym_name, op_sym->sym_name, len);
       if (cmp == 0) return op_sym->name;
