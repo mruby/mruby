@@ -67,25 +67,36 @@ module MRuby
       File.binwrite(list_path, presyms.join("\n") << "\n")
     end
 
-    def write_header(presyms)
+    def write_id_header(presyms)
       prefix_re = Regexp.union(*SYMBOL_TO_MACRO.keys.map(&:first).uniq)
       suffix_re = Regexp.union(*SYMBOL_TO_MACRO.keys.map(&:last).uniq)
       sym_re = /\A(#{prefix_re})?([\w&&\D]\w*)(#{suffix_re})?\z/o
-      _pp "GEN", header_path.relative_path
-      mkdir_p(File.dirname(header_path))
-      File.open(header_path, "w:binary") do |f|
-        f.puts "/* MRB_PRESYM_NAMED(lit, num, type, name) */"
-        f.puts "/* MRB_PRESYM_UNNAMED(lit, num) */"
+      _pp "GEN", id_header_path.relative_path
+      File.open(id_header_path, "w:binary") do |f|
+        f.puts "enum mruby_presym {"
         presyms.each.with_index(1) do |sym, num|
           if sym_re =~ sym && (affixes = SYMBOL_TO_MACRO[[$1, $3]])
-            f.puts %|MRB_PRESYM_NAMED("#{sym}", #{num}, #{affixes * 'SYM'}, #{$2})|
+            f.puts "  MRB_#{affixes * 'SYM'}__#{$2} = #{num},"
           elsif name = OPERATORS[sym]
-            f.puts %|MRB_PRESYM_NAMED("#{sym}", #{num}, OPSYM, #{name})|
-          elsif
-            f.puts %|MRB_PRESYM_UNNAMED("#{sym}", #{num})|
+            f.puts "  MRB_OPSYM__#{name} = #{num},"
           end
         end
+        f.puts "};"
+        f.puts
         f.puts "#define MRB_PRESYM_MAX #{presyms.size}"
+      end
+    end
+
+    def write_table_header(presyms)
+      _pp "GEN", table_header_path.relative_path
+      File.open(table_header_path, "w:binary") do |f|
+        f.puts "const uint16_t presym_length_table[] = {"
+        presyms.each{|sym| f.puts "  #{sym.bytesize},"}
+        f.puts "};"
+        f.puts
+        f.puts "const char * const presym_name_table[] = {"
+        presyms.each{|sym| f.puts %|  "#{sym}",|}
+        f.puts "};"
       end
     end
 
@@ -93,8 +104,16 @@ module MRuby
       @list_pat ||= "#{@build.build_dir}/presym".freeze
     end
 
-    def header_path
-      @header_path ||= "#{@build.build_dir}/include/mruby/presym.inc".freeze
+    def header_dir;
+      @header_dir ||= "#{@build.build_dir}/include/mruby/presym".freeze
+    end
+
+    def id_header_path
+      @id_header_path ||= "#{header_dir}/id.h".freeze
+    end
+
+    def table_header_path
+      @table_header_path ||= "#{header_dir}/table.h".freeze
     end
 
     private

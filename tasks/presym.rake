@@ -33,7 +33,11 @@ MRuby.each_target do |build|
     current_presyms = presym.read_list if File.exist?(presym.list_path)
     update = presyms != current_presyms
     presym.write_list(presyms) if update
-    presym.write_header(presyms) if update || !File.exist?(presym.header_path)
+    mkdir_p presym.header_dir
+    %w[id table].each do |type|
+      next if !update && File.exist?(presym.send("#{type}_header_path"))
+      presym.send("write_#{type}_header", presyms)
+    end
   end
 
   gensym_task.enhance([presym.list_path])
