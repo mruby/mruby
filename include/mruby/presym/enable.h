@@ -7,16 +7,7 @@
 #ifndef MRUBY_PRESYM_ENABLE_H
 #define MRUBY_PRESYM_ENABLE_H
 
-#undef MRB_PRESYM_MAX
-#define MRB_PRESYM_NAMED(lit, num, type, name) MRB_##type##__##name = (num),
-#define MRB_PRESYM_UNNAMED(lit, num)
-
-enum mruby_presym {
-# include <mruby/presym.inc>
-};
-
-#undef MRB_PRESYM_NAMED
-#undef MRB_PRESYM_UNNAMED
+#include <mruby/presym/id.h>
 
 #define MRB_OPSYM(name) MRB_OPSYM__##name
 #define MRB_CVSYM(name) MRB_CVSYM__##name
