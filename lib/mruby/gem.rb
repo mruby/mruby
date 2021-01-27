@@ -89,7 +89,7 @@ module MRuby
 
       def setup_compilers
         (core? ? [@cc, *(@cxx if build.cxx_exception_enabled?)] : compilers).each do |compiler|
-          compiler.define_rules build_dir, @dir, @build.exts.preprocessed if build.presym_enabled?
+          compiler.define_rules build_dir, @dir, @build.exts.presym_preprocessed if build.presym_enabled?
           compiler.define_rules build_dir, @dir, @build.exts.object
           compiler.defines << %Q[MRBGEM_#{funcname.upcase}_VERSION=#{version}]
           compiler.include_paths << "#{@dir}/include" if File.directory? "#{@dir}/include"

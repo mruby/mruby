@@ -25,7 +25,7 @@ MRuby.each_target do |build|
     next unless File.extname(prereq) == build.exts.object
     next unless prereq.start_with?(build_dir)
     next if mrbc_build_dir && prereq.start_with?(mrbc_build_dir)
-    pps << prereq.ext(build.exts.preprocessed)
+    pps << prereq.ext(build.exts.presym_preprocessed)
   end
 
   file presym.list_path => pps do

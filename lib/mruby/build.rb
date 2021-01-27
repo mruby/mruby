@@ -80,16 +80,16 @@ module MRuby
     COMMANDS = COMPILERS + %w(linker archiver yacc gperf git exts mrbc)
     attr_block MRuby::Build::COMMANDS
 
-    Exts = Struct.new(:object, :executable, :library, :preprocessed)
+    Exts = Struct.new(:object, :executable, :library, :presym_preprocessed)
 
     def initialize(name='host', build_dir=nil, internal: false, &block)
       @name = name.to_s
 
       unless current = MRuby.targets[@name]
         if ENV['OS'] == 'Windows_NT'
-          @exts = Exts.new('.o', '.exe', '.a', '.i')
+          @exts = Exts.new('.o', '.exe', '.a', '.pi')
         else
-          @exts = Exts.new('.o', '', '.a', '.i')
+          @exts = Exts.new('.o', '', '.a', '.pi')
         end
 
         build_dir = build_dir || ENV['MRUBY_BUILD_DIR'] || "#{MRUBY_ROOT}/build"
@@ -239,7 +239,7 @@ module MRuby
       if cxx_src
         obj ||= cxx_src + @exts.object
         dsts = [obj]
-        dsts << (cxx_src + @exts.preprocessed) if presym_enabled?
+        dsts << (cxx_src + @exts.presym_preprocessed) if presym_enabled?
         defines = []
         include_paths = ["#{MRUBY_ROOT}/src", *includes]
         dsts.each do |dst|
@@ -355,7 +355,7 @@ EOS
       end
       [@cc, *(@cxx if cxx_exception_enabled?)].each do |compiler|
         compiler.define_rules(@build_dir, MRUBY_ROOT, @exts.object)
-        compiler.define_rules(@build_dir, MRUBY_ROOT, @exts.preprocessed) if presym_enabled?
+        compiler.define_rules(@build_dir, MRUBY_ROOT, @exts.presym_preprocessed) if presym_enabled?
       end
     end
 
