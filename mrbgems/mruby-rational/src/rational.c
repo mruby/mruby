@@ -208,7 +208,7 @@ rational_new_f(mrb_state *mrb, mrb_float f0)
     if (f == RAT_HUGE_VAL || f > (mrb_float)MRB_INT_MAX) {
       rat_overflow(mrb);
     }
-    return rational_new(mrb, ((mrb_int)f)<<n, 1);
+    return rational_new(mrb, (mrb_uint)f, 1);
   }
   if (n < -RAT_INT_LIMIT) {
     f = ldexp_rat(f, n+RAT_INT_LIMIT);
