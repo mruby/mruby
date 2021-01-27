@@ -31,11 +31,13 @@ static const struct {
 static mrb_sym
 presym_find(const char *name, size_t len)
 {
+  if (presym_table[MRB_PRESYM_MAX-1].len < len) return 0;
+
   mrb_sym start, idx, presym_size = MRB_PRESYM_MAX;
   int cmp;
   for (start = 0; presym_size != 0; presym_size/=2) {
     idx = start+presym_size/2;
-    cmp = (int)(len-presym_table[idx].len);
+    cmp = (int)len-(int)presym_table[idx].len;
     if (cmp == 0) {
       cmp = memcmp(name, presym_table[idx].name, len);
       if (cmp == 0) return idx+1;
