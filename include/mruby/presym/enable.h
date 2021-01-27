@@ -1,5 +1,5 @@
 /**
-** @file mruby/presym/scanning.h - Enable Preallocated Symbols
+** @file mruby/presym/enable.h - Enable Preallocated Symbols
 **
 ** See Copyright Notice in mruby.h
 */
