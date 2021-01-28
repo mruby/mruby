@@ -3,7 +3,7 @@ MRuby::Toolchain.new(:gcc) do |conf, params|
   compiler_flags = %w(-g -O3 -Wall -Wundef)
   c_mandatory_flags = %w(-std=gnu99)
   cxx_invalid_flags = %w(-Werror-implicit-function-declaration)
-  compile_opt = '%{flags} -MMD -MF "%{outfile}.d" -o "%{outfile}" "%{infile}"'
+  compile_opt = '%{flags} -o "%{outfile}" "%{infile}"'
 
   [conf.cc, conf.objc, conf.asm, conf.cxx].each do |compiler|
     if compiler == conf.cxx
@@ -15,7 +15,7 @@ MRuby::Toolchain.new(:gcc) do |conf, params|
     end
     compiler.option_include_path = %q[-I"%s"]
     compiler.option_define = '-D%s'
-    compiler.compile_options = "-c #{compile_opt}"
+    compiler.compile_options = %|-MMD -MF "%{outfile}.d" -c #{compile_opt}|
     compiler.preprocess_options = "-E -P #{compile_opt}"
     compiler.cxx_compile_flag = '-x c++ -std=gnu++03'
     compiler.cxx_exception_flag = '-fexceptions'

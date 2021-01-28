@@ -11,7 +11,8 @@ MRuby::Toolchain.new(:openwrt) do |conf|
     end
     cc.option_include_path = %q[-I"%s"]
     cc.option_define = '-D%s'
-    cc.compile_options = %q[%{flags} -MMD -MF "%{outfile}.d" -o "%{outfile}" -c "%{infile}"]
+    cc.compile_options = '%{flags} -MMD -MF "%{outfile}.d" -o "%{outfile}" -c "%{infile}"'
+    cc.preprocess_options = '%{flags} -o "%{outfile}" -E -P "%{infile}"'
   end
 
   conf.linker do |linker|
