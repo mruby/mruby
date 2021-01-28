@@ -792,7 +792,7 @@ catch_handler_find(mrb_state *mrb, mrb_callinfo *ci, const mrb_code *pc, uint32_
   const struct mrb_irep_catch_handler *e;
 
 /* The comparison operators use `>` and `<=` because pc already points to the next instruction */
-#define catch_cover_p(pc, beg, end) ((pc) > (beg) && (pc) <= (end))
+#define catch_cover_p(pc, beg, end) ((pc) > (ptrdiff_t)(beg) && (pc) <= (ptrdiff_t)(end))
 
   if (ci->proc == NULL || MRB_PROC_CFUNC_P(ci->proc)) return NULL;
   irep = ci->proc->body.irep;
