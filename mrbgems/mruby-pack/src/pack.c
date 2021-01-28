@@ -15,6 +15,9 @@
 #include <errno.h>
 #include <string.h>
 
+#define INT_OVERFLOW_P(n)  ((n) < MRB_INT_MIN || (n) > MRB_INT_MAX)
+#define UINT_OVERFLOW_P(n) ((n) > MRB_INT_MAX)
+
 struct tmpl {
   mrb_value str;
   int idx;
@@ -258,7 +261,7 @@ unpack_l(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
   if (flags & PACK_FLAG_SIGNED) {
     int32_t sl = ul;
 #ifndef MRB_INT64
-    if (!FIXABLE(sl)) {
+    if (INT_OVERFLOW_P(sl)) {
       i32tostr(msg, sizeof(msg), sl);
       mrb_raisef(mrb, E_RANGE_ERROR, "cannot unpack to Integer: %s", msg);
     }
@@ -266,14 +269,14 @@ unpack_l(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
     n = sl;
   } else {
 #ifndef MRB_INT64
-    if (!POSFIXABLE(ul)) {
+    if (UINT_OVERFLOW_P(ul)) {
       u32tostr(msg, sizeof(msg), ul);
       mrb_raisef(mrb, E_RANGE_ERROR, "cannot unpack to Integer: %s", msg);
     }
 #endif
     n = ul;
   }
-  mrb_ary_push(mrb, ary, mrb_fixnum_value(n));
+  mrb_ary_push(mrb, ary, mrb_int_value(mrb, n));
   return 4;
 }
 
@@ -379,19 +382,19 @@ unpack_q(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
   }
   if (flags & PACK_FLAG_SIGNED) {
     int64_t sll = ull;
-    if (!FIXABLE(sll)) {
+    if (INT_OVERFLOW_P(sll)) {
       i64tostr(msg, sizeof(msg), sll);
       mrb_raisef(mrb, E_RANGE_ERROR, "cannot unpack to Integer: %s", msg);
     }
     n = (mrb_int)sll;
   } else {
-    if (!POSFIXABLE(ull)) {
+    if (UINT_OVERFLOW_P(ull)) {
       u64tostr(msg, sizeof(msg), ull);
       mrb_raisef(mrb, E_RANGE_ERROR, "cannot unpack to Integer: %s", msg);
     }
     n = (mrb_int)ull;
   }
-  mrb_ary_push(mrb, ary, mrb_fixnum_value(n));
+  mrb_ary_push(mrb, ary, mrb_int_value(mrb, n));
   return 8;
 }
 
