@@ -76,3 +76,8 @@ these macros are expanded to `mrb_intern_lit` calls, therefore the mruby state
 variable is required. The above macros assume the variable name is `mrb`.  If
 its name is not `mrb`, you need to use macros with `_2` suffix, such as
 `MRB_SYM_2` to specify `mrb_state*` variable.
+
+### Disabling Preallocated Symbols
+
+By defining `MRB_NO_PRESYM` macro, you can disable preallocated symbols.
+Or you can specify `conf.disable_presym` in the configuration file.

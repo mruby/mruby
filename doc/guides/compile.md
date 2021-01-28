@@ -226,6 +226,15 @@ conf.exts do |exts|
 end
 ```
 
+### Preallocated Symbols
+
+By far, preallocate symbols are highly compatible with the previous versions, so
+we expect you won't see any problem with them. But just in case you face any
+issue, you can disable preallocated symbols by specifying `conf.disable_presym`.
+
+In the build process, `mrbc` under cross compiling environment will be compiled
+with this configuration.
+
 ### Mrbgems
 
 `mruby` comes with the (sort of) packaging system named `mrbgems`. To
