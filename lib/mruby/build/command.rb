@@ -92,7 +92,7 @@ module MRuby
         opts = compile_options
       else
         label = "CPP"
-        opts = preprocess_options.gsub(/-MMD -MF .* -o/, "-o")
+        opts = preprocess_options
         flags << " -DMRB_PRESYM_SCANNING"
       end
       _pp label, infile.relative_path, outfile.relative_path
