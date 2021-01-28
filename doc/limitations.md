@@ -13,14 +13,6 @@ This document is collecting these limitations.
 This document does not contain a complete list of limitations.
 Please help to improve it by submitting your findings.
 
-## `1/2` gives `0.5`
-
-Since mruby does not have `Bignum`, bigger integers are represented
-by `Float` numbers. To enhance interoperability between `Integer`
-and `Float`, mruby provides `Float#upto` and other iterating
-methods for the `Float` class.  As a side effect, `1/2` gives `0.5`
-not `0`.
-
 ## `Array` passed to `puts`
 
 Passing an Array to `puts` results in different output.
