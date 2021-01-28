@@ -303,6 +303,7 @@ mrb_check_intern_str(mrb_state *mrb, mrb_value str)
 static const char*
 sym2name_len(mrb_state *mrb, mrb_sym sym, char *buf, mrb_int *lenp)
 {
+  if (sym == 0) goto outofsym;
   if (SYMBOL_INLINE_P(sym)) return sym_inline_unpack(sym, buf, lenp);
 
 #ifndef MRB_NO_PRESYM
@@ -313,7 +314,8 @@ sym2name_len(mrb_state *mrb, mrb_sym sym, char *buf, mrb_int *lenp)
 #endif
   sym -= MRB_PRESYM_MAX;
 
-  if (sym == 0 || mrb->symidx < sym) {
+  if (mrb->symidx < sym) {
+  outofsym:
     if (lenp) *lenp = 0;
     return NULL;
   }
