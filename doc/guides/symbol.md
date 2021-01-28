@@ -71,7 +71,7 @@ can be specified for it). Other than that, describe only word characters
 excluding leading and ending punctuations.
 
 These macros are converted to static symbol IDs at compile time, unless
-preallocate symbols are disabled by defining `MRB_NO_PRESYM`. In that case,
+preallocate symbols are disabled by  `conf.disable_presym`. In that case,
 these macros are expanded to `mrb_intern_lit` calls, therefore the mruby state
 variable is required. The above macros assume the variable name is `mrb`.  If
 its name is not `mrb`, you need to use macros with `_2` suffix, such as
@@ -79,5 +79,5 @@ its name is not `mrb`, you need to use macros with `_2` suffix, such as
 
 ### Disabling Preallocated Symbols
 
-By defining `MRB_NO_PRESYM` macro, you can disable preallocated symbols.
-Or you can specify `conf.disable_presym` in the configuration file.
+You can disable preallocated symbols by specifying `conf.disable_presym` in the
+configuration file.

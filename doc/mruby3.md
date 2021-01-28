@@ -90,10 +90,6 @@ changed from previous versions.
 Call `malloc_trim(0)` from mrb_full_gc() if this macro is defined.
 If you are using glibc malloc, this macro could reduce memory consumption.
 
-## `MRB_NO_PRESYM`
-
-Remove preallocated symbol system.
-
 # Command Line Program
 
 ## `bin/mruby` (by mrbgems/mruby-bin-mruby)
