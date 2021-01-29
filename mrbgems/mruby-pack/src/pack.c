@@ -15,6 +15,9 @@
 #include <errno.h>
 #include <string.h>
 
+#define INT_OVERFLOW_P(n)  ((n) < MRB_INT_MIN || (n) > MRB_INT_MAX)
+#define UINT_OVERFLOW_P(n) ((n) > MRB_INT_MAX)
+
 struct tmpl {
   mrb_value str;
   int idx;
@@ -213,26 +216,6 @@ u32tostr(char *buf, size_t len, uint32_t n)
   snprintf(buf, len, "%" PRIu32, n);
 #endif /* MRB_NO_STDIO */
 }
-
-static void
-i32tostr(char *buf, size_t len, int32_t n)
-{
-#ifdef MRB_NO_STDIO
-  if (len < 1) {
-    return;
-  }
-
-  if (n < 0) {
-    *buf ++ = '-';
-    len --;
-    n = -n;
-  }
-
-  u32tostr(buf, len, (uint32_t)n);
-#else
-  snprintf(buf, len, "%" PRId32, n);
-#endif /* MRB_NO_STDIO */
-}
 #endif /* MRB_INT64 */
 
 static int
@@ -256,24 +239,17 @@ unpack_l(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
     ul += (uint32_t)src[3];
   }
   if (flags & PACK_FLAG_SIGNED) {
-    int32_t sl = ul;
-#ifndef MRB_INT64
-    if (!FIXABLE(sl)) {
-      i32tostr(msg, sizeof(msg), sl);
-      mrb_raisef(mrb, E_RANGE_ERROR, "cannot unpack to Integer: %s", msg);
-    }
-#endif
-    n = sl;
+    n = (int32_t)ul;
   } else {
 #ifndef MRB_INT64
-    if (!POSFIXABLE(ul)) {
+    if (UINT_OVERFLOW_P(ul)) {
       u32tostr(msg, sizeof(msg), ul);
       mrb_raisef(mrb, E_RANGE_ERROR, "cannot unpack to Integer: %s", msg);
     }
 #endif
     n = ul;
   }
-  mrb_ary_push(mrb, ary, mrb_fixnum_value(n));
+  mrb_ary_push(mrb, ary, mrb_int_value(mrb, n));
   return 4;
 }
 
@@ -337,6 +313,7 @@ u64tostr(char *buf, size_t len, uint64_t n)
 #endif /* MRB_NO_STDIO */
 }
 
+#ifndef MRB_INT64
 static void
 i64tostr(char *buf, size_t len, int64_t n)
 {
@@ -356,6 +333,7 @@ i64tostr(char *buf, size_t len, int64_t n)
   snprintf(buf, len, "%" PRId64, n);
 #endif /* MRB_NO_STDIO */
 }
+#endif /* MRB_INT64 */
 
 static int
 unpack_q(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
@@ -379,19 +357,21 @@ unpack_q(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
   }
   if (flags & PACK_FLAG_SIGNED) {
     int64_t sll = ull;
-    if (!FIXABLE(sll)) {
+#ifndef MRB_INT64
+    if (INT_OVERFLOW_P(sll)) {
       i64tostr(msg, sizeof(msg), sll);
       mrb_raisef(mrb, E_RANGE_ERROR, "cannot unpack to Integer: %s", msg);
     }
+#endif
     n = (mrb_int)sll;
   } else {
-    if (!POSFIXABLE(ull)) {
+    if (UINT_OVERFLOW_P(ull)) {
       u64tostr(msg, sizeof(msg), ull);
       mrb_raisef(mrb, E_RANGE_ERROR, "cannot unpack to Integer: %s", msg);
     }
     n = (mrb_int)ull;
   }
-  mrb_ary_push(mrb, ary, mrb_fixnum_value(n));
+  mrb_ary_push(mrb, ary, mrb_int_value(mrb, n));
   return 8;
 }
 
