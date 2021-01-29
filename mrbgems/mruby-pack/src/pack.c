@@ -216,26 +216,6 @@ u32tostr(char *buf, size_t len, uint32_t n)
   snprintf(buf, len, "%" PRIu32, n);
 #endif /* MRB_NO_STDIO */
 }
-
-static void
-i32tostr(char *buf, size_t len, int32_t n)
-{
-#ifdef MRB_NO_STDIO
-  if (len < 1) {
-    return;
-  }
-
-  if (n < 0) {
-    *buf ++ = '-';
-    len --;
-    n = -n;
-  }
-
-  u32tostr(buf, len, (uint32_t)n);
-#else
-  snprintf(buf, len, "%" PRId32, n);
-#endif /* MRB_NO_STDIO */
-}
 #endif /* MRB_INT64 */
 
 static int
@@ -259,14 +239,7 @@ unpack_l(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
     ul += (uint32_t)src[3];
   }
   if (flags & PACK_FLAG_SIGNED) {
-    int32_t sl = ul;
-#ifndef MRB_INT64
-    if (INT_OVERFLOW_P(sl)) {
-      i32tostr(msg, sizeof(msg), sl);
-      mrb_raisef(mrb, E_RANGE_ERROR, "cannot unpack to Integer: %s", msg);
-    }
-#endif
-    n = sl;
+    n = (int32_t)ul;
   } else {
 #ifndef MRB_INT64
     if (UINT_OVERFLOW_P(ul)) {
@@ -340,6 +313,7 @@ u64tostr(char *buf, size_t len, uint64_t n)
 #endif /* MRB_NO_STDIO */
 }
 
+#ifndef MRB_INT64
 static void
 i64tostr(char *buf, size_t len, int64_t n)
 {
@@ -359,6 +333,7 @@ i64tostr(char *buf, size_t len, int64_t n)
   snprintf(buf, len, "%" PRId64, n);
 #endif /* MRB_NO_STDIO */
 }
+#endif /* MRB_INT64 */
 
 static int
 unpack_q(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
@@ -382,10 +357,12 @@ unpack_q(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
   }
   if (flags & PACK_FLAG_SIGNED) {
     int64_t sll = ull;
+#ifndef MRB_INT64
     if (INT_OVERFLOW_P(sll)) {
       i64tostr(msg, sizeof(msg), sll);
       mrb_raisef(mrb, E_RANGE_ERROR, "cannot unpack to Integer: %s", msg);
     }
+#endif
     n = (mrb_int)sll;
   } else {
     if (UINT_OVERFLOW_P(ull)) {
