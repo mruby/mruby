@@ -483,6 +483,7 @@ EOS
       name = "#{@name}/mrbc"
       MRuby.targets.delete(name)
       build = self.class.new(name, internal: true){}
+      build.build_dir = "#{@build_dir}/mrbc"
       instance_variables.each do |n|
         next if exclusions.include?(n)
         v = instance_variable_get(n)
