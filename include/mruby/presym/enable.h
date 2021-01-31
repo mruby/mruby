@@ -26,8 +26,9 @@
 #define MRB_SYM_2(mrb, name) MRB_SYM__##name
 
 #define MRB_PRESYM_DEFINE_VAR_AND_INITER(name, size, ...)                     \
-  static const mrb_sym name[] = {__VA_ARGS__};                                \
-  static void init_##name(mrb_state *mrb) {}
+  static const mrb_sym name[] = {__VA_ARGS__};
+
+#define MRB_PRESYM_INIT_SYMBOLS(mrb, name) (void)(mrb)
 
 /* use MRB_SYM() for E_RUNTIME_ERROR etc. */
 #undef MRB_ERROR_SYM

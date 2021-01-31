@@ -60,9 +60,11 @@
 
 #define MRB_PRESYM_DEFINE_VAR_AND_INITER(name, size, ...)                     \
   static mrb_sym name[size];                                                  \
-  static void init_##name(mrb_state *mrb) {                                   \
+  static void presym_init_##name(mrb_state *mrb) {                            \
     mrb_sym name__[] = {__VA_ARGS__};                                         \
     memcpy(name, name__, sizeof(name));                                       \
   }
+
+#define MRB_PRESYM_INIT_SYMBOLS(mrb, name) presym_init_##name(mrb)
 
 #endif  /* MRUBY_PRESYM_DISABLE_H */
