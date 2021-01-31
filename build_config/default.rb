@@ -24,7 +24,7 @@ MRuby::Build.new do |conf|
   #   cc.defines = %w()
   #   cc.option_include_path = %q[-I"%s"]
   #   cc.option_define = '-D%s'
-  #   cc.compile_options = %Q[%{flags} -MMD -MF "%{outfile}".d -o "%{outfile}" -c "%{infile}"]
+  #   cc.compile_options = %Q[%{flags} -MMD -o "%{outfile}" -c "%{infile}"]
   # end
 
   # mrbc settings

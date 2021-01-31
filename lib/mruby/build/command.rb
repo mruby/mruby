@@ -87,7 +87,7 @@ module MRuby
     def run(outfile, infile, _defines=[], _include_paths=[], _flags=[])
       mkdir_p File.dirname(outfile)
       flags = all_flags(_defines, _include_paths, _flags)
-      if File.extname(outfile) == build.exts.object
+      if object_ext?(outfile)
         label = @label
         opts = compile_options
       else
@@ -157,8 +157,8 @@ module MRuby
     #   /src/value_array.h:
     #
     def get_dependencies(file)
-      dep_file = "#{file}.d"
-      return [MRUBY_CONFIG] unless File.exist?(dep_file)
+      dep_file = file.ext(".d")
+      return [MRUBY_CONFIG] unless object_ext?(file) && File.exist?(dep_file)
 
       deps = File.read(dep_file).gsub("\\\n ", "").split("\n").map do |dep_line|
         # dep_line:
@@ -171,6 +171,10 @@ module MRuby
         #    []
       end.flatten.uniq
       deps << MRUBY_CONFIG
+    end
+
+    def object_ext?(path)
+      File.extname(path) == build.exts.object
     end
   end
 
