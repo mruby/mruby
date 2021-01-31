@@ -15,7 +15,7 @@ MRuby::Toolchain.new(:gcc) do |conf, params|
     end
     compiler.option_include_path = %q[-I"%s"]
     compiler.option_define = '-D%s'
-    compiler.compile_options = %|-MMD -MF "%{outfile}.d" -c #{compile_opt}|
+    compiler.compile_options = "-MMD -c #{compile_opt}"
     compiler.preprocess_options = "-E -P #{compile_opt}"
     compiler.cxx_compile_flag = '-x c++ -std=gnu++03'
     compiler.cxx_exception_flag = '-fexceptions'
