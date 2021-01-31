@@ -39,14 +39,6 @@ void abort(void);
 #define STACK_INIT_SIZE 128
 #define CALLINFO_INIT_SIZE 32
 
-#ifndef ENSURE_STACK_INIT_SIZE
-#define ENSURE_STACK_INIT_SIZE 16
-#endif
-
-#ifndef RESCUE_STACK_INIT_SIZE
-#define RESCUE_STACK_INIT_SIZE 16
-#endif
-
 /* Define amount of linear stack growth. */
 #ifndef MRB_STACK_GROWTH
 #define MRB_STACK_GROWTH 128
@@ -55,11 +47,6 @@ void abort(void);
 /* Maximum mrb_funcall() depth. Should be set lower on memory constrained systems. */
 #ifndef MRB_FUNCALL_DEPTH_MAX
 #define MRB_FUNCALL_DEPTH_MAX 512
-#endif
-
-/* Maximum depth of ecall() recursion. */
-#ifndef MRB_ECALL_DEPTH_MAX
-#define MRB_ECALL_DEPTH_MAX 512
 #endif
 
 /* Maximum stack depth. Should be set lower on memory constrained systems.
