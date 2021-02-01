@@ -2817,7 +2817,7 @@ init_class_new(mrb_state *mrb, struct RClass *cls)
   struct RProc *p;
   mrb_method_t m;
 
-  init_new_syms(mrb);
+  MRB_PRESYM_INIT_SYMBOLS(mrb, new_syms);
   p = mrb_proc_new(mrb, &new_irep);
   MRB_METHOD_FROM_PROC(m, p);
   mrb_define_method_raw(mrb, cls, MRB_SYM(new), m);
