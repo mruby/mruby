@@ -75,8 +75,8 @@ typedef struct mrb_irep {
 
   uint32_t ilen;
   uint16_t plen, slen;
-  uint8_t rlen;
-  uint32_t refcnt;
+  uint16_t rlen;
+  uint16_t refcnt;
 } mrb_irep;
 
 #define MRB_ISEQ_NO_FREE 1

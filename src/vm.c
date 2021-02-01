@@ -2644,6 +2644,18 @@ RETRY_TRY_BLOCK:
       c = OP_L_METHOD;
       goto L_MAKE_LAMBDA;
     }
+    CASE(OP_LAMBDA16, BS) {
+      c = OP_L_LAMBDA;
+      goto L_MAKE_LAMBDA;
+    }
+    CASE(OP_BLOCK16, BS) {
+      c = OP_L_BLOCK;
+      goto L_MAKE_LAMBDA;
+    }
+    CASE(OP_METHOD16, BS) {
+      c = OP_L_METHOD;
+      goto L_MAKE_LAMBDA;
+    }
 
     CASE(OP_RANGE_INC, B) {
       mrb_value val = mrb_range_new(mrb, regs[a], regs[a+1], FALSE);
@@ -2699,7 +2711,11 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
-    CASE(OP_EXEC, BB) {
+    CASE(OP_EXEC16, BS)
+      goto L_EXEC;
+    CASE(OP_EXEC, BB)
+    L_EXEC:
+    {
       mrb_value recv = regs[a];
       struct RProc *p;
       const mrb_irep *nirep = irep->reps[b];

@@ -371,6 +371,15 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
     CASE(OP_METHOD, BB);
       printf("OP_METHOD\tR%d\tI(%d:%p)\n", a, b, (void*)irep->reps[b]);
       break;
+    CASE(OP_LAMBDA16, BS);
+      printf("OP_LAMBDA\tR%d\tI(%d:%p)\n", a, b, (void*)irep->reps[b]);
+      break;
+    CASE(OP_BLOCK16, BS);
+      printf("OP_BLOCK\tR%d\tI(%d:%p)\n", a, b, (void*)irep->reps[b]);
+      break;
+    CASE(OP_METHOD16, BS);
+      printf("OP_METHOD\tR%d\tI(%d:%p)\n", a, b, (void*)irep->reps[b]);
+      break;
     CASE(OP_RANGE_INC, B);
       printf("OP_RANGE_INC\tR%d\n", a);
       break;

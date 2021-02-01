@@ -464,6 +464,7 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
     case OP_GETGV: case OP_GETSV: case OP_GETIV: case OP_GETCV:
     case OP_GETCONST: case OP_STRING: case OP_STRING16:
     case OP_LAMBDA: case OP_BLOCK: case OP_METHOD: case OP_BLKPUSH:
+    case OP_LAMBDA16: case OP_BLOCK16: case OP_METHOD16:
       if (nopeep || data.a != src || data.a < s->nlocals) goto normal;
       s->pc = s->lastpc;
       genop_2(s, data.insn, dst, data.b);
@@ -1630,7 +1631,7 @@ codegen(codegen_scope *s, node *tree, int val)
     if (val) {
       int idx = lambda_body(s, tree, 1);
 
-      genop_2(s, OP_LAMBDA, cursp(), idx);
+      genop_bs(s, OP_LAMBDA, cursp(), idx);
       push();
     }
     break;
@@ -1639,7 +1640,7 @@ codegen(codegen_scope *s, node *tree, int val)
     if (val) {
       int idx = lambda_body(s, tree, 1);
 
-      genop_2(s, OP_BLOCK, cursp(), idx);
+      genop_bs(s, OP_BLOCK, cursp(), idx);
       push();
     }
     break;
@@ -2910,7 +2911,7 @@ codegen(codegen_scope *s, node *tree, int val)
       }
       else {
         idx = scope_body(s, body, val);
-        genop_2(s, OP_EXEC, cursp(), idx);
+        genop_bs(s, OP_EXEC, cursp(), idx);
       }
       if (val) {
         push();
@@ -2942,7 +2943,7 @@ codegen(codegen_scope *s, node *tree, int val)
       }
       else {
         idx = scope_body(s, tree->cdr->car, val);
-        genop_2(s, OP_EXEC, cursp(), idx);
+        genop_bs(s, OP_EXEC, cursp(), idx);
       }
       if (val) {
         push();
@@ -2963,7 +2964,7 @@ codegen(codegen_scope *s, node *tree, int val)
       }
       else {
         idx = scope_body(s, tree->cdr->car, val);
-        genop_2(s, OP_EXEC, cursp(), idx);
+        genop_bs(s, OP_EXEC, cursp(), idx);
       }
       if (val) {
         push();
@@ -2978,7 +2979,7 @@ codegen(codegen_scope *s, node *tree, int val)
 
       genop_1(s, OP_TCLASS, cursp());
       push();
-      genop_2(s, OP_METHOD, cursp(), idx);
+      genop_bs(s, OP_METHOD, cursp(), idx);
       push(); pop();
       pop();
       genop_2(s, OP_DEF, cursp(), sym);
@@ -2999,7 +3000,7 @@ codegen(codegen_scope *s, node *tree, int val)
       pop();
       genop_1(s, OP_SCLASS, cursp());
       push();
-      genop_2(s, OP_METHOD, cursp(), idx);
+      genop_bs(s, OP_METHOD, cursp(), idx);
       pop();
       genop_2(s, OP_DEF, cursp(), sym);
       if (val) {
@@ -3032,7 +3033,7 @@ scope_add_irep(codegen_scope *s)
     return;
   }
   else {
-    if (prev->irep->rlen == UINT8_MAX) {
+    if (prev->irep->rlen == UINT16_MAX) {
       codegen_error(s, "too many nested blocks/methods");
     }
     s->irep = irep = mrb_add_irep(s->mrb);
