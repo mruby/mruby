@@ -1926,10 +1926,8 @@ RETRY_TRY_BLOCK:
       }
 
       if (mrb->exc) {
-        mrb_callinfo *ci0;
-
       L_RAISE:
-        ci0 = ci = mrb->c->ci;
+        ci = mrb->c->ci;
         if (ci == mrb->c->cibase) {
           ch = catch_handler_find(mrb, ci, pc, MRB_CATCH_FILTER_ALL);
           if (ch == NULL) goto L_FTOP;
@@ -1966,7 +1964,7 @@ RETRY_TRY_BLOCK:
         if (ch == NULL) goto L_STOP;
         if (FALSE) {
         L_CATCH_TAGGED_BREAK: /* from THROW_TAGGED_BREAK() or UNWIND_ENSURE() */
-          ci = ci0 = mrb->c->ci;
+          ci = mrb->c->ci;
         }
         proc = ci->proc;
         irep = proc->body.irep;
