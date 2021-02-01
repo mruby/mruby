@@ -1497,7 +1497,8 @@ mrb_prepend_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
     origin->super = c->super;
     c->super = origin;
     origin->mt = c->mt;
-    c->mt = mt_new(mrb);
+    c->mt = NULL;
+    origin->iv = c->iv;
     mrb_field_write_barrier(mrb, (struct RBasic*)c, (struct RBasic*)origin);
     c->flags |= MRB_FL_CLASS_IS_PREPENDED;
   }
