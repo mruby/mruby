@@ -12,6 +12,7 @@
 #include <mruby/debug.h>
 #include <mruby/string.h>
 #include <mruby/class.h>
+#include <mruby/throw.h>
 
 void mrb_init_core(mrb_state*);
 void mrb_init_mrbgems(mrb_state*);
@@ -181,9 +182,16 @@ mrb_close(mrb_state *mrb)
 {
   if (!mrb) return;
   if (mrb->atexit_stack_len > 0) {
-    mrb_int i;
-    for (i = mrb->atexit_stack_len; i > 0; --i) {
-      mrb->atexit_stack[i - 1](mrb);
+    struct mrb_jmpbuf *prev_jmp = mrb->jmp;
+    struct mrb_jmpbuf c_jmp;
+    for (int i = mrb->atexit_stack_len; i > 0; --i) {
+      MRB_TRY(&c_jmp) {
+        mrb->jmp = &c_jmp;
+        mrb->atexit_stack[i - 1](mrb);
+        mrb->jmp = prev_jmp;
+      } MRB_CATCH(&c_jmp) {
+        /* ignore atexit errors */
+      } MRB_END_EXC(&c_jmp);
     }
 #ifndef MRB_FIXED_STATE_ATEXIT_STACK
     mrb_free(mrb, mrb->atexit_stack);
