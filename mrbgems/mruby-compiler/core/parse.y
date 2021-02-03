@@ -4693,7 +4693,8 @@ heredoc_remove_indent(parser_state *p, parser_heredoc_info *hinf)
           escaped = escaped->cdr;
         nspaces = nspaces->cdr;
       }
-      newstr[newlen] = '\0';
+      if (newlen < len)
+        newstr[newlen] = '\0';
       pair->car = (node*)newstr;
       pair->cdr = (node*)newlen;
     } else {
