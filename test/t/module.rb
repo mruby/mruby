@@ -231,6 +231,18 @@ assert('Module#const_defined?', '15.2.2.4.20') do
   assert_true Test4ConstDefined.const_defined?(:Const4Test4ConstDefined)
   assert_false Test4ConstDefined.const_defined?(:NotExisting)
   assert_wrong_const_name{ Test4ConstDefined.const_defined?(:wrong_name) }
+
+  # shared empty iv_tbl (include)
+  m = Module.new
+  c = Class.new{include m}
+  m::CONST = 1
+  assert_true c.const_defined?(:CONST)
+
+  # shared empty iv_tbl (prepend)
+  m = Module.new
+  c = Class.new{prepend m}
+  m::CONST = 1
+  assert_true c.const_defined?(:CONST)
 end
 
 assert('Module#const_get', '15.2.2.4.21') do
@@ -246,6 +258,18 @@ assert('Module#const_get', '15.2.2.4.21') do
   assert_uninitialized_const{ Test4ConstGet.const_get(:I_DO_NOT_EXIST) }
   assert_uninitialized_const{ Test4ConstGet.const_get("I_DO_NOT_EXIST::ME_NEITHER") }
   assert_wrong_const_name{ Test4ConstGet.const_get(:wrong_name) }
+
+  # shared empty iv_tbl (include)
+  m = Module.new
+  c = Class.new{include m}
+  m::CONST = 1
+  assert_equal 1, c.const_get(:CONST)
+
+  # shared empty iv_tbl (prepend)
+  m = Module.new
+  c = Class.new{prepend m}
+  m::CONST = 1
+  assert_equal 1, c.const_get(:CONST)
 end
 
 assert('Module#const_set', '15.2.2.4.23') do
@@ -779,7 +803,7 @@ end
 
 assert('module to return the last value') do
   m = module M; :m end
-  assert_equal(m, :m)
+  assert_equal(:m, m)
 end
 
 assert('module to return nil if body is empty') do
@@ -795,4 +819,26 @@ assert('get constant of parent module in singleton class; issue #3568') do
   end
 
   assert_equal("value", actual)
+end
+
+assert('shared empty iv_tbl (include)') do
+  m1 = Module.new
+  m2 = Module.new{include m1}
+  c = Class.new{include m2}
+  m1::CONST1 = 1
+  assert_equal 1, m2::CONST1
+  assert_equal 1, c::CONST1
+  m2::CONST2 = 2
+  assert_equal 2, c::CONST2
+end
+
+assert('shared empty iv_tbl (prepend)') do
+  m1 = Module.new
+  m2 = Module.new{prepend m1}
+  c = Class.new{include m2}
+  m1::CONST1 = 1
+  assert_equal 1, m2::CONST1
+  assert_equal 1, c::CONST1
+  m2::CONST2 = 2
+  assert_equal 2, c::CONST2
 end
