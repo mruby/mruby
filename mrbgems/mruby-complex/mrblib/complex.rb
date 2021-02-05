@@ -97,6 +97,10 @@ class Complex < Numeric
   end
   alias_method :rect, :rectangular
 
+  def to_c
+    self
+  end
+
   def to_r
     raise RangeError.new "can't convert #{to_s} into Rational" unless imaginary.zero?
     Rational(real, 1)
