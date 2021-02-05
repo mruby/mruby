@@ -67,8 +67,17 @@ complex_ptr(mrb_state *mrb, mrb_value v)
 }
 #endif
 
-static mrb_value
-complex_new(mrb_state *mrb, mrb_float real, mrb_float imaginary)
+void
+mrb_complex_get(mrb_state *mrb, mrb_value cpx, mrb_float *r, mrb_float *i)
+{
+  struct mrb_complex *c = complex_ptr(mrb, cpx);
+
+  *r = c->real;
+  *i = c->imaginary;
+}
+
+mrb_value
+mrb_complex_new(mrb_state *mrb, mrb_float real, mrb_float imaginary)
 {
   struct RClass *c = mrb_class_get_id(mrb, MRB_SYM(Complex));
   struct mrb_complex *p;
@@ -79,6 +88,8 @@ complex_new(mrb_state *mrb, mrb_float real, mrb_float imaginary)
 
   return mrb_obj_value(comp);
 }
+
+#define complex_new(mrb, real, imag) mrb_complex_new(mrb, real, imag)
 
 static mrb_value
 complex_real(mrb_state *mrb, mrb_value self)
