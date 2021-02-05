@@ -2,7 +2,7 @@ class ThrowCatchJump < Exception
   def initialize(tag, val)
     @tag = tag
     @val = val
-    super("uncaught throw :#{tag}")
+    super("uncaught throw #{tag.inspect}")
   end
   def _tag
     @tag
