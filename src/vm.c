@@ -659,11 +659,21 @@ mrb_value
 mrb_obj_instance_eval(mrb_state *mrb, mrb_value self)
 {
   mrb_value a, b;
+  struct RClass *c;
 
   if (mrb_get_args(mrb, "|S&", &a, &b) == 1) {
     mrb_raise(mrb, E_NOTIMP_ERROR, "instance_eval with string not implemented");
   }
-  return eval_under(mrb, self, b, mrb_singleton_class_ptr(mrb, self));
+  switch (mrb_type(self)) {
+  case MRB_TT_MODULE:
+  case MRB_TT_CLASS:
+  case MRB_TT_ICLASS:
+    c = mrb_class_ptr(self);
+    break;
+  default:
+    c = mrb_singleton_class_ptr(mrb, self);
+  }
+  return eval_under(mrb, self, b, c);
 }
 
 MRB_API mrb_value
