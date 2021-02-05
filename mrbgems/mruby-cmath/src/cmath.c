@@ -45,11 +45,50 @@ cmath_get_complex(mrb_state *mrb, mrb_value c, mrb_float *r, mrb_float *i)
 }
 
 #ifdef MRB_USE_FLOAT32
-typedef float complex mrb_complex;
 #define F(x) x##f
 #else
-typedef double complex mrb_complex;
+#endif
 #define F(x) x
+
+#ifdef _WIN32
+
+#ifdef MRB_USE_FLOAT32
+typedef _Fcomplex mrb_complex;
+#define CX(r,i) _FCbuild(r,i)
+#define CXMUL(x,y) _FCmulcr(x,y)
+#else
+typedef _Dcomplex mrb_complex;
+#define CX(r,i) _Cbuild(r,i)
+#define CXMUL(x,y) _Cmulcr(x,y)
+#endif
+
+static mrb_complex
+CXDIVf(mrb_complex x, mrb_float y)
+{
+  return CX(creal(x)/y, cimag(x)/y);
+}
+
+static mrb_complex
+CXDIVc(mrb_complex x, mrb_complex y)
+{
+  mrb_complex n=CXMUL(x, F(conj)(y));
+  mrb_complex d=_CXMUL(y, F(conj)(y));
+
+  return CX(creal(n)/creal(d), cimag(n)/cimag(d));
+}
+
+#else
+
+#ifdef MRB_USE_FLOAT32
+typedef float _Complex mrb_complex;
+#else
+typedef double _Complex mrb_complex;
+#endif
+    
+#define CX(r,i) (r+i*I)
+#define CXDIVf(x,y) (x)/(y)
+#define CXDIVc(x,y) (x)/(y)
+  
 #endif
 
 #define DEF_CMATH_METHOD(name) \
@@ -59,7 +98,7 @@ cmath_ ## name(mrb_state *mrb, mrb_value self)\
   mrb_value z = mrb_get_arg1(mrb);\
   mrb_float real, imag;\
   if (cmath_get_complex(mrb, z, &real, &imag)) {\
-    mrb_complex c = real + imag*I;\
+    mrb_complex c = CX(real,imag);\
     c = F(c ## name)(c);\
     return mrb_complex_new(mrb, creal(c), cimag(c));\
   }\
@@ -79,11 +118,9 @@ cmath_log(mrb_state *mrb, mrb_value self) {
   mrb_int n = mrb_get_args(mrb, "o|f", &z, &base);
   if (n == 1) base = M_E;
   if (cmath_get_complex(mrb, z, &real, &imag) || real < 0.0) {
-    mrb_complex c = real + imag*I;
+    mrb_complex c = CX(real,imag);
     c = F(clog)(c);
-    if (n == 2) {
-      c /= clog(base);
-    }
+    if (n == 2) c = CXDIVc(c, F(clog)(base));
     return mrb_complex_new(mrb, creal(c), cimag(c));
   }
   if (n == 1) return mrb_float_value(mrb, F(log)(real));
@@ -96,8 +133,8 @@ cmath_log10(mrb_state *mrb, mrb_value self) {
   mrb_value z = mrb_get_arg1(mrb);
   mrb_float real, imag;
   if (cmath_get_complex(mrb, z, &real, &imag) || real < 0.0) {
-    mrb_complex c = real + imag*I;
-    c = F(clog)(c)/log(10);
+    mrb_complex c = CX(real,imag);
+    c = CXDIVf(F(clog)(c),log(10));
     return mrb_complex_new(mrb, creal(c), cimag(c));
   }
   return mrb_float_value(mrb, F(log10)(real));
@@ -109,8 +146,8 @@ cmath_log2(mrb_state *mrb, mrb_value self) {
   mrb_value z = mrb_get_arg1(mrb);
   mrb_float real, imag;
   if (cmath_get_complex(mrb, z, &real, &imag) || real < 0.0) {
-    mrb_complex c = real + imag*I;
-    c = F(clog)(c)/log(2);
+    mrb_complex c = CX(real,imag);
+    c = CXDIVf(F(clog)(c),log(2));
     return mrb_complex_new(mrb, creal(c), cimag(c));
   }
   return mrb_float_value(mrb, F(log2)(real));
@@ -122,7 +159,7 @@ cmath_sqrt(mrb_state *mrb, mrb_value self) {
   mrb_value z = mrb_get_arg1(mrb);
   mrb_float real, imag;
   if (cmath_get_complex(mrb, z, &real, &imag) || real < 0.0) {
-    mrb_complex c = real + imag*I;
+    mrb_complex c = CX(real,imag);
     c = F(csqrt)(c);
     return mrb_complex_new(mrb, creal(c), cimag(c));
   }
