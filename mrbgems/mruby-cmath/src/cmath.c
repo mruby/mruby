@@ -116,6 +116,11 @@ cmath_log(mrb_state *mrb, mrb_value self) {
   mrb_float real, imag;
 
   mrb_int n = mrb_get_args(mrb, "o|f", &z, &base);
+
+#ifndef M_E
+#define M_E F(exp)(1.0)
+#endif
+
   if (n == 1) base = M_E;
   if (cmath_get_complex(mrb, z, &real, &imag) || real < 0.0) {
     mrb_complex c = CX(real,imag);
