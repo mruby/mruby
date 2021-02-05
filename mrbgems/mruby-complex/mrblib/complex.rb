@@ -109,8 +109,8 @@ class Complex < Numeric
   alias_method :imag, :imaginary
 
   [Integer, Float].each do |cls|
-    [:+, :-, :*, :/, :==].each do |op|
-      cls.instance_eval do
+    cls.class_eval do
+      [:+, :-, :*, :/, :==].each do |op|
         original_operator_name = :"__original_operator_#{op}_complex"
         alias_method original_operator_name, op
         define_method op do |rhs|
@@ -123,4 +123,10 @@ class Complex < Numeric
       end
     end
   end
+  Numeric.class_eval do
+    def i
+      Complex(0, self)
+    end
+  end
+  undef i
 end
