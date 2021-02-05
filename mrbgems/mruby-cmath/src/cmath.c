@@ -55,11 +55,9 @@ cmath_get_complex(mrb_state *mrb, mrb_value c, mrb_float *r, mrb_float *i)
 #ifdef MRB_USE_FLOAT32
 typedef _Fcomplex mrb_complex;
 #define CX(r,i) _FCbuild(r,i)
-#define CXMUL(x,y) _FCmulcr(x,y)
 #else
 typedef _Dcomplex mrb_complex;
 #define CX(r,i) _Cbuild(r,i)
-#define CXMUL(x,y) _Cmulcr(x,y)
 #endif
 
 static mrb_complex
@@ -69,12 +67,28 @@ CXDIVf(mrb_complex x, mrb_float y)
 }
 
 static mrb_complex
-CXDIVc(mrb_complex x, mrb_complex y)
+CXDIVc(mrb_complex a, mrb_complex b)
 {
-  mrb_complex n=CXMUL(x, F(conj)(y));
-  mrb_complex d=_CXMUL(y, F(conj)(y));
+  mrb_float ratio, den;
+  mrb_float abr, abi, cr, ci;
 
-  return CX(creal(n)/creal(d), cimag(n)/cimag(d));
+  if ((abr = creal(b)) < 0)
+    abr = - abr;
+  if ((abi = cimag(b)) < 0)
+    abi = - abi;
+  if (abr <= abi) {
+    ratio = creal(b) / cimag(b) ;
+    den = cimag(a) * (1 + ratio*ratio);
+    cr = (creal(a)*ratio + cimag(a)) / den;
+    ci = (cimag(a)*ratio - creal(a)) / den;
+  }
+  else {
+    ratio = cimag(b) / creal(b) ;
+    den = creal(a) * (1 + ratio*ratio);
+    cr = (creal(a) + cimag(a)*ratio) / den;
+    ci = (cimag(a) - creal(a)*ratio) / den;
+  }
+  return CX(cr, ci);
 }
 
 #else
