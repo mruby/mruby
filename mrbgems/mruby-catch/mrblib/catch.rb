@@ -1,8 +1,8 @@
-class ThrowCatchJump < Exception
+class UncaughtThrowError < ArgumentError
   def initialize(tag, val)
     @tag = tag
     @val = val
-    super("uncaught throw :#{tag}")
+    super("uncaught throw #{tag.inspect}")
   end
   def _tag
     @tag
@@ -15,13 +15,13 @@ end
 module Kernel
   def catch(tag, &block)
     block.call(tag)
-  rescue ThrowCatchJump => e
+  rescue UncaughtThrowError => e
     unless e._tag == tag
       raise e
     end
     return e._val
   end
   def throw(tag, val=nil)
-    raise ThrowCatchJump.new(tag, val)
+    raise UncaughtThrowError.new(tag, val)
   end
 end
