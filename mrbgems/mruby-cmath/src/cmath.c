@@ -139,7 +139,7 @@ cmath_log(mrb_state *mrb, mrb_value self) {
   if (cmath_get_complex(mrb, z, &real, &imag) || real < 0.0) {
     mrb_complex c = CX(real,imag);
     c = F(clog)(c);
-    if (n == 2) c = CXDIVc(c, F(clog)(base));
+    if (n == 2) c = CXDIVc(c, F(clog)(CX(base,0)));
     return mrb_complex_new(mrb, creal(c), cimag(c));
   }
   if (n == 1) return mrb_float_value(mrb, F(log)(real));
