@@ -50,7 +50,7 @@ cmath_get_complex(mrb_state *mrb, mrb_value c, mrb_float *r, mrb_float *i)
 #endif
 #define F(x) x
 
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(__MINGW32__)
 
 #ifdef MRB_USE_FLOAT32
 typedef _Fcomplex mrb_complex;
