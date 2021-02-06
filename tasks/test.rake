@@ -21,7 +21,8 @@ namespace :test do |test_ns|
     desc "build library tests"
     task :lib => :all do
       MRuby.each_target{|build| build.gem(core: 'mruby-test')}
-      test_build_ns["lib_without_loading_gem"].invoke
+      test = test_build_ns["lib_without_loading_gem"]
+      test.invoke if test
     end
   end
 
