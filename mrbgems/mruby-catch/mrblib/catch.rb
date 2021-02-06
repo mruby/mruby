@@ -1,4 +1,4 @@
-class ThrowCatchJump < Exception
+class UncaughtThrowError < ArgumentError
   attr_reader :_tag, :_val
   def initialize(tag, val)
     @_tag = tag
@@ -9,14 +9,14 @@ end
 
 module Kernel
   def catch(tag=Object.new, &block)
-    block.call(tag)
-  rescue ThrowCatchJump => e
-    unless e._tag.equal?(tag)
-      raise e
-    end
-    return e._val
+    # A double closure is required to make the nested `catch` distinguishable
+    # and because `break` goes back to `proc->upper`.
+    -> { -> { block.call(tag) }.call }.call
   end
   def throw(tag, val=nil)
-    raise ThrowCatchJump.new(tag, val)
+    __throw(tag, val)
+    raise UncaughtThrowError.new(tag, val)
   end
+
+  __preserve_catch_method
 end
