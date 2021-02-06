@@ -104,9 +104,9 @@ module MRuby
       rakedep = File.exist?(gemrake) ? [ gemrake ] : []
 
       if build_dir.include? "mrbgems/"
-        generated_file_matcher = Regexp.new("^#{Regexp.escape build_dir}/(.*)#{Regexp.escape out_ext}$")
+        generated_file_matcher = Regexp.new("^#{Regexp.escape build_dir}/(?!mrbc/)(.*)#{Regexp.escape out_ext}$")
       else
-        generated_file_matcher = Regexp.new("^#{Regexp.escape build_dir}/(?!mrbgems/.+/)(.*)#{Regexp.escape out_ext}$")
+        generated_file_matcher = Regexp.new("^#{Regexp.escape build_dir}/(?!mrbc/|mrbgems/.+/)(.*)#{Regexp.escape out_ext}$")
       end
       source_exts.each do |ext, compile|
         rule generated_file_matcher => [
