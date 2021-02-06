@@ -248,7 +248,7 @@ module MRuby
           end
         end
       else
-        cxx_src = "#{build_dir}/#{src.relative_path})".ext << "-cxx.cxx"
+        cxx_src = "#{build_dir}/#{src.relative_path.to_s.remove_leading_parents}".ext << "-cxx.cxx"
         obj = cxx_src.ext(@exts.object)
       end
 
