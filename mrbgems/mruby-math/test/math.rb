@@ -9,27 +9,18 @@ def assert_float_and_int(exp_ary, act_ary)
   end
 end
 
-assert('Math.sin 0') do
+assert('Math.sin') do
   assert_float(0, Math.sin(0))
-end
-
-assert('Math.sin PI/2') do
   assert_float(1, Math.sin(Math::PI / 2))
 end
 
-assert('Math.cos 0') do
+assert('Math.cos') do
   assert_float(1, Math.cos(0))
-end
-
-assert('Math.cos PI/2') do
   assert_float(0, Math.cos(Math::PI / 2))
 end
 
-assert('Math.tan 0') do
+assert('Math.tan') do
   assert_float(0, Math.tan(0))
-end
-
-assert('Math.tan PI/4') do
   assert_float(1, Math.tan(Math::PI / 4))
 end
 
@@ -49,52 +40,27 @@ assert('Fundamental trig identities') do
   end
 end
 
-assert('Math.erf 0') do
-  assert_float(0, Math.erf(0))
-end
-
-assert('Math.exp 0') do
+assert('Math.exp') do
   assert_float(1.0, Math.exp(0))
-end
-
-assert('Math.exp 1') do
   assert_float(2.718281828459045, Math.exp(1))
-end
-
-assert('Math.exp 1.5') do
   assert_float(4.4816890703380645, Math.exp(1.5))
 end
 
-assert('Math.log 1') do
+assert('Math.log') do
   assert_float(0, Math.log(1))
-end
-
-assert('Math.log E') do
   assert_float(1.0, Math.log(Math::E))
-end
-
-assert('Math.log E**3') do
   assert_float(3.0, Math.log(Math::E**3))
 end
 
-assert('Math.log2 1') do
+assert('Math.log2') do
   assert_float(0.0, Math.log2(1))
-end
-
-assert('Math.log2 2') do
   assert_float(1.0, Math.log2(2))
 end
 
-assert('Math.log10 1') do
+assert('Math.log10') do
   assert_float(0.0, Math.log10(1))
-end
-
-assert('Math.log10 10') do
   assert_float(1.0, Math.log10(10))
-end
-
-assert('Math.log10 10**100') do
-  assert_float(100.0, Math.log10(10**100))
+  assert_float(30.0, Math.log10(10**30))
 end
 
 assert('Math.sqrt') do
@@ -117,19 +83,14 @@ assert('Math.hypot') do
   assert_float(5.0, Math.hypot(3, 4))
 end
 
-assert('Math.erf 1') do
+assert('Math.erf') do
+  assert_float(0, Math.erf(0))
   assert_float(0.842700792949715, Math.erf(1))
-end
-
-assert('Math.erfc 1') do
-  assert_float(0.157299207050285, Math.erfc(1))
-end
-
-assert('Math.erf -1') do
   assert_float(-0.8427007929497148, Math.erf(-1))
 end
 
-assert('Math.erfc -1') do
+assert('Math.erfc') do
+  assert_float(0.157299207050285, Math.erfc(1))
   assert_float(1.8427007929497148, Math.erfc(-1))
 end
 
