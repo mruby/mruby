@@ -47,8 +47,8 @@ cmath_get_complex(mrb_state *mrb, mrb_value c, mrb_float *r, mrb_float *i)
 #ifdef MRB_USE_FLOAT32
 #define F(x) x##f
 #else
-#endif
 #define F(x) x
+#endif
 
 #if defined(_WIN32) && !defined(__MINGW32__)
 
@@ -90,7 +90,6 @@ CXDIVc(mrb_complex a, mrb_complex b)
   }
   return CX(cr, ci);
 }
-
 
 #else
 
