@@ -21,7 +21,7 @@ typedef struct mrb_shared_array {
   mrb_value *ptr;
 } mrb_shared_array;
 
-#if defined(MRB_32BIT) && defined(MRB_NO_BOXING)
+#if defined(MRB_32BIT) && defined(MRB_NO_BOXING) && !defined(MRB_USE_FLOAT32)
 # define MRB_ARY_NO_EMBED
 # define MRB_ARY_EMBED_LEN_MAX 0
 #else
