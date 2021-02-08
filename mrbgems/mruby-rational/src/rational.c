@@ -156,10 +156,10 @@ rational_new_i(mrb_state *mrb, mrb_int n, mrb_int d)
   if (d == 0) {
     rat_zerodiv(mrb);
   }
-  a = i_gcd(n, d);
-  if ((n == MRB_INT_MIN || d == MRB_INT_MIN) && a == -1) {
+  if (n == MRB_INT_MIN || d == MRB_INT_MIN) {
     rat_overflow(mrb);
   }
+  a = i_gcd(n, d);
   return rational_new(mrb, n/a, d/a);
 }
 
