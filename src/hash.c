@@ -718,6 +718,7 @@ ib_bit_for(uint32_t size)
 static uint32_t
 ib_byte_size_for(uint32_t ib_bit)
 {
+  mrb_assert(IB_INIT_BIT <= ib_bit);
   uint32_t ary_size = IB_INIT_BIT == 4 ?
     ib_bit_to_capa(ib_bit) * 2 / IB_TYPE_BIT * ib_bit / 2 :
     ib_bit_to_capa(ib_bit) / IB_TYPE_BIT * ib_bit;
@@ -892,7 +893,13 @@ static void
 ht_rehash(mrb_state *mrb, struct RHash *h)
 {
   /* see comments in `h_rehash` */
-  uint32_t size = ht_size(h), w_size = 0, ea_capa = ht_ea_capa(h);
+  uint32_t size = ht_size(h);
+  if (size <= AR_MAX_SIZE) {
+    ht_to_ar(mrb, h);
+    ar_rehash(mrb, h);
+    return;
+  }
+  uint32_t w_size = 0, ea_capa = ht_ea_capa(h);
   hash_entry *ea = ht_ea(h);
   ht_init(mrb, h, 0, ea, ea_capa, h_ht(h), ib_bit_for(size));
   ht_set_size(h, size);
