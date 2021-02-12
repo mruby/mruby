@@ -3,10 +3,14 @@ assert "return throw value" do
   result = catch :foo do
     loop do
       loop do
-        throw :foo, val
+        begin
+          throw :foo, val
+        rescue Exception
+          flunk("should not reach here 1")
+        end
         break
       end
-      flunk("should not reach here")
+      flunk("should not reach here 2")
     end
     false
   end
@@ -30,13 +34,16 @@ assert "pass the given tag to block" do
   catch(tag){|t| assert_same(tag, t)}
 end
 
-assert "tag identity" do
-  assert_raise_with_message_pattern(Exception, "uncaught throw *") do
-    catch [:tag] do
-      throw [:tag]
-    end
-    flunk("should not reach here")
+assert "tag identity, uncaught throw" do
+  tag, val = [:tag], [:val]
+  catch [:tag] do
+    throw tag, val
   end
+  flunk("should not reach here")
+rescue Exception => e
+  assert_match("uncaught throw *", e.message)
+  assert_same(tag, e.tag)
+  assert_same(val, e.value)
 end
 
 assert "without catch arguments" do
