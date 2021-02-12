@@ -1,12 +1,13 @@
 # mrbgems
 
 mrbgems is a library manager to integrate C and Ruby extension in an easy and
-standardised way into mruby.
+standardised way into mruby. Conventinally, each mrbgem name is prefixed by
+`mruby-`, e.g. `mruby-time` for a gem that provides `Time` class functionality.
 
 ## Usage
 
 You have to activate mrbgems explicitly in your build configuration.  To add
-a GEM, add the following line to your build configuration file, for example:
+a gem, add the following line to your build configuration file, for example:
 
 ```ruby
 conf.gem '/path/to/your/gem/dir'
@@ -69,7 +70,7 @@ into mruby, in the same format as if you were adding them to the build config
 via `config.gem`, but wrapped in an `MRuby::GemBox` object.  GemBoxes are
 loaded into mruby via `config.gembox 'boxname'`.
 
-Below we have created a GemBox containing *mruby-time* and *mrbgems-example*:
+Below we have created a GemBox containing `mruby-time` and `mrbgems-example`:
 
 ```ruby
 MRuby::GemBox.new do |conf|
@@ -79,10 +80,10 @@ end
 ```
 
 As mentioned, the GemBox uses the same conventions as `MRuby::Build`.  The GemBox
-must be saved with a *.gembox* extension inside the *mrbgems* directory to to be
+must be saved with a `.gembox` extension inside the `mrbgems` directory to to be
 picked up by mruby.
 
-To use this example GemBox, we save it as `custom.gembox` inside the *mrbgems*
+To use this example GemBox, we save it as `custom.gembox` inside the `mrbgems`
 directory in mruby, and add the following to your build configuration file inside
 the build block:
 
@@ -90,8 +91,8 @@ the build block:
 conf.gembox 'custom'
 ```
 
-This will cause the *custom* GemBox to be read in during the build process,
-adding *mruby-time* and *mrbgems-example* to the build.
+This will cause the `custom` GemBox to be read in during the build process,
+adding `mruby-time` and `mrbgems-example` to the build.
 
 If you want, you can put GemBox outside of mruby directory. In that case you must
 specify an absolute path like below.
@@ -103,7 +104,7 @@ conf.gembox "#{ENV["HOME"]}/mygemboxes/custom"
 There are two GemBoxes that ship with mruby: [default](../../mrbgems/default.gembox)
 and [full-core](../../mrbgems/full-core.gembox). The [default](../../mrbgems/default.gembox) GemBox
 contains several core components of mruby, and [full-core](../../mrbgems/full-core.gembox)
-contains every gem found in the *mrbgems* directory.
+contains every gem found in the `mrbgems` directory.
 
 ## GEM Structure
 
@@ -111,27 +112,29 @@ The maximal GEM structure looks like this:
 
 	+- GEM_NAME         <- Name of GEM
 	   |
+	   +- README.md     <- Readme for GEM
+	   |
+	   +- mrbgem.rake   <- GEM Specification
+	   |
 	   +- include/      <- Header for Ruby extension (will exported)
 	   |
 	   +- mrblib/       <- Source for Ruby extension
 	   |
 	   +- src/          <- Source for C extension
 	   |
+	   +- tools/        <- Source for Executable (in C)
+	   |
 	   +- test/         <- Test code (Ruby)
-	   |
-	   +- mrbgem.rake   <- GEM Specification
-	   |
-	   +- README.md     <- Readme for GEM
 
-The folder *mrblib* contains pure Ruby files to extend mruby. The folder *src*
-contains C/C++ files to extend mruby. The folder *include* contains C/C++ header
-files. The folder *test* contains C/C++ and pure Ruby files for testing purposes
-which will be used by `mrbtest`. *mrbgem.rake* contains the specification
-to compile C and Ruby files. *README.md* is a short description of your GEM.
+The folder `mrblib` contains pure Ruby files to extend mruby. The folder `src`
+contains C/C++ files to extend mruby. The folder `include` contains C/C++ header
+files. The folder `test` contains C/C++ and pure Ruby files for testing purposes
+which will be used by `mrbtest`. `mrbgem.rake` contains the specification
+to compile C and Ruby files. `README.md` is a short description of your GEM.
 
 ## Build process
 
-mrbgems expects a specification file called *mrbgem.rake* inside of your
+mrbgems expects a specification file called `mrbgem.rake` inside of your
 GEM directory. A typical GEM specification could look like this for example:
 
 ```ruby
@@ -143,7 +146,7 @@ end
 ```
 
 The mrbgems build process will use this specification to compile Object and Ruby
-files. The compilation results will be added to *lib/libmruby.a*. This file exposes
+files. The compilation results will be added to `lib/libmruby.a`. This file exposes
 the GEM functionality to tools like `mruby` and `mirb`.
 
 The following properties can be set inside of your `MRuby::Gem::Specification` for
@@ -265,7 +268,7 @@ integrate C libraries into mruby.
 
 mrbgems expects that you have implemented a C method called
 `mrb_YOURGEMNAME_gem_init(mrb_state)`. `YOURGEMNAME` will be replaced
-by the name of your GEM. If you call your GEM *c_extension_example*, your
+by the name of your GEM. If you call your GEM `c_extension_example`, your
 initialisation method could look like this:
 
 ```C
@@ -280,7 +283,7 @@ mrb_c_extension_example_gem_init(mrb_state* mrb) {
 
 mrbgems expects that you have implemented a C method called
 `mrb_YOURGEMNAME_gem_final(mrb_state)`. `YOURGEMNAME` will be replaced
-by the name of your GEM. If you call your GEM *c_extension_example*, your
+by the name of your GEM. If you call your GEM `c_extension_example`, your
 finalizer method could look like this:
 
 ```C
@@ -294,6 +297,8 @@ mrb_c_extension_example_gem_final(mrb_state* mrb) {
 
 	+- c_extension_example/
 	   |
+	   +- README.md         (Optional)
+	   |
 	   +- src/
 	   |  |
 	   |  +- example.c         <- C extension source
@@ -303,13 +308,11 @@ mrb_c_extension_example_gem_final(mrb_state* mrb) {
 	   |  +- example.rb        <- Test code for C extension
 	   |
 	   +- mrbgem.rake          <- GEM specification
-	   |
-	   +- README.md
 
 ## Ruby Extension
 
 mruby can be extended with pure Ruby. It is possible to override existing
-classes or add new ones in this way. Put all Ruby files into the *mrblib*
+classes or add new ones in this way. Put all Ruby files into the `mrblib`
 folder.
 
 ### Pre-Conditions
@@ -320,25 +323,25 @@ none
 
 	+- ruby_extension_example/
 	   |
+	   +- README.md         (Optional)
+	   |
 	   +- mrblib/
 	   |  |
-	   |  +- example.rb        <- Ruby extension source
+	   |  +- example.rb     <- Ruby extension source
 	   |
 	   +- test/
 	   |  |
-	   |  +- example.rb        <- Test code for Ruby extension
+	   |  +- example.rb     <- Test code for Ruby extension
 	   |
-	   +- mrbgem.rake          <- GEM specification
-	   |
-	   +- README.md
+	   +- mrbgem.rake       <- GEM specification
 
 ## C and Ruby Extension
 
 mruby can be extended with C and Ruby at the same time. It is possible to
 override existing classes or add new ones in this way. Put all Ruby files
-into the *mrblib* folder and all C files into the *src* folder.
+into the `mrblib` folder and all C files into the `src` folder.
 
-mruby codes under *mrblib* directory would be executed after gem init C
+mruby codes under `mrblib` directory would be executed after gem init C
 function is called. Make sure *mruby script* depends on *C code* and
 *C code* doesn't depend on *mruby script*.
 
@@ -350,18 +353,55 @@ See C and Ruby example.
 
 	+- c_and_ruby_extension_example/
 	   |
+	   +- README.md         (Optional)
+	   |
 	   +- mrblib/
 	   |  |
-	   |  +- example.rb        <- Ruby extension source
+	   |  +- example.rb     <- Ruby extension source
 	   |
 	   +- src/
 	   |  |
-	   |  +- example.c         <- C extension source
+	   |  +- example.c      <- C extension source
 	   |
 	   +- test/
 	   |  |
-	   |  +- example.rb        <- Test code for C and Ruby extension
+	   |  +- example.rb     <- Test code for C and Ruby extension
 	   |
-	   +- mrbgem.rake          <- GEM specification
+	   +- mrbgem.rake       <- GEM specification
+
+## Binary gems
+
+Some gems can generate executables under `bin` directory. Those gems are called
+binary gems.  Names of binary gems are conventinally prefixed by `mruby-bin`,
+e.g. `mruby-bin-mirb` and `mruby-bin-strip`.
+
+To specify the name of executable, you need to specify `spec.bins` in the
+`mrbgem.rake`. The entry point `main()` should be in the C source file under
+`tools/<bin>/*.c` where `<bin>` is a name of the executable. C files under the
+`<bin>` directory are compiled and linked to the executable, but not included in
+`libmruby.a`, whereas files under `mrblib` and `src` are.
+
+It is strongly recommended not to include `mrblib` and `src` directories in the
+binary gems, to separate normal gems and binary gems.
+
+### Example
+
+	+- mruby-bin-example/
 	   |
-	   +- README.md
+	   +- README.md         (Optional)
+	   |
+	   +- bintest/
+	   |  |
+	   |  +- example.rb     <- Test code for binary gem
+	   |
+	   +- mrbgem.rake       <- Gem specification
+	   |
+	   +- mrblib/           <- Source for Ruby extension (Optional)
+	   |
+	   +- src/              <- Source for C extension (Optional)
+	   |
+	   +- tools/
+	      |
+	      +- example/       <- Executable name directory
+             |
+             +- example.c	<- Source for Executable (includes main)
