@@ -119,6 +119,10 @@ module MRuby
         @dir.start_with?("#{MRUBY_ROOT}/mrbgems/")
       end
 
+      def bin?
+        @bins.size > 0
+      end
+
       def add_dependency(name, *requirements)
         default_gem = requirements.last.kind_of?(Hash) ? requirements.pop : nil
         requirements = ['>= 0.0.0'] if requirements.empty?
@@ -496,8 +500,10 @@ module MRuby
         end
       end
 
-      def linker_attrs
-        map{|g| g.linker.run_attrs}.transpose
+      def linker_attrs(gem=nil)
+        gems = self.reject{|g| g.bin?}  # library gems
+        gems << gem unless gem.nil?
+        gems.map{|g| g.linker.run_attrs}.transpose
       end
     end # List
   end # Gem
