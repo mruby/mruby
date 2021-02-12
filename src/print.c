@@ -28,10 +28,6 @@ printstr(mrb_value obj, FILE *stream)
     printcstr(RSTRING_PTR(obj), RSTRING_LEN(obj), stream);
   }
 }
-#else
-# define printcstr(str, len, stream) (void)0
-# define printstr(obj, stream) (void)0
-#endif
 
 void
 mrb_core_init_printabort(void)
@@ -51,6 +47,17 @@ mrb_p(mrb_state *mrb, mrb_value obj)
     printstr(mrb_inspect(mrb, obj), stdout);
   }
 }
+#else
+void
+mrb_core_init_printabort(void)
+{
+}
+
+MRB_API void
+mrb_p(mrb_state *mrb, mrb_value obj)
+{
+}
+#endif
 
 MRB_API void
 mrb_print_error(mrb_state *mrb)
