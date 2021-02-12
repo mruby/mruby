@@ -3,17 +3,7 @@ name: Build & Test
 on: [push, pull_request]
 
 jobs:
-  Check-Skip:
-    if: |
-      !contains(github.event.head_commit.message, '[ci skip]') &&
-      !contains(github.event.head_commit.message, '[skip ci]') &&
-      !contains(github.event.head_commit.message, '[skip gha]')
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo not skip
-
   Ubuntu-1604:
-    needs: Check-Skip
     runs-on: ubuntu-16.04
     env:
       MRUBY_CONFIG: ci/gcc-clang
@@ -28,7 +18,6 @@ jobs:
         run: rake -m test:build && rake test:run
 
   Ubuntu-1804-gcc:
-    needs: Check-Skip
     runs-on: ubuntu-18.04
     env:
       MRUBY_CONFIG: ci/gcc-clang
@@ -43,7 +32,6 @@ jobs:
         run: rake -m test:build && rake test:run
 
   Ubuntu-1804-clang:
-    needs: Check-Skip
     runs-on: ubuntu-18.04
     env:
       MRUBY_CONFIG: ci/gcc-clang
@@ -58,7 +46,6 @@ jobs:
         run: rake -m test:build && rake test:run
 
   macOS:
-    needs: Check-Skip
     runs-on: macos-latest
     env:
       MRUBY_CONFIG: ci/gcc-clang
@@ -73,7 +60,6 @@ jobs:
         run: rake -m test:build && rake test:run
 
   Windows-MinGW:
-    needs: Check-Skip
     runs-on: windows-latest
     env:
       MRUBY_CONFIG: ci/gcc-clang
@@ -88,7 +74,6 @@ jobs:
         run: rake -m test:build && rake test:run
 
   Windows-Cygwin:
-    needs: Check-Skip
     runs-on: windows-latest
     env:
       ACTIONS_ALLOW_UNSECURE_COMMANDS: true
@@ -134,7 +119,6 @@ jobs:
         run: echo '::set-env name=PATH::C:\windows\System32'
 
   Windows-VC:
-    needs: Check-Skip
     runs-on: windows-latest
     env:
       MRUBY_CONFIG: ci/msvc
