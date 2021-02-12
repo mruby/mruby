@@ -215,40 +215,70 @@ DEFINE_SWITCHER(ht, HT)
 } while (0)
 
 /*
- * `h_check_modified` raises an exception when a dangerous modification is
- * made to `h` by executing `code`.
- *
- * This macro is not called if `h->ht` (`h->ea`) is `NULL` (`Hash` size is
- * zero). And because the `hash_entry` is rather large, `h->ht->ea` and
- * `h->ht->ea_capa` are able to be safely accessed even in AR. This nature
- * is used to eliminate branch of AR or HT.
- *
- * `HT_ASSERT_SAFE_READ` checks if members can be accessed according to its
- * assumptions.
+ * In `h_check_modified()`, in the case of `MRB_NO_BOXING`, `ht_ea()` or
+ * `ht_ea_capa()` for AR may read uninitialized area (#5332). Therefore, do
+ * not use those macros for AR in `MRB_NO_BOXING` (but in the case of
+ * `MRB_64BIT`, `ht_ea_capa()` is the same as `ar_ea_capa()`, so use it).
  */
-#define HT_ASSERT_SAFE_READ(attr_name)                                        \
+#ifdef MRB_NO_BOXING
+# define H_CHECK_MODIFIED_USE_HT_EA_FOR_AR FALSE
+# ifdef MRB_64BIT
+#  define H_CHECK_MODIFIED_USE_HT_EA_CAPA_FOR_AR TRUE
+# else
+#  define H_CHECK_MODIFIED_USE_HT_EA_CAPA_FOR_AR FALSE
+# endif  /* MRB_64BIT */
+#else
+# define H_CHECK_MODIFIED_USE_HT_EA_FOR_AR TRUE
+# define H_CHECK_MODIFIED_USE_HT_EA_CAPA_FOR_AR TRUE
+ /*
+  * `h_check_modified` raises an exception when a dangerous modification is
+  * made to `h` by executing `code`.
+  *
+  * `h_check_modified` macro is not called if `h->ht` (`h->ea`) is `NULL`
+  * (`Hash` size is zero). And because the `hash_entry` is rather large,
+  * `h->ht->ea` and `h->ht->ea_capa` are able to be safely accessed even for
+  * AR. This nature is used to eliminate branch of AR or HT.
+  *
+  * `HT_ASSERT_SAFE_READ` checks if members can be accessed according to its
+  * assumptions.
+  */
+# define HT_ASSERT_SAFE_READ(attr_name)                                       \
   mrb_static_assert1(                                                         \
     offsetof(hash_table, attr_name) + sizeof(((hash_table*)0)->attr_name) <=  \
     sizeof(hash_entry))
 HT_ASSERT_SAFE_READ(ea);
-#ifdef MRB_32BIT
+# ifdef MRB_32BIT
 HT_ASSERT_SAFE_READ(ea_capa);
-#endif
-#undef HT_ASSERT_SAFE_READ
-#define h_check_modified(mrb, h, code) do {                                   \
-  struct RHash *h__ = h;                                                      \
-  uint32_t mask = MRB_HASH_HT|MRB_HASH_IB_BIT_MASK|MRB_HASH_AR_EA_CAPA_MASK;  \
-  uint32_t flags = h__->flags & mask;                                         \
-  void* tbl__ = (mrb_assert(h__->ht), h__->ht);                               \
-  uint32_t ht_ea_capa__ = ht_ea_capa(h__);                                    \
-  hash_entry *ht_ea__ = ht_ea(h__);                                           \
-  code;                                                                       \
-  if (flags != (h__->flags & mask) ||                                         \
-      tbl__ != h__->ht ||                                                     \
-      ht_ea_capa__ != ht_ea_capa(h__) ||                                      \
-      ht_ea__ != ht_ea(h__)) {                                                \
-    mrb_raise(mrb, E_RUNTIME_ERROR, "hash modified");                         \
-  }                                                                           \
+# endif
+# undef HT_ASSERT_SAFE_READ
+#endif  /* MRB_NO_BOXING */
+
+/*
+ * `h_check_modified` raises an exception when a dangerous modification is
+ * made to `h` by executing `code`.
+ */
+#define h_check_modified(mrb, h, code) do {                                     \
+  struct RHash *h__ = h;                                                        \
+  uint32_t mask__ = MRB_HASH_HT|MRB_HASH_IB_BIT_MASK|MRB_HASH_AR_EA_CAPA_MASK;  \
+  uint32_t flags__ = h__->flags & mask__;                                       \
+  void* tbl__ = (mrb_assert(h__->ht), h__->ht);                                 \
+  uint32_t ht_ea_capa__ = 0;                                                    \
+  hash_entry *ht_ea__ = NULL;                                                   \
+  if (H_CHECK_MODIFIED_USE_HT_EA_CAPA_FOR_AR || h_ht_p(h__)) {                  \
+    ht_ea_capa__ = ht_ea_capa(h__);                                             \
+  }                                                                             \
+  if (H_CHECK_MODIFIED_USE_HT_EA_FOR_AR || h_ht_p(h__)) {                       \
+    ht_ea__ = ht_ea(h__);                                                       \
+  }                                                                             \
+  code;                                                                         \
+  if (flags__ != (h__->flags & mask__) ||                                       \
+      tbl__ != h__->ht ||                                                       \
+      ((H_CHECK_MODIFIED_USE_HT_EA_CAPA_FOR_AR || h_ht_p(h__)) &&               \
+       ht_ea_capa__ != ht_ea_capa(h__)) ||                                      \
+      ((H_CHECK_MODIFIED_USE_HT_EA_FOR_AR || h_ht_p(h__)) &&                    \
+       ht_ea__ != ht_ea(h__))) {                                                \
+    mrb_raise(mrb, E_RUNTIME_ERROR, "hash modified");                           \
+  }                                                                             \
 } while (0)
 
 #define U32(v) ((uint32_t)(v))
