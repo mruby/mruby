@@ -7,7 +7,7 @@
 #include <mruby/presym.h>
 
 
-static const mrb_sym catch_syms_3[1] = {MRB_SYM(call),};
+MRB_PRESYM_DEFINE_VAR_AND_INITER(catch_syms_3, 1, MRB_SYM(call))
 static const mrb_code catch_iseq_3[18] = {
   OP_ENTER,    0x00, 0x00, 0x00,
   OP_GETUPVAR, 0x02, 0x02, 0x01,
@@ -41,7 +41,7 @@ static const mrb_irep catch_irep_2 = {
 static const mrb_irep *catch_reps_1[1] = {
   &catch_irep_2,
 };
-static const mrb_sym catch_syms_1[3] = {MRB_SYM(Object), MRB_SYM(new), MRB_SYM(call),};
+MRB_PRESYM_DEFINE_VAR_AND_INITER(catch_syms_1, 3, MRB_SYM(Object), MRB_SYM(new), MRB_SYM(call))
 static const mrb_code catch_iseq_1[29] = {
   OP_ENTER,    0x00, 0x20, 0x01,
   OP_JMP,      0x00, 0x03,
@@ -112,6 +112,8 @@ mrb_mruby_catch_gem_init(mrb_state *mrb)
   struct RProc *p;
   mrb_method_t m;
 
+  MRB_PRESYM_INIT_SYMBOLS(mrb, catch_syms_3);
+  MRB_PRESYM_INIT_SYMBOLS(mrb, catch_syms_1);
   p = mrb_proc_new(mrb, &catch_irep);
   MRB_METHOD_FROM_PROC(m, p);
   mrb_define_method_raw(mrb, mrb->kernel_module, MRB_SYM(catch), m);
