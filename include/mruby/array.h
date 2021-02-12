@@ -65,7 +65,7 @@ struct RArray {
 #define ARY_EMBED_PTR(a) ((a)->as.ary)
 #endif
 
-#define ARY_LEN(a) (ARY_EMBED_P(a)?ARY_EMBED_LEN(a):(a)->as.heap.len)
+#define ARY_LEN(a) (ARY_EMBED_P(a)?ARY_EMBED_LEN(a):(mrb_int)(a)->as.heap.len)
 #define ARY_PTR(a) (ARY_EMBED_P(a)?ARY_EMBED_PTR(a):(a)->as.heap.ptr)
 #define RARRAY_LEN(a) ARY_LEN(RARRAY(a))
 #define RARRAY_PTR(a) ARY_PTR(RARRAY(a))
