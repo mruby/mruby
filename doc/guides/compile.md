@@ -32,7 +32,7 @@ line on build, call `rake -v`.
 
 You can specify your own configuration file by the `MRUBY_CONFIG` environment
 variable (you can use `CONFIG` for shorthand for `MRUBY_CONFIG`). If the path
-doesn't exist, *build_config/${MRUBY_CONFIG}.rb* is used. The default
+doesn't exist, `build_config/${MRUBY_CONFIG}.rb` is used. The default
 configuration is defined in the `build_config/default.rb` file.
 
 Those build configuration files contain the build configuration of mruby, for
@@ -48,7 +48,7 @@ All tools necessary to compile mruby can be set or modified here.
 
 ## Build Configuration
 
-We wish you submit a pull-request to *build_config/**PLATFORM**.rb*, once you
+We wish you submit a pull-request to `build_config/PLATFORM.rb`, once you
 created a new configuration for a new platform.
 
 Inside of the configuration file, the following options can be
@@ -228,7 +228,7 @@ end
 
 ### Preallocated Symbols
 
-By far, preallocate symbols are highly compatible with the previous versions, so
+By far, preallocated symbols are highly compatible with the previous versions, so
 we expect you won't see any problem with them. But just in case you face any
 issue, you can disable preallocated symbols by specifying `conf.disable_presym`.
 
@@ -279,7 +279,7 @@ conf.build_mrbtest_lib_only
 ### Bintest
 
 Tests for mrbgem tools using CRuby.
-To have bintests place \*.rb scripts to `bintest/` directory of mrbgems.
+To have bintests place `*.rb` scripts to `bintest/` directory of mrbgems.
 See `mruby-bin-*/bintest/*.rb` if you need examples.
 If you want a temporary files use `tempfile` module of CRuby instead of `/tmp/`.
 
@@ -354,7 +354,7 @@ end
 ```
 
 All configuration options of `MRuby::Build` can also be used in
-`MRuby::CrossBuild`. You can find examples under the *build_config*
+`MRuby::CrossBuild`. You can find examples under the `build_config`
 directory.
 
 ### Mrbtest in Cross-Compilation
@@ -375,49 +375,42 @@ end
 
 ## Build process
 
-During the build process the directory *build* will be created in the
+During the build process the directory `build` will be created in the
 root directory. The structure of this directory will look like this:
 
 	+- build
 	   |
 	   +-  host
 	       |
+	       +- LEGAL        <- License description
+	       |
 	       +- bin          <- Binaries (mirb, mrbc and mruby)
 	       |
 	       +- lib          <- Libraries (libmruby.a and libmruby_core.a)
 	       |
-	       +- mrblib
+	       +- mrbc         <- Minimal mrbc place
 	       |
-	       +- src
+	       +- mrbgems      <- Compilation result from mrbgems
 	       |
-	       +- test         <- mrbtest tool
+	       +- mrblib       <- Compilation result from mrblib
 	       |
-	       +- tools
-	          |
-	          +- mirb
-	          |
-	          +- mrbc
-	          |
-	          +- mruby
+	       +- src          <- Compilation result from C sources
 
 The compilation workflow will look like this:
 
-* compile all files under *src* (object files will be stored
-in *build/host/src*)
-* generate parser grammar out of *src/parse.y* (generated
-result will be stored in *build/host/src/y.tab.c*)
-* compile  *build/host/src/y.tab.c* to  *build/host/src/y.tab.o*
-* create *build/host/lib/libmruby_core.a* out of all object files (C only)
-* create `build/host/bin/mrbc` by compiling *tools/mrbc/mrbc.c* and
-linking with *build/host/lib/libmruby_core.a*
-* create *build/host/mrblib/mrblib.c* by compiling all \*.rb files
-under *mrblib* with `build/host/bin/mrbc`
-* compile *build/host/mrblib/mrblib.c* to *build/host/mrblib/mrblib.o*
-* create *build/host/lib/libmruby.a* out of all object files (C and Ruby)
-* create `build/host/bin/mruby` by compiling *mrbgems/mruby-bin-mruby/tools/mruby/mruby.c* and
-linking with *build/host/lib/libmruby.a*
-* create `build/host/bin/mirb` by compiling *mrbgems/mruby-bin-mirb/tools/mirb/mirb.c* and
-linking with *build/host/lib/libmruby.a*
+* compile minimal `mrbc` from `src` and `mrblib` sources
+  * compile all files under `src` (object files will be stored in `build/host/mrbc/src`)
+  * compile `mruby-compiler` gem
+  * create `build/host/mrbc/lib/libmruby_core.a` out of all object files (C only)
+  * create `build/host/mrbc/bin/mrbc` via `mruby-bin-mrbc` gem
+* compile all files under `src` and store result in `build/host/src`
+* create `build/host/mrblib/mrblib.c` by compiling all `*.rb` files under `mrblib` with `build/host/mrbc/bin/mrbc`
+* compile `build/host/mrblib/mrblib.c` to `build/host/mrblib/mrblib.o`
+* create `build/host/lib/libmruby.a` out of all object files (C and Ruby)
+* compile (normal) mrbgems specified in the configuration file
+* create `build/host/lib/libmruby.a` from object files from gems and `libmruby_core.a`
+* create binary commands according to binary gems (e.g. `mirb` and `mruby`)
+* copy binaries under `build/host/bin` to `bin` directory
 
 ```
  _____    _____    ______    ____    ____    _____    _____    ____
@@ -428,7 +421,7 @@ linking with *build/host/lib/libmruby.a*
 
 ### Cross-Compilation
 
-In case of a cross-compilation to *i386* the *build* directory structure looks
+In case of a cross-compilation to `i386` the `build` directory structure looks
 like this:
 
 	+- build
@@ -439,63 +432,42 @@ like this:
 	   |   |
 	   |   +- lib           <- Native Libraries
 	   |   |
-	   |   +- mrblib
+	   |   +- mrbgems
 	   |   |
 	   |   +- src
-	   |   |
-	   |   +- test          <- Native mrbtest tool
-	   |   |
-	   |   +- tools
-	   |      |
-	   |      +- mirb
-	   |      |
-	   |      +- mrbc
-	   |      |
-	   |      +- mruby
+       |
 	   +- i386
 	      |
 	      +- bin            <- Cross-compiled Binaries
 	      |
+	      +- include        <- Header Directory
+	      |
 	      +- lib            <- Cross-compiled Libraries
+	      |
+	      +- mrbgems
 	      |
 	      +- mrblib
 	      |
 	      +- src
-	      |
-	      +- test           <- Cross-compiled mrbtest tool
-	      |
-	      +- tools
-	         |
-	         +- mirb
-	         |
-	         +- mrbc
-	         |
-	         +- mruby
 
 An extra directory is created for the target platform. In case you
-compile for *i386* a directory called *i386* is created under the
+compile for `i386` a directory called `i386` is created under the
 build directory.
 
 The cross compilation workflow starts in the same way as the normal
-compilation by compiling all *native* libraries and binaries.
-Afterwards the cross compilation process proceeds like this:
+compilation by compiling all *native* libraries and binaries, except
+for we don't have `host/mrbc` directory (`host` directory itself works
+as placeholder for `mrbc`). Afterwards the cross compilation process
+proceeds like this:
 
-* cross-compile all files under *src* (object files will be stored
-in *build/i386/src*)
-* generate parser grammar out of *src/parse.y* (generated
-result will be stored in *build/i386/src/y.tab.c*)
-* cross-compile *build/i386/src/y.tab.c* to *build/i386/src/y.tab.o*
-* create *build/i386/mrblib/mrblib.c* by compiling all \*.rb files
-under *mrblib* with the native `build/host/bin/mrbc`
-* cross-compile *build/host/mrblib/mrblib.c* to *build/host/mrblib/mrblib.o*
-* create *build/i386/lib/libmruby.a* out of all object files (C and Ruby)
-* create `build/i386/bin/mruby` by cross-compiling *mrbgems/mruby-bin-mruby/tools/mruby/mruby.c* and
-linking with *build/i386/lib/libmruby.a*
-* create `build/i386/bin/mirb` by cross-compiling *mrbgems/mruby-bin-mirb/tools/mirb/mirb.c* and
-linking with *build/i386/lib/libmruby.a*
-* create *build/i386/lib/libmruby_core.a* out of all object files (C only)
-* create `build/i386/bin/mrbc` by cross-compiling *tools/mrbc/mrbc.c* and
-linking with *build/i386/lib/libmruby_core.a*
+* cross-compile all files under `src` and store result in `build/i386/src`
+* create `build/i386/lib/libmruby_core.a` out of C object files
+* create `build/i386/mrblib/mrblib.c` by compiling all `*.rb` files under `mrblib` with native `build/host/bin/mrbc`
+* cross-compile `build/i386/mrblib/mrblib.c` to `build/i386/mrblib/mrblib.o`
+* create `build/i386/lib/libmruby.a` from object files from gems and `libmruby_core.a`
+* create binary commands according to binary gems (e.g. `mirb` and `mruby`)
+* copy binaries under `build/host/bin` to `bin` directory
+
 
 ```
  _______________________________________________________________
@@ -526,24 +498,23 @@ feature due to the reason that there are functions (e.g. stdio) which
 can't be disabled for the main build.
 
 ```ruby
-MRuby::CrossBuild.new('Minimal') do |conf|
+MRuby::CrossBuild.new('minimal') do |conf|
   toolchain :gcc
 
   conf.cc.defines = %w(MRB_NO_STDIO)
-  conf.bins = []
 end
 ```
 
-This configuration defines a cross compile build called 'Minimal' which
+This configuration defines a cross compile build called 'minimal' which
 is using the GCC and compiles for the host machine. It also disables
-all usages of stdio and doesn't compile any binaries (e.g. mrbc).
+all usages of stdio and doesn't compile any binaries (e.g. `mrbc`).
 
 ## Test Environment
 
 mruby's build process includes a test environment. In case you start the testing
 of mruby, a native binary called `mrbtest` will be generated and executed.
-This binary contains all test cases which are defined under *test/t*. In case
-of a cross-compilation an additional cross-compiled *mrbtest* binary is
+This binary contains all test cases which are defined under `test/t`. In case
+of a cross-compilation an additional cross-compiled `mrbtest` binary is
 generated. You can copy this binary and run on your target system.
 
 ## Embedding `mruby` in Your Application
@@ -562,6 +533,7 @@ Usage: mruby-config [switches]
   --ldflags-before-libs       print flags passed to linker before linked libraries
   --libs                      print linked libraries
   --libmruby-path             print libmruby path
+  --help                      print this help
 ```
 
 For example, when you have a C source file (`c.c`) and try to
