@@ -3,20 +3,6 @@ name: Build & Test
 on: [push, pull_request]
 
 jobs:
-  Ubuntu-1604:
-    runs-on: ubuntu-16.04
-    env:
-      MRUBY_CONFIG: ci/gcc-clang
-      CC: gcc
-    steps:
-      - uses: actions/checkout@v2
-      - name: Ruby version
-        run: ruby -v
-      - name: Compiler version
-        run: ${{ env.CC }} --version
-      - name: Build and test
-        run: rake -m test:build && rake test:run
-
   Ubuntu-1804-gcc:
     runs-on: ubuntu-18.04
     env:
@@ -33,6 +19,34 @@ jobs:
 
   Ubuntu-1804-clang:
     runs-on: ubuntu-18.04
+    env:
+      MRUBY_CONFIG: ci/gcc-clang
+      CC: clang
+    steps:
+      - uses: actions/checkout@v2
+      - name: Ruby version
+        run: ruby -v
+      - name: Compiler version
+        run: ${{ env.CC }} --version
+      - name: Build and test
+        run: rake -m test:build && rake test:run
+
+  Ubuntu-2004-gcc:
+    runs-on: ubuntu-20.04
+    env:
+      MRUBY_CONFIG: ci/gcc-clang
+      CC: gcc
+    steps:
+      - uses: actions/checkout@v2
+      - name: Ruby version
+        run: ruby -v
+      - name: Compiler version
+        run: ${{ env.CC }} --version
+      - name: Build and test
+        run: rake -m test:build && rake test:run
+
+  Ubuntu-2004-clang:
+    runs-on: ubuntu-20.04
     env:
       MRUBY_CONFIG: ci/gcc-clang
       CC: clang
