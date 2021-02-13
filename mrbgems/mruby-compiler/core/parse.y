@@ -1450,7 +1450,7 @@ heredoc_end(parser_state *p)
 %token <nd>  tSTRING tSTRING_PART tSTRING_MID
 %token <nd>  tNTH_REF tBACK_REF
 %token <num> tREGEXP_END
-%token <num> tNUMPARAM "numbered paraemeter"
+%token <num> tNUMPARAM "numbered parameter"
 
 %type <nd> singleton string string_fragment string_rep string_interp xstring regexp
 %type <nd> literal numeric cpath symbol defn_head defs_head
