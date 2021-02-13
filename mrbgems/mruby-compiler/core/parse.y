@@ -4682,6 +4682,7 @@ heredoc_remove_indent(parser_state *p, parser_heredoc_info *hinf)
       start = 0;
       while (start < len) {
         end = escaped ? (size_t)escaped->car : len;
+        if (end > len) end = len;
         spaces = (size_t)nspaces->car;
         size_t esclen = end - start;
         heredoc_count_indent(hinf, str + start, esclen, spaces, &offset);
