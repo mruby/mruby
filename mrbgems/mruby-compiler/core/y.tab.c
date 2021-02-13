@@ -2085,7 +2085,7 @@ static const char *const yytname[] =
   "\"constant\"", "\"class variable\"", "\"label\"", "\"integer literal\"",
   "\"float literal\"", "\"character literal\"", "tXSTRING", "tREGEXP",
   "tSTRING", "tSTRING_PART", "tSTRING_MID", "tNTH_REF", "tBACK_REF",
-  "tREGEXP_END", "\"numbered paraemeter\"", "\"unary plus\"",
+  "tREGEXP_END", "\"numbered parameter\"", "\"unary plus\"",
   "\"unary minus\"", "\"<=>\"", "\"==\"", "\"===\"", "\"!=\"", "\">=\"",
   "\"<=\"", "\"&&\"", "\"||\"", "\"=~\"", "\"!~\"", "\"..\"", "\"...\"",
   "tBDOT2", "tBDOT3", "tAREF", "tASET", "\"<<\"", "\">>\"", "\"::\"",

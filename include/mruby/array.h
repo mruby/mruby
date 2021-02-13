@@ -107,7 +107,7 @@ MRB_API mrb_value mrb_ary_new(mrb_state *mrb);
  *      Array[value1, value2, ...]
  *
  * @param mrb The mruby state reference.
- * @param size The numer of values.
+ * @param size The number of values.
  * @param vals The actual values.
  * @return The initialized array.
  */

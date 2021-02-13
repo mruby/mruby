@@ -1,7 +1,7 @@
 # mrbgems
 
 mrbgems is a library manager to integrate C and Ruby extension in an easy and
-standardised way into mruby. Conventinally, each mrbgem name is prefixed by
+standardised way into mruby. Conventionally, each mrbgem name is prefixed by
 `mruby-`, e.g. `mruby-time` for a gem that provides `Time` class functionality.
 
 ## Usage
@@ -372,7 +372,7 @@ See C and Ruby example.
 ## Binary gems
 
 Some gems can generate executables under `bin` directory. Those gems are called
-binary gems.  Names of binary gems are conventinally prefixed by `mruby-bin`,
+binary gems.  Names of binary gems are conventionally prefixed by `mruby-bin`,
 e.g. `mruby-bin-mirb` and `mruby-bin-strip`.
 
 To specify the name of executable, you need to specify `spec.bins` in the

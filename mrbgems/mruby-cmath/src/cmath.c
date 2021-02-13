@@ -6,7 +6,7 @@
 
 /*
 ** This `mruby-cmath` gem uses C99 _Complex features
-** You need C compler that support C99+
+** You need C compiler that support C99+
 */
 
 #include <mruby.h>
