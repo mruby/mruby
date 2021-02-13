@@ -3,6 +3,38 @@ name: ❄️ Lint
 on: [pull_request]
 
 jobs:
+  markdownlint:
+    name: 🍸 Markdown
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: 🚀 Use Node.js
+        uses: actions/setup-node@v2.1.4
+        with:
+          node-version: '12.x'
+      - run: npm install -g markdownlint-cli@0.25.0
+      - run: markdownlint '**/*.md'
+  misspell:
+    name: 🥛 Check Spelling
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🍒 Check Out
+        uses: actions/checkout@v2
+      - name: 🍅 Install
+        run: |
+          wget -O - -q https://git.io/misspell | sh -s -- -b .
+      - name: 🌶️ Misspell
+        run: |
+          git ls-files --empty-directory | xargs ./misspell -error
+  trailing-whitespace:
+    name: 🧋 Trailing whitespace
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: 🧹 Check for trailing whitespace
+        run: |
+          cd test || exit
+          sh ./check-for-trailing-whitespace.sh || exit 1
   yamllint:
     name: 🍶 YAML
     runs-on: ubuntu-latest
@@ -20,23 +52,3 @@ jobs:
         run: |
           # return non-zero exit code on warnings
           yamllint --strict .
-  markdownlint:
-    name: 🍸 Markdown
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: 🚀 Use Node.js
-        uses: actions/setup-node@v2.1.4
-        with:
-          node-version: '12.x'
-      - run: npm install -g markdownlint-cli@0.25.0
-      - run: markdownlint '**/*.md'
-  trailing-whitespace:
-    name: 🌌 Trailing whitespace
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - name: 🧹 Check for trailing whitespace
-        run: |
-          cd test || exit
-          sh ./check-for-trailing-whitespace.sh || exit 1
