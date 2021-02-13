@@ -60,7 +60,7 @@ mrb_ary_new(mrb_state *mrb)
  * * gcc on ARM may fail optimization of memcpy
  *   http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.faqs/ka3934.html
  * * gcc on MIPS also fail
- *   http://gcc.gnu.org/bugzilla/show_bug.cgi?id=39755
+ *   https://gcc.gnu.org/bugzilla/show_bug.cgi?id=39755
  * * memcpy doesn't exist on freestanding environment
  *
  * If you optimize for binary size, use memcpy instead of this at your own risk
