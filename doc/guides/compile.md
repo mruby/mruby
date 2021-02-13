@@ -10,18 +10,19 @@ To compile mruby out of the source code you need the following tools:
 * C Compiler (e.g. `gcc` or `clang`)
 * Linker (e.g. `gcc` or `clang`)
 * Archive utility (e.g. `ar`)
-* Parser generator (`bison`)
 * Ruby 2.5 or later (e.g. `ruby` or `jruby`)
+
+Optional:
+
+* Git (to update mruby source and integrate mrbgems easier)
+* C++ compiler (to use mrbgems which include `*.cpp`, `*.cxx`, `*.cc`)
+* Bison (to compile `mrbgems/mruby-compiler/core/parse.y`)
+* gperf (to compile `mrbgems/mruby-compiler/core/keywords`)
 
 Note that `bison` bundled with MacOS is too old to compile `mruby`.
 Try `brew install bison` and follow the instruction shown to update
 the `$PATH` to compile `mruby`. We also encourage to upgrade `ruby`
 on MacOS in similar manner.
-
-Optional:
-
-* git (to update mruby source and integrate mrbgems easier)
-* C++ compiler (to use GEMs which include \*.cpp, \*.cxx, \*.cc)
 
 ## Build
 
@@ -467,7 +468,6 @@ proceeds like this:
 * create `build/i386/lib/libmruby.a` from object files from gems and `libmruby_core.a`
 * create binary commands according to binary gems (e.g. `mirb` and `mruby`)
 * copy binaries under `build/host/bin` to `bin` directory
-
 
 ```
  _______________________________________________________________
