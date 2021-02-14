@@ -1022,7 +1022,7 @@ mrb_vm_exec(mrb_state *mrb, const struct RProc *proc, const mrb_code *pc)
   const struct mrb_irep_catch_handler *ch;
 
 #ifdef DIRECT_THREADED
-  static void *optable[] = {
+  static const void * const optable[] = {
 #define OPCODE(x,_) &&L_OP_ ## x,
 #include "mruby/ops.h"
 #undef OPCODE
