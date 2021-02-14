@@ -16,7 +16,10 @@
  */
 MRB_BEGIN_DECL
 
-#define DUMP_DEBUG_INFO 1
+/* flags for mrb_dump_irep{,_binary,_cfunc,_cstruct} */
+#define MRB_DUMP_DEBUG_INFO 1
+#define MRB_DUMP_STATIC 2
+#define DUMP_DEBUG_INFO MRB_DUMP_DEBUG_INFO  /* deprecated */
 
 int mrb_dump_irep(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, uint8_t **bin, size_t *bin_size);
 #ifndef MRB_NO_STDIO

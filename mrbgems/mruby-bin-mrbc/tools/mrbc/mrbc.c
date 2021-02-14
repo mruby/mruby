@@ -14,17 +14,17 @@
 #define C_EXT       ".c"
 
 struct mrbc_args {
-  int argc;
-  char **argv;
-  int idx;
   const char *prog;
   const char *outfile;
   const char *initname;
+  char **argv;
+  int argc;
+  int idx;
   mrb_bool dump_struct  : 1;
   mrb_bool check_syntax : 1;
   mrb_bool verbose      : 1;
   mrb_bool remove_lv    : 1;
-  unsigned int flags    : 4;
+  uint8_t flags         : 4;
 };
 
 static void
@@ -38,6 +38,7 @@ usage(const char *name)
   "-g           produce debugging information",
   "-B<symbol>   binary <symbol> output in C language format",
   "-S           dump C struct (requires -B)",
+  "-s           define <symbol> as static variable",
   "--remove-lv  remove local variables",
   "--verbose    run at verbose mode",
   "--version    print the version",
@@ -131,7 +132,10 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct mrbc_args *args)
         args->verbose = TRUE;
         break;
       case 'g':
-        args->flags |= DUMP_DEBUG_INFO;
+        args->flags |= MRB_DUMP_DEBUG_INFO;
+        break;
+      case 's':
+        args->flags |= MRB_DUMP_STATIC;
         break;
       case 'E':
       case 'e':

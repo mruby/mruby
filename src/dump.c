@@ -806,7 +806,7 @@ dump_irep(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, uint8_t **bin, si
   section_irep_size += get_irep_record_size(mrb, irep);
 
   /* DEBUG section size */
-  if (flags & DUMP_DEBUG_INFO) {
+  if (flags & MRB_DUMP_DEBUG_INFO) {
     if (debug_info_defined) {
       section_lineno_size += sizeof(struct rite_section_debug_header);
       /* filename table */
@@ -842,7 +842,7 @@ dump_irep(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, uint8_t **bin, si
               sizeof(struct rite_binary_footer);
 
   /* write DEBUG section */
-  if (flags & DUMP_DEBUG_INFO) {
+  if (flags & MRB_DUMP_DEBUG_INFO) {
     if (debug_info_defined) {
       result = write_section_debug(mrb, irep, cur, filenames, filenames_len);
       if (result != MRB_DUMP_OK) {
@@ -920,11 +920,13 @@ mrb_dump_irep_cfunc(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *f
       return MRB_DUMP_WRITE_FAULT;
     }
     if (fprintf(fp,
-          "#ifdef __cplusplus\n"
-          "extern const uint8_t %s[];\n"
-          "#endif\n"
+          "%s\n"
           "const uint8_t %s[] = {",
-          initname, initname) < 0) {
+          (flags & MRB_DUMP_STATIC) ? "static"
+                                    : "#ifdef __cplusplus\n"
+                                      "extern\n"
+                                      "#endif",
+          initname) < 0) {
       mrb_free(mrb, bin);
       return MRB_DUMP_WRITE_FAULT;
     }
@@ -1232,8 +1234,14 @@ mrb_dump_irep_cstruct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE 
   int max = 1;
   int n = dump_irep_struct(mrb, irep, flags, fp, initname, 0, init_syms_code, &max);
   if (n != MRB_DUMP_OK) return n;
-  fprintf(fp, "#ifdef __cplusplus\nextern const struct RProc %s[];\n#endif\n", initname);
-  fprintf(fp, "const struct RProc %s[] = {{\n", initname);
+  fprintf(fp,
+          "%s\n"
+          "const struct RProc %s[] = {{\n",
+          (flags & MRB_DUMP_STATIC) ? "static"
+                                    : "#ifdef __cplusplus\n"
+                                      "extern\n"
+                                      "#endif",
+          initname);
   fprintf(fp, "NULL,NULL,MRB_TT_PROC,7,0,{&%s_irep_0},NULL,{NULL},\n}};\n", initname);
   fputs("static void\n", fp);
   fprintf(fp, "%s_init_syms(mrb_state *mrb)\n", initname);

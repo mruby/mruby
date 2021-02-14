@@ -328,13 +328,16 @@ module MRuby
       @compile_options = "-B%{funcname} -o-"
     end
 
-    def run(out, infiles, funcname, cdump = true)
+    def run(out, infiles, funcname, cdump: true, static: false)
       @command ||= @build.mrbcfile
       infiles = [infiles].flatten
       infiles.each_with_index do |f, i|
         _pp i == 0 ? "MRBC" : "", f.relative_path, indent: 2
       end
-      cmd = %Q["#{filename @command}" #{cdump ? "-S" : ""} #{@compile_options % {:funcname => funcname}} #{filename(infiles).map{|f| %Q["#{f}"]}.join(' ')}]
+      opt = @compile_options % {funcname: funcname}
+      opt << " -S" if cdump
+      opt << " -s" if static
+      cmd = %["#{filename @command}" #{opt} #{filename(infiles).map{|f| %["#{f}"]}.join(' ')}]
       puts cmd if Rake.verbose
       IO.popen(cmd, 'r+') do |io|
         out.puts io.read
