@@ -32,9 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: 🧹 Check for trailing whitespace
-        run: |
-          cd test || exit
-          sh ./check-for-trailing-whitespace.sh || exit 1
+        run: "! git grep -EIn $'[ \t]+$'"
   yamllint:
     name: 🍶 YAML
     runs-on: ubuntu-latest
