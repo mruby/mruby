@@ -288,7 +288,7 @@ mrb_init_object(mrb_state *mrb)
   struct RClass *f;
 
   mrb->nil_class   = n = mrb_define_class(mrb, "NilClass",   mrb->object_class);
-  MRB_SET_INSTANCE_TT(n, MRB_TT_TRUE);
+  MRB_SET_INSTANCE_TT(n, MRB_TT_FALSE);
   mrb_undef_class_method(mrb, n, "new");
   mrb_define_method(mrb, n, "&",    false_and,      MRB_ARGS_REQ(1));  /* 15.2.4.3.1  */
   mrb_define_method(mrb, n, "^",    false_xor,      MRB_ARGS_REQ(1));  /* 15.2.4.3.2  */
@@ -307,7 +307,7 @@ mrb_init_object(mrb_state *mrb)
   mrb_define_method(mrb, t, "inspect", true_to_s,   MRB_ARGS_NONE());
 
   mrb->false_class = f = mrb_define_class(mrb, "FalseClass", mrb->object_class);
-  MRB_SET_INSTANCE_TT(f, MRB_TT_TRUE);
+  MRB_SET_INSTANCE_TT(f, MRB_TT_FALSE);
   mrb_undef_class_method(mrb, f, "new");
   mrb_define_method(mrb, f, "&",    false_and,      MRB_ARGS_REQ(1));  /* 15.2.6.3.1  */
   mrb_define_method(mrb, f, "^",    false_xor,      MRB_ARGS_REQ(1));  /* 15.2.6.3.2  */
