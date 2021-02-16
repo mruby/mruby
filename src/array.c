@@ -56,9 +56,9 @@ mrb_ary_new(mrb_state *mrb)
 }
 
 /*
- * to copy array, use this instead of memcpy because of portability
+ * To copy array, use this instead of memcpy because of portability
  * * gcc on ARM may fail optimization of memcpy
- *   http://infocenter.arm.com/help/index.jsp?topic=/com.arm.doc.faqs/ka3934.html
+ *   https://gcc.gnu.org/bugzilla/show_bug.cgi?id=56620
  * * gcc on MIPS also fail
  *   https://gcc.gnu.org/bugzilla/show_bug.cgi?id=39755
  * * memcpy doesn't exist on freestanding environment
@@ -66,8 +66,7 @@ mrb_ary_new(mrb_state *mrb)
  * If you optimize for binary size, use memcpy instead of this at your own risk
  * of above portability issue.
  *
- * see also http://togetter.com/li/462898
- *
+ * See also https://togetter.com/li/462898 (Japanese)
  */
 static inline void
 array_copy(mrb_value *dst, const mrb_value *src, mrb_int size)
