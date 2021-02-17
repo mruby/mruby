@@ -100,7 +100,7 @@ module MRuby
           options = [params[:options]] || []
           options << "--recursive"
           options << "--branch \"#{branch}\""
-          options << "--depth 1" unless params[:checksum_hash]
+          options << "--depth 1" unless params[:checksum_hash] || lock
           mkdir_p "#{gem_clone_dir}"
           git.run_clone gemdir, url, options
 
