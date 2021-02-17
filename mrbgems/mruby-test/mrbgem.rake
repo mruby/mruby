@@ -20,7 +20,7 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
     _pp "GEN", t.name.relative_path
     mkdir_p File.dirname(t.name)
     open(t.name, 'w') do |f|
-      mrbc.run f, assert_rb, 'mrbtest_assert_irep', false
+      mrbc.run f, assert_rb, 'mrbtest_assert_irep', cdump: false
     end
   end
 
@@ -52,10 +52,10 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
         if test_preload.nil?
           f.puts %Q[extern const uint8_t mrbtest_assert_irep[];]
         else
-          g.build.mrbc.run f, test_preload, "gem_test_irep_#{g.funcname}_preload", false
+          g.build.mrbc.run f, test_preload, "gem_test_irep_#{g.funcname}_preload", cdump: false
         end
         g.test_rbfiles.flatten.each_with_index do |rbfile, i|
-          g.build.mrbc.run f, rbfile, "gem_test_irep_#{g.funcname}_#{i}", false
+          g.build.mrbc.run f, rbfile, "gem_test_irep_#{g.funcname}_#{i}", cdump: false, static: true
         end
         f.puts %Q[void mrb_#{g.funcname}_gem_test(mrb_state *mrb);] if g.custom_test_init?
         dep_list.each do |d|

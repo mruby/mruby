@@ -198,10 +198,11 @@ module MRuby
         open(fname, 'w') do |f|
           print_gem_init_header f
           unless rbfiles.empty?
+            opts = {cdump: cdump?, static: true}
             if cdump?
-              build.mrbc.run f, rbfiles, "gem_mrblib_#{funcname}_proc"
+              build.mrbc.run f, rbfiles, "gem_mrblib_#{funcname}_proc", **opts
             else
-              build.mrbc.run f, rbfiles, "gem_mrblib_irep_#{funcname}", false
+              build.mrbc.run f, rbfiles, "gem_mrblib_irep_#{funcname}", **opts
             end
           end
           f.puts %Q[void mrb_#{funcname}_gem_init(mrb_state *mrb);]
