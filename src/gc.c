@@ -559,6 +559,9 @@ mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
       mrb_raisef(mrb, E_TYPE_ERROR, "allocation failure of %C", cls);
     }
   }
+  if (ttype <= MRB_TT_FREE) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "allocation failure of %C (type %d)", cls, (int)ttype);
+  }
 
 #ifdef MRB_GC_STRESS
   mrb_full_gc(mrb);
