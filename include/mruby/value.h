@@ -177,7 +177,7 @@ struct RCptr {
 #endif
 
 #ifndef mrb_immediate_p
-#define mrb_immediate_p(o) (mrb_type(o) < MRB_TT_CPTR)
+#define mrb_immediate_p(o) (mrb_type(o) <= MRB_TT_CPTR)
 #endif
 #ifndef mrb_integer_p
 #define mrb_integer_p(o) (mrb_type(o) == MRB_TT_INTEGER)
