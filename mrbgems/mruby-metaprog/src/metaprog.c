@@ -207,39 +207,35 @@ method_entry_loop(mrb_state *mrb, struct RClass *klass, khash_t(st) *set, khash_
 static mrb_value
 mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass *klass)
 {
-  khint_t i;
   mrb_value ary;
-  mrb_bool prepended = FALSE;
   struct RClass *oldklass;
   khash_t(st) *set = kh_init(st, mrb);
-  khash_t(st) *undef = (recur ? kh_init(st, mrb) : NULL);
 
-  if (!recur && (klass->flags & MRB_FL_CLASS_IS_PREPENDED)) {
-    MRB_CLASS_ORIGIN(klass);
-    prepended = TRUE;
+  if (!recur) {
+    if (klass->flags & MRB_FL_CLASS_IS_PREPENDED) {
+      MRB_CLASS_ORIGIN(klass);
+    }
+    method_entry_loop(mrb, klass, set, NULL);
   }
+  else {
+    khash_t(st) *undef = kh_init(st, mrb);
 
-  oldklass = 0;
-  while (klass && (klass != oldklass)) {
-    method_entry_loop(mrb, klass, set, undef);
-    if ((klass->tt == MRB_TT_ICLASS && !prepended) ||
-        (klass->tt == MRB_TT_SCLASS)) {
+    oldklass = NULL;
+    while (klass && (klass != oldklass)) {
+      method_entry_loop(mrb, klass, set, undef);
+      oldklass = klass;
+      klass = klass->super;
     }
-    else {
-      if (!recur) break;
-    }
-    oldklass = klass;
-    klass = klass->super;
+    kh_destroy(st, mrb, undef);
   }
 
   ary = mrb_ary_new_capa(mrb, kh_size(set));
-  for (i=0;i<kh_end(set);i++) {
+  for (khint_t i=0; i<kh_end(set); i++) {
     if (kh_exist(set, i)) {
       mrb_ary_push(mrb, ary, mrb_symbol_value(kh_key(set, i)));
     }
   }
   kh_destroy(st, mrb, set);
-  if (undef) kh_destroy(st, mrb, undef);
 
   return ary;
 }

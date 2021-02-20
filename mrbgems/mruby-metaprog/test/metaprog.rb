@@ -64,6 +64,8 @@ end
 
 assert('Kernel#methods', '15.3.1.3.31') do
   assert_equal Array, methods.class
+  assert_equal [:foo], Class.new{def self.foo; end}.methods(false)
+  assert_equal [], Class.new{}.methods(false)
 end
 
 assert('Kernel#private_methods', '15.3.1.3.36') do
