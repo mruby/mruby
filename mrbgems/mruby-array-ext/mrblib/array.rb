@@ -325,7 +325,7 @@ class Array
   #
 
   def fetch(n, ifnone=NONE, &block)
-    warn "block supersedes default value argument" if !n.nil? && ifnone != NONE && block
+    #warn "block supersedes default value argument" if !n.nil? && ifnone != NONE && block
 
     idx = n
     if idx < 0
