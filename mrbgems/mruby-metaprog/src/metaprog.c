@@ -205,7 +205,7 @@ method_entry_loop(mrb_state *mrb, struct RClass *klass, khash_t(st) *set, khash_
 }
 
 static mrb_value
-mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass *klass, int obj)
+mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass *klass)
 {
   khint_t i;
   mrb_value ary;
@@ -247,7 +247,7 @@ mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass *kl
 static mrb_value
 mrb_obj_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj, mrb_method_flag_t flag)
 {
-  return mrb_class_instance_method_list(mrb, recur, mrb_class(mrb, obj), 0);
+  return mrb_class_instance_method_list(mrb, recur, mrb_class(mrb, obj));
 }
 /* 15.3.1.3.31 */
 /*
@@ -607,7 +607,7 @@ mrb_mod_instance_methods(mrb_state *mrb, mrb_value mod)
   struct RClass *c = mrb_class_ptr(mod);
   mrb_bool recur = TRUE;
   mrb_get_args(mrb, "|b", &recur);
-  return mrb_class_instance_method_list(mrb, recur, c, 0);
+  return mrb_class_instance_method_list(mrb, recur, c);
 }
 
 /* 15.2.2.4.41 */
