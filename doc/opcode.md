@@ -27,6 +27,7 @@ sign) of operands.
 | OP_NOP           | -            | no operation                                           |
 | OP_MOVE          | BB           | R(a) = R(b)                                            |
 | OP_LOADL         | BB           | R(a) = Pool(b)                                         |
+| OP_LOADL16       | BS           | R(a) = Pool(b)                                         |
 | OP_LOADI         | BB           | R(a) = mrb_int(b)                                      |
 | OP_LOADINEG      | BB           | R(a) = mrb_int(-b)                                     |
 | OP_LOADI__1      | B            | R(a) = mrb_int(-1)                                     |
@@ -38,8 +39,10 @@ sign) of operands.
 | OP_LOADI_5       | B            | R(a) = mrb_int(5)                                      |
 | OP_LOADI_6       | B            | R(a) = mrb_int(6)                                      |
 | OP_LOADI_7       | B            | R(a) = mrb_int(7)                                      |
-| OP_LOADI16       | BsS          | R(a) = mrb_int(b)                                      |
+| OP_LOADI16       | BS           | R(a) = mrb_int(b)                                      |
+| OP_LOADI32       | BSS          | R(a) = mrb_int((b<<16)+c)                              |
 | OP_LOADSYM       | BB           | R(a) = Syms(b)                                         |
+| OP_LOADSYM16     | BS           | R(a) = Syms(b)                                         |
 | OP_LOADNIL       | B            | R(a) = nil                                             |
 | OP_LOADSELF      | B            | R(a) = self                                            |
 | OP_LOADT         | B            | R(a) = true                                            |
@@ -58,10 +61,10 @@ sign) of operands.
 | OP_SETMCNST      | BB           | R(a+1)::Syms(b) = R(a)                                 |
 | OP_GETUPVAR      | BBB          | R(a) = uvget(b,c)                                      |
 | OP_SETUPVAR      | BBB          | uvset(b,c,R(a))                                        |
-| OP_JMP           | S            | pc=a                                                   |
-| OP_JMPIF         | BS           | if R(a) pc=b                                           |
-| OP_JMPNOT        | BS           | if !R(a) pc=b                                          |
-| OP_JMPNIL        | BS           | if R(a)==nil pc=b                                      |
+| OP_JMP           | S            | pc+=a                                                  |
+| OP_JMPIF         | BS           | if R(a) pc+=b                                          |
+| OP_JMPNOT        | BS           | if !R(a) pc+=b                                         |
+| OP_JMPNIL        | BS           | if R(a)==nil pc+=b                                     |
 | OP_JMPUW         | S            | unwind_and_jump_to(a)                                  |
 | OP_EXCEPT        | B            | R(a) = exc                                             |
 | OP_RESCUE        | BB           | R(b) = R(a).isa?(R(b))                                 |
@@ -70,6 +73,7 @@ sign) of operands.
 | OP_SENDVB        | BB           | R(a) = call(R(a),Syms(b),*R(a+1),&R(a+2))              |
 | OP_SEND          | BBB          | R(a) = call(R(a),Syms(b),R(a+1),...,R(a+c))            |
 | OP_SENDB         | BBB          | R(a) = call(R(a),Syms(b),R(a+1),...,R(a+c),&R(a+c+1))  |
+| OP_SENDVK        | BB           | R(a) = call(R(a),Syms(b),*R(a+1),**(a+2),&R(a+3))      |
 | OP_CALL          | -            | R(0) = self.call(frame.argc, frame.argv)               |
 | OP_SUPER         | BB           | R(a) = super(R(a+1),... ,R(a+b+1))                     |
 | OP_ARGARY        | BS           | R(a) = argument array (16=5:1:5:1:4)                   |
@@ -102,19 +106,24 @@ sign) of operands.
 | OP_APOST         | BBB          | *R(a),R(a+1)..R(a+c) = R(a)[b..]                       |
 | OP_INTERN        | B            | R(a) = intern(R(a))                                    |
 | OP_STRING        | BB           | R(a) = str_dup(Lit(b))                                 |
+| OP_STRING16      | BS           | R(a) = str_dup(Lit(b))                                 |
 | OP_STRCAT        | B            | str_cat(R(a),R(a+1))                                   |
-| OP_HASH          | BB           | R(a) = hash_new(R(a),R(a+1)..R(a+b))                   |
-| OP_HASHADD       | BB           | R(a) = hash_push(R(a),R(a+1)..R(a+b))                  |
+| OP_HASH          | BB           | R(a) = hash_new(R(a),R(a+1)..R(a+b*2-1))               |
+| OP_HASHADD       | BB           | R(a) = hash_push(R(a),R(a+1)..R(a+b*2))                |
 | OP_HASHCAT       | B            | R(a) = hash_cat(R(a),R(a+1))                           |
 | OP_LAMBDA        | BB           | R(a) = lambda(SEQ[b],OP_L_LAMBDA)                      |
+| OP_LAMBDA16      | BS           | R(a) = lambda(SEQ[b],OP_L_LAMBDA)                      |
 | OP_BLOCK         | BB           | R(a) = lambda(SEQ[b],OP_L_BLOCK)                       |
+| OP_BLOCK16       | BS           | R(a) = lambda(SEQ[b],OP_L_BLOCK)                       |
 | OP_METHOD        | BB           | R(a) = lambda(SEQ[b],OP_L_METHOD)                      |
+| OP_METHOD16      | BS           | R(a) = lambda(SEQ[b],OP_L_METHOD)                      |
 | OP_RANGE_INC     | B            | R(a) = range_new(R(a),R(a+1),FALSE)                    |
 | OP_RANGE_EXC     | B            | R(a) = range_new(R(a),R(a+1),TRUE)                     |
 | OP_OCLASS        | B            | R(a) = ::Object                                        |
 | OP_CLASS         | BB           | R(a) = newclass(R(a),Syms(b),R(a+1))                   |
 | OP_MODULE        | BB           | R(a) = newmodule(R(a),Syms(b))                         |
 | OP_EXEC          | BB           | R(a) = blockexec(R(a),SEQ[b])                          |
+| OP_EXEC16        | BS           | R(a) = blockexec(R(a),SEQ[b])                          |
 | OP_DEF           | BB           | R(a).newmethod(Syms(b),R(a+1))                         |
 | OP_ALIAS         | BB           | alias_method(target_class,Syms(a),Syms(b))             |
 | OP_UNDEF         | B            | undef_method(target_class,Syms(a))                     |
