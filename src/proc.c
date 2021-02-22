@@ -10,6 +10,8 @@
 #include <mruby/opcode.h>
 #include <mruby/data.h>
 #include <mruby/presym.h>
+#include <mruby/array.h>
+#include <mruby/hash.h>
 
 static const mrb_code call_iseq[] = {
   OP_CALL,
@@ -303,6 +305,71 @@ mrb_proc_arity(const struct RProc *p)
   arity = ra || (MRB_PROC_STRICT_P(p) && op) ? -(ma + pa + 1) : ma + pa;
 
   return arity;
+}
+
+mrb_value
+mrb_proc_local_variables(mrb_state *mrb, const struct RProc *proc)
+{
+  const mrb_irep *irep;
+  mrb_value vars;
+  size_t i;
+
+  if (proc == NULL || MRB_PROC_CFUNC_P(proc)) {
+    return mrb_ary_new(mrb);
+  }
+  vars = mrb_hash_new(mrb);
+  while (proc) {
+    if (MRB_PROC_CFUNC_P(proc)) break;
+    irep = proc->body.irep;
+    if (irep->lv) {
+      for (i = 0; i + 1 < irep->nlocals; ++i) {
+        if (irep->lv[i]) {
+          mrb_sym sym = irep->lv[i];
+          const char *name = mrb_sym_name(mrb, sym);
+          switch (name[0]) {
+          case '*': case '&':
+            break;
+          default:
+            mrb_hash_set(mrb, vars, mrb_symbol_value(sym), mrb_true_value());
+            break;
+          }
+        }
+      }
+    }
+    if (MRB_PROC_SCOPE_P(proc)) break;
+    proc = proc->upper;
+  }
+
+  return mrb_hash_keys(mrb, vars);
+}
+
+const struct RProc *
+mrb_proc_get_caller(mrb_state *mrb, struct REnv **envp)
+{
+  struct mrb_context *c = mrb->c;
+  mrb_callinfo *ci = (c->ci > c->cibase) ? c->ci - 1 : c->cibase;
+  const struct RProc *proc = ci->proc;
+
+  if (!proc || MRB_PROC_CFUNC_P(proc)) {
+    if (envp) *envp = NULL;
+  }
+  else {
+    struct RClass *tc = MRB_PROC_TARGET_CLASS(proc);
+    struct REnv *e = mrb_vm_ci_env(ci);
+
+    if (e == NULL) {
+      int nstacks = proc->body.irep->nlocals;
+      e = mrb_env_new(mrb, c, ci, nstacks, ci->stack, tc);
+      ci->u.env = e;
+    }
+    else if (tc) {
+      e->c = tc;
+      mrb_field_write_barrier(mrb, (struct RBasic*)e, (struct RBasic*)tc);
+    }
+    if (envp) *envp = e;
+  }
+
+  return proc;
 }
 
 void
