@@ -6,6 +6,7 @@
 #include <mruby/opcode.h>
 #include <mruby/error.h>
 #include <mruby/presym.h>
+#include <mruby/variable.h>
 
 struct REnv *mrb_env_new(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci, int nstacks, mrb_value *stack, struct RClass *tc);
 mrb_value mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p);
@@ -18,13 +19,24 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
 {
   mrbc_context *cxt;
   struct mrb_parser_state *p;
-  struct RProc *proc;
+  struct RProc *proc, *scope;
   struct REnv *e;
   mrb_callinfo *ci; /* callinfo of eval caller */
   struct RClass *target_class = NULL;
+  struct mrb_context *c = mrb->c;
+  mrb_bool is_binding = FALSE;
 
   if (!mrb_nil_p(binding)) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "Binding of eval must be nil.");
+    if (!mrb_class_defined(mrb, "Binding")
+        || !mrb_obj_is_kind_of(mrb, binding, mrb_class_get(mrb, "Binding"))) {
+      mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %S (expected binding)",
+          mrb_obj_value(mrb_obj_class(mrb, binding)));
+    }
+    scope = mrb_proc_ptr(mrb_iv_get(mrb, binding, mrb_intern_lit(mrb, "proc")));
+    is_binding = TRUE;
+  }
+  else {
+    scope = c->ci[-1].proc;
   }
 
   cxt = mrbc_context_new(mrb);
@@ -33,7 +45,7 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
   mrbc_filename(mrb, cxt, file ? file : "(eval)");
   cxt->capture_errors = TRUE;
   cxt->no_optimize = TRUE;
-  ci = (mrb->c->ci > mrb->c->cibase) ? mrb->c->ci - 1 : mrb->c->cibase;
+  ci = (c->ci > c->cibase) ? c->ci - 1 : c->cibase;
   cxt->upper = ci->proc && MRB_PROC_CFUNC_P(ci->proc) ? NULL : ci->proc;
 
   p = mrb_parse_nstring(mrb, s, len, cxt);
@@ -70,28 +82,28 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
     mrbc_context_free(mrb, cxt);
     mrb_raise(mrb, E_SCRIPT_ERROR, "codegen error");
   }
-  if (mrb->c->ci > mrb->c->cibase) {
-    ci = &mrb->c->ci[-1];
+  if (c->ci > c->cibase) {
+    ci = &c->ci[-1];
   }
   else {
-    ci = mrb->c->cibase;
+    ci = c->cibase;
   }
-  if (ci->proc) {
-    target_class = MRB_PROC_TARGET_CLASS(ci->proc);
+  if (scope) {
+    target_class = MRB_PROC_TARGET_CLASS(scope);
   }
-  if (ci->proc && !MRB_PROC_CFUNC_P(ci->proc)) {
+  if (scope && !MRB_PROC_CFUNC_P(scope)) {
     if ((e = mrb_vm_ci_env(ci)) != NULL) {
       /* do nothing, because e is assigned already */
     }
     else {
-      e = mrb_env_new(mrb, mrb->c, ci, ci->proc->body.irep->nlocals, ci->stack, target_class);
+      e = mrb_env_new(mrb, c, ci, scope->body.irep->nlocals, ci->stack, target_class);
       ci->u.env = e;
     }
     proc->e.env = e;
     proc->flags |= MRB_PROC_ENVSET;
     mrb_field_write_barrier(mrb, (struct RBasic*)proc, (struct RBasic*)e);
   }
-  proc->upper = ci->proc;
+  proc->upper = scope;
   mrb_vm_ci_target_class_set(mrb->c->ci, target_class);
   /* mrb_codedump_all(mrb, proc); */
 
@@ -133,6 +145,9 @@ f_eval(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "s|ozi", &s, &len, &binding, &file, &line);
 
   proc = create_proc_from_string(mrb, s, len, binding, file, line);
+  if (!mrb_nil_p(binding)) {
+    self = mrb_iv_get(mrb, binding, mrb_intern_lit(mrb, "recv"));
+  }
   mrb_assert(!MRB_PROC_CFUNC_P(proc));
   return exec_irep(mrb, self, proc);
 }
