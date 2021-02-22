@@ -21,6 +21,8 @@ typedef enum {
   NOEX_RESPONDS  = 0x80
 } mrb_method_flag_t;
 
+mrb_value mrb_proc_local_variables(mrb_state *mrb, const struct RProc *proc);
+
 static mrb_value
 mrb_f_nil(mrb_state *mrb, mrb_value cv)
 {
@@ -116,8 +118,6 @@ mrb_obj_ivar_set(mrb_state *mrb, mrb_value self)
   mrb_iv_set(mrb, self, iv_name, val);
   return val;
 }
-
-mrb_value mrb_proc_local_variables(mrb_state *mrb, const struct RProc *proc);
 
 /* 15.3.1.2.7 */
 /* 15.3.1.3.28 */

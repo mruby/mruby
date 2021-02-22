@@ -9,10 +9,10 @@
 #include <mruby/variable.h>
 
 struct REnv *mrb_env_new(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci, int nstacks, mrb_value *stack, struct RClass *tc);
-mrb_value mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p);
+mrb_value mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p, mrb_func_t posthook);
 mrb_value mrb_obj_instance_eval(mrb_state *mrb, mrb_value self);
-
 void mrb_codedump_all(mrb_state*, struct RProc*);
+void mrb_proc_merge_lvar(mrb_state *mrb, mrb_irep *irep, struct REnv *env, int num, const mrb_sym *lv, const mrb_value *stack);
 
 static struct RProc*
 create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value binding, const char *file, mrb_int line)
@@ -127,7 +127,7 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
 }
 
 static mrb_value
-exec_irep(mrb_state *mrb, mrb_value self, struct RProc *proc)
+exec_irep(mrb_state *mrb, mrb_value self, struct RProc *proc, mrb_func_t posthook)
 {
   /* no argument passed from eval() */
   mrb->c->ci->argc = 0;
@@ -142,7 +142,38 @@ exec_irep(mrb_state *mrb, mrb_value self, struct RProc *proc)
   }
   /* clear block */
   mrb->c->ci->stack[1] = mrb_nil_value();
-  return mrb_exec_irep(mrb, self, proc);
+  return mrb_exec_irep(mrb, self, proc, posthook);
+}
+
+static void
+eval_merge_lvar(mrb_state *mrb, mrb_irep *irep, struct REnv *env, int num, const mrb_sym *lv, const mrb_value *stack)
+{
+  mrb_assert(mrb->c->stend >= stack + num);
+  mrb_proc_merge_lvar(mrb, irep, env, num, lv, stack);
+}
+
+static mrb_value
+eval_merge_lvar_hook(mrb_state *mrb, mrb_value dummy_self)
+{
+  const mrb_callinfo *orig_ci = &mrb->c->ci[1];
+  const struct RProc *orig_proc = orig_ci->proc;
+  const mrb_irep *orig_irep = orig_proc->body.irep;
+  int orig_nlocals = orig_irep->nlocals;
+
+  if (orig_nlocals > 1) {
+    struct RProc *proc = (struct RProc *)orig_proc->upper;
+    struct REnv *env = MRB_PROC_ENV(orig_proc);
+    eval_merge_lvar(mrb, (mrb_irep *)proc->body.irep, env,
+                    orig_nlocals - 1, orig_irep->lv,
+                    mrb->c->ci->stack + 3 /* hook proc + exc + ret val */);
+  }
+
+  mrb_value exc = mrb->c->ci->stack[1];
+  if (!mrb_nil_p(exc)) {
+    mrb_exc_raise(mrb, exc);
+  }
+
+  return mrb->c->ci->stack[2];
 }
 
 static mrb_value
@@ -154,15 +185,19 @@ f_eval(mrb_state *mrb, mrb_value self)
   const char *file = NULL;
   mrb_int line = 1;
   struct RProc *proc;
+  mrb_func_t posthook = NULL;
 
   mrb_get_args(mrb, "s|ozi", &s, &len, &binding, &file, &line);
 
   proc = create_proc_from_string(mrb, s, len, binding, file, line);
   if (!mrb_nil_p(binding)) {
     self = mrb_iv_get(mrb, binding, MRB_SYM(recv));
+    if (mrb_env_p(mrb_iv_get(mrb, binding, MRB_SYM(env)))) {
+      posthook = eval_merge_lvar_hook;
+    }
   }
   mrb_assert(!MRB_PROC_CFUNC_P(proc));
-  return exec_irep(mrb, self, proc);
+  return exec_irep(mrb, self, proc, posthook);
 }
 
 static mrb_value
@@ -187,7 +222,7 @@ f_instance_eval(mrb_state *mrb, mrb_value self)
     MRB_PROC_SET_TARGET_CLASS(proc, mrb_class_ptr(cv));
     mrb_assert(!MRB_PROC_CFUNC_P(proc));
     mrb_vm_ci_target_class_set(mrb->c->ci, mrb_class_ptr(cv));
-    return exec_irep(mrb, self, proc);
+    return exec_irep(mrb, self, proc, NULL);
   }
   else {
     mrb_get_args(mrb, "&", &b);

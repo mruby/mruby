@@ -372,6 +372,44 @@ mrb_proc_get_caller(mrb_state *mrb, struct REnv **envp)
   return proc;
 }
 
+#define IREP_LVAR_MERGE_DEFAULT  50
+#define IREP_LVAR_MERGE_MINIMUM   8
+#define IREP_LVAR_MERGE_MAXIMUM 240
+
+#ifdef MRB_IREP_LVAR_MERGE_LIMIT
+# define IREP_LVAR_MERGE_LIMIT \
+  ((MRB_IREP_LVAR_MERGE_LIMIT) < IREP_LVAR_MERGE_MINIMUM ? IREP_LVAR_MERGE_MINIMUM : \
+   (MRB_IREP_LVAR_MERGE_LIMIT) > IREP_LVAR_MERGE_MAXIMUM ? IREP_LVAR_MERGE_MAXIMUM : \
+   (MRB_IREP_LVAR_MERGE_LIMIT))
+#else
+# define IREP_LVAR_MERGE_LIMIT IREP_LVAR_MERGE_DEFAULT
+#endif
+
+void
+mrb_proc_merge_lvar(mrb_state *mrb, mrb_irep *irep, struct REnv *env, int num, const mrb_sym *lv, const mrb_value *stack)
+{
+  mrb_assert(!(irep->flags & MRB_IREP_NO_FREE));
+
+  if ((irep->nlocals + num) > IREP_LVAR_MERGE_LIMIT) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "too many local variables for binding (mruby limitation)");
+  }
+
+  if (!lv) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "unavailable local variable names");
+  }
+
+  irep->lv = (mrb_sym*)mrb_realloc(mrb, (mrb_sym*)irep->lv, sizeof(mrb_sym) * (irep->nlocals + num));
+  env->stack = (mrb_value*)mrb_realloc(mrb, env->stack, sizeof(mrb_value) * (irep->nlocals + 1 /* self */ + num));
+
+  mrb_sym *destlv = (mrb_sym*)irep->lv + irep->nlocals - 1 /* self */;
+  mrb_value *destst = env->stack + irep->nlocals;
+  memmove(destlv, lv, sizeof(mrb_sym) * num);
+  memmove(destst, stack, sizeof(mrb_value) * num);
+  irep->nlocals += num;
+  irep->nregs = irep->nlocals;
+  MRB_ENV_SET_LEN(env, irep->nlocals);
+}
+
 void
 mrb_init_proc(mrb_state *mrb)
 {
