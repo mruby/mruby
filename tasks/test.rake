@@ -1,5 +1,7 @@
 desc "build and run all mruby tests"
-task :test => %w[test:build test:run]
+task :test => "test:build" do |t|
+  Rake::Task[t.scope.path_with_task_name('test:run')].invoke
+end
 
 namespace :test do |test_ns|
   desc "build and run library tests"

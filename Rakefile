@@ -39,7 +39,8 @@ load "#{MRUBY_ROOT}/tasks/doc.rake"
 task :default => :all
 
 desc "build all targets, install (locally) in-repo"
-task :all => %w[gensym build] do
+task :all => :gensym do |t|
+  Rake::Task[t.scope.path_with_task_name('build')].invoke
   puts
   puts "Build summary:"
   puts
