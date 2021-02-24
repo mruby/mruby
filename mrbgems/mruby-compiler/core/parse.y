@@ -1205,6 +1205,18 @@ args_with_block(parser_state *p, node *a, node *b)
 }
 
 static void
+endless_method_name(parser_state *p, node *defn)
+{
+  mrb_sym sym = sym(defn->cdr->car);
+  mrb_int len;
+  const char *name = mrb_sym_name_len(p->mrb, sym, &len);
+
+  if (len > 1 && name[len-1] == '=') {
+    yyerror(p, "setter method cannot be defined by endless method definition");
+  }
+}
+
+static void
 call_with_block(parser_state *p, node *a, node *b)
 {
   node *n;
@@ -1463,7 +1475,8 @@ heredoc_end(parser_state *p)
 %type <nd> command_args aref_args opt_block_arg block_arg var_ref var_lhs
 %type <nd> command_asgn command_rhs mrhs superclass block_call block_command
 %type <nd> f_block_optarg f_block_opt
-%type <nd> f_arglist_paren f_arglist f_args f_arg f_arg_item f_optarg f_margs
+%type <nd> f_opt_arglist_paren f_arglist_paren f_arglist
+%type <nd> f_args f_arg f_arg_item f_optarg f_margs
 %type <nd> assoc_list assocs assoc undef_list backref for_var
 %type <nd> block_param opt_block_param block_param_def f_opt
 %type <nd> bv_decls opt_bv_decl bvar f_larglist lambda_body
@@ -2335,17 +2348,19 @@ arg             : lhs '=' arg_rhs
                     {
                       $$ = new_if(p, cond($1), $3, $6);
                     }
-                | defn_head f_arglist_paren '=' arg
+                | defn_head f_opt_arglist_paren '=' arg
                     {
                       $$ = $1;
+                      endless_method_name(p, $1);
                       void_expr_error(p, $4);
                       defn_setup(p, $$, $2, $4);
                       nvars_unnest(p);
                       p->in_def--;
                     }
-                | defn_head f_arglist_paren '=' arg modifier_rescue arg
+                | defn_head f_opt_arglist_paren '=' arg modifier_rescue arg
                     {
                       $$ = $1;
+                      endless_method_name(p, $1);
                       void_expr_error(p, $4);
                       void_expr_error(p, $6);
                       defn_setup(p, $$, $2, new_mod_rescue(p, $4, $6));
@@ -3514,6 +3529,11 @@ superclass      : /* term */
                       yyerrok;
                       $$ = 0;
                     } */
+                ;
+
+f_opt_arglist_paren
+                : f_arglist_paren
+                | none
                 ;
 
 f_arglist_paren : '(' f_args rparen
