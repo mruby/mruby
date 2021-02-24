@@ -1212,6 +1212,9 @@ endless_method_name(parser_state *p, node *defn)
   const char *name = mrb_sym_name_len(p->mrb, sym, &len);
 
   if (len > 1 && name[len-1] == '=') {
+    for (int i=0; i<len-1; i++) {
+      if (!identchar(name[i])) return;
+    }
     yyerror(p, "setter method cannot be defined by endless method definition");
   }
 }
