@@ -44,7 +44,7 @@ assert('Kernel#eval', '15.3.1.3.12') do
 end
 
 assert('rest arguments of eval') do
-  assert_raise(ArgumentError) { Kernel.eval('0', 0, 'test', 0) }
+  assert_raise(TypeError) { Kernel.eval('0', 0, 'test', 0) }
   assert_equal ['test', 'test.rb', 10] do
     Kernel.eval('[\'test\', __FILE__, __LINE__]', nil, 'test.rb', 10)
   end
