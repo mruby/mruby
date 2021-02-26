@@ -168,7 +168,7 @@ random_check(mrb_state *mrb, mrb_value random) {
 
 static mrb_value
 random_default(mrb_state *mrb) {
-  struct RClass *c = mrb_class_get(mrb, "Random");
+  struct RClass *c = mrb_class_get_id(mrb, MRB_SYM(Random));
   mrb_value d = mrb_const_get(mrb, mrb_obj_value(c), MRB_SYM(DEFAULT));
   if (!mrb_obj_is_kind_of(mrb, d, c)) {
     mrb_raise(mrb, E_TYPE_ERROR, "Random::DEFAULT replaced");

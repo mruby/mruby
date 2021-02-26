@@ -28,8 +28,8 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
 
   if (!mrb_nil_p(binding)) {
     mrb_value scope_obj;
-    if (!mrb_class_defined(mrb, "Binding")
-        || !mrb_obj_is_kind_of(mrb, binding, mrb_class_get(mrb, "Binding"))) {
+    if (!mrb_class_defined_id(mrb, MRB_SYM(Binding))
+        || !mrb_obj_is_kind_of(mrb, binding, mrb_class_get_id(mrb, MRB_SYM(Binding)))) {
       mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %C (expected binding)",
           mrb_obj_class(mrb, binding));
     }
@@ -234,7 +234,7 @@ void
 mrb_mruby_eval_gem_init(mrb_state* mrb)
 {
   mrb_define_module_function(mrb, mrb->kernel_module, "eval", f_eval, MRB_ARGS_ARG(1, 3));
-  mrb_define_method(mrb, mrb_class_get_id(mrb, MRB_SYM(BasicObject)), "instance_eval", f_instance_eval, MRB_ARGS_OPT(3)|MRB_ARGS_BLOCK());
+  mrb_define_method_id(mrb, mrb_class_get_id(mrb, MRB_SYM(BasicObject)), MRB_SYM(instance_eval), f_instance_eval, MRB_ARGS_OPT(3)|MRB_ARGS_BLOCK());
 }
 
 void

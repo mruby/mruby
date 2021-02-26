@@ -236,7 +236,7 @@ void mrb_mruby_complex_gem_init(mrb_state *mrb)
 #ifdef COMPLEX_USE_ISTRUCT
   mrb_assert(sizeof(struct mrb_complex) < ISTRUCT_DATA_SIZE);
 #endif
-  comp = mrb_define_class(mrb, "Complex", mrb_class_get_id(mrb, MRB_SYM(Numeric)));
+  comp = mrb_define_class_id(mrb, MRB_SYM(Complex), mrb_class_get_id(mrb, MRB_SYM(Numeric)));
 #ifdef COMPLEX_USE_ISTRUCT
   MRB_SET_INSTANCE_TT(comp, MRB_TT_ISTRUCT);
 #else

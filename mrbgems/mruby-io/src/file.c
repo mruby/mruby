@@ -593,7 +593,7 @@ mrb_init_file(mrb_state *mrb)
 {
   struct RClass *io, *file, *cnst;
 
-  io   = mrb_class_get(mrb, "IO");
+  io   = mrb_class_get_id(mrb, MRB_SYM(IO));
   file = mrb_define_class(mrb, "File", io);
   MRB_SET_INSTANCE_TT(file, MRB_TT_DATA);
   mrb_define_class_method(mrb, file, "umask",  mrb_file_s_umask, MRB_ARGS_OPT(1));

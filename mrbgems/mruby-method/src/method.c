@@ -175,7 +175,7 @@ method_unbind(mrb_state *mrb, mrb_value self)
   mrb_value proc = mrb_iv_get(mrb, self, MRB_SYM(_proc));
   mrb_value klass = mrb_iv_get(mrb, self, MRB_SYM(_klass));
 
-  ume = method_object_alloc(mrb, mrb_class_get(mrb, "UnboundMethod"));
+  ume = method_object_alloc(mrb, mrb_class_get_id(mrb, MRB_SYM(UnboundMethod)));
   mrb_obj_iv_set(mrb, ume, MRB_SYM(_owner), owner);
   mrb_obj_iv_set(mrb, ume, MRB_SYM(_recv), mrb_nil_value());
   mrb_obj_iv_set(mrb, ume, MRB_SYM(_name), name);
@@ -356,7 +356,7 @@ mrb_kernel_method(mrb_state *mrb, mrb_value self)
 
   mrb_search_method_owner(mrb, mrb_class(mrb, self), self, name, &owner, &proc, FALSE);
 
-  me = method_object_alloc(mrb, mrb_class_get(mrb, "Method"));
+  me = method_object_alloc(mrb, mrb_class_get_id(mrb, MRB_SYM(Method)));
   mrb_obj_iv_set(mrb, me, MRB_SYM(_owner), mrb_obj_value(owner));
   mrb_obj_iv_set(mrb, me, MRB_SYM(_recv), self);
   mrb_obj_iv_set(mrb, me, MRB_SYM(_name), mrb_symbol_value(name));
@@ -378,7 +378,7 @@ mrb_module_instance_method(mrb_state *mrb, mrb_value self)
 
   mrb_search_method_owner(mrb, mrb_class_ptr(self), self, name, &owner, &proc, TRUE);
 
-  ume = method_object_alloc(mrb, mrb_class_get(mrb, "UnboundMethod"));
+  ume = method_object_alloc(mrb, mrb_class_get_id(mrb, MRB_SYM(UnboundMethod)));
   mrb_obj_iv_set(mrb, ume, MRB_SYM(_owner), mrb_obj_value(owner));
   mrb_obj_iv_set(mrb, ume, MRB_SYM(_recv), mrb_nil_value());
   mrb_obj_iv_set(mrb, ume, MRB_SYM(_name), mrb_symbol_value(name));
@@ -409,8 +409,8 @@ method_name(mrb_state *mrb, mrb_value self)
 void
 mrb_mruby_method_gem_init(mrb_state* mrb)
 {
-  struct RClass *unbound_method = mrb_define_class(mrb, "UnboundMethod", mrb->object_class);
-  struct RClass *method = mrb_define_class(mrb, "Method", mrb->object_class);
+  struct RClass *unbound_method = mrb_define_class_id(mrb, MRB_SYM(UnboundMethod), mrb->object_class);
+  struct RClass *method = mrb_define_class_id(mrb, MRB_SYM(Method), mrb->object_class);
 
   mrb_undef_class_method(mrb, unbound_method, "new");
   mrb_define_method(mrb, unbound_method, "bind", unbound_method_bind, MRB_ARGS_REQ(1));

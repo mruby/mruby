@@ -220,7 +220,7 @@ cache_source_location:
 mrb_value
 mrb_binding_alloc(mrb_state *mrb)
 {
-  struct RObject *obj = (struct RObject*)mrb_obj_alloc(mrb, MRB_TT_OBJECT, mrb_class_get(mrb, "Binding"));
+  struct RObject *obj = (struct RObject*)mrb_obj_alloc(mrb, MRB_TT_OBJECT, mrb_class_get_id(mrb, MRB_SYM(Binding)));
   return mrb_obj_value(obj);
 }
 
