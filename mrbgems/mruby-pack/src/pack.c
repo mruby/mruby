@@ -1186,10 +1186,14 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
     if (dir == PACK_DIR_INVALID)
       continue;
     else if (dir == PACK_DIR_NUL) {
-        ridx += pack_x(mrb, mrb_nil_value(), result, ridx, count, flags);
-        continue;
+      ridx += pack_x(mrb, mrb_nil_value(), result, ridx, count, flags);
+      if (ridx < 0) goto overflow;
+      continue;
     }
 
+    if ((flags & PACK_FLAG_WIDTH) && aidx >= RARRAY_LEN(ary)) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "too few arguments");
+    }
     for (; aidx < RARRAY_LEN(ary); aidx++) {
       if (count == 0 && !(flags & PACK_FLAG_WIDTH))
         break;
@@ -1258,6 +1262,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
       }
     }
     if (ridx < 0) {
+    overflow:
       mrb_raise(mrb, E_RANGE_ERROR, "negative (or overflowed) template size");
     }
   }
