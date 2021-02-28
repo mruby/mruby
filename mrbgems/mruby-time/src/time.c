@@ -556,6 +556,12 @@ mrb_time_cmp(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(0);
 }
 
+static mrb_noreturn void
+int_overflow(mrb_state *mrb, const char *reason)
+{
+  mrb_raisef(mrb, E_RANGE_ERROR, "time_t overflow in Time %s", reason);
+}
+
 static mrb_value
 mrb_time_plus(mrb_state *mrb, mrb_value self)
 {
@@ -565,9 +571,22 @@ mrb_time_plus(mrb_state *mrb, mrb_value self)
 
   tm = time_get_ptr(mrb, self);
   sec = mrb_to_time_t(mrb, o, &usec);
-  if (mrb_int_add_overflow(tm->sec, sec, &sec)) {
-    mrb_raise(mrb, E_RANGE_ERROR, "time_t overflow in Time");
+#ifdef MRB_HAVE_TYPE_GENERIC_CHECKED_ARITHMETIC_BUILTINS
+  if (__builtin_add_overflow(tm->sec, sec, &sec)) {
+    int_overflow(mrb, "addition");
   }
+#else
+  if (sec >= 0) {
+    if (tm->sec > MRB_TIME_MAX - sec) {
+      int_overflow(mrb, "addition");
+    }
+  }
+  else {
+    if (tm->sec < MRB_TIME_MIN - sec) {
+      int_overflow(mrb, "addition");
+    }
+  }
+#endif
   return mrb_time_make_time(mrb, mrb_obj_class(mrb, self), sec, tm->usec+usec, tm->timezone);
 }
 
@@ -595,9 +614,22 @@ mrb_time_minus(mrb_state *mrb, mrb_value self)
   else {
     time_t sec, usec;
     sec = mrb_to_time_t(mrb, other, &usec);
-    if (mrb_int_sub_overflow(tm->sec, sec, &sec)) {
-      mrb_raise(mrb, E_RANGE_ERROR, "time_t overflow in Time");
+#ifdef MRB_HAVE_TYPE_GENERIC_CHECKED_ARITHMETIC_BUILTINS
+    if (__builtin_sub_overflow(tm->sec, sec, &sec)) {
+      int_overflow(mrb, "subtraction");
     }
+#else
+    if (sec >= 0) {
+      if (tm->sec < MRB_TIME_MIN + sec) {
+        int_overflow(mrb, "subtraction");
+      }
+    }
+    else {
+      if (tm->sec > MRB_TIME_MAX + sec) {
+        int_overflow(mrb, "subtraction");
+      }
+    }
+#endif
     return mrb_time_make_time(mrb, mrb_obj_class(mrb, self), sec, tm->usec-usec, tm->timezone);
   }
 }
