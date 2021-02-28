@@ -463,7 +463,7 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
       || (nowtime.tm_hour == 24 && (nowtime.tm_min > 0 || nowtime.tm_sec > 0))
       || nowtime.tm_min  < 0 || nowtime.tm_min  > 59
       || nowtime.tm_sec  < 0 || nowtime.tm_sec  > 60)
-    mrb_raise(mrb, E_RUNTIME_ERROR, "argument out of range");
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "argument out of range");
 
   if (timezone == MRB_TIMEZONE_UTC) {
     nowsecs = timegm(&nowtime);
