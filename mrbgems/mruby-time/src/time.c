@@ -472,7 +472,7 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
     nowsecs = mktime(&nowtime);
   }
   if (nowsecs == (time_t)-1) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "Not a valid time.");
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "Not a valid time");
   }
 
   return time_alloc_time(mrb, nowsecs, ausec, timezone);
@@ -928,7 +928,7 @@ time_to_s_local(mrb_state *mrb, struct mrb_time *tm, char *buf, size_t buf_len)
   int offset;
 
   if (utc_sec == (time_t)-1) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "Not a valid time.");
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "Not a valid time");
   }
   offset = abs((int)(utc_sec - tm->sec) / 60);
   datetime.tm_year = 100;

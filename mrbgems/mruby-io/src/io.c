@@ -88,10 +88,10 @@ io_get_open_fptr(mrb_state *mrb, mrb_value self)
 
   fptr = (struct mrb_io *)mrb_data_get_ptr(mrb, self, &mrb_io_type);
   if (fptr == NULL) {
-    mrb_raise(mrb, E_IO_ERROR, "uninitialized stream.");
+    mrb_raise(mrb, E_IO_ERROR, "uninitialized stream");
   }
   if (fptr->fd < 0) {
-    mrb_raise(mrb, E_IO_ERROR, "closed stream.");
+    mrb_raise(mrb, E_IO_ERROR, "closed stream");
   }
   return fptr;
 }
@@ -581,7 +581,7 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
         close(pw[1]);
       }
       errno = saved_errno;
-      mrb_sys_fail(mrb, "pipe_open failed.");
+      mrb_sys_fail(mrb, "pipe_open failed");
       break;
   }
   return result;
@@ -795,7 +795,7 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet)
 
   if (!quiet && saved_errno != 0) {
     errno = saved_errno;
-    mrb_sys_fail(mrb, "fptr_finalize failed.");
+    mrb_sys_fail(mrb, "fptr_finalize failed");
   }
 }
 
