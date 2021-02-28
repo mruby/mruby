@@ -565,7 +565,10 @@ mrb_time_plus(mrb_state *mrb, mrb_value self)
 
   tm = time_get_ptr(mrb, self);
   sec = mrb_to_time_t(mrb, o, &usec);
-  return mrb_time_make_time(mrb, mrb_obj_class(mrb, self), tm->sec+sec, tm->usec+usec, tm->timezone);
+  if (mrb_int_add_overflow(tm->sec, sec, &sec)) {
+    mrb_raise(mrb, E_RANGE_ERROR, "time_t overflow in Time");
+  }
+  return mrb_time_make_time(mrb, mrb_obj_class(mrb, self), sec, tm->usec+usec, tm->timezone);
 }
 
 static mrb_value
@@ -592,7 +595,10 @@ mrb_time_minus(mrb_state *mrb, mrb_value self)
   else {
     time_t sec, usec;
     sec = mrb_to_time_t(mrb, other, &usec);
-    return mrb_time_make_time(mrb, mrb_obj_class(mrb, self), tm->sec-sec, tm->usec-usec, tm->timezone);
+    if (mrb_int_sub_overflow(tm->sec, sec, &sec)) {
+      mrb_raise(mrb, E_RANGE_ERROR, "time_t overflow in Time");
+    }
+    return mrb_time_make_time(mrb, mrb_obj_class(mrb, self), sec, tm->usec-usec, tm->timezone);
   }
 }
 
