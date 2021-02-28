@@ -39,8 +39,8 @@
 #endif
 
 #ifdef MRB_USE_READLINE
-#include <readline/readline.h>
-#include <readline/history.h>
+#include MRB_READLINE_HEADER
+#include MRB_READLINE_HISTORY
 #define MIRB_ADD_HISTORY(line) add_history(line)
 #define MIRB_READLINE(ch) readline(ch)
 #if !defined(RL_READLINE_VERSION) || RL_READLINE_VERSION < 0x600
