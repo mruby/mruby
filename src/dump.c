@@ -23,45 +23,6 @@ static size_t get_irep_record_size_1(mrb_state *mrb, const mrb_irep *irep);
 # error This code cannot be built on your environment.
 #endif
 
-#define OPERATOR_SYMBOL(sym_name, name) {name, sym_name, sizeof(sym_name)-1}
-struct operator_symbol {
-  const char *name;
-  const char *sym_name;
-  uint16_t sym_name_len;
-};
-static const struct operator_symbol operator_table[] = {
-  OPERATOR_SYMBOL("!", "not"),
-  OPERATOR_SYMBOL("%", "mod"),
-  OPERATOR_SYMBOL("&", "and"),
-  OPERATOR_SYMBOL("*", "mul"),
-  OPERATOR_SYMBOL("+", "add"),
-  OPERATOR_SYMBOL("-", "sub"),
-  OPERATOR_SYMBOL("/", "div"),
-  OPERATOR_SYMBOL("<", "lt"),
-  OPERATOR_SYMBOL(">", "gt"),
-  OPERATOR_SYMBOL("^", "xor"),
-  OPERATOR_SYMBOL("`", "tick"),
-  OPERATOR_SYMBOL("|", "or"),
-  OPERATOR_SYMBOL("~", "neg"),
-  OPERATOR_SYMBOL("!=", "neq"),
-  OPERATOR_SYMBOL("!~", "nmatch"),
-  OPERATOR_SYMBOL("&&", "andand"),
-  OPERATOR_SYMBOL("**", "pow"),
-  OPERATOR_SYMBOL("+@", "plus"),
-  OPERATOR_SYMBOL("-@", "minus"),
-  OPERATOR_SYMBOL("<<", "lshift"),
-  OPERATOR_SYMBOL("<=", "le"),
-  OPERATOR_SYMBOL("==", "eq"),
-  OPERATOR_SYMBOL("=~", "match"),
-  OPERATOR_SYMBOL(">=", "ge"),
-  OPERATOR_SYMBOL(">>", "rshift"),
-  OPERATOR_SYMBOL("[]", "aref"),
-  OPERATOR_SYMBOL("||", "oror"),
-  OPERATOR_SYMBOL("<=>", "cmp"),
-  OPERATOR_SYMBOL("===", "eqq"),
-  OPERATOR_SYMBOL("[]=", "aset"),
-};
-
 static size_t
 get_irep_header_size(mrb_state *mrb)
 {
@@ -1034,6 +995,45 @@ sym_name_cvar_p(const char *name, mrb_int len)
 {
   return len >= 3 && name[0] == '@' && sym_name_ivar_p(name+1, len-1);
 }
+
+#define OPERATOR_SYMBOL(sym_name, name) {name, sym_name, sizeof(sym_name)-1}
+struct operator_symbol {
+  const char *name;
+  const char *sym_name;
+  uint16_t sym_name_len;
+};
+static const struct operator_symbol operator_table[] = {
+  OPERATOR_SYMBOL("!", "not"),
+  OPERATOR_SYMBOL("%", "mod"),
+  OPERATOR_SYMBOL("&", "and"),
+  OPERATOR_SYMBOL("*", "mul"),
+  OPERATOR_SYMBOL("+", "add"),
+  OPERATOR_SYMBOL("-", "sub"),
+  OPERATOR_SYMBOL("/", "div"),
+  OPERATOR_SYMBOL("<", "lt"),
+  OPERATOR_SYMBOL(">", "gt"),
+  OPERATOR_SYMBOL("^", "xor"),
+  OPERATOR_SYMBOL("`", "tick"),
+  OPERATOR_SYMBOL("|", "or"),
+  OPERATOR_SYMBOL("~", "neg"),
+  OPERATOR_SYMBOL("!=", "neq"),
+  OPERATOR_SYMBOL("!~", "nmatch"),
+  OPERATOR_SYMBOL("&&", "andand"),
+  OPERATOR_SYMBOL("**", "pow"),
+  OPERATOR_SYMBOL("+@", "plus"),
+  OPERATOR_SYMBOL("-@", "minus"),
+  OPERATOR_SYMBOL("<<", "lshift"),
+  OPERATOR_SYMBOL("<=", "le"),
+  OPERATOR_SYMBOL("==", "eq"),
+  OPERATOR_SYMBOL("=~", "match"),
+  OPERATOR_SYMBOL(">=", "ge"),
+  OPERATOR_SYMBOL(">>", "rshift"),
+  OPERATOR_SYMBOL("[]", "aref"),
+  OPERATOR_SYMBOL("||", "oror"),
+  OPERATOR_SYMBOL("<=>", "cmp"),
+  OPERATOR_SYMBOL("===", "eqq"),
+  OPERATOR_SYMBOL("[]=", "aset"),
+};
 
 static const char*
 sym_operator_name(const char *sym_name, mrb_int len)
