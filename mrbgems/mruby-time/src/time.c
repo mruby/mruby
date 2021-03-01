@@ -214,7 +214,7 @@ typedef mrb_int mrb_sec;
   MRB_TIME_T_UINT ? 0 :                                                     \
                     (sizeof(time_t) <= 4 ? INT32_MIN : INT64_MIN)           \
 )
-#define MRB_TIME_MAX (                                                      \
+#define MRB_TIME_MAX (time_t)(                                              \
   MRB_TIME_T_UINT ? (sizeof(time_t) <= 4 ? UINT32_MAX : UINT64_MAX) :       \
                     (sizeof(time_t) <= 4 ? INT32_MAX : INT64_MAX)           \
 )
@@ -586,6 +586,7 @@ mrb_time_plus(mrb_state *mrb, mrb_value self)
       int_overflow(mrb, "addition");
     }
   }
+  sec = tm->sec + sec;
 #endif
   return mrb_time_make_time(mrb, mrb_obj_class(mrb, self), sec, tm->usec+usec, tm->timezone);
 }
@@ -629,6 +630,7 @@ mrb_time_minus(mrb_state *mrb, mrb_value self)
         int_overflow(mrb, "subtraction");
       }
     }
+    sec = tm->sec - sec;
 #endif
     return mrb_time_make_time(mrb, mrb_obj_class(mrb, self), sec, tm->usec-usec, tm->timezone);
   }
