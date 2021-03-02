@@ -18,6 +18,15 @@ things in mind before submitting your pull request:
 * Use mrbgem to provide non ISO features (classes, modules and methods) unless
   you have a special reason to implement them in the core
 
+## Pre-commit
+
+A framework for managing and maintaining multi-language pre-commit hooks.
+Pre-commit can be [installed](https://pre-commit.com/#installation) with `pip`, `curl`, `brew` or `conda`.
+You need to first install pre-commit and then install the pre-commit hooks with `pre-commit install`.
+Now pre-commit will run automatically on git commit!
+It's usually a good idea to run the hooks against all the files when adding new hooks (usually pre-commit will only run on the changed files during git hooks).
+Use `pre-commit run --all-files` to check all files.
+
 ## Coding conventions
 
 How to style your C and Ruby code which you want to submit.
