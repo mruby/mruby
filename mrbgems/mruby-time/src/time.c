@@ -694,14 +694,13 @@ mrb_time_asctime(mrb_state *mrb, mrb_value self)
   int len;
 
 #if defined(MRB_NO_STDIO)
-  char *s;
 # ifdef NO_ASCTIME_R
-  s = asctime(d);
+  char *buf = asctime(d);
 # else
-  char buf[32];
+  char buf[32], *s;
   s = asctime_r(d, buf);
 # endif
-  len = strlen(s)-1;            /* truncate the last newline */
+  len = strlen(buf)-1;       /* truncate the last newline */
 #else
   char buf[256];
 
