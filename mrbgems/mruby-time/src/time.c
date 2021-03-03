@@ -21,7 +21,7 @@
 #endif
 
 #include <stdlib.h>
-#ifdef _WIN32
+#ifndef _WIN32
 #include <unistd.h>
 #endif
 
