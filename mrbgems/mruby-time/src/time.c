@@ -21,7 +21,9 @@
 #endif
 
 #include <stdlib.h>
+#ifdef _WIN32
 #include <unistd.h>
+#endif
 
 #define NDIV(x,y) (-(-((x)+1)/(y))-1)
 #define TO_S_FMT "%Y-%m-%d %H:%M:%S "
