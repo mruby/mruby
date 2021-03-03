@@ -21,6 +21,7 @@
 #endif
 
 #include <stdlib.h>
+#include <unistd.h>
 
 #define NDIV(x,y) (-(-((x)+1)/(y))-1)
 #define TO_S_FMT "%Y-%m-%d %H:%M:%S "
@@ -379,6 +380,13 @@ current_mrb_time(mrb_state *mrb)
     if (timespec_get(&ts, TIME_UTC) == 0) {
       mrb_raise(mrb, E_RUNTIME_ERROR, "timespec_get() failed for unknown reasons");
     }
+    sec = ts.tv_sec;
+    usec = ts.tv_nsec / 1000;
+  }
+#elif (defined(_POSIX_TIMERS) && _POSIX_TIMERS > 0) && defined(_POSIX_MONOTONIC_CLOCK)
+  {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
     sec = ts.tv_sec;
     usec = ts.tv_nsec / 1000;
   }
