@@ -379,9 +379,7 @@ current_mrb_time(mrb_state *mrb)
 #if defined(TIME_UTC) && !defined(__ANDROID__)
   {
     struct timespec ts;
-    if (timespec_get(&ts, TIME_UTC) == 0) {
-      mrb_raise(mrb, E_RUNTIME_ERROR, "timespec_get() failed for unknown reasons");
-    }
+    timespec_get(&ts, TIME_UTC);
     sec = ts.tv_sec;
     usec = ts.tv_nsec / 1000;
   }
