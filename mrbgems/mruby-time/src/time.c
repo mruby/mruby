@@ -702,7 +702,7 @@ mrb_time_asctime(mrb_state *mrb, mrb_value self)
 # endif
   len = strlen(buf)-1;       /* truncate the last newline */
 #else
-  char buf[256];
+  char buf[32];
 
   len = snprintf(buf, sizeof(buf), "%s %s %2d %02d:%02d:%02d %.4d",
     wday_names[d->tm_wday], mon_names[d->tm_mon], d->tm_mday,
