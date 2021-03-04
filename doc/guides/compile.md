@@ -499,9 +499,8 @@ can't be disabled for the main build.
 
 ```ruby
 MRuby::CrossBuild.new('minimal') do |conf|
-  toolchain :gcc
-
-  conf.cc.defines = %w(MRB_NO_STDIO)
+  conf.toolchain :gcc
+  conf.cc.defines << 'MRB_NO_STDIO'
 end
 ```
 
