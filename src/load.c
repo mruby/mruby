@@ -153,6 +153,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
           i64 <<= 32;
           i64 |= bin_to_uint32(src);
           src += sizeof(uint32_t);
+          pool[i].tt = tt;
           pool[i].u.i64 = (int64_t)i64;
         }
         break;
@@ -163,7 +164,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
       case IREP_TT_FLOAT:
 #ifndef MRB_NO_FLOAT
         pool[i].tt = tt;
-         pool[i].u.f = str_to_double(mrb, (const char*)src);
+        pool[i].u.f = str_to_double(mrb, (const char*)src);
         src += sizeof(double);
         break;
 #else
