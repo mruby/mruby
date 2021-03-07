@@ -94,7 +94,7 @@ LEGAL
 
 Additional Licenses
 
-Due to the reason that you choosed additional mruby packages (GEMS),
+Due to the reason that you chose additional mruby packages (GEMS),
 please check the following additional licenses too:
 GEMS_LEGAL
 

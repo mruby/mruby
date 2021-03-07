@@ -1,5 +1,5 @@
 # AO render benchmark
-# Original program (C) Syoyo Fujita in Javascript (and other languages)
+# Original program (C) Syoyo Fujita in JavaScript (and other languages)
 #      https://code.google.com/p/aobench/
 # Ruby(yarv2llvm) version by Hideki Miura
 # mruby version by Hideki Miura
