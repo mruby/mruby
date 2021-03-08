@@ -63,7 +63,7 @@
 #define MIRB_USING_HISTORY()
 #endif
 
-#ifndef _WIN32
+#if !defined(_WIN32) && defined(_POSIX_C_SOURCE)
 #define MIRB_SIGSETJMP(env) sigsetjmp(env, 1)
 #define MIRB_SIGLONGJMP(env, val) siglongjmp(env, val)
 #define SIGJMP_BUF sigjmp_buf

@@ -29,7 +29,7 @@ struct RHash {
   union {
     struct hash_entry *ea;
     struct hash_table *ht;
-  };
+  } hsh;
 };
 
 #define mrb_hash_ptr(v)    ((struct RHash*)(mrb_ptr(v)))

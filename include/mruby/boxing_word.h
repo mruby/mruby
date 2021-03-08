@@ -84,9 +84,9 @@ union mrb_value_ {
   struct {
     MRB_ENDIAN_LOHI(
       mrb_sym sym;
-      ,uint32_t sym_flag;
+      ,uint32_t flag;
     )
-  };
+  } sym;
 #endif
   struct RBasic *bp;
 #ifndef MRB_NO_FLOAT
@@ -129,7 +129,7 @@ mrb_integer_func(mrb_value o) {
 }
 #define mrb_integer(o) mrb_integer_func(o)
 #ifdef MRB_64BIT
-#define mrb_symbol(o)  mrb_val_union(o).sym
+#define mrb_symbol(o)  mrb_val_union(o).sym.sym
 #else
 #define mrb_symbol(o)  (mrb_sym)(((o).w) >> BOXWORD_SYMBOL_SHIFT)
 #endif
@@ -138,7 +138,7 @@ mrb_integer_func(mrb_value o) {
 #define mrb_fixnum_p(o) BOXWORD_SHIFT_VALUE_P(o, FIXNUM)
 #define mrb_integer_p(o) (BOXWORD_SHIFT_VALUE_P(o, FIXNUM)||BOXWORD_OBJ_TYPE_P(o, INTEGER))
 #ifdef MRB_64BIT
-#define mrb_symbol_p(o) (mrb_val_union(o).sym_flag == BOXWORD_SYMBOL_FLAG)
+#define mrb_symbol_p(o) (mrb_val_union(o).sym.flag == BOXWORD_SYMBOL_FLAG)
 #else
 #define mrb_symbol_p(o) BOXWORD_SHIFT_VALUE_P(o, SYMBOL)
 #endif
@@ -182,8 +182,8 @@ mrb_integer_func(mrb_value o) {
 #ifdef MRB_64BIT
 #define SET_SYM_VALUE(r,v) do {\
   union mrb_value_ mrb_value_union_variable;\
-  mrb_value_union_variable.sym = v;\
-  mrb_value_union_variable.sym_flag = BOXWORD_SYMBOL_FLAG;\
+  mrb_value_union_variable.sym.sym = v;\
+  mrb_value_union_variable.sym.flag = BOXWORD_SYMBOL_FLAG;\
   (r) = mrb_value_union_variable.value;\
 } while (0)
 #else

@@ -125,7 +125,7 @@ gettimeofday(struct timeval *tv, void *tz)
 #  include <sys/time.h>
 # endif
 #endif
-#ifdef NO_GMTIME_R
+#if !(defined(_POSIX_C_SOURCE) || defined(_BSD_SOURCE) || defined(_SVID_SOURCE))
 #define gmtime_r(t,r) gmtime(t)
 #define localtime_r(t,r) localtime(t)
 #endif
@@ -383,7 +383,7 @@ current_mrb_time(mrb_state *mrb)
     sec = ts.tv_sec;
     usec = ts.tv_nsec / 1000;
   }
-#elif (defined(_POSIX_TIMERS) && _POSIX_TIMERS > 0) && defined(_POSIX_MONOTONIC_CLOCK)
+#elif (defined(_POSIX_TIMERS) && _POSIX_TIMERS > 0) && defined(CLOCK_MONOTONIC)
   {
     struct timespec ts;
     clock_gettime(CLOCK_MONOTONIC, &ts);

@@ -151,20 +151,20 @@ DEFINE_ACCESSOR(ht, ea_n_used, uint32_t, ea_n_used)
 #else
 DEFINE_FLAG_ACCESSOR(ar, ea_capa, uint32_t, AR_EA_CAPA)
 DEFINE_FLAG_ACCESSOR(ar, ea_n_used, uint32_t, AR_EA_N_USED)
-DEFINE_ACCESSOR(ht, ea_capa, uint32_t, ht->ea_capa)
-DEFINE_ACCESSOR(ht, ea_n_used, uint32_t, ht->ea_n_used)
+DEFINE_ACCESSOR(ht, ea_capa, uint32_t, hsh.ht->ea_capa)
+DEFINE_ACCESSOR(ht, ea_n_used, uint32_t, hsh.ht->ea_n_used)
 #endif
 DEFINE_FLAG_ACCESSOR(ib, bit, uint32_t, IB_BIT)
 DEFINE_ACCESSOR(ar, size, uint32_t, size)
-DEFINE_ACCESSOR(ar, ea, hash_entry*, ea)
+DEFINE_ACCESSOR(ar, ea, hash_entry*, hsh.ea)
 DEFINE_DECREMENTER(ar, size)
 DEFINE_ACCESSOR(ht, size, uint32_t, size)
-DEFINE_ACCESSOR(ht, ea, hash_entry*, ht->ea)
-DEFINE_GETTER(ht, ib, uint32_t*, ht->ib)
+DEFINE_ACCESSOR(ht, ea, hash_entry*, hsh.ht->ea)
+DEFINE_GETTER(ht, ib, uint32_t*, hsh.ht->ib)
 DEFINE_INCREMENTER(ht, size)
 DEFINE_DECREMENTER(ht, size)
 DEFINE_GETTER(h, size, uint32_t, size)
-DEFINE_ACCESSOR(h, ht, hash_table*, ht)
+DEFINE_ACCESSOR(h, ht, hash_table*, hsh.ht)
 DEFINE_SWITCHER(ht, HT)
 
 #define ea_each_used(ea, n_used, entry_var, code) do {                        \
@@ -234,9 +234,9 @@ DEFINE_SWITCHER(ht, HT)
   * `h_check_modified` raises an exception when a dangerous modification is
   * made to `h` by executing `code`.
   *
-  * `h_check_modified` macro is not called if `h->ht` (`h->ea`) is `NULL`
+  * `h_check_modified` macro is not called if `h->hsh.ht` (`h->hsh.ea`) is `NULL`
   * (`Hash` size is zero). And because the `hash_entry` is rather large,
-  * `h->ht->ea` and `h->ht->ea_capa` are able to be safely accessed even for
+  * `h->hsh.ht->ea` and `h->hsh.ht->ea_capa` are able to be safely accessed even for
   * AR. This nature is used to eliminate branch of AR or HT.
   *
   * `HT_ASSERT_SAFE_READ` checks if members can be accessed according to its
@@ -261,7 +261,7 @@ HT_ASSERT_SAFE_READ(ea_capa);
   struct RHash *h__ = h;                                                        \
   uint32_t mask__ = MRB_HASH_HT|MRB_HASH_IB_BIT_MASK|MRB_HASH_AR_EA_CAPA_MASK;  \
   uint32_t flags__ = h__->flags & mask__;                                       \
-  void* tbl__ = (mrb_assert(h__->ht), h__->ht);                                 \
+  void* tbl__ = (mrb_assert(h__->hsh.ht), h__->hsh.ht);                         \
   uint32_t ht_ea_capa__ = 0;                                                    \
   hash_entry *ht_ea__ = NULL;                                                   \
   if (H_CHECK_MODIFIED_USE_HT_EA_CAPA_FOR_AR || h_ht_p(h__)) {                  \
@@ -272,7 +272,7 @@ HT_ASSERT_SAFE_READ(ea_capa);
   }                                                                             \
   code;                                                                         \
   if (flags__ != (h__->flags & mask__) ||                                       \
-      tbl__ != h__->ht ||                                                       \
+      tbl__ != h__->hsh.ht ||                                                       \
       ((H_CHECK_MODIFIED_USE_HT_EA_CAPA_FOR_AR || h_ht_p(h__)) &&               \
        ht_ea_capa__ != ht_ea_capa(h__)) ||                                      \
       ((H_CHECK_MODIFIED_USE_HT_EA_FOR_AR || h_ht_p(h__)) &&                    \
