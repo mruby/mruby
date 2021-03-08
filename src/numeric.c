@@ -1578,7 +1578,7 @@ mrb_cmp(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
       return -2;
     return mrb_str_cmp(mrb, obj1, obj2);
   default:
-    v = mrb_funcall_id(mrb, obj1, MRB_SYM(cmp), 1, obj2);
+    v = mrb_funcall_id(mrb, obj1, MRB_OPSYM(cmp), 1, obj2);
     if (mrb_nil_p(v) || !mrb_integer_p(v))
       return -2;
     return mrb_integer(v);
