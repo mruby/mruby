@@ -66,6 +66,10 @@ double round(double x) {
 #define NO_GMTIME_R
 #endif
 #endif
+#ifdef __STRICT_ANSI__
+/* Strict ANSI (e.g. -std=c99) do not provide gmtime_r/localtime_r */
+#define NO_GMTIME_R
+#endif
 
 /* asctime(3) */
 /* mruby usually use its own implementation of struct tm to string conversion */
@@ -125,7 +129,7 @@ gettimeofday(struct timeval *tv, void *tz)
 #  include <sys/time.h>
 # endif
 #endif
-#if !(defined(_POSIX_C_SOURCE) || defined(_BSD_SOURCE) || defined(_SVID_SOURCE))
+#ifdef NO_GMTIME_R
 #define gmtime_r(t,r) gmtime(t)
 #define localtime_r(t,r) localtime(t)
 #endif
