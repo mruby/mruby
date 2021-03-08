@@ -114,7 +114,7 @@ b [class:]method
 The breakpoint will be ordered in serial from 1.
 The number, which was given to the deleted breakpoint, will never be given to another breakpoint again.
 
-You can give multiple breakpoints to specified the line number and method.
+You can give multiple breakpoints to the specified the line number and method.
 Be ware that breakpoint command will not check the validity of the class name and method name.
 
 You can get the current breakpoint information by the following options.
@@ -165,7 +165,7 @@ Example:
 (foo.rb:1) delete
 ```
 
-This will delete all of the breakpoints.
+This will delete all the breakpoints.
 
 ```
 (foo.rb:1) delete 1 3
@@ -192,7 +192,7 @@ Example:
 (foo.rb:1) disable
 ```
 
-Use `disable` if you would like to disable all of the breakpoints.
+Use `disable` if you would like to disable all the breakpoints.
 
 ```
 (foo.rb:1) disable 1 3
@@ -324,7 +324,7 @@ expr: expression
 
 The expression is mandatory.
 The displayed expressions will be serially ordered from 1.
-If an exception occurs, the exception information will be displayed and the debugging will be continued.
+If an exception occurs, the exception information will be displayed, and the debugging will be continued.
 
 Example:
 

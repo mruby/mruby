@@ -54,7 +54,7 @@ end
 
 #### mruby [3.0.0 (2021-03-05)]
 
-No exception is raised. Instead you have to do:
+No exception is raised. Instead, you have to do:
 
 ```ruby
 begin
@@ -66,7 +66,7 @@ end
 
 ## Fiber execution can't cross C function boundary
 
-mruby's `Fiber` is implemented in a similar way to Lua's co-routine. This
+mruby's `Fiber` is implemented similarly to Lua's co-routine. This
 results in the consequence that you can't switch context within C functions.
 Only exception is `mrb_fiber_yield` at return.
 
@@ -95,7 +95,7 @@ p Liste.new "foobar"
 ## Method visibility
 
 For simplicity reasons no method visibility (public/private/protected) is
-supported. Those methods are defined but they are dummy methods.
+supported. Those methods are defined, but they are dummy methods.
 
 ```ruby
 class VisibleTest
