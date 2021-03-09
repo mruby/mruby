@@ -165,7 +165,7 @@ largest value of required alignment.
 * Please try if `MRB_USE_LINK_TIME_RO_DATA_P` is not available.
 * The `mrb_ro_data_p()` function is implemented by the user in an arbitrary file.
 * The prototype declaration is `mrb_bool mrb_ro_data_p(const char *ptr)`.
-* Return `TRUE` if `ptr` is in read-only section, otherwise return `FALSE`.
+* Return `TRUE` if `ptr` is in the read-only section, otherwise return `FALSE`.
 
 ## Other configuration.
 

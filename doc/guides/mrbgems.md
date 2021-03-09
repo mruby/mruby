@@ -52,8 +52,8 @@ For specifying commit hash to checkout use `:checksum_hash` option:
 conf.gem mgem: 'mruby-redis', checksum_hash: '3446d19fc4a3f9697b5ddbf2a904f301c42f2f4e'
 ```
 
-If there is missing dependencies, mrbgem dependencies solver will reference
-mrbgem from core or mgem-list.
+If there are missing dependencies, mrbgem dependencies solver will reference
+mrbgem from the core or mgem-list.
 
 To pull all gems from remote GIT repository on build, call ```rake -p```,
 or ```rake --pull-gems```.
@@ -80,7 +80,7 @@ end
 ```
 
 As mentioned, the GemBox uses the same conventions as `MRuby::Build`.  The GemBox
-must be saved with a `.gembox` extension inside the `mrbgems` directory to to be
+must be saved with a `.gembox` extension inside the `mrbgems` directory to be
 picked up by mruby.
 
 To use this example GemBox, we save it as `custom.gembox` inside the `mrbgems`
@@ -149,7 +149,7 @@ The mrbgems build process will use this specification to compile Object and Ruby
 files. The compilation results will be added to `lib/libmruby.a`. This file exposes
 the GEM functionality to tools like `mruby` and `mirb`.
 
-The following properties can be set inside of your `MRuby::Gem::Specification` for
+The following properties can be set inside your `MRuby::Gem::Specification` for
 information purpose:
 
 * `spec.license` or `spec.licenses` (A single license or a list of them under which this GEM is licensed)
@@ -230,7 +230,7 @@ end
 ```
 
 In case your GEM has more complex build requirements you can use
-the following options additionally inside of your GEM specification:
+the following options additionally inside your GEM specification:
 
 * `spec.cc.flags` (C compiler flags)
 * `spec.cc.defines` (C compiler defines)
@@ -245,7 +245,7 @@ the following options additionally inside of your GEM specification:
 * `spec.test_objs` (Object test files for integration into mrbtest)
 * `spec.test_preload` (Initialization files for mrbtest)
 
-You also can use `spec.mruby.cc` and `spec.mruby.linker` to add extra global parameters for compiler and linker.
+You also can use `spec.mruby.cc` and `spec.mruby.linker` to add extra global parameters for the compiler and linker.
 
 ### include_paths and dependency
 

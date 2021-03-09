@@ -1,7 +1,7 @@
 mruby-method
 ===
 
-A implementation of class **Method** and **UnboundMethod** for mruby
+An implementation of class **Method** and **UnboundMethod** for mruby
 
 ```ruby
 p Enumerable.instance_method(:find_all).source_location

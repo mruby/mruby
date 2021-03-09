@@ -1,12 +1,12 @@
 # The new bytecode
 
-We will reimplement VM to use 8bit instruction code. By
+We will reimplement the VM to use 8bit instruction code. By
 bytecode, we mean real byte code. The whole purpose is
 reducing the memory consumption of mruby VM.
 
 # Instructions
 
-Instructions are bytes. There can be 256 instructions. Currently we
+Instructions are bytes. There can be 256 instructions. Currently, we
 have 94 instructions. Instructions can take 0 to 3 operands.
 
 ## operands

@@ -19,10 +19,10 @@ Optional:
 * Bison (to compile `mrbgems/mruby-compiler/core/parse.y`)
 * gperf (to compile `mrbgems/mruby-compiler/core/keywords`)
 
-Note that `bison` bundled with MacOS is too old to compile `mruby`.
+Note that `bison` bundled with macOS is too old to compile `mruby`.
 Try `brew install bison` and follow the instruction shown to update
-the `$PATH` to compile `mruby`. We also encourage to upgrade `ruby`
-on MacOS in similar manner.
+the `$PATH` to compile `mruby`. We also encourage you to upgrade `ruby`
+on macOS in similar manner.
 
 ## Build
 
@@ -52,7 +52,7 @@ All tools necessary to compile mruby can be set or modified here.
 We wish you submit a pull-request to `build_config/PLATFORM.rb`, once you
 created a new configuration for a new platform.
 
-Inside of the configuration file, the following options can be
+Inside the configuration file, the following options can be
 configured based on your environment.
 
 ### Toolchains
@@ -135,7 +135,7 @@ end
 
 C Compiler has header searcher to detect installed library.
 
-If you need a include path of header file use `search_header_path`:
+If you need an include path of header file use `search_header_path`:
 
 ```ruby
 # Searches ```iconv.h```.
@@ -311,7 +311,7 @@ conf.enable_cxx_exception
 
 #### C++ exception disabling.
 
-If your compiler does not support C++ and you want to ensure
+If your compiler does not support C++, and you want to ensure
 you don't use mrbgem written in C++, you can explicitly disable
 C++ exception, add following:
 
@@ -360,7 +360,7 @@ directory.
 
 ### Mrbtest in Cross-Compilation
 
-In cross compilation, you can run `mrbtest` on emulator if
+In cross compilation, you can run `mrbtest` on an emulator if
 you have it by changing configuration of test runner.
 
 ```ruby
