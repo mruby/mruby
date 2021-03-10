@@ -38,7 +38,7 @@ We don't have a mailing list, but you can use [GitHub issues](https://github.com
 
 ## How to compile, test, and install (mruby and gems)
 
-See the [compile.md](https://github.com/mruby/mruby/blob/master/doc/guides/compile.md) file.
+See the [compile.md](doc/guides/compile.md) file.
 
 ## Building documentation
 
@@ -57,12 +57,12 @@ You can also view them in your browser
 
 mruby contains a package manager called *mrbgems*. To create extensions
 in C and/or Ruby you should create a *GEM*. For a documentation of how to
-use mrbgems consult the file [mrbgems.md](https://github.com/mruby/mruby/blob/master/doc/guides/mrbgems.md).
+use mrbgems consult the file [mrbgems.md](doc/guides/mrbgems.md).
 For example code of how to use mrbgems look into the folder *examples/mrbgems/*.
 
 ## License
 
-mruby is released under the [MIT License](https://github.com/mruby/mruby/blob/master/LICENSE).
+mruby is released under the [MIT License](LICENSE).
 
 ## Note for License
 
