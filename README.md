@@ -76,7 +76,7 @@ In the future, mruby might ask you to distribute your new code
 (that you will commit,) under the MIT License as a member of
 "mruby developers" but contributors will keep their copyright.
 (We did not intend for contributors to transfer or waive their copyrights,
-Actual copyright holder name (contributors) will be listed in the AUTHORS
+Actual copyright holder name (contributors) will be listed in the [AUTHORS.md](AUTHORS.md)
 file.)
 
 Please ask us if you want to distribute your code under another license.
@@ -85,9 +85,7 @@ Please ask us if you want to distribute your code under another license.
 
 See the [contribution guidelines][contribution-guidelines], and then send a pull
 request to <https://github.com/mruby/mruby>.  We consider you have granted
-non-exclusive right to your contributed code under MIT license.  If you want to
-be named as one of mruby developers, please include an update to the AUTHORS
-file in your pull request.
+non-exclusive right to your contributed code under MIT license.
 
 [ISO-standard]: https://www.iso.org/iso/iso_catalogue/catalogue_tc/catalogue_detail.htm?csnumber=59579
 [build-status-img]: https://travis-ci.org/mruby/mruby.svg?branch=master
