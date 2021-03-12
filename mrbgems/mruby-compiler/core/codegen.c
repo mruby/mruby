@@ -600,7 +600,7 @@ new_litbn(codegen_scope *s, const char *p, int base, mrb_bool neg)
     codegen_error(s, "integer too big");
   }
   for (i=0; i<s->irep->plen; i++) {
-    mrb_int len;
+    size_t len;
     pv = &s->pool[i];
     if (pv->tt != IREP_TT_BIGINT) continue;
     len = pv->u.str[0];
