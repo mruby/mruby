@@ -622,6 +622,7 @@ new_litbn(codegen_scope *s, const char *p, int base, mrb_bool neg)
     buf = (char*)codegen_realloc(s, NULL, len+3);
     buf[0] = len;
     buf[1] = base;
+    if (neg) buf[1] = 0x80;
     memcpy(buf+2, p, len);
     buf[len+2] = '\0';
     pv->u.str = buf;
