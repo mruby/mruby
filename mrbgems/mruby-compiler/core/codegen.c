@@ -589,7 +589,47 @@ pop_n_(codegen_scope *s, int n)
 #define pop_n(n) pop_n_(s,n)
 #define cursp() (s->sp)
 
-static inline int
+static int
+new_litbn(codegen_scope *s, const char *p, int base, mrb_bool neg)
+{
+  int i, plen;
+  mrb_pool_value *pv;
+
+  plen = strlen(p);
+  if (plen > 255) {
+    codegen_error(s, "integer too big");
+  }
+  for (i=0; i<s->irep->plen; i++) {
+    mrb_int len;
+    pv = &s->pool[i];
+    if (pv->tt != IREP_TT_BIGINT) continue;
+    len = pv->u.str[0];
+    if (len == strlen(p) && pv->u.str[1] == base && memcmp(pv->u.str+2, p, len) == 0)
+      return i;
+  }
+
+  if (s->irep->plen == s->pcapa) {
+    s->pcapa *= 2;
+    s->pool = (mrb_pool_value*)codegen_realloc(s, s->pool, sizeof(mrb_pool_value)*s->pcapa);
+  }
+
+  pv = &s->pool[s->irep->plen];
+  i = s->irep->plen++;
+  {
+    char *buf;
+    mrb_int len = strlen(p);
+    pv->tt = IREP_TT_BIGINT;
+    buf = (char*)codegen_realloc(s, NULL, len+3);
+    buf[0] = len;
+    buf[1] = base;
+    memcpy(buf+2, p, len);
+    buf[len+2] = '\0';
+    pv->u.str = buf;
+  }
+  return i;
+}
+
+static int
 new_lit(codegen_scope *s, mrb_value val)
 {
   int i;
@@ -2493,7 +2533,8 @@ codegen(codegen_scope *s, node *tree, int val)
 
       i = readint_mrb_int(s, p, base, FALSE, &overflow);
       if (overflow) {
-        codegen_error(s, "integer overflow");
+        int off = new_litbn(s, p, base, FALSE);
+        genop_bs(s, OP_LOADL, cursp(), off);
       }
       else {
         if (i < 0) {
@@ -2509,7 +2550,6 @@ codegen(codegen_scope *s, node *tree, int val)
         else if (i <= INT32_MAX) genop_2SS(s, OP_LOADI32, cursp(), (uint32_t)i);
         else {
           int off;
-
         lit_int:
           off = new_lit(s, mrb_int_value(s->mrb, i));
           genop_bs(s, OP_LOADL, cursp(), off);
@@ -2558,7 +2598,8 @@ codegen(codegen_scope *s, node *tree, int val)
 
           i = readint_mrb_int(s, p, base, TRUE, &overflow);
           if (overflow) {
-            codegen_error(s, "integer overflow");
+            int off = new_litbn(s, p, base, TRUE);
+            genop_bs(s, OP_LOADL, cursp(), off);
           }
           else {
             if (i == -1) genop_1(s, OP_LOADI__1, cursp());

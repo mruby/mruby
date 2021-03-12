@@ -161,6 +161,19 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, size_t *len, uint8_t flag
         return FALSE;           /* INT64 not supported on MRB_32BIT */
 #endif
 
+      case IREP_TT_BIGINT:
+        pool_data_len = bin_to_uint8(src); /* pool data length */
+        src += sizeof(uint8_t);
+        {
+          char *p;
+          pool[i].tt = IREP_TT_BIGINT;
+          p = (char*)mrb_malloc(mrb, pool_data_len+2);
+          memcpy(p, src, pool_data_len+2);
+          pool[i].u.str = (const char*)p;
+        }
+        src += pool_data_len + 2;
+        break;
+
       case IREP_TT_FLOAT:
 #ifndef MRB_NO_FLOAT
         pool[i].tt = tt;

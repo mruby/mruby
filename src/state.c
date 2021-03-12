@@ -154,7 +154,8 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
     mrb_free(mrb, (void*)irep->iseq);
   if (irep->pool) {
     for (i=0; i<irep->plen; i++) {
-      if ((irep->pool[i].tt & 3) == IREP_TT_STR) {
+      if ((irep->pool[i].tt & 3) == IREP_TT_STR ||
+          irep->pool[i].tt == IREP_TT_BIGINT) {
         mrb_free(mrb, (void*)irep->pool[i].u.str);
       }
     }

@@ -129,6 +129,15 @@ get_pool_block_size(mrb_state *mrb, const mrb_irep *irep)
       size += 4;                /* 32bits = 4bytes */
       break;
 
+    case IREP_TT_BIGINT:
+      {
+        mrb_int len = irep->pool[pool_no].u.str[0];
+        mrb_assert_int_fit(mrb_int, len, size_t, SIZE_MAX);
+        size += sizeof(uint8_t);
+        size += (size_t)len+2;
+      }
+      break;
+
     case IREP_TT_FLOAT:
 #ifndef MRB_NO_FLOAT
       {
@@ -187,6 +196,14 @@ write_pool_block(mrb_state *mrb, const mrb_irep *irep, uint8_t *buf)
       cur += uint32_to_bin(irep->pool[pool_no].u.i32, cur); /* i32 */
       break;
 
+    case IREP_TT_BIGINT:
+      cur += uint8_to_bin(IREP_TT_BIGINT, cur); /* data type */
+      len = irep->pool[pool_no].u.str[0];
+      memcpy(cur, irep->pool[pool_no].u.str, (size_t)len+2);
+      cur += len+2;
+      *cur++ = '\0';
+      break;
+
     case IREP_TT_FLOAT:
       cur += uint8_to_bin(IREP_TT_FLOAT, cur); /* data type */
 #ifndef MRB_NO_FLOAT
@@ -215,7 +232,6 @@ write_pool_block(mrb_state *mrb, const mrb_irep *irep, uint8_t *buf)
 
   return cur - buf;
 }
-
 
 static size_t
 get_syms_block_size(mrb_state *mrb, const mrb_irep *irep)
@@ -940,6 +956,17 @@ dump_pool(mrb_state *mrb, const mrb_pool_value *p, FILE *fp)
         fprintf(fp, "{IREP_TT_FLOAT, {.f=" MRB_FLOAT_FMT "}},\n", p->u.f);
       }
 #endif
+      break;
+    case IREP_TT_BIGINT:
+      {
+        const char *s = p->u.str;
+        int len = s[0]+2;
+        fputs("{IREP_TT_BIGINT, {\"", fp);
+        for (int i=0; i<len; i++) {
+          fprintf(fp, "\\x%02x", (int)s[i]&0xff);
+        }
+        fputs("\"}},\n", fp);
+      }
       break;
     }
   }

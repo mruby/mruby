@@ -1143,6 +1143,8 @@ RETRY_TRY_BLOCK:
 #endif
         goto L_INT_OVERFLOW;
 #endif
+      case IREP_TT_BIGINT:
+        goto L_INT_OVERFLOW;
 #ifndef MRB_NO_FLOAT
       case IREP_TT_FLOAT:
         regs[a] = mrb_float_value(mrb, pool[b].u.f);

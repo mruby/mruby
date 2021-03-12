@@ -20,6 +20,7 @@ enum irep_pool_type {
   IREP_TT_SSTR  = 2,          /* string (static) */
   IREP_TT_INT32 = 1,          /* 32bit integer */
   IREP_TT_INT64 = 3,          /* 64bit integer */
+  IREP_TT_BIGINT = 7,         /* big integer (not yet supported) */
   IREP_TT_FLOAT = 5,          /* float (double/float) */
 };
 
