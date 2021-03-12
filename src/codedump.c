@@ -6,7 +6,7 @@
 #include <mruby/proc.h>
 #include <mruby/dump.h>
 
-#ifndef MRB_NOP_STDIO
+#ifndef MRB_NO_STDIO
 static void
 print_r(mrb_state *mrb, const mrb_irep *irep, size_t n)
 {
