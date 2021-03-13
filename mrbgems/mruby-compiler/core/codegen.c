@@ -118,7 +118,7 @@ codegen_error(codegen_scope *s, const char *message)
       mrb_free(s->mrb, s->iseq);
       for (int i=0; i<s->irep->plen; i++) {
         mrb_pool_value *pv = &s->pool[i];
-        if ((pv->tt & 0x3) == IREP_TT_STR) {
+        if ((pv->tt & 0x3) == IREP_TT_STR || pv->tt == IREP_TT_BIGINT) {
           mrb_free(s->mrb, (void*)pv->u.str);
         }
       }
