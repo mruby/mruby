@@ -387,10 +387,10 @@ current_mrb_time(mrb_state *mrb)
     sec = ts.tv_sec;
     usec = ts.tv_nsec / 1000;
   }
-#elif (defined(_POSIX_TIMERS) && _POSIX_TIMERS > 0) && defined(CLOCK_MONOTONIC)
+#elif (defined(_POSIX_TIMERS) && _POSIX_TIMERS > 0) && defined(CLOCK_REALTIME)
   {
     struct timespec ts;
-    clock_gettime(CLOCK_MONOTONIC, &ts);
+    clock_gettime(CLOCK_REALTIME, &ts);
     sec = ts.tv_sec;
     usec = ts.tv_nsec / 1000;
   }
