@@ -2,293 +2,285 @@
 
 ## The List of Contributors sorted by number of commits (as of 2021-03-10)
 
-   7235 Yukihiro "Matz" Matsumoto*
-    567 KOBAYASHI Shuji
-    376 Daniel Bovensiepen*
-    334 Masaki Muranaka
-    343 Takeshi Watanabe*
-    234 Jun Hiroe
-    298 Tomoyuki Sahara*
-    270 dearblue*
-    217 Cremno*
-    208 Yuki Kurihara+
-    148 Yasuhiro Matsumoto*
-    113 Carson McDonald
-    105 Tatsuhiko Kubo*
-    103 Tomasz Dąbrowski*
-     84 skandhas
-     80 Masamitsu MURASE
-     74 Yuichiro MASUI
-     67 Hiroshi Mimaki*
-     63 Akira Yumiyama*
-     62 Paolo Bosetti*
-     59 Kurebayashi, Takahiro*
-     56 h2so5
-     52 Ralph Desir(Mav7)*
-     43 yui-knk
-     42 fleuria
-     45 Rory O'Connell*
-     40 Seba Gamboa
-     40 Christopher Aue
-     38 Koji Yoshioka*+
-     34 Kouhei Sutou
-     31 MATSUMOTO, Ryosuke*
-     30 Nobuyoshi Nakada
-     28 takahashim
-     24 Ryan Scott*
-     23 John Bampton
-     22 Clayton Smith
-     22 Zachary Scott*
-     21 Jared Breeden*
-     20 mirichi
-     20 furunkel
-     19 Hidetaka Takano
-     19 Bouke van der Bijl
-     19 Felix Jones*
-     19 Uchio Kondo*
-     19 go kikuta*
-     18 Jon Maken+
-     18 Corey Powell
-     18 Mitchell Blank Jr*
-     16 kano4
-     16 bggd
-     16 Ryan Lopopolo
-     14 Kazuki Tsujimoto
-     14 Jose Narvaez
-     14 Tadashi FUKUZAWA+
-     14 Blaž Hrastnik*
-     13 Patrick Hogan
-     12 Ukrainskiy Sergey
-     12 RIZAL Reckordp+
-     12 Akira Kuroda
-     12 NAKAMURA Usaku*
+   7235 Yukihiro "Matz" Matsumoto (@matz)*
+    567 KOBAYASHI Shuji (@shuuji)
+    376 Daniel Bovensiepen (@bovi)*
+    334 Masaki Muranakai (@monaka)
+    343 Takeshi Watanabei (@take-cheeze)*
+    234 Jun Hiroe (@suzukaze)
+    298 Tomoyuki Sahara (@tsahara)*
+    270 dearblue (@dearblue)*
+    217 Cremno (@cremno)*
+    208 Yuki Kurihara (@ksss)+
+    148 Yasuhiro Matsumoto (@mattn)*
+    113 Carson McDonald (@carsonmcdonald)
+    105 Tatsuhiko Kubo (@cubicdaiya)*
+    103 Tomasz Dąbrowski (@dabroz)*
+     84 skandhas (@skandhas)
+     80 Masamitsu MURASE (@masamitsu-murase)
+     74 Yuichiro MASUI (@masuidrive)
+     67 Hiroshi Mimaki (@mimaki)*
+     63 Akira Yumiyama (@akiray03)*
+     62 Paolo Bosetti (@pbosetti)*
+     59 Kurebayashi, Takahiro (@crimsonwoods)*
+     56 h2so5 (@h2so5)
+     52 Ralph Desir (@Mav7)*
+     43 Yuichiro Kaneko (@yui-knk)+
+     42 fleuria (@flaneur2020)
+     45 Rory O'Connell (@RoryO)*
+     40 Seba Gamboa (@sagmor)
+     40 Christopher Aue (@christopheraue)
+     38 Koji Yoshioka (@kyab)*+
+     38 Kouhei Sutou (@kou)*
+     31 MATSUMOTO, Ryosuke (@matsumotory)*
+     30 Nobuyoshi Nakada (@nobu)
+     28 Masayoshi Takahashi (@takahashim)+
+     24 Ryan Scott (@ryan-scott-dev)*
+     24 Julian Aron Prenner (@furunkel)*
+     23 John Bampton (@jbampton)
+     22 Clayton Smith (@clayton-shopify)
+     22 Zachary Scott (@zzak)*
+     21 Jared Breeden (@jbreeden)*
+     20 mirichi (@mirichi)
+     19 Hidetaka Takano (@TJ-Hidetaka-Takano)
+     19 Bouke van der Bijl (@bouk)
+     19 Felix Jones (@felixjones)*
+     19 Uchio Kondo (@udzura)*
+     19 go kikuta (@gkta)*
+     18 Jon Maken (@jonforums)+
+     18 Corey Powell (@IceDragon200)
+     18 Mitchell Blank Jr (@mitchblank)*
+     16 kano4 (@kano4)
+     16 bggd (@bggd)
+     16 Ryan Lopopolo (@lopopolo)
+     14 Kazuki Tsujimoto (@k-tsj)
+     14 Jose Narvaez (@goyox86)
+     14 Tadashi FUKUZAWA (@FUKUZAWA-Tadashi)+
+     14 Blaž Hrastnik (@archseer)*
+     13 Patrick Hogan (@pbhogan)
+     12 Ukrainskiy Sergey (@ukrainskiysergey)
+     12 RIZAL Reckordp (@Reckordp)+
+     12 Akira Kuroda (@akuroda)
+     12 NAKAMURA Usaku (@unak)*
      12 Kouki Ooyatsu*
-     12 Xuejie "Rafael" Xiao*
-     11 takkaw
-     11 YAMAMOTO Masaya
-     11 Seeker
-     11 Julien Ammous
-     10 Yuichi Nishiwaki
-     10 Narihiro Nakamura
-     10 Miura Hideki
-     10 Kazuho Oku
-     10 Ray Chason*
-      9 sdottaka
-      9 Frank Celler
-      9 Akira Mitsui*
-      9 Tatsuya Matsumoto*
-      8 Takashi Sogabe
-      7 Terence Lee
-      7 Simon Génier
-      7 Kouichi Nakanishi
-      7 roco*
-      7 Bhargava Shastry*
-      7 Wataru Ashihara*
-      6 Selman ULUG
-      6 Rubyist
-      6 Junji Sawada
-      6 INOUE Yasuyuki
-      6 Hiro Asari
-      6 Frederick John Milens III
-      6 Beoran
-      6 Akito Mochizuki
-      5 yuri
-      5 nkshigeru
-      5 dreamedge
-      6 Yusuke Endoh*
-      6 David Siaw*
-      5 TOMITA Masahiro
-      5 Syohei YOSHIDA
-      5 Max Anselm
-      5 Kenji Okimoto
-      5 Ichito Nagata
-      5 Eric Hodel
-      5 Davide D'Agostino
-      5 Asmod4n
-      5 Keita Obo*
-      4 xuejianqing
-      4 masahino
-      4 ken-mu
-      4 Yuji Yamano
-      4 Sutou Kouhei
-      4 NARUSE, Yui
-      4 Marcus Stollsteimer
-      4 Li Yazhou
-      4 Kohei Suzuki
-      4 Julian Aron Prenner
-      4 Jon Moss
-      4 Herwin Weststrate
-      4 Goro Kikuchi
-      4 kurodash*
-      4 Yuhei Okazaki*
-      4 Satoshi Odawara
-      4 wanabe*
-      3 sasaki takeru
-      3 kimu_shu
-      3 katmutua
-      3 bamchoh
-      3 William Light
-      3 Thiago Scalone
-      3 Tatsuhiro Tsujikawa
-      3 Takashi Sawanaka
-      3 Takashi Kokubun
-      3 TERAJIMA, Motoyuki
-      3 SiZiOUS
-      3 Nobuhiro Iwamatsu
-      3 Joseph McCullough
-      3 Jan Berdajs
-      3 Franck Verrot
-      3 David Turnbull
-      3 Anton Davydov
-      3 Rob Fors*
-      3 Sebastián Katzer*
-      3 Per Lundberg*
-      3 Carlo Prelz*
-      3 Vladimir Dementyev*
-      3 Shouji Kuboyama*
-      2 windwiny
-      2 Masahiro Wakame
-      2 taiyoslime
-      2 snaba
-      2 shtirlic
-      2 rhykw
-      2 pyama86
-      2 icm7216
-      2 dycoon
-      2 brainopia
-      2 Zhang Xiaohui
-      2 Tarosa
-      2 TJ Singleton
-      2 SouthWolf
-      2 Shannen Saez
-      2 Santa Zhang
-      2 Ryunosuke SATO
-      2 Robert Mosolgo
-      2 Ravil Bayramgalin
-      2 Nihad Abbasov
-      2 Malizia R
-      2 Lukas Joeressen
-      2 Lothar Scholz
-      2 Kazuhiro Sera
-      2 Kazuaki Tanaka
-      2 Jun Takeda
-      2 Jonas Kulla
-      2 Huei-Horng Yo
-      2 Horimoto Yasuhiro
-      2 Hiroyuki Iwatsuki
-      2 Hirohito Higashi
-      2 HASUMI Hitoshi
-      2 Go Saito
-      2 Gilad Zohari
-      2 Emiliano Lesende
-      2 Dusan D. Majkic
-      2 Christian Mauceri
-      2 Artur K
-      2 Akira Moroo
-      2 Dominic Sisneros*
-      2 Francois Chagnon*
-      2 Craig Lehmann*
-      2 Yutaka HARA*
-      2 Tomás Pollak*
-      1 yamori813
-      1 unknown
-      1 tomykaira
-      1 takumakume
-      1 taku toyama
-      1 ssmallkirby
-      1 sbsoftware
-      1 robert
-      1 rmalizia44
-      1 okkez
-      1 nanami
-      1 n4o847
-      1 lucas dicioccio
-      1 liyuray
-      1 kishima
-      1 javier ramírez
-      1 iTitou
-      1 hhc0null
-      1 fl0l0u
-      1 emboss
-      1 duangsuse
-      1 cho45
-      1 asatou
-      1 arton
-      1 Yusuke Tanaka
-      1 Yurii Nakonechnyi
-      1 Yukang
-      1 Yoshiori SHOJI
-      1 Yoji SHIDARA
-      1 Yevhen Viktorov
-      1 Yasuhiro Horimoto
-      1 Wuffers Lightwolf
-      1 W
-      1 Utkarsh Kukreti
-      1 Tom Black
-      1 Timo Schilling
-      1 Thomas Schmidt
-      1 Sorah Fukumori
-      1 Shugo Maeda
-      1 Sayed Abdelhaleem
-      1 Santiago Rodriguez
-      1 Ryo Okubo
-      1 Ryan Scott Lewis
-      1 Robert Rowe
-      1 Robert McNally
-      1 Ranmocy
-      1 Prayag Verma
-      1 Pavel
-      1 Patrick Pokatilo
-      1 Patrick Ellis
-      1 Okumura Takahiro
-      1 Nozomi SATO
-      1 Nicholas
-      1 Mitsutaka Mimura
-      1 Mitchell Hashimoto
-      1 Maxim Abramchuk
-      1 Matt Aimonetti
-      1 Masahiko Sawada
-      1 Mark Delk
-      1 M.Naruoka
-      1 Lukas Stabe
-      1 Lukas Elmer
-      1 Luis Lavena
-      1 Lian Cheng
-      1 Leo Neat
-      1 Lanza
-      1 Konstantin Haase
-      1 Kim H Madsen
-      1 Kei Sawada
-      1 Kazuhiro NISHIYAMA
-      1 Katsuyoshi Ito
-      1 Jurriaan Pruis
-      1 Junichi Kajiwara
-      1 Jun Aruga
-      1 Joe Kutner
-      1 Joachim Baran
-      1 Jiro Nishiguchi
-      1 Jeremy Ong
-      1 Jeffrey Crowell
-      1 Jeff Federman
-      1 Jack Danger Canty
-      1 Hugo Logmans
-      1 Hiroyuki Matsuzaki
-      1 Hir0
-      1 HAYASHI Kentaro
-      1 Gwen Boatrite
-      1 Guo Xiao
-      1 Francis Bogsanyi
-      1 Flavio Medeiros
-      1 Fangrui Song
-      1 Edgar Boda-Majer
-      1 Daniel Varga
-      1 Daehyub Kim
-      1 Constellation
-      1 Benoit Daloze
-      1 Ben A Morgan
-      1 Atsushi_Morimoto
-      1 Andrew Nordman
-      1 Abinoam Praxedes Marques Junior
+     12 Xuejie "Rafael" Xiao (@xxuejie)*
+     11 takkaw (@takkaw)
+     11 YAMAMOTO Masaya (pandax381)
+     11 Seeker (@SeekingMeaning)
+     11 Julien Ammous (@schmurfy)
+     10 Yuichi Nishiwaki (@nyuichi)
+     10 Narihiro Nakamura (@authorNari)
+     10 Miura Hideki (@miura1729)
+     10 Kazuho Oku (@kazuho)
+     10 Ray Chason (@chasonr)*
+     12 Takashi Sawanaka (@sdottaka)*
+      9 Frank Celler (@fceller)
+      9 Akira Mitsui (@murasesyuka)*
+      9 Tatsuya Matsumoto (@tmash06)*
+      8 Takashi Sogabe (@sogabe)
+      7 Terence Lee (@hone)
+      7 Simon Génier (@simon-shopify)
+      7 Kouichi Nakanishi (@keizo042)
+      7 roco (@rystyle)*
+      7 Bhargava Shastry (@bshastry)*
+      7 Wataru Ashihara (@wataash)*
+      7 Rubyist (@expeditiousRubyist)
+      6 Selman ULUG (@selman)
+      6 Junji Sawada (@junjis0203)
+      6 INOUE Yasuyuki (@yasuyuki)
+      6 Hiro Asari (@BanzaiMan)
+      6 Frederick John Milens III (@fjmilens3)
+      6 Beoran (@beoran)
+      6 Akito Mochizuki (@ak-mochi)
+      5 Yurie Yamane (@yurie)+
+      5 nkshigeru (@nkshigeru)
+      5 dreamedge (@dreamedge)
+      6 Yusuke Endoh (@mame)*
+      6 David Siaw (@davidsiaw)*
+      6 Kenji Okimoto (@okkez)
+      5 TOMITA Masahiro (@tmtm)
+      5 Syohei YOSHIDA (@syohex)
+      5 Max Anselm (@silverhammermba)
+      5 Ichito Nagata (@i110)
+      5 Eric Hodel (@drbrain)
+      5 Davide D'Agostino (@DAddYE)
+      5 Hendrik (@Asmod4n)
+      5 Keita Obo (@ktaobo)*
+      4 xuejianqing (@zhihuikeji)
+      4 masahino (@masahino)
+      4 ken-mu (@ken-mu)
+      4 Yuji Yamano (@yyamano)
+      4 NARUSE, Yui (@nurse)
+      4 Marcus Stollsteimer (@stomar)
+      4 Li Yazhou (@flaneur2020)
+      4 Kohei Suzuki (@eagletmt)
+      4 Jon Moss (@maclover7)
+      4 Herwin Weststrate (@herwinw)
+      4 Goro Kikuchi (@gorogit)
+      4 kurodash (@kurodash)*
+      4 Yuhei Okazaki (@Yuuhei-Okazaki)*
+      4 Satoshi Odawara (@SatoshiOdawara)
+      4 wanabe (@wanabe)*
+      4 Ravil Bayramgalin (@brainopia)+
+      3 sasaki takeru (@takeru)
+      3 Shuta Kimura (@kimushu)+
+      3 J. Mutua (@katmutua)+
+      3 bamchoh (@bamchoh)
+      3 William Light (@wrl)
+      3 Thiago Scalone (@scalone)
+      3 Tatsuhiro Tsujikawa (@tatsuhiro-t)
+      3 Takashi Kokubun (@k0kubun)
+      3 TERAJIMA, Motoyuki (@trmmy)
+      3 SiZiOUS (@sizious)
+      3 Nobuhiro Iwamatsu (@iwamatsu)
+      3 Joseph McCullough (@joequery)
+      3 Jan Berdajs (@mrbrdo)
+      3 Franck Verrot (@franckverrot)
+      3 David Turnbull (@AE9RB)
+      3 Anton Davydov (@davydovanton)
+      3 Rob Fors (@robfors)*
+      3 Sebastián Katzer (@katzer)*
+      3 Per Lundberg (@perlun)*
+      3 Carlo Prelz (@asfluido)*
+      3 Vladimir Dementyev (@palkan)*
+      3 Shouji Kuboyama (@Shokuji)*
+      3 Rodrigo Malizia (@rmalizia44)+
+      3 Horimoto Yasuhiro (@komainu8)
+      2 windwiny (@windwiny)
+      2 Masahiro Wakame (@vvkame)
+      2 Taiyo Mizuhashi (@taiyoslime)+
+      2 Satoru Naba (@snaba)+
+      2 Serg Podtynnyi (@shtirlic)
+      2 Russel Hunter Yukawa (@rhykw)+
+      2 Kazuhiko Yamashita (@pyama86)+
+      2 icm7216 (@icm7216)
+      2 Kuroda Daisuke (@dycoon)+
+      2 Zhang Xiaohui (@hifoolno)
+      2 Minao Yamamoto (@tarosay)+
+      2 TJ Singleton (@tjsingleton)
+      2 SouthWolf (@southwolf)
+      2 Shannen Saez (@shancat)
+      2 Santa Zhang (@santazhang)
+      2 Ryunosuke SATO (@tricknotes)
+      2 Robert Mosolgo (@rmosolgo)
+      2 Nihad Abbasov (@NARKOZ)
+      2 Lukas Joeressen (@kext)
+      2 Lothar Scholz (@llothar)
+      2 Kazuhiro Sera (@seratch)
+      2 Kazuaki Tanaka (@kaz0505)
+      2 Jun Takeda (@takjn)
+      2 Jonas Kulla (@Ancurio)
+      2 Huei-Horng Yo (@hiroshiyui)
+      2 Hiroyuki Iwatsuki (@iwadon)
+      2 Hirohito Higashi (@HirohitoHigashi)
+      2 HASUMI Hitoshi (@hasumikin)
+      2 Go Saito (@govm)
+      2 Gilad Zohari (@gzohari)
+      2 Emiliano Lesende (@3miliano)
+      2 Dusan D. Majkic (@dmajkic)
+      2 Christian Mauceri (@mauceri)
+      2 Artur K (@nemerle)
+      2 Akira Moroo (@retrage)
+      2 Dominic Sisneros (@dsisnero)*
+      2 Francois Chagnon (@EiNSTeiN-)*
+      2 Craig Lehmann (via @bouk)*
+      2 Yutaka HARA (@yhara)*+
+      2 Tomás Pollak (@tomas)*
+      1 Hiroki Mori (@yamori813)+
+      1 Megumi Tomita (@tomykaira)+
+      1 Takuma Kume (@takumakume)+
+      1 taku toyama (@tsuichu)
+      1 ssmallkirby (@smallkirby)
+      1 sbsoftware (@sbsoftware)
+      1 robert (@R-obert)
+      1 Alex Wang (@nanamiwang)+
+      1 n4o847 (@n4o847)
+      1 lucas dicioccio (@lucasdicioccio)
+      1 liyuray (@liyuray)
+      1 Katsuhiko Kageyama (@kishima)+
+      1 javier ramírez (@javier)
+      1 iTitou (@titouanc)
+      1 hhc0null (@hhc0null)
+      1 fl0l0u (@fl0l0u)
+      1 Martin Bosslet (@emboss)+
+      1 duangsuse (@duangsuse)
+      1 Satoh, Hiroh (@cho45)+
+      1 A-Sat (@asatou)+
+      1 arton (@arton)
+      1 Yusuke Tanaka (@csouls)
+      1 Yurii Nakonechnyi (@inobelar)
+      1 Yukang (@chenyukang)
+      1 Yoshiori SHOJI (@yoshiori)
+      1 Yoji SHIDARA (@darashi)
+      1 Yevhen Viktorov (@yevgenko)
+      1 Wuffers Lightwolf (@w-x-l)
+      1 W (@graywolf)
+      1 Utkarsh Kukreti (@utkarshkukreti)
+      1 Tom Black (@blacktm)
+      1 Timo Schilling (@timoschilling)
+      1 Thomas Schmidt (@digitaltom)
+      1 Sorah Fukumori (@sorah)
+      1 Shugo Maeda (@shugo)
+      1 Sayed Abdelhaleem (@visualsayed)
+      1 Santiago Rodriguez (@sanrodari)
+      1 Ryo Okubo (@syucream)
+      1 Ryan Scott Lewis (@RyanScottLewis)
+      1 Robert Rowe (@CaptainJet)
+      1 Robert McNally (@wolfmcnally)
+      1 Ranmocy (@ranmocy)
+      1 Prayag Verma (@pra85)
+      1 Pavel Evstigneev (@Paxa)+
+      1 Patrick Pokatilo (@SHyx0rmZ)
+      1 Patrick Ellis (@pje)
+      1 Okumura Takahiro (@hfm)
+      1 Nozomi SATO (@nozomiS)
+      1 Nicholas (@knf)
+      1 Mitsutaka Mimura (@takkanm)
+      1 Mitchell Hashimoto (@mitchellh)
+      1 Maxim Abramchuk (@MaximAbramchuck)
+      1 Matt Aimonetti (@mattetti)
+      1 Masahiko Sawada (@MasahikoSawada)
+      1 Mark Delk (@jethrodaniel)
+      1 M.Naruoka (@fenrir-naru)
+      1 Lukas Stabe (@Ahti)
+      1 Lukas Elmer (@lukaselmer)
+      1 Luis Lavena (@luislavena)
+      1 Lian Cheng (@liancheng)
+      1 Leo Neat (@Leo-Neat)
+      1 Lanza (@LanzaSchneider)
+      1 Konstantin Haase (@rkh)
+      1 Kim H Madsen (@kimhmadsen)
+      1 Kei Sawada (@remore)
+      1 Kazuhiro NISHIYAMA (@znz)
+      1 Katsuyoshi Ito (@katsuyoshi)
+      1 Jurriaan Pruis (@jurriaan)
+      1 Junichi Kajiwara (@kjunichi)
+      1 Jun Aruga (@junaruga)
+      1 Joe Kutner (@jkutner)
+      1 Joachim Baran (@indiedotkim)
+      1 Jiro Nishiguchi (@spiritloose)
+      1 Jeremy Ong (@jeremyong)
+      1 Jeffrey Crowell (@crowell)
+      1 Jeff Federman (@jefffederman)
+      1 Jack Danger Canty (@JackDanger)
+      1 Hugo Logmans (@hlogmans)
+      1 Hiroyuki Matsuzaki (@Hiroyuki-Matsuzaki)
+      1 Hiromasa Ishii (@Hir0)+
+      1 HAYASHI Kentaro (@kenhys)
+      1 Gwen Boatrite (@boatrit)
+      1 Guo Xiao (@guoxiao)
+      1 Francis Bogsanyi (@fbogsany)
+      1 Flavio Medeiros (@flaviommedeiros)
+      1 Fangrui Song (@MaskRay)
+      1 Edgar Boda-Majer (@eboda)
+      1 Daniel Varga (@vargad)
+      1 Daehyub Kim (@lateau)
+      1 Yusuke Suzuki (@Constellation)+
+      1 Benoit Daloze (@eregon)
+      1 Ben A Morgan (@BenMorganIO)
+      1 Atsushi Morimoto (@mynz)
+      1 Andrew Nordman (@cadwallion)
+      1 Abinoam Praxedes Marques Junior (@abinoam)
 
 `*` - Entries unified according to names and addresses
 `+` - Entries with names different from commits
