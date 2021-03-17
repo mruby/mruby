@@ -775,7 +775,7 @@ assert('Hash#shift', '15.2.13.4.24') do
     assert_equal(0, h.size)
 
     h.default = -456
-    assert_equal(-456, h.shift)
+    assert_equal(nil, h.shift)
     assert_equal(0, h.size)
 
     h.freeze
@@ -783,8 +783,8 @@ assert('Hash#shift', '15.2.13.4.24') do
   end
 
   h = Hash.new{|h, k| [h, k]}
-  assert_operator(h.shift, :eql?, [h, nil])
   assert_equal(0, h.size)
+  assert_equal(nil, h.shift)
 end
 
 # Not ISO specified

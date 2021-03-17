@@ -1506,7 +1506,7 @@ mrb_hash_shift(mrb_state *mrb, mrb_value hash)
 
   hash_modify(mrb, hash);
   if (h_size(h) == 0) {
-    return hash_default(mrb, hash, mrb_nil_value());
+    return mrb_nil_value();
   }
   else {
     mrb_value del_key, del_val;
