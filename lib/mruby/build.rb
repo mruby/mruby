@@ -131,15 +131,22 @@ module MRuby
       end
 
       MRuby::Build.current = current
-      current.instance_eval(&block)
-      if current.libmruby_enabled? && !current.mrbcfile_external?
-        if current.presym_enabled?
-          current.create_mrbc_build if current.host? || current.gems["mruby-bin-mrbc"]
-        elsif current.host?
-          current.build_mrbc_exec
+      begin
+        current.instance_eval(&block)
+      rescue Exception => err
+        raise
+      ensure
+        unless err
+          if current.libmruby_enabled? && !current.mrbcfile_external?
+            if current.presym_enabled?
+              current.create_mrbc_build if current.host? || current.gems["mruby-bin-mrbc"]
+            elsif current.host?
+              current.build_mrbc_exec
+            end
+          end
+          current.presym = Presym.new(current) if current.presym_enabled?
         end
       end
-      current.presym = Presym.new(current) if current.presym_enabled?
     end
 
     def libmruby_enabled?
