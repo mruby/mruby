@@ -25,6 +25,7 @@
 #define floor(f) floorf(f)
 #define ceil(f) ceilf(f)
 #define fmod(x,y) fmodf(x,y)
+#define copysign(x,y) copysignf(x,y)
 #define FLO_TO_STR_PREC 8
 #else
 #define FLO_TO_STR_PREC 16
@@ -237,17 +238,17 @@ flo_idiv(mrb_state *mrb, mrb_value xv)
 mrb_float
 mrb_num_div_flo(mrb_state *mrb, mrb_float x, mrb_float y)
 {
-  mrb_float f;
-
-  if (y == 0) {
-    if (x > 0) f = INFINITY;
-    else if (x < 0) f = -INFINITY;
-    else /* if (x == 0) */ f = NAN;
+  if (y != 0.0) {
+    return x / y;
+  }
+  else if (x == 0.0) {
+    return NAN;
   }
   else {
-    f = x / y;
+    mrb_float a = copysign(1.0, x);
+    mrb_float b = copysign(1.0, y);
+    return a * b * INFINITY;
   }
-  return f;
 }
 
 static mrb_value
