@@ -516,7 +516,10 @@ mrb_to_int(mrb_state *mrb, mrb_value val)
       return mrb_flo_to_fixnum(mrb, val);
     }
 #endif
-    mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %Y to Integer", val);
+    if (mrb_string_p(val)) {
+      mrb_raise(mrb, E_TYPE_ERROR, "can't convert String to Integer");
+    }
+    return mrb_type_convert(mrb, val, MRB_TT_INTEGER, MRB_SYM(to_i));
   }
   return val;
 }
