@@ -375,13 +375,9 @@ flodivmod(mrb_state *mrb, double x, double y, mrb_float *divp, mrb_float *modp)
     goto exit;
   }
   if (y == 0.0) {
-    if (x == 0) div = NAN;
-    else if (x > 0.0) div = INFINITY;
-    else div = -INFINITY;       /* x < 0.0 */
-    mod = NAN;
-    goto exit;
+    int_zerodiv(mrb);
   }
-  if ((x == 0.0) || (isinf(y) && !isinf(x))) {
+  if (isinf(y) && !isinf(x)) {
     mod = x;
   }
   else {
