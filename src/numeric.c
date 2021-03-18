@@ -25,7 +25,6 @@
 #define floor(f) floorf(f)
 #define ceil(f) ceilf(f)
 #define fmod(x,y) fmodf(x,y)
-#define copysign(x,y) copysignf(x,y)
 #define FLO_TO_STR_PREC 8
 #else
 #define FLO_TO_STR_PREC 16
@@ -245,9 +244,7 @@ mrb_num_div_flo(mrb_state *mrb, mrb_float x, mrb_float y)
     return NAN;
   }
   else {
-    mrb_float a = copysign(1.0, x);
-    mrb_float b = copysign(1.0, y);
-    return a * b * INFINITY;
+    return x * (signbit(y) ? -1.0 : 1.0) * INFINITY;
   }
 }
 
