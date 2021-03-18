@@ -1016,7 +1016,10 @@ flo_divmod(mrb_state *mrb, mrb_value x)
   mrb_value a, b;
 
   flodivmod(mrb, mrb_float(x), mrb_to_flo(mrb, y), &div, &mod);
-  a = mrb_int_value(mrb, (mrb_int)div);
+  if (!FIXABLE_FLOAT(div))
+    a = mrb_float_value(mrb, div);
+  else
+    a = mrb_int_value(mrb, (mrb_int)div);
   b = mrb_float_value(mrb, mod);
   return mrb_assoc_new(mrb, a, b);
 }
