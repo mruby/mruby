@@ -267,14 +267,18 @@ mrb_num_div_flo(mrb_state *mrb, mrb_float x, mrb_float y)
 }
 
 static mrb_value
-flo_div(mrb_state *mrb, mrb_value xv)
+flo_div(mrb_state *mrb, mrb_value x)
 {
-  mrb_float x, y;
+  mrb_value y = mrb_get_arg1(mrb);
+  mrb_float a = mrb_float(x);
 
-  x = mrb_float(xv);
-  mrb_get_args(mrb, "f", &y);
-  x = mrb_num_div_flo(mrb, x, y);
-  return mrb_float_value(mrb, x);
+  if (mrb_float_p(y)) {
+    a = mrb_num_div_flo(mrb, a, mrb_float(y));
+  }
+  else {
+    a = mrb_num_div_flo(mrb, a, mrb_to_flo(mrb, y));
+  }
+  return mrb_float_value(mrb, a);
 }
 
 /* 15.2.9.3.16(x) */
@@ -348,6 +352,32 @@ flo_to_s(mrb_state *mrb, mrb_value flt)
   return str;
 }
 
+/* 15.2.9.3.1  */
+/*
+ * call-seq:
+ *   float + other  ->  float
+ *
+ * Returns a new float which is the sum of <code>float</code>
+ * and <code>other</code>.
+ */
+static mrb_value
+flo_add(mrb_state *mrb, mrb_value x)
+{
+  mrb_value y = mrb_get_arg1(mrb);
+  mrb_float a = mrb_float(x);
+
+  switch (mrb_type(y)) {
+  case MRB_TT_FLOAT:
+    return mrb_float_value(mrb, a + mrb_float(y));
+#if defined(MRB_USE_COMPLEX)
+  case MRB_TT_COMPLEX:
+    return mrb_funcall_id(mrb, y, MRB_OPSYM(add), 1, x);
+#endif
+  default:
+    return mrb_float_value(mrb, a + mrb_to_flo(mrb, y));
+  }
+}
+
 /* 15.2.9.3.2  */
 /*
  * call-seq:
@@ -358,11 +388,22 @@ flo_to_s(mrb_state *mrb, mrb_value flt)
  */
 
 static mrb_value
-flo_minus(mrb_state *mrb, mrb_value x)
+flo_sub(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
+  mrb_float a = mrb_float(x);
 
-  return mrb_float_value(mrb, mrb_float(x) - mrb_to_flo(mrb, y));
+  switch (mrb_type(y)) {
+  case MRB_TT_FLOAT:
+    return mrb_float_value(mrb, a - mrb_float(y));
+#if defined(MRB_USE_COMPLEX)
+  case MRB_TT_COMPLEX:
+    x = mrb_funcall_id(mrb, y, MRB_OPSYM(sub), 1, x);
+    return mrb_funcall_id(mrb, x, MRB_OPSYM(minus), 0);
+#endif
+  default:
+    return mrb_float_value(mrb, a - mrb_to_flo(mrb, y));
+  }
 }
 
 /* 15.2.9.3.3  */
@@ -378,8 +419,18 @@ static mrb_value
 flo_mul(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
+  mrb_float a = mrb_float(x);
 
-  return mrb_float_value(mrb, mrb_float(x) * mrb_to_flo(mrb, y));
+  switch (mrb_type(y)) {
+  case MRB_TT_FLOAT:
+    return mrb_float_value(mrb, a * mrb_float(y));
+#if defined(MRB_USE_COMPLEX)
+  case MRB_TT_COMPLEX:
+    return mrb_funcall_id(mrb, y, MRB_OPSYM(mul), 1, x);
+#endif
+  default:
+    return mrb_float_value(mrb, a * mrb_to_flo(mrb, y));
+  }
 }
 
 static void
@@ -1328,7 +1379,7 @@ mrb_flo_to_fixnum(mrb_state *mrb, mrb_value x)
 #endif
 
 static mrb_value
-fixnum_plus(mrb_state *mrb, mrb_value x, mrb_value y)
+int_plus(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mrb_int a;
 
@@ -1362,7 +1413,7 @@ MRB_API mrb_value
 mrb_num_plus(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   if (mrb_integer_p(x)) {
-    return fixnum_plus(mrb, x, y);
+    return int_plus(mrb, x, y);
   }
 #ifndef MRB_NO_FLOAT
   if (mrb_float_p(x)) {
@@ -1392,15 +1443,15 @@ mrb_num_plus(mrb_state *mrb, mrb_value x, mrb_value y)
  * result.
  */
 static mrb_value
-int_plus(mrb_state *mrb, mrb_value self)
+int_add(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
 
-  return fixnum_plus(mrb, self, other);
+  return int_plus(mrb, self, other);
 }
 
 static mrb_value
-fixnum_minus(mrb_state *mrb, mrb_value x, mrb_value y)
+int_minus(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mrb_int a;
 
@@ -1434,7 +1485,7 @@ MRB_API mrb_value
 mrb_num_minus(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   if (mrb_integer_p(x)) {
-    return fixnum_minus(mrb, x, y);
+    return int_minus(mrb, x, y);
   }
 #ifndef MRB_NO_FLOAT
   if (mrb_float_p(x)) {
@@ -1465,11 +1516,11 @@ mrb_num_minus(mrb_state *mrb, mrb_value x, mrb_value y)
  * result.
  */
 static mrb_value
-int_minus(mrb_state *mrb, mrb_value self)
+int_sub(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
 
-  return fixnum_minus(mrb, self, other);
+  return int_minus(mrb, self, other);
 }
 
 
@@ -1685,24 +1736,6 @@ num_infinite_p(mrb_state *mrb, mrb_value self)
   return mrb_false_value();
 }
 
-/* 15.2.9.3.1  */
-/*
- * call-seq:
- *   float + other  ->  float
- *
- * Returns a new float which is the sum of <code>float</code>
- * and <code>other</code>.
- */
-#ifndef MRB_NO_FLOAT
-static mrb_value
-flo_plus(mrb_state *mrb, mrb_value x)
-{
-  mrb_value y = mrb_get_arg1(mrb);
-
-  return mrb_float_value(mrb, mrb_float(x) + mrb_to_flo(mrb, y));
-}
-#endif
-
 /* ------------------------------------------------------------------------*/
 void
 mrb_init_numeric(mrb_state *mrb)
@@ -1737,8 +1770,8 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, integer, "truncate", int_to_i,        MRB_ARGS_NONE()); /* 15.2.8.3.26 */
 #endif
 
-  mrb_define_method(mrb, integer, "+",        int_plus,        MRB_ARGS_REQ(1)); /* 15.2.8.3.1 */
-  mrb_define_method(mrb, integer, "-",        int_minus,       MRB_ARGS_REQ(1)); /* 15.2.8.3.2 */
+  mrb_define_method(mrb, integer, "+",        int_add,         MRB_ARGS_REQ(1)); /* 15.2.8.3.1 */
+  mrb_define_method(mrb, integer, "-",        int_sub,         MRB_ARGS_REQ(1)); /* 15.2.8.3.2 */
   mrb_define_method(mrb, integer, "*",        int_mul,         MRB_ARGS_REQ(1)); /* 15.2.8.3.3 */
   mrb_define_method(mrb, integer, "%",        int_mod,         MRB_ARGS_REQ(1)); /* 15.2.8.3.5 */
   mrb_define_method(mrb, integer, "/",        int_div,         MRB_ARGS_REQ(1)); /* 15.2.8.3.6  */
@@ -1772,8 +1805,8 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fl,      "/",         flo_div,        MRB_ARGS_REQ(1)); /* 15.2.9.3.6  */
   mrb_define_method(mrb, fl,      "quo",       flo_div,        MRB_ARGS_REQ(1)); /* 15.2.7.4.5 (x) */
   mrb_define_method(mrb, fl,      "div",       flo_idiv,       MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, fl,      "+",         flo_plus,       MRB_ARGS_REQ(1)); /* 15.2.9.3.3  */
-  mrb_define_method(mrb, fl,      "-",         flo_minus,      MRB_ARGS_REQ(1)); /* 15.2.9.3.4  */
+  mrb_define_method(mrb, fl,      "+",         flo_add,        MRB_ARGS_REQ(1)); /* 15.2.9.3.3  */
+  mrb_define_method(mrb, fl,      "-",         flo_sub,        MRB_ARGS_REQ(1)); /* 15.2.9.3.4  */
   mrb_define_method(mrb, fl,      "*",         flo_mul,        MRB_ARGS_REQ(1)); /* 15.2.9.3.5  */
   mrb_define_method(mrb, fl,      "%",         flo_mod,        MRB_ARGS_REQ(1)); /* 15.2.9.3.7  */
   mrb_define_method(mrb, fl,      "<=>",       num_cmp,        MRB_ARGS_REQ(1)); /* 15.2.9.3.1  */

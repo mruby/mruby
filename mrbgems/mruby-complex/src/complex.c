@@ -8,64 +8,58 @@
 # error Complex conflicts with 'MRB_NO_FLOAT' configuration
 #endif
 
-struct mrb_complex {
-  mrb_float real;
-  mrb_float imaginary;
-};
-
 #ifdef MRB_USE_FLOAT32
 #define F(x) x##f
 #else
 #define F(x) x
 #endif
 
-#if defined(MRB_64BIT) || defined(MRB_USE_FLOAT32)
+struct mrb_complex {
+  mrb_float real;
+  mrb_float imaginary;
+};
 
-#define COMPLEX_USE_ISTRUCT
-/* use TT_ISTRUCT */
 #include <mruby/istruct.h>
 
-#define complex_ptr(mrb, v) (struct mrb_complex*)mrb_istruct_ptr(v)
+#if defined(MRB_32BIT) && !defined(MRB_USE_FLOAT32)
 
-static struct RBasic*
-complex_alloc(mrb_state *mrb, struct RClass *c, struct mrb_complex **p)
-{
-  struct RIStruct *s;
-
-  s = (struct RIStruct*)mrb_obj_alloc(mrb, MRB_TT_ISTRUCT, c);
-  *p = (struct mrb_complex*)s->inline_data;
-
-  return (struct RBasic*)s;
-}
-
-#else
-/* use TT_DATA */
-#include <mruby/data.h>
-
-static const struct mrb_data_type mrb_complex_type = {"Complex", mrb_free};
-
-static struct RBasic*
-complex_alloc(mrb_state *mrb, struct RClass *c, struct mrb_complex **p)
-{
-  struct RData *d;
-
-  Data_Make_Struct(mrb, c, struct mrb_complex, &mrb_complex_type, *p, d);
-
-  return (struct RBasic*)d;
-}
+struct RComplex {
+  MRB_OBJECT_HEADER;
+  struct mrb_complex *p;
+};
 
 static struct mrb_complex*
 complex_ptr(mrb_state *mrb, mrb_value v)
 {
-  struct mrb_complex *p;
+  struct RComplex *r = (struct RComplex*)mrb_obj_ptr(v);
 
-  p = DATA_GET_PTR(mrb, v, &mrb_complex_type, struct mrb_complex);
-  if (!p) {
+  if (!r->p) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized complex");
   }
-  return p;
+  return r->p;
 }
+
+#else
+#define COMPLEX_INLINE
+struct RComplex {
+  MRB_OBJECT_HEADER;
+  struct mrb_complex r;
+};
+#define complex_ptr(mrb, v) (&((struct RComplex*)mrb_obj_ptr(v))->r)
 #endif
+
+static struct RBasic*
+complex_alloc(mrb_state *mrb, struct RClass *c, struct mrb_complex **p)
+{
+  struct RComplex *s;
+  s = (struct RComplex*)mrb_obj_alloc(mrb, MRB_TT_COMPLEX, c);
+#ifdef COMPLEX_INLINE
+  *p = &s->r;
+#else
+  *p = s->p = (struct mrb_complex*)mrb_malloc(mrb, sizeof(struct mrb_complex));
+#endif
+  return (struct RBasic*)s;
+}
 
 void
 mrb_complex_get(mrb_state *mrb, mrb_value cpx, mrb_float *r, mrb_float *i)
@@ -229,19 +223,62 @@ complex_div(mrb_state *mrb, mrb_value self)
   return complex_new(mrb, F(ldexp)(zr.s, zr.x), F(ldexp)(zi.s, zi.x));
 }
 
+#ifndef MRB_USE_RATIONAL
+mrb_int mrb_num_div_int(mrb_state *mrb, mrb_int x, mrb_int y);
+
+/* 15.2.8.3.4  */
+/*
+ * redefine Integer#/
+ */
+static mrb_value
+int_div(mrb_state *mrb, mrb_value x)
+{
+  mrb_value y = mrb_get_arg1(mrb);
+  mrb_int a = mrb_integer(x);
+
+  if (mrb_integer_p(y)) {
+    mrb_int div = mrb_num_div_int(mrb, a, mrb_integer(y));
+    return mrb_int_value(mrb, div);
+  }
+  switch (mrb_type(y)) {
+  case MRB_TT_COMPLEX:
+    return mrb_funcall_id(mrb, x, MRB_OPSYM(div), 1, y);
+  default:
+    return mrb_float_value(mrb, (mrb_float)a * mrb_to_flo(mrb, y));
+  }
+}
+
+/* 15.2.9.3.19(x) */
+/*
+ * redefine Integer#quo
+ */
+
+static mrb_value
+int_quo(mrb_state *mrb, mrb_value x)
+{
+  mrb_value y = mrb_get_arg1(mrb);
+  mrb_int a = mrb_integer(x);
+
+  switch (mrb_type(y)) {
+  case MRB_TT_COMPLEX:
+    return mrb_funcall_id(mrb, x, MRB_OPSYM(div), 1, y);
+  default:
+    return mrb_float_value(mrb, (mrb_float)a * mrb_to_flo(mrb, y));
+  }
+}
+#endif
+
 void mrb_mruby_complex_gem_init(mrb_state *mrb)
 {
   struct RClass *comp;
 
-#ifdef COMPLEX_USE_ISTRUCT
-  mrb_assert(sizeof(struct mrb_complex) < ISTRUCT_DATA_SIZE);
+#ifdef COMPLEX_INLINE
+  mrb_assert(sizeof(struct mrb_complex) < sizeof(void*)*3);
 #endif
+
   comp = mrb_define_class_id(mrb, MRB_SYM(Complex), mrb_class_get_id(mrb, MRB_SYM(Numeric)));
-#ifdef COMPLEX_USE_ISTRUCT
-  MRB_SET_INSTANCE_TT(comp, MRB_TT_ISTRUCT);
-#else
-  MRB_SET_INSTANCE_TT(comp, MRB_TT_DATA);
-#endif
+  MRB_SET_INSTANCE_TT(comp, MRB_TT_COMPLEX);
+
   mrb_undef_class_method(mrb, comp, "new");
   mrb_define_class_method(mrb, comp, "rectangular", complex_s_rect, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_class_method(mrb, comp, "rect", complex_s_rect, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
@@ -252,6 +289,10 @@ void mrb_mruby_complex_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, comp, "to_i", complex_to_i, MRB_ARGS_NONE());
   mrb_define_method(mrb, comp, "to_c", complex_to_c, MRB_ARGS_NONE());
   mrb_define_method(mrb, comp, "__div__", complex_div, MRB_ARGS_REQ(1));
+#ifndef MRB_USE_RATIONAL
+  mrb_define_method(mrb, mrb->integer_class, "/", int_div, MRB_ARGS_REQ(1)); /* overrride */
+  mrb_define_method(mrb, mrb->integer_class, "quo", int_quo, MRB_ARGS_REQ(1)); /* overrride */
+#endif
 }
 
 void

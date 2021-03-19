@@ -903,15 +903,22 @@ obj_free(mrb_state *mrb, struct RBasic *obj, int end)
     }
     break;
 
-#if defined(MRB_INT64) && defined(MRB_32BIT)
-#ifdef MRB_USE_RATIONAL
+#if defined(MRB_USE_RATIONAL) && defined(MRB_INT64) && defined(MRB_32BIT)
   case MRB_TT_RATIONAL:
     {
       struct RData *o = (struct RData*)obj;
-      mrb_free(mrb, obj->iv_tbl);
+      mrb_free(mrb, o->iv);
     }
     break;
 #endif
+
+#if defined(MRB_USE_COMPLEX) && defined(MRB_32BIT) && !defined(MRB_USE_FLOAT32)
+  case MRB_TT_COMPLEX:
+    {
+      struct RData *o = (struct RData*)obj;
+      mrb_free(mrb, o->iv);
+    }
+    break;
 #endif
 
   default:

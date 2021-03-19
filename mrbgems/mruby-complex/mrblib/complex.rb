@@ -81,7 +81,7 @@ class Complex < Numeric
   alias_method :conj, :conjugate
 
   def fdiv(numeric)
-    Complex(real.to_f / numeric, imaginary.to_f / numeric)
+    Complex(real / numeric, imaginary / numeric)
   end
 
   def polar
@@ -108,21 +108,6 @@ class Complex < Numeric
 
   alias_method :imag, :imaginary
 
-  [Integer, Float].each do |cls|
-    cls.class_eval do
-      [:+, :-, :*, :/, :==].each do |op|
-        original_operator_name = :"__original_operator_#{op}_complex"
-        alias_method original_operator_name, op
-        define_method op do |rhs|
-          if rhs.is_a? Complex
-            Complex(self).__send__(op, rhs)
-          else
-            __send__(original_operator_name, rhs)
-          end
-        end
-      end
-    end
-  end
   Numeric.class_eval do
     def i
       Complex(0, self)
