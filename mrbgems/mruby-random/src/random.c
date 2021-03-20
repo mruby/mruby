@@ -152,6 +152,9 @@ get_opt(mrb_state* mrb)
     arg = mrb_to_int(mrb, arg);
     i = mrb_integer(arg);
     if (i < 0) {
+      if (i == MRB_INT_MIN) {
+        mrb_raise(mrb, E_RANGE_ERROR, "integer underflow");
+      }
       arg = mrb_fixnum_value(0 - i);
     }
   }
