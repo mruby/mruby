@@ -380,7 +380,7 @@ mrb_rational_eq(mrb_state *mrb, mrb_value x, mrb_value y)
       return a == b;
     }
 #ifdef MRB_USE_COMPLEX
-  case MRB_TT_RATIONAL:
+  case MRB_TT_COMPLEX:
     {
       mrb_bool mrb_complex_eq(mrb_state *mrb, mrb_value, mrb_value);
       return mrb_complex_eq(mrb, y, x);
