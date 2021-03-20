@@ -52,14 +52,6 @@ class Complex < Numeric
   end
   alias_method :quo, :/
 
-  def ==(rhs)
-    if rhs.is_a? Complex
-      real == rhs.real && imaginary == rhs.imaginary
-    elsif rhs.is_a? Numeric
-      imaginary == 0 && real == rhs
-    end
-  end
-
   def abs
     Math.hypot imaginary, real
   end

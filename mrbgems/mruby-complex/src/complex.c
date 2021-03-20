@@ -137,6 +137,40 @@ complex_to_c(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+mrb_bool
+mrb_complex_eq(mrb_state *mrb, mrb_value x, mrb_value y)
+{
+  struct mrb_complex *p1 = complex_ptr(mrb, x);
+
+  switch (mrb_type(y)) {
+  case MRB_TT_COMPLEX:
+    {
+      struct mrb_complex *p2 = complex_ptr(mrb, y);
+
+      if (p1->real == p2->real && p1->imaginary == p2->imaginary) {
+        return TRUE;
+      }
+      return FALSE;
+    }
+  case MRB_TT_INTEGER:
+    if (p1->imaginary != 0) return FALSE;
+    return p1->real == mrb_integer(y);
+  case MRB_TT_FLOAT:
+    if (p1->imaginary != 0) return FALSE;
+    return p1->real == mrb_float(y);
+
+  default:
+    return mrb_equal(mrb, y, x);
+  }
+}
+
+static mrb_value
+complex_eq(mrb_state *mrb, mrb_value x)
+{
+  mrb_value y = mrb_get_arg1(mrb);
+  return mrb_bool_value(mrb_complex_eq(mrb, x, y));
+}
+
 /* Arithmetic on (significand, exponent) pairs avoids premature overflow in
    complex division */
 struct float_pair {
@@ -289,6 +323,7 @@ void mrb_mruby_complex_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, comp, "to_i", complex_to_i, MRB_ARGS_NONE());
   mrb_define_method(mrb, comp, "to_c", complex_to_c, MRB_ARGS_NONE());
   mrb_define_method(mrb, comp, "__div__", complex_div, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, comp, "==", complex_eq, MRB_ARGS_REQ(1));
 #ifndef MRB_USE_RATIONAL
   mrb_define_method(mrb, mrb->integer_class, "/", int_div, MRB_ARGS_REQ(1)); /* overrride */
   mrb_define_method(mrb, mrb->integer_class, "quo", int_quo, MRB_ARGS_REQ(1)); /* overrride */
