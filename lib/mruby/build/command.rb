@@ -51,7 +51,7 @@ module MRuby
       @flags = [ENV['CFLAGS'] || []]
       @source_exts = source_exts
       @include_paths = ["#{MRUBY_ROOT}/include"]
-      @defines = %w()
+      @defines = []
       @option_include_path = %q[-I"%s"]
       @option_define = %q[-D"%s"]
       @compile_options = %q[%{flags} -o "%{outfile}" -c "%{infile}"]
@@ -277,7 +277,7 @@ module MRuby
     def initialize(build)
       super
       @command = 'git'
-      @flags = %w[]
+      @flags = []
       @clone_options = "clone %{flags} %{url} %{dir}"
       @pull_options = "--git-dir %{repo_dir}/.git --work-tree %{repo_dir} pull"
       @checkout_options = "--git-dir %{repo_dir}/.git --work-tree %{repo_dir} checkout %{checksum_hash}"
