@@ -71,7 +71,7 @@ module MRuby
 
     include Rake::DSL
     include LoadGems
-    attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir
+    attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir, :defines
     attr_reader :products, :libmruby_core_objs, :libmruby_objs, :gems, :toolchains, :presym, :mrbc_build, :gem_dir_to_repo_url
 
     alias libmruby libmruby_objs
@@ -97,6 +97,7 @@ module MRuby
         @file_separator = '/'
         @build_dir = "#{build_dir}/#{@name}"
         @gem_clone_dir = "#{build_dir}/repos/#{@name}"
+        @defines = []
         @cc = Command::Compiler.new(self, %w(.c), label: "CC")
         @cxx = Command::Compiler.new(self, %w(.cc .cxx .cpp), label: "CXX")
         @objc = Command::Compiler.new(self, %w(.m), label: "OBJC")

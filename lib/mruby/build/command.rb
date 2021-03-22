@@ -77,7 +77,7 @@ module MRuby
     end
 
     def all_flags(_defines=[], _include_paths=[], _flags=[])
-      define_flags = [defines, _defines].flatten.map{ |d| option_define % d }
+      define_flags = [defines, _defines, build.defines].flatten.map{ |d| option_define % d }
       include_path_flags = [include_paths, _include_paths].flatten.map do |f|
         option_include_path % filename(f)
       end

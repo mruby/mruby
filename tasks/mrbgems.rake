@@ -37,7 +37,7 @@ MRuby.each_target do
         f.puts %Q[]
         f.write gem_func_decls
         unless gem_final_calls.empty?
-        f.puts %Q[]
+          f.puts %Q[]
           f.puts %Q[static void]
           f.puts %Q[mrb_final_mrbgems(mrb_state *mrb) {]
           f.write gem_final_calls
