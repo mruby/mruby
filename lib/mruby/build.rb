@@ -352,14 +352,12 @@ EOS
     end
 
     def define_rules
-      use_mrdb = @gems["mruby-bin-debugger"]
       compilers.each do |compiler|
         if respond_to?(:enable_gems?) && enable_gems?
           compiler.defines -= %w(MRB_NO_GEMS)
         else
           compiler.defines += %w(MRB_NO_GEMS)
         end
-        compiler.defines |= %w(MRB_USE_DEBUG_HOOK) if use_mrdb
       end
       [@cc, *(@cxx if cxx_exception_enabled?)].each do |compiler|
         compiler.define_rules(@build_dir, MRUBY_ROOT, @exts.object)
