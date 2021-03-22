@@ -592,7 +592,8 @@ pop_n_(codegen_scope *s, int n)
 static int
 new_litbn(codegen_scope *s, const char *p, int base, mrb_bool neg)
 {
-  int i, plen;
+  int i;
+  size_t plen;
   mrb_pool_value *pv;
 
   plen = strlen(p);
@@ -604,7 +605,7 @@ new_litbn(codegen_scope *s, const char *p, int base, mrb_bool neg)
     pv = &s->pool[i];
     if (pv->tt != IREP_TT_BIGINT) continue;
     len = pv->u.str[0];
-    if (len == strlen(p) && pv->u.str[1] == base && memcmp(pv->u.str+2, p, len) == 0)
+    if (len == plen && pv->u.str[1] == base && memcmp(pv->u.str+2, p, len) == 0)
       return i;
   }
 
@@ -617,14 +618,13 @@ new_litbn(codegen_scope *s, const char *p, int base, mrb_bool neg)
   i = s->irep->plen++;
   {
     char *buf;
-    mrb_int len = strlen(p);
     pv->tt = IREP_TT_BIGINT;
-    buf = (char*)codegen_realloc(s, NULL, len+3);
-    buf[0] = len;
+    buf = (char*)codegen_realloc(s, NULL, plen+3);
+    buf[0] = (char)plen;
     buf[1] = base;
     if (neg) buf[1] = 0x80;
-    memcpy(buf+2, p, len);
-    buf[len+2] = '\0';
+    memcpy(buf+2, p, plen);
+    buf[plen+2] = '\0';
     pv->u.str = buf;
   }
   return i;
