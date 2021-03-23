@@ -5,6 +5,7 @@ on: [push, pull_request]
 jobs:
   Ubuntu-1804-gcc:
     runs-on: ubuntu-18.04
+    timeout-minutes: 10
     env:
       MRUBY_CONFIG: ci/gcc-clang
       CC: gcc
@@ -19,6 +20,7 @@ jobs:
 
   Ubuntu-1804-clang:
     runs-on: ubuntu-18.04
+    timeout-minutes: 10
     env:
       MRUBY_CONFIG: ci/gcc-clang
       CC: clang
@@ -33,6 +35,7 @@ jobs:
 
   Ubuntu-2004-gcc:
     runs-on: ubuntu-20.04
+    timeout-minutes: 10
     env:
       MRUBY_CONFIG: ci/gcc-clang
       CC: gcc
@@ -47,6 +50,7 @@ jobs:
 
   Ubuntu-2004-clang:
     runs-on: ubuntu-20.04
+    timeout-minutes: 10
     env:
       MRUBY_CONFIG: ci/gcc-clang
       CC: clang
@@ -61,6 +65,7 @@ jobs:
 
   macOS:
     runs-on: macos-latest
+    timeout-minutes: 10
     env:
       MRUBY_CONFIG: ci/gcc-clang
       CC: clang
@@ -75,6 +80,7 @@ jobs:
 
   Windows-MinGW:
     runs-on: windows-latest
+    timeout-minutes: 10
     env:
       MRUBY_CONFIG: ci/gcc-clang
       CC: gcc
@@ -89,6 +95,7 @@ jobs:
 
   Windows-Cygwin:
     runs-on: windows-latest
+    timeout-minutes: 10
     env:
       ACTIONS_ALLOW_UNSECURE_COMMANDS: true
       MRUBY_CONFIG: ci/gcc-clang
@@ -134,6 +141,7 @@ jobs:
 
   Windows-VC:
     runs-on: windows-latest
+    timeout-minutes: 10
     env:
       MRUBY_CONFIG: ci/msvc
     steps:
