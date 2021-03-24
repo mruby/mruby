@@ -354,18 +354,22 @@ rational_m(mrb_state *mrb, mrb_value self)
 #endif
 }
 
-mrb_bool
-mrb_rational_eq(mrb_state *mrb, mrb_value x, mrb_value y)
+static mrb_value
+rational_eq(mrb_state *mrb, mrb_value x)
 {
+  mrb_value y = mrb_get_arg1(mrb);
   struct mrb_rational *p1 = rational_ptr(mrb, x);
+  mrb_bool result;
 
   switch (mrb_type(y)) {
   case MRB_TT_INTEGER:
-    if (p1->denominator != 1) return FALSE;
-    return p1->numerator == mrb_integer(y);
+    if (p1->denominator != 1) return mrb_false_value();
+    result = p1->numerator == mrb_integer(y);
+    break;
 #ifndef MRB_NO_FLOAT
   case MRB_TT_FLOAT:
-    return ((double)p1->numerator/p1->denominator) == mrb_float(y);
+    result = ((double)p1->numerator/p1->denominator) == mrb_float(y);
+    break;
 #endif
   case MRB_TT_RATIONAL:
     {
@@ -373,38 +377,35 @@ mrb_rational_eq(mrb_state *mrb, mrb_value x, mrb_value y)
       mrb_int a, b;
 
       if (p1->numerator == p2->numerator && p1->denominator == p2->denominator) {
-        return TRUE;
+        return mrb_true_value();
       }
       if (mrb_int_mul_overflow(p1->numerator, p2->denominator, &a) ||
           mrb_int_mul_overflow(p2->numerator, p1->denominator, &b)) {
 #ifdef MRB_NO_FLOAT
         rat_overflow(mrb);
 #else
-        return (double)p1->numerator*p2->denominator == (double)p2->numerator*p2->denominator;
+        result = (double)p1->numerator*p2->denominator == (double)p2->numerator*p2->denominator;
+        break;
 #endif
       }
-      return a == b;
+      result = a == b;
+      break;
     }
 
 #ifdef MRB_USE_COMPLEX
   case MRB_TT_COMPLEX:
    {
       mrb_bool mrb_complex_eq(mrb_state *mrb, mrb_value, mrb_value);
-      return mrb_complex_eq(mrb, y, x);
+      result = mrb_complex_eq(mrb, y, x);
+      break;
     }
 #endif
   default:
-    return mrb_equal(mrb, y, x);
+    result = mrb_equal(mrb, y, x);
+    break;
   }
+  return mrb_bool_value(result);
 }
-
-static mrb_value
-rational_eq(mrb_state *mrb, mrb_value x)
-{
-  mrb_value y = mrb_get_arg1(mrb);
-  return mrb_bool_value(mrb_rational_eq(mrb, x, y));
-}
-
 
 #ifndef MRB_NO_FLOAT
 mrb_value mrb_complex_new(mrb_state *, mrb_float, mrb_float);
