@@ -19,22 +19,6 @@ class Complex < Numeric
     Complex(-real, -imaginary)
   end
 
-  def +(rhs)
-    if rhs.is_a? Complex
-      Complex(real + rhs.real, imaginary + rhs.imaginary)
-    elsif rhs.is_a? Numeric
-      Complex(real + rhs, imaginary)
-    end
-  end
-
-  def -(rhs)
-    if rhs.is_a? Complex
-      Complex(real - rhs.real, imaginary - rhs.imaginary)
-    elsif rhs.is_a? Numeric
-      Complex(real - rhs, imaginary)
-    end
-  end
-
   def abs
     Math.hypot imaginary, real
   end
