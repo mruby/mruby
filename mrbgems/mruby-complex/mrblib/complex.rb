@@ -35,14 +35,6 @@ class Complex < Numeric
     end
   end
 
-  def *(rhs)
-    if rhs.is_a? Complex
-      Complex(real * rhs.real - imaginary * rhs.imaginary, real * rhs.imaginary + rhs.real * imaginary)
-    elsif rhs.is_a? Numeric
-      Complex(real * rhs, imaginary * rhs)
-    end
-  end
-
   def /(rhs)
     if rhs.is_a? Complex
       __div__(rhs)
