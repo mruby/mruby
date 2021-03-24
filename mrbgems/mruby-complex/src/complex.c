@@ -236,8 +236,15 @@ div_pair(struct float_pair *q, struct float_pair const *a,
 static mrb_value
 complex_div(mrb_state *mrb, mrb_value self)
 {
-  mrb_value rhs = mrb_get_arg1(mrb);
   struct mrb_complex *a, *b;
+  mrb_value rhs = mrb_get_arg1(mrb);
+
+  a = complex_ptr(mrb, self);
+  if (mrb_type(rhs) != MRB_TT_COMPLEX) {
+    mrb_float f = mrb_to_flo(mrb, rhs);
+    return complex_new(mrb, a->real / f, a->imaginary / f);
+  }
+
   struct float_pair ar, ai, br, bi;
   struct float_pair br2, bi2;
   struct float_pair div;
@@ -245,7 +252,6 @@ complex_div(mrb_state *mrb, mrb_value self)
   struct float_pair ai_br, ar_bi;
   struct float_pair zr, zi;
 
-  a = complex_ptr(mrb, self);
   b = complex_ptr(mrb, rhs);
 
   /* Split floating point components into significand and exponent */
@@ -345,7 +351,8 @@ void mrb_mruby_complex_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, comp, "to_i", complex_to_i, MRB_ARGS_NONE());
   mrb_define_method(mrb, comp, "to_c", complex_to_c, MRB_ARGS_NONE());
   mrb_define_method(mrb, comp, "*", complex_mul, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, comp, "__div__", complex_div, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, comp, "/", complex_div, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, comp, "quo", complex_div, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, comp, "==", complex_eq, MRB_ARGS_REQ(1));
 #ifndef MRB_USE_RATIONAL
   mrb_define_method(mrb, mrb->integer_class, "/", int_div, MRB_ARGS_REQ(1)); /* overrride */

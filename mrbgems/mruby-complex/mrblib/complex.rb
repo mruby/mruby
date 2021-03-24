@@ -35,15 +35,6 @@ class Complex < Numeric
     end
   end
 
-  def /(rhs)
-    if rhs.is_a? Complex
-      __div__(rhs)
-    elsif rhs.is_a? Numeric
-      Complex(real / rhs, imaginary / rhs)
-    end
-  end
-  alias_method :quo, :/
-
   def abs
     Math.hypot imaginary, real
   end
