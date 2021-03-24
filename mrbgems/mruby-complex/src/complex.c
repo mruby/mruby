@@ -348,6 +348,24 @@ int_quo(mrb_state *mrb, mrb_value x)
 }
 #endif
 
+static mrb_value
+flo_div(mrb_state *mrb, mrb_value x)
+{
+  mrb_float a = mrb_float(x);
+  mrb_value y = mrb_get_arg1(mrb);
+
+  switch(mrb_type(y)) {
+  case MRB_TT_COMPLEX:
+    return complex_div(mrb, complex_new(mrb, a, 0));
+  case MRB_TT_FLOAT:
+    a = div_flo(a, mrb_float(y));
+    return mrb_float_value(mrb, a);
+  default:
+    a = div_flo(a, mrb_to_flo(mrb, y));
+    return mrb_float_value(mrb, a);
+  }
+}
+
 void mrb_mruby_complex_gem_init(mrb_state *mrb)
 {
   struct RClass *comp;
@@ -376,6 +394,8 @@ void mrb_mruby_complex_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, mrb->integer_class, "/", int_div, MRB_ARGS_REQ(1)); /* overrride */
   mrb_define_method(mrb, mrb->integer_class, "quo", int_quo, MRB_ARGS_REQ(1)); /* overrride */
 #endif
+  mrb_define_method(mrb, mrb->float_class, "/", flo_div, MRB_ARGS_REQ(1)); /* overrride */
+  mrb_define_method(mrb, mrb->float_class, "quo", flo_div, MRB_ARGS_REQ(1)); /* overrride */
 }
 
 void
