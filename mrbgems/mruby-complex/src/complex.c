@@ -193,6 +193,20 @@ complex_mul(mrb_state *mrb, mrb_value x)
   }
 }
 
+mrb_float
+div_flo(mrb_float x, mrb_float y)
+{
+  if (y != 0.0) {
+    return x / y;
+  }
+  else if (x == 0.0) {
+    return NAN;
+  }
+  else {
+    return x * (signbit(y) ? -1.0 : 1.0) * INFINITY;
+  }
+}
+
 /* Arithmetic on (significand, exponent) pairs avoids premature overflow in
    complex division */
 struct float_pair {
@@ -229,7 +243,7 @@ static void
 div_pair(struct float_pair *q, struct float_pair const *a,
          struct float_pair const *b)
 {
-  q->s = a->s / b->s;
+  q->s = div_flo(a->s, b->s);
   q->x = a->x - b->x;
 }
 
@@ -242,7 +256,7 @@ complex_div(mrb_state *mrb, mrb_value self)
   a = complex_ptr(mrb, self);
   if (mrb_type(rhs) != MRB_TT_COMPLEX) {
     mrb_float f = mrb_to_flo(mrb, rhs);
-    return complex_new(mrb, a->real / f, a->imaginary / f);
+    return complex_new(mrb, div_flo(a->real, f), div_flo(a->imaginary, f));
   }
 
   struct float_pair ar, ai, br, bi;
@@ -309,7 +323,7 @@ int_div(mrb_state *mrb, mrb_value x)
     x = complex_new(mrb, (mrb_float)a, 0);
     return mrb_funcall_id(mrb, x, MRB_OPSYM(div), 1, y);
   default:
-    return mrb_float_value(mrb, mrb_num_div_flo(mrb, (mrb_float)a, mrb_to_flo(mrb, y)));
+    return mrb_float_value(mrb, div_flo(mrb, (mrb_float)a, mrb_to_flo(mrb, y)));
   }
 }
 
