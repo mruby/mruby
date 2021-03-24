@@ -406,7 +406,11 @@ rational_minus(mrb_state *mrb, mrb_value x)
   return rational_new(mrb, -p->numerator, p->denominator);
 }
 
-mrb_int mrb_num_div_int(mrb_state *, mrb_int, mrb_int);
+mrb_int mrb_num_div_int(mrb_state*, mrb_int, mrb_int);
+mrb_value mrb_complex_new(mrb_state*, mrb_float, mrb_float);
+#ifndef MRB_NO_FLOAT
+mrb_float mrb_num_div_flo(mrb_state*, mrb_float, mrb_float);
+#endif
 
 /* 15.2.8.3.4  */
 /*
@@ -436,7 +440,7 @@ int_div(mrb_state *mrb, mrb_value x)
 #ifdef MRB_NO_FLOAT
     mrb_raise(mrb, E_TYPE_ERROR, "non integer multiplication");
 #else
-    return mrb_float_value(mrb, (mrb_float)a * mrb_to_flo(mrb, y));
+    return mrb_float_value(mrb, mrb_num_div_flo(mrb, (mrb_float)a, mrb_to_flo(mrb, y)));
 #endif
   }
 }
@@ -468,7 +472,7 @@ int_quo(mrb_state *mrb, mrb_value x)
 #ifdef MRB_NO_FLOAT
     mrb_raise(mrb, E_TYPE_ERROR, "non integer multiplication");
 #else
-    return mrb_float_value(mrb, (mrb_float)a * mrb_to_flo(mrb, y));
+    return mrb_float_value(mrb, mrb_num_div_flo(mrb, (mrb_float)a, mrb_to_flo(mrb, y)));
 #endif
   }
 }

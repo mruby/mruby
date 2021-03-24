@@ -285,6 +285,8 @@ complex_div(mrb_state *mrb, mrb_value self)
   return complex_new(mrb, F(ldexp)(zr.s, zr.x), F(ldexp)(zi.s, zi.x));
 }
 
+mrb_float mrb_num_div_flo(mrb_state*, mrb_float, mrb_float);
+
 #ifndef MRB_USE_RATIONAL
 mrb_int mrb_num_div_int(mrb_state *mrb, mrb_int x, mrb_int y);
 
@@ -307,7 +309,7 @@ int_div(mrb_state *mrb, mrb_value x)
     x = complex_new(mrb, (mrb_float)a, 0);
     return mrb_funcall_id(mrb, x, MRB_OPSYM(div), 1, y);
   default:
-    return mrb_float_value(mrb, (mrb_float)a * mrb_to_flo(mrb, y));
+    return mrb_float_value(mrb, mrb_num_div_flo(mrb, (mrb_float)a, mrb_to_flo(mrb, y)));
   }
 }
 
@@ -327,7 +329,7 @@ int_quo(mrb_state *mrb, mrb_value x)
     x = complex_new(mrb, (mrb_float)a, 0);
     return mrb_funcall_id(mrb, x, MRB_OPSYM(div), 1, y);
   default:
-    return mrb_float_value(mrb, (mrb_float)a * mrb_to_flo(mrb, y));
+    return mrb_float_value(mrb, mrb_num_div_flo(mrb, (mrb_float)a, mrb_to_flo(mrb, y)));
   }
 }
 #endif
