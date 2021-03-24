@@ -17,16 +17,6 @@ class Rational < Numeric
     end
   end
 
-  def -(rhs)
-    if rhs.is_a? Rational
-      Rational(numerator * rhs.denominator - rhs.numerator * denominator, denominator * rhs.denominator)
-    elsif rhs.is_a? Integer
-      Rational(numerator - rhs * denominator, denominator)
-    elsif rhs.is_a? Numeric
-      (numerator - rhs * denominator) / denominator
-    end
-  end
-
   def /(rhs)
     if rhs.is_a? Rational
       Rational(numerator * rhs.denominator, denominator * rhs.numerator)
