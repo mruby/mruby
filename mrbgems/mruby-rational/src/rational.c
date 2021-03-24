@@ -405,6 +405,72 @@ rational_eq(mrb_state *mrb, mrb_value x)
   return mrb_bool_value(mrb_rational_eq(mrb, x, y));
 }
 
+
+#ifndef MRB_NO_FLOAT
+mrb_value mrb_complex_new(mrb_state *, mrb_float, mrb_float);
+#endif
+
+static mrb_value
+rational_cmp(mrb_state *mrb, mrb_value x)
+{
+  struct mrb_rational *p1 = rational_ptr(mrb, x);
+  mrb_value y = mrb_get_arg1(mrb);
+
+  switch(mrb_type(y)) {
+  case MRB_TT_RATIONAL:
+    {
+      struct mrb_rational *p2 = rational_ptr(mrb, y);
+      mrb_int a, b;
+
+      if (mrb_int_mul_overflow(p1->numerator, p2->denominator, &a) ||
+          mrb_int_mul_overflow(p1->denominator, p2->numerator, &b)) {
+        return mrb_nil_value();
+      }
+      if (a > b)
+        return mrb_fixnum_value(1);
+      else if (a < b)
+        return mrb_fixnum_value(-1);
+      return mrb_fixnum_value(0);
+    }
+  case MRB_TT_INTEGER:
+#ifndef MRB_NO_FLOAT
+  case MRB_TT_FLOAT:
+    {
+      mrb_float a = rat_to_flo(p1), b = mrb_to_flo(mrb, y);
+      if (a > b)
+        return mrb_fixnum_value(1);
+      else if (a < b)
+        return mrb_fixnum_value(-1);
+      return mrb_fixnum_value(0);
+    }
+#else
+    {
+      mrb_int a = p1->numerator, b;
+      if (mrb_int_mul_overflow(p1->denominator, mrb_integer(y), &b)) {
+        return mrb_nil_value();
+      }
+      if (a > b)
+        return mrb_fixnum_value(1);
+      else if (a < b)
+        return mrb_fixnum_value(-1);
+      return mrb_fixnum_value(0);
+    }
+#endif
+#ifdef MRB_USE_COMPLEX
+  case MRB_TT_COMPLEX:
+    x = mrb_complex_new(mrb, rat_to_flo(p1), 0);
+    return mrb_funcall_id(mrb, x, MRB_OPSYM(cmp), 1, y);
+#endif
+  default:
+    x = mrb_funcall_id(mrb, y, MRB_OPSYM(cmp), 1, x);
+    if (mrb_integer_p(x)) {
+      mrb_int z = mrb_integer(x);
+      return mrb_fixnum_value(-z);
+    }
+    return mrb_nil_value();
+ }
+}
+
 static mrb_value
 rational_minus(mrb_state *mrb, mrb_value x)
 {
@@ -456,10 +522,6 @@ rational_add(mrb_state *mrb, mrb_value x)
     return mrb_funcall_id(mrb, y, MRB_OPSYM(add), 1, x);
   }
 }
-
-#ifndef MRB_NO_FLOAT
-mrb_value mrb_complex_new(mrb_state *, mrb_float, mrb_float);
-#endif
 
 static mrb_value
 rational_sub(mrb_state *mrb, mrb_value x)
@@ -669,6 +731,7 @@ void mrb_mruby_rational_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, rat, "to_r", rational_to_r, MRB_ARGS_NONE());
   mrb_define_method(mrb, rat, "negative?", rational_negative_p, MRB_ARGS_NONE());
   mrb_define_method(mrb, rat, "==", rational_eq, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, rat, "<=>", rational_cmp, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, rat, "-@", rational_minus, MRB_ARGS_NONE());
   mrb_define_method(mrb, rat, "+", rational_add, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, rat, "-", rational_sub, MRB_ARGS_REQ(1));
