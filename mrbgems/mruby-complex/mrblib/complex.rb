@@ -12,7 +12,7 @@ class Complex < Numeric
   end
 
   def +@
-    Complex(real, imaginary)
+    self
   end
 
   def -@
