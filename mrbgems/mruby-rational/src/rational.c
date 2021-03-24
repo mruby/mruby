@@ -278,10 +278,9 @@ rational_s_new(mrb_state *mrb, mrb_value self)
 }
 
 #ifndef MRB_NO_FLOAT
-static mrb_value
-rational_to_f(mrb_state *mrb, mrb_value self)
+static mrb_float
+rat_to_flo(struct mrb_rational *p)
 {
-  struct mrb_rational *p = rational_ptr(mrb, self);
   mrb_float f;
 
   if (p->denominator == 0.0) {
@@ -291,7 +290,14 @@ rational_to_f(mrb_state *mrb, mrb_value self)
     f = (mrb_float)p->numerator / (mrb_float)p->denominator;
   }
 
-  return mrb_float_value(mrb, f);
+  return f;
+}
+
+static mrb_value
+rational_to_f(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_rational *p = rational_ptr(mrb, self);
+  return mrb_float_value(mrb, rat_to_flo(p));
 }
 #endif
 
