@@ -447,7 +447,7 @@ rational_add(mrb_state *mrb, mrb_value x)
 #ifndef MRB_NO_FLOAT
   case MRB_TT_FLOAT:
     {
-      mrb_float z = p1->numerator + mrb_to_flo(mrb, y) * p1->denominator;
+      mrb_float z = p1->numerator + mrb_float(y) * p1->denominator;
       return mrb_float_value(mrb, mrb_num_div_flo(mrb, z, (mrb_float)p1->denominator));
     }
 #endif
