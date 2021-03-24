@@ -428,6 +428,7 @@ int_div(mrb_state *mrb, mrb_value x)
     return mrb_funcall_id(mrb, x, MRB_OPSYM(div), 1, y);
 #if defined(MRB_USE_COMPLEX)
   case MRB_TT_COMPLEX:
+    x = mrb_complex_new(mrb, (mrb_float)a, 0);
     return mrb_funcall_id(mrb, x, MRB_OPSYM(div), 1, y);
 #endif
   case MRB_TT_FLOAT:
@@ -460,6 +461,7 @@ int_quo(mrb_state *mrb, mrb_value x)
     return mrb_funcall_id(mrb, x, MRB_OPSYM(div), 1, y);
 #if defined(MRB_USE_COMPLEX)
   case MRB_TT_COMPLEX:
+    x = mrb_complex_new(mrb, (mrb_float)a, 0);
     return mrb_funcall_id(mrb, x, MRB_OPSYM(div), 1, y);
 #endif
   default:

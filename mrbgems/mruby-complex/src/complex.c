@@ -304,6 +304,7 @@ int_div(mrb_state *mrb, mrb_value x)
   }
   switch (mrb_type(y)) {
   case MRB_TT_COMPLEX:
+    x = complex_new(mrb, (mrb_float)a, 0);
     return mrb_funcall_id(mrb, x, MRB_OPSYM(div), 1, y);
   default:
     return mrb_float_value(mrb, (mrb_float)a * mrb_to_flo(mrb, y));
@@ -323,6 +324,7 @@ int_quo(mrb_state *mrb, mrb_value x)
 
   switch (mrb_type(y)) {
   case MRB_TT_COMPLEX:
+    x = complex_new(mrb, (mrb_float)a, 0);
     return mrb_funcall_id(mrb, x, MRB_OPSYM(div), 1, y);
   default:
     return mrb_float_value(mrb, (mrb_float)a * mrb_to_flo(mrb, y));
