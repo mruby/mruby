@@ -8,7 +8,7 @@ class Complex < Numeric
   end
 
   def to_s
-    "#{real}#{'+' unless imaginary < 0}#{imaginary}i"
+    "#{real}#{'+' unless imaginary < 0}#{imaginary}#{'*' unless imaginary.finite?}i"
   end
 
   def +@
