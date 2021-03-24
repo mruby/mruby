@@ -408,11 +408,51 @@ rational_minus(mrb_state *mrb, mrb_value x)
   return rational_new(mrb, -n, p->denominator);
 }
 
-mrb_int mrb_num_div_int(mrb_state*, mrb_int, mrb_int);
-mrb_value mrb_complex_new(mrb_state*, mrb_float, mrb_float);
 #ifndef MRB_NO_FLOAT
 mrb_float mrb_num_div_flo(mrb_state*, mrb_float, mrb_float);
 #endif
+
+static mrb_value
+rational_add(mrb_state *mrb, mrb_value x)
+{
+  struct mrb_rational *p1 = rational_ptr(mrb, x);
+  mrb_value y = mrb_get_arg1(mrb);
+
+  switch (mrb_type(y)) {
+  case MRB_TT_INTEGER:
+    {
+      mrb_int z = mrb_integer(y);
+      if (mrb_int_mul_overflow(z, p1->denominator, &z)) rat_overflow(mrb);
+      if (mrb_int_add_overflow(p1->numerator, z, &z)) rat_overflow(mrb);
+      return rational_new_i(mrb, z, p1->denominator);
+    }
+  case MRB_TT_RATIONAL:
+    {
+      struct mrb_rational *p2 = rational_ptr(mrb, y);
+      mrb_int a, b;
+
+      if (mrb_int_mul_overflow(p1->numerator, p2->denominator, &a)) rat_overflow(mrb);
+      if (mrb_int_mul_overflow(p2->numerator, p1->denominator, &b)) rat_overflow(mrb);
+      if (mrb_int_add_overflow(a, b, &a)) rat_overflow(mrb);
+      if (mrb_int_mul_overflow(p1->denominator, p2->denominator, &b)) rat_overflow(mrb);
+      return rational_new_i(mrb, a, b);
+    }
+
+#ifndef MRB_NO_FLOAT
+  case MRB_TT_FLOAT:
+    {
+      mrb_float z = p1->numerator + mrb_to_flo(mrb, y) * p1->denominator;
+      return mrb_float_value(mrb, mrb_num_div_flo(mrb, z, (mrb_float)p1->denominator));
+    }
+#endif
+
+  default:
+    return mrb_funcall_id(mrb, y, MRB_OPSYM(add), 1, x);
+  }
+}
+
+mrb_int mrb_num_div_int(mrb_state*, mrb_int, mrb_int);
+mrb_value mrb_complex_new(mrb_state*, mrb_float, mrb_float);
 
 /* 15.2.8.3.4  */
 /*
@@ -497,6 +537,7 @@ void mrb_mruby_rational_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, rat, "negative?", rational_negative_p, MRB_ARGS_NONE());
   mrb_define_method(mrb, rat, "==", rational_eq, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, rat, "-@", rational_minus, MRB_ARGS_NONE());
+  mrb_define_method(mrb, rat, "+", rational_add, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, mrb->integer_class, "to_r", fix_to_r, MRB_ARGS_NONE());
   mrb_define_method(mrb, mrb->integer_class, "/", int_div, MRB_ARGS_REQ(1)); /* overrride */
   mrb_define_method(mrb, mrb->integer_class, "quo", int_quo, MRB_ARGS_REQ(1)); /* overrride */
