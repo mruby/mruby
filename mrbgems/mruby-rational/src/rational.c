@@ -403,7 +403,9 @@ static mrb_value
 rational_minus(mrb_state *mrb, mrb_value x)
 {
   struct mrb_rational *p = rational_ptr(mrb, x);
-  return rational_new(mrb, -p->numerator, p->denominator);
+  mrb_int n = p->numerator;
+  if (n == MRB_INT_MIN) rat_overflow(mrb);
+  return rational_new(mrb, -n, p->denominator);
 }
 
 mrb_int mrb_num_div_int(mrb_state*, mrb_int, mrb_int);
