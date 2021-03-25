@@ -602,7 +602,7 @@ rational_mul(mrb_state *mrb, mrb_value x)
 #endif
 
   default:
-    return mrb_funcall_id(mrb, y, MRB_OPSYM(add), 1, x);
+    return mrb_funcall_id(mrb, y, MRB_OPSYM(mul), 1, x);
   }
 }
 
