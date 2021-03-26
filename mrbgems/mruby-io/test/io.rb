@@ -105,6 +105,15 @@ assert('IO#getc', '15.2.20.5.8') do
   io.close
 end
 
+assert('IO#getbyte') do
+  io = IO.new(IO.sysopen($mrbtest_io_rfname))
+  $mrbtest_io_msg.split("").each do |ch|
+    assert_equal ch.getbyte(0), io.getbyte
+  end
+  assert_equal nil, io.getbyte
+  io.close
+end
+
 #assert('IO#gets', '15.2.20.5.9') do
 #assert('IO#initialize_copy', '15.2.20.5.10') do
 #assert('IO#print', '15.2.20.5.11') do
