@@ -1068,6 +1068,8 @@ check_target_class(mrb_state *mrb)
 }
 
 void mrb_hash_check_kdict(mrb_state *mrb, mrb_value self);
+mrb_int mrb_div_int(mrb_state *mrb, mrb_int x, mrb_int y);
+mrb_float mrb_div_flo(mrb_float x, mrb_float y);
 
 MRB_API mrb_value
 mrb_vm_exec(mrb_state *mrb, const struct RProc *proc, const mrb_code *pc)
@@ -2364,9 +2366,7 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_DIV, B) {
-      mrb_int mrb_num_div_int(mrb_state *mrb, mrb_int x, mrb_int y);
 #ifndef MRB_NO_FLOAT
-      mrb_float mrb_num_div_flo(mrb_state *mrb, mrb_float x, mrb_float y);
       mrb_float x, y, f;
 #endif
 
@@ -2376,7 +2376,7 @@ RETRY_TRY_BLOCK:
         {
           mrb_int x = mrb_integer(regs[a]);
           mrb_int y = mrb_integer(regs[a+1]);
-          mrb_int div = mrb_num_div_int(mrb, x, y);
+          mrb_int div = mrb_div_int(mrb, x, y);
           SET_INT_VALUE(mrb, regs[a], div);
         }
         NEXT;
@@ -2401,7 +2401,7 @@ RETRY_TRY_BLOCK:
       }
 
 #ifndef MRB_NO_FLOAT
-      f = mrb_num_div_flo(mrb, x, y);
+      f = mrb_div_flo(x, y);
       SET_FLOAT_VALUE(mrb, regs[a], f);
 #endif
       NEXT;

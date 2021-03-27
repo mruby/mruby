@@ -484,7 +484,7 @@ rational_minus(mrb_state *mrb, mrb_value x)
 }
 
 #ifndef MRB_NO_FLOAT
-mrb_float mrb_num_div_flo(mrb_state*, mrb_float, mrb_float);
+mrb_float mrb_div_flo(mrb_float, mrb_float);
 #endif
 
 static mrb_value
@@ -517,7 +517,7 @@ rational_add(mrb_state *mrb, mrb_value x)
   case MRB_TT_FLOAT:
     {
       mrb_float z = p1->numerator + mrb_float(y) * p1->denominator;
-      return mrb_float_value(mrb, mrb_num_div_flo(mrb, z, (mrb_float)p1->denominator));
+      return mrb_float_value(mrb, mrb_div_flo(z, (mrb_float)p1->denominator));
     }
 #endif
 
@@ -563,7 +563,7 @@ rational_sub(mrb_state *mrb, mrb_value x)
   default:
     {
       mrb_float z = p1->numerator - mrb_to_flo(mrb, y) * p1->denominator;
-      return mrb_float_value(mrb, mrb_num_div_flo(mrb, z, (mrb_float)p1->denominator));
+      return mrb_float_value(mrb, mrb_div_flo(z, (mrb_float)p1->denominator));
     }
 #else
   default:
@@ -599,7 +599,7 @@ rational_mul(mrb_state *mrb, mrb_value x)
   case MRB_TT_FLOAT:
     {
       mrb_float z = p1->numerator * mrb_float(y);
-      return mrb_float_value(mrb, mrb_num_div_flo(mrb, z, (mrb_float)p1->denominator));
+      return mrb_float_value(mrb, mrb_div_flo(z, (mrb_float)p1->denominator));
   }
 #endif
 
@@ -607,8 +607,6 @@ rational_mul(mrb_state *mrb, mrb_value x)
     return mrb_funcall_id(mrb, y, MRB_OPSYM(mul), 1, x);
   }
 }
-
-mrb_int mrb_num_div_int(mrb_state *, mrb_int, mrb_int);
 
 mrb_value
 mrb_rational_div(mrb_state *mrb, mrb_value x)
@@ -643,8 +641,8 @@ mrb_rational_div(mrb_state *mrb, mrb_value x)
 #ifndef MRB_NO_FLOAT
   case MRB_TT_FLOAT:
     {
-      mrb_float z = mrb_num_div_flo(mrb, p1->numerator, mrb_to_flo(mrb, y));
-      return mrb_float_value(mrb, mrb_num_div_flo(mrb, z, (mrb_float)p1->denominator));
+      mrb_float z = mrb_div_flo(p1->numerator, mrb_to_flo(mrb, y));
+      return mrb_float_value(mrb, mrb_div_flo(z, (mrb_float)p1->denominator));
     }
 #else
     mrb_raise(mrb, E_TYPE_ERROR, "non integer division");
@@ -653,6 +651,7 @@ mrb_rational_div(mrb_state *mrb, mrb_value x)
 }
 
 #define rational_div mrb_rational_div
+mrb_int mrb_div_int(mrb_state *, mrb_int, mrb_int);
 
 #ifndef MRB_USE_COMPLEX
 /* 15.2.8.3.4  */
@@ -666,7 +665,7 @@ rat_int_div(mrb_state *mrb, mrb_value x)
   mrb_int a = mrb_integer(x);
 
   if (mrb_integer_p(y)) {
-    mrb_int div = mrb_num_div_int(mrb, a, mrb_integer(y));
+    mrb_int div = mrb_div_int(mrb, a, mrb_integer(y));
     return mrb_int_value(mrb, div);
   }
   switch (mrb_type(y)) {
@@ -677,7 +676,7 @@ rat_int_div(mrb_state *mrb, mrb_value x)
   case MRB_TT_FLOAT:
     mrb_raise(mrb, E_TYPE_ERROR, "non integer multiplication");
 #else
-    return mrb_float_value(mrb, mrb_num_div_flo(mrb, (mrb_float)a, mrb_to_flo(mrb, y)));
+    return mrb_float_value(mrb, mrb_div_flo((mrb_float)a, mrb_to_flo(mrb, y)));
 #endif
   }
 }
@@ -704,7 +703,7 @@ rat_int_quo(mrb_state *mrb, mrb_value x)
 #ifdef MRB_NO_FLOAT
     mrb_raise(mrb, E_TYPE_ERROR, "non integer multiplication");
 #else
-    return mrb_float_value(mrb, mrb_num_div_flo(mrb, (mrb_float)a, mrb_to_flo(mrb, y)));
+    return mrb_float_value(mrb, mrb_div_flo((mrb_float)a, mrb_to_flo(mrb, y)));
 #endif
   }
 }

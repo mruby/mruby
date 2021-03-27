@@ -236,8 +236,7 @@ complex_mul(mrb_state *mrb, mrb_value x)
 }
 
 #ifndef MRB_NO_FLOAT
-mrb_float mrb_num_div_flo(mrb_state*, mrb_float, mrb_float);
-#define div_flo(x,y) mrb_num_div_flo(NULL, x, y)
+mrb_float mrb_div_flo(mrb_float, mrb_float);
 #endif
 
 /* Arithmetic on (significand, exponent) pairs avoids premature overflow in
@@ -276,7 +275,7 @@ static void
 div_pair(struct float_pair *q, struct float_pair const *a,
          struct float_pair const *b)
 {
-  q->s = div_flo(a->s, b->s);
+  q->s = mrb_div_flo(a->s, b->s);
   q->x = a->x - b->x;
 }
 
@@ -289,7 +288,7 @@ complex_div(mrb_state *mrb, mrb_value self)
   a = complex_ptr(mrb, self);
   if (mrb_type(rhs) != MRB_TT_COMPLEX) {
     mrb_float f = mrb_to_flo(mrb, rhs);
-    return complex_new(mrb, div_flo(a->real, f), div_flo(a->imaginary, f));
+    return complex_new(mrb, mrb_div_flo(a->real, f), mrb_div_flo(a->imaginary, f));
   }
 
   struct float_pair ar, ai, br, bi;
@@ -332,7 +331,7 @@ complex_div(mrb_state *mrb, mrb_value self)
   return complex_new(mrb, F(ldexp)(zr.s, zr.x), F(ldexp)(zi.s, zi.x));
 }
 
-mrb_int mrb_num_div_int(mrb_state *mrb, mrb_int x, mrb_int y);
+mrb_int mrb_div_int(mrb_state *mrb, mrb_int x, mrb_int y);
 mrb_value mrb_rational_new(mrb_state *mrb, mrb_int n, mrb_int d);
 mrb_value mrb_rational_div(mrb_state *mrb, mrb_value x);
 
@@ -347,7 +346,7 @@ cpx_int_div(mrb_state *mrb, mrb_value x)
   mrb_int a = mrb_integer(x);
 
   if (mrb_integer_p(y)) {
-    mrb_int div = mrb_num_div_int(mrb, a, mrb_integer(y));
+    mrb_int div = mrb_div_int(mrb, a, mrb_integer(y));
     return mrb_int_value(mrb, div);
   }
   switch (mrb_type(y)) {
@@ -359,7 +358,7 @@ cpx_int_div(mrb_state *mrb, mrb_value x)
     x = complex_new(mrb, (mrb_float)a, 0);
     return complex_div(mrb, x);
   default:
-    return mrb_float_value(mrb, div_flo((mrb_float)a, mrb_to_flo(mrb, y)));
+    return mrb_float_value(mrb, mrb_div_flo((mrb_float)a, mrb_to_flo(mrb, y)));
   }
 }
 
@@ -384,7 +383,7 @@ cpx_int_quo(mrb_state *mrb, mrb_value x)
     x = complex_new(mrb, (mrb_float)a, 0);
     return complex_div(mrb, x);
   default:
-    return mrb_float_value(mrb, div_flo((mrb_float)a, mrb_to_flo(mrb, y)));
+    return mrb_float_value(mrb, mrb_div_flo((mrb_float)a, mrb_to_flo(mrb, y)));
   }
 }
 
@@ -398,10 +397,10 @@ cpx_flo_div(mrb_state *mrb, mrb_value x)
   case MRB_TT_COMPLEX:
     return complex_div(mrb, complex_new(mrb, a, 0));
   case MRB_TT_FLOAT:
-    a = div_flo(a, mrb_float(y));
+    a = mrb_div_flo(a, mrb_float(y));
     return mrb_float_value(mrb, a);
   default:
-    a = div_flo(a, mrb_to_flo(mrb, y));
+    a = mrb_div_flo(a, mrb_to_flo(mrb, y));
     return mrb_float_value(mrb, a);
   }
 }

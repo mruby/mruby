@@ -119,7 +119,7 @@ int_pow(mrb_state *mrb, mrb_value x)
 }
 
 mrb_int
-mrb_num_div_int(mrb_state *mrb, mrb_int x, mrb_int y)
+mrb_div_int(mrb_state *mrb, mrb_int x, mrb_int y)
 {
   if (y == 0) {
     int_zerodiv(mrb);
@@ -139,6 +139,8 @@ mrb_num_div_int(mrb_state *mrb, mrb_int x, mrb_int y)
   return 0;
 }
 
+mrb_float mrb_div_flo(mrb_float x, mrb_float y);
+
 /* 15.2.8.3.4  */
 /* 15.2.9.3.4  */
 /*
@@ -156,13 +158,13 @@ int_div(mrb_state *mrb, mrb_value x)
   mrb_int a = mrb_integer(x);
 
   if (mrb_integer_p(y)) {
-    mrb_int div = mrb_num_div_int(mrb, a, mrb_integer(y));
+    mrb_int div = mrb_div_int(mrb, a, mrb_integer(y));
     return mrb_int_value(mrb, div);
   }
 #ifdef MRB_NO_FLOAT
   mrb_raise(mrb, E_TYPE_ERROR, "non integer division");
 #else
-  return mrb_float_value(mrb, (mrb_float)a / mrb_to_flo(mrb, y));
+  return mrb_float_value(mrb, mrb_div_flo((mrb_float)a, mrb_to_flo(mrb, y)));
 #endif
 }
 
@@ -248,12 +250,12 @@ flo_idiv(mrb_state *mrb, mrb_value xv)
   mrb_int y, div;
 
   mrb_get_args(mrb, "i", &y);
-  div = mrb_num_div_int(mrb, (mrb_int)mrb_float(xv), y);
+  div = mrb_div_int(mrb, (mrb_int)mrb_float(xv), y);
   return mrb_int_value(mrb, (mrb_int)div);
 }
 
 mrb_float
-mrb_num_div_flo(mrb_state *mrb, mrb_float x, mrb_float y)
+mrb_div_flo(mrb_float x, mrb_float y)
 {
   if (y != 0.0) {
     return x / y;
@@ -273,10 +275,10 @@ flo_div(mrb_state *mrb, mrb_value x)
   mrb_float a = mrb_float(x);
 
   if (mrb_float_p(y)) {
-    a = mrb_num_div_flo(mrb, a, mrb_float(y));
+    a = mrb_div_flo(a, mrb_float(y));
   }
   else {
-    a = mrb_num_div_flo(mrb, a, mrb_to_flo(mrb, y));
+    a = mrb_div_flo(a, mrb_to_flo(mrb, y));
   }
   return mrb_float_value(mrb, a);
 }
