@@ -24,6 +24,7 @@ end
 
 def assert_rational(exp, real)
   assert "assert_rational" do
+    assert_kind_of Rational, real
     assert_float exp.numerator,   real.numerator
     assert_float exp.denominator, real.denominator
   end
@@ -135,7 +136,7 @@ assert 'Rational#/' do
   assert_rational(Rational(32, 9),     4 / Rational(9, 8))
   assert_float(   0.22675736961451246, Rational(20, 9) / 9.8)
   assert_float(   4.41,                9.8 / Rational(20, 9))
-  assert_complex(1.92, 1.44) {Rational(24,2)/(4.0+3i)}
+  assert_complex(1.92, 1.44) {Rational(24,2)/(4.0-3i)}
   assert_complex(0.25, 0.25) {(3.0+3i)/Rational(24,2)}
 end
 

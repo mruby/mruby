@@ -332,15 +332,16 @@ complex_div(mrb_state *mrb, mrb_value self)
   return complex_new(mrb, F(ldexp)(zr.s, zr.x), F(ldexp)(zi.s, zi.x));
 }
 
-#ifndef MRB_USE_RATIONAL
 mrb_int mrb_num_div_int(mrb_state *mrb, mrb_int x, mrb_int y);
+mrb_value mrb_rational_new(mrb_state *mrb, mrb_int n, mrb_int d);
+mrb_value mrb_rational_div(mrb_state *mrb, mrb_value x);
 
 /* 15.2.8.3.4  */
 /*
  * redefine Integer#/
  */
 static mrb_value
-int_div(mrb_state *mrb, mrb_value x)
+cpx_int_div(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
   mrb_int a = mrb_integer(x);
@@ -350,9 +351,13 @@ int_div(mrb_state *mrb, mrb_value x)
     return mrb_int_value(mrb, div);
   }
   switch (mrb_type(y)) {
+#ifdef MRB_USE_RATIONAL
+  case MRB_TT_RATIONAL:
+    return mrb_rational_div(mrb, mrb_rational_new(mrb, a, 1));
+#endif
   case MRB_TT_COMPLEX:
     x = complex_new(mrb, (mrb_float)a, 0);
-    return mrb_funcall_id(mrb, x, MRB_OPSYM(div), 1, y);
+    return complex_div(mrb, x);
   default:
     return mrb_float_value(mrb, div_flo((mrb_float)a, mrb_to_flo(mrb, y)));
   }
@@ -364,23 +369,27 @@ int_div(mrb_state *mrb, mrb_value x)
  */
 
 static mrb_value
-int_quo(mrb_state *mrb, mrb_value x)
+cpx_int_quo(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
   mrb_int a = mrb_integer(x);
 
   switch (mrb_type(y)) {
+#ifdef MRB_USE_RATIONAL
+  case MRB_TT_RATIONAL:
+    x = mrb_rational_new(mrb, a, 1);
+    return mrb_funcall_id(mrb, x, MRB_OPSYM(div), 1, y);
+#endif
   case MRB_TT_COMPLEX:
     x = complex_new(mrb, (mrb_float)a, 0);
-    return mrb_funcall_id(mrb, x, MRB_OPSYM(div), 1, y);
+    return complex_div(mrb, x);
   default:
     return mrb_float_value(mrb, div_flo((mrb_float)a, mrb_to_flo(mrb, y)));
   }
 }
-#endif
 
 static mrb_value
-flo_div(mrb_state *mrb, mrb_value x)
+cpx_flo_div(mrb_state *mrb, mrb_value x)
 {
   mrb_float a = mrb_float(x);
   mrb_value y = mrb_get_arg1(mrb);
@@ -423,12 +432,10 @@ void mrb_mruby_complex_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, comp, "/", complex_div, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, comp, "quo", complex_div, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, comp, "==", complex_eq, MRB_ARGS_REQ(1));
-#ifndef MRB_USE_RATIONAL
-  mrb_define_method(mrb, mrb->integer_class, "/", int_div, MRB_ARGS_REQ(1)); /* overrride */
-  mrb_define_method(mrb, mrb->integer_class, "quo", int_quo, MRB_ARGS_REQ(1)); /* overrride */
-#endif
-  mrb_define_method(mrb, mrb->float_class, "/", flo_div, MRB_ARGS_REQ(1)); /* overrride */
-  mrb_define_method(mrb, mrb->float_class, "quo", flo_div, MRB_ARGS_REQ(1)); /* overrride */
+  mrb_define_method(mrb, mrb->integer_class, "/", cpx_int_div, MRB_ARGS_REQ(1)); /* overrride */
+  mrb_define_method(mrb, mrb->integer_class, "quo", cpx_int_quo, MRB_ARGS_REQ(1)); /* overrride */
+  mrb_define_method(mrb, mrb->float_class, "/", cpx_flo_div, MRB_ARGS_REQ(1)); /* overrride */
+  mrb_define_method(mrb, mrb->float_class, "quo", cpx_flo_div, MRB_ARGS_REQ(1)); /* overrride */
 }
 
 void

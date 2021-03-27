@@ -75,8 +75,8 @@ rat_zerodiv(mrb_state *mrb)
   mrb_raise(mrb, E_ZERODIV_ERROR, "divided by 0 in rational");
 }
 
-static mrb_value
-rational_new(mrb_state *mrb, mrb_int numerator, mrb_int denominator)
+mrb_value
+mrb_rational_new(mrb_state *mrb, mrb_int numerator, mrb_int denominator)
 {
   struct RClass *c = mrb_class_get_id(mrb, MRB_SYM(Rational));
   struct mrb_rational *p;
@@ -98,6 +98,8 @@ rational_new(mrb_state *mrb, mrb_int numerator, mrb_int denominator)
   MRB_SET_FROZEN_FLAG(rat);
   return mrb_obj_value(rat);
 }
+
+#define rational_new(mrb,n,d) mrb_rational_new(mrb, n, d)
 
 inline static mrb_int
 i_gcd(mrb_int x, mrb_int y)
@@ -608,8 +610,8 @@ rational_mul(mrb_state *mrb, mrb_value x)
 
 mrb_int mrb_num_div_int(mrb_state *, mrb_int, mrb_int);
 
-static mrb_value
-rational_div(mrb_state *mrb, mrb_value x)
+mrb_value
+mrb_rational_div(mrb_state *mrb, mrb_value x)
 {
   struct mrb_rational *p1 = rational_ptr(mrb, x);
   mrb_value y = mrb_get_arg1(mrb);
@@ -650,12 +652,15 @@ rational_div(mrb_state *mrb, mrb_value x)
   }
 }
 
+#define rational_div mrb_rational_div
+
+#ifndef MRB_USE_COMPLEX
 /* 15.2.8.3.4  */
 /*
  * redefine Integer#/
  */
 static mrb_value
-int_div(mrb_state *mrb, mrb_value x)
+rat_int_div(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
   mrb_int a = mrb_integer(x);
@@ -666,16 +671,10 @@ int_div(mrb_state *mrb, mrb_value x)
   }
   switch (mrb_type(y)) {
   case MRB_TT_RATIONAL:
-    x = rational_new(mrb, a, 1);
-    return mrb_funcall_id(mrb, x, MRB_OPSYM(div), 1, y);
-#if defined(MRB_USE_COMPLEX)
-  case MRB_TT_COMPLEX:
-    x = mrb_complex_new(mrb, (mrb_float)a, 0);
-    return mrb_funcall_id(mrb, x, MRB_OPSYM(div), 1, y);
-#endif
-  case MRB_TT_FLOAT:
+    return rational_div(mrb, rational_new(mrb, a, 1));
   default:
 #ifdef MRB_NO_FLOAT
+  case MRB_TT_FLOAT:
     mrb_raise(mrb, E_TYPE_ERROR, "non integer multiplication");
 #else
     return mrb_float_value(mrb, mrb_num_div_flo(mrb, (mrb_float)a, mrb_to_flo(mrb, y)));
@@ -689,7 +688,7 @@ int_div(mrb_state *mrb, mrb_value x)
  */
 
 static mrb_value
-int_quo(mrb_state *mrb, mrb_value x)
+rat_int_quo(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
   mrb_int a = mrb_integer(x);
@@ -701,11 +700,6 @@ int_quo(mrb_state *mrb, mrb_value x)
   case MRB_TT_RATIONAL:
     x = rational_new(mrb, a, 1);
     return mrb_funcall_id(mrb, x, MRB_OPSYM(div), 1, y);
-#if defined(MRB_USE_COMPLEX)
-  case MRB_TT_COMPLEX:
-    x = mrb_complex_new(mrb, (mrb_float)a, 0);
-    return mrb_funcall_id(mrb, x, MRB_OPSYM(div), 1, y);
-#endif
   default:
 #ifdef MRB_NO_FLOAT
     mrb_raise(mrb, E_TYPE_ERROR, "non integer multiplication");
@@ -714,6 +708,7 @@ int_quo(mrb_state *mrb, mrb_value x)
 #endif
   }
 }
+#endif  /* !MRB_USE_COMPLEX */
 
 void mrb_mruby_rational_gem_init(mrb_state *mrb)
 {
@@ -740,8 +735,10 @@ void mrb_mruby_rational_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, rat, "/", rational_div, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, rat, "quo", rational_div, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, mrb->integer_class, "to_r", fix_to_r, MRB_ARGS_NONE());
-  mrb_define_method(mrb, mrb->integer_class, "/", int_div, MRB_ARGS_REQ(1)); /* overrride */
-  mrb_define_method(mrb, mrb->integer_class, "quo", int_quo, MRB_ARGS_REQ(1)); /* overrride */
+#ifndef MRB_USE_COMPLEX
+  mrb_define_method(mrb, mrb->integer_class, "/", rat_int_div, MRB_ARGS_REQ(1)); /* overrride */
+  mrb_define_method(mrb, mrb->integer_class, "quo", rat_int_quo, MRB_ARGS_REQ(1)); /* overrride */
+#endif
   mrb_define_method(mrb, mrb->kernel_module, "Rational", rational_m, MRB_ARGS_ARG(1,1));
 }
 
