@@ -780,6 +780,7 @@ mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value 
   mrb->c->ci->stack[argc+1] = mrb_nil_value();
 
   if (MRB_PROC_CFUNC_P(p)) {
+    ci->acc = CI_ACC_DIRECT;
     val = MRB_PROC_CFUNC(p)(mrb, self);
     cipop(mrb);
   }
