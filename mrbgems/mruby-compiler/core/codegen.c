@@ -2321,7 +2321,9 @@ codegen(codegen_scope *s, node *tree, int val)
         s2 = s2->prev;
         if (!s2) break;
       }
-      if (s2) ainfo = s2->ainfo;
+      if (s2 && s2->ainfo > 0) {
+        ainfo = s2->ainfo;
+      }
       genop_2S(s, OP_ARGARY, cursp(), (ainfo<<4)|(lv & 0xf));
       push(); push(); pop();    /* ARGARY pushes two values */
       if (tree && tree->cdr) {
@@ -2361,7 +2363,10 @@ codegen(codegen_scope *s, node *tree, int val)
         s2 = s2->prev;
         if (!s2) break;
       }
-      if (s2) ainfo = s2->ainfo;
+      if (s2) {
+        ainfo = s2->ainfo;
+        if (ainfo < 0) codegen_error(s, "invalid yield");
+      }
       push();
       if (tree) {
         n = gen_values(s, tree, VAL, 0);
