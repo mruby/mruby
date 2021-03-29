@@ -780,8 +780,25 @@ mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value 
   mrb->c->ci->stack[argc+1] = mrb_nil_value();
 
   if (MRB_PROC_CFUNC_P(p)) {
-    val = MRB_PROC_CFUNC(p)(mrb, self);
+    struct mrb_jmpbuf *prev_jmp = mrb->jmp;
+    struct mrb_jmpbuf c_jmp;
+    int ai = mrb_gc_arena_save(mrb);
+    mrb_bool exc = FALSE;
+
+    MRB_TRY(&c_jmp) {
+      mrb->jmp = &c_jmp;
+      ci->acc = CI_ACC_DIRECT;
+      val = MRB_PROC_CFUNC(p)(mrb, self);
+    }
+    MRB_CATCH(&c_jmp) {
+      exc = TRUE;
+    }
+    MRB_END_EXC(&c_jmp);
+
+    mrb->jmp = prev_jmp;
+    mrb_gc_arena_restore(mrb, ai);
     cipop(mrb);
+    if (exc) MRB_THROW(mrb->jmp);
   }
   else {
     val = mrb_run(mrb, p, self);
