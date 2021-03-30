@@ -141,10 +141,10 @@ codegen_error(codegen_scope *s, const char *message)
 #ifndef MRB_NO_STDIO
   if (s->filename_sym && s->lineno) {
     const char *filename = mrb_sym_name_len(s->mrb, s->filename_sym, NULL);
-    fprintf(stderr, "codegen error:%s:%d: %s\n", filename, s->lineno, message);
+    fprintf(stderr, "%s:%d: %s\n", filename, s->lineno, message);
   }
   else {
-    fprintf(stderr, "codegen error: %s\n", message);
+    fprintf(stderr, "%s\n", message);
   }
 #endif
   MRB_THROW(&s->jmp);
@@ -2365,7 +2365,7 @@ codegen(codegen_scope *s, node *tree, int val)
       }
       if (s2) {
         ainfo = s2->ainfo;
-        if (ainfo < 0) codegen_error(s, "invalid yield");
+        if (ainfo < 0) codegen_error(s, "invalid yield (SyntaxError)");
       }
       push();
       if (tree) {
