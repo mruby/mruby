@@ -1162,11 +1162,70 @@ dump_syms(mrb_state *mrb, const char *name, const char *key, int n, int syms_len
   return MRB_DUMP_OK;
 }
 
+//Handle the simple/common case of debug_info:
+// - 1 file associated with a single irep
+// - mrb_debug_line_ary format only
+static int
+simple_debug_info(mrb_irep_debug_info *info)
+{
+  if (!info ||
+       info->flen != 1 ||
+       info->files[0]->line_type != mrb_debug_line_ary) {
+    return 0;
+  }
+  return 1;
+}
+
+//Adds debug information to c-structs and
+//adds filenames in init_syms_code block
+static int
+dump_debug(mrb_state *mrb, const char *name, int n, mrb_irep_debug_info *info,
+    mrb_value init_syms_code, FILE *fp)
+{
+  char buffer[256];
+  const char *filename;
+  mrb_int file_len;
+  int len, i;
+
+  if (!simple_debug_info(info))
+    return MRB_DUMP_INVALID_IREP;
+
+  len = info->files[0]->line_entry_count;
+
+  filename = mrb_sym_name_len(mrb, info->files[0]->filename_sym, &file_len);
+  snprintf(buffer, sizeof(buffer), "  %s_debug_file_%d.filename_sym = mrb_intern_lit(mrb,\"",
+      name, n);
+  mrb_str_cat_cstr(mrb, init_syms_code, buffer);
+  mrb_str_cat_cstr(mrb, init_syms_code, filename);
+  mrb_str_cat_cstr(mrb, init_syms_code, "\");\n");
+
+  fprintf(fp, "static uint16_t %s_debug_lines_%d[%d] = {", name, n, len);
+  for (i=0; i<len; i++) {
+    if (i%10 == 0) fputs("\n", fp);
+    fprintf(fp, "0x%04x,", info->files[0]->lines.ary[i]);
+  }
+  fputs("};\n", fp);
+
+  fprintf(fp, "static mrb_irep_debug_info_file %s_debug_file_%d = {\n", name, n);
+  fprintf(fp, "%d, %d, %d, 0, {%s_debug_lines_%d}};\n",
+      info->files[0]->start_pos,
+      info->files[0]->filename_sym,
+      info->files[0]->line_entry_count,
+      name,n);
+  fprintf(fp, "static mrb_irep_debug_info_file *%s_debug_file_%d_ = &%s_debug_file_%d;\n", name, n, name, n);
+
+  fprintf(fp, "static mrb_irep_debug_info %s_debug_%d = {\n", name, n);
+  fprintf(fp, "%d, %d, &%s_debug_file_%d_};\n", info->pc_count, info->flen, name, n);
+
+  return MRB_DUMP_OK;
+}
+
 static int
 dump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, const char *name, int n, mrb_value init_syms_code, int *mp)
 {
   int i, len;
   int max = *mp;
+  int debug_available = 0;
 
   /* dump reps */
   if (irep->reps) {
@@ -1207,6 +1266,15 @@ dump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, 
   if (irep->lv) {
     dump_syms(mrb, name, "lv", n, irep->nlocals-1, irep->lv, init_syms_code, fp);
   }
+  /* dump debug */
+  if (flags & MRB_DUMP_DEBUG_INFO) {
+    if(dump_debug(mrb, name, n, irep->debug_info,
+                init_syms_code, fp) == MRB_DUMP_OK) {
+      debug_available = 1;
+    }
+  }
+
+
   /* dump irep */
   fprintf(fp, "static const mrb_irep %s_irep_%d = {\n", name, n);
   fprintf(fp,   "  %d,%d,%d,\n", irep->nlocals, irep->nregs, irep->clen);
@@ -1235,7 +1303,12 @@ dump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, 
   else {
     fputs(      "  NULL,\t\t\t\t\t/* lv */\n", fp);
   }
-  fputs(        "  NULL,\t\t\t\t\t/* debug_info */\n", fp);
+  if(debug_available) {
+    fprintf(fp, "  &%s_debug_%d,\n", name, n);
+  }
+  else {
+    fputs("  NULL,\t\t\t\t\t/* debug_info */\n", fp);
+  }
   fprintf(fp,   "  %d,%d,%d,%d,0\n};\n", irep->ilen, irep->plen, irep->slen, irep->rlen);
 
   return MRB_DUMP_OK;
@@ -1248,6 +1321,8 @@ mrb_dump_irep_cstruct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE 
     return MRB_DUMP_INVALID_ARGUMENT;
   }
   if (fprintf(fp, "#include <mruby.h>\n"
+                  "#include <mruby/irep.h>\n"
+                  "#include <mruby/debug.h>\n"
                   "#include <mruby/proc.h>\n"
                   "#include <mruby/presym.h>\n"
                   "\n") < 0) {
