@@ -20,6 +20,9 @@ assert('Kernel.caller, Kernel#caller') do
       bar(*args)
     end
   end
+
+  skip "backtrace isn't available" if(c.new.baz(0)[0].include?("unknown"))
+
   assert_equal "kernel.rb:#{caller_lineno}:in foo", c.new.baz(0)[0][-19..-1]
   assert_equal "bar", c.new.baz[0][-3..-1]
   assert_equal "foo", c.new.baz(0)[0][-3..-1]

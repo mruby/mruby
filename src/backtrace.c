@@ -61,7 +61,6 @@ each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, each_backtrace_func func, void *
 
     idx = (uint32_t)(pc - irep->iseq);
     loc.lineno = mrb_debug_get_line(mrb, irep, idx);
-    if (loc.lineno == -1) continue;
 
     loc.filename = mrb_debug_get_filename(mrb, irep, idx);
     if (!loc.filename) {
@@ -202,7 +201,12 @@ mrb_unpack_backtrace(mrb_state *mrb, mrb_value backtrace)
     const struct backtrace_location *entry = &bt[i];
     mrb_value btline;
 
-    btline = mrb_format(mrb, "%s:%d", entry->filename, (int)entry->lineno);
+    if (entry->lineno != -1) {//debug info was available
+      btline = mrb_format(mrb, "%s:%d", entry->filename, (int)entry->lineno);
+    }
+    else { //all that was left was the stack frame
+      btline = mrb_format(mrb, "%s:missing-lineno", entry->filename);
+    }
     if (entry->method_id != 0) {
       mrb_str_cat_lit(mrb, btline, ":in ");
       mrb_str_cat_cstr(mrb, btline, mrb_sym_name(mrb, entry->method_id));
