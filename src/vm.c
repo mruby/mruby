@@ -1068,6 +1068,7 @@ check_target_class(mrb_state *mrb)
   return TRUE;
 }
 
+mrb_value mrb_obj_missing(mrb_state *mrb, mrb_value mod);
 void mrb_hash_check_kdict(mrb_state *mrb, mrb_value self);
 mrb_int mrb_div_int(mrb_state *mrb, mrb_int x, mrb_int y);
 mrb_float mrb_div_flo(mrb_float x, mrb_float y);
@@ -1670,13 +1671,17 @@ RETRY_TRY_BLOCK:
       if (MRB_METHOD_UNDEF_P(m)) {
         mrb_sym missing = MRB_SYM(method_missing);
 
+        if (mrb_func_basic_p(mrb, recv, missing, mrb_obj_missing)) {
+          mrb_value args = (argc < 0) ? regs[a+1] : mrb_ary_new_from_values(mrb, b, regs+a+1);
+          mrb_no_method_error(mrb, mid, args, "no superclass method '%n'", mid);
+        }
         if (mid != missing) {
           cls = mrb_class(mrb, recv);
         }
         m = mrb_method_search_vm(mrb, &cls, missing);
-        if (MRB_METHOD_UNDEF_P(m)) {
+        if (MRB_METHOD_UNDEF_P(m)) { /* just in case */
           mrb_value args = (argc < 0) ? regs[a+1] : mrb_ary_new_from_values(mrb, b, regs+a+1);
-          mrb_method_missing(mrb, mid, recv, args);
+          mrb_method_missing(mrb, missing, recv, args);
         }
         mid = missing;
         if (argc >= 0) {

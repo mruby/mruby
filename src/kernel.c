@@ -520,7 +520,7 @@ mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value args)
  *     r.xxiii   #=> 23
  *     r.mm      #=> 2000
  */
-static mrb_value
+mrb_value
 mrb_obj_missing(mrb_state *mrb, mrb_value mod)
 {
   mrb_sym name;
