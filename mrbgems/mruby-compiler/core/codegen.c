@@ -2355,7 +2355,7 @@ codegen(codegen_scope *s, node *tree, int val)
   case NODE_YIELD:
     {
       codegen_scope *s2 = s;
-      int lv = 0, ainfo = 0;
+      int lv = 0, ainfo = -1;
       int n = 0, sendv = 0;
 
       while (!s2->mscope) {
@@ -2365,8 +2365,8 @@ codegen(codegen_scope *s, node *tree, int val)
       }
       if (s2) {
         ainfo = s2->ainfo;
-        if (ainfo < 0) codegen_error(s, "invalid yield (SyntaxError)");
       }
+      if (ainfo < 0) codegen_error(s, "invalid yield (SyntaxError)");
       push();
       if (tree) {
         n = gen_values(s, tree, VAL, 0);

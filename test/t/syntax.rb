@@ -35,9 +35,10 @@ assert('super', '11.3.4') do
 end
 
 assert('yield', '11.3.5') do
-  assert_raise LocalJumpError do
-    yield
-  end
+# it's syntax error now
+#  assert_raise LocalJumpError do
+#    yield
+#  end
   assert_raise LocalJumpError do
     o = Object.new
     def o.foo
