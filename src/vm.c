@@ -547,7 +547,7 @@ mrb_value
 mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p, mrb_func_t posthook)
 {
   mrb_callinfo *ci = mrb->c->ci;
-  mrb_int keep, nregs;
+  int keep, nregs;
 
   ci->stack[0] = self;
   mrb_vm_ci_proc_set(ci, p);
