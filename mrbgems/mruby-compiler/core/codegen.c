@@ -879,6 +879,7 @@ lambda_body(codegen_scope *s, node *tree, int blk)
   tree = tree->cdr;
   if (tree->car == NULL) {
     genop_W(s, OP_ENTER, 0);
+    s->ainfo = 0;
   }
   else {
     mrb_aspec a;
