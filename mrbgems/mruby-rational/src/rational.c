@@ -641,7 +641,7 @@ mrb_rational_div(mrb_state *mrb, mrb_value x)
 #ifndef MRB_NO_FLOAT
   case MRB_TT_FLOAT:
     {
-      mrb_float z = mrb_div_flo(p1->numerator, mrb_to_flo(mrb, y));
+      mrb_float z = mrb_div_flo((mrb_float)p1->numerator, mrb_to_flo(mrb, y));
       return mrb_float_value(mrb, mrb_div_flo(z, (mrb_float)p1->denominator));
     }
 #else
