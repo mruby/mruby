@@ -205,7 +205,7 @@ mrb_unpack_backtrace(mrb_state *mrb, mrb_value backtrace)
       btline = mrb_format(mrb, "%s:%d", entry->filename, (int)entry->lineno);
     }
     else { //all that was left was the stack frame
-      btline = mrb_format(mrb, "%s:missing-lineno", entry->filename);
+      btline = mrb_format(mrb, "%s:0", entry->filename);
     }
     if (entry->method_id != 0) {
       mrb_str_cat_lit(mrb, btline, ":in ");
