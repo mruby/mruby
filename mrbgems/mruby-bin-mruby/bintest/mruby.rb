@@ -160,7 +160,7 @@ end
 
 assert('codegen error') do
   code = "def f(#{(1..100).map{|n| "a#{n}"} * ","}); end"
-  assert_mruby("", /\Acodegen error:.*\n\z/, false, ["-e", code])
+  assert_mruby("", /\A.*\n\z/, false, ["-e", code])
 end
 
 assert('top level local variables are in file scope') do
