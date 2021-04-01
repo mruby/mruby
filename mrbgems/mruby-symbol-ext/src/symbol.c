@@ -1,6 +1,9 @@
 #include <mruby.h>
 #include <mruby/array.h>
 #include <mruby/string.h>
+#ifdef MRB_USE_ALL_SYMBOLS
+# include <mruby/presym.h>
+#endif
 
 /*
  *  call-seq:
