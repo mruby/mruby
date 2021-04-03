@@ -1207,7 +1207,7 @@ dump_debug(mrb_state *mrb, const char *name, int n, mrb_irep_debug_info *info,
   fputs("};\n", fp);
 
   fprintf(fp, "static mrb_irep_debug_info_file %s_debug_file_%d = {\n", name, n);
-  fprintf(fp, "%d, %d, %d, 0, {%s_debug_lines_%d}};\n",
+  fprintf(fp, "%d, %d, %d, mrb_debug_line_ary, {%s_debug_lines_%d}};\n",
       info->files[0]->start_pos,
       info->files[0]->filename_sym,
       info->files[0]->line_entry_count,
