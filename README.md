@@ -76,7 +76,7 @@ In the future, mruby might ask you to distribute your new code
 (that you will commit,) under the MIT License as a member of
 "mruby developers" but contributors will keep their copyright.
 (We did not intend for contributors to transfer or waive their copyrights,
-Actual copyright holder name (contributors) will be listed in the [AUTHORS.md](AUTHORS.md)
+Actual copyright holder name (contributors) will be listed in the [AUTHORS](AUTHORS)
 file.)
 
 Please ask us if you want to distribute your code under another license.
