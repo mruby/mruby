@@ -585,7 +585,9 @@ mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p, mrb_func_t postho
   else {
     mrb_value ret;
     if (MRB_PROC_CFUNC_P(p)) {
+      cipush(mrb, 0, CI_ACC_DIRECT, mrb_vm_ci_target_class(ci), p, ci->mid, ci->argc);
       ret = MRB_PROC_CFUNC(p)(mrb, self);
+      cipop(mrb);
     }
     else {
       int keep = (ci->argc < 0 ? 1 : ci->argc) + 2 /* receiver + block */;
