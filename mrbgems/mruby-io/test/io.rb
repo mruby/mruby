@@ -524,7 +524,7 @@ assert('IO#close_on_exec') do
   fd = IO.sysopen $mrbtest_io_wfname, "w"
   io = IO.new fd, "w"
   begin
-    # IO.sysopen opens a file descripter with O_CLOEXEC flag.
+    # IO.sysopen opens a file descriptor with O_CLOEXEC flag.
     assert_true io.close_on_exec?
   rescue ScriptError
     io.close

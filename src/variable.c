@@ -906,7 +906,7 @@ const_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
  *  call-seq:
  *     mod.constants    -> array
  *
- *  Returns an array of all names of contants defined in the receiver.
+ *  Returns an array of all names of constants defined in the receiver.
  */
 mrb_value
 mrb_mod_constants(mrb_state *mrb, mrb_value mod)
