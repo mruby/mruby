@@ -131,15 +131,6 @@ exec_irep(mrb_state *mrb, mrb_value self, struct RProc *proc, mrb_func_t posthoo
 {
   /* no argument passed from eval() */
   mrb->c->ci->argc = 0;
-  if (mrb->c->ci->acc < 0) {
-    ptrdiff_t cioff = mrb->c->ci - mrb->c->cibase;
-    mrb_value ret = mrb_top_run(mrb, proc, self, 0);
-    if (mrb->exc) {
-      mrb_exc_raise(mrb, mrb_obj_value(mrb->exc));
-    }
-    mrb->c->ci = mrb->c->cibase + cioff;
-    return ret;
-  }
   /* clear block */
   mrb->c->ci->stack[1] = mrb_nil_value();
   return mrb_exec_irep(mrb, self, proc, posthook);
