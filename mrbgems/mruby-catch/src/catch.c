@@ -61,21 +61,20 @@ static const mrb_irep catch_irep = {
   29,0,3,1,0
 };
 
-#define ID_PRESERVED_CATCH MRB_SYM(__preserved_catch_proc)
+static const struct RProc catch_proc = {
+  NULL, NULL, MRB_TT_PROC, 7 /* GC_RED */, MRB_FL_OBJ_IS_FROZEN | MRB_PROC_SCOPE | MRB_PROC_STRICT,
+  { &catch_irep }, NULL, { NULL }
+};
 
 static const mrb_callinfo *
 find_catcher(mrb_state *mrb, mrb_value tag)
 {
-  mrb_value pval = mrb_obj_iv_get(mrb, (struct RObject *)mrb->kernel_module, ID_PRESERVED_CATCH);
-  mrb_assert(mrb_proc_p(pval));
-  const struct RProc *proc = mrb_proc_ptr(pval);
-
   const mrb_callinfo *ci = mrb->c->ci;
   size_t n = ci - mrb->c->cibase;
   ci--;
   for (; n > 0; n--, ci--) {
     const mrb_value *arg1 = ci->stack + 1;
-    if (ci->proc == proc && mrb_obj_eq(mrb, *arg1, tag)) {
+    if (ci->proc == &catch_proc && mrb_obj_eq(mrb, *arg1, tag)) {
       return ci;
     }
   }
@@ -109,15 +108,12 @@ mrb_f_throw(mrb_state *mrb, mrb_value self)
 void
 mrb_mruby_catch_gem_init(mrb_state *mrb)
 {
-  struct RProc *p;
   mrb_method_t m;
 
   MRB_PRESYM_INIT_SYMBOLS(mrb, catch_syms_3);
   MRB_PRESYM_INIT_SYMBOLS(mrb, catch_syms_1);
-  p = mrb_proc_new(mrb, &catch_irep);
-  MRB_METHOD_FROM_PROC(m, p);
+  MRB_METHOD_FROM_PROC(m, &catch_proc);
   mrb_define_method_raw(mrb, mrb->kernel_module, MRB_SYM(catch), m);
-  mrb_obj_iv_set(mrb, (struct RObject *)mrb->kernel_module, ID_PRESERVED_CATCH, mrb_obj_value(p));
 
   mrb_define_method(mrb, mrb->kernel_module, "throw", mrb_f_throw, MRB_ARGS_ARG(1,1));
 }

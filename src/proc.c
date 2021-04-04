@@ -35,6 +35,11 @@ static const mrb_irep call_irep = {
   0,                                   /* refcnt */
 };
 
+static const struct RProc call_proc = {
+  NULL, NULL, MRB_TT_PROC, 7 /* GC_RED */, MRB_FL_OBJ_IS_FROZEN | MRB_PROC_SCOPE | MRB_PROC_STRICT,
+  { &call_irep }, NULL, { NULL }
+};
+
 struct RProc*
 mrb_proc_new(mrb_state *mrb, const mrb_irep *irep)
 {
@@ -46,7 +51,15 @@ mrb_proc_new(mrb_state *mrb, const mrb_irep *irep)
     struct RClass *tc = NULL;
 
     if (ci->proc) {
-      tc = MRB_PROC_TARGET_CLASS(ci->proc);
+      if (ci->proc->color != 7 /* GC_RED */) {
+        tc = MRB_PROC_TARGET_CLASS(ci->proc);
+      }
+      else {
+        tc = mrb_vm_ci_target_class(ci);
+        if (tc && tc->tt == MRB_TT_ICLASS) {
+          tc = tc->c;
+        }
+      }
     }
     if (tc == NULL) {
       tc = mrb_vm_ci_target_class(ci);
@@ -413,15 +426,13 @@ mrb_proc_merge_lvar(mrb_state *mrb, mrb_irep *irep, struct REnv *env, int num, c
 void
 mrb_init_proc(mrb_state *mrb)
 {
-  struct RProc *p;
   mrb_method_t m;
 
   mrb_define_class_method(mrb, mrb->proc_class, "new", mrb_proc_s_new, MRB_ARGS_NONE()|MRB_ARGS_BLOCK());
   mrb_define_method(mrb, mrb->proc_class, "initialize_copy", mrb_proc_init_copy, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, mrb->proc_class, "arity", proc_arity, MRB_ARGS_NONE());
 
-  p = mrb_proc_new(mrb, &call_irep);
-  MRB_METHOD_FROM_PROC(m, p);
+  MRB_METHOD_FROM_PROC(m, &call_proc);
   mrb_define_method_raw(mrb, mrb->proc_class, MRB_SYM(call), m);
   mrb_define_method_raw(mrb, mrb->proc_class, MRB_OPSYM(aref), m);
 
