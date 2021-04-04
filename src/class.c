@@ -736,11 +736,17 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
 
     ptr.proc = p;
     if (p) {
-      p->flags |= MRB_PROC_SCOPE;
-      p->c = NULL;
-      mrb_field_write_barrier(mrb, (struct RBasic*)c, (struct RBasic*)p);
-      if (!MRB_PROC_ENV_P(p)) {
-        MRB_PROC_SET_TARGET_CLASS(p, c);
+      if (p->color != 7 /* GC_RED */) {
+        p->flags |= MRB_PROC_SCOPE;
+        p->c = NULL;
+        mrb_field_write_barrier(mrb, (struct RBasic*)c, (struct RBasic*)p);
+        if (!MRB_PROC_ENV_P(p)) {
+          MRB_PROC_SET_TARGET_CLASS(p, c);
+        }
+      }
+      else {
+        mrb_assert(MRB_FROZEN_P(p) && MRB_PROC_SCOPE_P(p));
+        mrb_assert(p->c == NULL && p->upper == NULL && p->e.target_class == NULL);
       }
     }
   }
@@ -2199,7 +2205,7 @@ mrb_alias_method(mrb_state *mrb, struct RClass *c, mrb_sym a, mrb_sym b)
     if (MRB_PROC_ENV_P(p)) {
       MRB_PROC_ENV(p)->mid = b;
     }
-    else {
+    else if (p->color != 7 /* GC_RED */) {
       struct RClass *tc = MRB_PROC_TARGET_CLASS(p);
       struct REnv *e = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, NULL);
 
@@ -2812,15 +2818,18 @@ static const mrb_irep new_irep = {
   sizeof(new_iseq), 0, 2, 0, 0,
 };
 
+static const struct RProc new_proc = {
+  NULL, NULL, MRB_TT_PROC, 7 /* GC_RED */, MRB_FL_OBJ_IS_FROZEN | MRB_PROC_SCOPE | MRB_PROC_STRICT,
+  { &new_irep }, NULL, { NULL }
+};
+
 static void
 init_class_new(mrb_state *mrb, struct RClass *cls)
 {
-  struct RProc *p;
   mrb_method_t m;
 
   MRB_PRESYM_INIT_SYMBOLS(mrb, new_syms);
-  p = mrb_proc_new(mrb, &new_irep);
-  MRB_METHOD_FROM_PROC(m, p);
+  MRB_METHOD_FROM_PROC(m, &new_proc);
   mrb_define_method_raw(mrb, cls, MRB_SYM(new), m);
 }
 
