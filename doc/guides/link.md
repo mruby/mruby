@@ -64,9 +64,9 @@ compatible to mruby configuration.
 
 To retrieve linker options, you can use `mruby-config` with following options:
 
-* `--ldflags`				options passed to linker
+* `--ldflags`               options passed to linker
 * `--ldflags-before-libs`   options passed to linker before linked libraries
-* `--lbs`                   linked libraries
+* `--libs`                  linked libraries
 
 ```
 $ mruby-config --ldflags
