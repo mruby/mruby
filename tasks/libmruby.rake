@@ -16,6 +16,9 @@ MRuby.each_target do
     open(t.name, 'w') do |f|
       f.puts "MRUBY_CFLAGS = #{cc.all_flags}"
 
+      f.puts "MRUBY_CC = #{cc.command}"
+      f.puts "MRUBY_LD = #{linker.command}"
+
       libgems = gems.reject{|g| g.bin?}
       gem_flags = libgems.map {|g| g.linker.flags }
       gem_library_paths = libgems.map {|g| g.linker.library_paths }
