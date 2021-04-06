@@ -527,7 +527,9 @@ convenience. `mruby-config` command prints the configuration used for `libmruby.
 $ mruby-config --help
 Usage: mruby-config [switches]
   switches:
+  --cc                        print compiler name
   --cflags                    print flags passed to compiler
+  --ld                        print linker name
   --ldflags                   print flags passed to linker
   --ldflags-before-libs       print flags passed to linker before linked libraries
   --libs                      print linked libraries
