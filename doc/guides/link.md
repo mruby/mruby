@@ -1,18 +1,17 @@
-Linking `libmruby` to your application
-===
+# Linking `libmruby` to your application
 
 You have two ways to link `libmruby` to your application.
 
 * using executable gem.
 * using normal compilation process
 
-# Executable Gems
+## Executable Gems
 
 If your application is relatively small, `mrbgem` is easier way to
 create the executable.  By tradition, the gem name start with
 `mruby-bin-`, e.g. `mruby-bin-debugger`.
 
-## `mrbgem.rake` file
+### `mrbgem.rake` file
 
 The executable name is specified in `mrbgem.rake` file at the top of
 your `mrbgem` directory.
@@ -26,7 +25,7 @@ MRuby::Gem::Specification.new('mruby-bin-example') do |spec|
 end
 ```
 
-## Source tree structure
+### Source tree structure
 
 The source file for the gem executable should be in
 `<gem-name>/tools/<bin-name>`.  Currently, we support C or C++ source code
@@ -34,14 +33,14 @@ The source file for the gem executable should be in
 supported. Put the functionality in the different gem and specify dependency to
 it in `mrbgem.rake`.
 
-# Normal compilation process
+## Normal compilation process
 
 The `libmruby` is a normal library so that you can just link it to your
 application. Specify proper compiler options (`-I` etc.) and linker options
 (`-Lmruby` etc.) to compile and link your application. Specify those options in
 your build script (e.g. `Makefile`).
 
-## Compiler options
+### Compiler options
 
 You need to specify compiler options that are compatible to mruby configuration,
 for example:
@@ -57,7 +56,7 @@ $ mruby-config --cflags
 -std=gnu99 -g -O3 -Wall -DMRB_GC_FIXED_ARENA -I/home/matz/work/mruby/include -I/home/matz/work/mruby/build/host/include
 ```
 
-## Linker options
+### Linker options
 
 Just like compiler options, you need to specify linker options that are
 compatible to mruby configuration.
