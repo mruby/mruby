@@ -4,7 +4,7 @@
 # Requires KallistiOS (KOS)
 # http://gamedev.allusion.net/softprj/kos/
 #
-# Tested on GNU/Linux, macOS and Windows (throught MinGW-w64/MSYS2, Cygwin and DreamSDK).
+# Tested on GNU/Linux, macOS and Windows (through MinGW-w64/MSYS2, Cygwin and DreamSDK).
 # DreamSDK is based on MinGW/MSYS: https://dreamsdk.org/
 #
 # Input this command on the directory where mruby is installed:
