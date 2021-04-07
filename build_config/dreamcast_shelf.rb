@@ -68,10 +68,10 @@ MRuby::CrossBuild.new("dreamcast") do |conf|
 
   # Disable C++ exception
   conf.disable_cxx_exception
-  
+
   # Gems from core
   # Some Gems are incompatible and were disabled.
-  
+
   conf.gem :core => "mruby-array-ext"
   conf.gem :core => "mruby-binding"
   conf.gem :core => "mruby-binding-core"
