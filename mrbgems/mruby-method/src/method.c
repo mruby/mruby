@@ -6,10 +6,124 @@
 #include "mruby/string.h"
 #include "mruby/presym.h"
 
+mrb_noreturn void mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value args);
+mrb_value mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p, mrb_func_t posthook);
+
+static mrb_value
+args_shift(mrb_state *mrb)
+{
+  mrb_value *argv = mrb->c->ci->stack + 1;
+
+  if (mrb->c->ci->argc > 0) {
+    mrb_value obj = argv[0];
+    memmove(argv, argv + 1, (mrb->c->ci->argc + 1 /* block */ - 1 /* first value */) * sizeof(mrb_value));
+    mrb->c->ci->argc--;
+    return obj;
+  }
+  else if (mrb->c->ci->argc < 0 && RARRAY_LEN(*argv) > 0) {
+    return mrb_ary_shift(mrb, *argv);
+  }
+  else {
+    mrb_argnum_error(mrb, 0, 1, -1);
+    return mrb_undef_value(); /* not reached */
+  }
+}
+
+static void
+args_unshift(mrb_state *mrb, mrb_value obj)
+{
+  mrb_value *argv = mrb->c->ci->stack + 1;
+
+  if (mrb->c->ci->argc >= 0) {
+    mrb_value block = argv[mrb->c->ci->argc];
+    argv[0] = mrb_ary_new_from_values(mrb, mrb->c->ci->argc, argv);
+    argv[1] = block;
+    mrb->c->ci->argc = -1;
+  }
+
+  mrb_ary_unshift(mrb, *argv, obj);
+}
+
+static struct RProc*
+method_missing_prepare(mrb_state *mrb, mrb_sym *mid, mrb_value recv, struct RClass **tc)
+{
+  const mrb_sym id_method_missing = MRB_SYM(method_missing);
+
+  if (*mid == id_method_missing) {
+  method_missing: ;
+    int argc = mrb->c->ci->argc;
+    mrb_value *argv = mrb->c->ci->stack + 1;
+    mrb_value args = (argc < 0) ? argv[0] : mrb_ary_new_from_values(mrb, argc, argv);
+    mrb_method_missing(mrb, *mid, recv, args);
+  }
+
+  *tc = mrb_class(mrb, recv);
+  mrb_method_t m = mrb_method_search_vm(mrb, tc, id_method_missing);
+  if (MRB_METHOD_UNDEF_P(m)) {
+    goto method_missing;
+  }
+
+  struct RProc *proc;
+  if (MRB_METHOD_FUNC_P(m)) {
+    proc = mrb_proc_new_cfunc(mrb, MRB_METHOD_FUNC(m));
+    MRB_PROC_SET_TARGET_CLASS(proc, *tc);
+  }
+  else {
+    proc = MRB_METHOD_PROC(m);
+  }
+
+  args_unshift(mrb, mrb_symbol_value(*mid));
+  *mid = id_method_missing;
+
+  return proc;
+}
+
 static struct RObject *
 method_object_alloc(mrb_state *mrb, struct RClass *mclass)
 {
   return (struct RObject*)mrb_obj_alloc(mrb, MRB_TT_OBJECT, mclass);
+}
+
+static struct RProc*
+method_extract_proc(mrb_state *mrb, mrb_value self)
+{
+  mrb_value obj = mrb_iv_get(mrb, self, MRB_SYM(_proc));
+  if (mrb_nil_p(obj)) {
+    return NULL;
+  }
+  else {
+    mrb_check_type(mrb, obj, MRB_TT_PROC);
+    return mrb_proc_ptr(obj);
+  }
+}
+
+static mrb_value
+method_extract_receiver(mrb_state *mrb, mrb_value self)
+{
+  return mrb_iv_get(mrb, self, MRB_SYM(_recv));
+}
+
+static mrb_sym
+method_extract_mid(mrb_state *mrb, mrb_value self)
+{
+  mrb_value obj = mrb_iv_get(mrb, self, MRB_SYM(_name));
+  mrb_check_type(mrb, obj, MRB_TT_SYMBOL);
+  return mrb_symbol(obj);
+}
+
+static struct RClass*
+method_extract_owner(mrb_state *mrb, mrb_value self)
+{
+  mrb_value obj = mrb_iv_get(mrb, self, MRB_SYM(_owner));
+  switch (mrb_type(obj)) {
+    case MRB_TT_CLASS:
+    case MRB_TT_MODULE:
+    case MRB_TT_SCLASS:
+      break;
+    default:
+      mrb_raise(mrb, E_TYPE_ERROR, "not class/module as owner of method object");
+  }
+  return mrb_class_ptr(obj);
 }
 
 static void
@@ -109,61 +223,40 @@ method_eql(mrb_state *mrb, mrb_value self)
 #undef IV_GET
 
 static mrb_value
-mcall(mrb_state *mrb, mrb_value recv, mrb_value proc, mrb_value name, struct RClass *owner,
-      mrb_int argc, const mrb_value *argv, mrb_value block)
+mcall(mrb_state *mrb, mrb_value self, mrb_value recv)
 {
-  mrb_value ret;
-  mrb_sym orig_mid = mrb->c->ci->mid;
+  struct RProc *proc = method_extract_proc(mrb, self);
+  mrb_sym mid = method_extract_mid(mrb, self);
+  struct RClass *tc = method_extract_owner(mrb, self);
 
-  mrb->c->ci->mid = mrb_symbol(name);
-  if (mrb_nil_p(proc)) {
-    mrb_value missing_argv = mrb_ary_new_from_values(mrb, argc, argv);
-    mrb_ary_unshift(mrb, missing_argv, name);
-    ret = mrb_funcall_argv(mrb, recv, MRB_SYM(method_missing), argc + 1, RARRAY_PTR(missing_argv));
-  }
-  else if (!mrb_nil_p(block)) {
-    /*
-      workaround since `mrb_yield_with_class` does not support passing block as parameter
-      need new API that initializes `mrb->c->stack[argc+1]` with block passed by argument
-    */
-    ret = mrb_funcall_with_block(mrb, recv, mrb_symbol(name), argc, argv, block);
+  if (mrb_undef_p(recv)) {
+    recv = method_extract_receiver(mrb, self);
   }
   else {
-    ret = mrb_yield_with_class(mrb, proc, argc, argv, recv, owner);
+    bind_check(mrb, recv, mrb_obj_value(tc));
   }
-  mrb->c->ci->mid = orig_mid;
-  return ret;
+
+  if (!proc) {
+    proc = method_missing_prepare(mrb, &mid, recv, &tc);
+  }
+  mrb->c->ci->mid = mid;
+  mrb->c->ci->u.target_class = tc;
+
+  return mrb_exec_irep(mrb, recv, proc, NULL);
 }
 
 static mrb_value
 method_call(mrb_state *mrb, mrb_value self)
 {
-  mrb_value proc = mrb_iv_get(mrb, self, MRB_SYM(_proc));
-  mrb_value name = mrb_iv_get(mrb, self, MRB_SYM(_name));
-  mrb_value recv = mrb_iv_get(mrb, self, MRB_SYM(_recv));
-  struct RClass *owner = mrb_class_ptr(mrb_iv_get(mrb, self, MRB_SYM(_owner)));
-  mrb_int argc;
-  const mrb_value *argv;
-  mrb_value block;
-
-  mrb_get_args(mrb, "*&", &argv, &argc, &block);
-  return mcall(mrb, recv, proc, name, owner, argc, argv, block);
+  return mcall(mrb, self, mrb_undef_value());
 }
 
 static mrb_value
 method_bcall(mrb_state *mrb, mrb_value self)
 {
-  mrb_value proc = mrb_iv_get(mrb, self, MRB_SYM(_proc));
-  mrb_value name = mrb_iv_get(mrb, self, MRB_SYM(_name));
-  mrb_value recv = mrb_iv_get(mrb, self, MRB_SYM(_recv));
-  mrb_value owner = mrb_iv_get(mrb, self, MRB_SYM(_owner));
-  mrb_int argc;
-  const mrb_value *argv;
-  mrb_value block;
-
-  mrb_get_args(mrb, "o*&", &recv, &argv, &argc, &block);
-  bind_check(mrb, recv, owner);
-  return mcall(mrb, recv, proc, name, mrb_class_ptr(owner), argc, argv, block);
+  mrb_value recv = args_shift(mrb);
+  mrb_gc_protect(mrb, recv);
+  return mcall(mrb, self, recv);
 }
 
 static mrb_value
