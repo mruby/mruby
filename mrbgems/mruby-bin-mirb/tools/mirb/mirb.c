@@ -211,7 +211,7 @@ is_code_block_open(struct mrb_parser_state *parser)
     /* an expression was ended */
     break;
   case EXPR_ENDARG:
-    /* closing parenthese */
+    /* closing parenthesis */
     break;
   case EXPR_ENDFN:
     /* definition end */
