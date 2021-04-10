@@ -77,7 +77,7 @@ Add the line below to your build configuration.
 | IO#puts                    |    o     |      |
 | IO#read                    |    o     |      |
 | IO#read_nonblock           |          |      |
-| IO#readbyte                |          |      |
+| IO#readbyte                |    o     |      |
 | IO#readchar                |    o     |      |
 | IO#readline                |    o     |      |
 | IO#readlines               |    o     |      |
