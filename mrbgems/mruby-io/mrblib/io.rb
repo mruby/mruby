@@ -184,6 +184,11 @@ class IO
     nil
   end
 
+  def ungetbyte(substr)
+    substr = substr.chr if substr.is_a? Integer
+    ungetc substr
+  end
+
   def read(length = nil, outbuf = "")
     unless length.nil?
       unless length.is_a? Integer
@@ -290,10 +295,19 @@ class IO
     begin
       readchar
     rescue EOFError
-      c = @buf[0]
-      @buf[0,1]="" if c
       nil
     end
+  end
+
+  def readbyte
+    _read_buf
+    IO._bufread(@buf, 1).getbyte(0)
+  end
+
+  def getbyte
+    readbyte
+  rescue EOFError
+    nil
   end
 
   # 15.2.20.5.3
