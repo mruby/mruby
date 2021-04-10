@@ -305,9 +305,9 @@ class IO
   end
 
   def getbyte
-    ret = getc
-    return ret.getbyte 0 if ret
-    ret
+    readbyte
+  rescue EOFError
+    nil
   end
 
   # 15.2.20.5.3
