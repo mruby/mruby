@@ -488,7 +488,7 @@ mrb_funcall_argv(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc, cons
 #define CATCH_HANDLER_NUM_TO_BYTE(n) ((n) * sizeof(struct mrb_irep_catch_handler))
 
 static void
-mrb_exec_irep_prepare_posthook(mrb_state *mrb, mrb_callinfo *ci, int nregs, mrb_func_t posthook)
+exec_irep_prepare_posthook(mrb_state *mrb, mrb_callinfo *ci, int nregs, mrb_func_t posthook)
 {
   /*
    *  stack: [proc, errinfo, return value by called proc]
@@ -544,7 +544,7 @@ mrb_exec_irep_prepare_posthook(mrb_state *mrb, mrb_callinfo *ci, int nregs, mrb_
  * However, if `proc` is a C function, it will be ignored.
  */
 static mrb_value
-mrb_exec_irep_vm(mrb_state *mrb, mrb_value self, struct RProc *p, mrb_func_t posthook)
+exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p, mrb_func_t posthook)
 {
   mrb_callinfo *ci = mrb->c->ci;
   int keep, nregs;
@@ -567,7 +567,7 @@ mrb_exec_irep_vm(mrb_state *mrb, mrb_value self, struct RProc *p, mrb_func_t pos
   }
 
   if (posthook) {
-    mrb_exec_irep_prepare_posthook(mrb, ci, (nregs < keep ? keep : nregs), posthook);
+    exec_irep_prepare_posthook(mrb, ci, (nregs < keep ? keep : nregs), posthook);
   }
 
   cipush(mrb, 0, 0, NULL, NULL, 0, 0);
@@ -580,7 +580,7 @@ mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p, mrb_func_t postho
 {
   mrb_callinfo *ci = mrb->c->ci;
   if (ci->acc >= 0) {
-    return mrb_exec_irep_vm(mrb, self, p, posthook);
+    return exec_irep(mrb, self, p, posthook);
   }
   else {
     mrb_value ret;
@@ -663,7 +663,7 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
     }
     return MRB_METHOD_CFUNC(m)(mrb, self);
   }
-  return mrb_exec_irep_vm(mrb, self, MRB_METHOD_PROC(m), NULL);
+  return exec_irep(mrb, self, MRB_METHOD_PROC(m), NULL);
 }
 
 static mrb_value
@@ -851,7 +851,7 @@ mrb_yield_cont(mrb_state *mrb, mrb_value b, mrb_value self, mrb_int argc, const 
   mrb->c->ci->stack[1] = mrb_ary_new_from_values(mrb, argc, argv);
   mrb->c->ci->stack[2] = mrb_nil_value();
   ci->argc = -1;
-  return mrb_exec_irep_vm(mrb, self, p, NULL);
+  return exec_irep(mrb, self, p, NULL);
 }
 
 static struct RBreak*
