@@ -295,8 +295,6 @@ class IO
     begin
       readchar
     rescue EOFError
-      c = @buf[0]
-      @buf[0,1]="" if c
       nil
     end
   end
