@@ -183,7 +183,7 @@ class Hash
   end
   ##
   # Return the contents of this hash as a string.
- #
+  #
   # ISO 15.2.13.4.30 (x)
   def inspect
     self._inspect({})

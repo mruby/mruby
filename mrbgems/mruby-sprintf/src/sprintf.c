@@ -312,21 +312,21 @@ get_hash(mrb_state *mrb, mrb_value *hash, mrb_int argc, const mrb_value *argv)
  *
  *      Field |  Float Format
  *      ------+--------------------------------------------------------------
- *        e   | Convert floating point argument into exponential notation
+ *        e   | Convert floating-point argument into exponential notation
  *            | with one digit before the decimal point as [-]d.dddddde[+-]dd.
  *            | The precision specifies the number of digits after the decimal
  *            | point (defaulting to six).
  *        E   | Equivalent to 'e', but uses an uppercase E to indicate
  *            | the exponent.
- *        f   | Convert floating point argument as [-]ddd.dddddd,
+ *        f   | Convert floating-point argument as [-]ddd.dddddd,
  *            | where the precision specifies the number of digits after
  *            | the decimal point.
- *        g   | Convert a floating point number using exponential form
+ *        g   | Convert a floating-point number using exponential form
  *            | if the exponent is less than -4 or greater than or
  *            | equal to the precision, or in dd.dddd form otherwise.
  *            | The precision specifies the number of significant digits.
  *        G   | Equivalent to 'g', but use an uppercase 'E' in exponent form.
- *        a   | Convert floating point argument as [-]0xh.hhhhp[+-]dd,
+ *        a   | Convert floating-point argument as [-]0xh.hhhhp[+-]dd,
  *            | which is consisted from optional sign, "0x", fraction part
  *            | as hexadecimal, "p", and exponential part as decimal.
  *        A   | Equivalent to 'a', but use uppercase 'X' and 'P'.

@@ -232,7 +232,7 @@ coerce_step_counter(mrb_state *mrb, mrb_value self)
  * Document-class: Float
  *
  *  <code>Float</code> objects represent inexact real numbers using
- *  the native architecture's double-precision floating point
+ *  the native architecture's double-precision floating-point
  *  representation.
  */
 
@@ -812,7 +812,7 @@ flo_ceil(mrb_state *mrb, mrb_value num)
  *     flt.round([ndigits])  ->  integer or float
  *
  *  Rounds <i>flt</i> to a given precision in decimal digits (default 0 digits).
- *  Precision may be negative.  Returns a floating point number when ndigits
+ *  Precision may be negative.  Returns a floating-point number when ndigits
  *  is more than zero.
  *
  *     1.4.round      #=> 1

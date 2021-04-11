@@ -123,7 +123,7 @@ fmt_u(uint32_t x, char *s)
   return s;
 }
 
-/* Do not override this check. The floating point printing code below
+/* Do not override this check. The floating-point printing code below
  * depends on the float.h constants being right. If they are wrong, it
  * may overflow the stack. */
 #if LDBL_MANT_DIG == 53

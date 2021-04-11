@@ -22,10 +22,20 @@ things in mind before submitting your pull request:
 
 A framework for managing and maintaining multi-language pre-commit hooks.
 Pre-commit can be [installed](https://pre-commit.com/#installation) with `pip`, `curl`, `brew` or `conda`.
+
 You need to first install pre-commit and then install the pre-commit hooks with `pre-commit install`.
 Now pre-commit will run automatically on git commit!
+
 It's usually a good idea to run the hooks against all the files when adding new hooks (usually pre-commit will only run on the changed files during git hooks).
 Use `pre-commit run --all-files` to check all files.
+
+To run a single hook use `pre-commit run --all-files <hook_id>`
+
+To update use `pre-commit autoupdate`
+
+* [Quick start](https://pre-commit.com/#quick-start)
+* [Usage](https://pre-commit.com/#usage)
+* [pre-commit-autoupdate](https://pre-commit.com/#pre-commit-autoupdate)
 
 ## Coding conventions
 
@@ -41,7 +51,7 @@ C code:
 
 mruby should be highly portable to other systems and compilers. For this it is
 recommended to keep your code as close as possible to the C99 standard
-(http://www.open-std.org/jtc1/sc22/WG14/www/docs/n1256.pdf).
+(<http://www.open-std.org/jtc1/sc22/WG14/www/docs/n1256.pdf>).
 
 Visual C++ is also an important target for mruby (supported version is 2013 or
 later). For this reason features that are not supported by Visual C++ may not
@@ -73,5 +83,5 @@ language itself. Please note the following hints for your Ruby code:
 #### Comply with the Ruby standard (ISO/IEC 30170:2012)
 
 mruby is currently targeting to execute Ruby code which complies to ISO/IEC
-30170:2012 (https://www.iso.org/iso/iso_catalogue/catalogue_tc/catalogue_detail.htm?csnumber=59579),
+30170:2012 (<https://www.iso.org/iso/iso_catalogue/catalogue_tc/catalogue_detail.htm?csnumber=59579>),
 unless there's a clear reason, e.g. the latest Ruby has changed behavior from ISO.

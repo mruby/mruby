@@ -11895,7 +11895,7 @@ parser_yylex(parser_state *p)
     tokfix(p);
     if (is_float) {
 #ifdef MRB_NO_FLOAT
-      yywarning_s(p, "floating point numbers are not supported", tok(p));
+      yywarning_s(p, "floating-point numbers are not supported", tok(p));
       pylval.nd = new_int(p, "0", 10, 0);
       return tINTEGER;
 #else
