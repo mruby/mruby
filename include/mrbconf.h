@@ -25,10 +25,10 @@
 #endif
 
 /* configuration options: */
-/* add -DMRB_USE_FLOAT32 to use float instead of double for floating point numbers */
+/* add -DMRB_USE_FLOAT32 to use float instead of double for floating-point numbers */
 //#define MRB_USE_FLOAT32
 
-/* exclude floating point numbers */
+/* exclude floating-point numbers */
 //#define MRB_NO_FLOAT
 
 /* obsolete configuration */

@@ -7,7 +7,7 @@ You have two ways to link `libmruby` to your application.
 
 ## Executable Gems
 
-If your application is relatively small, `mrbgem` is easier way to
+If your application is relatively small, `mrbgem` is an easier way to
 create the executable.  By tradition, the gem name start with
 `mruby-bin-`, e.g. `mruby-bin-debugger`.
 

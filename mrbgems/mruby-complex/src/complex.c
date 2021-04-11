@@ -300,7 +300,7 @@ complex_div(mrb_state *mrb, mrb_value self)
 
   b = complex_ptr(mrb, rhs);
 
-  /* Split floating point components into significand and exponent */
+  /* Split floating-point components into significand and exponent */
   ar.s = F(frexp)(a->real, &ar.x);
   ai.s = F(frexp)(a->imaginary, &ai.x);
   br.s = F(frexp)(b->real, &br.x);

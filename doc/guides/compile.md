@@ -271,7 +271,7 @@ See doc/mrbgems/README.md for more option about mrbgems.
 
 Configuration Mrbtest build process.
 
-If you want mrbtest.a only, You should set `conf.build_mrbtest_lib_only`
+If you want `mrbtest.a` only, You should set `conf.build_mrbtest_lib_only`
 
 ```ruby
 conf.build_mrbtest_lib_only
@@ -309,7 +309,7 @@ If you need to enable C++ exception explicitly add the following:
 conf.enable_cxx_exception
 ```
 
-#### C++ exception disabling.
+#### C++ exception disabling
 
 If your compiler does not support C++, and you want to ensure
 you don't use mrbgem written in C++, you can explicitly disable

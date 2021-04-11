@@ -2570,7 +2570,7 @@ mrb_str_to_dbl(mrb_state *mrb, mrb_value str, mrb_bool badcheck)
  *     str.to_f   => float
  *
  *  Returns the result of interpreting leading characters in <i>str</i> as a
- *  floating point number. Extraneous characters past the end of a valid number
+ *  floating-point number. Extraneous characters past the end of a valid number
  *  are ignored. If there is not a valid number at the start of <i>str</i>,
  *  <code>0.0</code> is returned. This method never raises an exception.
  *

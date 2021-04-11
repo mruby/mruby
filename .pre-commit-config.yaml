@@ -14,6 +14,8 @@ repos:
     hooks:
       - id: check-added-large-files
       - id: check-case-conflict
+      - id: check-executables-have-shebangs
+        exclude: ^test/t/lang\.rb$
       - id: check-merge-conflict
       - id: check-yaml
       - id: end-of-file-fixer
@@ -26,14 +28,15 @@ repos:
   #    - id: forbid-tabs
   #    - id: remove-tabs
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.26.0
+    rev: v0.27.1
     hooks:
       - id: markdownlint
         name: Run markdownlint
+        entry: markdownlint -c .github/linters/.markdown-lint.yml .
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.26.0
+    rev: v1.26.1
     hooks:
       - id: yamllint
         name: Check YAML files with yamllint
-        entry: yamllint --strict .
+        entry: yamllint --strict -c .github/linters/.yaml-lint.yml .
         types: [yaml]

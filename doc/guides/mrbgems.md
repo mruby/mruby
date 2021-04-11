@@ -33,7 +33,7 @@ conf.gem :github => 'masuidrive/mrbgems-example', :branch => 'master'
 conf.gem :bitbucket => 'mruby/mrbgems-example', :branch => 'master'
 ```
 
-You can specify the sub directory of the repository with `:path` option:
+You can specify the subdirectory of the repository with `:path` option:
 
 ```ruby
 conf.gem github: 'mruby/mruby', path: 'mrbgems/mruby-socket'
@@ -46,7 +46,7 @@ conf.gem :mgem => 'mruby-yaml'
 conf.gem :mgem => 'yaml' # 'mruby-' prefix could be omitted
 ```
 
-For specifying commit hash to checkout use `:checksum_hash` option:
+For specifying the commit hash to checkout use `:checksum_hash` option:
 
 ```ruby
 conf.gem mgem: 'mruby-redis', checksum_hash: '3446d19fc4a3f9697b5ddbf2a904f301c42f2f4e'
@@ -110,21 +110,23 @@ contains every gem found in the `mrbgems` directory.
 
 The maximal GEM structure looks like this:
 
-	+- GEM_NAME         <- Name of GEM
-	   |
-	   +- README.md     <- Readme for GEM
-	   |
-	   +- mrbgem.rake   <- GEM Specification
-	   |
-	   +- include/      <- Header for Ruby extension (will exported)
-	   |
-	   +- mrblib/       <- Source for Ruby extension
-	   |
-	   +- src/          <- Source for C extension
-	   |
-	   +- tools/        <- Source for Executable (in C)
-	   |
-	   +- test/         <- Test code (Ruby)
+```
++- GEM_NAME         <- Name of GEM
+   |
+   +- README.md     <- Readme for GEM
+   |
+   +- mrbgem.rake   <- GEM Specification
+   |
+   +- include/      <- Header for Ruby extension (will exported)
+   |
+   +- mrblib/       <- Source for Ruby extension
+   |
+   +- src/          <- Source for C extension
+   |
+   +- tools/        <- Source for Executable (in C)
+   |
+   +- test/         <- Test code (Ruby)
+```
 
 The folder `mrblib` contains pure Ruby files to extend mruby. The folder `src`
 contains C/C++ files to extend mruby. The folder `include` contains C/C++ header
@@ -386,22 +388,24 @@ binary gems, to separate normal gems and binary gems.
 
 ### Example
 
-	+- mruby-bin-example/
-	   |
-	   +- README.md         (Optional)
-	   |
-	   +- bintest/
-	   |  |
-	   |  +- example.rb     <- Test code for binary gem
-	   |
-	   +- mrbgem.rake       <- Gem specification
-	   |
-	   +- mrblib/           <- Source for Ruby extension (Optional)
-	   |
-	   +- src/              <- Source for C extension (Optional)
-	   |
-	   +- tools/
-	      |
-	      +- example/       <- Executable name directory
-             |
-             +- example.c	<- Source for Executable (includes main)
+```
+ +- mruby-bin-example/
+    |
+    +- README.md         (Optional)
+    |
+    +- bintest/
+    |  |
+    |  +- example.rb     <- Test code for binary gem
+    |
+    +- mrbgem.rake       <- Gem specification
+    |
+    +- mrblib/           <- Source for Ruby extension (Optional)
+    |
+    +- src/              <- Source for C extension (Optional)
+    |
+    +- tools/
+       |
+       +- example/       <- Executable name directory
+       |
+       +- example.c	 <- Source for Executable (includes main)
+```

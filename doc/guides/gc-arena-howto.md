@@ -3,7 +3,7 @@
 _This is an English translation of [Matz's blog post][matz blog post]
 written in Japanese._
 _Some parts are updated to reflect recent changes._
-[matz blog post]: https://www.rubyist.net/~matz/20130731.html
+[matz blog post]: <https://www.rubyist.net/~matz/20130731.html>
 
 When you are extending mruby using C language, you may encounter
 mysterious "arena overflow error" or memory leak or very slow
@@ -46,7 +46,7 @@ no longer referenced in the Ruby world, and cannot be treated as garbage.
 In mruby, we recognize all objects created in C function are alive.
 Then we have no problem such as confusing a live object as dead.
 
-This means that because we cannot collect truly dead object, we may
+This means that because we cannot collect a truly dead object, we may
 lose efficiency, but as a trade-off the GC itself is highly portable.
 We can say goodbye to the problem that GC deletes live objects due to
 optimization which sometimes occurs in CRuby.
@@ -140,7 +140,7 @@ inspect_ary(mrb_state *mrb, mrb_value ary, mrb_value list)
 }
 ```
 
-This is a real example, so a little bit complicated, but bear with me.
+This is a real example, so slightly complicated, but bear with me.
 The essence of `Array#inspect` is that after stringifying each element
 of array using `inspect` method, we join them together so that we can
 get `inspect` representation of the entire array.

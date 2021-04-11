@@ -86,7 +86,7 @@ mrb_f_method(mrb_state *mrb, mrb_value self)
  *     Integer(arg,base=0)    -> integer
  *
  *  Converts <i>arg</i> to a <code>Integer</code>.
- *  Numeric types are converted directly (with floating point numbers
+ *  Numeric types are converted directly (with floating-point numbers
  *  being truncated).    <i>base</i> (0, or between 2 and 36) is a base for
  *  integer string representation.  If <i>arg</i> is a <code>String</code>,
  *  when <i>base</i> is omitted or equals to zero, radix indicators

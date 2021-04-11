@@ -92,9 +92,9 @@ assert 'Method#call' do
   assert_equal 42, klass2.new.method(:foo).call
 
   i = Class.new {
-   def bar
-     yield 3
-   end
+    def bar
+      yield 3
+    end
   }.new
   assert_raise(LocalJumpError) { i.method(:bar).call }
   assert_equal 3, i.method(:bar).call { |i| i }

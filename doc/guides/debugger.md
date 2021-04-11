@@ -115,7 +115,7 @@ The breakpoint will be ordered in serial from 1.
 The number, which was given to the deleted breakpoint, will never be given to another breakpoint again.
 
 You can give multiple breakpoints to the specified the line number and method.
-Be ware that breakpoint command will not check the validity of the class name and method name.
+Be aware that the breakpoint command will not check the validity of the class name and method name.
 
 You can get the current breakpoint information by the following options.
 
@@ -367,5 +367,5 @@ r
 #### Step Command
 
 This will run the program step by step.
-When the method and the block are invoked, the program will be stop at the first row.
+When the method and the block are invoked, the program will stop at the first row.
 The program, which is developed in C, will be ignored.
