@@ -184,9 +184,15 @@ class IO
     nil
   end
 
-  def ungetbyte(substr)
-    substr = substr.chr if substr.is_a? Integer
-    ungetc substr
+  def ungetbyte(c)
+    if c.is_a? String
+      c = c.getbyte(0)
+    else
+      c &= 0xff
+    end
+    s = " "
+    s.setbyte(0,c)
+    ungetc s
   end
 
   def read(length = nil, outbuf = "")
