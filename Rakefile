@@ -31,7 +31,6 @@ load "#{MRUBY_ROOT}/tasks/bin.rake"
 load "#{MRUBY_ROOT}/tasks/presym.rake"
 load "#{MRUBY_ROOT}/tasks/test.rake"
 load "#{MRUBY_ROOT}/tasks/benchmark.rake"
-load "#{MRUBY_ROOT}/tasks/gitlab.rake"
 load "#{MRUBY_ROOT}/tasks/doc.rake"
 
 ##############################
