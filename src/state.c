@@ -183,7 +183,7 @@ mrb_free_context(mrb_state *mrb, struct mrb_context *c)
   mrb_free(mrb, c);
 }
 
-int mrb_protect_atexit(mrb_state *mrb);
+void mrb_protect_atexit(mrb_state *mrb);
 
   MRB_API void
 mrb_close(mrb_state *mrb)
