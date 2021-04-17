@@ -1,7 +1,5 @@
 module MRuby
   class Presym
-    include Rake::DSL
-
     OPERATORS = {
       "!" => "not",
       "%" => "mod",
