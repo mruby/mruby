@@ -119,6 +119,14 @@ assert("Array#intersection") do
   assert_equal [1, 8], a.intersection(b,c)
 end
 
+assert("Array#intersect?") do
+  a = [ 1, 2, 3 ]
+  b = [ 3, 4, 5 ]
+  c = [ 5, 6, 7 ]
+  assert_true(a.intersect?(b))
+  assert_false(a.intersect?(c))
+end
+
 assert("Array#flatten") do
   assert_equal [1, 2, "3", {4=>5}, :'6'],    [1, 2, "3", {4=>5}, :'6'].flatten
   assert_equal [1, 2, 3, 4, 5, 6], [1, 2,    [3, 4, 5], 6].flatten
