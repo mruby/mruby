@@ -461,21 +461,28 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
   time_t nowsecs;
   struct tm nowtime = { 0 };
 
-  nowtime.tm_year  = (int)ayear  - 1900;
-  nowtime.tm_mon   = (int)amonth - 1;
+#if MRB_INT_MAX > INT_MAX
+#define OUTINT(x) (INT_MIN > (x) || (x) > INT_MAX)
+#else
+#define OUTINT(x) 0
+#endif
+
+  if (OUTINT(ayear-1900) ||
+      amonth  < 1 || amonth  > 12 ||
+      aday    < 1 || aday    > 31 ||
+      ahour   < 0 || ahour   > 24 ||
+      (ahour == 24 && (amin > 0 || asec > 0)) ||
+      amin    < 0 || amin    > 59 ||
+      asec    < 0 || asec    > 60)
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "argument out of range");
+
+  nowtime.tm_year  = (int)(ayear  - 1900);
+  nowtime.tm_mon   = (int)(amonth - 1);
   nowtime.tm_mday  = (int)aday;
   nowtime.tm_hour  = (int)ahour;
   nowtime.tm_min   = (int)amin;
   nowtime.tm_sec   = (int)asec;
   nowtime.tm_isdst = -1;
-
-  if (nowtime.tm_mon  < 0 || nowtime.tm_mon  > 11
-      || nowtime.tm_mday < 1 || nowtime.tm_mday > 31
-      || nowtime.tm_hour < 0 || nowtime.tm_hour > 24
-      || (nowtime.tm_hour == 24 && (nowtime.tm_min > 0 || nowtime.tm_sec > 0))
-      || nowtime.tm_min  < 0 || nowtime.tm_min  > 59
-      || nowtime.tm_sec  < 0 || nowtime.tm_sec  > 60)
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "argument out of range");
 
   if (timezone == MRB_TIMEZONE_UTC) {
     nowsecs = timegm(&nowtime);
