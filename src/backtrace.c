@@ -33,6 +33,7 @@ static void
 each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, each_backtrace_func func, void *data)
 {
   ptrdiff_t i;
+  int n = 0;
 
   if (ciidx >= mrb->c->ciend - mrb->c->cibase)
     ciidx = 10; /* ciidx is broken... */
@@ -61,6 +62,7 @@ each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, each_backtrace_func func, void *
 
     idx = (uint32_t)(pc - irep->iseq);
     loc.lineno = mrb_debug_get_line(mrb, irep, idx);
+    if (n++ == 0 && loc.lineno == -1) continue;
 
     loc.filename = mrb_debug_get_filename(mrb, irep, idx);
     if (!loc.filename) {
