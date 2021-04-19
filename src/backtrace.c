@@ -224,16 +224,15 @@ mrb_unpack_backtrace(mrb_state *mrb, mrb_value backtrace)
 MRB_API mrb_value
 mrb_exc_backtrace(mrb_state *mrb, mrb_value exc)
 {
-  mrb_sym attr_name;
   mrb_value backtrace;
 
-  attr_name = MRB_SYM(backtrace);
-  backtrace = mrb_iv_get(mrb, exc, attr_name);
+  backtrace = mrb_iv_get(mrb, exc, MRB_SYM(backtrace));
   if (mrb_nil_p(backtrace) || mrb_array_p(backtrace)) {
     return backtrace;
   }
+  /* unpack packed-backtrace */
   backtrace = mrb_unpack_backtrace(mrb, backtrace);
-  mrb_iv_set(mrb, exc, attr_name, backtrace);
+  mrb_iv_set(mrb, exc, MRB_SYM(backtrace), backtrace);
   return backtrace;
 }
 
