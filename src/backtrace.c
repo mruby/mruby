@@ -197,6 +197,7 @@ mrb_unpack_backtrace(mrb_state *mrb, mrb_value backtrace)
   bt = (struct backtrace_location*)mrb_data_check_get_ptr(mrb, backtrace, &bt_type);
   if (bt == NULL) goto empty_backtrace;
   n = (mrb_int)RDATA(backtrace)->flags;
+  if (n == 0) goto empty_backtrace;
   backtrace = mrb_ary_new_capa(mrb, n);
   ai = mrb_gc_arena_save(mrb);
   for (i = 0; i < n; i++) {
