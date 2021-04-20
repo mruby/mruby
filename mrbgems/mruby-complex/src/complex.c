@@ -19,8 +19,6 @@ struct mrb_complex {
   mrb_float imaginary;
 };
 
-#include <mruby/istruct.h>
-
 #if defined(MRB_32BIT) && !defined(MRB_USE_FLOAT32)
 
 struct RComplex {
