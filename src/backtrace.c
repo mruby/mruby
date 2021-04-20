@@ -236,7 +236,7 @@ mrb_exc_backtrace(mrb_state *mrb, mrb_value exc)
   return backtrace;
 }
 
-MRB_API mrb_value
+mrb_value
 mrb_get_backtrace(mrb_state *mrb)
 {
   return mrb_unpack_backtrace(mrb, packed_backtrace(mrb));
