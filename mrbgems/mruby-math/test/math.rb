@@ -60,7 +60,7 @@ end
 assert('Math.log10') do
   assert_float(0.0, Math.log10(1))
   assert_float(1.0, Math.log10(10))
-  assert_float(30.0, Math.log10(10**30))
+  assert_float(30.0, Math.log10(10.0**30))
 end
 
 assert('Math.sqrt') do
