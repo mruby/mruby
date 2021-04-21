@@ -103,13 +103,13 @@ int_pow(mrb_state *mrb, mrb_value x)
   for (;;) {
     if (exp & 1) {
       if (mrb_int_mul_overflow(result, base, &result)) {
-        int_overflow(mrb, "multiplication");
+        int_overflow(mrb, "power");
       }
     }
     exp >>= 1;
     if (exp == 0) break;
     if (mrb_int_mul_overflow(base, base, &base)) {
-      int_overflow(mrb, "multiplication");
+      int_overflow(mrb, "power");
     }
   }
   return mrb_int_value(mrb, result);
