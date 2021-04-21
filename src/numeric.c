@@ -76,31 +76,29 @@ int_zerodiv(mrb_state *mrb)
 static mrb_value
 int_pow(mrb_state *mrb, mrb_value x)
 {
-  mrb_int base = mrb_int(mrb, x);
-  mrb_int exp;
-#ifndef MRB_NO_FLOAT
   mrb_value y = mrb_get_arg1(mrb);
-  mrb_float z;
-
-  if (!mrb_integer_p(y)) {
-    mrb_get_args(mrb, "f", &z);
-    z = pow((mrb_float)base, z);
-    return mrb_float_value(mrb, z);
-  }
-  else {
-    mrb_get_args(mrb, "i", &exp);
-    z = pow((double)base, (double)exp);
-    if (exp < 0 || z < (mrb_float)MRB_INT_MIN || (mrb_float)MRB_INT_MAX < z) {
-      return mrb_float_value(mrb, z);
-    }
-  }
-  return mrb_int_value(mrb, (mrb_int)z);
-#else
+  mrb_int base = mrb_integer(x);
   mrb_int result = 1;
+  mrb_int exp;
 
-  mrb_get_args(mrb, "i", &exp);
+#ifndef MRB_NO_FLOAT
+  if (mrb_float_p(y)) {
+    return mrb_float_value(mrb, pow((double)base, mrb_float(y)));
+  }
+  else if (mrb_integer_p(y)) {
+    exp = mrb_integer(y);
+  }
+  else
+#endif
+  {
+    mrb_get_args(mrb, "i", &exp);
+  }
   if (exp < 0) {
-    return mrb_fixnum_value(0);
+#ifndef MRB_NO_FLOAT
+    return mrb_float_value(mrb, pow((double)base, (double)exp));
+#else
+    int_overflow(mrb, "negative power");
+#endif
   }
   for (;;) {
     if (exp & 1) {
@@ -115,7 +113,6 @@ int_pow(mrb_state *mrb, mrb_value x)
     }
   }
   return mrb_int_value(mrb, result);
-#endif
 }
 
 mrb_int
