@@ -307,7 +307,7 @@ cipop(mrb_state *mrb)
 }
 
 MRB_API mrb_value
-mrb_protect_raw(mrb_state *mrb, mrb_protect_raw_func *body, void *userdata, mrb_bool *error)
+mrb_protect_error(mrb_state *mrb, mrb_protect_error_func *body, void *userdata, mrb_bool *error)
 {
   struct mrb_jmpbuf *prev_jmp = mrb->jmp;
   struct mrb_jmpbuf c_jmp;

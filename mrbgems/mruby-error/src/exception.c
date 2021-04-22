@@ -17,7 +17,7 @@ MRB_API mrb_value
 mrb_protect(mrb_state *mrb, mrb_func_t body, mrb_value data, mrb_bool *state)
 {
   struct protect_data protect_data = { body, data };
-  return mrb_protect_raw(mrb, protect_body, &protect_data, state);
+  return mrb_protect_error(mrb, protect_body, &protect_data, state);
 }
 
 MRB_API mrb_value
@@ -26,7 +26,7 @@ mrb_ensure(mrb_state *mrb, mrb_func_t body, mrb_value b_data, mrb_func_t ensure,
   int ai = mrb_gc_arena_save(mrb);
   struct protect_data protect_data = { body, b_data };
   mrb_bool error;
-  mrb_value result = mrb_protect_raw(mrb, protect_body, &protect_data, &error);
+  mrb_value result = mrb_protect_error(mrb, protect_body, &protect_data, &error);
   ensure(mrb, e_data);
   mrb_gc_arena_restore(mrb, ai);
   mrb_gc_protect(mrb, result);
@@ -50,7 +50,7 @@ mrb_rescue_exceptions(mrb_state *mrb, mrb_func_t body, mrb_value b_data, mrb_fun
   int ai = mrb_gc_arena_save(mrb);
   struct protect_data protect_data = { body, b_data };
   mrb_bool error;
-  mrb_value result = mrb_protect_raw(mrb, protect_body, &protect_data, &error);
+  mrb_value result = mrb_protect_error(mrb, protect_body, &protect_data, &error);
   if (error) {
     mrb_bool error_matched = FALSE;
     for (mrb_int i = 0; i < len; ++i) {

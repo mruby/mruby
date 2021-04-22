@@ -104,6 +104,13 @@ mrb_break_tag_set(struct RBreak *brk, uint32_t tag)
 /**
  * Protect
  *
+ */
+typedef mrb_value mrb_protect_error_func(mrb_state *mrb, void *userdata);
+MRB_API mrb_value mrb_protect_error(mrb_state *mrb, mrb_protect_error_func *body, void *userdata, mrb_bool *error);
+
+/**
+ * Protect (takes mrb_value for body argument)
+ *
  * Implemented in the mruby-error mrbgem
  */
 MRB_API mrb_value mrb_protect(mrb_state *mrb, mrb_func_t body, mrb_value data, mrb_bool *state);
@@ -132,14 +139,6 @@ MRB_API mrb_value mrb_rescue(mrb_state *mrb, mrb_func_t body, mrb_value b_data,
 MRB_API mrb_value mrb_rescue_exceptions(mrb_state *mrb, mrb_func_t body, mrb_value b_data,
                                         mrb_func_t rescue, mrb_value r_data,
                                         mrb_int len, struct RClass **classes);
-
-typedef mrb_value mrb_protect_raw_func(mrb_state *mrb, void *userdata);
-
-/**
- * This API function behaves like `mrb_protect()`.
- * The advantage is that it avoids objectifying the user data.
- */
-MRB_API mrb_value mrb_protect_raw(mrb_state *mrb, mrb_protect_raw_func *body, void *userdata, mrb_bool *error);
 
 MRB_END_DECL
 
