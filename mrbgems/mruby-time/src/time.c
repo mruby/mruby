@@ -334,7 +334,7 @@ time_alloc_time(mrb_state *mrb, time_t sec, time_t usec, enum mrb_timezone timez
   tm = (struct mrb_time *)mrb_malloc(mrb, sizeof(struct mrb_time));
   tm->sec  = sec;
   tm->usec = usec;
-  if (tm->usec < 0) {
+  if (MRB_TIME_T_UINT && tm->usec < 0) {
     long sec2 = (long)NDIV(tm->usec,1000000); /* negative div */
     tm->usec -= sec2 * 1000000;
     tm->sec += sec2;
@@ -462,7 +462,7 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
   struct tm nowtime = { 0 };
 
 #if MRB_INT_MAX > INT_MAX
-#define OUTINT(x) (INT_MIN > (x) || (x) > INT_MAX)
+#define OUTINT(x) (((MRB_TIME_T_UINT ? 0 : INT_MIN) > (x)) || (x) > INT_MAX)
 #else
 #define OUTINT(x) 0
 #endif
