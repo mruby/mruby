@@ -1138,8 +1138,6 @@ check_target_class(mrb_state *mrb)
 
 mrb_value mrb_obj_missing(mrb_state *mrb, mrb_value mod);
 void mrb_hash_check_kdict(mrb_state *mrb, mrb_value self);
-mrb_int mrb_div_int(mrb_state *mrb, mrb_int x, mrb_int y);
-mrb_float mrb_div_flo(mrb_float x, mrb_float y);
 
 MRB_API mrb_value
 mrb_vm_exec(mrb_state *mrb, const struct RProc *proc, const mrb_code *pc)
@@ -2442,7 +2440,9 @@ RETRY_TRY_BLOCK:
     CASE(OP_DIV, B) {
 #ifndef MRB_NO_FLOAT
       mrb_float x, y, f;
+      mrb_float mrb_div_flo(mrb_float x, mrb_float y);
 #endif
+      mrb_int mrb_div_int(mrb_state *mrb, mrb_int x, mrb_int y);
 
       /* need to check if op is overridden */
       switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {
