@@ -44,13 +44,6 @@ assert 'ARGV value' do
   assert_mruby("[]\n", "", true, %w[-e p(ARGV)])
 end
 
-assert('float literal') do
-  script, bin = Tempfile.new('test.rb'), Tempfile.new('test.mrb')
-  File.write script.path, 'p [3.21, 2e308.infinite?, -2e308.infinite?]'
-  system "#{cmd('mrbc')} -g -o #{bin.path} #{script.path}"
-  assert_equal "[3.21, 1, -1]", `#{cmd('mruby')} #{bin.path}`.chomp!
-end
-
 assert '__END__', '8.6' do
   script = Tempfile.new('test.rb')
 

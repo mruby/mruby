@@ -406,8 +406,9 @@ end
 assert 'UnboundMethod#==' do
   assert_false(Integer.instance_method(:+) == Integer.instance_method(:-))
   assert_true(Integer.instance_method(:+) == Integer.instance_method(:+))
-  assert_false(Integer.instance_method(:+) == Float.instance_method(:+))
   assert_true(UnboundMethod.instance_method(:==) == UnboundMethod.instance_method(:eql?))
+  skip unless Object.const_defined?(:Float)
+  assert_false(Integer.instance_method(:+) == Float.instance_method(:+))
 end
 
 assert 'UnboundMethod#super_method' do

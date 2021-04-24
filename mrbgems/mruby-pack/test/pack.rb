@@ -1,3 +1,4 @@
+# coding: utf-8
 PACK_IS_LITTLE_ENDIAN = "\x01\00".unpack('S')[0] == 0x01
 
 def assert_pack tmpl, packed, unpacked
@@ -91,6 +92,7 @@ assert('issue #1') do
 end
 
 assert 'pack float' do
+  skip unless Object.const_defined?(:Float)
   assert_pack 'e', "\x00\x00@@", [3.0]
   assert_pack 'g', "@@\x00\x00", [3.0]
 
@@ -104,6 +106,7 @@ assert 'pack float' do
 end
 
 assert 'pack double' do
+  skip unless Object.const_defined?(:Float)
   assert_pack 'E', "\x00\x00\x00\x00\x00\x00\b@", [3.0]
   assert_pack 'G', "@\b\x00\x00\x00\x00\x00\x00", [3.0]
 

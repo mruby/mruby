@@ -130,7 +130,7 @@ class Integer
   # Returns the receiver simply.
   #
   # ISO 15.2.8.3.14
-  def ceil
+  def ceil(n=0)
     self
   end
 
@@ -138,7 +138,7 @@ class Integer
   # Returns the receiver simply.
   #
   # ISO 15.2.8.3.17
-  def floor
+  def floor(n=0)
     self
   end
 
