@@ -36,7 +36,7 @@ static const mrb_irep call_irep = {
 };
 
 static const struct RProc call_proc = {
-  NULL, NULL, MRB_TT_PROC, 7 /* GC_RED */, MRB_FL_OBJ_IS_FROZEN | MRB_PROC_SCOPE | MRB_PROC_STRICT,
+  NULL, NULL, MRB_TT_PROC, MRB_GC_RED, MRB_FL_OBJ_IS_FROZEN | MRB_PROC_SCOPE | MRB_PROC_STRICT,
   { &call_irep }, NULL, { NULL }
 };
 
@@ -51,7 +51,7 @@ mrb_proc_new(mrb_state *mrb, const mrb_irep *irep)
     struct RClass *tc = NULL;
 
     if (ci->proc) {
-      if (ci->proc->color != 7 /* GC_RED */) {
+      if (ci->proc->color != MRB_GC_RED) {
         tc = MRB_PROC_TARGET_CLASS(ci->proc);
       }
       else {

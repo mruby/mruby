@@ -200,9 +200,10 @@ gettimeofday_time(void)
 #define GC_WHITE_A 1
 #define GC_WHITE_B (1 << 1)
 #define GC_BLACK (1 << 2)
-#define GC_RED 7
+#define GC_RED MRB_GC_RED
 #define GC_WHITES (GC_WHITE_A | GC_WHITE_B)
 #define GC_COLOR_MASK 7
+mrb_static_assert1(MRB_GC_RED <= GC_COLOR_MASK);
 
 #define paint_gray(o) ((o)->color = GC_GRAY)
 #define paint_black(o) ((o)->color = GC_BLACK)

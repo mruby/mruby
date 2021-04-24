@@ -558,7 +558,7 @@ exec_irep_prepare_posthook(mrb_state *mrb, mrb_callinfo *ci, int nregs, mrb_func
     0, 0, 0, 0
   };
   static const struct RProc hook_caller = {
-    NULL, NULL, MRB_TT_PROC, 7 /* GC_RED */, MRB_FL_OBJ_IS_FROZEN, { &hook_irep }, NULL, { NULL }
+    NULL, NULL, MRB_TT_PROC, MRB_GC_RED, MRB_FL_OBJ_IS_FROZEN, { &hook_irep }, NULL, { NULL }
   };
 
   struct RProc *hook = mrb_proc_new_cfunc(mrb, posthook);
