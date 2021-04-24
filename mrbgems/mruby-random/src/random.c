@@ -120,43 +120,33 @@ rand_real(rand_state *t)
 #endif
 
 static mrb_value
-random_rand(mrb_state *mrb, rand_state *t, mrb_value max)
+random_rand(mrb_state *mrb, rand_state *t, mrb_int max)
 {
-  mrb_value value;
-
-  if (mrb_integer(max) == 0) {
+  if (max == 0) {
 #ifndef MRB_NO_FLOAT
-    value = mrb_float_value(mrb, rand_real(t));
+    return mrb_float_value(mrb, rand_real(t));
 #else
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "Float not supported");
+    max = 100;
 #endif
   }
-  else {
-    value = mrb_int_value(mrb, rand_uint32(t) % mrb_integer(max));
-  }
-
-  return value;
+  return mrb_int_value(mrb, rand_uint32(t) % max);
 }
 
-static mrb_value
+static mrb_int
+random_rand_i(mrb_state *mrb, rand_state *t, mrb_int max)
+{
+  return rand_uint32(t) % max;
+}
+
+static mrb_int
 get_opt(mrb_state* mrb)
 {
-  mrb_value arg;
+  mrb_int arg;
 
-  arg = mrb_nil_value();
-  mrb_get_args(mrb, "|o", &arg);
-
-  if (!mrb_nil_p(arg)) {
-    mrb_int i;
-
-    arg = mrb_to_int(mrb, arg);
-    i = mrb_integer(arg);
-    if (i < 0) {
-      if (i == MRB_INT_MIN) {
-        mrb_raise(mrb, E_RANGE_ERROR, "integer underflow");
-      }
-      arg = mrb_fixnum_value(0 - i);
-    }
+  arg = 0;
+  mrb_get_args(mrb, "|i", &arg);
+  if (arg < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid argument");
   }
   return arg;
 }
@@ -185,17 +175,15 @@ random_default(mrb_state *mrb) {
 static mrb_value
 random_m_init(mrb_state *mrb, mrb_value self)
 {
-  mrb_value seed;
+  mrb_int seed;
   rand_state *t;
 
-  seed = get_opt(mrb);
-  /* avoid memory leaks */
   t = random_ptr(self);
-  if (mrb_nil_p(seed)) {
+  if (mrb_get_args(mrb, "|i", &seed) == 0) {
     rand_init(t);
   }
   else {
-    rand_seed(t, (uint32_t)mrb_integer(seed));
+    rand_seed(t, (uint32_t)seed);
   }
 
   return self;
@@ -204,7 +192,7 @@ random_m_init(mrb_state *mrb, mrb_value self)
 static mrb_value
 random_m_rand(mrb_state *mrb, mrb_value self)
 {
-  mrb_value max;
+  mrb_int max;
   rand_state *t = random_ptr(self);
 
   max = get_opt(mrb);
@@ -216,15 +204,14 @@ random_m_srand(mrb_state *mrb, mrb_value self)
 {
   uint32_t seed;
   uint32_t old_seed;
-  mrb_value sv;
+  mrb_int i;
   rand_state *t = random_ptr(self);
 
-  sv = get_opt(mrb);
-  if (mrb_nil_p(sv)) {
+  if (mrb_get_args(mrb, "|i", &i) == 0) {
     seed = (uint32_t)time(NULL) + rand_uint32(t);
   }
   else {
-    seed = (uint32_t)mrb_integer(sv);
+    seed = (uint32_t)i;
   }
   old_seed = rand_seed(t, seed);
 
@@ -241,8 +228,7 @@ random_m_srand(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
 {
-  mrb_int i;
-  mrb_value max;
+  mrb_int i, max;
   mrb_value r = mrb_nil_value();
   rand_state *random;
 
@@ -285,13 +271,13 @@ mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
       random = random_ptr(r);
     }
     mrb_ary_modify(mrb, mrb_ary_ptr(ary));
-    max = mrb_fixnum_value(RARRAY_LEN(ary));
+    max = RARRAY_LEN(ary);
     for (i = RARRAY_LEN(ary) - 1; i > 0; i--)  {
       mrb_int j;
       mrb_value *ptr = RARRAY_PTR(ary);
       mrb_value tmp;
 
-      j = mrb_integer(random_rand(mrb, random, max));
+      j = random_rand_i(mrb, random, max);
 
       tmp = ptr[i];
       ptr[i] = ptr[j];
