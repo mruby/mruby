@@ -2806,7 +2806,7 @@ static const mrb_code new_iseq[] = {
   OP_MOVE, 0x0, 0x3,         /* OP_MOVE      R0  R3 */
   OP_MOVE, 0x4, 0x1,         /* OP_MOVE      R4  R1 */
   OP_MOVE, 0x5, 0x2,         /* OP_MOVE      R5  R2 */
-  OP_SENDVB, 0x3, 0x1,       /* OP_SENDVB    R4  :initialize */
+  OP_SENDVB, 0x3, 0x1,       /* OP_SENDVB    R3  :initialize */
   OP_RETURN, 0x0             /* OP_RETURN    R0 */
 };
 
