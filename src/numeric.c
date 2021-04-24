@@ -76,12 +76,13 @@ int_zerodiv(mrb_state *mrb)
 static mrb_value
 int_pow(mrb_state *mrb, mrb_value x)
 {
-  mrb_value y = mrb_get_arg1(mrb);
   mrb_int base = mrb_integer(x);
   mrb_int result = 1;
   mrb_int exp;
 
 #ifndef MRB_NO_FLOAT
+  mrb_value y = mrb_get_arg1(mrb);
+
   if (mrb_float_p(y)) {
     return mrb_float_value(mrb, pow((double)base, mrb_float(y)));
   }
@@ -136,7 +137,9 @@ mrb_div_int(mrb_state *mrb, mrb_int x, mrb_int y)
   return 0;
 }
 
+#ifndef MRB_NO_FLOAT
 mrb_float mrb_div_flo(mrb_float x, mrb_float y);
+#endif
 
 /* 15.2.8.3.4  */
 /* 15.2.9.3.4  */
@@ -1607,11 +1610,11 @@ cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
   case MRB_TT_FLOAT:
     y = mrb_float(v2);
     break;
-#endif
 #ifdef MRB_USE_RATIONAL
   case MRB_TT_RATIONAL:
     y = mrb_to_flo(mrb, v2);
     break;
+#endif
 #endif
   default:
     return -2;
