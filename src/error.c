@@ -88,7 +88,7 @@ exc_exception(mrb_state *mrb, mrb_value self)
  * no message is set).
  */
 
-mrb_value
+static mrb_value
 exc_to_s(mrb_state *mrb, mrb_value exc)
 {
   mrb_value mesg = mrb_attr_get(mrb, exc, MRB_SYM(mesg));
