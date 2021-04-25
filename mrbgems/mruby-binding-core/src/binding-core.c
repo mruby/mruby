@@ -188,10 +188,8 @@ binding_source_location(mrb_state *mrb, mrb_value self)
   if (!proc || MRB_PROC_CFUNC_P(proc) ||
       !proc->upper || MRB_PROC_CFUNC_P(proc->upper)) {
     srcloc = mrb_nil_value();
-    goto cache_source_location;
   }
-
-  {
+  else {
     const mrb_irep *irep = proc->upper->body.irep;
     mrb_int pc = binding_extract_pc(mrb, self);
     if (pc < 0) {
@@ -210,7 +208,6 @@ binding_source_location(mrb_state *mrb, mrb_value self)
     }
   }
 
-cache_source_location:
   if (!mrb_frozen_p(mrb_obj_ptr(self))) {
     mrb_iv_set(mrb, self, MRB_SYM(source_location), srcloc);
   }
