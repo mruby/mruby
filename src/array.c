@@ -578,6 +578,47 @@ mrb_ary_shift(mrb_state *mrb, mrb_value self)
   return val;
 }
 
+MRB_API mrb_value
+mrb_ary_shift_m(mrb_state *mrb, mrb_value self)
+{
+  struct RArray *a = mrb_ary_ptr(self);
+  mrb_int len = ARY_LEN(a);
+  mrb_int n;
+  mrb_value val;
+
+  if (mrb_get_args(mrb, "|i", &n) == 0) {
+    return mrb_ary_shift(mrb, self);
+  };
+  ary_modify_check(mrb, a);
+  if (len == 0 || n == 0) return mrb_ary_new(mrb);
+  if (n > len) n = len;
+  val = mrb_ary_new_from_values(mrb, n, ARY_PTR(a));
+  if (ARY_SHARED_P(a)) {
+  L_SHIFT:
+    a->as.heap.ptr+=n;
+    a->as.heap.len-=n;
+    return val;
+  }
+  if (len > ARY_SHIFT_SHARED_MIN) {
+    ary_make_shared(mrb, a);
+    goto L_SHIFT;
+  }
+  else if (len == n) {
+    ARY_SET_LEN(a, 0);
+  }
+  else {
+    mrb_value *ptr = ARY_PTR(a);
+    mrb_int size = len-n;
+
+    while (size--) {
+      *ptr = *(ptr+n);
+      ++ptr;
+    }
+    ARY_SET_LEN(a, len-n);
+  }
+  return val;
+}
+
 /* self = [1,2,3]
    item = 0
    self.unshift item
@@ -1318,7 +1359,7 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method(mrb, a, "reverse",         mrb_ary_reverse,      MRB_ARGS_NONE());   /* 15.2.12.5.24 */
   mrb_define_method(mrb, a, "reverse!",        mrb_ary_reverse_bang, MRB_ARGS_NONE());   /* 15.2.12.5.25 */
   mrb_define_method(mrb, a, "rindex",          mrb_ary_rindex_m,     MRB_ARGS_REQ(1));   /* 15.2.12.5.26 */
-  mrb_define_method(mrb, a, "shift",           mrb_ary_shift,        MRB_ARGS_NONE());   /* 15.2.12.5.27 */
+  mrb_define_method(mrb, a, "shift",           mrb_ary_shift_m,      MRB_ARGS_OPT(1));   /* 15.2.12.5.27 */
   mrb_define_method(mrb, a, "size",            mrb_ary_size,         MRB_ARGS_NONE());   /* 15.2.12.5.28 */
   mrb_define_method(mrb, a, "slice",           mrb_ary_aget,         MRB_ARGS_ARG(1,1)); /* 15.2.12.5.29 */
   mrb_define_method(mrb, a, "unshift",         mrb_ary_unshift_m,    MRB_ARGS_ANY());    /* 15.2.12.5.30 */

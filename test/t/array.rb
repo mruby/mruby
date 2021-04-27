@@ -295,6 +295,24 @@ assert('Array#shift', '15.2.12.5.27') do
   assert_equal(1, b)
 
   assert_raise(FrozenError) { [].freeze.shift }
+
+  # Array#shift with argument
+  assert_equal([], [].shift(1))
+
+  a = [1,2,3]
+  b = a.shift(1)
+  assert_equal([2,3], a)
+  assert_equal([1], b)
+
+  a = [1,2,3,4]
+  b = a.shift(3)
+  assert_equal([4], a)
+  assert_equal([1,2,3], b)
+
+  a = [1,2,3]
+  b = a.shift(4)
+  assert_equal([], a)
+  assert_equal([1,2,3], b)
 end
 
 assert('Array#size', '15.2.12.5.28') do
