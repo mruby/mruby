@@ -330,7 +330,7 @@ class IO
   def each_byte(&block)
     return to_enum(:each_byte) unless block
 
-    while char = self.getc
+    while char = self.getbyte
       block.call(char)
     end
     self
@@ -339,7 +339,14 @@ class IO
   # 15.2.20.5.5
   alias each_line each
 
-  alias each_char each_byte
+  def each_char(&block)
+    return to_enum(:each_byte) unless block
+
+    while char = self.getc
+      block.call(char)
+    end
+    self
+  end
 
   def readlines
     ary = []
