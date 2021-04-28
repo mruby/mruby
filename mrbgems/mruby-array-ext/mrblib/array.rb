@@ -51,7 +51,7 @@ class Array
   #    b.uniq { |s| s.first } # => [["student", "sam"], ["teacher", "matz"]]
   #
   def uniq(&block)
-    ary = self.dup
+    ary = self[0..-1]
     ary.uniq!(&block)
     ary
   end
