@@ -275,8 +275,8 @@ class String
   def ljust(idx, padstr = ' ')
     raise ArgumentError, 'zero width padding' if padstr == ''
     return self if idx <= self.size
-    pad_repetitions = (idx / padstr.length).ceil
-    padding = (padstr * pad_repetitions)[0...(idx - self.length)]
+    pad_repetitions = idx / padstr.size
+    padding = (padstr * pad_repetitions)[0, idx-self.size]
     self + padding
   end
 
@@ -294,9 +294,29 @@ class String
   def rjust(idx, padstr = ' ')
     raise ArgumentError, 'zero width padding' if padstr == ''
     return self if idx <= self.size
-    pad_repetitions = (idx / padstr.length).ceil
-    padding = (padstr * pad_repetitions)[0...(idx - self.length)]
+    pad_repetitions = idx / padstr.size
+    padding = (padstr * pad_repetitions)[0, idx-self.size]
     padding + self
+  end
+
+  ##
+  #  call-seq:
+  #     str.center(width, padstr=' ')   -> new_str
+  #
+  #  Centers +str+ in +width+.  If +width+ is greater than the length of +str+,
+  #  returns a new String of length +width+ with +str+ centered and padded with
+  #  +padstr+; otherwise, returns +str+.
+  #
+  #     "hello".center(4)         #=> "hello"
+  #     "hello".center(20)        #=> "       hello        "
+  #     "hello".center(20, '123') #=> "1231231hello12312312"
+  def center(width, padstr = ' ')
+    raise ArgumentError, 'zero width padding' if padstr == ''
+    return self if width <= self.size
+    width -= self.size
+    pad1 = width / 2
+    pad2 = width - pad1
+    (padstr*pad1)[0,pad1] + self + (padstr*pad2)[0,pad2]
   end
 
   def chars(&block)
