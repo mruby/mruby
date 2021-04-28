@@ -148,7 +148,7 @@ class String
       m = n + sep.size
       [ slice(0, n), sep, slice(m, size - m) ]
     else
-      [ self, "", "" ]
+      [ self[0..-1], "", "" ]
     end
   end
 

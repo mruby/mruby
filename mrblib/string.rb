@@ -29,25 +29,16 @@ class String
     string = dup
     self_len = length
     sep_len = separator.length
-    should_yield_subclass_instances = self.class != String
 
     while (pointer = string.index(separator, start))
       pointer += sep_len
       pointer += 1 while paragraph_mode && string[pointer] == "\n"
-      if should_yield_subclass_instances
-        block.call(self.class.new(string[start, pointer - start]))
-      else
-        block.call(string[start, pointer - start])
-      end
+      block.call(string[start, pointer - start])
       start = pointer
     end
     return self if start == self_len
 
-    if should_yield_subclass_instances
-      block.call(self.class.new(string[start, self_len - start]))
-    else
-      block.call(string[start, self_len - start])
-    end
+    block.call(string[start, self_len - start])
     self
   end
 

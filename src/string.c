@@ -141,21 +141,6 @@ str_new(mrb_state *mrb, const char *p, size_t len)
   return str_init_normal(mrb, mrb_obj_alloc_string(mrb), p, len);
 }
 
-static inline void
-str_with_class(struct RString *s, mrb_value obj)
-{
-  s->c = mrb_str_ptr(obj)->c;
-}
-
-static mrb_value
-mrb_str_new_empty(mrb_state *mrb, mrb_value str)
-{
-  struct RString *s = str_new(mrb, 0, 0);
-
-  str_with_class(s, str);
-  return mrb_obj_value(s);
-}
-
 MRB_API mrb_value
 mrb_str_new_capa(mrb_state *mrb, size_t capa)
 {
@@ -949,7 +934,6 @@ mrb_str_times(mrb_state *mrb, mrb_value self)
 
   len = RSTRING_LEN(self)*times;
   str2 = str_new(mrb, 0, len);
-  str_with_class(str2, self);
   p = RSTR_PTR(str2);
   if (len > 0) {
     n = RSTRING_LEN(self);
@@ -1097,7 +1081,6 @@ mrb_str_dup(mrb_state *mrb, mrb_value str)
   struct RString *s = mrb_str_ptr(str);
   struct RString *dup = str_new(mrb, 0, 0);
 
-  str_with_class(dup, str);
   return str_replace(mrb, dup, s);
 }
 
@@ -2199,7 +2182,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
   }
   if (RSTRING_LEN(str) > 0 && (lim_p || RSTRING_LEN(str) > beg || lim < 0)) {
     if (RSTRING_LEN(str) == beg) {
-      tmp = mrb_str_new_empty(mrb, str);
+      tmp = mrb_str_new(mrb, 0, 0);
     }
     else {
       tmp = mrb_str_byte_subseq(mrb, str, beg, RSTRING_LEN(str)-beg);
