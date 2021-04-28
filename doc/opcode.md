@@ -101,9 +101,9 @@ sign) of operands.
 | OP_ARYCAT        | B            | ary_cat(R(a),R(a+1))                                   |
 | OP_ARYPUSH       | B            | ary_push(R(a),R(a+1))                                  |
 | OP_ARYDUP        | B            | R(a) = ary_dup(R(a))                                   |
-| OP_AREF          | BBB          | R(a) = R(b)[c]                                         | <!-- markdownlint-disable -->
-| OP_ASET          | BBB          | R(a)[c] = R(b)                                         | <!-- markdownlint-disable -->
-| OP_APOST         | BBB          | *R(a),R(a+1)..R(a+c) = R(a)[b..]                       | <!-- markdownlint-disable -->
+| OP_AREF          | BBB          | R(a) = R(b)[c]                                         |
+| OP_ASET          | BBB          | R(a)[c] = R(b)                                         |
+| OP_APOST         | BBB          | *R(a),R(a+1)..R(a+c) = R(a)[b..]                       |
 | OP_INTERN        | B            | R(a) = intern(R(a))                                    |
 | OP_STRING        | BB           | R(a) = str_dup(Lit(b))                                 |
 | OP_STRING16      | BS           | R(a) = str_dup(Lit(b))                                 |
