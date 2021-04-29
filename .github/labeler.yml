@@ -1,0 +1,24 @@
+benchmark:
+  - benchmark/**/*
+build:
+  - Makefile
+  - Rakefile
+  - build_config/**/*
+  - lib/**/*
+  - tasks/**/*
+core:
+  - include/**/*
+  - mrblib/**/*
+  - src/**/*
+  - test/**/*
+doc:
+  - CONTRIBUTING.md
+  - README.md
+  - doc/**/*
+  - examples/**/*
+github:
+  - .github/**/*
+mrbgems:
+  - mrbgems/**/*
+oss-fuzz:
+  - oss-fuzz/**/*
