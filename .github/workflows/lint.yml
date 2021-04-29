@@ -4,7 +4,7 @@ on: [pull_request]
 
 jobs:
   misspell:
-    name: Check spelling with misspell
+    name: Check Spelling Misspell All Files In Commit
     runs-on: ubuntu-latest
     steps:
       - name: Check Out
@@ -13,6 +13,17 @@ jobs:
         run: wget -O - -q https://git.io/misspell | sh -s -- -b .
       - name: Misspell
         run: git ls-files --empty-directory | xargs ./misspell -error
+  gnuaspell:
+    name: Check Spelling GNU Aspell All Markdown Files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install
+        run: |
+          sudo apt update
+          sudo apt-get install aspell
+      - name: Run Markdown Spell Check
+        run: bash ./check-spelling.sh || exit 1
   pre-commit:
     name: Run pre-commit
     runs-on: ubuntu-latest
