@@ -578,7 +578,7 @@ mrb_ary_shift(mrb_state *mrb, mrb_value self)
   return val;
 }
 
-MRB_API mrb_value
+static mrb_value
 mrb_ary_shift_m(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
