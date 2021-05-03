@@ -1873,7 +1873,7 @@ mrb_str_init(mrb_state *mrb, mrb_value self)
  *     str.to_sym   => symbol
  *
  *  Returns the <code>Symbol</code> corresponding to <i>str</i>, creating the
- *  symbol if it did not previously exist. See <code>Symbol#id2name</code>.
+ *  symbol if it did not previously exist.
  *
  *     "Koala".intern         #=> :Koala
  *     s = 'cat'.to_sym       #=> :cat

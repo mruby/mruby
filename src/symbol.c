@@ -389,12 +389,11 @@ mrb_init_symtbl(mrb_state *mrb)
 /* 15.2.11.3.3  */
 /*
  *  call-seq:
- *     sym.id2name   -> string
- *     sym.to_s      -> string
+  *     sym.to_s      -> string
  *
  *  Returns the name or string corresponding to <i>sym</i>.
  *
- *     :fred.id2name   #=> "fred"
+ *     :fred.to_s   #=> "fred"
  */
 static mrb_value
 sym_to_s(mrb_state *mrb, mrb_value sym)
