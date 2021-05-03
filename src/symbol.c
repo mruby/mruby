@@ -389,7 +389,7 @@ mrb_init_symtbl(mrb_state *mrb)
 /* 15.2.11.3.3  */
 /*
  *  call-seq:
-  *     sym.to_s      -> string
+ *     sym.to_s      -> string
  *
  *  Returns the name or string corresponding to <i>sym</i>.
  *
