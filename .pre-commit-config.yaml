@@ -27,16 +27,37 @@ repos:
   #  hooks:
   #    - id: forbid-tabs
   #    - id: remove-tabs
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.0.0
+    hooks:
+      - id: codespell
+        name: Run codespell
+        description: Check spelling with codespell
+        entry: codespell --ignore-words=codespell.txt
   - repo: https://github.com/igorshubovych/markdownlint-cli
     rev: v0.27.1
     hooks:
       - id: markdownlint
         name: Run markdownlint
+        description: Checks the style of Markdown files
         entry: markdownlint -c .github/linters/.markdown-lint.yml .
+        types: [markdown]
+        files: \.(md|mdown|markdown)$
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.26.1
     hooks:
       - id: yamllint
-        name: Check YAML files with yamllint
-        entry: yamllint --strict -c .github/linters/.yaml-lint.yml .
+        name: Run yamllint
+        description: Check YAML files with yamllint
+        entry: yamllint --strict -c .github/linters/.yaml-lint.yml
         types: [yaml]
+        files: \.(yaml|yml)$
+  - repo: local
+    hooks:
+      - id: sort-codespell-wordlist
+        name: Sort codespell.txt
+        description: Sort alphabetically and uniquify codespell.txt
+        entry: ./scripts/ci/pre-commit/sort-codespell-wordlist.sh
+        language: system
+        files: ^\.pre-commit-config\.yaml$|^codespell\.txt$
+        require_serial: true

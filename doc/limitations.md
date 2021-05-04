@@ -55,7 +55,7 @@ To reduce memory consumption `Array` does not support instance variables.
 ```ruby
 class Liste < Array
   def initialize(str = nil)
-    @feld = str
+    @field = str
   end
 end
 

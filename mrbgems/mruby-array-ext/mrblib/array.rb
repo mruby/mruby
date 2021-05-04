@@ -875,7 +875,7 @@ class Array
   #    ary.to_h                ->   Hash
   #    ary.to_h{|item| ... }   ->   Hash
   #
-  # Returns the result of interpreting <i>aray</i> as an array of
+  # Returns the result of interpreting <i>array</i> as an array of
   # <tt>[key, value]</tt> pairs. If a block is given, it should
   # return <tt>[key, value]</tt> pairs to construct a hash.
   #

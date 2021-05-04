@@ -186,7 +186,7 @@ MRB_API mrb_value mrb_ary_pop(mrb_state *mrb, mrb_value ary);
  * @param mrb The mruby state reference.
  * @param ary The target array.
  * @param n The array index being referenced.
- * @param val The value being setted.
+ * @param val The value being set.
  */
 MRB_API void mrb_ary_set(mrb_state *mrb, mrb_value ary, mrb_int n, mrb_value val);
 

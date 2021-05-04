@@ -728,8 +728,8 @@ void mrb_mruby_rational_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, rat, "quo", rational_div, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, mrb->integer_class, "to_r", fix_to_r, MRB_ARGS_NONE());
 #ifndef MRB_USE_COMPLEX
-  mrb_define_method(mrb, mrb->integer_class, "/", rational_int_div, MRB_ARGS_REQ(1)); /* overrride */
-  mrb_define_method(mrb, mrb->integer_class, "quo", rational_int_quo, MRB_ARGS_REQ(1)); /* overrride */
+  mrb_define_method(mrb, mrb->integer_class, "/", rational_int_div, MRB_ARGS_REQ(1)); /* override */
+  mrb_define_method(mrb, mrb->integer_class, "quo", rational_int_quo, MRB_ARGS_REQ(1)); /* override */
 #endif
   mrb_define_method(mrb, mrb->kernel_module, "Rational", rational_m, MRB_ARGS_ARG(1,1));
 }
