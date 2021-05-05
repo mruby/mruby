@@ -8,7 +8,7 @@ mruby-pack provides `Array#pack` and `String#unpack` for mruby.
 Add the line below into your build configuration:
 
 ```
-  conf.gem :github => 'iij/mruby-pack'
+  conf.gem :core => 'mruby-pack'
 ```
 
 There is no dependency on other mrbgems.
