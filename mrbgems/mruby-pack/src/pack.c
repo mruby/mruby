@@ -48,19 +48,19 @@ enum {
   PACK_TYPE_NONE
 };
 
-#define PACK_FLAG_s             0x00000001	/* native size ("_" "!") */
-#define PACK_FLAG_a             0x00000002	/* null padding ("a") */
-#define PACK_FLAG_Z             0x00000004	/* append nul char ("z") */
-#define PACK_FLAG_SIGNED        0x00000008	/* native size ("_" "!") */
-#define PACK_FLAG_GT            0x00000010	/* big endian (">") */
-#define PACK_FLAG_LT            0x00000020	/* little endian ("<") */
-#define PACK_FLAG_WIDTH         0x00000040	/* "count" is "width" */
-#define PACK_FLAG_LSB           0x00000080	/* LSB / low nibble first */
-#define PACK_FLAG_COUNT2        0x00000100	/* "count" is special... */
-#define PACK_FLAG_LITTLEENDIAN  0x00000200	/* little endian actually */
+#define PACK_FLAG_s             0x00000001      /* native size ("_" "!") */
+#define PACK_FLAG_a             0x00000002      /* null padding ("a") */
+#define PACK_FLAG_Z             0x00000004      /* append nul char ("z") */
+#define PACK_FLAG_SIGNED        0x00000008      /* native size ("_" "!") */
+#define PACK_FLAG_GT            0x00000010      /* big endian (">") */
+#define PACK_FLAG_LT            0x00000020      /* little endian ("<") */
+#define PACK_FLAG_WIDTH         0x00000040      /* "count" is "width" */
+#define PACK_FLAG_LSB           0x00000080      /* LSB / low nibble first */
+#define PACK_FLAG_COUNT2        0x00000100      /* "count" is special... */
+#define PACK_FLAG_LITTLEENDIAN  0x00000200      /* little endian actually */
 
-#define PACK_BASE64_IGNORE	0xff
-#define PACK_BASE64_PADDING	0xfe
+#define PACK_BASE64_IGNORE      0xff
+#define PACK_BASE64_PADDING     0xfe
 
 const static unsigned char base64chars[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -874,13 +874,13 @@ unpack_m(mrb_state *mrb, const void *src, int slen, mrb_value ary, unsigned int 
         if (slen-- == 0)
           goto done;
         c = *sptr++;
-	if (c >= sizeof(base64_dec_tab))
-	  continue;
-	ch[i] = base64_dec_tab[c];
-	if (ch[i] == PACK_BASE64_PADDING) {
-	  ch[i] = 0;
-	  padding++;
-	}
+        if (c >= sizeof(base64_dec_tab))
+          continue;
+        ch[i] = base64_dec_tab[c];
+        if (ch[i] == PACK_BASE64_PADDING) {
+          ch[i] = 0;
+          padding++;
+        }
       } while (c >= sizeof(base64_dec_tab) || ch[i] == PACK_BASE64_IGNORE);
     }
 

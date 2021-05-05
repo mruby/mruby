@@ -111,21 +111,21 @@ contains every gem found in the `mrbgems` directory.
 The maximal GEM structure looks like this:
 
 ```
-+- GEM_NAME         <- Name of GEM
-   |
-   +- README.md     <- Readme for GEM
-   |
-   +- mrbgem.rake   <- GEM Specification
-   |
-   +- include/      <- Header for Ruby extension (will exported)
-   |
-   +- mrblib/       <- Source for Ruby extension
-   |
-   +- src/          <- Source for C extension
-   |
-   +- tools/        <- Source for Executable (in C)
-   |
-   +- test/         <- Test code (Ruby)
++- GEM_NAME             <- Name of GEM
+    |
+    +- README.md        <- Readme for GEM
+    |
+    +- mrbgem.rake      <- GEM Specification
+    |
+    +- include/         <- Header for Ruby extension (will exported)
+    |
+    +- mrblib/          <- Source for Ruby extension
+    |
+    +- src/             <- Source for C extension
+    |
+    +- tools/           <- Source for Executable (in C)
+    |
+    +- test/            <- Test code (Ruby)
 ```
 
 The folder `mrblib` contains pure Ruby files to extend mruby. The folder `src`
@@ -297,19 +297,21 @@ mrb_c_extension_example_gem_final(mrb_state* mrb) {
 
 ### Example
 
-	+- c_extension_example/
-	   |
-	   +- README.md         (Optional)
-	   |
-	   +- src/
-	   |  |
-	   |  +- example.c         <- C extension source
-	   |
-	   +- test/
-	   |  |
-	   |  +- example.rb        <- Test code for C extension
-	   |
-	   +- mrbgem.rake          <- GEM specification
+```
++- c_extension_example/
+    |
+    +- README.md        (Optional)
+    |
+    +- src/
+    |   |
+    |   +- example.c    <- C extension source
+    |
+    +- test/
+    |   |
+    |   +- example.rb   <- Test code for C extension
+    |
+    +- mrbgem.rake      <- GEM specification
+```
 
 ## Ruby Extension
 
@@ -323,19 +325,21 @@ none
 
 ### Example
 
-	+- ruby_extension_example/
-	   |
-	   +- README.md         (Optional)
-	   |
-	   +- mrblib/
-	   |  |
-	   |  +- example.rb     <- Ruby extension source
-	   |
-	   +- test/
-	   |  |
-	   |  +- example.rb     <- Test code for Ruby extension
-	   |
-	   +- mrbgem.rake       <- GEM specification
+```
++- ruby_extension_example/
+    |
+    +- README.md        (Optional)
+    |
+    +- mrblib/
+    |   |
+    |   +- example.rb   <- Ruby extension source
+    |
+    +- test/
+    |   |
+    |   +- example.rb   <- Test code for Ruby extension
+    |
+    +- mrbgem.rake      <- GEM specification
+```
 
 ## C and Ruby Extension
 
@@ -353,23 +357,25 @@ See C and Ruby example.
 
 ### Example
 
-	+- c_and_ruby_extension_example/
-	   |
-	   +- README.md         (Optional)
-	   |
-	   +- mrblib/
-	   |  |
-	   |  +- example.rb     <- Ruby extension source
-	   |
-	   +- src/
-	   |  |
-	   |  +- example.c      <- C extension source
-	   |
-	   +- test/
-	   |  |
-	   |  +- example.rb     <- Test code for C and Ruby extension
-	   |
-	   +- mrbgem.rake       <- GEM specification
+```
++- c_and_ruby_extension_example/
+    |
+    +- README.md        (Optional)
+    |
+    +- mrblib/
+    |   |
+    |   +- example.rb   <- Ruby extension source
+    |
+    +- src/
+    |   |
+    |   +- example.c    <- C extension source
+    |
+    +- test/
+    |   |
+    |   +- example.rb   <- Test code for C and Ruby extension
+    |
+    +- mrbgem.rake      <- GEM specification
+```
 
 ## Binary gems
 
@@ -389,23 +395,23 @@ binary gems, to separate normal gems and binary gems.
 ### Example
 
 ```
- +- mruby-bin-example/
++- mruby-bin-example/
     |
-    +- README.md         (Optional)
+    +- README.md        (Optional)
     |
     +- bintest/
-    |  |
-    |  +- example.rb     <- Test code for binary gem
+    |   |
+    |   +- example.rb   <- Test code for binary gem
     |
-    +- mrbgem.rake       <- Gem specification
+    +- mrbgem.rake      <- Gem specification
     |
-    +- mrblib/           <- Source for Ruby extension (Optional)
+    +- mrblib/          <- Source for Ruby extension (Optional)
     |
-    +- src/              <- Source for C extension (Optional)
+    +- src/             <- Source for C extension (Optional)
     |
     +- tools/
-       |
-       +- example/       <- Executable name directory
-       |
-       +- example.c	 <- Source for Executable (includes main)
+        |
+        +- example/     <- Executable name directory
+        |
+        +- example.c    <- Source for Executable (includes main)
 ```

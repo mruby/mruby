@@ -262,7 +262,7 @@ enum tr_pattern_type {
   <range> ::= <ch> '-' <ch>
 */
 struct tr_pattern {
-  uint8_t type;		// 1:in-order, 2:range
+  uint8_t type;                 // 1:in-order, 2:range
   mrb_bool flag_reverse : 1;
   mrb_bool flag_on_heap : 1;
   uint16_t n;
@@ -329,9 +329,9 @@ tr_parse_pattern(mrb_state *mrb, struct tr_pattern *ret, const mrb_value v_patte
       mrb_int len;
 
       while (i < pattern_length) {
-	if ((i+2) < pattern_length && pattern[i] != '\\' && pattern[i+1] == '-')
+        if ((i+2) < pattern_length && pattern[i] != '\\' && pattern[i+1] == '-')
           break;
-	i++;
+        i++;
       }
 
       len = i - start_pos;
@@ -375,7 +375,7 @@ tr_find_character(const struct tr_pattern *pat, const char *pat_str, int ch)
     if (pat->type == TR_IN_ORDER) {
       int i;
       for (i = 0; i < pat->n; i++) {
-	if (pat_str[pat->val.start_pos + i] == ch) ret = n_sum + i;
+        if (pat_str[pat->val.start_pos + i] == ch) ret = n_sum + i;
       }
     }
     else if (pat->type == TR_RANGE) {
@@ -509,7 +509,7 @@ str_tr(mrb_state *mrb, mrb_value str, mrb_value p1, mrb_value p2, mrb_bool squee
     if (n >= 0) {
       flag_changed = TRUE;
       if (rep == NULL) {
-	j--;
+        j--;
       }
       else {
         mrb_int c = tr_get_character(rep, RSTRING_PTR(p2), n);
@@ -521,8 +521,8 @@ str_tr(mrb_state *mrb, mrb_value str, mrb_value p1, mrb_value p2, mrb_bool squee
         if (c > 0x80) {
           mrb_raisef(mrb, E_ARGUMENT_ERROR, "character (%i) out of range", c);
         }
-	lastch = c;
-	s[i] = (char)c;
+        lastch = c;
+        s[i] = (char)c;
       }
     }
   }
