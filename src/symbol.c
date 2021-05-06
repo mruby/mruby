@@ -587,7 +587,7 @@ mrb_sym_str(mrb_state *mrb, mrb_sym sym)
 }
 
 static const char*
-sym_name(mrb_state *mrb, mrb_sym sym, mrb_bool dump)
+sym_cstr(mrb_state *mrb, mrb_sym sym, mrb_bool dump)
 {
   mrb_int len;
   const char *name = mrb_sym_name_len(mrb, sym, &len);
@@ -606,13 +606,13 @@ sym_name(mrb_state *mrb, mrb_sym sym, mrb_bool dump)
 MRB_API const char*
 mrb_sym_name(mrb_state *mrb, mrb_sym sym)
 {
-  return sym_name(mrb, sym, FALSE);
+  return sym_cstr(mrb, sym, FALSE);
 }
 
 MRB_API const char*
 mrb_sym_dump(mrb_state *mrb, mrb_sym sym)
 {
-  return sym_name(mrb, sym, TRUE);
+  return sym_cstr(mrb, sym, TRUE);
 }
 
 #define lesser(a,b) (((a)>(b))?(b):(a))
