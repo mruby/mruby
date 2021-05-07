@@ -6,38 +6,38 @@
 root = true
 
 [*]
-indent_style = tab
-indent_size = 8
-tab_width = 8
-end_of_line = lf
 charset = utf-8
+end_of_line = lf
+indent_size = 8
+indent_style = tab
 insert_final_newline = true
+tab_width = 8
 
 [{Makefile,Makefile.*,makefile,*.mk}]
 trim_trailing_whitespace = true
 #max_line_length = 80
 
 [*.{c,cc,C,cxx,cpp,h,hh,H,hxx,hpp,inc,y}]
-indent_style = space
 indent_size = 2
+indent_style = space
 trim_trailing_whitespace = true
 #max_line_length = 120
 
 [{*.rb,Rakefile,rakefile,*.rake,*.gemspec,*.gembox}]
-indent_style = space
 indent_size = 2
+indent_style = space
 trim_trailing_whitespace = true
 #max_line_length = 120
 
 [*.bat]
-end_of_line = crlf
 charset = latin1
+end_of_line = crlf
 #max_line_length = 80
 
 [*.{yaml,yml}]
-indent_style = space
 indent_size = 2
+indent_style = space
 
 [*.md]
-indent_style = space
 indent_size = 2
+indent_style = space
