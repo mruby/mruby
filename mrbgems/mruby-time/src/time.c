@@ -85,8 +85,12 @@ double round(double x) {
 
 /** end of Time class configuration */
 
-#ifndef NO_GETTIMEOFDAY
-# ifdef _WIN32
+#if (defined(_POSIX_TIMERS) && _POSIX_TIMERS > 0) && defined(CLOCK_REALTIME)
+# define USE_CLOCK_GETTIME
+#endif
+
+#if !defined(NO_GETTIMEOFDAY)
+# if defined(_WIN32) && !defined(USE_CLOCK_GETTIME)
 #  define WIN32_LEAN_AND_MEAN  /* don't include winsock.h */
 #  include <windows.h>
 #  define gettimeofday my_gettimeofday
@@ -389,7 +393,7 @@ current_mrb_time(mrb_state *mrb)
     sec = ts.tv_sec;
     usec = ts.tv_nsec / 1000;
   }
-#elif (defined(_POSIX_TIMERS) && _POSIX_TIMERS > 0) && defined(CLOCK_REALTIME)
+#elif defined(USE_CLOCK_GETTIME)
   {
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
