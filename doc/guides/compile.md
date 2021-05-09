@@ -338,6 +338,20 @@ When debugging mode is enabled
   * Because `-g` flag would be added to `mrbc` runner.
     * You can have better backtrace of mruby scripts with this.
 
+### Additional license terms
+
+The license terms set in the `conf.terms` property are printed as part of
+the `<build-dir>/LICENSE.yml` file.
+This initial value is an empty array (`[]`). If you want to add it, do the
+following:
+
+```ruby
+conf.terms << "path/to/ADDITIONAL-LICENSE"
+```
+
+The file path can be specified as an absolute path as well as a relative
+path based on the build directory.
+
 ## Cross-Compilation
 
 mruby can also be cross-compiled from one platform to another. To achieve
@@ -385,6 +399,8 @@ root directory. The structure of this directory will look like this:
     +- host
         |
         +- LEGAL        <- License description
+        |
+        +- LICENSE.yml  <- Collected license terms (Maybe incomplete)
         |
         +- bin          <- Binaries (mirb, mrbc and mruby)
         |

@@ -32,6 +32,7 @@ load "#{MRUBY_ROOT}/tasks/presym.rake"
 load "#{MRUBY_ROOT}/tasks/test.rake"
 load "#{MRUBY_ROOT}/tasks/benchmark.rake"
 load "#{MRUBY_ROOT}/tasks/doc.rake"
+load "#{MRUBY_ROOT}/tasks/license.rake"
 
 ##############################
 # generic build targets, rules

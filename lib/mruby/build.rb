@@ -73,6 +73,7 @@ module MRuby
     include LoadGems
     attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir, :defines
     attr_reader :products, :libmruby_core_objs, :libmruby_objs, :gems, :toolchains, :presym, :mrbc_build, :gem_dir_to_repo_url
+    attr_accessor :terms
 
     alias libmruby libmruby_objs
 
@@ -127,6 +128,8 @@ module MRuby
         @internal = internal
         @toolchains = []
         @gem_dir_to_repo_url = {}
+
+        @terms = []
 
         MRuby.targets[@name] = current = self
       end
@@ -481,7 +484,7 @@ EOS
     attr_writer :presym
 
     def create_mrbc_build
-      exclusions = %i[@name @build_dir @gems @enable_test @enable_bintest @internal]
+      exclusions = %i[@name @build_dir @gems @terms @enable_test @enable_bintest @internal]
       name = "#{@name}/mrbc"
       MRuby.targets.delete(name)
       build = self.class.new(name, internal: true){}
