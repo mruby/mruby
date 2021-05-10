@@ -13,28 +13,6 @@ This document is collecting these limitations.
 This document does not contain a complete list of limitations.
 Please help to improve it by submitting your findings.
 
-## `Array` passed to `puts`
-
-Passing an Array to `puts` results in different output.
-
-```ruby
-puts [1,2,3]
-```
-
-#### Ruby [ruby 2.0.0p645 (2015-04-13 revision 50299)]
-
-```
-1
-2
-3
-```
-
-#### mruby [3.0.0 (2021-03-05)]
-
-```
-[1, 2, 3]
-```
-
 ## `Kernel.raise` in rescue clause
 
 `Kernel.raise` without arguments does not raise the current exception within
@@ -54,7 +32,7 @@ end
 
 #### mruby [3.0.0 (2021-03-05)]
 
-No exception is raised. Instead, you have to do:
+`RuntimeError` is raised instead of `ZeroDivisionError`. To re-raise the exception, you have to do:
 
 ```ruby
 begin
