@@ -15,7 +15,7 @@ class Range
     val = self.begin
     last = self.end
 
-    if val.kind_of?(Fixnum) && last.nil?
+    if val.kind_of?(Integer) && last.nil?
       i = val
       while true
         block.call(i)

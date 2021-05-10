@@ -77,8 +77,9 @@ to be default `mrb_value` representation. Now the default is
 
 Pack `mrb_value` in an `intptr_t` integer. Consumes less
 memory compared to `MRB_NO_BOXING` especially on 32-bit
-platforms. `Fixnum` size is 31 bits, so some integer values
-does not fit in `Fixnum` integers.
+platforms. Inlined integer size is 31 bits, so some `mrb_int`
+values does not fit in `mrb_value`. Those integers are allocated
+in the object heap as `struct RInteger`.
 
 ## `MRB_NAN_BOXING`
 
