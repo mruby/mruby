@@ -276,4 +276,5 @@ class Array
   def to_a
     self
   end
+  alias entries to_a
 end
