@@ -78,6 +78,7 @@ class Range
     raise RangeError, "cannot convert endless range to an array" if self.last.nil?
     super
   end
+  alias entries to_a
 end
 
 ##
