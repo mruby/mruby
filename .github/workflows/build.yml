@@ -10,7 +10,7 @@ jobs:
       MRUBY_CONFIG: ci/gcc-clang
       CC: gcc
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v2.3.4
       - name: Ruby version
         run: ruby -v
       - name: Compiler version
@@ -25,7 +25,7 @@ jobs:
       MRUBY_CONFIG: ci/gcc-clang
       CC: clang
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v2.3.4
       - name: Ruby version
         run: ruby -v
       - name: Compiler version
@@ -40,7 +40,7 @@ jobs:
       MRUBY_CONFIG: ci/gcc-clang
       CC: gcc
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v2.3.4
       - name: Ruby version
         run: ruby -v
       - name: Compiler version
@@ -55,7 +55,7 @@ jobs:
       MRUBY_CONFIG: ci/gcc-clang
       CC: clang
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v2.3.4
       - name: Ruby version
         run: ruby -v
       - name: Compiler version
@@ -70,7 +70,7 @@ jobs:
       MRUBY_CONFIG: ci/gcc-clang
       CC: clang
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v2.3.4
       - name: Ruby version
         run: ruby -v
       - name: Compiler version
@@ -85,7 +85,7 @@ jobs:
       MRUBY_CONFIG: ci/gcc-clang
       CC: gcc
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v2.3.4
       - name: Ruby version
         run: ruby -v
       - name: Compiler version
@@ -105,7 +105,7 @@ jobs:
       package-dir: C:\cygwin-package
       cache-version: v1
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v2.3.4
       - uses: actions/cache@v2.1.5
         with:
           path: ${{ env.package-dir }}
@@ -145,7 +145,7 @@ jobs:
     env:
       MRUBY_CONFIG: ci/msvc
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v2.3.4
       - name: Ruby version
         run: ruby -v
       - name: Build and test
