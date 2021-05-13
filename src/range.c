@@ -11,9 +11,9 @@
 #include <mruby/array.h>
 #include <mruby/presym.h>
 
-#define RANGE_INITIALIZED_MASK 1
-#define RANGE_INITIALIZED(p) ((p)->flags |= RANGE_INITIALIZED_MASK)
-#define RANGE_INITIALIZED_P(p) ((p)->flags & RANGE_INITIALIZED_MASK)
+#define RANGE_INITIALIZED_FLAG 1
+#define RANGE_INITIALIZED(p) ((p)->flags |= RANGE_INITIALIZED_FLAG)
+#define RANGE_INITIALIZED_P(p) ((p)->flags & RANGE_INITIALIZED_FLAG)
 
 static void
 r_check(mrb_state *mrb, mrb_value a, mrb_value b)
