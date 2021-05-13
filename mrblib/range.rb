@@ -79,8 +79,18 @@ class Range
     h
   end
 
+  ##
+  # call-seq:
+  #    rng.to_a                   -> array
+  #    rng.entries                -> array
+  #
+  # Returns an array containing the items in the range.
+  #
+  #   (1..7).to_a  #=> [1, 2, 3, 4, 5, 6, 7]
+  #   (1..).to_a   #=> RangeError: cannot convert endless range to an array
   def to_a
-    raise RangeError, "cannot convert endless range to an array" if self.last.nil?
+    a = __num_to_a
+    return a if a
     super
   end
   alias entries to_a
