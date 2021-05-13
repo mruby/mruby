@@ -25,13 +25,13 @@ r_check(mrb_state *mrb, mrb_value a, mrb_value b)
   ta = mrb_type(a);
   tb = mrb_type(b);
 #ifdef MRB_NO_FLOAT
-  if (ta == MRB_TT_INTEGER && tb == MRB_TT_INTEGER ) {
+  if (ta == MRB_TT_INTEGER && tb == MRB_TT_INTEGER ) return;
 #else
   if ((ta == MRB_TT_INTEGER || ta == MRB_TT_FLOAT) &&
       (tb == MRB_TT_INTEGER || tb == MRB_TT_FLOAT)) {
-#endif
     return;
   }
+#endif
 
   if (mrb_nil_p(a) || mrb_nil_p(b)) return;
 
