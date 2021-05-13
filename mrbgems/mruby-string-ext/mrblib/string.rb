@@ -465,8 +465,6 @@ class String
   end
 
   def __upto_endless(&block)
-    return to_enum(:__upto_endless) unless block
-
     len = self.length
     # both edges are all digits
     bi = self.to_i(10)
