@@ -3,6 +3,11 @@
 #
 # ISO 15.2.14
 class Range
+  ##
+  # Range is enumerable
+  #
+  # ISO 15.2.14.3
+  include Enumerable
 
   ##
   # Calls the given block for each element of +self+
@@ -79,12 +84,4 @@ class Range
     super
   end
   alias entries to_a
-end
-
-##
-# Range is enumerable
-#
-# ISO 15.2.14.3
-class Range
-  include Enumerable
 end
