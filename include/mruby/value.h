@@ -31,7 +31,30 @@ typedef uint32_t mrb_sym;
  * Not to be confused with Ruby's boolean classes, which can be
  * obtained using mrb_false_value() and mrb_true_value()
  */
+#if defined(__cplusplus) || (defined(__bool_true_false_are_defined) && __bool_true_false_are_defined)
+typedef bool mrb_bool;
+
+# ifndef FALSE
+#  define FALSE false
+# endif
+# ifndef TRUE
+#  define TRUE true
+# endif
+#else
+# if __STDC_VERSION__ >= 199901L
+typedef _Bool mrb_bool;
+# else
 typedef uint8_t mrb_bool;
+# endif
+
+# ifndef FALSE
+#  define FALSE 0
+# endif
+# ifndef TRUE
+#  define TRUE 1
+# endif
+#endif
+
 struct mrb_state;
 
 #if defined _MSC_VER && _MSC_VER < 1800
