@@ -220,9 +220,9 @@ mrb_init_test_driver(mrb_state *mrb, mrb_bool verbose)
 
   mrbtest = mrb_define_module(mrb, "Mrbtest");
 
-  mrb_define_const(mrb, mrbtest, "FIXNUM_MAX", mrb_fixnum_value(MRB_INT_MAX));
-  mrb_define_const(mrb, mrbtest, "FIXNUM_MIN", mrb_fixnum_value(MRB_INT_MIN));
-  mrb_define_const(mrb, mrbtest, "FIXNUM_BIT", mrb_fixnum_value(MRB_INT_BIT));
+  mrb_define_const(mrb, mrbtest, "FIXNUM_MAX", mrb_int_value(mrb, MRB_INT_MAX));
+  mrb_define_const(mrb, mrbtest, "FIXNUM_MIN", mrb_int_value(mrb, MRB_INT_MIN));
+  mrb_define_const(mrb, mrbtest, "FIXNUM_BIT", mrb_int_value(mrb, MRB_INT_BIT));
 
 #ifndef MRB_NO_FLOAT
 #ifdef MRB_USE_FLOAT32
