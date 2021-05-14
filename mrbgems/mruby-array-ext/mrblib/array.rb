@@ -150,7 +150,7 @@ class Array
   #    [ 1, 1, 3, 5 ] & [ 1, 2, 3 ]   #=> [ 1, 3 ]
   #
   def &(elem)
-    raise TypeError, "can't convert #{elem.class} into Array" unless elem.class == Array
+    raise TypeError, "cannot convert #{elem.class} into Array" unless elem.class == Array
 
     hash = {}
     array = []
@@ -204,7 +204,7 @@ class Array
   #    a.intersect?(b)   #=> true
   #    a.intersect?(c)   #=> false
   def intersect?(ary)
-    raise TypeError, "can't convert #{ary.class} into Array" unless ary.class == Array
+    raise TypeError, "cannot convert #{ary.class} into Array" unless ary.class == Array
 
     hash = {}
     if self.length > ary.length
