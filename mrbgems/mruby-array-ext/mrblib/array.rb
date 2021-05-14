@@ -294,41 +294,6 @@ class Array
     end
   end
 
-  ##
-  # call-seq:
-  #    ary.compact     -> new_ary
-  #
-  # Returns a copy of +self+ with all +nil+ elements removed.
-  #
-  #    [ "a", nil, "b", nil, "c", nil ].compact
-  #                      #=> [ "a", "b", "c" ]
-  #
-  def compact
-    result = self.dup
-    result.compact!
-    result
-  end
-
-  ##
-  # call-seq:
-  #    ary.compact!    -> ary  or  nil
-  #
-  # Removes +nil+ elements from the array.
-  # Returns +nil+ if no changes were made, otherwise returns
-  # <i>ary</i>.
-  #
-  #    [ "a", nil, "b", nil, "c" ].compact! #=> [ "a", "b", "c" ]
-  #    [ "a", "b", "c" ].compact!           #=> nil
-  #
-  def compact!
-    result = self.select { |e| !e.nil? }
-    if result.size == self.size
-      nil
-    else
-      self.replace(result)
-    end
-  end
-
   # for efficiency
   def reverse_each(&block)
     return to_enum :reverse_each unless block

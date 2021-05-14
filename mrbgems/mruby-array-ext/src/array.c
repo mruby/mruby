@@ -183,6 +183,62 @@ mrb_ary_slice_bang(mrb_state *mrb, mrb_value self)
   return ary;
 }
 
+/*
+ * call-seq:
+ *    ary.compact     -> new_ary
+ *
+ * Returns a copy of +self+ with all +nil+ elements removed.
+ *
+ *   [ "a", nil, "b", nil, "c", nil ].compact
+ *                      #=> [ "a", "b", "c" ]
+ */
+
+static mrb_value
+mrb_ary_compact(mrb_state *mrb, mrb_value self)
+{
+  mrb_value ary = mrb_ary_new(mrb);
+  mrb_int len = RARRAY_LEN(self);
+  mrb_value *p = RARRAY_PTR(self);
+
+  for (mrb_int i = 0; i < len; ++i) {
+    if (!mrb_nil_p(p[i])) {
+      mrb_ary_push(mrb, ary, p[i]);
+    }
+  }
+  return ary;
+}
+
+/*
+ * call-seq:
+ *    ary.compact!    -> ary  or  nil
+ *
+ * Removes +nil+ elements from the array.
+ * Returns +nil+ if no changes were made, otherwise returns
+ * <i>ary</i>.
+ *
+ *    [ "a", nil, "b", nil, "c" ].compact! #=> [ "a", "b", "c" ]
+ *    [ "a", "b", "c" ].compact!           #=> nil
+ */
+static mrb_value
+mrb_ary_compact_bang(mrb_state *mrb, mrb_value self)
+{
+  struct RArray *a = mrb_ary_ptr(self);
+  mrb_int i, j = 0;
+  mrb_int len = ARY_LEN(a);
+  mrb_value *p = ARY_PTR(a);
+
+  mrb_ary_modify(mrb, a);
+  for (i = 0; i < len; ++i) {
+    if (!mrb_nil_p(p[i])) {
+      if (i != j) p[j] = p[i];
+      j++;
+    }
+  }
+  if (i == j) return mrb_nil_value();
+  if (j < len) ARY_SET_LEN(RARRAY(self), j);
+  return self;
+}
+
 void
 mrb_mruby_array_ext_gem_init(mrb_state* mrb)
 {
@@ -192,7 +248,9 @@ mrb_mruby_array_ext_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, a, "at",     mrb_ary_at,     MRB_ARGS_REQ(1));
   mrb_define_method(mrb, a, "rassoc", mrb_ary_rassoc, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, a, "values_at", mrb_ary_values_at, MRB_ARGS_ANY());
-  mrb_define_method(mrb, a, "slice!", mrb_ary_slice_bang,   MRB_ARGS_ARG(1,1));
+  mrb_define_method(mrb, a, "slice!", mrb_ary_slice_bang, MRB_ARGS_ARG(1,1));
+  mrb_define_method(mrb, a, "compact", mrb_ary_compact, MRB_ARGS_NONE());
+  mrb_define_method(mrb, a, "compact!", mrb_ary_compact_bang, MRB_ARGS_NONE());
 }
 
 void
