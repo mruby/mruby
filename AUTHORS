@@ -1,14 +1,14 @@
 # Authors of mruby (mruby developers)
 
-## The List of Contributors sorted by number of commits (as of 2021-04-12 ff2ffe3)
+## The List of Contributors sorted by number of commits (as of 2021-05-15 c09a810)
 
-   7340 Yukihiro "Matz" Matsumoto (@matz)*
-    576 KOBAYASHI Shuji (@shuujii)
+   7418 Yukihiro "Matz" Matsumoto (@matz)*
+    582 KOBAYASHI Shuji (@shuujii)
     376 Daniel Bovensiepen (@bovi)
     344 Takeshi Watanabe (@take-cheeze)*
     334 Masaki Muranaka (@monaka)
     298 Tomoyuki Sahara (@tsahara)*
-    276 dearblue (@dearblue)*
+    285 dearblue (@dearblue)*
     234 Jun Hiroe (@suzukaze)
     217 Cremno (@cremno)*
     208 Yuki Kurihara (@ksss)+
@@ -34,8 +34,8 @@
      38 Kouhei Sutou (@kou)*
      31 MATSUMOTO Ryosuke (@matsumotory)*
      30 Nobuyoshi Nakada (@nobu)
+     29 John Bampton (@jbampton)
      28 Masayoshi Takahashi (@takahashim)+
-     26 John Bampton (@jbampton)
      24 Julian Aron Prenner (@furunkel)*
      24 Ryan Scott (@ryan-scott-dev)*
      22 Clayton Smith (@clayton-shopify)
@@ -50,7 +50,7 @@
      18 Corey Powell (@IceDragon200)
      18 Jon Maken (@jonforums)+
      18 Mitchell Blank Jr (@mitchblank)*
-     16 Ryan Lopopolo (@lopopolo)
+     17 Ryan Lopopolo (@lopopolo)
      16 bggd (@bggd)
      16 kano4 (@kano4)
      14 Blaž Hrastnik (@archseer)*
@@ -131,8 +131,8 @@
       3 J. Mutua (@katmutua)+
       3 Jan Berdajs (@mrbrdo)
       3 Joseph McCullough (@joequery)
+      3 Mark McCurry (@fundamental)
       3 Nobuhiro Iwamatsu (@iwamatsu)
-      3	Mark McCurry (@fundamental)
       3 Per Lundberg (@perlun)*
       3 Rob Fors (@robfors)*
       3 Rodrigo Malizia (@rmalizia44)+
