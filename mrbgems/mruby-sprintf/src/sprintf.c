@@ -898,9 +898,8 @@ retry:
         switch (mrb_type(val)) {
 #ifndef MRB_NO_FLOAT
           case MRB_TT_FLOAT:
-            val = mrb_flo_to_fixnum(mrb, val);
-            if (mrb_integer_p(val)) goto bin_retry;
-            break;
+            val = mrb_float_to_integer(mrb, val);
+            goto bin_retry;
 #endif
           case MRB_TT_STRING:
             val = mrb_str_to_inum(mrb, val, 0, TRUE);

@@ -154,11 +154,14 @@ mrb_int_mul_overflow(mrb_int a, mrb_int b, mrb_int *c)
 #  define MRB_FLT_MAX_10_EXP    DBL_MAX_10_EXP
 # endif /* MRB_USE_FLOAT32 */
 
-MRB_API mrb_value mrb_flo_to_fixnum(mrb_state *mrb, mrb_value val);
+MRB_API mrb_value mrb_float_to_integer(mrb_state *mrb, mrb_value val);
 MRB_API mrb_value mrb_float_to_str(mrb_state *mrb, mrb_value x, const char *fmt);
 /* ArgumentError if format string doesn't match /%(\.[0-9]+)?[aAeEfFgG]/ */
 MRB_API int mrb_float_to_cstr(mrb_state *mrb, char *buf, size_t len, const char *fmt, mrb_float f);
 MRB_API mrb_float mrb_to_flo(mrb_state *mrb, mrb_value x);
+
+/* obsolete function(s); will be removed */
+#define mrb_flo_to_fixnum(mrb, val) mrb_float_to_integer(mrb, val)
 
 #endif /* MRB_NO_FLOAT */
 

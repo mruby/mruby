@@ -513,7 +513,7 @@ mrb_to_int(mrb_state *mrb, mrb_value val)
   if (!mrb_integer_p(val)) {
 #ifndef MRB_NO_FLOAT
     if (mrb_float_p(val)) {
-      return mrb_flo_to_fixnum(mrb, val);
+      return mrb_float_to_integer(mrb, val);
     }
 #endif
     if (mrb_string_p(val)) {
@@ -537,7 +537,7 @@ mrb_convert_to_integer(mrb_state *mrb, mrb_value val, mrb_int base)
 #ifndef MRB_NO_FLOAT
     case MRB_TT_FLOAT:
       if (base != 0) goto arg_error;
-      return mrb_flo_to_fixnum(mrb, val);
+      return mrb_float_to_integer(mrb, val);
 #endif
 
     case MRB_TT_INTEGER:
