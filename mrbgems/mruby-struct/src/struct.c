@@ -435,7 +435,7 @@ mrb_struct_aref(mrb_state *mrb, mrb_value s)
   if (mrb_symbol_p(idx)) {
     return struct_aref_sym(mrb, s, mrb_symbol(idx));
   }
-  return struct_aref_int(mrb, s, mrb_int(mrb, idx));
+  return struct_aref_int(mrb, s, mrb_as_int(mrb, idx));
 }
 
 static mrb_value
@@ -499,7 +499,7 @@ mrb_struct_aset(mrb_state *mrb, mrb_value s)
     return mrb_struct_aset_sym(mrb, s, mrb_symbol(idx), val);
   }
 
-  i = mrb_int(mrb, idx);
+  i = mrb_as_int(mrb, idx);
   if (i < 0) i = RSTRUCT_LEN(s) + i;
   if (i < 0) {
     mrb_raisef(mrb, E_INDEX_ERROR,

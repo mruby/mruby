@@ -1151,7 +1151,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         p = va_arg(ap, mrb_float*);
         if (i < argc) {
-          *p = mrb_to_flo(mrb, argv[i++]);
+          *p = mrb_as_float(mrb, argv[i]); i++;
         }
       }
       break;
@@ -1162,7 +1162,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         p = va_arg(ap, mrb_int*);
         if (i < argc) {
-          *p = mrb_integer(mrb_to_int(mrb, argv[i++]));
+          *p = mrb_as_int(mrb, argv[i]); i++;
         }
       }
       break;

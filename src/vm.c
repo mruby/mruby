@@ -2440,9 +2440,7 @@ RETRY_TRY_BLOCK:
     CASE(OP_DIV, B) {
 #ifndef MRB_NO_FLOAT
       mrb_float x, y, f;
-      mrb_float mrb_div_flo(mrb_float x, mrb_float y);
 #endif
-      mrb_int mrb_div_int(mrb_state *mrb, mrb_int x, mrb_int y);
 
       /* need to check if op is overridden */
       switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {
@@ -2475,7 +2473,7 @@ RETRY_TRY_BLOCK:
       }
 
 #ifndef MRB_NO_FLOAT
-      f = mrb_div_flo(x, y);
+      f = mrb_div_float(x, y);
       SET_FLOAT_VALUE(mrb, regs[a], f);
 #endif
       NEXT;

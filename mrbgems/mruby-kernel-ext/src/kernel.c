@@ -32,7 +32,7 @@ mrb_f_caller(mrb_state *mrb, mrb_value self)
         }
       }
       else {
-        lev = mrb_int(mrb, v);
+        lev = mrb_as_int(mrb, v);
         if (lev < 0) {
           mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative level (%v)", v);
         }
@@ -40,8 +40,8 @@ mrb_f_caller(mrb_state *mrb, mrb_value self)
       }
       break;
     case 2:
-      lev = mrb_int(mrb, v);
-      n = mrb_int(mrb, length);
+      lev = mrb_as_int(mrb, v);
+      n = mrb_as_int(mrb, length);
       if (lev < 0) {
         mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative level (%v)", v);
       }
@@ -131,7 +131,7 @@ mrb_f_float(mrb_state *mrb, mrb_value self)
 {
   mrb_value arg = mrb_get_arg1(mrb);
 
-  return mrb_Float(mrb, arg);
+  return mrb_to_float(mrb, arg);
 }
 #endif
 

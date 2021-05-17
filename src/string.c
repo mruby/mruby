@@ -1102,8 +1102,8 @@ static enum str_convert_range
 str_convert_range(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen, mrb_int *beg, mrb_int *len)
 {
   if (!mrb_undef_p(alen)) {
-    *beg = mrb_int(mrb, indx);
-    *len = mrb_int(mrb, alen);
+    *beg = mrb_as_int(mrb, indx);
+    *len = mrb_as_int(mrb, alen);
     return STR_CHAR_RANGE;
   }
   else {

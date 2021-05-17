@@ -1220,9 +1220,8 @@ MRB_API mrb_bool mrb_obj_eq(mrb_state *mrb, mrb_value a, mrb_value b);
 MRB_API mrb_bool mrb_obj_equal(mrb_state *mrb, mrb_value a, mrb_value b);
 MRB_API mrb_bool mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
 MRB_API mrb_value mrb_convert_to_integer(mrb_state *mrb, mrb_value val, mrb_int base);
-MRB_API mrb_value mrb_Integer(mrb_state *mrb, mrb_value val);
 #ifndef MRB_NO_FLOAT
-MRB_API mrb_value mrb_Float(mrb_state *mrb, mrb_value val);
+MRB_API mrb_value mrb_to_float(mrb_state *mrb, mrb_value val);
 #endif
 MRB_API mrb_value mrb_inspect(mrb_state *mrb, mrb_value obj);
 MRB_API mrb_bool mrb_eql(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
@@ -1340,7 +1339,8 @@ MRB_API void mrb_gc_register(mrb_state *mrb, mrb_value obj);
 MRB_API void mrb_gc_unregister(mrb_state *mrb, mrb_value obj);
 
 MRB_API mrb_value mrb_to_int(mrb_state *mrb, mrb_value val);
-#define mrb_int(mrb, val) mrb_integer(mrb_to_int(mrb, val))
+#define mrb_as_int(mrb, val) mrb_integer(mrb_to_int(mrb, val))
+
 /* string type checking (contrary to the name, it doesn't convert) */
 MRB_API mrb_value mrb_to_str(mrb_state *mrb, mrb_value val);
 MRB_API void mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t);
@@ -1361,6 +1361,8 @@ MRB_API mrb_bool mrb_respond_to(mrb_state *mrb, mrb_value obj, mrb_sym mid);
 MRB_API mrb_bool mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, struct RClass* c);
 MRB_API mrb_bool mrb_func_basic_p(mrb_state *mrb, mrb_value obj, mrb_sym mid, mrb_func_t func);
 
+/* obsolete function(s); will be removed */
+#define mrb_int(mrb, val) mrb_as_int(mrb, val)
 
 /**
  * Resume a Fiber

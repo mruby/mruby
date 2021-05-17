@@ -458,8 +458,8 @@ mrb_range_beg_len(mrb_state *mrb, mrb_value range, mrb_int *begp, mrb_int *lenp,
   if (!mrb_range_p(range)) return MRB_RANGE_TYPE_MISMATCH;
   r = mrb_range_ptr(mrb, range);
 
-  beg = mrb_nil_p(RANGE_BEG(r)) ? 0 : mrb_int(mrb, RANGE_BEG(r));
-  end = mrb_nil_p(RANGE_END(r)) ? -1 : mrb_int(mrb, RANGE_END(r));
+  beg = mrb_nil_p(RANGE_BEG(r)) ? 0 : mrb_as_int(mrb, RANGE_BEG(r));
+  end = mrb_nil_p(RANGE_END(r)) ? -1 : mrb_as_int(mrb, RANGE_END(r));
   excl = mrb_nil_p(RANGE_END(r)) ? 0 : RANGE_EXCL(r);
 
   if (beg < 0) {

@@ -35,7 +35,7 @@ str_casecmp_p(const char *s1, mrb_int len1, const char *s2, mrb_int len2)
 static mrb_value
 int_chr_binary(mrb_state *mrb, mrb_value num)
 {
-  mrb_int cp = mrb_int(mrb, num);
+  mrb_int cp = mrb_as_int(mrb, num);
   char c;
   mrb_value str;
 

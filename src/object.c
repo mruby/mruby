@@ -564,15 +564,9 @@ arg_error:
   return mrb_to_int(mrb, val);
 }
 
-MRB_API mrb_value
-mrb_Integer(mrb_state *mrb, mrb_value val)
-{
-  return mrb_convert_to_integer(mrb, val, 0);
-}
-
 #ifndef MRB_NO_FLOAT
 MRB_API mrb_value
-mrb_Float(mrb_state *mrb, mrb_value val)
+mrb_to_float(mrb_state *mrb, mrb_value val)
 {
   if (mrb_nil_p(val)) {
     mrb_raise(mrb, E_TYPE_ERROR, "can't convert nil into Float");

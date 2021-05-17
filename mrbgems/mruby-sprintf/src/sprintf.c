@@ -230,7 +230,7 @@ check_name_arg(mrb_state *mrb, int posarg, const char *name, size_t len)
     tmp_v = GETNEXTARG(); \
     p = t; \
   } \
-  num = mrb_int(mrb, tmp_v); \
+  num = mrb_as_int(mrb, tmp_v); \
 } while (0)
 
 static const char *
@@ -908,8 +908,8 @@ retry:
             v = mrb_integer(val);
             break;
           default:
-            val = mrb_Integer(mrb, val);
-            goto bin_retry;
+            v = mrb_as_int(mrb, val);
+            break;
         }
 
         switch (*p) {
@@ -1060,7 +1060,7 @@ retry:
         mrb_int need = 6;
         char fbuf[64];
 
-        fval = mrb_float(mrb_Float(mrb, val));
+        fval = mrb_as_float(mrb, val);
         if (!isfinite(fval)) {
           const char *expr;
           const mrb_int elen = 3;

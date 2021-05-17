@@ -15,7 +15,7 @@ mrb_int_allbits(mrb_state *mrb, mrb_value self)
   mrb_int n, m;
 
   mrb_get_args(mrb, "i", &m);
-  n = mrb_int(mrb, self);
+  n = mrb_as_int(mrb, self);
   return mrb_bool_value((n & m) == m);
 }
 
@@ -31,7 +31,7 @@ mrb_int_anybits(mrb_state *mrb, mrb_value self)
   mrb_int n, m;
 
   mrb_get_args(mrb, "i", &m);
-  n = mrb_int(mrb, self);
+  n = mrb_as_int(mrb, self);
   return mrb_bool_value((n & m) != 0);
 }
 
@@ -47,7 +47,7 @@ mrb_int_nobits(mrb_state *mrb, mrb_value self)
   mrb_int n, m;
 
   mrb_get_args(mrb, "i", &m);
-  n = mrb_int(mrb, self);
+  n = mrb_as_int(mrb, self);
   return mrb_bool_value((n & m) == 0);
 }
 

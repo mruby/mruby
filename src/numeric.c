@@ -33,7 +33,7 @@
 
 #ifndef MRB_NO_FLOAT
 MRB_API mrb_float
-mrb_to_flo(mrb_state *mrb, mrb_value val)
+mrb_as_float(mrb_state *mrb, mrb_value val)
 {
   switch (mrb_type(val)) {
   case MRB_TT_INTEGER:
@@ -137,10 +137,6 @@ mrb_div_int(mrb_state *mrb, mrb_int x, mrb_int y)
   return 0;
 }
 
-#ifndef MRB_NO_FLOAT
-mrb_float mrb_div_flo(mrb_float x, mrb_float y);
-#endif
-
 /* 15.2.8.3.4  */
 /* 15.2.9.3.4  */
 /*
@@ -164,7 +160,7 @@ int_div(mrb_state *mrb, mrb_value x)
 #ifdef MRB_NO_FLOAT
   mrb_raise(mrb, E_TYPE_ERROR, "non integer division");
 #else
-  return mrb_float_value(mrb, mrb_div_flo((mrb_float)a, mrb_to_flo(mrb, y)));
+  return mrb_float_value(mrb, mrb_div_float((mrb_float)a, mrb_as_float(mrb, y)));
 #endif
 }
 
@@ -219,7 +215,7 @@ coerce_step_counter(mrb_state *mrb, mrb_value self)
 
 #ifndef MRB_NO_FLOAT
   if (mrb_float_p(self) || mrb_float_p(num) || mrb_float_p(step)) {
-    return mrb_Float(mrb, self);
+    return mrb_to_float(mrb, self);
   }
 #endif
 
@@ -240,7 +236,7 @@ static mrb_value
 flo_pow(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
-  mrb_float d = pow(mrb_to_flo(mrb, x), mrb_to_flo(mrb, y));
+  mrb_float d = pow(mrb_as_float(mrb, x), mrb_as_float(mrb, y));
   return mrb_float_value(mrb, d);
 }
 
@@ -255,7 +251,7 @@ flo_idiv(mrb_state *mrb, mrb_value xv)
 }
 
 mrb_float
-mrb_div_flo(mrb_float x, mrb_float y)
+mrb_div_float(mrb_float x, mrb_float y)
 {
   if (y != 0.0) {
     return x / y;
@@ -275,10 +271,10 @@ flo_div(mrb_state *mrb, mrb_value x)
   mrb_float a = mrb_float(x);
 
   if (mrb_float_p(y)) {
-    a = mrb_div_flo(a, mrb_float(y));
+    a = mrb_div_float(a, mrb_float(y));
   }
   else {
-    a = mrb_div_flo(a, mrb_to_flo(mrb, y));
+    a = mrb_div_float(a, mrb_as_float(mrb, y));
   }
   return mrb_float_value(mrb, a);
 }
@@ -376,7 +372,7 @@ flo_add(mrb_state *mrb, mrb_value x)
     return mrb_funcall_id(mrb, y, MRB_OPSYM(add), 1, x);
 #endif
   default:
-    return mrb_float_value(mrb, a + mrb_to_flo(mrb, y));
+    return mrb_float_value(mrb, a + mrb_as_float(mrb, y));
   }
 }
 
@@ -404,7 +400,7 @@ flo_sub(mrb_state *mrb, mrb_value x)
     return mrb_funcall_id(mrb, x, MRB_OPSYM(minus), 0);
 #endif
   default:
-    return mrb_float_value(mrb, a - mrb_to_flo(mrb, y));
+    return mrb_float_value(mrb, a - mrb_as_float(mrb, y));
   }
 }
 
@@ -431,7 +427,7 @@ flo_mul(mrb_state *mrb, mrb_value x)
     return mrb_funcall_id(mrb, y, MRB_OPSYM(mul), 1, x);
 #endif
   default:
-    return mrb_float_value(mrb, a * mrb_to_flo(mrb, y));
+    return mrb_float_value(mrb, a * mrb_as_float(mrb, y));
   }
 }
 
@@ -490,7 +486,7 @@ flo_mod(mrb_state *mrb, mrb_value x)
   mrb_value y = mrb_get_arg1(mrb);
   mrb_float mod;
 
-  flodivmod(mrb, mrb_float(x), mrb_to_flo(mrb, y), 0, &mod);
+  flodivmod(mrb, mrb_float(x), mrb_as_float(mrb, y), 0, &mod);
   return mrb_float_value(mrb, mod);
 }
 #endif
@@ -551,7 +547,7 @@ flo_eq(mrb_state *mrb, mrb_value x)
     return mrb_bool_value(mrb_float(x) == mrb_float(y));
 #ifdef MRB_USE_RATIONAL
   case MRB_TT_RATIONAL:
-    return mrb_bool_value(mrb_float(x) == mrb_to_flo(mrb, y));
+    return mrb_bool_value(mrb_float(x) == mrb_as_float(mrb, y));
 #endif
 #ifdef MRB_USE_COMPLEX
   case MRB_TT_COMPLEX:
@@ -967,7 +963,7 @@ fixnum_mul(mrb_state *mrb, mrb_value x, mrb_value y)
 #ifdef MRB_NO_FLOAT
     mrb_raise(mrb, E_TYPE_ERROR, "non integer multiplication");
 #else
-    return mrb_float_value(mrb, (mrb_float)a * mrb_to_flo(mrb, y));
+    return mrb_float_value(mrb, (mrb_float)a * mrb_as_float(mrb, y));
 #endif
   }
 }
@@ -980,7 +976,7 @@ mrb_num_mul(mrb_state *mrb, mrb_value x, mrb_value y)
   }
 #ifndef MRB_NO_FLOAT
   if (mrb_float_p(x)) {
-    return mrb_float_value(mrb, mrb_float(x) * mrb_to_flo(mrb, y));
+    return mrb_float_value(mrb, mrb_float(x) * mrb_as_float(mrb, y));
   }
 #endif
 #if defined(MRB_USE_RATIONAL) || defined(MRB_USE_COMPLEX)
@@ -1065,7 +1061,7 @@ int_mod(mrb_state *mrb, mrb_value x)
   else {
     mrb_float mod;
 
-    flodivmod(mrb, (mrb_float)a, mrb_to_flo(mrb, y), NULL, &mod);
+    flodivmod(mrb, (mrb_float)a, mrb_as_float(mrb, y), NULL, &mod);
     return mrb_float_value(mrb, mod);
   }
 #endif
@@ -1095,7 +1091,7 @@ int_divmod(mrb_state *mrb, mrb_value x)
     mrb_float div, mod;
     mrb_value a, b;
 
-    flodivmod(mrb, (mrb_float)mrb_integer(x), mrb_to_flo(mrb, y), &div, &mod);
+    flodivmod(mrb, (mrb_float)mrb_integer(x), mrb_as_float(mrb, y), &div, &mod);
     a = mrb_int_value(mrb, (mrb_int)div);
     b = mrb_float_value(mrb, mod);
     return mrb_assoc_new(mrb, a, b);
@@ -1111,7 +1107,7 @@ flo_divmod(mrb_state *mrb, mrb_value x)
   mrb_float div, mod;
   mrb_value a, b;
 
-  flodivmod(mrb, mrb_float(x), mrb_to_flo(mrb, y), &div, &mod);
+  flodivmod(mrb, mrb_float(x), mrb_as_float(mrb, y), &div, &mod);
   if (!FIXABLE_FLOAT(div))
     a = mrb_float_value(mrb, div);
   else
@@ -1405,7 +1401,7 @@ int_plus(mrb_state *mrb, mrb_value x, mrb_value y)
 #ifdef MRB_NO_FLOAT
     mrb_raise(mrb, E_TYPE_ERROR, "non integer addition");
 #else
-    return mrb_float_value(mrb, (mrb_float)a + mrb_to_flo(mrb, y));
+    return mrb_float_value(mrb, (mrb_float)a + mrb_as_float(mrb, y));
 #endif
   }
 }
@@ -1418,7 +1414,7 @@ mrb_num_plus(mrb_state *mrb, mrb_value x, mrb_value y)
   }
 #ifndef MRB_NO_FLOAT
   if (mrb_float_p(x)) {
-    return mrb_float_value(mrb, mrb_float(x) + mrb_to_flo(mrb, y));
+    return mrb_float_value(mrb, mrb_float(x) + mrb_as_float(mrb, y));
   }
 #endif
 #if defined(MRB_USE_RATIONAL) || defined(MRB_USE_COMPLEX)
@@ -1477,7 +1473,7 @@ int_minus(mrb_state *mrb, mrb_value x, mrb_value y)
 #ifdef MRB_NO_FLOAT
     mrb_raise(mrb, E_TYPE_ERROR, "non integer subtraction");
 #else
-    return mrb_float_value(mrb, (mrb_float)a - mrb_to_flo(mrb, y));
+    return mrb_float_value(mrb, (mrb_float)a - mrb_as_float(mrb, y));
 #endif
   }
 }
@@ -1490,7 +1486,7 @@ mrb_num_minus(mrb_state *mrb, mrb_value x, mrb_value y)
   }
 #ifndef MRB_NO_FLOAT
   if (mrb_float_p(x)) {
-    return mrb_float_value(mrb, mrb_float(x) - mrb_to_flo(mrb, y));
+    return mrb_float_value(mrb, mrb_float(x) - mrb_as_float(mrb, y));
   }
 #endif
 #if defined(MRB_USE_RATIONAL) || defined(MRB_USE_COMPLEX)
@@ -1595,7 +1591,7 @@ cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
 #ifdef MRB_NO_FLOAT
   x = mrb_integer(v1);
 #else
-  x = mrb_to_flo(mrb, v1);
+  x = mrb_as_float(mrb, v1);
 #endif
   switch (mrb_type(v2)) {
   case MRB_TT_INTEGER:
@@ -1611,7 +1607,7 @@ cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
     break;
 #ifdef MRB_USE_RATIONAL
   case MRB_TT_RATIONAL:
-    y = mrb_to_flo(mrb, v2);
+    y = mrb_as_float(mrb, v2);
     break;
 #endif
 #endif
