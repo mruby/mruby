@@ -1901,7 +1901,7 @@ mrb_obj_as_string(mrb_state *mrb, mrb_value obj)
   case MRB_TT_SYMBOL:
     return mrb_sym_str(mrb, mrb_symbol(obj));
   case MRB_TT_INTEGER:
-    return mrb_fixnum_to_str(mrb, obj, 10);
+    return mrb_integer_to_str(mrb, obj, 10);
   case MRB_TT_SCLASS:
   case MRB_TT_CLASS:
   case MRB_TT_MODULE:

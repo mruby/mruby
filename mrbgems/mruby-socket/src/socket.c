@@ -142,7 +142,7 @@ mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
   if (mrb_string_p(service)) {
     servname = RSTRING_CSTR(mrb, service);
   } else if (mrb_integer_p(service)) {
-    servname = RSTRING_PTR(mrb_fixnum_to_str(mrb, service, 10));
+    servname = RSTRING_PTR(mrb_integer_to_str(mrb, service, 10));
   } else if (mrb_nil_p(service)) {
     servname = NULL;
   } else {

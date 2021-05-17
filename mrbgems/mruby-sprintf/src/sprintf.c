@@ -957,7 +957,7 @@ retry:
             val = mrb_fix2binstr(mrb, mrb_int_value(mrb, v), base);
           }
           else {
-            val = mrb_fixnum_to_str(mrb, mrb_int_value(mrb, v), base);
+            val = mrb_integer_to_str(mrb, mrb_int_value(mrb, v), base);
           }
           strncpy(++s, RSTRING_PTR(val), sizeof(nbuf)-2);
         }

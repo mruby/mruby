@@ -1526,7 +1526,7 @@ int_sub(mrb_state *mrb, mrb_value self)
 
 
 MRB_API mrb_value
-mrb_fixnum_to_str(mrb_state *mrb, mrb_value x, mrb_int base)
+mrb_integer_to_str(mrb_state *mrb, mrb_value x, mrb_int base)
 {
   char buf[MRB_INT_BIT+1];
   char *b = buf + sizeof buf;
@@ -1579,7 +1579,7 @@ int_to_s(mrb_state *mrb, mrb_value self)
   mrb_int base = 10;
 
   mrb_get_args(mrb, "|i", &base);
-  return mrb_fixnum_to_str(mrb, self, base);
+  return mrb_integer_to_str(mrb, self, base);
 }
 
 /* compare two numbers: (1:0:-1; -2 for error) */

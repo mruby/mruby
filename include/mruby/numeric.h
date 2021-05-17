@@ -30,11 +30,14 @@ MRB_BEGIN_DECL
 #endif
 #endif
 
-MRB_API mrb_value mrb_fixnum_to_str(mrb_state *mrb, mrb_value x, mrb_int base);
-
 MRB_API mrb_value mrb_num_plus(mrb_state *mrb, mrb_value x, mrb_value y);
 MRB_API mrb_value mrb_num_minus(mrb_state *mrb, mrb_value x, mrb_value y);
 MRB_API mrb_value mrb_num_mul(mrb_state *mrb, mrb_value x, mrb_value y);
+
+MRB_API mrb_value mrb_integer_to_str(mrb_state *mrb, mrb_value x, mrb_int base);
+
+/* obsolete function(s); will be removed */
+#define mrb_fixnum_to_str(mrb, x, base) mrb_integer_to_str(mrb, x, base)
 
 #ifndef __has_builtin
   #define __has_builtin(x) 0
