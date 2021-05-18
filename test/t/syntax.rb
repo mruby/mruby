@@ -706,3 +706,20 @@ assert('argument forwarding') do
   o.a(1,2,3){}
   o.b(1,2,3){}
 end
+
+assert('endless def') do
+  Class.new do
+    def m1 = 42
+    def m2() = 42
+    def m3(x) = x+1
+    def self.s1 = 42
+    def self.s2() = 42
+    def self.s3(x) = x + 1
+    def c1 = 42
+    def cm2() = p 42
+    def cm3(x) = p x+1
+    def self.cs1 = p 42
+    def self.cs2() = p 42
+    def self.cs3(x) = p x + 1
+  end
+end
