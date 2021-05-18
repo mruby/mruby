@@ -2370,7 +2370,7 @@ arg             : lhs '=' arg_rhs
                       nvars_unnest(p);
                       p->in_def--;
                     }
-                | defs_head f_arglist_paren '=' arg
+                | defs_head f_opt_arglist_paren '=' arg
                     {
                       $$ = $1;
                       void_expr_error(p, $4);
@@ -2379,7 +2379,7 @@ arg             : lhs '=' arg_rhs
                       p->in_def--;
                       p->in_single--;
                     }
-                | defs_head f_arglist_paren '=' arg modifier_rescue arg
+                | defs_head f_opt_arglist_paren '=' arg modifier_rescue arg
                     {
                       $$ = $1;
                       void_expr_error(p, $4);
