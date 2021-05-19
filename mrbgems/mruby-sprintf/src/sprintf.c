@@ -326,10 +326,6 @@ get_hash(mrb_state *mrb, mrb_value *hash, mrb_int argc, const mrb_value *argv)
  *            | equal to the precision, or in dd.dddd form otherwise.
  *            | The precision specifies the number of significant digits.
  *        G   | Equivalent to 'g', but use an uppercase 'E' in exponent form.
- *        a   | Convert floating-point argument as [-]0xh.hhhhp[+-]dd,
- *            | which is consisted from optional sign, "0x", fraction part
- *            | as hexadecimal, "p", and exponential part as decimal.
- *        A   | Equivalent to 'a', but use uppercase 'X' and 'P'.
  *
  *      Field |  Other Format
  *      ------+--------------------------------------------------------------
@@ -364,7 +360,7 @@ get_hash(mrb_state *mrb, mrb_value *hash, mrb_int argc, const mrb_value *argv)
  *             |               | For the conversions 'x', 'X', 'b' and 'B'
  *             |               | on non-zero, prefix the result with "0x",
  *             |               | "0X", "0b" and "0B", respectively.
- *             |               | For 'a', 'A', 'e', 'E', 'f', 'g', and 'G',
+ *             |               | For 'e', 'E', 'f', 'g', and 'G',
  *             |               | force a decimal point to be added,
  *             |               | even if no digits follow.
  *             |               | For 'g' and 'G', do not remove trailing zeros.
@@ -1052,9 +1048,7 @@ retry:
       case 'g':
       case 'G':
       case 'e':
-      case 'E':
-      case 'a':
-      case 'A': {
+      case 'E': {
         mrb_value val = GETARG();
         double fval;
         mrb_int need = 6;
