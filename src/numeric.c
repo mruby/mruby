@@ -25,9 +25,7 @@
 #define floor(f) floorf(f)
 #define ceil(f) ceilf(f)
 #define fmod(x,y) fmodf(x,y)
-#define FLO_TO_STR_PREC 8
 #else
-#define FLO_TO_STR_PREC 16
 #endif
 #endif
 
@@ -303,49 +301,14 @@ flo_to_s(mrb_state *mrb, mrb_value flt)
   if (isinf(f)) {
     str = f < 0 ? mrb_str_new_lit(mrb, "-Infinity")
                 : mrb_str_new_lit(mrb, "Infinity");
-    goto exit;
   }
   else if (isnan(f)) {
     str = mrb_str_new_lit(mrb, "NaN");
-    goto exit;
   }
   else {
-    char fmt[] = "%." MRB_STRINGIZE(FLO_TO_STR_PREC) "g";
-    mrb_int len;
-    char *begp, *p, *endp;
-
-    str = mrb_float_to_str(mrb, flt, fmt);
-
-    insert_dot_zero:
-    begp = RSTRING_PTR(str);
-    len = RSTRING_LEN(str);
-    for (p = begp, endp = p + len; p < endp; ++p) {
-      if (*p == '.') {
-        goto exit;
-      }
-      else if (*p == 'e') {
-        ptrdiff_t e_pos = p - begp;
-        mrb_str_cat(mrb, str, ".0", 2);
-        p = RSTRING_PTR(str) + e_pos;
-        memmove(p + 2, p, len - e_pos);
-        memcpy(p, ".0", 2);
-        goto exit;
-      }
-    }
-
-    if (FLO_TO_STR_PREC + (begp[0] == '-') <= len) {
-      --fmt[sizeof(fmt) - 3];  /* %.16g(%.8g) -> %.15g(%.7g) */
-      str = mrb_float_to_str(mrb, flt, fmt);
-      goto insert_dot_zero;
-    }
-    else {
-      mrb_str_cat(mrb, str, ".0", 2);
-    }
-
-    goto exit;
+    str = mrb_float_to_str(mrb, flt);
   }
 
-  exit:
   RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
   return str;
 }

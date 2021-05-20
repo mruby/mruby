@@ -1,5 +1,12 @@
 #include <mruby.h>
-#if !defined(MRB_NO_FLOAT)
+#include <string.h>
+#ifndef MRB_NO_FLOAT
+#ifdef MRB_USE_FLOAT32
+#define FLO_TO_STR_PREC 7
+#else
+#define FLO_TO_STR_PREC 15
+#endif
+
 #if defined(MRB_NO_STDIO) || defined(_WIN32) || defined(_WIN64)
 /*
 
@@ -410,21 +417,6 @@ fmt_core(struct fmt_args *f, const char *fmt, mrb_float flo)
   }
 }
 
-mrb_value
-mrb_float_to_str(mrb_state *mrb, mrb_value flo, const char *fmt)
-{
-  struct fmt_args f;
-  mrb_value str = mrb_str_new_capa(mrb, 24);
-
-  f.mrb = mrb;
-  f.output = strcat_value;
-  f.opaque = (void*)&str;
-  if (fmt_core(&f, fmt, mrb_float(flo)) < 0) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid format string");
-  }
-  return str;
-}
-
 int
 mrb_float_to_cstr(mrb_state *mrb, char *buf, size_t len, const char *fmt, mrb_float fval)
 {
@@ -445,19 +437,31 @@ mrb_float_to_cstr(mrb_state *mrb, char *buf, size_t len, const char *fmt, mrb_fl
 #else   /* MRB_NO_STDIO || _WIN32 || _WIN64 */
 #include <stdio.h>
 
-mrb_value
-mrb_float_to_str(mrb_state *mrb, mrb_value flo, const char *fmt)
-{
-  char buf[25];
-
-  snprintf(buf, sizeof(buf), fmt, mrb_float(flo));
-  return mrb_str_new_cstr(mrb, buf);
-}
-
-MRB_API int
+int
 mrb_float_to_cstr(mrb_state *mrb, char *buf, size_t len, const char *fmt, mrb_float fval)
 {
   return snprintf(buf, len, fmt, fval);
 }
+
 #endif  /* MRB_NO_STDIO || _WIN32 || _WIN64 */
+
+MRB_API mrb_value
+mrb_float_to_str(mrb_state *mrb, mrb_value flo)
+{
+  char fmt[] = "%." MRB_STRINGIZE(FLO_TO_STR_PREC) "g";
+  char buf[25];
+
+  mrb_float_to_cstr(mrb, buf, sizeof(buf), fmt, mrb_float(flo));
+  for (char *p = buf; *p; p++) {
+    if (*p == '.') goto exit;
+    if (*p == 'e') {
+      memmove(p+2, p, strlen(p)+1);
+      memcpy(p, ".0", 2);
+      goto exit;
+    }
+  }
+  strcat(buf, ".0");
+ exit:
+  return mrb_str_new_cstr(mrb, buf);
+}
 #endif
