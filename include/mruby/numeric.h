@@ -165,13 +165,14 @@ MRB_API mrb_float mrb_as_float(mrb_state *mrb, mrb_value x);
 
 /* internal functions */
 mrb_float mrb_div_float(mrb_float x, mrb_float y);
-/* ArgumentError if format string doesn't match /%(\.[0-9]+)?[aAeEfFgG]/ */
 mrb_value mrb_float_to_str(mrb_state *mrb, mrb_value x);
-int mrb_float_to_cstr(mrb_state *mrb, char *buf, size_t len, const char *fmt, mrb_float f);
+int mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, char sign);
 
 /* obsolete functions; will be removed */
 #define mrb_flo_to_fixnum(mrb, val) mrb_float_to_integer(mrb, val)
 #define mrb_to_flo(mrb, x) mrb_as_float(mrb, x)
+/* ArgumentError if format string doesn't match /%(\.[0-9]+)?[aAeEfFgG]/ */
+int mrb_float_to_cstr(mrb_state *mrb, char *buf, size_t len, const char *fmt, mrb_float f);
 
 #endif /* MRB_NO_FLOAT */
 
