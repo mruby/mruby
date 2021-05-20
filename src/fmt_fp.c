@@ -410,7 +410,7 @@ fmt_core(struct fmt_args *f, const char *fmt, mrb_float flo)
   }
 }
 
-MRB_API mrb_value
+mrb_value
 mrb_float_to_str(mrb_state *mrb, mrb_value flo, const char *fmt)
 {
   struct fmt_args f;
@@ -425,7 +425,7 @@ mrb_float_to_str(mrb_state *mrb, mrb_value flo, const char *fmt)
   return str;
 }
 
-MRB_API int
+int
 mrb_float_to_cstr(mrb_state *mrb, char *buf, size_t len, const char *fmt, mrb_float fval)
 {
   struct fmt_args f;
@@ -445,7 +445,7 @@ mrb_float_to_cstr(mrb_state *mrb, char *buf, size_t len, const char *fmt, mrb_fl
 #else   /* MRB_NO_STDIO || _WIN32 || _WIN64 */
 #include <stdio.h>
 
-MRB_API mrb_value
+mrb_value
 mrb_float_to_str(mrb_state *mrb, mrb_value flo, const char *fmt)
 {
   char buf[25];
