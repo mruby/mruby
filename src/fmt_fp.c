@@ -79,7 +79,7 @@ static const mrb_float g_neg_pow[] = {
  * prec: is the precision (as specified in printf)
  * sign: should be '\0', '+', or ' '  ('\0' is the normal one - only print
  *       a sign if ```f``` is negative. Anything else is printed as the
- *       sign character for positive nubers.
+ *       sign character for positive numbers.
  */
 
 int
