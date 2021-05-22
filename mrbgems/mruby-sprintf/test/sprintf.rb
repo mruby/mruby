@@ -10,11 +10,11 @@ assert('String#%') do
   assert_equal 15, ("%b" % (1<<14)).size
   skip unless Object.const_defined?(:Float)
   assert_equal "1.0", "%3.1f" % 1.01
-  assert_equal " 1234567.12", "% 4.2f" % 1234567.123456789
-  assert_equal "1234567.12", "%-4.2f" % 1234567.123456789
-  assert_equal "+1234567.12", "%+4.2f" % 1234567.123456789
-  assert_equal "1234567.12", "%04.2f" % 1234567.123456789
-  assert_equal "00000000001234567.12", "%020.2f" % 1234567.123456789
+  assert_equal " 12345.12", "% 4.2f" % 12345.1234
+  assert_equal "12345.12", "%-4.2f" % 12345.12345
+  assert_equal "+12345.12", "%+4.2f" % 12345.1234
+  assert_equal "12345.12", "%04.2f" % 12345.12345
+  assert_equal "0012345.12", "%010.2f" % 12345.1234
 end
 
 assert('String#% with inf') do
