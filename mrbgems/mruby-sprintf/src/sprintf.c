@@ -21,9 +21,6 @@
 #define EXTENDSIGN(n, l) (((~0U << (n)) >> (((n)*(l)) % BITSPERDIG)) & ~(~0U << (n)))
 
 mrb_value mrb_str_format(mrb_state *, mrb_int, const mrb_value *, mrb_value);
-#ifndef MRB_NO_FLOAT
-static void fmt_setup(char*,size_t,int,int,mrb_int,mrb_int);
-#endif
 
 static char*
 remove_sign_bits(char *str, int base)
@@ -133,7 +130,52 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
 #define FPREC  64
 #define FPREC0 128
 
-#define CHECK(l) do {\
+#ifndef MRB_NO_FLOAT
+static int
+fmt_float(char *buf, size_t buf_size, char fmt, int flags, mrb_int width, mrb_int prec, mrb_float f)
+{
+  char sign = '\0';
+  int left_align = 0;
+  int zero_pad = 0;
+
+  if (flags & FSHARP) fmt |= 0x80;
+  if (flags & FPLUS)  sign = '+';
+  if (flags & FMINUS) left_align = 1;
+  if (flags & FZERO)  zero_pad = 1;
+  if (flags & FSPACE) sign = ' ';
+
+  int len = mrb_format_float(f, buf, buf_size, fmt, prec, sign);
+
+  // buf[0] < '0' returns true if the first character is space, + or -
+  // buf[1] < '9' matches a digit, and doesn't match when we get back +nan or +inf
+  if (buf[0] < '0' && buf[1] <= '9' && zero_pad) {
+    buf++;
+    width--;
+    len--;
+  }
+  if (*buf < '0' || *buf >= '9') {
+    // For inf or nan, we don't want to zero pad.
+    zero_pad = 0;
+  }
+  if (len >= width) {
+    return len;
+  }
+  buf[width] = '\0';
+  if (left_align) {
+    memset(&buf[len], ' ', width - len);
+    return width;
+  }
+  memmove(&buf[width - len], buf, len);
+  if (zero_pad) {
+    memset(buf, '0', width - len);
+  } else {
+    memset(buf, ' ', width - len);
+  }
+  return width;
+}
+#endif
+
+#define CHECK(l) do {                           \
   while ((l) >= bsiz - blen) {\
     if (bsiz > MRB_INT_MAX/2) mrb_raise(mrb, E_ARGUMENT_ERROR, "too big specifier"); \
     bsiz*=2;\
@@ -1052,7 +1094,6 @@ retry:
         mrb_value val = GETARG();
         double fval;
         mrb_int need = 6;
-        char fbuf[64];
 
         fval = mrb_as_float(mrb, val);
         if (!isfinite(fval)) {
@@ -1114,8 +1155,7 @@ retry:
         need += 20;
 
         CHECK(need);
-        fmt_setup(fbuf, sizeof(fbuf), *p, flags, width, prec);
-        n = mrb_float_to_cstr(mrb, &buf[blen], need, fbuf, fval);
+        n = fmt_float(&buf[blen], need, *p, flags, width, prec, fval);
         if (n < 0 || n >= need) {
           mrb_raise(mrb, E_RUNTIME_ERROR, "formatting error");
         }
@@ -1142,35 +1182,6 @@ retry:
   return result;
 }
 
-#ifndef MRB_NO_FLOAT
-static void
-fmt_setup(char *buf, size_t size, int c, int flags, mrb_int width, mrb_int prec)
-{
-  char *end = buf + size;
-  int n;
-
-  *buf++ = '%';
-  if (flags & FSHARP) *buf++ = '#';
-  if (flags & FPLUS)  *buf++ = '+';
-  if (flags & FMINUS) *buf++ = '-';
-  if (flags & FZERO)  *buf++ = '0';
-  if (flags & FSPACE) *buf++ = ' ';
-
-  if (flags & FWIDTH) {
-    n = mrb_int2str(buf, end - buf, width);
-    buf += n;
-  }
-
-  if (flags & FPREC) {
-    *buf ++ = '.';
-    n = mrb_int2str(buf, end - buf, prec);
-    buf += n;
-  }
-
-  *buf++ = c;
-  *buf = '\0';
-}
-#endif
 
 void
 mrb_mruby_sprintf_gem_init(mrb_state *mrb)
