@@ -2216,6 +2216,7 @@ mrb_alias_method(mrb_state *mrb, struct RClass *c, mrb_sym a, mrb_sym b)
       }
       p->e.env = e;
       p->flags |= MRB_PROC_ENVSET;
+      mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)e);
     }
   }
   mrb_define_method_raw(mrb, c, a, m);
