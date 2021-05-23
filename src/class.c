@@ -2197,6 +2197,7 @@ mrb_obj_class(mrb_state *mrb, mrb_value obj)
 MRB_API void
 mrb_alias_method(mrb_state *mrb, struct RClass *c, mrb_sym a, mrb_sym b)
 {
+  if (a == b) return;
   mrb_method_t m = mrb_method_search(mrb, c, b);
 
   if (!MRB_METHOD_CFUNC_P(m)) {
