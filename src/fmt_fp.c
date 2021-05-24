@@ -356,6 +356,10 @@ mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, ch
   if (e_sign) {
     *s++ = e_char;
     *s++ = e_sign;
+    if (e >= 100) {
+      *s++ = '0' + (e / 100);
+      e %= 100;
+    }
     *s++ = '0' + (e / 10);
     *s++ = '0' + (e % 10);
   }
