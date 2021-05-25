@@ -3,12 +3,6 @@
 #include <stdlib.h>
 
 #ifndef MRB_NO_FLOAT
-#ifdef MRB_USE_FLOAT32
-#define FLO_TO_STR_PREC 7
-#else
-#define FLO_TO_STR_PREC 15
-#endif
-
 /***********************************************************************
 
   Routine for converting a single-precision
@@ -368,13 +362,17 @@ mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, ch
   return s - buf;
 }
 
-
 MRB_API mrb_value
 mrb_float_to_str(mrb_state *mrb, mrb_value flo)
 {
   char buf[25];
+#ifdef MRB_USE_FLOAT32
+  const int prec =  7;
+#else
+  const int prec =  15;
+#endif
 
-  mrb_format_float(mrb_float(flo), buf, sizeof(buf), 'g', FLO_TO_STR_PREC, '\0');
+  mrb_format_float(mrb_float(flo), buf, sizeof(buf), 'g', prec, '\0');
   for (char *p = buf; *p; p++) {
     if (*p == '.') goto exit;
     if (*p == 'e') {
