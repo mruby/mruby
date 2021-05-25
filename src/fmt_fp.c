@@ -201,8 +201,8 @@ mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, ch
       e_sign = e_sign_char;
       dec = 0;
 
-      if (prec > (buf_remaining - 6)) {
-        prec = buf_remaining - 6;
+      if (prec > (buf_remaining - FLT_MIN_BUF_SIZE)) {
+        prec = buf_remaining - FLT_MIN_BUF_SIZE;
         if (fmt == 'g') {
           prec++;
         }
