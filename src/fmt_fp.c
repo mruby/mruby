@@ -180,12 +180,12 @@ mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, ch
       dec = -1;
       *s++ = first_dig;
 
-      if (prec + e + 1 > buf_remaining) {
-        prec = buf_remaining - e - 1;
-      }
-
       if (org_fmt == 'g') {
         prec += (e - 1);
+      }
+      // truncate precision to prevent buffer overflow
+      if (prec + 2 > buf_remaining) {
+        prec = buf_remaining - 2;
       }
       num_digits = prec;
       if (num_digits || alt_form) {
