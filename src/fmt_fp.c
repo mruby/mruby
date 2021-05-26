@@ -361,28 +361,4 @@ mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, ch
 
   return s - buf;
 }
-
-MRB_API mrb_value
-mrb_float_to_str(mrb_state *mrb, mrb_value flo)
-{
-  char buf[25];
-#ifdef MRB_USE_FLOAT32
-  const int prec =  7;
-#else
-  const int prec =  15;
-#endif
-
-  mrb_format_float(mrb_float(flo), buf, sizeof(buf), 'g', prec, '\0');
-  for (char *p = buf; *p; p++) {
-    if (*p == '.') goto exit;
-    if (*p == 'e') {
-      memmove(p+2, p, strlen(p)+1);
-      memcpy(p, ".0", 2);
-      goto exit;
-    }
-  }
-  strcat(buf, ".0");
- exit:
-  return mrb_str_new_cstr(mrb, buf);
-}
 #endif
