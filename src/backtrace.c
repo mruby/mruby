@@ -102,7 +102,9 @@ print_backtrace(mrb_state *mrb, struct RObject *exc, mrb_value backtrace)
   FILE *stream = stderr;
 
   if (n != 0) {
-    fprintf(stream, "trace (most recent call last):\n");
+    if (n > 1) {
+      fprintf(stream, "trace (most recent call last):\n");
+    }
     for (i=n-1,loc=&RARRAY_PTR(backtrace)[i]; i>0; i--,loc--) {
       if (mrb_string_p(*loc)) {
         fprintf(stream, "\t[%d] %.*s\n",
