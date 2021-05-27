@@ -423,8 +423,8 @@ mrb_f_raise(mrb_state *mrb, mrb_value self)
   mrb_value a[2], exc;
   mrb_int argc;
 
-
   argc = mrb_get_args(mrb, "|oo", &a[0], &a[1]);
+  mrb->c->ci->mid = 0;
   switch (argc) {
   case 0:
     mrb_raise(mrb, E_RUNTIME_ERROR, "");
@@ -527,6 +527,7 @@ mrb_obj_missing(mrb_state *mrb, mrb_value mod)
   const mrb_value *a;
   mrb_int alen;
 
+  mrb->c->ci->mid = 0;
   mrb_get_args(mrb, "n*!", &name, &a, &alen);
   mrb_method_missing(mrb, name, mod, mrb_ary_new_from_values(mrb, alen, a));
   /* not reached */
