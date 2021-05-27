@@ -8,53 +8,54 @@
 static mrb_value
 mrb_f_caller(mrb_state *mrb, mrb_value self)
 {
-  mrb_value bt, v, length;
+  mrb_value bt, v;
   mrb_int bt_len, argc, lev, n;
+
+  argc = mrb_get_args(mrb, "|oi", &v, &n);
 
   bt = mrb_get_backtrace(mrb);
   bt_len = RARRAY_LEN(bt);
-  argc = mrb_get_args(mrb, "|oo", &v, &length);
 
   switch (argc) {
-    case 0:
-      lev = 1;
-      n = bt_len - lev;
-      break;
-    case 1:
-      if (mrb_range_p(v)) {
-        mrb_int beg, len;
-        if (mrb_range_beg_len(mrb, v, &beg, &len, bt_len, TRUE) == MRB_RANGE_OK) {
-          lev = beg;
-          n = len;
-        }
-        else {
-          return mrb_nil_value();
-        }
+  case 0:
+    lev = 1;
+    n = bt_len - 1;
+    break;
+  case 1:
+    if (mrb_range_p(v)) {
+      mrb_int beg, len;
+      if (mrb_range_beg_len(mrb, v, &beg, &len, bt_len, TRUE) == MRB_RANGE_OK) {
+        lev = beg;
+        n = len;
       }
       else {
-        lev = mrb_as_int(mrb, v);
-        if (lev < 0) {
-          mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative level (%v)", v);
-        }
-        n = bt_len - lev;
+        return mrb_nil_value();
       }
-      break;
-    case 2:
+    }
+    else {
       lev = mrb_as_int(mrb, v);
-      n = mrb_as_int(mrb, length);
       if (lev < 0) {
         mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative level (%v)", v);
       }
-      if (n < 0) {
-        mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative size (%v)", length);
-      }
-      break;
-    default:
-      lev = n = 0;
-      break;
+      n = bt_len - lev;
+    }
+    break;
+  case 2:
+    lev = mrb_as_int(mrb, v);
+    break;
+  default:
+    /* not reached */
+    lev = n = 0;
+    break;
   }
-
-  if (n == 0) {
+  if (lev >= bt_len) return mrb_nil_value();
+  if (lev < 0) {
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative level (%v)", v);
+  }
+  if (n < 0) {
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative size (%d)", n);
+  }
+  if (n == 0 || bt_len <= lev) {
     return mrb_ary_new(mrb);
   }
 
