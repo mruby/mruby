@@ -38,27 +38,29 @@ each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, each_backtrace_func func, void *
   for (ptrdiff_t i=ciidx; i >= 0; i--) {
     struct backtrace_location loc;
     mrb_callinfo *ci;
-    const mrb_irep *irep;
+    const mrb_irep *irep = 0;
     const mrb_code *pc;
     uint32_t idx;
 
     ci = &mrb->c->cibase[i];
 
-    if (!ci->proc) continue;
-    if (MRB_PROC_CFUNC_P(ci->proc)) continue;
-
-    irep = ci->proc->body.irep;
-    if (!irep) continue;
-    if (mrb->c->cibase[i].pc) {
-      pc = &mrb->c->cibase[i].pc[-1];
+    if (!ci->proc || MRB_PROC_CFUNC_P(ci->proc)) {
+      loc.lineno = -1;
+      idx = 0;
     }
     else {
-      continue;
+      irep = ci->proc->body.irep;
+      if (!irep) continue;
+      if (mrb->c->cibase[i].pc) {
+        pc = &mrb->c->cibase[i].pc[-1];
+      }
+      else {
+        continue;
+      }
+      idx = (uint32_t)(pc - irep->iseq);
+      loc.lineno = mrb_debug_get_line(mrb, irep, idx);
     }
-
     loc.method_id = ci->mid;
-    idx = (uint32_t)(pc - irep->iseq);
-    loc.lineno = mrb_debug_get_line(mrb, irep, idx);
     if (loc.lineno == -1) {
       for (ptrdiff_t j=i-1; j >= 0; j--) {
         ci = &mrb->c->cibase[j];
