@@ -1136,6 +1136,13 @@ check_target_class(mrb_state *mrb)
   return TRUE;
 }
 
+mrb_value
+get_send_args(mrb_state *mrb, mrb_int argc, mrb_value *regs)
+{
+  if (argc < 0) return regs[0];
+  return mrb_ary_new_from_values(mrb, argc, regs);
+}
+
 mrb_value mrb_obj_missing(mrb_state *mrb, mrb_value mod);
 void mrb_hash_check_kdict(mrb_state *mrb, mrb_value self);
 
@@ -1552,11 +1559,18 @@ RETRY_TRY_BLOCK:
       m = mrb_method_search_vm(mrb, &cls, mid);
       if (MRB_METHOD_UNDEF_P(m)) {
         mrb_sym missing = MRB_SYM(method_missing);
-        m = mrb_method_search_vm(mrb, &cls, missing);
-        if (MRB_METHOD_UNDEF_P(m) || (missing == mrb->c->ci->mid && mrb_obj_eq(mrb, regs[0], recv))) {
-          mrb_value args = (argc < 0) ? regs[a+1] : mrb_ary_new_from_values(mrb, c, regs+a+1);
+        mrb_value args;
+
+        if (mrb_func_basic_p(mrb, recv, missing, mrb_obj_missing)) {
+        method_missing:
+          args = get_send_args(mrb, argc, regs+a+1);
           mrb_method_missing(mrb, mid, recv, args);
         }
+        if (mid != missing) {
+          cls = mrb_class(mrb, recv);
+        }
+        m = mrb_method_search_vm(mrb, &cls, missing);
+        if (MRB_METHOD_UNDEF_P(m)) goto method_missing; /* just in case */
         if (argc >= 0) {
           if (a+2 >= irep->nregs) {
             mrb_stack_extend(mrb, a+3);
@@ -1736,20 +1750,18 @@ RETRY_TRY_BLOCK:
       m = mrb_method_search_vm(mrb, &cls, mid);
       if (MRB_METHOD_UNDEF_P(m)) {
         mrb_sym missing = MRB_SYM(method_missing);
+        mrb_value args;
 
         if (mrb_func_basic_p(mrb, recv, missing, mrb_obj_missing)) {
-          mrb_value args = (argc < 0) ? regs[a+1] : mrb_ary_new_from_values(mrb, b, regs+a+1);
+        super_missing:
+          args = get_send_args(mrb, argc, regs+a+1);
           mrb_no_method_error(mrb, mid, args, "no superclass method '%n'", mid);
         }
         if (mid != missing) {
           cls = mrb_class(mrb, recv);
         }
         m = mrb_method_search_vm(mrb, &cls, missing);
-        if (MRB_METHOD_UNDEF_P(m)) { /* just in case */
-          mrb_value args = (argc < 0) ? regs[a+1] : mrb_ary_new_from_values(mrb, b, regs+a+1);
-          mrb_method_missing(mrb, missing, recv, args);
-        }
-        mid = missing;
+        if (MRB_METHOD_UNDEF_P(m)) goto super_missing; /* just in case */
         if (argc >= 0) {
           if (a+2 >= irep->nregs) {
             mrb_stack_extend(mrb, a+3);
@@ -1758,7 +1770,8 @@ RETRY_TRY_BLOCK:
           regs[a+2] = blk;
           argc = -1;
         }
-        mrb_ary_unshift(mrb, regs[a+1], mrb_symbol_value(ci->mid));
+        mrb_ary_unshift(mrb, regs[a+1], mrb_symbol_value(mid));
+        mid = missing;
       }
 
       /* push callinfo */
