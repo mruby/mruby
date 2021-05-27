@@ -58,8 +58,8 @@ mrb_f_caller(mrb_state *mrb, mrb_value self)
   if (n == 0 || bt_len <= lev) {
     return mrb_ary_new(mrb);
   }
-
-  return mrb_funcall_id(mrb, bt, MRB_OPSYM(aref), 2, mrb_fixnum_value(lev), mrb_fixnum_value(n));
+  if (bt_len <= n + lev) n = bt_len - lev - 1;
+  return mrb_ary_new_from_values(mrb, n, RARRAY_PTR(bt)+lev+1);
 }
 
 /*
