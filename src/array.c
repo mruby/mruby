@@ -694,19 +694,6 @@ mrb_ary_unshift_m(mrb_state *mrb, mrb_value self)
   return self;
 }
 
-MRB_API mrb_value
-mrb_ary_ref(mrb_state *mrb, mrb_value ary, mrb_int n)
-{
-  struct RArray *a = mrb_ary_ptr(ary);
-  mrb_int len = ARY_LEN(a);
-
-  /* range check */
-  if (n < 0) n += len;
-  if (n < 0 || len <= n) return mrb_nil_value();
-
-  return ARY_PTR(a)[n];
-}
-
 MRB_API void
 mrb_ary_set(mrb_state *mrb, mrb_value ary, mrb_int n, mrb_value val)
 {
@@ -1191,15 +1178,16 @@ mrb_ary_empty_p(mrb_state *mrb, mrb_value self)
 }
 
 MRB_API mrb_value
-mrb_ary_entry(mrb_value ary, mrb_int offset)
+mrb_ary_entry(mrb_value ary, mrb_int n)
 {
-  if (offset < 0) {
-    offset += RARRAY_LEN(ary);
-  }
-  if (offset < 0 || RARRAY_LEN(ary) <= offset) {
-    return mrb_nil_value();
-  }
-  return RARRAY_PTR(ary)[offset];
+  struct RArray *a = mrb_ary_ptr(ary);
+  mrb_int len = ARY_LEN(a);
+
+  /* range check */
+  if (n < 0) n += len;
+  if (n < 0 || len <= n) return mrb_nil_value();
+
+  return ARY_PTR(a)[n];
 }
 
 static mrb_value

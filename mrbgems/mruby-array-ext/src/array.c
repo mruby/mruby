@@ -95,6 +95,12 @@ mrb_ary_at(mrb_state *mrb, mrb_value ary)
 }
 
 static mrb_value
+ary_ref(mrb_state *mrb, mrb_value ary, mrb_int n)
+{
+  return mrb_ary_entry(ary, n);
+}
+
+static mrb_value
 mrb_ary_values_at(mrb_state *mrb, mrb_value self)
 {
   mrb_int argc;
@@ -102,9 +108,8 @@ mrb_ary_values_at(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "*", &argv, &argc);
 
-  return mrb_get_values_at(mrb, self, RARRAY_LEN(self), argc, argv, mrb_ary_ref);
+  return mrb_get_values_at(mrb, self, RARRAY_LEN(self), argc, argv, ary_ref);
 }
-
 
 /*
  *  call-seq:

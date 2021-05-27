@@ -177,20 +177,6 @@ MRB_API void mrb_ary_push(mrb_state *mrb, mrb_value array, mrb_value value);
 MRB_API mrb_value mrb_ary_pop(mrb_state *mrb, mrb_value ary);
 
 /*
- * Returns a reference to an element of the array on the given index.
- *
- * Equivalent to:
- *
- *      ary[n]
- *
- * @param mrb The mruby state reference.
- * @param ary The target array.
- * @param n The array index being referenced
- * @return The referenced value.
- */
-MRB_API mrb_value mrb_ary_ref(mrb_state *mrb, mrb_value ary, mrb_int n);
-
-/*
  * Sets a value on an array at the given index
  *
  * Equivalent to:
@@ -243,6 +229,7 @@ MRB_API mrb_value mrb_ary_unshift(mrb_state *mrb, mrb_value self, mrb_value item
  * @param offset The element position (negative counts from the tail).
  */
 MRB_API mrb_value mrb_ary_entry(mrb_value ary, mrb_int offset);
+#define mrb_ary_ref(mrb, ary, n) mrb_ary_entry(ary, n)
 
 /*
  * Replace subsequence of an array.
