@@ -35,6 +35,7 @@ MRB_API mrb_value mrb_num_minus(mrb_state *mrb, mrb_value x, mrb_value y);
 MRB_API mrb_value mrb_num_mul(mrb_state *mrb, mrb_value x, mrb_value y);
 
 MRB_API mrb_value mrb_integer_to_str(mrb_state *mrb, mrb_value x, mrb_int base);
+MRB_API char *mrb_int_to_cstr(char *buf, size_t len, mrb_int n, mrb_int base);
 
 /* internal function(s) */
 mrb_int mrb_div_int(mrb_state *mrb, mrb_int x, mrb_int y);

@@ -1507,35 +1507,51 @@ int_sub(mrb_state *mrb, mrb_value self)
   return int_minus(mrb, self, other);
 }
 
+MRB_API char*
+mrb_int_to_cstr(char *buf, size_t len, mrb_int n, mrb_int base)
+{
+  char *bufend = buf + len;
+  char *b = bufend-1;
+
+  if (base < 2 || 36 < base) return NULL;
+  if (len < 2) return NULL;
+
+  if (n == 0) {
+    buf[0] = '0';
+    buf[1] = '\0';
+    return buf;
+  }
+
+  *b-- = '\0';
+  if (n < 0) {
+    do {
+      if (b-- == buf) return NULL;
+      *b = mrb_digitmap[-(n % base)];
+    } while (n /= base);
+    if (b-- == buf) return NULL;
+    *b = '-';
+  }
+  else {
+    do {
+      if (b-- == buf) return NULL;
+      *b = mrb_digitmap[(int)(n % base)];
+    } while (n /= base);
+  }
+  return b;
+}
 
 MRB_API mrb_value
 mrb_integer_to_str(mrb_state *mrb, mrb_value x, mrb_int base)
 {
   char buf[MRB_INT_BIT+1];
-  char *b = buf + sizeof buf;
   mrb_int val = mrb_integer(x);
-  mrb_value str;
 
   if (base < 2 || 36 < base) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid radix %i", base);
   }
-
-  if (val == 0) {
-    *--b = '0';
-  }
-  else if (val < 0) {
-    do {
-      *--b = mrb_digitmap[-(val % base)];
-    } while (val /= base);
-    *--b = '-';
-  }
-  else {
-    do {
-      *--b = mrb_digitmap[(int)(val % base)];
-    } while (val /= base);
-  }
-
-  str = mrb_str_new(mrb, b, buf + sizeof(buf) - b);
+  const char *p = mrb_int_to_cstr(buf, sizeof(buf), val, base);
+  mrb_assert(p != NULL);
+  mrb_value str = mrb_str_new_cstr(mrb, p);
   RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
   return str;
 }

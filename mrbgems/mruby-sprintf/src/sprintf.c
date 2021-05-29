@@ -585,50 +585,6 @@ mrb_f_sprintf(mrb_state *mrb, mrb_value obj)
   }
 }
 
-static int
-mrb_int2str(char *buf, size_t len, mrb_int n)
-{
-#ifdef MRB_NO_STDIO
-  char *bufend = buf + len;
-  char *p = bufend - 1;
-
-  if (len < 1) return -1;
-
-  *p -- = '\0';
-  len --;
-
-  if (n < 0) {
-    if (len < 1) return -1;
-
-    *p -- = '-';
-    len --;
-    n = -n;
-  }
-
-  if (n > 0) {
-    for (; n > 0; len --, n /= 10) {
-      if (len < 1) return -1;
-
-      *p -- = '0' + (n % 10);
-    }
-    p ++;
-  }
-  else if (len > 0) {
-    *p = '0';
-    len --;
-  }
-  else {
-    return -1;
-  }
-
-  memmove(buf, p, bufend - p);
-
-  return bufend - p - 1;
-#else
-  return snprintf(buf, len, "%" MRB_PRId, n);
-#endif /* MRB_NO_STDIO */
-}
-
 mrb_value
 mrb_str_format(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value fmt)
 {
@@ -983,13 +939,10 @@ retry:
             sc = '-';
             width--;
           }
-          mrb_assert(base == 10);
-          mrb_int2str(nbuf, sizeof(nbuf)-1, v);
-          s = nbuf;
+          s = mrb_int_to_cstr(nbuf, sizeof(nbuf), v, base);
           if (v < 0) s++;       /* skip minus sign */
         }
         else {
-          s = nbuf;
           if (v < 0) {
             dots = 1;
             val = mrb_fix2binstr(mrb, mrb_int_value(mrb, v), base);
@@ -997,7 +950,8 @@ retry:
           else {
             val = mrb_integer_to_str(mrb, mrb_int_value(mrb, v), base);
           }
-          strncpy(++s, RSTRING_PTR(val), sizeof(nbuf)-2);
+          strncpy(nbuf+1, RSTRING_PTR(val), sizeof(nbuf)-2);
+          s = nbuf+1;
         }
         {
           size_t size;
