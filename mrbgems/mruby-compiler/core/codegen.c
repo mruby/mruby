@@ -1320,9 +1320,7 @@ gen_assignment(codegen_scope *s, node *tree, int sp, int val)
     break;
 
   default:
-#ifndef MRB_NO_STDIO
-    fprintf(stderr, "unknown lhs %d\n", type);
-#endif
+    codegen_error(s, "unknown lhs");
     break;
   }
   if (val) push();
