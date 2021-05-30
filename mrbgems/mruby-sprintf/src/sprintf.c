@@ -68,35 +68,24 @@ sign_bits(int base, const char *p)
   return c;
 }
 
-static mrb_value
-mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
+static char *
+mrb_uint_to_cstr(char *buf, size_t len, mrb_int num, mrb_int base)
 {
-  char buf[66], *b = buf + sizeof buf;
-  mrb_int num = mrb_integer(x);
-  const int mask = base -1;
+  char *b = buf + len - 1;
+  const int mask = base-1;
   int shift;
-#ifdef MRB_INT64
-  uint64_t val = (uint64_t)num;
-#else
-  uint32_t val = (uint32_t)num;
-#endif
+  mrb_uint val = (uint64_t)num;
   char d;
 
-  switch (base) {
-  case 2:
-    shift = 1;
-    break;
-  case 8:
-    shift = 3;
-    break;
-  case 16:
-    shift = 4;
-    break;
-  default:
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid radix %d", base);
-  }
   if (num == 0) {
-    return mrb_str_new_lit(mrb, "0");
+    buf[0] = '0'; buf[1] = '\0';
+    return buf;
+  }
+  switch (base) {
+  case 16: d = 'f'; shift = 4; break;
+  case 8:  d = '7'; shift = 3; break;
+  case 2:  d = '1'; shift = 1; break;
+  default: return NULL;
   }
   *--b = '\0';
   do {
@@ -105,19 +94,12 @@ mrb_fix2binstr(mrb_state *mrb, mrb_value x, int base)
 
   if (num < 0) {
     b = remove_sign_bits(b, base);
-    switch (base) {
-    case 16: d = 'f'; break;
-    case 8:  d = '7'; break;
-    case 2:  d = '1'; break;
-    default: d = 0;   break;
-    }
-
     if (d && *b != d) {
       *--b = d;
     }
   }
 
-  return mrb_str_new_cstr(mrb, b);
+  return b;
 }
 
 #define FNONE  0
@@ -943,15 +925,11 @@ retry:
           if (v < 0) s++;       /* skip minus sign */
         }
         else {
+          /* print as unsigned */
+          s = mrb_uint_to_cstr(nbuf, sizeof(nbuf), v, base);
           if (v < 0) {
             dots = 1;
-            val = mrb_fix2binstr(mrb, mrb_int_value(mrb, v), base);
           }
-          else {
-            val = mrb_integer_to_str(mrb, mrb_int_value(mrb, v), base);
-          }
-          strncpy(nbuf+1, RSTRING_PTR(val), sizeof(nbuf)-2);
-          s = nbuf+1;
         }
         {
           size_t size;
