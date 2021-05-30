@@ -1522,7 +1522,7 @@ mrb_int_to_cstr(char *buf, size_t len, mrb_int n, mrb_int base)
     return buf;
   }
 
-  *b-- = '\0';
+  *b = '\0';
   if (n < 0) {
     do {
       if (b-- == buf) return NULL;
