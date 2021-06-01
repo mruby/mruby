@@ -20,7 +20,7 @@
 #endif
 
 static int
-dump_pool(mrb_state *mrb, const mrb_pool_value *p, FILE *fp)
+cdump_pool(mrb_state *mrb, const mrb_pool_value *p, FILE *fp)
 {
   if (p->tt & IREP_TT_NFLAG) {  /* number */
     switch (p->tt) {
@@ -191,7 +191,7 @@ sym_var_name(mrb_state *mrb, const char *initname, const char *key, int n)
 }
 
 static int
-dump_sym(mrb_state *mrb, mrb_sym sym, const char *var_name, int idx, mrb_value init_syms_code, FILE *fp)
+cdump_sym(mrb_state *mrb, mrb_sym sym, const char *var_name, int idx, mrb_value init_syms_code, FILE *fp)
 {
   if (sym == 0) return MRB_DUMP_INVALID_ARGUMENT;
 
@@ -236,14 +236,14 @@ dump_sym(mrb_state *mrb, mrb_sym sym, const char *var_name, int idx, mrb_value i
 }
 
 static int
-dump_syms(mrb_state *mrb, const char *name, const char *key, int n, int syms_len, const mrb_sym *syms, mrb_value init_syms_code, FILE *fp)
+cdump_syms(mrb_state *mrb, const char *name, const char *key, int n, int syms_len, const mrb_sym *syms, mrb_value init_syms_code, FILE *fp)
 {
   int ai = mrb_gc_arena_save(mrb);
   mrb_int code_len = RSTRING_LEN(init_syms_code);
   const char *var_name = sym_var_name(mrb, name, key, n);
   fprintf(fp, "mrb_DEFINE_SYMS_VAR(%s, %d, (", var_name, syms_len);
   for (int i=0; i<syms_len; i++) {
-    dump_sym(mrb, syms[i], var_name, i, init_syms_code, fp);
+    cdump_sym(mrb, syms[i], var_name, i, init_syms_code, fp);
   }
   fputs("), ", fp);
   if (code_len == RSTRING_LEN(init_syms_code)) fputs("const", fp);
@@ -269,7 +269,7 @@ simple_debug_info(mrb_irep_debug_info *info)
 //Adds debug information to c-structs and
 //adds filenames in init_syms_code block
 static int
-dump_debug(mrb_state *mrb, const char *name, int n, mrb_irep_debug_info *info,
+cdump_debug(mrb_state *mrb, const char *name, int n, mrb_irep_debug_info *info,
     mrb_value init_syms_code, FILE *fp)
 {
   char buffer[256];
@@ -311,7 +311,7 @@ dump_debug(mrb_state *mrb, const char *name, int n, mrb_irep_debug_info *info,
 }
 
 static int
-dump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, const char *name, int n, mrb_value init_syms_code, int *mp)
+cdump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, const char *name, int n, mrb_value init_syms_code, int *mp)
 {
   int i, len;
   int max = *mp;
@@ -321,7 +321,7 @@ dump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, 
   if (irep->reps) {
     for (i=0,len=irep->rlen; i<len; i++) {
       *mp += len;
-      if (dump_irep_struct(mrb, irep->reps[i], flags, fp, name, max+i, init_syms_code, mp) != MRB_DUMP_OK)
+      if (cdump_irep_struct(mrb, irep->reps[i], flags, fp, name, max+i, init_syms_code, mp) != MRB_DUMP_OK)
         return MRB_DUMP_INVALID_ARGUMENT;
     }
     fprintf(fp,   "static const mrb_irep *%s_reps_%d[%d] = {\n", name, n, len);
@@ -335,14 +335,14 @@ dump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, 
     len=irep->plen;
     fprintf(fp,   "static const mrb_pool_value %s_pool_%d[%d] = {\n", name, n, len);
     for (i=0; i<len; i++) {
-      if (dump_pool(mrb, &irep->pool[i], fp) != MRB_DUMP_OK)
+      if (cdump_pool(mrb, &irep->pool[i], fp) != MRB_DUMP_OK)
         return MRB_DUMP_INVALID_ARGUMENT;
     }
     fputs("};\n", fp);
   }
   /* dump syms */
   if (irep->syms) {
-    dump_syms(mrb, name, "syms", n, irep->slen, irep->syms, init_syms_code, fp);
+    cdump_syms(mrb, name, "syms", n, irep->slen, irep->syms, init_syms_code, fp);
   }
   /* dump iseq */
   len=irep->ilen+sizeof(struct mrb_irep_catch_handler)*irep->clen;
@@ -354,11 +354,11 @@ dump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, 
   fputs("};\n", fp);
   /* dump lv */
   if (irep->lv) {
-    dump_syms(mrb, name, "lv", n, irep->nlocals-1, irep->lv, init_syms_code, fp);
+    cdump_syms(mrb, name, "lv", n, irep->nlocals-1, irep->lv, init_syms_code, fp);
   }
   /* dump debug */
   if (flags & MRB_DUMP_DEBUG_INFO) {
-    if(dump_debug(mrb, name, n, irep->debug_info,
+    if(cdump_debug(mrb, name, n, irep->debug_info,
                 init_syms_code, fp) == MRB_DUMP_OK) {
       debug_available = 1;
     }
@@ -424,7 +424,7 @@ mrb_dump_irep_cstruct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE 
   fputs("\n", fp);
   mrb_value init_syms_code = mrb_str_new_capa(mrb, 0);
   int max = 1;
-  int n = dump_irep_struct(mrb, irep, flags, fp, initname, 0, init_syms_code, &max);
+  int n = cdump_irep_struct(mrb, irep, flags, fp, initname, 0, init_syms_code, &max);
   if (n != MRB_DUMP_OK) return n;
   fprintf(fp,
           "%s\n"
