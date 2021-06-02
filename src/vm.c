@@ -1628,7 +1628,6 @@ RETRY_TRY_BLOCK:
         /* pop stackpos */
         ci = cipop(mrb);
         pc = ci->pc;
-        JUMP;
       }
       else {
         /* setup environment for calling method */
@@ -1638,9 +1637,9 @@ RETRY_TRY_BLOCK:
         syms = irep->syms;
         mrb_stack_extend(mrb, (argc < 0 && irep->nregs < 3) ? 3 : irep->nregs);
         pc = irep->iseq;
-        JUMP;
       }
     }
+    JUMP;
 
     CASE(OP_CALL, Z) {
       mrb_callinfo *ci;
