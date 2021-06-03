@@ -104,6 +104,17 @@ assert('Kernel#global_variables', '15.3.1.3.14') do
   assert_equal(1, variables2.size - variables1.size)
 end
 
+assert('Kernel#local_variables', '15.3.1.3.28') do
+  assert_equal Array, local_variables.class
+
+  def local_var_list
+    a = "hello"
+    local_variables
+  end
+
+  assert_equal [:a], local_var_list
+end
+
 assert('Kernel.local_variables', '15.3.1.2.7') do
   a, b = 0, 1
   a += b
