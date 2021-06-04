@@ -93,8 +93,8 @@ OPCODE(AREF,       BBB)      /* R(a) = R(b)[c] */
 OPCODE(ASET,       BBB)      /* R(a)[c] = R(b) */
 OPCODE(APOST,      BBB)      /* *R(a),R(a+1)..R(a+c) = R(a)[b..] */
 OPCODE(INTERN,     B)        /* R(a) = intern(R(a)) */
-OPCODE(STRING,     BB)       /* R(a) = str_dup(Lit(b)) */
-OPCODE(STRING16,   BS)       /* R(a) = str_dup(Lit(b)) */
+OPCODE(STRING,     BB)       /* R(a) = str_dup(Pool(b)) */
+OPCODE(STRING16,   BS)       /* R(a) = str_dup(Pool(b)) */
 OPCODE(STRCAT,     B)        /* str_cat(R(a),R(a+1)) */
 OPCODE(HASH,       BB)       /* R(a) = hash_new(R(a),R(a+1)..R(a+b*2-1)) */
 OPCODE(HASHADD,    BB)       /* R(a) = hash_push(R(a),R(a+1)..R(a+b*2)) */
@@ -118,5 +118,5 @@ OPCODE(UNDEF,      B)        /* undef_method(target_class,Syms(a)) */
 OPCODE(SCLASS,     B)        /* R(a) = R(a).singleton_class */
 OPCODE(TCLASS,     B)        /* R(a) = target_class */
 OPCODE(DEBUG,      BBB)      /* print a,b,c */
-OPCODE(ERR,        B)        /* raise(LocalJumpError, Lit(a)) */
+OPCODE(ERR,        B)        /* raise(LocalJumpError, Pool(a)) */
 OPCODE(STOP,       Z)        /* stop VM */
