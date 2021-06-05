@@ -23,7 +23,7 @@ struct tmpl {
   int idx;
 };
 
-enum {
+enum pack_dir {
   PACK_DIR_CHAR,      /* C */
   PACK_DIR_SHORT,     /* S */
   PACK_DIR_LONG,      /* L */
@@ -41,7 +41,7 @@ enum {
   PACK_DIR_INVALID
 };
 
-enum {
+enum pack_type {
   PACK_TYPE_INTEGER,
   PACK_TYPE_FLOAT,
   PACK_TYPE_STRING,
@@ -918,6 +918,7 @@ pack_x(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, long count, u
   }
   return count;
 }
+
 static int
 unpack_x(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, unsigned int flags)
 {
@@ -942,10 +943,12 @@ has_tmpl(const struct tmpl *tmpl)
 }
 
 static void
-read_tmpl(mrb_state *mrb, struct tmpl *tmpl, int *dirp, int *typep, int *sizep, int *countp, unsigned int *flagsp)
+read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_dir *dirp, enum pack_type *typep, int *sizep, int *countp, unsigned int *flagsp)
 {
   mrb_int t, tlen;
-  int ch, dir, type, size = 0;
+  int ch, size = 0;
+  enum pack_dir dir;
+  enum pack_type type;
   int count = 1;
   unsigned int flags = 0;
   const char *tptr;
@@ -1173,7 +1176,9 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
   struct tmpl tmpl;
   int count;
   unsigned int flags;
-  int dir, ridx, size, type;
+  enum pack_dir dir;
+  enum pack_type type;
+  int ridx, size;
 
   prepare_tmpl(mrb, &tmpl);
 
@@ -1278,7 +1283,9 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
   struct tmpl tmpl;
   int count;
   unsigned int flags;
-  int dir, size, type;
+  enum pack_dir dir;
+  enum pack_type type;
+  int size;
   int srcidx, srclen;
   const unsigned char *sptr;
 
