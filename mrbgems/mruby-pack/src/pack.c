@@ -1191,8 +1191,8 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
     if (dir == PACK_DIR_INVALID)
       continue;
     else if (dir == PACK_DIR_NUL) {
+      if (count > 0 && ridx > INT_MAX - count) goto overflow;
       ridx += pack_x(mrb, mrb_nil_value(), result, ridx, count, flags);
-      if (ridx < 0) goto overflow;
       continue;
     }
 
