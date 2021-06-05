@@ -1131,8 +1131,8 @@ alias:
     if (ISDIGIT(ch)) {
       count = ch - '0';
       while (tmpl->idx < tlen && ISDIGIT(tptr[tmpl->idx])) {
-        int ch = tptr[tmpl->idx++] - '0';
-        if (count+ch > INT_MAX/10) {
+        ch = tptr[tmpl->idx++] - '0';
+        if (count+10 > INT_MAX/10) {
           mrb_raise(mrb, E_RUNTIME_ERROR, "too big template length");
         }
         count = count * 10 + ch;
