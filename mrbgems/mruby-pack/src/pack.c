@@ -1119,6 +1119,11 @@ alias:
     type = PACK_TYPE_STRING;
     flags |= PACK_FLAG_WIDTH | PACK_FLAG_COUNT2 | PACK_FLAG_Z;
     break;
+  case 'p': case 'P':
+  case 'M': case 'X':
+  case '%': case '@':
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "%c is not supported", (char)t);
+    break;
   default:
     dir = PACK_DIR_INVALID;
     type = PACK_TYPE_NONE;
