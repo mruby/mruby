@@ -28,6 +28,17 @@ assert('pack("m")') do
   assert_pack "m0", "YWJjZGVmZ2hpamtsbW5vcHFyc3R1dnd4eXpBQkNERUZHSElKS0xNTk9QUVJTVFVWV1hZWg==", ["abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"]
 end
 
+# pack & unpack 'M' (Quoted-printable)
+assert('pack("M")') do
+  assert_pack "M", "123=\n", ["123"]
+  assert_pack "M", "=3D\n", ["=\n"]
+  assert_pack "M", "=E3=81=82=\n", ["あ"]
+
+  assert_equal ["123"], "123=\n".unpack("M")
+  assert_equal ["=\n"], "=3D\n".unpack("M")
+  assert_equal ["あ"], "=E3=81=82=\n".unpack("M")
+end
+
 # pack & unpack 'H'
 assert('pack("H")') do
   assert_pack "H*", "01", ["3031"]
