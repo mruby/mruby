@@ -974,8 +974,8 @@ static int
 unpack_M(mrb_state *mrb, const void *src, int slen, mrb_value ary, unsigned int flags)
 {
   mrb_value buf = mrb_str_new(mrb, 0, slen);
-  const char *s = src, *ss = s;
-  const char *send = src + slen;
+  const char *s = (const char*)src, *ss = s;
+  const char *send = s + slen;
   char *ptr = RSTRING_PTR(buf);
   int c1, c2;
 
