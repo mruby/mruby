@@ -1430,6 +1430,8 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
       case PACK_DIR_QENC:
         srcidx += unpack_M(mrb, sptr, srclen - srcidx, result, flags);
         break;
+      default:
+        break;
       }
       continue;
     }
