@@ -69,7 +69,7 @@ sign_bits(int base, const char *p)
 }
 
 static char *
-mrb_uint_to_cstr(char *buf, size_t len, mrb_int num, mrb_int base)
+mrb_uint_to_cstr(char *buf, size_t len, mrb_int num, int base)
 {
   char *b = buf + len - 1;
   const int mask = base-1;
@@ -114,7 +114,7 @@ mrb_uint_to_cstr(char *buf, size_t len, mrb_int num, mrb_int base)
 
 #ifndef MRB_NO_FLOAT
 static int
-fmt_float(char *buf, size_t buf_size, char fmt, int flags, mrb_int width, mrb_int prec, mrb_float f)
+fmt_float(char *buf, size_t buf_size, char fmt, int flags, mrb_int width, int prec, mrb_float f)
 {
   char sign = '\0';
   int left_align = 0;
@@ -258,9 +258,9 @@ check_name_arg(mrb_state *mrb, int posarg, const char *name, size_t len)
 } while (0)
 
 static const char *
-get_num(mrb_state *mrb, const char *p, const char *end, mrb_int *valp)
+get_num(mrb_state *mrb, const char *p, const char *end, int *valp)
 {
-  mrb_int next_n = *valp;
+  mrb_int next_n = (int)*valp;
   for (; p < end && ISDIGIT(*p); p++) {
     if (mrb_int_mul_overflow(10, next_n, &next_n)) {
       return NULL;
@@ -273,7 +273,7 @@ get_num(mrb_state *mrb, const char *p, const char *end, mrb_int *valp)
   if (p >= end) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "malformed format string - %%*[0-9]");
   }
-  *valp = next_n;
+  *valp = (int)next_n;
   return p;
 }
 
@@ -575,9 +575,9 @@ mrb_str_format(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value fm
   mrb_int blen;
   mrb_int bsiz;
   mrb_value result;
-  mrb_int n;
-  mrb_int width;
-  mrb_int prec;
+  int n;
+  int width;
+  int prec;
   int nextarg = 1;
   int posarg = 0;
   mrb_value nextvalue;
