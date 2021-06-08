@@ -2199,7 +2199,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
   return result;
 }
 
-mrb_value
+static mrb_value
 mrb_str_len_to_inum(mrb_state *mrb, const char *str, size_t len, mrb_int base, int badcheck)
 {
   const char *p = str;
@@ -2440,7 +2440,7 @@ mrb_str_to_i(mrb_state *mrb, mrb_value self)
 }
 
 #ifndef MRB_NO_FLOAT
-double
+static double
 mrb_str_len_to_dbl(mrb_state *mrb, const char *s, size_t len, mrb_bool badcheck)
 {
   char buf[DBL_DIG * 4 + 20];
