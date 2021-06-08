@@ -2363,12 +2363,6 @@ mrb_str_len_to_inum(mrb_state *mrb, const char *str, size_t len, mrb_int base, i
   return mrb_fixnum_value(0);
 }
 
-MRB_API mrb_value
-mrb_cstr_to_inum(mrb_state *mrb, const char *str, mrb_int base, mrb_bool badcheck)
-{
-  return mrb_str_len_to_inum(mrb, str, strlen(str), base, badcheck);
-}
-
 /* obslete: use RSTRING_CSTR() or mrb_string_cstr() */
 MRB_API const char*
 mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr)
@@ -2533,12 +2527,6 @@ bad:
     if (end<pend) goto bad;
   }
   return d;
-}
-
-MRB_API double
-mrb_cstr_to_dbl(mrb_state *mrb, const char *s, mrb_bool badcheck)
-{
-  return mrb_str_len_to_dbl(mrb, s, strlen(s), badcheck);
 }
 
 MRB_API double
