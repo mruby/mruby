@@ -2439,7 +2439,7 @@ mrb_str_to_i(mrb_state *mrb, mrb_value self)
   mrb_int base = 10;
 
   mrb_get_args(mrb, "|i", &base);
-  if (base < 0) {
+  if (base < 0 || 36 < base) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal radix %i", base);
   }
   return mrb_str_to_inum(mrb, self, base, FALSE);
