@@ -270,6 +270,7 @@ get_num(mrb_state *mrb, const char *p, const char *end, int *valp)
     }
     next_n += *p - '0';
   }
+  if (next_n > INT_MAX || next_n < 0) return NULL;
   if (p >= end) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "malformed format string - %%*[0-9]");
   }
