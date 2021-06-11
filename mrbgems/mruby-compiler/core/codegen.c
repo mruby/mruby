@@ -1448,7 +1448,7 @@ raise_error(codegen_scope *s, const char *msg)
 }
 
 static mrb_int
-readint_mrb_int(codegen_scope *s, const char *p, int base, mrb_bool neg, mrb_bool *overflow)
+readint(codegen_scope *s, const char *p, int base, mrb_bool *overflow)
 {
   const char *e = p + strlen(p);
   mrb_int result = 0;
@@ -1458,31 +1458,23 @@ readint_mrb_int(codegen_scope *s, const char *p, int base, mrb_bool neg, mrb_boo
   if (*p == '+') p++;
   while (p < e) {
     char c = *p;
-    c = tolower((unsigned char)c);
-    for (n=0; n<base; n++) {
-      if (mrb_digitmap[n] == c) {
-        break;
-      }
-    }
-    if (n == base) {
+    switch (c) {
+    case '0': case '1': case '2': case '3':
+    case '4': case '5': case '6': case '7':
+      n = c - '0'; break;
+    case '8': case '9':
+      n = c - '0'; break;
+    case 'a': case 'b': case 'c': case 'd': case 'e': case 'f':
+      n = c - 'a' + 10; break;
+    case 'A': case 'B': case 'C': case 'D': case 'E': case 'F':
+      n = c - 'A' + 10; break;
+    default:
       codegen_error(s, "malformed readint input");
     }
-
-    if (neg) {
-      if ((MRB_INT_MIN + n)/base > result) {
-        *overflow = TRUE;
-        return 0;
-      }
-      result *= base;
-      result -= n;
-    }
-    else {
-      if ((MRB_INT_MAX - n)/base < result) {
-        *overflow = TRUE;
-        return 0;
-      }
-      result *= base;
-      result += n;
+    if (mrb_int_mul_overflow(result, base, &result) ||
+        mrb_int_add_overflow(result, n, &result)) {
+      *overflow = TRUE;
+      return 0;
     }
     p++;
   }
@@ -2536,7 +2528,7 @@ codegen(codegen_scope *s, node *tree, int val)
       mrb_int i;
       mrb_bool overflow;
 
-      i = readint_mrb_int(s, p, base, FALSE, &overflow);
+      i = readint(s, p, base, &overflow);
       if (overflow) {
         int off = new_litbn(s, p, base, FALSE);
         genop_bs(s, OP_LOADL, cursp(), off);
@@ -2601,12 +2593,13 @@ codegen(codegen_scope *s, node *tree, int val)
           mrb_int i;
           mrb_bool overflow;
 
-          i = readint_mrb_int(s, p, base, TRUE, &overflow);
+          i = readint(s, p, base, &overflow);
           if (overflow) {
             int off = new_litbn(s, p, base, TRUE);
             genop_bs(s, OP_LOADL, cursp(), off);
           }
           else {
+            i = -i;
             if (i == -1) genop_1(s, OP_LOADI__1, cursp());
             else if (i >= -0xff) {
               genop_2(s, OP_LOADINEG, cursp(), (uint16_t)-i);
