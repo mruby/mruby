@@ -100,6 +100,7 @@ struct mrb_state;
 # define MRB_ENDIAN_LOHI(a,b) b a
 #endif
 
+MRB_API mrb_int mrb_int_read(const char *p, const char *e, char **endp);
 #ifndef MRB_NO_FLOAT
 MRB_API double mrb_float_read(const char*, char**);
 #ifdef MRB_USE_FLOAT32

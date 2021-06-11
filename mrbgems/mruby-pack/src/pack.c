@@ -1234,17 +1234,16 @@ alias:
 
   /* read suffix [0-9*_!<>] */
   while (tmpl->idx < tlen) {
-    ch = tptr[tmpl->idx++];
+    ch = tptr[tmpl->idx];
     if (ISDIGIT(ch)) {
-      count = ch - '0';
-      while (tmpl->idx < tlen && ISDIGIT(tptr[tmpl->idx])) {
-        if (count+10 > INT_MAX/10) {
-          mrb_raise(mrb, E_RUNTIME_ERROR, "too big template length");
-        }
-        ch = tptr[tmpl->idx++] - '0';
-        count = count * 10 + ch;
+      char *e;
+      mrb_int n = mrb_int_read(tptr+tmpl->idx, tptr+tlen, &e);
+      if (e == NULL || n > INT_MAX) {
+        mrb_raise(mrb, E_RUNTIME_ERROR, "too big template length");
       }
-      continue;  /* special case */
+      count = (int)n;
+      tmpl->idx += e - tptr;
+      continue;
     } else if (ch == '*')  {
       count = -1;
     } else if (ch == '_' || ch == '!' || ch == '<' || ch == '>') {
@@ -1258,10 +1257,11 @@ alias:
       } else if (ch == '>') {
         flags |= PACK_FLAG_GT;
       }
-    } else {
-      tmpl->idx--;
+    }
+    else {
       break;
     }
+    tmpl->idx++;
   }
 
   if ((flags & PACK_FLAG_LT) || (!(flags & PACK_FLAG_GT) && littleendian)) {
