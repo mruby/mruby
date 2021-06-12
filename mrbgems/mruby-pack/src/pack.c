@@ -40,6 +40,7 @@ enum pack_dir {
   PACK_DIR_QENC,      /* M */
   PACK_DIR_NUL,       /* x */
   PACK_DIR_BACK,      /* X */
+  PACK_DIR_ABS,       /* @ */
   PACK_DIR_INVALID
 };
 
@@ -1218,13 +1219,17 @@ alias:
     dir = PACK_DIR_BACK;
     type = PACK_TYPE_NONE;
     break;
+  case '@':
+    dir = PACK_DIR_ABS;
+    type = PACK_TYPE_NONE;
+    break;
   case 'Z':
     dir = PACK_DIR_STR;
     type = PACK_TYPE_STRING;
     flags |= PACK_FLAG_WIDTH | PACK_FLAG_COUNT2 | PACK_FLAG_Z;
     break;
   case 'p': case 'P':
-  case '%': case '@':
+  case '%':
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "%c is not supported", (char)t);
     break;
   default:
@@ -1306,6 +1311,14 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
     }
     else if (dir == PACK_DIR_BACK) {
       check_x(mrb, ridx, count, 'X');
+      ridx -= count;
+      continue;
+    }
+    else if (dir == PACK_DIR_ABS) {
+      count -= ridx;
+      if (count > 0) goto grow;
+      count = -count;
+      check_x(mrb, ridx, count, '@');
       ridx -= count;
       continue;
     }
@@ -1425,6 +1438,11 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
     else if (dir == PACK_DIR_BACK) {
       check_x(mrb, srcidx, count, 'X');
       srcidx -= count;
+      continue;
+    }
+    else if (dir == PACK_DIR_ABS) {
+      check_x(mrb, srclen, count, '@');
+      srcidx = count;
       continue;
     }
 
