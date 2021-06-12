@@ -1725,13 +1725,12 @@ RETRY_TRY_BLOCK:
       else if (target_class->tt == MRB_TT_MODULE) {
         target_class = mrb_vm_ci_target_class(ci);
         if (target_class->tt != MRB_TT_ICLASS) {
-          mrb_value exc = mrb_exc_new_lit(mrb, E_RUNTIME_ERROR, "superclass info lost [mruby limitations]");
-          mrb_exc_set(mrb, exc);
-          goto L_RAISE;
+          goto super_typeerror;
         }
       }
       recv = regs[0];
       if (!mrb_obj_is_kind_of(mrb, recv, target_class)) {
+      super_typeerror: ;
         mrb_value exc = mrb_exc_new_lit(mrb, E_TYPE_ERROR,
                                             "self has wrong type to call super in this context");
         mrb_exc_set(mrb, exc);
