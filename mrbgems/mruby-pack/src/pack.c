@@ -1008,7 +1008,6 @@ pack_x(mrb_state *mrb, mrb_value dst, mrb_int didx, int count)
 {
   long i;
 
-  if (count < 0) return 0;
   dst = str_len_ensure(mrb, dst, didx + count);
   for (i = 0; i < count; i++) {
     RSTRING_PTR(dst)[didx + i] = '\0';
@@ -1019,7 +1018,6 @@ pack_x(mrb_state *mrb, mrb_value dst, mrb_int didx, int count)
 static int
 unpack_x(mrb_state *mrb, int slen, int count)
 {
-  if (count < 0) return slen;
   if (slen < count) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "x outside of string");
   }
