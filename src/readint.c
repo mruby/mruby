@@ -5,7 +5,7 @@
 /* mrb_int_read(): read mrb_int from a string (base 10 only) */
 /* const char *p - string to read                            */
 /* const char *e - end of string                             */
-/* char **endp   - end of pased integer                      */
+/* char **endp   - end of parsed integer                     */
 
 /* if integer overflows, errno will be set to ERANGE         */
 /* also endp will be set to NULL on overflow                 */
