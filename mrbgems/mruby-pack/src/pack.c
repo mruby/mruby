@@ -1242,7 +1242,7 @@ alias:
         mrb_raise(mrb, E_RUNTIME_ERROR, "too big template length");
       }
       count = (int)n;
-      tmpl->idx += e - tptr;
+      tmpl->idx = e - tptr;
       continue;
     } else if (ch == '*')  {
       count = -1;
