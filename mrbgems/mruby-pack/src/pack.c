@@ -505,7 +505,7 @@ unpack_float(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value ar
 #endif
 
 static int
-pack_utf8(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, long count, unsigned int flags)
+pack_utf8(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, int count, unsigned int flags)
 {
   char utf8[4];
   int len = 0;
@@ -622,7 +622,7 @@ unpack_utf8(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value ary
 }
 
 static int
-pack_a(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, long count, unsigned int flags)
+pack_a(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, unsigned int flags)
 {
   mrb_int copylen, slen, padlen;
   char *dptr, *dptr0, pad, *sptr;
@@ -660,7 +660,7 @@ pack_a(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, long count, u
 }
 
 static int
-unpack_a(mrb_state *mrb, const void *src, int slen, mrb_value ary, long count, unsigned int flags)
+unpack_a(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, unsigned int flags)
 {
   mrb_value dst;
   const char *cp, *sptr;
@@ -694,7 +694,7 @@ unpack_a(mrb_state *mrb, const void *src, int slen, mrb_value ary, long count, u
 
 
 static int
-pack_h(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, long count, unsigned int flags)
+pack_h(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, unsigned int flags)
 {
   unsigned int a, ashift, b, bshift;
   long slen;
@@ -788,7 +788,7 @@ unpack_h(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, un
 
 
 static int
-pack_m(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, long count)
+pack_m(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count)
 {
   mrb_int dstlen;
   unsigned long l;
@@ -910,7 +910,7 @@ done:
 }
 
 static int
-pack_M(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, long count)
+pack_M(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count)
 {
   static const char hex_table[] = "0123456789ABCDEF";
   char buff[1024];
@@ -1004,7 +1004,7 @@ unpack_M(mrb_state *mrb, const void *src, int slen, mrb_value ary)
 }
 
 static int
-pack_x(mrb_state *mrb, mrb_value dst, mrb_int didx, long count)
+pack_x(mrb_state *mrb, mrb_value dst, mrb_int didx, int count)
 {
   long i;
 
