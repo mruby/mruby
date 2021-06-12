@@ -1016,31 +1016,12 @@ pack_x(mrb_state *mrb, mrb_value dst, mrb_int didx, int count)
   return count;
 }
 
-static int
-unpack_x(mrb_state *mrb, int slen, int count)
+static void
+check_x(mrb_state *mrb, int a, int count, char c)
 {
-  if (slen < count) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "x outside of string");
+  if (a < count) {
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "%c outside of string", c);
   }
-  return count;
-}
-
-static int
-pack_X(mrb_state *mrb, mrb_value dst, mrb_int didx, int count)
-{
-  if (count > didx) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "X outside of string");
-  }
-  return count;
-}
-
-static int
-unpack_X(mrb_state *mrb, int sidx, int count)
-{
-  if (sidx < count) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "X outside of string");
-  }
-  return count;
 }
 
 static void
@@ -1318,13 +1299,14 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
     if (dir == PACK_DIR_INVALID)
       continue;
     else if (dir == PACK_DIR_NUL) {
-      if (count > 0 && ridx > INT_MAX - count) goto overflow;
+    grow:
+      if (ridx > INT_MAX - count) goto overflow;
       ridx += pack_x(mrb, result, ridx, count);
       continue;
     }
     else if (dir == PACK_DIR_BACK) {
-      if (count > 0 && ridx > INT_MAX - count) goto overflow;
-      ridx -= pack_X(mrb, result, ridx, count);
+      check_x(mrb, ridx, count, 'X');
+      ridx -= count;
       continue;
     }
 
@@ -1436,11 +1418,13 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
     if (dir == PACK_DIR_INVALID)
       continue;
     else if (dir == PACK_DIR_NUL) {
-      srcidx += unpack_x(mrb, srclen-srcidx, count);
+      check_x(mrb, srclen-srcidx, count, 'x');
+      srcidx += count;
       continue;
     }
     else if (dir == PACK_DIR_BACK) {
-      srcidx -= unpack_X(mrb, srcidx, count);
+      check_x(mrb, srcidx, count, 'X');
+      srcidx -= count;
       continue;
     }
 
