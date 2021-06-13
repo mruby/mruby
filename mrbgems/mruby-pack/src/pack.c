@@ -1251,7 +1251,10 @@ alias:
       tmpl->idx = e - tptr;
       continue;
     } else if (ch == '*')  {
-      count = -1;
+      if (type == PACK_TYPE_NONE)
+        count = 0;
+      else
+        count = -1;
     } else if (ch == '_' || ch == '!' || ch == '<' || ch == '>') {
       if (strchr("sSiIlLqQ", (int)t) == NULL) {
         mrb_raisef(mrb, E_ARGUMENT_ERROR, "'%c' allowed only after types sSiIlLqQ", ch);
