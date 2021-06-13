@@ -1228,7 +1228,7 @@ alias:
     type = PACK_TYPE_STRING;
     flags |= PACK_FLAG_WIDTH | PACK_FLAG_COUNT2 | PACK_FLAG_Z;
     break;
-  case 'p': case 'P':
+  case 'p': case 'P': case 'w':
   case '%':
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "%c is not supported", (char)t);
     break;
