@@ -124,6 +124,12 @@ assert 'pack/unpack "I"' do
   assert_pack 'I', str, [12345]
 end
 
+assert 'pack/unpack "w"' do
+  for x in [0,1,127,128,16383,16384,65535,65536]
+    assert_equal [x], [x].pack("w").unpack("w")
+  end
+end
+
 assert 'pack/unpack "U"' do
   assert_equal [], "".unpack("U")
   assert_equal [], "".unpack("U*")

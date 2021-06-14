@@ -30,6 +30,7 @@ enum pack_dir {
   PACK_DIR_QUAD,      /* Q */
   //PACK_DIR_INT,     /* i */
   //PACK_DIR_VAX,
+  PACK_DIR_BER,       /* w */
   PACK_DIR_UTF8,      /* U */
   //PACK_DIR_BER,
   PACK_DIR_DOUBLE,    /* E */
@@ -376,6 +377,46 @@ unpack_q(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
   }
   mrb_ary_push(mrb, ary, mrb_int_value(mrb, n));
   return 8;
+}
+
+static int
+pack_w(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
+{
+  mrb_int n = mrb_integer(o);
+  mrb_int i;
+  char *p;
+
+  if (n < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "can't compress negative numbers");
+  }
+  for (i=1; i<sizeof(mrb_int)+1; i++) {
+    mrb_int mask = ~((1L<<(7*i))-1);
+    if ((n & mask) == 0) break;
+  }
+  str = str_len_ensure(mrb, str, sidx + i);
+  p = RSTRING_PTR(str);
+  for (mrb_int j=i; j>0; p++,j--) {
+    mrb_int x = (n>>(7*(j-1)))&0x7f;
+    *p = (char)x;
+    if (j > 1) *p |= 0x80;
+  }
+  return i;
+}
+
+static int
+unpack_w(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
+{
+  mrb_int i, n = 0;
+  const unsigned char *p = src;
+  const unsigned char *e = p + srclen;
+
+  for (i=1; p<e; p++,i++) {
+    n <<= 7;
+    n |= *p & 0x7f;
+    if ((*p & 0x80) == 0) break;
+  }
+  mrb_ary_push(mrb, ary, mrb_int_value(mrb, n));
+  return i;
 }
 
 #ifndef MRB_NO_FLOAT
@@ -788,7 +829,6 @@ unpack_h(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, un
   return (int)(sptr - sptr0);
 }
 
-
 static int
 pack_m(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count)
 {
@@ -1151,6 +1191,11 @@ alias:
     size = 4;
     flags |= PACK_FLAG_SIGNED;
     break;
+  case 'w':
+    dir = PACK_DIR_BER;
+    type = PACK_TYPE_INTEGER;
+    flags |= PACK_FLAG_SIGNED;
+    break;
   case 'm':
     dir = PACK_DIR_BASE64;
     type = PACK_TYPE_STRING;
@@ -1228,7 +1273,7 @@ alias:
     type = PACK_TYPE_STRING;
     flags |= PACK_FLAG_WIDTH | PACK_FLAG_COUNT2 | PACK_FLAG_Z;
     break;
-  case 'p': case 'P': case 'w':
+  case 'p': case 'P':
   case '%':
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "%c is not supported", (char)t);
     break;
@@ -1364,6 +1409,9 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
       case PACK_DIR_QUAD:
         ridx += pack_q(mrb, o, result, ridx, flags);
         break;
+      case PACK_DIR_BER:
+        ridx += pack_w(mrb, o, result, ridx, flags);
+        break;
       case PACK_DIR_BASE64:
         ridx += pack_m(mrb, o, result, ridx, count);
         break;
@@ -1491,6 +1539,9 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
         break;
       case PACK_DIR_QUAD:
         srcidx += unpack_q(mrb, sptr, srclen - srcidx, result, flags);
+        break;
+      case PACK_DIR_BER:
+        srcidx += unpack_w(mrb, sptr, srclen - srcidx, result, flags);
         break;
 #ifndef MRB_NO_FLOAT
       case PACK_DIR_FLOAT:
