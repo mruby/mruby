@@ -277,8 +277,9 @@ flo_div(mrb_state *mrb, mrb_value x)
   return mrb_float_value(mrb, a);
 }
 
-MRB_API mrb_value
-mrb_float_to_str(mrb_state *mrb, mrb_value flo)
+/* the argument `fmt` is no longer used; you can pass `NULL` */
+mrb_value
+mrb_float_to_str(mrb_state *mrb, mrb_value flo, const char *fmt)
 {
   char buf[25];
 #ifdef MRB_USE_FLOAT32
@@ -330,7 +331,7 @@ flo_to_s(mrb_state *mrb, mrb_value flt)
     str = mrb_str_new_lit(mrb, "NaN");
   }
   else {
-    str = mrb_float_to_str(mrb, flt);
+    str = mrb_float_to_str(mrb, flt, NULL);
   }
 
   RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
