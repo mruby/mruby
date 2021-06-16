@@ -11,6 +11,7 @@
 struct REnv *mrb_env_new(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci, int nstacks, mrb_value *stack, struct RClass *tc);
 mrb_value mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p, mrb_func_t posthook);
 mrb_value mrb_obj_instance_eval(mrb_state *mrb, mrb_value self);
+mrb_value mrb_mod_module_eval(mrb_state*, mrb_value);
 void mrb_codedump_all(mrb_state*, struct RProc*);
 void mrb_proc_merge_lvar(mrb_state *mrb, mrb_irep *irep, struct REnv *env, int num, const mrb_sym *lv, const mrb_value *stack);
 
@@ -221,11 +222,41 @@ f_instance_eval(mrb_state *mrb, mrb_value self)
   }
 }
 
+static mrb_value
+f_class_eval(mrb_state *mrb, mrb_value self)
+{
+  mrb_value b;
+  mrb_int argc; const mrb_value *argv;
+
+  mrb_get_args(mrb, "*!&", &argv, &argc, &b);
+
+  if (mrb_nil_p(b)) {
+    const char *s;
+    mrb_int len;
+    const char *file = NULL;
+    mrb_int line = 1;
+    struct RProc *proc;
+
+    mrb_get_args(mrb, "s|zi", &s, &len, &file, &line);
+    proc = create_proc_from_string(mrb, s, len, mrb_nil_value(), file, line);
+    MRB_PROC_SET_TARGET_CLASS(proc, mrb_class_ptr(self));
+    mrb_assert(!MRB_PROC_CFUNC_P(proc));
+    mrb_vm_ci_target_class_set(mrb->c->ci, mrb_class_ptr(self));
+    return exec_irep(mrb, self, proc, NULL);
+  }
+  else {
+    mrb_get_args(mrb, "&", &b);
+    return mrb_mod_module_eval(mrb, self);
+  }
+}
+
 void
 mrb_mruby_eval_gem_init(mrb_state* mrb)
 {
   mrb_define_module_function(mrb, mrb->kernel_module, "eval", f_eval, MRB_ARGS_ARG(1, 3));
   mrb_define_method_id(mrb, mrb_class_get_id(mrb, MRB_SYM(BasicObject)), MRB_SYM(instance_eval), f_instance_eval, MRB_ARGS_OPT(3)|MRB_ARGS_BLOCK());
+  mrb_define_method_id(mrb, mrb_class_get_id(mrb, MRB_SYM(Module)), MRB_SYM(module_eval), f_class_eval, MRB_ARGS_OPT(3)|MRB_ARGS_BLOCK());
+  mrb_define_method_id(mrb, mrb_class_get_id(mrb, MRB_SYM(Module)), MRB_SYM(class_eval), f_class_eval, MRB_ARGS_OPT(3)|MRB_ARGS_BLOCK());
 }
 
 void

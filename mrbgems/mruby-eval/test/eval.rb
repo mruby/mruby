@@ -151,3 +151,11 @@ assert('Access numbered parameter from eval') do
     hoge.fuga(3) { _1 + eval("_1") }
   }
 end
+
+assert('Module#class_eval with string') do
+  c = Class.new
+  c.class_eval "def foo() 42; end"
+  cc = c.new
+  assert_true cc.respond_to?(:foo)
+  assert_equal 42, c.new.foo
+end
