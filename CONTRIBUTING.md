@@ -37,6 +37,21 @@ To update use `pre-commit autoupdate`
 * [Usage](https://pre-commit.com/#usage)
 * [pre-commit-autoupdate](https://pre-commit.com/#pre-commit-autoupdate)
 
+## Spell Checking
+
+We are running [misspell](https://github.com/client9/misspell) which is mainly written in Golang to check
+spelling with [GitHub Actions](.github/workflows/lint.yml). Correct commonly misspelled English words quickly
+with `misspell`. You can run `misspell` locally against all files with:
+
+```bash
+find . -type f | xargs ./misspell -error
+```
+
+Notable `misspell` help options or flags are:
+
+* `-i` string: ignore the following corrections, comma separated
+* `-w`: Overwrite file with corrections (default is just to display)
+
 ## Coding conventions
 
 How to style your C and Ruby code which you want to submit.
