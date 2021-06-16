@@ -425,10 +425,10 @@ void mrb_mruby_complex_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, comp, "/", complex_div, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, comp, "quo", complex_div, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, comp, "==", complex_eq, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, mrb->integer_class, "/", cpx_int_div, MRB_ARGS_REQ(1)); /* overrride */
-  mrb_define_method(mrb, mrb->integer_class, "quo", cpx_int_quo, MRB_ARGS_REQ(1)); /* overrride */
-  mrb_define_method(mrb, mrb->float_class, "/", cpx_flo_div, MRB_ARGS_REQ(1)); /* overrride */
-  mrb_define_method(mrb, mrb->float_class, "quo", cpx_flo_div, MRB_ARGS_REQ(1)); /* overrride */
+  mrb_define_method(mrb, mrb->integer_class, "/", cpx_int_div, MRB_ARGS_REQ(1)); /* override */
+  mrb_define_method(mrb, mrb->integer_class, "quo", cpx_int_quo, MRB_ARGS_REQ(1)); /* override */
+  mrb_define_method(mrb, mrb->float_class, "/", cpx_flo_div, MRB_ARGS_REQ(1)); /* override */
+  mrb_define_method(mrb, mrb->float_class, "quo", cpx_flo_div, MRB_ARGS_REQ(1)); /* override */
 }
 
 void

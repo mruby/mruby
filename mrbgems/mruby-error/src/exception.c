@@ -31,7 +31,7 @@ mrb_ensure(mrb_state *mrb, mrb_func_t body, mrb_value b_data, mrb_func_t ensure,
   mrb_gc_arena_restore(mrb, ai);
   mrb_gc_protect(mrb, result);
   if (error) {
-    mrb_exc_raise(mrb, result); /* rethrow catched exceptions */
+    mrb_exc_raise(mrb, result); /* rethrow caught exceptions */
   }
   return result;
 }

@@ -1,4 +1,4 @@
-name: Lint Code Base
+name: Super Linter
 
 on:
   push:
@@ -19,7 +19,5 @@ jobs:
           VALIDATE_BASH: true
           # VALIDATE_BASH_EXEC: true
           # VALIDATE_EDITORCONFIG: true
-          VALIDATE_MARKDOWN: true
           # VALIDATE_SHELL_SHFMT: true
-          VALIDATE_YAML: true
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
