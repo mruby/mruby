@@ -138,18 +138,18 @@ C Compiler has header searcher to detect installed library.
 If you need an include path of header file use `search_header_path`:
 
 ```ruby
-# Searches ```iconv.h```.
+# Searches `iconv.h`.
 # If found it will return include path of the header file.
-# Otherwise it will return nil .
+# Otherwise it will return nil.
 fail 'iconv.h not found' unless conf.cc.search_header_path 'iconv.h'
 ```
 
 If you need a full file name of header file use `search_header`:
 
 ```ruby
-# Searches ```iconv.h```.
+# Searches `iconv.h`.
 # If found it will return full path of the header file.
-# Otherwise it will return nil .
+# Otherwise it will return nil.
 iconv_h = conf.cc.search_header 'iconv.h'
 print "iconv.h found: #{iconv_h}\n"
 ```
