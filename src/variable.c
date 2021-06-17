@@ -775,7 +775,7 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym)
 
 L_RETRY:
   while (c) {
-    if (c->iv) {
+    if (!MRB_FLAG_TEST(c, MRB_FL_CLASS_IS_PREPENDED) && c->iv) {
       if (iv_get(mrb, c->iv, sym, &v))
         return v;
     }
