@@ -55,8 +55,8 @@ conf.gem mgem: 'mruby-redis', checksum_hash: '3446d19fc4a3f9697b5ddbf2a904f301c4
 If there are missing dependencies, mrbgem dependencies solver will reference
 mrbgem from the core or mgem-list.
 
-To pull all gems from remote GIT repository on build, call ```rake -p```,
-or ```rake --pull-gems```.
+To pull all gems from remote GIT repository on build, call `rake -p`,
+or `rake --pull-gems`.
 
 NOTE: `:bitbucket` option supports only git. Hg is unsupported in this version.
 
