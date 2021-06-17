@@ -17,7 +17,9 @@ repos:
       - id: check-executables-have-shebangs
         exclude: ^test/t/lang\.rb$
       - id: check-merge-conflict
+      - id: check-vcs-permalinks
       - id: check-yaml
+      - id: detect-private-key
       - id: end-of-file-fixer
       - id: fix-byte-order-marker
       - id: mixed-line-ending
