@@ -1435,7 +1435,7 @@ fix_include_module(mrb_state *mrb, struct RBasic *obj, void *data)
 {
   struct RClass **m = (struct RClass**)data;
 
-  if (obj->tt == MRB_TT_ICLASS && obj->c == m[0] && (obj->flags & MRB_FL_CLASS_IS_ORIGIN) == 0) {
+  if (obj->tt == MRB_TT_ICLASS && obj->c == m[0] && !MRB_FLAG_TEST(obj, MRB_FL_CLASS_IS_ORIGIN)) {
     struct RClass *ic = (struct RClass*)obj;
     include_module_at(mrb, ic, ic, m[1], 1);
   }
