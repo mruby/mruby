@@ -82,13 +82,13 @@ on-demand.
 
 #### Insert a break after the function return value:
 
-    ```C
-    int
-    main(void)
-    {
-      ...
-    }
-    ```
+```c
+int
+main(void)
+{
+  ...
+}
+```
 
 ### Ruby code
 

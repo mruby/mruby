@@ -4,7 +4,7 @@ Symbols in `mruby` C source code is represented by `mrb_sym` which is alias of
 `uint32_t`.  Lower 30 bits are used for symbols so that higher 2 bits can be
 used as flags, e.g. `struct mt_elem` in `class.c`.
 
-```C
+```c
 struct mt_elem {
   union mt_ptr ptr;
   size_t func_p:1;
