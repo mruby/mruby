@@ -33,6 +33,3 @@ MD026: false
 
 # MD040 fenced-code-language - Fenced code blocks should have a language specified
 MD040: false
-
-# MD046 code-block-style - Code block style
-MD046: false
