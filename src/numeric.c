@@ -22,8 +22,6 @@
 #ifndef MRB_NO_FLOAT
 #ifdef MRB_USE_FLOAT32
 #define trunc(f) truncf(f)
-#define floor(f) floorf(f)
-#define ceil(f) ceilf(f)
 #define fmod(x,y) fmodf(x,y)
 #else
 #endif
@@ -745,49 +743,127 @@ mrb_check_num_exact(mrb_state *mrb, mrb_float num)
   }
 }
 
+static mrb_value
+flo_ceil_floor(mrb_state *mrb, mrb_value num, double (*func)(double))
+{
+  mrb_float f = mrb_float(num);
+  mrb_int ndigits = 0;
+#ifdef MRB_USE_FLOAT32
+  const int fprec =  7;
+#else
+  const int fprec =  15;
+#endif
+
+  mrb_get_args(mrb, "|i", &ndigits);
+  if (f == 0.0) {
+    return ndigits > 0 ? mrb_float_value(mrb, f) : mrb_fixnum_value(0);
+  }
+  if (ndigits > 0) {
+    if (ndigits > fprec) return num;
+    mrb_float d = pow(10, ndigits);
+    f = func(f * d) / d;
+    return mrb_float_value(mrb, f);
+  }
+  if (ndigits < 0) {
+    mrb_float d = pow(10, -ndigits);
+    f = func(f / d) * d;
+  }
+  else {                        /* ndigits == 0 */
+    f = func(f);
+  }
+  mrb_check_num_exact(mrb, f);
+  return mrb_int_value(mrb, (mrb_int)f);
+}
+
 /* 15.2.9.3.10 */
 /*
  *  call-seq:
- *     flt.floor  ->  integer
+ *     float.floor([ndigits])  ->  integer or float
  *
- *  Returns the largest integer less than or equal to <i>flt</i>.
+ *  Returns the largest number less than or equal to +float+ with
+ *  a precision of +ndigits+ decimal digits (default: 0).
+ *
+ *  When the precision is negative, the returned value is an integer
+ *  with at least <code>ndigits.abs</code> trailing zeros.
+ *
+ *  Returns a floating point number when +ndigits+ is positive,
+ *  otherwise returns an integer.
  *
  *     1.2.floor      #=> 1
  *     2.0.floor      #=> 2
  *     (-1.2).floor   #=> -2
  *     (-2.0).floor   #=> -2
+ *
+ *     1.234567.floor(2)   #=> 1.23
+ *     1.234567.floor(3)   #=> 1.234
+ *     1.234567.floor(4)   #=> 1.2345
+ *     1.234567.floor(5)   #=> 1.23456
+ *
+ *     34567.89.floor(-5)  #=> 0
+ *     34567.89.floor(-4)  #=> 30000
+ *     34567.89.floor(-3)  #=> 34000
+ *     34567.89.floor(-2)  #=> 34500
+ *     34567.89.floor(-1)  #=> 34560
+ *     34567.89.floor(0)   #=> 34567
+ *     34567.89.floor(1)   #=> 34567.8
+ *     34567.89.floor(2)   #=> 34567.89
+ *     34567.89.floor(3)   #=> 34567.89
+ *
+ *  Note that the limited precision of floating point arithmetic
+ *  might lead to surprising results:
+ *
+ *     (0.3 / 0.1).floor  #=> 2 (!)
  */
-
 static mrb_value
 flo_floor(mrb_state *mrb, mrb_value num)
 {
-  mrb_float f = floor(mrb_float(num));
-
-  mrb_check_num_exact(mrb, f);
-  return mrb_int_value(mrb, (mrb_int)f);
+  return flo_ceil_floor(mrb, num, floor);
 }
 
 /* 15.2.9.3.8  */
 /*
  *  call-seq:
- *     flt.ceil  ->  integer
+ *     float.ceil([ndigits])  ->  integer or float
  *
- *  Returns the smallest <code>Integer</code> greater than or equal to
- *  <i>flt</i>.
+ *  Returns the smallest number greater than or equal to +float+ with
+ *  a precision of +ndigits+ decimal digits (default: 0).
+ *
+ *  When the precision is negative, the returned value is an integer
+ *  with at least <code>ndigits.abs</code> trailing zeros.
+ *
+ *  Returns a floating point number when +ndigits+ is positive,
+ *  otherwise returns an integer.
  *
  *     1.2.ceil      #=> 2
  *     2.0.ceil      #=> 2
  *     (-1.2).ceil   #=> -1
  *     (-2.0).ceil   #=> -2
+ *
+ *     1.234567.ceil(2)   #=> 1.24
+ *     1.234567.ceil(3)   #=> 1.235
+ *     1.234567.ceil(4)   #=> 1.2346
+ *     1.234567.ceil(5)   #=> 1.23457
+ *
+ *     34567.89.ceil(-5)  #=> 100000
+ *     34567.89.ceil(-4)  #=> 40000
+ *     34567.89.ceil(-3)  #=> 35000
+ *     34567.89.ceil(-2)  #=> 34600
+ *     34567.89.ceil(-1)  #=> 34570
+ *     34567.89.ceil(0)   #=> 34568
+ *     34567.89.ceil(1)   #=> 34567.9
+ *     34567.89.ceil(2)   #=> 34567.89
+ *     34567.89.ceil(3)   #=> 34567.89
+ *
+ *  Note that the limited precision of floating point arithmetic
+ *  might lead to surprising results:
+ *
+ *     (2.1 / 0.7).ceil  #=> 4 (!)
  */
 
 static mrb_value
 flo_ceil(mrb_state *mrb, mrb_value num)
 {
-  mrb_float f = ceil(mrb_float(num));
-
-  mrb_check_num_exact(mrb, f);
-  return mrb_int_value(mrb, (mrb_int)f);
+  return flo_ceil_floor(mrb, num, ceil);
 }
 
 /* 15.2.9.3.12 */
@@ -875,6 +951,18 @@ flo_round(mrb_state *mrb, mrb_value num)
 }
 
 /* 15.2.9.3.14 */
+static mrb_value
+flo_to_i(mrb_state *mrb, mrb_value num)
+{
+  mrb_float f = mrb_float(num);
+
+  if (f > 0.0) f = floor(f);
+  if (f < 0.0) f = ceil(f);
+
+  mrb_check_num_exact(mrb, f);
+  return mrb_int_value(mrb, (mrb_int)f);
+}
+
 /* 15.2.9.3.15 */
 /*
  *  call-seq:
@@ -887,13 +975,8 @@ flo_round(mrb_state *mrb, mrb_value num)
 static mrb_value
 flo_truncate(mrb_state *mrb, mrb_value num)
 {
-  mrb_float f = mrb_float(num);
-
-  if (f > 0.0) f = floor(f);
-  if (f < 0.0) f = ceil(f);
-
-  mrb_check_num_exact(mrb, f);
-  return mrb_int_value(mrb, (mrb_int)f);
+  if (signbit(mrb_float(num))) return flo_ceil(mrb, num);
+  return flo_floor(mrb, num);
 }
 
 static mrb_value
@@ -1816,15 +1899,14 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fl,      "^",         flo_xor,        MRB_ARGS_REQ(1));
   mrb_define_method(mrb, fl,      ">>",        flo_rshift,     MRB_ARGS_REQ(1));
   mrb_define_method(mrb, fl,      "<<",        flo_lshift,     MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, fl,      "ceil",      flo_ceil,       MRB_ARGS_NONE()); /* 15.2.9.3.8  */
+  mrb_define_method(mrb, fl,      "ceil",      flo_ceil,       MRB_ARGS_OPT(1)); /* 15.2.9.3.8  */
   mrb_define_method(mrb, fl,      "finite?",   flo_finite_p,   MRB_ARGS_NONE()); /* 15.2.9.3.9  */
-  mrb_define_method(mrb, fl,      "floor",     flo_floor,      MRB_ARGS_NONE()); /* 15.2.9.3.10 */
+  mrb_define_method(mrb, fl,      "floor",     flo_floor,      MRB_ARGS_OPT(1)); /* 15.2.9.3.10 */
   mrb_define_method(mrb, fl,      "infinite?", flo_infinite_p, MRB_ARGS_NONE()); /* 15.2.9.3.11 */
   mrb_define_method(mrb, fl,      "round",     flo_round,      MRB_ARGS_OPT(1)); /* 15.2.9.3.12 */
   mrb_define_method(mrb, fl,      "to_f",      flo_to_f,       MRB_ARGS_NONE()); /* 15.2.9.3.13 */
-  mrb_define_method(mrb, fl,      "to_i",      flo_truncate,   MRB_ARGS_NONE()); /* 15.2.9.3.14 */
-  mrb_define_method(mrb, fl,      "to_int",    flo_truncate,   MRB_ARGS_NONE());
-  mrb_define_method(mrb, fl,      "truncate",  flo_truncate,   MRB_ARGS_NONE()); /* 15.2.9.3.15 */
+  mrb_define_method(mrb, fl,      "to_i",      flo_to_i,       MRB_ARGS_NONE()); /* 15.2.9.3.14 */
+  mrb_define_method(mrb, fl,      "truncate",  flo_truncate,   MRB_ARGS_OPT(1)); /* 15.2.9.3.15 */
   mrb_define_method(mrb, fl,      "divmod",    flo_divmod,     MRB_ARGS_REQ(1));
   mrb_define_method(mrb, fl,      "eql?",      flo_eql,        MRB_ARGS_REQ(1)); /* 15.2.8.3.16 */
 
