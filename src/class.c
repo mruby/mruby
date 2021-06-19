@@ -859,6 +859,17 @@ mrb_get_arg1(mrb_state *mrb)
   return array_argv[0];
 }
 
+MRB_API mrb_bool
+mrb_block_given_p(mrb_state *mrb)
+{
+  const mrb_callinfo *ci = mrb->c->ci;
+  int argc = ci->argc;
+  int idx = (argc < 0) ? 2 : argc + 1;
+  mrb_value b = ci->stack[idx];
+
+  return !mrb_nil_p(b);
+}
+
 void mrb_hash_check_kdict(mrb_state *mrb, mrb_value self);
 
 /*
