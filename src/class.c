@@ -859,6 +859,27 @@ mrb_get_arg1(mrb_state *mrb)
   return array_argv[0];
 }
 
+MRB_API mrb_value
+mrb_get_arg_block(mrb_state *mrb)
+{
+  const mrb_callinfo *ci = mrb->c->ci;
+  const mrb_value *stack = ci->stack;
+  int argc = ci->argc;
+
+  if (argc < 0) {
+    return stack[2];
+  }
+  else {
+    return stack[argc + 1];
+  }
+}
+
+MRB_API mrb_bool
+mrb_block_given_p(mrb_state *mrb)
+{
+  return !mrb_nil_p(mrb_get_arg_block(mrb));
+}
+
 void mrb_hash_check_kdict(mrb_state *mrb, mrb_value self);
 
 /*

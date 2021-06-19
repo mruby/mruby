@@ -195,12 +195,7 @@ f_eval(mrb_state *mrb, mrb_value self)
 static mrb_value
 f_instance_eval(mrb_state *mrb, mrb_value self)
 {
-  mrb_value b;
-  mrb_int argc; const mrb_value *argv;
-
-  mrb_get_args(mrb, "*!&", &argv, &argc, &b);
-
-  if (mrb_nil_p(b)) {
+  if (!mrb_block_given_p(mrb)) {
     const char *s;
     mrb_int len;
     const char *file = NULL;
@@ -217,7 +212,7 @@ f_instance_eval(mrb_state *mrb, mrb_value self)
     return exec_irep(mrb, self, proc, NULL);
   }
   else {
-    mrb_get_args(mrb, "&", &b);
+    mrb_get_args(mrb, "");
     return mrb_obj_instance_eval(mrb, self);
   }
 }
@@ -225,12 +220,7 @@ f_instance_eval(mrb_state *mrb, mrb_value self)
 static mrb_value
 f_class_eval(mrb_state *mrb, mrb_value self)
 {
-  mrb_value b;
-  mrb_int argc; const mrb_value *argv;
-
-  mrb_get_args(mrb, "*!&", &argv, &argc, &b);
-
-  if (mrb_nil_p(b)) {
+  if (!mrb_block_given_p(mrb)) {
     const char *s;
     mrb_int len;
     const char *file = NULL;
@@ -245,7 +235,7 @@ f_class_eval(mrb_state *mrb, mrb_value self)
     return exec_irep(mrb, self, proc, NULL);
   }
   else {
-    mrb_get_args(mrb, "&", &b);
+    mrb_get_args(mrb, "");
     return mrb_mod_module_eval(mrb, self);
   }
 }

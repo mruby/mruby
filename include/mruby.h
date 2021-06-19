@@ -1004,6 +1004,16 @@ MRB_API const mrb_value *mrb_get_argv(mrb_state *mrb);
  */
 MRB_API mrb_value mrb_get_arg1(mrb_state *mrb);
 
+/**
+ * Retrieve block argument from mrb_state.
+ */
+MRB_API mrb_value mrb_get_arg_block(mrb_state *mrb);
+
+/**
+ * Check if a block argument is given from mrb_state.
+ */
+MRB_API mrb_bool mrb_block_given_p(mrb_state *mrb);
+
 /* `strlen` for character string literals (use with caution or `strlen` instead)
     Adjacent string literals are concatenated in C/C++ in translation phase 6.
     If `lit` is not one, the compiler will report a syntax error:
