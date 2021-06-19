@@ -1452,11 +1452,11 @@ readint(codegen_scope *s, const char *p, int base, mrb_bool *overflow)
 {
   const char *e = p + strlen(p);
   mrb_int result = 0;
-  int n;
 
   mrb_assert(base >= 2 && base <= 36);
   if (*p == '+') p++;
   while (p < e) {
+    int n;
     char c = *p;
     switch (c) {
     case '0': case '1': case '2': case '3':
@@ -1470,6 +1470,8 @@ readint(codegen_scope *s, const char *p, int base, mrb_bool *overflow)
       n = c - 'A' + 10; break;
     default:
       codegen_error(s, "malformed readint input");
+      /* not reached */
+      return result;
     }
     if (mrb_int_mul_overflow(result, base, &result) ||
         mrb_int_add_overflow(result, n, &result)) {
