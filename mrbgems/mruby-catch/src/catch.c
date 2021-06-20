@@ -92,7 +92,7 @@ mrb_f_throw(mrb_state *mrb, mrb_value self)
 
   const mrb_callinfo *ci = find_catcher(mrb, tag);
   if (ci) {
-    struct RBreak *b = (struct RBreak *)mrb_obj_alloc(mrb, MRB_TT_BREAK, NULL);
+    struct RBreak *b = MRB_OBJ_ALLOC(mrb, MRB_TT_BREAK, NULL);
     mrb_break_value_set(b, obj);
     mrb_break_proc_set(b, ci[2].proc); /* Back to the closure in `catch` method */
     mrb_exc_raise(mrb, mrb_obj_value(b));

@@ -29,7 +29,7 @@ ary_new_capa(mrb_state *mrb, mrb_int capa)
   }
   blen = capa * sizeof(mrb_value);
 
-  a = (struct RArray*)mrb_obj_alloc(mrb, MRB_TT_ARRAY, mrb->array_class);
+  a = MRB_OBJ_ALLOC(mrb, MRB_TT_ARRAY, mrb->array_class);
   if (capa <= MRB_ARY_EMBED_LEN_MAX) {
     ARY_SET_EMBED_LEN(a, 0);
   }
@@ -831,7 +831,7 @@ ary_subseq(mrb_state *mrb, struct RArray *a, mrb_int beg, mrb_int len)
     return mrb_ary_new_from_values(mrb, len, ARY_PTR(a)+beg);
   }
   ary_make_shared(mrb, a);
-  b  = (struct RArray*)mrb_obj_alloc(mrb, MRB_TT_ARRAY, mrb->array_class);
+  b  = MRB_OBJ_ALLOC(mrb, MRB_TT_ARRAY, mrb->array_class);
   b->as.heap.ptr = a->as.heap.ptr + beg;
   b->as.heap.len = len;
   b->as.heap.aux.shared = a->as.heap.aux.shared;

@@ -32,7 +32,7 @@ typedef struct mrb_shared_string {
 
 const char mrb_digitmap[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
-#define mrb_obj_alloc_string(mrb) ((struct RString*)mrb_obj_alloc((mrb), MRB_TT_STRING, (mrb)->string_class))
+#define mrb_obj_alloc_string(mrb) MRB_OBJ_ALLOC((mrb), MRB_TT_STRING, (mrb)->string_class)
 
 static struct RString*
 str_init_normal_capa(mrb_state *mrb, struct RString *s,

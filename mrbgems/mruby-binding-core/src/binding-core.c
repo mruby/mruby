@@ -217,7 +217,7 @@ binding_source_location(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_binding_alloc(mrb_state *mrb)
 {
-  struct RObject *obj = (struct RObject*)mrb_obj_alloc(mrb, MRB_TT_OBJECT, mrb_class_get_id(mrb, MRB_SYM(Binding)));
+  struct RObject *obj = MRB_OBJ_ALLOC(mrb, MRB_TT_OBJECT, mrb_class_get_id(mrb, MRB_SYM(Binding)));
   return mrb_obj_value(obj);
 }
 
@@ -231,7 +231,7 @@ mrb_binding_wrap_lvspace(mrb_state *mrb, const struct RProc *proc, struct REnv *
 
   static const mrb_code iseq_dummy[] = { OP_RETURN, 0 };
 
-  struct RProc *lvspace = (struct RProc*)mrb_obj_alloc(mrb, MRB_TT_PROC, mrb->proc_class);
+  struct RProc *lvspace = MRB_OBJ_ALLOC(mrb, MRB_TT_PROC, mrb->proc_class);
   mrb_irep *irep = mrb_add_irep(mrb);
   irep->flags = MRB_ISEQ_NO_FREE;
   irep->iseq = iseq_dummy;
@@ -246,7 +246,7 @@ mrb_binding_wrap_lvspace(mrb_state *mrb, const struct RProc *proc, struct REnv *
     lvspace->flags |= MRB_PROC_ENVSET;
   }
 
-  *envp = (struct REnv*)mrb_obj_alloc(mrb, MRB_TT_ENV, NULL);
+  *envp = MRB_OBJ_ALLOC(mrb, MRB_TT_ENV, NULL);
   (*envp)->stack = (mrb_value*)mrb_calloc(mrb, 1, sizeof(mrb_value));
   (*envp)->stack[0] = lvspace->e.env ? lvspace->e.env->stack[0] : mrb_nil_value();
   (*envp)->cxt = lvspace->e.env ? lvspace->e.env->cxt : mrb->c;
