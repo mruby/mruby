@@ -316,44 +316,15 @@ mrb_init_object(mrb_state *mrb)
   mrb_define_method(mrb, f, "inspect", false_to_s,  MRB_ARGS_NONE());
 }
 
-static const struct types {
-  const enum mrb_vtype type;
-  const char *name;
-} builtin_types[] = {
-/*    {MRB_TT_NIL,  "nil"}, */
-  {MRB_TT_FALSE,  "false"},
-  {MRB_TT_TRUE,   "true"},
-  {MRB_TT_INTEGER,"Integer"},
-  {MRB_TT_SYMBOL, "Symbol"},  /* :symbol */
-  {MRB_TT_MODULE, "Module"},
-  {MRB_TT_OBJECT, "Object"},
-  {MRB_TT_CLASS,  "Class"},
-  {MRB_TT_ICLASS, "iClass"},  /* internal use: mixed-in module holder */
-  {MRB_TT_SCLASS, "SClass"},
-  {MRB_TT_PROC,   "Proc"},
-#ifndef MRB_NO_FLOAT
-  {MRB_TT_FLOAT,  "Float"},
-#endif
-  {MRB_TT_ARRAY,  "Array"},
-  {MRB_TT_HASH,   "Hash"},
-  {MRB_TT_STRING, "String"},
-  {MRB_TT_RANGE,  "Range"},
-/*    {MRB_TT_BIGNUM,  "Bignum"}, */
-  {MRB_TT_DATA,   "Data"},  /* internal use: wrapped C pointers */
-/*    {MRB_TT_UNDEF,  "undef"}, */ /* internal use: #undef; should not happen */
-  {MRB_TT_MAXDEFINE,  0}
-};
-
 static const char*
 type_name(enum mrb_vtype t)
 {
-  const struct types *type = builtin_types;
-
-  while (type->type < MRB_TT_MAXDEFINE) {
-    if (type->type == t) return type->name;
-    type++;
+  switch (t) {
+#define MRB_VTYPE_NAME(tt, type, name) case tt: return name;
+    MRB_VTYPE_FOREACH(MRB_VTYPE_NAME)
+#undef MRB_VTYPE_NAME
+    default: return NULL;
   }
-  return NULL;
 }
 
 static mrb_value
