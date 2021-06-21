@@ -1131,6 +1131,17 @@ MRB_API void *mrb_malloc_simple(mrb_state*, size_t);  /* return NULL if no memor
 MRB_API struct RBasic *mrb_obj_alloc(mrb_state*, enum mrb_vtype, struct RClass*);
 MRB_API void mrb_free(mrb_state*, void*);
 
+/**
+ * Allocates a Ruby object that matches the constant literal defined in
+ * `enum mrb_vtype` and returns a pointer to the corresponding C type.
+ *
+ * @param mrb   The current mruby state
+ * @param tt    The constant literal of `enum mrb_vtype`
+ * @param klass A Class object
+ * @return      Reference to the newly created object
+ */
+#define MRB_OBJ_ALLOC(mrb, tt, klass) ((MRB_VTYPE_TYPEOF(tt)*)mrb_obj_alloc(mrb, tt, klass))
+
 MRB_API mrb_value mrb_str_new(mrb_state *mrb, const char *p, size_t len);
 
 /**

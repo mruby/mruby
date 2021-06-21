@@ -15,7 +15,7 @@ mrb_data_object_alloc(mrb_state *mrb, struct RClass *klass, void *ptr, const mrb
 {
   struct RData *data;
 
-  data = (struct RData*)mrb_obj_alloc(mrb, MRB_TT_DATA, klass);
+  data = MRB_OBJ_ALLOC(mrb, MRB_TT_DATA, klass);
   data->data = ptr;
   data->type = type;
 
@@ -185,7 +185,7 @@ MRB_API mrb_value
 mrb_xxx_boxing_cptr_value(mrb_state *mrb, void *p)
 {
   mrb_value v;
-  struct RCptr *cptr = (struct RCptr*)mrb_obj_alloc(mrb, MRB_TT_CPTR, mrb->object_class);
+  struct RCptr *cptr = MRB_OBJ_ALLOC(mrb, MRB_TT_CPTR, mrb->object_class);
 
   SET_OBJ_VALUE(v, cptr);
   cptr->p = p;

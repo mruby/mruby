@@ -128,35 +128,47 @@ static const unsigned int IEEE754_INFINITY_BITS_SINGLE = 0x7F800000;
 # endif
 #endif
 
+#define MRB_VTYPE_FOREACH(f) \
+    /* mrb_vtype */     /* c type */        /* ruby class */ \
+  f(MRB_TT_FALSE,       void,               "false") \
+  f(MRB_TT_TRUE,        void,               "true") \
+  f(MRB_TT_SYMBOL,      void,               "Symbol") \
+  f(MRB_TT_UNDEF,       void,               "undefined") \
+  f(MRB_TT_FREE,        void,               "free") \
+  f(MRB_TT_FLOAT,       struct RFloat,      "Float") \
+  f(MRB_TT_INTEGER,     struct RInteger,    "Integer") \
+  f(MRB_TT_CPTR,        struct RCptr,       "cptr") \
+  f(MRB_TT_OBJECT,      struct RObject,     "Object") \
+  f(MRB_TT_CLASS,       struct RClass,      "Class") \
+  f(MRB_TT_MODULE,      struct RClass,      "Module") \
+  f(MRB_TT_ICLASS,      struct RClass,      "iClass") \
+  f(MRB_TT_SCLASS,      struct RClass,      "SClass") \
+  f(MRB_TT_PROC,        struct RProc,       "Proc") \
+  f(MRB_TT_ARRAY,       struct RArray,      "Array") \
+  f(MRB_TT_HASH,        struct RHash,       "Hash") \
+  f(MRB_TT_STRING,      struct RString,     "String") \
+  f(MRB_TT_RANGE,       struct RRange,      "Range") \
+  f(MRB_TT_EXCEPTION,   struct RException,  "Exception") \
+  f(MRB_TT_ENV,         struct REnv,        "env") \
+  f(MRB_TT_DATA,        struct RData,       "Data") \
+  f(MRB_TT_FIBER,       struct RFiber,      "Fiber") \
+  f(MRB_TT_ISTRUCT,     struct RIStruct,    "istruct") \
+  f(MRB_TT_BREAK,       struct RBreak,      "break") \
+  f(MRB_TT_COMPLEX,     struct RComplex,    "Complex") \
+  f(MRB_TT_RATIONAL,    struct RRational,   "Rational")
+
 enum mrb_vtype {
-  MRB_TT_FALSE = 0,
-  MRB_TT_TRUE,
-  MRB_TT_SYMBOL,
-  MRB_TT_UNDEF,
-  MRB_TT_FREE,
-  MRB_TT_FLOAT,
-  MRB_TT_INTEGER,
-  MRB_TT_CPTR,
-  MRB_TT_OBJECT,
-  MRB_TT_CLASS,
-  MRB_TT_MODULE,
-  MRB_TT_ICLASS,
-  MRB_TT_SCLASS,
-  MRB_TT_PROC,
-  MRB_TT_ARRAY,
-  MRB_TT_HASH,
-  MRB_TT_STRING,
-  MRB_TT_RANGE,
-  MRB_TT_EXCEPTION,
-  MRB_TT_ENV,
-  MRB_TT_DATA,
-  MRB_TT_FIBER,
-  MRB_TT_ISTRUCT,
-  MRB_TT_BREAK,
-  MRB_TT_COMPLEX,
-  MRB_TT_RATIONAL,
+#define MRB_VTYPE_DEFINE(tt, type, name) tt,
+  MRB_VTYPE_FOREACH(MRB_VTYPE_DEFINE)
+#undef MRB_VTYPE_DEFINE
   MRB_TT_MAXDEFINE
 };
+
+#define MRB_VTYPE_TYPEOF(tt) MRB_TYPEOF_##tt
+
+#define MRB_VTYPE_TYPEDEF(tt, type, name) typedef type MRB_VTYPE_TYPEOF(tt);
+MRB_VTYPE_FOREACH(MRB_VTYPE_TYPEDEF)
+#undef MRB_VTYPE_TYPEDEF
 
 /* for compatibility */
 #define MRB_TT_FIXNUM MRB_TT_INTEGER

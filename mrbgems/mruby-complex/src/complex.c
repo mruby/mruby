@@ -50,7 +50,7 @@ static struct RBasic*
 complex_alloc(mrb_state *mrb, struct RClass *c, struct mrb_complex **p)
 {
   struct RComplex *s;
-  s = (struct RComplex*)mrb_obj_alloc(mrb, MRB_TT_COMPLEX, c);
+  s = MRB_OBJ_ALLOC(mrb, MRB_TT_COMPLEX, c);
 #ifdef COMPLEX_INLINE
   *p = &s->r;
 #else

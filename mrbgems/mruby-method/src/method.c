@@ -81,7 +81,7 @@ method_missing_prepare(mrb_state *mrb, mrb_sym *mid, mrb_value recv, struct RCla
 static struct RObject *
 method_object_alloc(mrb_state *mrb, struct RClass *mclass)
 {
-  return (struct RObject*)mrb_obj_alloc(mrb, MRB_TT_OBJECT, mclass);
+  return MRB_OBJ_ALLOC(mrb, MRB_TT_OBJECT, mclass);
 }
 
 static struct RProc*

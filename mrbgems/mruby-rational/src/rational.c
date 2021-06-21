@@ -37,7 +37,7 @@ static struct RBasic*
 rational_alloc(mrb_state *mrb, struct RClass *c, struct mrb_rational **p)
 {
   struct RRational *s;
-  s = (struct RRational*)mrb_obj_alloc(mrb, MRB_TT_RATIONAL, c);
+  s = MRB_OBJ_ALLOC(mrb, MRB_TT_RATIONAL, c);
 #ifdef RATIONAL_INLINE
   *p = &s->r;
 #else

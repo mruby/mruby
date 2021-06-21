@@ -88,7 +88,7 @@ range_ptr_init(mrb_state *mrb, struct RRange *r, mrb_value beg, mrb_value end, m
     }
   }
   else {
-    r = (struct RRange*)mrb_obj_alloc(mrb, MRB_TT_RANGE, mrb->range_class);
+    r = MRB_OBJ_ALLOC(mrb, MRB_TT_RANGE, mrb->range_class);
     range_ptr_alloc_edges(mrb, r);
   }
 
