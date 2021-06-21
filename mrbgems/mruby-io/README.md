@@ -1,5 +1,4 @@
-mruby-io
-========
+# mruby-io
 
 `IO` and `File` classes for mruby
 
