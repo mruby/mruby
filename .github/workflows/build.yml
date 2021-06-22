@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-18.04
     timeout-minutes: 10
     env:
-      MRUBY_CONFIG: ci/gcc-clang
+      MRUBY_CONFIG: ci/gcc_clang
       CC: gcc
     steps:
       - uses: actions/checkout@v2.3.4
@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-18.04
     timeout-minutes: 10
     env:
-      MRUBY_CONFIG: ci/gcc-clang
+      MRUBY_CONFIG: ci/gcc_clang
       CC: clang
     steps:
       - uses: actions/checkout@v2.3.4
@@ -37,7 +37,7 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 10
     env:
-      MRUBY_CONFIG: ci/gcc-clang
+      MRUBY_CONFIG: ci/gcc_clang
       CC: gcc
     steps:
       - uses: actions/checkout@v2.3.4
@@ -52,7 +52,7 @@ jobs:
     runs-on: ubuntu-20.04
     timeout-minutes: 10
     env:
-      MRUBY_CONFIG: ci/gcc-clang
+      MRUBY_CONFIG: ci/gcc_clang
       CC: clang
     steps:
       - uses: actions/checkout@v2.3.4
@@ -67,7 +67,7 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 10
     env:
-      MRUBY_CONFIG: ci/gcc-clang
+      MRUBY_CONFIG: ci/gcc_clang
       CC: clang
     steps:
       - uses: actions/checkout@v2.3.4
@@ -82,7 +82,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 10
     env:
-      MRUBY_CONFIG: ci/gcc-clang
+      MRUBY_CONFIG: ci/gcc_clang
       CC: gcc
     steps:
       - uses: actions/checkout@v2.3.4
@@ -98,7 +98,7 @@ jobs:
     timeout-minutes: 10
     env:
       ACTIONS_ALLOW_UNSECURE_COMMANDS: true
-      MRUBY_CONFIG: ci/gcc-clang
+      MRUBY_CONFIG: ci/gcc_clang
       CC: gcc
       installer-path: '%TMP%\cygwin-setup.exe'
       cygwin-root: C:\cygwin

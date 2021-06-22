@@ -5,7 +5,7 @@ jobs:
   - os: osx
 
 env:
-  - MRUBY_CONFIG=ci/gcc-clang
+  - MRUBY_CONFIG=ci/gcc_clang
 
 script:
   - rake -m test:build && rake test:run
