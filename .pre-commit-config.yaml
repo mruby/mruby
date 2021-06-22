@@ -3,7 +3,7 @@ default_stages: [commit, push]
 default_language_version:
   # force all unspecified Python hooks to run python3
   python: python3
-minimum_pre_commit_version: "1.20.0"
+minimum_pre_commit_version: '1.20.0'
 repos:
   - repo: meta
     hooks:
@@ -36,6 +36,10 @@ repos:
         name: Run codespell
         description: Check spelling with codespell
         entry: codespell --ignore-words=codespell.txt
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v2.3.1
+    hooks:
+      - id: prettier
   - repo: https://github.com/igorshubovych/markdownlint-cli
     rev: v0.27.1
     hooks:
