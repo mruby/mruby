@@ -1,5 +1,4 @@
-mruby-method
-===
+# mruby-method
 
 An implementation of class **Method** and **UnboundMethod** for mruby
 

@@ -200,8 +200,8 @@ Version requirement supports following operators:
 * '>=': is equal or greater
 * '<=': is equal or lesser
 * '~>': is equal or greater and is lesser than the next major version
-    * example 1: '~> 2.2.2' means '>= 2.2.2' and '< 2.3.0'
-    * example 2: '~> 2.2'   means '>= 2.2.0' and '< 3.0.0'
+  * example 1: '~> 2.2.2' means '>= 2.2.2' and '< 2.3.0'
+  * example 2: '~> 2.2'   means '>= 2.2.0' and '< 3.0.0'
 
 When more than one version requirements is passed, the dependency must satisfy all of it.
 
@@ -215,7 +215,7 @@ use `MRuby::Build#gem` in the build configuration to override default gem.
 If you have conflicting GEMs use the following method:
 
 * `spec.add_conflict(gem, *requirements)`
-    * The `requirements` argument is same as in `add_dependency` method.
+  * The `requirements` argument is same as in `add_dependency` method.
 
 like following code:
 

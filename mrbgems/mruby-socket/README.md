@@ -1,5 +1,4 @@
-mruby-socket
-============
+# mruby-socket
 
 "mruby-socket" mrbgem provides BSD socket interface for mruby.
 API is compatible with CRuby's "socket" library.
