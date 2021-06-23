@@ -64,7 +64,7 @@ p Liste.new "foobar"
 
 #### Ruby [ruby 2.0.0p645 (2015-04-13 revision 50299)]
 
-` [] `
+`[]`
 
 #### mruby [3.0.0 (2021-03-05)]
 
@@ -107,10 +107,10 @@ true
 
 The declaration form of following visibility methods are not implemented.
 
-* `public`
-* `private`
-* `protected`
-* `module_function`
+- `public`
+- `private`
+- `protected`
+- `module_function`
 
 Especially, `module_function` method is not dummy, but no declaration form.
 
@@ -170,7 +170,7 @@ alias $a $__a__
 
 #### Ruby [ruby 2.0.0p645 (2015-04-13 revision 50299)]
 
-` nil `
+`nil`
 
 #### mruby [3.0.0 (2021-03-05)]
 
@@ -196,7 +196,7 @@ The re-defined `+` operator does not accept any arguments.
 
 #### mruby [3.0.0 (2021-03-05)]
 
-` 'ab' `
+`'ab'`
 Behavior of the operator wasn't changed.
 
 ## `Kernel#binding` is not supported

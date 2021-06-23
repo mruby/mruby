@@ -1,4 +1,4 @@
-name: "Code scanning - action"
+name: 'Code scanning - action'
 
 on:
   push:
@@ -8,7 +8,6 @@ on:
 
 jobs:
   CodeQL-Build:
-
     runs-on: ubuntu-latest
 
     steps:

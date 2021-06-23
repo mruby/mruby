@@ -1,4 +1,4 @@
-version: "{build}"
+version: '{build}'
 
 shallow_clone: true
 
@@ -37,7 +37,6 @@ init:
   # Visual Studio AppVeyor images. Ruby 2.7 is only on the 2019 image.
   - set PATH=C:\Ruby26-x64\bin;%PATH%
   - ruby --version
-
 
 build_script:
   - set MRUBY_CONFIG=ci/msvc
