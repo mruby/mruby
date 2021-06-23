@@ -21,6 +21,8 @@ repos:
       - id: check-yaml
       - id: detect-private-key
       - id: end-of-file-fixer
+      - id: file-contents-sorter
+        files: ^codespell\.txt$
       - id: fix-byte-order-marker
       - id: mixed-line-ending
       - id: trailing-whitespace
@@ -54,12 +56,3 @@ repos:
         entry: yamllint --strict -c .github/linters/.yaml-lint.yml
         types: [yaml]
         files: \.(yaml|yml)$
-  - repo: local
-    hooks:
-      - id: sort-codespell-wordlist
-        name: Sort codespell.txt
-        description: Sort alphabetically and uniquify codespell.txt
-        entry: ./scripts/ci/pre-commit/sort-codespell-wordlist.sh
-        language: system
-        files: ^\.pre-commit-config\.yaml$|^codespell\.txt$
-        require_serial: true
