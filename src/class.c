@@ -2505,6 +2505,22 @@ mrb_mod_method_defined(mrb_state *mrb, mrb_value mod)
   return mrb_bool_value(mrb_obj_respond_to(mrb, mrb_class_ptr(mod), id));
 }
 
+void
+mrb_method_added(mrb_state *mrb, struct RClass *c, mrb_sym mid)
+{
+  mrb_sym added;
+  mrb_value recv = mrb_obj_value(c);
+
+  if (c->tt == MRB_TT_SCLASS) {
+    added = MRB_SYM(singleton_method_added);
+    recv = mrb_iv_get(mrb, recv, MRB_SYM(__attached__));
+  }
+  else {
+    added = MRB_SYM(method_added);
+  }
+  mrb_funcall_id(mrb, recv, added, 1, mrb_symbol_value(mid));
+}
+
 mrb_value
 mrb_mod_define_method_m(mrb_state *mrb, struct RClass *c)
 {
@@ -2534,6 +2550,7 @@ mrb_mod_define_method_m(mrb_state *mrb, struct RClass *c)
   p->flags |= MRB_PROC_STRICT;
   MRB_METHOD_FROM_PROC(m, p);
   mrb_define_method_raw(mrb, c, mid, m);
+  mrb_method_added(mrb, c, mid);
   return mrb_symbol_value(mid);
 }
 
@@ -2892,6 +2909,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, bob, "__send__",                mrb_f_send,               MRB_ARGS_REQ(1)|MRB_ARGS_REST()|MRB_ARGS_BLOCK());  /* 15.3.1.3.5  */
   mrb_define_method(mrb, bob, "equal?",                  mrb_obj_equal_m,          MRB_ARGS_REQ(1)); /* 15.3.1.3.11 */
   mrb_define_method(mrb, bob, "instance_eval",           mrb_obj_instance_eval,    MRB_ARGS_OPT(1)|MRB_ARGS_BLOCK());  /* 15.3.1.3.18 */
+  mrb_define_method(mrb, bob, "singleton_method_added",  mrb_bob_init,             MRB_ARGS_REQ(1));
 
   mrb_define_class_method(mrb, cls, "new",               mrb_class_new_class,      MRB_ARGS_OPT(1)|MRB_ARGS_BLOCK());
   mrb_define_method(mrb, cls, "allocate",                mrb_instance_alloc,       MRB_ARGS_NONE());
@@ -2932,6 +2950,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "define_method",           mod_define_method,        MRB_ARGS_ARG(1,1));
   mrb_define_method(mrb, mod, "===",                     mrb_mod_eqq,              MRB_ARGS_REQ(1)); /* 15.2.2.4.7 */
   mrb_define_method(mrb, mod, "dup",                     mrb_mod_dup,              MRB_ARGS_NONE());
+  mrb_define_method(mrb, bob, "method_added",            mrb_bob_init,             MRB_ARGS_REQ(1));
 
   mrb_undef_method(mrb, cls, "append_features");
   mrb_undef_method(mrb, cls, "prepend_features");

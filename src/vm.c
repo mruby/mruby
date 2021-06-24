@@ -1135,6 +1135,7 @@ get_send_args(mrb_state *mrb, mrb_int argc, mrb_value *regs)
 
 mrb_value mrb_obj_missing(mrb_state *mrb, mrb_value mod);
 void mrb_hash_check_kdict(mrb_state *mrb, mrb_value self);
+void mrb_method_added(mrb_state *mrb, struct RClass *c, mrb_sym mid);
 
 MRB_API mrb_value
 mrb_vm_exec(mrb_state *mrb, const struct RProc *proc, const mrb_code *pc)
@@ -2893,9 +2894,11 @@ RETRY_TRY_BLOCK:
       struct RClass *target = mrb_class_ptr(regs[a]);
       struct RProc *p = mrb_proc_ptr(regs[a+1]);
       mrb_method_t m;
+      mrb_sym mid = syms[b];
 
       MRB_METHOD_FROM_PROC(m, p);
-      mrb_define_method_raw(mrb, target, syms[b], m);
+      mrb_define_method_raw(mrb, target, mid, m);
+      mrb_method_added(mrb, target, mid);
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
