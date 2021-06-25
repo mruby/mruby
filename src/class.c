@@ -2282,6 +2282,8 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
   }
 }
 
+void mrb_method_added(mrb_state *mrb, struct RClass *c, mrb_sym mid);
+
 static mrb_value
 mrb_mod_alias(mrb_state *mrb, mrb_value mod)
 {
@@ -2290,6 +2292,7 @@ mrb_mod_alias(mrb_state *mrb, mrb_value mod)
 
   mrb_get_args(mrb, "nn", &new_name, &old_name);
   mrb_alias_method(mrb, c, new_name, old_name);
+  mrb_method_added(mrb, c, new_name);
   return mod;
 }
 

@@ -2921,7 +2921,8 @@ RETRY_TRY_BLOCK:
       if (!check_target_class(mrb)) goto L_RAISE;
       target = mrb_vm_ci_target_class(mrb->c->ci);
       mrb_alias_method(mrb, target, syms[a], syms[b]);
-      NEXT;
+      mrb_method_added(mrb, target, syms[a]);
+     NEXT;
     }
     CASE(OP_UNDEF, B) {
       struct RClass *target;
