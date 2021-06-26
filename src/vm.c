@@ -526,68 +526,8 @@ mrb_funcall_argv(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc, cons
   return mrb_funcall_with_block(mrb, self, mid, argc, argv, mrb_nil_value());
 }
 
-#define DECOMPOSE32(n) (((n) >> 24) & 0xff), (((n) >> 16) & 0xff), (((n) >> 8) & 0xff), (((n) >> 0) & 0xff)
-#define CATCH_HANDLER_MAKE_BYTECODE(t, b, e, j) t, DECOMPOSE32(b), DECOMPOSE32(e), DECOMPOSE32(j)
-#define CATCH_HANDLER_NUM_TO_BYTE(n) ((n) * sizeof(struct mrb_irep_catch_handler))
-
-static void
-exec_irep_prepare_posthook(mrb_state *mrb, mrb_callinfo *ci, int nregs, mrb_func_t posthook)
-{
-  /*
-   *  stack: [proc, errinfo, return value by called proc]
-   *
-   *  begin
-   *    OP_NOP        # A dummy instruction built in to make the catch handler react.
-   *  ensure
-   *    OP_EXCEPT R1  # Save the exception object.
-   *    OP_CALL       # Call a C function for the hook.
-   *                  # The stack is kept as it is in the called proc.
-   *                  # The exception will be rethrown within the hook function.
-   *  end
-   */
-  static const mrb_code hook_iseq[] = {
-    OP_NOP,
-    OP_EXCEPT, 1,
-    OP_CALL,
-    CATCH_HANDLER_MAKE_BYTECODE(MRB_CATCH_ENSURE, 0, 1, 1),
-  };
-  static const mrb_irep hook_irep = {
-    1, 3, 1, MRB_IREP_STATIC, hook_iseq,
-    NULL, NULL, NULL, NULL, NULL,
-    sizeof(hook_iseq) / sizeof(hook_iseq[0]) - CATCH_HANDLER_NUM_TO_BYTE(1),
-    0, 0, 0, 0
-  };
-  static const struct RProc hook_caller = {
-    NULL, NULL, MRB_TT_PROC, MRB_GC_RED, MRB_FL_OBJ_IS_FROZEN, { &hook_irep }, NULL, { NULL }
-  };
-
-  struct RProc *hook = mrb_proc_new_cfunc(mrb, posthook);
-  int acc = 2;
-  memmove(ci->stack + acc, ci->stack, sizeof(mrb_value) * nregs);
-  ci->stack[0] = mrb_obj_value(hook);
-  ci->stack[1] = mrb_nil_value();
-  mrb_callinfo hook_ci = { 0, 0, ci->acc, &hook_caller, ci->stack, &hook_iseq[1], { NULL } };
-  ci = cipush(mrb, acc, acc, NULL, ci[0].proc, ci[0].mid, ci[0].argc);
-  ci->u.env = ci[-1].u.env;
-  ci[-1] = hook_ci;
-}
-
-/*
- * If `posthook` is given, `posthook` will be called even if an
- * exception or global jump occurs in `p`. Exception or global jump objects
- * are stored in `mrb->c->stack[1]` and should be rethrown in `posthook`.
- *
- *    if (!mrb_nil_p(mrb->c->stack[1])) {
- *      mrb_exc_raise(mrb, mrb->c->stack[1]);
- *    }
- *
- * If you want to return the return value by `proc` as it is, please do
- * `return mrb->c->stack[2]`.
- *
- * However, if `proc` is a C function, it will be ignored.
- */
 static mrb_value
-exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p, mrb_func_t posthook)
+exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p)
 {
   mrb_callinfo *ci = mrb->c->ci;
   int keep, nregs;
@@ -600,17 +540,12 @@ exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p, mrb_func_t posthook)
   nregs = p->body.irep->nregs;
   if (ci->argc < 0) keep = 3;
   else keep = ci->argc + 2;
-  int extra = posthook ? (2 /* hook proc + errinfo */) : 0;
   if (nregs < keep) {
-    mrb_stack_extend(mrb, keep + extra);
+    mrb_stack_extend(mrb, keep);
   }
   else {
-    mrb_stack_extend(mrb, nregs + extra);
-    stack_clear(ci->stack+keep, nregs-keep + extra);
-  }
-
-  if (posthook) {
-    exec_irep_prepare_posthook(mrb, ci, (nregs < keep ? keep : nregs), posthook);
+    mrb_stack_extend(mrb, nregs);
+    stack_clear(ci->stack+keep, nregs-keep);
   }
 
   cipush(mrb, 0, 0, NULL, NULL, 0, 0);
@@ -619,11 +554,11 @@ exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p, mrb_func_t posthook)
 }
 
 mrb_value
-mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p, mrb_func_t posthook)
+mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p)
 {
   mrb_callinfo *ci = mrb->c->ci;
   if (ci->acc >= 0) {
-    return exec_irep(mrb, self, p, posthook);
+    return exec_irep(mrb, self, p);
   }
   else {
     mrb_value ret;
@@ -706,7 +641,7 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
     }
     return MRB_METHOD_CFUNC(m)(mrb, self);
   }
-  return exec_irep(mrb, self, MRB_METHOD_PROC(m), NULL);
+  return exec_irep(mrb, self, MRB_METHOD_PROC(m));
 }
 
 static mrb_value
@@ -884,7 +819,7 @@ mrb_yield_cont(mrb_state *mrb, mrb_value b, mrb_value self, mrb_int argc, const 
   mrb->c->ci->stack[1] = mrb_ary_new_from_values(mrb, argc, argv);
   mrb->c->ci->stack[2] = mrb_nil_value();
   ci->argc = -1;
-  return exec_irep(mrb, self, p, NULL);
+  return exec_irep(mrb, self, p);
 }
 
 static struct RBreak*

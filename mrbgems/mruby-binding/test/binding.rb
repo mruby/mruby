@@ -68,3 +68,10 @@ assert "Binding#eval with Binding.new via Method" do
 
   assert_true true
 end
+
+assert "access local variables into procs" do
+  bx = binding
+  block = bx.eval("a = 1; proc { a }")
+  bx.eval("a = 2")
+  assert_equal 2, block.call
+end

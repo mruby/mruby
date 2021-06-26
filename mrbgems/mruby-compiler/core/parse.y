@@ -7758,3 +7758,19 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
   }
 #endif
 }
+
+typedef mrb_bool mrb_parser_foreach_top_variable_func(mrb_state *mrb, mrb_sym sym, void *user);
+void mrb_parser_foreach_top_variable(mrb_state *mrb, struct mrb_parser_state *p, mrb_parser_foreach_top_variable_func *func, void *user);
+
+void
+mrb_parser_foreach_top_variable(mrb_state *mrb, struct mrb_parser_state *p, mrb_parser_foreach_top_variable_func *func, void *user)
+{
+  const mrb_ast_node *n = p->tree;
+  if ((intptr_t)n->car == NODE_SCOPE) {
+    n = n->cdr->car;
+    for (; n; n = n->cdr) {
+      mrb_sym sym = (intptr_t)n->car;
+      if (sym && !func(mrb, sym, user)) break;
+    }
+  }
+}

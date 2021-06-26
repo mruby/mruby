@@ -417,7 +417,14 @@ mrb_proc_merge_lvar(mrb_state *mrb, mrb_irep *irep, struct REnv *env, int num, c
   mrb_sym *destlv = (mrb_sym*)irep->lv + irep->nlocals - 1 /* self */;
   mrb_value *destst = env->stack + irep->nlocals;
   memmove(destlv, lv, sizeof(mrb_sym) * num);
-  memmove(destst, stack, sizeof(mrb_value) * num);
+  if (stack) {
+    memmove(destst, stack, sizeof(mrb_value) * num);
+  }
+  else {
+    for (int i = num; i > 0; i--, destst++) {
+      *destst = mrb_nil_value();
+    }
+  }
   irep->nlocals += num;
   irep->nregs = irep->nlocals;
   MRB_ENV_SET_LEN(env, irep->nlocals);
