@@ -286,9 +286,10 @@ local_var_p(parser_state *p, mrb_sym sym)
     const mrb_sym *v = ir->lv;
     int i;
 
-    if (!v) break;
-    for (i=0; i+1 < ir->nlocals; i++) {
-      if (v[i] == sym) return TRUE;
+    if (v) {
+      for (i=0; i+1 < ir->nlocals; i++) {
+        if (v[i] == sym) return TRUE;
+      }
     }
     if (MRB_PROC_SCOPE_P(u)) break;
     u = u->upper;

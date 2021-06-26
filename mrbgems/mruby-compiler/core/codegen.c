@@ -807,10 +807,12 @@ search_upvar(codegen_scope *s, mrb_sym id, int *idx)
     int i;
 
     const mrb_sym *v = ir->lv;
-    for (i=1; n > 1; n--, v++, i++) {
-      if (*v == id) {
-        *idx = i;
-        return lv - 1;
+    if (v) {
+      for (i=1; n > 1; n--, v++, i++) {
+        if (*v == id) {
+          *idx = i;
+          return lv - 1;
+        }
       }
     }
     if (MRB_PROC_SCOPE_P(u)) break;
