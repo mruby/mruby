@@ -386,7 +386,6 @@ class Array
     end
 
     beg = len = 0
-    ary = []
     if block
       if arg0.nil? && arg1.nil? && arg2.nil?
         # ary.fill { |index| block }                    -> ary
@@ -660,7 +659,6 @@ class Array
     return to_enum :keep_if unless block
 
     idx = 0
-    len = self.size
     while idx < self.size do
       if block.call(self[idx])
         idx += 1
