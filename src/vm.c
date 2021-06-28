@@ -1068,6 +1068,19 @@ get_send_args(mrb_state *mrb, mrb_int argc, mrb_value *regs)
   return mrb_ary_new_from_values(mrb, argc, regs);
 }
 
+static void
+proc_adjust_upper(struct RProc *p)
+{
+  /* skip upper procs while unnamed blocks and method closures */
+  while (p->upper) {
+    if (MRB_FLAG_TEST(p->upper, MRB_PROC_SCOPE) &&
+        !MRB_FLAG_TEST(p->upper, MRB_PROC_STRICT)) {
+      break;
+    }
+    p->upper = p->upper->upper;
+  }
+}
+
 mrb_value mrb_obj_missing(mrb_state *mrb, mrb_value mod);
 void mrb_hash_check_kdict(mrb_state *mrb, mrb_value self);
 void mrb_method_added(mrb_state *mrb, struct RClass *c, mrb_sym mid);
@@ -2718,6 +2731,7 @@ RETRY_TRY_BLOCK:
         p->flags |= MRB_PROC_SCOPE;
       }
       if (c & OP_L_STRICT) p->flags |= MRB_PROC_STRICT;
+      if (c == OP_L_METHOD) proc_adjust_upper(p);
       regs[a] = mrb_obj_value(p);
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
@@ -2812,6 +2826,7 @@ RETRY_TRY_BLOCK:
       mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)proc);
       MRB_PROC_SET_TARGET_CLASS(p, mrb_class_ptr(recv));
       p->flags |= MRB_PROC_SCOPE;
+      proc_adjust_upper(p);
 
       /* prepare call stack */
       cipush(mrb, a, a, mrb_class_ptr(recv), p, 0, 0);
