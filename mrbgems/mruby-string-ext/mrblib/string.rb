@@ -344,8 +344,6 @@ class String
   end
 
   def codepoints(&block)
-    len = self.size
-
     if block_given?
       self.split('').each do|x|
         block.call(x.ord)

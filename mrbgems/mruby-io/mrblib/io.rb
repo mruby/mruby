@@ -209,7 +209,7 @@ class IO
     end
 
     array = []
-    while 1
+    while true
       begin
         _read_buf
       rescue EOFError
@@ -256,7 +256,7 @@ class IO
     end
 
     array = []
-    while 1
+    while true
       begin
         _read_buf
       rescue EOFError
