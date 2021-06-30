@@ -15,7 +15,6 @@ operation code    operands      semantics
 OPCODE(NOP,        Z)        /* no operation */
 OPCODE(MOVE,       BB)       /* R(a) = R(b) */
 OPCODE(LOADL,      BB)       /* R(a) = Pool(b) */
-OPCODE(LOADL16,    BS)       /* R(a) = Pool(b) */
 OPCODE(LOADI,      BB)       /* R(a) = mrb_int(b) */
 OPCODE(LOADINEG,   BB)       /* R(a) = mrb_int(-b) */
 OPCODE(LOADI__1,   B)        /* R(a) = mrb_int(-1) */
@@ -30,7 +29,6 @@ OPCODE(LOADI_7,    B)        /* R(a) = mrb_int(7) */
 OPCODE(LOADI16,    BS)       /* R(a) = mrb_int(b) */
 OPCODE(LOADI32,    BSS)      /* R(a) = mrb_int((b<<16)+c) */
 OPCODE(LOADSYM,    BB)       /* R(a) = Syms(b) */
-OPCODE(LOADSYM16,  BS)       /* R(a) = Syms(b) */
 OPCODE(LOADNIL,    B)        /* R(a) = nil */
 OPCODE(LOADSELF,   B)        /* R(a) = self */
 OPCODE(LOADT,      B)        /* R(a) = true */
@@ -94,24 +92,19 @@ OPCODE(ASET,       BBB)      /* R(a)[c] = R(b) */
 OPCODE(APOST,      BBB)      /* *R(a),R(a+1)..R(a+c) = R(a)[b..] */
 OPCODE(INTERN,     B)        /* R(a) = intern(R(a)) */
 OPCODE(STRING,     BB)       /* R(a) = str_dup(Pool(b)) */
-OPCODE(STRING16,   BS)       /* R(a) = str_dup(Pool(b)) */
 OPCODE(STRCAT,     B)        /* str_cat(R(a),R(a+1)) */
 OPCODE(HASH,       BB)       /* R(a) = hash_new(R(a),R(a+1)..R(a+b*2-1)) */
 OPCODE(HASHADD,    BB)       /* R(a) = hash_push(R(a),R(a+1)..R(a+b*2)) */
 OPCODE(HASHCAT,    B)        /* R(a) = hash_cat(R(a),R(a+1)) */
 OPCODE(LAMBDA,     BB)       /* R(a) = lambda(SEQ[b],L_LAMBDA) */
-OPCODE(LAMBDA16,   BS)       /* R(a) = lambda(SEQ[b],L_LAMBDA) */
 OPCODE(BLOCK,      BB)       /* R(a) = lambda(SEQ[b],L_BLOCK) */
-OPCODE(BLOCK16,    BS)       /* R(a) = lambda(SEQ[b],L_BLOCK) */
 OPCODE(METHOD,     BB)       /* R(a) = lambda(SEQ[b],L_METHOD) */
-OPCODE(METHOD16,   BS)       /* R(a) = lambda(SEQ[b],L_METHOD) */
 OPCODE(RANGE_INC,  B)        /* R(a) = range_new(R(a),R(a+1),FALSE) */
 OPCODE(RANGE_EXC,  B)        /* R(a) = range_new(R(a),R(a+1),TRUE) */
 OPCODE(OCLASS,     B)        /* R(a) = ::Object */
 OPCODE(CLASS,      BB)       /* R(a) = newclass(R(a),Syms(b),R(a+1)) */
 OPCODE(MODULE,     BB)       /* R(a) = newmodule(R(a),Syms(b)) */
 OPCODE(EXEC,       BB)       /* R(a) = blockexec(R(a),SEQ[b]) */
-OPCODE(EXEC16,     BS)       /* R(a) = blockexec(R(a),SEQ[b]) */
 OPCODE(DEF,        BB)       /* R(a).newmethod(Syms(b),R(a+1)) */
 OPCODE(ALIAS,      BB)       /* alias_method(target_class,Syms(a),Syms(b)) */
 OPCODE(UNDEF,      B)        /* undef_method(target_class,Syms(a)) */
@@ -119,4 +112,7 @@ OPCODE(SCLASS,     B)        /* R(a) = R(a).singleton_class */
 OPCODE(TCLASS,     B)        /* R(a) = target_class */
 OPCODE(DEBUG,      BBB)      /* print a,b,c */
 OPCODE(ERR,        B)        /* raise(LocalJumpError, Pool(a)) */
+OPCODE(EXT1,       Z)        /* make 1st operand (a) 16bit */
+OPCODE(EXT2,       Z)        /* make 2nd operand (b) 16bit */
+OPCODE(EXT3,       Z)        /* make 1st and 2nd operands 16bit */
 OPCODE(STOP,       Z)        /* stop VM */

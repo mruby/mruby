@@ -1004,7 +1004,7 @@ prepare_tagged_break(mrb_state *mrb, uint32_t tag, const struct RProc *proc, mrb
 #ifndef DIRECT_THREADED
 
 #define INIT_DISPATCH for (;;) { insn = BYTECODE_DECODER(*pc); CODE_FETCH_HOOK(mrb, irep, pc, regs); switch (insn) {
-#define CASE(insn,ops) case insn: pc++; FETCH_ ## ops (); mrb->c->ci->pc = pc;
+#define CASE(insn,ops) case insn: pc++; FETCH_ ## ops (); mrb->c->ci->pc = pc; L_ ## insn ## _BODY:
 #define NEXT goto L_END_DISPATCH
 #define JUMP NEXT
 #define END_DISPATCH L_END_DISPATCH:;}}
@@ -1012,7 +1012,7 @@ prepare_tagged_break(mrb_state *mrb, uint32_t tag, const struct RProc *proc, mrb
 #else
 
 #define INIT_DISPATCH JUMP; return mrb_nil_value();
-#define CASE(insn,ops) L_ ## insn: pc++; FETCH_ ## ops (); mrb->c->ci->pc = pc;
+#define CASE(insn,ops) L_ ## insn: pc++; FETCH_ ## ops (); mrb->c->ci->pc = pc; L_ ## insn ## _BODY:
 #define NEXT insn=BYTECODE_DECODER(*pc); CODE_FETCH_HOOK(mrb, irep, pc, regs); goto *optable[insn]
 #define JUMP NEXT
 
@@ -1137,11 +1137,7 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
-    CASE(OP_LOADL16, BS) {
-      goto op_loadl;
-    }
     CASE(OP_LOADL, BB) {
-    op_loadl:
       switch (pool[b].tt) {   /* number */
       case IREP_TT_INT32:
         regs[a] = mrb_int_value(mrb, (mrb_int)pool[b].u.i32);
@@ -1209,11 +1205,6 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_LOADSYM, BB) {
-      SET_SYM_VALUE(regs[a], syms[b]);
-      NEXT;
-    }
-
-    CASE(OP_LOADSYM16, BS) {
       SET_SYM_VALUE(regs[a], syms[b]);
       NEXT;
     }
@@ -1616,7 +1607,7 @@ RETRY_TRY_BLOCK:
           mrb->c->ci->stack[0] = mrb_nil_value();
           a = 0;
           c = OP_R_NORMAL;
-          goto L_RETURN;
+          goto L_OP_RETURN_BODY;
         }
         pool = irep->pool;
         syms = irep->syms;
@@ -2661,12 +2652,9 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
-    CASE(OP_STRING16, BS) {
-      goto op_string;
-    }
     CASE(OP_STRING, BB) {
       size_t len;
-    op_string:
+
       len = pool[b].tt >> 2;
       if (pool[b].tt & IREP_TT_SFLAG) {
         regs[a] = mrb_str_new_static(mrb, pool[b].u.str, len);
@@ -2744,18 +2732,6 @@ RETRY_TRY_BLOCK:
       c = OP_L_METHOD;
       goto L_MAKE_LAMBDA;
     }
-    CASE(OP_LAMBDA16, BS) {
-      c = OP_L_LAMBDA;
-      goto L_MAKE_LAMBDA;
-    }
-    CASE(OP_BLOCK16, BS) {
-      c = OP_L_BLOCK;
-      goto L_MAKE_LAMBDA;
-    }
-    CASE(OP_METHOD16, BS) {
-      c = OP_L_METHOD;
-      goto L_MAKE_LAMBDA;
-    }
 
     CASE(OP_RANGE_INC, B) {
       mrb_value val = mrb_range_new(mrb, regs[a], regs[a+1], FALSE);
@@ -2811,10 +2787,7 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
-    CASE(OP_EXEC16, BS)
-      goto L_EXEC;
     CASE(OP_EXEC, BB)
-    L_EXEC:
     {
       mrb_value recv = regs[a];
       struct RProc *p;
@@ -2908,6 +2881,37 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_SENDVK, BB) {       /* not yet implemented */
+      NEXT;
+    }
+
+    CASE(OP_EXT1, Z) {
+      insn = READ_B();
+      switch (insn) {
+#define OPCODE(insn,ops) case OP_ ## insn: FETCH_ ## ops ## _1(); goto L_OP_ ## insn ## _BODY;
+#include "mruby/ops.h"
+#undef OPCODE
+      }
+      pc--;
+      NEXT;
+    }
+    CASE(OP_EXT2, Z) {
+      insn = READ_B();
+      switch (insn) {
+#define OPCODE(insn,ops) case OP_ ## insn: FETCH_ ## ops ## _2(); goto L_OP_ ## insn ## _BODY;
+#include "mruby/ops.h"
+#undef OPCODE
+      }
+      pc--;
+      NEXT;
+    }
+    CASE(OP_EXT3, Z) {
+      uint8_t insn = READ_B();
+      switch (insn) {
+#define OPCODE(insn,ops) case OP_ ## insn: FETCH_ ## ops ## _3(); goto L_OP_ ## insn ## _BODY;
+#include "mruby/ops.h"
+#undef OPCODE
+      }
+      pc--;
       NEXT;
     }
 

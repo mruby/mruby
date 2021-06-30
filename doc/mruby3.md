@@ -111,14 +111,9 @@ $ bin/mruby -r lib1.rb -r lib2.rb < app.mrb
 
 `mruby3` introduces a few new instructions.
 
-Instructions that access pool[i]/syms[i] where i>255.
+Instructions that load a 16/32-bit integer.
 
-* `OP_LOADL16`
-* `OP_STRING16`
-* `OP_LOADSYM16`
-
-Instructions that load a 32-bit integer.
-
+* `OP_LOADI16`
 * `OP_LOADI32`
 
 Instruction that unwinds jump table for rescue/ensure.

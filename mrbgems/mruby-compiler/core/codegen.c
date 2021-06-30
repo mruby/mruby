@@ -237,7 +237,9 @@ genop_1(codegen_scope *s, mrb_code i, uint16_t a)
 {
   s->lastpc = s->pc;
   if (a > 0xff) {
-    codegen_error(s, "too big operand");
+    gen_B(s, OP_EXT1);
+    gen_B(s, i);
+    gen_S(s, a);
   }
   else {
     gen_B(s, i);
@@ -249,29 +251,23 @@ static void
 genop_2(codegen_scope *s, mrb_code i, uint16_t a, uint16_t b)
 {
   s->lastpc = s->pc;
-  if (a > 0xff || b > 0xff) {
-    codegen_error(s, "too big operand");
+  if (a > 0xff && b > 0xff) {
+    gen_B(s, OP_EXT3);
+    gen_B(s, i);
+    gen_S(s, a);
+    gen_S(s, b);
   }
-  else {
+  else if (b > 0xff) {
+    gen_B(s, OP_EXT2);
     gen_B(s, i);
     gen_B(s, (uint8_t)a);
-    gen_B(s, (uint8_t)b);
-  }
-}
-
-/* similar to `genop_2` but generate `genop_2S` with `i+1` */
-/* works for OP_LOADL, OP_LOADSYM, OP_STRING */
-static void
-genop_bs(codegen_scope *s, mrb_code i, uint16_t a, uint16_t b)
-{
-  s->lastpc = s->pc;
-  if (a > 0xff || b > 0xffff) {
-    codegen_error(s, "too big operand");
-  }
-  if (b > 0xff) {
-    gen_B(s, i+1);
-    gen_B(s, (uint8_t)a);
     gen_S(s, b);
+  }
+  else if (a > 0xff) {
+    gen_B(s, OP_EXT1);
+    gen_B(s, i);
+    gen_S(s, a);
+    gen_B(s, (uint8_t)b);
   }
   else {
     gen_B(s, i);
@@ -341,6 +337,32 @@ mrb_decode_insn(const mrb_code *pc)
 #define OPCODE(i,x) case OP_ ## i: FETCH_ ## x (); break;
 #include "mruby/ops.h"
 #undef OPCODE
+  }
+  switch (insn) {
+  case OP_EXT1:
+    insn = READ_B();
+    switch (insn) {
+#define OPCODE(i,x) case OP_ ## i: FETCH_ ## x ## _1 (); break;
+#include "mruby/ops.h"
+#undef OPCODE
+    }
+    break;
+  case OP_EXT2:
+    insn = READ_B();
+    switch (insn) {
+#define OPCODE(i,x) case OP_ ## i: FETCH_ ## x ## _2 (); break;
+#include "mruby/ops.h"
+#undef OPCODE
+    }
+    break;
+  case OP_EXT3:
+    insn = READ_B();
+    switch (insn) {
+#define OPCODE(i,x) case OP_ ## i: FETCH_ ## x ## _3 (); break;
+#include "mruby/ops.h"
+#undef OPCODE
+    }
+    break;
   default:
     break;
   }
@@ -419,8 +441,11 @@ genjmp2(codegen_scope *s, mrb_code i, uint16_t a, uint32_t pc, int val)
 
   s->lastpc = s->pc;
   if (a > 0xff) {
-    codegen_error(s, "too big operand");
-    pos = 0;
+    gen_B(s, OP_EXT1);
+    gen_B(s, i);
+    gen_S(s, a);
+    pos = s->pc;
+    gen_S(s, pc);
   }
   else {
     gen_B(s, i);
@@ -460,11 +485,9 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
       break;
     case OP_LOADI: case OP_LOADINEG:
     case OP_LOADL: case OP_LOADSYM:
-    case OP_LOADL16: case OP_LOADSYM16:
     case OP_GETGV: case OP_GETSV: case OP_GETIV: case OP_GETCV:
-    case OP_GETCONST: case OP_STRING: case OP_STRING16:
+    case OP_GETCONST: case OP_STRING:
     case OP_LAMBDA: case OP_BLOCK: case OP_METHOD: case OP_BLKPUSH:
-    case OP_LAMBDA16: case OP_BLOCK16: case OP_METHOD16:
       if (nopeep || data.a != src || data.a < s->nlocals) goto normal;
       s->pc = s->lastpc;
       genop_2(s, data.insn, dst, data.b);
@@ -1667,7 +1690,7 @@ codegen(codegen_scope *s, node *tree, int val)
     if (val) {
       int idx = lambda_body(s, tree, 1);
 
-      genop_bs(s, OP_LAMBDA, cursp(), idx);
+      genop_2(s, OP_LAMBDA, cursp(), idx);
       push();
     }
     break;
@@ -1676,7 +1699,7 @@ codegen(codegen_scope *s, node *tree, int val)
     if (val) {
       int idx = lambda_body(s, tree, 1);
 
-      genop_bs(s, OP_BLOCK, cursp(), idx);
+      genop_2(s, OP_BLOCK, cursp(), idx);
       push();
     }
     break;
@@ -2535,7 +2558,7 @@ codegen(codegen_scope *s, node *tree, int val)
       i = readint(s, p, base, &overflow);
       if (overflow) {
         int off = new_litbn(s, p, base, FALSE);
-        genop_bs(s, OP_LOADL, cursp(), off);
+        genop_2(s, OP_LOADL, cursp(), off);
       }
       else {
         if (i < 0) {
@@ -2553,7 +2576,7 @@ codegen(codegen_scope *s, node *tree, int val)
           int off;
         lit_int:
           off = new_lit(s, mrb_int_value(s->mrb, i));
-          genop_bs(s, OP_LOADL, cursp(), off);
+          genop_2(s, OP_LOADL, cursp(), off);
         }
       }
       push();
@@ -2567,7 +2590,7 @@ codegen(codegen_scope *s, node *tree, int val)
       mrb_float f = mrb_float_read(p, NULL);
       int off = new_lit(s, mrb_float_value(s->mrb, f));
 
-      genop_bs(s, OP_LOADL, cursp(), off);
+      genop_2(s, OP_LOADL, cursp(), off);
       push();
     }
     break;
@@ -2584,7 +2607,7 @@ codegen(codegen_scope *s, node *tree, int val)
           mrb_float f = mrb_float_read(p, NULL);
           int off = new_lit(s, mrb_float_value(s->mrb, -f));
 
-          genop_bs(s, OP_LOADL, cursp(), off);
+          genop_2(s, OP_LOADL, cursp(), off);
           push();
         }
         break;
@@ -2600,7 +2623,7 @@ codegen(codegen_scope *s, node *tree, int val)
           i = readint(s, p, base, &overflow);
           if (overflow) {
             int off = new_litbn(s, p, base, TRUE);
-            genop_bs(s, OP_LOADL, cursp(), off);
+            genop_2(s, OP_LOADL, cursp(), off);
           }
           else {
             i = -i;
@@ -2616,7 +2639,7 @@ codegen(codegen_scope *s, node *tree, int val)
             }
             else {
               int off = new_lit(s, mrb_int_value(s->mrb, i));
-              genop_bs(s, OP_LOADL, cursp(), off);
+              genop_2(s, OP_LOADL, cursp(), off);
             }
           }
           push();
@@ -2647,7 +2670,7 @@ codegen(codegen_scope *s, node *tree, int val)
       int off = new_lit(s, mrb_str_new(s->mrb, p, len));
 
       mrb_gc_arena_restore(s->mrb, ai);
-      genop_bs(s, OP_STRING, cursp(), off);
+      genop_2(s, OP_STRING, cursp(), off);
       push();
     }
     break;
@@ -2734,7 +2757,7 @@ codegen(codegen_scope *s, node *tree, int val)
 
       genop_1(s, OP_LOADSELF, cursp());
       push();
-      genop_bs(s, OP_STRING, cursp(), off);
+      genop_2(s, OP_STRING, cursp(), off);
       push(); push();
       pop_n(3);
       sym = new_sym(s, MRB_OPSYM_2(s->mrb, tick)); /* ` */
@@ -2757,12 +2780,12 @@ codegen(codegen_scope *s, node *tree, int val)
       genop_1(s, OP_OCLASS, cursp());
       genop_2(s, OP_GETMCNST, cursp(), sym);
       push();
-      genop_bs(s, OP_STRING, cursp(), off);
+      genop_2(s, OP_STRING, cursp(), off);
       push();
       if (p2 || p3) {
         if (p2) { /* opt */
           off = new_lit(s, mrb_str_new_cstr(s->mrb, p2));
-          genop_bs(s, OP_STRING, cursp(), off);
+          genop_2(s, OP_STRING, cursp(), off);
         }
         else {
           genop_1(s, OP_LOADNIL, cursp());
@@ -2771,7 +2794,7 @@ codegen(codegen_scope *s, node *tree, int val)
         argc++;
         if (p3) { /* enc */
           off = new_lit(s, mrb_str_new(s->mrb, p3, 1));
-          genop_bs(s, OP_STRING, cursp(), off);
+          genop_2(s, OP_STRING, cursp(), off);
           push();
           argc++;
         }
@@ -2811,7 +2834,7 @@ codegen(codegen_scope *s, node *tree, int val)
         p = (char*)n->car;
         off = new_lit(s, mrb_str_new_cstr(s->mrb, p));
         codegen(s, tree->car, VAL);
-        genop_bs(s, OP_STRING, cursp(), off);
+        genop_2(s, OP_STRING, cursp(), off);
         pop();
         genop_1(s, OP_STRCAT, cursp());
         push();
@@ -2819,14 +2842,14 @@ codegen(codegen_scope *s, node *tree, int val)
       if (n->cdr->car) { /* opt */
         char *p2 = (char*)n->cdr->car;
         off = new_lit(s, mrb_str_new_cstr(s->mrb, p2));
-        genop_bs(s, OP_STRING, cursp(), off);
+        genop_2(s, OP_STRING, cursp(), off);
         push();
         argc++;
       }
       if (n->cdr->cdr) { /* enc */
         char *p2 = (char*)n->cdr->cdr;
         off = new_lit(s, mrb_str_new_cstr(s->mrb, p2));
-        genop_bs(s, OP_STRING, cursp(), off);
+        genop_2(s, OP_STRING, cursp(), off);
         push();
         argc++;
       }
@@ -2853,7 +2876,7 @@ codegen(codegen_scope *s, node *tree, int val)
     if (val) {
       int sym = new_sym(s, nsym(tree));
 
-      genop_bs(s, OP_LOADSYM, cursp(), sym);
+      genop_2(s, OP_LOADSYM, cursp(), sym);
       push();
     }
     break;
@@ -2954,7 +2977,7 @@ codegen(codegen_scope *s, node *tree, int val)
       }
       else {
         idx = scope_body(s, body, val);
-        genop_bs(s, OP_EXEC, cursp(), idx);
+        genop_2(s, OP_EXEC, cursp(), idx);
       }
       if (val) {
         push();
@@ -2986,7 +3009,7 @@ codegen(codegen_scope *s, node *tree, int val)
       }
       else {
         idx = scope_body(s, tree->cdr->car, val);
-        genop_bs(s, OP_EXEC, cursp(), idx);
+        genop_2(s, OP_EXEC, cursp(), idx);
       }
       if (val) {
         push();
@@ -3007,7 +3030,7 @@ codegen(codegen_scope *s, node *tree, int val)
       }
       else {
         idx = scope_body(s, tree->cdr->car, val);
-        genop_bs(s, OP_EXEC, cursp(), idx);
+        genop_2(s, OP_EXEC, cursp(), idx);
       }
       if (val) {
         push();
@@ -3022,12 +3045,12 @@ codegen(codegen_scope *s, node *tree, int val)
 
       genop_1(s, OP_TCLASS, cursp());
       push();
-      genop_bs(s, OP_METHOD, cursp(), idx);
+      genop_2(s, OP_METHOD, cursp(), idx);
       push(); pop();
       pop();
       genop_2(s, OP_DEF, cursp(), sym);
       if (val) {
-        genop_bs(s, OP_LOADSYM, cursp(), sym);
+        genop_2(s, OP_LOADSYM, cursp(), sym);
         push();
       }
     }
@@ -3043,11 +3066,11 @@ codegen(codegen_scope *s, node *tree, int val)
       pop();
       genop_1(s, OP_SCLASS, cursp());
       push();
-      genop_bs(s, OP_METHOD, cursp(), idx);
+      genop_2(s, OP_METHOD, cursp(), idx);
       pop();
       genop_2(s, OP_DEF, cursp(), sym);
       if (val) {
-        genop_bs(s, OP_LOADSYM, cursp(), sym);
+        genop_2(s, OP_LOADSYM, cursp(), sym);
         push();
       }
     }
@@ -3360,6 +3383,7 @@ mrb_irep_remove_lv(mrb_state *mrb, mrb_irep *irep)
 #define Z 1
 #define S 3
 #define W 4
+#define OPCODE(_,x) x,
 /* instruction sizes */
 uint8_t mrb_insn_size[] = {
 #define B 2
@@ -3367,14 +3391,43 @@ uint8_t mrb_insn_size[] = {
 #define BBB 4
 #define BS 4
 #define BSS 6
-#define SB 4
-#define OPCODE(_,x) x,
 #include "mruby/ops.h"
-#undef OPCODE
 #undef B
 #undef BB
+#undef BBB
 #undef BS
 #undef BSS
-#undef SB
+};
+/* EXT1 instruction sizes */
+uint8_t mrb_insn_size1[] = {
+#define B 3
+#define BB 4
+#define BBB 5
+#define BS 5
+#define BSS 7
+#include "mruby/ops.h"
+#undef B
+#undef BS
+#undef BSS
+};
+/* EXT2 instruction sizes */
+uint8_t mrb_insn_size2[] = {
+#define B 2
+#define BS 4
+#define BSS 6
+#include "mruby/ops.h"
+#undef B
+#undef BB
 #undef BBB
+#undef BS
+#undef BSS
+};
+/* EXT3 instruction sizes */
+#define B 3
+#define BB 5
+#define BBB 6
+#define BS 5
+#define BSS 7
+uint8_t mrb_insn_size3[] = {
+#include "mruby/ops.h"
 };
