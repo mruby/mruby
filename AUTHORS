@@ -1,14 +1,14 @@
 # Authors of mruby (mruby developers)
 
-## The List of Contributors sorted by number of commits (as of 2021-05-15 c09a810)
+## The List of Contributors sorted by number of commits (as of 2021-07-01 99dbcec)
 
-   7418 Yukihiro "Matz" Matsumoto (@matz)*
-    582 KOBAYASHI Shuji (@shuujii)
+   7532 Yukihiro "Matz" Matsumoto (@matz)*
+    585 KOBAYASHI Shuji (@shuujii)
     376 Daniel Bovensiepen (@bovi)
     344 Takeshi Watanabe (@take-cheeze)*
     334 Masaki Muranaka (@monaka)
     298 Tomoyuki Sahara (@tsahara)*
-    285 dearblue (@dearblue)*
+    294 dearblue (@dearblue)*
     234 Jun Hiroe (@suzukaze)
     217 Cremno (@cremno)*
     208 Yuki Kurihara (@ksss)+
@@ -30,18 +30,18 @@
      42 fleuria (@flaneur2020)
      40 Christopher Aue (@christopheraue)
      40 Seba Gamboa (@sagmor)
+     39 John Bampton (@jbampton)
      38 Koji Yoshioka (@kyab)*+
      38 Kouhei Sutou (@kou)*
      31 MATSUMOTO Ryosuke (@matsumotory)*
      30 Nobuyoshi Nakada (@nobu)
-     29 John Bampton (@jbampton)
      28 Masayoshi Takahashi (@takahashim)+
      24 Julian Aron Prenner (@furunkel)*
      24 Ryan Scott (@ryan-scott-dev)*
      22 Clayton Smith (@clayton-shopify)
      22 Zachary Scott (@zzak)*
+     22 mirichi (@mirichi)
      21 Jared Breeden (@jbreeden)*
-     20 mirichi (@mirichi)
      19 Bouke van der Bijl (@bouk)
      19 Felix Jones (@felixjones)*
      19 Hidetaka Takano (@TJ-Hidetaka-Takano)
@@ -286,6 +286,12 @@
 `*` - Entries unified according to names and addresses
 `+` - Entries with names different from commits
 
+## Contributors without named commits
+
+   Yuichi Osawa (Mitsubishi Electric Micro-Computer Application Software)
+   Shota Nakano (Manycolors)
+   Bjorn De Meyer
+
 ## Corporate contributors
 
    Ministry of Economy, Trade and Industry, Japan
@@ -297,9 +303,3 @@
    Specified non-profit organization mruby Forum
    Mitsubishi Electric Micro-Computer Application Software Co.,Ltd.
    Manycolors, Inc.
-
-## Contributors without named commits
-
-   Yuichi Osawa (Mitsubishi Electric Micro-Computer Application Software)
-   Shota Nakano (Manycolors)
-   Bjorn De Meyer
