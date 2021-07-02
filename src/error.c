@@ -302,6 +302,7 @@ mrb_vformat(mrb_state *mrb, const char *format, va_list ap)
             obj = mrb_str_new(mrb, chars, len);
             goto L_cat_obj;
           }
+        L_cat_plain:
           mrb_str_cat(mrb, result, b,  e - b - 1);
           mrb_str_cat(mrb, result, chars, len);
           b = ++p;
@@ -325,10 +326,15 @@ mrb_vformat(mrb_state *mrb, const char *format, va_list ap)
           obj = va_arg(ap, mrb_value);
         L_cat_obj:
           str = (inspect ? mrb_inspect : mrb_obj_as_string)(mrb, obj);
-          chars = RSTRING_PTR(str);
-          len = RSTRING_LEN(str);
-          inspect = FALSE;
-          goto L_cat;
+          if (mrb_type(str) != MRB_TT_STRING) {
+            chars = "void (no string conversion)";
+            len = strlen(chars);
+          }
+          else {
+            chars = RSTRING_PTR(str);
+            len = RSTRING_LEN(str);
+          }
+          goto L_cat_plain;
         case 'C':
           cls = va_arg(ap, struct RClass*);
         L_cat_class:
@@ -352,7 +358,7 @@ mrb_vformat(mrb_state *mrb, const char *format, va_list ap)
         L_cat_current:
           chars = p;
           len = 1;
-          goto L_cat;
+          goto L_cat_plain;
         default:
           mrb_raisef(mrb, E_ARGUMENT_ERROR, "malformed format string - %%%c", *p);
       }
