@@ -117,7 +117,7 @@ sign) of operands.
 | `OP_CLASS`       | `BB`         | `R(a) = newclass(R(a),Syms(b),R(a+1))`                 |
 | `OP_MODULE`      | `BB`         | `R(a) = newmodule(R(a),Syms(b))`                       |
 | `OP_EXEC`        | `BB`         | `R(a) = blockexec(R(a),SEQ[b])`                        |
-| `OP_DEF`         | `BB`         | `R(a).newmethod(Syms(b),R(a+1))`                       |
+| `OP_DEF`         | `BB`         | `R(a).newmethod(Syms(b),R(a+1)); R(a) = Syms(b)`       |
 | `OP_ALIAS`       | `BB`         | `alias_method(target_class,Syms(a),Syms(b))`           |
 | `OP_UNDEF`       | `B`          | `undef_method(target_class,Syms(a))`                   |
 | `OP_SCLASS`      | `B`          | `R(a) = R(a).singleton_class`                          |

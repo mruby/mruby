@@ -2823,6 +2823,7 @@ RETRY_TRY_BLOCK:
       mrb_define_method_raw(mrb, target, mid, m);
       mrb_method_added(mrb, target, mid);
       mrb_gc_arena_restore(mrb, ai);
+      regs[a] = mrb_symbol_value(mid);
       NEXT;
     }
 

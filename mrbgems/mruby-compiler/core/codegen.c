@@ -3049,10 +3049,7 @@ codegen(codegen_scope *s, node *tree, int val)
       push(); pop();
       pop();
       genop_2(s, OP_DEF, cursp(), sym);
-      if (val) {
-        genop_2(s, OP_LOADSYM, cursp(), sym);
-        push();
-      }
+      if (val) push();
     }
     break;
 
@@ -3069,10 +3066,7 @@ codegen(codegen_scope *s, node *tree, int val)
       genop_2(s, OP_METHOD, cursp(), idx);
       pop();
       genop_2(s, OP_DEF, cursp(), sym);
-      if (val) {
-        genop_2(s, OP_LOADSYM, cursp(), sym);
-        push();
-      }
+      if (val) push();
     }
     break;
 
