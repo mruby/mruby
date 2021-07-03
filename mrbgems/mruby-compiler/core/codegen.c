@@ -444,15 +444,13 @@ genjmp2(codegen_scope *s, mrb_code i, uint16_t a, uint32_t pc, int val)
     gen_B(s, OP_EXT1);
     gen_B(s, i);
     gen_S(s, a);
-    pos = s->pc;
-    gen_S(s, pc);
   }
   else {
     gen_B(s, i);
     gen_B(s, (uint8_t)a);
-    pos = s->pc;
-    gen_jmpdst(s, pc);
   }
+  pos = s->pc;
+  gen_jmpdst(s, pc);
   return pos;
 }
 
