@@ -96,15 +96,15 @@ OPCODE(STRCAT,     B)        /* str_cat(R(a),R(a+1)) */
 OPCODE(HASH,       BB)       /* R(a) = hash_new(R(a),R(a+1)..R(a+b*2-1)) */
 OPCODE(HASHADD,    BB)       /* R(a) = hash_push(R(a),R(a+1)..R(a+b*2)) */
 OPCODE(HASHCAT,    B)        /* R(a) = hash_cat(R(a),R(a+1)) */
-OPCODE(LAMBDA,     BB)       /* R(a) = lambda(SEQ[b],L_LAMBDA) */
-OPCODE(BLOCK,      BB)       /* R(a) = lambda(SEQ[b],L_BLOCK) */
-OPCODE(METHOD,     BB)       /* R(a) = lambda(SEQ[b],L_METHOD) */
+OPCODE(LAMBDA,     BB)       /* R(a) = lambda(Irep(b),L_LAMBDA) */
+OPCODE(BLOCK,      BB)       /* R(a) = lambda(Irep(b),L_BLOCK) */
+OPCODE(METHOD,     BB)       /* R(a) = lambda(Irep(b),L_METHOD) */
 OPCODE(RANGE_INC,  B)        /* R(a) = range_new(R(a),R(a+1),FALSE) */
 OPCODE(RANGE_EXC,  B)        /* R(a) = range_new(R(a),R(a+1),TRUE) */
 OPCODE(OCLASS,     B)        /* R(a) = ::Object */
 OPCODE(CLASS,      BB)       /* R(a) = newclass(R(a),Syms(b),R(a+1)) */
 OPCODE(MODULE,     BB)       /* R(a) = newmodule(R(a),Syms(b)) */
-OPCODE(EXEC,       BB)       /* R(a) = blockexec(R(a),SEQ[b]) */
+OPCODE(EXEC,       BB)       /* R(a) = blockexec(R(a),Irep(b)) */
 OPCODE(DEF,        BB)       /* R(a).newmethod(Syms(b),R(a+1)); R(a) = Syms(b) */
 OPCODE(ALIAS,      BB)       /* alias_method(target_class,Syms(a),Syms(b)) */
 OPCODE(UNDEF,      B)        /* undef_method(target_class,Syms(a)) */

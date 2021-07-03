@@ -103,27 +103,27 @@ sign) of operands.
 | `OP_ASET`        | `BBB`        | `R(a)[c] = R(b)`                                         |
 | `OP_APOST`       | `BBB`        | `*R(a),R(a+1)..R(a+c) = R(a)[b..]`                       |
 | `OP_INTERN`      | `B`          | `R(a) = intern(R(a))`                                    |
-| `OP_STRING`      | `BB`         | `R(a) = str_dup(Lit(b))`                                 |
+| `OP_STRING`      | `BB`         | `R(a) = str_dup(Pool(b))`                                |
 | `OP_STRCAT`      | `B`          | `str_cat(R(a),R(a+1))`                                   |
 | `OP_HASH`        | `BB`         | `R(a) = hash_new(R(a),R(a+1)..R(a+b*2-1))`               |
 | `OP_HASHADD`     | `BB`         | `R(a) = hash_push(R(a),R(a+1)..R(a+b*2))`                |
 | `OP_HASHCAT`     | `B`          | `R(a) = hash_cat(R(a),R(a+1))`                           |
-| `OP_LAMBDA`      | `BB`         | `R(a) = lambda(SEQ[b],OP_L_LAMBDA)`                      |
-| `OP_BLOCK`       | `BB`         | `R(a) = lambda(SEQ[b],OP_L_BLOCK)`                       |
-| `OP_METHOD`      | `BB`         | `R(a) = lambda(SEQ[b],OP_L_METHOD)`                      |
+| `OP_LAMBDA`      | `BB`         | `R(a) = lambda(Irep(b),OP_L_LAMBDA)`                     |
+| `OP_BLOCK`       | `BB`         | `R(a) = lambda(Irep(b),OP_L_BLOCK)`                      |
+| `OP_METHOD`      | `BB`         | `R(a) = lambda(Irep(b),OP_L_METHOD)`                     |
 | `OP_RANGE_INC`   | `B`          | `R(a) = range_new(R(a),R(a+1),FALSE)`                    |
 | `OP_RANGE_EXC`   | `B`          | `R(a) = range_new(R(a),R(a+1),TRUE)`                     |
 | `OP_OCLASS`      | `B`          | `R(a) = ::Object`                                        |
 | `OP_CLASS`       | `BB`         | `R(a) = newclass(R(a),Syms(b),R(a+1))`                   |
 | `OP_MODULE`      | `BB`         | `R(a) = newmodule(R(a),Syms(b))`                         |
-| `OP_EXEC`        | `BB`         | `R(a) = blockexec(R(a),SEQ[b])`                          |
+| `OP_EXEC`        | `BB`         | `R(a) = blockexec(R(a),Irep[b])`                         |
 | `OP_DEF`         | `BB`         | `R(a).newmethod(Syms(b),R(a+1)); R(a) = Syms(b)`         |
 | `OP_ALIAS`       | `BB`         | `alias_method(target_class,Syms(a),Syms(b))`             |
 | `OP_UNDEF`       | `B`          | `undef_method(target_class,Syms(a))`                     |
 | `OP_SCLASS`      | `B`          | `R(a) = R(a).singleton_class`                            |
 | `OP_TCLASS`      | `B`          | `R(a) = target_class`                                    |
 | `OP_DEBUG`       | `BBB`        | `print a,b,c`                                            |
-| `OP_ERR`         | `B`          | `raise(LocalJumpError, Lit(a))`                          |
+| `OP_ERR`         | `B`          | `raise(LocalJumpError, Pool(a))`                         |
 | `OP_EXT1`        | `-`          | `make 1st operand 16bit`                                 |
 | `OP_EXT2`        | `-`          | `make 2nd operand 16bit`                                 |
 | `OP_EXT3`        | `-`          | `make 1st and 2nd operands 16bit`                        |
