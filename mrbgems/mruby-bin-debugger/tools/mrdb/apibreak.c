@@ -14,6 +14,7 @@
 #include <mruby/variable.h>
 #include "mrdberror.h"
 #include "apibreak.h"
+#include "apistring.h"
 
 #define MAX_BREAKPOINTNO (MAX_BREAKPOINT * 1024)
 #define MRB_DEBUG_BP_FILE_OK   (0x0001)
@@ -197,7 +198,7 @@ mrb_debug_set_break_line(mrb_state *mrb, mrb_debug_context *dbg, const char *fil
   }
 
   len = strlen(file) + 1;
-  set_file = (char*)mrb_malloc(mrb, len);
+  set_file = mrb_debug_strdup(mrb, file);
 
   index = dbg->bpnum;
   dbg->bp[index].bpno = dbg->next_bpno;
@@ -206,8 +207,6 @@ mrb_debug_set_break_line(mrb_state *mrb, mrb_debug_context *dbg, const char *fil
   dbg->bp[index].type = MRB_DEBUG_BPTYPE_LINE;
   dbg->bp[index].point.linepoint.lineno = lineno;
   dbg->bpnum++;
-
-  strncpy(set_file, file, len);
 
   dbg->bp[index].point.linepoint.file = set_file;
 
@@ -220,7 +219,6 @@ mrb_debug_set_break_method(mrb_state *mrb, mrb_debug_context *dbg, const char *c
   int32_t index;
   char* set_class;
   char* set_method;
-  size_t len;
 
   if ((mrb == NULL) || (dbg == NULL) || (method_name == NULL)) {
     return MRB_DEBUG_INVALID_ARGUMENT;
@@ -235,18 +233,16 @@ mrb_debug_set_break_method(mrb_state *mrb, mrb_debug_context *dbg, const char *c
   }
 
   if (class_name != NULL) {
-    len = strlen(class_name) + 1;
-    set_class = (char*)mrb_malloc(mrb, len);
-    strncpy(set_class, class_name, len);
+    set_class = mrb_debug_strdup(mrb, class_name);
   }
   else {
     set_class = NULL;
   }
 
-  len = strlen(method_name) + 1;
-  set_method = (char*)mrb_malloc(mrb, len);
-
-  strncpy(set_method, method_name, len);
+  set_method = mrb_debug_strdup(mrb, method_name);
+  if (set_method == NULL) {
+    mrb_free(mrb, set_class);
+  }
 
   index = dbg->bpnum;
   dbg->bp[index].bpno = dbg->next_bpno;
