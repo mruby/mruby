@@ -16,7 +16,8 @@ MRB_BEGIN_DECL
 
 typedef enum mrb_debug_line_type {
   mrb_debug_line_ary = 0,
-  mrb_debug_line_flat_map = 1
+  mrb_debug_line_flat_map,
+  mrb_debug_line_packed_map
 } mrb_debug_line_type;
 
 typedef struct mrb_irep_debug_info_line {
@@ -31,8 +32,9 @@ typedef struct mrb_irep_debug_info_file {
   mrb_debug_line_type line_type;
   union {
     void *ptr;
-    mrb_irep_debug_info_line *flat_map;
     uint16_t *ary;
+    mrb_irep_debug_info_line *flat_map;
+    char *packed_map;
   } lines;
 } mrb_irep_debug_info_file;
 

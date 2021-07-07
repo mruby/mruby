@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include <string.h>
 #include <mruby.h>
 #include <mruby/irep.h>
@@ -35,19 +36,72 @@ get_file(mrb_irep_debug_info *info, uint32_t pc)
   return *ret;
 }
 
+static size_t
+packed_int_len(uint32_t num)
+{
+  size_t llen = 0;
+
+  do {
+    llen++;
+  } while (num >>= 7);
+  return llen;
+}
+
+static size_t
+packed_int_encode(uint32_t num, char *p, char *pend)
+{
+  size_t llen = 0;
+
+  do {
+    uint8_t byte = num & 0x7f;
+    num >>= 7;
+    if (num != 0) byte |= 0x80;
+    if (p < pend) *p++ = byte;
+    llen++;
+  } while (num != 0);
+
+  return llen;
+}
+
+static uint32_t
+packed_int_decode(char *p, char **newpos)
+{
+  size_t i = 0, shift = 0;
+  uint32_t n = 0;
+
+  do {
+    n |= ((uint32_t)(p[i] & 0x7f)) << shift;
+    i++;
+    shift += 7;
+  } while (shift < sizeof(uint32_t) * 8 && (p[i - 1] & 0x80));
+  if (newpos) *newpos = p + i;
+  return n;
+}
+
 static mrb_debug_line_type
 select_line_type(const uint16_t *lines, size_t lines_len)
 {
   size_t line_count = 0;
-  int prev_line = -1;
+  size_t packed_map_len = 0;
+  uint32_t prev_line = 0;
+  uint32_t prev_pc = 0;
   size_t i;
   for (i = 0; i < lines_len; ++i) {
     if (lines[i] != prev_line) {
+      packed_map_len += packed_int_len(lines[i]-prev_line);
+      prev_line = lines[i];
+      packed_map_len += packed_int_len(i-prev_pc);
+      prev_pc = i;
       ++line_count;
     }
   }
-  return (sizeof(uint16_t) * lines_len) <= (sizeof(mrb_irep_debug_info_line) * line_count)
-      ? mrb_debug_line_ary : mrb_debug_line_flat_map;
+  size_t line_ary_len = sizeof(uint16_t) * lines_len;
+  size_t flat_map_len = sizeof(mrb_irep_debug_info_line) * line_count;
+  if (line_ary_len < flat_map_len && line_ary_len < packed_map_len) {
+    return mrb_debug_line_ary;
+  }
+  if (flat_map_len < packed_map_len) return mrb_debug_line_flat_map;
+  return mrb_debug_line_packed_map;
 }
 
 MRB_API char const*
@@ -101,6 +155,19 @@ mrb_debug_get_line(mrb_state *mrb, const mrb_irep *irep, uint32_t pc)
                            ? (ret+1)->start_pos : irep->debug_info->pc_count));
 
           return ret->line;
+        }
+
+        case mrb_debug_line_packed_map: {
+          char *p = f->lines.packed_map;
+          char *pend = p + f->line_entry_count;
+          uint32_t pos = 0, line = 0, line_diff;
+          while (p < pend) {
+            pos += packed_int_decode(p, &p);
+            line_diff = packed_int_decode(p, &p);
+            if (pc < pos) break;
+            line += line_diff;
+          }
+          return line;
         }
       }
     }
@@ -173,23 +240,55 @@ mrb_debug_info_append_file(mrb_state *mrb, mrb_irep_debug_info *d,
     case mrb_debug_line_flat_map: {
       uint16_t prev_line = 0;
       mrb_irep_debug_info_line m;
-      f->lines.flat_map = (mrb_irep_debug_info_line*)mrb_malloc(mrb, sizeof(mrb_irep_debug_info_line) * 1);
       f->line_entry_count = 0;
       for (i = 0; i < file_pc_count; ++i) {
         if (lines[start_pos + i] == prev_line) { continue; }
+        ++f->line_entry_count;
+        prev_line = lines[start_pos + i];
+      }
+      f->lines.flat_map = (mrb_irep_debug_info_line*)mrb_malloc(mrb, sizeof(mrb_irep_debug_info_line) * f->line_entry_count);
+      prev_line = 0;
+      for (i = 0; i < file_pc_count; ++i) {
+        if (lines[start_pos + i] == prev_line) { continue; }
 
-        f->lines.flat_map = (mrb_irep_debug_info_line*)mrb_realloc(
-            mrb, f->lines.flat_map,
-            sizeof(mrb_irep_debug_info_line) * (f->line_entry_count + 1));
         m.start_pos = start_pos + i;
         m.line = lines[start_pos + i];
         f->lines.flat_map[f->line_entry_count] = m;
 
         /* update */
-        ++f->line_entry_count;
         prev_line = lines[start_pos + i];
       }
-    } break;
+      break;
+    }
+
+    case mrb_debug_line_packed_map: {
+      uint32_t prev_line = 0;
+      uint32_t prev_pc = 0;
+      size_t packed_size = 0;
+      char *p, *pend;
+
+      for (i = 0; i < file_pc_count; ++i) {
+        if (lines[start_pos + i] == prev_line) { continue; }
+
+        packed_size += packed_int_len(start_pos+i-prev_pc);
+        prev_pc = start_pos+i;
+        packed_size += packed_int_len(lines[start_pos+i]-prev_line);
+        prev_line = lines[start_pos + i];
+      }
+      p = f->lines.packed_map = (char*)mrb_malloc(mrb, packed_size);
+      pend = p + packed_size;
+      prev_line = 0; prev_pc = 0;
+      for (i = 0; i < file_pc_count; ++i) {
+        if (lines[start_pos + i] == prev_line) { continue; }
+        p += packed_int_encode(start_pos+i-prev_pc, p, pend);
+        prev_pc = start_pos + i;
+        p += packed_int_encode(lines[start_pos + i]-prev_line, p, pend);
+        prev_line = lines[start_pos + i];
+        /* update */
+      }
+      f->line_entry_count = (uint32_t)packed_size;
+      break;
+    }
 
     default: mrb_assert(0); break;
   }

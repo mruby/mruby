@@ -413,6 +413,10 @@ get_debug_record_size(mrb_state *mrb, const mrb_irep *irep)
         ret += (sizeof(uint32_t) + sizeof(uint16_t)) * (size_t)(file->line_entry_count);
         break;
 
+      case mrb_debug_line_packed_map:
+        ret += (size_t)(file->line_entry_count);
+        break;
+
       default: mrb_assert(0); break;
     }
   }
@@ -505,6 +509,11 @@ write_debug_record_1(mrb_state *mrb, const mrb_irep *irep, uint8_t *bin, mrb_sym
           cur += uint32_to_bin(file->lines.flat_map[line].start_pos, cur);
           cur += uint16_to_bin(file->lines.flat_map[line].line, cur);
         }
+      } break;
+
+      case mrb_debug_line_packed_map: {
+        memcpy(cur, file->lines.packed_map, file->line_entry_count);
+        cur += file->line_entry_count;
       } break;
 
       default: mrb_assert(0); break;

@@ -258,9 +258,7 @@ cdump_syms(mrb_state *mrb, const char *name, const char *key, int n, int syms_le
 static int
 simple_debug_info(mrb_irep_debug_info *info)
 {
-  if (!info ||
-       info->flen != 1 ||
-       info->files[0]->line_type != mrb_debug_line_ary) {
+  if (!info || info->flen != 1) {
     return 0;
   }
   return 1;
@@ -276,6 +274,7 @@ cdump_debug(mrb_state *mrb, const char *name, int n, mrb_irep_debug_info *info,
   const char *filename;
   mrb_int file_len;
   int len, i;
+  const char *line_type;
 
   if (!simple_debug_info(info))
     return MRB_DUMP_INVALID_IREP;
@@ -289,19 +288,44 @@ cdump_debug(mrb_state *mrb, const char *name, int n, mrb_irep_debug_info *info,
   mrb_str_cat_cstr(mrb, init_syms_code, filename);
   mrb_str_cat_cstr(mrb, init_syms_code, "\");\n");
 
-  fprintf(fp, "static uint16_t %s_debug_lines_%d[%d] = {", name, n, len);
-  for (i=0; i<len; i++) {
-    if (i%10 == 0) fputs("\n", fp);
-    fprintf(fp, "0x%04x,", info->files[0]->lines.ary[i]);
-  }
-  fputs("};\n", fp);
+  switch (info->files[0]->line_type) {
+  case mrb_debug_line_ary:
+    line_type = "mrb_debug_line_ary";
+    fprintf(fp, "static uint16_t %s_debug_lines_%d[%d] = {", name, n, len);
+    for (i=0; i<len; i++) {
+      if (i%10 == 0) fputs("\n", fp);
+      fprintf(fp, "0x%04x,", info->files[0]->lines.ary[i]);
+    }
+    fputs("};\n", fp);
+    break;
 
+  case mrb_debug_line_flat_map:
+    line_type = "mrb_debug_line_flat_map";
+    fprintf(fp, "static struct mrb_irep_debug_info_line %s_debug_lines_%d[%d] = {", name, n, len);
+    for (i=0; i<len; i++) {
+      mrb_irep_debug_info_line *fmap = &info->files[0]->lines.flat_map[i];
+      fprintf(fp, "\t{.start_pos=0x%04x,.line=%d},\n", fmap->start_pos, fmap->line);
+    }
+    fputs("};\n", fp);
+    break;
+
+  case mrb_debug_line_packed_map:
+    line_type = "mrb_debug_line_packed_map";
+    fprintf(fp, "static char %s_debug_lines_%d[] = \"", name, n);
+    char *pmap = info->files[0]->lines.packed_map;
+    for (i=0; i<len; i++) {
+      fprintf(fp, "\\x%02x", pmap[i]&0xff);
+    }
+    fputs("\";\n", fp);
+    break;
+  }
   fprintf(fp, "static mrb_irep_debug_info_file %s_debug_file_%d = {\n", name, n);
-  fprintf(fp, "%d, %d, %d, mrb_debug_line_ary, {%s_debug_lines_%d}};\n",
-      info->files[0]->start_pos,
-      info->files[0]->filename_sym,
-      info->files[0]->line_entry_count,
-      name,n);
+  fprintf(fp, "%d, %d, %d, %s, {%s_debug_lines_%d}};\n",
+          info->files[0]->start_pos,
+          info->files[0]->filename_sym,
+          info->files[0]->line_entry_count,
+          line_type,
+          name,n);
   fprintf(fp, "static mrb_irep_debug_info_file *%s_debug_file_%d_ = &%s_debug_file_%d;\n", name, n, name, n);
 
   fprintf(fp, "static mrb_irep_debug_info %s_debug_%d = {\n", name, n);
