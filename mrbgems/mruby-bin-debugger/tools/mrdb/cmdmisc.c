@@ -233,7 +233,7 @@ parse_filename(mrb_state *mrb, char **sp, listcmd_parser_state *st)
     len = strlen(*sp);
   }
 
-  if (len > 0 && (st->filename = mrb_debug_strndup(mrb, *sp, len)) != NULL) {
+  if (len > 0 && (st->filename = mrdb_strndup(mrb, *sp, len)) != NULL) {
     *sp += len;
     return TRUE;
   }

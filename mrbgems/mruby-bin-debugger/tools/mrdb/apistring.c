@@ -14,7 +14,7 @@ mrb_debug_strnlen(const char *s, size_t maxlen)
 }
 
 char*
-mrb_debug_strndup(mrb_state *mrb, const char *s, size_t size)
+mrdb_strndup(mrb_state *mrb, const char *s, size_t size)
 {
   size_t l = mrb_debug_strnlen(s, size);
   char *d = mrb_malloc_simple(mrb, l + 1);
@@ -26,7 +26,7 @@ mrb_debug_strndup(mrb_state *mrb, const char *s, size_t size)
 }
 
 char*
-mrb_debug_strdup(mrb_state *mrb, const char *s)
+mrdb_strdup(mrb_state *mrb, const char *s)
 {
   size_t z = strlen(s) + 1;
   char *d = mrb_malloc_simple(mrb, z);

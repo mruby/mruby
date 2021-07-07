@@ -198,7 +198,7 @@ mrb_debug_set_break_line(mrb_state *mrb, mrb_debug_context *dbg, const char *fil
   }
 
   len = strlen(file) + 1;
-  set_file = mrb_debug_strdup(mrb, file);
+  set_file = mrdb_strdup(mrb, file);
 
   index = dbg->bpnum;
   dbg->bp[index].bpno = dbg->next_bpno;
@@ -233,13 +233,13 @@ mrb_debug_set_break_method(mrb_state *mrb, mrb_debug_context *dbg, const char *c
   }
 
   if (class_name != NULL) {
-    set_class = mrb_debug_strdup(mrb, class_name);
+    set_class = mrdb_strdup(mrb, class_name);
   }
   else {
     set_class = NULL;
   }
 
-  set_method = mrb_debug_strdup(mrb, method_name);
+  set_method = mrdb_strdup(mrb, method_name);
   if (set_method == NULL) {
     mrb_free(mrb, set_class);
   }
