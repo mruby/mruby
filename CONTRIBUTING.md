@@ -18,15 +18,15 @@ things in mind before submitting your pull request:
 * Use mrbgem to provide non ISO features (classes, modules and methods) unless
   you have a special reason to implement them in the core
 
-## Pre-commit
+## pre-commit
 
-A framework for managing and maintaining multi-language pre-commit hooks.
-Pre-commit can be [installed](https://pre-commit.com/#installation) with `pip`, `curl`, `brew` or `conda`.
+A framework for managing and maintaining multi-language `pre-commit` hooks.
+`pre-commit` can be [installed](https://pre-commit.com/#installation) with `pip`, `curl`, `brew` or `conda`.
 
-You need to first install pre-commit and then install the pre-commit hooks with `pre-commit install`.
-Now pre-commit will run automatically on git commit!
+You need to first install `pre-commit` and then install the `pre-commit` hooks with `pre-commit install`.
+Now `pre-commit` will run automatically on git commit!
 
-It's usually a good idea to run the hooks against all the files when adding new hooks (usually pre-commit will only run on the changed files during git hooks).
+It's usually a good idea to run the hooks against all the files when adding new hooks (usually `pre-commit` will only run on the changed files during git hooks).
 Use `pre-commit run --all-files` to check all files.
 
 To run a single hook use `pre-commit run --all-files <hook_id>`
@@ -39,9 +39,10 @@ To update use `pre-commit autoupdate`
 
 ## Spell Checking
 
-We are running [misspell](https://github.com/client9/misspell) which is mainly written in Golang to check
-spelling with [GitHub Actions](.github/workflows/lint.yml). Correct commonly misspelled English words quickly
-with `misspell`. You can run `misspell` locally against all files with:
+We are running [misspell](https://github.com/client9/misspell) which is mainly written in
+[Golang](https://golang.org/) to check spelling with [GitHub Actions](.github/workflows/lint.yml).
+Correct commonly misspelled English words quickly with `misspell`. You can run `misspell` locally
+against all files with:
 
 ```bash
 find . -type f | xargs ./misspell -error
