@@ -20,25 +20,56 @@
 #define MRB_DEBUG_BP_FILE_OK   (0x0001)
 #define MRB_DEBUG_BP_LINENO_OK (0x0002)
 
+static uint32_t
+packed_int_decode(char *p, char **newpos)
+{
+  size_t i = 0, shift = 0;
+  uint32_t n = 0;
+
+  do {
+    n |= ((uint32_t)(p[i] & 0x7f)) << shift;
+    i++;
+    shift += 7;
+  } while (shift < sizeof(uint32_t) * 8 && (p[i - 1] & 0x80));
+  if (newpos) *newpos = p + i;
+  return n;
+}
+
 static uint16_t
 check_lineno(mrb_irep_debug_info_file *info_file, uint16_t lineno)
 {
   uint32_t count = info_file->line_entry_count;
   uint16_t l_idx;
 
-  if (info_file->line_type == mrb_debug_line_ary) {
+  switch (info_file->line_type) {
+  case mrb_debug_line_ary:
     for (l_idx = 0; l_idx < count; ++l_idx) {
       if (lineno == info_file->lines.ary[l_idx]) {
         return lineno;
       }
     }
-  }
-  else {
+    break;
+
+  case mrb_debug_line_flat_map:
     for (l_idx = 0; l_idx < count; ++l_idx) {
       if (lineno == info_file->lines.flat_map[l_idx].line) {
         return lineno;
       }
     }
+    break;
+
+  case mrb_debug_line_packed_map:
+    {
+      char *p = info_file->lines.packed_map;
+      char *pend = p + count;
+      uint32_t line = 0;
+      while (p < pend) {
+        packed_int_decode(p, &p);
+        line += packed_int_decode(p, &p);
+        if (line == lineno) return lineno;
+      }
+    }
+    break;
   }
 
   return 0;
@@ -188,7 +219,7 @@ mrb_debug_set_break_line(mrb_state *mrb, mrb_debug_context *dbg, const char *fil
     return MRB_DEBUG_BREAK_NO_OVER;
   }
 
-  /* file and lineno check (line type mrb_debug_line_ary only.) */
+  /* file and lineno check. */
   result = check_file_lineno(mrb, dbg->root_irep, file, lineno);
   if (result == 0) {
     return MRB_DEBUG_BREAK_INVALID_FILE;
