@@ -383,7 +383,7 @@ static int
 pack_w(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
   mrb_int n = mrb_integer(o);
-  mrb_int i;
+  size_t i;
   char *p;
 
   if (n < 0) {
