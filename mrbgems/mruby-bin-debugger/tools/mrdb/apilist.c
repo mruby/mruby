@@ -66,7 +66,6 @@ dirname(mrb_state *mrb, const char *path)
 {
   size_t len;
   const char *p;
-  char *dir;
 
   if (path == NULL) {
     return NULL;

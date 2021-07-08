@@ -205,7 +205,6 @@ mrb_debug_set_break_line(mrb_state *mrb, mrb_debug_context *dbg, const char *fil
   int32_t index;
   char* set_file;
   uint16_t result;
-  size_t len;
 
   if ((mrb == NULL)||(dbg == NULL)||(file == NULL)) {
     return MRB_DEBUG_INVALID_ARGUMENT;
@@ -228,7 +227,6 @@ mrb_debug_set_break_line(mrb_state *mrb, mrb_debug_context *dbg, const char *fil
     return MRB_DEBUG_BREAK_INVALID_LINENO;
   }
 
-  len = strlen(file) + 1;
   set_file = mrdb_strdup(mrb, file);
 
   index = dbg->bpnum;
