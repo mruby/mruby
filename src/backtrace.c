@@ -45,6 +45,7 @@ each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, each_backtrace_func func, void *
     ci = &mrb->c->cibase[i];
 
     if (!ci->proc || MRB_PROC_CFUNC_P(ci->proc)) {
+      if (!ci->mid) continue;
       loc.lineno = -1;
       idx = 0;
     }
