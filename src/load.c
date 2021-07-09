@@ -363,7 +363,7 @@ read_debug_record(mrb_state *mrb, const uint8_t *start, mrb_irep* irep, size_t *
       } break;
 
       case mrb_debug_line_packed_map: {
-        file->lines.packed_map = (char*)mrb_calloc(mrb, 1, (size_t)file->line_entry_count);
+        file->lines.packed_map = (uint8_t*)mrb_calloc(mrb, 1, (size_t)file->line_entry_count);
         memcpy(file->lines.packed_map, bin, file->line_entry_count);
         bin += file->line_entry_count;
       } break;
