@@ -34,7 +34,7 @@ typedef struct mrb_irep_debug_info_file {
     void *ptr;
     uint16_t *ary;
     mrb_irep_debug_info_line *flat_map;
-    char *packed_map;
+    uint8_t *packed_map;
   } lines;
 } mrb_irep_debug_info_file;
 

@@ -311,7 +311,7 @@ cdump_debug(mrb_state *mrb, const char *name, int n, mrb_irep_debug_info *info,
   case mrb_debug_line_packed_map:
     line_type = "mrb_debug_line_packed_map";
     fprintf(fp, "static char %s_debug_lines_%d[] = \"", name, n);
-    char *pmap = info->files[0]->lines.packed_map;
+    uint8_t *pmap = info->files[0]->lines.packed_map;
     for (i=0; i<len; i++) {
       fprintf(fp, "\\x%02x", pmap[i]&0xff);
     }

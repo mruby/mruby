@@ -21,7 +21,7 @@
 #define MRB_DEBUG_BP_LINENO_OK (0x0002)
 
 static uint32_t
-packed_int_decode(char *p, char **newpos)
+packed_int_decode(uint8_t *p, uint8_t **newpos)
 {
   size_t i = 0, shift = 0;
   uint32_t n = 0;
@@ -60,8 +60,8 @@ check_lineno(mrb_irep_debug_info_file *info_file, uint16_t lineno)
 
   case mrb_debug_line_packed_map:
     {
-      char *p = info_file->lines.packed_map;
-      char *pend = p + count;
+      uint8_t *p = info_file->lines.packed_map;
+      uint8_t *pend = p + count;
       uint32_t line = 0;
       while (p < pend) {
         packed_int_decode(p, &p);
