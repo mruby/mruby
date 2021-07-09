@@ -274,7 +274,7 @@ cdump_debug(mrb_state *mrb, const char *name, int n, mrb_irep_debug_info *info,
   const char *filename;
   mrb_int file_len;
   int len, i;
-  const char *line_type;
+  const char *line_type = "mrb_debug_line_ary";
 
   if (!simple_debug_info(info))
     return MRB_DUMP_INVALID_IREP;
@@ -290,7 +290,6 @@ cdump_debug(mrb_state *mrb, const char *name, int n, mrb_irep_debug_info *info,
 
   switch (info->files[0]->line_type) {
   case mrb_debug_line_ary:
-    line_type = "mrb_debug_line_ary";
     fprintf(fp, "static uint16_t %s_debug_lines_%d[%d] = {", name, n, len);
     for (i=0; i<len; i++) {
       if (i%10 == 0) fputs("\n", fp);
