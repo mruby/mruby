@@ -1493,6 +1493,7 @@ readint(codegen_scope *s, const char *p, int base, mrb_bool *overflow)
       n = c - 'A' + 10; break;
     default:
       codegen_error(s, "malformed readint input");
+      *overflow = TRUE;
       /* not reached */
       return result;
     }
