@@ -375,13 +375,13 @@ range_num_to_a(mrb_state *mrb, mrb_value range)
       ary = mrb_ary_new_capa(mrb, (mrb_int)(b - a) + 1);
       if (RANGE_EXCL(r)) {
         while (a < b) {
-          mrb_ary_push(mrb, ary, mrb_int_value(mrb, a));
+          mrb_ary_push(mrb, ary, mrb_int_value(mrb, (mrb_int)a));
           a += 1.0;
         }
       }
       else {
         while (a <= b) {
-          mrb_ary_push(mrb, ary, mrb_int_value(mrb, a));
+          mrb_ary_push(mrb, ary, mrb_int_value(mrb, (mrb_int)a));
           a += 1.0;
         }
       }
