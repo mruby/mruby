@@ -1,4 +1,3 @@
-#include <stdint.h>
 #include <string.h>
 #include <mruby.h>
 #include <mruby/irep.h>
