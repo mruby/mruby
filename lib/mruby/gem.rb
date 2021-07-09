@@ -214,7 +214,7 @@ module MRuby
           f.puts %Q[  mrb_#{funcname}_gem_init(mrb);] if objs != [objfile("#{build_dir}/gem_init")]
           unless rbfiles.empty?
             if cdump?
-              f.puts %Q[  mrb_load_proc(mrb, gem_mrblib_#{funcname}_proc);]
+              f.puts %Q[  mrb_top_run(mrb, gem_mrblib_#{funcname}_proc, mrb_top_self(mrb), 0);]
             else
               f.puts %Q[  mrb_load_irep(mrb, gem_mrblib_irep_#{funcname});]
             end
