@@ -253,7 +253,7 @@ module MRuby
           f.puts %Q[#include <mruby.h>]
         else
           f.puts %Q[#include <stdlib.h>]
-          unless build.presym_enabled?
+          unless cdump?
             f.puts %Q[#include <mruby.h>]
             f.puts %Q[#include <mruby/proc.h>]
           end
