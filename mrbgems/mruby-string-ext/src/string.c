@@ -1184,6 +1184,7 @@ mrb_str_lines(mrb_state *mrb, mrb_value self)
   char *p = b, *t;
   char *e = b + RSTRING_LEN(self);
 
+  mrb->c->ci->mid = 0;
   result = mrb_ary_new(mrb);
   ai = mrb_gc_arena_save(mrb);
   while (p < e) {
