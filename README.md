@@ -2,6 +2,7 @@
 
 [![Build Status][build-status-img]][travis-ci]
 [![GitHub Super-Linter](https://github.com/mruby/mruby/workflows/Lint%20Code%20Base/badge.svg)](https://github.com/marketplace/actions/super-linter)
+[![Discord](https://img.shields.io/discord/854830655241977886?label=discord)](https://discord.gg/KAQKge69Yy)
 
 ## What is mruby
 
