@@ -1,0 +1,39 @@
+# Add 'repo' label to any root file changes
+repo:
+  - ./*
+
+benchmark:
+  - ./benchmark
+
+build_config:
+  - ./build_config
+
+doc:
+  ./doc
+
+examples:
+  ./examples
+
+include:
+  ./include
+
+lib:
+  ./lib
+
+mrbgems:
+  ./mrbgems
+
+mrblib:
+  ./mrblib
+
+oss-fuzz:
+  ./oss-fuzz
+
+src:
+  ./src
+
+tasks:
+  ./tasks
+
+test:
+  ./test
