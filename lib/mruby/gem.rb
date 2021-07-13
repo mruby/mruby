@@ -20,7 +20,7 @@ module MRuby
       attr_accessor :version
       attr_accessor :description, :summary
       attr_accessor :homepage
-      attr_accessor :licenses, :authors
+      attr_accessor :licenses, :authors, :terms
       alias :license= :licenses=
       alias :author= :authors=
 
@@ -69,6 +69,15 @@ module MRuby
         @requirements = []
         @export_include_paths = []
         @export_include_paths << "#{dir}/include" if File.directory? "#{dir}/include"
+
+        @terms = []
+        %w[LICENSE COPYRIGHT COPYING].product(%W[#{} .txt .md]) do |fn, ext|
+          name = fn + ext
+          if File.exist?("#{dir}/#{name}")
+            @terms << name
+            break
+          end
+        end
 
         instance_eval(&@initializer)
 

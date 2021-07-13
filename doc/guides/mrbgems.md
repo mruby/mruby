@@ -115,6 +115,8 @@ The maximal GEM structure looks like this:
     |
     +- README.md        <- Readme for GEM
     |
+    +- LICENSE          <- License terms for GEM
+    |
     +- mrbgem.rake      <- GEM Specification
     |
     +- include/         <- Header for Ruby extension (will exported)
@@ -133,6 +135,7 @@ contains C/C++ files to extend mruby. The folder `include` contains C/C++ header
 files. The folder `test` contains C/C++ and pure Ruby files for testing purposes
 which will be used by `mrbtest`. `mrbgem.rake` contains the specification
 to compile C and Ruby files. `README.md` is a short description of your GEM.
+`LICENSE` is the License terms for dealing with your GEM.
 
 ## Build process
 
@@ -156,6 +159,7 @@ information purpose:
 
 * `spec.license` or `spec.licenses` (A single license or a list of them under which this GEM is licensed)
 * `spec.author` or `spec.authors` (Developer name or a list of them)
+* `spec.terms` (File path to license terms)
 * `spec.version` (Current version)
 * `spec.description` (Detailed description)
 * `spec.summary`
@@ -165,6 +169,9 @@ information purpose:
 * `spec.requirements` (External requirements as information for user)
 
 The `license` and `author` properties are required in every GEM!
+
+The `terms` property specifies the file path for the license terms.
+See [Specifying the License Terms](#specifying-the-license-terms) for more details.
 
 In case your GEM is depending on other GEMs please use
 `spec.add_dependency(gem, *requirements[, default_get_info])` like:
@@ -261,6 +268,30 @@ For example: when B depends to C and A depends to B, A will get include paths ex
 Exported include_paths are automatically appended to GEM local include_paths by rake.
 You can use `spec.export_include_paths` accessor if you want more complex build.
 
+### Specifying the License Terms
+
+The contents of the file set here will be reflected in the
+`<build-dir>/LICENSE.yml` file.
+
+The initial value of `spec.terms` is set automatically if there is a
+license terms file in the top directory of your GEM.
+The recognized file priorities are:
+
+```
+LICENSE > LICENSE.txt > LICENSE.md >
+  COPYRIGHT > COPYRIGHT.txt > COPYRIGHT.md >
+  COPYING > COPYING.txt > COPYING.md (lowest priorities)
+```
+
+The specification method is the same as `MRuby::Build#terms`, but there
+are some differences:
+
+* Specify as `spec.terms` (instead of `conf.terms`)
+* Initial value is different
+* The base directory of the relative path is the top directory of your GEM
+
+See [compile.md#Additional License terms](compile.md#additional-license-terms) for more details.
+
 ## C Extension
 
 mruby can be extended with C. This is possible by using the C API to
@@ -302,6 +333,8 @@ mrb_c_extension_example_gem_final(mrb_state* mrb) {
     |
     +- README.md        (Optional)
     |
+    +- LICENSE          (Optional, but Recommended)
+    |
     +- src/
     |   |
     |   +- example.c    <- C extension source
@@ -329,6 +362,8 @@ none
 +- ruby_extension_example/
     |
     +- README.md        (Optional)
+    |
+    +- LICENSE          (Optional, but Recommended)
     |
     +- mrblib/
     |   |
@@ -361,6 +396,8 @@ See C and Ruby example.
 +- c_and_ruby_extension_example/
     |
     +- README.md        (Optional)
+    |
+    +- LICENSE          (Optional, but Recommended)
     |
     +- mrblib/
     |   |
@@ -398,6 +435,8 @@ binary gems, to separate normal gems and binary gems.
 +- mruby-bin-example/
     |
     +- README.md        (Optional)
+    |
+    +- LICENSE          (Optional, but Recommended)
     |
     +- bintest/
     |   |
