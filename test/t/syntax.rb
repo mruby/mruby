@@ -48,7 +48,32 @@ assert('yield', '11.3.5') do
   end
 end
 
-assert('redo in a for loop (#3275)') do
+assert('break', '11.5.2.4.3') do
+  n = 0
+  a = []
+  while true
+    n += 1
+    a.push(n)
+    if n > 3
+      break
+    end
+  end
+
+  assert_equal [1,2,3,4], a
+
+  n = 0
+  a = []
+  6.times do
+    n += 1
+    a.push(n)
+    if n > 3
+      break
+    end
+  end
+  assert_equal [1,2,3,4], a
+end
+
+assert('redo', '11.5.2.4.5') do
   sum = 0
   for i in 1..10
     sum += i
@@ -59,6 +84,17 @@ assert('redo in a for loop (#3275)') do
   end
 
   assert_equal 220, sum
+
+  n = 0
+  a = []
+  3.times do
+    n += 1
+    if n == 2
+      redo
+    end
+    a.push(n)
+  end
+  assert_equal [1,3,4], a
 end
 
 assert('Abbreviated variable assignment', '11.4.2.3.2') do
