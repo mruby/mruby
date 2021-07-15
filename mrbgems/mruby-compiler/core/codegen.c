@@ -488,6 +488,11 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
       s->pc = s->lastpc;
       genop_2(s, data.insn, dst, data.b);
       break;
+    case OP_GETUPVAR:
+      if (nopeep || data.a != src || data.a < s->nlocals) goto normal;
+      s->pc = s->lastpc;
+      genop_3(s, data.insn, dst, data.b, data.c);
+      break;
     default:
       goto normal;
     }
