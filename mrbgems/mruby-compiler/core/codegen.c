@@ -516,6 +516,20 @@ gen_getupvar(codegen_scope *s, uint16_t dst, mrb_sym id)
 }
 
 static void
+gen_setupvar(codegen_scope *s, uint16_t dst, mrb_sym id)
+{
+  int idx;
+  int lv = search_upvar(s, id, &idx);
+
+  struct mrb_insn_data data = mrb_last_insn(s);
+  if (!no_peephole(s) && data.insn == OP_MOVE && data.a == dst) {
+    dst = data.b;
+    s->pc = s->lastpc;
+  }
+  genop_3(s, OP_SETUPVAR, dst, idx, lv);
+}
+
+static void
 gen_return(codegen_scope *s, uint8_t op, uint16_t src)
 {
   if (no_peephole(s)) {
@@ -1311,8 +1325,7 @@ gen_assignment(codegen_scope *s, node *tree, int sp, int val)
       break;
     }
     else {                      /* upvar */
-      int lv = search_upvar(s, nsym(tree), &idx);
-      genop_3(s, OP_SETUPVAR, sp, idx, lv);
+      gen_setupvar(s, sp, nsym(tree));
     }
     break;
   case NODE_NVAR:
