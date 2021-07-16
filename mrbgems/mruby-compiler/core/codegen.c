@@ -529,6 +529,20 @@ gen_setupvar(codegen_scope *s, uint16_t dst, mrb_sym id)
   genop_3(s, OP_SETUPVAR, dst, idx, lv);
 }
 
+static int new_sym(codegen_scope *s, mrb_sym sym);
+
+static void
+gen_setxv(codegen_scope *s, uint8_t op, uint16_t dst, mrb_sym sym)
+{
+  int idx = new_sym(s, sym);
+  struct mrb_insn_data data = mrb_last_insn(s);
+  if (!no_peephole(s) && data.insn == OP_MOVE && data.a == dst) {
+    dst = data.b;
+    s->pc = s->lastpc;
+  }
+  genop_2(s, op, dst, idx);
+}
+
 static void
 gen_return(codegen_scope *s, uint8_t op, uint16_t src)
 {
@@ -1312,8 +1326,7 @@ gen_assignment(codegen_scope *s, node *tree, int sp, int val)
   tree = tree->cdr;
   switch (type) {
   case NODE_GVAR:
-    idx = new_sym(s, nsym(tree));
-    genop_2(s, OP_SETGV, sp, idx);
+    gen_setxv(s, OP_SETGV, sp, nsym(tree));
     break;
   case NODE_ARG:
   case NODE_LVAR:
@@ -1333,16 +1346,13 @@ gen_assignment(codegen_scope *s, node *tree, int sp, int val)
     codegen_error(s, "Can't assign to numbered parameter");
     break;
   case NODE_IVAR:
-    idx = new_sym(s, nsym(tree));
-    genop_2(s, OP_SETIV, sp, idx);
+    gen_setxv(s, OP_SETIV, sp, nsym(tree));
     break;
   case NODE_CVAR:
-    idx = new_sym(s, nsym(tree));
-    genop_2(s, OP_SETCV, sp, idx);
+    gen_setxv(s, OP_SETCV, sp, nsym(tree));
     break;
   case NODE_CONST:
-    idx = new_sym(s, nsym(tree));
-    genop_2(s, OP_SETCONST, sp, idx);
+    gen_setxv(s, OP_SETCONST, sp, nsym(tree));
     break;
   case NODE_COLON2:
     gen_move(s, cursp(), sp, 0);
