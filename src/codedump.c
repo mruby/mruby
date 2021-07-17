@@ -210,59 +210,59 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_GETGV, BB):
-      printf("OP_GETGV\tR%d\t:%s", a, mrb_sym_dump(mrb, irep->syms[b]));
+      printf("OP_GETGV\tR%d\t%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_SETGV, BB):
-      printf("OP_SETGV\t:%s\tR%d", mrb_sym_dump(mrb, irep->syms[b]), a);
+      printf("OP_SETGV\t%s\tR%d\t", mrb_sym_dump(mrb, irep->syms[b]), a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_GETSV, BB):
-      printf("OP_GETSV\tR%d\t:%s", a, mrb_sym_dump(mrb, irep->syms[b]));
+      printf("OP_GETSV\tR%d\t%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_SETSV, BB):
-      printf("OP_SETSV\t:%s\tR%d", mrb_sym_dump(mrb, irep->syms[b]), a);
+      printf("OP_SETSV\t%s\tR%d\t", mrb_sym_dump(mrb, irep->syms[b]), a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_GETCONST, BB):
-      printf("OP_GETCONST\tR%d\t:%s", a, mrb_sym_dump(mrb, irep->syms[b]));
+      printf("OP_GETCONST\tR%d\t%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_SETCONST, BB):
-      printf("OP_SETCONST\t:%s\tR%d", mrb_sym_dump(mrb, irep->syms[b]), a);
+      printf("OP_SETCONST\t%s\tR%d\t", mrb_sym_dump(mrb, irep->syms[b]), a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_GETMCNST, BB):
-      printf("OP_GETMCNST\tR%d\tR%d::%s", a, a, mrb_sym_dump(mrb, irep->syms[b]));
+      printf("OP_GETMCNST\tR%d\tR%d::%s\t", a, a, mrb_sym_dump(mrb, irep->syms[b]));
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_SETMCNST, BB):
-      printf("OP_SETMCNST\tR%d::%s\tR%d", a+1, mrb_sym_dump(mrb, irep->syms[b]), a);
+      printf("OP_SETMCNST\tR%d::%s\tR%d\t", a+1, mrb_sym_dump(mrb, irep->syms[b]), a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_GETIV, BB):
-      printf("OP_GETIV\tR%d\t%s", a, mrb_sym_dump(mrb, irep->syms[b]));
+      printf("OP_GETIV\tR%d\t%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_SETIV, BB):
-      printf("OP_SETIV\t%s\tR%d", mrb_sym_dump(mrb, irep->syms[b]), a);
+      printf("OP_SETIV\t%s\tR%d\t", mrb_sym_dump(mrb, irep->syms[b]), a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_GETUPVAR, BBB):
-      printf("OP_GETUPVAR\tR%d\t%d\t%d", a, b, c);
+      printf("OP_GETUPVAR\tR%d\t%d\t%d\t", a, b, c);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_SETUPVAR, BBB):
-      printf("OP_SETUPVAR\tR%d\t%d\t%d", a, b, c);
+      printf("OP_SETUPVAR\tR%d\t%d\t%d\t", a, b, c);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_GETCV, BB):
-      printf("OP_GETCV\tR%d\t%s", a, mrb_sym_dump(mrb, irep->syms[b]));
+      printf("OP_GETCV\tR%d\t%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_SETCV, BB):
-      printf("OP_SETCV\t%s\tR%d", mrb_sym_dump(mrb, irep->syms[b]), a);
+      printf("OP_SETCV\t%s\tR%d\t", mrb_sym_dump(mrb, irep->syms[b]), a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_JMP, S):
