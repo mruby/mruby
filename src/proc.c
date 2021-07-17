@@ -419,6 +419,11 @@ mrb_proc_merge_lvar(mrb_state *mrb, mrb_irep *irep, struct REnv *env, int num, c
   memmove(destlv, lv, sizeof(mrb_sym) * num);
   if (stack) {
     memmove(destst, stack, sizeof(mrb_value) * num);
+    for (int i = 0; i < num; i++) {
+      if (!mrb_immediate_p(stack[i])) {
+        mrb_field_write_barrier(mrb, (struct RBasic*)env, (struct RBasic*)mrb_obj_ptr(stack[i]));
+      }
+    }
   }
   else {
     for (int i = num; i > 0; i--, destst++) {

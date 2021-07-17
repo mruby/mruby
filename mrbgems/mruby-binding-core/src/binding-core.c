@@ -151,6 +151,9 @@ binding_local_variable_set(mrb_state *mrb, mrb_value self)
   mrb_value *e = binding_local_variable_search(mrb, proc, env, varname);
   if (e) {
     *e = obj;
+    if (!mrb_immediate_p(obj)) {
+      mrb_field_write_barrier(mrb, (struct RBasic*)env, (struct RBasic*)mrb_obj_ptr(obj));
+    }
   }
   else {
     mrb_proc_merge_lvar(mrb, (mrb_irep*)proc->body.irep, env, 1, &varname, &obj);
