@@ -13,7 +13,6 @@ mrb_value mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p);
 mrb_value mrb_obj_instance_eval(mrb_state *mrb, mrb_value self);
 mrb_value mrb_mod_module_eval(mrb_state*, mrb_value);
 void mrb_codedump_all(mrb_state*, struct RProc*);
-void mrb_proc_merge_lvar(mrb_state *mrb, mrb_irep *irep, struct REnv *env, int num, const mrb_sym *lv, const mrb_value *stack);
 
 static struct RProc*
 create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value binding, const char *file, mrb_int line)

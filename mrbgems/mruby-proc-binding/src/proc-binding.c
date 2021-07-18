@@ -3,8 +3,6 @@
 #include <mruby/proc.h>
 #include <mruby/variable.h>
 
-void mrb_proc_merge_lvar(mrb_state *mrb, mrb_irep *irep, struct REnv *env, int num, const mrb_sym *lv, const mrb_value *stack);
-
 /* provided by mruby-proc-ext */
 mrb_value mrb_proc_source_location(mrb_state *mrb, struct RProc *p);
 
