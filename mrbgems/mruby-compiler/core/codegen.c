@@ -562,6 +562,33 @@ gen_return(codegen_scope *s, uint8_t op, uint16_t src)
   }
 }
 
+static mrb_bool
+get_int_operand(struct mrb_insn_data *data, int32_t *n)
+{
+  switch (data->insn) {
+  case OP_LOADI__1:
+    *n = -1;
+    return TRUE;
+
+  case OP_LOADI_0: case OP_LOADI_1: case OP_LOADI_2: case OP_LOADI_3:
+  case OP_LOADI_4: case OP_LOADI_5: case OP_LOADI_6: case OP_LOADI_7:
+    *n = data->insn - OP_LOADI_0;
+    return TRUE;
+
+  case OP_LOADI:
+  case OP_LOADI16:
+    *n = data->b;
+    return TRUE;
+
+  case OP_LOADI32:
+    *n = (int32_t)((uint32_t)data->b<<16)+data->c;
+    return TRUE;
+
+  default:
+    return FALSE;
+  }
+}
+
 static void
 gen_addsub(codegen_scope *s, uint8_t op, uint16_t dst)
 {
@@ -572,30 +599,20 @@ gen_addsub(codegen_scope *s, uint8_t op, uint16_t dst)
   }
   else {
     struct mrb_insn_data data = mrb_last_insn(s);
+    int32_t n;
 
-    switch (data.insn) {
-    case OP_LOADI__1:
-      if (op == OP_ADD) op = OP_SUB;
-      else op = OP_ADD;
-      data.b = 1;
-      goto replace;
-    case OP_LOADI_0: case OP_LOADI_1: case OP_LOADI_2: case OP_LOADI_3:
-    case OP_LOADI_4: case OP_LOADI_5: case OP_LOADI_6: case OP_LOADI_7:
-      data.b = data.insn - OP_LOADI_0;
-      /* fall through */
-    case OP_LOADI:
-    case OP_LOADI16:
-    replace:
-      s->pc = s->lastpc;
-      if (op == OP_ADD) {
-        genop_2(s, OP_ADDI, dst, data.b);
-      }
-      else {
-        genop_2(s, OP_SUBI, dst, data.b);
-      }
-      break;
-    default:
+    if (!get_int_operand(&data, &n)) {
+      /* not integer immediate */
       goto normal;
+    }
+    /* OP_ADDI/OP_SUBI takes upto 16bits */
+    if (n > INT16_MAX) goto normal;
+    s->pc = s->lastpc;
+    if (op == OP_ADD) {
+      genop_2(s, OP_ADDI, dst, (uint16_t)n);
+    }
+    else {
+      genop_2(s, OP_SUBI, dst, (uint16_t)n);
     }
   }
 }
