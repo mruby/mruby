@@ -479,7 +479,7 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
       s->pc = s->lastpc;
       genop_1(s, data.insn, dst);
       break;
-    case OP_LOADI: case OP_LOADINEG:
+    case OP_LOADI: case OP_LOADINEG: case OP_LOADI16:
     case OP_LOADL: case OP_LOADSYM:
     case OP_GETGV: case OP_GETSV: case OP_GETIV: case OP_GETCV:
     case OP_GETCONST: case OP_STRING:
