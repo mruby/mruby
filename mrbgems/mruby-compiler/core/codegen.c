@@ -584,14 +584,14 @@ gen_addsub(codegen_scope *s, uint8_t op, uint16_t dst)
       data.b = data.insn - OP_LOADI_0;
       /* fall through */
     case OP_LOADI:
+    case OP_LOADI16:
     replace:
-      if (data.b >= 128) goto normal;
       s->pc = s->lastpc;
       if (op == OP_ADD) {
-        genop_2(s, OP_ADDI, dst, (uint8_t)data.b);
+        genop_2(s, OP_ADDI, dst, data.b);
       }
       else {
-        genop_2(s, OP_SUBI, dst, (uint8_t)data.b);
+        genop_2(s, OP_SUBI, dst, data.b);
       }
       break;
     default:
