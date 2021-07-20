@@ -2663,6 +2663,9 @@ codegen(codegen_scope *s, node *tree, int val)
             int off = new_litbn(s, p, base, TRUE);
             genop_2(s, OP_LOADL, cursp(), off);
           }
+          else if (i == 0) {
+            genop_1(s, OP_LOADI_0, cursp());
+          }
           else {
             i = -i;
             if (i == -1) genop_1(s, OP_LOADI__1, cursp());
