@@ -570,6 +570,10 @@ get_int_operand(struct mrb_insn_data *data, int32_t *n)
     *n = -1;
     return TRUE;
 
+  case OP_LOADINEG:
+    *n = -data->b;
+    return TRUE;
+
   case OP_LOADI_0: case OP_LOADI_1: case OP_LOADI_2: case OP_LOADI_3:
   case OP_LOADI_4: case OP_LOADI_5: case OP_LOADI_6: case OP_LOADI_7:
     *n = data->insn - OP_LOADI_0;
@@ -834,6 +838,26 @@ new_sym(codegen_scope *s, mrb_sym sym)
   }
   s->syms[s->irep->slen] = sym;
   return s->irep->slen++;
+}
+
+static void
+gen_int(codegen_scope *s, uint16_t dst, mrb_int i)
+{
+  if (i < 0) {
+    if (i == -1) genop_1(s, OP_LOADI__1, dst);
+    else if (i >= -0xff) genop_2(s, OP_LOADINEG, dst, (uint16_t)-i);
+    else if (i >= INT16_MIN) genop_2S(s, OP_LOADI16, dst, (uint16_t)i);
+    else if (i >= INT32_MIN) genop_2SS(s, OP_LOADI32, dst, (uint32_t)i);
+    else goto int_lit;
+  }
+  else if (i < 8) genop_1(s, OP_LOADI_0 + (uint8_t)i, dst);
+  else if (i <= 0xff) genop_2(s, OP_LOADI, dst, (uint16_t)i);
+  else if (i <= INT16_MAX) genop_2S(s, OP_LOADI16, dst, (uint16_t)i);
+  else if (i <= INT32_MAX) genop_2SS(s, OP_LOADI32, dst, (uint32_t)i);
+  else {
+  int_lit:
+    genop_2(s, OP_LOADL, dst, new_lit(s, mrb_int_value(s->mrb, i)));
+  }
 }
 
 static int
@@ -2616,23 +2640,7 @@ codegen(codegen_scope *s, node *tree, int val)
         genop_2(s, OP_LOADL, cursp(), off);
       }
       else {
-        if (i < 0) {
-          if (i == -1) genop_1(s, OP_LOADI__1, cursp());
-          else if (i >= -0xff) genop_2(s, OP_LOADINEG, cursp(), (uint16_t)-i);
-          else if (i >= INT16_MIN) genop_2S(s, OP_LOADI16, cursp(), (uint16_t)i);
-          else if (i >= INT32_MIN) genop_2SS(s, OP_LOADI32, cursp(), (uint32_t)i);
-          else goto lit_int;
-        }
-        else if (i < 8) genop_1(s, OP_LOADI_0 + (uint8_t)i, cursp());
-        else if (i <= 0xff) genop_2(s, OP_LOADI, cursp(), (uint16_t)i);
-        else if (i <= INT16_MAX) genop_2S(s, OP_LOADI16, cursp(), (uint16_t)i);
-        else if (i <= INT32_MAX) genop_2SS(s, OP_LOADI32, cursp(), (uint32_t)i);
-        else {
-          int off;
-        lit_int:
-          off = new_lit(s, mrb_int_value(s->mrb, i));
-          genop_2(s, OP_LOADL, cursp(), off);
-        }
+        gen_int(s, cursp(), i);
       }
       push();
     }
@@ -2680,25 +2688,8 @@ codegen(codegen_scope *s, node *tree, int val)
             int off = new_litbn(s, p, base, TRUE);
             genop_2(s, OP_LOADL, cursp(), off);
           }
-          else if (i == 0) {
-            genop_1(s, OP_LOADI_0, cursp());
-          }
           else {
-            i = -i;
-            if (i == -1) genop_1(s, OP_LOADI__1, cursp());
-            else if (i >= -0xff) {
-              genop_2(s, OP_LOADINEG, cursp(), (uint16_t)-i);
-            }
-            else if (i >= INT16_MIN) {
-              genop_2S(s, OP_LOADI16, cursp(), (uint16_t)i);
-            }
-            else if (i >= INT32_MIN) {
-              genop_2SS(s, OP_LOADI32, cursp(), (uint32_t)i);
-            }
-            else {
-              int off = new_lit(s, mrb_int_value(s->mrb, i));
-              genop_2(s, OP_LOADL, cursp(), off);
-            }
+            gen_int(s, cursp(), -i);
           }
           push();
         }
