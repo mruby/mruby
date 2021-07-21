@@ -529,20 +529,6 @@ gen_setupvar(codegen_scope *s, uint16_t dst, mrb_sym id)
   genop_3(s, OP_SETUPVAR, dst, idx, lv);
 }
 
-static int new_sym(codegen_scope *s, mrb_sym sym);
-
-static void
-gen_setxv(codegen_scope *s, uint8_t op, uint16_t dst, mrb_sym sym)
-{
-  int idx = new_sym(s, sym);
-  struct mrb_insn_data data = mrb_last_insn(s);
-  if (!no_peephole(s) && data.insn == OP_MOVE && data.a == dst) {
-    dst = data.b;
-    s->pc = s->lastpc;
-  }
-  genop_2(s, op, dst, idx);
-}
-
 static void
 gen_return(codegen_scope *s, uint8_t op, uint16_t src)
 {
@@ -838,6 +824,18 @@ new_sym(codegen_scope *s, mrb_sym sym)
   }
   s->syms[s->irep->slen] = sym;
   return s->irep->slen++;
+}
+
+static void
+gen_setxv(codegen_scope *s, uint8_t op, uint16_t dst, mrb_sym sym)
+{
+  int idx = new_sym(s, sym);
+  struct mrb_insn_data data = mrb_last_insn(s);
+  if (!no_peephole(s) && data.insn == OP_MOVE && data.a == dst) {
+    dst = data.b;
+    s->pc = s->lastpc;
+  }
+  genop_2(s, op, dst, idx);
 }
 
 static void
