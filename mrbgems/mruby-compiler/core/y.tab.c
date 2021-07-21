@@ -1311,7 +1311,7 @@ call_with_block(parser_state *p, node *a, node *b)
 }
 
 static node*
-negate_lit(parser_state *p, node *n)
+new_negate(parser_state *p, node *n)
 {
   return cons((node*)NODE_NEGATE, n);
 }
@@ -7376,7 +7376,7 @@ yyreduce:
   case 219:
 #line 2294 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      (yyval.nd) = call_uni_op(p, call_bin_op(p, (yyvsp[-2].nd), "**", (yyvsp[0].nd)), "-@");
+                      (yyval.nd) = new_negate(p, call_bin_op(p, (yyvsp[-2].nd), "**", (yyvsp[0].nd)));
                     }
 #line 7382 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
@@ -7384,7 +7384,7 @@ yyreduce:
   case 220:
 #line 2298 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      (yyval.nd) = call_uni_op(p, call_bin_op(p, (yyvsp[-2].nd), "**", (yyvsp[0].nd)), "-@");
+                      (yyval.nd) = new_negate(p, call_bin_op(p, (yyvsp[-2].nd), "**", (yyvsp[0].nd)));
                     }
 #line 7390 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
@@ -7400,7 +7400,7 @@ yyreduce:
   case 222:
 #line 2306 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      (yyval.nd) = call_uni_op(p, (yyvsp[0].nd), "-@");
+                      (yyval.nd) = new_negate(p, (yyvsp[0].nd));
                     }
 #line 7406 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
@@ -9183,7 +9183,7 @@ yyreduce:
   case 477:
 #line 3465 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      (yyval.nd) = negate_lit(p, (yyvsp[0].nd));
+                      (yyval.nd) = new_negate(p, (yyvsp[0].nd));
                     }
 #line 9189 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
@@ -9191,7 +9191,7 @@ yyreduce:
   case 478:
 #line 3469 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      (yyval.nd) = negate_lit(p, (yyvsp[0].nd));
+                      (yyval.nd) = new_negate(p, (yyvsp[0].nd));
                     }
 #line 9197 "mrbgems/mruby-compiler/core/y.tab.c"
     break;

@@ -858,6 +858,21 @@ gen_int(codegen_scope *s, uint16_t dst, mrb_int i)
   }
 }
 
+static void
+gen_uminus(codegen_scope *s, uint16_t dst)
+{
+  struct mrb_insn_data data = mrb_last_insn(s);
+  int32_t n;
+
+  if (get_int_operand(&data, &n)) {
+    s->pc = s->lastpc;
+    gen_int(s, dst, -n);
+  }
+  else {
+    genop_3(s, OP_SEND, dst, new_sym(s, MRB_OPSYM_2(s->mrb, minus)), 0);
+  }
+}
+
 static int
 node_len(node *tree)
 {
@@ -2695,10 +2710,10 @@ codegen(codegen_scope *s, node *tree, int val)
 
       default:
         if (val) {
-          int sym = new_sym(s, MRB_OPSYM_2(s->mrb, minus));
           codegen(s, tree, VAL);
           pop();
-          genop_3(s, OP_SEND, cursp(), sym, 0);
+          push_n(2);pop_n(2); /* space for receiver&block */
+          gen_uminus(s, cursp());
           push();
         }
         else {

@@ -1248,7 +1248,7 @@ call_with_block(parser_state *p, node *a, node *b)
 }
 
 static node*
-negate_lit(parser_state *p, node *n)
+new_negate(parser_state *p, node *n)
 {
   return cons((node*)NODE_NEGATE, n);
 }
@@ -2292,11 +2292,11 @@ arg             : lhs '=' arg_rhs
                     }
                 | tUMINUS_NUM tINTEGER tPOW arg
                     {
-                      $$ = call_uni_op(p, call_bin_op(p, $2, "**", $4), "-@");
+                      $$ = new_negate(p, call_bin_op(p, $2, "**", $4));
                     }
                 | tUMINUS_NUM tFLOAT tPOW arg
                     {
-                      $$ = call_uni_op(p, call_bin_op(p, $2, "**", $4), "-@");
+                      $$ = new_negate(p, call_bin_op(p, $2, "**", $4));
                     }
                 | tUPLUS arg
                     {
@@ -2304,7 +2304,7 @@ arg             : lhs '=' arg_rhs
                     }
                 | tUMINUS arg
                     {
-                      $$ = call_uni_op(p, $2, "-@");
+                      $$ = new_negate(p, $2);
                     }
                 | arg '|' arg
                     {
@@ -3463,11 +3463,11 @@ numeric         : tINTEGER
                 | tFLOAT
                 | tUMINUS_NUM tINTEGER          %prec tLOWEST
                     {
-                      $$ = negate_lit(p, $2);
+                      $$ = new_negate(p, $2);
                     }
                 | tUMINUS_NUM tFLOAT            %prec tLOWEST
                     {
-                      $$ = negate_lit(p, $2);
+                      $$ = new_negate(p, $2);
                     }
                 ;
 
