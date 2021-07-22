@@ -549,7 +549,7 @@ gen_return(codegen_scope *s, uint8_t op, uint16_t src)
 }
 
 static mrb_bool
-get_int_operand(struct mrb_insn_data *data, mrb_int *n)
+get_int_operand(codegen_scope *s, struct mrb_insn_data *data, mrb_int *n)
 {
   switch (data->insn) {
   case OP_LOADI__1:
@@ -574,6 +574,24 @@ get_int_operand(struct mrb_insn_data *data, mrb_int *n)
     *n = (mrb_int)((uint32_t)data->b<<16)+data->c;
     return TRUE;
 
+  case OP_LOADL:
+    {
+      mrb_pool_value *pv = &s->pool[data->b];
+
+      if (pv->tt == IREP_TT_INT32) {
+        *n = (mrb_int)pv->u.i32;
+      }
+#ifdef MRB_INT64
+      else if (pv->tt == IREP_TT_INT64) {
+        *n = (mrb_int)pv->u.i64;
+      }
+#endif
+      else {
+        return FALSE;
+      }
+    }
+    return TRUE;
+
   default:
     return FALSE;
   }
@@ -591,7 +609,7 @@ gen_addsub(codegen_scope *s, uint8_t op, uint16_t dst)
     struct mrb_insn_data data = mrb_last_insn(s);
     mrb_int n;
 
-    if (!get_int_operand(&data, &n)) {
+    if (!get_int_operand(s, &data, &n)) {
       /* not integer immediate */
       goto normal;
     }
@@ -864,7 +882,7 @@ gen_uniop(codegen_scope *s, mrb_sym sym, uint16_t dst)
   struct mrb_insn_data data = mrb_last_insn(s);
   mrb_int n;
 
-  if (get_int_operand(&data, &n)) {
+  if (get_int_operand(s, &data, &n)) {
     s->pc = s->lastpc;
     if (sym == MRB_OPSYM_2(s->mrb, minus)) {
       n = -n;
