@@ -549,7 +549,7 @@ gen_return(codegen_scope *s, uint8_t op, uint16_t src)
 }
 
 static mrb_bool
-get_int_operand(struct mrb_insn_data *data, int32_t *n)
+get_int_operand(struct mrb_insn_data *data, mrb_int *n)
 {
   switch (data->insn) {
   case OP_LOADI__1:
@@ -571,7 +571,7 @@ get_int_operand(struct mrb_insn_data *data, int32_t *n)
     return TRUE;
 
   case OP_LOADI32:
-    *n = (int32_t)((uint32_t)data->b<<16)+data->c;
+    *n = (mrb_int)((uint32_t)data->b<<16)+data->c;
     return TRUE;
 
   default:
@@ -589,7 +589,7 @@ gen_addsub(codegen_scope *s, uint8_t op, uint16_t dst)
   }
   else {
     struct mrb_insn_data data = mrb_last_insn(s);
-    int32_t n;
+    mrb_int n;
 
     if (!get_int_operand(&data, &n)) {
       /* not integer immediate */
@@ -859,17 +859,23 @@ gen_int(codegen_scope *s, uint16_t dst, mrb_int i)
 }
 
 static void
-gen_uminus(codegen_scope *s, uint16_t dst)
+gen_uniop(codegen_scope *s, mrb_sym sym, uint16_t dst)
 {
   struct mrb_insn_data data = mrb_last_insn(s);
-  int32_t n;
+  mrb_int n;
 
   if (get_int_operand(&data, &n)) {
     s->pc = s->lastpc;
-    gen_int(s, dst, -n);
+    if (sym == MRB_OPSYM_2(s->mrb, minus)) {
+      n = -n;
+    }
+    else if (sym == MRB_OPSYM_2(s->mrb, neg)) {
+      n = ~n;
+    }
+    gen_int(s, dst, n);
   }
   else {
-    genop_3(s, OP_SEND, dst, new_sym(s, MRB_OPSYM_2(s->mrb, minus)), 0);
+    genop_3(s, OP_SEND, dst, new_sym(s, sym), 0);
   }
 }
 
@@ -1347,6 +1353,12 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
   }
   else if (!noop && sym == MRB_OPSYM_2(s->mrb, eq) && n == 1)  {
     genop_1(s, OP_EQ, cursp());
+  }
+  else if (!noop && n == 0 &&
+           (sym == MRB_OPSYM_2(s->mrb, plus) ||
+            sym == MRB_OPSYM_2(s->mrb, minus) ||
+            sym == MRB_OPSYM_2(s->mrb, neg))) {
+    gen_uniop(s, sym, cursp());
   }
   else {
     int idx = new_sym(s, sym);
@@ -2708,7 +2720,7 @@ codegen(codegen_scope *s, node *tree, int val)
           codegen(s, tree, VAL);
           pop();
           push_n(2);pop_n(2); /* space for receiver&block */
-          gen_uminus(s, cursp());
+          gen_uniop(s, MRB_OPSYM_2(s->mrb, minus), cursp());
           push();
         }
         else {
