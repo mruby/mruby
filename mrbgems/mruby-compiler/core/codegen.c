@@ -1321,46 +1321,41 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
   }
   push();pop();
   pop_n(n+1);
-  {
-    mrb_int symlen;
-    const char *symname = mrb_sym_name_len(s->mrb, sym, &symlen);
+  if (!noop && sym == MRB_OPSYM_2(s->mrb, add) && n == 1)  {
+    gen_addsub(s, OP_ADD, cursp());
+  }
+  else if (!noop && sym == MRB_OPSYM_2(s->mrb, sub) && n == 1)  {
+    gen_addsub(s, OP_SUB, cursp());
+  }
+  else if (!noop && sym == MRB_OPSYM_2(s->mrb, mul) && n == 1)  {
+    genop_1(s, OP_MUL, cursp());
+  }
+  else if (!noop && sym == MRB_OPSYM_2(s->mrb, div) && n == 1)  {
+    genop_1(s, OP_DIV, cursp());
+  }
+  else if (!noop && sym == MRB_OPSYM_2(s->mrb, lt) && n == 1)  {
+    genop_1(s, OP_LT, cursp());
+  }
+  else if (!noop && sym == MRB_OPSYM_2(s->mrb, le) && n == 1)  {
+    genop_1(s, OP_LE, cursp());
+  }
+  else if (!noop && sym == MRB_OPSYM_2(s->mrb, gt) && n == 1)  {
+    genop_1(s, OP_GT, cursp());
+  }
+  else if (!noop && sym == MRB_OPSYM_2(s->mrb, ge) && n == 1)  {
+    genop_1(s, OP_GE, cursp());
+  }
+  else if (!noop && sym == MRB_OPSYM_2(s->mrb, eq) && n == 1)  {
+    genop_1(s, OP_EQ, cursp());
+  }
+  else {
+    int idx = new_sym(s, sym);
 
-    if (!noop && symlen == 1 && symname[0] == '+' && n == 1)  {
-      gen_addsub(s, OP_ADD, cursp());
-    }
-    else if (!noop && symlen == 1 && symname[0] == '-' && n == 1)  {
-      gen_addsub(s, OP_SUB, cursp());
-    }
-    else if (!noop && symlen == 1 && symname[0] == '*' && n == 1)  {
-      genop_1(s, OP_MUL, cursp());
-    }
-    else if (!noop && symlen == 1 && symname[0] == '/' && n == 1)  {
-      genop_1(s, OP_DIV, cursp());
-    }
-    else if (!noop && symlen == 1 && symname[0] == '<' && n == 1)  {
-      genop_1(s, OP_LT, cursp());
-    }
-    else if (!noop && symlen == 2 && symname[0] == '<' && symname[1] == '=' && n == 1)  {
-      genop_1(s, OP_LE, cursp());
-    }
-    else if (!noop && symlen == 1 && symname[0] == '>' && n == 1)  {
-      genop_1(s, OP_GT, cursp());
-    }
-    else if (!noop && symlen == 2 && symname[0] == '>' && symname[1] == '=' && n == 1)  {
-      genop_1(s, OP_GE, cursp());
-    }
-    else if (!noop && symlen == 2 && symname[0] == '=' && symname[1] == '=' && n == 1)  {
-      genop_1(s, OP_EQ, cursp());
+    if (sendv) {
+      genop_2(s, blk ? OP_SENDVB : OP_SENDV, cursp(), idx);
     }
     else {
-      int idx = new_sym(s, sym);
-
-      if (sendv) {
-        genop_2(s, blk ? OP_SENDVB : OP_SENDV, cursp(), idx);
-      }
-      else {
-        genop_3(s, blk ? OP_SENDB : OP_SEND, cursp(), idx, n);
-      }
+      genop_3(s, blk ? OP_SENDB : OP_SEND, cursp(), idx, n);
     }
   }
   if (safe) {
