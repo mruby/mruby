@@ -1041,7 +1041,7 @@ lambda_body(codegen_scope *s, node *tree, int blk)
   else {
     mrb_aspec a;
     int ma, oa, ra, pa, ka, kd, ba;
-    int pos, i;
+    uint32_t pos, i;
     node *opt;
     node *margs, *pargs;
     node *tail;
@@ -1833,7 +1833,8 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_IF:
     {
-      int pos1, pos2, nil_p = FALSE;
+      uint32_t pos1, pos2;
+      mrb_bool nil_p = FALSE;
       node *elsepart = tree->cdr->cdr->car;
 
       if (!tree->car) {
@@ -1908,7 +1909,7 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_AND:
     {
-      int pos;
+      uint32_t pos;
 
       codegen(s, tree->car, VAL);
       pop();
@@ -1920,7 +1921,7 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_OR:
     {
-      int pos;
+      uint32_t pos;
 
       codegen(s, tree->car, VAL);
       pop();
@@ -2329,7 +2330,7 @@ codegen(codegen_scope *s, node *tree, int val)
       if (len == 2 &&
           ((name[0] == '|' && name[1] == '|') ||
            (name[0] == '&' && name[1] == '&'))) {
-        int pos;
+        uint32_t pos;
 
         pop();
         if (val) {
