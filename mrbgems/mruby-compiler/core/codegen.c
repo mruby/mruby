@@ -1932,6 +1932,7 @@ codegen(codegen_scope *s, node *tree, int val)
     {
       struct loopinfo *lp = loop_push(s, LOOP_NORMAL);
 
+      if (!val) lp->acc = -1;
       lp->pc0 = new_label(s);
       lp->pc1 = genjmp_0(s, OP_JMP);
       lp->pc2 = new_label(s);
@@ -1949,6 +1950,7 @@ codegen(codegen_scope *s, node *tree, int val)
     {
       struct loopinfo *lp = loop_push(s, LOOP_NORMAL);
 
+      if (!val) lp->acc = -1;
       lp->pc0 = new_label(s);
       lp->pc1 = genjmp_0(s, OP_JMP);
       lp->pc2 = new_label(s);
@@ -3338,11 +3340,16 @@ loop_break(codegen_scope *s, node *tree)
   else {
     struct loopinfo *loop;
 
-    if (tree) {
-      gen_retval(s, tree);
-    }
 
     loop = s->loop;
+    if (tree) {
+      if (loop->acc < 0) {
+        codegen(s, tree, NOVAL);
+      }
+      else {
+        gen_retval(s, tree);
+      }
+    }
     while (loop) {
       if (loop->type == LOOP_BEGIN) {
         loop = loop->prev;
@@ -3362,8 +3369,13 @@ loop_break(codegen_scope *s, node *tree)
     if (loop->type == LOOP_NORMAL) {
       int tmp;
 
-      if (tree) {
-        gen_move(s, loop->acc, cursp(), 0);
+      if (loop->acc >= 0) {
+        if (tree) {
+          gen_move(s, loop->acc, cursp(), 0);
+        }
+        else {
+          genop_1(s, OP_LOADNIL, loop->acc);
+        }
       }
       tmp = genjmp(s, OP_JMPUW, loop->pc3);
       loop->pc3 = tmp;
