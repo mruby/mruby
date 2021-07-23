@@ -39,7 +39,7 @@ enum looptype {
 
 struct loopinfo {
   enum looptype type;
-  uint32_t pc0, pc1, pc2, pc3;
+  uint32_t pc0, pc2, pc3;
   int acc;
   struct loopinfo *prev;
 };
@@ -1931,13 +1931,14 @@ codegen(codegen_scope *s, node *tree, int val)
   case NODE_WHILE:
     {
       struct loopinfo *lp = loop_push(s, LOOP_NORMAL);
+      uint32_t pc1;
 
       if (!val) lp->acc = -1;
       lp->pc0 = new_label(s);
-      lp->pc1 = genjmp_0(s, OP_JMP);
+      pc1 = genjmp_0(s, OP_JMP);
       lp->pc2 = new_label(s);
       codegen(s, tree->cdr, NOVAL);
-      dispatch(s, lp->pc1);
+      dispatch(s, pc1);
       codegen(s, tree->car, VAL);
       pop();
       genjmp2(s, OP_JMPIF, cursp(), lp->pc2, NOVAL);
@@ -1949,13 +1950,14 @@ codegen(codegen_scope *s, node *tree, int val)
   case NODE_UNTIL:
     {
       struct loopinfo *lp = loop_push(s, LOOP_NORMAL);
+      uint32_t pc1;
 
       if (!val) lp->acc = -1;
       lp->pc0 = new_label(s);
-      lp->pc1 = genjmp_0(s, OP_JMP);
+      pc1 = genjmp_0(s, OP_JMP);
       lp->pc2 = new_label(s);
       codegen(s, tree->cdr, NOVAL);
-      dispatch(s, lp->pc1);
+      dispatch(s, pc1);
       codegen(s, tree->car, VAL);
       pop();
       genjmp2(s, OP_JMPNOT, cursp(), lp->pc2, NOVAL);
@@ -3322,7 +3324,7 @@ loop_push(codegen_scope *s, enum looptype t)
   struct loopinfo *p = (struct loopinfo *)codegen_palloc(s, sizeof(struct loopinfo));
 
   p->type = t;
-  p->pc0 = p->pc1 = p->pc2 = p->pc3 = JMPLINK_START;
+  p->pc0 = p->pc2 = p->pc3 = JMPLINK_START;
   p->prev = s->loop;
   p->acc = cursp();
   s->loop = p;
