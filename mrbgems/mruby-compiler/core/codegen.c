@@ -488,10 +488,18 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
       s->pc = s->lastpc;
       genop_2(s, data.insn, dst, data.b);
       break;
-    case OP_GETUPVAR: case OP_LOADI32:
+    case OP_GETUPVAR:
       if (nopeep || data.a != src || data.a < s->nlocals) goto normal;
       s->pc = s->lastpc;
       genop_3(s, data.insn, dst, data.b, data.c);
+      break;
+    case OP_LOADI32:
+      if (nopeep || data.a != src || data.a < s->nlocals) goto normal;
+      else {
+        uint32_t i = (uint32_t)data.b<<16|data.c;
+        s->pc = s->lastpc;
+        genop_2SS(s, data.insn, dst, i);
+      }
       break;
     default:
       goto normal;
