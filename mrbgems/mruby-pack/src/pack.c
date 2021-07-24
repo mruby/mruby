@@ -395,7 +395,7 @@ pack_w(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int fl
   }
   str = str_len_ensure(mrb, str, sidx + i);
   p = RSTRING_PTR(str);
-  for (mrb_int j=i; j>0; p++,j--) {
+  for (size_t j=i; j>0; p++,j--) {
     mrb_int x = (n>>(7*(j-1)))&0x7f;
     *p = (char)x;
     if (j > 1) *p |= 0x80;
