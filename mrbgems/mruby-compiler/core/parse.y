@@ -13,7 +13,6 @@
 
 #include <ctype.h>
 #include <errno.h>
-#include <stdlib.h>
 #include <string.h>
 #include <mruby.h>
 #include <mruby/compile.h>
@@ -6264,7 +6263,7 @@ parser_yylex(parser_state *p)
       if (last_state == EXPR_FNAME) goto gvar;
       tokfix(p);
       {
-        unsigned long n = strtoul(tok(p), NULL, 10);
+        unsigned long n = mrb_int_read(tok(p), NULL, NULL);
         if (n > INT_MAX) {
           yyerror(p, "capture group index must be <= " MRB_STRINGIZE(INT_MAX));
           return 0;
