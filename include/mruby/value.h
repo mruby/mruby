@@ -111,13 +111,11 @@ MRB_API double mrb_float_read(const char*, char**);
 #endif
 
 #if defined _MSC_VER && _MSC_VER < 1900
-# include <stdarg.h>
 MRB_API int mrb_msvc_vsnprintf(char *s, size_t n, const char *format, va_list arg);
 MRB_API int mrb_msvc_snprintf(char *s, size_t n, const char *format, ...);
 # define vsnprintf(s, n, format, arg) mrb_msvc_vsnprintf(s, n, format, arg)
 # define snprintf(s, n, format, ...) mrb_msvc_snprintf(s, n, format, __VA_ARGS__)
 # if _MSC_VER < 1800 && !defined MRB_NO_FLOAT
-#  include <float.h>
 #  define isfinite(n) _finite(n)
 #  define isnan _isnan
 #  define isinf(n) (!_finite(n) && !_isnan(n))

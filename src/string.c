@@ -8,14 +8,6 @@
 # define _CRT_NONSTDC_NO_DEPRECATE
 #endif
 
-#ifndef MRB_NO_FLOAT
-#include <float.h>
-#include <math.h>
-#endif
-#include <limits.h>
-#include <stddef.h>
-#include <stdlib.h>
-#include <string.h>
 #include <mruby.h>
 #include <mruby/array.h>
 #include <mruby/class.h>
@@ -23,6 +15,10 @@
 #include <mruby/string.h>
 #include <mruby/numeric.h>
 #include <mruby/presym.h>
+#ifndef MRB_NO_FLOAT
+#include <math.h>
+#endif
+#include <string.h>
 
 typedef struct mrb_shared_string {
   int refcnt;

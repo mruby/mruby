@@ -20,7 +20,6 @@ My modifications in this file are also placed in the public domain.
 Matz (Yukihiro Matsumoto)
 */
 
-#include <stdlib.h>
 #include <string.h>
 #include <math.h>
 #include <errno.h>

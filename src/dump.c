@@ -5,7 +5,6 @@
 */
 
 #include <string.h>
-#include <limits.h>
 #include <math.h>
 #include <mruby/dump.h>
 #include <mruby/string.h>

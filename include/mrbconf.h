@@ -7,9 +7,6 @@
 #ifndef MRUBYCONF_H
 #define MRUBYCONF_H
 
-#include <limits.h>
-#include <stdint.h>
-
 /* architecture selection: */
 /* specify -DMRB_32BIT or -DMRB_64BIT to override */
 #if !defined(MRB_32BIT) && !defined(MRB_64BIT)

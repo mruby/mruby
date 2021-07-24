@@ -1,6 +1,5 @@
 #include <mruby.h>
 #include <string.h>
-#include <stdlib.h>
 
 #ifndef MRB_NO_FLOAT
 /***********************************************************************

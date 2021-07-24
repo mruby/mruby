@@ -5,7 +5,6 @@
 */
 
 #include <string.h>
-#include <stdlib.h>
 #ifdef MRB_USE_MALLOC_TRIM
 #include <malloc.h>
 #endif
@@ -23,6 +22,10 @@
 #include <mruby/error.h>
 #include <mruby/throw.h>
 #include <mruby/presym.h>
+
+#ifdef MRB_GC_STRESS
+#include <stdlib.h>
+#endif
 
 /*
   = Tri-color Incremental Garbage Collection

@@ -5,11 +5,8 @@
 */
 
 #ifndef MRB_NO_FLOAT
-#include <float.h>
 #include <math.h>
 #endif
-#include <limits.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include <mruby.h>

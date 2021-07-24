@@ -14,7 +14,6 @@
 #include <sys/stat.h>
 
 #include <fcntl.h>
-#include <limits.h>
 
 #include <errno.h>
 #include <stdlib.h>

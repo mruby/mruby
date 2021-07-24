@@ -4,7 +4,6 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include <stdarg.h>
 #include <mruby.h>
 #include <mruby/array.h>
 #include <mruby/hash.h>

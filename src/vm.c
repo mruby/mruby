@@ -4,11 +4,6 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include <stddef.h>
-#include <stdarg.h>
-#ifndef MRB_NO_FLOAT
-#include <math.h>
-#endif
 #include <mruby.h>
 #include <mruby/array.h>
 #include <mruby/class.h>
@@ -25,6 +20,9 @@
 #include <mruby/throw.h>
 #include <mruby/dump.h>
 #include <mruby/presym.h>
+#ifndef MRB_NO_FLOAT
+#include <math.h>
+#endif
 
 #ifdef MRB_NO_STDIO
 #if defined(__cplusplus)

@@ -133,8 +133,6 @@ mrb_int_mul_overflow(mrb_int a, mrb_int b, mrb_int *c)
 #endif
 
 #ifndef MRB_NO_FLOAT
-# include <stdint.h>
-# include <float.h>
 
 # define MRB_FLT_RADIX          FLT_RADIX
 

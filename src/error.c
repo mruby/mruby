@@ -5,7 +5,6 @@
 */
 
 #include <errno.h>
-#include <stdarg.h>
 #include <stdlib.h>
 #include <mruby.h>
 #include <mruby/array.h>

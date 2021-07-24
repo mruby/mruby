@@ -31,7 +31,6 @@
   typedef size_t fsize_t;
 #endif
 
-#include <stddef.h>
 #include <string.h>
 
 #include "mruby.h"
