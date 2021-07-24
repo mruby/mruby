@@ -943,7 +943,7 @@ mrb_time_to_i(mrb_state *mrb, mrb_value self)
 }
 
 /* 15.2.19.7.26 */
-/* Returns an Integer with the time since the epoch in microseconds. */
+/* Returns the number of microseconds for time. */
 static mrb_value
 mrb_time_usec(mrb_state *mrb, mrb_value self)
 {
