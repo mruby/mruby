@@ -182,17 +182,6 @@ timegm(struct tm *tm)
 * second level. Also, there are only 2 timezones, namely UTC and LOCAL.
 */
 
-typedef struct mrb_timezone_name {
-  const char name[8];
-  size_t len;
-} mrb_timezone_name;
-
-static const mrb_timezone_name timezone_names[] = {
-  { "none", sizeof("none") - 1 },
-  { "UTC", sizeof("UTC") - 1 },
-  { "LOCAL", sizeof("LOCAL") - 1 },
-};
-
 #ifndef MRB_NO_STDIO
 static const char mon_names[12][4] = {
   "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
@@ -695,19 +684,35 @@ mrb_time_year(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(tm->datetime.tm_year + 1900);
 }
 
+static size_t
+time_zonename(mrb_state *mrb, struct mrb_time *tm, char *buf, size_t len)
+{
+#if 1 || defined(_MSC_VER) && _MSC_VER < 1900 || defined(__MINGW64__) || defined(__MINGW32__)
+  struct tm datetime = {0};
+  time_t utc_sec = timegm(&tm->datetime);
+  int offset = abs((int)(utc_sec - tm->sec) / 60);
+  datetime.tm_year = 100;
+  datetime.tm_hour = offset / 60;
+  datetime.tm_min = offset % 60;
+  buf[0] = utc_sec < tm->sec ? '-' : '+';
+  return strftime(buf+1, sizeof(buf)-1, "%H%M", &datetime) + 1;
+#else
+  return strftime(buf, sizeof(buf), "%z", &tm->datetime);
+#endif
+}
+
 /* 15.2.19.7.33 */
 /* Returns name of time's timezone. */
 static mrb_value
 mrb_time_zone(mrb_state *mrb, mrb_value self)
 {
-  struct mrb_time *tm;
-
-  tm = time_get_ptr(mrb, self);
-  if (tm->timezone <= MRB_TIMEZONE_NONE) return mrb_nil_value();
-  if (tm->timezone >= MRB_TIMEZONE_LAST) return mrb_nil_value();
-  return mrb_str_new_static(mrb,
-                            timezone_names[tm->timezone].name,
-                            timezone_names[tm->timezone].len);
+  struct mrb_time *tm = time_get_ptr(mrb, self);
+  if (tm->timezone == MRB_TIMEZONE_UTC) {
+    return mrb_str_new_lit(mrb, "UTC");
+  }
+  char buf[64];
+  size_t len = time_zonename(mrb, tm, buf, sizeof(buf));
+  return mrb_str_new(mrb, buf, len);
 }
 
 /* 15.2.19.7.4 */
@@ -891,7 +896,7 @@ mrb_time_min(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(tm->datetime.tm_min);
 }
 
-/* 15.2.19.7.21 and 15.2.19.7.22 */
+/* 15.2.19.7.21 (mon) and 15.2.19.7.22 (month) */
 /* Returns month of time. */
 static mrb_value
 mrb_time_mon(mrb_state *mrb, mrb_value self)
@@ -977,44 +982,20 @@ mrb_time_utc_p(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(tm->timezone == MRB_TIMEZONE_UTC);
 }
 
-static size_t
-time_to_s_utc(mrb_state *mrb, struct mrb_time *tm, char *buf, size_t buf_len)
-{
-  return strftime(buf, buf_len, TO_S_FMT "UTC", &tm->datetime);
-}
-
-static size_t
-time_to_s_local(mrb_state *mrb, struct mrb_time *tm, char *buf, size_t buf_len)
-{
-#if defined(_MSC_VER) && _MSC_VER < 1900 || defined(__MINGW64__) || defined(__MINGW32__)
-  struct tm datetime = {0};
-  time_t utc_sec = timegm(&tm->datetime);
-  size_t len;
-  int offset;
-
-  if (utc_sec == (time_t)-1) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "Not a valid time");
-  }
-  offset = abs((int)(utc_sec - tm->sec) / 60);
-  datetime.tm_year = 100;
-  datetime.tm_hour = offset / 60;
-  datetime.tm_min = offset % 60;
-  len = strftime(buf, buf_len, TO_S_FMT, &tm->datetime);
-  buf[len++] = utc_sec < tm->sec ? '-' : '+';
-
-  return len + strftime(buf + len, buf_len - len, "%H%M", &datetime);
-#else
-  return strftime(buf, buf_len, TO_S_FMT "%z", &tm->datetime);
-#endif
-}
-
 static mrb_value
 mrb_time_to_s(mrb_state *mrb, mrb_value self)
 {
-  char buf[64];
   struct mrb_time *tm = time_get_ptr(mrb, self);
-  mrb_bool utc = tm->timezone == MRB_TIMEZONE_UTC;
-  size_t len = (utc ? time_to_s_utc : time_to_s_local)(mrb, tm, buf, sizeof(buf));
+  char buf[64];
+  size_t len;
+
+  if (tm->timezone == MRB_TIMEZONE_UTC) {
+    len = strftime(buf, sizeof(buf), TO_S_FMT "UTC", &tm->datetime);
+  }
+  else {
+    len = strftime(buf, sizeof(buf), TO_S_FMT, &tm->datetime);
+    len += time_zonename(mrb, tm, buf+len, sizeof(buf)-len);
+  }
   mrb_value str = mrb_str_new(mrb, buf, len);
   RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
   return str;
