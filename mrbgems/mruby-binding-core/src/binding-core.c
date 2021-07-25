@@ -7,6 +7,22 @@
 #include <mruby/opcode.h>
 #include <mruby/debug.h>
 
+#define BINDING_UPPER_DEFAULT  20
+#define BINDING_UPPER_MINIMUM  10
+#define BINDING_UPPER_MAXIMUM 100
+
+#ifndef MRB_BINDING_UPPER_MAX
+# define BINDING_UPPER_MAX BINDING_UPPER_DEFAULT
+#else
+# if (MRB_BINDING_UPPER_MAX) > BINDING_UPPER_MAXIMUM
+#  define BINDING_UPPER_MAX BINDING_UPPER_MAXIMUM
+# elif (MRB_BINDING_UPPER_MAX) < BINDING_UPPER_MINIMUM
+#  define BINDING_UPPER_MAX BINDING_UPPER_MINIMUM
+# else
+#  define BINDING_UPPER_MAX MRB_BINDING_UPPER_MAX
+# endif
+#endif
+
 void mrb_proc_merge_lvar(mrb_state *mrb, mrb_irep *irep, struct REnv *env, int num, const mrb_sym *lv, const mrb_value *stack);
 mrb_value mrb_proc_local_variables(mrb_state *mrb, const struct RProc *proc);
 const struct RProc *mrb_proc_get_caller(mrb_state *mrb, struct REnv **env);
@@ -43,6 +59,111 @@ mrb_binding_extract_env(mrb_state *mrb, mrb_value binding)
     mrb_check_type(mrb, obj, MRB_TT_ENV);
     return (struct REnv *)mrb_obj_ptr(obj);
   }
+}
+
+static mrb_irep *
+binding_irep_new_lvspace(mrb_state *mrb)
+{
+  static const mrb_code iseq_dummy[] = { OP_RETURN, 0 };
+
+  mrb_irep *irep = mrb_add_irep(mrb);
+  irep->flags = MRB_ISEQ_NO_FREE;
+  irep->iseq = iseq_dummy;
+  irep->ilen = sizeof(iseq_dummy) / sizeof(iseq_dummy[0]);
+  irep->lv = NULL;
+  irep->nlocals = 1;
+  irep->nregs = 1;
+  return irep;
+}
+
+static struct RProc *
+binding_proc_new_lvspace(mrb_state *mrb, const struct RProc *upper, struct REnv *env)
+{
+  struct RProc *lvspace = MRB_OBJ_ALLOC(mrb, MRB_TT_PROC, mrb->proc_class);
+  lvspace->body.irep = binding_irep_new_lvspace(mrb);
+  lvspace->upper = upper;
+  if (env && env->tt == MRB_TT_ENV) {
+    lvspace->e.env = env;
+    lvspace->flags |= MRB_PROC_ENVSET;
+  }
+  return lvspace;
+}
+
+static struct REnv *
+binding_env_new_lvspace(mrb_state *mrb, const struct REnv *e)
+{
+  struct REnv *env = MRB_OBJ_ALLOC(mrb, MRB_TT_ENV, NULL);
+  mrb_value *stacks = (mrb_value*)mrb_calloc(mrb, 1, sizeof(mrb_value));
+  env->cxt = e ? e->cxt : mrb->c;
+  env->mid = 0;
+  env->stack = stacks;
+  if (e && e->stack && MRB_ENV_LEN(e) > 0) {
+    env->stack[0] = e->stack[0];
+  }
+  else {
+    env->stack[0] = mrb_nil_value();
+  }
+  MRB_ENV_SET_LEN(env, 1);
+  return env;
+}
+
+static size_t
+binding_proc_upper_count(const struct RProc *proc)
+{
+  size_t count = 0;
+  for (; proc && !MRB_PROC_CFUNC_P(proc); proc = proc->upper) {
+    count++;
+    if (MRB_PROC_SCOPE_P(proc)) break;
+  }
+  return count;
+}
+
+static void
+binding_type_ensure(mrb_state *mrb, mrb_value obj)
+{
+  if (!mrb_obj_is_kind_of(mrb, obj, mrb_class_get_id(mrb, MRB_SYM(Binding)))) {
+    mrb_raise(mrb, E_TYPE_ERROR, "not a binding");
+  }
+}
+
+static mrb_value
+binding_initialize_copy(mrb_state *mrb, mrb_value binding)
+{
+  mrb_value src = mrb_get_arg1(mrb);
+  binding_type_ensure(mrb, src);
+  const struct RProc *src_proc = mrb_binding_extract_proc(mrb, src);
+  struct REnv *src_env = mrb_binding_extract_env(mrb, src);
+
+  mrb_check_frozen(mrb, mrb_obj_ptr(binding));
+
+  struct RProc *lvspace;
+  struct REnv *env;
+  if (MRB_ENV_LEN(src_env) < 2) {
+    /* when local variables of src are self only */
+    lvspace = binding_proc_new_lvspace(mrb, src_proc->upper, src_proc->e.env);
+    env = binding_env_new_lvspace(mrb, src_proc->e.env);
+  }
+  else {
+    if (binding_proc_upper_count(src_proc) > BINDING_UPPER_MAX) {
+      mrb_raise(mrb, E_RUNTIME_ERROR,
+                "too many upper procs for local variables (mruby limitation; maximum is " MRB_STRINGIZE(BINDING_UPPER_MAX) ")");
+    }
+
+    lvspace = binding_proc_new_lvspace(mrb, src_proc, src_env);
+    env = binding_env_new_lvspace(mrb, src_env);
+
+    // The reason for using the mrb_obj_iv_set_force() function is to allow local
+    // variables to be modified even if src is frozen. This behavior is CRuby imitation.
+    src_proc = binding_proc_new_lvspace(mrb, src_proc, src_env);
+    src_env = binding_env_new_lvspace(mrb, src_env);
+    struct RObject *o = mrb_obj_ptr(src);
+    mrb_obj_iv_set_force(mrb, o, MRB_SYM(proc), mrb_obj_value((struct RProc*)src_proc));
+    mrb_obj_iv_set_force(mrb, o, MRB_SYM(env), mrb_obj_value(src_env));
+  }
+  mrb_iv_set(mrb, binding, MRB_SYM(proc), mrb_obj_value(lvspace));
+  mrb_iv_set(mrb, binding, MRB_SYM(env), mrb_obj_value(env));
+
+  return binding;
 }
 
 static void
@@ -232,31 +353,8 @@ mrb_binding_wrap_lvspace(mrb_state *mrb, const struct RProc *proc, struct REnv *
    * binding.eval and binding.local_variable_set.
    */
 
-  static const mrb_code iseq_dummy[] = { OP_RETURN, 0 };
-
-  struct RProc *lvspace = MRB_OBJ_ALLOC(mrb, MRB_TT_PROC, mrb->proc_class);
-  mrb_irep *irep = mrb_add_irep(mrb);
-  irep->flags = MRB_ISEQ_NO_FREE;
-  irep->iseq = iseq_dummy;
-  irep->ilen = sizeof(iseq_dummy) / sizeof(iseq_dummy[0]);
-  irep->lv = (mrb_sym*)mrb_calloc(mrb, 1, sizeof(mrb_sym)); /* initial allocation for dummy */
-  irep->nlocals = 1;
-  irep->nregs = 1;
-  lvspace->body.irep = irep;
-  lvspace->upper = proc;
-  if (*envp) {
-    lvspace->e.env = *envp;
-    lvspace->flags |= MRB_PROC_ENVSET;
-  }
-
-  *envp = MRB_OBJ_ALLOC(mrb, MRB_TT_ENV, NULL);
-  (*envp)->stack = (mrb_value*)mrb_calloc(mrb, 1, sizeof(mrb_value));
-  (*envp)->stack[0] = lvspace->e.env ? lvspace->e.env->stack[0] : mrb_nil_value();
-  (*envp)->cxt = lvspace->e.env ? lvspace->e.env->cxt : mrb->c;
-  (*envp)->mid = 0;
-  (*envp)->flags = MRB_ENV_CLOSED | MRB_ENV_HEAPED;
-  MRB_ENV_SET_LEN(*envp, 1);
-
+  struct RProc *lvspace = binding_proc_new_lvspace(mrb, proc, *envp);
+  *envp = binding_env_new_lvspace(mrb, *envp);
   return lvspace;
 }
 
@@ -294,6 +392,7 @@ mrb_mruby_binding_core_gem_init(mrb_state *mrb)
 
   mrb_define_method(mrb, mrb->kernel_module, "binding", mrb_f_binding, MRB_ARGS_NONE());
 
+  mrb_define_method(mrb, binding, "initialize_copy", binding_initialize_copy, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, binding, "local_variable_defined?", binding_local_variable_defined_p, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, binding, "local_variable_get", binding_local_variable_get, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, binding, "local_variable_set", binding_local_variable_set, MRB_ARGS_REQ(2));
