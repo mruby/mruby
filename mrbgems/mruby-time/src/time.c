@@ -687,7 +687,7 @@ mrb_time_year(mrb_state *mrb, mrb_value self)
 static size_t
 time_zonename(mrb_state *mrb, struct mrb_time *tm, char *buf, size_t len)
 {
-#if 1 || defined(_MSC_VER) && _MSC_VER < 1900 || defined(__MINGW64__) || defined(__MINGW32__)
+#if defined(_MSC_VER) && _MSC_VER < 1900 || defined(__MINGW64__) || defined(__MINGW32__)
   struct tm datetime = {0};
   time_t utc_sec = timegm(&tm->datetime);
   int offset = abs((int)(utc_sec - tm->sec) / 60);
@@ -695,9 +695,9 @@ time_zonename(mrb_state *mrb, struct mrb_time *tm, char *buf, size_t len)
   datetime.tm_hour = offset / 60;
   datetime.tm_min = offset % 60;
   buf[0] = utc_sec < tm->sec ? '-' : '+';
-  return strftime(buf+1, sizeof(buf)-1, "%H%M", &datetime) + 1;
+  return strftime(buf+1, len, "%H%M", &datetime) + 1;
 #else
-  return strftime(buf, sizeof(buf), "%z", &tm->datetime);
+  return strftime(buf, len, "%z", &tm->datetime);
 #endif
 }
 
