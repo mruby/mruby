@@ -695,7 +695,7 @@ time_zonename(mrb_state *mrb, struct mrb_time *tm, char *buf, size_t len)
   datetime.tm_hour = offset / 60;
   datetime.tm_min = offset % 60;
   buf[0] = utc_sec < tm->sec ? '-' : '+';
-  return strftime(buf+1, len, "%H%M", &datetime) + 1;
+  return strftime(buf+1, len-1, "%H%M", &datetime) + 1;
 #else
   return strftime(buf, len, "%z", &tm->datetime);
 #endif
