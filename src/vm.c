@@ -312,7 +312,7 @@ mrb_protect_error(mrb_state *mrb, mrb_protect_error_func *body, void *userdata, 
   mrb_value result = mrb_nil_value();
   int ai = mrb_gc_arena_save(mrb);
   const struct mrb_context *c = mrb->c;
-  int ci_index = c->ci - c->cibase;
+  ptrdiff_t ci_index = c->ci - c->cibase;
 
   if (error) { *error = FALSE; }
 
