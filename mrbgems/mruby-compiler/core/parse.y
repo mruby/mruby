@@ -33,7 +33,6 @@ typedef struct mrb_parser_heredoc_info parser_heredoc_info;
 static int yyparse(parser_state *p);
 static int yylex(void *lval, parser_state *p);
 static void yyerror(parser_state *p, const char *s);
-static void yywarn(parser_state *p, const char *s);
 static void yywarning(parser_state *p, const char *s);
 static void backref_error(parser_state *p, node *n);
 static void void_expr_error(parser_state *p, node *n);
@@ -1623,7 +1622,7 @@ bodystmt        : compstmt
                         NODE_LINENO($$, $1);
                       }
                       else if ($3) {
-                        yywarn(p, "else without rescue is useless");
+                        yywarning(p, "else without rescue is useless");
                         $$ = push($1, $3);
                       }
                       else {
@@ -4125,7 +4124,7 @@ yyerror_c(parser_state *p, const char *msg, char c)
 }
 
 static void
-yywarn(parser_state *p, const char *s)
+yywarning(parser_state *p, const char *s)
 {
   char* c;
   size_t n;
@@ -4150,12 +4149,6 @@ yywarn(parser_state *p, const char *s)
     p->warn_buffer[p->nwarn].column = p->column;
   }
   p->nwarn++;
-}
-
-static void
-yywarning(parser_state *p, const char *s)
-{
-  yywarn(p, s);
 }
 
 static void
