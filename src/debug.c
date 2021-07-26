@@ -82,10 +82,10 @@ select_line_type(const uint16_t *lines, size_t lines_len)
 {
   size_t line_count = 0;
   size_t packed_map_len = 0;
-  uint32_t prev_line = 0;
-  uint32_t prev_pc = 0;
-  size_t i;
-  for (i = 0; i < lines_len; ++i) {
+  uint16_t prev_line = 0;
+  size_t prev_pc = 0;
+
+  for (size_t i = 0; i < lines_len; ++i) {
     if (lines[i] != prev_line) {
       packed_map_len += packed_int_len(lines[i]-prev_line);
       prev_line = lines[i];
@@ -261,7 +261,7 @@ mrb_debug_info_append_file(mrb_state *mrb, mrb_irep_debug_info *d,
     }
 
     case mrb_debug_line_packed_map: {
-      uint32_t prev_line = 0;
+      uint16_t prev_line = 0;
       uint32_t prev_pc = 0;
       size_t packed_size = 0;
       uint8_t *p, *pend;
