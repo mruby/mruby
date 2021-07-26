@@ -210,10 +210,7 @@ mrb_debug_info_append_file(mrb_state *mrb, mrb_irep_debug_info *d,
   }
 
   f = (mrb_irep_debug_info_file*)mrb_malloc(mrb, sizeof(*f));
-  d->files = (mrb_irep_debug_info_file**)(
-          d->files
-          ? mrb_realloc(mrb, d->files, sizeof(mrb_irep_debug_info_file*) * (d->flen + 1))
-          : mrb_malloc(mrb, sizeof(mrb_irep_debug_info_file*)));
+  d->files = (mrb_irep_debug_info_file**)mrb_realloc(mrb, d->files, sizeof(mrb_irep_debug_info_file*) * (d->flen + 1));
   d->files[d->flen++] = f;
 
   file_pc_count = end_pos - start_pos;
@@ -241,20 +238,17 @@ mrb_debug_info_append_file(mrb_state *mrb, mrb_irep_debug_info *d,
       mrb_irep_debug_info_line m;
       f->line_entry_count = 0;
       for (i = 0; i < file_pc_count; ++i) {
-        if (lines[start_pos + i] == prev_line) { continue; }
+        if (lines[start_pos + i] == prev_line) continue;
         ++f->line_entry_count;
         prev_line = lines[start_pos + i];
       }
       f->lines.flat_map = (mrb_irep_debug_info_line*)mrb_malloc(mrb, sizeof(mrb_irep_debug_info_line) * f->line_entry_count);
       prev_line = 0;
       for (i = 0; i < file_pc_count; ++i) {
-        if (lines[start_pos + i] == prev_line) { continue; }
-
+        if (lines[start_pos + i] == prev_line) continue;
         m.start_pos = start_pos + i;
         m.line = lines[start_pos + i];
         f->lines.flat_map[f->line_entry_count] = m;
-
-        /* update */
         prev_line = lines[start_pos + i];
       }
       break;
@@ -267,8 +261,7 @@ mrb_debug_info_append_file(mrb_state *mrb, mrb_irep_debug_info *d,
       uint8_t *p, *pend;
 
       for (i = 0; i < file_pc_count; ++i) {
-        if (lines[start_pos + i] == prev_line) { continue; }
-
+        if (lines[start_pos + i] == prev_line) continue;
         packed_size += packed_int_len(start_pos+i-prev_pc);
         prev_pc = start_pos+i;
         packed_size += packed_int_len(lines[start_pos+i]-prev_line);
@@ -278,12 +271,11 @@ mrb_debug_info_append_file(mrb_state *mrb, mrb_irep_debug_info *d,
       pend = p + packed_size;
       prev_line = 0; prev_pc = 0;
       for (i = 0; i < file_pc_count; ++i) {
-        if (lines[start_pos + i] == prev_line) { continue; }
+        if (lines[start_pos + i] == prev_line) continue;
         p += packed_int_encode(start_pos+i-prev_pc, p, pend);
         prev_pc = start_pos + i;
         p += packed_int_encode(lines[start_pos + i]-prev_line, p, pend);
         prev_line = lines[start_pos + i];
-        /* update */
       }
       f->line_entry_count = (uint32_t)packed_size;
       break;
