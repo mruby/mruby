@@ -6256,10 +6256,10 @@ parser_yylex(parser_state *p)
       if (last_state == EXPR_FNAME) goto gvar;
       tokfix(p);
       {
-        unsigned long n = mrb_int_read(tok(p), NULL, NULL);
-        if (n > INT_MAX) {
-          yyerror(p, "capture group index must be <= " MRB_STRINGIZE(INT_MAX));
-          return 0;
+        mrb_int n = mrb_int_read(tok(p), NULL, NULL);
+        if (n > INT32_MAX) {
+          yywarning(p, "capture group index too big; always nil");
+          return keyword_nil;
         }
         pylval.nd = new_nth_ref(p, (int)n);
       }
