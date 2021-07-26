@@ -276,7 +276,7 @@ mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, ch
 
   // Print the digits of the mantissa
   for (int i = 0; i < num_digits; ++i, --dec) {
-    int8_t d = f;
+    int8_t d = (int8_t)((int)f)%10;
     *s++ = '0' + d;
     if (dec == 0 && (prec > 0 || alt_form)) {
       *s++ = '.';
