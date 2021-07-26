@@ -7762,7 +7762,7 @@ mrb_parser_foreach_top_variable(mrb_state *mrb, struct mrb_parser_state *p, mrb_
   if ((intptr_t)n->car == NODE_SCOPE) {
     n = n->cdr->car;
     for (; n; n = n->cdr) {
-      mrb_sym sym = (intptr_t)n->car;
+      mrb_sym sym = sym(n->car);
       if (sym && !func(mrb, sym, user)) break;
     }
   }
