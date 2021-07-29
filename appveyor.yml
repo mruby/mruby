@@ -38,6 +38,8 @@ init:
   - set PATH=C:\Ruby26-x64\bin;%PATH%
   - ruby --version
 
+install:
+  - choco install winflexbison3
 
 build_script:
   - set MRUBY_CONFIG=ci/msvc

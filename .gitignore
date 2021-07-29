@@ -23,6 +23,7 @@ compile_commands.json
 cscope.files
 cscope.out
 tags
+y.tab.c
 
 /.git
 /bin
