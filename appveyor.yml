@@ -43,5 +43,6 @@ install:
 
 build_script:
   - set MRUBY_CONFIG=ci/msvc
+  - set YACC=C:\ProgramData\chocolatey\lib\winflexbison3\tools\win_bison.exe
   - rake -m test:build
   - rake test:run
