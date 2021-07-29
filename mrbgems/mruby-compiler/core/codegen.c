@@ -1938,14 +1938,13 @@ codegen(codegen_scope *s, node *tree, int val)
 
       if (!val) lp->acc = -1;
       lp->pc0 = new_label(s);
-      pos = genjmp_0(s, OP_JMP);
-      lp->pc1 = new_label(s);
-      codegen(s, tree->cdr, NOVAL);
-      dispatch(s, pos);
       codegen(s, tree->car, VAL);
       pop();
-      genjmp2(s, OP_JMPIF, cursp(), lp->pc1, NOVAL);
-
+      pos = genjmp2_0(s, OP_JMPNOT, cursp(), NOVAL);
+      lp->pc1 = new_label(s);
+      codegen(s, tree->cdr, NOVAL);
+      genjmp(s, OP_JMP, lp->pc0);
+      dispatch(s, pos);
       loop_pop(s, val);
     }
     break;
@@ -1957,14 +1956,13 @@ codegen(codegen_scope *s, node *tree, int val)
 
       if (!val) lp->acc = -1;
       lp->pc0 = new_label(s);
-      pos = genjmp_0(s, OP_JMP);
-      lp->pc1 = new_label(s);
-      codegen(s, tree->cdr, NOVAL);
-      dispatch(s, pos);
       codegen(s, tree->car, VAL);
       pop();
-      genjmp2(s, OP_JMPNOT, cursp(), lp->pc1, NOVAL);
-
+      pos = genjmp2_0(s, OP_JMPIF, cursp(), NOVAL);
+      lp->pc1 = new_label(s);
+      codegen(s, tree->cdr, NOVAL);
+      genjmp(s, OP_JMP, lp->pc0);
+      dispatch(s, pos);
       loop_pop(s, val);
     }
     break;
