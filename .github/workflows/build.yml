@@ -90,6 +90,8 @@ jobs:
         run: ruby -v
       - name: Compiler version
         run: ${{ env.CC }} --version
+      - name: Install Bison
+        run: pacman -S bison
       - name: Build and test
         run: rake -m test:build && rake test:run
 
@@ -144,6 +146,7 @@ jobs:
     timeout-minutes: 10
     env:
       MRUBY_CONFIG: ci/msvc
+      BISON: C:\ProgramData\chocolatey\lib\winflexbison3\tools\win_bison.exe
     steps:
       - uses: actions/checkout@v2.3.4
       - name: Ruby version
