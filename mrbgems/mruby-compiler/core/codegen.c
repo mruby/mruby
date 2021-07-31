@@ -739,6 +739,36 @@ gen_addsub(codegen_scope *s, uint8_t op, uint16_t dst)
   }
 }
 
+static void
+gen_muldiv(codegen_scope *s, uint8_t op, uint16_t dst)
+{
+  if (no_peephole(s)) {
+  normal:
+    genop_1(s, op, dst);
+    return;
+  }
+  else {
+    struct mrb_insn_data data = mrb_last_insn(s);
+    mrb_int n, n0;
+    if (addr_pc(s, data.addr) == s->lastlabel || !get_int_operand(s, &data, &n)) {
+      /* not integer immediate */
+      goto normal;
+    }
+    struct mrb_insn_data data0 = mrb_decode_insn(mrb_prev_pc(s, data.addr));
+    if (!get_int_operand(s, &data0, &n0)) {
+      goto normal;
+    }
+    if (op == OP_MUL) {
+      if (mrb_int_mul_overflow(n0, n, &n)) goto normal;
+    }
+    else { /* OP_DIV */
+      n = n0 / n;
+    }
+    s->pc = addr_pc(s, data0.addr);
+    gen_int(s, dst, n);
+  }
+}
+
 static uint32_t
 dispatch(codegen_scope *s, uint32_t pos0)
 {
@@ -1466,10 +1496,10 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
     gen_addsub(s, OP_SUB, cursp());
   }
   else if (!noop && sym == MRB_OPSYM_2(s->mrb, mul) && n == 1)  {
-    genop_1(s, OP_MUL, cursp());
+    gen_muldiv(s, OP_MUL, cursp());
   }
   else if (!noop && sym == MRB_OPSYM_2(s->mrb, div) && n == 1)  {
-    genop_1(s, OP_DIV, cursp());
+    gen_muldiv(s, OP_DIV, cursp());
   }
   else if (!noop && sym == MRB_OPSYM_2(s->mrb, lt) && n == 1)  {
     genop_1(s, OP_LT, cursp());
