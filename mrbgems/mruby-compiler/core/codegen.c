@@ -57,7 +57,6 @@ typedef struct scope {
 
   uint16_t sp;
   uint32_t pc;
-  uint32_t lastpc;
   uint32_t lastlabel;
   int ainfo:15;
   mrb_bool mscope:1;
@@ -229,14 +228,12 @@ gen_S(codegen_scope *s, uint16_t i)
 static void
 genop_0(codegen_scope *s, mrb_code i)
 {
-  s->lastpc = s->pc;
   gen_B(s, i);
 }
 
 static void
 genop_1(codegen_scope *s, mrb_code i, uint16_t a)
 {
-  s->lastpc = s->pc;
   if (a > 0xff) {
     gen_B(s, OP_EXT1);
     gen_B(s, i);
@@ -251,7 +248,6 @@ genop_1(codegen_scope *s, mrb_code i, uint16_t a)
 static void
 genop_2(codegen_scope *s, mrb_code i, uint16_t a, uint16_t b)
 {
-  s->lastpc = s->pc;
   if (a > 0xff && b > 0xff) {
     gen_B(s, OP_EXT3);
     gen_B(s, i);
@@ -306,7 +302,6 @@ genop_W(codegen_scope *s, mrb_code i, uint32_t a)
   uint8_t a2 = (a>>8) & 0xff;
   uint8_t a3 = a & 0xff;
 
-  s->lastpc = s->pc;
   gen_B(s, i);
   gen_B(s, a1);
   gen_B(s, a2);
@@ -328,6 +323,7 @@ struct mrb_insn_data
 mrb_decode_insn(const mrb_code *pc)
 {
   struct mrb_insn_data data = { 0 };
+  data.addr = pc;
   mrb_code insn = READ_B();
   uint16_t a = 0;
   uint16_t b = 0;
@@ -374,22 +370,119 @@ mrb_decode_insn(const mrb_code *pc)
   return data;
 }
 
+#undef OPCODE
+#define Z 1
+#define S 3
+#define W 4
+#define OPCODE(_,x) x,
+/* instruction sizes */
+static uint8_t mrb_insn_size[] = {
+#define B 2
+#define BB 3
+#define BBB 4
+#define BS 4
+#define BSS 6
+#include "mruby/ops.h"
+#undef B
+#undef BB
+#undef BBB
+#undef BS
+#undef BSS
+};
+/* EXT1 instruction sizes */
+static uint8_t mrb_insn_size1[] = {
+#define B 3
+#define BB 4
+#define BBB 5
+#define BS 5
+#define BSS 7
+#include "mruby/ops.h"
+#undef B
+#undef BS
+#undef BSS
+};
+/* EXT2 instruction sizes */
+static uint8_t mrb_insn_size2[] = {
+#define B 2
+#define BS 4
+#define BSS 6
+#include "mruby/ops.h"
+#undef B
+#undef BB
+#undef BBB
+#undef BS
+#undef BSS
+};
+/* EXT3 instruction sizes */
+#define B 3
+#define BB 5
+#define BBB 6
+#define BS 5
+#define BSS 7
+static uint8_t mrb_insn_size3[] = {
+#include "mruby/ops.h"
+};
+#undef B
+#undef BB
+#undef BBB
+#undef BS
+#undef BSS
+#undef OPCODE
+
+static const mrb_code*
+mrb_prev_pc(codegen_scope *s, const mrb_code *pc)
+{
+  const mrb_code *prev_pc = NULL;
+  const mrb_code *i = s->iseq;
+
+  while (i<pc) {
+    uint8_t insn = i[0];
+    prev_pc = i;
+    switch (insn) {
+    case OP_EXT1:
+      i += mrb_insn_size1[i[1]] + 1;
+      break;
+    case OP_EXT2:
+      i += mrb_insn_size2[i[1]] + 1;
+      break;
+    case OP_EXT3:
+      i += mrb_insn_size3[i[1]] + 1;
+      break;
+    default:
+      i += mrb_insn_size[insn];
+      break;
+    }
+  }
+  return prev_pc;
+}
+
+#define pc_addr(s) &((s)->iseq[(s)->pc])
+#define addr_pc(s, addr) (uint32_t)((addr) - s->iseq)
+
+static void
+rewind_pc(codegen_scope *s)
+{
+  const mrb_code *pc = mrb_prev_pc(s, pc_addr(s));
+  s->pc = addr_pc(s, pc);
+}
+
 static struct mrb_insn_data
 mrb_last_insn(codegen_scope *s)
 {
-  if (s->pc == s->lastpc) {
+  const mrb_code *pc = mrb_prev_pc(s, pc_addr(s));
+  if (pc == NULL) {
     struct mrb_insn_data data;
 
     data.insn = OP_NOP;
     return data;
   }
-  return mrb_decode_insn(&s->iseq[s->lastpc]);
+  return mrb_decode_insn(pc);
 }
 
 static mrb_bool
 no_peephole(codegen_scope *s)
 {
-  return no_optimize(s) || s->lastlabel == s->pc || s->pc == 0 || s->pc == s->lastpc;
+  return no_optimize(s) || s->lastlabel == s->pc || s->pc == 0;
 }
 
 #define JMPLINK_START UINT32_MAX
@@ -415,7 +508,6 @@ genjmp(codegen_scope *s, mrb_code i, uint32_t pc)
 {
   uint32_t pos;
 
-  s->lastpc = s->pc;
   gen_B(s, i);
   pos = s->pc;
   gen_jmpdst(s, pc);
@@ -433,12 +525,11 @@ genjmp2(codegen_scope *s, mrb_code i, uint16_t a, uint32_t pc, int val)
     struct mrb_insn_data data = mrb_last_insn(s);
 
     if (data.insn == OP_MOVE && data.a == a) {
-      s->pc = s->lastpc;
+      rewind_pc(s);
       a = data.b;
     }
   }
 
-  s->lastpc = s->pc;
   if (a > 0xff) {
     gen_B(s, OP_EXT1);
     gen_B(s, i);
@@ -477,7 +568,7 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
     case OP_LOADI_0: case OP_LOADI_1: case OP_LOADI_2: case OP_LOADI_3:
     case OP_LOADI_4: case OP_LOADI_5: case OP_LOADI_6: case OP_LOADI_7:
       if (nopeep || data.a != src || data.a < s->nlocals) goto normal;
-      s->pc = s->lastpc;
+      rewind_pc(s);
       genop_1(s, data.insn, dst);
       break;
     case OP_LOADI: case OP_LOADINEG: case OP_LOADI16:
@@ -486,19 +577,19 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
     case OP_GETCONST: case OP_STRING:
     case OP_LAMBDA: case OP_BLOCK: case OP_METHOD: case OP_BLKPUSH:
       if (nopeep || data.a != src || data.a < s->nlocals) goto normal;
-      s->pc = s->lastpc;
+      rewind_pc(s);
       genop_2(s, data.insn, dst, data.b);
       break;
     case OP_GETUPVAR:
       if (nopeep || data.a != src || data.a < s->nlocals) goto normal;
-      s->pc = s->lastpc;
+      rewind_pc(s);
       genop_3(s, data.insn, dst, data.b, data.c);
       break;
     case OP_LOADI32:
       if (nopeep || data.a != src || data.a < s->nlocals) goto normal;
       else {
         uint32_t i = (uint32_t)data.b<<16|data.c;
-        s->pc = s->lastpc;
+        rewind_pc(s);
         genop_2SS(s, data.insn, dst, i);
       }
       break;
@@ -533,7 +624,7 @@ gen_setupvar(codegen_scope *s, uint16_t dst, mrb_sym id)
   struct mrb_insn_data data = mrb_last_insn(s);
   if (!no_peephole(s) && data.insn == OP_MOVE && data.a == dst) {
     dst = data.b;
-    s->pc = s->lastpc;
+    rewind_pc(s);
   }
   genop_3(s, OP_SETUPVAR, dst, idx, lv);
 }
@@ -548,7 +639,7 @@ gen_return(codegen_scope *s, uint8_t op, uint16_t src)
     struct mrb_insn_data data = mrb_last_insn(s);
 
     if (data.insn == OP_MOVE && src == data.a) {
-      s->pc = s->lastpc;
+      rewind_pc(s);
       genop_1(s, op, data.b);
     }
     else if (data.insn != OP_RETURN) {
@@ -606,6 +697,8 @@ get_int_operand(codegen_scope *s, struct mrb_insn_data *data, mrb_int *n)
   }
 }
 
+static void gen_int(codegen_scope *s, uint16_t dst, mrb_int i);
+
 static void
 gen_addsub(codegen_scope *s, uint8_t op, uint16_t dst)
 {
@@ -622,15 +715,27 @@ gen_addsub(codegen_scope *s, uint8_t op, uint16_t dst)
       /* not integer immediate */
       goto normal;
     }
-    /* OP_ADDI/OP_SUBI takes upto 16bits */
-    if (n > INT16_MAX) goto normal;
-    s->pc = s->lastpc;
-    if (op == OP_ADD) {
-      genop_2(s, OP_ADDI, dst, (uint16_t)n);
+    struct mrb_insn_data data0 = mrb_decode_insn(mrb_prev_pc(s, data.addr));
+    mrb_int n0;
+    if (addr_pc(s, data.addr) == s->lastlabel || !get_int_operand(s, &data0, &n0)) {
+      /* OP_ADDI/OP_SUBI takes upto 16bits */
+      if (n > INT16_MAX) goto normal;
+      rewind_pc(s);
+      if (op == OP_ADD) {
+        genop_2(s, OP_ADDI, dst, (uint16_t)n);
+      }
+      else {
+        genop_2(s, OP_SUBI, dst, (uint16_t)n);
+      }
+      return;
     }
-    else {
-      genop_2(s, OP_SUBI, dst, (uint16_t)n);
+    if (op == OP_SUB) {
+      if (n == MRB_INT_MIN) goto normal;
+      n = -n;
     }
+    if (mrb_int_add_overflow(n0, n, &n)) goto normal;
+    s->pc = addr_pc(s, data0.addr);
+    gen_int(s, dst, n);
   }
 }
 
@@ -860,7 +965,7 @@ gen_setxv(codegen_scope *s, uint8_t op, uint16_t dst, mrb_sym sym)
   struct mrb_insn_data data = mrb_last_insn(s);
   if (!no_peephole(s) && data.insn == OP_MOVE && data.a == dst) {
     dst = data.b;
-    s->pc = s->lastpc;
+    rewind_pc(s);
   }
   genop_2(s, op, dst, idx);
 }
@@ -892,7 +997,7 @@ gen_uniop(codegen_scope *s, mrb_sym sym, uint16_t dst)
   mrb_int n;
 
   if (get_int_operand(s, &data, &n)) {
-    s->pc = s->lastpc;
+    rewind_pc(s);
     if (sym == MRB_OPSYM_2(s->mrb, minus)) {
       n = -n;
     }
@@ -3481,56 +3586,3 @@ mrb_irep_remove_lv(mrb_state *mrb, mrb_irep *irep)
     mrb_irep_remove_lv(mrb, (mrb_irep*)irep->reps[i]);
   }
 }
-
-#undef OPCODE
-#define Z 1
-#define S 3
-#define W 4
-#define OPCODE(_,x) x,
-/* instruction sizes */
-uint8_t mrb_insn_size[] = {
-#define B 2
-#define BB 3
-#define BBB 4
-#define BS 4
-#define BSS 6
-#include "mruby/ops.h"
-#undef B
-#undef BB
-#undef BBB
-#undef BS
-#undef BSS
-};
-/* EXT1 instruction sizes */
-uint8_t mrb_insn_size1[] = {
-#define B 3
-#define BB 4
-#define BBB 5
-#define BS 5
-#define BSS 7
-#include "mruby/ops.h"
-#undef B
-#undef BS
-#undef BSS
-};
-/* EXT2 instruction sizes */
-uint8_t mrb_insn_size2[] = {
-#define B 2
-#define BS 4
-#define BSS 6
-#include "mruby/ops.h"
-#undef B
-#undef BB
-#undef BBB
-#undef BS
-#undef BSS
-};
-/* EXT3 instruction sizes */
-#define B 3
-#define BB 5
-#define BBB 6
-#define BS 5
-#define BSS 7
-uint8_t mrb_insn_size3[] = {
-#include "mruby/ops.h"
-};
