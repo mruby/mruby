@@ -1306,37 +1306,37 @@ int_xor(mrb_state *mrb, mrb_value x)
 
 #define NUMERIC_SHIFT_WIDTH_MAX (MRB_INT_BIT-1)
 
-static mrb_value
-lshift(mrb_state *mrb, mrb_int val, mrb_int width)
+mrb_bool
+mrb_num_shift(mrb_state *mrb, mrb_int val, mrb_int width, mrb_int *num)
 {
-  mrb_assert(width >= 0);
-  if (val > 0) {
+  if (width < 0) {              /* rshift */
+    if (width == MRB_INT_MIN || -width >= NUMERIC_SHIFT_WIDTH_MAX) {
+      if (val < 0) {
+        *num = -1;
+      }
+      else {
+        *num = 0;
+      }
+    }
+    else {
+      *num = val >> -width;
+    }
+  }
+  else if (val > 0) {
     if ((width > NUMERIC_SHIFT_WIDTH_MAX) ||
         (val   > (MRB_INT_MAX >> width))) {
-      int_overflow(mrb, "bit shift");
+      return FALSE;
     }
-    return mrb_int_value(mrb, val << width);
+    *num = val << width;
   }
   else {
     if ((width > NUMERIC_SHIFT_WIDTH_MAX) ||
         (val   <= (MRB_INT_MIN >> width))) {
-      int_overflow(mrb, "bit shift");
+      return FALSE;
     }
-    return mrb_int_value(mrb, (val * ((mrb_int)1 << width)));
+    *num = val * ((mrb_int)1 << width);
   }
-}
-
-static mrb_value
-rshift(mrb_state *mrb, mrb_int val, mrb_int width)
-{
-  mrb_assert(width >= 0);
-  if (width >= NUMERIC_SHIFT_WIDTH_MAX) {
-    if (val < 0) {
-      return mrb_fixnum_value(-1);
-    }
-    return mrb_fixnum_value(0);
-  }
-  return mrb_int_value(mrb, val >> width);
+  return TRUE;
 }
 
 /* 15.2.8.3.12 */
@@ -1358,11 +1358,10 @@ int_lshift(mrb_state *mrb, mrb_value x)
   }
   val = mrb_integer(x);
   if (val == 0) return x;
-  if (width < 0) {
-    if (width == MRB_INT_MIN) return rshift(mrb, val, MRB_INT_BIT);
-    return rshift(mrb, val, -width);
+  if (!mrb_num_shift(mrb, val, width, &val)) {
+    int_overflow(mrb, "bit shift");
   }
-  return lshift(mrb, val, width);
+  return mrb_int_value(mrb, val);
 }
 
 /* 15.2.8.3.13 */
@@ -1384,11 +1383,11 @@ int_rshift(mrb_state *mrb, mrb_value x)
   }
   val = mrb_integer(x);
   if (val == 0) return x;
-  if (width < 0) {
-    if (width == MRB_INT_MIN) int_overflow(mrb, "bit shift");
-    return lshift(mrb, val, -width);
+  if (width == MRB_INT_MIN) int_overflow(mrb, "bit shift");
+  if (!mrb_num_shift(mrb, val, -width, &val)) {
+    int_overflow(mrb, "bit shift");
   }
-  return rshift(mrb, val, width);
+  return mrb_int_value(mrb, val);
 }
 
 /* 15.2.8.3.23 */
