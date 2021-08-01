@@ -798,6 +798,8 @@ gen_muldiv(codegen_scope *s, uint8_t op, uint16_t dst)
   }
 }
 
+mrb_bool mrb_num_shift(mrb_state *mrb, mrb_int val, mrb_int width, mrb_int *num);
+
 static mrb_bool
 gen_binop(codegen_scope *s, mrb_sym op, uint16_t dst)
 {
@@ -814,24 +816,11 @@ gen_binop(codegen_scope *s, mrb_sym op, uint16_t dst)
       return FALSE;
     }
     if (op == MRB_OPSYM_2(s->mrb, lshift)) {
-      if (n < 0) {
-        if (-63 > n || -n >= sizeof(mrb_int)*8) return FALSE;
-        n = n0 >> (-n);
-      }
-      else {
-        if (n >= sizeof(mrb_int)*8-1) return FALSE;
-        n = n0 << n;
-      }
+      if (!mrb_num_shift(s->mrb, n0, n, &n)) return FALSE;
     }
     else if (op == MRB_OPSYM_2(s->mrb, rshift)) {
-      if (n < 0) {
-        if (-63 > n || -n > sizeof(mrb_int)*8-1) return FALSE;
-        n = n0 << (-n);
-      }
-      else {
-        if (n >= sizeof(mrb_int)*8-1) return FALSE;
-        n = n0 >> n;
-      }
+      if (n == MRB_INT_MIN) return FALSE;
+      if (!mrb_num_shift(s->mrb, n0, -n, &n)) return FALSE;
     }
     else if (op == MRB_OPSYM_2(s->mrb, mod)) {
       if (n0 < 0 || n < 0) return FALSE;
