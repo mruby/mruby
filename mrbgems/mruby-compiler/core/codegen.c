@@ -798,6 +798,63 @@ gen_muldiv(codegen_scope *s, uint8_t op, uint16_t dst)
   }
 }
 
+static mrb_bool
+gen_binop(codegen_scope *s, mrb_sym op, uint16_t dst)
+{
+  if (no_peephole(s)) return FALSE;
+  else {
+    struct mrb_insn_data data = mrb_last_insn(s);
+    mrb_int n, n0;
+    if (addr_pc(s, data.addr) == s->lastlabel || !get_int_operand(s, &data, &n)) {
+      /* not integer immediate */
+      return FALSE;
+    }
+    struct mrb_insn_data data0 = mrb_decode_insn(mrb_prev_pc(s, data.addr));
+    if (!get_int_operand(s, &data0, &n0)) {
+      return FALSE;
+    }
+    if (op == MRB_OPSYM_2(s->mrb, lshift)) {
+      if (n < 0) {
+        if (-63 > n || -n >= sizeof(mrb_int)*8) return FALSE;
+        n = n0 >> (-n);
+      }
+      else {
+        if (n >= sizeof(mrb_int)*8-1) return FALSE;
+        n = n0 << n;
+      }
+    }
+    else if (op == MRB_OPSYM_2(s->mrb, rshift)) {
+      if (n < 0) {
+        if (-63 > n || -n > sizeof(mrb_int)*8-1) return FALSE;
+        n = n0 << (-n);
+      }
+      else {
+        if (n >= sizeof(mrb_int)*8-1) return FALSE;
+        n = n0 >> n;
+      }
+    }
+    else if (op == MRB_OPSYM_2(s->mrb, mod)) {
+      if (n0 < 0 || n < 0) return FALSE;
+      n = n0 % n;
+    }
+    else if (op == MRB_OPSYM_2(s->mrb, and)) {
+      n = n0 & n;
+    }
+    else if (op == MRB_OPSYM_2(s->mrb, or)) {
+      n = n0 | n;
+    }
+    else if (op == MRB_OPSYM_2(s->mrb, xor)) {
+      n = n0 ^ n;
+    }
+    else {
+      return FALSE;
+    }
+    s->pc = addr_pc(s, data0.addr);
+    gen_int(s, dst, n);
+    return TRUE;
+  }
+}
+
 static uint32_t
 dispatch(codegen_scope *s, uint32_t pos0)
 {
@@ -1550,6 +1607,9 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
             sym == MRB_OPSYM_2(s->mrb, minus) ||
             sym == MRB_OPSYM_2(s->mrb, neg))) {
     gen_uniop(s, sym, cursp());
+  }
+  else if (!noop && n == 1 && gen_binop(s, sym, cursp())) {
+    /* constant folding succeeded */
   }
   else {
     int idx = new_sym(s, sym);
