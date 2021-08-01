@@ -2096,33 +2096,40 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
 
   case NODE_WHILE:
-    {
-      struct loopinfo *lp = loop_push(s, LOOP_NORMAL);
-      uint32_t pos;
-
-      if (!val) lp->acc = -1;
-      lp->pc0 = new_label(s);
-      codegen(s, tree->car, VAL);
-      pop();
-      pos = genjmp2_0(s, OP_JMPNOT, cursp(), NOVAL);
-      lp->pc1 = new_label(s);
-      codegen(s, tree->cdr, NOVAL);
-      genjmp(s, OP_JMP, lp->pc0);
-      dispatch(s, pos);
-      loop_pop(s, val);
-    }
-    break;
-
   case NODE_UNTIL:
     {
       struct loopinfo *lp = loop_push(s, LOOP_NORMAL);
-      uint32_t pos;
+      uint32_t pos = JMPLINK_START;
 
       if (!val) lp->acc = -1;
       lp->pc0 = new_label(s);
-      codegen(s, tree->car, VAL);
-      pop();
-      pos = genjmp2_0(s, OP_JMPIF, cursp(), NOVAL);
+      switch (nint(tree->car->car)) {
+      case NODE_TRUE:
+      case NODE_INT:
+      case NODE_STR:
+        if (nt == NODE_UNTIL) {
+          if (val) genop_1(s, OP_LOADNIL, cursp());
+          goto exit;
+        }
+        break;
+      case NODE_FALSE:
+      case NODE_NIL:
+        if (nt == NODE_WHILE) {
+          if (val) genop_1(s, OP_LOADNIL, cursp());
+          goto exit;
+        }
+        break;
+      default:
+        codegen(s, tree->car, VAL);
+        pop();
+        if (nt == NODE_WHILE) {
+          pos = genjmp2_0(s, OP_JMPNOT, cursp(), NOVAL);
+        }
+        else {
+          pos = genjmp2_0(s, OP_JMPIF, cursp(), NOVAL);
+        }
+        break;
+      }
       lp->pc1 = new_label(s);
       codegen(s, tree->cdr, NOVAL);
       genjmp(s, OP_JMP, lp->pc0);
