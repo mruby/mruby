@@ -1106,25 +1106,28 @@ gen_int(codegen_scope *s, uint16_t dst, mrb_int i)
   }
 }
 
-static void
+static mrb_bool
 gen_uniop(codegen_scope *s, mrb_sym sym, uint16_t dst)
 {
   struct mrb_insn_data data = mrb_last_insn(s);
   mrb_int n;
 
-  if (get_int_operand(s, &data, &n)) {
-    rewind_pc(s);
-    if (sym == MRB_OPSYM_2(s->mrb, minus)) {
-      n = -n;
-    }
-    else if (sym == MRB_OPSYM_2(s->mrb, neg)) {
-      n = ~n;
-    }
-    gen_int(s, dst, n);
+  if (!get_int_operand(s, &data, &n)) return FALSE;
+  if (sym == MRB_OPSYM_2(s->mrb, plus)) {
+    /* unary plus does nothing */
+  }
+  else if (sym == MRB_OPSYM_2(s->mrb, minus)) {
+    n = -n;
+  }
+  else if (sym == MRB_OPSYM_2(s->mrb, neg)) {
+    n = ~n;
   }
   else {
-    genop_3(s, OP_SEND, dst, new_sym(s, sym), 0);
+    return FALSE;
   }
+  s->pc = addr_pc(s, data.addr);
+  gen_int(s, dst, n);
+  return TRUE;
 }
 
 static int
@@ -1602,11 +1605,8 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
   else if (!noop && sym == MRB_OPSYM_2(s->mrb, eq) && n == 1)  {
     genop_1(s, OP_EQ, cursp());
   }
-  else if (!noop && n == 0 &&
-           (sym == MRB_OPSYM_2(s->mrb, plus) ||
-            sym == MRB_OPSYM_2(s->mrb, minus) ||
-            sym == MRB_OPSYM_2(s->mrb, neg))) {
-    gen_uniop(s, sym, cursp());
+  else if (!noop && n == 0 && gen_uniop(s, sym, cursp())) {
+    /* constant folding succeeded */
   }
   else if (!noop && n == 1 && gen_binop(s, sym, cursp())) {
     /* constant folding succeeded */
@@ -2981,7 +2981,10 @@ codegen(codegen_scope *s, node *tree, int val)
           codegen(s, tree, VAL);
           pop();
           push_n(2);pop_n(2); /* space for receiver&block */
-          gen_uniop(s, MRB_OPSYM_2(s->mrb, minus), cursp());
+          mrb_sym minus = MRB_OPSYM_2(s->mrb, minus);
+          if (!gen_uniop(s, minus, cursp())) {
+            genop_3(s, OP_SEND, cursp(), new_sym(s, minus), 0);
+          }
           push();
         }
         else {
