@@ -1121,7 +1121,12 @@ int_mod(mrb_state *mrb, mrb_value x)
   if (mrb_integer_p(y) && a != MRB_INT_MIN && (b=mrb_integer(y)) != MRB_INT_MIN) {
     mrb_int mod;
 
-    fixdivmod(mrb, a, b, NULL, &mod);
+    if (a >= 0 && b >= 0) {
+      mod = a % b;
+    }
+    else {
+      fixdivmod(mrb, a, b, NULL, &mod);
+    }
     return mrb_fixnum_value(mod);
   }
 #ifdef MRB_NO_FLOAT
