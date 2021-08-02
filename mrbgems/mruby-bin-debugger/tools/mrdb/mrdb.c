@@ -574,7 +574,7 @@ mrb_code_fetch_hook(mrb_state *mrb, const mrb_irep *irep, const mrb_code *pc, mr
 
   switch (dbg->xm) {
   case DBG_STEP:
-    if (!file || (dbg->prvfile == file && dbg->prvline == line)) {
+    if (*pc != OP_JMP && (!file || (dbg->prvfile == file && dbg->prvline == line))) {
       return;
     }
     dbg->method_bpno = 0;
