@@ -1119,15 +1119,11 @@ int_mod(mrb_state *mrb, mrb_value x)
 
   a = mrb_integer(x);
   if (mrb_integer_p(y) && a != MRB_INT_MIN && (b=mrb_integer(y)) != MRB_INT_MIN) {
-    mrb_int mod;
-
-    if (a >= 0 && b >= 0) {
-      mod = a % b;
+    mrb_int mod = a % b;
+    if ((a < 0) != (b < 0) && mod != 0) {
+      mod += b;
     }
-    else {
-      fixdivmod(mrb, a, b, NULL, &mod);
-    }
-    return mrb_fixnum_value(mod);
+    return mrb_int_value(mrb, mod);
   }
 #ifdef MRB_NO_FLOAT
   mrb_raise(mrb, E_TYPE_ERROR, "non integer modulo");
