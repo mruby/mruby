@@ -1080,7 +1080,7 @@ int_mul(mrb_state *mrb, mrb_value x)
 }
 
 static void
-fixdivmod(mrb_state *mrb, mrb_int x, mrb_int y, mrb_int *divp, mrb_int *modp)
+intdivmod(mrb_state *mrb, mrb_int x, mrb_int y, mrb_int *divp, mrb_int *modp)
 {
   if (y == 0) {
     int_zerodiv(mrb);
@@ -1151,7 +1151,7 @@ int_divmod(mrb_state *mrb, mrb_value x)
   if (mrb_integer_p(y)) {
     mrb_int div, mod;
 
-    fixdivmod(mrb, mrb_integer(x), mrb_integer(y), &div, &mod);
+    intdivmod(mrb, mrb_integer(x), mrb_integer(y), &div, &mod);
     return mrb_assoc_new(mrb, mrb_int_value(mrb, div), mrb_int_value(mrb, mod));
   }
 #ifdef MRB_NO_FLOAT
