@@ -1812,12 +1812,12 @@ raise_error(codegen_scope *s, const char *msg)
 }
 
 static mrb_int
-readint(codegen_scope *s, const char *p, int base, mrb_bool *overflow)
+readint(codegen_scope *s, const char *p, int base, mrb_bool neg, mrb_bool *overflow)
 {
   const char *e = p + strlen(p);
   mrb_int result = 0;
 
-  mrb_assert(base >= 2 && base <= 36);
+  mrb_assert(base >= 2 && base <= 16);
   if (*p == '+') p++;
   while (p < e) {
     int n;
@@ -1838,14 +1838,22 @@ readint(codegen_scope *s, const char *p, int base, mrb_bool *overflow)
       /* not reached */
       return result;
     }
-    if (mrb_int_mul_overflow(result, base, &result) ||
-        mrb_int_add_overflow(result, n, &result)) {
+    if (mrb_int_mul_overflow(result, base, &result)) {
+    overflow:
       *overflow = TRUE;
       return 0;
     }
+    mrb_uint tmp = ((mrb_uint)result)+n;
+    if (neg && tmp == (mrb_uint)MRB_INT_MAX+1) {
+      *overflow = FALSE;
+      return MRB_INT_MIN;
+    }
+    if (tmp > MRB_INT_MAX) goto overflow;
+    result = (mrb_int)tmp;
     p++;
   }
   *overflow = FALSE;
+  if (neg) return -result;
   return result;
 }
 
@@ -2904,7 +2912,7 @@ codegen(codegen_scope *s, node *tree, int val)
       mrb_int i;
       mrb_bool overflow;
 
-      i = readint(s, p, base, &overflow);
+      i = readint(s, p, base, FALSE, &overflow);
       if (overflow) {
         int off = new_litbn(s, p, base, FALSE);
         genop_2(s, OP_LOADL, cursp(), off);
@@ -2953,13 +2961,13 @@ codegen(codegen_scope *s, node *tree, int val)
           mrb_int i;
           mrb_bool overflow;
 
-          i = readint(s, p, base, &overflow);
+          i = readint(s, p, base, TRUE, &overflow);
           if (overflow) {
             int off = new_litbn(s, p, base, TRUE);
             genop_2(s, OP_LOADL, cursp(), off);
           }
           else {
-            gen_int(s, cursp(), -i);
+            gen_int(s, cursp(), i);
           }
           push();
         }
