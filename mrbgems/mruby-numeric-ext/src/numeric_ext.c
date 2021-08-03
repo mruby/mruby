@@ -83,6 +83,7 @@ int_remainder(mrb_state *mrb, mrb_value x)
     mrb_float n = (mrb_float)a;
     mrb_float m = mrb_as_float(mrb, y);
 
+    if (isinf(m)) return mrb_float_value(mrb, n);
     return mrb_float_value(mrb, n-m*trunc(n/m));
   }
 #endif
@@ -97,6 +98,7 @@ flo_remainder(mrb_state *mrb, mrb_value self)
   a = mrb_float(self);
   mrb_get_args(mrb, "f", &b);
   if (b == 0) zerodiv(mrb);
+  if (isinf(b)) return mrb_float_value(mrb, a);
   return mrb_float_value(mrb, a-b*trunc(a/b));
 }
 #endif
