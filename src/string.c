@@ -1171,14 +1171,14 @@ mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen)
 /* 15.2.10.5.34 */
 /*
  *  call-seq:
- *     str[fixnum]                 => fixnum or nil
- *     str[fixnum, fixnum]         => new_str or nil
- *     str[range]                  => new_str or nil
- *     str[other_str]              => new_str or nil
- *     str.slice(fixnum)           => fixnum or nil
- *     str.slice(fixnum, fixnum)   => new_str or nil
- *     str.slice(range)            => new_str or nil
- *     str.slice(other_str)        => new_str or nil
+ *     str[int]                 => int or nil
+ *     str[int, int]            => new_str or nil
+ *     str[range]               => new_str or nil
+ *     str[other_str]           => new_str or nil
+ *     str.slice(int)           => int or nil
+ *     str.slice(int, int)      => new_str or nil
+ *     str.slice(range)         => new_str or nil
+ *     str.slice(other_str)     => new_str or nil
  *
  *  Element Reference---If passed a single <code>Integer</code>, returns the code
  *  of the character at that position. If passed two <code>Integer</code>
@@ -1378,8 +1378,8 @@ mrb_str_aset(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen, mrb_
 
 /*
  * call-seq:
- *    str[fixnum] = replace
- *    str[fixnum, fixnum] = replace
+ *    str[int] = replace
+ *    str[int, int] = replace
  *    str[range] = replace
  *    str[other_str] = replace
  *
@@ -1750,7 +1750,7 @@ mrb_str_hash(mrb_state *mrb, mrb_value str)
 /* 15.2.10.5.20 */
 /*
  * call-seq:
- *    str.hash   => fixnum
+ *    str.hash   => int
  *
  * Return a hash based on the string's length and content.
  */
@@ -1758,14 +1758,14 @@ static mrb_value
 mrb_str_hash_m(mrb_state *mrb, mrb_value self)
 {
   mrb_int key = mrb_str_hash(mrb, self);
-  return mrb_fixnum_value(key);
+  return mrb_int_value(mrb, key);
 }
 
 /* 15.2.10.5.21 */
 /*
  *  call-seq:
  *     str.include? other_str   => true or false
- *     str.include? fixnum      => true or false
+ *     str.include? int         => true or false
  *
  *  Returns <code>true</code> if <i>str</i> contains the given string or
  *  character.
@@ -1788,7 +1788,7 @@ mrb_str_include(mrb_state *mrb, mrb_value self)
 /* 15.2.10.5.22 */
 /*
  *  call-seq:
- *     str.index(substring [, offset])   => fixnum or nil
+ *     str.index(substring [, offset])   => int or nil
  *
  *  Returns the index of the first occurrence of the given
  *  <i>substring</i>. Returns <code>nil</code> if not found.
@@ -2014,7 +2014,7 @@ mrb_str_reverse(mrb_state *mrb, mrb_value str)
 /* 15.2.10.5.31 */
 /*
  *  call-seq:
- *     str.rindex(substring [, offset])   => fixnum or nil
+ *     str.rindex(substring [, offset])   => int or nil
  *
  *  Returns the index of the last occurrence of the given <i>substring</i>.
  *  Returns <code>nil</code> if not found. If the second parameter is
@@ -2718,7 +2718,7 @@ mrb_str_inspect(mrb_state *mrb, mrb_value str)
 
 /*
  * call-seq:
- *   str.bytes   -> array of fixnums
+ *   str.bytes   -> array of int
  *
  * Returns an array of bytes in _str_.
  *

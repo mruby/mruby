@@ -84,8 +84,8 @@ mrb_equal_m(mrb_state *mrb, mrb_value self)
  *  Document-method: object_id
  *
  *  call-seq:
- *     obj.__id__       -> fixnum
- *     obj.object_id    -> fixnum
+ *     obj.__id__       -> int
+ *     obj.object_id    -> int
  *
  *  Returns an integer identifier for <i>obj</i>. The same number will
  *  be returned on all calls to <code>id</code> for a given object, and
@@ -293,7 +293,7 @@ mrb_obj_frozen(mrb_state *mrb, mrb_value self)
 /* 15.3.1.3.15 */
 /*
  *  call-seq:
- *     obj.hash    -> fixnum
+ *     obj.hash    -> int
  *
  *  Generates a <code>Integer</code> hash value for this object. This
  *  function must have the property that <code>a.eql?(b)</code> implies

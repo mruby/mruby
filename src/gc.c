@@ -1471,7 +1471,7 @@ gc_disable(mrb_state *mrb, mrb_value obj)
 
 /*
  *  call-seq:
- *     GC.interval_ratio      -> fixnum
+ *     GC.interval_ratio      -> int
  *
  *  Returns ratio of GC interval. Default value is 200(%).
  *
@@ -1480,12 +1480,12 @@ gc_disable(mrb_state *mrb, mrb_value obj)
 static mrb_value
 gc_interval_ratio_get(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_fixnum_value(mrb->gc.interval_ratio);
+  return mrb_int_value(mrb, mrb->gc.interval_ratio);
 }
 
 /*
  *  call-seq:
- *     GC.interval_ratio = fixnum    -> nil
+ *     GC.interval_ratio = int    -> nil
  *
  *  Updates ratio of GC interval. Default value is 200(%).
  *  GC start as soon as after end all step of GC if you set 100(%).
@@ -1504,7 +1504,7 @@ gc_interval_ratio_set(mrb_state *mrb, mrb_value obj)
 
 /*
  *  call-seq:
- *     GC.step_ratio    -> fixnum
+ *     GC.step_ratio    -> int
  *
  *  Returns step span ratio of Incremental GC. Default value is 200(%).
  *
@@ -1513,12 +1513,12 @@ gc_interval_ratio_set(mrb_state *mrb, mrb_value obj)
 static mrb_value
 gc_step_ratio_get(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_fixnum_value(mrb->gc.step_ratio);
+  return mrb_int_value(mrb, mrb->gc.step_ratio);
 }
 
 /*
  *  call-seq:
- *     GC.step_ratio = fixnum   -> nil
+ *     GC.step_ratio = int   -> nil
  *
  *  Updates step span ratio of Incremental GC. Default value is 200(%).
  *  1 step of incrementalGC becomes long if a rate is big.

@@ -37,7 +37,7 @@ class Range
       end
     end
 
-    if val.kind_of?(Integer) && last.kind_of?(Integer) # fixnums are special
+    if val.kind_of?(Integer) && last.kind_of?(Integer) # integers are special
       lim = last
       lim += 1 unless exclude_end?
       i = val
