@@ -50,6 +50,12 @@ int_nobits(mrb_state *mrb, mrb_value self)
   return mrb_bool_value((n & m) == 0);
 }
 
+static void
+zerodiv(mrb_state *mrb)
+{
+  mrb_raise(mrb, E_ZERODIV_ERROR, "divided by 0");
+}
+
 /*
  *  call-seq:
  *     num.remainder(numeric)  ->  real
@@ -59,13 +65,26 @@ int_nobits(mrb_state *mrb, mrb_value self)
  *  See Numeric#divmod.
  */
 static mrb_value
-int_remainder(mrb_state *mrb, mrb_value self)
+int_remainder(mrb_state *mrb, mrb_value x)
 {
-  mrb_int n, m;
+  mrb_value y = mrb_get_arg1(mrb);
+  mrb_int a, b;
 
-  mrb_get_args(mrb, "i", &m);
-  n = mrb_integer(self);
-  return mrb_int_value(mrb, n % m);
+  a = mrb_integer(x);
+  if (mrb_integer_p(y) && a != MRB_INT_MIN && (b=mrb_integer(y)) != MRB_INT_MIN) {
+    if (b == 0) zerodiv(mrb);
+    return mrb_int_value(mrb, a % b);
+  }
+#ifdef MRB_NO_FLOAT
+  mrb_raise(mrb, E_TYPE_ERROR, "non integer remainder");
+#else
+  else {
+    mrb_float n = (mrb_float)a;
+    mrb_float m = mrb_as_float(mrb, y);
+
+    return mrb_float_value(mrb, n-m*trunc(n/m));
+  }
+#endif
 }
 
 void
