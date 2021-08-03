@@ -50,6 +50,24 @@ int_nobits(mrb_state *mrb, mrb_value self)
   return mrb_bool_value((n & m) == 0);
 }
 
+/*
+ *  call-seq:
+ *     num.remainder(numeric)  ->  real
+ *
+ *  <code>x.remainder(y)</code> means <code>x-y*(x/y).truncate</code>.
+ *
+ *  See Numeric#divmod.
+ */
+static mrb_value
+int_remainder(mrb_state *mrb, mrb_value self)
+{
+  mrb_int n, m;
+
+  mrb_get_args(mrb, "i", &m);
+  n = mrb_integer(self);
+  return mrb_int_value(mrb, n % m);
+}
+
 void
 mrb_mruby_numeric_ext_gem_init(mrb_state* mrb)
 {
@@ -58,6 +76,9 @@ mrb_mruby_numeric_ext_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, i, "allbits?", int_allbits, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, i, "anybits?", int_anybits, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, i, "nobits?", int_nobits, MRB_ARGS_REQ(1));
+
+  mrb_define_alias(mrb, i, "modulo", "%");
+  mrb_define_method(mrb, i, "remainder", int_remainder, MRB_ARGS_REQ(1));
 
 #ifndef MRB_NO_FLOAT
   mrb_define_const_id(mrb, mrb->float_class, MRB_SYM(RADIX),        mrb_fixnum_value(MRB_FLT_RADIX));
