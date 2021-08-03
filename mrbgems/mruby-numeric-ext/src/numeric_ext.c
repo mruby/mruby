@@ -9,7 +9,7 @@
  *  Returns +true+ if all bits of <code>+int+ & +mask+</code> are 1.
  */
 static mrb_value
-mrb_int_allbits(mrb_state *mrb, mrb_value self)
+int_allbits(mrb_state *mrb, mrb_value self)
 {
   mrb_int n, m;
 
@@ -25,7 +25,7 @@ mrb_int_allbits(mrb_state *mrb, mrb_value self)
  *  Returns +true+ if any bits of <code>+int+ & +mask+</code> are 1.
  */
 static mrb_value
-mrb_int_anybits(mrb_state *mrb, mrb_value self)
+int_anybits(mrb_state *mrb, mrb_value self)
 {
   mrb_int n, m;
 
@@ -41,7 +41,7 @@ mrb_int_anybits(mrb_state *mrb, mrb_value self)
  *  Returns +true+ if no bits of <code>+int+ & +mask+</code> are 1.
  */
 static mrb_value
-mrb_int_nobits(mrb_state *mrb, mrb_value self)
+int_nobits(mrb_state *mrb, mrb_value self)
 {
   mrb_int n, m;
 
@@ -55,9 +55,9 @@ mrb_mruby_numeric_ext_gem_init(mrb_state* mrb)
 {
   struct RClass *i = mrb_class_get(mrb, "Integer");
 
-  mrb_define_method(mrb, i, "allbits?", mrb_int_allbits, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, i, "anybits?", mrb_int_anybits, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, i, "nobits?", mrb_int_nobits, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, i, "allbits?", int_allbits, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, i, "anybits?", int_anybits, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, i, "nobits?", int_nobits, MRB_ARGS_REQ(1));
 
 #ifndef MRB_NO_FLOAT
   mrb_define_const_id(mrb, mrb->float_class, MRB_SYM(RADIX),        mrb_fixnum_value(MRB_FLT_RADIX));
