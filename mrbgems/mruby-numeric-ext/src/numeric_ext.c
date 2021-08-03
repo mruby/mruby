@@ -1,6 +1,7 @@
 #include <mruby.h>
 #include <mruby/numeric.h>
 #include <mruby/presym.h>
+#include <math.h>
 
 /*
  *  call-seq:
@@ -87,6 +88,19 @@ int_remainder(mrb_state *mrb, mrb_value x)
 #endif
 }
 
+#ifndef MRB_NO_FLOAT
+static mrb_value
+flo_remainder(mrb_state *mrb, mrb_value self)
+{
+  mrb_float a, b;
+
+  a = mrb_float(self);
+  mrb_get_args(mrb, "f", &b);
+  if (b == 0) zerodiv(mrb);
+  return mrb_float_value(mrb, a-b*trunc(a/b));
+}
+#endif
+
 void
 mrb_mruby_numeric_ext_gem_init(mrb_state* mrb)
 {
@@ -100,6 +114,11 @@ mrb_mruby_numeric_ext_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, i, "remainder", int_remainder, MRB_ARGS_REQ(1));
 
 #ifndef MRB_NO_FLOAT
+  struct RClass *f = mrb_class_get(mrb, "Float");
+
+  mrb_define_alias(mrb, f, "modulo", "%");
+  mrb_define_method(mrb, f, "remainder", flo_remainder, MRB_ARGS_REQ(1));
+
   mrb_define_const_id(mrb, mrb->float_class, MRB_SYM(RADIX),        mrb_fixnum_value(MRB_FLT_RADIX));
   mrb_define_const_id(mrb, mrb->float_class, MRB_SYM(MANT_DIG),     mrb_fixnum_value(MRB_FLT_MANT_DIG));
   mrb_define_const_id(mrb, mrb->float_class, MRB_SYM(EPSILON),      mrb_float_value(mrb, MRB_FLT_EPSILON));
