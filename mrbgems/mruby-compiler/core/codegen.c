@@ -822,7 +822,7 @@ gen_binop(codegen_scope *s, mrb_sym op, uint16_t dst)
       if (n == MRB_INT_MIN) return FALSE;
       if (!mrb_num_shift(s->mrb, n0, -n, &n)) return FALSE;
     }
-    else if (op == MRB_OPSYM_2(s->mrb, mod)) {
+    else if (op == MRB_OPSYM_2(s->mrb, mod) && n != 0) {
       mrb_int n1 = n0 % n;
       if ((n0 < 0) != (n < 0) && n1 != 0) {
         n1 += n;
