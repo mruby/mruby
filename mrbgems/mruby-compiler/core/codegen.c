@@ -784,7 +784,7 @@ gen_muldiv(codegen_scope *s, uint8_t op, uint16_t dst)
       goto normal;
     }
     struct mrb_insn_data data0 = mrb_decode_insn(mrb_prev_pc(s, data.addr));
-    if (!get_int_operand(s, &data0, &n0)) {
+    if (!get_int_operand(s, &data0, &n0) || n == 0) {
       goto normal;
     }
     if (op == OP_MUL) {
