@@ -180,7 +180,7 @@ int_idiv(mrb_state *mrb, mrb_value x)
   if (y == 0) {
     int_zerodiv(mrb);
   }
-  return mrb_fixnum_value(mrb_integer(x) / y);
+  return mrb_int_value(mrb, mrb_integer(x) / y);
 }
 
 static mrb_value

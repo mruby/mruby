@@ -893,14 +893,14 @@ static mrb_value
 mrb_str_size(mrb_state *mrb, mrb_value self)
 {
   mrb_int len = RSTRING_CHAR_LEN(self);
-  return mrb_fixnum_value(len);
+  return mrb_int_value(mrb, len);
 }
 
 static mrb_value
 mrb_str_bytesize(mrb_state *mrb, mrb_value self)
 {
   mrb_int len = RSTRING_LEN(self);
-  return mrb_fixnum_value(len);
+  return mrb_int_value(mrb, len);
 }
 
 /* 15.2.10.5.1  */
@@ -1014,7 +1014,7 @@ mrb_str_cmp_m(mrb_state *mrb, mrb_value str1)
   else {
     result = mrb_str_cmp(mrb, str1, str2);
   }
-  return mrb_fixnum_value(result);
+  return mrb_int_value(mrb, result);
 }
 
 static mrb_bool
@@ -1235,7 +1235,7 @@ str_replace_partial(mrb_state *mrb, mrb_value src, mrb_int pos, mrb_int end, mrb
   if (end > len) { end = len; }
 
   if (pos < 0 || pos > len) {
-    str_out_of_index(mrb, mrb_fixnum_value(pos));
+    str_out_of_index(mrb, mrb_int_value(mrb, pos));
   }
 
   replen = (mrb_nil_p(rep) ? 0 : RSTRING_LEN(rep));
@@ -1820,7 +1820,7 @@ mrb_str_index_m(mrb_state *mrb, mrb_value str)
 
   if (pos == -1) return mrb_nil_value();
   BYTES_ALIGN_CHECK(pos);
-  return mrb_fixnum_value(pos);
+  return mrb_int_value(mrb, pos);
 }
 
 /* 15.2.10.5.24 */
@@ -2049,7 +2049,7 @@ mrb_str_rindex(mrb_state *mrb, mrb_value str)
   if (pos >= 0) {
     pos = bytes2chars(RSTRING_PTR(str), RSTRING_LEN(str), pos);
     BYTES_ALIGN_CHECK(pos);
-    return mrb_fixnum_value(pos);
+    return mrb_int_value(mrb, pos);
   }
   return mrb_nil_value();
 }

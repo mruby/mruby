@@ -1083,7 +1083,7 @@ mrb_ary_index_m(mrb_state *mrb, mrb_value self)
 
   for (i = 0; i < RARRAY_LEN(self); i++) {
     if (mrb_equal(mrb, RARRAY_PTR(self)[i], obj)) {
-      return mrb_fixnum_value(i);
+      return mrb_int_value(mrb, i);
     }
   }
   return mrb_nil_value();
@@ -1097,7 +1097,7 @@ mrb_ary_rindex_m(mrb_state *mrb, mrb_value self)
 
   for (i = RARRAY_LEN(self) - 1; i >= 0; i--) {
     if (mrb_equal(mrb, RARRAY_PTR(self)[i], obj)) {
-      return mrb_fixnum_value(i);
+      return mrb_int_value(mrb, i);
     }
     if (i > (len = RARRAY_LEN(self))) {
       i = len;
@@ -1136,7 +1136,7 @@ mrb_ary_size(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
 
-  return mrb_fixnum_value(ARY_LEN(a));
+  return mrb_int_value(mrb, ARY_LEN(a));
 }
 
 MRB_API mrb_value
