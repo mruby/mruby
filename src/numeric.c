@@ -1113,15 +1113,27 @@ intdivmod(mrb_state *mrb, mrb_int x, mrb_int y, mrb_int *divp, mrb_int *modp)
 static mrb_value
 int_mod(mrb_state *mrb, mrb_value x)
 {
-  mrb_int a, b, mod;
+  mrb_value y = mrb_get_arg1(mrb);
+  mrb_int a, b;
 
-  mrb_get_args(mrb, "i", &b);
   a = mrb_integer(x);
-  mod = a % b;
-  if ((a < 0) != (b < 0) && mod != 0) {
-    mod += b;
+  if (mrb_integer_p(y) && a != MRB_INT_MIN && (b=mrb_integer(y)) != MRB_INT_MIN) {
+    mrb_int mod = a % b;
+    if ((a < 0) != (b < 0) && mod != 0) {
+      mod += b;
+    }
+    return mrb_int_value(mrb, mod);
   }
-  return mrb_int_value(mrb, mod);
+#ifdef MRB_NO_FLOAT
+  mrb_raise(mrb, E_TYPE_ERROR, "non integer modulo");
+#else
+  else {
+    mrb_float mod;
+
+    flodivmod(mrb, (mrb_float)a, mrb_as_float(mrb, y), NULL, &mod);
+    return mrb_float_value(mrb, mod);
+  }
+#endif
 }
 
 /*
