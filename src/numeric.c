@@ -1332,10 +1332,13 @@ mrb_num_shift(mrb_state *mrb, mrb_int val, mrb_int width, mrb_int *num)
   }
   else {
     if ((width > NUMERIC_SHIFT_WIDTH_MAX) ||
-        (val   <= (MRB_INT_MIN >> width))) {
+        (val   < (MRB_INT_MIN >> width))) {
       return FALSE;
     }
-    *num = val * ((mrb_int)1 << width);
+    if (width == NUMERIC_SHIFT_WIDTH_MAX)
+      *num = MRB_INT_MIN;
+    else
+      *num = val * ((mrb_int)1 << width);
   }
   return TRUE;
 }
