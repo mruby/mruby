@@ -791,6 +791,7 @@ gen_muldiv(codegen_scope *s, uint8_t op, uint16_t dst)
       if (mrb_int_mul_overflow(n0, n, &n)) goto normal;
     }
     else { /* OP_DIV */
+      if (n0 == MRB_INT_MIN && n == -1) goto normal;
       n = n0 / n;
     }
     s->pc = addr_pc(s, data0.addr);
