@@ -1480,6 +1480,7 @@ gen_values(codegen_scope *s, node *t, int val, int extra)
         if (is_splat && n == 0 && nint(t->car->cdr->car) == NODE_ARRAY) {
           codegen(s, t->car->cdr, VAL);
           pop();
+          t = t->cdr;
         }
         else {
           pop_n(n);
@@ -1489,17 +1490,7 @@ gen_values(codegen_scope *s, node *t, int val, int extra)
           else {
             genop_2(s, OP_ARRAY, cursp(), n);
           }
-          push();
-          codegen(s, t->car, VAL);
-          pop(); pop();
-          if (is_splat) {
-            genop_1(s, OP_ARYCAT, cursp());
-          }
-          else {
-            genop_1(s, OP_ARYPUSH, cursp());
-          }
         }
-        t = t->cdr;
         while (t) {
           push();
           codegen(s, t->car, VAL);
