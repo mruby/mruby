@@ -824,11 +824,16 @@ gen_binop(codegen_scope *s, mrb_sym op, uint16_t dst)
       if (!mrb_num_shift(s->mrb, n0, -n, &n)) return FALSE;
     }
     else if (op == MRB_OPSYM_2(s->mrb, mod) && n != 0) {
-      mrb_int n1 = n0 % n;
-      if ((n0 < 0) != (n < 0) && n1 != 0) {
-        n1 += n;
+      if (n0 == MRB_INT_MIN && n == -1) {
+        n = 0;
       }
-      n = n1;
+      else {
+        mrb_int n1 = n0 % n;
+        if ((n0 < 0) != (n < 0) && n1 != 0) {
+          n1 += n;
+        }
+        n = n1;
+      }
     }
     else if (op == MRB_OPSYM_2(s->mrb, and)) {
       n = n0 & n;
