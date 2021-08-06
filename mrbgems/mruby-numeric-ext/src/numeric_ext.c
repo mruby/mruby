@@ -72,20 +72,20 @@ int_remainder(mrb_state *mrb, mrb_value x)
   mrb_int a, b;
 
   a = mrb_integer(x);
-  if (mrb_integer_p(y) && a != MRB_INT_MIN && (b=mrb_integer(y)) != MRB_INT_MIN) {
+  if (mrb_integer_p(y)) {
+    b = mrb_integer(y);
     if (b == 0) zerodiv(mrb);
+    if (a == MRB_INT_MIN && b == -1) return mrb_fixnum_value(0);
     return mrb_int_value(mrb, a % b);
   }
 #ifdef MRB_NO_FLOAT
   mrb_raise(mrb, E_TYPE_ERROR, "non integer remainder");
 #else
-  else {
-    mrb_float n = (mrb_float)a;
-    mrb_float m = mrb_as_float(mrb, y);
+  mrb_float n = (mrb_float)a;
+  mrb_float m = mrb_as_float(mrb, y);
 
-    if (isinf(m)) return mrb_float_value(mrb, n);
-    return mrb_float_value(mrb, n-m*trunc(n/m));
-  }
+  if (isinf(m)) return mrb_float_value(mrb, n);
+  return mrb_float_value(mrb, n-m*trunc(n/m));
 #endif
 }
 
