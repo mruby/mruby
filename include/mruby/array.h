@@ -14,15 +14,17 @@
  */
 MRB_BEGIN_DECL
 
-
 typedef struct mrb_shared_array {
   int refcnt;
   mrb_ssize len;
   mrb_value *ptr;
 } mrb_shared_array;
 
-#if defined(MRB_32BIT) && defined(MRB_NO_BOXING) && !defined(MRB_USE_FLOAT32)
+#if defined(MRB_32BIT) && defined(MRB_NO_BOXING) && !defined(MRB_USE_FLOAT32) && !defined(MRB_ARY_NO_EMBED)
 # define MRB_ARY_NO_EMBED
+#endif
+
+#ifdef MRB_ARY_NO_EMBED
 # define MRB_ARY_EMBED_LEN_MAX 0
 #else
 # define MRB_ARY_EMBED_LEN_MAX ((mrb_int)(sizeof(void*)*3/sizeof(mrb_value)))
