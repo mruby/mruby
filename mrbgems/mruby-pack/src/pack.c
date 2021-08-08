@@ -18,6 +18,10 @@
 #define INT_OVERFLOW_P(n)  ((n) < MRB_INT_MIN || (n) > MRB_INT_MAX)
 #define UINT_OVERFLOW_P(n) ((n) > MRB_INT_MAX)
 
+#ifndef EOF
+# define EOF (-1) /* for MRB_NO_STDIO */
+#endif
+
 struct tmpl {
   mrb_value str;
   int idx;
