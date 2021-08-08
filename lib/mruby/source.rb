@@ -2,7 +2,7 @@ require "pathname"
 
 module MRuby
   module Source
-    # MRuby's source root directory
+    # mruby's source root directory
     ROOT = Pathname.new(File.expand_path('../../../',__FILE__))
 
     # Reads a constant defined at version.h
