@@ -14,7 +14,8 @@ MRuby.each_target do
   file "#{build_dir}/lib/libmruby.flags.mak" => [__FILE__, libmruby_static] do |t|
     mkdir_p File.dirname t.name
     open(t.name, 'w') do |f|
-      f.puts "MRUBY_CFLAGS = #{cc.all_flags}"
+      gemincs = gems.map { |g| g.export_include_paths.map { |n| g.filename(n) } }.flatten.uniq
+      f.puts "MRUBY_CFLAGS = #{cc.all_flags([], gemincs)}"
 
       f.puts "MRUBY_CC = #{cc.command}"
       f.puts "MRUBY_LD = #{linker.command}"
