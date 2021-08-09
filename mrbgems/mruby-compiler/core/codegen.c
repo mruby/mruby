@@ -575,6 +575,9 @@ genjmp2(codegen_scope *s, mrb_code i, uint16_t a, uint32_t pc, int val)
 
 #define genjmp2_0(s,i,a,val) genjmp2(s,i,a,JMPLINK_START,val)
 
+static mrb_bool get_int_operand(codegen_scope *s, struct mrb_insn_data *data, mrb_int *ns);
+static void gen_int(codegen_scope *s, uint16_t dst, mrb_int i);
+
 static void
 gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
 {
@@ -621,6 +624,24 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
         rewind_pc(s);
         genop_2SS(s, data.insn, dst, i);
       }
+      break;
+    case OP_ADDI: case OP_SUBI:
+      if (nopeep || addr_pc(s, data.addr) == s->lastlabel || data.a != src || data.a < s->nlocals) goto normal;
+      struct mrb_insn_data data0 = mrb_decode_insn(mrb_prev_pc(s, data.addr));
+      if (data0.insn != OP_MOVE || data0.a != data.a || data0.b != dst) goto normal;
+      s->pc = addr_pc(s, data0.addr);
+      /* constant folding */
+      data0 = mrb_decode_insn(mrb_prev_pc(s, data0.addr));
+      mrb_int n;
+      if (data0.a == dst && get_int_operand(s, &data0, &n)) {
+        if ((data.insn == OP_ADDI && !mrb_int_add_overflow(n, data.b, &n)) ||
+            (data.insn == OP_SUBI && !mrb_int_sub_overflow(n, data.b, &n))) {
+          s->pc = addr_pc(s, data0.addr);
+          gen_int(s, dst, n);
+          break;
+        }
+      }
+      genop_2(s, data.insn, dst, data.b);
       break;
     default:
       goto normal;
@@ -725,8 +746,6 @@ get_int_operand(codegen_scope *s, struct mrb_insn_data *data, mrb_int *n)
     return FALSE;
   }
 }
-
-static void gen_int(codegen_scope *s, uint16_t dst, mrb_int i);
 
 static void
 gen_addsub(codegen_scope *s, uint8_t op, uint16_t dst)
