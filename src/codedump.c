@@ -388,13 +388,15 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       printf("OP_ADD\tR%d\tR%d\n", a, a+1);
       break;
     CASE(OP_ADDI, BB):
-      printf("OP_ADDI\tR%d\t%d\n", a, b);
+      printf("OP_ADDI\tR%d\t%d", a, b);
+      print_lv_a(mrb, irep, a);
       break;
     CASE(OP_SUB, B):
       printf("OP_SUB\tR%d\tR%d\n", a, a+1);
       break;
     CASE(OP_SUBI, BB):
-      printf("OP_SUBI\tR%d\t%d\n", a, b);
+      printf("OP_SUBI\tR%d\t%d", a, b);
+      print_lv_a(mrb, irep, a);
       break;
     CASE(OP_MUL, B):
       printf("OP_MUL\tR%d\tR%d\n", a, a+1);
