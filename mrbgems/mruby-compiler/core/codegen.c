@@ -1282,8 +1282,8 @@ lambda_body(codegen_scope *s, node *tree, int blk)
   }
   else {
     mrb_aspec a;
-    int ma, oa, ra, pa, ka, kd, ba;
-    uint32_t pos, i;
+    int ma, oa, ra, pa, ka, kd, ba, i;
+    uint32_t pos;
     node *opt;
     node *margs, *pargs;
     node *tail;
