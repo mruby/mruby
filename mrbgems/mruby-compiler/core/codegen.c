@@ -581,11 +581,7 @@ static void gen_int(codegen_scope *s, uint16_t dst, mrb_int i);
 static void
 gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
 {
-  if (no_peephole(s)) {
-  normal:
-    genop_2(s, OP_MOVE, dst, src);
-    return;
-  }
+  if (no_peephole(s)) goto normal;
   else {
     struct mrb_insn_data data = mrb_last_insn(s);
 
@@ -602,7 +598,7 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
       if (nopeep || data.a != src || data.a < s->nlocals) goto normal;
       rewind_pc(s);
       genop_1(s, data.insn, dst);
-      break;
+      return;
     case OP_LOADI: case OP_LOADINEG: case OP_LOADI16:
     case OP_LOADL: case OP_LOADSYM:
     case OP_GETGV: case OP_GETSV: case OP_GETIV: case OP_GETCV:
@@ -611,12 +607,12 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
       if (nopeep || data.a != src || data.a < s->nlocals) goto normal;
       rewind_pc(s);
       genop_2(s, data.insn, dst, data.b);
-      break;
+      return;
     case OP_GETUPVAR:
       if (nopeep || data.a != src || data.a < s->nlocals) goto normal;
       rewind_pc(s);
       genop_3(s, data.insn, dst, data.b, data.c);
-      break;
+      return;
     case OP_LOADI32:
       if (nopeep || data.a != src || data.a < s->nlocals) goto normal;
       else {
@@ -624,29 +620,34 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
         rewind_pc(s);
         genop_2SS(s, data.insn, dst, i);
       }
-      break;
+      return;
     case OP_ADDI: case OP_SUBI:
       if (nopeep || addr_pc(s, data.addr) == s->lastlabel || data.a != src || data.a < s->nlocals) goto normal;
-      struct mrb_insn_data data0 = mrb_decode_insn(mrb_prev_pc(s, data.addr));
-      if (data0.insn != OP_MOVE || data0.a != data.a || data0.b != dst) goto normal;
-      s->pc = addr_pc(s, data0.addr);
-      /* constant folding */
-      data0 = mrb_decode_insn(mrb_prev_pc(s, data0.addr));
-      mrb_int n;
-      if (data0.a == dst && get_int_operand(s, &data0, &n)) {
-        if ((data.insn == OP_ADDI && !mrb_int_add_overflow(n, data.b, &n)) ||
-            (data.insn == OP_SUBI && !mrb_int_sub_overflow(n, data.b, &n))) {
-          s->pc = addr_pc(s, data0.addr);
-          gen_int(s, dst, n);
-          break;
+      else {
+        struct mrb_insn_data data0 = mrb_decode_insn(mrb_prev_pc(s, data.addr));
+        if (data0.insn != OP_MOVE || data0.a != data.a || data0.b != dst) goto normal;
+        s->pc = addr_pc(s, data0.addr);
+        /* constant folding */
+        data0 = mrb_decode_insn(mrb_prev_pc(s, data0.addr));
+        mrb_int n;
+        if (data0.a == dst && get_int_operand(s, &data0, &n)) {
+          if ((data.insn == OP_ADDI && !mrb_int_add_overflow(n, data.b, &n)) ||
+              (data.insn == OP_SUBI && !mrb_int_sub_overflow(n, data.b, &n))) {
+            s->pc = addr_pc(s, data0.addr);
+            gen_int(s, dst, n);
+            return;
+          }
         }
       }
       genop_2(s, data.insn, dst, data.b);
-      break;
+      return;
     default:
-      goto normal;
+      break;
     }
   }
+ normal:
+  genop_2(s, OP_MOVE, dst, src);
+  return;
 }
 
 static int search_upvar(codegen_scope *s, mrb_sym id, int *idx);
