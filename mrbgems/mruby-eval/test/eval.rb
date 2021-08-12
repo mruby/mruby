@@ -158,4 +158,7 @@ assert('Module#class_eval with string') do
   cc = c.new
   assert_true cc.respond_to?(:foo)
   assert_equal 42, c.new.foo
+
+  b = c.class_eval("class A; def a; 55; end; end; class B; def b; A; end; end; B")
+  assert_equal 55, b.new.b.new.a
 end
