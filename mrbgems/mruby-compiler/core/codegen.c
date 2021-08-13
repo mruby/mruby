@@ -323,12 +323,13 @@ struct mrb_insn_data
 mrb_decode_insn(const mrb_code *pc)
 {
   struct mrb_insn_data data = { 0 };
-  data.addr = pc;
+  if (pc == 0) return data;
   mrb_code insn = READ_B();
   uint16_t a = 0;
   uint16_t b = 0;
   uint16_t c = 0;
 
+  data.addr = pc;
   switch (insn) {
 #define FETCH_Z() /* empty */
 #define OPCODE(i,x) case OP_ ## i: FETCH_ ## x (); break;
