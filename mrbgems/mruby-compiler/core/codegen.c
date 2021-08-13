@@ -463,8 +463,8 @@ mrb_prev_pc(codegen_scope *s, const mrb_code *pc)
 static void
 rewind_pc(codegen_scope *s)
 {
-  const mrb_code *pc = mrb_prev_pc(s, pc_addr(s));
-  s->pc = addr_pc(s, pc);
+  /* should not be called when s->pc is 0 (top) */
+  s->pc = addr_pc(s, mrb_prev_pc(s, pc_addr(s)));
 }
 
 static struct mrb_insn_data
