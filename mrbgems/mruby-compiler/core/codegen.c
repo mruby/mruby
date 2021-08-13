@@ -470,14 +470,7 @@ rewind_pc(codegen_scope *s)
 static struct mrb_insn_data
 mrb_last_insn(codegen_scope *s)
 {
-  const mrb_code *pc = mrb_prev_pc(s, pc_addr(s));
-  if (pc == NULL) {
-    struct mrb_insn_data data;
-
-    data.insn = OP_NOP;
-    return data;
-  }
-  return mrb_decode_insn(pc);
+  return mrb_decode_insn(mrb_prev_pc(s, pc_addr(s)));
 }
 
 static mrb_bool
