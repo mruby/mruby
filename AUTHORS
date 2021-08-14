@@ -1,16 +1,16 @@
 # Authors of mruby (mruby developers)
 
-## The List of Contributors sorted by number of commits (as of 2021-07-01 99dbcec)
+## The List of Contributors sorted by number of commits (as of 2021-08-15 40c4c5d)
 
-   7532 Yukihiro "Matz" Matsumoto (@matz)*
+   7674 Yukihiro "Matz" Matsumoto (@matz)*
     585 KOBAYASHI Shuji (@shuujii)
     376 Daniel Bovensiepen (@bovi)
     344 Takeshi Watanabe (@take-cheeze)*
     334 Masaki Muranaka (@monaka)
+    301 dearblue (@dearblue)*
     298 Tomoyuki Sahara (@tsahara)*
-    294 dearblue (@dearblue)*
     234 Jun Hiroe (@suzukaze)
-    217 Cremno (@cremno)*
+    219 Cremno (@cremno)*
     208 Yuki Kurihara (@ksss)+
     148 Yasuhiro Matsumoto (@mattn)*
     113 Carson McDonald (@carsonmcdonald)
@@ -26,11 +26,11 @@
      56 h2so5 (@h2so5)
      52 Ralph Desir (@Mav7)*
      45 Rory O'Connell (@RoryO)*
+     43 John Bampton (@jbampton)
      43 Yuichiro Kaneko (@yui-knk)+
      42 fleuria (@flaneur2020)
      40 Christopher Aue (@christopheraue)
      40 Seba Gamboa (@sagmor)
-     39 John Bampton (@jbampton)
      38 Koji Yoshioka (@kyab)*+
      38 Kouhei Sutou (@kou)*
      31 MATSUMOTO Ryosuke (@matsumotory)*
@@ -42,10 +42,10 @@
      22 Zachary Scott (@zzak)*
      22 mirichi (@mirichi)
      21 Jared Breeden (@jbreeden)*
+     20 Uchio Kondo (@udzura)*
      19 Bouke van der Bijl (@bouk)
      19 Felix Jones (@felixjones)*
      19 Hidetaka Takano (@TJ-Hidetaka-Takano)
-     19 Uchio Kondo (@udzura)*
      19 go kikuta (@gkta)*
      18 Corey Powell (@IceDragon200)
      18 Jon Maken (@jonforums)+
@@ -197,6 +197,7 @@
       1 Benoit Daloze (@eregon)
       1 Daehyub Kim (@lateau)
       1 Daniel Varga (@vargad)
+      1 Dante Catalfamo (@dantecatalfamo)
       1 Edgar Boda-Majer (@eboda)
       1 Fangrui Song (@MaskRay)
       1 Flavio Medeiros (@flaviommedeiros)
@@ -238,6 +239,7 @@
       1 Megumi Tomita (@tomykaira)+
       1 Mitchell Hashimoto (@mitchellh)
       1 Mitsutaka Mimura (@takkanm)
+      1 Nathan Ladd (@ntl)
       1 Nicholas (@knf)
       1 Nozomi SATO (@nozomiS)
       1 Okumura Takahiro (@hfm)
