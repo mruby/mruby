@@ -398,7 +398,7 @@ pack_w(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int fl
     if ((n & mask) == 0) break;
   }
   str = str_len_ensure(mrb, str, sidx + i);
-  p = RSTRING_PTR(str);
+  p = RSTRING_PTR(str)+sidx;
   for (size_t j=i; j>0; p++,j--) {
     mrb_int x = (n>>(7*(j-1)))&0x7f;
     *p = (char)x;
@@ -997,8 +997,8 @@ pack_M(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count)
       prev = '\n';
     }
     if (i > 1024 - 5) {
-      str_len_ensure(mrb, dst, didx+i);
-      memcpy(RSTRING_PTR(dst), buff, i);
+      str_len_ensure(mrb, dst, didx+dlen+i);
+      memcpy(RSTRING_PTR(dst)+didx+dlen, buff, i);
       dlen += i;
       i = 0;
     }
@@ -1009,8 +1009,8 @@ pack_M(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count)
     buff[i++] = '\n';
   }
   if (i > 0) {
-    str_len_ensure(mrb, dst, didx+i);
-    memcpy(RSTRING_PTR(dst), buff, i);
+    str_len_ensure(mrb, dst, didx+dlen+i);
+    memcpy(RSTRING_PTR(dst)+didx+dlen, buff, i);
     dlen += i;
   }
   return dlen;
