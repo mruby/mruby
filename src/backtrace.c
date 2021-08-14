@@ -102,24 +102,24 @@ print_backtrace(mrb_state *mrb, struct RObject *exc, mrb_value backtrace)
   mrb_int i;
   mrb_int n = RARRAY_LEN(backtrace);
   mrb_value *loc, mesg;
-  FILE *stream = stderr;
 
   if (n != 0) {
     if (n > 1) {
-      fprintf(stream, "trace (most recent call last):\n");
+      fprintf(stderr, "trace (most recent call last):\n");
     }
     for (i=n-1,loc=&RARRAY_PTR(backtrace)[i]; i>0; i--,loc--) {
       if (mrb_string_p(*loc)) {
-        fprintf(stream, "\t[%d] %.*s\n",
+        fprintf(stderr, "\t[%d] %.*s\n",
                 (int)i, (int)RSTRING_LEN(*loc), RSTRING_PTR(*loc));
       }
     }
     if (mrb_string_p(*loc)) {
-      fprintf(stream, "%.*s: ", (int)RSTRING_LEN(*loc), RSTRING_PTR(*loc));
+      fprintf(stderr, "%.*s: ", (int)RSTRING_LEN(*loc), RSTRING_PTR(*loc));
     }
   }
   mesg = mrb_exc_inspect(mrb, mrb_obj_value(exc));
-  fprintf(stream, "%.*s\n", (int)RSTRING_LEN(mesg), RSTRING_PTR(mesg));
+  fwrite(RSTRING_PTR(mesg), RSTRING_LEN(mesg), 1, stderr);
+  fputc('\n', stderr);
 }
 
 /* mrb_print_backtrace
