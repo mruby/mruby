@@ -1442,7 +1442,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
       default:
         break;
       }
-      if (dir == PACK_DIR_STR || dir == PACK_DIR_BASE64 || dir == PACK_DIR_HEX) {
+      if (flags & PACK_FLAG_COUNT2) {
         /* always consumes 1 entry */
         aidx++;
         break;
