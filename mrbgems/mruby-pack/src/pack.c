@@ -1501,25 +1501,23 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
       continue;
     }
 
-    if (flags & PACK_FLAG_COUNT2) {
-      sptr = (const unsigned char *)RSTRING_PTR(str) + srcidx;
-      switch (dir) {
-      case PACK_DIR_HEX:
-        srcidx += unpack_h(mrb, sptr, srclen - srcidx, result, count, flags);
-        break;
-      case PACK_DIR_STR:
-        srcidx += unpack_a(mrb, sptr, srclen - srcidx, result, count, flags);
-        break;
-      case PACK_DIR_BASE64:
-        srcidx += unpack_m(mrb, sptr, srclen - srcidx, result);
-        break;
-      case PACK_DIR_QENC:
-        srcidx += unpack_M(mrb, sptr, srclen - srcidx, result);
-        break;
-      default:
-        break;
-      }
+    sptr = (const unsigned char *)RSTRING_PTR(str) + srcidx;
+    switch (dir) {
+    case PACK_DIR_HEX:
+      srcidx += unpack_h(mrb, sptr, srclen - srcidx, result, count, flags);
       continue;
+    case PACK_DIR_STR:
+      srcidx += unpack_a(mrb, sptr, srclen - srcidx, result, count, flags);
+      continue;
+    case PACK_DIR_BASE64:
+      srcidx += unpack_m(mrb, sptr, srclen - srcidx, result);
+      continue;
+      break;
+    case PACK_DIR_QENC:
+      srcidx += unpack_M(mrb, sptr, srclen - srcidx, result);
+      continue;
+    default:
+      break;
     }
 
     while (count != 0) {
