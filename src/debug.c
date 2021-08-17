@@ -35,8 +35,8 @@ get_file(mrb_irep_debug_info *info, uint32_t pc)
   return *ret;
 }
 
-static size_t
-packed_int_len(uint32_t num)
+size_t
+mrb_packed_int_len(uint32_t num)
 {
   size_t llen = 0;
 
@@ -46,8 +46,8 @@ packed_int_len(uint32_t num)
   return llen;
 }
 
-static size_t
-packed_int_encode(uint32_t num, uint8_t *p, uint8_t *pend)
+size_t
+mrb_packed_int_encode(uint32_t num, uint8_t *p, uint8_t *pend)
 {
   size_t llen = 0;
 
@@ -62,8 +62,8 @@ packed_int_encode(uint32_t num, uint8_t *p, uint8_t *pend)
   return llen;
 }
 
-static uint32_t
-packed_int_decode(uint8_t *p, uint8_t **newpos)
+uint32_t
+mrb_packed_int_decode(uint8_t *p, uint8_t **newpos)
 {
   size_t i = 0, shift = 0;
   uint32_t n = 0;
@@ -135,8 +135,8 @@ mrb_debug_get_line(mrb_state *mrb, const mrb_irep *irep, uint32_t pc)
           uint8_t *pend = p + f->line_entry_count;
           uint32_t pos = 0, line = 0, line_diff;
           while (p < pend) {
-            pos += packed_int_decode(p, &p);
-            line_diff = packed_int_decode(p, &p);
+            pos += mrb_packed_int_decode(p, &p);
+            line_diff = mrb_packed_int_decode(p, &p);
             if (pc < pos) break;
             line += line_diff;
           }
@@ -204,9 +204,9 @@ mrb_debug_info_append_file(mrb_state *mrb, mrb_irep_debug_info *d,
 
   for (i = 0; i < file_pc_count; ++i) {
     if (lines[start_pos + i] == prev_line) continue;
-    packed_size += packed_int_len(start_pos+i-prev_pc);
+    packed_size += mrb_packed_int_len(start_pos+i-prev_pc);
     prev_pc = start_pos+i;
-    packed_size += packed_int_len(lines[start_pos+i]-prev_line);
+    packed_size += mrb_packed_int_len(lines[start_pos+i]-prev_line);
     prev_line = lines[start_pos + i];
   }
   p = f->lines.packed_map = (uint8_t*)mrb_malloc(mrb, packed_size);
@@ -214,9 +214,9 @@ mrb_debug_info_append_file(mrb_state *mrb, mrb_irep_debug_info *d,
   prev_line = 0; prev_pc = 0;
   for (i = 0; i < file_pc_count; ++i) {
     if (lines[start_pos + i] == prev_line) continue;
-    p += packed_int_encode(start_pos+i-prev_pc, p, pend);
+    p += mrb_packed_int_encode(start_pos+i-prev_pc, p, pend);
     prev_pc = start_pos + i;
-    p += packed_int_encode(lines[start_pos + i]-prev_line, p, pend);
+    p += mrb_packed_int_encode(lines[start_pos + i]-prev_line, p, pend);
     prev_line = lines[start_pos + i];
   }
   f->line_entry_count = (uint32_t)packed_size;

@@ -20,20 +20,7 @@
 #define MRB_DEBUG_BP_FILE_OK   (0x0001)
 #define MRB_DEBUG_BP_LINENO_OK (0x0002)
 
-static uint32_t
-packed_int_decode(uint8_t *p, uint8_t **newpos)
-{
-  size_t i = 0, shift = 0;
-  uint32_t n = 0;
-
-  do {
-    n |= ((uint32_t)(p[i] & 0x7f)) << shift;
-    i++;
-    shift += 7;
-  } while (shift < sizeof(uint32_t) * 8 && (p[i - 1] & 0x80));
-  if (newpos) *newpos = p + i;
-  return n;
-}
+uint32_t mrb_packed_int_decode(uint8_t *p, uint8_t **newpos);
 
 static uint16_t
 check_lineno(mrb_irep_debug_info_file *info_file, uint16_t lineno)
@@ -64,8 +51,8 @@ check_lineno(mrb_irep_debug_info_file *info_file, uint16_t lineno)
       uint8_t *pend = p + count;
       uint32_t line = 0;
       while (p < pend) {
-        packed_int_decode(p, &p);
-        line += packed_int_decode(p, &p);
+        mrb_packed_int_decode(p, &p);
+        line += mrb_packed_int_decode(p, &p);
         if (line == lineno) return lineno;
       }
     }
