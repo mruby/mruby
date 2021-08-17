@@ -1501,6 +1501,7 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
       continue;
     }
 
+    /* PACK_FLAG_COUNT2 directions */
     sptr = (const unsigned char *)RSTRING_PTR(str) + srcidx;
     switch (dir) {
     case PACK_DIR_HEX:
