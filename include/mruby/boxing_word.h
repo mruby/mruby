@@ -42,17 +42,21 @@ enum mrb_special_consts {
 #endif
 
 #define BOXWORD_FIXNUM_BIT_POS  1
-#define BOXWORD_SYMBOL_BIT_POS  2
 #define BOXWORD_FIXNUM_SHIFT    BOXWORD_FIXNUM_BIT_POS
-#ifdef MRB_64BIT
-#define BOXWORD_SYMBOL_SHIFT    0
-#else
-#define BOXWORD_SYMBOL_SHIFT    BOXWORD_SYMBOL_BIT_POS
-#endif
 #define BOXWORD_FIXNUM_FLAG     (1 << (BOXWORD_FIXNUM_BIT_POS - 1))
-#define BOXWORD_SYMBOL_FLAG     (1 << (BOXWORD_SYMBOL_BIT_POS - 1))
 #define BOXWORD_FIXNUM_MASK     ((1 << BOXWORD_FIXNUM_BIT_POS) - 1)
+
+#ifdef MRB_64BIT
+#define BOXWORD_SYMBOL_SHIFT    32
+#define BOXWORD_SYMBOL_FLAG     0x34
+#define BOXWORD_SYMBOL_MASK     0x3f
+#else
+#define BOXWORD_SYMBOL_BIT_POS  2
+#define BOXWORD_SYMBOL_SHIFT    BOXWORD_SYMBOL_BIT_POS
+#define BOXWORD_SYMBOL_FLAG     (1 << (BOXWORD_SYMBOL_BIT_POS - 1))
 #define BOXWORD_SYMBOL_MASK     ((1 << BOXWORD_SYMBOL_BIT_POS) - 1)
+#endif
+
 #define BOXWORD_IMMEDIATE_MASK  0x07
 
 #define BOXWORD_SET_SHIFT_VALUE(o,n,v) \
@@ -79,15 +83,6 @@ typedef struct mrb_value {
 
 union mrb_value_ {
   void *p;
-#ifdef MRB_64BIT
-  /* use struct to avoid bit shift. */
-  struct {
-    MRB_ENDIAN_LOHI(
-      mrb_sym sym;
-      ,uint32_t flag;
-    )
-  } sym;
-#endif
   struct RBasic *bp;
 #ifndef MRB_NO_FLOAT
   struct RFloat *fp;
@@ -128,20 +123,12 @@ mrb_integer_func(mrb_value o) {
   return mrb_val_union(o).ip->i;
 }
 #define mrb_integer(o) mrb_integer_func(o)
-#ifdef MRB_64BIT
-#define mrb_symbol(o)  mrb_val_union(o).sym.sym
-#else
 #define mrb_symbol(o)  (mrb_sym)(((o).w) >> BOXWORD_SYMBOL_SHIFT)
-#endif
 #define mrb_bool(o)    (((o).w & ~(uintptr_t)MRB_Qfalse) != 0)
 
 #define mrb_fixnum_p(o) BOXWORD_SHIFT_VALUE_P(o, FIXNUM)
 #define mrb_integer_p(o) (BOXWORD_SHIFT_VALUE_P(o, FIXNUM)||BOXWORD_OBJ_TYPE_P(o, INTEGER))
-#ifdef MRB_64BIT
-#define mrb_symbol_p(o) (mrb_val_union(o).sym.flag == BOXWORD_SYMBOL_FLAG)
-#else
 #define mrb_symbol_p(o) BOXWORD_SHIFT_VALUE_P(o, SYMBOL)
-#endif
 #define mrb_undef_p(o) ((o).w == MRB_Qundef)
 #define mrb_nil_p(o)  ((o).w == MRB_Qnil)
 #define mrb_false_p(o) ((o).w == MRB_Qfalse)
@@ -179,16 +166,7 @@ mrb_integer_func(mrb_value o) {
 #define SET_BOOL_VALUE(r,b) ((b) ? SET_TRUE_VALUE(r) : SET_FALSE_VALUE(r))
 #define SET_INT_VALUE(mrb,r,n) ((r) = mrb_word_boxing_int_value(mrb, n))
 #define SET_FIXNUM_VALUE(r,n) BOXWORD_SET_SHIFT_VALUE(r, FIXNUM, n)
-#ifdef MRB_64BIT
-#define SET_SYM_VALUE(r,v) do {\
-  union mrb_value_ mrb_value_union_variable;\
-  mrb_value_union_variable.sym.sym = v;\
-  mrb_value_union_variable.sym.flag = BOXWORD_SYMBOL_FLAG;\
-  (r) = mrb_value_union_variable.value;\
-} while (0)
-#else
 #define SET_SYM_VALUE(r,n) BOXWORD_SET_SHIFT_VALUE(r, SYMBOL, n)
-#endif
 #define SET_OBJ_VALUE(r,v) ((r).w = (uintptr_t)(v))
 
 MRB_INLINE enum mrb_vtype
