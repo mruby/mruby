@@ -121,7 +121,7 @@ str_len_ensure(mrb_state *mrb, mrb_value str, mrb_int len)
 
 
 static int
-pack_c(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
+pack_char(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
   str = str_len_ensure(mrb, str, sidx + 1);
   RSTRING_PTR(str)[sidx] = (char)mrb_integer(o);
@@ -129,7 +129,7 @@ pack_c(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int fl
 }
 
 static int
-unpack_c(mrb_state *mrb, const void *src, int srclen, mrb_value ary, unsigned int flags)
+unpack_char(mrb_state *mrb, const void *src, int srclen, mrb_value ary, unsigned int flags)
 {
   if (flags & PACK_FLAG_SIGNED)
     mrb_ary_push(mrb, ary, mrb_fixnum_value(*(signed char *)src));
@@ -139,7 +139,7 @@ unpack_c(mrb_state *mrb, const void *src, int srclen, mrb_value ary, unsigned in
 }
 
 static int
-pack_s(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
+pack_short(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
   uint16_t n;
 
@@ -156,7 +156,7 @@ pack_s(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int fl
 }
 
 static int
-unpack_s(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
+unpack_short(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
 {
   int n;
 
@@ -173,7 +173,7 @@ unpack_s(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
 }
 
 static int
-pack_l(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
+pack_long(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
   uint32_t n;
 
@@ -227,7 +227,7 @@ u32tostr(char *buf, size_t len, uint32_t n)
 #endif /* MRB_INT64 */
 
 static int
-unpack_l(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
+unpack_long(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
 {
 #ifndef MRB_INT64
   char msg[60];
@@ -262,7 +262,7 @@ unpack_l(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
 }
 
 static int
-pack_q(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
+pack_quad(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
   uint64_t n;
 
@@ -344,7 +344,7 @@ i64tostr(char *buf, size_t len, int64_t n)
 #endif /* MRB_INT64 */
 
 static int
-unpack_q(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
+unpack_quad(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
 {
   char msg[60];
   uint64_t ull;
@@ -384,7 +384,7 @@ unpack_q(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, un
 }
 
 static int
-pack_w(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
+pack_BER(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
   mrb_int n = mrb_integer(o);
   size_t i;
@@ -408,7 +408,7 @@ pack_w(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int fl
 }
 
 static int
-unpack_w(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
+unpack_BER(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
 {
   mrb_int i, n = 0;
   const unsigned char *p = src;
@@ -669,7 +669,7 @@ unpack_utf8(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value ary
 }
 
 static int
-pack_a(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, unsigned int flags)
+pack_str(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, unsigned int flags)
 {
   mrb_int copylen, slen, padlen;
   char *dptr, *dptr0, pad, *sptr;
@@ -707,7 +707,7 @@ pack_a(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, un
 }
 
 static int
-unpack_a(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, unsigned int flags)
+unpack_str(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, unsigned int flags)
 {
   mrb_value dst;
   const char *cp, *sptr;
@@ -741,7 +741,7 @@ unpack_a(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, un
 
 
 static int
-pack_h(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, unsigned int flags)
+pack_hex(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, unsigned int flags)
 {
   unsigned int a, ashift, b, bshift;
   long slen;
@@ -787,7 +787,7 @@ pack_h(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, un
 }
 
 static int
-unpack_h(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, unsigned int flags)
+unpack_hex(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, unsigned int flags)
 {
   mrb_value dst;
   int a, ashift, b, bshift;
@@ -834,7 +834,7 @@ unpack_h(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, un
 }
 
 static int
-pack_m(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count)
+pack_base64(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count)
 {
   mrb_int dstlen;
   unsigned long l;
@@ -900,7 +900,7 @@ pack_m(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count)
 }
 
 static int
-unpack_m(mrb_state *mrb, const void *src, int slen, mrb_value ary)
+unpack_base64(mrb_state *mrb, const void *src, int slen, mrb_value ary)
 {
   mrb_value dst;
   int dlen;
@@ -956,7 +956,7 @@ done:
 }
 
 static int
-pack_M(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count)
+pack_qenc(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count)
 {
   static const char hex_table[] = "0123456789ABCDEF";
   char buff[1024];
@@ -1017,7 +1017,7 @@ pack_M(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count)
 }
 
 static int
-unpack_M(mrb_state *mrb, const void *src, int slen, mrb_value ary)
+unpack_qenc(mrb_state *mrb, const void *src, int slen, mrb_value ary)
 {
   mrb_value buf = mrb_str_new(mrb, 0, slen);
   const char *s = (const char*)src, *ss = s;
@@ -1050,7 +1050,7 @@ unpack_M(mrb_state *mrb, const void *src, int slen, mrb_value ary)
 }
 
 static int
-pack_x(mrb_state *mrb, mrb_value dst, mrb_int didx, int count)
+pack_nul(mrb_state *mrb, mrb_value dst, mrb_int didx, int count)
 {
   long i;
 
@@ -1358,7 +1358,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
     else if (dir == PACK_DIR_NUL) {
     grow:
       if (ridx > INT_MAX - count) goto overflow;
-      ridx += pack_x(mrb, result, ridx, count);
+      ridx += pack_nul(mrb, result, ridx, count);
       continue;
     }
     else if (dir == PACK_DIR_BACK) {
@@ -1402,31 +1402,31 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
 
       switch (dir) {
       case PACK_DIR_CHAR:
-        ridx += pack_c(mrb, o, result, ridx, flags);
+        ridx += pack_char(mrb, o, result, ridx, flags);
         break;
       case PACK_DIR_SHORT:
-        ridx += pack_s(mrb, o, result, ridx, flags);
+        ridx += pack_short(mrb, o, result, ridx, flags);
         break;
       case PACK_DIR_LONG:
-        ridx += pack_l(mrb, o, result, ridx, flags);
+        ridx += pack_long(mrb, o, result, ridx, flags);
         break;
       case PACK_DIR_QUAD:
-        ridx += pack_q(mrb, o, result, ridx, flags);
+        ridx += pack_quad(mrb, o, result, ridx, flags);
         break;
       case PACK_DIR_BER:
-        ridx += pack_w(mrb, o, result, ridx, flags);
+        ridx += pack_BER(mrb, o, result, ridx, flags);
         break;
       case PACK_DIR_BASE64:
-        ridx += pack_m(mrb, o, result, ridx, count);
+        ridx += pack_base64(mrb, o, result, ridx, count);
         break;
       case PACK_DIR_QENC:
-        ridx += pack_M(mrb, o, result, ridx, count);
+        ridx += pack_qenc(mrb, o, result, ridx, count);
         break;
       case PACK_DIR_HEX:
-        ridx += pack_h(mrb, o, result, ridx, count, flags);
+        ridx += pack_hex(mrb, o, result, ridx, count, flags);
         break;
       case PACK_DIR_STR:
-        ridx += pack_a(mrb, o, result, ridx, count, flags);
+        ridx += pack_str(mrb, o, result, ridx, count, flags);
         break;
 #ifndef MRB_NO_FLOAT
       case PACK_DIR_DOUBLE:
@@ -1505,17 +1505,17 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
     sptr = (const unsigned char *)RSTRING_PTR(str) + srcidx;
     switch (dir) {
     case PACK_DIR_HEX:
-      srcidx += unpack_h(mrb, sptr, srclen - srcidx, result, count, flags);
+      srcidx += unpack_hex(mrb, sptr, srclen - srcidx, result, count, flags);
       continue;
     case PACK_DIR_STR:
-      srcidx += unpack_a(mrb, sptr, srclen - srcidx, result, count, flags);
+      srcidx += unpack_str(mrb, sptr, srclen - srcidx, result, count, flags);
       continue;
     case PACK_DIR_BASE64:
-      srcidx += unpack_m(mrb, sptr, srclen - srcidx, result);
+      srcidx += unpack_base64(mrb, sptr, srclen - srcidx, result);
       continue;
       break;
     case PACK_DIR_QENC:
-      srcidx += unpack_M(mrb, sptr, srclen - srcidx, result);
+      srcidx += unpack_qenc(mrb, sptr, srclen - srcidx, result);
       continue;
     default:
       break;
@@ -1532,19 +1532,19 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
       sptr = (const unsigned char*)RSTRING_PTR(str) + srcidx;
       switch (dir) {
       case PACK_DIR_CHAR:
-        srcidx += unpack_c(mrb, sptr, srclen - srcidx, result, flags);
+        srcidx += unpack_char(mrb, sptr, srclen - srcidx, result, flags);
         break;
       case PACK_DIR_SHORT:
-        srcidx += unpack_s(mrb, sptr, srclen - srcidx, result, flags);
+        srcidx += unpack_short(mrb, sptr, srclen - srcidx, result, flags);
         break;
       case PACK_DIR_LONG:
-        srcidx += unpack_l(mrb, sptr, srclen - srcidx, result, flags);
+        srcidx += unpack_long(mrb, sptr, srclen - srcidx, result, flags);
         break;
       case PACK_DIR_QUAD:
-        srcidx += unpack_q(mrb, sptr, srclen - srcidx, result, flags);
+        srcidx += unpack_quad(mrb, sptr, srclen - srcidx, result, flags);
         break;
       case PACK_DIR_BER:
-        srcidx += unpack_w(mrb, sptr, srclen - srcidx, result, flags);
+        srcidx += unpack_BER(mrb, sptr, srclen - srcidx, result, flags);
         break;
 #ifndef MRB_NO_FLOAT
       case PACK_DIR_FLOAT:
