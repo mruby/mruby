@@ -418,7 +418,7 @@ mrb_undef_value(void)
 #if defined(MRB_USE_CUSTOM_RO_DATA_P)
 /* If you define `MRB_USE_CUSTOM_RO_DATA_P`, you must implement `mrb_ro_data_p()`. */
 mrb_bool mrb_ro_data_p(const char *p);
-#elif defined(MRB_USE_LINK_TIME_RO_DATA_P)
+#elif defined(MRB_USE_LINK_TIME_RO_DATA_P) || defined(__linux__)
 extern char __ehdr_start[];
 extern char __init_array_start[];
 
@@ -426,6 +426,13 @@ static inline mrb_bool
 mrb_ro_data_p(const char *p)
 {
   return __ehdr_start < p && p < __init_array_start;
+}
+#elif defined(__APPLE__)
+#include <mach-o/getsect.h>;
+static inline mrb_bool
+mrb_ro_data_p(const char *p)
+{
+  return (void*)get_edata() < p && p < (void*)get_end();
 }
 #else
 # define mrb_ro_data_p(p) FALSE
