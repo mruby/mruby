@@ -428,11 +428,11 @@ mrb_ro_data_p(const char *p)
   return __ehdr_start < p && p < __init_array_start;
 }
 #elif defined(__APPLE__)
-#include <mach-o/getsect.h>;
+#include <mach-o/getsect.h>
 static inline mrb_bool
 mrb_ro_data_p(const char *p)
 {
-  return (void*)get_edata() < p && p < (void*)get_end();
+  return (char*)get_edata() < p && p < (char*)get_end();
 }
 #else
 # define mrb_ro_data_p(p) FALSE
