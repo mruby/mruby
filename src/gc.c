@@ -134,12 +134,6 @@ typedef struct {
     struct RFiber fiber;
     struct RException exc;
     struct RBreak brk;
-#ifdef MRB_WORD_BOXING
-#ifndef MRB_NO_FLOAT
-    struct RFloat floatv;
-#endif
-    struct RCptr cptr;
-#endif
   } as;
 } RVALUE;
 
