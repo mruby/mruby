@@ -277,8 +277,6 @@ assert('Float#to_s') do
   assert_equal("-1.0e-10", -0.0000000001.to_s)
   assert_equal("1.0e+20", 1e20.to_s)
   assert_equal("-1.0e+20", -1e20.to_s)
-  assert_equal("1.0e+16", 10000000000000000.0.to_s)
-  assert_equal("-1.0e+16", -10000000000000000.0.to_s)
   assert_equal("100000.0", 100000.0.to_s)
   assert_equal("-100000.0", -100000.0.to_s)
   if uses_float
