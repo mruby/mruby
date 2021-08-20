@@ -222,7 +222,11 @@ mrb_init_test_driver(mrb_state *mrb, mrb_bool verbose)
 
 #ifndef MRB_NO_FLOAT
 #ifdef MRB_USE_FLOAT32
+#ifdef MRB_USE_FLOAT_FULL_PRECISION
   mrb_define_const(mrb, mrbtest, "FLOAT_TOLERANCE", mrb_float_value(mrb, 1e-5));
+#else
+  mrb_define_const(mrb, mrbtest, "FLOAT_TOLERANCE", mrb_float_value(mrb, 1e-4));
+#endif
 #else
   mrb_define_const(mrb, mrbtest, "FLOAT_TOLERANCE", mrb_float_value(mrb, 1e-10));
 #endif
