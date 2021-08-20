@@ -42,6 +42,9 @@
 #error Cannot define MRB_USE_FLOAT32 and MRB_NO_FLOAT at the same time
 #endif
 
+/* if defined mruby allocates Float objects in the heap to keep full precision if needed */
+//#define MRB_USE_FLOAT_FULL_PRECISION
+
 /* add -DMRB_NO_METHOD_CACHE to disable method cache to save memory */
 //#define MRB_NO_METHOD_CACHE
 /* size of the method cache (need to be the power of 2) */

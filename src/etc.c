@@ -158,11 +158,28 @@ mrb_word_boxing_float_value(mrb_state *mrb, mrb_float f)
 {
   union mrb_value_ v;
 
+#ifndef MRB_USE_FLOAT_FULL_PRECISION
+  v.f = f;
+  v.w = (v.w & ~3) | 2;
+#else
   v.p = mrb_obj_alloc(mrb, MRB_TT_FLOAT, mrb->float_class);
   v.fp->f = f;
   MRB_SET_FROZEN_FLAG(v.bp);
+#endif
   return v.value;
 }
+
+
+#ifndef MRB_USE_FLOAT_FULL_PRECISION
+MRB_API mrb_float
+mrb_word_boxing_value_float(mrb_value v)
+{
+  union mrb_value_ u;
+  u.value = v;
+  u.w = u.w & ~3;
+  return u.f;
+}
+#endif
 #endif  /* MRB_NO_FLOAT */
 
 MRB_API mrb_value

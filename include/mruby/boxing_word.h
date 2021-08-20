@@ -7,7 +7,11 @@
 #ifndef MRUBY_BOXING_WORD_H
 #define MRUBY_BOXING_WORD_H
 
-#ifndef MRB_NO_FLOAT
+#if defined(MRB_32BIT) && !defined(MRB_USE_FLOAT_FULL_PRECISION) && !defined(MRB_USE_FLOAT32)
+# define MRB_USE_FLOAT_FULL_PRECISION
+#endif
+
+#if !defined(MRB_NO_FLOAT) && defined(MRB_USE_FLOAT_FULL_PRECISION)
 struct RFloat {
   MRB_OBJECT_HEADER;
   mrb_float f;
@@ -46,15 +50,22 @@ enum mrb_special_consts {
 #define BOXWORD_FIXNUM_FLAG     (1 << (BOXWORD_FIXNUM_BIT_POS - 1))
 #define BOXWORD_FIXNUM_MASK     ((1 << BOXWORD_FIXNUM_BIT_POS) - 1)
 
-#ifdef MRB_64BIT
-#define BOXWORD_SYMBOL_SHIFT    32
-#define BOXWORD_SYMBOL_FLAG     0x34
-#define BOXWORD_SYMBOL_MASK     0x3f
-#else
+#if defined(MRB_USE_FLOAT_FULL_PRECISION)
+/* floats are allocated in heaps */
 #define BOXWORD_SYMBOL_BIT_POS  2
 #define BOXWORD_SYMBOL_SHIFT    BOXWORD_SYMBOL_BIT_POS
 #define BOXWORD_SYMBOL_FLAG     (1 << (BOXWORD_SYMBOL_BIT_POS - 1))
 #define BOXWORD_SYMBOL_MASK     ((1 << BOXWORD_SYMBOL_BIT_POS) - 1)
+#else
+#define BOXWORD_FLOAT_FLAG      2
+#define BOXWORD_FLOAT_MASK      3
+#if defined(MRB_64BIT)
+#define BOXWORD_SYMBOL_SHIFT    32
+#else  /* MRB_32BIT */
+#define BOXWORD_SYMBOL_SHIFT    5
+#endif
+#define BOXWORD_SYMBOL_FLAG     0x1c
+#define BOXWORD_SYMBOL_MASK     0x1f
 #endif
 
 #define BOXWORD_IMMEDIATE_MASK  0x07
@@ -69,12 +80,34 @@ enum mrb_special_consts {
 /*
  * mrb_value representation:
  *
+ * 64bit word with inline float:
+ *   nil   : ...0000 0000 (all bits are 0)
+ *   false : ...0000 0100 (mrb_fixnum(v) != 0)
+ *   true  : ...0000 1100
+ *   undef : ...0001 0100
+ *   symbol: ...0001 1100 (use only upper 32-bit as symbol value with MRB_64BIT)
+ *   fixnum: ...IIII III1
+ *   float : ...FFFF FF10 (51 bit significands; require MRB_64BIT)
+ *   object: ...PPPP P000
+ *
+ * 32bit word with inline float:
+ *   nil   : ...0000 0000 (all bits are 0)
+ *   false : ...0000 0100 (mrb_fixnum(v) != 0)
+ *   true  : ...0000 1100
+ *   undef : ...0001 0100
+ *   symbol: ...SSS1 1100 (use only upper 32-bit as symbol value with MRB_64BIT)
+ *   symbol: ...SSS1 0100 (symbol occupies 20bits)
+ *   fixnum: ...IIII III1
+ *   float : ...FFFF FF10 (22 bit significands; require MRB_64BIT)
+ *   object: ...PPPP P000
+ *
+ * and word boxing without inline float:
  *   nil   : ...0000 0000 (all bits are 0)
  *   false : ...0000 0100 (mrb_fixnum(v) != 0)
  *   true  : ...0000 1100
  *   undef : ...0001 0100
  *   fixnum: ...IIII III1
- *   symbol: ...SSSS SS10 (use only upper 32-bit as symbol value on 64-bit CPU)
+ *   symbol: ...SSSS SS10
  *   object: ...PPPP P000 (any bits are 1)
  */
 typedef struct mrb_value {
@@ -85,7 +118,11 @@ union mrb_value_ {
   void *p;
   struct RBasic *bp;
 #ifndef MRB_NO_FLOAT
+#ifndef MRB_USE_FLOAT_FULL_PRECISION
+  mrb_float f;
+#else
   struct RFloat *fp;
+#endif
 #endif
   struct RInteger *ip;
   struct RCptr *vp;
@@ -114,7 +151,12 @@ MRB_API mrb_value mrb_word_boxing_int_value(struct mrb_state*, mrb_int);
 #define mrb_ptr(o)     mrb_val_union(o).p
 #define mrb_cptr(o)    mrb_val_union(o).vp->p
 #ifndef MRB_NO_FLOAT
-#define mrb_float(o)   mrb_val_union(o).fp->f
+#ifndef MRB_USE_FLOAT_FULL_PRECISION
+MRB_API mrb_float mrb_word_boxing_value_float(mrb_value v);
+#define mrb_float(o) mrb_word_boxing_value_float(o)
+#else
+#define mrb_float(o) mrb_val_union(o).fp->f
+#endif
 #endif
 #define mrb_fixnum(o)  (mrb_int)(((intptr_t)(o).w) >> BOXWORD_FIXNUM_SHIFT)
 MRB_INLINE mrb_int
@@ -134,7 +176,11 @@ mrb_integer_func(mrb_value o) {
 #define mrb_false_p(o) ((o).w == MRB_Qfalse)
 #define mrb_true_p(o)  ((o).w == MRB_Qtrue)
 #ifndef MRB_NO_FLOAT
+#ifndef MRB_USE_FLOAT_FULL_PRECISION
+#define mrb_float_p(o) BOXWORD_SHIFT_VALUE_P(o, FLOAT)
+#else
 #define mrb_float_p(o) BOXWORD_OBJ_TYPE_P(o, FLOAT)
+#endif
 #endif
 #define mrb_array_p(o) BOXWORD_OBJ_TYPE_P(o, ARRAY)
 #define mrb_string_p(o) BOXWORD_OBJ_TYPE_P(o, STRING)
@@ -177,6 +223,7 @@ mrb_type(mrb_value o)
          mrb_fixnum_p(o) ? MRB_TT_INTEGER :
          mrb_symbol_p(o) ? MRB_TT_SYMBOL :
          mrb_undef_p(o)  ? MRB_TT_UNDEF :
+         mrb_float_p(o)  ? MRB_TT_FLOAT :
          mrb_val_union(o).bp->tt;
 }
 
