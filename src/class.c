@@ -902,6 +902,13 @@ void mrb_hash_check_kdict(mrb_state *mrb, mrb_value self);
     |:      optional                              Following arguments are optional
     ?:      optional given [mrb_bool]             true if preceding argument (optional) is given
     ':':    keyword args   [mrb_kwargs const]     Get keyword arguments
+
+  format modifiers:
+
+    string  note
+    ----------------------------------------------------------------------------------------------
+    !:      Switch to the alternate mode; The behaviour changes depending on the specifier
+    +:      Request a not frozen object; However, except nil value
  */
 MRB_API mrb_int
 mrb_get_args(mrb_state *mrb, const char *format, ...)
@@ -940,6 +947,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       if (!reqkarg) reqkarg = strchr(fmt, ':') ? TRUE : FALSE;
       goto check_exit;
     case '!':
+    case '+':
       break;
     case ':':
       reqkarg = TRUE;
@@ -967,14 +975,41 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
   i = 0;
   while ((c = *format++)) {
     mrb_value *argv = ARGV;
-    mrb_bool altmode;
+    mrb_bool altmode = FALSE;
+    mrb_bool needmodify = FALSE;
 
+    for (; *format; format++) {
+      switch (*format) {
+      case '!':
+        if (altmode) goto modifier_exit; /* not accept for multiple '!' */
+        altmode = TRUE;
+        break;
+      case '+':
+        if (needmodify) goto modifier_exit; /* not accept for multiple '+' */
+        needmodify = TRUE;
+        break;
+      default:
+        goto modifier_exit;
+      }
+    }
+
+  modifier_exit:
     switch (c) {
     case '|': case '*': case '&': case '?': case ':':
+      if (needmodify) {
+      bad_needmodify:
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong `%c+` modified specifer`", c);
+      }
       break;
     default:
       if (i < argc) {
         pickarg = &argv[i++];
+        if (needmodify && !mrb_nil_p(*pickarg)) {
+          if (mrb_immediate_p(*pickarg)) {
+            mrb_raisef(mrb, E_FROZEN_ERROR, "can't modify frozen %t", *pickarg);
+          }
+          mrb_check_frozen(mrb, mrb_obj_ptr(*pickarg));
+        }
       }
       else {
         if (opt) {
@@ -985,14 +1020,6 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         }
       }
       break;
-    }
-
-    if (*format == '!') {
-      format ++;
-      altmode = TRUE;
-    }
-    else {
-      altmode = FALSE;
     }
 
     switch (c) {
@@ -1078,6 +1105,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         ps = va_arg(ap, const char**);
         pl = va_arg(ap, mrb_int*);
+        if (needmodify) goto bad_needmodify;
         if (pickarg) {
           if (altmode && mrb_nil_p(*pickarg)) {
             *ps = NULL;
@@ -1096,6 +1124,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         const char **ps;
 
         ps = va_arg(ap, const char**);
+        if (needmodify) goto bad_needmodify;
         if (pickarg) {
           if (altmode && mrb_nil_p(*pickarg)) {
             *ps = NULL;
@@ -1115,6 +1144,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         pb = va_arg(ap, const mrb_value**);
         pl = va_arg(ap, mrb_int*);
+        if (needmodify) goto bad_needmodify;
         if (pickarg) {
           if (altmode && mrb_nil_p(*pickarg)) {
             *pb = 0;

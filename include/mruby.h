@@ -911,6 +911,13 @@ MRB_API struct RClass* mrb_define_module_under_id(mrb_state *mrb, struct RClass 
  * | `:`  | keyword args   | {mrb_kwargs} const | Get keyword arguments. @see mrb_kwargs |
  *
  * @see mrb_get_args
+ *
+ * Immediately after format specifiers it can add format modifiers:
+ *
+ * | char | Notes                                                                                   |
+ * |:----:|-----------------------------------------------------------------------------------------|
+ * | `!`  | Switch to the alternate mode; The behaviour changes depending on the format specifier   |
+ * | `+`  | Request a not frozen object; However, except nil value                                  |
  */
 typedef const char *mrb_args_format;
 
