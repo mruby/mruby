@@ -4,12 +4,12 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include <string.h>
-#include <math.h>
+#include <mruby.h>
 #include <mruby/dump.h>
 #include <mruby/string.h>
 #include <mruby/irep.h>
 #include <mruby/debug.h>
+#include <string.h>
 
 #ifndef MRB_NO_FLOAT
 #include <mruby/endian.h>

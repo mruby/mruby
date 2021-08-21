@@ -20,9 +20,6 @@
 #include <mruby/throw.h>
 #include <mruby/dump.h>
 #include <mruby/presym.h>
-#ifndef MRB_NO_FLOAT
-#include <math.h>
-#endif
 
 #ifdef MRB_NO_STDIO
 #if defined(__cplusplus)

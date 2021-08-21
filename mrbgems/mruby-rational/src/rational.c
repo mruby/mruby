@@ -155,7 +155,6 @@ rational_new_i(mrb_state *mrb, mrb_int n, mrb_int d)
 }
 
 #ifndef MRB_NO_FLOAT
-#include <math.h>
 
 #if defined(MRB_INT32) || defined(MRB_USE_FLOAT32)
 #define frexp_rat(x,exp) frexpf((float)x, exp)

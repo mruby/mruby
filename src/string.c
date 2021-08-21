@@ -15,9 +15,6 @@
 #include <mruby/string.h>
 #include <mruby/numeric.h>
 #include <mruby/presym.h>
-#ifndef MRB_NO_FLOAT
-#include <math.h>
-#endif
 #include <string.h>
 
 typedef struct mrb_shared_string {

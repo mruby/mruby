@@ -99,6 +99,7 @@
 #include <mruby/version.h>
 
 #ifndef MRB_NO_FLOAT
+#include <math.h>
 #include <float.h>
 #ifndef FLT_EPSILON
 #define FLT_EPSILON (1.19209290e-07f)

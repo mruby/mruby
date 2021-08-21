@@ -4,10 +4,6 @@
 ** See Copyright Notice in mruby.h
 */
 
-#ifndef MRB_NO_FLOAT
-#include <math.h>
-#endif
-
 #include <mruby.h>
 #include <mruby/class.h>
 #include <mruby/data.h>

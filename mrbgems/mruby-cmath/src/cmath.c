@@ -15,7 +15,6 @@
 # error CMath conflicts with 'MRB_NO_FLOAT' configuration
 #endif
 
-#include <math.h>
 #include <complex.h>
 
 mrb_value mrb_complex_new(mrb_state *mrb, mrb_float real, mrb_float imag);
