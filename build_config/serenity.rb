@@ -4,6 +4,9 @@
 #
 # Should be built using the SerenityOS Ports system
 # https://github.com/SerenityOS/serenity/tree/master/Ports
+#
+# As of 2021/08/20, SERENITY_ARCH is defined in the SerenityOS Ports
+# build script to always be either "i686" or "x86_64"
 
 MRuby::CrossBuild.new('serenity') do |conf|
   conf.toolchain :gcc
