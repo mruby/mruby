@@ -58,12 +58,17 @@ rand_init(rand_state *t)
 #endif
 }
 
+static uint32_t rand_uint32(rand_state *state);
+
 static uint32_t
 rand_seed(rand_state *t, uint32_t seed)
 {
   uint32_t old_seed = t->seed[SEEDPOS];
   rand_init(t);
   t->seed[SEEDPOS] = seed;
+  for (int i = 0; i < 10; i++) {
+    rand_uint32(t);
+  }
   return old_seed;
 }
 
