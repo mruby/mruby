@@ -159,6 +159,9 @@ mrb_word_boxing_float_value(mrb_state *mrb, mrb_float f)
   union mrb_value_ v;
 
 #ifndef MRB_USE_FLOAT_FULL_PRECISION
+#if defined(MRB_64BIT) && defined(MRB_USE_FLOAT32)
+  v.w = 0;
+#endif
   v.f = f;
   v.w = (v.w & ~3) | 2;
 #else
