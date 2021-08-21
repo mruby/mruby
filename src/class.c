@@ -915,7 +915,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
   mrb_bool argv_on_stack = argc >= 0;
   mrb_bool opt = FALSE;
   mrb_bool opt_skip = TRUE;
-  mrb_bool given = TRUE;
+  const mrb_value *pickarg = NULL; /* arguments currently being processed */
   mrb_value kdict;
   mrb_bool reqkarg = FALSE;
   int argc_min = 0, argc_max = 0;
@@ -973,9 +973,12 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
     case '|': case '*': case '&': case '?': case ':':
       break;
     default:
-      if (argc <= i) {
+      if (i < argc) {
+        pickarg = &argv[i++];
+      }
+      else {
         if (opt) {
-          given = FALSE;
+          pickarg = NULL;
         }
         else {
           mrb_argnum_error(mrb, argc, argc_min, argc_max);
@@ -998,8 +1001,8 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_value *p;
 
         p = va_arg(ap, mrb_value*);
-        if (i < argc) {
-          *p = argv[i++];
+        if (pickarg) {
+          *p = *pickarg;
         }
       }
       break;
@@ -1008,14 +1011,11 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_value *p;
 
         p = va_arg(ap, mrb_value*);
-        if (i < argc) {
-          mrb_value ss;
-
-          ss = argv[i++];
-          if (!class_ptr_p(ss)) {
-            mrb_raisef(mrb, E_TYPE_ERROR, "%v is not class/module", ss);
+        if (pickarg) {
+          if (!class_ptr_p(*pickarg)) {
+            mrb_raisef(mrb, E_TYPE_ERROR, "%v is not class/module", *pickarg);
           }
-          *p = ss;
+          *p = *pickarg;
         }
       }
       break;
@@ -1024,14 +1024,11 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         struct RClass **p;
 
         p = va_arg(ap, struct RClass**);
-        if (i < argc) {
-          mrb_value ss;
-
-          ss = argv[i++];
-          if (!class_ptr_p(ss)) {
-            mrb_raisef(mrb, E_TYPE_ERROR, "%v is not class/module", ss);
+        if (pickarg) {
+          if (!class_ptr_p(*pickarg)) {
+            mrb_raisef(mrb, E_TYPE_ERROR, "%v is not class/module", *pickarg);
           }
-          *p = mrb_class_ptr(ss);
+          *p = mrb_class_ptr(*pickarg);
         }
       }
       break;
@@ -1040,11 +1037,11 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_value *p;
 
         p = va_arg(ap, mrb_value*);
-        if (i < argc) {
-          *p = argv[i++];
-          if (!(altmode && mrb_nil_p(*p))) {
-            mrb_to_str(mrb, *p);
+        if (pickarg) {
+          if (!(altmode && mrb_nil_p(*pickarg))) {
+            mrb_to_str(mrb, *pickarg);
           }
+          *p = *pickarg;
         }
       }
       break;
@@ -1053,11 +1050,11 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_value *p;
 
         p = va_arg(ap, mrb_value*);
-        if (i < argc) {
-          *p = argv[i++];
-          if (!(altmode && mrb_nil_p(*p))) {
-            *p = to_ary(mrb, *p);
+        if (pickarg) {
+          if (!(altmode && mrb_nil_p(*pickarg))) {
+            to_ary(mrb, *pickarg);
           }
+          *p = *pickarg;
         }
       }
       break;
@@ -1066,72 +1063,66 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_value *p;
 
         p = va_arg(ap, mrb_value*);
-        if (i < argc) {
-          *p = argv[i++];
-          if (!(altmode && mrb_nil_p(*p))) {
-            *p = to_hash(mrb, *p);
+        if (pickarg) {
+          if (!(altmode && mrb_nil_p(*pickarg))) {
+            to_hash(mrb, *pickarg);
           }
+          *p = *pickarg;
         }
       }
       break;
     case 's':
       {
-        mrb_value ss;
         const char **ps = 0;
         mrb_int *pl = 0;
 
         ps = va_arg(ap, const char**);
         pl = va_arg(ap, mrb_int*);
-        if (i < argc) {
-          ss = argv[i++];
-          if (altmode && mrb_nil_p(ss)) {
+        if (pickarg) {
+          if (altmode && mrb_nil_p(*pickarg)) {
             *ps = NULL;
             *pl = 0;
           }
           else {
-            mrb_to_str(mrb, ss);
-            *ps = RSTRING_PTR(ss);
-            *pl = RSTRING_LEN(ss);
+            mrb_to_str(mrb, *pickarg);
+            *ps = RSTRING_PTR(*pickarg);
+            *pl = RSTRING_LEN(*pickarg);
           }
         }
       }
       break;
     case 'z':
       {
-        mrb_value ss;
         const char **ps;
 
         ps = va_arg(ap, const char**);
-        if (i < argc) {
-          ss = argv[i++];
-          if (altmode && mrb_nil_p(ss)) {
+        if (pickarg) {
+          if (altmode && mrb_nil_p(*pickarg)) {
             *ps = NULL;
           }
           else {
-            mrb_to_str(mrb, ss);
-            *ps = RSTRING_CSTR(mrb, ss);
+            mrb_to_str(mrb, *pickarg);
+            *ps = RSTRING_CSTR(mrb, *pickarg);
           }
         }
       }
       break;
     case 'a':
       {
-        mrb_value aa;
         struct RArray *a;
         const mrb_value **pb;
         mrb_int *pl;
 
         pb = va_arg(ap, const mrb_value**);
         pl = va_arg(ap, mrb_int*);
-        if (i < argc) {
-          aa = argv[i++];
-          if (altmode && mrb_nil_p(aa)) {
+        if (pickarg) {
+          if (altmode && mrb_nil_p(*pickarg)) {
             *pb = 0;
             *pl = 0;
           }
           else {
-            aa = to_ary(mrb, aa);
-            a = mrb_ary_ptr(aa);
+            to_ary(mrb, *pickarg);
+            a = mrb_ary_ptr(*pickarg);
             *pb = ARY_PTR(a);
             *pl = ARY_LEN(a);
           }
@@ -1142,20 +1133,17 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       {
         void* *p;
         struct RClass *klass;
-        mrb_value ss;
 
         p = va_arg(ap, void**);
         klass = va_arg(ap, struct RClass*);
-        if (i < argc) {
-          ss = argv[i++];
-          if (!mrb_obj_is_kind_of(mrb, ss, klass)) {
-            mrb_raisef(mrb, E_TYPE_ERROR, "%v is not a %C", ss, klass);
+        if (pickarg) {
+          if (!mrb_obj_is_kind_of(mrb, *pickarg, klass)) {
+            mrb_raisef(mrb, E_TYPE_ERROR, "%v is not a %C", *pickarg, klass);
           }
-          if (!mrb_istruct_p(ss))
-          {
-            mrb_raisef(mrb, E_TYPE_ERROR, "%v is not inline struct", ss);
+          if (!mrb_istruct_p(*pickarg)) {
+            mrb_raisef(mrb, E_TYPE_ERROR, "%v is not inline struct", *pickarg);
           }
-          *p = mrb_istruct_ptr(ss);
+          *p = mrb_istruct_ptr(*pickarg);
         }
       }
       break;
@@ -1165,8 +1153,8 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_float *p;
 
         p = va_arg(ap, mrb_float*);
-        if (i < argc) {
-          *p = mrb_as_float(mrb, argv[i]); i++;
+        if (pickarg) {
+          *p = mrb_as_float(mrb, *pickarg);
         }
       }
       break;
@@ -1176,8 +1164,8 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_int *p;
 
         p = va_arg(ap, mrb_int*);
-        if (i < argc) {
-          *p = mrb_as_int(mrb, argv[i]); i++;
+        if (pickarg) {
+          *p = mrb_as_int(mrb, *pickarg);
         }
       }
       break;
@@ -1185,9 +1173,8 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       {
         mrb_bool *boolp = va_arg(ap, mrb_bool*);
 
-        if (i < argc) {
-          mrb_value b = argv[i++];
-          *boolp = mrb_test(b);
+        if (pickarg) {
+          *boolp = mrb_test(*pickarg);
         }
       }
       break;
@@ -1196,11 +1183,8 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_sym *symp;
 
         symp = va_arg(ap, mrb_sym*);
-        if (i < argc) {
-          mrb_value ss;
-
-          ss = argv[i++];
-          *symp = to_sym(mrb, ss);
+        if (pickarg) {
+          *symp = to_sym(mrb, *pickarg);
         }
       }
       break;
@@ -1211,13 +1195,12 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         datap = va_arg(ap, void**);
         type = va_arg(ap, struct mrb_data_type const*);
-        if (i < argc) {
-          mrb_value dd = argv[i++];
-          if (altmode && mrb_nil_p(dd)) {
+        if (pickarg) {
+          if (altmode && mrb_nil_p(*pickarg)) {
             *datap = 0;
           }
           else {
-            *datap = mrb_data_get_ptr(mrb, dd, type);
+            *datap = mrb_data_get_ptr(mrb, *pickarg, type);
           }
         }
       }
@@ -1249,7 +1232,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_bool *p;
 
         p = va_arg(ap, mrb_bool*);
-        *p = given;
+        *p = pickarg ? TRUE : FALSE;
       }
       break;
 
