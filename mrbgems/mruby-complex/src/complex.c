@@ -2,7 +2,6 @@
 #include <mruby/class.h>
 #include <mruby/numeric.h>
 #include <mruby/presym.h>
-#include <math.h>
 
 #ifdef MRB_NO_FLOAT
 # error Complex conflicts with 'MRB_NO_FLOAT' configuration

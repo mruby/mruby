@@ -5,14 +5,11 @@
 */
 
 #include <mruby.h>
-#include <string.h>
 #include <mruby/string.h>
 #include <mruby/hash.h>
 #include <mruby/numeric.h>
 #include <mruby/presym.h>
-#ifndef MRB_NO_FLOAT
-#include <math.h>
-#endif
+#include <string.h>
 #include <ctype.h>
 
 #define BIT_DIGITS(N)   (((N)*146)/485 + 1)  /* log2(10) =~ 146/485 */

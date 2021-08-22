@@ -4,9 +4,6 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include <ctype.h>
-#include <string.h>
-#include <math.h>
 #include <mruby.h>
 #include <mruby/compile.h>
 #include <mruby/proc.h>
@@ -19,6 +16,8 @@
 #include <mruby/opcode.h>
 #include <mruby/re.h>
 #include <mruby/throw.h>
+#include <ctype.h>
+#include <string.h>
 
 #ifndef MRB_CODEGEN_LEVEL_MAX
 #define MRB_CODEGEN_LEVEL_MAX 1024
