@@ -303,4 +303,16 @@ assert('Float#eql?') do
   assert_not_operator(5.0, :eql?, "5.0")
 end
 
+assert('Float#abs') do
+  f = 1.0
+  assert_equal(1.0, f.abs)
+  f = -1.0
+  assert_equal(1.0, f.abs)
+  f = 0.0
+  assert_equal(0.0, f.abs)
+  # abs(negative zero) should be positive zero
+  f = -0.0
+  assert_equal(0.0, f.abs)
+end
+
 end # const_defined?(:Float)

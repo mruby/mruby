@@ -978,6 +978,15 @@ flo_nan_p(mrb_state *mrb, mrb_value num)
 {
   return mrb_bool_value(isnan(mrb_float(num)));
 }
+
+static mrb_value
+flo_abs(mrb_state *mrb, mrb_value num)
+{
+  mrb_float f = mrb_float(num);
+
+  if (signbit(f)) return mrb_float_value(mrb, -f);
+  return num;
+}
 #endif
 
 /*
@@ -1910,6 +1919,7 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fl,      "to_s",      flo_to_s,       MRB_ARGS_NONE()); /* 15.2.9.3.16(x) */
   mrb_define_method(mrb, fl,      "inspect",   flo_to_s,       MRB_ARGS_NONE());
   mrb_define_method(mrb, fl,      "nan?",      flo_nan_p,      MRB_ARGS_NONE());
+  mrb_define_method(mrb, fl,      "abs",       flo_abs,        MRB_ARGS_NONE()); /* 15.2.7.4.3 */
 
 #ifdef INFINITY
   mrb_define_const_id(mrb, fl, MRB_SYM(INFINITY), mrb_float_value(mrb, INFINITY));
