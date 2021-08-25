@@ -113,11 +113,7 @@
 /* number of object per heap page */
 //#define MRB_HEAP_PAGE_SIZE 1024
 
-/* if __ehdr_start is available, mruby can reduce memory used by symbols */
-//#define MRB_USE_LINK_TIME_RO_DATA_P
-
-/* if MRB_USE_LINK_TIME_RO_DATA_P does not work,
-   you can try mrb_ro_data_p() that you have implemented yourself in any file;
+/* you can provide and use mrb_ro_data_p() for your platform.
    prototype is `mrb_bool mrb_ro_data_p(const char *ptr)` */
 //#define MRB_USE_CUSTOM_RO_DATA_P
 

@@ -151,14 +151,6 @@ largest value of required alignment.
 
 ## Reduce heap memory configuration
 
-`MRB_USE_LINK_TIME_RO_DATA_P`
-
-* Only available on ELF platforms.
-* If you specify the address of a read-only section when creating a symbol or string, that string will be used as it is.
-* Heap memory can be saved.
-* Uses `__ehdr_start` and `__init_array_start`.
-* It must be `__ehdr_start < data_addr < __init_array_start`.
-
 `MRB_USE_CUSTOM_RO_DATA_P`
 
 * Takes precedence over `MRB_USE_LINK_TIME_RO_DATA_P`.
