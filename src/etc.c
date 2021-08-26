@@ -162,10 +162,11 @@ mrb_word_boxing_float_value(mrb_state *mrb, mrb_float f)
   v.p = mrb_obj_alloc(mrb, MRB_TT_FLOAT, mrb->float_class);
   v.fp->f = f;
   MRB_SET_FROZEN_FLAG(v.bp);
-#else
-#if defined(MRB_64BIT) && defined(MRB_USE_FLOAT32)
+#elif defined(MRB_64BIT) && defined(MRB_USE_FLOAT32)
   v.w = 0;
-#endif
+  v.f = f;
+  v.w = ((v.w<<2) & ~3) | 2;
+#else
   v.f = f;
   v.w = (v.w & ~3) | 2;
 #endif
@@ -180,6 +181,9 @@ mrb_word_boxing_value_float(mrb_value v)
   union mrb_value_ u;
   u.value = v;
   u.w = u.w & ~3;
+#if defined(MRB_64BIT) && defined(MRB_USE_FLOAT32)
+  u.w >>= 2;
+#endif
   return u.f;
 }
 #endif
