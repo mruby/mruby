@@ -41,14 +41,14 @@ union mrb_value_ {
   uint64_t u;
 #ifdef MRB_64BIT
   void *p;
-# define BOXNAN_IMMEDIATE_VALUE uint32_t i
+# define NANBOX_IMMEDIATE_VALUE uint32_t i
 #else
-# define BOXNAN_IMMEDIATE_VALUE union { uint32_t i; void *p; }
+# define NANBOX_IMMEDIATE_VALUE union { uint32_t i; void *p; }
 #endif
   struct {
     MRB_ENDIAN_LOHI(
       uint32_t ttt;
-      ,BOXNAN_IMMEDIATE_VALUE;
+      ,NANBOX_IMMEDIATE_VALUE;
     )
   };
   mrb_value value;
@@ -74,14 +74,14 @@ mrb_val_union(mrb_value v)
 #ifdef MRB_64BIT
 #define mrb_ptr(o)      ((void*)((((uintptr_t)0x3fffffffffff)&((uintptr_t)(mrb_val_union(o).p)))<<2))
 #define mrb_cptr(o)     (((struct RCptr*)mrb_ptr(o))->p)
-#define BOXNAN_SHIFT_LONG_POINTER(v) (((uintptr_t)(v)>>34)&0x3fff)
+#define NANBOX_SHIFT_LONG_POINTER(v) (((uintptr_t)(v)>>34)&0x3fff)
 #else
 #define mrb_ptr(o)      ((void*)mrb_val_union(o).i)
 #define mrb_cptr(o)     mrb_ptr(o)
-#define BOXNAN_SHIFT_LONG_POINTER(v) 0
+#define NANBOX_SHIFT_LONG_POINTER(v) 0
 #endif
 
-#define BOXNAN_SET_VALUE(o, tt, attr, v) do { \
+#define NANBOX_SET_VALUE(o, tt, attr, v) do { \
   union mrb_value_ mrb_value_union_variable; \
   mrb_value_union_variable.attr = (v);\
   mrb_value_union_variable.ttt = 0xfff00000 | (((tt)+1)<<14);\
@@ -89,14 +89,14 @@ mrb_val_union(mrb_value v)
 } while (0)
 
 #ifdef MRB_64BIT
-#define BOXNAN_SET_OBJ_VALUE(o, tt, v) do {\
+#define NANBOX_SET_OBJ_VALUE(o, tt, v) do {\
   union mrb_value_ mrb_value_union_variable;\
   mrb_value_union_variable.p = (void*)((uintptr_t)(v)>>2);\
-  mrb_value_union_variable.ttt = (0xfff00000|(((tt)+1)<<14)|BOXNAN_SHIFT_LONG_POINTER(v));\
+  mrb_value_union_variable.ttt = (0xfff00000|(((tt)+1)<<14)|NANBOX_SHIFT_LONG_POINTER(v));\
   o = mrb_value_union_variable.value;\
 } while (0)
 #else
-#define BOXNAN_SET_OBJ_VALUE(o, tt, v) BOXNAN_SET_VALUE(o, tt, i, (uint32_t)v)
+#define NANBOX_SET_OBJ_VALUE(o, tt, v) NANBOX_SET_VALUE(o, tt, i, (uint32_t)v)
 #endif
 
 #define SET_FLOAT_VALUE(mrb,r,v) do { \
@@ -111,20 +111,20 @@ mrb_val_union(mrb_value v)
   r = mrb_value_union_variable.value; \
 } while(0)
 
-#define SET_NIL_VALUE(r) BOXNAN_SET_VALUE(r, MRB_TT_FALSE, i, 0)
-#define SET_FALSE_VALUE(r) BOXNAN_SET_VALUE(r, MRB_TT_FALSE, i, 1)
-#define SET_TRUE_VALUE(r) BOXNAN_SET_VALUE(r, MRB_TT_TRUE, i, 1)
-#define SET_BOOL_VALUE(r,b) BOXNAN_SET_VALUE(r, b ? MRB_TT_TRUE : MRB_TT_FALSE, i, 1)
-#define SET_INT_VALUE(mrb, r,n) BOXNAN_SET_VALUE(r, MRB_TT_INTEGER, i, (uint32_t)(n))
-#define SET_FIXNUM_VALUE(r,n) BOXNAN_SET_VALUE(r, MRB_TT_INTEGER, i, (uint32_t)(n))
-#define SET_SYM_VALUE(r,v) BOXNAN_SET_VALUE(r, MRB_TT_SYMBOL, i, (uint32_t)(v))
-#define SET_OBJ_VALUE(r,v) BOXNAN_SET_OBJ_VALUE(r, (((struct RObject*)(v))->tt), (v))
+#define SET_NIL_VALUE(r) NANBOX_SET_VALUE(r, MRB_TT_FALSE, i, 0)
+#define SET_FALSE_VALUE(r) NANBOX_SET_VALUE(r, MRB_TT_FALSE, i, 1)
+#define SET_TRUE_VALUE(r) NANBOX_SET_VALUE(r, MRB_TT_TRUE, i, 1)
+#define SET_BOOL_VALUE(r,b) NANBOX_SET_VALUE(r, b ? MRB_TT_TRUE : MRB_TT_FALSE, i, 1)
+#define SET_INT_VALUE(mrb, r,n) NANBOX_SET_VALUE(r, MRB_TT_INTEGER, i, (uint32_t)(n))
+#define SET_FIXNUM_VALUE(r,n) NANBOX_SET_VALUE(r, MRB_TT_INTEGER, i, (uint32_t)(n))
+#define SET_SYM_VALUE(r,v) NANBOX_SET_VALUE(r, MRB_TT_SYMBOL, i, (uint32_t)(v))
+#define SET_OBJ_VALUE(r,v) NANBOX_SET_OBJ_VALUE(r, (((struct RObject*)(v))->tt), (v))
 #ifdef MRB_64BIT
 MRB_API mrb_value mrb_nan_boxing_cptr_value(struct mrb_state*, void*);
 #define SET_CPTR_VALUE(mrb,r,v) ((r) = mrb_nan_boxing_cptr_value(mrb, v))
 #else
-#define SET_CPTR_VALUE(mrb,r,v) BOXNAN_SET_VALUE(r, MRB_TT_CPTR, p, v)
+#define SET_CPTR_VALUE(mrb,r,v) NANBOX_SET_VALUE(r, MRB_TT_CPTR, p, v)
 #endif
-#define SET_UNDEF_VALUE(r) BOXNAN_SET_VALUE(r, MRB_TT_UNDEF, i, 0)
+#define SET_UNDEF_VALUE(r) NANBOX_SET_VALUE(r, MRB_TT_UNDEF, i, 0)
 
 #endif  /* MRUBY_BOXING_NAN_H */
