@@ -7,11 +7,11 @@
 #ifndef MRUBY_BOXING_WORD_H
 #define MRUBY_BOXING_WORD_H
 
-#if defined(MRB_32BIT) && !defined(MRB_USE_FLOAT_FULL_PRECISION) && !defined(MRB_USE_FLOAT32)
-# define MRB_USE_FLOAT_FULL_PRECISION
+#if defined(MRB_32BIT) && !defined(MRB_USE_FLOAT32)
+# define MRB_WORDBOX_USE_HEAP_FLOAT
 #endif
 
-#if !defined(MRB_NO_FLOAT) && defined(MRB_USE_FLOAT_FULL_PRECISION)
+#if !defined(MRB_NO_FLOAT) && defined(MRB_WORDBOX_USE_HEAP_FLOAT)
 struct RFloat {
   MRB_OBJECT_HEADER;
   mrb_float f;
@@ -50,7 +50,7 @@ enum mrb_special_consts {
 #define BOXWORD_FIXNUM_FLAG     (1 << (BOXWORD_FIXNUM_BIT_POS - 1))
 #define BOXWORD_FIXNUM_MASK     ((1 << BOXWORD_FIXNUM_BIT_POS) - 1)
 
-#if defined(MRB_USE_FLOAT_FULL_PRECISION)
+#if defined(MRB_WORDBOX_USE_HEAP_FLOAT)
 /* floats are allocated in heaps */
 #define BOXWORD_SYMBOL_BIT_POS  2
 #define BOXWORD_SYMBOL_SHIFT    BOXWORD_SYMBOL_BIT_POS
@@ -118,7 +118,7 @@ union mrb_value_ {
   void *p;
   struct RBasic *bp;
 #ifndef MRB_NO_FLOAT
-#ifndef MRB_USE_FLOAT_FULL_PRECISION
+#ifndef MRB_WORDBOX_USE_HEAP_FLOAT
   mrb_float f;
 #else
   struct RFloat *fp;
@@ -151,7 +151,7 @@ MRB_API mrb_value mrb_word_boxing_int_value(struct mrb_state*, mrb_int);
 #define mrb_ptr(o)     mrb_val_union(o).p
 #define mrb_cptr(o)    mrb_val_union(o).vp->p
 #ifndef MRB_NO_FLOAT
-#ifndef MRB_USE_FLOAT_FULL_PRECISION
+#ifndef MRB_WORDBOX_USE_HEAP_FLOAT
 MRB_API mrb_float mrb_word_boxing_value_float(mrb_value v);
 #define mrb_float(o) mrb_word_boxing_value_float(o)
 #else
@@ -176,7 +176,7 @@ mrb_integer_func(mrb_value o) {
 #define mrb_false_p(o) ((o).w == MRB_Qfalse)
 #define mrb_true_p(o)  ((o).w == MRB_Qtrue)
 #ifndef MRB_NO_FLOAT
-#ifndef MRB_USE_FLOAT_FULL_PRECISION
+#ifndef MRB_WORDBOX_USE_HEAP_FLOAT
 #define mrb_float_p(o) BOXWORD_SHIFT_VALUE_P(o, FLOAT)
 #else
 #define mrb_float_p(o) BOXWORD_OBJ_TYPE_P(o, FLOAT)

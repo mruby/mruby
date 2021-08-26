@@ -42,9 +42,6 @@
 #error Cannot define MRB_USE_FLOAT32 and MRB_NO_FLOAT at the same time
 #endif
 
-/* if defined mruby allocates Float objects in the heap to keep full precision if needed */
-//#define MRB_USE_FLOAT_FULL_PRECISION
-
 /* add -DMRB_NO_METHOD_CACHE to disable method cache to save memory */
 //#define MRB_NO_METHOD_CACHE
 /* size of the method cache (need to be the power of 2) */
@@ -81,6 +78,9 @@
 #if !defined(MRB_NAN_BOXING) && !defined(MRB_WORD_BOXING) && !defined(MRB_NO_BOXING)
 # define MRB_WORD_BOXING
 #endif
+
+/* if defined mruby allocates Float objects in the heap to keep full precision if needed */
+//#define MRB_WORDBOX_USE_HEAP_FLOAT
 
 /* add -DMRB_INT32 to use 32bit integer for mrb_int; conflict with MRB_INT64;
    Default for 32-bit CPU mode. */
