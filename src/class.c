@@ -799,18 +799,12 @@ mrb_notimplement_m(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
-static mrb_value
-to_ary(mrb_state *mrb, mrb_value val)
+static void
+ensure_class_type(mrb_state *mrb, mrb_value val)
 {
-  mrb_check_type(mrb, val, MRB_TT_ARRAY);
-  return val;
-}
-
-static mrb_value
-to_hash(mrb_state *mrb, mrb_value val)
-{
-  mrb_check_type(mrb, val, MRB_TT_HASH);
-  return val;
+  if (!class_ptr_p(val)) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "%v is not class/module", val);
+  }
 }
 
 #define to_sym(mrb, ss) mrb_obj_to_sym(mrb, ss)
@@ -915,10 +909,10 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 {
   const char *fmt = format;
   char c;
-  mrb_int i = 0;
+  int i = 0;
   va_list ap;
-  mrb_int argc = mrb->c->ci->argc;
-  mrb_value *array_argv = mrb->c->ci->stack+1;
+  int argc = mrb->c->ci->argc;
+  const mrb_value *argv = mrb->c->ci->stack+1;
   mrb_bool argv_on_stack = argc >= 0;
   mrb_bool opt = FALSE;
   mrb_bool opt_skip = TRUE;
@@ -928,13 +922,11 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
   int argc_min = 0, argc_max = 0;
 
   if (!argv_on_stack) {
-    struct RArray *a = mrb_ary_ptr(*array_argv);
-    array_argv = ARY_PTR(a);
+    struct RArray *a = mrb_ary_ptr(*argv);
+    argv = ARY_PTR(a);
     argc = ARY_LEN(a);
   }
   va_start(ap, format);
-
-#define ARGV array_argv
 
   while ((c = *fmt++)) {
     switch (c) {
@@ -963,9 +955,9 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
   }
 
  check_exit:
-  if (reqkarg && argc > argc_min && mrb_hash_p(kdict = ARGV[argc - 1])) {
+  if (reqkarg && argc > argc_min && mrb_hash_p(kdict = argv[argc - 1])) {
     mrb_hash_check_kdict(mrb, kdict);
-    argc --;
+    argc--;
   }
   else {
     kdict = mrb_nil_value();
@@ -974,7 +966,6 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
   opt = FALSE;
   i = 0;
   while ((c = *format++)) {
-    mrb_value *argv = ARGV;
     mrb_bool altmode = FALSE;
     mrb_bool needmodify = FALSE;
 
@@ -1039,9 +1030,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         p = va_arg(ap, mrb_value*);
         if (pickarg) {
-          if (!class_ptr_p(*pickarg)) {
-            mrb_raisef(mrb, E_TYPE_ERROR, "%v is not class/module", *pickarg);
-          }
+          ensure_class_type(mrb, *pickarg);
           *p = *pickarg;
         }
       }
@@ -1052,9 +1041,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         p = va_arg(ap, struct RClass**);
         if (pickarg) {
-          if (!class_ptr_p(*pickarg)) {
-            mrb_raisef(mrb, E_TYPE_ERROR, "%v is not class/module", *pickarg);
-          }
+          ensure_class_type(mrb, *pickarg);
           *p = mrb_class_ptr(*pickarg);
         }
       }
@@ -1066,7 +1053,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         p = va_arg(ap, mrb_value*);
         if (pickarg) {
           if (!(altmode && mrb_nil_p(*pickarg))) {
-            mrb_to_str(mrb, *pickarg);
+            mrb_ensure_string_type(mrb, *pickarg);
           }
           *p = *pickarg;
         }
@@ -1079,7 +1066,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         p = va_arg(ap, mrb_value*);
         if (pickarg) {
           if (!(altmode && mrb_nil_p(*pickarg))) {
-            to_ary(mrb, *pickarg);
+            mrb_ensure_array_type(mrb, *pickarg);
           }
           *p = *pickarg;
         }
@@ -1092,7 +1079,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         p = va_arg(ap, mrb_value*);
         if (pickarg) {
           if (!(altmode && mrb_nil_p(*pickarg))) {
-            to_hash(mrb, *pickarg);
+            mrb_ensure_hash_type(mrb, *pickarg);
           }
           *p = *pickarg;
         }
@@ -1112,7 +1099,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
             *pl = 0;
           }
           else {
-            mrb_to_str(mrb, *pickarg);
+            mrb_ensure_string_type(mrb, *pickarg);
             *ps = RSTRING_PTR(*pickarg);
             *pl = RSTRING_LEN(*pickarg);
           }
@@ -1130,7 +1117,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
             *ps = NULL;
           }
           else {
-            mrb_to_str(mrb, *pickarg);
+            mrb_ensure_string_type(mrb, *pickarg);
             *ps = RSTRING_CSTR(mrb, *pickarg);
           }
         }
@@ -1151,7 +1138,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
             *pl = 0;
           }
           else {
-            to_ary(mrb, *pickarg);
+            mrb_ensure_array_type(mrb, *pickarg);
             a = mrb_ary_ptr(*pickarg);
             *pb = ARY_PTR(a);
             *pl = ARY_LEN(a);
@@ -1316,7 +1303,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
             mrb_raise(mrb, E_ARGUMENT_ERROR, "keyword number is too large");
           }
 
-          for (j = required; j > 0; j --, kname ++, values ++) {
+          for (j = required; j > 0; j--, kname++, values++) {
             mrb_value k = mrb_symbol_value(*kname);
             if (!mrb_hash_key_p(mrb, ksrc, k)) {
               mrb_raisef(mrb, E_ARGUMENT_ERROR, "missing keyword: %n", *kname);
@@ -1325,7 +1312,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
             mrb_gc_protect(mrb, *values);
           }
 
-          for (j = kwnum - required; j > 0; j --, kname ++, values ++) {
+          for (j = kwnum - required; j > 0; j--, kname++, values++) {
             mrb_value k = mrb_symbol_value(*kname);
             if (mrb_hash_key_p(mrb, ksrc, k)) {
               *values = mrb_hash_delete_key(mrb, ksrc, k);
@@ -1355,8 +1342,6 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
       break;
     }
   }
-
-#undef ARGV
 
   if (!c && argc > i) {
     mrb_argnum_error(mrb, argc, argc_min, argc_max);
