@@ -892,7 +892,7 @@ MRB_API struct RClass* mrb_define_module_under_id(mrb_state *mrb, struct RClass 
  * | char | Ruby type      | C types           | Notes                                              |
  * |:----:|----------------|-------------------|----------------------------------------------------|
  * | `o`  | {Object}       | {mrb_value}       | Could be used to retrieve any type of argument     |
- * | `C`  | {Class}/{Module} | {mrb_value}     |                                                    |
+ * | `C`  | {Class}/{Module} | {mrb_value}     | when `!` follows, the value may be `nil`           |
  * | `S`  | {String}       | {mrb_value}       | when `!` follows, the value may be `nil`           |
  * | `A`  | {Array}        | {mrb_value}       | when `!` follows, the value may be `nil`           |
  * | `H`  | {Hash}         | {mrb_value}       | when `!` follows, the value may be `nil`           |

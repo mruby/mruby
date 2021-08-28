@@ -877,7 +877,7 @@ void mrb_hash_check_kdict(mrb_state *mrb, mrb_value self);
     string  mruby type     C type                 note
     ----------------------------------------------------------------------------------------------
     o:      Object         [mrb_value]
-    C:      Class/Module   [mrb_value]
+    C:      Class/Module   [mrb_value]            when ! follows, the value may be nil
     S:      String         [mrb_value]            when ! follows, the value may be nil
     A:      Array          [mrb_value]            when ! follows, the value may be nil
     H:      Hash           [mrb_value]            when ! follows, the value may be nil
@@ -1015,22 +1015,23 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
     switch (c) {
     case 'o':
-      {
-        mrb_value *p;
-
-        p = va_arg(ap, mrb_value*);
-        if (pickarg) {
-          *p = *pickarg;
-        }
-      }
-      break;
     case 'C':
+    case 'S':
+    case 'A':
+    case 'H':
       {
         mrb_value *p;
 
         p = va_arg(ap, mrb_value*);
         if (pickarg) {
-          ensure_class_type(mrb, *pickarg);
+          if (!(altmode && mrb_nil_p(*pickarg))) {
+            switch (c) {
+            case 'C': ensure_class_type(mrb, *pickarg); break;
+            case 'S': mrb_ensure_string_type(mrb, *pickarg); break;
+            case 'A': mrb_ensure_array_type(mrb, *pickarg); break;
+            case 'H': mrb_ensure_hash_type(mrb, *pickarg); break;
+            }
+          }
           *p = *pickarg;
         }
       }
@@ -1043,45 +1044,6 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         if (pickarg) {
           ensure_class_type(mrb, *pickarg);
           *p = mrb_class_ptr(*pickarg);
-        }
-      }
-      break;
-    case 'S':
-      {
-        mrb_value *p;
-
-        p = va_arg(ap, mrb_value*);
-        if (pickarg) {
-          if (!(altmode && mrb_nil_p(*pickarg))) {
-            mrb_ensure_string_type(mrb, *pickarg);
-          }
-          *p = *pickarg;
-        }
-      }
-      break;
-    case 'A':
-      {
-        mrb_value *p;
-
-        p = va_arg(ap, mrb_value*);
-        if (pickarg) {
-          if (!(altmode && mrb_nil_p(*pickarg))) {
-            mrb_ensure_array_type(mrb, *pickarg);
-          }
-          *p = *pickarg;
-        }
-      }
-      break;
-    case 'H':
-      {
-        mrb_value *p;
-
-        p = va_arg(ap, mrb_value*);
-        if (pickarg) {
-          if (!(altmode && mrb_nil_p(*pickarg))) {
-            mrb_ensure_hash_type(mrb, *pickarg);
-          }
-          *p = *pickarg;
         }
       }
       break;
