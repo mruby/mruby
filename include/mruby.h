@@ -1368,6 +1368,15 @@ MRB_API void mrb_gc_register(mrb_state *mrb, mrb_value obj);
 /* mrb_gc_unregister() removes the object from GC root. */
 MRB_API void mrb_gc_unregister(mrb_state *mrb, mrb_value obj);
 
+/* type conversion/check functions */
+MRB_API mrb_value mrb_ensure_array_type(mrb_state *mrb, mrb_value self);
+MRB_API mrb_value mrb_check_array_type(mrb_state *mrb, mrb_value self);
+MRB_API mrb_value mrb_ensure_hash_type(mrb_state *mrb, mrb_value hash);
+MRB_API mrb_value mrb_check_hash_type(mrb_state *mrb, mrb_value hash);
+MRB_API mrb_value mrb_ensure_string_type(mrb_state *mrb, mrb_value str);
+MRB_API mrb_value mrb_check_string_type(mrb_state *mrb, mrb_value str);
+/* obsolete: use mrb_ensure_string_type() instead */
+#define mrb_string_type(mrb, str) mrb_ensure_string_type(mrb,str)
 MRB_API mrb_value mrb_to_int(mrb_state *mrb, mrb_value val);
 #define mrb_as_int(mrb, val) mrb_integer(mrb_to_int(mrb, val))
 

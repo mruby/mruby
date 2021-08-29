@@ -37,8 +37,6 @@ struct RHash {
 
 size_t mrb_hash_memsize(mrb_value obj);
 MRB_API mrb_value mrb_hash_new_capa(mrb_state *mrb, mrb_int capa);
-MRB_API mrb_value mrb_ensure_hash_type(mrb_state *mrb, mrb_value hash);
-MRB_API mrb_value mrb_check_hash_type(mrb_state *mrb, mrb_value hash);
 
 /*
  * Initializes a new hash.

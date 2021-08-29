@@ -324,20 +324,6 @@ MRB_API mrb_value mrb_str_resize(mrb_state *mrb, mrb_value str, mrb_int len);
  */
 MRB_API mrb_value mrb_str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len);
 
-/**
- * Returns a Ruby string type.
- *
- *
- * @param mrb The current mruby state.
- * @param str Ruby string.
- * @return [mrb_value] A Ruby string.
- */
-MRB_API mrb_value mrb_ensure_string_type(mrb_state *mrb, mrb_value str);
-MRB_API mrb_value mrb_check_string_type(mrb_state *mrb, mrb_value str);
-/* obsolete: use mrb_ensure_string_type() instead */
-MRB_API mrb_value mrb_string_type(mrb_state *mrb, mrb_value str);
-
-
 MRB_API mrb_value mrb_str_new_capa(mrb_state *mrb, size_t capa);
 #define mrb_str_buf_new(mrb, capa) mrb_str_new_capa(mrb, (capa))
 

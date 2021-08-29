@@ -564,13 +564,6 @@ mrb_to_str(mrb_state *mrb, mrb_value val)
   return mrb_ensure_string_type(mrb, val);
 }
 
-/* obsolete: use mrb_ensure_string_type() instead */
-MRB_API mrb_value
-mrb_string_type(mrb_state *mrb, mrb_value str)
-{
-  return mrb_ensure_string_type(mrb, str);
-}
-
 MRB_API mrb_value
 mrb_ensure_string_type(mrb_state *mrb, mrb_value str)
 {
