@@ -202,7 +202,8 @@ mrb_f_hash(mrb_state *mrb, mrb_value self)
   if (mrb_nil_p(arg) || (mrb_array_p(arg) && RARRAY_LEN(arg) == 0)) {
     return mrb_hash_new(mrb);
   }
-  return mrb_ensure_hash_type(mrb, arg);
+  mrb_ensure_hash_type(mrb, arg);
+  return arg;
 }
 
 void

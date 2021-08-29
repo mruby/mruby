@@ -2379,7 +2379,7 @@ mrb_mod_const_get(mrb_state *mrb, mrb_value mod)
   }
 
   /* const get with class path string */
-  path = mrb_ensure_string_type(mrb, path);
+  mrb_ensure_string_type(mrb, path);
   ptr = RSTRING_PTR(path);
   len = RSTRING_LEN(path);
   off = 0;

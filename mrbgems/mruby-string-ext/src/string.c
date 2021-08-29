@@ -195,14 +195,14 @@ static mrb_value
 mrb_str_start_with(mrb_state *mrb, mrb_value self)
 {
   const mrb_value *argv;
-  mrb_value sub;
   mrb_int argc, i;
   mrb_get_args(mrb, "*", &argv, &argc);
 
   for (i = 0; i < argc; i++) {
     size_t len_l, len_r;
     int ai = mrb_gc_arena_save(mrb);
-    sub = mrb_ensure_string_type(mrb, argv[i]);
+    mrb_value sub = argv[i];
+    mrb_ensure_string_type(mrb, sub);
     mrb_gc_arena_restore(mrb, ai);
     len_l = RSTRING_LEN(self);
     len_r = RSTRING_LEN(sub);
@@ -225,14 +225,14 @@ static mrb_value
 mrb_str_end_with(mrb_state *mrb, mrb_value self)
 {
   const mrb_value *argv;
-  mrb_value sub;
   mrb_int argc, i;
   mrb_get_args(mrb, "*", &argv, &argc);
 
   for (i = 0; i < argc; i++) {
     size_t len_l, len_r;
     int ai = mrb_gc_arena_save(mrb);
-    sub = mrb_ensure_string_type(mrb, argv[i]);
+    mrb_value sub = argv[i];
+    mrb_ensure_string_type(mrb, sub);
     mrb_gc_arena_restore(mrb, ai);
     len_l = RSTRING_LEN(self);
     len_r = RSTRING_LEN(sub);

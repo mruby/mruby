@@ -2671,7 +2671,8 @@ RETRY_TRY_BLOCK:
       int i;
       int lim = a+b*2+1;
 
-      hash = mrb_ensure_hash_type(mrb, regs[a]);
+      hash = regs[a];
+      mrb_ensure_hash_type(mrb, hash);
       for (i=a+1; i<lim; i+=2) {
         mrb_hash_set(mrb, hash, regs[i], regs[i+1]);
       }
@@ -2679,8 +2680,9 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
     CASE(OP_HASHCAT, B) {
-      mrb_value hash = mrb_ensure_hash_type(mrb, regs[a]);
+      mrb_value hash = regs[a];
 
+      mrb_ensure_hash_type(mrb, hash);
       mrb_hash_merge(mrb, hash, regs[a+1]);
       mrb_gc_arena_restore(mrb, ai);
       NEXT;

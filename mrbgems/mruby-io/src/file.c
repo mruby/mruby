@@ -116,14 +116,14 @@ static mrb_value
 mrb_file_s_unlink(mrb_state *mrb, mrb_value obj)
 {
   const mrb_value *argv;
-  mrb_value pathv;
   mrb_int argc, i;
   char *path;
 
   mrb_get_args(mrb, "*", &argv, &argc);
   for (i = 0; i < argc; i++) {
     const char *utf8_path;
-    pathv = mrb_ensure_string_type(mrb, argv[i]);
+    mrb_value pathv = argv[i];
+    mrb_ensure_string_type(mrb, pathv);
     utf8_path = RSTRING_CSTR(mrb, pathv);
     path = mrb_locale_from_utf8(utf8_path, -1);
     if (UNLINK(path) < 0) {
