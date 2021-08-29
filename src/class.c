@@ -884,13 +884,13 @@ void mrb_hash_check_kdict(mrb_state *mrb, mrb_value self);
     s:      String         [const char*,mrb_int]  Receive two arguments; s! gives (NULL,0) for nil
     z:      String         [const char*]          NUL terminated string; z! gives NULL for nil
     a:      Array          [const mrb_value*,mrb_int] Receive two arguments; a! gives (NULL,0) for nil
-    c:      Class/Module   [strcut RClass*]
+    c:      Class/Module   [strcut RClass*]       c! gives NULL for nil
     f:      Integer/Float  [mrb_float]
     i:      Integer/Float  [mrb_int]
     b:      boolean        [mrb_bool]
     n:      String/Symbol  [mrb_sym]
     d:      data           [void*,mrb_data_type const] 2nd argument will be used to check data type so it won't be modified; when ! follows, the value may be nil
-    I:      inline struct  [void*,struct RClass]
+    I:      inline struct  [void*,struct RClass]  I! gives NULL for nil
     &:      block          [mrb_value]            &! raises exception if no block given
     *:      rest argument  [const mrb_value*,mrb_int] The rest of the arguments as an array; *! avoid copy of the stack
     |:      optional                              Following arguments are optional
@@ -1042,8 +1042,13 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 
         p = va_arg(ap, struct RClass**);
         if (pickarg) {
-          ensure_class_type(mrb, *pickarg);
-          *p = mrb_class_ptr(*pickarg);
+          if (altmode && mrb_nil_p(*pickarg)) {
+            *p = NULL;
+          }
+          else {
+            ensure_class_type(mrb, *pickarg);
+            *p = mrb_class_ptr(*pickarg);
+          }
         }
       }
       break;
@@ -1116,13 +1121,18 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         p = va_arg(ap, void**);
         klass = va_arg(ap, struct RClass*);
         if (pickarg) {
-          if (!mrb_obj_is_kind_of(mrb, *pickarg, klass)) {
-            mrb_raisef(mrb, E_TYPE_ERROR, "%v is not a %C", *pickarg, klass);
+          if (altmode && mrb_nil_p(*pickarg)) {
+            *p = NULL;
           }
-          if (!mrb_istruct_p(*pickarg)) {
-            mrb_raisef(mrb, E_TYPE_ERROR, "%v is not inline struct", *pickarg);
+          else {
+            if (!mrb_obj_is_kind_of(mrb, *pickarg, klass)) {
+              mrb_raisef(mrb, E_TYPE_ERROR, "%v is not a %C", *pickarg, klass);
+            }
+            if (!mrb_istruct_p(*pickarg)) {
+              mrb_raisef(mrb, E_TYPE_ERROR, "%v is not inline struct", *pickarg);
+            }
+            *p = mrb_istruct_ptr(*pickarg);
           }
-          *p = mrb_istruct_ptr(*pickarg);
         }
       }
       break;
