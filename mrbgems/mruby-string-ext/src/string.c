@@ -1174,6 +1174,60 @@ mrb_str_del_suffix(mrb_state *mrb, mrb_value self)
   return mrb_str_substr(mrb, self, 0, slen-plen);
 }
 
+#define lesser(a,b) (((a)>(b))?(b):(a))
+
+/*
+ * call-seq:
+ *   str.casecmp(other_str)   -> -1, 0, +1 or nil
+ *
+ * Case-insensitive version of <code>String#<=></code>.
+ *
+ *   "abcdef".casecmp("abcde")     #=> 1
+ *   "aBcDeF".casecmp("abcdef")    #=> 0
+ *   "abcdef".casecmp("abcdefg")   #=> -1
+ *   "abcdef".casecmp("ABCDEF")    #=> 0
+ */
+static mrb_value
+mrb_str_casecmp(mrb_state *mrb, mrb_value self)
+{
+  mrb_value str;
+
+  mrb_get_args(mrb, "o", &str);
+  if (!mrb_string_p(str)) return mrb_nil_value();
+
+  struct RString *s1 = mrb_str_ptr(self);
+  struct RString *s2 = mrb_str_ptr(str);
+  mrb_int len = lesser(RSTR_LEN(s1), RSTR_LEN(s2));
+  char *p1 = RSTR_PTR(s1);
+  char *p2 = RSTR_PTR(s2);
+
+  for (mrb_int i=0; i<len; i++) {
+    int c1 = p1[i], c2 = p2[i];
+    if (ISASCII(c1) && ISUPPER(c1)) c1 = TOLOWER(c1);
+    if (ISASCII(c2) && ISUPPER(c2)) c2 = TOLOWER(c2);
+    if (c1 > c2) return mrb_fixnum_value(1);
+    if (c1 < c2) return mrb_fixnum_value(-1);
+  }
+  if (RSTR_LEN(s1) == RSTR_LEN(s2)) return mrb_fixnum_value(0);
+  if (RSTR_LEN(s1) > RSTR_LEN(s2))  return mrb_fixnum_value(1);
+  return mrb_fixnum_value(-1);
+}
+
+/*
+ * call-seq:
+ *   str.casecmp?(other)  -> true, false, or nil
+ *
+ * Returns true if str and other_str are equal after case folding,
+ * false if they are not equal, and nil if other is not a string.
+ */
+static mrb_value
+mrb_str_casecmp_p(mrb_state *mrb, mrb_value self)
+{
+  mrb_value c = mrb_str_casecmp(mrb, self);
+  if (mrb_nil_p(c)) return c;
+  return mrb_bool_value(mrb_fixnum(c) == 0);
+}
+
 static mrb_value
 mrb_str_lines(mrb_state *mrb, mrb_value self)
 {
@@ -1231,6 +1285,8 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, s, "delete_prefix",   mrb_str_del_prefix,      MRB_ARGS_REQ(1));
   mrb_define_method(mrb, s, "delete_suffix!",  mrb_str_del_suffix_bang, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, s, "delete_suffix",   mrb_str_del_suffix,      MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, s, "casecmp",         mrb_str_casecmp,         MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, s, "casecmp?",        mrb_str_casecmp_p,       MRB_ARGS_REQ(1));
 
   mrb_define_method(mrb, s, "__lines",         mrb_str_lines,           MRB_ARGS_NONE());
 

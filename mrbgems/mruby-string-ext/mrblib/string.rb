@@ -111,36 +111,6 @@ class String
     (s == self) ? nil : self.replace(s)
   end
 
-  ##
-  # call-seq:
-  #    str.casecmp(other_str)   -> -1, 0, +1 or nil
-  #
-  # Case-insensitive version of <code>String#<=></code>.
-  #
-  #    "abcdef".casecmp("abcde")     #=> 1
-  #    "aBcDeF".casecmp("abcdef")    #=> 0
-  #    "abcdef".casecmp("abcdefg")   #=> -1
-  #    "abcdef".casecmp("ABCDEF")    #=> 0
-  #
-  def casecmp(str)
-    self.downcase <=> str.__to_str.downcase
-  rescue NoMethodError
-    nil
-  end
-
-  ##
-  # call-seq:
-  #   str.casecmp?(other)  -> true, false, or nil
-  #
-  # Returns true if str and other_str are equal after case folding,
-  # false if they are not equal, and nil if other_str is not a string.
-
-  def casecmp?(str)
-    c = self.casecmp(str)
-    return nil if c.nil?
-    return c == 0
-  end
-
   def partition(sep)
     raise TypeError, "type mismatch: #{sep.class} given" unless sep.is_a? String
     n = index(sep)
