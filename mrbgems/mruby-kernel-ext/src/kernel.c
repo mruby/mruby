@@ -3,6 +3,8 @@
 #include <mruby/array.h>
 #include <mruby/hash.h>
 #include <mruby/range.h>
+#include <mruby/string.h>
+#include <mruby/numeric.h>
 #include <mruby/presym.h>
 
 static mrb_value
@@ -107,11 +109,43 @@ mrb_f_method(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_f_integer(mrb_state *mrb, mrb_value self)
 {
-  mrb_value arg;
+  mrb_value val, tmp;
   mrb_int base = 0;
 
-  mrb_get_args(mrb, "o|i", &arg, &base);
-  return mrb_convert_to_integer(mrb, arg, base);
+  mrb_get_args(mrb, "o|i", &val, &base);
+  if (mrb_nil_p(val)) {
+    if (base != 0) goto arg_error;
+    mrb_raise(mrb, E_TYPE_ERROR, "can't convert nil into Integer");
+  }
+  switch (mrb_type(val)) {
+#ifndef MRB_NO_FLOAT
+    case MRB_TT_FLOAT:
+      if (base != 0) goto arg_error;
+      return mrb_float_to_integer(mrb, val);
+#endif
+
+    case MRB_TT_INTEGER:
+      if (base != 0) goto arg_error;
+      return val;
+
+    case MRB_TT_STRING:
+    string_conv:
+      return mrb_str_to_inum(mrb, val, base, TRUE);
+
+    default:
+      break;
+  }
+  if (base != 0) {
+    tmp = mrb_obj_as_string(mrb, val);
+    if (mrb_string_p(tmp)) {
+      val = tmp;
+      goto string_conv;
+    }
+arg_error:
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "base specified for non string value");
+  }
+  /* to raise TypeError */
+  return mrb_to_int(mrb, val);
 }
 
 #ifndef MRB_NO_FLOAT

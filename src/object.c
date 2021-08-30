@@ -495,46 +495,6 @@ mrb_to_int(mrb_state *mrb, mrb_value val)
   return val;
 }
 
-MRB_API mrb_value
-mrb_convert_to_integer(mrb_state *mrb, mrb_value val, mrb_int base)
-{
-  mrb_value tmp;
-
-  if (mrb_nil_p(val)) {
-    if (base != 0) goto arg_error;
-    mrb_raise(mrb, E_TYPE_ERROR, "can't convert nil into Integer");
-  }
-  switch (mrb_type(val)) {
-#ifndef MRB_NO_FLOAT
-    case MRB_TT_FLOAT:
-      if (base != 0) goto arg_error;
-      return mrb_float_to_integer(mrb, val);
-#endif
-
-    case MRB_TT_INTEGER:
-      if (base != 0) goto arg_error;
-      return val;
-
-    case MRB_TT_STRING:
-    string_conv:
-      return mrb_str_to_inum(mrb, val, base, TRUE);
-
-    default:
-      break;
-  }
-  if (base != 0) {
-    tmp = mrb_check_string_type(mrb, val);
-    if (!mrb_nil_p(tmp)) {
-      val = tmp;
-      goto string_conv;
-    }
-arg_error:
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "base specified for non string value");
-  }
-  /* to raise TypeError */
-  return mrb_to_int(mrb, val);
-}
-
 #ifndef MRB_NO_FLOAT
 MRB_API mrb_value
 mrb_to_float(mrb_state *mrb, mrb_value val)
