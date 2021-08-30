@@ -43,12 +43,12 @@ class String
   end
 
   # private method for gsub/sub
-  def __sub_replace(pre, m, post)
+  def __sub_replace(rep, pre, m, post)
     s = ""
     i = 0
-    while j = index("\\", i)
-      break if j == length-1
-      t = case self[j+1]
+    while j = rep.index("\\", i)
+      break if j == rep.length-1
+      t = case rep[j+1]
           when "\\"
             "\\"
           when "`"
@@ -60,12 +60,12 @@ class String
           when "1", "2", "3", "4", "5", "6", "7", "8", "9"
             ""
           else
-            self[j, 2]
+            rep[j, 2]
           end
-      s += self[i, j-i] + t
+      s += rep[i, j-i] + t
       i = j + 2
     end
-    s + self[i, length-i]
+    s + rep[i, rep.length-i]
   end
 
   ##
@@ -84,9 +84,6 @@ class String
     if args.length == 2 && block
       block = nil
     end
-    if !replace.nil? || !block
-      replace.__to_str
-    end
     offset = 0
     result = []
     while found = index(pattern, offset)
@@ -95,7 +92,7 @@ class String
       result << if block
         block.call(pattern).to_s
       else
-        replace.__sub_replace(self[0, found], pattern, self[offset..-1] || "")
+        __sub_replace(replace, self[0, found], pattern, self[offset..-1] || "")
       end
       if plen == 0
         result << self[offset, 1]
@@ -144,12 +141,8 @@ class String
     end
 
     pattern, replace = *args
-    pattern.__to_str
     if args.length == 2 && block
       block = nil
-    end
-    unless block
-      replace.__to_str
     end
     result = []
     this = dup
@@ -160,7 +153,7 @@ class String
     result << if block
       block.call(pattern).to_s
     else
-      replace.__sub_replace(this[0, found], pattern, this[offset..-1] || "")
+      __sub_replace(replace, this[0, found], pattern, this[offset..-1] || "")
     end
     result << this[offset..-1] if offset < length
     result.join
