@@ -359,13 +359,6 @@ MRB_API mrb_value mrb_str_to_inum(mrb_state *mrb, mrb_value str, mrb_int base, m
 MRB_API double mrb_str_to_dbl(mrb_state *mrb, mrb_value str, mrb_bool badcheck);
 
 /**
- * Returns a converted string type.
- * For type checking, non converting `mrb_to_str` is recommended.
- * obsolete: use `mrb_obj_as_string()` instead.
- */
-#define mrb_str_to_str(mrb, str) mrb_obj_as_string(mrb, str)
-
-/**
  * Returns true if the strings match and false if the strings don't match.
  *
  * @param mrb The current mruby state.

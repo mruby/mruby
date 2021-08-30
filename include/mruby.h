@@ -1377,6 +1377,9 @@ MRB_API mrb_value mrb_ensure_string_type(mrb_state *mrb, mrb_value str);
 MRB_API mrb_value mrb_check_string_type(mrb_state *mrb, mrb_value str);
 /* obsolete: use mrb_ensure_string_type() instead */
 #define mrb_string_type(mrb, str) mrb_ensure_string_type(mrb,str)
+/* obsolete: use mrb_obj_as_string() instead */
+#define mrb_str_to_str(mrb, str) mrb_obj_as_string(mrb, str)
+
 MRB_API mrb_value mrb_to_int(mrb_state *mrb, mrb_value val);
 #define mrb_as_int(mrb, val) mrb_integer(mrb_to_int(mrb, val))
 
