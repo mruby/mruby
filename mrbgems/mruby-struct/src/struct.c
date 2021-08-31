@@ -202,7 +202,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass *kl
   }
   else {
     /* old style: should we warn? */
-    mrb_to_str(mrb, name);
+    mrb_ensure_string_type(mrb, name);
     id = mrb_obj_to_sym(mrb, name);
     if (!mrb_const_name_p(mrb, RSTRING_PTR(name), RSTRING_LEN(name))) {
       mrb_name_error(mrb, id, "identifier %v needs to be constant", name);

@@ -237,7 +237,7 @@ str_modify_keep_ascii(mrb_state *mrb, struct RString *s)
 static void
 check_null_byte(mrb_state *mrb, mrb_value str)
 {
-  mrb_to_str(mrb, str);
+  mrb_ensure_string_type(mrb, str);
   if (memchr(RSTRING_PTR(str), '\0', RSTRING_LEN(str))) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string contains null byte");
   }
@@ -1071,7 +1071,7 @@ mrb_string_value_ptr(mrb_state *mrb, mrb_value str)
 MRB_API mrb_int
 mrb_string_value_len(mrb_state *mrb, mrb_value ptr)
 {
-  mrb_to_str(mrb, ptr);
+  mrb_ensure_string_type(mrb, ptr);
   return RSTRING_LEN(ptr);
 }
 
@@ -1358,8 +1358,7 @@ mrb_str_aset(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen, mrb_
 {
   mrb_int beg, len, charlen;
 
-  mrb_to_str(mrb, replace);
-
+  mrb_ensure_string_type(mrb, replace);
   switch (str_convert_range(mrb, str, indx, alen, &beg, &len)) {
     case STR_OUT_OF_RANGE:
     default:
@@ -2400,7 +2399,7 @@ mrb_str_to_inum(mrb_state *mrb, mrb_value str, mrb_int base, mrb_bool badcheck)
   const char *s;
   mrb_int len;
 
-  mrb_to_str(mrb, str);
+  mrb_ensure_string_type(mrb, str);
   s = RSTRING_PTR(str);
   len = RSTRING_LEN(str);
   return mrb_str_len_to_inum(mrb, s, len, base, badcheck);
@@ -2699,7 +2698,7 @@ mrb_str_cat_str(mrb_state *mrb, mrb_value str, mrb_value str2)
 MRB_API mrb_value
 mrb_str_append(mrb_state *mrb, mrb_value str1, mrb_value str2)
 {
-  mrb_to_str(mrb, str2);
+  mrb_ensure_string_type(mrb, str2);
   return mrb_str_cat_str(mrb, str1, str2);
 }
 

@@ -519,12 +519,6 @@ mrb_to_float(mrb_state *mrb, mrb_value val)
 #endif
 
 MRB_API mrb_value
-mrb_to_str(mrb_state *mrb, mrb_value val)
-{
-  return mrb_ensure_string_type(mrb, val);
-}
-
-MRB_API mrb_value
 mrb_ensure_string_type(mrb_state *mrb, mrb_value str)
 {
   if (!mrb_string_p(str)) {
