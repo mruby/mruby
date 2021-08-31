@@ -2868,13 +2868,13 @@ sub_replace(mrb_state *mrb, mrb_value self)
       mrb_str_cat(mrb, result, "\\", 1);
       break;
     case '`':
-      mrb_str_cat(mrb, result, RSTRING_PTR(self), found);
+      mrb_str_cat(mrb, result, RSTRING_PTR(self), chars2bytes(self, 0, found));
       break;
     case '&': case '0':
       mrb_str_cat(mrb, result, match, mlen);
       break;
     case '\'':
-      offset = found + mlen;
+      offset = chars2bytes(self, 0, found) + mlen;
       if (RSTRING_LEN(self) > offset) {
         mrb_str_cat(mrb, result, RSTRING_PTR(self)+offset, RSTRING_LEN(self)-offset);
       }
