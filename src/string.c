@@ -2847,6 +2847,51 @@ mrb_str_byteslice(mrb_state *mrb, mrb_value str)
   }
 }
 
+static mrb_value
+sub_replace(mrb_state *mrb, mrb_value self)
+{
+  char *p, *match;
+  mrb_int plen, mlen;
+  mrb_int found, offset;
+  mrb_value result;
+
+  mrb_get_args(mrb, "ssi", &p, &plen, &match, &mlen, &found);
+  result = mrb_str_new(mrb, 0, 0);
+  for (mrb_int i=0; i<plen; i++) {
+    if (p[i] != '\\' || i+1==plen) {
+      mrb_str_cat(mrb, result, p+i, 1);
+      continue;
+    }
+    i++;
+    switch (p[i]) {
+    case '\\':
+      mrb_str_cat(mrb, result, "\\", 1);
+      break;
+    case '`':
+      mrb_str_cat(mrb, result, RSTRING_PTR(self), found);
+      break;
+    case '&': case '0':
+      mrb_str_cat(mrb, result, match, mlen);
+      break;
+    case '\'':
+      offset = found + mlen;
+      if (RSTRING_LEN(self) > offset) {
+        mrb_str_cat(mrb, result, RSTRING_PTR(self)+offset, RSTRING_LEN(self)-offset);
+      }
+      break;
+    case '1': case '2': case '3':
+    case '4': case '5': case '6':
+    case '7': case '8': case '9':
+      /* ignore sub-group match (no Regexp supported) */
+      break;
+    default:
+      mrb_str_cat(mrb, result, &p[i-1], 2);
+      break;
+    }
+  }
+  return result;
+}
+
 /* ---------------------------*/
 void
 mrb_init_string(mrb_state *mrb)
@@ -2908,4 +2953,6 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "getbyte",         mrb_str_getbyte,         MRB_ARGS_REQ(1));
   mrb_define_method(mrb, s, "setbyte",         mrb_str_setbyte,         MRB_ARGS_REQ(2));
   mrb_define_method(mrb, s, "byteslice",       mrb_str_byteslice,       MRB_ARGS_ARG(1,1));
+
+  mrb_define_method(mrb, s, "__sub_replace",   sub_replace,             MRB_ARGS_REQ(3)); /* internal */
 }
