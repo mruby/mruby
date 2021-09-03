@@ -350,6 +350,7 @@ range_num_to_a(mrb_state *mrb, mrb_value range)
   mrb_value end = RANGE_END(r);
   mrb_value ary;
 
+  mrb->c->ci->mid = 0;
   if (mrb_nil_p(end)) {
     mrb->c->ci->mid = 0;
     mrb_raise(mrb, E_RANGE_ERROR, "cannot convert endless range to an array");
