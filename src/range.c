@@ -9,6 +9,7 @@
 #include <mruby/range.h>
 #include <mruby/string.h>
 #include <mruby/array.h>
+#include <mruby/numeric.h>
 #include <mruby/presym.h>
 
 #define RANGE_INITIALIZED_FLAG 1
@@ -352,15 +353,17 @@ range_num_to_a(mrb_state *mrb, mrb_value range)
 
   mrb->c->ci->mid = 0;
   if (mrb_nil_p(end)) {
-    mrb->c->ci->mid = 0;
     mrb_raise(mrb, E_RANGE_ERROR, "cannot convert endless range to an array");
   }
   if (mrb_integer_p(beg)) {
     if (mrb_integer_p(end)) {
       mrb_int a = mrb_integer(beg);
       mrb_int b = mrb_integer(end);
-      mrb_int len = b - a;
+      mrb_int len;
 
+      if (mrb_int_sub_overflow(b, a, &len)) {
+        mrb_raise(mrb, E_RANGE_ERROR, "integer range too long");
+      }
       if (!RANGE_EXCL(r)) len++;
       ary = mrb_ary_new_capa(mrb, len);
       for (mrb_int i=0; i<len; i++) {
