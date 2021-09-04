@@ -631,7 +631,7 @@ module Kernel
   #       def repeat(n)
   #         raise ArgumentError, "#{n} is negative!" if n < 0
   #         unless block_given?
-  #           return to_enum(__method__, n) # __method__ is :repeat here
+  #           return to_enum(__callee__, n) do # __callee__ is :repeat here
   #         end
   #         each do |*val|
   #           n.times { yield *val }
