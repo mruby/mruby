@@ -5,6 +5,7 @@
 #include <mruby/range.h>
 #include <mruby/string.h>
 #include <mruby/numeric.h>
+#include <mruby/proc.h>
 #include <mruby/presym.h>
 
 static mrb_value
@@ -62,6 +63,27 @@ mrb_f_caller(mrb_state *mrb, mrb_value self)
   }
   if (bt_len <= n + lev) n = bt_len - lev - 1;
   return mrb_ary_new_from_values(mrb, n, RARRAY_PTR(bt)+lev+1);
+}
+
+/*
+ *  call-seq:
+ *     __method__         -> symbol
+ *
+ *  Returns the called name of the current method as a Symbol.
+ *  If called outside of a method, it returns <code>nil</code>.
+ *
+ */
+static mrb_value
+mrb_f_method(mrb_state *mrb, mrb_value self)
+{
+  mrb_callinfo *ci = mrb->c->ci;
+  ci--;
+  if (ci->proc->e.env->tt == MRB_TT_ENV && ci->proc->e.env->mid)
+    return mrb_symbol_value(ci->proc->e.env->mid);
+  else if (ci->mid)
+    return mrb_symbol_value(ci->mid);
+  else
+    return mrb_nil_value();
 }
 
 /*
@@ -246,6 +268,7 @@ mrb_mruby_kernel_ext_gem_init(mrb_state *mrb)
 
   mrb_define_module_function(mrb, krn, "fail", mrb_f_raise, MRB_ARGS_OPT(2));
   mrb_define_module_function(mrb, krn, "caller", mrb_f_caller, MRB_ARGS_OPT(2));
+  mrb_define_method(mrb, krn, "__method__", mrb_f_method, MRB_ARGS_NONE());
   mrb_define_method(mrb, krn, "__callee__", mrb_f_callee, MRB_ARGS_NONE());
   mrb_define_module_function(mrb, krn, "Integer", mrb_f_integer, MRB_ARGS_ARG(1,1));
 #ifndef MRB_NO_FLOAT
