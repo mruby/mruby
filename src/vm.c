@@ -1045,15 +1045,15 @@ mrb_vm_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, mrb_int sta
   return result;
 }
 
-static mrb_bool
+static struct RClass*
 check_target_class(mrb_state *mrb)
 {
-  if (!mrb_vm_ci_target_class(mrb->c->ci)) {
+  struct RClass *target = mrb_vm_ci_target_class(mrb->c->ci);
+  if (!target) {
     mrb_value exc = mrb_exc_new_lit(mrb, E_TYPE_ERROR, "no target class or module");
     mrb_exc_set(mrb, exc);
-    return FALSE;
   }
-  return TRUE;
+  return target;
 }
 
 mrb_value
@@ -2816,25 +2816,24 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_TCLASS, B) {
-      if (!check_target_class(mrb)) goto L_RAISE;
-      regs[a] = mrb_obj_value(mrb_vm_ci_target_class(mrb->c->ci));
+      struct RClass *target = check_target_class(mrb);
+      if (!target) goto L_RAISE;
+      regs[a] = mrb_obj_value(target);
       NEXT;
     }
 
     CASE(OP_ALIAS, BB) {
-      struct RClass *target;
+      struct RClass *target = check_target_class(mrb);
 
-      if (!check_target_class(mrb)) goto L_RAISE;
-      target = mrb_vm_ci_target_class(mrb->c->ci);
+      if (!target) goto L_RAISE;
       mrb_alias_method(mrb, target, syms[a], syms[b]);
       mrb_method_added(mrb, target, syms[a]);
-     NEXT;
+      NEXT;
     }
     CASE(OP_UNDEF, B) {
-      struct RClass *target;
+      struct RClass *target = check_target_class(mrb);
 
-      if (!check_target_class(mrb)) goto L_RAISE;
-      target = mrb_vm_ci_target_class(mrb->c->ci);
+      if (!target) goto L_RAISE;
       mrb_undef_method_id(mrb, target, syms[a]);
       NEXT;
     }
