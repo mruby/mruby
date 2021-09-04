@@ -81,7 +81,8 @@ mrb_env_new(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci, int nstacks
   struct REnv *e;
   mrb_int bidx;
 
-  e = MRB_OBJ_ALLOC(mrb, MRB_TT_ENV, tc);
+  e = MRB_OBJ_ALLOC(mrb, MRB_TT_ENV, NULL);
+  e->c = tc;
   MRB_ENV_SET_LEN(e, nstacks);
   bidx = ci->argc;
   if (bidx < 0) bidx = 2;
@@ -105,7 +106,7 @@ closure_setup(mrb_state *mrb, struct RProc *p)
     /* do nothing, because e is assigned already */
   }
   else if (up) {
-    struct RClass *tc = MRB_PROC_TARGET_CLASS(p);
+    struct RClass *tc = ci->u.target_class;
 
     e = mrb_env_new(mrb, mrb->c, ci, up->body.irep->nlocals, ci->stack, tc);
     ci->u.env = e;
