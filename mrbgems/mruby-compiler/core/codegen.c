@@ -1128,6 +1128,7 @@ gen_uniop(codegen_scope *s, mrb_sym sym, uint16_t dst)
     /* unary plus does nothing */
   }
   else if (sym == MRB_OPSYM_2(s->mrb, minus)) {
+    if (n == MRB_INT_MIN) return FALSE;
     n = -n;
   }
   else if (sym == MRB_OPSYM_2(s->mrb, neg)) {
