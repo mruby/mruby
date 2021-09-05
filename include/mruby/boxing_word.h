@@ -223,7 +223,9 @@ mrb_type(mrb_value o)
          mrb_fixnum_p(o) ? MRB_TT_INTEGER :
          mrb_symbol_p(o) ? MRB_TT_SYMBOL :
          mrb_undef_p(o)  ? MRB_TT_UNDEF :
+#ifndef MRB_NO_FLOAT
          mrb_float_p(o)  ? MRB_TT_FLOAT :
+#endif
          mrb_val_union(o).bp->tt;
 }
 
