@@ -742,9 +742,11 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
   /* range check */
   if (head < 0) {
     head += alen;
-    if (head < 0) {
-      mrb_raise(mrb, E_INDEX_ERROR, "index is out of array");
-    }
+    if (head < 0) goto out_of_range;
+  }
+  if (head > MRB_INT_MAX - len) {
+  out_of_range:
+    mrb_raise(mrb, E_INDEX_ERROR, "index is out of array");
   }
   tail = head + len;
   if (alen < len || alen < tail) {
