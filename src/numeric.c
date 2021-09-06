@@ -907,6 +907,7 @@ flo_round(mrb_state *mrb, mrb_value num)
   mrb_check_num_exact(mrb, number);
 
   f = 1.0;
+  if (ndigits < -DBL_DIG-2) return mrb_fixnum_value(0);
   i = ndigits >= 0 ? ndigits : -ndigits;
   if (ndigits > DBL_DIG+2) return num;
   while  (--i >= 0)
