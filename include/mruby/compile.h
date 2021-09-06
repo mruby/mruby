@@ -16,8 +16,6 @@ MRB_BEGIN_DECL
 
 #include <mruby.h>
 
-struct mrb_jmpbuf;
-
 struct mrb_parser_state;
 /* load context */
 typedef struct mrbc_context {
@@ -165,7 +163,6 @@ struct mrb_parser_state {
   uint16_t filename_table_length;
   uint16_t current_filename_index;
 
-  struct mrb_jmpbuf* jmp;
   mrb_ast_node *nvars;
 };
 

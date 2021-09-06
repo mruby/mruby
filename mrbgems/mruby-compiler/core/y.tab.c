@@ -167,7 +167,7 @@ parser_palloc(parser_state *p, size_t size)
   void *m = mrb_pool_alloc(p->pool, size);
 
   if (!m) {
-    MRB_THROW(p->jmp);
+    MRB_THROW(p->mrb->jmp);
   }
   return m;
 }
@@ -12736,6 +12736,7 @@ parser_update_cxt(parser_state *p, mrbc_context *cxt)
   int i = 0;
 
   if (!cxt) return;
+  if (!p->tree) return;
   if (intn(p->tree->car) != NODE_SCOPE) return;
   n0 = n = p->tree->cdr->car;
   while (n) {
@@ -12756,53 +12757,39 @@ MRB_API void
 mrb_parser_parse(parser_state *p, mrbc_context *c)
 {
   struct mrb_jmpbuf buf1;
-  p->jmp = &buf1;
+  struct mrb_jmpbuf *prev = p->mrb->jmp;
+  p->mrb->jmp = &buf1;
 
-  MRB_TRY(p->jmp) {
+  MRB_TRY(p->mrb->jmp) {
     int n = 1;
 
     p->cmd_start = TRUE;
     p->in_def = p->in_single = 0;
     p->nerr = p->nwarn = 0;
     p->lex_strterm = NULL;
-
     parser_init_cxt(p, c);
 
-    if (p->mrb->jmp) {
-      n = yyparse(p);
-    }
-    else {
-      struct mrb_jmpbuf buf2;
-
-      p->mrb->jmp = &buf2;
-      MRB_TRY(p->mrb->jmp) {
-        n = yyparse(p);
-      }
-      MRB_CATCH(p->mrb->jmp) {
-        p->nerr++;
-      }
-      MRB_END_EXC(p->mrb->jmp);
-      p->mrb->jmp = 0;
-    }
+    n = yyparse(p);
     if (n != 0 || p->nerr > 0) {
       p->tree = 0;
+      p->mrb->jmp = prev;
       return;
-    }
-    if (!p->tree) {
-      p->tree = new_nil(p);
     }
     parser_update_cxt(p, c);
     if (c && c->dump_result) {
       mrb_parser_dump(p->mrb, p->tree, 0);
     }
   }
-  MRB_CATCH(p->jmp) {
-    yyerror(p, "memory allocation error");
+  MRB_CATCH(p->mrb->jmp) {
     p->nerr++;
-    p->tree = 0;
-    return;
+    if (p->mrb->exc == NULL) {
+      yyerror(p, "memory allocation error");
+      p->nerr++;
+      p->tree = 0;
+    }
   }
   MRB_END_EXC(p->jmp);
+  p->mrb->jmp = prev;
 }
 
 MRB_API parser_state*
