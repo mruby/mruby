@@ -48,7 +48,6 @@ struct loopinfo {
 typedef struct scope {
   mrb_state *mrb;
   mrb_pool *mpool;
-  struct mrb_jmpbuf jmp;
 
   struct scope *prev;
 
@@ -146,7 +145,7 @@ codegen_error(codegen_scope *s, const char *message)
     fprintf(stderr, "%s\n", message);
   }
 #endif
-  MRB_THROW(&s->jmp);
+  MRB_THROW(s->mrb->jmp);
 }
 
 static void*
@@ -3680,16 +3679,18 @@ static struct RProc*
 generate_code(mrb_state *mrb, parser_state *p, int val)
 {
   codegen_scope *scope = scope_new(mrb, 0, 0);
-  struct RProc *proc;
   struct mrb_jmpbuf *prev_jmp = mrb->jmp;
+  struct mrb_jmpbuf jmpbuf;
+  struct RProc *proc;
+
+  mrb->jmp = &jmpbuf;
 
   scope->mrb = mrb;
   scope->parser = p;
   scope->filename_sym = p->filename_sym;
   scope->filename_index = p->current_filename_index;
 
-  MRB_TRY(&scope->jmp) {
-    mrb->jmp = &scope->jmp;
+  MRB_TRY(mrb->jmp) {
     /* prepare irep */
     codegen(scope, p->tree, val);
     proc = mrb_proc_new(mrb, scope->irep);
@@ -3702,13 +3703,13 @@ generate_code(mrb_state *mrb, parser_state *p, int val)
     mrb->jmp = prev_jmp;
     return proc;
   }
-  MRB_CATCH(&scope->jmp) {
+  MRB_CATCH(mrb->jmp) {
     mrb_irep_decref(mrb, scope->irep);
     mrb_pool_close(scope->mpool);
     mrb->jmp = prev_jmp;
     return NULL;
   }
-  MRB_END_EXC(&scope->jmp);
+  MRB_END_EXC(mrb->jmp);
 }
 
 MRB_API struct RProc*
