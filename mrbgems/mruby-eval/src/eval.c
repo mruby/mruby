@@ -81,6 +81,11 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
     /* parse error */
     mrb_value str;
 
+    mrbc_context_free(mrb, cxt);
+    if (!p->error_buffer[0].message) {
+      mrb_parser_free(p);
+      mrb_raise(mrb, E_SYNTAX_ERROR, "compile error");
+    }
     if (file) {
       str = mrb_format(mrb, "file %s line %d: %s",
                        file,
@@ -93,7 +98,6 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
                        p->error_buffer[0].message);
     }
     mrb_parser_free(p);
-    mrbc_context_free(mrb, cxt);
     mrb_exc_raise(mrb, mrb_exc_new_str(mrb, E_SYNTAX_ERROR, str));
   }
 
