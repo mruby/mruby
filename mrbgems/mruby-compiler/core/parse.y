@@ -6596,9 +6596,6 @@ mrb_parser_parse(parser_state *p, mrbc_context *c)
       p->tree = 0;
       return;
     }
-    if (!p->tree) {
-      p->tree = new_nil(p);
-    }
     parser_update_cxt(p, c);
     if (c && c->dump_result) {
       mrb_parser_dump(p->mrb, p->tree, 0);
@@ -6608,7 +6605,6 @@ mrb_parser_parse(parser_state *p, mrbc_context *c)
     yyerror(p, "memory allocation error");
     p->nerr++;
     p->tree = 0;
-    return;
   }
   MRB_END_EXC(p->jmp);
 }
