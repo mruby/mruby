@@ -52,10 +52,19 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
     e = NULL;
   }
 
+  if (file) {
+    if (strlen(file) >= UINT16_MAX) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "filename too long");
+    }
+  }
+  else {
+    file = "(eval)";
+  }
+
   cxt = mrbc_context_new(mrb);
   cxt->lineno = (uint16_t)line;
 
-  mrbc_filename(mrb, cxt, file ? file : "(eval)");
+  mrbc_filename(mrb, cxt, file);
   cxt->capture_errors = TRUE;
   cxt->no_optimize = TRUE;
   cxt->upper = scope && MRB_PROC_CFUNC_P(scope) ? NULL : scope;
