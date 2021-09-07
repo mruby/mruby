@@ -835,13 +835,13 @@ mrb_str_count(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_hex(mrb_state *mrb, mrb_value self)
 {
-  return mrb_str_to_inum(mrb, self, 16, FALSE);
+  return mrb_str_to_integer(mrb, self, 16, FALSE);
 }
 
 static mrb_value
 mrb_str_oct(mrb_state *mrb, mrb_value self)
 {
-  return mrb_str_to_inum(mrb, self, 8, FALSE);
+  return mrb_str_to_integer(mrb, self, 8, FALSE);
 }
 
 /*

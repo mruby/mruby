@@ -151,7 +151,7 @@ mrb_f_integer(mrb_state *mrb, mrb_value self)
 
     case MRB_TT_STRING:
     string_conv:
-      return mrb_str_to_inum(mrb, val, base, TRUE);
+      return mrb_str_to_integer(mrb, val, base, TRUE);
 
     default:
       break;

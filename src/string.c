@@ -2199,7 +2199,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
 }
 
 static mrb_value
-mrb_str_len_to_inum(mrb_state *mrb, const char *str, size_t len, mrb_int base, int badcheck)
+mrb_str_len_to_integer(mrb_state *mrb, const char *str, size_t len, mrb_int base, int badcheck)
 {
   const char *p = str;
   const char *pend = str + len;
@@ -2394,7 +2394,7 @@ mrb_string_cstr(mrb_state *mrb, mrb_value str)
 }
 
 MRB_API mrb_value
-mrb_str_to_inum(mrb_state *mrb, mrb_value str, mrb_int base, mrb_bool badcheck)
+mrb_str_to_integer(mrb_state *mrb, mrb_value str, mrb_int base, mrb_bool badcheck)
 {
   const char *s;
   mrb_int len;
@@ -2402,7 +2402,7 @@ mrb_str_to_inum(mrb_state *mrb, mrb_value str, mrb_int base, mrb_bool badcheck)
   mrb_ensure_string_type(mrb, str);
   s = RSTRING_PTR(str);
   len = RSTRING_LEN(str);
-  return mrb_str_len_to_inum(mrb, s, len, base, badcheck);
+  return mrb_str_len_to_integer(mrb, s, len, base, badcheck);
 }
 
 /* 15.2.10.5.38 */
@@ -2435,7 +2435,7 @@ mrb_str_to_i(mrb_state *mrb, mrb_value self)
   if (base < 0 || 36 < base) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal radix %i", base);
   }
-  return mrb_str_to_inum(mrb, self, base, FALSE);
+  return mrb_str_to_integer(mrb, self, base, FALSE);
 }
 
 #ifndef MRB_NO_FLOAT
@@ -2459,7 +2459,7 @@ mrb_str_len_to_dbl(mrb_state *mrb, const char *s, size_t len, mrb_bool badcheck)
     mrb_value x;
 
     if (!badcheck) return 0.0;
-    x = mrb_str_len_to_inum(mrb, p, pend-p, 0, badcheck);
+    x = mrb_str_len_to_integer(mrb, p, pend-p, 0, badcheck);
     if (mrb_integer_p(x))
       d = (double)mrb_integer(x);
     else /* if (mrb_float_p(x)) */

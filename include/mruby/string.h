@@ -355,7 +355,9 @@ MRB_API mrb_value mrb_str_dup(mrb_state *mrb, mrb_value str);
  */
 MRB_API mrb_value mrb_str_intern(mrb_state *mrb, mrb_value self);
 
-MRB_API mrb_value mrb_str_to_inum(mrb_state *mrb, mrb_value str, mrb_int base, mrb_bool badcheck);
+MRB_API mrb_value mrb_str_to_integer(mrb_state *mrb, mrb_value str, mrb_int base, mrb_bool badcheck);
+/* obsolete: use mrb_str_to_integer() */
+#define mrb_str_to_inum(mrb, str, base, badcheck) mrb_str_to_integer(mrb, str, base, badcheck)
 MRB_API double mrb_str_to_dbl(mrb_state *mrb, mrb_value str, mrb_bool badcheck);
 
 /**

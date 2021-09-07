@@ -860,7 +860,7 @@ retry:
             goto bin_retry;
 #endif
           case MRB_TT_STRING:
-            val = mrb_str_to_inum(mrb, val, 0, TRUE);
+            val = mrb_str_to_integer(mrb, val, 0, TRUE);
             goto bin_retry;
           case MRB_TT_INTEGER:
             v = mrb_integer(val);
