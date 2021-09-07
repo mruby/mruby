@@ -744,9 +744,9 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
     head += alen;
     if (head < 0) goto out_of_range;
   }
-  if (head > MRB_INT_MAX - len) {
+  if (head > ARY_MAX_SIZE - len) {
   out_of_range:
-    mrb_raise(mrb, E_INDEX_ERROR, "index is out of array");
+    mrb_raisef(mrb, E_INDEX_ERROR, "index %i is out of array", head);
   }
   tail = head + len;
   if (alen < len || alen < tail) {
@@ -776,12 +776,10 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
     argv = &rpl;
   }
   if (head >= alen) {
-    if (head > ARY_MAX_SIZE - argc) {
-      mrb_raisef(mrb, E_INDEX_ERROR, "index %i too big", head);
-    }
+    if (head > ARY_MAX_SIZE - argc) goto out_of_range;
     len = head + argc;
     if (len > ARY_CAPA(a)) {
-      ary_expand_capa(mrb, a, head + argc);
+      ary_expand_capa(mrb, a, len);
     }
     ary_fill_with_nil(ARY_PTR(a) + alen, head - alen);
     if (argc > 0) {
@@ -793,7 +791,8 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
     mrb_int newlen;
 
     if (alen - len > ARY_MAX_SIZE - argc) {
-      mrb_raisef(mrb, E_INDEX_ERROR, "index %i too big", alen + argc - len);
+      head = alen + argc - len;
+      goto out_of_range;
     }
     newlen = alen + argc - len;
     if (newlen > ARY_CAPA(a)) {
@@ -802,7 +801,6 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
 
     if (len != argc) {
       mrb_value *ptr = ARY_PTR(a);
-      tail = head + len;
       value_move(ptr + head + argc, ptr + tail, alen - tail);
       ARY_SET_LEN(a, newlen);
     }
