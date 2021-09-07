@@ -427,7 +427,7 @@ mrb_ro_data_p(const char *p)
 static inline mrb_bool
 mrb_ro_data_p(const char *p)
 {
-  return (char*)get_edata() < p && p < (char*)get_end();
+  return (char*)get_etext() < p && p < (char*)get_edata();
 }
 #else
 # define mrb_ro_data_p(p) FALSE
