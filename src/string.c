@@ -1123,7 +1123,7 @@ str_convert_range(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen,
         goto range_arg;
 
       default:
-        indx = mrb_to_int(mrb, indx);
+        indx = mrb_to_integer(mrb, indx);
         if (mrb_integer_p(indx)) {
           *beg = mrb_integer(indx);
           *len = 1;
@@ -2830,7 +2830,7 @@ mrb_str_byteslice(mrb_state *mrb, mrb_value str)
       }
     }
     else {
-      beg = mrb_integer(mrb_to_int(mrb, a1));
+      beg = mrb_integer(mrb_to_integer(mrb, a1));
       len = 1;
       empty = FALSE;
     }

@@ -478,7 +478,7 @@ mrb_obj_is_kind_of(mrb_state *mrb, mrb_value obj, struct RClass *c)
 }
 
 MRB_API mrb_value
-mrb_to_int(mrb_state *mrb, mrb_value val)
+mrb_to_integer(mrb_state *mrb, mrb_value val)
 {
 
   if (!mrb_integer_p(val)) {

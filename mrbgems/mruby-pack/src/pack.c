@@ -1384,7 +1384,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
 
       o = mrb_ary_ref(mrb, ary, aidx);
       if (type == PACK_TYPE_INTEGER) {
-        o = mrb_to_int(mrb, o);
+        o = mrb_to_integer(mrb, o);
       }
 #ifndef MRB_NO_FLOAT
       else if (type == PACK_TYPE_FLOAT) {
