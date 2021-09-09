@@ -413,13 +413,11 @@ mrb_undef_value(void)
 mrb_bool mrb_ro_data_p(const char *p);
 #elif (defined(__linux__) && !defined(__KERNEL__))
 #define MRB_LINK_TIME_RO_DATA_P
-extern char __ehdr_start[];
-extern char __init_array_start[];
-
+extern char etext, edata;
 static inline mrb_bool
 mrb_ro_data_p(const char *p)
 {
-  return __ehdr_start < p && p < __init_array_start;
+  return &etext < p && p < &edata;
 }
 #elif defined(__APPLE__)
 #define MRB_LINK_TIME_RO_DATA_P
