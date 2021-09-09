@@ -55,6 +55,7 @@ typedef struct scope {
 
   uint16_t sp;
   uint32_t pc;
+  uint32_t lastpc;
   uint32_t lastlabel;
   int ainfo:15;
   mrb_bool mscope:1;
@@ -226,12 +227,14 @@ gen_S(codegen_scope *s, uint16_t i)
 static void
 genop_0(codegen_scope *s, mrb_code i)
 {
+  s->lastpc = s->pc;
   gen_B(s, i);
 }
 
 static void
 genop_1(codegen_scope *s, mrb_code i, uint16_t a)
 {
+  s->lastpc = s->pc;
   if (a > 0xff) {
     gen_B(s, OP_EXT1);
     gen_B(s, i);
@@ -246,6 +249,7 @@ genop_1(codegen_scope *s, mrb_code i, uint16_t a)
 static void
 genop_2(codegen_scope *s, mrb_code i, uint16_t a, uint16_t b)
 {
+  s->lastpc = s->pc;
   if (a > 0xff && b > 0xff) {
     gen_B(s, OP_EXT3);
     gen_B(s, i);
@@ -300,6 +304,7 @@ genop_W(codegen_scope *s, mrb_code i, uint32_t a)
   uint8_t a2 = (a>>8) & 0xff;
   uint8_t a3 = a & 0xff;
 
+  s->lastpc = s->pc;
   gen_B(s, i);
   gen_B(s, a1);
   gen_B(s, a2);
@@ -468,13 +473,13 @@ rewind_pc(codegen_scope *s)
 static struct mrb_insn_data
 mrb_last_insn(codegen_scope *s)
 {
-  return mrb_decode_insn(mrb_prev_pc(s, pc_addr(s)));
+  return mrb_decode_insn(&s->iseq[s->lastpc]);
 }
 
 static mrb_bool
 no_peephole(codegen_scope *s)
 {
-  return no_optimize(s) || s->lastlabel == s->pc || s->pc == 0;
+  return no_optimize(s) || s->lastlabel == s->pc || s->pc == 0 || s->pc == s->lastpc;
 }
 
 #define JMPLINK_START UINT32_MAX
@@ -500,7 +505,7 @@ genjmp(codegen_scope *s, mrb_code i, uint32_t pc)
 {
   uint32_t pos;
 
-  gen_B(s, i);
+  genop_0(s, i);
   pos = s->pc;
   gen_jmpdst(s, pc);
   return pos;
@@ -553,11 +558,11 @@ genjmp2(codegen_scope *s, mrb_code i, uint16_t a, uint32_t pc, int val)
 
   if (a > 0xff) {
     gen_B(s, OP_EXT1);
-    gen_B(s, i);
+    genop_0(s, i);
     gen_S(s, a);
   }
   else {
-    gen_B(s, i);
+    genop_0(s, i);
     gen_B(s, (uint8_t)a);
   }
   pos = s->pc;
