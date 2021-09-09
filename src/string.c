@@ -1375,7 +1375,10 @@ mrb_str_aset(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen, mrb_
       str_range_to_bytes(str, &beg, &len);
       /* fall through */
     case STR_BYTE_RANGE_CORRECTED:
-      str_replace_partial(mrb, str, beg, beg + len, replace);
+      if (mrb_int_add_overflow(beg, len, &len)) {
+        mrb_raise(mrb, E_RUNTIME_ERROR, "string index too big");
+      }
+      str_replace_partial(mrb, str, beg, len, replace);
   }
 }
 
