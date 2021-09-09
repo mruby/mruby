@@ -606,12 +606,7 @@ read_irep(mrb_state *mrb, const uint8_t *bin, size_t bufsize, uint8_t flags)
 static struct RProc*
 mrb_proc_read_irep(mrb_state *mrb, const uint8_t *bin)
 {
-  /* MRB_LINK_TIME_RO_DATA_P is defined when predefined mrb_ro_data_p() is used */
-#if defined(MRB_LINK_TIME_RO_DATA_P) || defined(MRB_USE_CUSTOM_RO_DATA_P)
   uint8_t flags = mrb_ro_data_p((char*)bin) ? FLAG_SRC_STATIC : FLAG_SRC_MALLOC;
-#else
-  uint8_t flags = FLAG_SRC_STATIC;
-#endif
 
   return read_irep(mrb, bin, (size_t)-1, flags);
 }
