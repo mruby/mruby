@@ -1243,9 +1243,7 @@ str_replace_partial(mrb_state *mrb, mrb_value src, mrb_int pos, mrb_int end, mrb
   }
 
   replen = (mrb_nil_p(rep) ? 0 : RSTRING_LEN(rep));
-  newlen = replen + (len - (end - pos));
-
-  if (newlen >= MRB_SSIZE_MAX || newlen < replen /* overflowed */) {
+  if (mrb_int_add_overflow(replen, len - (end - pos), &newlen) || newlen >= MRB_SSIZE_MAX) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "string size too big");
   }
 
