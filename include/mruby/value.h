@@ -411,7 +411,8 @@ mrb_undef_value(void)
 #if defined(MRB_USE_CUSTOM_RO_DATA_P)
 /* If you define `MRB_USE_CUSTOM_RO_DATA_P`, you must implement `mrb_ro_data_p()`. */
 mrb_bool mrb_ro_data_p(const char *p);
-#elif (defined(__linux__) && !defined(__KERNEL__))
+#elif !defined(MRB_NO_DEFAULT_RO_DATA_P)
+#if defined(MRB_USE_ETEXT_RO_DATA_P)
 #define MRB_LINK_TIME_RO_DATA_P
 extern char etext, edata;
 static inline mrb_bool
@@ -427,7 +428,9 @@ mrb_ro_data_p(const char *p)
 {
   return (char*)get_etext() < p && p < (char*)get_edata();
 }
-#else
+#endif  /* Linux or macOS */
+#endif  /* MRB_NO_DEFAULT_RO_DATA_P */
+#ifndef MRB_LINK_TIME_RO_DATA_P
 # define mrb_ro_data_p(p) FALSE
 #endif
 

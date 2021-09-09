@@ -113,6 +113,16 @@
 /* number of object per heap page */
 //#define MRB_HEAP_PAGE_SIZE 1024
 
+/* define if your platform does not support etext, edata */
+//#define MRB_NO_DEFAULT_RO_DATA_P
+
+/* define if your platform supports etext, edata */
+//#define MRB_USE_RO_DATA_P_ETEXT
+/* use MRB_USE_ETEXT_RO_DATA_P by default on Linux */
+#if (defined(__linux__) && !defined(__KERNEL__))
+#define MRB_USE_ETEXT_RO_DATA_P
+#endif
+
 /* you can provide and use mrb_ro_data_p() for your platform.
    prototype is `mrb_bool mrb_ro_data_p(const char *ptr)` */
 //#define MRB_USE_CUSTOM_RO_DATA_P
