@@ -151,9 +151,18 @@ largest value of required alignment.
 
 ## Reduce heap memory configuration
 
+`MRB_USE_ETEXT_RO_DATA_P`
+
+* Use `etext` and `edata` section addresses defined by the linker to detect read-only data.
+* Those addresses are widely available, but not portable, nor standardized.
+* This macro is defined by default on User-mode Linux.
+
+`MRB_NO_DEFAULT_RO_DATA_P`
+
+* Define this macro when the default `mrb_ro_data_p()` does not work for any reason.
+
 `MRB_USE_CUSTOM_RO_DATA_P`
 
-* Takes precedence over `MRB_USE_LINK_TIME_RO_DATA_P`.
 * Please try if `MRB_USE_LINK_TIME_RO_DATA_P` is not available.
 * The `mrb_ro_data_p()` function is implemented by the user in an arbitrary file.
 * The prototype declaration is `mrb_bool mrb_ro_data_p(const char *ptr)`.
