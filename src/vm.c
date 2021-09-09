@@ -2252,14 +2252,14 @@ RETRY_TRY_BLOCK:
           mrb->jmp = prev_jmp;
           return v;
         }
-        pc = ci[0].pc;
+        pc = ci->pc;
         DEBUG(fprintf(stderr, "from :%s\n", mrb_sym_name(mrb, ci->mid)));
-        proc = mrb->c->ci->proc;
+        proc = ci->proc;
         irep = proc->body.irep;
         pool = irep->pool;
         syms = irep->syms;
 
-        regs[acc] = v;
+        ci[1].stack[0] = v;
         mrb_gc_arena_restore(mrb, ai);
       }
       JUMP;
