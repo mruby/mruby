@@ -7,7 +7,8 @@
 
 #define FIBER_STACK_INIT_SIZE 64
 #define FIBER_CI_INIT_SIZE 8
-#define CI_ACC_RESUMED -3
+/* copied from vm.c */
+#define CINFO_RESUMED 3
 
 /*
  *  call-seq:
@@ -160,7 +161,7 @@ fiber_check_cfunc(mrb_state *mrb, struct mrb_context *c)
   mrb_callinfo *ci;
 
   for (ci = c->ci; ci >= c->cibase; ci--) {
-    if (ci->acc < 0) {
+    if (ci->cci > 0) {
       mrb_raise(mrb, E_FIBER_ERROR, "can't cross C function boundary");
     }
   }
@@ -226,7 +227,7 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
   else {
     value = fiber_result(mrb, a, len);
     if (vmexec) {
-      c->ci->stack[c->ci[1].acc] = value;
+      c->ci[1].stack[0] = value;
     }
   }
 
@@ -264,7 +265,7 @@ fiber_resume(mrb_state *mrb, mrb_value self)
   mrb_bool vmexec = FALSE;
 
   mrb_get_args(mrb, "*!", &a, &len);
-  if (mrb->c->ci->acc < 0) {
+  if (mrb->c->ci->cci > 0) {
     vmexec = TRUE;
   }
   return fiber_switch(mrb, self, len, a, TRUE, vmexec);
@@ -357,7 +358,7 @@ mrb_fiber_yield(mrb_state *mrb, mrb_int len, const mrb_value *a)
   c->prev = NULL;
   if (c->vmexec) {
     c->vmexec = FALSE;
-    mrb->c->ci->acc = CI_ACC_RESUMED;
+    mrb->c->ci->cci = CINFO_RESUMED;
     c->ci--;                    /* pop callinfo for yield */
   }
   MARK_CONTEXT_MODIFY(mrb->c);

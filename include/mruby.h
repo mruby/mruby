@@ -154,8 +154,8 @@ typedef void* (*mrb_allocf) (struct mrb_state *mrb, void*, size_t, void *ud);
 
 typedef struct {
   mrb_sym mid;
+  uint8_t cci;                  /* called from C function */
   int16_t argc;
-  int16_t acc;
   const struct RProc *proc;
   mrb_value *stack;
   const mrb_code *pc;           /* current address on iseq of this proc */
