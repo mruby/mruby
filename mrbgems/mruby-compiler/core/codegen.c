@@ -572,7 +572,7 @@ static void gen_int(codegen_scope *s, uint16_t dst, mrb_int i);
 static void
 gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
 {
-  if (no_peephole(s)) goto normal;
+  if (nopeep || no_peephole(s)) goto normal;
   else {
     struct mrb_insn_data data = mrb_last_insn(s);
 
@@ -586,7 +586,7 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
     case OP_LOADI__1:
     case OP_LOADI_0: case OP_LOADI_1: case OP_LOADI_2: case OP_LOADI_3:
     case OP_LOADI_4: case OP_LOADI_5: case OP_LOADI_6: case OP_LOADI_7:
-      if (nopeep || data.a != src || data.a < s->nlocals) goto normal;
+      if (data.a != src || data.a < s->nlocals) goto normal;
       rewind_pc(s);
       genop_1(s, data.insn, dst);
       return;
@@ -595,17 +595,17 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
     case OP_GETGV: case OP_GETSV: case OP_GETIV: case OP_GETCV:
     case OP_GETCONST: case OP_STRING:
     case OP_LAMBDA: case OP_BLOCK: case OP_METHOD: case OP_BLKPUSH:
-      if (nopeep || data.a != src || data.a < s->nlocals) goto normal;
+      if (data.a != src || data.a < s->nlocals) goto normal;
       rewind_pc(s);
       genop_2(s, data.insn, dst, data.b);
       return;
     case OP_GETUPVAR:
-      if (nopeep || data.a != src || data.a < s->nlocals) goto normal;
+      if (data.a != src || data.a < s->nlocals) goto normal;
       rewind_pc(s);
       genop_3(s, data.insn, dst, data.b, data.c);
       return;
     case OP_LOADI32:
-      if (nopeep || data.a != src || data.a < s->nlocals) goto normal;
+      if (data.a != src || data.a < s->nlocals) goto normal;
       else {
         uint32_t i = (uint32_t)data.b<<16|data.c;
         rewind_pc(s);
@@ -613,7 +613,7 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
       }
       return;
     case OP_ADDI: case OP_SUBI:
-      if (nopeep || addr_pc(s, data.addr) == s->lastlabel || data.a != src || data.a < s->nlocals) goto normal;
+      if (addr_pc(s, data.addr) == s->lastlabel || data.a != src || data.a < s->nlocals) goto normal;
       else {
         struct mrb_insn_data data0 = mrb_decode_insn(mrb_prev_pc(s, data.addr));
         if (data0.insn != OP_MOVE || data0.a != data.a || data0.b != dst) goto normal;
