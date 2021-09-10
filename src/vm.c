@@ -2630,7 +2630,22 @@ RETRY_TRY_BLOCK:
       mrb_sym sym = mrb_intern_str(mrb, regs[a]);
 
       regs[a] = mrb_symbol_value(sym);
-      mrb_gc_arena_restore(mrb, ai);
+      NEXT;
+    }
+
+    CASE(OP_SYMBOL, BB) {
+      size_t len;
+      mrb_sym sym;
+
+      mrb_assert((pool[b].tt&IREP_TT_NFLAG)==0);
+      len = pool[b].tt >> 2;
+      if (pool[b].tt & IREP_TT_SFLAG) {
+        sym = mrb_intern_static(mrb, pool[b].u.str, len);
+      }
+      else {
+        sym  = mrb_intern(mrb, pool[b].u.str, len);
+      }
+      regs[a] = mrb_symbol_value(sym);
       NEXT;
     }
 
