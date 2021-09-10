@@ -95,7 +95,7 @@ OPCODE(SYMBOL,     BB)       /* R(a) = intern(Pool(b)) */
 OPCODE(STRING,     BB)       /* R(a) = str_dup(Pool(b)) */
 OPCODE(STRCAT,     B)        /* str_cat(R(a),R(a+1)) */
 OPCODE(HASH,       BB)       /* R(a) = hash_new(R(a),R(a+1)..R(a+b*2-1)) */
-OPCODE(HASHADD,    BB)       /* R(a) = hash_push(R(a),R(a+1)..R(a+b*2)) */
+OPCODE(HASHADD,    BB)       /* hash_push(R(a),R(a+1)..R(a+b*2)) */
 OPCODE(HASHCAT,    B)        /* R(a) = hash_cat(R(a),R(a+1)) */
 OPCODE(LAMBDA,     BB)       /* R(a) = lambda(Irep(b),L_LAMBDA) */
 OPCODE(BLOCK,      BB)       /* R(a) = lambda(Irep(b),L_BLOCK) */

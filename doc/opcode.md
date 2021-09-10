@@ -106,7 +106,7 @@ sign) of operands.
 | `OP_STRING`      | `BB`         | `R(a) = str_dup(Pool(b))`                                |
 | `OP_STRCAT`      | `B`          | `str_cat(R(a),R(a+1))`                                   |
 | `OP_HASH`        | `BB`         | `R(a) = hash_new(R(a),R(a+1)..R(a+b*2-1))`               |
-| `OP_HASHADD`     | `BB`         | `R(a) = hash_push(R(a),R(a+1)..R(a+b*2))`                |
+| `OP_HASHADD`     | `BB`         | `hash_push(R(a),R(a+1)..R(a+b*2))`                       |
 | `OP_HASHCAT`     | `B`          | `R(a) = hash_cat(R(a),R(a+1))`                           |
 | `OP_LAMBDA`      | `BB`         | `R(a) = lambda(Irep(b),OP_L_LAMBDA)`                     |
 | `OP_BLOCK`       | `BB`         | `R(a) = lambda(Irep(b),OP_L_BLOCK)`                      |
