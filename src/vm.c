@@ -2652,6 +2652,7 @@ RETRY_TRY_BLOCK:
     CASE(OP_STRING, BB) {
       size_t len;
 
+      mrb_assert((pool[b].tt&IREP_TT_NFLAG)==0);
       len = pool[b].tt >> 2;
       if (pool[b].tt & IREP_TT_SFLAG) {
         regs[a] = mrb_str_new_static(mrb, pool[b].u.str, len);
