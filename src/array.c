@@ -751,6 +751,7 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
   tail = head + len;
   if (alen < len || alen < tail) {
     len = alen - head;
+    tail = head + len;
   }
 
   /* size check */
