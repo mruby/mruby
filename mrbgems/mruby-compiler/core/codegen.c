@@ -462,13 +462,7 @@ mrb_prev_pc(codegen_scope *s, const mrb_code *pc)
 
 #define pc_addr(s) &((s)->iseq[(s)->pc])
 #define addr_pc(s, addr) (uint32_t)((addr) - s->iseq)
-
-static void
-rewind_pc(codegen_scope *s)
-{
-  /* should not be called when s->pc is 0 (top) */
-  s->pc = addr_pc(s, mrb_prev_pc(s, pc_addr(s)));
-}
+#define rewind_pc(s) s->pc = s->lastpc
 
 static struct mrb_insn_data
 mrb_last_insn(codegen_scope *s)
