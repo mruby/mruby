@@ -542,8 +542,6 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
 
     CASE(OP_EXT1, Z):
       ins = READ_B();
-      printf("OP_EXT1\n");
-      print_header(mrb, irep, pc-irep->iseq-2);
       switch (ins) {
 #define OPCODE(i,x) case OP_ ## i: FETCH_ ## x ## _1 (); goto L_OP_ ## i;
 #include "mruby/ops.h"
@@ -552,8 +550,6 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       break;
     CASE(OP_EXT2, Z):
       ins = READ_B();
-      printf("OP_EXT2\n");
-      print_header(mrb, irep, pc-irep->iseq-2);
       switch (ins) {
 #define OPCODE(i,x) case OP_ ## i: FETCH_ ## x ## _2 (); goto L_OP_ ## i;
 #include "mruby/ops.h"
@@ -562,8 +558,6 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       break;
     CASE(OP_EXT3, Z):
       ins = READ_B();
-      printf("OP_EXT3\n");
-      print_header(mrb, irep, pc-irep->iseq-2);
       switch (ins) {
 #define OPCODE(i,x) case OP_ ## i: FETCH_ ## x ## _3 (); goto L_OP_ ## i;
 #include "mruby/ops.h"
