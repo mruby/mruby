@@ -3305,7 +3305,11 @@ string_fragment : tCHAR
                     }
                 | tSTRING_BEG string_rep tSTRING
                     {
-                      $$ = new_dstr(p, push($2, $3));
+                      node *n = $2;
+                      if (nint($3->cdr->cdr) > 0) {
+                        n = push(n, $3);
+                      }
+                      $$ = new_dstr(p, n);
                     }
                 ;
 
@@ -3347,7 +3351,11 @@ xstring         : tXSTRING_BEG tXSTRING
                     }
                 | tXSTRING_BEG string_rep tXSTRING
                     {
-                      $$ = new_dxstr(p, push($2, $3));
+                      node *n = $2;
+                      if (nint($3->cdr->cdr) > 0) {
+                        n = push(n, $3);
+                      }
+                      $$ = new_dxstr(p, n);
                     }
                 ;
 
@@ -3410,7 +3418,11 @@ words           : tWORDS_BEG tSTRING
                     }
                 | tWORDS_BEG string_rep tSTRING
                     {
-                      $$ = new_words(p, push($2, $3));
+                      node *n = $2;
+                      if (nint($3->cdr->cdr) > 0) {
+                        n = push(n, $3);
+                      }
+                      $$ = new_words(p, n);
                     }
                 ;
 
@@ -3422,8 +3434,12 @@ symbol          : basic_symbol
                     }
                 | tSYMBEG tSTRING_BEG string_rep tSTRING
                     {
+                      node *n = $3;
                       p->lstate = EXPR_ENDARG;
-                      $$ = new_dsym(p, new_dstr(p, push($3, $4)));
+                      if (nint($4->cdr->cdr) > 0) {
+                        n = push(n, $4);
+                      }
+                      $$ = new_dsym(p, new_dstr(p, n));
                     }
                 ;
 
