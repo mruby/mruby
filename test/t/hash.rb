@@ -1006,3 +1006,9 @@ assert('#== receiver should be specified value') do
     %i[has_value? value?].each{|m| assert_nothing_raised{h.__send__(m, v1)}}
   end
 end
+
+assert('test value ommision') do
+  x = 1
+  y = 2
+  assert_equal({x:1, y:2}, {x:, y:})
+end

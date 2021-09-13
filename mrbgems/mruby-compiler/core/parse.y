@@ -2585,8 +2585,7 @@ opt_block_arg   : comma block_arg
                     }
                 ;
 
-comma           : ','
-                | ','  opt_nl heredoc_bodies
+comma           : ','  opt_nl
                 ;
 
 args            : arg
@@ -3995,22 +3994,22 @@ assocs          : assoc
                     }
                 ;
 
-label_tag       : tLABEL_TAG
-                | tLABEL_TAG heredoc_bodies
-                ;
-
 assoc           : arg tASSOC arg
                     {
                       void_expr_error(p, $1);
                       void_expr_error(p, $3);
                       $$ = cons($1, $3);
                     }
-                | tIDENTIFIER label_tag arg
+                | tIDENTIFIER tLABEL_TAG arg
                     {
                       void_expr_error(p, $3);
                       $$ = cons(new_sym(p, $1), $3);
                     }
-                | string_fragment label_tag arg
+                | tIDENTIFIER tLABEL_TAG
+                    {
+                      $$ = cons(new_sym(p, $1), new_lvar(p, $1));
+                    }
+                | string_fragment tLABEL_TAG arg
                     {
                       void_expr_error(p, $3);
                       if (typen($1->car) == NODE_DSTR) {
@@ -4069,7 +4068,7 @@ opt_terms       : /* none */
                 ;
 
 opt_nl          : /* none */
-                | nl
+                | opt_nl nl
                 ;
 
 rparen          : opt_terms ')'
@@ -4082,7 +4081,6 @@ trailer         : /* none */
 
 term            : ';' {yyerrok;}
                 | nl
-                | heredoc_body
                 ;
 
 nl              : '\n'
@@ -4090,6 +4088,7 @@ nl              : '\n'
                       p->lineno += $<num>1;
                       p->column = 0;
                     }
+                | heredoc_body
                 ;
 
 terms           : term
