@@ -1292,6 +1292,24 @@ var_reference(parser_state *p, node *lhs)
   return lhs;
 }
 
+static node*
+label_reference(parser_state *p, mrb_sym sym)
+{
+  const char *name = mrb_sym_name(p->mrb, sym);
+  node *n;
+
+  if (local_var_p(p, sym)) {
+    n = new_lvar(p, sym);
+  }
+  else if (ISUPPER(name[0])) {
+    n = new_const(p, sym);
+  }
+  else {
+    n = new_fcall(p, sym, 0);
+  }
+  return n;
+}
+
 typedef enum mrb_string_type  string_type;
 
 static node*
@@ -4007,7 +4025,7 @@ assoc           : arg tASSOC arg
                     }
                 | tIDENTIFIER tLABEL_TAG
                     {
-                      $$ = cons(new_sym(p, $1), new_lvar(p, $1));
+                      $$ = cons(new_sym(p, $1), label_reference(p, $1));
                     }
                 | string_fragment tLABEL_TAG arg
                     {
