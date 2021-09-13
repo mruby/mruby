@@ -3326,6 +3326,9 @@ string_fragment : tCHAR
                       if (intn($3->cdr->cdr) > 0) {
                         n = push(n, $3);
                       }
+                      else {
+                        cons_free($3);
+                      }
                       $$ = new_dstr(p, n);
                     }
                 ;
@@ -3371,6 +3374,9 @@ xstring         : tXSTRING_BEG tXSTRING
                       node *n = $2;
                       if (intn($3->cdr->cdr) > 0) {
                         n = push(n, $3);
+                      }
+                      else {
+                        cons_free($3);
                       }
                       $$ = new_dxstr(p, n);
                     }
@@ -3439,6 +3445,9 @@ words           : tWORDS_BEG tSTRING
                       if (intn($3->cdr->cdr) > 0) {
                         n = push(n, $3);
                       }
+                      else {
+                        cons_free($3);
+                      }
                       $$ = new_words(p, n);
                     }
                 ;
@@ -3455,6 +3464,9 @@ symbol          : basic_symbol
                       p->lstate = EXPR_ENDARG;
                       if (intn($4->cdr->cdr) > 0) {
                         n = push(n, $4);
+                      }
+                      else {
+                        cons_free($4);
                       }
                       $$ = new_dsym(p, new_dstr(p, n));
                     }
