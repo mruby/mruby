@@ -692,6 +692,9 @@ retry:
         CHECK_FOR_WIDTH(flags);
         flags |= FWIDTH;
         GETASTER(width);
+        if (width > INT16_MAX || INT16_MIN > width) {
+          mrb_raise(mrb, E_ARGUMENT_ERROR, "width too big");
+        }
         if (width < 0) {
           flags |= FMINUS;
           width = -width;
@@ -1056,7 +1059,7 @@ retry:
             need = BIT_DIGITS(i);
         }
         if (need > MRB_INT_MAX - ((flags&FPREC) ? prec : 6)) {
-        too_big_width:
+        too_big_width_prec:
           mrb_raise(mrb, E_ARGUMENT_ERROR,
                     (width > prec ? "width too big" : "prec too big"));
         }
@@ -1064,7 +1067,7 @@ retry:
         if ((flags&FWIDTH) && need < width)
           need = width;
         if (need > MRB_INT_MAX - 20) {
-          goto too_big_width;
+          goto too_big_width_prec;
         }
         need += 20;
 
