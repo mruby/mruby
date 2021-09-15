@@ -67,7 +67,7 @@ static const char *inet_ntop(int af, const void *src, char *dst, socklen_t cnt)
   if (af == AF_INET)
   {
     struct sockaddr_in in;
-    memset(&in, 0, sizeof(in));
+    in = (struct sockaddr_in){0};
     in.sin_family = AF_INET;
     memcpy(&in.sin_addr, src, sizeof(struct in_addr));
     getnameinfo((struct sockaddr *)&in, sizeof(struct
@@ -77,7 +77,7 @@ static const char *inet_ntop(int af, const void *src, char *dst, socklen_t cnt)
   else if (af == AF_INET6)
   {
     struct sockaddr_in6 in;
-    memset(&in, 0, sizeof(in));
+    in = (struct sockaddr_in6){0};
     in.sin6_family = AF_INET6;
     memcpy(&in.sin6_addr, src, sizeof(struct in_addr6));
     getnameinfo((struct sockaddr *)&in, sizeof(struct
@@ -91,7 +91,7 @@ static int inet_pton(int af, const char *src, void *dst)
 {
   struct addrinfo hints, *res, *ressave;
 
-  memset(&hints, 0, sizeof(struct addrinfo));
+  hints = (struct addrinfo){0};
   hints.ai_family = af;
 
   if (getaddrinfo(src, NULL, &hints, &res) != 0)
@@ -148,7 +148,7 @@ mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
     mrb_raise(mrb, E_TYPE_ERROR, "service must be String, Integer, or nil");
   }
 
-  memset(&hints, 0, sizeof(hints));
+  hints = (struct addrinfo){0};
   hints.ai_flags = (int)flags;
 
   if (mrb_integer_p(family)) {

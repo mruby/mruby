@@ -344,10 +344,10 @@ mrb_debug_delete_break(mrb_state *mrb, mrb_debug_context *dbg, uint32_t bpno)
 
   for(i = index ; i < dbg->bpnum; i++) {
     if ((i + 1) == dbg->bpnum) {
-      memset(&dbg->bp[i], 0, sizeof(mrb_debug_breakpoint));
+      dbg->bp[i] = (mrb_debug_breakpoint){0};
     }
     else {
-      memcpy(&dbg->bp[i], &dbg->bp[i + 1], sizeof(mrb_debug_breakpoint));
+      dbg->bp[i] = dbg->bp[i + 1];
     }
   }
 

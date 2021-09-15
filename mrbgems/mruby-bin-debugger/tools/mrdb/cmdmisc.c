@@ -141,7 +141,7 @@ static listcmd_parser_state*
 listcmd_parser_state_new(mrb_state *mrb)
 {
   listcmd_parser_state *st = (listcmd_parser_state*)mrb_malloc(mrb, sizeof(listcmd_parser_state));
-  memset(st, 0, sizeof(listcmd_parser_state));
+  *st = (listcmd_parser_state){0};
   return st;
 }
 

@@ -95,7 +95,6 @@ fiber_init(mrb_state *mrb, mrb_value self)
   c->stbase = (mrb_value *)mrb_malloc(mrb, slen*sizeof(mrb_value));
   c->stend = c->stbase + slen;
 
-#ifdef MRB_NAN_BOXING
   {
     mrb_value *p = c->stbase;
     mrb_value *pend = c->stend;
@@ -105,9 +104,6 @@ fiber_init(mrb_state *mrb, mrb_value self)
       p++;
     }
   }
-#else
-  memset(c->stbase, 0, slen * sizeof(mrb_value));
-#endif
 
   /* copy receiver from a block */
   c->stbase[0] = mrb->c->ci->stack[0];

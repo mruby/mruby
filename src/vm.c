@@ -86,14 +86,10 @@ void mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value 
 static inline void
 stack_clear(mrb_value *from, size_t count)
 {
-#ifdef MRB_NAN_BOXING
   while (count-- > 0) {
     SET_NIL_VALUE(*from);
     from++;
   }
-#else
-  memset(from, 0, sizeof(mrb_value)*count);
-#endif
 }
 
 static inline void

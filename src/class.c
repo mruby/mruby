@@ -1698,7 +1698,9 @@ mrb_define_module_function(mrb_state *mrb, struct RClass *c, const char *name, m
 static void
 mc_clear(mrb_state *mrb)
 {
-  memset(mrb->cache, 0, MRB_METHOD_CACHE_SIZE*sizeof(mrb->cache[0]));
+  for (int i=0; i<MRB_METHOD_CACHE_SIZE; i++) {
+    mrb->cache[i] = (struct mrb_cache_entry){0};
+  }
 }
 
 void

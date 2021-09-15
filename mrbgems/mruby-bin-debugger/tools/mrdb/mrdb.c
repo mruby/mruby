@@ -187,7 +187,7 @@ mrb_debug_context_new(mrb_state *mrb)
 {
   mrb_debug_context *dbg = (mrb_debug_context*)mrb_malloc(mrb, sizeof(mrb_debug_context));
 
-  memset(dbg, 0, sizeof(mrb_debug_context));
+  *dbg = (mrb_debug_context){0};
 
   dbg->xm = DBG_INIT;
   dbg->xphase = DBG_PHASE_BEFORE_RUN;
@@ -226,7 +226,7 @@ mrdb_state_new(mrb_state *mrb)
 {
   mrdb_state *mrdb = (mrdb_state*)mrb_malloc(mrb, sizeof(mrdb_state));
 
-  memset(mrdb, 0, sizeof(mrdb_state));
+  *mrdb = (mrdb_state){0};
 
   mrdb->dbg = mrb_debug_context_get(mrb);
   mrdb->command = (char*)mrb_malloc(mrb, MAX_COMMAND_LINE+1);
