@@ -98,6 +98,7 @@ sign) of operands.
 | `OP_ARRAY2`      | `BBB`        | `R(a) = ary_new(R(b),R(b+1)..R(b+c))`                    |
 | `OP_ARYCAT`      | `B`          | `ary_cat(R(a),R(a+1))`                                   |
 | `OP_ARYPUSH`     | `B`          | `ary_push(R(a),R(a+1))`                                  |
+| `OP_ARYPUSH_N`   | `BB`         | `ary_push(R(a),R(a+1)..R(a+b))`                          |
 | `OP_ARYDUP`      | `B`          | `R(a) = ary_dup(R(a))`                                   |
 | `OP_AREF`        | `BBB`        | `R(a) = R(b)[c]`                                         |
 | `OP_ASET`        | `BBB`        | `R(a)[c] = R(b)`                                         |

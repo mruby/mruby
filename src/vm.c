@@ -2551,6 +2551,13 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
+    CASE(OP_ARYPUSH_N, BB) {
+      for (mrb_int i=0; i<b; i++) {
+        mrb_ary_push(mrb, regs[a], regs[a+i+1]);
+      }
+      NEXT;
+    }
+
     CASE(OP_ARYDUP, B) {
       mrb_value ary = regs[a];
       if (mrb_array_p(ary)) {
