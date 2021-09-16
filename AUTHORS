@@ -2,12 +2,12 @@
 
 ## The List of Contributors sorted by number of commits (as of 2021-08-15 40c4c5d)
 
-   7674 Yukihiro "Matz" Matsumoto (@matz)*
-    585 KOBAYASHI Shuji (@shuujii)
+   7663 Yukihiro "Matz" Matsumoto (@matz)*
+    586 KOBAYASHI Shuji (@shuujii)
     376 Daniel Bovensiepen (@bovi)
     344 Takeshi Watanabe (@take-cheeze)*
     334 Masaki Muranaka (@monaka)
-    301 dearblue (@dearblue)*
+    308 dearblue (@dearblue)*
     298 Tomoyuki Sahara (@tsahara)*
     234 Jun Hiroe (@suzukaze)
     219 Cremno (@cremno)*
@@ -25,8 +25,8 @@
      59 Kurebayashi, Takahiro (@crimsonwoods)*
      56 h2so5 (@h2so5)
      52 Ralph Desir (@Mav7)*
+     45 John Bampton (@jbampton)
      45 Rory O'Connell (@RoryO)*
-     43 John Bampton (@jbampton)
      43 Yuichiro Kaneko (@yui-knk)+
      42 fleuria (@flaneur2020)
      40 Christopher Aue (@christopheraue)
@@ -107,6 +107,7 @@
       5 Yurie Yamane (@yurie)+
       5 dreamedge (@dreamedge)
       5 nkshigeru (@nkshigeru)
+      4 Dante Catalfamo (@dantecatalfamo)
       4 Goro Kikuchi (@gorogit)
       4 Herwin Weststrate (@herwinw)
       4 Jon Moss (@maclover7)
@@ -122,7 +123,7 @@
       4 kurodash (@kurodash)*
       4 masahino (@masahino)
       4 wanabe (@wanabe)*
-      4 xuejianqing (@zhihuikeji)
+      4 xuejianqing (@joans321)
       3 Anton Davydov (@davydovanton)
       3 Carlo Prelz (@asfluido)*
       3 David Turnbull (@AE9RB)
@@ -197,7 +198,6 @@
       1 Benoit Daloze (@eregon)
       1 Daehyub Kim (@lateau)
       1 Daniel Varga (@vargad)
-      1 Dante Catalfamo (@dantecatalfamo)
       1 Edgar Boda-Majer (@eboda)
       1 Fangrui Song (@MaskRay)
       1 Flavio Medeiros (@flaviommedeiros)
@@ -257,6 +257,7 @@
       1 Sayed Abdelhaleem (@visualsayed)
       1 Shugo Maeda (@shugo)
       1 Sorah Fukumori (@sorah)
+      1 Stuart Hinson (@stuarth)
       1 Takuma Kume (@takumakume)+
       1 Thomas Schmidt (@digitaltom)
       1 Timo Schilling (@timoschilling)
