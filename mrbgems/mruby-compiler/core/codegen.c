@@ -1483,15 +1483,17 @@ attrsym(codegen_scope *s, mrb_sym a)
 }
 
 #define CALL_MAXARGS 127
-#define GEN_LIT_ARY_MAX 255
+#define GEN_LIT_ARY_MAX 64
 
 static int
 gen_values(codegen_scope *s, node *t, int val, int extra, int limit)
 {
   int n = 0;
   int first = 1;
+  int slimit = GEN_LIT_ARY_MAX;
 
   if (limit == 0) limit = GEN_LIT_ARY_MAX;
+  if (cursp() >= slimit) slimit = INT16_MAX;
 
   if (!val) {
     while (t) {
@@ -1505,7 +1507,7 @@ gen_values(codegen_scope *s, node *t, int val, int extra, int limit)
   while (t) {
     int is_splat = nint(t->car->car) == NODE_SPLAT;
 
-    if (is_splat || n+extra >= limit-1) { /* flush stack */
+    if (is_splat || n+extra >= limit-1 || cursp() >= slimit) { /* flush stack */
       pop_n(n);
       if (first) {
         if (n == 0) {
@@ -1516,14 +1518,11 @@ gen_values(codegen_scope *s, node *t, int val, int extra, int limit)
         }
         push();
         first = 0;
+        limit = GEN_LIT_ARY_MAX;
       }
       else if (n > 0) {
-        if (n == 1) {
-          genop_1(s, OP_ARYPUSH, cursp());
-        }
-        else {
-          genop_2(s, OP_ARYPUSH_N, cursp(), n);
-        }
+        pop();
+        genop_2(s, OP_ARYPUSH, cursp(), n);
         push();
       }
       n = 0;
@@ -1543,12 +1542,7 @@ gen_values(codegen_scope *s, node *t, int val, int extra, int limit)
     pop();
     if (n > 0) {
       pop_n(n);
-      if (n == 1) {
-        genop_1(s, OP_ARYPUSH, cursp());
-      }
-      else {
-        genop_2(s, OP_ARYPUSH_N, cursp(), n);
-      }
+      genop_2(s, OP_ARYPUSH, cursp(), n);
     }
     return -1;                  /* variable length */
   }
@@ -1570,7 +1564,7 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
   }
   tree = tree->cdr->cdr->car;
   if (tree) {
-    n = gen_values(s, tree->car, VAL, sp?1:0, CALL_MAXARGS);
+    n = gen_values(s, tree->car, VAL, sp?1:0, 14);
     if (n < 0) {
       n = noop = sendv = 1;
       push();
@@ -1580,7 +1574,7 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
     if (sendv) {
       gen_move(s, cursp(), sp, 0);
       pop();
-      genop_1(s, OP_ARYPUSH, cursp());
+      genop_2(s, OP_ARYPUSH, cursp(), 1);
       push();
     }
     else {
@@ -1825,7 +1819,7 @@ gen_literal_array(codegen_scope *s, node *tree, mrb_bool sym, int val)
         pop_n(i);
         if (gen) {
           pop();
-          genop_2(s, OP_ARYPUSH_N, cursp(), i);
+          genop_2(s, OP_ARYPUSH, cursp(), i);
         }
         else {
           genop_2(s, OP_ARRAY, cursp(), i);
@@ -1844,7 +1838,7 @@ gen_literal_array(codegen_scope *s, node *tree, mrb_bool sym, int val)
     pop_n(i);
     if (gen) {
       pop();
-      genop_2(s, OP_ARYPUSH_N, cursp(), i);
+      genop_2(s, OP_ARYPUSH, cursp(), i);
     }
     else {
       genop_2(s, OP_ARRAY, cursp(), i);
@@ -2404,7 +2398,9 @@ codegen(codegen_scope *s, node *tree, int val)
     {
       int len = 0;
       mrb_bool update = FALSE;
+      int slimit = GEN_LIT_ARY_MAX;
 
+      if (cursp() >= GEN_LIT_ARY_MAX) slimit = INT16_MAX;
       while (tree) {
         if (nint(tree->car->car->car) == NODE_KW_REST_ARGS) {
           if (len > 0) {
@@ -2433,7 +2429,7 @@ codegen(codegen_scope *s, node *tree, int val)
           len++;
         }
         tree = tree->cdr;
-        if (val && cursp() > 127) {
+        if (val && cursp() >= slimit) {
           pop_n(len*2);
           if (!update) {
             genop_2(s, OP_HASH, cursp(), len);
@@ -2593,7 +2589,7 @@ codegen(codegen_scope *s, node *tree, int val)
         idx = new_sym(s, nsym(n->cdr->car));
         base = cursp()-1;
         if (n->cdr->cdr->car) {
-          nargs = gen_values(s, n->cdr->cdr->car->car, VAL, 1, CALL_MAXARGS);
+          nargs = gen_values(s, n->cdr->cdr->car->car, VAL, 1, 14);
           if (nargs >= 0) {
             callargs = nargs;
           }
@@ -2638,7 +2634,7 @@ codegen(codegen_scope *s, node *tree, int val)
         if (nint(tree->car->car) == NODE_CALL) {
           if (callargs == CALL_MAXARGS) {
             pop();
-            genop_1(s, OP_ARYPUSH, cursp());
+            genop_2(s, OP_ARYPUSH, cursp(), 1);
           }
           else {
             pop_n(callargs);
@@ -2695,7 +2691,7 @@ codegen(codegen_scope *s, node *tree, int val)
         }
         if (callargs == CALL_MAXARGS) {
           pop();
-          genop_1(s, OP_ARYPUSH, cursp());
+          genop_2(s, OP_ARYPUSH, cursp(), 1);
         }
         else {
           pop_n(callargs);
@@ -2726,7 +2722,7 @@ codegen(codegen_scope *s, node *tree, int val)
       if (tree) {
         node *args = tree->car;
         if (args) {
-          n = gen_values(s, args, VAL, 0, CALL_MAXARGS);
+          n = gen_values(s, args, VAL, 0, 14);
           if (n < 0) {
             n = noop = sendv = 1;
             push();
@@ -2807,7 +2803,7 @@ codegen(codegen_scope *s, node *tree, int val)
       if (ainfo < 0) codegen_error(s, "invalid yield (SyntaxError)");
       push();
       if (tree) {
-        n = gen_values(s, tree, VAL, 0, CALL_MAXARGS);
+        n = gen_values(s, tree, VAL, 0, 14);
         if (n < 0) {
           n = sendv = 1;
           push();

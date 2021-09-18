@@ -431,12 +431,8 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       printf("OP_ARYCAT\tR%d\tR%d\t", a, a+1);
       print_lv_a(mrb, irep, a);
       break;
-    CASE(OP_ARYPUSH, B):
-      printf("OP_ARYPUSH\tR%d\t", a);
-      print_lv_a(mrb, irep, a);
-      break;
-    CASE(OP_ARYPUSH_N, BB):
-      printf("OP_ARYPUSH_N\tR%d\t%d\t", a, b);
+    CASE(OP_ARYPUSH, BB):
+      printf("OP_ARYPUSH\tR%d\t%d\t", a, b);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_ARYDUP, B):

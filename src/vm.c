@@ -2546,12 +2546,7 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
-    CASE(OP_ARYPUSH, B) {
-      mrb_ary_push(mrb, regs[a], regs[a+1]);
-      NEXT;
-    }
-
-    CASE(OP_ARYPUSH_N, BB) {
+    CASE(OP_ARYPUSH, BB) {
       for (mrb_int i=0; i<b; i++) {
         mrb_ary_push(mrb, regs[a], regs[a+i+1]);
       }
