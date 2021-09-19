@@ -2540,6 +2540,7 @@ RETRY_TRY_BLOCK:
         regs[a] = splat;
       }
       else {
+        mrb_assert(mrb_type(regs[a]) == MRB_TT_ARRAY);
         mrb_ary_concat(mrb, regs[a], splat);
       }
       mrb_gc_arena_restore(mrb, ai);
@@ -2547,6 +2548,7 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_ARYPUSH, BB) {
+      mrb_assert(mrb_type(regs[a]) == MRB_TT_ARRAY);
       for (mrb_int i=0; i<b; i++) {
         mrb_ary_push(mrb, regs[a], regs[a+i+1]);
       }
@@ -2584,6 +2586,7 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_ASET, BBB) {
+      mrb_assert(mrb_type(regs[a]) == MRB_TT_ARRAY);
       mrb_ary_set(mrb, regs[b], c, regs[a]);
       NEXT;
     }
