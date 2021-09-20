@@ -653,10 +653,12 @@ gen_getupvar(codegen_scope *s, uint16_t dst, mrb_sym id)
   int idx;
   int lv = search_upvar(s, id, &idx);
 
-  struct mrb_insn_data data = mrb_last_insn(s);
-  if (!no_peephole(s) && data.insn == OP_SETUPVAR && data.a == dst && data.b == idx && data.c == lv) {
-    /* skip GETUPVAR right after SETUPVAR */
-    return;
+  if (!no_peephole(s)) {
+    struct mrb_insn_data data = mrb_last_insn(s);
+    if (data.insn == OP_SETUPVAR && data.a == dst && data.b == idx && data.c == lv) {
+      /* skip GETUPVAR right after SETUPVAR */
+      return;
+    }
   }
   genop_3(s, OP_GETUPVAR, dst, idx, lv);
 }
@@ -667,10 +669,12 @@ gen_setupvar(codegen_scope *s, uint16_t dst, mrb_sym id)
   int idx;
   int lv = search_upvar(s, id, &idx);
 
-  struct mrb_insn_data data = mrb_last_insn(s);
-  if (!no_peephole(s) && data.insn == OP_MOVE && data.a == dst) {
-    dst = data.b;
-    rewind_pc(s);
+  if (!no_peephole(s)) {
+    struct mrb_insn_data data = mrb_last_insn(s);
+    if (data.insn == OP_MOVE && data.a == dst) {
+      dst = data.b;
+      rewind_pc(s);
+    }
   }
   genop_3(s, OP_SETUPVAR, dst, idx, lv);
 }
@@ -1091,9 +1095,9 @@ static void
 gen_setxv(codegen_scope *s, uint8_t op, uint16_t dst, mrb_sym sym, int val)
 {
   int idx = new_sym(s, sym);
-  if (!val) {
+  if (!val && !no_peephole(s)) {
     struct mrb_insn_data data = mrb_last_insn(s);
-    if (!no_peephole(s) && data.insn == OP_MOVE && data.a == dst) {
+    if (data.insn == OP_MOVE && data.a == dst) {
       dst = data.b;
       rewind_pc(s);
     }
