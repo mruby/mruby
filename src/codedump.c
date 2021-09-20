@@ -310,7 +310,7 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       printf("OP_SUPER\tR%d\t%d\n", a, b);
       break;
     CASE(OP_ARGARY, BS):
-      printf("OP_ARGARY\tR%d\t%d:%d:%d:%d (%d)", a,
+      printf("OP_ARGARY\tR%d\t%d:%d:%d:%d (%d)\t", a,
              (b>>11)&0x3f,
              (b>>10)&0x1,
              (b>>5)&0x1f,
@@ -352,7 +352,7 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_BLKPUSH, BS):
-      printf("OP_BLKPUSH\tR%d\t%d:%d:%d:%d (%d)", a,
+      printf("OP_BLKPUSH\tR%d\t%d:%d:%d:%d (%d)\t", a,
              (b>>11)&0x3f,
              (b>>10)&0x1,
              (b>>5)&0x1f,
@@ -388,14 +388,14 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       printf("OP_ADD\tR%d\tR%d\n", a, a+1);
       break;
     CASE(OP_ADDI, BB):
-      printf("OP_ADDI\tR%d\t%d", a, b);
+      printf("OP_ADDI\tR%d\t%d\t", a, b);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_SUB, B):
       printf("OP_SUB\tR%d\tR%d\n", a, a+1);
       break;
     CASE(OP_SUBI, BB):
-      printf("OP_SUBI\tR%d\t%d", a, b);
+      printf("OP_SUBI\tR%d\t%d\t", a, b);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_MUL, B):
@@ -452,7 +452,7 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_INTERN, B):
-      printf("OP_INTERN\tR%d", a);
+      printf("OP_INTERN\tR%d\t\t", a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_SYMBOL, BB):
@@ -471,7 +471,7 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_STRCAT, B):
-      printf("OP_STRCAT\tR%d\tR%d", a, a+1);
+      printf("OP_STRCAT\tR%d\tR%d\n", a, a+1);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_HASH, BB):
