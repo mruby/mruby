@@ -784,11 +784,12 @@ gen_addsub(codegen_scope *s, uint8_t op, uint16_t dst)
       }
       return;
     }
-    if (op == OP_SUB) {
-      if (n == MRB_INT_MIN) goto normal;
-      n = -n;
+    if (op == OP_ADD) {
+      if (mrb_int_add_overflow(n0, n, &n)) goto normal;
     }
-    if (mrb_int_add_overflow(n0, n, &n)) goto normal;
+    else { /* OP_SUB */
+      if (mrb_int_sub_overflow(n0, n, &n)) goto normal;
+    }
     s->pc = addr_pc(s, data0.addr);
     gen_int(s, dst, n);
   }
