@@ -28,7 +28,7 @@ MRuby::Build.new('cxx_abi') do |conf|
   conf.toolchain
 
   conf.gembox 'full-core'
-  conf.cc.flags += %w(-fpermissive)
+  conf.cc.flags += %w(-fpermissive -std=gnu++03)
   conf.compilers.each do |c|
     c.defines += %w(MRB_GC_FIXED_ARENA MRB_UTF8_STRING)
   end
