@@ -594,7 +594,7 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
       rewind_pc(s);
       genop_1(s, data.insn, dst);
       return;
-    case OP_LOADI: case OP_LOADINEG: case OP_LOADI16:
+    case OP_LOADI: case OP_LOADINEG:
     case OP_LOADL: case OP_LOADSYM:
     case OP_GETGV: case OP_GETSV: case OP_GETIV: case OP_GETCV:
     case OP_GETCONST: case OP_STRING:
@@ -603,10 +603,10 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
       rewind_pc(s);
       genop_2(s, data.insn, dst, data.b);
       return;
-    case OP_GETUPVAR:
+    case OP_LOADI16:
       if (data.a != src || data.a < s->nlocals) goto normal;
       rewind_pc(s);
-      genop_3(s, data.insn, dst, data.b, data.c);
+      genop_2S(s, data.insn, dst, data.b);
       return;
     case OP_LOADI32:
       if (data.a != src || data.a < s->nlocals) goto normal;
@@ -615,6 +615,11 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
         rewind_pc(s);
         genop_2SS(s, data.insn, dst, i);
       }
+      return;
+    case OP_GETUPVAR:
+      if (data.a != src || data.a < s->nlocals) goto normal;
+      rewind_pc(s);
+      genop_3(s, data.insn, dst, data.b, data.c);
       return;
     case OP_ADDI: case OP_SUBI:
       if (addr_pc(s, data.addr) == s->lastlabel || data.a != src || data.a < s->nlocals) goto normal;
