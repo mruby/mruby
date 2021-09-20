@@ -41,7 +41,7 @@ struct loopinfo {
   uint32_t pc0;                 /* `next` destination */
   uint32_t pc1;                 /* `redo` destination */
   uint32_t pc2;                 /* `break` destination */
-  int acc;
+  int reg;                      /* destination register */
   struct loopinfo *prev;
 };
 
@@ -2219,7 +2219,7 @@ codegen(codegen_scope *s, node *tree, int val)
       struct loopinfo *lp = loop_push(s, LOOP_NORMAL);
       uint32_t pos = JMPLINK_START;
 
-      if (!val) lp->acc = -1;
+      if (!val) lp->reg = -1;
       lp->pc0 = new_label(s);
       switch (nint(tree->car->car)) {
       case NODE_TRUE:
@@ -3624,7 +3624,7 @@ loop_push(codegen_scope *s, enum looptype t)
   p->type = t;
   p->pc0 = p->pc1 = p->pc2 = JMPLINK_START;
   p->prev = s->loop;
-  p->acc = cursp();
+  p->reg = cursp();
   s->loop = p;
 
   return p;
@@ -3643,7 +3643,7 @@ loop_break(codegen_scope *s, node *tree)
 
     loop = s->loop;
     if (tree) {
-      if (loop->acc < 0) {
+      if (loop->reg < 0) {
         codegen(s, tree, NOVAL);
       }
       else {
@@ -3669,12 +3669,12 @@ loop_break(codegen_scope *s, node *tree)
     if (loop->type == LOOP_NORMAL) {
       int tmp;
 
-      if (loop->acc >= 0) {
+      if (loop->reg >= 0) {
         if (tree) {
-          gen_move(s, loop->acc, cursp(), 0);
+          gen_move(s, loop->reg, cursp(), 0);
         }
         else {
-          genop_1(s, OP_LOADNIL, loop->acc);
+          genop_1(s, OP_LOADNIL, loop->reg);
         }
       }
       tmp = genjmp(s, OP_JMPUW, loop->pc2);
