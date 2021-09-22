@@ -18,17 +18,20 @@
 #include <mruby/presym.h>
 
 MRB_API mrb_value
-mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, size_t len)
-{
-  mrb_value arg = mrb_str_new(mrb, ptr, len);
-  return mrb_obj_new(mrb, c, 1, &arg);
-}
-
-MRB_API mrb_value
 mrb_exc_new_str(mrb_state *mrb, struct RClass* c, mrb_value str)
 {
   mrb_ensure_string_type(mrb, str);
-  return mrb_obj_new(mrb, c, 1, &str);
+
+  struct RBasic* e = mrb_obj_alloc(mrb, MRB_TT_EXCEPTION, c);
+  mrb_value exc = mrb_obj_value(e);
+  mrb_iv_set(mrb, exc, MRB_SYM(mesg), str);
+  return exc;
+}
+
+MRB_API mrb_value
+mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, size_t len)
+{
+  return mrb_exc_new_str(mrb, c, mrb_str_new(mrb, ptr, len));
 }
 
 /*
@@ -386,41 +389,37 @@ mrb_format(mrb_state *mrb, const char *format, ...)
   return str;
 }
 
-static mrb_noreturn void
-raise_va(mrb_state *mrb, struct RClass *c, const char *fmt, va_list ap, int argc, mrb_value *argv)
+static mrb_value
+error_va(mrb_state *mrb, struct RClass *c, const char *fmt, va_list ap)
 {
-  mrb_value mesg;
-
-  mesg = mrb_vformat(mrb, fmt, ap);
-  if (argv == NULL) {
-    argv = &mesg;
-  }
-  else {
-    argv[0] = mesg;
-  }
-  mrb_exc_raise(mrb, mrb_obj_new(mrb, c, argc+1, argv));
+  mrb_value mesg = mrb_vformat(mrb, fmt, ap);
+  return mrb_exc_new_str(mrb, c, mesg);
 }
 
 MRB_API mrb_noreturn void
 mrb_raisef(mrb_state *mrb, struct RClass *c, const char *fmt, ...)
 {
-  va_list args;
+  va_list ap;
+  mrb_value exc;
 
-  va_start(args, fmt);
-  raise_va(mrb, c, fmt, args, 0, NULL);
-  va_end(args);
+  va_start(ap, fmt);
+  exc = error_va(mrb, c, fmt, ap);
+  va_end(ap);
+
+  mrb_exc_raise(mrb, exc);
 }
 
 MRB_API mrb_noreturn void
 mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...)
 {
-  mrb_value argv[2];
-  va_list args;
+  va_list ap;
+  mrb_value exc;
 
-  va_start(args, fmt);
-  argv[1] = mrb_symbol_value(id);
-  raise_va(mrb, E_NAME_ERROR, fmt, args, 1, argv);
-  va_end(args);
+  va_start(ap, fmt);
+  exc = error_va(mrb, E_NAME_ERROR, fmt, ap);
+  va_end(ap);
+  mrb_iv_set(mrb, exc, MRB_IVSYM(name), mrb_symbol_value(id));
+  mrb_exc_raise(mrb, exc);
 }
 
 MRB_API void
@@ -529,16 +528,14 @@ mrb_sys_fail(mrb_state *mrb, const char *mesg)
 MRB_API mrb_noreturn void
 mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_value args, char const* fmt, ...)
 {
-  mrb_value exc;
-  mrb_value argv[3];
   va_list ap;
+  mrb_value exc;
 
   va_start(ap, fmt);
-  argv[0] = mrb_vformat(mrb, fmt, ap);
-  argv[1] = mrb_symbol_value(id);
-  argv[2] = args;
+  exc = error_va(mrb, E_NOMETHOD_ERROR, fmt, ap);
   va_end(ap);
-  exc = mrb_obj_new(mrb, E_NOMETHOD_ERROR, 3, argv);
+  mrb_iv_set(mrb, exc, MRB_IVSYM(name), mrb_symbol_value(id));
+  mrb_iv_set(mrb, exc, MRB_IVSYM(args), args);
   mrb_exc_raise(mrb, exc);
 }
 
