@@ -1136,6 +1136,7 @@ gen_int(codegen_scope *s, uint16_t dst, mrb_int i)
 static mrb_bool
 gen_uniop(codegen_scope *s, mrb_sym sym, uint16_t dst)
 {
+  if (no_peephole(s)) return FALSE;
   struct mrb_insn_data data = mrb_last_insn(s);
   mrb_int n;
 
