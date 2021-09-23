@@ -1500,13 +1500,14 @@ attrsym(codegen_scope *s, mrb_sym a)
 
 #define CALL_MAXARGS 127
 #define GEN_LIT_ARY_MAX 64
+#define GEN_VAL_STACK_MAX 99
 
 static int
 gen_values(codegen_scope *s, node *t, int val, int extra, int limit)
 {
   int n = 0;
   int first = 1;
-  int slimit = GEN_LIT_ARY_MAX;
+  int slimit = GEN_VAL_STACK_MAX;
 
   if (limit == 0) limit = GEN_LIT_ARY_MAX;
   if (cursp() >= slimit) slimit = INT16_MAX;
@@ -2414,7 +2415,7 @@ codegen(codegen_scope *s, node *tree, int val)
     {
       int len = 0;
       mrb_bool update = FALSE;
-      int slimit = GEN_LIT_ARY_MAX;
+      int slimit = GEN_VAL_STACK_MAX;
 
       if (cursp() >= GEN_LIT_ARY_MAX) slimit = INT16_MAX;
       while (tree) {
