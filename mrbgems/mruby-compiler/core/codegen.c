@@ -2224,6 +2224,14 @@ codegen(codegen_scope *s, node *tree, int val)
     {
       uint32_t pos;
 
+      if (true_always(tree->car)) {
+        codegen(s, tree->cdr, val);
+        goto exit;
+      }
+      if (false_always(tree->car)) {
+        codegen(s, tree->car, val);
+        goto exit;
+      }
       codegen(s, tree->car, VAL);
       pop();
       pos = genjmp2_0(s, OP_JMPNOT, cursp(), val);
@@ -2236,6 +2244,14 @@ codegen(codegen_scope *s, node *tree, int val)
     {
       uint32_t pos;
 
+      if (true_always(tree->car)) {
+        codegen(s, tree->car, val);
+        goto exit;
+      }
+      if (false_always(tree->car)) {
+        codegen(s, tree->cdr, val);
+        goto exit;
+      }
       codegen(s, tree->car, VAL);
       pop();
       pos = genjmp2_0(s, OP_JMPIF, cursp(), val);
