@@ -2268,10 +2268,7 @@ codegen(codegen_scope *s, node *tree, int val)
 
       if (!val) lp->reg = -1;
       lp->pc0 = new_label(s);
-      switch (nint(tree->car->car)) {
-      case NODE_TRUE:
-      case NODE_INT:
-      case NODE_STR:
+      if (true_always(tree->car)) {
         if (nt == NODE_UNTIL) {
           if (val) {
             genop_1(s, OP_LOADNIL, cursp());
@@ -2279,9 +2276,8 @@ codegen(codegen_scope *s, node *tree, int val)
           }
           goto exit;
         }
-        break;
-      case NODE_FALSE:
-      case NODE_NIL:
+      }
+      else if (false_always(tree->car)) {
         if (nt == NODE_WHILE) {
           if (val) {
             genop_1(s, OP_LOADNIL, cursp());
@@ -2289,17 +2285,14 @@ codegen(codegen_scope *s, node *tree, int val)
           }
           goto exit;
         }
-        break;
-      default:
-        codegen(s, tree->car, VAL);
-        pop();
-        if (nt == NODE_WHILE) {
-          pos = genjmp2_0(s, OP_JMPNOT, cursp(), NOVAL);
-        }
-        else {
-          pos = genjmp2_0(s, OP_JMPIF, cursp(), NOVAL);
-        }
-        break;
+      }
+      codegen(s, tree->car, VAL);
+      pop();
+      if (nt == NODE_WHILE) {
+        pos = genjmp2_0(s, OP_JMPNOT, cursp(), NOVAL);
+      }
+      else {
+        pos = genjmp2_0(s, OP_JMPIF, cursp(), NOVAL);
       }
       lp->pc1 = new_label(s);
       codegen(s, tree->cdr, NOVAL);
