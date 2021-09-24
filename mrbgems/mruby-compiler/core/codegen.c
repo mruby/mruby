@@ -1942,6 +1942,32 @@ gen_retval(codegen_scope *s, node *tree)
   }
 }
 
+static mrb_bool
+true_always(node *tree)
+{
+  switch (nint(tree->car)) {
+  case NODE_TRUE:
+  case NODE_INT:
+  case NODE_STR:
+  case NODE_SYM:
+    return TRUE;
+  default:
+    return FALSE;
+  }
+}
+
+static mrb_bool
+false_always(node *tree)
+{
+  switch (nint(tree->car)) {
+  case NODE_FALSE:
+  case NODE_NIL:
+    return TRUE;
+  default:
+    return FALSE;
+  }
+}
+
 static void
 codegen(codegen_scope *s, node *tree, int val)
 {
@@ -2133,27 +2159,22 @@ codegen(codegen_scope *s, node *tree, int val)
         codegen(s, elsepart, val);
         goto exit;
       }
-      switch (nint(tree->car->car)) {
-      case NODE_TRUE:
-      case NODE_INT:
-      case NODE_STR:
+      if (true_always(tree->car)) {
         codegen(s, tree->cdr->car, val);
         goto exit;
-      case NODE_FALSE:
-      case NODE_NIL:
+      }
+      if (false_always(tree->car)) {
         codegen(s, elsepart, val);
         goto exit;
-      case NODE_CALL:
-        {
-          node *n = tree->car->cdr;
-          mrb_sym mid = nsym(n->cdr->car);
-          mrb_sym mnil = MRB_SYM_Q_2(s->mrb, nil);
-          if (mid == mnil && n->cdr->cdr->car == NULL) {
-            nil_p = TRUE;
-            codegen(s, n->car, VAL);
-          }
+      }
+      if (nint(tree->car->car) == NODE_CALL) {
+        node *n = tree->car->cdr;
+        mrb_sym mid = nsym(n->cdr->car);
+        mrb_sym sym_nil_p = MRB_SYM_Q_2(s->mrb, nil);
+        if (mid == sym_nil_p && n->cdr->cdr->car == NULL) {
+          nil_p = TRUE;
+          codegen(s, n->car, VAL);
         }
-        break;
       }
       if (!nil_p) {
         codegen(s, tree->car, VAL);
