@@ -158,7 +158,7 @@ mrb_word_boxing_float_value(mrb_state *mrb, mrb_float f)
 {
   union mrb_value_ v;
 
-#ifdef MRB_WORDBOX_USE_HEAP_FLOAT
+#ifdef MRB_WORDBOX_NO_FLOAT_TRUNCATE
   v.p = mrb_obj_alloc(mrb, MRB_TT_FLOAT, mrb->float_class);
   v.fp->f = f;
   MRB_SET_FROZEN_FLAG(v.bp);
@@ -174,7 +174,7 @@ mrb_word_boxing_float_value(mrb_state *mrb, mrb_float f)
 }
 
 
-#ifndef MRB_WORDBOX_USE_HEAP_FLOAT
+#ifndef MRB_WORDBOX_NO_FLOAT_TRUNCATE
 MRB_API mrb_float
 mrb_word_boxing_value_float(mrb_value v)
 {

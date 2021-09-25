@@ -80,7 +80,7 @@
 #endif
 
 /* if defined mruby allocates Float objects in the heap to keep full precision if needed */
-//#define MRB_WORDBOX_USE_HEAP_FLOAT
+//#define MRB_WORDBOX_NO_FLOAT_TRUNCATE
 
 /* add -DMRB_INT32 to use 32bit integer for mrb_int; conflict with MRB_INT64;
    Default for 32-bit CPU mode. */
