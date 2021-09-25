@@ -14,7 +14,7 @@ end
   assert("Symbol##{n}") do
     assert_equal 5, :hello.__send__(n)
     assert_equal 4, :"aA\0b".__send__(n)
-    if __ENCODING__ == "UTF-8"
+    if "☺".size == 1
       assert_equal 8, :"こんにちは世界!".__send__(n)
       assert_equal 4, :"aあ\0b".__send__(n)
     else

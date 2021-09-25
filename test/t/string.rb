@@ -2,7 +2,7 @@
 ##
 # String ISO Test
 
-UTF8STRING = __ENCODING__ == "UTF-8"
+UTF8STRING = "☺".size == 1
 
 assert('String', '15.2.10') do
   assert_equal Class, String.class

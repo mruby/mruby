@@ -11,7 +11,7 @@ assert 'ObjectSpace.memsize_of' do
 
   assert_not_equal ObjectSpace.memsize_of('a'), 0, 'memsize of str'
 
-  if __ENCODING__ == "UTF-8"
+  if "☺".size == 1
     assert_not_equal ObjectSpace.memsize_of("こんにちは世界"), 0, 'memsize of utf8 str'
   end
 

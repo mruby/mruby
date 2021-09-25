@@ -2,7 +2,7 @@
 ##
 # String(Ext) Test
 
-UTF8STRING = __ENCODING__ == "UTF-8"
+UTF8STRING = "☺".size == 1
 
 def assert_upto(exp, receiver, *args)
   act = []

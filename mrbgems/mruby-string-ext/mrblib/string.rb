@@ -402,7 +402,7 @@ class String
       e = max.ord
       while c <= e
         break if exclusive and c == e
-        yield c.chr(__ENCODING__)
+        yield c.chr("☺".size == 1 ? "UTF-8" : "ASCII-8BIT")
         c += 1
       end
       return self

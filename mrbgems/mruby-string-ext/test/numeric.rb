@@ -16,7 +16,7 @@ assert('Integer#chr') do
   assert_raise(ArgumentError) { 65.chr("ASCII-8BIT", 2) }
   assert_raise(TypeError) { 65.chr(:BINARY) }
 
-  if __ENCODING__ == "ASCII-8BIT"
+  if "☺".size == 3
     assert_raise(ArgumentError) { 65.chr("UTF-8") }
   else
     assert_equal("A", 65.chr("UTF-8"))
