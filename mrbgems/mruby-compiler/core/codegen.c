@@ -2263,11 +2263,6 @@ codegen(codegen_scope *s, node *tree, int val)
   case NODE_WHILE:
   case NODE_UNTIL:
     {
-      struct loopinfo *lp = loop_push(s, LOOP_NORMAL);
-      uint32_t pos = JMPLINK_START;
-
-      if (!val) lp->reg = -1;
-      lp->pc0 = new_label(s);
       if (true_always(tree->car)) {
         if (nt == NODE_UNTIL) {
           if (val) {
@@ -2286,6 +2281,12 @@ codegen(codegen_scope *s, node *tree, int val)
           goto exit;
         }
       }
+
+      uint32_t pos = JMPLINK_START;
+      struct loopinfo *lp = loop_push(s, LOOP_NORMAL);
+
+      if (!val) lp->reg = -1;
+      lp->pc0 = new_label(s);
       codegen(s, tree->car, VAL);
       pop();
       if (nt == NODE_WHILE) {
