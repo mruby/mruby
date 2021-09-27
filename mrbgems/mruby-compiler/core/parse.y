@@ -3587,12 +3587,7 @@ var_ref         : variable
                     }
                 | keyword__ENCODING__
                     {
-#ifdef MRB_UTF8_STRING
-                      const char *enc = "UTF-8";
-#else
-                      const char *enc = "ASCII-8BIT";
-#endif
-                      $$ = new_str(p, enc, strlen(enc));
+                      $$ = new_fcall(p, MRB_SYM_2(p->mrb, __ENCODING__), 0);
                     }
                 ;
 
