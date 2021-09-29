@@ -742,6 +742,7 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
     }
     break;
 
+  case MRB_TT_STRUCT:
   case MRB_TT_ARRAY:
     {
       struct RArray *a = (struct RArray*)obj;
@@ -857,6 +858,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj, int end)
     }
     break;
 
+  case MRB_TT_STRUCT:
   case MRB_TT_ARRAY:
     if (ARY_SHARED_P(obj))
       mrb_ary_decref(mrb, ((struct RArray*)obj)->as.heap.aux.shared);
@@ -1041,6 +1043,7 @@ gc_gray_counts(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
     }
     break;
 
+  case MRB_TT_STRUCT:
   case MRB_TT_ARRAY:
     {
       struct RArray *a = (struct RArray*)obj;

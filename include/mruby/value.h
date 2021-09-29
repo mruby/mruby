@@ -150,6 +150,7 @@ static const unsigned int IEEE754_INFINITY_BITS_SINGLE = 0x7F800000;
   f(MRB_TT_ENV,         struct REnv,        "env") \
   f(MRB_TT_DATA,        struct RData,       "Data") \
   f(MRB_TT_FIBER,       struct RFiber,      "Fiber") \
+  f(MRB_TT_STRUCT,      struct RArray,      "Struct") \
   f(MRB_TT_ISTRUCT,     struct RIStruct,    "istruct") \
   f(MRB_TT_BREAK,       struct RBreak,      "break") \
   f(MRB_TT_COMPLEX,     struct RComplex,    "Complex") \

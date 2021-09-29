@@ -88,6 +88,7 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj)
               mrb_hash_memsize(obj);
       break;
     }
+    case MRB_TT_STRUCT:
     case MRB_TT_ARRAY: {
       mrb_int len = RARRAY_LEN(obj);
       /* Arrays that do not fit within an RArray perform a heap allocation

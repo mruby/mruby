@@ -18,6 +18,8 @@
 #define RSTRUCT_LEN(st) RARRAY_LEN(st)
 #define RSTRUCT_PTR(st) RARRAY_PTR(st)
 
+#define mrb_struct_p(o) (mrb_type(o) == MRB_TT_STRUCT)
+
 static struct RClass *
 struct_class(mrb_state *mrb)
 {
@@ -58,18 +60,13 @@ static mrb_value
 struct_members(mrb_state *mrb, mrb_value s)
 {
   mrb_value members = struct_s_members(mrb, mrb_obj_class(mrb, s));
-  if (!mrb_array_p(s)) {
+  if (!mrb_struct_p(s) || RSTRUCT_LEN(s) == 0) {
     mrb_raise(mrb, E_TYPE_ERROR, "corrupted struct");
   }
   if (RSTRUCT_LEN(s) != RARRAY_LEN(members)) {
-    if (RSTRUCT_LEN(s) == 0) {  /* probably uninitialized */
-      mrb_ary_resize(mrb, s, RARRAY_LEN(members));
-    }
-    else {
-      mrb_raisef(mrb, E_TYPE_ERROR,
-                 "struct size differs (%i required %i given)",
-                 RARRAY_LEN(members), RSTRUCT_LEN(s));
-    }
+    mrb_raisef(mrb, E_TYPE_ERROR,
+               "struct size differs (%i required %i given)",
+               RARRAY_LEN(members), RSTRUCT_LEN(s));
   }
   return members;
 }
@@ -213,7 +210,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass *kl
     }
     c = mrb_define_class_under(mrb, klass, RSTRING_PTR(name), klass);
   }
-  MRB_SET_INSTANCE_TT(c, MRB_TT_ARRAY);
+  MRB_SET_INSTANCE_TT(c, MRB_TT_STRUCT);
   nstr = mrb_obj_value(c);
   mrb_iv_set(mrb, nstr, MRB_SYM(__members__), members);
 
@@ -362,7 +359,7 @@ mrb_struct_init_copy(mrb_state *mrb, mrb_value copy)
   if (!mrb_obj_is_instance_of(mrb, s, mrb_obj_class(mrb, copy))) {
     mrb_raise(mrb, E_TYPE_ERROR, "wrong argument class");
   }
-  if (!mrb_array_p(s)) {
+  if (!mrb_struct_p(s)) {
     mrb_raise(mrb, E_TYPE_ERROR, "corrupted struct");
   }
   mrb_ary_replace(mrb, copy, s);
