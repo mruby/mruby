@@ -70,7 +70,7 @@ istruct_test_mutate(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
-void mrb_mruby_inline_struct_gem_test(mrb_state *mrb)
+void mrb_mruby_test_inline_struct_gem_test(mrb_state *mrb)
 {
   struct RClass *cls;
 
