@@ -2769,9 +2769,6 @@ codegen(codegen_scope *s, node *tree, int val)
         s2 = s2->prev;
         if (!s2) break;
       }
-      genop_2S(s, OP_ARGARY, cursp(), (lv & 0xf));
-      push(); push();         /* ARGARY pushes two values */
-      pop(); pop();
       if (tree) {
         node *args = tree->car;
         if (args) {
