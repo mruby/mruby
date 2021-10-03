@@ -832,6 +832,10 @@ static mrb_bool
 gen_binop(codegen_scope *s, mrb_sym op, uint16_t dst)
 {
   if (no_peephole(s)) return FALSE;
+  else if (op == MRB_OPSYM_2(s->mrb, aref)) {
+    genop_1(s, OP_GETIDX, dst);
+    return TRUE;
+  }
   else {
     struct mrb_insn_data data = mrb_last_insn(s);
     mrb_int n, n0;

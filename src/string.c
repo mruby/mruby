@@ -1146,7 +1146,7 @@ range_arg:
   return STR_OUT_OF_RANGE;
 }
 
-static mrb_value
+mrb_value
 mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen)
 {
   mrb_int beg, len;

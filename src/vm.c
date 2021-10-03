@@ -1063,6 +1063,7 @@ get_send_args(mrb_state *mrb, mrb_int argc, mrb_value *regs)
 mrb_value mrb_obj_missing(mrb_state *mrb, mrb_value mod);
 void mrb_hash_check_kdict(mrb_state *mrb, mrb_value self);
 void mrb_method_added(mrb_state *mrb, struct RClass *c, mrb_sym mid);
+mrb_value mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value idx, mrb_value len);
 
 MRB_API mrb_value
 mrb_vm_exec(mrb_state *mrb, const struct RProc *proc, const mrb_code *pc)
@@ -1250,6 +1251,34 @@ RETRY_TRY_BLOCK:
     CASE(OP_SETCV, BB) {
       mrb_vm_cv_set(mrb, syms[b], regs[a]);
       NEXT;
+    }
+
+    CASE(OP_GETIDX, B) {
+      mrb_value va = regs[a], vb = regs[a+1];
+      switch (mrb_type(va)) {
+      case MRB_TT_ARRAY:
+        if (!mrb_integer_p(vb)) goto getidx_fallback;
+        regs[a] = mrb_ary_entry(va, mrb_integer(vb));
+        break;
+      case MRB_TT_HASH:
+        regs[a] = mrb_hash_get(mrb, va, vb);
+        break;
+      case MRB_TT_STRING:
+        regs[a] = mrb_str_aref(mrb, va, vb, mrb_undef_value());
+        break;
+      default:
+      getidx_fallback:
+        c = 1;
+        mid = MRB_OPSYM(aref);
+        goto L_SEND_SYM;
+      }
+      NEXT;
+    }
+
+    CASE(OP_SETIDX, B) {
+      c = 1;
+      mid = MRB_OPSYM(aset);
+      goto L_SEND_SYM;
     }
 
     CASE(OP_GETCONST, BB) {

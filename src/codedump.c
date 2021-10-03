@@ -265,6 +265,12 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       printf("OP_SETCV\t%s\tR%d\t", mrb_sym_dump(mrb, irep->syms[b]), a);
       print_lv_a(mrb, irep, a);
       break;
+    CASE(OP_GETIDX, B):
+      printf("OP_GETIDX\tR%d\tR%d\n", a, a+1);
+      break;
+    CASE(OP_SETIDX, B):
+      printf("OP_SETIDX\tR%d\tR%d\tR%d\n", a, a+1, a+2);
+      break;
     CASE(OP_JMP, S):
       i = pc - irep->iseq;
       printf("OP_JMP\t\t%03d\n", (int)i+(int16_t)a);
