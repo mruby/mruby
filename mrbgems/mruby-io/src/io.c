@@ -397,6 +397,7 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
   ofd[0] = INVALID_HANDLE_VALUE;
   ofd[1] = INVALID_HANDLE_VALUE;
 
+  mrb->c->ci->mid = 0;
   io = mrb_io_s_popen_args(mrb, klass, &cmd, &flags, &doexec,
                            &opt_in, &opt_out, &opt_err);
 
@@ -476,6 +477,7 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
   int pw[2] = { -1, -1 };
   int saved_errno;
 
+  mrb->c->ci->mid = 0;
   io = mrb_io_s_popen_args(mrb, klass, &cmd, &flags, &doexec,
                            &opt_in, &opt_out, &opt_err);
 
@@ -837,6 +839,7 @@ static mrb_value
 mrb_io_s_sysclose(mrb_state *mrb, mrb_value klass)
 {
   mrb_int fd;
+  mrb->c->ci->mid = 0;
   mrb_get_args(mrb, "i", &fd);
   if (close((int)fd) == -1) {
     mrb_sys_fail(mrb, "close");
@@ -1475,6 +1478,7 @@ mrb_io_bufread(mrb_state *mrb, mrb_value self)
   mrb_value str;
   mrb_int len;
 
+  mrb->c->ci->mid = 0;
   mrb_get_args(mrb, "Si", &str, &len);
   mrb_assert(RSTRING_LEN(str) > 0);
   mrb_assert(RSTRING_PTR(str) != NULL);
@@ -1491,6 +1495,7 @@ mrb_io_readchar(mrb_state *mrb, mrb_value self)
   unsigned char c;
 #endif
 
+  mrb->c->ci->mid = 0;
   mrb_get_args(mrb, "S", &buf);
   mrb_assert(RSTRING_LEN(buf) > 0);
   mrb_assert(RSTRING_PTR(buf) != NULL);
