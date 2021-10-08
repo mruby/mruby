@@ -39,9 +39,9 @@ void abort(void);
 #define MRB_STACK_GROWTH 128
 #endif
 
-/* Maximum mrb_funcall() depth. Should be set lower on memory constrained systems. */
-#ifndef MRB_FUNCALL_DEPTH_MAX
-#define MRB_FUNCALL_DEPTH_MAX 512
+/* Maximum recursive depth. Should be set lower on memory constrained systems. */
+#ifndef MRB_CALL_LEVEL_MAX
+#define MRB_CALL_LEVEL_MAX 512
 #endif
 
 /* Maximum stack depth. Should be set lower on memory constrained systems.
@@ -251,6 +251,9 @@ cipush(mrb_state *mrb, mrb_int push_stacks, uint8_t cci,
   if (ci + 1 == c->ciend) {
     ptrdiff_t size = ci - c->cibase;
 
+    if (size > MRB_CALL_LEVEL_MAX) {
+      mrb_exc_raise(mrb, mrb_obj_value(mrb->stack_err));
+    }
     c->cibase = (mrb_callinfo *)mrb_realloc(mrb, c->cibase, sizeof(mrb_callinfo)*size*2);
     c->ci = c->cibase + size;
     c->ciend = c->cibase + size * 2;
@@ -463,9 +466,6 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
       mrb_stack_extend(mrb, n+2);
       mrb->c->ci->stack[n+1] = args;
       argc = -1;
-    }
-    if (mrb->c->ci - mrb->c->cibase > MRB_FUNCALL_DEPTH_MAX) {
-      mrb_exc_raise(mrb, mrb_obj_value(mrb->stack_err));
     }
     ci = cipush(mrb, n, 0, c, NULL, mid, argc);
     if (argc < 0) argc = 1;
@@ -740,9 +740,6 @@ mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value 
   }
   ci = mrb->c->ci;
   n = ci_nregs(ci);
-  if (ci - mrb->c->cibase > MRB_FUNCALL_DEPTH_MAX) {
-    mrb_exc_raise(mrb, mrb_obj_value(mrb->stack_err));
-  }
   p = mrb_proc_ptr(b);
   ci = cipush(mrb, n, CINFO_SKIP, c, p, mid, 0 /* dummy */);
   if (argc >= CALL_MAXARGS) {
