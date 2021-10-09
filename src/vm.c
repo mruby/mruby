@@ -1261,7 +1261,15 @@ RETRY_TRY_BLOCK:
         regs[a] = mrb_hash_get(mrb, va, vb);
         break;
       case MRB_TT_STRING:
-        regs[a] = mrb_str_aref(mrb, va, vb, mrb_undef_value());
+        switch (mrb_type(vb)) {
+        case MRB_TT_INTEGER:
+        case MRB_TT_STRING:
+        case MRB_TT_RANGE:
+          regs[a] = mrb_str_aref(mrb, va, vb, mrb_undef_value());
+          break;
+        default:
+          goto getidx_fallback;
+        }
         break;
       default:
       getidx_fallback:
