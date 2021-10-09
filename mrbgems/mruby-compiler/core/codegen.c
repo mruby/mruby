@@ -619,6 +619,7 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
         genop_2SS(s, data.insn, dst, i);
       }
       return;
+    case OP_AREF:
     case OP_GETUPVAR:
       if (data.a != src || data.a < s->nlocals) goto normal;
       rewind_pc(s);
