@@ -1273,7 +1273,7 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_SETIDX, B) {
-      c = 1;
+      c = 2;
       mid = MRB_OPSYM(aset);
       goto L_SEND_SYM;
     }
