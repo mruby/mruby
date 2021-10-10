@@ -64,6 +64,7 @@ mrb_gc_arena_shrink(mrb_state *mrb, int idx)
   mrb_gc *gc = &mrb->gc;
   int capa = gc->arena_capa;
 
+  mrb->gc.arena_idx = idx;
   if (idx < capa / 4) {
     capa >>= 2;
     if (capa < MRB_GC_ARENA_SIZE) {
@@ -76,7 +77,7 @@ mrb_gc_arena_shrink(mrb_state *mrb, int idx)
   }
 }
 #else
-#define mrb_gc_arena_shrink(mrb,idx)
+#define mrb_gc_arena_shrink(mrb,idx) mrb_gc_arena_restore(mrb,idx)
 #endif
 
 #define CALL_MAXARGS 127
@@ -1544,7 +1545,6 @@ RETRY_TRY_BLOCK:
         else {
           recv = MRB_METHOD_FUNC(m)(mrb, recv);
         }
-        mrb_gc_arena_restore(mrb, ai);
         mrb_gc_arena_shrink(mrb, ai);
         if (mrb->exc) goto L_RAISE;
         ci = mrb->c->ci;
@@ -1600,7 +1600,6 @@ RETRY_TRY_BLOCK:
       /* prepare stack */
       if (MRB_PROC_CFUNC_P(m)) {
         recv = MRB_PROC_CFUNC(m)(mrb, recv);
-        mrb_gc_arena_restore(mrb, ai);
         mrb_gc_arena_shrink(mrb, ai);
         if (mrb->exc) goto L_RAISE;
         /* pop stackpos */
