@@ -57,11 +57,8 @@ OPCODE(JMPUW,      S)        /* unwind_and_jump_to(a) */
 OPCODE(EXCEPT,     B)        /* R(a) = exc */
 OPCODE(RESCUE,     BB)       /* R(b) = R(a).isa?(R(b)) */
 OPCODE(RAISEIF,    B)        /* raise(R(a)) if R(a) */
-OPCODE(SENDV,      BB)       /* R(a) = call(R(a),Syms(b),*R(a+1)) */
-OPCODE(SENDVB,     BB)       /* R(a) = call(R(a),Syms(b),*R(a+1),&R(a+2)) */
-OPCODE(SEND,       BBB)      /* R(a) = call(R(a),Syms(b),R(a+1),...,R(a+c)) */
-OPCODE(SENDB,      BBB)      /* R(a) = call(R(a),Syms(b),R(a+1),...,R(a+c),&R(a+c+1)) */
-OPCODE(SENDVK,     BB)       /* R(a) = call(R(a),Syms(b),*R(a+1),**(a+2),&R(a+3)) # todo */
+OPCODE(SEND,       BBB)      /* R(a) = call(R(a),Syms(b),R(a+1)..,R(a+n+1):R(a+n+2)..) (c=n|k<<4) */
+OPCODE(SENDB,      BBB)      /* R(a) = call(R(a),Syms(b),R(a+1)..,R(a+n+1):R(a+n+2)..,&R(a+n+2k+1)) */
 OPCODE(CALL,       Z)        /* R(0) = self.call(frame.argc, frame.argv) */
 OPCODE(SUPER,      BB)       /* R(a) = super(R(a+1),... ,R(a+b+1)) */
 OPCODE(ARGARY,     BS)       /* R(a) = argument array (16=m5:r1:m5:d1:lv4) */

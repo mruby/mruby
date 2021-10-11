@@ -57,6 +57,30 @@ print_header(mrb_state *mrb, const mrb_irep *irep, uint32_t i)
   printf("%03d ", (int)i);
 }
 
+static void
+print_args(uint8_t i)
+{
+  uint8_t n = i&0xf;
+  uint8_t nk = (i>>4)&0xf;
+
+  if (n == 15) {
+    printf("n=*");
+  }
+  else {
+    printf("n=%d", n);
+  }
+  if (nk > 0) {
+    printf("|");
+    if (nk == 15) {
+      printf("nk=*");
+    }
+    else {
+      printf("nk=%d", nk);
+    }
+  }
+  printf(" (0x%02x)\n", i);
+}
+
 #define CASE(insn,ops) case insn: FETCH_ ## ops (); L_ ## insn
 
 static void
@@ -294,26 +318,20 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       printf("OP_JMPNIL\tR%d\t%03d\t", a, (int)i+(int16_t)b);
       print_lv_a(mrb, irep, a);
       break;
-    CASE(OP_SENDV, BB):
-      printf("OP_SENDV\tR%d\t:%s\n", a, mrb_sym_dump(mrb, irep->syms[b]));
-      break;
-    CASE(OP_SENDVB, BB):
-      printf("OP_SENDVB\tR%d\t:%s\n", a, mrb_sym_dump(mrb, irep->syms[b]));
-      break;
     CASE(OP_SEND, BBB):
-      printf("OP_SEND\tR%d\t:%s\t%d\n", a, mrb_sym_dump(mrb, irep->syms[b]), c);
+      printf("OP_SEND\tR%d\t:%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
+      print_args(c);
       break;
     CASE(OP_SENDB, BBB):
-      printf("OP_SENDB\tR%d\t:%s\t%d\n", a, mrb_sym_dump(mrb, irep->syms[b]), c);
-      break;
-    CASE(OP_SENDVK, BB):
-      printf("OP_SENDVK\tR%d\t:%s\n", a, mrb_sym_dump(mrb, irep->syms[b]));
+      printf("OP_SENDB\tR%d\t:%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
+      print_args(c);
       break;
     CASE(OP_CALL, Z):
       printf("OP_CALL\n");
       break;
     CASE(OP_SUPER, BB):
-      printf("OP_SUPER\tR%d\t%d\n", a, b);
+      printf("OP_SUPER\tR%d\t", a);
+      print_args(b);
       break;
     CASE(OP_ARGARY, BS):
       printf("OP_ARGARY\tR%d\t%d:%d:%d:%d (%d)\t", a,

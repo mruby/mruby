@@ -812,9 +812,9 @@ ensure_class_type(mrb_state *mrb, mrb_value val)
 MRB_API mrb_int
 mrb_get_argc(mrb_state *mrb)
 {
-  mrb_int argc = mrb->c->ci->argc;
+  mrb_int argc = mrb->c->ci->n;
 
-  if (argc < 0) {
+  if (argc == 15) {
     struct RArray *a = mrb_ary_ptr(mrb->c->ci->stack[1]);
 
     argc = ARY_LEN(a);
@@ -825,9 +825,9 @@ mrb_get_argc(mrb_state *mrb)
 MRB_API const mrb_value*
 mrb_get_argv(mrb_state *mrb)
 {
-  mrb_int argc = mrb->c->ci->argc;
+  mrb_int argc = mrb->c->ci->n;
   mrb_value *array_argv = mrb->c->ci->stack + 1;
-  if (argc < 0) {
+  if (argc == 15) {
     struct RArray *a = mrb_ary_ptr(*array_argv);
 
     array_argv = ARY_PTR(a);
@@ -838,13 +838,19 @@ mrb_get_argv(mrb_state *mrb)
 MRB_API mrb_value
 mrb_get_arg1(mrb_state *mrb)
 {
-  mrb_int argc = mrb->c->ci->argc;
-  mrb_value *array_argv = mrb->c->ci->stack + 1;
-  if (argc < 0) {
+  mrb_callinfo *ci = mrb->c->ci;
+  mrb_int argc = ci->n;
+  mrb_value *array_argv = ci->stack + 1;
+  if (argc == 15) {
     struct RArray *a = mrb_ary_ptr(*array_argv);
 
     argc = ARY_LEN(a);
     array_argv = ARY_PTR(a);
+  }
+  if (argc == 0 && ci->nk == 15) {
+    mrb_int n = ci->n;
+    if (n == 15) n = 1;
+    return ci->stack[n+1];      /* kwhash next to positional arguments */
   }
   if (argc != 1) {
     mrb_argnum_error(mrb, argc, 1, 1);
@@ -852,18 +858,16 @@ mrb_get_arg1(mrb_state *mrb)
   return array_argv[0];
 }
 
+mrb_int mrb_ci_bidx(mrb_callinfo *ci);
+
 MRB_API mrb_bool
 mrb_block_given_p(mrb_state *mrb)
 {
-  const mrb_callinfo *ci = mrb->c->ci;
-  int argc = ci->argc;
-  int idx = (argc < 0) ? 2 : argc + 1;
-  mrb_value b = ci->stack[idx];
+  mrb_callinfo *ci = mrb->c->ci;
+  mrb_value b = ci->stack[mrb_ci_bidx(ci)];
 
   return !mrb_nil_p(b);
 }
-
-void mrb_hash_check_kdict(mrb_state *mrb, mrb_value self);
 
 /*
   retrieve arguments from mrb_state.
@@ -911,21 +915,17 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
   char c;
   int i = 0;
   va_list ap;
-  int argc = mrb->c->ci->argc;
-  const mrb_value *argv = mrb->c->ci->stack+1;
-  mrb_bool argv_on_stack = argc >= 0;
+  mrb_callinfo *ci = mrb->c->ci;
+  int argc = ci->n;
+  const mrb_value *argv = ci->stack+1;
+  mrb_bool argv_on_stack;
   mrb_bool opt = FALSE;
   mrb_bool opt_skip = TRUE;
   const mrb_value *pickarg = NULL; /* arguments currently being processed */
-  mrb_value kdict;
+  mrb_value kdict = mrb_nil_value();
   mrb_bool reqkarg = FALSE;
   int argc_min = 0, argc_max = 0;
 
-  if (!argv_on_stack) {
-    struct RArray *a = mrb_ary_ptr(*argv);
-    argv = ARY_PTR(a);
-    argc = ARY_LEN(a);
-  }
   va_start(ap, format);
 
   while ((c = *fmt++)) {
@@ -955,12 +955,41 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
   }
 
  check_exit:
-  if (reqkarg && argc > argc_min && mrb_hash_p(kdict = argv[argc - 1])) {
-    mrb_hash_check_kdict(mrb, kdict);
-    argc--;
+  if (!reqkarg && ci->nk > 0) {
+    mrb_assert(ci->nk == 15);
+    kdict = ci->stack[mrb_ci_bidx(ci)-1];
+    if (mrb_hash_p(kdict) && mrb_hash_size(mrb, kdict) > 0) {
+      if (argc < 14) {
+        ci->n++;
+        argc++;    /* include kdict in normal arguments */
+      }
+      else {
+        /* 14+1 == 15 so pack first */
+        if (argc == 14) {
+          /* pack arguments and kdict */
+          ci->stack[1] = mrb_ary_new_from_values(mrb, argc+1, &ci->stack[1]);
+          argc = ci->n = 15;
+        }
+        else {
+          /* push kdict to packed arguments */
+          mrb_ary_push(mrb, ci->stack[1], kdict);
+        }
+        ci->stack[2] = ci->stack[mrb_ci_bidx(ci)];
+      }
+      ci->nk = 0;
+    }
   }
-  else {
-    kdict = mrb_nil_value();
+  if (reqkarg && ci->nk > 0) {
+    kdict = ci->stack[mrb_ci_bidx(ci)-1];
+    mrb_assert(ci->nk == 15);
+    mrb_assert(mrb_hash_p(kdict));
+  }
+
+  argv_on_stack = argc < 15;
+  if (!argv_on_stack) {
+    struct RArray *a = mrb_ary_ptr(*argv);
+    argv = ARY_PTR(a);
+    argc = ARY_LEN(a);
   }
 
   opt = FALSE;
@@ -989,7 +1018,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
     case '|': case '*': case '&': case '?': case ':':
       if (needmodify) {
       bad_needmodify:
-        mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong `%c+` modified specifer`", c);
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "wrong `%c+` modified specifier`", c);
       }
       break;
     default:
@@ -1200,12 +1229,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         mrb_value *p, *bp;
 
         p = va_arg(ap, mrb_value*);
-        if (mrb->c->ci->argc < 0) {
-          bp = mrb->c->ci->stack + 2;
-        }
-        else {
-          bp = mrb->c->ci->stack + mrb->c->ci->argc + 1;
-        }
+        bp = ci->stack + mrb_ci_bidx(ci);
         if (altmode && mrb_nil_p(*bp)) {
           mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
         }
@@ -2812,14 +2836,15 @@ inspect_main(mrb_state *mrb, mrb_value mod)
 }
 
 static const mrb_code new_iseq[] = {
-  OP_ENTER, 0x0, 0x10, 0x1,  /* OP_ENTER     0:0:1:0:0:0:1 */
-  OP_LOADSELF, 0x3,          /* OP_LOADSELF  R3 */
-  OP_SEND, 0x3, 0x0, 0x0,    /* OP_SEND      R3  :allocate  0 */
-  OP_MOVE, 0x0, 0x3,         /* OP_MOVE      R0  R3 */
-  OP_MOVE, 0x4, 0x1,         /* OP_MOVE      R4  R1 */
-  OP_MOVE, 0x5, 0x2,         /* OP_MOVE      R5  R2 */
-  OP_SENDVB, 0x3, 0x1,       /* OP_SENDVB    R3  :initialize */
-  OP_RETURN, 0x0             /* OP_RETURN    R0 */
+  OP_ENTER, 0x0, 0x10, 0x3,  // OP_ENTER     0:0:1:0:0:1:1
+  OP_LOADSELF, 4,            // OP_LOADSELF  R4
+  OP_SEND, 4, 0, 0,          // OP_SEND      R4  :allocate  n=0
+  OP_MOVE, 0, 4,             // OP_MOVE      R0  R4
+  OP_MOVE, 5, 1,             // OP_MOVE      R5  R1 (*)
+  OP_MOVE, 6, 2,             // OP_MOVE      R6  R2 (**)
+  OP_MOVE, 7, 3,             // OP_MOVE      R7  R3
+  OP_SENDB, 4, 1, 255,       // OP_SENDB     R4  :initialize n=*|nk=*
+  OP_RETURN, 0               // OP_RETURN    R0
 };
 
 MRB_PRESYM_DEFINE_VAR_AND_INITER(new_syms, 2, MRB_SYM(allocate), MRB_SYM(initialize))

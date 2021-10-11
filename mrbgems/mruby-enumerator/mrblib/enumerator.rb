@@ -89,7 +89,7 @@ class Enumerator
   include Enumerable
 
   ##
-  # @overload initialize(obj, method = :each, *args)
+  # @overload initialize(obj, method = :each, *args, **kwd)
   #
   # Creates a new Enumerator object, which can be used as an
   # Enumerable.
@@ -114,7 +114,7 @@ class Enumerator
   #
   # Use of this form is discouraged.  Use Kernel#enum_for or Kernel#to_enum
   # instead.
-  def initialize(obj=NONE, meth=:each, *args, &block)
+  def initialize(obj=NONE, meth=:each, *args, **kwd, &block)
     if block
       obj = Generator.new(&block)
     elsif obj == NONE
@@ -124,6 +124,7 @@ class Enumerator
     @obj = obj
     @meth = meth
     @args = args
+    @kwd = kwd
     @fib = nil
     @dst = nil
     @lookahead = nil
@@ -131,7 +132,7 @@ class Enumerator
     @stop_exc = false
   end
 
-  attr_accessor :obj, :meth, :args
+  attr_accessor :obj, :meth, :args, :kwd
   attr_reader :fib
 
   def initialize_copy(obj)
@@ -140,6 +141,7 @@ class Enumerator
     @obj = obj.obj
     @meth = obj.meth
     @args = obj.args
+    @kwd = obj.kwd
     @fib = nil
     @lookahead = nil
     @feedvalue = nil
@@ -286,7 +288,7 @@ class Enumerator
   end
 
   def enumerator_block_call(&block)
-    @obj.__send__ @meth, *@args, &block
+    @obj.__send__ @meth, *@args, **@kwd, &block
   end
   private :enumerator_block_call
 

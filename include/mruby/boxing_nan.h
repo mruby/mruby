@@ -24,13 +24,22 @@
 #define MRB_FIXNUM_MIN INT32_MIN
 #define MRB_FIXNUM_MAX INT32_MAX
 
+enum mrb_nanbox_tt_inline {
+  MRB_NANBOX_TT_POINTER = 1,
+  MRB_NANBOX_TT_INTEGER,
+  MRB_NANBOX_TT_SYMBOL,
+  MRB_NANBOX_TT_MISC,
+#ifndef MRB_NO_FLOAT
+  MRB_NANBOX_TT_FLOAT,
+#endif
+};
+
 /* value representation by nan-boxing:
  *   float : FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF FFFFFFFFFFFFFFFF
- *   object: 111111111111TTTT TTPPPPPPPPPPPPPP PPPPPPPPPPPPPPPP PPPPPPPPPPPPPPPP
- *   int   : 1111111111110001 0000000000000000 IIIIIIIIIIIIIIII IIIIIIIIIIIIIIII
- *   sym   : 1111111111110001 0100000000000000 SSSSSSSSSSSSSSSS SSSSSSSSSSSSSSSS
- * In order to get enough bit size to save TT, all pointers are shifted 2 bits
- * in the right direction. Also, TTTTTT is the mrb_vtype + 1;
+ *   object: 1111111111110001 PPPPPPPPPPPPPPPP PPPPPPPPPPPPPPPP PPPPPPPPPPPPPPPP
+ *   int   : 1111111111110010 0000000000000000 IIIIIIIIIIIIIIII IIIIIIIIIIIIIIII
+ *   sym   : 1111111111110011 0100000000000000 SSSSSSSSSSSSSSSS SSSSSSSSSSSSSSSS
+ *   misc  : 1111111111110100 0100000000000000 0000000000000000 TTTTTT000000MMMM
  */
 typedef struct mrb_value {
   uint64_t u;
@@ -41,16 +50,7 @@ union mrb_value_ {
   uint64_t u;
 #ifdef MRB_64BIT
   void *p;
-# define NANBOX_IMMEDIATE_VALUE uint32_t i
-#else
-# define NANBOX_IMMEDIATE_VALUE union { uint32_t i; void *p; }
 #endif
-  struct {
-    MRB_ENDIAN_LOHI(
-      uint32_t ttt;
-      ,NANBOX_IMMEDIATE_VALUE;
-    )
-  };
   mrb_value value;
 };
 
@@ -60,26 +60,59 @@ static inline union mrb_value_
 mrb_val_union(mrb_value v)
 {
   union mrb_value_ x;
-  x.value = v;
+  x.u = v.u;
   return x;
 }
 
-#define mrb_tt(o)       ((enum mrb_vtype)((mrb_val_union(o).ttt & 0xfc000)>>14)-1)
-#define mrb_type(o)     (enum mrb_vtype)((uint32_t)0xfff00000 < mrb_val_union(o).ttt ? mrb_tt(o) : MRB_TT_FLOAT)
-#define mrb_float(o)    mrb_val_union(o).f
-#define mrb_fixnum(o)   ((mrb_int)mrb_val_union(o).i)
+static inline mrb_float
+mrb_float(mrb_value v)
+{
+  union {
+    mrb_float f;
+    uint64_t u;
+  } x;
+  x.u = v.u;
+  return x.f;
+}
+
+#define mrb_tt_(o)       ((enum mrb_nanbox_tt_inline)((o).u >> 48)&0xf)
+
+MRB_INLINE enum mrb_vtype
+mrb_type(mrb_value o)
+{
+  switch (mrb_tt_(o)) {
+  case MRB_NANBOX_TT_POINTER:
+    return RBASIC(o)->tt;
+  case MRB_NANBOX_TT_INTEGER:
+    return MRB_TT_INTEGER;
+  case MRB_NANBOX_TT_SYMBOL:
+    return MRB_TT_SYMBOL;
+  case MRB_NANBOX_TT_MISC:
+    return (enum mrb_vtype)(o.u >> 10) & 0x3f;
+#ifndef MRB_NO_FLOAT
+  default:
+    return MRB_TT_FLOAT;
+#endif
+  }
+  return MRB_TT_UNDEF;
+}
+
+#define mrb_symbol(o)   ((mrb_sym)((o).u & 0x3fffffff))
+
+#ifdef MRB_INT64
+#define mrb_fixnum(o)   ((mrb_int)((o).u & 0xffffffffffffL))
+#define mrb_integer(o)  ((mrb_tt(o)==MRB_NANBOX_TT_POINTER)?(((struct RInteger*)mrb_ptr(o))->i):mrb_fixnum(o)))
+#else  /* MRB_INT32 */
+#define mrb_fixnum(o)   ((mrb_int)((o).u & 0xffffffff))
 #define mrb_integer(o)  mrb_fixnum(o)
-#define mrb_symbol(o)   ((mrb_sym)mrb_val_union(o).i)
+#endif
 
 #ifdef MRB_64BIT
-#define mrb_ptr(o)      ((void*)((((uintptr_t)0x3fffffffffff)&((uintptr_t)(mrb_val_union(o).p)))<<2))
-#define mrb_cptr(o)     (((struct RCptr*)mrb_ptr(o))->p)
-#define NANBOX_SHIFT_LONG_POINTER(v) (((uintptr_t)(v)>>34)&0x3fff)
+#define mrb_ptr(o)      ((void*)(((uintptr_t)(o).u) & 0xffffffffffff))
 #else
-#define mrb_ptr(o)      ((void*)mrb_val_union(o).i)
-#define mrb_cptr(o)     mrb_ptr(o)
-#define NANBOX_SHIFT_LONG_POINTER(v) 0
+#define mrb_ptr(o)      ((void*)(((uintptr_t)(o).u) & 0xffffffff))
 #endif
+#define mrb_cptr(o)     mrb_ptr(o)
 
 #define NANBOX_SET_VALUE(o, tt, attr, v) do { \
   union mrb_value_ mrb_value_union_variable; \
@@ -102,14 +135,20 @@ mrb_val_union(mrb_value v)
 #define SET_FLOAT_VALUE(mrb,r,v) do { \
   union mrb_value_ mrb_value_union_variable; \
   if ((v) != (v)) { /* NaN */ \
-    mrb_value_union_variable.ttt = 0x7ff80000; \
-    mrb_value_union_variable.i = 0; \
+    mrb_value_union_variable.u = 0x7ff8000000000000UL; \
   } \
   else { \
     mrb_value_union_variable.f = (v); \
   } \
   r = mrb_value_union_variable.value; \
 } while(0)
+
+#define NANBOX_SET_MISC_VALUE(o, tt, attr, v) do { \
+  union mrb_value_ mrb_value_union_variable; \
+  mrb_value_union_variable.attr = (v);\
+  mrb_value_union_variable.ttt = 0xfff00000 | (((tt)+1)<<14);\
+  o = mrb_value_union_variable.value;\
+} while (0)
 
 #define SET_NIL_VALUE(r) NANBOX_SET_VALUE(r, MRB_TT_FALSE, i, 0)
 #define SET_FALSE_VALUE(r) NANBOX_SET_VALUE(r, MRB_TT_FALSE, i, 1)

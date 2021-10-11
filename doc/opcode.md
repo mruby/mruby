@@ -67,11 +67,8 @@ sign) of operands.
 | `OP_EXCEPT`      | `B`          | `R(a) = exc`                                             |
 | `OP_RESCUE`      | `BB`         | `R(b) = R(a).isa?(R(b))`                                 |
 | `OP_RAISEIF`     | `B`          | `raise(R(a)) if R(a)`                                    |
-| `OP_SENDV`       | `BB`         | `R(a) = call(R(a),Syms(b),*R(a+1))`                      |
-| `OP_SENDVB`      | `BB`         | `R(a) = call(R(a),Syms(b),*R(a+1),&R(a+2))`              |
 | `OP_SEND`        | `BBB`        | `R(a) = call(R(a),Syms(b),R(a+1),...,R(a+c))`            |
 | `OP_SENDB`       | `BBB`        | `R(a) = call(R(a),Syms(b),R(a+1),...,R(a+c),&R(a+c+1))`  |
-| `OP_SENDVK`      | `BB`         | `R(a) = call(R(a),Syms(b),*R(a+1),**(a+2),&R(a+3))`      |
 | `OP_CALL`        | `-`          | `R(0) = self.call(frame.argc, frame.argv)`               |
 | `OP_SUPER`       | `BB`         | `R(a) = super(R(a+1),... ,R(a+b+1))`                     |
 | `OP_ARGARY`      | `BS`         | `R(a) = argument array (16=m5:r1:m5:d1:lv4)`             |

@@ -1189,15 +1189,6 @@ mrb_hash_init_copy(mrb_state *mrb, mrb_value self)
   return self;
 }
 
-void
-mrb_hash_check_kdict(mrb_state *mrb, mrb_value self)
-{
-  h_each(mrb_hash_ptr(self), entry, {
-    if (mrb_symbol_p(entry->key)) continue;
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "keyword argument hash with non symbol keys");
-  });
-}
-
 MRB_API mrb_value
 mrb_hash_dup(mrb_state *mrb, mrb_value self)
 {

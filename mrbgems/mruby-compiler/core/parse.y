@@ -506,6 +506,13 @@ new_fcall(parser_state *p, mrb_sym b, node *c)
   return n;
 }
 
+/* (a b . c) */
+static node*
+new_callargs(parser_state *p, node *a, node *b, node *c)
+{
+  return cons(a, cons(b, c));
+}
+
 /* (:super . c) */
 static node*
 new_super(parser_state *p, node *c)
@@ -517,7 +524,7 @@ new_super(parser_state *p, node *c)
 static node*
 new_zsuper(parser_state *p)
 {
-  return list1((node*)NODE_ZSUPER);
+  return cons((node*)NODE_ZSUPER, 0);
 }
 
 /* (:yield . c) */
@@ -526,7 +533,12 @@ new_yield(parser_state *p, node *c)
 {
   if (c) {
     if (c->cdr) {
-      yyerror(p, "both block arg and actual block given");
+      if (c->cdr->cdr) {
+        yyerror(p, "both block arg and actual block given");
+      }
+      if (c->cdr->car) {
+        return cons((node*)NODE_YIELD, push(c->car, c->cdr->car));
+      }
     }
     return cons((node*)NODE_YIELD, c->car);
   }
@@ -960,13 +972,14 @@ new_op_asgn(parser_state *p, node *a, mrb_sym op, node *b)
 static node*
 new_imaginary(parser_state *p, node *imaginary)
 {
-  return new_call(p, new_const(p, MRB_SYM_2(p->mrb, Kernel)), MRB_SYM_2(p->mrb, Complex), list1(list2(list3((node*)NODE_INT, (node*)strdup("0"), nint(10)), imaginary)), 1);
+  return new_call(p, new_const(p, MRB_SYM_2(p->mrb, Kernel)), MRB_SYM_2(p->mrb, Complex),
+                  new_callargs(p, list2(list3((node*)NODE_INT, (node*)strdup("0"), nint(10)), imaginary), 0, 0), 1);
 }
 
 static node*
 new_rational(parser_state *p, node *rational)
 {
-  return new_call(p, new_const(p, MRB_SYM_2(p->mrb, Kernel)), MRB_SYM_2(p->mrb, Rational), list1(list1(rational)), 1);
+  return new_call(p, new_const(p, MRB_SYM_2(p->mrb, Kernel)), MRB_SYM_2(p->mrb, Rational), new_callargs(p, list1(rational), 0, 0), 1);
 }
 
 /* (:int . i) */
@@ -1189,17 +1202,17 @@ call_uni_op(parser_state *p, node *recv, const char *m)
 static node*
 call_bin_op(parser_state *p, node *recv, const char *m, node *arg1)
 {
-  return new_call(p, recv, intern_cstr(m), list1(list1(arg1)), 1);
+  return new_call(p, recv, intern_cstr(m), new_callargs(p, list1(arg1), 0, 0), 1);
 }
 
 static void
 args_with_block(parser_state *p, node *a, node *b)
 {
   if (b) {
-    if (a->cdr) {
+    if (a->cdr && a->cdr->cdr) {
       yyerror(p, "both block arg and actual block given");
     }
-    a->cdr = b;
+    a->cdr->cdr = b;
   }
 }
 
@@ -1226,19 +1239,16 @@ call_with_block(parser_state *p, node *a, node *b)
   switch (typen(a->car)) {
   case NODE_SUPER:
   case NODE_ZSUPER:
-    if (!a->cdr) a->cdr = cons(0, b);
-    else {
-      args_with_block(p, a->cdr, b);
-    }
+    if (!a->cdr) a->cdr = new_callargs(p, 0, 0, b);
+    else args_with_block(p, a->cdr, b);
     break;
   case NODE_CALL:
   case NODE_FCALL:
   case NODE_SCALL:
-    n = a->cdr->cdr->cdr;
-    if (!n->car) n->car = cons(0, b);
-    else {
-      args_with_block(p, n->car, b);
-    }
+    /* (NODE_CALL recv mid (args kw . blk)) */
+    n = a->cdr->cdr->cdr; /* (args kw . blk) */
+    if (!n->car) n->car = new_callargs(p, 0, 0, b);
+    else args_with_block(p, n->car, b);
     break;
   default:
     break;
@@ -1260,7 +1270,7 @@ cond(node *n)
 static node*
 ret_args(parser_state *p, node *n)
 {
-  if (n->cdr) {
+  if (n->cdr->cdr) {
     yyerror(p, "block argument should not be given");
     return NULL;
   }
@@ -2458,7 +2468,7 @@ aref_args       : none
                     }
                 | args comma assocs trailer
                     {
-                      $$ = push($1, new_kw_hash(p, $3));
+                      $$ = push($1, new_hash(p, $3));
                     }
                 | assocs trailer
                     {
@@ -2485,39 +2495,23 @@ paren_args      : '(' opt_call_args ')'
                     }
                 | '(' args comma tBDOT3 rparen
                     {
-#if 1
-                      mrb_sym r = intern_op(mul);
-                      mrb_sym b = intern_op(and);
-                      $$ = cons(push($2, new_splat(p, new_lvar(p, r))),
-                                new_block_arg(p, new_lvar(p, b)));
-#else
                       mrb_sym r = intern_op(mul);
                       mrb_sym k = intern_op(pow);
                       mrb_sym b = intern_op(and);
-                      $$ = cons(list2(push($2, new_splat(p, new_lvar(p, r))),
-                                      new_kw_hash(p, list1(cons(new_kw_rest_args(p, 0), new_lvar(p, k))))),
-                                new_block_arg(p, new_lvar(p, b)));
-#endif
+                      $$ = new_callargs(p, push($2, new_splat(p, new_lvar(p, r))),
+                                        new_kw_hash(p, list1(cons(new_kw_rest_args(p, 0), new_lvar(p, k)))),
+                                        new_block_arg(p, new_lvar(p, b)));
                     }
                 | '(' tBDOT3 rparen
                     {
-#if 1
-                      mrb_sym r = intern_op(mul);
-                      mrb_sym b = intern_op(and);
-                      if (local_var_p(p, r)  && local_var_p(p, b)) {
-                        $$ = cons(list1(new_splat(p, new_lvar(p, r))),
-                                  new_block_arg(p, new_lvar(p, b)));
-                      }
-#else
                       mrb_sym r = intern_op(mul);
                       mrb_sym k = intern_op(pow);
                       mrb_sym b = intern_op(and);
                       if (local_var_p(p, r) && local_var_p(p, k) && local_var_p(p, b)) {
-                        $$ = cons(list2(new_splat(p, new_lvar(p, r)),
-                                        new_kw_hash(p, list1(cons(new_kw_rest_args(p, 0), new_lvar(p, k))))),
-                                  new_block_arg(p, new_lvar(p, b)));
+                        $$ = new_callargs(p, list1(new_splat(p, new_lvar(p, r))),
+                                          new_kw_hash(p, list1(cons(new_kw_rest_args(p, 0), new_lvar(p, k)))),
+                                          new_block_arg(p, new_lvar(p, b)));
                       }
-#endif
                       else {
                         yyerror(p, "unexpected argument forwarding ...");
                         $$ = 0;
@@ -2533,17 +2527,17 @@ opt_call_args   : none
                 | call_args opt_terms
                 | args comma
                     {
-                      $$ = cons($1,0);
+                      $$ = new_callargs(p,$1,0,0);
                       NODE_LINENO($$, $1);
                     }
                 | args comma assocs comma
                     {
-                      $$ = cons(push($1, new_kw_hash(p, $3)), 0);
+                      $$ = new_callargs(p,$1,new_kw_hash(p,$3),0);
                       NODE_LINENO($$, $1);
                     }
                 | assocs comma
                     {
-                      $$ = cons(list1(new_kw_hash(p, $1)), 0);
+                      $$ = new_callargs(p,0,new_kw_hash(p,$1),0);
                       NODE_LINENO($$, $1);
                     }
                 ;
@@ -2551,27 +2545,27 @@ opt_call_args   : none
 call_args       : command
                     {
                       void_expr_error(p, $1);
-                      $$ = cons(list1($1), 0);
+                      $$ = new_callargs(p, list1($1), 0, 0);
                       NODE_LINENO($$, $1);
                     }
                 | args opt_block_arg
                     {
-                      $$ = cons($1, $2);
+                      $$ = new_callargs(p, $1, 0, $2);
                       NODE_LINENO($$, $1);
                     }
                 | assocs opt_block_arg
                     {
-                      $$ = cons(list1(new_kw_hash(p, $1)), $2);
+                      $$ = new_callargs(p, 0, new_kw_hash(p, $1), $2);
                       NODE_LINENO($$, $1);
                     }
                 | args comma assocs opt_block_arg
                     {
-                      $$ = cons(push($1, new_kw_hash(p, $3)), $4);
+                      $$ = new_callargs(p, $1, new_kw_hash(p, $3), $4);
                       NODE_LINENO($$, $1);
                     }
                 | block_arg
                     {
-                      $$ = cons(0, $1);
+                      $$ = new_callargs(p, 0, 0, $1);
                       NODE_LINENO($$, $1);
                     }
                 ;
@@ -2609,13 +2603,13 @@ comma           : ','  opt_nl
 args            : arg
                     {
                       void_expr_error(p, $1);
-                      $$ = cons($1, 0);
+                      $$ = list1($1);
                       NODE_LINENO($$, $1);
                     }
                 | tSTAR arg
                     {
                       void_expr_error(p, $2);
-                      $$ = cons(new_splat(p, $2), 0);
+                      $$ = list1(new_splat(p, $2));
                       NODE_LINENO($$, $2);
                     }
                 | args comma arg
@@ -2727,7 +2721,7 @@ primary         : literal
                     }
                 | operation brace_block
                     {
-                      $$ = new_fcall(p, $1, cons(0, $2));
+                      $$ = new_fcall(p, $1, new_callargs(p, 0, 0, $2));
                     }
                 | method_call
                 | method_call brace_block
@@ -3628,39 +3622,21 @@ f_arglist_paren : '(' f_args rparen
                     }
                 | '(' f_arg ',' tBDOT3 rparen
                     {
-#if 1
-                      /* til real keyword args implemented */
-                      mrb_sym r = intern_op(mul);
-                      mrb_sym b = intern_op(and);
-                      local_add_f(p, r);
-                      $$ = new_args(p, $2, 0, r, 0,
-                                    new_args_tail(p, 0, 0, b));
-#else
                       mrb_sym r = intern_op(mul);
                       mrb_sym k = intern_op(pow);
                       mrb_sym b = intern_op(and);
-                      local_add_f(p, r); local_add_f(p, k);
+                      local_add_f(p, r);
                       $$ = new_args(p, $2, 0, r, 0,
                                     new_args_tail(p, 0, new_kw_rest_args(p, nsym(k)), b));
-#endif
                     }
                 | '(' tBDOT3 rparen
                     {
-#if 1
-                      /* til real keyword args implemented */
-                      mrb_sym r = intern_op(mul);
-                      mrb_sym b = intern_op(and);
-                      local_add_f(p, r);
-                      $$ = new_args(p, 0, 0, r, 0,
-                                    new_args_tail(p, 0, 0, b));
-#else
                       mrb_sym r = intern_op(mul);
                       mrb_sym k = intern_op(pow);
                       mrb_sym b = intern_op(and);
-                      local_add_f(p, r); local_add_f(p, k);
+                      local_add_f(p, r);
                       $$ = new_args(p, 0, 0, r, 0,
                                     new_args_tail(p, 0, new_kw_rest_args(p, nsym(k)), b));
-#endif
                     }
                 ;
 
@@ -7026,8 +7002,13 @@ dump_args(mrb_state *mrb, node *n, int offset)
   }
   n = n->cdr;
   if (n->car) {
+    mrb_sym rest = sym(n->car);
+
     dump_prefix(n, offset+1);
-    printf("rest=*%s\n", mrb_sym_name(mrb, sym(n->car)));
+    if (rest == MRB_OPSYM(mul))
+      printf("rest=*\n");
+    else
+      printf("rest=*%s\n", mrb_sym_name(mrb, rest));
   }
   n = n->cdr;
   if (n->car) {
@@ -7304,9 +7285,16 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
       printf("args:\n");
       dump_recur(mrb, tree->car, offset+2);
       if (tree->cdr) {
-        dump_prefix(tree, offset+1);
-        printf("block:\n");
-        mrb_parser_dump(mrb, tree->cdr, offset+2);
+        if (tree->cdr->car) {
+          dump_prefix(tree, offset+1);
+          printf("kwargs:\n");
+          mrb_parser_dump(mrb, tree->cdr->car, offset+2);
+        }
+        if (tree->cdr->cdr) {
+          dump_prefix(tree, offset+1);
+          printf("block:\n");
+          mrb_parser_dump(mrb, tree->cdr->cdr, offset+2);
+        }
       }
     }
     break;
@@ -7447,7 +7435,17 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     break;
 
   case NODE_ZSUPER:
-    printf("NODE_ZSUPER\n");
+    printf("NODE_ZSUPER:\n");
+    if (tree) {
+      dump_prefix(tree, offset+1);
+      printf("args:\n");
+      dump_recur(mrb, tree->car, offset+2);
+      if (tree->cdr) {
+        dump_prefix(tree, offset+1);
+        printf("block:\n");
+        mrb_parser_dump(mrb, tree->cdr, offset+2);
+      }
+    }
     break;
 
   case NODE_RETURN:
@@ -7773,7 +7771,10 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
     break;
 
   case NODE_KW_REST_ARGS:
-    printf("NODE_KW_REST_ARGS %s\n", mrb_sym_name(mrb, sym(tree)));
+    if (tree)
+      printf("NODE_KW_REST_ARGS %s\n", mrb_sym_name(mrb, sym(tree)));
+    else
+      printf("NODE_KW_REST_ARGS\n");
     break;
 
   default:

@@ -124,10 +124,6 @@ Renamed from `OP_RAISE`
 
 * `OP_RAISEIF`
 
-Instruction that is reserved for the future keyword argument support.
-
-* OP_SENDVK
-
 ## Removed Instructions
 
 Instructions for old exception handling

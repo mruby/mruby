@@ -363,7 +363,7 @@ mrb_io_s_popen_args(mrb_state *mrb, mrb_value klass,
     NULL,
   };
 
-  mrb_get_args(mrb, "z|o:", cmd, &mode, &kw);
+  mrb_get_args(mrb, "zo:", cmd, &mode, &kw);
 
   *flags = mrb_io_mode_to_flags(mrb, mode);
   *doexec = (strcmp("-", *cmd) != 0);

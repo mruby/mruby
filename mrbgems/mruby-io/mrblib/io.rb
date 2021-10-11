@@ -26,11 +26,11 @@ class IO
     end
   end
 
-  def self.popen(command, mode = 'r', opts={}, &block)
+  def self.popen(command, mode = 'r', **opts, &block)
     if !self.respond_to?(:_popen)
       raise NotImplementedError, "popen is not supported on this platform"
     end
-    io = self._popen(command, mode, opts)
+    io = self._popen(command, mode, **opts)
     return io unless block
 
     begin
@@ -61,39 +61,14 @@ class IO
     end
   end
 
-  def self.read(path, length=nil, offset=nil, opt=nil)
-    if not opt.nil?        # 4 arguments
-      offset ||= 0
-    elsif not offset.nil?  # 3 arguments
-      if offset.is_a? Hash
-        opt = offset
-        offset = 0
-      else
-        opt = {}
-      end
-    elsif not length.nil?  # 2 arguments
-      if length.is_a? Hash
-        opt = length
-        offset = 0
-        length = nil
-      else
-        offset = 0
-        opt = {}
-      end
-    else                   # only 1 argument
-      opt = {}
-      offset = 0
-      length = nil
-    end
-
+  def self.read(path, length=nil, offset=0, mode: "r")
     str = ""
     fd = -1
     io = nil
     begin
       if path[0] == "|"
-        io = IO.popen(path[1..-1], (opt[:mode] || "r"))
+        io = IO.popen(path[1..-1], mode)
       else
-        mode = opt[:mode] || "r"
         fd = IO.sysopen(path, mode)
         io = IO.open(fd, mode)
       end

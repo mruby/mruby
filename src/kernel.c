@@ -186,13 +186,10 @@ mrb_f_block_given_p_m(mrb_state *mrb, mrb_value self)
     bp = &e->stack[bidx];
   }
   else {
-    bp = ci->stack+1;
-    if (ci->argc >= 0) {
-      bp += ci->argc;
-    }
-    else {
-      bp++;
-    }
+    uint8_t n = ci->n == 15 ? 1 : ci->n;
+    uint8_t k = ci->nk == 15 ? 1 : ci->nk*2;
+    bidx = n + k + 1;      /* self + args + kargs => bidx */
+    bp = &ci->stack[bidx];
   }
  block_given:
   if (mrb_nil_p(*bp))

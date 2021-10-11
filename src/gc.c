@@ -599,27 +599,7 @@ add_gray_list(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
   gc->gray_list = obj;
 }
 
-static mrb_int
-ci_nregs(mrb_callinfo *ci)
-{
-  const struct RProc *p = ci->proc;
-  mrb_int n = 0;
-
-  if (!p) {
-    if (ci->argc < 0) return 3;
-    return ci->argc+2;
-  }
-  if (!MRB_PROC_CFUNC_P(p) && p->body.irep) {
-    n = p->body.irep->nregs;
-  }
-  if (ci->argc < 0) {
-    if (n < 3) n = 3; /* self + args + blk */
-  }
-  if (ci->argc > n) {
-    n = ci->argc + 2; /* self + blk */
-  }
-  return n;
-}
+mrb_int mrb_ci_nregs(mrb_callinfo *ci);
 
 static void
 mark_context_stack(mrb_state *mrb, struct mrb_context *c)
@@ -631,7 +611,7 @@ mark_context_stack(mrb_state *mrb, struct mrb_context *c)
   if (c->stbase == NULL) return;
   if (c->ci) {
     e = (c->ci->stack ? c->ci->stack - c->stbase : 0);
-    e += ci_nregs(c->ci);
+    e += mrb_ci_nregs(c->ci);
   }
   else {
     e = 0;
@@ -1029,7 +1009,7 @@ gc_gray_counts(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
       i = c->ci->stack - c->stbase;
 
       if (c->ci) {
-        i += ci_nregs(c->ci);
+        i += mrb_ci_nregs(c->ci);
       }
       if (c->stbase + i > c->stend) i = c->stend - c->stbase;
       children += i;

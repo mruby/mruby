@@ -219,27 +219,6 @@ trace (most recent call last):
 -e:1: undefined method 'binding' (NoMethodError)
 ```
 
-## Keyword arguments
-
-mruby keyword arguments behave slightly different from CRuby 2.5
-to make the behavior simpler and less confusing.
-
-#### Ruby [ruby 2.5.1p57 (2018-03-29 revision 63029)]
-
-```
-$ ruby -e 'def m(*r,**k) p [r,k] end; m("a"=>1,:b=>2)'
-[[{"a"=>1}], {:b=>2}]
-```
-
-#### mruby [3.0.0 (2021-03-05)]
-
-```
-$ ./bin/mruby -e 'def m(*r,**k) p [r,k] end; m("a"=>1,:b=>2)'
-trace (most recent call last):
-	[0] -e:1
--e:1: keyword argument hash with non symbol keys (ArgumentError)
-```
-
 ## `nil?` redefinition in conditional expressions
 
 Redefinition of `nil?` is ignored in conditional expressions.

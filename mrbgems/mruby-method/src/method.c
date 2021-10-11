@@ -12,15 +12,16 @@ mrb_value mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p);
 static mrb_value
 args_shift(mrb_state *mrb)
 {
-  mrb_value *argv = mrb->c->ci->stack + 1;
+  mrb_callinfo *ci = mrb->c->ci;
+  mrb_value *argv = ci->stack + 1;
 
-  if (mrb->c->ci->argc > 0) {
+  if (ci->n < 15) {
     mrb_value obj = argv[0];
-    memmove(argv, argv + 1, (mrb->c->ci->argc + 1 /* block */ - 1 /* first value */) * sizeof(mrb_value));
-    mrb->c->ci->argc--;
+    memmove(argv, argv + 1, (ci->n + 1 /* block */ - 1 /* first value */) * sizeof(mrb_value));
+    ci->n--;
     return obj;
   }
-  else if (mrb->c->ci->argc < 0 && RARRAY_LEN(*argv) > 0) {
+  else if (ci->n == 15 && RARRAY_LEN(*argv) > 0) {
     return mrb_ary_shift(mrb, *argv);
   }
   else {
@@ -32,13 +33,14 @@ args_shift(mrb_state *mrb)
 static void
 args_unshift(mrb_state *mrb, mrb_value obj)
 {
-  mrb_value *argv = mrb->c->ci->stack + 1;
+  mrb_callinfo *ci = mrb->c->ci;
+  mrb_value *argv = ci->stack + 1;
 
-  if (mrb->c->ci->argc >= 0) {
-    mrb_value block = argv[mrb->c->ci->argc];
-    argv[0] = mrb_ary_new_from_values(mrb, mrb->c->ci->argc, argv);
+  if (ci->n < 15) {
+    mrb_value block = argv[ci->n];
+    argv[0] = mrb_ary_new_from_values(mrb, ci->n, argv);
     argv[1] = block;
-    mrb->c->ci->argc = -1;
+    ci->n = 15;
   }
 
   mrb_ary_unshift(mrb, *argv, obj);
@@ -48,13 +50,14 @@ static struct RProc*
 method_missing_prepare(mrb_state *mrb, mrb_sym *mid, mrb_value recv, struct RClass **tc)
 {
   const mrb_sym id_method_missing = MRB_SYM(method_missing);
+  mrb_callinfo *ci = mrb->c->ci;
 
   if (*mid == id_method_missing) {
   method_missing: ;
-    int argc = mrb->c->ci->argc;
-    mrb_value *argv = mrb->c->ci->stack + 1;
-    mrb_value args = (argc < 0) ? argv[0] : mrb_ary_new_from_values(mrb, argc, argv);
-    mrb_method_missing(mrb, *mid, recv, args);
+    int n = ci->n;
+    mrb_value *argv = ci->stack + 1;
+    mrb_value args = (n == 15) ? argv[0] : mrb_ary_new_from_values(mrb, n, argv);
+    mrb_method_missing(mrb, id_method_missing, recv, args);
   }
 
   *tc = mrb_class(mrb, recv);
