@@ -2853,18 +2853,30 @@ codegen(codegen_scope *s, node *tree, int val)
       if (s2 && s2->ainfo > 0) {
         ainfo = s2->ainfo;
       }
-      genop_2S(s, OP_ARGARY, cursp(), (ainfo<<4)|(lv & 0xf));
-      push(); push(); push();   /* ARGARY pushes 3 values at most */
-      pop(); pop(); pop();
-      /* keyword arguments */
-      if (ainfo & 0x1) {
-        n |= CALL_MAXARGS<<4;
-        push();
+      if (ainfo > 0) {
+        genop_2S(s, OP_ARGARY, cursp(), (ainfo<<4)|(lv & 0xf));
+        push(); push(); push();   /* ARGARY pushes 3 values at most */
+        pop(); pop(); pop();
+        /* keyword arguments */
+        if (ainfo & 0x1) {
+          n |= CALL_MAXARGS<<4;
+          push();
+        }
+        /* block argument */
+        if (tree && tree->cdr && tree->cdr->cdr) {
+          push();
+          codegen(s, tree->cdr->cdr, VAL);
+        }
       }
-      /* block argument */
-      if (tree && tree->cdr && tree->cdr->cdr) {
-        push();
-        codegen(s, tree->cdr->cdr, VAL);
+      else {
+        /* block argument */
+        if (tree && tree->cdr && tree->cdr->cdr) {
+          codegen(s, tree->cdr->cdr, VAL);
+        }
+        else {
+          gen_blkmove(s, 0, lv);
+        }
+        n = 0;
       }
       s->sp = sp;
       genop_2(s, OP_SUPER, cursp(), n);
