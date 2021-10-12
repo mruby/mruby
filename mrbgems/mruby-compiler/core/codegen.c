@@ -2839,7 +2839,8 @@ codegen(codegen_scope *s, node *tree, int val)
   case NODE_ZSUPER:
     {
       codegen_scope *s2 = s;
-      int lv = 0, ainfo = 0;
+      int lv = 0;
+      size_t ainfo = 0;
       int n = CALL_MAXARGS;
       int sp = cursp();
 
@@ -2899,7 +2900,7 @@ codegen(codegen_scope *s, node *tree, int val)
         if (!s2) break;
       }
       if (s2) {
-        ainfo = s2->ainfo;
+        ainfo = (int)s2->ainfo;
       }
       if (ainfo < 0) codegen_error(s, "invalid yield (SyntaxError)");
       push();
@@ -3612,7 +3613,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *nlv)
   s->mpool = pool;
   if (!prev) return s;
   s->prev = prev;
-  s->ainfo = -1;
+  s->ainfo = 0;
   s->mscope = 0;
 
   scope_add_irep(s);
