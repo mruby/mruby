@@ -17,6 +17,27 @@
 #include <mruby/throw.h>
 #include <mruby/presym.h>
 
+static void
+exc_mesg_set(mrb_state *mrb, struct RException *exc, mrb_value mesg)
+{
+  if (mrb_string_p(mesg)) {
+    exc->flags |= MRB_EXC_MESG_STRING_FLAG;
+    exc->mesg = RSTRING(mesg);
+    mrb_field_write_barrier_value(mrb, (struct RBasic*)exc, mesg);
+  }
+  else if (!mrb_nil_p(mesg)) {
+    exc->flags &= ~MRB_EXC_MESG_STRING_FLAG;
+    mrb_obj_iv_set(mrb, (struct RObject*)exc, mrb_intern_lit(mrb, "mesg"), mesg);
+  }
+}
+
+static mrb_value
+exc_mesg_get(mrb_state *mrb, struct RException *exc)
+{
+  return (exc->flags & MRB_EXC_MESG_STRING_FLAG) != 0
+      ? mrb_obj_value(exc->mesg) : mrb_obj_iv_get(mrb, (struct RObject*)exc, mrb_intern_lit(mrb, "mesg"));
+}
+
 MRB_API mrb_value
 mrb_exc_new_str(mrb_state *mrb, struct RClass* c, mrb_value str)
 {
@@ -48,7 +69,7 @@ exc_initialize(mrb_state *mrb, mrb_value exc)
   mrb_value mesg;
 
   if (mrb_get_args(mrb, "|o", &mesg) == 1) {
-    mrb_iv_set(mrb, exc, MRB_SYM(mesg), mesg);
+    exc_mesg_set(mrb, mrb_exc_ptr(exc), mesg);
   }
   return exc;
 }
@@ -77,7 +98,7 @@ exc_exception(mrb_state *mrb, mrb_value self)
   if (argc == 0) return self;
   if (mrb_obj_equal(mrb, self, a)) return self;
   exc = mrb_obj_clone(mrb, self);
-  mrb_iv_set(mrb, exc, MRB_SYM(mesg), a);
+  exc_mesg_set(mrb, mrb_exc_ptr(exc), a);
 
   return exc;
 }
@@ -93,7 +114,7 @@ exc_exception(mrb_state *mrb, mrb_value self)
 static mrb_value
 exc_to_s(mrb_state *mrb, mrb_value exc)
 {
-  mrb_value mesg = mrb_attr_get(mrb, exc, MRB_SYM(mesg));
+  mrb_value mesg = exc_mesg_get(mrb, mrb_exc_ptr(exc));
   struct RObject *p;
 
   if (!mrb_string_p(mesg)) {
@@ -133,7 +154,7 @@ exc_message(mrb_state *mrb, mrb_value exc)
 mrb_value
 mrb_exc_inspect(mrb_state *mrb, mrb_value exc)
 {
-  mrb_value mesg = mrb_attr_get(mrb, exc, MRB_SYM(mesg));
+  mrb_value mesg = exc_mesg_get(mrb, mrb_exc_ptr(exc));
   mrb_value cname = mrb_mod_to_s(mrb, mrb_obj_value(mrb_obj_class(mrb, exc)));
   mesg = mrb_obj_as_string(mrb, mesg);
   return RSTRING_LEN(mesg) == 0 ? cname : mrb_format(mrb, "%v (%v)", mesg, cname);
