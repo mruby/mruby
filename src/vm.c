@@ -478,7 +478,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     }
     c = mrb_class(mrb, self);
     m = mrb_method_search_vm(mrb, &c, mid);
-    mrb_stack_extend(mrb, argc + 3);
+    mrb_stack_extend(mrb, n + argc + 3);
     if (MRB_METHOD_UNDEF_P(m) || argc >= 15) {
       mrb_value args = mrb_ary_new_from_values(mrb, argc, argv);
 
