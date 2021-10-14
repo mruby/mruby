@@ -394,7 +394,7 @@ rational_eq(mrb_state *mrb, mrb_value x)
   case MRB_TT_COMPLEX:
    {
       mrb_bool mrb_complex_eq(mrb_state *mrb, mrb_value, mrb_value);
-      result = mrb_complex_eq(mrb, y, x);
+      result = mrb_complex_eq(mrb, y, rational_to_f(mrb, x));
       break;
     }
 #endif
