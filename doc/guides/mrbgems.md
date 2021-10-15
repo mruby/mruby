@@ -256,7 +256,7 @@ By default, `/...absolute path.../{GEM_NAME}/include` will be exported.
 So it is recommended not to put GEM's local header files on include/.
 
 These exports are retroactive.
-For example: when B depends to C and A depends to B, A will get include paths exported by C.
+For example: when B depends on C and A depends on B, A will get include paths exported by C.
 
 Exported include_paths are automatically appended to GEM local include_paths by rake.
 You can use `spec.export_include_paths` accessor if you want more complex build.
