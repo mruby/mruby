@@ -1274,6 +1274,7 @@ ret_args(parser_state *p, node *n)
     yyerror(p, "block argument should not be given");
     return NULL;
   }
+  if (!n->car) return NULL;
   if (!n->car->cdr) return n->car->car;
   return new_array(p, n->car);
 }
