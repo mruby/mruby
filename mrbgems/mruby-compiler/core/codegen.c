@@ -2830,7 +2830,8 @@ codegen(codegen_scope *s, node *tree, int val)
         st++;
       }
       else {
-        gen_blkmove(s, s2->ainfo, lv);
+        if (!s2) push();
+        else gen_blkmove(s, s2->ainfo, lv);
         st++;
       }
       pop_n(st+1);
