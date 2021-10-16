@@ -2811,7 +2811,7 @@ codegen(codegen_scope *s, node *tree, int val)
           }
         }
         /* keyword arguments */
-        if ((s2->ainfo & 0x1) && tree->cdr->car) {
+        if (s2 && (s2->ainfo & 0x1) && tree->cdr->car) {
           nk = gen_hash(s, tree->cdr->car->cdr, VAL, 14);
           if (nk < 0) {st++; nk = 15;}
           else st += nk;
@@ -2820,6 +2820,9 @@ codegen(codegen_scope *s, node *tree, int val)
         /* block arguments */
         if (tree->cdr->cdr) {
           codegen(s, tree->cdr->cdr, VAL);
+        }
+        else if (!s2) {/* super at top-level */
+          push();      /* no need to push block */
         }
         else {
           gen_blkmove(s, s2->ainfo, lv);
