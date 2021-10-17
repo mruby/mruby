@@ -1642,7 +1642,7 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
 {
   mrb_sym sym = name ? name : nsym(tree->cdr->car);
   int skip = 0;
-  int n = 0, nk = 0, st = 0, noop = 0, blk = 0;
+  int n = 0, nk = 0, noop = 0, blk = 0, sp_save = cursp();
 
   codegen(s, tree->car, VAL); /* receiver */
   if (safe) {
@@ -1653,9 +1653,8 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
   tree = tree->cdr->cdr->car;
   if (tree) {
     if (tree->car) {            /* positional arguments */
-      st = n = gen_values(s, tree->car, VAL, sp?1:0, 14);
+      n = gen_values(s, tree->car, VAL, sp?1:0, 14);
       if (n < 0) {              /* variable length */
-        st = 1;                 /* one stack element */
         noop = 1;               /* not operator */
         n = 15;
         push();
@@ -1664,12 +1663,22 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
     if (tree->cdr->car) {       /* keyword arguments */
       noop = 1;
       nk = gen_hash(s, tree->cdr->car->cdr, VAL, 14);
-      if (nk < 0) {st++; nk = 15;}
-      else st += 2*nk;
+      if (nk < 0) nk = 15;
     }
   }
   if (sp) {                     /* last argument pushed (attr=, []=) */
+    /* pack keyword arguments */
+    if (nk > 0 && nk < 15) {
+      pop_n(nk*2);
+      genop_2(s, OP_HASH, cursp(), nk);
+      push();
+    }
     if (n == CALL_MAXARGS) {
+      if (nk > 0) {
+        pop(); pop();
+        genop_2(s, OP_ARYPUSH, cursp(), 1);
+        push();
+      }
       gen_move(s, cursp(), sp, 0);
       pop();
       genop_2(s, OP_ARYPUSH, cursp(), 1);
@@ -1678,8 +1687,10 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
     else {
       gen_move(s, cursp(), sp, 0);
       push();
-      n++; st++;
+      if (nk > 0) n++;
+      n++;
     }
+    nk = 0;
   }
   if (tree && tree->cdr && tree->cdr->cdr) {
     codegen(s, tree->cdr->cdr, VAL);
@@ -1688,7 +1699,7 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
     blk = 1;
   }
   push();pop();
-  pop_n(st+1);
+  s->sp = sp_save;
   if (!noop && sym == MRB_OPSYM_2(s->mrb, add) && n == 1)  {
     gen_addsub(s, OP_ADD, cursp());
   }
