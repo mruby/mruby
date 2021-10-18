@@ -20,7 +20,7 @@
 #include <string.h>
 
 #ifndef MRB_CODEGEN_LEVEL_MAX
-#define MRB_CODEGEN_LEVEL_MAX 1024
+#define MRB_CODEGEN_LEVEL_MAX 256
 #endif
 
 #define MAXARG_S (1<<16)
