@@ -1539,6 +1539,17 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
+    CASE(OP_SSEND, BBB) {
+      regs[a] = regs[0];
+      insn = OP_SEND;
+    }
+    goto L_SENDB;
+
+    CASE(OP_SSENDB, BBB) {
+      regs[a] = regs[0];
+    }
+    goto L_SENDB;
+
     CASE(OP_SEND, BBB)
     goto L_SENDB;
 
@@ -1556,7 +1567,7 @@ RETRY_TRY_BLOCK:
       int n = c&0xf;
       int nk = (c>>4)&0xf;
       mrb_callinfo *ci = mrb->c->ci;
-      mrb_int bidx = a + ((n == 15) ? 1 : n) + ((nk == 15) ? 1 : 2*nk) + 1;
+      mrb_int bidx = a + mrb_bidx(c);
       mrb_method_t m;
       struct RClass *cls;
       mrb_value recv;
@@ -1570,11 +1581,12 @@ RETRY_TRY_BLOCK:
       }
 
       mrb_assert(bidx < irep->nregs+a);
-      mrb_value blk = mrb_nil_value();
-      mrb_int new_bidx = a+((n==15)?1:n)+1+(nk==15);
+      mrb_value blk;
+      mrb_int new_bidx = a+mrb_bidx(c);
       if (insn == OP_SEND) {
         /* clear block argument */
         SET_NIL_VALUE(regs[new_bidx]);
+        SET_NIL_VALUE(blk);
       }
       else {
         blk = regs[bidx];

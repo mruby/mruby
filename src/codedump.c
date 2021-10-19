@@ -318,6 +318,14 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       printf("OP_JMPNIL\tR%d\t%03d\t", a, (int)i+(int16_t)b);
       print_lv_a(mrb, irep, a);
       break;
+    CASE(OP_SSEND, BBB):
+      printf("OP_SSEND\tR%d\t:%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
+      print_args(c);
+      break;
+    CASE(OP_SSENDB, BBB):
+      printf("OP_SSENDB\tR%d\t:%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
+      print_args(c);
+      break;
     CASE(OP_SEND, BBB):
       printf("OP_SEND\tR%d\t:%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
       print_args(c);
