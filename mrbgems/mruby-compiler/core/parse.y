@@ -499,9 +499,7 @@ new_call(parser_state *p, node *a, mrb_sym b, node *c, int pass)
 static node*
 new_fcall(parser_state *p, mrb_sym b, node *c)
 {
-  node *n = new_self(p);
-  NODE_LINENO(n, c);
-  n = list4((node*)NODE_FCALL, n, nsym(b), c);
+  node *n = list4((node*)NODE_FCALL, 0, nsym(b), c);
   NODE_LINENO(n, c);
   return n;
 }

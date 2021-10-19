@@ -1641,10 +1641,15 @@ static void
 gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
 {
   mrb_sym sym = name ? name : nsym(tree->cdr->car);
-  int skip = 0;
-  int n = 0, nk = 0, noop = 0, blk = 0, sp_save = cursp();
+  int skip = 0, n = 0, nk = 0, noop = 0, noself = 0, blk = 0, sp_save = cursp();
 
-  codegen(s, tree->car, VAL); /* receiver */
+  if (!tree->car) {
+    noself = noop = 1;
+    push();
+  }
+  else {
+    codegen(s, tree->car, VAL); /* receiver */
+  }
   if (safe) {
     int recv = cursp()-1;
     gen_move(s, cursp(), recv, 1);
@@ -1732,6 +1737,9 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
   }
   else if (!noop && n == 1 && gen_binop(s, sym, cursp())) {
     /* constant folding succeeded */
+  }
+  else if (noself ){
+    genop_3(s, blk ? OP_SSENDB : OP_SSEND, cursp(), new_sym(s, sym), n|(nk<<4));
   }
   else {
     genop_3(s, blk ? OP_SENDB : OP_SEND, cursp(), new_sym(s, sym), n|(nk<<4));
