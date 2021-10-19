@@ -153,10 +153,10 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
     ins = READ_B();
     switch (ins) {
     CASE(OP_NOP, Z):
-      printf("OP_NOP\n");
+      printf("NOP\n");
       break;
     CASE(OP_MOVE, BB):
-      printf("OP_MOVE\tR%d\tR%d\t", a, b);
+      printf("MOVE\tR%d\tR%d\t", a, b);
       print_lv_ab(mrb, irep, a, b);
       break;
 
@@ -164,41 +164,41 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       switch (irep->pool[b].tt) {
 #ifndef MRB_NO_FLOAT
       case IREP_TT_FLOAT:
-        printf("OP_LOADL\tR%d\tL(%d)\t; %f", a, b, (double)irep->pool[b].u.f);
+        printf("LOADL\t\tR%d\tL(%d)\t; %f", a, b, (double)irep->pool[b].u.f);
         break;
 #endif
       case IREP_TT_INT32:
-        printf("OP_LOADL\tR%d\tL(%d)\t; %" PRId32, a, b, irep->pool[b].u.i32);
+        printf("LOADL\t\tR%d\tL(%d)\t; %" PRId32, a, b, irep->pool[b].u.i32);
         break;
 #ifdef MRB_64BIT
       case IREP_TT_INT64:
-        printf("OP_LOADL\tR%d\tL(%d)\t; %" PRId64, a, b, irep->pool[b].u.i64);
+        printf("LOADL\t\tR%d\tL(%d)\t; %" PRId64, a, b, irep->pool[b].u.i64);
         break;
 #endif
       default:
-        printf("OP_LOADL\tR%d\tL(%d)\t", a, b);
+        printf("LOADL\t\tR%d\tL(%d)\t", a, b);
         break;
       }
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_LOADI, BB):
-      printf("OP_LOADI\tR%d\t%d\t", a, b);
+      printf("LOADI\t\tR%d\t%d\t", a, b);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_LOADINEG, BB):
-      printf("OP_LOADI\tR%d\t-%d\t", a, b);
+      printf("LOADI\tR%d\t-%d\t", a, b);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_LOADI16, BS):
-      printf("OP_LOADI16\tR%d\t%d\t", a, (int)(int16_t)b);
+      printf("LOADI16\tR%d\t%d\t", a, (int)(int16_t)b);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_LOADI32, BSS):
-      printf("OP_LOADI32\tR%d\t%d\t", a, (int32_t)(((uint32_t)b<<16)+c));
+      printf("LOADI32\tR%d\t%d\t", a, (int32_t)(((uint32_t)b<<16)+c));
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_LOADI__1, B):
-      printf("OP_LOADI__1\tR%d\t\t", a);
+      printf("LOADI__1\tR%d\t\t", a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_LOADI_0, B): goto L_LOADI;
@@ -210,139 +210,139 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
     CASE(OP_LOADI_6, B): goto L_LOADI;
     CASE(OP_LOADI_7, B):
     L_LOADI:
-      printf("OP_LOADI_%d\tR%d\t\t", ins-(int)OP_LOADI_0, a);
+      printf("LOADI_%d\tR%d\t\t", ins-(int)OP_LOADI_0, a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_LOADSYM, BB):
-      printf("OP_LOADSYM\tR%d\t:%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
+      printf("LOADSYM\tR%d\t:%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_LOADNIL, B):
-      printf("OP_LOADNIL\tR%d\t\t", a);
+      printf("LOADNIL\tR%d\t\t", a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_LOADSELF, B):
-      printf("OP_LOADSELF\tR%d\t\t", a);
+      printf("LOADSELF\tR%d\t\t", a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_LOADT, B):
-      printf("OP_LOADT\tR%d\t\t", a);
+      printf("LOADT\t\tR%d\t\t", a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_LOADF, B):
-      printf("OP_LOADF\tR%d\t\t", a);
+      printf("LOADF\t\tR%d\t\t", a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_GETGV, BB):
-      printf("OP_GETGV\tR%d\t%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
+      printf("GETGV\t\tR%d\t%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_SETGV, BB):
-      printf("OP_SETGV\t%s\tR%d\t", mrb_sym_dump(mrb, irep->syms[b]), a);
+      printf("SETGV\t\t%s\tR%d\t", mrb_sym_dump(mrb, irep->syms[b]), a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_GETSV, BB):
-      printf("OP_GETSV\tR%d\t%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
+      printf("GETSV\t\tR%d\t%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_SETSV, BB):
-      printf("OP_SETSV\t%s\tR%d\t", mrb_sym_dump(mrb, irep->syms[b]), a);
+      printf("SETSV\t\t%s\tR%d\t", mrb_sym_dump(mrb, irep->syms[b]), a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_GETCONST, BB):
-      printf("OP_GETCONST\tR%d\t%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
+      printf("GETCONST\tR%d\t%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_SETCONST, BB):
-      printf("OP_SETCONST\t%s\tR%d\t", mrb_sym_dump(mrb, irep->syms[b]), a);
+      printf("SETCONST\t%s\tR%d\t", mrb_sym_dump(mrb, irep->syms[b]), a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_GETMCNST, BB):
-      printf("OP_GETMCNST\tR%d\tR%d::%s\t", a, a, mrb_sym_dump(mrb, irep->syms[b]));
+      printf("GETMCNST\tR%d\tR%d::%s\t", a, a, mrb_sym_dump(mrb, irep->syms[b]));
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_SETMCNST, BB):
-      printf("OP_SETMCNST\tR%d::%s\tR%d\t", a+1, mrb_sym_dump(mrb, irep->syms[b]), a);
+      printf("SETMCNST\tR%d::%s\tR%d\t", a+1, mrb_sym_dump(mrb, irep->syms[b]), a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_GETIV, BB):
-      printf("OP_GETIV\tR%d\t%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
+      printf("GETIV\t\tR%d\t%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_SETIV, BB):
-      printf("OP_SETIV\t%s\tR%d\t", mrb_sym_dump(mrb, irep->syms[b]), a);
+      printf("SETIV\t\t%s\tR%d\t", mrb_sym_dump(mrb, irep->syms[b]), a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_GETUPVAR, BBB):
-      printf("OP_GETUPVAR\tR%d\t%d\t%d\t", a, b, c);
+      printf("GETUPVAR\tR%d\t%d\t%d\t", a, b, c);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_SETUPVAR, BBB):
-      printf("OP_SETUPVAR\tR%d\t%d\t%d\t", a, b, c);
+      printf("SETUPVAR\tR%d\t%d\t%d\t", a, b, c);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_GETCV, BB):
-      printf("OP_GETCV\tR%d\t%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
+      printf("GETCV\t\tR%d\t%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_SETCV, BB):
-      printf("OP_SETCV\t%s\tR%d\t", mrb_sym_dump(mrb, irep->syms[b]), a);
+      printf("SETCV\t\t%s\tR%d\t", mrb_sym_dump(mrb, irep->syms[b]), a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_GETIDX, B):
-      printf("OP_GETIDX\tR%d\tR%d\n", a, a+1);
+      printf("GETIDX\tR%d\tR%d\n", a, a+1);
       break;
     CASE(OP_SETIDX, B):
-      printf("OP_SETIDX\tR%d\tR%d\tR%d\n", a, a+1, a+2);
+      printf("SETIDX\tR%d\tR%d\tR%d\n", a, a+1, a+2);
       break;
     CASE(OP_JMP, S):
       i = pc - irep->iseq;
-      printf("OP_JMP\t\t%03d\n", (int)i+(int16_t)a);
+      printf("JMP\t\t%03d\n", (int)i+(int16_t)a);
       break;
     CASE(OP_JMPUW, S):
       i = pc - irep->iseq;
-      printf("OP_JMPUW\t\t%03d\n", (int)i+(int16_t)a);
+      printf("JMPUW\t\t%03d\n", (int)i+(int16_t)a);
       break;
     CASE(OP_JMPIF, BS):
       i = pc - irep->iseq;
-      printf("OP_JMPIF\tR%d\t%03d\t", a, (int)i+(int16_t)b);
+      printf("JMPIF\t\tR%d\t%03d\t", a, (int)i+(int16_t)b);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_JMPNOT, BS):
       i = pc - irep->iseq;
-      printf("OP_JMPNOT\tR%d\t%03d\t", a, (int)i+(int16_t)b);
+      printf("JMPNOT\tR%d\t%03d\t", a, (int)i+(int16_t)b);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_JMPNIL, BS):
       i = pc - irep->iseq;
-      printf("OP_JMPNIL\tR%d\t%03d\t", a, (int)i+(int16_t)b);
+      printf("JMPNIL\tR%d\t%03d\t", a, (int)i+(int16_t)b);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_SSEND, BBB):
-      printf("OP_SSEND\tR%d\t:%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
+      printf("SSEND\t\tR%d\t:%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
       print_args(c);
       break;
     CASE(OP_SSENDB, BBB):
-      printf("OP_SSENDB\tR%d\t:%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
+      printf("SSENDB\tR%d\t:%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
       print_args(c);
       break;
     CASE(OP_SEND, BBB):
-      printf("OP_SEND\tR%d\t:%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
+      printf("SEND\t\tR%d\t:%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
       print_args(c);
       break;
     CASE(OP_SENDB, BBB):
-      printf("OP_SENDB\tR%d\t:%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
+      printf("SENDB\t\tR%d\t:%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
       print_args(c);
       break;
     CASE(OP_CALL, Z):
-      printf("OP_CALL\n");
+      printf("CALL\n");
       break;
     CASE(OP_SUPER, BB):
-      printf("OP_SUPER\tR%d\t", a);
+      printf("SUPER\t\tR%d\t", a);
       print_args(b);
       break;
     CASE(OP_ARGARY, BS):
-      printf("OP_ARGARY\tR%d\t%d:%d:%d:%d (%d)\t", a,
+      printf("ARGARY\tR%d\t%d:%d:%d:%d (%d)\t", a,
              (b>>11)&0x3f,
              (b>>10)&0x1,
              (b>>5)&0x1f,
@@ -351,40 +351,40 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_ENTER, W):
-      printf("OP_ENTER\t%d:%d:%d:%d:%d:%d:%d\n",
+      printf("ENTER\t\t%d:%d:%d:%d:%d:%d:%d (0x%x)\n",
              MRB_ASPEC_REQ(a),
              MRB_ASPEC_OPT(a),
              MRB_ASPEC_REST(a),
              MRB_ASPEC_POST(a),
              MRB_ASPEC_KEY(a),
              MRB_ASPEC_KDICT(a),
-             MRB_ASPEC_BLOCK(a));
+             MRB_ASPEC_BLOCK(a), a);
       break;
     CASE(OP_KEY_P, BB):
-      printf("OP_KEY_P\tR%d\t:%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
+      printf("KEY_P\t\tR%d\t:%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_KEYEND, Z):
-      printf("OP_KEYEND\n");
+      printf("KEYEND\n");
       break;
     CASE(OP_KARG, BB):
-      printf("OP_KARG\tR%d\t:%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
+      printf("KARG\t\tR%d\t:%s\t", a, mrb_sym_dump(mrb, irep->syms[b]));
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_RETURN, B):
-      printf("OP_RETURN\tR%d\t\t", a);
+      printf("RETURN\tR%d\t\t", a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_RETURN_BLK, B):
-      printf("OP_RETURN_BLK\tR%d\t\t", a);
+      printf("RETURN_BLK\tR%d\t\t", a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_BREAK, B):
-      printf("OP_BREAK\tR%d\t\t", a);
+      printf("BREAK\t\tR%d\t\t", a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_BLKPUSH, BS):
-      printf("OP_BLKPUSH\tR%d\t%d:%d:%d:%d (%d)\t", a,
+      printf("BLKPUSH\tR%d\t%d:%d:%d:%d (%d)\t", a,
              (b>>11)&0x3f,
              (b>>10)&0x1,
              (b>>5)&0x1f,
@@ -393,183 +393,183 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_LAMBDA, BB):
-      printf("OP_LAMBDA\tR%d\tI(%d:%p)\n", a, b, (void*)irep->reps[b]);
+      printf("LAMBDA\tR%d\tI(%d:%p)\n", a, b, (void*)irep->reps[b]);
       break;
     CASE(OP_BLOCK, BB):
-      printf("OP_BLOCK\tR%d\tI(%d:%p)\n", a, b, (void*)irep->reps[b]);
+      printf("BLOCK\t\tR%d\tI(%d:%p)\n", a, b, (void*)irep->reps[b]);
       break;
     CASE(OP_METHOD, BB):
-      printf("OP_METHOD\tR%d\tI(%d:%p)\n", a, b, (void*)irep->reps[b]);
+      printf("METHOD\tR%d\tI(%d:%p)\n", a, b, (void*)irep->reps[b]);
       break;
     CASE(OP_RANGE_INC, B):
-      printf("OP_RANGE_INC\tR%d\n", a);
+      printf("RANGE_INC\tR%d\n", a);
       break;
     CASE(OP_RANGE_EXC, B):
-      printf("OP_RANGE_EXC\tR%d\n", a);
+      printf("RANGE_EXC\tR%d\n", a);
       break;
     CASE(OP_DEF, BB):
-      printf("OP_DEF\tR%d\t:%s\n", a, mrb_sym_dump(mrb, irep->syms[b]));
+      printf("DEF\t\tR%d\t:%s\n", a, mrb_sym_dump(mrb, irep->syms[b]));
       break;
     CASE(OP_UNDEF, B):
-      printf("OP_UNDEF\t:%s\n", mrb_sym_dump(mrb, irep->syms[a]));
+      printf("UNDEF\t\t:%s\n", mrb_sym_dump(mrb, irep->syms[a]));
       break;
     CASE(OP_ALIAS, BB):
-      printf("OP_ALIAS\t:%s\t%s\n", mrb_sym_dump(mrb, irep->syms[a]), mrb_sym_dump(mrb, irep->syms[b]));
+      printf("ALIAS\t\t:%s\t%s\n", mrb_sym_dump(mrb, irep->syms[a]), mrb_sym_dump(mrb, irep->syms[b]));
       break;
     CASE(OP_ADD, B):
-      printf("OP_ADD\tR%d\tR%d\n", a, a+1);
+      printf("ADD\t\tR%d\tR%d\n", a, a+1);
       break;
     CASE(OP_ADDI, BB):
-      printf("OP_ADDI\tR%d\t%d\t", a, b);
+      printf("ADDI\t\tR%d\t%d\t", a, b);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_SUB, B):
-      printf("OP_SUB\tR%d\tR%d\n", a, a+1);
+      printf("SUB\t\tR%d\tR%d\n", a, a+1);
       break;
     CASE(OP_SUBI, BB):
-      printf("OP_SUBI\tR%d\t%d\t", a, b);
+      printf("SUBI\t\tR%d\t%d\t", a, b);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_MUL, B):
-      printf("OP_MUL\tR%d\tR%d\n", a, a+1);
+      printf("MUL\t\tR%d\tR%d\n", a, a+1);
       break;
     CASE(OP_DIV, B):
-      printf("OP_DIV\tR%d\tR%d\n", a, a+1);
+      printf("DIV\t\tR%d\tR%d\n", a, a+1);
       break;
     CASE(OP_LT, B):
-      printf("OP_LT\t\tR%d\tR%d\n", a, a+1);
+      printf("LT\t\tR%d\tR%d\n", a, a+1);
       break;
     CASE(OP_LE, B):
-      printf("OP_LE\t\tR%d\tR%d\n", a, a+1);
+      printf("LE\t\tR%d\tR%d\n", a, a+1);
       break;
     CASE(OP_GT, B):
-      printf("OP_GT\t\tR%d\tR%d\n", a, a+1);
+      printf("GT\t\tR%d\tR%d\n", a, a+1);
       break;
     CASE(OP_GE, B):
-      printf("OP_GE\t\tR%d\tR%d\n", a, a+1);
+      printf("GE\t\tR%d\tR%d\n", a, a+1);
       break;
     CASE(OP_EQ, B):
-      printf("OP_EQ\t\tR%d\tR%d\n", a, a+1);
+      printf("EQ\t\tR%d\tR%d\n", a, a+1);
       break;
     CASE(OP_ARRAY, BB):
-      printf("OP_ARRAY\tR%d\t%d\t", a, b);
+      printf("ARRAY\t\tR%d\tR%d\t%d\t", a, a, b);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_ARRAY2, BBB):
-      printf("OP_ARRAY\tR%d\tR%d\t%d\t", a, b, c);
+      printf("ARRAY\t\tR%d\tR%d\t%d\t", a, b, c);
       print_lv_ab(mrb, irep, a, b);
       break;
     CASE(OP_ARYCAT, B):
-      printf("OP_ARYCAT\tR%d\tR%d\t", a, a+1);
+      printf("ARYCAT\tR%d\tR%d\t", a, a+1);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_ARYPUSH, BB):
-      printf("OP_ARYPUSH\tR%d\t%d\t", a, b);
+      printf("ARYPUSH\tR%d\t%d\t", a, b);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_ARYDUP, B):
-      printf("OP_ARYDUP\tR%d\t", a);
+      printf("ARYDUP\tR%d\t", a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_AREF, BBB):
-      printf("OP_AREF\tR%d\tR%d\t%d", a, b, c);
+      printf("AREF\t\tR%d\tR%d\t%d", a, b, c);
       print_lv_ab(mrb, irep, a, b);
       break;
     CASE(OP_ASET, BBB):
-      printf("OP_ASET\tR%d\tR%d\t%d", a, b, c);
+      printf("ASET\t\tR%d\tR%d\t%d", a, b, c);
       print_lv_ab(mrb, irep, a, b);
       break;
     CASE(OP_APOST, BBB):
-      printf("OP_APOST\tR%d\t%d\t%d", a, b, c);
+      printf("APOST\t\tR%d\t%d\t%d", a, b, c);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_INTERN, B):
-      printf("OP_INTERN\tR%d\t\t", a);
+      printf("INTERN\tR%d\t\t", a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_SYMBOL, BB):
       mrb_assert((irep->pool[b].tt&IREP_TT_NFLAG)==0);
-      printf("OP_SYMBOL\tR%d\tL(%d)\t; %s", a, b, irep->pool[b].u.str);
+      printf("SYMBOL\tR%d\tL(%d)\t; %s", a, b, irep->pool[b].u.str);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_STRING, BB):
       mrb_assert((irep->pool[b].tt&IREP_TT_NFLAG)==0);
       if ((irep->pool[b].tt & IREP_TT_NFLAG) == 0) {
-        printf("OP_STRING\tR%d\tL(%d)\t; %s", a, b, irep->pool[b].u.str);
+        printf("STRING\tR%d\tL(%d)\t; %s", a, b, irep->pool[b].u.str);
       }
       else {
-        printf("OP_STRING\tR%d\tL(%d)\t", a, b);
+        printf("STRING\tR%d\tL(%d)\t", a, b);
       }
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_STRCAT, B):
-      printf("OP_STRCAT\tR%d\tR%d", a, a+1);
+      printf("STRCAT\tR%d\tR%d", a, a+1);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_HASH, BB):
-      printf("OP_HASH\tR%d\t%d\t", a, b);
+      printf("HASH\t\tR%d\t%d\t", a, b);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_HASHADD, BB):
-      printf("OP_HASHADD\tR%d\t%d\t", a, b);
+      printf("HASHADD\tR%d\t%d\t", a, b);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_HASHCAT, B):
-      printf("OP_HASHCAT\tR%d\t", a);
+      printf("HASHCAT\tR%d\t", a);
       print_lv_a(mrb, irep, a);
       break;
 
     CASE(OP_OCLASS, B):
-      printf("OP_OCLASS\tR%d\t\t", a);
+      printf("OCLASS\tR%d\t\t", a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_CLASS, BB):
-      printf("OP_CLASS\tR%d\t:%s", a, mrb_sym_dump(mrb, irep->syms[b]));
+      printf("CLASS\t\tR%d\t:%s", a, mrb_sym_dump(mrb, irep->syms[b]));
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_MODULE, BB):
-      printf("OP_MODULE\tR%d\t:%s", a, mrb_sym_dump(mrb, irep->syms[b]));
+      printf("MODULE\tR%d\t:%s", a, mrb_sym_dump(mrb, irep->syms[b]));
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_EXEC, BB):
-      printf("OP_EXEC\tR%d\tI(%d:%p)", a, b, (void*)irep->reps[b]);
+      printf("EXEC\t\tR%d\tI(%d:%p)", a, b, (void*)irep->reps[b]);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_SCLASS, B):
-      printf("OP_SCLASS\tR%d\t", a);
+      printf("SCLASS\t\tR%d\t", a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_TCLASS, B):
-      printf("OP_TCLASS\tR%d\t\t", a);
+      printf("TCLASS\tR%d\t\t", a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_ERR, B):
       if ((irep->pool[a].tt & IREP_TT_NFLAG) == 0) {
-        printf("OP_ERR\t%s\n", irep->pool[a].u.str);
+        printf("ERR\t\t%s\n", irep->pool[a].u.str);
       }
       else {
-        printf("OP_ERR\tL(%d)\n", a);
+        printf("ERR\tL(%d)\n", a);
       }
       break;
     CASE(OP_EXCEPT, B):
-      printf("OP_EXCEPT\tR%d\t\t", a);
+      printf("EXCEPT\tR%d\t\t", a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_RESCUE, BB):
-      printf("OP_RESCUE\tR%d\tR%d", a, b);
+      printf("RESCUE\tR%d\tR%d", a, b);
       print_lv_ab(mrb, irep, a, b);
       break;
     CASE(OP_RAISEIF, B):
-      printf("OP_RAISEIF\tR%d\t\t", a);
+      printf("RAISEIF\tR%d\t\t", a);
       print_lv_a(mrb, irep, a);
       break;
 
     CASE(OP_DEBUG, BBB):
-      printf("OP_DEBUG\t%d\t%d\t%d\n", a, b, c);
+      printf("DEBUG\t\t%d\t%d\t%d\n", a, b, c);
       break;
 
     CASE(OP_STOP, Z):
-      printf("OP_STOP\n");
+      printf("STOP\n");
       break;
 
     CASE(OP_EXT1, Z):
@@ -598,7 +598,7 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       break;
 
     default:
-      printf("OP_unknown (0x%x)\n", ins);
+      printf("unknown_op (0x%x)\n", ins);
       break;
     }
     mrb_gc_arena_restore(mrb, ai);
