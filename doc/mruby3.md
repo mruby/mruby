@@ -1,4 +1,4 @@
-# User visible changes in `mruby3`
+# User visible changes in `mruby3` from `mruby2` (as of `mruby3.1`)
 
 # Build System
 
@@ -111,18 +111,50 @@ $ bin/mruby -r lib1.rb -r lib2.rb < app.mrb
 
 `mruby3` introduces a few new instructions.
 
-Instructions that load a 16/32-bit integer.
+### `OP_LOADI16` and `OP_LOADI32`
 
-* `OP_LOADI16`
-* `OP_LOADI32`
+Load a 16/32-bit integer.
 
-Instruction that unwinds jump table for rescue/ensure.
+### `OP_JMPUW`
 
-* `OP_JMPUW`
+Unwinds jump table for rescue/ensure.
+
+### `OP_RAISEIF`
 
 Renamed from `OP_RAISE`
 
-* `OP_RAISEIF`
+### `OP_SYMBOL`
+
+Generates a symbol from the pool string. This is a combination of `OP_STRING` and `OP_INTERN`.
+
+### `OP_GETIDX` and `OP_SETIDX`
+
+Execute `obj[int]` and `obj[int] = value` respectively, where `obj` is `string|array|hash`.
+
+### `OP_SSEND` and `OP_SSENDB`
+
+They are similar to `OP_SEND` and `OP_SENDB` respectively. They initialize the `R[a]` by `self` so that we can skip one `OP_LOADSEND` instruction for each call.
+
+## Changed Instructions
+
+### Jump instructions
+
+Jump addresses used to be specified by absolute offset from the start of `iseq`. Now they are relative offset from the address of the next instruction.
+
+### `OP_SEND` and `OP_SENDB`
+
+Method calling instructions are unified. Now `OP_SEND` and `OP_SENDB` (method call with a block) can support both splat arguments and keyword arguments as well.
+
+The brief description of the instructions:
+
+|`OP_SEND`   | BBB | `R(a) = call(R(a),Syms(b),R(a+1..n),R(a+n+1),R(a+n+2)..nk) c=n|nk<<4`                    |
+|`OP_SENDB`  | BBB | `R(a) = call(R(a),Syms(b),R(a+1..n),R(a+n+1..nk),R(a+n+2..nk),&R(a+n+2*nk+2)) c=n|nk<<4` |
+
+When `n == 15`, the method takes arguments packed in an array. When `nk == 15`, the method takes keyword arguments packed in a hash.
+
+### `OP_ARYPUSH`
+
+Now takes 2 operands and pushes multiple entries to an array.
 
 ## Removed Instructions
 
@@ -133,15 +165,10 @@ Instructions for old exception handling
 * `OP_EPUSH`
 * `OP_EPOP`
 
-No more operand extension
+Instructions for method calls with variable number of arguments. They are covered by `OP_SEND` instruction with `n=15`.
 
-* `OP_EXT1`
-* `OP_EXT2`
-* `OP_EXT3`
-
-## Changed Instructions
-
-Jump addresses used to be specified by absolute offset from the start of `iseq`. Now they are relative offset from the address of the next instruction.
+* `OP_SENDV`
+* `OP_SENDVB`
 
 ## `Random` now use `xoshiro128++`
 
