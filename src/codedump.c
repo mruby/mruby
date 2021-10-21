@@ -156,7 +156,7 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       printf("NOP\n");
       break;
     CASE(OP_MOVE, BB):
-      printf("MOVE\tR%d\tR%d\t", a, b);
+      printf("MOVE\t\tR%d\tR%d\t", a, b);
       print_lv_ab(mrb, irep, a, b);
       break;
 
