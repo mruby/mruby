@@ -541,6 +541,23 @@ EOS
       end
     end
 
+    def run_bintest
+      puts ">>> Bintest #{name} <<<"
+      targets = @gems.select { |v| File.directory? "#{v.dir}/bintest" }.map { |v| filename v.dir }
+      targets << filename(".") if File.directory? "./bintest"
+      mrbc = @gems["mruby-bin-mrbc"] ? exefile("#{@build_dir}/bin/mrbc") : mrbcfile
+
+      emulator = @test_runner.command
+      emulator = @test_runner.shellquote(emulator) if emulator
+
+      env = {
+        "BUILD_DIR" => @build_dir,
+        "MRBCFILE" => mrbc,
+        "EMULATOR" => @test_runner.emulator,
+      }
+      sh env, "ruby test/bintest.rb#{verbose_flag} #{targets.join ' '}"
+    end
+
     protected
 
     def create_mrbc_build; end
