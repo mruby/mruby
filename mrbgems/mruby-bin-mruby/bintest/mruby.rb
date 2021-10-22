@@ -2,7 +2,7 @@ require 'tempfile'
 require 'open3'
 
 def assert_mruby(exp_out, exp_err, exp_success, args)
-  out, err, stat = Open3.capture3(cmd("mruby"), *args)
+  out, err, stat = Open3.capture3( *(cmd_list("mruby") + args))
   assert "assert_mruby" do
     assert_operator(exp_out, :===, out, "standard output")
     assert_operator(exp_err, :===, err, "standard error")
@@ -87,7 +87,7 @@ assert('mruby -e option (no code specified)') do
 end
 
 assert('mruby -h option') do
-  assert_mruby(/\AUsage: #{Regexp.escape cmd("mruby")} .*/m, "", true, %w[-h])
+  assert_mruby(/\AUsage: #{Regexp.escape cmd_bin("mruby")} .*/m, "", true, %w[-h])
 end
 
 assert('mruby -r option') do

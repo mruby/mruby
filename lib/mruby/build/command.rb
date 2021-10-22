@@ -363,6 +363,11 @@ module MRuby
       @flags = []
     end
 
+    def emulator
+      return "" unless @command
+      return [@command, *@flags].map{|c| shellquote(c)}.join(' ')
+    end
+
     def run(testbinfile)
       puts "TEST for " + @build.name
       _run runner_options, { :flags => [flags, verbose_flag].flatten.join(' '), :infile => testbinfile }
