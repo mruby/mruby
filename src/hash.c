@@ -69,8 +69,8 @@
 #define AR_MAX_SIZE 16
 #define H_MAX_SIZE EA_MAX_CAPA
 
-mrb_static_assert1(offsetof(struct RHash, iv) == offsetof(struct RObject, iv));
-mrb_static_assert1(AR_MAX_SIZE < (1 << MRB_HASH_AR_EA_CAPA_BIT));
+mrb_static_assert(offsetof(struct RHash, iv) == offsetof(struct RObject, iv));
+mrb_static_assert(AR_MAX_SIZE < (1 << MRB_HASH_AR_EA_CAPA_BIT));
 
 typedef struct hash_entry {
   mrb_value key;
@@ -243,7 +243,7 @@ DEFINE_SWITCHER(ht, HT)
   * assumptions.
   */
 # define HT_ASSERT_SAFE_READ(attr_name)                                       \
-  mrb_static_assert1(                                                         \
+  mrb_static_assert(                                                          \
     offsetof(hash_table, attr_name) + sizeof(((hash_table*)0)->attr_name) <=  \
     sizeof(hash_entry))
 HT_ASSERT_SAFE_READ(ea);

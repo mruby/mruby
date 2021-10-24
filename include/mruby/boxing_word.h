@@ -130,7 +130,7 @@ union mrb_value_ {
   mrb_value value;
 };
 
-mrb_static_assert1(sizeof(mrb_value) == sizeof(union mrb_value_));
+mrb_static_assert(sizeof(mrb_value) == sizeof(union mrb_value_));
 
 static inline union mrb_value_
 mrb_val_union(mrb_value v)

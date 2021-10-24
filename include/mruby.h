@@ -69,14 +69,18 @@
 #define mrb_assert_int_fit(t1,n,t2,max) ((void)0)
 #endif
 
-#if (defined __cplusplus && __cplusplus >= 201103L) || \
+#if (defined __cplusplus && __cplusplus >= 201703L)
+# define mrb_static_assert(...) static_assert(__VA_ARGS__)
+# define mrb_static_assert1(exp) static_assert(exp)
+# define mrb_static_assert2(exp, str) static_assert(exp, str)
+#elif (defined __cplusplus && __cplusplus >= 201103L) || \
     (defined _MSC_VER) || \
     (defined __GXX_EXPERIMENTAL_CXX0X__)  /* for old G++/Clang++ */
-# define mrb_static_assert(exp, str) static_assert(exp, str)
+# define mrb_static_assert2(exp, str) static_assert(exp, str)
 #elif defined __STDC_VERSION__ && \
         ((__STDC_VERSION__ >= 201112L) || \
          (defined __GNUC__ && __GNUC__ * 100 + __GNUC_MINOR__ >= 406))
-# define mrb_static_assert(exp, str) _Static_assert(exp, str)
+# define mrb_static_assert2(exp, str) _Static_assert(exp, str)
 #else
 # /* alternative implementation of static_assert() */
 # define _mrb_static_assert_cat0(a, b) a##b
@@ -86,10 +90,24 @@
 # else
 #  define _mrb_static_assert_id(prefix) _mrb_static_assert_cat(prefix, __LINE__)
 # endif
-# define mrb_static_assert(exp, str) \
+# define mrb_static_assert2(exp, str) \
    struct _mrb_static_assert_id(_mrb_static_assert_) { char x[(exp) ? 1 : -1]; }
 #endif
-#define mrb_static_assert1(exp) mrb_static_assert(exp, #exp)
+
+#ifndef mrb_static_assert
+# define mrb_static_assert1(exp) mrb_static_assert2(exp, #exp)
+# define mrb_static_assert_expand(...) __VA_ARGS__ /* for MSVC behaviour - https://stackoverflow.com/q/5530505 */
+# define mrb_static_assert_selector(a, b, name, ...) name
+/**
+ * The `mrb_static_assert()` macro function takes one or two arguments.
+ *
+ *      !!!c
+ *      mrb_static_assert(expect_condition);
+ *      mrb_static_assert(expect_condition, error_message);
+ */
+# define mrb_static_assert(...) \
+    mrb_static_assert_expand(mrb_static_assert_selector(__VA_ARGS__, mrb_static_assert2, mrb_static_assert1)(__VA_ARGS__))
+#endif
 
 #include "mrbconf.h"
 
