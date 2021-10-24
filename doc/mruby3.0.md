@@ -1,4 +1,4 @@
-# User visible changes in `mruby3` from `mruby2` (as of `mruby3.1`)
+# User visible changes in `mruby3.0`
 
 # Build System
 
@@ -42,7 +42,7 @@ We have ported some new syntax from CRuby.
 ## Renamed for consistency
 
 Some configuration macro names are changed for consistency (use `MRB_USE_XXX`
-or `MRB_NO_XXX`).
+ or `MRB_NO_XXX`).
 
 |             mruby2             |          mruby3           |
 |--------------------------------|---------------------------|
@@ -60,7 +60,7 @@ or `MRB_NO_XXX`).
 | `DISABLE_MIRB_UNDERSCORE`      | `MRB_NO_MIRB_UNDERSCORE`  |
 
 * `MRB_USE_FLOAT32` is changed from `MRB_USE_FLOAT` to make sure `float` here
-  means using single precision float, and not the opposite of `MRB_NO_FLOAT`.
+   means using single precision float, and not the opposite of `MRB_NO_FLOAT`.
 * `MRB_USE_METHOD_T_STRUCT` uses `struct` version of `mrb_method_t`. More
   portable but consumes more memory. Turned on by default on 32bit platforms.
 * `MRB_` prefix is added to those without.
@@ -75,14 +75,13 @@ to be default `mrb_value` representation. Now the default is
 ## `MRB_WORD_BOXING`
 
 Pack `mrb_value` in an `intptr_t` integer. Consumes less
-memory compared to `MRB_NO_BOXING` especially on 32-bit
-platforms. Inlined integer size is 31 bits, so some `mrb_int`
-values does not fit in `mrb_value`. Those integers are allocated
-in the object heap as `struct RInteger`.
+memory compared to `MRB_NO_BOXING` especially on 32 bit
+platforms. `Fixnum` size is 31 bits so some integer values
+does not fit in `Fixnum` integers.
 
 ## `MRB_NAN_BOXING`
 
-Pack `mrb_value` in a floating-point number. Nothing
+Pack `mrb_value` in a floating pointer number. Nothing
 changed from previous versions.
 
 ## `MRB_USE_MALLOC_TRIM`
@@ -111,50 +110,27 @@ $ bin/mruby -r lib1.rb -r lib2.rb < app.mrb
 
 `mruby3` introduces a few new instructions.
 
-### `OP_LOADI16` and `OP_LOADI32`
+Instructions that access pool[i]/syms[i] where i>255.
 
-Load a 16/32-bit integer.
+* `OP_LOADL16`
+* `OP_STRING16`
+* `OP_LOADSYM16`
 
-### `OP_JMPUW`
+Instructions that load a 32 bit integer.
 
-Unwinds jump table for rescue/ensure.
+* `OP_LOADI32`
 
-### `OP_RAISEIF`
+Instruction that unwinds jump table for rescue/ensure.
+
+* `OP_JMPUW`
 
 Renamed from `OP_RAISE`
 
-### `OP_SYMBOL`
+* `OP_RAISEIF`
 
-Generates a symbol from the pool string. This is a combination of `OP_STRING` and `OP_INTERN`.
+Instruction that is reserved for the future keyword argument support.
 
-### `OP_GETIDX` and `OP_SETIDX`
-
-Execute `obj[int]` and `obj[int] = value` respectively, where `obj` is `string|array|hash`.
-
-### `OP_SSEND` and `OP_SSENDB`
-
-They are similar to `OP_SEND` and `OP_SENDB` respectively. They initialize the `R[a]` by `self` so that we can skip one `OP_LOADSEND` instruction for each call.
-
-## Changed Instructions
-
-### Jump instructions
-
-Jump addresses used to be specified by absolute offset from the start of `iseq`. Now they are relative offset from the address of the next instruction.
-
-### `OP_SEND` and `OP_SENDB`
-
-Method calling instructions are unified. Now `OP_SEND` and `OP_SENDB` (method call with a block) can support both splat arguments and keyword arguments as well.
-
-The brief description of the instructions:
-
-|`OP_SEND`   | BBB | `R(a) = call(R(a),Syms(b),R(a+1..n),R(a+n+1),R(a+n+2)..nk) c=n|nk<<4`                    |
-|`OP_SENDB`  | BBB | `R(a) = call(R(a),Syms(b),R(a+1..n),R(a+n+1..nk),R(a+n+2..nk),&R(a+n+2*nk+2)) c=n|nk<<4` |
-
-When `n == 15`, the method takes arguments packed in an array. When `nk == 15`, the method takes keyword arguments packed in a hash.
-
-### `OP_ARYPUSH`
-
-Now takes 2 operands and pushes multiple entries to an array.
+* OP_SENDVK
 
 ## Removed Instructions
 
@@ -165,12 +141,17 @@ Instructions for old exception handling
 * `OP_EPUSH`
 * `OP_EPOP`
 
-Instructions for method calls with variable number of arguments. They are covered by `OP_SEND` instruction with `n=15`.
+No more operand extension
 
-* `OP_SENDV`
-* `OP_SENDVB`
+* `OP_EXT1`
+* `OP_EXT2`
+* `OP_EXT3`
 
-## `Random` now use `xoshiro128++`
+## Changed Instructions
+
+Jump addresses used to be specified by absolute offset from the start of `iseq`. Now they are relative offset from the address of the next instruction.
+
+## `Random` now use `xoshiro128++`.
 
 For better and faster random number generation.
 
@@ -178,4 +159,4 @@ For better and faster random number generation.
 
 Preallocated symbols are interned at compile-time. They can be accessed via symbols macros (e.g. `MRB_SYM()`).
 
-See [Symbols](./guides/symbol.md).
+See [Symbols](https://github.com/mruby/mruby/blob/master/doc/guides/symbol.md).
