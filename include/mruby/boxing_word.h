@@ -144,7 +144,7 @@ MRB_API mrb_value mrb_word_boxing_cptr_value(struct mrb_state*, void*);
 #ifndef MRB_NO_FLOAT
 MRB_API mrb_value mrb_word_boxing_float_value(struct mrb_state*, mrb_float);
 #endif
-MRB_API mrb_value mrb_word_boxing_int_value(struct mrb_state*, mrb_int);
+MRB_API mrb_value mrb_boxing_int_value(struct mrb_state*, mrb_int);
 
 #define mrb_immediate_p(o) ((o).w & WORDBOX_IMMEDIATE_MASK || (o).w == MRB_Qnil)
 
@@ -210,7 +210,7 @@ mrb_integer_func(mrb_value o) {
 #define SET_FALSE_VALUE(r) ((r).w = MRB_Qfalse)
 #define SET_TRUE_VALUE(r) ((r).w = MRB_Qtrue)
 #define SET_BOOL_VALUE(r,b) ((b) ? SET_TRUE_VALUE(r) : SET_FALSE_VALUE(r))
-#define SET_INT_VALUE(mrb,r,n) ((r) = mrb_word_boxing_int_value(mrb, n))
+#define SET_INT_VALUE(mrb,r,n) ((r) = mrb_boxing_int_value(mrb, n))
 #define SET_FIXNUM_VALUE(r,n) WORDBOX_SET_SHIFT_VALUE(r, FIXNUM, n)
 #define SET_SYM_VALUE(r,n) WORDBOX_SET_SHIFT_VALUE(r, SYMBOL, n)
 #define SET_OBJ_VALUE(r,v) ((r).w = (uintptr_t)(v))
