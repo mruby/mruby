@@ -106,7 +106,7 @@
  *      mrb_static_assert(expect_condition, error_message);
  */
 # define mrb_static_assert(...) \
-    mrb_static_assert_expand(mrb_static_assert_selector(__VA_ARGS__, mrb_static_assert2, mrb_static_assert1)(__VA_ARGS__))
+    mrb_static_assert_expand(mrb_static_assert_selector(__VA_ARGS__, mrb_static_assert2, mrb_static_assert1, _)(__VA_ARGS__))
 #endif
 
 #include "mrbconf.h"
