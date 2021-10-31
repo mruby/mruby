@@ -92,7 +92,7 @@ mrb_type(mrb_value o)
   case MRB_NANBOX_TT_SYMBOL:
     return MRB_TT_SYMBOL;
   case MRB_NANBOX_TT_MISC:
-    return (enum mrb_vtype)(o.u >> 8) & 0x1f;
+    return (enum mrb_vtype)((o.u >> 8) & 0x1f);
   default:
     /* never happen */
     return MRB_TT_FLOAT;
