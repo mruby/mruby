@@ -7,7 +7,7 @@
 #ifndef MRUBY_BOXING_WORD_H
 #define MRUBY_BOXING_WORD_H
 
-#if defined(MRB_32BIT) && !defined(MRB_USE_FLOAT32)
+#if defined(MRB_32BIT) && !defined(MRB_USE_FLOAT32) && !defined(MRB_WORDBOX_NO_FLOAT_TRUNCATE)
 # define MRB_WORDBOX_NO_FLOAT_TRUNCATE
 #endif
 
