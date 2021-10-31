@@ -896,4 +896,51 @@ class Array
   alias append push
   alias prepend unshift
   alias filter! select!
+
+  ##
+  # call-seq:
+  #   ary.product(*arys)                  ->   array
+  #   ary.product(*arys) { |item| ... }   ->   self
+  def product(*arys, &block)
+    size = arys.size
+    i = size
+    while i > 0
+      i -= 1
+      unless arys[i].kind_of?(Array)
+        raise TypeError, "no implicit conversion into Array"
+      end
+    end
+
+    i = size
+    total = self.size
+    total *= arys[i -= 1].size while i > 0
+
+    if block
+      result = self
+      list = ->(*, e) { block.call e }
+      class << list; alias []= call; end
+    else
+      result = [nil] * total
+      list = result
+    end
+
+    i = 0
+    while i < total
+      group = [nil] * (size + 1)
+      j = size
+      n = i
+      while j > 0
+        j -= 1
+        a = arys[j]
+        b = a.size
+        group[j + 1] = a[n % b]
+        n /= b
+      end
+      group[0] = self[n]
+      list[i] = group
+      i += 1
+    end
+
+    result
+  end
 end
