@@ -14,12 +14,18 @@
 MRB_API mrb_bool
 mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
 {
+#if defined(MRB_NAN_BOXING)
+  return v1.u == v2.u;
+#elif defined(MRB_NAN_BOXING)
+  return v1.w == v2.w;
+#else  /* MRB_NO_BOXING */
   if (mrb_type(v1) != mrb_type(v2)) return FALSE;
   switch (mrb_type(v1)) {
   case MRB_TT_TRUE:
     return TRUE;
 
   case MRB_TT_FALSE:
+    return (mrb_fixnum(v1) == mrb_fixnum(v2));
   case MRB_TT_INTEGER:
     return (mrb_integer(v1) == mrb_integer(v2));
   case MRB_TT_SYMBOL:
@@ -33,6 +39,7 @@ mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
   default:
     return (mrb_ptr(v1) == mrb_ptr(v2));
   }
+#endif
 }
 
 MRB_API mrb_bool
