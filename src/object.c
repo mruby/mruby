@@ -16,7 +16,7 @@ mrb_obj_eq(mrb_state *mrb, mrb_value v1, mrb_value v2)
 {
 #if defined(MRB_NAN_BOXING)
   return v1.u == v2.u;
-#elif defined(MRB_NAN_BOXING)
+#elif defined(MRB_WORD_BOXING)
   return v1.w == v2.w;
 #else  /* MRB_NO_BOXING */
   if (mrb_type(v1) != mrb_type(v2)) return FALSE;

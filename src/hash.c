@@ -326,8 +326,15 @@ obj_hash_code(mrb_state *mrb, mrb_value key, struct RHash *h)
   case MRB_TT_TRUE:
   case MRB_TT_FALSE:
   case MRB_TT_SYMBOL:
+    hash_code = U32(mrb_fixnum(key));
+    break;
   case MRB_TT_INTEGER:
+    if (mrb_fixnum_p(key)) {
+      hash_code = U32(mrb_fixnum(key));
+      break;
+    }
 #ifndef MRB_NO_FLOAT
+    /* fall through */
   case MRB_TT_FLOAT:
 #endif
     hash_code = U32(mrb_obj_id(key));
