@@ -2840,17 +2840,17 @@ static const mrb_code new_iseq[] = {
   OP_LOADSELF, 4,            // OP_LOADSELF  R4
   OP_SEND, 4, 0, 0,          // OP_SEND      R4  :allocate  n=0
   OP_MOVE, 0, 4,             // OP_MOVE      R0  R4
-  OP_MOVE, 5, 1,             // OP_MOVE      R5  R1 (*)
-  OP_MOVE, 6, 2,             // OP_MOVE      R6  R2 (**)
-  OP_MOVE, 7, 3,             // OP_MOVE      R7  R3
-  OP_SENDB, 4, 1, 255,       // OP_SENDB     R4  :initialize n=*|nk=*
+  OP_MOVE, 4, 3,             // OP_MOVE      R4  R3 (&)
+  OP_MOVE, 3, 2,             // OP_MOVE      R3  R2 (**)
+  OP_MOVE, 2, 1,             // OP_MOVE      R2  R1 (*)
+  OP_SSENDB, 1, 1, 255,      // OP_SSENDB    R1  :initialize n=*|nk=*
   OP_RETURN, 0               // OP_RETURN    R0
 };
 
 MRB_PRESYM_DEFINE_VAR_AND_INITER(new_syms, 2, MRB_SYM(allocate), MRB_SYM(initialize))
 
 static const mrb_irep new_irep = {
-  3, 6, 0, MRB_IREP_STATIC,
+  4, 5, 0, MRB_IREP_STATIC,
   new_iseq, NULL, new_syms, NULL, NULL, NULL,
   sizeof(new_iseq), 0, 2, 0, 0,
 };
