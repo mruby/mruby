@@ -11,6 +11,7 @@
 #include <mruby/array.h>
 #include <mruby/istruct.h>
 #include <mruby/presym.h>
+#include <mruby/string.h>
 
 #include <time.h>
 
@@ -213,6 +214,23 @@ random_m_srand(mrb_state *mrb, mrb_value self)
   return mrb_int_value(mrb, (mrb_int)old_seed);
 }
 
+static mrb_value
+random_m_bytes(mrb_state *mrb, mrb_value self)
+{
+  rand_state *t = random_ptr(self);
+
+  mrb_int i;
+  mrb_get_args(mrb, "i", &i);
+
+  mrb_value bytes = mrb_str_new(mrb, NULL, i);
+  uint8_t *p = (uint8_t*)RSTRING_PTR(bytes);
+  for (; i > 0; i--, p++) {
+    *p = (uint8_t)rand_uint32(t);
+  }
+
+  return bytes;
+}
+
 /*
  *  call-seq:
  *     ary.shuffle!   ->   ary
@@ -349,6 +367,13 @@ random_f_srand(mrb_state *mrb, mrb_value self)
   return random_m_srand(mrb, random);
 }
 
+static mrb_value
+random_f_bytes(mrb_state *mrb, mrb_value self)
+{
+  mrb_value random = random_default(mrb);
+  return random_m_bytes(mrb, random);
+}
+
 
 void mrb_mruby_random_gem_init(mrb_state *mrb)
 {
@@ -364,10 +389,12 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
   MRB_SET_INSTANCE_TT(random, MRB_TT_ISTRUCT);
   mrb_define_class_method(mrb, random, "rand", random_f_rand, MRB_ARGS_OPT(1));
   mrb_define_class_method(mrb, random, "srand", random_f_srand, MRB_ARGS_OPT(1));
+  mrb_define_class_method(mrb, random, "bytes", random_f_bytes, MRB_ARGS_REQ(1));
 
   mrb_define_method(mrb, random, "initialize", random_m_init, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, random, "rand", random_m_rand, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, random, "srand", random_m_srand, MRB_ARGS_OPT(1));
+  mrb_define_method(mrb, random, "bytes", random_m_bytes, MRB_ARGS_REQ(1));
 
   mrb_define_method(mrb, array, "shuffle", mrb_ary_shuffle, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, array, "shuffle!", mrb_ary_shuffle_bang, MRB_ARGS_OPT(1));
