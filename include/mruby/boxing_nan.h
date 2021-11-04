@@ -68,7 +68,7 @@ mrb_nan_boxing_value_float(mrb_value v)
   r.u = float_uint_union.u + 0x8004000000000000; \
 } while(0)
 
-#define mrb_float_p(o) (((uint64_t)(o.u)&0xfffc000000000000) != 0)
+#define mrb_float_p(o) (((uint64_t)((o).u)&0xfffc000000000000) != 0)
 
 struct RInteger {
   MRB_OBJECT_HEADER;
