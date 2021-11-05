@@ -26,6 +26,12 @@ And `android_arm64-v8a.rb` was renamed to `android_arm64_v8a.rb` for consistency
 CRuby3.0 compatible keyword arguments are introduced.
 Keyword arguments are basically separated from ordinal arguments
 
+## New Methods
+
+* `Array#product`
+* `Random.bytes`
+* `Random#bytes`
+
 # Configuration Options Changed
 
 Some configuration macros are available:
