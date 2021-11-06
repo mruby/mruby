@@ -12,18 +12,21 @@ MRuby::Gem::Specification.new 'mruby-compiler' do |spec|
     end
   end
   build.libmruby_core_objs << objs
+end
 
+if MRuby::Build.current.name == "host"
+  dir = __dir__
   lex_def = "#{dir}/core/lex.def"
 
   # Parser
   file "#{dir}/core/y.tab.c" => ["#{dir}/core/parse.y", lex_def] do |t|
-    yacc.run t.name, t.prerequisites.first
+    MRuby.targets["host"].yacc.run t.name, t.prerequisites.first
     replace_line_directive(t.name)
   end
 
   # Lexical analyzer
   file lex_def => "#{dir}/core/keywords" do |t|
-    gperf.run t.name, t.prerequisites.first
+    MRuby.targets["host"].gperf.run t.name, t.prerequisites.first
     replace_line_directive(t.name)
   end
 
