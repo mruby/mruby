@@ -1,14 +1,14 @@
 # Thing to Do in the future
 
-# After mruby 3.0
+# After mruby 3.1
 
 * multi-precision integer
-* NAN_BOXING: Allow `MRB_INT64` along with NaN boxing
-* keyword arguments à la Ruby3.0 (update `OP_SEND`)
 * parser and code generator independent from `mrb_state` (picoruby?)
 * variable sized AST node
+* iv/hash entry cache
+* more peephole optimization (if possible)
 
-# Things to do (Things that are not done yet)
+# Things to do (Things we need to consider)
 
 * `begin ... end while cond` to behave as CRuby
 * special variables ($1,$2..)
