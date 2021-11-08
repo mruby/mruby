@@ -75,6 +75,8 @@ struct RInteger {
   mrb_int i;
 };
 
+#define mrb_nb_tt(o) ((((o).u>>48)&3))
+
 MRB_INLINE enum mrb_vtype
 mrb_type(mrb_value o)
 {
@@ -117,7 +119,7 @@ static inline mrb_int
 mrb_nan_boxing_value_int(mrb_value v)
 {
   uint64_t u = v.u;
-  if (((u>>48)&3)==MRB_NANBOX_TT_POINTER) {
+  if (mrb_nb_tt(v)==MRB_NANBOX_TT_POINTER) {
     struct RInteger *p = (struct RInteger*)(uintptr_t)u;
     return p->i;
   }
@@ -136,7 +138,7 @@ mrb_nan_boxing_value_int(mrb_value v)
   (o).u = ((uint64_t)tt<<48) | ((uint64_t)(v)); \
 } while (0)
 
-#define SET_NIL_VALUE(r) NANBOX_SET_MISC_VALUE(r, MRB_TT_FALSE, 0)
+#define SET_NIL_VALUE(r) ((r).u = 0)
 #define SET_FALSE_VALUE(r) NANBOX_SET_MISC_VALUE(r, MRB_TT_FALSE, 1)
 #define SET_TRUE_VALUE(r) NANBOX_SET_MISC_VALUE(r, MRB_TT_TRUE, 1)
 #define SET_BOOL_VALUE(r,b) NANBOX_SET_MISC_VALUE(r, (b) ? MRB_TT_TRUE : MRB_TT_FALSE, 1)
@@ -152,8 +154,9 @@ MRB_API mrb_value mrb_boxing_int_value(struct mrb_state*, mrb_int);
 #define SET_CPTR_VALUE(mrb,r,v) do {(r).u = ((uint64_t)(uintptr_t)v) | 1;} while (0)
 #define SET_UNDEF_VALUE(r) NANBOX_SET_MISC_VALUE(r, MRB_TT_UNDEF, 4)
 
-#define mrb_nil_p(o)  (mrb_type(o) == MRB_TT_FALSE && ((o).u & 3) == 0)
-#define mrb_false_p(o) (mrb_type(o) == MRB_TT_FALSE && ((o).u & 2) == 0)
-#define mrb_fixnum_p(o) (!mrb_float_p(o) && ((o.u>>48)&3)==MRB_NANBOX_TT_INTEGER)
+#define mrb_immediate_p(o) ((mrb_float_p(o) || mrb_nb_tt(o) != MRB_NANBOX_TT_POINTER) || (o).u == 0)
+#define mrb_nil_p(o)  ((o).u == 0)
+#define mrb_false_p(o) (mrb_type(o) == MRB_TT_FALSE || (o).u == 0)
+#define mrb_fixnum_p(o) (!mrb_float_p(o) && mrb_nb_tt(o)==MRB_NANBOX_TT_INTEGER)
 
 #endif  /* MRUBY_BOXING_NAN_H */
