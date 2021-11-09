@@ -103,29 +103,47 @@ mrb_float_id(mrb_float f)
 MRB_API mrb_int
 mrb_obj_id(mrb_value obj)
 {
-  mrb_int tt = mrb_type(obj);
+#if defined(MRB_NAN_BOXING)
+#ifdef MRB_INT64
+  return obj.u;
+#else
+  uint64_t u = obj.u;
+  return (mrb_int)(u>>32)^u;
+#endif
+#elif defined(MRB_WORD_BOXING)
+  if (!mrb_immediate_p(obj)) {
+    if (mrb_integer_p(obj)) return mrb_integer(obj);
+#ifndef MRB_NO_FLOAT
+    if (mrb_float_p(obj)) {
+      return mrb_float_id(mrb_float(obj));
+    }
+#endif
+  }
+  return (mrb_int)obj.w;
+#else  /* MRB_NO_BOXING */
 
-#define MakeID2(p,t) (mrb_int)(((intptr_t)(p))^(t))
-#define MakeID(p)    MakeID2(p,tt)
+#define MakeID(p,t) (mrb_int)(((intptr_t)(p))^(t))
+
+  enum mrb_vtype tt = mrb_type(obj);
 
   switch (tt) {
   case MRB_TT_FREE:
   case MRB_TT_UNDEF:
-    return MakeID(0); /* not define */
+    return MakeID(0, tt); /* should not happen */
   case MRB_TT_FALSE:
     if (mrb_nil_p(obj))
-      return MakeID(4);
+      return MakeID(4, tt);
     else
-      return MakeID(0);
+      return MakeID(0, tt);
   case MRB_TT_TRUE:
-    return MakeID(2);
+    return MakeID(2, tt);
   case MRB_TT_SYMBOL:
-    return MakeID(mrb_symbol(obj));
+    return MakeID(mrb_symbol(obj), tt);
   case MRB_TT_INTEGER:
-    return MakeID(mrb_int_id(mrb_integer(obj)));
+    return MakeID(mrb_int_id(mrb_integer(obj)), tt);
 #ifndef MRB_NO_FLOAT
   case MRB_TT_FLOAT:
-    return MakeID(mrb_float_id(mrb_float(obj)));
+    return MakeID(mrb_float_id(mrb_float(obj)), tt);
 #endif
   case MRB_TT_STRING:
   case MRB_TT_OBJECT:
@@ -141,8 +159,9 @@ mrb_obj_id(mrb_value obj)
   case MRB_TT_DATA:
   case MRB_TT_ISTRUCT:
   default:
-    return MakeID(mrb_ptr(obj));
+    return MakeID(mrb_ptr(obj), tt);
   }
+#endif
 }
 
 #ifdef MRB_WORD_BOXING
