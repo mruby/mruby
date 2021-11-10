@@ -884,6 +884,17 @@ new_kw_rest_args(parser_state *p, node *a)
   return cons((node*)NODE_KW_REST_ARGS, a);
 }
 
+static node*
+new_args_dots(parser_state *p, node *m)
+{
+  mrb_sym r = intern_op(mul);
+  mrb_sym k = intern_op(pow);
+  mrb_sym b = intern_op(and);
+  local_add_f(p, r);
+  return new_args(p, m, 0, r, 0,
+                  new_args_tail(p, 0, new_kw_rest_args(p, nsym(k)), b));
+}
+
 /* (:block_arg . a) */
 static node*
 new_block_arg(parser_state *p, node *a)
@@ -3621,21 +3632,11 @@ f_arglist_paren : '(' f_args rparen
                     }
                 | '(' f_arg ',' tBDOT3 rparen
                     {
-                      mrb_sym r = intern_op(mul);
-                      mrb_sym k = intern_op(pow);
-                      mrb_sym b = intern_op(and);
-                      local_add_f(p, r);
-                      $$ = new_args(p, $2, 0, r, 0,
-                                    new_args_tail(p, 0, new_kw_rest_args(p, nsym(k)), b));
+                      $$ = new_args_dots(p, $2);
                     }
                 | '(' tBDOT3 rparen
                     {
-                      mrb_sym r = intern_op(mul);
-                      mrb_sym k = intern_op(pow);
-                      mrb_sym b = intern_op(and);
-                      local_add_f(p, r);
-                      $$ = new_args(p, 0, 0, r, 0,
-                                    new_args_tail(p, 0, new_kw_rest_args(p, nsym(k)), b));
+                      $$ = new_args_dots(p, 0);
                     }
                 ;
 
@@ -3643,6 +3644,14 @@ f_arglist       : f_arglist_paren
                 | f_args term
                     {
                       $$ = $1;
+                    }
+                | f_arg ',' tBDOT3 term
+                    {
+                      $$ = new_args_dots(p, $1);
+                    }
+                | tDOT3 term
+                    {
+                      $$ = new_args_dots(p, 0);
                     }
                 ;
 
