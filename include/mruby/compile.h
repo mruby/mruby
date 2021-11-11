@@ -56,7 +56,7 @@ enum mrb_lex_state_enum {
   EXPR_ENDFN,                 /* ditto, and unbound braces. */
   EXPR_ARG,                   /* newline significant, +/- is an operator. */
   EXPR_CMDARG,                /* newline significant, +/- is an operator. */
-  EXPR_MID,                   /* newline significant, +/- is an operator. */
+  EXPR_MID,                   /* newline significant, +/- is a sign. */
   EXPR_FNAME,                 /* ignore newline, no reserved words. */
   EXPR_DOT,                   /* right after '.' or '::', no reserved words. */
   EXPR_CLASS,                 /* immediate after 'class', no here document. */

@@ -5693,7 +5693,7 @@ parser_yylex(parser_state *p)
   case '.':
     {
       int is_beg = IS_BEG();
-      p->lstate = EXPR_BEG;
+      p->lstate = EXPR_MID;
       if ((c = nextc(p)) == '.') {
         if ((c = nextc(p)) == '.') {
           return is_beg ? tBDOT3 : tDOT3;
@@ -5702,6 +5702,7 @@ parser_yylex(parser_state *p)
         return is_beg ? tBDOT2 : tDOT2;
       }
       pushback(p, c);
+      p->lstate = EXPR_BEG;
       if (c >= 0 && ISDIGIT(c)) {
         yyerror(p, "no .<digit> floating literal anymore; put 0 before dot");
       }
