@@ -730,10 +730,19 @@ assert('argument forwarding') do
       assert_equal(a,1)
       a0(1,...)
     end
+    def c ...
+      a(...)
+    end
+    def d a,...
+      assert_equal(a,1)
+      b(1,...)
+    end
   }
   o = c.new
   o.a(1,2,3){}
   o.b(1,2,3){}
+  o.c(1,2,3){}
+  o.d(1,2,3){}
 end
 
 assert('endless def') do
