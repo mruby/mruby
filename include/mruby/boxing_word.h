@@ -95,13 +95,12 @@ enum mrb_special_consts {
  *   false : ...0000 0100 (mrb_fixnum(v) != 0)
  *   true  : ...0000 1100
  *   undef : ...0001 0100
- *   symbol: ...SSS1 1100 (use only upper 32-bit as symbol value with MRB_64BIT)
  *   symbol: ...SSS1 0100 (symbol occupies 20bits)
  *   fixnum: ...IIII III1
  *   float : ...FFFF FF10 (22 bit significands; require MRB_64BIT)
  *   object: ...PPPP P000
  *
- * and word boxing without inline float:
+ * and word boxing without inline float (MRB_WORDBOX_NO_FLOAT_TRUNCATE):
  *   nil   : ...0000 0000 (all bits are 0)
  *   false : ...0000 0100 (mrb_fixnum(v) != 0)
  *   true  : ...0000 1100
