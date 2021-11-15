@@ -519,6 +519,8 @@ str_tr(mrb_state *mrb, mrb_value str, mrb_value p1, mrb_value p2, mrb_bool squee
           continue;
         }
         if (c > 0x80) {
+          tr_free_pattern(mrb, &pat);
+          tr_free_pattern(mrb, rep);
           mrb_raisef(mrb, E_ARGUMENT_ERROR, "character (%i) out of range", c);
         }
         lastch = c;
