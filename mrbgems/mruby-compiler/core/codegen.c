@@ -577,6 +577,7 @@ static void
 gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
 {
   if (nopeep || no_peephole(s)) goto normal;
+  else if (dst == src) return;
   else {
     struct mrb_insn_data data = mrb_last_insn(s);
 
@@ -1804,7 +1805,7 @@ gen_assignment(codegen_scope *s, node *tree, int sp, int val)
     gen_call(s, tree, attrsym(s, nsym(tree->cdr->car)), sp, NOVAL,
              type == NODE_SCALL);
     pop();
-    if (val) {
+    if (val && cursp() != sp) {
       gen_move(s, cursp(), sp, 0);
     }
     break;
