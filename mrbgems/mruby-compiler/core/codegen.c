@@ -1434,7 +1434,7 @@ lambda_body(codegen_scope *s, node *tree, int blk)
       }
     }
     if (pargs) {
-      node *n = margs;
+      node *n = pargs;
 
       pos = ma+oa+ra+1;
       while (n) {
