@@ -2669,7 +2669,7 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_ASET, BBB) {
-      mrb_assert(mrb_type(regs[a]) == MRB_TT_ARRAY);
+      mrb_assert(mrb_type(regs[b]) == MRB_TT_ARRAY);
       mrb_ary_set(mrb, regs[b], c, regs[a]);
       NEXT;
     }
