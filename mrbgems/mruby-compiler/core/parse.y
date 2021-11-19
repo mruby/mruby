@@ -3923,8 +3923,8 @@ f_rest_arg      : restarg_mark tIDENTIFIER
                     }
                 | restarg_mark
                     {
-                      local_add_f(p, intern_op(mul));
-                      $$ = -1;
+                      $$ = intern_op(mul);
+                      local_add_f(p, $$);
                     }
                 ;
 
