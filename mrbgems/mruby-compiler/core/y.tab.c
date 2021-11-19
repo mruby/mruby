@@ -9893,8 +9893,8 @@ yyreduce:
   case 562:
 #line 3925 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      local_add_f(p, intern_op(mul));
-                      (yyval.id) = -1;
+                      (yyval.id) = intern_op(mul);
+                      local_add_f(p, (yyval.id));
                     }
 #line 9900 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
