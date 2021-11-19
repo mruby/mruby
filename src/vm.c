@@ -1573,7 +1573,7 @@ RETRY_TRY_BLOCK:
       mrb_value recv;
 
       if (0 < nk && nk < 15) {  /* pack keyword arguments */
-        mrb_int kidx = a+n+1;
+        mrb_int kidx = a+(n==15?1:n)+1;
         mrb_value kdict = hash_new_from_values(mrb, nk, regs+kidx);
         regs[kidx] = kdict;
         nk = 15;
