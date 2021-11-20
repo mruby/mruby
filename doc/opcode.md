@@ -97,7 +97,7 @@ sign) of operands.
 | `OP_ARYPUSH`     | `BB`         | `ary_push(R(a),R(a+1)..R(a+b))`                          |
 | `OP_ARYDUP`      | `B`          | `R(a) = ary_dup(R(a))`                                   |
 | `OP_AREF`        | `BBB`        | `R(a) = R(b)[c]`                                         |
-| `OP_ASET`        | `BBB`        | `R(a)[c] = R(b)`                                         |
+| `OP_ASET`        | `BBB`        | `R(b)[c] = R(a)`                                         |
 | `OP_APOST`       | `BBB`        | `*R(a),R(a+1)..R(a+c) = R(a)[b..]`                       |
 | `OP_INTERN`      | `B`          | `R(a) = intern(R(a))`                                    |
 | `OP_STRING`      | `BB`         | `R(a) = str_dup(Pool(b))`                                |
