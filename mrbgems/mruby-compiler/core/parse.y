@@ -299,6 +299,14 @@ static void
 local_add_f(parser_state *p, mrb_sym sym)
 {
   if (p->locals) {
+    node *n = p->locals->car;
+    while (n) {
+      if (sym(n->car) == sym) {
+        yyerror(p, "duplicated argument name");
+        return;
+      }
+      n = n->cdr;
+    }
     p->locals->car = push(p->locals->car, nsym(sym));
   }
 }
