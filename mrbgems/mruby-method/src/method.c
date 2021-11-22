@@ -9,6 +9,10 @@
 mrb_noreturn void mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value args);
 mrb_value mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p);
 
+// Defined by mruby-proc-ext on which mruby-method depends
+mrb_value mrb_proc_parameters(mrb_state *mrb, mrb_value proc);
+mrb_value mrb_proc_source_location(mrb_state *mrb, struct RProc *p);
+
 static mrb_value
 args_shift(mrb_state *mrb)
 {
@@ -345,28 +349,17 @@ static mrb_value
 method_source_location(mrb_state *mrb, mrb_value self)
 {
   mrb_value proc = mrb_iv_get(mrb, self, MRB_SYM(_proc));
-  struct RProc *rproc;
-  struct RClass *orig;
-  mrb_value ret;
 
   if (mrb_nil_p(proc))
     return mrb_nil_value();
 
-  rproc = mrb_proc_ptr(proc);
-  orig = rproc->c;
-  rproc->c = mrb->proc_class;
-  ret = mrb_funcall_id(mrb, proc, MRB_SYM(source_location), 0);
-  rproc->c = orig;
-  return ret;
+  return mrb_proc_source_location(mrb, mrb_proc_ptr(proc));
 }
 
 static mrb_value
 method_parameters(mrb_state *mrb, mrb_value self)
 {
   mrb_value proc = mrb_iv_get(mrb, self, MRB_SYM(_proc));
-  struct RProc *rproc;
-  struct RClass *orig;
-  mrb_value ret;
 
   if (mrb_nil_p(proc)) {
     mrb_value rest = mrb_symbol_value(MRB_SYM(rest));
@@ -374,12 +367,7 @@ method_parameters(mrb_state *mrb, mrb_value self)
     return mrb_ary_new_from_values(mrb, 1, &arest);
   }
 
-  rproc = mrb_proc_ptr(proc);
-  orig = rproc->c;
-  rproc->c = mrb->proc_class;
-  ret = mrb_funcall_id(mrb, proc, MRB_SYM(parameters), 0);
-  rproc->c = orig;
-  return ret;
+  return mrb_proc_parameters(mrb, proc);
 }
 
 static mrb_value
