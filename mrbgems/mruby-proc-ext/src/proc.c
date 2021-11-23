@@ -92,7 +92,7 @@ mrb_kernel_proc(mrb_state *mrb, mrb_value self)
  *    prc.parameters  #=> [[:req, :x], [:opt, :y], [:rest, :other]]
  */
 
-static mrb_value
+mrb_value
 mrb_proc_parameters(mrb_state *mrb, mrb_value self)
 {
   struct parameters_type {
