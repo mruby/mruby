@@ -106,7 +106,7 @@ jobs:
       cache-version: v1
     steps:
       - uses: actions/checkout@v2.4.0
-      - uses: actions/cache@v2.1.6
+      - uses: actions/cache@v2.1.7
         with:
           path: ${{ env.package-dir }}
           key: ${{ runner.os }}-cygwin-${{ env.cache-version }}
