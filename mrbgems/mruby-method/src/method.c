@@ -300,7 +300,12 @@ method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
     return NULL;
   if (MRB_METHOD_PROC_P(m))
     return MRB_METHOD_PROC(m);
-  return mrb_proc_new_cfunc(mrb, MRB_METHOD_FUNC(m));
+
+  struct RProc *proc = mrb_proc_new_cfunc(mrb, MRB_METHOD_FUNC(m));
+  if (MRB_METHOD_NOARG_P(m)) {
+    proc->flags |= MRB_PROC_NOARG;
+  }
+  return proc;
 }
 
 static mrb_value

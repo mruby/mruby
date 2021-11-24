@@ -98,6 +98,9 @@ assert 'Method#call' do
   }.new
   assert_raise(LocalJumpError) { i.method(:bar).call }
   assert_equal 3, i.method(:bar).call { |i| i }
+
+  assert_raise(ArgumentError) { nil.method(:__id__).call nil, 1 }
+  assert_raise(ArgumentError) { nil.method(:__id__).call nil, opts: 1 }
 end
 
 assert 'Method#call for regression' do
@@ -218,6 +221,9 @@ assert 'Method#to_proc' do
   assert_equal values, o.method(:baz).to_proc.call(1, 2, 3, 4, 5, 6, **{ u: 7, v: 8, s: 9, t: 10 }, &blk)
   assert_equal values, o.method(:baz).to_proc.call(*[1, 2, 3, 4, 5, 6], u: 7, v: 8, s: 9, t: 10, &blk)
   assert_equal values, o.method(:baz).to_proc.call(*[1, 2, 3, 4, 5, 6], **{ u: 7, v: 8, s: 9, t: 10 }, &blk)
+
+  assert_raise(ArgumentError) { nil.method(:__id__).to_proc.call nil, 1 }
+  assert_raise(ArgumentError) { nil.method(:__id__).to_proc.call nil, opts: 1 }
 end
 
 assert 'to_s' do
@@ -472,4 +478,7 @@ assert 'UnboundMethod#bind_call' do
   assert_equal values, m.bind_call(o, *[1, 2, 3, 4, 5, 6], u: 7, v: 8, s: 9, t: 10, &blk)
   assert_equal values, m.bind_call(o, *[1, 2, 3, 4, 5, 6], **{ u: 7, v: 8, s: 9, t: 10 }, &blk)
   assert_raise(ArgumentError) { m.bind_call }
+
+  assert_raise(ArgumentError) { BasicObject.instance_method(:__id__).bind_call nil, 1 }
+  assert_raise(ArgumentError) { BasicObject.instance_method(:__id__).bind_call nil, opts: 1 }
 end
