@@ -20,15 +20,19 @@ args_shift(mrb_state *mrb)
   mrb_value *argv = ci->stack + 1;
 
   if (ci->n < 15) {
+    if (ci->n == 0) { goto argerr; }
+    mrb_assert(ci->nk == 0 || ci->nk == 15);
     mrb_value obj = argv[0];
-    memmove(argv, argv + 1, (ci->n + 1 /* block */ - 1 /* first value */) * sizeof(mrb_value));
+    int count = ci->n + (ci->nk == 0 ? 0 : 1) + 1 /* block */ - 1 /* first value */;
+    memmove(argv, argv + 1, count * sizeof(mrb_value));
     ci->n--;
     return obj;
   }
-  else if (ci->n == 15 && RARRAY_LEN(*argv) > 0) {
+  else if (RARRAY_LEN(*argv) > 0) {
     return mrb_ary_shift(mrb, *argv);
   }
   else {
+  argerr:
     mrb_argnum_error(mrb, 0, 1, -1);
     return mrb_undef_value(); /* not reached */
   }
@@ -41,9 +45,12 @@ args_unshift(mrb_state *mrb, mrb_value obj)
   mrb_value *argv = ci->stack + 1;
 
   if (ci->n < 15) {
-    mrb_value block = argv[ci->n];
+    mrb_assert(ci->nk == 0 || ci->nk == 15);
     argv[0] = mrb_ary_new_from_values(mrb, ci->n, argv);
-    argv[1] = block;
+    argv[1] = argv[ci->n]; // keyword or block
+    if (ci->nk == 15) {
+      argv[2] = argv[ci->n + 1]; // block
+    }
     ci->n = 15;
   }
 
