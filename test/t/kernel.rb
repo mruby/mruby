@@ -95,6 +95,9 @@ assert('Kernel#__send__', '15.3.1.3.4') do
   args = [:respond_to?, :nil?]
   assert_true __send__(*args)
   assert_equal [:respond_to?, :nil?], args
+
+  assert_raise(ArgumentError) { nil.__send__(:__id__, 1) }
+  assert_raise(ArgumentError) { nil.__send__(:__id__, opts: 1) }
 end
 
 assert('Kernel#block_given?', '15.3.1.3.6') do

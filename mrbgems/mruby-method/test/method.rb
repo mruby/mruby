@@ -98,6 +98,9 @@ assert 'Method#call' do
   }.new
   assert_raise(LocalJumpError) { i.method(:bar).call }
   assert_equal 3, i.method(:bar).call { |i| i }
+
+  assert_raise(ArgumentError) { nil.method(:__id__).call nil, 1 }
+  assert_raise(ArgumentError) { nil.method(:__id__).call nil, opts: 1 }
 end
 
 assert 'Method#call for regression' do
@@ -208,6 +211,9 @@ assert 'Method#to_proc' do
     yield 39
   end
   assert_equal 42, o.bar(&3.method(:+))
+
+  assert_raise(ArgumentError) { nil.method(:__id__).to_proc.call nil, 1 }
+  assert_raise(ArgumentError) { nil.method(:__id__).to_proc.call nil, opts: 1 }
 end
 
 assert 'to_s' do
@@ -449,4 +455,7 @@ assert 'UnboundMethod#bind_call' do
   assert_equal(0, m.bind_call([]))
   assert_equal(1, m.bind_call([1]))
   assert_equal(2, m.bind_call([1,2]))
+
+  assert_raise(ArgumentError) { BasicObject.instance_method(:__id__).bind_call nil, 1 }
+  assert_raise(ArgumentError) { BasicObject.instance_method(:__id__).bind_call nil, opts: 1 }
 end

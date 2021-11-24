@@ -83,6 +83,8 @@ struct RProc {
 } while (0)
 #define MRB_PROC_SCOPE 2048
 #define MRB_PROC_SCOPE_P(p) (((p)->flags & MRB_PROC_SCOPE) != 0)
+#define MRB_PROC_NOARG 4096 /* for MRB_PROC_CFUNC_FL, it would be something like MRB_ARGS_NONE() or MRB_METHOD_NOARG_FL */
+#define MRB_PROC_NOARG_P(p) (((p)->flags & MRB_PROC_NOARG) != 0)
 
 #define mrb_proc_ptr(v)    ((struct RProc*)(mrb_ptr(v)))
 

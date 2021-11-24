@@ -541,6 +541,18 @@ mrb_funcall_argv(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc, cons
   return mrb_funcall_with_block(mrb, self, mid, argc, argv, mrb_nil_value());
 }
 
+static void
+check_method_noarg(mrb_state *mrb, const mrb_callinfo *ci)
+{
+  int argc = ci->n == CALL_MAXARGS ? RARRAY_LEN(ci->stack[1]) : ci->n;
+  if (ci->nk != 0 && !mrb_hash_empty_p(mrb, ci->stack[ci->n == CALL_MAXARGS ? 2 : ci->n + 1])) {
+    argc++;
+  }
+  if (argc > 0) {
+    mrb_argnum_error(mrb, argc, 0, 0);
+  }
+}
+
 static mrb_value
 exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p)
 {
@@ -550,6 +562,9 @@ exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p)
   ci->stack[0] = self;
   mrb_vm_ci_proc_set(ci, p);
   if (MRB_PROC_CFUNC_P(p)) {
+    if (MRB_PROC_NOARG_P(p)) {
+      check_method_noarg(mrb, ci);
+    }
     return MRB_PROC_CFUNC(p)(mrb, self);
   }
   nregs = p->body.irep->nregs;
@@ -577,6 +592,9 @@ mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p)
   else {
     mrb_value ret;
     if (MRB_PROC_CFUNC_P(p)) {
+      if (MRB_PROC_NOARG_P(p)) {
+        check_method_noarg(mrb, ci);
+      }
       cipush(mrb, 0, CINFO_DIRECT, mrb_vm_ci_target_class(ci), p, ci->mid, ci->n|(ci->nk<<4));
       ret = MRB_PROC_CFUNC(p)(mrb, self);
       cipop(mrb);
@@ -665,6 +683,10 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
   }
 
   if (MRB_METHOD_CFUNC_P(m)) {
+    if (MRB_METHOD_NOARG_P(m)) {
+      check_method_noarg(mrb, ci);
+    }
+
     if (MRB_METHOD_PROC_P(m)) {
       mrb_vm_ci_proc_set(ci, MRB_METHOD_PROC(m));
     }
@@ -937,6 +959,9 @@ argnum_error(mrb_state *mrb, mrb_int num)
     if (mrb_array_p(args)) {
       argc = RARRAY_LEN(args);
     }
+  }
+  if (argc == 0 && mrb->c->ci->nk != 0 && !mrb_hash_empty_p(mrb, mrb->c->ci->stack[1])) {
+    argc++;
   }
   if (mrb->c->ci->mid) {
     str = mrb_format(mrb, "'%n': wrong number of arguments (%i for %i)",
@@ -1617,7 +1642,8 @@ RETRY_TRY_BLOCK:
           recv = p->body.func(mrb, recv);
         }
         else if (MRB_METHOD_NOARG_P(m) &&
-                 !(n == 0 || (n == CALL_MAXARGS && RARRAY_LEN(regs[1]) == 0))) {
+                 (!(n == 0 || (n == CALL_MAXARGS && RARRAY_LEN(regs[1]) == 0)) ||
+                  !(nk == 0 || mrb_hash_empty_p(mrb, regs[n == CALL_MAXARGS ? 2 : n + 1])))) {
           argnum_error(mrb, 0);
           goto L_RAISE;
         }
