@@ -208,6 +208,16 @@ assert 'Method#to_proc' do
     yield 39
   end
   assert_equal 42, o.bar(&3.method(:+))
+
+  def o.baz(x, y, z, *w, u:, v:, **opts, &blk)
+    { x:, y:, z:, w:, u:, v:, opts:, blk: }
+  end
+  blk = -> { }
+  values = { x: 1, y: 2, z: 3, w: [4, 5, 6], u: 7, v: 8, opts: { s: 9, t: 10 }, blk: blk }
+  assert_equal values, o.method(:baz).to_proc.call(1, 2, 3, 4, 5, 6, u: 7, v: 8, s: 9, t: 10, &blk)
+  assert_equal values, o.method(:baz).to_proc.call(1, 2, 3, 4, 5, 6, **{ u: 7, v: 8, s: 9, t: 10 }, &blk)
+  assert_equal values, o.method(:baz).to_proc.call(*[1, 2, 3, 4, 5, 6], u: 7, v: 8, s: 9, t: 10, &blk)
+  assert_equal values, o.method(:baz).to_proc.call(*[1, 2, 3, 4, 5, 6], **{ u: 7, v: 8, s: 9, t: 10 }, &blk)
 end
 
 assert 'to_s' do
@@ -449,4 +459,17 @@ assert 'UnboundMethod#bind_call' do
   assert_equal(0, m.bind_call([]))
   assert_equal(1, m.bind_call([1]))
   assert_equal(2, m.bind_call([1,2]))
+
+  o = Object.new
+  def m(x, y, z, *w, u:, v:, **opts, &blk)
+    { x:, y:, z:, w:, u:, v:, opts:, blk: }
+  end
+  m = o.method(:m).unbind
+  blk = -> { }
+  values = { x: 1, y: 2, z: 3, w: [4, 5, 6], u: 7, v: 8, opts: { s: 9, t: 10 }, blk: blk }
+  assert_equal values, m.bind_call(o, 1, 2, 3, 4, 5, 6, u: 7, v: 8, s: 9, t: 10, &blk)
+  assert_equal values, m.bind_call(o, 1, 2, 3, 4, 5, 6, **{ u: 7, v: 8, s: 9, t: 10 }, &blk)
+  assert_equal values, m.bind_call(o, *[1, 2, 3, 4, 5, 6], u: 7, v: 8, s: 9, t: 10, &blk)
+  assert_equal values, m.bind_call(o, *[1, 2, 3, 4, 5, 6], **{ u: 7, v: 8, s: 9, t: 10 }, &blk)
+  assert_raise(ArgumentError) { m.bind_call }
 end

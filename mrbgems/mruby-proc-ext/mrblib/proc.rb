@@ -40,11 +40,11 @@ class Proc
   end
 
   def <<(other)
-    ->(*args, &block) { call(other.call(*args, &block)) }
+    ->(*args, **opts, &block) { call(other.call(*args, **opts, &block)) }
   end
 
   def >>(other)
-    ->(*args, &block) { other.call(call(*args, &block)) }
+    ->(*args, **opts, &block) { other.call(call(*args, **opts, &block)) }
   end
 
 end
