@@ -1395,11 +1395,7 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_GETCONST, BB) {
-      mrb_value val;
-      mrb_sym sym = syms[b];
-
-      val = mrb_vm_const_get(mrb, sym);
-      regs[a] = val;
+      regs[a] = mrb_vm_const_get(mrb, syms[b]);
       NEXT;
     }
 
@@ -1409,10 +1405,7 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_GETMCNST, BB) {
-      mrb_value val;
-
-      val = mrb_const_get(mrb, regs[a], syms[b]);
-      regs[a] = val;
+      regs[a] = mrb_const_get(mrb, regs[a], syms[b]);
       NEXT;
     }
 
@@ -1705,9 +1698,6 @@ RETRY_TRY_BLOCK:
         pc = ci->pc;
         ci[1].stack[0] = recv;
         irep = mrb->c->ci->proc->body.irep;
-        pool = irep->pool;
-        syms = irep->syms;
-        JUMP;
       }
       else {
         /* setup environment for calling method */
@@ -1719,8 +1709,6 @@ RETRY_TRY_BLOCK:
           c = OP_R_NORMAL;
           goto L_OP_RETURN_BODY;
         }
-        pool = irep->pool;
-        syms = irep->syms;
         mrb_int nargs = mrb_ci_bidx(ci)+1;
         if (nargs < irep->nregs) {
           mrb_stack_extend(mrb, irep->nregs);
@@ -1730,8 +1718,10 @@ RETRY_TRY_BLOCK:
           regs[0] = MRB_PROC_ENV(m)->stack[0];
         }
         pc = irep->iseq;
-        JUMP;
       }
+      pool = irep->pool;
+      syms = irep->syms;
+      JUMP;
     }
 
     CASE(OP_SUPER, BB) {
@@ -1819,7 +1809,6 @@ RETRY_TRY_BLOCK:
         mrb->c->ci->stack[0] = v;
         ci = cipop(mrb);
         pc = ci->pc;
-        JUMP;
       }
       else {
         /* setup environment for calling method */
@@ -1829,8 +1818,8 @@ RETRY_TRY_BLOCK:
         syms = irep->syms;
         mrb_stack_extend(mrb, (irep->nregs < 4) ? 4 : irep->nregs);
         pc = irep->iseq;
-        JUMP;
       }
+      JUMP;
     }
 
     CASE(OP_ARGARY, BS) {
@@ -2625,14 +2614,12 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_ARRAY, BB) {
-      mrb_value v = mrb_ary_new_from_values(mrb, b, &regs[a]);
-      regs[a] = v;
+      regs[a] = mrb_ary_new_from_values(mrb, b, &regs[a]);
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
     CASE(OP_ARRAY2, BBB) {
-      mrb_value v = mrb_ary_new_from_values(mrb, c, &regs[b]);
-      regs[a] = v;
+      regs[a] = mrb_ary_new_from_values(mrb, c, &regs[b]);
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
@@ -2835,15 +2822,13 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_RANGE_INC, B) {
-      mrb_value val = mrb_range_new(mrb, regs[a], regs[a+1], FALSE);
-      regs[a] = val;
+      regs[a] = mrb_range_new(mrb, regs[a], regs[a+1], FALSE);
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
     CASE(OP_RANGE_EXC, B) {
-      mrb_value val = mrb_range_new(mrb, regs[a], regs[a+1], TRUE);
-      regs[a] = val;
+      regs[a] = mrb_range_new(mrb, regs[a], regs[a+1], TRUE);
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
