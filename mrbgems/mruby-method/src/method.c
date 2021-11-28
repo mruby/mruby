@@ -46,10 +46,18 @@ args_unshift(mrb_state *mrb, mrb_value obj)
 
   if (ci->n < 15) {
     mrb_assert(ci->nk == 0 || ci->nk == 15);
-    argv[0] = mrb_ary_new_from_values(mrb, ci->n, argv);
-    argv[1] = argv[ci->n]; // keyword or block
-    if (ci->nk == 15) {
-      argv[2] = argv[ci->n + 1]; // block
+    mrb_value args = mrb_ary_new_from_values(mrb, ci->n, argv);
+    if (ci->nk == 0) {
+      mrb_value block = argv[ci->n];
+      argv[0] = args;
+      argv[1] = block;
+    }
+    else {
+      mrb_value keyword = argv[ci->n];
+      mrb_value block = argv[ci->n + 1];
+      argv[0] = args;
+      argv[1] = keyword;
+      argv[2] = block;
     }
     ci->n = 15;
   }
