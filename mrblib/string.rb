@@ -51,7 +51,7 @@ class String
   # ISO 15.2.10.5.18
   def gsub(*args, &block)
     return to_enum(:gsub, *args) if args.length == 1 && !block
-    raise ArgumentError, "wrong number of arguments" unless (1..2).include?(args.length)
+    raise ArgumentError, "wrong number of arguments (given #{args.length}, expected 1..2)" unless (1..2).include?(args.length)
 
     pattern, replace = *args
     plen = pattern.length

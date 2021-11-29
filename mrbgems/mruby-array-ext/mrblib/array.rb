@@ -382,7 +382,7 @@ class Array
 
   def fill(arg0=nil, arg1=nil, arg2=nil, &block)
     if arg0.nil? && arg1.nil? && arg2.nil? && !block
-      raise ArgumentError, "wrong number of arguments (0 for 1..3)"
+      raise ArgumentError, "wrong number of arguments (given 0, expected 1..3)"
     end
 
     beg = len = 0
