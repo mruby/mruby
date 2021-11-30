@@ -12,16 +12,11 @@
 #include <mruby/variable.h>
 #include <mruby/presym.h>
 
-struct iv_elem {
-  mrb_sym key;
-  mrb_value val;
-};
-
 /* Instance variable table structure */
 typedef struct iv_tbl {
   size_t size;
   size_t alloc;
-  struct iv_elem *table;
+  mrb_value *ptr;
 } iv_tbl;
 
 /* Creates the instance variable table. */
@@ -33,7 +28,7 @@ iv_new(mrb_state *mrb)
   t = (iv_tbl*)mrb_malloc(mrb, sizeof(iv_tbl));
   t->size = 0;
   t->alloc = 0;
-  t->table = NULL;
+  t->ptr = NULL;
 
   return t;
 }
@@ -45,67 +40,70 @@ iv_rehash(mrb_state *mrb, iv_tbl *t)
 {
   size_t old_alloc = t->alloc;
   size_t new_alloc = old_alloc+1;
-  struct iv_elem *old_table = t->table;
+  mrb_value *old_ptr = t->ptr;
 
   khash_power2(new_alloc);
   if (old_alloc == new_alloc) return;
 
   t->alloc = new_alloc;
   t->size = 0;
-  t->table = (struct iv_elem*)mrb_calloc(mrb, sizeof(struct iv_elem), new_alloc);
+  t->ptr = (mrb_value*)mrb_calloc(mrb, sizeof(mrb_value)+sizeof(mrb_sym), new_alloc);
 
+  mrb_sym *keys = (mrb_sym*)&old_ptr[old_alloc];
+  mrb_value *vals = old_ptr;
   for (size_t i = 0; i < old_alloc; i++) {
-    struct iv_elem *slot = &old_table[i];
-
     /* key = 0 means empty; val = undef means deleted */
-    if (slot->key != 0 && !mrb_undef_p(slot->val)) {
-      iv_put(mrb, t, slot->key, slot->val);
+    if (keys[i] != 0 && !mrb_undef_p(vals[i])) {
+      iv_put(mrb, t, keys[i], vals[i]);
     }
   }
-  mrb_free(mrb, old_table);
+  mrb_free(mrb, old_ptr);
 }
 
-#define slot_empty_p(slot) ((slot)->key == 0 && !mrb_undef_p((slot)->val))
+#define slot_empty_p(k,v) ((k) == 0 && !mrb_undef_p(v))
 
 /* Set the value for the symbol in the instance variable table. */
 static void
 iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
 {
   size_t hash, pos, start;
-  struct iv_elem *dslot = NULL;
+  int dpos = -1;
 
   if (t == NULL) return;
   if (t->alloc == 0) {
     iv_rehash(mrb, t);
   }
+
+  mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
+  mrb_value *vals = t->ptr;
   hash = kh_int_hash_func(mrb, sym);
   start = pos = hash & (t->alloc-1);
   for (;;) {
-    struct iv_elem *slot = &t->table[pos];
-
-    if (slot->key == sym) {
-      slot->val = val;
+    if (keys[pos] == sym) {
+      vals[pos] = val;
       return;
     }
-    else if (slot_empty_p(slot)) {
+    else if (slot_empty_p(keys[pos], vals[pos])) {
       t->size++;
-      slot->key = sym;
-      slot->val = val;
+      keys[pos] = sym;
+      vals[pos] = val;
       return;
     }
-    else if (!dslot && mrb_undef_p(slot->val)) { /* deleted */
-      dslot = slot;
+    else if (dpos < 0 && mrb_undef_p(vals[pos])) { /* deleted */
+      dpos = pos;
     }
     pos = (pos+1) & (t->alloc-1);
     if (pos == start) {         /* not found */
-      if (dslot) {
+      if (dpos >= 0) {
         t->size++;
-        dslot->key = sym;
-        dslot->val = val;
+        keys[dpos] = sym;
+        vals[dpos] = val;
         return;
       }
       /* no room */
       iv_rehash(mrb, t);
+      keys = (mrb_sym*)&t->ptr[t->alloc];
+      vals = t->ptr;
       start = pos = hash & (t->alloc-1);
     }
   }
@@ -121,16 +119,16 @@ iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
   if (t->alloc == 0) return FALSE;
   if (t->size == 0) return FALSE;
 
+  mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
+  mrb_value *vals = t->ptr;
   hash = kh_int_hash_func(mrb, sym);
   start = pos = hash & (t->alloc-1);
   for (;;) {
-    struct iv_elem *slot = &t->table[pos];
-
-    if (slot->key == sym) {
-      if (vp) *vp = slot->val;
+    if (keys[pos] == sym) {
+      if (vp) *vp = vals[pos];
       return TRUE;
     }
-    else if (slot_empty_p(slot)) {
+    else if (slot_empty_p(keys[pos], vals[pos])) {
       return FALSE;
     }
     pos = (pos+1) & (t->alloc-1);
@@ -150,19 +148,19 @@ iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
   if (t->alloc == 0) return  FALSE;
   if (t->size == 0) return FALSE;
 
+  mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
+  mrb_value *vals = t->ptr;
   hash = kh_int_hash_func(mrb, sym);
   start = pos = hash & (t->alloc-1);
   for (;;) {
-    struct iv_elem *slot = &t->table[pos];
-
-    if (slot->key == sym) {
-      if (vp) *vp = slot->val;
+    if (keys[pos] == sym) {
+      if (vp) *vp = vals[pos];
       t->size--;
-      slot->key = 0;
-      slot->val = mrb_undef_value();
+      keys[pos] = 0;
+      vals[pos] = mrb_undef_value();
       return TRUE;
     }
-    else if (slot_empty_p(slot)) {
+    else if (slot_empty_p(keys[pos], vals[pos])) {
       return FALSE;
     }
     pos = (pos+1) & (t->alloc-1);
@@ -182,11 +180,11 @@ iv_foreach(mrb_state *mrb, iv_tbl *t, mrb_iv_foreach_func *func, void *p)
   if (t->alloc == 0) return;
   if (t->size == 0) return;
 
+  mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
+  mrb_value *vals = t->ptr;
   for (i=0; i<t->alloc; i++) {
-    struct iv_elem *slot = &t->table[i];
-
-    if (slot->key && !mrb_undef_p(slot->val)) {
-      if ((*func)(mrb, slot->key, slot->val, p) != 0) {
+    if (keys[i] && !mrb_undef_p(vals[i])) {
+      if ((*func)(mrb, keys[i], vals[i], p) != 0) {
         return;
       }
     }
@@ -213,12 +211,12 @@ iv_copy(mrb_state *mrb, iv_tbl *t)
   if (t->alloc == 0) return NULL;
   if (t->size == 0) return NULL;
 
+  mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
+  mrb_value *vals = t->ptr;
   t2 = iv_new(mrb);
   for (i=0; i<t->alloc; i++) {
-    struct iv_elem *slot = &t->table[i];
-
-    if (slot->key && !mrb_undef_p(slot->val)) {
-      iv_put(mrb, t2, slot->key, slot->val);
+    if (keys[i] && !mrb_undef_p(vals[i])) {
+      iv_put(mrb, t2, keys[i], vals[i]);
     }
   }
   return t2;
@@ -228,7 +226,7 @@ iv_copy(mrb_state *mrb, iv_tbl *t)
 static void
 iv_free(mrb_state *mrb, iv_tbl *t)
 {
-  mrb_free(mrb, t->table);
+  mrb_free(mrb, t->ptr);
   mrb_free(mrb, t);
 }
 
@@ -1125,7 +1123,7 @@ mrb_obj_iv_tbl_memsize(mrb_value obj)
 {
   iv_tbl *t = mrb_obj_ptr(obj)->iv;
   if (t == NULL) return 0;
-  return sizeof(iv_tbl) + t->alloc*sizeof(struct iv_elem);
+  return sizeof(iv_tbl) + t->alloc*(sizeof(mrb_value)+sizeof(mrb_sym));
 }
 
 #define identchar(c) (ISALNUM(c) || (c) == '_' || !ISASCII(c))
