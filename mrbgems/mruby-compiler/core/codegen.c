@@ -729,7 +729,7 @@ get_int_operand(codegen_scope *s, struct mrb_insn_data *data, mrb_int *n)
 
   case OP_LOADI:
   case OP_LOADI16:
-    *n = data->b;
+    *n = (int16_t)data->b;
     return TRUE;
 
   case OP_LOADI32:
