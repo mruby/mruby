@@ -778,8 +778,8 @@ gen_addsub(codegen_scope *s, uint8_t op, uint16_t dst)
     struct mrb_insn_data data0 = mrb_decode_insn(mrb_prev_pc(s, data.addr));
     mrb_int n0;
     if (addr_pc(s, data.addr) == s->lastlabel || !get_int_operand(s, &data0, &n0)) {
-      /* OP_ADDI/OP_SUBI takes upto 16bits */
-      if (n > INT16_MAX || n < INT16_MIN) goto normal;
+      /* OP_ADDI/OP_SUBI takes upto 8bits */
+      if (n > INT8_MAX || n < INT8_MIN) goto normal;
       rewind_pc(s);
       if (n == 0) return;
       if (n > 0) {
