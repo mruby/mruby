@@ -779,13 +779,16 @@ gen_addsub(codegen_scope *s, uint8_t op, uint16_t dst)
     mrb_int n0;
     if (addr_pc(s, data.addr) == s->lastlabel || !get_int_operand(s, &data0, &n0)) {
       /* OP_ADDI/OP_SUBI takes upto 16bits */
-      if (n > INT16_MAX) goto normal;
+      if (n > INT16_MAX || n < INT16_MIN) goto normal;
       rewind_pc(s);
-      if (op == OP_ADD) {
-        genop_2(s, OP_ADDI, dst, (uint16_t)n);
+      if (n > 0) {
+        if (op == OP_ADD) genop_2(s, OP_ADDI, dst, (uint16_t)n);
+        else genop_2(s, OP_SUBI, dst, (uint16_t)n);
       }
-      else {
-        genop_2(s, OP_SUBI, dst, (uint16_t)n);
+      else {                    /* n < 0 */
+        n = -n;
+        if (op == OP_ADD) genop_2(s, OP_SUBI, dst, (uint16_t)n);
+        else genop_2(s, OP_ADDI, dst, (uint16_t)n);
       }
       return;
     }
