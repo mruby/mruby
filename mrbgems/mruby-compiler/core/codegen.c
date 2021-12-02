@@ -1334,17 +1334,19 @@ lambda_body(codegen_scope *s, node *tree, int blk)
     if (ma > 0x1f || oa > 0x1f || pa > 0x1f || ka > 0x1f) {
       codegen_error(s, "too many formal arguments");
     }
+    /* (23bits = 5:5:1:5:5:1:1) */
     a = MRB_ARGS_REQ(ma)
       | MRB_ARGS_OPT(oa)
       | (ra? MRB_ARGS_REST() : 0)
       | MRB_ARGS_POST(pa)
       | MRB_ARGS_KEY(ka, kd)
       | (ba? MRB_ARGS_BLOCK() : 0);
-    s->ainfo = (((ma+oa) & 0x3f) << 7) /* (12bits = 5:1:5:1) */
+    genop_W(s, OP_ENTER, a);
+    /* (12bits = 5:1:5:1) */
+    s->ainfo = (((ma+oa) & 0x3f) << 7)
       | ((ra & 0x1) << 6)
       | ((pa & 0x1f) << 1)
-      | ((ka | kd) != 0 ? 0x01 : 0x00);
-    genop_W(s, OP_ENTER, a);
+      | ((ka | kd) ? 1 : 0);
     /* generate jump table for optional arguments initializer */
     pos = new_label(s);
     for (i=0; i<oa; i++) {
@@ -2066,7 +2068,7 @@ false_always(node *tree)
 }
 
 static void
-gen_blkmove(codegen_scope *s, int ainfo, int lv)
+gen_blkmove(codegen_scope *s, uint16_t ainfo, int lv)
 {
   int m1 = (ainfo>>7)&0x3f;
   int r  = (ainfo>>6)&0x1;
@@ -3102,7 +3104,17 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
 
   case NODE_BLOCK_ARG:
-    codegen(s, tree, val);
+    if (!tree) {
+      int idx = lv_idx(s, MRB_OPSYM_2(s->mrb, and));
+
+      if (idx == 0) {
+        codegen_error(s, "no anonymous block argument");
+      }
+      gen_move(s, cursp(), idx, val);
+    }
+    else {
+      codegen(s, tree, val);
+    }
     break;
 
   case NODE_INT:

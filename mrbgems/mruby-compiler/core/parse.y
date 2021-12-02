@@ -2603,6 +2603,10 @@ block_arg       : tAMPER arg
                     {
                       $$ = new_block_arg(p, $2);
                     }
+                | tAMPER
+                    {
+                      $$ = new_block_arg(p, 0);
+                    }
                 ;
 
 opt_block_arg   : comma block_arg
@@ -3943,6 +3947,10 @@ blkarg_mark     : '&'
 f_block_arg     : blkarg_mark tIDENTIFIER
                     {
                       $$ = $2;
+                    }
+                | blkarg_mark
+                    {
+                      $$ = intern_op(and);
                     }
                 ;
 
