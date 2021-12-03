@@ -14,7 +14,6 @@
 
 /* Instance variable table structure */
 typedef struct iv_tbl {
-  size_t size;
   size_t alloc;
   mrb_value *ptr;
 } iv_tbl;
@@ -26,7 +25,6 @@ iv_new(mrb_state *mrb)
   iv_tbl *t;
 
   t = (iv_tbl*)mrb_malloc(mrb, sizeof(iv_tbl));
-  t->size = 0;
   t->alloc = 0;
   t->ptr = NULL;
 
@@ -46,7 +44,6 @@ iv_rehash(mrb_state *mrb, iv_tbl *t)
   if (old_alloc == new_alloc) return;
 
   t->alloc = new_alloc;
-  t->size = 0;
   t->ptr = (mrb_value*)mrb_calloc(mrb, sizeof(mrb_value)+sizeof(mrb_sym), new_alloc);
   if (old_alloc == 0) return;
 
@@ -85,7 +82,6 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
       return;
     }
     else if (slot_empty_p(keys[pos], vals[pos])) {
-      t->size++;
       keys[pos] = sym;
       vals[pos] = val;
       return;
@@ -96,7 +92,6 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
     pos = (pos+1) & (t->alloc-1);
     if (pos == start) {         /* not found */
       if (dpos >= 0) {
-        t->size++;
         keys[dpos] = sym;
         vals[dpos] = val;
         return;
@@ -118,7 +113,6 @@ iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 
   if (t == NULL) return FALSE;
   if (t->alloc == 0) return FALSE;
-  if (t->size == 0) return FALSE;
 
   mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
   mrb_value *vals = t->ptr;
@@ -147,7 +141,6 @@ iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 
   if (t == NULL) return FALSE;
   if (t->alloc == 0) return  FALSE;
-  if (t->size == 0) return FALSE;
 
   mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
   mrb_value *vals = t->ptr;
@@ -156,7 +149,6 @@ iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
   for (;;) {
     if (keys[pos] == sym) {
       if (vp) *vp = vals[pos];
-      t->size--;
       keys[pos] = 0;
       vals[pos] = mrb_undef_value();
       return TRUE;
@@ -179,7 +171,6 @@ iv_foreach(mrb_state *mrb, iv_tbl *t, mrb_iv_foreach_func *func, void *p)
 
   if (t == NULL) return;
   if (t->alloc == 0) return;
-  if (t->size == 0) return;
 
   mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
   mrb_value *vals = t->ptr;
@@ -194,11 +185,12 @@ iv_foreach(mrb_state *mrb, iv_tbl *t, mrb_iv_foreach_func *func, void *p)
 }
 
 /* Get the size of the instance variable table. */
+/* Size is approximated by the allocated table size. */
 static size_t
 iv_size(mrb_state *mrb, iv_tbl *t)
 {
   if (t == NULL) return 0;
-  return t->size;
+  return t->alloc;
 }
 
 /* Copy the instance variable table. */
@@ -210,7 +202,6 @@ iv_copy(mrb_state *mrb, iv_tbl *t)
 
   if (t == NULL) return NULL;
   if (t->alloc == 0) return NULL;
-  if (t->size == 0) return NULL;
 
   mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
   mrb_value *vals = t->ptr;
