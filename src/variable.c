@@ -18,6 +18,10 @@ typedef struct iv_tbl {
   mrb_value *ptr;
 } iv_tbl;
 
+#define IV_EMPTY 0
+#define IV_DELETED (1<<31)
+#define IV_KEY_P(k) (((k)&~((uint32_t)IV_DELETED))!=0)
+
 /* Creates the instance variable table. */
 static iv_tbl*
 iv_new(mrb_state *mrb)
@@ -50,15 +54,12 @@ iv_rehash(mrb_state *mrb, iv_tbl *t)
   mrb_sym *keys = (mrb_sym*)&old_ptr[old_alloc];
   mrb_value *vals = old_ptr;
   for (size_t i = 0; i < old_alloc; i++) {
-    /* key = 0 means empty; val = undef means deleted */
-    if (keys[i] != 0 && !mrb_undef_p(vals[i])) {
+    if (IV_KEY_P(keys[i])) {
       iv_put(mrb, t, keys[i], vals[i]);
     }
   }
   mrb_free(mrb, old_ptr);
 }
-
-#define slot_empty_p(k,v) ((k) == 0 && !mrb_undef_p(v))
 
 /* Set the value for the symbol in the instance variable table. */
 static void
@@ -81,12 +82,12 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
       vals[pos] = val;
       return;
     }
-    else if (slot_empty_p(keys[pos], vals[pos])) {
+    else if (keys[pos] == IV_EMPTY) {
       keys[pos] = sym;
       vals[pos] = val;
       return;
     }
-    else if (dpos < 0 && mrb_undef_p(vals[pos])) { /* deleted */
+    else if (keys[pos] == IV_DELETED && dpos < 0) {
       dpos = pos;
     }
     pos = (pos+1) & (t->alloc-1);
@@ -123,7 +124,7 @@ iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
       if (vp) *vp = vals[pos];
       return TRUE;
     }
-    else if (slot_empty_p(keys[pos], vals[pos])) {
+    else if (keys[pos] == IV_EMPTY) {
       return FALSE;
     }
     pos = (pos+1) & (t->alloc-1);
@@ -149,11 +150,10 @@ iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
   for (;;) {
     if (keys[pos] == sym) {
       if (vp) *vp = vals[pos];
-      keys[pos] = 0;
-      vals[pos] = mrb_undef_value();
+      keys[pos] = IV_DELETED;
       return TRUE;
     }
-    else if (slot_empty_p(keys[pos], vals[pos])) {
+    else if (keys[pos] == IV_EMPTY) {
       return FALSE;
     }
     pos = (pos+1) & (t->alloc-1);
@@ -175,7 +175,7 @@ iv_foreach(mrb_state *mrb, iv_tbl *t, mrb_iv_foreach_func *func, void *p)
   mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
   mrb_value *vals = t->ptr;
   for (i=0; i<t->alloc; i++) {
-    if (keys[i] && !mrb_undef_p(vals[i])) {
+    if (IV_KEY_P(keys[i])) {
       if ((*func)(mrb, keys[i], vals[i], p) != 0) {
         return;
       }
@@ -207,7 +207,7 @@ iv_copy(mrb_state *mrb, iv_tbl *t)
   mrb_value *vals = t->ptr;
   t2 = iv_new(mrb);
   for (i=0; i<t->alloc; i++) {
-    if (keys[i] && !mrb_undef_p(vals[i])) {
+    if (IV_KEY_P(keys[i])) {
       iv_put(mrb, t2, keys[i], vals[i]);
     }
   }
