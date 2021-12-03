@@ -39,7 +39,7 @@ static void
 iv_rehash(mrb_state *mrb, iv_tbl *t)
 {
   size_t old_alloc = t->alloc;
-  size_t new_alloc = old_alloc+1;
+  size_t new_alloc = old_alloc+4;
   mrb_value *old_ptr = t->ptr;
 
   khash_power2(new_alloc);
