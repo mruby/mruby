@@ -12,18 +12,18 @@ NAO_SAMPLES = 8
 
 module Rand
   # Use xorshift
-  @@x = 123456789
-  @@y = 362436069
-  @@z = 521288629
-  @@w = 88675123
+  @x = 123456789
+  @y = 362436069
+  @z = 521288629
+  @w = 88675123
   BNUM = 1 << 29
   BNUMF = BNUM.to_f
   def self.rand
-    x = @@x
+    x = @x
     t = x ^ ((x & 0xfffff) << 11)
-    w = @@w
-    @@x, @@y, @@z = @@y, @@z, w
-    w = @@w = (w ^ (w >> 19) ^ (t ^ (t >> 8)))
+    w = @w
+    @x, @y, @z = @y, @z, w
+    w = @w = (w ^ (w >> 19) ^ (t ^ (t >> 8)))
     (w % BNUM) / BNUMF
   end
 end
