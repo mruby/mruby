@@ -78,16 +78,17 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
   hash = kh_int_hash_func(mrb, sym);
   start = pos = hash & (t->alloc-1);
   for (;;) {
-    if (keys[pos] == sym) {
+    mrb_sym key = keys[pos];
+    if (key == sym) {
       vals[pos] = val;
       return;
     }
-    else if (keys[pos] == IV_EMPTY) {
+    else if (key == IV_EMPTY) {
       keys[pos] = sym;
       vals[pos] = val;
       return;
     }
-    else if (keys[pos] == IV_DELETED && dpos < 0) {
+    else if (key == IV_DELETED && dpos < 0) {
       dpos = pos;
     }
     pos = (pos+1) & (t->alloc-1);
@@ -120,11 +121,12 @@ iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
   hash = kh_int_hash_func(mrb, sym);
   start = pos = hash & (t->alloc-1);
   for (;;) {
-    if (keys[pos] == sym) {
+    mrb_sym key = keys[pos];
+    if (key == sym) {
       if (vp) *vp = vals[pos];
       return TRUE;
     }
-    else if (keys[pos] == IV_EMPTY) {
+    else if (key == IV_EMPTY) {
       return FALSE;
     }
     pos = (pos+1) & (t->alloc-1);
@@ -148,12 +150,13 @@ iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
   hash = kh_int_hash_func(mrb, sym);
   start = pos = hash & (t->alloc-1);
   for (;;) {
-    if (keys[pos] == sym) {
+    mrb_sym key = keys[pos];
+    if (key == sym) {
       if (vp) *vp = vals[pos];
       keys[pos] = IV_DELETED;
       return TRUE;
     }
-    else if (keys[pos] == IV_EMPTY) {
+    else if (key == IV_EMPTY) {
       return FALSE;
     }
     pos = (pos+1) & (t->alloc-1);
