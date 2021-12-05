@@ -108,7 +108,7 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
 }
 
 /* Get a value for a symbol from the instance variable table. */
-static mrb_bool
+static size_t
 iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 {
   size_t hash, pos, start;
@@ -124,14 +124,14 @@ iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
     mrb_sym key = keys[pos];
     if (key == sym) {
       if (vp) *vp = vals[pos];
-      return TRUE;
+      return pos+1;
     }
     else if (key == IV_EMPTY) {
-      return FALSE;
+      return 0;
     }
     pos = (pos+1) & (t->alloc-1);
     if (pos == start) {         /* not found */
-      return FALSE;
+      return 0;
     }
   }
 }
@@ -395,9 +395,7 @@ mrb_obj_iv_defined(mrb_state *mrb, struct RObject *obj, mrb_sym sym)
   iv_tbl *t;
 
   t = obj->iv;
-  if (t) {
-    return iv_get(mrb, t, sym, NULL);
-  }
+  if (t && iv_get(mrb, t, sym, NULL)) return TRUE;
   return FALSE;
 }
 
@@ -653,10 +651,11 @@ mrb_mod_cv_set(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value v)
 
   while (c) {
     iv_tbl *t = c->iv;
+    size_t pos = iv_get(mrb, t, sym, NULL);
 
-    if (iv_get(mrb, t, sym, NULL)) {
+    if (pos) {
       mrb_check_frozen(mrb, c);
-      iv_put(mrb, t, sym, v);
+      t->ptr[pos-1] = v;        /* iv_get returns pos+1 to put */
       mrb_field_write_barrier_value(mrb, (struct RBasic*)c, v);
       return;
     }
