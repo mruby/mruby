@@ -32,7 +32,7 @@ if MRuby::Build.current.name == "host"
 
   def replace_line_directive(path)
     content = File.read(path).gsub(%r{
-      ^\#line\s+\d+\s+"\K.*$ |                  # #line directive
+      ^\#line\s+\d+\s+"\K.*(?="$) |             # #line directive
       ^/\*\s+Command-line:.*\s\K\S+(?=\s+\*/$)  # header comment in lex.def
     }x, &:relative_path)
     File.write(path, content)
