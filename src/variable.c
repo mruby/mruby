@@ -19,7 +19,7 @@ typedef struct iv_tbl {
 } iv_tbl;
 
 #define IV_EMPTY 0
-#define IV_DELETED (1<<31)
+#define IV_DELETED (1UL<<31)
 #define IV_KEY_P(k) (((k)&~((uint32_t)IV_DELETED))!=0)
 
 /* Creates the instance variable table. */
