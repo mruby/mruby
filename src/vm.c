@@ -1627,13 +1627,10 @@ RETRY_TRY_BLOCK:
           mrb_vm_ci_proc_set(ci, p);
           recv = p->body.func(mrb, recv);
         }
-        else if (MRB_METHOD_NOARG_P(m) &&
-                 (!(n == 0 || (n == CALL_MAXARGS && RARRAY_LEN(regs[1]) == 0)) ||
-                  !(nk == 0 || mrb_hash_empty_p(mrb, regs[n == CALL_MAXARGS ? 2 : n + 1])))) {
-          argnum_error(mrb, 0);
-          goto L_RAISE;
-        }
         else {
+          if (MRB_METHOD_NOARG_P(m)) {
+            check_method_noarg(mrb, ci);
+          }
           recv = MRB_METHOD_FUNC(m)(mrb, recv);
         }
         mrb_gc_arena_shrink(mrb, ai);
