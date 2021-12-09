@@ -122,7 +122,7 @@ struct mrb_insn_data {
   uint8_t insn;
   uint16_t a;
   uint16_t b;
-  uint8_t c;
+  uint16_t c;
   const mrb_code *addr;
 };
 
