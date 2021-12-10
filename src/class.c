@@ -37,6 +37,11 @@ typedef struct mt_tbl {
   struct mt_elem *table;
 } mt_tbl;
 
+#ifdef MRB_USE_INLINE_METHOD_CACHE
+#define MT_CACHE_SIZE 256
+static uint8_t mt_cache[MT_CACHE_SIZE];
+#endif
+
 /* Creates the method table. */
 static mt_tbl*
 mt_new(mrb_state *mrb)
@@ -142,11 +147,23 @@ mt_get(mrb_state *mrb, mt_tbl *t, mrb_sym sym)
   if (t->size == 0) return NULL;
 
   hash = kh_int_hash_func(mrb, sym);
+#ifdef MRB_USE_INLINE_METHOD_CACHE
+  size_t cpos = (hash^(uintptr_t)t) % MT_CACHE_SIZE;
+  pos = mt_cache[cpos];
+  if (cpos < t->alloc && t->table[cpos].key == sym) {
+    return &t->table[cpos];
+  }
+#endif
   start = pos = hash & (t->alloc-1);
   for (;;) {
     struct mt_elem *slot = &t->table[pos];
 
     if (slot->key == sym) {
+#ifdef MRB_USE_INLINE_METHOD_CACHE
+      if (pos < 0xff) {
+        mt_cache[cpos] = pos;
+      }
+#endif
       return slot;
     }
     else if (slot_empty_p(slot)) {
