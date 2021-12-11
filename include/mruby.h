@@ -1009,6 +1009,13 @@ struct mrb_kwargs
  */
 MRB_API mrb_int mrb_get_args(mrb_state *mrb, mrb_args_format format, ...);
 
+/**
+ * Array version of mrb_get_args()
+ *
+ * @param ptr Array of void*, in the same order as the varargs version.
+ */
+MRB_API mrb_int mrb_get_args_a(mrb_state *mrb, mrb_args_format format, void** ptr);
+
 MRB_INLINE mrb_sym
 mrb_get_mid(mrb_state *mrb) /* get method symbol */
 {
