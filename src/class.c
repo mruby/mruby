@@ -62,7 +62,7 @@ static void
 mt_rehash(mrb_state *mrb, mt_tbl *t)
 {
   size_t old_alloc = t->alloc;
-  size_t new_alloc = old_alloc+1;
+  size_t new_alloc = old_alloc+8;
   struct mt_elem *old_table = t->table;
 
   khash_power2(new_alloc);
