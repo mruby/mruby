@@ -18,6 +18,14 @@ def assert_combination(exp, receiver, *args)
   assert_permutation_combination(exp, receiver, :combination, *args)
 end
 
+def assert_repeated_permutation(exp, receiver, *args)
+  assert_permutation_combination(exp, receiver, :repeated_permutation, *args)
+end
+
+def assert_repeated_combination(exp, receiver, *args)
+  assert_permutation_combination(exp, receiver, :repeated_combination, *args)
+end
+
 assert("Array#assoc") do
   s1 = [ "colors", "red", "blue", "green" ]
   s2 = [ "letters", "a", "b", "c" ]
@@ -442,4 +450,52 @@ assert "Array#product" do
   x = []
   assert_equal base, base.product([4, 5, 6], [7, 8, 9]) { |e| x << e }
   assert_equal expect, x
+end
+
+assert("Array#repeated_combination") do
+  a = [1, 2, 3]
+  assert_raise(ArgumentError) { a.repeated_combination }
+  #assert_kind_of(Enumerator, a.repeated_combination(1))
+  assert_repeated_combination([[1],[2],[3]], a, 1)
+  assert_repeated_combination([[1,1],[1,2],[1,3],[2,2],[2,3],[3,3]], a, 2)
+  assert_repeated_combination([[1,1,1],[1,1,2],[1,1,3],[1,2,2],[1,2,3],[1,3,3],[2,2,2],
+                               [2,2,3],[2,3,3],[3,3,3]], a, 3)
+  assert_repeated_combination([[1,1,1,1],[1,1,1,2],[1,1,1,3],[1,1,2,2],[1,1,2,3],[1,1,3,3],
+                               [1,2,2,2],[1,2,2,3],[1,2,3,3],[1,3,3,3],[2,2,2,2],[2,2,2,3],
+                               [2,2,3,3],[2,3,3,3],[3,3,3,3]], a, 4)
+  assert_repeated_combination([[1,1,1,1,1],[1,1,1,1,2],[1,1,1,1,3],[1,1,1,2,2],[1,1,1,2,3],
+                               [1,1,1,3,3],[1,1,2,2,2],[1,1,2,2,3],[1,1,2,3,3],[1,1,3,3,3],
+                               [1,2,2,2,2],[1,2,2,2,3],[1,2,2,3,3],[1,2,3,3,3],[1,3,3,3,3],
+                               [2,2,2,2,2],[2,2,2,2,3],[2,2,2,3,3],[2,2,3,3,3],[2,3,3,3,3],
+                               [3,3,3,3,3]], a, 5)
+  assert_repeated_combination([[]], a, 0)
+  assert_repeated_combination([], a, -1)
+end
+
+assert("Array#repeated_permutation") do
+  a = [1, 2, 3]
+  assert_raise(ArgumentError) { a.repeated_permutation }
+  #assert_kind_of(Enumerator, a.repeated_permutation(1))
+  assert_repeated_permutation([[1],[2],[3]], a, 1)
+  assert_repeated_permutation([[1,1],[1,2],[1,3],[2,1],[2,2],[2,3],[3,1],[3,2],[3,3]], a, 2)
+  assert_repeated_permutation([[1,1,1],[1,1,2],[1,1,3],[1,2,1],[1,2,2],[1,2,3],[1,3,1],[1,3,2],[1,3,3],
+                               [2,1,1],[2,1,2],[2,1,3],[2,2,1],[2,2,2],[2,2,3],[2,3,1],[2,3,2],[2,3,3],
+                               [3,1,1],[3,1,2],[3,1,3],[3,2,1],[3,2,2],[3,2,3],[3,3,1],[3,3,2],[3,3,3]],
+                              a, 3)
+  assert_repeated_permutation([[1,1,1,1],[1,1,1,2],[1,1,1,3],[1,1,2,1],[1,1,2,2],[1,1,2,3],
+                               [1,1,3,1],[1,1,3,2],[1,1,3,3],[1,2,1,1],[1,2,1,2],[1,2,1,3],
+                               [1,2,2,1],[1,2,2,2],[1,2,2,3],[1,2,3,1],[1,2,3,2],[1,2,3,3],
+                               [1,3,1,1],[1,3,1,2],[1,3,1,3],[1,3,2,1],[1,3,2,2],[1,3,2,3],
+                               [1,3,3,1],[1,3,3,2],[1,3,3,3],[2,1,1,1],[2,1,1,2],[2,1,1,3],
+                               [2,1,2,1],[2,1,2,2],[2,1,2,3],[2,1,3,1],[2,1,3,2],[2,1,3,3],
+                               [2,2,1,1],[2,2,1,2],[2,2,1,3],[2,2,2,1],[2,2,2,2],[2,2,2,3],
+                               [2,2,3,1],[2,2,3,2],[2,2,3,3],[2,3,1,1],[2,3,1,2],[2,3,1,3],
+                               [2,3,2,1],[2,3,2,2],[2,3,2,3],[2,3,3,1],[2,3,3,2],[2,3,3,3],
+                               [3,1,1,1],[3,1,1,2],[3,1,1,3],[3,1,2,1],[3,1,2,2],[3,1,2,3],
+                               [3,1,3,1],[3,1,3,2],[3,1,3,3],[3,2,1,1],[3,2,1,2],[3,2,1,3],
+                               [3,2,2,1],[3,2,2,2],[3,2,2,3],[3,2,3,1],[3,2,3,2],[3,2,3,3],
+                               [3,3,1,1],[3,3,1,2],[3,3,1,3],[3,3,2,1],[3,3,2,2],[3,3,2,3],
+                               [3,3,3,1],[3,3,3,2],[3,3,3,3]], a, 4)
+  assert_repeated_permutation([[]], a, 0)
+  assert_repeated_permutation([], a, -1)
 end
