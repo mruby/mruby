@@ -5,8 +5,8 @@
 # mruby version by Hideki Miura
 #
 
-IMAGE_WIDTH = 64
-IMAGE_HEIGHT = 64
+IMAGE_WIDTH = Integer(ARGV[0] || 64)
+IMAGE_HEIGHT = IMAGE_WIDTH
 NSUBSAMPLES = 2
 NAO_SAMPLES = 8
 
