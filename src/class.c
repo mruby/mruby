@@ -869,7 +869,7 @@ mrb_block_given_p(mrb_state *mrb)
   return !mrb_nil_p(b);
 }
 
-mrb_int mrb_get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list ap);
+static mrb_int mrb_get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list ap);
 
 /*
   retrieve arguments from mrb_state.
