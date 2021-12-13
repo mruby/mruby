@@ -307,13 +307,12 @@ tr_parse_pattern(mrb_state *mrb, struct tr_pattern *ret, const mrb_value v_patte
     pat1 = ret_uninit
            ? ret
            : (struct tr_pattern*)mrb_malloc_simple(mrb, sizeof(struct tr_pattern));
+    if (pat1 == NULL) {
+      tr_free_pattern(mrb, ret);
+      mrb_exc_raise(mrb, mrb_obj_value(mrb->nomem_err));
+      return NULL;            /* not reached */
+    }
     if ((i+2) < pattern_length && pattern[i] != '\\' && pattern[i+1] == '-') {
-      if (pat1 == NULL && ret) {
-      nomem:
-        tr_free_pattern(mrb, ret);
-        mrb_exc_raise(mrb, mrb_obj_value(mrb->nomem_err));
-        return NULL;            /* not reached */
-      }
       pat1->type = TR_RANGE;
       pat1->flag_reverse = flag_reverse;
       pat1->flag_on_heap = !ret_uninit;
@@ -336,10 +335,9 @@ tr_parse_pattern(mrb_state *mrb, struct tr_pattern *ret, const mrb_value v_patte
 
       len = i - start_pos;
       if (len > UINT16_MAX) {
+        tr_free_pattern(mrb, ret);
+        if (ret != pat1) mrb_free(mrb, pat1);
         mrb_raise(mrb, E_ARGUMENT_ERROR, "tr pattern too long (max 65535)");
-      }
-      if (pat1 == NULL && ret) {
-        goto nomem;
       }
       pat1->type = TR_IN_ORDER;
       pat1->flag_reverse = flag_reverse;
@@ -349,10 +347,7 @@ tr_parse_pattern(mrb_state *mrb, struct tr_pattern *ret, const mrb_value v_patte
       pat1->val.start_pos = (uint16_t)start_pos;
     }
 
-    if (ret == NULL || ret_uninit) {
-      ret = pat1;
-    }
-    else {
+    if (!ret_uninit) {
       struct tr_pattern *p = ret;
       while (p->next != NULL) {
         p = p->next;
