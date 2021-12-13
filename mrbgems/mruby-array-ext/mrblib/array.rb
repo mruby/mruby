@@ -943,4 +943,77 @@ class Array
 
     result
   end
+
+  ##
+  # call-seq:
+  #   ary.repeated_combination(n) { |combination| ... }   ->   self
+  #   ary.repeated_combination(n)                         ->   enumerator
+  #
+  # A +combination+ method that contains the same elements.
+  def repeated_combination(n, &block)
+    raise TypeError, "no implicit conversion into Integer" unless 0 <=> n
+    return to_enum(:repeated_combination, n) unless block
+    __repeated_combination(n, false, &block)
+  end
+
+  ##
+  # call-seq:
+  #   ary.repeated_permutation(n) { |permutation| ... }   ->   self
+  #   ary.repeated_permutation(n)                         ->   enumerator
+  #
+  # A +permutation+ method that contains the same elements.
+  def repeated_permutation(n, &block)
+    raise TypeError, "no implicit conversion into Integer" unless 0 <=> n
+    return to_enum(:repeated_permutation, n) unless block
+    __repeated_combination(n, true, &block)
+  end
+
+  def __repeated_combination(n, permutation, &block)
+    case n
+    when 0
+      yield []
+    when 1
+      i = 0
+      while i < self.size
+        yield [self[i]]
+        i += 1
+      end
+    else
+      if n > 0
+        v = [0] * n
+        while true
+          tmp = [nil] * n
+          i = 0
+          while i < n
+            tmp[i] = self[v[i]]
+            i += 1
+          end
+
+          yield tmp
+
+          tmp = self.size
+          i = n - 1
+          while i >= 0
+            v[i] += 1
+            break if v[i] < tmp
+            i -= 1
+          end
+          break unless v[0] < tmp
+          i = 1
+          while i < n
+            unless v[i] < tmp
+              if permutation
+                v[i] = 0
+              else
+                v[i] = v[i - 1]
+              end
+            end
+            i += 1
+          end
+        end
+      end
+    end
+
+    self
+  end
 end

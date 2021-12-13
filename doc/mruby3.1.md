@@ -37,6 +37,8 @@ Keyword arguments are basically separated from ordinal arguments
 ## New Methods
 
 * `Array#product`
+* `Array#repeated_combination`
+* `Array#repeated_permutation`
 * `Random.bytes`
 * `Random#bytes`
 
