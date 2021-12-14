@@ -36,8 +36,6 @@ enum mrb_nanbox_tt_inline {
  *   ptr   : 01111111 11111100 PPPPPPPP PPPPPPPP PPPPPPPP PPPPPPPP PPPPPPPP PPPPPP01
  * Stored as O = R + 0x8004000000000000, retrieved as R = O - 0x8004000000000000.
  * This makes pointers have all zeros in the top 32 bits.
- * Small-ints and strs have 1 as LSB to make sure they don't look like pointers
- * to the garbage collector.
  */
 typedef struct mrb_value {
   uint64_t u;
