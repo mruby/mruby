@@ -201,7 +201,7 @@ mrb_proc_cfunc_env_get(mrb_state *mrb, mrb_int idx)
 }
 
 void
-mrb_proc_copy(struct RProc *a, struct RProc *b)
+mrb_proc_copy(mrb_state *mrb, struct RProc *a, struct RProc *b)
 {
   if (a->body.irep) {
     /* already initialized proc */
@@ -209,10 +209,10 @@ mrb_proc_copy(struct RProc *a, struct RProc *b)
   }
   a->flags = b->flags;
   a->body = b->body;
-  if (!MRB_PROC_CFUNC_P(a) && a->body.irep) {
-    mrb_irep_incref(NULL, (mrb_irep*)a->body.irep);
-  }
   a->upper = b->upper;
+  if (!MRB_PROC_CFUNC_P(a) && a->body.irep) {
+    mrb_irep_incref(mrb, (mrb_irep*)a->body.irep);
+  }
   a->e.env = b->e.env;
   /* a->e.target_class = a->e.target_class; */
 }
@@ -227,7 +227,7 @@ mrb_proc_s_new(mrb_state *mrb, mrb_value proc_class)
   /* Calling Proc.new without a block is not implemented yet */
   mrb_get_args(mrb, "&!", &blk);
   p = MRB_OBJ_ALLOC(mrb, MRB_TT_PROC, mrb_class_ptr(proc_class));
-  mrb_proc_copy(p, mrb_proc_ptr(blk));
+  mrb_proc_copy(mrb, p, mrb_proc_ptr(blk));
   proc = mrb_obj_value(p);
   mrb_funcall_with_block(mrb, proc, MRB_SYM(initialize), 0, NULL, proc);
   if (!MRB_PROC_STRICT_P(p) &&
@@ -245,7 +245,7 @@ mrb_proc_init_copy(mrb_state *mrb, mrb_value self)
   if (!mrb_proc_p(proc)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "not a proc");
   }
-  mrb_proc_copy(mrb_proc_ptr(self), mrb_proc_ptr(proc));
+  mrb_proc_copy(mrb, mrb_proc_ptr(self), mrb_proc_ptr(proc));
   return self;
 }
 
@@ -281,7 +281,7 @@ proc_lambda(mrb_state *mrb, mrb_value self)
   p = mrb_proc_ptr(blk);
   if (!MRB_PROC_STRICT_P(p)) {
     struct RProc *p2 = MRB_OBJ_ALLOC(mrb, MRB_TT_PROC, p->c);
-    mrb_proc_copy(p2, p);
+    mrb_proc_copy(mrb, p2, p);
     p2->flags |= MRB_PROC_STRICT;
     return mrb_obj_value(p2);
   }

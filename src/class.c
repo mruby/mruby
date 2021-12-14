@@ -2569,7 +2569,7 @@ mrb_mod_define_method_m(mrb_state *mrb, struct RClass *c)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
   }
   p = MRB_OBJ_ALLOC(mrb, MRB_TT_PROC, mrb->proc_class);
-  mrb_proc_copy(p, mrb_proc_ptr(blk));
+  mrb_proc_copy(mrb, p, mrb_proc_ptr(blk));
   p->flags |= MRB_PROC_STRICT;
   MRB_METHOD_FROM_PROC(m, p);
   mrb_define_method_raw(mrb, c, mid, m);
