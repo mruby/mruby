@@ -51,7 +51,7 @@ get_iseq_block_size(mrb_state *mrb, const mrb_irep *irep)
   size_t size = 0;
 
   size += sizeof(uint16_t); /* clen */
-  size += sizeof(uint16_t); /* ilen */
+  size += sizeof(uint32_t); /* ilen */
   size += irep->ilen * sizeof(mrb_code); /* iseq(n) */
   size += irep->clen * sizeof(struct mrb_irep_catch_handler);
 
@@ -66,7 +66,7 @@ write_iseq_block(mrb_state *mrb, const mrb_irep *irep, uint8_t *buf, uint8_t fla
                   irep->clen * sizeof(struct mrb_irep_catch_handler);
 
   cur += uint16_to_bin(irep->clen, cur); /* number of catch handlers */
-  cur += uint16_to_bin(irep->ilen, cur); /* number of opcode */
+  cur += uint32_to_bin(irep->ilen, cur); /* number of opcode */
   memcpy(cur, irep->iseq, seqlen);
   cur += seqlen;
 
