@@ -167,6 +167,14 @@ codegen_realloc(codegen_scope *s, void *p, size_t len)
   return p;
 }
 
+static void
+check_no_ext_ops(codegen_scope *s, uint16_t a, uint16_t b)
+{
+  if (s->parser->no_ext_ops && (a | b) > 0xff) {
+    codegen_error(s, "need OP_EXTs instruction (currently OP_EXTs are prohibited)");
+  }
+}
+
 static int
 new_label(codegen_scope *s)
 {
@@ -235,6 +243,7 @@ static void
 genop_1(codegen_scope *s, mrb_code i, uint16_t a)
 {
   s->lastpc = s->pc;
+  check_no_ext_ops(s, a, 0);
   if (a > 0xff) {
     gen_B(s, OP_EXT1);
     gen_B(s, i);
@@ -250,6 +259,7 @@ static void
 genop_2(codegen_scope *s, mrb_code i, uint16_t a, uint16_t b)
 {
   s->lastpc = s->pc;
+  check_no_ext_ops(s, a, b);
   if (a > 0xff && b > 0xff) {
     gen_B(s, OP_EXT3);
     gen_B(s, i);
@@ -555,6 +565,7 @@ genjmp2(codegen_scope *s, mrb_code i, uint16_t a, uint32_t pc, int val)
   }
 
   if (a > 0xff) {
+    check_no_ext_ops(s, a, 0);
     gen_B(s, OP_EXT1);
     genop_0(s, i);
     gen_S(s, a);
