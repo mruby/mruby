@@ -111,6 +111,15 @@ static void
 codegen_error(codegen_scope *s, const char *message)
 {
   if (!s) return;
+#ifndef MRB_NO_STDIO
+  if (s->filename_sym && s->lineno) {
+    const char *filename = mrb_sym_name_len(s->mrb, s->filename_sym, NULL);
+    fprintf(stderr, "%s:%d: %s\n", filename, s->lineno, message);
+  }
+  else {
+    fprintf(stderr, "%s\n", message);
+  }
+#endif
   while (s->prev) {
     codegen_scope *tmp = s->prev;
     if (s->irep) {
@@ -137,15 +146,6 @@ codegen_error(codegen_scope *s, const char *message)
     mrb_pool_close(s->mpool);
     s = tmp;
   }
-#ifndef MRB_NO_STDIO
-  if (s->filename_sym && s->lineno) {
-    const char *filename = mrb_sym_name_len(s->mrb, s->filename_sym, NULL);
-    fprintf(stderr, "%s:%d: %s\n", filename, s->lineno, message);
-  }
-  else {
-    fprintf(stderr, "%s\n", message);
-  }
-#endif
   MRB_THROW(s->mrb->jmp);
 }
 
