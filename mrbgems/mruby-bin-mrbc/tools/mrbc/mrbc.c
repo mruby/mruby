@@ -24,6 +24,7 @@ struct mrbc_args {
   mrb_bool check_syntax : 1;
   mrb_bool verbose      : 1;
   mrb_bool remove_lv    : 1;
+  mrb_bool no_ext_ops   : 1;
   uint8_t flags         : 4;
 };
 
@@ -40,6 +41,7 @@ usage(const char *name)
   "-S           dump C struct (requires -B)",
   "-s           define <symbol> as static variable",
   "--remove-lv  remove local variables",
+  "--no-ext-ops prohibit using OP_EXTs",
   "--verbose    run at verbose mode",
   "--version    print the version",
   "--copyright  print the copyright",
@@ -163,6 +165,10 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct mrbc_args *args)
           args->remove_lv = TRUE;
           break;
         }
+        else if (strcmp(argv[i] + 2, "no-ext-ops") == 0) {
+          args->no_ext_ops = TRUE;
+          break;
+        }
         return -1;
       default:
         return i;
@@ -217,6 +223,7 @@ load_file(mrb_state *mrb, struct mrbc_args *args)
   if (args->verbose)
     c->dump_result = TRUE;
   c->no_exec = TRUE;
+  c->no_ext_ops = args->no_ext_ops;
   if (input[0] == '-' && input[1] == '\0') {
     infile = stdin;
   }

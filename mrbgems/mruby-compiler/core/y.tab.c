@@ -12796,6 +12796,7 @@ parser_init_cxt(parser_state *p, mrbc_context *cxt)
   }
   p->capture_errors = cxt->capture_errors;
   p->no_optimize = cxt->no_optimize;
+  p->no_ext_ops = cxt->no_ext_ops;
   p->upper = cxt->upper;
   if (cxt->partial_hook) {
     p->cxt = cxt;
