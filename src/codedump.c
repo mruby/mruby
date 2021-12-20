@@ -452,11 +452,11 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       printf("EQ\t\tR%d\tR%d\n", a, a+1);
       break;
     CASE(OP_ARRAY, BB):
-      printf("ARRAY\t\tR%d\tR%d\t%d\t", a, a, b);
+      printf("ARRAY\t\tR%d\tR%d\t%d", a, a, b);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_ARRAY2, BBB):
-      printf("ARRAY\t\tR%d\tR%d\t%d\t", a, b, c);
+      printf("ARRAY\t\tR%d\tR%d\t%d", a, b, c);
       print_lv_ab(mrb, irep, a, b);
       break;
     CASE(OP_ARYCAT, B):
