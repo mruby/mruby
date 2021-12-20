@@ -1750,13 +1750,16 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
   else if (!noop && sym == MRB_OPSYM_2(s->mrb, eq) && n == 1)  {
     genop_1(s, OP_EQ, cursp());
   }
+  else if (!noop && sym == MRB_OPSYM_2(s->mrb, aset) && n == 2)  {
+    genop_1(s, OP_SETIDX, cursp());
+  }
   else if (!noop && n == 0 && gen_uniop(s, sym, cursp())) {
     /* constant folding succeeded */
   }
   else if (!noop && n == 1 && gen_binop(s, sym, cursp())) {
     /* constant folding succeeded */
   }
-  else if (noself ){
+  else if (noself){
     genop_3(s, blk ? OP_SSENDB : OP_SSEND, cursp(), new_sym(s, sym), n|(nk<<4));
   }
   else {
