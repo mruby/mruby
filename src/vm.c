@@ -1383,7 +1383,6 @@ RETRY_TRY_BLOCK:
         break;
       default:
       getidx_fallback:
-        c = 1;
         mid = MRB_OPSYM(aref);
         goto L_SEND_SYM;
       }
@@ -1393,7 +1392,8 @@ RETRY_TRY_BLOCK:
     CASE(OP_SETIDX, B) {
       c = 2;
       mid = MRB_OPSYM(aset);
-      goto L_SEND_SYM;
+      SET_NIL_VALUE(regs[a+3]);
+      goto L_SENDB_SYM;
     }
 
     CASE(OP_GETCONST, BB) {
