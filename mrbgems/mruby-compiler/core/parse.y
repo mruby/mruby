@@ -619,6 +619,7 @@ new_colon3(parser_state *p, mrb_sym c)
 static node*
 new_and(parser_state *p, node *a, node *b)
 {
+  void_expr_error(p, a);
   return cons((node*)NODE_AND, cons(a, b));
 }
 
@@ -626,6 +627,7 @@ new_and(parser_state *p, node *a, node *b)
 static node*
 new_or(parser_state *p, node *a, node *b)
 {
+  void_expr_error(p, a);
   return cons((node*)NODE_OR, cons(a, b));
 }
 
@@ -640,6 +642,7 @@ new_array(parser_state *p, node *a)
 static node*
 new_splat(parser_state *p, node *a)
 {
+  void_expr_error(p, a);
   return cons((node*)NODE_SPLAT, a);
 }
 
@@ -1763,7 +1766,6 @@ stmt            : keyword_alias fsym {p->lstate = EXPR_FNAME;} fsym
                 | arg tASSOC tIDENTIFIER
                     {
                       node *lhs = new_lvar(p, $3);
-                      void_expr_error(p, $1);
                       assignable(p, lhs);
                       $$ = new_asgn(p, lhs, $1);
                     }
@@ -1813,7 +1815,6 @@ command_asgn    : lhs '=' command_rhs
                       $$ = $1;
                       endless_method_name(p, $1);
                       void_expr_error(p, $4);
-                      void_expr_error(p, $6);
                       defn_setup(p, $$, $2, new_mod_rescue(p, $4, $6));
                       nvars_unnest(p);
                       p->in_def--;
@@ -1831,7 +1832,6 @@ command_asgn    : lhs '=' command_rhs
                     {
                       $$ = $1;
                       void_expr_error(p, $4);
-                      void_expr_error(p, $6);
                       defs_setup(p, $$, $2, new_mod_rescue(p, $4, $6));
                       nvars_unnest(p);
                       p->in_def--;
@@ -2448,7 +2448,6 @@ arg             : lhs '=' arg_rhs
                       $$ = $1;
                       endless_method_name(p, $1);
                       void_expr_error(p, $4);
-                      void_expr_error(p, $6);
                       defn_setup(p, $$, $2, new_mod_rescue(p, $4, $6));
                       nvars_unnest(p);
                       p->in_def--;
@@ -2466,7 +2465,6 @@ arg             : lhs '=' arg_rhs
                     {
                       $$ = $1;
                       void_expr_error(p, $4);
-                      void_expr_error(p, $6);
                       defs_setup(p, $$, $2, new_mod_rescue(p, $4, $6));
                       nvars_unnest(p);
                       p->in_def--;
@@ -2502,7 +2500,6 @@ arg_rhs         : arg %prec tOP_ASGN
                 | arg modifier_rescue arg
                     {
                       void_expr_error(p, $1);
-                      void_expr_error(p, $3);
                       $$ = new_mod_rescue(p, $1, $3);
                     }
                 ;
@@ -2630,7 +2627,6 @@ args            : arg
                     }
                 | tSTAR arg
                     {
-                      void_expr_error(p, $2);
                       $$ = list1(new_splat(p, $2));
                       NODE_LINENO($$, $2);
                     }
@@ -2641,7 +2637,6 @@ args            : arg
                     }
                 | args comma tSTAR arg
                     {
-                      void_expr_error(p, $4);
                       $$ = push($1, new_splat(p, $4));
                     }
                 ;
@@ -2653,12 +2648,10 @@ mrhs            : args comma arg
                     }
                 | args comma tSTAR arg
                     {
-                      void_expr_error(p, $4);
                       $$ = push($1, new_splat(p, $4));
                     }
                 | tSTAR arg
                     {
-                      void_expr_error(p, $2);
                       $$ = list1(new_splat(p, $2));
                     }
                 ;
@@ -3682,6 +3675,7 @@ f_kw            : f_label arg
 
 f_block_kw      : f_label primary_value
                     {
+                      void_expr_error(p, $2);
                       $$ = new_kw_arg(p, $1, cons($2, locals_node(p)));
                       local_unnest(p);
                     }
