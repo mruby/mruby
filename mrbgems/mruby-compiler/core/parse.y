@@ -302,8 +302,12 @@ local_add_f(parser_state *p, mrb_sym sym)
     node *n = p->locals->car;
     while (n) {
       if (sym(n->car) == sym) {
-        yyerror(p, "duplicated argument name");
-        return;
+        mrb_int len;
+        const char* name = mrb_sym_name_len(p->mrb, sym, &len);
+        if (len > 0 && name[0] != '_') {
+          yyerror(p, "duplicated argument name");
+          return;
+        }
       }
       n = n->cdr;
     }
