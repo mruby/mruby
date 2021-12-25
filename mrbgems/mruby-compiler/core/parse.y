@@ -2751,6 +2751,7 @@ primary         : literal
                 | tLAMBDA
                     {
                       local_nest(p);
+                      nvars_nest(p);
                       $<num>$ = p->lpar_beg;
                       p->lpar_beg = ++p->paren_nest;
                     }
@@ -2764,6 +2765,7 @@ primary         : literal
                       p->lpar_beg = $<num>2;
                       $$ = new_lambda(p, $3, $5);
                       local_unnest(p);
+                      nvars_unnest(p);
                       p->cmdarg_stack = $<stack>4;
                       CMDARG_LEXPOP();
                     }
@@ -6426,14 +6428,9 @@ parser_yylex(parser_state *p)
           if (nvar == -1) {
             yywarning(p, "numbered parameter used in inner block");
           }
-          if (nvar >= -1) {
-            pylval.num = n;
-            p->lstate = EXPR_END;
-            return tNUMPARAM;
-          }
-          else {
-            yywarning(p, "identifier for numbered parameter; consider another name");
-          }
+          pylval.num = n;
+          p->lstate = EXPR_END;
+          return tNUMPARAM;
         }
       }
       /* fall through */
