@@ -29,6 +29,7 @@ iv_new(mrb_state *mrb)
   iv_tbl *t;
 
   t = (iv_tbl*)mrb_malloc(mrb, sizeof(iv_tbl));
+  t->size = 0;
   t->alloc = 0;
   t->ptr = NULL;
 
