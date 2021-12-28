@@ -13,9 +13,6 @@
   #include <winerror.h>
 
   #define SHUT_RDWR SD_BOTH
-  #ifndef _SSIZE_T_DEFINED
-  typedef int ssize_t;
-  #endif
   typedef int fsize_t;
 #else
   #include <sys/types.h>
