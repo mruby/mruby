@@ -581,14 +581,16 @@ mrb_ary_shift(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_ary_shift_m(mrb_state *mrb, mrb_value self)
 {
-  struct RArray *a = mrb_ary_ptr(self);
-  mrb_int len = ARY_LEN(a);
   mrb_int n;
-  mrb_value val;
 
   if (mrb_get_args(mrb, "|i", &n) == 0) {
     return mrb_ary_shift(mrb, self);
-  };
+  }
+
+  struct RArray *a = mrb_ary_ptr(self);
+  mrb_int len = ARY_LEN(a);
+  mrb_value val;
+
   ary_modify_check(mrb, a);
   if (len == 0 || n == 0) return mrb_ary_new(mrb);
   if (n < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "negative array shift");
