@@ -485,7 +485,7 @@ mrb_obj_is_kind_of(mrb_state *mrb, mrb_value obj, struct RClass *c)
 }
 
 MRB_API mrb_value
-mrb_to_integer(mrb_state *mrb, mrb_value val)
+mrb_ensure_int_type(mrb_state *mrb, mrb_value val)
 {
   if (!mrb_integer_p(val)) {
 #ifndef MRB_NO_FLOAT
@@ -500,7 +500,7 @@ mrb_to_integer(mrb_state *mrb, mrb_value val)
 
 #ifndef MRB_NO_FLOAT
 MRB_API mrb_value
-mrb_to_float(mrb_state *mrb, mrb_value val)
+mrb_ensure_float_type(mrb_state *mrb, mrb_value val)
 {
   if (mrb_nil_p(val)) {
     mrb_raise(mrb, E_TYPE_ERROR, "can't convert nil into Float");

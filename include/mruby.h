@@ -1269,7 +1269,9 @@ MRB_API mrb_bool mrb_obj_eq(mrb_state *mrb, mrb_value a, mrb_value b);
 MRB_API mrb_bool mrb_obj_equal(mrb_state *mrb, mrb_value a, mrb_value b);
 MRB_API mrb_bool mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
 #ifndef MRB_NO_FLOAT
-MRB_API mrb_value mrb_to_float(mrb_state *mrb, mrb_value val);
+MRB_API mrb_value mrb_ensure_float_type(mrb_state *mrb, mrb_value val);
+/* obsolete: use mrb_ensure_float_type() instead */
+#define mrb_to_float(mrb, val) mrb_ensure_float_type(mrb, val)
 #endif
 MRB_API mrb_value mrb_inspect(mrb_state *mrb, mrb_value obj);
 MRB_API mrb_bool mrb_eql(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
@@ -1398,9 +1400,11 @@ MRB_API mrb_value mrb_check_string_type(mrb_state *mrb, mrb_value str);
 #define mrb_to_str(mrb, str) mrb_ensure_string_type(mrb,str)
 /* obsolete: use mrb_obj_as_string() instead */
 #define mrb_str_to_str(mrb, str) mrb_obj_as_string(mrb, str)
-MRB_API mrb_value mrb_to_integer(mrb_state *mrb, mrb_value val);
-#define mrb_to_int(mrb, val) mrb_to_integer(mrb, val)
-#define mrb_as_int(mrb, val) mrb_integer(mrb_to_integer(mrb, val))
+MRB_API mrb_value mrb_ensure_int_type(mrb_state *mrb, mrb_value val);
+#define mrb_as_int(mrb, val) mrb_integer(mrb_ensure_int_type(mrb, val))
+/* obsolete: use mrb_ensure_int_type() instead */
+#define mrb_to_integer(mrb, val) mrb_ensure_int_type(mrb, val)
+#define mrb_to_int(mrb, val) mrb_ensure_int_type(mrb, val)
 
 /* string type checking (contrary to the name, it doesn't convert) */
 MRB_API void mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t);
