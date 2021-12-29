@@ -2844,7 +2844,7 @@ mrb_str_byteslice(mrb_state *mrb, mrb_value str)
       }
     }
     else {
-      beg = mrb_integer(mrb_to_integer(mrb, a1));
+      beg = mrb_as_int(mrb, a1);
       len = 1;
       empty = FALSE;
     }
