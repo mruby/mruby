@@ -1108,6 +1108,9 @@ str_convert_range(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen,
   }
   else {
     switch (mrb_type(indx)) {
+      default:
+        indx = mrb_ensure_int_type(mrb, indx);
+        /* fall through */
       case MRB_TT_INTEGER:
         *beg = mrb_integer(indx);
         *len = 1;
@@ -1120,16 +1123,6 @@ str_convert_range(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen,
         return STR_BYTE_RANGE_CORRECTED;
 
       case MRB_TT_RANGE:
-        goto range_arg;
-
-      default:
-        indx = mrb_to_integer(mrb, indx);
-        if (mrb_integer_p(indx)) {
-          *beg = mrb_integer(indx);
-          *len = 1;
-          return STR_CHAR_RANGE;
-        }
-range_arg:
         *len = RSTRING_CHAR_LEN(str);
         switch (mrb_range_beg_len(mrb, indx, beg, len, *len, TRUE)) {
           case MRB_RANGE_OK:
@@ -1139,8 +1132,6 @@ range_arg:
           default:
             break;
         }
-
-        mrb_raise(mrb, E_TYPE_ERROR, "can't convert to Integer");
     }
   }
   return STR_OUT_OF_RANGE;
