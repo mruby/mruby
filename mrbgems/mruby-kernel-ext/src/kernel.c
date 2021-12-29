@@ -187,6 +187,9 @@ mrb_f_float(mrb_state *mrb, mrb_value self)
 {
   mrb_value arg = mrb_get_arg1(mrb);
 
+  if (mrb_string_p(arg)) {
+    return mrb_float_value(mrb, mrb_str_to_dbl(mrb, arg, TRUE));
+  }
   return mrb_to_float(mrb, arg);
 }
 #endif

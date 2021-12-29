@@ -512,9 +512,6 @@ mrb_ensure_float_type(mrb_state *mrb, mrb_value val)
     case MRB_TT_FLOAT:
       return val;
 
-    case MRB_TT_STRING:
-      return mrb_float_value(mrb, mrb_str_to_dbl(mrb, val, TRUE));
-
     default:
       mrb_raisef(mrb, E_TYPE_ERROR, "%Y cannot be converted to Float", val);
       /* not reached */
