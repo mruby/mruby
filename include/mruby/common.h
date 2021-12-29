@@ -28,6 +28,11 @@
 # define MRB_END_DECL
 #endif
 
+#if defined _MSC_VER
+#include <BaseTsd.h>
+typedef SSIZE_T ssize_t;
+#endif
+
 /**
  * Shared compiler macros
  */
