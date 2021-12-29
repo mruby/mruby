@@ -487,17 +487,13 @@ mrb_obj_is_kind_of(mrb_state *mrb, mrb_value obj, struct RClass *c)
 MRB_API mrb_value
 mrb_to_integer(mrb_state *mrb, mrb_value val)
 {
-
   if (!mrb_integer_p(val)) {
 #ifndef MRB_NO_FLOAT
     if (mrb_float_p(val)) {
       return mrb_float_to_integer(mrb, val);
     }
 #endif
-    if (mrb_string_p(val)) {
-      mrb_raise(mrb, E_TYPE_ERROR, "can't convert String to Integer");
-    }
-    return mrb_type_convert(mrb, val, MRB_TT_INTEGER, MRB_SYM(to_i));
+    mrb_raisef(mrb, E_TYPE_ERROR, "%Y cannot be converted to Integer", val);
   }
   return val;
 }
@@ -520,7 +516,9 @@ mrb_to_float(mrb_state *mrb, mrb_value val)
       return mrb_float_value(mrb, mrb_str_to_dbl(mrb, val, TRUE));
 
     default:
-      return mrb_type_convert(mrb, val, MRB_TT_FLOAT, MRB_SYM(to_f));
+      mrb_raisef(mrb, E_TYPE_ERROR, "%Y cannot be converted to Float", val);
+      /* not reached */
+      return val;
   }
 }
 #endif
