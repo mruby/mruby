@@ -14,7 +14,7 @@
 
 /* Instance variable table structure */
 typedef struct iv_tbl {
-  size_t size, alloc;
+  int size, alloc;
   mrb_value *ptr;
 } iv_tbl;
 
@@ -41,8 +41,8 @@ static void iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val);
 static void
 iv_rehash(mrb_state *mrb, iv_tbl *t)
 {
-  size_t old_alloc = t->alloc;
-  size_t new_alloc = old_alloc+4;
+  int old_alloc = t->alloc;
+  int new_alloc = old_alloc+4;
   mrb_value *old_ptr = t->ptr;
 
   khash_power2(new_alloc);
@@ -55,7 +55,7 @@ iv_rehash(mrb_state *mrb, iv_tbl *t)
 
   mrb_sym *keys = (mrb_sym*)&old_ptr[old_alloc];
   mrb_value *vals = old_ptr;
-  for (size_t i = 0; i < old_alloc; i++) {
+  for (int i = 0; i < old_alloc; i++) {
     if (IV_KEY_P(keys[i])) {
       iv_put(mrb, t, keys[i], vals[i]);
     }
@@ -67,8 +67,7 @@ iv_rehash(mrb_state *mrb, iv_tbl *t)
 static void
 iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
 {
-  size_t hash, pos, start;
-  int dpos = -1;
+  int hash, pos, start, dpos = -1;
 
   if (t == NULL) return;
   if (t->alloc == 0) {
@@ -112,10 +111,10 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
 }
 
 /* Get a value for a symbol from the instance variable table. */
-static size_t
+static int
 iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 {
-  size_t hash, pos, start;
+  int hash, pos, start;
 
   if (t == NULL) return FALSE;
   if (t->alloc == 0) return FALSE;
@@ -145,7 +144,7 @@ iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 static mrb_bool
 iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 {
-  size_t hash, pos, start;
+  int hash, pos, start;
 
   if (t == NULL) return FALSE;
   if (t->alloc == 0) return FALSE;
@@ -177,7 +176,7 @@ iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 static void
 iv_foreach(mrb_state *mrb, iv_tbl *t, mrb_iv_foreach_func *func, void *p)
 {
-  size_t i;
+  int i;
 
   if (t == NULL) return;
   if (t->alloc == 0) return;
@@ -201,7 +200,7 @@ static size_t
 iv_size(mrb_state *mrb, iv_tbl *t)
 {
   if (t == NULL) return 0;
-  return t->size;
+  return (size_t)t->size;
 }
 
 /* Copy the instance variable table. */
@@ -209,7 +208,7 @@ static iv_tbl*
 iv_copy(mrb_state *mrb, iv_tbl *t)
 {
   iv_tbl *t2;
-  size_t i;
+  int i;
 
   if (t == NULL) return NULL;
   if (t->alloc == 0) return NULL;
@@ -486,7 +485,7 @@ mrb_value
 mrb_obj_iv_inspect(mrb_state *mrb, struct RObject *obj)
 {
   iv_tbl *t = obj->iv;
-  size_t len = iv_size(mrb, t);
+  int len = iv_size(mrb, t);
 
   if (len > 0) {
     const char *cn = mrb_obj_classname(mrb, mrb_obj_value(obj));
@@ -660,7 +659,7 @@ mrb_mod_cv_set(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value v)
 
   while (c) {
     iv_tbl *t = c->iv;
-    size_t pos = iv_get(mrb, t, sym, NULL);
+    int pos = iv_get(mrb, t, sym, NULL);
 
     if (pos) {
       mrb_check_frozen(mrb, c);

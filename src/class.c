@@ -36,8 +36,8 @@ union mt_ptr {
 
 /* method table structure */
 typedef struct mt_tbl {
-  size_t size;
-  size_t alloc;
+  int size;
+  int alloc;
   union mt_ptr *ptr;
 } mt_tbl;
 
@@ -65,8 +65,8 @@ static void mt_put(mrb_state *mrb, mt_tbl *t, mrb_sym sym, mrb_sym flags, union 
 static void
 mt_rehash(mrb_state *mrb, mt_tbl *t)
 {
-  size_t old_alloc = t->alloc;
-  size_t new_alloc = old_alloc+8;
+  int old_alloc = t->alloc;
+  int new_alloc = old_alloc+8;
   union mt_ptr *old_ptr = t->ptr;
 
   khash_power2(new_alloc);
@@ -79,7 +79,7 @@ mt_rehash(mrb_state *mrb, mt_tbl *t)
 
   mrb_sym *keys = (mrb_sym*)&old_ptr[old_alloc];
   union mt_ptr *vals = old_ptr;
-  for (size_t i = 0; i < old_alloc; i++) {
+  for (int i = 0; i < old_alloc; i++) {
     mrb_sym key = keys[i];
     if (MT_KEY_P(key)) {
       mt_put(mrb, t, MT_KEY_SYM(key), MT_KEY_FLG(key), vals[i]);
@@ -94,8 +94,7 @@ mt_rehash(mrb_state *mrb, mt_tbl *t)
 static void
 mt_put(mrb_state *mrb, mt_tbl *t, mrb_sym sym, mrb_sym flags, union mt_ptr ptr)
 {
-  size_t hash, pos, start;
-  ssize_t dpos = -1;
+  int hash, pos, start, dpos = -1;
 
   if (t->alloc == 0) {
     mt_rehash(mrb, t);
@@ -140,7 +139,7 @@ mt_put(mrb_state *mrb, mt_tbl *t, mrb_sym sym, mrb_sym flags, union mt_ptr ptr)
 static mrb_sym
 mt_get(mrb_state *mrb, mt_tbl *t, mrb_sym sym, union mt_ptr *pp)
 {
-  size_t hash, pos, start;
+  int hash, pos, start;
 
   if (t == NULL) return 0;
   if (t->alloc == 0) return 0;
@@ -150,7 +149,7 @@ mt_get(mrb_state *mrb, mt_tbl *t, mrb_sym sym, union mt_ptr *pp)
   union mt_ptr *vals = t->ptr;
   hash = kh_int_hash_func(mrb, sym);
 #ifdef MRB_USE_INLINE_METHOD_CACHE
-  size_t cpos = (hash^(uintptr_t)t) % MT_CACHE_SIZE;
+  int cpos = (hash^(uintptr_t)t) % MT_CACHE_SIZE;
   pos = mt_cache[cpos];
   if (cpos < t->alloc && t->table[cpos].key == sym) {
     return &t->table[cpos];
@@ -182,7 +181,7 @@ mt_get(mrb_state *mrb, mt_tbl *t, mrb_sym sym, union mt_ptr *pp)
 static mrb_bool
 mt_del(mrb_state *mrb, mt_tbl *t, mrb_sym sym)
 {
-  size_t hash, pos, start;
+  int hash, pos, start;
 
   if (t == NULL) return FALSE;
   if (t->alloc == 0) return  FALSE;
@@ -213,7 +212,7 @@ static struct mt_tbl*
 mt_copy(mrb_state *mrb, mt_tbl *t)
 {
   mt_tbl *t2;
-  size_t i;
+  int i;
 
   if (t == NULL) return NULL;
   if (t->alloc == 0) return NULL;
@@ -242,7 +241,7 @@ MRB_API void
 mrb_mt_foreach(mrb_state *mrb, struct RClass *c, mrb_mt_foreach_func *fn, void *p)
 {
   mt_tbl *t = c->mt;
-  size_t i;
+  int i;
 
   if (t == NULL) return;
   if (t->alloc == 0) return;
@@ -276,7 +275,7 @@ void
 mrb_gc_mark_mt(mrb_state *mrb, struct RClass *c)
 {
   mt_tbl *t = c->mt;
-  size_t i;
+  int i;
 
   if (t == NULL) return;
   if (t->alloc == 0) return;
@@ -299,7 +298,7 @@ mrb_gc_mark_mt_size(mrb_state *mrb, struct RClass *c)
   struct mt_tbl *h = c->mt;
 
   if (!h) return 0;
-  return h->size;
+  return (size_t)h->size;
 }
 
 void
