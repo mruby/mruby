@@ -2047,9 +2047,11 @@ static mrb_value
 mrb_str_rindex(mrb_state *mrb, mrb_value str)
 {
   mrb_value sub;
-  mrb_int pos, len = RSTRING_CHAR_LEN(str);
+  mrb_int pos;
+  int argc = mrb_get_args(mrb, "S|i", &sub, &pos);
+  mrb_int len = RSTRING_CHAR_LEN(str);
 
-  if (mrb_get_args(mrb, "S|i", &sub, &pos) == 1) {
+  if (argc == 1) {
     pos = len;
   }
   else {
@@ -2828,16 +2830,18 @@ static mrb_value
 mrb_str_byteslice(mrb_state *mrb, mrb_value str)
 {
   mrb_value a1;
-  mrb_int str_len = RSTRING_LEN(str), beg, len;
+  mrb_int str_len, beg, len;
   mrb_bool empty = TRUE;
 
   len = mrb_get_argc(mrb);
   switch (len) {
   case 2:
     mrb_get_args(mrb, "ii", &beg, &len);
+    str_len = RSTRING_LEN(str);
     break;
   case 1:
     a1 = mrb_get_arg1(mrb);
+    str_len = RSTRING_LEN(str);
     if (mrb_range_p(a1)) {
       if (mrb_range_beg_len(mrb, a1, &beg, &len, str_len, TRUE) != MRB_RANGE_OK) {
         return mrb_nil_value();
