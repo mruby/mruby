@@ -95,7 +95,7 @@ jobs:
 
   Windows-Cygwin:
     runs-on: windows-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       ACTIONS_ALLOW_UNSECURE_COMMANDS: true
       MRUBY_CONFIG: ci/gcc-clang
