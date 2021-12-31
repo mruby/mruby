@@ -264,12 +264,14 @@ mrb_ary_compact_bang(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_ary_rotate(mrb_state *mrb, mrb_value self)
 {
+  mrb_int count=1;
+  mrb_get_args(mrb, "|i", &count);
+
   mrb_value ary = mrb_ary_new(mrb);
   mrb_int len = RARRAY_LEN(self);
   mrb_value *p = RARRAY_PTR(self);
-  mrb_int count=1, idx;
+  mrb_int idx;
 
-  mrb_get_args(mrb, "|i", &count);
   if (len <= 0) return ary;
   if (count < 0) {
     idx = len - (~count % len) - 1;
@@ -313,12 +315,14 @@ rev(mrb_value *p, mrb_int beg, mrb_int end)
 static mrb_value
 mrb_ary_rotate_bang(mrb_state *mrb, mrb_value self)
 {
+  mrb_int count=1;
+  mrb_get_args(mrb, "|i", &count);
+
   struct RArray *a = mrb_ary_ptr(self);
   mrb_int len = ARY_LEN(a);
   mrb_value *p = ARY_PTR(a);
-  mrb_int count=1, idx;
+  mrb_int idx;
 
-  mrb_get_args(mrb, "|i", &count);
   mrb_ary_modify(mrb, a);
   if (len == 0 || count == 0) return self;
   if (count == 1) {
