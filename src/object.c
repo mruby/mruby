@@ -499,6 +499,9 @@ mrb_ensure_int_type(mrb_state *mrb, mrb_value val)
 }
 
 #ifndef MRB_NO_FLOAT
+mrb_value mrb_complex_to_f(mrb_state *mrb, mrb_value comp); // provided by mruby-complex with MRB_USE_COMPLEX
+mrb_value mrb_rational_to_f(mrb_state *mrb, mrb_value rat); // provided by mruby-rational with MRB_USE_RATIONAL
+
 MRB_API mrb_value
 mrb_ensure_float_type(mrb_state *mrb, mrb_value val)
 {
@@ -512,9 +515,15 @@ mrb_ensure_float_type(mrb_state *mrb, mrb_value val)
     case MRB_TT_FLOAT:
       return val;
 
+#ifdef MRB_USE_RATIONAL
     case MRB_TT_RATIONAL:
+      return mrb_rational_to_f(mrb, val);
+#endif
+
+#ifdef MRB_USE_COMPLEX
     case MRB_TT_COMPLEX:
-      return mrb_type_convert(mrb, val, MRB_TT_FLOAT, MRB_SYM(to_f));
+      return mrb_complex_to_f(mrb, val);
+#endif
 
     default:
       mrb_raisef(mrb, E_TYPE_ERROR, "%Y cannot be converted to Float", val);

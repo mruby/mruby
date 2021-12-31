@@ -105,8 +105,8 @@ complex_s_rect(mrb_state *mrb, mrb_value self)
   return complex_new(mrb, real, imaginary);
 }
 
-static mrb_value
-complex_to_f(mrb_state *mrb, mrb_value self)
+mrb_value
+mrb_complex_to_f(mrb_state *mrb, mrb_value self)
 {
   struct mrb_complex *p = complex_ptr(mrb, self);
 
@@ -415,7 +415,7 @@ void mrb_mruby_complex_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, mrb->kernel_module, "Complex", complex_s_rect, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_method(mrb, comp, "real", complex_real, MRB_ARGS_NONE());
   mrb_define_method(mrb, comp, "imaginary", complex_imaginary, MRB_ARGS_NONE());
-  mrb_define_method(mrb, comp, "to_f", complex_to_f, MRB_ARGS_NONE());
+  mrb_define_method(mrb, comp, "to_f", mrb_complex_to_f, MRB_ARGS_NONE());
   mrb_define_method(mrb, comp, "to_i", complex_to_i, MRB_ARGS_NONE());
   mrb_define_method(mrb, comp, "to_c", complex_to_c, MRB_ARGS_NONE());
   mrb_define_method(mrb, comp, "+", complex_add, MRB_ARGS_REQ(1));

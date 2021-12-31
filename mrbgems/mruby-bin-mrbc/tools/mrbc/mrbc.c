@@ -366,3 +366,18 @@ mrb_final_mrbgems(mrb_state *mrb)
 {
 }
 #endif
+
+#ifdef MRB_USE_COMPLEX
+mrb_value mrb_complex_to_f(mrb_state *mrb, mrb_value comp)
+{
+  mrb_raise(mrb, E_NOTIMP_ERROR, "unavailable for core only");
+}
+#endif
+
+#ifdef MRB_USE_RATIONAL
+mrb_value
+mrb_rational_to_f(mrb_state *mrb, mrb_value rat)
+{
+  mrb_raise(mrb, E_NOTIMP_ERROR, "unavailable for core only");
+}
+#endif
