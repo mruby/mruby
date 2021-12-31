@@ -29,12 +29,12 @@ mrb_as_float(mrb_state *mrb, mrb_value val)
     return (mrb_float)mrb_integer(val);
   case MRB_TT_FLOAT:
     break;
-  case MRB_TT_STRING:
-  case MRB_TT_FALSE:
-  case MRB_TT_TRUE:
-    mrb_raise(mrb, E_TYPE_ERROR, "non float value");
-  default:
+  case MRB_TT_RATIONAL:
+  case MRB_TT_COMPLEX:
     val = mrb_type_convert(mrb, val, MRB_TT_FLOAT, MRB_SYM(to_f));
+    break;
+  default:
+    mrb_raise(mrb, E_TYPE_ERROR, "non float value");
     break;
   }
   return mrb_float(val);
