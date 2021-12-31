@@ -160,7 +160,6 @@ mrb_int_mul_overflow(mrb_int a, mrb_int b, mrb_int *c)
 # endif /* MRB_USE_FLOAT32 */
 
 MRB_API mrb_value mrb_float_to_integer(mrb_state *mrb, mrb_value val);
-MRB_API mrb_float mrb_as_float(mrb_state *mrb, mrb_value x);
 
 /* internal functions */
 mrb_float mrb_div_float(mrb_float x, mrb_float y);

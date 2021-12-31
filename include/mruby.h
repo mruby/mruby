@@ -1270,6 +1270,7 @@ MRB_API mrb_bool mrb_obj_equal(mrb_state *mrb, mrb_value a, mrb_value b);
 MRB_API mrb_bool mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
 #ifndef MRB_NO_FLOAT
 MRB_API mrb_value mrb_ensure_float_type(mrb_state *mrb, mrb_value val);
+#define mrb_as_float(mrb, x) mrb_float(mrb_ensure_float_type(mrb, x))
 /* obsolete: use mrb_ensure_float_type() instead */
 #define mrb_to_float(mrb, val) mrb_ensure_float_type(mrb, val)
 #endif

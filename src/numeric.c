@@ -20,27 +20,6 @@
 #endif
 #endif
 
-#ifndef MRB_NO_FLOAT
-MRB_API mrb_float
-mrb_as_float(mrb_state *mrb, mrb_value val)
-{
-  switch (mrb_type(val)) {
-  case MRB_TT_INTEGER:
-    return (mrb_float)mrb_integer(val);
-  case MRB_TT_FLOAT:
-    break;
-  case MRB_TT_RATIONAL:
-  case MRB_TT_COMPLEX:
-    val = mrb_type_convert(mrb, val, MRB_TT_FLOAT, MRB_SYM(to_f));
-    break;
-  default:
-    mrb_raise(mrb, E_TYPE_ERROR, "non float value");
-    break;
-  }
-  return mrb_float(val);
-}
-#endif
-
 static void
 int_overflow(mrb_state *mrb, const char *reason)
 {
