@@ -291,8 +291,8 @@ rat_float(struct mrb_rational *p)
   return f;
 }
 
-static mrb_value
-rational_to_f(mrb_state *mrb, mrb_value self)
+mrb_value
+mrb_rational_to_f(mrb_state *mrb, mrb_value self)
 {
   struct mrb_rational *p = rational_ptr(mrb, self);
   return mrb_float_value(mrb, rat_float(p));
@@ -394,7 +394,7 @@ rational_eq(mrb_state *mrb, mrb_value x)
   case MRB_TT_COMPLEX:
    {
       mrb_bool mrb_complex_eq(mrb_state *mrb, mrb_value, mrb_value);
-      result = mrb_complex_eq(mrb, y, rational_to_f(mrb, x));
+      result = mrb_complex_eq(mrb, y, mrb_rational_to_f(mrb, x));
       break;
     }
 #endif
@@ -712,7 +712,7 @@ void mrb_mruby_rational_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, rat, "numerator", rational_numerator, MRB_ARGS_NONE());
   mrb_define_method(mrb, rat, "denominator", rational_denominator, MRB_ARGS_NONE());
 #ifndef MRB_NO_FLOAT
-  mrb_define_method(mrb, rat, "to_f", rational_to_f, MRB_ARGS_NONE());
+  mrb_define_method(mrb, rat, "to_f", mrb_rational_to_f, MRB_ARGS_NONE());
 #endif
   mrb_define_method(mrb, rat, "to_i", rational_to_i, MRB_ARGS_NONE());
   mrb_define_method(mrb, rat, "to_r", rational_to_r, MRB_ARGS_NONE());
