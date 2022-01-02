@@ -67,10 +67,10 @@ mrb_proc_new(mrb_state *mrb, const mrb_irep *irep)
     p->upper = ci->proc;
     p->e.target_class = tc;
   }
-  p->body.irep = irep;
   if (irep) {
     mrb_irep_incref(mrb, (mrb_irep*)irep);
   }
+  p->body.irep = irep;
 
   return p;
 }
