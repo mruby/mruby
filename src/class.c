@@ -929,6 +929,13 @@ mrb_block_given_p(mrb_state *mrb)
 MRB_API mrb_int
 mrb_get_args(mrb_state *mrb, const char *format, ...)
 {
+#define ADJUST_STACK() do { \
+  if (argv_on_stack) { \
+    ci = mrb->c->ci; \
+    argv = mrb->c->ci->stack + 1; \
+  } \
+} while (0)
+
   const char *fmt = format;
   char c;
   int i = 0;
@@ -1191,6 +1198,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         p = va_arg(ap, mrb_float*);
         if (pickarg) {
           *p = mrb_as_float(mrb, *pickarg);
+          ADJUST_STACK();
         }
       }
       break;
@@ -1202,6 +1210,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
         p = va_arg(ap, mrb_int*);
         if (pickarg) {
           *p = mrb_as_int(mrb, *pickarg);
+          ADJUST_STACK();
         }
       }
       break;
@@ -1364,6 +1373,8 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
 finish:
   va_end(ap);
   return i;
+
+#undef ADJUST_STACK
 }
 
 static struct RClass*
