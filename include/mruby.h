@@ -109,6 +109,8 @@
     mrb_static_assert_expand(mrb_static_assert_selector(__VA_ARGS__, mrb_static_assert2, mrb_static_assert1, _)(__VA_ARGS__))
 #endif
 
+#define mrb_static_assert_powerof2(num) mrb_static_assert((num) > 0 && (num) == ((num) & -(num)), "need power of 2 for " #num)
+
 #include "mrbconf.h"
 
 #include <mruby/common.h>
@@ -208,6 +210,7 @@ struct mrb_context {
 
 #ifdef MRB_METHOD_CACHE_SIZE
 # undef MRB_NO_METHOD_CACHE
+mrb_static_assert_powerof2(MRB_METHOD_CACHE_SIZE);
 #else
 /* default method cache size: 256 */
 /* cache size needs to be power of 2 */
