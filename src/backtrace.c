@@ -99,27 +99,26 @@ each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, each_backtrace_func func, void *
 static void
 print_backtrace(mrb_state *mrb, struct RObject *exc, mrb_value backtrace)
 {
-  mrb_int i;
+  mrb_value mesg = mrb_exc_inspect(mrb, mrb_obj_value(exc));
   mrb_int n = RARRAY_LEN(backtrace);
-  mrb_value *loc, mesg;
+  mrb_value *loc;
 
   if (n != 0) {
-    if (n > 1) {
-      fprintf(stderr, "trace (most recent call last):\n");
-    }
-    for (i=n-1,loc=&RARRAY_PTR(backtrace)[i]; i>0; i--,loc--) {
-      if (mrb_string_p(*loc)) {
-        fprintf(stderr, "\t[%d] %.*s\n",
-                (int)i, (int)RSTRING_LEN(*loc), RSTRING_PTR(*loc));
-      }
-    }
+    loc = RARRAY_PTR(backtrace);
     if (mrb_string_p(*loc)) {
       fprintf(stderr, "%.*s: ", (int)RSTRING_LEN(*loc), RSTRING_PTR(*loc));
     }
+    loc++;
+    n--;
   }
-  mesg = mrb_exc_inspect(mrb, mrb_obj_value(exc));
   fwrite(RSTRING_PTR(mesg), RSTRING_LEN(mesg), 1, stderr);
   fputc('\n', stderr);
+  for (; n > 0; n--, loc++) {
+    if (mrb_string_p(*loc)) {
+      fprintf(stderr, "\tfrom %.*s\n",
+              (int)RSTRING_LEN(*loc), RSTRING_PTR(*loc));
+    }
+  }
 }
 
 /* mrb_print_backtrace
