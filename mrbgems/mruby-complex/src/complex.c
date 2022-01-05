@@ -117,13 +117,13 @@ mrb_complex_to_f(mrb_state *mrb, mrb_value self)
   return mrb_float_value(mrb, p->real);
 }
 
-static mrb_value
-complex_to_i(mrb_state *mrb, mrb_value self)
+mrb_value
+mrb_complex_to_i(mrb_state *mrb, mrb_value self)
 {
   struct mrb_complex *p = complex_ptr(mrb, self);
 
   if (p->imaginary != 0) {
-    mrb_raisef(mrb, E_RANGE_ERROR, "can't convert %v into Float", self);
+    mrb_raisef(mrb, E_RANGE_ERROR, "can't convert %v into Integer", self);
   }
   return mrb_int_value(mrb, (mrb_int)p->real);
 }
@@ -416,7 +416,7 @@ void mrb_mruby_complex_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, comp, "real", complex_real, MRB_ARGS_NONE());
   mrb_define_method(mrb, comp, "imaginary", complex_imaginary, MRB_ARGS_NONE());
   mrb_define_method(mrb, comp, "to_f", mrb_complex_to_f, MRB_ARGS_NONE());
-  mrb_define_method(mrb, comp, "to_i", complex_to_i, MRB_ARGS_NONE());
+  mrb_define_method(mrb, comp, "to_i", mrb_complex_to_i, MRB_ARGS_NONE());
   mrb_define_method(mrb, comp, "to_c", complex_to_c, MRB_ARGS_NONE());
   mrb_define_method(mrb, comp, "+", complex_add, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, comp, "-", complex_sub, MRB_ARGS_REQ(1));

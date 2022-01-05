@@ -484,6 +484,17 @@ mrb_obj_is_kind_of(mrb_state *mrb, mrb_value obj, struct RClass *c)
   return FALSE;
 }
 
+#ifdef MRB_USE_RATIONAL
+// provided by mruby-rational with MRB_USE_RATIONAL
+mrb_value mrb_rational_to_i(mrb_state *mrb, mrb_value rat);
+mrb_value mrb_rational_to_f(mrb_state *mrb, mrb_value rat);
+#endif
+#ifdef MRB_USE_COMPLEX
+// provided by mruby-complex with MRB_USE_COMPLEX
+mrb_value mrb_complex_to_f(mrb_state *mrb, mrb_value comp);
+mrb_value mrb_complex_to_i(mrb_state *mrb, mrb_value comp);
+#endif
+
 MRB_API mrb_value
 mrb_ensure_int_type(mrb_state *mrb, mrb_value val)
 {
@@ -492,6 +503,20 @@ mrb_ensure_int_type(mrb_state *mrb, mrb_value val)
     if (mrb_float_p(val)) {
       return mrb_float_to_integer(mrb, val);
     }
+    else {
+      switch (mrb_type(val)) {
+#ifdef MRB_USE_RATIONAL
+      case MRB_TT_RATIONAL:
+        return mrb_rational_to_i(mrb, val);
+#endif
+#ifdef MRB_USE_COMPLEX
+      case MRB_TT_COMPLEX:
+        return mrb_complex_to_i(mrb, val);
+#endif
+      default:
+        break;
+      }
+    }
 #endif
     mrb_raisef(mrb, E_TYPE_ERROR, "%Y cannot be converted to Integer", val);
   }
@@ -499,9 +524,6 @@ mrb_ensure_int_type(mrb_state *mrb, mrb_value val)
 }
 
 #ifndef MRB_NO_FLOAT
-mrb_value mrb_complex_to_f(mrb_state *mrb, mrb_value comp); // provided by mruby-complex with MRB_USE_COMPLEX
-mrb_value mrb_rational_to_f(mrb_state *mrb, mrb_value rat); // provided by mruby-rational with MRB_USE_RATIONAL
-
 MRB_API mrb_value
 mrb_ensure_float_type(mrb_state *mrb, mrb_value val)
 {

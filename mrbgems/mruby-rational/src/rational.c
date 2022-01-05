@@ -299,8 +299,8 @@ mrb_rational_to_f(mrb_state *mrb, mrb_value self)
 }
 #endif
 
-static mrb_value
-rational_to_i(mrb_state *mrb, mrb_value self)
+mrb_value
+mrb_rational_to_i(mrb_state *mrb, mrb_value self)
 {
   struct mrb_rational *p = rational_ptr(mrb, self);
   if (p->denominator == 0) {
@@ -714,7 +714,7 @@ void mrb_mruby_rational_gem_init(mrb_state *mrb)
 #ifndef MRB_NO_FLOAT
   mrb_define_method(mrb, rat, "to_f", mrb_rational_to_f, MRB_ARGS_NONE());
 #endif
-  mrb_define_method(mrb, rat, "to_i", rational_to_i, MRB_ARGS_NONE());
+  mrb_define_method(mrb, rat, "to_i", mrb_rational_to_i, MRB_ARGS_NONE());
   mrb_define_method(mrb, rat, "to_r", rational_to_r, MRB_ARGS_NONE());
   mrb_define_method(mrb, rat, "negative?", rational_negative_p, MRB_ARGS_NONE());
   mrb_define_method(mrb, rat, "==", rational_eq, MRB_ARGS_REQ(1));
