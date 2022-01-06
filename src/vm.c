@@ -1729,6 +1729,16 @@ RETRY_TRY_BLOCK:
       }
       mrb_assert(bidx < irep->nregs);
 
+      uint8_t nk = (b >> 4) & 0x0f;
+      if (nk > 0 && nk < CALL_MAXARGS) {  /* pack keyword arguments */
+        uint8_t n = b & 0x0f;
+        mrb_int kidx = a+(n==15?1:n)+1;
+        mrb_value kdict = hash_new_from_values(mrb, nk, regs+kidx);
+        regs[kidx] = kdict;
+        nk = 15;
+        b = n | (nk<<4);
+      }
+
       if (mid == 0 || !target_class) {
         mrb_value exc = mrb_exc_new_lit(mrb, E_NOMETHOD_ERROR, "super called outside of method");
         mrb_exc_set(mrb, exc);

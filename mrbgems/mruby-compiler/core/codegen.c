@@ -2854,8 +2854,8 @@ codegen(codegen_scope *s, node *tree, int val)
         if (s2 && (s2->ainfo & 0x1) && tree->cdr->car) {
           nk = gen_hash(s, tree->cdr->car->cdr, VAL, 14);
           if (nk < 0) {st++; nk = 15;}
-          else st += nk;
-          n |= 15<<4;
+          else st += nk*2;
+          n |= nk<<4;
         }
         /* block arguments */
         if (tree->cdr->cdr) {
