@@ -1,5 +1,5 @@
 /*
-** cdump.c - mruby binary dumper (in C)
+** dump.c - mruby binary dumper (mrbc binary format)
 **
 ** See Copyright Notice in mruby.h
 */
