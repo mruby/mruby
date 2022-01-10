@@ -712,9 +712,10 @@ new_cvar(parser_state *p, mrb_sym sym)
 static node*
 new_nvar(parser_state *p, int num)
 {
-  int nvars = intn(p->nvars->car);
-
-  p->nvars->car = nint(nvars > num ? nvars : num);
+  if (p->nvars) {
+    int nvars = intn(p->nvars->car);
+    p->nvars->car = nint(nvars > num ? nvars : num);
+  }
   return cons((node*)NODE_NVAR, nint(num));
 }
 
