@@ -712,10 +712,6 @@ new_cvar(parser_state *p, mrb_sym sym)
 static node*
 new_nvar(parser_state *p, int num)
 {
-  if (p->nvars) {
-    int nvars = intn(p->nvars->car);
-    p->nvars->car = nint(nvars > num ? nvars : num);
-  }
   return cons((node*)NODE_NVAR, nint(num));
 }
 
@@ -6428,6 +6424,9 @@ parser_yylex(parser_state *p)
           nvar = intn(p->nvars->car);
           if (nvar == -1) {
             yywarning(p, "numbered parameter used in inner block");
+          }
+          else {
+            p->nvars->car = nint(nvar > n ? nvar : n);
           }
           pylval.num = n;
           p->lstate = EXPR_END;
