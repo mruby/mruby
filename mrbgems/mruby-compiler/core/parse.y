@@ -6422,15 +6422,17 @@ parser_yylex(parser_state *p)
             nvars = nvars->cdr;
           }
           nvar = intn(p->nvars->car);
-          if (nvar == -1) {
-            yywarning(p, "numbered parameter used in inner block");
+          if (nvar != -2) {     /* numbered parameters never appear on toplevel */
+            if (nvar == -1) {
+              yywarning(p, "numbered parameter used in inner block");
+            }
+            else {
+              p->nvars->car = nint(nvar > n ? nvar : n);
+            }
+            pylval.num = n;
+            p->lstate = EXPR_END;
+            return tNUMPARAM;
           }
-          else {
-            p->nvars->car = nint(nvar > n ? nvar : n);
-          }
-          pylval.num = n;
-          p->lstate = EXPR_END;
-          return tNUMPARAM;
         }
       }
       /* fall through */
