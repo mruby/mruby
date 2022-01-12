@@ -1729,6 +1729,7 @@ RETRY_TRY_BLOCK:
       }
       mrb_assert(bidx < irep->nregs);
 
+      blk = regs[bidx];
       uint8_t nk = (b >> 4) & 0x0f;
       if (nk > 0 && nk < CALL_MAXARGS) {  /* pack keyword arguments */
         uint8_t n = b & 0x0f;
@@ -1737,6 +1738,8 @@ RETRY_TRY_BLOCK:
         regs[kidx] = kdict;
         nk = 15;
         b = n | (nk<<4);
+        bidx = kidx + 1;
+        regs[bidx] = blk;
       }
 
       if (mid == 0 || !target_class) {
@@ -1761,7 +1764,6 @@ RETRY_TRY_BLOCK:
         mrb_exc_set(mrb, exc);
         goto L_RAISE;
       }
-      blk = regs[bidx];
       if (!mrb_nil_p(blk) && !mrb_proc_p(blk)) {
         blk = mrb_type_convert(mrb, blk, MRB_TT_PROC, MRB_SYM(to_proc));
         /* The stack or ci stack might have been reallocated during
