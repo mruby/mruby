@@ -459,7 +459,7 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
 #define OUTINT(x) 0
 #endif
 
-  if (OUTINT(ayear-1900) ||
+  if (ayear < 1900 || OUTINT(ayear-1900) ||
       amonth  < 1 || amonth  > 12 ||
       aday    < 1 || aday    > 31 ||
       ahour   < 0 || ahour   > 24 ||
