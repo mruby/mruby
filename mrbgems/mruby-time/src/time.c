@@ -483,7 +483,17 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
     nowsecs = mktime(&nowtime);
   }
   if (nowsecs == (time_t)-1) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "Not a valid time");
+    nowtime.tm_sec += 1;
+    if (timezone == MRB_TIMEZONE_UTC) {
+      nowsecs = timegm(&nowtime);
+    }
+    else {
+      nowsecs = mktime(&nowtime);
+    }
+    if (nowsecs != 0) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "Not a valid time");
+    }
+    nowsecs = (time_t)-1;
   }
 
   return time_alloc_time(mrb, nowsecs, ausec, timezone);
