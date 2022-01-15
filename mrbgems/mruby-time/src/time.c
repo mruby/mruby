@@ -476,24 +476,21 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
   nowtime.tm_sec   = (int)asec;
   nowtime.tm_isdst = -1;
 
+  time_t (*mk)(struct tm*);
   if (timezone == MRB_TIMEZONE_UTC) {
-    nowsecs = timegm(&nowtime);
+    mk = timegm;
   }
   else {
-    nowsecs = mktime(&nowtime);
+    mk = mktime;
   }
+  nowsecs = (*mk)(&nowtime);
   if (nowsecs == (time_t)-1) {
-    nowtime.tm_sec += 1;
-    if (timezone == MRB_TIMEZONE_UTC) {
-      nowsecs = timegm(&nowtime);
-    }
-    else {
-      nowsecs = mktime(&nowtime);
-    }
-    if (nowsecs != 0) {
+    nowtime.tm_sec += 1;        /* maybe Epoch-1 sec */
+    nowsecs = (*mk)(&nowtime);
+    if (nowsecs != 0) {         /* check if Epoch */
       mrb_raise(mrb, E_ARGUMENT_ERROR, "Not a valid time");
     }
-    nowsecs = (time_t)-1;
+    nowsecs = (time_t)-1;       /* valid Epoch-1 */
   }
 
   return time_alloc_time(mrb, nowsecs, ausec, timezone);
