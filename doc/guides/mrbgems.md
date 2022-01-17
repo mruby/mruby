@@ -397,21 +397,21 @@ binary gems, to separate normal gems and binary gems.
 ```
 +- mruby-bin-example/
     |
-    +- README.md        (Optional)
+    +- README.md          (Optional)
     |
     +- bintest/
     |   |
-    |   +- example.rb   <- Test code for binary gem
+    |   +- example.rb     <- Test code for binary gem
     |
-    +- mrbgem.rake      <- Gem specification
+    +- mrbgem.rake        <- Gem specification
     |
-    +- mrblib/          <- Source for Ruby extension (Optional)
+    +- mrblib/            <- Source for Ruby extension (Optional)
     |
-    +- src/             <- Source for C extension (Optional)
+    +- src/               <- Source for C extension (Optional)
     |
     +- tools/
         |
-        +- example/     <- Executable name directory
-        |
-        +- example.c    <- Source for Executable (includes main)
+        +- example/       <- Executable name directory
+            |
+            +- example.c  <- Source for Executable (includes main)
 ```
