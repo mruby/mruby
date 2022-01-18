@@ -101,8 +101,8 @@ static void loop_pop(codegen_scope *s, int val);
 static int catch_handler_new(codegen_scope *s);
 static void catch_handler_set(codegen_scope *s, int ent, enum mrb_catch_type type, uint32_t begin, uint32_t end, uint32_t target);
 
-static void gen_assignment(codegen_scope *s, node *tree, int sp, int val);
-static void gen_vmassignment(codegen_scope *s, node *tree, int rhs, int val);
+static void gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val);
+static void gen_vmassignment(codegen_scope *s, node *tree, int sp, int val);
 
 static void codegen(codegen_scope *s, node *tree, int val);
 static void raise_error(codegen_scope *s, const char *msg);
@@ -1275,7 +1275,7 @@ for_body(codegen_scope *s, node *tree)
   n2 = tree->car;
   genop_W(s, OP_ENTER, 0x40000);
   if (n2->car && !n2->car->cdr && !n2->cdr) {
-    gen_assignment(s, n2->car->car, 1, NOVAL);
+    gen_assignment(s, n2->car->car, NULL, 1, NOVAL);
   }
   else {
     gen_vmassignment(s, n2, 1, VAL);
@@ -1774,10 +1774,41 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
 }
 
 static void
-gen_assignment(codegen_scope *s, node *tree, int sp, int val)
+gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
 {
   int idx;
   int type = nint(tree->car);
+
+  switch (type) {
+  case NODE_GVAR:
+  case NODE_ARG:
+  case NODE_LVAR:
+  case NODE_IVAR:
+  case NODE_CVAR:
+  case NODE_CONST:
+  case NODE_NIL:
+  case NODE_MASGN:
+  case NODE_SCALL:
+  case NODE_CALL:
+    if (rhs) {
+      codegen(s, rhs, VAL);
+      pop();
+      sp = cursp();
+    }
+    break;
+
+  case NODE_COLON2:
+    /* keep evaluation order */
+    break;
+
+  case NODE_NVAR:
+    codegen_error(s, "Can't assign to numbered parameter");
+    break;
+
+  default:
+    codegen_error(s, "unknown lhs");
+    break;
+  }
 
   tree = tree->cdr;
   switch (type) {
@@ -1797,10 +1828,6 @@ gen_assignment(codegen_scope *s, node *tree, int sp, int val)
       gen_setupvar(s, sp, nsym(tree));
     }
     break;
-  case NODE_NVAR:
-    idx = nint(tree);
-    codegen_error(s, "Can't assign to numbered parameter");
-    break;
   case NODE_IVAR:
     gen_setxv(s, OP_SETIV, sp, nsym(tree), val);
     break;
@@ -1811,9 +1838,16 @@ gen_assignment(codegen_scope *s, node *tree, int sp, int val)
     gen_setxv(s, OP_SETCONST, sp, nsym(tree), val);
     break;
   case NODE_COLON2:
-    gen_move(s, cursp(), sp, 0);
+    if (sp) {
+      gen_move(s, cursp(), sp, 0);
+    }
+    sp = cursp();
     push();
     codegen(s, tree->car, VAL);
+    if (rhs) {
+      codegen(s, rhs, VAL); pop();
+      gen_move(s, sp, cursp(), 0);
+    }
     pop_n(2);
     idx = new_sym(s, nsym(tree->cdr));
     genop_2(s, OP_SETMCNST, sp, idx);
@@ -1822,8 +1856,7 @@ gen_assignment(codegen_scope *s, node *tree, int sp, int val)
   case NODE_CALL:
   case NODE_SCALL:
     push();
-    gen_call(s, tree, attrsym(s, nsym(tree->cdr->car)), sp, NOVAL,
-             type == NODE_SCALL);
+    gen_call(s, tree, attrsym(s, nsym(tree->cdr->car)), sp, NOVAL, type == NODE_SCALL);
     pop();
     if (val && cursp() != sp) {
       gen_move(s, cursp(), sp, 0);
@@ -1859,7 +1892,7 @@ gen_vmassignment(codegen_scope *s, node *tree, int rhs, int val)
 
       genop_3(s, OP_AREF, sp, rhs, n);
       push();
-      gen_assignment(s, t->car, sp, NOVAL);
+      gen_assignment(s, t->car, NULL, sp, NOVAL);
       pop();
       n++;
       t = t->cdr;
@@ -1880,12 +1913,12 @@ gen_vmassignment(codegen_scope *s, node *tree, int rhs, int val)
     genop_3(s, OP_APOST, cursp(), n, post);
     n = 1;
     if (t->car && t->car != (node*)-1) { /* rest */
-      gen_assignment(s, t->car, cursp(), NOVAL);
+      gen_assignment(s, t->car, NULL, cursp(), NOVAL);
     }
     if (t->cdr && t->cdr->car) {
       t = t->cdr->car;
       while (t) {
-        gen_assignment(s, t->car, cursp()+n, NOVAL);
+        gen_assignment(s, t->car, NULL, cursp()+n, NOVAL);
         t = t->cdr;
         n++;
       }
@@ -2205,7 +2238,7 @@ codegen(codegen_scope *s, node *tree, int val)
 
           pop();
           if (n3->cdr->car) {
-            gen_assignment(s, n3->cdr->car, exc, NOVAL);
+            gen_assignment(s, n3->cdr->car, NULL, exc, NOVAL);
           }
           if (n3->cdr->cdr->car) {
             codegen(s, n3->cdr->cdr->car, val);
@@ -2589,9 +2622,7 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
 
   case NODE_ASGN:
-    codegen(s, tree->cdr, VAL);
-    pop();
-    gen_assignment(s, tree->car, cursp(), val);
+    gen_assignment(s, tree->car, tree->cdr, 0, val);
     break;
 
   case NODE_MASGN:
@@ -2614,12 +2645,12 @@ codegen(codegen_scope *s, node *tree, int val)
           n = 0;
           while (t) {
             if (n < len) {
-              gen_assignment(s, t->car, rhs+n, NOVAL);
+              gen_assignment(s, t->car, NULL, rhs+n, NOVAL);
               n++;
             }
             else {
               genop_1(s, OP_LOADNIL, rhs+n);
-              gen_assignment(s, t->car, rhs+n, NOVAL);
+              gen_assignment(s, t->car, NULL, rhs+n, NOVAL);
             }
             t = t->cdr;
           }
@@ -2643,13 +2674,13 @@ codegen(codegen_scope *s, node *tree, int val)
               rn = len - post - n;
             }
             genop_3(s, OP_ARRAY2, cursp(), rhs+n, rn);
-            gen_assignment(s, t->car, cursp(), NOVAL);
+            gen_assignment(s, t->car, NULL, cursp(), NOVAL);
             n += rn;
           }
           if (t->cdr && t->cdr->car) {
             t = t->cdr->car;
             while (n<len) {
-              gen_assignment(s, t->car, rhs+n, NOVAL);
+              gen_assignment(s, t->car, NULL, rhs+n, NOVAL);
               t = t->cdr;
               n++;
             }
@@ -2770,7 +2801,7 @@ codegen(codegen_scope *s, node *tree, int val)
           genop_3(s, OP_SEND, cursp(), idx, callargs);
         }
         else {
-          gen_assignment(s, tree->car, cursp(), val);
+          gen_assignment(s, tree->car, NULL, cursp(), val);
         }
         dispatch(s, pos);
         goto exit;
@@ -2808,7 +2839,7 @@ codegen(codegen_scope *s, node *tree, int val)
         genop_3(s, OP_SEND, cursp(), idx, 1);
       }
       if (callargs < 0) {
-        gen_assignment(s, tree->car, cursp(), val);
+        gen_assignment(s, tree->car, NULL, cursp(), val);
       }
       else {
         if (val && vsp >= 0) {
