@@ -1057,13 +1057,13 @@ static node*
 new_imaginary(parser_state *p, node *imaginary)
 {
   return new_call(p, new_const(p, MRB_SYM_2(p->mrb, Kernel)), MRB_SYM_2(p->mrb, Complex),
-                  new_callargs(p, list2(list3((node*)NODE_INT, (node*)strdup("0"), nint(10)), imaginary), 0, 0), 1);
+                  new_callargs(p, list2(list3((node*)NODE_INT, (node*)strdup("0"), nint(10)), imaginary), 0, 0), '.');
 }
 
 static node*
 new_rational(parser_state *p, node *rational)
 {
-  return new_call(p, new_const(p, MRB_SYM_2(p->mrb, Kernel)), MRB_SYM_2(p->mrb, Rational), new_callargs(p, list1(rational), 0, 0), 1);
+  return new_call(p, new_const(p, MRB_SYM_2(p->mrb, Kernel)), MRB_SYM_2(p->mrb, Rational), new_callargs(p, list1(rational), 0, 0), '.');
 }
 
 /* (:int . i) */
@@ -1279,14 +1279,14 @@ static node*
 call_uni_op(parser_state *p, node *recv, const char *m)
 {
   void_expr_error(p, recv);
-  return new_call(p, recv, intern_cstr(m), 0, 1);
+  return new_call(p, recv, intern_cstr(m), 0, '.');
 }
 
 /* (:call a op b) */
 static node*
 call_bin_op(parser_state *p, node *recv, const char *m, node *arg1)
 {
-  return new_call(p, recv, intern_cstr(m), new_callargs(p, list1(arg1), 0, 0), 1);
+  return new_call(p, recv, intern_cstr(m), new_callargs(p, list1(arg1), 0, 0), '.');
 }
 
 static void
@@ -12649,16 +12649,17 @@ parser_yylex(parser_state *p)
             nvars = nvars->cdr;
           }
           nvar = intn(p->nvars->car);
-          if (nvar == -1) {
-            yywarning(p, "numbered parameter used in inner block");
+          if (nvar != -2) {     /* numbered parameters never appear on toplevel */
+            if (nvar == -1) {
+              yywarning(p, "numbered parameter used in inner block");
+            }
+            else {
+              p->nvars->car = nint(nvar > n ? nvar : n);
+            }
+            pylval.num = n;
+            p->lstate = EXPR_END;
+            return tNUMPARAM;
           }
-          else {
-            int nvars = intn(p->nvars->car);
-            p->nvars->car = nint(nvars > n ? nvars : n);
-          }
-          pylval.num = n;
-          p->lstate = EXPR_END;
-          return tNUMPARAM;
         }
       }
       /* fall through */
