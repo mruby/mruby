@@ -1788,8 +1788,6 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
   case NODE_CONST:
   case NODE_NIL:
   case NODE_MASGN:
-  case NODE_SCALL:
-  case NODE_CALL:
     if (rhs) {
       codegen(s, rhs, VAL);
       pop();
@@ -1798,6 +1796,8 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
     break;
 
   case NODE_COLON2:
+  case NODE_CALL:
+  case NODE_SCALL:
     /* keep evaluation order */
     break;
 
@@ -1855,11 +1855,71 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
 
   case NODE_CALL:
   case NODE_SCALL:
-    push();
-    gen_call(s, tree, attrsym(s, nsym(tree->cdr->car)), sp, NOVAL, type == NODE_SCALL);
-    pop();
-    if (val && cursp() != sp) {
-      gen_move(s, cursp(), sp, 0);
+    {
+      int noself = 0, safe = (type == NODE_SCALL), skip = 0, top, call, n = 0;
+      mrb_sym mid = nsym(tree->cdr->car);
+
+      top = cursp();
+      if (val || sp == cursp()) {
+        push();                   /* room for retval */
+      }
+      call = cursp();
+      if (!tree->car) {
+        noself = 1;
+        push();
+      }
+      else {
+        codegen(s, tree->car, VAL); /* receiver */
+      }
+      if (safe) {
+        int recv = cursp()-1;
+        gen_move(s, cursp(), recv, 1);
+        skip = genjmp2_0(s, OP_JMPNIL, cursp(), val);
+      }
+      tree = tree->cdr->cdr->car;
+      if (tree) {
+        if (tree->car) {            /* positional arguments */
+          n = gen_values(s, tree->car, VAL, 0, (tree->cdr->car)?13:14);
+          if (n < 0) {              /* variable length */
+            n = 15;
+            push();
+          }
+        }
+        if (tree->cdr->car) {       /* keyword arguments */
+          gen_hash(s, tree->cdr->car->cdr, VAL, 0);
+          if (n < 14) {
+            n++;
+            push();
+          }
+          else {
+            pop();
+            genop_2(s, OP_ARYPUSH, cursp(), 1);
+          }
+        }
+      }
+      if (rhs) {
+        codegen(s, rhs, VAL);
+        pop();
+      }
+      else {
+        gen_move(s, cursp(), sp, 0);
+      }
+      if (val) {
+        gen_move(s, top, cursp(), 1);
+      }
+      if (n < 14) {
+        n++;
+      }
+      else {
+        pop();
+        genop_2(s, OP_ARYPUSH, cursp(), 1);
+      }
+      s->sp = call;
+      genop_3(s, noself ? OP_SSEND : OP_SEND, cursp(), new_sym(s, attrsym(s, mid)), n);
+      if (safe) {
+        dispatch(s, skip);
+      }
+      s->sp = top;
     }
     break;
 
