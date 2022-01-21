@@ -78,7 +78,7 @@ print_args(uint8_t i)
       printf("nk=%d", nk);
     }
   }
-  printf(" (0x%02x)\n", i);
+  printf("\n");
 }
 
 #define CASE(insn,ops) case insn: FETCH_ ## ops (); L_ ## insn
