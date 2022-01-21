@@ -1644,14 +1644,13 @@ gen_hash(codegen_scope *s, node *tree, int val, int limit)
     }
   }
   if (update) {
-    if (len > 0) {
+    if (val && len > 0) {
       pop_n(len*2+1);
       genop_2(s, OP_HASHADD, cursp(), len);
       push();
     }
     return -1;                  /* variable length */
   }
-  if (update) return -1;
   return len;
 }
 
