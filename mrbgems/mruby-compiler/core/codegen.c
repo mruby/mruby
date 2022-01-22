@@ -1530,7 +1530,7 @@ attrsym(codegen_scope *s, mrb_sym a)
 #define GEN_VAL_STACK_MAX 99
 
 static int
-gen_values(codegen_scope *s, node *t, int val, int extra, int limit)
+gen_values(codegen_scope *s, node *t, int val, int limit)
 {
   int n = 0;
   int first = 1;
@@ -1551,7 +1551,7 @@ gen_values(codegen_scope *s, node *t, int val, int extra, int limit)
   while (t) {
     int is_splat = nint(t->car->car) == NODE_SPLAT;
 
-    if (is_splat || n+extra >= limit-1 || cursp() >= slimit) { /* flush stack */
+    if (is_splat || n >= limit-1 || cursp() >= slimit) { /* flush stack */
       pop_n(n);
       if (first) {
         if (n == 0) {
@@ -1655,9 +1655,9 @@ gen_hash(codegen_scope *s, node *tree, int val, int limit)
 }
 
 static void
-gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
+gen_call(codegen_scope *s, node *tree, int val, int safe)
 {
-  mrb_sym sym = name ? name : nsym(tree->cdr->car);
+  mrb_sym sym = nsym(tree->cdr->car);
   int skip = 0, n = 0, nk = 0, noop = 0, noself = 0, blk = 0, sp_save = cursp();
 
   if (!tree->car) {
@@ -1675,7 +1675,7 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
   tree = tree->cdr->cdr->car;
   if (tree) {
     if (tree->car) {            /* positional arguments */
-      n = gen_values(s, tree->car, VAL, sp?1:0, 14);
+      n = gen_values(s, tree->car, VAL, 14);
       if (n < 0) {              /* variable length */
         noop = 1;               /* not operator */
         n = 15;
@@ -1687,32 +1687,6 @@ gen_call(codegen_scope *s, node *tree, mrb_sym name, int sp, int val, int safe)
       nk = gen_hash(s, tree->cdr->car->cdr, VAL, 14);
       if (nk < 0) nk = 15;
     }
-  }
-  if (sp) {                     /* last argument pushed (attr=, []=) */
-    /* pack keyword arguments */
-    if (nk > 0 && nk < 15) {
-      pop_n(nk*2);
-      genop_2(s, OP_HASH, cursp(), nk);
-      push();
-    }
-    if (n == CALL_MAXARGS) {
-      if (nk > 0) {
-        pop(); pop();
-        genop_2(s, OP_ARYPUSH, cursp(), 1);
-        push();
-      }
-      gen_move(s, cursp(), sp, 0);
-      pop();
-      genop_2(s, OP_ARYPUSH, cursp(), 1);
-      push();
-    }
-    else {
-      gen_move(s, cursp(), sp, 0);
-      push();
-      if (nk > 0) n++;
-      n++;
-    }
-    nk = 0;
   }
   if (tree && tree->cdr && tree->cdr->cdr) {
     codegen(s, tree->cdr->cdr, VAL);
@@ -1878,7 +1852,7 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
       tree = tree->cdr->cdr->car;
       if (tree) {
         if (tree->car) {            /* positional arguments */
-          n = gen_values(s, tree->car, VAL, 0, (tree->cdr->car)?13:14);
+          n = gen_values(s, tree->car, VAL, (tree->cdr->car)?13:14);
           if (n < 0) {              /* variable length */
             n = 15;
             push();
@@ -2602,10 +2576,10 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_FCALL:
   case NODE_CALL:
-    gen_call(s, tree, 0, 0, val, 0);
+    gen_call(s, tree, val, 0);
     break;
   case NODE_SCALL:
-    gen_call(s, tree, 0, 0, val, 1);
+    gen_call(s, tree, val, 1);
     break;
 
   case NODE_DOT2:
@@ -2653,7 +2627,7 @@ codegen(codegen_scope *s, node *tree, int val)
     {
       int n;
 
-      n = gen_values(s, tree, val, 0, 0);
+      n = gen_values(s, tree, val, 0);
       if (val) {
         if (n >= 0) {
           pop_n(n);
@@ -2804,7 +2778,7 @@ codegen(codegen_scope *s, node *tree, int val)
         idx = new_sym(s, nsym(n->cdr->car));
         base = cursp()-1;
         if (n->cdr->cdr->car) {
-          nargs = gen_values(s, n->cdr->cdr->car->car, VAL, 1, 14);
+          nargs = gen_values(s, n->cdr->cdr->car->car, VAL, 13);
           if (nargs >= 0) {
             callargs = nargs;
           }
@@ -2934,7 +2908,7 @@ codegen(codegen_scope *s, node *tree, int val)
       if (tree) {
         node *args = tree->car;
         if (args) {
-          st = n = gen_values(s, args, VAL, 0, 14);
+          st = n = gen_values(s, args, VAL, 14);
           if (n < 0) {
             st = 1; n = 15;
             push();
@@ -3051,7 +3025,7 @@ codegen(codegen_scope *s, node *tree, int val)
       if (ainfo < 0) codegen_error(s, "invalid yield (SyntaxError)");
       push();
       if (tree) {
-        n = gen_values(s, tree, VAL, 0, 14);
+        n = gen_values(s, tree, VAL, 14);
         if (n < 0) {
           n = sendv = 1;
           push();
