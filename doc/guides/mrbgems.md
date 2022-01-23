@@ -33,6 +33,9 @@ conf.gem :github => 'masuidrive/mrbgems-example', :branch => 'master'
 conf.gem :bitbucket => 'mruby/mrbgems-example', :branch => 'master'
 ```
 
+NOTE: `:bitbucket` option supports only git. Hg is unsupported in this
+version.
+
 You can specify the subdirectory of the repository with `:path` option:
 
 ```ruby
@@ -55,10 +58,24 @@ conf.gem mgem: 'mruby-redis', checksum_hash: '3446d19fc4a3f9697b5ddbf2a904f301c4
 If there are missing dependencies, mrbgem dependencies solver will reference
 mrbgem from the core or mgem-list.
 
-To pull all gems from remote GIT repository on build, call `rake -p`,
-or `rake --pull-gems`.
+Note that if more than one git-based gem has the same base name
+(i.e. the default checkout directory name), it is (now) an error
+**UNLESS** they are have the same repository URL, branch name and
+commit-id (i.e. checksum hash).  You can bypass this by explicitly
+importing your preferred version **first** and setting the
+`canonical:` option to `true`:
 
-NOTE: `:bitbucket` option supports only git. Hg is unsupported in this version.
+```ruby
+conf.gem github: 'me/mruby-yaml', branch: 'my-hacked-branch', canonical: true
+```
+
+If you do this, the system will (mostly) silently ignore other
+attempts to clone a gem with this name.
+
+Note that this only affects cloning the gem from git.  It does not
+resolve version conflicts.  If the version as specified in the gem's
+rakefile is incompatible with a dependency, your build will still
+fail.
 
 ## GemBox
 
