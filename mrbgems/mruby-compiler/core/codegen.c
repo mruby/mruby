@@ -1888,7 +1888,12 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
         genop_2(s, OP_ARYPUSH, cursp(), 1);
       }
       s->sp = call;
-      genop_3(s, noself ? OP_SSEND : OP_SEND, cursp(), new_sym(s, attrsym(s, mid)), n);
+      if (mid == MRB_OPSYM_2(s->mrb, aref) && n == 2) {
+        genop_1(s, OP_SETIDX, cursp());
+      }
+      else {
+        genop_3(s, noself ? OP_SSEND : OP_SEND, cursp(), new_sym(s, attrsym(s, mid)), n);
+      }
       if (safe) {
         dispatch(s, skip);
       }
