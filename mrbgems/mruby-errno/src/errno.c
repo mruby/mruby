@@ -92,6 +92,7 @@ mrb_sce_sys_fail(mrb_state *mrb, mrb_value cls)
   int argc;
   char name[8];
 
+  mrb->c->ci->mid = 0;
   sce = mrb_class_get(mrb, "SystemCallError");
   argc = mrb_get_args(mrb, "i|S", &no, &msg);
   if (argc == 1) {
