@@ -541,8 +541,8 @@ mrb_sys_fail(mrb_state *mrb, const char *mesg)
   mrb_int no;
 
   no = (mrb_int)errno;
-  if (mrb_class_defined(mrb, "SystemCallError")) {
-    sce = mrb_class_get(mrb, "SystemCallError");
+  if (mrb_class_defined_id(mrb, MRB_SYM(SystemCallError))) {
+    sce = mrb_class_get_id(mrb, MRB_SYM(SystemCallError));
     if (mesg != NULL) {
       mrb_funcall(mrb, mrb_obj_value(sce), "_sys_fail", 2, mrb_fixnum_value(no), mrb_str_new_cstr(mrb, mesg));
     }
