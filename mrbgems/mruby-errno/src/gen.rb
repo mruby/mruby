@@ -11,7 +11,7 @@ IO.readlines("known_errors.def").each { |name|
 
   e.write <<CODE
 #ifdef #{name}
-  { #{name}, NULL, },
+  { MRB_SYM(#{name}), #{name} },
 #endif
 CODE
 

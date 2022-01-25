@@ -1,435 +1,435 @@
 #ifdef EPERM
-  { EPERM, NULL, },
+  { MRB_SYM(EPERM), EPERM },
 #endif
 #ifdef ENOENT
-  { ENOENT, NULL, },
+  { MRB_SYM(ENOENT), ENOENT },
 #endif
 #ifdef ESRCH
-  { ESRCH, NULL, },
+  { MRB_SYM(ESRCH), ESRCH },
 #endif
 #ifdef EINTR
-  { EINTR, NULL, },
+  { MRB_SYM(EINTR), EINTR },
 #endif
 #ifdef EIO
-  { EIO, NULL, },
+  { MRB_SYM(EIO), EIO },
 #endif
 #ifdef ENXIO
-  { ENXIO, NULL, },
+  { MRB_SYM(ENXIO), ENXIO },
 #endif
 #ifdef E2BIG
-  { E2BIG, NULL, },
+  { MRB_SYM(E2BIG), E2BIG },
 #endif
 #ifdef ENOEXEC
-  { ENOEXEC, NULL, },
+  { MRB_SYM(ENOEXEC), ENOEXEC },
 #endif
 #ifdef EBADF
-  { EBADF, NULL, },
+  { MRB_SYM(EBADF), EBADF },
 #endif
 #ifdef ECHILD
-  { ECHILD, NULL, },
+  { MRB_SYM(ECHILD), ECHILD },
 #endif
 #ifdef EAGAIN
-  { EAGAIN, NULL, },
+  { MRB_SYM(EAGAIN), EAGAIN },
 #endif
 #ifdef ENOMEM
-  { ENOMEM, NULL, },
+  { MRB_SYM(ENOMEM), ENOMEM },
 #endif
 #ifdef EACCES
-  { EACCES, NULL, },
+  { MRB_SYM(EACCES), EACCES },
 #endif
 #ifdef EFAULT
-  { EFAULT, NULL, },
+  { MRB_SYM(EFAULT), EFAULT },
 #endif
 #ifdef ENOTBLK
-  { ENOTBLK, NULL, },
+  { MRB_SYM(ENOTBLK), ENOTBLK },
 #endif
 #ifdef EBUSY
-  { EBUSY, NULL, },
+  { MRB_SYM(EBUSY), EBUSY },
 #endif
 #ifdef EEXIST
-  { EEXIST, NULL, },
+  { MRB_SYM(EEXIST), EEXIST },
 #endif
 #ifdef EXDEV
-  { EXDEV, NULL, },
+  { MRB_SYM(EXDEV), EXDEV },
 #endif
 #ifdef ENODEV
-  { ENODEV, NULL, },
+  { MRB_SYM(ENODEV), ENODEV },
 #endif
 #ifdef ENOTDIR
-  { ENOTDIR, NULL, },
+  { MRB_SYM(ENOTDIR), ENOTDIR },
 #endif
 #ifdef EISDIR
-  { EISDIR, NULL, },
+  { MRB_SYM(EISDIR), EISDIR },
 #endif
 #ifdef EINVAL
-  { EINVAL, NULL, },
+  { MRB_SYM(EINVAL), EINVAL },
 #endif
 #ifdef ENFILE
-  { ENFILE, NULL, },
+  { MRB_SYM(ENFILE), ENFILE },
 #endif
 #ifdef EMFILE
-  { EMFILE, NULL, },
+  { MRB_SYM(EMFILE), EMFILE },
 #endif
 #ifdef ENOTTY
-  { ENOTTY, NULL, },
+  { MRB_SYM(ENOTTY), ENOTTY },
 #endif
 #ifdef ETXTBSY
-  { ETXTBSY, NULL, },
+  { MRB_SYM(ETXTBSY), ETXTBSY },
 #endif
 #ifdef EFBIG
-  { EFBIG, NULL, },
+  { MRB_SYM(EFBIG), EFBIG },
 #endif
 #ifdef ENOSPC
-  { ENOSPC, NULL, },
+  { MRB_SYM(ENOSPC), ENOSPC },
 #endif
 #ifdef ESPIPE
-  { ESPIPE, NULL, },
+  { MRB_SYM(ESPIPE), ESPIPE },
 #endif
 #ifdef EROFS
-  { EROFS, NULL, },
+  { MRB_SYM(EROFS), EROFS },
 #endif
 #ifdef EMLINK
-  { EMLINK, NULL, },
+  { MRB_SYM(EMLINK), EMLINK },
 #endif
 #ifdef EPIPE
-  { EPIPE, NULL, },
+  { MRB_SYM(EPIPE), EPIPE },
 #endif
 #ifdef EDOM
-  { EDOM, NULL, },
+  { MRB_SYM(EDOM), EDOM },
 #endif
 #ifdef ERANGE
-  { ERANGE, NULL, },
+  { MRB_SYM(ERANGE), ERANGE },
 #endif
 #ifdef EDEADLK
-  { EDEADLK, NULL, },
+  { MRB_SYM(EDEADLK), EDEADLK },
 #endif
 #ifdef ENAMETOOLONG
-  { ENAMETOOLONG, NULL, },
+  { MRB_SYM(ENAMETOOLONG), ENAMETOOLONG },
 #endif
 #ifdef ENOLCK
-  { ENOLCK, NULL, },
+  { MRB_SYM(ENOLCK), ENOLCK },
 #endif
 #ifdef ENOSYS
-  { ENOSYS, NULL, },
+  { MRB_SYM(ENOSYS), ENOSYS },
 #endif
 #ifdef ENOTEMPTY
-  { ENOTEMPTY, NULL, },
+  { MRB_SYM(ENOTEMPTY), ENOTEMPTY },
 #endif
 #ifdef ELOOP
-  { ELOOP, NULL, },
+  { MRB_SYM(ELOOP), ELOOP },
 #endif
 #ifdef EWOULDBLOCK
-  { EWOULDBLOCK, NULL, },
+  { MRB_SYM(EWOULDBLOCK), EWOULDBLOCK },
 #endif
 #ifdef ENOMSG
-  { ENOMSG, NULL, },
+  { MRB_SYM(ENOMSG), ENOMSG },
 #endif
 #ifdef EIDRM
-  { EIDRM, NULL, },
+  { MRB_SYM(EIDRM), EIDRM },
 #endif
 #ifdef ECHRNG
-  { ECHRNG, NULL, },
+  { MRB_SYM(ECHRNG), ECHRNG },
 #endif
 #ifdef EL2NSYNC
-  { EL2NSYNC, NULL, },
+  { MRB_SYM(EL2NSYNC), EL2NSYNC },
 #endif
 #ifdef EL3HLT
-  { EL3HLT, NULL, },
+  { MRB_SYM(EL3HLT), EL3HLT },
 #endif
 #ifdef EL3RST
-  { EL3RST, NULL, },
+  { MRB_SYM(EL3RST), EL3RST },
 #endif
 #ifdef ELNRNG
-  { ELNRNG, NULL, },
+  { MRB_SYM(ELNRNG), ELNRNG },
 #endif
 #ifdef EUNATCH
-  { EUNATCH, NULL, },
+  { MRB_SYM(EUNATCH), EUNATCH },
 #endif
 #ifdef ENOCSI
-  { ENOCSI, NULL, },
+  { MRB_SYM(ENOCSI), ENOCSI },
 #endif
 #ifdef EL2HLT
-  { EL2HLT, NULL, },
+  { MRB_SYM(EL2HLT), EL2HLT },
 #endif
 #ifdef EBADE
-  { EBADE, NULL, },
+  { MRB_SYM(EBADE), EBADE },
 #endif
 #ifdef EBADR
-  { EBADR, NULL, },
+  { MRB_SYM(EBADR), EBADR },
 #endif
 #ifdef EXFULL
-  { EXFULL, NULL, },
+  { MRB_SYM(EXFULL), EXFULL },
 #endif
 #ifdef ENOANO
-  { ENOANO, NULL, },
+  { MRB_SYM(ENOANO), ENOANO },
 #endif
 #ifdef EBADRQC
-  { EBADRQC, NULL, },
+  { MRB_SYM(EBADRQC), EBADRQC },
 #endif
 #ifdef EBADSLT
-  { EBADSLT, NULL, },
+  { MRB_SYM(EBADSLT), EBADSLT },
 #endif
 #ifdef EDEADLOCK
-  { EDEADLOCK, NULL, },
+  { MRB_SYM(EDEADLOCK), EDEADLOCK },
 #endif
 #ifdef EBFONT
-  { EBFONT, NULL, },
+  { MRB_SYM(EBFONT), EBFONT },
 #endif
 #ifdef ENOSTR
-  { ENOSTR, NULL, },
+  { MRB_SYM(ENOSTR), ENOSTR },
 #endif
 #ifdef ENODATA
-  { ENODATA, NULL, },
+  { MRB_SYM(ENODATA), ENODATA },
 #endif
 #ifdef ETIME
-  { ETIME, NULL, },
+  { MRB_SYM(ETIME), ETIME },
 #endif
 #ifdef ENOSR
-  { ENOSR, NULL, },
+  { MRB_SYM(ENOSR), ENOSR },
 #endif
 #ifdef ENONET
-  { ENONET, NULL, },
+  { MRB_SYM(ENONET), ENONET },
 #endif
 #ifdef ENOPKG
-  { ENOPKG, NULL, },
+  { MRB_SYM(ENOPKG), ENOPKG },
 #endif
 #ifdef EREMOTE
-  { EREMOTE, NULL, },
+  { MRB_SYM(EREMOTE), EREMOTE },
 #endif
 #ifdef ENOLINK
-  { ENOLINK, NULL, },
+  { MRB_SYM(ENOLINK), ENOLINK },
 #endif
 #ifdef EADV
-  { EADV, NULL, },
+  { MRB_SYM(EADV), EADV },
 #endif
 #ifdef ESRMNT
-  { ESRMNT, NULL, },
+  { MRB_SYM(ESRMNT), ESRMNT },
 #endif
 #ifdef ECOMM
-  { ECOMM, NULL, },
+  { MRB_SYM(ECOMM), ECOMM },
 #endif
 #ifdef EPROTO
-  { EPROTO, NULL, },
+  { MRB_SYM(EPROTO), EPROTO },
 #endif
 #ifdef EMULTIHOP
-  { EMULTIHOP, NULL, },
+  { MRB_SYM(EMULTIHOP), EMULTIHOP },
 #endif
 #ifdef EDOTDOT
-  { EDOTDOT, NULL, },
+  { MRB_SYM(EDOTDOT), EDOTDOT },
 #endif
 #ifdef EBADMSG
-  { EBADMSG, NULL, },
+  { MRB_SYM(EBADMSG), EBADMSG },
 #endif
 #ifdef EOVERFLOW
-  { EOVERFLOW, NULL, },
+  { MRB_SYM(EOVERFLOW), EOVERFLOW },
 #endif
 #ifdef ENOTUNIQ
-  { ENOTUNIQ, NULL, },
+  { MRB_SYM(ENOTUNIQ), ENOTUNIQ },
 #endif
 #ifdef EBADFD
-  { EBADFD, NULL, },
+  { MRB_SYM(EBADFD), EBADFD },
 #endif
 #ifdef EREMCHG
-  { EREMCHG, NULL, },
+  { MRB_SYM(EREMCHG), EREMCHG },
 #endif
 #ifdef ELIBACC
-  { ELIBACC, NULL, },
+  { MRB_SYM(ELIBACC), ELIBACC },
 #endif
 #ifdef ELIBBAD
-  { ELIBBAD, NULL, },
+  { MRB_SYM(ELIBBAD), ELIBBAD },
 #endif
 #ifdef ELIBSCN
-  { ELIBSCN, NULL, },
+  { MRB_SYM(ELIBSCN), ELIBSCN },
 #endif
 #ifdef ELIBMAX
-  { ELIBMAX, NULL, },
+  { MRB_SYM(ELIBMAX), ELIBMAX },
 #endif
 #ifdef ELIBEXEC
-  { ELIBEXEC, NULL, },
+  { MRB_SYM(ELIBEXEC), ELIBEXEC },
 #endif
 #ifdef EILSEQ
-  { EILSEQ, NULL, },
+  { MRB_SYM(EILSEQ), EILSEQ },
 #endif
 #ifdef ERESTART
-  { ERESTART, NULL, },
+  { MRB_SYM(ERESTART), ERESTART },
 #endif
 #ifdef ESTRPIPE
-  { ESTRPIPE, NULL, },
+  { MRB_SYM(ESTRPIPE), ESTRPIPE },
 #endif
 #ifdef EUSERS
-  { EUSERS, NULL, },
+  { MRB_SYM(EUSERS), EUSERS },
 #endif
 #ifdef ENOTSOCK
-  { ENOTSOCK, NULL, },
+  { MRB_SYM(ENOTSOCK), ENOTSOCK },
 #endif
 #ifdef EDESTADDRREQ
-  { EDESTADDRREQ, NULL, },
+  { MRB_SYM(EDESTADDRREQ), EDESTADDRREQ },
 #endif
 #ifdef EMSGSIZE
-  { EMSGSIZE, NULL, },
+  { MRB_SYM(EMSGSIZE), EMSGSIZE },
 #endif
 #ifdef EPROTOTYPE
-  { EPROTOTYPE, NULL, },
+  { MRB_SYM(EPROTOTYPE), EPROTOTYPE },
 #endif
 #ifdef ENOPROTOOPT
-  { ENOPROTOOPT, NULL, },
+  { MRB_SYM(ENOPROTOOPT), ENOPROTOOPT },
 #endif
 #ifdef EPROTONOSUPPORT
-  { EPROTONOSUPPORT, NULL, },
+  { MRB_SYM(EPROTONOSUPPORT), EPROTONOSUPPORT },
 #endif
 #ifdef ESOCKTNOSUPPORT
-  { ESOCKTNOSUPPORT, NULL, },
+  { MRB_SYM(ESOCKTNOSUPPORT), ESOCKTNOSUPPORT },
 #endif
 #ifdef EOPNOTSUPP
-  { EOPNOTSUPP, NULL, },
+  { MRB_SYM(EOPNOTSUPP), EOPNOTSUPP },
 #endif
 #ifdef EPFNOSUPPORT
-  { EPFNOSUPPORT, NULL, },
+  { MRB_SYM(EPFNOSUPPORT), EPFNOSUPPORT },
 #endif
 #ifdef EAFNOSUPPORT
-  { EAFNOSUPPORT, NULL, },
+  { MRB_SYM(EAFNOSUPPORT), EAFNOSUPPORT },
 #endif
 #ifdef EADDRINUSE
-  { EADDRINUSE, NULL, },
+  { MRB_SYM(EADDRINUSE), EADDRINUSE },
 #endif
 #ifdef EADDRNOTAVAIL
-  { EADDRNOTAVAIL, NULL, },
+  { MRB_SYM(EADDRNOTAVAIL), EADDRNOTAVAIL },
 #endif
 #ifdef ENETDOWN
-  { ENETDOWN, NULL, },
+  { MRB_SYM(ENETDOWN), ENETDOWN },
 #endif
 #ifdef ENETUNREACH
-  { ENETUNREACH, NULL, },
+  { MRB_SYM(ENETUNREACH), ENETUNREACH },
 #endif
 #ifdef ENETRESET
-  { ENETRESET, NULL, },
+  { MRB_SYM(ENETRESET), ENETRESET },
 #endif
 #ifdef ECONNABORTED
-  { ECONNABORTED, NULL, },
+  { MRB_SYM(ECONNABORTED), ECONNABORTED },
 #endif
 #ifdef ECONNRESET
-  { ECONNRESET, NULL, },
+  { MRB_SYM(ECONNRESET), ECONNRESET },
 #endif
 #ifdef ENOBUFS
-  { ENOBUFS, NULL, },
+  { MRB_SYM(ENOBUFS), ENOBUFS },
 #endif
 #ifdef EISCONN
-  { EISCONN, NULL, },
+  { MRB_SYM(EISCONN), EISCONN },
 #endif
 #ifdef ENOTCONN
-  { ENOTCONN, NULL, },
+  { MRB_SYM(ENOTCONN), ENOTCONN },
 #endif
 #ifdef ESHUTDOWN
-  { ESHUTDOWN, NULL, },
+  { MRB_SYM(ESHUTDOWN), ESHUTDOWN },
 #endif
 #ifdef ETOOMANYREFS
-  { ETOOMANYREFS, NULL, },
+  { MRB_SYM(ETOOMANYREFS), ETOOMANYREFS },
 #endif
 #ifdef ETIMEDOUT
-  { ETIMEDOUT, NULL, },
+  { MRB_SYM(ETIMEDOUT), ETIMEDOUT },
 #endif
 #ifdef ECONNREFUSED
-  { ECONNREFUSED, NULL, },
+  { MRB_SYM(ECONNREFUSED), ECONNREFUSED },
 #endif
 #ifdef EHOSTDOWN
-  { EHOSTDOWN, NULL, },
+  { MRB_SYM(EHOSTDOWN), EHOSTDOWN },
 #endif
 #ifdef EHOSTUNREACH
-  { EHOSTUNREACH, NULL, },
+  { MRB_SYM(EHOSTUNREACH), EHOSTUNREACH },
 #endif
 #ifdef EALREADY
-  { EALREADY, NULL, },
+  { MRB_SYM(EALREADY), EALREADY },
 #endif
 #ifdef EINPROGRESS
-  { EINPROGRESS, NULL, },
+  { MRB_SYM(EINPROGRESS), EINPROGRESS },
 #endif
 #ifdef ESTALE
-  { ESTALE, NULL, },
+  { MRB_SYM(ESTALE), ESTALE },
 #endif
 #ifdef EUCLEAN
-  { EUCLEAN, NULL, },
+  { MRB_SYM(EUCLEAN), EUCLEAN },
 #endif
 #ifdef ENOTNAM
-  { ENOTNAM, NULL, },
+  { MRB_SYM(ENOTNAM), ENOTNAM },
 #endif
 #ifdef ENAVAIL
-  { ENAVAIL, NULL, },
+  { MRB_SYM(ENAVAIL), ENAVAIL },
 #endif
 #ifdef EISNAM
-  { EISNAM, NULL, },
+  { MRB_SYM(EISNAM), EISNAM },
 #endif
 #ifdef EREMOTEIO
-  { EREMOTEIO, NULL, },
+  { MRB_SYM(EREMOTEIO), EREMOTEIO },
 #endif
 #ifdef EDQUOT
-  { EDQUOT, NULL, },
+  { MRB_SYM(EDQUOT), EDQUOT },
 #endif
 #ifdef ECANCELED
-  { ECANCELED, NULL, },
+  { MRB_SYM(ECANCELED), ECANCELED },
 #endif
 #ifdef EKEYEXPIRED
-  { EKEYEXPIRED, NULL, },
+  { MRB_SYM(EKEYEXPIRED), EKEYEXPIRED },
 #endif
 #ifdef EKEYREJECTED
-  { EKEYREJECTED, NULL, },
+  { MRB_SYM(EKEYREJECTED), EKEYREJECTED },
 #endif
 #ifdef EKEYREVOKED
-  { EKEYREVOKED, NULL, },
+  { MRB_SYM(EKEYREVOKED), EKEYREVOKED },
 #endif
 #ifdef EMEDIUMTYPE
-  { EMEDIUMTYPE, NULL, },
+  { MRB_SYM(EMEDIUMTYPE), EMEDIUMTYPE },
 #endif
 #ifdef ENOKEY
-  { ENOKEY, NULL, },
+  { MRB_SYM(ENOKEY), ENOKEY },
 #endif
 #ifdef ENOMEDIUM
-  { ENOMEDIUM, NULL, },
+  { MRB_SYM(ENOMEDIUM), ENOMEDIUM },
 #endif
 #ifdef ENOTRECOVERABLE
-  { ENOTRECOVERABLE, NULL, },
+  { MRB_SYM(ENOTRECOVERABLE), ENOTRECOVERABLE },
 #endif
 #ifdef EOWNERDEAD
-  { EOWNERDEAD, NULL, },
+  { MRB_SYM(EOWNERDEAD), EOWNERDEAD },
 #endif
 #ifdef ERFKILL
-  { ERFKILL, NULL, },
+  { MRB_SYM(ERFKILL), ERFKILL },
 #endif
 #ifdef EAUTH
-  { EAUTH, NULL, },
+  { MRB_SYM(EAUTH), EAUTH },
 #endif
 #ifdef EBADRPC
-  { EBADRPC, NULL, },
+  { MRB_SYM(EBADRPC), EBADRPC },
 #endif
 #ifdef EDOOFUS
-  { EDOOFUS, NULL, },
+  { MRB_SYM(EDOOFUS), EDOOFUS },
 #endif
 #ifdef EFTYPE
-  { EFTYPE, NULL, },
+  { MRB_SYM(EFTYPE), EFTYPE },
 #endif
 #ifdef ENEEDAUTH
-  { ENEEDAUTH, NULL, },
+  { MRB_SYM(ENEEDAUTH), ENEEDAUTH },
 #endif
 #ifdef ENOATTR
-  { ENOATTR, NULL, },
+  { MRB_SYM(ENOATTR), ENOATTR },
 #endif
 #ifdef ENOTSUP
-  { ENOTSUP, NULL, },
+  { MRB_SYM(ENOTSUP), ENOTSUP },
 #endif
 #ifdef EPROCLIM
-  { EPROCLIM, NULL, },
+  { MRB_SYM(EPROCLIM), EPROCLIM },
 #endif
 #ifdef EPROCUNAVAIL
-  { EPROCUNAVAIL, NULL, },
+  { MRB_SYM(EPROCUNAVAIL), EPROCUNAVAIL },
 #endif
 #ifdef EPROGMISMATCH
-  { EPROGMISMATCH, NULL, },
+  { MRB_SYM(EPROGMISMATCH), EPROGMISMATCH },
 #endif
 #ifdef EPROGUNAVAIL
-  { EPROGUNAVAIL, NULL, },
+  { MRB_SYM(EPROGUNAVAIL), EPROGUNAVAIL },
 #endif
 #ifdef ERPCMISMATCH
-  { ERPCMISMATCH, NULL, },
+  { MRB_SYM(ERPCMISMATCH), ERPCMISMATCH },
 #endif
 #ifdef EIPSEC
-  { EIPSEC, NULL, },
+  { MRB_SYM(EIPSEC), EIPSEC },
 #endif
