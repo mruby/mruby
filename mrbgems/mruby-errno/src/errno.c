@@ -28,7 +28,7 @@ mrb_sce_init(mrb_state *mrb, mrb_value self)
     }
   }
   if (!no_errno) {
-    e2c = mrb_const_get(mrb, mrb_obj_value(mrb_module_get(mrb, "Errno")), MRB_SYM(Errno2class));
+    e2c = mrb_const_get(mrb, mrb_obj_value(mrb_module_get_id(mrb, MRB_SYM(Errno))), MRB_SYM(Errno2class));
     c = mrb_hash_fetch(mrb, e2c, mrb_fixnum_value(n), mrb_nil_value());
     if (!mrb_nil_p(c)) {
       mrb_basic_ptr(self)->c = mrb_class_ptr(c);
@@ -82,7 +82,7 @@ mrb_sce_sys_fail(mrb_state *mrb, mrb_value cls)
   char name[8];
 
   mrb->c->ci->mid = 0;
-  sce = mrb_class_get(mrb, "SystemCallError");
+  sce = mrb_class_get_id(mrb, MRB_SYM(SystemCallError));
   argc = mrb_get_args(mrb, "i|S", &no, &msg);
   if (argc == 1) {
     e = mrb_funcall(mrb, mrb_obj_value(sce), "new", 1, mrb_fixnum_value(no));
@@ -91,8 +91,8 @@ mrb_sce_sys_fail(mrb_state *mrb, mrb_value cls)
   }
   if (mrb_obj_class(mrb, e) == sce) {
     snprintf(name, sizeof(name), "E%03ld", (long)no);
-    cl = mrb_define_class_under(mrb, mrb_module_get(mrb, "Errno"), name, sce);
-    mrb_define_const(mrb, cl, "Errno", mrb_fixnum_value(no));
+    cl = mrb_define_class_under(mrb, mrb_module_get_id(mrb, MRB_SYM(Errno)), name, sce);
+    mrb_define_const_id(mrb, cl, MRB_SYM(Errno), mrb_fixnum_value(no));
     mrb_basic_ptr(e)->c = cl;
   }
   mrb_exc_raise(mrb, e);
@@ -123,7 +123,7 @@ mrb_mruby_errno_gem_init(mrb_state *mrb)
   struct RClass *e, *eno, *sce, *ste;
   mrb_value h, noerror;
 
-  ste = mrb_class_get(mrb, "StandardError");
+  ste = mrb_class_get_id(mrb, MRB_SYM(StandardError));
 
   sce = mrb_define_class(mrb, "SystemCallError", ste);
   mrb_define_class_method(mrb, sce, "_sys_fail", mrb_sce_sys_fail, MRB_ARGS_REQ(1));
@@ -131,12 +131,12 @@ mrb_mruby_errno_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, sce, "to_s", mrb_sce_to_s, MRB_ARGS_NONE());
   mrb_define_method(mrb, sce, "initialize", mrb_sce_init, MRB_ARGS_ARG(1, 1));
 
-  eno = mrb_define_module(mrb, "Errno");
+  eno = mrb_define_module_id(mrb, MRB_SYM(Errno));
   h = mrb_hash_new(mrb);
-  mrb_define_const(mrb, eno, "Errno2class", h);
+  mrb_define_const_id(mrb, eno, MRB_SYM(Errno2class), h);
 
-  e = mrb_define_class_under(mrb, eno, "NOERROR", sce);
-  mrb_define_const(mrb, e, "Errno", mrb_fixnum_value(0));
+  e = mrb_define_class_under_id(mrb, eno, MRB_SYM(NOERROR), sce);
+  mrb_define_const_id(mrb, e, MRB_SYM(Errno), mrb_fixnum_value(0));
   mrb_define_method(mrb, e, "initialize", mrb_exxx_init, MRB_ARGS_OPT(1));
   //mrb_define_method(mrb, e, "===", mrb_exxx_cmp, MRB_ARGS_REQ(1));
   noerror = mrb_obj_value(e);
@@ -145,7 +145,7 @@ mrb_mruby_errno_gem_init(mrb_state *mrb)
   do {									\
     int ai = mrb_gc_arena_save(mrb);					\
     e = mrb_define_class_under(mrb, eno, #SYM, sce);			\
-    mrb_define_const(mrb, e, "Errno", mrb_fixnum_value(SYM));		\
+    mrb_define_const_id(mrb, e, MRB_SYM(Errno), mrb_fixnum_value(SYM)); \
     mrb_define_method(mrb, e, "initialize", mrb_exxx_init, MRB_ARGS_OPT(1)); \
     mrb_hash_set(mrb, h, mrb_fixnum_value(SYM), mrb_obj_value(e));	\
     mrb_gc_arena_restore(mrb, ai);					\
