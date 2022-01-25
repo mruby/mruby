@@ -10,14 +10,6 @@
 #include <string.h>
 #include <mruby/presym.h>
 
-#if MRUBY_RELEASE_NO < 10000
-static struct RClass *
-mrb_module_get(mrb_state *mrb, const char *name)
-{
-  return mrb_class_get(mrb, name);
-}
-#endif
-
 static mrb_value
 mrb_sce_init(mrb_state *mrb, mrb_value self)
 {
@@ -66,11 +58,7 @@ mrb_sce_errno(mrb_state *mrb, mrb_value self)
 
   c = mrb_class(mrb, self);
   sym = MRB_SYM(Errno);
-#if MRUBY_RELEASE_NO < 10000
-  if (mrb_const_defined_at(mrb, c, sym)) {
-#else
   if (mrb_const_defined_at(mrb, mrb_obj_value(c), sym)) {
-#endif
     return mrb_const_get(mrb, mrb_obj_value(c), sym);
   } else {
     sym = MRB_SYM(errno);
