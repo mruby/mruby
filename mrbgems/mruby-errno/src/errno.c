@@ -10,10 +10,18 @@
 #include <string.h>
 #include <mruby/presym.h>
 
+static struct {
+  mrb_sym sym;
+  int eno;
+} e2c[] = {
+#include "known_errors_e2c.cstub"
+  {0, 0},
+};
+
 static mrb_value
 mrb_sce_init(mrb_state *mrb, mrb_value self)
 {
-  mrb_value c, e2c, m, str;
+  mrb_value m, str;
   mrb_int n;
   int argc, no_errno = 0;
   char buf[20];
@@ -28,18 +36,23 @@ mrb_sce_init(mrb_state *mrb, mrb_value self)
     }
   }
   if (!no_errno) {
-    e2c = mrb_const_get(mrb, mrb_obj_value(mrb_module_get_id(mrb, MRB_SYM(Errno))), MRB_SYM(Errno2class));
-    c = mrb_hash_fetch(mrb, e2c, mrb_fixnum_value(n), mrb_nil_value());
-    if (!mrb_nil_p(c)) {
-      mrb_basic_ptr(self)->c = mrb_class_ptr(c);
-      str = mrb_str_new_cstr(mrb, strerror(n));
-    } else {
+    int i;
+
+    for (i=0; e2c[i].sym != 0; i++) {
+      if (e2c[i].eno == n) {
+        mrb_basic_ptr(self)->c = mrb_class_get_under_id(mrb, mrb_module_get_id(mrb, MRB_SYM(Errno)), e2c[i].sym);
+        str = mrb_str_new_cstr(mrb, strerror(n));
+        break;
+      }
+    }
+    if (e2c[i].sym == 0) {
       mrb_iv_set(mrb, self, MRB_SYM(errno), mrb_fixnum_value(n));
       str = mrb_str_new_cstr(mrb, "Unknown error: ");
       snprintf(buf, sizeof(buf), "%d", (int)n);
       mrb_str_cat2(mrb, str, buf);
     }
-  } else {
+  }
+  else {
     str = mrb_str_new_cstr(mrb, "unknown error");
   }
   if (!mrb_nil_p(m)) {
@@ -121,7 +134,7 @@ void
 mrb_mruby_errno_gem_init(mrb_state *mrb)
 {
   struct RClass *e, *eno, *sce, *ste;
-  mrb_value h, noerror;
+  mrb_value noerror;
 
   ste = mrb_class_get_id(mrb, MRB_SYM(StandardError));
 
@@ -132,8 +145,6 @@ mrb_mruby_errno_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, sce, "initialize", mrb_sce_init, MRB_ARGS_ARG(1, 1));
 
   eno = mrb_define_module_id(mrb, MRB_SYM(Errno));
-  h = mrb_hash_new(mrb);
-  mrb_define_const_id(mrb, eno, MRB_SYM(Errno2class), h);
 
   e = mrb_define_class_under_id(mrb, eno, MRB_SYM(NOERROR), sce);
   mrb_define_const_id(mrb, e, MRB_SYM(Errno), mrb_fixnum_value(0));
@@ -147,7 +158,6 @@ mrb_mruby_errno_gem_init(mrb_state *mrb)
     e = mrb_define_class_under(mrb, eno, #SYM, sce);			\
     mrb_define_const_id(mrb, e, MRB_SYM(Errno), mrb_fixnum_value(SYM)); \
     mrb_define_method(mrb, e, "initialize", mrb_exxx_init, MRB_ARGS_OPT(1)); \
-    mrb_hash_set(mrb, h, mrb_fixnum_value(SYM), mrb_obj_value(e));	\
     mrb_gc_arena_restore(mrb, ai);					\
   } while (0)
 
