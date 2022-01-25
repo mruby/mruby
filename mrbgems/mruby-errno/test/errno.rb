@@ -1,19 +1,19 @@
 assert('Errno') do
-  Errno.class == Module
+  assert_equal(Module, Errno.class)
 end
 
 assert('SystemCallError') do
-  SystemCallError.class == Class
+  assert_equal(Class, SystemCallError.class)
 end
 
 assert('SystemCallError superclass') do
-  SystemCallError.superclass == StandardError
+  assert_equal(StandardError, SystemCallError.superclass)
 end
 
 assert('SystemCallError#initialize') do
-  SystemCallError.new("a").message == "unknown error - a" and
-  SystemCallError.new("a", 12345).message == "Unknown error: 12345 - a" and
-  SystemCallError.new(12345).message == "Unknown error: 12345"
+  assert_equal("unknown error - a", SystemCallError.new("a").message)
+  assert_equal("Unknown error: 12345 - a", SystemCallError.new("a", 12345).message)
+  assert_equal("Unknown error: 12345", SystemCallError.new(12345).message)
 end
 
 assert('SystemCallError#errno') do
@@ -24,37 +24,35 @@ assert('SystemCallError#errno') do
 end
 
 assert('SystemCallError#inspect') do
-  SystemCallError.new("a").inspect == "SystemCallError: unknown error - a"
-  end
+  assert_equal("unknown error - a (SystemCallError)", SystemCallError.new("a").inspect)
+end
 
 assert('Errno::NOERROR') do
-  Errno::NOERROR.class == Class
+  assert_equal(Class, Errno::NOERROR.class)
 end
 
 # Is there any platform does not have EPERM?
 assert('Errno::EPERM') do
-  Errno::EPERM.class == Class
+  assert_equal(Class, Errno::EPERM.class)
 end
 
 assert('Errno::EPERM superclass') do
-  Errno::EPERM.superclass == SystemCallError
+  assert_equal(SystemCallError, Errno::EPERM.superclass)
 end
 
 assert('Errno::EPERM::Errno') do
-  Errno::EPERM::Errno.is_a? Fixnum
+  assert_true(Errno::EPERM::Errno.is_a?(Fixnum))
 end
 
 assert('Errno::EPERM#message') do
   msg = Errno::EPERM.new.message
-  Errno::EPERM.new("a").message == "#{msg} - a"
+  assert_equal("#{msg} - a", Errno::EPERM.new("a").message)
 end
 
-assert('Errno::EPERM#inspect 1') do
+assert('Errno::EPERM#inspect') do
   msg = Errno::EPERM.new.message
-  Errno::EPERM.new.inspect == "Errno::EPERM: #{msg}"
-end
+  assert_equal("#{msg} (Errno::EPERM)", Errno::EPERM.new.inspect)
 
-assert('Errno::EPERM#inspect 2') do
   msg = Errno::EPERM.new.message
-  Errno::EPERM.new("a").inspect == "Errno::EPERM: #{msg} - a"
+  assert_equal("#{msg} - a (Errno::EPERM)", Errno::EPERM.new("a").inspect)
 end
