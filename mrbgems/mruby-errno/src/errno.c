@@ -18,29 +18,21 @@ static struct {
   {0, 0},
 };
 
-static mrb_value
-mrb_sce_init(mrb_state *mrb, mrb_value self)
+static void
+mrb_sce_init(mrb_state *mrb, mrb_value self, mrb_value m, mrb_int n)
 {
-  mrb_value m, str;
-  mrb_int n;
-  int argc, no_errno = 0;
+  mrb_value str;
+  struct RClass *m_errno;
+  int no_errno = (n < 0);
   char buf[20];
 
-  argc = mrb_get_args(mrb, "o|i", &m, &n);
-  if (argc == 1) {
-    if (mrb_fixnum_p(m)) {
-      n = mrb_fixnum(m);
-      m = mrb_nil_value();
-    } else {
-      no_errno = 1;
-    }
-  }
+  m_errno = mrb_module_get_id(mrb, MRB_SYM(Errno));
   if (!no_errno) {
     int i;
 
     for (i=0; e2c[i].sym != 0; i++) {
       if (e2c[i].eno == n) {
-        mrb_basic_ptr(self)->c = mrb_class_get_under_id(mrb, mrb_module_get_id(mrb, MRB_SYM(Errno)), e2c[i].sym);
+        mrb_basic_ptr(self)->c = mrb_class_get_under_id(mrb, m_errno, e2c[i].sym);
         str = mrb_str_new_cstr(mrb, strerror(n));
         break;
       }
@@ -60,6 +52,24 @@ mrb_sce_init(mrb_state *mrb, mrb_value self)
     mrb_str_append(mrb, str, m);
   }
   mrb_iv_set(mrb, self, MRB_SYM(mesg), str);
+}
+
+static mrb_value
+mrb_sce_init_m(mrb_state *mrb, mrb_value self)
+{
+  mrb_value m;
+  mrb_int n;
+
+  if (mrb_get_args(mrb, "o|i", &m, &n) == 1) {
+    if (mrb_fixnum_p(m)) {
+      n = mrb_fixnum(m);
+      m = mrb_nil_value();
+    }
+    else {
+      n = -1;
+    }
+  }
+  mrb_sce_init(mrb, self, m, n);
   return self;
 }
 
@@ -88,27 +98,40 @@ mrb_sce_to_s(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_sce_sys_fail(mrb_state *mrb, mrb_value cls)
 {
-  struct RClass *cl, *sce;
-  mrb_value e, msg;
-  mrb_int no;
+  struct RClass *sce;
+  mrb_value msg;
+  mrb_int no = -1;
   int argc;
   char name[8];
 
   mrb->c->ci->mid = 0;
   sce = mrb_class_get_id(mrb, MRB_SYM(SystemCallError));
   argc = mrb_get_args(mrb, "i|S", &no, &msg);
+
+  struct RBasic* e = mrb_obj_alloc(mrb, MRB_TT_EXCEPTION, sce);
+  mrb_value exc = mrb_obj_value(e);
   if (argc == 1) {
-    e = mrb_funcall(mrb, mrb_obj_value(sce), "new", 1, mrb_fixnum_value(no));
-  } else {
-    e = mrb_funcall(mrb, mrb_obj_value(sce), "new", 2, msg, mrb_fixnum_value(no));
+    msg = mrb_nil_value();
   }
-  if (mrb_obj_class(mrb, e) == sce) {
-    snprintf(name, sizeof(name), "E%03ld", (long)no);
-    cl = mrb_define_class_under(mrb, mrb_module_get_id(mrb, MRB_SYM(Errno)), name, sce);
-    mrb_define_const_id(mrb, cl, MRB_SYM(Errno), mrb_fixnum_value(no));
-    mrb_basic_ptr(e)->c = cl;
+  exc = mrb_obj_value(e);
+  mrb_sce_init(mrb, exc, msg, no);
+  if (mrb_obj_class(mrb, exc) == sce && no > 0) {
+    struct RClass *m_errno = mrb_module_get_id(mrb, MRB_SYM(Errno));
+    struct RClass *cl;
+
+    snprintf(name, sizeof(name), "E%03d", (int)no);
+    mrb_sym esym = mrb_intern_cstr(mrb, name);
+
+    if (!mrb_const_defined_at(mrb, mrb_obj_value(m_errno), esym)) {
+      struct RClass *sce = mrb_class_get_id(mrb, MRB_SYM(SystemCallError));
+      cl = mrb_define_class_under_id(mrb, m_errno, esym, sce);
+    }
+    else {
+      cl = mrb_class_get_under_id(mrb, m_errno, esym);
+    }
+    e->c = cl;
   }
-  mrb_exc_raise(mrb, e);
+  mrb_exc_raise(mrb, exc);
   return mrb_nil_value();  /* NOTREACHED */
 }
 
@@ -142,7 +165,7 @@ mrb_mruby_errno_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, sce, "_sys_fail", mrb_sce_sys_fail, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, sce, "errno", mrb_sce_errno, MRB_ARGS_NONE());
   mrb_define_method(mrb, sce, "to_s", mrb_sce_to_s, MRB_ARGS_NONE());
-  mrb_define_method(mrb, sce, "initialize", mrb_sce_init, MRB_ARGS_ARG(1, 1));
+  mrb_define_method(mrb, sce, "initialize", mrb_sce_init_m, MRB_ARGS_ARG(1, 1));
 
   eno = mrb_define_module_id(mrb, MRB_SYM(Errno));
 
