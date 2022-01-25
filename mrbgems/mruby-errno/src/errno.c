@@ -20,7 +20,7 @@ mrb_sce_init(mrb_state *mrb, mrb_value self)
 
   argc = mrb_get_args(mrb, "o|i", &m, &n);
   if (argc == 1) {
-    if (mrb_type(m) == MRB_TT_FIXNUM) {
+    if (mrb_fixnum_p(m)) {
       n = mrb_fixnum(m);
       m = mrb_nil_value();
     } else {
