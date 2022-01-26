@@ -102,7 +102,6 @@ mrb_sce_sys_fail(mrb_state *mrb, mrb_value cls)
   mrb_value msg;
   mrb_int no = -1;
   int argc;
-  char name[8];
 
   mrb->c->ci->mid = 0;
   sce = mrb_class_get_id(mrb, MRB_SYM(SystemCallError));
@@ -115,22 +114,6 @@ mrb_sce_sys_fail(mrb_state *mrb, mrb_value cls)
   }
   exc = mrb_obj_value(e);
   mrb_sce_init(mrb, exc, msg, no);
-  if (mrb_obj_class(mrb, exc) == sce && no > 0) {
-    struct RClass *m_errno = mrb_module_get_id(mrb, MRB_SYM(Errno));
-    struct RClass *cl;
-
-    snprintf(name, sizeof(name), "E%03d", (int)no);
-    mrb_sym esym = mrb_intern_cstr(mrb, name);
-
-    if (!mrb_const_defined_at(mrb, mrb_obj_value(m_errno), esym)) {
-      struct RClass *sce = mrb_class_get_id(mrb, MRB_SYM(SystemCallError));
-      cl = mrb_define_class_under_id(mrb, m_errno, esym, sce);
-    }
-    else {
-      cl = mrb_class_get_under_id(mrb, m_errno, esym);
-    }
-    e->c = cl;
-  }
   mrb_exc_raise(mrb, exc);
   return mrb_nil_value();  /* NOTREACHED */
 }
