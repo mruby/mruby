@@ -353,6 +353,16 @@
 #else
   itsnotdefined(EPROTO);
 #endif
+#ifdef ENOTCAPABLE
+  itsdefined(ENOTCAPABLE);
+#else
+  itsnotdefined(ENOTCAPABLE);
+#endif
+#ifdef ECAPMODE
+  itsdefined(ECAPMODE);
+#else
+  itsnotdefined(ECAPMODE);
+#endif
 #ifdef EMULTIHOP
   itsdefined(EMULTIHOP);
 #else
@@ -368,10 +378,40 @@
 #else
   itsnotdefined(EBADMSG);
 #endif
+#ifdef EPWROFF
+  itsdefined(EPWROFF);
+#else
+  itsnotdefined(EPWROFF);
+#endif
+#ifdef EDEVERR
+  itsdefined(EDEVERR);
+#else
+  itsnotdefined(EDEVERR);
+#endif
 #ifdef EOVERFLOW
   itsdefined(EOVERFLOW);
 #else
   itsnotdefined(EOVERFLOW);
+#endif
+#ifdef EBADEXEC
+  itsdefined(EBADEXEC);
+#else
+  itsnotdefined(EBADEXEC);
+#endif
+#ifdef EBADARCH
+  itsdefined(EBADARCH);
+#else
+  itsnotdefined(EBADARCH);
+#endif
+#ifdef EBADMACHO
+  itsdefined(EBADMACHO);
+#else
+  itsnotdefined(EBADMACHO);
+#endif
+#ifdef ESHLIBVERS
+  itsdefined(ESHLIBVERS);
+#else
+  itsnotdefined(ESHLIBVERS);
 #endif
 #ifdef ENOTUNIQ
   itsdefined(ENOTUNIQ);
@@ -653,6 +693,11 @@
 #else
   itsnotdefined(EOWNERDEAD);
 #endif
+#ifdef EINTEGRITY
+  itsdefined(EINTEGRITY);
+#else
+  itsnotdefined(EINTEGRITY);
+#endif
 #ifdef ERFKILL
   itsdefined(ERFKILL);
 #else
@@ -722,4 +767,14 @@
   itsdefined(EIPSEC);
 #else
   itsnotdefined(EIPSEC);
+#endif
+#ifdef ENOPOLICY
+  itsdefined(ENOPOLICY);
+#else
+  itsnotdefined(ENOPOLICY);
+#endif
+#ifdef EQFULL
+  itsdefined(EQFULL);
+#else
+  itsnotdefined(EQFULL);
 #endif

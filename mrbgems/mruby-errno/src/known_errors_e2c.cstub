@@ -211,6 +211,12 @@
 #ifdef EPROTO
   { MRB_SYM(EPROTO), EPROTO },
 #endif
+#ifdef ENOTCAPABLE
+  { MRB_SYM(ENOTCAPABLE), ENOTCAPABLE },
+#endif
+#ifdef ECAPMODE
+  { MRB_SYM(ECAPMODE), ECAPMODE },
+#endif
 #ifdef EMULTIHOP
   { MRB_SYM(EMULTIHOP), EMULTIHOP },
 #endif
@@ -220,8 +226,26 @@
 #ifdef EBADMSG
   { MRB_SYM(EBADMSG), EBADMSG },
 #endif
+#ifdef EPWROFF
+  { MRB_SYM(EPWROFF), EPWROFF },
+#endif
+#ifdef EDEVERR
+  { MRB_SYM(EDEVERR), EDEVERR },
+#endif
 #ifdef EOVERFLOW
   { MRB_SYM(EOVERFLOW), EOVERFLOW },
+#endif
+#ifdef EBADEXEC
+  { MRB_SYM(EBADEXEC), EBADEXEC },
+#endif
+#ifdef EBADARCH
+  { MRB_SYM(EBADARCH), EBADARCH },
+#endif
+#ifdef EBADMACHO
+  { MRB_SYM(EBADMACHO), EBADMACHO },
+#endif
+#ifdef ESHLIBVERS
+  { MRB_SYM(ESHLIBVERS), ESHLIBVERS },
 #endif
 #ifdef ENOTUNIQ
   { MRB_SYM(ENOTUNIQ), ENOTUNIQ },
@@ -391,6 +415,9 @@
 #ifdef EOWNERDEAD
   { MRB_SYM(EOWNERDEAD), EOWNERDEAD },
 #endif
+#ifdef EINTEGRITY
+  { MRB_SYM(EINTEGRITY), EINTEGRITY },
+#endif
 #ifdef ERFKILL
   { MRB_SYM(ERFKILL), ERFKILL },
 #endif
@@ -432,4 +459,10 @@
 #endif
 #ifdef EIPSEC
   { MRB_SYM(EIPSEC), EIPSEC },
+#endif
+#ifdef ENOPOLICY
+  { MRB_SYM(ENOPOLICY), ENOPOLICY },
+#endif
+#ifdef EQFULL
+  { MRB_SYM(EQFULL), EQFULL },
 #endif
