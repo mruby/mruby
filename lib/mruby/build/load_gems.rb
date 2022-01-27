@@ -1,5 +1,6 @@
 module MRuby
   module LoadGems
+
     def gembox(gemboxfile)
       gembox = File.expand_path("#{gemboxfile}.gembox", "#{MRUBY_ROOT}/mrbgems")
       fail "Can't find gembox '#{gembox}'" unless File.exist?(gembox)
@@ -15,12 +16,18 @@ module MRuby
     def gem(gem_src, &block)
 
       caller_dir = File.expand_path(File.dirname(caller(1,1)[0][/^(.*?):\d/,1]))
+
       gem_src = {gemdir: gem_src} if gem_src.is_a? String
 
-      dep = GemLoader.new(self, caller_dir, **gem_src).fetch!
+      @gem_checkouts ||= {}
+      checkout = GemLoader
+                   .new(self, caller_dir, @gem_checkouts, **gem_src)
+                   .fetch!
+      return nil unless checkout
+      @gem_checkouts[checkout.gemdir] = checkout
 
       # Load the gem's rakefile
-      gemrake = File.join(dep.gemdir, "mrbgem.rake")
+      gemrake = File.join(checkout.gemdir, "mrbgem.rake")
       fail "Can't find #{gemrake}" unless File.exist?(gemrake)
 
       Gem.current = nil
@@ -29,7 +36,7 @@ module MRuby
       current = Gem.current
 
       # Add it to gems
-      current.dir = dep.gemdir
+      current.dir = checkout.gemdir
       current.build = self.is_a?(MRuby::Build) ? self : MRuby::Build.current
       current.build_config_initializer = block
       gems << current
@@ -46,30 +53,45 @@ module MRuby
     class GemCheckout
       attr_reader :gemdir, :repo, :branch, :commit
 
-      def initialize(gemdir, repo, branch, commit)
-        @gemdir = gemdir      # Working copy of the gem
+      def initialize(gemdir, repo, branch, commit, canonical)
+        @gemdir = gemdir            # Working copy of the gem
 
-        @repo =  repo         # Remote gem repo
-        @branch = branch      # Branch to check out
-        @commit = commit      # Commit-id to use
+        @repo =  repo               # Remote gem repo
+        @branch = branch            # Branch to check out
+        @commit = commit            # Commit-id to use
+
+        @canonical = canonical      # This is the One True checkout
       end
 
-      def git?()  return !!@repo; end
+      def canonical?()  return @canonical;                  end
+      def git?()        return !!@repo;                     end
+      def gemname()     return File.basename(@gemdir);      end
 
-      def hash()  return [@gemdir, @repo, @branch, @commit].hash; end
+      def hash()
+        return [@gemdir, @repo, @branch, @commit, @canonical].hash
+      end
+
       def ==(other)
         return @gemdir == other.gemdir && @repo == other.repo &&
-          @branch == other.branch && @commit == other.commit
+          @branch == other.branch && @commit == other.commit &&
+          @canonical == other.canonical?
       end
-
       alias_method :eql?, :==
+
+      def to_s
+        desc = @gemdir
+        desc += " -> #{@repo}/#{@branch}" if git?
+        desc += "/#{commit}" if commit
+        return desc
+      end
     end
 
     # Class to decode the argument set given to 'MRuby::Build::gem',
     # and git-clone+git-checkout the sources if needed.
     class GemLoader
       def initialize(build,
-                     build_config_dir,    # Parent dir. of build_config
+                     build_config_dir,      # Parent dir. of build_config
+                     gem_checkouts,         # Hash of existing checkouts
 
                      # Git repo:
                      git: nil,
@@ -94,15 +116,21 @@ module MRuby
                      path: nil,
 
                      # Local file(s)
-                     gemdir: nil
+                     gemdir: nil,
+
+                     # Related flags:
+                     canonical: false   # Ignore subsequent checkout of this gem
                     )
         @build = build
         @build_config_dir = build_config_dir
+        @gem_checkouts = gem_checkouts
+        @canonical = canonical
 
         @git = git
         @branch = branch
         @checksum_hash = checksum_hash
         @options = options
+        @canonical = canonical
 
         @github = github
 
@@ -120,7 +148,8 @@ module MRuby
              "path, or gemdir") unless actions.compact.size == 1
       end
 
-      # Retrieve the repo and return the details
+      # Retrieve the repo and return the details in a GemCheckout
+      # object or nil if nothing needed to be done.
       def fetch!
         return fromGemdir!              if @gemdir
         return fromCore!                if @core
@@ -166,11 +195,12 @@ module MRuby
           gem_src = File.expand_path(gem_src, root_dir)
         end
 
-        return GemCheckout.new(gem_src, nil, nil, nil)
+        return GemCheckout.new(gem_src, nil, nil, nil, @canonical)
       end
 
       def fromCore!
-        return GemCheckout.new("#{@build.root}/mrbgems/#{@core}", nil, nil, nil)
+        return GemCheckout.new("#{@build.root}/mrbgems/#{@core}", nil, nil,
+                               nil, @canonical)
       end
 
       # This is probably incorrect.
@@ -187,7 +217,7 @@ module MRuby
       # I'm going to keep the initial semantics for now.
       def fromPath!
         p = Pathname.new(@path).absolute? ? @path : "#{@build.root}/#{@path}"
-        return GemCheckout.new(p, nil, nil, nil)
+        return GemCheckout.new(p, nil, nil, nil, @canonical)
       end
 
 
@@ -230,7 +260,7 @@ module MRuby
         list_dir = "#{@build.gem_clone_dir}/mgem-list"
         url = 'https://github.com/mruby/mgem-list.git'
 
-        git_clone_dependency(url, list_dir, nil, 'master', [])
+        git_clone_dependency(url, list_dir, nil, 'master')
 
         conf_path = "#{list_dir}/#{mgem}.gem"
         conf_path = "#{list_dir}/mruby-#{mgem}.gem" unless
@@ -253,6 +283,8 @@ module MRuby
         repo_dir = "#{@build.gem_clone_dir}/" +
                    "#{url.match(/([-\w]+)(\.[-\w]+|)$/).to_a[1]}"
         commit = @checksum_hash
+
+        return nil if skip_this?(url, repo_dir, branch, commit)
 
         # If there's a lockfile entry for this repo AND the user hasn't
         # specified a specific commit ID, we use the locked branch and
@@ -278,8 +310,47 @@ module MRuby
           }
         end
 
-        return GemCheckout.new(repo_dir, url, branch, commit)
+        return GemCheckout.new(repo_dir, url, branch, commit, @canonical)
       end
+
+
+      # Test if this repo can be skipped.  This will happen if it's
+      # already in @gem_checkouts and EITHER it is identical (same
+      # url, branch and commit-ID) as the current checkout OR it's
+      # "canonical" flag is true.  If it's in @gem_checkouts and
+      # neither of these conditions is true, that's a fatal error; it
+      # means there are multiple incompatible versions of this gem to
+      # be checked out into this directory.
+      #
+      # Otherwise, returns false.
+      def skip_this?(url, repo_dir, branch, commit)
+        prev = @gem_checkouts[repo_dir]
+        return false unless prev
+
+        # Canonical declarations must preceed all others.
+        fail("Attempted to re-declare #{prev.gemname} as canonical!\n" +
+             "('canonical' can only be used on its first declaration.)") if
+          prev && @canonical
+
+        # If prev is canonical, we can ignore this
+        if prev.canonical?
+          puts "Found canonical #{prev.gemname}; skipping this one."
+          return true
+        end
+
+        # If this checkout is identical to the current one, we can skip it.
+        candidate = GemCheckout.new(repo_dir, url, branch, commit, @canonical)
+        if prev == candidate
+          puts "Found duplicate checkout for #{repo_dir}; ignoring."
+          return true
+        end
+
+        # Otherwise, we have a checkout conflict.  This is an error.
+        fail "Conflicting gem definitions for '#{repo_dir}':\n" +
+             "  #{candidate}\n" +
+             "  #{prev}\n"
+      end
+
 
       # Retrieve a git repo if it's not present.  Return
       # [path_to_checkout, did_clone]
