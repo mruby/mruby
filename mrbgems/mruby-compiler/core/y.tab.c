@@ -13161,11 +13161,12 @@ mrb_load_detect_file_cxt(mrb_state *mrb, FILE *fp, mrbc_context *c)
     binsize = bin_to_uint32(leading.h.binary_size);
     bin_obj = mrb_str_new(mrb, NULL, binsize);
     bin = (uint8_t *)RSTRING_PTR(bin_obj);
-    memcpy(bin, leading.b, bufsize);
-    if (binsize > bufsize &&
-        fread(bin + bufsize, binsize - bufsize, 1, fp) == 0) {
-      binsize = bufsize;
-      /* The error is reported by mrb_load_irep_buf_cxt() */
+    if (binsize > bufsize)  {
+      memcpy(bin, leading.b, bufsize);
+      if (fread(bin + bufsize, binsize - bufsize, 1, fp) == 0) {
+        binsize = bufsize;
+        /* The error is reported by mrb_load_irep_buf_cxt() */
+      }
     }
 
     result = mrb_load_irep_buf_cxt(mrb, bin, binsize, c);
