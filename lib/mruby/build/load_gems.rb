@@ -327,7 +327,7 @@ module MRuby
         prev = @gem_checkouts[repo_dir]
         return false unless prev
 
-        # Canonical declarations must preceed all others.
+        # Canonical declarations must precede all others.
         fail("Attempted to re-declare #{prev.gemname} as canonical!\n" +
              "('canonical' can only be used on its first declaration.)") if
           prev && @canonical
