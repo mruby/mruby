@@ -589,7 +589,7 @@ mrb_obj_ceqq(mrb_state *mrb, mrb_value self)
   else if (mrb_nil_p(self)) {
     return mrb_false_value();
   }
-  else if (!mrb_respond_to(mrb, self, mrb_intern_lit(mrb, "to_a"))) {
+  else if (!mrb_respond_to(mrb, self, MRB_SYM(to_a))) {
     mrb_value c = mrb_funcall_argv(mrb, self, eqq, 1, &v);
     if (mrb_test(c)) return mrb_true_value();
     return mrb_false_value();
