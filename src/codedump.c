@@ -515,7 +515,7 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_HASHCAT, B):
-      printf("HASHCAT\tR%d\t", a);
+      printf("HASHCAT\tR%d\t\t", a);
       print_lv_a(mrb, irep, a);
       break;
 
