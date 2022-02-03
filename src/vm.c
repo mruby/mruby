@@ -2756,6 +2756,7 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_STRCAT, B) {
+      mrb_ensure_string_type(mrb, regs[a]);
       mrb_str_concat(mrb, regs[a], regs[a+1]);
       NEXT;
     }
