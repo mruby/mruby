@@ -1603,7 +1603,7 @@ gen_hash(codegen_scope *s, node *tree, int val, int limit)
 
   while (tree) {
     if (nint(tree->car->car->car) == NODE_KW_REST_ARGS) {
-      if (len > 0) {
+      if (val && len > 0) {
         pop_n(len*2);
         if (!update) {
           genop_2(s, OP_HASH, cursp(), len);
@@ -1615,7 +1615,7 @@ gen_hash(codegen_scope *s, node *tree, int val, int limit)
         push();
       }
       codegen(s, tree->car->cdr, val);
-      if (len > 0 || update) {
+      if (val && (len > 0 || update)) {
         pop(); pop();
         genop_1(s, OP_HASHCAT, cursp());
         push();
