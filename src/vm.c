@@ -1163,6 +1163,35 @@ hash_new_from_values(mrb_state *mrb, mrb_int argc, mrb_value *regs)
 void mrb_method_added(mrb_state *mrb, struct RClass *c, mrb_sym mid);
 mrb_value mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value idx, mrb_value len);
 
+#define ARGUMENT_NORMALIZE(arg_base, arg_info, insn) do { \
+  int n = *(arg_info)&0xf; \
+  int nk = (*(arg_info)>>4)&0xf; \
+  mrb_int bidx = (arg_base) + mrb_bidx(*(arg_info)); \
+  if (0 < nk && nk < CALL_MAXARGS) {  /* pack keyword arguments */ \
+    mrb_int kidx = (arg_base)+(n==CALL_MAXARGS?1:n)+1; \
+    mrb_value kdict = hash_new_from_values(mrb, nk, regs+kidx); \
+    regs[kidx] = kdict; \
+    nk = CALL_MAXARGS; \
+    *(arg_info) = n | (nk<<4); \
+  } \
+  \
+  mrb_assert(bidx < irep->nregs+(arg_base)); \
+  mrb_int new_bidx = (arg_base)+mrb_bidx(*(arg_info)); \
+  if ((insn) == OP_SEND) { \
+    /* clear block argument */ \
+    SET_NIL_VALUE(regs[new_bidx]); \
+    SET_NIL_VALUE(blk); \
+  } \
+  else { \
+    blk = regs[bidx]; \
+    if (!mrb_nil_p(blk) && !mrb_proc_p(blk)) { \
+      blk = mrb_type_convert(mrb, blk, MRB_TT_PROC, MRB_SYM(to_proc)); \
+      /* The stack might have been reallocated during mrb_type_convert(), see #3622 */ \
+    } \
+    regs[new_bidx] = blk; \
+  } \
+} while (0)
+
 MRB_API mrb_value
 mrb_vm_exec(mrb_state *mrb, const struct RProc *proc, const mrb_code *pc)
 {
@@ -1569,39 +1598,12 @@ RETRY_TRY_BLOCK:
     mid = syms[b];
     L_SENDB_SYM:
     {
-      int n = c&0xf;
-      int nk = (c>>4)&0xf;
       mrb_callinfo *ci = mrb->c->ci;
-      mrb_int bidx = a + mrb_bidx(c);
       mrb_method_t m;
       struct RClass *cls;
-      mrb_value recv;
+      mrb_value recv, blk;
 
-      if (0 < nk && nk < 15) {  /* pack keyword arguments */
-        mrb_int kidx = a+(n==15?1:n)+1;
-        mrb_value kdict = hash_new_from_values(mrb, nk, regs+kidx);
-        regs[kidx] = kdict;
-        nk = 15;
-        c = n | (nk<<4);
-      }
-
-      mrb_assert(bidx < irep->nregs+a);
-      mrb_value blk;
-      mrb_int new_bidx = a+mrb_bidx(c);
-      if (insn == OP_SEND) {
-        /* clear block argument */
-        SET_NIL_VALUE(regs[new_bidx]);
-        SET_NIL_VALUE(blk);
-      }
-      else {
-        blk = regs[bidx];
-        if (!mrb_nil_p(blk) && !mrb_proc_p(blk)) {
-          blk = mrb_type_convert(mrb, blk, MRB_TT_PROC, MRB_SYM(to_proc));
-          /* The stack might have been reallocated during mrb_type_convert(),
-             see #3622 */
-        }
-        regs[new_bidx] = blk;
-      }
+      ARGUMENT_NORMALIZE(a, &c, insn);
 
       recv = regs[a];
       cls = mrb_class(mrb, recv);
@@ -1718,7 +1720,6 @@ RETRY_TRY_BLOCK:
       mrb_method_t m;
       struct RClass *cls;
       mrb_callinfo *ci = mrb->c->ci;
-      mrb_int bidx = mrb_bidx(b)+a;
       mrb_value recv, blk;
       const struct RProc *p = ci->proc;
       mrb_sym mid = ci->mid;
@@ -1726,20 +1727,6 @@ RETRY_TRY_BLOCK:
 
       if (MRB_PROC_ENV_P(p) && p->e.env->mid && p->e.env->mid != mid) { /* alias support */
         mid = p->e.env->mid;    /* restore old mid */
-      }
-      mrb_assert(bidx < irep->nregs);
-
-      blk = regs[bidx];
-      uint8_t nk = (b >> 4) & 0x0f;
-      if (nk > 0 && nk < CALL_MAXARGS) {  /* pack keyword arguments */
-        uint8_t n = b & 0x0f;
-        mrb_int kidx = a+(n==15?1:n)+1;
-        mrb_value kdict = hash_new_from_values(mrb, nk, regs+kidx);
-        regs[kidx] = kdict;
-        nk = 15;
-        b = n | (nk<<4);
-        bidx = kidx + 1;
-        regs[bidx] = blk;
       }
 
       if (mid == 0 || !target_class) {
@@ -1764,13 +1751,9 @@ RETRY_TRY_BLOCK:
         mrb_exc_set(mrb, exc);
         goto L_RAISE;
       }
-      if (!mrb_nil_p(blk) && !mrb_proc_p(blk)) {
-        blk = mrb_type_convert(mrb, blk, MRB_TT_PROC, MRB_SYM(to_proc));
-        /* The stack or ci stack might have been reallocated during
-           mrb_type_convert(), see #3622 and #3784 */
-        regs[bidx] = blk;
-        ci = mrb->c->ci;
-      }
+
+      ARGUMENT_NORMALIZE(a, &b, OP_SUPER);
+
       cls = target_class->super;
       m = mrb_method_search_vm(mrb, &cls, mid);
       if (MRB_METHOD_UNDEF_P(m)) {
