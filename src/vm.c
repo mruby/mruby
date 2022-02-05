@@ -1167,7 +1167,10 @@ mrb_value mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value idx, mrb_value l
   int n = *(arg_info)&0xf; \
   int nk = (*(arg_info)>>4)&0xf; \
   mrb_int bidx = (arg_base) + mrb_bidx(*(arg_info)); \
-  if (0 < nk && nk < CALL_MAXARGS) {  /* pack keyword arguments */ \
+  if (nk == CALL_MAXARGS) { \
+    mrb_ensure_hash_type(mrb, regs[(arg_base)+(n==CALL_MAXARGS?1:n)+1]); \
+  } \
+  else if (nk > 0) {  /* pack keyword arguments */ \
     mrb_int kidx = (arg_base)+(n==CALL_MAXARGS?1:n)+1; \
     mrb_value kdict = hash_new_from_values(mrb, nk, regs+kidx); \
     regs[kidx] = kdict; \
