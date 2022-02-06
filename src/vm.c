@@ -2618,7 +2618,7 @@ RETRY_TRY_BLOCK:
         regs[a] = splat;
       }
       else {
-        mrb_assert(mrb_type(regs[a]) == MRB_TT_ARRAY);
+        mrb_assert(mrb_array_p(regs[a]));
         mrb_ary_concat(mrb, regs[a], splat);
       }
       mrb_gc_arena_restore(mrb, ai);
@@ -2626,7 +2626,7 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_ARYPUSH, BB) {
-      mrb_assert(mrb_type(regs[a]) == MRB_TT_ARRAY);
+      mrb_assert(mrb_array_p(regs[a]));
       for (mrb_int i=0; i<b; i++) {
         mrb_ary_push(mrb, regs[a], regs[a+i+1]);
       }
@@ -2664,7 +2664,7 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_ASET, BBB) {
-      mrb_assert(mrb_type(regs[b]) == MRB_TT_ARRAY);
+      mrb_assert(mrb_array_p(regs[a]));
       mrb_ary_set(mrb, regs[b], c, regs[a]);
       NEXT;
     }
@@ -2704,8 +2704,8 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_INTERN, B) {
+      mrb_assert(mrb_string_p(regs[a]));
       mrb_sym sym = mrb_intern_str(mrb, regs[a]);
-
       regs[a] = mrb_symbol_value(sym);
       NEXT;
     }
@@ -2742,7 +2742,7 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_STRCAT, B) {
-      mrb_ensure_string_type(mrb, regs[a]);
+      mrb_assert(mrb_string_p(regs[a]));
       mrb_str_concat(mrb, regs[a], regs[a+1]);
       NEXT;
     }
@@ -2766,7 +2766,7 @@ RETRY_TRY_BLOCK:
       int lim = a+b*2+1;
 
       hash = regs[a];
-      mrb_ensure_hash_type(mrb, hash);
+      mrb_assert(mrb_hash_p(hash));
       for (i=a+1; i<lim; i+=2) {
         mrb_hash_set(mrb, hash, regs[i], regs[i+1]);
       }
@@ -2776,7 +2776,7 @@ RETRY_TRY_BLOCK:
     CASE(OP_HASHCAT, B) {
       mrb_value hash = regs[a];
 
-      mrb_ensure_hash_type(mrb, hash);
+      mrb_assert(mrb_hash_p(hash));
       mrb_hash_merge(mrb, hash, regs[a+1]);
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
