@@ -66,7 +66,7 @@ usage(const char *name)
 static mrb_bool
 mrb_extension_p(const char *path)
 {
-  const char *e = rindex(path, '.');
+  const char *e = strrchr(path, '.');
   if (e && e[1] == 'm' && e[2] == 'r' && e[3] == 'b' && e[4] == '\0') {
     return TRUE;
   }
