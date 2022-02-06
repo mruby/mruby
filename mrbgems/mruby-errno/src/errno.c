@@ -10,13 +10,29 @@
 #include <string.h>
 #include <mruby/presym.h>
 
-static struct {
+static const struct {
+#ifdef MRB_NO_PRESYM
+#define itsdefined(name, sym)   { #name, name },
+  const char *name;
+#else
+#define itsdefined(name, sym)   { sym, name },
   mrb_sym sym;
+#endif
   int eno;
 } e2c[] = {
-#include "known_errors_e2c.cstub"
-  {0, 0},
+#define itsnotdefined(name, sym)
+#include "known_errors_def.cstub"
+#undef itsdefined
+#undef itsnotdefined
 };
+
+#ifdef MRB_NO_PRESYM
+#define ENTRY_SYM(e)    mrb_intern_static(mrb, (e).name, strlen((e).name))
+#else
+#define ENTRY_SYM(e)    (e).sym
+#endif
+
+#define E2C_LEN         (sizeof(e2c) / sizeof(e2c[0]))
 
 static void
 mrb_sce_init(mrb_state *mrb, mrb_value self, mrb_value m, mrb_int n)
@@ -30,14 +46,14 @@ mrb_sce_init(mrb_state *mrb, mrb_value self, mrb_value m, mrb_int n)
   if (!no_errno) {
     int i;
 
-    for (i=0; e2c[i].sym != 0; i++) {
+    for (i=0; i < E2C_LEN; i++) {
       if (e2c[i].eno == n) {
-        mrb_basic_ptr(self)->c = mrb_class_get_under_id(mrb, m_errno, e2c[i].sym);
+        mrb_basic_ptr(self)->c = mrb_class_get_under_id(mrb, m_errno, ENTRY_SYM(e2c[i]));
         str = mrb_str_new_cstr(mrb, strerror(n));
         break;
       }
     }
-    if (e2c[i].sym == 0) {
+    if (i == E2C_LEN) {
       mrb_iv_set(mrb, self, MRB_SYM(errno), mrb_fixnum_value(n));
       str = mrb_str_new_cstr(mrb, "Unknown error: ");
       snprintf(buf, sizeof(buf), "%d", (int)n);
@@ -158,19 +174,19 @@ mrb_mruby_errno_gem_init(mrb_state *mrb)
   //mrb_define_method(mrb, e, "===", mrb_exxx_cmp, MRB_ARGS_REQ(1));
   noerror = mrb_obj_value(e);
 
-#define itsdefined(SYM) \
+#define itsdefined(name, sym) \
   do {									\
     int ai = mrb_gc_arena_save(mrb);					\
-    e = mrb_define_class_under(mrb, eno, #SYM, sce);			\
-    mrb_define_const_id(mrb, e, MRB_SYM(Errno), mrb_fixnum_value(SYM)); \
+    e = mrb_define_class_under_id(mrb, eno, sym, sce);			\
+    mrb_define_const_id(mrb, e, MRB_SYM(Errno), mrb_fixnum_value(name)); \
     mrb_define_method(mrb, e, "initialize", mrb_exxx_init, MRB_ARGS_OPT(1)); \
     mrb_gc_arena_restore(mrb, ai);					\
-  } while (0)
+  } while (0);
 
-#define itsnotdefined(SYM) \
+#define itsnotdefined(name, sym) \
   do {									\
-    mrb_define_const(mrb, eno, #SYM, noerror);				\
-  } while (0)
+    mrb_define_const_id(mrb, eno, sym, noerror);			\
+  } while (0);
 
 #include "known_errors_def.cstub"
 }
