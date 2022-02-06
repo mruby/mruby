@@ -1,6 +1,7 @@
 #include "mruby.h"
 #include "mruby/array.h"
 #include "mruby/class.h"
+#include "mruby/error.h"
 #include "mruby/hash.h"
 #include "mruby/numeric.h"
 #include "mruby/string.h"
@@ -51,7 +52,7 @@ mrb_sce_init(mrb_state *mrb, mrb_value self, mrb_value m, mrb_int n)
     mrb_str_cat2(mrb, str, " - ");
     mrb_str_append(mrb, str, m);
   }
-  mrb_iv_set(mrb, self, MRB_SYM(mesg), str);
+  mrb_exc_mesg_set(mrb, mrb_exc_ptr(self), str);
 }
 
 static mrb_value
@@ -87,12 +88,6 @@ mrb_sce_errno(mrb_state *mrb, mrb_value self)
     sym = MRB_SYM(errno);
     return mrb_attr_get(mrb, self, sym);
   }
-}
-
-static mrb_value
-mrb_sce_to_s(mrb_state *mrb, mrb_value self)
-{
-  return mrb_attr_get(mrb, self, MRB_SYM(mesg));
 }
 
 static mrb_value
@@ -132,7 +127,7 @@ mrb_exxx_init(mrb_state *mrb, mrb_value self)
     mrb_str_cat2(mrb, str, " - ");
     mrb_str_append(mrb, str, m);
   }
-  mrb_iv_set(mrb, self, MRB_SYM(mesg), str);
+  mrb_exc_mesg_set(mrb, mrb_exc_ptr(self), str);
   return self;
 }
 
@@ -147,7 +142,6 @@ mrb_mruby_errno_gem_init(mrb_state *mrb)
   sce = mrb_define_class(mrb, "SystemCallError", ste);
   mrb_define_class_method(mrb, sce, "_sys_fail", mrb_sce_sys_fail, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, sce, "errno", mrb_sce_errno, MRB_ARGS_NONE());
-  mrb_define_method(mrb, sce, "to_s", mrb_sce_to_s, MRB_ARGS_NONE());
   mrb_define_method(mrb, sce, "initialize", mrb_sce_init_m, MRB_ARGS_ARG(1, 1));
 
   eno = mrb_define_module_id(mrb, MRB_SYM(Errno));
