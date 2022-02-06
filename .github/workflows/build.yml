@@ -140,7 +140,7 @@ jobs:
         run: echo '::set-env name=PATH::C:\windows\System32'
 
   Windows-VC:
-    runs-on: windows-latest
+    runs-on: windows-2022
     timeout-minutes: 10
     env:
       MRUBY_CONFIG: ci/msvc
@@ -151,5 +151,5 @@ jobs:
       - name: Build and test
         shell: cmd
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           rake -m test:build && rake test:run
