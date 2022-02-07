@@ -57,7 +57,7 @@ typedef struct scope {
   uint32_t pc;
   uint32_t lastpc;
   uint32_t lastlabel;
-  size_t ainfo:15;
+  uint16_t ainfo:15;
   mrb_bool mscope:1;
 
   struct loopinfo *loop;
@@ -2953,7 +2953,7 @@ codegen(codegen_scope *s, node *tree, int val)
     {
       codegen_scope *s2 = s;
       int lv = 0;
-      size_t ainfo = 0;
+      uint16_t ainfo = 0;
       int n = CALL_MAXARGS;
       int sp = cursp();
 
