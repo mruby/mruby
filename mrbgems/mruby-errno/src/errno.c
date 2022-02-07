@@ -6,7 +6,6 @@
 #include "mruby/string.h"
 #include "mruby/variable.h"
 #include <errno.h>
-#include <stdio.h>
 #include <string.h>
 #include <mruby/presym.h>
 
@@ -40,8 +39,8 @@ mrb_sce_init(mrb_state *mrb, mrb_value self, mrb_value m, mrb_int n)
     if (e2c[i].sym == 0) {
       mrb_iv_set(mrb, self, MRB_SYM(errno), mrb_fixnum_value(n));
       str = mrb_str_new_cstr(mrb, "Unknown error: ");
-      snprintf(buf, sizeof(buf), "%d", (int)n);
-      mrb_str_cat2(mrb, str, buf);
+      char *bp = mrb_int_to_cstr(buf, sizeof(buf), n, 10);
+      mrb_str_cat2(mrb, str, bp);
     }
   }
   else {
