@@ -422,7 +422,7 @@ mrb_ci_nregs(mrb_callinfo *ci)
   const struct RProc *p;
 
   if (!ci) return 4;
-  uint8_t nregs = mrb_ci_bidx(ci) + 1; /* self + args + kargs + blk */
+  mrb_int nregs = mrb_ci_bidx(ci) + 1; /* self + args + kargs + blk */
   p = ci->proc;
   if (p && !MRB_PROC_CFUNC_P(p) && p->body.irep && p->body.irep->nregs > nregs) {
     return p->body.irep->nregs;
@@ -471,7 +471,7 @@ prepare_missing(mrb_state *mrb, mrb_value recv, mrb_sym mid, struct RClass **cls
     argv[1] = argv[n];
     argv[2] = blk;
   }
-  *c = 15 | (nk<<4);
+  *c = 15 | (uint16_t)(nk<<4);
   mrb_ary_unshift(mrb, args, mrb_symbol_value(mid));
   return m;
 }
