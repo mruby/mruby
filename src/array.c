@@ -425,8 +425,14 @@ mrb_ary_times(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a1 = mrb_ary_ptr(self);
   struct RArray *a2;
-  mrb_value *ptr;
+  mrb_value *ptr, sep, tmp;
   mrb_int times, len1;
+
+  mrb_get_args(mrb, "o", &sep);
+  tmp = mrb_check_string_type(mrb, sep);
+  if (!mrb_nil_p(tmp)) {
+    return mrb_ary_join(mrb, self, tmp);
+  }
 
   mrb_get_args(mrb, "i", &times);
   if (times < 0) {
