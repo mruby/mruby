@@ -1551,7 +1551,7 @@ gen_values(codegen_scope *s, node *t, int val, int limit)
   while (t) {
     int is_splat = nint(t->car->car) == NODE_SPLAT;
 
-    if (is_splat || n >= limit-1 || cursp() >= slimit) { /* flush stack */
+    if (is_splat || n > limit || cursp() >= slimit) { /* flush stack */
       pop_n(n);
       if (first) {
         if (n == 0) {
