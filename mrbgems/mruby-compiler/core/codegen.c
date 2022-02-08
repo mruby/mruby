@@ -1643,6 +1643,12 @@ gen_hash(codegen_scope *s, node *tree, int val, int limit)
       len = 0;
     }
   }
+  if (val && len > limit) {
+    pop_n(len*2);
+    genop_2(s, OP_HASH, cursp(), len);
+    push();
+    return -1;
+  }
   if (update) {
     if (val && len > 0) {
       pop_n(len*2+1);
