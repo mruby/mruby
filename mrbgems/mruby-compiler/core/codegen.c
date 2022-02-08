@@ -1865,15 +1865,21 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
           }
         }
         if (tree->cdr->car) {       /* keyword arguments */
+          if (n == 14) {
+            pop_n(n);
+            genop_2(s, OP_ARRAY, cursp(), n);
+            push();
+            n = 15;
+          }
           gen_hash(s, tree->cdr->car->cdr, VAL, 0);
           if (n < 14) {
             n++;
-            push();
           }
           else {
-            pop();
+            pop_n(2);
             genop_2(s, OP_ARYPUSH, cursp(), 1);
           }
+          push();
         }
       }
       if (rhs) {
