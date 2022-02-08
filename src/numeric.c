@@ -733,12 +733,12 @@ flo_ceil_floor(mrb_state *mrb, mrb_value num, double (*func)(double))
   }
   if (ndigits > 0) {
     if (ndigits > fprec) return num;
-    mrb_float d = pow(10, ndigits);
+    mrb_float d = pow(10, (double)ndigits);
     f = func(f * d) / d;
     return mrb_float_value(mrb, f);
   }
   if (ndigits < 0) {
-    mrb_float d = pow(10, -ndigits);
+    mrb_float d = pow(10, (double)-ndigits);
     f = func(f / d) * d;
   }
   else {                        /* ndigits == 0 */
