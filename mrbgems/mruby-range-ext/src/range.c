@@ -40,7 +40,7 @@ range_cover(mrb_state *mrb, mrb_value range)
   beg = RANGE_BEG(r);
   end = RANGE_END(r);
 
-  if (r_le(mrb, beg, val)) {
+  if (mrb_nil_p(beg) || r_le(mrb, beg, val)) {
     if (mrb_nil_p(end)) {
       return mrb_true_value();
     }
