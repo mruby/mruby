@@ -577,7 +577,8 @@ read_irep(mrb_state *mrb, const uint8_t *bin, size_t bufsize, uint8_t flags)
   }
 
   bin += sizeof(struct rite_binary_header);
-  do {
+  bin_size -= sizeof(struct rite_binary_header);
+  while (bin_size > sizeof(struct rite_section_header)) {
     section_header = (const struct rite_section_header *)bin;
     if (memcmp(section_header->section_ident, RITE_SECTION_IREP_IDENT, sizeof(section_header->section_ident)) == 0) {
       irep = read_section_irep(mrb, bin, flags, &proc);
@@ -597,8 +598,14 @@ read_irep(mrb_state *mrb, const uint8_t *bin, size_t bufsize, uint8_t flags)
         return NULL;
       }
     }
-    bin += bin_to_uint32(section_header->section_size);
-  } while (memcmp(section_header->section_ident, RITE_BINARY_EOF, sizeof(section_header->section_ident)) != 0);
+    else if (memcmp(section_header->section_ident, RITE_BINARY_EOF, sizeof(section_header->section_ident)) != 0) {
+      break;
+    }
+
+    uint32_t section_size = bin_to_uint32(section_header->section_size);
+    bin += section_size;
+    bin_size -= section_size;
+  }
 
   return proc;
 }
