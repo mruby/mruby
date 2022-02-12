@@ -1551,7 +1551,7 @@ gen_values(codegen_scope *s, node *t, int val, int limit)
   while (t) {
     int is_splat = nint(t->car->car) == NODE_SPLAT;
 
-    if (is_splat || n > limit || cursp() >= slimit) { /* flush stack */
+    if (is_splat || cursp() >= slimit) { /* flush stack */
       pop_n(n);
       if (first) {
         if (n == 0) {
@@ -1589,6 +1589,11 @@ gen_values(codegen_scope *s, node *t, int val, int limit)
       genop_2(s, OP_ARYPUSH, cursp(), n);
     }
     return -1;                  /* variable length */
+  }
+  else if (n > limit) {
+    pop_n(n);
+    genop_2(s, OP_ARRAY, cursp(), n);
+    return -1;
   }
   return n;
 }
