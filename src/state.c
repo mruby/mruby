@@ -137,6 +137,7 @@ mrb_irep_cutref(mrb_state *mrb, mrb_irep *irep)
 
   if (irep->flags & MRB_IREP_NO_FREE) return;
   reps = (mrb_irep**)irep->reps;
+  if (!reps) return;
   for (i=0; i<irep->rlen; i++) {
     mrb_irep *tmp = reps[i];
     reps[i] = NULL;
