@@ -99,7 +99,7 @@ MRB_API mrb_value mrb_load_irep(mrb_state*, const uint8_t*);
 
 /*
  * @param [const void*] irep code
- * @param [size_t] size of irep buffer. If -1 is given, it is considered unrestricted.
+ * @param [size_t] size of irep buffer.
  */
 MRB_API mrb_value mrb_load_irep_buf(mrb_state*, const void*, size_t);
 
@@ -108,7 +108,7 @@ MRB_API mrb_value mrb_load_irep_cxt(mrb_state*, const uint8_t*, mrbc_context*);
 
 /*
  * @param [const void*] irep code
- * @param [size_t] size of irep buffer. If -1 is given, it is considered unrestricted.
+ * @param [size_t] size of irep buffer.
  */
 MRB_API mrb_value mrb_load_irep_buf_cxt(mrb_state*, const void*, size_t, mrbc_context*);
 
