@@ -2962,6 +2962,7 @@ f_margs         : f_arg
                     }
                 | f_arg ',' tSTAR
                     {
+                      local_add_f(p, intern_op(mul));
                       $$ = list3($1, nint(-1), 0);
                     }
                 | f_arg ',' tSTAR ',' f_arg
@@ -2978,11 +2979,16 @@ f_margs         : f_arg
                     }
                 | tSTAR
                     {
+                      local_add_f(p, intern_op(mul));
                       $$ = list3(0, nint(-1), 0);
                     }
-                | tSTAR ',' f_arg
+                | tSTAR ','
                     {
-                      $$ = list3(0, nint(-1), $3);
+                      local_add_f(p, intern_op(mul));
+                    }
+                  f_arg
+                    {
+                      $$ = list3(0, nint(-1), $4);
                     }
                 ;
 
@@ -3864,6 +3870,7 @@ f_arg_item      : f_norm_arg
                     {
                       $$ = new_masgn_param(p, $3, p->locals->car);
                       local_resume(p, $<nd>2);
+                      local_add_f(p, 0);
                     }
                 ;
 
