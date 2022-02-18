@@ -689,9 +689,11 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
   regs = mrb->c->ci->stack+1;
 
   if (n == 0) {
+  argnum_error:
     mrb_argnum_error(mrb, 0, 1, -1);
   }
   else if (n == 15) {
+    if (RARRAY_LEN(regs[0]) == 0) goto argnum_error;
     name = mrb_obj_to_sym(mrb, RARRAY_PTR(regs[0])[0]);
   }
   else {
