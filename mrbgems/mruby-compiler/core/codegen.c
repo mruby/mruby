@@ -1605,10 +1605,16 @@ gen_hash(codegen_scope *s, node *tree, int val, int limit)
   if (cursp() >= GEN_LIT_ARY_MAX) slimit = INT16_MAX;
   int len = 0;
   mrb_bool update = FALSE;
+  mrb_bool first = TRUE;
 
   while (tree) {
     if (nint(tree->car->car->car) == NODE_KW_REST_ARGS) {
-      if (val && len > 0) {
+      if (val && first) {
+        genop_2(s, OP_HASH, cursp(), 0);
+        push();
+        update = TRUE;
+      }
+      else if (val && len > 0) {
         pop_n(len*2);
         if (!update) {
           genop_2(s, OP_HASH, cursp(), len);
@@ -1647,6 +1653,7 @@ gen_hash(codegen_scope *s, node *tree, int val, int limit)
       update = TRUE;
       len = 0;
     }
+    first = FALSE;
   }
   if (val && len > limit) {
     pop_n(len*2);
