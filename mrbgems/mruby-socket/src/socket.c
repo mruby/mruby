@@ -265,7 +265,7 @@ sa2addrlist(mrb_state *mrb, const struct sockaddr *sa, socklen_t salen)
 static int
 socket_fd(mrb_state *mrb, mrb_value sock)
 {
-  return (int)mrb_integer(mrb_funcall_id(mrb, sock, MRB_SYM(fileno), 0));
+  return (int)mrb_as_int(mrb, mrb_funcall_id(mrb, sock, MRB_SYM(fileno), 0));
 }
 
 static int
@@ -468,9 +468,10 @@ mrb_basicsocket_setsockopt(mrb_state *mrb, mrb_value self)
   } else if (argc == 1) {
     if (strcmp(mrb_obj_classname(mrb, so), "Socket::Option") != 0)
       mrb_raise(mrb, E_ARGUMENT_ERROR, "not an instance of Socket::Option");
-    level = mrb_integer(mrb_funcall_id(mrb, so, MRB_SYM(level), 0));
-    optname = mrb_integer(mrb_funcall_id(mrb, so, MRB_SYM(optname), 0));
+    level = mrb_as_int(mrb, mrb_funcall_id(mrb, so, MRB_SYM(level), 0));
+    optname = mrb_as_int(mrb, mrb_funcall_id(mrb, so, MRB_SYM(optname), 0));
     optval = mrb_funcall_id(mrb, so, MRB_SYM(data), 0);
+    mrb_ensure_string_type(mrb, optval);
   } else {
     mrb_argnum_error(mrb, argc, 3, 3);
   }
