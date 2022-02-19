@@ -72,10 +72,11 @@ Those instructions for method calls with variable number of arguments are no lon
 
 `mruby3.1` introduces following new instructions.
 
-* `OP_GETIDX`: takes 2 operands `a[b]`
-* `OP_SETIDX`: takes 3 operands `a[b]=c`
+* `OP_GETIDX`: takes 1 operands `R[a][a+1]`
+* `OP_SETIDX`: takes 1 operands `R[a][a+1]=R[a+2]`
 * `OP_SSEND`: takes 3 operands `a=self.b(c...)`; see `OP_SEND`
 * `OP_SSENDB`: takes 3 operands `a=self.b(c...){...}`; see `OP_SEND`
+* `OP_SYMBOL`: takes 2 operands `R[a] = intern(Pool[b])`
 
 ### `OP_GETIDX` and `OP_SETIDX`
 
@@ -84,6 +85,10 @@ Execute `obj[int]` and `obj[int] = value` respectively, where `obj` is `string|a
 ### `OP_SSEND` and `OP_SSENDB`
 
 They are similar to `OP_SEND` and `OP_SENDB` respectively. They initialize the `R[a]` by `self` first so that we can skip one `OP_LOADSELF` instruction for each call.
+
+### `OP_SYMBOL`
+
+Extracts the character string placed in the pool as a symbol.
 
 ## Changed Instructions
 
