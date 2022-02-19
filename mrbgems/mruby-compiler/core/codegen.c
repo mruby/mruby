@@ -2860,19 +2860,20 @@ codegen(codegen_scope *s, node *tree, int val)
         if (tree->cdr->cdr) {
           codegen(s, tree->cdr->cdr, VAL);
         }
-        else if (!s2) {/* super at top-level */
-          push();      /* no need to push block */
-        }
+        else if (s2) gen_blkmove(s, s2->ainfo, lv);
         else {
-          gen_blkmove(s, s2->ainfo, lv);
+          genop_1(s, OP_LOADNIL, cursp());
+          push();
         }
-        st++;
       }
       else {
-        if (!s2) push();
-        else gen_blkmove(s, s2->ainfo, lv);
-        st++;
+        if (s2) gen_blkmove(s, s2->ainfo, lv);
+        else {
+          genop_1(s, OP_LOADNIL, cursp());
+          push();
+        }
       }
+      st++;
       pop_n(st+1);
       genop_2(s, OP_SUPER, cursp(), n);
       if (val) push();
@@ -3124,6 +3125,7 @@ codegen(codegen_scope *s, node *tree, int val)
         codegen_error(s, "no anonymous block argument");
       }
       gen_move(s, cursp(), idx, val);
+      if (val) push();
     }
     else {
       codegen(s, tree, val);
