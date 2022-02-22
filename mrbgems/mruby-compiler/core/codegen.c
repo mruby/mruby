@@ -634,7 +634,7 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
     case OP_ARRAY:
       if (data.a != src || data.a < s->nlocals || data.a < dst) goto normal;
       rewind_pc(s);
-      if (data.b == 0)
+      if (data.b == 0 || dst == data.a)
         genop_2(s, OP_ARRAY, dst, 0);
       else
         genop_3(s, OP_ARRAY2, dst, data.a, data.b);
