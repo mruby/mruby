@@ -606,7 +606,7 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
       rewind_pc(s);
       genop_1(s, data.insn, dst);
       return;
-    case OP_HASH: case OP_ARRAY:
+    case OP_HASH:
       if (data.b != 0) goto normal;
       /* fall through */
     case OP_LOADI: case OP_LOADINEG:
@@ -630,6 +630,19 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
         rewind_pc(s);
         genop_2SS(s, data.insn, dst, i);
       }
+      return;
+    case OP_ARRAY:
+      if (data.a != src || data.a < s->nlocals || data.a < dst) goto normal;
+      rewind_pc(s);
+      if (data.b == 0)
+        genop_2(s, OP_ARRAY, dst, 0);
+      else
+        genop_3(s, OP_ARRAY2, dst, data.a, data.b);
+      return;
+    case OP_ARRAY2:
+      if (data.a != src || data.a < s->nlocals || data.a < dst) goto normal;
+      rewind_pc(s);
+      genop_3(s, OP_ARRAY2, dst, data.b, data.c);
       return;
     case OP_AREF:
     case OP_GETUPVAR:
