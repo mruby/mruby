@@ -102,7 +102,7 @@ static int catch_handler_new(codegen_scope *s);
 static void catch_handler_set(codegen_scope *s, int ent, enum mrb_catch_type type, uint32_t begin, uint32_t end, uint32_t target);
 
 static void gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val);
-static void gen_vmassignment(codegen_scope *s, node *tree, int sp, int val);
+static void gen_massignment(codegen_scope *s, node *tree, int sp, int val);
 
 static void codegen(codegen_scope *s, node *tree, int val);
 static void raise_error(codegen_scope *s, const char *msg);
@@ -1278,7 +1278,7 @@ for_body(codegen_scope *s, node *tree)
     gen_assignment(s, n2->car->car, NULL, 1, NOVAL);
   }
   else {
-    gen_vmassignment(s, n2, 1, VAL);
+    gen_massignment(s, n2, 1, VAL);
   }
   /* construct loop */
   lp = loop_push(s, LOOP_FOR);
@@ -1444,7 +1444,7 @@ lambda_body(codegen_scope *s, node *tree, int blk)
       pos = 1;
       while (n) {
         if (nint(n->car->car) == NODE_MASGN) {
-          gen_vmassignment(s, n->car->cdr->car, pos, NOVAL);
+          gen_massignment(s, n->car->cdr->car, pos, NOVAL);
         }
         pos++;
         n = n->cdr;
@@ -1456,7 +1456,7 @@ lambda_body(codegen_scope *s, node *tree, int blk)
       pos = ma+oa+ra+1;
       while (n) {
         if (nint(n->car->car) == NODE_MASGN) {
-          gen_vmassignment(s, n->car->cdr->car, pos, NOVAL);
+          gen_massignment(s, n->car->cdr->car, pos, NOVAL);
         }
         pos++;
         n = n->cdr;
@@ -1930,7 +1930,7 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
     break;
 
   case NODE_MASGN:
-    gen_vmassignment(s, tree->car, sp, val);
+    gen_massignment(s, tree->car, sp, val);
     break;
 
   /* splat without assignment */
@@ -1945,7 +1945,7 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
 }
 
 static void
-gen_vmassignment(codegen_scope *s, node *tree, int rhs, int val)
+gen_massignment(codegen_scope *s, node *tree, int rhs, int val)
 {
   int n = 0, post = 0;
   node *t, *p;
@@ -2761,7 +2761,7 @@ codegen(codegen_scope *s, node *tree, int val)
       else {
         /* variable rhs */
         codegen(s, t, VAL);
-        gen_vmassignment(s, tree->car, rhs, val);
+        gen_massignment(s, tree->car, rhs, val);
         if (!val) {
           pop();
         }
