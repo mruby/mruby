@@ -262,10 +262,12 @@ sa2addrlist(mrb_state *mrb, const struct sockaddr *sa, socklen_t salen)
   return ary;
 }
 
+int mrb_io_fileno(mrb_state *mrb, mrb_value io);
+
 static int
 socket_fd(mrb_state *mrb, mrb_value sock)
 {
-  return (int)mrb_as_int(mrb, mrb_funcall_id(mrb, sock, MRB_SYM(fileno), 0));
+  return mrb_io_fileno(mrb, sock);
 }
 
 static int
