@@ -7418,12 +7418,10 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
           }
         }
         n2 = n2->cdr;
-        if (n2) {
-          if (n2->car) {
-            dump_prefix(n2, offset+2);
-            printf("post:\n");
-            dump_recur(mrb, n2->car, offset+3);
-          }
+        if (n2 && n2->car) {
+          dump_prefix(n2, offset+2);
+          printf("post:\n");
+          dump_recur(mrb, n2->car, offset+3);
         }
       }
     }
