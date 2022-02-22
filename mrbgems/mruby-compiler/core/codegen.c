@@ -2745,8 +2745,14 @@ codegen(codegen_scope *s, node *tree, int val)
           }
           if (t->cdr && t->cdr->car) {
             t = t->cdr->car;
-            while (n<len) {
-              gen_assignment(s, t->car, NULL, rhs+n, NOVAL);
+            while (t) {
+              if (n<len) {
+                gen_assignment(s, t->car, NULL, rhs+n, NOVAL);
+              }
+              else {
+                genop_1(s, OP_LOADNIL, cursp());
+                gen_assignment(s, t->car, NULL, cursp(), NOVAL);
+              }
               t = t->cdr;
               n++;
             }
