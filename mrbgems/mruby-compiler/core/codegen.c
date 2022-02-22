@@ -1904,8 +1904,12 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
       if (val) {
         gen_move(s, top, cursp(), 1);
       }
-      if (n < 14) {
+      if (n < 15) {
         n++;
+        if (n == 15) {
+          pop_n(14);
+          genop_2(s, OP_ARRAY, cursp(), 15);
+        }
       }
       else {
         pop();
