@@ -2739,7 +2739,12 @@ codegen(codegen_scope *s, node *tree, int val)
             else {
               rn = len - post - n;
             }
-            genop_3(s, OP_ARRAY2, cursp(), rhs+n, rn);
+            if (cursp() == rhs+n) {
+              genop_2(s, OP_ARRAY, cursp(), rn);
+            }
+            else {
+              genop_3(s, OP_ARRAY2, cursp(), rhs+n, rn);
+            }
             gen_assignment(s, t->car, NULL, cursp(), NOVAL);
             n += rn;
           }
