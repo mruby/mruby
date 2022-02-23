@@ -1,3 +1,5 @@
+require 'yaml'
+
 module MRuby
   module LoadGems
 
