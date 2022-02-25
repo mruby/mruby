@@ -601,10 +601,9 @@ rational_mul(mrb_state *mrb, mrb_value x)
 }
 
 mrb_value
-mrb_rational_div(mrb_state *mrb, mrb_value x)
+mrb_rational_div(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   struct mrb_rational *p1 = rational_ptr(mrb, x);
-  mrb_value y = mrb_get_arg1(mrb);
 
   switch (mrb_type(y)) {
   case MRB_TT_INTEGER:
@@ -642,7 +641,12 @@ mrb_rational_div(mrb_state *mrb, mrb_value x)
   }
 }
 
-#define rational_div mrb_rational_div
+mrb_value rational_div(mrb_state *mrb, mrb_value x)
+{
+  mrb_value y = mrb_get_arg1(mrb);
+  return mrb_rational_div(mrb, x, y);
+}
+
 mrb_int mrb_div_int(mrb_state *, mrb_int, mrb_int);
 
 #ifndef MRB_USE_COMPLEX
@@ -662,7 +666,7 @@ rational_int_div(mrb_state *mrb, mrb_value x)
   }
   switch (mrb_type(y)) {
   case MRB_TT_RATIONAL:
-    return rational_div(mrb, rational_new(mrb, a, 1));
+    return rational_div(mrb, rational_new(mrb, a, 1), y);
   default:
 #ifdef MRB_NO_FLOAT
   case MRB_TT_FLOAT:
@@ -690,7 +694,7 @@ rational_int_quo(mrb_state *mrb, mrb_value x)
   switch (mrb_type(y)) {
   case MRB_TT_RATIONAL:
     x = rational_new(mrb, a, 1);
-    return mrb_funcall_id(mrb, x, MRB_OPSYM(div), 1, y);
+    return mrb_rational_div(mrb, x, y);
   default:
 #ifdef MRB_NO_FLOAT
     mrb_raise(mrb, E_TYPE_ERROR, "non integer multiplication");
