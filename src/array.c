@@ -1009,7 +1009,7 @@ mrb_ary_aset(mrb_state *mrb, mrb_value self)
   return v3;
 }
 
-static mrb_value
+mrb_value
 mrb_ary_delete_at(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);

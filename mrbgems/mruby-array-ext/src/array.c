@@ -111,6 +111,8 @@ mrb_ary_values_at(mrb_state *mrb, mrb_value self)
   return mrb_get_values_at(mrb, self, RARRAY_LEN(self), argc, argv, ary_ref);
 }
 
+mrb_value mrb_ary_delete_at(mrb_state *mrb, mrb_value self);
+
 /*
  *  call-seq:
  *     ary.slice!(index)         -> obj or nil
@@ -146,21 +148,13 @@ mrb_ary_slice_bang(mrb_state *mrb, mrb_value self)
   if (mrb_get_argc(mrb) == 1) {
     mrb_value index = mrb_get_arg1(mrb);
 
-    switch (mrb_type(index)) {
-    case MRB_TT_RANGE:
+    if (mrb_type(index) == MRB_TT_RANGE) {
       if (mrb_range_beg_len(mrb, index, &i, &len, ARY_LEN(a), TRUE) == MRB_RANGE_OK) {
         goto delete_pos_len;
       }
-      else {
-        return mrb_nil_value();
-      }
-    case MRB_TT_INTEGER:
-      val = mrb_funcall_id(mrb, self, MRB_SYM(delete_at), 1, index);
-      return val;
-    default:
-      val = mrb_funcall_id(mrb, self, MRB_SYM(delete_at), 1, index);
-      return val;
+      return mrb_nil_value();
     }
+    return mrb_ary_delete_at(mrb, self);
   }
 
   mrb_get_args(mrb, "ii", &i, &len);
