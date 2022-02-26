@@ -606,7 +606,11 @@ mrb_check_hash_type(mrb_state *mrb, mrb_value hash)
 MRB_API mrb_value
 mrb_inspect(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_obj_as_string(mrb, mrb_funcall_id(mrb, obj, MRB_SYM(inspect), 0));
+  mrb_value v = mrb_funcall_id(mrb, obj, MRB_SYM(inspect), 0);
+  if (!mrb_string_p(v)) {
+    v = mrb_obj_as_string(mrb, obj);
+  }
+  return v;
 }
 
 MRB_API mrb_bool
