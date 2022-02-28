@@ -215,24 +215,6 @@ mrb_obj_class_m(mrb_state *mrb, mrb_value self)
   return mrb_obj_value(mrb_obj_class(mrb, self));
 }
 
-static mrb_value
-mrb_obj_extend(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value obj)
-{
-  mrb_int i;
-
-  if (argc == 0) {
-    mrb_argnum_error(mrb, argc, 1, -1);
-  }
-  for (i = 0; i < argc; i++) {
-    mrb_check_type(mrb, argv[i], MRB_TT_MODULE);
-  }
-  while (argc--) {
-    mrb_funcall_id(mrb, argv[argc], MRB_SYM(extend_object), 1, obj);
-    mrb_funcall_id(mrb, argv[argc], MRB_SYM(extended), 1, obj);
-  }
-  return obj;
-}
-
 /* 15.3.1.3.13 */
 /*
  *  call-seq:
@@ -265,7 +247,18 @@ mrb_obj_extend_m(mrb_state *mrb, mrb_value self)
   mrb_int argc;
 
   mrb_get_args(mrb, "*", &argv, &argc);
-  return mrb_obj_extend(mrb, argc, argv, self);
+
+  if (argc == 0) {
+    mrb_argnum_error(mrb, argc, 1, -1);
+  }
+  for (mrb_int i = 0; i < argc; i++) {
+    mrb_check_type(mrb, argv[i], MRB_TT_MODULE);
+  }
+  while (argc--) {
+    mrb_funcall_id(mrb, argv[argc], MRB_SYM(extend_object), 1, self);
+    mrb_funcall_id(mrb, argv[argc], MRB_SYM(extended), 1, self);
+  }
+  return self;
 }
 
 MRB_API mrb_value
