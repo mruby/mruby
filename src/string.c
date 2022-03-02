@@ -111,9 +111,6 @@ str_new_static(mrb_state *mrb, const char *p, mrb_int len)
   if (RSTR_EMBEDDABLE_P(len)) {
     return str_init_embed(mrb_obj_alloc_string(mrb), p, len);
   }
-  if (len >= MRB_SSIZE_MAX) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
-  }
   return str_init_nofree(mrb_obj_alloc_string(mrb), p, len);
 }
 
@@ -122,9 +119,6 @@ str_new(mrb_state *mrb, const char *p, mrb_int len)
 {
   if (RSTR_EMBEDDABLE_P(len)) {
     return str_init_embed(mrb_obj_alloc_string(mrb), p, len);
-  }
-  if (len >= MRB_SSIZE_MAX) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
   }
   if (p && mrb_ro_data_p(p)) {
     return str_init_nofree(mrb_obj_alloc_string(mrb), p, len);
