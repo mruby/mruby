@@ -6933,7 +6933,7 @@ mrb_load_detect_file_cxt(mrb_state *mrb, FILE *fp, mrbc_context *c)
     return mrb_load_exec(mrb, mrb_parse_file_continue(mrb, fp, leading.b, bufsize, c), c);
   }
   else {
-    size_t binsize;
+    mrb_int binsize;
     uint8_t *bin;
     mrb_value bin_obj = mrb_nil_value(); /* temporary string object */
     mrb_value result;

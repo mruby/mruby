@@ -2729,7 +2729,7 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_STRING, BB) {
-      size_t len;
+      mrb_int len;
 
       mrb_assert((pool[b].tt&IREP_TT_NFLAG)==0);
       len = pool[b].tt >> 2;

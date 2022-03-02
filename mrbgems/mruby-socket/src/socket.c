@@ -626,7 +626,7 @@ mrb_socket_accept2(mrb_state *mrb, mrb_value klass)
 
   mrb_get_args(mrb, "i", &s0);
   socklen = sizeof(struct sockaddr_storage);
-  sastr = mrb_str_new_capa(mrb, socklen);
+  sastr = mrb_str_new_capa(mrb, (mrb_int)socklen);
   s1 = (int)accept(s0, (struct sockaddr *)RSTRING_PTR(sastr), &socklen);
   if (s1 == -1) {
     mrb_sys_fail(mrb, "accept");

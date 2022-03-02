@@ -3344,7 +3344,7 @@ codegen(codegen_scope *s, node *tree, int val)
   case NODE_STR:
     if (val) {
       char *p = (char*)tree->car;
-      size_t len = (intptr_t)tree->cdr;
+      mrb_int len = nint(tree->cdr);
       int ai = mrb_gc_arena_save(s->mrb);
       int off = new_lit(s, mrb_str_new(s->mrb, p, len));
 
@@ -3429,7 +3429,7 @@ codegen(codegen_scope *s, node *tree, int val)
   case NODE_XSTR:
     {
       char *p = (char*)tree->car;
-      size_t len = (intptr_t)tree->cdr;
+      mrb_int len = nint(tree->cdr);
       int ai = mrb_gc_arena_save(s->mrb);
       int off = new_lit(s, mrb_str_new(s->mrb, p, len));
       int sym;

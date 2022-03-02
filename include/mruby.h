@@ -1180,13 +1180,13 @@ MRB_API void mrb_free(mrb_state*, void*);
  */
 #define MRB_OBJ_ALLOC(mrb, tt, klass) ((MRB_VTYPE_TYPEOF(tt)*)mrb_obj_alloc(mrb, tt, klass))
 
-MRB_API mrb_value mrb_str_new(mrb_state *mrb, const char *p, size_t len);
+MRB_API mrb_value mrb_str_new(mrb_state *mrb, const char *p, mrb_int len);
 
 /**
  * Turns a C string into a Ruby string value.
  */
 MRB_API mrb_value mrb_str_new_cstr(mrb_state*, const char*);
-MRB_API mrb_value mrb_str_new_static(mrb_state *mrb, const char *p, size_t len);
+MRB_API mrb_value mrb_str_new_static(mrb_state *mrb, const char *p, mrb_int len);
 #define mrb_str_new_lit(mrb, lit) mrb_str_new_static(mrb, (lit), mrb_strlen_lit(lit))
 
 MRB_API mrb_value mrb_obj_freeze(mrb_state*, mrb_value);

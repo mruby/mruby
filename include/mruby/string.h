@@ -324,7 +324,7 @@ MRB_API mrb_value mrb_str_resize(mrb_state *mrb, mrb_value str, mrb_int len);
  */
 MRB_API mrb_value mrb_str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len);
 
-MRB_API mrb_value mrb_str_new_capa(mrb_state *mrb, size_t capa);
+MRB_API mrb_value mrb_str_new_capa(mrb_state *mrb, mrb_int capa);
 #define mrb_str_buf_new(mrb, capa) mrb_str_new_capa(mrb, (capa))
 
 /* NULL terminated C string from mrb_value */
