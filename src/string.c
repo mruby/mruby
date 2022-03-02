@@ -102,9 +102,7 @@ str_init_modifiable(mrb_state *mrb, struct RString *s, const char *p, mrb_int le
   if (RSTR_EMBEDDABLE_P(len)) {
     return str_init_embed(s, p, len);
   }
-  else {
-    return str_init_normal(mrb, s, p, len);
-  }
+  return str_init_normal(mrb, s, p, len);
 }
 
 static struct RString*
