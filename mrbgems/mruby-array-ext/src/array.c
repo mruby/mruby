@@ -139,7 +139,6 @@ mrb_ary_slice_bang(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
   mrb_int i, j, k, len, alen;
-  mrb_value val;
   mrb_value *ptr;
   mrb_value ary;
 
