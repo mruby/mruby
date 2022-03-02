@@ -827,12 +827,7 @@ mrb_str_to_cstr(mrb_state *mrb, mrb_value str0)
   const char *p = RSTRING_PTR(str0);
   mrb_int len = RSTRING_LEN(str0);
   check_null_byte(mrb, str0);
-  if (RSTR_EMBEDDABLE_P(len)) {
-    s = str_init_embed(mrb_obj_alloc_string(mrb), p, len);
-  }
-  else {
-    s = str_init_normal(mrb, mrb_obj_alloc_string(mrb), p, len);
-  }
+  s = str_init_modifiable(mrb, mrb_obj_alloc_string(mrb), p, len);
   return RSTR_PTR(s);
 }
 
