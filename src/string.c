@@ -928,11 +928,9 @@ mrb_str_times(mrb_state *mrb, mrb_value self)
   if (times < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "negative argument");
   }
-  if (times && MRB_SSIZE_MAX / times < RSTRING_LEN(self)) {
+  if (mrb_int_mul_overflow(RSTRING_LEN(self), times, &len)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "argument too big");
   }
-
-  len = RSTRING_LEN(self)*times;
   str2 = str_new(mrb, 0, len);
   p = RSTR_PTR(str2);
   if (len > 0) {
