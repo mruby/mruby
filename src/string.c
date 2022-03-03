@@ -2632,7 +2632,7 @@ mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
 {
   struct RString *s = mrb_str_ptr(str);
   mrb_int capa;
-  size_t total;
+  mrb_int total;
   ptrdiff_t off = -1;
 
   if (len == 0) return str;
