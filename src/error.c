@@ -59,7 +59,7 @@ mrb_exc_new_str(mrb_state *mrb, struct RClass* c, mrb_value str)
 }
 
 MRB_API mrb_value
-mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, size_t len)
+mrb_exc_new(mrb_state *mrb, struct RClass *c, const char *ptr, mrb_int len)
 {
   return mrb_exc_new_str(mrb, c, mrb_str_new(mrb, ptr, len));
 }
