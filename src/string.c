@@ -1210,7 +1210,7 @@ str_replace_partial(mrb_state *mrb, mrb_value src, mrb_int pos, mrb_int end, mrb
   }
 
   replen = (mrb_nil_p(rep) ? 0 : RSTRING_LEN(rep));
-  if (mrb_int_add_overflow(replen, len - (end - pos), &newlen) || newlen >= MRB_SSIZE_MAX) {
+  if (mrb_int_add_overflow(replen, len - (end - pos), &newlen)) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "string size too big");
   }
 
@@ -2648,7 +2648,6 @@ mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
       ptr = RSTR_PTR(s) + off;
   }
   memcpy(RSTR_PTR(s) + RSTR_LEN(s), ptr, len);
-  mrb_assert_int_fit(size_t, total, mrb_ssize, MRB_SSIZE_MAX);
   RSTR_SET_LEN(s, total);
   RSTR_PTR(s)[total] = '\0';   /* sentinel */
   return str;
