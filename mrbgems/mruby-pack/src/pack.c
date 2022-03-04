@@ -1525,7 +1525,7 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
       break;
     }
 
-    while (count != 0) {
+    while (count != 0 && srcidx < srclen) {
       if (srclen - srcidx < size) {
         while (count-- > 0) {
           mrb_ary_push(mrb, result, mrb_nil_value());
