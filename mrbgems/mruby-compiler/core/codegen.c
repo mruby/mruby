@@ -1689,7 +1689,7 @@ static void
 gen_call(codegen_scope *s, node *tree, int val, int safe)
 {
   mrb_sym sym = nsym(tree->cdr->car);
-  int skip = 0, n = 0, nk = 0, noop = 0, noself = 0, blk = 0, sp_save = cursp();
+  int skip = 0, n = 0, nk = 0, noop = no_optimize(s), noself = 0, blk = 0, sp_save = cursp();
 
   if (!tree->car) {
     noself = noop = 1;
