@@ -414,6 +414,7 @@ unpack_BER(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, 
   const unsigned char *p = src;
   const unsigned char *e = p + srclen;
 
+  if (srclen == 0) return 0;
   for (i=1; p<e; p++,i++) {
     if (n > (MRB_INT_MAX>>7)) {
       mrb_raise(mrb, E_RANGE_ERROR, "BER unpacking 'w' overflow");
