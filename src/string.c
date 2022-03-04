@@ -129,29 +129,20 @@ str_new(mrb_state *mrb, const char *p, mrb_int len)
 MRB_API mrb_value
 mrb_str_new_capa(mrb_state *mrb, mrb_int capa)
 {
-  struct RString *s;
+  struct RString *s = mrb_obj_alloc_string(mrb);
 
   if (RSTR_EMBEDDABLE_P(capa)) {
-    s = str_init_embed(mrb_obj_alloc_string(mrb), NULL, 0);
-  }
-  else if (capa >= MRB_SSIZE_MAX) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "string capacity size too big");
-    /* not reached */
-    s = NULL;
+    s = str_init_embed(s, NULL, 0);
   }
   else {
-    s = str_init_normal_capa(mrb, mrb_obj_alloc_string(mrb), NULL, 0, capa);
+    s = str_init_normal_capa(mrb, s, NULL, 0, capa);
   }
-
   return mrb_obj_value(s);
 }
 
 static void
 resize_capa(mrb_state *mrb, struct RString *s, mrb_int capacity)
 {
-#if SIZE_MAX > MRB_SSIZE_MAX
-    mrb_assert(capacity < MRB_SSIZE_MAX);
-#endif
   if (RSTR_EMBED_P(s)) {
     if (!RSTR_EMBEDDABLE_P(capacity)) {
       str_init_normal_capa(mrb, s, RSTR_EMBED_PTR(s), RSTR_EMBED_LEN(s), capacity);
@@ -2642,23 +2633,14 @@ mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
   }
 
   capa = RSTR_CAPA(s);
-  total = RSTR_LEN(s)+len;
-  if (total >= MRB_SSIZE_MAX) {
+  if (mrb_int_add_overflow(RSTR_LEN(s), len, &total)) {
   size_error:
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
   }
   if (capa <= total) {
     if (capa == 0) capa = 1;
     while (capa <= total) {
-      if (capa <= MRB_SSIZE_MAX / 2) {
-        capa *= 2;
-      }
-      else {
-        capa = total+1;
-      }
-    }
-    if (capa <= total || capa > MRB_SSIZE_MAX) {
-      goto size_error;
+      if (mrb_int_mul_overflow(capa, 2, &capa)) goto size_error;
     }
     resize_capa(mrb, s, capa);
   }
