@@ -18,6 +18,8 @@ def plot_file
 end
 
 def plot
+  raise "no build target to benchmark against" if $dat_files.empty?
+
   opts_file = "#{MRUBY_ROOT}/benchmark/plot.gpl"
   opts = File.read(opts_file).each_line.to_a.map(&:strip).join(';')
 
