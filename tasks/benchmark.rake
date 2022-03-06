@@ -43,6 +43,8 @@ def plot
       p.puts "e"
     end
   end
+
+  puts "Benchmark results output to #{plot_file}"
 end
 
 
