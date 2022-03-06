@@ -51,7 +51,7 @@ end
 
 
 MRuby.each_target do |target|
-  next if target.name == 'host' || target.internal?
+  next if !target.benchmark_enabled? || target.internal?
   mruby_bin = "#{target.build_dir}/bin/mruby"
 
   bm_files.each do |bm_file|

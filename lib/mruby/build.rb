@@ -123,6 +123,7 @@ module MRuby
         @enable_test = false
         @enable_lock = true
         @enable_presym = true
+        @enable_benchmark = true
         @mrbcfile_external = false
         @internal = internal
         @toolchains = []
@@ -230,6 +231,14 @@ module MRuby
       }
       linker.command = cxx.command if toolchains.find { |v| v == 'gcc' }
       @cxx_abi_enabled = true
+    end
+
+    def benchmark_enabled?
+      @enable_benchmark
+    end
+
+    def disable_benchmark
+      @enable_benchmark = false
     end
 
     def compile_as_cxx(src, cxx_src = nil, obj = nil, includes = [])
