@@ -218,10 +218,9 @@ str_modify_keep_ascii(mrb_state *mrb, struct RString *s)
 }
 
 static void
-check_null_byte(mrb_state *mrb, mrb_value str)
+check_null_byte(mrb_state *mrb, struct RString *str)
 {
-  mrb_ensure_string_type(mrb, str);
-  if (memchr(RSTRING_PTR(str), '\0', RSTRING_LEN(str))) {
+  if (memchr(RSTR_PTR(str), '\0', RSTR_LEN(str))) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string contains null byte");
   }
 }
@@ -700,15 +699,11 @@ str_rindex(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
 MRB_API mrb_int
 mrb_str_strlen(mrb_state *mrb, struct RString *s)
 {
-  mrb_int i, max = RSTR_LEN(s);
+  mrb_int max = RSTR_LEN(s);
   char *p = RSTR_PTR(s);
 
   if (!p) return 0;
-  for (i=0; i<max; i++) {
-    if (p[i] == '\0') {
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "string contains null byte");
-    }
-  }
+  check_null_byte(mrb, s);
   return max;
 }
 
@@ -817,7 +812,7 @@ mrb_str_to_cstr(mrb_state *mrb, mrb_value str0)
 
   const char *p = RSTRING_PTR(str0);
   mrb_int len = RSTRING_LEN(str0);
-  check_null_byte(mrb, str0);
+  check_null_byte(mrb, RSTRING(str0));
   s = str_init_modifiable(mrb, mrb_obj_alloc_string(mrb), p, len);
   return RSTR_PTR(s);
 }
@@ -2353,8 +2348,9 @@ mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr)
   const char *p;
   mrb_int len;
 
-  check_null_byte(mrb, *ptr);
+  mrb_ensure_string_type(mrb, *ptr);
   ps = mrb_str_ptr(*ptr);
+  check_null_byte(mrb, ps);
   p = RSTR_PTR(ps);
   len = RSTR_LEN(ps);
   if (p[len] == '\0') {
