@@ -215,52 +215,6 @@ mrb_obj_class_m(mrb_state *mrb, mrb_value self)
   return mrb_obj_value(mrb_obj_class(mrb, self));
 }
 
-/* 15.3.1.3.13 */
-/*
- *  call-seq:
- *     obj.extend(module, ...)    -> obj
- *
- *  Adds to _obj_ the instance methods from each module given as a
- *  parameter.
- *
- *     module Mod
- *       def hello
- *         "Hello from Mod.\n"
- *       end
- *     end
- *
- *     class Klass
- *       def hello
- *         "Hello from Klass.\n"
- *       end
- *     end
- *
- *     k = Klass.new
- *     k.hello         #=> "Hello from Klass.\n"
- *     k.extend(Mod)   #=> #<Klass:0x401b3bc8>
- *     k.hello         #=> "Hello from Mod.\n"
- */
-static mrb_value
-mrb_obj_extend_m(mrb_state *mrb, mrb_value self)
-{
-  const mrb_value *argv;
-  mrb_int argc;
-
-  mrb_get_args(mrb, "*", &argv, &argc);
-
-  if (argc == 0) {
-    mrb_argnum_error(mrb, argc, 1, -1);
-  }
-  for (mrb_int i = 0; i < argc; i++) {
-    mrb_check_type(mrb, argv[i], MRB_TT_MODULE);
-  }
-  while (argc--) {
-    mrb_funcall_id(mrb, argv[argc], MRB_SYM(extend_object), 1, self);
-    mrb_funcall_id(mrb, argv[argc], MRB_SYM(extended), 1, self);
-  }
-  return self;
-}
-
 MRB_API mrb_value
 mrb_obj_freeze(mrb_state *mrb, mrb_value self)
 {
@@ -633,7 +587,6 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "clone",                      mrb_obj_clone,                   MRB_ARGS_NONE());    /* 15.3.1.3.8  */
   mrb_define_method(mrb, krn, "dup",                        mrb_obj_dup,                     MRB_ARGS_NONE());    /* 15.3.1.3.9  */
   mrb_define_method(mrb, krn, "eql?",                       mrb_obj_equal_m,                 MRB_ARGS_REQ(1));    /* 15.3.1.3.10 */
-  mrb_define_method(mrb, krn, "extend",                     mrb_obj_extend_m,                MRB_ARGS_ANY());     /* 15.3.1.3.13 */
   mrb_define_method(mrb, krn, "freeze",                     mrb_obj_freeze,                  MRB_ARGS_NONE());
   mrb_define_method(mrb, krn, "frozen?",                    mrb_obj_frozen,                  MRB_ARGS_NONE());
   mrb_define_method(mrb, krn, "hash",                       mrb_obj_hash,                    MRB_ARGS_NONE());    /* 15.3.1.3.15 */
