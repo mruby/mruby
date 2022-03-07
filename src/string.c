@@ -2304,7 +2304,7 @@ mrb_str_len_to_integer(mrb_state *mrb, const char *str, size_t len, mrb_int base
       }
     }
     if (badcheck && *p == '\0') {
-      goto nullbyte;
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "string contains null byte");
     }
     c = conv_digit(*p);
     if (c < 0 || c >= base) {
@@ -2331,9 +2331,6 @@ mrb_str_len_to_integer(mrb_state *mrb, const char *str, size_t len, mrb_int base
   }
 
   return mrb_int_value(mrb, sign ? val : -val);
- nullbyte:
-  mrb_raise(mrb, E_ARGUMENT_ERROR, "string contains null byte");
-  /* not reached */
  bad:
   mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid string for number(%!l)", str, pend-str);
   /* not reached */
