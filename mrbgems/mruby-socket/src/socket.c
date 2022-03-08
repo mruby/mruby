@@ -518,9 +518,8 @@ mrb_ipsocket_ntop(mrb_state *mrb, mrb_value klass)
   char buf[50];
 
   mrb_get_args(mrb, "is", &af, &addr, &n);
-  if ((af == AF_INET && n != 4) || (af == AF_INET6 && n != 16))
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid address");
-  if (inet_ntop((int)af, addr, buf, sizeof(buf)) == NULL)
+  if ((af == AF_INET && n != 4) || (af == AF_INET6 && n != 16) ||
+      inet_ntop((int)af, addr, buf, sizeof(buf)) == NULL)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid address");
   return mrb_str_new_cstr(mrb, buf);
 }
