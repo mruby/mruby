@@ -716,7 +716,7 @@ mrb_ary_set(mrb_state *mrb, mrb_value ary, mrb_int n, mrb_value val)
       mrb_raisef(mrb, E_INDEX_ERROR, "index %i out of array", n - len);
     }
   }
-  if (n == MRB_INT_MAX) {
+  if (n >= ARY_MAX_SIZE) {
     mrb_raise(mrb, E_INDEX_ERROR, "index too big");
   }
   if (len <= n) {
