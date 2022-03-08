@@ -621,6 +621,7 @@ utf8_to_uv(mrb_state *mrb, const char *p, long *lenp)
   }
   if (!(uv & 0x40)) {
     *lenp = 1;
+  malformed:
     mrb_raise(mrb, E_ARGUMENT_ERROR, "malformed UTF-8 character");
   }
 
@@ -631,7 +632,7 @@ utf8_to_uv(mrb_state *mrb, const char *p, long *lenp)
   else if (!(uv & 0x02)) { n = 6; uv &= 0x01; }
   else {
     *lenp = 1;
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "malformed UTF-8 character");
+    goto malformed;
   }
   if (n > *lenp) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "malformed UTF-8 character (expected %d bytes, given %d bytes)",
@@ -643,7 +644,7 @@ utf8_to_uv(mrb_state *mrb, const char *p, long *lenp)
       c = *p++ & 0xff;
       if ((c & 0xc0) != 0x80) {
         *lenp -= n + 1;
-        mrb_raise(mrb, E_ARGUMENT_ERROR, "malformed UTF-8 character");
+        goto malformed;
       }
       else {
         c &= 0x3f;
