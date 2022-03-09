@@ -208,14 +208,21 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
     if (!c->ci->proc) {
       mrb_raise(mrb, E_FIBER_ERROR, "double resume (current)");
     }
-    mrb_stack_extend(mrb, len+2); /* for receiver and (optional) block */
-    b = c->stbase+1;
-    e = b + len;
-    while (b<e) {
-      *b++ = *a++;
-    }
     if (vmexec) {
       c->ci--;                    /* pop dummy callinfo */
+    }
+    if (len >= 15) {
+      mrb_stack_extend(mrb, 3);   /* for receiver, args and (optional) block */
+      c->stbase[1] = mrb_ary_new_from_values(mrb, len, a);
+      len = 15;
+    }
+    else {
+      mrb_stack_extend(mrb, len+2); /* for receiver and (optional) block */
+      b = c->stbase+1;
+      e = b + len;
+      while (b<e) {
+        *b++ = *a++;
+      }
     }
     c->cibase->n = len;
     value = c->stbase[0] = MRB_PROC_ENV(c->cibase->proc)->stack[0];
