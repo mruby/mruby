@@ -736,6 +736,17 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
   return exec_irep(mrb, self, MRB_METHOD_PROC(m));
 }
 
+static void
+check_block(mrb_state *mrb, mrb_value blk)
+{
+  if (mrb_nil_p(blk)) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
+  }
+  if (!mrb_proc_p(blk)) {
+    mrb_raise(mrb, E_TYPE_ERROR, "not a block");
+  }
+}
+
 static mrb_value
 eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
 {
@@ -743,9 +754,7 @@ eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
   mrb_callinfo *ci;
   int nregs;
 
-  if (mrb_nil_p(blk)) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
-  }
+  check_block(mrb, blk);
   ci = mrb->c->ci;
   if (ci->cci == CINFO_DIRECT) {
     return mrb_yield_with_class(mrb, blk, 1, &self, self, c);
@@ -836,9 +845,7 @@ mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value 
   mrb_value val;
   mrb_int n;
 
-  if (mrb_nil_p(b)) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
-  }
+  check_block(mrb, b);
   ci = mrb->c->ci;
   n = mrb_ci_nregs(ci);
   p = mrb_proc_ptr(b);
@@ -896,13 +903,7 @@ mrb_yield_cont(mrb_state *mrb, mrb_value b, mrb_value self, mrb_int argc, const 
   struct RProc *p;
   mrb_callinfo *ci;
 
-  if (mrb_nil_p(b)) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
-  }
-  if (!mrb_proc_p(b)) {
-    mrb_raise(mrb, E_TYPE_ERROR, "not a block");
-  }
-
+  check_block(mrb, b);
   p = mrb_proc_ptr(b);
   ci = mrb->c->ci;
 
