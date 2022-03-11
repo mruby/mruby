@@ -23,7 +23,7 @@ mrb_value mrb_rational_sub(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_rational_mul(mrb_state *mrb, mrb_value x, mrb_value y);
 
 MRB_API mrb_value
-mrb_num_plus(mrb_state *mrb, mrb_value x, mrb_value y)
+mrb_num_add(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   if (mrb_integer_p(x)) {
     return mrb_int_add(mrb, x, y);
@@ -47,7 +47,7 @@ mrb_num_plus(mrb_state *mrb, mrb_value x, mrb_value y)
 }
 
 MRB_API mrb_value
-mrb_num_minus(mrb_state *mrb, mrb_value x, mrb_value y)
+mrb_num_sub(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   if (mrb_integer_p(x)) {
     return mrb_int_sub(mrb, x, y);
