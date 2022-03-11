@@ -168,10 +168,9 @@ complex_eq(mrb_state *mrb, mrb_value x)
   return mrb_bool_value(mrb_complex_eq(mrb, x, y));
 }
 
-static mrb_value
-complex_add(mrb_state *mrb, mrb_value x)
+mrb_value
+mrb_complex_add(mrb_state *mrb, mrb_value x, mrb_value y)
 {
-  mrb_value y = mrb_get_arg1(mrb);
   struct mrb_complex *p1 = complex_ptr(mrb, x);
 
   switch (mrb_type(y)) {
@@ -190,9 +189,15 @@ complex_add(mrb_state *mrb, mrb_value x)
 }
 
 static mrb_value
-complex_sub(mrb_state *mrb, mrb_value x)
+complex_add(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
+  return mrb_complex_add(mrb, x, y);
+}
+
+mrb_value
+mrb_complex_sub(mrb_state *mrb, mrb_value x, mrb_value y)
+{
   struct mrb_complex *p1 = complex_ptr(mrb, x);
 
   switch (mrb_type(y)) {
@@ -211,9 +216,15 @@ complex_sub(mrb_state *mrb, mrb_value x)
 }
 
 static mrb_value
-complex_mul(mrb_state *mrb, mrb_value x)
+complex_sub(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
+  return mrb_complex_sub(mrb, x, y);
+}
+
+mrb_value
+mrb_complex_mul(mrb_state *mrb, mrb_value x, mrb_value y)
+{
   struct mrb_complex *p1 = complex_ptr(mrb, x);
 
   switch (mrb_type(y)) {
@@ -230,6 +241,13 @@ complex_mul(mrb_state *mrb, mrb_value x)
       return mrb_complex_new(mrb, p1->real*z, p1->imaginary*z);
     }
   }
+}
+
+static mrb_value
+complex_mul(mrb_state *mrb, mrb_value x)
+{
+  mrb_value y = mrb_get_arg1(mrb);
+  return mrb_complex_mul(mrb, x, y);
 }
 
 /* Arithmetic on (significand, exponent) pairs avoids premature overflow in
@@ -272,11 +290,10 @@ div_pair(struct float_pair *q, struct float_pair const *a,
   q->x = a->x - b->x;
 }
 
-static mrb_value
-complex_div(mrb_state *mrb, mrb_value self)
+mrb_value
+mrb_complex_div(mrb_state *mrb, mrb_value self, mrb_value rhs)
 {
   struct mrb_complex *a, *b;
-  mrb_value rhs = mrb_get_arg1(mrb);
 
   a = complex_ptr(mrb, self);
   if (mrb_type(rhs) != MRB_TT_COMPLEX) {
@@ -322,6 +339,13 @@ complex_div(mrb_state *mrb, mrb_value self)
 
   /* assemble the result */
   return complex_new(mrb, F(ldexp)(zr.s, zr.x), F(ldexp)(zi.s, zi.x));
+}
+
+static mrb_value
+complex_div(mrb_state *mrb, mrb_value x)
+{
+  mrb_value y = mrb_get_arg1(mrb);
+  return mrb_complex_div(mrb, x, y);
 }
 
 mrb_int mrb_div_int(mrb_state *mrb, mrb_int x, mrb_int y);

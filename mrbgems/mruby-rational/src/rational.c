@@ -479,11 +479,10 @@ rational_minus(mrb_state *mrb, mrb_value x)
   return rational_new(mrb, -n, p->denominator);
 }
 
-static mrb_value
-rational_add(mrb_state *mrb, mrb_value x)
+mrb_value
+mrb_rational_add(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   struct mrb_rational *p1 = rational_ptr(mrb, x);
-  mrb_value y = mrb_get_arg1(mrb);
 
   switch (mrb_type(y)) {
   case MRB_TT_INTEGER:
@@ -519,10 +518,16 @@ rational_add(mrb_state *mrb, mrb_value x)
 }
 
 static mrb_value
-rational_sub(mrb_state *mrb, mrb_value x)
+rational_add(mrb_state *mrb, mrb_value x)
+{
+  mrb_value y = mrb_get_arg1(mrb);
+  return mrb_rational_add(mrb, x, y);
+}
+
+mrb_value
+mrb_rational_sub(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   struct mrb_rational *p1 = rational_ptr(mrb, x);
-  mrb_value y = mrb_get_arg1(mrb);
 
   switch (mrb_type(y)) {
   case MRB_TT_INTEGER:
@@ -565,10 +570,16 @@ rational_sub(mrb_state *mrb, mrb_value x)
 }
 
 static mrb_value
-rational_mul(mrb_state *mrb, mrb_value x)
+rational_sub(mrb_state *mrb, mrb_value x)
+{
+  mrb_value y = mrb_get_arg1(mrb);
+  return mrb_rational_sub(mrb, x, y);
+}
+
+mrb_value
+mrb_rational_mul(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   struct mrb_rational *p1 = rational_ptr(mrb, x);
-  mrb_value y = mrb_get_arg1(mrb);
 
   switch (mrb_type(y)) {
   case MRB_TT_INTEGER:
@@ -598,6 +609,13 @@ rational_mul(mrb_state *mrb, mrb_value x)
   default:
     return mrb_funcall_id(mrb, y, MRB_OPSYM(mul), 1, x);
   }
+}
+
+static mrb_value
+rational_mul(mrb_state *mrb, mrb_value x)
+{
+  mrb_value y = mrb_get_arg1(mrb);
+  return mrb_rational_mul(mrb, x, y);
 }
 
 mrb_value
