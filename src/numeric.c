@@ -991,8 +991,8 @@ int_to_i(mrb_state *mrb, mrb_value num)
   return num;
 }
 
-static mrb_value
-fixnum_mul(mrb_state *mrb, mrb_value x, mrb_value y)
+mrb_value
+mrb_int_mul(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mrb_int a;
 
@@ -1026,7 +1026,7 @@ MRB_API mrb_value
 mrb_num_mul(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   if (mrb_integer_p(x)) {
-    return fixnum_mul(mrb, x, y);
+    return mrb_int_mul(mrb, x, y);
   }
 #ifndef MRB_NO_FLOAT
   if (mrb_float_p(x)) {
@@ -1061,7 +1061,7 @@ int_mul(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
 
-  return fixnum_mul(mrb, x, y);
+  return mrb_int_mul(mrb, x, y);
 }
 
 static void
@@ -1432,8 +1432,8 @@ mrb_float_to_integer(mrb_state *mrb, mrb_value x)
 }
 #endif
 
-static mrb_value
-int_plus(mrb_state *mrb, mrb_value x, mrb_value y)
+mrb_value
+mrb_int_add(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mrb_int a;
 
@@ -1467,7 +1467,7 @@ MRB_API mrb_value
 mrb_num_plus(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   if (mrb_integer_p(x)) {
-    return int_plus(mrb, x, y);
+    return mrb_int_add(mrb, x, y);
   }
 #ifndef MRB_NO_FLOAT
   if (mrb_float_p(x)) {
@@ -1501,11 +1501,11 @@ int_add(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
 
-  return int_plus(mrb, self, other);
+  return mrb_int_add(mrb, self, other);
 }
 
-static mrb_value
-int_minus(mrb_state *mrb, mrb_value x, mrb_value y)
+mrb_value
+mrb_int_sub(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mrb_int a;
 
@@ -1539,7 +1539,7 @@ MRB_API mrb_value
 mrb_num_minus(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   if (mrb_integer_p(x)) {
-    return int_minus(mrb, x, y);
+    return mrb_int_sub(mrb, x, y);
   }
 #ifndef MRB_NO_FLOAT
   if (mrb_float_p(x)) {
@@ -1574,7 +1574,7 @@ int_sub(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
 
-  return int_minus(mrb, self, other);
+  return mrb_int_sub(mrb, self, other);
 }
 
 MRB_API char*
