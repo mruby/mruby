@@ -1022,30 +1022,6 @@ mrb_int_mul(mrb_state *mrb, mrb_value x, mrb_value y)
   }
 }
 
-MRB_API mrb_value
-mrb_num_mul(mrb_state *mrb, mrb_value x, mrb_value y)
-{
-  if (mrb_integer_p(x)) {
-    return mrb_int_mul(mrb, x, y);
-  }
-#ifndef MRB_NO_FLOAT
-  if (mrb_float_p(x)) {
-    return mrb_float_value(mrb, mrb_float(x) * mrb_as_float(mrb, y));
-  }
-#endif
-#if defined(MRB_USE_RATIONAL) || defined(MRB_USE_COMPLEX)
-  switch (mrb_type(x)) {
-  case MRB_TT_RATIONAL:
-  case MRB_TT_COMPLEX:
-    return mrb_funcall_id(mrb, x, MRB_OPSYM(mul), 1, y);
-  default:
-    break;
-  }
-#endif
-  mrb_raise(mrb, E_TYPE_ERROR, "no number multiply");
-  return mrb_nil_value();       /* not reached */
-}
-
 /* 15.2.8.3.3  */
 /*
  * call-seq:
@@ -1463,30 +1439,6 @@ mrb_int_add(mrb_state *mrb, mrb_value x, mrb_value y)
   }
 }
 
-MRB_API mrb_value
-mrb_num_plus(mrb_state *mrb, mrb_value x, mrb_value y)
-{
-  if (mrb_integer_p(x)) {
-    return mrb_int_add(mrb, x, y);
-  }
-#ifndef MRB_NO_FLOAT
-  if (mrb_float_p(x)) {
-    return mrb_float_value(mrb, mrb_float(x) + mrb_as_float(mrb, y));
-  }
-#endif
-#if defined(MRB_USE_RATIONAL) || defined(MRB_USE_COMPLEX)
-  switch (mrb_type(x)) {
-  case MRB_TT_RATIONAL:
-  case MRB_TT_COMPLEX:
-    return mrb_funcall_id(mrb, x, MRB_OPSYM(add), 1, y);
-  default:
-    break;
-  }
-#endif
-  mrb_raise(mrb, E_TYPE_ERROR, "no number addition");
-  return mrb_nil_value();       /* not reached */
-}
-
 /* 15.2.8.3.1  */
 /*
  * call-seq:
@@ -1533,30 +1485,6 @@ mrb_int_sub(mrb_state *mrb, mrb_value x, mrb_value y)
     return mrb_float_value(mrb, (mrb_float)a - mrb_as_float(mrb, y));
 #endif
   }
-}
-
-MRB_API mrb_value
-mrb_num_minus(mrb_state *mrb, mrb_value x, mrb_value y)
-{
-  if (mrb_integer_p(x)) {
-    return mrb_int_sub(mrb, x, y);
-  }
-#ifndef MRB_NO_FLOAT
-  if (mrb_float_p(x)) {
-    return mrb_float_value(mrb, mrb_float(x) - mrb_as_float(mrb, y));
-  }
-#endif
-#if defined(MRB_USE_RATIONAL) || defined(MRB_USE_COMPLEX)
-  switch (mrb_type(x)) {
-  case MRB_TT_RATIONAL:
-  case MRB_TT_COMPLEX:
-    return mrb_funcall_id(mrb, x, MRB_OPSYM(sub), 1, y);
-  default:
-    break;
-  }
-#endif
-  mrb_raise(mrb, E_TYPE_ERROR, "no number subtraction");
-  return mrb_nil_value();       /* not reached */
 }
 
 /* 15.2.8.3.2  */
