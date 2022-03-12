@@ -6941,7 +6941,7 @@ mrb_load_detect_file_cxt(mrb_state *mrb, FILE *fp, mrbc_context *c)
     binsize = bin_to_uint32(leading.h.binary_size);
     bin_obj = mrb_str_new(mrb, NULL, binsize);
     bin = (uint8_t *)RSTRING_PTR(bin_obj);
-    if (binsize > bufsize)  {
+    if ((size_t)binsize > bufsize)  {
       memcpy(bin, leading.b, bufsize);
       if (fread(bin + bufsize, binsize - bufsize, 1, fp) == 0) {
         binsize = bufsize;
