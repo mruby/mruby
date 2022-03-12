@@ -35,9 +35,14 @@ mrb_num_add(mrb_state *mrb, mrb_value x, mrb_value y)
 #endif
 #if defined(MRB_USE_RATIONAL) || defined(MRB_USE_COMPLEX)
   switch (mrb_type(x)) {
+#if defined(MRB_USE_RATIONAL)
   case MRB_TT_RATIONAL:
+    return mrb_rational_add(mrb, x, y);
+#endif
+#if defined(MRB_USE_COMPLEX)
   case MRB_TT_COMPLEX:
-    return mrb_funcall_id(mrb, x, MRB_OPSYM(add), 1, y);
+    return mrb_complex_add(mrb, x, y);
+#endif
   default:
     break;
   }
@@ -59,9 +64,14 @@ mrb_num_sub(mrb_state *mrb, mrb_value x, mrb_value y)
 #endif
 #if defined(MRB_USE_RATIONAL) || defined(MRB_USE_COMPLEX)
   switch (mrb_type(x)) {
+#if defined(MRB_USE_RATIONAL)
   case MRB_TT_RATIONAL:
+    return mrb_rational_sub(mrb, x, y);
+#endif
+#if defined(MRB_USE_COMPLEX)
   case MRB_TT_COMPLEX:
-    return mrb_funcall_id(mrb, x, MRB_OPSYM(sub), 1, y);
+    return mrb_complex_sub(mrb, x, y);
+#endif
   default:
     break;
   }
@@ -83,9 +93,14 @@ mrb_num_mul(mrb_state *mrb, mrb_value x, mrb_value y)
 #endif
 #if defined(MRB_USE_RATIONAL) || defined(MRB_USE_COMPLEX)
   switch (mrb_type(x)) {
+#if defined(MRB_USE_RATIONAL)
   case MRB_TT_RATIONAL:
+    return mrb_rational_mul(mrb, x, y);
+#endif
+#if defined(MRB_USE_COMPLEX)
   case MRB_TT_COMPLEX:
-    return mrb_funcall_id(mrb, x, MRB_OPSYM(mul), 1, y);
+    return mrb_complex_mul(mrb, x, y);
+#endif
   default:
     break;
   }
