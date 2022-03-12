@@ -3,6 +3,13 @@
 #include <mruby/numeric.h>
 #include <mruby/presym.h>
 
+mrb_value mrb_complex_new(mrb_state *, mrb_float, mrb_float);
+mrb_bool mrb_complex_eq(mrb_state *mrb, mrb_value, mrb_value);
+mrb_value mrb_complex_add(mrb_state *mrb, mrb_value, mrb_value);
+mrb_value mrb_complex_sub(mrb_state *mrb, mrb_value, mrb_value);
+mrb_value mrb_complex_mul(mrb_state *mrb, mrb_value, mrb_value);
+mrb_value mrb_complex_div(mrb_state *mrb, mrb_value, mrb_value);
+
 struct mrb_rational {
   mrb_int numerator;
   mrb_int denominator;
@@ -393,7 +400,6 @@ rational_eq(mrb_state *mrb, mrb_value x)
 #ifdef MRB_USE_COMPLEX
   case MRB_TT_COMPLEX:
    {
-      mrb_bool mrb_complex_eq(mrb_state *mrb, mrb_value, mrb_value);
       result = mrb_complex_eq(mrb, y, mrb_rational_to_f(mrb, x));
       break;
     }
@@ -404,10 +410,6 @@ rational_eq(mrb_state *mrb, mrb_value x)
   }
   return mrb_bool_value(result);
 }
-
-#ifndef MRB_NO_FLOAT
-mrb_value mrb_complex_new(mrb_state *, mrb_float, mrb_float);
-#endif
 
 static mrb_value
 rational_cmp(mrb_state *mrb, mrb_value x)
@@ -454,11 +456,6 @@ rational_cmp(mrb_state *mrb, mrb_value x)
         return mrb_fixnum_value(-1);
       return mrb_fixnum_value(0);
     }
-#endif
-#ifdef MRB_USE_COMPLEX
-  case MRB_TT_COMPLEX:
-    x = mrb_complex_new(mrb, rat_float(p1), 0);
-    return mrb_funcall_id(mrb, x, MRB_OPSYM(cmp), 1, y);
 #endif
   default:
     x = mrb_funcall_id(mrb, y, MRB_OPSYM(cmp), 1, x);
@@ -512,6 +509,11 @@ mrb_rational_add(mrb_state *mrb, mrb_value x, mrb_value y)
     }
 #endif
 
+#if defined(MRB_USE_COMPLEX)
+  case MRB_TT_COMPLEX:
+    return mrb_complex_add(mrb, mrb_complex_new(mrb, rat_float(p1), 0), y);
+#endif
+
   default:
     return mrb_funcall_id(mrb, y, MRB_OPSYM(add), 1, x);
   }
@@ -551,8 +553,7 @@ mrb_rational_sub(mrb_state *mrb, mrb_value x, mrb_value y)
 
 #if defined(MRB_USE_COMPLEX)
   case MRB_TT_COMPLEX:
-    x = mrb_complex_new(mrb, rat_float(p1), 0);
-    return mrb_funcall_id(mrb, x, MRB_OPSYM(sub), 1, y);
+    return mrb_complex_sub(mrb, mrb_complex_new(mrb, rat_float(p1), 0), y);
 #endif
 
 #ifndef MRB_NO_FLOAT
@@ -606,6 +607,11 @@ mrb_rational_mul(mrb_state *mrb, mrb_value x, mrb_value y)
   }
 #endif
 
+#if defined(MRB_USE_COMPLEX)
+  case MRB_TT_COMPLEX:
+    return mrb_complex_mul(mrb, mrb_complex_new(mrb, rat_float(p1), 0), y);
+#endif
+
   default:
     return mrb_funcall_id(mrb, y, MRB_OPSYM(mul), 1, x);
   }
@@ -642,8 +648,7 @@ mrb_rational_div(mrb_state *mrb, mrb_value x, mrb_value y)
 
 #if defined(MRB_USE_COMPLEX)
   case MRB_TT_COMPLEX:
-    x = mrb_complex_new(mrb, rat_float(p1), 0);
-    return mrb_funcall_id(mrb, x, MRB_OPSYM(div), 1, y);
+    return mrb_complex_div(mrb, mrb_complex_new(mrb, rat_float(p1), 0), y);
 #endif
 
   default:
