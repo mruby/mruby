@@ -393,8 +393,7 @@ cpx_int_quo(mrb_state *mrb, mrb_value x)
   switch (mrb_type(y)) {
 #ifdef MRB_USE_RATIONAL
   case MRB_TT_RATIONAL:
-    x = mrb_rational_new(mrb, a, 1);
-    return mrb_funcall_id(mrb, x, MRB_OPSYM(div), 1, y);
+    return mrb_rational_div(mrb, mrb_rational_new(mrb, a, 1), y);
 #endif
   case MRB_TT_COMPLEX:
     x = complex_new(mrb, (mrb_float)a, 0);
