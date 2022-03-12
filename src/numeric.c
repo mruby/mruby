@@ -20,6 +20,16 @@
 #endif
 #endif
 
+mrb_value mrb_complex_new(mrb_state *mrb, mrb_float x, mrb_float y);
+mrb_value mrb_complex_add(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_value mrb_complex_sub(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_value mrb_complex_mul(mrb_state *mrb, mrb_value x, mrb_value y);
+
+mrb_value mrb_rational_new(mrb_state *mrb, mrb_int x, mrb_int y);
+mrb_value mrb_rational_add(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_value mrb_rational_sub(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_value mrb_rational_mul(mrb_state *mrb, mrb_value x, mrb_value y);
+
 static void
 int_overflow(mrb_state *mrb, const char *reason)
 {
@@ -328,7 +338,7 @@ flo_add(mrb_state *mrb, mrb_value x)
     return mrb_float_value(mrb, a + mrb_float(y));
 #if defined(MRB_USE_COMPLEX)
   case MRB_TT_COMPLEX:
-    return mrb_funcall_id(mrb, y, MRB_OPSYM(add), 1, x);
+    return mrb_complex_add(mrb, y, x);
 #endif
   default:
     return mrb_float_value(mrb, a + mrb_as_float(mrb, y));
@@ -355,8 +365,7 @@ flo_sub(mrb_state *mrb, mrb_value x)
     return mrb_float_value(mrb, a - mrb_float(y));
 #if defined(MRB_USE_COMPLEX)
   case MRB_TT_COMPLEX:
-    x = mrb_funcall_id(mrb, y, MRB_OPSYM(sub), 1, x);
-    return mrb_funcall_id(mrb, x, MRB_OPSYM(minus), 0);
+    return mrb_complex_sub(mrb, mrb_complex_new(mrb, a, 0), y);
 #endif
   default:
     return mrb_float_value(mrb, a - mrb_as_float(mrb, y));
@@ -383,7 +392,7 @@ flo_mul(mrb_state *mrb, mrb_value x)
     return mrb_float_value(mrb, a * mrb_float(y));
 #if defined(MRB_USE_COMPLEX)
   case MRB_TT_COMPLEX:
-    return mrb_funcall_id(mrb, y, MRB_OPSYM(mul), 1, x);
+    return mrb_complex_mul(mrb, y, x);
 #endif
   default:
     return mrb_float_value(mrb, a * mrb_as_float(mrb, y));
@@ -1008,10 +1017,13 @@ mrb_int_mul(mrb_state *mrb, mrb_value x, mrb_value y)
     return mrb_int_value(mrb, c);
   }
   switch (mrb_type(y)) {
-#if defined(MRB_USE_RATIONAL) || defined(MRB_USE_COMPLEX)
+#if defined(MRB_USE_RATIONAL)
   case MRB_TT_RATIONAL:
+    return mrb_rational_mul(mrb, y, x);
+#endif
+#if defined(MRB_USE_COMPLEX)
   case MRB_TT_COMPLEX:
-    return mrb_funcall_id(mrb, y, MRB_OPSYM(mul), 1, x);
+    return mrb_complex_mul(mrb, y, x);
 #endif
   default:
 #ifdef MRB_NO_FLOAT
@@ -1425,10 +1437,13 @@ mrb_int_add(mrb_state *mrb, mrb_value x, mrb_value y)
     return mrb_int_value(mrb, c);
   }
   switch (mrb_type(y)) {
-#if defined(MRB_USE_RATIONAL) || defined(MRB_USE_COMPLEX)
+#if defined(MRB_USE_RATIONAL)
   case MRB_TT_RATIONAL:
+    return mrb_rational_add(mrb, y, x);
+#endif
+#if defined(MRB_USE_COMPLEX)
   case MRB_TT_COMPLEX:
-    return mrb_funcall_id(mrb, y, MRB_OPSYM(add), 1, x);
+    return mrb_complex_add(mrb, y, x);
 #endif
   default:
 #ifdef MRB_NO_FLOAT
@@ -1472,11 +1487,13 @@ mrb_int_sub(mrb_state *mrb, mrb_value x, mrb_value y)
     return mrb_int_value(mrb, c);
   }
   switch (mrb_type(y)) {
-#if defined(MRB_USE_RATIONAL) || defined(MRB_USE_COMPLEX)
+#if defined(MRB_USE_RATIONAL)
   case MRB_TT_RATIONAL:
+    return mrb_rational_sub(mrb, mrb_rational_new(mrb, a, 1), y);
+#endif
+#if defined(MRB_USE_COMPLEX)
   case MRB_TT_COMPLEX:
-    x = mrb_funcall_id(mrb, y, MRB_OPSYM(sub), 1, x);
-    return mrb_funcall_id(mrb, x, MRB_OPSYM(minus), 0);
+    return mrb_complex_sub(mrb, mrb_complex_new(mrb, (mrb_float)a, 0), y);
 #endif
   default:
 #ifdef MRB_NO_FLOAT
