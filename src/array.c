@@ -18,15 +18,26 @@
 #define ARY_C_MAX_SIZE (SIZE_MAX / sizeof(mrb_value))
 #define ARY_MAX_SIZE ((mrb_int)((ARY_C_MAX_SIZE < (size_t)MRB_INT_MAX) ? ARY_C_MAX_SIZE : MRB_INT_MAX-1))
 
+static void
+ary_too_big(mrb_state *mrb)
+{
+  mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
+}
+
+static void
+ary_check_too_big(mrb_state *mrb, mrb_int a, mrb_int b)
+{
+  if (a > ARY_MAX_SIZE - b || a < 0)
+    ary_too_big(mrb);
+}
+
 static struct RArray*
 ary_new_capa(mrb_state *mrb, mrb_int capa)
 {
   struct RArray *a;
   size_t blen;
 
-  if (capa > ARY_MAX_SIZE) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
-  }
+  ary_check_too_big(mrb, capa, 0);
   blen = capa * sizeof(mrb_value);
 
   a = MRB_OBJ_ALLOC(mrb, MRB_TT_ARRAY, mrb->array_class);
@@ -188,11 +199,7 @@ ary_expand_capa(mrb_state *mrb, struct RArray *a, mrb_int len)
 {
   mrb_int capa = ARY_CAPA(a);
 
-  if (len > ARY_MAX_SIZE || len < 0) {
-  size_error:
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
-  }
-
+  ary_check_too_big(mrb, len, 0);
   if (capa < ARY_DEFAULT_LEN) {
     capa = ARY_DEFAULT_LEN;
   }
@@ -205,7 +212,7 @@ ary_expand_capa(mrb_state *mrb, struct RArray *a, mrb_int len)
     }
   }
   if (capa < len || capa > ARY_MAX_SIZE) {
-    goto size_error;
+    ary_too_big(mrb);
   }
 
   if (ARY_EMBED_P(a)) {
@@ -302,9 +309,7 @@ ary_concat(mrb_state *mrb, struct RArray *a, struct RArray *a2)
     ary_replace(mrb, a, a2);
     return;
   }
-  if (ARY_LEN(a2) > ARY_MAX_SIZE - ARY_LEN(a)) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
-  }
+  ary_check_too_big(mrb, ARY_LEN(a2), ARY_LEN(a));
   len = ARY_LEN(a) + ARY_LEN(a2);
 
   ary_modify(mrb, a);
@@ -343,9 +348,7 @@ mrb_ary_plus(mrb_state *mrb, mrb_value self)
   mrb_int blen, len1;
 
   mrb_get_args(mrb, "a", &ptr, &blen);
-  if (ARY_MAX_SIZE - blen < ARY_LEN(a1)) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
-  }
+  ary_check_too_big(mrb, ARY_LEN(a1), blen);
   len1 = ARY_LEN(a1);
   a2 = ary_new_capa(mrb, len1 + blen);
   array_copy(ARY_PTR(a2), ARY_PTR(a1), len1);
@@ -440,7 +443,7 @@ mrb_ary_times(mrb_state *mrb, mrb_value self)
   }
   if (times == 0) return mrb_ary_new(mrb);
   if (ARY_MAX_SIZE / times < ARY_LEN(a1)) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
+    ary_too_big(mrb);
   }
   len1 = ARY_LEN(a1);
   a2 = ary_new_capa(mrb, len1 * times);
