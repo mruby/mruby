@@ -545,7 +545,7 @@ mrb_define_class(mrb_state *mrb, const char *name, struct RClass *super)
   return mrb_define_class_id(mrb, mrb_intern_cstr(mrb, name), super);
 }
 
-static mrb_value mrb_bob_init(mrb_state *mrb, mrb_value);
+static mrb_value mrb_do_nothing(mrb_state *mrb, mrb_value);
 #ifndef MRB_NO_METHOD_CACHE
 static void mc_clear(mrb_state *mrb);
 #else
@@ -564,7 +564,7 @@ mrb_class_inherited(mrb_state *mrb, struct RClass *super, struct RClass *klass)
   s = mrb_obj_value(super);
   mrb_mc_clear_by_class(mrb, klass);
   mid = MRB_SYM(inherited);
-  if (!mrb_func_basic_p(mrb, s, mid, mrb_bob_init)) {
+  if (!mrb_func_basic_p(mrb, s, mid, mrb_do_nothing)) {
     mrb_value c = mrb_obj_value(klass);
     mrb_funcall_argv(mrb, s, mid, 1, &c);
   }
@@ -1971,7 +1971,7 @@ mrb_instance_new(mrb_state *mrb, mrb_value cv)
   mrb_get_args(mrb, "*!&", &argv, &argc, &blk);
   obj = mrb_instance_alloc(mrb, cv);
   init = MRB_SYM(initialize);
-  if (!mrb_func_basic_p(mrb, obj, init, mrb_bob_init)) {
+  if (!mrb_func_basic_p(mrb, obj, init, mrb_do_nothing)) {
     mrb_funcall_with_block(mrb, obj, init, argc, argv, blk);
   }
   return obj;
@@ -1985,7 +1985,7 @@ mrb_obj_new(mrb_state *mrb, struct RClass *c, mrb_int argc, const mrb_value *arg
 
   obj = mrb_instance_alloc(mrb, mrb_obj_value(c));
   mid = MRB_SYM(initialize);
-  if (!mrb_func_basic_p(mrb, obj, mid, mrb_bob_init)) {
+  if (!mrb_func_basic_p(mrb, obj, mid, mrb_do_nothing)) {
     mrb_funcall_argv(mrb, obj, mid, argc, argv);
   }
   return obj;
@@ -2042,7 +2042,7 @@ mrb_class_superclass(mrb_state *mrb, mrb_value klass)
 }
 
 static mrb_value
-mrb_bob_init(mrb_state *mrb, mrb_value cv)
+mrb_do_nothing(mrb_state *mrb, mrb_value cv)
 {
   return mrb_nil_value();
 }
@@ -2931,32 +2931,32 @@ mrb_init_class(mrb_state *mrb)
   MRB_SET_INSTANCE_TT(mrb->proc_class, MRB_TT_PROC);
 
   MRB_SET_INSTANCE_TT(cls, MRB_TT_CLASS);
-  mrb_define_method(mrb, bob, "initialize",              mrb_bob_init,             MRB_ARGS_NONE());
+  mrb_define_method(mrb, bob, "initialize",              mrb_do_nothing,           MRB_ARGS_NONE());
   mrb_define_method(mrb, bob, "!",                       mrb_bob_not,              MRB_ARGS_NONE());
   mrb_define_method(mrb, bob, "==",                      mrb_obj_equal_m,          MRB_ARGS_REQ(1)); /* 15.3.1.3.1  */
   mrb_define_method(mrb, bob, "__id__",                  mrb_obj_id_m,             MRB_ARGS_NONE()); /* 15.3.1.3.4  */
   mrb_define_method(mrb, bob, "__send__",                mrb_f_send,               MRB_ARGS_REQ(1)|MRB_ARGS_REST()|MRB_ARGS_BLOCK());  /* 15.3.1.3.5  */
   mrb_define_method(mrb, bob, "equal?",                  mrb_obj_equal_m,          MRB_ARGS_REQ(1)); /* 15.3.1.3.11 */
   mrb_define_method(mrb, bob, "instance_eval",           mrb_obj_instance_eval,    MRB_ARGS_OPT(1)|MRB_ARGS_BLOCK());  /* 15.3.1.3.18 */
-  mrb_define_method(mrb, bob, "singleton_method_added",  mrb_bob_init,             MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, bob, "singleton_method_added",  mrb_do_nothing,           MRB_ARGS_REQ(1));
 
   mrb_define_class_method(mrb, cls, "new",               mrb_class_new_class,      MRB_ARGS_OPT(1)|MRB_ARGS_BLOCK());
   mrb_define_method(mrb, cls, "allocate",                mrb_instance_alloc,       MRB_ARGS_NONE());
   mrb_define_method(mrb, cls, "superclass",              mrb_class_superclass,     MRB_ARGS_NONE()); /* 15.2.3.3.4 */
   mrb_define_method(mrb, cls, "initialize",              mrb_class_initialize,     MRB_ARGS_OPT(1)); /* 15.2.3.3.1 */
-  mrb_define_method(mrb, cls, "inherited",               mrb_bob_init,             MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, cls, "inherited",               mrb_do_nothing,           MRB_ARGS_REQ(1));
 
   init_class_new(mrb, cls);
 
   MRB_SET_INSTANCE_TT(mod, MRB_TT_MODULE);
   mrb_define_method(mrb, mod, "extend_object",           mrb_mod_extend_object,    MRB_ARGS_REQ(1)); /* 15.2.2.4.25 */
-  mrb_define_method(mrb, mod, "extended",                mrb_bob_init,             MRB_ARGS_REQ(1)); /* 15.2.2.4.26 */
-  mrb_define_method(mrb, mod, "prepended",               mrb_bob_init,             MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, mod, "extended",                mrb_do_nothing,           MRB_ARGS_REQ(1)); /* 15.2.2.4.26 */
+  mrb_define_method(mrb, mod, "prepended",               mrb_do_nothing,           MRB_ARGS_REQ(1));
   mrb_define_method(mrb, mod, "prepend_features",        mrb_mod_prepend_features, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, mod, "include?",                mrb_mod_include_p,        MRB_ARGS_REQ(1)); /* 15.2.2.4.28 */
   mrb_define_method(mrb, mod, "append_features",         mrb_mod_append_features,  MRB_ARGS_REQ(1)); /* 15.2.2.4.10 */
   mrb_define_method(mrb, mod, "class_eval",              mrb_mod_module_eval,      MRB_ARGS_ANY());  /* 15.2.2.4.15 */
-  mrb_define_method(mrb, mod, "included",                mrb_bob_init,             MRB_ARGS_REQ(1)); /* 15.2.2.4.29 */
+  mrb_define_method(mrb, mod, "included",                mrb_do_nothing,           MRB_ARGS_REQ(1)); /* 15.2.2.4.29 */
   mrb_define_method(mrb, mod, "initialize",              mrb_mod_initialize,       MRB_ARGS_NONE()); /* 15.2.2.4.31 */
   mrb_define_method(mrb, mod, "module_eval",             mrb_mod_module_eval,      MRB_ARGS_ANY());  /* 15.2.2.4.35 */
   mrb_define_method(mrb, mod, "module_function",         mrb_mod_module_function,  MRB_ARGS_ANY());
@@ -2979,7 +2979,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "define_method",           mod_define_method,        MRB_ARGS_ARG(1,1));
   mrb_define_method(mrb, mod, "===",                     mrb_mod_eqq,              MRB_ARGS_REQ(1)); /* 15.2.2.4.7 */
   mrb_define_method(mrb, mod, "dup",                     mrb_mod_dup,              MRB_ARGS_NONE());
-  mrb_define_method(mrb, bob, "method_added",            mrb_bob_init,             MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, bob, "method_added",            mrb_do_nothing,           MRB_ARGS_REQ(1));
 
   mrb_undef_method(mrb, cls, "append_features");
   mrb_undef_method(mrb, cls, "prepend_features");
