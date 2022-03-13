@@ -448,6 +448,7 @@ mrb_gc_destroy(mrb_state *mrb, mrb_gc *gc)
 static void
 gc_protect(mrb_state *mrb, mrb_gc *gc, struct RBasic *p)
 {
+  if (is_red(p)) return;
 #ifdef MRB_GC_FIXED_ARENA
   if (gc->arena_idx >= MRB_GC_ARENA_SIZE) {
     /* arena overflow error */
