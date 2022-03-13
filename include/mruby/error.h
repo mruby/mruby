@@ -17,11 +17,10 @@ MRB_BEGIN_DECL
 struct RException {
   MRB_OBJECT_HEADER;
   struct iv_tbl *iv;
-  struct RString *mesg;
+  struct RObject *mesg;         // NULL or probably RString
 };
 
 #define mrb_exc_ptr(v) ((struct RException*)mrb_ptr(v))
-#define MRB_EXC_MESG_STRING_FLAG 0x100
 
 MRB_API void mrb_sys_fail(mrb_state *mrb, const char *mesg);
 MRB_API mrb_value mrb_exc_new_str(mrb_state *mrb, struct RClass* c, mrb_value str);
