@@ -182,7 +182,8 @@ set_backtrace(mrb_state *mrb, mrb_value exc, mrb_value backtrace)
       p++;
     }
   }
-  mrb_iv_set(mrb, exc, MRB_SYM(backtrace), backtrace);
+  mrb_exc_ptr(exc)->backtrace = mrb_obj_ptr(backtrace);
+  mrb_field_write_barrier_value(mrb, mrb_basic_ptr(exc), backtrace);
 }
 
 static mrb_value

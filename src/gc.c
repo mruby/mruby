@@ -763,6 +763,7 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
     if (((struct RException*)obj)->mesg) {
       mrb_gc_mark(mrb, (struct RBasic*)((struct RException*)obj)->mesg);
     }
+    mrb_gc_mark(mrb, (struct RBasic*)((struct RException*)obj)->backtrace);
     break;
 
   default:
@@ -1050,6 +1051,9 @@ gc_gray_counts(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
   case MRB_TT_EXCEPTION:
     children += mrb_gc_mark_iv_size(mrb, (struct RObject*)obj);
     if (((struct RException*)obj)->mesg) {
+      children++;
+    }
+    if (((struct RException*)obj)->backtrace) {
       children++;
     }
     break;

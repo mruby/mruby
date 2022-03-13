@@ -18,6 +18,7 @@ struct RException {
   MRB_OBJECT_HEADER;
   struct iv_tbl *iv;
   struct RObject *mesg;         // NULL or probably RString
+  struct RObject *backtrace;    // NULL, RArray or RData
 };
 
 #define mrb_exc_ptr(v) ((struct RException*)mrb_ptr(v))
