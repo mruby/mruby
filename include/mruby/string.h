@@ -102,7 +102,6 @@ struct RStringEmbed {
 #define RSTRING_LEN(s)       RSTR_LEN(RSTRING(s))
 #define RSTRING_CAPA(s)      RSTR_CAPA(RSTRING(s))
 #define RSTRING_END(s)       (RSTRING_PTR(s) + RSTRING_LEN(s))
-MRB_API mrb_int mrb_str_strlen(mrb_state*, struct RString*);
 #define RSTRING_CSTR(mrb,s)  mrb_string_cstr(mrb, s)
 
 #define MRB_STR_SHARED    1
@@ -335,6 +334,8 @@ MRB_API const char *mrb_string_value_cstr(mrb_state *mrb, mrb_value *str);
 MRB_API const char *mrb_string_value_ptr(mrb_state *mrb, mrb_value str);
 /* obsolete: use RSTRING_LEN() */
 MRB_API mrb_int mrb_string_value_len(mrb_state *mrb, mrb_value str);
+/* obsolete: substituted by a macro; shall be removed */
+#define mrb_str_strlen(mrb, s) strlen(RSTR_PTR(s))
 
 /**
  * Duplicates a string object.

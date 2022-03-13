@@ -696,17 +696,6 @@ str_rindex(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
   }
 }
 
-MRB_API mrb_int
-mrb_str_strlen(mrb_state *mrb, struct RString *s)
-{
-  mrb_int max = RSTR_LEN(s);
-  char *p = RSTR_PTR(s);
-
-  if (!p) return 0;
-  check_null_byte(mrb, s);
-  return max;
-}
-
 #ifdef _WIN32
 #include <windows.h>
 
