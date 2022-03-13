@@ -138,20 +138,6 @@ exc_to_s(mrb_state *mrb, mrb_value exc)
 
 /*
  * call-seq:
- *   exception.message   ->  string
- *
- * Returns the result of invoking <code>exception.to_s</code>.
- * Normally this returns the exception's message or name.
- */
-
-static mrb_value
-exc_message(mrb_state *mrb, mrb_value exc)
-{
-  return mrb_funcall_id(mrb, exc, MRB_SYM(to_s), 0);
-}
-
-/*
- * call-seq:
  *   exception.inspect   -> string
  *
  * Returns this exception's file name, line number,
@@ -667,7 +653,6 @@ mrb_init_exception(mrb_state *mrb)
   mrb_define_method(mrb, exception, "exception",       exc_exception,     MRB_ARGS_OPT(1));
   mrb_define_method(mrb, exception, "initialize",      exc_initialize,    MRB_ARGS_OPT(1));
   mrb_define_method(mrb, exception, "to_s",            exc_to_s,          MRB_ARGS_NONE());
-  mrb_define_method(mrb, exception, "message",         exc_message,       MRB_ARGS_NONE());
   mrb_define_method(mrb, exception, "inspect",         mrb_exc_inspect,   MRB_ARGS_NONE());
   mrb_define_method(mrb, exception, "backtrace",       mrb_exc_backtrace, MRB_ARGS_NONE());
   mrb_define_method(mrb, exception, "set_backtrace",   exc_set_backtrace, MRB_ARGS_REQ(1));
