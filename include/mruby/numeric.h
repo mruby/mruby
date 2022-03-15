@@ -170,10 +170,6 @@ mrb_float mrb_div_float(mrb_float x, mrb_float y);
 mrb_value mrb_float_to_str(mrb_state *mrb, mrb_value x, const char *fmt);
 int mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, char sign);
 
-/* obsolete functions; will be removed */
-#define mrb_flo_to_fixnum(mrb, val) mrb_float_to_integer(mrb, val)
-#define mrb_to_flo(mrb, x) mrb_as_float(mrb, x)
-
 #endif /* MRB_NO_FLOAT */
 
 MRB_END_DECL
