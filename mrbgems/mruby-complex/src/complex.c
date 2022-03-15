@@ -357,7 +357,7 @@ mrb_value mrb_rational_div(mrb_state *mrb, mrb_value x, mrb_value y);
  * redefine Integer#/
  */
 static mrb_value
-cpx_int_div(mrb_state *mrb, mrb_value x)
+complex_int_div(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
   mrb_int a = mrb_integer(x);
@@ -385,7 +385,7 @@ cpx_int_div(mrb_state *mrb, mrb_value x)
  */
 
 static mrb_value
-cpx_int_quo(mrb_state *mrb, mrb_value x)
+complex_int_quo(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
   mrb_int a = mrb_integer(x);
@@ -404,7 +404,7 @@ cpx_int_quo(mrb_state *mrb, mrb_value x)
 }
 
 static mrb_value
-cpx_flo_div(mrb_state *mrb, mrb_value x)
+complex_float_div(mrb_state *mrb, mrb_value x)
 {
   mrb_float a = mrb_float(x);
   mrb_value y = mrb_get_arg1(mrb);
@@ -447,10 +447,10 @@ void mrb_mruby_complex_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, comp, "/", complex_div, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, comp, "quo", complex_div, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, comp, "==", complex_eq, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, mrb->integer_class, "/", cpx_int_div, MRB_ARGS_REQ(1)); /* override */
-  mrb_define_method(mrb, mrb->integer_class, "quo", cpx_int_quo, MRB_ARGS_REQ(1)); /* override */
-  mrb_define_method(mrb, mrb->float_class, "/", cpx_flo_div, MRB_ARGS_REQ(1)); /* override */
-  mrb_define_method(mrb, mrb->float_class, "quo", cpx_flo_div, MRB_ARGS_REQ(1)); /* override */
+  mrb_define_method(mrb, mrb->integer_class, "/", complex_int_div, MRB_ARGS_REQ(1)); /* override */
+  mrb_define_method(mrb, mrb->integer_class, "quo", complex_int_quo, MRB_ARGS_REQ(1)); /* override */
+  mrb_define_method(mrb, mrb->float_class, "/", complex_float_div, MRB_ARGS_REQ(1)); /* override */
+  mrb_define_method(mrb, mrb->float_class, "quo", complex_float_div, MRB_ARGS_REQ(1)); /* override */
 }
 
 void
