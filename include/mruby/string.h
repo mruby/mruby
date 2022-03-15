@@ -331,9 +331,9 @@ MRB_API const char *mrb_string_cstr(mrb_state *mrb, mrb_value str);
 /* NULL terminated C string from mrb_value; `str` will be updated */
 MRB_API const char *mrb_string_value_cstr(mrb_state *mrb, mrb_value *str);
 /* obsolete: use RSTRING_PTR() */
-MRB_API const char *mrb_string_value_ptr(mrb_state *mrb, mrb_value str);
+#define mrb_string_value_ptr(mrb, str) RSTRING_PTR(str)
 /* obsolete: use RSTRING_LEN() */
-MRB_API mrb_int mrb_string_value_len(mrb_state *mrb, mrb_value str);
+#define mrb_string_value_len(mrb, str) RSTRING_LEN(str)
 /* obsolete: substituted by a macro; shall be removed */
 #define mrb_str_strlen(mrb, s) strlen(RSTR_PTR(s))
 

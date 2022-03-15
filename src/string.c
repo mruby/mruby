@@ -1019,22 +1019,6 @@ mrb_str_equal_m(mrb_state *mrb, mrb_value str1)
 }
 /* ---------------------------------- */
 
-/* obslete: use RSTRING_PTR() */
-MRB_API const char*
-mrb_string_value_ptr(mrb_state *mrb, mrb_value str)
-{
-  str = mrb_obj_as_string(mrb, str);
-  return RSTRING_PTR(str);
-}
-
-/* obslete: use RSTRING_LEN() */
-MRB_API mrb_int
-mrb_string_value_len(mrb_state *mrb, mrb_value ptr)
-{
-  mrb_ensure_string_type(mrb, ptr);
-  return RSTRING_LEN(ptr);
-}
-
 MRB_API mrb_value
 mrb_str_dup(mrb_state *mrb, mrb_value str)
 {
