@@ -2,6 +2,9 @@
 #include <mruby/numeric.h>
 #include <mruby/presym.h>
 
+void mrb_int_zerodiv(mrb_state *mrb);
+void mrb_int_overflow(mrb_state *mrb, const char *reason);
+
 /*
  *  call-seq:
  *     int.allbits?(mask)  ->  true or false
@@ -50,12 +53,6 @@ int_nobits(mrb_state *mrb, mrb_value self)
   return mrb_bool_value((n & m) == 0);
 }
 
-static void
-zerodiv(mrb_state *mrb)
-{
-  mrb_raise(mrb, E_ZERODIV_ERROR, "divided by 0");
-}
-
 /*
  *  call-seq:
  *     num.remainder(numeric)  ->  real
@@ -73,7 +70,7 @@ int_remainder(mrb_state *mrb, mrb_value x)
   a = mrb_integer(x);
   if (mrb_integer_p(y)) {
     b = mrb_integer(y);
-    if (b == 0) zerodiv(mrb);
+    if (b == 0) mrb_int_zerodiv(mrb);
     if (a == MRB_INT_MIN && b == -1) return mrb_fixnum_value(0);
     return mrb_int_value(mrb, a % b);
   }
@@ -88,6 +85,49 @@ int_remainder(mrb_state *mrb, mrb_value x)
 #endif
 }
 
+mrb_value mrb_int_pow(mrb_state *mrb, mrb_value x);
+
+/*
+ * call-seq:
+ *    integer.pow(numeric)           ->  numeric
+ *    integer.pow(integer, integer)  ->  integer
+ *
+ * Returns (modular) exponentiation as:
+ *
+ *   a.pow(b)     #=> same as a**b
+ *   a.pow(b, m)  #=> same as (a**b) % m, but avoids huge temporary values
+ */
+static mrb_value
+int_powm(mrb_state *mrb, mrb_value x)
+{
+  mrb_int base, exp, mod, result = 1;
+
+  if (mrb_get_argc(mrb) == 1) {
+    return mrb_int_pow(mrb, x);
+  }
+  mrb_get_args(mrb, "ii", &exp, &mod);
+  if (exp < 0) mrb_raise(mrb, E_TYPE_ERROR, "int.pow(n,m): n must be positive");
+  if (mod < 0) mrb_raise(mrb, E_TYPE_ERROR, "int.pow(n,m): m must be positive");
+  if (mod == 0) mrb_int_zerodiv(mrb);
+  if (mod == 1) return mrb_fixnum_value(0);
+  base = mrb_integer(x);
+  for (;;) {
+    if (exp & 1) {
+      if (mrb_int_mul_overflow(result, base, &result)) {
+        mrb_int_overflow(mrb, "pow");
+      }
+      result %= mod;
+    }
+    exp >>= 1;
+    if (exp == 0) break;
+    if (mrb_int_mul_overflow(base, base, &base)) {
+      mrb_int_overflow(mrb, "pow");
+    }
+    base %= mod;
+  }
+  return mrb_int_value(mrb, result);
+}
+
 #ifndef MRB_NO_FLOAT
 static mrb_value
 flo_remainder(mrb_state *mrb, mrb_value self)
@@ -96,7 +136,7 @@ flo_remainder(mrb_state *mrb, mrb_value self)
 
   a = mrb_float(self);
   mrb_get_args(mrb, "f", &b);
-  if (b == 0) zerodiv(mrb);
+  if (b == 0) mrb_int_zerodiv(mrb);
   if (isinf(b)) return mrb_float_value(mrb, a);
   return mrb_float_value(mrb, a-b*trunc(a/b));
 }
@@ -113,6 +153,8 @@ mrb_mruby_numeric_ext_gem_init(mrb_state* mrb)
 
   mrb_define_alias(mrb, i, "modulo", "%");
   mrb_define_method(mrb, i, "remainder", int_remainder, MRB_ARGS_REQ(1));
+
+  mrb_define_method_id(mrb, i, MRB_SYM(pow), int_powm, MRB_ARGS_ARG(1,1));
 
 #ifndef MRB_NO_FLOAT
   struct RClass *f = mrb_class_get(mrb, "Float");

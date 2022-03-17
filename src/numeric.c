@@ -32,14 +32,14 @@ mrb_value mrb_rational_add(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_rational_sub(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_rational_mul(mrb_state *mrb, mrb_value x, mrb_value y);
 
-static void
-int_overflow(mrb_state *mrb, const char *reason)
+void
+mrb_int_overflow(mrb_state *mrb, const char *reason)
 {
   mrb_raisef(mrb, E_RANGE_ERROR, "integer overflow in %s", reason);
 }
 
-static void
-int_zerodiv(mrb_state *mrb)
+void
+mrb_int_zerodiv(mrb_state *mrb)
 {
   mrb_raise(mrb, E_ZERODIV_ERROR, "divided by 0");
 }
@@ -53,8 +53,8 @@ int_zerodiv(mrb_state *mrb)
  *
  *    2.0**3      #=> 8.0
  */
-static mrb_value
-int_pow(mrb_state *mrb, mrb_value x)
+mrb_value
+mrb_int_pow(mrb_state *mrb, mrb_value x)
 {
   mrb_int base = mrb_integer(x);
   mrb_int result = 1;
@@ -78,32 +78,33 @@ int_pow(mrb_state *mrb, mrb_value x)
 #ifndef MRB_NO_FLOAT
     return mrb_float_value(mrb, pow((double)base, (double)exp));
 #else
-    int_overflow(mrb, "negative power");
+    mrb_int_overflow(mrb, "negative power");
 #endif
   }
   for (;;) {
     if (exp & 1) {
       if (mrb_int_mul_overflow(result, base, &result)) {
-        int_overflow(mrb, "power");
+        mrb_int_overflow(mrb, "power");
       }
     }
     exp >>= 1;
     if (exp == 0) break;
     if (mrb_int_mul_overflow(base, base, &base)) {
-      int_overflow(mrb, "power");
+      mrb_int_overflow(mrb, "power");
     }
   }
   return mrb_int_value(mrb, result);
 }
+#define int_pow mrb_int_pow
 
 mrb_int
 mrb_div_int(mrb_state *mrb, mrb_int x, mrb_int y)
 {
   if (y == 0) {
-    int_zerodiv(mrb);
+    mrb_int_zerodiv(mrb);
   }
   else if(x == MRB_INT_MIN && y == -1) {
-    int_overflow(mrb, "division");
+    mrb_int_overflow(mrb, "division");
   }
   else {
     mrb_int div = x / y;
@@ -165,7 +166,7 @@ int_idiv(mrb_state *mrb, mrb_value x)
 
   mrb_get_args(mrb, "i", &y);
   if (y == 0) {
-    int_zerodiv(mrb);
+    mrb_int_zerodiv(mrb);
   }
   return mrb_int_value(mrb, mrb_integer(x) / y);
 }
@@ -180,7 +181,7 @@ int_quo(mrb_state *mrb, mrb_value xv)
 
   mrb_get_args(mrb, "f", &y);
   if (y == 0) {
-    int_zerodiv(mrb);
+    mrb_int_zerodiv(mrb);
   }
   return mrb_float_value(mrb, mrb_integer(xv) / y);
 #endif
@@ -412,7 +413,7 @@ flodivmod(mrb_state *mrb, double x, double y, mrb_float *divp, mrb_float *modp)
     goto exit;
   }
   if (y == 0.0) {
-    int_zerodiv(mrb);
+    mrb_int_zerodiv(mrb);
   }
   if (isinf(y) && !isinf(x)) {
     mod = x;
@@ -553,7 +554,7 @@ static mrb_value
 int64_value(mrb_state *mrb, int64_t v)
 {
   if (!TYPED_FIXABLE(v,int64_t)) {
-    int_overflow(mrb, "bit operation");
+    mrb_int_overflow(mrb, "bit operation");
   }
   return mrb_fixnum_value((mrb_int)v);
 }
@@ -1014,7 +1015,7 @@ mrb_int_mul(mrb_state *mrb, mrb_value x, mrb_value y)
     if (a == 0) return x;
     b = mrb_integer(y);
     if (mrb_int_mul_overflow(a, b, &c)) {
-      int_overflow(mrb, "multiplication");
+      mrb_int_overflow(mrb, "multiplication");
     }
     return mrb_int_value(mrb, c);
   }
@@ -1058,10 +1059,10 @@ static void
 intdivmod(mrb_state *mrb, mrb_int x, mrb_int y, mrb_int *divp, mrb_int *modp)
 {
   if (y == 0) {
-    int_zerodiv(mrb);
+    mrb_int_zerodiv(mrb);
   }
   else if(x == MRB_INT_MIN && y == -1) {
-    int_overflow(mrb, "division");
+    mrb_int_overflow(mrb, "division");
   }
   else {
     mrb_int div = x / y;
@@ -1094,7 +1095,7 @@ int_mod(mrb_state *mrb, mrb_value x)
   a = mrb_integer(x);
   if (mrb_integer_p(y)) {
     b = mrb_integer(y);
-    if (b == 0) int_zerodiv(mrb);
+    if (b == 0) mrb_int_zerodiv(mrb);
     if (a == MRB_INT_MIN && b == -1) return mrb_fixnum_value(0);
     mrb_int mod = a % b;
     if ((a < 0) != (b < 0) && mod != 0) {
@@ -1338,7 +1339,7 @@ int_lshift(mrb_state *mrb, mrb_value x)
   val = mrb_integer(x);
   if (val == 0) return x;
   if (!mrb_num_shift(mrb, val, width, &val)) {
-    int_overflow(mrb, "bit shift");
+    mrb_int_overflow(mrb, "bit shift");
   }
   return mrb_int_value(mrb, val);
 }
@@ -1362,9 +1363,9 @@ int_rshift(mrb_state *mrb, mrb_value x)
   }
   val = mrb_integer(x);
   if (val == 0) return x;
-  if (width == MRB_INT_MIN) int_overflow(mrb, "bit shift");
+  if (width == MRB_INT_MIN) mrb_int_overflow(mrb, "bit shift");
   if (!mrb_num_shift(mrb, val, -width, &val)) {
-    int_overflow(mrb, "bit shift");
+    mrb_int_overflow(mrb, "bit shift");
   }
   return mrb_int_value(mrb, val);
 }
@@ -1434,7 +1435,7 @@ mrb_int_add(mrb_state *mrb, mrb_value x, mrb_value y)
     if (a == 0) return y;
     b = mrb_integer(y);
     if (mrb_int_add_overflow(a, b, &c)) {
-      int_overflow(mrb, "addition");
+      mrb_int_overflow(mrb, "addition");
     }
     return mrb_int_value(mrb, c);
   }
@@ -1484,7 +1485,7 @@ mrb_int_sub(mrb_state *mrb, mrb_value x, mrb_value y)
 
     b = mrb_integer(y);
     if (mrb_int_sub_overflow(a, b, &c)) {
-      int_overflow(mrb, "subtraction");
+      mrb_int_overflow(mrb, "subtraction");
     }
     return mrb_int_value(mrb, c);
   }
