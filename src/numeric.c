@@ -286,11 +286,17 @@ flo_div(mrb_state *mrb, mrb_value x)
   mrb_value y = mrb_get_arg1(mrb);
   mrb_float a = mrb_float(x);
 
-  if (mrb_float_p(y)) {
+  switch(mrb_type(y)) {
+#ifdef MRB_USE_COMPLEX
+  case MRB_TT_COMPLEX:
+    return mrb_complex_div(mrb, mrb_complex_new(mrb, a, 0), y);
+#endif
+  case MRB_TT_FLOAT:
     a = mrb_div_float(a, mrb_float(y));
-  }
-  else {
+    return mrb_float_value(mrb, a);
+  default:
     a = mrb_div_float(a, mrb_as_float(mrb, y));
+    return mrb_float_value(mrb, a);
   }
   return mrb_float_value(mrb, a);
 }

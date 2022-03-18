@@ -348,24 +348,6 @@ complex_div(mrb_state *mrb, mrb_value x)
   return mrb_complex_div(mrb, x, y);
 }
 
-static mrb_value
-complex_float_div(mrb_state *mrb, mrb_value x)
-{
-  mrb_float a = mrb_float(x);
-  mrb_value y = mrb_get_arg1(mrb);
-
-  switch(mrb_type(y)) {
-  case MRB_TT_COMPLEX:
-    return complex_div(mrb, complex_new(mrb, a, 0));
-  case MRB_TT_FLOAT:
-    a = mrb_div_float(a, mrb_float(y));
-    return mrb_float_value(mrb, a);
-  default:
-    a = mrb_div_float(a, mrb_as_float(mrb, y));
-    return mrb_float_value(mrb, a);
-  }
-}
-
 void mrb_mruby_complex_gem_init(mrb_state *mrb)
 {
   struct RClass *comp;
@@ -392,8 +374,6 @@ void mrb_mruby_complex_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, comp, "/", complex_div, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, comp, "quo", complex_div, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, comp, "==", complex_eq, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, mrb->float_class, "/", complex_float_div, MRB_ARGS_REQ(1)); /* override */
-  mrb_define_method(mrb, mrb->float_class, "quo", complex_float_div, MRB_ARGS_REQ(1)); /* override */
 }
 
 void
