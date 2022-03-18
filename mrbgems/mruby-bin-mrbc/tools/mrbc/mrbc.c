@@ -396,6 +396,10 @@ mrb_value mrb_complex_mul(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   return mrb_nil_value();
 }
+mrb_value mrb_complex_div(mrb_state *mrb, mrb_value x, mrb_value y)
+{
+  return mrb_nil_value();
+}
 mrb_value mrb_complex_to_i(mrb_state *mrb, mrb_value x)
 {
   return mrb_nil_value();
@@ -420,6 +424,10 @@ mrb_value mrb_rational_sub(mrb_state *mrb, mrb_value x, mrb_value y)
   return mrb_nil_value();
 }
 mrb_value mrb_rational_mul(mrb_state *mrb, mrb_value x, mrb_value y)
+{
+  return mrb_nil_value();
+}
+mrb_value mrb_rational_div(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   return mrb_nil_value();
 }

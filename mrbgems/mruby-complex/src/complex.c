@@ -348,61 +348,6 @@ complex_div(mrb_state *mrb, mrb_value x)
   return mrb_complex_div(mrb, x, y);
 }
 
-mrb_int mrb_div_int(mrb_state *mrb, mrb_int x, mrb_int y);
-mrb_value mrb_rational_new(mrb_state *mrb, mrb_int n, mrb_int d);
-mrb_value mrb_rational_div(mrb_state *mrb, mrb_value x, mrb_value y);
-
-/* 15.2.8.3.4  */
-/*
- * redefine Integer#/
- */
-static mrb_value
-complex_int_div(mrb_state *mrb, mrb_value x)
-{
-  mrb_value y = mrb_get_arg1(mrb);
-  mrb_int a = mrb_integer(x);
-
-  if (mrb_integer_p(y)) {
-    mrb_int div = mrb_div_int(mrb, a, mrb_integer(y));
-    return mrb_int_value(mrb, div);
-  }
-  switch (mrb_type(y)) {
-#ifdef MRB_USE_RATIONAL
-  case MRB_TT_RATIONAL:
-    return mrb_rational_div(mrb, mrb_rational_new(mrb, a, 1), y);
-#endif
-  case MRB_TT_COMPLEX:
-    x = complex_new(mrb, (mrb_float)a, 0);
-    return complex_div(mrb, x);
-  default:
-    return mrb_float_value(mrb, mrb_div_float((mrb_float)a, mrb_as_float(mrb, y)));
-  }
-}
-
-/* 15.2.9.3.19(x) */
-/*
- * redefine Integer#quo
- */
-
-static mrb_value
-complex_int_quo(mrb_state *mrb, mrb_value x)
-{
-  mrb_value y = mrb_get_arg1(mrb);
-  mrb_int a = mrb_integer(x);
-
-  switch (mrb_type(y)) {
-#ifdef MRB_USE_RATIONAL
-  case MRB_TT_RATIONAL:
-    return mrb_rational_div(mrb, mrb_rational_new(mrb, a, 1), y);
-#endif
-  case MRB_TT_COMPLEX:
-    x = complex_new(mrb, (mrb_float)a, 0);
-    return complex_div(mrb, x);
-  default:
-    return mrb_float_value(mrb, mrb_div_float((mrb_float)a, mrb_as_float(mrb, y)));
-  }
-}
-
 static mrb_value
 complex_float_div(mrb_state *mrb, mrb_value x)
 {
@@ -447,8 +392,6 @@ void mrb_mruby_complex_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, comp, "/", complex_div, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, comp, "quo", complex_div, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, comp, "==", complex_eq, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, mrb->integer_class, "/", complex_int_div, MRB_ARGS_REQ(1)); /* override */
-  mrb_define_method(mrb, mrb->integer_class, "quo", complex_int_quo, MRB_ARGS_REQ(1)); /* override */
   mrb_define_method(mrb, mrb->float_class, "/", complex_float_div, MRB_ARGS_REQ(1)); /* override */
   mrb_define_method(mrb, mrb->float_class, "quo", complex_float_div, MRB_ARGS_REQ(1)); /* override */
 }

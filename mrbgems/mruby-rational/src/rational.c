@@ -664,69 +664,14 @@ mrb_rational_div(mrb_state *mrb, mrb_value x, mrb_value y)
   }
 }
 
-mrb_value rational_div(mrb_state *mrb, mrb_value x)
+static mrb_value
+rational_div(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
   return mrb_rational_div(mrb, x, y);
 }
 
 mrb_int mrb_div_int(mrb_state *, mrb_int, mrb_int);
-
-#ifndef MRB_USE_COMPLEX
-/* 15.2.8.3.4  */
-/*
- * redefine Integer#/
- */
-static mrb_value
-rational_int_div(mrb_state *mrb, mrb_value x)
-{
-  mrb_value y = mrb_get_arg1(mrb);
-  mrb_int a = mrb_integer(x);
-
-  if (mrb_integer_p(y)) {
-    mrb_int div = mrb_div_int(mrb, a, mrb_integer(y));
-    return mrb_int_value(mrb, div);
-  }
-  switch (mrb_type(y)) {
-  case MRB_TT_RATIONAL:
-    return rational_div(mrb, rational_new(mrb, a, 1), y);
-  default:
-#ifdef MRB_NO_FLOAT
-  case MRB_TT_FLOAT:
-    mrb_raise(mrb, E_TYPE_ERROR, "non integer multiplication");
-#else
-    return mrb_float_value(mrb, mrb_div_float((mrb_float)a, mrb_as_float(mrb, y)));
-#endif
-  }
-}
-
-/* 15.2.9.3.19(x) */
-/*
- * redefine Integer#quo
- */
-
-static mrb_value
-rational_int_quo(mrb_state *mrb, mrb_value x)
-{
-  mrb_value y = mrb_get_arg1(mrb);
-  mrb_int a = mrb_integer(x);
-
-  if (mrb_integer_p(y)) {
-    return rational_new(mrb, a, mrb_integer(y));
-  }
-  switch (mrb_type(y)) {
-  case MRB_TT_RATIONAL:
-    x = rational_new(mrb, a, 1);
-    return mrb_rational_div(mrb, x, y);
-  default:
-#ifdef MRB_NO_FLOAT
-    mrb_raise(mrb, E_TYPE_ERROR, "non integer multiplication");
-#else
-    return mrb_float_value(mrb, mrb_div_float((mrb_float)a, mrb_as_float(mrb, y)));
-#endif
-  }
-}
-#endif  /* !MRB_USE_COMPLEX */
 
 void mrb_mruby_rational_gem_init(mrb_state *mrb)
 {
@@ -753,10 +698,6 @@ void mrb_mruby_rational_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, rat, "/", rational_div, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, rat, "quo", rational_div, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, mrb->integer_class, "to_r", fix_to_r, MRB_ARGS_NONE());
-#ifndef MRB_USE_COMPLEX
-  mrb_define_method(mrb, mrb->integer_class, "/", rational_int_div, MRB_ARGS_REQ(1)); /* override */
-  mrb_define_method(mrb, mrb->integer_class, "quo", rational_int_quo, MRB_ARGS_REQ(1)); /* override */
-#endif
   mrb_define_method(mrb, mrb->kernel_module, "Rational", rational_m, MRB_ARGS_ARG(1,1));
 }
 

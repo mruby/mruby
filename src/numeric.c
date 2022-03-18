@@ -25,12 +25,14 @@ mrb_value mrb_complex_new(mrb_state *mrb, mrb_float x, mrb_float y);
 mrb_value mrb_complex_add(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_complex_sub(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_complex_mul(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_value mrb_complex_div(mrb_state *mrb, mrb_value x, mrb_value y);
 #endif
 
 mrb_value mrb_rational_new(mrb_state *mrb, mrb_int x, mrb_int y);
 mrb_value mrb_rational_add(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_rational_sub(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_rational_mul(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_value mrb_rational_div(mrb_state *mrb, mrb_value x, mrb_value y);
 
 void
 mrb_int_overflow(mrb_state *mrb, const char *reason)
@@ -138,11 +140,23 @@ int_div(mrb_state *mrb, mrb_value x)
     mrb_int div = mrb_div_int(mrb, a, mrb_integer(y));
     return mrb_int_value(mrb, div);
   }
-#ifdef MRB_NO_FLOAT
-  mrb_raise(mrb, E_TYPE_ERROR, "non integer division");
-#else
-  return mrb_float_value(mrb, mrb_div_float((mrb_float)a, mrb_as_float(mrb, y)));
+  switch (mrb_type(y)) {
+#ifdef MRB_USE_RATIONAL
+  case MRB_TT_RATIONAL:
+    return mrb_rational_div(mrb, mrb_rational_new(mrb, a, 1), y);
 #endif
+#ifdef MRB_USE_COMPLEX
+  case MRB_TT_COMPLEX:
+    x = mrb_complex_new(mrb, (mrb_float)a, 0);
+    return mrb_complex_div(mrb, x, y);
+#endif
+  default:
+#ifdef MRB_NO_FLOAT
+    mrb_raise(mrb, E_TYPE_ERROR, "non integer division");
+#else
+    return mrb_float_value(mrb, mrb_div_float((mrb_float)a, mrb_as_float(mrb, y)));
+#endif
+  }
 }
 
 /* 15.2.9.3.19(x) */
@@ -172,8 +186,12 @@ int_idiv(mrb_state *mrb, mrb_value x)
 }
 
 static mrb_value
-int_quo(mrb_state *mrb, mrb_value xv)
+int_quo(mrb_state *mrb, mrb_value x)
 {
+  mrb_value y = mrb_get_arg1(mrb);
+  mrb_int a = mrb_integer(x);
+
+#ifndef MRB_USE_RATIONAL
 #ifdef MRB_NO_FLOAT
   return int_idiv(mrb, xv);
 #else
@@ -184,6 +202,22 @@ int_quo(mrb_state *mrb, mrb_value xv)
     mrb_int_zerodiv(mrb);
   }
   return mrb_float_value(mrb, mrb_integer(xv) / y);
+#endif
+#else
+  if (mrb_integer_p(y) && mrb_class_defined_id(mrb, MRB_SYM(Rational))) {
+    return mrb_rational_new(mrb, a, mrb_integer(y));
+  }
+  switch (mrb_type(y)) {
+  case MRB_TT_RATIONAL:
+    x = mrb_rational_new(mrb, a, 1);
+    return mrb_rational_div(mrb, x, y);
+  default:
+#ifdef MRB_NO_FLOAT
+    mrb_raise(mrb, E_TYPE_ERROR, "non integer division");
+#else
+    return mrb_float_value(mrb, mrb_div_float((mrb_float)a, mrb_as_float(mrb, y)));
+#endif
+  }
 #endif
 }
 
