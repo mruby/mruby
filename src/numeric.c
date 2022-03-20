@@ -188,12 +188,9 @@ int_idiv(mrb_state *mrb, mrb_value x)
 static mrb_value
 int_quo(mrb_state *mrb, mrb_value x)
 {
-  mrb_value y = mrb_get_arg1(mrb);
-  mrb_int a = mrb_integer(x);
-
 #ifndef MRB_USE_RATIONAL
 #ifdef MRB_NO_FLOAT
-  return int_idiv(mrb, xv);
+  return int_idiv(mrb, x);
 #else
   mrb_float y;
 
@@ -201,9 +198,11 @@ int_quo(mrb_state *mrb, mrb_value x)
   if (y == 0) {
     mrb_int_zerodiv(mrb);
   }
-  return mrb_float_value(mrb, mrb_integer(xv) / y);
+  return mrb_float_value(mrb, mrb_integer(x) / y);
 #endif
 #else
+  mrb_int a = mrb_integer(x);
+  mrb_value y = mrb_get_arg1(mrb);
   if (mrb_integer_p(y) && mrb_class_defined_id(mrb, MRB_SYM(Rational))) {
     return mrb_rational_new(mrb, a, mrb_integer(y));
   }
