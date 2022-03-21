@@ -25,3 +25,4 @@
 ## mruby-class-ext
 
 * Add `Class#subclasses` method.
+* Add `Module#undefined_instance_methods` method.
