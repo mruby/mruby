@@ -11087,7 +11087,7 @@ parse_string(parser_state *p)
             --len;
           }
         }
-        if ((len-1 == hinf->term_len) && (strncmp(s, hinf->term, len-1) == 0)) {
+        if (hinf->term_len > 0 && len-1 == hinf->term_len && strncmp(s, hinf->term, len-1) == 0) {
           heredoc_remove_indent(p, hinf);
           return tHEREDOC_END;
         }
