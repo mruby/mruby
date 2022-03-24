@@ -6,6 +6,7 @@
 
 #include <mruby/string.h>
 #include <string.h>
+#include <stdio.h>
 #if defined(_WIN32)
 # include <windows.h>
 # include <io.h>
