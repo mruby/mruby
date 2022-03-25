@@ -1394,14 +1394,16 @@ RETRY_TRY_BLOCK:
         regs[a] = mrb_ary_entry(va, mrb_integer(vb));
         break;
       case MRB_TT_HASH:
-        regs[a] = mrb_hash_get(mrb, va, vb);
+        va = mrb_hash_get(mrb, va, vb);
+        regs[a] = va;
         break;
       case MRB_TT_STRING:
         switch (mrb_type(vb)) {
         case MRB_TT_INTEGER:
         case MRB_TT_STRING:
         case MRB_TT_RANGE:
-          regs[a] = mrb_str_aref(mrb, va, vb, mrb_undef_value());
+          va = mrb_str_aref(mrb, va, vb, mrb_undef_value());
+          regs[a] = va;
           break;
         default:
           goto getidx_fallback;
@@ -1423,7 +1425,8 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_GETCONST, BB) {
-      regs[a] = mrb_vm_const_get(mrb, syms[b]);
+      mrb_value v = mrb_vm_const_get(mrb, syms[b]);
+      regs[a] = v;
       NEXT;
     }
 
@@ -1433,7 +1436,8 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_GETMCNST, BB) {
-      regs[a] = mrb_const_get(mrb, regs[a], syms[b]);
+      mrb_value v = mrb_const_get(mrb, regs[a], syms[b]);
+      regs[a] = v;
       NEXT;
     }
 
@@ -2014,14 +2018,15 @@ RETRY_TRY_BLOCK:
     CASE(OP_KARG, BB) {
       mrb_value k = mrb_symbol_value(syms[b]);
       mrb_int kidx = mrb_ci_kidx(mrb->c->ci);
-      mrb_value kdict;
+      mrb_value kdict, v;
 
       if (kidx < 0 || !mrb_hash_p(kdict=regs[kidx]) || !mrb_hash_key_p(mrb, kdict, k)) {
         mrb_value str = mrb_format(mrb, "missing keyword: %v", k);
         mrb_exc_set(mrb, mrb_exc_new_str(mrb, E_ARGUMENT_ERROR, str));
         goto L_RAISE;
       }
-      regs[a] = mrb_hash_get(mrb, kdict, k);
+      v = mrb_hash_get(mrb, kdict, k);
+      regs[a] = v;
       mrb_hash_delete_key(mrb, kdict, k);
       NEXT;
     }
