@@ -839,7 +839,7 @@ gen_muldiv(codegen_scope *s, uint8_t op, uint16_t dst)
     }
     else { /* OP_DIV */
       if (n0 == MRB_INT_MIN && n == -1) goto normal;
-      n = n0 / n;
+      n = mrb_div_int(s->mrb, n0, n);
     }
     s->pc = addr_pc(s, data0.addr);
     gen_int(s, dst, n);
