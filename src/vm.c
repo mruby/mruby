@@ -2831,13 +2831,15 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_RANGE_INC, B) {
-      regs[a] = mrb_range_new(mrb, regs[a], regs[a+1], FALSE);
+      mrb_value v = mrb_range_new(mrb, regs[a], regs[a+1], FALSE);
+      regs[a] = v;
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
     CASE(OP_RANGE_EXC, B) {
-      regs[a] = mrb_range_new(mrb, regs[a], regs[a+1], TRUE);
+      mrb_value v = mrb_range_new(mrb, regs[a], regs[a+1], TRUE);
+      regs[a] = v;
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
