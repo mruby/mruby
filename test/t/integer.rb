@@ -40,6 +40,10 @@ assert('Integer#/', '15.2.8.3.4') do
   assert_equal 2, a
   a = 5/2
   assert_equal 2, a
+  b = -1/2
+  assert_equal(-1, b)
+  b = 1/-2
+  assert_equal(-1, b)
   skip unless Object.const_defined?(:Float)
   b = 2/1.0
   assert_equal 2.0, b
