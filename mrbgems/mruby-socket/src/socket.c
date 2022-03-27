@@ -52,12 +52,6 @@
 
 #define E_SOCKET_ERROR             mrb_class_get_id(mrb, MRB_SYM(SocketError))
 
-#if !defined(mrb_cptr)
-#define mrb_cptr_value(m,p) mrb_voidp_value((m),(p))
-#define mrb_cptr(o) mrb_voidp(o)
-#define mrb_cptr_p(o) mrb_voidp_p(o)
-#endif
-
 #ifdef _WIN32
 static const char *inet_ntop(int af, const void *src, char *dst, socklen_t cnt)
 {
