@@ -1,11 +1,11 @@
 # Authors of mruby (mruby developers)
 
-## The List of Contributors sorted by number of commits (as of 2022-02-27 57540fb)
+## The List of Contributors sorted by number of commits (as of 2022-03-27 bb5f6a8)
 
-   8048 Yukihiro "Matz" Matsumoto (@matz)*
+   8121 Yukihiro "Matz" Matsumoto (@matz)*
     586 KOBAYASHI Shuji (@shuujii)
     376 Daniel Bovensiepen (@bovi)
-    352 dearblue (@dearblue)*
+    363 dearblue (@dearblue)*
     346 Takeshi Watanabe (@take-cheeze)*
     334 Masaki Muranaka (@monaka)
     308 Tomoyuki Sahara (@tsahara)*
@@ -25,7 +25,7 @@
      59 Kurebayashi, Takahiro (@crimsonwoods)*
      56 h2so5 (@h2so5)
      52 Ralph Desir (@Mav7)*
-     50 John Bampton (@jbampton)
+     51 John Bampton (@jbampton)
      45 Rory O'Connell (@RoryO)*
      43 Yuichiro Kaneko (@yui-knk)+
      42 fleuria (@flaneur2020)
@@ -129,6 +129,7 @@
       3 Carlo Prelz (@asfluido)*
       3 David Turnbull (@AE9RB)
       3 Franck Verrot (@franckverrot)
+      3 HASUMI Hitoshi (@hasumikin)
       3 Horimoto Yasuhiro (@komainu8)
       3 J. Mutua (@katmutua)+
       3 Jan Berdajs (@mrbrdo)
@@ -159,7 +160,6 @@
       2 Francois Chagnon (@EiNSTeiN-)*
       2 Gilad Zohari (@gzohari)
       2 Go Saito (@govm)
-      2 HASUMI Hitoshi (@hasumikin)
       2 Hirohito Higashi (@HirohitoHigashi)
       2 Hiroyuki Iwatsuki (@iwadon)
       2 Huei-Horng Yo (@hiroshiyui)
@@ -197,7 +197,6 @@
       1 Atsushi Morimoto (@mynz)
       1 Ben A Morgan (@BenMorganIO)
       1 Benoit Daloze (@eregon)
-      1 Chris Reuter (@suetanvil)
       1 Daehyub Kim (@lateau)
       1 Daniel Varga (@vargad)
       1 Edgar Boda-Majer (@eboda)
