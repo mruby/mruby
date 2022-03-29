@@ -594,9 +594,18 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
 
     switch (data.insn) {
     case OP_MOVE:
-      if (dst == src) return;             /* remove useless MOVE */
-      if (data.b == dst && data.a == src) /* skip swapping MOVE */
+      if (dst == src) return;   /* remove useless MOVE */
+      if (data.a == src) {
+        if (data.b == dst)      /* skip swapping MOVE */
+          return;
+        if (data.a < s->nlocals) goto normal;
+        rewind_pc(s);
+        genop_2(s, OP_MOVE, dst, data.b);
         return;
+      }
+      if (dst == data.a) {      /* skip overwritten move */
+        rewind_pc(s);
+      }
       goto normal;
     case OP_LOADNIL: case OP_LOADSELF: case OP_LOADT: case OP_LOADF:
     case OP_LOADI__1:
