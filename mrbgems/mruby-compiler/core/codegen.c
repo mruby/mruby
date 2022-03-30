@@ -600,11 +600,15 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
           return;
         if (data.a < s->nlocals) goto normal;
         rewind_pc(s);
-        genop_2(s, OP_MOVE, dst, data.b);
+        s->lastpc = addr_pc(s, mrb_prev_pc(s, data.addr));
+        gen_move(s, dst, data.b, FALSE);
         return;
       }
       if (dst == data.a) {      /* skip overwritten move */
         rewind_pc(s);
+        s->lastpc = addr_pc(s, mrb_prev_pc(s, data.addr));
+        gen_move(s, dst, src, FALSE);
+        return;
       }
       goto normal;
     case OP_LOADNIL: case OP_LOADSELF: case OP_LOADT: case OP_LOADF:
