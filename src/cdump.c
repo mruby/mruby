@@ -302,7 +302,7 @@ cdump_debug(mrb_state *mrb, const char *name, int n, mrb_irep_debug_info *info,
     line_type = "mrb_debug_line_flat_map";
     fprintf(fp, "static struct mrb_irep_debug_info_line %s_debug_lines_%d[%d] = {", name, n, len);
     for (i=0; i<len; i++) {
-      mrb_irep_debug_info_line *fmap = &info->files[0]->lines.flat_map[i];
+      const mrb_irep_debug_info_line *fmap = &info->files[0]->lines.flat_map[i];
       fprintf(fp, "\t{.start_pos=0x%04x,.line=%d},\n", fmap->start_pos, fmap->line);
     }
     fputs("};\n", fp);
@@ -310,8 +310,8 @@ cdump_debug(mrb_state *mrb, const char *name, int n, mrb_irep_debug_info *info,
 
   case mrb_debug_line_packed_map:
     line_type = "mrb_debug_line_packed_map";
-    fprintf(fp, "static char %s_debug_lines_%d[] = \"", name, n);
-    uint8_t *pmap = info->files[0]->lines.packed_map;
+    fprintf(fp, "static const char %s_debug_lines_%d[] = \"", name, n);
+    const uint8_t *pmap = info->files[0]->lines.packed_map;
     for (i=0; i<len; i++) {
       fprintf(fp, "\\x%02x", pmap[i]&0xff);
     }

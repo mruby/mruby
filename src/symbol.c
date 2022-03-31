@@ -136,7 +136,7 @@ symhash(const char *key, size_t len)
 
 size_t mrb_packed_int_len(uint32_t num);
 size_t mrb_packed_int_encode(uint32_t num, uint8_t *p, uint8_t *pend);
-uint32_t mrb_packed_int_decode(uint8_t *p, uint8_t **newpos);
+uint32_t mrb_packed_int_decode(const uint8_t *p, const uint8_t **newpos);
 
 #define sym_lit_p(mrb, i) (mrb->symflags[i>>3]&(1<<(i&7)))
 #define sym_lit_set(mrb, i) mrb->symflags[i>>3]|=(1<<(i&7))
@@ -154,7 +154,7 @@ sym_check(mrb_state *mrb, const char *name, size_t len, mrb_sym i)
   }
   else {
     /* length in BER */
-    symlen = mrb_packed_int_decode((uint8_t*)symname, (uint8_t**)&symname);
+    symlen = mrb_packed_int_decode((const uint8_t*)symname, (const uint8_t**)&symname);
   }
   if (len == symlen && memcmp(symname, name, len) == 0) {
     return TRUE;
@@ -347,7 +347,7 @@ sym2name_len(mrb_state *mrb, mrb_sym sym, char *buf, mrb_int *lenp)
 
   const char *symname = mrb->symtbl[sym];
   if (!sym_lit_p(mrb, sym)) {
-    size_t len = mrb_packed_int_decode((uint8_t*)symname, (uint8_t**)&symname);
+    uint32_t len = mrb_packed_int_decode((const uint8_t*)symname, (const uint8_t**)&symname);
     if (lenp) *lenp = (mrb_int)len;
   }
   else if (lenp) {
