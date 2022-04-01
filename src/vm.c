@@ -1758,7 +1758,7 @@ RETRY_TRY_BLOCK:
       }
       else if (target_class->tt == MRB_TT_MODULE) {
         target_class = mrb_vm_ci_target_class(ci);
-        if (target_class->tt != MRB_TT_ICLASS) {
+        if (!target_class || target_class->tt != MRB_TT_ICLASS) {
           goto super_typeerror;
         }
       }
