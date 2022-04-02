@@ -10,6 +10,7 @@
 #include <mruby/proc.h>
 #include <mruby/value.h>
 #include <mruby/range.h>
+#include <mruby/internal.h>
 
 static size_t
 os_memsize_of_irep(mrb_state* state, const struct mrb_irep *irep)

@@ -9,9 +9,10 @@
 #include <mruby/proc.h>
 #include <mruby/opcode.h>
 #include <mruby/data.h>
-#include <mruby/presym.h>
 #include <mruby/array.h>
 #include <mruby/hash.h>
+#include <mruby/internal.h>
+#include <mruby/presym.h>
 
 static const mrb_code call_iseq[] = {
   OP_CALL,

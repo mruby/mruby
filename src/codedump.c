@@ -5,6 +5,7 @@
 #include <mruby/string.h>
 #include <mruby/proc.h>
 #include <mruby/dump.h>
+#include <mruby/internal.h>
 
 #ifndef MRB_NO_STDIO
 static void

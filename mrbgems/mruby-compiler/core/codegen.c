@@ -18,6 +18,7 @@
 #include <mruby/throw.h>
 #include <ctype.h>
 #include <string.h>
+#include <mruby/internal.h>
 
 #ifndef MRB_CODEGEN_LEVEL_MAX
 #define MRB_CODEGEN_LEVEL_MAX 256

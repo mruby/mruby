@@ -10,6 +10,7 @@
 #include <mruby/string.h>
 #include <mruby/dump.h>
 #include <mruby/class.h>
+#include <mruby/internal.h>
 #include <mruby/presym.h>
 
 #ifndef MRB_NO_PRESYM
@@ -133,10 +134,6 @@ symhash(const char *key, size_t len)
     hash += (hash << 15);
     return hash & 0xff;
 }
-
-size_t mrb_packed_int_len(uint32_t num);
-size_t mrb_packed_int_encode(uint32_t num, uint8_t *p, uint8_t *pend);
-uint32_t mrb_packed_int_decode(const uint8_t *p, const uint8_t **newpos);
 
 #define sym_lit_p(mrb, i) (mrb->symflags[i>>3]&(1<<(i&7)))
 #define sym_lit_set(mrb, i) mrb->symflags[i>>3]|=(1<<(i&7))

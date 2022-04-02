@@ -9,6 +9,7 @@
 #include <mruby/dump.h>
 #include <mruby/irep.h>
 #include <mruby/debug.h>
+#include <mruby/internal.h>
 
 #include <string.h>
 

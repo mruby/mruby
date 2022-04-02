@@ -9,6 +9,7 @@
 #include <mruby/compile.h>
 #include <mruby/dump.h>
 #include <mruby/proc.h>
+#include <mruby/internal.h>
 
 #define RITEBIN_EXT ".mrb"
 #define C_EXT       ".c"

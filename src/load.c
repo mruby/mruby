@@ -13,6 +13,7 @@
 #include <mruby/error.h>
 #include <mruby/data.h>
 #include <mruby/endian.h>
+#include <mruby/internal.h>
 #include <string.h>
 
 #if SIZE_MAX < UINT32_MAX

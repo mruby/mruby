@@ -88,12 +88,8 @@ struct RProc {
 
 #define mrb_proc_ptr(v)    ((struct RProc*)(mrb_ptr(v)))
 
-struct RProc *mrb_proc_new(mrb_state*, const mrb_irep*);
-struct RProc *mrb_closure_new(mrb_state*, const mrb_irep*);
 MRB_API struct RProc *mrb_proc_new_cfunc(mrb_state*, mrb_func_t);
 MRB_API struct RProc *mrb_closure_new_cfunc(mrb_state *mrb, mrb_func_t func, int nlocals);
-void mrb_proc_copy(mrb_state *mrb, struct RProc *a, struct RProc *b);
-mrb_int mrb_proc_arity(const struct RProc *p);
 
 /* following functions are defined in mruby-proc-ext so please include it when using */
 MRB_API struct RProc *mrb_proc_new_cfunc_with_env(mrb_state *mrb, mrb_func_t func, mrb_int argc, const mrb_value *argv);

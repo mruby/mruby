@@ -10,6 +10,7 @@
 #include <mruby/string.h>
 #include <mruby/range.h>
 #include <mruby/proc.h>
+#include <mruby/internal.h>
 #include <mruby/presym.h>
 #include "value_array.h"
 

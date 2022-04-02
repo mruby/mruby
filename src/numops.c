@@ -6,23 +6,8 @@
 
 #include <mruby.h>
 #include <mruby/numeric.h>
+#include <mruby/internal.h>
 #include <mruby/presym.h>
-
-mrb_value mrb_int_add(mrb_state *mrb, mrb_value x, mrb_value y);
-mrb_value mrb_int_sub(mrb_state *mrb, mrb_value x, mrb_value y);
-mrb_value mrb_int_mul(mrb_state *mrb, mrb_value x, mrb_value y);
-
-#ifdef MRB_USE_COMPLEX
-mrb_value mrb_complex_new(mrb_state *mrb, mrb_float x, mrb_float y);
-mrb_value mrb_complex_add(mrb_state *mrb, mrb_value x, mrb_value y);
-mrb_value mrb_complex_sub(mrb_state *mrb, mrb_value x, mrb_value y);
-mrb_value mrb_complex_mul(mrb_state *mrb, mrb_value x, mrb_value y);
-#endif
-
-mrb_value mrb_rational_new(mrb_state *mrb, mrb_int x, mrb_int y);
-mrb_value mrb_rational_add(mrb_state *mrb, mrb_value x, mrb_value y);
-mrb_value mrb_rational_sub(mrb_state *mrb, mrb_value x, mrb_value y);
-mrb_value mrb_rational_mul(mrb_state *mrb, mrb_value x, mrb_value y);
 
 MRB_API mrb_value
 mrb_num_add(mrb_state *mrb, mrb_value x, mrb_value y)

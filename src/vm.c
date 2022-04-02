@@ -19,6 +19,7 @@
 #include "value_array.h"
 #include <mruby/throw.h>
 #include <mruby/dump.h>
+#include <mruby/internal.h>
 #include <mruby/presym.h>
 
 #ifdef MRB_NO_STDIO
@@ -1162,9 +1163,6 @@ hash_new_from_values(mrb_state *mrb, mrb_int argc, mrb_value *regs)
   }
   return hash;
 }
-
-void mrb_method_added(mrb_state *mrb, struct RClass *c, mrb_sym mid);
-mrb_value mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value idx, mrb_value len);
 
 #define ARGUMENT_NORMALIZE(arg_base, arg_info, insn) do { \
   int n = *(arg_info)&0xf; \

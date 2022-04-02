@@ -16,6 +16,7 @@
 #include <mruby/data.h>
 #include <mruby/istruct.h>
 #include <mruby/opcode.h>
+#include <mruby/internal.h>
 #include <mruby/presym.h>
 
 union mt_ptr {
@@ -876,8 +877,6 @@ mrb_get_arg1(mrb_state *mrb)
   }
   return array_argv[0];
 }
-
-mrb_int mrb_ci_bidx(mrb_callinfo *ci);
 
 MRB_API mrb_bool
 mrb_block_given_p(mrb_state *mrb)
@@ -2305,8 +2304,6 @@ mrb_mod_to_s(mrb_state *mrb, mrb_value klass)
     return class_name_str(mrb, mrb_class_ptr(klass));
   }
 }
-
-void mrb_method_added(mrb_state *mrb, struct RClass *c, mrb_sym mid);
 
 static mrb_value
 mrb_mod_alias(mrb_state *mrb, mrb_value mod)

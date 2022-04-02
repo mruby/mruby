@@ -6,6 +6,7 @@
 #include <mruby/string.h>
 #include <mruby/numeric.h>
 #include <mruby/proc.h>
+#include <mruby/internal.h>
 #include <mruby/presym.h>
 
 static mrb_value

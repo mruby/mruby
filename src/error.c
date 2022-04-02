@@ -15,6 +15,7 @@
 #include <mruby/error.h>
 #include <mruby/class.h>
 #include <mruby/throw.h>
+#include <mruby/internal.h>
 #include <mruby/presym.h>
 
 void

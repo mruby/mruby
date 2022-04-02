@@ -6,9 +6,10 @@
 #include "mruby/numeric.h"
 #include "mruby/string.h"
 #include "mruby/variable.h"
+#include "mruby/internal.h"
+#include <mruby/presym.h>
 #include <errno.h>
 #include <string.h>
-#include <mruby/presym.h>
 
 static const struct {
 #ifdef MRB_NO_PRESYM
