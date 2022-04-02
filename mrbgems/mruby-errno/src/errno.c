@@ -45,7 +45,7 @@ mrb_sce_init(mrb_state *mrb, mrb_value self, mrb_value m, mrb_int n)
 
   m_errno = mrb_module_get_id(mrb, MRB_SYM(Errno));
   if (!no_errno) {
-    int i;
+    size_t i;
 
     for (i=0; i < E2C_LEN; i++) {
       if (e2c[i].eno == n) {
