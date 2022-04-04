@@ -2268,9 +2268,9 @@ RETRY_TRY_BLOCK:
           }
           if (ci->cci > CINFO_NONE) {
             ci = cipop(mrb);
+            mrb->exc = (struct RObject*)break_new(mrb, RBREAK_TAG_BREAK, proc, v);
             mrb_gc_arena_restore(mrb, ai);
             mrb->c->vmexec = FALSE;
-            mrb->exc = (struct RObject*)break_new(mrb, RBREAK_TAG_BREAK, proc, v);
             mrb->jmp = prev_jmp;
             MRB_THROW(prev_jmp);
           }
