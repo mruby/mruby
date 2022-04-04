@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: github/super-linter@v4.9.1
+      - uses: github/super-linter@v4.9.2
         env:
           ERROR_ON_MISSING_EXEC_BIT: true
           VALIDATE_BASH: true
