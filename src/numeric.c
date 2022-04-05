@@ -166,10 +166,7 @@ int_idiv(mrb_state *mrb, mrb_value x)
   mrb_int y;
 
   mrb_get_args(mrb, "i", &y);
-  if (y == 0) {
-    mrb_int_zerodiv(mrb);
-  }
-  return mrb_int_value(mrb, mrb_integer(x) / y);
+  return mrb_int_value(mrb, mrb_div_int(mrb, mrb_integer(x), y));
 }
 
 static mrb_value
