@@ -1136,6 +1136,10 @@ int_mod(mrb_state *mrb, mrb_value x)
 #endif
 }
 
+#ifndef MRB_NO_FLOAT
+static mrb_value flo_divmod(mrb_state *mrb, mrb_value x);
+#endif
+
 /*
  *  call-seq:
  *     int.divmod(numeric)  ->  array
@@ -1156,15 +1160,7 @@ int_divmod(mrb_state *mrb, mrb_value x)
 #ifdef MRB_NO_FLOAT
   mrb_raise(mrb, E_TYPE_ERROR, "non integer divmod");
 #else
-  else {
-    mrb_float div, mod;
-    mrb_value a, b;
-
-    flodivmod(mrb, (mrb_float)mrb_integer(x), mrb_as_float(mrb, y), &div, &mod);
-    a = mrb_int_value(mrb, (mrb_int)div);
-    b = mrb_float_value(mrb, mod);
-    return mrb_assoc_new(mrb, a, b);
-  }
+  return flo_divmod(mrb, x);
 #endif
 }
 
