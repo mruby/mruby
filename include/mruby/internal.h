@@ -83,6 +83,8 @@ mrb_int mrb_div_int(mrb_state *mrb, mrb_int x, mrb_int y);
 mrb_value mrb_int_add(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_int_sub(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_int_mul(mrb_state *mrb, mrb_value x, mrb_value y);
+void mrb_int_zerodiv(mrb_state *mrb);
+void mrb_int_overflow(mrb_state *mrb, const char *reason);
 
 #ifdef MRB_USE_COMPLEX
 mrb_value mrb_complex_new(mrb_state *mrb, mrb_float x, mrb_float y);
@@ -153,5 +155,37 @@ void mrb_gc_free_iv(mrb_state*, struct RObject*);
 
 /* VM */
 mrb_int mrb_ci_bidx(mrb_callinfo *ci);
+
+#ifdef MRB_USE_BIGINT
+mrb_value mrb_bint_new_int(mrb_state *mrb, mrb_int x);
+mrb_value mrb_bint_new_str(mrb_state *mrb, const char *x, mrb_int len, mrb_int base);
+mrb_value mrb_as_bint(mrb_state *mrb, mrb_value x);
+mrb_value mrb_bint_add(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_value mrb_bint_sub(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_value mrb_bint_mul(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_value mrb_bint_div(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_value mrb_bint_divmod(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_value mrb_bint_add_ii(mrb_state *mrb, mrb_int x, mrb_int y);
+mrb_value mrb_bint_sub_ii(mrb_state *mrb, mrb_int x, mrb_int y);
+mrb_value mrb_bint_mul_ii(mrb_state *mrb, mrb_int x, mrb_int y);
+mrb_value mrb_bint_div_ii(mrb_state *mrb, mrb_int x, mrb_int y);
+mrb_value mrb_bint_mod(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_value mrb_bint_rem(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_value mrb_bint_pow(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_value mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_int y, mrb_value z);
+mrb_value mrb_bint_and(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_value mrb_bint_or(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_value mrb_bint_xor(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_value mrb_bint_rev(mrb_state *mrb, mrb_value x);
+mrb_value mrb_bint_lshift(mrb_state *mrb, mrb_value x, mrb_int width);
+mrb_value mrb_bint_rshift(mrb_state *mrb, mrb_value x, mrb_int width);
+mrb_value mrb_bint_to_s(mrb_state *mrb, mrb_value x, mrb_int base);
+#ifndef MRB_NO_FLOAT
+mrb_float mrb_bint_as_float(mrb_state *mrb, mrb_value x);
+#endif
+mrb_int mrb_bint_as_int(mrb_state *mrb, mrb_value x);
+mrb_int mrb_bint_cmp(mrb_state *mrb, mrb_value x, mrb_value y);
+void mrb_gc_free_bint(mrb_state *mrb, struct RBasic *x);
+#endif
 
 #endif  /* MRUBY_INTERNAL_H */

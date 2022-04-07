@@ -12,6 +12,11 @@
 MRB_API mrb_value
 mrb_num_add(mrb_state *mrb, mrb_value x, mrb_value y)
 {
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x)) {
+    return mrb_bint_add(mrb, x, y);
+  }
+#endif
   if (mrb_integer_p(x)) {
     return mrb_int_add(mrb, x, y);
   }
@@ -41,6 +46,11 @@ mrb_num_add(mrb_state *mrb, mrb_value x, mrb_value y)
 MRB_API mrb_value
 mrb_num_sub(mrb_state *mrb, mrb_value x, mrb_value y)
 {
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x)) {
+    return mrb_bint_sub(mrb, x, y);
+  }
+#endif
   if (mrb_integer_p(x)) {
     return mrb_int_sub(mrb, x, y);
   }
@@ -70,6 +80,11 @@ mrb_num_sub(mrb_state *mrb, mrb_value x, mrb_value y)
 MRB_API mrb_value
 mrb_num_mul(mrb_state *mrb, mrb_value x, mrb_value y)
 {
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x)) {
+    return mrb_bint_mul(mrb, x, y);
+  }
+#endif
   if (mrb_integer_p(x)) {
     return mrb_int_mul(mrb, x, y);
   }

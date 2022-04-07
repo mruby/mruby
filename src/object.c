@@ -9,6 +9,7 @@
 #include <mruby/numeric.h>
 #include <mruby/string.h>
 #include <mruby/class.h>
+#include <mruby/internal.h>
 #include <mruby/presym.h>
 
 MRB_API mrb_bool
@@ -545,6 +546,11 @@ mrb_ensure_float_type(mrb_state *mrb, mrb_value val)
 #ifdef MRB_USE_COMPLEX
     case MRB_TT_COMPLEX:
       return mrb_complex_to_f(mrb, val);
+#endif
+
+#ifdef MRB_USE_BIGINT
+    case MRB_TT_BIGINT:
+      return mrb_float_value(mrb, mrb_bint_as_float(mrb, val));
 #endif
 
     default:

@@ -555,6 +555,7 @@ mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
         ttype != MRB_TT_SCLASS &&
         ttype != MRB_TT_ICLASS &&
         ttype != MRB_TT_ENV &&
+        ttype != MRB_TT_BIGINT &&
         ttype != tt) {
       mrb_raisef(mrb, E_TYPE_ERROR, "allocation failure of %C", cls);
     }
@@ -906,6 +907,12 @@ obj_free(mrb_state *mrb, struct RBasic *obj, int end)
       struct RData *o = (struct RData*)obj;
       mrb_free(mrb, o->iv);
     }
+    break;
+#endif
+
+#ifdef MRB_USE_BIGINT
+  case MRB_TT_BIGINT:
+    mrb_gc_free_bint(mrb, obj);
     break;
 #endif
 

@@ -2150,11 +2150,24 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
   return result;
 }
 
+static mrb_bool
+trailingbad(const char *str, const char *p, const char *pend)
+{
+  if (p == str) return TRUE;             /* no number */
+  if (*(p - 1) == '_') return TRUE;      /* trailing '_' */
+  while (p<pend && ISSPACE(*p)) p++;
+  if (p<pend) return TRUE;               /* trailing garbage */
+  return FALSE;
+}
+
 static mrb_value
 mrb_str_len_to_integer(mrb_state *mrb, const char *str, size_t len, mrb_int base, int badcheck)
 {
   const char *p = str;
   const char *pend = str + len;
+#ifdef MRB_USE_BIGINT
+  const char *p2 = NULL;
+#endif
   char sign = 1;
   int c;
   mrb_int n = 0;
@@ -2265,6 +2278,9 @@ mrb_str_len_to_integer(mrb_state *mrb, const char *str, size_t len, mrb_int base
     if (badcheck) goto bad;
     return mrb_fixnum_value(0);
   }
+#ifdef MRB_USE_BIGINT
+  p2 = p;
+#endif
   for ( ;p<pend;p++) {
     if (*p == '_') {
       p++;
@@ -2292,18 +2308,25 @@ mrb_str_len_to_integer(mrb_state *mrb, const char *str, size_t len, mrb_int base
         break;
       }
     overflow:
+#ifdef MRB_USE_BIGINT
+      ;
+      const char *p3 = p2;
+      while (p3 < pend) {
+        char c = TOLOWER(*p3);
+        const char *p4 = strchr(mrb_digitmap, c);
+        if (p4 == NULL && c != '_') break;
+        if (p4 - mrb_digitmap >= base) break;
+        p3++;
+      }
+      if (badcheck && trailingbad(str, p, pend)) goto bad;
+      return mrb_bint_new_str(mrb, p2, (mrb_int)(p3-p2), sign ? base : -base);
+#endif
       mrb_raisef(mrb, E_RANGE_ERROR, "string (%l) too big for integer", str, pend-str);
     }
     n += c;
   }
   val = (mrb_int)n;
-  if (badcheck) {
-    if (p == str) goto bad;             /* no number */
-    if (*(p - 1) == '_') goto bad;      /* trailing '_' */
-    while (p<pend && ISSPACE(*p)) p++;
-    if (p<pend) goto bad;               /* trailing garbage */
-  }
-
+  if (badcheck && trailingbad(str, p, pend)) goto bad;
   return mrb_int_value(mrb, sign ? val : -val);
  bad:
   mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid string for number(%!l)", str, pend-str);

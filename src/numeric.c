@@ -45,6 +45,18 @@ mrb_int_zerodiv(mrb_state *mrb)
 mrb_value
 mrb_int_pow(mrb_state *mrb, mrb_value x)
 {
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x)) {
+    mrb_value y = mrb_get_arg1(mrb);
+
+#ifndef MRB_NO_FLOAT
+    if (mrb_float_p(y)) {
+      return mrb_float_value(mrb, pow(mrb_bint_as_float(mrb, x), mrb_float(y)));
+    }
+#endif
+    return mrb_bint_pow(mrb, x, y);
+  }
+#endif
   mrb_int base = mrb_integer(x);
   mrb_int result = 1;
   mrb_int exp;
@@ -79,7 +91,11 @@ mrb_int_pow(mrb_state *mrb, mrb_value x)
     exp >>= 1;
     if (exp == 0) break;
     if (mrb_int_mul_overflow(base, base, &base)) {
+#ifdef MRB_USE_BIGINT
+      return mrb_bint_pow(mrb, mrb_bint_new_int(mrb, mrb_integer(x)), y);
+#else
       mrb_int_overflow(mrb, "power");
+#endif
     }
   }
   return mrb_int_value(mrb, result);
@@ -121,13 +137,28 @@ static mrb_value
 int_div(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x)) {
+    return mrb_bint_div(mrb, x, y);
+  }
+#endif
   mrb_int a = mrb_integer(x);
 
   if (mrb_integer_p(y)) {
-    mrb_int div = mrb_div_int(mrb, a, mrb_integer(y));
+    mrb_int b = mrb_integer(y);
+#ifdef MRB_USE_BIGINT
+    if(a == MRB_INT_MIN && b == -1) {
+      return mrb_bint_mul_ii(mrb, a, b);
+    }
+#endif
+    mrb_int div = mrb_div_int(mrb, a, b);
     return mrb_int_value(mrb, div);
   }
   switch (mrb_type(y)) {
+#ifdef MRB_USE_BIGINT
+  case MRB_TT_BIGINT:
+    return mrb_bint_div(mrb, mrb_bint_new_int(mrb, a), y);
+#endif
 #ifdef MRB_USE_RATIONAL
   case MRB_TT_RATIONAL:
     return mrb_rational_div(mrb, mrb_rational_new(mrb, a, 1), y);
@@ -163,6 +194,11 @@ int_div(mrb_state *mrb, mrb_value x)
 static mrb_value
 int_idiv(mrb_state *mrb, mrb_value x)
 {
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x)) {
+    return mrb_bint_div(mrb, x, mrb_get_arg1(mrb));
+  }
+#endif
   mrb_int y;
 
   mrb_get_args(mrb, "i", &y);
@@ -182,6 +218,11 @@ int_quo(mrb_state *mrb, mrb_value x)
   if (y == 0) {
     mrb_int_zerodiv(mrb);
   }
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x)) {
+    return mrb_float_value(mrb, mrb_bint_as_float(mrb, x) / y);
+  }
+#endif
   return mrb_float_value(mrb, mrb_integer(x) / y);
 #endif
 #else
@@ -502,6 +543,11 @@ int_eql(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
 
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x)) {
+    return mrb_bool_value(mrb_bint_cmp(mrb, x, y) == 0);
+  }
+#endif
   if (!mrb_integer_p(y)) return mrb_false_value();
   return mrb_bool_value(mrb_integer(x) == mrb_integer(y));
 }
@@ -1038,16 +1084,25 @@ mrb_int_mul(mrb_state *mrb, mrb_value x, mrb_value y)
     if (a == 0) return x;
     b = mrb_integer(y);
     if (mrb_int_mul_overflow(a, b, &c)) {
+#ifdef MRB_USE_BIGINT
+      x = mrb_bint_new_int(mrb, a);
+      return mrb_bint_mul(mrb, x, y);
+#else
       mrb_int_overflow(mrb, "multiplication");
+#endif
     }
     return mrb_int_value(mrb, c);
   }
   switch (mrb_type(y)) {
-#if defined(MRB_USE_RATIONAL)
+#ifdef MRB_USE_BIGINT
+  case MRB_TT_BIGINT:
+    return mrb_bint_mul(mrb, y, x);
+#endif
+#ifdef MRB_USE_RATIONAL
   case MRB_TT_RATIONAL:
     return mrb_rational_mul(mrb, y, x);
 #endif
-#if defined(MRB_USE_COMPLEX)
+#ifdef MRB_USE_COMPLEX
   case MRB_TT_COMPLEX:
     return mrb_complex_mul(mrb, y, x);
 #endif
@@ -1075,6 +1130,11 @@ int_mul(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
 
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x)) {
+    return mrb_bint_mul(mrb, x, y);
+  }
+#endif
   return mrb_int_mul(mrb, x, y);
 }
 
@@ -1115,6 +1175,11 @@ int_mod(mrb_state *mrb, mrb_value x)
   mrb_value y = mrb_get_arg1(mrb);
   mrb_int a, b;
 
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x)) {
+    return mrb_bint_mod(mrb, x, y);
+  }
+#endif
   a = mrb_integer(x);
   if (mrb_integer_p(y)) {
     b = mrb_integer(y);
@@ -1151,6 +1216,17 @@ int_divmod(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
 
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x)) {
+#ifndef MRB_NO_FLOAT
+    if (mrb_float_p(y)) {
+      mrb_float f = mrb_bint_as_float(mrb, x);
+      return flo_divmod(mrb, mrb_float_value(mrb, f));
+    }
+#endif
+    return mrb_bint_divmod(mrb, x, y);
+  }
+#endif
   if (mrb_integer_p(y)) {
     mrb_int div, mod;
 
@@ -1206,6 +1282,10 @@ int_equal(mrb_state *mrb, mrb_value x)
   case MRB_TT_FLOAT:
     return mrb_bool_value((mrb_float)mrb_integer(x) == mrb_float(y));
 #endif
+#ifdef MRB_USE_BIGINT
+  case MRB_TT_BIGINT:
+    return mrb_bool_value(mrb_bint_cmp(mrb, y, x) == 0);
+#endif
 #ifdef MRB_USE_RATIONAL
   case MRB_TT_RATIONAL:
     return mrb_bool_value(mrb_equal(mrb, y, x));
@@ -1235,6 +1315,11 @@ int_rev(mrb_state *mrb, mrb_value num)
 {
   mrb_int val = mrb_integer(num);
 
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(num)) {
+    mrb_bint_rev(mrb, num);
+  }
+#endif
   return mrb_int_value(mrb, ~val);
 }
 
@@ -1265,6 +1350,11 @@ int_and(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
 
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x)) {
+    return mrb_bint_and(mrb, x, y);
+  }
+#endif
   bit_op(x, y, and, &);
 }
 
@@ -1281,6 +1371,11 @@ int_or(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
 
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x)) {
+    return mrb_bint_or(mrb, x, y);
+  }
+#endif
   bit_op(x, y, or, |);
 }
 
@@ -1297,6 +1392,11 @@ int_xor(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
 
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x)) {
+    return mrb_bint_xor(mrb, x, y);
+  }
+#endif
   bit_op(x, y, or, ^);
 }
 
@@ -1355,10 +1455,20 @@ int_lshift(mrb_state *mrb, mrb_value x)
   if (width == 0) {
     return x;
   }
+  if (width == MRB_INT_MIN) mrb_int_overflow(mrb, "bit shift");
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x)) {
+    return mrb_bint_lshift(mrb, x, width);
+  }
+#endif
   val = mrb_integer(x);
   if (val == 0) return x;
   if (!mrb_num_shift(mrb, val, width, &val)) {
+#ifdef MRB_USE_BIGINT
+    return mrb_bint_lshift(mrb, mrb_bint_new_int(mrb, val), width);
+#else
     mrb_int_overflow(mrb, "bit shift");
+#endif
   }
   return mrb_int_value(mrb, val);
 }
@@ -1380,11 +1490,20 @@ int_rshift(mrb_state *mrb, mrb_value x)
   if (width == 0) {
     return x;
   }
+  if (width == MRB_INT_MIN) mrb_int_overflow(mrb, "bit shift");
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x)) {
+    return mrb_bint_rshift(mrb, x, width);
+  }
+#endif
   val = mrb_integer(x);
   if (val == 0) return x;
-  if (width == MRB_INT_MIN) mrb_int_overflow(mrb, "bit shift");
   if (!mrb_num_shift(mrb, val, -width, &val)) {
+#ifdef MRB_USE_BIGINT
+    return mrb_bint_rshift(mrb, mrb_bint_new_int(mrb, val), width);
+#else
     mrb_int_overflow(mrb, "bit shift");
+#endif
   }
   return mrb_int_value(mrb, val);
 }
@@ -1402,6 +1521,11 @@ int_rshift(mrb_state *mrb, mrb_value x)
 static mrb_value
 int_to_f(mrb_state *mrb, mrb_value num)
 {
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(num)) {
+    return mrb_float_value(mrb, mrb_bint_as_float(mrb, num));
+  }
+#endif
   return mrb_float_value(mrb, (mrb_float)mrb_integer(num));
 }
 
@@ -1454,16 +1578,25 @@ mrb_int_add(mrb_state *mrb, mrb_value x, mrb_value y)
     if (a == 0) return y;
     b = mrb_integer(y);
     if (mrb_int_add_overflow(a, b, &c)) {
+#ifdef MRB_USE_BIGINT
+      x = mrb_bint_new_int(mrb, a);
+      return mrb_bint_add(mrb, x, y);
+#else
       mrb_int_overflow(mrb, "addition");
+#endif
     }
     return mrb_int_value(mrb, c);
   }
   switch (mrb_type(y)) {
-#if defined(MRB_USE_RATIONAL)
+#ifdef MRB_USE_BIGINT
+  case MRB_TT_BIGINT:
+    return mrb_bint_add(mrb, y, x);
+#endif
+#ifdef MRB_USE_RATIONAL
   case MRB_TT_RATIONAL:
     return mrb_rational_add(mrb, y, x);
 #endif
-#if defined(MRB_USE_COMPLEX)
+#ifdef MRB_USE_COMPLEX
   case MRB_TT_COMPLEX:
     return mrb_complex_add(mrb, y, x);
 #endif
@@ -1490,6 +1623,11 @@ int_add(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
 
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(self)) {
+    return mrb_bint_add(mrb, self, other);
+  }
+#endif
   return mrb_int_add(mrb, self, other);
 }
 
@@ -1504,16 +1642,25 @@ mrb_int_sub(mrb_state *mrb, mrb_value x, mrb_value y)
 
     b = mrb_integer(y);
     if (mrb_int_sub_overflow(a, b, &c)) {
+#ifdef MRB_USE_BIGINT
+      x = mrb_bint_new_int(mrb, a);
+      return mrb_bint_sub(mrb, x, y);
+#else
       mrb_int_overflow(mrb, "subtraction");
+#endif
     }
     return mrb_int_value(mrb, c);
   }
   switch (mrb_type(y)) {
-#if defined(MRB_USE_RATIONAL)
+#ifdef MRB_USE_BIGINT
+  case MRB_TT_BIGINT:
+    return mrb_bint_sub(mrb, mrb_bint_new_int(mrb, a), y);
+#endif
+#ifdef MRB_USE_RATIONAL
   case MRB_TT_RATIONAL:
     return mrb_rational_sub(mrb, mrb_rational_new(mrb, a, 1), y);
 #endif
-#if defined(MRB_USE_COMPLEX)
+#ifdef MRB_USE_COMPLEX
   case MRB_TT_COMPLEX:
     return mrb_complex_sub(mrb, mrb_complex_new(mrb, (mrb_float)a, 0), y);
 #endif
@@ -1541,6 +1688,11 @@ int_sub(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
 
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(self)) {
+    return mrb_bint_sub(mrb, self, other);
+  }
+#endif
   return mrb_int_sub(mrb, self, other);
 }
 
@@ -1615,6 +1767,11 @@ int_to_s(mrb_state *mrb, mrb_value self)
   mrb_int base = 10;
 
   mrb_get_args(mrb, "|i", &base);
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(self)) {
+    return mrb_bint_to_s(mrb, self, base);
+  }
+#endif
   return mrb_integer_to_str(mrb, self, base);
 }
 
@@ -1622,6 +1779,12 @@ int_to_s(mrb_state *mrb, mrb_value self)
 static mrb_int
 cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
 {
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(v2)) {
+    return mrb_bint_cmp(mrb, v1, v2);
+  }
+#endif
+
 #ifdef MRB_NO_FLOAT
   mrb_int x, y;
 #else

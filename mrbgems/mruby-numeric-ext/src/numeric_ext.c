@@ -1,9 +1,40 @@
 #include <mruby.h>
 #include <mruby/numeric.h>
+#include <mruby/internal.h>
 #include <mruby/presym.h>
 
-void mrb_int_zerodiv(mrb_state *mrb);
-void mrb_int_overflow(mrb_state *mrb, const char *reason);
+#ifdef MRB_USE_BIGINT
+#include <mruby/bigint.h>
+
+static mrb_value
+bint_allbits(mrb_state *mrb, mrb_value x, mrb_value y)
+{
+  y = mrb_as_bint(mrb, y);
+  x = mrb_bint_and(mrb, x, y);
+  if (mrb_bint_cmp(mrb, x, y) == 0) return mrb_true_value();
+  return mrb_false_value();
+}
+
+static mrb_value
+bint_anybits(mrb_state *mrb, mrb_value x, mrb_value y)
+{
+  y = mrb_as_bint(mrb, y);
+  x = mrb_bint_and(mrb, x, y);
+  if (mrb_bint_cmp(mrb, x, mrb_fixnum_value(0)) != 0)
+    return mrb_true_value();
+  return mrb_false_value();
+}
+
+static mrb_value
+bint_nobits(mrb_state *mrb, mrb_value x, mrb_value y)
+{
+  y = mrb_as_bint(mrb, y);
+  x = mrb_bint_and(mrb, x, y);
+  if (mrb_bint_cmp(mrb, x, mrb_fixnum_value(0)) == 0)
+    return mrb_true_value();
+  return mrb_false_value();
+}
+#endif
 
 /*
  *  call-seq:
@@ -14,6 +45,9 @@ void mrb_int_overflow(mrb_state *mrb, const char *reason);
 static mrb_value
 int_allbits(mrb_state *mrb, mrb_value self)
 {
+#ifdef MRB_USE_BIGINT
+  return bint_allbits(mrb, self, mrb_get_arg1(mrb));
+#endif
   mrb_int n, m;
 
   mrb_get_args(mrb, "i", &m);
@@ -30,6 +64,9 @@ int_allbits(mrb_state *mrb, mrb_value self)
 static mrb_value
 int_anybits(mrb_state *mrb, mrb_value self)
 {
+#ifdef MRB_USE_BIGINT
+  return bint_anybits(mrb, self, mrb_get_arg1(mrb));
+#endif
   mrb_int n, m;
 
   mrb_get_args(mrb, "i", &m);
@@ -46,12 +83,19 @@ int_anybits(mrb_state *mrb, mrb_value self)
 static mrb_value
 int_nobits(mrb_state *mrb, mrb_value self)
 {
+#ifdef MRB_USE_BIGINT
+  return bint_nobits(mrb, self, mrb_get_arg1(mrb));
+#endif
   mrb_int n, m;
 
   mrb_get_args(mrb, "i", &m);
   n = mrb_integer(self);
   return mrb_bool_value((n & m) == 0);
 }
+
+#ifndef MRB_NO_FLOAT
+static mrb_value flo_remainder(mrb_state *mrb, mrb_value self);
+#endif
 
 /*
  *  call-seq:
@@ -67,6 +111,14 @@ int_remainder(mrb_state *mrb, mrb_value x)
   mrb_value y = mrb_get_arg1(mrb);
   mrb_int a, b;
 
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x)) {
+    if (mrb_integer_p(y) || mrb_bigint_p(y)) {
+      return mrb_bint_rem(mrb, x, y);
+    }
+    return flo_remainder(mrb, mrb_float_value(mrb, mrb_as_float(mrb, x)));
+  }
+#endif
   a = mrb_integer(x);
   if (mrb_integer_p(y)) {
     b = mrb_integer(y);
@@ -77,11 +129,7 @@ int_remainder(mrb_state *mrb, mrb_value x)
 #ifdef MRB_NO_FLOAT
   mrb_raise(mrb, E_TYPE_ERROR, "non integer remainder");
 #else
-  mrb_float n = (mrb_float)a;
-  mrb_float m = mrb_as_float(mrb, y);
-
-  if (isinf(m)) return mrb_float_value(mrb, n);
-  return mrb_float_value(mrb, n-m*trunc(n/m));
+  return flo_remainder(mrb, mrb_float_value(mrb, mrb_as_float(mrb, x)));
 #endif
 }
 
@@ -100,14 +148,25 @@ mrb_value mrb_int_pow(mrb_state *mrb, mrb_value x);
 static mrb_value
 int_powm(mrb_state *mrb, mrb_value x)
 {
+  mrb_value m;
   mrb_int base, exp, mod, result = 1;
 
   if (mrb_get_argc(mrb) == 1) {
     return mrb_int_pow(mrb, x);
   }
-  mrb_get_args(mrb, "ii", &exp, &mod);
-  if (exp < 0) mrb_raise(mrb, E_TYPE_ERROR, "int.pow(n,m): n must be positive");
-  if (mod < 0) mrb_raise(mrb, E_TYPE_ERROR, "int.pow(n,m): m must be positive");
+  mrb_get_args(mrb, "io", &exp, &m);
+  if (exp < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "int.pow(n,m): n must be positive");
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x)) {
+    return mrb_bint_powm(mrb, x, exp, m);
+  }
+  if (mrb_bigint_p(m)) {
+    return mrb_bint_powm(mrb, mrb_bint_new_int(mrb, mrb_integer(x)), exp, m);
+  }
+#endif
+  if (!mrb_integer_p(m)) mrb_raise(mrb, E_TYPE_ERROR, "int.pow(n,m): m must be integer");
+  mod = mrb_integer(m);
+  if (mod < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "int.pow(n,m): m must be positive");
   if (mod == 0) mrb_int_zerodiv(mrb);
   if (mod == 1) return mrb_fixnum_value(0);
   base = mrb_integer(x);

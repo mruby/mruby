@@ -1267,7 +1267,15 @@ RETRY_TRY_BLOCK:
         goto L_INT_OVERFLOW;
 #endif
       case IREP_TT_BIGINT:
+#ifdef MRB_USE_BIGINT
+        {
+          const char *s = pool[b].u.str;
+          regs[a] = mrb_bint_new_str(mrb, s+2, (mrb_int)s[0], (mrb_int)s[1]);
+        }
+        break;
+#else
         goto L_INT_OVERFLOW;
+#endif
 #ifndef MRB_NO_FLOAT
       case IREP_TT_FLOAT:
         regs[a] = mrb_float_value(mrb, pool[b].u.f);
@@ -2376,12 +2384,14 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
+#if !defined(MRB_USE_BIGINT) || (defined(MRB_INT32) && MRB_32BIT)
   L_INT_OVERFLOW:
     {
       mrb_value exc = mrb_exc_new_lit(mrb, E_RANGE_ERROR, "integer overflow");
       mrb_exc_set(mrb, exc);
     }
     goto L_RAISE;
+#endif
 
 #define TYPES2(a,b) ((((uint16_t)(a))<<8)|(((uint16_t)(b))&0xff))
 #define OP_MATH(op_name)                                                    \
@@ -2401,8 +2411,9 @@ RETRY_TRY_BLOCK:
   case TYPES2(MRB_TT_INTEGER, MRB_TT_INTEGER):                              \
     {                                                                       \
       mrb_int x = mrb_integer(regs[a]), y = mrb_integer(regs[a+1]), z;      \
-      if (mrb_int_##op_name##_overflow(x, y, &z))                           \
-        OP_MATH_OVERFLOW_INT();                                             \
+      if (mrb_int_##op_name##_overflow(x, y, &z)) {                         \
+        OP_MATH_OVERFLOW_INT(op_name,x,y);                                  \
+      }                                                                     \
       else                                                                  \
         SET_INT_VALUE(mrb,regs[a], z);                                      \
     }                                                                       \
@@ -2418,7 +2429,11 @@ RETRY_TRY_BLOCK:
     }                                                                           \
     break
 #endif
-#define OP_MATH_OVERFLOW_INT() goto L_INT_OVERFLOW
+#ifdef MRB_USE_BIGINT
+#define OP_MATH_OVERFLOW_INT(op,x,y) regs[a] = mrb_bint_##op##_ii(mrb,x,y)
+#else
+#define OP_MATH_OVERFLOW_INT(op,x,y) goto L_INT_OVERFLOW
+#endif
 #define OP_MATH_CASE_STRING_add()                                           \
   case TYPES2(MRB_TT_STRING, MRB_TT_STRING):                                \
     regs[a] = mrb_str_plus(mrb, regs[a], regs[a+1]);                        \
@@ -2500,8 +2515,9 @@ RETRY_TRY_BLOCK:
   case MRB_TT_INTEGER:                                                      \
     {                                                                       \
       mrb_int x = mrb_integer(regs[a]), y = (mrb_int)b, z;                  \
-      if (mrb_int_##op_name##_overflow(x, y, &z))                           \
-        OP_MATH_OVERFLOW_INT();                                             \
+      if (mrb_int_##op_name##_overflow(x, y, &z)) {                         \
+        OP_MATH_OVERFLOW_INT(op_name,x,y);                                  \
+      }                                                                     \
       else                                                                  \
         SET_INT_VALUE(mrb,regs[a], z);                                      \
     }                                                                       \
