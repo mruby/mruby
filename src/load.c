@@ -164,9 +164,8 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, const uint8_t *end, size_
 
       case IREP_TT_BIGINT:
         pool_data_len = bin_to_uint8(src); /* pool data length */
-        src += sizeof(uint8_t);
         if (src + pool_data_len > end) return FALSE;
-         {
+        {
           char *p;
           pool[i].tt = IREP_TT_BIGINT;
           p = (char*)mrb_malloc(mrb, pool_data_len+2);
