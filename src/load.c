@@ -163,16 +163,16 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, const uint8_t *end, size_
 #endif
 
       case IREP_TT_BIGINT:
-        pool_data_len = bin_to_uint8(src); /* pool data length */
+        pool_data_len = bin_to_uint8(src) + 2; /* pool data length */
         if (src + pool_data_len > end) return FALSE;
-        {
+        else {
           char *p;
           pool[i].tt = IREP_TT_BIGINT;
-          p = (char*)mrb_malloc(mrb, pool_data_len+2);
-          memcpy(p, src, pool_data_len+2);
+          p = (char*)mrb_malloc(mrb, pool_data_len);
+          memcpy(p, src, pool_data_len);
           pool[i].u.str = (const char*)p;
         }
-        src += pool_data_len + 2;
+        src += pool_data_len;
         break;
 
       case IREP_TT_FLOAT:
