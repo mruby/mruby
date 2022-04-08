@@ -1905,7 +1905,7 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
           }
         }
         if (tree->cdr->car) {       /* keyword arguments */
-          if (n == 14) {
+          if (n == 13 || n == 14) {
             pop_n(n);
             genop_2(s, OP_ARRAY, cursp(), n);
             push();
