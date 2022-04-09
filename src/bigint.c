@@ -28,9 +28,8 @@ mpz_init(mrb_state *mrb, mpz_t *s)
 static void
 mpz_init_set(mrb_state *mrb, mpz_t *s, mpz_t *t)
 {
-  int i;
   s->p = (mp_limb*)mrb_malloc(mrb, sizeof(mp_limb) * t->sz);
-  for (i=0;i < t->sz ; i++)
+  for (size_t i=0;i < t->sz ; i++)
     (s->p)[i] = (t->p)[i];
 
   s->sn = t->sn;
@@ -728,7 +727,7 @@ mpz_get_int(mpz_t *y, mrb_int *v)
   if (y->sn == 0) {
     i = 0;
   }
-  else if (y->sz > 2 || y->p[1] > 1) {
+  else if (digits(y) > 2 || y->p[1] > 1) {
     return FALSE;
   }
   else {
