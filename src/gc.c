@@ -193,7 +193,7 @@ gettimeofday_time(void)
 
 #define GC_STEP_SIZE 1024
 
-/* white: 001 or 010, black: 100, gray: 000 */
+/* white: 001 or 010, black: 100, gray: 000, red:111 */
 #define GC_GRAY 0
 #define GC_WHITE_A 1
 #define GC_WHITE_B (1 << 1)
