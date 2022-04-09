@@ -151,9 +151,11 @@ mt_get(mrb_state *mrb, mt_tbl *t, mrb_sym sym, union mt_ptr *pp)
   hash = kh_int_hash_func(mrb, sym);
 #ifdef MRB_USE_INLINE_METHOD_CACHE
   int cpos = (hash^(uintptr_t)t) % MT_CACHE_SIZE;
+  mrb_sym key;
   pos = mt_cache[cpos];
-  if (cpos < t->alloc && t->table[cpos].key == sym) {
-    return &t->table[cpos];
+  if (cpos < t->alloc && key = keys[pos] && MT_KEY_SYM(key) == sym) {
+    *pp = vals[pos];
+    return key;
   }
 #endif
   start = pos = hash & (t->alloc-1);
@@ -162,7 +164,7 @@ mt_get(mrb_state *mrb, mt_tbl *t, mrb_sym sym, union mt_ptr *pp)
     if (MT_KEY_SYM(key) == sym) {
       *pp = vals[pos];
 #ifdef MRB_USE_INLINE_METHOD_CACHE
-      if (pos < 0xff) {
+      if (pos < 0x100) {
         mt_cache[cpos] = pos;
       }
 #endif
