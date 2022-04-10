@@ -106,9 +106,9 @@ mpz_realloc(mrb_state *mrb, mpz_t *x, size_t size)
 static size_t
 digits(mpz_t *x)
 {
-  int i;
-  for (i = (x->sz) - 1; i>=0 && (x->p)[i] == 0 ; i--)
-    ;
+  size_t i;
+  for (i = (x->sz) - 1; (x->p)[i] == 0 ; i--)
+    if (i == 0) break;
   return i+1;
 }
 
@@ -194,12 +194,13 @@ usub(mrb_state *mrb, mpz_t *z, mpz_t *y, mpz_t *x)
 static int
 ucmp(mpz_t *y, mpz_t *x)
 {
-  int i;
-  for (i=imax(x->sz,y->sz)-1;i>=0;i--) {
+  size_t i;
+  for (i=imax(x->sz,y->sz)-1;;i--) {
     if (dg(y,i) < dg(x,i))
       return (-1);
     else if (dg(y,i) > dg(x,i))
       return 1;
+    if (i == 0) break;
   }
   return 0;
 }
@@ -348,7 +349,7 @@ mpz_mul_int(mrb_state *mrb, mpz_t *x, mpz_t *y, mrb_int n)
 static int
 lzb(mp_limb a)
 {
-  mp_limb i; size_t j=0;
+  mp_limb i; int j=0;
 
   for (i = ((mp_limb)1 << (DIGITBITS-1)); i && !(a&i) ; j++,i>>=1)
     ;
@@ -406,7 +407,8 @@ static void
 udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
 {
   mpz_t q, x, y, r;
-  int ns,f,xd,yd,i,j,ccc=0;
+  int ns,f,ccc=0;
+  size_t xd,yd,i, j;
   mp_limb zz,z,qhat,b,u,m;
 
   if (uzero(yy))
@@ -421,7 +423,7 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
   mpz_realloc(mrb,&q,(size_t)xd);
   xd*=2; yd*=2;
   z = hd(&y,yd-1);
-  for (j=(xd-yd);j>=0;j--) {
+  for (j=(xd-yd);;j--) {
     if (z == LMAX)
       qhat = hd(&x,j+yd);
     else {
@@ -429,7 +431,7 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
     }
     b = 0; zz=0;
     if (qhat) {
-      for (i=0; i < yd; i++) {
+      for (i=0; i<yd; i++) {
         zz = qhat * hd(&y,i);
         u = hd(&x,i+j);
         u-=b;
@@ -456,10 +458,10 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
           x.p[(i+j)/2] -= b;
       }
     }
-    for(;;zz++) {
+    for (;;zz++) {
       f=1;
       if (!hd(&x,j+yd)) {
-        for(i=yd-1; i>=0; i--) {
+        for (i=yd-1; ; i--) {
           if (hd(&x,j+i) > hd(&y,i)) {
             f=1;
             break;
@@ -469,6 +471,7 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
             break;
           }
         }
+        if (i == 0) break;
       }
       if (!f)
         break;
@@ -499,6 +502,7 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
       q.p[j/2] |= qhat << HALFDIGITBITS;
     else
       q.p[j/2] |= qhat;
+    if (j == 0) break;
   }
   mpz_realloc(mrb,&r,(size_t)(yy->sz));
   zero(&r);
@@ -624,7 +628,7 @@ mpz_sizeinbase(mpz_t *x, int base)
   int i,j;
   int bits = digits(x) * DIGITBITS;
   mrb_assert(2 <= base && base <= 36);
-  for (j=0,i=1; i<=base;i*=2,j++)
+  for (j=0,i=1; i<=base; i*=2,j++)
     ;
   return ((bits)/(j-1)+1);
 }
@@ -632,7 +636,7 @@ mpz_sizeinbase(mpz_t *x, int base)
 static int
 mpz_init_set_str(mrb_state *mrb, mpz_t *x, const char *s, mrb_int len, mrb_int base)
 {
-  mrb_int i;
+  size_t i;
   mrb_int retval = 0;
   mpz_t t,m,bb;
   short sn;
@@ -650,7 +654,7 @@ mpz_init_set_str(mrb_state *mrb, mpz_t *x, const char *s, mrb_int len, mrb_int b
   else
     sn = 1;
   mpz_init_set_int(mrb,&bb, base);
-  for (i = len-1; i>=0; i--) {
+  for (i = len-1;; i--) {
     if (s[i]=='_') continue;
     if (s[i] >= '0' && s[i] <= '9')
       k = (unsigned int)s[i] - (unsigned int)'0';
@@ -669,6 +673,7 @@ mpz_init_set_str(mrb_state *mrb, mpz_t *x, const char *s, mrb_int len, mrb_int b
     mpz_mul_int(mrb,&t,&m,(mrb_int)k);
     mpz_add(mrb,x,x,&t);
     mpz_mul(mrb,&m,&m,&bb);
+    if (i == 0) break;
   }
   if (x->sn)
     x->sn = sn;
@@ -912,7 +917,7 @@ mpz_powm(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int ex, mpz_t *n)
 {
   mpz_t t, e;
   struct is *stack = NULL;
-  int k,i;
+  size_t k,i;
 
   if (ex == 0) {
     mpz_set_int(mrb,zz,1);
@@ -933,13 +938,14 @@ mpz_powm(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int ex, mpz_t *n)
 
   mpz_mod(mrb,&t,x,n);  /* t=x%n */
 
-  for (i=k-1;i>=0;i--) {
+  for (i=k-1;;i--) {
     mpz_mul(mrb,&t,&t,&t);
     mpz_mod(mrb,&t,&t,n);
     if (pop(mrb,&stack)) {
       mpz_mul(mrb,&t,&t,x);
       mpz_mod(mrb,&t,&t,n);
     }
+    if (i == 0) break;
   }
   mpz_set(mrb,zz,&t);
   mpz_clear(mrb,&t);
