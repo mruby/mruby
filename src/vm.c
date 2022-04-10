@@ -246,7 +246,7 @@ top_proc(mrb_state *mrb, const struct RProc *proc)
 
 static inline mrb_callinfo*
 cipush(mrb_state *mrb, mrb_int push_stacks, uint8_t cci,
-       struct RClass *target_class, const struct RProc *proc, mrb_sym mid, uint8_t argc)
+       struct RClass *target_class, const struct RProc *proc, mrb_sym mid, uint16_t argc)
 {
   struct mrb_context *c = mrb->c;
   mrb_callinfo *ci = c->ci;
@@ -535,7 +535,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
       argc = (mrb_int)ac;
       mid = MRB_SYM(method_missing);
     }
-    ci = cipush(mrb, n, 0, c, NULL, mid, argc);
+    ci = cipush(mrb, n, 0, c, NULL, mid, (uint16_t)argc);
     if (MRB_METHOD_PROC_P(m)) {
       struct RProc *p = MRB_METHOD_PROC(m);
 
