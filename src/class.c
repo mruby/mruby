@@ -936,7 +936,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
   int i = 0;
   va_list ap;
   mrb_callinfo *ci = mrb->c->ci;
-  int argc = ci->n;
+  mrb_ssize argc = ci->n;
   const mrb_value *argv = ci->stack+1;
   mrb_bool argv_on_stack;
   mrb_bool opt = FALSE;
@@ -944,7 +944,7 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
   const mrb_value *pickarg = NULL; /* arguments currently being processed */
   mrb_value kdict = mrb_nil_value();
   mrb_bool reqkarg = FALSE;
-  int argc_min = 0, argc_max = 0;
+  mrb_ssize argc_min = 0, argc_max = 0;
 
   va_start(ap, format);
 
