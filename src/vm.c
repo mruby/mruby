@@ -597,7 +597,7 @@ static mrb_value
 exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p)
 {
   mrb_callinfo *ci = mrb->c->ci;
-  int keep, nregs;
+  mrb_int keep, nregs;
 
   ci->stack[0] = self;
   mrb_vm_ci_proc_set(ci, p);
@@ -640,7 +640,7 @@ mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p)
       cipop(mrb);
     }
     else {
-      int keep = mrb_ci_bidx(ci) + 1; /* receiver + block */
+      mrb_int keep = mrb_ci_bidx(ci) + 1; /* receiver + block */
       ret = mrb_top_run(mrb, p, self, keep);
     }
     if (mrb->exc && mrb->jmp) {
@@ -857,7 +857,7 @@ mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value 
     n = 3;
   }
   else {
-    ci->n = argc;
+    ci->n = (uint8_t)argc;
     n = argc + 2;
   }
   mrb_stack_extend(mrb, n);
@@ -2012,7 +2012,7 @@ RETRY_TRY_BLOCK:
       }
 
       /* format arguments for generated code */
-      mrb->c->ci->n = len;
+      mrb->c->ci->n = (uint8_t)len;
 
       /* clear local (but non-argument) variables */
       if (irep->nlocals-blk_pos-1 > 0) {
