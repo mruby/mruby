@@ -51,14 +51,14 @@ typedef int32_t mp_limb;
 #else
 /* 64 bit long type */
 typedef int64_t mp_limb;
-#define LMAX 0x3fffffffffffffffL
-#define LC 0xc000000000000000L
+#define LMAX 0x3fffffffffffffffLL
+#define LC 0xc000000000000000LL
 #define OVMASK 0x2
 #define CMASK (LMAX+1)
-#define HLMAX 0x7fffffffL
+#define HLMAX 0x7fffffffLL
 #define HCMASK (HLMAX + 1)
-#define HIGH(x) (((x) & 0x3fffffff80000000L) >> 31)
-#define LOW(x) ((x) & 0x7fffffffL)
+#define HIGH(x) (((x) & 0x3fffffff80000000LL) >> 31)
+#define LOW(x) ((x) & 0x7fffffffLL)
 #endif
 
 typedef struct _mpz_t {
