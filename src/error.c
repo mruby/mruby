@@ -521,7 +521,7 @@ exception_call:
   return mesg;
 }
 
-MRB_API void
+MRB_API mrb_noreturn void
 mrb_sys_fail(mrb_state *mrb, const char *mesg)
 {
   struct RClass *sce;
@@ -537,9 +537,8 @@ mrb_sys_fail(mrb_state *mrb, const char *mesg)
       mrb_funcall_id(mrb, mrb_obj_value(sce), MRB_SYM(_sys_fail), 1, mrb_fixnum_value(no));
     }
   }
-  else {
-    mrb_raise(mrb, E_RUNTIME_ERROR, mesg);
-  }
+
+  mrb_raise(mrb, E_RUNTIME_ERROR, mesg);
 }
 
 MRB_API mrb_noreturn void
