@@ -470,8 +470,8 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
             f=0;
             break;
           }
+          if (i == 0) break;
         }
-        if (i == 0) break;
       }
       if (!f)
         break;
