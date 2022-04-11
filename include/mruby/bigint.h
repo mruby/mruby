@@ -31,7 +31,7 @@
 
 #include <sys/types.h>
 
-#ifdef MRB_32BIT
+#if !(defined(MRB_64BIT) || defined(MRB_INT64))
 /*
  * The values below are for 32 bit machines (i.e. machines with a
  *  32 bit long type)
