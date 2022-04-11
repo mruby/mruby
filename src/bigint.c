@@ -1243,11 +1243,19 @@ mrb_bint_cmp(mrb_state *mrb, mrb_value x, mrb_value y)
     return -1;
   }
 #endif
+  struct RBigint *b = RBIGINT(x);
   if (!mrb_bigint_p(y)) {
     if (!mrb_integer_p(y)) return -2; /* type mismatch */
-    y = mrb_bint_new_int(mrb, mrb_integer(y));
+
+    mrb_int i1, i2 = mrb_integer(y);
+    if (mpz_get_int(&b->mp, &i1)) {
+      if (i1 == i2) return 0;
+      if (i1 > i2) return 1;
+      return -1;
+    }
+    if (b->mp.sn > 0) return 1;
+    return -1;
   }
-  struct RBigint *b = RBIGINT(x);
   struct RBigint *b2 = RBIGINT(y);
   return mpz_cmp(mrb, &b->mp, &b2->mp);
 }
