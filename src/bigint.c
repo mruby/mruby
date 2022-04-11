@@ -62,7 +62,7 @@ mpz_set_int(mrb_state *mrb, mpz_t *y, long v)
 static void
 mpz_init_set_int(mrb_state *mrb, mpz_t *y, mrb_int v)
 {
-  size_t u;
+  mp_limb u;
 
   y->p = (mp_limb*)mrb_malloc(mrb, sizeof(mp_limb)*2);
   if (v < 0) {
@@ -390,10 +390,10 @@ ulshift(mrb_state *mrb, mpz_t *c1, mpz_t *a, int n)
     mpz_set(mrb,c1,a);
   else {
     mpz_t c; size_t i;
-    mp_limb rm = (((mp_limb)1<<n) - 1) << (DIGITBITS -n);
+    mp_limb rm = (((mp_limb)1<<n) - 1) << (DIGITBITS-n);
     mpz_init(mrb,&c); mpz_realloc(mrb,&c,(size_t)(a->sz + 1));
     for (i=0; i<a->sz; i++) {
-      c.p[i] = (((mrb_uint)a->p[i] << n) | cc) & LMAX;
+      c.p[i] = (((mp_limb)a->p[i] << n) | cc) & LMAX;
       cc = (a->p[i] & rm) >> (DIGITBITS -n);
     }
     c.p[i] = cc;
@@ -408,7 +408,7 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
 {
   mpz_t q, x, y, r;
   int ns,f,ccc=0;
-  size_t xd,yd,i, j;
+  size_t xd,yd,i,j;
   mp_limb zz,z,qhat,b,u,m;
 
   if (uzero(yy))
@@ -514,7 +514,7 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
 }
 
 static void
-mpz_mdiv(mrb_state *mrb, mpz_t *q,  mpz_t *x,  mpz_t *y)
+mpz_mdiv(mrb_state *mrb, mpz_t *q, mpz_t *x, mpz_t *y)
 {
   mpz_t r;
   short sn1 = x->sn, sn2 = y->sn, qsign;
@@ -727,7 +727,7 @@ mpz_get_str(mrb_state *mrb, char *s, int sz, int base, mpz_t *x)
 static int
 mpz_get_int(mpz_t *y, mrb_int *v)
 {
-  mrb_int i;
+  mp_limb i;
 
   if (y->sn == 0) {
     i = 0;
@@ -737,6 +737,7 @@ mpz_get_int(mpz_t *y, mrb_int *v)
   }
   else {
     i = (y->sn * (y->p[0] | (y->p[1] & 1) << DIGITBITS));
+    if (MRB_INT_MAX < i || i < MRB_INT_MIN) return FALSE;
   }
   *v = i;
   return TRUE;
@@ -859,7 +860,7 @@ static void
 mpz_pow(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int e)
 {
   mpz_t t;
-  size_t mask = (1UL<< (LONGBITS-1));
+  mp_ulimb mask = (((mp_ulimb)1)<< (LONGBITS-1));
 
   if (e==0) {
     mpz_set_int(mrb, zz, 1L);
@@ -1132,7 +1133,7 @@ mrb_bint_add_ii(mrb_state *mrb, mrb_int x, mrb_int y)
   mpz_add(mrb,&b->mp,&z1,&z2);
   mpz_clear(mrb,&z1);
   mpz_clear(mrb,&z2);
-  return mrb_obj_value(b);
+  return bint_norm(mrb, b);
 }
 
 mrb_value
@@ -1146,7 +1147,7 @@ mrb_bint_sub_ii(mrb_state *mrb, mrb_int x, mrb_int y)
   mpz_sub(mrb,&b->mp,&z1,&z2);
   mpz_clear(mrb,&z1);
   mpz_clear(mrb,&z2);
-  return mrb_obj_value(b);
+  return bint_norm(mrb, b);
 }
 
 mrb_value
@@ -1160,7 +1161,7 @@ mrb_bint_mul_ii(mrb_state *mrb, mrb_int x, mrb_int y)
   mpz_mul(mrb,&b->mp,&z1,&z2);
   mpz_clear(mrb,&z1);
   mpz_clear(mrb,&z2);
-  return mrb_obj_value(b);
+  return bint_norm(mrb, b);
 }
 
 mrb_value
@@ -1174,7 +1175,7 @@ mrb_bint_div_ii(mrb_state *mrb, mrb_int x, mrb_int y)
   mpz_mdiv(mrb,&b->mp,&z1,&z2);
   mpz_clear(mrb,&z1);
   mpz_clear(mrb,&z2);
-  return mrb_obj_value(b);
+  return bint_norm(mrb, b);
 }
 
 mrb_value
@@ -1392,7 +1393,7 @@ mrb_bint_lshift(mrb_state *mrb, mrb_value x, mrb_int width)
   else {
     mpz_mul_2exp(mrb, &b2->mp, &b->mp, width);
   }
-  return mrb_obj_value(b2);
+  return bint_norm(mrb, b2);
 }
 
 mrb_value

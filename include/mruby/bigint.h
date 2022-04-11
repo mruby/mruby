@@ -39,6 +39,7 @@
  * If DIGITBITS is odd, see the comment at the top of mpz_sqrtrem
  */
 typedef int32_t mp_limb;
+typedef uint32_t mp_ulimb;
 #define LMAX 0x3fffffffL
 #define LC   0xc0000000L
 #define OVMASK 0x2
@@ -51,6 +52,7 @@ typedef int32_t mp_limb;
 #else
 /* 64 bit long type */
 typedef int64_t mp_limb;
+typedef uint64_t mp_ulimb;
 #define LMAX 0x3fffffffffffffffLL
 #define LC 0xc000000000000000LL
 #define OVMASK 0x2
