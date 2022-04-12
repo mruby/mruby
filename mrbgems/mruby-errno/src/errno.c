@@ -36,7 +36,7 @@ static const struct {
 #define E2C_LEN         (sizeof(e2c) / sizeof(e2c[0]))
 
 static void
-mrb_sce_init(mrb_state *mrb, mrb_value self, mrb_value m, mrb_int n)
+mrb_sce_init(mrb_state *mrb, mrb_value self, mrb_value m, int n)
 {
   mrb_value str;
   struct RClass *m_errno;
@@ -86,7 +86,7 @@ mrb_sce_init_m(mrb_state *mrb, mrb_value self)
       n = -1;
     }
   }
-  mrb_sce_init(mrb, self, m, n);
+  mrb_sce_init(mrb, self, m, (int)n);
   return self;
 }
 
@@ -124,7 +124,7 @@ mrb_sce_sys_fail(mrb_state *mrb, mrb_value cls)
     msg = mrb_nil_value();
   }
   exc = mrb_obj_value(e);
-  mrb_sce_init(mrb, exc, msg, no);
+  mrb_sce_init(mrb, exc, msg, (int)no);
   mrb_exc_raise(mrb, exc);
   return mrb_nil_value();  /* NOTREACHED */
 }
