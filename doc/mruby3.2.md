@@ -4,6 +4,7 @@
 
 * Now `a::B = c` should evaluate `a` then `c`.
 * Anonymous arguments `*`, `**`, `&` can be passed for forwarding.
+* Multi-precition integer is available now via `mruby-bigint` gem.
 
 # Tools
 
