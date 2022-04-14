@@ -1984,10 +1984,9 @@ mrb_str_rindex(mrb_state *mrb, mrb_value str)
 {
   mrb_value sub;
   mrb_int pos;
-  int argc = mrb_get_args(mrb, "S|i", &sub, &pos);
   mrb_int len = RSTRING_CHAR_LEN(str);
 
-  if (argc == 1) {
+  if (mrb_get_args(mrb, "S|i", &sub, &pos) == 1) {
     pos = len;
   }
   else {
