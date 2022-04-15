@@ -60,7 +60,7 @@ mrbgem from the core or mgem-list.
 
 Note that if more than one git-based gem has the same base name
 (i.e. the default checkout directory name), it is (now) an error
-**UNLESS** they are have the same repository URL, branch name and
+**UNLESS** they have the same repository URL, branch name and
 commit-id (i.e. checksum hash).  You can bypass this by explicitly
 importing your preferred version **first** and setting the
 `canonical:` option to `true`:
@@ -160,7 +160,7 @@ GEM directory. A typical GEM specification could look like this for example:
 MRuby::Gem::Specification.new('c_and_ruby_extension_example') do |spec|
   spec.license = 'MIT'
   spec.author  = 'mruby developers'
-  spec.summary = 'Example mrbgem using C and ruby'
+  spec.summary = 'Example mrbgem using C and Ruby'
 end
 ```
 
