@@ -1011,10 +1011,14 @@ flo_to_i(mrb_state *mrb, mrb_value num)
 {
   mrb_float f = mrb_float(num);
 
+  mrb_check_num_exact(mrb, f);
+
+  if (!FIXABLE_FLOAT(f)) {
+    mrb_int_overflow(mrb, "to_f");
+  }
   if (f > 0.0) f = floor(f);
   if (f < 0.0) f = ceil(f);
 
-  mrb_check_num_exact(mrb, f);
   return mrb_int_value(mrb, (mrb_int)f);
 }
 
