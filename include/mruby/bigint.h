@@ -42,7 +42,6 @@ typedef int32_t mp_limb;
 typedef uint32_t mp_ulimb;
 #define LMAX 0x3fffffffL
 #define LC   0xc0000000L
-#define OVMASK 0x2
 #define CMASK (LMAX+1)
 #define HLMAX 0x7fffL
 #define HCMASK (HLMAX + 1)
@@ -55,7 +54,6 @@ typedef int64_t mp_limb;
 typedef uint64_t mp_ulimb;
 #define LMAX 0x3fffffffffffffffLL
 #define LC 0xc000000000000000LL
-#define OVMASK 0x2
 #define CMASK (LMAX+1)
 #define HLMAX 0x7fffffffLL
 #define HCMASK (HLMAX + 1)
