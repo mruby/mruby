@@ -359,7 +359,7 @@ lzb(mp_limb a)
 /* c1 = a>>n */
 /* n must be < DIGITBITS */
 static void
-urshift(mrb_state *mrb, mpz_t *c1, mpz_t *a, int n)
+urshift(mrb_state *mrb, mpz_t *c1, mpz_t *a, size_t n)
 {
   mp_limb cc = 0;
   mrb_assert(n < DIGITBITS);
@@ -382,7 +382,7 @@ urshift(mrb_state *mrb, mpz_t *c1, mpz_t *a, int n)
 /* c1 = a<<n */
 /* n must be < DIGITBITS */
 static void
-ulshift(mrb_state *mrb, mpz_t *c1, mpz_t *a, int n)
+ulshift(mrb_state *mrb, mpz_t *c1, mpz_t *a, size_t n)
 {
   mp_limb cc = 0;
   mrb_assert(n < DIGITBITS);
@@ -1356,7 +1356,7 @@ mrb_value
 mrb_bint_to_s(mrb_state *mrb, mrb_value x, mrb_int base)
 {
   struct RBigint *b = RBIGINT(x);
-  mrb_int len = mpz_sizeinbase(&b->mp, base);
+  mrb_int len = mpz_sizeinbase(&b->mp, (int)base);
   mrb_value str = mrb_str_new(mrb, NULL, len+2);
   mpz_get_str(mrb, RSTRING_PTR(str), len, base, &b->mp);
   RSTR_SET_LEN(RSTRING(str), strlen(RSTRING_PTR(str)));
