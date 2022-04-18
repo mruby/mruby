@@ -1034,8 +1034,7 @@ mrb_bint_new_float(mrb_state *mrb, mrb_float x)
 
   mrb_float b = (double)CMASK;
   mrb_float bi = 1.0 / b;
-  size_t rn;
-  int i;
+  size_t rn, i;
   mp_limb *rp;
   mp_limb f;
 
@@ -1044,17 +1043,12 @@ mrb_bint_new_float(mrb_state *mrb, mrb_float x)
 
   mpz_realloc(mrb, r, rn);
   rp = r->p;
-  f = (mp_limb)x;
-  x -= f;
-  mrb_assert(x < 1.0);
-  i = rn-1;
-  rp[i] = f;
-  while (--i >= 0) {
-    x = b * x;
+  for (i=rn-1;;i--) {
     f = (mp_limb)x;
     x -= f;
     mrb_assert(x < 1.0);
     rp[i] = f;
+    if (i == 0) break;
   }
   return bint_norm(mrb, bint);
 }
