@@ -390,10 +390,10 @@ ulshift(mrb_state *mrb, mpz_t *c1, mpz_t *a, int n)
     mpz_set(mrb,c1,a);
   else {
     mpz_t c; size_t i;
-    mp_limb rm = (((mp_limb)1<<n) - 1) << (DIGITBITS-n);
+    mp_limb rm = (((mp_ulimb)1<<n) - 1) << (DIGITBITS-n);
     mpz_init(mrb,&c); mpz_realloc(mrb,&c,(size_t)(a->sz + 1));
     for (i=0; i<a->sz; i++) {
-      c.p[i] = (((mp_limb)a->p[i] << n) | cc) & LMAX;
+      c.p[i] = (((mp_ulimb)a->p[i] << n) | cc) & LMAX;
       cc = (a->p[i] & rm) >> (DIGITBITS -n);
     }
     c.p[i] = cc;
