@@ -38,7 +38,7 @@ mpz_init_set(mrb_state *mrb, mpz_t *s, mpz_t *t)
 #endif
 
 static void
-mpz_set_int(mrb_state *mrb, mpz_t *y, long v)
+mpz_set_int(mrb_state *mrb, mpz_t *y, mrb_int v)
 {
   for (size_t i=1; i<y->sz; i++)
     y->p[i] = 0;
@@ -154,7 +154,7 @@ uadd(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
 
   c=0;
   for (i=0; i<x->sz; i++) {
-    if (( z->p[i] = y->p[i] + x->p[i] + c ) & CMASK) {
+    if ((z->p[i] = y->p[i] + x->p[i] + c) & CMASK) {
       c=1;
       (z->p[i]) &=LMAX;
     }
@@ -626,18 +626,18 @@ static int
 mpz_sizeinbase(mpz_t *x, int base)
 {
   int i,j;
-  int bits = digits(x) * DIGITBITS;
+  size_t bits = digits(x) * DIGITBITS;
   mrb_assert(2 <= base && base <= 36);
   for (j=0,i=1; i<=base; i*=2,j++)
     ;
-  return ((bits)/(j-1)+1);
+  return (int)((bits)/(j-1)+1);
 }
 
 static int
 mpz_init_set_str(mrb_state *mrb, mpz_t *x, const char *s, mrb_int len, mrb_int base)
 {
   size_t i;
-  mrb_int retval = 0;
+  int retval = 0;
   mpz_t t,m,bb;
   short sn;
   unsigned int k;
@@ -684,7 +684,7 @@ mpz_init_set_str(mrb_state *mrb, mpz_t *x, const char *s, mrb_int len, mrb_int b
 }
 
 static char*
-mpz_get_str(mrb_state *mrb, char *s, int sz, int base, mpz_t *x)
+mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
 {
   mpz_t xx,q,r,bb;
   char *p,*t,*ps;
@@ -751,7 +751,7 @@ mpz_mul_2exp(mrb_state *mrb, mpz_t *z, mpz_t *x, mrb_int e)
     mpz_set(mrb,z,x);
   else {
     size_t i;
-    long digs = (e / DIGITBITS);
+    mp_limb digs = (e / DIGITBITS);
     size_t bs = (e % (DIGITBITS));
     mpz_t y;
 
@@ -778,7 +778,7 @@ mpz_div_2exp(mrb_state *mrb, mpz_t *z, mpz_t *x, mrb_int e)
     mpz_set(mrb,z,x);
   else {
     size_t i;
-    long digs = (e / DIGITBITS);
+    mp_limb digs = (e / DIGITBITS);
     size_t bs = (e % (DIGITBITS));
     mpz_t y;
 
@@ -928,9 +928,8 @@ mpz_powm(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int ex, mpz_t *n)
   if (ex < 0) {
     return;
   }
-  mpz_init(mrb,&e);
+  mpz_init_set_int(mrb,&e, ex);
   mpz_init(mrb,&t);
-  mpz_set_int(mrb,&e,ex);
 
   for (k=0;!uzero(&e);k++,mpz_div_2exp(mrb,&e,&e,1))
     push(mrb,lowdigit(&e) & 1,&stack);
