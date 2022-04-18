@@ -150,10 +150,9 @@ class String
   # Call the given block for each byte of +self+.
   def each_byte(&block)
     return to_enum(:each_byte, &block) unless block
-    bytes = self.bytes
     pos = 0
-    while pos < bytes.size
-      block.call(bytes[pos])
+    while pos < bytesize
+      block.call(getbyte(pos))
       pos += 1
     end
     self
