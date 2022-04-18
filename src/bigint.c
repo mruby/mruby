@@ -1417,8 +1417,4 @@ mrb_bint_rshift(mrb_state *mrb, mrb_value x, mrb_int width)
   }
   return bint_norm(mrb, b2);
 }
-
-void mpz_abs(mpz_t *, mpz_t *);
-void mpz_gcd(mpz_t *, mpz_t *, mpz_t *);
-
 #endif  /* MRB_USE_BIGINT */
