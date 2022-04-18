@@ -1011,6 +1011,54 @@ mrb_gc_free_bint(mrb_state *mrb, struct RBasic *x)
 }
 
 #ifndef MRB_NO_FLOAT
+mrb_value
+mrb_bint_new_float(mrb_state *mrb, mrb_float x)
+{
+  /* x should not be NaN nor Infinity */
+  mrb_assert(x == x && x != x * 0.5);
+
+  if (x < 1.0) {
+    return mrb_fixnum_value(0);
+  }
+
+  struct RBigint *bint = bint_new(mrb);
+  mpz_t *r = &bint->mp;
+
+  if (x < 0.0) {
+    x = -x;
+    r->sn = -1;
+  }
+  else {
+    r->sn = 1;
+  }
+
+  mrb_float b = (double)CMASK;
+  mrb_float bi = 1.0 / b;
+  size_t rn;
+  int i;
+  mp_limb *rp;
+  mp_limb f;
+
+  for (rn = 1; x >= b; rn++)
+    x *= bi;
+
+  mpz_realloc(mrb, r, rn);
+  rp = r->p;
+  f = (mp_limb)x;
+  x -= f;
+  mrb_assert(x < 1.0);
+  i = rn-1;
+  rp[i] = f;
+  while (--i >= 0) {
+    x = b * x;
+    f = (mp_limb)x;
+    x -= f;
+    mrb_assert(x < 1.0);
+    rp[i] = f;
+  }
+  return bint_norm(mrb, bint);
+}
+
 mrb_float
 mrb_bint_as_float(mrb_state *mrb, mrb_value self)
 {

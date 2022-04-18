@@ -181,6 +181,7 @@ mrb_value mrb_bint_lshift(mrb_state *mrb, mrb_value x, mrb_int width);
 mrb_value mrb_bint_rshift(mrb_state *mrb, mrb_value x, mrb_int width);
 mrb_value mrb_bint_to_s(mrb_state *mrb, mrb_value x, mrb_int base);
 #ifndef MRB_NO_FLOAT
+mrb_value mrb_bint_new_float(mrb_state *mrb, mrb_float x);
 mrb_float mrb_bint_as_float(mrb_state *mrb, mrb_value x);
 #endif
 mrb_int mrb_bint_as_int(mrb_state *mrb, mrb_value x);

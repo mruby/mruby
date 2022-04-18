@@ -1014,7 +1014,11 @@ flo_to_i(mrb_state *mrb, mrb_value num)
   mrb_check_num_exact(mrb, f);
 
   if (!FIXABLE_FLOAT(f)) {
+#ifdef MRB_USE_BIGINT
+    return mrb_bint_new_float(mrb, f);
+#else
     mrb_int_overflow(mrb, "to_f");
+#endif
   }
   if (f > 0.0) f = floor(f);
   if (f < 0.0) f = ceil(f);
