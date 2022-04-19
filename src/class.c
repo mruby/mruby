@@ -2981,7 +2981,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, mod, "define_method",           mod_define_method,        MRB_ARGS_ARG(1,1));
   mrb_define_method(mrb, mod, "===",                     mrb_mod_eqq,              MRB_ARGS_REQ(1)); /* 15.2.2.4.7 */
   mrb_define_method(mrb, mod, "dup",                     mrb_mod_dup,              MRB_ARGS_NONE());
-  mrb_define_method(mrb, bob, "method_added",            mrb_do_nothing,           MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, mod, "method_added",            mrb_do_nothing,           MRB_ARGS_REQ(1));
 
   mrb_undef_method(mrb, cls, "append_features");
   mrb_undef_method(mrb, cls, "prepend_features");
