@@ -531,7 +531,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     }
     if (MRB_METHOD_UNDEF_P(m)) {
       uint16_t ac = (uint16_t)argc;
-      m = prepare_missing(mrb, self, mid, &c, n, &ac, mrb_nil_value(), 0);
+      m = prepare_missing(mrb, self, mid, &c, (uint32_t)n, &ac, mrb_nil_value(), 0);
       argc = (mrb_int)ac;
       mid = MRB_SYM(method_missing);
     }
@@ -581,7 +581,7 @@ mrb_funcall_argv(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc, cons
 static void
 check_method_noarg(mrb_state *mrb, const mrb_callinfo *ci)
 {
-  int argc = ci->n == CALL_MAXARGS ? RARRAY_LEN(ci->stack[1]) : ci->n;
+  mrb_int argc = ci->n == CALL_MAXARGS ? RARRAY_LEN(ci->stack[1]) : ci->n;
   if (ci->nk > 0) {
     mrb_value kdict = ci->stack[mrb_ci_kidx(ci)];
     if (!(mrb_hash_p(kdict) && mrb_hash_empty_p(mrb, kdict))) {
