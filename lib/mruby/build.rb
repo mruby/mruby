@@ -500,7 +500,8 @@ EOS
         v = instance_variable_get(n)
         v = case v
             when nil, true, false, Numeric; v
-            when String, Command; v.clone
+            when String; v.clone
+            when Command; v.clone.tap { |u| u.build = build }
             else Marshal.load(Marshal.dump(v))  # deep clone
             end
         build.instance_variable_set(n, v)
