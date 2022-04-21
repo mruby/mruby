@@ -387,13 +387,13 @@ static int
 pack_BER(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
   mrb_int n = mrb_integer(o);
-  size_t i;
+  int i;
   char *p;
 
   if (n < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "can't compress negative numbers");
   }
-  for (i=1; i<sizeof(mrb_int)+1; i++) {
+  for (i=1; i<(int)sizeof(mrb_int)+1; i++) {
     mrb_int mask = ~((1L<<(7*i))-1);
     if ((n & mask) == 0) break;
   }
@@ -410,7 +410,8 @@ pack_BER(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int 
 static int
 unpack_BER(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
 {
-  mrb_int i, n = 0;
+  int i;
+  mrb_int n = 0;
   const unsigned char *p = src;
   const unsigned char *e = p + srclen;
 
@@ -1302,7 +1303,7 @@ alias:
         mrb_raise(mrb, E_RUNTIME_ERROR, "too big template length");
       }
       count = (int)n;
-      tmpl->idx = e - tptr;
+      tmpl->idx = (int)(e - tptr);
       continue;
     } else if (ch == '*')  {
       if (type == PACK_TYPE_NONE)
