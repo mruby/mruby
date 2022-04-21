@@ -112,7 +112,7 @@ mrb_sce_sys_fail(mrb_state *mrb, mrb_value cls)
   struct RClass *sce;
   mrb_value msg;
   mrb_int no = -1;
-  int argc;
+  mrb_int argc;
 
   mrb->c->ci->mid = 0;
   sce = mrb_class_get_id(mrb, MRB_SYM(SystemCallError));
@@ -135,7 +135,7 @@ mrb_exxx_init(mrb_state *mrb, mrb_value self)
   mrb_value m, no, str;
 
   no = mrb_const_get(mrb, mrb_obj_value(mrb_class(mrb, self)), MRB_SYM(Errno));
-  str = mrb_str_new_cstr(mrb, strerror(mrb_fixnum(no)));
+  str = mrb_str_new_cstr(mrb, strerror((int)mrb_fixnum(no)));
 
   m = mrb_nil_value();
   mrb_get_args(mrb, "|S", &m);
