@@ -1750,10 +1750,7 @@ RETRY_TRY_BLOCK:
         mrb_exc_set(mrb, exc);
         goto L_RAISE;
       }
-      if (target_class->flags & MRB_FL_CLASS_IS_PREPENDED) {
-        target_class = mrb_vm_ci_target_class(ci);
-      }
-      else if (target_class->tt == MRB_TT_MODULE) {
+      if ((target_class->flags & MRB_FL_CLASS_IS_PREPENDED) || target_class->tt == MRB_TT_MODULE) {
         target_class = mrb_vm_ci_target_class(ci);
         if (!target_class || target_class->tt != MRB_TT_ICLASS) {
           goto super_typeerror;
