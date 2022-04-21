@@ -85,7 +85,11 @@ mrb_int_pow(mrb_state *mrb, mrb_value x)
   for (;;) {
     if (exp & 1) {
       if (mrb_int_mul_overflow(result, base, &result)) {
+#ifdef MRB_USE_BIGINT
+        return mrb_bint_pow(mrb, mrb_bint_new_int(mrb, mrb_integer(x)), y);
+#else
         mrb_int_overflow(mrb, "power");
+#endif
       }
     }
     exp >>= 1;
