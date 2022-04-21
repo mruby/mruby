@@ -1739,7 +1739,7 @@ RETRY_TRY_BLOCK:
       mrb_value recv, blk;
       const struct RProc *p = ci->proc;
       mrb_sym mid = ci->mid;
-      struct RClass* target_class = MRB_PROC_TARGET_CLASS(p);
+      struct RClass* target_class = mrb_vm_ci_target_class(ci);
 
       if (MRB_PROC_ENV_P(p) && p->e.env->mid && p->e.env->mid != mid) { /* alias support */
         mid = p->e.env->mid;    /* restore old mid */
@@ -1751,10 +1751,7 @@ RETRY_TRY_BLOCK:
         goto L_RAISE;
       }
       if ((target_class->flags & MRB_FL_CLASS_IS_PREPENDED) || target_class->tt == MRB_TT_MODULE) {
-        target_class = mrb_vm_ci_target_class(ci);
-        if (!target_class || target_class->tt != MRB_TT_ICLASS) {
-          goto super_typeerror;
-        }
+        goto super_typeerror;
       }
       recv = regs[0];
       if (!mrb_obj_is_kind_of(mrb, recv, target_class)) {
