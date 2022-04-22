@@ -774,6 +774,7 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym, mrb_bool skip)
   mrb_bool retry = FALSE;
   mrb_value name;
 
+  /* if skip then skip the current class (already searched) */
   if (skip) c = c->super;
 L_RETRY:
   while (c) {
@@ -782,6 +783,7 @@ L_RETRY:
         return v;
     }
     c = c->super;
+    if (!skip && c == mrb->object_class) break;
   }
   if (!retry && base->tt == MRB_TT_MODULE) {
     c = mrb->object_class;
