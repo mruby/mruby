@@ -3,16 +3,15 @@
 **
 ** See Copyright Notice in mruby.h
 */
-#ifdef MRB_USE_BIGINT
 
 #include <mruby.h>
 #include <mruby/object.h>
 #include <mruby/numeric.h>
-#include <mruby/bigint.h>
 #include <mruby/array.h>
 #include <mruby/string.h>
 #include <mruby/internal.h>
 #include <string.h>
+#include "bigint.h"
 
 static void
 mpz_init(mrb_state *mrb, mpz_t *s)
@@ -1458,4 +1457,3 @@ mrb_bint_rshift(mrb_state *mrb, mrb_value x, mrb_int width)
   }
   return bint_norm(mrb, b2);
 }
-#endif  /* MRB_USE_BIGINT */

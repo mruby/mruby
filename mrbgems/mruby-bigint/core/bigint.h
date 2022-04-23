@@ -3,7 +3,6 @@
 **
 ** See Copyright Notice in mruby.h
 */
-#ifdef MRB_USE_BIGINT
 
 #ifndef MRUBY_BIGINT_H
 #define MRUBY_BIGINT_H
@@ -85,6 +84,4 @@ struct RBigint {
 
 #define RBIGINT(v) ((struct RBigint*)mrb_ptr(v))
 
-#endif
-
-#endif  /* MRB_USE_BIGINT */
+#endif  /* MRUBY_BIGINT_H */
