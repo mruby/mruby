@@ -259,7 +259,7 @@ coerce_step_counter(mrb_state *mrb, mrb_value self)
 #ifndef MRB_NO_FLOAT
   mrb->c->ci->mid = 0;
   if (mrb_float_p(num) || mrb_float_p(step)) {
-    return mrb_to_float(mrb, self);
+    return mrb_ensure_float_type(mrb, self);
   }
 #endif
 

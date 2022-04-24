@@ -1395,8 +1395,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
 #ifndef MRB_NO_FLOAT
       else if (type == PACK_TYPE_FLOAT) {
         if (!mrb_float_p(o)) {
-          mrb_float f = mrb_as_float(mrb, o);
-          o = mrb_float_value(mrb, f);
+          o = mrb_ensure_float_type(mrb, o);
         }
       }
 #endif
