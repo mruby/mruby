@@ -1086,7 +1086,7 @@ mrb_bint_as_int(mrb_state *mrb, mrb_value x)
   mrb_int i;
 
   if (!mpz_get_int(&b->mp, &i)) {
-    mrb_raise(mrb, E_RANGE_ERROR, "integer overflow");
+    mrb_raise(mrb, E_RANGE_ERROR, "integer too big");
   }
   return i;
 }
