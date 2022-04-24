@@ -497,7 +497,7 @@ mrb_value mrb_complex_to_i(mrb_state *mrb, mrb_value comp);
 #endif
 
 MRB_API mrb_value
-mrb_ensure_int_type(mrb_state *mrb, mrb_value val)
+mrb_ensure_integer_type(mrb_state *mrb, mrb_value val)
 {
   if (!mrb_integer_p(val)) {
 #ifndef MRB_NO_FLOAT
@@ -506,6 +506,10 @@ mrb_ensure_int_type(mrb_state *mrb, mrb_value val)
     }
     else {
       switch (mrb_type(val)) {
+#ifdef MRB_USE_BIGINT
+      case MRB_TT_BIGINT:
+        return val;
+#endif
 #ifdef MRB_USE_RATIONAL
       case MRB_TT_RATIONAL:
         return mrb_rational_to_i(mrb, val);
@@ -521,6 +525,18 @@ mrb_ensure_int_type(mrb_state *mrb, mrb_value val)
 #endif
     mrb_raisef(mrb, E_TYPE_ERROR, "%Y cannot be converted to Integer", val);
   }
+  return val;
+}
+
+MRB_API mrb_value
+mrb_ensure_int_type(mrb_state *mrb, mrb_value val)
+{
+  val = mrb_ensure_integer_type(mrb, val);
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(val)) {
+    return mrb_int_value(mrb, mrb_bint_as_int(mrb, val));
+  }
+#endif
   return val;
 }
 

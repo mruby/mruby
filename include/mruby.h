@@ -1406,6 +1406,9 @@ MRB_API mrb_value mrb_check_string_type(mrb_state *mrb, mrb_value str);
 #define mrb_to_str(mrb, str) mrb_ensure_string_type(mrb,str)
 /* obsolete: use mrb_obj_as_string() instead */
 #define mrb_str_to_str(mrb, str) mrb_obj_as_string(mrb, str)
+/* check if val is an integer (including Bigint) */
+MRB_API mrb_value mrb_ensure_integer_type(mrb_state *mrb, mrb_value val);
+/* check if val fit in mrb_int */
 MRB_API mrb_value mrb_ensure_int_type(mrb_state *mrb, mrb_value val);
 #define mrb_as_int(mrb, val) mrb_integer(mrb_ensure_int_type(mrb, val))
 /* obsolete: use mrb_ensure_int_type() instead */
