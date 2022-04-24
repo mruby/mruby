@@ -167,7 +167,7 @@ arg_error:
     mrb_raise(mrb, E_ARGUMENT_ERROR, "base specified for non string value");
   }
   /* to raise TypeError */
-  return mrb_to_integer(mrb, val);
+  return mrb_ensure_integer_type(mrb, val);
 }
 
 #ifndef MRB_NO_FLOAT
