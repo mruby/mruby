@@ -1754,6 +1754,11 @@ mrb_integer_to_str(mrb_state *mrb, mrb_value x, mrb_int base)
   if (base < 2 || 36 < base) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid radix %i", base);
   }
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x)) {
+    return mrb_bint_to_s(mrb, x, base);
+  }
+#endif
   const char *p = mrb_int_to_cstr(buf, sizeof(buf), val, base);
   mrb_assert(p != NULL);
   mrb_value str = mrb_str_new_cstr(mrb, p);
