@@ -217,7 +217,7 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
     size_t symcapa = mrb->symcapa;
     if (symcapa == 0) symcapa = 100;
     else symcapa = (size_t)(symcapa * 6 / 5);
-    mrb->symtbl = (const char**)mrb_realloc(mrb, mrb->symtbl, sizeof(char*)*symcapa);
+    mrb->symtbl = (const char**)mrb_realloc(mrb, (void*)mrb->symtbl, sizeof(char*)*symcapa);
     mrb->symflags = (uint8_t*)mrb_realloc(mrb, mrb->symflags, symcapa/8+1);
     memset(mrb->symflags+mrb->symcapa/8+1, 0, (symcapa-mrb->symcapa)/8);
     mrb->symlink = (uint8_t*)mrb_realloc(mrb, mrb->symlink, symcapa);
@@ -229,7 +229,7 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
     mrb->symtbl[sym] = name;
   }
   else {
-    int ilen = mrb_packed_int_len(len);
+    size_t ilen = mrb_packed_int_len(len);
     char *p = (char *)mrb_malloc(mrb, len+ilen+1);
     mrb_packed_int_encode(len, (uint8_t*)p, (uint8_t*)p+ilen);
     memcpy(p+ilen, name, len);
@@ -373,9 +373,9 @@ mrb_free_symtbl(mrb_state *mrb)
       mrb_free(mrb, (char*)mrb->symtbl[i]);
     }
   }
-  mrb_free(mrb, mrb->symtbl);
-  mrb_free(mrb, mrb->symlink);
-  mrb_free(mrb, mrb->symflags);
+  mrb_free(mrb, (void*)mrb->symtbl);
+  mrb_free(mrb, (void*)mrb->symlink);
+  mrb_free(mrb, (void*)mrb->symflags);
 }
 
 void
