@@ -1571,7 +1571,11 @@ mrb_float_to_integer(mrb_state *mrb, mrb_value x)
       z = (mrb_int)d;
     }
     else {
+#ifdef MRB_USE_BIGINT
+      return mrb_bint_new_float(mrb, d);
+#else
       mrb_raisef(mrb, E_RANGE_ERROR, "number (%v) too big for integer", x);
+#endif
     }
   }
   return mrb_int_value(mrb, z);
