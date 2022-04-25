@@ -4,8 +4,6 @@
 #include <mruby/presym.h>
 
 #ifdef MRB_USE_BIGINT
-#include <mruby/bigint.h>
-
 static mrb_value
 bint_allbits(mrb_state *mrb, mrb_value x, mrb_value y)
 {
