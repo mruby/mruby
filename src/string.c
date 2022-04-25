@@ -2319,8 +2319,9 @@ mrb_str_len_to_integer(mrb_state *mrb, const char *str, size_t len, mrb_int base
       }
       if (badcheck && trailingbad(str, p, pend)) goto bad;
       return mrb_bint_new_str(mrb, p2, (mrb_int)(p3-p2), sign ? base : -base);
-#endif
+#else
       mrb_raisef(mrb, E_RANGE_ERROR, "string (%l) too big for integer", str, pend-str);
+#endif
     }
     n += c;
   }
