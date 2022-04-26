@@ -111,7 +111,7 @@ conf.gembox 'custom'
 This will cause the `custom` GemBox to be read in during the build process,
 adding `mruby-time` and `mrbgems-example` to the build.
 
-If you want, you can put GemBox outside of mruby directory. In that case you must
+If you want, you can put GemBox outside the mruby directory. In that case you must
 specify an absolute path like below.
 
 ```ruby

@@ -119,7 +119,7 @@ If the size of `mrb_float` and `mrb_int` are same, the last 2 bits in the `mrb_f
 
 Previous NaN boxing packs values in NaN representation, but pointer retrievals are far more frequent than floating point number references. So we add constant offset to NaN representation to clear higher bits of pointer representation. This representation is called "Favor Pointer" NaN Boxing.
 
-Also, previous NaN boxing limit the size of `mrb_int` to 4 bytes (32 bits) to fit in NaN values. Now we allocates integer values in the heap, if the value does not fit in the 32 bit range, just like we did in Word Boxing.
+Also, previous NaN boxing limit the size of `mrb_int` to 4 bytes (32 bits) to fit in NaN values. Now we allocate integer values in the heap, if the value does not fit in the 32 bit range, just like we did in Word Boxing.
 
 ## Constant Folding
 
