@@ -229,9 +229,10 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
     mrb->symtbl[sym] = name;
   }
   else {
-    size_t ilen = mrb_packed_int_len(len);
+    uint32_t ulen = (uint32_t)len;
+    size_t ilen = mrb_packed_int_len(ulen);
     char *p = (char *)mrb_malloc(mrb, len+ilen+1);
-    mrb_packed_int_encode(len, (uint8_t*)p, (uint8_t*)p+ilen);
+    mrb_packed_int_encode(ulen, (uint8_t*)p, (uint8_t*)p+ilen);
     memcpy(p+ilen, name, len);
     p[ilen+len] = 0;
     mrb->symtbl[sym] = p;
