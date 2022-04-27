@@ -103,7 +103,7 @@ mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, ch
   } else if (sign) {
     *s++ = sign;
   }
-  buf_remaining -= (s - buf); // Adjust for sign
+  buf_remaining -= (int)(s - buf); // Adjust for sign
 
   {
     char uc = fmt & 0x20;
