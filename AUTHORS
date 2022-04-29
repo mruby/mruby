@@ -1,11 +1,11 @@
 # Authors of mruby (mruby developers)
 
-## The List of Contributors sorted by number of commits (as of 2022-03-27 bb5f6a8)
+## The List of Contributors sorted by number of commits (as of 2022-04-28 32fb8b1)
 
-   8121 Yukihiro "Matz" Matsumoto (@matz)*
+   8214 Yukihiro "Matz" Matsumoto (@matz)*
     586 KOBAYASHI Shuji (@shuujii)
     376 Daniel Bovensiepen (@bovi)
-    363 dearblue (@dearblue)*
+    372 dearblue (@dearblue)*
     346 Takeshi Watanabe (@take-cheeze)*
     334 Masaki Muranaka (@monaka)
     308 Tomoyuki Sahara (@tsahara)*
@@ -22,10 +22,10 @@
      68 Hiroshi Mimaki (@mimaki)*
      67 Akira Yumiyama (@akiray03)*
      62 Paolo Bosetti (@pbosetti)*
+     60 John Bampton (@jbampton)
      59 Kurebayashi, Takahiro (@crimsonwoods)*
      56 h2so5 (@h2so5)
      52 Ralph Desir (@Mav7)*
-     51 John Bampton (@jbampton)
      45 Rory O'Connell (@RoryO)*
      43 Yuichiro Kaneko (@yui-knk)+
      42 fleuria (@flaneur2020)
