@@ -43,11 +43,12 @@ print_lv_ab(mrb_state *mrb, const mrb_irep *irep, uint16_t a, uint16_t b)
 }
 
 static void
-print_header(mrb_state *mrb, const mrb_irep *irep, uint32_t i)
+print_header(mrb_state *mrb, const mrb_irep *irep, ptrdiff_t i)
 {
   int32_t line;
 
-  line = mrb_debug_get_line(mrb, irep, i);
+  mrb_assert(i <= UINT32_MAX);
+  line = mrb_debug_get_line(mrb, irep, (uint32_t)i);
   if (line < 0) {
     printf("      ");
   }
@@ -59,8 +60,9 @@ print_header(mrb_state *mrb, const mrb_irep *irep, uint32_t i)
 }
 
 static void
-print_args(uint8_t i)
+print_args(uint16_t i)
 {
+  mrb_assert(i <= 255);
   uint8_t n = i&0xf;
   uint8_t nk = (i>>4)&0xf;
 
@@ -153,7 +155,7 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       printf("file: %s\n", next_file);
       file = next_file;
     }
-    print_header(mrb, irep, (uint32_t)i);
+    print_header(mrb, irep, i);
     ins = READ_B();
     switch (ins) {
     CASE(OP_NOP, Z):
