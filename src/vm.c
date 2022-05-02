@@ -527,7 +527,13 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     mrb_stack_extend(mrb, n + argc + 3);
     if (argc >= 15) {
       ci->stack[n+1] = mrb_ary_new_from_values(mrb, argc, argv);
+      ci->stack[n+2] = blk;
       argc = 15;
+    }
+    else {
+      if (argc > 0)
+        stack_copy(ci->stack+n+1, argv, argc);
+      ci->stack[n+argc+1] = blk;
     }
     if (MRB_METHOD_UNDEF_P(m)) {
       uint16_t ac = (uint16_t)argc;
@@ -548,14 +554,6 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
       argv = mrb->c->stbase + voff;
     }
     ci->stack[0] = self;
-    if (argc < 15) {
-      if (argc > 0)
-        stack_copy(ci->stack+1, argv, argc);
-      ci->stack[argc+1] = blk;
-    }
-    else {
-      ci->stack[2] = blk;
-    }
 
     if (MRB_METHOD_CFUNC_P(m)) {
       ci->cci = CINFO_DIRECT;
