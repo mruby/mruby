@@ -167,6 +167,7 @@ random_default(mrb_state *mrb) {
 
 #define random_ptr(v) (rand_state*)mrb_istruct_ptr(v)
 #define random_default_state(mrb) random_ptr(random_default(mrb))
+#define ID_RANDOM_STRICT MRB_SYM(mruby_Random)
 
 static mrb_value
 random_m_init(mrb_state *mrb, mrb_value self)
@@ -245,7 +246,7 @@ mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
   rand_state *random;
 
   if (RARRAY_LEN(ary) > 1) {
-    struct RClass *c = mrb_class_get_id(mrb, MRB_SYM(Random));
+    struct RClass *c = mrb_class_get_id(mrb, ID_RANDOM_STRICT);
     if (mrb_get_args(mrb, "|I", &random, c) == 0) {
       random = random_default_state(mrb);
     }
@@ -305,7 +306,7 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
   mrb_bool given;
   rand_state *random;
   mrb_int len;
-  struct RClass *c = mrb_class_get_id(mrb, MRB_SYM(Random));
+  struct RClass *c = mrb_class_get_id(mrb, ID_RANDOM_STRICT);
 
   if (mrb_get_args(mrb, "|i?I", &n, &given, &random, c) < 2) {
     random = random_default_state(mrb);
@@ -386,6 +387,7 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, mrb->kernel_module, "srand", random_f_srand, MRB_ARGS_OPT(1));
 
   random = mrb_define_class(mrb, "Random", mrb->object_class);
+  mrb_const_set(mrb, mrb_obj_value(mrb->object_class), ID_RANDOM_STRICT, mrb_obj_value(random)); // for mrb_get_args()
   MRB_SET_INSTANCE_TT(random, MRB_TT_ISTRUCT);
   mrb_define_class_method(mrb, random, "rand", random_f_rand, MRB_ARGS_OPT(1));
   mrb_define_class_method(mrb, random, "srand", random_f_srand, MRB_ARGS_OPT(1));
