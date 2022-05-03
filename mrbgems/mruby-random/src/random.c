@@ -137,7 +137,7 @@ random_rand(mrb_state *mrb, rand_state *t, mrb_int max)
 }
 
 static mrb_int
-random_rand_i(mrb_state *mrb, rand_state *t, mrb_int max)
+rand_i(rand_state *t, mrb_int max)
 {
   return rand_uint32(t) % max;
 }
@@ -257,7 +257,7 @@ mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
       mrb_value *ptr = RARRAY_PTR(ary);
       mrb_value tmp;
 
-      j = random_rand_i(mrb, random, max);
+      j = rand_i(random, max);
 
       tmp = ptr[i];
       ptr[i] = ptr[j];
@@ -319,7 +319,7 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
     case 1:
       return RARRAY_PTR(ary)[0];
     default:
-      return RARRAY_PTR(ary)[rand_uint32(random) % len];
+      return RARRAY_PTR(ary)[rand_i(random, len)];
     }
   }
   else {
@@ -334,7 +334,7 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
 
       for (;;) {
       retry:
-        r = (mrb_int)(rand_uint32(random) % len);
+        r = rand_i(random, len);
 
         for (j=0; j<i; j++) {
           if (mrb_integer(RARRAY_PTR(result)[j]) == r) {
@@ -403,7 +403,7 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, array, "sample", mrb_ary_sample, MRB_ARGS_OPT(2));
 
   mrb_const_set(mrb, mrb_obj_value(random), MRB_SYM(DEFAULT),
-          mrb_obj_new(mrb, random, 0, NULL));
+                mrb_obj_new(mrb, random, 0, NULL));
 }
 
 void mrb_mruby_random_gem_final(mrb_state *mrb)
