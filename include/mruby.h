@@ -927,7 +927,7 @@ MRB_API struct RClass* mrb_define_module_under_id(mrb_state *mrb, struct RClass 
  * | `b`  | boolean        | {mrb_bool}        |                                                    |
  * | `n`  | {String}/{Symbol} | {mrb_sym}         |                                                    |
  * | `d`  | data           | void *, {mrb_data_type} const | 2nd argument will be used to check data type so it won't be modified; when `!` follows, the value may be `nil` |
- * | `I`  | inline struct  | void *, struct RClass | `I!` gives `NULL` for `nil`                    |
+ * | `I`  | inline struct  | void *, struct RClass | `I!` gives `NULL` for `nil`; Check the following notes |
  * | `&`  | block          | {mrb_value}       | &! raises exception if no block given.             |
  * | `*`  | rest arguments | const {mrb_value} *, {mrb_int} | Receive the rest of arguments as an array; `*!` avoid copy of the stack.  |
  * | <code>\|</code> | optional     |                   | After this spec following specs would be optional. |
@@ -942,6 +942,31 @@ MRB_API struct RClass* mrb_define_module_under_id(mrb_state *mrb, struct RClass 
  * |:----:|-----------------------------------------------------------------------------------------|
  * | `!`  | Switch to the alternate mode; The behaviour changes depending on the format specifier   |
  * | `+`  | Request a not frozen object; However, except nil value                                  |
+ *
+ * ### Note for the `I` specifier
+ *
+ * The second argument of `I` specifier gives the class pointer.
+ * It is problematic to use the `mrb_class_get()` family of functions to give the name of a regular constant as it is.
+ * The reason is that they can be easily redefined as constants in Ruby.
+ *
+ *      struct my_data *ptr;
+ *      struct RClass *c = mrb_class_get(mrb, "MyObject");  // may be redefined
+ *      mrb_get_args(mrb, "I", &ptr, c);
+ *
+ * If it was redefined, it will be manipulated as a different C structure, leading to unexpected results.
+ *
+ * To deal with this problem, also add constants with names that start with a lowercase letter when defining the class.
+ * This name will not be recognized as a constant name and will not be able to be manipulated from within Ruby.
+ *
+ *      struct RClass *c = mrb_define_class(mrb, "MyObject", mrb->object_class);
+ *      mrb_sym altname = mrb_intern_lit(mrb, "mygem_MyObject");
+ *      mrb_const_set(mrb, mrb_obj_value(mrb->object_class), altname, mrb_object_value(c));
+ *
+ *      ...
+ *
+ *      struct my_data *ptr;
+ *      struct RClass *c = mrb_class_get(mrb, "mygem_MyObject");  // get by lowercase constant name
+ *      mrb_get_args(mrb, "I", &ptr, c);
  */
 typedef const char *mrb_args_format;
 
