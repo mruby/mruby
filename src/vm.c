@@ -202,6 +202,21 @@ mrb_stack_extend(mrb_state *mrb, mrb_int room)
   }
 }
 
+static void
+mrb_stack_extend_adjust(mrb_state *mrb, mrb_int room, const mrb_value **argp)
+{
+  const struct mrb_context *c = mrb->c;
+  ptrdiff_t voff = *argp - c->stbase;
+
+  if (voff < 0 || voff >= c->stend - c->stbase) {
+    mrb_stack_extend(mrb, room);
+  }
+  else {
+    mrb_stack_extend(mrb, room);
+    *argp = c->stbase + voff;
+  }
+}
+
 static inline struct REnv*
 uvenv(mrb_state *mrb, mrb_int up)
 {
@@ -508,7 +523,6 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     struct RClass *c;
     mrb_callinfo *ci = mrb->c->ci;
     mrb_int n = mrb_ci_nregs(ci);
-    ptrdiff_t voff = -1;
 
     if (!mrb->c->stbase) {
       stack_init(mrb);
@@ -516,15 +530,12 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     if (ci - mrb->c->cibase > MRB_CALL_LEVEL_MAX) {
       mrb_exc_raise(mrb, mrb_obj_value(mrb->stack_err));
     }
-    if (mrb->c->stbase <= argv && argv < mrb->c->stend) {
-      voff = argv - mrb->c->stbase;
-    }
     if (argc < 0) {
       mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative argc for funcall (%i)", argc);
     }
     c = mrb_class(mrb, self);
     m = mrb_method_search_vm(mrb, &c, mid);
-    mrb_stack_extend(mrb, n + argc + 3);
+    mrb_stack_extend_adjust(mrb, n + argc + 3, &argv);
     if (argc >= 15) {
       ci->stack[n+1] = mrb_ary_new_from_values(mrb, argc, argv);
       ci->stack[n+2] = blk;
@@ -549,9 +560,6 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
       if (!MRB_PROC_CFUNC_P(p)) {
         mrb_stack_extend(mrb, p->body.irep->nregs + argc);
       }
-    }
-    if (voff >= 0) {
-      argv = mrb->c->stbase + voff;
     }
     ci->stack[0] = self;
 
@@ -858,7 +866,7 @@ mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value 
     ci->n = (uint8_t)argc;
     n = argc + 2;
   }
-  mrb_stack_extend(mrb, n);
+  mrb_stack_extend_adjust(mrb, n, &argv);
   mrb->c->ci->stack[0] = self;
   if (ci->n == 15) {
     mrb->c->ci->stack[1] = mrb_ary_new_from_values(mrb, argc, argv);
@@ -906,7 +914,7 @@ mrb_yield_cont(mrb_state *mrb, mrb_value b, mrb_value self, mrb_int argc, const 
   p = mrb_proc_ptr(b);
   ci = mrb->c->ci;
 
-  mrb_stack_extend(mrb, 4);
+  mrb_stack_extend_adjust(mrb, 4, &argv);
   mrb->c->ci->stack[1] = mrb_ary_new_from_values(mrb, argc, argv);
   mrb->c->ci->stack[2] = mrb_nil_value();
   mrb->c->ci->stack[3] = mrb_nil_value();
