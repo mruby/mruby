@@ -21,26 +21,18 @@
 void
 mrb_exc_mesg_set(mrb_state *mrb, struct RException *exc, mrb_value mesg)
 {
-  if (!mrb_immediate_p(mesg)) {
-    exc->mesg = mrb_obj_ptr(mesg);
-    mrb_field_write_barrier_value(mrb, (struct RBasic*)exc, mesg);
-    mrb_iv_remove(mrb, mrb_obj_value(exc), MRB_SYM(mesg));
+  if (!mrb_string_p(mesg)) {
+    mesg = mrb_obj_as_string(mrb, mesg);
   }
-  else {
-    exc->mesg = NULL;
-    mrb_obj_iv_set(mrb, (struct RObject*)exc, MRB_SYM(mesg), mesg);
-  }
+  exc->mesg = mrb_obj_ptr(mesg);
+  mrb_field_write_barrier_value(mrb, (struct RBasic*)exc, mesg);
 }
 
 mrb_value
 mrb_exc_mesg_get(mrb_state *mrb, struct RException *exc)
 {
-  if (exc->mesg) {
-    return mrb_obj_value(exc->mesg);
-  }
-  else {
-    return mrb_obj_iv_get(mrb, (struct RObject*)exc, MRB_SYM(mesg));
-  }
+  if (exc->mesg == NULL) return mrb_nil_value();
+  return mrb_obj_value(exc->mesg);
 }
 
 MRB_API mrb_value
