@@ -630,6 +630,26 @@ mrb_raise_nomemory(mrb_state *mrb)
   }
 }
 
+MRB_API void
+mrb_print_error(mrb_state *mrb)
+{
+#ifndef MRB_NO_STDIO
+  if (mrb->jmp == NULL) {
+    struct mrb_jmpbuf c_jmp;
+    MRB_TRY(&c_jmp) {
+      mrb->jmp = &c_jmp;
+      mrb_print_backtrace(mrb);
+    } MRB_CATCH(&c_jmp) {
+      /* ignore exception during print_backtrace() */
+    } MRB_END_EXC(&c_jmp);
+    mrb->jmp = NULL;
+  }
+  else {
+    mrb_print_backtrace(mrb);
+  }
+#endif
+}
+
 void
 mrb_init_exception(mrb_state *mrb)
 {
