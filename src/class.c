@@ -914,7 +914,6 @@ mrb_block_given_p(mrb_state *mrb)
     b:      boolean        [mrb_bool]
     n:      String/Symbol  [mrb_sym]
     d:      data           [void*,mrb_data_type const] 2nd argument will be used to check data type so it won't be modified; when ! follows, the value may be nil
-    I:      inline struct  [void*,struct RClass]  I! gives NULL for nil
     &:      block          [mrb_value]            &! raises exception if no block given
     *:      rest argument  [const mrb_value*,mrb_int] The rest of the arguments as an array; *! avoid copy of the stack
     |:      optional                              Following arguments are optional
@@ -1158,29 +1157,6 @@ mrb_get_args(mrb_state *mrb, const char *format, ...)
             a = mrb_ary_ptr(*pickarg);
             *pb = ARY_PTR(a);
             *pl = ARY_LEN(a);
-          }
-        }
-      }
-      break;
-    case 'I':
-      {
-        void* *p;
-        struct RClass *klass;
-
-        p = va_arg(ap, void**);
-        klass = va_arg(ap, struct RClass*);
-        if (pickarg) {
-          if (altmode && mrb_nil_p(*pickarg)) {
-            *p = NULL;
-          }
-          else {
-            if (!mrb_obj_is_kind_of(mrb, *pickarg, klass)) {
-              mrb_raisef(mrb, E_TYPE_ERROR, "%v is not a %C", *pickarg, klass);
-            }
-            if (!mrb_istruct_p(*pickarg)) {
-              mrb_raisef(mrb, E_TYPE_ERROR, "%v is not inline struct", *pickarg);
-            }
-            *p = mrb_istruct_ptr(*pickarg);
           }
         }
       }
