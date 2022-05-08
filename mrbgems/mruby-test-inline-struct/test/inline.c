@@ -59,7 +59,7 @@ istruct_test_test_receive_direct(mrb_state *mrb, mrb_value self)
   mrb_value is;
   struct RClass *klass = mrb_class_get(mrb, "InlineStructTest");
   mrb_get_args(mrb, "o", &is);
-  if (mrb_obj_is_kind_of(mrb, is, klass)) {
+  if (mrb_istruct_p(is) && mrb_obj_is_kind_of(mrb, is, klass)) {
     char *ptr = mrb_istruct_ptr(is);;
     return mrb_bool_value(ptr[0] == 's');
   }
