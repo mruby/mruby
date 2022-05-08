@@ -59,6 +59,9 @@ istruct_test_test_receive_direct(mrb_state *mrb, mrb_value self)
   mrb_value is;
   struct RClass *klass = mrb_class_get(mrb, "InlineStructTest");
   mrb_get_args(mrb, "o", &is);
+  /* if you need to protect istruct retrieval from untrusted code,
+     you need to care about class replacing.
+     See mrbgem/mruby-random/src/random.c for detail */
   if (mrb_istruct_p(is) && mrb_obj_is_kind_of(mrb, is, klass)) {
     char *ptr = mrb_istruct_ptr(is);;
     return mrb_bool_value(ptr[0] == 's');
