@@ -1,48 +1,91 @@
 # User visible changes in `mruby3.1` from `mruby3.0`
 
-# Build System
+# New Features
 
-## `build_config` directory
+## Core Language Features
 
-Several configurations for new platforms are added:
+### Keyword Arguments
 
-* `cross-mingw-winetest.rb`
-* `cross-mingw.rb`
-* `nintendo_switch.rb`
-* `serenity.rb`
+CRuby3.0 compatible keyword arguments are introduced.
+Keyword arguments are basically separated from ordinal arguments.
 
-Some new configurations for added for convenience.
+### Other Language Enhancement
 
-* `minimal`: minimal configuration
-* `host-f32`: compiles with `mrb_float` as 32 bit `float`
-* `host-nofloat`: compiles with no float configuration
+- Implement endless-def [Ruby:Feature#16746](https://bugs.ruby-lang.org/issues/16746)
+- Replace `R-assignment` by `single-line pattern matching` [Ruby:Feature#15921](https://bugs.ruby-lang.org/issues/15921)
+- Support squiggly heredocs. [#5246](https://github.com/mruby/mruby/pull/5246)
+- Hash value omission [Ruby:Feature#14579](https://bugs.ruby-lang.org/issues/14579)
 
-And `android_arm64-v8a.rb` was renamed to `android_arm64_v8a.rb` for consistency.
-
-# Configuration Options Changed
+## Configuration Options Changed
 
 Some configuration macros are available:
 
-* `MRB_WORDBOX_NO_FLOAT_TRUNCATE`: by default, float values are packed in the word if possible, but define this macro to allocate float values in the heap.
-* `MRB_USE_RO_DATA_P_ETEXT`: define this macro if `_etext` is available on your platform.
-* `MRB_NO_DEFAULT_RO_DATA_P`: define this macro to avoid using predefined `mrb_ro_data_p()` function
+- `MRB_WORDBOX_NO_FLOAT_TRUNCATE`: by default, float values are packed in the word if possible, but define this macro to allocate float values in the heap.
+- `MRB_USE_RO_DATA_P_ETEXT`: define this macro if `_etext` is available on your platform.
+- `MRB_NO_DEFAULT_RO_DATA_P`: define this macro to avoid using predefined `mrb_ro_data_p()` function
 
-# Language Changes
+---
 
-## Keyword Arguments
+# Updated Features
 
-CRuby3.0 compatible keyword arguments are introduced.
-Keyword arguments are basically separated from ordinal arguments
+## New build configurations
 
-## New Methods
+We have added several new build configurations in the `build_config` directory.
 
-* `Array#product`
-* `Array#repeated_combination`
-* `Array#repeated_permutation`
-* `Random.bytes`
-* `Random#bytes`
+- `cross-mingw-winetest.rb`
+- `cross-mingw.rb`
+- `nintendo_switch.rb`
+- `serenity.rb`
+- `minimal`: minimal configuration
+- `host-f32`: compiles with `mrb_float` as 32 bit `float`
+- `host-nofloat`: compiles with no float configuration
+- `android_arm64_v8a.rb`: renamed from `android_arm64-v8a.rb`
 
-# Internal Changes
+## Core Libraries
+
+### New Methods
+
+- `Array#product`
+- `Array#repeated_combination`
+- `Array#repeated_permutation`
+- `Kernel#__ENCODING__`
+- `Random.bytes`
+- `Random#bytes`
+- `String#center`
+
+### New Gem Enhancement
+
+- `mrbgems/mruby-pack` now supports `M` directive (Q encoding)
+- `mrbgems/mruby-pack` now supports `X` directive (back-up by bytes)
+- `mrbgems/mruby-pack` now supports `@` directive (absolute position)
+- `mrbgems/mruby-pack` now supports `w` directive (BER compression)
+
+## Tools
+
+- `mruby-config` now supports `--cc` and `--ld` options.
+- Remove `OP_` prefix from `mruby -v` code dump output.
+- Prohibit use of `OP_EXT{1,2,3}` by `mrbc` with `--no-ext-ops` option.
+
+## Features for mruby Developer
+
+- Add new specifier `c` to `mrb_get_args()` for receive Class/Module.
+
+---
+
+# Breaking Changes
+
+## Incompatibly Changed Methods
+
+- `Kernel#printf` (`mruby-sprintf`) Format specifiers `%a` and `%A` are removed.
+- `Kernel#puts` (`mruby-print`) Now expand Array arguments.
+
+## mruby VM and bytecode
+
+Due to improvements in the binary format, mruby binaries are no longer backward compatible.
+To run the mruby binaries on mruby 3.1, recompile with the mruby 3.1 `mrbc`.
+
+- Upgrade mruby VM version `RITE_VM_VER` to `0300` (means mruby 3.0 or after).
+- Upgrade mruby binary version `RITE_BINARY_FORMAT_VER` to `0300`.
 
 ## Reintroduced Instructions
 
@@ -53,18 +96,18 @@ Keyword arguments are basically separated from ordinal arguments
 
 `mruby3.1` removed following instructions.
 
-* `OP_LOADL16`
-* `OP_LOADSYM16`
-* `OP_STRING16`
-* `OP_LAMBDA16`
-* `OP_BLOCK16`
-* `OP_METHOD16`
-* `OP_EXEC16`
+- `OP_LOADL16`
+- `OP_LOADSYM16`
+- `OP_STRING16`
+- `OP_LAMBDA16`
+- `OP_BLOCK16`
+- `OP_METHOD16`
+- `OP_EXEC16`
 
 Those instructions are no longer needed by reintroduction of extension instructions.
 
-* `OP_SENDV`
-* `OP_SENDVB`
+- `OP_SENDV`
+- `OP_SENDVB`
 
 Those instructions for method calls with variable number of arguments are no longer needed. They are covered by `OP_SEND` instruction with `n=15`.
 
@@ -72,11 +115,11 @@ Those instructions for method calls with variable number of arguments are no lon
 
 `mruby3.1` introduces following new instructions.
 
-* `OP_GETIDX`: takes 1 operands `R[a][a+1]`
-* `OP_SETIDX`: takes 1 operands `R[a][a+1]=R[a+2]`
-* `OP_SSEND`: takes 3 operands `a=self.b(c...)`; see `OP_SEND`
-* `OP_SSENDB`: takes 3 operands `a=self.b(c...){...}`; see `OP_SEND`
-* `OP_SYMBOL`: takes 2 operands `R[a] = intern(Pool[b])`
+- `OP_GETIDX`: takes 1 operands `R[a][a+1]`
+- `OP_SETIDX`: takes 1 operands `R[a][a+1]=R[a+2]`
+- `OP_SSEND`: takes 3 operands `a=self.b(c...)`; see `OP_SEND`
+- `OP_SSENDB`: takes 3 operands `a=self.b(c...){...}`; see `OP_SEND`
+- `OP_SYMBOL`: takes 2 operands `R[a] = intern(Pool[b])`
 
 ### `OP_GETIDX` and `OP_SETIDX`
 
@@ -151,3 +194,27 @@ GETIV R1 :@foo
 ## `String#hash` now use `FNV1a` algorithm
 
 For better and faster hash values.
+
+---
+
+# Major bug fixes
+
+- Fix infinite recursive call bugs in integer division [98799aa6](https://github.com/mruby/mruby/commit/98799aa6)
+- Fix to raise TypeError with super inside instance_eval / class_eval [#5476](https://github.com/mruby/mruby/pull/5476)
+- Fix to call `method_added` hooks on method definitions; [#2339](https://github.com/mruby/mruby/pull/2339)
+- Fix a potential buffer overflow in `time_zonename` [26340a88](https://github.com/mruby/mruby/commit/26340a88)
+- Fix `Module.instance_eval` bug [#5528](https://github.com/mruby/mruby/pull/5528)
+- Fix fix `M` packing bug [bfe2bd49](https://github.com/mruby/mruby/commit/bfe2bd49)
+- Fix a bug regarding attribute assignment with kargs [de2b4bd0](https://github.com/mruby/mruby/commit/de2b4bd0)
+- Fix SIGSEGV with mrbgems/mruby-method [#5580](https://github.com/mruby/mruby/pull/5580)
+- Fix print error before cleanup in `codegen_error()` [#5603](https://github.com/mruby/mruby/pull/5603)
+- Fix a bug in unpacking BER [#5611](https://github.com/mruby/mruby/pull/5611)
+- Fix a bug with numbered parameters as arguments [#5605](https://github.com/mruby/mruby/pull/5605)
+- Fix `mrb_ary_shift_m` initialization bug [27d1e013](https://github.com/mruby/mruby/commit/27d1e013)
+- Fix keyword argument with `super` [#5628](https://github.com/mruby/mruby/pull/5628)
+- Fix a bug with numbered parameters on toplevel [7e7f1b2f](https://github.com/mruby/mruby/commit/7e7f1b2f)
+- Fix keyword argument bug [#5632](https://github.com/mruby/mruby/issues/5632)
+- Fix multiple assignments in parameters [#5647](https://github.com/mruby/mruby/issues/5647)
+- Fix keyword parameters not passing through super [#5660](https://github.com/mruby/mruby/issues/5660)
+- Fix infinite loop from unclosed here-doc [#5676](https://github.com/mruby/mruby/issues/5676)
+- Fix negative integer division bug [#5678](https://github.com/mruby/mruby/issues/5678)
