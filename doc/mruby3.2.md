@@ -2,28 +2,28 @@
 
 # The language
 
-* Now `a::B = c` should evaluate `a` then `c`.
-* Anonymous arguments `*`, `**`, `&` can be passed for forwarding.
-* Multi-precision integer is available now via `mruby-bigint` gem.
+- Now `a::B = c` should evaluate `a` then `c`.
+- Anonymous arguments `*`, `**`, `&` can be passed for forwarding.
+- Multi-precision integer is available now via `mruby-bigint` gem.
 
 # Tools
 
 ## `mruby`
 
-* `-b` only specifies the script is the binary. The files loaded by `-r` are not affected by the option.
-* `mruby` now loads complied binary if the suffix is `.mrb`.
+- `-b` only specifies the script is the binary. The files loaded by `-r` are not affected by the option.
+- `mruby` now loads complied binary if the suffix is `.mrb`.
 
 ## `mrbc`
 
-* Add `--no-optimize` option to disable optimization.
+- Add `--no-optimize` option to disable optimization.
 
 # mrbgems
 
 ## mruby-errno
 
-* `mruby-errno` gem is now bundled.
+- `mruby-errno` gem is now bundled.
 
 ## mruby-class-ext
 
-* Add `Class#subclasses` method.
-* Add `Module#undefined_instance_methods` method.
+- Add `Class#subclasses` method.
+- Add `Module#undefined_instance_methods` method.
