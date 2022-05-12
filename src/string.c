@@ -14,12 +14,13 @@
 #include <mruby/range.h>
 #include <mruby/string.h>
 #include <mruby/numeric.h>
+#include <mruby/internal.h>
 #include <mruby/presym.h>
 #include <string.h>
 
 typedef struct mrb_shared_string {
   int refcnt;
-  mrb_ssize capa;
+  mrb_int capa;
   char *ptr;
 } mrb_shared_string;
 
@@ -29,26 +30,26 @@ const char mrb_digitmap[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
 static struct RString*
 str_init_normal_capa(mrb_state *mrb, struct RString *s,
-                     const char *p, size_t len, size_t capa)
+                     const char *p, mrb_int len, mrb_int capa)
 {
   char *dst = (char *)mrb_malloc(mrb, capa + 1);
   if (p) memcpy(dst, p, len);
   dst[len] = '\0';
   s->as.heap.ptr = dst;
-  s->as.heap.len = (mrb_ssize)len;
-  s->as.heap.aux.capa = (mrb_ssize)capa;
+  s->as.heap.len = len;
+  s->as.heap.aux.capa = capa;
   RSTR_UNSET_TYPE_FLAG(s);
   return s;
 }
 
 static struct RString*
-str_init_normal(mrb_state *mrb, struct RString *s, const char *p, size_t len)
+str_init_normal(mrb_state *mrb, struct RString *s, const char *p, mrb_int len)
 {
   return str_init_normal_capa(mrb, s, p, len, len);
 }
 
 static struct RString*
-str_init_embed(struct RString *s, const char *p, size_t len)
+str_init_embed(struct RString *s, const char *p, mrb_int len)
 {
   if (p) memcpy(RSTR_EMBED_PTR(s), p, len);
   RSTR_EMBED_PTR(s)[len] = '\0';
@@ -58,10 +59,10 @@ str_init_embed(struct RString *s, const char *p, size_t len)
 }
 
 static struct RString*
-str_init_nofree(struct RString *s, const char *p, size_t len)
+str_init_nofree(struct RString *s, const char *p, mrb_int len)
 {
   s->as.heap.ptr = (char *)p;
-  s->as.heap.len = (mrb_ssize)len;
+  s->as.heap.len = len;
   s->as.heap.aux.capa = 0;             /* nofree */
   RSTR_SET_TYPE_FLAG(s, NOFREE);
   return s;
@@ -97,36 +98,28 @@ str_init_fshared(const struct RString *orig, struct RString *s, struct RString *
 }
 
 static struct RString*
-str_init_modifiable(mrb_state *mrb, struct RString *s, const char *p, size_t len)
+str_init_modifiable(mrb_state *mrb, struct RString *s, const char *p, mrb_int len)
 {
   if (RSTR_EMBEDDABLE_P(len)) {
     return str_init_embed(s, p, len);
   }
-  else {
-    return str_init_normal(mrb, s, p, len);
-  }
+  return str_init_normal(mrb, s, p, len);
 }
 
 static struct RString*
-str_new_static(mrb_state *mrb, const char *p, size_t len)
+str_new_static(mrb_state *mrb, const char *p, mrb_int len)
 {
   if (RSTR_EMBEDDABLE_P(len)) {
     return str_init_embed(mrb_obj_alloc_string(mrb), p, len);
-  }
-  if (len >= MRB_SSIZE_MAX) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
   }
   return str_init_nofree(mrb_obj_alloc_string(mrb), p, len);
 }
 
 static struct RString*
-str_new(mrb_state *mrb, const char *p, size_t len)
+str_new(mrb_state *mrb, const char *p, mrb_int len)
 {
   if (RSTR_EMBEDDABLE_P(len)) {
     return str_init_embed(mrb_obj_alloc_string(mrb), p, len);
-  }
-  if (len >= MRB_SSIZE_MAX) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
   }
   if (p && mrb_ro_data_p(p)) {
     return str_init_nofree(mrb_obj_alloc_string(mrb), p, len);
@@ -135,31 +128,22 @@ str_new(mrb_state *mrb, const char *p, size_t len)
 }
 
 MRB_API mrb_value
-mrb_str_new_capa(mrb_state *mrb, size_t capa)
+mrb_str_new_capa(mrb_state *mrb, mrb_int capa)
 {
-  struct RString *s;
+  struct RString *s = mrb_obj_alloc_string(mrb);
 
   if (RSTR_EMBEDDABLE_P(capa)) {
-    s = str_init_embed(mrb_obj_alloc_string(mrb), NULL, 0);
-  }
-  else if (capa >= MRB_SSIZE_MAX) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "string capacity size too big");
-    /* not reached */
-    s = NULL;
+    s = str_init_embed(s, NULL, 0);
   }
   else {
-    s = str_init_normal_capa(mrb, mrb_obj_alloc_string(mrb), NULL, 0, capa);
+    s = str_init_normal_capa(mrb, s, NULL, 0, capa);
   }
-
   return mrb_obj_value(s);
 }
 
 static void
-resize_capa(mrb_state *mrb, struct RString *s, size_t capacity)
+resize_capa(mrb_state *mrb, struct RString *s, mrb_int capacity)
 {
-#if SIZE_MAX > MRB_SSIZE_MAX
-    mrb_assert(capacity < MRB_SSIZE_MAX);
-#endif
   if (RSTR_EMBED_P(s)) {
     if (!RSTR_EMBEDDABLE_P(capacity)) {
       str_init_normal_capa(mrb, s, RSTR_EMBED_PTR(s), RSTR_EMBED_LEN(s), capacity);
@@ -172,7 +156,7 @@ resize_capa(mrb_state *mrb, struct RString *s, size_t capacity)
 }
 
 MRB_API mrb_value
-mrb_str_new(mrb_state *mrb, const char *p, size_t len)
+mrb_str_new(mrb_state *mrb, const char *p, mrb_int len)
 {
   return mrb_obj_value(str_new(mrb, p, len));
 }
@@ -181,7 +165,7 @@ MRB_API mrb_value
 mrb_str_new_cstr(mrb_state *mrb, const char *p)
 {
   struct RString *s;
-  size_t len;
+  mrb_int len;
 
   if (p) {
     len = strlen(p);
@@ -196,7 +180,7 @@ mrb_str_new_cstr(mrb_state *mrb, const char *p)
 }
 
 MRB_API mrb_value
-mrb_str_new_static(mrb_state *mrb, const char *p, size_t len)
+mrb_str_new_static(mrb_state *mrb, const char *p, mrb_int len)
 {
   struct RString *s = str_new_static(mrb, p, len);
   return mrb_obj_value(s);
@@ -225,20 +209,19 @@ str_modify_keep_ascii(mrb_state *mrb, struct RString *s)
       mrb_free(mrb, shared);
     }
     else {
-      str_init_modifiable(mrb, s, s->as.heap.ptr, (size_t)s->as.heap.len);
+      str_init_modifiable(mrb, s, s->as.heap.ptr, s->as.heap.len);
       str_decref(mrb, shared);
     }
   }
   else if (RSTR_NOFREE_P(s) || RSTR_FSHARED_P(s)) {
-    str_init_modifiable(mrb, s, s->as.heap.ptr, (size_t)s->as.heap.len);
+    str_init_modifiable(mrb, s, s->as.heap.ptr, s->as.heap.len);
   }
 }
 
 static void
-check_null_byte(mrb_state *mrb, mrb_value str)
+check_null_byte(mrb_state *mrb, struct RString *str)
 {
-  mrb_ensure_string_type(mrb, str);
-  if (memchr(RSTRING_PTR(str), '\0', RSTRING_LEN(str))) {
+  if (memchr(RSTR_PTR(str), '\0', RSTR_LEN(str))) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string contains null byte");
   }
 }
@@ -714,21 +697,6 @@ str_rindex(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
   }
 }
 
-MRB_API mrb_int
-mrb_str_strlen(mrb_state *mrb, struct RString *s)
-{
-  mrb_int i, max = RSTR_LEN(s);
-  char *p = RSTR_PTR(s);
-
-  if (!p) return 0;
-  for (i=0; i<max; i++) {
-    if (p[i] == '\0') {
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "string contains null byte");
-    }
-  }
-  return max;
-}
-
 #ifdef _WIN32
 #include <windows.h>
 
@@ -833,14 +801,9 @@ mrb_str_to_cstr(mrb_state *mrb, mrb_value str0)
   struct RString *s;
 
   const char *p = RSTRING_PTR(str0);
-  size_t len = RSTRING_LEN(str0);
-  check_null_byte(mrb, str0);
-  if (RSTR_EMBEDDABLE_P(len)) {
-    s = str_init_embed(mrb_obj_alloc_string(mrb), p, len);
-  }
-  else {
-    s = str_init_normal(mrb, mrb_obj_alloc_string(mrb), p, len);
-  }
+  mrb_int len = RSTRING_LEN(str0);
+  check_null_byte(mrb, RSTRING(str0));
+  s = str_init_modifiable(mrb, mrb_obj_alloc_string(mrb), p, len);
   return RSTR_PTR(s);
 }
 
@@ -920,7 +883,7 @@ mrb_str_bytesize(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_str_times(mrb_state *mrb, mrb_value self)
 {
-  mrb_int n,len,times;
+  mrb_int n, len, times;
   struct RString *str2;
   char *p;
 
@@ -928,11 +891,9 @@ mrb_str_times(mrb_state *mrb, mrb_value self)
   if (times < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "negative argument");
   }
-  if (times && MRB_SSIZE_MAX / times < RSTRING_LEN(self)) {
+  if (mrb_int_mul_overflow(RSTRING_LEN(self), times, &len)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "argument too big");
   }
-
-  len = RSTRING_LEN(self)*times;
   str2 = str_new(mrb, 0, len);
   p = RSTR_PTR(str2);
   if (len > 0) {
@@ -1058,22 +1019,6 @@ mrb_str_equal_m(mrb_state *mrb, mrb_value str1)
   return mrb_bool_value(mrb_str_equal(mrb, str1, str2));
 }
 /* ---------------------------------- */
-
-/* obslete: use RSTRING_PTR() */
-MRB_API const char*
-mrb_string_value_ptr(mrb_state *mrb, mrb_value str)
-{
-  str = mrb_obj_as_string(mrb, str);
-  return RSTRING_PTR(str);
-}
-
-/* obslete: use RSTRING_LEN() */
-MRB_API mrb_int
-mrb_string_value_len(mrb_state *mrb, mrb_value ptr)
-{
-  mrb_ensure_string_type(mrb, ptr);
-  return RSTRING_LEN(ptr);
-}
 
 MRB_API mrb_value
 mrb_str_dup(mrb_state *mrb, mrb_value str)
@@ -1234,7 +1179,7 @@ str_replace_partial(mrb_state *mrb, mrb_value src, mrb_int pos, mrb_int end, mrb
   }
 
   replen = (mrb_nil_p(rep) ? 0 : RSTRING_LEN(rep));
-  if (mrb_int_add_overflow(replen, len - (end - pos), &newlen) || newlen >= MRB_SSIZE_MAX) {
+  if (mrb_int_add_overflow(replen, len - (end - pos), &newlen)) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "string size too big");
   }
 
@@ -2039,10 +1984,9 @@ mrb_str_rindex(mrb_state *mrb, mrb_value str)
 {
   mrb_value sub;
   mrb_int pos;
-  int argc = mrb_get_args(mrb, "S|i", &sub, &pos);
   mrb_int len = RSTRING_CHAR_LEN(str);
 
-  if (argc == 1) {
+  if (mrb_get_args(mrb, "S|i", &sub, &pos) == 1) {
     pos = len;
   }
   else {
@@ -2205,11 +2149,24 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
   return result;
 }
 
+static mrb_bool
+trailingbad(const char *str, const char *p, const char *pend)
+{
+  if (p == str) return TRUE;             /* no number */
+  if (*(p - 1) == '_') return TRUE;      /* trailing '_' */
+  while (p<pend && ISSPACE(*p)) p++;
+  if (p<pend) return TRUE;               /* trailing garbage */
+  return FALSE;
+}
+
 static mrb_value
 mrb_str_len_to_integer(mrb_state *mrb, const char *str, size_t len, mrb_int base, int badcheck)
 {
   const char *p = str;
   const char *pend = str + len;
+#ifdef MRB_USE_BIGINT
+  const char *p2 = NULL;
+#endif
   char sign = 1;
   int c;
   mrb_int n = 0;
@@ -2320,6 +2277,9 @@ mrb_str_len_to_integer(mrb_state *mrb, const char *str, size_t len, mrb_int base
     if (badcheck) goto bad;
     return mrb_fixnum_value(0);
   }
+#ifdef MRB_USE_BIGINT
+  p2 = p;
+#endif
   for ( ;p<pend;p++) {
     if (*p == '_') {
       p++;
@@ -2333,7 +2293,7 @@ mrb_str_len_to_integer(mrb_state *mrb, const char *str, size_t len, mrb_int base
       }
     }
     if (badcheck && *p == '\0') {
-      goto nullbyte;
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "string contains null byte");
     }
     c = conv_digit(*p);
     if (c < 0 || c >= base) {
@@ -2347,22 +2307,27 @@ mrb_str_len_to_integer(mrb_state *mrb, const char *str, size_t len, mrb_int base
         break;
       }
     overflow:
+#ifdef MRB_USE_BIGINT
+      ;
+      const char *p3 = p2;
+      while (p3 < pend) {
+        char c = TOLOWER(*p3);
+        const char *p4 = strchr(mrb_digitmap, c);
+        if (p4 == NULL && c != '_') break;
+        if (p4 - mrb_digitmap >= base) break;
+        p3++;
+      }
+      if (badcheck && trailingbad(str, p, pend)) goto bad;
+      return mrb_bint_new_str(mrb, p2, (mrb_int)(p3-p2), sign ? base : -base);
+#else
       mrb_raisef(mrb, E_RANGE_ERROR, "string (%l) too big for integer", str, pend-str);
+#endif
     }
     n += c;
   }
   val = (mrb_int)n;
-  if (badcheck) {
-    if (p == str) goto bad;             /* no number */
-    if (*(p - 1) == '_') goto bad;      /* trailing '_' */
-    while (p<pend && ISSPACE(*p)) p++;
-    if (p<pend) goto bad;               /* trailing garbage */
-  }
-
+  if (badcheck && trailingbad(str, p, pend)) goto bad;
   return mrb_int_value(mrb, sign ? val : -val);
- nullbyte:
-  mrb_raise(mrb, E_ARGUMENT_ERROR, "string contains null byte");
-  /* not reached */
  bad:
   mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid string for number(%!l)", str, pend-str);
   /* not reached */
@@ -2377,8 +2342,9 @@ mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr)
   const char *p;
   mrb_int len;
 
-  check_null_byte(mrb, *ptr);
+  mrb_ensure_string_type(mrb, *ptr);
   ps = mrb_str_ptr(*ptr);
+  check_null_byte(mrb, ps);
   p = RSTR_PTR(ps);
   len = RSTR_LEN(ps);
   if (p[len] == '\0') {
@@ -2646,8 +2612,8 @@ MRB_API mrb_value
 mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
 {
   struct RString *s = mrb_str_ptr(str);
-  size_t capa;
-  size_t total;
+  mrb_int capa;
+  mrb_int total;
   ptrdiff_t off = -1;
 
   if (len == 0) return str;
@@ -2657,23 +2623,14 @@ mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
   }
 
   capa = RSTR_CAPA(s);
-  total = RSTR_LEN(s)+len;
-  if (total >= MRB_SSIZE_MAX) {
+  if (mrb_int_add_overflow(RSTR_LEN(s), len, &total)) {
   size_error:
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string size too big");
   }
   if (capa <= total) {
     if (capa == 0) capa = 1;
     while (capa <= total) {
-      if (capa <= MRB_SSIZE_MAX / 2) {
-        capa *= 2;
-      }
-      else {
-        capa = total+1;
-      }
-    }
-    if (capa <= total || capa > MRB_SSIZE_MAX) {
-      goto size_error;
+      if (mrb_int_mul_overflow(capa, 2, &capa)) goto size_error;
     }
     resize_capa(mrb, s, capa);
   }
@@ -2681,7 +2638,6 @@ mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
       ptr = RSTR_PTR(s) + off;
   }
   memcpy(RSTR_PTR(s) + RSTR_LEN(s), ptr, len);
-  mrb_assert_int_fit(size_t, total, mrb_ssize, MRB_SSIZE_MAX);
   RSTR_SET_LEN(s, total);
   RSTR_PTR(s)[total] = '\0';   /* sentinel */
   return str;

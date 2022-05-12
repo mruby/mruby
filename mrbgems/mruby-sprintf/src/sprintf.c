@@ -1002,12 +1002,14 @@ retry:
       }
       break;
 
-#ifndef MRB_NO_FLOAT
       case 'f':
       case 'g':
       case 'G':
       case 'e':
       case 'E': {
+#ifdef MRB_NO_FLOAT
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "%%%c not supported with MRB_NO_FLOAT defined", *p);
+#else
         mrb_value val = GETARG();
         double fval;
         mrb_int need = 6;
@@ -1077,9 +1079,9 @@ retry:
           mrb_raise(mrb, E_RUNTIME_ERROR, "formatting error");
         }
         blen += n;
+#endif
       }
       break;
-#endif
     }
     flags = FNONE;
   }

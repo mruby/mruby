@@ -10,6 +10,7 @@
 #include <mruby/proc.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>
+#include <mruby/internal.h>
 #include <mruby/presym.h>
 
 /* Instance variable table structure */
@@ -485,7 +486,7 @@ mrb_value
 mrb_obj_iv_inspect(mrb_state *mrb, struct RObject *obj)
 {
   iv_tbl *t = obj->iv;
-  int len = iv_size(mrb, t);
+  size_t len = iv_size(mrb, t);
 
   if (len > 0) {
     const char *cn = mrb_obj_classname(mrb, mrb_obj_value(obj));
@@ -773,6 +774,7 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym, mrb_bool skip)
   mrb_bool retry = FALSE;
   mrb_value name;
 
+  /* if skip then skip the current class (already searched) */
   if (skip) c = c->super;
 L_RETRY:
   while (c) {
@@ -781,6 +783,7 @@ L_RETRY:
         return v;
     }
     c = c->super;
+    if (!skip && c == mrb->object_class) break;
   }
   if (!retry && base->tt == MRB_TT_MODULE) {
     c = mrb->object_class;
@@ -985,7 +988,7 @@ mrb_f_global_variables(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_bool
-mrb_const_defined_0(mrb_state *mrb, mrb_value mod, mrb_sym id, mrb_bool exclude, mrb_bool recurse)
+const_defined_0(mrb_state *mrb, mrb_value mod, mrb_sym id, mrb_bool exclude, mrb_bool recurse)
 {
   struct RClass *klass = mrb_class_ptr(mod);
   struct RClass *tmp;
@@ -1011,13 +1014,13 @@ retry:
 MRB_API mrb_bool
 mrb_const_defined(mrb_state *mrb, mrb_value mod, mrb_sym id)
 {
-  return mrb_const_defined_0(mrb, mod, id, TRUE, TRUE);
+  return const_defined_0(mrb, mod, id, TRUE, TRUE);
 }
 
 MRB_API mrb_bool
 mrb_const_defined_at(mrb_state *mrb, mrb_value mod, mrb_sym id)
 {
-  return mrb_const_defined_0(mrb, mod, id, TRUE, FALSE);
+  return const_defined_0(mrb, mod, id, TRUE, FALSE);
 }
 
 MRB_API mrb_value

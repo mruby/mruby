@@ -9,9 +9,10 @@
 #include <mruby/proc.h>
 #include <mruby/opcode.h>
 #include <mruby/data.h>
-#include <mruby/presym.h>
 #include <mruby/array.h>
 #include <mruby/hash.h>
+#include <mruby/internal.h>
+#include <mruby/presym.h>
 
 static const mrb_code call_iseq[] = {
   OP_CALL,
@@ -237,14 +238,20 @@ mrb_proc_s_new(mrb_state *mrb, mrb_value proc_class)
   return proc;
 }
 
+static void
+check_proc(mrb_state *mrb, mrb_value proc)
+{
+  if (!mrb_proc_p(proc)) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "not a proc");
+  }
+}
+
 static mrb_value
 mrb_proc_init_copy(mrb_state *mrb, mrb_value self)
 {
   mrb_value proc = mrb_get_arg1(mrb);
 
-  if (!mrb_proc_p(proc)) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "not a proc");
-  }
+  check_proc(mrb, proc);
   mrb_proc_copy(mrb, mrb_proc_ptr(self), mrb_proc_ptr(proc));
   return self;
 }
@@ -275,9 +282,7 @@ proc_lambda(mrb_state *mrb, mrb_value self)
   if (mrb_nil_p(blk)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "tried to create Proc object without a block");
   }
-  if (!mrb_proc_p(blk)) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "not a proc");
-  }
+  check_proc(mrb, blk);
   p = mrb_proc_ptr(blk);
   if (!MRB_PROC_STRICT_P(p)) {
     struct RProc *p2 = MRB_OBJ_ALLOC(mrb, MRB_TT_PROC, p->c);

@@ -21,6 +21,7 @@
 #include <mruby/throw.h>
 #include <mruby/string.h>
 #include <mruby/dump.h>
+#include <mruby/internal.h>
 #include <mruby/presym.h>
 #include "node.h"
 
@@ -994,13 +995,13 @@ static node*
 new_imaginary(parser_state *p, node *imaginary)
 {
   return new_call(p, new_const(p, MRB_SYM_2(p->mrb, Kernel)), MRB_SYM_2(p->mrb, Complex),
-                  new_callargs(p, list2(list3((node*)NODE_INT, (node*)strdup("0"), nint(10)), imaginary), 0, 0), 1);
+                  new_callargs(p, list2(list3((node*)NODE_INT, (node*)strdup("0"), nint(10)), imaginary), 0, 0), '.');
 }
 
 static node*
 new_rational(parser_state *p, node *rational)
 {
-  return new_call(p, new_const(p, MRB_SYM_2(p->mrb, Kernel)), MRB_SYM_2(p->mrb, Rational), new_callargs(p, list1(rational), 0, 0), 1);
+  return new_call(p, new_const(p, MRB_SYM_2(p->mrb, Kernel)), MRB_SYM_2(p->mrb, Rational), new_callargs(p, list1(rational), 0, 0), '.');
 }
 
 /* (:int . i) */
@@ -1216,14 +1217,14 @@ static node*
 call_uni_op(parser_state *p, node *recv, const char *m)
 {
   void_expr_error(p, recv);
-  return new_call(p, recv, intern_cstr(m), 0, 1);
+  return new_call(p, recv, intern_cstr(m), 0, '.');
 }
 
 /* (:call a op b) */
 static node*
 call_bin_op(parser_state *p, node *recv, const char *m, node *arg1)
 {
-  return new_call(p, recv, intern_cstr(m), new_callargs(p, list1(arg1), 0, 0), 1);
+  return new_call(p, recv, intern_cstr(m), new_callargs(p, list1(arg1), 0, 0), '.');
 }
 
 static void
@@ -6933,7 +6934,7 @@ mrb_load_detect_file_cxt(mrb_state *mrb, FILE *fp, mrbc_context *c)
     return mrb_load_exec(mrb, mrb_parse_file_continue(mrb, fp, leading.b, bufsize, c), c);
   }
   else {
-    size_t binsize;
+    mrb_int binsize;
     uint8_t *bin;
     mrb_value bin_obj = mrb_nil_value(); /* temporary string object */
     mrb_value result;
@@ -6941,11 +6942,12 @@ mrb_load_detect_file_cxt(mrb_state *mrb, FILE *fp, mrbc_context *c)
     binsize = bin_to_uint32(leading.h.binary_size);
     bin_obj = mrb_str_new(mrb, NULL, binsize);
     bin = (uint8_t *)RSTRING_PTR(bin_obj);
-    memcpy(bin, leading.b, bufsize);
-    if (binsize > bufsize &&
-        fread(bin + bufsize, binsize - bufsize, 1, fp) == 0) {
-      binsize = bufsize;
-      /* The error is reported by mrb_load_irep_buf_cxt() */
+    if ((size_t)binsize > bufsize)  {
+      memcpy(bin, leading.b, bufsize);
+      if (fread(bin + bufsize, binsize - bufsize, 1, fp) == 0) {
+        binsize = bufsize;
+        /* The error is reported by mrb_load_irep_buf_cxt() */
+      }
     }
 
     result = mrb_load_irep_buf_cxt(mrb, bin, binsize, c);
@@ -7417,12 +7419,10 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
           }
         }
         n2 = n2->cdr;
-        if (n2) {
-          if (n2->car) {
-            dump_prefix(n2, offset+2);
-            printf("post:\n");
-            dump_recur(mrb, n2->car, offset+3);
-          }
+        if (n2 && n2->car) {
+          dump_prefix(n2, offset+2);
+          printf("post:\n");
+          dump_recur(mrb, n2->car, offset+3);
         }
       }
     }

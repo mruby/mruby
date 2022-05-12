@@ -137,7 +137,7 @@ random_rand(mrb_state *mrb, rand_state *t, mrb_int max)
 }
 
 static mrb_int
-random_rand_i(mrb_state *mrb, rand_state *t, mrb_int max)
+rand_i(rand_state *t, mrb_int max)
 {
   return rand_uint32(t) % max;
 }
@@ -167,6 +167,7 @@ random_default(mrb_state *mrb) {
 
 #define random_ptr(v) (rand_state*)mrb_istruct_ptr(v)
 #define random_default_state(mrb) random_ptr(random_default(mrb))
+#define ID_RANDOM_STRICT MRB_SYM(mruby_Random)
 
 static mrb_value
 random_m_init(mrb_state *mrb, mrb_value self)
@@ -241,13 +242,21 @@ random_m_bytes(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
 {
-  mrb_int i, max;
-  rand_state *random;
 
   if (RARRAY_LEN(ary) > 1) {
-    struct RClass *c = mrb_class_get_id(mrb, MRB_SYM(Random));
-    if (mrb_get_args(mrb, "|I", &random, c) == 0) {
+    mrb_int i, max;
+    mrb_value r;
+    rand_state *random;
+
+    struct RClass *c = mrb_class_get_id(mrb, ID_RANDOM_STRICT);
+    if (mrb_get_args(mrb, "|o", &r) == 0) {
       random = random_default_state(mrb);
+    }
+    else if (mrb_obj_is_kind_of(mrb, r, c)){
+      random = (rand_state*)mrb_istruct_ptr(r);
+    }
+    else {
+      mrb_raise(mrb, E_TYPE_ERROR, "Random object required");
     }
     mrb_ary_modify(mrb, mrb_ary_ptr(ary));
     max = RARRAY_LEN(ary);
@@ -256,7 +265,7 @@ mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
       mrb_value *ptr = RARRAY_PTR(ary);
       mrb_value tmp;
 
-      j = random_rand_i(mrb, random, max);
+      j = rand_i(random, max);
 
       tmp = ptr[i];
       ptr[i] = ptr[j];
@@ -303,12 +312,19 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
 {
   mrb_int n = 0;
   mrb_bool given;
+  mrb_value r;
   rand_state *random;
   mrb_int len;
-  struct RClass *c = mrb_class_get_id(mrb, MRB_SYM(Random));
+  struct RClass *c = mrb_class_get_id(mrb, ID_RANDOM_STRICT);
 
-  if (mrb_get_args(mrb, "|i?I", &n, &given, &random, c) < 2) {
+  if (mrb_get_args(mrb, "|i?o", &n, &given, &r) < 2) {
     random = random_default_state(mrb);
+  }
+  else if (mrb_obj_is_kind_of(mrb, r, c)){
+    random = (rand_state*)mrb_istruct_ptr(r);
+  }
+  else {
+    mrb_raise(mrb, E_TYPE_ERROR, "Random object required");
   }
   len = RARRAY_LEN(ary);
   if (!given) {                 /* pick one element */
@@ -318,7 +334,7 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
     case 1:
       return RARRAY_PTR(ary)[0];
     default:
-      return RARRAY_PTR(ary)[rand_uint32(random) % len];
+      return RARRAY_PTR(ary)[rand_i(random, len)];
     }
   }
   else {
@@ -333,7 +349,7 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
 
       for (;;) {
       retry:
-        r = (mrb_int)(rand_uint32(random) % len);
+        r = rand_i(random, len);
 
         for (j=0; j<i; j++) {
           if (mrb_integer(RARRAY_PTR(result)[j]) == r) {
@@ -386,6 +402,7 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, mrb->kernel_module, "srand", random_f_srand, MRB_ARGS_OPT(1));
 
   random = mrb_define_class(mrb, "Random", mrb->object_class);
+  mrb_const_set(mrb, mrb_obj_value(mrb->object_class), ID_RANDOM_STRICT, mrb_obj_value(random)); // for class check
   MRB_SET_INSTANCE_TT(random, MRB_TT_ISTRUCT);
   mrb_define_class_method(mrb, random, "rand", random_f_rand, MRB_ARGS_OPT(1));
   mrb_define_class_method(mrb, random, "srand", random_f_srand, MRB_ARGS_OPT(1));
@@ -401,7 +418,7 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, array, "sample", mrb_ary_sample, MRB_ARGS_OPT(2));
 
   mrb_const_set(mrb, mrb_obj_value(random), MRB_SYM(DEFAULT),
-          mrb_obj_new(mrb, random, 0, NULL));
+                mrb_obj_new(mrb, random, 0, NULL));
 }
 
 void mrb_mruby_random_gem_final(mrb_state *mrb)

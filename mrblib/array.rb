@@ -167,10 +167,14 @@ class Array
     n = other.size
     len = n if len > n
     i = 0
-    while i < len
-      n = (self[i] <=> other[i])
-      return n if n.nil? || n != 0
-      i += 1
+    begin
+      while i < len
+        n = (self[i] <=> other[i])
+        return n if n.nil? || n != 0
+        i += 1
+      end
+    rescue NoMethodError
+      return nil
     end
     len = self.size - other.size
     if len == 0
