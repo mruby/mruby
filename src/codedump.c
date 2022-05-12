@@ -100,14 +100,17 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
 
   if (irep->lv) {
     int i;
+    int head = FALSE;
 
-    printf("local variable names:\n");
     for (i = 1; i < irep->nlocals; ++i) {
       char const *s = mrb_sym_dump(mrb, irep->lv[i - 1]);
       if (s) {
-        printf("  R%d:%s", i, s);
+        if (!head) {
+          head = TRUE;
+          printf("local variable names:\n");
+        }
+        printf("  R%d:%s\n", i, s);
       }
-      putchar('\n');
     }
   }
 
