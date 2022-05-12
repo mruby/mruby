@@ -30,7 +30,7 @@ end
 
 `ZeroDivisionError` is raised.
 
-#### mruby [3.0.0 (2021-03-05)]
+#### mruby [3.1.0 (2022-05-12)]
 
 `RuntimeError` is raised instead of `ZeroDivisionError`. To re-raise the exception, you have to do:
 
@@ -66,7 +66,7 @@ p Liste.new "foobar"
 
 ` [] `
 
-#### mruby [3.0.0 (2021-03-05)]
+#### mruby [3.1.0 (2022-05-12)]
 
 `ArgumentError` is raised.
 
@@ -96,7 +96,7 @@ false
 true
 ```
 
-#### mruby [3.0.0 (2021-03-05)]
+#### mruby [3.1.0 (2022-05-12)]
 
 ```
 true
@@ -133,7 +133,7 @@ p 'ok'
 ok
 ```
 
-#### mruby [3.0.0 (2021-03-05)]
+#### mruby [3.1.0 (2022-05-12)]
 
 ```
 test.rb:8: undefined method 'test_func' (NoMethodError)
@@ -155,7 +155,7 @@ defined?(Foo)
 nil
 ```
 
-#### mruby [3.0.0 (2021-03-05)]
+#### mruby [3.1.0 (2022-05-12)]
 
 `NameError` is raised.
 
@@ -172,7 +172,7 @@ alias $a $__a__
 
 ` nil `
 
-#### mruby [3.0.0 (2021-03-05)]
+#### mruby [3.1.0 (2022-05-12)]
 
 Syntax error
 
@@ -194,7 +194,7 @@ end
 `ArgumentError` is raised.
 The re-defined `+` operator does not accept any arguments.
 
-#### mruby [3.0.0 (2021-03-05)]
+#### mruby [3.1.0 (2022-05-12)]
 
 ` 'ab' `
 Behavior of the operator wasn't changed.
@@ -210,7 +210,7 @@ $ ruby -e 'puts Proc.new {}.binding'
 #<Binding:0x00000e9deabb9950>
 ```
 
-#### mruby [3.0.0 (2021-03-05)]
+#### mruby [3.1.0 (2022-05-12)]
 
 ```
 $ ./bin/mruby -e 'puts Proc.new {}.binding'
