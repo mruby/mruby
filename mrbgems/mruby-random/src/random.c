@@ -232,6 +232,20 @@ random_m_bytes(mrb_state *mrb, mrb_value self)
   return bytes;
 }
 
+static rand_state*
+check_random_arg(mrb_state *mrb, mrb_value r)
+{
+  struct RClass *c = mrb_class_get_id(mrb, ID_RANDOM_STRICT);
+  rand_state *random;
+
+  if (mrb_istruct_p(r) && mrb_obj_is_kind_of(mrb, r, c)){
+    random = (rand_state*)mrb_istruct_ptr(r);
+  }
+  else {
+    mrb_raise(mrb, E_TYPE_ERROR, "Random object required");
+  }
+  return random;
+}
 /*
  *  call-seq:
  *     ary.shuffle!   ->   ary
@@ -242,21 +256,16 @@ random_m_bytes(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
 {
-
   if (RARRAY_LEN(ary) > 1) {
     mrb_int i, max;
     mrb_value r;
     rand_state *random;
 
-    struct RClass *c = mrb_class_get_id(mrb, ID_RANDOM_STRICT);
     if (mrb_get_args(mrb, "|o", &r) == 0) {
       random = random_default_state(mrb);
     }
-    else if (mrb_obj_is_kind_of(mrb, r, c)){
-      random = (rand_state*)mrb_istruct_ptr(r);
-    }
     else {
-      mrb_raise(mrb, E_TYPE_ERROR, "Random object required");
+      random = check_random_arg(mrb, r);
     }
     mrb_ary_modify(mrb, mrb_ary_ptr(ary));
     max = RARRAY_LEN(ary);
@@ -315,16 +324,12 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
   mrb_value r;
   rand_state *random;
   mrb_int len;
-  struct RClass *c = mrb_class_get_id(mrb, ID_RANDOM_STRICT);
 
   if (mrb_get_args(mrb, "|i?o", &n, &given, &r) < 2) {
     random = random_default_state(mrb);
   }
-  else if (mrb_obj_is_kind_of(mrb, r, c)){
-    random = (rand_state*)mrb_istruct_ptr(r);
-  }
   else {
-    mrb_raise(mrb, E_TYPE_ERROR, "Random object required");
+    random = check_random_arg(mrb, r);
   }
   len = RARRAY_LEN(ary);
   if (!given) {                 /* pick one element */
