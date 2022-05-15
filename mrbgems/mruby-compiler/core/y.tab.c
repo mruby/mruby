@@ -391,7 +391,7 @@ static void
 local_add_blk(parser_state *p, mrb_sym blk)
 {
   /* allocate register for block */
-  local_add_f(p, blk ? blk : intern_op(and));
+  local_add_f(p, blk ? blk : 0);
 }
 
 static void
@@ -9734,7 +9734,7 @@ yyreduce:
   case 541:
 #line 3818 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      local_add_f(p, intern_op(and));
+                      local_add_f(p, 0);
                       (yyval.nd) = new_args(p, 0, 0, 0, 0, 0);
                     }
 #line 9741 "mrbgems/mruby-compiler/core/y.tab.c"

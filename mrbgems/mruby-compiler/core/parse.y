@@ -328,7 +328,7 @@ static void
 local_add_blk(parser_state *p, mrb_sym blk)
 {
   /* allocate register for block */
-  local_add_f(p, blk ? blk : intern_op(and));
+  local_add_f(p, blk ? blk : 0);
 }
 
 static void
@@ -3816,7 +3816,7 @@ f_args          : f_arg ',' f_optarg ',' f_rest_arg opt_args_tail
                     }
                 | /* none */
                     {
-                      local_add_f(p, intern_op(and));
+                      local_add_f(p, 0);
                       $$ = new_args(p, 0, 0, 0, 0, 0);
                     }
                 ;

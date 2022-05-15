@@ -1282,7 +1282,12 @@ search_upvar(codegen_scope *s, mrb_sym id, int *idx)
     lv ++;
   }
 
-  codegen_error(s, "Can't found local variables");
+  if (id == MRB_OPSYM_2(s->mrb, and)) {
+    codegen_error(s, "no anonymous block argument");
+  }
+  else {
+    codegen_error(s, "Can't found local variables");
+  }
   return -1; /* not reached */
 }
 
@@ -3261,9 +3266,11 @@ codegen(codegen_scope *s, node *tree, int val)
       int idx = lv_idx(s, MRB_OPSYM_2(s->mrb, and));
 
       if (idx == 0) {
-        codegen_error(s, "no anonymous block argument");
+        gen_getupvar(s, cursp(), MRB_OPSYM_2(s->mrb, and));
       }
-      gen_move(s, cursp(), idx, val);
+      else {
+        gen_move(s, cursp(), idx, val);
+      }
       if (val) push();
     }
     else {
