@@ -194,7 +194,10 @@ sym_var_name(mrb_state *mrb, const char *initname, const char *key, int n)
 static int
 cdump_sym(mrb_state *mrb, mrb_sym sym, const char *var_name, int idx, mrb_value init_syms_code, FILE *fp)
 {
-  if (sym == 0) return MRB_DUMP_INVALID_ARGUMENT;
+  if (sym == 0) {
+    fputs("0,", fp);
+    return MRB_DUMP_OK;
+  }
 
   mrb_int len;
   const char *name = mrb_sym_name_len(mrb, sym, &len), *op_name;
