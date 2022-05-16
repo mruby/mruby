@@ -1772,7 +1772,6 @@ mrb_str_index_m(mrb_state *mrb, mrb_value str)
   pos = str_index_str_by_char(mrb, str, sub, pos);
 
   if (pos == -1) return mrb_nil_value();
-  BYTES_ALIGN_CHECK(pos);
   return mrb_int_value(mrb, pos);
 }
 
