@@ -1738,6 +1738,38 @@ mrb_str_include(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(TRUE);
 }
 
+/*
+ *  call-seq:
+ *    str.byteindex(substring, offset = 0) -> integer or nil
+ *
+ *  Returns the \Integer byte-based index of the first occurrence of the given +substring+,
+ *  or +nil+ if none found:
+ *
+ *    'foo'.byteindex('f') # => 0
+ *    'foo'.byteindex('oo') # => 1
+ *    'foo'.byteindex('ooo') # => nil
+ */
+static mrb_value
+mrb_str_byteindex_m(mrb_state *mrb, mrb_value str)
+{
+  mrb_value sub;
+  mrb_int pos;
+
+  if (mrb_get_args(mrb, "S|i", &sub, &pos) == 1) {
+    pos = 0;
+  }
+  else if (pos < 0) {
+    pos += RSTRING_LEN(str);
+    if (pos < 0) {
+      return mrb_nil_value();
+    }
+  }
+  pos = str_index_str(mrb, str, sub, pos);
+
+  if (pos == -1) return mrb_nil_value();
+  return mrb_int_value(mrb, pos);
+}
+
 /* 15.2.10.5.22 */
 /*
  *  call-seq:
@@ -1753,6 +1785,7 @@ mrb_str_include(mrb_state *mrb, mrb_value self)
  *     "hello".index('a')             #=> nil
  *     "hello".index('l', -2)         #=> 3
  */
+#ifdef MRB_UTF8_STRING
 static mrb_value
 mrb_str_index_m(mrb_state *mrb, mrb_value str)
 {
@@ -1774,6 +1807,9 @@ mrb_str_index_m(mrb_state *mrb, mrb_value str)
   if (pos == -1) return mrb_nil_value();
   return mrb_int_value(mrb, pos);
 }
+#else
+#define mrb_str_index_m mrb_str_byteindex_m
+#endif
 
 /* 15.2.10.5.24 */
 /* 15.2.10.5.28 */
@@ -1963,6 +1999,44 @@ mrb_str_reverse(mrb_state *mrb, mrb_value str)
   return str2;
 }
 
+/*
+ *  call-seq:
+ *    byterindex(substring, offset = self.bytesize) -> integer or nil
+ *
+ *  Returns the \Integer byte-based index of the _last_ occurrence of the given +substring+,
+ *  or +nil+ if none found:
+ *
+ *    'foo'.byterindex('f') # => 0
+ *    'foo'.byterindex('o') # => 2
+ *    'foo'.byterindex('oo') # => 1
+ *    'foo'.byterindex('ooo') # => nil
+ */
+static mrb_value
+mrb_str_byterindex_m(mrb_state *mrb, mrb_value str)
+{
+  mrb_value sub;
+  mrb_int pos;
+  mrb_int len = RSTRING_LEN(str);
+
+  if (mrb_get_args(mrb, "S|i", &sub, &pos) == 1) {
+    pos = len;
+  }
+  else {
+    if (pos < 0) {
+      pos += len;
+      if (pos < 0) {
+        return mrb_nil_value();
+      }
+    }
+    if (pos > len) pos = len;
+  }
+  pos = str_rindex(mrb, str, sub, pos);
+  if (pos < 0) {
+    return mrb_nil_value();
+  }
+  return mrb_int_value(mrb, pos);
+}
+
 /* 15.2.10.5.31 */
 /*
  *  call-seq:
@@ -1978,8 +2052,9 @@ mrb_str_reverse(mrb_state *mrb, mrb_value str)
  *     "hello".rindex('a')             #=> nil
  *     "hello".rindex('l', 2)          #=> 2
  */
+#ifdef MRB_UTF8_STRING
 static mrb_value
-mrb_str_rindex(mrb_state *mrb, mrb_value str)
+mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
 {
   mrb_value sub;
   mrb_int pos;
@@ -2006,6 +2081,9 @@ mrb_str_rindex(mrb_state *mrb, mrb_value str)
   }
   return mrb_nil_value();
 }
+#else
+#define mrb_str_rindex_m mrb_str_byterindex_m
+#endif
 
 /* 15.2.10.5.35 */
 
@@ -2897,7 +2975,7 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method(mrb, s, "replace",         mrb_str_replace,         MRB_ARGS_REQ(1)); /* 15.2.10.5.28 */
   mrb_define_method(mrb, s, "reverse",         mrb_str_reverse,         MRB_ARGS_NONE()); /* 15.2.10.5.29 */
   mrb_define_method(mrb, s, "reverse!",        mrb_str_reverse_bang,    MRB_ARGS_NONE()); /* 15.2.10.5.30 */
-  mrb_define_method(mrb, s, "rindex",          mrb_str_rindex,          MRB_ARGS_ANY());  /* 15.2.10.5.31 */
+  mrb_define_method(mrb, s, "rindex",          mrb_str_rindex_m,        MRB_ARGS_ANY());  /* 15.2.10.5.31 */
   mrb_define_method(mrb, s, "size",            mrb_str_size,            MRB_ARGS_NONE()); /* 15.2.10.5.33 */
   mrb_define_method(mrb, s, "slice",           mrb_str_aref_m,          MRB_ARGS_ANY());  /* 15.2.10.5.34 */
   mrb_define_method(mrb, s, "split",           mrb_str_split_m,         MRB_ARGS_ANY());  /* 15.2.10.5.35 */
@@ -2916,6 +2994,8 @@ mrb_init_string(mrb_state *mrb)
 
   mrb_define_method(mrb, s, "getbyte",         mrb_str_getbyte,         MRB_ARGS_REQ(1));
   mrb_define_method(mrb, s, "setbyte",         mrb_str_setbyte,         MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, s, "byteindex",       mrb_str_byteindex_m,     MRB_ARGS_ARG(1,1));
+  mrb_define_method(mrb, s, "byterindex",      mrb_str_byterindex_m,    MRB_ARGS_ARG(1,1));
   mrb_define_method(mrb, s, "byteslice",       mrb_str_byteslice,       MRB_ARGS_ARG(1,1));
 
   mrb_define_method(mrb, s, "__sub_replace",   sub_replace,             MRB_ARGS_REQ(3)); /* internal */
