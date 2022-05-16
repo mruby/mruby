@@ -30,10 +30,10 @@ class String
     self_len = length
     sep_len = separator.length
 
-    while (pointer = string.index(separator, start))
+    while (pointer = string.byteindex(separator, start))
       pointer += sep_len
-      pointer += 1 while paragraph_mode && string[pointer] == "\n"
-      block.call(string[start, pointer - start])
+      pointer += 1 while paragraph_mode && string.getbyte(pointer) == 10 # 10 == \n
+      block.call(string.byteslice(start, pointer - start))
       start = pointer
     end
     return self if start == self_len
