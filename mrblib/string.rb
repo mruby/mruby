@@ -38,7 +38,7 @@ class String
     end
     return self if start == self_len
 
-    block.call(string[start, self_len - start])
+    block.call(string.byteslice(start, self_len - start))
     self
   end
 
