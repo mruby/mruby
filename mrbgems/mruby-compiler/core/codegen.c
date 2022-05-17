@@ -1283,10 +1283,10 @@ search_upvar(codegen_scope *s, mrb_sym id, int *idx)
   }
 
   if (id == MRB_OPSYM_2(s->mrb, and)) {
-    codegen_error(s, "no anonymous block argument");
+    codegen_error(s, "No anonymous block argument");
   }
   else {
-    codegen_error(s, "Can't found local variables");
+    codegen_error(s, "Can't find local variables");
   }
   return -1; /* not reached */
 }
