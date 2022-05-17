@@ -60,8 +60,8 @@ class String
     end
     offset = 0
     result = []
-    while found = index(pattern, offset)
-      result << self[offset, found - offset]
+    while found = self.byteindex(pattern, offset)
+      result << self.byteslice(offset, found - offset)
       offset = found + plen
       result << if block
         block.call(pattern).to_s
@@ -69,11 +69,11 @@ class String
         self.__sub_replace(replace, pattern, found)
       end
       if plen == 0
-        result << self[offset, 1]
+        result << self.byteslice(offset, 1)
         offset += 1
       end
     end
-    result << self[offset..-1] if offset < length
+    result << self.byteslice(offset..-1) if offset < length
     result.join
   end
 
@@ -119,16 +119,16 @@ class String
       block = nil
     end
     result = []
-    found = index(pattern)
+    found = self.index(pattern)
     return self.dup unless found
-    result << self[0, found]
+    result << self.byteslice(0, found)
     offset = found + pattern.length
     result << if block
       block.call(pattern).to_s
     else
       self.__sub_replace(replace, pattern, found)
     end
-    result << self[offset..-1] if offset < length
+    result << self.byteslice(offset..-1) if offset < length
     result.join
   end
 

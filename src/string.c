@@ -2831,8 +2831,8 @@ mrb_str_setbyte(mrb_state *mrb, mrb_value str)
 /*
  *  call-seq:
  *     str.byteslice(integer)           -> new_str or nil
- *     str.byteslice(integer, integer)   -> new_str or nil
- *     str.byteslice(range)            -> new_str or nil
+ *     str.byteslice(integer, integer)  -> new_str or nil
+ *     str.byteslice(range)             -> new_str or nil
  *
  *  Byte Reference---If passed a single Integer, returns a
  *  substring of one byte at that position. If passed two Integer
@@ -2910,13 +2910,13 @@ sub_replace(mrb_state *mrb, mrb_value self)
       mrb_str_cat(mrb, result, "\\", 1);
       break;
     case '`':
-      mrb_str_cat(mrb, result, RSTRING_PTR(self), chars2bytes(self, 0, found));
+      mrb_str_cat(mrb, result, RSTRING_PTR(self), found);
       break;
     case '&': case '0':
       mrb_str_cat(mrb, result, match, mlen);
       break;
     case '\'':
-      offset = chars2bytes(self, 0, found) + mlen;
+      offset = found + mlen;
       if (RSTRING_LEN(self) > offset) {
         mrb_str_cat(mrb, result, RSTRING_PTR(self)+offset, RSTRING_LEN(self)-offset);
       }
