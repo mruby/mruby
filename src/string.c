@@ -1789,6 +1789,10 @@ mrb_str_byteindex_m(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_index_m(mrb_state *mrb, mrb_value str)
 {
+  if (RSTR_ASCII_P(mrb_str_ptr(str))) {
+    return mrb_str_byteindex_m(mrb, str);
+  }
+
   mrb_value sub;
   mrb_int pos;
 
@@ -2056,6 +2060,10 @@ mrb_str_byterindex_m(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
 {
+  if (RSTR_ASCII_P(mrb_str_ptr(str))) {
+    return mrb_str_byterindex_m(mrb, str);
+  }
+
   mrb_value sub;
   mrb_int pos;
   mrb_int len = RSTRING_CHAR_LEN(str);
