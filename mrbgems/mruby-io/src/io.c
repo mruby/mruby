@@ -944,7 +944,7 @@ mrb_io_sysread_common(mrb_state *mrb,
     mrb_str_modify(mrb, RSTRING(buf));
   }
 
-  fptr = (struct mrb_io *)io_get_open_fptr(mrb, io);
+  fptr = io_get_open_fptr(mrb, io);
   if (!fptr->readable) {
     mrb_raise(mrb, E_IO_ERROR, "not opened for reading");
   }
@@ -1503,7 +1503,7 @@ mrb_io_readchar(mrb_state *mrb, mrb_value self)
       mrb_int blen = RSTRING_LEN(buf);
       ssize_t n;
 
-      struct mrb_io *fptr = (struct mrb_io*)io_get_open_fptr(mrb, self);
+      struct mrb_io *fptr = io_get_open_fptr(mrb, self);
 
       if (!fptr->readable) {
         mrb_raise(mrb, E_IO_ERROR, "not opened for reading");
