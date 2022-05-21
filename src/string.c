@@ -256,15 +256,20 @@ mrb_int
 mrb_utf8len(const char* p, const char* e)
 {
   mrb_int len;
-  mrb_int i;
 
   if ((unsigned char)*p < 0x80) return 1;
   len = utf8len_codepage[(unsigned char)*p];
-  if (len == 1) return 1;
   if (len > e - p) return 1;
-  for (i = 1; i < len; ++i)
-    if (utf8_islead(p[i]))
-      return 1;
+  switch (len) {
+  case 1:
+    return 1;
+  case 4:
+    if (utf8_islead(p[3])) return 1;
+  case 3:
+    if (utf8_islead(p[2])) return 1;
+  case 2:
+    if (utf8_islead(p[1])) return 1;
+  }
   return len;
 }
 
@@ -274,10 +279,9 @@ mrb_utf8_strlen(const char *str, mrb_int byte_len)
   mrb_int len = 0;
   const char *p = str;
   const char *e = p + byte_len;
-
   while (p < e) {
-    p += mrb_utf8len(p, e);
-    len++;
+    if (utf8_islead(*p)) len++;
+    p++;
   }
   return len;
 }
