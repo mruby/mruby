@@ -365,28 +365,14 @@ char_adjust(const char *beg, const char *end, const char *ptr)
   return ptr;
 }
 
-static const char *
+static const char*
 char_backtrack(const char *ptr, const char *end)
 {
-  if (ptr < end) {
-    const int utf8_bytelen_max = 4;
-    const char *p;
-
-    if (end - ptr > utf8_bytelen_max) {
-      ptr = end - utf8_bytelen_max;
-    }
-
-    p = end;
-    while (p > ptr) {
-      p --;
-      if ((*p & 0xc0) != 0x80) {
-        int clen = utf8len_codepage[(unsigned char)*p];
-        if (clen == end - p) { return p; }
-        break;
-      }
-    }
-  }
-
+  ptrdiff_t len = end - ptr;
+  if (len < 1 || utf8_islead(end[-1])) return end-1;
+  if (len > 1 && utf8_islead(end[-2])) return end-2;
+  if (len > 2 && utf8_islead(end[-3])) return end-3;
+  if (len > 3 && utf8_islead(end[-4])) return end-4;
   return end - 1;
 }
 
