@@ -340,28 +340,14 @@ bytes2chars(char *p, mrb_int len, mrb_int bi)
   return i;
 }
 
-static const char *
+static const char*
 char_adjust(const char *beg, const char *end, const char *ptr)
 {
-  if ((ptr > beg || ptr < end) && (*ptr & 0xc0) == 0x80) {
-    const int utf8_adjust_max = 3;
-    const char *p;
-
-    if (ptr - beg > utf8_adjust_max) {
-      beg = ptr - utf8_adjust_max;
-    }
-
-    p = ptr;
-    while (p > beg) {
-      p --;
-      if ((*p & 0xc0) != 0x80) {
-        int clen = mrb_utf8len(p, end);
-        if (clen > ptr - p) return p;
-        break;
-      }
-    }
-  }
-
+  ptrdiff_t len = end - ptr;
+  if (len < 1 || utf8_islead(ptr[0])) return ptr;
+  if (len > 1 && utf8_islead(ptr[1])) return ptr+1;
+  if (len > 2 && utf8_islead(ptr[2])) return ptr+2;
+  if (len > 3 && utf8_islead(ptr[3])) return ptr+3;
   return ptr;
 }
 
