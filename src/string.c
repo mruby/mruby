@@ -2042,21 +2042,23 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
 
   mrb_value sub;
   mrb_int pos;
-  mrb_int len = RSTRING_CHAR_LEN(str);
 
   if (mrb_get_args(mrb, "S|i", &sub, &pos) == 1) {
-    pos = len;
+    pos = RSTRING_CHAR_LEN(str);
+    pos = chars2bytes(str, 0, pos);
+  }
+  else if (pos >= 0) {
+    pos = chars2bytes(str, 0, pos);
   }
   else {
-    if (pos < 0) {
-      pos += len;
-      if (pos < 0) {
-        return mrb_nil_value();
-      }
+    const char *p = RSTRING_PTR(str);
+    const char *e = RSTRING_END(str);
+    while (pos++ < 0 && p < e) {
+      e = char_backtrack(p, e);
     }
-    if (pos > len) pos = len;
+    if (p == e) return mrb_nil_value();
+    pos = (mrb_int)(e - p);
   }
-  pos = chars2bytes(str, 0, pos);
   pos = str_rindex(mrb, str, sub, pos);
   if (pos >= 0) {
     pos = bytes2chars(RSTRING_PTR(str), RSTRING_LEN(str), pos);
