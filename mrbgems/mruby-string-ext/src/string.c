@@ -989,11 +989,7 @@ mrb_str_succ(mrb_state *mrb, mrb_value self)
 }
 
 #ifdef MRB_UTF8_STRING
-static const char utf8len_table[] =
-{
-  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-  0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 3, 3, 4, 0
-};
+extern const char mrb_utf8len_table[];
 
 static mrb_int
 utf8code(unsigned char* p, mrb_int limit)
@@ -1003,7 +999,7 @@ utf8code(unsigned char* p, mrb_int limit)
   if (p[0] < 0x80)
     return p[0];
 
-  len = utf8len_table[p[0]>>3];
+  len = mrb_utf8len_table[p[0]>>3];
   if (len <= limit && len > 1 && (p[1] & 0xc0) == 0x80) {
     if (len == 2)
       return ((p[0] & 0x1f) << 6) + (p[1] & 0x3f);
