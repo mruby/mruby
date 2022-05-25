@@ -1002,7 +1002,7 @@ static const char utf8len_codepage_zero[256] =
 };
 
 static mrb_int
-utf8code(unsigned char* p)
+utf8code(unsigned char* p, mrb_int limit)
 {
   mrb_int len;
 
@@ -1010,7 +1010,7 @@ utf8code(unsigned char* p)
     return p[0];
 
   len = utf8len_codepage_zero[p[0]];
-  if (len > 1 && (p[1] & 0xc0) == 0x80) {
+  if (len <= limit && len > 1 && (p[1] & 0xc0) == 0x80) {
     if (len == 2)
       return ((p[0] & 0x1f) << 6) + (p[1] & 0x3f);
     if ((p[2] & 0xc0) == 0x80) {
@@ -1042,7 +1042,7 @@ mrb_str_ord(mrb_state* mrb, mrb_value str)
 {
   if (RSTRING_LEN(str) == 0)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "empty string");
-  mrb_int c = utf8code((unsigned char*) RSTRING_PTR(str));
+  mrb_int c = utf8code((unsigned char*)RSTRING_PTR(str), RSTRING_LEN(str));
   if (c < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid UTF-8 byte sequence");
   return mrb_fixnum_value(c);
 }
