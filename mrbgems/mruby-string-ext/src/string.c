@@ -1034,7 +1034,7 @@ utf8code(unsigned char* p)
       }
     }
   }
-  return p[0];
+  return -1;
 }
 
 static mrb_value
@@ -1042,7 +1042,9 @@ mrb_str_ord(mrb_state* mrb, mrb_value str)
 {
   if (RSTRING_LEN(str) == 0)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "empty string");
-  return mrb_fixnum_value(utf8code((unsigned char*) RSTRING_PTR(str)));
+  mrb_int c = utf8code((unsigned char*) RSTRING_PTR(str));
+  if (c < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid UTF-8 byte sequence");
+  return mrb_fixnum_value(c);
 }
 #else
 static mrb_value
