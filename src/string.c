@@ -238,17 +238,18 @@ mrb_gc_free_str(mrb_state *mrb, struct RString *str)
 }
 
 #ifdef MRB_UTF8_STRING
-
 #define utf8_islead(c) ((unsigned char)((c)&0xc0) != 0x80)
+
+extern const char mrb_utf8len_table[];
+const char mrb_utf8len_table[] = {
+  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+  0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 3, 3, 4, 0
+};
 
 mrb_int
 mrb_utf8len(const char* p, const char* e)
 {
-  static const char lengths[] = {
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 3, 3, 4, 0
-  };
-  mrb_int len = lengths[(unsigned char)p[0] >> 3];
+  mrb_int len = mrb_utf8len_table[(unsigned char)p[0] >> 3];
   if (len > e - p) return 1;
   switch (len) {
   case 1:
