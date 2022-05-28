@@ -84,4 +84,6 @@ struct RBigint {
 
 #define RBIGINT(v) ((struct RBigint*)mrb_ptr(v))
 
+mrb_static_assert_object_size(struct RBigint);
+
 #endif  /* MRUBY_BIGINT_H */

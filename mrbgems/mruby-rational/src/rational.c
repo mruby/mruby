@@ -40,6 +40,8 @@ struct RRational {
 #define rational_ptr(mrb, v) (&((struct RRational*)mrb_obj_ptr(v))->r)
 #endif
 
+mrb_static_assert_object_size(struct RRational);
+
 static struct RBasic*
 rational_alloc(mrb_state *mrb, struct RClass *c, struct mrb_rational **p)
 {

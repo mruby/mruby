@@ -1650,8 +1650,7 @@ mrb_init_gc(mrb_state *mrb)
 {
   struct RClass *gc;
 
-  mrb_static_assert(sizeof(RVALUE) <= sizeof(void*) * 6,
-                    "RVALUE size must be within 6 words");
+  mrb_static_assert_object_size(RVALUE);
 
   gc = mrb_define_module(mrb, "GC");
 
