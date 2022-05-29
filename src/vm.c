@@ -1204,6 +1204,17 @@ hash_new_from_regs(mrb_state *mrb, mrb_int argc, mrb_int idx)
   } \
 } while (0)
 
+static mrb_value
+ary_new_from_regs(mrb_state *mrb, mrb_int argc, mrb_int idx)
+{
+  mrb_value ary = mrb_ary_new_capa(mrb, argc);
+  while (argc--) {
+    mrb_ary_push(mrb, ary, regs[idx]);
+    idx++;
+  }
+  return ary;
+}
+
 MRB_API mrb_value
 mrb_vm_exec(mrb_state *mrb, const struct RProc *proc, const mrb_code *pc)
 {
@@ -1922,7 +1933,7 @@ RETRY_TRY_BLOCK:
         }
         else if (argc == 14) {
           /* pack arguments and kdict */
-          regs[1] = mrb_ary_new_from_values(mrb, argc+1, &regs[1]);
+          regs[1] = ary_new_from_regs(mrb, argc+1, 1);
           argc = ci->n = 15;
         }
         else {/* argc == 15 */
@@ -2625,12 +2636,12 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_ARRAY, BB) {
-      regs[a] = mrb_ary_new_from_values(mrb, b, &regs[a]);
+      regs[a] = ary_new_from_regs(mrb, b, a);
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
     CASE(OP_ARRAY2, BBB) {
-      regs[a] = mrb_ary_new_from_values(mrb, c, &regs[b]);
+      regs[a] = ary_new_from_regs(mrb, c, b);
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
@@ -2700,7 +2711,7 @@ RETRY_TRY_BLOCK:
       int len, idx;
 
       if (!mrb_array_p(v)) {
-        v = mrb_ary_new_from_values(mrb, 1, &regs[a]);
+        v = ary_new_from_regs(mrb, 1, a);
       }
       ary = mrb_ary_ptr(v);
       len = (int)ARY_LEN(ary);
