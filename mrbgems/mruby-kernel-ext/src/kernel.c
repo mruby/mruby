@@ -79,7 +79,7 @@ mrb_f_method(mrb_state *mrb, mrb_value self)
 {
   mrb_callinfo *ci = mrb->c->ci;
   ci--;
-  if (ci->proc->e.env->tt == MRB_TT_ENV && ci->proc->e.env->mid)
+  if (ci->proc && ci->proc->e.env && ci->proc->e.env->tt == MRB_TT_ENV && ci->proc->e.env->mid)
     return mrb_symbol_value(ci->proc->e.env->mid);
   else if (ci->mid)
     return mrb_symbol_value(ci->mid);
