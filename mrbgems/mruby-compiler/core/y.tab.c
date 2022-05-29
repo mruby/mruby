@@ -10916,7 +10916,7 @@ read_escape(parser_state *p)
       c = read_escape_unicode(p, 4);
       if (c < 0) return 0;
     }
-  return -c;
+    return -c;
 
   case 'b':/* backspace */
     return '\010';
