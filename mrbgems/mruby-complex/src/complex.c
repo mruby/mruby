@@ -45,6 +45,8 @@ struct RComplex {
 #define complex_ptr(mrb, v) (&((struct RComplex*)mrb_obj_ptr(v))->r)
 #endif
 
+mrb_static_assert_object_size(struct RComplex);
+
 static struct RBasic*
 complex_alloc(mrb_state *mrb, struct RClass *c, struct mrb_complex **p)
 {
@@ -351,10 +353,6 @@ complex_div(mrb_state *mrb, mrb_value x)
 void mrb_mruby_complex_gem_init(mrb_state *mrb)
 {
   struct RClass *comp;
-
-#ifdef COMPLEX_INLINE
-  mrb_assert(sizeof(struct mrb_complex) < sizeof(void*)*3);
-#endif
 
   comp = mrb_define_class_id(mrb, MRB_SYM(Complex), mrb_class_get_id(mrb, MRB_SYM(Numeric)));
   MRB_SET_INSTANCE_TT(comp, MRB_TT_COMPLEX);
