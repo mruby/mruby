@@ -1159,18 +1159,20 @@ check_target_class(mrb_state *mrb)
   return target;
 }
 
+#define regs (mrb->c->ci->stack)
+
 static mrb_value
-hash_new_from_values(mrb_state *mrb, mrb_int argc, mrb_value *regs)
+hash_new_from_regs(mrb_state *mrb, mrb_int argc, mrb_int idx)
 {
   mrb_value hash = mrb_hash_new_capa(mrb, argc);
   while (argc--) {
-    mrb_hash_set(mrb, hash, regs[0], regs[1]);
-    regs += 2;
+    mrb_hash_set(mrb, hash, regs[idx+0], regs[idx+1]);
+    idx += 2;
   }
   return hash;
 }
 
-#define ARGUMENT_NORMALIZE(arg_base, arg_info, insn) do { \
+#define ARGUMENT_NORMALIZE(arg_base, arg_info, insn) do {       \
   int n = *(arg_info)&0xf; \
   int nk = (*(arg_info)>>4)&0xf; \
   mrb_int bidx = (arg_base) + mrb_bidx(*(arg_info)); \
@@ -1179,7 +1181,7 @@ hash_new_from_values(mrb_state *mrb, mrb_int argc, mrb_value *regs)
   } \
   else if (nk > 0) {  /* pack keyword arguments */ \
     mrb_int kidx = (arg_base)+(n==CALL_MAXARGS?1:n)+1; \
-    mrb_value kdict = hash_new_from_values(mrb, nk, regs+kidx); \
+    mrb_value kdict = hash_new_from_regs(mrb, nk, kidx); \
     regs[kidx] = kdict; \
     nk = CALL_MAXARGS; \
     *(arg_info) = n | (nk<<4); \
@@ -1242,7 +1244,6 @@ RETRY_TRY_BLOCK:
   mrb->jmp = &c_jmp;
   mrb_vm_ci_proc_set(mrb->c->ci, proc);
 
-#define regs (mrb->c->ci->stack)
   INIT_DISPATCH {
     CASE(OP_NOP, Z) {
       /* do nothing */
