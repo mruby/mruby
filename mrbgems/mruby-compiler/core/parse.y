@@ -2627,6 +2627,10 @@ args            : arg
                       $$ = list1($1);
                       NODE_LINENO($$, $1);
                     }
+                | tSTAR
+                    {
+                      $$ = list1(new_splat(p, new_lvar(p, intern_op(mul))));
+                    }
                 | tSTAR arg
                     {
                       $$ = list1(new_splat(p, $2));
@@ -4046,6 +4050,10 @@ assoc           : arg tASSOC arg
                     {
                       void_expr_error(p, $2);
                       $$ = cons(new_kw_rest_args(p, 0), $2);
+                    }
+                | tDSTAR
+                    {
+                      $$ = cons(new_kw_rest_args(p, 0), new_lvar(p, intern_op(pow)));
                     }
                 ;
 
