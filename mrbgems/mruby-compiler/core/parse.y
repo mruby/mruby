@@ -892,9 +892,9 @@ new_kw_arg(parser_state *p, mrb_sym kw, node *def_arg)
 
 /* (:kw_rest_args . a) */
 static node*
-new_kw_rest_args(parser_state *p, node *a)
+new_kw_rest_args(parser_state *p, mrb_sym sym)
 {
-  return cons((node*)NODE_KW_REST_ARGS, a);
+  return cons((node*)NODE_KW_REST_ARGS, nsym(sym));
 }
 
 static node*
@@ -905,7 +905,7 @@ new_args_dots(parser_state *p, node *m)
   mrb_sym b = intern_op(and);
   local_add_f(p, r);
   return new_args(p, m, 0, r, 0,
-                  new_args_tail(p, 0, new_kw_rest_args(p, nsym(k)), b));
+                  new_args_tail(p, 0, new_kw_rest_args(p, k), b));
 }
 
 /* (:block_arg . a) */
@@ -3726,7 +3726,7 @@ kwrest_mark     : tPOW
 
 f_kwrest        : kwrest_mark tIDENTIFIER
                     {
-                      $$ = new_kw_rest_args(p, nsym($2));
+                      $$ = new_kw_rest_args(p, $2);
                     }
                 | kwrest_mark
                     {
