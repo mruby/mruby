@@ -1283,7 +1283,13 @@ search_upvar(codegen_scope *s, mrb_sym id, int *idx)
   }
 
   if (id == MRB_OPSYM_2(s->mrb, and)) {
-    codegen_error(s, "No anonymous block argument");
+    codegen_error(s, "No anonymous block parameter");
+  }
+  else if (id == MRB_OPSYM_2(s->mrb, mul)) {
+    codegen_error(s, "No anonymous rest parameter");
+  }
+  else if (id == MRB_OPSYM_2(s->mrb, pow)) {
+    codegen_error(s, "No anonymous keyword rest parameter");
   }
   else {
     codegen_error(s, "Can't find local variables");
