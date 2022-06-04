@@ -1377,17 +1377,14 @@ heredoc_treat_nextline(parser_state *p)
     return;
   if (p->parsing_heredoc == NULL) {
     node *n;
-    p->parsing_heredoc = p->heredocs_from_nextline;
-    p->lex_strterm_before_heredoc = p->lex_strterm;
-    p->lex_strterm = new_strterm(p, parsing_heredoc_inf(p)->type, 0, 0);
     n = p->all_heredocs;
     if (n) {
       while (n->cdr)
         n = n->cdr;
-      n->cdr = p->parsing_heredoc;
+      n->cdr = p->heredocs_from_nextline;
     }
     else {
-      p->all_heredocs = p->parsing_heredoc;
+      p->all_heredocs = p->heredocs_from_nextline;
     }
   }
   else {
@@ -1400,7 +1397,6 @@ heredoc_treat_nextline(parser_state *p)
     if (n == p->parsing_heredoc) {
       m->cdr = n;
       p->all_heredocs = p->heredocs_from_nextline;
-      p->parsing_heredoc = p->heredocs_from_nextline;
     }
     else {
       while (n->cdr != p->parsing_heredoc) {
@@ -1409,9 +1405,11 @@ heredoc_treat_nextline(parser_state *p)
       }
       m->cdr = n->cdr;
       n->cdr = p->heredocs_from_nextline;
-      p->parsing_heredoc = p->heredocs_from_nextline;
     }
   }
+  p->parsing_heredoc = p->heredocs_from_nextline;
+  p->lex_strterm_before_heredoc = p->lex_strterm;
+  p->lex_strterm = new_strterm(p, parsing_heredoc_inf(p)->type, 0, 0);
   p->heredocs_from_nextline = NULL;
 }
 
