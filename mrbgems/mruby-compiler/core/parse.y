@@ -1376,34 +1376,20 @@ heredoc_treat_nextline(parser_state *p)
   if (p->heredocs_from_nextline == NULL)
     return;
   if (p->parsing_heredoc == NULL) {
-    node *n;
-    n = p->all_heredocs;
-    if (n) {
-      while (n->cdr)
-        n = n->cdr;
-      n->cdr = p->heredocs_from_nextline;
-    }
-    else {
-      p->all_heredocs = p->heredocs_from_nextline;
-    }
+    p->all_heredocs = append(p->all_heredocs, p->heredocs_from_nextline);
   }
   else {
-    node *n, *m;
-    m = p->heredocs_from_nextline;
-    while (m->cdr)
-      m = m->cdr;
-    n = p->all_heredocs;
-    mrb_assert(n != NULL);
-    if (n == p->parsing_heredoc) {
-      m->cdr = n;
-      p->all_heredocs = p->heredocs_from_nextline;
+    if (p->all_heredocs == p->parsing_heredoc) {
+      p->all_heredocs = append(p->heredocs_from_nextline, p->all_heredocs);
     }
     else {
+      node *n = p->all_heredocs;
+      mrb_assert(n != NULL);
+      append(p->heredocs_from_nextline, p->parsing_heredoc);
       while (n->cdr != p->parsing_heredoc) {
         n = n->cdr;
         mrb_assert(n != NULL);
       }
-      m->cdr = n->cdr;
       n->cdr = p->heredocs_from_nextline;
     }
   }
