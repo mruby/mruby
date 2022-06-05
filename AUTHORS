@@ -1,11 +1,11 @@
 # Authors of mruby (mruby developers)
 
-## The List of Contributors sorted by number of commits (as of 2022-04-28 32fb8b1)
+## The List of Contributors sorted by number of commits (as of 2022-06-05 4a28e60)
 
-   8214 Yukihiro "Matz" Matsumoto (@matz)*
+   8293 Yukihiro "Matz" Matsumoto (@matz)*
     586 KOBAYASHI Shuji (@shuujii)
+    378 dearblue (@dearblue)*
     376 Daniel Bovensiepen (@bovi)
-    372 dearblue (@dearblue)*
     346 Takeshi Watanabe (@take-cheeze)*
     334 Masaki Muranaka (@monaka)
     308 Tomoyuki Sahara (@tsahara)*
@@ -18,11 +18,11 @@
      84 skandhas (@skandhas)
      80 Masamitsu MURASE (@masamitsu-murase)
      74 Yuichiro MASUI (@masuidrive)
+     73 Hiroshi Mimaki (@mimaki)*
      71 Tatsuhiko Kubo (@cubicdaiya)*
-     68 Hiroshi Mimaki (@mimaki)*
      67 Akira Yumiyama (@akiray03)*
      62 Paolo Bosetti (@pbosetti)*
-     60 John Bampton (@jbampton)
+     61 John Bampton (@jbampton)
      59 Kurebayashi, Takahiro (@crimsonwoods)*
      56 h2so5 (@h2so5)
      52 Ralph Desir (@Mav7)*
@@ -95,6 +95,7 @@
       6 Kenji Okimoto (@okkez)+
       6 Selman ULUG (@selman)
       6 Yusuke Endoh (@mame)*
+      5 Chris Reuter (@suetanvil)
       5 Davide D'Agostino (@DAddYE)
       5 Eric Hodel (@drbrain)
       5 Hendrik (@Asmod4n)
@@ -107,7 +108,6 @@
       5 Yurie Yamane (@yurie)+
       5 dreamedge (@dreamedge)
       5 nkshigeru (@nkshigeru)
-      4 Chris Reuter (@suetanvil)
       4 Dante Catalfamo (@dantecatalfamo)
       4 Goro Kikuchi (@gorogit)
       4 Herwin Weststrate (@herwinw)
