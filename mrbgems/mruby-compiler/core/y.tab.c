@@ -1424,7 +1424,7 @@ end_strterm(parser_state *p)
 }
 
 static parser_heredoc_info *
-parsing_heredoc_inf(parser_state *p)
+parsing_heredoc_info(parser_state *p)
 {
   node *nd = p->parsing_heredoc;
   if (nd == NULL)
@@ -1458,7 +1458,7 @@ heredoc_treat_nextline(parser_state *p)
   }
   p->parsing_heredoc = p->heredocs_from_nextline;
   p->lex_strterm_before_heredoc = p->lex_strterm;
-  p->lex_strterm = new_strterm(p, parsing_heredoc_inf(p)->type, 0, 0);
+  p->lex_strterm = new_strterm(p, parsing_heredoc_info(p)->type, 0, 0);
   p->heredocs_from_nextline = NULL;
 }
 
@@ -1474,7 +1474,7 @@ heredoc_end(parser_state *p)
   }
   else {
     /* next heredoc */
-    p->lex_strterm->car = nint(parsing_heredoc_inf(p)->type);
+    p->lex_strterm->car = nint(parsing_heredoc_info(p)->type);
   }
 }
 #define is_strterm_type(p,str_func) (intn((p)->lex_strterm->car) & (str_func))
@@ -9115,8 +9115,8 @@ yyreduce:
   case 456:
 #line 3404 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      parser_heredoc_info * inf = parsing_heredoc_inf(p);
-                      inf->doc = push(inf->doc, new_str(p, "", 0));
+                      parser_heredoc_info *info = parsing_heredoc_info(p);
+                      info->doc = push(info->doc, new_str(p, "", 0));
                       heredoc_end(p);
                     }
 #line 9123 "mrbgems/mruby-compiler/core/y.tab.c"
@@ -9133,8 +9133,8 @@ yyreduce:
   case 460:
 #line 3420 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      parser_heredoc_info * inf = parsing_heredoc_inf(p);
-                      inf->doc = push(inf->doc, (yyvsp[0].nd));
+                      parser_heredoc_info *info = parsing_heredoc_info(p);
+                      info->doc = push(info->doc, (yyvsp[0].nd));
                       heredoc_treat_nextline(p);
                     }
 #line 9141 "mrbgems/mruby-compiler/core/y.tab.c"
@@ -9152,9 +9152,9 @@ yyreduce:
   case 462:
 #line 3432 "mrbgems/mruby-compiler/core/parse.y"
                     {
-                      parser_heredoc_info * inf = parsing_heredoc_inf(p);
+                      parser_heredoc_info *info = parsing_heredoc_info(p);
                       p->lex_strterm = (yyvsp[-2].nd);
-                      inf->doc = push(push(inf->doc, (yyvsp[-3].nd)), (yyvsp[-1].nd));
+                      info->doc = push(push(info->doc, (yyvsp[-3].nd)), (yyvsp[-1].nd));
                     }
 #line 9160 "mrbgems/mruby-compiler/core/y.tab.c"
     break;
@@ -10965,7 +10965,7 @@ read_escape(parser_state *p)
 }
 
 static void
-heredoc_count_indent(parser_heredoc_info *hinf, const char *str, size_t len, size_t spaces, size_t *offset)
+heredoc_count_indent(parser_heredoc_info *hinfo, const char *str, size_t len, size_t spaces, size_t *offset)
 {
   size_t indent = 0;
   *offset = 0;
@@ -10980,7 +10980,7 @@ heredoc_count_indent(parser_heredoc_info *hinf, const char *str, size_t len, siz
     else
       break;
     size_t nindent = indent + size;
-    if (nindent > spaces || nindent > hinf->indent)
+    if (nindent > spaces || nindent > hinfo->indent)
       break;
     indent = nindent;
     *offset += 1;
@@ -10988,14 +10988,14 @@ heredoc_count_indent(parser_heredoc_info *hinf, const char *str, size_t len, siz
 }
 
 static void
-heredoc_remove_indent(parser_state *p, parser_heredoc_info *hinf)
+heredoc_remove_indent(parser_state *p, parser_heredoc_info *hinfo)
 {
-  if (!hinf->remove_indent || hinf->indent == 0)
+  if (!hinfo->remove_indent || hinfo->indent == 0)
     return;
   node *indented, *n, *pair, *escaped, *nspaces;
   const char *str;
   size_t len, spaces, offset, start, end;
-  indented = hinf->indented;
+  indented = hinfo->indented;
   while (indented) {
     n = indented->car;
     pair = n->car;
@@ -11012,7 +11012,7 @@ heredoc_remove_indent(parser_state *p, parser_heredoc_info *hinf)
         if (end > len) end = len;
         spaces = (size_t)nspaces->car;
         size_t esclen = end - start;
-        heredoc_count_indent(hinf, str + start, esclen, spaces, &offset);
+        heredoc_count_indent(hinfo, str + start, esclen, spaces, &offset);
         esclen -= offset;
         memcpy(newstr + newlen, str + start + offset, esclen);
         newlen += esclen;
@@ -11027,7 +11027,7 @@ heredoc_remove_indent(parser_state *p, parser_heredoc_info *hinf)
       pair->cdr = (node*)newlen;
     } else {
       spaces = (size_t)nspaces->car;
-      heredoc_count_indent(hinf, str, len, spaces, &offset);
+      heredoc_count_indent(hinfo, str, len, spaces, &offset);
       pair->car = (node*)(str + offset);
       pair->cdr = (node*)(len - offset);
     }
@@ -11036,13 +11036,13 @@ heredoc_remove_indent(parser_state *p, parser_heredoc_info *hinf)
 }
 
 static void
-heredoc_push_indented(parser_state *p, parser_heredoc_info *hinf, node *pair, node *escaped, node *nspaces, mrb_bool empty_line)
+heredoc_push_indented(parser_state *p, parser_heredoc_info *hinfo, node *pair, node *escaped, node *nspaces, mrb_bool empty_line)
 {
-  hinf->indented = push(hinf->indented, cons(pair, cons(escaped, nspaces)));
+  hinfo->indented = push(hinfo->indented, cons(pair, cons(escaped, nspaces)));
   while (nspaces) {
     size_t tspaces = (size_t)nspaces->car;
-    if ((hinf->indent == ~0U || tspaces < hinf->indent) && !empty_line)
-      hinf->indent = tspaces;
+    if ((hinfo->indent == ~0U || tspaces < hinfo->indent) && !empty_line)
+      hinfo->indent = tspaces;
     nspaces = nspaces->cdr;
   }
 }
@@ -11055,10 +11055,10 @@ parse_string(parser_state *p)
   int nest_level = intn(p->lex_strterm->cdr->car);
   int beg = intn(p->lex_strterm->cdr->cdr->car);
   int end = intn(p->lex_strterm->cdr->cdr->cdr);
-  parser_heredoc_info *hinf = (type & STR_FUNC_HEREDOC) ? parsing_heredoc_inf(p) : NULL;
+  parser_heredoc_info *hinfo = (type & STR_FUNC_HEREDOC) ? parsing_heredoc_info(p) : NULL;
 
-  mrb_bool unindent = hinf && hinf->remove_indent;
-  mrb_bool head = hinf && hinf->line_head;
+  mrb_bool unindent = hinfo && hinfo->remove_indent;
+  mrb_bool head = hinfo && hinfo->line_head;
   mrb_bool empty = TRUE;
   size_t spaces = 0;
   size_t pos = -1;
@@ -11070,26 +11070,26 @@ parse_string(parser_state *p)
   newtok(p);
   while ((c = nextc(p)) != end || nest_level != 0) {
     pos++;
-    if (hinf && (c == '\n' || c < 0)) {
+    if (hinfo && (c == '\n' || c < 0)) {
       mrb_bool line_head;
       tokadd(p, '\n');
       tokfix(p);
       p->lineno++;
       p->column = 0;
-      line_head = hinf->line_head;
-      hinf->line_head = TRUE;
+      line_head = hinfo->line_head;
+      hinfo->line_head = TRUE;
       if (line_head) {
         /* check whether end of heredoc */
         const char *s = tok(p);
         int len = toklen(p);
-        if (hinf->allow_indent) {
+        if (hinfo->allow_indent) {
           while (ISSPACE(*s) && len > 0) {
             ++s;
             --len;
           }
         }
-        if (hinf->term_len > 0 && len-1 == hinf->term_len && strncmp(s, hinf->term, len-1) == 0) {
-          heredoc_remove_indent(p, hinf);
+        if (hinfo->term_len > 0 && len-1 == hinfo->term_len && strncmp(s, hinfo->term, len-1) == 0) {
+          heredoc_remove_indent(p, hinfo);
           return tHEREDOC_END;
         }
       }
@@ -11098,11 +11098,11 @@ parse_string(parser_state *p)
         const char s1[] = "can't find heredoc delimiter \"";
         const char s2[] = "\" anywhere before EOF";
 
-        if (sizeof(s1)+sizeof(s2)+strlen(hinf->term)+1 >= sizeof(buf)) {
+        if (sizeof(s1)+sizeof(s2)+strlen(hinfo->term)+1 >= sizeof(buf)) {
           yyerror(p, "can't find heredoc delimiter anywhere before EOF");
         } else {
           strcpy(buf, s1);
-          strcat(buf, hinf->term);
+          strcat(buf, hinfo->term);
           strcat(buf, s2);
           yyerror(p, buf);
         }
@@ -11112,7 +11112,7 @@ parse_string(parser_state *p)
       pylval.nd = nd;
       if (unindent && head) {
         nspaces = push(nspaces, nint(spaces));
-        heredoc_push_indented(p, hinf, nd->cdr, escaped, nspaces, empty && line_head);
+        heredoc_push_indented(p, hinfo, nd->cdr, escaped, nspaces, empty && line_head);
       }
       return tHD_STRING_MID;
     }
@@ -11171,14 +11171,14 @@ parse_string(parser_state *p)
             if (c < 0) break;
             tokadd(p, -c);
           }
-          if (hinf)
-            hinf->line_head = FALSE;
+          if (hinfo)
+            hinfo->line_head = FALSE;
         }
         else {
           pushback(p, c);
           tokadd(p, read_escape(p));
-          if (hinf)
-            hinf->line_head = FALSE;
+          if (hinfo)
+            hinfo->line_head = FALSE;
         }
       }
       else {
@@ -11203,12 +11203,12 @@ parse_string(parser_state *p)
         p->cmd_start = TRUE;
         node *nd = new_str(p, tok(p), toklen(p));
         pylval.nd = nd;
-        if (hinf) {
+        if (hinfo) {
           if (unindent && head) {
             nspaces = push(nspaces, nint(spaces));
-            heredoc_push_indented(p, hinf, nd->cdr, escaped, nspaces, FALSE);
+            heredoc_push_indented(p, hinfo, nd->cdr, escaped, nspaces, FALSE);
           }
-          hinf->line_head = FALSE;
+          hinfo->line_head = FALSE;
           return tHD_STRING_PART;
         }
         return tSTRING_PART;
