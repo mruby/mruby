@@ -10496,22 +10496,20 @@ static mrb_bool skips(parser_state *p, const char *s);
 static inline int
 nextc0(parser_state *p)
 {
-  int c;
-
   if (p->s && p->s < p->send) {
-    c = (unsigned char)*p->s++;
+    return (unsigned char)*p->s++;
   }
   else {
 #ifndef MRB_NO_STDIO
+    int c;
+
     if (p->f) {
       c = fgetc(p->f);
-      if (feof(p->f)) return -1;
+      if (!feof(p->f)) return c;
     }
-    else
 #endif
-      return -1;
+    return -1;
   }
-  return c;
 }
 
 static inline int
