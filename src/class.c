@@ -73,9 +73,9 @@ mt_rehash(mrb_state *mrb, mt_tbl *t)
   khash_power2(new_alloc);
   if (old_alloc == new_alloc) return;
 
+  t->ptr = (union mt_ptr*)mrb_calloc(mrb, sizeof(union mt_ptr)+sizeof(mrb_sym), new_alloc);
   t->alloc = new_alloc;
   t->size = 0;
-  t->ptr = (union mt_ptr*)mrb_calloc(mrb, sizeof(union mt_ptr)+sizeof(mrb_sym), new_alloc);
   if (old_alloc == 0) return;
 
   mrb_sym *keys = (mrb_sym*)&old_ptr[old_alloc];
