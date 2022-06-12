@@ -195,7 +195,7 @@ emit_B(codegen_scope *s, uint32_t pc, uint8_t i)
     else {
       s->icapa *= 2;
     }
-    s->iseq = (mrb_code *)codegen_realloc(s, s->iseq, sizeof(mrb_code)*s->icapa);
+    s->iseq = (mrb_code*)codegen_realloc(s, s->iseq, sizeof(mrb_code)*s->icapa);
     if (s->lines) {
       s->lines = (uint16_t*)codegen_realloc(s, s->lines, sizeof(uint16_t)*s->icapa);
     }
@@ -1553,11 +1553,11 @@ attrsym(codegen_scope *s, mrb_sym a)
   char *name2;
 
   name = mrb_sym_name_len(s->mrb, a, &len);
-  name2 = (char *)codegen_palloc(s,
-                                 (size_t)len
-                                 + 1 /* '=' */
-                                 + 1 /* '\0' */
-                                 );
+  name2 = (char*)codegen_palloc(s,
+                                (size_t)len
+                                + 1 /* '=' */
+                                + 1 /* '\0' */
+                                );
   mrb_assert_int_fit(mrb_int, len, size_t, SIZE_MAX);
   memcpy(name2, name, (size_t)len);
   name2[len] = '=';
@@ -3383,7 +3383,7 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
 
   case NODE_HEREDOC:
-    tree = ((struct mrb_parser_heredoc_info *)tree)->doc;
+    tree = ((struct mrb_parser_heredoc_info*)tree)->doc;
     /* fall through */
   case NODE_DSTR:
     if (val) {
@@ -3810,7 +3810,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *nlv)
 {
   static const codegen_scope codegen_scope_zero = { 0 };
   mrb_pool *pool = mrb_pool_open(mrb);
-  codegen_scope *s = (codegen_scope *)mrb_pool_alloc(pool, sizeof(codegen_scope));
+  codegen_scope *s = (codegen_scope*)mrb_pool_alloc(pool, sizeof(codegen_scope));
 
   if (!s) {
     if (prev)
@@ -3889,10 +3889,10 @@ scope_finish(codegen_scope *s)
   irep->flags = 0;
   if (s->iseq) {
     size_t catchsize = sizeof(struct mrb_irep_catch_handler) * irep->clen;
-    irep->iseq = (const mrb_code *)codegen_realloc(s, s->iseq, sizeof(mrb_code)*s->pc + catchsize);
+    irep->iseq = (const mrb_code*)codegen_realloc(s, s->iseq, sizeof(mrb_code)*s->pc + catchsize);
     irep->ilen = s->pc;
     if (irep->clen > 0) {
-      memcpy((void *)(irep->iseq + irep->ilen), s->catch_table, catchsize);
+      memcpy((void*)(irep->iseq + irep->ilen), s->catch_table, catchsize);
     }
   }
   else {
@@ -3922,7 +3922,7 @@ scope_finish(codegen_scope *s)
 static struct loopinfo*
 loop_push(codegen_scope *s, enum looptype t)
 {
-  struct loopinfo *p = (struct loopinfo *)codegen_palloc(s, sizeof(struct loopinfo));
+  struct loopinfo *p = (struct loopinfo*)codegen_palloc(s, sizeof(struct loopinfo));
 
   p->type = t;
   p->pc0 = p->pc1 = p->pc2 = JMPLINK_START;
@@ -4007,7 +4007,7 @@ static int
 catch_handler_new(codegen_scope *s)
 {
   size_t newsize = sizeof(struct mrb_irep_catch_handler) * (s->irep->clen + 1);
-  s->catch_table = (struct mrb_irep_catch_handler *)codegen_realloc(s, (void *)s->catch_table, newsize);
+  s->catch_table = (struct mrb_irep_catch_handler*)codegen_realloc(s, (void*)s->catch_table, newsize);
   return s->irep->clen ++;
 }
 

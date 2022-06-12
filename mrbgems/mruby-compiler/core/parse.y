@@ -120,7 +120,7 @@ cons_gen(parser_state *p, node *car, node *cdr)
     p->cells = p->cells->cdr;
   }
   else {
-    c = (node *)parser_palloc(p, sizeof(mrb_ast_node));
+    c = (node*)parser_palloc(p, sizeof(mrb_ast_node));
   }
 
   c->car = car;
@@ -196,7 +196,7 @@ append_gen(parser_state *p, node *a, node *b)
 static char*
 parser_strndup(parser_state *p, const char *s, size_t len)
 {
-  char *b = (char *)parser_palloc(p, len+1);
+  char *b = (char*)parser_palloc(p, len+1);
 
   memcpy(b, s, len);
   b[len] = '\0';
@@ -1181,7 +1181,7 @@ new_nth_ref(parser_state *p, int n)
 static node*
 new_heredoc(parser_state *p)
 {
-  parser_heredoc_info *inf = (parser_heredoc_info *)parser_palloc(p, sizeof(parser_heredoc_info));
+  parser_heredoc_info *inf = (parser_heredoc_info*)parser_palloc(p, sizeof(parser_heredoc_info));
   return cons((node*)NODE_HEREDOC, (node*)inf);
 }
 
@@ -4137,7 +4137,7 @@ yyerror(parser_state *p, const char *s)
   }
   else if (p->nerr < sizeof(p->error_buffer) / sizeof(p->error_buffer[0])) {
     n = strlen(s);
-    c = (char *)parser_palloc(p, n + 1);
+    c = (char*)parser_palloc(p, n + 1);
     memcpy(c, s, n + 1);
     p->error_buffer[p->nerr].message = c;
     p->error_buffer[p->nerr].lineno = p->lineno;
@@ -4176,7 +4176,7 @@ yywarning(parser_state *p, const char *s)
   }
   else if (p->nwarn < sizeof(p->warn_buffer) / sizeof(p->warn_buffer[0])) {
     n = strlen(s);
-    c = (char *)parser_palloc(p, n + 1);
+    c = (char*)parser_palloc(p, n + 1);
     memcpy(c, s, n + 1);
     p->warn_buffer[p->nwarn].message = c;
     p->warn_buffer[p->nwarn].lineno = p->lineno;
@@ -6585,7 +6585,7 @@ parser_update_cxt(parser_state *p, mrbc_context *cxt)
     i++;
     n = n->cdr;
   }
-  cxt->syms = (mrb_sym *)mrb_realloc(p->mrb, cxt->syms, i*sizeof(mrb_sym));
+  cxt->syms = (mrb_sym*)mrb_realloc(p->mrb, cxt->syms, i*sizeof(mrb_sym));
   cxt->slen = i;
   for (i=0, n=n0; n; i++,n=n->cdr) {
     cxt->syms[i] = sym(n->car);
@@ -6643,7 +6643,7 @@ mrb_parser_new(mrb_state *mrb)
 
   pool = mrb_pool_open(mrb);
   if (!pool) return NULL;
-  p = (parser_state *)mrb_pool_alloc(pool, sizeof(parser_state));
+  p = (parser_state*)mrb_pool_alloc(pool, sizeof(parser_state));
   if (!p) return NULL;
 
   *p = parser_state_zero;
@@ -6689,7 +6689,7 @@ mrb_parser_free(parser_state *p) {
 MRB_API mrbc_context*
 mrbc_context_new(mrb_state *mrb)
 {
-  return (mrbc_context *)mrb_calloc(mrb, 1, sizeof(mrbc_context));
+  return (mrbc_context*)mrb_calloc(mrb, 1, sizeof(mrbc_context));
 }
 
 MRB_API void
@@ -6705,7 +6705,7 @@ mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s)
 {
   if (s) {
     size_t len = strlen(s);
-    char *p = (char *)mrb_malloc(mrb, len + 1);
+    char *p = (char*)mrb_malloc(mrb, len + 1);
 
     memcpy(p, s, len + 1);
     if (c->filename) {
@@ -6782,8 +6782,8 @@ mrb_parse_file_continue(mrb_state *mrb, FILE *f, const void *prebuf, size_t preb
   p = mrb_parser_new(mrb);
   if (!p) return NULL;
   if (prebuf) {
-    p->s = (const char *)prebuf;
-    p->send = (const char *)prebuf + prebufsize;
+    p->s = (const char*)prebuf;
+    p->send = (const char*)prebuf + prebufsize;
   }
   else {
     p->s = p->send = NULL;
@@ -6931,7 +6931,7 @@ mrb_load_detect_file_cxt(mrb_state *mrb, FILE *fp, mrbc_context *c)
 
     binsize = bin_to_uint32(leading.h.binary_size);
     bin_obj = mrb_str_new(mrb, NULL, binsize);
-    bin = (uint8_t *)RSTRING_PTR(bin_obj);
+    bin = (uint8_t*)RSTRING_PTR(bin_obj);
     if ((size_t)binsize > bufsize)  {
       memcpy(bin, leading.b, bufsize);
       if (fread(bin + bufsize, binsize - bufsize, 1, fp) == 0) {
