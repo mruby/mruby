@@ -1345,19 +1345,50 @@ label_reference(parser_state *p, mrb_sym sym)
 
 typedef enum mrb_string_type  string_type;
 
-static node*
+typedef struct parser_lex_strterm {
+  int type;
+  int level;
+  int term;
+  int paren;
+  struct parser_lex_strterm *prev;
+} parser_lex_strterm;
+
+static parser_lex_strterm*
 new_strterm(parser_state *p, string_type type, int term, int paren)
 {
-  return cons(nint(type), cons(nint(0), cons(nint(paren), nint(term))));
+  parser_lex_strterm *lex = (parser_lex_strterm*)parser_palloc(p, sizeof(parser_lex_strterm));
+  lex->type = type;
+  lex->level = 0;
+  lex->term = term;
+  lex->paren = paren;
+  lex->prev = p->lex_strterm;
+  return lex;
 }
 
 static void
 end_strterm(parser_state *p)
 {
-  cons_free(p->lex_strterm->cdr->cdr);
-  cons_free(p->lex_strterm->cdr);
-  cons_free(p->lex_strterm);
+  parser_lex_strterm *term = p->lex_strterm->prev;
+  if (sizeof(node) < sizeof(parser_lex_strterm)) {
+    cons_free((node*)p->lex_strterm);
+  }
+  p->lex_strterm = term;
+}
+
+static node*
+push_strterm(parser_state *p)
+{
+  node *n = cons((node*)p->lex_strterm, p->parsing_heredoc);
   p->lex_strterm = NULL;
+  return n;
+}
+
+static void
+pop_strterm(parser_state *p, node *n)
+{
+  p->lex_strterm = (parser_lex_strterm*)n->car;
+  p->parsing_heredoc = n->cdr;
+  cons_free(n);
 }
 
 static parser_heredoc_info *
@@ -1373,28 +1404,11 @@ parsing_heredoc_info(parser_state *p)
 static void
 heredoc_treat_nextline(parser_state *p)
 {
-  if (p->heredocs_from_nextline == NULL)
-    return;
-  if (p->parsing_heredoc == NULL) {
-    p->all_heredocs = append(p->all_heredocs, p->heredocs_from_nextline);
-  }
-  else {
-    if (p->all_heredocs == p->parsing_heredoc) {
-      p->all_heredocs = append(p->heredocs_from_nextline, p->all_heredocs);
-    }
-    else {
-      node *n = p->all_heredocs;
-      mrb_assert(n != NULL);
-      append(p->heredocs_from_nextline, p->parsing_heredoc);
-      while (n->cdr != p->parsing_heredoc) {
-        n = n->cdr;
-        mrb_assert(n != NULL);
-      }
-      n->cdr = p->heredocs_from_nextline;
-    }
+  if (p->heredocs_from_nextline == NULL) return;
+  if (p->parsing_heredoc && p->lex_strterm) {
+    append(p->heredocs_from_nextline, p->parsing_heredoc);
   }
   p->parsing_heredoc = p->heredocs_from_nextline;
-  p->lex_strterm_before_heredoc = p->lex_strterm;
   p->lex_strterm = new_strterm(p, parsing_heredoc_info(p)->type, 0, 0);
   p->heredocs_from_nextline = NULL;
 }
@@ -1406,15 +1420,13 @@ heredoc_end(parser_state *p)
   if (p->parsing_heredoc == NULL) {
     p->lstate = EXPR_BEG;
     end_strterm(p);
-    p->lex_strterm = p->lex_strterm_before_heredoc;
-    p->lex_strterm_before_heredoc = NULL;
   }
   else {
     /* next heredoc */
-    p->lex_strterm->car = nint(parsing_heredoc_info(p)->type);
+    p->lex_strterm->type = parsing_heredoc_info(p)->type;
   }
 }
-#define is_strterm_type(p,str_func) (intn((p)->lex_strterm->car) & (str_func))
+#define is_strterm_type(p,str_func) ((p)->lex_strterm->type & (str_func))
 
 /* xxx ----------------------------- */
 
@@ -3347,13 +3359,12 @@ string_interp   : tSTRING_MID
                     }
                 | tSTRING_PART
                     {
-                      $<nd>$ = p->lex_strterm;
-                      p->lex_strterm = NULL;
+                      $<nd>$ = push_strterm(p);
                     }
                   compstmt
                   '}'
                     {
-                      p->lex_strterm = $<nd>2;
+                      pop_strterm(p,$<nd>2);
                       $$ = list2($1, $3);
                     }
                 | tLITERAL_DELIM
@@ -3424,14 +3435,13 @@ heredoc_string_interp : tHD_STRING_MID
                     }
                 | tHD_STRING_PART
                     {
-                      $<nd>$ = p->lex_strterm;
-                      p->lex_strterm = NULL;
+                      $<nd>$ = push_strterm(p);
                     }
                   compstmt
                   '}'
                     {
+                      pop_strterm(p, $<nd>2);
                       parser_heredoc_info *info = parsing_heredoc_info(p);
-                      p->lex_strterm = $<nd>2;
                       info->doc = push(push(info->doc, $1), $3);
                     }
                 ;
@@ -4810,10 +4820,10 @@ static int
 parse_string(parser_state *p)
 {
   int c;
-  string_type type = (string_type)(intptr_t)p->lex_strterm->car;
-  int nest_level = intn(p->lex_strterm->cdr->car);
-  int beg = intn(p->lex_strterm->cdr->cdr->car);
-  int end = intn(p->lex_strterm->cdr->cdr->cdr);
+  string_type type = (string_type)p->lex_strterm->type;
+  int nest_level = p->lex_strterm->level;
+  int beg = p->lex_strterm->paren;
+  int end = p->lex_strterm->term;
   parser_heredoc_info *hinfo = (type & STR_FUNC_HEREDOC) ? parsing_heredoc_info(p) : NULL;
 
   mrb_bool unindent = hinfo && hinfo->remove_indent;
@@ -4889,11 +4899,11 @@ parse_string(parser_state *p)
     }
     else if (c == beg) {
       nest_level++;
-      p->lex_strterm->cdr->car = nint(nest_level);
+      p->lex_strterm->level = nest_level;
     }
     else if (c == end) {
       nest_level--;
-      p->lex_strterm->cdr->car = nint(nest_level);
+      p->lex_strterm->level = nest_level;
     }
     else if (c == '\\') {
       c = nextc(p);
@@ -6668,8 +6678,6 @@ mrb_parser_new(mrb_state *mrb)
   p->tokbuf = p->buf;
 
   p->lex_strterm = NULL;
-  p->all_heredocs = p->parsing_heredoc = NULL;
-  p->lex_strterm_before_heredoc = NULL;
 
   p->current_filename_index = -1;
   p->filename_table = NULL;
