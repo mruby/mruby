@@ -459,8 +459,9 @@ gc_protect(mrb_state *mrb, mrb_gc *gc, struct RBasic *p)
 #else
   if (gc->arena_idx >= gc->arena_capa) {
     /* extend arena */
-    gc->arena_capa = (int)(gc->arena_capa * 3 / 2);
-    gc->arena = (struct RBasic**)mrb_realloc(mrb, gc->arena, sizeof(struct RBasic*)*gc->arena_capa);
+    int newcapa = gc->arena_capa * 3 / 2;
+    gc->arena = (struct RBasic**)mrb_realloc(mrb, gc->arena, sizeof(struct RBasic*)*newcapa);
+    gc->arena_capa = newcapa;
   }
 #endif
   gc->arena[gc->arena_idx++] = p;
