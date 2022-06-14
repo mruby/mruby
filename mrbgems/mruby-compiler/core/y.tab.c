@@ -173,6 +173,8 @@ parser_palloc(parser_state *p, size_t size)
   return m;
 }
 
+#define parser_pfree(ptr) do { if (sizeof(node) <= sizeof(*(ptr))) cons_free((node*)ptr);} while (0)
+
 static node*
 cons_gen(parser_state *p, node *car, node *cdr)
 {
@@ -1432,9 +1434,7 @@ static void
 end_strterm(parser_state *p)
 {
   parser_lex_strterm *term = p->lex_strterm->prev;
-  if (sizeof(node) < sizeof(parser_lex_strterm)) {
-    cons_free((node*)p->lex_strterm);
-  }
+  parser_pfree(p->lex_strterm);
   p->lex_strterm = term;
 }
 
