@@ -238,7 +238,10 @@ check_random_arg(mrb_state *mrb, mrb_value r)
   struct RClass *c = mrb_class_get_id(mrb, ID_RANDOM_STRICT);
   rand_state *random;
 
-  if (mrb_istruct_p(r) && mrb_obj_is_kind_of(mrb, r, c)){
+  if (mrb_undef_p(r)) {
+    random = random_default_state(mrb);
+  }
+  else if (mrb_istruct_p(r) && mrb_obj_is_kind_of(mrb, r, c)){
     random = (rand_state*)mrb_istruct_ptr(r);
   }
   else {
@@ -258,15 +261,13 @@ mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
 {
   if (RARRAY_LEN(ary) > 1) {
     mrb_int i, max;
-    mrb_value r;
     rand_state *random;
+    mrb_sym knames[3] = {MRB_SYM(random)};
+    mrb_value r;
+    const mrb_kwargs kw = {1, 0, knames, &r, NULL};
 
-    if (mrb_get_args(mrb, "|o", &r) == 0) {
-      random = random_default_state(mrb);
-    }
-    else {
-      random = check_random_arg(mrb, r);
-    }
+    mrb_get_args(mrb, ":", &kw);
+    random = check_random_arg(mrb, r);
     mrb_ary_modify(mrb, mrb_ary_ptr(ary));
     max = RARRAY_LEN(ary);
     for (i = RARRAY_LEN(ary) - 1; i > 0; i--)  {
@@ -321,16 +322,14 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
 {
   mrb_int n = 0;
   mrb_bool given;
-  mrb_value r;
   rand_state *random;
   mrb_int len;
+  mrb_sym knames[3] = {MRB_SYM(random)};
+  mrb_value r;
+  const mrb_kwargs kw = {1, 0, knames, &r, NULL};
 
-  if (mrb_get_args(mrb, "|i?o", &n, &given, &r) < 2) {
-    random = random_default_state(mrb);
-  }
-  else {
-    random = check_random_arg(mrb, r);
-  }
+  mrb_get_args(mrb, "|i?:", &n, &given, &kw);
+  random = check_random_arg(mrb, r);
   len = RARRAY_LEN(ary);
   if (!given) {                 /* pick one element */
     switch (len) {
