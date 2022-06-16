@@ -421,8 +421,12 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, array, "shuffle!", mrb_ary_shuffle_bang, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, array, "sample", mrb_ary_sample, MRB_ARGS_OPT(2));
 
-  mrb_const_set(mrb, mrb_obj_value(random), MRB_SYM(DEFAULT),
-                mrb_obj_new(mrb, random, 0, NULL));
+  mrb_value d = mrb_obj_new(mrb, random, 0, NULL);
+  rand_state *t = random_ptr(d);
+  mrb_const_set(mrb, mrb_obj_value(random), MRB_SYM(DEFAULT), d);
+
+  uint32_t seed = (uint32_t)time(NULL);
+  rand_seed(t, seed ^ (uint32_t)t);
 }
 
 void mrb_mruby_random_gem_final(mrb_state *mrb)
