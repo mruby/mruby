@@ -205,7 +205,7 @@ random_m_srand(mrb_state *mrb, mrb_value self)
   rand_state *t = random_ptr(self);
 
   if (mrb_get_args(mrb, "|i", &i) == 0) {
-    seed = (uint32_t)time(NULL) + rand_uint32(t);
+    seed = (uint32_t)time(NULL) ^ rand_uint32(t) ^ (uint32_t)t;
   }
   else {
     seed = (uint32_t)i;
