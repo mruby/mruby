@@ -205,7 +205,7 @@ random_m_srand(mrb_state *mrb, mrb_value self)
   rand_state *t = random_ptr(self);
 
   if (mrb_get_args(mrb, "|i", &i) == 0) {
-    seed = (uint32_t)time(NULL) ^ rand_uint32(t) ^ (uint32_t)t;
+    seed = (uint32_t)time(NULL) ^ rand_uint32(t) ^ (uint32_t)(uintptr_t)t;
   }
   else {
     seed = (uint32_t)i;
@@ -426,7 +426,7 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
   mrb_const_set(mrb, mrb_obj_value(random), MRB_SYM(DEFAULT), d);
 
   uint32_t seed = (uint32_t)time(NULL);
-  rand_seed(t, seed ^ (uint32_t)t);
+  rand_seed(t, seed ^ (uint32_t)(uintptr_t)t);
 }
 
 void mrb_mruby_random_gem_final(mrb_state *mrb)
