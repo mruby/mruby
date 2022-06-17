@@ -158,15 +158,20 @@ class Hash
   # will be the final value of this element.
   #
   # ISO 15.2.13.4.22
-  def merge(other, &block)
-    raise TypeError, "Hash required (#{other.class} given)" unless Hash === other
+  def merge(*others, &block)
+    i=0; len=others.size
     h = self.dup
-    if block
-      other.each_key{|k|
-        h[k] = (self.has_key?(k))? block.call(k, self[k], other[k]): other[k]
-      }
-    else
-      other.each_key{|k| h[k] = other[k]}
+    while i<len
+      other = others[i]
+      i += 1
+      raise TypeError, "Hash required (#{other.class} given)" unless Hash === other
+      if block
+        other.each_key{|k|
+          h[k] = (self.has_key?(k))? block.call(k, self[k], other[k]): other[k]
+        }
+      else
+        other.each_key{|k| h[k] = other[k]}
+      end
     end
     h
   end
