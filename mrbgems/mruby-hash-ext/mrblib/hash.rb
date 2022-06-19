@@ -83,6 +83,7 @@ class Hash
 
   def merge!(*others, &block)
     i = 0; len=others.size
+    return self.__merge(*others) unless block
     while i<len
       other = others[i]
       i += 1

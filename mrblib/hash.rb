@@ -161,17 +161,14 @@ class Hash
   def merge(*others, &block)
     i=0; len=others.size
     h = self.dup
+    return h.__merge(*others) unless block
     while i<len
       other = others[i]
       i += 1
       raise TypeError, "Hash required (#{other.class} given)" unless Hash === other
-      if block
-        other.each_key{|k|
-          h[k] = (self.has_key?(k))? block.call(k, self[k], other[k]): other[k]
-        }
-      else
-        other.each_key{|k| h[k] = other[k]}
-      end
+      other.each_key{|k|
+        h[k] = (self.has_key?(k))? block.call(k, self[k], other[k]): other[k]
+      }
     end
     h
   end
