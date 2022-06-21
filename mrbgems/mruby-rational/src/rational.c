@@ -3,7 +3,9 @@
 #include <mruby/numeric.h>
 #include <mruby/presym.h>
 
+#ifndef MRB_NO_FLOAT
 mrb_value mrb_complex_new(mrb_state *, mrb_float, mrb_float);
+#endif
 mrb_bool mrb_complex_eq(mrb_state *mrb, mrb_value, mrb_value);
 mrb_value mrb_complex_add(mrb_state *mrb, mrb_value, mrb_value);
 mrb_value mrb_complex_sub(mrb_state *mrb, mrb_value, mrb_value);
