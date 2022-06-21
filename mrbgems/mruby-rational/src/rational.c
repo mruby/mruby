@@ -673,8 +673,6 @@ rational_div(mrb_state *mrb, mrb_value x)
   return mrb_rational_div(mrb, x, y);
 }
 
-mrb_int mrb_div_int(mrb_state *, mrb_int, mrb_int);
-
 void mrb_mruby_rational_gem_init(mrb_state *mrb)
 {
   struct RClass *rat;
