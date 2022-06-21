@@ -722,7 +722,7 @@ rational_pow(mrb_state *mrb, mrb_value x)
     }
     break;
   default:
-    mrb_raisef(mrb, E_TYPE_ERROR, "%T cannot convert to Rational", y);
+    mrb_raisef(mrb, E_TYPE_ERROR, "%T cannot be converted to Rational", y);
   }
   return mrb_float_value(mrb, pow(d1, d2));
 #else
