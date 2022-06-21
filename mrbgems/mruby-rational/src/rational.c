@@ -4,6 +4,7 @@
 #include <mruby/presym.h>
 
 #ifndef MRB_NO_FLOAT
+#include <math.h>
 mrb_value mrb_complex_new(mrb_state *, mrb_float, mrb_float);
 #endif
 mrb_bool mrb_complex_eq(mrb_state *mrb, mrb_value, mrb_value);
@@ -675,6 +676,60 @@ rational_div(mrb_state *mrb, mrb_value x)
   return mrb_rational_div(mrb, x, y);
 }
 
+static mrb_value
+rational_pow(mrb_state *mrb, mrb_value x)
+{
+  mrb_value y = mrb_get_arg1(mrb);
+  struct mrb_rational *p1 = rational_ptr(mrb, x);
+#ifndef MRB_NO_FLOAT
+  double d1, d2;
+
+  switch (mrb_type(y)) {
+  case MRB_TT_RATIONAL:
+    {
+      struct mrb_rational *p2 = rational_ptr(mrb, y);
+      if (p2->numerator == 0) {
+        return mrb_rational_new(mrb, 1, 1);
+      }
+      if (p2->numerator == p2->denominator) {
+        return x;
+      }
+      if (p2->denominator == 1) {
+        return rational_new_i(mrb, (mrb_int)pow((mrb_float)p1->numerator, (mrb_float)p2->numerator),
+                                   (mrb_int)pow((mrb_float)p1->denominator, (mrb_float)p2->numerator));
+      }
+      d1 = rat_float(p1);
+      d2 = rat_float(p2);
+    }
+    break;
+  case MRB_TT_FLOAT:
+    {
+      d1 = rat_float(p1);
+      d2 = mrb_float(y);
+    }
+    break;
+  case MRB_TT_INTEGER:
+    {
+      mrb_int i = mrb_integer(y);
+      if (i == 0) {
+        return mrb_rational_new(mrb, 1, 1);
+      }
+      if (i == 1) {
+        return x;
+      }
+      return rational_new_i(mrb, (mrb_int)pow((mrb_float)p1->numerator, (mrb_float)i),
+                                 (mrb_int)pow((mrb_float)p1->denominator, (mrb_float)i));
+    }
+    break;
+  default:
+    mrb_raisef(mrb, E_TYPE_ERROR, "%T cannot convert to Rational", y);
+  }
+  return mrb_float_value(mrb, pow(d1, d2));
+#else
+  mrb_raisef(mrb, E_NOTIMP_ERROR, "Rational#** not implemented with MRB_NO_FLOAT");
+#endif
+}
+
 void mrb_mruby_rational_gem_init(mrb_state *mrb)
 {
   struct RClass *rat;
@@ -699,6 +754,7 @@ void mrb_mruby_rational_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, rat, "*", rational_mul, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, rat, "/", rational_div, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, rat, "quo", rational_div, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, rat, "**", rational_pow, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, mrb->integer_class, "to_r", fix_to_r, MRB_ARGS_NONE());
   mrb_define_method(mrb, mrb->kernel_module, "Rational", rational_m, MRB_ARGS_ARG(1,1));
 }
