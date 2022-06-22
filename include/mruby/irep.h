@@ -123,6 +123,10 @@ struct mrb_insn_data {
 #define mrb_irep_catch_handler_pack(n, v)   uint32_to_bin(n, v)
 #define mrb_irep_catch_handler_unpack(v)    bin_to_uint32(v)
 
+void mrb_irep_incref(mrb_state*, struct mrb_irep*);
+void mrb_irep_decref(mrb_state*, struct mrb_irep*);
+void mrb_irep_cutref(mrb_state*, struct mrb_irep*);
+
 MRB_END_DECL
 
 #endif  /* MRUBY_IREP_H */

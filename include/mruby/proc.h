@@ -88,6 +88,7 @@ struct RProc {
 
 #define mrb_proc_ptr(v)    ((struct RProc*)(mrb_ptr(v)))
 
+struct RProc *mrb_proc_new(mrb_state*, const mrb_irep*);
 MRB_API struct RProc *mrb_proc_new_cfunc(mrb_state*, mrb_func_t);
 MRB_API struct RProc *mrb_closure_new_cfunc(mrb_state *mrb, mrb_func_t func, int nlocals);
 

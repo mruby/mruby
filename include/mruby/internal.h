@@ -32,10 +32,8 @@ uint32_t mrb_packed_int_decode(const uint8_t *p, const uint8_t **newpos);
 #ifdef MRUBY_IREP_H
 int mrb_dump_irep(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, uint8_t **bin, size_t *bin_size);
 #ifndef MRB_NO_STDIO
-int mrb_dump_irep_binary(mrb_state*, const mrb_irep*, uint8_t, FILE*);
 int mrb_dump_irep_cfunc(mrb_state *mrb, const mrb_irep*, uint8_t flags, FILE *f, const char *initname);
 int mrb_dump_irep_cstruct(mrb_state *mrb, const mrb_irep*, uint8_t flags, FILE *f, const char *initname);
-mrb_irep *mrb_read_irep_file(mrb_state*, FILE*);
 #endif
 #endif
 
@@ -61,9 +59,6 @@ void mrb_gc_free_hash(mrb_state*, struct RHash*);
 struct mrb_insn_data mrb_decode_insn(const mrb_code *pc);
 #ifdef MRUBY_IREP_H
 void mrb_irep_free(mrb_state*, struct mrb_irep*);
-void mrb_irep_incref(mrb_state*, struct mrb_irep*);
-void mrb_irep_decref(mrb_state*, struct mrb_irep*);
-void mrb_irep_cutref(mrb_state*, struct mrb_irep*);
 void mrb_irep_remove_lv(mrb_state *mrb, mrb_irep *irep);
 
 static inline const struct mrb_irep_catch_handler *
@@ -102,7 +97,6 @@ mrb_value mrb_rational_div(mrb_state *mrb, mrb_value x, mrb_value y);
 #endif
 
 #ifdef MRUBY_PROC_H
-struct RProc *mrb_proc_new(mrb_state*, const mrb_irep*);
 struct RProc *mrb_closure_new(mrb_state*, const mrb_irep*);
 void mrb_proc_copy(mrb_state *mrb, struct RProc *a, struct RProc *b);
 mrb_int mrb_proc_arity(const struct RProc *p);
