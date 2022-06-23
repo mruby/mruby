@@ -179,7 +179,7 @@ def clamp(f)
   i.to_i
 end
 
-def otherBasis(basis, n)
+def orthoBasis(basis, n)
   basis[2] = Vec.new(n.x, n.y, n.z)
   basis[1] = Vec.new(0.0, 0.0, 0.0)
 
@@ -211,7 +211,7 @@ class Scene
 
   def ambient_occlusion(isect)
     basis = Array.new(3)
-    otherBasis(basis, isect.n)
+    orthoBasis(basis, isect.n)
 
     ntheta    = NAO_SAMPLES
     nphi      = NAO_SAMPLES
