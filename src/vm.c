@@ -32,7 +32,7 @@ void abort(void);
 #endif
 #endif
 
-#if defined(__cplusplus)
+#if defined(MRB_USE_CXX_EXCEPTION) && defined(__cplusplus)
 # if !defined(MRB_USE_CXX_ABI)
 extern "C" {
 # endif
