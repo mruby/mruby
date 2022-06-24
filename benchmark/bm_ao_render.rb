@@ -252,7 +252,6 @@ class Scene
   end
 
   def render(w, h, nsubsamples)
-    cnt = 0
     nsf = nsubsamples.to_f
     h.times do |y|
       w.times do |x|
@@ -261,7 +260,6 @@ class Scene
         # Subsampling
         nsubsamples.times do |v|
           nsubsamples.times do |u|
-            cnt = cnt + 1
             wf = w.to_f
             hf = h.to_f
             xf = x.to_f
