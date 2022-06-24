@@ -243,8 +243,6 @@ class Scene
         @plane.intersect(ray, occisect)
         if occisect.hit
           occlusion = occlusion + 1.0
-        else
-          0.0
         end
       end
     end
@@ -288,8 +286,6 @@ class Scene
               rad.x = rad.x + col.x
               rad.y = rad.y + col.y
               rad.z = rad.z + col.z
-            else
-              0.0
             end
           end
         end
