@@ -27,6 +27,15 @@
 extern "C" {
 #endif
 void abort(void);
+#if defined(__cplusplus)
+}  /* extern "C" { */
+#endif
+#endif
+
+#if defined(__cplusplus)
+# if !defined(MRB_USE_CXX_ABI)
+extern "C" {
+# endif
 #endif
 
 #define STACK_INIT_SIZE 128
