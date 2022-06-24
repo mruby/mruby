@@ -27,8 +27,8 @@ class String
     end
     start = 0
     string = dup
-    self_len = length
-    sep_len = separator.length
+    self_len = self.bytesize
+    sep_len = separator.bytesize
 
     while (pointer = string.byteindex(separator, start))
       pointer += sep_len
