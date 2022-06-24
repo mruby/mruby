@@ -32,6 +32,12 @@ void abort(void);
 #endif
 #endif
 
+#if defined(MRB_USE_CXX_EXCEPTION) && defined(__cplusplus)
+# if !defined(MRB_USE_CXX_ABI)
+extern "C" {
+# endif
+#endif
+
 #define STACK_INIT_SIZE 128
 #define CALLINFO_INIT_SIZE 32
 
@@ -3082,7 +3088,4 @@ mrb_top_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, mrb_int st
 } /* end of extern "C" */
 # endif
 mrb_int mrb_jmpbuf::jmpbuf_id = 0;
-# if !defined(MRB_USE_CXX_ABI)
-extern "C" {
-# endif
 #endif
