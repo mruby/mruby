@@ -637,7 +637,7 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
 static mrb_int
 str_rindex(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
 {
-  const char *s, *sbeg, *t;
+  const char *s, *sbeg, *send, *t;
   struct RString *ps = mrb_str_ptr(str);
   mrb_int len = RSTRING_LEN(sub);
 
@@ -647,12 +647,13 @@ str_rindex(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
     pos = RSTR_LEN(ps) - len;
   }
   sbeg = RSTR_PTR(ps);
+  send = sbeg + RSTR_LEN(ps);
   s = RSTR_PTR(ps) + pos;
   t = RSTRING_PTR(sub);
   if (len) {
-    s = char_adjust(sbeg, sbeg + RSTR_LEN(ps), s);
+    s = char_adjust(sbeg, send, s);
     while (sbeg <= s) {
-      if (memcmp(s, t, len) == 0) {
+      if ((mrb_int)(send - s) >= len && memcmp(s, t, len) == 0) {
         return (mrb_int)(s - RSTR_PTR(ps));
       }
       s = char_backtrack(sbeg, s);
