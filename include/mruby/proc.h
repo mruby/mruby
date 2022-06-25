@@ -157,13 +157,11 @@ static inline void
 mrb_vm_ci_target_class_set(mrb_callinfo *ci, struct RClass *tc)
 {
   struct REnv *e = ci->u.env;
-  if (e) {
-    if (e->tt == MRB_TT_ENV) {
-      e->c = tc;
-    }
-    else {
-      ci->u.target_class = tc;
-    }
+  if (e && e->tt == MRB_TT_ENV) {
+    e->c = tc;
+  }
+  else {
+    ci->u.target_class = tc;
   }
 }
 
