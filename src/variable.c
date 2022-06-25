@@ -828,6 +828,7 @@ mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
   proc = proc->upper;
   while (proc) {
     c2 = MRB_PROC_TARGET_CLASS(proc);
+    if (!c2) c2 = mrb->object_class;
     if (c2 && iv_get(mrb, c2->iv, sym, &v)) {
       return v;
     }
