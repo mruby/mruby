@@ -260,6 +260,72 @@ top_proc(mrb_state *mrb, const struct RProc *proc)
   return proc;
 }
 
+void
+mrb_vm_ci_proc_set(mrb_callinfo *ci, const struct RProc *p)
+{
+  ci->proc = p;
+  ci->pc = (p && !MRB_PROC_CFUNC_P(p)) ? p->body.irep->iseq : NULL;
+}
+
+struct RClass *
+mrb_vm_ci_target_class(const mrb_callinfo *ci)
+{
+  if (ci->u.env && ci->u.env->tt == MRB_TT_ENV) {
+    return ci->u.env->c;
+  }
+  else {
+    return ci->u.target_class;
+  }
+}
+
+void
+mrb_vm_ci_target_class_set(mrb_callinfo *ci, struct RClass *tc)
+{
+  struct REnv *e = ci->u.env;
+  if (e && e->tt == MRB_TT_ENV) {
+    e->c = tc;
+  }
+  else {
+    ci->u.target_class = tc;
+  }
+}
+
+struct REnv *
+mrb_vm_ci_env(const mrb_callinfo *ci)
+{
+  if (ci->u.env && ci->u.env->tt == MRB_TT_ENV) {
+    return ci->u.env;
+  }
+  else {
+    return NULL;
+  }
+}
+
+void
+mrb_vm_ci_env_set(mrb_callinfo *ci, struct REnv *e)
+{
+  if (ci->u.env) {
+    if (ci->u.env->tt == MRB_TT_ENV) {
+      if (e) {
+        e->c = ci->u.env->c;
+        ci->u.env = e;
+      }
+      else {
+        ci->u.target_class = ci->u.env->c;
+      }
+    }
+    else {
+      if (e) {
+        e->c = ci->u.target_class;
+        ci->u.env = e;
+      }
+    }
+  }
+  else {
+    ci->u.env = e;
+  }
+}
+
 #define CINFO_NONE    0
 #define CINFO_SKIP    1
 #define CINFO_DIRECT  2
