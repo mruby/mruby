@@ -705,7 +705,7 @@ mrb_module_get_id(mrb_state *mrb, mrb_sym name)
   return mrb_module_get_under_id(mrb, mrb->object_class, name);
 }
 
-/*!
+/*
  * Defines a class under the namespace of \a outer.
  * \param outer  a class which contains the new class.
  * \param name     name of the new class
@@ -2132,7 +2132,7 @@ mrb_obj_classname(mrb_state *mrb, mrb_value obj)
   return mrb_class_name(mrb, mrb_obj_class(mrb, obj));
 }
 
-/*!
+/*
  * Ensures a class can be derived from super.
  *
  * \param super a reference to an object.
@@ -2152,7 +2152,7 @@ mrb_check_inheritable(mrb_state *mrb, struct RClass *super)
   }
 }
 
-/*!
+/*
  * Creates a new class.
  * \param super     a class from which the new class derives.
  * \exception TypeError \a super is not inheritable.
@@ -2175,7 +2175,7 @@ mrb_class_new(mrb_state *mrb, struct RClass *super)
   return c;
 }
 
-/*!
+/*
  * Creates a new module.
  */
 MRB_API struct RClass*
@@ -2235,7 +2235,7 @@ mrb_alias_method(mrb_state *mrb, struct RClass *c, mrb_sym a, mrb_sym b)
   mrb_define_method_raw(mrb, c, a, m);
 }
 
-/*!
+/*
  * Defines an alias of a method.
  * \param mrb    the mruby state
  * \param klass  the class which the original method belongs to
