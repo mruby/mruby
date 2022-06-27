@@ -39,7 +39,7 @@ Sometimes you might need to skip one or more hooks which can be done with the `S
 
 * [Quick start](https://pre-commit.com/#quick-start)
 * [Usage](https://pre-commit.com/#usage)
-* [pre-commit-autoupdate](https://pre-commit.com/#pre-commit-autoupdate)
+* [pre-commit autoupdate](https://pre-commit.com/#pre-commit-autoupdate)
 * [Temporarily disabling hooks](https://pre-commit.com/#temporarily-disabling-hooks)
 
 ## Spell Checking
