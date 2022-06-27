@@ -640,21 +640,22 @@ str_rindex(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
   const char *s, *sbeg, *send, *t;
   struct RString *ps = mrb_str_ptr(str);
   mrb_int len = RSTRING_LEN(sub);
+  mrb_int slen = RSTR_LEN(ps);
 
   /* substring longer than string */
-  if (RSTR_LEN(ps) < len) return -1;
-  if (RSTR_LEN(ps) - pos < len) {
-    pos = RSTR_LEN(ps) - len;
+  if (slen < len) return -1;
+  if (slen - pos < len) {
+    pos = slen - len;
   }
   sbeg = RSTR_PTR(ps);
-  send = sbeg + RSTR_LEN(ps);
-  s = RSTR_PTR(ps) + pos;
+  send = sbeg + slen;
+  s = sbeg + pos;
   t = RSTRING_PTR(sub);
   if (len) {
     s = char_adjust(sbeg, send, s);
     while (sbeg <= s) {
       if ((mrb_int)(send - s) >= len && memcmp(s, t, len) == 0) {
-        return (mrb_int)(s - RSTR_PTR(ps));
+        return (mrb_int)(s - sbeg);
       }
       s = char_backtrack(sbeg, s);
     }
