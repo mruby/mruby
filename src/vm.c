@@ -487,11 +487,9 @@ mrb_ci_kidx(const mrb_callinfo *ci)
   return (ci->n == CALL_MAXARGS) ? 2 : ci->n + 1;
 }
 
-static mrb_int
-mrb_bidx(uint16_t c)
+static inline mrb_int
+mrb_bidx(uint8_t n, uint8_t k)
 {
-  uint8_t n = c & 0xf;
-  uint8_t k = (c>>4) & 0xf;
   if (n == 15) n = 1;
   if (k == 15) n += 1;
   else n += k*2;
@@ -501,7 +499,7 @@ mrb_bidx(uint16_t c)
 mrb_int
 mrb_ci_bidx(mrb_callinfo *ci)
 {
-  return mrb_bidx(ci->n|(ci->nk<<4));
+  return mrb_bidx(ci->n, ci->nk);
 }
 
 mrb_int
@@ -1243,10 +1241,10 @@ hash_new_from_regs(mrb_state *mrb, mrb_int argc, mrb_int idx)
   return hash;
 }
 
-#define ARGUMENT_NORMALIZE(arg_base, arg_info, insn) do {       \
+#define ARGUMENT_NORMALIZE(arg_base, arg_info, insn) do { \
   int n = *(arg_info)&0xf; \
   int nk = (*(arg_info)>>4)&0xf; \
-  mrb_int bidx = (arg_base) + mrb_bidx(*(arg_info)); \
+  mrb_int bidx = (arg_base) + mrb_bidx(n,nk); \
   if (nk == CALL_MAXARGS) { \
     mrb_ensure_hash_type(mrb, regs[(arg_base)+(n==CALL_MAXARGS?1:n)+1]); \
   } \
@@ -1259,7 +1257,7 @@ hash_new_from_regs(mrb_state *mrb, mrb_int argc, mrb_int idx)
   } \
   \
   mrb_assert(bidx < irep->nregs+(arg_base)); \
-  mrb_int new_bidx = (arg_base)+mrb_bidx(*(arg_info)); \
+  mrb_int new_bidx = (arg_base)+mrb_bidx(n, nk); \
   if ((insn) == OP_SEND) { \
     /* clear block argument */ \
     SET_NIL_VALUE(regs[new_bidx]); \
