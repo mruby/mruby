@@ -789,10 +789,15 @@ mrb_str_plus(mrb_state *mrb, mrb_value a, mrb_value b)
   struct RString *s = mrb_str_ptr(a);
   struct RString *s2 = mrb_str_ptr(b);
   struct RString *t;
+  mrb_int slen = RSTR_LEN(s);
+  mrb_int s2len = RSTR_LEN(s2);
+  const char *p = RSTR_PTR(s);
+  const char *p2 = RSTR_PTR(s2);
 
-  t = str_new(mrb, 0, RSTR_LEN(s) + RSTR_LEN(s2));
-  memcpy(RSTR_PTR(t), RSTR_PTR(s), RSTR_LEN(s));
-  memcpy(RSTR_PTR(t) + RSTR_LEN(s), RSTR_PTR(s2), RSTR_LEN(s2));
+  t = str_new(mrb, 0, slen + s2len);
+  char *pt = RSTR_PTR(t);
+  memcpy(pt, p, slen);
+  memcpy(pt + slen, p2, s2len);
 
   return mrb_obj_value(t);
 }
@@ -894,16 +899,18 @@ mrb_str_times(mrb_state *mrb, mrb_value self)
 MRB_API int
 mrb_str_cmp(mrb_state *mrb, mrb_value str1, mrb_value str2)
 {
-  mrb_int len;
+  mrb_int len, len1, len2;
   mrb_int retval;
   struct RString *s1 = mrb_str_ptr(str1);
   struct RString *s2 = mrb_str_ptr(str2);
 
-  len = lesser(RSTR_LEN(s1), RSTR_LEN(s2));
+  len1 = RSTR_LEN(s1);
+  len2 = RSTR_LEN(s2);
+  len = lesser(len1, len2);
   retval = memcmp(RSTR_PTR(s1), RSTR_PTR(s2), len);
   if (retval == 0) {
-    if (RSTR_LEN(s1) == RSTR_LEN(s2)) return 0;
-    if (RSTR_LEN(s1) > RSTR_LEN(s2))  return 1;
+    if (len1 == len2) return 0;
+    if (len1 > len2)  return 1;
     return -1;
   }
   if (retval > 0) return 1;
@@ -1328,13 +1335,14 @@ mrb_str_aset_m(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_capitalize_bang(mrb_state *mrb, mrb_value str)
 {
-  char *p, *pend;
   mrb_bool modify = FALSE;
   struct RString *s = mrb_str_ptr(str);
+  mrb_int len = RSTR_LEN(s);
 
   mrb_str_modify_keep_ascii(mrb, s);
-  if (RSTR_LEN(s) == 0 || !RSTR_PTR(s)) return mrb_nil_value();
-  p = RSTR_PTR(s); pend = RSTR_PTR(s) + RSTR_LEN(s);
+  char *p = RSTR_PTR(s);
+  char *pend = RSTR_PTR(s) + len;
+  if (len == 0 || p == NULL) return mrb_nil_value();
   if (ISLOWER(*p)) {
     *p = TOUPPER(*p);
     modify = TRUE;
