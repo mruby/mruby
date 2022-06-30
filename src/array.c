@@ -25,7 +25,7 @@ ary_too_big(mrb_state *mrb)
   mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
 }
 
-static void
+static inline void
 ary_check_too_big(mrb_state *mrb, mrb_int a, mrb_int b)
 {
   if (a > ARY_MAX_SIZE - b || a < 0)
