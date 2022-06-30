@@ -112,10 +112,12 @@ MRB_API mrb_value
 mrb_assoc_new(mrb_state *mrb, mrb_value car, mrb_value cdr)
 {
   struct RArray *a;
+  mrb_value *p;
 
   a = ary_new_capa(mrb, 2);
-  ARY_PTR(a)[0] = car;
-  ARY_PTR(a)[1] = cdr;
+  p = ARY_PTR(a);
+  p[0] = car;
+  p[1] = cdr;
   ARY_SET_LEN(a, 2);
   return mrb_obj_value(a);
 }
