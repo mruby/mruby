@@ -12753,7 +12753,7 @@ parser_yylex(parser_state *p)
               return keyword_do_block;
             return keyword_do;
           }
-          if (state == EXPR_BEG || state == EXPR_VALUE)
+          if (state == EXPR_BEG || state == EXPR_VALUE || state == EXPR_CLASS)
             return kw->id[0];
           else {
             if (kw->id[0] != kw->id[1])
