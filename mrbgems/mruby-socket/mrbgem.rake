@@ -3,7 +3,6 @@ MRuby::Gem::Specification.new('mruby-socket') do |spec|
   spec.authors = ['Internet Initiative Japan', 'mruby developers']
   spec.summary = 'standard socket class'
 
-  spec.cc.include_paths << "#{build.root}/src"
   #spec.cc.defines << "HAVE_SA_LEN=0"
 
   # If Windows, use winsock
