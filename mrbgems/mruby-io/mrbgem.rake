@@ -3,8 +3,6 @@ MRuby::Gem::Specification.new('mruby-io') do |spec|
   spec.authors = ['Internet Initiative Japan Inc.', 'mruby developers']
   spec.summary = 'IO and File class'
 
-  spec.cc.include_paths << "#{build.root}/src"
-
   if spec.for_windows?
     spec.linker.libraries << "ws2_32"
   end
