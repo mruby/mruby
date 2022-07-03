@@ -1,10 +1,10 @@
 # Authors of mruby (mruby developers)
 
-## The List of Contributors sorted by number of commits (as of 2022-06-05 4a28e60)
+## The List of Contributors sorted by number of commits (as of 2022-07-03 ce89ab8)
 
-   8293 Yukihiro "Matz" Matsumoto (@matz)*
+   8344 Yukihiro "Matz" Matsumoto (@matz)*
     586 KOBAYASHI Shuji (@shuujii)
-    378 dearblue (@dearblue)*
+    384 dearblue (@dearblue)*
     376 Daniel Bovensiepen (@bovi)
     346 Takeshi Watanabe (@take-cheeze)*
     334 Masaki Muranaka (@monaka)
@@ -21,8 +21,8 @@
      73 Hiroshi Mimaki (@mimaki)*
      71 Tatsuhiko Kubo (@cubicdaiya)*
      67 Akira Yumiyama (@akiray03)*
+     64 John Bampton (@jbampton)
      62 Paolo Bosetti (@pbosetti)*
-     61 John Bampton (@jbampton)
      59 Kurebayashi, Takahiro (@crimsonwoods)*
      56 h2so5 (@h2so5)
      52 Ralph Desir (@Mav7)*
@@ -42,6 +42,7 @@
      22 Zachary Scott (@zzak)*
      22 mirichi (@mirichi)
      21 Jared Breeden (@jbreeden)*
+     20 Ryan Lopopolo (@lopopolo)
      20 Uchio Kondo (@udzura)*
      19 Bouke van der Bijl (@bouk)
      19 Felix Jones (@felixjones)*
@@ -50,7 +51,6 @@
      18 Corey Powell (@IceDragon200)
      18 Jon Maken (@jonforums)+
      18 Mitchell Blank Jr (@mitchblank)*
-     17 Ryan Lopopolo (@lopopolo)
      16 bggd (@bggd)
      16 kano4 (@kano4)
      14 Blaž Hrastnik (@archseer)*
@@ -143,6 +143,7 @@
       3 Shouji Kuboyama (@Shokuji)*
       3 Shuta Kimura (@kimushu)+
       3 TERAJIMA, Motoyuki (@trmmy)
+      3 Taichi AOKI (@aoki1980taichi)
       3 Takashi Kokubun (@k0kubun)
       3 Tatsuhiro Tsujikawa (@tatsuhiro-t)
       3 Thiago Scalone (@scalone)
@@ -259,6 +260,7 @@
       1 Sayed Abdelhaleem (@visualsayed)
       1 Shugo Maeda (@shugo)
       1 Sorah Fukumori (@sorah)
+      1 Stephen Jothen (@sjothen)
       1 Stuart Hinson (@stuarth)
       1 Takuma Kume (@takumakume)+
       1 Thomas Schmidt (@digitaltom)
