@@ -551,8 +551,10 @@ mrb_define_class(mrb_state *mrb, const char *name, struct RClass *super)
 static mrb_value mrb_do_nothing(mrb_state *mrb, mrb_value);
 #ifndef MRB_NO_METHOD_CACHE
 static void mc_clear(mrb_state *mrb);
+static void mc_clear_by_id(mrb_state *mrb, mrb_sym mid);
 #else
 #define mc_clear(mrb)
+#define mc_clear_by_id(mrb,mid)
 #endif
 
 static void
@@ -774,7 +776,7 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
     ptr.func = MRB_METHOD_FUNC(m);
   }
   mt_put(mrb, h, mid, MT_FLAGS(MRB_METHOD_FUNC_P(m), MRB_METHOD_NOARG_P(m)), ptr);
-  mc_clear(mrb);
+  mc_clear_by_id(mrb, mid);
 }
 
 MRB_API void
@@ -1716,6 +1718,7 @@ mrb_define_module_function(mrb_state *mrb, struct RClass *c, const char *name, m
 }
 
 #ifndef MRB_NO_METHOD_CACHE
+/* clear whole method cache table */
 static void
 mc_clear(mrb_state *mrb)
 {
@@ -1734,6 +1737,16 @@ mrb_mc_clear_by_class(mrb_state *mrb, struct RClass *c)
 
   for (int i=0; i<MRB_METHOD_CACHE_SIZE; mc++,i++) {
     if (mc->c == c || mc->c0 == c) mc->c = 0;
+  }
+}
+
+static void
+mc_clear_by_id(mrb_state *mrb, mrb_sym id)
+{
+  struct mrb_cache_entry *mc = mrb->cache;
+
+  for (int i=0; i<MRB_METHOD_CACHE_SIZE; mc++,i++) {
+    if (mc->mid == id) mc->c = 0;
   }
 }
 #endif
@@ -2335,7 +2348,7 @@ mrb_remove_method(mrb_state *mrb, struct RClass *c, mrb_sym mid)
   h = c->mt;
 
   if (h && mt_del(mrb, h, mid)) {
-    mrb_mc_clear_by_class(mrb, c);
+    mc_clear_by_id(mrb, mid);
     return;
   }
   mrb_name_error(mrb, mid, "method '%n' not defined in %C", mid, c);
