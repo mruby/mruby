@@ -1726,18 +1726,14 @@ mc_clear(mrb_state *mrb)
   }
 }
 
+/* clear method cache for a class */
 void
 mrb_mc_clear_by_class(mrb_state *mrb, struct RClass *c)
 {
   struct mrb_cache_entry *mc = mrb->cache;
-  int i;
 
-  if (c->flags & MRB_FL_CLASS_IS_INHERITED) {
-    mc_clear(mrb);
-    return;
-  }
-  for (i=0; i<MRB_METHOD_CACHE_SIZE; i++) {
-    if (mc[i].c == c) mc[i].c = 0;
+  for (int i=0; i<MRB_METHOD_CACHE_SIZE; mc++,i++) {
+    if (mc->c == c || mc->c0 == c) mc->c = 0;
   }
 }
 #endif
