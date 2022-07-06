@@ -482,6 +482,7 @@ mrb_funcall_id(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc, ...)
 static mrb_int
 mrb_ci_kidx(const mrb_callinfo *ci)
 {
+  if (ci->nk == 0) return -1;
   return (ci->n == CALL_MAXARGS) ? 2 : ci->n + 1;
 }
 
