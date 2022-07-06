@@ -2019,6 +2019,7 @@ RETRY_TRY_BLOCK:
         argv = ARY_PTR(ary);
         argc = (int)ARY_LEN(ary);
         mrb_gc_protect(mrb, regs[1]);
+        if (!mrb_nil_p(kdict)) mrb_gc_protect(mrb, kdict);
       }
 
       /* strict argument check */
