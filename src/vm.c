@@ -1983,37 +1983,33 @@ RETRY_TRY_BLOCK:
       mrb_int argc = ci->n;
       mrb_value *argv = regs+1;
       mrb_value * const argv0 = argv;
-      mrb_int const kw_pos = len + kd;    /* where kwhash should be */
-      mrb_int const blk_pos = kw_pos + 1; /* where block should be */
       mrb_value blk = regs[mrb_ci_bidx(ci)];
       mrb_value kdict = mrb_nil_value();
 
       /* keyword arguments */
-      if (ci->nk > 0) {
-        mrb_int kidx = mrb_ci_kidx(ci);
-        kdict = regs[kidx];
-        if (!mrb_hash_p(kdict) || mrb_hash_size(mrb, kdict) == 0) {
-          kdict = mrb_nil_value();
-          ci->nk = 0;
-        }
+      if (ci->nk == 15) {
+        kdict = regs[mrb_ci_kidx(ci)];
       }
-      if (!kd && !mrb_nil_p(kdict)) {
-        if (argc < 14) {
-          ci->n++;
-          argc++;    /* include kdict in normal arguments */
+      if (!kd) {
+        if (!mrb_nil_p(kdict) && mrb_hash_size(mrb, kdict) > 0) {
+          if (argc < 14) {
+            ci->n++;
+            argc++;    /* include kdict in normal arguments */
+          }
+          else if (argc == 14) {
+            /* pack arguments and kdict */
+            regs[1] = ary_new_from_regs(mrb, argc+1, 1);
+            argc = ci->n = 15;
+          }
+          else {/* argc == 15 */
+            /* push kdict to packed arguments */
+            mrb_ary_push(mrb, regs[1], kdict);
+          }
         }
-        else if (argc == 14) {
-          /* pack arguments and kdict */
-          regs[1] = ary_new_from_regs(mrb, argc+1, 1);
-          argc = ci->n = 15;
-        }
-        else {/* argc == 15 */
-          /* push kdict to packed arguments */
-          mrb_ary_push(mrb, regs[1], regs[2]);
-        }
+        kdict = mrb_nil_value();
         ci->nk = 0;
       }
-      if (kd && MRB_ASPEC_KEY(a) > 0 && mrb_hash_p(kdict)) {
+      else if (MRB_ASPEC_KEY(a) > 0 && !mrb_nil_p(kdict)) {
         kdict = mrb_hash_dup(mrb, kdict);
       }
 
@@ -2087,6 +2083,8 @@ RETRY_TRY_BLOCK:
       }
 
       /* need to be update blk first to protect blk from GC */
+      mrb_int const kw_pos = len + kd;    /* where kwhash should be */
+      mrb_int const blk_pos = kw_pos + 1; /* where block should be */
       regs[blk_pos] = blk;              /* move block */
       if (kd) {
         if (mrb_nil_p(kdict))
