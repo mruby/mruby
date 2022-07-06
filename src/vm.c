@@ -2090,6 +2090,7 @@ RETRY_TRY_BLOCK:
         if (mrb_nil_p(kdict))
           kdict = mrb_hash_new_capa(mrb, 0);
         regs[kw_pos] = kdict;           /* set kwhash */
+        ci->nk = 15;
       }
 
       /* format arguments for generated code */
