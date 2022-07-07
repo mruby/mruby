@@ -7,4 +7,8 @@ MRuby::GemBox.new do |conf|
   # Use Rational/Complex numbers
   conf.gem :core => "mruby-rational"
   conf.gem :core => "mruby-complex"
+  # Use Complex math functions in CMath module
+  conf.gem :core => "mruby-cmath"
+  # Use Multi-precision Integer
+  conf.gem :core => "mruby-bigint"
 end
