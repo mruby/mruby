@@ -1801,7 +1801,7 @@ static mrb_int
 cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
 {
 #ifdef MRB_USE_BIGINT
-  if (mrb_bigint_p(v2)) {
+  if (mrb_bigint_p(v1)) {
     return mrb_bint_cmp(mrb, v1, v2);
   }
 #endif
