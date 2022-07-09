@@ -17,8 +17,8 @@ static void
 mpz_init(mrb_state *mrb, mpz_t *s)
 {
   s->p = (mp_limb*)mrb_malloc(mrb, sizeof(mp_limb)*2);
-  (s->p)[0] = 0;
-  (s->p)[1] = 0;
+  s->p[0] = 0;
+  s->p[1] = 0;
   s->sn=0;
   s->sz=2;
 }
@@ -390,7 +390,7 @@ ulshift(mrb_state *mrb, mpz_t *c1, mpz_t *a, size_t n)
     mpz_init(mrb,&c); mpz_realloc(mrb,&c,(size_t)(a->sz + 1));
     for (i=0; i<a->sz; i++) {
       c.p[i] = (((mp_ulimb)a->p[i] << n) | cc) & LMAX;
-      cc = (a->p[i] & rm) >> (DIGITBITS -n);
+      cc = (a->p[i] & rm) >> (DIGITBITS-n);
     }
     c.p[i] = cc;
     mpz_set(mrb,c1,&c);
@@ -466,7 +466,6 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
             f=0;
             break;
           }
-          if (i == 0) break;
         }
       }
       if (!f)
@@ -498,7 +497,6 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
       q.p[j/2] |= qhat << HALFDIGITBITS;
     else
       q.p[j/2] |= qhat;
-    if (j == 0) break;
   }
   mpz_realloc(mrb,&r,(size_t)(yy->sz));
   zero(&r);
