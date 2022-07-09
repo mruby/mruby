@@ -79,8 +79,8 @@ mrb_int mrb_div_int(mrb_int x, mrb_int y);
 mrb_value mrb_int_add(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_int_sub(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_int_mul(mrb_state *mrb, mrb_value x, mrb_value y);
-void mrb_int_zerodiv(mrb_state *mrb);
-void mrb_int_overflow(mrb_state *mrb, const char *reason);
+mrb_noreturn void mrb_int_zerodiv(mrb_state *mrb);
+mrb_noreturn void mrb_int_overflow(mrb_state *mrb, const char *reason);
 
 #ifdef MRB_USE_COMPLEX
 mrb_value mrb_complex_new(mrb_state *mrb, mrb_float x, mrb_float y);

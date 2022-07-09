@@ -21,13 +21,13 @@
 #endif
 #endif
 
-void
+mrb_noreturn void
 mrb_int_overflow(mrb_state *mrb, const char *reason)
 {
   mrb_raisef(mrb, E_RANGE_ERROR, "integer overflow in %s", reason);
 }
 
-void
+mrb_noreturn void
 mrb_int_zerodiv(mrb_state *mrb)
 {
   mrb_raise(mrb, E_ZERODIV_ERROR, "divided by 0");
