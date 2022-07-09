@@ -33,6 +33,12 @@ mrb_int_zerodiv(mrb_state *mrb)
   mrb_raise(mrb, E_ZERODIV_ERROR, "divided by 0");
 }
 
+static mrb_noreturn void
+mrb_int_noconv(mrb_state *mrb, mrb_value y)
+{
+  mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %Y into Integer", y);
+}
+
 /*
  * call-seq:
  *
@@ -174,12 +180,12 @@ int_div(mrb_state *mrb, mrb_value x)
     x = mrb_complex_new(mrb, (mrb_float)a, 0);
     return mrb_complex_div(mrb, x, y);
 #endif
-  default:
-#ifdef MRB_NO_FLOAT
-    mrb_raise(mrb, E_TYPE_ERROR, "non integer division");
-#else
+#ifndef MRB_NO_FLOAT
+  case MRB_TT_FLOAT:
     return mrb_float_value(mrb, mrb_div_float((mrb_float)a, mrb_as_float(mrb, y)));
 #endif
+  default:
+    mrb_int_noconv(mrb, y);
   }
 }
 
@@ -242,10 +248,11 @@ int_quo(mrb_state *mrb, mrb_value x)
     x = mrb_rational_new(mrb, a, 1);
     return mrb_rational_div(mrb, x, y);
   default:
-#ifdef MRB_NO_FLOAT
-    mrb_raise(mrb, E_TYPE_ERROR, "non integer division");
-#else
+#ifndef MRB_NO_FLOAT
     return mrb_float_value(mrb, mrb_div_float((mrb_float)a, mrb_as_float(mrb, y)));
+#else
+    mrb_int_noconv(mrb, y);
+    break;
 #endif
   }
 #endif
@@ -1133,7 +1140,7 @@ mrb_int_mul(mrb_state *mrb, mrb_value x, mrb_value y)
     return mrb_float_value(mrb, (mrb_float)a * mrb_as_float(mrb, y));
 #endif
   default:
-    mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %Y into Integer", y);
+    mrb_int_noconv(mrb, y);
   }
 }
 
