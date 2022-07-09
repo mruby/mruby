@@ -66,7 +66,8 @@ mpz_init_set_int(mrb_state *mrb, mpz_t *y, mrb_int v)
   y->p = (mp_limb*)mrb_malloc(mrb, sizeof(mp_limb)*2);
   if (v < 0) {
     y->sn = -1;
-    u = -v;
+    if (v == MRB_INT_MIN) u = v;
+    else u = -v;
   }
   else if (v > 0) {
     y->sn = 1;
