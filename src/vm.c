@@ -2553,8 +2553,7 @@ RETRY_TRY_BLOCK:
         {
           mrb_int x = mrb_integer(regs[a]);
           mrb_int y = mrb_integer(regs[a+1]);
-          mrb_int div = mrb_div_int(mrb, x, y);
-          SET_INT_VALUE(mrb, regs[a], div);
+          regs[a] = mrb_div_int_value(mrb, x, y);
         }
         NEXT;
 #ifndef MRB_NO_FLOAT

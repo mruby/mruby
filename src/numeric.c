@@ -107,7 +107,18 @@ mrb_int_pow(mrb_state *mrb, mrb_value x)
 #define int_pow mrb_int_pow
 
 mrb_int
-mrb_div_int(mrb_state *mrb, mrb_int x, mrb_int y)
+mrb_div_int(mrb_int x, mrb_int y)
+{
+  mrb_int div = x / y;
+
+  if ((x ^ y) < 0 && x != div * y) {
+    div -= 1;
+  }
+  return div;
+}
+
+mrb_value
+mrb_div_int_value(mrb_state *mrb, mrb_int x, mrb_int y)
 {
   if (y == 0) {
     mrb_int_zerodiv(mrb);
@@ -115,16 +126,7 @@ mrb_div_int(mrb_state *mrb, mrb_int x, mrb_int y)
   else if(x == MRB_INT_MIN && y == -1) {
     mrb_int_overflow(mrb, "division");
   }
-  else {
-    mrb_int div = x / y;
-
-    if ((x ^ y) < 0 && x != div * y) {
-      div -= 1;
-    }
-    return div;
-  }
-  /* not reached */
-  return 0;
+  return mrb_int_value(mrb, mrb_div_int(x, y));
 }
 
 /* 15.2.8.3.4  */
@@ -156,8 +158,7 @@ int_div(mrb_state *mrb, mrb_value x)
       return mrb_bint_mul_ii(mrb, a, b);
     }
 #endif
-    mrb_int div = mrb_div_int(mrb, a, b);
-    return mrb_int_value(mrb, div);
+    return mrb_div_int_value(mrb, a, b);
   }
   switch (mrb_type(y)) {
 #ifdef MRB_USE_BIGINT
@@ -207,7 +208,7 @@ int_idiv(mrb_state *mrb, mrb_value x)
   mrb_int y;
 
   mrb_get_args(mrb, "i", &y);
-  return mrb_int_value(mrb, mrb_div_int(mrb, mrb_integer(x), y));
+  return mrb_div_int_value(mrb, mrb_integer(x), y);
 }
 
 static mrb_value
@@ -288,11 +289,10 @@ flo_pow(mrb_state *mrb, mrb_value x)
 static mrb_value
 flo_idiv(mrb_state *mrb, mrb_value xv)
 {
-  mrb_int y, div;
+  mrb_int y;
 
   mrb_get_args(mrb, "i", &y);
-  div = mrb_div_int(mrb, (mrb_int)mrb_float(xv), y);
-  return mrb_int_value(mrb, (mrb_int)div);
+  return mrb_div_int_value(mrb, (mrb_int)mrb_float(xv), y);
 }
 
 mrb_float

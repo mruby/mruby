@@ -74,7 +74,8 @@ mrb_irep_catch_handler_table(const struct mrb_irep *irep)
 #endif
 
 /* numeric */
-mrb_int mrb_div_int(mrb_state *mrb, mrb_int x, mrb_int y);
+mrb_value mrb_div_int_value(mrb_state *mrb, mrb_int x, mrb_int y);
+mrb_int mrb_div_int(mrb_int x, mrb_int y);
 mrb_value mrb_int_add(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_int_sub(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_int_mul(mrb_state *mrb, mrb_value x, mrb_value y);
