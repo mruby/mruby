@@ -148,6 +148,7 @@ int_div(mrb_state *mrb, mrb_value x)
 #endif
   mrb_int a = mrb_integer(x);
 
+  if (a == 0) return mrb_fixnum_value(0);
   if (mrb_integer_p(y)) {
     mrb_int b = mrb_integer(y);
 #ifdef MRB_USE_BIGINT
@@ -1094,7 +1095,10 @@ mrb_int_mul(mrb_state *mrb, mrb_value x, mrb_value y)
     mrb_int b, c;
 
     if (a == 0) return x;
+    if (a == 1) return y;
     b = mrb_integer(y);
+    if (b == 0) return y;
+    if (b == 1) return x;
     if (mrb_int_mul_overflow(a, b, &c)) {
 #ifdef MRB_USE_BIGINT
       x = mrb_bint_new_int(mrb, a);
@@ -1108,14 +1112,20 @@ mrb_int_mul(mrb_state *mrb, mrb_value x, mrb_value y)
   switch (mrb_type(y)) {
 #ifdef MRB_USE_BIGINT
   case MRB_TT_BIGINT:
+    if (a == 0) return x;
+    if (a == 1) return y;
     return mrb_bint_mul(mrb, y, x);
 #endif
 #ifdef MRB_USE_RATIONAL
   case MRB_TT_RATIONAL:
+    if (a == 0) return x;
+    if (a == 1) return y;
     return mrb_rational_mul(mrb, y, x);
 #endif
 #ifdef MRB_USE_COMPLEX
   case MRB_TT_COMPLEX:
+    if (a == 0) return x;
+    if (a == 1) return y;
     return mrb_complex_mul(mrb, y, x);
 #endif
   default:
@@ -1193,6 +1203,7 @@ int_mod(mrb_state *mrb, mrb_value x)
   }
 #endif
   a = mrb_integer(x);
+  if (a == 0) return x;
   if (mrb_integer_p(y)) {
     b = mrb_integer(y);
     if (b == 0) mrb_int_zerodiv(mrb);
@@ -1593,6 +1604,7 @@ mrb_int_add(mrb_state *mrb, mrb_value x, mrb_value y)
 
     if (a == 0) return y;
     b = mrb_integer(y);
+    if (b == 0) return x;
     if (mrb_int_add_overflow(a, b, &c)) {
 #ifdef MRB_USE_BIGINT
       x = mrb_bint_new_int(mrb, a);
