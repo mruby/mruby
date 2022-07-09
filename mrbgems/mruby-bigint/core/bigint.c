@@ -116,16 +116,8 @@ static void
 mpz_set(mrb_state *mrb, mpz_t *y, mpz_t *x)
 {
   size_t i,k = x->sz;
-  if (y->sz < k) {
-    k=digits(x);
-    mpz_realloc(mrb, y, (size_t)k);
-  }
-  if (y->sz > x->sz) {
-    mpz_clear(mrb, y);
-    mpz_init(mrb, y);
-    mpz_realloc(mrb, y, (size_t)(x->sz));
-  }
 
+  mpz_realloc(mrb, y, (size_t)k);
   for (i=0;i < k; i++)
     (y->p)[i] = (x->p)[i];
 
