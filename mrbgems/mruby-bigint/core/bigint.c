@@ -294,6 +294,10 @@ mpz_mul(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
   mp_limb cc;
   mpz_t w;
 
+  if (uzero(u) || uzero(v)) {
+    mpz_set_int(mrb, ww, 0);
+    return;
+  }
   mpz_init(mrb, &w);
   mpz_realloc(mrb, &w, (size_t)(u->sz + v->sz));
   for (j=0; j < 2*u->sz; j++) {
@@ -517,6 +521,10 @@ mpz_mdiv(mrb_state *mrb, mpz_t *q, mpz_t *x, mpz_t *y)
 {
   mpz_t r;
   short sn1 = x->sn, sn2 = y->sn, qsign;
+  if (uzero(x)) {
+    mpz_init_set_int(mrb, q, 0);
+    return;
+  }
   mpz_init(mrb,&r);
   udiv(mrb,q,&r,x,y);
   qsign = q->sn = sn1*sn2;
