@@ -1128,12 +1128,12 @@ mrb_int_mul(mrb_state *mrb, mrb_value x, mrb_value y)
     if (a == 1) return y;
     return mrb_complex_mul(mrb, y, x);
 #endif
-  default:
-#ifdef MRB_NO_FLOAT
-    mrb_raise(mrb, E_TYPE_ERROR, "non integer multiplication");
-#else
+#ifndef MRB_NO_FLOAT
+  case MRB_TT_FLOAT:
     return mrb_float_value(mrb, (mrb_float)a * mrb_as_float(mrb, y));
 #endif
+  default:
+    mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %Y into Integer", y);
   }
 }
 
