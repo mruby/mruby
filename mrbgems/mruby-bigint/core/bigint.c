@@ -39,23 +39,25 @@ mpz_init_set(mrb_state *mrb, mpz_t *s, mpz_t *t)
 static void
 mpz_set_int(mrb_state *mrb, mpz_t *y, mrb_int v)
 {
+  mp_limb u;
+
   for (size_t i=1; i<y->sz; i++)
     y->p[i] = 0;
-  if (v < 0) {
-    y->sn = -1;
-    y->p[0] = (-v) & LMAX;
-    y->p[1] = ((-v) & LC) >> DIGITBITS;
+  if (v == 0) {
+    y->sn=0;
+    u = 0;
   }
   else if (v > 0) {
     y->sn = 1;
-    y->p[0] = v & LMAX;
-    y->p[1] = (v & LC) >> DIGITBITS;
+    u = v;
   }
-  else {
-    y->sn=0;
-    y->p[0] = 0;
-    y->p[1] = 0;
+  if (v < 0) {
+    y->sn = -1;
+    if (v == MRB_INT_MIN) u = v;
+    else u = -v;
   }
+  y->p[0] = u & LMAX;
+  y->p[1] = (u & LC) >> DIGITBITS;
 }
 
 static void
@@ -64,22 +66,8 @@ mpz_init_set_int(mrb_state *mrb, mpz_t *y, mrb_int v)
   mp_limb u;
 
   y->p = (mp_limb*)mrb_malloc(mrb, sizeof(mp_limb)*2);
-  if (v < 0) {
-    y->sn = -1;
-    if (v == MRB_INT_MIN) u = v;
-    else u = -v;
-  }
-  else if (v > 0) {
-    y->sn = 1;
-    u = v;
-  }
-  else {
-    y->sn=0;
-    u = 0;
-  }
-  y->p[0] = u & LMAX;
-  y->p[1] = (u & LC) >> DIGITBITS;
-  y -> sz = 2;
+  y->sz = 2;
+  mpz_set_int(mrb, y, v);
 }
 
 static void
