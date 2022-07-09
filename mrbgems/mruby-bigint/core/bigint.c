@@ -411,7 +411,7 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
 {
   mpz_t q, x, y, r;
   int ns,f,ccc=0;
-  size_t xd,yd,i,j;
+  int xd,yd,i,j;
   mp_limb zz,z,qhat,b,u,m;
 
   if (uzero(yy))
@@ -426,7 +426,7 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
   mpz_realloc(mrb,&q,(size_t)xd);
   xd*=2; yd*=2;
   z = hd(&y,yd-1);
-  for (j=(xd-yd);;j--) {
+  for (j=(xd-yd);j>=0;j--) {
     if (z == LMAX)
       qhat = hd(&x,j+yd);
     else {
@@ -464,7 +464,7 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
     for (;;zz++) {
       f=1;
       if (!hd(&x,j+yd)) {
-        for (i=yd-1; ; i--) {
+        for (i=yd-1; i>=0; i--) {
           if (hd(&x,j+i) > hd(&y,i)) {
             f=1;
             break;
@@ -643,7 +643,7 @@ mpz_sizeinbase(mpz_t *x, int base)
 static int
 mpz_init_set_str(mrb_state *mrb, mpz_t *x, const char *s, mrb_int len, mrb_int base)
 {
-  size_t i;
+  int i;
   int retval = 0;
   mpz_t t,m,bb;
   short sn;
@@ -661,7 +661,7 @@ mpz_init_set_str(mrb_state *mrb, mpz_t *x, const char *s, mrb_int len, mrb_int b
   else
     sn = 1;
   mpz_init_set_int(mrb,&bb, base);
-  for (i = len-1;; i--) {
+  for (i = len-1; i>=0; i--) {
     if (s[i]=='_') continue;
     if (s[i] >= '0' && s[i] <= '9')
       k = (unsigned int)s[i] - (unsigned int)'0';
