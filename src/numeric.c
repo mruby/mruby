@@ -130,7 +130,11 @@ mrb_div_int_value(mrb_state *mrb, mrb_int x, mrb_int y)
     mrb_int_zerodiv(mrb);
   }
   else if(x == MRB_INT_MIN && y == -1) {
+#ifdef MRB_USE_BIGINT
+    return mrb_bint_mul_ii(mrb, x, y);
+#else
     mrb_int_overflow(mrb, "division");
+#endif
   }
   return mrb_int_value(mrb, mrb_div_int(x, y));
 }
@@ -158,13 +162,7 @@ int_div(mrb_state *mrb, mrb_value x)
 
   if (a == 0) return mrb_fixnum_value(0);
   if (mrb_integer_p(y)) {
-    mrb_int b = mrb_integer(y);
-#ifdef MRB_USE_BIGINT
-    if(a == MRB_INT_MIN && b == -1) {
-      return mrb_bint_mul_ii(mrb, a, b);
-    }
-#endif
-    return mrb_div_int_value(mrb, a, b);
+    return mrb_div_int_value(mrb, a, mrb_integer(y));
   }
   switch (mrb_type(y)) {
 #ifdef MRB_USE_BIGINT
