@@ -329,11 +329,19 @@ mpz_mul_int(mrb_state *mrb, mpz_t *x, mpz_t *y, mrb_int n)
 
 /* number of leading zero bits in digit */
 static int
-lzb(mp_limb a)
+lzb(mp_limb x)
 {
+#if (defined(__GNUC__) || __has_builtin(__builtin_clz))
+  /* subtract 2 because DIGITBITS = LONGBITS-2 */
+  if (sizeof(mp_limb) == sizeof(long long))
+    return __builtin_clzll(x)-2;
+  else if (sizeof(mp_limb) == sizeof(int))
+    return __builtin_clz(x)-2;
+#endif
+
   mp_limb i; int j=0;
 
-  for (i = ((mp_limb)1 << (DIGITBITS-1)); i && !(a&i) ; j++,i>>=1)
+  for (i = ((mp_limb)1 << (DIGITBITS-1)); i && !(x&i) ; j++,i>>=1)
     ;
   return j;
 }
