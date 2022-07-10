@@ -63,8 +63,6 @@ mpz_set_int(mrb_state *mrb, mpz_t *y, mrb_int v)
 static void
 mpz_init_set_int(mrb_state *mrb, mpz_t *y, mrb_int v)
 {
-  mp_limb u;
-
   y->p = (mp_limb*)mrb_malloc(mrb, sizeof(mp_limb)*2);
   y->sz = 2;
   mpz_set_int(mrb, y, v);
