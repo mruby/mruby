@@ -27,6 +27,21 @@ static const struct {
 #undef itsnotdefined
 };
 
+static const struct {
+#ifdef MRB_NO_PRESYM
+#define itsnotdefined(name, sym)   { #name },
+  const char *name;
+#else
+#define itsnotdefined(name, sym)   { sym },
+  mrb_sym sym;
+#endif
+} noe2c[] = {
+#define itsdefined(name, sym)
+#include "known_errors_def.cstub"
+#undef itsdefined
+#undef itsnotdefined
+};
+
 #ifdef MRB_NO_PRESYM
 #define ENTRY_SYM(e)    mrb_intern_static(mrb, (e).name, strlen((e).name))
 #else
@@ -34,22 +49,162 @@ static const struct {
 #endif
 
 #define E2C_LEN         (sizeof(e2c) / sizeof(e2c[0]))
+#define NOE2C_LEN       (sizeof(noe2c) / sizeof(noe2c[0]))
+
+static mrb_value mrb_exxx_init(mrb_state *mrb, mrb_value self);
+
+static struct RClass*
+mrb_errno_define_exxx(mrb_state *mrb, mrb_sym name, int eno)
+{
+  struct RClass *errno_module = mrb_module_get_id(mrb, MRB_SYM(Errno));
+
+  if (mrb_const_defined_at(mrb, mrb_obj_value(errno_module), name)) {
+    mrb_value v = mrb_const_get(mrb, mrb_obj_value(errno_module), name);
+
+    if (mrb_class_p(v)) {
+      return mrb_class_ptr(v);
+    }
+  }
+
+  struct RClass *sce_class = mrb_class_get_id(mrb, MRB_SYM(SystemCallError));
+  struct RClass *e = mrb_define_class_under_id(mrb, errno_module, name, sce_class);
+  mrb_define_const_id(mrb, e, MRB_SYM(Errno), mrb_fixnum_value(eno));
+
+  return e;
+}
+
+#ifndef MRB_NO_PRESYM
+typedef mrb_sym sym_ref;
+#define sym_ref_init(mrb, id) (id)
+#define errno_name_matched_p(errentry, ref) ((errentry).sym == *(ref))
+
+#else
+typedef struct {
+  const char *name;
+  size_t len;
+} sym_ref;
+
+static sym_ref
+sym_ref_init(mrb_state *mrb, mrb_sym id)
+{
+  mrb_int len = 0;
+  const char *name = mrb_sym_name_len(mrb, id, &len);
+  sym_ref ename = { name, (size_t)len };
+  return ename;
+}
+
+#define errno_name_matched_p(errentry, ref) errno_name_matched_p_0((errentry).name, (ref))
+static mrb_bool
+errno_name_matched_p_0(const char *name, const sym_ref *ref)
+{
+  if (ref->len == strlen(name) && memcmp(ref->name, name, ref->len) == 0) {
+    return TRUE;
+  }
+  else {
+    return FALSE;
+  }
+}
+#endif // MRB_NO_PRESYM
+
+static mrb_bool
+ary_included_in_head(mrb_state *mrb, mrb_value ary, mrb_value obj, mrb_ssize head)
+{
+  const mrb_value *p = RARRAY_PTR(ary);
+
+  for (; head > 0; head--, p++) {
+    if (mrb_obj_eq(mrb, obj, *p)) {
+      return TRUE;
+    }
+  }
+
+  return FALSE;
+}
+
+static mrb_value
+mrb_errno_defined_p(mrb_state *mrb, mrb_value self)
+{
+  mrb_sym name;
+  mrb_get_args(mrb, "n", &name);
+  const sym_ref ref = sym_ref_init(mrb, name);
+
+  for (size_t i = 0; i < E2C_LEN; i++) {
+    if (errno_name_matched_p(e2c[i], &ref)) {
+      return mrb_true_value();
+    }
+  }
+
+  for (size_t i = 0; i < NOE2C_LEN; i++) {
+    if (errno_name_matched_p(noe2c[i], &ref)) {
+      return mrb_true_value();
+    }
+  }
+
+  return mrb_false_value();
+}
+
+static mrb_value
+mrb_errno_define(mrb_state *mrb, mrb_value self)
+{
+  mrb_sym name;
+  mrb_get_args(mrb, "n", &name);
+  const sym_ref ref = sym_ref_init(mrb, name);
+
+  for (size_t i = 0; i < E2C_LEN; i++) {
+    if (errno_name_matched_p(e2c[i], &ref)) {
+      return mrb_obj_value(mrb_errno_define_exxx(mrb, name, e2c[i].eno));
+    }
+  }
+
+  for (size_t i = 0; i < NOE2C_LEN; i++) {
+    if (errno_name_matched_p(noe2c[i], &ref)) {
+      struct RClass *errno_module = mrb_module_get_id(mrb, MRB_SYM(Errno));
+      return mrb_obj_value(mrb_class_get_under_id(mrb, errno_module, MRB_SYM(NOERROR)));
+    }
+  }
+
+  return mrb_nil_value();
+}
+
+static mrb_value
+mrb_errno_list(mrb_state *mrb, mrb_value self)
+{
+  mrb_value list;
+  mrb_get_args(mrb, "A", &list);
+
+  mrb_ensure_array_type(mrb, list);
+  mrb_ary_modify(mrb, mrb_ary_ptr(list));
+  mrb_ssize head = RARRAY_LEN(list);
+
+  for (size_t i = 0; i < E2C_LEN; i++) {
+    mrb_value id = mrb_symbol_value(ENTRY_SYM(e2c[i]));
+    if (!ary_included_in_head(mrb, list, id, head)) {
+      mrb_ary_push(mrb, list, id);
+    }
+  }
+
+  for (size_t i = 0; i < NOE2C_LEN; i++) {
+    mrb_value id = mrb_symbol_value(ENTRY_SYM(noe2c[i]));
+    if (!ary_included_in_head(mrb, list, id, head)) {
+      mrb_ary_push(mrb, list, id);
+    }
+  }
+
+  return list;
+}
 
 static void
 mrb_sce_init(mrb_state *mrb, mrb_value self, mrb_value m, int n)
 {
   mrb_value str;
-  struct RClass *m_errno;
   int no_errno = (n < 0);
   char buf[20];
 
-  m_errno = mrb_module_get_id(mrb, MRB_SYM(Errno));
   if (!no_errno) {
     size_t i;
 
     for (i=0; i < E2C_LEN; i++) {
       if (e2c[i].eno == n) {
-        mrb_basic_ptr(self)->c = mrb_class_get_under_id(mrb, m_errno, ENTRY_SYM(e2c[i]));
+        mrb_basic_ptr(self)->c = mrb_errno_define_exxx(mrb, ENTRY_SYM(e2c[i]), e2c[i].eno);
         str = mrb_str_new_cstr(mrb, strerror(n));
         break;
       }
@@ -74,6 +229,10 @@ mrb_sce_init(mrb_state *mrb, mrb_value self, mrb_value m, int n)
 static mrb_value
 mrb_sce_init_m(mrb_state *mrb, mrb_value self)
 {
+  if (mrb_class(mrb, self) != mrb_exc_get_id(mrb, MRB_SYM(SystemCallError))) {
+    return mrb_exxx_init(mrb, self);
+  }
+
   mrb_value m;
   mrb_int n;
 
@@ -151,7 +310,6 @@ void
 mrb_mruby_errno_gem_init(mrb_state *mrb)
 {
   struct RClass *e, *eno, *sce, *ste;
-  mrb_value noerror;
 
   ste = mrb_class_get_id(mrb, MRB_SYM(StandardError));
 
@@ -161,28 +319,16 @@ mrb_mruby_errno_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, sce, "initialize", mrb_sce_init_m, MRB_ARGS_ARG(1, 1));
 
   eno = mrb_define_module_id(mrb, MRB_SYM(Errno));
+  mrb_define_class_method(mrb, eno, "__errno_defined?", mrb_errno_defined_p, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, eno, "__errno_define", mrb_errno_define, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, eno, "__errno_list", mrb_errno_list, MRB_ARGS_REQ(1));
 
   e = mrb_define_class_under_id(mrb, eno, MRB_SYM(NOERROR), sce);
   mrb_define_const_id(mrb, e, MRB_SYM(Errno), mrb_fixnum_value(0));
-  mrb_define_method(mrb, e, "initialize", mrb_exxx_init, MRB_ARGS_OPT(1));
   //mrb_define_method(mrb, e, "===", mrb_exxx_cmp, MRB_ARGS_REQ(1));
-  noerror = mrb_obj_value(e);
 
-#define itsdefined(name, sym) \
-  do {									\
-    int ai = mrb_gc_arena_save(mrb);					\
-    e = mrb_define_class_under_id(mrb, eno, sym, sce);			\
-    mrb_define_const_id(mrb, e, MRB_SYM(Errno), mrb_fixnum_value(name)); \
-    mrb_define_method(mrb, e, "initialize", mrb_exxx_init, MRB_ARGS_OPT(1)); \
-    mrb_gc_arena_restore(mrb, ai);					\
-  } while (0);
-
-#define itsnotdefined(name, sym) \
-  do {									\
-    mrb_define_const_id(mrb, eno, sym, noerror);			\
-  } while (0);
-
-#include "known_errors_def.cstub"
+  // Pre-allocation for Errno::ENOMEM only
+  mrb_errno_define_exxx(mrb, MRB_SYM(ENOMEM), ENOMEM);
 }
 
 void
