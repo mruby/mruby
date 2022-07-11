@@ -110,6 +110,15 @@ mrb_rational_new(mrb_state *mrb, mrb_int numerator, mrb_int denominator)
 
 #define rational_new(mrb,n,d) mrb_rational_new(mrb, n, d)
 
+void
+mrb_rational_copy(mrb_state *mrb, mrb_value x, mrb_value y)
+{
+  struct mrb_rational *p1 = rational_ptr(mrb, x);
+  struct mrb_rational *p2 = rational_ptr(mrb, y);
+  p1->numerator = p2->numerator;
+  p1->denominator = p2->denominator;
+}
+
 inline static mrb_int
 i_gcd(mrb_int x, mrb_int y)
 {

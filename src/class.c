@@ -2742,6 +2742,11 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
       mrb_bint_copy(mrb, dest, obj);
       break;
 #endif
+#ifdef MRB_USE_RATIONAL
+    case MRB_TT_RATIONAL:
+      mrb_rational_copy(mrb, dest, obj);
+      break;
+#endif
 
     default:
       break;
