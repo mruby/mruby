@@ -84,6 +84,15 @@ mrb_complex_new(mrb_state *mrb, mrb_float real, mrb_float imaginary)
 
 #define complex_new(mrb, real, imag) mrb_complex_new(mrb, real, imag)
 
+void
+mrb_complex_copy(mrb_state *mrb, mrb_value x, mrb_value y)
+{
+  struct mrb_complex *p1 = complex_ptr(mrb, x);
+  struct mrb_complex *p2 = complex_ptr(mrb, y);
+  p1->real = p2->real;
+  p1->imaginary = p2->imaginary;
+}
+
 static mrb_value
 complex_real(mrb_state *mrb, mrb_value self)
 {

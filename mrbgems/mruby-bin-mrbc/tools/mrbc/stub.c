@@ -34,6 +34,9 @@ mrb_value mrb_complex_to_f(mrb_state *mrb, mrb_value x)
 {
   return mrb_nil_value();
 }
+void mrb_complex_copy(mrb_state *mrb, mrb_value x, mrb_value y)
+{
+}
 #endif
 
 #ifdef MRB_USE_RATIONAL

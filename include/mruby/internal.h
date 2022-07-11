@@ -88,6 +88,7 @@ mrb_value mrb_complex_add(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_complex_sub(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_complex_mul(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_complex_div(mrb_state *mrb, mrb_value x, mrb_value y);
+void mrb_complex_copy(mrb_state *mrb, mrb_value x, mrb_value y);
 #endif
 #ifdef MRB_USE_RATIONAL
 mrb_value mrb_rational_new(mrb_state *mrb, mrb_int x, mrb_int y);
