@@ -2737,6 +2737,11 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
     case MRB_TT_ISTRUCT:
       mrb_istruct_copy(dest, obj);
       break;
+#ifdef MRB_USE_BIGINT
+    case MRB_TT_BIGINT:
+      mrb_bint_copy(mrb, dest, obj);
+      break;
+#endif
 
     default:
       break;

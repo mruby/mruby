@@ -23,7 +23,6 @@ mpz_init(mrb_state *mrb, mpz_t *s)
   s->sz=2;
 }
 
-#if 0
 static void
 mpz_init_set(mrb_state *mrb, mpz_t *s, mpz_t *t)
 {
@@ -34,7 +33,6 @@ mpz_init_set(mrb_state *mrb, mpz_t *s, mpz_t *t)
   s->sn = t->sn;
   s->sz = t->sz;
 }
-#endif
 
 static void
 mpz_set_int(mrb_state *mrb, mpz_t *y, mrb_int v)
@@ -1449,4 +1447,12 @@ mrb_bint_rshift(mrb_state *mrb, mrb_value x, mrb_int width)
     mpz_div_2exp(mrb, &b2->mp, &b->mp, width);
   }
   return bint_norm(mrb, b2);
+}
+
+void
+mrb_bint_copy(mrb_state *mrb, mrb_value x, mrb_value y)
+{
+  struct RBigint *b = RBIGINT(x);
+  struct RBigint *b2 = RBIGINT(y);
+  mpz_init_set(mrb, &b->mp, &b2->mp);
 }
