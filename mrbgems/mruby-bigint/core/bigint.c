@@ -676,42 +676,58 @@ mpz_init_set_str(mrb_state *mrb, mpz_t *x, const char *s, mrb_int len, mrb_int b
 static char*
 mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
 {
-  mpz_t xx,q,r,bb;
-  char *p,*t,*ps;
-  mp_limb d;
   mrb_assert(2 <= base && base <= 36);
   if (uzero(x)) {
     *s='0';
     *(s+1)='\0';
     return s;
   }
-  t = (char*)mrb_malloc(mrb, sz+2);
-  mpz_init(mrb,&xx); mpz_init(mrb,&q); mpz_init(mrb,&r);
-  mpz_init_set_int(mrb,&bb,base);
-  mpz_set(mrb,&xx,x);
-  ps = s;
+
+  char *ps = s;
+  int xlen = digits(x);
+  mp_limb *t = (mp_limb*)mrb_malloc(mrb, xlen*sizeof(mp_limb));
+  memcpy(t, x->p, xlen*sizeof(mp_limb));
+
+  for (;;) {
+    mp_limb *d = t + xlen;
+    mp_limb a = 0;
+    while (--d >= t) {
+      mp_limb d0 = *d, d1;
+      a = (a<<HALFDIGITBITS) | HIGH(d0);
+      d1 = (a / base) << HALFDIGITBITS;
+      a %= base;
+      a = (a<<HALFDIGITBITS) | LOW(d0);
+      d1 |= a / base;
+      a %= base;
+      *d = d1;
+    }
+
+    // convert to character
+    if (a < 10) a += '0';
+    else a += 'a' - 10;
+    *s++ = a;
+
+    // check if number is zero
+    for (d = t; d < t + xlen; ++d) {
+      if (*d != 0) break;
+      goto done;
+    }
+  }
+
+ done:
+  mrb_free(mrb, t);
   if (x->sn < 0) {
-    *ps++= '-';
-    xx.sn = 1;
-  }
-  p = t;
-  while (!uzero(&xx)) {
-    udiv(mrb,&xx,&r,&xx,&bb);
-    d = r.p[0];
-    if (d < 10)
-      *p++ = (char)(r.p[0] + '0');
-    else
-      *p++ = (char)(r.p[0] + -10 + 'a');
+    *s++ = '-';
   }
 
-  p--;
-  for (;p>=t;p--,ps++)
-    *ps = *p;
-  *ps='\0';
-
-  mrb_free(mrb,t);
-  mpz_clear(mrb,&xx); mpz_clear(mrb,&q); mpz_clear(mrb,&r); mpz_clear(mrb,&bb);
-  return s;
+  /* reverse string */
+  for (char *u = ps, *v = s - 1; u < v; ++u, --v) {
+    char temp = *u;
+    *u = *v;
+    *v = temp;
+  }
+  *s = '\0'; /* null termination */
+  return ps;
 }
 
 static int
