@@ -364,6 +364,7 @@ module MRuby
       end
 
       def git_checkout_dependency(repo_dir, commit, branch)
+        return unless commit
         @build.git.run_checkout_detach(repo_dir, commit)
       end
     end
