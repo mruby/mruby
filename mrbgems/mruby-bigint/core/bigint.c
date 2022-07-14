@@ -684,9 +684,15 @@ mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
   }
 
   char *ps = s;
+  char *se = s+sz;
   int xlen = digits(x);
   mp_limb *t = (mp_limb*)mrb_malloc(mrb, xlen*sizeof(mp_limb));
   memcpy(t, x->p, xlen*sizeof(mp_limb));
+  mp_limb b2 = base;
+  const int blim = (sizeof(mp_limb)==sizeof(int))?(base<=10?4:3):(base<=10?9:5);
+  for (int i=1; i<blim; i++) {
+    b2 *= base;
+  }
 
   for (;;) {
     mp_limb *d = t + xlen;
@@ -694,22 +700,28 @@ mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
     while (--d >= t) {
       mp_limb d0 = *d, d1;
       a = (a<<HALFDIGITBITS) | HIGH(d0);
-      d1 = (a / base) << HALFDIGITBITS;
-      a %= base;
+      d1 = (a / b2) << HALFDIGITBITS;
+      a %= b2;
       a = (a<<HALFDIGITBITS) | LOW(d0);
-      d1 |= a / base;
-      a %= base;
+      d1 |= a / b2;
+      a %= b2;
       *d = d1;
     }
 
     // convert to character
-    if (a < 10) a += '0';
-    else a += 'a' - 10;
-    *s++ = a;
+    for (int i=0; i<blim; i++) {
+      mp_limb a0 = a % base;
+      if (a0 < 10) a0 += '0';
+      else a0 += 'a' - 10;
+      if (s == se) break;
+      *s++ = a0;
+      a /= base;
+    }
 
     // check if number is zero
     for (d = t; d < t + xlen; ++d) {
       if (*d != 0) break;
+      while (ps<s && s[-1]=='0') s--;
       goto done;
     }
   }
