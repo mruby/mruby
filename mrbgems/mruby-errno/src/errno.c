@@ -193,14 +193,14 @@ mrb_errno_list(mrb_state *mrb, mrb_value self)
 }
 
 static void
-mrb_sce_init(mrb_state *mrb, mrb_value self, mrb_value m, int n)
+mrb_sce_init(mrb_state *mrb, mrb_value self, mrb_value m, mrb_value no)
 {
   mrb_value str;
-  int no_errno = (n < 0);
   char buf[20];
 
-  if (!no_errno) {
+  if (!mrb_nil_p(no)) {
     size_t i;
+    int n = (int)mrb_as_int(mrb, no);
 
     for (i=0; i < E2C_LEN; i++) {
       if (e2c[i].eno == n) {
@@ -233,19 +233,18 @@ mrb_sce_init_m(mrb_state *mrb, mrb_value self)
     return mrb_exxx_init(mrb, self);
   }
 
-  mrb_value m;
-  mrb_int n;
+  mrb_value m, n;
 
-  if (mrb_get_args(mrb, "o|i", &m, &n) == 1) {
+  if (mrb_get_args(mrb, "o|o", &m, &n) == 1) {
     if (mrb_fixnum_p(m)) {
-      n = mrb_fixnum(m);
+      n = m;
       m = mrb_nil_value();
     }
     else {
-      n = -1;
+      n = mrb_nil_value();
     }
   }
-  mrb_sce_init(mrb, self, m, (int)n);
+  mrb_sce_init(mrb, self, m, n);
   return self;
 }
 
@@ -269,13 +268,12 @@ static mrb_value
 mrb_sce_sys_fail(mrb_state *mrb, mrb_value cls)
 {
   struct RClass *sce;
-  mrb_value msg;
-  mrb_int no = -1;
+  mrb_value msg, no;
   mrb_int argc;
 
   mrb->c->ci->mid = 0;
   sce = mrb_class_get_id(mrb, MRB_SYM(SystemCallError));
-  argc = mrb_get_args(mrb, "i|S", &no, &msg);
+  argc = mrb_get_args(mrb, "o|S", &no, &msg);
 
   struct RBasic* e = mrb_obj_alloc(mrb, MRB_TT_EXCEPTION, sce);
   mrb_value exc = mrb_obj_value(e);
@@ -283,7 +281,7 @@ mrb_sce_sys_fail(mrb_state *mrb, mrb_value cls)
     msg = mrb_nil_value();
   }
   exc = mrb_obj_value(e);
-  mrb_sce_init(mrb, exc, msg, (int)no);
+  mrb_sce_init(mrb, exc, msg, no);
   mrb_exc_raise(mrb, exc);
   return mrb_nil_value();  /* NOTREACHED */
 }
