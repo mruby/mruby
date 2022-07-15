@@ -1,5 +1,5 @@
 /**
-** @file mruby/bigint.h - Multi-precision, Integer
+** @file mruby/bigint.h - Multi-precision Integer
 **
 ** See Copyright Notice in mruby.h
 */
