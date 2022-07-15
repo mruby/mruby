@@ -626,7 +626,6 @@ mpz_sizeinbase(mpz_t *x, int base)
 static int
 mpz_init_set_str(mrb_state *mrb, mpz_t *x, const char *s, mrb_int len, mrb_int base)
 {
-  int i;
   int retval = 0;
   mpz_t t,m,bb;
   short sn;
@@ -644,7 +643,7 @@ mpz_init_set_str(mrb_state *mrb, mpz_t *x, const char *s, mrb_int len, mrb_int b
   else
     sn = 1;
   mpz_init_set_int(mrb,&bb, base);
-  for (i = len-1; i>=0; i--) {
+  for (mrb_int i = len-1; i>=0; i--) {
     if (s[i]=='_') continue;
     if (s[i] >= '0' && s[i] <= '9')
       k = (unsigned int)s[i] - (unsigned int)'0';
@@ -714,7 +713,7 @@ mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
       if (a0 < 10) a0 += '0';
       else a0 += 'a' - 10;
       if (s == se) break;
-      *s++ = a0;
+      *s++ = (char)a0;
       a /= base;
     }
 
