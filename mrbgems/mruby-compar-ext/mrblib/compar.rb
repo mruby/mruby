@@ -11,7 +11,18 @@ module Comparable
   #     'd'.clamp('a', 'f')      #=> 'd'
   #     'z'.clamp('a', 'f')      #=> 'f'
   #
-  def clamp(min, max)
+  def clamp(min, max=nil)
+    if max.nil?
+      if min.kind_of?(Range)
+        if min.exclude_end?
+          raise ArgumentError, "cannot clamp with an exclusive range"
+        end
+        max = min.max
+        min = min.min
+      else
+        raise TypeError, "wrong argument type #{min.class}"
+      end
+    end
     if (min <=> max) > 0
       raise ArgumentError, "min argument must be smaller than max argument"
     end
