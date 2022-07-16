@@ -662,7 +662,6 @@ mpz_init_set_str(mrb_state *mrb, mpz_t *x, const char *s, mrb_int len, mrb_int b
     mpz_mul_int(mrb,&t,&m,(mrb_int)k);
     mpz_add(mrb,x,x,&t);
     mpz_mul(mrb,&m,&m,&bb);
-    if (i == 0) break;
   }
   if (x->sn)
     x->sn = sn;
