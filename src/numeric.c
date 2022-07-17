@@ -1382,6 +1382,9 @@ int_and(mrb_state *mrb, mrb_value x)
   if (mrb_bigint_p(x)) {
     return mrb_bint_and(mrb, x, y);
   }
+  if (mrb_bigint_p(y)) {
+    return mrb_bint_and(mrb, mrb_as_bint(mrb, x), y);
+  }
 #endif
   bit_op(x, y, and, &);
 }
@@ -1403,6 +1406,9 @@ int_or(mrb_state *mrb, mrb_value x)
   if (mrb_bigint_p(x)) {
     return mrb_bint_or(mrb, x, y);
   }
+  if (mrb_bigint_p(y)) {
+    return mrb_bint_or(mrb, mrb_as_bint(mrb, x), y);
+  }
 #endif
   bit_op(x, y, or, |);
 }
@@ -1423,6 +1429,9 @@ int_xor(mrb_state *mrb, mrb_value x)
 #ifdef MRB_USE_BIGINT
   if (mrb_bigint_p(x)) {
     return mrb_bint_xor(mrb, x, y);
+  }
+  if (mrb_bigint_p(y)) {
+    return mrb_bint_xor(mrb, mrb_as_bint(mrb, x), y);
   }
 #endif
   bit_op(x, y, or, ^);
