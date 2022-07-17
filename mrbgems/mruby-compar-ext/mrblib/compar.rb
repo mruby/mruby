@@ -14,11 +14,16 @@ module Comparable
   def clamp(min, max=nil)
     if max.nil?
       if min.kind_of?(Range)
-        if min.exclude_end?
+        max = min.begin
+        if max.nil?
+          max = self
+        elsif min.exclude_end?
           raise ArgumentError, "cannot clamp with an exclusive range"
         end
-        max = min.max
-        min = min.min
+        min = min.end
+        if min.nil?
+          min = self
+        end
       else
         raise TypeError, "wrong argument type #{min.class}"
       end
