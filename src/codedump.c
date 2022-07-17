@@ -548,11 +548,12 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_ERR, B):
-      if ((irep->pool[a].tt & IREP_TT_NFLAG) == 0) {
-        printf("ERR\t\t%s\n", irep->pool[a].u.str);
+      printf("ERR\t\t%d", a);
+      if (a < MRB_LOCALJUMP_ERROR_LAST) {
+        printf("\t\t\t; %s\n", mrb_localjump_error_messages[a]);
       }
       else {
-        printf("ERR\tL(%d)\n", a);
+        printf("\n");
       }
       break;
     CASE(OP_EXCEPT, B):

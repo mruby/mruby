@@ -45,6 +45,23 @@ mrb_value mrb_get_backtrace(mrb_state *mrb);
 void mrb_exc_mesg_set(mrb_state *mrb, struct RException *exc, mrb_value mesg);
 mrb_value mrb_exc_mesg_get(mrb_state *mrb, struct RException *exc);
 
+#define MRB_LOCALJUMP_ERROR_FOREACH(def) \
+  def(MRB_LOCALJUMP_ERROR_BREAK,  "unexpected break") \
+  def(MRB_LOCALJUMP_ERROR_NEXT,   "unexpected next") \
+  def(MRB_LOCALJUMP_ERROR_REDO,   "unexpected redo") \
+  def(MRB_LOCALJUMP_ERROR_RETRY,  "unexpected retry") \
+  def(MRB_LOCALJUMP_ERROR_RETURN, "unexpected return") \
+  def(MRB_LOCALJUMP_ERROR_YIELD,  "unexpected yield")
+
+enum {
+#define MRB_LOCALJUMP_ERROR_DEFINE(n, mesg) n,
+  MRB_LOCALJUMP_ERROR_FOREACH(MRB_LOCALJUMP_ERROR_DEFINE)
+#undef MRB_LOCALJUMP_ERROR_DEFINE
+  MRB_LOCALJUMP_ERROR_LAST
+};
+
+extern const char *const mrb_localjump_error_messages[MRB_LOCALJUMP_ERROR_LAST];
+
 /* gc */
 void mrb_gc_mark_mt(mrb_state*, struct RClass*);
 size_t mrb_gc_mark_mt_size(mrb_state*, struct RClass*);
