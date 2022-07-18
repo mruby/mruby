@@ -2873,7 +2873,7 @@ static const mrb_code new_iseq[] = {
 MRB_PRESYM_DEFINE_VAR_AND_INITER(new_syms, 2, MRB_SYM(allocate), MRB_SYM(initialize))
 
 static const mrb_irep new_irep = {
-  4, 5, 0, MRB_IREP_STATIC,
+  4, 6, 0, MRB_IREP_STATIC,
   new_iseq, NULL, new_syms, NULL, NULL, NULL,
   sizeof(new_iseq), 0, 2, 0, 0,
 };
