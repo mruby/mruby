@@ -114,7 +114,7 @@ MRB_API mrb_value mrb_load_irep_buf_cxt(mrb_state*, const void*, size_t, mrbc_co
 
 struct mrb_insn_data {
   uint8_t insn;
-  uint16_t a;
+  uint32_t a;
   uint16_t b;
   uint16_t c;
   const mrb_code *addr;
