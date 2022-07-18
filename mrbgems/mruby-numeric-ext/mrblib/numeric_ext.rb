@@ -1,8 +1,24 @@
 class Numeric
+  ##
+  #  call-seq:
+  #    zero? -> true or false
+  #
+  #  Returns +true+ if +zero+ has a zero value, +false+ otherwise.
+  #
+  #  Of the Core and Standard Library classes,
+  #  only Rational and Complex use this implementation.
+  #
   def zero?
     self == 0
   end
 
+  ##
+  #  call-seq:
+  #    nonzero?  ->  self or nil
+  #
+  #  Returns +self+ if +self+ is not a zero value, +nil+ otherwise;
+  #  uses method <tt>zero?</tt> for the evaluation.
+  #
   def nonzero?
     if self == 0
       nil
@@ -11,10 +27,22 @@ class Numeric
     end
   end
 
+  ##
+  #  call-seq:
+  #    positive? -> true or false
+  #
+  #  Returns +true+ if +self+ is greater than 0, +false+ otherwise.
+  #
   def positive?
     self > 0
   end
 
+  ##
+  #  call-seq:
+  #    negative? -> true or false
+  #
+  #  Returns +true+ if +self+ is less than 0, +false+ otherwise.
+  #
   def negative?
     self < 0
   end
