@@ -1372,6 +1372,9 @@ mrb_value
 mrb_bint_to_s(mrb_state *mrb, mrb_value x, mrb_int base)
 {
   struct RBigint *b = RBIGINT(x);
+
+  if (b->mp.sz == 0) return mrb_str_new_lit(mrb, "0");
+
   mrb_int len = mpz_sizeinbase(&b->mp, (int)base);
   mrb_value str = mrb_str_new(mrb, NULL, len+2);
   mpz_get_str(mrb, RSTRING_PTR(str), len, base, &b->mp);
