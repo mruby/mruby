@@ -1956,6 +1956,7 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
         pop();
         genop_2(s, OP_ARYPUSH, cursp(), 1);
       }
+      push(); pop();
       s->sp = call;
       if (mid == MRB_OPSYM_2(s->mrb, aref) && n == 2) {
         genop_1(s, OP_SETIDX, cursp());
