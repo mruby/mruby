@@ -617,7 +617,10 @@ mpz_sizeinbase(mpz_t *x, int base)
 {
   int i,j;
   size_t bits = digits(x) * DIGITBITS;
+
   mrb_assert(2 <= base && base <= 36);
+
+  if (x->sz == 0) return 0;
   for (j=0,i=1; i<=base; i*=2,j++)
     ;
   return (int)((bits)/(j-1)+1);
