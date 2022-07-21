@@ -146,6 +146,9 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj)
 #endif
       break;
     case MRB_TT_BIGINT:
+#if defined(MRB_USE_BIGINT)
+      size += mrb_bint_memsize(obj);
+#endif
     case MRB_TT_DATA:
     case MRB_TT_ISTRUCT:
       size += mrb_objspace_page_slot_size();

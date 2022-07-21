@@ -1492,3 +1492,10 @@ mrb_bint_copy(mrb_state *mrb, mrb_value x, mrb_value y)
   struct RBigint *b2 = RBIGINT(y);
   mpz_init_set(mrb, &b->mp, &b2->mp);
 }
+
+size_t
+mrb_bint_memsize(mrb_value x)
+{
+  struct RBigint *b = RBIGINT(x);
+  return b->mp.sz * sizeof(mp_limb);
+}

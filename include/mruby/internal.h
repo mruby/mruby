@@ -185,6 +185,7 @@ mrb_int mrb_bint_as_int(mrb_state *mrb, mrb_value x);
 mrb_int mrb_bint_cmp(mrb_state *mrb, mrb_value x, mrb_value y);
 void mrb_gc_free_bint(mrb_state *mrb, struct RBasic *x);
 void mrb_bint_copy(mrb_state *mrb, mrb_value x, mrb_value y);
+size_t mrb_bint_memsize(mrb_value x);
 #endif
 
 #endif  /* MRUBY_INTERNAL_H */
