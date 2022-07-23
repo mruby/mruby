@@ -572,18 +572,19 @@ mpz_cmp(mrb_state *mrb, mpz_t *x, mpz_t *y)
   return (-abscmp);          // if (x->sn <=0 && y->sn <=0)
 }
 
-/* 2<=base <=36 - this overestimates the optimal value, which is OK */
-static int
-mpz_sizeinbase(mpz_t *x, int base)
+/* 2<=base<=36 - this overestimates the optimal value, which is OK */
+static size_t
+mpz_sizeinbase(mpz_t *x, mrb_int base)
 {
-  int i,j;
+  size_t i, j;
+
   size_t bits = digits(x) * DIG_SIZE;
   mrb_assert(2 <= base && base <= 36);
 
   if (x->sz == 0) return 0;
   for (j=0,i=1; i<=base; i*=2,j++)
     ;
-  return (int)((bits)/(j-1)+1);
+  return bits/(j-1)+1;
 }
 
 static int
@@ -1336,7 +1337,10 @@ mrb_bint_to_s(mrb_state *mrb, mrb_value x, mrb_int base)
 
   if (b->mp.sz == 0) return mrb_str_new_lit(mrb, "0");
 
-  mrb_int len = mpz_sizeinbase(&b->mp, (int)base);
+  size_t len = mpz_sizeinbase(&b->mp, (int)base);
+  if (MRB_INT_MAX-2 < len) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "too long string from Integer");
+  }
   mrb_value str = mrb_str_new(mrb, NULL, len+2);
   mpz_get_str(mrb, RSTRING_PTR(str), len, base, &b->mp);
   RSTR_SET_LEN(RSTRING(str), strlen(RSTRING_PTR(str)));
