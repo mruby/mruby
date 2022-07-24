@@ -28,10 +28,28 @@ const char mrb_digitmap[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 
 #define mrb_obj_alloc_string(mrb) MRB_OBJ_ALLOC((mrb), MRB_TT_STRING, (mrb)->string_class)
 
+#ifndef MRB_STR_LENGTH_MAX
+#define MRB_STR_LENGTH_MAX 1048576
+#endif
+
+static void
+str_check_too_big(mrb_state *mrb, mrb_int len)
+{
+  if (len < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "[BUG] negative string length");
+  }
+#if MRB_STR_LENGTH_MAX != 0
+  if (len > MRB_STR_LENGTH_MAX-1) {
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "string too long (len=%i max=" MRB_STRINGIZE(MRB_STR_LENGTH_MAX) ")", len);
+  }
+#endif
+}
+
 static struct RString*
 str_init_normal_capa(mrb_state *mrb, struct RString *s,
                      const char *p, mrb_int len, mrb_int capa)
 {
+  str_check_too_big(mrb, capa);
   char *dst = (char *)mrb_malloc(mrb, capa + 1);
   if (p) memcpy(dst, p, len);
   dst[len] = '\0';
@@ -150,6 +168,7 @@ resize_capa(mrb_state *mrb, struct RString *s, mrb_int capacity)
     }
   }
   else {
+    str_check_too_big(mrb, capacity);
     s->as.heap.ptr = (char*)mrb_realloc(mrb, RSTR_PTR(s), capacity+1);
     s->as.heap.aux.capa = (mrb_ssize)capacity;
   }
