@@ -17,6 +17,9 @@
 #define ARY_DEFAULT_LEN   4
 #define ARY_SHRINK_RATIO  5 /* must be larger than 2 */
 #define ARY_C_MAX_SIZE (SIZE_MAX / sizeof(mrb_value))
+#ifndef MRB_ARY_LENGTH_MAX
+#define MRB_ARY_LENGTH_MAX 131072
+#endif
 #define ARY_MAX_SIZE ((mrb_int)((ARY_C_MAX_SIZE < (size_t)MRB_INT_MAX) ? ARY_C_MAX_SIZE : MRB_INT_MAX-1))
 
 static void
@@ -30,6 +33,10 @@ ary_check_too_big(mrb_state *mrb, mrb_int a, mrb_int b)
 {
   if (a > ARY_MAX_SIZE - b || a < 0)
     ary_too_big(mrb);
+#if MRB_ARY_LENGTH_MAX != 0
+  if (a > MRB_ARY_LENGTH_MAX - b || a < 0)
+    ary_too_big(mrb);
+#endif
 }
 
 static struct RArray*
