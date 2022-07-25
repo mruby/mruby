@@ -1027,8 +1027,8 @@ new_litbn(codegen_scope *s, const char *p, int base, mrb_bool neg)
     pv->tt = IREP_TT_BIGINT;
     buf = (char*)codegen_realloc(s, NULL, plen+3);
     buf[0] = (char)plen;
+    if (neg) buf[1] = -base;
     buf[1] = base;
-    if (neg) buf[1] = 0x80;
     memcpy(buf+2, p, plen);
     buf[plen+2] = '\0';
     pv->u.str = buf;
