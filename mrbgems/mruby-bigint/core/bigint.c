@@ -465,6 +465,7 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
     q.p[j] = qhat;
     if (j == 0) break;
   }
+  x.sz = yy->sz;
   urshift(mrb, rr, &x, ns);
   trim(&q);
   mpz_set(mrb, qq, &q);
