@@ -1028,7 +1028,7 @@ new_litbint(codegen_scope *s, const char *p, int base, mrb_bool neg)
     buf = (char*)codegen_realloc(s, NULL, plen+3);
     buf[0] = (char)plen;
     if (neg) buf[1] = -base;
-    buf[1] = base;
+    else buf[1] = base;
     memcpy(buf+2, p, plen);
     buf[plen+2] = '\0';
     pv->u.str = buf;
