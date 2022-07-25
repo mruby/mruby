@@ -19,9 +19,9 @@
 #define HIGH(x) ((x) >> DIG_SIZE)
 #define LOW(x)  ((x) & DIG_MASK)
 
-#define iabs(x) ((x>0) ? (x) : (-x))
-#define imax(x,y) ((x>y)?x:y)
-#define imin(x,y) ((x<y)?x:y)
+#define iabs(x) (((x)>0)?(x):(-x))
+#define imax(x,y) (((x)>(y))?(x):(y))
+#define imin(x,y) (((x)<(y))?(x):(y))
 #define dg(x,i) (((size_t)i < (x)->sz)?(x)->p[i]:0)
 
 static void
@@ -36,9 +36,9 @@ static void
 mpz_realloc(mrb_state *mrb, mpz_t *x, size_t size)
 {
   if (x->sz < size) {
-    x->p=(mp_limb*)mrb_realloc(mrb,x->p,size*sizeof(mp_limb));
+    x->p=(mp_limb*)mrb_realloc(mrb, x->p, size*sizeof(mp_limb));
     for (size_t i=x->sz; i<size; i++)
-      (x->p)[i] = 0;
+      x->p[i] = 0;
     x->sz = size;
   }
 }
@@ -48,12 +48,12 @@ mpz_set(mrb_state *mrb, mpz_t *y, mpz_t *x)
 {
   size_t i, k = x->sz;
 
-  mpz_realloc(mrb, y, (size_t)k);
+  mpz_realloc(mrb, y, k);
   for (i=0;i < k; i++)
-    (y->p)[i] = (x->p)[i];
+    y->p[i] = x->p[i];
 
   for (;i<y->sz;i++)
-    (y->p)[i] = 0;
+    y->p[i] = 0;
 
   y->sn = x->sn;
 }
@@ -117,7 +117,7 @@ digits(mpz_t *x)
   size_t i;
 
   if (x->sz == 0) return 0;
-  for (i = (x->sz) - 1; (x->p)[i] == 0 ; i--)
+  for (i = x->sz - 1; x->p[i] == 0 ; i--)
     if (i == 0) break;
   return i+1;
 }
@@ -140,7 +140,7 @@ uadd(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
   }
 
   /* now y->sz >= x->sz */
-  mpz_realloc(mrb, z, (size_t)((y->sz)+1));
+  mpz_realloc(mrb, z, y->sz+1);
 
   mp_limb2 c = 0;
   size_t i;
@@ -186,7 +186,7 @@ ucmp(mpz_t *y, mpz_t *x)
 {
   if (y->sz < x->sz) return -1;
   if (y->sz > x->sz) return 1;
-  for (size_t i=x->sz-1;;i--) {
+  for (size_t i=x->sz-1;; i--) {
     mp_limb a = y->p[i];
     mp_limb b = x->p[i];
     if (a > b) return 1;
@@ -200,7 +200,7 @@ static int
 uzero(mpz_t *x)
 {
   for (size_t i=0; i < x->sz; i++)
-    if ((x->p)[i] != 0)
+    if (x->p[i] != 0)
       return 0;
   return 1;
 }
@@ -224,6 +224,7 @@ mpz_add(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y)
 {
   int mg;
   mpz_t z;
+
   if (x->sn == 0) {
     mpz_set(mrb, zz, y);
     return;
@@ -257,8 +258,8 @@ mpz_add(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y)
     }
   }
   trim(&z);
-  mpz_set(mrb,zz,&z);
-  mpz_clear(mrb,&z);
+  mpz_set(mrb, zz, &z);
+  mpz_clear(mrb, &z);
 }
 
 /* z = x - y  -- just use mpz_add - I'm lazy */
@@ -266,6 +267,7 @@ static void
 mpz_sub(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
 {
   mpz_t u;
+
   mpz_init(mrb, &u);
   mpz_set(mrb, &u, y);
   u.sn = -(u.sn);
@@ -278,6 +280,7 @@ static void
 mpz_sub_int(mrb_state *mrb, mpz_t *x, mpz_t *y, mrb_int n)
 {
   mpz_t z;
+
   mpz_init_set_int(mrb, &z, n);
   mpz_sub(mrb, x, y, &z);
   mpz_clear(mrb, &z);
@@ -287,7 +290,7 @@ mpz_sub_int(mrb_state *mrb, mpz_t *x, mpz_t *y, mrb_int n)
 static void
 mpz_mul(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
 {
-  size_t i,j;
+  size_t i, j;
   mpz_t w;
 
   if (uzero(u) || uzero(v)) {
@@ -295,7 +298,7 @@ mpz_mul(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
     return;
   }
   mpz_init(mrb, &w);
-  mpz_realloc(mrb, &w, (size_t)(u->sz + v->sz));
+  mpz_realloc(mrb, &w, u->sz + v->sz);
   for (j=0; j < u->sz; j++) {
     mp_limb2 cc = (mp_limb)0;
     mp_limb u0 = u->p[j];
@@ -311,7 +314,7 @@ mpz_mul(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
       w.p[i+j] = cc;
     }
   }
-  w.sn = (u->sn) * (v->sn);
+  w.sn = u->sn * v->sn;
   trim(&w);
   mpz_set(mrb, ww, &w);
   mpz_clear(mrb, &w);
@@ -327,9 +330,9 @@ mpz_mul_int(mrb_state *mrb, mpz_t *x, mpz_t *y, mrb_int n)
 
   mpz_t z;
 
-  mpz_init_set_int(mrb,&z,n);
-  mpz_mul(mrb,x,y,&z);
-  mpz_clear(mrb,&z);
+  mpz_init_set_int(mrb, &z, n);
+  mpz_mul(mrb, x, y, &z);
+  mpz_clear(mrb, &z);
 }
 
 /* number of leading zero bits in digit */
@@ -343,9 +346,9 @@ lzb(mp_limb x)
     return __builtin_clz(x);
 #endif
 
-  mp_limb i; int j=0;
+  int j=0;
 
-  for (i = ((mp_limb)1 << (DIG_SIZE-1)); i && !(x&i) ; j++,i>>=1)
+  for (mp_limb i = ((mp_limb)1 << (DIG_SIZE-1)); i && !(x&i) ; j++,i>>=1)
     ;
   return j;
 }
@@ -356,21 +359,24 @@ static void
 urshift(mrb_state *mrb, mpz_t *c1, mpz_t *a, size_t n)
 {
   mrb_assert(n < DIG_SIZE);
+
   if (n == 0)
     mpz_set(mrb, c1, a);
   else {
     mpz_t c;
     mp_limb cc = 0;
     mp_limb2 rm = (((mp_limb2)1<<n) - 1);
-    mpz_init(mrb,&c); mpz_realloc(mrb,&c,(size_t)(a->sz));
-    for (size_t i=a->sz-1; ; i--) {
+
+    mpz_init(mrb, &c);
+    mpz_realloc(mrb, &c, a->sz);
+    for (size_t i=a->sz-1;; i--) {
       c.p[i] = ((a->p[i] >> n) | cc) & DIG_MASK;
       cc = (a->p[i] & rm) << (DIG_SIZE - n);
       if (i == 0) break;
     }
     trim(&c);
-    mpz_set(mrb,c1,&c);
-    mpz_clear(mrb,&c);
+    mpz_set(mrb, c1, &c);
+    mpz_clear(mrb, &c);
   }
 }
 
@@ -382,11 +388,14 @@ ulshift(mrb_state *mrb, mpz_t *c1, mpz_t *a, size_t n)
   mp_limb cc = 0;
   mrb_assert(n < DIG_SIZE);
   if (n == 0)
-    mpz_set(mrb,c1,a);
+    mpz_set(mrb, c1, a);
   else {
     mpz_t c;
     mp_limb rm = (((mp_limb2)1<<n) - 1) << (DIG_SIZE-n);
-    mpz_init(mrb,&c); mpz_realloc(mrb,&c,(size_t)(a->sz + 1));
+
+    mpz_init(mrb, &c);
+    mpz_realloc(mrb, &c, a->sz+1);
+
     size_t i;
     for (i=0; i<a->sz; i++) {
       c.p[i] = ((a->p[i] << n) | cc) & DIG_MASK;
@@ -394,12 +403,13 @@ ulshift(mrb_state *mrb, mpz_t *c1, mpz_t *a, size_t n)
     }
     c.p[i] = cc;
     trim(&c);
-    mpz_set(mrb,c1,&c);
-    mpz_clear(mrb,&c);
+    mpz_set(mrb, c1, &c);
+    mpz_clear(mrb, &c);
   }
 }
 
 /* internal routine to compute x/y and x%y ignoring signs */
+/* qq = xx/yy; rr = xx%yy */
 static void
 udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
 {
@@ -419,17 +429,19 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
   mpz_t q, x, y;
   size_t i;
 
-  if (uzero(yy)) return;        /* divided by zero */
-  mpz_init(mrb,&q); mpz_init(mrb,&x); mpz_init(mrb,&y);
-  mpz_realloc(mrb,&x,xx->sz+1);
+  mrb_assert(!uzero(yy));       /* divided by zero */
+  mpz_init(mrb, &q);
+  mpz_init(mrb, &x);
+  mpz_init(mrb, &y);
+  mpz_realloc(mrb, &x, xx->sz+1);
   size_t yd = digits(yy);
   size_t ns = lzb(yy->p[yd-1]);
-  ulshift(mrb,&x,xx,ns);
-  ulshift(mrb,&y,yy,ns);
+  ulshift(mrb, &x, xx, ns);
+  ulshift(mrb, &y, yy, ns);
   size_t xd = digits(&x);
-  mpz_realloc(mrb,&q,xd);
+  mpz_realloc(mrb, &q, xd);
   mp_limb2 z = y.p[yd-1];
-  for (size_t j=(xd-yd);;j--) {
+  for (size_t j=(xd-yd);; j--) {
     mp_limb2 qhat = (((mp_limb2)x.p[j+yd] << DIG_SIZE) + x.p[j+yd-1]) / z;
     mp_limb2s b=0;
     if (qhat) {
@@ -453,11 +465,12 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
     q.p[j] = qhat;
     if (j == 0) break;
   }
-  urshift(mrb,rr,&x,ns);
+  urshift(mrb, rr, &x, ns);
   trim(&q);
-  mpz_set(mrb,qq,&q);
-  mpz_clear(mrb,&x); mpz_clear(mrb,&y);
-  mpz_clear(mrb,&q);
+  mpz_set(mrb, qq, &q);
+  mpz_clear(mrb, &x);
+  mpz_clear(mrb, &y);
+  mpz_clear(mrb, &q);
 }
 
 static void
@@ -465,19 +478,20 @@ mpz_mdiv(mrb_state *mrb, mpz_t *q, mpz_t *x, mpz_t *y)
 {
   mpz_t r;
   short sn1 = x->sn, sn2 = y->sn, qsign;
+
   if (uzero(x)) {
     mpz_init_set_int(mrb, q, 0);
     return;
   }
-  mpz_init(mrb,&r);
-  udiv(mrb,q,&r,x,y);
+  mpz_init(mrb, &r);
+  udiv(mrb, q, &r, x, y);
   qsign = q->sn = sn1*sn2;
   if (uzero(q))
     q->sn = 0;
   /* now if r != 0 and q < 0 we need to round q towards -inf */
   if (!uzero(&r) && qsign < 0)
-    mpz_sub_int(mrb,q,q,1);
-  mpz_clear(mrb,&r);
+    mpz_sub_int(mrb, q, q, 1);
+  mpz_clear(mrb, &r);
 }
 
 static void
@@ -485,12 +499,13 @@ mpz_mmod(mrb_state *mrb, mpz_t *r, mpz_t *x, mpz_t *y)
 {
   mpz_t q;
   short sn1 = x->sn, sn2 = y->sn;
+
   mpz_init(mrb, &q);
   if (sn1 == 0) {
     zero(r);
     return;
   }
-  udiv(mrb,&q,r,x,y);
+  udiv(mrb, &q, r, x, y);
   if (uzero(r)) {
     r->sn = 0;
     return;
@@ -500,11 +515,11 @@ mpz_mmod(mrb_state *mrb, mpz_t *r, mpz_t *x, mpz_t *y)
     r->sn = sn1;
   else if (sn1 < 0 && sn2 > 0) {
     r->sn = 1;
-    mpz_sub(mrb,r,y,r);
+    mpz_sub(mrb, r, y, r);
   }
   else {
     r->sn = 1;
-    mpz_add(mrb,r,y,r);
+    mpz_add(mrb, r, y, r);
   }
 }
 
@@ -512,12 +527,13 @@ static void
 mpz_mdivmod(mrb_state *mrb, mpz_t *q, mpz_t *r, mpz_t *x, mpz_t *y)
 {
   short sn1 = x->sn, sn2 = y->sn, qsign;
+
   if (sn1 == 0) {
     zero(q);
     zero(r);
     return;
   }
-  udiv(mrb,q,r,x,y);
+  udiv(mrb, q, r, x, y);
   qsign = q->sn = sn1*sn2;
   if (uzero(r)) {
     /* q != 0, since q=r=0 would mean x=0, which was tested above */
@@ -528,17 +544,17 @@ mpz_mdivmod(mrb_state *mrb, mpz_t *q, mpz_t *r, mpz_t *x, mpz_t *y)
     r->sn = sn1;
   else if (sn1 < 0 && sn2 > 0) {
     r->sn = 1;
-    mpz_sub(mrb,r,y,r);
+    mpz_sub(mrb, r, y, r);
   }
   else {
     r->sn = 1;
-    mpz_add(mrb,r,y,r);
+    mpz_add(mrb, r, y, r);
   }
   if (uzero(q))
     q->sn = 0;
   /* now if r != 0 and q < 0 we need to round q towards -inf */
   if (!uzero(r) && qsign < 0)
-    mpz_sub_int(mrb,q,q,1);
+    mpz_sub_int(mrb, q, q, 1);
 }
 
 static void
@@ -551,11 +567,11 @@ mpz_mod(mrb_state *mrb, mpz_t *r, mpz_t *x, mpz_t *y)
     zero(r);
     return;
   }
-  udiv(mrb,&q,r,x,y);
+  udiv(mrb, &q, r, x, y);
   r->sn = sn;
   if (uzero(r))
     r->sn = 0;
-  mpz_clear(mrb,&q);
+  mpz_clear(mrb, &q);
 }
 
 static mrb_int
@@ -566,7 +582,7 @@ mpz_cmp(mrb_state *mrb, mpz_t *x, mpz_t *y)
     return (-1);
   if (x->sn > 0 && y->sn < 0)
     return 1;
-  abscmp=ucmp(x,y);
+  abscmp=ucmp(x, y);
   if (x->sn >=0 && y->sn >=0)
     return abscmp;
   return (-abscmp);          // if (x->sn <=0 && y->sn <=0)
@@ -591,12 +607,12 @@ static int
 mpz_init_set_str(mrb_state *mrb, mpz_t *x, const char *s, mrb_int len, mrb_int base)
 {
   int retval = 0;
-  mpz_t t,m,bb;
+  mpz_t t, m, bb;
   short sn;
   uint8_t k;
-  mpz_init(mrb,x);
-  mpz_init_set_int(mrb,&m,1);
-  mpz_init(mrb,&t);
+  mpz_init(mrb, x);
+  mpz_init_set_int(mrb, &m, 1);
+  mpz_init(mrb, &t);
   zero(x);
   if (*s == '-') {
     sn = -1; s++;
@@ -606,7 +622,7 @@ mpz_init_set_str(mrb_state *mrb, mpz_t *x, const char *s, mrb_int len, mrb_int b
   }
   else
     sn = 1;
-  mpz_init_set_int(mrb,&bb,base);
+  mpz_init_set_int(mrb, &bb, base);
   for (mrb_int i = len-1; i>=0; i--) {
     if (s[i]=='_') continue;
     if (s[i] >= '0' && s[i] <= '9')
@@ -623,14 +639,14 @@ mpz_init_set_str(mrb_state *mrb, mpz_t *x, const char *s, mrb_int len, mrb_int b
       retval = (-1);
       break;
     }
-    mpz_mul_int(mrb,&t,&m,(mrb_int)k);
-    mpz_add(mrb,x,x,&t);
-    mpz_mul(mrb,&m,&m,&bb);
+    mpz_mul_int(mrb, &t, &m, (mrb_int)k);
+    mpz_add(mrb, x, x, &t);
+    mpz_mul(mrb, &m, &m, &bb);
   }
   x->sn = sn;
-  mpz_clear(mrb,&m);
-  mpz_clear(mrb,&bb);
-  mpz_clear(mrb,&t);
+  mpz_clear(mrb, &m);
+  mpz_clear(mrb, &bb);
+  mpz_clear(mrb, &t);
   return retval;
 }
 
@@ -691,7 +707,7 @@ mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
   }
 
   /* reverse string */
-  for (char *u = ps, *v = s - 1; u < v; ++u, --v) {
+  for (char *u = ps,*v=s-1; u < v; ++u,--v) {
     char temp = *u;
     *u = *v;
     *v = temp;
@@ -730,7 +746,7 @@ static void
 mpz_mul_2exp(mrb_state *mrb, mpz_t *z, mpz_t *x, mrb_int e)
 {
   if (e==0)
-    mpz_set(mrb,z,x);
+    mpz_set(mrb, z, x);
   else {
     short sn = x->sn;
     size_t digs = (e / DIG_SIZE);
@@ -738,17 +754,17 @@ mpz_mul_2exp(mrb_state *mrb, mpz_t *z, mpz_t *x, mrb_int e)
     mpz_t y;
 
     mpz_init(mrb, &y);
-    mpz_realloc(mrb,&y,x->sz+digs);
+    mpz_realloc(mrb, &y, x->sz+digs);
     for (size_t i=0;i<x->sz;i++)
       y.p[i+digs] = x->p[i];
     if (bs) {
-      ulshift(mrb,z,&y,bs);
+      ulshift(mrb, z, &y, bs);
     }
     else {
-      mpz_set(mrb,z,&y);
+      mpz_set(mrb, z, &y);
     }
     z->sn = sn;
-    mpz_clear(mrb,&y);
+    mpz_clear(mrb, &y);
   }
 }
 
@@ -757,28 +773,28 @@ mpz_div_2exp(mrb_state *mrb, mpz_t *z, mpz_t *x, mrb_int e)
 {
   short sn = x->sn;
   if (e==0)
-    mpz_set(mrb,z,x);
+    mpz_set(mrb, z, x);
   else {
     size_t digs = (e / DIG_SIZE);
     size_t bs = (e % (DIG_SIZE));
     mpz_t y;
 
-    mpz_init(mrb,&y);
-    mpz_realloc(mrb,&y,x->sz-digs);
+    mpz_init(mrb, &y);
+    mpz_realloc(mrb, &y, x->sz-digs);
     for (size_t i=0; i < x->sz-digs; i++)
-      (y.p)[i] = (x->p)[i+digs];
+      y.p[i] = x->p[i+digs];
     if (bs) {
-      urshift(mrb,z,&y,bs);
+      urshift(mrb, z, &y, bs);
     }
     else {
-      mpz_set(mrb,z,&y);
+      mpz_set(mrb, z, &y);
     }
     if (uzero(z))
       z->sn = 0;
     else {
       z->sn = sn;
     }
-    mpz_clear(mrb,&y);
+    mpz_clear(mrb, &y);
   }
 }
 
@@ -786,7 +802,7 @@ static void
 mpz_neg(mrb_state *mrb, mpz_t *x, mpz_t *y)
 {
   if (x!=y)
-    mpz_set(mrb,x,y);
+    mpz_set(mrb, x, y);
   x->sn = -(y->sn);
 }
 
@@ -795,9 +811,9 @@ mpz_and(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y) /* not the most efficient 
 {
   size_t sz = imin(x->sz, y->sz);
 
-  mpz_realloc(mrb,z,sz);
+  mpz_realloc(mrb, z, sz);
   for (size_t i=0; i < sz; i++)
-    (z->p)[i] = x->p[i] & y->p[i];
+    z->p[i] = x->p[i] & y->p[i];
   if (x->sn < 0 && y->sn < 0)
     z->sn = (-1);
   else
@@ -812,9 +828,9 @@ mpz_or(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient 
   size_t i;
   size_t sz = imax(x->sz, y->sz);
 
-  mpz_realloc(mrb,z,sz);
+  mpz_realloc(mrb, z, sz);
   for (i=0; i < sz; i++)
-    (z->p)[i] = dg(x,i) | dg(y,i);
+    z->p[i] = dg(x,i) | dg(y,i);
   if (x->sn < 0 || y->sn < 0)
     z->sn = (-1);
   else
@@ -829,9 +845,9 @@ mpz_xor(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient
   size_t i;
 
   size_t sz = imax(x->sz, y->sz);
-  mpz_realloc(mrb,z,sz);
+  mpz_realloc(mrb, z, sz);
   for (i=0; i < sz; i++)
-    (z->p)[i] = dg(x,i) ^ dg(y,i);
+    z->p[i] = dg(x,i) ^ dg(y,i);
   if ((x->sn <= 0 && y->sn > 0) || (x->sn > 0 && y->sn <=0))
     z->sn = (-1);
   else
@@ -851,18 +867,18 @@ mpz_pow(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int e)
     return;
   }
 
-  mpz_init(mrb,&t);
-  mpz_set(mrb,&t,x);
+  mpz_init(mrb, &t);
+  mpz_set(mrb, &t, x);
   for (;!(mask &e); mask>>=1)
     ;
   mask>>=1;
   for (;mask!=0; mask>>=1) {
-    mpz_mul(mrb,&t,&t,&t);
+    mpz_mul(mrb, &t, &t, &t);
     if (e & mask)
-      mpz_mul(mrb,&t,&t,x);
+      mpz_mul(mrb, &t, &t, x);
   }
-  mpz_set(mrb,zz,&t);
-  mpz_clear(mrb,&t);
+  mpz_set(mrb, zz, &t);
+  mpz_clear(mrb, &t);
 }
 
 #define lowdigit(x) (((x)->p)[0])
@@ -893,7 +909,7 @@ pop(mrb_state *mrb, struct is **sp)
   *sp = (*sp)->next;
   i = tmp->v;
   tmp->v = 0;
-  mrb_free(mrb,tmp);
+  mrb_free(mrb, tmp);
   return i;
 }
 
@@ -902,37 +918,37 @@ mpz_powm(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int ex, mpz_t *n)
 {
   mpz_t t, e;
   struct is *stack = NULL;
-  int k,i;
+  int k, i;
 
   if (ex == 0) {
-    mpz_set_int(mrb,zz,1);
+    mpz_set_int(mrb, zz, 1);
     return;
   }
 
   if (ex < 0) {
     return;
   }
-  mpz_init_set_int(mrb,&e, ex);
-  mpz_init(mrb,&t);
+  mpz_init_set_int(mrb, &e,  ex);
+  mpz_init(mrb, &t);
 
-  for (k=0;!uzero(&e);k++,mpz_div_2exp(mrb,&e,&e,1))
-    push(mrb,lowdigit(&e) & 1,&stack);
+  for (k=0; !uzero(&e); k++, mpz_div_2exp(mrb, &e, &e, 1))
+    push(mrb, lowdigit(&e)&1, &stack);
   k--;
-  i=pop(mrb,&stack);
+  i=pop(mrb, &stack);
 
-  mpz_mod(mrb,&t,x,n);  /* t=x%n */
+  mpz_mod(mrb, &t, x, n);  /* t=x%n */
 
   for (i=k-1;i>=0;i--) {
-    mpz_mul(mrb,&t,&t,&t);
-    mpz_mod(mrb,&t,&t,n);
-    if (pop(mrb,&stack)) {
-      mpz_mul(mrb,&t,&t,x);
-      mpz_mod(mrb,&t,&t,n);
+    mpz_mul(mrb, &t, &t, &t);
+    mpz_mod(mrb, &t, &t, n);
+    if (pop(mrb, &stack)) {
+      mpz_mul(mrb, &t, &t, x);
+      mpz_mod(mrb, &t, &t, n);
     }
   }
-  mpz_set(mrb,zz,&t);
-  mpz_clear(mrb,&t);
-  mpz_clear(mrb,&e);
+  mpz_set(mrb, zz, &t);
+  mpz_clear(mrb, &t);
+  mpz_clear(mrb, &e);
 }
 
 /* --- mruby functions --- */
@@ -1153,11 +1169,11 @@ mrb_bint_add_ii(mrb_state *mrb, mrb_int x, mrb_int y)
   struct RBigint *b = bint_new(mrb);
   mpz_t z1, z2;
 
-  mpz_init_set_int(mrb,&z1,x);
-  mpz_init_set_int(mrb,&z2,y);
-  mpz_add(mrb,&b->mp,&z1,&z2);
-  mpz_clear(mrb,&z1);
-  mpz_clear(mrb,&z2);
+  mpz_init_set_int(mrb, &z1, x);
+  mpz_init_set_int(mrb, &z2, y);
+  mpz_add(mrb, &b->mp, &z1, &z2);
+  mpz_clear(mrb, &z1);
+  mpz_clear(mrb, &z2);
   return bint_norm(mrb, b);
 }
 
@@ -1167,11 +1183,11 @@ mrb_bint_sub_ii(mrb_state *mrb, mrb_int x, mrb_int y)
   struct RBigint *b = bint_new(mrb);
   mpz_t z1, z2;
 
-  mpz_init_set_int(mrb,&z1,x);
-  mpz_init_set_int(mrb,&z2,y);
-  mpz_sub(mrb,&b->mp,&z1,&z2);
-  mpz_clear(mrb,&z1);
-  mpz_clear(mrb,&z2);
+  mpz_init_set_int(mrb, &z1, x);
+  mpz_init_set_int(mrb, &z2, y);
+  mpz_sub(mrb, &b->mp, &z1, &z2);
+  mpz_clear(mrb, &z1);
+  mpz_clear(mrb, &z2);
   return bint_norm(mrb, b);
 }
 
@@ -1181,11 +1197,11 @@ mrb_bint_mul_ii(mrb_state *mrb, mrb_int x, mrb_int y)
   struct RBigint *b = bint_new(mrb);
   mpz_t z1, z2;
 
-  mpz_init_set_int(mrb,&z1,x);
-  mpz_init_set_int(mrb,&z2,y);
-  mpz_mul(mrb,&b->mp,&z1,&z2);
-  mpz_clear(mrb,&z1);
-  mpz_clear(mrb,&z2);
+  mpz_init_set_int(mrb, &z1, x);
+  mpz_init_set_int(mrb, &z2, y);
+  mpz_mul(mrb, &b->mp, &z1, &z2);
+  mpz_clear(mrb, &z1);
+  mpz_clear(mrb, &z2);
   return bint_norm(mrb, b);
 }
 
@@ -1195,11 +1211,11 @@ mrb_bint_div_ii(mrb_state *mrb, mrb_int x, mrb_int y)
   struct RBigint *b = bint_new(mrb);
   mpz_t z1, z2;
 
-  mpz_init_set_int(mrb,&z1,x);
-  mpz_init_set_int(mrb,&z2,y);
-  mpz_mdiv(mrb,&b->mp,&z1,&z2);
-  mpz_clear(mrb,&z1);
-  mpz_clear(mrb,&z2);
+  mpz_init_set_int(mrb, &z1, x);
+  mpz_init_set_int(mrb, &z2, y);
+  mpz_mdiv(mrb, &b->mp, &z1, &z2);
+  mpz_clear(mrb, &z1);
+  mpz_clear(mrb, &z2);
   return bint_norm(mrb, b);
 }
 
@@ -1216,7 +1232,7 @@ mrb_bint_mod(mrb_state *mrb, mrb_value x, mrb_value y)
   if (mrb_float_p(y)) {
     mrb_float v1 = mrb_bint_as_float(mrb, x);
     mrb_float v2 = mrb_float(y);
-    return mrb_float_value(mrb,fmod(v1,v2));
+    return mrb_float_value(mrb, fmod(v1, v2));
   }
 #endif
   y = mrb_as_bint(mrb, y);
