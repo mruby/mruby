@@ -498,7 +498,7 @@ static void
 mpz_mmod(mrb_state *mrb, mpz_t *r, mpz_t *x, mpz_t *y)
 {
   mpz_t q;
-  short sn1 = x->sn, sn2 = y->sn;
+  short sn1 = x->sn, sn2 = y->sn, sn3;
 
   mpz_init(mrb, &q);
   if (sn1 == 0) {
@@ -506,12 +506,13 @@ mpz_mmod(mrb_state *mrb, mpz_t *r, mpz_t *x, mpz_t *y)
     return;
   }
   udiv(mrb, &q, r, x, y);
+  mpz_clear(mrb, &q);
   if (uzero(r)) {
     r->sn = 0;
     return;
   }
-  q.sn = sn1*sn2;
-  if (q.sn > 0)
+  sn3 = sn1*sn2;
+  if (sn3 > 0)
     r->sn = sn1;
   else if (sn1 < 0 && sn2 > 0) {
     r->sn = 1;
