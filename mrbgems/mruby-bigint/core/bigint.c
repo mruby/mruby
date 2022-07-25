@@ -721,6 +721,11 @@ mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
 static int
 mpz_get_int(mpz_t *y, mrb_int *v)
 {
+  if (uzero(y)) {
+    *v = 0;
+    return TRUE;
+  }
+
   mp_limb2 i = 0;
   mp_limb *d = y->p + y->sz;
 
