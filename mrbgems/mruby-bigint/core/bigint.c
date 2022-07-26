@@ -363,6 +363,9 @@ urshift(mrb_state *mrb, mpz_t *c1, mpz_t *a, size_t n)
 
   if (n == 0)
     mpz_set(mrb, c1, a);
+  else if (uzero(a)) {
+    mpz_set_int(mrb, c1, 0);
+  }
   else {
     mpz_t c;
     mp_limb cc = 0;
@@ -386,11 +389,14 @@ urshift(mrb_state *mrb, mpz_t *c1, mpz_t *a, size_t n)
 static void
 ulshift(mrb_state *mrb, mpz_t *c1, mpz_t *a, size_t n)
 {
-  mp_limb cc = 0;
   mrb_assert(n < DIG_SIZE);
   if (n == 0)
     mpz_set(mrb, c1, a);
+  else if (uzero(a)) {
+    mpz_set_int(mrb, c1, 0);
+  }
   else {
+    mp_limb cc = 0;
     mpz_t c;
     mp_limb rm = (((mp_limb2)1<<n) - 1) << (DIG_SIZE-n);
 
