@@ -620,9 +620,6 @@ mpz_init_set_str(mrb_state *mrb, mpz_t *x, const char *s, mrb_int len, mrb_int b
   if (*s == '-') {
     sn = -1; s++;
   }
-  else if (base < 0) {          /* trick: negative if base < 0 */
-    sn = -1; base = -base;
-  }
   else
     sn = 1;
   mpz_init_set_int(mrb, &bb, base);
@@ -994,8 +991,16 @@ mrb_value
 mrb_bint_new_str(mrb_state *mrb, const char *x, mrb_int len, mrb_int base)
 {
   struct RBigint *b = MRB_OBJ_ALLOC(mrb, MRB_TT_BIGINT, mrb->integer_class);
-  mrb_assert(2 <= iabs(base) && iabs(base) <= 36);
+  int sn = 1;
+  if (base < 0) {
+    base = -base;
+    sn = -1;
+  }
+  mrb_assert(2 <= base && base <= 36);
   mpz_init_set_str(mrb, &b->mp, x, len, base);
+  if (sn < 0) {
+    b->mp.sn = sn;
+  }
   return mrb_obj_value(b);
 }
 
