@@ -30,6 +30,7 @@ int FuzzRB(const uint8_t *Data, size_t size) {
 		std::ofstream of(dump_path);
 		of.write(code, size);
 	}
+        std::cout << "\n\n############\n" << code << "\n############\n\n";
 	v = mrb_load_string(mrb, code);
 	mrb_close(mrb);
 
