@@ -448,7 +448,7 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
   size_t xd = digits(&x);
   mpz_realloc(mrb, &q, xd);
   mp_limb2 z = y.p[yd-1];
-  for (size_t j=xd-yd-1;; j--) {
+  for (size_t j=xd-yd;; j--) {
     mp_limb2 qhat = (((mp_limb2)x.p[j+yd] << DIG_SIZE) + x.p[j+yd-1]) / z;
     mp_limb2s b=0;
     if (qhat) {
