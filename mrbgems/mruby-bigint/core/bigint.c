@@ -106,9 +106,21 @@ static void
 mpz_clear(mrb_state *mrb, mpz_t *s)
 {
   if (s->p) mrb_free(mrb, s->p);
-  s->p=NULL;
-  s->sn=0;
-  s->sz=0;
+  s->p = NULL;
+  s->sn = 0;
+  s->sz = 0;
+}
+
+static void
+mpz_move(mrb_state *mrb, mpz_t *y, mpz_t *x)
+{
+  mpz_clear(mrb, y);
+  y->sn = x->sn;
+  y->sz = x->sz;
+  y->p = x->p;
+  x->p = NULL;
+  x->sn = 0;
+  x->sz = 0;
 }
 
 static size_t
@@ -259,8 +271,7 @@ mpz_add(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y)
     }
   }
   trim(&z);
-  mpz_set(mrb, zz, &z);
-  mpz_clear(mrb, &z);
+  mpz_move(mrb, zz, &z);
 }
 
 /* z = x - y  -- just use mpz_add - I'm lazy */
@@ -317,8 +328,7 @@ mpz_mul(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
   }
   w.sn = u->sn * v->sn;
   trim(&w);
-  mpz_set(mrb, ww, &w);
-  mpz_clear(mrb, &w);
+  mpz_move(mrb, ww, &w);
 }
 
 static void
@@ -379,8 +389,7 @@ urshift(mrb_state *mrb, mpz_t *c1, mpz_t *a, size_t n)
       if (i == 0) break;
     }
     trim(&c);
-    mpz_set(mrb, c1, &c);
-    mpz_clear(mrb, &c);
+    mpz_move(mrb, c1, &c);
   }
 }
 
@@ -410,8 +419,7 @@ ulshift(mrb_state *mrb, mpz_t *c1, mpz_t *a, size_t n)
     }
     c.p[i] = cc;
     trim(&c);
-    mpz_set(mrb, c1, &c);
-    mpz_clear(mrb, &c);
+    mpz_move(mrb, c1, &c);
   }
 }
 
@@ -475,10 +483,9 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
   x.sz = yy->sz;
   urshift(mrb, rr, &x, ns);
   trim(&q);
-  mpz_set(mrb, qq, &q);
+  mpz_move(mrb, qq, &q);
   mpz_clear(mrb, &x);
   mpz_clear(mrb, &y);
-  mpz_clear(mrb, &q);
 }
 
 static void
@@ -772,7 +779,7 @@ mpz_mul_2exp(mrb_state *mrb, mpz_t *z, mpz_t *x, mrb_int e)
       ulshift(mrb, z, &y, bs);
     }
     else {
-      mpz_set(mrb, z, &y);
+      mpz_move(mrb, z, &y);
     }
     z->sn = sn;
     mpz_clear(mrb, &y);
@@ -796,16 +803,16 @@ mpz_div_2exp(mrb_state *mrb, mpz_t *z, mpz_t *x, mrb_int e)
       y.p[i] = x->p[i+digs];
     if (bs) {
       urshift(mrb, z, &y, bs);
+      mpz_clear(mrb, &y);
     }
     else {
-      mpz_set(mrb, z, &y);
+      mpz_move(mrb, z, &y);
     }
     if (uzero(z))
       z->sn = 0;
     else {
       z->sn = sn;
     }
-    mpz_clear(mrb, &y);
   }
 }
 
@@ -888,8 +895,7 @@ mpz_pow(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int e)
     if (e & mask)
       mpz_mul(mrb, &t, &t, x);
   }
-  mpz_set(mrb, zz, &t);
-  mpz_clear(mrb, &t);
+  mpz_move(mrb, zz, &t);
 }
 
 #define lowdigit(x) (((x)->p)[0])
@@ -957,8 +963,7 @@ mpz_powm(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int ex, mpz_t *n)
       mpz_mod(mrb, &t, &t, n);
     }
   }
-  mpz_set(mrb, zz, &t);
-  mpz_clear(mrb, &t);
+  mpz_move(mrb, zz, &t);
   mpz_clear(mrb, &e);
 }
 
