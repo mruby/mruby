@@ -1,17 +1,16 @@
-name: "Code scanning - action"
+name: Code scanning - action
 
 on:
   push:
-    branches-ignore: "dependabot/**"
+    branches-ignore:
+      - dependabot/**
   pull_request:
   schedule:
     - cron: '0 19 * * 4'
 
 jobs:
   CodeQL-Build:
-
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
