@@ -795,6 +795,20 @@ flo_finite_p(mrb_state *mrb, mrb_value num)
   return mrb_bool_value(isfinite(mrb_float(num)));
 }
 
+/*
+ *  Document-class: FloatDomainError
+ *
+ *  Raised when attempting to convert special float values
+ *  (in particular infinite or NaN)
+ *  to numerical classes which don't support them.
+ *
+ *     Float::INFINITY.to_i
+ *
+ *  <em>raises the exception:</em>
+ *
+ *     FloatDomainError: Infinity
+ */
+/* ------------------------------------------------------------------------*/
 void
 mrb_check_num_exact(mrb_state *mrb, mrb_float num)
 {
@@ -1565,20 +1579,6 @@ int_to_f(mrb_state *mrb, mrb_value num)
   return mrb_float_value(mrb, (mrb_float)mrb_integer(num));
 }
 
-/*
- *  Document-class: FloatDomainError
- *
- *  Raised when attempting to convert special float values
- *  (in particular infinite or NaN)
- *  to numerical classes which don't support them.
- *
- *     Float::INFINITY.to_i
- *
- *  <em>raises the exception:</em>
- *
- *     FloatDomainError: Infinity
- */
-/* ------------------------------------------------------------------------*/
 MRB_API mrb_value
 mrb_float_to_integer(mrb_state *mrb, mrb_value x)
 {
