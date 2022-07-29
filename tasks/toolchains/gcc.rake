@@ -25,7 +25,11 @@ MRuby::Toolchain.new(:gcc) do |conf, params|
   conf.linker do |linker|
     linker.command = ENV['LD'] || ENV['CXX'] || ENV['CC'] || default_command
     linker.flags = [ENV['LDFLAGS'] || %w()]
-    linker.libraries = %w(m)
+    if ENV['OS'] == 'Windows_NT'
+      linker.libraries = []
+    else
+      linker.libraries = %w(m)
+    end
     linker.library_paths = []
     linker.option_library = '-l%s'
     linker.option_library_path = '-L%s'
