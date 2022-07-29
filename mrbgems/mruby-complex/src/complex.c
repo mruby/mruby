@@ -134,9 +134,18 @@ mrb_complex_to_i(mrb_state *mrb, mrb_value self)
 {
   struct mrb_complex *p = complex_ptr(mrb, self);
 
+#ifdef MRB_USE_BIGINT
   if (p->imaginary != 0) {
     mrb_raisef(mrb, E_RANGE_ERROR, "can't convert %v into Integer", self);
   }
+  if (!FIXABLE_FLOAT(p->real)) {
+    return mrb_bint_new_float(mrb, p->real);
+  }
+#else
+  if (p->imaginary != 0 || !FIXABLE_FLOAT(p->real)) {
+    mrb_raisef(mrb, E_RANGE_ERROR, "can't convert %v into Integer", self);
+  }
+#endif
   return mrb_int_value(mrb, (mrb_int)p->real);
 }
 
