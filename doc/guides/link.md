@@ -37,7 +37,7 @@ it in `mrbgem.rake`.
 
 The `libmruby` is a normal library so that you can just link it to your
 application. Specify proper compiler options (`-I` etc.) and linker options
-(`-Lmruby` etc.) to compile and link your application. Specify those options in
+(`-lmruby` etc.) to compile and link your application. Specify those options in
 your build script (e.g. `Makefile`).
 
 ### Compiler options
