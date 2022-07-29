@@ -1,4 +1,4 @@
-# Thing to Do in the future
+# Things to Do in the future
 
 # After mruby 3.1
 
