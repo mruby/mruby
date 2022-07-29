@@ -350,6 +350,7 @@ mpz_mul_int(mrb_state *mrb, mpz_t *x, mpz_t *y, mrb_int n)
 static int
 lzb(mp_limb x)
 {
+  if (x == 0) return 0;
 #if (defined(__GNUC__) || __has_builtin(__builtin_clz))
   if (sizeof(mp_limb) == sizeof(int64_t))
     return __builtin_clzll(x);
