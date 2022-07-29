@@ -1180,6 +1180,9 @@ mrb_bint_div(mrb_state *mrb, mrb_value x, mrb_value y)
     return mrb_float_value(mrb,v1*v2);
   }
 #endif
+  if (mrb_integer_p(y) && mrb_integer(y) == 0) {
+    mrb_int_zerodiv(mrb);
+  }
   y = mrb_as_bint(mrb, y);
   struct RBigint *b = RBIGINT(x);
   struct RBigint *b2 = RBIGINT(y);

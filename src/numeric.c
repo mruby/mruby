@@ -160,7 +160,6 @@ int_div(mrb_state *mrb, mrb_value x)
 #endif
   mrb_int a = mrb_integer(x);
 
-  if (a == 0) return mrb_fixnum_value(0);
   if (mrb_integer_p(y)) {
     return mrb_div_int_value(mrb, a, mrb_integer(y));
   }

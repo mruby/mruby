@@ -1,6 +1,7 @@
 #include <mruby.h>
 #include <mruby/class.h>
 #include <mruby/numeric.h>
+#include <mruby/internal.h>
 #include <mruby/presym.h>
 
 #ifdef MRB_NO_FLOAT
@@ -308,6 +309,9 @@ mrb_complex_div(mrb_state *mrb, mrb_value self, mrb_value rhs)
 
   a = complex_ptr(mrb, self);
   if (mrb_type(rhs) != MRB_TT_COMPLEX) {
+    if (mrb_integer_p(rhs) && mrb_integer(rhs) == 0) {
+      mrb_int_zerodiv(mrb);
+    }
     mrb_float f = mrb_as_float(mrb, rhs);
     return complex_new(mrb, mrb_div_float(a->real, f), mrb_div_float(a->imaginary, f));
   }

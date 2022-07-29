@@ -1,6 +1,7 @@
 #include <mruby.h>
 #include <mruby/class.h>
 #include <mruby/numeric.h>
+#include <mruby/internal.h>
 #include <mruby/presym.h>
 
 #ifndef MRB_NO_FLOAT
@@ -647,6 +648,7 @@ mrb_rational_div(mrb_state *mrb, mrb_value x, mrb_value y)
   case MRB_TT_INTEGER:
     {
       mrb_int z = mrb_integer(y);
+      if (z == 0) mrb_int_zerodiv(mrb);
       if (mrb_int_mul_overflow(p1->denominator, z, &z)) rat_overflow(mrb);
       return rational_new_i(mrb, p1->numerator, z);
     }
