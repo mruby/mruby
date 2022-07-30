@@ -82,6 +82,8 @@ You can use mrbconfs with following ways:
 
 * When defined full GC is emitted per each `RBasic` allocation.
 * Mainly used in memory manager debugging.
+* If defined at the same time as `MRB_DEBUG`, full GC is emitted also per each heap allocation (`mrb_malloc()` or etc.).
+  This configuration slows down mruby execution by a factor of 2 to 3 or even more.
 
 `MRB_GC_TURN_OFF_GENERATIONAL`
 
