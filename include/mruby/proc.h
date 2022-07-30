@@ -36,7 +36,13 @@ struct REnv {
 #define MRB_ENV_BIDX(e) (((e)->flags >> 8) & 0xff)
 #define MRB_ENV_SET_BIDX(e,idx) ((e)->flags = (((e)->flags & ~(0xff<<8))|((unsigned int)(idx) & 0xff)<<8))
 
-void mrb_env_unshare(mrb_state*, struct REnv*);
+/*
+ * Returns TRUE on success.
+ * If the function fails:
+ * * Returns FALSE if noraise is TRUE.
+ * * Raises a NoMemoryError exception if noraise is FALSE.
+ */
+mrb_bool mrb_env_unshare(mrb_state*, struct REnv*, mrb_bool noraise);
 
 struct RProc {
   MRB_OBJECT_HEADER;
