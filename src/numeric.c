@@ -850,6 +850,13 @@ flo_ceil_floor(mrb_state *mrb, mrb_value num, double (*func)(double))
     f = func(f);
   }
   mrb_check_num_exact(mrb, f);
+  if (!FIXABLE_FLOAT(f)) {
+#ifdef MRB_USE_BIGINT
+    return mrb_bint_new_float(mrb, f);
+#else
+    mrb_int_overflow(mrb, "rounding");
+#endif
+  }
   return mrb_int_value(mrb, (mrb_int)f);
 }
 
