@@ -1036,7 +1036,6 @@ flo_to_i(mrb_state *mrb, mrb_value num)
   mrb_float f = mrb_float(num);
 
   mrb_check_num_exact(mrb, f);
-
   if (!FIXABLE_FLOAT(f)) {
 #ifdef MRB_USE_BIGINT
     return mrb_bint_new_float(mrb, f);
@@ -1583,27 +1582,10 @@ int_to_f(mrb_state *mrb, mrb_value num)
 MRB_API mrb_value
 mrb_float_to_integer(mrb_state *mrb, mrb_value x)
 {
-  mrb_int z = 0;
-
   if (!mrb_float_p(x)) {
     mrb_raise(mrb, E_TYPE_ERROR, "non float value");
   }
-  else {
-    mrb_float d = mrb_float(x);
-
-    mrb_check_num_exact(mrb, d);
-    if (FIXABLE_FLOAT(d)) {
-      z = (mrb_int)d;
-    }
-    else {
-#ifdef MRB_USE_BIGINT
-      return mrb_bint_new_float(mrb, d);
-#else
-      mrb_raisef(mrb, E_RANGE_ERROR, "number (%v) too big for integer", x);
-#endif
-    }
-  }
-  return mrb_int_value(mrb, z);
+  return flo_to_i(mrb, x);
 }
 #endif
 
