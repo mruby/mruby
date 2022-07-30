@@ -43,7 +43,7 @@ mrb_printstr(mrb_state *mrb, mrb_value self)
   if (mrb_string_p(s)) {
     printstr(mrb, RSTRING_PTR(s), RSTRING_LEN(s));
   }
-  return s;
+  return mrb_nil_value();
 }
 
 void

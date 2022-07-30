@@ -47,11 +47,9 @@ module Kernel
       i += 1
     end
     __printstr__ "\n" if len == 0
-    nil
   end
 
   def printf(*args)
     __printstr__(sprintf(*args))
-    nil
   end
 end
