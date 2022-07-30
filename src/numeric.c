@@ -1585,6 +1585,10 @@ mrb_float_to_integer(mrb_state *mrb, mrb_value x)
   if (!mrb_float_p(x)) {
     mrb_raise(mrb, E_TYPE_ERROR, "non float value");
   }
+  float f = mrb_float(x);
+  if (isinf(f) || isnan(f)) {
+    mrb_raisef(mrb, E_RANGE_ERROR, "float %f out of range", f);
+  }
   return flo_to_i(mrb, x);
 }
 #endif
