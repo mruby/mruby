@@ -839,6 +839,7 @@ flo_ceil_floor(mrb_state *mrb, mrb_value num, double (*func)(double))
     if (ndigits > fprec) return num;
     mrb_float d = pow(10, (double)ndigits);
     f = func(f * d) / d;
+    mrb_check_num_exact(mrb, f);
     return mrb_float_value(mrb, f);
   }
   if (ndigits < 0) {
