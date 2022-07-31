@@ -1187,6 +1187,9 @@ mrb_bint_div(mrb_state *mrb, mrb_value x, mrb_value y)
   struct RBigint *b = RBIGINT(x);
   struct RBigint *b2 = RBIGINT(y);
   struct RBigint *b3 = bint_new(mrb);
+  if (b2->mp.sn == 0 || uzero(&b2->mp)) {
+    mrb_int_zerodiv(mrb);
+  }
   mpz_mdiv(mrb, &b3->mp, &b->mp, &b2->mp);
   return bint_norm(mrb, b3);
 }
@@ -1263,10 +1266,16 @@ mrb_bint_mod(mrb_state *mrb, mrb_value x, mrb_value y)
     return mrb_float_value(mrb, fmod(v1, v2));
   }
 #endif
+  if (mrb_integer_p(y) && mrb_integer(y) == 0) {
+    mrb_int_zerodiv(mrb);
+  }
   y = mrb_as_bint(mrb, y);
   struct RBigint *b = RBIGINT(x);
   struct RBigint *b2 = RBIGINT(y);
   struct RBigint *b3 = bint_new(mrb);
+  if (b2->mp.sn == 0 || uzero(&b2->mp)) {
+    mrb_int_zerodiv(mrb);
+  }
   mpz_mmod(mrb, &b3->mp, &b->mp, &b2->mp);
   return bint_norm(mrb, b3);
 }
@@ -1276,10 +1285,16 @@ mrb_bint_rem(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   /* called from mrbgems/mruby-numeric-ext/src/numeric_ext.c */
   /* y should not be float */
+  if (mrb_integer_p(y) && mrb_integer(y) == 0) {
+    mrb_int_zerodiv(mrb);
+  }
+  y = mrb_as_bint(mrb, y);
   struct RBigint *b = RBIGINT(x);
   struct RBigint *b2 = RBIGINT(y);
   struct RBigint *b3 = bint_new(mrb);
-  y = mrb_as_bint(mrb, y);
+  if (b2->mp.sn == 0 || uzero(&b2->mp)) {
+    mrb_int_zerodiv(mrb);
+  }
   mpz_mod(mrb, &b3->mp, &b->mp, &b2->mp);
   return bint_norm(mrb, b3);
 }
@@ -1289,11 +1304,17 @@ mrb_bint_divmod(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   /* called from src/numeric.c */
   /* y should not be float */
+  if (mrb_integer_p(y) && mrb_integer(y) == 0) {
+    mrb_int_zerodiv(mrb);
+  }
   y = mrb_as_bint(mrb, y);
   struct RBigint *b = RBIGINT(x);
   struct RBigint *b2 = RBIGINT(y);
   struct RBigint *b3 = bint_new(mrb);
   struct RBigint *b4 = bint_new(mrb);
+  if (b2->mp.sn == 0 || uzero(&b2->mp)) {
+    mrb_int_zerodiv(mrb);
+  }
   mpz_mdivmod(mrb, &b3->mp, &b4->mp, &b->mp, &b2->mp);
   x = bint_norm(mrb, b3);
   y = bint_norm(mrb, b4);
