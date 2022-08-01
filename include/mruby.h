@@ -686,9 +686,9 @@ MRB_API struct RClass * mrb_module_new(mrb_state *mrb);
  *       example_class = mrb_define_class(mrb, "ExampleClass", mrb->object_class);
  *       cd = mrb_class_defined(mrb, "ExampleClass");
  *
- *       // If mrb_class_defined returns 1 then puts "True"
- *       // If mrb_class_defined returns 0 then puts "False"
- *       if (cd == 1){
+ *       // If mrb_class_defined returns TRUE then puts "True"
+ *       // If mrb_class_defined returns FALSE then puts "False"
+ *       if (cd) {
  *         puts("True");
  *       }
  *       else {
@@ -735,9 +735,9 @@ MRB_API struct RClass* mrb_exc_get_id(mrb_state *mrb, mrb_sym name);
  *       example_inner = mrb_define_class_under(mrb, example_outer, "ExampleInner", mrb->object_class);
  *       cd = mrb_class_defined_under(mrb, example_outer, "ExampleInner");
  *
- *       // If mrb_class_defined_under returns 1 then puts "True"
- *       // If mrb_class_defined_under returns 0 then puts "False"
- *       if (cd == 1){
+ *       // If mrb_class_defined_under returns TRUE then puts "True"
+ *       // If mrb_class_defined_under returns FALSE then puts "False"
+ *       if (cd) {
  *         puts("True");
  *       }
  *       else {
@@ -821,14 +821,14 @@ MRB_API mrb_value mrb_obj_dup(mrb_state *mrb, mrb_value obj);
  *        example_class = mrb_define_class(mrb, "ExampleClass", mrb->object_class);
  *        mrb_define_method(mrb, example_class, "example_method", exampleMethod, MRB_ARGS_NONE());
  *        mid = mrb_intern_str(mrb, mrb_str_new_lit(mrb, "example_method" ));
- *        obj_resp = mrb_obj_respond_to(mrb, example_class, mid); // => 1(true in Ruby world)
+ *        obj_resp = mrb_obj_respond_to(mrb, example_class, mid); // => TRUE (true in Ruby world)
  *
- *        // If mrb_obj_respond_to returns 1 then puts "True"
- *        // If mrb_obj_respond_to returns 0 then puts "False"
- *        if (obj_resp == 1) {
+ *        // If mrb_obj_respond_to returns TRUE then puts "True"
+ *        // If mrb_obj_respond_to returns FALSE then puts "False"
+ *        if (obj_resp) {
  *          puts("True");
  *        }
- *        else if (obj_resp == 0) {
+ *        else {
  *          puts("False");
  *        }
  *      }
