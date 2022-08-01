@@ -58,13 +58,15 @@ mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
   if (mrb_obj_eq(mrb, obj1, obj2)) return TRUE;
 #ifndef MRB_NO_FLOAT
   /* value mixing with integer and float */
-  if (mrb_integer_p(obj1)) {
-    if (mrb_float_p(obj2) && (mrb_float)mrb_integer(obj1) == mrb_float(obj2))
+  if (mrb_integer_p(obj1) && mrb_float_p(obj2)) {
+    if ((mrb_float)mrb_integer(obj1) == mrb_float(obj2))
       return TRUE;
+    return FALSE;
   }
-  else if (mrb_float_p(obj1)) {
-    if (mrb_integer_p(obj2) && mrb_float(obj1) == (mrb_float)mrb_integer(obj2))
+  else if (mrb_float_p(obj1) && mrb_integer_p(obj2)) {
+    if (mrb_float(obj1) == (mrb_float)mrb_integer(obj2))
       return TRUE;
+    return FALSE;
   }
 #endif
   result = mrb_funcall_id(mrb, obj1, MRB_OPSYM(eq), 1, obj2);
