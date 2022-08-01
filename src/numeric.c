@@ -548,7 +548,7 @@ flo_mod(mrb_state *mrb, mrb_value x)
  *     (1.0).eql?(1.0)   #=> true
  */
 static mrb_value
-int_eql(mrb_state *mrb, mrb_value x)
+num_eql(mrb_state *mrb, mrb_value x)
 {
   mrb_value y = mrb_get_arg1(mrb);
 
@@ -557,20 +557,20 @@ int_eql(mrb_state *mrb, mrb_value x)
     return mrb_bool_value(mrb_bint_cmp(mrb, x, y) == 0);
   }
 #endif
-  if (!mrb_integer_p(y)) return mrb_false_value();
-  return mrb_bool_value(mrb_integer(x) == mrb_integer(y));
+#ifndef MRB_NO_FLOAT
+  if (mrb_float_p(x)) {
+    if (!mrb_float_p(y)) return mrb_false_value();
+    return mrb_bool_value(mrb_float(x) == mrb_float(y));
+  }
+#endif
+  if (mrb_integer_p(x)) {
+    if (!mrb_integer_p(y)) return mrb_false_value();
+    return mrb_bool_value(mrb_integer(x) == mrb_integer(y));
+  }
+  return mrb_bool_value(mrb_equal(mrb, x, y));
 }
 
 #ifndef MRB_NO_FLOAT
-static mrb_value
-flo_eql(mrb_state *mrb, mrb_value x)
-{
-  mrb_value y = mrb_get_arg1(mrb);
-
-  if (!mrb_float_p(y)) return mrb_false_value();
-  return mrb_bool_value(mrb_float(x) == mrb_float(y));
-}
-
 /* 15.2.9.3.7  */
 /*
  *  call-seq:
@@ -1985,6 +1985,7 @@ mrb_init_numeric(mrb_state *mrb)
   numeric = mrb_define_class(mrb, "Numeric",  mrb->object_class);                /* 15.2.7 */
   mrb_define_method(mrb, numeric, "finite?",  num_finite_p,    MRB_ARGS_NONE());
   mrb_define_method(mrb, numeric, "infinite?",num_infinite_p,  MRB_ARGS_NONE());
+  mrb_define_method(mrb, numeric, "eql?",     num_eql,         MRB_ARGS_REQ(1)); /* 15.2.8.3.16 */
 
   /* Integer Class */
   mrb->integer_class = integer = mrb_define_class(mrb, "Integer",  numeric);     /* 15.2.8 */
@@ -2014,7 +2015,6 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, integer, "^",        int_xor,         MRB_ARGS_REQ(1)); /* 15.2.8.3.11 */
   mrb_define_method(mrb, integer, "<<",       int_lshift,      MRB_ARGS_REQ(1)); /* 15.2.8.3.12 */
   mrb_define_method(mrb, integer, ">>",       int_rshift,      MRB_ARGS_REQ(1)); /* 15.2.8.3.13 */
-  mrb_define_method(mrb, integer, "eql?",     int_eql,         MRB_ARGS_REQ(1)); /* 15.2.8.3.16 */
 #ifndef MRB_NO_FLOAT
   mrb_define_method(mrb, integer, "to_f",     int_to_f,        MRB_ARGS_NONE()); /* 15.2.8.3.23 */
 #endif
@@ -2060,7 +2060,6 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fl,      "to_i",      flo_to_i,       MRB_ARGS_NONE()); /* 15.2.9.3.14 */
   mrb_define_method(mrb, fl,      "truncate",  flo_truncate,   MRB_ARGS_OPT(1)); /* 15.2.9.3.15 */
   mrb_define_method(mrb, fl,      "divmod",    flo_divmod,     MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, fl,      "eql?",      flo_eql,        MRB_ARGS_REQ(1)); /* 15.2.8.3.16 */
 
   mrb_define_method(mrb, fl,      "to_s",      flo_to_s,       MRB_ARGS_NONE()); /* 15.2.9.3.16(x) */
   mrb_define_method(mrb, fl,      "inspect",   flo_to_s,       MRB_ARGS_NONE());
