@@ -294,6 +294,7 @@ static uint32_t ib_bit_to_capa(uint32_t bit);
 static void ht_init(
   mrb_state *mrb, struct RHash *h, uint32_t size,
   hash_entry *ea, uint32_t ea_capa, hash_table *ht, uint32_t ib_bit);
+static void ht_set(mrb_state *mrb, struct RHash *h, mrb_value key, mrb_value val);
 static void ht_set_without_ib_adjustment(
   mrb_state *mrb, struct RHash *h, mrb_value key, mrb_value val);
 
@@ -531,9 +532,8 @@ ar_set(mrb_state *mrb, struct RHash *h, mrb_value key, mrb_value val)
     if (ea_capa == ea_n_used) {
       if (size == ea_n_used) {
         if (size == AR_MAX_SIZE) {
-          hash_entry *ea = ea_adjust(mrb, ar_ea(h), &ea_capa, EA_MAX_CAPA);
-          ea_set(ea, ea_n_used, key, val);
-          ht_init(mrb, h, ++size, ea, ea_capa, NULL, IB_INIT_BIT);
+          ht_init(mrb, h, size, ar_ea(h), ea_capa, NULL, IB_INIT_BIT);
+          ht_set(mrb, h, key, val);
           return;
         }
         else {
@@ -784,8 +784,9 @@ ht_init(mrb_state *mrb, struct RHash *h, uint32_t size,
 {
   size_t ib_byte_size = ib_byte_size_for(ib_bit);
   size_t ht_byte_size = sizeof(hash_table) + ib_byte_size;
+  ht = (hash_table*)mrb_realloc(mrb, ht, ht_byte_size);
   h_ht_on(h);
-  h_set_ht(h, (hash_table*)mrb_realloc(mrb, ht, ht_byte_size));
+  h_set_ht(h, ht);
   ht_set_size(h, size);
   ht_set_ea(h, ea);
   ht_set_ea_capa(h, ea_capa);
