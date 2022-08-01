@@ -3763,6 +3763,7 @@ codegen(codegen_scope *s, node *tree, int val)
       genop_1(s, OP_SCLASS, cursp());
       push();
       genop_2(s, OP_METHOD, cursp(), idx);
+      push(); pop();
       pop();
       genop_2(s, OP_DEF, cursp(), sym);
       if (val) push();
