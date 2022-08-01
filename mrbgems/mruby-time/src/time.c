@@ -1019,6 +1019,7 @@ mrb_mruby_time_gem_init(mrb_state* mrb)
   mrb_define_class_method(mrb, tc, "now", mrb_time_now, MRB_ARGS_NONE());       /* 15.2.19.6.5 */
   mrb_define_class_method(mrb, tc, "utc", mrb_time_gm, MRB_ARGS_ARG(1,6));      /* 15.2.19.6.6 */
 
+  mrb_define_method(mrb, tc, "eql?"   , mrb_time_eq     , MRB_ARGS_REQ(1));
   mrb_define_method(mrb, tc, "=="     , mrb_time_eq     , MRB_ARGS_REQ(1));
   mrb_define_method(mrb, tc, "<=>"    , mrb_time_cmp    , MRB_ARGS_REQ(1)); /* 15.2.19.7.1 */
   mrb_define_method(mrb, tc, "+"      , mrb_time_plus   , MRB_ARGS_REQ(1)); /* 15.2.19.7.2 */
