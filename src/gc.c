@@ -1020,13 +1020,11 @@ gc_gray_counts(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
       mrb_callinfo *ci;
 
       if (!c || c->status == MRB_FIBER_TERMINATED) break;
+      if (!c->ci) break;
 
       /* mark stack */
       i = c->ci->stack - c->stbase;
-
-      if (c->ci) {
-        i += mrb_ci_nregs(c->ci);
-      }
+      i += mrb_ci_nregs(c->ci);
       if (c->stbase + i > c->stend) i = c->stend - c->stbase;
       children += i;
 
