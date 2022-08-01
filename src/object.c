@@ -69,6 +69,13 @@ mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
     return FALSE;
   }
 #endif
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(obj1) && (mrb_integer_p(obj2) || mrb_bigint_p(obj2))) {
+    if (mrb_bint_cmp(mrb, obj1, obj2) == 0)
+      return TRUE;
+    return FALSE;
+  }
+#endif
   result = mrb_funcall_id(mrb, obj1, MRB_OPSYM(eq), 1, obj2);
   if (mrb_test(result)) return TRUE;
   return FALSE;
