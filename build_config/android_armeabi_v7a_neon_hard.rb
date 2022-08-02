@@ -4,7 +4,7 @@ MRuby::CrossBuild.new('android-armeabi-v7a-neon-hard') do |conf|
     :arch => 'armeabi-v7a',
     :mfpu => 'neon',
     :mfloat_abi => 'hard',
-    :platform => 'android-24',
+    :sdk_version => 26,
     :toolchain => :clang,
   }
   toolchain :android, params

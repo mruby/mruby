@@ -2,7 +2,7 @@
 MRuby::CrossBuild.new('android-armeabi') do |conf|
   params = {
     :arch => 'armeabi',
-    :platform => 'android-24',
+    :sdk_version => 26,
     :toolchain => :clang,
   }
   toolchain :android, params
