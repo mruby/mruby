@@ -2,7 +2,7 @@
 MRuby::CrossBuild.new('android-arm64-v8a') do |conf|
   params = {
     :arch => 'arm64-v8a',
-    :platform => 'android-24',
+    :sdk_version => 26,
     :toolchain => :clang,
   }
   toolchain :android, params

@@ -1,9 +1,11 @@
+require "json"
+
 class MRuby::Toolchain::Android
 
   DEFAULT_ARCH = 'armeabi' # TODO : Revise if arch should have a default
 
   DEFAULT_TOOLCHAIN = :clang
-
+  
   DEFAULT_NDK_HOMES = %w{
     /usr/local/opt/android-sdk/ndk-bundle
     /usr/local/opt/android-ndk
@@ -29,28 +31,6 @@ class MRuby::Toolchain::Android
 Couldn't find Android NDK Home.
 Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
         EOM
-    end
-  end
-
-  class PlatformDirNotFound < StandardError
-    def message
-        <<-EOM
-Couldn't find Android NDK platform directories.
-Set ANDROID_PLATFORM environment variable or set :platform parameter
-        EOM
-    end
-  end
-
-  class SysrootNotReady < StandardError
-    def message
-      <<-EOM
-Couldn't find standard header files
-Please Move/Copy important file inside
-  <NDK_HOME>/sysroot/usr/include/
-to
-  <NDK_HOME>/platforms/<ANDROID_VERSION>/<ARCH>/usr/include/
-Higher NDK version will be use.
-      EOM
     end
   end
 
@@ -178,60 +158,25 @@ Higher NDK version will be use.
     @arch ||= (params[:arch] || ENV['ANDROID_ARCH'] || DEFAULT_ARCH).to_s
   end
 
-  def sysroot
-    return @sysroot if @sysroot
-    sysroot_path = home_path.join('platforms', platform,
-        case arch
-        when /armeabi/    then 'arch-arm'
-        when /arm64-v8a/  then 'arch-arm64'
-        when /x86_64/     then 'arch-x86_64'
-        when /x86/        then 'arch-x86'
-        when /mips64/     then 'arch-mips64'
-        when /mips/       then 'arch-mips'
-        end
-      ).to_s
-    if Dir.exist?(File.join(sysroot_path, "usr", "include"))
-      return @sysroot = sysroot_path
-    else
-      raise(SysrootNotReady)
-    end
-  end
-
-  def platform
-    if @platform === nil then
-      @platform = params[:platform] || ENV['ANDROID_PLATFORM'] || nil
-      if @platform === nil
-        Dir.glob(home_path.join('platforms/android-*').to_s){ |item|
-          next if File.file?(item)
-          if @platform === nil
-            @platform = Integer(item.rpartition('-')[2])
-          else
-            platform = Integer(item.rpartition('-')[2])
-            @platform = platform > @platform ? platform : @platform
-          end
-        }
-        if @platform === nil
-          raise(PlatformDirNotFound)
-        else
-          @platform = "android-#{@platform}"
-        end
-      end
-    end
-    if Integer(@platform.rpartition('-')[2]) < 21
-      case arch
-      when /arm64-v8a/, /x86_64/, /mips64/
-        raise NotImplementedError, "Platform (#{@platform}) has no implementation for architecture (#{arch})"
-      end
-    end
-    @platform
-  end
-
   def armeabi_v7a_mfpu
     @armeabi_v7a_mfpu ||= (params[:mfpu] || 'vfpv3-d16').to_s
   end
 
   def armeabi_v7a_mfloat_abi
     @armeabi_v7a_mfloat_abi ||= (params[:mfloat_abi] || 'softfp').to_s
+  end
+
+  def sdk_version
+    @sdk_version ||= params[:sdk_version]
+    if !@sdk_version then
+      # Higher SDK version will be used.
+      json = nil
+      File.open(home_path + "meta/platforms.json") do |f|
+        json = JSON.load(f)
+      end
+      @sdk_version = json["max"]
+    end
+    @sdk_version
   end
 
   def no_warn_mismatch
@@ -259,6 +204,7 @@ Higher NDK version will be use.
   def ctarget
     flags = []
 
+    v = sdk_version
     case toolchain
     when :gcc
       case arch
@@ -272,13 +218,13 @@ Higher NDK version will be use.
       end
     when :clang
       case arch
-      when /armeabi-v7a/  then flags += %W(-target armv7-none-linux-androideabi)
-      when /armeabi/      then flags += %W(-target armv5te-none-linux-androideabi)
-      when /arm64-v8a/    then flags += %W(-target aarch64-none-linux-android)
-      when /x86_64/       then flags += %W(-target x86_64-none-linux-android)
-      when /x86/          then flags += %W(-target i686-none-linux-android)
-      when /mips64/       then flags += %W(-target mips64el-none-linux-android)
-      when /mips/         then flags += %W(-target mipsel-none-linux-android)
+      when /armeabi-v7a/  then flags += %W(-target armv7-none-linux-androideabi#{v})
+      when /armeabi/      then flags += %W(-target armv5te-none-linux-androideabi#{v})
+      when /arm64-v8a/    then flags += %W(-target aarch64-none-linux-android#{v})
+      when /x86_64/       then flags += %W(-target x86_64-none-linux-android#{v})
+      when /x86/          then flags += %W(-target i686-none-linux-android#{v})
+      when /mips64/       then flags += %W(-target mips64el-none-linux-android#{v})
+      when /mips/         then flags += %W(-target mipsel-none-linux-android#{v})
       end
     end
 
@@ -304,7 +250,7 @@ Higher NDK version will be use.
       flags += %W(-U_WIN32 -U_WIN64)
     end
 
-    flags += %W(-MMD -MP -D__android__ -DANDROID --sysroot="#{sysroot}")
+    flags += %W(-MMD -MP -D__android__ -DANDROID)
     flags += ctarget
     case toolchain
     when :gcc
@@ -319,14 +265,13 @@ Higher NDK version will be use.
   def ldflags
     flags = []
 
-    flags += %W(--sysroot="#{sysroot}")
-
     flags
   end
 
   def ldflags_before_libraries
     flags = []
 
+    v = sdk_version
     case toolchain
     when :gcc
       case arch
@@ -335,13 +280,13 @@ Higher NDK version will be use.
     when :clang
       flags += %W(-gcc-toolchain "#{gcc_toolchain_path.to_s}")
       case arch
-      when /armeabi-v7a/  then flags += %W(-target armv7-none-linux-androideabi -Wl,--fix-cortex-a8#{no_warn_mismatch})
-      when /armeabi/      then flags += %W(-target armv5te-none-linux-androideabi)
-      when /arm64-v8a/    then flags += %W(-target aarch64-none-linux-android)
-      when /x86_64/       then flags += %W(-target x86_64-none-linux-android)
-      when /x86/          then flags += %W(-target i686-none-linux-android)
-      when /mips64/       then flags += %W(-target mips64el-none-linux-android)
-      when /mips/         then flags += %W(-target mipsel-none-linux-android)
+      when /armeabi-v7a/  then flags += %W(-target armv7-none-linux-androideabi#{v} -Wl,--fix-cortex-a8#{no_warn_mismatch})
+      when /armeabi/      then flags += %W(-target armv5te-none-linux-androideabi#{v})
+      when /arm64-v8a/    then flags += %W(-target aarch64-none-linux-android#{v})
+      when /x86_64/       then flags += %W(-target x86_64-none-linux-android#{v})
+      when /x86/          then flags += %W(-target i686-none-linux-android#{v})
+      when /mips64/       then flags += %W(-target mips64el-none-linux-android#{v})
+      when /mips/         then flags += %W(-target mipsel-none-linux-android#{v})
       end
     end
     flags += %W(-no-canonical-prefixes)
