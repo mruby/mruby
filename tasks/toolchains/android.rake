@@ -5,7 +5,7 @@ class MRuby::Toolchain::Android
   DEFAULT_ARCH = 'armeabi' # TODO : Revise if arch should have a default
 
   DEFAULT_TOOLCHAIN = :clang
-  
+
   DEFAULT_NDK_HOMES = %w{
     /usr/local/opt/android-sdk/ndk-bundle
     /usr/local/opt/android-ndk
