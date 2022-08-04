@@ -1958,9 +1958,14 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
       push(); pop();
       s->sp = call;
       if (mid == MRB_OPSYM_2(s->mrb, aref) && n == 2) {
+        push_n(4); pop_n(4); /* self + idx + value + (invisible block for OP_SEND) */
         genop_1(s, OP_SETIDX, cursp());
       }
       else {
+        int st = 2 /* self + block */ +
+                 (((n >> 0) & 0x0f) < 15 ? ((n >> 0) & 0x0f)     : 1) +
+                 (((n >> 4) & 0x0f) < 15 ? ((n >> 4) & 0x0f) * 2 : 1);
+        push_n(st); pop_n(st);
         genop_3(s, noself ? OP_SSEND : OP_SEND, cursp(), new_sym(s, attrsym(s, mid)), n);
       }
       if (safe) {
