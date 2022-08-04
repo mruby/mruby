@@ -159,10 +159,10 @@ uadd(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
   /* now y->sz >= x->sz */
   mpz_realloc(mrb, z, y->sz+1);
 
-  mp_limb2 c = 0;
+  mp_dbl_limb c = 0;
   size_t i;
   for (i=0; i<x->sz; i++) {
-    c += (mp_limb2)y->p[i] + (mp_limb2)x->p[i];
+    c += (mp_dbl_limb)y->p[i] + (mp_dbl_limb)x->p[i];
     z->p[i] = LOW(c);
     c >>= DIG_SIZE;
   }
@@ -181,11 +181,11 @@ static void
 usub(mrb_state *mrb, mpz_t *z, mpz_t *y, mpz_t *x)
 {
   mpz_realloc(mrb, z, (size_t)(y->sz));
-  mp_limb2s b = 0;
+  mp_dbl_limb_signed b = 0;
   size_t i;
   for (i=0;i<x->sz;i++) {
-    b += (mp_limb2s)y->p[i];
-    b -= (mp_limb2s)x->p[i];
+    b += (mp_dbl_limb_signed)y->p[i];
+    b -= (mp_dbl_limb_signed)x->p[i];
     z->p[i] = LOW(b);
     b = HIGH(b);
   }
@@ -317,13 +317,13 @@ mpz_mul(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
   mpz_init(mrb, &w);
   mpz_realloc(mrb, &w, u->sz + v->sz);
   for (j=0; j < u->sz; j++) {
-    mp_limb2 cc = (mp_limb)0;
+    mp_dbl_limb cc = (mp_limb)0;
     mp_limb u0 = u->p[j];
     if (u0 == 0) continue;
     for (i=0; i < v->sz; i++) {
       mp_limb v0 = v->p[i];
       if (v0 == 0) continue;
-      cc += (mp_limb2)w.p[i+j] + (mp_limb2)u0 * (mp_limb2)v0;
+      cc += (mp_dbl_limb)w.p[i+j] + (mp_dbl_limb)u0 * (mp_dbl_limb)v0;
       w.p[i+j] = LOW(cc);
       cc = HIGH(cc);
     }
@@ -385,7 +385,7 @@ urshift(mrb_state *mrb, mpz_t *c1, mpz_t *a, size_t n)
   else {
     mpz_t c;
     mp_limb cc = 0;
-    mp_limb2 rm = (((mp_limb2)1<<n) - 1);
+    mp_dbl_limb rm = (((mp_dbl_limb)1<<n) - 1);
 
     mpz_init(mrb, &c);
     mpz_realloc(mrb, &c, a->sz);
@@ -413,7 +413,7 @@ ulshift(mrb_state *mrb, mpz_t *c1, mpz_t *a, size_t n)
   else {
     mp_limb cc = 0;
     mpz_t c;
-    mp_limb rm = (((mp_limb2)1<<n) - 1) << (DIG_SIZE-n);
+    mp_limb rm = (((mp_dbl_limb)1<<n) - 1) << (DIG_SIZE-n);
 
     mpz_init(mrb, &c);
     mpz_realloc(mrb, &c, a->sz+1);
@@ -461,28 +461,28 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
   ulshift(mrb, &y, yy, ns);
   size_t xd = digits(&x);
   mpz_realloc(mrb, &q, xd);
-  mp_limb2 z = y.p[yd-1];
+  mp_dbl_limb z = y.p[yd-1];
   for (size_t j=xd-yd;; j--) {
-    mp_limb2s b=0;
-    mp_limb2 qhat;
+    mp_dbl_limb_signed b=0;
+    mp_dbl_limb qhat;
 
     if (j+yd == xd)
       qhat = x.p[j+yd-1] / z;
     else
-      qhat = (((mp_limb2)x.p[j+yd] << DIG_SIZE) + x.p[j+yd-1]) / z;
+      qhat = (((mp_dbl_limb)x.p[j+yd] << DIG_SIZE) + x.p[j+yd-1]) / z;
     if (qhat) {
       for (i=0; i<yd; i++) {
-        mp_limb2 zz = qhat * y.p[i];
-        mp_limb2s u = LOW(b)+x.p[i+j]-LOW(zz);
+        mp_dbl_limb zz = qhat * y.p[i];
+        mp_dbl_limb_signed u = LOW(b)+x.p[i+j]-LOW(zz);
         x.p[i+j] = LOW(u);
         b = HIGH(b) - HIGH(zz) + HIGH(u);
       }
       b += x.p[i+j];
     }
     for (; b!=0; qhat--) {
-      mp_limb2 c = 0;
+      mp_dbl_limb c = 0;
       for (i=0; i<yd; i++) {
-        c += (mp_limb2)x.p[i+j] + (mp_limb2)y.p[i];
+        c += (mp_dbl_limb)x.p[i+j] + (mp_dbl_limb)y.p[i];
         x.p[i+j] = LOW(c);
         c = HIGH(c);
       }
@@ -698,7 +698,7 @@ mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
 
   for (;;) {
     mp_limb *d = tend;
-    mp_limb2 a = 0;
+    mp_dbl_limb a = 0;
     while (--d >= t) {
       mp_limb d0 = *d;
       a = (a<<DIG_SIZE) | d0;
@@ -748,7 +748,7 @@ mpz_get_int(mpz_t *y, mrb_int *v)
     return TRUE;
   }
 
-  mp_limb2 i = 0;
+  mp_dbl_limb i = 0;
   mp_limb *d = y->p + y->sz;
 
   while (d-- > y->p) {

@@ -36,13 +36,13 @@
 
 #ifdef MRB_NO_MPZ64BIT
 typedef uint16_t mp_limb;
-typedef uint32_t mp_limb2;
-typedef int32_t mp_limb2s;
+typedef uint32_t mp_dbl_limb;
+typedef int32_t mp_dbl_limb_signed;
 #define MPZ_DIG_SIZE 16
 #else
 typedef uint32_t mp_limb;
-typedef uint64_t mp_limb2;
-typedef int64_t mp_limb2s;
+typedef uint64_t mp_dbl_limb;
+typedef int64_t mp_dbl_limb_signed;
 #define MPZ_DIG_SIZE 32
 #endif
 
