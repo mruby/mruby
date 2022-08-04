@@ -30,16 +30,21 @@
 
 #include <sys/types.h>
 
+#if defined(MRB_INT32) && defined(_WIN32) && !defined(MRB_NO_MPZ64BIT)
+#define MRB_NO_MPZ64BIT
+#endif
+
 #ifdef MRB_NO_MPZ64BIT
 typedef uint16_t mp_limb;
 typedef uint32_t mp_limb2;
 typedef int32_t mp_limb2s;
+#define MPZ_DIG_SIZE 16
 #else
 typedef uint32_t mp_limb;
 typedef uint64_t mp_limb2;
 typedef int64_t mp_limb2s;
+#define MPZ_DIG_SIZE 32
 #endif
-#define MPZ_DIG_SIZE (sizeof(mp_limb)*8)
 
 typedef struct _mpz_t {
   mp_limb *p;
