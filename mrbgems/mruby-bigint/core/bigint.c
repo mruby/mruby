@@ -171,7 +171,7 @@ uadd(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
     z->p[i] = LOW(c);
     c >>= DIG_SIZE;
   }
-  z->p[y->sz]=c;
+  z->p[y->sz] = (mp_limb)c;
   trim(z);
 }
 
@@ -328,7 +328,7 @@ mpz_mul(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
       cc = HIGH(cc);
     }
     if (cc) {
-      w.p[i+j] = cc;
+      w.p[i+j] = (mp_limb)cc;
     }
   }
   w.sn = u->sn * v->sn;
@@ -488,7 +488,7 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
       }
       b += c;
     }
-    q.p[j] = qhat;
+    q.p[j] = (mp_limb)qhat;
     if (j == 0) break;
   }
   x.sz = yy->sz;
@@ -702,7 +702,7 @@ mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
     while (--d >= t) {
       mp_limb d0 = *d;
       a = (a<<DIG_SIZE) | d0;
-      *d = a / b2;
+      *d = (mp_limb)(a / b2);
       a %= b2;
     }
 
