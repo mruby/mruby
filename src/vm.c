@@ -1256,7 +1256,7 @@ hash_new_from_regs(mrb_state *mrb, mrb_int argc, mrb_int idx)
     *(arg_info) = n | (nk<<4); \
   } \
   \
-  mrb_assert(bidx < irep->nregs+(arg_base)); \
+  mrb_assert(bidx < irep->nregs); \
   mrb_int new_bidx = (arg_base)+mrb_bidx(n, nk); \
   if ((insn) == OP_SEND) { \
     /* clear block argument */ \
