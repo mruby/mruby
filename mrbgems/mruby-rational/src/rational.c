@@ -741,6 +741,15 @@ rational_pow(mrb_state *mrb, mrb_value x)
 #endif
 }
 
+static mrb_value
+rational_hash(mrb_state *mrb, mrb_value rat)
+{
+  struct mrb_rational *r = rational_ptr(mrb, rat);
+  uint32_t hash = mrb_byte_hash((uint8_t*)&r->numerator, sizeof(mrb_int));
+  hash = mrb_byte_hash_step((uint8_t*)&r->denominator, sizeof(mrb_int), hash);
+  return mrb_int_value(mrb, hash);
+}
+
 void mrb_mruby_rational_gem_init(mrb_state *mrb)
 {
   struct RClass *rat;
@@ -766,6 +775,7 @@ void mrb_mruby_rational_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, rat, "/", rational_div, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, rat, "quo", rational_div, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, rat, "**", rational_pow, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, rat, "hash", rational_hash, MRB_ARGS_NONE());
   mrb_define_method(mrb, mrb->integer_class, "to_r", fix_to_r, MRB_ARGS_NONE());
   mrb_define_method(mrb, mrb->kernel_module, "Rational", rational_m, MRB_ARGS_ARG(1,1));
 }
