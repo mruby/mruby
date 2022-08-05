@@ -3,6 +3,7 @@
 #
 # ISO 15.2.18
 class Struct
+  include Enumerable
 
   ##
   # Calls the given block for each element of +self+
