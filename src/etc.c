@@ -9,6 +9,7 @@
 #include <mruby/data.h>
 #include <mruby/class.h>
 #include <mruby/numeric.h>
+#include <mruby/internal.h>
 
 MRB_API struct RData*
 mrb_data_object_alloc(mrb_state *mrb, struct RClass *klass, void *ptr, const mrb_data_type *type)
@@ -70,24 +71,10 @@ mrb_obj_to_sym(mrb_state *mrb, mrb_value name)
   return 0;  /* not reached */
 }
 
-static mrb_int
-make_num_id(const char *p, size_t len)
-{
-  uint32_t id = 0;
-
-  while (len--) {
-    id = id*65599 + *p;
-    p++;
-  }
-  id = id + (id>>5);
-
-  return (mrb_int)id;
-}
-
 MRB_API mrb_int
 mrb_int_id(mrb_int n)
 {
-  return make_num_id((const char*)&n, sizeof(n));
+  return mrb_byte_hash((uint8_t*)&n, sizeof(n));
 }
 
 #ifndef MRB_NO_FLOAT
@@ -96,7 +83,7 @@ mrb_float_id(mrb_float f)
 {
   /* normalize -0.0 to 0.0 */
   if (f == 0) f = 0.0;
-  return make_num_id((const char*)&f, sizeof(f));
+  return (mrb_int)mrb_byte_hash((uint8_t*)&f, sizeof(f));
 }
 #endif
 
