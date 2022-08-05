@@ -10,6 +10,7 @@
 #include <mruby/numeric.h>
 #include <mruby/time.h>
 #include <mruby/string.h>
+#include <mruby/internal.h>
 #include <mruby/presym.h>
 
 #ifdef MRB_NO_STDIO
@@ -1004,6 +1005,16 @@ mrb_time_to_s(mrb_state *mrb, mrb_value self)
   return str;
 }
 
+static mrb_value
+mrb_time_hash(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_time *tm = time_get_ptr(mrb, self);
+  uint32_t hash = mrb_byte_hash((uint8_t*)&tm->sec, sizeof(time_t));
+  hash = mrb_byte_hash_step((uint8_t*)&tm->usec, sizeof(time_t), hash);
+  hash = mrb_byte_hash_step((uint8_t*)&tm->timezone, sizeof(tm->timezone), hash);
+  return mrb_int_value(mrb, hash);
+}
+
 void
 mrb_mruby_time_gem_init(mrb_state* mrb)
 {
@@ -1019,6 +1030,7 @@ mrb_mruby_time_gem_init(mrb_state* mrb)
   mrb_define_class_method(mrb, tc, "now", mrb_time_now, MRB_ARGS_NONE());       /* 15.2.19.6.5 */
   mrb_define_class_method(mrb, tc, "utc", mrb_time_gm, MRB_ARGS_ARG(1,6));      /* 15.2.19.6.6 */
 
+  mrb_define_method(mrb, tc, "hash"   , mrb_time_hash   , MRB_ARGS_NONE());
   mrb_define_method(mrb, tc, "eql?"   , mrb_time_eq     , MRB_ARGS_REQ(1));
   mrb_define_method(mrb, tc, "=="     , mrb_time_eq     , MRB_ARGS_REQ(1));
   mrb_define_method(mrb, tc, "<=>"    , mrb_time_cmp    , MRB_ARGS_REQ(1)); /* 15.2.19.7.1 */
