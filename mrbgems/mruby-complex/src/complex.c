@@ -372,6 +372,15 @@ complex_div(mrb_state *mrb, mrb_value x)
   return mrb_complex_div(mrb, x, y);
 }
 
+static mrb_value
+complex_hash(mrb_state *mrb, mrb_value cpx)
+{
+  struct mrb_complex *c = complex_ptr(mrb, cpx);
+  uint32_t hash = mrb_byte_hash((uint8_t*)&c->real, sizeof(mrb_float));
+  hash = mrb_byte_hash_step((uint8_t*)&c->imaginary, sizeof(mrb_float), hash);
+  return mrb_int_value(mrb, hash);
+}
+
 void mrb_mruby_complex_gem_init(mrb_state *mrb)
 {
   struct RClass *comp;
@@ -394,6 +403,7 @@ void mrb_mruby_complex_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, comp, "/", complex_div, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, comp, "quo", complex_div, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, comp, "==", complex_eq, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, comp, "hash", complex_hash, MRB_ARGS_NONE());
 }
 
 void
