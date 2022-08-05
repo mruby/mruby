@@ -1665,22 +1665,19 @@ mrb_str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 
 /*
  * 32 bit magic FNV-0 and FNV-1 prime
- */
+b */
 #define FNV_32_PRIME ((uint32_t)0x01000193)
 #define FNV1_32_INIT ((uint32_t)0x811c9dc5)
 
 uint32_t
-mrb_str_hash(mrb_state *mrb, mrb_value str)
+mrb_byte_hash_step(const uint8_t *s, mrb_int len, uint32_t hval)
 {
-  struct RString *s = mrb_str_ptr(str);
-  const unsigned char *bp = (unsigned char*)RSTR_PTR(s); /* start of buffer */
-  const unsigned char *be = bp + RSTR_LEN(s);            /* beyond end of buffer */
-  uint32_t hval = FNV1_32_INIT;
+  const uint8_t *send = s + len;
 
   /*
    * FNV-1 hash each octet in the buffer
    */
-  while (bp < be) {
+  while (s < send) {
     /* multiply by the 32 bit FNV magic prime mod 2^32 */
 #if defined(NO_FNV_GCC_OPTIMIZATION)
     hval *= FNV_32_PRIME;
@@ -1689,11 +1686,24 @@ mrb_str_hash(mrb_state *mrb, mrb_value str)
 #endif
 
     /* xor the bottom with the current octet */
-    hval ^= (uint32_t)*bp++;
+    hval ^= (uint32_t)*s++;
   }
 
   /* return our new hash value */
   return hval;
+}
+
+uint32_t
+mrb_byte_hash(const uint8_t *s, mrb_int len)
+{
+  return mrb_byte_hash_step(s, len, FNV1_32_INIT);
+}
+
+uint32_t
+mrb_str_hash(mrb_state *mrb, mrb_value str)
+{
+  struct RString *s = mrb_str_ptr(str);
+  return mrb_byte_hash((uint8_t*)RSTR_PTR(s), RSTR_LEN(s));
 }
 
 /* 15.2.10.5.20 */
