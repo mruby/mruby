@@ -1538,3 +1538,12 @@ mrb_bint_memsize(mrb_value x)
   struct RBigint *b = RBIGINT(x);
   return b->mp.sz * sizeof(mp_limb);
 }
+
+mrb_value
+mrb_bint_hash(mrb_state *mrb, mrb_value x)
+{
+  struct RBigint *b = RBIGINT(x);
+  uint32_t hash = mrb_byte_hash((uint8_t*)b->mp.p, b->mp.sz);
+  hash = mrb_byte_hash_step((uint8_t*)&b->mp.sn, sizeof(b->mp.sn), hash);
+  return mrb_int_value(mrb, hash);
+}

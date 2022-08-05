@@ -249,6 +249,11 @@ mrb_obj_frozen(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_obj_hash(mrb_state *mrb, mrb_value self)
 {
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(self)) {
+    return mrb_bint_hash(mrb, self);
+  }
+#endif
   return mrb_int_value(mrb, mrb_obj_id(self));
 }
 
