@@ -1727,11 +1727,12 @@ RETRY_TRY_BLOCK:
       ARGUMENT_NORMALIZE(a, &c, insn);
 
       recv = regs[a];
-      cls = mrb_class(mrb, recv);
+      ci = mrb->c->ci;
+      cls = (insn == OP_SUPER) ? CI_TARGET_CLASS(ci)->super : mrb_class(mrb, recv);
       m = mrb_method_search_vm(mrb, &cls, mid);
       ci = cipush(mrb, a, CINFO_DIRECT, NULL, NULL, 0, c);
       if (MRB_METHOD_UNDEF_P(m)) {
-        m = prepare_missing(mrb, recv, mid, &cls, 0, &c, blk, 0);
+        m = prepare_missing(mrb, recv, mid, &cls, 0, &c, blk, (insn == OP_SUPER ? 1 : 0));
         mid = MRB_SYM(method_missing);
         ci->n  = (c >> 0) & 0x0f;
         ci->nk = (c >> 4) & 0x0f;
@@ -1841,14 +1842,12 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_SUPER, BB) {
-      mrb_method_t m;
-      struct RClass *cls;
       mrb_callinfo *ci = mrb->c->ci;
-      mrb_value recv, blk;
+      mrb_value recv;
       const struct RProc *p = ci->proc;
-      mrb_sym mid = ci->mid;
       struct RClass* target_class = CI_TARGET_CLASS(ci);
 
+      mid = ci->mid;
       if (MRB_PROC_ENV_P(p) && p->e.env->mid && p->e.env->mid != mid) { /* alias support */
         mid = p->e.env->mid;    /* restore old mid */
       }
@@ -1870,61 +1869,9 @@ RETRY_TRY_BLOCK:
         goto L_RAISE;
       }
 
-      ARGUMENT_NORMALIZE(a, &b, OP_SUPER);
-
-      cls = target_class->super;
-      m = mrb_method_search_vm(mrb, &cls, mid);
-      if (MRB_METHOD_UNDEF_P(m)) {
-        m = prepare_missing(mrb, recv, mid, &cls, a, &b, blk, 1);
-        mid = MRB_SYM(method_missing);
-      }
-
-      /* push callinfo */
-      ci = cipush(mrb, a, 0, cls, NULL, mid, b);
-
-      /* prepare stack */
-      ci->stack[0] = recv;
-
-      if (MRB_METHOD_CFUNC_P(m)) {
-        mrb_value v;
-
-        if (MRB_METHOD_PROC_P(m)) {
-          const struct RProc *p = MRB_METHOD_PROC(m);
-          CI_PROC_SET(ci, p);
-        }
-        v = MRB_METHOD_CFUNC(m)(mrb, recv);
-        mrb_gc_arena_restore(mrb, ai);
-        if (mrb->exc) goto L_RAISE;
-        ci = mrb->c->ci;
-        mrb_assert(!mrb_break_p(v));
-        if (!CI_TARGET_CLASS(ci)) { /* return from context modifying method (resume/yield) */
-          if (ci->cci == CINFO_RESUMED) {
-            mrb->jmp = prev_jmp;
-            return v;
-          }
-          else {
-            mrb_assert(!MRB_PROC_CFUNC_P(ci[-1].proc));
-            proc = ci[-1].proc;
-            irep = proc->body.irep;
-            pool = irep->pool;
-            syms = irep->syms;
-          }
-        }
-        mrb->c->ci->stack[0] = v;
-        ci = cipop(mrb);
-        pc = ci->pc;
-      }
-      else {
-        /* setup environment for calling method */
-        proc = MRB_METHOD_PROC(m);
-        CI_PROC_SET(ci, proc);
-        irep = proc->body.irep;
-        pool = irep->pool;
-        syms = irep->syms;
-        mrb_stack_extend(mrb, (irep->nregs < 4) ? 4 : irep->nregs);
-        pc = irep->iseq;
-      }
-      JUMP;
+      c = b; // arg info
+      regs[a] = recv;
+      goto L_SENDB_SYM;
     }
 
     CASE(OP_ARGARY, BS) {
