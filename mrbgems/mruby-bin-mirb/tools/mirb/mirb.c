@@ -519,7 +519,7 @@ main(int argc, char **argv)
     fclose(lfp);
     e = mrb_vm_ci_env(mrb->c->cibase);
     mrb_vm_ci_env_set(mrb->c->cibase, NULL);
-    mrb_env_unshare(mrb, e);
+    mrb_env_unshare(mrb, e, FALSE);
     mrbc_cleanup_local_variables(mrb, cxt);
   }
 

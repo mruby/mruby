@@ -358,24 +358,45 @@ cipush(mrb_state *mrb, mrb_int push_stacks, uint8_t cci,
   return ci;
 }
 
-void
-mrb_env_unshare(mrb_state *mrb, struct REnv *e)
+mrb_bool
+mrb_env_unshare(mrb_state *mrb, struct REnv *e, mrb_bool noraise)
 {
-  if (e == NULL) return;
-  else {
-    size_t len = (size_t)MRB_ENV_LEN(e);
-    mrb_value *p;
+  if (e == NULL) return TRUE;
+  if (!MRB_ENV_ONSTACK_P(e)) return TRUE;
+  if (e->cxt != mrb->c) return TRUE;
+  if (e == CI_ENV(mrb->c->cibase)) return TRUE; /* for mirb */
 
-    if (!MRB_ENV_ONSTACK_P(e)) return;
-    if (e->cxt != mrb->c) return;
-    if (e == CI_ENV(mrb->c->cibase)) return; /* for mirb */
-    p = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value)*len);
-    if (len > 0) {
-      stack_copy(p, e->stack, len);
-    }
+  size_t len = (size_t)MRB_ENV_LEN(e);
+  if (len == 0) {
+    e->stack = NULL;
+    MRB_ENV_CLOSE(e);
+    return TRUE;
+  }
+
+  size_t live = mrb->gc.live;
+  mrb_value *p = (mrb_value *)mrb_malloc_simple(mrb, sizeof(mrb_value)*len);
+  if (live != mrb->gc.live && mrb_object_dead_p(mrb, (struct RBasic *)e)) {
+    // The e object is now subject to GC inside mrb_malloc_simple().
+    // Moreover, if NULL is returned due to mrb_malloc_simple() failure, simply ignore it.
+    mrb_free(mrb, p);
+    return TRUE;
+  }
+  else if (p) {
+    stack_copy(p, e->stack, len);
     e->stack = p;
     MRB_ENV_CLOSE(e);
     mrb_write_barrier(mrb, (struct RBasic *)e);
+    return TRUE;
+  }
+  else {
+    e->stack = NULL;
+    MRB_ENV_CLOSE(e);
+    MRB_ENV_SET_LEN(e, 0);
+    MRB_ENV_SET_BIDX(e, 0);
+    if (!noraise) {
+      mrb_exc_raise(mrb, mrb_obj_value(mrb->nomem_err));
+    }
+    return FALSE;
   }
 }
 
@@ -385,8 +406,12 @@ cipop(mrb_state *mrb)
   struct mrb_context *c = mrb->c;
   struct REnv *env = CI_ENV(c->ci);
 
+  mrb_vm_ci_env_set(c->ci, NULL); // make possible to free by GC if env is not needed
+  if (env && !mrb_env_unshare(mrb, env, TRUE)) {
+    c->ci--; // exceptions are handled at the method caller; see #3087
+    mrb_exc_raise(mrb, mrb_obj_value(mrb->nomem_err));
+  }
   c->ci--;
-  if (env) mrb_env_unshare(mrb, env);
   return c->ci;
 }
 
