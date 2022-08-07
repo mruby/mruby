@@ -165,7 +165,7 @@ mrb_word_boxing_float_value(mrb_state *mrb, mrb_float f)
 #elif defined(MRB_64BIT) && defined(MRB_USE_FLOAT32)
   v.w = 0;
   v.f = f;
-  v.w = ((v.w<<2) & ~3) | 2;
+  v.w = (v.w<<2) | 2;
 #else
   v.f = f;
   v.w = (v.w & ~3) | 2;
@@ -180,9 +180,10 @@ mrb_word_boxing_value_float(mrb_value v)
 {
   union mrb_value_ u;
   u.value = v;
-  u.w = u.w & ~3;
 #if defined(MRB_64BIT) && defined(MRB_USE_FLOAT32)
   u.w >>= 2;
+#else
+  u.w &= ~3;
 #endif
   return u.f;
 }
