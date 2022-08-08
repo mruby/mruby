@@ -71,14 +71,8 @@ mrb_obj_to_sym(mrb_state *mrb, mrb_value name)
   return 0;  /* not reached */
 }
 
-MRB_API mrb_int
-mrb_int_id(mrb_int n)
-{
-  return mrb_byte_hash((uint8_t*)&n, sizeof(n));
-}
-
 #ifndef MRB_NO_FLOAT
-MRB_API mrb_int
+static mrb_int
 mrb_float_id(mrb_float f)
 {
   /* normalize -0.0 to 0.0 */
@@ -127,7 +121,7 @@ mrb_obj_id(mrb_value obj)
   case MRB_TT_SYMBOL:
     return MakeID(mrb_symbol(obj), tt);
   case MRB_TT_INTEGER:
-    return MakeID(mrb_int_id(mrb_integer(obj)), tt);
+    return MakeID(mrb_integer(obj), tt);
 #ifndef MRB_NO_FLOAT
   case MRB_TT_FLOAT:
     return MakeID(mrb_float_id(mrb_float(obj)), tt);

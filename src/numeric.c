@@ -1861,6 +1861,18 @@ cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
   }
 }
 
+static mrb_value
+int_hash(mrb_state *mrb, mrb_value self)
+{
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(self)) {
+    return mrb_bint_hash(mrb, self);
+  }
+#endif
+  mrb_int n = mrb_integer(self);
+  return mrb_int_value(mrb, mrb_byte_hash((uint8_t*)&n, sizeof(n)));
+}
+
 /* 15.2.9.3.6  */
 /*
  * call-seq:
@@ -1972,6 +1984,17 @@ num_infinite_p(mrb_state *mrb, mrb_value self)
   return mrb_false_value();
 }
 
+#ifndef MRB_NO_FLOAT
+static mrb_value
+flo_hash(mrb_state *mrb, mrb_value flo)
+{
+  mrb_float f = mrb_float(flo);
+  /* normalize -0.0 to 0.0 */
+  if (f == 0) f = 0.0;
+  return mrb_int_value(mrb, (mrb_int)mrb_byte_hash((uint8_t*)&f, sizeof(f)));
+}
+#endif
+
 /* ------------------------------------------------------------------------*/
 void
 mrb_init_numeric(mrb_state *mrb)
@@ -2015,6 +2038,7 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, integer, "^",        int_xor,         MRB_ARGS_REQ(1)); /* 15.2.8.3.11 */
   mrb_define_method(mrb, integer, "<<",       int_lshift,      MRB_ARGS_REQ(1)); /* 15.2.8.3.12 */
   mrb_define_method(mrb, integer, ">>",       int_rshift,      MRB_ARGS_REQ(1)); /* 15.2.8.3.13 */
+  mrb_define_method(mrb, integer, "hash",     int_hash,        MRB_ARGS_NONE()); /* 15.2.8.3.18 */
 #ifndef MRB_NO_FLOAT
   mrb_define_method(mrb, integer, "to_f",     int_to_f,        MRB_ARGS_NONE()); /* 15.2.8.3.23 */
 #endif
@@ -2065,6 +2089,7 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, fl,      "inspect",   flo_to_s,       MRB_ARGS_NONE());
   mrb_define_method(mrb, fl,      "nan?",      flo_nan_p,      MRB_ARGS_NONE());
   mrb_define_method(mrb, fl,      "abs",       flo_abs,        MRB_ARGS_NONE()); /* 15.2.7.4.3 */
+  mrb_define_method(mrb, fl,      "hash",      flo_hash,       MRB_ARGS_NONE());
 
 #ifdef INFINITY
   mrb_define_const_id(mrb, fl, MRB_SYM(INFINITY), mrb_float_value(mrb, INFINITY));
