@@ -452,7 +452,6 @@ mrb_gc_destroy(mrb_state *mrb, mrb_gc *gc)
 static void
 gc_protect(mrb_state *mrb, mrb_gc *gc, struct RBasic *p)
 {
-  if (is_red(p)) return;
 #ifdef MRB_GC_FIXED_ARENA
   if (gc->arena_idx >= MRB_GC_ARENA_SIZE) {
     /* arena overflow error */
@@ -475,7 +474,9 @@ MRB_API void
 mrb_gc_protect(mrb_state *mrb, mrb_value obj)
 {
   if (mrb_immediate_p(obj)) return;
-  gc_protect(mrb, &mrb->gc, mrb_basic_ptr(obj));
+  struct RBasic *p = mrb_basic_ptr(obj);
+  if (is_red(p)) return;
+  gc_protect(mrb, &mrb->gc, p);
 }
 
 #define GC_ROOT_SYM MRB_SYM(_gc_root_)
