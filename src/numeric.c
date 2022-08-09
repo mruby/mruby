@@ -1565,6 +1565,30 @@ int_rshift(mrb_state *mrb, mrb_value x)
   return mrb_int_value(mrb, val);
 }
 
+/* 15.2.8.3.14 Integer#ceil */
+/* 15.2.8.3.17 Integer#floor */
+/* 15.2.8.3.20 Integer#round */
+/* 15.2.8.3.26 Integer#truncate */
+/*
+ *  call-seq:
+ *     int.ceil      ->  int
+ *     int.floor     ->  int
+ *     int.round     ->  int
+ *     int.truncate  ->  int
+ *
+ *  Returns self.
+ */
+
+static mrb_value
+int_ceil(mrb_state *mrb, mrb_value x)
+{
+  return x;
+}
+
+#define int_floor int_ceil
+#define int_round int_ceil
+#define int_truncate int_ceil
+
 /* 15.2.8.3.23 */
 /*
  *  call-seq:
@@ -2038,6 +2062,10 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, integer, "^",        int_xor,         MRB_ARGS_REQ(1)); /* 15.2.8.3.11 */
   mrb_define_method(mrb, integer, "<<",       int_lshift,      MRB_ARGS_REQ(1)); /* 15.2.8.3.12 */
   mrb_define_method(mrb, integer, ">>",       int_rshift,      MRB_ARGS_REQ(1)); /* 15.2.8.3.13 */
+  mrb_define_method(mrb, integer, "ceil",     int_ceil,        MRB_ARGS_OPT(1)); /* 15.2.8.3.14 */
+  mrb_define_method(mrb, integer, "floor",    int_floor,       MRB_ARGS_OPT(1)); /* 15.2.8.3.17 */
+  mrb_define_method(mrb, integer, "round",    int_round,       MRB_ARGS_OPT(1)); /* 15.2.8.3.20 */
+  mrb_define_method(mrb, integer, "truncate", int_truncate,    MRB_ARGS_OPT(1)); /* 15.2.8.3.26 */
   mrb_define_method(mrb, integer, "hash",     int_hash,        MRB_ARGS_NONE()); /* 15.2.8.3.18 */
 #ifndef MRB_NO_FLOAT
   mrb_define_method(mrb, integer, "to_f",     int_to_f,        MRB_ARGS_NONE()); /* 15.2.8.3.23 */

@@ -125,34 +125,6 @@ class Integer
     end
     self
   end
-
-  ##
-  # Returns the receiver simply.
-  #
-  # ISO 15.2.8.3.14
-  def ceil(n=0)
-    self
-  end
-
-  ##
-  # Returns the receiver simply.
-  #
-  # ISO 15.2.8.3.17
-  def floor(n=0)
-    self
-  end
-
-  ##
-  # Returns the receiver simply.
-  #
-  # ISO 15.2.8.3.24
-  alias round floor
-
-  ##
-  # Returns the receiver simply.
-  #
-  # ISO 15.2.8.3.26
-  alias truncate floor
 end
 
 class Float
