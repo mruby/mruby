@@ -224,6 +224,9 @@ mrb_realloc_simple(mrb_state *mrb, void *p,  size_t len)
 {
   void *p2;
 
+#if defined(MRB_GC_STRESS) && defined(MRB_DEBUG)
+  mrb_full_gc(mrb);
+#endif
   p2 = (mrb->allocf)(mrb, p, len, mrb->allocf_ud);
   if (!p2 && len > 0 && mrb->gc.heaps) {
     mrb_full_gc(mrb);
@@ -921,6 +924,10 @@ obj_free(mrb_state *mrb, struct RBasic *obj, int end)
   default:
     break;
   }
+#if defined(MRB_GC_STRESS) && defined(MRB_DEBUG)
+  memset(obj, -1, sizeof(RVALUE));
+  paint_white(obj);
+#endif
   obj->tt = MRB_TT_FREE;
 }
 
