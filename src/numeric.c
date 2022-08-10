@@ -1582,14 +1582,7 @@ int_rounding(mrb_state *mrb, mrb_value x, double (*func)(double))
   mrb_float f = mrb_as_float(mrb, x);
   mrb_float d = pow(10, -(double)nd);
   f = func(f / d) * d;
-  if (!FIXABLE_FLOAT(f)) {
-#ifdef MRB_USE_BIGINT
-    return mrb_bint_new_float(mrb, f);
-#else
-    mrb_int_overflow(mrb, "rounding");
-#endif
-  }
-  return mrb_int_value(mrb, (mrb_int)f);
+  return flo_rounding_int(mrb, f);
 }
 
 /* 15.2.8.3.14 Integer#ceil */
