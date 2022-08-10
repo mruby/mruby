@@ -1565,29 +1565,94 @@ int_rshift(mrb_state *mrb, mrb_value x)
   return mrb_int_value(mrb, val);
 }
 
+static mrb_value
+int_rounding(mrb_state *mrb, mrb_value x, double (*func)(double))
+{
+  mrb_int nd = 0;
+  mrb_get_args(mrb, "|i", &nd);
+  if (nd >= 0) {
+    return x;
+  }
+  mrb_float f = mrb_as_float(mrb, x);
+  mrb_float d = pow(10, -(double)nd);
+  f = func(f / d) * d;
+  if (!FIXABLE_FLOAT(f)) {
+#ifdef MRB_USE_BIGINT
+    return mrb_bint_new_float(mrb, f);
+#else
+    mrb_int_overflow(mrb, "rounding");
+#endif
+  }
+  return mrb_int_value(mrb, (mrb_int)f);
+}
+
 /* 15.2.8.3.14 Integer#ceil */
-/* 15.2.8.3.17 Integer#floor */
-/* 15.2.8.3.20 Integer#round */
-/* 15.2.8.3.26 Integer#truncate */
 /*
  *  call-seq:
- *     int.ceil      ->  int
- *     int.floor     ->  int
- *     int.round     ->  int
- *     int.truncate  ->  int
+ *     int.ceil          ->  int
+ *     int.ceil(ndigits) ->  int
  *
  *  Returns self.
+ *
+ *  When the precision (ndigits) is negative, the returned value is an integer
+ *  with at least <code>ndigits.abs</code> trailing zeros.
  */
-
 static mrb_value
 int_ceil(mrb_state *mrb, mrb_value x)
 {
-  return x;
+  return int_rounding(mrb, x, ceil);
 }
 
-#define int_floor int_ceil
-#define int_round int_ceil
-#define int_truncate int_ceil
+/* 15.2.8.3.17 Integer#floor */
+/*
+ *  call-seq:
+ *     int.floor          ->  int
+ *     int.floor(ndigits) ->  int
+ *
+ *  Returns self.
+ *
+ *  When the precision (ndigits) is negative, the returned value is an integer
+ *  with at least <code>ndigits.abs</code> trailing zeros.
+ */
+static mrb_value
+int_floor(mrb_state *mrb, mrb_value x)
+{
+  return int_rounding(mrb, x, floor);
+}
+
+/* 15.2.8.3.20 Integer#round */
+/*
+ *  call-seq:
+ *     int.round          ->  int
+ *     int.round(ndigits) ->  int
+ *
+ *  Returns self.
+ *
+ *  When the precision (ndigits) is negative, the returned value is an integer
+ *  with at least <code>ndigits.abs</code> trailing zeros.
+ */
+static mrb_value
+int_round(mrb_state *mrb, mrb_value x)
+{
+  return int_rounding(mrb, x, round);
+}
+
+/* 15.2.8.3.26 Integer#truncate */
+/*
+ *  call-seq:
+ *     int.truncate          ->  int
+ *     int.truncate(ndigits) ->  int
+ *
+ *  Returns self.
+ *
+ *  When the precision (ndigits) is negative, the returned value is an integer
+ *  with at least <code>ndigits.abs</code> trailing zeros.
+ */
+static mrb_value
+int_truncate(mrb_state *mrb, mrb_value x)
+{
+  return int_rounding(mrb, x, trunc);
+}
 
 /* 15.2.8.3.23 */
 /*
