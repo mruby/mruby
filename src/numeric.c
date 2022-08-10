@@ -821,7 +821,20 @@ mrb_check_num_exact(mrb_state *mrb, mrb_float num)
 }
 
 static mrb_value
-flo_ceil_floor(mrb_state *mrb, mrb_value num, double (*func)(double))
+flo_rounding_int(mrb_state *mrb, mrb_float f)
+{
+  if (!FIXABLE_FLOAT(f)) {
+#ifdef MRB_USE_BIGINT
+    return mrb_bint_new_float(mrb, f);
+#else
+    mrb_int_overflow(mrb, "rounding");
+#endif
+  }
+  return mrb_int_value(mrb, (mrb_int)f);
+}
+
+static mrb_value
+flo_rounding(mrb_state *mrb, mrb_value num, double (*func)(double))
 {
   mrb_float f = mrb_float(num);
   mrb_int ndigits = 0;
@@ -850,14 +863,7 @@ flo_ceil_floor(mrb_state *mrb, mrb_value num, double (*func)(double))
     f = func(f);
   }
   mrb_check_num_exact(mrb, f);
-  if (!FIXABLE_FLOAT(f)) {
-#ifdef MRB_USE_BIGINT
-    return mrb_bint_new_float(mrb, f);
-#else
-    mrb_int_overflow(mrb, "rounding");
-#endif
-  }
-  return mrb_int_value(mrb, (mrb_int)f);
+  return flo_rounding_int(mrb, f);
 }
 
 /* 15.2.9.3.10 */
@@ -902,7 +908,7 @@ flo_ceil_floor(mrb_state *mrb, mrb_value num, double (*func)(double))
 static mrb_value
 flo_floor(mrb_state *mrb, mrb_value num)
 {
-  return flo_ceil_floor(mrb, num, floor);
+  return flo_rounding(mrb, num, floor);
 }
 
 /* 15.2.9.3.8  */
@@ -948,7 +954,7 @@ flo_floor(mrb_state *mrb, mrb_value num)
 static mrb_value
 flo_ceil(mrb_state *mrb, mrb_value num)
 {
-  return flo_ceil_floor(mrb, num, ceil);
+  return flo_rounding(mrb, num, ceil);
 }
 
 /* 15.2.9.3.12 */
