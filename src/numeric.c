@@ -39,22 +39,11 @@ mrb_int_noconv(mrb_state *mrb, mrb_value y)
   mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %Y into Integer", y);
 }
 
-/*
- * call-seq:
- *
- *  num ** other  ->  num
- *
- * Raises <code>num</code> the <code>other</code> power.
- *
- *    2.0**3      #=> 8.0
- */
 mrb_value
-mrb_int_pow(mrb_state *mrb, mrb_value x)
+mrb_int_pow(mrb_state *mrb, mrb_value x, mrb_value y)
 {
 #ifdef MRB_USE_BIGINT
   if (mrb_bigint_p(x)) {
-    mrb_value y = mrb_get_arg1(mrb);
-
 #ifndef MRB_NO_FLOAT
     if (mrb_float_p(y)) {
       return mrb_float_value(mrb, pow(mrb_bint_as_float(mrb, x), mrb_float(y)));
@@ -68,8 +57,6 @@ mrb_int_pow(mrb_state *mrb, mrb_value x)
   mrb_int exp;
 
 #ifndef MRB_NO_FLOAT
-  mrb_value y = mrb_get_arg1(mrb);
-
   if (mrb_float_p(y)) {
     return mrb_float_value(mrb, pow((double)base, mrb_float(y)));
   }
@@ -110,7 +97,21 @@ mrb_int_pow(mrb_state *mrb, mrb_value x)
   }
   return mrb_int_value(mrb, result);
 }
-#define int_pow mrb_int_pow
+
+/*
+ * call-seq:
+ *
+ *  num ** other  ->  num
+ *
+ * Raises <code>num</code> the <code>other</code> power.
+ *
+ *    2.0**3      #=> 8.0
+ */
+static mrb_value
+int_pow(mrb_state *mrb, mrb_value x)
+{
+  return mrb_int_pow(mrb, x, mrb_get_arg1(mrb));
+}
 
 mrb_int
 mrb_div_int(mrb_int x, mrb_int y)

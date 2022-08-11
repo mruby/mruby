@@ -43,7 +43,7 @@ int_remainder(mrb_state *mrb, mrb_value x)
 #endif
 }
 
-mrb_value mrb_int_pow(mrb_state *mrb, mrb_value x);
+mrb_value mrb_int_pow(mrb_state *mrb, mrb_value x, mrb_value y);
 
 /*
  * call-seq:
@@ -62,7 +62,7 @@ int_powm(mrb_state *mrb, mrb_value x)
   mrb_int base, exp, mod, result = 1;
 
   if (mrb_get_argc(mrb) == 1) {
-    return mrb_int_pow(mrb, x);
+    return mrb_int_pow(mrb, x, mrb_get_arg1(mrb));
   }
   mrb_get_args(mrb, "io", &exp, &m);
   if (exp < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "int.pow(n,m): n must be positive");
