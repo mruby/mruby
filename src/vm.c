@@ -586,6 +586,35 @@ prepare_missing(mrb_state *mrb, mrb_value recv, mrb_sym mid, struct RClass **cls
   return m;
 }
 
+static uint16_t
+funcall_args_capture(mrb_state *mrb, int stoff, mrb_int argc, const mrb_value *argv, mrb_value block)
+{
+  if (argc < 0 || argc > INT32_MAX) {
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative or too big argc for funcall (%i)", argc);
+  }
+
+  if (argc < CALL_MAXARGS) {
+    int extends = stoff + argc + 2 /* self + block */;
+    stack_extend_adjust(mrb, extends, &argv);
+
+    mrb_value *args = mrb->c->ci->stack + stoff + 1 /* self */;
+    stack_copy(args, argv, argc);
+    args[argc] = block;
+
+    return argc;
+  }
+  else {
+    int extends = stoff + 3 /* self + splat + block */;
+    stack_extend_adjust(mrb, extends, &argv);
+
+    mrb_value *args = mrb->c->ci->stack + stoff + 1 /* self */;
+    args[0] = mrb_ary_new_from_values(mrb, argc, argv);
+    args[1] = block;
+
+    return CALL_MAXARGS;
+  }
+}
+
 MRB_API mrb_value
 mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc, const mrb_value *argv, mrb_value blk)
 {
@@ -614,7 +643,6 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
   }
   else {
     mrb_method_t m;
-    struct RClass *c;
     mrb_callinfo *ci = mrb->c->ci;
     mrb_int n = mrb_ci_nregs(ci);
 
@@ -624,47 +652,29 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     if (ci - mrb->c->cibase > MRB_CALL_LEVEL_MAX) {
       mrb_exc_raise(mrb, mrb_obj_value(mrb->stack_err));
     }
-    if (argc < 0) {
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative argc for funcall (%i)", argc);
-    }
-    c = mrb_class(mrb, self);
-    m = mrb_method_search_vm(mrb, &c, mid);
-    stack_extend_adjust(mrb, n + argc + 3, &argv);
-    if (argc >= 15) {
-      ci->stack[n+1] = mrb_ary_new_from_values(mrb, argc, argv);
-      ci->stack[n+2] = blk;
-      argc = 15;
-    }
-    else {
-      if (argc > 0)
-        stack_copy(ci->stack+n+1, argv, argc);
-      ci->stack[n+argc+1] = blk;
-    }
+    ci = cipush(mrb, n, CINFO_DIRECT, NULL, NULL, 0, 0);
+    uint16_t arginfo = funcall_args_capture(mrb, 0, argc, argv, blk);
+    ci->n  = (arginfo >> 0) & 0x0f;
+    ci->nk = (arginfo >> 4) & 0x0f;
+    ci->u.target_class = mrb_class(mrb, self);
+    m = mrb_method_search_vm(mrb, &ci->u.target_class, mid);
     if (MRB_METHOD_UNDEF_P(m)) {
-      uint16_t ac = (uint16_t)argc;
-      m = prepare_missing(mrb, self, mid, &c, (uint32_t)n, &ac, mrb_nil_value(), 0);
-      argc = (mrb_int)ac;
+      m = prepare_missing(mrb, self, mid, &ci->u.target_class, 0, &arginfo, mrb_nil_value(), 0);
       mid = MRB_SYM(method_missing);
+      ci->n  = (arginfo >> 0) & 0x0f;
+      ci->nk = (arginfo >> 4) & 0x0f;
     }
-    ci = cipush(mrb, n, 0, c, NULL, mid, (uint16_t)argc);
-    if (MRB_METHOD_PROC_P(m)) {
-      struct RProc *p = MRB_METHOD_PROC(m);
-
-      CI_PROC_SET(ci, p);
-      if (!MRB_PROC_CFUNC_P(p)) {
-        mrb_stack_extend(mrb, p->body.irep->nregs + argc);
-      }
-    }
-    ci->stack[0] = self;
+    ci->mid = mid;
+    ci->proc = MRB_METHOD_PROC_P(m) ? MRB_METHOD_PROC(m) : NULL;
 
     if (MRB_METHOD_CFUNC_P(m)) {
-      ci->cci = CINFO_DIRECT;
+      ci->stack[0] = self;
       val = MRB_METHOD_CFUNC(m)(mrb, self);
       cipop(mrb);
     }
     else {
       ci->cci = CINFO_SKIP;
-      val = mrb_run(mrb, MRB_METHOD_PROC(m), self);
+      val = mrb_run(mrb, ci->proc, self);
     }
   }
   mrb_gc_arena_restore(mrb, ai);
@@ -951,33 +961,21 @@ mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value 
   ci = mrb->c->ci;
   n = mrb_ci_nregs(ci);
   p = mrb_proc_ptr(b);
-  ci = cipush(mrb, n, CINFO_SKIP, c, p, mid, 0 /* dummy */);
-  ci->nk = 0;
-  if (argc >= CALL_MAXARGS) {
-    ci->n = 15;
-    n = 3;
-  }
-  else {
-    ci->n = (uint8_t)argc;
-    n = argc + 2;
-  }
-  stack_extend_adjust(mrb, n, &argv);
-  mrb->c->ci->stack[0] = self;
-  if (ci->n == 15) {
-    mrb->c->ci->stack[1] = mrb_ary_new_from_values(mrb, argc, argv);
-    argc = 1;
-  }
-  else if (argc > 0) {
-    stack_copy(mrb->c->ci->stack+1, argv, argc);
-  }
-  mrb->c->ci->stack[argc+1] = mrb_nil_value(); /* clear blk */
+  ci = cipush(mrb, n, CINFO_DIRECT, NULL, NULL, 0, 0);
+  uint16_t arginfo = funcall_args_capture(mrb, 0, argc, argv, mrb_nil_value());
+  ci->n  = (arginfo >> 0) & 0x0f;
+  ci->nk = (arginfo >> 4) & 0x0f;
+  ci->u.target_class = c;
+  ci->mid = mid;
+  ci->proc = p;
 
   if (MRB_PROC_CFUNC_P(p)) {
-    ci->cci = CINFO_DIRECT;
+    ci->stack[0] = self;
     val = MRB_PROC_CFUNC(p)(mrb, self);
     cipop(mrb);
   }
   else {
+    ci->cci = CINFO_SKIP;
     val = mrb_run(mrb, p, self);
   }
   return val;
@@ -1726,7 +1724,7 @@ RETRY_TRY_BLOCK:
     mid = syms[b];
     L_SENDB_SYM:
     {
-      mrb_callinfo *ci = mrb->c->ci;
+      mrb_callinfo *ci;
       mrb_method_t m;
       struct RClass *cls;
       mrb_value recv, blk;
@@ -1736,13 +1734,16 @@ RETRY_TRY_BLOCK:
       recv = regs[a];
       cls = mrb_class(mrb, recv);
       m = mrb_method_search_vm(mrb, &cls, mid);
+      ci = cipush(mrb, a, CINFO_DIRECT, NULL, NULL, 0, c);
       if (MRB_METHOD_UNDEF_P(m)) {
-        m = prepare_missing(mrb, recv, mid, &cls, a, &c, blk, 0);
+        m = prepare_missing(mrb, recv, mid, &cls, 0, &c, blk, 0);
         mid = MRB_SYM(method_missing);
+        ci->n  = (c >> 0) & 0x0f;
+        ci->nk = (c >> 4) & 0x0f;
       }
-
-      /* push callinfo */
-      ci = cipush(mrb, a, 0, cls, NULL, mid, c);
+      ci->cci = CINFO_NONE;
+      ci->mid = mid;
+      ci->u.target_class = cls;
 
       if (MRB_METHOD_CFUNC_P(m)) {
         if (MRB_METHOD_PROC_P(m)) {
