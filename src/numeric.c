@@ -2047,6 +2047,7 @@ mrb_cmp(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
   switch (mrb_type(obj1)) {
   case MRB_TT_INTEGER:
   case MRB_TT_FLOAT:
+  case MRB_TT_BIGINT:
     return cmpnum(mrb, obj1, obj2);
   case MRB_TT_STRING:
     if (!mrb_string_p(obj2))
