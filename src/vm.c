@@ -3106,7 +3106,7 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
     CASE(OP_EXT3, Z) {
-      uint8_t insn = READ_B();
+      insn = READ_B();
       switch (insn) {
 #define OPCODE(insn,ops) case OP_ ## insn: FETCH_ ## ops ## _3(); mrb->c->ci->pc = pc; goto L_OP_ ## insn ## _BODY;
 #include "mruby/ops.h"
