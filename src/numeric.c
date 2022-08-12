@@ -1573,17 +1573,26 @@ int_rshift(mrb_state *mrb, mrb_value x)
 }
 
 static mrb_value
-int_rounding(mrb_state *mrb, mrb_value x, double (*func)(double))
+prepare_int_rounding(mrb_state *mrb, mrb_value x)
 {
   mrb_int nd = 0;
+  size_t bytes;
+
   mrb_get_args(mrb, "|i", &nd);
   if (nd >= 0) {
-    return x;
+    return mrb_nil_value();
   }
-  mrb_float f = mrb_as_float(mrb, x);
-  mrb_float d = pow(10, -(double)nd);
-  f = func(f / d) * d;
-  return flo_rounding_int(mrb, f);
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x)) {
+    bytes = mrb_bint_memsize(x);
+  }
+  else
+#endif
+    bytes = sizeof(mrb_int);
+  if (-0.415241 * nd - 0.125 > bytes) {
+    return mrb_undef_value();
+  }
+  return mrb_int_pow(mrb, mrb_fixnum_value(10), mrb_fixnum_value(-nd));
 }
 
 /* 15.2.8.3.14 Integer#ceil */
@@ -1600,7 +1609,22 @@ int_rounding(mrb_state *mrb, mrb_value x, double (*func)(double))
 static mrb_value
 int_ceil(mrb_state *mrb, mrb_value x)
 {
-  return int_rounding(mrb, x, ceil);
+  mrb_value f = prepare_int_rounding(mrb, x);
+  if (mrb_undef_p(f)) return mrb_fixnum_value(0);
+  if (mrb_nil_p(f)) return x;
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x)) {
+    return mrb_bint_add(mrb, x, mrb_bint_sub(mrb, x, mrb_bint_mod(mrb, x, f)));
+  }
+#endif
+  mrb_int a = mrb_integer(x);
+  mrb_int b = mrb_integer(f);
+  int neg = a < 0;
+  if (neg) a = -a;
+  else a += b - 1;
+  a = a / b * b;
+  if (neg) a = -a;
+  return mrb_int_value(mrb, a);
 }
 
 /* 15.2.8.3.17 Integer#floor */
@@ -1617,7 +1641,21 @@ int_ceil(mrb_state *mrb, mrb_value x)
 static mrb_value
 int_floor(mrb_state *mrb, mrb_value x)
 {
-  return int_rounding(mrb, x, floor);
+  mrb_value f = prepare_int_rounding(mrb, x);
+  if (mrb_undef_p(f)) return mrb_fixnum_value(0);
+  if (mrb_nil_p(f)) return x;
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x)) {
+    return mrb_bint_sub(mrb, x, mrb_bint_mod(mrb, x, f));
+  }
+#endif
+  mrb_int a = mrb_integer(x);
+  mrb_int b = mrb_integer(f);
+  int neg = a < 0;
+  if (neg) a = -a + b - 1;
+  a = a / b * b;
+  if (neg) a = -a;
+  return mrb_int_value(mrb, a);
 }
 
 /* 15.2.8.3.20 Integer#round */
@@ -1634,7 +1672,28 @@ int_floor(mrb_state *mrb, mrb_value x)
 static mrb_value
 int_round(mrb_state *mrb, mrb_value x)
 {
-  return int_rounding(mrb, x, round);
+  mrb_value f = prepare_int_rounding(mrb, x);
+  if (mrb_undef_p(f)) return mrb_fixnum_value(0);
+  if (mrb_nil_p(f)) return x;
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x)) {
+    mrb_value r = mrb_bint_mod(mrb, x, f);
+    mrb_value n = mrb_bint_sub(mrb, x, r);
+    mrb_value h = mrb_bigint_p(f) ? mrb_bint_rshift(mrb, f, 1) : mrb_int_value(mrb, mrb_integer(f)>>1);
+    mrb_int cmp = mrb_bigint_p(r) ? mrb_bint_cmp(mrb, r, h) : (mrb_integer(r) - mrb_integer(h));
+    if ((cmp > 0) || (cmp == 0 && mrb_bint_cmp(mrb, x, mrb_fixnum_value(0)) > 0)) {
+      n = mrb_bint_add(mrb, n, f);
+    }
+    return n;
+  }
+#endif
+  mrb_int a = mrb_integer(x);
+  mrb_int b = mrb_integer(f);
+  int neg = a < 0;
+  if (neg) a = -a;
+  a = (a + b / 2) / b * b;
+  if (neg) a = -a;
+  return mrb_int_value(mrb, a);
 }
 
 /* 15.2.8.3.26 Integer#truncate */
@@ -1651,7 +1710,27 @@ int_round(mrb_state *mrb, mrb_value x)
 static mrb_value
 int_truncate(mrb_state *mrb, mrb_value x)
 {
-  return int_rounding(mrb, x, trunc);
+  mrb_value f = prepare_int_rounding(mrb, x);
+  if (mrb_undef_p(f)) return mrb_fixnum_value(0);
+  if (mrb_nil_p(f)) return x;
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x)) {
+    mrb_value m = mrb_bint_mod(mrb, x, f);
+    if (mrb_bint_cmp(mrb, x, mrb_fixnum_value(0)) < 0) {
+      return mrb_bint_add(mrb, x, mrb_bint_sub(mrb, x, m));
+    }
+    else {
+      return mrb_bint_sub(mrb, x, m);
+    }
+  }
+#endif
+  mrb_int a = mrb_integer(x);
+  mrb_int b = mrb_integer(f);
+  int neg = a < 0;
+  if (neg) a = -a;
+  a = a / b * b;
+  if (neg) a = -a;
+  return mrb_int_value(mrb, a);
 }
 
 /* 15.2.8.3.23 */
