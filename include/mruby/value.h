@@ -183,8 +183,8 @@ MRB_VTYPE_FOREACH(MRB_VTYPE_TYPEDEF)
  *
  * Actual implementation depends on configured boxing type.
  *
- * @see mruby/boxing_no.h Default boxing representation
- * @see mruby/boxing_word.h Word representation
+ * @see mruby/boxing_word.h Word boxing representation (Default)
+ * @see mruby/boxing_no.h No boxing representation
  * @see mruby/boxing_nan.h Boxed double representation
  */
 typedef void mrb_value;
