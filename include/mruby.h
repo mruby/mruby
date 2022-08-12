@@ -154,7 +154,7 @@ typedef uint8_t mrb_code;
  */
 typedef uint32_t mrb_aspec;
 
-struct mrb_irep;
+typedef struct mrb_irep mrb_irep;
 struct mrb_state;
 
 /**

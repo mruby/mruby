@@ -52,7 +52,7 @@ struct mrb_irep_catch_handler {
 };
 
 /* Program data array struct */
-typedef struct mrb_irep {
+struct mrb_irep {
   uint16_t nlocals;        /* Number of local variables */
   uint16_t nregs;          /* Number of register variables */
   uint16_t clen;           /* Number of catch handlers */
@@ -76,7 +76,7 @@ typedef struct mrb_irep {
   uint16_t plen, slen;
   uint16_t rlen;
   uint16_t refcnt;
-} mrb_irep;
+};
 
 #define MRB_ISEQ_NO_FREE 1
 #define MRB_IREP_NO_FREE 2
