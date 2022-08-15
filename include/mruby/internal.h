@@ -21,6 +21,7 @@ mrb_bool mrb_const_name_p(mrb_state*, const char*, mrb_int);
 mrb_value mrb_class_find_path(mrb_state*, struct RClass*);
 mrb_value mrb_mod_to_s(mrb_state *, mrb_value);
 void mrb_method_added(mrb_state *mrb, struct RClass *c, mrb_sym mid);
+mrb_noreturn void mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value args);
 #endif
 
 /* debug */

@@ -4,10 +4,10 @@
 #include <mruby/compile.h>
 #include <mruby/error.h>
 #include <mruby/proc.h>
-#include <mruby/presym.h>
 #include <mruby/string.h>
+#include <mruby/internal.h>
+#include <mruby/presym.h>
 
-mrb_noreturn void mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value args);
 void mrb_proc_merge_lvar(mrb_state *mrb, mrb_irep *irep, struct REnv *env, int num, const mrb_sym *lv, const mrb_value *stack);
 mrb_value mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p);
 const struct RProc *mrb_binding_extract_proc(mrb_state *mrb, mrb_value binding);

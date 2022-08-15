@@ -7,7 +7,6 @@
 #include "mruby/internal.h"
 #include "mruby/presym.h"
 
-mrb_noreturn void mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value args);
 mrb_value mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p);
 
 // Defined by mruby-proc-ext on which mruby-method depends

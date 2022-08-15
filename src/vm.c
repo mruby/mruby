@@ -90,8 +90,6 @@ mrb_gc_arena_shrink(mrb_state *mrb, int idx)
 #define CALL_MAXARGS 15
 #define CALL_VARARGS (CALL_MAXARGS<<4 | CALL_MAXARGS)
 
-void mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value args);
-
 static inline void
 stack_clear(mrb_value *from, size_t count)
 {
