@@ -1628,9 +1628,6 @@ mrb_mod_initialize(mrb_state *mrb, mrb_value mod)
   return mod;
 }
 
-/* implementation of module_eval/class_eval */
-mrb_value mrb_mod_module_eval(mrb_state*, mrb_value);
-
 static mrb_value
 mrb_mod_dummy_visibility(mrb_state *mrb, mrb_value mod)
 {
@@ -2849,8 +2846,6 @@ mrb_obj_dup(mrb_state *mrb, mrb_value obj)
 
 /* implementation of __id__ */
 mrb_value mrb_obj_id_m(mrb_state *mrb, mrb_value self);
-/* implementation of instance_eval */
-mrb_value mrb_obj_instance_eval(mrb_state*, mrb_value);
 
 mrb_noreturn void
 mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value args)

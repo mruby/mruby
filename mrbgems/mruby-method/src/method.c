@@ -7,8 +7,6 @@
 #include "mruby/internal.h"
 #include "mruby/presym.h"
 
-mrb_value mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p);
-
 // Defined by mruby-proc-ext on which mruby-method depends
 mrb_value mrb_proc_parameters(mrb_state *mrb, mrb_value proc);
 mrb_value mrb_proc_source_location(mrb_state *mrb, struct RProc *p);
