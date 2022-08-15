@@ -2852,6 +2852,59 @@ mrb_value mrb_obj_id_m(mrb_state *mrb, mrb_value self);
 /* implementation of instance_eval */
 mrb_value mrb_obj_instance_eval(mrb_state*, mrb_value);
 
+mrb_noreturn void
+mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value args)
+{
+  mrb_no_method_error(mrb, name, args, "undefined method '%n'", name);
+}
+
+/* 15.3.1.3.30 */
+/*
+ *  call-seq:
+ *     obj.method_missing(symbol [, *args] )   -> result
+ *
+ *  Invoked by Ruby when <i>obj</i> is sent a message it cannot handle.
+ *  <i>symbol</i> is the symbol for the method called, and <i>args</i>
+ *  are any arguments that were passed to it. By default, the interpreter
+ *  raises an error when this method is called. However, it is possible
+ *  to override the method to provide more dynamic behavior.
+ *  If it is decided that a particular method should not be handled, then
+ *  <i>super</i> should be called, so that ancestors can pick up the
+ *  missing method.
+ *  The example below creates
+ *  a class <code>Roman</code>, which responds to methods with names
+ *  consisting of roman numerals, returning the corresponding integer
+ *  values.
+ *
+ *     class Roman
+ *       def romanToInt(str)
+ *         # ...
+ *       end
+ *       def method_missing(methId)
+ *         str = methId.to_s
+ *         romanToInt(str)
+ *       end
+ *     end
+ *
+ *     r = Roman.new
+ *     r.iv      #=> 4
+ *     r.xxiii   #=> 23
+ *     r.mm      #=> 2000
+ */
+mrb_value
+mrb_obj_missing(mrb_state *mrb, mrb_value mod)
+{
+  mrb_sym name;
+  const mrb_value *a;
+  mrb_int alen;
+
+  mrb->c->ci->mid = 0;
+  mrb_get_args(mrb, "n*!", &name, &a, &alen);
+  mrb_method_missing(mrb, name, mod, mrb_ary_new_from_values(mrb, alen, a));
+  /* not reached */
+  return mrb_nil_value();
+}
+
 static mrb_value
 inspect_main(mrb_state *mrb, mrb_value mod)
 {
@@ -2940,6 +2993,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method(mrb, bob, "equal?",                  mrb_obj_equal_m,          MRB_ARGS_REQ(1)); /* 15.3.1.3.11 */
   mrb_define_method(mrb, bob, "instance_eval",           mrb_obj_instance_eval,    MRB_ARGS_OPT(1)|MRB_ARGS_BLOCK());  /* 15.3.1.3.18 */
   mrb_define_method(mrb, bob, "singleton_method_added",  mrb_do_nothing,           MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, bob, "method_missing",          mrb_obj_missing,          MRB_ARGS_ANY());  /* 15.3.1.3.30 */
 
   mrb_define_class_method(mrb, cls, "new",               mrb_class_new_class,      MRB_ARGS_OPT(1)|MRB_ARGS_BLOCK());
   mrb_define_method(mrb, cls, "allocate",                mrb_instance_alloc,       MRB_ARGS_NONE());
