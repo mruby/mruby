@@ -1261,12 +1261,6 @@ mrb_bint_div_ii(mrb_state *mrb, mrb_int x, mrb_int y)
 }
 
 mrb_value
-mrb_bint_idiv(mrb_state *mrb, mrb_value x, mrb_value y)
-{
-  return mrb_nil_value();
-}
-
-mrb_value
 mrb_bint_mod(mrb_state *mrb, mrb_value x, mrb_value y)
 {
 #ifndef MRB_NO_FLOAT
