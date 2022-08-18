@@ -102,9 +102,8 @@ stack_clear(mrb_value *from, size_t count)
 static inline void
 stack_copy(mrb_value *dst, const mrb_value *src, size_t size)
 {
-  if (src) {
-    memcpy(dst, src, sizeof(mrb_value)*size);
-  }
+  if (!src) return;
+  memcpy(dst, src, sizeof(mrb_value)*size);
 }
 
 static void
