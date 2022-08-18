@@ -585,13 +585,14 @@ prepare_missing(mrb_state *mrb, mrb_value recv, mrb_sym mid, struct RClass **cls
   return m;
 }
 
-static uint16_t
-funcall_args_capture(mrb_state *mrb, int stoff, mrb_int argc, const mrb_value *argv, mrb_value block)
+static void
+funcall_args_capture(mrb_state *mrb, int stoff, mrb_int argc, const mrb_value *argv, mrb_value block, mrb_callinfo *ci)
 {
   if (argc < 0 || argc > INT32_MAX) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative or too big argc for funcall (%i)", argc);
   }
 
+  ci->nk = 0;                   /* funcall does not support keyword arguments */
   if (argc < CALL_MAXARGS) {
     int extends = stoff + argc + 2 /* self + block */;
     stack_extend_adjust(mrb, extends, &argv);
@@ -599,8 +600,7 @@ funcall_args_capture(mrb_state *mrb, int stoff, mrb_int argc, const mrb_value *a
     mrb_value *args = mrb->c->ci->stack + stoff + 1 /* self */;
     stack_copy(args, argv, argc);
     args[argc] = block;
-
-    return argc;
+    ci->n = argc;
   }
   else {
     int extends = stoff + 3 /* self + splat + block */;
@@ -609,8 +609,7 @@ funcall_args_capture(mrb_state *mrb, int stoff, mrb_int argc, const mrb_value *a
     mrb_value *args = mrb->c->ci->stack + stoff + 1 /* self */;
     args[0] = mrb_ary_new_from_values(mrb, argc, argv);
     args[1] = block;
-
-    return CALL_MAXARGS;
+    ci->n = CALL_MAXARGS;
   }
 }
 
@@ -652,12 +651,11 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
       mrb_exc_raise(mrb, mrb_obj_value(mrb->stack_err));
     }
     ci = cipush(mrb, n, CINFO_DIRECT, NULL, NULL, 0, 0);
-    uint16_t arginfo = funcall_args_capture(mrb, 0, argc, argv, blk);
-    ci->n  = (arginfo >> 0) & 0x0f;
-    ci->nk = (arginfo >> 4) & 0x0f;
+    funcall_args_capture(mrb, 0, argc, argv, blk, ci);
     ci->u.target_class = mrb_class(mrb, self);
     m = mrb_method_search_vm(mrb, &ci->u.target_class, mid);
     if (MRB_METHOD_UNDEF_P(m)) {
+      uint16_t arginfo;
       m = prepare_missing(mrb, self, mid, &ci->u.target_class, 0, &arginfo, mrb_nil_value(), 0);
       mid = MRB_SYM(method_missing);
       ci->n  = (arginfo >> 0) & 0x0f;
@@ -961,9 +959,7 @@ mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value 
   n = mrb_ci_nregs(ci);
   p = mrb_proc_ptr(b);
   ci = cipush(mrb, n, CINFO_DIRECT, NULL, NULL, 0, 0);
-  uint16_t arginfo = funcall_args_capture(mrb, 0, argc, argv, mrb_nil_value());
-  ci->n  = (arginfo >> 0) & 0x0f;
-  ci->nk = (arginfo >> 4) & 0x0f;
+  funcall_args_capture(mrb, 0, argc, argv, mrb_nil_value(), ci);
   ci->u.target_class = c;
   ci->mid = mid;
   ci->proc = p;
