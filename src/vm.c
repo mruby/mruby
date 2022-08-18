@@ -666,7 +666,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     ci->mid = mid;
     ci->proc = MRB_METHOD_PROC_P(m) ? MRB_METHOD_PROC(m) : NULL;
 
-    if (MRB_METHOD_CFUNC_P(m)) {
+    if (ci->proc == NULL) {
       ci->stack[0] = self;
       val = MRB_METHOD_CFUNC(m)(mrb, self);
       cipop(mrb);
