@@ -655,7 +655,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     ci->u.target_class = mrb_class(mrb, self);
     m = mrb_method_search_vm(mrb, &ci->u.target_class, mid);
     if (MRB_METHOD_UNDEF_P(m)) {
-      uint16_t arginfo;
+      uint16_t arginfo = ci->n;
       m = prepare_missing(mrb, self, mid, &ci->u.target_class, 0, &arginfo, mrb_nil_value(), 0);
       mid = MRB_SYM(method_missing);
       ci->n  = (arginfo >> 0) & 0x0f;
