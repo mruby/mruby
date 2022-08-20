@@ -1691,38 +1691,35 @@ RETRY_TRY_BLOCK:
       mrb_method_t m;
       struct RClass *cls;
       mrb_value recv, blk;
+      int n = c&0xf;
+      int nk = (c>>4)&0xf;
+      mrb_int bidx = a + mrb_bidx(n,nk);
 
-      {
-        int n = c&0xf;
-        int nk = (c>>4)&0xf;
-        mrb_int bidx = a + mrb_bidx(n,nk);
+      if (nk == CALL_MAXARGS) {
+        mrb_ensure_hash_type(mrb, regs[a+(n==CALL_MAXARGS?1:n)+1]);
+      }
+      else if (nk > 0) {  /* pack keyword arguments */
+        mrb_int kidx = a+(n==CALL_MAXARGS?1:n)+1;
+        mrb_value kdict = hash_new_from_regs(mrb, nk, kidx);
+        regs[kidx] = kdict;
+        nk = CALL_MAXARGS;
+        c = n | (nk<<4);
+      }
 
-        if (nk == CALL_MAXARGS) {
-          mrb_ensure_hash_type(mrb, regs[a+(n==CALL_MAXARGS?1:n)+1]);
+      mrb_assert(bidx < irep->nregs);
+      mrb_int new_bidx = a+mrb_bidx(n, nk);
+      if (insn == OP_SEND) {
+        /* clear block argument */
+        SET_NIL_VALUE(regs[new_bidx]);
+        SET_NIL_VALUE(blk);
+      }
+      else {
+        blk = regs[bidx];
+        if (!mrb_nil_p(blk) && !mrb_proc_p(blk)) {
+          blk = mrb_type_convert(mrb, blk, MRB_TT_PROC, MRB_SYM(to_proc));
+          /* The stack might have been reallocated during mrb_type_convert(), see #3622 */
         }
-        else if (nk > 0) {  /* pack keyword arguments */
-          mrb_int kidx = a+(n==CALL_MAXARGS?1:n)+1;
-          mrb_value kdict = hash_new_from_regs(mrb, nk, kidx);
-          regs[kidx] = kdict;
-          nk = CALL_MAXARGS;
-          c = n | (nk<<4);
-        }
-
-        mrb_assert(bidx < irep->nregs);
-        mrb_int new_bidx = a+mrb_bidx(n, nk);
-        if (insn == OP_SEND) {
-          /* clear block argument */
-          SET_NIL_VALUE(regs[new_bidx]);
-          SET_NIL_VALUE(blk);
-        }
-        else {
-          blk = regs[bidx];
-          if (!mrb_nil_p(blk) && !mrb_proc_p(blk)) {
-            blk = mrb_type_convert(mrb, blk, MRB_TT_PROC, MRB_SYM(to_proc));
-            /* The stack might have been reallocated during mrb_type_convert(), see #3622 */
-          }
-          regs[new_bidx] = blk;
-        }
+        regs[new_bidx] = blk;
       }
 
       recv = regs[a];
