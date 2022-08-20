@@ -556,3 +556,7 @@ CFLAGS = `$(MRB_CONFIG) --cflags`
 LDFLAGS = `$(MRB_CONFIG) --ldflags`
 LIBS = `$(MRB_CONFIG) --libs`
 ```
+
+## Tips
+
+* If you see compilation troubles, try `rake clean` first.
