@@ -70,9 +70,17 @@ enum pack_type {
 #define PACK_BASE64_IGNORE      0xff
 #define PACK_BASE64_PADDING     0xfe
 
-const static unsigned char base64chars[] =
+const static unsigned char base64chars[64] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-static unsigned char base64_dec_tab[128];
+const static unsigned char base64_dec_tab[128] =
+  "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff"
+  "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff"
+  "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x3e\xff\xff\xff\x3f"
+  "\x34\x35\x36\x37\x38\x39\x3a\x3b\x3c\x3d\xff\xff\xff\xfe\xff\xff"
+  "\xff\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e"
+  "\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\xff\xff\xff\xff\xff"
+  "\xff\x1a\x1b\x1c\x1d\x1e\x1f\x20\x21\x22\x23\x24\x25\x26\x27\x28"
+  "\x29\x2a\x2b\x2c\x2d\x2e\x2f\x30\x31\x32\x33\xff\xff\xff\xff\xff";
 
 static unsigned int
 hex2int(unsigned char ch)
@@ -85,22 +93,6 @@ hex2int(unsigned char ch)
     return 10 + (ch - 'a');
   else
     return -1;
-}
-
-static void
-make_base64_dec_tab(void)
-{
-  int i;
-  memset(base64_dec_tab, PACK_BASE64_IGNORE, sizeof(base64_dec_tab));
-  for (i = 0; i < 26; i++)
-    base64_dec_tab['A' + i] = i;
-  for (i = 0; i < 26; i++)
-    base64_dec_tab['a' + i] = i + 26;
-  for (i = 0; i < 10; i++)
-    base64_dec_tab['0' + i] = i + 52;
-  base64_dec_tab['+'+0] = 62;
-  base64_dec_tab['/'+0] = 63;
-  base64_dec_tab['='+0] = PACK_BASE64_PADDING;
 }
 
 static mrb_value
@@ -1596,8 +1588,6 @@ mrb_pack_unpack1(mrb_state *mrb, mrb_value str)
 void
 mrb_mruby_pack_gem_init(mrb_state *mrb)
 {
-  make_base64_dec_tab();
-
   mrb_define_method(mrb, mrb->array_class, "pack", mrb_pack_pack, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, mrb->string_class, "unpack", mrb_pack_unpack, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, mrb->string_class, "unpack1", mrb_pack_unpack1, MRB_ARGS_REQ(1));
