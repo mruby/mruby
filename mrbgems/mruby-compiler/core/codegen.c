@@ -1827,6 +1827,7 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
     break;
 
   case NODE_COLON2:
+  case NODE_COLON3:
   case NODE_CALL:
   case NODE_SCALL:
     /* keep evaluation order */
@@ -1869,18 +1870,26 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
     gen_setxv(s, OP_SETCONST, sp, nsym(tree), val);
     break;
   case NODE_COLON2:
+  case NODE_COLON3:
     if (sp) {
       gen_move(s, cursp(), sp, 0);
     }
     sp = cursp();
     push();
-    codegen(s, tree->car, VAL);
+    if (type == NODE_COLON2) {
+      codegen(s, tree->car, VAL);
+      idx = new_sym(s, nsym(tree->cdr));
+    }
+    else {   /* NODE_COLON3 */
+      genop_1(s, OP_OCLASS, cursp());
+      push();
+      idx = new_sym(s, (mrb_sym)tree);
+    }
     if (rhs) {
       codegen(s, rhs, VAL); pop();
       gen_move(s, sp, cursp(), 0);
     }
     pop_n(2);
-    idx = new_sym(s, nsym(tree->cdr));
     genop_2(s, OP_SETMCNST, sp, idx);
     break;
 
