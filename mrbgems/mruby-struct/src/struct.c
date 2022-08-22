@@ -209,15 +209,15 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass *kl
       mrb_warn(mrb, "redefining constant Struct::%v", name);
       mrb_const_remove(mrb, mrb_obj_value(klass), id);
     }
-    c = mrb_define_class_under(mrb, klass, RSTRING_PTR(name), klass);
+    c = mrb_define_class_under_id(mrb, klass, id, klass);
   }
   MRB_SET_INSTANCE_TT(c, MRB_TT_STRUCT);
   nstr = mrb_obj_value(c);
   mrb_iv_set(mrb, nstr, MRB_SYM(__members__), members);
 
-  mrb_define_class_method(mrb, c, "new", mrb_instance_new, MRB_ARGS_ANY());
-  mrb_define_class_method(mrb, c, "[]", mrb_instance_new, MRB_ARGS_ANY());
-  mrb_define_class_method(mrb, c, "members", mrb_struct_s_members_m, MRB_ARGS_NONE());
+  mrb_define_class_method_id(mrb, c, MRB_SYM(new), mrb_instance_new, MRB_ARGS_ANY());
+  mrb_define_class_method_id(mrb, c, MRB_OPSYM(aref), mrb_instance_new, MRB_ARGS_ANY());
+  mrb_define_class_method_id(mrb, c, MRB_SYM(members), mrb_struct_s_members_m, MRB_ARGS_NONE());
   /* RSTRUCT(nstr)->basic.c->super = c->c; */
   make_struct_define_accessors(mrb, members, c);
   return nstr;
