@@ -70,9 +70,9 @@ enum pack_type {
 #define PACK_BASE64_IGNORE      0xff
 #define PACK_BASE64_PADDING     0xfe
 
-const static unsigned char base64chars[64] =
+const static unsigned char base64chars[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-const static unsigned char base64_dec_tab[128] =
+const static unsigned char base64_dec_tab[] =
   "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff"
   "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff"
   "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x3e\xff\xff\xff\x3f"
