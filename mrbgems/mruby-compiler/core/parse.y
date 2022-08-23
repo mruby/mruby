@@ -91,6 +91,15 @@ intern_gen(parser_state *p, const char *s, size_t len)
 
 #define intern_op(op) MRB_OPSYM_2(p->mrb, op)
 
+static mrb_sym
+intern_numparam_gen(parser_state *p, int num)
+{
+  char buf[3];
+  buf[0] = '_'; buf[1] = '0'+num; buf[2] = '\0';
+  return intern(buf, 2);
+}
+#define intern_numparam(n) intern_numparam_gen(p,(n))
+
 static void
 cons_free_gen(parser_state *p, node *cons)
 {
@@ -3666,6 +3675,10 @@ f_label         : tIDENTIFIER tLABEL_TAG
                     {
                       local_nest(p);
                     }
+                | tNUMPARAM tLABEL_TAG
+                    {
+                      local_nest(p);
+                    }
                 ;
 
 f_kw            : f_label arg
@@ -4029,6 +4042,16 @@ assoc           : arg tASSOC arg
                 | tIDENTIFIER tLABEL_TAG
                     {
                       $$ = cons(new_sym(p, $1), label_reference(p, $1));
+                    }
+                | tNUMPARAM tLABEL_TAG
+                    {
+                      mrb_sym sym = intern_numparam($1);
+                      $$ = cons(new_sym(p, sym), label_reference(p, sym));
+                    }
+                | tNUMPARAM tLABEL_TAG arg
+                    {
+                      void_expr_error(p, $3);
+                      $$ = cons(new_sym(p, intern_numparam($1)), $3);
                     }
                 | string_fragment tLABEL_TAG arg
                     {
