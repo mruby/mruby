@@ -1834,6 +1834,7 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
     break;
 
   case NODE_NVAR:
+    /* never happens; should have already checked in the parser */
     codegen_error(s, "Can't assign to numbered parameter");
     break;
 
@@ -1883,7 +1884,7 @@ gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int val)
     else {   /* NODE_COLON3 */
       genop_1(s, OP_OCLASS, cursp());
       push();
-      idx = new_sym(s, (mrb_sym)tree);
+      idx = new_sym(s, nsym(tree));
     }
     if (rhs) {
       codegen(s, rhs, VAL); pop();
