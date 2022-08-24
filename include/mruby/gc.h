@@ -48,7 +48,8 @@ typedef struct mrb_heap_page {
   struct mrb_heap_page *free_next;
   struct mrb_heap_page *free_prev;
   mrb_bool old:1;
-  void *objects[];
+  /* Flexible array members area a C99 feature, not C++ compatible */
+  /* void* objects[]; */
 } mrb_heap_page;
 
 #ifdef _MSC_VER
