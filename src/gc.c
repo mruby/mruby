@@ -215,7 +215,11 @@ mrb_static_assert(MRB_GC_RED <= GC_COLOR_MASK);
 #define other_white_part(s) ((s)->current_white_part ^ GC_WHITES)
 #define is_dead(s, o) (((o)->color & other_white_part(s) & GC_WHITES) || (o)->tt == MRB_TT_FREE)
 
-#define objects(p) ((RVALUE *)p->objects)
+/* We have removed `objects[]` from `mrb_heap_page` since it was not C++
+ * compatible. Using array index to get pointer after structure instead. */
+
+/* #define objects(p) ((RVALUE *)p->objects) */
+#define objects(p) ((RVALUE *)&p[1])
 
 mrb_noreturn void mrb_raise_nomemory(mrb_state *mrb);
 
