@@ -890,68 +890,10 @@ mrb_block_given_p(mrb_state *mrb)
   return !mrb_nil_p(b);
 }
 
-static mrb_int mrb_get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list ap);
-
-/*
-  retrieve arguments from mrb_state.
-
-  mrb_get_args(mrb, format, ...)
-
-  returns number of arguments parsed.
-
-  format specifiers:
-
-    string  mruby type     C type                 note
-    ----------------------------------------------------------------------------------------------
-    o:      Object         [mrb_value]
-    C:      Class/Module   [mrb_value]            when ! follows, the value may be nil
-    S:      String         [mrb_value]            when ! follows, the value may be nil
-    A:      Array          [mrb_value]            when ! follows, the value may be nil
-    H:      Hash           [mrb_value]            when ! follows, the value may be nil
-    s:      String         [const char*,mrb_int]  Receive two arguments; s! gives (NULL,0) for nil
-    z:      String         [const char*]          NUL terminated string; z! gives NULL for nil
-    a:      Array          [const mrb_value*,mrb_int] Receive two arguments; a! gives (NULL,0) for nil
-    c:      Class/Module   [strcut RClass*]       c! gives NULL for nil
-    f:      Integer/Float  [mrb_float]
-    i:      Integer/Float  [mrb_int]
-    b:      boolean        [mrb_bool]
-    n:      String/Symbol  [mrb_sym]
-    d:      data           [void*,mrb_data_type const] 2nd argument will be used to check data type so it won't be modified; when ! follows, the value may be nil
-    &:      block          [mrb_value]            &! raises exception if no block given
-    *:      rest argument  [const mrb_value*,mrb_int] The rest of the arguments as an array; *! avoid copy of the stack
-    |:      optional                              Following arguments are optional
-    ?:      optional given [mrb_bool]             true if preceding argument (optional) is given
-    ':':    keyword args   [mrb_kwargs const]     Get keyword arguments
-
-  format modifiers:
-
-    string  note
-    ----------------------------------------------------------------------------------------------
-    !:      Switch to the alternate mode; The behaviour changes depending on the specifier
-    +:      Request a not frozen object; However, except nil value
- */
-MRB_API mrb_int
-mrb_get_args(mrb_state *mrb, mrb_args_format format, ...)
-{
-  va_list ap;
-  va_start(ap, format);
-  mrb_int rc = mrb_get_args_v(mrb, format, NULL, ap);
-  va_end(ap);
-  return rc;
-}
-
-MRB_API mrb_int
-mrb_get_args_a(mrb_state *mrb, mrb_args_format format, void** args)
-{
-  va_list ap;
-  mrb_int rc = mrb_get_args_v(mrb, format, args, ap);
-  return rc;
-}
-
 #define GET_ARG(_type) (ptr ? ((_type)(*ptr++)) : va_arg(ap, _type))
 
-MRB_API mrb_int
-mrb_get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list ap)
+static mrb_int
+get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list ap)
 {
   const char *fmt = format;
   char c;
@@ -1361,6 +1303,61 @@ mrb_get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list ap)
 
 finish:
   return i;
+}
+
+/*
+  retrieve arguments from mrb_state.
+
+  mrb_get_args(mrb, format, ...)
+
+  returns number of arguments parsed.
+
+  format specifiers:
+
+    string  mruby type     C type                 note
+    ----------------------------------------------------------------------------------------------
+    o:      Object         [mrb_value]
+    C:      Class/Module   [mrb_value]            when ! follows, the value may be nil
+    S:      String         [mrb_value]            when ! follows, the value may be nil
+    A:      Array          [mrb_value]            when ! follows, the value may be nil
+    H:      Hash           [mrb_value]            when ! follows, the value may be nil
+    s:      String         [const char*,mrb_int]  Receive two arguments; s! gives (NULL,0) for nil
+    z:      String         [const char*]          NUL terminated string; z! gives NULL for nil
+    a:      Array          [const mrb_value*,mrb_int] Receive two arguments; a! gives (NULL,0) for nil
+    c:      Class/Module   [strcut RClass*]       c! gives NULL for nil
+    f:      Integer/Float  [mrb_float]
+    i:      Integer/Float  [mrb_int]
+    b:      boolean        [mrb_bool]
+    n:      String/Symbol  [mrb_sym]
+    d:      data           [void*,mrb_data_type const] 2nd argument will be used to check data type so it won't be modified; when ! follows, the value may be nil
+    &:      block          [mrb_value]            &! raises exception if no block given
+    *:      rest argument  [const mrb_value*,mrb_int] The rest of the arguments as an array; *! avoid copy of the stack
+    |:      optional                              Following arguments are optional
+    ?:      optional given [mrb_bool]             true if preceding argument (optional) is given
+    ':':    keyword args   [mrb_kwargs const]     Get keyword arguments
+
+  format modifiers:
+
+    string  note
+    ----------------------------------------------------------------------------------------------
+    !:      Switch to the alternate mode; The behaviour changes depending on the specifier
+    +:      Request a not frozen object; However, except nil value
+ */
+MRB_API mrb_int
+mrb_get_args(mrb_state *mrb, mrb_args_format format, ...)
+{
+  va_list ap;
+  va_start(ap, format);
+  mrb_int rc = get_args_v(mrb, format, NULL, ap);
+  va_end(ap);
+  return rc;
+}
+
+MRB_API mrb_int
+mrb_get_args_a(mrb_state *mrb, mrb_args_format format, void** args)
+{
+  va_list ap;
+  return get_args_v(mrb, format, args, ap);
 }
 
 static struct RClass*
