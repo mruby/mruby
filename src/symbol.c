@@ -119,22 +119,6 @@ sym_inline_unpack(mrb_sym sym, char *buf, mrb_int *lenp)
 }
 #endif
 
-static uint8_t
-symhash(const char *key, size_t len)
-{
-    uint32_t hash, i;
-
-    for(hash = i = 0; i < len; ++i) {
-        hash += key[i];
-        hash += (hash << 10);
-        hash ^= (hash >> 6);
-    }
-    hash += (hash << 3);
-    hash ^= (hash >> 11);
-    hash += (hash << 15);
-    return hash & 0xff;
-}
-
 #define sym_lit_p(mrb, i) (mrb->symflags[i>>3]&(1<<(i&7)))
 #define sym_lit_set(mrb, i) mrb->symflags[i>>3]|=(1<<(i&7))
 #define sym_flags_clear(mrb, i) mrb->symflags[i>>3]&=~(1<<(i&7))
@@ -175,7 +159,7 @@ find_symbol(mrb_state *mrb, const char *name, size_t len, uint8_t *hashp)
   i = sym_inline_pack(name, len);
   if (i > 0) return i;
 
-  hash = symhash(name, len);
+  hash = mrb_byte_hash((const uint8_t*)name, len);
   if (hashp) *hashp = hash;
 
   i = mrb->symhash[hash];
