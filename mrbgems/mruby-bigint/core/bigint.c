@@ -906,44 +906,10 @@ mpz_pow(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int e)
   mpz_move(mrb, zz, &t);
 }
 
-#define lowdigit(x) (((x)->p)[0])
-
-struct is {
-  mp_limb v;
-  struct is *next;
-};
-
-static void
-push(mrb_state *mrb, mp_limb i, struct is **sp)
-{
-  struct is *tmp;
-  tmp = *sp;
-  *sp = (struct is*)mrb_malloc(mrb, sizeof(struct is));
-  (*sp)->v = i;
-  (*sp)->next=tmp;
-}
-
-static mp_limb
-pop(mrb_state *mrb, struct is **sp)
-{
-  struct is *tmp;
-  mp_limb i;
-  if (!(*sp))
-    return (-1);
-  tmp = *sp;
-  *sp = (*sp)->next;
-  i = tmp->v;
-  tmp->v = 0;
-  mrb_free(mrb, tmp);
-  return i;
-}
-
 static void
 mpz_powm(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int ex, mpz_t *n)
 {
-  mpz_t t, e;
-  struct is *stack = NULL;
-  int k, i;
+  mpz_t t, b;
 
   if (ex == 0) {
     mpz_set_int(mrb, zz, 1);
@@ -953,26 +919,21 @@ mpz_powm(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int ex, mpz_t *n)
   if (ex < 0) {
     return;
   }
-  mpz_init_set_int(mrb, &e,  ex);
-  mpz_init(mrb, &t);
 
-  for (k=0; !uzero(&e); k++, mpz_div_2exp(mrb, &e, &e, 1))
-    push(mrb, lowdigit(&e)&1, &stack);
-  k--;
-  i=pop(mrb, &stack);
+  mpz_init_set_int(mrb, &t, 1);
+  mpz_init_set(mrb, &b, x);
 
-  mpz_mod(mrb, &t, x, n);  /* t=x%n */
-
-  for (i=k-1;i>=0;i--) {
-    mpz_mul(mrb, &t, &t, &t);
-    mpz_mod(mrb, &t, &t, n);
-    if (pop(mrb, &stack)) {
-      mpz_mul(mrb, &t, &t, x);
+  while (ex > 0) {
+    if ((ex & 1) == 1) {
+      mpz_mul(mrb, &t, &t, &b);
       mpz_mod(mrb, &t, &t, n);
     }
+    ex >>= 1;
+    mpz_mul(mrb, &b, &b, &b);
+    mpz_mod(mrb, &b, &b, n);
   }
   mpz_move(mrb, zz, &t);
-  mpz_clear(mrb, &e);
+  mpz_clear(mrb, &b);
 }
 
 /* --- mruby functions --- */
