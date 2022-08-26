@@ -59,19 +59,19 @@ static mrb_value
 int_powm(mrb_state *mrb, mrb_value x)
 {
   mrb_value m;
-  mrb_int base, exp, mod, result = 1;
+  mrb_int base, e, exp, mod, result = 1;
 
   if (mrb_get_argc(mrb) == 1) {
     return mrb_int_pow(mrb, x, mrb_get_arg1(mrb));
   }
-  mrb_get_args(mrb, "io", &exp, &m);
-  if (exp < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "int.pow(n,m): n must be positive");
+  mrb_get_args(mrb, "io", &e, &m);
+  if (e < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "int.pow(n,m): n must be positive");
 #ifdef MRB_USE_BIGINT
   if (mrb_bigint_p(x)) {
-    return mrb_bint_powm(mrb, x, exp, m);
+    return mrb_bint_powm(mrb, x, e, m);
   }
   if (mrb_bigint_p(m)) {
-    return mrb_bint_powm(mrb, mrb_bint_new_int(mrb, mrb_integer(x)), exp, m);
+    return mrb_bint_powm(mrb, mrb_bint_new_int(mrb, mrb_integer(x)), e, m);
   }
 #endif
   if (!mrb_integer_p(m)) mrb_raise(mrb, E_TYPE_ERROR, "int.pow(n,m): m must be integer");
@@ -80,17 +80,26 @@ int_powm(mrb_state *mrb, mrb_value x)
   if (mod == 0) mrb_int_zerodiv(mrb);
   if (mod == 1) return mrb_fixnum_value(0);
   base = mrb_integer(x);
+  exp = e;
   for (;;) {
     if (exp & 1) {
       if (mrb_int_mul_overflow(result, base, &result)) {
+#ifdef MRB_USE_BIGINT
+        return mrb_bint_powm(mrb, mrb_bint_new_int(mrb, mrb_integer(x)), e, m);
+#else
         mrb_int_overflow(mrb, "pow");
+#endif
       }
       result %= mod;
     }
     exp >>= 1;
     if (exp == 0) break;
     if (mrb_int_mul_overflow(base, base, &base)) {
+#ifdef MRB_USE_BIGINT
+      return mrb_bint_powm(mrb, mrb_bint_new_int(mrb, mrb_integer(x)), e, m);
+#else
       mrb_int_overflow(mrb, "pow");
+#endif
     }
     base %= mod;
   }
