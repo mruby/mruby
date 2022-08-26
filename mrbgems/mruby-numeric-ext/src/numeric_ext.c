@@ -76,7 +76,7 @@ int_powm(mrb_state *mrb, mrb_value x)
 #endif
   if (!mrb_integer_p(m)) mrb_raise(mrb, E_TYPE_ERROR, "int.pow(n,m): m must be integer");
   mod = mrb_integer(m);
-  if (mod < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "int.pow(n,m): m must be positive");
+  if (mod < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "int.pow(n,m): m must be positive when 2nd argument specified");
   if (mod == 0) mrb_int_zerodiv(mrb);
   if (mod == 1) return mrb_fixnum_value(0);
   base = mrb_integer(x);
