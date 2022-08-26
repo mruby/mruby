@@ -61,7 +61,7 @@ mpz_set(mrb_state *mrb, mpz_t *y, mpz_t *x)
 static void
 mpz_init_set(mrb_state *mrb, mpz_t *s, mpz_t *t)
 {
-  s->p = NULL;
+  mpz_init(mrb, s);
   mpz_set(mrb, s, t);
 }
 
