@@ -65,9 +65,6 @@ mpz_init_set(mrb_state *mrb, mpz_t *s, mpz_t *t)
   mpz_set(mrb, s, t);
 }
 
-#define MRB_INT_MSB ((mrb_uint)1 << (MRB_INT_BIT-1))
-#define MRB_INT_MASK (MRB_INT_MSB-1)
-
 static void
 mpz_set_int(mrb_state *mrb, mpz_t *y, mrb_int v)
 {
@@ -87,10 +84,10 @@ mpz_set_int(mrb_state *mrb, mpz_t *y, mrb_int v)
     else u = -v;
   }
 #if MRB_INT_BIT > DIG_SIZE
-  if ((u & ~MRB_INT_MASK) != 0) {
+  if ((u & ~DIG_MASK) != 0) {
     mpz_realloc(mrb, y, 2);
-    y->p[1] = (mp_limb)(u >> (MRB_INT_BIT-1));
-    y->p[0] = (mp_limb)(u & MRB_INT_MASK);
+    y->p[1] = (mp_limb)HIGH(u);
+    y->p[0] = (mp_limb)LOW(u);
   }
   else
 #endif
