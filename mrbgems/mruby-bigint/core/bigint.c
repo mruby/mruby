@@ -1382,17 +1382,17 @@ mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_int exp, mrb_value mod)
     {
       mrb_int m = mrb_integer(mod);
       if (m == 0) mrb_int_zerodiv(mrb);
-      struct RBigint *b2 = bint_new(mrb);
-      struct RBigint *b3 = bint_new_int(mrb, m);
-      mpz_powm(mrb, &b2->mp, &b->mp, exp, &b3->mp);
-      return mrb_obj_value(b3);
+      struct RBigint *b2 = bint_new_int(mrb, m);
+      struct RBigint *b3 = bint_new(mrb);
+      mpz_powm(mrb, &b3->mp, &b->mp, exp, &b2->mp);
+      return bint_norm(mrb, b3);
     }
   case MRB_TT_BIGINT:
     {
-      struct RBigint *b2 = bint_new(mrb);
-      struct RBigint *b3 = RBIGINT(mod);
-      if (uzero(&b3->mp)) mrb_int_zerodiv(mrb);
-      mpz_powm(mrb, &b2->mp, &b->mp, exp, &b3->mp);
+      struct RBigint *b2 = RBIGINT(mod);
+      struct RBigint *b3 = bint_new(mrb);
+      if (uzero(&b2->mp)) mrb_int_zerodiv(mrb);
+      mpz_powm(mrb, &b3->mp, &b->mp, exp, &b2->mp);
       return bint_norm(mrb, b3);
     }
     mrb_raise(mrb, E_TYPE_ERROR, "too big power");
