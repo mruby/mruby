@@ -440,7 +440,7 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
   }
   else if (cmp < 0) {
     zero(qq);
-    mpz_set(mrb, rr, yy);
+    mpz_set(mrb, rr, xx);
     return;
   }
 
