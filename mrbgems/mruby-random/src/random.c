@@ -155,19 +155,21 @@ get_opt(mrb_state* mrb)
   return arg;
 }
 
+#define ID_RANDOM MRB_SYM(mruby_Random)
+
 static mrb_value
-random_default(mrb_state *mrb) {
-  struct RClass *c = mrb_class_get_id(mrb, MRB_SYM(Random));
-  mrb_value d = mrb_const_get(mrb, mrb_obj_value(c), MRB_SYM(DEFAULT));
+random_default(mrb_state *mrb)
+{
+  struct RClass *c = mrb_class_get_id(mrb, ID_RANDOM);
+  mrb_value d = mrb_iv_get(mrb, mrb_obj_value(c), ID_RANDOM);
   if (!mrb_obj_is_kind_of(mrb, d, c)) {
-    mrb_raise(mrb, E_TYPE_ERROR, "Random::DEFAULT replaced");
+    mrb_raise(mrb, E_RUNTIME_ERROR, "[BUG] default Random replaced");
   }
   return d;
 }
 
 #define random_ptr(v) (rand_state*)mrb_istruct_ptr(v)
 #define random_default_state(mrb) random_ptr(random_default(mrb))
-#define ID_RANDOM_STRICT MRB_SYM(mruby_Random)
 
 static mrb_value
 random_m_init(mrb_state *mrb, mrb_value self)
@@ -235,7 +237,7 @@ random_m_bytes(mrb_state *mrb, mrb_value self)
 static rand_state*
 check_random_arg(mrb_state *mrb, mrb_value r)
 {
-  struct RClass *c = mrb_class_get_id(mrb, ID_RANDOM_STRICT);
+  struct RClass *c = mrb_class_get_id(mrb, ID_RANDOM);
   rand_state *random;
 
   if (mrb_undef_p(r)) {
@@ -406,7 +408,7 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, mrb->kernel_module, "srand", random_f_srand, MRB_ARGS_OPT(1));
 
   random = mrb_define_class(mrb, "Random", mrb->object_class);
-  mrb_const_set(mrb, mrb_obj_value(mrb->object_class), ID_RANDOM_STRICT, mrb_obj_value(random)); // for class check
+  mrb_const_set(mrb, mrb_obj_value(mrb->object_class), ID_RANDOM, mrb_obj_value(random)); // for class check
   MRB_SET_INSTANCE_TT(random, MRB_TT_ISTRUCT);
   mrb_define_class_method(mrb, random, "rand", random_f_rand, MRB_ARGS_OPT(1));
   mrb_define_class_method(mrb, random, "srand", random_f_srand, MRB_ARGS_OPT(1));
@@ -423,7 +425,7 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
 
   mrb_value d = mrb_obj_new(mrb, random, 0, NULL);
   rand_state *t = random_ptr(d);
-  mrb_const_set(mrb, mrb_obj_value(random), MRB_SYM(DEFAULT), d);
+  mrb_iv_set(mrb, mrb_obj_value(random), ID_RANDOM, d);
 
   uint32_t seed = (uint32_t)time(NULL);
   rand_seed(t, seed ^ (uint32_t)(uintptr_t)t);
