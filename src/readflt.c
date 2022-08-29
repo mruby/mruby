@@ -51,7 +51,8 @@ mrb_float_read(const char *str, char **end)
       ++n;
     }
     a = p;
-  } else if (*p != '.')
+  }
+  else if (*p != '.')
     goto done;
   d *= sign;
 
@@ -61,15 +62,14 @@ mrb_float_read(const char *str, char **end)
     double base = 0.1;
     ++p;
 
-    if (ISDIGIT(*p))
-      {
-        while (*p && ISDIGIT(*p)) {
-          f += base * (*p - '0') ;
-          base /= 10.0;
-          ++p;
-          ++n;
-        }
+    if (ISDIGIT(*p)) {
+      while (*p && ISDIGIT(*p)) {
+        f += base * (*p - '0') ;
+        base /= 10.0;
+        ++p;
+        ++n;
       }
+    }
     d += f * sign;
     a = p;
   }
@@ -83,7 +83,8 @@ mrb_float_read(const char *str, char **end)
     if (*p == '-') {
       sign = -1;
       ++p;
-    } else if (*p == '+')
+    }
+    else if (*p == '+')
       ++p;
 
     if (ISDIGIT(*p)) {
