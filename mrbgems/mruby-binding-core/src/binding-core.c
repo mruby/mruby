@@ -254,7 +254,7 @@ mrb_binding_wrap_lvspace(mrb_state *mrb, const struct RProc *proc, struct REnv *
   (*envp)->stack[0] = lvspace->e.env ? lvspace->e.env->stack[0] : mrb_nil_value();
   (*envp)->cxt = lvspace->e.env ? lvspace->e.env->cxt : mrb->c;
   (*envp)->mid = 0;
-  (*envp)->flags = MRB_ENV_CLOSED | MRB_ENV_HEAPED;
+  (*envp)->flags = MRB_ENV_CLOSED;
   MRB_ENV_SET_LEN(*envp, 1);
 
   return lvspace;
