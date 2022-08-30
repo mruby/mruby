@@ -82,7 +82,7 @@ const static unsigned char base64_dec_tab[] =
   "\xff\x1a\x1b\x1c\x1d\x1e\x1f\x20\x21\x22\x23\x24\x25\x26\x27\x28"
   "\x29\x2a\x2b\x2c\x2d\x2e\x2f\x30\x31\x32\x33\xff\xff\xff\xff\xff";
 
-static unsigned int
+static int
 hex2int(unsigned char ch)
 {
   if (ch >= '0' && ch <= '9')
@@ -741,7 +741,8 @@ unpack_str(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, 
 static int
 pack_hex(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, unsigned int flags)
 {
-  unsigned int a, ashift, b, bshift;
+  int a, b;
+  unsigned int ashift, bshift;
   long slen;
   char *dptr, *dptr0, *sptr;
 
