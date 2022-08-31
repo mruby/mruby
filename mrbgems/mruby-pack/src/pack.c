@@ -1511,7 +1511,6 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
     case PACK_DIR_BASE64:
       srcidx += unpack_base64(mrb, sptr, srclen - srcidx, result);
       continue;
-      break;
     case PACK_DIR_QENC:
       srcidx += unpack_qenc(mrb, sptr, srclen - srcidx, result);
       continue;
@@ -1562,14 +1561,12 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
         count--;
       }
     }
-    if (single) break;
-  }
-
-  if (single) {
-    if (RARRAY_LEN(result) > 0) {
-      return RARRAY_PTR(result)[0];
+    if (single) {
+      if (RARRAY_LEN(result) > 0) {
+        return RARRAY_PTR(result)[0];
+      }
+      return mrb_nil_value();
     }
-    return mrb_nil_value();
   }
   return result;
 }
