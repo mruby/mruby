@@ -178,6 +178,7 @@ typedef struct {
   uint8_t cci;                  /* called from C function */
   mrb_sym mid;
   const struct RProc *proc;
+  struct RProc *blk;
   mrb_value *stack;
   const mrb_code *pc;           /* current address on iseq of this proc */
   union {
