@@ -94,8 +94,7 @@ cbrt(double x)
 }
 
 /* Declaration of complementary Error function */
-double
-erfc(double x);
+double erfc(double x);
 
 /*
 ** Implementations of error functions
@@ -323,8 +322,6 @@ math_atan2(mrb_state *mrb, mrb_value obj)
 
   return mrb_float_value(mrb, x);
 }
-
-
 
 /*
   HYPERBOLIC TRIG FUNCTIONS
