@@ -1,6 +1,14 @@
 #include <stdlib.h>
 #include <mruby.h>
 
+#ifndef EXIT_SUCCESS
+# define EXIT_SUCCESS 0
+#endif
+
+#ifndef EXIT_FAILURE
+# define EXIT_FAILURE 1
+#endif
+
 static mrb_value
 f_exit(mrb_state *mrb, mrb_value self)
 {
