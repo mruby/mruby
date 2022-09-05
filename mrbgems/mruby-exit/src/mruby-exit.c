@@ -9,6 +9,27 @@
 # define EXIT_FAILURE 1
 #endif
 
+/*
+ *  call-seq:
+ *     exit(status=false)
+ *
+ *  Exits the process immediately. No exit handlers are run currently.
+ *  <em>status</em> is returned to the underlying system as the
+ *  exit status.
+ *
+ *     exit(true)
+ */
+
+/*
+ *  call-seq:
+ *     exit!(status=false)
+ *
+ *  Exits the process immediately. No exit handlers are run.
+ *  <em>status</em> is returned to the underlying system as the
+ *  exit status.
+ *
+ *     exit!(true)
+ */
 static mrb_value
 f_exit_bang(mrb_state *mrb, mrb_value self)
 {
