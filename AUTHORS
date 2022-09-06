@@ -1,17 +1,17 @@
 # Authors of mruby (mruby developers)
 
-## The List of Contributors sorted by number of commits (as of 2022-08-02 90e75f9)
+## The List of Contributors sorted by number of commits (as of 2022-09-06 b06fef6)
 
-   8452 Yukihiro "Matz" Matsumoto (@matz)*
+   8532 Yukihiro "Matz" Matsumoto (@matz)*
     586 KOBAYASHI Shuji (@shuujii)
-    397 dearblue (@dearblue)*
+    408 dearblue (@dearblue)*
     376 Daniel Bovensiepen (@bovi)
     346 Takeshi Watanabe (@take-cheeze)*
     334 Masaki Muranaka (@monaka)
     308 Tomoyuki Sahara (@tsahara)*
     234 Jun Hiroe (@suzukaze)
     220 Cremno (@cremno)*
-    208 Yuki Kurihara (@ksss)+
+    209 Yuki Kurihara (@ksss)+
     148 Yasuhiro Matsumoto (@mattn)*
     113 Carson McDonald (@carsonmcdonald)
     103 Tomasz Dąbrowski (@dabroz)*
@@ -20,7 +20,7 @@
      74 Yuichiro MASUI (@masuidrive)
      73 Hiroshi Mimaki (@mimaki)*
      71 Tatsuhiko Kubo (@cubicdaiya)*
-     68 John Bampton (@jbampton)
+     70 John Bampton (@jbampton)
      67 Akira Yumiyama (@akiray03)*
      62 Paolo Bosetti (@pbosetti)*
      59 Kurebayashi, Takahiro (@crimsonwoods)*
@@ -133,6 +133,7 @@
       3 Horimoto Yasuhiro (@komainu8)
       3 J. Mutua (@katmutua)+
       3 Jan Berdajs (@mrbrdo)
+      3 Jonas Minnberg (@sasq64)
       3 Joseph McCullough (@joequery)
       3 Mark McCurry (@fundamental)
       3 Nobuhiro Iwamatsu (@iwamatsu)
@@ -206,6 +207,7 @@
       1 Francis Bogsanyi (@fbogsany)
       1 Guo Xiao (@guoxiao)
       1 Gwen Boatrite (@boatrit)
+      1 HARADA Makoto (@haramako)
       1 HAYASHI Kentaro (@kenhys)
       1 Hiroki Mori (@yamori813)+
       1 Hiromasa Ishii (@Hir0)+
@@ -255,6 +257,7 @@
       1 Robert Rowe (@CaptainJet)
       1 Ryan Scott Lewis (@RyanScottLewis)
       1 Ryo Okubo (@syucream)
+      1 SAkira a.k.a. Akira Suzuki (@sakisakira)
       1 Santiago Rodriguez (@sanrodari)
       1 Satoh, Hiroh (@cho45)+
       1 Sayed Abdelhaleem (@visualsayed)
