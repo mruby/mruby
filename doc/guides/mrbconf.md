@@ -41,7 +41,7 @@ You can use mrbconfs with following ways:
 `MRB_STACK_EXTEND_DOUBLING`
 
 * If defined doubles the stack size when extending it.
-* Else extends stack with `MRB_STACK_GROWTH`.
+* Otherwise extends stack with `MRB_STACK_GROWTH`.
 
 `MRB_STACK_GROWTH`
 
@@ -64,7 +64,7 @@ You can use mrbconfs with following ways:
 `MRB_NO_FLOAT`
 
 * When defined removes floating-point numbers from mruby.
-* It makes mruby easier to handle in "Microcontroller without FPU" and "Kernel Space".
+* It makes mruby easier to handle in "Micro-controller without FPU" and "Kernel Space".
 
 `MRB_INT32`
 
@@ -172,10 +172,24 @@ largest value of required alignment.
 
 ## Other configuration
 
+`MRB_MALLOC_TRIM`
+
+* call malloc_trim(0) for each mrb_full_gc() call
+
 `MRB_UTF8_STRING`
 
 * Adds UTF-8 encoding support to character-oriented String instance methods.
 * If it isn't defined, they only support the US-ASCII encoding.
+
+`MRB_STR_LENGTH_MAX`
+
+* The maximum length of strings (default 1MB)
+* set this value to zero to skip the check
+
+`MRB_ARY_LENGTH_MAX`
+
+* The maximum length of strings (default 1MB)
+* set this value to zero to skip the check
 
 `MRB_FUNCALL_ARGC_MAX`
 
@@ -209,3 +223,12 @@ largest value of required alignment.
 
 * Make it available `Symbol.all_symbols` in `mrbgems/mruby-symbol-ext`
 * Increase heap memory usage.
+
+`MRB_USE_ALL_SYMBOLS`
+
+* Make it available `Symbol.all_symbols` in `mrbgems/mruby-symbol-ext`
+* Increase heap memory usage.
+
+`MRB_NO_DIRECT_THREADING`
+
+* Turn off direct threading optimization in VM loop
