@@ -25,3 +25,23 @@ assert('Integer#pow') do
   assert_equal(-8, (-2).pow(3))
   assert_equal(361, 9.pow(1024,1000))
 end
+
+assert('Integer#ceildiv') do
+  assert_equal(0, 0.ceildiv(3))
+  assert_equal(1, 1.ceildiv(3))
+  assert_equal(1, 3.ceildiv(3))
+  assert_equal(2, 4.ceildiv(3))
+
+  assert_equal(-1, 4.ceildiv(-3))
+  assert_equal(-1, -4.ceildiv(3))
+  assert_equal(2, -4.ceildiv(-3))
+
+#  assert_equal(3, 3.ceildiv(1.2))
+#  assert_equal(3, 3.ceildiv(6/5r))
+
+#  assert_equal(10, (10**100-11).ceildiv(10**99-1))
+#  assert_equal(11, (10**100-9).ceildiv(10**99-1))
+  assert_equal(8, 2.pow(3))
+  assert_equal(-8, (-2).pow(3))
+#  assert_equal(361, 9.pow(1024,1000))
+end
