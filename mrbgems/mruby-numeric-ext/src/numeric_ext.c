@@ -130,7 +130,7 @@ flo_remainder(mrb_state *mrb, mrb_value self)
 void
 mrb_mruby_numeric_ext_gem_init(mrb_state* mrb)
 {
-  struct RClass *i = mrb_class_get(mrb, "Integer");
+  struct RClass *i = mrb->integer_class;
 
   mrb_define_alias(mrb, i, "modulo", "%");
   mrb_define_method(mrb, i, "remainder", int_remainder, MRB_ARGS_REQ(1));
