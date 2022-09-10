@@ -1266,7 +1266,7 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 
   mrb_define_method(mrb, s, "__lines",         mrb_str_lines,           MRB_ARGS_NONE());
 
-  mrb_define_method(mrb, mrb_class_get(mrb, "Integer"), "chr", mrb_int_chr, MRB_ARGS_OPT(1));
+  mrb_define_method(mrb, mrb->integer_class, "chr", mrb_int_chr, MRB_ARGS_OPT(1));
 }
 
 void
