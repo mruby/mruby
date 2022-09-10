@@ -192,7 +192,7 @@ range_size(mrb_state *mrb, mrb_value range)
 void
 mrb_mruby_range_ext_gem_init(mrb_state* mrb)
 {
-  struct RClass * s = mrb_class_get(mrb, "Range");
+  struct RClass * s = mrb->range_class;
 
   mrb_define_method(mrb, s, "cover?", range_cover, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, s, "size",   range_size,  MRB_ARGS_NONE());
