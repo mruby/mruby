@@ -138,7 +138,7 @@ mrb_mruby_numeric_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, i, MRB_SYM(pow), int_powm, MRB_ARGS_ARG(1,1));
 
 #ifndef MRB_NO_FLOAT
-  struct RClass *f = mrb_class_get(mrb, "Float");
+  struct RClass *f = mrb->float_class;
 
   mrb_define_alias(mrb, f, "modulo", "%");
   mrb_define_method(mrb, f, "remainder", flo_remainder, MRB_ARGS_REQ(1));
