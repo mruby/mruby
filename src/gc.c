@@ -980,12 +980,6 @@ root_scan_phase(mrb_state *mrb, mrb_gc *gc)
   mrb_gc_mark(mrb, (struct RBasic*)mrb->top_self);
   /* mark exception */
   mrb_gc_mark(mrb, (struct RBasic*)mrb->exc);
-  /* mark pre-allocated exception */
-  mrb_gc_mark(mrb, (struct RBasic*)mrb->nomem_err);
-  mrb_gc_mark(mrb, (struct RBasic*)mrb->stack_err);
-#ifdef MRB_GC_FIXED_ARENA
-  mrb_gc_mark(mrb, (struct RBasic*)mrb->arena_err);
-#endif
 
   mark_context(mrb, mrb->c);
   if (mrb->root_c != mrb->c) {
@@ -1084,7 +1078,6 @@ gc_gray_counts(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
   return children;
 }
 
-
 static void
 gc_mark_gray_list(mrb_state *mrb, mrb_gc *gc) {
   while (gc->gray_list) {
@@ -1093,7 +1086,6 @@ gc_mark_gray_list(mrb_state *mrb, mrb_gc *gc) {
     gc_mark_children(mrb, gc, obj);
   }
 }
-
 
 static size_t
 incremental_marking_phase(mrb_state *mrb, mrb_gc *gc, size_t limit)
@@ -1111,6 +1103,19 @@ incremental_marking_phase(mrb_state *mrb, mrb_gc *gc, size_t limit)
 }
 
 static void
+clear_error_object(mrb_state *mrb, struct RObject *obj)
+{
+  if (obj == 0) return;
+  if (!is_white(obj)) return;
+  paint_black(obj);
+  mrb_gc_free_iv(mrb, obj);
+  struct RException *err = (struct RException*)obj;
+  err->iv = NULL;
+  err->mesg = NULL;
+  err->backtrace = NULL;
+}
+
+static void
 final_marking_phase(mrb_state *mrb, mrb_gc *gc)
 {
   int i, e;
@@ -1125,6 +1130,12 @@ final_marking_phase(mrb_state *mrb, mrb_gc *gc)
     mark_context(mrb, mrb->root_c);
   }
   mrb_gc_mark(mrb, (struct RBasic*)mrb->exc);
+  /* mark pre-allocated exception */
+  clear_error_object(mrb, mrb->nomem_err);
+  clear_error_object(mrb, mrb->stack_err);
+#ifdef MRB_GC_FIXED_ARENA
+  clear_error_object(mrb, mrb->arena_err);
+#endif
   gc_mark_gray_list(mrb, gc);
   mrb_assert(gc->gray_list == NULL);
   gc->gray_list = gc->atomic_gray_list;
