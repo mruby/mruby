@@ -1108,6 +1108,7 @@ clear_error_object(mrb_state *mrb, struct RObject *obj)
   if (obj == 0) return;
   if (!is_white(obj)) return;
   paint_black(obj);
+  mrb_gc_mark(mrb, (struct RBasic*)obj->c);
   mrb_gc_free_iv(mrb, obj);
   struct RException *err = (struct RException*)obj;
   err->iv = NULL;
