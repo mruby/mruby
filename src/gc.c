@@ -1253,11 +1253,11 @@ incremental_gc(mrb_state *mrb, mrb_gc *gc, size_t limit)
 }
 
 static void
-incremental_gc_until(mrb_state *mrb, mrb_gc *gc, mrb_gc_state to_state)
+incremental_gc_finish(mrb_state *mrb, mrb_gc *gc)
 {
   do {
     incremental_gc(mrb, gc, SIZE_MAX);
-  } while (gc->state != to_state);
+  } while (gc->state != MRB_GC_STATE_ROOT);
 }
 
 static void
@@ -1282,14 +1282,14 @@ clear_all_old(mrb_state *mrb, mrb_gc *gc)
   mrb_assert(is_generational(gc));
   if (is_major_gc(gc)) {
     /* finish the half baked GC */
-    incremental_gc_until(mrb, gc, MRB_GC_STATE_ROOT);
+    incremental_gc_finish(mrb, gc);
   }
 
   /* Sweep the dead objects, then reset all the live objects
    * (including all the old objects, of course) to white. */
   gc->generational = FALSE;
   prepare_incremental_sweep(mrb, gc);
-  incremental_gc_until(mrb, gc, MRB_GC_STATE_ROOT);
+  incremental_gc_finish(mrb, gc);
   gc->generational = origin_mode;
 
   /* The gray objects have already been painted as white */
@@ -1307,7 +1307,7 @@ mrb_incremental_gc(mrb_state *mrb)
   GC_TIME_START;
 
   if (is_minor_gc(gc)) {
-    incremental_gc_until(mrb, gc, MRB_GC_STATE_ROOT);
+    incremental_gc_finish(mrb, gc);
   }
   else {
     incremental_gc_step(mrb, gc);
@@ -1363,10 +1363,10 @@ mrb_full_gc(mrb_state *mrb)
   }
   else if (gc->state != MRB_GC_STATE_ROOT) {
     /* finish half baked GC cycle */
-    incremental_gc_until(mrb, gc, MRB_GC_STATE_ROOT);
+    incremental_gc_finish(mrb, gc);
   }
 
-  incremental_gc_until(mrb, gc, MRB_GC_STATE_ROOT);
+  incremental_gc_finish(mrb, gc);
   gc->threshold = (gc->live_after_mark/100) * gc->interval_ratio;
 
   if (is_generational(gc)) {
@@ -1574,7 +1574,7 @@ change_gen_gc_mode(mrb_state *mrb, mrb_gc *gc, mrb_bool enable)
     gc->full = FALSE;
   }
   else if (!is_generational(gc) && enable) {
-    incremental_gc_until(mrb, gc, MRB_GC_STATE_ROOT);
+    incremental_gc_finish(mrb, gc);
     gc->majorgc_old_threshold = gc->live_after_mark/100 * MAJOR_GC_INC_RATIO;
     gc->full = FALSE;
   }
