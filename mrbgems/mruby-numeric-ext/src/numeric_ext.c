@@ -1,5 +1,6 @@
 #include <mruby.h>
 #include <mruby/numeric.h>
+#include <mruby/array.h>
 #include <mruby/internal.h>
 #include <mruby/presym.h>
 
@@ -113,6 +114,86 @@ int_powm(mrb_state *mrb, mrb_value x)
   return mrb_int_value(mrb, result);
 }
 
+/*
+ *  call-seq:
+ *    digits(base = 10) -> array_of_integers
+ *
+ *  Returns an array of integers representing the +base+-radix
+ *  digits of +self+;
+ *  the first element of the array represents the least significant digit:
+ *
+ *    12345.digits      # => [5, 4, 3, 2, 1]
+ *    12345.digits(7)   # => [4, 6, 6, 0, 5]
+ *    12345.digits(100) # => [45, 23, 1]
+ *
+ *  Raises an exception if +self+ is negative or +base+ is less than 2.
+ *
+ */
+
+static mrb_value
+int_digits(mrb_state *mrb, mrb_value self)
+{
+  mrb_int base = 10;
+
+  mrb_get_args(mrb, "|i", &base);
+  if (base < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative radix");
+  }
+  else if (base < 2) {
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid radix %i", base);
+  }
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(self)) {
+    mrb_value x = self;
+    mrb_value zero = mrb_fixnum_value(0);
+    mrb_value bv = mrb_int_value(mrb, base);
+    if (mrb_bint_cmp(mrb, x, zero) < 0) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "number should be positive");
+    }
+    mrb_value digits = mrb_ary_new(mrb);
+
+    while (mrb_bint_cmp(mrb, x, zero) == 0) {
+      mrb_ary_push(mrb, digits, zero);
+      return digits;
+    }
+
+    while (mrb_bint_cmp(mrb, x, zero) > 0) {
+      mrb_value q = mrb_bint_mod(mrb, x, bv);
+      mrb_ary_push(mrb, digits, q);
+      x = mrb_bint_div(mrb, x, bv);
+      if (!mrb_bigint_p(x)) {
+        mrb_int n = mrb_integer(x);
+        while (n > 0) {
+          mrb_int q = n % base;
+          mrb_ary_push(mrb, digits, mrb_int_value(mrb, q));
+          n /= base;
+        }
+        break;
+      }
+    }
+    return digits;
+  }
+#endif
+  mrb_int n = mrb_integer(self);
+  if (n < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "number should be positive");
+  }
+
+  mrb_value digits = mrb_ary_new(mrb);
+
+  if (n == 0) {
+    mrb_ary_push(mrb, digits, mrb_fixnum_value(0));
+    return digits;
+  }
+
+  while (n > 0) {
+    mrb_int q = n % base;
+    mrb_ary_push(mrb, digits, mrb_int_value(mrb, q));
+    n /= base;
+  }
+  return digits;
+}
+
 #ifndef MRB_NO_FLOAT
 static mrb_value
 flo_remainder(mrb_state *mrb, mrb_value self)
@@ -136,6 +217,7 @@ mrb_mruby_numeric_ext_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, i, "remainder", int_remainder, MRB_ARGS_REQ(1));
 
   mrb_define_method_id(mrb, i, MRB_SYM(pow), int_powm, MRB_ARGS_ARG(1,1));
+  mrb_define_method_id(mrb, i, MRB_SYM(digits), int_digits, MRB_ARGS_OPT(1));
 
 #ifndef MRB_NO_FLOAT
   struct RClass *f = mrb->float_class;
