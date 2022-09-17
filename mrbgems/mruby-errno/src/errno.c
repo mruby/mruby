@@ -50,13 +50,15 @@ static const struct {
 
 #define E2C_LEN         (sizeof(e2c) / sizeof(e2c[0]))
 #define NOE2C_LEN       (sizeof(noe2c) / sizeof(noe2c[0]))
+#define ID_SystemCallError  MRB_SYM(mruby_SystemCallError)
+#define ID_Errno        MRB_SYM(mruby_Errno)
 
 static mrb_value mrb_exxx_init(mrb_state *mrb, mrb_value self);
 
 static struct RClass*
 mrb_errno_define_exxx(mrb_state *mrb, mrb_sym name, int eno)
 {
-  struct RClass *errno_module = mrb_module_get_id(mrb, MRB_SYM(Errno));
+  struct RClass *errno_module = mrb_module_get_id(mrb, ID_Errno);
 
   if (mrb_const_defined_at(mrb, mrb_obj_value(errno_module), name)) {
     mrb_value v = mrb_const_get(mrb, mrb_obj_value(errno_module), name);
@@ -66,7 +68,7 @@ mrb_errno_define_exxx(mrb_state *mrb, mrb_sym name, int eno)
     }
   }
 
-  struct RClass *sce_class = mrb_class_get_id(mrb, MRB_SYM(SystemCallError));
+  struct RClass *sce_class = mrb_class_get_id(mrb, ID_SystemCallError);
   struct RClass *e = mrb_define_class_under_id(mrb, errno_module, name, sce_class);
   mrb_define_const_id(mrb, e, MRB_SYM(Errno), mrb_fixnum_value(eno));
 
@@ -157,7 +159,7 @@ mrb_errno_define(mrb_state *mrb, mrb_value self)
 
   for (size_t i = 0; i < NOE2C_LEN; i++) {
     if (errno_name_matched_p(noe2c[i], &ref)) {
-      struct RClass *errno_module = mrb_module_get_id(mrb, MRB_SYM(Errno));
+      struct RClass *errno_module = mrb_module_get_id(mrb, ID_Errno);
       return mrb_obj_value(mrb_class_get_under_id(mrb, errno_module, MRB_SYM(NOERROR)));
     }
   }
@@ -229,7 +231,7 @@ mrb_sce_init(mrb_state *mrb, mrb_value self, mrb_value m, mrb_value no)
 static mrb_value
 mrb_sce_init_m(mrb_state *mrb, mrb_value self)
 {
-  if (mrb_class(mrb, self) != mrb_exc_get_id(mrb, MRB_SYM(SystemCallError))) {
+  if (mrb_class(mrb, self) != mrb_exc_get_id(mrb, ID_SystemCallError)) {
     return mrb_exxx_init(mrb, self);
   }
 
@@ -272,7 +274,7 @@ mrb_sce_sys_fail(mrb_state *mrb, mrb_value cls)
   mrb_int argc;
 
   mrb->c->ci->mid = 0;
-  sce = mrb_class_get_id(mrb, MRB_SYM(SystemCallError));
+  sce = mrb_class_get_id(mrb, ID_SystemCallError);
   argc = mrb_get_args(mrb, "o|S", &no, &msg);
 
   struct RBasic* e = mrb_obj_alloc(mrb, MRB_TT_EXCEPTION, sce);
@@ -312,11 +314,13 @@ mrb_mruby_errno_gem_init(mrb_state *mrb)
   ste = mrb_class_get_id(mrb, MRB_SYM(StandardError));
 
   sce = mrb_define_class(mrb, "SystemCallError", ste);
+  mrb_define_const_id(mrb, mrb->object_class, ID_SystemCallError, mrb_obj_value(sce));
   mrb_define_class_method(mrb, sce, "_sys_fail", mrb_sce_sys_fail, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, sce, "errno", mrb_sce_errno, MRB_ARGS_NONE());
   mrb_define_method(mrb, sce, "initialize", mrb_sce_init_m, MRB_ARGS_ARG(1, 1));
 
   eno = mrb_define_module_id(mrb, MRB_SYM(Errno));
+  mrb_define_const_id(mrb, mrb->object_class, ID_Errno, mrb_obj_value(eno));
   mrb_define_class_method(mrb, eno, "__errno_defined?", mrb_errno_defined_p, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, eno, "__errno_define", mrb_errno_define, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, eno, "__errno_list", mrb_errno_list, MRB_ARGS_REQ(1));
