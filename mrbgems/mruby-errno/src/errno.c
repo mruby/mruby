@@ -51,8 +51,6 @@ static const struct {
 #define E2C_LEN         (sizeof(e2c) / sizeof(e2c[0]))
 #define NOE2C_LEN       (sizeof(noe2c) / sizeof(noe2c[0]))
 
-static mrb_value mrb_exxx_init(mrb_state *mrb, mrb_value self);
-
 static struct RClass*
 mrb_errno_define_exxx(mrb_state *mrb, mrb_sym name, int eno)
 {
@@ -227,6 +225,16 @@ mrb_sce_init(mrb_state *mrb, mrb_value self, mrb_value m, mrb_value no)
 }
 
 static mrb_value
+mrb_exxx_init(mrb_state *mrb, mrb_value self)
+{
+  mrb_value m = mrb_nil_value();
+
+  mrb_get_args(mrb, "|S", &m);
+  mrb_sce_init(mrb, self, m, mrb_nil_value());
+  return self;
+}
+
+static mrb_value
 mrb_sce_init_m(mrb_state *mrb, mrb_value self)
 {
   if (mrb_class(mrb, self) != mrb_exc_get_id(mrb, MRB_SYM(SystemCallError))) {
@@ -284,24 +292,6 @@ mrb_sce_sys_fail(mrb_state *mrb, mrb_value cls)
   mrb_sce_init(mrb, exc, msg, no);
   mrb_exc_raise(mrb, exc);
   return mrb_nil_value();  /* NOTREACHED */
-}
-
-static mrb_value
-mrb_exxx_init(mrb_state *mrb, mrb_value self)
-{
-  mrb_value m, no, str;
-
-  no = mrb_const_get(mrb, mrb_obj_value(mrb_class(mrb, self)), MRB_SYM(Errno));
-  str = mrb_str_new_cstr(mrb, strerror((int)mrb_fixnum(no)));
-
-  m = mrb_nil_value();
-  mrb_get_args(mrb, "|S", &m);
-  if (!mrb_nil_p(m)) {
-    mrb_str_cat2(mrb, str, " - ");
-    mrb_str_append(mrb, str, m);
-  }
-  mrb_exc_mesg_set(mrb, mrb_exc_ptr(self), str);
-  return self;
 }
 
 void
