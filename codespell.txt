@@ -1,8 +1,10 @@
 ans
 ba
+clen
 creat
 delet
 disabl
+falsy
 filetest
 fo
 hel
@@ -12,6 +14,7 @@ methid
 nd
 quitt
 remore
+ro
 runn
 sting
 upto
