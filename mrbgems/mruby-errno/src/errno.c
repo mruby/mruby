@@ -309,7 +309,7 @@ mrb_mruby_errno_gem_init(mrb_state *mrb)
 {
   struct RClass *e, *eno, *sce, *ste;
 
-  ste = mrb_class_get_id(mrb, MRB_SYM(StandardError));
+  ste = mrb->eStandardError_class;
 
   sce = mrb_define_class(mrb, "SystemCallError", ste);
   mrb_define_class_method(mrb, sce, "_sys_fail", mrb_sce_sys_fail, MRB_ARGS_REQ(1));
