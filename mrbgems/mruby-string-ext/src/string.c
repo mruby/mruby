@@ -446,7 +446,7 @@ tr_bitmap_detect(uint8_t bitmap[32], uint8_t ch)
   return FALSE;
 }
 
-/* compile patter to bitmap */
+/* compile pattern to bitmap */
 static void
 tr_compile_pattern(const struct tr_pattern *pat, mrb_value pstr, uint8_t bitmap[32])
 {
