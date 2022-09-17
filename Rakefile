@@ -96,6 +96,6 @@ task :install_bin => :all do
   end
 end
 
-task :lint do
+task :check do
   sh "pre-commit run --all-files"
 end

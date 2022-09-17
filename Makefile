@@ -14,6 +14,6 @@ clean :
 	$(RAKE) clean
 .PHONY : clean
 
-lint :
+check :
 	pre-commit run --all-files
 .PHONY : lint
