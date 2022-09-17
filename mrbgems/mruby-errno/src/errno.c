@@ -66,7 +66,7 @@ mrb_errno_define_exxx(mrb_state *mrb, mrb_sym name, int eno)
     }
   }
 
-  struct RClass *sce_class = mrb_class_get_id(mrb, MRB_SYM(SystemCallError));
+  struct RClass *sce_class = mrb_exc_get_id(mrb, MRB_SYM(SystemCallError));
   struct RClass *e = mrb_define_class_under_id(mrb, errno_module, name, sce_class);
   mrb_define_const_id(mrb, e, MRB_SYM(Errno), mrb_fixnum_value(eno));
 
@@ -272,7 +272,7 @@ mrb_sce_sys_fail(mrb_state *mrb, mrb_value cls)
   mrb_int argc;
 
   mrb->c->ci->mid = 0;
-  sce = mrb_class_get_id(mrb, MRB_SYM(SystemCallError));
+  sce = mrb_class_ptr(cls);
   argc = mrb_get_args(mrb, "o|S", &no, &msg);
 
   struct RBasic* e = mrb_obj_alloc(mrb, MRB_TT_EXCEPTION, sce);
