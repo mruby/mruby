@@ -16,4 +16,4 @@ clean :
 
 check :
 	pre-commit run --all-files
-.PHONY : lint
+.PHONY : check
