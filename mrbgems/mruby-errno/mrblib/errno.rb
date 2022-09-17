@@ -8,7 +8,7 @@ module Errno
   end
 
   # Module#constants is defined in mruby-metaprog
-  # So, it's may be raised NoMethodError
+  # So, it may be raised NoMethodError
   def Errno.constants
     __errno_list(super)
   end
