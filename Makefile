@@ -13,3 +13,7 @@ test : all
 clean :
 	$(RAKE) clean
 .PHONY : clean
+
+lint :
+	pre-commit run --all-files
+.PHONY : lint
