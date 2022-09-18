@@ -410,7 +410,7 @@ cipop(mrb_state *mrb)
 
   mrb_vm_ci_env_set(c->ci, NULL); // make possible to free by GC if env is not needed
   struct RProc *b = c->ci->blk;
-  if (b && !MRB_PROC_STRICT_P(b) && MRB_PROC_ENV(b) == CI_ENV(&c->ci[-1])) {
+  if (b && b->tt == MRB_TT_PROC && !MRB_PROC_STRICT_P(b) && MRB_PROC_ENV(b) == CI_ENV(&c->ci[-1])) {
     b->flags |= MRB_PROC_ORPHAN;
   }
   if (env && !mrb_env_unshare(mrb, env, TRUE)) {
