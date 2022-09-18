@@ -339,13 +339,29 @@ mrb_ary_concat(mrb_state *mrb, mrb_value self, mrb_value other)
   ary_concat(mrb, mrb_ary_ptr(self), a2);
 }
 
+/*
+ *  call-seq:
+ *    array.concat(*other_arrays) -> self
+ *
+ *  Adds to +array+ all elements from each \Array in +other_arrays+; returns +self+:
+ *
+ *    a = [0, 1]
+ *    a.concat([2, 3], [4, 5]) # => [0, 1, 2, 3, 4, 5]
+ */
+
 static mrb_value
 mrb_ary_concat_m(mrb_state *mrb, mrb_value self)
 {
-  mrb_value ary;
+  mrb_value *args;
+  mrb_int len;
 
-  mrb_get_args(mrb, "A", &ary);
-  mrb_ary_concat(mrb, self, ary);
+  mrb_get_args(mrb, "*!", &args, &len);
+  for (int i=0; i<len; i++) {
+    mrb_ensure_array_type(mrb, args[i]);
+  }
+  for (int i=0; i<len; i++) {
+    mrb_ary_concat(mrb, self, args[i]);
+  }
   return self;
 }
 
@@ -672,6 +688,20 @@ mrb_ary_unshift(mrb_state *mrb, mrb_value self, mrb_value item)
 
   return self;
 }
+
+/*
+ *  call-seq:
+ *    array.unshift(*objects) -> self
+ *
+ *  Prepends the given +objects+ to +self+:
+ *
+ *    a = [:foo, 'bar', 2]
+ *    a.unshift(:bam, :bat) # => [:bam, :bat, :foo, "bar", 2]
+ *
+ *  Array#prepend is an alias for Array#unshift.
+ *
+ *  Related: #push, #pop, #shift.
+ */
 
 static mrb_value
 mrb_ary_unshift_m(mrb_state *mrb, mrb_value self)
