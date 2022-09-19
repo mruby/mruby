@@ -856,4 +856,28 @@ module Enumerable
     end
     hash
   end
+
+  ##
+  # call-seq:
+  #   enum.sum(count=1)        -> numeric
+  #   enum.sum(count=1){...}   -> numeric
+  #
+  # Returns the sum of elements. For example, [e1, e2, e3].sum
+  # returns e1 + e2 + e3. If a block is given, each element is
+  # processed by the block, e.g [e1, e2, e3].sum{_1.m} gives
+  # e1.m + e2.m + e3.m.
+  #
+  def sum(init=0,&block)
+    result=init
+    if block
+      self.each do |e|
+        result += block.call(e)
+      end
+    else
+      self.each do |e|
+        result += e
+      end
+    end
+    result
+  end
 end
