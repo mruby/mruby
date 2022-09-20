@@ -146,27 +146,9 @@ mrb_str_swapcase(mrb_state *mrb, mrb_value self)
   return str;
 }
 
-/*
- *  call-seq:
- *     str << integer       -> str
- *     str.concat(integer)  -> str
- *     str << obj           -> str
- *     str.concat(obj)      -> str
- *
- *  Append---Concatenates the given object to <i>str</i>. If the object is a
- *  <code>Integer</code>, it is considered as a codepoint, and is converted
- *  to a character before concatenation
- *  (equivalent to <code>str.concat(integer.chr(__ENCODING__))</code>).
- *
- *     a = "hello "
- *     a << "world"   #=> "hello world"
- *     a.concat(33)   #=> "hello world!"
- */
-static mrb_value
-mrb_str_concat_m(mrb_state *mrb, mrb_value self)
+static void
+str_concat(mrb_state *mrb, mrb_value self, mrb_value str)
 {
-  mrb_value str = mrb_get_arg1(mrb);
-
   if (mrb_integer_p(str) || mrb_float_p(str))
 #ifdef MRB_UTF8_STRING
     str = int_chr_utf8(mrb, str);
@@ -176,6 +158,39 @@ mrb_str_concat_m(mrb_state *mrb, mrb_value self)
   else
     mrb_ensure_string_type(mrb, str);
   mrb_str_cat_str(mrb, self, str);
+}
+
+/*
+ *  call-seq:
+ *     str << obj           -> str
+ *     str.concat(*obj)     -> str
+ *
+ *    s = 'foo'
+ *    s.concat('bar', 'baz') # => "foobarbaz"
+ *    s                      # => "foobarbaz"
+ *
+ *  For each given object +object+ that is an \Integer,
+ *  the value is considered a codepoint and converted to a character before concatenation:
+ *
+ *    s = 'foo'
+ *    s.concat(32, 'bar', 32, 'baz') # => "foo bar baz"
+ *
+ */
+static mrb_value
+mrb_str_concat_m(mrb_state *mrb, mrb_value self)
+{
+  if (mrb_get_argc(mrb) == 1) {
+    str_concat(mrb, self, mrb_get_arg1(mrb));
+    return self;
+  }
+
+  mrb_value *args;
+  mrb_int alen;
+
+  mrb_get_args(mrb, "*", &args, &alen);
+  for (mrb_int i=0; i<alen; i++) {
+    str_concat(mrb, self, args[i]);
+  }
   return self;
 }
 
