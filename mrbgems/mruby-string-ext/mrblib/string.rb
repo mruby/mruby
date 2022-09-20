@@ -334,8 +334,12 @@ class String
   #    a = "world"
   #    a.prepend("hello ") #=> "hello world"
   #    a                   #=> "hello world"
-  def prepend(arg)
-    self[0, 0] = arg
+  def prepend(*args)
+    len = args.size
+    while len > 0
+      len -= 1
+      self[0, 0] = args[len]
+    end
     self
   end
 
