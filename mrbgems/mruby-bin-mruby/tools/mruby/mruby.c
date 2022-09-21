@@ -11,6 +11,8 @@
 #include <mruby/dump.h>
 #include <mruby/variable.h>
 #include <mruby/proc.h>
+#include <mruby/error.h>
+#include <mruby/presym.h>
 
 #if defined(_WIN32) || defined(_WIN64)
 # include <io.h> /* for setmode */
@@ -366,6 +368,7 @@ main(int argc, char **argv)
     mrb_gc_arena_restore(mrb, ai);
     mrbc_context_free(mrb, c);
     if (mrb->exc) {
+      MRB_EXC_CHECK_EXIT(mrb, mrb->exc);
       if (!mrb_undef_p(v)) {
         mrb_print_error(mrb);
       }

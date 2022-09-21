@@ -18,6 +18,7 @@
 #include <mruby/dump.h>
 #include <mruby/string.h>
 #include <mruby/variable.h>
+#include <mruby/error.h>
 #include <mruby/presym.h>
 
 #include <stdlib.h>
@@ -674,6 +675,7 @@ main(int argc, char **argv)
         stack_keep = proc->body.irep->nlocals;
         /* did an exception occur? */
         if (mrb->exc) {
+          MRB_EXC_CHECK_EXIT(mrb, mrb->exc);
           p(mrb, mrb_obj_value(mrb->exc), 0);
           mrb->exc = 0;
         }

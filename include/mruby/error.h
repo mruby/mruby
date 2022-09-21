@@ -21,6 +21,14 @@ struct RException {
   struct RObject *backtrace;    // NULL, RArray or RData
 };
 
+/* error that should terminate execution */
+#define MRB_EXC_EXIT 65536
+#define MRB_EXC_EXIT_P(e) ((e)->flags & MRB_EXC_EXIT)
+/* retrieve status value from exc; need <mruby/variable.h> and <mruby/presym.h> */
+#define MRB_EXC_EXIT_STATUS(mrb,e) ((int)mrb_as_int((mrb),mrb_obj_iv_get((mrb),(e),MRB_SYM(status))))
+/* exit with SystemExit status */
+#define MRB_EXC_CHECK_EXIT(mrb,e) do {if (MRB_EXC_EXIT_P(e)) exit(MRB_EXC_EXIT_STATUS((mrb),(e)));} while (0)
+
 #define mrb_exc_ptr(v) ((struct RException*)mrb_ptr(v))
 
 MRB_API mrb_noreturn void mrb_sys_fail(mrb_state *mrb, const char *mesg);
