@@ -140,11 +140,10 @@ mrb_div_int_value(mrb_state *mrb, mrb_int x, mrb_int y)
   return mrb_int_value(mrb, mrb_div_int(x, y));
 }
 
-/* 15.2.8.3.4  */
-/* 15.2.9.3.4  */
+/* 15.2.8.3.6 */
 /*
  * call-seq:
- *   int / other  ->  num
+ *   int / num  ->  num
  *
  * Performs division: the class of the resulting object depends on
  * the class of <code>num</code> and on the magnitude of the
@@ -159,7 +158,7 @@ int_div(mrb_state *mrb, mrb_value x)
     return mrb_bint_div(mrb, x, y);
   }
 #endif
-  mrb_int a = mrb_integer(x);
+ mrb_int a = mrb_integer(x);
 
   if (mrb_integer_p(y)) {
     return mrb_div_int_value(mrb, a, mrb_integer(y));
@@ -314,6 +313,13 @@ mrb_div_float(mrb_float x, mrb_float y)
   }
 }
 
+/* 15.2.9.3.6 */
+/*
+ * call-seq:
+ *   float / num  ->  float
+ *
+ * Returns a new Float which is the result of dividing float by num.
+ */
 static mrb_value
 flo_div(mrb_state *mrb, mrb_value x)
 {
@@ -396,7 +402,7 @@ flo_to_s(mrb_state *mrb, mrb_value flt)
   return str;
 }
 
-/* 15.2.9.3.1  */
+/* 15.2.9.3.3 */
 /*
  * call-seq:
  *   float + other  ->  float
@@ -422,7 +428,7 @@ flo_add(mrb_state *mrb, mrb_value x)
   }
 }
 
-/* 15.2.9.3.2  */
+/* 15.2.9.3.4 */
 /*
  * call-seq:
  *   float - other  ->  float
@@ -449,7 +455,7 @@ flo_sub(mrb_state *mrb, mrb_value x)
   }
 }
 
-/* 15.2.9.3.3  */
+/* 15.2.9.3.5 */
 /*
  * call-seq:
  *   float * other  ->  float
@@ -513,7 +519,7 @@ flodivmod(mrb_state *mrb, double x, double y, mrb_float *divp, mrb_float *modp)
   if (divp) *divp = div;
 }
 
-/* 15.2.9.3.5  */
+/* 15.2.9.3.5 */
 /*
  *  call-seq:
  *     flt % other        ->  float
@@ -572,7 +578,7 @@ num_eql(mrb_state *mrb, mrb_value x)
 }
 
 #ifndef MRB_NO_FLOAT
-/* 15.2.9.3.7  */
+/* 15.2.9.3.7 */
 /*
  *  call-seq:
  *     flt == obj  ->  true or false
@@ -779,7 +785,7 @@ flo_infinite_p(mrb_state *mrb, mrb_value num)
   return mrb_nil_value();
 }
 
-/* 15.2.9.3.9  */
+/* 15.2.9.3.9 */
 /*
  *  call-seq:
  *     flt.finite?  ->  true or false
@@ -912,7 +918,7 @@ flo_floor(mrb_state *mrb, mrb_value num)
   return flo_rounding(mrb, num, floor);
 }
 
-/* 15.2.9.3.8  */
+/* 15.2.9.3.8 */
 /*
  *  call-seq:
  *     float.ceil([ndigits])  ->  integer or float
@@ -1102,7 +1108,7 @@ flo_abs(mrb_state *mrb, mrb_value num)
  *
  */
 
-
+/* 15.2.9.3.24 */
 /*
  *  call-seq:
  *     int.to_i      ->  integer
@@ -1169,7 +1175,7 @@ mrb_int_mul(mrb_state *mrb, mrb_value x, mrb_value y)
   }
 }
 
-/* 15.2.8.3.3  */
+/* 15.2.8.3.5 */
 /*
  * call-seq:
  *   int * numeric  ->  numeric_result
@@ -1214,10 +1220,10 @@ intdivmod(mrb_state *mrb, mrb_int x, mrb_int y, mrb_int *divp, mrb_int *modp)
   }
 }
 
-/* 15.2.8.3.5  */
+/* 15.2.8.3.7 */
 /*
  *  call-seq:
- *    int % other        ->  real
+ *    int % num        ->  num
  *
  *  Returns <code>int</code> modulo <code>other</code>.
  *  See <code>numeric.divmod</code> for more information.
@@ -1313,7 +1319,7 @@ flo_divmod(mrb_state *mrb, mrb_value x)
 }
 #endif
 
-/* 15.2.8.3.7  */
+/* 15.2.8.3.2 */
 /*
  * call-seq:
  *   int == other  ->  true or false
@@ -1354,7 +1360,7 @@ int_equal(mrb_state *mrb, mrb_value x)
   }
 }
 
-/* 15.2.8.3.8  */
+/* 15.2.8.3.8 */
 /*
  * call-seq:
  *   ~int  ->  integer
@@ -1392,7 +1398,7 @@ static mrb_value flo_xor(mrb_state *mrb, mrb_value x);
 } while(0)
 #endif
 
-/* 15.2.8.3.9  */
+/* 15.2.8.3.9 */
 /*
  * call-seq:
  *   int & integer  ->  integer_result
@@ -1812,7 +1818,7 @@ mrb_int_add(mrb_state *mrb, mrb_value x, mrb_value y)
   }
 }
 
-/* 15.2.8.3.1  */
+/* 15.2.8.3.3 */
 /*
  * call-seq:
  *   int + numeric  ->  numeric_result
@@ -1876,11 +1882,10 @@ mrb_int_sub(mrb_state *mrb, mrb_value x, mrb_value y)
   }
 }
 
-/* 15.2.8.3.2  */
-/* 15.2.8.3.16 */
+/* 15.2.8.3.4 */
 /*
  * call-seq:
- *   int - numeric  ->  numeric_result
+ *   int - numeric  ->  numeric
  *
  * Performs subtraction: the class of the resulting object depends on
  * the class of <code>numeric</code> and on the magnitude of the
@@ -2041,7 +2046,8 @@ int_hash(mrb_state *mrb, mrb_value self)
   return mrb_int_value(mrb, mrb_byte_hash((uint8_t*)&n, sizeof(n)));
 }
 
-/* 15.2.9.3.6  */
+/* 15.2.8.3.1 */
+/* 15.2.9.3.1 */
 /*
  * call-seq:
  *     self.f <=> other.f    => -1, 0, +1, or nil
@@ -2197,8 +2203,8 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method(mrb, integer, "-",        int_sub,         MRB_ARGS_REQ(1)); /* 15.2.8.3.2 */
   mrb_define_method(mrb, integer, "*",        int_mul,         MRB_ARGS_REQ(1)); /* 15.2.8.3.3 */
   mrb_define_method(mrb, integer, "%",        int_mod,         MRB_ARGS_REQ(1)); /* 15.2.8.3.5 */
-  mrb_define_method(mrb, integer, "/",        int_div,         MRB_ARGS_REQ(1)); /* 15.2.8.3.6  */
-  mrb_define_method(mrb, integer, "quo",      int_quo,         MRB_ARGS_REQ(1)); /* 15.2.7.4.5 (x) */
+  mrb_define_method(mrb, integer, "/",        int_div,         MRB_ARGS_REQ(1)); /* 15.2.8.3.6 */
+  mrb_define_method(mrb, integer, "quo",      int_quo,         MRB_ARGS_REQ(1)); /* 15.2.7.4.5(x) */
   mrb_define_method(mrb, integer, "div",      int_idiv,        MRB_ARGS_REQ(1));
   mrb_define_method(mrb, integer, "==",       int_equal,       MRB_ARGS_REQ(1)); /* 15.2.8.3.7 */
   mrb_define_method(mrb, integer, "~",        int_rev,         MRB_ARGS_NONE()); /* 15.2.8.3.8 */
@@ -2217,7 +2223,7 @@ mrb_init_numeric(mrb_state *mrb)
 #endif
   mrb_define_method(mrb, integer, "to_s",     int_to_s,        MRB_ARGS_OPT(1)); /* 15.2.8.3.25 */
   mrb_define_method(mrb, integer, "inspect",  int_to_s,        MRB_ARGS_OPT(1));
-  mrb_define_method(mrb, integer, "divmod",   int_divmod,      MRB_ARGS_REQ(1)); /* 15.2.8.3.30 (x) */
+  mrb_define_method(mrb, integer, "divmod",   int_divmod,      MRB_ARGS_REQ(1)); /* 15.2.8.3.30(x) */
   mrb_define_method(mrb, integer, "__coerce_step_counter", coerce_step_counter, MRB_ARGS_REQ(2));
 
   /* Fixnum Class for compatibility */
@@ -2229,19 +2235,19 @@ mrb_init_numeric(mrb_state *mrb)
   MRB_SET_INSTANCE_TT(fl, MRB_TT_FLOAT);
   mrb_undef_class_method(mrb,  fl, "new");
   mrb_define_method(mrb, fl,      "**",        flo_pow,        MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, fl,      "/",         flo_div,        MRB_ARGS_REQ(1)); /* 15.2.9.3.6  */
-  mrb_define_method(mrb, fl,      "quo",       flo_div,        MRB_ARGS_REQ(1)); /* 15.2.7.4.5 (x) */
+  mrb_define_method(mrb, fl,      "/",         flo_div,        MRB_ARGS_REQ(1)); /* 15.2.9.3.6 */
+  mrb_define_method(mrb, fl,      "quo",       flo_div,        MRB_ARGS_REQ(1)); /* 15.2.7.4.5(x) */
   mrb_define_method(mrb, fl,      "div",       flo_idiv,       MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, fl,      "+",         flo_add,        MRB_ARGS_REQ(1)); /* 15.2.9.3.3  */
-  mrb_define_method(mrb, fl,      "-",         flo_sub,        MRB_ARGS_REQ(1)); /* 15.2.9.3.4  */
-  mrb_define_method(mrb, fl,      "*",         flo_mul,        MRB_ARGS_REQ(1)); /* 15.2.9.3.5  */
-  mrb_define_method(mrb, fl,      "%",         flo_mod,        MRB_ARGS_REQ(1)); /* 15.2.9.3.7  */
-  mrb_define_method(mrb, fl,      "<=>",       num_cmp,        MRB_ARGS_REQ(1)); /* 15.2.9.3.1  */
+  mrb_define_method(mrb, fl,      "+",         flo_add,        MRB_ARGS_REQ(1)); /* 15.2.9.3.3 */
+  mrb_define_method(mrb, fl,      "-",         flo_sub,        MRB_ARGS_REQ(1)); /* 15.2.9.3.4 */
+  mrb_define_method(mrb, fl,      "*",         flo_mul,        MRB_ARGS_REQ(1)); /* 15.2.9.3.5 */
+  mrb_define_method(mrb, fl,      "%",         flo_mod,        MRB_ARGS_REQ(1)); /* 15.2.9.3.7 */
+  mrb_define_method(mrb, fl,      "<=>",       num_cmp,        MRB_ARGS_REQ(1)); /* 15.2.9.3.1 */
   mrb_define_method(mrb, fl,      "<",         num_lt,         MRB_ARGS_REQ(1));
   mrb_define_method(mrb, fl,      "<=",        num_le,         MRB_ARGS_REQ(1));
   mrb_define_method(mrb, fl,      ">",         num_gt,         MRB_ARGS_REQ(1));
   mrb_define_method(mrb, fl,      ">=",        num_ge,         MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, fl,      "==",        flo_eq,         MRB_ARGS_REQ(1)); /* 15.2.9.3.2  */
+  mrb_define_method(mrb, fl,      "==",        flo_eq,         MRB_ARGS_REQ(1)); /* 15.2.9.3.2 */
   mrb_define_method(mrb, fl,      "~",         flo_rev,        MRB_ARGS_NONE());
   mrb_define_method(mrb, fl,      "&",         flo_and,        MRB_ARGS_REQ(1));
   mrb_define_method(mrb, fl,      "|",         flo_or,         MRB_ARGS_REQ(1));
