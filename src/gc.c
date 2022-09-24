@@ -323,7 +323,8 @@ heap_p(mrb_gc *gc, struct RBasic *object)
 }
 
 MRB_API mrb_bool
-mrb_object_dead_p(mrb_state *mrb, struct RBasic *object) {
+mrb_object_dead_p(mrb_state *mrb, struct RBasic *object)
+{
   mrb_gc *gc = &mrb->gc;
   if (!heap_p(gc, object)) return TRUE;
   return is_dead(gc, object);
@@ -1131,18 +1132,20 @@ final_marking_phase(mrb_state *mrb, mrb_gc *gc)
     mark_context(mrb, mrb->root_c);
   }
   mrb_gc_mark(mrb, (struct RBasic*)mrb->exc);
-  /* mark pre-allocated exception */
-  clear_error_object(mrb, mrb->nomem_err);
-  clear_error_object(mrb, mrb->stack_err);
-#ifdef MRB_GC_FIXED_ARENA
-  clear_error_object(mrb, mrb->arena_err);
-#endif
+
   gc_mark_gray_list(mrb, gc);
   mrb_assert(gc->gray_list == NULL);
   gc->gray_list = gc->atomic_gray_list;
   gc->atomic_gray_list = NULL;
   gc_mark_gray_list(mrb, gc);
   mrb_assert(gc->gray_list == NULL);
+
+  /* mark pre-allocated exception */
+  clear_error_object(mrb, mrb->nomem_err);
+  clear_error_object(mrb, mrb->stack_err);
+#ifdef MRB_GC_FIXED_ARENA
+  clear_error_object(mrb, mrb->arena_err);
+#endif
 }
 
 static void
