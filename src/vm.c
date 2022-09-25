@@ -406,18 +406,19 @@ static inline mrb_callinfo*
 cipop(mrb_state *mrb)
 {
   struct mrb_context *c = mrb->c;
-  struct REnv *env = CI_ENV(c->ci);
+  mrb_callinfo *ci = c->ci;
+  struct REnv *env = CI_ENV(ci);
 
-  mrb_vm_ci_env_set(c->ci, NULL); // make possible to free by GC if env is not needed
-  struct RProc *b = c->ci->blk;
-  if (b && b->tt == MRB_TT_PROC && !MRB_PROC_STRICT_P(b) && MRB_PROC_ENV(b) == CI_ENV(&c->ci[-1])) {
+  mrb_vm_ci_env_set(ci, NULL); // make possible to free by GC if env is not needed
+  struct RProc *b = ci->blk;
+  if (b && !mrb_object_dead_p(mrb, (struct RBasic*)b) && b->tt == MRB_TT_PROC &&
+      !MRB_PROC_STRICT_P(b) && MRB_PROC_ENV(b) == CI_ENV(&ci[-1])) {
     b->flags |= MRB_PROC_ORPHAN;
   }
+  c->ci--; // exceptions are handled at the method caller; see #3087
   if (env && !mrb_env_unshare(mrb, env, TRUE)) {
-    c->ci--; // exceptions are handled at the method caller; see #3087
     mrb_exc_raise(mrb, mrb_obj_value(mrb->nomem_err));
   }
-  c->ci--;
   return c->ci;
 }
 
