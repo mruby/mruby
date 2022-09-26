@@ -118,7 +118,7 @@ mrb_mruby_class_ext_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, mod, "module_exec", mrb_mod_module_exec, MRB_ARGS_ANY()|MRB_ARGS_BLOCK());
   mrb_define_method(mrb, mod, "class_exec", mrb_mod_module_exec, MRB_ARGS_ANY()|MRB_ARGS_BLOCK());
 
-  struct RClass *cls = mrb->module_class;
+  struct RClass *cls = mrb->class_class;
   mrb_define_method(mrb, cls, "subclasses", mrb_class_subclasses, MRB_ARGS_NONE());
 }
 
