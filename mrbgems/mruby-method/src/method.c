@@ -325,25 +325,25 @@ method_super_method(mrb_state *mrb, mrb_value self)
   struct RProc *proc;
   struct RObject *me;
 
-  switch (mrb_type(klass)) {
-    case MRB_TT_SCLASS:
-      super = mrb_class_ptr(klass)->super->super;
-      break;
-    case MRB_TT_ICLASS:
-      super = mrb_class_ptr(klass)->super;
-      break;
-    default:
-      super = mrb_class_ptr(owner)->super;
-      break;
+  if (mrb_type(owner) == MRB_TT_MODULE) {
+    struct RClass *m = mrb_class_ptr(owner);
+    rklass = mrb_class_ptr(klass)->super;
+    while (rklass && rklass->c != m) {
+      rklass = rklass->super;
+    }
+    if (!rklass) return mrb_nil_value();
+    super = rklass->super;
+  }
+  else {
+    super = mrb_class_ptr(owner)->super;
   }
 
   proc = method_search_vm(mrb, &super, mrb_symbol(name));
-  if (!proc)
-    return mrb_nil_value();
+  if (!proc) return mrb_nil_value();
 
   rklass = super;
-  while (super->tt == MRB_TT_ICLASS)
-    super = super->c;
+  super = mrb_class_real(super);
+  if (!super) return mrb_nil_value();
 
   me = method_object_alloc(mrb, mrb_obj_class(mrb, self));
   mrb_obj_iv_set(mrb, me, MRB_SYM(_owner), mrb_obj_value(super));
