@@ -415,10 +415,11 @@ cipop(mrb_state *mrb)
       !MRB_PROC_STRICT_P(b) && MRB_PROC_ENV(b) == CI_ENV(&ci[-1])) {
     b->flags |= MRB_PROC_ORPHAN;
   }
-  c->ci--; // exceptions are handled at the method caller; see #3087
   if (env && !mrb_env_unshare(mrb, env, TRUE)) {
+    c->ci--; // exceptions are handled at the method caller; see #3087
     mrb_exc_raise(mrb, mrb_obj_value(mrb->nomem_err));
   }
+  c->ci--;
   return c->ci;
 }
 
