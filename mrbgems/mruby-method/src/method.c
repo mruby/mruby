@@ -399,6 +399,16 @@ method_to_s(mrb_state *mrb, mrb_value self)
 
   mrb_str_cat_cstr(mrb, str, mrb_obj_classname(mrb, self));
   mrb_str_cat_lit(mrb, str, ": ");
+  if (mrb_type(owner) == MRB_TT_SCLASS) {
+    mrb_value recv = mrb_iv_get(mrb, self, MRB_SYM(_recv));
+    if (!mrb_nil_p(recv)) {
+      mrb_str_concat(mrb, str, recv);
+      mrb_str_cat_lit(mrb, str, ".");
+      mrb_str_concat(mrb, str, name);
+      goto finish;
+    }
+  }
+
   rklass = mrb_class_ptr(klass);
   if (mrb_class_ptr(owner) == rklass) {
     mrb_str_concat(mrb, str, owner);
@@ -406,12 +416,14 @@ method_to_s(mrb_state *mrb, mrb_value self)
     mrb_str_concat(mrb, str, name);
   }
   else {
-    mrb_str_cat_cstr(mrb, str, mrb_class_name(mrb, rklass));
+    rklass = mrb_class_real(rklass); /* skip internal class */
+    mrb_str_concat(mrb, str, mrb_obj_value(rklass));
     mrb_str_cat_lit(mrb, str, "(");
     mrb_str_concat(mrb, str, owner);
     mrb_str_cat_lit(mrb, str, ")#");
     mrb_str_concat(mrb, str, name);
   }
+ finish:
   mrb_str_cat_lit(mrb, str, ">");
   return str;
 }
