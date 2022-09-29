@@ -99,13 +99,13 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
     mrb_sym name;
     int size;
   } *p, parameters_list [] = {
-    {MRB_SYM(req),   0},
-    {MRB_SYM(opt),   0},
-    {MRB_SYM(rest),  0},
-    {MRB_SYM(req),   0},
-    {MRB_SYM(keyrest),   0},
-    {MRB_SYM(block), 0},
-    {MRB_SYM(key),   0},
+    {MRB_SYM(req),    0},
+    {MRB_SYM(opt),    0},
+    {MRB_SYM(rest),   0},
+    {MRB_SYM(req),    0},
+    {MRB_SYM(keyrest),0},
+    {MRB_SYM(block),  0},
+    {MRB_SYM(key),    0},
     {0, 0}
   };
   const struct RProc *proc = mrb_proc_ptr(self);
