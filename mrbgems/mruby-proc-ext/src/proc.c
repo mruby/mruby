@@ -176,6 +176,8 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
       }
       mrb_ary_push(mrb, parameters, a);
     }
+    /* need to skip empty block slot */
+    if (p->size == 0 && p->name == MRB_SYM(block)) i++;
   }
   if (!mrb_nil_p(krest)) mrb_ary_push(mrb, parameters, krest);
   if (!mrb_nil_p(block)) mrb_ary_push(mrb, parameters, block);
