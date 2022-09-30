@@ -115,7 +115,7 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
   mrb_value krest = mrb_nil_value();
   mrb_value block = mrb_nil_value();
   int i, j;
-  int max = -1;
+  int max = 0;
 
   if (MRB_PROC_CFUNC_P(proc)) {
     // TODO cfunc aspec is not implemented yet
@@ -146,9 +146,11 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
   parameters_list[5].size = MRB_ASPEC_BLOCK(aspec);
   parameters_list[6].size = MRB_ASPEC_KEY(aspec);
 
-  parameters = mrb_ary_new_capa(mrb, irep->nlocals-1);
+  for (i = 0; parameters_list[i].name; i++) {
+    max += parameters_list[i].size;
+  }
+  parameters = mrb_ary_new_capa(mrb, max);
 
-  max = irep->nlocals-1;
   for (i = 0, p = parameters_list; p->name; p++) {
     mrb_value sname = mrb_symbol_value(p->name);
 
