@@ -122,13 +122,7 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
     return mrb_ary_new(mrb);
   }
   irep = proc->body.irep;
-  if (!irep) {
-    return mrb_ary_new(mrb);
-  }
-  if (!irep->lv) {
-    return mrb_ary_new(mrb);
-  }
-  if (*irep->iseq != OP_ENTER) {
+  if (!irep || !irep->lv || *irep->iseq != OP_ENTER) {
     return mrb_ary_new(mrb);
   }
 
