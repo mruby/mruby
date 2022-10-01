@@ -2753,7 +2753,7 @@ codegen(codegen_scope *s, node *tree, int val)
       node *t = tree->cdr, *p;
       int rhs = cursp();
 
-      if (nint(t->car) == NODE_ARRAY && t->cdr && nosplat(t->cdr)) {
+      if (!val && nint(t->car) == NODE_ARRAY && t->cdr && nosplat(t->cdr)) {
         /* fixed rhs */
         t = t->cdr;
         while (t) {
@@ -2820,10 +2820,6 @@ codegen(codegen_scope *s, node *tree, int val)
           }
         }
         pop_n(len);
-        if (val) {
-          genop_2(s, OP_ARRAY, rhs, len);
-          push();
-        }
       }
       else {
         /* variable rhs */
