@@ -2,6 +2,9 @@ name: Build & Test
 
 on: [push, pull_request]
 
+permissions:
+  contents: read
+
 jobs:
   Ubuntu-1804-gcc:
     runs-on: ubuntu-18.04
