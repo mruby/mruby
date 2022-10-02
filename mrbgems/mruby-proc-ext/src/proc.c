@@ -49,7 +49,7 @@ mrb_proc_inspect(mrb_state *mrb, mrb_value self)
     const mrb_irep *irep = p->body.irep;
     const char *filename;
     int32_t line;
-    mrb_str_cat_lit(mrb, str, "@");
+    mrb_str_cat_lit(mrb, str, " ");
 
     filename = mrb_debug_get_filename(mrb, irep, 0);
     mrb_str_cat_cstr(mrb, str, filename ? filename : "-");

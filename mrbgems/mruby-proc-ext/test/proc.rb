@@ -30,7 +30,7 @@ assert('Proc#inspect') do
   else
     file = line = "-"
   end
-  assert_match "#<Proc:0x*@#{file}:#{line}>", ins
+  assert_match "#<Proc:0x* #{file}:#{line}>", ins
 end
 
 assert('Proc#parameters') do
