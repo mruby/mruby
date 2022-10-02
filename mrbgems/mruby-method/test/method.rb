@@ -230,14 +230,14 @@ assert 'to_s' do
   o = Object.new
   def o.foo; end
   m = o.method(:foo)
-  assert_equal("#<UnboundMethod: #{ class << o; self; end.inspect }#foo>", m.unbind.inspect)
+  assert_match("#<UnboundMethod: #{ class << o; self; end.inspect }#foo*>", m.unbind.inspect)
 
   c = Class.new
   c.class_eval { def foo; end; }
   m = c.new.method(:foo)
-  assert_equal("#<Method: #{ c.inspect }#foo>", m.inspect)
+  assert_match("#<Method: #{ c.inspect }#foo*>", m.inspect)
   m = c.instance_method(:foo)
-  assert_equal("#<UnboundMethod: #{ c.inspect }#foo>", m.inspect)
+  assert_match("#<UnboundMethod: #{ c.inspect }#foo*>", m.inspect)
 end
 
 assert 'owner' do

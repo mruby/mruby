@@ -423,7 +423,14 @@ method_to_s(mrb_state *mrb, mrb_value self)
     mrb_str_cat_lit(mrb, str, ")#");
     mrb_str_concat(mrb, str, name);
   }
- finish:
+ finish:;
+  mrb_value loc = method_source_location(mrb, self);
+  if (mrb_array_p(loc) && RARRAY_LEN(loc) == 2) {
+    mrb_str_cat_lit(mrb, str, " ");
+    mrb_str_concat(mrb, str, RARRAY_PTR(loc)[0]);
+    mrb_str_cat_lit(mrb, str, ":");
+    mrb_str_concat(mrb, str, RARRAY_PTR(loc)[1]);
+  }
   mrb_str_cat_lit(mrb, str, ">");
   return str;
 }
