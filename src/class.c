@@ -1354,7 +1354,7 @@ mrb_get_args(mrb_state *mrb, mrb_args_format format, ...)
 }
 
 MRB_API mrb_int
-mrb_get_args_a(mrb_state *mrb, mrb_args_format format, void** args)
+mrb_get_args_a(mrb_state *mrb, mrb_args_format format, void **args)
 {
   va_list ap;
   return get_args_v(mrb, format, args, ap);
