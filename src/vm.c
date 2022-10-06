@@ -1977,7 +1977,26 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_ENTER, W) {
+      mrb_callinfo *ci = mrb->c->ci;
+      mrb_int argc = ci->n;
+      mrb_value *argv = regs+1;
+
       mrb_int m1 = MRB_ASPEC_REQ(a);
+
+       /* no other args */
+      if ((a & ~0x7c0001) == 0 && argc < 15 && MRB_PROC_STRICT_P(proc)) {
+        if (argc != m1) {
+          argnum_error(mrb, m1);
+          goto L_RAISE;
+        }
+        /* clear local (but non-argument) variables */
+        mrb_int pos = m1+2;     /* self+m1+blk */
+        if (irep->nlocals-pos  > 0) {
+          stack_clear(&regs[pos], irep->nlocals-pos);
+        }
+        NEXT;
+      }
+
       mrb_int o  = MRB_ASPEC_OPT(a);
       mrb_int r  = MRB_ASPEC_REST(a);
       mrb_int m2 = MRB_ASPEC_POST(a);
@@ -1987,9 +2006,6 @@ RETRY_TRY_BLOCK:
       */
       mrb_int const len = m1 + o + r + m2;
 
-      mrb_callinfo *ci = mrb->c->ci;
-      mrb_int argc = ci->n;
-      mrb_value *argv = regs+1;
       mrb_value * const argv0 = argv;
       mrb_value blk = regs[mrb_ci_bidx(ci)];
       mrb_value kdict = mrb_nil_value();
