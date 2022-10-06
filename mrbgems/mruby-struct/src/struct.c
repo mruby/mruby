@@ -559,7 +559,7 @@ mrb_struct_equal(mrb_state *mrb, mrb_value s)
 
 /* 15.2.18.4.12(x)  */
 /*
- * code-seq:
+ * call-seq:
  *   struct.eql?(other)   -> true or false
  *
  * Two structures are equal if they are the same object, or if all their
