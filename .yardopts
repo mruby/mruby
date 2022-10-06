@@ -14,4 +14,7 @@ mrbgems/*/include/**/*.h
 AUTHORS
 LICENSE
 CONTRIBUTING.md
+SECURITY.md
+doc/*.md
 doc/guides/*.md
+doc/internal/*.md
