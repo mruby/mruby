@@ -1649,8 +1649,6 @@ mrb_mod_dummy_visibility(mrb_state *mrb, mrb_value mod)
   return mod;
 }
 
-/* returns mrb_class_ptr(mrb_singleton_class()) */
-/* except that it return NULL for immediate values */
 MRB_API struct RClass*
 mrb_singleton_class_ptr(mrb_state *mrb, mrb_value v)
 {
