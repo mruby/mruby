@@ -365,14 +365,14 @@ MRB_API struct RClass *mrb_define_module_id(mrb_state *mrb, mrb_sym name);
 /**
  * Returns the singleton class of an object.
  *
- * Except that it raises a `TypeError` exception for immediate values.
+ * Raises a `TypeError` exception for immediate values.
  */
 MRB_API mrb_value mrb_singleton_class(mrb_state *mrb, mrb_value val);
 
 /**
  * Returns the singleton class of an object.
  *
- * Except that it return `NULL` for immediate values.
+ * Returns `NULL` for immediate values,
  */
 MRB_API struct RClass *mrb_singleton_class_ptr(mrb_state *mrb, mrb_value val);
 
