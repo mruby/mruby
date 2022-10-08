@@ -46,6 +46,7 @@
 //#define MRB_NO_METHOD_CACHE
 /* size of the method cache (need to be the power of 2) */
 //#define MRB_METHOD_CACHE_SIZE (1<<8)
+//#define MRB_USE_INLINE_METHOD_CACHE
 
 /* add -DMRB_USE_METHOD_T_STRUCT on machines that use higher bits of function pointers */
 /* no MRB_USE_METHOD_T_STRUCT requires highest 2 bits of function pointers to be zero */
