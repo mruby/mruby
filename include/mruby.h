@@ -96,7 +96,6 @@
 
 #ifndef mrb_static_assert
 # define mrb_static_assert1(exp) mrb_static_assert2(exp, #exp)
-# define mrb_static_assert_expand(...) __VA_ARGS__ /* for MSVC behaviour - https://stackoverflow.com/q/5530505 */
 # define mrb_static_assert_selector(a, b, name, ...) name
 /**
  * The `mrb_static_assert()` macro function takes one or two arguments.
@@ -106,7 +105,7 @@
  *      mrb_static_assert(expect_condition, error_message);
  */
 # define mrb_static_assert(...) \
-    mrb_static_assert_expand(mrb_static_assert_selector(__VA_ARGS__, mrb_static_assert2, mrb_static_assert1, _)(__VA_ARGS__))
+    MRB_VA_EXPAND(mrb_static_assert_selector(__VA_ARGS__, mrb_static_assert2, mrb_static_assert1, _)(__VA_ARGS__))
 #endif
 
 #define mrb_static_assert_powerof2(num) mrb_static_assert((num) > 0 && (num) == ((num) & -(num)), "need power of 2 for " #num)

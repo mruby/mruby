@@ -93,6 +93,8 @@ MRB_BEGIN_DECL
 # endif
 #endif
 
+#define MRB_VA_EXPAND(...) __VA_ARGS__ /* for MSVC behaviour - https://stackoverflow.com/q/5530505 */
+
 MRB_END_DECL
 
 #endif  /* MRUBY_COMMON_H */

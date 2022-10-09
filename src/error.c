@@ -518,10 +518,10 @@ mrb_sys_fail(mrb_state *mrb, const char *mesg)
   if (mrb_class_defined_id(mrb, MRB_SYM(SystemCallError))) {
     sce = mrb_class_get_id(mrb, MRB_SYM(SystemCallError));
     if (mesg != NULL) {
-      mrb_funcall_id(mrb, mrb_obj_value(sce), MRB_SYM(_sys_fail), 2, mrb_fixnum_value(no), mrb_str_new_cstr(mrb, mesg));
+      MRB_FUNCALL(mrb, mrb_obj_value(sce), MRB_SYM(_sys_fail), mrb_fixnum_value(no), mrb_str_new_cstr(mrb, mesg));
     }
     else {
-      mrb_funcall_id(mrb, mrb_obj_value(sce), MRB_SYM(_sys_fail), 1, mrb_fixnum_value(no));
+      MRB_FUNCALL(mrb, mrb_obj_value(sce), MRB_SYM(_sys_fail), mrb_fixnum_value(no));
     }
   }
 

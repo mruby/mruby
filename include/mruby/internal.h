@@ -159,6 +159,79 @@ mrb_value mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p);
 mrb_value mrb_obj_instance_eval(mrb_state*, mrb_value);
 mrb_value mrb_mod_module_eval(mrb_state*, mrb_value);
 
+/*
+ *  Wrapper macro for mrb_funcall_argv() that takes variable length arguments from 0 to 6.
+ *  The number of arguments need not be given because the preprocessor counts them.
+ *
+ *  Examples are shown below:
+ *
+ *      // MRB_FUNCALL(mrb, self, mid [, arg]* )
+ *      MRB_FUNCALL(mrb, self, mid);
+ *      MRB_FUNCALL(mrb, self, mid, arg1, arg2, arg3, arg4, arg5, arg6);
+ */
+#define MRB_FUNCALL(mrb, self, ...) MRB_VA_EXPAND(MRB_FUNCALL_NAME_MAKE(MRB_VA_ARGS_COUNT(__VA_ARGS__))(mrb, self, __VA_ARGS__))
+
+#define MRB_FUNCALL_NAME_MAKE(num) MRB_FUNCALL_NAME_MAKE_1(mrb_funcall_argv_static, num)
+#define MRB_FUNCALL_NAME_MAKE_1(prefix, num) prefix ## num
+
+/* Requires at least one sentinel argument. Actually count the number of commas. */
+#define MRB_VA_ARGS_COUNT(...) MRB_VA_EXPAND(MRB_VA_ARGS_COUNT_1(__VA_ARGS__, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0))
+#define MRB_VA_ARGS_COUNT_1(always, a, b, c, d, e, f, g, h, i, j, k, l, m, n, ...) n
+
+static inline mrb_value
+MRB_FUNCALL_NAME_MAKE(0)(mrb_state *mrb, mrb_value self, mrb_sym mid)
+{
+  return mrb_funcall_argv(mrb, self, mid, 0, NULL);
+}
+
+static inline mrb_value
+MRB_FUNCALL_NAME_MAKE(1)(mrb_state *mrb, mrb_value self, mrb_sym mid,
+                         mrb_value arg1)
+{
+  const mrb_value argv[] = { arg1 };
+  return mrb_funcall_argv(mrb, self, mid, sizeof(argv) / sizeof(argv[0]), argv);
+}
+
+static inline mrb_value
+MRB_FUNCALL_NAME_MAKE(2)(mrb_state *mrb, mrb_value self, mrb_sym mid,
+                         mrb_value arg1, mrb_value arg2)
+{
+  const mrb_value argv[] = { arg1, arg2 };
+  return mrb_funcall_argv(mrb, self, mid, sizeof(argv) / sizeof(argv[0]), argv);
+}
+
+static inline mrb_value
+MRB_FUNCALL_NAME_MAKE(3)(mrb_state *mrb, mrb_value self, mrb_sym mid,
+                         mrb_value arg1, mrb_value arg2, mrb_value arg3)
+{
+  const mrb_value argv[] = { arg1, arg2, arg3 };
+  return mrb_funcall_argv(mrb, self, mid, sizeof(argv) / sizeof(argv[0]), argv);
+}
+
+static inline mrb_value
+MRB_FUNCALL_NAME_MAKE(4)(mrb_state *mrb, mrb_value self, mrb_sym mid,
+                         mrb_value arg1, mrb_value arg2, mrb_value arg3, mrb_value arg4)
+{
+  const mrb_value argv[] = { arg1, arg2, arg3, arg4 };
+  return mrb_funcall_argv(mrb, self, mid, sizeof(argv) / sizeof(argv[0]), argv);
+}
+
+static inline mrb_value
+MRB_FUNCALL_NAME_MAKE(5)(mrb_state *mrb, mrb_value self, mrb_sym mid,
+                         mrb_value arg1, mrb_value arg2, mrb_value arg3, mrb_value arg4, mrb_value arg5)
+{
+  const mrb_value argv[] = { arg1, arg2, arg3, arg4, arg5 };
+  return mrb_funcall_argv(mrb, self, mid, sizeof(argv) / sizeof(argv[0]), argv);
+}
+
+static inline mrb_value
+MRB_FUNCALL_NAME_MAKE(6)(mrb_state *mrb, mrb_value self, mrb_sym mid,
+                         mrb_value arg1, mrb_value arg2, mrb_value arg3, mrb_value arg4, mrb_value arg5, mrb_value arg6)
+{
+  const mrb_value argv[] = { arg1, arg2, arg3, arg4, arg5, arg6 };
+  return mrb_funcall_argv(mrb, self, mid, sizeof(argv) / sizeof(argv[0]), argv);
+}
+
 #ifdef MRB_USE_BIGINT
 mrb_value mrb_bint_new_int(mrb_state *mrb, mrb_int x);
 mrb_value mrb_bint_new_str(mrb_state *mrb, const char *x, mrb_int len, mrb_int base);

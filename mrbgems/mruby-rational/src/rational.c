@@ -487,7 +487,7 @@ rational_cmp(mrb_state *mrb, mrb_value x)
     }
 #endif
   default:
-    x = mrb_funcall_id(mrb, y, MRB_OPSYM(cmp), 1, x);
+    x = MRB_FUNCALL(mrb, y, MRB_OPSYM(cmp), x);
     if (mrb_integer_p(x)) {
       mrb_int z = mrb_integer(x);
       return mrb_fixnum_value(-z);
@@ -544,7 +544,7 @@ mrb_rational_add(mrb_state *mrb, mrb_value x, mrb_value y)
 #endif
 
   default:
-    return mrb_funcall_id(mrb, y, MRB_OPSYM(add), 1, x);
+    return MRB_FUNCALL(mrb, y, MRB_OPSYM(add), x);
   }
 }
 
@@ -642,7 +642,7 @@ mrb_rational_mul(mrb_state *mrb, mrb_value x, mrb_value y)
 #endif
 
   default:
-    return mrb_funcall_id(mrb, y, MRB_OPSYM(mul), 1, x);
+    return MRB_FUNCALL(mrb, y, MRB_OPSYM(mul), x);
   }
 }
 

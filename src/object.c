@@ -76,7 +76,7 @@ mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
     return FALSE;
   }
 #endif
-  result = mrb_funcall_id(mrb, obj1, MRB_OPSYM(eq), 1, obj2);
+  result = MRB_FUNCALL(mrb, obj1, MRB_OPSYM(eq), obj2);
   if (mrb_test(result)) return TRUE;
   return FALSE;
 }
@@ -637,7 +637,7 @@ mrb_check_hash_type(mrb_state *mrb, mrb_value hash)
 MRB_API mrb_value
 mrb_inspect(mrb_state *mrb, mrb_value obj)
 {
-  mrb_value v = mrb_funcall_id(mrb, obj, MRB_SYM(inspect), 0);
+  mrb_value v = MRB_FUNCALL(mrb, obj, MRB_SYM(inspect));
   if (!mrb_string_p(v)) {
     v = mrb_obj_as_string(mrb, obj);
   }
@@ -648,5 +648,5 @@ MRB_API mrb_bool
 mrb_eql(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
 {
   if (mrb_obj_eq(mrb, obj1, obj2)) return TRUE;
-  return mrb_test(mrb_funcall_id(mrb, obj1, MRB_SYM_Q(eql), 1, obj2));
+  return mrb_test(MRB_FUNCALL(mrb, obj1, MRB_SYM_Q(eql), obj2));
 }

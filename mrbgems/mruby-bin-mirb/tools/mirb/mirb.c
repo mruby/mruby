@@ -19,6 +19,7 @@
 #include <mruby/string.h>
 #include <mruby/variable.h>
 #include <mruby/error.h>
+#include <mruby/internal.h>
 #include <mruby/presym.h>
 
 #include <stdlib.h>
@@ -116,13 +117,13 @@ p(mrb_state *mrb, mrb_value obj, int prompt)
   mrb_value val;
   char* msg;
 
-  val = mrb_funcall_id(mrb, obj, MRB_SYM(inspect), 0);
+  val = MRB_FUNCALL(mrb, obj, MRB_SYM(inspect));
   if (prompt) {
     if (!mrb->exc) {
       fputs(" => ", stdout);
     }
     else {
-      val = mrb_funcall_id(mrb, mrb_obj_value(mrb->exc), MRB_SYM(inspect), 0);
+      val = MRB_FUNCALL(mrb, mrb_obj_value(mrb->exc), MRB_SYM(inspect));
     }
   }
   if (!mrb_string_p(val)) {

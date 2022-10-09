@@ -1173,7 +1173,7 @@ mrb_ary_splat(mrb_state *mrb, mrb_value v)
     return mrb_ary_new_from_values(mrb, 1, &v);
   }
 
-  ary = mrb_funcall_id(mrb, v, MRB_SYM(to_a), 0);
+  ary = MRB_FUNCALL(mrb, v, MRB_SYM(to_a));
   if (mrb_nil_p(ary)) {
     return mrb_ary_new_from_values(mrb, 1, &v);
   }

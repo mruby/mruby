@@ -629,7 +629,7 @@ mrb_mod_remove_method(mrb_state *mrb, mrb_value mod)
   mrb_check_frozen(mrb, mrb_obj_ptr(mod));
   while (argc--) {
     mrb_remove_method(mrb, c, mrb_obj_to_sym(mrb, *argv));
-    mrb_funcall_id(mrb, mod, MRB_SYM(method_removed), 1, *argv);
+    MRB_FUNCALL(mrb, mod, MRB_SYM(method_removed), *argv);
     argv++;
   }
   return mod;
