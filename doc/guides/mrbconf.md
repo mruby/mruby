@@ -2,15 +2,26 @@
 
 ## How to use these macros
 
-You can use mrbconfs with following ways:
+You can do the build configuration in the `build_config` file。
 
-* Write them in `mrbconf.h`.
-  * Using compiler flags is preferred  when building a cross binaries or multiple mruby binaries
-    since it's easier to use different mrbconf per each `MRuby::Build`.
-  * Most flags can be enabled by just commenting in.
-* Pass them as compiler flags.
-  * Make sure you pass the same flags to all compilers since some mrbconf(e.g., `MRB_GC_FIXED_ARENA`)
-    changes `struct` layout and cause memory access error when C and other language(e.g., C++) is mixed.
+Just add the configuration value to the `MRuby::Build#defines` attribute.
+This is the same for `MRuby::CrossBuild`.
+
+```ruby
+# build_config.rb
+
+MRuby::Build.new do |conf|
+  .....
+  conf.defines << 'MRB_GC_FIXED_ARENA'
+  conf.defines << 'MRB_NO_METHOD_CACHE'
+  .....
+end
+```
+
+***NOTE***
+
+* Use common definitions (`conf.defines`) instead of per-compiler definitions (e.g., `conf.cc.defines`) unless there is a special reason not to.
+* It is now deprecated to edit the `include/mruby/mrbconf.h` file or give it directly as a compiler flag, as was the case before.
 
 ## stdio setting
 
