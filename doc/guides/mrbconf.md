@@ -1,8 +1,15 @@
 # mruby configuration macros
 
-## How to use these macros
+## The configuration file
 
-You can do the build configuration in the `build_config` file。
+You can do the build configuration in the build configuration file. The default
+configuration file is `build_config/default.rb`.
+
+You can specify your own configuration file by the `MRUBY_CONFIG` environment
+variable (you can use `CONFIG` for shorthand for `MRUBY_CONFIG`). If the path
+doesn't exist, `build_config/${MRUBY_CONFIG}.rb` is used.
+
+## How to use these macros
 
 Just add the configuration value to the `MRuby::Build#defines` attribute.
 This is the same for `MRuby::CrossBuild`.
