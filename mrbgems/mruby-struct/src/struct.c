@@ -211,7 +211,6 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass *kl
     }
     c = mrb_define_class_under_id(mrb, klass, id, klass);
   }
-  MRB_SET_INSTANCE_TT(c, MRB_TT_STRUCT);
   nstr = mrb_obj_value(c);
   mrb_iv_set(mrb, nstr, MRB_SYM(__members__), members);
 
@@ -672,7 +671,7 @@ mrb_mruby_struct_gem_init(mrb_state* mrb)
 {
   struct RClass *st;
   st = mrb_define_class(mrb, "Struct",  mrb->object_class);
-  MRB_SET_INSTANCE_TT(st, MRB_TT_ARRAY);
+  MRB_SET_INSTANCE_TT(st, MRB_TT_STRUCT);
 
   mrb_define_class_method(mrb, st, "new",             mrb_struct_s_def,       MRB_ARGS_ANY());  /* 15.2.18.3.1  */
 
