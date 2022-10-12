@@ -683,12 +683,12 @@ mrb_mruby_struct_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, st,       "initialize_copy", mrb_struct_init_copy,   MRB_ARGS_REQ(1)); /* 15.2.18.4.9  */
   mrb_define_method(mrb, st,       "eql?",            mrb_struct_eql,         MRB_ARGS_REQ(1)); /* 15.2.18.4.12(x)  */
 
-  mrb_define_method(mrb, st,        "size",           mrb_struct_len,         MRB_ARGS_NONE());
-  mrb_define_method(mrb, st,        "length",         mrb_struct_len,         MRB_ARGS_NONE());
-  mrb_define_method(mrb, st,        "to_a",           mrb_struct_to_a,        MRB_ARGS_NONE());
-  mrb_define_method(mrb, st,        "values",         mrb_struct_to_a,        MRB_ARGS_NONE());
-  mrb_define_method(mrb, st,        "to_h",           mrb_struct_to_h,        MRB_ARGS_NONE());
-  mrb_define_method(mrb, st,        "values_at",      mrb_struct_values_at,   MRB_ARGS_ANY());
+  mrb_define_method(mrb, st,       "size",            mrb_struct_len,         MRB_ARGS_NONE());
+  mrb_define_method(mrb, st,       "length",          mrb_struct_len,         MRB_ARGS_NONE());
+  mrb_define_method(mrb, st,       "to_a",            mrb_struct_to_a,        MRB_ARGS_NONE());
+  mrb_define_method(mrb, st,       "values",          mrb_struct_to_a,        MRB_ARGS_NONE());
+  mrb_define_method(mrb, st,       "to_h",            mrb_struct_to_h,        MRB_ARGS_NONE());
+  mrb_define_method(mrb, st,       "values_at",       mrb_struct_values_at,   MRB_ARGS_ANY());
 }
 
 void
