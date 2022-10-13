@@ -27,32 +27,24 @@ struct_class(mrb_state *mrb)
   return mrb_class_get_id(mrb, MRB_SYM(Struct));
 }
 
-static inline mrb_value
-struct_ivar_get(mrb_state *mrb, mrb_value cls, mrb_sym id)
+static mrb_value
+struct_s_members(mrb_state *mrb, struct RClass *c)
 {
-  struct RClass* c = mrb_class_ptr(cls);
   struct RClass* sclass = struct_class(mrb);
-  mrb_value ans;
+  mrb_value members;
 
   for (;;) {
-    ans = mrb_iv_get(mrb, mrb_obj_value(c), id);
-    if (!mrb_nil_p(ans)) return ans;
+    members = mrb_iv_get(mrb, mrb_obj_value(c), MRB_SYM(__members__));
+    if (!mrb_nil_p(members)) {
+      if (!mrb_array_p(members)) {
+        mrb_raise(mrb, E_TYPE_ERROR, "corrupted struct");
+      }
+      break;
+    }
     c = c->super;
-    if (c == sclass || c == 0)
-      return mrb_nil_value();
-  }
-}
-
-static mrb_value
-struct_s_members(mrb_state *mrb, struct RClass *klass)
-{
-  mrb_value members = struct_ivar_get(mrb, mrb_obj_value(klass), MRB_SYM(__members__));
-
-  if (mrb_nil_p(members)) {
-    mrb_raise(mrb, E_TYPE_ERROR, "uninitialized struct");
-  }
-  if (!mrb_array_p(members)) {
-    mrb_raise(mrb, E_TYPE_ERROR, "corrupted struct");
+    if (c == sclass || c == 0) {
+      mrb_raise(mrb, E_TYPE_ERROR, "uninitialized struct");
+    }
   }
   return members;
 }
@@ -60,10 +52,10 @@ struct_s_members(mrb_state *mrb, struct RClass *klass)
 static mrb_value
 struct_members(mrb_state *mrb, mrb_value s)
 {
-  mrb_value members = struct_s_members(mrb, mrb_obj_class(mrb, s));
   if (!mrb_struct_p(s) || RSTRUCT_LEN(s) == 0) {
     mrb_raise(mrb, E_TYPE_ERROR, "corrupted struct");
   }
+  mrb_value members = struct_s_members(mrb, mrb_obj_class(mrb, s));
   if (RSTRUCT_LEN(s) != RARRAY_LEN(members)) {
     mrb_raisef(mrb, E_TYPE_ERROR,
                "struct size differs (%i required %i given)",
@@ -306,12 +298,7 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
 static mrb_int
 num_members(mrb_state *mrb, struct RClass *klass)
 {
-  mrb_value members;
-
-  members = struct_ivar_get(mrb, mrb_obj_value(klass), MRB_SYM(__members__));
-  if (!mrb_array_p(members)) {
-    mrb_raise(mrb, E_TYPE_ERROR, "broken members");
-  }
+  mrb_value members = struct_s_members(mrb, klass);
   return RARRAY_LEN(members);
 }
 
