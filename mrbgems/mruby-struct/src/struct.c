@@ -75,12 +75,7 @@ mrb_struct_s_members_m(mrb_state *mrb, mrb_value klass)
   return ary;
 }
 
-static void
-mrb_struct_modify(mrb_state *mrb, mrb_value strct)
-{
-  mrb_check_frozen(mrb, mrb_basic_ptr(strct));
-  mrb_write_barrier(mrb, mrb_basic_ptr(strct));
-}
+#define mrb_struct_modify(mrb,s) mrb_check_frozen((mrb), mrb_basic_ptr(s))
 
 /* 15.2.18.4.6  */
 /*
@@ -154,6 +149,7 @@ mrb_struct_set_m(mrb_state *mrb, mrb_value obj)
   }
   else {
     ptr[i] = val;
+    mrb_field_write_barrier_value(mrb, mrb_basic_ptr(obj), val);
   }
   return val;
 }
@@ -437,6 +433,7 @@ mrb_struct_aset_sym(mrb_state *mrb, mrb_value s, mrb_sym id, mrb_value val)
     if (mrb_symbol(ptr_members[i]) == id) {
       mrb_struct_modify(mrb, s);
       ptr[i] = val;
+      mrb_field_write_barrier_value(mrb, mrb_basic_ptr(s), val);
       return val;
     }
   }
@@ -494,6 +491,7 @@ mrb_struct_aset(mrb_state *mrb, mrb_value s)
                "offset %i too large for struct(size:%i)", i, RSTRUCT_LEN(s));
   }
   mrb_struct_modify(mrb, s);
+  mrb_field_write_barrier_value(mrb, mrb_basic_ptr(s), val);
   return RSTRUCT_PTR(s)[i] = val;
 }
 
