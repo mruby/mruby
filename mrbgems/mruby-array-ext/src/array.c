@@ -139,7 +139,7 @@ static mrb_value
 mrb_ary_slice_bang(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
-  mrb_int i, j, k, len, alen;
+  mrb_int i, j, len, alen;
   mrb_value *ptr;
   mrb_value ary;
 
@@ -166,13 +166,9 @@ mrb_ary_slice_bang(mrb_state *mrb, mrb_value self)
   if (alen == i) return mrb_ary_new(mrb);
   if (len > alen - i) len = alen - i;
 
-  ary = mrb_ary_new_capa(mrb, len);
-  ptr = ARY_PTR(a);
-  for (j = i, k = 0; k < len; ++j, ++k) {
-    mrb_ary_push(mrb, ary, ptr[j]);
-  }
+  ptr = ARY_PTR(a) + i;
+  ary = mrb_ary_new_from_values(mrb, len, ptr);
 
-  ptr += i;
   for (j = i; j < alen - len; ++j) {
     *ptr = *(ptr+len);
     ++ptr;
