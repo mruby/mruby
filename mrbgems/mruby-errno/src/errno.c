@@ -169,7 +169,6 @@ mrb_errno_list(mrb_state *mrb, mrb_value self)
   mrb_value list;
   mrb_get_args(mrb, "A", &list);
 
-  mrb_ensure_array_type(mrb, list);
   mrb_ary_modify(mrb, mrb_ary_ptr(list));
   mrb_ssize head = RARRAY_LEN(list);
 
