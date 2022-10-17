@@ -139,11 +139,7 @@ ary_fill_with_nil(mrb_value *ptr, mrb_int size)
   }
 }
 
-static void
-ary_modify_check(mrb_state *mrb, struct RArray *a)
-{
-  mrb_check_frozen(mrb, a);
-}
+#define ary_modify_check(mrb, a) mrb_check_frozen((mrb), (a))
 
 static void
 ary_modify(mrb_state *mrb, struct RArray *a)
