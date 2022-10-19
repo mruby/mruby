@@ -543,9 +543,9 @@ mrb_ary_push_m(mrb_state *mrb, mrb_value self)
   mrb_int len, len2;
   struct RArray *a;
 
+  a = mrb_ary_ptr(self);
   ary_modify(mrb, a);
   argc = mrb_get_argc(mrb);
-  a = mrb_ary_ptr(self);
   len = ARY_LEN(a);
   len2 = len + argc;
   if (ARY_CAPA(a) < len2) {
