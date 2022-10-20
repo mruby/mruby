@@ -104,10 +104,8 @@ ary_ref(mrb_state *mrb, mrb_value ary, mrb_int n)
 static mrb_value
 mrb_ary_values_at(mrb_state *mrb, mrb_value self)
 {
-  mrb_int argc;
-  const mrb_value *argv;
-
-  mrb_get_args(mrb, "*", &argv, &argc);
+  mrb_int argc = mrb_get_argc(mrb);
+  const mrb_value *argv = mrb_get_argv(mrb);
 
   return mrb_get_values_at(mrb, self, RARRAY_LEN(self), argc, argv, ary_ref);
 }
