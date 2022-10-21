@@ -4,6 +4,7 @@ MRuby::Gem::Specification.new('mruby-proc-binding') do |spec|
   spec.summary = 'Proc#binding method'
 
   spec.add_dependency('mruby-binding-core', :core => 'mruby-binding-core')
+  spec.add_dependency('mruby-proc-ext', :core => 'mruby-proc-ext')
   spec.add_test_dependency('mruby-binding', :core => 'mruby-binding')
   spec.add_test_dependency('mruby-compiler', :core => 'mruby-compiler')
 end
