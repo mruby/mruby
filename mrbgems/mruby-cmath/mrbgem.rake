@@ -4,5 +4,5 @@ MRuby::Gem::Specification.new('mruby-cmath') do |spec|
   spec.license = 'MIT'
   spec.author  = 'mruby developers'
   spec.summary = 'standard Math module with complex'
-  spec.add_dependency 'mruby-complex'
+  spec.add_dependency 'mruby-complex', :core => 'mruby-complex'
 end
