@@ -707,7 +707,8 @@ mrb_ary_unshift_m(mrb_state *mrb, mrb_value self)
   mrb_value *ptr;
   mrb_int alen, len;
 
-  mrb_get_args(mrb, "*!", &vals, &alen);
+  alen = mrb_get_argc(mrb);
+  vals = mrb_get_argv(mrb);
   if (alen == 0) {
     ary_modify_check(mrb, a);
     return self;
