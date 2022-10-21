@@ -10,6 +10,11 @@ class Set
     end
   end
 
+  # internal method to get internal hash
+  def _hash
+    @hash
+  end
+
   def self.[](*ary)
     new(ary)
   end
@@ -28,17 +33,17 @@ class Set
 
   def initialize_copy(orig)
     super
-    @hash = orig.instance_variable_get(:@hash).dup
+    @hash = orig._hash.dup
   end
 
   # def initialize_dup(orig)
   #   super
-  #   @hash = orig.instance_variable_get(:@hash).dup
+  #   @hash = orig._hash.dup
   # end
 
   # def initialize_clone(orig)
   #   super
-  #   @hash = orig.instance_variable_get(:@hash).clone
+  #   @hash = orig._hash.clone
   # end
 
   # def freeze
@@ -229,7 +234,7 @@ class Set
 
   def merge(enum)
     if enum.instance_of?(self.class)
-      @hash.merge!(enum.instance_variable_get(:@hash))
+      @hash.merge!(enum._hash)
     else
       _do_with_enum(enum) { |o| add(o) }
     end
@@ -268,7 +273,7 @@ class Set
     if self.equal?(other)
       true
     elsif other.instance_of?(self.class) && self.size == other.size
-      @hash == other.instance_variable_get(:@hash)
+      @hash == other._hash
     elsif other.is_a?(self.class) && self.size == other.size
       other.all? { |o| include?(o) }
     else
@@ -296,7 +301,7 @@ class Set
 
   def eql?(o)
     return false unless o.is_a?(Set)
-    @hash.eql?(o.instance_variable_get(:@hash))
+    @hash.eql?(o._hash)
   end
 
   def classify
