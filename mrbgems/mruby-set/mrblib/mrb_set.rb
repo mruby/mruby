@@ -1,6 +1,15 @@
 class Set
   include Enumerable
 
+  # internal method
+  def _do_with_enum(enum, &block)
+    if enum.respond_to?(:each)
+      enum.each(&block)
+    else
+      raise ArgumentError, "value must be enumerable"
+    end
+  end
+
   def self.[](*ary)
     new(ary)
   end
@@ -11,20 +20,11 @@ class Set
     enum.nil? and return
 
     if block_given?
-      do_with_enum(enum) { |o| add(block.call(o)) }
+      _do_with_enum(enum) { |o| add(block.call(o)) }
     else
       merge(enum)
     end
   end
-
-  def do_with_enum(enum, &block)
-    if enum.respond_to?(:each)
-      enum.each(&block)
-    else
-      raise ArgumentError, "value must be enumerable"
-    end
-  end
-  private :do_with_enum
 
   def initialize_copy(orig)
     super
@@ -231,14 +231,14 @@ class Set
     if enum.instance_of?(self.class)
       @hash.merge!(enum.instance_variable_get(:@hash))
     else
-      do_with_enum(enum) { |o| add(o) }
+      _do_with_enum(enum) { |o| add(o) }
     end
 
     self
   end
 
   def subtract(enum)
-    do_with_enum(enum) { |o| delete(o) }
+    _do_with_enum(enum) { |o| delete(o) }
     self
   end
 
@@ -255,7 +255,7 @@ class Set
 
   def &(enum)
     n = Set.new
-    do_with_enum(enum) { |o| n.add(o) if include?(o) }
+    _do_with_enum(enum) { |o| n.add(o) if include?(o) }
     n
   end
   alias intersection &
