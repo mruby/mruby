@@ -10,5 +10,5 @@ language: c
 compiler:
   - gcc
   - clang
-script: 
+script:
   - rake test

@@ -1,4 +1,4 @@
-##  
+##
 ## Set Test
 ##
 
@@ -367,7 +367,7 @@ assert("Set#each") do
       ary.delete(o) or raise "unexpected element: #{o}"
     }
     ary.empty? or raise "forgotten elements: #{ary.join(', ')}"
-  }  
+  }
 end
 
 assert("Set#add") do
@@ -514,7 +514,7 @@ assert("Set#-") do
 
   ret = set - [2,4,6]
   assert_false set.equal?(ret) # assert_not_same
-  assert_equal(Set[1,3], ret)  
+  assert_equal(Set[1,3], ret)
 end
 
 assert("Set#&") do
@@ -522,7 +522,7 @@ assert("Set#&") do
 
   ret = set & [2,4,6]
   assert_false set.equal?(ret) # assert_not_same
-  assert_equal(Set[2,4], ret)  
+  assert_equal(Set[2,4], ret)
 end
 
 assert("Set#^") do
@@ -530,7 +530,7 @@ assert("Set#^") do
 
   ret = set ^ [2,4,5,5]
   assert_false set.equal?(ret) # assert_not_same
-  assert_equal(Set[1,3,5], ret)  
+  assert_equal(Set[1,3,5], ret)
 end
 
 assert("Set#==") do
