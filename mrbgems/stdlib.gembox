@@ -34,6 +34,9 @@ MRuby::GemBox.new do |conf|
   # Use ObjectSpace class
   conf.gem :core => "mruby-objectspace"
 
+  # Use Set class
+  conf.gem :core => "mruby-set"
+
   # Use Fiber class
   conf.gem :core => "mruby-fiber"
 
