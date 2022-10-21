@@ -1,0 +1,14 @@
+sudo: false
+addons:
+  apt:
+    packages:
+      - rake
+      - bison
+      - git
+      - gperf
+language: c
+compiler:
+  - gcc
+  - clang
+script: 
+  - rake test
