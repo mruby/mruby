@@ -2,7 +2,7 @@
 
 Set class
 
-## install by mrbgems
+## Install by mrbgems
 
 - add conf.gem line to `build_config.rb`
 
@@ -15,7 +15,7 @@ MRuby::Build.new do |conf|
 end
 ```
 
-## example
+## Example
 
 ```ruby
 set1 = Set.new([1,2])
@@ -32,9 +32,9 @@ set1 ^ set2
 #=> #<Set: {3}>
 ```
 
-## limitation
+## Limitations
 
-These methods are not implemented yet.
+These methods are not implemented yet:
 
 - freeze
 - taint
@@ -44,6 +44,6 @@ These methods are not implemented yet.
 
 ## License
 
-under the MIT License:
+Under the MIT License:
 
-- see LICENSE file
+- see [LICENSE](LICENSE) file
