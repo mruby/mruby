@@ -116,6 +116,7 @@ class Set
     @hash.include?(o)
   end
   alias member? include?
+  alias === include?
 
   def superset?(set)
     raise ArgumentError, "value must be a set" unless set.is_a?(Set)
@@ -133,13 +134,15 @@ class Set
 
   def subset?(set)
     raise ArgumentError, "value must be a set" unless set.is_a?(Set)
-    set.superset?(self)
+    return false if set.size < size
+    all? { |o| set.include?(o) }
   end
   alias <= subset?
 
   def proper_subset?(set)
     raise ArgumentError, "value must be a set" unless set.is_a?(Set)
-    set.proper_superset?(self)
+    return false if set.size <= size
+    all? { |o| set.include?(o) }
   end
   alias < proper_subset?
 
@@ -222,6 +225,7 @@ class Set
     keep_if(&block)
     size == n ? nil : self
   end
+  alias filter! select!
 
   def merge(enum)
     if enum.instance_of?(self.class)
@@ -264,14 +268,25 @@ class Set
     if self.equal?(other)
       true
     elsif other.instance_of?(self.class) && self.size == other.size
-      other_hash = other.instance_variable_get(:@hash)
-      other_hash.keys.all? { |o| @hash.keys.include?(o) }
-      other_hash.values.all? { |o| @hash.values.include?(o) }
-#      @hash == other.instance_variable_get(:@hash)
+      @hash == other.instance_variable_get(:@hash)
     elsif other.is_a?(self.class) && self.size == other.size
       other.all? { |o| include?(o) }
     else
       false
+    end
+  end
+
+  def <=>(set)
+    if !set.is_a?(Set)
+      nil
+    elsif self == set
+      0
+    elsif self < set
+      -1
+    elsif self > set
+      1
+    else
+      nil
     end
   end
 
@@ -306,8 +321,21 @@ class Set
     Set.new(classify(&func).values)
   end
 
-  def inspect
-    "#<#{self.class}: {#{self.to_a.inspect[1..-2]}}>"
+  def join(separator = nil)
+    to_a.join(separator)
   end
+
+  def _inspect(recur_list)
+    return "#<#{self.class}: {}>" if empty?
+    return "#<#{self.class}: {...}>" if recur_list[self.object_id]
+    recur_list[self.object_id] = true
+    ary = map { |o| o._inspect(recur_list) }
+    "#<#{self.class}: {#{ary.join(", ")}}>"
+  end
+
+  def inspect
+    _inspect({})
+  end
+  alias to_s inspect
 
 end
