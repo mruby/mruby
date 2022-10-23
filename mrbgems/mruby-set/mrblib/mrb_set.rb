@@ -282,16 +282,12 @@ class Set
   end
 
   def <=>(set)
-    if !set.is_a?(Set)
-      nil
-    elsif self == set
-      0
-    elsif self < set
-      -1
-    elsif self > set
-      1
-    else
-      nil
+    return unless set.is_a?(Set)
+
+    case size <=> set.size
+    when -1 then -1 if proper_subset?(set)
+    when +1 then +1 if proper_superset?(set)
+    else 0 if self.==(set)
     end
   end
 
