@@ -2,7 +2,7 @@ class Set
   include Enumerable
 
   # internal method
-  def _do_with_enum(enum, &block)
+  def __do_with_enum(enum, &block)
     if enum.respond_to?(:each)
       enum.each(&block)
     else
@@ -11,7 +11,7 @@ class Set
   end
 
   # internal method to get internal hash
-  def _hash
+  def __get_hash
     @hash
   end
 
@@ -25,7 +25,7 @@ class Set
     enum.nil? and return
 
     if block_given?
-      _do_with_enum(enum) { |o| add(block.call(o)) }
+      __do_with_enum(enum) { |o| add(block.call(o)) }
     else
       merge(enum)
     end
@@ -33,17 +33,17 @@ class Set
 
   def initialize_copy(orig)
     super
-    @hash = orig._hash.dup
+    @hash = orig.__get_hash.dup
   end
 
   # def initialize_dup(orig)
   #   super
-  #   @hash = orig._hash.dup
+  #   @hash = orig.__get_hash.dup
   # end
 
   # def initialize_clone(orig)
   #   super
-  #   @hash = orig._hash.clone
+  #   @hash = orig.__get_hash.clone
   # end
 
   # def freeze
@@ -234,16 +234,16 @@ class Set
 
   def merge(enum)
     if enum.instance_of?(self.class)
-      @hash.merge!(enum._hash)
+      @hash.merge!(enum.__get_hash)
     else
-      _do_with_enum(enum) { |o| add(o) }
+      __do_with_enum(enum) { |o| add(o) }
     end
 
     self
   end
 
   def subtract(enum)
-    _do_with_enum(enum) { |o| delete(o) }
+    __do_with_enum(enum) { |o| delete(o) }
     self
   end
 
@@ -260,7 +260,7 @@ class Set
 
   def &(enum)
     n = Set.new
-    _do_with_enum(enum) { |o| n.add(o) if include?(o) }
+    __do_with_enum(enum) { |o| n.add(o) if include?(o) }
     n
   end
   alias intersection &
@@ -273,7 +273,7 @@ class Set
     if self.equal?(other)
       true
     elsif other.instance_of?(self.class) && self.size == other.size
-      @hash == other._hash
+      @hash == other.__get_hash
     elsif other.is_a?(self.class) && self.size == other.size
       other.all? { |o| include?(o) }
     else
@@ -301,7 +301,7 @@ class Set
 
   def eql?(o)
     return false unless o.is_a?(Set)
-    @hash.eql?(o._hash)
+    @hash.eql?(o.__get_hash)
   end
 
   def classify
