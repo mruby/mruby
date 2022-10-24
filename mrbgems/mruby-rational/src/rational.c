@@ -347,10 +347,24 @@ rational_negative_p(mrb_state *mrb, mrb_value self)
   return mrb_false_value();
 }
 
+#ifndef MRB_NO_FLOAT
+static mrb_value
+float_to_r(mrb_state *mrb, mrb_value self)
+{
+  return rational_new_f(mrb, mrb_float(self));
+}
+#endif
+
 static mrb_value
 fix_to_r(mrb_state *mrb, mrb_value self)
 {
   return rational_new(mrb, mrb_integer(self), 1);
+}
+
+static mrb_value
+nil_to_r(mrb_state *mrb, mrb_value self)
+{
+  return rational_new(mrb, 0, 1);
 }
 
 static mrb_value
@@ -776,7 +790,11 @@ void mrb_mruby_rational_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, rat, "quo", rational_div, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, rat, "**", rational_pow, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, rat, "hash", rational_hash, MRB_ARGS_NONE());
+#ifndef MRB_NO_FLOAT
+  mrb_define_method(mrb, mrb->float_class, "to_r", float_to_r, MRB_ARGS_NONE());
+#endif
   mrb_define_method(mrb, mrb->integer_class, "to_r", fix_to_r, MRB_ARGS_NONE());
+  mrb_define_method(mrb, mrb->nil_class, "to_r", nil_to_r, MRB_ARGS_NONE());
   mrb_define_method(mrb, mrb->kernel_module, "Rational", rational_m, MRB_ARGS_ARG(1,1));
 }
 
