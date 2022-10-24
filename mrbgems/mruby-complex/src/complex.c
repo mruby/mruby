@@ -381,6 +381,12 @@ complex_hash(mrb_state *mrb, mrb_value cpx)
   return mrb_int_value(mrb, hash);
 }
 
+static mrb_value
+nil_to_c(mrb_state *mrb, mrb_value self)
+{
+  return complex_new(mrb, 0, 0);
+}
+
 void mrb_mruby_complex_gem_init(mrb_state *mrb)
 {
   struct RClass *comp;
@@ -404,6 +410,7 @@ void mrb_mruby_complex_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, comp, "quo", complex_div, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, comp, "==", complex_eq, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, comp, "hash", complex_hash, MRB_ARGS_NONE());
+  mrb_define_method(mrb, mrb->nil_class, "to_c", nil_to_c, MRB_ARGS_NONE());
 }
 
 void
