@@ -1939,7 +1939,12 @@ mrb_instance_alloc(mrb_state *mrb, mrb_value cv)
   if (c->tt == MRB_TT_SCLASS)
     mrb_raise(mrb, E_TYPE_ERROR, "can't create instance of singleton class");
 
-  if (ttype == 0) ttype = MRB_TT_OBJECT;
+  if (c == mrb->nil_class || c == mrb->false_class) {
+    mrb_assert(ttype == 0);
+  }
+  else if (ttype == 0) {
+    ttype = MRB_TT_OBJECT;
+  }
   if (ttype <= MRB_TT_CPTR) {
     mrb_raisef(mrb, E_TYPE_ERROR, "can't create instance of %v", cv);
   }
