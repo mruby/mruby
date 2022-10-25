@@ -51,16 +51,6 @@ class Set
   #   super
   # end
 
-  # def taint
-  #   @hash.taint
-  #   super
-  # end
-
-  # def untaint
-  #   @hash.untaint
-  #   super
-  # end
-
   def size
     @hash.size
   end

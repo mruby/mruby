@@ -593,16 +593,6 @@ assert("Set#divide") do
   # assert_equal(Set, ret.class)
 end
 
-# taint is not implemented yet
-#assert("taintness") do
-#  orig = set = Set[1,2,3]
-#  assert_false set.tainted?
-#  assert_true set.taint.equal?(orig) # assert_same
-#  assert_true set.tainted?
-#  assert_true set.instance_variable_get(:@hash).tainted?
-#  assert_true set.untaint.equal?(orig) # assert_same
-#  assert_false set.tainted?
-#end
 # freeze is not implemented yet
 #assert("freeze") do
 #  orig = set = Set[1,2,3]

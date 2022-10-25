@@ -24,8 +24,6 @@ set1 ^ set2
 These methods are not implemented yet:
 
 - freeze
-- taint
-- untaint
 - to_set
 - divide(Set#divide with 2 arity block is not implemented.)
 
