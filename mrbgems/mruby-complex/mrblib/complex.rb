@@ -74,3 +74,9 @@ class Complex < Numeric
   end
   undef i
 end
+
+class Numeric
+  def to_c
+    Complex(self, 0)
+  end
+end
