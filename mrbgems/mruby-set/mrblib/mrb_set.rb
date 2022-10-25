@@ -36,16 +36,6 @@ class Set
     @hash = orig.__get_hash.dup
   end
 
-  # def initialize_dup(orig)
-  #   super
-  #   @hash = orig.__get_hash.dup
-  # end
-
-  # def initialize_clone(orig)
-  #   super
-  #   @hash = orig.__get_hash.clone
-  # end
-
   # def freeze
   #   @hash.freeze
   #   super
