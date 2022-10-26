@@ -53,7 +53,7 @@
 #   4.  I recommend building 64-bit targets only.  Building a 32-bit
 #       Windows binary with i686-w64-mingw32 seems to work (at least,
 #       it did for me) but the resulting executable failed a number of
-#       unit tests due to small errors in some floating point
+#       unit tests due to small errors in some floating-point
 #       operations.  It's unclear if this indicates more serious problems.
 #
 

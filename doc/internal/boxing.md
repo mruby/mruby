@@ -25,11 +25,11 @@ The Word boxing packing bit patterns are like following:
 | symbol | xxxxxxxx xxxxxxxx xxxxxxxx xxxxxx10 |
 
 On 64 bit platform (unless `MRB_WORDBOX_NO_FLOAT_TRUNCATE`), float values are also packed in the `mrb_value`. In that case, we drop least significant 2 bits from mantissa.
-If you need full precision for floating point numbers, define `MRB_WORDBOX_NO_FLOAT_TRUNCATE`.
+If you need full precision for floating-point numbers, define `MRB_WORDBOX_NO_FLOAT_TRUNCATE`.
 
 ## NaN Boxing
 
-NaN boxing packs the Ruby data in a floating point numbers, which represent NaN (Not a Number) values. Under IEEE753 definitions every value that exponent is all set are considered as NaN. That means NaN can represent `2^51` values. NaN boxing is a teaching to pack the values in those NaN representation. In theory, 64 bits pointers are too big to fit in NaN, but practically most OS uses only 48 bits at most for pointers (except for some OS e.g. Solaris).
+NaN boxing packs the Ruby data in a floating-point numbers, which represent NaN (Not a Number) values. Under IEEE753 definitions every value that exponent is all set are considered as NaN. That means NaN can represent `2^51` values. NaN boxing is a teaching to pack the values in those NaN representation. In theory, 64 bits pointers are too big to fit in NaN, but practically most OS uses only 48 bits at most for pointers (except for some OS e.g. Solaris).
 
 The NaN boxing packing bit patterns are like following:
 
@@ -45,7 +45,7 @@ The NaN boxing packing bit patterns are like following:
 | ptr    | 01111111 11111100 PPPPPPPP PPPPPPPP PPPPPPPP PPPPPPPP PPPPPPPP PPPPPP01 |
 | nil    | 00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000 |
 
-The object values appear far more frequently than floating point numbers, so we offset the value so that object pointers are unchanged. This technique is called "favor pointer"".
+The object values appear far more frequently than floating-point numbers, so we offset the value so that object pointers are unchanged. This technique is called "favor pointer"".
 
 ## No Boxing
 

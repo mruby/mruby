@@ -155,12 +155,12 @@ Now takes 2 operands and pushes multiple entries to an array.
 
 ### Word Boxing
 
-`MRB_WORD_BOXING` now packs floating point numbers in the word, if the size of `mrb_float` is equal or smaller than the size of `mrb_int` by default.
+`MRB_WORD_BOXING` now packs floating-point numbers in the word, if the size of `mrb_float` is equal or smaller than the size of `mrb_int` by default.
 If the size of `mrb_float` and `mrb_int` are same, the last 2 bits in the `mrb_float` are trimmed and used as flags. If you need full precision, you need to define `MRB_WORDBOX_NO_FLOAT_TRUNCATE` as described above.
 
 ### NaN Boxing
 
-Previous NaN boxing packs values in NaN representation, but pointer retrievals are far more frequent than floating point number references. So we add constant offset to NaN representation to clear higher bits of pointer representation. This representation is called "Favor Pointer" NaN Boxing.
+Previous NaN boxing packs values in NaN representation, but pointer retrievals are far more frequent than floating-point number references. So we add constant offset to NaN representation to clear higher bits of pointer representation. This representation is called "Favor Pointer" NaN Boxing.
 
 Also, previous NaN boxing limit the size of `mrb_int` to 4 bytes (32 bits) to fit in NaN values. Now we allocate integer values in the heap, if the value does not fit in the 32 bit range, just like we did in Word Boxing.
 

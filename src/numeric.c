@@ -884,7 +884,7 @@ flo_rounding(mrb_state *mrb, mrb_value num, double (*func)(double))
  *  When the precision is negative, the returned value is an integer
  *  with at least <code>ndigits.abs</code> trailing zeros.
  *
- *  Returns a floating point number when +ndigits+ is positive,
+ *  Returns a floating-point number when +ndigits+ is positive,
  *  otherwise returns an integer.
  *
  *     1.2.floor      #=> 1
@@ -907,7 +907,7 @@ flo_rounding(mrb_state *mrb, mrb_value num, double (*func)(double))
  *     34567.89.floor(2)   #=> 34567.89
  *     34567.89.floor(3)   #=> 34567.89
  *
- *  Note that the limited precision of floating point arithmetic
+ *  Note that the limited precision of floating-point arithmetic
  *  might lead to surprising results:
  *
  *     (0.3 / 0.1).floor  #=> 2 (!)
@@ -929,7 +929,7 @@ flo_floor(mrb_state *mrb, mrb_value num)
  *  When the precision is negative, the returned value is an integer
  *  with at least <code>ndigits.abs</code> trailing zeros.
  *
- *  Returns a floating point number when +ndigits+ is positive,
+ *  Returns a floating-point number when +ndigits+ is positive,
  *  otherwise returns an integer.
  *
  *     1.2.ceil      #=> 2
@@ -952,7 +952,7 @@ flo_floor(mrb_state *mrb, mrb_value num)
  *     34567.89.ceil(2)   #=> 34567.89
  *     34567.89.ceil(3)   #=> 34567.89
  *
- *  Note that the limited precision of floating point arithmetic
+ *  Note that the limited precision of floating-point arithmetic
  *  might lead to surprising results:
  *
  *     (2.1 / 0.7).ceil  #=> 4 (!)

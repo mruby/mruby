@@ -81,7 +81,7 @@ does not fit in `Fixnum` integers.
 
 ## `MRB_NAN_BOXING`
 
-Pack `mrb_value` in a floating pointer number. Nothing
+Pack `mrb_value` in a floating-point number. Nothing
 changed from previous versions.
 
 ## `MRB_USE_MALLOC_TRIM`

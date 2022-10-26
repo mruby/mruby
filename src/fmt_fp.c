@@ -5,7 +5,7 @@
 /***********************************************************************
 
   Routine for converting a single-precision
-  floating point number into a string.
+  floating-point number into a string.
 
   The code in this function was inspired from Fred Bayer's pdouble.c.
   Since pdouble.c was released as Public Domain, I'm releasing this
@@ -254,7 +254,7 @@ mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, ch
     prec = 0;
   }
 
-  // We now have f as a floating point number between >= 1 and < 10
+  // We now have f as a floating-point number between >= 1 and < 10
   // (or equal to zero), and e contains the absolute value of the power of
   // 10 exponent. and (dec + 1) == the number of dgits before the decimal.
 
