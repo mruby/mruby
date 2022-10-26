@@ -107,10 +107,10 @@ true
 
 The declaration form of following visibility methods are not implemented.
 
-* `public`
-* `private`
-* `protected`
-* `module_function`
+- `public`
+- `private`
+- `protected`
+- `module_function`
 
 Especially, `module_function` method is not dummy, but no declaration form.
 

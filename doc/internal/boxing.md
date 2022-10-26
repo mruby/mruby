@@ -2,9 +2,9 @@
 
 The mruby objects and data are represented by C data type `mrb_value`. There are three options how to pack the data values in the `mrb_value`.
 
-* Word Boxing
-* NaN Boxing
-* No Boxing
+- Word Boxing
+- NaN Boxing
+- No Boxing
 
 ## Word Boxing
 

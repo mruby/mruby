@@ -21,9 +21,9 @@ conf.gem 'examples/mrbgems/ruby_extension_example'
 
 In that case,
 
-* if your build configuration file is in the `build_config` directory, it's
+- if your build configuration file is in the `build_config` directory, it's
   relative from `MRUBY_ROOT`.
-* otherwise, it is relative from the directory where your build configuration is.
+- otherwise, it is relative from the directory where your build configuration is.
 
 A remote GIT repository location for a GEM is also supported:
 
@@ -171,15 +171,15 @@ the GEM functionality to tools like `mruby` and `mirb`.
 The following properties can be set inside your `MRuby::Gem::Specification` for
 information purpose:
 
-* `spec.license` or `spec.licenses` (A single license or a list of them under which this GEM is licensed)
-* `spec.author` or `spec.authors` (Developer name or a list of them)
-* `spec.version` (Current version)
-* `spec.description` (Detailed description)
-* `spec.summary`
-  * One line short description of mrbgem.
-  * Printed in build summary of rake when set.
-* `spec.homepage` (Homepage)
-* `spec.requirements` (External requirements as information for user)
+- `spec.license` or `spec.licenses` (A single license or a list of them under which this GEM is licensed)
+- `spec.author` or `spec.authors` (Developer name or a list of them)
+- `spec.version` (Current version)
+- `spec.description` (Detailed description)
+- `spec.summary`
+  - One line short description of mrbgem.
+  - Printed in build summary of rake when set.
+- `spec.homepage` (Homepage)
+- `spec.requirements` (External requirements as information for user)
 
 The `license` and `author` properties are required in every GEM!
 
@@ -210,15 +210,15 @@ The version requirements and default gem information are optional.
 
 Version requirement supports following operators:
 
-* '=': is equal
-* '!=': is not equal
-* '>': is greater
-* '<': is lesser
-* '>=': is equal or greater
-* '<=': is equal or lesser
-* '~>': is equal or greater and is lesser than the next major version
-  * example 1: '~> 2.2.2' means '>= 2.2.2' and '< 2.3.0'
-  * example 2: '~> 2.2'   means '>= 2.2.0' and '< 3.0.0'
+- '=': is equal
+- '!=': is not equal
+- '>': is greater
+- '<': is lesser
+- '>=': is equal or greater
+- '<=': is equal or lesser
+- '~>': is equal or greater and is lesser than the next major version
+  - example 1: '~> 2.2.2' means '>= 2.2.2' and '< 2.3.0'
+  - example 2: '~> 2.2'   means '>= 2.2.0' and '< 3.0.0'
 
 When more than one version requirements is passed, the dependency must satisfy all of it.
 
@@ -231,8 +231,8 @@ use `MRuby::Build#gem` in the build configuration to override default gem.
 
 If you have conflicting GEMs use the following method:
 
-* `spec.add_conflict(gem, *requirements)`
-  * The `requirements` argument is same as in `add_dependency` method.
+- `spec.add_conflict(gem, *requirements)`
+  - The `requirements` argument is same as in `add_dependency` method.
 
 like following code:
 
@@ -251,18 +251,18 @@ end
 In case your GEM has more complex build requirements you can use
 the following options additionally inside your GEM specification:
 
-* `spec.cc.flags` (C compiler flags)
-* `spec.cc.defines` (C compiler defines)
-* `spec.cc.include_paths` (C compiler include paths)
-* `spec.linker.flags` (Linker flags)
-* `spec.linker.libraries` (Linker libraries)
-* `spec.linker.library_paths` (Linker additional library path)
-* `spec.bins` (Generate binary file)
-* `spec.rbfiles` (Ruby files to compile)
-* `spec.objs` (Object files to compile)
-* `spec.test_rbfiles` (Ruby test files for integration into mrbtest)
-* `spec.test_objs` (Object test files for integration into mrbtest)
-* `spec.test_preload` (Initialization files for mrbtest)
+- `spec.cc.flags` (C compiler flags)
+- `spec.cc.defines` (C compiler defines)
+- `spec.cc.include_paths` (C compiler include paths)
+- `spec.linker.flags` (Linker flags)
+- `spec.linker.libraries` (Linker libraries)
+- `spec.linker.library_paths` (Linker additional library path)
+- `spec.bins` (Generate binary file)
+- `spec.rbfiles` (Ruby files to compile)
+- `spec.objs` (Object files to compile)
+- `spec.test_rbfiles` (Ruby test files for integration into mrbtest)
+- `spec.test_objs` (Object test files for integration into mrbtest)
+- `spec.test_preload` (Initialization files for mrbtest)
 
 You also can use `spec.mruby.cc` and `spec.mruby.linker` to add extra global parameters for the compiler and linker.
 

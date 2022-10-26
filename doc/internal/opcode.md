@@ -15,10 +15,10 @@ The size of operands can be either 8bits, 16bits or 24bits.
 In the table.1 below, the second field describes the size (and
 sign) of operands.
 
-* B: 8bit
-* S: 16bit
-* sS: signed 16bit
-* W: 24bit
+- B: 8bit
+- S: 16bit
+- sS: signed 16bit
+- W: 24bit
 
 ## table.1 Instruction Table
 

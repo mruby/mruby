@@ -4,7 +4,7 @@ mruby sleep module
 
 ## Install by mrbgems
 
-* add `conf.gem` line to your build configuration.
+- add `conf.gem` line to your build configuration.
 
 ```ruby
 MRuby::Build.new do |conf|
@@ -26,4 +26,4 @@ usleep(10000)
 
 under the MIT License:
 
-* <https://www.opensource.org/licenses/mit-license.php>
+- <https://www.opensource.org/licenses/mit-license.php>

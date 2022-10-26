@@ -152,10 +152,10 @@ these temporal objects into GC arena.
 Therefore, in order to keep the arena size small; the `ary_inspect()` function
 will do the following:
 
-* save the position of the stack top using `mrb_gc_arena_save()`.
-* get `inspect` representation of each element.
-* append it to the constructing entire `inspect` representation of array.
-* restore stack top position using `mrb_gc_arena_restore()`.
+- save the position of the stack top using `mrb_gc_arena_save()`.
+- get `inspect` representation of each element.
+- append it to the constructing entire `inspect` representation of array.
+- restore stack top position using `mrb_gc_arena_restore()`.
 
 Please note that the final `inspect` representation of entire array
 was created before the call of `mrb_gc_arena_restore()`.  Otherwise,

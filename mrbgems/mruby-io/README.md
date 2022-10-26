@@ -14,7 +14,7 @@ Add the line below to your build configuration.
 
 ### IO
 
-* <https://doc.ruby-lang.org/ja/1.9.3/class/IO.html>
+- <https://doc.ruby-lang.org/ja/1.9.3/class/IO.html>
 
 | method                     | mruby-io | memo     |
 |----------------------------|----------|----------|
@@ -99,7 +99,7 @@ Add the line below to your build configuration.
 
 ### File
 
-* <https://doc.ruby-lang.org/ja/1.9.3/class/File.html>
+- <https://doc.ruby-lang.org/ja/1.9.3/class/File.html>
 
 | method                      | mruby-io | memo     |
 |-----------------------------|----------|----------|
