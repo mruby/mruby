@@ -63,7 +63,7 @@ istruct_test_test_receive_direct(mrb_state *mrb, mrb_value self)
      you need to care about class replacing.
      See mrbgem/mruby-random/src/random.c for detail */
   if (mrb_istruct_p(is) && mrb_obj_is_kind_of(mrb, is, klass)) {
-    char *ptr = (char*)mrb_istruct_ptr(is);;
+    char *ptr = (char*)mrb_istruct_ptr(is);
     return mrb_bool_value(ptr[0] == 's');
   }
   mrb_raise(mrb, E_TYPE_ERROR, "InlineStructTest");
