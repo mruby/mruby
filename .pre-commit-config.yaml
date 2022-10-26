@@ -36,7 +36,7 @@ repos:
         args: [--whitespaces-count, '2']
         files: \.(c|cc|C|cxx|cpp|gembox|gemspec|h|hh|H|hxx|hpp|inc|md|mdown|markdown|rake|rb|y|yaml|yml)$|^Rakefile$|^rakefile$
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.2.1
+    rev: v2.2.2
     hooks:
       - id: codespell
         name: Run codespell
