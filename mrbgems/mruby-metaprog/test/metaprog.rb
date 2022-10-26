@@ -56,7 +56,7 @@ assert('Kernel#instance_variables', '15.3.1.3.23') do
   end
   ivars = o.instance_variables
 
-  assert_equal Array, ivars.class,
+  assert_equal Array, ivars.class
   assert_equal(2, ivars.size)
   assert_true ivars.include?(:@a)
   assert_true ivars.include?(:@b)
