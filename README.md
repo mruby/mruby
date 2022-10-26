@@ -1,6 +1,5 @@
 # mruby
 
-[![Build Status][build-status-img]][travis-ci]
 [![GitHub Super-Linter](https://github.com/mruby/mruby/workflows/Lint%20Code%20Base/badge.svg)](https://github.com/marketplace/actions/super-linter)
 
 ## What is mruby
@@ -97,6 +96,4 @@ request to <https://github.com/mruby/mruby>.  We consider you have granted
 non-exclusive right to your contributed code under MIT license.
 
 [ISO-standard]: https://www.iso.org/iso/iso_catalogue/catalogue_tc/catalogue_detail.htm?csnumber=59579
-[build-status-img]: https://travis-ci.org/mruby/mruby.svg?branch=master
 [contribution-guidelines]: https://github.com/mruby/mruby/blob/master/CONTRIBUTING.md
-[travis-ci]: https://travis-ci.org/mruby/mruby
