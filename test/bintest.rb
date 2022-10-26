@@ -44,7 +44,7 @@ ARGV.each do |gem|
 
   case RbConfig::CONFIG['host_os']
   when /mswin(?!ce)|mingw|bccwin/
-    gem = gem.gsub('\\', '/')
+    gem = gem.tr('\\', '/')
   end
 
   Dir["#{gem}/bintest/**/*.rb"].each do |file|

@@ -170,7 +170,7 @@ module MRuby
       end
 
       def funcname
-        @funcname ||= @name.gsub('-', '_')
+        @funcname ||= @name.tr('-', '_')
       end
 
       def compilers
