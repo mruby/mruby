@@ -507,8 +507,8 @@ assert('String#replace', '15.2.10.5.28') do
 
   b = 'abc' * 10
   c = ('cba' * 10).dup
-  b.replace(c);
-  c.replace(b);
+  b.replace(c)
+  c.replace(b)
   assert_equal c, b
 
   # shared string
