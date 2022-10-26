@@ -27,11 +27,14 @@ repos:
       - id: fix-byte-order-marker
       - id: mixed-line-ending
       - id: trailing-whitespace
-  # - repo: git://github.com/Lucas-C/pre-commit-hooks
-  #  rev: v1.1.9
-  #  hooks:
-  #    - id: forbid-tabs
-  #    - id: remove-tabs
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
+    rev: v1.3.1
+    hooks:
+      - id: forbid-tabs
+        files: \.(c|cc|C|cxx|cpp|gembox|gemspec|h|hh|H|hxx|hpp|inc|md|mdown|markdown|rake|rb|y|yaml|yml)$|^Rakefile$|^rakefile$
+      - id: remove-tabs
+        args: [--whitespaces-count, '2']
+        files: \.(c|cc|C|cxx|cpp|gembox|gemspec|h|hh|H|hxx|hpp|inc|md|mdown|markdown|rake|rb|y|yaml|yml)$|^Rakefile$|^rakefile$
   - repo: https://github.com/codespell-project/codespell
     rev: v2.2.1
     hooks:
