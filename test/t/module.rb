@@ -686,7 +686,7 @@ end
   #    assert_nothing_raised(SystemStackError, bug10847) do
   #      0.3.numerator
   #    end
-  #  end;
+  #  end
   #end
 
   assert 'Module#prepend to frozen class' do

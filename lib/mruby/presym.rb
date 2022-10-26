@@ -102,7 +102,7 @@ module MRuby
       @list_path ||= "#{@build.build_dir}/presym".freeze
     end
 
-    def header_dir;
+    def header_dir
       @header_dir ||= "#{@build.build_dir}/include/mruby/presym".freeze
     end
 
