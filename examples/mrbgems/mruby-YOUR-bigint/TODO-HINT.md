@@ -23,11 +23,11 @@ The file structure in this example is as follows:
 
 Implementors of own bigints should copy below this directory to another directory and do the following:
 
-* Rewrite `spec.author`, `spec.license`, `spec.homepage` and `spec.summary` in `<gem-dir>/mrbgem.rake` file to those of your own implementors.
-* Implement the respective functions in `<gem-dir>/core/bigint.c`.
-  * Define and use an object structure for `MRB_TT_BIGINT` type-tag.
+- Rewrite `spec.author`, `spec.license`, `spec.homepage` and `spec.summary` in `<gem-dir>/mrbgem.rake` file to those of your own implementors.
+- Implement the respective functions in `<gem-dir>/core/bigint.c`.
+  - Define and use an object structure for `MRB_TT_BIGINT` type-tag.
     It is recommended to use `mrb_static_assert_object_size()` to ensure that the size of the object structure is within 6 words.
-* Delete this file from the destination of the copy.
+- Delete this file from the destination of the copy.
 
 If you wish to use it as an alternative to the `mruby-bigint` provided by mruby, please leave the GEM name in `<gem-dir>/mrbgem.rake` as it is.
 This is an important factor when it is depended from other GEMs with `spec.add_dependency 'mruby-bigint'`.

@@ -82,7 +82,7 @@ You can debug the mruby binary files.
 
 #### 2.2.2.1 Debugging the binary files
 
-* notice
+- notice
 To debug mruby binary files, you need to compile mruby files with option `-g`.
 
 ```bash

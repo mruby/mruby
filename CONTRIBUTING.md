@@ -8,14 +8,14 @@ Contributors agree to license their contribution(s) under MIT license.
 To make it easy to review and understand your change please keep the following
 things in mind before submitting your pull request:
 
-* Work on the latest possible state of **mruby/master**
-* Create a branch which is dedicated to your change
-* Test your changes before creating a pull request (`rake test`)
-* If possible write a test case which confirms your change
-* Don't mix several features or bug-fixes in one pull request
-* Create a meaningful commit message
-* Explain your change (i.e. with a link to the issue you are fixing)
-* Use mrbgem to provide non ISO features (classes, modules and methods) unless
+- Work on the latest possible state of **mruby/master**
+- Create a branch which is dedicated to your change
+- Test your changes before creating a pull request (`rake test`)
+- If possible write a test case which confirms your change
+- Don't mix several features or bug-fixes in one pull request
+- Create a meaningful commit message
+- Explain your change (i.e. with a link to the issue you are fixing)
+- Use mrbgem to provide non ISO features (classes, modules and methods) unless
   you have a special reason to implement them in the core
 
 ## pre-commit
@@ -37,10 +37,10 @@ Sometimes you might need to skip one or more hooks which can be done with the `S
 
 `$ SKIP=yamllint git commit -m "foo"`
 
-* [Quick start](https://pre-commit.com/#quick-start)
-* [Usage](https://pre-commit.com/#usage)
-* [pre-commit autoupdate](https://pre-commit.com/#pre-commit-autoupdate)
-* [Temporarily disabling hooks](https://pre-commit.com/#temporarily-disabling-hooks)
+- [Quick start](https://pre-commit.com/#quick-start)
+- [Usage](https://pre-commit.com/#usage)
+- [pre-commit autoupdate](https://pre-commit.com/#pre-commit-autoupdate)
+- [Temporarily disabling hooks](https://pre-commit.com/#temporarily-disabling-hooks)
 
 ## Spell Checking
 
@@ -55,8 +55,8 @@ find . -type f | xargs ./misspell -error
 
 Notable `misspell` help options or flags are:
 
-* `-i` string: ignore the following corrections, comma separated
-* `-w`: Overwrite file with corrections (default is just to display)
+- `-i` string: ignore the following corrections, comma separated
+- `-w`: Overwrite file with corrections (default is just to display)
 
 ## Coding conventions
 

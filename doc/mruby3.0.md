@@ -7,11 +7,11 @@
 Typical build configuration files are located in `build_config`
 directory. For examples:
 
-* `default`: the default configuration
-* `host-gprof`: compiles with `gprof` for performance tuning
-* `host-m32`: compiles in gcc 32bit mode on 64bit platforms
-* `boxing`: compiles all three boxing options
-* `clang-asan`: compiles with `clang`'s Address Sanitizer
+- `default`: the default configuration
+- `host-gprof`: compiles with `gprof` for performance tuning
+- `host-m32`: compiles in gcc 32bit mode on 64bit platforms
+- `boxing`: compiles all three boxing options
+- `clang-asan`: compiles with `clang`'s Address Sanitizer
 
 You can specify the build configuration file with the
 `MRUBY_CONFIG` environment variable (or `CONFIG` in short).
@@ -32,10 +32,10 @@ pull-request.
 
 We have ported some new syntax from CRuby.
 
-* Single line pattern matching (`12 => x`);
+- Single line pattern matching (`12 => x`);
   mruby matches only with local variables at the moment
-* Numbered block parameter (`x.map{_1 * 2}`)
-* End-less `def` (`def double(x) = x*2`)
+- Numbered block parameter (`x.map{_1 * 2}`)
+- End-less `def` (`def double(x) = x*2`)
 
 # Configuration Options Changed
 
@@ -59,11 +59,11 @@ Some configuration macro names are changed for consistency (use `MRB_USE_XXX`
 | `ENABLE_READLINE`              | `MRB_USE_READLINE`        |
 | `DISABLE_MIRB_UNDERSCORE`      | `MRB_NO_MIRB_UNDERSCORE`  |
 
-* `MRB_USE_FLOAT32` is changed from `MRB_USE_FLOAT` to make sure `float` here
+- `MRB_USE_FLOAT32` is changed from `MRB_USE_FLOAT` to make sure `float` here
    means using single precision float, and not the opposite of `MRB_NO_FLOAT`.
-* `MRB_USE_METHOD_T_STRUCT` uses `struct` version of `mrb_method_t`. More
+- `MRB_USE_METHOD_T_STRUCT` uses `struct` version of `mrb_method_t`. More
   portable but consumes more memory. Turned on by default on 32bit platforms.
-* `MRB_` prefix is added to those without.
+- `MRB_` prefix is added to those without.
 
 ## `MRB_NO_BOXING`
 
@@ -112,40 +112,40 @@ $ bin/mruby -r lib1.rb -r lib2.rb < app.mrb
 
 Instructions that access pool[i]/syms[i] where i>255.
 
-* `OP_LOADL16`
-* `OP_STRING16`
-* `OP_LOADSYM16`
+- `OP_LOADL16`
+- `OP_STRING16`
+- `OP_LOADSYM16`
 
 Instructions that load a 32-bit integer.
 
-* `OP_LOADI32`
+- `OP_LOADI32`
 
 Instruction that unwinds jump table for rescue/ensure.
 
-* `OP_JMPUW`
+- `OP_JMPUW`
 
 Renamed from `OP_RAISE`
 
-* `OP_RAISEIF`
+- `OP_RAISEIF`
 
 Instruction that is reserved for the future keyword argument support.
 
-* OP_SENDVK
+- OP_SENDVK
 
 ## Removed Instructions
 
 Instructions for old exception handling
 
-* `OP_ONERR`
-* `OP_POPERR`
-* `OP_EPUSH`
-* `OP_EPOP`
+- `OP_ONERR`
+- `OP_POPERR`
+- `OP_EPUSH`
+- `OP_EPOP`
 
 No more operand extension
 
-* `OP_EXT1`
-* `OP_EXT2`
-* `OP_EXT3`
+- `OP_EXT1`
+- `OP_EXT2`
+- `OP_EXT3`
 
 ## Changed Instructions
 
