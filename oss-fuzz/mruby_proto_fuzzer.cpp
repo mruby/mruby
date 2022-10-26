@@ -13,33 +13,33 @@ using namespace ruby_fuzzer;
 using namespace std;
 
 int FuzzRB(const uint8_t *Data, size_t size) {
-	mrb_value v;
-	mrb_state *mrb = mrb_open();
-	if (!mrb)
-		return 0;
+  mrb_value v;
+  mrb_state *mrb = mrb_open();
+  if (!mrb)
+    return 0;
 
-	char *code = (char *)malloc(size+1);
-	if (!code)
-		return 0;
-	memcpy(code, Data, size);
-	code[size] = '\0';
+  char *code = (char *)malloc(size+1);
+  if (!code)
+    return 0;
+  memcpy(code, Data, size);
+  code[size] = '\0';
 
-	if (const char *dump_path = getenv("PROTO_FUZZER_DUMP_PATH")) {
-		// With libFuzzer binary run this to generate an RB file x.rb:
-		// PROTO_FUZZER_DUMP_PATH=x.rb ./a.out proto-input
-		std::ofstream of(dump_path);
-		of.write(code, size);
-	}
-        std::cout << "\n\n############\n" << code << "\n############\n\n";
-	v = mrb_load_string(mrb, code);
-	mrb_close(mrb);
+  if (const char *dump_path = getenv("PROTO_FUZZER_DUMP_PATH")) {
+    // With libFuzzer binary run this to generate an RB file x.rb:
+    // PROTO_FUZZER_DUMP_PATH=x.rb ./a.out proto-input
+    std::ofstream of(dump_path);
+    of.write(code, size);
+  }
+  std::cout << "\n\n############\n" << code << "\n############\n\n";
+  v = mrb_load_string(mrb, code);
+  mrb_close(mrb);
 
-	free(code);
-	return 0;
+  free(code);
+  return 0;
 }
 
 DEFINE_PROTO_FUZZER(const Function &function) {
-	protoConverter converter;
-	auto s = converter.FunctionToString(function);
-	(void)FuzzRB((const uint8_t*)s.data(), s.size());
+  protoConverter converter;
+  auto s = converter.FunctionToString(function);
+  (void)FuzzRB((const uint8_t*)s.data(), s.size());
 }
