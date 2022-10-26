@@ -14,7 +14,7 @@
  *  call-seq:
  *     Fiber.new{...} -> obj
  *
- *  Creates a fiber, whose execution is suspend until it is explicitly
+ *  Creates a fiber, whose execution is suspended until it is explicitly
  *  resumed using <code>Fiber#resume</code> method.
  *  The code running inside the fiber can give up control by calling
  *  <code>Fiber.yield</code> in which case it yields control back to caller
