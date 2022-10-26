@@ -111,7 +111,7 @@ sym_inline_unpack(mrb_sym sym, char *buf, mrb_int *lenp)
   for (i=0; i<5; i++) {
     uint32_t bits = sym>>(24-i*6) & 0x3f;
     if (bits == 0) break;
-    buf[i] = pack_table[bits-1];;
+    buf[i] = pack_table[bits-1];
   }
   buf[i] = '\0';
   if (lenp) *lenp = i;
