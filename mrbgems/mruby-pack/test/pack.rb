@@ -1,4 +1,3 @@
-# coding: utf-8
 PACK_IS_LITTLE_ENDIAN = "\x01\00".unpack('S')[0] == 0x01
 
 def assert_pack tmpl, packed, unpacked
