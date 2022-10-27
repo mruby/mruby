@@ -704,9 +704,18 @@ pack_str(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, 
   return (int)(dptr - dptr0);
 }
 
+#define CHECK_UNPACK_LEN(mrb, slen, ary) do {\
+  if ((slen) <= 0) {\
+    mrb_ary_push(mrb, ary, mrb_str_new(mrb, 0, 0));\
+    return 0;\
+  }\
+} while (0)
+
 static int
 unpack_str(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, unsigned int flags)
 {
+  CHECK_UNPACK_LEN(mrb, slen, ary);
+
   mrb_value dst;
   const char *cp, *sptr;
   int copylen;
@@ -788,6 +797,8 @@ pack_hex(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, 
 static int
 unpack_hex(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, unsigned int flags)
 {
+  CHECK_UNPACK_LEN(mrb, slen, ary);
+
   mrb_value dst;
   int a, ashift, b, bshift;
   const char *sptr, *sptr0;
@@ -901,6 +912,8 @@ pack_base64(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int coun
 static int
 unpack_base64(mrb_state *mrb, const void *src, int slen, mrb_value ary)
 {
+  CHECK_UNPACK_LEN(mrb, slen, ary);
+
   mrb_value dst;
   int dlen;
   unsigned long l;
@@ -1018,6 +1031,8 @@ pack_qenc(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count)
 static int
 unpack_qenc(mrb_state *mrb, const void *src, int slen, mrb_value ary)
 {
+  CHECK_UNPACK_LEN(mrb, slen, ary);
+
   mrb_value buf = mrb_str_new(mrb, 0, slen);
   const char *s = (const char*)src, *ss = s;
   const char *send = s + slen;
