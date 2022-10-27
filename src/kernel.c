@@ -78,6 +78,16 @@ mrb_equal_m(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(mrb_equal(mrb, self, arg));
 }
 
+static mrb_value
+mrb_cmp_m(mrb_state *mrb, mrb_value self)
+{
+  mrb_value arg = mrb_get_arg1(mrb);
+
+  if (mrb_obj_equal(mrb, self, arg))
+    return mrb_fixnum_value(0);
+  return mrb_nil_value();
+}
+
 /* 15.3.1.3.3  */
 /* 15.3.1.3.33 */
 /*
@@ -534,6 +544,7 @@ mrb_init_kernel(mrb_state *mrb)
 
 
   mrb_define_method(mrb, krn, "===",                        mrb_equal_m,                     MRB_ARGS_REQ(1));    /* 15.3.1.3.2  */
+  mrb_define_method(mrb, krn, "<=>",                        mrb_cmp_m,                       MRB_ARGS_REQ(1));
   mrb_define_method(mrb, krn, "block_given?",               mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.3.6  */
   mrb_define_method(mrb, krn, "class",                      mrb_obj_class_m,                 MRB_ARGS_NONE());    /* 15.3.1.3.7  */
   mrb_define_method(mrb, krn, "clone",                      mrb_obj_clone,                   MRB_ARGS_NONE());    /* 15.3.1.3.8  */
