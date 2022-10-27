@@ -775,8 +775,8 @@ mpz_mul_2exp(mrb_state *mrb, mpz_t *z, mpz_t *x, mrb_int e)
     mpz_set(mrb, z, x);
   else {
     short sn = x->sn;
-    size_t digs = (e / DIG_SIZE);
-    size_t bs = (e % (DIG_SIZE));
+    size_t digs = e / DIG_SIZE;
+    size_t bs = e % DIG_SIZE;
     mpz_t y;
 
     mpz_init(mrb, &y);
@@ -785,12 +785,12 @@ mpz_mul_2exp(mrb_state *mrb, mpz_t *z, mpz_t *x, mrb_int e)
       y.p[i+digs] = x->p[i];
     if (bs) {
       ulshift(mrb, z, &y, bs);
+      mpz_clear(mrb, &y);
     }
     else {
       mpz_move(mrb, z, &y);
     }
     z->sn = sn;
-    mpz_clear(mrb, &y);
   }
 }
 
@@ -801,8 +801,8 @@ mpz_div_2exp(mrb_state *mrb, mpz_t *z, mpz_t *x, mrb_int e)
   if (e==0)
     mpz_set(mrb, z, x);
   else {
-    size_t digs = (e / DIG_SIZE);
-    size_t bs = (e % (DIG_SIZE));
+    size_t digs = e / DIG_SIZE;
+    size_t bs = e % DIG_SIZE;
     mpz_t y;
 
     mpz_init(mrb, &y);
