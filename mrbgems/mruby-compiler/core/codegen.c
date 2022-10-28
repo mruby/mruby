@@ -2623,7 +2623,7 @@ codegen(codegen_scope *s, node *tree, int val)
           else {
             pop();
           }
-          tmp = genjmp2(s, OP_JMPIF, cursp(), pos2, NOVAL);
+          tmp = genjmp2(s, OP_JMPIF, cursp(), pos2, !head);
           pos2 = tmp;
           n = n->cdr;
         }
