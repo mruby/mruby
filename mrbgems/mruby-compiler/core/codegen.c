@@ -2606,6 +2606,25 @@ codegen(codegen_scope *s, node *tree, int val)
       }
       tree = tree->cdr;
       while (tree) {
+        if (!head) {
+          n = tree->car->car;
+          while (n) {
+            if (true_always(n->car)) {
+              codegen(s, tree->car->cdr, val);
+              if (val) pop();
+              uint32_t pos = cursp();
+              if (pos3 != JMPLINK_START) dispatch_linked(s, pos3);
+              if (val) {
+                if (cursp() != pos) {
+                  gen_move(s, cursp(), pos, 0);
+                }
+                push();
+              }
+              goto exit;
+            }
+            n = n->cdr;
+          }
+        }
         n = tree->car->car;
         pos1 = pos2 = JMPLINK_START;
         while (n) {
