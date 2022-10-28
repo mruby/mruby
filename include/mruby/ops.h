@@ -87,7 +87,7 @@ OPCODE(ARRAY,      BB)       /* R[a] = ary_new(R[a],R[a+1]..R[a+b]) */
 OPCODE(ARRAY2,     BBB)      /* R[a] = ary_new(R[b],R[b+1]..R[b+c]) */
 OPCODE(ARYCAT,     B)        /* ary_cat(R[a],R[a+1]) */
 OPCODE(ARYPUSH,    BB)       /* ary_push(R[a],R[a+1]..R[a+b]) */
-OPCODE(ARYDUP,     B)        /* R[a] = ary_dup(R[a]) */
+OPCODE(ARYSPLAT,   B)        /* R[a] = ary_splat(R[a]) */
 OPCODE(AREF,       BBB)      /* R[a] = R[b][c] */
 OPCODE(ASET,       BBB)      /* R[b][c] = R[a] */
 OPCODE(APOST,      BBB)      /* *R[a],R[a+1]..R[a+c] = R[a][b..] */
