@@ -1258,8 +1258,13 @@ mrb_io_s_select(mrb_state *mrb, mrb_value klass)
 retry:
   n = select(max, rp, wp, ep, tp);
   if (n < 0) {
+#ifdef _WIN32
+    if (WSAGetLastError() != WSAEINTR)
+      mrb_sys_fail(mrb, "select failed");
+#else
     if (errno != EINTR)
       mrb_sys_fail(mrb, "select failed");
+#endif
     if (tp == NULL)
       goto retry;
     interrupt_flag = 1;
