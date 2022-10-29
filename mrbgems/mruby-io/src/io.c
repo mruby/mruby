@@ -1269,7 +1269,8 @@ retry:
   n = select(max, rp, wp, ep, tp);
   if (n < 0) {
 #ifdef _WIN32
-    if (WSAGetLastError() != WSAEINTR)
+    errno = WSAGetLastError();
+    if (errno != WSAEINTR)
       mrb_sys_fail(mrb, "select failed");
 #else
     if (errno != EINTR)
