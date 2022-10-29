@@ -83,7 +83,7 @@ mrb_cmp_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value arg = mrb_get_arg1(mrb);
 
-  if (mrb_obj_equal(mrb, self, arg))
+  if (mrb_equal(mrb, self, arg))
     return mrb_fixnum_value(0);
   return mrb_nil_value();
 }
