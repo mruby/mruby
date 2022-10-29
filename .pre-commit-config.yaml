@@ -42,6 +42,12 @@ repos:
         name: Run codespell
         description: Check spelling with codespell
         entry: codespell --ignore-words=codespell.txt
+  - repo: https://github.com/jumanjihouse/pre-commit-hooks
+    rev: 3.0.0
+    hooks:
+      - id: script-must-not-have-extension
+        name: Local policy is to exclude extension from all shell files
+        types: [shell]
   - repo: https://github.com/igorshubovych/markdownlint-cli
     rev: v0.32.2
     hooks:
