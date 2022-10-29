@@ -17,7 +17,7 @@ You can specify the build configuration file with the
 `MRUBY_CONFIG` environment variable (or `CONFIG` in short).
 If the value specified by `MRUBY_CONFIG` is not the path to
 the configuration file, `build_config/${MRUBY_CONFIG}.rb` is
-used.  So you can specify it as `rake MRUBY_CONFIG=boxing`,
+used. So you can specify it as `rake MRUBY_CONFIG=boxing`,
 for example.
 
 # Build Configuration Contribution
@@ -60,7 +60,7 @@ Some configuration macro names are changed for consistency (use `MRB_USE_XXX`
 | `DISABLE_MIRB_UNDERSCORE`      | `MRB_NO_MIRB_UNDERSCORE`  |
 
 - `MRB_USE_FLOAT32` is changed from `MRB_USE_FLOAT` to make sure `float` here
-   means using single precision float, and not the opposite of `MRB_NO_FLOAT`.
+  means using single precision float, and not the opposite of `MRB_NO_FLOAT`.
 - `MRB_USE_METHOD_T_STRUCT` uses `struct` version of `mrb_method_t`. More
   portable but consumes more memory. Turned on by default on 32bit platforms.
 - `MRB_` prefix is added to those without.

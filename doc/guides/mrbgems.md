@@ -6,7 +6,7 @@ standardised way into mruby. Conventionally, each mrbgem name is prefixed by
 
 ## Usage
 
-You have to activate mrbgems explicitly in your build configuration.  To add
+You have to activate mrbgems explicitly in your build configuration. To add
 a gem, add the following line to your build configuration file, for example:
 
 ```ruby
@@ -61,7 +61,7 @@ mrbgem from the core or mgem-list.
 Note that if more than one git-based gem has the same base name
 (i.e. the default checkout directory name), it is (now) an error
 **UNLESS** they have the same repository URL, branch name and
-commit-id (i.e. checksum hash).  You can bypass this by explicitly
+commit-id (i.e. checksum hash). You can bypass this by explicitly
 importing your preferred version **first** and setting the
 `canonical:` option to `true`:
 
@@ -72,8 +72,8 @@ conf.gem github: 'me/mruby-yaml', branch: 'my-hacked-branch', canonical: true
 If you do this, the system will (mostly) silently ignore other
 attempts to clone a gem with this name.
 
-Note that this only affects cloning the gem from git.  It does not
-resolve version conflicts.  If the version as specified in the gem's
+Note that this only affects cloning the gem from git. It does not
+resolve version conflicts. If the version as specified in the gem's
 rakefile is incompatible with a dependency, your build will still
 fail.
 
@@ -81,10 +81,10 @@ fail.
 
 There are instances when you wish to add a collection of mrbgems into mruby at
 once, or be able to substitute mrbgems based on configuration, without having to
-add each gem to your build configuration file.  A packaged collection of mrbgems
-is called a GemBox.  A GemBox is a file that contains a list of mrbgems to load
+add each gem to your build configuration file. A packaged collection of mrbgems
+is called a GemBox. A GemBox is a file that contains a list of mrbgems to load
 into mruby, in the same format as if you were adding them to the build config
-via `config.gem`, but wrapped in an `MRuby::GemBox` object.  GemBoxes are
+via `config.gem`, but wrapped in an `MRuby::GemBox` object. GemBoxes are
 loaded into mruby via `config.gembox 'boxname'`.
 
 Below we have created a GemBox containing `mruby-time` and `mrbgems-example`:
@@ -96,7 +96,7 @@ MRuby::GemBox.new do |conf|
 end
 ```
 
-As mentioned, the GemBox uses the same conventions as `MRuby::Build`.  The GemBox
+As mentioned, the GemBox uses the same conventions as `MRuby::Build`. The GemBox
 must be saved with a `.gembox` extension inside the `mrbgems` directory to be
 picked up by mruby.
 
@@ -397,7 +397,7 @@ See C and Ruby example.
 ## Binary gems
 
 Some gems can generate executables under `bin` directory. Those gems are called
-binary gems.  Names of binary gems are conventionally prefixed by `mruby-bin`,
+binary gems. Names of binary gems are conventionally prefixed by `mruby-bin`,
 e.g. `mruby-bin-mirb` and `mruby-bin-strip`.
 
 To specify the name of executable, you need to specify `spec.bins` in the
