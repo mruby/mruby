@@ -1283,6 +1283,11 @@ call_with_block(parser_state *p, node *a, node *b)
     if (!n->car) n->car = new_callargs(p, 0, 0, b);
     else args_with_block(p, n->car, b);
     break;
+  case NODE_RETURN:
+  case NODE_BREAK:
+  case NODE_NEXT:
+    call_with_block(p, a->cdr, b);
+    break;
   default:
     break;
   }
