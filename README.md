@@ -7,10 +7,10 @@
 mruby is the lightweight implementation of the Ruby language complying to (part
 of) the [ISO standard][ISO-standard]. Its syntax is Ruby 2.x compatible.
 
-mruby can be linked and embedded within your application.  We provide the
+mruby can be linked and embedded within your application. We provide the
 interpreter program "mruby", and the interactive mruby shell "mirb" as examples.
 You can also compile Ruby programs into compiled byte code using the mruby
-compiler "mrbc".  All those tools reside in the "bin" directory.  "mrbc" is
+compiler "mrbc". All those tools reside in the "bin" directory. "mrbc" is
 also able to generate compiled byte code in a C source file, see the "mrbtest"
 program under the "test" directory for an example.
 
@@ -78,7 +78,7 @@ mruby has chosen a MIT License due to its permissive license allowing
 developers to target various environments such as embedded systems.
 However, the license requires the display of the copyright notice and license
 information in manuals for instance. Doing so for big projects can be
-complicated or troublesome.  This is why mruby has decided to display "mruby
+complicated or troublesome. This is why mruby has decided to display "mruby
 developers" as the copyright name to make it simple conventionally.
 In the future, mruby might ask you to distribute your new code
 (that you will commit,) under the MIT License as a member of
@@ -92,7 +92,7 @@ Please ask us if you want to distribute your code under another license.
 ## How to Contribute
 
 See the [contribution guidelines][contribution-guidelines], and then send a pull
-request to <https://github.com/mruby/mruby>.  We consider you have granted
+request to <https://github.com/mruby/mruby>. We consider you have granted
 non-exclusive right to your contributed code under MIT license.
 
 [ISO-standard]: https://www.iso.org/iso/iso_catalogue/catalogue_tc/catalogue_detail.htm?csnumber=59579

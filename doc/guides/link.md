@@ -8,7 +8,7 @@ You have two ways to link `libmruby` to your application.
 ## Executable Gems
 
 If your application is relatively small, `mrbgem` is an easier way to
-create the executable.  By tradition, the gem name start with
+create the executable. By tradition, the gem name start with
 `mruby-bin-`, e.g. `mruby-bin-debugger`.
 
 ### `mrbgem.rake` file
@@ -28,7 +28,7 @@ end
 ### Source tree structure
 
 The source file for the gem executable should be in
-`<gem-name>/tools/<bin-name>`.  Currently, we support C or C++ source code
+`<gem-name>/tools/<bin-name>`. Currently, we support C or C++ source code
 (`.c`, `.cpp`, `.cxx`, `.cc`) for the executable. Ruby source files are not
 supported. Put the functionality in the different gem and specify dependency to
 it in `mrbgem.rake`.

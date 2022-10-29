@@ -1,7 +1,7 @@
 # Symbols
 
 Symbols in `mruby` C source code is represented by `mrb_sym` which is alias of
-`uint32_t`.  Lower 30 bits are used for symbols so that higher 2 bits can be
+`uint32_t`. Lower 30 bits are used for symbols so that higher 2 bits can be
 used as flags, e.g. `struct mt_elem` in `class.c`.
 
 ```c
@@ -71,9 +71,9 @@ can be specified for it). Other than that, describe only word characters
 excluding leading and ending punctuations.
 
 These macros are converted to static symbol IDs at compile time, unless
-preallocate symbols are disabled by  `conf.disable_presym`. In that case,
+preallocate symbols are disabled by `conf.disable_presym`. In that case,
 these macros are expanded to `mrb_intern_lit` calls, therefore the mruby state
-variable is required. The above macros assume the variable name is `mrb`.  If
+variable is required. The above macros assume the variable name is `mrb`. If
 its name is not `mrb`, you need to use macros with `_2` suffix, such as
 `MRB_SYM_2` to specify `mrb_state*` variable.
 
