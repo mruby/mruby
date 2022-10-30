@@ -32,6 +32,7 @@ trim_trailing_whitespace = true
 [*.bat]
 charset = latin1
 end_of_line = crlf
+indent_style = space
 #max_line_length = 80
 
 [*.{yaml,yml}]
