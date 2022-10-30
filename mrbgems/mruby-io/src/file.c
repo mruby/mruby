@@ -261,7 +261,7 @@ mrb_file_realpath(mrb_state *mrb, mrb_value klass)
   result = mrb_str_new_capa(mrb, PATH_MAX);
   if (realpath(cpath, RSTRING_PTR(result)) == NULL) {
     mrb_locale_free(cpath);
-    mrb_sys_fail(mrb, cpath);
+    mrb_sys_fail(mrb, RSTRING_CSTR(mrb, pathname));
     return result;              /* not reached */
   }
   mrb_locale_free(cpath);
