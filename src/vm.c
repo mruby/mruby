@@ -2748,15 +2748,10 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
-    CASE(OP_ARYDUP, B) {
-      mrb_value ary = regs[a];
-      if (mrb_array_p(ary)) {
-        ary = mrb_ary_new_from_values(mrb, RARRAY_LEN(ary), RARRAY_PTR(ary));
-      }
-      else {
-        ary = mrb_ary_new_from_values(mrb, 1, &ary);
-      }
+    CASE(OP_ARYSPLAT, B) {
+      mrb_value ary = mrb_ary_splat(mrb, regs[a]);
       regs[a] = ary;
+      mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
