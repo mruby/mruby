@@ -2178,39 +2178,31 @@ RETRY_TRY_BLOCK:
       if (mrb->exc) {
       L_RAISE:
         ci = mrb->c->ci;
-        if (ci == mrb->c->cibase) {
-          ch = catch_handler_find(mrb, ci, pc, MRB_CATCH_FILTER_ALL);
-          if (ch == NULL) goto L_FTOP;
-          goto L_CATCH;
-        }
         while ((ch = catch_handler_find(mrb, ci, pc, MRB_CATCH_FILTER_ALL)) == NULL) {
-          ci = cipop(mrb);
-          if (ci[1].cci == CINFO_SKIP && prev_jmp) {
-            mrb->jmp = prev_jmp;
-            MRB_THROW(prev_jmp);
-          }
-          pc = ci[0].pc;
-          if (ci == mrb->c->cibase) {
-            ch = catch_handler_find(mrb, ci, pc, MRB_CATCH_FILTER_ALL);
-            if (ch == NULL) {
-            L_FTOP:             /* fiber top */
-              if (mrb->c == mrb->root_c) {
-                mrb->c->ci->stack = mrb->c->stbase;
-                goto L_STOP;
-              }
-              else {
-                struct mrb_context *c = mrb->c;
-
-                c->status = MRB_FIBER_TERMINATED;
-                mrb->c = c->prev;
-                c->prev = NULL;
-                goto L_RAISE;
-              }
+          if (ci != mrb->c->cibase) {
+            ci = cipop(mrb);
+            if (ci[1].cci == CINFO_SKIP && prev_jmp) {
+              mrb->jmp = prev_jmp;
+              MRB_THROW(prev_jmp);
             }
-            break;
+            pc = ci[0].pc;
+          }
+          else {
+            if (mrb->c == mrb->root_c) {
+              mrb->c->ci->stack = mrb->c->stbase;
+              goto L_STOP;
+            }
+            else {
+              struct mrb_context *c = mrb->c;
+
+              c->status = MRB_FIBER_TERMINATED;
+              mrb->c = c->prev;
+              c->prev = NULL;
+              goto L_RAISE;
+            }
           }
         }
-      L_CATCH:
+
         if (ch == NULL) goto L_STOP;
         if (FALSE) {
         L_CATCH_TAGGED_BREAK: /* from THROW_TAGGED_BREAK() or UNWIND_ENSURE() */
