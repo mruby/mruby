@@ -1,4 +1,4 @@
-# The aim of these tests is  to detect pitfall for optimized VM.
+# The aim of these tests is to detect pitfall for optimized VM.
 
 # Test for or/and
 #

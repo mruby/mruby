@@ -4,7 +4,7 @@ $ko_test = 0
 $kill_test = 0
 $warning_test = 0
 $skip_test = 0
-$asserts  = []
+$asserts = []
 $test_start = Time.now if Object.const_defined?(:Time)
 
 # For bintest on Ruby
@@ -257,7 +257,7 @@ end
 #   Matches any one character.
 #
 # <code>[_SET_]</code>, <code>[^_SET_]</code> (<code>[!_SET_]</code>) ::
-#   Matches any one character in _SET_.  Behaves like character sets in
+#   Matches any one character in _SET_. Behaves like character sets in
 #   Regexp, including set negation (<code>[^a-z]</code>).
 #
 # <code>{_A_,_B_}</code> ::

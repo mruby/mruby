@@ -356,16 +356,16 @@ end
 assert('Module#method_defined?', '15.2.2.4.34') do
   module Test4MethodDefined
     module A
-      def method1()  end
+      def method1() end
     end
 
     class B
-      def method2()  end
+      def method2() end
     end
 
     class C < B
       include A
-      def method3()  end
+      def method3() end
     end
   end
 

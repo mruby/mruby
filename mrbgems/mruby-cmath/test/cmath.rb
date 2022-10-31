@@ -27,7 +27,7 @@ end
 
 assert('CMath trigonometric_functions') do
   assert_complex(Math.sinh(2).i, CMath.sin(2i))
-  assert_complex(Math.cosh(2)+0i,   CMath.cos(2i))
+  assert_complex(Math.cosh(2)+0i, CMath.cos(2i))
   assert_complex(Math.tanh(2).i, CMath.tan(2i))
   assert_complex(Math.sin(2).i, CMath.sinh(2i))
   assert_complex(Math.cos(2)+0i, CMath.cosh(2i))

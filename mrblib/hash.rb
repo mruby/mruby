@@ -167,7 +167,7 @@ class Hash
   #  into a copy of +self+.
   #
   #  Each argument in +other_hashes+ must be a \Hash.
-  #  Adds the contents of _other_hash_ to _hsh_.  If no block is specified,
+  #  Adds the contents of _other_hash_ to _hsh_. If no block is specified,
   #  entries with duplicate keys are overwritten with the values from
   #  _other_hash_, otherwise the value of each duplicate key is determined by
   #  calling the block with the key, its value in _hsh_ and its value in

@@ -176,7 +176,7 @@ class Array
   #  Each object in each array is compared (using <=>). If any value isn't
   #  equal, then that inequality is the return value. If all the
   #  values found are equal, then the return is based on a
-  #  comparison of the array lengths.  Thus, two arrays are
+  #  comparison of the array lengths. Thus, two arrays are
   #  "equal" according to <code>Array#<=></code> if and only if they have
   #  the same length and the value of each element is equal to the
   #  value of the corresponding element in the other array.
@@ -263,7 +263,7 @@ class Array
         lsize = lary.size
 
         # The entity sharing between lary and self may cause a large memory
-        # copy operation in the merge loop below.  This harmless operation
+        # copy operation in the merge loop below. This harmless operation
         # cancels the sharing and provides a huge performance gain.
         lary[0] = lary[0]
 

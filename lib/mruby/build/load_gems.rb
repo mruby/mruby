@@ -59,7 +59,7 @@ module MRuby
         @gemdir = gemdir            # Working copy of the gem
         @path = path                # Path to gem relative to checkout
 
-        @repo =  repo               # Remote gem repo
+        @repo = repo                # Remote gem repo
         @branch = branch            # Branch to check out
         @commit = commit            # Commit-id to use
 
@@ -194,7 +194,7 @@ module MRuby
           gem_src = File.expand_path(gem_src, File.dirname(MRuby::GemBox.path))
         else
           # Otherwise, we use the path to the build_config.rb file that
-          # requested this gem.  This path was extracted earlier and
+          # requested this gem. This path was extracted earlier and
           # stored in @build_config_dir via the second argument of
           # 'initialize'.
           root_dir = @build_config_dir
@@ -308,10 +308,10 @@ module MRuby
       end
 
 
-      # Test if this repo can be skipped.  This will happen if it's
+      # Test if this repo can be skipped. This will happen if it's
       # already in @gem_checkouts and EITHER it is identical (same
       # url, branch, commit-ID and subdirectory path) as the current
-      # checkout OR its "canonical" flag is true.  If it's in
+      # checkout OR its "canonical" flag is true. If it's in
       # @gem_checkouts and neither of these conditions is true, that's
       # a fatal error; it means there are multiple incompatible
       # versions of this gem to be checked out into this directory.
@@ -340,14 +340,14 @@ module MRuby
           return true
         end
 
-        # Otherwise, we have a checkout conflict.  This is an error.
+        # Otherwise, we have a checkout conflict. This is an error.
         fail "Conflicting gem definitions for '#{repo_dir}':\n" +
              "  #{candidate}\n" +
              "  #{prev}\n"
       end
 
 
-      # Retrieve a git repo if it's not present.  Return
+      # Retrieve a git repo if it's not present. Return
       # [path_to_checkout, did_clone]
       def git_clone_dependency(url, repo_dir, commit, branch)
         return if

@@ -239,7 +239,7 @@ class Array
   #
   # Returns a new array that is a one-dimensional flattening of this
   # array (recursively). That is, for every element that is an array,
-  # extract its elements into the new array.  If the optional
+  # extract its elements into the new array. If the optional
   # <i>level</i> argument determines the level of recursion to flatten.
   #
   #    s = [ 1, 2, 3 ]           #=> [1, 2, 3]
@@ -262,7 +262,7 @@ class Array
   #
   # Flattens +self+ in place.
   # Returns <code>nil</code> if no modifications were made (i.e.,
-  # <i>ary</i> contains no subarrays.)  If the optional <i>level</i>
+  # <i>ary</i> contains no subarrays.) If the optional <i>level</i>
   # argument determines the level of recursion to flatten.
   #
   #    a = [ 1, 2, [3, [4, 5] ] ]
@@ -313,7 +313,7 @@ class Array
   #     ary.fetch(index) { |index| block }  -> obj
   #
   #  Tries to return the element at position +index+, but throws an IndexError
-  #  exception if the referenced +index+ lies outside of the array bounds.  This
+  #  exception if the referenced +index+ lies outside of the array bounds. This
   #  error can be prevented by supplying a second argument, which will act as a
   #  +default+ value.
   #
@@ -539,7 +539,7 @@ class Array
   #  the given condition in O(log n) where n is the size of the array.
   #
   #  You can use this method in two use cases: a find-minimum mode and
-  #  a find-any mode.  In either case, the elements of the array must be
+  #  a find-any mode. In either case, the elements of the array must be
   #  monotone (or sorted) with respect to the block.
   #
   #  In find-minimum mode (this is a good choice for typical use case),
@@ -551,7 +551,7 @@ class Array
   #  - the block returns true for any element whose index is greater
   #    than or equal to i.
   #
-  #  This method returns the i-th element.  If i is equal to ary.size,
+  #  This method returns the i-th element. If i is equal to ary.size,
   #  it returns nil.
   #
   #     ary = [0, 4, 7, 10, 12]
@@ -570,7 +570,7 @@ class Array
   #    j <= k < ary.size.
   #
   #  Under this condition, this method returns any element whose index
-  #  is within i...j.  If i is equal to j (i.e., there is no element
+  #  is within i...j. If i is equal to j (i.e., there is no element
   #  that satisfies the block), this method returns nil.
   #
   #     ary = [0, 4, 7, 10, 12]
@@ -580,7 +580,7 @@ class Array
   #     ary.bsearch {|x| 4 - (x / 2).truncate } #=> nil
   #
   #  You must not mix the two modes at a time; the block must always
-  #  return either true/false, or always return a number.  It is
+  #  return either true/false, or always return a number. It is
   #  undefined which value is actually picked up at each iteration.
 
   def bsearch(&block)
@@ -707,7 +707,7 @@ class Array
   #  <code>==</code> to +obj+.
   #
   #  If a block is given instead of an argument, returns the _index_ of the
-  #  first object for which the block returns +true+.  Returns +nil+ if no
+  #  first object for which the block returns +true+. Returns +nil+ if no
   #  match is found.
   #
   # ISO 15.2.12.5.14

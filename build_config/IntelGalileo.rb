@@ -12,7 +12,7 @@ MRuby::CrossBuild.new("Galileo") do |conf|
   #ARDUINO_GALILEO_PATH = '/opt/arduino'
 
   GALILEO_BIN_PATH = "#{GALILEO_ARDUINO_PATH}/hardware/tools/x86/i386-pokysdk-darwin/usr/bin/i586-poky-linux-uclibc"
-  GALILEO_SYSROOT =  "#{GALILEO_ARDUINO_PATH}/hardware/tools/x86/i586-poky-linux-uclibc"
+  GALILEO_SYSROOT  = "#{GALILEO_ARDUINO_PATH}/hardware/tools/x86/i586-poky-linux-uclibc"
   GALILEO_X86_PATH = "#{GALILEO_ARDUINO_PATH}/hardware/arduino/x86"
 
 
