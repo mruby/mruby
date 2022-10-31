@@ -1137,6 +1137,15 @@ localjump_error(mrb_state *mrb, localjump_error_kind kind)
   mrb_exc_set(mrb, exc);
 }
 
+#define RAISE_EXC(mrb, exc) do { \
+  mrb_value exc_value = (exc); \
+  mrb_exc_set(mrb, exc_value); \
+  goto L_RAISE; \
+} while (0)
+
+#define RAISE_LIT(mrb, c, str)          RAISE_EXC(mrb, mrb_exc_new_lit(mrb, c, str))
+#define RAISE_FORMAT(mrb, c, fmt, ...)  RAISE_EXC(mrb, mrb_exc_new_str(mrb, c, mrb_format(mrb, fmt, __VA_ARGS__)))
+
 static void
 argnum_error(mrb_state *mrb, mrb_int num)
 {
@@ -1688,14 +1697,7 @@ RETRY_TRY_BLOCK:
       case MRB_TT_MODULE:
         break;
       default:
-        {
-          mrb_value exc;
-
-          exc = mrb_exc_new_lit(mrb, E_TYPE_ERROR,
-                                    "class or module required for rescue clause");
-          mrb_exc_set(mrb, exc);
-          goto L_RAISE;
-        }
+        RAISE_LIT(mrb, E_TYPE_ERROR, "class or module required for rescue clause");
       }
       ec = mrb_class_ptr(e);
       regs[b] = mrb_bool_value(mrb_obj_is_kind_of(mrb, exc, ec));
@@ -1893,20 +1895,15 @@ RETRY_TRY_BLOCK:
       }
 
       if (mid == 0 || !target_class) {
-        mrb_value exc = mrb_exc_new_lit(mrb, E_NOMETHOD_ERROR, "super called outside of method");
-        mrb_exc_set(mrb, exc);
-        goto L_RAISE;
+        RAISE_LIT(mrb, E_NOMETHOD_ERROR, "super called outside of method");
       }
       if ((target_class->flags & MRB_FL_CLASS_IS_PREPENDED) || target_class->tt == MRB_TT_MODULE) {
         goto super_typeerror;
       }
       recv = regs[0];
       if (!mrb_obj_is_kind_of(mrb, recv, target_class)) {
-      super_typeerror: ;
-        mrb_value exc = mrb_exc_new_lit(mrb, E_TYPE_ERROR,
-                                            "self has wrong type to call super in this context");
-        mrb_exc_set(mrb, exc);
-        goto L_RAISE;
+      super_typeerror:
+        RAISE_LIT(mrb, E_TYPE_ERROR, "self has wrong type to call super in this context");
       }
 
       c = b; // arg info
@@ -1923,12 +1920,8 @@ RETRY_TRY_BLOCK:
       mrb_value *stack;
 
       if (mrb->c->ci->mid == 0 || CI_TARGET_CLASS(mrb->c->ci) == NULL) {
-        mrb_value exc;
-
       L_NOSUPER:
-        exc = mrb_exc_new_lit(mrb, E_NOMETHOD_ERROR, "super called outside of method");
-        mrb_exc_set(mrb, exc);
-        goto L_RAISE;
+        RAISE_LIT(mrb, E_NOMETHOD_ERROR, "super called outside of method");
       }
       if (lv == 0) stack = regs + 1;
       else {
@@ -2134,9 +2127,7 @@ RETRY_TRY_BLOCK:
       mrb_value kdict, v;
 
       if (kidx < 0 || !mrb_hash_p(kdict=regs[kidx]) || !mrb_hash_key_p(mrb, kdict, k)) {
-        mrb_value str = mrb_format(mrb, "missing keyword: %v", k);
-        mrb_exc_set(mrb, mrb_exc_new_str(mrb, E_ARGUMENT_ERROR, str));
-        goto L_RAISE;
+        RAISE_FORMAT(mrb, E_ARGUMENT_ERROR, "missing keyword: %v", k);
       }
       v = mrb_hash_get(mrb, kdict, k);
       regs[a] = v;
@@ -2164,9 +2155,7 @@ RETRY_TRY_BLOCK:
       if (kidx >= 0 && mrb_hash_p(kdict=regs[kidx]) && !mrb_hash_empty_p(mrb, kdict)) {
         mrb_value keys = mrb_hash_keys(mrb, kdict);
         mrb_value key1 = RARRAY_PTR(keys)[0];
-        mrb_value str = mrb_format(mrb, "unknown keyword: %v", key1);
-        mrb_exc_set(mrb, mrb_exc_new_str(mrb, E_ARGUMENT_ERROR, str));
-        goto L_RAISE;
+        RAISE_FORMAT(mrb, E_ARGUMENT_ERROR, "unknown keyword: %v", key1);
       }
       NEXT;
     }
@@ -2299,9 +2288,7 @@ RETRY_TRY_BLOCK:
               goto CHECKPOINT_LABEL_MAKE(RBREAK_TAG_STOP);
             }
             if (!c->vmexec && c->prev->ci == c->prev->cibase) {
-              mrb_value exc = mrb_exc_new_lit(mrb, E_FIBER_ERROR, "double resume");
-              mrb_exc_set(mrb, exc);
-              goto L_RAISE;
+              RAISE_LIT(mrb, E_FIBER_ERROR, "double resume");
             }
             CHECKPOINT_RESTORE(RBREAK_TAG_RETURN_TOPLEVEL) {
               c = mrb->c;
@@ -2335,13 +2322,8 @@ RETRY_TRY_BLOCK:
         case OP_R_BREAK:
           if (MRB_PROC_STRICT_P(proc)) goto NORMAL_RETURN;
           if (MRB_PROC_ORPHAN_P(proc)) {
-            mrb_value exc;
-
           L_BREAK_ERROR:
-            exc = mrb_exc_new_lit(mrb, E_LOCALJUMP_ERROR,
-                                      "break from proc-closure");
-            mrb_exc_set(mrb, exc);
-            goto L_RAISE;
+            RAISE_LIT(mrb, E_LOCALJUMP_ERROR, "break from proc-closure");
           }
           if (!MRB_PROC_ENV_P(proc) || !MRB_ENV_ONSTACK_P(MRB_PROC_ENV(proc))) {
             goto L_BREAK_ERROR;
@@ -2480,11 +2462,7 @@ RETRY_TRY_BLOCK:
 
 #if !defined(MRB_USE_BIGINT) || defined(MRB_INT32)
   L_INT_OVERFLOW:
-    {
-      mrb_value exc = mrb_exc_new_lit(mrb, E_RANGE_ERROR, "integer overflow");
-      mrb_exc_set(mrb, exc);
-    }
-    goto L_RAISE;
+    RAISE_LIT(mrb, E_RANGE_ERROR, "integer overflow");
 #endif
 
 #define TYPES2(a,b) ((((uint16_t)(a))<<8)|(((uint16_t)(b))&0xff))
@@ -3062,8 +3040,7 @@ RETRY_TRY_BLOCK:
 
       mrb_assert((pool[a].tt&IREP_TT_NFLAG)==0);
       exc = mrb_exc_new(mrb, E_LOCALJUMP_ERROR, pool[a].u.str, len);
-      mrb_exc_set(mrb, exc);
-      goto L_RAISE;
+      RAISE_EXC(mrb, exc);
     }
 
     CASE(OP_EXT1, Z) {
