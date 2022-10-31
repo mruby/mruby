@@ -52,14 +52,15 @@ typedef mrb_int mrb_jmpbuf_impl;
 
 #endif
 
+#if defined(MRB_USE_CXX_EXCEPTION)
+extern mrb_int mrb_jmpbuf_id;
+#endif
+
 struct mrb_jmpbuf {
   mrb_jmpbuf_impl impl;
 
 #if defined(MRB_USE_CXX_EXCEPTION)
-  static mrb_int jmpbuf_id;
-# if defined(__cplusplus)
-  mrb_jmpbuf() : impl(jmpbuf_id++) {}
-# endif
+  mrb_jmpbuf() : impl(mrb_jmpbuf_id++) {}
 #endif
 };
 
