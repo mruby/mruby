@@ -75,7 +75,7 @@ module MRuby
       def git?()        return !!@repo;                     end
       def gemname()     return File.basename(@gemdir);      end
 
-      def hash()
+      def hash
         return [@gemdir, @repo, @branch, @commit, @canonical, @path].hash
       end
 

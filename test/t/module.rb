@@ -729,14 +729,14 @@ end
 
 assert('Issue 1467') do
   module M1
-    def initialize()
+    def initialize
       super()
     end
   end
 
   class C1
     include M1
-      def initialize()
+      def initialize
         super()
       end
   end
