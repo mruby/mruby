@@ -244,7 +244,7 @@ module Enumerable
   #
   # Returns the number of items in +enum+ through enumeration.
   # If an argument is given, the number of items in +enum+ that
-  # are equal to +item+ are counted.  If a block is given, it
+  # are equal to +item+ are counted. If a block is given, it
   # counts the number of elements yielding a true value.
   def count(v=NONE, &block)
     count = 0
@@ -368,7 +368,7 @@ module Enumerable
   #     enum.minmax { |a, b| block } -> [min, max]
   #
   #  Returns two elements array which contains the minimum and the
-  #  maximum value in the enumerable.  The first form assumes all
+  #  maximum value in the enumerable. The first form assumes all
   #  objects implement <code>Comparable</code>; the second uses the
   #  block to return <em>a <=> b</em>.
   #
@@ -647,8 +647,8 @@ module Enumerable
   #     enum.cycle(n=nil)                  ->  an_enumerator
   #
   #  Calls <i>block</i> for each element of <i>enum</i> repeatedly _n_
-  #  times or forever if none or +nil+ is given.  If a non-positive
-  #  number is given or the collection is empty, does nothing.  Returns
+  #  times or forever if none or +nil+ is given. If a non-positive
+  #  number is given or the collection is empty, does nothing. Returns
   #  +nil+ if the loop has finished without getting interrupted.
   #
   #  Enumerable#cycle saves elements in an internal array so changes
@@ -696,7 +696,7 @@ module Enumerable
   #     enum.find_index                 -> an_enumerator
   #
   #  Compares each entry in <i>enum</i> with <em>value</em> or passes
-  #  to <em>block</em>.  Returns the index for the first for which the
+  #  to <em>block</em>. Returns the index for the first for which the
   #  evaluated value is non-false.  If no object matches, returns
   #  <code>nil</code>
   #
@@ -731,10 +731,10 @@ module Enumerable
   #     enum.zip(arg, ...) { |arr| block }  -> nil
   #
   #  Takes one element from <i>enum</i> and merges corresponding
-  #  elements from each <i>args</i>.  This generates a sequence of
+  #  elements from each <i>args</i>. This generates a sequence of
   #  <em>n</em>-element arrays, where <em>n</em> is one more than the
-  #  count of arguments.  The length of the resulting sequence will be
-  #  <code>enum#size</code>.  If the size of any argument is less than
+  #  count of arguments. The length of the resulting sequence will be
+  #  <code>enum#size</code>. If the size of any argument is less than
   #  <code>enum#size</code>, <code>nil</code> values are supplied. If
   #  a block is given, it is invoked for each output array, otherwise
   #  an array of arrays is returned.
@@ -844,7 +844,7 @@ module Enumerable
   # call-seq:
   #   enum.tally -> a_hash
   #
-  # Tallys the collection.  Returns a hash where the keys are the
+  # Tallys the collection. Returns a hash where the keys are the
   # elements and the values are numbers of elements in the collection
   # that correspond to the key.
   #

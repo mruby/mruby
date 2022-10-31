@@ -139,12 +139,12 @@ end
 
 assert('Transfer to self.') do
   result = []
-  f = Fiber.new { result << :start; f.transfer; result << :end  }
+  f = Fiber.new { result << :start; f.transfer; result << :end }
   f.transfer
   assert_equal [:start, :end], result
 
   result = []
-  f = Fiber.new { result << :start; f.transfer; result << :end  }
+  f = Fiber.new { result << :start; f.transfer; result << :end }
   f.resume
   assert_equal [:start, :end], result
 end

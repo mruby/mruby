@@ -1,6 +1,6 @@
 class Hash
 
-  #  ISO does not define Hash#each_pair, so each_pair is defined in gem.
+  # ISO does not define Hash#each_pair, so each_pair is defined in gem.
   alias each_pair each
 
   ##
@@ -65,7 +65,7 @@ class Hash
   #     hsh.merge!(other_hash..)                                 -> hsh
   #     hsh.merge!(other_hash..){|key, oldval, newval| block}    -> hsh
   #
-  #  Adds the contents of _other_hash_ to _hsh_.  If no block is specified,
+  #  Adds the contents of _other_hash_ to _hsh_. If no block is specified,
   #  entries with duplicate keys are overwritten with the values from
   #  _other_hash_, otherwise the value of each duplicate key is determined by
   #  calling the block with the key, its value in _hsh_ and its value in
@@ -217,8 +217,8 @@ class Hash
   #
   #  Returns a new array that is a one-dimensional flattening of this
   #  hash. That is, for every key or value that is an array, extract
-  #  its elements into the new array.  Unlike Array#flatten, this
-  #  method does not flatten recursively by default.  The optional
+  #  its elements into the new array. Unlike Array#flatten, this
+  #  method does not flatten recursively by default. The optional
   #  <i>level</i> argument determines the level of recursion to flatten.
   #
   #     a =  {1=> "one", 2 => [2,"two"], 3 => "three"}

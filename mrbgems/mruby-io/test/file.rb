@@ -46,7 +46,7 @@ end
 
 assert('File.extname') do
   assert_equal '.txt', File.extname('foo/foo.txt')
-  assert_equal '.gz',  File.extname('foo/foo.tar.gz')
+  assert_equal '.gz', File.extname('foo/foo.tar.gz')
   assert_equal '', File.extname('foo/bar')
   assert_equal '', File.extname('foo/.bar')
   assert_equal '', File.extname('foo.txt/bar')

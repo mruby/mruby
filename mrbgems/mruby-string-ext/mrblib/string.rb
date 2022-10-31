@@ -273,7 +273,7 @@ class String
   #  call-seq:
   #     str.center(width, padstr=' ')   -> new_str
   #
-  #  Centers +str+ in +width+.  If +width+ is greater than the length of +str+,
+  #  Centers +str+ in +width+. If +width+ is greater than the length of +str+,
   #  returns a new String of length +width+ with +str+ centered and padded with
   #  +padstr+; otherwise, returns +str+.
   #
@@ -372,7 +372,7 @@ class String
   #  Iterates through successive values, starting at <i>str</i> and
   #  ending at <i>other_str</i> inclusive, passing each value in turn to
   #  the block. The <code>String#succ</code> method is used to generate
-  #  each value.  If optional second argument exclusive is omitted or is false,
+  #  each value. If optional second argument exclusive is omitted or is false,
   #  the last value will be included; otherwise it will be excluded.
   #
   #  If no block is given, an enumerator is returned instead.
