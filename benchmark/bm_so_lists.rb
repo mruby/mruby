@@ -5,7 +5,7 @@
 NUM = 300
 SIZE = 10000
 
-def test_lists()
+def test_lists
   # create a list of integers (Li1) from 1 to SIZE
   li1 = (1..SIZE).to_a
   # copy the list to li2 (not by individual items)

@@ -374,7 +374,7 @@ assert('BS Block [ruby-dev:31147]') do
 end
 
 assert('BS Block [ruby-dev:31160]') do
-  def m()
+  def m
     yield
   end
   assert_nil m {|(v,(*))|}
@@ -389,7 +389,7 @@ assert('BS Block [issue #750]') do
 end
 
 assert('BS Block 31') do
-  def m()
+  def m
     yield
   end
   assert_nil m {|((*))|}
