@@ -273,6 +273,8 @@ module MRuby
 
 #ifndef MRB_USE_CXX_ABI
 extern "C" {
+#define MRB_BEGIN_CXX_LINKAGE }
+#define MRB_END_CXX_LINKAGE   extern "C" {
 #endif
 #include "#{File.absolute_path src}"
 #ifndef MRB_USE_CXX_ABI

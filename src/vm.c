@@ -3127,5 +3127,7 @@ mrb_top_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, mrb_int st
 # if !defined(MRB_USE_CXX_ABI)
 } /* end of extern "C" */
 # endif
+MRB_BEGIN_CXX_LINKAGE
 mrb_int mrb_jmpbuf::jmpbuf_id = 0;
+MRB_END_CXX_LINKAGE
 #endif

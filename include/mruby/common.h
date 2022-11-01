@@ -28,6 +28,11 @@
 # define MRB_END_DECL
 #endif
 
+#ifndef MRB_BEGIN_CXX_LINKAGE
+# define MRB_BEGIN_CXX_LINKAGE
+# define MRB_END_CXX_LINKAGE
+#endif
+
 #include <sys/types.h>
 #if defined _MSC_VER
 #include <BaseTsd.h>
