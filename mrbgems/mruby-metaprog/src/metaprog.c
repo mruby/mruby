@@ -665,9 +665,6 @@ mrb_mod_s_nesting(mrb_state *mrb, mrb_value mod)
   return ary;
 }
 
-/* implementation of #send method */
-mrb_value mrb_f_send(mrb_state *mrb, mrb_value self);
-
 void
 mrb_mruby_metaprog_gem_init(mrb_state* mrb)
 {

@@ -612,8 +612,6 @@ add_gray_list(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
   gc->gray_list = obj;
 }
 
-mrb_int mrb_ci_nregs(mrb_callinfo *ci);
-
 static void
 mark_context_stack(mrb_state *mrb, struct mrb_context *c)
 {
