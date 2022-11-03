@@ -187,17 +187,13 @@ method_eql(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
   mrb_value receiver, orig_proc, other_proc;
-  struct RClass *owner, *klass;
+  struct RClass *owner;
   struct RProc *orig_rproc, *other_rproc;
 
   if (!mrb_obj_is_instance_of(mrb, other, mrb_class(mrb, self)))
     return mrb_false_value();
 
   if (mrb_class(mrb, self) != mrb_class(mrb, other))
-    return mrb_false_value();
-
-  klass = mrb_class_ptr(IV_GET(self, MRB_SYM(_klass)));
-  if (klass != mrb_class_ptr(IV_GET(other, MRB_SYM(_klass))))
     return mrb_false_value();
 
   owner = mrb_class_ptr(IV_GET(self, MRB_SYM(_owner)));
@@ -217,10 +213,8 @@ method_eql(mrb_state *mrb, mrb_value self)
       return mrb_false_value();
   }
 
-  if (mrb_nil_p(orig_proc))
-    return mrb_false_value();
-  if (mrb_nil_p(other_proc))
-    return mrb_false_value();
+  if (mrb_nil_p(orig_proc)) return mrb_false_value();
+  if (mrb_nil_p(other_proc)) return mrb_false_value();
 
   orig_rproc = mrb_proc_ptr(orig_proc);
   other_rproc = mrb_proc_ptr(other_proc);
