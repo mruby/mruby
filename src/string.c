@@ -1219,12 +1219,7 @@ str_escape(mrb_state *mrb, mrb_value str, mrb_bool inspect)
     if (inspect) {
       mrb_int clen = mrb_utf8len(p, pend);
       if (clen > 1) {
-        mrb_int i;
-
-        for (i=0; i<clen; i++) {
-          buf[i] = p[i];
-        }
-        mrb_str_cat(mrb, result, buf, clen);
+        mrb_str_cat(mrb, result, p, clen);
         p += clen-1;
         ascii_flag = 0;
         continue;
