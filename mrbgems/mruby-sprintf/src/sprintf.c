@@ -110,7 +110,7 @@ mrb_uint_to_cstr(char *buf, size_t len, mrb_int num, int base)
 
 #ifndef MRB_NO_FLOAT
 static int
-fmt_float(char *buf, size_t buf_size, char fmt, int flags, mrb_int width, int prec, mrb_float f)
+fmt_float(char *buf, size_t buf_size, char fmt, int flags, int width, int prec, mrb_float f)
 {
   char sign = '\0';
   int left_align = 0;
@@ -251,7 +251,7 @@ check_name_arg(mrb_state *mrb, int posarg, const char *name, size_t len)
     tmp_v = GETNEXTARG(); \
     p = t; \
   } \
-  num = mrb_as_int(mrb, tmp_v); \
+  num = (int)mrb_as_int(mrb, tmp_v); \
 } while (0)
 
 static const char *
@@ -768,7 +768,7 @@ retry:
           mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid character");
         }
         c = RSTRING_PTR(tmp);
-        n = RSTRING_LEN(tmp);
+        n = (int)RSTRING_LEN(tmp);
         if (!(flags & FWIDTH)) {
           PUSH(c, n);
         }
@@ -844,7 +844,7 @@ retry:
         char sc = 0;
         mrb_int v = 0;
         int base;
-        mrb_int len;
+        int len;
 
         if (flags & FSHARP) {
           switch (*p) {
@@ -922,7 +922,7 @@ retry:
           size_t size;
           size = strlen(s);
           /* PARANOID: assert(size <= MRB_INT_MAX) */
-          len = (mrb_int)size;
+          len = (int)size;
         }
 
         if (*p == 'X') {
@@ -955,7 +955,7 @@ retry:
           size = strlen(prefix);
           /* PARANOID: assert(size <= MRB_INT_MAX).
            *  this check is absolutely paranoid. */
-          width -= (mrb_int)size;
+          width -= (int)size;
         }
 
         if ((flags & (FZERO|FMINUS|FPREC)) == FZERO) {
@@ -1014,12 +1014,12 @@ retry:
 #else
         mrb_value val = GETARG();
         double fval;
-        mrb_int need = 6;
+        int need = 6;
 
         fval = mrb_as_float(mrb, val);
         if (!isfinite(fval)) {
           const char *expr;
-          const mrb_int elen = 3;
+          const int elen = 3;
           char sign = '\0';
 
           if (isnan(fval)) {
@@ -1050,7 +1050,7 @@ retry:
           else {
             if (sign)
               buf[blen - elen - 1] = sign;
-            memcpy(&buf[blen - elen], expr, elen);
+            memcpy(&buf[blen - elen], expr, (size_t)elen);
           }
           break;
         }
@@ -1070,7 +1070,7 @@ retry:
         need += (flags&FPREC) ? prec : 6;
         if ((flags&FWIDTH) && need < width)
           need = width;
-        if (need > MRB_INT_MAX - 20) {
+        if ((mrb_int)need > MRB_INT_MAX - 20) {
           goto too_big_width_prec;
         }
         need += 20;
