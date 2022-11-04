@@ -597,13 +597,13 @@ funcall_args_capture(mrb_state *mrb, int stoff, mrb_int argc, const mrb_value *a
 
   ci->nk = 0;                   /* funcall does not support keyword arguments */
   if (argc < CALL_MAXARGS) {
-    int extends = stoff + argc + 2 /* self + block */;
+    mrb_int extends = stoff + argc + 2 /* self + block */;
     stack_extend_adjust(mrb, extends, &argv);
 
     mrb_value *args = mrb->c->ci->stack + stoff + 1 /* self */;
     stack_copy(args, argv, argc);
     args[argc] = block;
-    ci->n = argc;
+    ci->n = (uint8_t)argc;
   }
   else {
     int extends = stoff + 3 /* self + splat + block */;
