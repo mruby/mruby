@@ -1286,6 +1286,7 @@ call_with_block(parser_state *p, node *a, node *b)
   case NODE_RETURN:
   case NODE_BREAK:
   case NODE_NEXT:
+    if (a->cdr == NULL) return;
     call_with_block(p, a->cdr, b);
     break;
   default:
