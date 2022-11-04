@@ -685,14 +685,14 @@ mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
 
   char *ps = s;
   char *se = s+sz;
-  int xlen = digits(x);
+  int xlen = (int)digits(x);
   mp_limb *t = (mp_limb*)mrb_malloc(mrb, xlen*sizeof(mp_limb));
   mp_limb *tend = t + xlen;
   memcpy(t, x->p, xlen*sizeof(mp_limb));
-  mp_limb b2 = base;
+  mp_limb b2 = (mp_limb)base;
   const int blim = (sizeof(mp_limb)<4)?(base<=10?4:3):(base<=10?9:5);
   for (int i=1; i<blim; i++) {
-    b2 *= base;
+    b2 *= (mp_limb)base;
   }
 
   for (;;) {
@@ -707,7 +707,7 @@ mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
 
     // convert to character
     for (int i=0; i<blim; i++) {
-      mp_limb a0 = a % base;
+      mp_limb a0 = (mp_limb)(a % base);
       if (a0 < 10) a0 += '0';
       else a0 += 'a' - 10;
       if (s == se) break;
