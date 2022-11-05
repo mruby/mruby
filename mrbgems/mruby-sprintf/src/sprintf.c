@@ -254,12 +254,14 @@ check_name_arg(mrb_state *mrb, int posarg, const char *name, size_t len)
   num = (int)mrb_as_int(mrb, tmp_v); \
 } while (0)
 
-static const char *
+static const char*
 get_num(mrb_state *mrb, const char *p, const char *end, int *valp)
 {
   char *e;
-  mrb_int n = mrb_int_read(p, end, &e);
-  if (e == NULL || n > INT_MAX) return NULL;
+  mrb_int n;
+  if (!mrb_read_int(p, end, &e, &n)) {
+    return NULL;
+  }
   *valp = (int)n;
   return e;
 }

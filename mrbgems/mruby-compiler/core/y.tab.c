@@ -12524,8 +12524,8 @@ parser_yylex(parser_state *p)
       if (last_state == EXPR_FNAME) goto gvar;
       tokfix(p);
       {
-        mrb_int n = mrb_int_read(tok(p), NULL, NULL);
-        if (n > INT32_MAX) {
+        mrb_int n;
+        if (!mrb_read_int(tok(p), NULL, NULL, &n)) {
           yywarning(p, "capture group index too big; always nil");
           return keyword_nil;
         }
