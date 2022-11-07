@@ -2572,8 +2572,7 @@ mrb_str_len_to_dbl(mrb_state *mrb, const char *s, size_t len, mrb_bool badcheck)
   p = buf;
   pend = n;
 nocopy:
-  d = mrb_float_read(p, &end);
-  if (p == end) {
+  if (mrb_read_float(p, &end, &d) == FALSE) {
     if (badcheck) {
 bad:
       mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid string for float(%!s)", s);

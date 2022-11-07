@@ -12,7 +12,6 @@
 #include "mruby/endian.h"
 
 #include <ctype.h>
-#include <errno.h>
 #include <string.h>
 
 #define INT_OVERFLOW_P(n)  ((n) < MRB_INT_MIN || (n) > MRB_INT_MAX)

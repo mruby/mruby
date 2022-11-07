@@ -12,7 +12,6 @@
 #define YYSTACK_USE_ALLOCA 1
 
 #include <ctype.h>
-#include <errno.h>
 #include <string.h>
 #include <mruby.h>
 #include <mruby/compile.h>
@@ -5973,16 +5972,9 @@ parser_yylex(parser_state *p)
       return tINTEGER;
 #else
       double d;
-      char *endp;
 
-      errno = 0;
-      d = mrb_float_read(tok(p), &endp);
-      if (d == 0 && endp == tok(p)) {
+      if (!mrb_read_float(tok(p), NULL, &d)) {
         yywarning_s(p, "corrupted float value", tok(p));
-      }
-      else if (errno == ERANGE) {
-        yywarning_s(p, "float out of range", tok(p));
-        errno = 0;
       }
       suffix = number_literal_suffix(p);
       if (seen_e && (suffix & NUM_SUFFIX_R)) {

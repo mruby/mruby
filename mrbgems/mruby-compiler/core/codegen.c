@@ -3318,8 +3318,9 @@ codegen(codegen_scope *s, node *tree, int val)
   case NODE_FLOAT:
     if (val) {
       char *p = (char*)tree;
-      mrb_float f = mrb_float_read(p, NULL);
-      int off = new_lit_float(s, f);
+      double f;
+      mrb_read_float(p, NULL, &f);
+      int off = new_lit_float(s, (mrb_float)f);
 
       genop_2(s, OP_LOADL, cursp(), off);
       push();
@@ -3335,8 +3336,9 @@ codegen(codegen_scope *s, node *tree, int val)
       case NODE_FLOAT:
         if (val) {
           char *p = (char*)tree->cdr;
-          mrb_float f = mrb_float_read(p, NULL);
-          int off = new_lit_float(s, -f);
+          double f;
+          mrb_read_float(p, NULL, &f);
+          int off = new_lit_float(s, (mrb_float)-f);
 
           genop_2(s, OP_LOADL, cursp(), off);
           push();

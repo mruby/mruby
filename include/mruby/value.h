@@ -104,7 +104,9 @@ MRB_API mrb_bool mrb_read_int(const char *p, const char *e, char **endp, mrb_int
 /* obsolete; do not use mrb_int_read() */
 MRB_API mrb_int mrb_int_read(const char*, const char*, char**);
 #ifndef MRB_NO_FLOAT
-MRB_API double mrb_float_read(const char*, char**);
+MRB_API mrb_bool mrb_read_float(const char *p, char **endp, double *fp);
+/* obsolete; do not use mrb_float_read() */
+MRB_API double mrb_float_read(const char *p, char **endp);
 #ifdef MRB_USE_FLOAT32
   typedef float mrb_float;
 #else
