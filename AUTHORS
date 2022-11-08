@@ -1,33 +1,33 @@
 # Authors of mruby (mruby developers)
 
-## The List of Contributors sorted by number of commits (as of 2022-10-09 3ca238a)
+## The List of Contributors sorted by number of commits (as of 2022-11-08 98cc660)
 
-   8587 Yukihiro "Matz" Matsumoto (@matz)*
+   8673 Yukihiro "Matz" Matsumoto (@matz)*
     586 KOBAYASHI Shuji (@shuujii)
-    413 dearblue (@dearblue)*
-    376 Daniel Bovensiepen (@bovi)
+    421 dearblue (@dearblue)*
+    378 Daniel Bovensiepen (@bovi)*
     346 Takeshi Watanabe (@take-cheeze)*
     334 Masaki Muranaka (@monaka)
     308 Tomoyuki Sahara (@tsahara)*
     234 Jun Hiroe (@suzukaze)
     220 Cremno (@cremno)*
     209 Yuki Kurihara (@ksss)+
-    148 Yasuhiro Matsumoto (@mattn)*
+    151 Yasuhiro Matsumoto (@mattn)*
     113 Carson McDonald (@carsonmcdonald)
     103 Tomasz Dąbrowski (@dabroz)*
+     94 John Bampton (@jbampton)
      84 skandhas (@skandhas)
      80 Masamitsu MURASE (@masamitsu-murase)
      74 Yuichiro MASUI (@masuidrive)
      73 Hiroshi Mimaki (@mimaki)*
-     73 John Bampton (@jbampton)
      71 Tatsuhiko Kubo (@cubicdaiya)*
      67 Akira Yumiyama (@akiray03)*
+     65 Yuichiro Kaneko (@yui-knk)+
      62 Paolo Bosetti (@pbosetti)*
      59 Kurebayashi, Takahiro (@crimsonwoods)*
      56 h2so5 (@h2so5)
      52 Ralph Desir (@Mav7)*
      45 Rory O'Connell (@RoryO)*
-     43 Yuichiro Kaneko (@yui-knk)+
      42 fleuria (@flaneur2020)
      40 Christopher Aue (@christopheraue)
      40 Seba Gamboa (@sagmor)
@@ -35,7 +35,7 @@
      38 Kouhei Sutou (@kou)*
      31 MATSUMOTO Ryosuke (@matsumotory)*
      30 Nobuyoshi Nakada (@nobu)
-     28 Masayoshi Takahashi (@takahashim)+
+     29 Masayoshi Takahashi (@takahashim)+
      24 Julian Aron Prenner (@furunkel)*
      24 Ryan Scott (@ryan-scott-dev)*
      22 Clayton Smith (@clayton-shopify)
@@ -65,6 +65,7 @@
      12 Takashi Sawanaka (@sdottaka)*
      12 Ukrainskiy Sergey (@ukrainskiysergey)
      12 Xuejie "Rafael" Xiao (@xxuejie)*
+     12 fn ⌃ ⌥ (@FnControlOption)
      11 Julien Ammous (@schmurfy)
      11 Kazuho Oku (@kazuho)
      11 Seeker (@SeekingMeaning)
