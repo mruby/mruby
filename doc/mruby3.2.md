@@ -6,6 +6,12 @@
 - Anonymous arguments `*`, `**`, `&` can be passed for forwarding.
 - Multi-precision integer is available now via `mruby-bigint` gem.
 
+# mruby VM and bytecode
+
+- `OP_ARYDUP` was renamed to `OP_ARYSPLAT`. The instruction name
+  was changed but instruction number and basic behavior have not
+  changed (except that `ARYDUP nil` makes `[]`).
+
 # Tools
 
 ## `mruby`
@@ -27,6 +33,10 @@
 
 - Add `Class#subclasses` method.
 - Add `Module#undefined_instance_methods` method.
+
+## mruby-set
+
+New bundled gem.
 
 # CVEs
 
