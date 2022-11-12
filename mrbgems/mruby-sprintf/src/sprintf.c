@@ -237,7 +237,7 @@ check_name_arg(mrb_state *mrb, int posarg, const char *name, size_t len)
 
 #define GETNUM(n, val) do { \
   if (!(p = get_num(mrb, p, end, &(n)))) \
-    mrb_raise(mrb, E_ARGUMENT_ERROR, #val " too big 1"); \
+    mrb_raise(mrb, E_ARGUMENT_ERROR, #val " too big"); \
 } while(0)
 
 #define GETASTER(num) do { \
