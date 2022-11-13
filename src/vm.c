@@ -542,20 +542,16 @@ mrb_ci_nregs(mrb_callinfo *ci)
 mrb_value mrb_obj_missing(mrb_state *mrb, mrb_value mod);
 
 static mrb_method_t
-prepare_missing(mrb_state *mrb, mrb_value recv, mrb_sym mid, struct RClass **clsp, uint32_t a, uint16_t *c, mrb_value blk, int super)
+prepare_missing(mrb_state *mrb, mrb_callinfo *ci, mrb_value recv, mrb_sym mid, mrb_value blk, mrb_bool super)
 {
   mrb_sym missing = MRB_SYM(method_missing);
-  mrb_callinfo *ci = mrb->c->ci;
-  uint16_t b = *c;
-  mrb_int n = b & 0xf;
-  mrb_int nk = (b>>4) & 0xf;
-  mrb_value *argv = &ci->stack[a+1];
+  mrb_value *argv = &ci->stack[1];
   mrb_value args;
   mrb_method_t m;
 
   /* pack positional arguments */
-  if (n == 15) args = argv[0];
-  else args = mrb_ary_new_from_values(mrb, n, argv);
+  if (ci->n == 15) args = argv[0];
+  else args = mrb_ary_new_from_values(mrb, ci->n, argv);
 
   if (mrb_func_basic_p(mrb, recv, missing, mrb_obj_missing)) {
   method_missing:
@@ -564,24 +560,26 @@ prepare_missing(mrb_state *mrb, mrb_value recv, mrb_sym mid, struct RClass **cls
     /* not reached */
   }
   if (mid != missing) {
-    *clsp = mrb_class(mrb, recv);
+    ci->u.target_class = mrb_class(mrb, recv);
   }
-  m = mrb_method_search_vm(mrb, clsp, missing);
+  m = mrb_method_search_vm(mrb, &ci->u.target_class, missing);
   if (MRB_METHOD_UNDEF_P(m)) goto method_missing; /* just in case */
-  mrb_stack_extend(mrb, a+4);
+  mrb_stack_extend(mrb, 4);
 
-  argv = &ci->stack[a+1];       /* maybe reallocated */
+  argv = &ci->stack[1];         /* maybe reallocated */
   argv[0] = args;
-  if (nk == 0) {
+  if (ci->nk == 0) {
     argv[1] = blk;
   }
   else {
-    mrb_assert(nk == 15);
-    argv[1] = argv[n];
+    mrb_assert(ci->nk == 15);
+    argv[1] = argv[ci->n];
     argv[2] = blk;
   }
-  *c = 15 | (uint16_t)(nk<<4);
+  ci->n = CALL_MAXARGS;
+  /* ci->nk is already set to zero or CALL_MAXARGS */
   mrb_ary_unshift(mrb, args, mrb_symbol_value(mid));
+  ci->mid = missing;
   return m;
 }
 
@@ -666,13 +664,11 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     ci->u.target_class = mrb_class(mrb, self);
     m = mrb_method_search_vm(mrb, &ci->u.target_class, mid);
     if (MRB_METHOD_UNDEF_P(m)) {
-      uint16_t arginfo = ci->n;
-      m = prepare_missing(mrb, self, mid, &ci->u.target_class, 0, &arginfo, mrb_nil_value(), 0);
-      mid = MRB_SYM(method_missing);
-      ci->n  = (arginfo >> 0) & 0x0f;
-      ci->nk = (arginfo >> 4) & 0x0f;
+      m = prepare_missing(mrb, ci, self, mid, mrb_nil_value(), FALSE);
     }
-    ci->mid = mid;
+    else {
+      ci->mid = mid;
+    }
     ci->proc = MRB_METHOD_PROC_P(m) ? MRB_METHOD_PROC(m) : NULL;
 
     if (MRB_METHOD_CFUNC_P(m)) {
@@ -1735,7 +1731,6 @@ RETRY_TRY_BLOCK:
     {
       mrb_callinfo *ci;
       mrb_method_t m;
-      struct RClass *cls;
       mrb_value recv, blk;
       int n = c&0xf;
       int nk = (c>>4)&0xf;
@@ -1764,20 +1759,17 @@ RETRY_TRY_BLOCK:
         regs[new_bidx] = blk;
       }
 
-      recv = regs[a];
-      ci = mrb->c->ci;
-      cls = (insn == OP_SUPER) ? CI_TARGET_CLASS(ci)->super : mrb_class(mrb, recv);
-      m = mrb_method_search_vm(mrb, &cls, mid);
       ci = cipush(mrb, a, CINFO_DIRECT, NULL, NULL, BLK_PTR(blk), 0, c);
+      recv = regs[0];
+      ci->u.target_class = (insn == OP_SUPER) ? CI_TARGET_CLASS(ci - 1)->super : mrb_class(mrb, recv);
+      m = mrb_method_search_vm(mrb, &ci->u.target_class, mid);
       if (MRB_METHOD_UNDEF_P(m)) {
-        m = prepare_missing(mrb, recv, mid, &cls, 0, &c, blk, (insn == OP_SUPER ? 1 : 0));
-        mid = MRB_SYM(method_missing);
-        ci->n  = (c >> 0) & 0x0f;
-        ci->nk = (c >> 4) & 0x0f;
+        m = prepare_missing(mrb, ci, recv, mid, blk, (insn == OP_SUPER));
+      }
+      else {
+        ci->mid = mid;
       }
       ci->cci = CINFO_NONE;
-      ci->mid = mid;
-      ci->u.target_class = cls;
       if (!mrb_nil_p(blk)) ci->blk = mrb_proc_ptr(blk);
 
       if (MRB_METHOD_CFUNC_P(m)) {
