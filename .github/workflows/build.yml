@@ -6,8 +6,8 @@ permissions:
   contents: read
 
 jobs:
-  Ubuntu-1804-gcc:
-    runs-on: ubuntu-18.04
+  Ubuntu-2204-gcc:
+    runs-on: ubuntu-22.04
     timeout-minutes: 10
     env:
       MRUBY_CONFIG: ci/gcc-clang
@@ -21,8 +21,8 @@ jobs:
       - name: Build and test
         run: rake -m test:build && rake test:run
 
-  Ubuntu-1804-clang:
-    runs-on: ubuntu-18.04
+  Ubuntu-2204-clang:
+    runs-on: ubuntu-22.04
     timeout-minutes: 10
     env:
       MRUBY_CONFIG: ci/gcc-clang
