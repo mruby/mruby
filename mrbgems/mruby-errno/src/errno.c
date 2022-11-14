@@ -275,12 +275,12 @@ static mrb_value
 mrb_sce_sys_fail(mrb_state *mrb, mrb_value cls)
 {
   struct RClass *sce;
-  mrb_value msg, no;
+  mrb_value msg;
   mrb_int argc;
 
   mrb->c->ci->mid = 0;
   sce = mrb_class_ptr(cls);
-  argc = mrb_get_args(mrb, "o|S", &no, &msg);
+  argc = mrb_get_args(mrb, "|S", &msg);
 
   struct RBasic* e = mrb_obj_alloc(mrb, MRB_TT_EXCEPTION, sce);
   mrb_value exc = mrb_obj_value(e);
@@ -288,7 +288,7 @@ mrb_sce_sys_fail(mrb_state *mrb, mrb_value cls)
     msg = mrb_nil_value();
   }
   exc = mrb_obj_value(e);
-  mrb_sce_init(mrb, exc, msg, no);
+  mrb_sce_init(mrb, exc, msg, mrb_fixnum_value(errno));
   mrb_exc_raise(mrb, exc);
   return mrb_nil_value();  /* NOTREACHED */
 }
@@ -301,7 +301,7 @@ mrb_mruby_errno_gem_init(mrb_state *mrb)
   ste = mrb->eStandardError_class;
 
   sce = mrb_define_class(mrb, "SystemCallError", ste);
-  mrb_define_class_method(mrb, sce, "_sys_fail", mrb_sce_sys_fail, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, sce, "_sys_fail", mrb_sce_sys_fail, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, sce, "errno", mrb_sce_errno, MRB_ARGS_NONE());
   mrb_define_method(mrb, sce, "initialize", mrb_sce_init_m, MRB_ARGS_ARG(1, 1));
 
