@@ -278,7 +278,7 @@ mrb_vformat(mrb_state *mrb, const char *format, va_list ap)
     if (c == '%') {
       if (*p == '!') {
         inspect = TRUE;
-        ++p;
+        p++;
       }
       if (!*p) break;
       switch (*p) {

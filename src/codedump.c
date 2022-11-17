@@ -102,7 +102,7 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
     int i;
     int head = FALSE;
 
-    for (i = 1; i < irep->nlocals; ++i) {
+    for (i = 1; i < irep->nlocals; i++) {
       char const *s = mrb_sym_dump(mrb, irep->lv[i - 1]);
       if (s) {
         if (!head) {
@@ -118,7 +118,7 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
     int i = irep->clen;
     const struct mrb_irep_catch_handler *e = mrb_irep_catch_handler_table(irep);
 
-    for (; i > 0; i --, e ++) {
+    for (; i > 0; i--,e++) {
       uint32_t begin = mrb_irep_catch_handler_unpack(e->begin);
       uint32_t end = mrb_irep_catch_handler_unpack(e->end);
       uint32_t target = mrb_irep_catch_handler_unpack(e->target);

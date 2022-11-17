@@ -202,7 +202,7 @@ mrb_debug_info_append_file(mrb_state *mrb, mrb_irep_debug_info *d,
   size_t packed_size = 0;
   uint8_t *p, *pend;
 
-  for (i = 0; i < file_pc_count; ++i) {
+  for (i = 0; i < file_pc_count; i++) {
     if (lines[start_pos + i] == prev_line) continue;
     packed_size += mrb_packed_int_len(start_pos+i-prev_pc);
     prev_pc = start_pos+i;
@@ -212,7 +212,7 @@ mrb_debug_info_append_file(mrb_state *mrb, mrb_irep_debug_info *d,
   f->lines.packed_map = p = (uint8_t*)mrb_malloc(mrb, packed_size);
   pend = p + packed_size;
   prev_line = 0; prev_pc = 0;
-  for (i = 0; i < file_pc_count; ++i) {
+  for (i = 0; i < file_pc_count; i++) {
     if (lines[start_pos + i] == prev_line) continue;
     p += mrb_packed_int_encode(start_pos+i-prev_pc, p, pend);
     prev_pc = start_pos + i;
@@ -232,7 +232,7 @@ mrb_debug_info_free(mrb_state *mrb, mrb_irep_debug_info *d)
   if (!d) { return; }
 
   if (d->files) {
-    for (i = 0; i < d->flen; ++i) {
+    for (i = 0; i < d->flen; i++) {
       if (d->files[i]) {
         mrb_free(mrb, d->files[i]->lines.ptr);
         mrb_free(mrb, d->files[i]);
