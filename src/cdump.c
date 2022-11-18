@@ -172,7 +172,7 @@ sym_operator_name(const char *sym_name, mrb_int len)
     }
     if (0 < cmp) {
       start = ++idx;
-      --table_size;
+      table_size--;
     }
   }
   return NULL;

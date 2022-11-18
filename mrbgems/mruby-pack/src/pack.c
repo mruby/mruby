@@ -196,18 +196,18 @@ u32tostr(char *buf, size_t len, uint32_t n)
     return;
   }
 
-  *p -- = '\0';
-  len --;
+  *p-- = '\0';
+  len--;
 
   if (n > 0) {
     for (; len > 0 && n > 0; len --, n /= 10) {
       *p -- = '0' + (n % 10);
     }
-    p ++;
+    p++;
   }
   else if (len > 0) {
     *p = '0';
-    len --;
+    len--;
   }
 
   memmove(buf, p, bufend - p);
@@ -292,18 +292,18 @@ u64tostr(char *buf, size_t len, uint64_t n)
     return;
   }
 
-  *p -- = '\0';
-  len --;
+  *p-- = '\0';
+  len--;
 
   if (n > 0) {
-    for (; len > 0 && n > 0; len --, n /= 10) {
-      *p -- = '0' + (n % 10);
+    for (; len > 0 && n > 0; len--, n /= 10) {
+      *p-- = '0' + (n % 10);
     }
-    p ++;
+    p++;
   }
   else if (len > 0) {
     *p = '0';
-    len --;
+    len--;
   }
 
   memmove(buf, p, bufend - p);
@@ -322,8 +322,8 @@ i64tostr(char *buf, size_t len, int64_t n)
   }
 
   if (n < 0) {
-    *buf ++ = '-';
-    len --;
+    *buf++ = '-';
+    len--;
     n = -n;
   }
 
@@ -434,13 +434,13 @@ pack_double(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned i
       memcpy(RSTRING_PTR(str) + sidx, buffer, 8);
     }
     else {
-      for (i = 0; i < 8; ++i) {
+      for (i = 0; i < 8; i++) {
         RSTRING_PTR(str)[sidx + i] = buffer[8 - i - 1];
       }
     }
   } else {
     if (littleendian) {
-      for (i = 0; i < 8; ++i) {
+      for (i = 0; i < 8; i++) {
         RSTRING_PTR(str)[sidx + i] = buffer[8 - i - 1];
       }
     }
@@ -464,13 +464,13 @@ unpack_double(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value a
       memcpy(buffer, src, 8);
     }
     else {
-      for (i = 0; i < 8; ++i) {
+      for (i = 0; i < 8; i++) {
         buffer[8 - i - 1] = src[i];
       }
     }
   } else {
     if (littleendian) {
-      for (i = 0; i < 8; ++i) {
+      for (i = 0; i < 8; i++) {
         buffer[8 - i - 1] = src[i];
       }
     }
@@ -497,13 +497,13 @@ pack_float(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned in
       memcpy(RSTRING_PTR(str) + sidx, buffer, 4);
     }
     else {
-      for (i = 0; i < 4; ++i) {
+      for (i = 0; i < 4; i++) {
         RSTRING_PTR(str)[sidx + i] = buffer[4 - i - 1];
       }
     }
   } else {
     if (littleendian) {
-      for (i = 0; i < 4; ++i) {
+      for (i = 0; i < 4; i++) {
         RSTRING_PTR(str)[sidx + i] = buffer[4 - i - 1];
       }
     }
@@ -527,13 +527,13 @@ unpack_float(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value ar
       memcpy(buffer, src, 4);
     }
     else {
-      for (i = 0; i < 4; ++i) {
+      for (i = 0; i < 4; i++) {
         buffer[4 - i - 1] = src[i];
       }
     }
   } else {
     if (littleendian) {
-      for (i = 0; i < 4; ++i) {
+      for (i = 0; i < 4; i++) {
         buffer[4 - i - 1] = src[i];
       }
     }

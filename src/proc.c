@@ -154,12 +154,12 @@ mrb_proc_new_cfunc_with_env(mrb_state *mrb, mrb_func_t func, mrb_int argc, const
   MRB_ENV_SET_LEN(e, argc);
 
   if (argv) {
-    for (i = 0; i < argc; ++i) {
+    for (i = 0; i < argc; i++) {
       e->stack[i] = argv[i];
     }
   }
   else {
-    for (i = 0; i < argc; ++i) {
+    for (i = 0; i < argc; i++) {
       SET_NIL_VALUE(e->stack[i]);
     }
   }
@@ -334,7 +334,7 @@ mrb_proc_local_variables(mrb_state *mrb, const struct RProc *proc)
     if (MRB_PROC_CFUNC_P(proc)) break;
     irep = proc->body.irep;
     if (irep->lv) {
-      for (i = 0; i + 1 < irep->nlocals; ++i) {
+      for (i = 0; i + 1 < irep->nlocals; i++) {
         if (irep->lv[i]) {
           mrb_sym sym = irep->lv[i];
           const char *name = mrb_sym_name(mrb, sym);

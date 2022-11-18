@@ -27,8 +27,8 @@ str_casecmp_p(const char *s1, mrb_int len1, const char *s2, mrb_int len2)
   e2 = s2 + len2;
   while (s1 < e1 && s2 < e2) {
     if (*s1 != *s2 && TOUPPER(*s1) != TOUPPER(*s2)) return FALSE;
-    ++s1;
-    ++s2;
+    s1++;
+    s2++;
   }
   return TRUE;
 }

@@ -588,8 +588,8 @@ mrb_str_format(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value fm
     mrb_raise(mrb, E_ARGUMENT_ERROR, "flag after precision");           \
   }
 
-  ++argc;
-  --argv;
+  argc++;
+  argv--;
   mrb_ensure_string_type(mrb, fmt);
   p = RSTRING_PTR(fmt);
   end = p + RSTRING_LEN(fmt);
@@ -605,7 +605,7 @@ mrb_str_format(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value fm
     int flags = FNONE;
 
     for (t = p; t < end && *t != '%'; t++) ;
-    if (t + 1 == end) ++t;
+    if (t + 1 == end) t++;
     PUSH(p, t - p);
     if (t >= end)
       goto sprint_exit; /* end of fmt string */
@@ -1036,7 +1036,7 @@ retry:
           else if (flags & (FPLUS|FSPACE))
             sign = (flags & FPLUS) ? '+' : ' ';
           if (sign)
-            ++need;
+            need++;
           if ((flags & FWIDTH) && need < width)
             need = width;
 

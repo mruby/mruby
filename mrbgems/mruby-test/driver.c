@@ -55,7 +55,7 @@ t_print(mrb_state *mrb, mrb_value self)
   mrb_int i;
 
   mrb_get_args(mrb, "*!", &argv, &argc);
-  for (i = 0; i < argc; ++i) {
+  for (i = 0; i < argc; i++) {
     mrb_value s = mrb_obj_as_string(mrb, argv[i]);
     fwrite(RSTRING_PTR(s), RSTRING_LEN(s), 1, stdout);
   }
@@ -76,7 +76,7 @@ str_match_bracket(const char *p, const char *pat_end,
   if (p == pat_end) return NULL;
   if (*p == '!' || *p == '^') {
     negated = TRUE;
-    ++p;
+    p++;
   }
 
   while (*p != ']') {
@@ -109,7 +109,7 @@ str_match_no_brace_p(const char *pat, mrb_int pat_len,
     if (p == pat_end) return s == str_end;
     switch (*p) {
       case '*':
-        do { ++p; } while (p != pat_end && *p == '*');
+        do { p++; } while (p != pat_end && *p == '*');
         if (UNESCAPE(p, pat_end) == pat_end) return TRUE;
         if (s == str_end) return FALSE;
         p_tmp = p;
@@ -117,15 +117,15 @@ str_match_no_brace_p(const char *pat, mrb_int pat_len,
         continue;
       case '?':
         if (s == str_end) return FALSE;
-        ++p;
-        ++s;
+        p++;
+        s++;
         continue;
       case '[': {
         const char *t;
         if (s == str_end) return FALSE;
         if ((t = str_match_bracket(p+1, pat_end, s, str_end))) {
           p = t;
-          ++s;
+          s++;
           continue;
         }
         goto L_failed;
@@ -164,7 +164,7 @@ str_match_p(mrb_state *mrb,
   int nest = 0;
   mrb_bool ret = FALSE;
 
-  for (; p != pat_end; ++p) {
+  for (; p != pat_end; p++) {
     if (*p == '{' && nest++ == 0) lbrace = p;
     else if (*p == '}' && lbrace && --nest == 0) { rbrace = p; break; }
     else if (*p == '\\' && ++p == pat_end) break;
@@ -180,9 +180,9 @@ str_match_p(mrb_state *mrb,
     while (p < rbrace) {
       char *orig_ex_p = ex_p;
       const char *t = ++p;
-      for (nest = 0; p < rbrace && !(*p == ',' && nest == 0); ++p) {
-        if (*p == '{') ++nest;
-        else if (*p == '}') --nest;
+      for (nest = 0; p < rbrace && !(*p == ',' && nest == 0); p++) {
+        if (*p == '{') nest++;
+        else if (*p == '}') nest--;
         else if (*p == '\\' && ++p == rbrace) break;
       }
       COPY_AND_INC(ex_p, t, p-t);
@@ -271,7 +271,7 @@ mrb_t_pass_result(mrb_state *mrb_dst, mrb_state *mrb_src)
   if (mrb_array_p(res_src)) {
     mrb_int i;
     mrb_value res_dst = mrb_gv_get(mrb_dst, mrb_intern_lit(mrb_dst, "$asserts"));
-    for (i = 0; i < RARRAY_LEN(res_src); ++i) {
+    for (i = 0; i < RARRAY_LEN(res_src); i++) {
       mrb_value val_src = RARRAY_PTR(res_src)[i];
       mrb_ary_push(mrb_dst, res_dst, mrb_str_new(mrb_dst, RSTRING_PTR(val_src), RSTRING_LEN(val_src)));
     }

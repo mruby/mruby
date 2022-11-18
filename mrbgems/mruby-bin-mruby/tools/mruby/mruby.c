@@ -104,7 +104,7 @@ options_opt(struct options *opts)
     if (opts->opt[1] == '-') {
       /* `--` */
       if (!opts->opt[2]) {
-        ++opts->argv, --opts->argc;
+        opts->argv++, opts->argc--;
         return NULL;
       }
       /* long option */
@@ -114,7 +114,7 @@ options_opt(struct options *opts)
     }
     else {
       /* short option */
-      ++opts->opt;
+      opts->opt++;
       goto short_opt;
     }
   }

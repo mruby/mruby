@@ -170,7 +170,7 @@ DEFINE_SWITCHER(ht, HT)
 
 #define ea_each_used(ea, n_used, entry_var, code) do {                        \
   hash_entry *entry_var = ea, *ea_end__ = entry_var + (n_used);               \
-  for (; entry_var < ea_end__; ++entry_var) {                                 \
+  for (; entry_var < ea_end__; entry_var++) {                                 \
     code;                                                                     \
   }                                                                           \
 } while (0)
@@ -178,7 +178,7 @@ DEFINE_SWITCHER(ht, HT)
 #define ea_each(ea, size, entry_var, code) do {                               \
   hash_entry *entry_var = ea;                                                 \
   uint32_t size__ = size;                                                     \
-  for (; 0 < size__; ++entry_var) {                                           \
+  for (; 0 < size__; entry_var++) {                                           \
     if (entry_deleted_p(entry_var)) continue;                                 \
     --size__;                                                                 \
     code;                                                                     \
@@ -310,7 +310,7 @@ next_power2(uint32_t v)
   v |= v >> 4;
   v |= v >> 8;
   v |= v >> 16;
-  ++v;
+  v++;
   return v;
 #endif
 }
@@ -426,7 +426,7 @@ ea_compress(hash_entry *ea, uint32_t n_used)
   ea_each_used(ea, n_used, r_entry, {
     if (entry_deleted_p(r_entry)) continue;
     if (r_entry != w_entry) *w_entry = *r_entry;
-    ++w_entry;
+    w_entry++;
   });
 }
 
@@ -592,7 +592,7 @@ ar_rehash(mrb_state *mrb, struct RHash *h)
         ea_set(ea, w_size, r_entry->key, r_entry->val);
         entry_delete(r_entry);
       }
-      ++w_size;
+      w_size++;
     }
   });
   mrb_assert(size == w_size);

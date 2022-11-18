@@ -730,7 +730,7 @@ mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
   }
 
   /* reverse string */
-  for (char *u = ps,*v=s-1; u < v; ++u,--v) {
+  for (char *u = ps,*v=s-1; u < v; u++,v--) {
     char temp = *u;
     *u = *v;
     *v = temp;

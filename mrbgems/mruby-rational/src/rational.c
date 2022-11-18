@@ -138,7 +138,7 @@ i_gcd(mrb_int x, mrb_int y)
 
   u = (mrb_uint)x;
   v = (mrb_uint)y;
-  for (shift = 0; ((u | v) & 1) == 0; ++shift) {
+  for (shift = 0; ((u | v) & 1) == 0; shift++) {
     u >>= 1;
     v >>= 1;
   }

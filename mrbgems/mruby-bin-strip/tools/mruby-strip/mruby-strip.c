@@ -35,7 +35,7 @@ parse_args(int argc, char **argv, struct strip_args *args)
   args->argv = argv;
   args->lvar = FALSE;
 
-  for (i = 1; i < argc; ++i) {
+  for (i = 1; i < argc; i++) {
     const size_t len = strlen(argv[i]);
     if (len >= 2 && argv[i][0] == '-') {
       switch (argv[i][1]) {
@@ -65,7 +65,7 @@ strip(mrb_state *mrb, struct strip_args *args)
 {
   int i;
 
-  for (i = args->argc_start; i < args->argc; ++i) {
+  for (i = args->argc_start; i < args->argc; i++) {
     char *filename;
     FILE *rfile;
     mrb_irep *irep;

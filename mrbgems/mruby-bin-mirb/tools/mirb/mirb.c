@@ -706,7 +706,7 @@ main(int argc, char **argv)
   if (args.rfp) fclose(args.rfp);
   mrb_free(mrb, args.argv);
   if (args.libv) {
-    for (i = 0; i < args.libc; ++i) {
+    for (i = 0; i < args.libc; i++) {
       mrb_free(mrb, args.libv[i]);
     }
     mrb_free(mrb, args.libv);

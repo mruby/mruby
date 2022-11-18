@@ -116,10 +116,10 @@ erf(double x)
   do {
     term *= xsqr/j;
     sum  -= term/(2*j+1);
-    ++j;
+    j++;
     term *= xsqr/j;
     sum  += term/(2*j+1);
-    ++j;
+    j++;
     if (sum == 0) break;
   } while (fabs(term/sum) > DBL_EPSILON);
   return two_sqrtpi*sum;

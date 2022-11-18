@@ -11077,8 +11077,8 @@ parse_string(parser_state *p)
         int len = toklen(p);
         if (hinfo->allow_indent) {
           while (ISSPACE(*s) && len > 0) {
-            ++s;
-            --len;
+            s++;
+            len--;
           }
         }
         if (hinfo->term_len > 0 && len-1 == hinfo->term_len && strncmp(s, hinfo->term, len-1) == 0) {
@@ -11113,7 +11113,7 @@ parse_string(parser_state *p)
       if (c == '\t')
         spaces += 8;
       else if (ISSPACE(c))
-        ++spaces;
+        spaces++;
       else
         empty = FALSE;
     }
@@ -12969,7 +12969,7 @@ mrb_parser_set_filename(struct mrb_parser_state *p, const char *f)
   p->filename_sym = sym;
   p->lineno = (p->filename_table_length > 0)? 0 : 1;
 
-  for (i = 0; i < p->filename_table_length; ++i) {
+  for (i = 0; i < p->filename_table_length; i++) {
     if (p->filename_table[i] == sym) {
       p->current_filename_index = i;
       return;

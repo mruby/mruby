@@ -53,7 +53,7 @@ mrb_rescue_exceptions(mrb_state *mrb, mrb_func_t body, mrb_value b_data, mrb_fun
   mrb_value result = mrb_protect_error(mrb, protect_body, &protect_data, &error);
   if (error) {
     mrb_bool error_matched = FALSE;
-    for (mrb_int i = 0; i < len; ++i) {
+    for (mrb_int i = 0; i < len; i++) {
       if (mrb_obj_is_kind_of(mrb, result, classes[i])) {
         error_matched = TRUE;
         break;

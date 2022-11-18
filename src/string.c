@@ -343,7 +343,7 @@ bytes2chars(char *p, mrb_int len, mrb_int bi)
   const char *pivot = p + bi;
   mrb_int i;
 
-  for (i = 0; p < pivot; i ++) {
+  for (i = 0; p < pivot; i++) {
     p += mrb_utf8len(p, e);
   }
   if (p != pivot) return -1;
@@ -383,10 +383,10 @@ str_index_str_by_char_search(mrb_state *mrb, const char *p, const char *pend, co
   {
     mrb_int i;
 
-    for (i = 0; i < 1 << CHAR_BIT; i ++) {
+    for (i = 0; i < 1 << CHAR_BIT; i++) {
       qstable[i] = slen;
     }
-    for (i = 0; i < slen; i ++) {
+    for (i = 0; i < slen; i++) {
       qstable[(unsigned char)s[i]] = slen - (i + 1);
     }
   }
@@ -404,7 +404,7 @@ str_index_str_by_char_search(mrb_state *mrb, const char *p, const char *pend, co
 
     do {
       p += mrb_utf8len(p, pend);
-      off ++;
+      off++;
     } while (p < pivot);
   }
 
@@ -469,9 +469,9 @@ mrb_memsearch_qs(const unsigned char *xs, mrb_int m, const unsigned char *ys, mr
     ptrdiff_t qstable[256];
 
     /* Preprocessing */
-    for (i = 0; i < 256; ++i)
+    for (i = 0; i < 256; i++)
       qstable[i] = m + 1;
-    for (; x < xe; ++x)
+    for (; x < xe; x++)
       qstable[*x] = xe - x;
     /* Searching */
     for (; y + m <= ys + n; y += *(qstable + y[m])) {
@@ -2190,7 +2190,7 @@ mrb_str_split_m(mrb_state *mrb, mrb_value str)
         mrb_gc_arena_restore(mrb, ai);
         skip = TRUE;
         beg = idx;
-        if (lim_p) ++i;
+        if (lim_p) i++;
       }
       else {
         end = idx;

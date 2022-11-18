@@ -602,7 +602,7 @@ mrb_ary_shift(mrb_state *mrb, mrb_value self)
     val = *ptr;
     while (--size) {
       *ptr = *(ptr+1);
-      ++ptr;
+      ptr++;
     }
     ARY_SET_LEN(a, len-1);
   }
@@ -646,7 +646,7 @@ mrb_ary_shift_m(mrb_state *mrb, mrb_value self)
 
     while (size--) {
       *ptr = *(ptr+n);
-      ++ptr;
+      ptr++;
     }
     ARY_SET_LEN(a, len-n);
   }
@@ -1074,7 +1074,7 @@ mrb_ary_delete_at(mrb_state *mrb, mrb_value self)
   len = alen - index;
   while (--len) {
     *ptr = *(ptr+1);
-    ++ptr;
+    ptr++;
   }
   ARY_SET_LEN(a, alen-1);
 
