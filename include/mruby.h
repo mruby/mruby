@@ -1460,6 +1460,10 @@ MRB_API mrb_bool mrb_func_basic_p(mrb_state *mrb, mrb_value obj, mrb_sym mid, mr
  * Resume a Fiber
  *
  * Implemented in mruby-fiber
+ *
+ * Switches to the specified fiber and executes. Like the `Fiber#resume` method.
+ *
+ * @note It can only be called before entering the mruby VM (e.g. in the `main()` function).
  */
 MRB_API mrb_value mrb_fiber_resume(mrb_state *mrb, mrb_value fib, mrb_int argc, const mrb_value *argv);
 
@@ -1467,6 +1471,15 @@ MRB_API mrb_value mrb_fiber_resume(mrb_state *mrb, mrb_value fib, mrb_int argc, 
  * Yield a Fiber
  *
  * Implemented in mruby-fiber
+ *
+ * Passes control to the caller fiber of the running fiber. Like the `Fiber.yield` method.
+ *
+ * @note This function is only available from inside a function defined as a method by,
+ *       for example, `mrb_define_method()`.
+ *       Also, the work following `mrb_fiber_yield()` cannot be performed,
+ *       and the return value of `mrb_fiber_yield()` must be returned as is.
+ *
+ *           return mrb_fiber_yield(mrb, argc, argv);
  */
 MRB_API mrb_value mrb_fiber_yield(mrb_state *mrb, mrb_int argc, const mrb_value *argv);
 

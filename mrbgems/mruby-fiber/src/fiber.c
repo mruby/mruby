@@ -259,6 +259,9 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
  *  to the next <code>Fiber.yield</code> statement inside the fiber's block
  *  or to the block value if it runs to completion without any
  *  <code>Fiber.yield</code>
+ *
+ *  This method cannot be called from C using <code>mrb_funcall()</code>.
+ *  Use <code>mrb_fiber_resume()</code> function instead.
  */
 static mrb_value
 fiber_resume(mrb_state *mrb, mrb_value self)
@@ -275,7 +278,6 @@ fiber_resume(mrb_state *mrb, mrb_value self)
   return fiber_switch(mrb, self, len, a, TRUE, vmexec);
 }
 
-/* resume thread with given arguments */
 MRB_API mrb_value
 mrb_fiber_resume(mrb_state *mrb, mrb_value fib, mrb_int len, const mrb_value *a)
 {
@@ -344,8 +346,6 @@ fiber_transfer(mrb_state *mrb, mrb_value self)
   return fiber_switch(mrb, self, len, a, FALSE, FALSE);
 }
 
-/* yield values to the caller fiber */
-/* mrb_fiber_yield() must be called as `return mrb_fiber_yield(...)` */
 MRB_API mrb_value
 mrb_fiber_yield(mrb_state *mrb, mrb_int len, const mrb_value *a)
 {
@@ -380,6 +380,9 @@ mrb_fiber_yield(mrb_state *mrb, mrb_int len, const mrb_value *a)
  *
  *  mruby limitation: Fiber resume/yield cannot cross C function boundary.
  *  thus you cannot yield from #initialize which is called by mrb_funcall().
+ *
+ *  This method cannot be called from C using <code>mrb_funcall()</code>.
+ *  Use <code>mrb_fiber_yield()</code> function instead.
  */
 static mrb_value
 fiber_yield(mrb_state *mrb, mrb_value self)
