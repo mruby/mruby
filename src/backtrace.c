@@ -100,7 +100,7 @@ static void
 print_backtrace(mrb_state *mrb, struct RObject *exc, struct RArray *backtrace)
 {
   mrb_int i;
-  mrb_int n = ARY_LEN(backtrace);
+  mrb_int n = (backtrace ? ARY_LEN(backtrace) : 0);
   mrb_value *loc, mesg;
 
   if (n != 0) {
@@ -117,9 +117,19 @@ print_backtrace(mrb_state *mrb, struct RObject *exc, struct RArray *backtrace)
       fprintf(stderr, "%.*s: ", (int)RSTRING_LEN(*loc), RSTRING_PTR(*loc));
     }
   }
-  mesg = mrb_exc_inspect(mrb, mrb_obj_value(exc));
-  fwrite(RSTRING_PTR(mesg), RSTRING_LEN(mesg), 1, stderr);
-  fputc('\n', stderr);
+  else {
+    fprintf(stderr, "%s:0: ", "(unknown)");
+  }
+
+  if (exc == mrb->nomem_err) {
+    static const char nomem[] = "Out of memory (NoMemoryError)\n";
+    fwrite(nomem, sizeof(nomem) - 1, 1, stderr);
+  }
+  else {
+    mesg = mrb_exc_inspect(mrb, mrb_obj_value(exc));
+    fwrite(RSTRING_PTR(mesg), RSTRING_LEN(mesg), 1, stderr);
+    fputc('\n', stderr);
+  }
 }
 
 /* mrb_print_backtrace
@@ -130,13 +140,12 @@ print_backtrace(mrb_state *mrb, struct RObject *exc, struct RArray *backtrace)
 MRB_API void
 mrb_print_backtrace(mrb_state *mrb)
 {
-  if (!mrb->exc) {
+  if (!mrb->exc || mrb->exc->tt != MRB_TT_EXCEPTION) {
     return;
   }
 
   struct RObject *backtrace = ((struct RException*)mrb->exc)->backtrace;
-  if (!backtrace) return;
-  if (backtrace->tt != MRB_TT_ARRAY) backtrace = mrb_unpack_backtrace(mrb, backtrace);
+  if (backtrace && backtrace->tt != MRB_TT_ARRAY) backtrace = mrb_unpack_backtrace(mrb, backtrace);
   print_backtrace(mrb, mrb->exc, (struct RArray*)backtrace);
 }
 #else

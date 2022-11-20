@@ -195,7 +195,7 @@ static mrb_noreturn void
 exc_throw(mrb_state *mrb, mrb_value exc)
 {
   if (!mrb->jmp) {
-    mrb_p(mrb, exc);
+    mrb_print_error(mrb);
     abort();
   }
   MRB_THROW(mrb->jmp);
@@ -576,7 +576,7 @@ mrb_core_init_protect(mrb_state *mrb, void (*body)(mrb_state *, void *), void *o
     err = 0;
   } MRB_CATCH(&c_jmp) {
     if (mrb->exc) {
-      mrb_p(mrb, mrb_obj_value(mrb->exc));
+      mrb_print_error(mrb);
       mrb->exc = NULL;
     }
     else {
