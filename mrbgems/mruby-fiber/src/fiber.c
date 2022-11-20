@@ -1,6 +1,7 @@
 #include <mruby.h>
 #include <mruby/array.h>
 #include <mruby/class.h>
+#include <mruby/error.h>
 #include <mruby/proc.h>
 
 #define fiber_ptr(o) ((struct RFiber*)mrb_ptr(o))
@@ -173,6 +174,26 @@ fiber_switch_context(mrb_state *mrb, struct mrb_context *c)
   mrb->c = c;
 }
 
+/*
+ * Argument mesg is limited to a string literal or "static const" string.
+ * Also, it must be called as `return fiber_error(...)`.
+ */
+static mrb_value
+fiber_error(mrb_state *mrb, const char *mesg)
+{
+  mrb_value str = mrb_str_new_static(mrb, mesg, strlen(mesg));
+  mrb_value exc = mrb_exc_new_str(mrb, E_FIBER_ERROR, str);
+
+  if (mrb->jmp) {
+    mrb_exc_raise(mrb, exc);
+  }
+
+  mrb->exc = mrb_obj_ptr(exc);
+
+  return exc;
+}
+
+/* This function must be called as `return fiber_switch(...)` */
 static mrb_value
 fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mrb_bool resume, mrb_bool vmexec)
 {
@@ -186,15 +207,15 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
   switch (status) {
   case MRB_FIBER_TRANSFERRED:
     if (resume) {
-      mrb_raise(mrb, E_FIBER_ERROR, "resuming transferred fiber");
+      return fiber_error(mrb, "resuming transferred fiber");
     }
     break;
   case MRB_FIBER_RUNNING:
   case MRB_FIBER_RESUMED:
-    mrb_raise(mrb, E_FIBER_ERROR, "double resume");
+    return fiber_error(mrb, "double resume");
     break;
   case MRB_FIBER_TERMINATED:
-    mrb_raise(mrb, E_FIBER_ERROR, "resuming dead fiber");
+    return fiber_error(mrb, "resuming dead fiber");
     break;
   default:
     break;
@@ -206,7 +227,7 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
     mrb_value *b, *e;
 
     if (!c->ci->proc) {
-      mrb_raise(mrb, E_FIBER_ERROR, "double resume (current)");
+      return fiber_error(mrb, "double resume (current)");
     }
     if (vmexec) {
       c->ci--;                    /* pop dummy callinfo */
