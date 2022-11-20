@@ -1,3 +1,5 @@
+MRuby.autoload :Documentation, 'mruby/doc'
+
 desc 'generate document'
 task :doc => %w[doc:api doc:capi]
 
@@ -60,6 +62,18 @@ namespace :doc do
         sh 'xdg-open doc/capi/html/index.html'
       end
     end
+  end
+
+  desc 'update doc/internal/opcode.md'
+  task 'update-opcode.md' do
+    unless system(*%W(git --git-dir #{MRUBY_ROOT}/.git --work-tree #{MRUBY_ROOT} diff --quiet @ -- doc/internal/opcode.md))
+      abort <<~'ERRMESG'
+        The file "doc/internal/opcode.md" has been modified but not committed.
+        To avoid loss of your edits, the automatic update process has been aborted.
+      ERRMESG
+    end
+
+    MRuby::Documentation.update_opcode_md
   end
 end
 

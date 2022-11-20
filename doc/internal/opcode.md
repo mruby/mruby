@@ -59,6 +59,8 @@ sign) of operands.
 | `OP_SETMCNST`      | `BB`           | `R(a+1)::Syms(b) = R(a)`                                   |
 | `OP_GETUPVAR`      | `BBB`          | `R(a) = uvget(b,c)`                                        |
 | `OP_SETUPVAR`      | `BBB`          | `uvset(b,c,R(a))`                                          |
+| `OP_GETIDX`        | `B`            | `R(a) = R(a)[R(a+1)]`                                      |
+| `OP_SETIDX`        | `B`            | `R(a)[R(a+1)] = R(a+2)`                                    |
 | `OP_JMP`           | `S`            | `pc+=a`                                                    |
 | `OP_JMPIF`         | `BS`           | `if R(a) pc+=b`                                            |
 | `OP_JMPNOT`        | `BS`           | `if !R(a) pc+=b`                                           |
@@ -67,8 +69,10 @@ sign) of operands.
 | `OP_EXCEPT`        | `B`            | `R(a) = exc`                                               |
 | `OP_RESCUE`        | `BB`           | `R(b) = R(a).isa?(R(b))`                                   |
 | `OP_RAISEIF`       | `B`            | `raise(R(a)) if R(a)`                                      |
-| `OP_SEND`          | `BBB`          | `R(a) = call(R(a),Syms(b),R(a+1),...,R(a+c))`              |
-| `OP_SENDB`         | `BBB`          | `R(a) = call(R(a),Syms(b),R(a+1),...,R(a+c),&R(a+c+1))`    |
+| `OP_SSEND`         | `BBB`          | `R(a) = self.send(Syms(b),R(a+1)..,R(a+n+1):R(a+n+2)..) (c=n|k<<4)` |
+| `OP_SSENDB`        | `BBB`          | `R(a) = self.send(Syms(b),R(a+1)..,R(a+n+1):R(a+n+2)..,&R(a+n+2k+1))` |
+| `OP_SEND`          | `BBB`          | `R(a) = R(a).send(Syms(b),R(a+1)..,R(a+n+1):R(a+n+2)..) (c=n|k<<4)` |
+| `OP_SENDB`         | `BBB`          | `R(a) = R(a).send(Syms(b),R(a+1)..,R(a+n+1):R(a+n+2)..,&R(a+n+2k+1))` |
 | `OP_CALL`          | `-`            | `R(0) = self.call(frame.argc, frame.argv)`                 |
 | `OP_SUPER`         | `BB`           | `R(a) = super(R(a+1),... ,R(a+b+1))`                       |
 | `OP_ARGARY`        | `BS`           | `R(a) = argument array (16=m5:r1:m5:d1:lv4)`               |
@@ -100,6 +104,7 @@ sign) of operands.
 | `OP_ASET`          | `BBB`          | `R(b)[c] = R(a)`                                           |
 | `OP_APOST`         | `BBB`          | `*R(a),R(a+1)..R(a+c) = R(a)[b..]`                         |
 | `OP_INTERN`        | `B`            | `R(a) = intern(R(a))`                                      |
+| `OP_SYMBOL`        | `BB`           | `R(a) = intern(Pool(b))`                                   |
 | `OP_STRING`        | `BB`           | `R(a) = str_dup(Pool(b))`                                  |
 | `OP_STRCAT`        | `B`            | `str_cat(R(a),R(a+1))`                                     |
 | `OP_HASH`          | `BB`           | `R(a) = hash_new(R(a),R(a+1)..R(a+b*2-1))`                 |
@@ -113,7 +118,7 @@ sign) of operands.
 | `OP_OCLASS`        | `B`            | `R(a) = ::Object`                                          |
 | `OP_CLASS`         | `BB`           | `R(a) = newclass(R(a),Syms(b),R(a+1))`                     |
 | `OP_MODULE`        | `BB`           | `R(a) = newmodule(R(a),Syms(b))`                           |
-| `OP_EXEC`          | `BB`           | `R(a) = blockexec(R(a),Irep[b])`                           |
+| `OP_EXEC`          | `BB`           | `R(a) = blockexec(R(a),Irep(b))`                           |
 | `OP_DEF`           | `BB`           | `R(a).newmethod(Syms(b),R(a+1)); R(a) = Syms(b)`           |
 | `OP_ALIAS`         | `BB`           | `alias_method(target_class,Syms(a),Syms(b))`               |
 | `OP_UNDEF`         | `B`            | `undef_method(target_class,Syms(a))`                       |
@@ -121,8 +126,7 @@ sign) of operands.
 | `OP_TCLASS`        | `B`            | `R(a) = target_class`                                      |
 | `OP_DEBUG`         | `BBB`          | `print a,b,c`                                              |
 | `OP_ERR`           | `B`            | `raise(LocalJumpError, Pool(a))`                           |
-| `OP_EXT1`          | `-`            | `make 1st operand 16bit`                                   |
-| `OP_EXT2`          | `-`            | `make 2nd operand 16bit`                                   |
+| `OP_EXT1`          | `-`            | `make 1st operand (a) 16bit`                               |
+| `OP_EXT2`          | `-`            | `make 2nd operand (b) 16bit`                               |
 | `OP_EXT3`          | `-`            | `make 1st and 2nd operands 16bit`                          |
 | `OP_STOP`          | `-`            | `stop VM`                                                  |
-| ------------------ | -------------- | ---------------------------------------------------------- |
