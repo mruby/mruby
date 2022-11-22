@@ -105,25 +105,27 @@ print_backtrace(mrb_state *mrb, struct RObject *exc, struct RArray *backtrace)
 
   if (n != 0) {
     if (n > 1) {
-      fprintf(stderr, "trace (most recent call last):\n");
+      fputs("trace (most recent call last):\n", stderr);
     }
     for (i=n-1,loc=&ARY_PTR(backtrace)[i]; i>0; i--,loc--) {
       if (mrb_string_p(*loc)) {
-        fprintf(stderr, "\t[%d] %.*s\n",
-                (int)i, (int)RSTRING_LEN(*loc), RSTRING_PTR(*loc));
+        fprintf(stderr, "\t[%d] ", (int)i);
+        fwrite(RSTRING_PTR(*loc), (int)RSTRING_LEN(*loc), 1, stderr);
+        fputc('\n', stderr);
       }
     }
     if (mrb_string_p(*loc)) {
-      fprintf(stderr, "%.*s: ", (int)RSTRING_LEN(*loc), RSTRING_PTR(*loc));
+      fwrite(RSTRING_PTR(*loc), (int)RSTRING_LEN(*loc), 1, stderr);
+      fputs(": ", stderr);
     }
   }
   else {
-    fprintf(stderr, "%s:0: ", "(unknown)");
+    fputs("(unknown):0: ", stderr);
   }
 
   if (exc == mrb->nomem_err) {
     static const char nomem[] = "Out of memory (NoMemoryError)\n";
-    fwrite(nomem, sizeof(nomem) - 1, 1, stderr);
+    fwrite(nomem, sizeof(nomem)-1, 1, stderr);
   }
   else {
     mesg = mrb_exc_inspect(mrb, mrb_obj_value(exc));

@@ -346,7 +346,7 @@ main(int argc, char **argv)
     }
   }
   else {
-    fprintf(stderr, "Output file is required\n");
+    fputs("Output file is required\n", stderr);
     return EXIT_FAILURE;
   }
   result = dump_file(mrb, wfp, args.outfile, mrb_proc_ptr(load), &args);

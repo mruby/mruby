@@ -290,7 +290,7 @@ main(int argc, char **argv)
   /* new interpreter instance */
   mrb = mrb_open();
   if (mrb == NULL) {
-    fprintf(stderr, "Invalid mrb_state, exiting test driver");
+    fputs("Invalid mrb_state, exiting test driver", stderr);
     return EXIT_FAILURE;
   }
 
