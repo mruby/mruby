@@ -526,9 +526,7 @@ mrb_struct_equal(mrb_state *mrb, mrb_value s)
   if (mrb_obj_class(mrb, s) != mrb_obj_class(mrb, s2)) {
     return mrb_false_value();
   }
-  if (RSTRUCT_LEN(s) != RSTRUCT_LEN(s2)) {
-    mrb_bug(mrb, "inconsistent struct"); /* should never happen */
-  }
+  mrb_assert(RSTRUCT_LEN(s) == RSTRUCT_LEN(s2));
   ptr = RSTRUCT_PTR(s);
   ptr2 = RSTRUCT_PTR(s2);
   len = RSTRUCT_LEN(s);
@@ -562,9 +560,7 @@ mrb_struct_eql(mrb_state *mrb, mrb_value s)
   if (mrb_obj_class(mrb, s) != mrb_obj_class(mrb, s2)) {
     return mrb_false_value();
   }
-  if (RSTRUCT_LEN(s) != RSTRUCT_LEN(s2)) {
-    mrb_bug(mrb, "inconsistent struct"); /* should never happen */
-  }
+  mrb_assert(RSTRUCT_LEN(s) == RSTRUCT_LEN(s2));
   ptr = RSTRUCT_PTR(s);
   ptr2 = RSTRUCT_PTR(s2);
   len = RSTRUCT_LEN(s);
