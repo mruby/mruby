@@ -228,8 +228,8 @@ mrb_fd_cloexec(mrb_state *mrb, int fd)
   int flags, flags2;
 
   flags = fcntl(fd, F_GETFD);
-  if (flags == -1) {
-    mrb_bug(mrb, "mrb_fd_cloexec: fcntl(%d, F_GETFD) failed: %d", fd, errno);
+  if (flags < 0) {
+    mrb_sys_fail(mrb, "cloexec GETFD");
   }
   if (fd <= 2) {
     flags2 = flags & ~FD_CLOEXEC; /* Clear CLOEXEC for standard file descriptors: 0, 1, 2. */
@@ -238,8 +238,8 @@ mrb_fd_cloexec(mrb_state *mrb, int fd)
     flags2 = flags | FD_CLOEXEC; /* Set CLOEXEC for non-standard file descriptors: 3, 4, 5, ... */
   }
   if (flags != flags2) {
-    if (fcntl(fd, F_SETFD, flags2) == -1) {
-      mrb_bug(mrb, "mrb_fd_cloexec: fcntl(%d, F_SETFD, %d) failed: %d", fd, flags2, errno);
+    if (fcntl(fd, F_SETFD, flags2) < 0) {
+      mrb_sys_fail(mrb, "cloexec SETFD");
     }
   }
 #endif
