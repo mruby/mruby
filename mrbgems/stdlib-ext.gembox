@@ -13,6 +13,9 @@ MRuby::GemBox.new do |conf|
   # Use standard Struct class
   conf.gem :core => "mruby-struct"
 
+  # Use standard Data class
+  conf.gem :core => "mruby-data"
+
   # Use Random class
   conf.gem :core => "mruby-random"
 end
