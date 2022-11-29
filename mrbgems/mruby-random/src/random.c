@@ -264,9 +264,9 @@ mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
   if (RARRAY_LEN(ary) > 1) {
     mrb_int i, max;
     rand_state *random;
-    mrb_sym knames[3] = {MRB_SYM(random)};
+    mrb_sym kname = MRB_SYM(random);
     mrb_value r;
-    const mrb_kwargs kw = {1, 0, knames, &r, NULL};
+    const mrb_kwargs kw = {1, 0, &kname, &r, NULL};
 
     mrb_get_args(mrb, ":", &kw);
     random = check_random_arg(mrb, r);
@@ -326,9 +326,9 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
   mrb_bool given;
   rand_state *random;
   mrb_int len;
-  mrb_sym knames[3] = {MRB_SYM(random)};
+  mrb_sym kname = MRB_SYM(random);
   mrb_value r;
-  const mrb_kwargs kw = {1, 0, knames, &r, NULL};
+  const mrb_kwargs kw = {1, 0, &kname, &r, NULL};
 
   mrb_get_args(mrb, "|i?:", &n, &given, &kw);
   random = check_random_arg(mrb, r);
