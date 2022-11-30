@@ -111,11 +111,10 @@ static void
 make_data_define_accessors(mrb_state *mrb, mrb_value members, struct RClass *c)
 {
   const mrb_value *ptr_members = RARRAY_PTR(members);
-  mrb_int i;
   mrb_int len = RARRAY_LEN(members);
   int ai = mrb_gc_arena_save(mrb);
 
-  for (i=0; i<len; i++) {
+  for (mrb_int i=0; i<len; i++) {
     mrb_sym id = mrb_symbol(ptr_members[i]);
     mrb_method_t m;
     mrb_value at = mrb_fixnum_value(i);
@@ -257,7 +256,7 @@ mrb_data_equal(mrb_state *mrb, mrb_value s)
 {
   mrb_value s2 = mrb_get_arg1(mrb);
   mrb_value *ptr, *ptr2;
-  mrb_int i, len;
+  mrb_int len;
 
   if (mrb_obj_equal(mrb, s, s2)) {
     return mrb_true_value();
@@ -271,7 +270,7 @@ mrb_data_equal(mrb_state *mrb, mrb_value s)
   ptr = RDATA_PTR(s);
   ptr2 = RDATA_PTR(s2);
   len = RDATA_LEN(s);
-  for (i=0; i<len; i++) {
+  for (mrb_int i=0; i<len; i++) {
     if (!mrb_equal(mrb, ptr[i], ptr2[i])) {
       return mrb_false_value();
     }
@@ -292,7 +291,7 @@ mrb_data_eql(mrb_state *mrb, mrb_value s)
 {
   mrb_value s2 = mrb_get_arg1(mrb);
   mrb_value *ptr, *ptr2;
-  mrb_int i, len;
+  mrb_int len;
 
   if (mrb_obj_equal(mrb, s, s2)) {
     return mrb_true_value();
@@ -306,7 +305,7 @@ mrb_data_eql(mrb_state *mrb, mrb_value s)
   ptr = RDATA_PTR(s);
   ptr2 = RDATA_PTR(s2);
   len = RDATA_LEN(s);
-  for (i=0; i<len; i++) {
+  for (mrb_int i=0; i<len; i++) {
     if (!mrb_eql(mrb, ptr[i], ptr2[i])) {
       return mrb_false_value();
     }
@@ -325,13 +324,16 @@ static mrb_value
 mrb_data_to_h(mrb_state *mrb, mrb_value self)
 {
   mrb_value members, ret;
-  mrb_int i;
+  mrb_value *mems, *vals;
 
   members = data_members(mrb, self);
-  ret = mrb_hash_new_capa(mrb, RARRAY_LEN(members));
+  mems = RARRAY_PTR(members);
+  vals = RDATA_PTR(self);
 
-  for (i = 0; i < RARRAY_LEN(members); ++i) {
-    mrb_hash_set(mrb, ret, RARRAY_PTR(members)[i], RDATA_PTR(self)[i]);
+  ret = mrb_hash_new_capa(mrb, RARRAY_LEN(members));
+  mrb_int len = RARRAY_LEN(members);
+  for (mrb_int i=0; i<len; i++) {
+    mrb_hash_set(mrb, ret, mems[i], vals[i]);
   }
 
   return ret;
@@ -348,19 +350,23 @@ static mrb_value
 mrb_data_to_s(mrb_state *mrb, mrb_value self)
 {
   mrb_value members, ret;
-  mrb_value *ptr;
-  mrb_int i;
+  mrb_value *mems, *vals;
+  mrb_int mlen;
 
   members = data_members(mrb, self);
+  mlen = RARRAY_LEN(members);
+  mems = RARRAY_PTR(members);
+  vals = RDATA_PTR(self);
   ret = mrb_str_new_lit(mrb, "#<data ");
-  ptr = RDATA_PTR(self);
-  for (i=0; i < RARRAY_LEN(members); i++) {
+  int ai = mrb_gc_arena_save(mrb);
+  for (mrb_int i=0; i<mlen; i++) {
     mrb_int len;
-    const char *name = mrb_sym_name_len(mrb, mrb_symbol(RARRAY_PTR(members)[i]), &len);
+    const char *name = mrb_sym_name_len(mrb, mrb_symbol(mems[i]), &len);
     if (i>0) mrb_str_cat_lit(mrb, ret, ", ");
     mrb_str_cat(mrb, ret, name, len);
     mrb_str_cat_lit(mrb, ret, "=");
-    mrb_str_cat_str(mrb, ret, mrb_inspect(mrb, ptr[i]));
+    mrb_str_cat_str(mrb, ret, mrb_inspect(mrb, vals[i]));
+    mrb_gc_arena_restore(mrb, ai);
   }
   mrb_str_cat_lit(mrb, ret, ">");
 
