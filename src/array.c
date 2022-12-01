@@ -715,7 +715,7 @@ mrb_ary_unshift_m(mrb_state *mrb, mrb_value self)
   }
   len = ARY_LEN(a);
   if (alen > ARY_MAX_SIZE - len) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
+    ary_too_big(mrb);
   }
   if (ARY_SHARED_P(a)
       && a->as.heap.aux.shared->refcnt == 1 /* shared only referenced from this array */
