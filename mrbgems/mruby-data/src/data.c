@@ -125,21 +125,70 @@ make_data_define_accessors(mrb_state *mrb, mrb_value members, struct RClass *c)
   }
 }
 
+static mrb_value mrb_data_initialize(mrb_state *mrb, mrb_value self);
+
 static mrb_value
-make_data(mrb_state *mrb, mrb_value members, struct RClass *klass)
+mrb_data_new(mrb_state *mrb, mrb_value self)
 {
-  mrb_value nstr;
-  mrb_sym id;
+  struct RClass *c = mrb_class_ptr(self);
+  mrb_value members = data_s_members(mrb, c);
+  mrb_value *vals;
+
+  mrb_int n = RARRAY_LEN(members);
+  mrb_value *mems = RARRAY_PTR(members);
+  if (mrb->c->ci->nk > 0) {
+    mrb_value tmp = mrb_str_new(mrb, NULL, sizeof(mrb_sym)*n);
+    mrb_sym *knames = (mrb_sym*)RSTRING_PTR(tmp);
+    mrb_value m = mrb_ary_new_capa(mrb, n);
+    vals = RARRAY_PTR(m);
+    for (mrb_int i=0; i<n; i++) {
+      knames[i] = mrb_symbol(mems[i]);
+    }
+    const mrb_kwargs kw = {n, n, knames, vals, NULL};
+    mrb_get_args(mrb, ":", &kw);
+  }
+  else {
+    mrb_int argc;
+    mrb_get_args(mrb, "*!", &vals, &argc);
+    if (n != argc) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
+    }
+  }
+
+  struct RArray* p = MRB_OBJ_ALLOC(mrb, MRB_TT_STRUCT, c);
+  mrb_value data = mrb_obj_value(p);
+  if (!mrb_func_basic_p(mrb, data, MRB_SYM(initialize), mrb_data_initialize)) {
+    /* overridden initialize - create hash and call initialize explicitly */
+    mrb_value hash = mrb_hash_new_capa(mrb, n);
+    for (mrb_int i=0; i<n; i++) {
+      mrb_hash_set(mrb, hash, mems[i], vals[i]);
+    }
+    mrb_funcall_argv(mrb, data, MRB_SYM(initialize), 1, &hash);
+  }
+  else {
+    /* default initialize - skip calling initialize */
+    mrb_ary_resize(mrb, data, n);
+    for (mrb_int i = 0; i < n; i++) {
+      mrb_ary_set(mrb, data, i, vals[i]);
+    }
+  }
+  return data;
+}
+
+static mrb_value
+make_data_class(mrb_state *mrb, mrb_value members, struct RClass *klass)
+{
   struct RClass *c = mrb_class_new(mrb, klass);
   MRB_SET_INSTANCE_TT(c, MRB_TT_STRUCT);
-  nstr = mrb_obj_value(c);
-  mrb_iv_set(mrb, nstr, MRB_SYM(__members__), members);
+  mrb_value data = mrb_obj_value(c);
+  mrb_iv_set(mrb, data, MRB_SYM(__members__), members);
 
-  mrb_define_class_method_id(mrb, c, MRB_SYM(new), mrb_instance_new, MRB_ARGS_ANY());
+  mrb_undef_class_method(mrb, c, "define");
+  mrb_define_class_method_id(mrb, c, MRB_SYM(new), mrb_data_new, MRB_ARGS_ANY());
   mrb_define_class_method_id(mrb, c, MRB_SYM(members), mrb_data_s_members_m, MRB_ARGS_NONE());
-  /* RSTRUCT(nstr)->basic.c->super = c->c; */
+  /* RSTRUCT(data)->basic.c->super = c->c; */
   make_data_define_accessors(mrb, members, c);
-  return nstr;
+  return data;
 }
 
 /*
@@ -164,8 +213,7 @@ static mrb_value
 mrb_data_s_def(mrb_state *mrb, mrb_value klass)
 {
   mrb_value rest;
-  mrb_int i;
-  mrb_value b, st;
+  mrb_value b, data;
   mrb_sym id;
   const mrb_value *argv;
   mrb_int argc;
@@ -176,44 +224,40 @@ mrb_data_s_def(mrb_state *mrb, mrb_value klass)
   }
   else {
     rest = mrb_ary_new_from_values(mrb, argc, argv);
-    for (i=0; i<argc; i++) {
+    for (mrb_int i=0; i<argc; i++) {
       id = mrb_obj_to_sym(mrb, RARRAY_PTR(rest)[i]);
       mrb_ary_set(mrb, rest, i, mrb_symbol_value(id));
     }
-    st = make_data(mrb, rest, mrb_class_ptr(klass));
+    data = make_data_class(mrb, rest, mrb_class_ptr(klass));
     if (!mrb_nil_p(b)) {
-      mrb_yield_with_class(mrb, b, 1, &st, st, mrb_class_ptr(st));
+      mrb_yield_with_class(mrb, b, 1, &data, data, mrb_class_ptr(data));
     }
-
-    return st;
+    return data;
   }
   /* not reached */
   return mrb_nil_value();
-}
-
-static mrb_int
-num_members(mrb_state *mrb, struct RClass *klass)
-{
-  mrb_value members = data_s_members(mrb, klass);
-  return RARRAY_LEN(members);
 }
 
 static mrb_value
 mrb_data_initialize(mrb_state *mrb, mrb_value self)
 {
   struct RClass *klass = mrb_obj_class(mrb, self);
-  const mrb_value *argv;
-  mrb_int argc;
-  mrb_int i, n;
+  mrb_value members = data_s_members(mrb, klass);
 
-  mrb_get_args(mrb, "*!", &argv, &argc);
-  n = num_members(mrb, klass);
-  if (n != argc) {
+  mrb_int n = RARRAY_LEN(members);
+  mrb_value hash;
+  mrb_get_args(mrb, "H", &hash);
+  if (mrb_hash_size(mrb, hash) != n) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
   }
+  mrb_ary_resize(mrb, self, n);
 
-  for (i = 0; i < argc; i++) {
-    mrb_ary_set(mrb, self, i, argv[i]);
+  mrb_value *mems = RARRAY_PTR(members);
+  for (mrb_int i = 0; i < n; i++) {
+    if (!mrb_hash_key_p(mrb, hash, mems[i])) {
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "undefined data member %v", mems[i]);
+    }
+    mrb_ary_set(mrb, self, i, mrb_hash_get(mrb, hash, mems[i]));
   }
   return self;
 }
