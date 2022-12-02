@@ -331,7 +331,7 @@ option_to_fd(mrb_state *mrb, mrb_value v)
   if (mrb_nil_p(v)) return -1;
 
   switch (mrb_type(v)) {
-    case MRB_TT_DATA: /* IO */
+    case MRB_TT_CDATA: /* IO */
       return mrb_io_fileno(mrb, v);
     case MRB_TT_INTEGER:
       return (int)mrb_integer(v);
@@ -1537,7 +1537,7 @@ mrb_init_io(mrb_state *mrb)
   struct RClass *io;
 
   io      = mrb_define_class(mrb, "IO", mrb->object_class);
-  MRB_SET_INSTANCE_TT(io, MRB_TT_DATA);
+  MRB_SET_INSTANCE_TT(io, MRB_TT_CDATA);
 
   mrb_include_module(mrb, io, mrb_module_get(mrb, "Enumerable")); /* 15.2.20.3 */
   mrb_define_class_method(mrb, io, "_popen",  mrb_io_s_popen,   MRB_ARGS_ARG(1,2));

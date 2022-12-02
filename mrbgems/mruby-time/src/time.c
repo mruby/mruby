@@ -1021,7 +1021,7 @@ mrb_mruby_time_gem_init(mrb_state* mrb)
   struct RClass *tc;
   /* ISO 15.2.19.2 */
   tc = mrb_define_class(mrb, "Time", mrb->object_class);
-  MRB_SET_INSTANCE_TT(tc, MRB_TT_DATA);
+  MRB_SET_INSTANCE_TT(tc, MRB_TT_CDATA);
   mrb_include_module(mrb, tc, mrb_module_get(mrb, "Comparable"));
   mrb_define_class_method(mrb, tc, "at", mrb_time_at_m, MRB_ARGS_ARG(1, 1));      /* 15.2.19.6.1 */
   mrb_define_class_method(mrb, tc, "gm", mrb_time_gm, MRB_ARGS_ARG(1,6));       /* 15.2.19.6.2 */

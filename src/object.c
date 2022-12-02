@@ -378,7 +378,7 @@ mrb_type_convert_check(mrb_state *mrb, mrb_value val, enum mrb_vtype type, mrb_s
 {
   mrb_value v;
 
-  if (mrb_type(val) == type && type != MRB_TT_DATA && type != MRB_TT_ISTRUCT) return val;
+  if (mrb_type(val) == type && type != MRB_TT_CDATA && type != MRB_TT_ISTRUCT) return val;
   v = convert_type(mrb, val, type_name(type), method, FALSE);
   if (mrb_nil_p(v) || mrb_type(v) != type) return mrb_nil_value();
   return v;

@@ -696,7 +696,7 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
     /* fall through */
 
   case MRB_TT_OBJECT:
-  case MRB_TT_DATA:
+  case MRB_TT_CDATA:
     mrb_gc_mark_iv(mrb, (struct RObject*)obj);
     break;
 
@@ -891,7 +891,7 @@ obj_free(mrb_state *mrb, struct RBasic *obj, int end)
     mrb_gc_free_range(mrb, ((struct RRange*)obj));
     break;
 
-  case MRB_TT_DATA:
+  case MRB_TT_CDATA:
     {
       struct RData *d = (struct RData*)obj;
       if (d->type && d->type->dfree) {
@@ -1010,7 +1010,7 @@ gc_gray_counts(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
     break;
 
   case MRB_TT_OBJECT:
-  case MRB_TT_DATA:
+  case MRB_TT_CDATA:
     children += mrb_gc_mark_iv_size(mrb, (struct RObject*)obj);
     break;
 

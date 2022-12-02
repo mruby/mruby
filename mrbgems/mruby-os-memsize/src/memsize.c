@@ -150,7 +150,7 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj)
       size += mrb_bint_memsize(obj);
       /* fall through */
 #endif
-    case MRB_TT_DATA:
+    case MRB_TT_CDATA:
     case MRB_TT_ISTRUCT:
       size += mrb_objspace_page_slot_size();
       break;

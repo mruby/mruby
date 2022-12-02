@@ -16,7 +16,7 @@ mrb_data_object_alloc(mrb_state *mrb, struct RClass *klass, void *ptr, const mrb
 {
   struct RData *data;
 
-  data = MRB_OBJ_ALLOC(mrb, MRB_TT_DATA, klass);
+  data = MRB_OBJ_ALLOC(mrb, MRB_TT_CDATA, klass);
   data->data = ptr;
   data->type = type;
 
@@ -27,7 +27,7 @@ MRB_API void
 mrb_data_check_type(mrb_state *mrb, mrb_value obj, const mrb_data_type *type)
 {
   if (!mrb_data_p(obj)) {
-    mrb_check_type(mrb, obj, MRB_TT_DATA);
+    mrb_check_type(mrb, obj, MRB_TT_CDATA);
   }
   if (DATA_TYPE(obj) != type) {
     const mrb_data_type *t2 = DATA_TYPE(obj);
@@ -137,7 +137,7 @@ mrb_obj_id(mrb_value obj)
   case MRB_TT_HASH:
   case MRB_TT_RANGE:
   case MRB_TT_EXCEPTION:
-  case MRB_TT_DATA:
+  case MRB_TT_CDATA:
   case MRB_TT_ISTRUCT:
   default:
     return MakeID(mrb_ptr(obj), tt);
