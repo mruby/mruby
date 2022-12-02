@@ -425,7 +425,7 @@ mrb_data_to_s(mrb_state *mrb, mrb_value self)
  *  class as "<i>Customer</i>Inst."
  *
  *  In the descriptions that follow, the parameter <i>symbol</i> refers
- *  to a symbol, which is a <code>Symbol</code> (such as <code>:name</code>).
+ *  to a symbol (such as <code>:name</code>).
  */
 void
 mrb_mruby_data_gem_init(mrb_state* mrb)
