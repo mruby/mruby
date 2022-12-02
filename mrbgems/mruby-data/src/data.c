@@ -18,7 +18,7 @@
 #define RDATA_LEN(st) RARRAY_LEN(st)
 #define RDATA_PTR(st) RARRAY_PTR(st)
 
-#define mrb_dataobj_p(o) (mrb_type(o) == MRB_TT_STRUCT)
+#define data_p(o) (mrb_type(o) == MRB_TT_STRUCT)
 
 static struct RClass *
 data_class(mrb_state *mrb)
@@ -56,7 +56,7 @@ data_s_members(mrb_state *mrb, struct RClass *c)
 static mrb_value
 data_members(mrb_state *mrb, mrb_value obj)
 {
-  if (!mrb_dataobj_p(obj) || RDATA_LEN(obj) == 0) {
+  if (!data_p(obj) || RDATA_LEN(obj) == 0) {
     data_corrupted(mrb);
   }
   mrb_value members = data_s_members(mrb, mrb_obj_class(mrb, obj));
@@ -69,14 +69,10 @@ data_members(mrb_state *mrb, mrb_value obj)
 }
 
 static mrb_value
-mrb_data_s_members_m(mrb_state *mrb, mrb_value klass)
+mrb_data_s_members(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value members, ary;
-
-  members = data_s_members(mrb, mrb_class_ptr(klass));
-  ary = mrb_ary_new_capa(mrb, RARRAY_LEN(members));
-  mrb_ary_replace(mrb, ary, members);
-  return ary;
+  mrb_value members = data_s_members(mrb, mrb_class_ptr(klass));
+  return mrb_ary_new_from_values(mrb, RARRAY_LEN(members), RARRAY_PTR(members));
 }
 
 /*
@@ -94,7 +90,7 @@ mrb_data_s_members_m(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_data_members(mrb_state *mrb, mrb_value obj)
 {
-  return mrb_data_s_members_m(mrb, mrb_obj_value(mrb_obj_class(mrb, obj)));
+  return mrb_data_s_members(mrb, mrb_obj_value(mrb_obj_class(mrb, obj)));
 }
 
 static mrb_value
@@ -185,7 +181,7 @@ make_data_class(mrb_state *mrb, mrb_value members, struct RClass *klass)
 
   mrb_undef_class_method(mrb, c, "define");
   mrb_define_class_method_id(mrb, c, MRB_SYM(new), mrb_data_new, MRB_ARGS_ANY());
-  mrb_define_class_method_id(mrb, c, MRB_SYM(members), mrb_data_s_members_m, MRB_ARGS_NONE());
+  mrb_define_class_method_id(mrb, c, MRB_SYM(members), mrb_data_s_members, MRB_ARGS_NONE());
   /* RSTRUCT(data)->basic.c->super = c->c; */
   make_data_define_accessors(mrb, members, c);
   return data;
@@ -271,7 +267,7 @@ mrb_data_init_copy(mrb_state *mrb, mrb_value copy)
   if (!mrb_obj_is_instance_of(mrb, s, mrb_obj_class(mrb, copy))) {
     mrb_raise(mrb, E_TYPE_ERROR, "wrong argument class");
   }
-  if (!mrb_dataobj_p(s)) {
+  if (!data_p(s)) {
     mrb_raise(mrb, E_TYPE_ERROR, "corrupted Data");
   }
   mrb_ary_replace(mrb, copy, s);
