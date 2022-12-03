@@ -167,6 +167,7 @@ mrb_data_new(mrb_state *mrb, mrb_value self)
     for (mrb_int i = 0; i < n; i++) {
       mrb_ary_set(mrb, data, i, vals[i]);
     }
+    mrb_obj_freeze(mrb, data);
   }
   return data;
 }
@@ -255,6 +256,7 @@ mrb_data_initialize(mrb_state *mrb, mrb_value self)
     }
     mrb_ary_set(mrb, self, i, mrb_hash_get(mrb, hash, mems[i]));
   }
+  mrb_obj_freeze(mrb, self);
   return self;
 }
 
@@ -271,6 +273,7 @@ mrb_data_init_copy(mrb_state *mrb, mrb_value copy)
     mrb_raise(mrb, E_TYPE_ERROR, "corrupted Data");
   }
   mrb_ary_replace(mrb, copy, s);
+  mrb_obj_freeze(mrb, copy);
   return copy;
 }
 
