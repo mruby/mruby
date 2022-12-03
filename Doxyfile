@@ -17,12 +17,14 @@ OUTPUT_DIRECTORY       = doc/capi
 USE_MDFILE_AS_MAINPAGE = README.md
 
 INPUT                  = README.md \
+                         SECURITY.md \
                          src \
                          include \
                          include/mruby \
                          mrblib \
                          doc \
-                         doc/guides
+                         doc/guides \
+                         doc/internal
 
 # Red for Ruby
 HTML_COLORSTYLE_HUE    = 359
