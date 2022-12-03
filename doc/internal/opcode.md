@@ -7,18 +7,22 @@ reducing the memory consumption of mruby VM.
 # Instructions
 
 Instructions are bytes. There can be 256 instructions. Currently, we
-have 94 instructions. Instructions can take 0 to 3 operands.
+have 106 instructions. Instructions can take 0 to 3 operands.
 
 ## operands
 
 The size of operands can be either 8bits, 16bits or 24bits.
-In the table.1 below, the second field describes the size (and
-sign) of operands.
+In the table.1 below, the second field describes the size
+of operands.
 
 - B: 8bit
 - S: 16bit
-- sS: signed 16bit
 - W: 24bit
+
+If the first and second operands are of type `B` (8bits), they may be
+extended to 16bits by the operand extension instruction immediately
+preceding them.
+See also `OP_EXT1`, `OP_EXT2` and `OP_EXT3`.
 
 ## table.1 Instruction Table
 
