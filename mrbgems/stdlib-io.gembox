@@ -9,4 +9,7 @@ MRuby::GemBox.new do |conf|
 
   # Use standard print/puts/p
   conf.gem :core => "mruby-print"
+
+  # Use errno extension for a good mruby-io/mruby-socket experience
+  conf.gem :core => "mruby-errno"
 end
