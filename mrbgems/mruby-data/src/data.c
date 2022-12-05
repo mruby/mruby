@@ -203,7 +203,7 @@ make_data_class(mrb_state *mrb, mrb_value members, struct RClass *klass)
  *  are defined for this generated class.
  *
  *     # Create a structure named by its constant
- *     Customer = Data.new(:name, :address)     #=> Customer
+ *     Customer = Data.define(:name, :address)  #=> Customer
  *     Customer.new("Dave", "123 Main")         #=> #<data name="Dave", address="123 Main">
  */
 static mrb_value
