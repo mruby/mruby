@@ -1016,7 +1016,7 @@ retry:
 #else
         mrb_value val = GETARG();
         double fval;
-        int need = 6;
+        mrb_int need = 6;
 
         fval = mrb_as_float(mrb, val);
         if (!isfinite(fval)) {
