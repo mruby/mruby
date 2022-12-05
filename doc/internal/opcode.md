@@ -69,9 +69,9 @@ sign) of operands.
 | `OP_EXCEPT`        | `B`            | `R(a) = exc`                                               |
 | `OP_RESCUE`        | `BB`           | `R(b) = R(a).isa?(R(b))`                                   |
 | `OP_RAISEIF`       | `B`            | `raise(R(a)) if R(a)`                                      |
-| `OP_SSEND`         | `BBB`          | `R(a) = self.send(Syms(b),R(a+1)..,R(a+n+1):R(a+n+2)..) (c=n|k<<4)` |
+| `OP_SSEND`         | `BBB`          | `R(a) = self.send(Syms(b),R(a+1)..,R(a+n+1):R(a+n+2)..) (c=n\|k<<4)` |
 | `OP_SSENDB`        | `BBB`          | `R(a) = self.send(Syms(b),R(a+1)..,R(a+n+1):R(a+n+2)..,&R(a+n+2k+1))` |
-| `OP_SEND`          | `BBB`          | `R(a) = R(a).send(Syms(b),R(a+1)..,R(a+n+1):R(a+n+2)..) (c=n|k<<4)` |
+| `OP_SEND`          | `BBB`          | `R(a) = R(a).send(Syms(b),R(a+1)..,R(a+n+1):R(a+n+2)..) (c=n\|k<<4)` |
 | `OP_SENDB`         | `BBB`          | `R(a) = R(a).send(Syms(b),R(a+1)..,R(a+n+1):R(a+n+2)..,&R(a+n+2k+1))` |
 | `OP_CALL`          | `-`            | `R(0) = self.call(frame.argc, frame.argv)`                 |
 | `OP_SUPER`         | `BB`           | `R(a) = super(R(a+1),... ,R(a+b+1))`                       |

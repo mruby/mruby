@@ -34,6 +34,7 @@ module MRuby
             cmt.sub!(/\s*#.*/, "")
             cmt.sub!(/\b(?=L_\w+\b)/, "OP_")
             cmt.gsub!(/\b(Irep|Pool|R|Syms)\[([^\[\]]+)\]/, "\\1(\\2)")
+            cmt.gsub!(/[\\\|]/) { |m| "\\#{m}" } # Ruby-2.5 is not support "Numbered block parameter"
           end
           spec = opspecs[opr] or raise "unknown operand type: #{opr}"
           item = format(%(| %-18s | %-14s | %-58s |\n), "`OP_#{ins}`", "`#{spec[:modified] || opr}`", cmt && "`#{cmt}`")
