@@ -1131,24 +1131,26 @@ final_marking_phase(mrb_state *mrb, mrb_gc *gc)
   }
   mrb_gc_mark(mrb, (struct RBasic*)mrb->exc);
 
-  gc_mark_gray_list(mrb, gc);
-  mrb_assert(gc->gray_list == NULL);
-  gc->gray_list = gc->atomic_gray_list;
-  gc->atomic_gray_list = NULL;
-  gc_mark_gray_list(mrb, gc);
-  mrb_assert(gc->gray_list == NULL);
-
   /* mark pre-allocated exception */
   clear_error_object(mrb, mrb->nomem_err);
   clear_error_object(mrb, mrb->stack_err);
 #ifdef MRB_GC_FIXED_ARENA
   clear_error_object(mrb, mrb->arena_err);
 #endif
+
+  gc_mark_gray_list(mrb, gc);
+  mrb_assert(gc->gray_list == NULL);
+  gc->gray_list = gc->atomic_gray_list;
+  gc->atomic_gray_list = NULL;
+  gc_mark_gray_list(mrb, gc);
+  mrb_assert(gc->gray_list == NULL);
 }
 
 static void
 prepare_incremental_sweep(mrb_state *mrb, mrb_gc *gc)
 {
+  //  mrb_assert(gc->atomic_gray_list == NULL);
+  //  mrb_assert(gc->gray_list == NULL);
   gc->state = MRB_GC_STATE_SWEEP;
   gc->sweeps = gc->heaps;
   gc->live_after_mark = gc->live;
