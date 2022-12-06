@@ -10,7 +10,7 @@ with the same API.
 For instance, you can link the following trivial program with either
 this code, or libgmp.a and get the same results.
 
-``` C
+```c
 #include <stdio.h>
 #include "gmp.h"
 main()
