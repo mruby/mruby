@@ -270,7 +270,7 @@ mrb_data_init_copy(mrb_state *mrb, mrb_value copy)
     mrb_raise(mrb, E_TYPE_ERROR, "wrong argument class");
   }
   if (!data_p(s)) {
-    mrb_raise(mrb, E_TYPE_ERROR, "corrupted Data");
+    data_corrupted(mrb);
   }
   mrb_ary_replace(mrb, copy, s);
   mrb_obj_freeze(mrb, copy);
