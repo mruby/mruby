@@ -27,6 +27,12 @@ struct_class(mrb_state *mrb)
   return mrb_class_get_id(mrb, MRB_SYM(Struct));
 }
 
+static void
+struct_corrupted(mrb_state *mrb)
+{
+  mrb_raise(mrb, E_TYPE_ERROR, "corrupted data");
+}
+
 static mrb_value
 struct_s_members(mrb_state *mrb, struct RClass *c)
 {
@@ -37,7 +43,7 @@ struct_s_members(mrb_state *mrb, struct RClass *c)
     members = mrb_iv_get(mrb, mrb_obj_value(c), MRB_SYM(__members__));
     if (!mrb_nil_p(members)) {
       if (!mrb_array_p(members)) {
-        mrb_raise(mrb, E_TYPE_ERROR, "corrupted struct");
+        struct_corrupted(mrb);
       }
       break;
     }
@@ -53,7 +59,7 @@ static mrb_value
 struct_members(mrb_state *mrb, mrb_value s)
 {
   if (!mrb_struct_p(s) || RSTRUCT_LEN(s) == 0) {
-    mrb_raise(mrb, E_TYPE_ERROR, "corrupted struct");
+    struct_corrupted(mrb);
   }
   mrb_value members = struct_s_members(mrb, mrb_obj_class(mrb, s));
   if (RSTRUCT_LEN(s) != RARRAY_LEN(members)) {
@@ -343,7 +349,7 @@ mrb_struct_init_copy(mrb_state *mrb, mrb_value copy)
     mrb_raise(mrb, E_TYPE_ERROR, "wrong argument class");
   }
   if (!mrb_struct_p(s)) {
-    mrb_raise(mrb, E_TYPE_ERROR, "corrupted struct");
+    struct_corrupted(mrb);
   }
   mrb_ary_replace(mrb, copy, s);
   return copy;
