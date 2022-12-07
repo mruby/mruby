@@ -376,18 +376,24 @@ struct_aref_sym(mrb_state *mrb, mrb_value obj, mrb_sym id)
   return mrb_nil_value();       /* not reached */
 }
 
-static mrb_value
-struct_aref_int(mrb_state *mrb, mrb_value s, mrb_int i)
+static mrb_int
+struct_index(mrb_state *mrb, mrb_int i, mrb_int len)
 {
-  mrb_int idx = i < 0 ? RSTRUCT_LEN(s) + i : i;
+  mrb_int idx = i < 0 ? len + i : i;
 
   if (idx < 0)
     mrb_raisef(mrb, E_INDEX_ERROR,
-               "offset %i too small for struct(size:%i)", i, RSTRUCT_LEN(s));
-  if (RSTRUCT_LEN(s) <= idx)
+               "offset %i too small for struct(size:%i)", i, len);
+  if (len <= idx)
     mrb_raisef(mrb, E_INDEX_ERROR,
-               "offset %i too large for struct(size:%i)", i, RSTRUCT_LEN(s));
-  return RSTRUCT_PTR(s)[idx];
+               "offset %i too large for struct(size:%i)", i, len);
+  return idx;
+}
+
+static mrb_value
+struct_aref_int(mrb_state *mrb, mrb_value s, mrb_int i)
+{
+  return RSTRUCT_PTR(s)[struct_index(mrb, i, RSTRUCT_LEN(s))];
 }
 
 /* 15.2.18.4.2  */
@@ -486,16 +492,7 @@ mrb_struct_aset(mrb_state *mrb, mrb_value s)
     return mrb_struct_aset_sym(mrb, s, mrb_symbol(idx), val);
   }
 
-  i = mrb_as_int(mrb, idx);
-  if (i < 0) i = RSTRUCT_LEN(s) + i;
-  if (i < 0) {
-    mrb_raisef(mrb, E_INDEX_ERROR,
-               "offset %i too small for struct(size:%i)", i, RSTRUCT_LEN(s));
-  }
-  if (RSTRUCT_LEN(s) <= i) {
-    mrb_raisef(mrb, E_INDEX_ERROR,
-               "offset %i too large for struct(size:%i)", i, RSTRUCT_LEN(s));
-  }
+  i = struct_index(mrb, mrb_as_int(mrb, idx), RSTRUCT_LEN(s));
   mrb_struct_modify(mrb, s);
   mrb_field_write_barrier_value(mrb, mrb_basic_ptr(s), val);
   return RSTRUCT_PTR(s)[i] = val;
