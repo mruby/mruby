@@ -976,8 +976,8 @@ typedef const char *mrb_args_format;
  *
  *      // def method(a: 1, b: 2)
  *
- *      uint32_t kw_num = 2;
- *      uint32_t kw_required = 0;
+ *      mrb_int kw_num = 2;
+ *      mrb_int kw_required = 0;
  *      mrb_sym kw_names[] = { mrb_intern_lit(mrb, "a"), mrb_intern_lit(mrb, "b") };
  *      mrb_value kw_values[kw_num];
  *      mrb_kwargs kwargs = { kw_num, kw_required, kw_names, kw_values, NULL };
@@ -1007,8 +1007,8 @@ typedef struct mrb_kwargs mrb_kwargs;
 
 struct mrb_kwargs
 {
-  uint32_t num;                 /* number of keyword arguments */
-  uint32_t required;            /* number of required keyword arguments */
+  mrb_int num;                  /* number of keyword arguments */
+  mrb_int required;             /* number of required keyword arguments */
   const mrb_sym *table;         /* C array of symbols for keyword names */
   mrb_value *values;            /* keyword argument values */
   mrb_value *rest;              /* keyword rest (dict) */

@@ -1249,13 +1249,15 @@ get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list ap)
           rest = NULL;
         }
         else {
-          uint32_t kwnum = kwargs->num;
-          uint32_t required = kwargs->required;
+          mrb_int kwnum = kwargs->num;
+          mrb_int required = kwargs->required;
           const mrb_sym *kname = kwargs->table;
           mrb_value *values = kwargs->values;
           uint32_t j;
           const uint32_t keyword_max = 40;
 
+          mrb_assert(kwnum >= 0);
+          mrb_assert(required >= 0);
           if (kwnum > keyword_max || required > kwnum) {
             mrb_raise(mrb, E_ARGUMENT_ERROR, "keyword number is too large");
           }
