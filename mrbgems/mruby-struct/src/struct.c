@@ -393,7 +393,8 @@ struct_index(mrb_state *mrb, mrb_int i, mrb_int len)
 static mrb_value
 struct_aref_int(mrb_state *mrb, mrb_value s, mrb_int i)
 {
-  return RSTRUCT_PTR(s)[struct_index(mrb, i, RSTRUCT_LEN(s))];
+  mrb_int idx = struct_index(mrb, i, RSTRUCT_LEN(s));
+  return RSTRUCT_PTR(s)[idx];
 }
 
 /* 15.2.18.4.2  */
