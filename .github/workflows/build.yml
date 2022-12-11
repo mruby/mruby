@@ -6,87 +6,26 @@ permissions:
   contents: read
 
 jobs:
-  Ubuntu-2204-gcc:
-    runs-on: ubuntu-22.04
+  GCC-CLANG:
+    name: "${{ matrix.os }}-${{ matrix.altname || matrix.cc }}"
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        include:
+          - {os: ubuntu-22.04, cc: gcc, cxx: g++}
+          - {os: ubuntu-22.04, cc: clang, cxx: clang++}
+          - {os: ubuntu-20.04, cc: gcc, cxx: g++}
+          - {os: ubuntu-20.04, cc: clang, cxx: clang++}
+          - {os: macos-latest, cc: clang, cxx: clang++}
+          - {os: windows-latest, cc: gcc, cxx: g++, altname: "mingw-gcc"}
     env:
       MRUBY_CONFIG: ci/gcc-clang
-      CC: gcc
-    steps:
-      - uses: actions/checkout@v3
-      - name: Ruby version
-        run: ruby -v
-      - name: Compiler version
-        run: ${{ env.CC }} --version
-      - name: Build and test
-        run: rake -m test:build && rake test:run
-
-  Ubuntu-2204-clang:
-    runs-on: ubuntu-22.04
-    timeout-minutes: 10
-    env:
-      MRUBY_CONFIG: ci/gcc-clang
-      CC: clang
-    steps:
-      - uses: actions/checkout@v3
-      - name: Ruby version
-        run: ruby -v
-      - name: Compiler version
-        run: ${{ env.CC }} --version
-      - name: Build and test
-        run: rake -m test:build && rake test:run
-
-  Ubuntu-2004-gcc:
-    runs-on: ubuntu-20.04
-    timeout-minutes: 10
-    env:
-      MRUBY_CONFIG: ci/gcc-clang
-      CC: gcc
-    steps:
-      - uses: actions/checkout@v3
-      - name: Ruby version
-        run: ruby -v
-      - name: Compiler version
-        run: ${{ env.CC }} --version
-      - name: Build and test
-        run: rake -m test:build && rake test:run
-
-  Ubuntu-2004-clang:
-    runs-on: ubuntu-20.04
-    timeout-minutes: 10
-    env:
-      MRUBY_CONFIG: ci/gcc-clang
-      CC: clang
-    steps:
-      - uses: actions/checkout@v3
-      - name: Ruby version
-        run: ruby -v
-      - name: Compiler version
-        run: ${{ env.CC }} --version
-      - name: Build and test
-        run: rake -m test:build && rake test:run
-
-  macOS:
-    runs-on: macos-latest
-    timeout-minutes: 10
-    env:
-      MRUBY_CONFIG: ci/gcc-clang
-      CC: clang
-    steps:
-      - uses: actions/checkout@v3
-      - name: Ruby version
-        run: ruby -v
-      - name: Compiler version
-        run: ${{ env.CC }} --version
-      - name: Build and test
-        run: rake -m test:build && rake test:run
-
-  Windows-MinGW:
-    runs-on: windows-latest
-    timeout-minutes: 10
-    env:
-      MRUBY_CONFIG: ci/gcc-clang
-      CC: gcc
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
+      LD: ${{ matrix.cc }}
     steps:
       - uses: actions/checkout@v3
       - name: Ruby version
