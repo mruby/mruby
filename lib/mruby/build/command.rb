@@ -25,11 +25,7 @@ module MRuby
     end
 
     def shellquote(s)
-      if ENV['OS'] == 'Windows_NT'
-        "\"#{s}\""
-      else
-        "#{s}"
-      end
+      "\"#{s}\""
     end
 
     private
