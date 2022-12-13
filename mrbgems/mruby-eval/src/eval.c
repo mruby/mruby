@@ -177,15 +177,15 @@ f_instance_eval(mrb_state *mrb, mrb_value self)
     mrb_int len;
     const char *file = NULL;
     mrb_int line = 1;
-    mrb_value cv;
+    struct RClass *c;
     struct RProc *proc;
 
     mrb_get_args(mrb, "s|zi", &s, &len, &file, &line);
-    cv = mrb_singleton_class(mrb, self);
+    c = mrb_singleton_class_ptr(mrb, self);
     proc = create_proc_from_string(mrb, s, len, mrb_nil_value(), file, line);
-    MRB_PROC_SET_TARGET_CLASS(proc, mrb_class_ptr(cv));
+    MRB_PROC_SET_TARGET_CLASS(proc, c);
     mrb_assert(!MRB_PROC_CFUNC_P(proc));
-    mrb_vm_ci_target_class_set(mrb->c->ci, mrb_class_ptr(cv));
+    mrb_vm_ci_target_class_set(mrb->c->ci, c);
     return exec_irep(mrb, self, proc);
   }
   else {
