@@ -319,4 +319,11 @@ class Set
   end
   alias to_s inspect
 
+  def reset
+    if frozen?
+      raise FrozenError, "can't modify frozen Set"
+    else
+      @hash.rehash
+    end
+  end
 end
