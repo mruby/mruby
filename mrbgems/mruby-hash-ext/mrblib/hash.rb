@@ -428,12 +428,8 @@ class Hash
   #
   def transform_keys!(&block)
     return to_enum :transform_keys! unless block
-    self.keys.each do |k|
-      value = self[k]
-      self.__delete(k)
-      k = block.call(k) if block
-      self[k] = value
-    end
+    hash = self.transform_keys(&block)
+    self.replace(hash)
     self
   end
   ##
