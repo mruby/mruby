@@ -1290,7 +1290,7 @@ check_target_class(mrb_state *mrb)
 {
   struct RClass *target = CI_TARGET_CLASS(mrb->c->ci);
   if (!target) {
-    return mrb->object_class;
+    mrb_raise(mrb, E_TYPE_ERROR, "no class/module to add method");
   }
   return target;
 }
