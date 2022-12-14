@@ -1400,6 +1400,7 @@ mrb_field_write_barrier(mrb_state *mrb, struct RBasic *obj, struct RBasic *value
 {
   mrb_gc *gc = &mrb->gc;
 
+  if (!value) return;
   if (!is_black(obj)) return;
   if (!is_white(value)) return;
   if (is_red(value)) return;
