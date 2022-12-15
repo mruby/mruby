@@ -207,7 +207,7 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_LOADI__1, B):
-      printf("LOADI__1\tR%d\t\t", a);
+      printf("LOADI__1\tR%d\t(-1)\t", a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_LOADI_0, B): goto L_LOADI;
@@ -219,7 +219,8 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
     CASE(OP_LOADI_6, B): goto L_LOADI;
     CASE(OP_LOADI_7, B):
     L_LOADI:
-      printf("LOADI_%d\tR%d\t\t", ins-(int)OP_LOADI_0, a);
+      b = ins-(int)OP_LOADI_0;
+      printf("LOADI_%d\tR%d\t(%d)\t", b, a, b);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_LOADSYM, BB):
