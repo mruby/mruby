@@ -2651,6 +2651,10 @@ args            : arg
                       void_expr_error(p, $3);
                       $$ = push($1, $3);
                     }
+                | args comma tSTAR
+                    {
+                      $$ = push($1, new_splat(p, new_lvar(p, intern_op(mul))));
+                    }
                 | args comma tSTAR arg
                     {
                       $$ = push($1, new_splat(p, $4));
