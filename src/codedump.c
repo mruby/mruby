@@ -228,19 +228,19 @@ codedump(mrb_state *mrb, const mrb_irep *irep)
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_LOADNIL, B):
-      printf("LOADNIL\tR%d\t\t", a);
+      printf("LOADNIL\tR%d\t(nil)\t", a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_LOADSELF, B):
-      printf("LOADSELF\tR%d\t\t", a);
+      printf("LOADSELF\tR%d\t(R0)\t", a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_LOADT, B):
-      printf("LOADT\t\tR%d\t\t", a);
+      printf("LOADT\t\tR%d\t(true)\t", a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_LOADF, B):
-      printf("LOADF\t\tR%d\t\t", a);
+      printf("LOADF\t\tR%d\t(false)\t", a);
       print_lv_a(mrb, irep, a);
       break;
     CASE(OP_GETGV, BB):
