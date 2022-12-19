@@ -385,6 +385,21 @@
 #if defined(SO_TYPE)
   define_const(SO_TYPE);
 #endif
+#if defined(SO_INCOMING_CPU)
+  define_const(SO_INCOMING_CPU);
+#endif
+#if defined(SO_INCOMING_NAPI_ID)
+  define_const(SO_INCOMING_NAPI_ID);
+#endif
+#if defined(SO_RTABLE)
+  define_const(SO_RTABLE);
+#endif
+#if defined(SO_SETFIB)
+  define_const(SO_SETFIB);
+#endif
+#if defined(SO_USER_COOKIE)
+  define_const(SO_USER_COOKIE);
+#endif
 #if defined(SOCK_DGRAM)
   define_const(SOCK_DGRAM);
 #endif
@@ -456,4 +471,10 @@
 #endif
 #if defined(TCP_WINDOW_CLAMP)
   define_const(TCP_WINDOW_CLAMP);
+#endif
+#if defined(TCP_KEEPALIVE)
+  define_const(TCP_KEEPALIVE);
+#endif
+#if defined(TCP_CONNECTION_INFO)
+  define_const(TCP_CONNECTION_INFO);
 #endif
