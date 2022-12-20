@@ -3,7 +3,7 @@ assert('Dir') do
 end
 
 assert('DirTest.setup') do
-  DirTest.setup
+  assert_nothing_raised{DirTest.setup}
 end
 
 assert('Dir.chdir') do
@@ -66,6 +66,7 @@ end
 
 assert('Dir#close') do
   d = Dir.new(".")
+  assert_nothing_raised{d.close}
 end
 
 assert('Dir#each') do
@@ -132,5 +133,5 @@ assert('Dir#seek') do
 end
 
 assert('DirTest.teardown') do
-  DirTest.teardown
+  assert_nothing_raised{DirTest.teardown}
 end
