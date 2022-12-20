@@ -12,4 +12,7 @@ MRuby::GemBox.new do |conf|
 
   # Use errno extension for a good mruby-io/mruby-socket experience
   conf.gem :core => "mruby-errno"
+
+  # Use Dir class
+  conf.gem :core => "mruby-dir"
 end
