@@ -12,8 +12,8 @@ end
 
 assert('Dir.entries') do
   a = Dir.entries(DirTest.sandbox)
-  assert_true a.include? "a"
-  assert_true a.include? "b"
+  assert_true a.include?("a")
+  assert_true a.include?("b")
 end
 
 assert('Dir.exist?') do
@@ -24,8 +24,8 @@ end
 assert('Dir.foreach') do
   a = []
   Dir.foreach(DirTest.sandbox) { |s| a << s }
-  assert_true a.include? "a"
-  assert_true a.include? "b"
+  assert_true a.include?("a")
+  assert_true a.include?("b")
 end
 
 assert('Dir.getwd') do
@@ -54,13 +54,13 @@ assert('Dir.open') do
   Dir.open(DirTest.sandbox) { |d|
     d.each { |s| a << s }
   }
-  assert_true a.include? "a"
-  assert_true a.include? "b"
+  assert_true a.include?("a")
+  assert_true a.include?("b")
 end
 
 assert('Dir#initialize and Dir#close') do
   d = Dir.new(".")
-  assert_true d.instance_of? Dir
+  assert_true d.instance_of?(Dir)
   assert_nil d.close
 end
 
@@ -74,8 +74,8 @@ assert('Dir#each') do
   d = Dir.open(DirTest.sandbox)
   d.each { |s| a << s }
   d.close
-  assert_true a.include? "a"
-  assert_true a.include? "b"
+  assert_true a.include?("a")
+  assert_true a.include?("b")
 end
 
 assert('Dir#read') do
@@ -85,8 +85,8 @@ assert('Dir#read') do
     a << s
   end
   d.close
-  assert_true a.include? "a"
-  assert_true a.include? "b"
+  assert_true a.include?("a")
+  assert_true a.include?("b")
 end
 
 assert('Dir#rewind') do
