@@ -42,14 +42,13 @@ class Dir
     end
 
     def chdir(path, &block)
-      my = self # workaround for https://github.com/mruby/mruby/issues/1579
       if block
         wd = self.getwd
         begin
           self._chdir(path)
           block.call(path)
         ensure
-          my._chdir(wd)
+          self._chdir(wd)
         end
       else
         self._chdir(path)
