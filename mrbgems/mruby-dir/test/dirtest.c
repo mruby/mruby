@@ -47,7 +47,7 @@ mrb_dirtest_setup(mrb_state *mrb, mrb_value klass)
     rmdir(buf);
     mrb_raisef(mrb, E_RUNTIME_ERROR, "chdir(%S) failed", s);
   }
-  
+
   /* make some directories in the sandbox */
 #if defined(_WIN32) || defined(_WIN64)
   if (mkdir(aname) == -1) {
@@ -126,4 +126,3 @@ mrb_mruby_dir_gem_test(mrb_state *mrb)
   mrb_define_class_method(mrb, c, "setup", mrb_dirtest_setup, MRB_ARGS_NONE());
   mrb_define_class_method(mrb, c, "teardown", mrb_dirtest_teardown, MRB_ARGS_NONE());
 }
-
