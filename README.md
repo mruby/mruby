@@ -42,7 +42,13 @@ We don't have a mailing list, but you can use [GitHub issues](https://github.com
 
 ## How to compile, test, and install (mruby and gems)
 
-See the [compile.md](doc/guides/compile.md) file.
+For the simplest case, type
+
+```
+rake all test
+```
+
+See the [compile.md](doc/guides/compile.md) file for the detail.
 
 ## Building documentation
 
