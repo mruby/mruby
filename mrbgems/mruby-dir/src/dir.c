@@ -48,7 +48,7 @@ struct mrb_dir {
 void
 mrb_dir_free(mrb_state *mrb, void *ptr)
 {
-  struct mrb_dir *mdir = (struct mrb_dir *)ptr;
+  struct mrb_dir *mdir = (struct mrb_dir*)ptr;
 
   if (mdir->dir) {
     closedir(mdir->dir);
@@ -63,7 +63,7 @@ mrb_value
 mrb_dir_close(mrb_state *mrb, mrb_value self)
 {
   struct mrb_dir *mdir;
-  mdir = (struct mrb_dir *)mrb_get_datatype(mrb, self, &mrb_dir_type);
+  mdir = (struct mrb_dir*)mrb_get_datatype(mrb, self, &mrb_dir_type);
   if (!mdir) return mrb_nil_value();
   if (!mdir->dir) {
     mrb_raise(mrb, E_IO_ERROR, "closed directory");
@@ -83,14 +83,14 @@ mrb_dir_init(mrb_state *mrb, mrb_value self)
   mrb_value path;
   char *cpath;
 
-  mdir = (struct mrb_dir *)DATA_PTR(self);
+  mdir = (struct mrb_dir*)DATA_PTR(self);
   if (mdir) {
     mrb_dir_free(mrb, mdir);
   }
   DATA_TYPE(self) = &mrb_dir_type;
   DATA_PTR(self) = NULL;
 
-  mdir = (struct mrb_dir *)mrb_malloc(mrb, sizeof(*mdir));
+  mdir = (struct mrb_dir*)mrb_malloc(mrb, sizeof(*mdir));
   mdir->dir = NULL;
   DATA_PTR(self) = mdir;
 
@@ -128,7 +128,8 @@ mrb_dir_existp(mrb_state *mrb, mrb_value klass)
   cpath = mrb_str_to_cstr(mrb, path);
   if (stat(cpath, &sb) == 0 && S_ISDIR(sb.st_mode)) {
     return mrb_true_value();
-  } else {
+  }
+  else {
     return mrb_false_value();
   }
 }
@@ -185,10 +186,10 @@ mrb_dir_chdir(mrb_state *mrb, mrb_value klass)
 mrb_value
 mrb_dir_chroot(mrb_state *mrb, mrb_value self)
 {
-  #if defined(_WIN32) || defined(_WIN64) || defined(__ANDROID__)
+#if defined(_WIN32) || defined(_WIN64) || defined(__ANDROID__)
   mrb_raise(mrb, E_NOTIMP_ERROR, "chroot() unreliable on your system");
   return mrb_fixnum_value(0);
-  #else
+#else
   mrb_value spath;
   char *path;
   int res;
@@ -201,7 +202,7 @@ mrb_dir_chroot(mrb_state *mrb, mrb_value self)
   }
 
   return mrb_fixnum_value(res);
-  #endif
+#endif
 }
 
 static mrb_bool
@@ -244,7 +245,7 @@ mrb_dir_read(mrb_state *mrb, mrb_value self)
   struct mrb_dir *mdir;
   struct dirent *dp;
 
-  mdir = (struct mrb_dir *)mrb_get_datatype(mrb, self, &mrb_dir_type);
+  mdir = (struct mrb_dir*)mrb_get_datatype(mrb, self, &mrb_dir_type);
   if (!mdir) return mrb_nil_value();
   if (!mdir->dir) {
     mrb_raise(mrb, E_IO_ERROR, "closed directory");
@@ -252,7 +253,8 @@ mrb_dir_read(mrb_state *mrb, mrb_value self)
   dp = readdir(mdir->dir);
   if (dp != NULL) {
     return mrb_str_new_cstr(mrb, dp->d_name);
-  } else {
+  }
+  else {
     return mrb_nil_value();
   }
 }
@@ -262,7 +264,7 @@ mrb_dir_rewind(mrb_state *mrb, mrb_value self)
 {
   struct mrb_dir *mdir;
 
-  mdir = (struct mrb_dir *)mrb_get_datatype(mrb, self, &mrb_dir_type);
+  mdir = (struct mrb_dir*)mrb_get_datatype(mrb, self, &mrb_dir_type);
   if (!mdir) return mrb_nil_value();
   if (!mdir->dir) {
     mrb_raise(mrb, E_IO_ERROR, "closed directory");
@@ -281,7 +283,7 @@ mrb_dir_seek(mrb_state *mrb, mrb_value self)
   struct mrb_dir *mdir;
   mrb_int pos;
 
-  mdir = (struct mrb_dir *)mrb_get_datatype(mrb, self, &mrb_dir_type);
+  mdir = (struct mrb_dir*)mrb_get_datatype(mrb, self, &mrb_dir_type);
   if (!mdir) return mrb_nil_value();
   if (!mdir->dir) {
     mrb_raise(mrb, E_IO_ERROR, "closed directory");
@@ -295,21 +297,21 @@ mrb_dir_seek(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_dir_tell(mrb_state *mrb, mrb_value self)
 {
-  #if defined(_WIN32) || defined(_WIN64) || defined(__ANDROID__)
+#if defined(_WIN32) || defined(_WIN64) || defined(__ANDROID__)
   mrb_raise(mrb, E_NOTIMP_ERROR, "dirtell() unreliable on your system");
   return mrb_fixnum_value(0);
-  #else
+#else
   struct mrb_dir *mdir;
   mrb_int pos;
 
-  mdir = (struct mrb_dir *)mrb_get_datatype(mrb, self, &mrb_dir_type);
+  mdir = (struct mrb_dir*)mrb_get_datatype(mrb, self, &mrb_dir_type);
   if (!mdir) return mrb_nil_value();
   if (!mdir->dir) {
     mrb_raise(mrb, E_IO_ERROR, "closed directory");
   }
   pos = (mrb_int)telldir(mdir->dir);
   return mrb_fixnum_value(pos);
-  #endif
+#endif
 }
 
 void
