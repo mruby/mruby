@@ -1,5 +1,5 @@
 class Dir
-  def each(&block)
+  def each_child(&block)
     while s = self.read
       block.call(s)
     end
@@ -21,7 +21,7 @@ class Dir
     end
 
     def foreach(path, &block)
-      self.open(path).each(&block)
+      self.open(path).each_child(&block)
     end
 
     def open(path, &block)

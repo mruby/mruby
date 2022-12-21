@@ -52,7 +52,7 @@ end
 assert('Dir.open') do
   a = []
   Dir.open(DirTest.sandbox) { |d|
-    d.each { |s| a << s }
+    d.each_child { |s| a << s }
   }
   assert_true a.include?("a")
   assert_true a.include?("b")
@@ -69,10 +69,10 @@ assert('Dir#close') do
   assert_nothing_raised{d.close}
 end
 
-assert('Dir#each') do
+assert('Dir#each_child') do
   a = []
   d = Dir.open(DirTest.sandbox)
-  d.each { |s| a << s }
+  d.each_child { |s| a << s }
   d.close
   assert_true a.include?("a")
   assert_true a.include?("b")
