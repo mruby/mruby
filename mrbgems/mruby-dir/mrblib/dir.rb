@@ -19,6 +19,7 @@ class Dir
       end
       a
     end
+    alias children entries
 
     def foreach(path, &block)
       self.open(path).each_child(&block)
