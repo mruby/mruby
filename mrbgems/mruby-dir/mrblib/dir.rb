@@ -21,11 +21,7 @@ class Dir
     end
 
     def foreach(path, &block)
-      if block
-        self.open(path).each {|f| block.call(f) }
-      else
-        self.open(path).each
-      end
+      self.open(path).each(&block)
     end
 
     def open(path, &block)
