@@ -1,4 +1,6 @@
 class Dir
+  include Enumerable
+
   def each(&block)
     while s = self.read
       block.call(s)
