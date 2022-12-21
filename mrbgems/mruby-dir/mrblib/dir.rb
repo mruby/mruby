@@ -1,11 +1,12 @@
 class Dir
-  def each_child(&block)
+  def each(&block)
     while s = self.read
       block.call(s)
     end
     self
   end
 
+  alias each_child each
   alias pos tell
   alias pos= seek
 
@@ -22,7 +23,7 @@ class Dir
     alias children entries
 
     def foreach(path, &block)
-      self.open(path).each_child(&block)
+      self.open(path).each(&block)
     end
 
     def open(path, &block)
