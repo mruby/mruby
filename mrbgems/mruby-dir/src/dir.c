@@ -202,6 +202,40 @@ mrb_dir_chroot(mrb_state *mrb, mrb_value self)
   #endif
 }
 
+static mrb_bool
+skip_name_p(const char *name)
+{
+  if (name[0] != '.') return FALSE;
+  if (name[1] == '\0') return TRUE;
+  if (name[1] != '.') return FALSE;
+  if (name[2] == '\0') return TRUE;
+  return FALSE;
+}
+
+mrb_value
+mrb_dir_empty(mrb_state *mrb, mrb_value self)
+{
+  mrb_value path;
+  DIR *dir;
+  struct dirent *dp;
+  char *cpath;
+  mrb_value result = mrb_true_value();
+
+  mrb_get_args(mrb, "S", &path);
+  cpath = mrb_str_to_cstr(mrb, path);
+  if ((dir = opendir(cpath)) == NULL) {
+    mrb_sys_fail(mrb, cpath);
+  }
+  while ((dp = readdir(dir))) {
+    if (!skip_name_p(dp->d_name)) {
+      result = mrb_false_value();
+      break;
+    }
+  }
+  closedir(dir);
+  return result;
+}
+
 mrb_value
 mrb_dir_read(mrb_state *mrb, mrb_value self)
 {
@@ -289,6 +323,7 @@ mrb_mruby_dir_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, d, "mkdir",  mrb_dir_mkdir,  MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_class_method(mrb, d, "_chdir", mrb_dir_chdir,  MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, d, "chroot", mrb_dir_chroot, MRB_ARGS_REQ(1));
+  mrb_define_class_method(mrb, d, "empty?", mrb_dir_empty, MRB_ARGS_REQ(1));
 
   mrb_define_method(mrb, d, "close",      mrb_dir_close,  MRB_ARGS_NONE());
   mrb_define_method(mrb, d, "initialize", mrb_dir_init,   MRB_ARGS_REQ(1));
