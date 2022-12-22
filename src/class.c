@@ -893,10 +893,10 @@ mrb_block_given_p(mrb_state *mrb)
   return !mrb_nil_p(b);
 }
 
-#define GET_ARG(_type) (ptr ? ((_type)(*ptr++)) : va_arg(ap, _type))
+#define GET_ARG(_type) (ptr ? ((_type)(*ptr++)) : va_arg((*ap), _type))
 
 static mrb_int
-get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list ap)
+get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list *ap)
 {
   const char *fmt = format;
   char c;
@@ -1353,7 +1353,7 @@ mrb_get_args(mrb_state *mrb, mrb_args_format format, ...)
 {
   va_list ap;
   va_start(ap, format);
-  mrb_int rc = get_args_v(mrb, format, NULL, ap);
+  mrb_int rc = get_args_v(mrb, format, NULL, &ap);
   va_end(ap);
   return rc;
 }
@@ -1361,8 +1361,7 @@ mrb_get_args(mrb_state *mrb, mrb_args_format format, ...)
 MRB_API mrb_int
 mrb_get_args_a(mrb_state *mrb, mrb_args_format format, void **args)
 {
-  va_list ap;
-  return get_args_v(mrb, format, args, ap);
+  return get_args_v(mrb, format, args, NULL);
 }
 
 static struct RClass*
