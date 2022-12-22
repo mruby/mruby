@@ -18,10 +18,10 @@
   #define S_ISDIR(B) ((B)&_S_IFDIR)
   #include "Win/dirent.c"
   #include <direct.h>
-  #define rmdir _rmdir
-  #define getcwd _getcwd
-  #define mkdir _mkdir
-  #define chdir _chdir
+  #define rmdir(path) _rmdir(path)
+  #define getcwd(path,len) _getcwd(path,len)
+  #define mkdir(path,mode) _mkdir(path)
+  #define chdir(path) _chdir(path)
 #else
   #include <sys/param.h>
   #include <dirent.h>
@@ -147,12 +147,6 @@ mrb_dir_getwd(mrb_state *mrb, mrb_value klass)
   return path;
 }
 
-#ifndef _WIN32
-#define MAKE_DIR(path, mode) mkdir(path, mode)
-#else
-#define MAKE_DIR(path, mode) mkdir(path)
-#endif
-
 mrb_value
 mrb_dir_mkdir(mrb_state *mrb, mrb_value klass)
 {
@@ -163,7 +157,7 @@ mrb_dir_mkdir(mrb_state *mrb, mrb_value klass)
   mode = 0777;
   mrb_get_args(mrb, "S|i", &spath, &mode);
   path = mrb_str_to_cstr(mrb, spath);
-  if (MAKE_DIR(path, mode) == -1) {
+  if (mkdir(path, mode) == -1) {
     mrb_sys_fail(mrb, path);
   }
   return mrb_fixnum_value(0);
