@@ -6,7 +6,14 @@
 #include <string.h>
 
 #if defined(_WIN32) || defined(_WIN64)
-#include "../src/Win/dirent.c"
+typedef struct DIR DIR;
+struct dirent
+{
+  char *d_name;
+};
+DIR *opendir(const char *name);
+struct dirent *readdir(DIR *dir);
+int closedir(DIR *dir);
 #include <direct.h>
 #define rmdir(path) _rmdir(path)
 #define mkdir(path,mode) _mkdir(path)
