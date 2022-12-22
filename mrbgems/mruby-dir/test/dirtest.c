@@ -34,6 +34,17 @@ int closedir(DIR *dir);
 #include "mruby/string.h"
 #include "mruby/variable.h"
 
+static void
+make_dir(mrb_state *mrb, const char *name, const char *up)
+{
+  if (mkdir(name, 0) == -1) {
+    if (chdir("..") == 0) {
+      rmdir(up);
+    }
+    mrb_raisef(mrb, E_RUNTIME_ERROR, "mkdir(%s) failed", mrb_str_new_cstr(mrb, name));
+  }
+}
+
 mrb_value
 mrb_dirtest_setup(mrb_state *mrb, mrb_value klass)
 {
@@ -70,17 +81,8 @@ mrb_dirtest_setup(mrb_state *mrb, mrb_value klass)
   }
 
   /* make some directories in the sandbox */
-  if (mkdir(aname, 0) == -1) {
-    chdir("..");
-    rmdir(buf);
-    mrb_raisef(mrb, E_RUNTIME_ERROR, "mkdir(%S) failed", mrb_str_new_cstr(mrb, aname));
-  }
-  if (mkdir(bname, 0) == -1) {
-    rmdir(aname);
-    chdir("..");
-    rmdir(buf);
-    mrb_raisef(mrb, E_RUNTIME_ERROR, "mkdir(%S) failed", mrb_str_new_cstr(mrb, bname));
-  }
+  make_dir(mrb, aname, buf);
+  make_dir(mrb, bname, buf);
 
   return mrb_true_value();
 }
