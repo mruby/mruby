@@ -22,6 +22,7 @@ int closedir(DIR *dir);
 #endif
 #include <direct.h>
 #define rmdir(path) _rmdir(path)
+#define getcwd(path,len) _getcwd(path,len)
 #define mkdir(path,mode) _mkdir(path)
 #define chdir(path) _chdir(path)
 #else
