@@ -51,7 +51,7 @@ mrb_dirtest_setup(mrb_state *mrb, mrb_value klass)
   /* create sandbox */
 #if defined(_WIN32) || defined(_WIN64)
   snprintf(buf, sizeof(buf), "%s\\mruby-dir-test.XXXXXX", _getcwd(NULL,0));
-  if ((mktemp(buf) == NULL) || mkdir(buf,0) != 0) {
+  if ((_mktemp(buf) == NULL) || mkdir(buf,0) != 0) {
     mrb_raisef(mrb, E_RUNTIME_ERROR, "mkdtemp(%S) failed", mrb_str_new_cstr(mrb, buf));
   }
 #else
