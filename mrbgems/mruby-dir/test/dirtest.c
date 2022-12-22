@@ -6,6 +6,9 @@
 #include <string.h>
 
 #if defined(_WIN32) || defined(_WIN64)
+#ifdef __cplusplus
+extern "C" {
+#endif
 typedef struct DIR DIR;
 struct dirent
 {
@@ -14,6 +17,9 @@ struct dirent
 DIR *opendir(const char *name);
 struct dirent *readdir(DIR *dir);
 int closedir(DIR *dir);
+#ifdef __cplusplus
+}
+#endif
 #include <direct.h>
 #define rmdir(path) _rmdir(path)
 #define mkdir(path,mode) _mkdir(path)
