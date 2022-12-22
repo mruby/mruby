@@ -1,17 +1,24 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include <dirent.h>
 #include <unistd.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#if defined(_WIN32) || defined(_WIN64)
+#include "../src/Win/dirent.c"
+#include <direct.h>
+#define rmdir(path) _rmdir(path)
+#define mkdir(path,mode) _mkdir(path)
+#define chdir(path) _chdir(path)
+#else
+#include <dirent.h>
+#endif
+
 #include "mruby.h"
 #include "mruby/string.h"
 #include "mruby/variable.h"
-
 
 mrb_value
 mrb_dirtest_setup(mrb_state *mrb, mrb_value klass)
@@ -30,7 +37,7 @@ mrb_dirtest_setup(mrb_state *mrb, mrb_value klass)
   /* create sandbox */
 #if defined(_WIN32) || defined(_WIN64)
   snprintf(buf, sizeof(buf), "%s\\mruby-dir-test.XXXXXX", _getcwd(NULL,0));
-  if ((mktemp(buf) == NULL) || mkdir(buf) != 0) {
+  if ((mktemp(buf) == NULL) || mkdir(buf,0) != 0) {
     mrb_raisef(mrb, E_RUNTIME_ERROR, "mkdtemp(%S) failed", mrb_str_new_cstr(mrb, buf));
   }
 #else
@@ -49,20 +56,12 @@ mrb_dirtest_setup(mrb_state *mrb, mrb_value klass)
   }
 
   /* make some directories in the sandbox */
-#if defined(_WIN32) || defined(_WIN64)
-  if (mkdir(aname) == -1) {
-#else
   if (mkdir(aname, 0) == -1) {
-#endif
     chdir("..");
     rmdir(buf);
     mrb_raisef(mrb, E_RUNTIME_ERROR, "mkdir(%S) failed", mrb_str_new_cstr(mrb, aname));
   }
-#if defined(_WIN32) || defined(_WIN64)
-  if (mkdir(bname) == -1) {
-#else
   if (mkdir(bname, 0) == -1) {
-#endif
     rmdir(aname);
     chdir("..");
     rmdir(buf);
