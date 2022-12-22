@@ -48,7 +48,6 @@ make_dir(mrb_state *mrb, const char *name, const char *up)
 mrb_value
 mrb_dirtest_setup(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value s;
   char buf[1024];
   const char *aname = "a";
   const char *bname = "b";
@@ -63,21 +62,20 @@ mrb_dirtest_setup(mrb_state *mrb, mrb_value klass)
 #if defined(_WIN32) || defined(_WIN64)
   snprintf(buf, sizeof(buf), "%s\\mruby-dir-test.XXXXXX", _getcwd(NULL,0));
   if ((_mktemp(buf) == NULL) || mkdir(buf,0) != 0) {
-    mrb_raisef(mrb, E_RUNTIME_ERROR, "mkdtemp(%S) failed", mrb_str_new_cstr(mrb, buf));
+    mrb_raisef(mrb, E_RUNTIME_ERROR, "mkdtemp(%s) failed", buf);
   }
 #else
   snprintf(buf, sizeof(buf), "%s/mruby-dir-test.XXXXXX", P_tmpdir);
   if (mkdtemp(buf) == NULL) {
-    mrb_raisef(mrb, E_RUNTIME_ERROR, "mkdtemp(%S) failed", mrb_str_new_cstr(mrb, buf));
+    mrb_raisef(mrb, E_RUNTIME_ERROR, "mkdtemp(%s) failed", buf);
   }
 #endif
-  s = mrb_str_new_cstr(mrb, buf);
-  mrb_cv_set(mrb, klass, mrb_intern_cstr(mrb, "sandbox"), s);
+  mrb_cv_set(mrb, klass, mrb_intern_cstr(mrb, "sandbox"), mrb_str_new_cstr(mrb, buf));
 
   /* go to sandbox */
   if (chdir(buf) == -1) {
     rmdir(buf);
-    mrb_raisef(mrb, E_RUNTIME_ERROR, "chdir(%S) failed", s);
+    mrb_raisef(mrb, E_RUNTIME_ERROR, "chdir(%s) failed", buf);
   }
 
   /* make some directories in the sandbox */
@@ -104,7 +102,7 @@ mrb_dirtest_teardown(mrb_state *mrb, mrb_value klass)
     if (strcmp(dp->d_name, ".") == 0 || strcmp(dp->d_name, "..") == 0)
       continue;
     if (rmdir(dp->d_name) == -1) {
-      mrb_raisef(mrb, E_RUNTIME_ERROR, "rmdir(%S) failed", mrb_str_new_cstr(mrb, dp->d_name));
+      mrb_raisef(mrb, E_RUNTIME_ERROR, "rmdir(%s) failed", dp->d_name);
     }
   }
   closedir(dirp);
@@ -113,14 +111,14 @@ mrb_dirtest_teardown(mrb_state *mrb, mrb_value klass)
   d = mrb_cv_get(mrb, klass, mrb_intern_cstr(mrb, "pwd"));
   path = mrb_str_to_cstr(mrb, d);
   if (chdir(path) == -1) {
-    mrb_raisef(mrb, E_RUNTIME_ERROR, "chdir(%S) failed", d);
+    mrb_raisef(mrb, E_RUNTIME_ERROR, "chdir(%s) failed", path);
   }
 
   /* remove sandbox directory */
   sandbox = mrb_cv_get(mrb, klass, mrb_intern_cstr(mrb, "sandbox"));
   path = mrb_str_to_cstr(mrb, sandbox);
   if (rmdir(path) == -1) {
-    mrb_raisef(mrb, E_RUNTIME_ERROR, "rmdir(%S) failed", sandbox);
+    mrb_raisef(mrb, E_RUNTIME_ERROR, "rmdir(%s) failed", path);
   }
 
   return mrb_true_value();
