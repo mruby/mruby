@@ -20,6 +20,7 @@ int closedir(DIR *dir);
 #ifdef __cplusplus
 }
 #endif
+#include <io.h>
 #include <direct.h>
 #define rmdir(path) _rmdir(path)
 #define getcwd(path,len) _getcwd(path,len)
