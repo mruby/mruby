@@ -34,9 +34,10 @@
 - Add `Class#subclasses` method.
 - Add `Module#undefined_instance_methods` method.
 
-## mruby-set
+## New bundled gems
 
-New bundled gem.
+- mruby-set
+- mruby-dir
 
 # CVEs
 
