@@ -180,6 +180,8 @@ mrb_integer_func(mrb_value o) {
 #else
 #define mrb_float_p(o) WORDBOX_OBJ_TYPE_P(o, FLOAT)
 #endif
+#else
+#define mrb_float_p(o) FALSE
 #endif
 #define mrb_array_p(o) WORDBOX_OBJ_TYPE_P(o, ARRAY)
 #define mrb_string_p(o) WORDBOX_OBJ_TYPE_P(o, STRING)
@@ -222,9 +224,7 @@ mrb_type(mrb_value o)
          mrb_fixnum_p(o) ? MRB_TT_INTEGER :
          mrb_symbol_p(o) ? MRB_TT_SYMBOL :
          mrb_undef_p(o)  ? MRB_TT_UNDEF :
-#ifndef MRB_NO_FLOAT
          mrb_float_p(o)  ? MRB_TT_FLOAT :
-#endif
          mrb_val_union(o).bp->tt;
 }
 

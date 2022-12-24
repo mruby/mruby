@@ -245,9 +245,11 @@ struct RCptr {
 #ifndef mrb_true_p
 #define mrb_true_p(o)  (mrb_type(o) == MRB_TT_TRUE)
 #endif
-#ifndef MRB_NO_FLOAT
 #ifndef mrb_float_p
+#ifndef MRB_NO_FLOAT
 #define mrb_float_p(o) (mrb_type(o) == MRB_TT_FLOAT)
+#else
+#define mrb_float_p(o) FALSE
 #endif
 #endif
 #ifndef mrb_array_p
