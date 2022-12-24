@@ -1688,6 +1688,7 @@ int_round(mrb_state *mrb, mrb_value x)
     mrb_value h = mrb_bigint_p(f) ? mrb_bint_rshift(mrb, f, 1) : mrb_int_value(mrb, mrb_integer(f)>>1);
     mrb_int cmp = mrb_bigint_p(r) ? mrb_bint_cmp(mrb, r, h) : (mrb_integer(r) - mrb_integer(h));
     if ((cmp > 0) || (cmp == 0 && mrb_bint_cmp(mrb, x, mrb_fixnum_value(0)) > 0)) {
+      n = mrb_as_bint(mrb, n);
       n = mrb_bint_add(mrb, n, f);
     }
     return n;
