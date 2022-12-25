@@ -9,6 +9,7 @@
 #include "mruby/data.h"
 #include "mruby/error.h"
 #include "mruby/string.h"
+#include "mruby/presym.h"
 #include <sys/types.h>
 #if defined(_WIN32) || defined(_WIN64)
   #define MAXPATHLEN 1024
@@ -34,12 +35,7 @@
 #include <signal.h>
 #include <string.h>
 
-/* with/without IO module */
-#ifdef ENABLE_IO
-#include "mruby/ext/io.h"
-#else
-#define E_IO_ERROR E_RUNTIME_ERROR
-#endif
+#define E_IO_ERROR mrb_exc_get_id(mrb, MRB_SYM(IOError))
 
 struct mrb_dir {
   DIR *dir;
@@ -329,6 +325,8 @@ mrb_mruby_dir_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, d, "rewind",     mrb_dir_rewind, MRB_ARGS_NONE());
   mrb_define_method(mrb, d, "seek",       mrb_dir_seek,   MRB_ARGS_REQ(1));
   mrb_define_method(mrb, d, "tell",       mrb_dir_tell,   MRB_ARGS_NONE());
+
+  mrb_define_class(mrb, "IOError", mrb->eStandardError_class);
 }
 
 void
