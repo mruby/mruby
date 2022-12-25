@@ -25,10 +25,6 @@
 
 # mrbgems
 
-## mruby-errno
-
-- `mruby-errno` gem is now bundled.
-
 ## mruby-class-ext
 
 - Add `Class#subclasses` method.
@@ -36,8 +32,9 @@
 
 ## New bundled gems
 
-- mruby-set
-- mruby-dir
+- mruby-errno from [https://github.com/iij/mruby-errno.git]
+- mruby-set from [https://github.com/yui-knk/mruby-set.git]
+- mruby-dir from [https://github.com/iij/mruby-dir.git]
 
 # CVEs
 
