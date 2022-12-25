@@ -45,7 +45,7 @@ struct mrb_dir {
   DIR *dir;
 };
 
-void
+static void
 mrb_dir_free(mrb_state *mrb, void *ptr)
 {
   struct mrb_dir *mdir = (struct mrb_dir*)ptr;
@@ -59,7 +59,7 @@ mrb_dir_free(mrb_state *mrb, void *ptr)
 
 static struct mrb_data_type mrb_dir_type = { "DIR", mrb_dir_free };
 
-mrb_value
+static mrb_value
 mrb_dir_close(mrb_state *mrb, mrb_value self)
 {
   struct mrb_dir *mdir;
@@ -75,7 +75,7 @@ mrb_dir_close(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
-mrb_value
+static mrb_value
 mrb_dir_init(mrb_state *mrb, mrb_value self)
 {
   DIR *dir;
@@ -103,7 +103,7 @@ mrb_dir_init(mrb_state *mrb, mrb_value self)
   return self;
 }
 
-mrb_value
+static mrb_value
 mrb_dir_delete(mrb_state *mrb, mrb_value klass)
 {
   mrb_value path;
@@ -117,7 +117,7 @@ mrb_dir_delete(mrb_state *mrb, mrb_value klass)
   return mrb_fixnum_value(0);
 }
 
-mrb_value
+static mrb_value
 mrb_dir_existp(mrb_state *mrb, mrb_value klass)
 {
   mrb_value path;
@@ -134,7 +134,7 @@ mrb_dir_existp(mrb_state *mrb, mrb_value klass)
   }
 }
 
-mrb_value
+static mrb_value
 mrb_dir_getwd(mrb_state *mrb, mrb_value klass)
 {
   mrb_value path;
@@ -147,7 +147,7 @@ mrb_dir_getwd(mrb_state *mrb, mrb_value klass)
   return path;
 }
 
-mrb_value
+static mrb_value
 mrb_dir_mkdir(mrb_state *mrb, mrb_value klass)
 {
   mrb_int mode;
@@ -163,7 +163,7 @@ mrb_dir_mkdir(mrb_state *mrb, mrb_value klass)
   return mrb_fixnum_value(0);
 }
 
-mrb_value
+static mrb_value
 mrb_dir_chdir(mrb_state *mrb, mrb_value klass)
 {
   mrb_value spath;
@@ -177,7 +177,7 @@ mrb_dir_chdir(mrb_state *mrb, mrb_value klass)
   return mrb_fixnum_value(0);
 }
 
-mrb_value
+static mrb_value
 mrb_dir_chroot(mrb_state *mrb, mrb_value self)
 {
 #if defined(_WIN32) || defined(_WIN64) || defined(__ANDROID__)
@@ -209,7 +209,7 @@ skip_name_p(const char *name)
   return FALSE;
 }
 
-mrb_value
+static mrb_value
 mrb_dir_empty(mrb_state *mrb, mrb_value self)
 {
   mrb_value path;
@@ -233,7 +233,7 @@ mrb_dir_empty(mrb_state *mrb, mrb_value self)
   return result;
 }
 
-mrb_value
+static mrb_value
 mrb_dir_read(mrb_state *mrb, mrb_value self)
 {
   struct mrb_dir *mdir;
@@ -253,7 +253,7 @@ mrb_dir_read(mrb_state *mrb, mrb_value self)
   }
 }
 
-mrb_value
+static mrb_value
 mrb_dir_rewind(mrb_state *mrb, mrb_value self)
 {
   struct mrb_dir *mdir;
@@ -267,7 +267,7 @@ mrb_dir_rewind(mrb_state *mrb, mrb_value self)
   return self;
 }
 
-mrb_value
+static mrb_value
 mrb_dir_seek(mrb_state *mrb, mrb_value self)
 {
   #if defined(_WIN32) || defined(_WIN64) || defined(__ANDROID__)
@@ -288,7 +288,7 @@ mrb_dir_seek(mrb_state *mrb, mrb_value self)
   #endif
 }
 
-mrb_value
+static mrb_value
 mrb_dir_tell(mrb_state *mrb, mrb_value self)
 {
 #if defined(_WIN32) || defined(_WIN64) || defined(__ANDROID__)
