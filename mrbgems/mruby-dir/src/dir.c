@@ -80,8 +80,7 @@ mrb_dir_init(mrb_state *mrb, mrb_value self)
 {
   DIR *dir;
   struct mrb_dir *mdir;
-  mrb_value path;
-  char *cpath;
+  const char *path;
 
   mdir = (struct mrb_dir*)DATA_PTR(self);
   if (mdir) {
@@ -94,10 +93,9 @@ mrb_dir_init(mrb_state *mrb, mrb_value self)
   mdir->dir = NULL;
   DATA_PTR(self) = mdir;
 
-  mrb_get_args(mrb, "S", &path);
-  cpath = mrb_str_to_cstr(mrb, path);
-  if ((dir = opendir(cpath)) == NULL) {
-    mrb_sys_fail(mrb, cpath);
+  mrb_get_args(mrb, "z", &path);
+  if ((dir = opendir(path)) == NULL) {
+    mrb_sys_fail(mrb, path);
   }
   mdir->dir = dir;
   return self;
@@ -106,13 +104,11 @@ mrb_dir_init(mrb_state *mrb, mrb_value self)
 mrb_value
 mrb_dir_delete(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value path;
-  char *cpath;
+  const char *path;
 
-  mrb_get_args(mrb, "S", &path);
-  cpath = mrb_str_to_cstr(mrb, path);
-  if (rmdir(cpath) == -1) {
-    mrb_sys_fail(mrb, cpath);
+  mrb_get_args(mrb, "z", &path);
+  if (rmdir(path) == -1) {
+    mrb_sys_fail(mrb, path);
   }
   return mrb_fixnum_value(0);
 }
@@ -120,13 +116,11 @@ mrb_dir_delete(mrb_state *mrb, mrb_value klass)
 mrb_value
 mrb_dir_existp(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value path;
   struct stat sb;
-  char *cpath;
+  const char *path;
 
-  mrb_get_args(mrb, "S", &path);
-  cpath = mrb_str_to_cstr(mrb, path);
-  if (stat(cpath, &sb) == 0 && S_ISDIR(sb.st_mode)) {
+  mrb_get_args(mrb, "z", &path);
+  if (stat(path, &sb) == 0 && S_ISDIR(sb.st_mode)) {
     return mrb_true_value();
   }
   else {
@@ -151,12 +145,10 @@ mrb_value
 mrb_dir_mkdir(mrb_state *mrb, mrb_value klass)
 {
   mrb_int mode;
-  mrb_value spath;
-  char *path;
+  const char *path;
 
   mode = 0777;
-  mrb_get_args(mrb, "S|i", &spath, &mode);
-  path = mrb_str_to_cstr(mrb, spath);
+  mrb_get_args(mrb, "z|i", &path, &mode);
   if (mkdir(path, mode) == -1) {
     mrb_sys_fail(mrb, path);
   }
@@ -166,11 +158,9 @@ mrb_dir_mkdir(mrb_state *mrb, mrb_value klass)
 mrb_value
 mrb_dir_chdir(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value spath;
-  char *path;
+  const char *path;
 
-  mrb_get_args(mrb, "S", &spath);
-  path = mrb_str_to_cstr(mrb, spath);
+  mrb_get_args(mrb, "z", &path);
   if (chdir(path) == -1) {
     mrb_sys_fail(mrb, path);
   }
@@ -184,12 +174,10 @@ mrb_dir_chroot(mrb_state *mrb, mrb_value self)
   mrb_raise(mrb, E_NOTIMP_ERROR, "chroot() unreliable on your system");
   return mrb_fixnum_value(0);
 #else
-  mrb_value spath;
-  char *path;
+  const char *path;
   int res;
 
-  mrb_get_args(mrb, "S", &spath);
-  path = mrb_str_to_cstr(mrb, spath);
+  mrb_get_args(mrb, "z", &path);
   res = chroot(path);
   if (res == -1) {
     mrb_sys_fail(mrb, path);
@@ -212,16 +200,14 @@ skip_name_p(const char *name)
 mrb_value
 mrb_dir_empty(mrb_state *mrb, mrb_value self)
 {
-  mrb_value path;
   DIR *dir;
   struct dirent *dp;
-  char *cpath;
+  const char *path;
   mrb_value result = mrb_true_value();
 
-  mrb_get_args(mrb, "S", &path);
-  cpath = mrb_str_to_cstr(mrb, path);
-  if ((dir = opendir(cpath)) == NULL) {
-    mrb_sys_fail(mrb, cpath);
+  mrb_get_args(mrb, "z", &path);
+  if ((dir = opendir(path)) == NULL) {
+    mrb_sys_fail(mrb, path);
   }
   while ((dp = readdir(dir))) {
     if (!skip_name_p(dp->d_name)) {
