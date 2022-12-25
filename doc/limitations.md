@@ -237,7 +237,7 @@ end
 puts(a.nil? ? "truthy" : "falsy")
 ```
 
-Ruby outputs `falsy`. mruby outputs `truthy`.
+Ruby outputs `truthy`. mruby outputs `falsy`.
 
 ## Argument Destructuring
 
