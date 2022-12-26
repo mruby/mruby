@@ -76,8 +76,8 @@ end
 
 `MRB_USE_FLOAT32`
 
-- When defined single precision floating-point type(C type `float`) is used as `mrb_float`.
-- Otherwise, double precision floating-point type(C type `double`) is used as `mrb_float`.
+- When defined single-precision floating-point type(C type `float`) is used as `mrb_float`.
+- Otherwise, double-precision floating-point type(C type `double`) is used as `mrb_float`.
 
 `MRB_NO_FLOAT`
 
