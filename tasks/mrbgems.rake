@@ -54,6 +54,7 @@ MRuby.each_target do
   end
 
   file active_gems_txt => :generate_active_gems_txt
+  desc "generate the active gems text files"
   task :generate_active_gems_txt do |t|
     def t.timestamp; Time.at(0) end
     active_gems = gems.sort_by(&:name).inject(""){|s, g| s << "#{g.name}\n"}
