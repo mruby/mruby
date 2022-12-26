@@ -25,7 +25,9 @@ class Dir
     alias children entries
 
     def foreach(path, &block)
-      self.open(path).each(&block)
+      self.open(path) do |d|
+        d.each(&block)
+      end
     end
 
     def open(path, &block)
