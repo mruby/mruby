@@ -87,6 +87,7 @@ file plot_file => $dat_files do
   plot
 end
 
+desc "run benchmark tests"
 task :benchmark => plot_file do
   plot
 end
