@@ -72,7 +72,7 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
           next nil unless path[-1] == "*"
           dirs = Dir.glob(path).collect do |d|
             m = d.match(/(\d+)\.(\d+)\.(\d+)$/)
-            m ? [m[1], m[2], m[3]].collect { |v| v.to_i } : nil
+            m ? [m[1], m[2], m[3]].collect(&:to_i) : nil
           end
           dirs.compact!
           dirs.sort! do |before, after|
