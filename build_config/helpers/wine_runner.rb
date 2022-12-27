@@ -35,7 +35,7 @@ def clean(output, stderr = false)
 
   result_text = results.join("\n")
   result_text += "\n" if ends_with_newline
-  return result_text
+  result_text
 end
 
 
