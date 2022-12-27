@@ -64,12 +64,8 @@ class IO
     fd = -1
     io = nil
     begin
-      if path[0] == "|"
-        io = IO.popen(path[1..-1], mode)
-      else
-        fd = IO.sysopen(path, mode)
-        io = IO.open(fd, mode)
-      end
+      fd = IO.sysopen(path, mode)
+      io = IO.open(fd, mode)
       io.seek(offset) if offset > 0
       str = io.read(length)
     ensure
