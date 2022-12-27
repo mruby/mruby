@@ -954,7 +954,7 @@ mrb_io_sysread_common(mrb_state *mrb,
 }
 
 static mrb_io_read_write_size
-mrb_sysread_dummy(int fd, void *buf, fsize_t nbytes, off_t offset)
+sysread(int fd, void *buf, fsize_t nbytes, off_t offset)
 {
   return (mrb_io_read_write_size)read(fd, buf, nbytes);
 }
@@ -967,7 +967,7 @@ mrb_io_sysread(mrb_state *mrb, mrb_value io)
 
   mrb_get_args(mrb, "i|S", &maxlen, &buf);
 
-  return mrb_io_sysread_common(mrb, mrb_sysread_dummy, io, buf, maxlen, 0);
+  return mrb_io_sysread_common(mrb, sysread, io, buf, maxlen, 0);
 }
 
 static mrb_value
@@ -1021,7 +1021,7 @@ mrb_io_syswrite_common(mrb_state *mrb,
 }
 
 static mrb_io_read_write_size
-mrb_syswrite_dummy(int fd, const void *buf, fsize_t nbytes, off_t offset)
+syswrite(int fd, const void *buf, fsize_t nbytes, off_t offset)
 {
   return (mrb_io_read_write_size)write(fd, buf, nbytes);
 }
@@ -1033,7 +1033,7 @@ mrb_io_syswrite(mrb_state *mrb, mrb_value io)
 
   mrb_get_args(mrb, "S", &buf);
 
-  return mrb_io_syswrite_common(mrb, mrb_syswrite_dummy, io, buf, 0);
+  return mrb_io_syswrite_common(mrb, syswrite, io, buf, 0);
 }
 
 static mrb_value
