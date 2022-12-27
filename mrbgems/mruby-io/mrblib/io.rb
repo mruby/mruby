@@ -269,7 +269,7 @@ class IO
 
   def readchar
     _read_buf
-    _readchar(@buf)
+    _readchar
   end
 
   def getc

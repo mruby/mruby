@@ -1506,7 +1506,8 @@ mrb_io_readchar(mrb_state *mrb, mrb_value self)
 #endif
 
   mrb->c->ci->mid = 0;
-  mrb_get_args(mrb, "S", &buf);
+  buf = mrb_iv_get(mrb, self, MRB_IVSYM(buf));
+  mrb_ensure_string_type(mrb, buf);
   mrb_assert(RSTRING_LEN(buf) > 0);
   mrb_assert(RSTRING_PTR(buf) != NULL);
   mrb_str_modify(mrb, RSTRING(buf));
@@ -1568,6 +1569,6 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method(mrb, io, "pread",      mrb_io_pread,      MRB_ARGS_ANY());    /* ruby 2.5 feature */
   mrb_define_method(mrb, io, "pwrite",     mrb_io_pwrite,     MRB_ARGS_ANY());    /* ruby 2.5 feature */
 
-  mrb_define_method(mrb, io, "_readchar",  mrb_io_readchar,   MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, io, "_readchar",  mrb_io_readchar,   MRB_ARGS_NONE());
   mrb_define_class_method(mrb, io, "_bufread",   mrb_io_bufread,    MRB_ARGS_REQ(2));
 }
