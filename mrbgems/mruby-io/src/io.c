@@ -442,7 +442,7 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
     pid = pi.dwProcessId;
   }
 
-  mrb_iv_set(mrb, io, mrb_intern_lit(mrb, "@buf"), mrb_str_new_cstr(mrb, ""));
+  mrb_iv_set(mrb, io, MRB_IVSYM(buf), mrb_str_new_cstr(mrb, ""));
 
   fptr = mrb_io_alloc(mrb);
   fptr->fd = _open_osfhandle((intptr_t)ofd[0], 0);
@@ -551,7 +551,7 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
         fd = pw[1];
       }
 
-      mrb_iv_set(mrb, io, mrb_intern_lit(mrb, "@buf"), mrb_str_new_cstr(mrb, ""));
+      mrb_iv_set(mrb, io, MRB_IVSYM(buf), mrb_str_new_cstr(mrb, ""));
 
       fptr = mrb_io_alloc(mrb);
       fptr->fd = fd;
@@ -620,8 +620,8 @@ mrb_io_initialize_copy(mrb_state *mrb, mrb_value copy)
   DATA_TYPE(copy) = &mrb_io_type;
   DATA_PTR(copy) = fptr_copy;
 
-  buf = mrb_iv_get(mrb, orig, mrb_intern_lit(mrb, "@buf"));
-  mrb_iv_set(mrb, copy, mrb_intern_lit(mrb, "@buf"), buf);
+  buf = mrb_iv_get(mrb, orig, MRB_IVSYM(buf));
+  mrb_iv_set(mrb, copy, MRB_IVSYM(buf), buf);
 
   fptr_copy->fd = mrb_dup(mrb, fptr_orig->fd, &failed);
   if (failed) {
@@ -713,7 +713,7 @@ mrb_io_initialize(mrb_state *mrb, mrb_value io)
 
   flags = mrb_io_mode_to_flags(mrb, mode);
 
-  mrb_iv_set(mrb, io, mrb_intern_lit(mrb, "@buf"), mrb_str_new_cstr(mrb, ""));
+  mrb_iv_set(mrb, io, MRB_IVSYM(buf), mrb_str_new_cstr(mrb, ""));
 
   fptr = (struct mrb_io *)DATA_PTR(io);
   if (fptr != NULL) {
@@ -1109,7 +1109,7 @@ time2timeval(mrb_state *mrb, mrb_value time)
 static int
 mrb_io_read_data_pending(mrb_state *mrb, mrb_value io)
 {
-  mrb_value buf = mrb_iv_get(mrb, io, mrb_intern_lit(mrb, "@buf"));
+  mrb_value buf = mrb_iv_get(mrb, io, MRB_IVSYM(buf));
   if (mrb_string_p(buf) && RSTRING_LEN(buf) > 0) {
     return 1;
   }
@@ -1131,7 +1131,7 @@ mrb_io_s_pipe(mrb_state *mrb, mrb_value klass)
   }
 
   r = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
-  mrb_iv_set(mrb, r, mrb_intern_lit(mrb, "@buf"), mrb_str_new_cstr(mrb, ""));
+  mrb_iv_set(mrb, r, MRB_IVSYM(buf), mrb_str_new_cstr(mrb, ""));
   fptr_r = mrb_io_alloc(mrb);
   fptr_r->fd = pipes[0];
   fptr_r->readable = 1;
@@ -1141,7 +1141,7 @@ mrb_io_s_pipe(mrb_state *mrb, mrb_value klass)
   DATA_PTR(r)  = fptr_r;
 
   w = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
-  mrb_iv_set(mrb, w, mrb_intern_lit(mrb, "@buf"), mrb_str_new_cstr(mrb, ""));
+  mrb_iv_set(mrb, w, MRB_IVSYM(buf), mrb_str_new_cstr(mrb, ""));
   fptr_w = mrb_io_alloc(mrb);
   fptr_w->fd = pipes[1];
   fptr_w->readable = 0;
