@@ -90,7 +90,7 @@ class IO
 
   def hash
     # We must define IO#hash here because IO includes Enumerable and
-    # Enumerable#hash will call IO#read...
+    # Enumerable#hash will call IO#read() otherwise
     self.__id__
   end
 
