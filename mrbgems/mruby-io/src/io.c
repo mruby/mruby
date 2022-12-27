@@ -1492,6 +1492,20 @@ mrb_io_bufread(mrb_state *mrb, mrb_value self)
   return io_bufread(mrb, str, len);
 }
 
+#define BUF_SIZE 4096
+
+static mrb_value
+mrb_io_read_buf(mrb_state *mrb, mrb_value self)
+{
+  mrb_value buf = mrb_iv_get(mrb, self, MRB_IVSYM(buf));
+  if (!mrb_nil_p(buf)) {
+    mrb_ensure_string_type(mrb, buf);
+    if (RSTRING_LEN(buf) > 0) return buf;
+  }
+  mrb_str_modify(mrb, RSTRING(buf));
+  return mrb_io_sysread_common(mrb, sysread, self, buf, BUF_SIZE, 0);
+}
+
 static mrb_value
 mrb_io_readchar(mrb_state *mrb, mrb_value self)
 {
@@ -1564,6 +1578,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method(mrb, io, "pread",      mrb_io_pread,      MRB_ARGS_ANY());    /* ruby 2.5 feature */
   mrb_define_method(mrb, io, "pwrite",     mrb_io_pwrite,     MRB_ARGS_ANY());    /* ruby 2.5 feature */
 
+  mrb_define_method(mrb, io, "_read_buf",  mrb_io_read_buf,   MRB_ARGS_NONE());
   mrb_define_method(mrb, io, "_readchar",  mrb_io_readchar,   MRB_ARGS_NONE());
   mrb_define_class_method(mrb, io, "_bufread",   mrb_io_bufread,    MRB_ARGS_REQ(2));
 }

@@ -9,8 +9,6 @@ class IO
   SEEK_CUR = 1
   SEEK_END = 2
 
-  BUF_SIZE = 4096
-
   def self.open(*args, &block)
     io = self.new(*args)
 
@@ -142,11 +140,6 @@ class IO
     sysseek(i, whence)
     @buf = ''
     0
-  end
-
-  def _read_buf
-    return @buf if @buf && @buf.bytesize > 0
-    sysread(BUF_SIZE, @buf)
   end
 
   def ungetc(substr)
