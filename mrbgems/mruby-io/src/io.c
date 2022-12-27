@@ -1509,7 +1509,6 @@ mrb_io_readchar(mrb_state *mrb, mrb_value self)
   buf = mrb_iv_get(mrb, self, MRB_IVSYM(buf));
   mrb_ensure_string_type(mrb, buf);
   mrb_assert(RSTRING_LEN(buf) > 0);
-  mrb_assert(RSTRING_PTR(buf) != NULL);
   mrb_str_modify(mrb, RSTRING(buf));
 #ifdef MRB_UTF8_STRING
   c = RSTRING_PTR(buf)[0];
