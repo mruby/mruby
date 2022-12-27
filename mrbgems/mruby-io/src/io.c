@@ -1524,8 +1524,8 @@ mrb_io_readchar(mrb_state *mrb, mrb_value self)
       n = read(fptr->fd, RSTRING_PTR(buf)+blen, 4096-blen);
       if (n < 0) mrb_sys_fail(mrb, "sysread failed");
       mrb_str_resize(mrb, buf, blen+n);
+      len = mrb_utf8len(RSTRING_PTR(buf), RSTRING_END(buf));
     }
-    len = mrb_utf8len(RSTRING_PTR(buf), RSTRING_END(buf));
   }
 #endif
   return io_bufread(mrb, buf, len);
