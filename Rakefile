@@ -1,4 +1,3 @@
-# encoding: utf-8
 # Build description.
 # basic build file for mruby
 MRUBY_ROOT = File.dirname(File.expand_path(__FILE__))
