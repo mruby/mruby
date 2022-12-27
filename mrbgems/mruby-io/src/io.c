@@ -913,27 +913,6 @@ mrb_io_s_sysopen(mrb_state *mrb, mrb_value klass)
   return mrb_fixnum_value(fd);
 }
 
-static mrb_value mrb_io_sysread_common(mrb_state *mrb,
-    mrb_io_read_write_size (*readfunc)(int, void *, fsize_t, off_t),
-    mrb_value io, mrb_value buf, mrb_int maxlen, off_t offset);
-
-static mrb_io_read_write_size
-mrb_sysread_dummy(int fd, void *buf, fsize_t nbytes, off_t offset)
-{
-  return (mrb_io_read_write_size)read(fd, buf, nbytes);
-}
-
-static mrb_value
-mrb_io_sysread(mrb_state *mrb, mrb_value io)
-{
-  mrb_value buf = mrb_nil_value();
-  mrb_int maxlen;
-
-  mrb_get_args(mrb, "i|S", &maxlen, &buf);
-
-  return mrb_io_sysread_common(mrb, mrb_sysread_dummy, io, buf, maxlen, 0);
-}
-
 static mrb_value
 mrb_io_sysread_common(mrb_state *mrb,
     mrb_io_read_write_size (*readfunc)(int, void *, fsize_t, off_t),
@@ -972,6 +951,23 @@ mrb_io_sysread_common(mrb_state *mrb,
     mrb_raise(mrb, E_EOF_ERROR, "sysread failed: End of File");
   }
   return buf;
+}
+
+static mrb_io_read_write_size
+mrb_sysread_dummy(int fd, void *buf, fsize_t nbytes, off_t offset)
+{
+  return (mrb_io_read_write_size)read(fd, buf, nbytes);
+}
+
+static mrb_value
+mrb_io_sysread(mrb_state *mrb, mrb_value io)
+{
+  mrb_value buf = mrb_nil_value();
+  mrb_int maxlen;
+
+  mrb_get_args(mrb, "i|S", &maxlen, &buf);
+
+  return mrb_io_sysread_common(mrb, mrb_sysread_dummy, io, buf, maxlen, 0);
 }
 
 static mrb_value
