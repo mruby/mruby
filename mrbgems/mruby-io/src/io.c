@@ -586,7 +586,7 @@ mrb_io_s_popen(mrb_state *mrb, mrb_value klass)
 #endif /* TARGET_OS_IPHONE */
 
 static int
-mrb_dup(mrb_state *mrb, int fd, mrb_bool *failed)
+symdup(mrb_state *mrb, int fd, mrb_bool *failed)
 {
   int new_fd;
 
@@ -623,14 +623,14 @@ mrb_io_initialize_copy(mrb_state *mrb, mrb_value copy)
   buf = mrb_iv_get(mrb, orig, MRB_IVSYM(buf));
   mrb_iv_set(mrb, copy, MRB_IVSYM(buf), mrb_str_dup(mrb, buf));
 
-  fptr_copy->fd = mrb_dup(mrb, fptr_orig->fd, &failed);
+  fptr_copy->fd = symdup(mrb, fptr_orig->fd, &failed);
   if (failed) {
     mrb_sys_fail(mrb, 0);
   }
   mrb_fd_cloexec(mrb, fptr_copy->fd);
 
   if (fptr_orig->fd2 != -1) {
-    fptr_copy->fd2 = mrb_dup(mrb, fptr_orig->fd2, &failed);
+    fptr_copy->fd2 = symdup(mrb, fptr_orig->fd2, &failed);
     if (failed) {
       close(fptr_copy->fd);
       mrb_sys_fail(mrb, 0);
