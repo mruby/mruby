@@ -621,7 +621,7 @@ mrb_io_initialize_copy(mrb_state *mrb, mrb_value copy)
   DATA_PTR(copy) = fptr_copy;
 
   buf = mrb_iv_get(mrb, orig, MRB_IVSYM(buf));
-  mrb_iv_set(mrb, copy, MRB_IVSYM(buf), buf);
+  mrb_iv_set(mrb, copy, MRB_IVSYM(buf), mrb_str_dup(mrb, buf));
 
   fptr_copy->fd = mrb_dup(mrb, fptr_orig->fd, &failed);
   if (failed) {
