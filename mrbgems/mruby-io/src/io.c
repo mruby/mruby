@@ -80,7 +80,7 @@ io_get_open_fptr(mrb_state *mrb, mrb_value self)
 {
   struct mrb_io *fptr;
 
-  fptr = (struct mrb_io *)mrb_data_get_ptr(mrb, self, &mrb_io_type);
+  fptr = (struct mrb_io*)mrb_data_get_ptr(mrb, self, &mrb_io_type);
   if (fptr == NULL) {
     mrb_raise(mrb, E_IO_ERROR, "uninitialized stream");
   }
@@ -286,7 +286,7 @@ mrb_proc_exec(const char *pname)
     return -1;
   }
 
-  execl("/bin/sh", "sh", "-c", pname, (char *)NULL);
+  execl("/bin/sh", "sh", "-c", pname, (char*)NULL);
   return -1;
 }
 #endif
@@ -294,7 +294,7 @@ mrb_proc_exec(const char *pname)
 static void
 mrb_io_free(mrb_state *mrb, void *ptr)
 {
-  struct mrb_io *io = (struct mrb_io *)ptr;
+  struct mrb_io *io = (struct mrb_io*)ptr;
   if (io != NULL) {
     fptr_finalize(mrb, io, TRUE);
     mrb_free(mrb, io);
@@ -306,7 +306,7 @@ mrb_io_alloc(mrb_state *mrb)
 {
   struct mrb_io *fptr;
 
-  fptr = (struct mrb_io *)mrb_malloc(mrb, sizeof(struct mrb_io));
+  fptr = (struct mrb_io*)mrb_malloc(mrb, sizeof(struct mrb_io));
   fptr->fd = -1;
   fptr->fd2 = -1;
   fptr->pid = 0;
@@ -609,13 +609,13 @@ mrb_io_initialize_copy(mrb_state *mrb, mrb_value copy)
   mrb_bool failed = TRUE;
 
   fptr_orig = io_get_open_fptr(mrb, orig);
-  fptr_copy = (struct mrb_io *)DATA_PTR(copy);
+  fptr_copy = (struct mrb_io*)DATA_PTR(copy);
   if (fptr_orig == fptr_copy) return copy;
   if (fptr_copy != NULL) {
     fptr_finalize(mrb, fptr_copy, FALSE);
     mrb_free(mrb, fptr_copy);
   }
-  fptr_copy = (struct mrb_io *)mrb_io_alloc(mrb);
+  fptr_copy = (struct mrb_io*)mrb_io_alloc(mrb);
 
   DATA_TYPE(copy) = &mrb_io_type;
   DATA_PTR(copy) = fptr_copy;
@@ -715,7 +715,7 @@ mrb_io_initialize(mrb_state *mrb, mrb_value io)
 
   mrb_iv_set(mrb, io, MRB_IVSYM(buf), mrb_str_new_cstr(mrb, ""));
 
-  fptr = (struct mrb_io *)DATA_PTR(io);
+  fptr = (struct mrb_io*)DATA_PTR(io);
   if (fptr != NULL) {
     fptr_finalize(mrb, fptr, TRUE);
     mrb_free(mrb, fptr);
@@ -915,7 +915,7 @@ mrb_io_s_sysopen(mrb_state *mrb, mrb_value klass)
 
 static mrb_value
 mrb_io_sysread_common(mrb_state *mrb,
-    mrb_io_read_write_size (*readfunc)(int, void *, fsize_t, off_t),
+    mrb_io_read_write_size (*readfunc)(int, void*, fsize_t, off_t),
     mrb_value io, mrb_value buf, mrb_int maxlen, off_t offset)
 {
   struct mrb_io *fptr;
@@ -995,23 +995,25 @@ mrb_io_sysseek(mrb_state *mrb, mrb_value io)
 
 static mrb_value
 mrb_io_syswrite_common(mrb_state *mrb,
-    mrb_io_read_write_size (*writefunc)(int, const void *, fsize_t, off_t),
+    mrb_io_read_write_size (*writefunc)(int, const void*, fsize_t, off_t),
     mrb_value io, mrb_value buf, off_t offset)
 {
   struct mrb_io *fptr;
-  int fd, length;
+  int fd;
+  fsize_t length;
+  mrb_io_read_write_size n;
 
   fptr = io_get_write_fptr(mrb, io);
   if (fptr->fd2 == -1) {
     fd = fptr->fd;
-  } else {
+  }
+  else {
     fd = fptr->fd2;
   }
   length = writefunc(fd, RSTRING_PTR(buf), (fsize_t)RSTRING_LEN(buf), offset);
   if (length == -1) {
-    mrb_sys_fail(mrb, 0);
+    mrb_sys_fail(mrb, "syswrite");
   }
-
   return mrb_int_value(mrb, (mrb_int)length);
 }
 
@@ -1055,7 +1057,7 @@ static mrb_value
 mrb_io_closed(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr;
-  fptr = (struct mrb_io *)mrb_data_get_ptr(mrb, io, &mrb_io_type);
+  fptr = (struct mrb_io*)mrb_data_get_ptr(mrb, io, &mrb_io_type);
   if (fptr == NULL || fptr->fd >= 0) {
     return mrb_false_value();
   }
