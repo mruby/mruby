@@ -34,7 +34,7 @@
   typedef long ftime_t;
   typedef long fsuseconds_t;
   typedef int fmode_t;
-  typedef int mrb_io_read_write_size;
+  typedef int fssize_t;
 
   #ifndef O_TMPFILE
     #define O_TMPFILE O_TEMPORARY
@@ -48,7 +48,7 @@
   typedef time_t ftime_t;
   typedef suseconds_t fsuseconds_t;
   typedef mode_t fmode_t;
-  typedef ssize_t mrb_io_read_write_size;
+  typedef ssize_t fssize_t;
 #endif
 
 #ifdef _MSC_VER
@@ -915,7 +915,7 @@ mrb_io_s_sysopen(mrb_state *mrb, mrb_value klass)
 
 static mrb_value
 mrb_io_sysread_common(mrb_state *mrb,
-    mrb_io_read_write_size (*readfunc)(int, void*, fsize_t, off_t),
+    fssize_t (*readfunc)(int, void*, fsize_t, off_t),
     mrb_value io, mrb_value buf, mrb_int maxlen, off_t offset)
 {
   struct mrb_io *fptr;
@@ -953,10 +953,10 @@ mrb_io_sysread_common(mrb_state *mrb,
   return buf;
 }
 
-static mrb_io_read_write_size
+static fssize_t
 sysread(int fd, void *buf, fsize_t nbytes, off_t offset)
 {
-  return (mrb_io_read_write_size)read(fd, buf, nbytes);
+  return (fssize_t)read(fd, buf, nbytes);
 }
 
 static mrb_value
@@ -995,13 +995,12 @@ mrb_io_sysseek(mrb_state *mrb, mrb_value io)
 
 static mrb_value
 mrb_io_syswrite_common(mrb_state *mrb,
-    mrb_io_read_write_size (*writefunc)(int, const void*, fsize_t, off_t),
+    fssize_t (*writefunc)(int, const void*, fsize_t, off_t),
     mrb_value io, mrb_value buf, off_t offset)
 {
   struct mrb_io *fptr;
   int fd;
-  fsize_t length;
-  mrb_io_read_write_size n;
+  fssize_t length;
 
   fptr = io_get_write_fptr(mrb, io);
   if (fptr->fd2 == -1) {
@@ -1017,10 +1016,10 @@ mrb_io_syswrite_common(mrb_state *mrb,
   return mrb_int_value(mrb, (mrb_int)length);
 }
 
-static mrb_io_read_write_size
+static fssize_t
 syswrite(int fd, const void *buf, fsize_t nbytes, off_t offset)
 {
-  return (mrb_io_read_write_size)write(fd, buf, nbytes);
+  return (fssize_t)write(fd, buf, nbytes);
 }
 
 static mrb_value
