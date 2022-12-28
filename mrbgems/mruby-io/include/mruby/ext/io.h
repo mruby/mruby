@@ -53,12 +53,6 @@ struct mrb_io {
 #define MRB_O_DSYNC             0x00008000
 #define MRB_O_RSYNC             0x00010000
 
-#define MRB_O_RDONLY_P(f)       ((mrb_bool)(((f) & MRB_O_ACCMODE) == MRB_O_RDONLY))
-#define MRB_O_WRONLY_P(f)       ((mrb_bool)(((f) & MRB_O_ACCMODE) == MRB_O_WRONLY))
-#define MRB_O_RDWR_P(f)         ((mrb_bool)(((f) & MRB_O_ACCMODE) == MRB_O_RDWR))
-#define MRB_O_READABLE_P(f)     ((mrb_bool)((((f) & MRB_O_ACCMODE) | 2) == 2))
-#define MRB_O_WRITABLE_P(f)     ((mrb_bool)(((((f) & MRB_O_ACCMODE) + 1) & 2) == 2))
-
 #define E_IO_ERROR              (mrb_exc_get(mrb, "IOError"))
 #define E_EOF_ERROR             (mrb_exc_get(mrb, "EOFError"))
 
