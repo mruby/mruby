@@ -987,15 +987,10 @@ mrb_io_sysseek(mrb_state *mrb, mrb_value io)
   if (pos == -1) {
     mrb_sys_fail(mrb, "sysseek");
   }
-  if (pos > MRB_INT_MAX) {
-#ifndef MRB_NO_FLOAT
-    return mrb_float_value(mrb, (mrb_float)pos);
-#else
-    mrb_raise(mrb, E_IO_ERROR, "sysseek reached too far for MRB_NO_FLOAT");
-#endif
-  } else {
-    return mrb_int_value(mrb, pos);
+  if (pos > (off_t)MRB_INT_MAX) {
+    mrb_raise(mrb, E_IO_ERROR, "sysseek reached too far for mrb_int");
   }
+  return mrb_int_value(mrb, (mrb_int)pos);
 }
 
 static mrb_value
