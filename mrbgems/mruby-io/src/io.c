@@ -1578,6 +1578,10 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method(mrb, io, "pread",      mrb_io_pread,      MRB_ARGS_ANY());    /* ruby 2.5 feature */
   mrb_define_method(mrb, io, "pwrite",     mrb_io_pwrite,     MRB_ARGS_ANY());    /* ruby 2.5 feature */
 
+  mrb_define_const_id(mrb, io, MRB_SYM(SEEK_SET), mrb_fixnum_value(SEEK_SET));
+  mrb_define_const_id(mrb, io, MRB_SYM(SEEK_CUR), mrb_fixnum_value(SEEK_CUR));
+  mrb_define_const_id(mrb, io, MRB_SYM(SEEK_END), mrb_fixnum_value(SEEK_END));
+
   mrb_define_method(mrb, io, "_read_buf",  mrb_io_read_buf,   MRB_ARGS_NONE());
   mrb_define_method(mrb, io, "_readchar",  mrb_io_readchar,   MRB_ARGS_NONE());
   mrb_define_class_method(mrb, io, "_bufread",   mrb_io_bufread,    MRB_ARGS_REQ(2));
