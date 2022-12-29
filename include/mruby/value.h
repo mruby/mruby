@@ -435,7 +435,7 @@ mrb_ro_data_p(const char *p)
 #elif defined(__APPLE__)
 #define MRB_LINK_TIME_RO_DATA_P
 #include <mach-o/getsect.h>
-#include <crt_externs.h>
+#include <crt_externs.h> // for _NSGetMachExecuteHeader
 static inline mrb_bool
 mrb_ro_data_p(const char *p)
 {
