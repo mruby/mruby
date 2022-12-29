@@ -999,6 +999,15 @@ io_sysseek(mrb_state *mrb, mrb_value io)
 }
 
 static mrb_value
+io_seek(mrb_state *mrb, mrb_value io)
+{
+  mrb_value pos = io_sysseek(mrb, io);
+  mrb_value buf = mrb_iv_get(mrb, io, MRB_IVSYM(buf));
+  mrb_str_resize(mrb, buf, 0);
+  return pos;
+}
+
+static mrb_value
 io_syswrite_common(mrb_state *mrb,
     fssize_t (*writefunc)(int, const void*, fsize_t, off_t),
     mrb_value io, mrb_value buf, off_t offset)
@@ -1621,6 +1630,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method(mrb, io, "sysread",    io_sysread,    MRB_ARGS_ARG(1,1));
   mrb_define_method(mrb, io, "sysseek",    io_sysseek,    MRB_ARGS_ARG(1,1));
   mrb_define_method(mrb, io, "syswrite",   io_syswrite,   MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, io, "seek",       io_seek,       MRB_ARGS_ARG(1,1));
   mrb_define_method(mrb, io, "close",      io_close,      MRB_ARGS_NONE());   /* 15.2.20.5.1 */
   mrb_define_method(mrb, io, "close_write",    io_close_write,       MRB_ARGS_NONE());
   mrb_define_method(mrb, io, "close_on_exec=", io_set_close_on_exec, MRB_ARGS_REQ(1));
