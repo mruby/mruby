@@ -19,13 +19,15 @@ namespace :doc do
     begin
       sh "doxygen Doxyfile"
     rescue
-      puts "ERROR: To generate C API documents, you need Doxygen."
+      puts "ERROR: To generate C API documents, you need Doxygen and Graphviz."
       puts "On Debian-based systems:"
-      puts "  $ sudo apt-get install doxygen"
+      puts "  $ sudo apt-get install doxygen graphviz"
       puts "On RHEL-based systems:"
-      puts "  $ sudo dnf install doxygen"
+      puts "  $ sudo dnf install doxygen graphviz"
       puts "On macOS-based systems:"
-      puts "  $ brew install doxygen"
+      puts "  $ brew install doxygen graphviz"
+      puts "https://www.doxygen.nl/"
+      puts "https://graphviz.org/"
     end
   end
 
