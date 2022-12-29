@@ -156,7 +156,7 @@ static int
 io_mode_to_flags(mrb_state *mrb, mrb_value mode)
 {
   if (mrb_nil_p(mode)) {
-    return io_modestr_to_flags(mrb, "r");
+    return O_RDONLY;
   }
   else if (mrb_string_p(mode)) {
     return io_modestr_to_flags(mrb, RSTRING_CSTR(mrb, mode));
@@ -704,13 +704,6 @@ io_init(mrb_state *mrb, mrb_value io)
       check_file_descriptor(mrb, fd);
       break;
   }
-  if (mrb_nil_p(mode)) {
-    mode = mrb_str_new_cstr(mrb, "r");
-  }
-  if (mrb_nil_p(opt)) {
-    opt = mrb_hash_new(mrb);
-  }
-
   flags = io_mode_to_flags(mrb, mode);
 
   mrb_iv_set(mrb, io, MRB_IVSYM(buf), mrb_str_new_cstr(mrb, ""));
