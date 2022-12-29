@@ -26,7 +26,10 @@ INPUT                  = CONTRIBUTING.md \
                          mrblib \
                          doc \
                          doc/guides \
-                         doc/internal
+                         doc/internal \
+                         LEGAL \
+                         LICENSE \
+                         NEWS
 
 # Red for Ruby
 HTML_COLORSTYLE_HUE    = 359
@@ -279,7 +282,7 @@ OPTIMIZE_OUTPUT_VHDL   = NO
 # Note that for custom extensions you also need to set FILE_PATTERNS otherwise
 # the files are not read by doxygen.
 
-EXTENSION_MAPPING      =
+EXTENSION_MAPPING      = no_extension=md
 
 # If the MARKDOWN_SUPPORT tag is enabled then doxygen pre-processes all comments
 # according to the Markdown format, which allows for more readable
