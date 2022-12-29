@@ -815,6 +815,18 @@ io_get_write_fptr(mrb_state *mrb, mrb_value self)
   return fptr;
 }
 
+static int
+io_get_write_fd(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_io *fptr = io_get_write_fptr(mrb, self);
+  if (fptr->fd2 == -1) {
+    return fptr->fd;
+  }
+  else {
+    return fptr->fd2;
+  }
+}
+
 static mrb_value
 io_isatty(mrb_state *mrb, mrb_value self)
 {
@@ -991,17 +1003,10 @@ io_syswrite_common(mrb_state *mrb,
     fssize_t (*writefunc)(int, const void*, fsize_t, off_t),
     mrb_value io, mrb_value buf, off_t offset)
 {
-  struct mrb_io *fptr;
   int fd;
   fssize_t length;
 
-  fptr = io_get_write_fptr(mrb, io);
-  if (fptr->fd2 == -1) {
-    fd = fptr->fd;
-  }
-  else {
-    fd = fptr->fd2;
-  }
+  fd = io_get_write_fd(mrb, io);
   length = writefunc(fd, RSTRING_PTR(buf), (fsize_t)RSTRING_LEN(buf), offset);
   if (length == -1) {
     mrb_sys_fail(mrb, "syswrite");
