@@ -1,4 +1,3 @@
-
 # Cross-compile using MinGW and test using Wine.
 #
 # Steps:
