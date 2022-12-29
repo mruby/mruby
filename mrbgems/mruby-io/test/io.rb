@@ -187,8 +187,8 @@ assert('IO#sync=', '15.2.20.5.19') do
 end
 
 assert('IO#write', '15.2.20.5.20') do
-  io = IO.open(IO.sysopen($mrbtest_io_wfname))
-  assert_equal 0, io.write("")
+  io = IO.open(IO.sysopen($mrbtest_io_wfname, "w"), "w")
+  assert_equal 1, io.write("a")
   io.close
 
   io = IO.open(IO.sysopen($mrbtest_io_wfname, "r+"), "r+")
@@ -202,9 +202,9 @@ assert('IO#write', '15.2.20.5.20') do
 end
 
 assert('IO#<<') do
-  io = IO.open(IO.sysopen($mrbtest_io_wfname))
-  io << "" << ""
-  assert_equal 0, io.pos
+  io = IO.open(IO.sysopen($mrbtest_io_wfname, "w"), "w")
+  io << "a" << "b"
+  assert_equal 2, io.pos
   io.close
 end
 
