@@ -987,7 +987,7 @@ io_sysseek(mrb_state *mrb, mrb_value io)
   if (pos == -1) {
     mrb_sys_fail(mrb, "sysseek");
   }
-  if (pos > (off_t)MRB_INT_MAX) {
+  if (sizeof(off_t) > sizeof(mrb_int) && pos > (off_t)MRB_INT_MAX) {
     mrb_raise(mrb, E_IO_ERROR, "sysseek reached too far for mrb_int");
   }
   return mrb_int_value(mrb, (mrb_int)pos);
