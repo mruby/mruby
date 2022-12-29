@@ -1,4 +1,3 @@
-
 assert('Comparable#<', '15.3.3.2.1') do
   class Foo
     include Comparable
