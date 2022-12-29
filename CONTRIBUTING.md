@@ -37,6 +37,14 @@ Sometimes you might need to skip one or more hooks which can be done with the `S
 
 `$ SKIP=yamllint git commit -m "foo"`
 
+For convenience, we have added `pre-commit run --all-files` and `pre-commit autoupdate`
+to both the Makefile and the Rakefile. Run them with:
+
+- `make check` or `rake check`
+- `make checkupdate` or `rake checkupdate`
+
+### pre-commit quick links
+
 - [Quick start](https://pre-commit.com/#quick-start)
 - [Usage](https://pre-commit.com/#usage)
 - [pre-commit autoupdate](https://pre-commit.com/#pre-commit-autoupdate)
