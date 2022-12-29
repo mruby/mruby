@@ -1030,6 +1030,65 @@ io_syswrite(mrb_state *mrb, mrb_value io)
   return io_syswrite_common(mrb, syswrite, io, buf, 0);
 }
 
+  /* def write(string) */
+  /*   str = string.is_a?(String) ? string : string.to_s */
+  /*   return 0 if str.empty? */
+  /*   len = syswrite(str) */
+  /*   len */
+  /* end */
+
+static mrb_int
+fd_write(mrb_state *mrb, int fd, mrb_value str)
+{
+  fssize_t len, sum, n;
+
+  str = mrb_obj_as_string(mrb, str);
+  len = (fssize_t)RSTRING_LEN(str);
+  if (len == 0)return 0;
+
+  for (sum=0; sum<len; sum+=n) {
+    n = write(fd, RSTRING_PTR(str), (fsize_t)len);
+    if (n == -1) {
+      mrb_sys_fail(mrb, "syswrite");
+    }
+  }
+  return len;
+}
+
+static mrb_value
+io_write(mrb_state *mrb, mrb_value self)
+{
+  int fd = io_get_write_fd(mrb, self);
+  mrb_int len = 0;
+
+  mrb_value buf = mrb_iv_get(mrb, self, MRB_IVSYM(buf));
+  if (RSTRING_LEN(buf) > 0) {
+    off_t n;
+
+    /* get current position */
+    n = lseek(fd, 0, SEEK_CUR);
+    if (n == -1) mrb_sys_fail(mrb, "lseek");
+    /* move cursor */
+    n = lseek(fd, n - RSTRING_LEN(buf), SEEK_SET);
+    if (n == -1) mrb_sys_fail(mrb, "lseek(2)");
+    mrb_str_resize(mrb, buf, 0);
+  }
+
+  if (mrb_get_argc(mrb) == 1) {
+    len = fd_write(mrb, fd, mrb_get_arg1(mrb));
+  }
+  else {
+    mrb_value *argv;
+    mrb_int argc;
+
+    mrb_get_args(mrb, "*", &argv, &argc);
+    while (argc--) {
+      len += fd_write(mrb, fd, *argv++);
+    }
+  }
+  return mrb_int_value(mrb, len);
+}
+
 static mrb_value
 io_close(mrb_state *mrb, mrb_value self)
 {
@@ -1569,6 +1628,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method(mrb, io, "closed?",    io_closed,     MRB_ARGS_NONE());   /* 15.2.20.5.2 */
   mrb_define_method(mrb, io, "pid",        io_pid,        MRB_ARGS_NONE());   /* 15.2.20.5.2 */
   mrb_define_method(mrb, io, "fileno",     io_fileno,     MRB_ARGS_NONE());
+  mrb_define_method(mrb, io, "write",      io_write,      MRB_ARGS_ANY());    /* 15.2.20.5.20 */
   mrb_define_method(mrb, io, "pread",      io_pread,      MRB_ARGS_ANY());    /* ruby 2.5 feature */
   mrb_define_method(mrb, io, "pwrite",     io_pwrite,     MRB_ARGS_ANY());    /* ruby 2.5 feature */
 
