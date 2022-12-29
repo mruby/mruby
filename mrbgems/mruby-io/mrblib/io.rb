@@ -86,6 +86,17 @@ class IO
     self.__id__
   end
 
+  def write(string)
+    str = string.is_a?(String) ? string : string.to_s
+    return 0 if str.empty?
+    unless @buf.empty?
+      # reset real pos ignore buf
+      seek(pos, SEEK_SET)
+    end
+    len = syswrite(str)
+    len
+  end
+
   def <<(str)
     write(str)
     self

@@ -1537,22 +1537,6 @@ io_readchar(mrb_state *mrb, mrb_value self)
   return io_bufread(mrb, buf, len);
 }
 
-  /* def write(string) */
-  /*   str = string.is_a?(String) ? string : string.to_s */
-  /*   return 0 if str.empty? */
-  /*   unless @buf.empty? */
-  /*     # reset real pos ignore buf */
-  /*     seek(pos, SEEK_SET) */
-  /*   end */
-  /*   len = syswrite(str) */
-  /*   len */
-  /* end */
-
-static mrb_value
-io_write(mrb_state *mrb, mrb_value self)
-{
-}
-
 void
 mrb_init_io(mrb_state *mrb)
 {
@@ -1587,7 +1571,6 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method(mrb, io, "closed?",    io_closed,     MRB_ARGS_NONE());   /* 15.2.20.5.2 */
   mrb_define_method(mrb, io, "pid",        io_pid,        MRB_ARGS_NONE());   /* 15.2.20.5.2 */
   mrb_define_method(mrb, io, "fileno",     io_fileno,     MRB_ARGS_NONE());
-  mrb_define_method(mrb, io, "write",      io_write,      MRB_ARGS_ANY());
   mrb_define_method(mrb, io, "pread",      io_pread,      MRB_ARGS_ANY());    /* ruby 2.5 feature */
   mrb_define_method(mrb, io, "pwrite",     io_pwrite,     MRB_ARGS_ANY());    /* ruby 2.5 feature */
 
