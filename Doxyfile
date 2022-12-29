@@ -16,8 +16,10 @@ OUTPUT_DIRECTORY       = doc/capi
 
 USE_MDFILE_AS_MAINPAGE = README.md
 
-INPUT                  = README.md \
+INPUT                  = CONTRIBUTING.md \
+                         README.md \
                          SECURITY.md \
+                         TODO.md \
                          src \
                          include \
                          include/mruby \
