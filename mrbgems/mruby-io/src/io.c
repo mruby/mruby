@@ -689,12 +689,12 @@ io_init(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr;
   mrb_int fd;
-  mrb_value mode, opt;
+  mrb_value mode, opt;          /* opt (Hash) will be ignored */
   int flags;
 
   mode = opt = mrb_nil_value();
 
-  mrb_get_args(mrb, "i|oo", &fd, &mode, &opt);
+  mrb_get_args(mrb, "i|oH", &fd, &mode, &opt);
   switch (fd) {
     case 0: /* STDIN_FILENO */
     case 1: /* STDOUT_FILENO */
