@@ -435,10 +435,20 @@ mrb_ro_data_p(const char *p)
 #elif defined(__APPLE__)
 #define MRB_LINK_TIME_RO_DATA_P
 #include <mach-o/getsect.h>
+#include <crt_externs.h> // for _NSGetMachExecuteHeader
 static inline mrb_bool
 mrb_ro_data_p(const char *p)
 {
-  return (char*)get_etext() < p && p < (char*)get_edata();
+#ifdef __LP64__
+  struct mach_header_64 *mhp;
+#else
+  struct mach_header *mhp;
+#endif
+  mhp = _NSGetMachExecuteHeader();
+  unsigned long textsize, datasize;
+  char *text = (char*)getsegmentdata(mhp, SEG_TEXT, &textsize);
+  char *data = (char*)getsegmentdata(mhp, SEG_DATA, &datasize);
+  return text + textsize < p && p < data + datasize;
 }
 #endif  /* Linux or macOS */
 #endif  /* MRB_NO_DEFAULT_RO_DATA_P */
