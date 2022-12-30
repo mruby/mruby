@@ -114,3 +114,16 @@ language itself. Please note the following hints for your Ruby code:
 mruby is currently targeting to execute Ruby code which complies to ISO/IEC
 30170:2012 (<https://www.iso.org/iso/iso_catalogue/catalogue_tc/catalogue_detail.htm?csnumber=59579>),
 unless there's a clear reason, e.g. the latest Ruby has changed behavior from ISO.
+
+## Building documentation
+
+### mruby API
+
+- [YARD](https://yardoc.org/) - YARD is a documentation generation tool for the Ruby programming language
+- [yard-mruby](https://github.com/sagmor/yard-mruby) - Document MRuby sources with YARD
+- [yard-coderay](https://github.com/sagmor/yard-coderay) - Adds coderay syntax highlighting to YARD docs
+
+### C API
+
+- [Doxygen](https://www.doxygen.nl/) - Generate documentation from source code
+- [Graphviz](https://graphviz.org/) - Graphviz is open source graph visualization software
