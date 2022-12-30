@@ -600,6 +600,17 @@ symdup(mrb_state *mrb, int fd, mrb_bool *failed)
 }
 
 static mrb_value
+io_buf(mrb_state *mrb, mrb_value io)
+{
+  mrb_value buf = mrb_iv_get(mrb, io, MRB_IVSYM(buf));
+  if (!mrb_string_p(buf)) {
+    buf = mrb_str_new_cstr(mrb, "");
+    mrb_iv_set(mrb, io, MRB_IVSYM(buf), buf);
+  }
+  return buf;
+}
+
+static mrb_value
 io_init_copy(mrb_state *mrb, mrb_value copy)
 {
   mrb_value orig = mrb_get_arg1(mrb);
@@ -620,7 +631,7 @@ io_init_copy(mrb_state *mrb, mrb_value copy)
   DATA_TYPE(copy) = &mrb_io_type;
   DATA_PTR(copy) = fptr_copy;
 
-  buf = mrb_iv_get(mrb, orig, MRB_IVSYM(buf));
+  buf = io_buf(mrb, orig);
   mrb_iv_set(mrb, copy, MRB_IVSYM(buf), mrb_str_dup(mrb, buf));
 
   fptr_copy->fd = symdup(mrb, fptr_orig->fd, &failed);
@@ -1002,7 +1013,7 @@ static mrb_value
 io_seek(mrb_state *mrb, mrb_value io)
 {
   mrb_value pos = io_sysseek(mrb, io);
-  mrb_value buf = mrb_iv_get(mrb, io, MRB_IVSYM(buf));
+  mrb_value buf = io_buf(mrb, io);
   mrb_str_resize(mrb, buf, 0);
   return pos;
 }
@@ -1070,7 +1081,7 @@ io_write(mrb_state *mrb, mrb_value self)
   int fd = io_get_write_fd(mrb, self);
   mrb_int len = 0;
 
-  mrb_value buf = mrb_iv_get(mrb, self, MRB_IVSYM(buf));
+  mrb_value buf = io_buf(mrb, self);
   if (RSTRING_LEN(buf) > 0) {
     off_t n;
 
@@ -1137,7 +1148,7 @@ io_pos(mrb_state *mrb, mrb_value io)
   off_t pos = lseek(fptr->fd, 0, SEEK_CUR);
   if (pos == -1) mrb_sys_fail(mrb, 0);
 
-  mrb_value buf = mrb_iv_get(mrb, io, MRB_IVSYM(buf));
+  mrb_value buf = io_buf(mrb, io);
   return mrb_int_value(mrb, pos - RSTRING_LEN(buf));
 }
 
@@ -1182,10 +1193,8 @@ time2timeval(mrb_state *mrb, mrb_value time)
 static int
 mrb_io_read_data_pending(mrb_state *mrb, mrb_value io)
 {
-  mrb_value buf = mrb_iv_get(mrb, io, MRB_IVSYM(buf));
-  if (mrb_string_p(buf) && RSTRING_LEN(buf) > 0) {
-    return 1;
-  }
+  mrb_value buf = io_buf(mrb, io);
+  if (RSTRING_LEN(buf) > 0) return 1;
   return 0;
 }
 
@@ -1567,12 +1576,10 @@ io_bufread_m(mrb_state *mrb, mrb_value self)
 static mrb_value
 io_read_buf(mrb_state *mrb, mrb_value self)
 {
-  mrb_value buf = mrb_iv_get(mrb, self, MRB_IVSYM(buf));
-  if (!mrb_nil_p(buf)) {
-    mrb_ensure_string_type(mrb, buf);
-    if (RSTRING_LEN(buf) > 0) return buf;
-  }
-  mrb_str_modify(mrb, RSTRING(buf));
+  mrb->c->ci->mid = 0;
+
+  mrb_value buf = io_buf(mrb, self);
+  if (RSTRING_LEN(buf) > 0) return buf;
   return io_sysread_common(mrb, sysread, self, buf, BUF_SIZE, 0);
 }
 
@@ -1586,10 +1593,7 @@ io_readchar(mrb_state *mrb, mrb_value self)
 #endif
 
   mrb->c->ci->mid = 0;
-  buf = mrb_iv_get(mrb, self, MRB_IVSYM(buf));
-  mrb_ensure_string_type(mrb, buf);
-  mrb_assert(RSTRING_LEN(buf) > 0);
-  mrb_str_modify(mrb, RSTRING(buf));
+  buf = io_buf(mrb, self);
 #ifdef MRB_UTF8_STRING
   c = RSTRING_PTR(buf)[0];
   if (c & 0x80) {
