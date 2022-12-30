@@ -1559,9 +1559,6 @@ io_bufread_m(mrb_state *mrb, mrb_value self)
 
   mrb->c->ci->mid = 0;
   mrb_get_args(mrb, "Si", &str, &len);
-  mrb_assert(RSTRING_LEN(str) > 0);
-  mrb_assert(RSTRING_PTR(str) != NULL);
-  mrb_str_modify(mrb, RSTRING(str));
   return io_bufread(mrb, str, len);
 }
 
