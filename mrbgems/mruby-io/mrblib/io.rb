@@ -100,12 +100,8 @@ class IO
       return true
     end
   end
-  alias_method :eof, :eof?
 
-  def pos
-    raise IOError if closed?
-    sysseek(0, SEEK_CUR) - @buf.bytesize
-  end
+  alias_method :eof, :eof?
   alias_method :tell, :pos
 
   def pos=(i)
