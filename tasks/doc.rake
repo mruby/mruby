@@ -12,8 +12,8 @@ namespace :doc do
       puts "ERROR: To generate yard documentation, you should install yard-mruby gem."
       puts "  $ gem install yard-mruby yard-coderay"
       puts "https://yardoc.org/"
-      puts "https://github.com/sagmor/yard-mruby"
-      puts "https://github.com/sagmor/yard-coderay"
+      puts "https://rubygems.org/gems/yard-mruby"
+      puts "https://rubygems.org/gems/yard-coderay"
     end
   end
 
