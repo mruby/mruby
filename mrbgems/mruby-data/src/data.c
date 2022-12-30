@@ -392,7 +392,7 @@ mrb_data_to_h(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_data_to_s(mrb_state *mrb, mrb_value self)
 {
-  mrb_value members, ret;
+  mrb_value members, ret, cname;
   mrb_value *mems, *vals;
   mrb_int mlen;
 
@@ -402,6 +402,11 @@ mrb_data_to_s(mrb_state *mrb, mrb_value self)
   vals = RDATA_PTR(self);
   ret = mrb_str_new_lit(mrb, "#<data ");
   int ai = mrb_gc_arena_save(mrb);
+  cname = mrb_class_path(mrb, mrb_class_real(mrb_class(mrb, self)));
+  if (!mrb_nil_p(cname)) {
+    mrb_str_cat_str(mrb, ret, cname);
+    mrb_str_cat_lit(mrb, ret, " ");
+  }
   for (mrb_int i=0; i<mlen; i++) {
     mrb_int len;
     const char *name = mrb_sym_name_len(mrb, mrb_symbol(mems[i]), &len);
