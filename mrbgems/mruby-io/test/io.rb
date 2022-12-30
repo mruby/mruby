@@ -327,6 +327,14 @@ assert('IO#_read_buf') do
   io.close
 end
 
+assert('IO#ungetc') do
+  io = IO.new(IO.sysopen($mrbtest_io_rfname))
+  assert_equal 'm', io.getc
+  assert_nothing_raised{io.ungetc("M")}
+  assert_equal 'M', io.getc
+  io.close
+end
+
 assert('IO#isatty') do
   skip "isatty is not supported on this platform" if MRubyIOTestUtil.win?
   begin
