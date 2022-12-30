@@ -112,16 +112,6 @@ class IO
     seek(0, SEEK_SET)
   end
 
-  def ungetc(substr)
-    raise TypeError.new "expect String, got #{substr.class}" unless substr.is_a?(String)
-    if @buf.empty?
-      @buf.replace(substr)
-    else
-      @buf[0,0] = substr
-    end
-    nil
-  end
-
   def ungetbyte(c)
     if c.is_a? String
       c = c.getbyte(0)

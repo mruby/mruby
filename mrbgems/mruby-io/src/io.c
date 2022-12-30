@@ -1541,6 +1541,22 @@ io_pwrite(mrb_state *mrb, mrb_value io)
 #endif /* MRB_WITH_IO_PREAD_PWRITE */
 
 static mrb_value
+io_ungetc(mrb_state *mrb, mrb_value io)
+{
+  mrb_value str, buf;
+
+  io_get_read_fptr(mrb, io);
+  mrb_get_args(mrb, "S", &str);
+  buf = io_buf(mrb, io);
+  str = mrb_str_dup(mrb, str);
+  if (RSTRING_LEN(buf) > 0) {
+    mrb_str_cat_str(mrb, str, buf);
+  }
+  mrb_iv_set(mrb, io, MRB_IVSYM(buf), str);
+  return mrb_nil_value();
+}
+
+static mrb_value
 io_bufread(mrb_state *mrb, mrb_value str, mrb_int len)
 {
   mrb_value str2;
@@ -1648,6 +1664,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method(mrb, io, "close_on_exec=", io_set_close_on_exec, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, io, "close_on_exec?", io_close_on_exec_p,   MRB_ARGS_NONE());
   mrb_define_method(mrb, io, "closed?",    io_closed,     MRB_ARGS_NONE());   /* 15.2.20.5.2 */
+  mrb_define_method(mrb, io, "ungetc",     io_ungetc,     MRB_ARGS_REQ(1));
   mrb_define_method(mrb, io, "pos",        io_pos,        MRB_ARGS_NONE());
   mrb_define_method(mrb, io, "pid",        io_pid,        MRB_ARGS_NONE());
   mrb_define_method(mrb, io, "fileno",     io_fileno,     MRB_ARGS_NONE());
