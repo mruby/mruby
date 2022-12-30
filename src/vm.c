@@ -1102,32 +1102,22 @@ catch_handler_find(mrb_state *mrb, mrb_callinfo *ci, const mrb_code *pc, uint32_
   return NULL;
 }
 
-typedef enum {
-  LOCALJUMP_ERROR_RETURN = 0,
-  LOCALJUMP_ERROR_BREAK = 1,
-  LOCALJUMP_ERROR_YIELD = 2
-} localjump_error_kind;
-
-static void
-localjump_error(mrb_state *mrb, localjump_error_kind kind)
-{
-  char kind_str[3][7] = { "return", "break", "yield" };
-  char kind_str_len[] = { 6, 5, 5 };
-  static const char lead[] = "unexpected ";
-  mrb_value msg;
-  mrb_value exc;
-
-  msg = mrb_str_new_capa(mrb, sizeof(lead) + 7);
-  mrb_str_cat(mrb, msg, lead, sizeof(lead) - 1);
-  mrb_str_cat(mrb, msg, kind_str[kind], kind_str_len[kind]);
-  exc = mrb_exc_new_str(mrb, E_LOCALJUMP_ERROR, msg);
-  mrb_exc_set(mrb, exc);
-}
+const char *const mrb_localjump_error_messages[MRB_LOCALJUMP_ERROR_LAST] = {
+#define MRB_LOCALJUMP_ERROR_MESSAGE(n, mesg) mesg,
+  MRB_LOCALJUMP_ERROR_FOREACH(MRB_LOCALJUMP_ERROR_MESSAGE)
+#undef MRB_LOCALJUMP_ERROR_MESSAGE
+};
 
 #define RAISE_EXC(mrb, exc) do { \
   mrb_value exc_value = (exc); \
   mrb_exc_set(mrb, exc_value); \
   goto L_RAISE; \
+} while (0)
+
+#define RAISE_LOCALJUMP_ERROR(mrb, kind) do { \
+  const char *exc_cmesg = mrb_localjump_error_messages[kind]; \
+  mrb_value exc_mesg = mrb_str_new_static(mrb, exc_cmesg, strlen(exc_cmesg)); \
+  RAISE_EXC(mrb, mrb_exc_new_str(mrb, E_LOCALJUMP_ERROR, exc_mesg)); \
 } while (0)
 
 #define RAISE_LIT(mrb, c, str)          RAISE_EXC(mrb, mrb_exc_new_lit(mrb, c, str))
@@ -2218,21 +2208,18 @@ RETRY_TRY_BLOCK:
               struct REnv *e = MRB_PROC_ENV(dst);
 
               if (!MRB_ENV_ONSTACK_P(e) || (e->cxt && e->cxt != mrb->c)) {
-                localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
-                goto L_RAISE;
+                RAISE_LOCALJUMP_ERROR(mrb, MRB_LOCALJUMP_ERROR_RETURN);
               }
             }
             /* check jump destination */
             while (cibase <= ci && ci->proc != dst) {
               if (ci->cci > CINFO_NONE) { /* jump cross C boundary */
-                localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
-                goto L_RAISE;
+                RAISE_LOCALJUMP_ERROR(mrb, MRB_LOCALJUMP_ERROR_RETURN);
               }
               ci--;
             }
             if (ci <= cibase) { /* no jump destination */
-              localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
-              goto L_RAISE;
+              RAISE_LOCALJUMP_ERROR(mrb, MRB_LOCALJUMP_ERROR_RETURN);
             }
             ci = mrb->c->ci;
             while (cibase <= ci && ci->proc != dst) {
@@ -2422,14 +2409,12 @@ RETRY_TRY_BLOCK:
         struct REnv *e = uvenv(mrb, lv-1);
         if (!e || (!MRB_ENV_ONSTACK_P(e) && e->mid == 0) ||
             MRB_ENV_LEN(e) <= m1+r+m2+1) {
-          localjump_error(mrb, LOCALJUMP_ERROR_YIELD);
-          goto L_RAISE;
+          RAISE_LOCALJUMP_ERROR(mrb, MRB_LOCALJUMP_ERROR_YIELD);
         }
         stack = e->stack + 1;
       }
       if (mrb_nil_p(stack[m1+r+m2+kd])) {
-        localjump_error(mrb, LOCALJUMP_ERROR_YIELD);
-        goto L_RAISE;
+        RAISE_LOCALJUMP_ERROR(mrb, MRB_LOCALJUMP_ERROR_YIELD);
       }
       regs[a] = stack[m1+r+m2+kd];
       NEXT;
@@ -3010,12 +2995,12 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_ERR, B) {
-      size_t len = pool[a].tt >> 2;
-      mrb_value exc;
-
-      mrb_assert((pool[a].tt&IREP_TT_NFLAG)==0);
-      exc = mrb_exc_new(mrb, E_LOCALJUMP_ERROR, pool[a].u.str, len);
-      RAISE_EXC(mrb, exc);
+      if (a < MRB_LOCALJUMP_ERROR_LAST) {
+        RAISE_LOCALJUMP_ERROR(mrb, a);
+      }
+      else {
+        RAISE_LIT(mrb, E_INDEX_ERROR, "invalid `a` operand for OP_ERR");
+      }
     }
 
     CASE(OP_EXT1, Z) {

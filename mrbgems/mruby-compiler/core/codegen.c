@@ -106,7 +106,7 @@ static void gen_assignment(codegen_scope *s, node *tree, node *rhs, int sp, int 
 static void gen_massignment(codegen_scope *s, node *tree, int sp, int val);
 
 static void codegen(codegen_scope *s, node *tree, int val);
-static void raise_error(codegen_scope *s, const char *msg);
+static void raise_error(codegen_scope *s, int msg);
 
 static void
 codegen_error(codegen_scope *s, const char *message)
@@ -2143,11 +2143,9 @@ gen_literal_array(codegen_scope *s, node *tree, mrb_bool sym, int val)
 }
 
 static void
-raise_error(codegen_scope *s, const char *msg)
+raise_error(codegen_scope *s, int msg)
 {
-  int idx = new_lit_cstr(s, msg);
-
-  genop_1(s, OP_ERR, idx);
+  genop_1(s, OP_ERR, msg);
 }
 
 static mrb_int
@@ -3144,7 +3142,7 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_NEXT:
     if (!s->loop) {
-      raise_error(s, "unexpected next");
+      raise_error(s, MRB_LOCALJUMP_ERROR_NEXT);
     }
     else if (s->loop->type == LOOP_NORMAL) {
       codegen(s, tree, NOVAL);
@@ -3165,7 +3163,7 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_REDO:
     if (!s->loop || s->loop->type == LOOP_BEGIN || s->loop->type == LOOP_RESCUE) {
-      raise_error(s, "unexpected redo");
+      raise_error(s, MRB_LOCALJUMP_ERROR_REDO);
     }
     else {
       genjmp(s, OP_JMPUW, s->loop->pc1);
@@ -3175,14 +3173,13 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_RETRY:
     {
-      const char *msg = "unexpected retry";
       const struct loopinfo *lp = s->loop;
 
       while (lp && lp->type != LOOP_RESCUE) {
         lp = lp->prev;
       }
       if (!lp) {
-        raise_error(s, msg);
+        raise_error(s, MRB_LOCALJUMP_ERROR_RETRY);
       }
       else {
         genjmp(s, OP_JMPUW, lp->pc0);
@@ -3952,7 +3949,7 @@ loop_break(codegen_scope *s, node *tree)
 {
   if (!s->loop) {
     codegen(s, tree, NOVAL);
-    raise_error(s, "unexpected break");
+    raise_error(s, MRB_LOCALJUMP_ERROR_BREAK);
   }
   else {
     struct loopinfo *loop;
@@ -3979,7 +3976,7 @@ loop_break(codegen_scope *s, node *tree)
       }
     }
     if (!loop) {
-      raise_error(s, "unexpected break");
+      raise_error(s, MRB_LOCALJUMP_ERROR_BREAK);
       return;
     }
 

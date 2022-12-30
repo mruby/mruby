@@ -113,7 +113,7 @@ OPCODE(UNDEF,      B)        /* undef_method(target_class,Syms[a]) */
 OPCODE(SCLASS,     B)        /* R[a] = R[a].singleton_class */
 OPCODE(TCLASS,     B)        /* R[a] = target_class */
 OPCODE(DEBUG,      BBB)      /* print a,b,c */
-OPCODE(ERR,        B)        /* raise(LocalJumpError, Pool[a]) */
+OPCODE(ERR,        B)        /* raise(LocalJumpError, mrb_localjump_error_messages[a]) */
 OPCODE(EXT1,       Z)        /* make 1st operand (a) 16bit */
 OPCODE(EXT2,       Z)        /* make 2nd operand (b) 16bit */
 OPCODE(EXT3,       Z)        /* make 1st and 2nd operands 16bit */
