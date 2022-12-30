@@ -11,10 +11,13 @@ mrbgems/*/src/**/*.c
 mrbgems/*/mrblib/**/*.rb
 mrbgems/*/include/**/*.h
 -
-AUTHORS
-LICENSE
 CONTRIBUTING.md
 SECURITY.md
+TODO.md
 doc/*.md
 doc/guides/*.md
 doc/internal/*.md
+AUTHORS
+LEGAL
+LICENSE
+NEWS
