@@ -214,11 +214,6 @@ class IO
     end
   end
 
-  def readchar
-    _read_buf
-    _readchar
-  end
-
   def getc
     begin
       readchar

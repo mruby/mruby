@@ -1614,6 +1614,7 @@ io_readchar(mrb_state *mrb, mrb_value self)
 #endif
 
   mrb->c->ci->mid = 0;
+  io_read_buf(mrb, self);
   buf = io_buf(mrb, self);
 #ifdef MRB_UTF8_STRING
   c = RSTRING_PTR(buf)[0];
@@ -1695,6 +1696,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method(mrb, io, "write",      io_write,      MRB_ARGS_ANY());    /* 15.2.20.5.20 */
   mrb_define_method(mrb, io, "pread",      io_pread,      MRB_ARGS_ANY());    /* ruby 2.5 feature */
   mrb_define_method(mrb, io, "pwrite",     io_pwrite,     MRB_ARGS_ANY());    /* ruby 2.5 feature */
+  mrb_define_method(mrb, io, "readchar",   io_readchar,   MRB_ARGS_NONE());   /* 15.2.20.5.15 */
   mrb_define_method(mrb, io, "readbyte",   io_readbyte,   MRB_ARGS_NONE());
 
   mrb_define_const_id(mrb, io, MRB_SYM(SEEK_SET), mrb_fixnum_value(SEEK_SET));
@@ -1702,6 +1704,5 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_const_id(mrb, io, MRB_SYM(SEEK_END), mrb_fixnum_value(SEEK_END));
 
   mrb_define_method(mrb, io, "_read_buf",  io_read_buf,   MRB_ARGS_NONE());
-  mrb_define_method(mrb, io, "_readchar",  io_readchar,   MRB_ARGS_NONE());
   mrb_define_class_method(mrb, io, "_bufread", io_bufread_m, MRB_ARGS_REQ(2));
 }
