@@ -1557,22 +1557,26 @@ io_ungetc(mrb_state *mrb, mrb_value io)
   return mrb_nil_value();
 }
 
+static void
+io_bufshift(mrb_state *mrb, struct RString *s, mrb_int len)
+{
+  mrb_int newlen = RSTR_LEN(s)-len;
+  char *p = RSTR_PTR(s);
+
+  mrb_str_modify(mrb, s);
+  memmove(p, p+len, newlen);
+  p[newlen] = '\0';
+  RSTR_SET_LEN(s, newlen);
+}
+
 static mrb_value
 io_bufread(mrb_state *mrb, mrb_value str, mrb_int len)
 {
   mrb_value str2;
-  mrb_int newlen;
-  struct RString *s;
-  char *p;
+  struct RString *s = RSTRING(str);
 
-  s = RSTRING(str);
-  mrb_str_modify(mrb, s);
-  p = RSTR_PTR(s);
-  str2 = mrb_str_new(mrb, p, len);
-  newlen = RSTR_LEN(s)-len;
-  memmove(p, p+len, newlen);
-  p[newlen] = '\0';
-  RSTR_SET_LEN(s, newlen);
+  str2 = mrb_str_new(mrb, RSTR_PTR(s), len);
+  io_bufshift(mrb, s, len);
 
   return str2;
 }
@@ -1633,6 +1637,17 @@ io_readchar(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+io_readbyte(mrb_state *mrb, mrb_value io)
+{
+  io_read_buf(mrb, io);
+  mrb_value buf = io_buf(mrb, io);
+  struct RString *b = RSTRING(buf);
+  unsigned char c = RSTR_PTR(b)[0];
+  io_bufshift(mrb, b, 1);
+  return mrb_int_value(mrb, (mrb_int)c);
+}
+
+static mrb_value
 io_flush(mrb_state *mrb, mrb_value self)
 {
   io_get_open_fptr(mrb, self);
@@ -1680,6 +1695,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method(mrb, io, "write",      io_write,      MRB_ARGS_ANY());    /* 15.2.20.5.20 */
   mrb_define_method(mrb, io, "pread",      io_pread,      MRB_ARGS_ANY());    /* ruby 2.5 feature */
   mrb_define_method(mrb, io, "pwrite",     io_pwrite,     MRB_ARGS_ANY());    /* ruby 2.5 feature */
+  mrb_define_method(mrb, io, "readbyte",   io_readbyte,   MRB_ARGS_NONE());
 
   mrb_define_const_id(mrb, io, MRB_SYM(SEEK_SET), mrb_fixnum_value(SEEK_SET));
   mrb_define_const_id(mrb, io, MRB_SYM(SEEK_CUR), mrb_fixnum_value(SEEK_CUR));

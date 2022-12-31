@@ -227,11 +227,6 @@ class IO
     end
   end
 
-  def readbyte
-    _read_buf
-    IO._bufread(@buf, 1).getbyte(0)
-  end
-
   def getbyte
     readbyte
   rescue EOFError
