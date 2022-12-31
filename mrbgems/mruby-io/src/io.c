@@ -1631,6 +1631,13 @@ io_readchar(mrb_state *mrb, mrb_value self)
   return io_bufread(mrb, buf, len);
 }
 
+static mrb_value
+io_flush(mrb_state *mrb, mrb_value self)
+{
+  io_get_open_fptr(mrb, self);
+  return self;
+}
+
 void
 mrb_init_io(mrb_state *mrb)
 {
@@ -1664,6 +1671,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method(mrb, io, "close_on_exec=", io_set_close_on_exec, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, io, "close_on_exec?", io_close_on_exec_p,   MRB_ARGS_NONE());
   mrb_define_method(mrb, io, "closed?",    io_closed,     MRB_ARGS_NONE());   /* 15.2.20.5.2 */
+  mrb_define_method(mrb, io, "flush",      io_flush,      MRB_ARGS_NONE());   /* 15.2.20.5.7 */
   mrb_define_method(mrb, io, "ungetc",     io_ungetc,     MRB_ARGS_REQ(1));
   mrb_define_method(mrb, io, "pos",        io_pos,        MRB_ARGS_NONE());
   mrb_define_method(mrb, io, "pid",        io_pid,        MRB_ARGS_NONE());

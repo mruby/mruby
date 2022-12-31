@@ -74,12 +74,6 @@ class IO
     str
   end
 
-  def flush
-    # mruby-io always writes immediately (no output buffer).
-    raise IOError, "closed stream" if self.closed?
-    self
-  end
-
   def hash
     # We must define IO#hash here because IO includes Enumerable and
     # Enumerable#hash will call IO#read() otherwise
