@@ -76,11 +76,11 @@ static int io_mode_to_flags(mrb_state *mrb, mrb_value mode);
 static void fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet);
 
 static struct mrb_io*
-io_get_open_fptr(mrb_state *mrb, mrb_value self)
+io_get_open_fptr(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr;
 
-  fptr = (struct mrb_io*)mrb_data_get_ptr(mrb, self, &mrb_io_type);
+  fptr = (struct mrb_io*)mrb_data_get_ptr(mrb, io, &mrb_io_type);
   if (fptr == NULL) {
     mrb_raise(mrb, E_IO_ERROR, "uninitialized stream");
   }
@@ -801,9 +801,9 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet)
 }
 
 static struct mrb_io*
-io_get_read_fptr(mrb_state *mrb, mrb_value self)
+io_get_read_fptr(mrb_state *mrb, mrb_value io)
 {
-  struct mrb_io *fptr = io_get_open_fptr(mrb, self);
+  struct mrb_io *fptr = io_get_open_fptr(mrb, io);
   if (!fptr->readable) {
     mrb_raise(mrb, E_IO_ERROR, "not opened for reading");
   }
@@ -811,17 +811,17 @@ io_get_read_fptr(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
-io_check_readable(mrb_state *mrb, mrb_value self)
+io_check_readable(mrb_state *mrb, mrb_value io)
 {
   mrb->c->ci->mid = 0;
-  io_get_read_fptr(mrb, self);
+  io_get_read_fptr(mrb, io);
   return mrb_nil_value();
 }
 
 static struct mrb_io*
-io_get_write_fptr(mrb_state *mrb, mrb_value self)
+io_get_write_fptr(mrb_state *mrb, mrb_value io)
 {
-  struct mrb_io *fptr = io_get_open_fptr(mrb, self);
+  struct mrb_io *fptr = io_get_open_fptr(mrb, io);
   if (!fptr->writable) {
     mrb_raise(mrb, E_IO_ERROR, "not opened for writing");
   }
@@ -829,9 +829,9 @@ io_get_write_fptr(mrb_state *mrb, mrb_value self)
 }
 
 static int
-io_get_write_fd(mrb_state *mrb, mrb_value self)
+io_get_write_fd(mrb_state *mrb, mrb_value io)
 {
-  struct mrb_io *fptr = io_get_write_fptr(mrb, self);
+  struct mrb_io *fptr = io_get_write_fptr(mrb, io);
   if (fptr->fd2 == -1) {
     return fptr->fd;
   }
@@ -841,11 +841,11 @@ io_get_write_fd(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
-io_isatty(mrb_state *mrb, mrb_value self)
+io_isatty(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr;
 
-  fptr = io_get_open_fptr(mrb, self);
+  fptr = io_get_open_fptr(mrb, io);
   if (isatty(fptr->fd) == 0)
     return mrb_false_value();
   return mrb_true_value();
@@ -1078,12 +1078,12 @@ fd_write(mrb_state *mrb, int fd, mrb_value str)
 }
 
 static mrb_value
-io_write(mrb_state *mrb, mrb_value self)
+io_write(mrb_state *mrb, mrb_value io)
 {
-  int fd = io_get_write_fd(mrb, self);
+  int fd = io_get_write_fd(mrb, io);
   mrb_int len = 0;
 
-  mrb_value buf = io_buf(mrb, self);
+  mrb_value buf = io_buf(mrb, io);
   if (RSTRING_LEN(buf) > 0) {
     off_t n;
 
@@ -1112,19 +1112,19 @@ io_write(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
-io_close(mrb_state *mrb, mrb_value self)
+io_close(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr;
-  fptr = io_get_open_fptr(mrb, self);
+  fptr = io_get_open_fptr(mrb, io);
   fptr_finalize(mrb, fptr, FALSE);
   return mrb_nil_value();
 }
 
 static mrb_value
-io_close_write(mrb_state *mrb, mrb_value self)
+io_close_write(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr;
-  fptr = io_get_open_fptr(mrb, self);
+  fptr = io_get_open_fptr(mrb, io);
   if (close((int)fptr->fd2) == -1) {
     mrb_sys_fail(mrb, "close");
   }
@@ -1426,12 +1426,12 @@ io_fileno(mrb_state *mrb, mrb_value io)
 
 #if defined(F_GETFD) && defined(F_SETFD) && defined(FD_CLOEXEC)
 static mrb_value
-io_close_on_exec_p(mrb_state *mrb, mrb_value self)
+io_close_on_exec_p(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr;
   int ret;
 
-  fptr = io_get_open_fptr(mrb, self);
+  fptr = io_get_open_fptr(mrb, io);
 
   if (fptr->fd2 >= 0) {
     if ((ret = fcntl(fptr->fd2, F_GETFD)) == -1) mrb_sys_fail(mrb, "F_GETFD failed");
@@ -1448,13 +1448,13 @@ io_close_on_exec_p(mrb_state *mrb, mrb_value self)
 
 #if defined(F_GETFD) && defined(F_SETFD) && defined(FD_CLOEXEC)
 static mrb_value
-io_set_close_on_exec(mrb_state *mrb, mrb_value self)
+io_set_close_on_exec(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr;
   int flag, ret;
   mrb_bool b;
 
-  fptr = io_get_open_fptr(mrb, self);
+  fptr = io_get_open_fptr(mrb, io);
   mrb_get_args(mrb, "b", &b);
   flag = b ? FD_CLOEXEC : 0;
 
@@ -1482,22 +1482,22 @@ io_set_close_on_exec(mrb_state *mrb, mrb_value self)
 #endif
 
 static mrb_value
-io_set_sync(mrb_state *mrb, mrb_value self)
+io_set_sync(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr;
   mrb_bool b;
 
-  fptr = io_get_open_fptr(mrb, self);
+  fptr = io_get_open_fptr(mrb, io);
   mrb_get_args(mrb, "b", &b);
   fptr->sync = b;
   return mrb_bool_value(b);
 }
 
 static mrb_value
-io_sync(mrb_state *mrb, mrb_value self)
+io_sync(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr;
-  fptr = io_get_open_fptr(mrb, self);
+  fptr = io_get_open_fptr(mrb, io);
   return mrb_bool_value(fptr->sync);
 }
 
@@ -1583,7 +1583,7 @@ io_bufread(mrb_state *mrb, mrb_value str, mrb_int len)
 }
 
 static mrb_value
-io_bufread_m(mrb_state *mrb, mrb_value self)
+io_bufread_m(mrb_state *mrb, mrb_value io)
 {
   mrb_value str;
   mrb_int len;
@@ -1596,17 +1596,17 @@ io_bufread_m(mrb_state *mrb, mrb_value self)
 #define BUF_SIZE 4096
 
 static mrb_value
-io_read_buf(mrb_state *mrb, mrb_value self)
+io_read_buf(mrb_state *mrb, mrb_value io)
 {
   mrb->c->ci->mid = 0;
 
-  mrb_value buf = io_buf(mrb, self);
+  mrb_value buf = io_buf(mrb, io);
   if (RSTRING_LEN(buf) > 0) return buf;
-  return io_sysread_common(mrb, sysread, self, buf, BUF_SIZE, 0);
+  return io_sysread_common(mrb, sysread, io, buf, BUF_SIZE, 0);
 }
 
 static mrb_value
-io_readchar(mrb_state *mrb, mrb_value self)
+io_readchar(mrb_state *mrb, mrb_value io)
 {
   mrb_value buf;
   mrb_int len = 1;
@@ -1615,8 +1615,8 @@ io_readchar(mrb_state *mrb, mrb_value self)
 #endif
 
   mrb->c->ci->mid = 0;
-  io_read_buf(mrb, self);
-  buf = io_buf(mrb, self);
+  io_read_buf(mrb, io);
+  buf = io_buf(mrb, io);
 #ifdef MRB_UTF8_STRING
   c = RSTRING_PTR(buf)[0];
   if (c & 0x80) {
@@ -1624,7 +1624,7 @@ io_readchar(mrb_state *mrb, mrb_value self)
     if (len == 1 && RSTRING_LEN(buf) < 4) { /* partial UTF-8 */
       mrb_int blen = RSTRING_LEN(buf);
       ssize_t n;
-      struct mrb_io *fptr = io_get_read_fptr(mrb, self);
+      struct mrb_io *fptr = io_get_read_fptr(mrb, io);
 
       /* refill the buffer */
       mrb_str_resize(mrb, buf, 4096);
@@ -1650,10 +1650,10 @@ io_readbyte(mrb_state *mrb, mrb_value io)
 }
 
 static mrb_value
-io_flush(mrb_state *mrb, mrb_value self)
+io_flush(mrb_state *mrb, mrb_value io)
 {
-  io_get_open_fptr(mrb, self);
-  return self;
+  io_get_open_fptr(mrb, io);
+  return io;
 }
 
 void
