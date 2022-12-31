@@ -813,6 +813,7 @@ io_get_read_fptr(mrb_state *mrb, mrb_value self)
 static mrb_value
 io_check_readable(mrb_state *mrb, mrb_value self)
 {
+  mrb->c->ci->mid = 0;
   io_get_read_fptr(mrb, self);
   return mrb_nil_value();
 }
