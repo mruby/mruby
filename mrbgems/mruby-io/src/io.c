@@ -740,12 +740,13 @@ static void
 fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet)
 {
   int saved_errno = 0;
+  int limit = quiet ? 3 : 0;
 
   if (fptr == NULL) {
     return;
   }
 
-  if (fptr->fd > 2) {
+  if (fptr->fd >= limit) {
 #ifdef _WIN32
     if (fptr->is_socket) {
       if (closesocket(fptr->fd) != 0) {
@@ -762,7 +763,7 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet)
     fptr->fd = -1;
   }
 
-  if (fptr->fd2 > 2) {
+  if (fptr->fd2 >= limit) {
     if (close(fptr->fd2) == -1) {
       if (saved_errno == 0) {
         saved_errno = errno;
