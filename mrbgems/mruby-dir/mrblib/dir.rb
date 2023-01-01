@@ -36,7 +36,10 @@ class Dir
         begin
           block.call(d)
         ensure
-          d.close
+          begin
+            d.close
+          rescue IOError
+          end
         end
       else
         self.new(path)
