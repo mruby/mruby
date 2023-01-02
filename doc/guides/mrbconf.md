@@ -123,6 +123,11 @@ end
 
 - Defines value is `1024`.
 - Specifies number of `RBasic` per each heap page.
+- To calculate the number of bytes per heap page, it is "(size of management data per heap page) + (size per object) * `MRB_HEAP_PAGE_SIZE`".
+  In mruby 3.1.0, the "size of management data per heap page" is 6 words, also "size per object" is 6 words.
+  For a 32-bit CPU, `(6 * 4) + (6 * 4) * MRB_HEAP_PAGE_SIZE` gives the bytes of size per heap page.
+  Conversely, for example, to keep the size per heap page to 4 Ki bytes,
+  calculate `(4096 - (6 * 4)) / (6 * 4)` to specify `MRB_HEAP_PAGE_SIZE=169`.
 
 ## Memory pool configuration
 
