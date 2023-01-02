@@ -450,7 +450,6 @@ io_s_popen(mrb_state *mrb, mrb_value klass)
   fptr->pid = pid;
   fptr->readable = OPEN_READABLE_P(flags);
   fptr->writable = OPEN_WRITABLE_P(flags);
-  fptr->sync = 0;
 
   DATA_TYPE(io) = &mrb_io_type;
   DATA_PTR(io)  = fptr;
@@ -559,7 +558,6 @@ io_s_popen(mrb_state *mrb, mrb_value klass)
       fptr->pid = pid;
       fptr->readable = OPEN_READABLE_P(flags);
       fptr->writable = OPEN_WRITABLE_P(flags);
-      fptr->sync = 0;
 
       DATA_TYPE(io) = &mrb_io_type;
       DATA_PTR(io)  = fptr;
@@ -732,7 +730,6 @@ io_init(mrb_state *mrb, mrb_value io)
   fptr->fd = (int)fd;
   fptr->readable = OPEN_READABLE_P(flags);
   fptr->writable = OPEN_WRITABLE_P(flags);
-  fptr->sync = 0;
   return io;
 }
 
@@ -1219,8 +1216,6 @@ io_s_pipe(mrb_state *mrb, mrb_value klass)
   fptr_r = io_alloc(mrb);
   fptr_r->fd = pipes[0];
   fptr_r->readable = 1;
-  fptr_r->writable = 0;
-  fptr_r->sync = 0;
   DATA_TYPE(r) = &mrb_io_type;
   DATA_PTR(r)  = fptr_r;
 
