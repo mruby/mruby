@@ -932,7 +932,7 @@ io_s_sysopen(mrb_state *mrb, mrb_value klass)
 }
 
 static mrb_value
-io_sysread_common(mrb_state *mrb,
+io_read_common(mrb_state *mrb,
     fssize_t (*readfunc)(int, void*, fsize_t, off_t),
     mrb_value io, mrb_value buf, mrb_int maxlen, off_t offset)
 {
@@ -985,7 +985,7 @@ io_sysread(mrb_state *mrb, mrb_value io)
 
   mrb_get_args(mrb, "i|S", &maxlen, &buf);
 
-  return io_sysread_common(mrb, sysread, io, buf, maxlen, 0);
+  return io_read_common(mrb, sysread, io, buf, maxlen, 0);
 }
 
 static mrb_value
@@ -1021,7 +1021,7 @@ io_seek(mrb_state *mrb, mrb_value io)
 }
 
 static mrb_value
-io_syswrite_common(mrb_state *mrb,
+io_write_common(mrb_state *mrb,
     fssize_t (*writefunc)(int, const void*, fsize_t, off_t),
     mrb_value io, mrb_value buf, off_t offset)
 {
@@ -1049,7 +1049,7 @@ io_syswrite(mrb_state *mrb, mrb_value io)
 
   mrb_get_args(mrb, "S", &buf);
 
-  return io_syswrite_common(mrb, syswrite, io, buf, 0);
+  return io_write_common(mrb, syswrite, io, buf, 0);
 }
 
   /* def write(string) */
@@ -1524,7 +1524,7 @@ io_pread(mrb_state *mrb, mrb_value io)
 
   mrb_get_args(mrb, "io|S!", &maxlen, &off, &buf);
 
-  return io_sysread_common(mrb, pread, io, buf, maxlen, value2off(mrb, off));
+  return io_read_common(mrb, pread, io, buf, maxlen, value2off(mrb, off));
 }
 
 /*
@@ -1538,7 +1538,7 @@ io_pwrite(mrb_state *mrb, mrb_value io)
 
   mrb_get_args(mrb, "So", &buf, &off);
 
-  return io_syswrite_common(mrb, pwrite, io, buf, value2off(mrb, off));
+  return io_write_common(mrb, pwrite, io, buf, value2off(mrb, off));
 }
 #endif /* MRB_WITH_IO_PREAD_PWRITE */
 
@@ -1602,7 +1602,7 @@ io_read_buf(mrb_state *mrb, mrb_value io)
 
   mrb_value buf = io_buf(mrb, io);
   if (RSTRING_LEN(buf) > 0) return buf;
-  return io_sysread_common(mrb, sysread, io, buf, BUF_SIZE, 0);
+  return io_read_common(mrb, sysread, io, buf, BUF_SIZE, 0);
 }
 
 static mrb_value
