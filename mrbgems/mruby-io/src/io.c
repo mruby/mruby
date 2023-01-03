@@ -313,6 +313,7 @@ io_alloc(mrb_state *mrb)
   fptr->readable = 0;
   fptr->writable = 0;
   fptr->sync = 0;
+  fptr->eof = 0;
   fptr->is_socket = 0;
   return fptr;
 }
@@ -807,14 +808,6 @@ io_get_read_fptr(mrb_state *mrb, mrb_value io)
   return fptr;
 }
 
-static mrb_value
-io_check_readable(mrb_state *mrb, mrb_value io)
-{
-  mrb->c->ci->mid = 0;
-  io_get_read_fptr(mrb, io);
-  return mrb_nil_value();
-}
-
 static struct mrb_io*
 io_get_write_fptr(mrb_state *mrb, mrb_value io)
 {
@@ -931,7 +924,7 @@ io_s_sysopen(mrb_state *mrb, mrb_value klass)
 static mrb_value
 io_read_common(mrb_state *mrb,
     fssize_t (*readfunc)(int, void*, fsize_t, off_t),
-    mrb_value io, mrb_value buf, mrb_int maxlen, off_t offset)
+    mrb_value io, mrb_value buf, mrb_int maxlen, off_t offset, int raise)
 {
   struct mrb_io *fptr;
   int ret;
@@ -963,7 +956,10 @@ io_read_common(mrb_state *mrb,
     buf = mrb_str_resize(mrb, buf, ret);
   }
   if (ret == 0 && maxlen > 0) {
-    mrb_raise(mrb, E_EOF_ERROR, "sysread failed: End of File");
+    fptr->eof = 1;
+    if (raise) {
+      mrb_raise(mrb, E_EOF_ERROR, "sysread failed: End of File");
+    }
   }
   return buf;
 }
@@ -982,7 +978,7 @@ io_sysread(mrb_state *mrb, mrb_value io)
 
   mrb_get_args(mrb, "i|S", &maxlen, &buf);
 
-  return io_read_common(mrb, sysread, io, buf, maxlen, 0);
+  return io_read_common(mrb, sysread, io, buf, maxlen, 0, 1);
 }
 
 static mrb_value
@@ -1002,6 +998,7 @@ io_sysseek(mrb_state *mrb, mrb_value io)
   if (pos == -1) {
     mrb_sys_fail(mrb, "sysseek");
   }
+  fptr->eof = 0;
   if (sizeof(off_t) > sizeof(mrb_int) && pos > (off_t)MRB_INT_MAX) {
     mrb_raise(mrb, E_IO_ERROR, "sysseek reached too far for mrb_int");
   }
@@ -1519,7 +1516,7 @@ io_pread(mrb_state *mrb, mrb_value io)
 
   mrb_get_args(mrb, "io|S!", &maxlen, &off, &buf);
 
-  return io_read_common(mrb, pread, io, buf, maxlen, value2off(mrb, off));
+  return io_read_common(mrb, pread, io, buf, maxlen, value2off(mrb, off), 1);
 }
 
 /*
@@ -1597,7 +1594,18 @@ io_read_buf(mrb_state *mrb, mrb_value io)
 
   mrb_value buf = io_buf(mrb, io);
   if (RSTRING_LEN(buf) > 0) return buf;
-  return io_read_common(mrb, sysread, io, buf, BUF_SIZE, 0);
+  return io_read_common(mrb, sysread, io, buf, BUF_SIZE, 0, 1);
+}
+
+static mrb_value
+io_eof(mrb_state *mrb, mrb_value io)
+{
+  struct mrb_io *fptr = io_get_read_fptr(mrb, io);
+  mrb_value buf = io_buf(mrb, io);
+  if (RSTRING_LEN(buf) > 0) return mrb_false_value();
+  io_read_common(mrb, sysread, io, buf, BUF_SIZE, 0, 0);
+  if (RSTRING_LEN(buf) > 0) return mrb_false_value();
+  return mrb_bool_value(fptr->eof);
 }
 
 static mrb_value
@@ -1671,8 +1679,8 @@ mrb_init_io(mrb_state *mrb)
 
   mrb_define_method(mrb, io, "initialize",      io_init, MRB_ARGS_ARG(1,2));    /* 15.2.20.5.21 (x)*/
   mrb_define_method(mrb, io, "initialize_copy", io_init_copy, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, io, "_check_readable", io_check_readable, MRB_ARGS_NONE());
   mrb_define_method(mrb, io, "isatty",     io_isatty,     MRB_ARGS_NONE());
+  mrb_define_method(mrb, io, "eof?",       io_eof,        MRB_ARGS_NONE());   /* 15.2.20.5.6 */
   mrb_define_method(mrb, io, "sync",       io_sync,       MRB_ARGS_NONE());   /* 15.2.20.5.18 */
   mrb_define_method(mrb, io, "sync=",      io_set_sync,   MRB_ARGS_REQ(1));   /* 15.2.20.5.19 */
   mrb_define_method(mrb, io, "sysread",    io_sysread,    MRB_ARGS_ARG(1,1));

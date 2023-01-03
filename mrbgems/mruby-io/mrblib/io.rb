@@ -85,16 +85,6 @@ class IO
     self
   end
 
-  def eof?
-    _check_readable
-    begin
-      _read_buf
-      return @buf.empty?
-    rescue EOFError
-      return true
-    end
-  end
-
   alias_method :eof, :eof?
   alias_method :tell, :pos
 

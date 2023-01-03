@@ -29,6 +29,7 @@ struct mrb_io {
   int pid;  /* child's pid (for pipes)  */
   unsigned int readable:1,
                writable:1,
+               eof:1,
                sync:1,
                is_socket:1;
 };
