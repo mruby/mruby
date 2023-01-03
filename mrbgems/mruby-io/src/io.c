@@ -1010,7 +1010,7 @@ io_seek(mrb_state *mrb, mrb_value io)
 {
   mrb_value pos = io_sysseek(mrb, io);
   mrb_value buf = io_buf(mrb, io);
-  mrb_str_resize(mrb, buf, 0);
+  RSTR_SET_LEN(RSTRING(buf), 0);
   return pos;
 }
 
@@ -1087,7 +1087,7 @@ io_write(mrb_state *mrb, mrb_value io)
     /* move cursor */
     n = lseek(fd, n - RSTRING_LEN(buf), SEEK_SET);
     if (n == -1) mrb_sys_fail(mrb, "lseek(2)");
-    mrb_str_resize(mrb, buf, 0);
+    RSTR_SET_LEN(RSTRING(buf), 0);
   }
 
   if (mrb_get_argc(mrb) == 1) {
