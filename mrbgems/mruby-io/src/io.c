@@ -1598,14 +1598,83 @@ io_read_buf(mrb_state *mrb, mrb_value io)
 }
 
 static mrb_value
+io_read_buf_noraise(mrb_state *mrb, mrb_value io)
+{
+  mrb->c->ci->mid = 0;
+
+  mrb_value buf = io_buf(mrb, io);
+  if (RSTRING_LEN(buf) > 0) return buf;
+  return io_read_common(mrb, sysread, io, buf, BUF_SIZE, 0, 0);
+}
+
+static mrb_value
 io_eof(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr = io_get_read_fptr(mrb, io);
   mrb_value buf = io_buf(mrb, io);
-  if (RSTRING_LEN(buf) > 0) return mrb_false_value();
-  io_read_common(mrb, sysread, io, buf, BUF_SIZE, 0, 0);
+  io_read_buf_noraise(mrb, io);
   if (RSTRING_LEN(buf) > 0) return mrb_false_value();
   return mrb_bool_value(fptr->eof);
+}
+
+static mrb_value
+io_read(mrb_state *mrb, mrb_value io)
+{
+  mrb_value outbuf = mrb_nil_value();
+  mrb_value len;
+  mrb_int length = 0;
+  mrb_bool length_given;
+  struct mrb_io *fptr = io_get_read_fptr(mrb, io);
+
+  mrb_get_args(mrb, "|o?S", &len, &length_given, &outbuf);
+  if (length_given) {
+    if (mrb_nil_p(len)) {
+      length_given = FALSE;
+    }
+    else {
+      length = mrb_as_int(mrb, len);
+      if (length < 0) {
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative length %d given", length);
+      }
+      if (length == 0) {
+        return mrb_str_new(mrb, NULL, 0);
+      }
+    }
+  }
+
+  if (mrb_nil_p(outbuf)) {
+    outbuf = mrb_str_new_capa(mrb, BUF_SIZE);
+  }
+  if (!length_given) {          /* read as much as possible */
+    for (;;) {
+      io_read_buf_noraise(mrb, io);
+      if (fptr->eof) {
+        return outbuf;
+      }
+      mrb_value buf = io_buf(mrb, io);
+      mrb_str_cat_str(mrb, outbuf, buf);
+      RSTR_SET_LEN(RSTRING(buf), 0);
+    }
+  }
+  for (;;) {
+    io_read_buf_noraise(mrb, io);
+    if (fptr->eof || length == 0) {
+      if (RSTRING_LEN(outbuf) == 0)
+        return mrb_nil_value();
+      return outbuf;
+    }
+    mrb_value buf = io_buf(mrb, io);
+    if (RSTRING_LEN(buf) < length) {
+      mrb_str_cat_str(mrb, outbuf, buf);
+      length -= RSTRING_LEN(buf);
+      RSTR_SET_LEN(RSTRING(buf), 0);
+    }
+    else {
+      mrb_str_cat(mrb, outbuf, RSTRING_PTR(buf), length);
+      io_bufshift(mrb, RSTRING(buf), length);
+      return outbuf;
+    }
+  }
 }
 
 static mrb_value
@@ -1681,6 +1750,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method(mrb, io, "initialize_copy", io_init_copy, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, io, "isatty",     io_isatty,     MRB_ARGS_NONE());
   mrb_define_method(mrb, io, "eof?",       io_eof,        MRB_ARGS_NONE());   /* 15.2.20.5.6 */
+  mrb_define_method(mrb, io, "read",       io_read,       MRB_ARGS_OPT(2));   /* 15.2.20.5.14 */
   mrb_define_method(mrb, io, "sync",       io_sync,       MRB_ARGS_NONE());   /* 15.2.20.5.18 */
   mrb_define_method(mrb, io, "sync=",      io_set_sync,   MRB_ARGS_REQ(1));   /* 15.2.20.5.19 */
   mrb_define_method(mrb, io, "sysread",    io_sysread,    MRB_ARGS_ARG(1,1));

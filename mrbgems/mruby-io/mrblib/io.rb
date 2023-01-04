@@ -107,47 +107,6 @@ class IO
     ungetc s
   end
 
-  def read(length = nil, outbuf = "")
-    unless length.nil?
-      unless length.is_a? Integer
-        raise TypeError.new "can't convert #{length.class} into Integer"
-      end
-      if length < 0
-        raise ArgumentError.new "negative length: #{length} given"
-      end
-      if length == 0
-        return ""   # easy case
-      end
-    end
-
-    array = []
-    while true
-      begin
-        _read_buf
-      rescue EOFError
-        array = nil if array.empty? and (not length.nil?) and length != 0
-        break
-      end
-
-      if length
-        consume = (length <= @buf.bytesize) ? length : @buf.bytesize
-        array.push IO._bufread(@buf, consume)
-        length -= consume
-        break if length == 0
-      else
-        array.push @buf
-        @buf = ''
-      end
-    end
-
-    if array.nil?
-      outbuf.replace("")
-      nil
-    else
-      outbuf.replace(array.join)
-    end
-  end
-
   def readline(arg = "\n", limit = nil)
     case arg
     when String
