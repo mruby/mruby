@@ -115,12 +115,6 @@ class IO
     end
   end
 
-  def getbyte
-    readbyte
-  rescue EOFError
-    nil
-  end
-
   # 15.2.20.5.3
   def each(&block)
     return to_enum unless block

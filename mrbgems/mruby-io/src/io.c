@@ -1830,14 +1830,27 @@ io_readchar(mrb_state *mrb, mrb_value io)
 }
 
 static mrb_value
-io_readbyte(mrb_state *mrb, mrb_value io)
+io_getbyte(mrb_state *mrb, mrb_value io)
 {
-  io_read_buf(mrb, io);
+  io_read_buf_noraise(mrb, io);
+  if (io_get_read_fptr(mrb, io)->eof) {
+    return mrb_nil_value();
+  }
   mrb_value buf = io_buf(mrb, io);
   struct RString *b = RSTRING(buf);
   unsigned char c = RSTR_PTR(b)[0];
   io_bufshift(mrb, b, 1);
   return mrb_int_value(mrb, (mrb_int)c);
+}
+
+static mrb_value
+io_readbyte(mrb_state *mrb, mrb_value io)
+{
+  mrb_value result = io_getbyte(mrb, io);
+  if (mrb_nil_p(result)) {
+    eof_error(mrb);
+  }
+  return result;
 }
 
 static mrb_value
@@ -1892,6 +1905,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method(mrb, io, "write",      io_write,      MRB_ARGS_ANY());    /* 15.2.20.5.20 */
   mrb_define_method(mrb, io, "pread",      io_pread,      MRB_ARGS_ANY());    /* ruby 2.5 feature */
   mrb_define_method(mrb, io, "pwrite",     io_pwrite,     MRB_ARGS_ANY());    /* ruby 2.5 feature */
+  mrb_define_method(mrb, io, "getbyte",    io_getbyte,    MRB_ARGS_NONE());
   mrb_define_method(mrb, io, "readbyte",   io_readbyte,   MRB_ARGS_NONE());
 
   mrb_define_const_id(mrb, io, MRB_SYM(SEEK_SET), mrb_fixnum_value(SEEK_SET));
