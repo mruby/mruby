@@ -1594,16 +1594,6 @@ io_bufread_m(mrb_state *mrb, mrb_value io)
 #define BUF_SIZE 4096
 
 static mrb_value
-io_read_buf(mrb_state *mrb, mrb_value io)
-{
-  mrb->c->ci->mid = 0;
-
-  mrb_value buf = io_buf(mrb, io);
-  if (RSTRING_LEN(buf) > 0) return buf;
-  return io_read_common(mrb, sysread, io, buf, BUF_SIZE, 0, 1);
-}
-
-static mrb_value
 io_read_buf_noraise(mrb_state *mrb, mrb_value io)
 {
   mrb->c->ci->mid = 0;
