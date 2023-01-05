@@ -247,11 +247,6 @@ largest value of required alignment.
 - Make it available `Symbol.all_symbols` in `mrbgems/mruby-symbol-ext`
 - Increase heap memory usage.
 
-`MRB_USE_ALL_SYMBOLS`
-
-- Make it available `Symbol.all_symbols` in `mrbgems/mruby-symbol-ext`
-- Increase heap memory usage.
-
 `MRB_NO_DIRECT_THREADING`
 
 - Turn off direct threading optimization in VM loop
