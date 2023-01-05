@@ -1580,17 +1580,6 @@ io_bufread(mrb_state *mrb, mrb_value str, mrb_int len)
   return str2;
 }
 
-static mrb_value
-io_bufread_m(mrb_state *mrb, mrb_value io)
-{
-  mrb_value str;
-  mrb_int len;
-
-  mrb->c->ci->mid = 0;
-  mrb_get_args(mrb, "Si", &str, &len);
-  return io_bufread(mrb, str, len);
-}
-
 #define BUF_SIZE 4096
 
 static mrb_value
@@ -1926,6 +1915,4 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_const_id(mrb, io, MRB_SYM(SEEK_SET), mrb_fixnum_value(SEEK_SET));
   mrb_define_const_id(mrb, io, MRB_SYM(SEEK_CUR), mrb_fixnum_value(SEEK_CUR));
   mrb_define_const_id(mrb, io, MRB_SYM(SEEK_END), mrb_fixnum_value(SEEK_END));
-
-  mrb_define_class_method(mrb, io, "_bufread", io_bufread_m, MRB_ARGS_REQ(2));
 }
