@@ -139,14 +139,6 @@ class IO
     self
   end
 
-  def readlines
-    ary = []
-    while (line = gets)
-      ary << line
-    end
-    ary
-  end
-
   def puts(*args)
     i = 0
     len = args.size

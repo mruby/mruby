@@ -1797,6 +1797,18 @@ io_readline(mrb_state *mrb, mrb_value io)
 }
 
 static mrb_value
+io_readlines(mrb_state *mrb, mrb_value io)
+{
+  mrb_value ary = mrb_ary_new(mrb);
+  for (;;) {
+    mrb_value line = io_gets(mrb, io);
+
+    if (mrb_nil_p(line)) return ary;
+    mrb_ary_push(mrb, ary, line);
+  }
+}
+
+static mrb_value
 io_getc(mrb_state *mrb, mrb_value io)
 {
   mrb_value buf;
@@ -1888,6 +1900,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method(mrb, io, "read",       io_read,       MRB_ARGS_OPT(2));   /* 15.2.20.5.14 */
   mrb_define_method(mrb, io, "readchar",   io_readchar,   MRB_ARGS_NONE());   /* 15.2.20.5.15 */
   mrb_define_method(mrb, io, "readline",   io_readline,   MRB_ARGS_OPT(2));   /* 15.2.20.5.16 */
+  mrb_define_method(mrb, io, "readlines",  io_readlines,  MRB_ARGS_OPT(2));   /* 15.2.20.5.17 */
   mrb_define_method(mrb, io, "sync",       io_sync,       MRB_ARGS_NONE());   /* 15.2.20.5.18 */
   mrb_define_method(mrb, io, "sync=",      io_set_sync,   MRB_ARGS_REQ(1));   /* 15.2.20.5.19 */
   mrb_define_method(mrb, io, "sysread",    io_sysread,    MRB_ARGS_ARG(1,1));
