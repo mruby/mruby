@@ -77,6 +77,21 @@ resolve version conflicts. If the version as specified in the gem's
 rakefile is incompatible with a dependency, your build will still
 fail.
 
+### Tweak the gem in your build configuration file
+
+You can give blocks in the `conf.gem` call to make adjustments for
+environments where the original gem does not expect them:
+
+```ruby
+conf.gem core: "mruby-bin-mirb" do |g|
+  # For cross build to NetBSD
+  g.linker.libraries = %w(edit termcap)
+end
+```
+
+However, it should be used with caution, as it may deviate from the intent
+of the gem's author.
+
 ## GemBox
 
 There are instances when you wish to add a collection of mrbgems into mruby at
