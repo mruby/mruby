@@ -107,54 +107,6 @@ class IO
     ungetc s
   end
 
-  def readline(arg = "\n", limit = nil)
-    case arg
-    when String
-      rs = arg
-    when Integer
-      rs = "\n"
-      limit = arg
-    else
-      raise ArgumentError
-    end
-
-    if rs.nil?
-      return read
-    end
-
-    if rs == ""
-      rs = "\n\n"
-    end
-
-    array = []
-    while true
-      begin
-        _read_buf
-      rescue EOFError
-        array = nil if array.empty?
-        break
-      end
-
-      if limit && limit <= @buf.size
-        array.push @buf[0, limit]
-        @buf[0, limit] = ""
-        break
-      elsif idx = @buf.index(rs)
-        len = idx + rs.size
-        array.push @buf[0, len]
-        @buf[0, len] = ""
-        break
-      else
-        array.push @buf
-        @buf = ''
-      end
-    end
-
-    raise EOFError.new "end of file reached" if array.nil?
-
-    array.join
-  end
-
   def gets(*args)
     begin
       readline(*args)

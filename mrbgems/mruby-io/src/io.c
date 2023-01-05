@@ -1618,6 +1618,21 @@ io_eof(mrb_state *mrb, mrb_value io)
 }
 
 static mrb_value
+io_read_all(mrb_state *mrb, mrb_value io, mrb_value outbuf)
+{
+  struct mrb_io *fptr = io_get_read_fptr(mrb, io);
+  for (;;) {
+    io_read_buf_noraise(mrb, io);
+    if (fptr->eof) {
+      return outbuf;
+    }
+    mrb_value buf = io_buf(mrb, io);
+    mrb_str_cat_str(mrb, outbuf, buf);
+    RSTR_SET_LEN(RSTRING(buf), 0);
+  }
+}
+
+static mrb_value
 io_read(mrb_state *mrb, mrb_value io)
 {
   mrb_value outbuf = mrb_nil_value();
@@ -1646,15 +1661,7 @@ io_read(mrb_state *mrb, mrb_value io)
     outbuf = mrb_str_new_capa(mrb, BUF_SIZE);
   }
   if (!length_given) {          /* read as much as possible */
-    for (;;) {
-      io_read_buf_noraise(mrb, io);
-      if (fptr->eof) {
-        return outbuf;
-      }
-      mrb_value buf = io_buf(mrb, io);
-      mrb_str_cat_str(mrb, outbuf, buf);
-      RSTR_SET_LEN(RSTRING(buf), 0);
-    }
+    return io_read_all(mrb, io, outbuf);
   }
   for (;;) {
     io_read_buf_noraise(mrb, io);
@@ -1672,6 +1679,113 @@ io_read(mrb_state *mrb, mrb_value io)
     else {
       mrb_str_cat(mrb, outbuf, RSTRING_PTR(buf), length);
       io_bufshift(mrb, RSTRING(buf), length);
+      return outbuf;
+    }
+  }
+}
+
+static mrb_value
+io_readline(mrb_state *mrb, mrb_value io)
+{
+  mrb_value rs = mrb_nil_value();
+  mrb_int limit;
+  mrb_bool rs_given = FALSE;    /* newline break */
+  mrb_bool limit_given = FALSE; /* no limit */
+  mrb_value outbuf;
+
+  mrb_get_args(mrb, "|o?i?", &rs, &rs_given, &limit, &limit_given);
+
+  if (limit_given == FALSE) {
+    if (rs_given) {
+      if (mrb_nil_p(rs)) {
+        rs_given = FALSE;
+      }
+      else if (mrb_integer_p(rs)) {
+        limit = mrb_integer(rs);
+        limit_given = TRUE;
+        rs = mrb_nil_value();
+      }
+      else if (!mrb_string_p(rs)) {
+        mrb_ensure_int_type(mrb, rs);
+      }
+    }
+  }
+  if (rs_given) {
+    if (mrb_nil_p(rs)) {
+      rs_given = FALSE;
+    }
+    else {
+      mrb_ensure_string_type(mrb, rs);
+      if (RSTRING_LEN(rs) == 0) { /* paragraph mode */
+        rs = mrb_str_new_lit(mrb, "\n\n");
+      }
+    }
+  }
+  else {
+    rs = mrb_str_new_lit(mrb, "\n");
+    rs_given = TRUE;
+  }
+  /* from now on rs_given==FALSE means no RS */
+  if (mrb_nil_p(rs) && !limit_given) {
+    return io_read_all(mrb, io, mrb_str_new_capa(mrb, BUF_SIZE));
+  }
+
+  if (limit_given) {
+    if (limit == 0) return mrb_str_new(mrb, NULL, 0);
+    outbuf = mrb_str_new_capa(mrb, limit);
+  }
+  else {
+    outbuf = mrb_str_new(mrb, NULL, 0);
+  }
+
+  struct mrb_io *fptr = io_get_read_fptr(mrb, io);
+  mrb_value buf = io_buf(mrb, io);
+  io_read_buf(mrb, io);
+
+  if (!rs_given) {              /* no RS; only limit */
+    mrb_assert(limit_given);
+    for (;;) {
+      if (RSTRING_LEN(buf) >= limit) {
+        mrb_str_cat(mrb, outbuf, RSTRING_PTR(buf), limit);
+        io_bufshift(mrb, RSTRING(buf), limit);
+        return outbuf;
+      }
+      mrb_str_cat(mrb, outbuf, RSTRING_PTR(buf), RSTRING_LEN(buf));
+      limit -= RSTRING_LEN(buf);
+      RSTR_SET_LEN(RSTRING(buf), 0);
+
+      io_read_buf_noraise(mrb, io);
+      if (fptr->eof) {
+        if (RSTRING_LEN(outbuf) == 0)
+          mrb_raise(mrb, E_EOF_ERROR, "end of file reached");
+        return outbuf;
+      }
+    }
+  }
+
+  for (;;) {                    /* with RS */
+    mrb_int idx = mrb_str_index(mrb, buf, RSTRING_PTR(rs), RSTRING_LEN(rs), 0);
+    if (idx >= 0) {              /* found */
+      mrb_int n = idx+RSTRING_LEN(rs);
+      if (limit_given && limit < n) {
+        n = limit;
+      }
+      mrb_str_cat(mrb, outbuf, RSTRING_PTR(buf), n);
+      io_bufshift(mrb, RSTRING(buf), n);
+      return outbuf;
+    }
+    if (limit_given && RSTRING_LEN(buf) < limit) {
+      mrb_str_cat(mrb, outbuf, RSTRING_PTR(buf), limit);
+      io_bufshift(mrb, RSTRING(buf), limit);
+      return outbuf;
+    }
+    mrb_str_cat(mrb, outbuf, RSTRING_PTR(buf), RSTRING_LEN(buf));
+    RSTR_SET_LEN(RSTRING(buf), 0);
+
+    io_read_buf_noraise(mrb, io);
+    if (fptr->eof) {
+      if (RSTRING_LEN(outbuf) == 0)
+        mrb_raise(mrb, E_EOF_ERROR, "end of file reached");
       return outbuf;
     }
   }
@@ -1751,6 +1865,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method(mrb, io, "isatty",     io_isatty,     MRB_ARGS_NONE());
   mrb_define_method(mrb, io, "eof?",       io_eof,        MRB_ARGS_NONE());   /* 15.2.20.5.6 */
   mrb_define_method(mrb, io, "read",       io_read,       MRB_ARGS_OPT(2));   /* 15.2.20.5.14 */
+  mrb_define_method(mrb, io, "readline",   io_readline,   MRB_ARGS_OPT(2));   /* 15.2.20.5.16 */
   mrb_define_method(mrb, io, "sync",       io_sync,       MRB_ARGS_NONE());   /* 15.2.20.5.18 */
   mrb_define_method(mrb, io, "sync=",      io_set_sync,   MRB_ARGS_REQ(1));   /* 15.2.20.5.19 */
   mrb_define_method(mrb, io, "sysread",    io_sysread,    MRB_ARGS_ARG(1,1));
@@ -1777,6 +1892,5 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_const_id(mrb, io, MRB_SYM(SEEK_CUR), mrb_fixnum_value(SEEK_CUR));
   mrb_define_const_id(mrb, io, MRB_SYM(SEEK_END), mrb_fixnum_value(SEEK_END));
 
-  mrb_define_method(mrb, io, "_read_buf",  io_read_buf,   MRB_ARGS_NONE());
   mrb_define_class_method(mrb, io, "_bufread", io_bufread_m, MRB_ARGS_REQ(2));
 }
