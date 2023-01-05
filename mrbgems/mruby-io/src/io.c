@@ -1796,36 +1796,37 @@ io_readline(mrb_state *mrb, mrb_value io)
 }
 
 static mrb_value
-io_readchar(mrb_state *mrb, mrb_value io)
+io_getc(mrb_state *mrb, mrb_value io)
 {
   mrb_value buf;
   mrb_int len = 1;
-#ifdef MRB_UTF8_STRING
-  unsigned char c;
-#endif
+  struct mrb_io *fptr = io_get_read_fptr(mrb, io);
 
-  mrb->c->ci->mid = 0;
-  io_read_buf(mrb, io);
+  io_read_buf_noraise(mrb, io);
   buf = io_buf(mrb, io);
+  if (fptr->eof) return mrb_nil_value();
 #ifdef MRB_UTF8_STRING
-  c = RSTRING_PTR(buf)[0];
+  unsigned char c = RSTRING_PTR(buf)[0];
   if (c & 0x80) {
     len = mrb_utf8len(RSTRING_PTR(buf), RSTRING_END(buf));
     if (len == 1 && RSTRING_LEN(buf) < 4) { /* partial UTF-8 */
-      mrb_int blen = RSTRING_LEN(buf);
-      ssize_t n;
-      struct mrb_io *fptr = io_get_read_fptr(mrb, io);
-
-      /* refill the buffer */
-      mrb_str_resize(mrb, buf, 4096);
-      n = read(fptr->fd, RSTRING_PTR(buf)+blen, 4096-blen);
-      if (n < 0) mrb_sys_fail(mrb, "sysread failed");
-      mrb_str_resize(mrb, buf, blen+n);
+      io_read_buf_noraise(mrb, io);
+      buf = io_buf(mrb, io);
       len = mrb_utf8len(RSTRING_PTR(buf), RSTRING_END(buf));
     }
   }
 #endif
   return io_bufread(mrb, buf, len);
+}
+
+static mrb_value
+io_readchar(mrb_state *mrb, mrb_value io)
+{
+  mrb_value result = io_getc(mrb, io);
+  if (mrb_nil_p(result)) {
+    eof_error(mrb);
+  }
+  return result;
 }
 
 static mrb_value
@@ -1868,7 +1869,9 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method(mrb, io, "initialize_copy", io_init_copy, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, io, "isatty",     io_isatty,     MRB_ARGS_NONE());
   mrb_define_method(mrb, io, "eof?",       io_eof,        MRB_ARGS_NONE());   /* 15.2.20.5.6 */
+  mrb_define_method(mrb, io, "getc",       io_getc,       MRB_ARGS_NONE());   /* 15.2.20.5.8 */
   mrb_define_method(mrb, io, "read",       io_read,       MRB_ARGS_OPT(2));   /* 15.2.20.5.14 */
+  mrb_define_method(mrb, io, "readchar",   io_readchar,   MRB_ARGS_NONE());   /* 15.2.20.5.15 */
   mrb_define_method(mrb, io, "readline",   io_readline,   MRB_ARGS_OPT(2));   /* 15.2.20.5.16 */
   mrb_define_method(mrb, io, "sync",       io_sync,       MRB_ARGS_NONE());   /* 15.2.20.5.18 */
   mrb_define_method(mrb, io, "sync=",      io_set_sync,   MRB_ARGS_REQ(1));   /* 15.2.20.5.19 */
@@ -1889,7 +1892,6 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method(mrb, io, "write",      io_write,      MRB_ARGS_ANY());    /* 15.2.20.5.20 */
   mrb_define_method(mrb, io, "pread",      io_pread,      MRB_ARGS_ANY());    /* ruby 2.5 feature */
   mrb_define_method(mrb, io, "pwrite",     io_pwrite,     MRB_ARGS_ANY());    /* ruby 2.5 feature */
-  mrb_define_method(mrb, io, "readchar",   io_readchar,   MRB_ARGS_NONE());   /* 15.2.20.5.15 */
   mrb_define_method(mrb, io, "readbyte",   io_readbyte,   MRB_ARGS_NONE());
 
   mrb_define_const_id(mrb, io, MRB_SYM(SEEK_SET), mrb_fixnum_value(SEEK_SET));

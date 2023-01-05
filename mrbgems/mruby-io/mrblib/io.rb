@@ -115,14 +115,6 @@ class IO
     end
   end
 
-  def getc
-    begin
-      readchar
-    rescue EOFError
-      nil
-    end
-  end
-
   def getbyte
     readbyte
   rescue EOFError
