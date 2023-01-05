@@ -1594,7 +1594,7 @@ io_bufread_m(mrb_state *mrb, mrb_value io)
 #define BUF_SIZE 4096
 
 static mrb_value
-io_read_buf_noraise(mrb_state *mrb, mrb_value io)
+io_read_buf(mrb_state *mrb, mrb_value io)
 {
   mrb->c->ci->mid = 0;
 
@@ -1608,7 +1608,7 @@ io_eof(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr = io_get_read_fptr(mrb, io);
   mrb_value buf = io_buf(mrb, io);
-  io_read_buf_noraise(mrb, io);
+  io_read_buf(mrb, io);
   if (RSTRING_LEN(buf) > 0) return mrb_false_value();
   return mrb_bool_value(fptr->eof);
 }
@@ -1618,7 +1618,7 @@ io_read_all(mrb_state *mrb, mrb_value io, mrb_value outbuf)
 {
   struct mrb_io *fptr = io_get_read_fptr(mrb, io);
   for (;;) {
-    io_read_buf_noraise(mrb, io);
+    io_read_buf(mrb, io);
     if (fptr->eof) {
       return outbuf;
     }
@@ -1660,7 +1660,7 @@ io_read(mrb_state *mrb, mrb_value io)
     return io_read_all(mrb, io, outbuf);
   }
   for (;;) {
-    io_read_buf_noraise(mrb, io);
+    io_read_buf(mrb, io);
     if (fptr->eof || length == 0) {
       if (RSTRING_LEN(outbuf) == 0)
         return mrb_nil_value();
@@ -1727,7 +1727,7 @@ io_gets(mrb_state *mrb, mrb_value io)
   }
 
   struct mrb_io *fptr = io_get_read_fptr(mrb, io);
-  io_read_buf_noraise(mrb, io);
+  io_read_buf(mrb, io);
   if (fptr->eof) return mrb_nil_value();
 
   if (limit_given) {
@@ -1751,7 +1751,7 @@ io_gets(mrb_state *mrb, mrb_value io)
       limit -= RSTRING_LEN(buf);
       RSTR_SET_LEN(RSTRING(buf), 0);
 
-      io_read_buf_noraise(mrb, io);
+      io_read_buf(mrb, io);
       if (fptr->eof) {
         if (RSTRING_LEN(outbuf) == 0) return mrb_nil_value();
         return outbuf;
@@ -1778,7 +1778,7 @@ io_gets(mrb_state *mrb, mrb_value io)
     mrb_str_cat(mrb, outbuf, RSTRING_PTR(buf), RSTRING_LEN(buf));
     RSTR_SET_LEN(RSTRING(buf), 0);
 
-    io_read_buf_noraise(mrb, io);
+    io_read_buf(mrb, io);
     if (fptr->eof) {
       if (RSTRING_LEN(outbuf) == 0) return mrb_nil_value();
       return outbuf;
@@ -1803,7 +1803,7 @@ io_getc(mrb_state *mrb, mrb_value io)
   mrb_int len = 1;
   struct mrb_io *fptr = io_get_read_fptr(mrb, io);
 
-  io_read_buf_noraise(mrb, io);
+  io_read_buf(mrb, io);
   buf = io_buf(mrb, io);
   if (fptr->eof) return mrb_nil_value();
 #ifdef MRB_UTF8_STRING
@@ -1811,7 +1811,7 @@ io_getc(mrb_state *mrb, mrb_value io)
   if (c & 0x80) {
     len = mrb_utf8len(RSTRING_PTR(buf), RSTRING_END(buf));
     if (len == 1 && RSTRING_LEN(buf) < 4) { /* partial UTF-8 */
-      io_read_buf_noraise(mrb, io);
+      io_read_buf(mrb, io);
       buf = io_buf(mrb, io);
       len = mrb_utf8len(RSTRING_PTR(buf), RSTRING_END(buf));
     }
@@ -1833,7 +1833,7 @@ io_readchar(mrb_state *mrb, mrb_value io)
 static mrb_value
 io_getbyte(mrb_state *mrb, mrb_value io)
 {
-  io_read_buf_noraise(mrb, io);
+  io_read_buf(mrb, io);
   if (io_get_read_fptr(mrb, io)->eof) {
     return mrb_nil_value();
   }
