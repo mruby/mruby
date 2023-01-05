@@ -107,14 +107,6 @@ class IO
     ungetc s
   end
 
-  def gets(*args)
-    begin
-      readline(*args)
-    rescue EOFError
-      nil
-    end
-  end
-
   # 15.2.20.5.3
   def each(&block)
     return to_enum unless block
