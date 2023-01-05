@@ -1691,7 +1691,7 @@ io_read(mrb_state *mrb, mrb_value io)
 }
 
 static mrb_value
-io_readline(mrb_state *mrb, mrb_value io)
+io_gets(mrb_state *mrb, mrb_value io)
 {
   mrb_value rs = mrb_nil_value();
   mrb_int limit;
@@ -1736,6 +1736,10 @@ io_readline(mrb_state *mrb, mrb_value io)
     return io_read_all(mrb, io, mrb_str_new_capa(mrb, BUF_SIZE));
   }
 
+  struct mrb_io *fptr = io_get_read_fptr(mrb, io);
+  io_read_buf_noraise(mrb, io);
+  if (fptr->eof) return mrb_nil_value();
+
   if (limit_given) {
     if (limit == 0) return mrb_str_new(mrb, NULL, 0);
     outbuf = mrb_str_new_capa(mrb, limit);
@@ -1744,10 +1748,7 @@ io_readline(mrb_state *mrb, mrb_value io)
     outbuf = mrb_str_new(mrb, NULL, 0);
   }
 
-  struct mrb_io *fptr = io_get_read_fptr(mrb, io);
   mrb_value buf = io_buf(mrb, io);
-  io_read_buf(mrb, io);
-
   if (!rs_given) {              /* no RS; only limit */
     mrb_assert(limit_given);
     for (;;) {
@@ -1762,7 +1763,7 @@ io_readline(mrb_state *mrb, mrb_value io)
 
       io_read_buf_noraise(mrb, io);
       if (fptr->eof) {
-        if (RSTRING_LEN(outbuf) == 0) eof_error(mrb);
+        if (RSTRING_LEN(outbuf) == 0) return mrb_nil_value();
         return outbuf;
       }
     }
@@ -1789,10 +1790,20 @@ io_readline(mrb_state *mrb, mrb_value io)
 
     io_read_buf_noraise(mrb, io);
     if (fptr->eof) {
-      if (RSTRING_LEN(outbuf) == 0) eof_error(mrb);
+      if (RSTRING_LEN(outbuf) == 0) return mrb_nil_value();
       return outbuf;
     }
   }
+}
+
+static mrb_value
+io_readline(mrb_state *mrb, mrb_value io)
+{
+  mrb_value result = io_gets(mrb, io);
+  if (mrb_nil_p(result)) {
+    eof_error(mrb);
+  }
+  return result;
 }
 
 static mrb_value
@@ -1883,6 +1894,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method(mrb, io, "isatty",     io_isatty,     MRB_ARGS_NONE());
   mrb_define_method(mrb, io, "eof?",       io_eof,        MRB_ARGS_NONE());   /* 15.2.20.5.6 */
   mrb_define_method(mrb, io, "getc",       io_getc,       MRB_ARGS_NONE());   /* 15.2.20.5.8 */
+  mrb_define_method(mrb, io, "gets",       io_gets,       MRB_ARGS_NONE());   /* 15.2.20.5.9 */
   mrb_define_method(mrb, io, "read",       io_read,       MRB_ARGS_OPT(2));   /* 15.2.20.5.14 */
   mrb_define_method(mrb, io, "readchar",   io_readchar,   MRB_ARGS_NONE());   /* 15.2.20.5.15 */
   mrb_define_method(mrb, io, "readline",   io_readline,   MRB_ARGS_OPT(2));   /* 15.2.20.5.16 */
