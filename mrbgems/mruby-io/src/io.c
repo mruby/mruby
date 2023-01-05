@@ -921,6 +921,12 @@ io_s_sysopen(mrb_state *mrb, mrb_value klass)
   return mrb_fixnum_value(fd);
 }
 
+static void
+eof_error(mrb_state *mrb)
+{
+  mrb_raise(mrb, E_EOF_ERROR, "end of file reached");
+}
+
 static mrb_value
 io_read_common(mrb_state *mrb,
     fssize_t (*readfunc)(int, void*, fsize_t, off_t),
@@ -958,7 +964,7 @@ io_read_common(mrb_state *mrb,
   if (ret == 0 && maxlen > 0) {
     fptr->eof = 1;
     if (raise) {
-      mrb_raise(mrb, E_EOF_ERROR, "sysread failed: End of File");
+      eof_error(mrb);
     }
   }
   return buf;
@@ -1756,8 +1762,7 @@ io_readline(mrb_state *mrb, mrb_value io)
 
       io_read_buf_noraise(mrb, io);
       if (fptr->eof) {
-        if (RSTRING_LEN(outbuf) == 0)
-          mrb_raise(mrb, E_EOF_ERROR, "end of file reached");
+        if (RSTRING_LEN(outbuf) == 0) eof_error(mrb);
         return outbuf;
       }
     }
@@ -1784,8 +1789,7 @@ io_readline(mrb_state *mrb, mrb_value io)
 
     io_read_buf_noraise(mrb, io);
     if (fptr->eof) {
-      if (RSTRING_LEN(outbuf) == 0)
-        mrb_raise(mrb, E_EOF_ERROR, "end of file reached");
+      if (RSTRING_LEN(outbuf) == 0) eof_error(mrb);
       return outbuf;
     }
   }
