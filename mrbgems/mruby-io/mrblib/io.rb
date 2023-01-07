@@ -1,5 +1,7 @@
 ##
 # IO
+#
+# ISO 15.2.20
 
 class IOError < StandardError; end
 class EOFError < IOError; end

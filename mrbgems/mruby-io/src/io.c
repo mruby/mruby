@@ -1880,7 +1880,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_class_method(mrb, io, "_pipe", io_s_pipe, MRB_ARGS_NONE());
 #endif
 
-  mrb_define_method(mrb, io, "initialize",      io_init, MRB_ARGS_ARG(1,2));    /* 15.2.20.5.21 (x)*/
+  mrb_define_method(mrb, io, "initialize",      io_init, MRB_ARGS_ARG(1,2));
   mrb_define_method(mrb, io, "initialize_copy", io_init_copy, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, io, "isatty",     io_isatty,     MRB_ARGS_NONE());
   mrb_define_method(mrb, io, "eof?",       io_eof,        MRB_ARGS_NONE());   /* 15.2.20.5.6 */
