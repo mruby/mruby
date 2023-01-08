@@ -69,6 +69,7 @@ str_init_normal(mrb_state *mrb, struct RString *s, const char *p, mrb_int len)
 static struct RString*
 str_init_embed(struct RString *s, const char *p, mrb_int len)
 {
+  mrb_assert(len >= 0);
   if (p) memcpy(RSTR_EMBED_PTR(s), p, len);
   RSTR_EMBED_PTR(s)[len] = '\0';
   RSTR_SET_TYPE_FLAG(s, EMBED);
