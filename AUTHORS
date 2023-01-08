@@ -1,29 +1,29 @@
 # Authors of mruby (mruby developers)
 
-## The List of Contributors sorted by number of commits (as of 2022-12-08 a7e304a)
+## The List of Contributors sorted by number of commits (as of 2022-01-08 4462e3d)
 
-   8719 Yukihiro "Matz" Matsumoto (@matz)*
+   8860 Yukihiro "Matz" Matsumoto (@matz)*
     586 KOBAYASHI Shuji (@shuujii)
-    431 dearblue (@dearblue)*
+    441 dearblue (@dearblue)*
     378 Daniel Bovensiepen (@bovi)*
     346 Takeshi Watanabe (@take-cheeze)*
     334 Masaki Muranaka (@monaka)
-    308 Tomoyuki Sahara (@tsahara)*
+    328 Tomoyuki Sahara (@tsahara)*
     234 Jun Hiroe (@suzukaze)
     220 Cremno (@cremno)*
     209 Yuki Kurihara (@ksss)+
     151 Yasuhiro Matsumoto (@mattn)*
     113 Carson McDonald (@carsonmcdonald)
+    113 John Bampton (@jbampton)
     103 Tomasz Dąbrowski (@dabroz)*
-     97 John Bampton (@jbampton)
+     84 Akira Yumiyama (@akiray03)*
      84 skandhas (@skandhas)
      80 Masamitsu MURASE (@masamitsu-murase)
      74 Yuichiro MASUI (@masuidrive)
      73 Hiroshi Mimaki (@mimaki)*
      71 Tatsuhiko Kubo (@cubicdaiya)*
-     67 Akira Yumiyama (@akiray03)*
      65 Yuichiro Kaneko (@yui-knk)+
-     62 Paolo Bosetti (@pbosetti)*
+     64 Paolo Bosetti (@pbosetti)*
      59 Kurebayashi, Takahiro (@crimsonwoods)*
      56 h2so5 (@h2so5)
      52 Ralph Desir (@Mav7)*
@@ -33,17 +33,17 @@
      40 Seba Gamboa (@sagmor)
      38 Koji Yoshioka (@kyab)*+
      38 Kouhei Sutou (@kou)*
+     32 Masayoshi Takahashi (@takahashim)+
      31 MATSUMOTO Ryosuke (@matsumotory)*
      30 Nobuyoshi Nakada (@nobu)
-     29 Masayoshi Takahashi (@takahashim)+
-     24 Julian Aron Prenner (@furunkel)*
+     26 Julian Aron Prenner (@furunkel)*
      24 Ryan Scott (@ryan-scott-dev)*
      22 Clayton Smith (@clayton-shopify)
+     22 Uchio Kondo (@udzura)*
      22 Zachary Scott (@zzak)*
      22 mirichi (@mirichi)
      21 Jared Breeden (@jbreeden)*
      21 Ryan Lopopolo (@lopopolo)
-     20 Uchio Kondo (@udzura)*
      19 Bouke van der Bijl (@bouk)
      19 Felix Jones (@felixjones)*
      19 Hidetaka Takano (@TJ-Hidetaka-Takano)
@@ -57,6 +57,7 @@
      14 Jose Narvaez (@goyox86)
      14 Kazuki Tsujimoto (@k-tsj)
      14 Tadashi FUKUZAWA (@FUKUZAWA-Tadashi)+
+     14 fn ⌃ ⌥ (@FnControlOption)
      13 Patrick Hogan (@pbhogan)
      12 Akira Kuroda (@akuroda)
      12 Kouki Ooyatsu (kaishuu0123)*
@@ -65,7 +66,6 @@
      12 Takashi Sawanaka (@sdottaka)*
      12 Ukrainskiy Sergey (@ukrainskiysergey)
      12 Xuejie "Rafael" Xiao (@xxuejie)*
-     12 fn ⌃ ⌥ (@FnControlOption)
      11 Julien Ammous (@schmurfy)
      11 Kazuho Oku (@kazuho)
      11 Seeker (@SeekingMeaning)
@@ -103,12 +103,15 @@
       5 Ichito Nagata (@i110)
       5 Keita Obo (@ktaobo)*
       5 Max Anselm (@silverhammermba)
+      5 Rodrigo Malizia (@rmalizia44)+
       5 SiZiOUS (@sizious)
       5 Syohei YOSHIDA (@syohex)
       5 TOMITA Masahiro (@tmtm)
       5 Yurie Yamane (@yurie)+
       5 dreamedge (@dreamedge)
+      5 masahino (@masahino)
       5 nkshigeru (@nkshigeru)
+      5 xuejianqing (@joans321)
       4 Dante Catalfamo (@dantecatalfamo)
       4 Goro Kikuchi (@gorogit)
       4 Herwin Weststrate (@herwinw)
@@ -123,9 +126,7 @@
       4 Yuhei Okazaki (@Yuuhei-Okazaki)*
       4 Yuji Yamano (@yyamano)
       4 kurodash (@kurodash)*
-      4 masahino (@masahino)
       4 wanabe (@wanabe)*
-      4 xuejianqing (@joans321)
       3 Anton Davydov (@davydovanton)
       3 Carlo Prelz (@asfluido)*
       3 David Turnbull (@AE9RB)
@@ -140,7 +141,6 @@
       3 Nobuhiro Iwamatsu (@iwamatsu)
       3 Per Lundberg (@perlun)*
       3 Rob Fors (@robfors)*
-      3 Rodrigo Malizia (@rmalizia44)+
       3 Sebastián Katzer (@katzer)*
       3 Shouji Kuboyama (@Shokuji)*
       3 Shuta Kimura (@kimushu)+
@@ -153,6 +153,7 @@
       3 William Light (@wrl)
       3 bamchoh (@bamchoh)
       3 sasaki takeru (@takeru)
+      3 windwiny (@windwiny)
       2 Akira Moroo (@retrage)
       2 Artur K (@nemerle)
       2 Christian Mauceri (@mauceri)
@@ -192,7 +193,6 @@
       2 Yutaka HARA (@yhara)*+
       2 Zhang Xiaohui (@hifoolno)
       2 icm7216 (@icm7216)
-      2 windwiny (@windwiny)
       1 A-Sat (@asatou)+
       1 Abinoam Praxedes Marques Junior (@abinoam)
       1 Alex Wang (@nanamiwang)+
@@ -209,6 +209,7 @@
       1 Francis Bogsanyi (@fbogsany)
       1 Guo Xiao (@guoxiao)
       1 Gwen Boatrite (@boatrit)
+      1 Gwendolyn Boatrite (@boatrite)
       1 HARADA Makoto (@haramako)
       1 HAYASHI Kentaro (@kenhys)
       1 Hiroki Mori (@yamori813)+
@@ -263,11 +264,13 @@
       1 Santiago Rodriguez (@sanrodari)
       1 Satoh, Hiroh (@cho45)+
       1 Sayed Abdelhaleem (@visualsayed)
+      1 Sergey Ukrainskiy (@ukrainskiysergey)
       1 Shugo Maeda (@shugo)
       1 Sorah Fukumori (@sorah)
       1 Stephen Jothen (@sjothen)
       1 Stuart Hinson (@stuarth)
       1 Takuma Kume (@takumakume)+
+      1 Takuya ASADA (@syuu1228)
       1 Thomas Schmidt (@digitaltom)
       1 Timo Schilling (@timoschilling)
       1 Tom Black (@blacktm)
