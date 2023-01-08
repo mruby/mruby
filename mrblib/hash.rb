@@ -39,7 +39,6 @@ class Hash
   # Returns <code>true</code> if <i>hash</i> and <i>other</i> are
   # both hashes with the same content compared by eql?.
   #
-  # ISO 15.2.13.4.32 (x)
   def eql?(hash)
     return true if self.equal?(hash)
     unless Hash === hash
@@ -215,11 +214,9 @@ class Hash
   ##
   # Return the contents of this hash as a string.
   #
-  # ISO 15.2.13.4.30 (x)
   def inspect
     self._inspect({})
   end
-  # ISO 15.2.13.4.31 (x)
   alias to_s inspect
 
   ##
