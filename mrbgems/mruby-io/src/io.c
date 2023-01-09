@@ -865,7 +865,7 @@ io_s_sysclose(mrb_state *mrb, mrb_value klass)
 }
 
 static int
-mrb_cloexec_open(mrb_state *mrb, const char *pathname, mrb_int flags, mrb_int mode)
+io_cloexec_open(mrb_state *mrb, const char *pathname, int flags, fmode_t mode)
 {
   int fd, retry = FALSE;
   char* fname = mrb_locale_from_utf8(pathname, -1);
@@ -877,7 +877,7 @@ mrb_cloexec_open(mrb_state *mrb, const char *pathname, mrb_int flags, mrb_int mo
   flags |= O_NOINHERIT;
 #endif
 reopen:
-  fd = open(fname, (int)flags, (fmode_t)mode);
+  fd = open(fname, flags, mode);
   if (fd == -1) {
     if (!retry) {
       switch (errno) {
@@ -915,7 +915,7 @@ io_s_sysopen(mrb_state *mrb, mrb_value klass)
 
   pat = RSTRING_CSTR(mrb, path);
   flags = io_mode_to_flags(mrb, mode);
-  fd = mrb_cloexec_open(mrb, pat, flags, perm);
+  fd = io_cloexec_open(mrb, pat, flags, (fmode_t)perm);
   return mrb_fixnum_value(fd);
 }
 
