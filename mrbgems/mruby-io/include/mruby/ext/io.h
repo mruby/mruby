@@ -23,10 +23,19 @@ extern "C" {
 # endif
 #endif
 
+#define MRB_IO_BUF_SIZE 4096
+
+struct mrb_io_buf {
+  short start;
+  short len;
+  char mem[MRB_IO_BUF_SIZE];
+};
+
 struct mrb_io {
   int fd;   /* file descriptor, or -1 */
   int fd2;  /* file descriptor to write if it's different from fd, or -1 */
   int pid;  /* child's pid (for pipes)  */
+  struct mrb_io_buf *buf;
   unsigned int readable:1,
                writable:1,
                eof:1,
