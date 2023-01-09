@@ -305,7 +305,7 @@ static void
 io_buf_init(mrb_state *mrb, struct mrb_io *fptr)
 {
   if (fptr->readable) {
-    fptr->buf = mrb_malloc(mrb, sizeof(struct mrb_io_buf));
+    fptr->buf = (struct mrb_io_buf*)mrb_malloc(mrb, sizeof(struct mrb_io_buf));
     fptr->buf->start = 0;
     fptr->buf->len = 0;
   }
@@ -1550,7 +1550,7 @@ io_ungetc(mrb_state *mrb, mrb_value io)
   mrb_get_args(mrb, "S", &str);
   len = RSTRING_LEN(str);
   if (len > MRB_IO_BUF_SIZE - buf->len) {
-    fptr->buf = mrb_realloc(mrb, buf, sizeof(struct mrb_io_buf)+buf->len+len-MRB_IO_BUF_SIZE);
+    fptr->buf = (struct mrb_io_buf*)mrb_realloc(mrb, buf, sizeof(struct mrb_io_buf)+buf->len+len-MRB_IO_BUF_SIZE);
     buf = fptr->buf;
   }
   memmove(buf->mem+len, buf->mem+buf->start, buf->len);
