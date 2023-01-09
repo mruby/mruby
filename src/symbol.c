@@ -677,6 +677,13 @@ sym_cmp(mrb_state *mrb, mrb_value s1)
   }
 }
 
+static mrb_value
+sym_eq(mrb_state *mrb, mrb_value self)
+{
+  mrb_value other = mrb_get_arg1(mrb);
+  return mrb_bool_value(mrb_obj_equal(mrb, self, other));
+}
+
 void
 mrb_init_symbol(mrb_state *mrb)
 {
@@ -691,4 +698,5 @@ mrb_init_symbol(mrb_state *mrb)
   mrb_define_method_id(mrb, sym, MRB_SYM(to_sym),  mrb_obj_itself,  MRB_ARGS_NONE());      /* 15.2.11.3.4 */
   mrb_define_method_id(mrb, sym, MRB_SYM(inspect), sym_inspect, MRB_ARGS_NONE());          /* 15.2.11.3.5(x) */
   mrb_define_method_id(mrb, sym, MRB_OPSYM(cmp),   sym_cmp,     MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, sym, MRB_OPSYM(eq),    sym_eq,      MRB_ARGS_REQ(1));
 }
