@@ -12964,6 +12964,7 @@ mrbc_cleanup_local_variables(mrb_state *mrb, mrbc_context *c)
     c->syms = NULL;
     c->slen = 0;
   }
+  c->keep_lv = FALSE;
 }
 
 MRB_API void
