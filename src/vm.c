@@ -2170,19 +2170,18 @@ RETRY_TRY_BLOCK:
             }
             pc = ci[0].pc;
           }
+          else if (mrb->c == mrb->root_c) {
+            mrb->c->ci->stack = mrb->c->stbase;
+            goto L_STOP;
+          }
           else {
-            if (mrb->c == mrb->root_c) {
-              mrb->c->ci->stack = mrb->c->stbase;
-              goto L_STOP;
-            }
-            else {
-              struct mrb_context *c = mrb->c;
+            struct mrb_context *c = mrb->c;
 
-              c->status = MRB_FIBER_TERMINATED;
-              mrb->c = c->prev;
-              c->prev = NULL;
-              goto L_RAISE;
-            }
+            c->status = MRB_FIBER_TERMINATED;
+            mrb->c = c->prev;
+            c->prev = NULL;
+            if (!mrb->c) mrb->c = mrb->root_c;
+            goto L_RAISE;
           }
         }
 

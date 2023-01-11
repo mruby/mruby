@@ -202,6 +202,10 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
   enum mrb_fiber_state status;
   mrb_value value;
 
+  if (resume && c == mrb->c) {
+    return fiber_error(mrb, "attempt to resume the current fiber");
+  }
+
   fiber_check_cfunc(mrb, c);
   status = c->status;
   switch (status) {
@@ -220,8 +224,15 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
   default:
     break;
   }
-  old_c->status = resume ? MRB_FIBER_RESUMED : MRB_FIBER_TRANSFERRED;
-  c->prev = resume ? mrb->c : (c->prev ? c->prev : mrb->root_c);
+  if (resume) {
+    old_c->status = MRB_FIBER_RESUMED;
+    c->prev = mrb->c;
+  }
+  else {
+    old_c->status = MRB_FIBER_TRANSFERRED;
+    // c->prev = mrb->root_c;
+    c->prev = NULL;
+  }
   fiber_switch_context(mrb, c);
   if (status == MRB_FIBER_CREATED) {
     mrb_value *b, *e;
@@ -353,6 +364,10 @@ fiber_transfer(mrb_state *mrb, mrb_value self)
   fiber_check_cfunc(mrb, mrb->c);
   mrb_get_args(mrb, "*!", &a, &len);
 
+  if (c->status == MRB_FIBER_RESUMED) {
+    mrb_raise(mrb, E_FIBER_ERROR, "attempt to transfer to a resuming fiber");
+  }
+
   if (c == mrb->root_c) {
     mrb->c->status = MRB_FIBER_TRANSFERRED;
     fiber_switch_context(mrb, c);
@@ -373,11 +388,16 @@ mrb_fiber_yield(mrb_state *mrb, mrb_int len, const mrb_value *a)
   struct mrb_context *c = mrb->c;
 
   if (!c->prev) {
-    mrb_raise(mrb, E_FIBER_ERROR, "can't yield from root fiber");
+    return fiber_error(mrb, "attempt to yield on a not resumed fiber");
+  }
+  if (c == mrb->root_c) {
+    return fiber_error(mrb, "can't yield from root fiber");
+  }
+  if (c->prev->status == MRB_FIBER_TRANSFERRED) {
+    return fiber_error(mrb, "attempt to yield on a not resumed fiber");
   }
 
   fiber_check_cfunc(mrb, c);
-  c->prev->status = MRB_FIBER_RUNNING;
   c->status = MRB_FIBER_SUSPENDED;
   fiber_switch_context(mrb, c->prev);
   c->prev = NULL;
