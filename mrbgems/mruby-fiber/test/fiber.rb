@@ -9,24 +9,19 @@ assert('Fiber#resume') do
 end
 
 assert('Fiber#transfer') do
+  ary = []
   f2 = nil
-  f1 = Fiber.new do |v|
-    Fiber.yield v
-    f2.transfer
-  end
-  f2 = Fiber.new do
-    f1.transfer(1)
-    f1.transfer(1)
-    Fiber.yield 2
-  end
-  assert_equal 1, f2.resume
-  assert_raise(FiberError) { f2.resume }
-  assert_equal 2, f2.transfer
-  assert_raise(FiberError) { f1.resume }
-  f1.transfer
-  f2.resume
+  f1 = Fiber.new{
+    ary << f2.transfer(:foo)
+    :ok
+  }
+  f2 = Fiber.new{
+    ary << f1.transfer(:baz)
+    :ng
+  }
+  assert_equal(:ok, f1.transfer)
+  assert_equal([:baz], ary)
   assert_false f1.alive?
-  assert_false f2.alive?
 end
 
 assert('Fiber#alive?') do
@@ -163,7 +158,7 @@ assert('Root fiber transfer.') do
     result = :ok
     root.transfer
   }
-  f.resume
+  f.transfer
   assert_true f.alive?
   assert_equal :ok, result
 end
@@ -174,7 +169,7 @@ assert('Break nested fiber with root fiber transfer') do
   result = nil
   f2 = nil
   f1 = Fiber.new {
-    Fiber.yield f2.resume
+    root.transfer(f2.transfer)
     result = :f1
   }
   f2 = Fiber.new {
@@ -182,12 +177,13 @@ assert('Break nested fiber with root fiber transfer') do
     root.transfer :from_f2
     result = :f2
   }
-  assert_equal :from_f2, f1.resume
+  assert_equal :from_f2, f1.transfer
   assert_equal :to_root, result
   assert_equal :f2, f2.transfer
   assert_equal :f2, result
   assert_false f2.alive?
-  assert_equal :f1, f1.resume
+  assert_equal nil, f1.transfer
+  assert_equal :f1, f1.transfer
   assert_equal :f1, result
   assert_false f1.alive?
 end
