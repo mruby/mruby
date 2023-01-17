@@ -13203,7 +13203,6 @@ parser_update_cxt(parser_state *p, mrbc_context *cxt)
   }
 }
 
-
 void mrb_parser_dump(mrb_state *mrb, node *tree, int offset);
 
 MRB_API void
