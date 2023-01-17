@@ -669,8 +669,6 @@ irep_error(mrb_state *mrb)
   mrb_exc_set(mrb, mrb_exc_new_lit(mrb, E_SCRIPT_ERROR, "irep load error"));
 }
 
-void mrb_codedump_all(mrb_state*, struct RProc*);
-
 static mrb_value
 load_irep(mrb_state *mrb, struct RProc *proc, mrbc_context *c)
 {

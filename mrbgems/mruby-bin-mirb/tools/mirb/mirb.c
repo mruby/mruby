@@ -20,6 +20,7 @@
 #include <mruby/variable.h>
 #include <mruby/error.h>
 #include <mruby/presym.h>
+#include <mruby/internal.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -379,8 +380,6 @@ print_cmdline(int code_block_open)
   fflush(stdout);
 }
 #endif
-
-void mrb_codedump_all(mrb_state*, struct RProc*);
 
 static int
 check_keyword(const char *buf, const char *word)
