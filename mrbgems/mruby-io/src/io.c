@@ -90,6 +90,11 @@ io_get_open_fptr(mrb_state *mrb, mrb_value io)
   return fptr;
 }
 
+#if !defined(MRB_NO_IO_POPEN) && defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
+# define MRB_NO_IO_POPEN 1
+#endif
+
+#ifndef MRB_NO_IO_POEPN
 static void
 io_set_process_status(mrb_state *mrb, pid_t pid, int status)
 {
@@ -110,6 +115,7 @@ io_set_process_status(mrb_state *mrb, pid_t pid, int status)
   }
   mrb_gv_set(mrb, mrb_intern_lit(mrb, "$?"), v);
 }
+#endif
 
 static int
 io_modestr_to_flags(mrb_state *mrb, const char *mode)
@@ -333,7 +339,7 @@ io_alloc(mrb_state *mrb)
 #define NOFILE 64
 #endif
 
-#if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
+#ifdef NO_IO_POPEN
 # define io_s_popen mrb_notimplement_m
 #else
 static int
@@ -764,6 +770,7 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet)
     fptr->fd2 = -1;
   }
 
+#ifndef NO_IO_POPEN
   if (fptr->pid != 0) {
 #if !defined(_WIN32) && !defined(_WIN64)
     pid_t pid;
@@ -785,6 +792,7 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet)
     fptr->pid = 0;
     /* Note: we don't raise an exception when waitpid(3) fails */
   }
+#endif
 
   if (fptr->buf) {
     mrb_free(mrb, fptr->buf);
