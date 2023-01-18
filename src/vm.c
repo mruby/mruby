@@ -1269,6 +1269,13 @@ mrb_vm_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, mrb_int sta
   }
   if (stack_keep > nregs)
     nregs = stack_keep;
+  else {
+    struct REnv *e = CI_ENV(mrb->c->ci);
+    if (stack_keep == 0 || (e && irep->nlocals < MRB_ENV_LEN(e))) {
+      mrb_vm_ci_env_set(mrb->c->ci, NULL);
+      mrb_env_unshare(mrb, e, FALSE);
+    }
+  }
   mrb_stack_extend(mrb, nregs);
   stack_clear(c->ci->stack + stack_keep, nregs - stack_keep);
   c->ci->stack[0] = self;
@@ -3102,11 +3109,6 @@ mrb_top_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, mrb_int st
     return mrb_vm_run(mrb, proc, self, stack_keep);
   }
   if (mrb->c->ci == mrb->c->cibase) {
-    if (stack_keep == 0) {
-      struct REnv *e = mrb_vm_ci_env(mrb->c->ci);
-      mrb_vm_ci_env_set(mrb->c->ci, NULL);
-      mrb_env_unshare(mrb, e, FALSE);
-    }
     return mrb_vm_run(mrb, proc, self, stack_keep);
   }
   cipush(mrb, 0, CINFO_SKIP, mrb->object_class, NULL, NULL, 0, 0);

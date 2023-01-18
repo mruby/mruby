@@ -38,6 +38,12 @@ int mrb_dump_irep_cstruct(mrb_state *mrb, const mrb_irep*, uint8_t flags, FILE *
 #endif
 #endif
 
+/* codedump */
+void mrb_codedump_all(mrb_state *mrb, struct RProc *proc);
+#ifndef MRB_NO_STDIO
+void mrb_codedump_all_file(mrb_state *mrb, struct RProc *proc, FILE *out);
+#endif
+
 /* error */
 mrb_value mrb_exc_inspect(mrb_state *mrb, mrb_value exc);
 mrb_value mrb_exc_backtrace(mrb_state *mrb, mrb_value exc);
@@ -104,6 +110,7 @@ void mrb_rational_copy(mrb_state *mrb, mrb_value x, mrb_value y);
 struct RProc *mrb_closure_new(mrb_state*, const mrb_irep*);
 void mrb_proc_copy(mrb_state *mrb, struct RProc *a, struct RProc *b);
 mrb_int mrb_proc_arity(const struct RProc *p);
+struct REnv *mrb_env_new(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci, int nstacks, mrb_value *stack, struct RClass *tc);
 #endif
 
 /* range */

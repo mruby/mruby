@@ -9,9 +9,6 @@
 #include <mruby/variable.h>
 #include <mruby/internal.h>
 
-struct REnv *mrb_env_new(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci, int nstacks, mrb_value *stack, struct RClass *tc);
-void mrb_codedump_all(mrb_state*, struct RProc*);
-
 static struct RProc*
 create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value binding, const char *file, mrb_int line)
 {
