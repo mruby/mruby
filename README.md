@@ -5,7 +5,8 @@
 ## What is mruby
 
 mruby is the lightweight implementation of the Ruby language complying to (part
-of) the [ISO standard][ISO-standard]. Its syntax is Ruby 2.x compatible.
+of) the [ISO standard][ISO-standard] with more recent features provided by Ruby 3.x.
+Also, its syntax is Ruby 3.x compatible except for pattern matching.
 
 mruby can be linked and embedded within your application. We provide the
 interpreter program "mruby", and the interactive mruby shell "mirb" as examples.

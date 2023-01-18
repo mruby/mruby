@@ -545,7 +545,7 @@ For example, when you have a C source file (`c.c`) and try to
 compile and link it with `libmruby.a`, you can run the following command,
 
 ```
-gcc `mruby-config --cflags` c.c `mruby-config --ldflags` `mruby-config --libs`
+`mruby-config --cc --cflags` c.c `mruby-config --ldflags --libs`
 ```
 
 When you use `make`, add following lines in `Makefile`

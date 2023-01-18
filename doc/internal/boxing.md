@@ -45,7 +45,7 @@ The NaN boxing packing bit patterns are like following:
 | ptr    | `01111111 11111100 PPPPPPPP PPPPPPPP PPPPPPPP PPPPPPPP PPPPPPPP PPPPPP01` |
 | nil    | `00000000 00000000 00000000 00000000 00000000 00000000 00000000 00000000` |
 
-The object values appear far more frequently than floating-point numbers, so we offset the value so that object pointers are unchanged. This technique is called "favor pointer"".
+The object values appear far more frequently than floating-point numbers, so we offset the value so that object pointers are unchanged. This technique is called "favor pointer".
 
 ## No Boxing
 
