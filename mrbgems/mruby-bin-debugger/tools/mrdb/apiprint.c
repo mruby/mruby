@@ -11,6 +11,7 @@
 #include <mruby/error.h>
 #include <mruby/numeric.h>
 #include <mruby/string.h>
+#include <mruby/internal.h>
 #include <mruby/presym.h>
 #include "apiprint.h"
 
@@ -52,7 +53,7 @@ mrb_debug_eval(mrb_state *mrb, mrb_debug_context *dbg, const char *expr, size_t 
   else if (direct_eval) {
     recv = dbg->regs[0];
 
-    v = mrb_funcall(mrb, recv, expr, 0);
+    v = MRB_FUNCALL(mrb, recv, mrb_intern_cstr(mrb, expr));
   }
   else {
     /*
@@ -68,7 +69,7 @@ mrb_debug_eval(mrb_state *mrb, mrb_debug_context *dbg, const char *expr, size_t 
 
     recv = dbg->regs[0];
 
-    v =  mrb_funcall_id(mrb, recv, MRB_SYM(instance_eval), 1, ruby_code);
+    v =  MRB_FUNCALL(mrb, recv, MRB_SYM(instance_eval), ruby_code);
   }
 
   if (exc) {

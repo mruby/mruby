@@ -168,7 +168,7 @@ mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
 
   for (res = res0; res != NULL; res = res->ai_next) {
     sa = mrb_str_new(mrb, (char*)res->ai_addr, res->ai_addrlen);
-    ai = mrb_funcall_id(mrb, klass, MRB_SYM(new), 4, sa, mrb_fixnum_value(res->ai_family), mrb_fixnum_value(res->ai_socktype), mrb_fixnum_value(res->ai_protocol));
+    ai = MRB_FUNCALL(mrb, klass, MRB_SYM(new), sa, mrb_fixnum_value(res->ai_family), mrb_fixnum_value(res->ai_socktype), mrb_fixnum_value(res->ai_protocol));
     mrb_ary_push(mrb, ary, ai);
     mrb_gc_arena_restore(mrb, arena_idx);
   }
@@ -343,7 +343,7 @@ mrb_basicsocket_getsockopt(mrb_state *mrb, mrb_value self)
   c = mrb_const_get(mrb, mrb_obj_value(mrb_class_get_id(mrb, MRB_SYM(Socket))), MRB_SYM(Option));
   family = socket_family(s);
   data = mrb_str_new(mrb, opt, optlen);
-  return mrb_funcall_id(mrb, c, MRB_SYM(new), 4, mrb_fixnum_value(family), mrb_fixnum_value(level), mrb_fixnum_value(optname), data);
+  return MRB_FUNCALL(mrb, c, MRB_SYM(new), mrb_fixnum_value(family), mrb_fixnum_value(level), mrb_fixnum_value(optname), data);
 }
 
 static mrb_value
@@ -465,9 +465,9 @@ mrb_basicsocket_setsockopt(mrb_state *mrb, mrb_value self)
   } else if (argc == 1) {
     if (strcmp(mrb_obj_classname(mrb, so), "Socket::Option") != 0)
       mrb_raise(mrb, E_ARGUMENT_ERROR, "not an instance of Socket::Option");
-    level = mrb_as_int(mrb, mrb_funcall_id(mrb, so, MRB_SYM(level), 0));
-    optname = mrb_as_int(mrb, mrb_funcall_id(mrb, so, MRB_SYM(optname), 0));
-    optval = mrb_funcall_id(mrb, so, MRB_SYM(data), 0);
+    level = mrb_as_int(mrb, MRB_FUNCALL(mrb, so, MRB_SYM(level)));
+    optname = mrb_as_int(mrb, MRB_FUNCALL(mrb, so, MRB_SYM(optname)));
+    optval = MRB_FUNCALL(mrb, so, MRB_SYM(data));
     mrb_ensure_string_type(mrb, optval);
   } else {
     mrb_argnum_error(mrb, argc, 3, 3);

@@ -505,7 +505,7 @@ mrb_obj_ceqq(mrb_state *mrb, mrb_value self)
     return mrb_false_value();
   }
   else {
-    ary = mrb_funcall_id(mrb, self, MRB_SYM(to_a), 0);
+    ary = MRB_FUNCALL(mrb, self, MRB_SYM(to_a));
     if (mrb_nil_p(ary)) {
       return mrb_funcall_argv(mrb, self, eqq, 1, &v);
     }

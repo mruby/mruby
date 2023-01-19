@@ -109,7 +109,7 @@ io_set_process_status(mrb_state *mrb, pid_t pid, int status)
     }
   }
   if (c_status != NULL) {
-    v = mrb_funcall_id(mrb, mrb_obj_value(c_status), MRB_SYM(new), 2, mrb_fixnum_value(pid), mrb_fixnum_value(status));
+    v = MRB_FUNCALL(mrb, mrb_obj_value(c_status), MRB_SYM(new), mrb_fixnum_value(pid), mrb_fixnum_value(status));
   } else {
     v = mrb_fixnum_value(WEXITSTATUS(status));
   }

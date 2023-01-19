@@ -8,6 +8,7 @@
 #include <mruby/string.h>
 #include <mruby/hash.h>
 #include <mruby/numeric.h>
+#include <mruby/internal.h>
 #include <mruby/presym.h>
 #include <string.h>
 #include <ctype.h>
@@ -761,7 +762,7 @@ retry:
             tmp = mrb_str_new(mrb, buf, 1);
           }
           else {
-            tmp = mrb_funcall_id(mrb, val, MRB_SYM(chr), 0);
+            tmp = MRB_FUNCALL(mrb, val, MRB_SYM(chr));
             mrb_check_type(mrb, tmp, MRB_TT_STRING);
           }
 #endif

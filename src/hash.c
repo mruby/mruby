@@ -343,7 +343,7 @@ obj_hash_code(mrb_state *mrb, mrb_value key, struct RHash *h)
     break;
   default:
     h_check_modified(mrb, h, {
-      hash_code_obj = mrb_funcall_argv(mrb, key, MRB_SYM(hash), 0, NULL);
+      hash_code_obj = MRB_FUNCALL(mrb, key, MRB_SYM(hash));
     });
 
     hash_code = U32(tt) ^ U32(mrb_integer(hash_code_obj));
@@ -1161,7 +1161,7 @@ hash_default(mrb_state *mrb, mrb_value hash, mrb_value key)
 {
   if (MRB_RHASH_DEFAULT_P(hash)) {
     if (MRB_RHASH_PROCDEFAULT_P(hash)) {
-      return mrb_funcall_id(mrb, RHASH_PROCDEFAULT(hash), MRB_SYM(call), 2, hash, key);
+      return MRB_FUNCALL(mrb, RHASH_PROCDEFAULT(hash), MRB_SYM(call), hash, key);
     }
     else {
       return RHASH_IFNONE(hash);
@@ -1361,7 +1361,7 @@ mrb_hash_default(mrb_state *mrb, mrb_value hash)
   if (MRB_RHASH_DEFAULT_P(hash)) {
     if (MRB_RHASH_PROCDEFAULT_P(hash)) {
       if (!given) return mrb_nil_value();
-      return mrb_funcall_id(mrb, RHASH_PROCDEFAULT(hash), MRB_SYM(call), 2, hash, key);
+      return MRB_FUNCALL(mrb, RHASH_PROCDEFAULT(hash), MRB_SYM(call), hash, key);
     }
     else {
       return RHASH_IFNONE(hash);
