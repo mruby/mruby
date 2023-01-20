@@ -29,14 +29,14 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
           mrb_obj_class(mrb, binding));
     }
     scope_obj = mrb_iv_get(mrb, binding, MRB_SYM(proc));
-    mrb_assert(mrb_proc_p(scope_obj));
+    mrb_check_type(mrb, scope_obj, MRB_TT_PROC);
     scope = mrb_proc_ptr(scope_obj);
     if (MRB_PROC_CFUNC_P(scope)) {
       e = NULL;
     }
     else {
       mrb_value env = mrb_iv_get(mrb, binding, MRB_SYM(env));
-      mrb_assert(mrb_env_p(env));
+      mrb_check_type(mrb, env, MRB_TT_ENV);
       e = (struct REnv *)mrb_obj_ptr(env);
       mrb_assert(e != NULL);
     }
