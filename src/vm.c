@@ -562,7 +562,7 @@ prepare_missing(mrb_state *mrb, mrb_callinfo *ci, mrb_value recv, mrb_sym mid, m
   if (mid != missing) {
     ci->u.target_class = mrb_class(mrb, recv);
   }
-  m = mrb_method_search_vm(mrb, &ci->u.target_class, missing);
+  m = mrb_vm_find_method(mrb, ci->u.target_class, &ci->u.target_class, missing);
   if (MRB_METHOD_UNDEF_P(m)) goto method_missing; /* just in case */
   mrb_stack_extend(mrb, 4);
 
@@ -662,7 +662,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
     ci = cipush(mrb, n, CINFO_DIRECT, NULL, NULL, BLK_PTR(blk), 0, 0);
     funcall_args_capture(mrb, 0, argc, argv, blk, ci);
     ci->u.target_class = mrb_class(mrb, self);
-    m = mrb_method_search_vm(mrb, &ci->u.target_class, mid);
+    m = mrb_vm_find_method(mrb, ci->u.target_class, &ci->u.target_class, mid);
     if (MRB_METHOD_UNDEF_P(m)) {
       m = prepare_missing(mrb, ci, self, mid, mrb_nil_value(), FALSE);
     }
@@ -816,7 +816,7 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
   }
 
   c = mrb_class(mrb, self);
-  m = mrb_method_search_vm(mrb, &c, name);
+  m = mrb_vm_find_method(mrb, c, &c, name);
   if (MRB_METHOD_UNDEF_P(m)) {            /* call method_mising */
     goto funcall;
   }
@@ -1769,7 +1769,7 @@ RETRY_TRY_BLOCK:
       ci = cipush(mrb, a, CINFO_DIRECT, NULL, NULL, BLK_PTR(blk), 0, c);
       recv = regs[0];
       ci->u.target_class = (insn == OP_SUPER) ? CI_TARGET_CLASS(ci - 1)->super : mrb_class(mrb, recv);
-      m = mrb_method_search_vm(mrb, &ci->u.target_class, mid);
+      m = mrb_vm_find_method(mrb, ci->u.target_class, &ci->u.target_class, mid);
       if (MRB_METHOD_UNDEF_P(m)) {
         m = prepare_missing(mrb, ci, recv, mid, blk, (insn == OP_SUPER));
       }

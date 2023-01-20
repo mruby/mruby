@@ -1765,11 +1765,10 @@ mc_clear_by_id(mrb_state *mrb, mrb_sym id)
 }
 #endif
 
-MRB_API mrb_method_t
-mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
+mrb_method_t
+mrb_vm_find_method(mrb_state *mrb, struct RClass *c, struct RClass **cp, mrb_sym mid)
 {
   mrb_method_t m;
-  struct RClass *c = *cp;
 #ifndef MRB_NO_METHOD_CACHE
   struct RClass *oc = c;
   int h = kh_int_hash_func(mrb, ((intptr_t)oc) ^ mid) & (MRB_METHOD_CACHE_SIZE-1);
@@ -1812,6 +1811,12 @@ mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
   }
   MRB_METHOD_FROM_PROC(m, NULL);
   return m;                  /* no method */
+}
+
+MRB_API mrb_method_t
+mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
+{
+  return mrb_vm_find_method(mrb, *cp, cp, mid);
 }
 
 MRB_API mrb_method_t
