@@ -244,6 +244,23 @@ mt_free(mrb_state *mrb, mt_tbl *t)
   mrb_free(mrb, t);
 }
 
+static inline mrb_method_t
+create_method_value(mrb_state *mrb, mrb_sym key, union mt_ptr val)
+{
+  mrb_method_t m;
+
+  if (key & MT_FUNC_P) {
+    MRB_METHOD_FROM_FUNC(m, val.func);
+  }
+  else {
+    MRB_METHOD_FROM_PROC(m, val.proc);
+  }
+  if (key & MT_NOARG_P) {
+    MRB_METHOD_NOARG_SET(m);
+  }
+  return m;
+}
+
 MRB_API void
 mrb_mt_foreach(mrb_state *mrb, struct RClass *c, mrb_mt_foreach_func *fn, void *p)
 {
@@ -259,19 +276,7 @@ mrb_mt_foreach(mrb_state *mrb, struct RClass *c, mrb_mt_foreach_func *fn, void *
   for (i=0; i<t->alloc; i++) {
     mrb_sym key = keys[i];
     if (MT_KEY_SYM(key)) {
-      mrb_method_t m;
-
-      if (key & MT_FUNC_P) {
-        MRB_METHOD_FROM_FUNC(m, vals[i].func);
-      }
-      else {
-        MRB_METHOD_FROM_PROC(m, vals[i].proc);
-      }
-      if (key & MT_NOARG_P) {
-        MRB_METHOD_NOARG_SET(m);
-      }
-
-      if (fn(mrb, MT_KEY_SYM(key), m, p) != 0)
+      if (fn(mrb, MT_KEY_SYM(key), create_method_value(mrb, key, vals[i]), p) != 0)
         return;
     }
   }
@@ -1789,15 +1794,7 @@ mrb_vm_find_method(mrb_state *mrb, struct RClass *c, struct RClass **cp, mrb_sym
       if (ret) {
         if (ptr.proc == 0) break;
         *cp = c;
-        if (ret & MT_FUNC_P) {
-          MRB_METHOD_FROM_FUNC(m, ptr.func);
-        }
-        else {
-          MRB_METHOD_FROM_PROC(m, ptr.proc);
-        }
-        if (ret & MT_NOARG_P) {
-          MRB_METHOD_NOARG_SET(m);
-        }
+        m =  create_method_value(mrb, ret, ptr);
 #ifndef MRB_NO_METHOD_CACHE
         mc->c = oc;
         mc->c0 = c;
