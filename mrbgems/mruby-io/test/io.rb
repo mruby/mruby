@@ -369,6 +369,7 @@ assert('IO#gets') do
   # gets with rs
   io.pos = 0
   assert_equal $mrbtest_io_msg[0, 6], io.gets(' '), "gets with rs"
+  assert_equal $mrbtest_io_msg[6, 3], io.gets(' '), "gets with rs(2)"
 
   # gets with rs, limit
   io.pos = 0
