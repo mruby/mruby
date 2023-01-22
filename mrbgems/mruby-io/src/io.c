@@ -339,7 +339,7 @@ io_alloc(mrb_state *mrb)
 #define NOFILE 64
 #endif
 
-#ifdef NO_IO_POPEN
+#ifdef MRB_NO_IO_POPEN
 # define io_s_popen mrb_notimplement_m
 #else
 static int
@@ -770,7 +770,7 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet)
     fptr->fd2 = -1;
   }
 
-#ifndef NO_IO_POPEN
+#ifndef MRB_NO_IO_POPEN
   if (fptr->pid != 0) {
 #if !defined(_WIN32) && !defined(_WIN64)
     pid_t pid;
