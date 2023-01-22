@@ -1714,10 +1714,10 @@ io_find_index(struct mrb_io *fptr, const char *rs, mrb_int rslen)
   mrb_assert(rslen > 0);
   const char c = rs[0];
   const mrb_int limit = buf->len - rslen;
-  for (mrb_int i=buf->start; i<limit; i++) {
-    if (buf->mem[i] == c) {
-      if (memcmp(buf->mem+i, rs, rslen) == 0)
-        return i;
+  const char *p = buf->mem+buf->start;
+  for (mrb_int i=0; i<limit; i++) {
+    if (p[i] == c && (rslen == 1 || memcmp(p+i, rs, rslen) == 0)) {
+      return i;
     }
   }
   return -1;
@@ -1783,36 +1783,25 @@ io_gets(mrb_state *mrb, mrb_value io)
     outbuf = mrb_str_new(mrb, NULL, 0);
   }
 
-  if (!rs_given) {              /* no RS; only limit */
-    mrb_assert(limit_given);
-    for (;;) {
-      if (buf->len >= limit) {
+  for (;;) {
+    if (rs_given) {                /* with RS */
+      int rslen = RSTRING_LEN(rs);
+      mrb_int idx = io_find_index(fptr, RSTRING_PTR(rs), rslen);
+      if (idx >= 0) {              /* found */
+        mrb_int n = idx+rslen;
+        if (limit_given && limit < n) {
+          n = limit;
+        }
+        io_buf_cat(mrb, outbuf, fptr, n);
+      return outbuf;
+      }
+    }
+    if (limit_given) {
+      if (limit <= buf->len) {
         io_buf_cat(mrb, outbuf, fptr, limit);
         return outbuf;
       }
-      io_buf_cat_all(mrb, outbuf, fptr);
-      io_buf_fill(mrb, fptr);
-      if (fptr->eof) {
-        if (RSTRING_LEN(outbuf) == 0) return mrb_nil_value();
-        return outbuf;
-      }
-    }
-  }
-
-  for (;;) {                    /* with RS */
-    int rslen = RSTRING_LEN(rs);
-    mrb_int idx = io_find_index(fptr, RSTRING_PTR(rs), rslen);
-    if (idx >= 0) {              /* found */
-      mrb_int n = idx+rslen;
-      if (limit_given && limit < n) {
-        n = limit;
-      }
-      io_buf_cat(mrb, outbuf, fptr, n);
-      return outbuf;
-    }
-    if (limit_given && buf->len < limit) {
-      io_buf_cat(mrb, outbuf, fptr, limit);
-      return outbuf;
+      limit -= buf->len;
     }
     io_buf_cat_all(mrb, outbuf, fptr);
     io_buf_fill(mrb, fptr);
