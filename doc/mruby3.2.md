@@ -35,6 +35,25 @@
 - mruby-errno from [https://github.com/iij/mruby-errno.git]
 - mruby-set from [https://github.com/yui-knk/mruby-set.git]
 - mruby-dir from [https://github.com/iij/mruby-dir.git]
+- mruby-data
+
+# Breaking Changes
+
+## `mrb_vm_run()` may detach top-level local variables referenced from blocks
+
+When the `mrb_vm_run()` function (including `mrb_top_run()`) is called,
+the previous top-level local variables referenced from blocks is detached under either of the following conditions.
+
+- If the `stack_keep` parameter is given as 0.
+- If the number of variables in `irep` to be executed is less than the number of previous top-level local variables.
+
+This change also affects API functions such as `mrb_load_string()` and `mrb_load_file()`.
+The conditions under which the previous top-level local variables referenced from blocks is detached in these functions are as follows:
+
+- If the function has no `mrbc_context` pointer parameter, or the `mrbc_context` pointer parameter is set to `NULL`.
+- If the number of variables held in the `mrbc_context` pointer is less than the number of previous top-level local variables.
+
+Intentional reliance on previous behavior may cause compatibility problems in your application.
 
 # CVEs
 
