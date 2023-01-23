@@ -57,7 +57,7 @@ MRB_BEGIN_DECL
 /*
  * Patch level string. (optional)
  */
-#define MRUBY_PATCHLEVEL_STR "RC2"
+#define MRUBY_PATCHLEVEL_STR "RC3"
 
 #ifndef MRUBY_PATCHLEVEL_STR
 # if MRUBY_PATCHLEVEL < 0
@@ -90,7 +90,7 @@ MRB_BEGIN_DECL
 /*
  * Release day.
  */
-#define MRUBY_RELEASE_DAY 18
+#define MRUBY_RELEASE_DAY 23
 
 /*
  * Release date as a string.
