@@ -450,16 +450,16 @@ mrb_ary_times(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a1 = mrb_ary_ptr(self);
   struct RArray *a2;
-  mrb_value *ptr, sep, tmp;
+  mrb_value *ptr, arg, tmp;
   mrb_int times, len1;
 
-  mrb_get_args(mrb, "o", &sep);
-  tmp = mrb_check_string_type(mrb, sep);
+  arg = mrb_get_arg1(mrb);
+  tmp = mrb_check_string_type(mrb, arg);
   if (!mrb_nil_p(tmp)) {
     return mrb_ary_join(mrb, self, tmp);
   }
 
-  mrb_get_args(mrb, "i", &times);
+  times = mrb_as_int(mrb, arg);
   if (times < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "negative argument");
   }
