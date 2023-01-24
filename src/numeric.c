@@ -66,7 +66,7 @@ mrb_int_pow(mrb_state *mrb, mrb_value x, mrb_value y)
   else
 #endif
   {
-    mrb_get_args(mrb, "i", &exp);
+    exp = mrb_as_int(mrb, y);
   }
   if (exp < 0) {
 #ifndef MRB_NO_FLOAT
