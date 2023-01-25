@@ -89,8 +89,7 @@ mrb_ary_rassoc(mrb_state *mrb, mrb_value ary)
 static mrb_value
 mrb_ary_at(mrb_state *mrb, mrb_value ary)
 {
-  mrb_int pos;
-  mrb_get_args(mrb, "i", &pos);
+  mrb_int pos = mrb_as_int(mrb,  mrb_get_arg1(mrb));
 
   return mrb_ary_entry(ary, pos);
 }

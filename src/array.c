@@ -612,12 +612,12 @@ mrb_ary_shift(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_ary_shift_m(mrb_state *mrb, mrb_value self)
 {
-  mrb_int n;
 
-  if (mrb_get_args(mrb, "|i", &n) == 0) {
+  if (mrb_get_argc(mrb) == 0) {
     return mrb_ary_shift(mrb, self);
   }
 
+  mrb_int n = mrb_as_int(mrb,  mrb_get_arg1(mrb));
   struct RArray *a = mrb_ary_ptr(self);
   mrb_int len = ARY_LEN(a);
   mrb_value val;
@@ -1061,7 +1061,7 @@ mrb_ary_delete_at(mrb_state *mrb, mrb_value self)
   mrb_value *ptr;
   mrb_int len, alen;
 
-  mrb_get_args(mrb, "i", &index);
+  index = mrb_as_int(mrb, mrb_get_arg1(mrb));
   alen = ARY_LEN(a);
   if (index < 0) index += alen;
   if (index < 0 || alen <= index) return mrb_nil_value();
