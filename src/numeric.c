@@ -208,9 +208,7 @@ int_idiv(mrb_state *mrb, mrb_value x)
     return mrb_bint_div(mrb, x, mrb_get_arg1(mrb));
   }
 #endif
-  mrb_int y;
-
-  mrb_get_args(mrb, "i", &y);
+  mrb_int y = mrb_as_int(mrb,  mrb_get_arg1(mrb));
   return mrb_div_int_value(mrb, mrb_integer(x), y);
 }
 
@@ -221,9 +219,8 @@ int_quo(mrb_state *mrb, mrb_value x)
 #ifdef MRB_NO_FLOAT
   return int_idiv(mrb, x);
 #else
-  mrb_float y;
+  mrb_float y = mrb_as_float(mrb,  mrb_get_arg1(mrb));
 
-  mrb_get_args(mrb, "f", &y);
   if (y == 0) {
     mrb_int_zerodiv(mrb);
   }
@@ -293,9 +290,7 @@ flo_pow(mrb_state *mrb, mrb_value x)
 static mrb_value
 flo_idiv(mrb_state *mrb, mrb_value xv)
 {
-  mrb_int y;
-
-  mrb_get_args(mrb, "i", &y);
+  mrb_int y = mrb_as_int(mrb, mrb_get_arg1(mrb));
   return mrb_div_int_value(mrb, (mrb_int)mrb_float(xv), y);
 }
 
@@ -731,9 +726,7 @@ flo_shift(mrb_state *mrb, mrb_value x, mrb_int width)
 static mrb_value
 flo_rshift(mrb_state *mrb, mrb_value x)
 {
-  mrb_int width;
-
-  mrb_get_args(mrb, "i", &width);
+  mrb_int width = mrb_as_int(mrb, mrb_get_arg1(mrb));
   if (width == MRB_INT_MIN) return flo_shift(mrb, x, -MRB_INT_BIT);
   return flo_shift(mrb, x, -width);
 }
@@ -741,9 +734,7 @@ flo_rshift(mrb_state *mrb, mrb_value x)
 static mrb_value
 flo_lshift(mrb_state *mrb, mrb_value x)
 {
-  mrb_int width;
-
-  mrb_get_args(mrb, "i", &width);
+  mrb_int width = mrb_as_int(mrb, mrb_get_arg1(mrb));
   return flo_shift(mrb, x, width);
 }
 
@@ -1521,7 +1512,7 @@ int_lshift(mrb_state *mrb, mrb_value x)
 {
   mrb_int width, val;
 
-  mrb_get_args(mrb, "i", &width);
+  width = mrb_as_int(mrb, mrb_get_arg1(mrb));
   if (width == 0) {
     return x;
   }
@@ -1556,7 +1547,7 @@ int_rshift(mrb_state *mrb, mrb_value x)
 {
   mrb_int width, val;
 
-  mrb_get_args(mrb, "i", &width);
+  width = mrb_as_int(mrb, mrb_get_arg1(mrb));
   if (width == 0) {
     return x;
   }
