@@ -222,8 +222,7 @@ random_m_bytes(mrb_state *mrb, mrb_value self)
 {
   rand_state *t = random_ptr(self);
 
-  mrb_int i;
-  mrb_get_args(mrb, "i", &i);
+  mrb_int i = mrb_as_int(mrb, mrb_get_arg1(mrb));
 
   mrb_value bytes = mrb_str_new(mrb, NULL, i);
   uint8_t *p = (uint8_t*)RSTRING_PTR(bytes);
