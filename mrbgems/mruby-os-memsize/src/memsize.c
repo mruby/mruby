@@ -192,9 +192,7 @@ static mrb_value
 os_memsize_of(mrb_state *mrb, mrb_value self)
 {
   size_t total;
-  mrb_value obj;
-
-  mrb_get_args(mrb, "o", &obj);
+  mrb_value obj = mrb_get_arg1(mrb);
 
   total = os_memsize_of_object(mrb, obj);
   return mrb_fixnum_value((mrb_int)total);
