@@ -1278,86 +1278,6 @@ mrb_str_uminus(mrb_state *mrb, mrb_value str)
   return mrb_obj_freeze(mrb, mrb_str_dup(mrb, str));
 }
 
-static mrb_value
-str_bytesplice(mrb_state *mrb, mrb_value str, mrb_int idx1, mrb_int len1, mrb_value replace, mrb_int idx2, mrb_int len2)
-{
-  struct RString *s = RSTRING(str);
-  if (RSTR_LEN(s) <= idx1 || RSTRING_LEN(replace) <= idx2) {
-    mrb_raise(mrb, E_INDEX_ERROR, "index out of string");
-  }
-  if (RSTR_LEN(s) <= idx1+len1) {
-    len1 = RSTR_LEN(s) - idx1;
-  }
-  if (RSTRING_LEN(replace) <= idx2+len2) {
-    len2 = RSTRING_LEN(replace) - idx2;
-  }
-  if (len2 == 0) return replace;
-  mrb_str_modify(mrb, s);
-  if (len1 >= len2) {
-    memmove(RSTR_PTR(s)+idx1, RSTRING_PTR(replace)+idx2, len2);
-    if (len1 > len2) {
-      memmove(RSTR_PTR(s)+idx1+len2, RSTR_PTR(s)+idx1+len1, RSTR_LEN(s)-(idx1+len1));
-      RSTR_SET_LEN(s, RSTR_LEN(s)-(len1-len2));
-    }
-  }
-  else { /* len1 < len2 */
-    mrb_int slen = RSTR_LEN(s);
-    mrb_str_resize(mrb, str, slen+len2-len1);
-    memmove(RSTR_PTR(s)+idx1+len2, RSTR_PTR(s)+idx1+len1, slen-(idx1+len1));
-    memmove(RSTR_PTR(s)+idx1, RSTRING_PTR(replace)+idx2, len2);
-  }
-  return replace;
-}
-
-/*
- *  call-seq:
- *    bytesplice(index, length, str) -> string
- *    bytesplice(index, length, str, str_index, str_length) -> string
- *    bytesplice(range, str) -> string
- *    bytesplice(range, str, str_range) -> string
- *
- *  Replaces some or all of the content of +self+ with +str+, and returns +self+.
- *  The portion of the string affected is determined using
- *  the same criteria as String#byteslice, except that +length+ cannot be omitted.
- *  If the replacement string is not the same length as the text it is replacing,
- *  the string will be adjusted accordingly.
- *
- *  If +str_index+ and +str_length+, or +str_range+ are given, the content of +self+ is replaced by str.byteslice(str_index, str_length) or str.byteslice(str_range); however the substring of +str+ is not allocated as a new string.
- *
- *  The form that take an Integer will raise an IndexError if the value is out
- *  of range; the Range form will raise a RangeError.
- *  If the beginning or ending offset does not land on character (codepoint)
- *  boundary, an IndexError will be raised.
- */
-static mrb_value
-mrb_str_bytesplice(mrb_state *mrb, mrb_value str)
-{
-  mrb_int idx1, len1, idx2, len2;
-  mrb_value range1, range2, replace;
-  switch (mrb_get_argc(mrb)) {
-  case 3:
-    mrb_get_args(mrb, "ooo", &range1, &replace, &range2);
-    if (mrb_integer_p(range1)) {
-      mrb_get_args(mrb, "iiS", &idx1, &len1, &replace);
-      return str_bytesplice(mrb, str, idx1, len1, replace, 0, RSTRING_LEN(replace));
-    }
-    if (mrb_range_beg_len(mrb, range1, &idx1, &len1, RSTRING_LEN(str), FALSE) != MRB_RANGE_OK) break;
-    if (mrb_range_beg_len(mrb, range2, &idx2, &len2, RSTRING_LEN(replace), FALSE) != MRB_RANGE_OK) break;
-    return str_bytesplice(mrb, str, idx1, len1, replace, idx2, len2);
-  case 5:
-    mrb_get_args(mrb, "iiSii", &idx1, &len1, &replace, &idx2, &len2);
-    return str_bytesplice(mrb, str, idx1, len1, replace, idx2, len2);
-  case 2:
-    mrb_get_args(mrb, "oS", &range1, &replace);
-    if (mrb_range_beg_len(mrb, range1, &idx1, &len1, RSTRING_LEN(str), FALSE) == MRB_RANGE_OK) {
-      return str_bytesplice(mrb, str, idx1, len1, replace, 0, RSTRING_LEN(replace));
-    }
-  default:
-    break;
-  }
-  mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arumgnts");
-}
-
 void
 mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 {
@@ -1395,7 +1315,6 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, s, "casecmp?",        mrb_str_casecmp_p,       MRB_ARGS_REQ(1));
   mrb_define_method(mrb, s, "+@",              mrb_str_uplus,           MRB_ARGS_REQ(1));
   mrb_define_method(mrb, s, "-@",              mrb_str_uminus,          MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, s, "bytesplice",      mrb_str_bytesplice,      MRB_ARGS_ANY());
 
   mrb_define_method(mrb, s, "__lines",         mrb_str_lines,           MRB_ARGS_NONE());
 

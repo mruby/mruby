@@ -898,3 +898,66 @@ assert('String#byteslice') do
   assert_equal("o", str1.byteslice(4.0))
   assert_equal("\x82ab", str2.byteslice(2.0, 3.0))
 end
+
+assert('String#bytesplice') do
+  # range, replace (len1=len2)
+  a = "0123456789"
+  assert_equal "ab", a.bytesplice(1..2, "ab")
+  assert_equal "0ab3456789", a
+
+  # range, replace (len1>len2)
+  a = "0123456789"
+  assert_equal "ab", a.bytesplice(1..3, "ab")
+  assert_equal "0ab456789", a
+
+  # range, replace (len1<len2)
+  a = "0123456789"
+  assert_equal "ab", a.bytesplice(1..1, "ab")
+  assert_equal "0ab23456789", a
+
+  # idx, len, replace (len1=len2)
+  a = "0123456789"
+  assert_equal "ab", a.bytesplice(1, 2, "ab")
+  assert_equal "0ab3456789", a
+
+  # idx, len, replace (len1>len2)
+  a = "0123456789"
+  assert_equal "ab", a.bytesplice(1, 3, "ab")
+  assert_equal "0ab456789", a
+
+  # idx, len, replace (len1<len2)
+  a = "0123456789"
+  assert_equal "ab", a.bytesplice(1, 1, "ab")
+  assert_equal "0ab23456789", a
+
+  b = "abcdefg"
+  # range, replace, range (len1=len2)
+  a = "0123456789"
+  assert_equal b, a.bytesplice(1..2, b, 0..1)
+  assert_equal "0ab3456789", a
+
+  # range, replace, range (len1>len2)
+  a = "0123456789"
+  assert_equal b, a.bytesplice(1..3, b, 1..2)
+  assert_equal "0bc456789", a
+
+  # range, replace, range (len1<len2)
+  a = "0123456789"
+  assert_equal b, a.bytesplice(1..1, b, 2..3)
+  assert_equal "0cd23456789", a
+
+  # idx, len, replace, idx, len (len1=len2)
+  a = "0123456789"
+  assert_equal b, a.bytesplice(1, 2, b, 0, 2)
+  assert_equal "0ab3456789", a
+
+  # idx, len, replace, idx, len (len1>len2)
+  a = "0123456789"
+  assert_equal b, a.bytesplice(1, 3, b, 1, 2)
+  assert_equal "0bc456789", a
+
+  # idx, len, replace, idx, len (len1<len2)
+  a = "0123456789"
+  assert_equal b, a.bytesplice(1, 1, b, 2, 2)
+  assert_equal "0cd23456789", a
+end
