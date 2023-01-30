@@ -313,7 +313,7 @@ assert('BS Block 25') do
 end
 
 assert('BS Block 26') do
-  def m a
+  def m(a)
     yield a
   end
   assert_equal(2) do

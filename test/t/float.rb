@@ -216,7 +216,7 @@ assert('Float#truncate', '15.2.9.3.15') do
 end
 
 assert('Float#divmod') do
-  def check_floats exp, act
+  def check_floats(exp, act)
     assert_float exp[0], act[0]
     assert_float exp[1], act[1]
   end

@@ -69,7 +69,7 @@ class Integer
   # Calls the given block +self+ times.
   #
   # ISO 15.2.8.3.22
-  def times &block
+  def times(&block)
     return to_enum :times unless block
 
     i = 0

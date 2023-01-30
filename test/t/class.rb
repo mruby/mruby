@@ -40,7 +40,7 @@ assert('Class#new', '15.2.3.3.3') do
   end
 
   class TestClass
-    def initialize args, &block
+    def initialize(args, &block)
       @result = if not args.nil? and block.nil?
         # only arguments
         :only_args
