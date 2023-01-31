@@ -10,7 +10,7 @@ jobs:
     name: Check spelling with misspell
     runs-on: ubuntu-latest
     steps:
-      - name: Check Out
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v3
       - name: Install
         run: wget -O - -q https://git.io/misspell | sh -s -- -b .
@@ -20,7 +20,7 @@ jobs:
     name: Run pre-commit
     runs-on: ubuntu-latest
     steps:
-      - name: Check Out
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@v3
       - name: Install
         run: |
