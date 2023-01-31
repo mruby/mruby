@@ -1015,6 +1015,52 @@ mrb_time_hash(mrb_state *mrb, mrb_value self)
   return mrb_int_value(mrb, hash);
 }
 
+#define wday_impl(num) \
+  struct mrb_time *tm = time_get_ptr(mrb, self);\
+  return mrb_bool_value(tm->datetime.tm_wday == (num));
+
+static mrb_value
+mrb_time_sunday(mrb_state *mrb, mrb_value self)
+{
+  wday_impl(0);
+}
+
+static mrb_value
+mrb_time_monday(mrb_state *mrb, mrb_value self)
+{
+  wday_impl(1);
+}
+
+static mrb_value
+mrb_time_tuesday(mrb_state *mrb, mrb_value self)
+{
+  wday_impl(2);
+}
+
+static mrb_value
+mrb_time_wednesday(mrb_state *mrb, mrb_value self)
+{
+  wday_impl(3);
+}
+
+static mrb_value
+mrb_time_thursday(mrb_state *mrb, mrb_value self)
+{
+  wday_impl(4);
+}
+
+static mrb_value
+mrb_time_friday(mrb_state *mrb, mrb_value self)
+{
+  wday_impl(5);
+}
+
+static mrb_value
+mrb_time_saturday(mrb_state *mrb, mrb_value self)
+{
+  wday_impl(6);
+}
+
 void
 mrb_mruby_time_gem_init(mrb_state* mrb)
 {
@@ -1070,6 +1116,14 @@ mrb_mruby_time_gem_init(mrb_state* mrb)
 
   mrb_define_method(mrb, tc, "initialize", mrb_time_initialize, MRB_ARGS_REQ(1)); /* 15.2.19.7.16 */
   mrb_define_method(mrb, tc, "initialize_copy", mrb_time_initialize_copy, MRB_ARGS_REQ(1)); /* 15.2.19.7.17 */
+
+  mrb_define_method(mrb, tc, "sunday?", mrb_time_sunday, MRB_ARGS_NONE());
+  mrb_define_method(mrb, tc, "monday?", mrb_time_monday, MRB_ARGS_NONE());
+  mrb_define_method(mrb, tc, "tuesday?", mrb_time_tuesday, MRB_ARGS_NONE());
+  mrb_define_method(mrb, tc, "wednesday?", mrb_time_wednesday, MRB_ARGS_NONE());
+  mrb_define_method(mrb, tc, "thursday?", mrb_time_thursday, MRB_ARGS_NONE());
+  mrb_define_method(mrb, tc, "friday?", mrb_time_friday, MRB_ARGS_NONE());
+  mrb_define_method(mrb, tc, "saturday?", mrb_time_saturday, MRB_ARGS_NONE());
 
   /*
     methods not available:
