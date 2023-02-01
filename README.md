@@ -1,6 +1,7 @@
 # mruby
 
 [![GitHub Super-Linter](https://github.com/mruby/mruby/workflows/Lint%20Code%20Base/badge.svg)](https://github.com/marketplace/actions/super-linter)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
 
 ## What is mruby
 
