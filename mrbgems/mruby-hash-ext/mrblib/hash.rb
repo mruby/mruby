@@ -113,16 +113,7 @@ class Hash
   #
 
   def compact!
-    keys = self.keys
-    nk = keys.select{|k|
-      self[k] != nil
-    }
-    return nil if (keys.size == nk.size)
-    h = {}
-    nk.each {|k|
-      h[k] = self[k]
-    }
-    self.replace(h)
+    self.__compact
   end
 
   ##
@@ -136,12 +127,8 @@ class Hash
   #    h             #=> { a: 1, b: false, c: nil }
   #
   def compact
-    h = {}
-    self.keys.select{|k|
-      self[k] != nil
-    }.each {|k|
-      h[k] = self[k]
-    }
+    h=self.dup
+    h.__compact
     h
   end
 

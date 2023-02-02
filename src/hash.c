@@ -1787,6 +1787,32 @@ mrb_hash_rehash(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+static mrb_value
+mrb_hash_compact(mrb_state *mrb, mrb_value hash)
+{
+  struct RHash *h = mrb_hash_ptr(hash);
+  mrb_bool ht_p = h_ht_p(h);
+  uint32_t size = ht_p ? ht_size(h) : ar_size(h);
+  uint32_t dec = 0;
+
+  mrb_check_frozen(mrb, h);
+  h_each(h, entry, {
+    if (mrb_nil_p(entry->val)) {
+      entry_delete(entry);
+      dec++;
+    }
+  });
+  if (dec == 0) return mrb_nil_value();
+  size -= dec;
+  if (ht_p) {
+    ht_set_size(h, size);
+  }
+  else {
+    ar_set_size(h, size);
+  }
+  return hash;
+}
+
 void
 mrb_init_hash(mrb_state *mrb)
 {
@@ -1821,4 +1847,5 @@ mrb_init_hash(mrb_state *mrb)
   mrb_define_method(mrb, h, "values",          mrb_hash_values,      MRB_ARGS_NONE()); /* 15.2.13.4.28 */
   mrb_define_method(mrb, h, "rehash",          mrb_hash_rehash,      MRB_ARGS_NONE());
   mrb_define_method(mrb, h, "__merge",         mrb_hash_merge_m,     MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, h, "__compact",       mrb_hash_compact,     MRB_ARGS_NONE()); /* implementation of Hash#compact! */
 }
