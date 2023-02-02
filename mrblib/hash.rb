@@ -181,9 +181,9 @@ class Hash
   #
   # ISO 15.2.13.4.22
   def merge(*others, &block)
-    i=0; len=others.size
     h = self.dup
     return h.__merge(*others) unless block
+    i=0; len=others.size
     while i<len
       other = others[i]
       i += 1
