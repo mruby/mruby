@@ -89,8 +89,8 @@ end
 assert('Hash#compact!') do
   h = { "cat" => "feline", "dog" => nil, "cow" => false }
 
-  h.compact!
-  assert_equal({ "cat" => "feline", "cow" => false }, h)
+  assert_equal({ "cat" => "feline", "cow" => false }, h.compact!)
+  assert_nil(h.compact!)
 end
 
 assert('Hash#fetch') do
