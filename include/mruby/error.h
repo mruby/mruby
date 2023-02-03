@@ -75,6 +75,15 @@ mrb_break_value_set(struct RBreak *brk, mrb_value val)
 #define mrb_break_proc_set(brk, p) ((brk)->proc = p)
 
 /**
+ * Error check
+ *
+ */
+/* clear error status in the mrb_state structure */
+MRB_API void mrb_clear_error(mrb_state *mrb);
+/* returns TRUE if error in the previous call; internally calls mrb_clear_error() */
+MRB_API mrb_bool mrb_check_error(mrb_state *mrb);
+
+/**
  * Protect
  *
  */

@@ -649,6 +649,24 @@ mrb_print_error(mrb_state *mrb)
 #endif
 }
 
+/* clear error status in the mrb_state structure */
+MRB_API void
+mrb_clear_error(mrb_state *mrb)
+{
+  mrb->exc = NULL;
+}
+
+/* returns TRUE if error in the previous call; internally calls mrb_clear_error() */
+MRB_API mrb_bool
+mrb_check_error(mrb_state *mrb)
+{
+  if (mrb->exc) {
+    mrb_clear_error(mrb);
+    return TRUE;
+  }
+  return FALSE;
+}
+
 void
 mrb_init_exception(mrb_state *mrb)
 {
