@@ -12,8 +12,8 @@ module Kernel
     i = 0
     len = args.size
     while i < len
-      __printstr__ args[i].inspect
-      __printstr__ "\n"
+      __printstr args[i].inspect
+      __printstr "\n"
       i += 1
     end
     args.__svalue
@@ -25,7 +25,7 @@ module Kernel
     i = 0
     len = args.size
     while i < len
-      __printstr__ args[i].to_s
+      __printstr args[i].to_s
       i += 1
     end
   end
@@ -41,15 +41,15 @@ module Kernel
         puts(*s)
       else
         s = s.to_s
-        __printstr__ s
-        __printstr__ "\n" if (s[-1] != "\n")
+        __printstr s
+        __printstr "\n" if (s[-1] != "\n")
       end
       i += 1
     end
-    __printstr__ "\n" if len == 0
+    __printstr "\n" if len == 0
   end
 
   def printf(*args)
-    __printstr__(sprintf(*args))
+    __printstr(sprintf(*args))
   end
 end

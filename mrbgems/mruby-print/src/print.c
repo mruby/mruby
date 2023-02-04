@@ -49,7 +49,7 @@ mrb_printstr(mrb_state *mrb, mrb_value self)
 void
 mrb_mruby_print_gem_init(mrb_state* mrb)
 {
-  mrb_define_method(mrb, mrb->kernel_module, "__printstr__", mrb_printstr, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, mrb->kernel_module, "__printstr", mrb_printstr, MRB_ARGS_REQ(1));
 }
 
 void
