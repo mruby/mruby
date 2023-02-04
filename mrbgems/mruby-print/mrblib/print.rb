@@ -6,8 +6,8 @@ module Kernel
   ##
   # Print human readable object description
   #
-  # ISO 15.3.1.2.9
-  # ISO 15.3.1.3.34
+  # ISO 15.3.1.2.9   Kernel.p
+  # ISO 15.3.1.3.34  Kernel#p
   def p(*args)
     i = 0
     len = args.size
@@ -19,8 +19,8 @@ module Kernel
     args.__svalue
   end
 
-  # 15.3.1.2.10
-  # 15.3.1.3.35
+  # ISO 15.3.1.2.10 Kernel.print
+  # ISO 15.3.1.3.35 Kernel#print
   def print(*args)
     i = 0
     len = args.size
@@ -30,8 +30,8 @@ module Kernel
     end
   end
 
-  # 15.3.1.2.11
-  # 15.3.1.3.39
+  # ISO 15.3.1.2.11 Kernel.puts
+  # ISO 15.3.1.3.39 Kernel#puts
   def puts(*args)
     i = 0
     len = args.size
