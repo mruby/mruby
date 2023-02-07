@@ -37,9 +37,6 @@ MRB_API mrb_value mrb_exc_new_str(mrb_state *mrb, struct RClass* c, mrb_value st
 MRB_API mrb_value mrb_make_exception(mrb_state *mrb, mrb_int argc, const mrb_value *argv);
 MRB_API mrb_noreturn void mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_value args, const char *fmt, ...);
 
-/* declaration for `fail` method */
-MRB_API mrb_value mrb_f_raise(mrb_state*, mrb_value);
-
 #if defined(MRB_64BIT) || defined(MRB_USE_FLOAT32) || defined(MRB_NAN_BOXING) || defined(MRB_WORD_BOXING)
 struct RBreak {
   MRB_OBJECT_HEADER;
