@@ -7,6 +7,12 @@ assert('mirb normal operations') do
   assert_true o.include?('=> 2')
 end
 
+assert('mirb multi-line') do
+  o, s = Open3.capture2(cmd("mirb"), :stdin_data => "def a(b)\n return b\n end\na(1)\n")
+  assert_true o.include?('=> :a')
+  assert_true o.include?('=> 1')
+end
+
 assert('regression for #1563') do
   o, s = Open3.capture2(cmd("mirb"), :stdin_data => "a=1;b=2;c=3\nb\nc")
   assert_true o.include?('=> 3')
