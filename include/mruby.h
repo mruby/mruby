@@ -1378,6 +1378,8 @@ MRB_API mrb_value mrb_vformat(mrb_state *mrb, const char *format, va_list ap);
    + exception objects obtained from those macros are local to mrb
 */
 #define MRB_ERROR_SYM(sym) mrb_intern_lit(mrb, #sym)
+#define E_EXCEPTION          mrb->eException_class
+#define E_STANDARD_ERROR     mrb->eStandardError_class
 #define E_RUNTIME_ERROR      mrb_exc_get_id(mrb, MRB_ERROR_SYM(RuntimeError))
 #define E_TYPE_ERROR         mrb_exc_get_id(mrb, MRB_ERROR_SYM(TypeError))
 #define E_ZERODIV_ERROR      mrb_exc_get_id(mrb, MRB_ERROR_SYM(ZeroDivisionError))
