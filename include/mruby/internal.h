@@ -51,6 +51,7 @@ mrb_value mrb_exc_backtrace(mrb_state *mrb, mrb_value exc);
 mrb_value mrb_get_backtrace(mrb_state *mrb);
 void mrb_exc_mesg_set(mrb_state *mrb, struct RException *exc, mrb_value mesg);
 mrb_value mrb_exc_mesg_get(mrb_state *mrb, struct RException *exc);
+mrb_value mrb_f_raise(mrb_state*, mrb_value);
 
 /* gc */
 void mrb_gc_mark_mt(mrb_state*, struct RClass*);
