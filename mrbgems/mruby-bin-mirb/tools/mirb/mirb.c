@@ -150,7 +150,7 @@ is_code_block_open(struct mrb_parser_state *parser)
 
   /* check if parser error are available */
   if (0 < parser->nerr) {
-    const char unexpected_end[] = "syntax error, unexpected $end";
+    const char unexpected_end[] = "syntax error, unexpected end of file";
     const char *message = parser->error_buffer[0].message;
 
     /* a parser error occur, we have to check if */
