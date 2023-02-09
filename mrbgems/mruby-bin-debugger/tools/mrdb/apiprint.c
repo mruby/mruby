@@ -72,7 +72,7 @@ mrb_debug_eval(mrb_state *mrb, mrb_debug_context *dbg, const char *expr, size_t 
   }
 
   if (exc) {
-    *exc = mrb_obj_is_kind_of(mrb, v, mrb->eException_class);
+    *exc = mrb_obj_is_kind_of(mrb, v, E_EXCEPTION);
   }
 
   s = mrb_inspect(mrb, v);

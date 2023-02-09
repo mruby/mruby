@@ -208,7 +208,7 @@ mrb_exc_raise(mrb_state *mrb, mrb_value exc)
     mrb->exc = mrb_obj_ptr(exc);
   }
   else {
-    if (!mrb_obj_is_kind_of(mrb, exc, mrb->eException_class)) {
+    if (!mrb_obj_is_kind_of(mrb, exc, E_EXCEPTION)) {
       mrb_raise(mrb, E_TYPE_ERROR, "exception object expected");
     }
     mrb_exc_set(mrb, exc);
@@ -499,8 +499,8 @@ exception_call:
       break;
   }
   if (argc > 0) {
-    if (!mrb_obj_is_kind_of(mrb, mesg, mrb->eException_class))
-      mrb_raise(mrb, mrb->eException_class, "exception object expected");
+    if (!mrb_obj_is_kind_of(mrb, mesg, E_EXCEPTION))
+      mrb_raise(mrb, E_EXCEPTION, "exception object expected");
     if (argc > 2)
       set_backtrace(mrb, mesg, argv[2]);
   }
@@ -683,8 +683,8 @@ mrb_init_exception(mrb_state *mrb)
   mrb_define_method(mrb, exception, "set_backtrace",   exc_set_backtrace, MRB_ARGS_REQ(1));
 
   mrb->eStandardError_class = mrb_define_class(mrb, "StandardError", mrb->eException_class); /* 15.2.23 */
-  mrb_define_class(mrb, "RuntimeError", mrb->eStandardError_class);          /* 15.2.28 */
-  script_error = mrb_define_class(mrb, "ScriptError", mrb->eException_class);                /* 15.2.37 */
+  mrb_define_class(mrb, "RuntimeError", E_STANDARD_ERROR);          /* 15.2.28 */
+  script_error = mrb_define_class(mrb, "ScriptError", exception);                /* 15.2.37 */
   mrb_define_class(mrb, "SyntaxError", script_error);                                        /* 15.2.38 */
   stack_error = mrb_define_class(mrb, "SystemStackError", exception);
   mrb->stack_err = mrb_obj_ptr(mrb_exc_new_lit(mrb, stack_error, "stack level too deep"));

@@ -678,16 +678,16 @@ mrb_exc_get_id(mrb_state *mrb, mrb_sym name)
   mrb_value c = mrb_const_get(mrb, mrb_obj_value(mrb->object_class), name);
 
   if (!mrb_class_p(c)) {
-    mrb_raise(mrb, mrb->eException_class, "exception corrupted");
+    mrb_raise(mrb, E_EXCEPTION, "exception corrupted");
   }
   exc = e = mrb_class_ptr(c);
 
   while (e) {
-    if (e == mrb->eException_class)
+    if (e == E_EXCEPTION)
       return exc;
     e = e->super;
   }
-  return mrb->eException_class;
+  return E_EXCEPTION;
 }
 
 MRB_API struct RClass*

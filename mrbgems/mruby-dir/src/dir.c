@@ -312,7 +312,7 @@ mrb_mruby_dir_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, d, "seek",       mrb_dir_seek,   MRB_ARGS_REQ(1));
   mrb_define_method(mrb, d, "tell",       mrb_dir_tell,   MRB_ARGS_NONE());
 
-  mrb_define_class(mrb, "IOError", mrb->eStandardError_class);
+  mrb_define_class(mrb, "IOError", E_STANDARD_ERROR);
 }
 
 void
