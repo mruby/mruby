@@ -1,6 +1,6 @@
 # mruby-dir
 
-Dir class for mruby.  Supported methods are:
+Dir class for mruby. Supported methods are:
 
 `.chdir`
 `.delete`
