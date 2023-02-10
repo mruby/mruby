@@ -38,7 +38,6 @@ init:
   - set PATH=C:\Ruby26-x64\bin;%PATH%
   - ruby --version
 
-
 build_script:
   - set MRUBY_CONFIG=ci/msvc
   - rake -m test:build
