@@ -532,7 +532,7 @@ flo_mod(mrb_state *mrb, mrb_value x)
   mrb_value y = mrb_get_arg1(mrb);
   mrb_float mod;
 
-  flodivmod(mrb, mrb_float(x), mrb_as_float(mrb, y), 0, &mod);
+  flodivmod(mrb, mrb_float(x), mrb_as_float(mrb, y), NULL, &mod);
   return mrb_float_value(mrb, mod);
 }
 #endif
