@@ -370,8 +370,10 @@ range_num_to_a(mrb_state *mrb, mrb_value range)
         len++;
       }
       ary = mrb_ary_new_capa(mrb, len);
+      mrb_value *ptr = RARRAY_PTR(ary);
       for (mrb_int i=0; i<len; i++) {
-        mrb_ary_push(mrb, ary, mrb_int_value(mrb, a+i));
+        ptr[i] = mrb_int_value(mrb, a+i);
+        ARY_SET_LEN(RARRAY(ary), i+1);
       }
       return ary;
     }
@@ -380,16 +382,23 @@ range_num_to_a(mrb_state *mrb, mrb_value range)
       mrb_float a = (mrb_float)mrb_integer(beg);
       mrb_float b = mrb_float(end);
 
+      if (a > b) {
+        return mrb_ary_new_capa(mrb, 0);
+      }
       ary = mrb_ary_new_capa(mrb, (mrb_int)(b - a) + 1);
+      mrb_value *ptr = RARRAY_PTR(ary);
+      mrb_int i = 0;
       if (RANGE_EXCL(r)) {
         while (a < b) {
-          mrb_ary_push(mrb, ary, mrb_int_value(mrb, (mrb_int)a));
+          ptr[i++] = mrb_int_value(mrb, (mrb_int)a);
+          ARY_SET_LEN(RARRAY(ary), i);
           a += 1.0;
         }
       }
       else {
         while (a <= b) {
-          mrb_ary_push(mrb, ary, mrb_int_value(mrb, (mrb_int)a));
+          ptr[i++] = mrb_int_value(mrb, (mrb_int)a);
+          ARY_SET_LEN(RARRAY(ary), i);
           a += 1.0;
         }
       }
