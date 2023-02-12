@@ -375,12 +375,33 @@ EOS
       end
     end
 
-    def define_installer(src)
-      dst = "#{self.class.install_dir}/#{File.basename(src)}"
+    def define_installer_outline(src, dst)
       file dst => src do
-        install_D src, dst
+        _pp "GEN", src.relative_path, dst.relative_path
+        mkdir_p(File.dirname(dst))
+        yield dst
       end
       dst
+    end
+
+    if ENV['OS'] == 'Windows_NT'
+      def define_installer(src)
+        dst = "#{self.class.install_dir}/#{File.basename(src)}".pathmap("%X.bat")
+        define_installer_outline(src, dst) do
+          File.write dst, <<~BATCHFILE
+            @echo off
+            call "#{src}" %*
+          BATCHFILE
+        end
+      end
+    else
+      def define_installer(src)
+        dst = "#{self.class.install_dir}/#{File.basename(src)}"
+        define_installer_outline(src, dst) do
+          File.unlink(dst) if File.exist?(dst)
+          File.symlink(src, dst)
+        end
+      end
     end
 
     def define_installer_if_needed(bin)
