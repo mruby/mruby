@@ -13,7 +13,7 @@ task "install:bin"
 MRuby.each_target do |build|
   next if build.internal?
 
-  prefix = build.install_prefix
+  prefix = File.join(MRuby::INSTALL_DESTDIR, build.install_prefix)
 
   task "install:full" => "install:full:#{build.name}"
 

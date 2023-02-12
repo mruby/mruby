@@ -595,6 +595,9 @@ The `PREFIX` environment variable affects all build targets and changes the `/us
 The `MRuby::Build#install_prefix` can be set for each individual build target.
 In this case, the environment variable `PREFIX` is ignored.
 
+Also, if the environment variable `DESTDIR` is set, it will prepend to the path obtained by `install_prefix` to determine the final write directory.
+This is intended for temporary file expansion by the user's package work.
+
 ---
 
 To summarize:
@@ -602,6 +605,7 @@ To summarize:
 - The default value of the environment variable `PREFIX` is `/usr/local`.
 - For the "host" build target, the default value of `MRuby::Build#install_prefix` is `<PREFIX>`.
 - For a build target other than "host", the default value of `MRuby::Build#install_prefix` is `<PREFIX>/mruby/<build-name>`.
+- If the environment variable `DESTDIR` is set, the actual write directory is `<DESTDIR>/<MRuby::Build#install_prefix>`.
 
 ## Tips
 

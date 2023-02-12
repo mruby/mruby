@@ -9,6 +9,7 @@ module MRuby
   autoload :Presym, "mruby/presym"
 
   INSTALL_PREFIX = ENV['PREFIX'] || ENV['INSTALL_PREFIX'] || '/usr/local'
+  INSTALL_DESTDIR = ENV['DESTDIR'] || ''
 
   class << self
     def targets
