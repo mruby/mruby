@@ -7,6 +7,8 @@ module MRuby
   autoload :Lockfile, "mruby/lockfile"
   autoload :Presym, "mruby/presym"
 
+  INSTALL_PREFIX = ENV['PREFIX'] || ENV['INSTALL_PREFIX'] || '/usr/local'
+
   class << self
     def targets
       @targets ||= {}
