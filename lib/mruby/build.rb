@@ -100,6 +100,7 @@ module MRuby
         @file_separator = '/'
         @build_dir = "#{build_dir}/#{@name}"
         @gem_clone_dir = "#{build_dir}/repos/#{@name}"
+        @install_prefix = nil
         @defines = []
         @cc = Command::Compiler.new(self, %w(.c), label: "CC")
         @cxx = Command::Compiler.new(self, %w(.cc .cxx .cpp), label: "CXX")
@@ -500,6 +501,15 @@ EOS
       @gems.each { |g| g.each_header_files(&block) }
 
       self
+    end
+
+    def install_prefix
+      @install_prefix || (self.name == "host" ? MRuby::INSTALL_PREFIX :
+                                                File.join(MRuby::INSTALL_PREFIX, "mruby/#{self.name}"))
+    end
+
+    def install_prefix=(dir)
+      @install_prefix = dir&.to_s
     end
 
     protected
