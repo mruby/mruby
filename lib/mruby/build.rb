@@ -1,6 +1,7 @@
 require "mruby/core_ext"
 require "mruby/build/load_gems"
 require "mruby/build/command"
+autoload :Find, "find"
 
 module MRuby
   autoload :Gem, "mruby/gem"
@@ -485,6 +486,20 @@ EOS
 
     def internal?
       @internal
+    end
+
+    def each_header_files(&block)
+      return to_enum(__method__) unless block
+
+      basedir = File.join(MRUBY_ROOT, "include")
+      Find.find(basedir) do |d|
+        next unless File.file? d
+        yield d
+      end
+
+      @gems.each { |g| g.each_header_files(&block) }
+
+      self
     end
 
     protected

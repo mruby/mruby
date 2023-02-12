@@ -8,7 +8,31 @@ MRuby.each_target do
   next unless libmruby_enabled?
 
   file libmruby_static => libmruby_objs.flatten do |t|
+    Rake::Task["expose_header_files"].invoke
     archiver.run t.name, t.prerequisites
+  end
+
+  task "expose_header_files" do |t|
+    # Since header files may be generated dynamically and it is hard to know all of them,
+    # the task is executed depending on when libmruby.a is generated.
+
+    gemsbasedir = File.join(build_dir, "include/mruby/gems")
+    dirmap = {
+      MRUBY_ROOT => build_dir
+    }
+    gems.each { |g|
+      dirmap[g.dir] = File.join(gemsbasedir, g.name)
+      dirmap[g.build_dir] = File.join(gemsbasedir, g.name)
+    }
+
+    dirs = each_header_files.to_a
+    dirs.uniq!
+    dirs.replace_prefix_by(dirmap).zip(dirs).each do |dest, src|
+      if File.mtime(src).to_i > (File.mtime(dest).to_i rescue 0)
+        mkpath File.dirname(dest)
+        cp src, dest
+      end
+    end
   end
 
   file "#{build_dir}/lib/libmruby.flags.mak" => [__FILE__, libmruby_static] do |t|
