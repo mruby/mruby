@@ -219,7 +219,6 @@ static struct mt_tbl*
 mt_copy(mrb_state *mrb, mt_tbl *t)
 {
   mt_tbl *t2;
-  int i;
 
   if (t == NULL) return NULL;
   if (t->alloc == 0) return NULL;
@@ -228,7 +227,7 @@ mt_copy(mrb_state *mrb, mt_tbl *t)
   t2 = mt_new(mrb);
   mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
   union mt_ptr *vals = t->ptr;
-  for (i=0; i<t->alloc; i++) {
+  for (int i=0; i<t->alloc; i++) {
     if (MT_KEY_P(keys[i])) {
       mt_put(mrb, t2, MT_KEY_SYM(keys[i]), MT_KEY_FLG(keys[i]), vals[i]);
     }
@@ -265,7 +264,6 @@ MRB_API void
 mrb_mt_foreach(mrb_state *mrb, struct RClass *c, mrb_mt_foreach_func *fn, void *p)
 {
   mt_tbl *t = c->mt;
-  int i;
 
   if (t == NULL) return;
   if (t->alloc == 0) return;
@@ -273,7 +271,7 @@ mrb_mt_foreach(mrb_state *mrb, struct RClass *c, mrb_mt_foreach_func *fn, void *
 
   mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
   union mt_ptr *vals = t->ptr;
-  for (i=0; i<t->alloc; i++) {
+  for (int i=0; i<t->alloc; i++) {
     mrb_sym key = keys[i];
     if (MT_KEY_SYM(key)) {
       if (fn(mrb, MT_KEY_SYM(key), create_method_value(mrb, key, vals[i]), p) != 0)
@@ -287,7 +285,6 @@ void
 mrb_gc_mark_mt(mrb_state *mrb, struct RClass *c)
 {
   mt_tbl *t = c->mt;
-  int i;
 
   if (t == NULL) return;
   if (t->alloc == 0) return;
@@ -295,7 +292,7 @@ mrb_gc_mark_mt(mrb_state *mrb, struct RClass *c)
 
   mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
   union mt_ptr *vals = t->ptr;
-  for (i=0; i<t->alloc; i++) {
+  for (int i=0; i<t->alloc; i++) {
     if (MT_KEY_P(keys[i]) && (keys[i] & MT_FUNC_P) == 0) { /* Proc pointer */
       struct RProc *p = vals[i].proc;
       mrb_gc_mark(mrb, (struct RBasic*)p);
@@ -1877,12 +1874,12 @@ mod_attr_define(mrb_state *mrb, mrb_value mod, mrb_value (*accessor)(mrb_state *
 {
   struct RClass *c = mrb_class_ptr(mod);
   const mrb_value *argv;
-  mrb_int argc, i;
+  mrb_int argc;
   int ai;
 
   mrb_get_args(mrb, "*", &argv, &argc);
   ai = mrb_gc_arena_save(mrb);
-  for (i=0; i<argc; i++) {
+  for (int i=0; i<argc; i++) {
     mrb_value name;
     mrb_sym method;
     struct RProc *p;
@@ -2624,7 +2621,7 @@ static mrb_value
 mrb_mod_module_function(mrb_state *mrb, mrb_value mod)
 {
   const mrb_value *argv;
-  mrb_int argc, i;
+  mrb_int argc;
   mrb_sym mid;
   mrb_method_t m;
   struct RClass *rclass;
@@ -2641,7 +2638,7 @@ mrb_mod_module_function(mrb_state *mrb, mrb_value mod)
   /* set PRIVATE method visibility if implemented */
   /* mrb_mod_dummy_visibility(mrb, mod); */
 
-  for (i=0; i<argc; i++) {
+  for (int i=0; i<argc; i++) {
     mrb_check_type(mrb, argv[i], MRB_TT_SYMBOL);
 
     mid = mrb_symbol(argv[i]);
