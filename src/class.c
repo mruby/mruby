@@ -374,7 +374,7 @@ prepare_singleton_class(mrb_state *mrb, struct RBasic *o)
   sc = MRB_OBJ_ALLOC(mrb, MRB_TT_SCLASS, mrb->class_class);
   sc->flags |= MRB_FL_CLASS_IS_INHERITED;
   sc->mt = mt_new(mrb);
-  sc->iv = 0;
+  sc->iv = NULL;
   if (o->tt == MRB_TT_CLASS) {
     c = (struct RClass*)o;
     if (!c->super) {
@@ -595,7 +595,7 @@ mrb_vm_define_class(mrb_state *mrb, mrb_value outer, mrb_value super, mrb_sym id
     s = mrb_class_ptr(super);
   }
   else {
-    s = 0;
+    s = NULL;
   }
   check_if_class_or_module(mrb, outer);
   if (mrb_const_defined_at(mrb, outer, id)) {
@@ -1072,8 +1072,8 @@ get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list *ap)
       break;
     case 's':
       {
-        const char **ps = 0;
-        mrb_int *pl = 0;
+        const char **ps = NULL;
+        mrb_int *pl = NULL;
 
         ps = GET_ARG(const char**);
         pl = GET_ARG(mrb_int*);
@@ -1119,7 +1119,7 @@ get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list *ap)
         if (needmodify) goto bad_needmodify;
         if (pickarg) {
           if (altmode && mrb_nil_p(*pickarg)) {
-            *pb = 0;
+            *pb = NULL;
             *pl = 0;
           }
           else {
@@ -1181,7 +1181,7 @@ get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list *ap)
         type = GET_ARG(struct mrb_data_type const*);
         if (pickarg) {
           if (altmode && mrb_nil_p(*pickarg)) {
-            *datap = 0;
+            *datap = NULL;
           }
           else {
             *datap = mrb_data_get_ptr(mrb, *pickarg, type);
@@ -1755,7 +1755,7 @@ mrb_mc_clear_by_class(mrb_state *mrb, struct RClass *c)
   struct mrb_cache_entry *mc = mrb->cache;
 
   for (int i=0; i<MRB_METHOD_CACHE_SIZE; mc++,i++) {
-    if (mc->c == c || mc->c0 == c) mc->c = 0;
+    if (mc->c == c || mc->c0 == c) mc->c = NULL;
   }
 }
 
@@ -1765,7 +1765,7 @@ mc_clear_by_id(mrb_state *mrb, mrb_sym id)
   struct mrb_cache_entry *mc = mrb->cache;
 
   for (int i=0; i<MRB_METHOD_CACHE_SIZE; mc++,i++) {
-    if (mc->mid == id) mc->c = 0;
+    if (mc->mid == id) mc->c = NULL;
   }
 }
 #endif

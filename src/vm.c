@@ -635,7 +635,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
       mrb->jmp = &c_jmp;
       /* recursive call */
       val = mrb_funcall_with_block(mrb, self, mid, argc, argv, blk);
-      mrb->jmp = 0;
+      mrb->jmp = NULL;
     }
     MRB_CATCH(&c_jmp) { /* error */
       while (nth_ci < (mrb->c->ci - mrb->c->cibase)) {
@@ -645,7 +645,7 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
       val = mrb_obj_value(mrb->exc);
     }
     MRB_END_EXC(&c_jmp);
-    mrb->jmp = 0;
+    mrb->jmp = NULL;
   }
   else {
     mrb_method_t m;
