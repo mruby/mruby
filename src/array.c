@@ -1030,7 +1030,6 @@ mrb_ary_aset(mrb_state *mrb, mrb_value self)
   mrb_value v1, v2, v3;
   mrb_int i, len;
 
-  ary_modify(mrb, mrb_ary_ptr(self));
   if (mrb_get_argc(mrb) == 2) {
     const mrb_value *vs = mrb_get_argv(mrb);
     v1 = vs[0]; v2 = vs[1];
