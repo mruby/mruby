@@ -311,7 +311,6 @@ range_eql(mrb_state *mrb, mrb_value range)
   struct RRange *r, *o;
 
   if (mrb_obj_equal(mrb, range, obj)) return mrb_true_value();
-  if (!mrb_obj_is_kind_of(mrb, obj, mrb->range_class)) return mrb_false_value();
   if (!mrb_range_p(obj)) return mrb_false_value();
 
   r = mrb_range_ptr(mrb, range);

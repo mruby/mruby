@@ -33,7 +33,7 @@ cmath_get_complex(mrb_state *mrb, mrb_value c, mrb_float *r, mrb_float *i)
     *i = 0;
     return FALSE;
   }
-  else if (mrb_obj_is_kind_of(mrb, c, mrb_class_get(mrb, "Complex"))) {
+  else if (mrb_type(c) == MRB_TT_COMPLEX) {
     mrb_complex_get(mrb, c, r, i);
     return TRUE;
   }

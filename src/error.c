@@ -208,7 +208,7 @@ mrb_exc_raise(mrb_state *mrb, mrb_value exc)
     mrb->exc = mrb_obj_ptr(exc);
   }
   else {
-    if (!mrb_obj_is_kind_of(mrb, exc, E_EXCEPTION)) {
+    if (mrb_type(exc) != MRB_TT_EXCEPTION) {
       mrb_raise(mrb, E_TYPE_ERROR, "exception object expected");
     }
     mrb_exc_set(mrb, exc);
@@ -499,7 +499,7 @@ exception_call:
       break;
   }
   if (argc > 0) {
-    if (!mrb_obj_is_kind_of(mrb, mesg, E_EXCEPTION))
+    if (mrb_type(mesg) != MRB_TT_EXCEPTION)
       mrb_raise(mrb, E_EXCEPTION, "exception object expected");
     if (argc > 2)
       set_backtrace(mrb, mesg, argv[2]);
