@@ -2550,7 +2550,9 @@ mrb_method_added(mrb_state *mrb, struct RClass *c, mrb_sym mid)
   else {
     added = MRB_SYM(method_added);
   }
-  mrb_funcall_id(mrb, recv, added, 1, mrb_symbol_value(mid));
+  if (!mrb_func_basic_p(mrb, recv, added, mrb_do_nothing)) {
+    mrb_funcall_id(mrb, recv, added, 1, mrb_symbol_value(mid));
+  }
 }
 
 mrb_value
