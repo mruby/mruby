@@ -459,53 +459,29 @@ mrb_bug(mrb_state *mrb, const char *fmt, ...)
 }
 
 mrb_value
-mrb_make_exception(mrb_state *mrb, mrb_int argc, const mrb_value *argv)
+mrb_make_exception(mrb_state *mrb, mrb_value exc, mrb_value mesg)
 {
-  mrb_value mesg;
-  int n;
+  mrb_int n = 1;
 
-  mesg = mrb_nil_value();
-  switch (argc) {
-    case 0:
-    break;
-    case 1:
-      if (mrb_nil_p(argv[0]))
-        break;
-      if (mrb_string_p(argv[0])) {
-        mesg = mrb_exc_new_str(mrb, E_RUNTIME_ERROR, argv[0]);
-        break;
-      }
-      n = 0;
-      goto exception_call;
-
-    case 2:
-    case 3:
-      n = 1;
-exception_call:
-      {
-        mrb_sym exc = MRB_SYM(exception);
-        if (mrb_respond_to(mrb, argv[0], exc)) {
-          mesg = mrb_funcall_argv(mrb, argv[0], exc, n, argv+1);
-        }
-        else {
-          /* undef */
-          mrb_raise(mrb, E_TYPE_ERROR, "exception class/object expected");
-        }
-      }
-
-      break;
-    default:
-      mrb_argnum_error(mrb, argc, 0, 3);
-      break;
+  if (mrb_nil_p(mesg)) {
+    n = 0;
   }
-  if (argc > 0) {
-    if (mrb_type(mesg) != MRB_TT_EXCEPTION)
-      mrb_raise(mrb, E_EXCEPTION, "exception object expected");
-    if (argc > 2)
-      set_backtrace(mrb, mesg, argv[2]);
+  if (mrb_class_p(exc)) {
+    exc = mrb_funcall_argv(mrb, exc, MRB_SYM(new), n, &mesg);
   }
-
-  return mesg;
+  else if (mrb_exception_p(exc)) {
+    if (n > 0) {
+      exc = mrb_obj_clone(mrb, exc);
+      mrb_exc_mesg_set(mrb, mrb_exc_ptr(exc), mesg);
+    }
+  }
+  else {
+    mrb_raise(mrb, E_TYPE_ERROR, "exception class/object expected");
+  }
+  if (mrb_type(exc) != MRB_TT_EXCEPTION) {
+    mrb_raise(mrb, E_EXCEPTION, "exception object expected");
+  }
+  return exc;
 }
 
 MRB_API mrb_noreturn void
