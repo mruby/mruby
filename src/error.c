@@ -458,7 +458,7 @@ mrb_bug(mrb_state *mrb, const char *fmt, ...)
   exit(EXIT_FAILURE);
 }
 
-MRB_API mrb_value
+mrb_value
 mrb_make_exception(mrb_state *mrb, mrb_int argc, const mrb_value *argv)
 {
   mrb_value mesg;
