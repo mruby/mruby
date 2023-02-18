@@ -57,6 +57,12 @@ MRB_API const char *mrb_debug_get_filename(mrb_state *mrb, const mrb_irep *irep,
  */
 MRB_API int32_t mrb_debug_get_line(mrb_state *mrb, const mrb_irep *irep, uint32_t pc);
 
+/*
+ * get line and filename from irep's debug info and program counter
+ * @return returns FALSE if not found
+ */
+MRB_API mrb_bool mrb_debug_get_position(mrb_state *mrb, const mrb_irep *irep, uint32_t pc, int32_t *lp, const char **fp);
+
 MRB_API mrb_irep_debug_info *mrb_debug_info_alloc(mrb_state *mrb, mrb_irep *irep);
 MRB_API mrb_irep_debug_info_file *mrb_debug_info_append_file(
     mrb_state *mrb, mrb_irep_debug_info *info,

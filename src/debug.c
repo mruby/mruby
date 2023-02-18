@@ -77,15 +77,71 @@ mrb_packed_int_decode(const uint8_t *p, const uint8_t **newpos)
   return n;
 }
 
+static char const*
+debug_get_filename(mrb_state *mrb, mrb_irep_debug_info_file* f)
+{
+  if (f == NULL) return NULL;
+  return mrb_sym_name_len(mrb, f->filename_sym, NULL);
+}
+
+static int32_t
+debug_get_line(mrb_state *mrb, mrb_irep_debug_info_file* f, uint32_t pc)
+{
+  if (f == NULL) return -1;
+  switch (f->line_type) {
+  case mrb_debug_line_ary:
+    mrb_assert(f->start_pos <= pc && pc < (f->start_pos + f->line_entry_count));
+    return f->lines.ary[pc - f->start_pos];
+
+  case mrb_debug_line_flat_map:
+    {
+      /* get upper bound */
+      const mrb_irep_debug_info_line *ret = f->lines.flat_map;
+      uint32_t count = f->line_entry_count;
+      while (count > 0) {
+        int32_t step = count / 2;
+        const mrb_irep_debug_info_line *it = ret + step;
+        if (!(pc < it->start_pos)) {
+          ret = it + 1;
+          count -= step + 1;
+        }
+        else { count = step; }
+      }
+
+      --ret;
+
+      /* check line entry pointer range */
+      mrb_assert(f->lines.flat_map <= ret && ret < (f->lines.flat_map + f->line_entry_count));
+      /* check pc range */
+      //      mrb_assert(ret->start_pos <= pc &&
+      //                 pc < (((uint32_t)(ret + 1 - f->lines.flat_map) < f->line_entry_count)
+      //                       ? (ret+1)->start_pos : irep->debug_info->pc_count));
+      return ret->line;
+    }
+
+  case mrb_debug_line_packed_map:
+    {
+      const uint8_t *p = f->lines.packed_map;
+      const uint8_t *pend = p + f->line_entry_count;
+      uint32_t pos = 0, line = 0, line_diff;
+      while (p < pend) {
+        pos += mrb_packed_int_decode(p, &p);
+        line_diff = mrb_packed_int_decode(p, &p);
+        if (pc < pos) break;
+        line += line_diff;
+      }
+      return line;
+    }
+  }
+  return -1;
+}
+
 MRB_API char const*
 mrb_debug_get_filename(mrb_state *mrb, const mrb_irep *irep, uint32_t pc)
 {
   if (irep && pc < irep->ilen) {
-    mrb_irep_debug_info_file* f = NULL;
     if (!irep->debug_info) return NULL;
-    else if ((f = get_file(irep->debug_info, pc))) {
-      return mrb_sym_name_len(mrb, f->filename_sym, NULL);
-    }
+    return debug_get_filename(mrb, get_file(irep->debug_info, pc));
   }
   return NULL;
 }
@@ -94,58 +150,28 @@ MRB_API int32_t
 mrb_debug_get_line(mrb_state *mrb, const mrb_irep *irep, uint32_t pc)
 {
   if (irep && pc < irep->ilen) {
-    mrb_irep_debug_info_file* f = NULL;
-    if (!irep->debug_info) {
-      return -1;
-    }
-    else if ((f = get_file(irep->debug_info, pc))) {
-      switch (f->line_type) {
-        case mrb_debug_line_ary:
-          mrb_assert(f->start_pos <= pc && pc < (f->start_pos + f->line_entry_count));
-          return f->lines.ary[pc - f->start_pos];
-
-        case mrb_debug_line_flat_map: {
-          /* get upper bound */
-          const mrb_irep_debug_info_line *ret = f->lines.flat_map;
-          uint32_t count = f->line_entry_count;
-          while (count > 0) {
-            int32_t step = count / 2;
-            const mrb_irep_debug_info_line *it = ret + step;
-            if (!(pc < it->start_pos)) {
-              ret = it + 1;
-              count -= step + 1;
-            }
-            else { count = step; }
-          }
-
-          --ret;
-
-          /* check line entry pointer range */
-          mrb_assert(f->lines.flat_map <= ret && ret < (f->lines.flat_map + f->line_entry_count));
-          /* check pc range */
-          mrb_assert(ret->start_pos <= pc &&
-                     pc < (((uint32_t)(ret + 1 - f->lines.flat_map) < f->line_entry_count)
-                           ? (ret+1)->start_pos : irep->debug_info->pc_count));
-
-          return ret->line;
-        }
-
-        case mrb_debug_line_packed_map: {
-          const uint8_t *p = f->lines.packed_map;
-          const uint8_t *pend = p + f->line_entry_count;
-          uint32_t pos = 0, line = 0, line_diff;
-          while (p < pend) {
-            pos += mrb_packed_int_decode(p, &p);
-            line_diff = mrb_packed_int_decode(p, &p);
-            if (pc < pos) break;
-            line += line_diff;
-          }
-          return line;
-        }
-      }
-    }
+    if (!irep->debug_info) return -1;
+    return debug_get_line(mrb, get_file(irep->debug_info, pc), pc);
   }
   return -1;
+}
+
+MRB_API mrb_bool
+mrb_debug_get_position(mrb_state *mrb, const mrb_irep *irep, uint32_t pc, int32_t *lp, const char **fp)
+{
+  if (irep && pc < irep->ilen) {
+    if (!irep->debug_info) {
+      *lp = -1; *fp = NULL;
+      return FALSE;
+    }
+    mrb_irep_debug_info_file *f = get_file(irep->debug_info, pc);
+    *lp = debug_get_line(mrb, f, pc);
+    if (*lp > 0) {
+      *fp = debug_get_filename(mrb, f);
+      if (*fp) return TRUE;
+    }
+  }
+  return FALSE;
 }
 
 MRB_API mrb_irep_debug_info*
