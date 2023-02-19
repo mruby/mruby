@@ -609,7 +609,7 @@ funcall_args_capture(mrb_state *mrb, int stoff, mrb_int argc, const mrb_value *a
   }
 }
 
-static mrb_value
+static inline mrb_value
 ensure_block(mrb_state *mrb, mrb_value blk)
 {
   if (!mrb_nil_p(blk) && !mrb_proc_p(blk)) {

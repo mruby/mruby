@@ -382,7 +382,7 @@ obj_eql(mrb_state *mrb, mrb_value a, mrb_value b, struct RHash *h)
   }
 }
 
-static mrb_bool
+static inline mrb_bool
 entry_deleted_p(const hash_entry* entry)
 {
   return mrb_undef_p(entry->key);
