@@ -515,7 +515,7 @@ mrb_obj_ceqq(mrb_state *mrb, mrb_value self)
   }
   len = RARRAY_LEN(ary);
   for (i=0; i<len; i++) {
-    mrb_value c = mrb_funcall_argv(mrb, mrb_ary_entry(ary, i), eqq, 1, &v);
+    mrb_value c = mrb_funcall_argv(mrb, RARRAY_PTR(ary)[i], eqq, 1, &v);
     if (mrb_test(c)) return mrb_true_value();
   }
   return mrb_false_value();
