@@ -1177,9 +1177,8 @@ mrb_str_del_suffix(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_str_casecmp(mrb_state *mrb, mrb_value self)
 {
-  mrb_value str;
+  mrb_value str = mrb_get_arg1(mrb);
 
-  mrb_get_args(mrb, "o", &str);
   if (!mrb_string_p(str)) return mrb_nil_value();
 
   struct RString *s1 = mrb_str_ptr(self);
