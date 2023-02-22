@@ -1303,17 +1303,8 @@ MRB_API mrb_bool mrb_eql(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
 /* mrb_cmp(mrb, obj1, obj2): 1:0:-1; -2 for error */
 MRB_API mrb_int mrb_cmp(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
 
-MRB_INLINE int
-mrb_gc_arena_save(mrb_state *mrb)
-{
-  return mrb->gc.arena_idx;
-}
-
-MRB_INLINE void
-mrb_gc_arena_restore(mrb_state *mrb, int idx)
-{
-  mrb->gc.arena_idx = idx;
-}
+#define mrb_gc_arena_save(mrb) ((mrb)->gc.arena_idx)
+#define mrb_gc_arena_restore(mrb, idx) ((mrb)->gc.arena_idx = (idx))
 
 MRB_API void mrb_garbage_collect(mrb_state*);
 MRB_API void mrb_full_gc(mrb_state*);
