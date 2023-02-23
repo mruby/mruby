@@ -140,7 +140,8 @@ void mrb_vm_ci_proc_set(mrb_callinfo *ci, const struct RProc *p);
 struct RClass * mrb_vm_ci_target_class(const mrb_callinfo *ci);
 void mrb_vm_ci_target_class_set(mrb_callinfo *ci, struct RClass *tc);
 struct REnv * mrb_vm_ci_env(const mrb_callinfo *ci);
-void mrb_vm_ci_env_set(mrb_callinfo *ci, struct REnv *e);
+MRB_API void mrb_vm_ci_env_clear(mrb_callinfo *ci);
+MRB_API void mrb_vm_ci_env_set(mrb_callinfo *ci, struct REnv *e);
 
 MRB_END_DECL
 

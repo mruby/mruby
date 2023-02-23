@@ -295,8 +295,8 @@ mrb_vm_ci_env(const mrb_callinfo *ci)
   return CI_ENV(ci);
 }
 
-void
-mrb_vm_ci_env_set(mrb_callinfo *ci, struct REnv *e)
+static inline void
+ci_env_set(mrb_callinfo *ci, struct REnv *e)
 {
   if (ci->u.env) {
     if (ci->u.env->tt == MRB_TT_ENV) {
@@ -308,15 +308,32 @@ mrb_vm_ci_env_set(mrb_callinfo *ci, struct REnv *e)
         ci->u.target_class = ci->u.env->c;
       }
     }
-    else {
-      if (e) {
-        e->c = ci->u.target_class;
-        ci->u.env = e;
-      }
+    else if (e) {
+      e->c = ci->u.target_class;
+      ci->u.env = e;
     }
   }
   else {
     ci->u.env = e;
+  }
+}
+
+MRB_API void
+mrb_vm_ci_env_set(mrb_callinfo *ci, struct REnv *e)
+{
+  ci_env_set(ci, e);
+}
+
+MRB_API void
+mrb_vm_ci_env_clear(mrb_callinfo *ci)
+{
+  if (ci->u.env) {
+    if (ci->u.env->tt == MRB_TT_ENV) {
+      ci->u.target_class = ci->u.env->c;
+    }
+  }
+  else {
+    ci->u.env = NULL;
   }
 }
 
@@ -405,7 +422,7 @@ cipop(mrb_state *mrb)
   mrb_callinfo *ci = c->ci;
   struct REnv *env = CI_ENV(ci);
 
-  mrb_vm_ci_env_set(ci, NULL); // make possible to free by GC if env is not needed
+  ci_env_set(ci, NULL); // make possible to free env by GC if not needed
   struct RProc *b = ci->blk;
   if (b && !mrb_object_dead_p(mrb, (struct RBasic*)b) && b->tt == MRB_TT_PROC &&
       !MRB_PROC_STRICT_P(b) && MRB_PROC_ENV(b) == CI_ENV(&ci[-1])) {
