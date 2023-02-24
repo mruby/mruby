@@ -199,8 +199,6 @@ class File < IO
   def self.path(filename)
     if filename.kind_of?(String)
       filename
-    elsif filename.respond_to?(:to_path)
-      filename.to_path
     else
       raise TypeError, "no implicit conversion of #{filename.class} into String"
     end
