@@ -253,6 +253,7 @@ class Scene
 
   def render(w, h, nsubsamples)
     nsf = nsubsamples.to_f
+    nsfs = nsf * nsf
     h.times do |y|
       w.times do |x|
         rad = Vec.new(0.0, 0.0, 0.0)
@@ -288,9 +289,9 @@ class Scene
           end
         end
 
-        r = rad.x / (nsf * nsf)
-        g = rad.y / (nsf * nsf)
-        b = rad.z / (nsf * nsf)
+        r = rad.x / nsfs
+        g = rad.y / nsfs
+        b = rad.z / nsfs
         printf("%c", clamp(r))
         printf("%c", clamp(g))
         printf("%c", clamp(b))
