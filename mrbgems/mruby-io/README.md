@@ -164,7 +164,7 @@ Add the line below to your build configuration.
 | File#ctime                  |          |          |
 | File#flock                  | o        |          |
 | File#lstat                  |          |          |
-| File#mtime                  |          |          |
+| File#mtime                  | o        |          |
 | File#path                   | o        |          |
 | File#size                   |          |          |
 | File#truncate               |          |          |
