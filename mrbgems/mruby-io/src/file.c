@@ -398,7 +398,7 @@ mrb_file_mtime(mrb_state *mrb, mrb_value self)
   mrb_stat st;
 
   if (mrb_fstat(fd, &st) == -1)
-    return mrb_false_value();
+    return mrb_nil_value();
   return mrb_int_value(mrb, (mrb_int)st.st_mtime);
 }
 
