@@ -11,6 +11,16 @@ class File < IO
     end
   end
 
+  def atime
+    t = self._atime
+    t && Time.at(t)
+  end
+
+  def ctime
+    t = self._ctime
+    t && Time.at(t)
+  end
+
   def mtime
     t = self._mtime
     t && Time.at(t)

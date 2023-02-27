@@ -392,6 +392,28 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
 }
 
 static mrb_value
+mrb_file_atime(mrb_state *mrb, mrb_value self)
+{
+  int fd = mrb_io_fileno(mrb, self);
+  mrb_stat st;
+
+  if (mrb_fstat(fd, &st) == -1)
+    return mrb_nil_value();
+  return mrb_int_value(mrb, (mrb_int)st.st_atime);
+}
+
+static mrb_value
+mrb_file_ctime(mrb_state *mrb, mrb_value self)
+{
+  int fd = mrb_io_fileno(mrb, self);
+  mrb_stat st;
+
+  if (mrb_fstat(fd, &st) == -1)
+    return mrb_nil_value();
+  return mrb_int_value(mrb, (mrb_int)st.st_ctime);
+}
+
+static mrb_value
 mrb_file_mtime(mrb_state *mrb, mrb_value self)
 {
   int fd = mrb_io_fileno(mrb, self);
@@ -610,6 +632,8 @@ mrb_init_file(mrb_state *mrb)
   mrb_define_class_method(mrb, file, "_gethome",  mrb_file__gethome,   MRB_ARGS_OPT(1));
 
   mrb_define_method(mrb, file, "flock", mrb_file_flock, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, file, "_atime", mrb_file_atime, MRB_ARGS_NONE());
+  mrb_define_method(mrb, file, "_ctime", mrb_file_ctime, MRB_ARGS_NONE());
   mrb_define_method(mrb, file, "_mtime", mrb_file_mtime, MRB_ARGS_NONE());
   mrb_define_method(mrb, file, "size", mrb_file_size, MRB_ARGS_NONE());
   mrb_define_method(mrb, file, "truncate", mrb_file_truncate, MRB_ARGS_REQ(1));
