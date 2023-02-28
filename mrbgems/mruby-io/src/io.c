@@ -685,11 +685,8 @@ check_file_descriptor(mrb_state *mrb, mrb_int fd)
   }
 #endif /* _WIN32 */
 
-  if (fstat(fdi, &sb) != 0) {
-    goto badfd;
-  }
-
-  return;
+  if (fstat(fdi, &sb) == 0) return;
+  if (errno != EBADF) return;
 
 badfd:
   mrb_sys_fail(mrb, "bad file descriptor");
