@@ -17,8 +17,8 @@ MRuby.each_target do
           s << "void GENERATED_TMP_mrb_#{g.funcname}_gem_init(mrb_state*);\n" \
                "void GENERATED_TMP_mrb_#{g.funcname}_gem_final(mrb_state*);\n"
         end
-        gem_init_calls = gem_func_gems.each_with_object('') do |g, s|
-          s << "  GENERATED_TMP_mrb_#{g.funcname}_gem_init(mrb);\n"
+        gem_funcs = gem_func_gems.each_with_object('') do |g, s|
+          s << "  { GENERATED_TMP_mrb_#{g.funcname}_gem_init },\n"
         end
         gem_final_calls = gem_func_gems.reverse_each.with_object('') do |g, s|
           s << "  GENERATED_TMP_mrb_#{g.funcname}_gem_final(mrb);\n"
@@ -36,8 +36,17 @@ MRuby.each_target do
         f.puts %Q[ */]
         f.puts %Q[]
         f.puts %Q[#include <mruby.h>]
+        f.puts %Q[#include <mruby/proc.h>]
         f.puts %Q[]
         f.write gem_func_decls
+        f.puts %Q[]
+        f.puts %Q[static const struct {]
+        f.puts %Q[  void (*init)(mrb_state*);]
+        f.puts %Q[} gem_funcs[] = {]
+        f.write gem_funcs
+        f.puts %Q[};]
+        f.puts %Q[]
+        f.puts %Q[#define NUM_GEMS ((int)(sizeof(gem_funcs) / sizeof(gem_funcs[0])))]
         unless gem_final_calls.empty?
           f.puts %Q[]
           f.puts %Q[static void]
@@ -48,8 +57,16 @@ MRuby.each_target do
         f.puts %Q[]
         f.puts %Q[void]
         f.puts %Q[mrb_init_mrbgems(mrb_state *mrb) {]
-        f.write gem_init_calls
-        f.puts %Q[  mrb_state_atexit(mrb, mrb_final_mrbgems);] unless gem_final_calls.empty?
+        f.puts %Q[  int ai = mrb_gc_arena_save(mrb);]
+        f.puts %Q[  for (int i = 0; i < NUM_GEMS; i++) {]
+        f.puts %Q[    gem_funcs[i].init(mrb);]
+        f.puts %Q[    mrb_gc_arena_restore(mrb, ai);]
+        f.puts %Q[    mrb_vm_ci_env_clear(mrb, mrb->c->cibase);]
+        f.puts %Q[    if (mrb->exc) {]
+        f.puts %Q[      mrb_exc_raise(mrb, mrb_obj_value(mrb->exc));]
+        f.puts %Q[    }]
+        f.puts %Q[  }]
+        f.puts %Q[  mrb_state_atexit(mrb, mrb_final_mrbgems);]
         f.puts %Q[}]
       end
     end
