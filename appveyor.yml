@@ -4,6 +4,10 @@ shallow_clone: true
 
 environment:
   matrix:
+    - job_name: Visual Studio 2022 64bit
+      visualcpp: C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Auxiliary\Build\vcvars64.bat
+      appveyor_build_worker_image: Visual Studio 2022
+
     - job_name: Visual Studio 2019 64bit
       visualcpp: C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat
       appveyor_build_worker_image: Visual Studio 2019
