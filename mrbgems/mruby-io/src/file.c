@@ -398,7 +398,7 @@ mrb_file_atime(mrb_state *mrb, mrb_value self)
   mrb_stat st;
 
   if (mrb_fstat(fd, &st) == -1)
-    return mrb_nil_value();
+    mrb_sys_fail(mrb, "atime");
   return mrb_int_value(mrb, (mrb_int)st.st_atime);
 }
 
@@ -409,7 +409,7 @@ mrb_file_ctime(mrb_state *mrb, mrb_value self)
   mrb_stat st;
 
   if (mrb_fstat(fd, &st) == -1)
-    return mrb_nil_value();
+    mrb_sys_fail(mrb, "ctime");
   return mrb_int_value(mrb, (mrb_int)st.st_ctime);
 }
 
@@ -420,7 +420,7 @@ mrb_file_mtime(mrb_state *mrb, mrb_value self)
   mrb_stat st;
 
   if (mrb_fstat(fd, &st) == -1)
-    return mrb_nil_value();
+    mrb_sys_fail(mrb, "mtime");
   return mrb_int_value(mrb, (mrb_int)st.st_mtime);
 }
 
