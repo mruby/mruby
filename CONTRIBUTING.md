@@ -26,8 +26,8 @@ A framework for managing and maintaining multi-language `pre-commit` hooks.
 You need to first install `pre-commit` and then install the `pre-commit` hooks with `pre-commit install`.
 Now `pre-commit` will run automatically on git commit!
 
-It's usually a good idea to run the hooks against all the files when adding new hooks (usually `pre-commit` will only run on the changed files during git hooks).
-Use `pre-commit run --all-files` to check all files.
+It's usually a good idea to run the hooks against all the files when adding new hooks (usually `pre-commit`
+will only run on the changed files during git hooks). Use `pre-commit run --all-files` to check all files.
 
 To run a single hook use `pre-commit run --all-files <hook_id>`
 
@@ -37,11 +37,15 @@ Sometimes you might need to skip one or more hooks which can be done with the `S
 
 `$ SKIP=yamllint git commit -m "foo"`
 
-For convenience, we have added `pre-commit run --all-files` and `pre-commit autoupdate`
+For convenience, we have added `pre-commit run --all-files`, `pre-commit install` and `pre-commit autoupdate`
 to both the Makefile and the Rakefile. Run them with:
 
 - `make check` or `rake check`
+- `make checkinstall` or `rake checkinstall`
 - `make checkupdate` or `rake checkupdate`
+
+To configure `pre-commit` you can modify the config file [.pre-commit-config.yaml](.pre-commit-config.yaml).
+We use [GitHub Actions](.github/workflows/lint.yml) to run `pre-commit` on every pull request.
 
 ### pre-commit quick links
 
@@ -52,19 +56,8 @@ to both the Makefile and the Rakefile. Run them with:
 
 ## Spell Checking
 
-We are running [misspell](https://github.com/client9/misspell) which is mainly written in
-[Golang](https://golang.org/) to check spelling with [GitHub Actions](.github/workflows/lint.yml).
-Correct commonly misspelled English words quickly with `misspell`. You can run `misspell` locally
-against all files with:
-
-```bash
-find . -type f | xargs ./misspell -error
-```
-
-Notable `misspell` help options or flags are:
-
-- `-i` string: ignore the following corrections, comma separated
-- `-w`: Overwrite file with corrections (default is just to display)
+We are using `pre-commit` to run [codespell](https://github.com/codespell-project/codespell)
+to check code for common misspellings. We have a small custom dictionary file [codespell.txt](codespell.txt).
 
 ## Coding conventions
 
