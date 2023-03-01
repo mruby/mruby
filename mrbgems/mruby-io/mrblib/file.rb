@@ -26,6 +26,10 @@ class File < IO
     t && Time.at(t)
   end
 
+  def inspect
+    "<#{self.class}:#{@path}>"
+  end
+
   def self.join(*names)
     return "" if names.empty?
 
