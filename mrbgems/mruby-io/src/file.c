@@ -275,6 +275,7 @@ mrb_file__getwd(mrb_state *mrb, mrb_value klass)
   mrb_value path;
   char buf[MAXPATHLEN], *utf8;
 
+  mrb->c->ci->mid = 0;
   if (GETCWD(buf, MAXPATHLEN) == NULL) {
     mrb_sys_fail(mrb, "getcwd(2)");
   }
@@ -344,6 +345,7 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
   char *home;
   mrb_value path;
 
+  mrb->c->ci->mid = 0;
 #ifndef _WIN32
   mrb_value username;
 
@@ -399,6 +401,7 @@ mrb_file_atime(mrb_state *mrb, mrb_value self)
   int fd = mrb_io_fileno(mrb, self);
   mrb_stat st;
 
+  mrb->c->ci->mid = 0;
   if (mrb_fstat(fd, &st) == -1)
     mrb_sys_fail(mrb, "atime");
   if (TIME_OVERFLOW_P(st.st_atime)) {
@@ -413,6 +416,7 @@ mrb_file_ctime(mrb_state *mrb, mrb_value self)
   int fd = mrb_io_fileno(mrb, self);
   mrb_stat st;
 
+  mrb->c->ci->mid = 0;
   if (mrb_fstat(fd, &st) == -1)
     mrb_sys_fail(mrb, "ctime");
   if (TIME_OVERFLOW_P(st.st_ctime)) {
@@ -427,6 +431,7 @@ mrb_file_mtime(mrb_state *mrb, mrb_value self)
   int fd = mrb_io_fileno(mrb, self);
   mrb_stat st;
 
+  mrb->c->ci->mid = 0;
   if (mrb_fstat(fd, &st) == -1)
     mrb_sys_fail(mrb, "mtime");
   if (TIME_OVERFLOW_P(st.st_mtime)) {
