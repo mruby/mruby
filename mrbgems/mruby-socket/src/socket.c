@@ -924,6 +924,8 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, bsock, "sysread", mrb_win32_basicsocket_sysread, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_method(mrb, bsock, "sysseek", mrb_win32_basicsocket_sysseek, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, bsock, "syswrite", mrb_win32_basicsocket_syswrite, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, bsock, "read", mrb_win32_basicsocket_sysread, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
+  mrb_define_method(mrb, bsock, "write", mrb_win32_basicsocket_syswrite, MRB_ARGS_REQ(1));
 #endif
 
   constants = mrb_define_module_under(mrb, sock, "Constants");
