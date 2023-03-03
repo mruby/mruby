@@ -391,6 +391,8 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
 #endif
 }
 
+#define TIME_OVERFLOW_P(a) (sizeof(time_t) <= sizeof(mrb_int) && (a > MRB_INT_MAX || a < MRB_INT_MIN))
+
 static mrb_value
 mrb_file_atime(mrb_state *mrb, mrb_value self)
 {
@@ -399,6 +401,9 @@ mrb_file_atime(mrb_state *mrb, mrb_value self)
 
   if (mrb_fstat(fd, &st) == -1)
     mrb_sys_fail(mrb, "atime");
+  if (TIME_OVERFLOW_P(st.st_atime)) {
+    mrb_raise(mrb, E_IO_ERROR, "atime overflow");
+  }
   return mrb_int_value(mrb, (mrb_int)st.st_atime);
 }
 
@@ -410,6 +415,9 @@ mrb_file_ctime(mrb_state *mrb, mrb_value self)
 
   if (mrb_fstat(fd, &st) == -1)
     mrb_sys_fail(mrb, "ctime");
+  if (TIME_OVERFLOW_P(st.st_ctime)) {
+    mrb_raise(mrb, E_IO_ERROR, "ctime overflow");
+  }
   return mrb_int_value(mrb, (mrb_int)st.st_ctime);
 }
 
@@ -421,6 +429,9 @@ mrb_file_mtime(mrb_state *mrb, mrb_value self)
 
   if (mrb_fstat(fd, &st) == -1)
     mrb_sys_fail(mrb, "mtime");
+  if (TIME_OVERFLOW_P(st.st_mtime)) {
+    mrb_raise(mrb, E_IO_ERROR, "mtime overflow");
+  }
   return mrb_int_value(mrb, (mrb_int)st.st_mtime);
 }
 
