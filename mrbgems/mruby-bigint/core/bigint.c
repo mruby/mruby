@@ -78,7 +78,7 @@ mpz_set_int(mrb_state *mrb, mpz_t *y, mrb_int v)
     y->sn = 1;
     u = v;
   }
-  if (v < 0) {
+  else if (v < 0) {
     y->sn = -1;
     if (v == MRB_INT_MIN) u = v;
     else u = -v;
