@@ -1988,7 +1988,7 @@ RETRY_TRY_BLOCK:
 
        /* no other args */
       if ((a & ~0x7c0001) == 0 && argc < 15 && MRB_PROC_STRICT_P(proc)) {
-        if (argc != m1) {
+        if (argc+(ci->nk==15) != m1) { /* count kdict too */
           argnum_error(mrb, m1);
           goto L_RAISE;
         }
