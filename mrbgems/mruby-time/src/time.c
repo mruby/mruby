@@ -460,7 +460,8 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
 #define OUTINT(x) 0
 #endif
 
-  if (ayear < 1900 || OUTINT(ayear-1900) ||
+  ayear -= 1900;
+  if (OUTINT(ayear) ||
       amonth  < 1 || amonth  > 12 ||
       aday    < 1 || aday    > 31 ||
       ahour   < 0 || ahour   > 24 ||
@@ -469,7 +470,7 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
       asec    < 0 || asec    > 60)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "argument out of range");
 
-  nowtime.tm_year  = (int)(ayear  - 1900);
+  nowtime.tm_year  = (int)ayear;
   nowtime.tm_mon   = (int)(amonth - 1);
   nowtime.tm_mday  = (int)aday;
   nowtime.tm_hour  = (int)ahour;
