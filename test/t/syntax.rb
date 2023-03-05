@@ -211,6 +211,7 @@ assert('Nested const reference') do
   end
   assert_equal "hello world", Syntax4Const::CONST1
   assert_equal "hello world", Syntax4Const::Const2.new.const1
+  assert_raise(NameError) { Syntax4Const::Object }
 end
 
 assert('Abbreviated variable assignment as returns') do
