@@ -393,7 +393,17 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
 #endif
 }
 
-#define TIME_OVERFLOW_P(a) (sizeof(time_t) <= sizeof(mrb_int) && (a > MRB_INT_MAX || a < MRB_INT_MIN))
+#define TIME_OVERFLOW_P(a) (sizeof(time_t) >= sizeof(mrb_int) && ((a) > MRB_INT_MAX || (a) < MRB_INT_MIN))
+#define TIME_T_UINT (~(time_t)0 > 0)
+#if defined(MRB_USE_BITINT)
+#define TIME_BIGTIME(mrb, a)                                                   \
+  return (TIME_T_UINT ? mrb_bint_new_uint64((mrb), (uint64_t)(a))              \
+               : mrb_bint_new_int64(mrb, (int64_t)(a)))
+#elif !defined(MRB_NO_FLOAT)
+#define TIME_BIGTIME(mrb,a) return mrb_float_value((mrb), (mrb_float)(a))
+#else
+#define TIME_BIGTIME(mrb, a) mrb_raise(mrb, E_IO_ERROR, #a " overflow")
+#endif
 
 static mrb_value
 mrb_file_atime(mrb_state *mrb, mrb_value self)
@@ -405,7 +415,7 @@ mrb_file_atime(mrb_state *mrb, mrb_value self)
   if (mrb_fstat(fd, &st) == -1)
     mrb_sys_fail(mrb, "atime");
   if (TIME_OVERFLOW_P(st.st_atime)) {
-    mrb_raise(mrb, E_IO_ERROR, "atime overflow");
+    TIME_BIGTIME(mrb, st.st_atime);
   }
   return mrb_int_value(mrb, (mrb_int)st.st_atime);
 }
@@ -420,7 +430,7 @@ mrb_file_ctime(mrb_state *mrb, mrb_value self)
   if (mrb_fstat(fd, &st) == -1)
     mrb_sys_fail(mrb, "ctime");
   if (TIME_OVERFLOW_P(st.st_ctime)) {
-    mrb_raise(mrb, E_IO_ERROR, "ctime overflow");
+    TIME_BIGTIME(mrb, st. st_ctime);
   }
   return mrb_int_value(mrb, (mrb_int)st.st_ctime);
 }
@@ -435,7 +445,7 @@ mrb_file_mtime(mrb_state *mrb, mrb_value self)
   if (mrb_fstat(fd, &st) == -1)
     mrb_sys_fail(mrb, "mtime");
   if (TIME_OVERFLOW_P(st.st_mtime)) {
-    mrb_raise(mrb, E_IO_ERROR, "mtime overflow");
+    TIME_BIGTIME(mrb, st. st_mtime);
   }
   return mrb_int_value(mrb, (mrb_int)st.st_mtime);
 }
