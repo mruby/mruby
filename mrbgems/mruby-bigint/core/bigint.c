@@ -98,6 +98,39 @@ mpz_set_int(mrb_state *mrb, mpz_t *y, mrb_int v)
 }
 
 static void
+mpz_set_uint64(mrb_state *mrb, mpz_t *y, uint64_t u)
+{
+  const size_t len = sizeof(uint64_t) / sizeof(mp_limb);
+
+  y->sn = (u != 0);
+  mpz_realloc(mrb, y, len);
+  for (size_t i=0; i<len; i++) {
+    y->p[i++] = (mp_limb)LOW(u);
+    u >>= DIG_SIZE;
+  }
+}
+
+#ifdef MRB_INT32
+static void
+mpz_set_int64(mrb_state *mrb, mpz_t *y, int64_t v)
+{
+  uint64_t u;
+
+  if (v < 0) {
+    if (v == INT64_MIN) u = v;
+    else u = -v;
+  }
+  else {
+    u = v;
+  }
+  mpz_set_uint64(mrb, y, u);
+  if (v < 0) {
+    y->sn = -1;
+  }
+}
+#endif
+
+static void
 mpz_init_set_int(mrb_state *mrb, mpz_t *y, mrb_int v)
 {
   mpz_init(mrb, y);
@@ -966,6 +999,26 @@ mrb_value
 mrb_bint_new_int(mrb_state *mrb, mrb_int x)
 {
   struct RBigint *b = bint_new_int(mrb, x);
+  return mrb_obj_value(b);
+}
+
+#ifdef MRB_INT32
+mrb_value
+mrb_bint_new_int64(mrb_state *mrb, int64_t x)
+{
+  struct RBigint *b = bint_new(mrb);
+  mpz_init(mrb, &b->mp);
+  mpz_set_int64(mrb, &b->mp, x);
+  return mrb_obj_value(b);
+}
+#endif
+
+mrb_value
+mrb_bint_new_uint64(mrb_state *mrb, uint64_t x)
+{
+  struct RBigint *b = bint_new(mrb);
+  mpz_init(mrb, &b->mp);
+  mpz_set_uint64(mrb, &b->mp, x);
   return mrb_obj_value(b);
 }
 

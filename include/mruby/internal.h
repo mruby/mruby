@@ -173,6 +173,12 @@ mrb_value mrb_f_send(mrb_state *mrb, mrb_value self);
 
 #ifdef MRB_USE_BIGINT
 mrb_value mrb_bint_new_int(mrb_state *mrb, mrb_int x);
+#ifdef MRB_INT64
+#define mrb_bint_new_int64(mrb,x) mrb_bint_new_int((mrb),(mrb_int)(x))
+#else
+mrb_value mrb_bint_new_int64(mrb_state *mrb, int64_t x);
+#endif
+mrb_value mrb_bint_new_uint64(mrb_state *mrb, uint64_t x);
 mrb_value mrb_bint_new_str(mrb_state *mrb, const char *x, mrb_int len, mrb_int base);
 mrb_value mrb_as_bint(mrb_state *mrb, mrb_value x);
 mrb_value mrb_bint_add(mrb_state *mrb, mrb_value x, mrb_value y);
