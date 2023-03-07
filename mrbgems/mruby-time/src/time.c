@@ -217,7 +217,7 @@ typedef mrb_int mrb_sec;
                     (sizeof(time_t) <= 4 ? INT32_MAX : INT64_MAX)           \
 )
 
-#ifndef MRB_NO_FLOAT
+#if defined(MRB_NO_FLOAT) || defined(MRB_USE_BIGINT)
 /* return true if time_t is fit in mrb_int */
 static mrb_bool
 fixable_time_t_p(time_t v)
@@ -948,11 +948,18 @@ mrb_time_to_i(mrb_state *mrb, mrb_value self)
   struct mrb_time *tm;
 
   tm = time_get_ptr(mrb, self);
-#ifndef MRB_NO_FLOAT
   if (!fixable_time_t_p(tm->sec)) {
+#if defined(MRB_USE_BIGINT)
+    if (MRB_TIME_T_UINT) {
+      return mrb_bint_new_uint64(mrb, (uint64_t)tm->sec);
+    }
+    else {
+      return mrb_bint_new_int64(mrb, (int64_t)tm->sec);
+    }
+#elif !defined(MRB_NO_FLOAT)
     return mrb_float_value(mrb, (mrb_float)tm->sec);
-  }
 #endif
+  }
   return mrb_int_value(mrb, (mrb_int)tm->sec);
 }
 
