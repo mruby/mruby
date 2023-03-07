@@ -247,11 +247,15 @@ mrb_to_time_t(mrb_state *mrb, mrb_value obj, time_t *usec)
         }
 
         if (usec) {
-          t = (time_t)f;
-          *usec = (time_t)llround((f - t) * 1.0e+6);
+          double tt = floor(f);
+          if (!isfinite(tt)) goto out_of_range;
+          t = (time_t)tt;
+          *usec = (time_t)trunc((f - tt) * 1.0e+6);
         }
         else {
-          t = (time_t)llround(f);
+          double tt = round(f);
+          if (!isfinite(tt)) goto out_of_range;
+          t = (time_t)tt;
         }
       }
       break;
