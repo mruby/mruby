@@ -1139,6 +1139,46 @@ mrb_bint_as_int(mrb_state *mrb, mrb_value x)
   return i;
 }
 
+#ifdef MRB_INT32
+int64_t
+mrb_bint_as_int64(mrb_state *mrb, mrb_value x)
+{
+  struct RBigint *b = RBIGINT(x);
+  mpz_t *m = &b->mp;
+  uint64_t u = 0;
+  size_t len = digits(m);
+
+  if (len*sizeof(mp_limb) > sizeof(uint64_t)) {
+  out_of_range:
+    mrb_raise(mrb, E_RANGE_ERROR, "integer out of range");
+  }
+  for (size_t i=0; i<len; i++) {
+    u <<= DIG_SIZE;
+    u |= m->p[i];
+  }
+  if (u > INT64_MAX) goto out_of_range;
+  return -(int64_t)u;
+}
+#endif
+
+uint64_t
+mrb_bint_as_uint64(mrb_state *mrb, mrb_value x)
+{
+  struct RBigint *b = RBIGINT(x);
+  mpz_t *m = &b->mp;
+  uint64_t u = 0;
+  size_t len = digits(m);
+
+  if (m->sn < 0 || len*sizeof(mp_limb) > sizeof(uint64_t)) {
+    mrb_raise(mrb, E_RANGE_ERROR, "integer out of range");
+  }
+  for (size_t i=0; i<len; i++) {
+    u <<= DIG_SIZE;
+    u |= m->p[i];
+  }
+  return u;
+}
+
 mrb_value
 mrb_bint_add(mrb_state *mrb, mrb_value x, mrb_value y)
 {

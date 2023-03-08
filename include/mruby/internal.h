@@ -206,6 +206,12 @@ mrb_value mrb_bint_new_float(mrb_state *mrb, mrb_float x);
 mrb_float mrb_bint_as_float(mrb_state *mrb, mrb_value x);
 #endif
 mrb_int mrb_bint_as_int(mrb_state *mrb, mrb_value x);
+#ifdef MRB_INT64
+#define mrb_bint_as_int64(mrb, x) mrb_bint_as_int((mrb), (x))
+#else
+int64_t mrb_bint_as_int64(mrb_state *mrb, mrb_value x);
+#endif
+uint64_t mrb_bint_as_uint64(mrb_state *mrb, mrb_value x);
 mrb_int mrb_bint_cmp(mrb_state *mrb, mrb_value x, mrb_value y);
 void mrb_gc_free_bint(mrb_state *mrb, struct RBasic *x);
 void mrb_bint_copy(mrb_state *mrb, mrb_value x, mrb_value y);
