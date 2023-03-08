@@ -260,7 +260,6 @@ mrb_to_time_t(mrb_state *mrb, mrb_value obj, time_t *usec)
       }
       break;
 #endif /* MRB_NO_FLOAT */
-    default:
     case MRB_TT_INTEGER:
       {
         mrb_int i = mrb_integer(obj);
@@ -274,6 +273,10 @@ mrb_to_time_t(mrb_state *mrb, mrb_value obj, time_t *usec)
         if (usec) { *usec = 0; }
       }
       break;
+
+    default:
+      mrb_raisef(mrb, E_TYPE_ERROR, "cannot convert %Y to time", obj);
+      return 0;
   }
 
   return t;
