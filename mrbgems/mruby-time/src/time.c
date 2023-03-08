@@ -260,6 +260,27 @@ mrb_to_time_t(mrb_state *mrb, mrb_value obj, time_t *usec)
       }
       break;
 #endif /* MRB_NO_FLOAT */
+
+#ifdef MRB_USE_BIGINT
+    case MRB_TT_BIGINT:
+      {
+        if (sizeof(time_t) > sizeof(mrb_int)) {
+          if (MRB_TIME_T_UINT) {
+            t = (time_t)mrb_bint_as_uint64(mrb, obj);
+          }
+          else {
+            t = (time_t)mrb_bint_as_int64(mrb, obj);
+          }
+          break;
+        }
+        else {
+          mrb_int i = mrb_bint_as_int(mrb, obj);
+          obj = mrb_int_value(mrb, i);
+        }
+      }
+      /* fall through */
+#endif  /* MRB_USE_BIGINT */
+
     case MRB_TT_INTEGER:
       {
         mrb_int i = mrb_integer(obj);
