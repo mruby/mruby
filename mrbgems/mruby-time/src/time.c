@@ -650,8 +650,8 @@ mrb_time_minus(mrb_state *mrb, mrb_value self)
   if (tm2) {
 #ifndef MRB_NO_FLOAT
     mrb_float f;
-    f = (mrb_sec)(tm->sec - tm2->sec)
-      + (mrb_sec)(tm->usec - tm2->usec) / 1.0e6;
+    f = (mrb_float)(tm->sec - tm2->sec)
+      + (mrb_float)(tm->usec - tm2->usec) / 1.0e6;
     return mrb_float_value(mrb, f);
 #else
     mrb_int f;
