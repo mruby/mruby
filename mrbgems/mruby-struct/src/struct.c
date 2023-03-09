@@ -264,22 +264,17 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
 
   name = mrb_nil_value();
   mrb_get_args(mrb, "*&", &argv, &argc, &b);
-  if (argc == 0) { /* special case to avoid crash */
-    mrb_argnum_error(mrb, argc, 1, -1);
-  }
-  else {
+  if (argc > 0) {
     pargv = argv;
     argcnt = argc;
-    if (argc > 0) {
-      name = argv[0];
-      if (mrb_symbol_p(name)) {
-        /* 1stArgument:symbol -> name=nil rest=argv[0..n] */
-        name = mrb_nil_value();
-      }
-      else {
-        pargv++;
-        argcnt--;
-      }
+    name = argv[0];
+    if (mrb_symbol_p(name)) {
+      /* 1stArgument:symbol -> name=nil rest=argv[0..n] */
+      name = mrb_nil_value();
+    }
+    else {
+      pargv++;
+      argcnt--;
     }
     rest = mrb_ary_new_from_values(mrb, argcnt, pargv);
     for (i=0; i<argcnt; i++) {
@@ -290,11 +285,8 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
     if (!mrb_nil_p(b)) {
       mrb_yield_with_class(mrb, b, 1, &st, st, mrb_class_ptr(st));
     }
-
-    return st;
   }
-  /* not reached */
-  return mrb_nil_value();
+  return st;
 }
 
 static mrb_int
