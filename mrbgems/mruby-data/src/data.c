@@ -216,10 +216,7 @@ mrb_data_s_def(mrb_state *mrb, mrb_value klass)
   mrb_int argc;
 
   mrb_get_args(mrb, "*&", &argv, &argc, &b);
-  if (argc == 0) { /* special case to avoid crash */
-    mrb_argnum_error(mrb, argc, 1, -1);
-  }
-  else {
+  if (argc > 0) {
     rest = mrb_ary_new_from_values(mrb, argc, argv);
     for (mrb_int i=0; i<argc; i++) {
       id = mrb_obj_to_sym(mrb, RARRAY_PTR(rest)[i]);
@@ -229,10 +226,8 @@ mrb_data_s_def(mrb_state *mrb, mrb_value klass)
     if (!mrb_nil_p(b)) {
       mrb_yield_with_class(mrb, b, 1, &data, data, mrb_class_ptr(data));
     }
-    return data;
   }
-  /* not reached */
-  return mrb_nil_value();
+  return data;
 }
 
 static mrb_value
