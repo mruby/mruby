@@ -200,11 +200,6 @@ static const struct mrb_data_type mrb_time_type = { "Time", mrb_free };
 
 #ifndef MRB_NO_FLOAT
 void mrb_check_num_exact(mrb_state *mrb, mrb_float num);
-typedef mrb_float mrb_sec;
-#define mrb_sec_value(mrb, sec) mrb_float_value(mrb, sec)
-#else
-typedef mrb_int mrb_sec;
-#define mrb_sec_value(mrb, sec) mrb_int_value(mrb, sec)
 #endif
 
 #define MRB_TIME_T_UINT (~(time_t)0 > 0)
@@ -310,6 +305,24 @@ out_of_range:
   return 0;
 }
 
+static mrb_value
+time_value_from_time_t(mrb_state *mrb, time_t t)
+{
+  if (!fixable_time_t_p(t)) {
+#if defined(MRB_USE_BIGINT)
+    if (MRB_TIME_T_UINT) {
+      return mrb_bint_new_uint64(mrb, (uint64_t)t);
+    }
+    else {
+      return mrb_bint_new_int64(mrb, (int64_t)t);
+    }
+#elif !defined(MRB_NO_FLOAT)
+    return mrb_float_value(mrb, (mrb_float)t);
+#endif
+  }
+  return mrb_int_value(mrb, (mrb_int)t);
+}
+
 /** Updates the datetime of a mrb_time based on it's timezone and
     seconds setting. Returns self on success, NULL of failure.
     if `dealloc` is set `true`, it frees `self` on error. */
@@ -326,10 +339,8 @@ time_update_datetime(mrb_state *mrb, struct mrb_time *self, int dealloc)
     aid = localtime_r(&t, &self->datetime);
   }
   if (!aid) {
-    mrb_sec sec = (mrb_sec)t;
-
     if (dealloc) mrb_free(mrb, self);
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "%v out of Time range", mrb_sec_value(mrb, sec));
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "%v out of Time range", time_value_from_time_t(mrb, t));
     /* not reached */
     return NULL;
   }
@@ -972,19 +983,7 @@ mrb_time_to_i(mrb_state *mrb, mrb_value self)
   struct mrb_time *tm;
 
   tm = time_get_ptr(mrb, self);
-  if (!fixable_time_t_p(tm->sec)) {
-#if defined(MRB_USE_BIGINT)
-    if (MRB_TIME_T_UINT) {
-      return mrb_bint_new_uint64(mrb, (uint64_t)tm->sec);
-    }
-    else {
-      return mrb_bint_new_int64(mrb, (int64_t)tm->sec);
-    }
-#elif !defined(MRB_NO_FLOAT)
-    return mrb_float_value(mrb, (mrb_float)tm->sec);
-#endif
-  }
-  return mrb_int_value(mrb, (mrb_int)tm->sec);
+  return time_value_from_time_t(mrb, tm->sec);
 }
 
 /* 15.2.19.7.26 */
