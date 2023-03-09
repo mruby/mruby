@@ -337,10 +337,10 @@ mrb_vm_ci_env_clear(mrb_callinfo *ci)
   }
 }
 
-#define CINFO_NONE    0
-#define CINFO_SKIP    1
-#define CINFO_DIRECT  2
-#define CINFO_RESUMED 3
+#define CINFO_NONE    0 // called method from mruby VM (without C functions)
+#define CINFO_SKIP    1 // ignited mruby VM from C
+#define CINFO_DIRECT  2 // called method from C
+#define CINFO_RESUMED 3 // resumed by `Fiber.yield` (probably the main call is `mrb_fiber_resume()`)
 
 #define BLK_PTR(b) ((mrb_proc_p(b)) ? mrb_proc_ptr(b) : NULL)
 
