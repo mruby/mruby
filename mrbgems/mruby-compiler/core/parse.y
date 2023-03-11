@@ -3175,12 +3175,14 @@ do_block        : keyword_do_block
                     {
                       local_nest(p);
                       nvars_nest(p);
+                      $<num>$ = p->lineno;
                     }
                   opt_block_param
                   bodystmt
                   keyword_end
                     {
                       $$ = new_block(p,$3,$4);
+                      SET_LINENO($$, $<num>2);
                       local_unnest(p);
                       nvars_unnest(p);
                     }
