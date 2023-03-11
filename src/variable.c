@@ -785,7 +785,7 @@ L_RETRY:
     c = c->super;
     if (!skip && c == mrb->object_class) break;
   }
-  if (!retry && base->tt == MRB_TT_MODULE) {
+  if (!retry && base->tt == MRB_TT_MODULE && skip) {
     c = mrb->object_class;
     retry = TRUE;
     goto L_RETRY;
