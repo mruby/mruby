@@ -138,49 +138,6 @@ typedef struct {
   } as;
 } RVALUE;
 
-#ifdef GC_PROFILE
-#include <stdio.h>
-#include <sys/time.h>
-
-static double program_invoke_time = 0;
-static double gc_time = 0;
-static double gc_total_time = 0;
-
-static double
-gettimeofday_time(void)
-{
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  return tv.tv_sec + tv.tv_usec * 1e-6;
-}
-
-#define GC_INVOKE_TIME_REPORT(with) do {\
-  fprintf(stderr, "%s\n", with);\
-  fprintf(stderr, "gc_invoke: %19.3f\n", gettimeofday_time() - program_invoke_time);\
-  fprintf(stderr, "is_generational: %d\n", is_generational(gc));\
-  fprintf(stderr, "is_major_gc: %d\n", is_major_gc(gc));\
-} while(0)
-
-#define GC_TIME_START do {\
-  gc_time = gettimeofday_time();\
-} while(0)
-
-#define GC_TIME_STOP_AND_REPORT do {\
-  gc_time = gettimeofday_time() - gc_time;\
-  gc_total_time += gc_time;\
-  fprintf(stderr, "gc_state: %d\n", gc->state);\
-  fprintf(stderr, "live: %zu\n", gc->live);\
-  fprintf(stderr, "majorgc_old_threshold: %zu\n", gc->majorgc_old_threshold);\
-  fprintf(stderr, "gc_threshold: %zu\n", gc->threshold);\
-  fprintf(stderr, "gc_time: %30.20f\n", gc_time);\
-  fprintf(stderr, "gc_total_time: %30.20f\n\n", gc_total_time);\
-} while(0)
-#else
-#define GC_INVOKE_TIME_REPORT(s)
-#define GC_TIME_START
-#define GC_TIME_STOP_AND_REPORT
-#endif
-
 #ifdef GC_DEBUG
 #define DEBUG(x) (x)
 #else
@@ -418,10 +375,6 @@ mrb_gc_init(mrb_state *mrb, mrb_gc *gc)
 #ifndef MRB_GC_TURN_OFF_GENERATIONAL
   gc->generational = TRUE;
   gc->full = TRUE;
-#endif
-
-#ifdef GC_PROFILE
-  program_invoke_time = gettimeofday_time();
 #endif
 }
 
@@ -1307,9 +1260,6 @@ mrb_incremental_gc(mrb_state *mrb)
 
   if (gc->disabled || gc->iterating) return;
 
-  GC_INVOKE_TIME_REPORT("mrb_incremental_gc()");
-  GC_TIME_START;
-
   if (is_minor_gc(gc)) {
     incremental_gc_finish(mrb, gc);
   }
@@ -1344,8 +1294,6 @@ mrb_incremental_gc(mrb_state *mrb)
       }
     }
   }
-
-  GC_TIME_STOP_AND_REPORT;
 }
 
 /* Perform a full gc cycle */
@@ -1356,9 +1304,6 @@ mrb_full_gc(mrb_state *mrb)
 
   if (!mrb->c) return;
   if (gc->disabled || gc->iterating) return;
-
-  GC_INVOKE_TIME_REPORT("mrb_full_gc()");
-  GC_TIME_START;
 
   if (is_generational(gc)) {
     /* clear all the old objects back to young */
@@ -1381,7 +1326,6 @@ mrb_full_gc(mrb_state *mrb)
 #ifdef MRB_USE_MALLOC_TRIM
   malloc_trim(0);
 #endif
-  GC_TIME_STOP_AND_REPORT;
 }
 
 MRB_API void
