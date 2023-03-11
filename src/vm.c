@@ -1794,7 +1794,6 @@ RETRY_TRY_BLOCK:
         ci->mid = mid;
       }
       ci->cci = CINFO_NONE;
-      if (!mrb_nil_p(blk)) ci->blk = mrb_proc_ptr(blk);
 
       if (MRB_METHOD_CFUNC_P(m)) {
         if (MRB_METHOD_PROC_P(m)) {
