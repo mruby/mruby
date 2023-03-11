@@ -318,22 +318,19 @@ ci_env_set(mrb_callinfo *ci, struct REnv *e)
   }
 }
 
-MRB_API void
+void
 mrb_vm_ci_env_set(mrb_callinfo *ci, struct REnv *e)
 {
   ci_env_set(ci, e);
 }
 
 MRB_API void
-mrb_vm_ci_env_clear(mrb_callinfo *ci)
+mrb_vm_ci_env_clear(mrb_state *mrb, mrb_callinfo *ci)
 {
-  if (ci->u.env) {
-    if (ci->u.env->tt == MRB_TT_ENV) {
-      ci->u.target_class = ci->u.env->c;
-    }
-  }
-  else {
-    ci->u.env = NULL;
+  struct REnv *e = ci->u.env;
+  if (e && e->tt == MRB_TT_ENV) {
+    ci->u.target_class = e->c;
+    mrb_env_unshare(mrb, e, FALSE);
   }
 }
 

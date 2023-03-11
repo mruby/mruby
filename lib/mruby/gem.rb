@@ -223,9 +223,7 @@ module MRuby
             f.puts %Q[    mrb_close(mrb);]
             f.puts %Q[    exit(EXIT_FAILURE);]
             f.puts %Q[  }]
-            f.puts %Q[  struct REnv *e = mrb_vm_ci_env(mrb->c->cibase);]
-            f.puts %Q[  mrb_vm_ci_env_clear(mrb->c->cibase);]
-            f.puts %Q[  mrb_env_unshare(mrb, e, FALSE);]
+            f.puts %Q[  mrb_vm_ci_env_clear(mrb, mrb->c->cibase);]
           end
           f.puts %Q[  mrb_gc_arena_restore(mrb, ai);]
           f.puts %Q[}]
