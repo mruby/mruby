@@ -1300,20 +1300,6 @@ mrb_bint_mul_ii(mrb_state *mrb, mrb_int x, mrb_int y)
 }
 
 mrb_value
-mrb_bint_div_ii(mrb_state *mrb, mrb_int x, mrb_int y)
-{
-  struct RBigint *b = bint_new(mrb);
-  mpz_t z1, z2;
-
-  mpz_init_set_int(mrb, &z1, x);
-  mpz_init_set_int(mrb, &z2, y);
-  mpz_mdiv(mrb, &b->mp, &z1, &z2);
-  mpz_clear(mrb, &z1);
-  mpz_clear(mrb, &z2);
-  return bint_norm(mrb, b);
-}
-
-mrb_value
 mrb_bint_mod(mrb_state *mrb, mrb_value x, mrb_value y)
 {
 #ifndef MRB_NO_FLOAT
