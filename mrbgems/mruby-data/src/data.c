@@ -216,16 +216,14 @@ mrb_data_s_def(mrb_state *mrb, mrb_value klass)
   mrb_int argc;
 
   mrb_get_args(mrb, "*&", &argv, &argc, &b);
-  if (argc > 0) {
-    rest = mrb_ary_new_from_values(mrb, argc, argv);
-    for (mrb_int i=0; i<argc; i++) {
-      id = mrb_obj_to_sym(mrb, RARRAY_PTR(rest)[i]);
-      mrb_ary_set(mrb, rest, i, mrb_symbol_value(id));
-    }
-    data = make_data_class(mrb, rest, mrb_class_ptr(klass));
-    if (!mrb_nil_p(b)) {
-      mrb_yield_with_class(mrb, b, 1, &data, data, mrb_class_ptr(data));
-    }
+  rest = mrb_ary_new_from_values(mrb, argc, argv);
+  for (mrb_int i=0; i<argc; i++) {
+    id = mrb_obj_to_sym(mrb, RARRAY_PTR(rest)[i]);
+    mrb_ary_set(mrb, rest, i, mrb_symbol_value(id));
+  }
+  data = make_data_class(mrb, rest, mrb_class_ptr(klass));
+  if (!mrb_nil_p(b)) {
+    mrb_yield_with_class(mrb, b, 1, &data, data, mrb_class_ptr(data));
   }
   return data;
 }
