@@ -253,7 +253,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass *kl
 static mrb_value
 mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value name, rest;
+  mrb_value name = mrb_nil_value();
   const mrb_value *pargv;
   mrb_int argcnt;
   mrb_int i;
@@ -262,29 +262,23 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
   const mrb_value *argv;
   mrb_int argc;
 
-  name = mrb_nil_value();
   mrb_get_args(mrb, "*&", &argv, &argc, &b);
-  if (argc > 0) {
-    pargv = argv;
-    argcnt = argc;
+  pargv = argv;
+  argcnt = argc;
+  if (argc > 0 && !mrb_symbol_p(argv[0])) {
+    /* 1stArgument:!symbol -> name=argv[0] rest=argv[0..n] */
     name = argv[0];
-    if (mrb_symbol_p(name)) {
-      /* 1stArgument:symbol -> name=nil rest=argv[0..n] */
-      name = mrb_nil_value();
-    }
-    else {
-      pargv++;
-      argcnt--;
-    }
-    rest = mrb_ary_new_from_values(mrb, argcnt, pargv);
-    for (i=0; i<argcnt; i++) {
-      id = mrb_obj_to_sym(mrb, RARRAY_PTR(rest)[i]);
-      mrb_ary_set(mrb, rest, i, mrb_symbol_value(id));
-    }
-    st = make_struct(mrb, name, rest, mrb_class_ptr(klass));
-    if (!mrb_nil_p(b)) {
-      mrb_yield_with_class(mrb, b, 1, &st, st, mrb_class_ptr(st));
-    }
+    pargv++;
+    argcnt--;
+  }
+  mrb_value rest = mrb_ary_new_from_values(mrb, argcnt, pargv);
+  for (i=0; i<argcnt; i++) {
+    id = mrb_obj_to_sym(mrb, RARRAY_PTR(rest)[i]);
+    mrb_ary_set(mrb, rest, i, mrb_symbol_value(id));
+  }
+  st = make_struct(mrb, name, rest, mrb_class_ptr(klass));
+  if (!mrb_nil_p(b)) {
+    mrb_yield_with_class(mrb, b, 1, &st, st, mrb_class_ptr(st));
   }
   return st;
 }
