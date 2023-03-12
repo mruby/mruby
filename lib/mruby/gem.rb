@@ -209,7 +209,6 @@ module MRuby
           f.puts %Q[void mrb_#{funcname}_gem_final(mrb_state *mrb);]
           f.puts %Q[]
           f.puts %Q[void GENERATED_TMP_mrb_#{funcname}_gem_init(mrb_state *mrb) {]
-          f.puts %Q[  int ai = mrb_gc_arena_save(mrb);]
           f.puts %Q[  gem_mrblib_#{funcname}_proc_init_syms(mrb);] if !rbfiles.empty? && cdump?
           f.puts %Q[  mrb_#{funcname}_gem_init(mrb);] if objs != [objfile("#{build_dir}/gem_init")]
           unless rbfiles.empty?
@@ -218,14 +217,7 @@ module MRuby
             else
               f.puts %Q[  mrb_load_irep(mrb, gem_mrblib_irep_#{funcname});]
             end
-            f.puts %Q[  if (mrb->exc) {]
-            f.puts %Q[    mrb_print_error(mrb);]
-            f.puts %Q[    mrb_close(mrb);]
-            f.puts %Q[    exit(EXIT_FAILURE);]
-            f.puts %Q[  }]
-            f.puts %Q[  mrb_vm_ci_env_clear(mrb, mrb->c->cibase);]
           end
-          f.puts %Q[  mrb_gc_arena_restore(mrb, ai);]
           f.puts %Q[}]
           f.puts %Q[]
           f.puts %Q[void GENERATED_TMP_mrb_#{funcname}_gem_final(mrb_state *mrb) {]
