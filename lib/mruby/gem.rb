@@ -284,6 +284,19 @@ module MRuby
           end
         end.all?
       end
+
+      def each_header_files(&block)
+        return to_enum(__method__) unless block
+
+        self.export_include_paths.flatten.uniq.compact.each do |dir|
+          Find.find(dir) do |d|
+            next unless File.file? d
+            yield d
+          end
+        end
+
+        self
+      end
     end # Specification
 
     class Version

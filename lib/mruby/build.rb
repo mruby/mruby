@@ -1,11 +1,15 @@
 require "mruby/core_ext"
 require "mruby/build/load_gems"
 require "mruby/build/command"
+autoload :Find, "find"
 
 module MRuby
   autoload :Gem, "mruby/gem"
   autoload :Lockfile, "mruby/lockfile"
   autoload :Presym, "mruby/presym"
+
+  INSTALL_PREFIX = ENV['PREFIX'] || ENV['INSTALL_PREFIX'] || '/usr/local'
+  INSTALL_DESTDIR = ENV['DESTDIR'] || ''
 
   class << self
     def targets
@@ -97,6 +101,7 @@ module MRuby
         @file_separator = '/'
         @build_dir = "#{build_dir}/#{@name}"
         @gem_clone_dir = "#{build_dir}/repos/#{@name}"
+        @install_prefix = nil
         @defines = []
         @cc = Command::Compiler.new(self, %w(.c), label: "CC")
         @cxx = Command::Compiler.new(self, %w(.cc .cxx .cpp), label: "CXX")
@@ -370,12 +375,33 @@ EOS
       end
     end
 
-    def define_installer(src)
-      dst = "#{self.class.install_dir}/#{File.basename(src)}"
+    def define_installer_outline(src, dst)
       file dst => src do
-        install_D src, dst
+        _pp "GEN", src.relative_path, dst.relative_path
+        mkdir_p(File.dirname(dst))
+        yield dst
       end
       dst
+    end
+
+    if ENV['OS'] == 'Windows_NT'
+      def define_installer(src)
+        dst = "#{self.class.install_dir}/#{File.basename(src)}".pathmap("%X.bat")
+        define_installer_outline(src, dst) do
+          File.write dst, <<~BATCHFILE
+            @echo off
+            call "#{src}" %*
+          BATCHFILE
+        end
+      end
+    else
+      def define_installer(src)
+        dst = "#{self.class.install_dir}/#{File.basename(src)}"
+        define_installer_outline(src, dst) do
+          File.unlink(dst) if File.exist?(dst)
+          File.symlink(src, dst)
+        end
+      end
     end
 
     def define_installer_if_needed(bin)
@@ -483,6 +509,29 @@ EOS
 
     def internal?
       @internal
+    end
+
+    def each_header_files(&block)
+      return to_enum(__method__) unless block
+
+      basedir = File.join(MRUBY_ROOT, "include")
+      Find.find(basedir) do |d|
+        next unless File.file? d
+        yield d
+      end
+
+      @gems.each { |g| g.each_header_files(&block) }
+
+      self
+    end
+
+    def install_prefix
+      @install_prefix || (self.name == "host" ? MRuby::INSTALL_PREFIX :
+                                                File.join(MRuby::INSTALL_PREFIX, "mruby/#{self.name}"))
+    end
+
+    def install_prefix=(dir)
+      @install_prefix = dir&.to_s
     end
 
     protected

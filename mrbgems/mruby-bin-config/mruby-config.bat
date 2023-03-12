@@ -1,5 +1,17 @@
 @echo off
 
+call :init "%~dp0."
+goto top
+
+:init
+rem call init2 for treatments last directory separator
+call :init2 "%~dp1."
+goto :eof
+
+:init2
+set MRUBY_PACKAGE_DIR=%~f1
+goto :eof
+
 :top
 shift
 if "%0" equ "" goto :eof
