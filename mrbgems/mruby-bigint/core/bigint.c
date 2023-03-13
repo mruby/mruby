@@ -1179,8 +1179,9 @@ mrb_bint_as_uint64(mrb_state *mrb, mrb_value x)
   return u;
 }
 
+/* unnormalize version of mrb_bint_add */
 mrb_value
-mrb_bint_add(mrb_state *mrb, mrb_value x, mrb_value y)
+mrb_bint_add_d(mrb_state *mrb, mrb_value x, mrb_value y)
 {
 #ifndef MRB_NO_FLOAT
   if (mrb_float_p(y)) {
@@ -1194,11 +1195,19 @@ mrb_bint_add(mrb_state *mrb, mrb_value x, mrb_value y)
   struct RBigint *b2 = RBIGINT(y);
   struct RBigint *b3 = bint_new(mrb);
   mpz_add(mrb, &b3->mp, &b->mp, &b2->mp);
-  return bint_norm(mrb, b3);
+  return mrb_obj_value(b3);
 }
 
 mrb_value
-mrb_bint_sub(mrb_state *mrb, mrb_value x, mrb_value y)
+mrb_bint_add(mrb_state *mrb, mrb_value x, mrb_value y)
+{
+  x = mrb_bint_add_d(mrb, x, y);
+  return bint_norm(mrb, RBIGINT(x));
+}
+
+/* unnormalize version of mrb_bint_sub */
+mrb_value
+mrb_bint_sub_d(mrb_state *mrb, mrb_value x, mrb_value y)
 {
 #ifndef MRB_NO_FLOAT
   if (mrb_float_p(y)) {
@@ -1212,7 +1221,14 @@ mrb_bint_sub(mrb_state *mrb, mrb_value x, mrb_value y)
   struct RBigint *b2 = RBIGINT(y);
   struct RBigint *b3 = bint_new(mrb);
   mpz_sub(mrb, &b3->mp, &b->mp, &b2->mp);
-  return bint_norm(mrb, b3);
+  return mrb_obj_value(b3);
+}
+
+mrb_value
+mrb_bint_sub(mrb_state *mrb, mrb_value x, mrb_value y)
+{
+  x = mrb_bint_sub_d(mrb, x, y);
+  return bint_norm(mrb, RBIGINT(x));
 }
 
 mrb_value

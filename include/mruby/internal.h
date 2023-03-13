@@ -183,6 +183,8 @@ mrb_value mrb_bint_new_str(mrb_state *mrb, const char *x, mrb_int len, mrb_int b
 mrb_value mrb_as_bint(mrb_state *mrb, mrb_value x);
 mrb_value mrb_bint_add(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_bint_sub(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_value mrb_bint_add_d(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_value mrb_bint_sub_d(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_bint_mul(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_bint_div(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_bint_divmod(mrb_state *mrb, mrb_value x, mrb_value y);
