@@ -193,6 +193,29 @@ mrb_proc_cfunc_env_get(mrb_state *mrb, mrb_int idx)
   return e->stack[idx];
 }
 
+mrb_value
+mrb_proc_get_self(mrb_state *mrb, struct RProc *p, struct RClass **target_class_p)
+{
+  if (MRB_PROC_CFUNC_P(p)) {
+    *target_class_p = mrb->object_class;
+    return mrb_nil_value();
+  }
+  else {
+    struct REnv *e = p->e.env;
+
+    if (!e || e->tt != MRB_TT_ENV) {
+      *target_class_p = mrb->object_class;
+      return mrb_top_self(mrb);
+    }
+    else if (MRB_ENV_LEN(e) < 1) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "self is lost (probably ran out of memory when the block became independent)");
+    }
+
+    *target_class_p = e->c;
+    return e->stack[0];
+  }
+}
+
 void
 mrb_proc_copy(mrb_state *mrb, struct RProc *a, struct RProc *b)
 {
