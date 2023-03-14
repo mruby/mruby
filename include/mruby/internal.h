@@ -114,6 +114,9 @@ struct RProc *mrb_closure_new(mrb_state*, const mrb_irep*);
 void mrb_proc_copy(mrb_state *mrb, struct RProc *a, struct RProc *b);
 mrb_int mrb_proc_arity(const struct RProc *p);
 struct REnv *mrb_env_new(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci, int nstacks, mrb_value *stack, struct RClass *tc);
+void mrb_proc_merge_lvar(mrb_state *mrb, mrb_irep *irep, struct REnv *env, int num, const mrb_sym *lv, const mrb_value *stack);
+mrb_value mrb_proc_local_variables(mrb_state *mrb, const struct RProc *proc);
+const struct RProc *mrb_proc_get_caller(mrb_state *mrb, struct REnv **env);
 #endif
 
 /* range */

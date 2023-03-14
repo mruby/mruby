@@ -8,7 +8,6 @@
 #include <mruby/internal.h>
 #include <mruby/presym.h>
 
-void mrb_proc_merge_lvar(mrb_state *mrb, mrb_irep *irep, struct REnv *env, int num, const mrb_sym *lv, const mrb_value *stack);
 const struct RProc *mrb_binding_extract_proc(mrb_state *mrb, mrb_value binding);
 struct REnv *mrb_binding_extract_env(mrb_state *mrb, mrb_value binding);
 typedef mrb_bool mrb_parser_foreach_top_variable_func(mrb_state *mrb, mrb_sym sym, void *user);

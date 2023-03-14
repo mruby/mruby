@@ -24,10 +24,6 @@
 # endif
 #endif
 
-void mrb_proc_merge_lvar(mrb_state *mrb, mrb_irep *irep, struct REnv *env, int num, const mrb_sym *lv, const mrb_value *stack);
-mrb_value mrb_proc_local_variables(mrb_state *mrb, const struct RProc *proc);
-const struct RProc *mrb_proc_get_caller(mrb_state *mrb, struct REnv **env);
-
 static mrb_int
 binding_extract_pc(mrb_state *mrb, mrb_value binding)
 {
