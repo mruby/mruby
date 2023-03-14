@@ -38,3 +38,23 @@ assert("Binding#source_location") do
   bind, source_location = binding, [__FILE__, __LINE__]
   assert_equal source_location, bind.source_location
 end
+
+assert("Binding#dup") do
+  x = 5
+  bind1 = binding
+  bind1.local_variable_set(:y, 10)
+  bind2 = bind1.dup
+  assert_equal 5, bind2.local_variable_get(:x)
+  assert_equal 10, bind2.local_variable_get(:y)
+  x = 50
+  assert_equal 50, bind1.local_variable_get(:x)
+  assert_equal 50, bind2.local_variable_get(:x)
+  bind1.local_variable_set(:y, 20)
+  assert_equal 20, bind1.local_variable_get(:y)
+  assert_equal 20, bind2.local_variable_get(:y)
+  bind1.local_variable_set(:z, 30)
+  assert_raise(NameError) { bind2.local_variable_get(:z) }
+  bind2.local_variable_set(:z, 40)
+  assert_equal 30, bind1.local_variable_get(:z)
+  assert_equal 40, bind2.local_variable_get(:z)
+end
