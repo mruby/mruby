@@ -1183,13 +1183,6 @@ mrb_bint_as_uint64(mrb_state *mrb, mrb_value x)
 mrb_value
 mrb_bint_add_d(mrb_state *mrb, mrb_value x, mrb_value y)
 {
-#ifndef MRB_NO_FLOAT
-  if (mrb_float_p(y)) {
-    mrb_float v1 = mrb_bint_as_float(mrb, x);
-    mrb_float v2 = mrb_float(y);
-    return mrb_float_value(mrb,v1+v2);
-  }
-#endif
   y = mrb_as_bint(mrb, y);
   struct RBigint *b = RBIGINT(x);
   struct RBigint *b2 = RBIGINT(y);
@@ -1201,6 +1194,13 @@ mrb_bint_add_d(mrb_state *mrb, mrb_value x, mrb_value y)
 mrb_value
 mrb_bint_add(mrb_state *mrb, mrb_value x, mrb_value y)
 {
+#ifndef MRB_NO_FLOAT
+  if (mrb_float_p(y)) {
+    mrb_float v1 = mrb_bint_as_float(mrb, x);
+    mrb_float v2 = mrb_float(y);
+    return mrb_float_value(mrb,v1+v2);
+  }
+#endif
   x = mrb_bint_add_d(mrb, x, y);
   return bint_norm(mrb, RBIGINT(x));
 }
@@ -1209,13 +1209,6 @@ mrb_bint_add(mrb_state *mrb, mrb_value x, mrb_value y)
 mrb_value
 mrb_bint_sub_d(mrb_state *mrb, mrb_value x, mrb_value y)
 {
-#ifndef MRB_NO_FLOAT
-  if (mrb_float_p(y)) {
-    mrb_float v1 = mrb_bint_as_float(mrb, x);
-    mrb_float v2 = mrb_float(y);
-    return mrb_float_value(mrb,v1-v2);
-  }
-#endif
   y = mrb_as_bint(mrb, y);
   struct RBigint *b = RBIGINT(x);
   struct RBigint *b2 = RBIGINT(y);
@@ -1227,6 +1220,13 @@ mrb_bint_sub_d(mrb_state *mrb, mrb_value x, mrb_value y)
 mrb_value
 mrb_bint_sub(mrb_state *mrb, mrb_value x, mrb_value y)
 {
+#ifndef MRB_NO_FLOAT
+  if (mrb_float_p(y)) {
+    mrb_float v1 = mrb_bint_as_float(mrb, x);
+    mrb_float v2 = mrb_float(y);
+    return mrb_float_value(mrb,v1-v2);
+  }
+#endif
   x = mrb_bint_sub_d(mrb, x, y);
   return bint_norm(mrb, RBIGINT(x));
 }
