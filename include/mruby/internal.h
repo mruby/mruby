@@ -117,6 +117,7 @@ struct REnv *mrb_env_new(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci
 void mrb_proc_merge_lvar(mrb_state *mrb, mrb_irep *irep, struct REnv *env, int num, const mrb_sym *lv, const mrb_value *stack);
 mrb_value mrb_proc_local_variables(mrb_state *mrb, const struct RProc *proc);
 const struct RProc *mrb_proc_get_caller(mrb_state *mrb, struct REnv **env);
+mrb_value mrb_proc_get_self(mrb_state *mrb, struct RProc *p, struct RClass **target_class_p);
 #endif
 
 /* range */
