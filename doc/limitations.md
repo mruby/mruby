@@ -259,3 +259,12 @@ f(1,[2,3])
 ```
 
 CRuby gives `[1,2,3,nil]`. mruby raises `NoMethodError` for `b`.
+
+Keyword argument expansion has similar restrictions. The following example, gives `[1, 1]` for CRuby, mruby raises `NoMethodError` for `b`.
+
+```ruby
+def g(a: 1, b: a)
+  p [a,b]
+end
+g(a:1)
+```
