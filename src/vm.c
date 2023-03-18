@@ -1251,13 +1251,13 @@ prepare_tagged_break(mrb_state *mrb, uint32_t tag, const struct RProc *proc, mrb
 #define BYTECODE_DECODER(x) (x)
 #endif
 
-#ifndef MRB_NO_DIRECT_THREADING
-#if defined __GNUC__ || defined __clang__ || defined __INTEL_COMPILER
-#define DIRECT_THREADED
+#ifndef MRB_USE_VM_SWITCH_DISPATCH
+#if !defined __GNUC__ && !defined __clang__ && !defined __INTEL_COMPILER
+#define MRB_USE_VM_SWITCH_DISPATCH
 #endif
-#endif /* ifndef MRB_NO_DIRECT_THREADING */
+#endif /* ifndef MRB_USE_VM_SWITCH_DISPATCH */
 
-#ifndef DIRECT_THREADED
+#ifdef MRB_USE_VM_SWITCH_DISPATCH
 
 #define INIT_DISPATCH for (;;) { insn = BYTECODE_DECODER(*pc); CODE_FETCH_HOOK(mrb, irep, pc, regs); switch (insn) {
 #define CASE(insn,ops) case insn: pc++; FETCH_ ## ops (); mrb->c->ci->pc = pc; L_ ## insn ## _BODY:
@@ -1364,7 +1364,7 @@ mrb_vm_exec(mrb_state *mrb, const struct RProc *proc, const mrb_code *pc)
   mrb_sym mid;
   const struct mrb_irep_catch_handler *ch;
 
-#ifdef DIRECT_THREADED
+#ifndef MRB_USE_VM_SWITCH_DISPATCH
   static const void * const optable[] = {
 #define OPCODE(x,_) &&L_OP_ ## x,
 #include "mruby/ops.h"
