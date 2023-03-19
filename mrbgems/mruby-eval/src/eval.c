@@ -146,8 +146,8 @@ exec_irep(mrb_state *mrb, mrb_value self, struct RProc *proc)
   return mrb_exec_irep(mrb, self, proc);
 }
 
-static mrb_value
-f_eval(mrb_state *mrb, mrb_value self)
+mrb_value
+mrb_f_eval(mrb_state *mrb, mrb_value self)
 {
   const char *s;
   mrb_int len;
@@ -165,6 +165,7 @@ f_eval(mrb_state *mrb, mrb_value self)
   mrb_assert(!MRB_PROC_CFUNC_P(proc));
   return exec_irep(mrb, self, proc);
 }
+#define f_eval mrb_f_eval
 
 static mrb_value
 f_instance_eval(mrb_state *mrb, mrb_value self)
