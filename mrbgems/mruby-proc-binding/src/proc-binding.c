@@ -31,7 +31,7 @@ mrb_proc_binding(mrb_state *mrb, mrb_value procval)
   }
 
   proc = mrb_binding_wrap_lvspace(mrb, proc, &env);
-  mrb_iv_set(mrb, binding, MRB_SYM(proc), mrb_obj_value((void *)proc));
+  mrb_iv_set(mrb, binding, MRB_SYM(proc), mrb_obj_value((void*)proc));
   mrb_iv_set(mrb, binding, MRB_SYM(recv), receiver);
   mrb_iv_set(mrb, binding, MRB_SYM(env), mrb_obj_value(env));
   mrb_iv_set(mrb, binding, MRB_SYM(source_location), mrb_proc_source_location(mrb, mrb_proc_ptr(procval)));

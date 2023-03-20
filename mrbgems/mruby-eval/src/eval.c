@@ -26,7 +26,7 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
     if (!mrb_class_defined_id(mrb, MRB_SYM(Binding))
         || !mrb_obj_is_kind_of(mrb, binding, mrb_class_get_id(mrb, MRB_SYM(Binding)))) {
       mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %C (expected binding)",
-          mrb_obj_class(mrb, binding));
+                 mrb_obj_class(mrb, binding));
     }
     scope_obj = mrb_iv_get(mrb, binding, MRB_SYM(proc));
     mrb_check_type(mrb, scope_obj, MRB_TT_PROC);
