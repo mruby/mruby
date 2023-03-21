@@ -134,6 +134,19 @@ binding_type_ensure(mrb_state *mrb, mrb_value obj)
   mrb_raise(mrb, E_TYPE_ERROR, "not a binding");
 }
 
+struct RProc*
+mrb_binding_wrap_lvspace(mrb_state *mrb, const struct RProc *proc, struct REnv **envp)
+{
+  /*
+   * local variable space: It is a space to hold the top-level variable of
+   * binding.eval and binding.local_variable_set.
+   */
+
+  struct RProc *lvspace = binding_proc_new_lvspace(mrb, proc, *envp);
+  *envp = binding_env_new_lvspace(mrb, *envp);
+  return lvspace;
+}
+
 static mrb_value
 binding_initialize_copy(mrb_state *mrb, mrb_value binding)
 {
@@ -148,8 +161,8 @@ binding_initialize_copy(mrb_state *mrb, mrb_value binding)
   struct REnv *env;
   if (MRB_ENV_LEN(src_env) < 2) {
     /* when local variables of src are self only */
-    lvspace = binding_proc_new_lvspace(mrb, src_proc->upper, src_proc->e.env);
-    env = binding_env_new_lvspace(mrb, src_proc->e.env);
+    env = src_proc->e.env;
+    lvspace = mrb_binding_wrap_lvspace(mrb, src_proc->upper, &env);
   }
   else {
     if (binding_proc_upper_count(src_proc) > BINDING_UPPER_MAX) {
@@ -157,13 +170,12 @@ binding_initialize_copy(mrb_state *mrb, mrb_value binding)
                 "too many upper procs for local variables (mruby limitation; maximum is " MRB_STRINGIZE(BINDING_UPPER_MAX) ")");
     }
 
-    lvspace = binding_proc_new_lvspace(mrb, src_proc, src_env);
-    env = binding_env_new_lvspace(mrb, src_env);
+    env = src_env;
+    lvspace = mrb_binding_wrap_lvspace(mrb, src_proc, &env);
 
     // The reason for using the mrb_obj_iv_set_force() function is to allow local
     // variables to be modified even if src is frozen. This behavior is CRuby imitation.
-    src_proc = binding_proc_new_lvspace(mrb, src_proc, src_env);
-    src_env = binding_env_new_lvspace(mrb, src_env);
+    src_proc = mrb_binding_wrap_lvspace(mrb, src_proc, &src_env);
     struct RObject *o = mrb_obj_ptr(src);
     mrb_obj_iv_set_force(mrb, o, MRB_SYM(proc), mrb_obj_value((struct RProc*)src_proc));
     mrb_obj_iv_set_force(mrb, o, MRB_SYM(env), mrb_obj_value(src_env));
@@ -351,19 +363,6 @@ mrb_binding_alloc(mrb_state *mrb)
 {
   struct RObject *obj = MRB_OBJ_ALLOC(mrb, MRB_TT_OBJECT, mrb_class_get_id(mrb, MRB_SYM(Binding)));
   return mrb_obj_value(obj);
-}
-
-struct RProc*
-mrb_binding_wrap_lvspace(mrb_state *mrb, const struct RProc *proc, struct REnv **envp)
-{
-  /*
-   * local variable space: It is a space to hold the top-level variable of
-   * binding.eval and binding.local_variable_set.
-   */
-
-  struct RProc *lvspace = binding_proc_new_lvspace(mrb, proc, *envp);
-  *envp = binding_env_new_lvspace(mrb, *envp);
-  return lvspace;
 }
 
 static mrb_value
