@@ -134,8 +134,8 @@ binding_type_ensure(mrb_state *mrb, mrb_value obj)
   mrb_raise(mrb, E_TYPE_ERROR, "not a binding");
 }
 
-struct RProc*
-mrb_binding_wrap_lvspace(mrb_state *mrb, const struct RProc *proc, struct REnv **envp)
+static struct RProc*
+binding_wrap_lvspace(mrb_state *mrb, const struct RProc *proc, struct REnv **envp)
 {
   /*
    * local variable space: It is a space to hold the top-level variable of
@@ -162,7 +162,7 @@ binding_initialize_copy(mrb_state *mrb, mrb_value binding)
   if (MRB_ENV_LEN(src_env) < 2) {
     /* when local variables of src are self only */
     env = src_proc->e.env;
-    lvspace = mrb_binding_wrap_lvspace(mrb, src_proc->upper, &env);
+    lvspace = binding_wrap_lvspace(mrb, src_proc->upper, &env);
   }
   else {
     if (binding_proc_upper_count(src_proc) > BINDING_UPPER_MAX) {
@@ -171,11 +171,11 @@ binding_initialize_copy(mrb_state *mrb, mrb_value binding)
     }
 
     env = src_env;
-    lvspace = mrb_binding_wrap_lvspace(mrb, src_proc, &env);
+    lvspace = binding_wrap_lvspace(mrb, src_proc, &env);
 
     // The reason for using the mrb_obj_iv_set_force() function is to allow local
     // variables to be modified even if src is frozen. This behavior is CRuby imitation.
-    src_proc = mrb_binding_wrap_lvspace(mrb, src_proc, &src_env);
+    src_proc = binding_wrap_lvspace(mrb, src_proc, &src_env);
     struct RObject *o = mrb_obj_ptr(src);
     mrb_obj_iv_set_force(mrb, o, MRB_SYM(proc), mrb_obj_value((struct RProc*)src_proc));
     mrb_obj_iv_set_force(mrb, o, MRB_SYM(env), mrb_obj_value(src_env));
@@ -367,7 +367,7 @@ mrb_binding_new(mrb_state *mrb, const struct RProc *proc, mrb_value recv, struct
     const mrb_irep *irep = proc->body.irep;
     mrb_obj_iv_set(mrb, binding, MRB_SYM(pc), mrb_fixnum_value(mrb->c->ci[-1].pc - irep->iseq - 1 /* step back */));
   }
-  proc = mrb_binding_wrap_lvspace(mrb, proc, &env);
+  proc = binding_wrap_lvspace(mrb, proc, &env);
 
   mrb_obj_iv_set(mrb, binding, MRB_SYM(proc), mrb_obj_value((void*)proc));
   mrb_obj_iv_set(mrb, binding, MRB_SYM(recv), recv);
