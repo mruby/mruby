@@ -359,35 +359,35 @@ binding_source_location(mrb_state *mrb, mrb_value self)
 }
 
 mrb_value
-mrb_binding_alloc(mrb_state *mrb)
+mrb_binding_new(mrb_state *mrb, const struct RProc *proc, mrb_value recv, struct REnv *env)
 {
-  struct RObject *obj = MRB_OBJ_ALLOC(mrb, MRB_TT_OBJECT, mrb_class_get_id(mrb, MRB_SYM(Binding)));
-  return mrb_obj_value(obj);
+  struct RObject *binding = MRB_OBJ_ALLOC(mrb, MRB_TT_OBJECT, mrb_class_get_id(mrb, MRB_SYM(Binding)));
+
+  if (proc && !MRB_PROC_CFUNC_P(proc)) {
+    const mrb_irep *irep = proc->body.irep;
+    mrb_obj_iv_set(mrb, binding, MRB_SYM(pc), mrb_fixnum_value(mrb->c->ci[-1].pc - irep->iseq - 1 /* step back */));
+  }
+  proc = mrb_binding_wrap_lvspace(mrb, proc, &env);
+
+  mrb_obj_iv_set(mrb, binding, MRB_SYM(proc), mrb_obj_value((void*)proc));
+  mrb_obj_iv_set(mrb, binding, MRB_SYM(recv), recv);
+  mrb_obj_iv_set(mrb, binding, MRB_SYM(env), mrb_obj_value(env));
+
+  return mrb_obj_value(binding);
 }
 
 static mrb_value
 mrb_f_binding(mrb_state *mrb, mrb_value self)
 {
-  mrb_value binding;
   struct RProc *proc;
   struct REnv *env;
 
-  binding = mrb_binding_alloc(mrb);
   proc = (struct RProc*)mrb_proc_get_caller(mrb, &env);
   if (!env || MRB_PROC_CFUNC_P(proc)) {
     proc = NULL;
     env = NULL;
   }
-
-  if (proc && !MRB_PROC_CFUNC_P(proc)) {
-    const mrb_irep *irep = proc->body.irep;
-    mrb_iv_set(mrb, binding, MRB_SYM(pc), mrb_fixnum_value(mrb->c->ci[-1].pc - irep->iseq - 1 /* step back */));
-  }
-  proc = mrb_binding_wrap_lvspace(mrb, proc, &env);
-  mrb_iv_set(mrb, binding, MRB_SYM(proc), mrb_obj_value(proc));
-  mrb_iv_set(mrb, binding, MRB_SYM(recv), self);
-  mrb_iv_set(mrb, binding, MRB_SYM(env), mrb_obj_value(env));
-  return binding;
+  return mrb_binding_new(mrb, proc, self, env);
 }
 
 void
