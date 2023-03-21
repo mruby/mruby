@@ -116,12 +116,22 @@ binding_proc_upper_count(const struct RProc *proc)
   return count;
 }
 
+mrb_bool
+mrb_binding_p(mrb_state *mrb, mrb_value obj)
+{
+  if (!mrb_obj_is_kind_of(mrb, obj, mrb_class_get_id(mrb, MRB_SYM(Binding)))) return FALSE;
+  if (mrb_type(obj) != MRB_TT_OBJECT) return FALSE;
+  if (!mrb_obj_iv_defined(mrb, mrb_obj_ptr(obj), MRB_SYM(proc))) return FALSE;
+  if (!mrb_obj_iv_defined(mrb, mrb_obj_ptr(obj), MRB_SYM(recv))) return FALSE;
+  if (!mrb_obj_iv_defined(mrb, mrb_obj_ptr(obj), MRB_SYM(env))) return FALSE;
+  return TRUE;
+}
+
 static void
 binding_type_ensure(mrb_state *mrb, mrb_value obj)
 {
-  if (!mrb_obj_is_kind_of(mrb, obj, mrb_class_get_id(mrb, MRB_SYM(Binding)))) {
-    mrb_raise(mrb, E_TYPE_ERROR, "not a binding");
-  }
+  if (mrb_binding_p(mrb, obj)) return;
+  mrb_raise(mrb, E_TYPE_ERROR, "not a binding");
 }
 
 static mrb_value
