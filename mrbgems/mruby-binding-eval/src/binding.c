@@ -145,13 +145,13 @@ mrb_binding_eval(mrb_state *mrb, mrb_value binding)
 }
 
 void
-mrb_mruby_binding_gem_init(mrb_state *mrb)
+mrb_mruby_binding_eval_gem_init(mrb_state *mrb)
 {
   struct RClass *binding = mrb_class_get_id(mrb, MRB_SYM(Binding));
   mrb_define_method(mrb, binding, "eval", mrb_binding_eval, MRB_ARGS_ANY());
 }
 
 void
-mrb_mruby_binding_gem_final(mrb_state *mrb)
+mrb_mruby_binding_eval_gem_final(mrb_state *mrb)
 {
 }
