@@ -6739,8 +6739,9 @@ mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s)
 {
   if (s) {
     size_t len = strlen(s);
-    char *p = (char*)mrb_malloc(mrb, len + 1);
+    char *p = (char*)mrb_malloc_simple(mrb, len + 1);
 
+    if (p == NULL) return NULL;
     memcpy(p, s, len + 1);
     if (c->filename) {
       mrb_free(mrb, c->filename);
