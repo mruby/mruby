@@ -87,12 +87,7 @@ binding_eval_prepare_body(mrb_state *mrb, void *opaque)
 
   const struct RProc *proc = mrb_binding_extract_proc(mrb, p->binding);
   mrb_assert(!MRB_PROC_CFUNC_P(proc));
-
-  p->mrbc = mrbc_context_new(mrb);
-  mrbc_filename(mrb, p->mrbc, p->file ? p->file : "(eval)");
   p->mrbc->upper = proc;
-  p->mrbc->capture_errors = TRUE;
-  p->pstate = mrb_parse_nstring(mrb, p->expr, p->exprlen, p->mrbc);
   binding_eval_error_check(mrb, p->pstate, p->file);
 
   struct expand_lvspace args = {
@@ -119,6 +114,12 @@ binding_eval_prepare(mrb_state *mrb, mrb_value binding)
 
   /* `eval` should take (string[, file, line]) */
   if (argc > 3) mrb_argnum_error(mrb, argc, 1, 3);
+
+  d.mrbc = mrbc_context_new(mrb);
+  mrbc_filename(mrb, d.mrbc, d.file ? d.file : "(eval)");
+  d.mrbc->capture_errors = TRUE;
+  d.pstate = mrb_parse_nstring(mrb, d.expr, d.exprlen, d.mrbc);
+
   mrb_bool error;
   mrb_value ret = mrb_protect_error(mrb, binding_eval_prepare_body, &d, &error);
   if (d.pstate) mrb_parser_free(d.pstate);
