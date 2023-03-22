@@ -210,21 +210,6 @@ $ ruby -e 'puts Proc.new {}.binding'
 #<Binding:0x00000e9deabb9950>
 ```
 
-#### mruby [3.0.0 (2021-03-05)]
-
-```
-$ ./bin/mruby -e 'puts Proc.new {}.binding'
-trace (most recent call last):
-        [0] -e:1
--e:1: undefined method 'binding' (NoMethodError)
-```
-
-#### mruby [3.1.0 (2022-05-12)]
-
-`binding` has been supported since 3.1.0.
-
-See also [mrbgems/mruby-binding](https://github.com/mruby/mruby/tree/master/mrbgems/mruby-binding) and [mrbgems/mruby-binding-core](https://github.com/mruby/mruby/tree/master/mrbgems/mruby-binding-core).
-
 ## `nil?` redefinition in conditional expressions
 
 Redefinition of `nil?` is ignored in conditional expressions.
