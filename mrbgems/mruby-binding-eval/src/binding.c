@@ -105,7 +105,7 @@ binding_eval_prepare_body(mrb_state *mrb, void *opaque)
 static void
 binding_eval_prepare(mrb_state *mrb, mrb_value binding)
 {
-  struct binding_eval_prepare_body d = { binding, NULL, NULL, NULL };
+  struct binding_eval_prepare_body d = { binding };
   mrb_int argc;
   mrb_value *argv;
   const char *expr;
