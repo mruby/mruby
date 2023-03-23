@@ -74,8 +74,6 @@ expand_lvspace(mrb_state *mrb, mrb_sym sym, void *user)
 struct binding_eval_prepare_body {
   mrb_value binding;
   const char *file;
-  const char *expr;
-  mrb_int exprlen;
   mrbc_context *mrbc;
   struct mrb_parser_state *pstate;
 };
@@ -107,10 +105,13 @@ binding_eval_prepare_body(mrb_state *mrb, void *opaque)
 static void
 binding_eval_prepare(mrb_state *mrb, mrb_value binding)
 {
-  struct binding_eval_prepare_body d = { binding, NULL, NULL, 0, NULL, NULL };
+  struct binding_eval_prepare_body d = { binding, NULL, NULL, NULL };
   mrb_int argc;
   mrb_value *argv;
-  mrb_get_args(mrb, "s|z*!", &d.expr, &d.exprlen, &d.file, &argv, &argc);
+  const char *expr;
+  mrb_int exprlen;
+
+  mrb_get_args(mrb, "s|z*!", &expr, &exprlen, &d.file, &argv, &argc);
 
   /* `eval` should take (string[, file, line]) */
   if (argc > 3) mrb_argnum_error(mrb, argc, 1, 3);
@@ -118,7 +119,7 @@ binding_eval_prepare(mrb_state *mrb, mrb_value binding)
   d.mrbc = mrbc_context_new(mrb);
   mrbc_filename(mrb, d.mrbc, d.file ? d.file : "(eval)");
   d.mrbc->capture_errors = TRUE;
-  d.pstate = mrb_parse_nstring(mrb, d.expr, d.exprlen, d.mrbc);
+  d.pstate = mrb_parse_nstring(mrb, expr, exprlen, d.mrbc);
 
   mrb_bool error;
   mrb_value ret = mrb_protect_error(mrb, binding_eval_prepare_body, &d, &error);
