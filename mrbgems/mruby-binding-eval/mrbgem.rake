@@ -3,7 +3,7 @@ MRuby::Gem::Specification.new('mruby-binding-eval') do |spec|
   spec.author  = 'mruby developers'
   spec.summary = 'Binding class'
 
-  spec.add_dependency('mruby-binding-core', :core => 'mruby-binding-core')
+  spec.add_dependency('mruby-binding', :core => 'mruby-binding')
   spec.add_dependency('mruby-eval', :core => 'mruby-eval')
   spec.add_test_dependency('mruby-metaprog', :core => 'mruby-metaprog')
   spec.add_test_dependency('mruby-method', :core => 'mruby-method')

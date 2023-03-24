@@ -9,7 +9,7 @@
 #include <mruby/variable.h>
 #include <mruby/internal.h>
 
-/* provided by mruby-binding-core */
+/* provided by mruby-binding */
 const struct RProc * mrb_binding_extract_proc(mrb_state *mrb, mrb_value binding);
 struct REnv * mrb_binding_extract_env(mrb_state *mrb, mrb_value binding);
 

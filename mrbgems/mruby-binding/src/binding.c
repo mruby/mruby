@@ -410,7 +410,7 @@ mrb_binding_eval(mrb_state *mrb, mrb_value binding)
 }
 
 void
-mrb_mruby_binding_core_gem_init(mrb_state *mrb)
+mrb_mruby_binding_gem_init(mrb_state *mrb)
 {
   struct RClass *binding = mrb_define_class(mrb, "Binding", mrb->object_class);
   mrb_undef_class_method(mrb, binding, "new");
@@ -430,6 +430,6 @@ mrb_mruby_binding_core_gem_init(mrb_state *mrb)
 }
 
 void
-mrb_mruby_binding_core_gem_final(mrb_state *mrb)
+mrb_mruby_binding_gem_final(mrb_state *mrb)
 {
 }

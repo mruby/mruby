@@ -1,4 +1,4 @@
-MRuby::Gem::Specification.new('mruby-binding-core') do |spec|
+MRuby::Gem::Specification.new('mruby-binding') do |spec|
   spec.license = 'MIT'
   spec.author  = 'mruby developers'
   spec.summary = 'Binding class (core features only)'
