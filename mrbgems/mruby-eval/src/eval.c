@@ -10,6 +10,7 @@
 #include <mruby/internal.h>
 
 /* provided by mruby-binding */
+mrb_bool mrb_binding_p(mrb_state *mrb, mrb_value binding);
 const struct RProc * mrb_binding_extract_proc(mrb_state *mrb, mrb_value binding);
 struct REnv * mrb_binding_extract_env(mrb_state *mrb, mrb_value binding);
 
@@ -30,22 +31,16 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
   struct mrb_context *c = mrb->c;
 
   if (!mrb_nil_p(binding)) {
-    mrb_value scope_obj;
-    if (!mrb_class_defined_id(mrb, MRB_SYM(Binding))
-        || !mrb_obj_is_kind_of(mrb, binding, mrb_class_get_id(mrb, MRB_SYM(Binding)))) {
+    if (!mrb_binding_p(mrb, binding)) {
       mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %C (expected binding)",
                  mrb_obj_class(mrb, binding));
     }
-    scope_obj = mrb_iv_get(mrb, binding, MRB_SYM(proc));
-    mrb_check_type(mrb, scope_obj, MRB_TT_PROC);
-    scope = mrb_proc_ptr(scope_obj);
+    scope = mrb_binding_extract_proc(mrb, binding);
     if (MRB_PROC_CFUNC_P(scope)) {
       e = NULL;
     }
     else {
-      mrb_value env = mrb_iv_get(mrb, binding, MRB_SYM(env));
-      mrb_check_type(mrb, env, MRB_TT_ENV);
-      e = (struct REnv *)mrb_obj_ptr(env);
+      e = mrb_binding_extract_env(mrb, binding);
       mrb_assert(e != NULL);
     }
   }
