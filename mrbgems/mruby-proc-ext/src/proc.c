@@ -51,16 +51,13 @@ proc_inspect(mrb_state *mrb, mrb_value self)
     int32_t line;
     mrb_str_cat_lit(mrb, str, " ");
 
-    filename = mrb_debug_get_filename(mrb, irep, 0);
-    mrb_str_cat_cstr(mrb, str, filename ? filename : "-");
-    mrb_str_cat_lit(mrb, str, ":");
-
-    line = mrb_debug_get_line(mrb, irep, 0);
-    if (line != -1) {
+    if (mrb_debug_get_position(mrb, irep, 0, &line, &filename)) {
+      mrb_str_cat_cstr(mrb, str, filename);
+      mrb_str_cat_lit(mrb, str, ":");
       mrb_str_concat(mrb, str, mrb_fixnum_value(line));
     }
     else {
-      mrb_str_cat_lit(mrb, str, "-");
+      mrb_str_cat_lit(mrb, str, "-:-");
     }
   }
 
