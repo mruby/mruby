@@ -7,7 +7,7 @@
 #include <mruby/presym.h>
 
 static mrb_value
-mrb_proc_lambda_p(mrb_state *mrb, mrb_value self)
+proc_lambda_p(mrb_state *mrb, mrb_value self)
 {
   struct RProc *p = mrb_proc_ptr(self);
   return mrb_bool_value(MRB_PROC_STRICT_P(p));
@@ -33,13 +33,13 @@ mrb_proc_source_location(mrb_state *mrb, struct RProc *p)
 }
 
 static mrb_value
-mrb_proc_source_location_m(mrb_state *mrb, mrb_value self)
+proc_source_location(mrb_state *mrb, mrb_value self)
 {
   return mrb_proc_source_location(mrb, mrb_proc_ptr(self));
 }
 
 static mrb_value
-mrb_proc_inspect(mrb_state *mrb, mrb_value self)
+proc_inspect(mrb_state *mrb, mrb_value self)
 {
   struct RProc *p = mrb_proc_ptr(self);
   mrb_value str = mrb_str_new_lit(mrb, "#<Proc:");
@@ -73,7 +73,7 @@ mrb_proc_inspect(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
-mrb_kernel_proc(mrb_state *mrb, mrb_value self)
+kernel_proc(mrb_state *mrb, mrb_value self)
 {
   mrb_value blk;
 
@@ -176,14 +176,14 @@ void
 mrb_mruby_proc_ext_gem_init(mrb_state* mrb)
 {
   struct RClass *p = mrb->proc_class;
-  mrb_define_method(mrb, p, "lambda?",         mrb_proc_lambda_p,        MRB_ARGS_NONE());
-  mrb_define_method(mrb, p, "source_location", mrb_proc_source_location_m, MRB_ARGS_NONE());
-  mrb_define_method(mrb, p, "to_s",            mrb_proc_inspect,         MRB_ARGS_NONE());
-  mrb_define_method(mrb, p, "inspect",         mrb_proc_inspect,         MRB_ARGS_NONE());
-  mrb_define_method(mrb, p, "parameters",      mrb_proc_parameters,      MRB_ARGS_NONE());
+  mrb_define_method(mrb, p, "lambda?",         proc_lambda_p,        MRB_ARGS_NONE());
+  mrb_define_method(mrb, p, "source_location", proc_source_location, MRB_ARGS_NONE());
+  mrb_define_method(mrb, p, "to_s",            proc_inspect,         MRB_ARGS_NONE());
+  mrb_define_method(mrb, p, "inspect",         proc_inspect,         MRB_ARGS_NONE());
+  mrb_define_method(mrb, p, "parameters",      mrb_proc_parameters,  MRB_ARGS_NONE());
 
-  mrb_define_class_method(mrb, mrb->kernel_module, "proc", mrb_kernel_proc, MRB_ARGS_NONE()|MRB_ARGS_BLOCK());
-  mrb_define_method(mrb, mrb->kernel_module,       "proc", mrb_kernel_proc, MRB_ARGS_NONE()|MRB_ARGS_BLOCK());
+  mrb_define_class_method(mrb, mrb->kernel_module, "proc", kernel_proc, MRB_ARGS_NONE()|MRB_ARGS_BLOCK());
+  mrb_define_method(mrb, mrb->kernel_module,       "proc", kernel_proc, MRB_ARGS_NONE()|MRB_ARGS_BLOCK());
 }
 
 void
