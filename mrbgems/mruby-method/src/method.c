@@ -201,32 +201,26 @@ static mrb_value
 method_eql(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
-  mrb_value receiver, orig_proc, other_proc;
-  struct RClass *owner;
+  mrb_value orig_proc, other_proc;
 
   if (!method_p(mrb, mrb_class(mrb, self), other))
     return mrb_false_value();
 
-  owner = mrb_class_ptr(IV_GET(self, MRB_SYM(_owner)));
-  if (owner != mrb_class_ptr(IV_GET(other, MRB_SYM(_owner))))
+  if (mrb_class_ptr(IV_GET(self, MRB_SYM(_owner))) != mrb_class_ptr(IV_GET(other, MRB_SYM(_owner))))
     return mrb_false_value();
 
-  receiver = IV_GET(self, MRB_SYM(_recv));
-  if (!mrb_obj_equal(mrb, receiver, IV_GET(other, MRB_SYM(_recv))))
+  if (!mrb_obj_equal(mrb, IV_GET(self, MRB_SYM(_recv)), IV_GET(other, MRB_SYM(_recv))))
     return mrb_false_value();
 
   orig_proc = IV_GET(self, MRB_SYM(_proc));
   other_proc = IV_GET(other, MRB_SYM(_proc));
-  if (mrb_nil_p(orig_proc) && mrb_nil_p(other_proc)) {
-    if (mrb_symbol(IV_GET(self, MRB_SYM(_name))) == mrb_symbol(IV_GET(other, MRB_SYM(_name))))
-      return mrb_true_value();
-    else
-      return mrb_false_value();
+  if (mrb_nil_p(orig_proc)) {
+    if (mrb_nil_p(other_proc)) {
+      if (mrb_symbol(IV_GET(self, MRB_SYM(_name))) == mrb_symbol(IV_GET(other, MRB_SYM(_name))))
+        return mrb_true_value();
+    }
+    return mrb_false_value();
   }
-
-  if (mrb_nil_p(orig_proc)) return mrb_false_value();
-  if (mrb_nil_p(other_proc)) return mrb_false_value();
-
   return mrb_bool_value(mrb_proc_eql(mrb, orig_proc, other_proc));
 }
 
