@@ -277,6 +277,36 @@ proc_arity(mrb_state *mrb, mrb_value self)
   return mrb_int_value(mrb, mrb_proc_arity(mrb_proc_ptr(self)));
 }
 
+mrb_bool
+mrb_proc_eql(mrb_state *mrb, mrb_value self, mrb_value other)
+{
+  if (mrb_type(self) != MRB_TT_PROC) return FALSE;
+  if (mrb_type(other) != MRB_TT_PROC) return FALSE;
+
+  struct RProc *p1 = mrb_proc_ptr(self);
+  struct RProc *p2 = mrb_proc_ptr(other);
+  if (MRB_PROC_CFUNC_P(p1)) {
+    if (!MRB_PROC_CFUNC_P(p1)) return FALSE;
+    if (p1->body.func != p2->body.func) return FALSE;
+  }
+  else if (MRB_PROC_CFUNC_P(p2)) return FALSE;
+  else if (p1->body.irep != p2->body.irep) return FALSE;
+  return TRUE;
+}
+
+static mrb_value
+proc_eql(mrb_state *mrb, mrb_value self)
+{
+  return mrb_bool_value(mrb_proc_eql(mrb, self, mrb_get_arg1(mrb)));
+}
+
+static mrb_value
+proc_hash(mrb_state *mrb, mrb_value self)
+{
+  struct RProc *p = mrb_proc_ptr(self);
+  return mrb_int_value(mrb, (mrb_int)(((intptr_t)p->body.irep)^MRB_TT_PROC));
+}
+
 /* 15.3.1.2.6  */
 /* 15.3.1.3.27 */
 /*
@@ -464,6 +494,9 @@ mrb_init_proc(mrb_state *mrb)
   mrb_define_class_method(mrb, mrb->proc_class, "new", mrb_proc_s_new, MRB_ARGS_NONE()|MRB_ARGS_BLOCK());
   mrb_define_method(mrb, mrb->proc_class, "initialize_copy", mrb_proc_init_copy, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, mrb->proc_class, "arity", proc_arity, MRB_ARGS_NONE()); /* 15.2.17.4.2 */
+  mrb_define_method(mrb, mrb->proc_class, "==", proc_eql, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, mrb->proc_class, "eql?", proc_eql, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, mrb->proc_class, "hash", proc_hash, MRB_ARGS_NONE()); /* 15.2.17.4.2 */
 
   MRB_METHOD_FROM_PROC(m, &call_proc);
   mrb_define_method_raw(mrb, mrb->proc_class, MRB_SYM(call), m);   /* 15.2.17.4.3 */
