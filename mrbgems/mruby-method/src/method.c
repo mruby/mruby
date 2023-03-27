@@ -181,6 +181,21 @@ unbound_method_bind(mrb_state *mrb, mrb_value self)
   return mrb_obj_value(me);
 }
 
+static mrb_bool
+method_p(mrb_state *mrb, struct RClass *c, mrb_value proc)
+{
+  if (mrb_type(proc) != MRB_TT_OBJECT) return FALSE;
+  if (!mrb_obj_is_instance_of(mrb, proc, c)) return FALSE;
+
+  struct RObject *p = mrb_obj_ptr(proc);
+  if (!mrb_obj_iv_defined(mrb, p, MRB_SYM(_owner))) return FALSE;
+  if (!mrb_obj_iv_defined(mrb, p, MRB_SYM(_recv))) return FALSE;
+  if (!mrb_obj_iv_defined(mrb, p, MRB_SYM(_name))) return FALSE;
+  if (!mrb_obj_iv_defined(mrb, p, MRB_SYM(_proc))) return FALSE;
+  if (!mrb_obj_iv_defined(mrb, p, MRB_SYM(_klass))) return FALSE;
+  return TRUE;
+}
+
 #define IV_GET(value, name) mrb_iv_get(mrb, value, name)
 static mrb_value
 method_eql(mrb_state *mrb, mrb_value self)
@@ -190,10 +205,7 @@ method_eql(mrb_state *mrb, mrb_value self)
   struct RClass *owner;
   struct RProc *orig_rproc, *other_rproc;
 
-  if (!mrb_obj_is_instance_of(mrb, other, mrb_class(mrb, self)))
-    return mrb_false_value();
-
-  if (mrb_class(mrb, self) != mrb_class(mrb, other))
+  if (!method_p(mrb, mrb_class(mrb, self), other))
     return mrb_false_value();
 
   owner = mrb_class_ptr(IV_GET(self, MRB_SYM(_owner)));
