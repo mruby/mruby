@@ -203,7 +203,6 @@ method_eql(mrb_state *mrb, mrb_value self)
   mrb_value other = mrb_get_arg1(mrb);
   mrb_value receiver, orig_proc, other_proc;
   struct RClass *owner;
-  struct RProc *orig_rproc, *other_rproc;
 
   if (!method_p(mrb, mrb_class(mrb, self), other))
     return mrb_false_value();
@@ -228,22 +227,7 @@ method_eql(mrb_state *mrb, mrb_value self)
   if (mrb_nil_p(orig_proc)) return mrb_false_value();
   if (mrb_nil_p(other_proc)) return mrb_false_value();
 
-  orig_rproc = mrb_proc_ptr(orig_proc);
-  other_rproc = mrb_proc_ptr(other_proc);
-  if (MRB_PROC_CFUNC_P(orig_rproc)) {
-    if (!MRB_PROC_CFUNC_P(other_rproc))
-      return mrb_false_value();
-    if (orig_rproc->body.func != other_rproc->body.func)
-      return mrb_false_value();
-  }
-  else {
-    if (MRB_PROC_CFUNC_P(other_rproc))
-      return mrb_false_value();
-    if (orig_rproc->body.irep != other_rproc->body.irep)
-      return mrb_false_value();
-  }
-
-  return mrb_true_value();
+  return mrb_bool_value(mrb_proc_eql(mrb, orig_proc, other_proc));
 }
 
 #undef IV_GET
