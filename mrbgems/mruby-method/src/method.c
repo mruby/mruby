@@ -214,11 +214,11 @@ method_eql(mrb_state *mrb, mrb_value self)
 
   orig_proc = IV_GET(self, MRB_SYM(_proc));
   other_proc = IV_GET(other, MRB_SYM(_proc));
-  if (mrb_nil_p(orig_proc)) {
-    if (mrb_nil_p(other_proc)) {
-      if (mrb_symbol(IV_GET(self, MRB_SYM(_name))) == mrb_symbol(IV_GET(other, MRB_SYM(_name))))
-        return mrb_true_value();
-    }
+  if (mrb_nil_p(orig_proc) && mrb_nil_p(other_proc) &&
+      mrb_symbol(IV_GET(self, MRB_SYM(_name))) == mrb_symbol(IV_GET(other, MRB_SYM(_name)))) {
+    return mrb_true_value();
+  }
+  if (mrb_nil_p(orig_proc) || mrb_nil_p(other_proc)) {
     return mrb_false_value();
   }
   return mrb_bool_value(mrb_proc_eql(mrb, orig_proc, other_proc));
