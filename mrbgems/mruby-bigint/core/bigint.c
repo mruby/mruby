@@ -1450,7 +1450,6 @@ mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_int exp, mrb_value mod)
       mpz_powm(mrb, &b3->mp, &b->mp, exp, &b2->mp);
       return bint_norm(mrb, b3);
     }
-    mrb_raise(mrb, E_TYPE_ERROR, "too big power");
   default:
     mrb_raisef(mrb, E_TYPE_ERROR, "%v cannot be convert to integer", mod);
   }
