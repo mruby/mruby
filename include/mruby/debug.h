@@ -46,7 +46,7 @@ typedef struct mrb_irep_debug_info {
 } mrb_irep_debug_info;
 
 /*
- * get line from irep's debug info and program counter
+ * get filename from irep's debug info and program counter
  * @return returns NULL if not found
  */
 MRB_API const char *mrb_debug_get_filename(mrb_state *mrb, const mrb_irep *irep, uint32_t pc);
