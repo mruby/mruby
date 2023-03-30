@@ -199,7 +199,7 @@ mrb_value mrb_bint_mul_ii(mrb_state *mrb, mrb_int x, mrb_int y);
 mrb_value mrb_bint_mod(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_bint_rem(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_bint_pow(mrb_state *mrb, mrb_value x, mrb_value y);
-mrb_value mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_int y, mrb_value z);
+mrb_value mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_value y, mrb_value z);
 mrb_value mrb_bint_and(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_bint_or(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_bint_xor(mrb_state *mrb, mrb_value x, mrb_value y);

@@ -73,16 +73,16 @@ int_powm(mrb_state *mrb, mrb_value x)
       ) {
     mrb_raise(mrb, E_TYPE_ERROR, "int.pow(n,m): 2nd argument not allowed unless 1st argument is an integer");
   }
-  exp = mrb_as_int(mrb, e);
-  if (exp < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "int.pow(n,m): n must be positive");
 #ifdef MRB_USE_BIGINT
   if (mrb_bigint_p(x)) {
-    return mrb_bint_powm(mrb, x, exp, m);
+    return mrb_bint_powm(mrb, x, e, m);
   }
-  if (mrb_bigint_p(m)) {
-    return mrb_bint_powm(mrb, mrb_bint_new_int(mrb, mrb_integer(x)), exp, m);
+  if (mrb_bigint_p(e) || mrb_bigint_p(m)) {
+    return mrb_bint_powm(mrb, mrb_bint_new_int(mrb, mrb_integer(x)), e, m);
   }
 #endif
+  exp = mrb_integer(e);
+  if (exp < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "int.pow(n,m): n must be positive");
   if (!mrb_integer_p(m)) mrb_raise(mrb, E_TYPE_ERROR, "int.pow(n,m): m must be integer");
   mod = mrb_integer(m);
   if (mod < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "int.pow(n,m): m must be positive when 2nd argument specified");
@@ -96,7 +96,7 @@ int_powm(mrb_state *mrb, mrb_value x)
         result %= mod; base %= mod;
         if (mrb_int_mul_overflow(result, base, &tmp)) {
 #ifdef MRB_USE_BIGINT
-          return mrb_bint_powm(mrb, mrb_bint_new_int(mrb, mrb_integer(x)), mrb_integer(e), m);
+          return mrb_bint_powm(mrb, mrb_bint_new_int(mrb, mrb_integer(x)), e, m);
 #else
           mrb_int_overflow(mrb, "pow");
 #endif
@@ -110,7 +110,7 @@ int_powm(mrb_state *mrb, mrb_value x)
       base %= mod;
       if (mrb_int_mul_overflow(base, base, &tmp)) {
 #ifdef MRB_USE_BIGINT
-        return mrb_bint_powm(mrb, mrb_bint_new_int(mrb, mrb_integer(x)), mrb_integer(e), m);
+        return mrb_bint_powm(mrb, mrb_bint_new_int(mrb, mrb_integer(x)), e, m);
 #else
         mrb_int_overflow(mrb, "pow");
 #endif

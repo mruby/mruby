@@ -942,7 +942,41 @@ mpz_pow(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int e)
 }
 
 static void
-mpz_powm(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int ex, mpz_t *n)
+mpz_powm(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
+{
+  mpz_t t, b;
+
+  if (uzero(ex)) {
+    mpz_set_int(mrb, zz, 1);
+    return;
+  }
+
+  if (ex->sn < 0) {
+    return;
+  }
+
+  mpz_init_set_int(mrb, &t, 1);
+  mpz_init_set(mrb, &b, x);
+
+  size_t len = digits(ex);
+  for (size_t i=0; i<len; i++) {
+    mp_limb e = ex->p[i];
+    for (size_t j=0; j<sizeof(mp_limb)*8; j++) {
+      if ((e & 1) == 1) {
+        mpz_mul(mrb, &t, &t, &b);
+        mpz_mod(mrb, &t, &t, n);
+      }
+      e >>= 1;
+      mpz_mul(mrb, &b, &b, &b);
+      mpz_mod(mrb, &b, &b, n);
+    }
+  }
+  mpz_move(mrb, zz, &t);
+  mpz_clear(mrb, &b);
+}
+
+static void
+mpz_powm_i(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int ex, mpz_t *n)
 {
   mpz_t t, b;
 
@@ -1429,31 +1463,36 @@ mrb_bint_pow(mrb_state *mrb, mrb_value x, mrb_value y)
 }
 
 mrb_value
-mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_int exp, mrb_value mod)
+mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_value exp, mrb_value mod)
 {
   struct RBigint *b = RBIGINT(x);
-  switch (mrb_type(mod)) {
-  case MRB_TT_INTEGER:
-    {
-      mrb_int m = mrb_integer(mod);
-      if (m == 0) mrb_int_zerodiv(mrb);
-      struct RBigint *b2 = bint_new_int(mrb, m);
-      struct RBigint *b3 = bint_new(mrb);
-      mpz_powm(mrb, &b3->mp, &b->mp, exp, &b2->mp);
-      return bint_norm(mrb, b3);
-    }
-  case MRB_TT_BIGINT:
-    {
-      struct RBigint *b2 = RBIGINT(mod);
-      struct RBigint *b3 = bint_new(mrb);
-      if (uzero(&b2->mp)) mrb_int_zerodiv(mrb);
-      mpz_powm(mrb, &b3->mp, &b->mp, exp, &b2->mp);
-      return bint_norm(mrb, b3);
-    }
-  default:
-    mrb_raisef(mrb, E_TYPE_ERROR, "%v cannot be convert to integer", mod);
+  struct RBigint *b2, *b3;
+
+  if (mrb_bigint_p(mod)) {
+    b2 = RBIGINT(mod);
+    if (uzero(&b2->mp)) mrb_int_zerodiv(mrb);
   }
-  return mrb_nil_value();
+  else {
+    mrb_int m = mrb_integer(mod);
+    if (m == 0) mrb_int_zerodiv(mrb);
+    b2 = bint_new_int(mrb, m);
+  }
+  b3 = bint_new(mrb);
+  if (mrb_bigint_p(exp)) {
+    struct RBigint *be = RBIGINT(exp);
+    if (be->mp.sn < 0) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "int.pow(n,m): n must be positive");
+    }
+    mpz_powm(mrb, &b3->mp, &b->mp, &be->mp, &b2->mp);
+  }
+  else {
+    mrb_int e = mrb_integer(exp);
+    if (e < 0) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "int.pow(n,m): n must be positive");
+    }
+    mpz_powm_i(mrb, &b3->mp, &b->mp, e, &b2->mp);
+  }
+  return bint_norm(mrb, b3);
 }
 
 mrb_value
