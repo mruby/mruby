@@ -64,7 +64,7 @@ p Liste.new "foobar"
 
 #### Ruby [ruby 2.0.0p645 (2015-04-13 revision 50299)]
 
-` [] `
+`[]`
 
 #### mruby [3.1.0 (2022-05-12)]
 
@@ -114,7 +114,7 @@ The declaration form of following visibility methods are not implemented.
 
 Especially, `module_function` method is not dummy, but no declaration form.
 
-```
+```ruby
 module TestModule
   module_function
   def test_func
@@ -170,7 +170,7 @@ alias $a $__a__
 
 #### Ruby [ruby 2.0.0p645 (2015-04-13 revision 50299)]
 
-` nil `
+`nil`
 
 #### mruby [3.1.0 (2022-05-12)]
 
@@ -196,7 +196,7 @@ The re-defined `+` operator does not accept any arguments.
 
 #### mruby [3.1.0 (2022-05-12)]
 
-` 'ab' `
+`'ab'`
 Behavior of the operator wasn't changed.
 
 ## `Kernel#binding` is not supported until [3.0.0 (2021-03-05)]
@@ -205,7 +205,7 @@ Behavior of the operator wasn't changed.
 
 #### Ruby [ruby 2.5.1p57 (2018-03-29 revision 63029)]
 
-```
+```shell
 $ ruby -e 'puts Proc.new {}.binding'
 #<Binding:0x00000e9deabb9950>
 ```
