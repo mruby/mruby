@@ -264,6 +264,7 @@ mrb_to_time_t(mrb_state *mrb, mrb_value obj, time_t *usec)
           else {
             t = (time_t)mrb_bint_as_int64(mrb, obj);
           }
+          if (usec) { *usec = 0; }
           break;
         }
         else {
@@ -299,7 +300,6 @@ out_of_range:
   mrb_raisef(mrb, E_ARGUMENT_ERROR, "%v out of Time range", obj);
 
   /* not reached */
-  if (usec) { *usec = 0; }
   return 0;
 }
 
