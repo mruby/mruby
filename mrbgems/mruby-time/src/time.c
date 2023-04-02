@@ -212,7 +212,6 @@ void mrb_check_num_exact(mrb_state *mrb, mrb_float num);
                     (sizeof(time_t) <= 4 ? INT32_MAX : INT64_MAX)           \
 )
 
-#if defined(MRB_NO_FLOAT) || defined(MRB_USE_BIGINT)
 /* return true if time_t is fit in mrb_int */
 static mrb_bool
 fixable_time_t_p(time_t v)
@@ -223,7 +222,6 @@ fixable_time_t_p(time_t v)
   if (MRB_INT_MIN > (mrb_int)v) return FALSE;
   return TRUE;
 }
-#endif
 
 static time_t
 mrb_to_time_t(mrb_state *mrb, mrb_value obj, time_t *usec)
