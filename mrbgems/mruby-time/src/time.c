@@ -316,6 +316,8 @@ time_value_from_time_t(mrb_state *mrb, time_t t)
     }
 #elif !defined(MRB_NO_FLOAT)
     return mrb_float_value(mrb, (mrb_float)t);
+#else
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "Time too big");
 #endif
   }
   return mrb_int_value(mrb, (mrb_int)t);
