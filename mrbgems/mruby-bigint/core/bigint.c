@@ -1186,12 +1186,14 @@ mrb_bint_as_int64(mrb_state *mrb, mrb_value x)
   out_of_range:
     mrb_raise(mrb, E_RANGE_ERROR, "integer out of range");
   }
-  for (size_t i=0; i<len; i++) {
+  for (size_t i=len-1; ; i--) {
     u <<= DIG_SIZE;
     u |= m->p[i];
+    if (i==0) break;
   }
   if (u > INT64_MAX) goto out_of_range;
-  return -(int64_t)u;
+  if (m->sn < 0) return -(int64_t)u;
+  return (int64_t)u;
 }
 #endif
 
@@ -1206,9 +1208,10 @@ mrb_bint_as_uint64(mrb_state *mrb, mrb_value x)
   if (m->sn < 0 || len*sizeof(mp_limb) > sizeof(uint64_t)) {
     mrb_raise(mrb, E_RANGE_ERROR, "integer out of range");
   }
-  for (size_t i=0; i<len; i++) {
+  for (size_t i=len-1; ; i--) {
     u <<= DIG_SIZE;
     u |= m->p[i];
+    if (i==0) break;
   }
   return u;
 }
