@@ -8,6 +8,9 @@ MRuby::GemBox.new do |conf|
   # Generate mrbc command
   conf.gem :core => "mruby-bin-mrbc"
 
+  # Generate mrdb command
+  conf.gem :core => "mruby-bin-debugger"
+
   # Generate mirb command
   conf.gem :core => "mruby-bin-mirb"
 
