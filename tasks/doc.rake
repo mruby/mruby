@@ -9,7 +9,7 @@ namespace :doc do
     begin
       sh "mrbdoc"
     rescue
-      puts "ERROR: To generate yard documentation, you should install yard-mruby gem."
+      puts "ERROR: To generate YARD documentation, you should install yard-mruby gem."
       puts "  $ gem install yard-mruby yard-coderay"
       puts "https://yardoc.org/"
       puts "https://rubygems.org/gems/yard-mruby"
