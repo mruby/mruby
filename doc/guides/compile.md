@@ -527,7 +527,7 @@ After the build, you will get `libmruby.a`. You can link it to your application.
 For compiler options and library path, you can use `mruby-config` command for
 convenience. `mruby-config` command prints the configuration used for `libmruby.a`.
 
-```
+```console
 $ mruby-config --help
 Usage: mruby-config [switches]
   switches:

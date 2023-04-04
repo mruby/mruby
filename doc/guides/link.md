@@ -54,7 +54,7 @@ command with following options:
 - `--cc`                    compiler name
 - `--cflags`                options passed to compiler
 
-```
+```console
 $ mruby-config --cflags
 -std=gnu99 -g -O3 -Wall -DMRB_GC_FIXED_ARENA -I/home/matz/work/mruby/include -I/home/matz/work/mruby/build/host/include
 ```
@@ -71,7 +71,7 @@ To retrieve linker options, you can use `mruby-config` with following options:
 - `--ldflags-before-libs`   options passed to linker before linked libraries
 - `--libs`                  linked libraries
 
-```
+```console
 $ mruby-config --ldflags
 -L/home/matz/work/mruby/build/host/lib
 
