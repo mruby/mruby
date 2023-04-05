@@ -1,6 +1,16 @@
-# mruby
-
-[![GitHub Super-Linter](https://github.com/mruby/mruby/workflows/Lint%20Code%20Base/badge.svg)](https://github.com/marketplace/actions/super-linter)
+<div align="center">
+  <p>
+    <a href="https://mruby.org/">
+      <img src="https://avatars.githubusercontent.com/u/1796512?s=200&v=4"
+        alt="The mruby programming language" title="mruby">
+    </a>
+  </p>
+  <h1>mruby</h1>
+  <a href="https://github.com/marketplace/actions/super-linter">
+    <img src="https://github.com/mruby/mruby/workflows/Lint%20Code%20Base/badge.svg"
+      alt="GitHub Super-Linter">
+  </a>
+</div>
 
 ## What is mruby
 
