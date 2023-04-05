@@ -3123,18 +3123,10 @@ mrb_run(mrb_state *mrb, const struct RProc *proc, mrb_value self)
 MRB_API mrb_value
 mrb_top_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, mrb_int stack_keep)
 {
-  mrb_value v;
-
-  if (!mrb->c->cibase) {
-    return mrb_vm_run(mrb, proc, self, stack_keep);
+  if (mrb->c->cibase && mrb->c->ci > mrb->c->cibase) {
+    cipush(mrb, 0, CINFO_SKIP, mrb->object_class, NULL, NULL, 0, 0);
   }
-  if (mrb->c->ci == mrb->c->cibase) {
-    return mrb_vm_run(mrb, proc, self, stack_keep);
-  }
-  cipush(mrb, 0, CINFO_SKIP, mrb->object_class, NULL, NULL, 0, 0);
-  v = mrb_vm_run(mrb, proc, self, stack_keep);
-
-  return v;
+  return mrb_vm_run(mrb, proc, self, stack_keep);
 }
 
 #if defined(MRB_USE_CXX_EXCEPTION) && defined(__cplusplus)
