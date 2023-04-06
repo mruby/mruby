@@ -2212,7 +2212,6 @@ RETRY_TRY_BLOCK:
           }
         }
 
-        if (ch == NULL) goto L_STOP;
         if (FALSE) {
         L_CATCH_TAGGED_BREAK: /* from THROW_TAGGED_BREAK() or UNWIND_ENSURE() */
           ci = mrb->c->ci;
