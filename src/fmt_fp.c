@@ -267,10 +267,9 @@ mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, ch
 
   if (fmt == 'e') {
     num_digits = prec + 1;
-  } else if (fmt == 'g') {
-    if (prec == 0) {
-      prec = 1;
-    }
+    if (prec == 0) prec = 1;
+  }
+  else if (fmt == 'g') {
     num_digits = prec;
   }
 
