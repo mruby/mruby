@@ -267,7 +267,7 @@ simple_debug_info(mrb_irep_debug_info *info)
 //adds filenames in init_syms_code block
 static int
 cdump_debug(mrb_state *mrb, const char *name, int n, mrb_irep_debug_info *info,
-    mrb_value init_syms_code, FILE *fp)
+            mrb_value init_syms_code, FILE *fp)
 {
   char buffer[256];
   const char *filename;
@@ -281,11 +281,10 @@ cdump_debug(mrb_state *mrb, const char *name, int n, mrb_irep_debug_info *info,
   len = info->files[0]->line_entry_count;
 
   filename = mrb_sym_name_len(mrb, info->files[0]->filename_sym, &file_len);
-  snprintf(buffer, sizeof(buffer), "  %s_debug_file_%d.filename_sym = mrb_intern_lit(mrb,\"",
-      name, n);
+  snprintf(buffer, sizeof(buffer), "  %s_debug_file_%d.filename_sym = mrb_intern_lit(mrb,", name, n);
   mrb_str_cat_cstr(mrb, init_syms_code, buffer);
-  mrb_str_cat_cstr(mrb, init_syms_code, filename);
-  mrb_str_cat_cstr(mrb, init_syms_code, "\");\n");
+  mrb_str_cat_str(mrb, init_syms_code, mrb_str_dump(mrb, mrb_str_new_cstr(mrb, filename)));
+  mrb_str_cat_cstr(mrb, init_syms_code, ");\n");
 
   switch (info->files[0]->line_type) {
   case mrb_debug_line_ary:
