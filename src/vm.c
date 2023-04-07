@@ -2643,13 +2643,13 @@ RETRY_TRY_BLOCK:
   /* need to check if - is overridden */\
   switch (TYPES2(mrb_type(regs[a]),mrb_type(regs[a+1]))) {\
   case TYPES2(MRB_TT_INTEGER,MRB_TT_INTEGER):\
-    result = OP_CMP_BODY(op,mrb_fixnum,mrb_fixnum);\
+    result = OP_CMP_BODY(op,mrb_integer,mrb_integer);\
     break;\
   case TYPES2(MRB_TT_INTEGER,MRB_TT_FLOAT):\
-    result = OP_CMP_BODY(op,mrb_fixnum,mrb_float);\
+    result = OP_CMP_BODY(op,mrb_integer,mrb_float);\
     break;\
   case TYPES2(MRB_TT_FLOAT,MRB_TT_INTEGER):\
-    result = OP_CMP_BODY(op,mrb_float,mrb_fixnum);\
+    result = OP_CMP_BODY(op,mrb_float,mrb_integer);\
     break;\
   case TYPES2(MRB_TT_FLOAT,MRB_TT_FLOAT):\
     result = OP_CMP_BODY(op,mrb_float,mrb_float);\
