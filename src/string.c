@@ -1249,19 +1249,16 @@ str_escape(mrb_state *mrb, mrb_value str, mrb_bool inspect)
       case 033: cc = 'e'; break;
       default: cc = 0; break;
     }
+    buf[0] = '\\';
     if (cc) {
-      buf[0] = '\\';
       buf[1] = (char)cc;
       mrb_str_cat(mrb, result, buf, 2);
-      continue;
     }
     else {
-      buf[0] = '\\';
       buf[1] = 'x';
       buf[3] = mrb_digitmap[c % 16]; c /= 16;
       buf[2] = mrb_digitmap[c % 16];
       mrb_str_cat(mrb, result, buf, 4);
-      continue;
     }
   }
   mrb_str_cat_lit(mrb, result, "\"");
