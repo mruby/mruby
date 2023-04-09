@@ -515,6 +515,7 @@ mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
     }
     tt = MRB_INSTANCE_TT(cls);
     if (tt != MRB_TT_FALSE &&
+        tt != MRB_TT_UNDEF &&
         ttype != MRB_TT_SCLASS &&
         ttype != MRB_TT_ICLASS &&
         ttype != MRB_TT_ENV &&

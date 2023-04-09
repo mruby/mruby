@@ -2219,7 +2219,7 @@ mrb_init_numeric(mrb_state *mrb)
 
   /* Integer Class */
   mrb->integer_class = integer = mrb_define_class(mrb, "Integer",  numeric);     /* 15.2.8 */
-  MRB_SET_INSTANCE_TT(integer, MRB_TT_INTEGER);
+  MRB_SET_INSTANCE_TT(integer, MRB_TT_UNDEF);
   mrb_undef_class_method(mrb, integer, "new");
   mrb_define_method(mrb, integer, "**",       int_pow,         MRB_ARGS_REQ(1));
   mrb_define_method(mrb, integer, "<=>",      num_cmp,         MRB_ARGS_REQ(1)); /* 15.2.8.3.1  */
@@ -2264,7 +2264,7 @@ mrb_init_numeric(mrb_state *mrb)
 #ifndef MRB_NO_FLOAT
   /* Float Class */
   mrb->float_class = fl = mrb_define_class(mrb, "Float", numeric);                 /* 15.2.9 */
-  MRB_SET_INSTANCE_TT(fl, MRB_TT_FLOAT);
+  MRB_SET_INSTANCE_TT(fl, MRB_TT_UNDEF);
   mrb_undef_class_method(mrb,  fl, "new");
   mrb_define_method(mrb, fl,      "**",        flo_pow,        MRB_ARGS_REQ(1));
   mrb_define_method(mrb, fl,      "/",         flo_div,        MRB_ARGS_REQ(1)); /* 15.2.9.3.6 */
