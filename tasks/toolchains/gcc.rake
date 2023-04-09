@@ -20,6 +20,10 @@ MRuby::Toolchain.new(:gcc) do |conf, params|
     compiler.cxx_compile_flag = '-x c++ -std=gnu++03'
     compiler.cxx_exception_flag = '-fexceptions'
     compiler.cxx_invalid_flags = c_mandatory_flags + cxx_invalid_flags
+
+    def compiler.setup_debug(conf)
+      self.flags << %w(-g3 -O0)
+    end
   end
 
   conf.linker do |linker|
