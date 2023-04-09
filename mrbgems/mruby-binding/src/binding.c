@@ -382,10 +382,13 @@ mrb_f_binding(mrb_state *mrb, mrb_value self)
   struct RProc *proc;
   struct REnv *env;
 
+  if (mrb->c->ci->cci != 0) {
+  caller_err:
+    mrb_raise(mrb, E_RUNTIME_ERROR, "Cannot create Binding object for non-Ruby caller");
+  }
   proc = (struct RProc*)mrb_proc_get_caller(mrb, &env);
   if (!env || MRB_PROC_CFUNC_P(proc)) {
-    proc = NULL;
-    env = NULL;
+    goto caller_err;
   }
   return mrb_binding_new(mrb, proc, self, env);
 }

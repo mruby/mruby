@@ -8,7 +8,7 @@ binding_in_c(mrb_state *mrb, mrb_value self)
 }
 
 void
-mrb_mruby_binding_eval_gem_test(mrb_state *mrb)
+mrb_mruby_binding_gem_test(mrb_state *mrb)
 {
   mrb_define_method(mrb, mrb->object_class, "binding_in_c", binding_in_c, MRB_ARGS_NONE());
 }

@@ -43,12 +43,6 @@ assert("Binding#local_variable_get") do
   }
 end
 
-assert "Kernel#binding and .eval from C" do
-  bind = binding_in_c
-  assert_equal 5, bind.eval("2 + 3")
-  assert_nothing_raised { bind.eval("self") }
-end
-
 assert "Binding#eval with Binding.new via UnboundMethod" do
   assert_raise(NoMethodError) { Class.instance_method(:new).bind_call(Binding) }
 end
