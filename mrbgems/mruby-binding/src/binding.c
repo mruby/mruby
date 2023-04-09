@@ -390,25 +390,6 @@ mrb_f_binding(mrb_state *mrb, mrb_value self)
   return mrb_binding_new(mrb, proc, self, env);
 }
 
-/* provided by mruby-eval */
-mrb_value mrb_f_eval(mrb_state *mrb, mrb_value self);
-
-static mrb_value
-mrb_binding_eval(mrb_state *mrb, mrb_value binding)
-{
-  mrb_callinfo *ci = mrb->c->ci;
-  int argc = ci->n;
-  mrb_value *argv = ci->stack + 1;
-
-  if (argc < 15) {
-    argv[0] = mrb_ary_new_from_values(mrb, argc, argv);
-    argv[1] = argv[argc];       /* copy block */
-    ci->n = 15;
-  }
-  mrb_ary_splice(mrb, argv[0], 1, 0, binding); /* insert binding as 2nd argument */
-  return mrb_f_eval(mrb, binding);
-}
-
 void
 mrb_mruby_binding_gem_init(mrb_state *mrb)
 {
@@ -426,7 +407,6 @@ mrb_mruby_binding_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, binding, "receiver", binding_receiver, MRB_ARGS_NONE());
   mrb_define_method(mrb, binding, "source_location", binding_source_location, MRB_ARGS_NONE());
   mrb_define_method(mrb, binding, "inspect", mrb_any_to_s, MRB_ARGS_NONE());
-  mrb_define_method(mrb, binding, "eval", mrb_binding_eval, MRB_ARGS_ANY());
 }
 
 void
