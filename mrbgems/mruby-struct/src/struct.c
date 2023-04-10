@@ -30,7 +30,7 @@ struct_class(mrb_state *mrb)
 static void
 struct_corrupted(mrb_state *mrb)
 {
-  mrb_raise(mrb, E_TYPE_ERROR, "corrupted data");
+  mrb_raise(mrb, E_TYPE_ERROR, "corrupted struct");
 }
 
 static mrb_value
