@@ -1,5 +1,6 @@
 #include <mruby.h>
 #include <mruby/array.h>
+#include <mruby/class.h>
 #include <mruby/hash.h>
 #include <mruby/proc.h>
 #include <mruby/variable.h>
@@ -413,6 +414,7 @@ void
 mrb_mruby_binding_gem_init(mrb_state *mrb)
 {
   struct RClass *binding = mrb_define_class(mrb, "Binding", mrb->object_class);
+  MRB_SET_INSTANCE_TT(binding, MRB_TT_UNDEF);
   mrb_undef_class_method(mrb, binding, "new");
   mrb_undef_class_method(mrb, binding, "allocate");
 
