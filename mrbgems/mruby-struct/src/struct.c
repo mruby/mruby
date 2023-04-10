@@ -264,6 +264,9 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
   mrb_int argc;
 
   mrb_get_args(mrb, "*&", &argv, &argc, &b);
+  if (argc == 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (given 0, expected 1+)");
+  }
   pargv = argv;
   argcnt = argc;
   if (argc > 0 && !mrb_symbol_p(argv[0])) {
