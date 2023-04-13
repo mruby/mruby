@@ -58,3 +58,7 @@ assert("Binding#dup") do
   assert_equal 30, bind1.local_variable_get(:z)
   assert_equal 40, bind2.local_variable_get(:z)
 end
+
+assert "Kernel#binding and .eval from C" do
+  assert_raise(RuntimeError) { binding_in_c }
+end
