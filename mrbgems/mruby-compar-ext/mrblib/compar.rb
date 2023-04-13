@@ -53,8 +53,17 @@ module Comparable
         if min.nil?
           min = self
         end
+      elsif min.nil? or min < self
+        return self
       else
-        raise TypeError, "wrong argument type #{min.class}"
+        return min
+      end
+    end
+    if min.nil?
+      if self < max
+        return self
+      else
+        return max
       end
     end
     c = min <=> max
