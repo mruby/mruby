@@ -963,4 +963,7 @@ assert('String#bytesplice') do
 
   # check the negative length
   assert_raise(IndexError) { "0123456789".bytesplice(3, -4, "ab") }
+
+  # with an empty string
+  assert_equal "012789", "0123456789".bytesplice(3, 4, "")
 end

@@ -2966,7 +2966,6 @@ str_bytesplice(mrb_state *mrb, mrb_value str, mrb_int idx1, mrb_int len1, mrb_va
   if (mrb_int_add_overflow(idx2, len2, &n) || RSTRING_LEN(replace) < n) {
     len2 = RSTRING_LEN(replace) - idx2;
   }
-  if (len2 == 0) return str;
   mrb_str_modify(mrb, s);
   if (len1 >= len2) {
     memmove(RSTR_PTR(s)+idx1, RSTRING_PTR(replace)+idx2, len2);
