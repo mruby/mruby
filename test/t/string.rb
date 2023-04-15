@@ -955,4 +955,9 @@ assert('String#bytesplice') do
   # check the overflow to index and length (to be pass without crash)
   assert_nothing_raised { "0123456789".bytesplice(8, ~(-1 << 31), "ab") } # for MRB_INT32
   assert_nothing_raised { begin; "0123456789".bytesplice(8, ~(-1 << 63), "ab"); rescue ArgumentError, RangeError; end } # for MRB_INT64
+
+  # check the negative index
+  assert_equal "0ab3456789", "0123456789".bytesplice(-9, 2, "ab")
+  assert_equal "ab23456789", "0123456789".bytesplice(-10, 2, "ab")
+  assert_raise(IndexError) { "0123456789".bytesplice(-11, 2, "ab") }
 end

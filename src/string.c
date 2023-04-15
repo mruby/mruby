@@ -2947,7 +2947,13 @@ static mrb_value
 str_bytesplice(mrb_state *mrb, mrb_value str, mrb_int idx1, mrb_int len1, mrb_value replace, mrb_int idx2, mrb_int len2)
 {
   struct RString *s = RSTRING(str);
-  if (RSTR_LEN(s) < idx1 || RSTRING_LEN(replace) < idx2) {
+  if (idx1 < 0) {
+    idx1 += RSTR_LEN(s);
+  }
+  if (idx2 < 0) {
+    idx2 += RSTRING_LEN(replace);
+  }
+  if (RSTR_LEN(s) < idx1 || idx1 < 0 || RSTRING_LEN(replace) < idx2 || idx2 < 0) {
     mrb_raise(mrb, E_INDEX_ERROR, "index out of string");
   }
   mrb_int n;
