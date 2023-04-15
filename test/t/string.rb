@@ -951,4 +951,8 @@ assert('String#bytesplice') do
 
   # check the object type to replace
   assert_raise(TypeError) { "0123456789".bytesplice(1, 1, Object.new) }
+
+  # check the overflow to index and length (to be pass without crash)
+  assert_nothing_raised { "0123456789".bytesplice(8, ~(-1 << 31), "ab") } # for MRB_INT32
+  assert_nothing_raised { begin; "0123456789".bytesplice(8, ~(-1 << 63), "ab"); rescue ArgumentError, RangeError; end } # for MRB_INT64
 end

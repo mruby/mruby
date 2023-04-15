@@ -2950,10 +2950,11 @@ str_bytesplice(mrb_state *mrb, mrb_value str, mrb_int idx1, mrb_int len1, mrb_va
   if (RSTR_LEN(s) < idx1 || RSTRING_LEN(replace) < idx2) {
     mrb_raise(mrb, E_INDEX_ERROR, "index out of string");
   }
-  if (RSTR_LEN(s) <= idx1+len1) {
+  mrb_int n;
+  if (mrb_int_add_overflow(idx1, len1, &n) || RSTR_LEN(s) < n) {
     len1 = RSTR_LEN(s) - idx1;
   }
-  if (RSTRING_LEN(replace) <= idx2+len2) {
+  if (mrb_int_add_overflow(idx2, len2, &n) || RSTRING_LEN(replace) < n) {
     len2 = RSTRING_LEN(replace) - idx2;
   }
   if (len2 == 0) return str;
