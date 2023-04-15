@@ -3006,6 +3006,7 @@ mrb_str_bytesplice(mrb_state *mrb, mrb_value str)
       mrb_get_args(mrb, "iiS", &idx1, &len1, &replace);
       return str_bytesplice(mrb, str, idx1, len1, replace, 0, RSTRING_LEN(replace));
     }
+    mrb_ensure_string_type(mrb, replace);
     if (mrb_range_beg_len(mrb, range1, &idx1, &len1, RSTRING_LEN(str), FALSE) != MRB_RANGE_OK) break;
     if (mrb_range_beg_len(mrb, range2, &idx2, &len2, RSTRING_LEN(replace), FALSE) != MRB_RANGE_OK) break;
     return str_bytesplice(mrb, str, idx1, len1, replace, idx2, len2);

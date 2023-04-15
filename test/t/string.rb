@@ -948,4 +948,7 @@ assert('String#bytesplice') do
   # idx, len, replace, idx, len (len1<len2)
   a = "0123456789"
   assert_equal "0cd23456789", a.bytesplice(1, 1, b, 2, 2)
+
+  # check the object type to replace
+  assert_raise(TypeError) { "0123456789".bytesplice(1, 1, Object.new) }
 end
