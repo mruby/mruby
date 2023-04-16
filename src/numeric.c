@@ -1365,13 +1365,12 @@ int_equal(mrb_state *mrb, mrb_value x)
 static mrb_value
 int_rev(mrb_state *mrb, mrb_value num)
 {
-  mrb_int val = mrb_integer(num);
-
 #ifdef MRB_USE_BIGINT
   if (mrb_bigint_p(num)) {
-    mrb_bint_rev(mrb, num);
+    return mrb_bint_rev(mrb, num);
   }
 #endif
+  mrb_int val = mrb_integer(num);
   return mrb_int_value(mrb, ~val);
 }
 
