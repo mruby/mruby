@@ -902,62 +902,68 @@ end
 assert('String#bytesplice') do
   # range, replace (len1=len2)
   a = "0123456789"
-  assert_equal "ab", a.bytesplice(1..2, "ab")
-  assert_equal "0ab3456789", a
+  assert_equal "0ab3456789", a.bytesplice(1..2, "ab")
 
   # range, replace (len1>len2)
   a = "0123456789"
-  assert_equal "ab", a.bytesplice(1..3, "ab")
-  assert_equal "0ab456789", a
+  assert_equal "0ab456789", a.bytesplice(1..3, "ab")
 
   # range, replace (len1<len2)
   a = "0123456789"
-  assert_equal "ab", a.bytesplice(1..1, "ab")
-  assert_equal "0ab23456789", a
+  assert_equal "0ab23456789", a.bytesplice(1..1, "ab")
 
   # idx, len, replace (len1=len2)
   a = "0123456789"
-  assert_equal "ab", a.bytesplice(1, 2, "ab")
-  assert_equal "0ab3456789", a
+  assert_equal "0ab3456789", a.bytesplice(1, 2, "ab")
 
   # idx, len, replace (len1>len2)
   a = "0123456789"
-  assert_equal "ab", a.bytesplice(1, 3, "ab")
-  assert_equal "0ab456789", a
+  assert_equal "0ab456789", a.bytesplice(1, 3, "ab")
 
   # idx, len, replace (len1<len2)
   a = "0123456789"
-  assert_equal "ab", a.bytesplice(1, 1, "ab")
-  assert_equal "0ab23456789", a
+  assert_equal "0ab23456789", a.bytesplice(1, 1, "ab")
 
   b = "abcdefg"
   # range, replace, range (len1=len2)
   a = "0123456789"
-  assert_equal b, a.bytesplice(1..2, b, 0..1)
-  assert_equal "0ab3456789", a
+  assert_equal "0ab3456789", a.bytesplice(1..2, b, 0..1)
 
   # range, replace, range (len1>len2)
   a = "0123456789"
-  assert_equal b, a.bytesplice(1..3, b, 1..2)
-  assert_equal "0bc456789", a
+  assert_equal "0bc456789", a.bytesplice(1..3, b, 1..2)
 
   # range, replace, range (len1<len2)
   a = "0123456789"
-  assert_equal b, a.bytesplice(1..1, b, 2..3)
-  assert_equal "0cd23456789", a
+  assert_equal "0cd23456789", a.bytesplice(1..1, b, 2..3)
 
   # idx, len, replace, idx, len (len1=len2)
   a = "0123456789"
-  assert_equal b, a.bytesplice(1, 2, b, 0, 2)
-  assert_equal "0ab3456789", a
+  assert_equal "0ab3456789", a.bytesplice(1, 2, b, 0, 2)
 
   # idx, len, replace, idx, len (len1>len2)
   a = "0123456789"
-  assert_equal b, a.bytesplice(1, 3, b, 1, 2)
-  assert_equal "0bc456789", a
+  assert_equal "0bc456789", a.bytesplice(1, 3, b, 1, 2)
 
   # idx, len, replace, idx, len (len1<len2)
   a = "0123456789"
-  assert_equal b, a.bytesplice(1, 1, b, 2, 2)
-  assert_equal "0cd23456789", a
+  assert_equal "0cd23456789", a.bytesplice(1, 1, b, 2, 2)
+
+  # check the object type to replace
+  assert_raise(TypeError) { "0123456789".bytesplice(1, 1, Object.new) }
+
+  # check the overflow to index and length (to be pass without crash)
+  assert_nothing_raised { "0123456789".bytesplice(8, ~(-1 << 31), "ab") } # for MRB_INT32
+  assert_nothing_raised { begin; "0123456789".bytesplice(8, ~(-1 << 63), "ab"); rescue ArgumentError, RangeError; end } # for MRB_INT64
+
+  # check the negative index
+  assert_equal "0ab3456789", "0123456789".bytesplice(-9, 2, "ab")
+  assert_equal "ab23456789", "0123456789".bytesplice(-10, 2, "ab")
+  assert_raise(IndexError) { "0123456789".bytesplice(-11, 2, "ab") }
+
+  # check the negative length
+  assert_raise(IndexError) { "0123456789".bytesplice(3, -4, "ab") }
+
+  # with an empty string
+  assert_equal "012789", "0123456789".bytesplice(3, 4, "")
 end

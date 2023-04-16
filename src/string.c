@@ -2947,16 +2947,25 @@ static mrb_value
 str_bytesplice(mrb_state *mrb, mrb_value str, mrb_int idx1, mrb_int len1, mrb_value replace, mrb_int idx2, mrb_int len2)
 {
   struct RString *s = RSTRING(str);
-  if (RSTR_LEN(s) < idx1 || RSTRING_LEN(replace) < idx2) {
+  if (idx1 < 0) {
+    idx1 += RSTR_LEN(s);
+  }
+  if (idx2 < 0) {
+    idx2 += RSTRING_LEN(replace);
+  }
+  if (RSTR_LEN(s) < idx1 || idx1 < 0 || RSTRING_LEN(replace) < idx2 || idx2 < 0) {
     mrb_raise(mrb, E_INDEX_ERROR, "index out of string");
   }
-  if (RSTR_LEN(s) <= idx1+len1) {
+  if (len1 < 0 || len2 < 0) {
+    mrb_raise(mrb, E_INDEX_ERROR, "negative length");
+  }
+  mrb_int n;
+  if (mrb_int_add_overflow(idx1, len1, &n) || RSTR_LEN(s) < n) {
     len1 = RSTR_LEN(s) - idx1;
   }
-  if (RSTRING_LEN(replace) <= idx2+len2) {
+  if (mrb_int_add_overflow(idx2, len2, &n) || RSTRING_LEN(replace) < n) {
     len2 = RSTRING_LEN(replace) - idx2;
   }
-  if (len2 == 0) return replace;
   mrb_str_modify(mrb, s);
   if (len1 >= len2) {
     memmove(RSTR_PTR(s)+idx1, RSTRING_PTR(replace)+idx2, len2);
@@ -2971,7 +2980,7 @@ str_bytesplice(mrb_state *mrb, mrb_value str, mrb_int idx1, mrb_int len1, mrb_va
     memmove(RSTR_PTR(s)+idx1+len2, RSTR_PTR(s)+idx1+len1, slen-(idx1+len1));
     memmove(RSTR_PTR(s)+idx1, RSTRING_PTR(replace)+idx2, len2);
   }
-  return replace;
+  return str;
 }
 
 /*
@@ -3006,6 +3015,7 @@ mrb_str_bytesplice(mrb_state *mrb, mrb_value str)
       mrb_get_args(mrb, "iiS", &idx1, &len1, &replace);
       return str_bytesplice(mrb, str, idx1, len1, replace, 0, RSTRING_LEN(replace));
     }
+    mrb_ensure_string_type(mrb, replace);
     if (mrb_range_beg_len(mrb, range1, &idx1, &len1, RSTRING_LEN(str), FALSE) != MRB_RANGE_OK) break;
     if (mrb_range_beg_len(mrb, range2, &idx2, &len2, RSTRING_LEN(replace), FALSE) != MRB_RANGE_OK) break;
     return str_bytesplice(mrb, str, idx1, len1, replace, idx2, len2);
