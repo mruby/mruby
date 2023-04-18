@@ -1,4 +1,5 @@
 #include <mruby.h>
+#include <mruby/array.h>
 #include <mruby/class.h>
 #include <mruby/compile.h>
 #include <mruby/irep.h>
@@ -251,8 +252,8 @@ binding_eval_prepare(mrb_state *mrb, mrb_value binding, const char *expr, mrb_in
   if (error) mrb_exc_raise(mrb, ret);
 }
 
-mrb_value
-mrb_f_eval(mrb_state *mrb, mrb_value self)
+static mrb_value
+f_eval(mrb_state *mrb, mrb_value self)
 {
   const char *s;
   mrb_int len;
@@ -273,7 +274,6 @@ mrb_f_eval(mrb_state *mrb, mrb_value self)
   mrb_assert(!MRB_PROC_CFUNC_P(proc));
   return exec_irep(mrb, self, proc);
 }
-#define f_eval mrb_f_eval
 
 static mrb_value
 f_instance_eval(mrb_state *mrb, mrb_value self)
@@ -323,6 +323,22 @@ f_class_eval(mrb_state *mrb, mrb_value self)
   }
 }
 
+static mrb_value
+mrb_binding_eval(mrb_state *mrb, mrb_value binding)
+{
+  mrb_callinfo *ci = mrb->c->ci;
+  int argc = ci->n;
+  mrb_value *argv = ci->stack + 1;
+
+  if (argc < 15) {
+    argv[0] = mrb_ary_new_from_values(mrb, argc, argv);
+    argv[1] = argv[argc];       /* copy block */
+    ci->n = 15;
+  }
+  mrb_ary_splice(mrb, argv[0], 1, 0, binding); /* insert binding as 2nd argument */
+  return f_eval(mrb, binding);
+}
+
 void
 mrb_mruby_eval_gem_init(mrb_state* mrb)
 {
@@ -330,6 +346,9 @@ mrb_mruby_eval_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, mrb_class_get_id(mrb, MRB_SYM(BasicObject)), MRB_SYM(instance_eval), f_instance_eval, MRB_ARGS_OPT(3)|MRB_ARGS_BLOCK());
   mrb_define_method_id(mrb, mrb_class_get_id(mrb, MRB_SYM(Module)), MRB_SYM(module_eval), f_class_eval, MRB_ARGS_OPT(3)|MRB_ARGS_BLOCK());
   mrb_define_method_id(mrb, mrb_class_get_id(mrb, MRB_SYM(Module)), MRB_SYM(class_eval), f_class_eval, MRB_ARGS_OPT(3)|MRB_ARGS_BLOCK());
+
+  struct RClass *binding = mrb_class_get_id(mrb, MRB_SYM(Binding));
+  mrb_define_method(mrb, binding, "eval", mrb_binding_eval, MRB_ARGS_ANY());
 }
 
 void
