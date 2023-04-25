@@ -1791,7 +1791,7 @@ io_gets(mrb_state *mrb, mrb_value io)
           n = limit;
         }
         io_buf_cat(mrb, outbuf, fptr, n);
-      return outbuf;
+        return outbuf;
       }
     }
     if (limit_given) {
