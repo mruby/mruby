@@ -1711,7 +1711,7 @@ io_find_index(struct mrb_io *fptr, const char *rs, mrb_int rslen)
 
   mrb_assert(rslen > 0);
   const char c = rs[0];
-  const mrb_int limit = buf->len - rslen;
+  const mrb_int limit = buf->len - rslen + 1;
   const char *p = buf->mem+buf->start;
   for (mrb_int i=0; i<limit; i++) {
     if (p[i] == c && (rslen == 1 || memcmp(p+i, rs, rslen) == 0)) {
