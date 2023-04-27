@@ -70,7 +70,6 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
 {
   int hash, pos, start, dpos = -1;
 
-  if (t == NULL) return;
   if (t->alloc == 0) {
     iv_rehash(mrb, t);
   }
