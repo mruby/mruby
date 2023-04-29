@@ -26,6 +26,10 @@ struct RClass {
 MRB_INLINE struct RClass*
 mrb_class(mrb_state *mrb, mrb_value v)
 {
+  if (!mrb_immediate_p(v)) {
+    return mrb_obj_ptr(v)->c;
+  }
+
   switch (mrb_type(v)) {
   case MRB_TT_FALSE:
     if (mrb_fixnum(v))
@@ -43,10 +47,8 @@ mrb_class(mrb_state *mrb, mrb_value v)
 #endif
   case MRB_TT_CPTR:
     return mrb->object_class;
-  case MRB_TT_ENV:
-    return NULL;
   default:
-    return mrb_obj_ptr(v)->c;
+    return NULL;
   }
 }
 
