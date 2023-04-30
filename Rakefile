@@ -57,7 +57,7 @@ task :clean do
     rm_rf build.build_dir
     rm_f build.products
   end
-  puts "Cleaned up target build folder"
+  puts "Cleaned up target build directory"
 end
 
 desc "clean everything!"
@@ -65,7 +65,7 @@ task :deep_clean => %w[clean doc:clean] do
   MRuby.each_target do |build|
     rm_rf build.gem_clone_dir
   end
-  puts "Cleaned up mrbgems build folder"
+  puts "Cleaned up mrbgems build directory"
 end
 
 desc "run all pre-commit hooks against all files"

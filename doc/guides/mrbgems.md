@@ -160,9 +160,9 @@ The maximal GEM structure looks like this:
     +- test/            <- Test code (Ruby)
 ```
 
-The folder `mrblib` contains pure Ruby files to extend mruby. The folder `src`
-contains C/C++ files to extend mruby. The folder `include` contains C/C++ header
-files. The folder `test` contains C/C++ and pure Ruby files for testing purposes
+The `mrblib` directory contains pure Ruby files to extend mruby. The `src` directory
+contains C/C++ files to extend mruby. The `include` directory contains C/C++ header
+files. The `test` directory contains C/C++ and pure Ruby files for testing purposes
 which will be used by `mrbtest`. `mrbgem.rake` contains the specification
 to compile C and Ruby files. `README.md` is a short description of your GEM.
 
@@ -349,7 +349,7 @@ mrb_c_extension_example_gem_final(mrb_state* mrb) {
 
 mruby can be extended with pure Ruby. It is possible to override existing
 classes or add new ones in this way. Put all Ruby files into the `mrblib`
-folder.
+directory.
 
 ### Pre-Conditions
 
@@ -377,7 +377,7 @@ none
 
 mruby can be extended with C and Ruby at the same time. It is possible to
 override existing classes or add new ones in this way. Put all Ruby files
-into the `mrblib` folder and all C files into the `src` folder.
+into the `mrblib` directory and all C files into the `src` directory.
 
 mruby codes under `mrblib` directory would be executed after gem init C
 function is called. Make sure *mruby script* depends on *C code* and
