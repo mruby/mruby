@@ -376,7 +376,7 @@ end
 
 ## Build process
 
-During the build process the directory `build` will be created in the
+During the build process the `build` directory will be created in the
 root directory. The structure of this directory will look like this:
 
 ```
