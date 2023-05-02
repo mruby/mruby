@@ -94,7 +94,7 @@ io_get_open_fptr(mrb_state *mrb, mrb_value io)
 # define MRB_NO_IO_POPEN 1
 #endif
 
-#ifndef MRB_NO_IO_POEPN
+#ifndef MRB_NO_IO_POPEN
 static void
 io_set_process_status(mrb_state *mrb, pid_t pid, int status)
 {
