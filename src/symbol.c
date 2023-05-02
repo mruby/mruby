@@ -122,7 +122,6 @@ sym_inline_unpack(mrb_sym sym, char *buf, mrb_int *lenp)
 #define sym_lit_p(mrb, i) (mrb->symflags[i>>3]&(1<<(i&7)))
 #define sym_lit_set(mrb, i) mrb->symflags[i>>3]|=(1<<(i&7))
 #define sym_flags_clear(mrb, i) mrb->symflags[i>>3]&=~(1<<(i&7))
-#define sym_len(mrb, i) (size_t)(sym_lit_p(mrb, i)?strlen(mrb->symtbl[i]):mrb_packed_int_decode(mrb->symtbl[i],NULL))
 
 static mrb_bool
 sym_check(mrb_state *mrb, const char *name, size_t len, mrb_sym i)
