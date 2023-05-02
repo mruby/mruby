@@ -207,7 +207,7 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
     mrb->symcapa = symcapa;
   }
   sym_flags_clear(mrb, sym);
-  if ((lit || mrb_ro_data_p(name)) && strlen(name) == len) {
+  if ((lit || mrb_ro_data_p(name)) && name[len] == 0 && strlen(name) == len) {
     sym_lit_set(mrb, sym);
     mrb->symtbl[sym] = name;
   }
