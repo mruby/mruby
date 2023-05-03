@@ -10,7 +10,7 @@
 #include "common.h"
 
 /*
- * MRuby Value definition functions and macros.
+ * mruby Value definition functions and macros.
  */
 MRB_BEGIN_DECL
 
@@ -186,7 +186,7 @@ MRB_VTYPE_FOREACH(MRB_VTYPE_TYPEDEF)
 
 /**
  * @abstract
- * MRuby value boxing.
+ * mruby value boxing.
  *
  * Actual implementation depends on configured boxing type.
  *

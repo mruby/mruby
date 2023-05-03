@@ -67,7 +67,7 @@ MRB_BEGIN_DECL
 #endif
 #define MRB_INLINE static inline
 
-/** Declare a public MRuby API function. */
+/** Declare a public mruby API function. */
 #ifndef MRB_API
 #if defined(MRB_BUILD_AS_DLL)
 #if defined(MRB_CORE) || defined(MRB_LIB)
