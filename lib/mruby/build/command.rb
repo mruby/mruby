@@ -104,7 +104,7 @@ module MRuby
       else
         generated_file_matcher = Regexp.new("^#{Regexp.escape build_dir}/(?!mrbc/|mrbgems/.+/)(.*)#{Regexp.escape out_ext}$")
       end
-      source_exts.each do |ext, compile|
+      source_exts.each do |ext|
         rule generated_file_matcher => [
           proc { |file|
             file.sub(generated_file_matcher, "#{source_dir}/\\1#{ext}")
