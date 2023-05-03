@@ -28,7 +28,7 @@ repos:
       - id: mixed-line-ending
       - id: trailing-whitespace
   - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.4.2
+    rev: v1.5.1
     hooks:
       - id: forbid-tabs
         exclude: Makefile$|Makefile\..+$|makefile$|\.mk$
@@ -36,7 +36,7 @@ repos:
         args: [--whitespaces-count, '2']
         exclude: Makefile$|Makefile\..+$|makefile$|\.mk$
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.2.2
+    rev: v2.2.4
     hooks:
       - id: codespell
         name: Run codespell
@@ -49,7 +49,7 @@ repos:
         name: Local policy is to exclude extension from all shell files
         types: [shell]
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.33.0
+    rev: v0.34.0
     hooks:
       - id: markdownlint
         name: Run markdownlint
@@ -58,7 +58,7 @@ repos:
         types: [markdown]
         files: \.(md|mdown|markdown)$
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.29.0
+    rev: v1.31.0
     hooks:
       - id: yamllint
         name: Run yamllint
