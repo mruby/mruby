@@ -139,7 +139,7 @@
 #endif
 
 /**
- * MRuby C API entry point
+ * mruby C API entry point
  */
 MRB_BEGIN_DECL
 
@@ -420,7 +420,7 @@ MRB_API void mrb_prepend_module(mrb_state *mrb, struct RClass *cla, struct RClas
  *           mrb_define_method(mrb, mrb->kernel_module, "example_method", example_method, MRB_ARGS_NONE());
  *     }
  *
- * @param mrb The MRuby state reference.
+ * @param mrb The mruby state reference.
  * @param cla The class pointer where the method will be defined.
  * @param name The name of the method being defined.
  * @param func The function pointer to the method definition.
@@ -448,7 +448,7 @@ MRB_API void mrb_define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid,
  *       foo = mrb_define_class(mrb, "Foo", mrb->object_class);
  *       mrb_define_class_method(mrb, foo, "bar", bar_method, MRB_ARGS_NONE());
  *     }
- * @param mrb The MRuby state reference.
+ * @param mrb The mruby state reference.
  * @param cla The class where the class method will be defined.
  * @param name The name of the class method being defined.
  * @param fun The function pointer to the class method definition.
@@ -484,7 +484,7 @@ MRB_API void mrb_define_singleton_method_id(mrb_state *mrb, struct RObject *cla,
  *          foo = mrb_define_module(mrb, "Foo");
  *          mrb_define_module_function(mrb, foo, "bar", bar_method, MRB_ARGS_NONE());
  *        }
- *  @param mrb The MRuby state reference.
+ *  @param mrb The mruby state reference.
  *  @param cla The module where the module function will be defined.
  *  @param name The name of the module function being defined.
  *  @param fun The function pointer to the module function definition.
@@ -514,7 +514,7 @@ MRB_API void mrb_define_module_function_id(mrb_state *mrb, struct RClass *cla, m
  *          mrb_value
  *          mrb_example_gem_final(mrb_state* mrb){
  *          }
- *  @param mrb The MRuby state reference.
+ *  @param mrb The mruby state reference.
  *  @param cla A class or module the constant is defined in.
  *  @param name The name of the constant being defined.
  *  @param val The value for the constant.
@@ -1017,7 +1017,7 @@ struct mrb_kwargs
 /**
  * Retrieve arguments from mrb_state.
  *
- * @param mrb The current MRuby state.
+ * @param mrb The current mruby state.
  * @param format is a list of format specifiers
  * @param ... The passing variadic arguments must be a pointer of retrieving type.
  * @return the number of arguments retrieved.
@@ -1248,7 +1248,7 @@ MRB_API mrb_state* mrb_open(void);
 MRB_API mrb_state* mrb_open_allocf(mrb_allocf f, void *ud);
 
 /**
- * Create new mrb_state with just the MRuby core
+ * Create new mrb_state with just the mruby core
  *
  * @param f
  *      Reference to the allocation function.

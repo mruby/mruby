@@ -113,7 +113,7 @@ unless there's a clear reason, e.g. the latest Ruby has changed behavior from IS
 ### mruby API
 
 - [YARD](https://yardoc.org/) - YARD is a documentation generation tool for the Ruby programming language
-- [yard-mruby](https://rubygems.org/gems/yard-mruby) - Document MRuby sources with YARD
+- [yard-mruby](https://rubygems.org/gems/yard-mruby) - Document mruby sources with YARD
 - [yard-coderay](https://rubygems.org/gems/yard-coderay) - Adds coderay syntax highlighting to YARD docs
 
 ### C API

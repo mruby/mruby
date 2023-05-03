@@ -10,7 +10,7 @@
 #include "common.h"
 
 /**
- * MRuby Compiler
+ * mruby Compiler
  */
 MRB_BEGIN_DECL
 
