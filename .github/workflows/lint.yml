@@ -1,3 +1,4 @@
+# https://pre-commit.com/
 name: Lint
 
 on: [pull_request]
