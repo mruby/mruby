@@ -54,6 +54,69 @@ We use [GitHub Actions](.github/workflows/lint.yml) to run `pre-commit` on every
 - [pre-commit autoupdate](https://pre-commit.com/#pre-commit-autoupdate)
 - [Temporarily disabling hooks](https://pre-commit.com/#temporarily-disabling-hooks)
 
+## Docker
+
+We have both a `Dockerfile` and `docker-compose.yml` files in the repository root.
+You can run these with the command line or use
+[Docker Desktop](https://www.docker.com/products/docker-desktop/).
+
+The Docker image is running Debian bullseye with Ruby and Python installed.
+You can build the Docker image with:
+
+`$ docker-compose build test`
+
+So far we just have one service: `test`. Running the default `docker-compose`
+command will create the Docker image, spin up a container and then build and
+run all mruby tests.
+
+The default `docker-compose` command is:
+
+`$ docker-compose -p mruby run test`
+
+You can also use Make or Rake to run the default `docker-compose`
+command from above:
+
+- `make composetest`
+- `rake composetest`
+
+List your Docker images with:
+
+```console
+$ docker images
+REPOSITORY   TAG       IMAGE ID       CREATED          SIZE
+mruby-test   latest    ec60f9536948   29 seconds ago   1.29GB
+```
+
+You can also run any custom `docker-compose` command which will override
+the default. For example to run `pre-commit run --all-files` type:
+
+`$ docker-compose -p mruby run test pre-commit run --all-files`
+
+For convenience, you can also run `pre-commit` with:
+
+- `make composecheck`
+- `rake composecheck`
+
+The bonus of running `pre-commit` with `docker-compose` is that you won't need
+to install `pre-commit` and the hooks on your local machine. And that also
+means you won't need to install `brew`, `conda` or `pip`.
+
+Note limitation: currently running `pre-commit` with `docker-compose` we
+skip the `check-executables-have-shebangs` hook.
+
+Two more examples of custom `docker-compose` commands are:
+
+- `$ docker-compose -p mruby run test ls`
+- `$ docker-compose -p mruby run test rake doc:api`
+
+If you want to test using a different `docker-compose` YAML config file you
+can use the `-f` flag:
+
+`$ docker-compose -p mruby -f docker-compose.test.yml run test`
+
+- <https://docs.docker.com/compose/>
+- <https://docs.docker.com/engine/reference/commandline/cli/>
+
 ## Spell Checking
 
 We are using `pre-commit` to run [codespell](https://github.com/codespell-project/codespell)

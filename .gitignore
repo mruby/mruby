@@ -32,3 +32,4 @@ compile_flags.txt
 cscope.files
 cscope.out
 tags
+!Gemfile.lock

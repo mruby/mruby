@@ -82,3 +82,13 @@ desc "check the pre-commit hooks for updates"
 task :checkupdate do
   sh "pre-commit autoupdate"
 end
+
+desc "run all pre-commit hooks against all files with docker-compose"
+task :composecheck do
+  sh "docker-compose -p mruby run test pre-commit run --all-files"
+end
+
+desc "build and run all mruby tests with docker-compose"
+task :composetest do
+  sh "docker-compose -p mruby run test"
+end
