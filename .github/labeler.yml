@@ -13,7 +13,12 @@ core:
   - test/**/*
 doc:
   - CONTRIBUTING.md
+  - LEGAL
+  - LICENSE
+  - NEWS
   - README.md
+  - SECURITY.md
+  - TODO.md
   - doc/**/*
   - examples/**/*
 github:
