@@ -6,11 +6,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y python3-pip she
 
 WORKDIR /app
 
-COPY Gemfile .
-
-COPY Gemfile.lock .
-
-COPY .pre-commit-config.yaml .
+COPY Gemfile Gemfile.lock .pre-commit-config.yaml ./
 
 RUN bundle install && pip3 install pre-commit && git init . && pre-commit install-hooks
 
