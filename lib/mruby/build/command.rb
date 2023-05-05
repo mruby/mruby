@@ -341,7 +341,7 @@ module MRuby
       opt << " -s" if static
       cmd = %["#{filename @command}" #{opt} #{filename(infiles).map{|f| %["#{f}"]}.join(' ')}]
       puts cmd if Rake.verbose
-      IO.popen(cmd, 'r+') do |io|
+      IO.popen(cmd, 'r') do |io|
         out.puts io.read
       end
       # if mrbc execution fail, drop the file
