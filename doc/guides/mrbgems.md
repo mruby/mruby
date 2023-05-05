@@ -1,6 +1,6 @@
 # mrbgems
 
-mrbgems is a library manager to integrate C and Ruby extension in an easy and
+mrbgems is a library manager to integrate C and Ruby extensions in an easy and
 standardised way into mruby. Conventionally, each mrbgem name is prefixed by
 `mruby-`, e.g. `mruby-time` for a gem that provides `Time` class functionality.
 
