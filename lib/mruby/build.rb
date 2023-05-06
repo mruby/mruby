@@ -388,7 +388,7 @@ EOS
         define_installer_outline(src, dst) do
           File.write dst, <<~BATCHFILE
             @echo off
-            call "#{src}" %*
+            call "#{File.expand_path(src)}" %*
           BATCHFILE
         end
       end
@@ -396,8 +396,8 @@ EOS
       def define_installer(src)
         dst = "#{self.class.install_dir}/#{File.basename(src)}"
         define_installer_outline(src, dst) do
-          File.unlink(dst) if File.exist?(dst)
-          File.symlink(src, dst)
+          File.unlink(dst) rescue nil
+          File.symlink(File.expand_path(src), dst)
         end
       end
     end
