@@ -114,4 +114,4 @@ To contribute to mruby, please refer to the [contribution guidelines][contributi
 By contributing, you grant non-exclusive rights to your code under the MIT License.
 
 [ISO-standard]: https://www.iso.org/iso/iso_catalogue/catalogue_tc/catalogue_detail.htm?csnumber=59579
-[contribution-guidelines]: https://github.com/mruby/mruby/blob/master/CONTRIBUTING.md
+[contribution-guidelines]: CONTRIBUTING.md

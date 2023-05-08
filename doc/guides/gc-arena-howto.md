@@ -62,7 +62,7 @@ memory leak.
 
 As of this writing, mruby automatically extend arena to remember
 objects (See `MRB_GC_FIXED_ARENA` and `MRB_GC_ARENA_SIZE` in
-doc/guides/mrbconf.md).
+[doc/guides/mrbconf.md](mrbconf.md)).
 
 If you create many objects in C functions, memory usage will increase, since
 GC never kicks in. This memory usage may look like memory leaks, but will also

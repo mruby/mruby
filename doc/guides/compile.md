@@ -265,7 +265,7 @@ There is a `RubyGem` (gem for CRuby) named `mgem` that help you to
 manage `mrbgems`. Try `gem install mgem`. `mgem` can show you the list
 of registered `mrbgems`.
 
-See doc/mrbgems/README.md for more option about mrbgems.
+See [doc/guides/mrbgems.md](mrbgems.md) for more option about mrbgems.
 
 ### Mrbtest
 
