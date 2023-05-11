@@ -32,9 +32,9 @@
 
 ## New bundled gems
 
-- mruby-errno from [https://github.com/iij/mruby-errno.git]
-- mruby-set from [https://github.com/yui-knk/mruby-set.git]
-- mruby-dir from [https://github.com/iij/mruby-dir.git]
+- mruby-errno from <https://github.com/iij/mruby-errno.git>
+- mruby-set from <https://github.com/yui-knk/mruby-set.git>
+- mruby-dir from <https://github.com/iij/mruby-dir.git>
 - mruby-data
 
 # Breaking Changes
