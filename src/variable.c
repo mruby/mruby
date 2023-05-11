@@ -324,34 +324,6 @@ mrb_iv_get(mrb_state *mrb, mrb_value obj, mrb_sym sym)
   return mrb_nil_value();
 }
 
-static inline void assign_class_name(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v);
-
-void
-mrb_obj_iv_set_force(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
-{
-  assign_class_name(mrb, obj, sym, v);
-  if (!obj->iv) {
-    obj->iv = iv_new(mrb);
-  }
-  iv_put(mrb, obj->iv, sym, v);
-  mrb_field_write_barrier_value(mrb, (struct RBasic*)obj, v);
-}
-
-MRB_API void
-mrb_obj_iv_set(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
-{
-  mrb_check_frozen(mrb, obj);
-  mrb_obj_iv_set_force(mrb, obj, sym, v);
-}
-
-/* Iterates over the instance variable table. */
-MRB_API void
-mrb_iv_foreach(mrb_state *mrb, mrb_value obj, mrb_iv_foreach_func *func, void *p)
-{
-  if (!obj_iv_p(obj)) return;
-  iv_foreach(mrb, mrb_obj_ptr(obj)->iv, func, p);
-}
-
 static inline mrb_bool
 namespace_p(enum mrb_vtype tt)
 {
@@ -382,6 +354,32 @@ assign_class_name(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
       }
     }
   }
+}
+
+void
+mrb_obj_iv_set_force(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
+{
+  assign_class_name(mrb, obj, sym, v);
+  if (!obj->iv) {
+    obj->iv = iv_new(mrb);
+  }
+  iv_put(mrb, obj->iv, sym, v);
+  mrb_field_write_barrier_value(mrb, (struct RBasic*)obj, v);
+}
+
+MRB_API void
+mrb_obj_iv_set(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
+{
+  mrb_check_frozen(mrb, obj);
+  mrb_obj_iv_set_force(mrb, obj, sym, v);
+}
+
+/* Iterates over the instance variable table. */
+MRB_API void
+mrb_iv_foreach(mrb_state *mrb, mrb_value obj, mrb_iv_foreach_func *func, void *p)
+{
+  if (!obj_iv_p(obj)) return;
+  iv_foreach(mrb, mrb_obj_ptr(obj)->iv, func, p);
 }
 
 MRB_API void
