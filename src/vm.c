@@ -533,10 +533,16 @@ mrb_bidx(uint8_t n, uint8_t k)
   return n + 1;                 /* self + args + kargs */
 }
 
+static inline mrb_int
+ci_bidx(mrb_callinfo *ci)
+{
+  return mrb_bidx(ci->n, ci->nk);
+}
+
 mrb_int
 mrb_ci_bidx(mrb_callinfo *ci)
 {
-  return mrb_bidx(ci->n, ci->nk);
+  return ci_bidx(ci);
 }
 
 mrb_int
@@ -545,7 +551,7 @@ mrb_ci_nregs(mrb_callinfo *ci)
   const struct RProc *p;
 
   if (!ci) return 4;
-  mrb_int nregs = mrb_ci_bidx(ci) + 1; /* self + args + kargs + blk */
+  mrb_int nregs = ci_bidx(ci) + 1; /* self + args + kargs + blk */
   p = ci->proc;
   if (p && !MRB_PROC_CFUNC_P(p) && p->body.irep && p->body.irep->nregs > nregs) {
     return p->body.irep->nregs;
@@ -736,7 +742,7 @@ exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p)
     return MRB_PROC_CFUNC(p)(mrb, self);
   }
   nregs = p->body.irep->nregs;
-  keep = mrb_ci_bidx(ci)+1;
+  keep = ci_bidx(ci)+1;
   if (nregs < keep) {
     stack_extend(mrb, keep);
   }
@@ -768,7 +774,7 @@ mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p)
       cipop(mrb);
     }
     else {
-      mrb_int keep = mrb_ci_bidx(ci) + 1; /* receiver + block */
+      mrb_int keep = ci_bidx(ci) + 1; /* receiver + block */
       ret = mrb_top_run(mrb, p, self, keep);
     }
     if (mrb->exc && mrb->jmp) {
@@ -1760,6 +1766,7 @@ RETRY_TRY_BLOCK:
       int n = c&0xf;
       int nk = (c>>4)&0xf;
       mrb_int bidx = a + mrb_bidx(n,nk);
+      mrb_int new_bidx = bidx;
 
       if (nk == CALL_MAXARGS) {
         mrb_ensure_hash_type(mrb, regs[a+(n==CALL_MAXARGS?1:n)+1]);
@@ -1770,10 +1777,10 @@ RETRY_TRY_BLOCK:
         regs[kidx] = kdict;
         nk = CALL_MAXARGS;
         c = n | (nk<<4);
+        new_bidx = a+mrb_bidx(n, nk);
       }
 
       mrb_assert(bidx < irep->nregs);
-      mrb_int new_bidx = a+mrb_bidx(n, nk);
       if (insn == OP_SEND) {
         /* clear block argument */
         SET_NIL_VALUE(regs[new_bidx]);
@@ -1875,7 +1882,7 @@ RETRY_TRY_BLOCK:
           c = OP_R_NORMAL;
           goto L_OP_RETURN_BODY;
         }
-        mrb_int nargs = mrb_ci_bidx(ci)+1;
+        mrb_int nargs = ci_bidx(ci)+1;
         if (nargs < irep->nregs) {
           stack_extend(mrb, irep->nregs);
           stack_clear(regs+nargs, irep->nregs-nargs);
@@ -2007,7 +2014,7 @@ RETRY_TRY_BLOCK:
       mrb_int const len = m1 + o + r + m2;
 
       mrb_value * const argv0 = argv;
-      mrb_value blk = regs[mrb_ci_bidx(ci)];
+      mrb_value blk = regs[ci_bidx(ci)];
       mrb_value kdict = mrb_nil_value();
 
       /* keyword arguments */
@@ -3113,7 +3120,7 @@ RETRY_TRY_BLOCK:
 static mrb_value
 mrb_run(mrb_state *mrb, const struct RProc *proc, mrb_value self)
 {
-  return mrb_vm_run(mrb, proc, self, mrb_ci_bidx(mrb->c->ci) + 1);
+  return mrb_vm_run(mrb, proc, self, ci_bidx(mrb->c->ci) + 1);
 }
 
 MRB_API mrb_value
