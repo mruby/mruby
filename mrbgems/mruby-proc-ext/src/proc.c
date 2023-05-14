@@ -24,11 +24,10 @@ mrb_proc_source_location(mrb_state *mrb, struct RProc *p)
     int32_t line;
     const char *filename;
 
-    filename = mrb_debug_get_filename(mrb, irep, 0);
-    line = mrb_debug_get_line(mrb, irep, 0);
-
-    return (!filename && line == -1)? mrb_nil_value()
-        : mrb_assoc_new(mrb, mrb_str_new_cstr(mrb, filename), mrb_fixnum_value(line));
+    if (!mrb_debug_get_position(mrb, irep, 0, &line, &filename)) {
+      return mrb_nil_value();
+    }
+    return mrb_assoc_new(mrb, mrb_str_new_cstr(mrb, filename), mrb_fixnum_value(line));
   }
 }
 
