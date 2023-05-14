@@ -341,14 +341,14 @@ binding_source_location(mrb_state *mrb, mrb_value self)
       srcloc = mrb_nil_value();
     }
     else {
-      const char *fname = mrb_debug_get_filename(mrb, irep, (uint32_t)pc);
-      mrb_int fline = mrb_debug_get_line(mrb, irep, (uint32_t)pc);
+      const char *fname;
+      int32_t line;
 
-      if (fname && fline >= 0) {
-        srcloc = mrb_assoc_new(mrb, mrb_str_new_cstr(mrb, fname), mrb_fixnum_value(fline));
+      if (!mrb_debug_get_position(mrb, irep, (uint32_t)pc, &line, &fname)) {
+        srcloc  = mrb_nil_value();
       }
       else {
-        srcloc = mrb_nil_value();
+        srcloc = mrb_assoc_new(mrb, mrb_str_new_cstr(mrb, fname), mrb_fixnum_value(line));
       }
     }
   }
