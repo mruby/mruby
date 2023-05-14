@@ -93,7 +93,7 @@ module MRuby
         f.puts "};"
         f.puts
         f.puts "static const char * const presym_name_table[] = {"
-        presyms.each{|sym| f.puts %|  "#{sym}",|}
+        presyms.each{|sym| f.puts %|  "#{sym.gsub(/[\x01-\x1f\x7f-\xff\"\\]/n) { %(\\x%02x) % _1.ord }}",|}
         f.puts "};"
       end
     end
@@ -119,7 +119,19 @@ module MRuby
     def read_preprocessed(presym_hash, path)
       File.binread(path).scan(/<@! (.*?) !@>/) do |part,|
         literals = part.scan(C_STR_LITERAL_RE)
-        presym_hash[literals.map{|l| l[1..-2]}.join] = true unless literals.empty?
+        unless literals.empty?
+          literals = literals.map{|l| l[1..-2]}
+          literals.each do |e|
+            e.gsub!(/\\x([0-9A-Fa-f]{1,2})|\\0([0-7]{,3})|\\(.)/) do
+              case
+              when $1; $1.hex.chr(Encoding::BINARY)
+              when $2; $2.oct.chr(Encoding::BINARY)
+              when $3; $3
+              end
+            end
+          end
+          presym_hash[literals.join] = true
+        end
       end
     end
 
