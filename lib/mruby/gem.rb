@@ -36,6 +36,7 @@ module MRuby
       attr_accessor :export_include_paths
 
       attr_reader :generate_functions
+      attr_writer :skip_test
 
       attr_block MRuby::Build::COMMANDS
 
@@ -62,6 +63,7 @@ module MRuby
 
         @test_preload = nil # 'test/assert.rb'
         @test_args = {}
+        @skip_test = false
 
         @bins = []
         @cdump = true
@@ -85,6 +87,10 @@ module MRuby
 
         repo_url = build.gem_dir_to_repo_url[dir]
         build.locks[repo_url]['version'] = version if repo_url
+      end
+
+      def skip_test?
+        @skip_test
       end
 
       def setup_compilers
