@@ -144,14 +144,26 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
       f.puts %Q[ *   All manual changes will get lost.]
       f.puts %Q[ */]
       f.puts %Q[]
-      f.puts %Q[struct mrb_state;]
-      f.puts %Q[typedef struct mrb_state mrb_state;]
+      f.puts %Q[#include <mruby.h>]
+      f.puts %Q[#include <mruby/variable.h>]
+      f.puts %Q[#include <mruby/array.h>]
+      f.puts %Q[]
       build.gems.each do |g|
         f.puts %Q[void GENERATED_TMP_mrb_#{g.funcname}_gem_test(mrb_state *mrb);]
       end
       f.puts %Q[void mrbgemtest_init(mrb_state* mrb) {]
       build.gems.each do |g|
-        f.puts %Q[    GENERATED_TMP_mrb_#{g.funcname}_gem_test(mrb);]
+        if g.skip_test?
+          f.puts %Q[    do {]
+          f.puts %Q[      mrb_value asserts = mrb_gv_get(mrb, mrb_intern_lit(mrb, "$asserts"));]
+          f.puts %Q[      mrb_ary_push(mrb, asserts, mrb_str_new_lit(mrb, ]
+          f.puts %Q[                   "Warn: Skipping tests for gem (#{
+                                        g.name == 'mruby-test' ? 'core' : "mrbgems: #{g.name}"
+                                       })"));]
+          f.puts %Q[    } while (0);]
+        else
+          f.puts %Q[    GENERATED_TMP_mrb_#{g.funcname}_gem_test(mrb);]
+        end
       end
       f.puts %Q[}]
     end

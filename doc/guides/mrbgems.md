@@ -92,6 +92,21 @@ end
 However, it should be used with caution, as it may deviate from the intent
 of the gem's author.
 
+### Gem Testing
+
+If you enable unit tests in your build with `enable_test`, tests will be
+generated for all gems and their dependencies by default. If necessary, it is
+possible to suppress tests for a specific gem like so:
+
+```ruby
+conf.gem 'mruby-noisygem' do |g|
+  g.skip_test = true
+end
+```
+
+However, it is considered best practice to leave all tests enabled whenever
+possible. A warning message will be generated for each gem with disabled tests.
+
 ## GemBox
 
 There are instances when you wish to add a collection of mrbgems into mruby at
