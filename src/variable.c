@@ -51,6 +51,7 @@ iv_rehash(mrb_state *mrb, iv_tbl *t)
   t->ptr = (mrb_value*)mrb_calloc(mrb, sizeof(mrb_value)+sizeof(mrb_sym), new_alloc);
   t->size = 0;
   t->alloc = new_alloc;
+  if (old_alloc == 0) return;
 
   mrb_sym *keys = (mrb_sym*)&old_ptr[old_alloc];
   mrb_value *vals = old_ptr;
