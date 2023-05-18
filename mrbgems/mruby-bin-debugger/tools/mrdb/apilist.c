@@ -200,7 +200,7 @@ mrb_debug_get_source(mrb_state *mrb, mrdb_state *mrdb, const char *srcpath, cons
     break;
   }
 
-  mrb_free(mrb, (void *)search_path[1]);
+  mrb_free(mrb, (void*)search_path[1]);
 
   return path;
 }

@@ -42,8 +42,8 @@
 #define LINENO_MAX_DIGIT 6
 #define BPNO_LETTER_NUM 9
 
-typedef int32_t (*all_command_func)(mrb_state *, mrb_debug_context *);
-typedef int32_t (*select_command_func)(mrb_state *, mrb_debug_context *, uint32_t);
+typedef int32_t (*all_command_func)(mrb_state*, mrb_debug_context*);
+typedef int32_t (*select_command_func)(mrb_state*, mrb_debug_context*, uint32_t);
 
 static void
 print_api_common_error(int32_t error)

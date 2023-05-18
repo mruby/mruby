@@ -123,9 +123,9 @@ static int
 unpack_char(mrb_state *mrb, const void *src, int srclen, mrb_value ary, unsigned int flags)
 {
   if (flags & PACK_FLAG_SIGNED)
-    mrb_ary_push(mrb, ary, mrb_fixnum_value(*(signed char *)src));
+    mrb_ary_push(mrb, ary, mrb_fixnum_value(*(signed char*)src));
   else
-    mrb_ary_push(mrb, ary, mrb_fixnum_value(*(unsigned char *)src));
+    mrb_ary_push(mrb, ary, mrb_fixnum_value(*(unsigned char*)src));
   return 1;
 }
 
@@ -425,7 +425,7 @@ pack_double(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned i
 {
   int i;
   double d;
-  uint8_t *buffer = (uint8_t *)&d;
+  uint8_t *buffer = (uint8_t*)&d;
   str = str_len_ensure(mrb, str, sidx + 8);
   d = mrb_float(o);
 
@@ -457,7 +457,7 @@ unpack_double(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value a
 {
   int i;
   double d;
-  uint8_t *buffer = (uint8_t *)&d;
+  uint8_t *buffer = (uint8_t*)&d;
 
   if (flags & PACK_FLAG_LITTLEENDIAN) {
     if (littleendian) {
@@ -488,7 +488,7 @@ pack_float(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned in
 {
   int i;
   float f;
-  uint8_t *buffer = (uint8_t *)&f;
+  uint8_t *buffer = (uint8_t*)&f;
   str = str_len_ensure(mrb, str, sidx + 4);
   f = (float)mrb_float(o);
 
@@ -520,7 +520,7 @@ unpack_float(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value ar
 {
   int i;
   float f;
-  uint8_t *buffer = (uint8_t *)&f;
+  uint8_t *buffer = (uint8_t*)&f;
 
   if (flags & PACK_FLAG_LITTLEENDIAN) {
     if (littleendian) {
@@ -660,7 +660,7 @@ unpack_utf8(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value ary
   if (srclen == 0) {
     return 1;
   }
-  uv = utf8_to_uv(mrb, (const char *)src, &lenp);
+  uv = utf8_to_uv(mrb, (const char*)src, &lenp);
   mrb_ary_push(mrb, ary, mrb_fixnum_value((mrb_int)uv));
   return (int)lenp;
 }
@@ -719,14 +719,14 @@ unpack_str(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, 
   const char *cp, *sptr;
   int copylen;
 
-  sptr = (const char *)src;
+  sptr = (const char*)src;
   if (count != -1 && count < slen)  {
     slen = count;
   }
   copylen = slen;
 
   if (slen >= 0 && flags & PACK_FLAG_Z) {  /* "Z" */
-    if ((cp = (const char *)memchr(sptr, '\0', slen)) != NULL) {
+    if ((cp = (const char*)memchr(sptr, '\0', slen)) != NULL) {
       copylen = (int)(cp - sptr);
       if (count == -1) {
         slen = copylen + 1;
@@ -812,7 +812,7 @@ unpack_hex(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, 
     bshift = 0;
   }
 
-  sptr = (const char *)src;
+  sptr = (const char*)src;
 
   if (count == -1)
     count = slen * 2;
@@ -921,7 +921,7 @@ unpack_base64(mrb_state *mrb, const void *src, int slen, mrb_value ary)
   const char *sptr, *sptr0;
   char *dptr, *dptr0;
 
-  sptr0 = sptr = (const char *)src;
+  sptr0 = sptr = (const char*)src;
 
   dlen = slen / 4 * 3;  /* an estimated value - may be shorter */
   dst = mrb_str_new(mrb, NULL, dlen);
@@ -1514,7 +1514,7 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
     }
 
     /* PACK_FLAG_COUNT2 directions */
-    sptr = (const unsigned char *)RSTRING_PTR(str) + srcidx;
+    sptr = (const unsigned char*)RSTRING_PTR(str) + srcidx;
     switch (dir) {
     case PACK_DIR_HEX:
       srcidx += unpack_hex(mrb, sptr, srclen - srcidx, result, count, flags);

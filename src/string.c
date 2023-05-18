@@ -50,7 +50,7 @@ str_init_normal_capa(mrb_state *mrb, struct RString *s,
                      const char *p, mrb_int len, mrb_int capa)
 {
   str_check_too_big(mrb, capa);
-  char *dst = (char *)mrb_malloc(mrb, capa + 1);
+  char *dst = (char*)mrb_malloc(mrb, capa + 1);
   if (p) memcpy(dst, p, len);
   dst[len] = '\0';
   s->as.heap.ptr = dst;
@@ -80,7 +80,7 @@ str_init_embed(struct RString *s, const char *p, mrb_int len)
 static struct RString*
 str_init_nofree(struct RString *s, const char *p, mrb_int len)
 {
-  s->as.heap.ptr = (char *)p;
+  s->as.heap.ptr = (char*)p;
   s->as.heap.len = len;
   s->as.heap.aux.capa = 0;             /* nofree */
   RSTR_SET_TYPE_FLAG(s, NOFREE);
@@ -94,7 +94,7 @@ str_init_shared(mrb_state *mrb, const struct RString *orig, struct RString *s, m
     shared->refcnt++;
   }
   else {
-    shared = (mrb_shared_string *)mrb_malloc(mrb, sizeof(mrb_shared_string));
+    shared = (mrb_shared_string*)mrb_malloc(mrb, sizeof(mrb_shared_string));
     shared->refcnt = 1;
     shared->ptr = orig->as.heap.ptr;
     shared->capa = orig->as.heap.aux.capa;
@@ -486,7 +486,7 @@ mrb_memsearch_qs(const unsigned char *xs, mrb_int m, const unsigned char *ys, mr
 static mrb_int
 mrb_memsearch(const void *x0, mrb_int m, const void *y0, mrb_int n)
 {
-  const unsigned char *x = (const unsigned char *)x0, *y = (const unsigned char *)y0;
+  const unsigned char *x = (const unsigned char*)x0, *y = (const unsigned char*)y0;
 
   if (m > n) return -1;
   else if (m == n) {
@@ -496,14 +496,14 @@ mrb_memsearch(const void *x0, mrb_int m, const void *y0, mrb_int n)
     return 0;
   }
   else if (m == 1) {
-    const unsigned char *ys = (const unsigned char *)memchr(y, *x, n);
+    const unsigned char *ys = (const unsigned char*)memchr(y, *x, n);
 
     if (ys)
       return (mrb_int)(ys - y);
     else
       return -1;
   }
-  return mrb_memsearch_qs((const unsigned char *)x0, m, (const unsigned char *)y0, n);
+  return mrb_memsearch_qs((const unsigned char*)x0, m, (const unsigned char*)y0, n);
 }
 
 static void
@@ -523,7 +523,7 @@ str_share(mrb_state *mrb, struct RString *orig, struct RString *s)
   }
   else {
     if (orig->as.heap.aux.capa > orig->as.heap.len) {
-      orig->as.heap.ptr = (char *)mrb_realloc(mrb, orig->as.heap.ptr, len+1);
+      orig->as.heap.ptr = (char*)mrb_realloc(mrb, orig->as.heap.ptr, len+1);
       orig->as.heap.aux.capa = (mrb_ssize)len;
     }
     str_init_shared(mrb, orig, s, NULL);
@@ -2781,7 +2781,7 @@ mrb_str_bytes(mrb_state *mrb, mrb_value str)
 {
   struct RString *s = mrb_str_ptr(str);
   mrb_value a = mrb_ary_new_capa(mrb, RSTR_LEN(s));
-  unsigned char *p = (unsigned char *)(RSTR_PTR(s)), *pend = p + RSTR_LEN(s);
+  unsigned char *p = (unsigned char*)(RSTR_PTR(s)), *pend = p + RSTR_LEN(s);
 
   while (p < pend) {
     mrb_ary_push(mrb, a, mrb_fixnum_value(p[0]));

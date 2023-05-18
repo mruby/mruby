@@ -540,7 +540,7 @@ mrb_argnum_error(mrb_state *mrb, mrb_int argc, int min, int max)
 void mrb_core_init_printabort(void);
 
 int
-mrb_core_init_protect(mrb_state *mrb, void (*body)(mrb_state *, void *), void *opaque)
+mrb_core_init_protect(mrb_state *mrb, void (*body)(mrb_state*, void*), void *opaque)
 {
   struct mrb_jmpbuf *prev_jmp = mrb->jmp;
   struct mrb_jmpbuf c_jmp;

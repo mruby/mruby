@@ -63,7 +63,7 @@ struct mrb_pool {
 MRB_API mrb_pool*
 mrb_pool_open(mrb_state *mrb)
 {
-  mrb_pool *pool = (mrb_pool *)mrb_malloc_simple(mrb, sizeof(mrb_pool));
+  mrb_pool *pool = (mrb_pool*)mrb_malloc_simple(mrb, sizeof(mrb_pool));
 
   if (pool) {
     pool->mrb = mrb;
@@ -95,7 +95,7 @@ page_alloc(mrb_pool *pool, size_t len)
 
   if (len < POOL_PAGE_SIZE)
     len = POOL_PAGE_SIZE;
-  page = (struct mrb_pool_page *)mrb_malloc_simple(pool->mrb, sizeof(struct mrb_pool_page)+len);
+  page = (struct mrb_pool_page*)mrb_malloc_simple(pool->mrb, sizeof(struct mrb_pool_page)+len);
   if (page) {
     page->offset = 0;
     page->len = len;

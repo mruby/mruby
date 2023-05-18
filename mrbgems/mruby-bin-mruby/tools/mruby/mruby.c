@@ -172,8 +172,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
 
           cmdlinelen = strlen(args->cmdline);
           itemlen = strlen(item);
-          args->cmdline =
-            (char *)mrb_realloc(mrb, args->cmdline, cmdlinelen + itemlen + 2);
+          args->cmdline = (char*)mrb_realloc(mrb, args->cmdline, cmdlinelen + itemlen + 2);
           args->cmdline[cmdlinelen] = '\n';
           memcpy(args->cmdline + cmdlinelen + 1, item, itemlen + 1);
         }

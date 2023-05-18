@@ -93,7 +93,7 @@ fiber_init(mrb_state *mrb, mrb_value self)
   if (p->body.irep->nregs > slen) {
     slen += p->body.irep->nregs;
   }
-  c->stbase = (mrb_value *)mrb_malloc(mrb, slen*sizeof(mrb_value));
+  c->stbase = (mrb_value*)mrb_malloc(mrb, slen*sizeof(mrb_value));
   c->stend = c->stbase + slen;
 
   {
@@ -110,7 +110,7 @@ fiber_init(mrb_state *mrb, mrb_value self)
   c->stbase[0] = mrb->c->ci->stack[0];
 
   /* initialize callinfo stack */
-  c->cibase = (mrb_callinfo *)mrb_calloc(mrb, FIBER_CI_INIT_SIZE, sizeof(mrb_callinfo));
+  c->cibase = (mrb_callinfo*)mrb_calloc(mrb, FIBER_CI_INIT_SIZE, sizeof(mrb_callinfo));
   c->ciend = c->cibase + FIBER_CI_INIT_SIZE;
   c->ci = c->cibase;
 

@@ -56,24 +56,22 @@
 #ifdef _WIN32
 static const char *inet_ntop(int af, const void *src, char *dst, socklen_t cnt)
 {
-  if (af == AF_INET)
-  {
+  if (af == AF_INET) {
     struct sockaddr_in in = {0};
 
     in.sin_family = AF_INET;
     memcpy(&in.sin_addr, src, sizeof(struct in_addr));
-    getnameinfo((struct sockaddr *)&in, sizeof(struct
-                sockaddr_in), dst, cnt, NULL, 0, NI_NUMERICHOST);
+    getnameinfo((struct sockaddr*)&in, sizeof(struct sockaddr_in),
+                dst, cnt, NULL, 0, NI_NUMERICHOST);
     return dst;
   }
-  else if (af == AF_INET6)
-  {
+  else if (af == AF_INET6) {
     struct sockaddr_in6 in = {0};
 
     in.sin6_family = AF_INET6;
     memcpy(&in.sin6_addr, src, sizeof(struct in_addr6));
-    getnameinfo((struct sockaddr *)&in, sizeof(struct
-                sockaddr_in6), dst, cnt, NULL, 0, NI_NUMERICHOST);
+    getnameinfo((struct sockaddr*)&in, sizeof(struct sockaddr_in6),
+                dst, cnt, NULL, 0, NI_NUMERICHOST);
     return dst;
   }
   return NULL;
@@ -195,7 +193,7 @@ mrb_addrinfo_getnameinfo(mrb_state *mrb, mrb_value self)
   if (!mrb_string_p(sastr)) {
     mrb_raise(mrb, E_SOCKET_ERROR, "invalid sockaddr");
   }
-  error = getnameinfo((struct sockaddr *)RSTRING_PTR(sastr), (socklen_t)RSTRING_LEN(sastr), RSTRING_PTR(host), NI_MAXHOST, RSTRING_PTR(serv), NI_MAXSERV, (int)flags);
+  error = getnameinfo((struct sockaddr*)RSTRING_PTR(sastr), (socklen_t)RSTRING_LEN(sastr), RSTRING_PTR(host), NI_MAXHOST, RSTRING_PTR(serv), NI_MAXSERV, (int)flags);
   if (error) {
     mrb_raisef(mrb, E_SOCKET_ERROR, "getnameinfo: %s", gai_strerror(error));
   }
@@ -214,12 +212,12 @@ mrb_addrinfo_unix_path(mrb_state *mrb, mrb_value self)
   mrb_value sastr;
 
   sastr = mrb_iv_get(mrb, self, MRB_IVSYM(sockaddr));
-  if (((struct sockaddr *)RSTRING_PTR(sastr))->sa_family != AF_UNIX)
+  if (((struct sockaddr*)RSTRING_PTR(sastr))->sa_family != AF_UNIX)
     mrb_raise(mrb, E_SOCKET_ERROR, "need AF_UNIX address");
   if (RSTRING_LEN(sastr) < (mrb_int)offsetof(struct sockaddr_un, sun_path) + 1) {
     return mrb_str_new(mrb, "", 0);
   } else {
-    return mrb_str_new_cstr(mrb, ((struct sockaddr_un *)RSTRING_PTR(sastr))->sun_path);
+    return mrb_str_new_cstr(mrb, ((struct sockaddr_un*)RSTRING_PTR(sastr))->sun_path);
   }
 }
 #endif
@@ -234,11 +232,11 @@ sa2addrlist(mrb_state *mrb, const struct sockaddr *sa, socklen_t salen)
   switch (sa->sa_family) {
   case AF_INET:
     afstr = "AF_INET";
-    port = ((struct sockaddr_in *)sa)->sin_port;
+    port = ((struct sockaddr_in*)sa)->sin_port;
     break;
   case AF_INET6:
     afstr = "AF_INET6";
-    port = ((struct sockaddr_in6 *)sa)->sin6_port;
+    port = ((struct sockaddr_in6*)sa)->sin6_port;
     break;
   default:
     mrb_raise(mrb, E_ARGUMENT_ERROR, "bad af");
@@ -272,7 +270,7 @@ socket_family(int s)
   socklen_t salen;
 
   salen = sizeof(ss);
-  if (getsockname(s, (struct sockaddr *)&ss, &salen) == -1)
+  if (getsockname(s, (struct sockaddr*)&ss, &salen) == -1)
     return AF_UNSPEC;
   return ss.ss_family;
 }
@@ -307,7 +305,7 @@ mrb_basicsocket_getpeername(mrb_state *mrb, mrb_value self)
   socklen_t salen;
 
   salen = sizeof(ss);
-  if (getpeername(socket_fd(mrb, self), (struct sockaddr *)&ss, &salen) != 0)
+  if (getpeername(socket_fd(mrb, self), (struct sockaddr*)&ss, &salen) != 0)
     mrb_sys_fail(mrb, "getpeername");
 
   return mrb_str_new(mrb, (char*)&ss, salen);
@@ -320,7 +318,7 @@ mrb_basicsocket_getsockname(mrb_state *mrb, mrb_value self)
   socklen_t salen;
 
   salen = sizeof(ss);
-  if (getsockname(socket_fd(mrb, self), (struct sockaddr *)&ss, &salen) != 0)
+  if (getsockname(socket_fd(mrb, self), (struct sockaddr*)&ss, &salen) != 0)
     mrb_sys_fail(mrb, "getsockname");
 
   return mrb_str_new(mrb, (char*)&ss, salen);
@@ -374,7 +372,7 @@ mrb_basicsocket_recvfrom(mrb_state *mrb, mrb_value self)
   buf = mrb_str_new_capa(mrb, maxlen);
   socklen = sizeof(struct sockaddr_storage);
   sa = mrb_str_new_capa(mrb, socklen);
-  n = recvfrom(socket_fd(mrb, self), RSTRING_PTR(buf), (fsize_t)maxlen, (int)flags, (struct sockaddr *)RSTRING_PTR(sa), &socklen);
+  n = recvfrom(socket_fd(mrb, self), RSTRING_PTR(buf), (fsize_t)maxlen, (int)flags, (struct sockaddr*)RSTRING_PTR(sa), &socklen);
   if (n == -1)
     mrb_sys_fail(mrb, "recvfrom");
   mrb_str_resize(mrb, buf, (mrb_int)n);
@@ -533,12 +531,13 @@ mrb_ipsocket_pton(mrb_state *mrb, mrb_value klass)
 
   if (af == AF_INET) {
     struct in_addr in;
-    if (inet_pton(AF_INET, buf, (void *)&in.s_addr) != 1)
+    if (inet_pton(AF_INET, buf, (void*)&in.s_addr) != 1)
       goto invalid;
     return mrb_str_new(mrb, (char*)&in.s_addr, 4);
-  } else if (af == AF_INET6) {
+  }
+  else if (af == AF_INET6) {
     struct in6_addr in6;
-    if (inet_pton(AF_INET6, buf, (void *)&in6.s6_addr) != 1)
+    if (inet_pton(AF_INET6, buf, (void*)&in6.s6_addr) != 1)
       goto invalid;
     return mrb_str_new(mrb, (char*)&in6.s6_addr, 16);
   } else
@@ -565,12 +564,12 @@ mrb_ipsocket_recvfrom(mrb_state *mrb, mrb_value self)
   buf = mrb_str_new_capa(mrb, maxlen);
   socklen = sizeof(ss);
   n = recvfrom(fd, RSTRING_PTR(buf), (fsize_t)maxlen, (int)flags,
-               (struct sockaddr *)&ss, &socklen);
+               (struct sockaddr*)&ss, &socklen);
   if (n == -1) {
     mrb_sys_fail(mrb, "recvfrom");
   }
   mrb_str_resize(mrb, buf, (mrb_int)n);
-  a = sa2addrlist(mrb, (struct sockaddr *)&ss, socklen);
+  a = sa2addrlist(mrb, (struct sockaddr*)&ss, socklen);
   pair = mrb_ary_new_capa(mrb, 2);
   mrb_ary_push(mrb, pair, buf);
   mrb_ary_push(mrb, pair, a);
@@ -620,7 +619,7 @@ mrb_socket_accept2(mrb_state *mrb, mrb_value klass)
   mrb_get_args(mrb, "i", &s0);
   socklen = sizeof(struct sockaddr_storage);
   sastr = mrb_str_new_capa(mrb, (mrb_int)socklen);
-  s1 = (int)accept(s0, (struct sockaddr *)RSTRING_PTR(sastr), &socklen);
+  s1 = (int)accept(s0, (struct sockaddr*)RSTRING_PTR(sastr), &socklen);
   if (s1 == -1) {
     mrb_sys_fail(mrb, "accept");
   }
@@ -639,7 +638,7 @@ mrb_socket_bind(mrb_state *mrb, mrb_value klass)
   mrb_int s;
 
   mrb_get_args(mrb, "iS", &s, &sastr);
-  if (bind((int)s, (struct sockaddr *)RSTRING_PTR(sastr), (socklen_t)RSTRING_LEN(sastr)) == -1) {
+  if (bind((int)s, (struct sockaddr*)RSTRING_PTR(sastr), (socklen_t)RSTRING_LEN(sastr)) == -1) {
     mrb_sys_fail(mrb, "bind");
   }
   return mrb_nil_value();
@@ -652,7 +651,7 @@ mrb_socket_connect(mrb_state *mrb, mrb_value klass)
   mrb_int s;
 
   mrb_get_args(mrb, "iS", &s, &sastr);
-  if (connect((int)s, (struct sockaddr *)RSTRING_PTR(sastr), (socklen_t)RSTRING_LEN(sastr)) == -1) {
+  if (connect((int)s, (struct sockaddr*)RSTRING_PTR(sastr), (socklen_t)RSTRING_LEN(sastr)) == -1) {
     mrb_sys_fail(mrb, "connect");
   }
   return mrb_nil_value();
@@ -680,7 +679,7 @@ mrb_socket_sockaddr_family(mrb_state *mrb, mrb_value klass)
   if ((size_t)RSTRING_LEN(str) < offsetof(struct sockaddr, sa_family) + sizeof(sa->sa_family)) {
     mrb_raise(mrb, E_SOCKET_ERROR, "invalid sockaddr (too short)");
   }
-  sa = (const struct sockaddr *)RSTRING_PTR(str);
+  sa = (const struct sockaddr*)RSTRING_PTR(str);
   return mrb_fixnum_value(sa->sa_family);
 }
 
@@ -699,7 +698,7 @@ mrb_socket_sockaddr_un(mrb_state *mrb, mrb_value klass)
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "too long unix socket path (max: %d bytes)", (int)sizeof(sunp->sun_path) - 1);
   }
   s = mrb_str_new_capa(mrb, sizeof(struct sockaddr_un));
-  sunp = (struct sockaddr_un *)RSTRING_PTR(s);
+  sunp = (struct sockaddr_un*)RSTRING_PTR(s);
 #if HAVE_SA_LEN
   sunp->sun_len = sizeof(struct sockaddr_un);
 #endif

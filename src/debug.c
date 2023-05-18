@@ -178,7 +178,7 @@ mrb_debug_info_alloc(mrb_state *mrb, mrb_irep *irep)
   mrb_irep_debug_info *ret;
 
   mrb_assert(!irep->debug_info);
-  ret = (mrb_irep_debug_info *)mrb_malloc(mrb, sizeof(*ret));
+  ret = (mrb_irep_debug_info*)mrb_malloc(mrb, sizeof(*ret));
   *ret = initial;
   irep->debug_info = ret;
   return ret;

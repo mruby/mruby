@@ -345,7 +345,7 @@ assign_class_name(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
         o = mrb_obj_iv_get(mrb, c, id_outer);
 
         if (mrb_nil_p(o)) {
-          if ((struct RClass *)obj == mrb->object_class) {
+          if ((struct RClass*)obj == mrb->object_class) {
             mrb_obj_iv_set_force(mrb, c, id_classname, mrb_symbol_value(sym));
           }
           else {
@@ -625,7 +625,7 @@ mrb_mod_cv_get(mrb_state *mrb, struct RClass *c, mrb_sym sym)
   if (cls && cls->tt == MRB_TT_SCLASS) {
     mrb_value klass;
 
-    klass = mrb_obj_iv_get(mrb, (struct RObject *)cls, MRB_SYM(__attached__));
+    klass = mrb_obj_iv_get(mrb, (struct RObject*)cls, MRB_SYM(__attached__));
     c = mrb_class_ptr(klass);
     if (c->tt == MRB_TT_CLASS || c->tt == MRB_TT_MODULE) {
       given = FALSE;

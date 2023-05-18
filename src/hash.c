@@ -1742,8 +1742,8 @@ mrb_hash_merge(mrb_state *mrb, mrb_value hash1, mrb_value hash2)
   if (h_size(h2) == 0) return;
   h_each(h2, entry, {
     h_check_modified(mrb, h2, {h_set(mrb, h1, entry->key, entry->val);});
-    mrb_field_write_barrier_value(mrb, (struct RBasic *)h1, entry->key);
-    mrb_field_write_barrier_value(mrb, (struct RBasic *)h1, entry->val);
+    mrb_field_write_barrier_value(mrb, (struct RBasic*)h1, entry->key);
+    mrb_field_write_barrier_value(mrb, (struct RBasic*)h1, entry->val);
   });
 }
 

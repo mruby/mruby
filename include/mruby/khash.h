@@ -102,8 +102,8 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
     uint8_t *p = (uint8_t*)mrb_malloc_simple(mrb, sizeof(uint8_t)*sz/4+len*sz); \
     if (!p) { return 1; }                                               \
     h->size = 0;                                                        \
-    h->keys = (khkey_t *)p;                                             \
-    h->vals = kh_is_map ? (khval_t *)(p+sizeof(khkey_t)*sz) : NULL;     \
+    h->keys = (khkey_t*)p;                                              \
+    h->vals = kh_is_map ? (khval_t*)(p+sizeof(khkey_t)*sz) : NULL;      \
     h->ed_flags = p+len*sz;                                             \
     kh_fill_flags(h->ed_flags, 0xaa, sz/4);                             \
     return 0;                                                           \

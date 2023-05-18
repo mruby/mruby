@@ -106,11 +106,11 @@ stack_init(mrb_state *mrb)
   struct mrb_context *c = mrb->c;
 
   /* mrb_assert(mrb->stack == NULL); */
-  c->stbase = (mrb_value *)mrb_calloc(mrb, STACK_INIT_SIZE, sizeof(mrb_value));
+  c->stbase = (mrb_value*)mrb_calloc(mrb, STACK_INIT_SIZE, sizeof(mrb_value));
   c->stend = c->stbase + STACK_INIT_SIZE;
 
   /* mrb_assert(ci == NULL); */
-  c->cibase = (mrb_callinfo *)mrb_calloc(mrb, CALLINFO_INIT_SIZE, sizeof(mrb_callinfo));
+  c->cibase = (mrb_callinfo*)mrb_calloc(mrb, CALLINFO_INIT_SIZE, sizeof(mrb_callinfo));
   c->ciend = c->cibase + CALLINFO_INIT_SIZE;
   c->ci = c->cibase;
   c->ci->u.target_class = mrb->object_class;
@@ -174,7 +174,7 @@ stack_extend_alloc(mrb_state *mrb, mrb_int room)
     size += room;
 #endif
 
-  newstack = (mrb_value *)mrb_realloc(mrb, mrb->c->stbase, sizeof(mrb_value) * size);
+  newstack = (mrb_value*)mrb_realloc(mrb, mrb->c->stbase, sizeof(mrb_value) * size);
   stack_clear(&(newstack[oldsize]), size - oldsize);
   envadjust(mrb, oldbase, newstack, oldsize);
   mrb->c->stbase = newstack;
@@ -351,7 +351,7 @@ cipush(mrb_state *mrb, mrb_int push_stacks, uint8_t cci, struct RClass *target_c
     if (size > MRB_CALL_LEVEL_MAX) {
       mrb_exc_raise(mrb, mrb_obj_value(mrb->stack_err));
     }
-    c->cibase = (mrb_callinfo *)mrb_realloc(mrb, c->cibase, sizeof(mrb_callinfo)*size*2);
+    c->cibase = (mrb_callinfo*)mrb_realloc(mrb, c->cibase, sizeof(mrb_callinfo)*size*2);
     c->ci = c->cibase + size;
     c->ciend = c->cibase + size * 2;
   }
@@ -384,8 +384,8 @@ mrb_env_unshare(mrb_state *mrb, struct REnv *e, mrb_bool noraise)
   }
 
   size_t live = mrb->gc.live;
-  mrb_value *p = (mrb_value *)mrb_malloc_simple(mrb, sizeof(mrb_value)*len);
-  if (live != mrb->gc.live && mrb_object_dead_p(mrb, (struct RBasic *)e)) {
+  mrb_value *p = (mrb_value*)mrb_malloc_simple(mrb, sizeof(mrb_value)*len);
+  if (live != mrb->gc.live && mrb_object_dead_p(mrb, (struct RBasic*)e)) {
     // The e object is now subject to GC inside mrb_malloc_simple().
     // Moreover, if NULL is returned due to mrb_malloc_simple() failure, simply ignore it.
     mrb_free(mrb, p);

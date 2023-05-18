@@ -1836,7 +1836,7 @@ prepare_name_common(mrb_state *mrb, mrb_sym sym, const char *prefix, const char 
   size_t prefix_len = prefix ? strlen(prefix) : 0;
   size_t suffix_len = suffix ? strlen(suffix) : 0;
   size_t name_len = sym_len + prefix_len + suffix_len;
-  char *buf = name_len > sizeof(onstack) ? (char *)mrb_alloca(mrb, name_len) : onstack;
+  char *buf = name_len > sizeof(onstack) ? (char*)mrb_alloca(mrb, name_len) : onstack;
   char *p = buf;
 
   if (prefix_len > 0) {

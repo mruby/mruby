@@ -55,7 +55,7 @@ mrb_binding_extract_env(mrb_state *mrb, mrb_value binding)
   }
   else {
     mrb_check_type(mrb, obj, MRB_TT_ENV);
-    return (struct REnv *)mrb_obj_ptr(obj);
+    return (struct REnv*)mrb_obj_ptr(obj);
   }
 }
 

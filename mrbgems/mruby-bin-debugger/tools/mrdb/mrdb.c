@@ -20,7 +20,7 @@
 #include "apibreak.h"
 #include "apilist.h"
 
-void mrdb_state_free(mrb_state *);
+void mrdb_state_free(mrb_state*);
 
 static mrb_debug_context *_debug_context = NULL;
 static mrdb_state *_mrdb_state = NULL;
@@ -113,7 +113,7 @@ append_srcpath:
           char *buf;
 
           buflen = strlen(item) + 1;
-          buf = (char *)mrb_malloc(mrb, buflen);
+          buf = (char*)mrb_malloc(mrb, buflen);
           memcpy(buf, item, buflen);
           args->srcpath = buf;
         }
@@ -123,8 +123,7 @@ append_srcpath:
 
           srcpathlen = strlen(args->srcpath);
           itemlen = strlen(item);
-          args->srcpath =
-            (char *)mrb_realloc(mrb, args->srcpath, srcpathlen + itemlen + 2);
+          args->srcpath = (char*)mrb_realloc(mrb, args->srcpath, srcpathlen + itemlen + 2);
           args->srcpath[srcpathlen] = '\n';
           memcpy(args->srcpath + srcpathlen + 1, item, itemlen + 1);
         }

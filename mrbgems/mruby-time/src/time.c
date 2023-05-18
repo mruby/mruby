@@ -363,7 +363,7 @@ time_alloc_time(mrb_state *mrb, time_t sec, time_t usec, enum mrb_timezone timez
 {
   struct mrb_time *tm;
 
-  tm = (struct mrb_time *)mrb_malloc(mrb, sizeof(struct mrb_time));
+  tm = (struct mrb_time*)mrb_malloc(mrb, sizeof(struct mrb_time));
   tm->sec  = sec;
   tm->usec = usec;
   if (MRB_TIME_T_UINT && tm->usec < 0) {
@@ -450,7 +450,7 @@ current_mrb_time(mrb_state *mrb)
     usec = tv.tv_usec;
   }
 #endif
-  tm = (struct mrb_time *)mrb_malloc(mrb, sizeof(*tm));
+  tm = (struct mrb_time*)mrb_malloc(mrb, sizeof(*tm));
   *tm = tmzero;
   tm->sec = sec; tm->usec = usec;
   tm->timezone = MRB_TIMEZONE_LOCAL;
@@ -819,7 +819,7 @@ time_getutc(mrb_state *mrb, mrb_value self)
   struct mrb_time *tm, *tm2;
 
   tm = time_get_ptr(mrb, self);
-  tm2 = (struct mrb_time *)mrb_malloc(mrb, sizeof(*tm));
+  tm2 = (struct mrb_time*)mrb_malloc(mrb, sizeof(*tm));
   *tm2 = *tm;
   tm2->timezone = MRB_TIMEZONE_UTC;
   time_update_datetime(mrb, tm2, TRUE);
@@ -834,7 +834,7 @@ time_getlocal(mrb_state *mrb, mrb_value self)
   struct mrb_time *tm, *tm2;
 
   tm = time_get_ptr(mrb, self);
-  tm2 = (struct mrb_time *)mrb_malloc(mrb, sizeof(*tm));
+  tm2 = (struct mrb_time*)mrb_malloc(mrb, sizeof(*tm));
   *tm2 = *tm;
   tm2->timezone = MRB_TIMEZONE_LOCAL;
   time_update_datetime(mrb, tm2, TRUE);
@@ -892,13 +892,13 @@ time_init_copy(mrb_state *mrb, mrb_value copy)
   if (!mrb_obj_is_instance_of(mrb, src, mrb_obj_class(mrb, copy))) {
     mrb_raise(mrb, E_TYPE_ERROR, "wrong argument class");
   }
-  t1 = (struct mrb_time *)DATA_PTR(copy);
-  t2 = (struct mrb_time *)DATA_PTR(src);
+  t1 = (struct mrb_time*)DATA_PTR(copy);
+  t2 = (struct mrb_time*)DATA_PTR(src);
   if (!t2) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized time");
   }
   if (!t1) {
-    t1 = (struct mrb_time *)mrb_malloc(mrb, sizeof(struct mrb_time));
+    t1 = (struct mrb_time*)mrb_malloc(mrb, sizeof(struct mrb_time));
     mrb_data_init(copy, t1, &time_type);
   }
   *t1 = *t2;

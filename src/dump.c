@@ -452,7 +452,7 @@ get_filename_table_size(mrb_state *mrb, const mrb_irep *irep, mrb_sym **fp, uint
     if (find_filename_index(filenames, *lp, file->filename_sym) == -1) {
       /* register filename */
       *lp += 1;
-      *fp = filenames = (mrb_sym *)mrb_realloc(mrb, filenames, sizeof(mrb_sym) * (*lp));
+      *fp = filenames = (mrb_sym*)mrb_realloc(mrb, filenames, sizeof(mrb_sym) * (*lp));
       filenames[*lp - 1] = file->filename_sym;
 
       /* filename */
@@ -557,7 +557,7 @@ write_section_debug(mrb_state *mrb, const mrb_irep *irep, uint8_t *cur, mrb_sym 
     return MRB_DUMP_INVALID_ARGUMENT;
   }
 
-  header = (struct rite_section_debug_header *)bin;
+  header = (struct rite_section_debug_header*)bin;
   cur += sizeof(struct rite_section_debug_header);
   section_size += sizeof(struct rite_section_debug_header);
 
@@ -728,7 +728,7 @@ lv_section_exit:
 static int
 write_rite_binary_header(mrb_state *mrb, size_t binary_size, uint8_t *bin, uint8_t flags)
 {
-  struct rite_binary_header *header = (struct rite_binary_header *)bin;
+  struct rite_binary_header *header = (struct rite_binary_header*)bin;
 
   memcpy(header->binary_ident, RITE_BINARY_IDENT, sizeof(header->binary_ident));
   memcpy(header->major_version, RITE_BINARY_MAJOR_VER, sizeof(header->major_version));

@@ -95,7 +95,7 @@ get_history_path(mrb_state *mrb)
     int len = snprintf(NULL, 0, "%s/%s", home, history_file_name);
     if (len >= 0) {
       size_t size = len + 1;
-      path = (char *)mrb_malloc_simple(mrb, size);
+      path = (char*)mrb_malloc_simple(mrb, size);
       if (path != NULL) {
         int n = snprintf(path, size, "%s/%s", home, history_file_name);
         if (n != len) {

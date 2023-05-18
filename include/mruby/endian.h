@@ -34,7 +34,7 @@ static inline int
 check_little_endian(void)
 {
   unsigned int n = 1;
-  return (*(unsigned char *)&n == 1);
+  return (*(unsigned char*)&n == 1);
 }
 #  define littleendian check_little_endian()
 #endif

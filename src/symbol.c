@@ -214,7 +214,7 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
   else {
     uint32_t ulen = (uint32_t)len;
     size_t ilen = mrb_packed_int_len(ulen);
-    char *p = (char *)mrb_malloc(mrb, len+ilen+1);
+    char *p = (char*)mrb_malloc(mrb, len+ilen+1);
     mrb_packed_int_encode(ulen, (uint8_t*)p, (uint8_t*)p+ilen);
     memcpy(p+ilen, name, len);
     p[ilen+len] = 0;

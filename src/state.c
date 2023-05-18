@@ -20,7 +20,7 @@ void mrb_init_mrbgems(mrb_state*);
 void mrb_gc_init(mrb_state*, mrb_gc *gc);
 void mrb_gc_destroy(mrb_state*, mrb_gc *gc);
 
-int mrb_core_init_protect(mrb_state *mrb, void (*body)(mrb_state *, void *), void *opaque);
+int mrb_core_init_protect(mrb_state *mrb, void (*body)(mrb_state*, void*), void *opaque);
 
 static void
 init_gc_and_core(mrb_state *mrb, void *opaque)
@@ -42,7 +42,7 @@ mrb_open_core(mrb_allocf f, void *ud)
   mrb_state *mrb;
 
   if (f == NULL) f = mrb_default_allocf;
-  mrb = (mrb_state *)(f)(NULL, NULL, sizeof(mrb_state), ud);
+  mrb = (mrb_state*)(f)(NULL, NULL, sizeof(mrb_state), ud);
   if (mrb == NULL) return NULL;
 
   *mrb = mrb_state_zero;
@@ -207,7 +207,7 @@ mrb_add_irep(mrb_state *mrb)
   static const mrb_irep mrb_irep_zero = { 0 };
   mrb_irep *irep;
 
-  irep = (mrb_irep *)mrb_malloc(mrb, sizeof(mrb_irep));
+  irep = (mrb_irep*)mrb_malloc(mrb, sizeof(mrb_irep));
   *irep = mrb_irep_zero;
   irep->refcnt = 1;
 

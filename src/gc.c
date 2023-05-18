@@ -175,8 +175,8 @@ mrb_static_assert(MRB_GC_RED <= GC_COLOR_MASK);
 /* We have removed `objects[]` from `mrb_heap_page` since it was not C++
  * compatible. Using array index to get pointer after structure instead. */
 
-/* #define objects(p) ((RVALUE *)p->objects) */
-#define objects(p) ((RVALUE *)&p[1])
+/* #define objects(p) ((RVALUE*)p->objects) */
+#define objects(p) ((RVALUE*)&p[1])
 
 mrb_noreturn void mrb_raise_nomemory(mrb_state *mrb);
 
@@ -335,7 +335,7 @@ unlink_free_heap_page(mrb_gc *gc, mrb_heap_page *page)
 static void
 add_heap(mrb_state *mrb, mrb_gc *gc)
 {
-  mrb_heap_page *page = (mrb_heap_page *)mrb_calloc(mrb, 1, sizeof(mrb_heap_page) + MRB_HEAP_PAGE_SIZE * sizeof(RVALUE));
+  mrb_heap_page *page = (mrb_heap_page*)mrb_calloc(mrb, 1, sizeof(mrb_heap_page) + MRB_HEAP_PAGE_SIZE * sizeof(RVALUE));
   RVALUE *p, *e;
   struct RBasic *prev = NULL;
 
@@ -546,7 +546,7 @@ mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
 
   gc->live++;
   gc_protect(mrb, gc, p);
-  *(RVALUE *)p = RVALUE_zero;
+  *(RVALUE*)p = RVALUE_zero;
   p->tt = ttype;
   p->c = cls;
   paint_partial_white(gc, p);

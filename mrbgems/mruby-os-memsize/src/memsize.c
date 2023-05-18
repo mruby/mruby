@@ -95,7 +95,7 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj)
       /* Arrays that do not fit within an RArray perform a heap allocation
       *  storing an array of pointers to the original objects*/
       size += mrb_objspace_page_slot_size();
-      if(len > MRB_ARY_EMBED_LEN_MAX) size += sizeof(mrb_value *) * len;
+      if(len > MRB_ARY_EMBED_LEN_MAX) size += sizeof(mrb_value*) * len;
       break;
     }
     case MRB_TT_PROC: {
@@ -112,7 +112,7 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj)
 #endif
       break;
     case MRB_TT_FIBER: {
-      struct RFiber* f = (struct RFiber *)mrb_ptr(obj);
+      struct RFiber* f = (struct RFiber*)mrb_ptr(obj);
       ptrdiff_t stack_size = f->cxt->stend - f->cxt->stbase;
       ptrdiff_t ci_size = f->cxt->ciend - f->cxt->cibase;
 
@@ -206,7 +206,7 @@ struct os_memsize_of_all_cb_data {
 static int
 os_memsize_of_all_cb(mrb_state *mrb, struct RBasic *obj, void *d)
 {
-  struct os_memsize_of_all_cb_data *data = (struct os_memsize_of_all_cb_data *)d;
+  struct os_memsize_of_all_cb_data *data = (struct os_memsize_of_all_cb_data*)d;
   switch (obj->tt) {
   case MRB_TT_FREE: case MRB_TT_ENV:
   case MRB_TT_BREAK: case MRB_TT_ICLASS:

@@ -70,7 +70,7 @@ static void
 range_ptr_alloc_edges(mrb_state *mrb, struct RRange *r)
 {
 #ifndef MRB_RANGE_EMBED
-  r->edges = (mrb_range_edges *)mrb_malloc(mrb, sizeof(mrb_range_edges));
+  r->edges = (mrb_range_edges*)mrb_malloc(mrb, sizeof(mrb_range_edges));
 #endif
 }
 

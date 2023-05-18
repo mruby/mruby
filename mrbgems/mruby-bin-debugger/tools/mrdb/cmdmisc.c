@@ -350,7 +350,7 @@ check_cmd_pattern(const char *pattern, const char *cmd)
   }
 
   p = lbracket + 1;
-  q = (char *)cmd + (lbracket - pattern);
+  q = (char*)cmd + (lbracket - pattern);
 
   for ( ; p < rbracket && *q != '\0'; p++, q++) {
     if (*p != *q) {

@@ -128,7 +128,7 @@ mrb_id_attrset(mrb_state *mrb, mrb_sym id)
 
   name = mrb_sym_name_len(mrb, id, &len);
   if (len > ONSTACK_STRLEN_MAX) {
-    buf = (char *)mrb_malloc(mrb, (size_t)len+1);
+    buf = (char*)mrb_malloc(mrb, (size_t)len+1);
   }
   else {
     buf = onstack;

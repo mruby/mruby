@@ -160,7 +160,7 @@ ary_modify(mrb_state *mrb, struct RArray *a)
 
       p = a->as.heap.ptr;
       len = a->as.heap.len * sizeof(mrb_value);
-      ptr = (mrb_value *)mrb_malloc(mrb, len);
+      ptr = (mrb_value*)mrb_malloc(mrb, len);
       if (p) {
         array_copy(ptr, p, a->as.heap.len);
       }
@@ -183,13 +183,13 @@ static void
 ary_make_shared(mrb_state *mrb, struct RArray *a)
 {
   if (!ARY_SHARED_P(a) && !ARY_EMBED_P(a)) {
-    mrb_shared_array *shared = (mrb_shared_array *)mrb_malloc(mrb, sizeof(mrb_shared_array));
+    mrb_shared_array *shared = (mrb_shared_array*)mrb_malloc(mrb, sizeof(mrb_shared_array));
     mrb_value *ptr = a->as.heap.ptr;
     mrb_int len = a->as.heap.len;
 
     shared->refcnt = 1;
     if (a->as.heap.aux.capa > len) {
-      a->as.heap.ptr = shared->ptr = (mrb_value *)mrb_realloc(mrb, ptr, sizeof(mrb_value)*len+1);
+      a->as.heap.ptr = shared->ptr = (mrb_value*)mrb_realloc(mrb, ptr, sizeof(mrb_value)*len+1);
     }
     else {
       shared->ptr = ptr;
@@ -224,7 +224,7 @@ ary_expand_capa(mrb_state *mrb, struct RArray *a, mrb_int len)
   if (ARY_EMBED_P(a)) {
     mrb_value *ptr = ARY_EMBED_PTR(a);
     mrb_int len = ARY_EMBED_LEN(a);
-    mrb_value *expanded_ptr = (mrb_value *)mrb_malloc(mrb, sizeof(mrb_value)*capa);
+    mrb_value *expanded_ptr = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value)*capa);
 
     ARY_UNSET_EMBED_FLAG(a);
     array_copy(expanded_ptr, ptr, len);
@@ -233,7 +233,7 @@ ary_expand_capa(mrb_state *mrb, struct RArray *a, mrb_int len)
     a->as.heap.ptr = expanded_ptr;
   }
   else if (capa > a->as.heap.aux.capa) {
-    mrb_value *expanded_ptr = (mrb_value *)mrb_realloc(mrb, a->as.heap.ptr, sizeof(mrb_value)*capa);
+    mrb_value *expanded_ptr = (mrb_value*)mrb_realloc(mrb, a->as.heap.ptr, sizeof(mrb_value)*capa);
 
     a->as.heap.aux.capa = capa;
     a->as.heap.ptr = expanded_ptr;
@@ -262,7 +262,7 @@ ary_shrink_capa(mrb_state *mrb, struct RArray *a)
 
   if (capa > a->as.heap.len && capa < a->as.heap.aux.capa) {
     a->as.heap.aux.capa = capa;
-    a->as.heap.ptr = (mrb_value *)mrb_realloc(mrb, a->as.heap.ptr, sizeof(mrb_value)*capa);
+    a->as.heap.ptr = (mrb_value*)mrb_realloc(mrb, a->as.heap.ptr, sizeof(mrb_value)*capa);
   }
 }
 

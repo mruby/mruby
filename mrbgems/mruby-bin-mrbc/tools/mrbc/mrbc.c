@@ -199,7 +199,7 @@ static int
 partial_hook(struct mrb_parser_state *p)
 {
   mrbc_context *c = p->cxt;
-  struct mrbc_args *args = (struct mrbc_args *)c->partial_data;
+  struct mrbc_args *args = (struct mrbc_args*)c->partial_data;
   const char *fn;
 
   if (p->f) fclose(p->f);

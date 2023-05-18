@@ -172,7 +172,7 @@ str_match_p(mrb_state *mrb,
 
   if (lbrace && rbrace) {
     /* expand brace */
-    char *ex_pat = (char *)mrb_malloc(mrb, pat_len-2);  /* expanded pattern */
+    char *ex_pat = (char*)mrb_malloc(mrb, pat_len-2);  /* expanded pattern */
     char *ex_p = ex_pat;
 
     COPY_AND_INC(ex_p, pat, lbrace-pat);

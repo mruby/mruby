@@ -1308,12 +1308,12 @@ MRB_API mrb_int mrb_cmp(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
 
 MRB_API void mrb_garbage_collect(mrb_state*);
 MRB_API void mrb_full_gc(mrb_state*);
-MRB_API void mrb_incremental_gc(mrb_state *);
+MRB_API void mrb_incremental_gc(mrb_state*);
 MRB_API void mrb_gc_mark(mrb_state*,struct RBasic*);
 #define mrb_gc_mark_value(mrb,val) do {\
   if (!mrb_immediate_p(val)) mrb_gc_mark((mrb), mrb_basic_ptr(val)); \
 } while (0)
-MRB_API void mrb_field_write_barrier(mrb_state *, struct RBasic*, struct RBasic*);
+MRB_API void mrb_field_write_barrier(mrb_state*, struct RBasic*, struct RBasic*);
 #define mrb_field_write_barrier_value(mrb, obj, val) do{\
   if (!mrb_immediate_p(val)) mrb_field_write_barrier((mrb), (obj), mrb_basic_ptr(val)); \
 } while (0)
