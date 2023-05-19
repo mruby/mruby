@@ -60,7 +60,8 @@ f_sleep(mrb_state *mrb, mrb_value self)
     mrb_get_args(mrb, "i", &sec);
     if (sec >= 0) {
         sleep(sec);
-    } else {
+    }
+    else {
         mrb_raise(mrb, E_ARGUMENT_ERROR, "time interval must not be negative");
     }
 #endif
@@ -94,7 +95,8 @@ f_usleep(mrb_state *mrb, mrb_value self)
 
     if (usec >= 0) {
         usleep(usec);
-    } else {
+    }
+    else {
         mrb_raise(mrb, E_ARGUMENT_ERROR, "time interval must not be negative");
     }
 

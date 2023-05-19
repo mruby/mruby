@@ -284,12 +284,15 @@ add_pair(struct float_pair *s, struct float_pair const *a,
 {
   if (b->s == 0.0F) {
     *s = *a;
-  } else if (a->s == 0.0F) {
+  }
+  else if (a->s == 0.0F) {
     *s = *b;
-  } else if (a->x >= b->x) {
+  }
+  else if (a->x >= b->x) {
     s->s = a->s + F(ldexp)(b->s, b->x - a->x);
     s->x = a->x;
-  } else {
+  }
+  else {
     s->s = F(ldexp)(a->s, a->x - b->x) + b->s;
     s->x = b->x;
   }

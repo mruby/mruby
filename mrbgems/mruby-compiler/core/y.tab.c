@@ -11404,7 +11404,8 @@ heredoc_remove_indent(parser_state *p, parser_heredoc_info *hinfo)
         newstr[newlen] = '\0';
       pair->car = (node*)newstr;
       pair->cdr = (node*)newlen;
-    } else {
+    }
+    else {
       spaces = (size_t)nspaces->car;
       heredoc_count_indent(hinfo, str, len, spaces, &offset);
       pair->car = (node*)(str + offset);
@@ -11479,7 +11480,8 @@ parse_string(parser_state *p)
 
         if (sizeof(s1)+sizeof(s2)+strlen(hinfo->term)+1 >= sizeof(buf)) {
           yyerror(p, "can't find heredoc delimiter anywhere before EOF");
-        } else {
+        }
+        else {
           strcpy(buf, s1);
           strcat(buf, hinfo->term);
           strcat(buf, s2);

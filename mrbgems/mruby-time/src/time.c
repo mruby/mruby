@@ -160,7 +160,8 @@ timegm(struct tm *tm)
   if(tm->tm_year >= epoch_year) {
     for (i = epoch_year; i < tm->tm_year; ++i)
       r += is_leapyear(i+1900) ? 366*24*60*60 : 365*24*60*60;
-  } else {
+  }
+  else {
     for (i = tm->tm_year; i < epoch_year; ++i)
       r -= is_leapyear(i+1900) ? 366*24*60*60 : 365*24*60*60;
   }

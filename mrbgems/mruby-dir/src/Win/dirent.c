@@ -50,27 +50,22 @@ DIR *opendir(const char *name)
         {
             strcat(strcpy(dir->name, name), all);
 
-            if((dir->handle =
-                (handle_type) _findfirst(dir->name, &dir->info)) != -1)
-            {
+            if((dir->handle = (handle_type) _findfirst(dir->name, &dir->info)) != -1) {
                 dir->result.d_name = 0;
             }
-            else /* rollback */
-            {
+            else {              /* rollback */
                 free(dir->name);
                 free(dir);
                 dir = 0;
             }
         }
-        else /* rollback */
-        {
+        else {                  /* rollback */
             free(dir);
             dir   = 0;
             errno = ENOMEM;
         }
     }
-    else
-    {
+    else {
         errno = EINVAL;
     }
 
@@ -112,8 +107,7 @@ struct dirent *readdir(DIR *dir)
             result->d_name = dir->info.name;
         }
     }
-    else
-    {
+    else {
         errno = EBADF;
     }
 
@@ -128,8 +122,7 @@ void rewinddir(DIR *dir)
         dir->handle = (handle_type) _findfirst(dir->name, &dir->info);
         dir->result.d_name = 0;
     }
-    else
-    {
+    else {
         errno = EBADF;
     }
 }

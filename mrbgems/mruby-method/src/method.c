@@ -154,7 +154,8 @@ bind_check(mrb_state *mrb, mrb_value recv, mrb_value owner)
       !mrb_obj_is_kind_of(mrb, recv, mrb_class_ptr(owner))) {
     if (mrb_sclass_p(owner)) {
       mrb_raise(mrb, E_TYPE_ERROR, "singleton method called for a different object");
-    } else {
+    }
+    else {
       mrb_raisef(mrb, E_TYPE_ERROR, "bind argument must be an instance of %v", owner);
     }
   }

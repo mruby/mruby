@@ -1439,7 +1439,8 @@ include_module_at(mrb_state *mrb, struct RClass *c, struct RClass *ins_pos, stru
           }
           goto skip;
         }
-      } else if (p->tt == MRB_TT_CLASS) {
+      }
+      else if (p->tt == MRB_TT_CLASS) {
         if (!search_super) break;
         superclass_seen = TRUE;
       }

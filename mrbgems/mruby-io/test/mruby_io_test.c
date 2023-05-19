@@ -97,7 +97,8 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
     if (tmpdir && strlen(tmpdir) > 0) {
       mrb_str_cat_cstr(mrb, fname, tmpdir);
       if (*(RSTRING_END(fname)-1) != '/') mrb_str_cat_lit(mrb, fname, "/");
-    } else {
+    }
+    else {
       mrb_str_cat_lit(mrb, fname, "/tmp/");
     }
 #endif

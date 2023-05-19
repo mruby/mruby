@@ -52,7 +52,8 @@ mrb_stat0(mrb_state *mrb, mrb_value obj, struct stat *st, int do_lstat)
     int ret;
     if (do_lstat) {
       ret = LSTAT(path, st);
-    } else {
+    }
+    else {
       ret = stat(path, st);
     }
     mrb_locale_free(path);

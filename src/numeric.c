@@ -704,9 +704,10 @@ flo_shift(mrb_state *mrb, mrb_value x, mrb_int width)
     val = trunc(val);
 #else
     if (val > 0){
-        val = floor(val);
-    } else {
-        val = ceil(val);
+      val = floor(val);
+    }
+    else {
+      val = ceil(val);
     }
 #endif
     if (val == 0 && mrb_float(x) < 0) {

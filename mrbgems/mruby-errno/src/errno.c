@@ -265,7 +265,8 @@ mrb_sce_errno(mrb_state *mrb, mrb_value self)
   sym = MRB_SYM(Errno);
   if (mrb_const_defined_at(mrb, mrb_obj_value(c), sym)) {
     return mrb_const_get(mrb, mrb_obj_value(c), sym);
-  } else {
+  }
+  else {
     sym = MRB_SYM(errno);
     return mrb_attr_get(mrb, self, sym);
   }

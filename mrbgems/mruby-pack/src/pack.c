@@ -139,7 +139,8 @@ pack_short(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned in
   if (flags & PACK_FLAG_LITTLEENDIAN) {
     RSTRING_PTR(str)[sidx+0] = n % 256;
     RSTRING_PTR(str)[sidx+1] = n / 256;
-  } else {
+  }
+  else {
     RSTRING_PTR(str)[sidx+0] = n / 256;
     RSTRING_PTR(str)[sidx+1] = n % 256;
   }
@@ -153,7 +154,8 @@ unpack_short(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary
 
   if (flags & PACK_FLAG_LITTLEENDIAN) {
     n = src[1] * 256 + src[0];
-  } else {
+  }
+  else {
     n = src[0] * 256 + src[1];
   }
   if ((flags & PACK_FLAG_SIGNED) && (n >= 0x8000)) {
@@ -175,7 +177,8 @@ pack_long(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int
     RSTRING_PTR(str)[sidx+1] = (char)(n >> 8);
     RSTRING_PTR(str)[sidx+2] = (char)(n >> 16);
     RSTRING_PTR(str)[sidx+3] = (char)(n >> 24);
-  } else {
+  }
+  else {
     RSTRING_PTR(str)[sidx+0] = (char)(n >> 24);
     RSTRING_PTR(str)[sidx+1] = (char)(n >> 16);
     RSTRING_PTR(str)[sidx+2] = (char)(n >> 8);
@@ -231,7 +234,8 @@ unpack_long(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary,
     ul += (uint32_t)src[2] *256*256;
     ul += (uint32_t)src[1] *256;
     ul += (uint32_t)src[0];
-  } else {
+  }
+  else {
     ul = (uint32_t)src[0] * 256*256*256;
     ul += (uint32_t)src[1] *256*256;
     ul += (uint32_t)src[2] *256;
@@ -239,7 +243,8 @@ unpack_long(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary,
   }
   if (flags & PACK_FLAG_SIGNED) {
     n = (int32_t)ul;
-  } else {
+  }
+  else {
 #ifndef MRB_INT64
     if (UINT_OVERFLOW_P(ul)) {
       u32tostr(msg, sizeof(msg), ul);
@@ -268,7 +273,8 @@ pack_quad(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int
     RSTRING_PTR(str)[sidx+5] = (char)(n >> 40);
     RSTRING_PTR(str)[sidx+6] = (char)(n >> 48);
     RSTRING_PTR(str)[sidx+7] = (char)(n >> 56);
-  } else {
+  }
+  else {
     RSTRING_PTR(str)[sidx+0] = (char)(n >> 56);
     RSTRING_PTR(str)[sidx+1] = (char)(n >> 48);
     RSTRING_PTR(str)[sidx+2] = (char)(n >> 40);
@@ -345,7 +351,8 @@ unpack_quad(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary,
   if (flags & PACK_FLAG_LITTLEENDIAN) {
     pos  = 7;
     step = -1;
-  } else {
+  }
+  else {
     pos  = 0;
     step = 1;
   }
@@ -363,7 +370,8 @@ unpack_quad(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary,
     }
 #endif
     n = (mrb_int)sll;
-  } else {
+  }
+  else {
     if (UINT_OVERFLOW_P(ull)) {
       u64tostr(msg, sizeof(msg), ull);
       mrb_raisef(mrb, E_RANGE_ERROR, "cannot unpack to Integer: %s", msg);
@@ -438,7 +446,8 @@ pack_double(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned i
         RSTRING_PTR(str)[sidx + i] = buffer[8 - i - 1];
       }
     }
-  } else {
+  }
+  else {
     if (littleendian) {
       for (i = 0; i < 8; i++) {
         RSTRING_PTR(str)[sidx + i] = buffer[8 - i - 1];
@@ -468,7 +477,8 @@ unpack_double(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value a
         buffer[8 - i - 1] = src[i];
       }
     }
-  } else {
+  }
+  else {
     if (littleendian) {
       for (i = 0; i < 8; i++) {
         buffer[8 - i - 1] = src[i];
@@ -501,7 +511,8 @@ pack_float(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned in
         RSTRING_PTR(str)[sidx + i] = buffer[4 - i - 1];
       }
     }
-  } else {
+  }
+  else {
     if (littleendian) {
       for (i = 0; i < 4; i++) {
         RSTRING_PTR(str)[sidx + i] = buffer[4 - i - 1];
@@ -531,7 +542,8 @@ unpack_float(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value ar
         buffer[4 - i - 1] = src[i];
       }
     }
-  } else {
+  }
+  else {
     if (littleendian) {
       for (i = 0; i < 4; i++) {
         buffer[4 - i - 1] = src[i];
@@ -681,13 +693,16 @@ pack_str(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, 
 
   if (count == 0) {
     return 0;
-  } else if (count == -1) {
+  }
+  else if (count == -1) {
     copylen = slen;
     padlen = (flags & PACK_FLAG_Z) ? 1 : 0;
-  } else if (count < slen) {
+  }
+  else if (count < slen) {
     copylen = count;
     padlen = 0;
-  } else {
+  }
+  else {
     copylen = slen;
     padlen = count - slen;
   }
@@ -760,14 +775,16 @@ pack_hex(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, 
   if (flags & PACK_FLAG_LSB) {
     ashift = 0;
     bshift = 4;
-  } else {
+  }
+  else {
     ashift = 4;
     bshift = 0;
   }
 
   if (count == -1) {
     count = slen;
-  } else if (slen > count) {
+  }
+  else if (slen > count) {
     slen = count;
   }
 
@@ -807,7 +824,8 @@ unpack_hex(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, 
   if (flags & PACK_FLAG_LSB) {
     ashift = 0;
     bshift = 4;
-  } else {
+  }
+  else {
     ashift = 4;
     bshift = 0;
   }
@@ -858,7 +876,8 @@ pack_base64(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int coun
 
   if (count != 0 && count < 3) {  /* -1, 1 or 2 */
     count = 45;
-  } else if (count >= 3) {
+  }
+  else if (count >= 3) {
     count -= count % 3;
   }
 
@@ -892,7 +911,8 @@ pack_base64(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int coun
     *dstptr++ = '=';
     *dstptr++ = '=';
     column += 3;
-  } else if (srclen == 2) {
+  }
+  else if (srclen == 2) {
     l = (unsigned char)*srcptr++ << 16;
     l += (unsigned char)*srcptr++ << 8;
     *dstptr++ = base64chars[(l >> 18) & 0x3f];
@@ -950,11 +970,13 @@ unpack_base64(mrb_state *mrb, const void *src, int slen, mrb_value ary)
       *dptr++ = (l >> 16) & 0xff;
       *dptr++ = (l >> 8) & 0xff;
       *dptr++ = l & 0xff;
-    } else if (padding == 1) {
+    }
+    else if (padding == 1) {
       *dptr++ = (l >> 16) & 0xff;
       *dptr++ = (l >> 8) & 0xff;
       break;
-    } else {
+    }
+    else {
       *dptr++ = (l >> 16) & 0xff;
       break;
     }
@@ -1312,20 +1334,24 @@ alias:
       count = (int)n;
       tmpl->idx = (int)(e - tptr);
       continue;
-    } else if (ch == '*')  {
+    }
+    else if (ch == '*')  {
       if (type == PACK_TYPE_NONE)
         count = 0;
       else
         count = -1;
-    } else if (ch == '_' || ch == '!' || ch == '<' || ch == '>') {
+    }
+    else if (ch == '_' || ch == '!' || ch == '<' || ch == '>') {
       if (strchr("sSiIlLqQ", (int)t) == NULL) {
         mrb_raisef(mrb, E_ARGUMENT_ERROR, "'%c' allowed only after types sSiIlLqQ", ch);
       }
       if (ch == '_' || ch == '!') {
         flags |= PACK_FLAG_s;
-      } else if (ch == '<') {
+      }
+      else if (ch == '<') {
         flags |= PACK_FLAG_LT;
-      } else if (ch == '>') {
+      }
+      else if (ch == '>') {
         flags |= PACK_FLAG_GT;
       }
     }

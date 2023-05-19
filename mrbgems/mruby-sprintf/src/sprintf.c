@@ -146,7 +146,8 @@ fmt_float(char *buf, size_t buf_size, char fmt, int flags, int width, int prec, 
   memmove(&buf[width - len], buf, len);
   if (zero_pad) {
     memset(buf, '0', width - len);
-  } else {
+  }
+  else {
     memset(buf, ' ', width - len);
   }
   return width;
@@ -994,7 +995,8 @@ retry:
           if ((flags & (FMINUS|FPREC)) != FMINUS) {
             char c = '0';
             FILL(c, prec - len);
-          } else if (v < 0) {
+          }
+          else if (v < 0) {
             char c = sign_bits(base, p);
             FILL(c, prec - len);
           }

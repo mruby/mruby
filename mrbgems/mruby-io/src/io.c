@@ -110,7 +110,8 @@ io_set_process_status(mrb_state *mrb, pid_t pid, int status)
   }
   if (c_status != NULL) {
     v = mrb_funcall_id(mrb, mrb_obj_value(c_status), MRB_SYM(new), 2, mrb_fixnum_value(pid), mrb_fixnum_value(status));
-  } else {
+  }
+  else {
     v = mrb_fixnum_value(WEXITSTATUS(status));
   }
   mrb_gv_set(mrb, mrb_intern_lit(mrb, "$?"), v);
@@ -559,10 +560,12 @@ io_s_popen(mrb_state *mrb, mrb_value klass)
         fd = pr[0];
         close(pw[0]);
         write_fd = pw[1];
-      } else if (OPEN_RDONLY_P(flags)) {
+      }
+      else if (OPEN_RDONLY_P(flags)) {
         close(pr[1]);
         fd = pr[0];
-      } else {
+      }
+      else {
         close(pw[0]);
         fd = pw[1];
       }
@@ -1276,7 +1279,8 @@ io_s_select(mrb_state *mrb, mrb_value klass)
 
   if (mrb_nil_p(timeout)) {
     tp = NULL;
-  } else {
+  }
+  else {
     timerec = time2timeval(mrb, timeout);
     tp = &timerec;
   }
@@ -1302,7 +1306,8 @@ io_s_select(mrb_state *mrb, mrb_value klass)
       timerec.tv_sec = timerec.tv_usec = 0;
       tp = &timerec;
     }
-  } else {
+  }
+  else {
     rp = NULL;
   }
 
@@ -1322,7 +1327,8 @@ io_s_select(mrb_state *mrb, mrb_value klass)
           max = fptr->fd2;
       }
     }
-  } else {
+  }
+  else {
     wp = NULL;
   }
 
@@ -1342,7 +1348,8 @@ io_s_select(mrb_state *mrb, mrb_value klass)
           max = fptr->fd2;
       }
     }
-  } else {
+  }
+  else {
     ep = NULL;
   }
 
@@ -1390,7 +1397,8 @@ retry:
         fptr = io_get_open_fptr(mrb, RARRAY_PTR(write)[i]);
         if (FD_ISSET(fptr->fd, wp)) {
           mrb_ary_push(mrb, list, RARRAY_PTR(write)[i]);
-        } else if (fptr->fd2 >= 0 && FD_ISSET(fptr->fd2, wp)) {
+        }
+        else if (fptr->fd2 >= 0 && FD_ISSET(fptr->fd2, wp)) {
           mrb_ary_push(mrb, list, RARRAY_PTR(write)[i]);
         }
       }
@@ -1402,7 +1410,8 @@ retry:
         fptr = io_get_open_fptr(mrb, RARRAY_PTR(except)[i]);
         if (FD_ISSET(fptr->fd, ep)) {
           mrb_ary_push(mrb, list, RARRAY_PTR(except)[i]);
-        } else if (fptr->fd2 >= 0 && FD_ISSET(fptr->fd2, ep)) {
+        }
+        else if (fptr->fd2 >= 0 && FD_ISSET(fptr->fd2, ep)) {
           mrb_ary_push(mrb, list, RARRAY_PTR(except)[i]);
         }
       }

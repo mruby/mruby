@@ -105,7 +105,8 @@ mrb_file_s_umask(mrb_state *mrb, mrb_value klass)
   if (mrb_get_args(mrb, "|i", &mask) == 0) {
     omask = umask(0);
     umask(omask);
-  } else {
+  }
+  else {
     omask = umask(mask);
   }
   return mrb_fixnum_value(omask);
@@ -179,7 +180,8 @@ mrb_file_dirname(mrb_state *mrb, mrb_value klass)
   ridx = strlen(buffer);
   if (ridx == 0) {
     strncpy(buffer, ".", 2);  /* null terminated */
-  } else if (ridx > 1) {
+  }
+  else if (ridx > 1) {
     ridx--;
     while (ridx > 0 && (buffer[ridx] == '/' || buffer[ridx] == '\\')) {
       buffer[ridx] = '\0';  /* remove last char */
@@ -358,7 +360,8 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
     if (!mrb_file_is_absolute_path(home)) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "non-absolute home");
     }
-  } else {
+  }
+  else {
     const char *cuser = RSTRING_CSTR(mrb, username);
     struct passwd *pwd = getpwnam(cuser);
     if (pwd == NULL) {
@@ -383,7 +386,8 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
     if (!mrb_file_is_absolute_path(home)) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "non-absolute home");
     }
-  } else {
+  }
+  else {
     return mrb_nil_value();
   }
   home = mrb_locale_from_utf8(home, -1);

@@ -122,19 +122,24 @@ mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
 
   if (mrb_string_p(nodename)) {
     hostname = RSTRING_CSTR(mrb, nodename);
-  } else if (mrb_nil_p(nodename)) {
+  }
+  else if (mrb_nil_p(nodename)) {
     hostname = NULL;
-  } else {
+  }
+  else {
     mrb_raise(mrb, E_TYPE_ERROR, "nodename must be String or nil");
   }
 
   if (mrb_string_p(service)) {
     servname = RSTRING_CSTR(mrb, service);
-  } else if (mrb_integer_p(service)) {
+  }
+  else if (mrb_integer_p(service)) {
     servname = RSTRING_PTR(mrb_integer_to_str(mrb, service, 10));
-  } else if (mrb_nil_p(service)) {
+  }
+  else if (mrb_nil_p(service)) {
     servname = NULL;
-  } else {
+  }
+  else {
     mrb_raise(mrb, E_TYPE_ERROR, "service must be String, Integer, or nil");
   }
 
@@ -216,7 +221,8 @@ mrb_addrinfo_unix_path(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_SOCKET_ERROR, "need AF_UNIX address");
   if (RSTRING_LEN(sastr) < (mrb_int)offsetof(struct sockaddr_un, sun_path) + 1) {
     return mrb_str_new(mrb, "", 0);
-  } else {
+  }
+  else {
     return mrb_str_new_cstr(mrb, ((struct sockaddr_un*)RSTRING_PTR(sastr))->sun_path);
   }
 }
@@ -394,7 +400,8 @@ mrb_basicsocket_send(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "Si|S", &mesg, &flags, &dest);
   if (mrb_nil_p(dest)) {
     n = send(socket_fd(mrb, self), RSTRING_PTR(mesg), (fsize_t)RSTRING_LEN(mesg), (int)flags);
-  } else {
+  }
+  else {
     n = sendto(socket_fd(mrb, self), RSTRING_PTR(mesg), (fsize_t)RSTRING_LEN(mesg), (int)flags, (const struct sockaddr*)RSTRING_PTR(dest), (fsize_t)RSTRING_LEN(dest));
   }
   if (n == -1)
@@ -446,28 +453,34 @@ mrb_basicsocket_setsockopt(mrb_state *mrb, mrb_value self)
     level = mrb_integer(so);
     if (mrb_string_p(optval)) {
       /* that's good */
-    } else if (mrb_true_p(optval) || mrb_false_p(optval)) {
+    }
+    else if (mrb_true_p(optval) || mrb_false_p(optval)) {
       mrb_int i = mrb_test(optval) ? 1 : 0;
       optval = mrb_str_new(mrb, (char*)&i, sizeof(i));
-    } else if (mrb_integer_p(optval)) {
+    }
+    else if (mrb_integer_p(optval)) {
       if (optname == IP_MULTICAST_TTL || optname == IP_MULTICAST_LOOP) {
         char uc = (char)mrb_integer(optval);
         optval = mrb_str_new(mrb, &uc, sizeof(uc));
-      } else {
+      }
+      else {
         mrb_int i = mrb_integer(optval);
         optval = mrb_str_new(mrb, (char*)&i, sizeof(i));
       }
-    } else {
+    }
+    else {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "optval should be true, false, an integer, or a string");
     }
-  } else if (argc == 1) {
+  }
+  else if (argc == 1) {
     if (strcmp(mrb_obj_classname(mrb, so), "Socket::Option") != 0)
       mrb_raise(mrb, E_ARGUMENT_ERROR, "not an instance of Socket::Option");
     level = mrb_as_int(mrb, mrb_funcall_id(mrb, so, MRB_SYM(level), 0));
     optname = mrb_as_int(mrb, mrb_funcall_id(mrb, so, MRB_SYM(optname), 0));
     optval = mrb_funcall_id(mrb, so, MRB_SYM(data), 0);
     mrb_ensure_string_type(mrb, optval);
-  } else {
+  }
+  else {
     mrb_argnum_error(mrb, argc, 3, 3);
   }
 
@@ -540,8 +553,10 @@ mrb_ipsocket_pton(mrb_state *mrb, mrb_value klass)
     if (inet_pton(AF_INET6, buf, (void*)&in6.s6_addr) != 1)
       goto invalid;
     return mrb_str_new(mrb, (char*)&in6.s6_addr, 16);
-  } else
+  }
+  else {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "unsupported address family");
+  }
 
 invalid:
   mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid address");
@@ -797,7 +812,8 @@ mrb_win32_basicsocket_sysread(mrb_state *mrb, mrb_value self)
     case 0: /* EOF */
       if (maxlen == 0) {
         buf = mrb_str_new_cstr(mrb, "");
-      } else {
+      }
+      else {
         mrb_raise(mrb, E_EOF_ERROR, "sysread failed: End of File");
       }
       break;
