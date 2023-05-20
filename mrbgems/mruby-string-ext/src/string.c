@@ -308,7 +308,7 @@ tr_parse_pattern(mrb_state *mrb, struct tr_pattern *ret, const mrb_value v_patte
   struct tr_pattern *pat1;
   mrb_int i = 0;
 
-  if(flag_reverse_enable && pattern_length >= 2 && pattern[0] == '^') {
+  if (flag_reverse_enable && pattern_length >= 2 && pattern[0] == '^') {
     flag_reverse = TRUE;
     i++;
   }

@@ -95,14 +95,16 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj)
       /* Arrays that do not fit within an RArray perform a heap allocation
       *  storing an array of pointers to the original objects*/
       size += mrb_objspace_page_slot_size();
-      if(len > MRB_ARY_EMBED_LEN_MAX) size += sizeof(mrb_value*) * len;
+      if (len > MRB_ARY_EMBED_LEN_MAX)
+        size += sizeof(mrb_value*) * len;
       break;
     }
     case MRB_TT_PROC: {
       struct RProc* proc = mrb_proc_ptr(obj);
       size += mrb_objspace_page_slot_size();
       size += MRB_ENV_LEN(proc->e.env) * sizeof(mrb_value);
-      if(!MRB_PROC_CFUNC_P(proc)) size += os_memsize_of_irep(mrb, proc->body.irep);
+      if (!MRB_PROC_CFUNC_P(proc))
+        size += os_memsize_of_irep(mrb, proc->body.irep);
       break;
     }
     case MRB_TT_RANGE:

@@ -130,7 +130,7 @@ mrb_div_int_value(mrb_state *mrb, mrb_int x, mrb_int y)
   if (y == 0) {
     mrb_int_zerodiv(mrb);
   }
-  else if(x == MRB_INT_MIN && y == -1) {
+  else if (x == MRB_INT_MIN && y == -1) {
 #ifdef MRB_USE_BIGINT
     return mrb_bint_mul_ii(mrb, x, y);
 #else
@@ -1196,7 +1196,7 @@ intdivmod(mrb_state *mrb, mrb_int x, mrb_int y, mrb_int *divp, mrb_int *modp)
   if (y == 0) {
     mrb_int_zerodiv(mrb);
   }
-  else if(x == MRB_INT_MIN && y == -1) {
+  else if (x == MRB_INT_MIN && y == -1) {
     mrb_int_overflow(mrb, "division");
   }
   else {

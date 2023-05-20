@@ -379,8 +379,7 @@ cdump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp,
   }
   /* dump debug */
   if (flags & MRB_DUMP_DEBUG_INFO) {
-    if(cdump_debug(mrb, name, n, irep->debug_info,
-                init_syms_code, fp) == MRB_DUMP_OK) {
+    if (cdump_debug(mrb, name, n, irep->debug_info, init_syms_code, fp) == MRB_DUMP_OK) {
       debug_available = 1;
     }
   }
@@ -414,7 +413,7 @@ cdump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp,
   else {
     fputs(      "  NULL,\t\t\t\t\t/* lv */\n", fp);
   }
-  if(debug_available) {
+  if (debug_available) {
     fprintf(fp, "  &%s_debug_%d,\n", name, n);
   }
   else {
