@@ -106,7 +106,7 @@ inspect_ary(mrb_state *mrb, mrb_value ary, mrb_value list)
   char tail[] = { ']' };
 
   /* check recursive */
-  for(i=0; i<RARRAY_LEN(list); i++) {
+  for (i=0; i<RARRAY_LEN(list); i++) {
     if (mrb_obj_equal(mrb, ary, RARRAY_PTR(list)[i])) {
       return mrb_str_new(mrb, "[...]", 5);
     }
@@ -117,7 +117,7 @@ inspect_ary(mrb_state *mrb, mrb_value ary, mrb_value list)
   arystr = mrb_str_new_capa(mrb, 64);
   mrb_str_cat(mrb, arystr, head, sizeof(head));
 
-  for(i=0; i<RARRAY_LEN(ary); i++) {
+  for (i=0; i<RARRAY_LEN(ary); i++) {
     int ai = mrb_gc_arena_save(mrb);
 
     if (i > 0) {

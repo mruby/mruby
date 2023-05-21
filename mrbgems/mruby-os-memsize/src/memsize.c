@@ -22,7 +22,7 @@ os_memsize_of_irep(mrb_state* state, const struct mrb_irep *irep)
          (irep->plen * sizeof(mrb_code)) +
          (irep->ilen * sizeof(mrb_code));
 
-  for(i = 0; i < irep->rlen; i++) {
+  for (i = 0; i < irep->rlen; i++) {
     size += os_memsize_of_irep(state, irep->reps[i]);
   }
   return size;
