@@ -605,7 +605,8 @@ mrb_str_format(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value fm
     mrb_sym id = 0;
     int flags = FNONE;
 
-    for (t = p; t < end && *t != '%'; t++) ;
+    for (t = p; t < end && *t != '%'; t++)
+      ;
     if (t + 1 == end) t++;
     PUSH(p, t - p);
     if (t >= end)

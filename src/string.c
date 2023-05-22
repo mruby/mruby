@@ -2366,7 +2366,7 @@ mrb_str_len_to_integer(mrb_state *mrb, const char *str, size_t len, mrb_int base
 #ifdef MRB_USE_BIGINT
   p2 = p;
 #endif
-  for ( ;p<pend;p++) {
+  for (;p<pend; p++) {
     if (*p == '_') {
       p++;
       if (p==pend) {

@@ -199,7 +199,7 @@ info_break_all(mrb_state *mrb, mrdb_state *mrdb)
     return;
   }
   puts(BREAK_INFO_MSG_HEADER);
-  for (i = 0 ; i < bpnum ; i++) {
+  for (i = 0; i < bpnum; i++) {
     print_breakpoint(&bp_list[i]);
   }
 

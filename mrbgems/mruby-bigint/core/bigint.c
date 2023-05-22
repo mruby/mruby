@@ -164,7 +164,7 @@ digits(mpz_t *x)
   size_t i;
 
   if (x->sz == 0) return 0;
-  for (i = x->sz - 1; x->p[i] == 0 ; i--)
+  for (i = x->sz - 1; x->p[i] == 0; i--)
     if (i == 0) break;
   return i+1;
 }
@@ -395,7 +395,7 @@ lzb(mp_limb x)
 
   int j=0;
 
-  for (mp_limb i = ((mp_limb)1 << (DIG_SIZE-1)); i && !(x&i) ; j++,i>>=1)
+  for (mp_limb i = ((mp_limb)1 << (DIG_SIZE-1)); i && !(x&i); j++,i>>=1)
     ;
   return j;
 }

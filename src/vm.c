@@ -147,7 +147,7 @@ envadjust(mrb_state *mrb, mrb_value *oldbase, mrb_value *newbase, size_t oldsize
   }
 }
 
-/** def rec ; $deep =+ 1 ; if $deep > 1000 ; return 0 ; end ; rec ; end  */
+/** def rec; $deep =+ 1; if $deep > 1000; return 0; end; rec; end **/
 
 static void
 stack_extend_alloc(mrb_state *mrb, mrb_int room)

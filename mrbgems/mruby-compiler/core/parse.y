@@ -139,7 +139,7 @@ cons_gen(parser_state *p, node *car, node *cdr)
   c->filename_index = p->current_filename_index;
   /* beginning of next partial file; need to point the previous file */
   if (p->lineno == 0 && p->current_filename_index > 0) {
-    c->filename_index-- ;
+    c->filename_index--;
   }
   return c;
 }
@@ -1101,8 +1101,8 @@ concat_string(parser_state *p, node *a, node *b)
   }
   else {
     node *c; /* last node of a */
-    for (c = a; c->cdr != NULL; c = c->cdr) ;
-
+    for (c = a; c->cdr != NULL; c = c->cdr)
+      ;
     if (string_node_p(b)) {
       /* a == NODE_DSTR && b == NODE_STR */
       if (string_node_p(c->car)) {

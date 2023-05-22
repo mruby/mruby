@@ -65,7 +65,7 @@ mrb_read_float(const char *str, char **endp, double *fp)
 
     if (ISDIGIT(*p)) {
       while (*p && ISDIGIT(*p)) {
-        f += base * (*p - '0') ;
+        f += base * (*p - '0');
         base /= 10.0;
         p++;
         n++;
