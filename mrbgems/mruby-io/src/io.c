@@ -632,10 +632,16 @@ io_init_copy(mrb_state *mrb, mrb_value copy)
     mrb_free(mrb, fptr_copy);
   }
   fptr_copy = (struct mrb_io*)io_alloc(mrb);
+  fptr_copy->pid = fptr_orig->pid;
+  fptr_copy->readable = fptr_orig->readable;
+  fptr_copy->writable = fptr_orig->writable;
+  fptr_copy->sync = fptr_orig->sync;
+  fptr_copy->is_socket = fptr_orig->is_socket;
+
+  io_buf_init(mrb, fptr_copy);
 
   DATA_TYPE(copy) = &mrb_io_type;
   DATA_PTR(copy) = fptr_copy;
-  io_buf_init(mrb, fptr_copy);
 
   fptr_copy->fd = symdup(mrb, fptr_orig->fd, &failed);
   if (failed) {
@@ -651,12 +657,6 @@ io_init_copy(mrb_state *mrb, mrb_value copy)
     }
     io_fd_cloexec(mrb, fptr_copy->fd2);
   }
-
-  fptr_copy->pid = fptr_orig->pid;
-  fptr_copy->readable = fptr_orig->readable;
-  fptr_copy->writable = fptr_orig->writable;
-  fptr_copy->sync = fptr_orig->sync;
-  fptr_copy->is_socket = fptr_orig->is_socket;
 
   return copy;
 }
