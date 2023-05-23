@@ -2101,6 +2101,8 @@ RETRY_TRY_BLOCK:
       else {
         mrb_int rnum = 0;
         if (argv0 != argv) {
+          mrb_gc_protect(mrb, blk);
+          mrb_gc_protect(mrb, kdict);
           value_move(&regs[1], argv, m1+o);
         }
         if (r) {
@@ -2117,11 +2119,12 @@ RETRY_TRY_BLOCK:
       /* need to be update blk first to protect blk from GC */
       mrb_int const kw_pos = len + kd;    /* where kwhash should be */
       mrb_int const blk_pos = kw_pos + 1; /* where block should be */
-      regs[blk_pos] = blk;              /* move block */
+      regs[blk_pos] = blk;                /* move block */
       if (kd) {
-        if (mrb_nil_p(kdict))
+        if (mrb_nil_p(kdict)) {
           kdict = mrb_hash_new_capa(mrb, 0);
-        regs[kw_pos] = kdict;           /* set kwhash */
+        }
+        regs[kw_pos] = kdict;             /* set kwhash */
         ci->nk = 15;
       }
 
