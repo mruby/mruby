@@ -706,6 +706,9 @@ io_init(mrb_state *mrb, mrb_value io)
 
   mode = opt = mrb_nil_value();
 
+  if (mrb_block_given_p(mrb)) {
+    mrb_warn(mrb, "File.new() does not take block; use File.open() instead");
+  }
   mrb_get_args(mrb, "i|oH", &fd, &mode, &opt);
   switch (fd) {
     case 0: /* STDIN_FILENO */

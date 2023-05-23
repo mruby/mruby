@@ -16,14 +16,15 @@ def assert_io_open(meth)
       io1.close
     end
 
-    io2 = IO.__send__(meth, IO.sysopen($mrbtest_io_rfname))do |io|
-      if meth == :open
-        assert_equal $mrbtest_io_msg, io.read
-      else
-        flunk "IO.#{meth} does not take block"
+    if meth == :open
+      io2 = IO.__send__(meth, IO.sysopen($mrbtest_io_rfname))do |io|
+        if meth == :open
+          assert_equal $mrbtest_io_msg, io.read
+        else
+          flunk "IO.#{meth} does not take block"
+        end
       end
     end
-    io2.close unless meth == :open
 
     assert_raise(RuntimeError) { IO.__send__(meth, 1023) } # For Windows
     assert_raise(RuntimeError) { IO.__send__(meth, 1 << 26) }
