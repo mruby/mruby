@@ -104,13 +104,25 @@ mrb_struct_members(mrb_state *mrb, mrb_value obj)
   return mrb_struct_s_members_m(mrb, mrb_obj_value(mrb_obj_class(mrb, obj)));
 }
 
+static mrb_int
+num_members(mrb_state *mrb, mrb_value self)
+{
+  mrb_value members = struct_members(mrb, self);
+  return RARRAY_LEN(members);
+}
+
 static mrb_value
 mrb_struct_ref(mrb_state *mrb, mrb_value obj)
 {
+  mrb_int argc = mrb_get_argc(mrb);
+  if (argc != 0) {
+    mrb_argnum_error(mrb, argc, 0, 0);
+  }
   mrb_int i = mrb_integer(mrb_proc_cfunc_env_get(mrb, 0));
+  mrb_int len = num_members(mrb, obj);
   mrb_value *ptr = RSTRUCT_PTR(obj);
 
-  if (!ptr) return mrb_nil_value();
+  if (!ptr || len <= i) return mrb_nil_value();
   return ptr[i];
 }
 
@@ -287,13 +299,6 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
     mrb_yield_with_class(mrb, b, 1, &st, st, mrb_class_ptr(st));
   }
   return st;
-}
-
-static mrb_int
-num_members(mrb_state *mrb, mrb_value self)
-{
-  mrb_value members = struct_members(mrb, self);
-  return RARRAY_LEN(members);
 }
 
 /* 15.2.18.4.8  */
