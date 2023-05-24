@@ -399,7 +399,8 @@ struct_index(mrb_state *mrb, mrb_int i, mrb_int len)
 static mrb_value
 struct_aref_int(mrb_state *mrb, mrb_value s, mrb_int i)
 {
-  mrb_int idx = struct_index(mrb, i, RSTRUCT_LEN(s));
+  mrb_int idx = struct_index(mrb, i, num_members(mrb, s));
+  if (idx >= RSTRUCT_LEN(s)) return mrb_nil_value();
   return RSTRUCT_PTR(s)[idx];
 }
 
