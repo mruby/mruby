@@ -270,9 +270,7 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
   mrb_value name = mrb_nil_value();
   const mrb_value *pargv;
   mrb_int argcnt;
-  mrb_int i;
   mrb_value b, st;
-  mrb_sym id;
   const mrb_value *argv;
   mrb_int argc;
 
@@ -288,12 +286,23 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
     pargv++;
     argcnt--;
   }
-  mrb_value rest = mrb_ary_new_from_values(mrb, argcnt, pargv);
-  for (i=0; i<argcnt; i++) {
-    id = mrb_obj_to_sym(mrb, RARRAY_PTR(rest)[i]);
-    mrb_ary_set(mrb, rest, i, mrb_symbol_value(id));
+  mrb_value members = mrb_ary_new_from_values(mrb, argcnt, pargv);
+  for (mrb_int i=0; i<argcnt; i++) {
+    mrb_sym sym = mrb_obj_to_sym(mrb, RARRAY_PTR(members)[i]);
+    mrb_ary_set(mrb, members, i, mrb_symbol_value(sym));
   }
-  st = make_struct(mrb, name, rest, mrb_class_ptr(klass));
+  /* check member duplication */
+  mrb_int len = RARRAY_LEN(members);
+  mrb_value *p = RARRAY_PTR(members);
+  for (mrb_int i=0; i<len; i++) {
+    mrb_sym sym = mrb_symbol(p[i]);
+    for (mrb_int j=i+1; j<len; j++) {
+      if (sym == mrb_symbol(p[j])) {
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "duplicate member: %n", sym);
+      }
+    }
+  }
+  st = make_struct(mrb, name, members, mrb_class_ptr(klass));
   if (!mrb_nil_p(b)) {
     mrb_yield_with_class(mrb, b, 1, &st, st, mrb_class_ptr(st));
   }
