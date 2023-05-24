@@ -101,9 +101,11 @@ mrb_data_ref(mrb_state *mrb, mrb_value obj)
     mrb_argnum_error(mrb, argc, 0, 0);
   }
   mrb_int i = mrb_integer(mrb_proc_cfunc_env_get(mrb, 0));
+  mrb_int len = RDATA_LEN(obj);
   mrb_value *ptr = RDATA_PTR(obj);
 
-  if (!ptr) return mrb_nil_value();
+  if (!ptr || len <= i)
+    return mrb_nil_value();
   return ptr[i];
 }
 
