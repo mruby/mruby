@@ -248,8 +248,7 @@ mrb_data_s_def(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_data_initialize(mrb_state *mrb, mrb_value self)
 {
-  struct RClass *klass = mrb_obj_class(mrb, self);
-  mrb_value members = data_s_members(mrb, klass);
+  mrb_value members = data_members(mrb, self);
 
   mrb_int n = RARRAY_LEN(members);
   mrb_value hash;
