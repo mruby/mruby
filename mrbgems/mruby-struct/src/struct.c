@@ -158,18 +158,9 @@ static mrb_value
 mrb_struct_set_m(mrb_state *mrb, mrb_value obj)
 {
   mrb_int i = mrb_integer(mrb_proc_cfunc_env_get(mrb, 0));
-  mrb_value *ptr;
   mrb_value val = mrb_get_arg1(mrb);
 
-  mrb_struct_modify(mrb, obj);
-  ptr = RSTRUCT_PTR(obj);
-  if (ptr == NULL || i >= RSTRUCT_LEN(obj)) {
-    mrb_ary_set(mrb, obj, i, val);
-  }
-  else {
-    ptr[i] = val;
-    mrb_field_write_barrier_value(mrb, mrb_basic_ptr(obj), val);
-  }
+  mrb_ary_set(mrb, obj, i, val);
   return val;
 }
 
@@ -443,23 +434,14 @@ mrb_struct_aset_sym(mrb_state *mrb, mrb_value s, mrb_sym id, mrb_value val)
 {
   mrb_value members;
   const mrb_value *ptr_members;
-  mrb_int i, len, plen;
+  mrb_int i, len;
 
   members = struct_members(mrb, s);
   len = RARRAY_LEN(members);
-  plen = RSTRUCT_LEN(s);
   ptr_members = RARRAY_PTR(members);
   for (i=0; i<len; i++) {
     if (mrb_symbol(ptr_members[i]) == id) {
-      mrb_struct_modify(mrb, s);
-      if (i < plen) {
-        mrb_value *ptr = RSTRUCT_PTR(s);
-        ptr[i] = val;
-      }
-      else {
-        mrb_ary_set(mrb, s, i, val);
-      }
-      mrb_field_write_barrier_value(mrb, mrb_basic_ptr(s), val);
+      mrb_ary_set(mrb, s, i, val);
       return val;
     }
   }
@@ -506,10 +488,9 @@ mrb_struct_aset(mrb_state *mrb, mrb_value s)
     return mrb_struct_aset_sym(mrb, s, mrb_symbol(idx), val);
   }
 
-  i = struct_index(mrb, mrb_as_int(mrb, idx), RSTRUCT_LEN(s));
-  mrb_struct_modify(mrb, s);
-  mrb_field_write_barrier_value(mrb, mrb_basic_ptr(s), val);
-  return RSTRUCT_PTR(s)[i] = val;
+  i = struct_index(mrb, mrb_as_int(mrb, idx), num_members(mrb, s));
+  mrb_ary_set(mrb, s, i, val);
+  return val;
 }
 
 /* 15.2.18.4.1  */
