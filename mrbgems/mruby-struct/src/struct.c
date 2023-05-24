@@ -290,9 +290,9 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
 }
 
 static mrb_int
-num_members(mrb_state *mrb, struct RClass *klass)
+num_members(mrb_state *mrb, mrb_value self)
 {
-  mrb_value members = struct_s_members(mrb, klass);
+  mrb_value members = struct_members(mrb, self);
   return RARRAY_LEN(members);
 }
 
@@ -302,10 +302,9 @@ num_members(mrb_state *mrb, struct RClass *klass)
 static mrb_value
 mrb_struct_initialize_withArg(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value self)
 {
-  struct RClass *klass = mrb_obj_class(mrb, self);
   mrb_int i, n;
 
-  n = num_members(mrb, klass);
+  n = num_members(mrb, self);
   if (n < argc) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "struct size differs");
   }
