@@ -149,7 +149,7 @@ mrb_data_new(mrb_state *mrb, mrb_value self)
   }
   else {
     mrb_int argc;
-    mrb_get_args(mrb, "*!", &vals, &argc);
+    mrb_get_args(mrb, "*", &vals, &argc);
     if (n != argc) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
     }
