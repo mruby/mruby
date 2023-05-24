@@ -45,14 +45,13 @@ struct_s_members(mrb_state *mrb, struct RClass *c)
       if (!mrb_array_p(members)) {
         struct_corrupted(mrb);
       }
-      break;
+      return members;
     }
     c = c->super;
     if (c == sclass || c == 0) {
       mrb_raise(mrb, E_TYPE_ERROR, "uninitialized struct");
     }
   }
-  return members;
 }
 
 static mrb_value
