@@ -359,13 +359,13 @@ struct_aref_sym(mrb_state *mrb, mrb_value obj, mrb_sym id)
   len = RARRAY_LEN(members);
   ptr = RSTRUCT_PTR(obj);
   plen = RARRAY_LEN(obj);
-  for (i=0; i<len && i<plen; i++) {
+  for (i=0; i<len; i++) {
     mrb_value slot = ptr_members[i];
     if (mrb_symbol_p(slot) && mrb_symbol(slot) == id) {
-      return ptr[i];
+      if (i < plen) return ptr[i];
+      return mrb_nil_value();
     }
   }
-  if (i<len) return mrb_nil_value();
   mrb_name_error(mrb, id, "no member '%n' in struct", id);
   return mrb_nil_value();       /* not reached */
 }
