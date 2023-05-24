@@ -227,6 +227,17 @@ mrb_data_s_def(mrb_state *mrb, mrb_value klass)
     id = mrb_obj_to_sym(mrb, RARRAY_PTR(rest)[i]);
     mrb_ary_set(mrb, rest, i, mrb_symbol_value(id));
   }
+  /* check member duplication */
+  mrb_int len = RARRAY_LEN(rest);
+  mrb_value *p = RARRAY_PTR(rest);
+  for (mrb_int i=0; i<len; i++) {
+    mrb_sym sym = mrb_symbol(p[i]);
+    for (mrb_int j=i+1; j<len; j++) {
+      if (sym == mrb_symbol(p[j])) {
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "duplicate member: %n", sym);
+      }
+    }
+  }
   data = make_data_class(mrb, rest, mrb_class_ptr(klass));
   if (!mrb_nil_p(b)) {
     mrb_yield_with_class(mrb, b, 1, &data, data, mrb_class_ptr(data));
