@@ -173,8 +173,8 @@ mrb_data_new(mrb_state *mrb, mrb_value self)
     for (mrb_int i = 0; i < n; i++) {
       mrb_ary_set(mrb, data, i, vals[i]);
     }
-    mrb_obj_freeze(mrb, data);
   }
+  mrb_obj_freeze(mrb, data);
   return data;
 }
 
@@ -376,16 +376,15 @@ static mrb_value
 mrb_data_to_h(mrb_state *mrb, mrb_value self)
 {
   mrb_value members, ret;
-  mrb_value *mems, *vals;
+  mrb_value *mems;
 
   members = data_members(mrb, self);
   mems = RARRAY_PTR(members);
-  vals = RDATA_PTR(self);
 
   ret = mrb_hash_new_capa(mrb, RARRAY_LEN(members));
   mrb_int len = RARRAY_LEN(members);
   for (mrb_int i=0; i<len; i++) {
-    mrb_hash_set(mrb, ret, mems[i], vals[i]);
+    mrb_hash_set(mrb, ret, mems[i], mrb_ary_ref(mrb, self, i));
   }
 
   return ret;
@@ -402,13 +401,12 @@ static mrb_value
 mrb_data_to_s(mrb_state *mrb, mrb_value self)
 {
   mrb_value members, ret, cname;
-  mrb_value *mems, *vals;
+  mrb_value *mems;
   mrb_int mlen;
 
   members = data_members(mrb, self);
   mlen = RARRAY_LEN(members);
   mems = RARRAY_PTR(members);
-  vals = RDATA_PTR(self);
   ret = mrb_str_new_lit(mrb, "#<data ");
   int ai = mrb_gc_arena_save(mrb);
   cname = mrb_class_path(mrb, mrb_class_real(mrb_class(mrb, self)));
@@ -422,7 +420,7 @@ mrb_data_to_s(mrb_state *mrb, mrb_value self)
     if (i>0) mrb_str_cat_lit(mrb, ret, ", ");
     mrb_str_cat(mrb, ret, name, len);
     mrb_str_cat_lit(mrb, ret, "=");
-    mrb_str_cat_str(mrb, ret, mrb_inspect(mrb, vals[i]));
+    mrb_str_cat_str(mrb, ret, mrb_inspect(mrb, mrb_ary_ref(mrb, self, i)));
     mrb_gc_arena_restore(mrb, ai);
   }
   mrb_str_cat_lit(mrb, ret, ">");
