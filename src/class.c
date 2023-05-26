@@ -1999,15 +1999,19 @@ mrb_obj_new(mrb_state *mrb, struct RClass *c, mrb_int argc, const mrb_value *arg
 }
 
 static mrb_value
-mrb_class_initialize(mrb_state *mrb, mrb_value c)
+mrb_class_initialize(mrb_state *mrb, mrb_value obj)
 {
   mrb_value a, b;
+  struct RClass *c = mrb_class_ptr(obj);
 
+  if (c->iv) {
+    mrb_raise(mrb, E_TYPE_ERROR, "already initialized class");
+  }
   mrb_get_args(mrb, "|C&", &a, &b);
   if (!mrb_nil_p(b)) {
-    mrb_yield_with_class(mrb, b, 1, &c, c, mrb_class_ptr(c));
+    mrb_yield_with_class(mrb, b, 1, &obj, obj, c);
   }
-  return c;
+  return obj;
 }
 
 static mrb_value
