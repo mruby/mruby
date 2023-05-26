@@ -2,7 +2,7 @@ require "json"
 
 class MRuby::Toolchain::Android
 
-  DEFAULT_ARCH = 'armeabi-v7a	' # TODO : Revise if arch should have a default
+  DEFAULT_ARCH = 'armeabi-v7a' # TODO : Revise if arch should have a default
 
   DEFAULT_TOOLCHAIN = :clang
 
