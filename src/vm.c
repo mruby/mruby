@@ -976,7 +976,7 @@ MRB_API mrb_value
 mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv, mrb_value self, struct RClass *c)
 {
   struct RProc *p;
-  mrb_sym mid = mrb->c->ci->mid;
+  mrb_sym mid;
   mrb_callinfo *ci;
   mrb_value val;
   mrb_int n;
@@ -985,6 +985,12 @@ mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value 
   ci = mrb->c->ci;
   n = mrb_ci_nregs(ci);
   p = mrb_proc_ptr(b);
+  if (MRB_PROC_ENV_P(p)) {
+    mid = p->e.env->mid;
+  }
+  else {
+    mid = ci->mid;
+  }
   ci = cipush(mrb, n, CINFO_DIRECT, NULL, NULL, NULL, mid, 0);
   funcall_args_capture(mrb, 0, argc, argv, mrb_nil_value(), ci);
   ci->u.target_class = c;
