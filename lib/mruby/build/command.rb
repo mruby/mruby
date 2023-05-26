@@ -129,6 +129,12 @@ module MRuby
       end
     end
 
+    # This method can be redefined as a singleton method where appropriate.
+    # Manipulate `flags`, `include_paths` and/or more if necessary.
+    def setup_debug(conf)
+      nil
+    end
+
     private
 
     #
@@ -171,12 +177,6 @@ module MRuby
 
     def object_ext?(path)
       File.extname(path) == build.exts.object
-    end
-
-    # This method can be redefined as a singleton method where appropriate.
-    # Manipulate `flags`, `include_paths` and/or more if necessary.
-    def setup_debug(conf)
-      nil
     end
   end
 
