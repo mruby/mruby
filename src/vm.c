@@ -985,10 +985,9 @@ mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value 
   ci = mrb->c->ci;
   n = mrb_ci_nregs(ci);
   p = mrb_proc_ptr(b);
-  ci = cipush(mrb, n, CINFO_DIRECT, NULL, NULL, NULL, 0, 0);
+  ci = cipush(mrb, n, CINFO_DIRECT, NULL, NULL, NULL, mid, 0);
   funcall_args_capture(mrb, 0, argc, argv, mrb_nil_value(), ci);
   ci->u.target_class = c;
-  ci->mid = mid;
   ci->proc = p;
 
   if (MRB_PROC_CFUNC_P(p)) {
