@@ -2,7 +2,7 @@ require "json"
 
 class MRuby::Toolchain::Android
 
-  DEFAULT_ARCH = 'armeabi' # TODO : Revise if arch should have a default
+  DEFAULT_ARCH = 'armeabi-v7a' # TODO : Revise if arch should have a default
 
   DEFAULT_TOOLCHAIN = :clang
 
@@ -15,14 +15,14 @@ class MRuby::Toolchain::Android
     %LOCALAPPDATA%/Android/Sdk/ndk/*
     ~/Library/Android/sdk/ndk-bundle
     ~/Library/Android/ndk
+    /opt/android-ndk
   }
 
-  TOOLCHAINS = [:clang, :gcc]
+  TOOLCHAINS = [:clang]
 
   ARCHITECTURES = %w{
-    armeabi armeabi-v7a arm64-v8a
+    armeabi-v7a arm64-v8a
     x86 x86_64
-    mips mips64
   }
 
   class AndroidNDKHomeNotFound < StandardError
@@ -38,21 +38,6 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
 
   def initialize(params)
     @params = params
-  end
-
-  def bin_gcc(command)
-    command = command.to_s
-
-    command = case arch
-      when /armeabi/    then 'arm-linux-androideabi-'
-      when /arm64-v8a/  then 'aarch64-linux-android-'
-      when /x86_64/     then 'x86_64-linux-android-'
-      when /x86/        then 'i686-linux-android-'
-      when /mips64/     then 'mips64el-linux-android-'
-      when /mips/       then 'mipsel-linux-android-'
-      end + command
-
-    gcc_toolchain_path.join('bin', command).to_s
   end
 
   def bin(command)
@@ -97,38 +82,7 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
   end
 
   def toolchain_path
-    @toolchain_path ||= case toolchain
-      when :gcc
-        gcc_toolchain_path
-      when :clang
-        home_path.join('toolchains', 'llvm' , 'prebuilt', host_platform)
-      end
-  end
-
-  def gcc_toolchain_path
-    if @gcc_toolchain_path === nil then
-      prefix = case arch
-        when /armeabi/    then 'arm-linux-androideabi-'
-        when /arm64-v8a/  then 'aarch64-linux-android-'
-        when /x86_64/     then 'x86_64-'
-        when /x86/        then 'x86-'
-        when /mips64/     then 'mips64el-linux-android-'
-        when /mips/       then 'mipsel-linux-android-'
-        end
-
-      test = case arch
-        when /armeabi/    then 'arm-linux-androideabi-*'
-        when /arm64-v8a/  then 'aarch64-linux-android-*'
-        when /x86_64/     then 'x86_64-*'
-        when /x86/        then 'x86-*'
-        when /mips64/     then 'mips64el-linux-android-*'
-        when /mips/       then 'mipsel-linux-android-*'
-        end
-
-      gcc_toolchain_version = Dir[home_path.join('toolchains', test)].map{|t| t.match(/-(\d+\.\d+)$/); $1.to_f }.max
-      @gcc_toolchain_path = home_path.join('toolchains', prefix + gcc_toolchain_version.to_s, 'prebuilt', host_platform)
-    end
-    @gcc_toolchain_path
+    @toolchain_path ||= home_path.join('toolchains', 'llvm' , 'prebuilt', host_platform)
   end
 
   def host_platform
@@ -189,15 +143,13 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
 
   def cc
     case toolchain
-    when :gcc then bin_gcc('gcc')
     when :clang then bin('clang')
     end
   end
 
   def ar
     case toolchain
-    when :gcc   then bin_gcc('ar')
-    when :clang then bin_gcc('ar')
+    when :clang then bin('llvm-ar')
     end
   end
 
@@ -206,36 +158,13 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
 
     v = sdk_version
     case toolchain
-    when :gcc
-      case arch
-      when /armeabi-v7a/  then flags += %W(-march=armv7-a)
-      when /armeabi/      then flags += %W(-march=armv5te)
-      when /arm64-v8a/    then flags += %W(-march=armv8-a)
-      when /x86_64/       then flags += %W(-march=x86-64)
-      when /x86/          then flags += %W(-march=i686)
-      when /mips64/       then flags += %W(-march=mips64r6)
-      when /mips/         then flags += %W(-march=mips32)
-      end
     when :clang
       case arch
-      when /armeabi-v7a/  then flags += %W(-target armv7-none-linux-androideabi#{v})
-      when /armeabi/      then flags += %W(-target armv5te-none-linux-androideabi#{v})
-      when /arm64-v8a/    then flags += %W(-target aarch64-none-linux-android#{v})
-      when /x86_64/       then flags += %W(-target x86_64-none-linux-android#{v})
-      when /x86/          then flags += %W(-target i686-none-linux-android#{v})
-      when /mips64/       then flags += %W(-target mips64el-none-linux-android#{v})
-      when /mips/         then flags += %W(-target mipsel-none-linux-android#{v})
+      when /armeabi-v7a/  then flags += %W(-target armv7a-linux-androideabi#{v} -mfpu=#{armeabi_v7a_mfpu} -mfloat-abi=#{armeabi_v7a_mfloat_abi})
+      when /arm64-v8a/    then flags += %W(-target aarch64-linux-android#{v})
+      when /x86_64/       then flags += %W(-target x86_64-linux-android#{v})
+      when /x86/          then flags += %W(-target i686-linux-android#{v})
       end
-    end
-
-    case arch
-    when /armeabi-v7a/  then flags += %W(-mfpu=#{armeabi_v7a_mfpu} -mfloat-abi=#{armeabi_v7a_mfloat_abi})
-    when /armeabi/      then flags += %W(-mtune=xscale -msoft-float)
-    when /arm64-v8a/    then flags += %W()
-    when /x86_64/       then flags += %W()
-    when /x86/          then flags += %W()
-    when /mips64/       then flags += %W(-fmessage-length=0)
-    when /mips/         then flags += %W(-fmessage-length=0)
     end
 
     flags
@@ -252,11 +181,6 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
 
     flags += %W(-MMD -MP -D__android__ -DANDROID)
     flags += ctarget
-    case toolchain
-    when :gcc
-    when :clang
-      flags += %W(-gcc-toolchain "#{gcc_toolchain_path}" -Wno-invalid-command-line-argument -Wno-unused-command-line-argument)
-    end
     flags += %W(-fpic -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes)
 
     flags
@@ -273,20 +197,12 @@ Set ANDROID_NDK_HOME environment variable or set :ndk_home parameter
 
     v = sdk_version
     case toolchain
-    when :gcc
-      case arch
-      when /armeabi-v7a/  then flags += %W(-Wl#{no_warn_mismatch})
-      end
     when :clang
-      flags += %W(-gcc-toolchain "#{gcc_toolchain_path.to_s}")
       case arch
       when /armeabi-v7a/  then flags += %W(-target armv7-none-linux-androideabi#{v} -Wl,--fix-cortex-a8#{no_warn_mismatch})
-      when /armeabi/      then flags += %W(-target armv5te-none-linux-androideabi#{v})
       when /arm64-v8a/    then flags += %W(-target aarch64-none-linux-android#{v})
       when /x86_64/       then flags += %W(-target x86_64-none-linux-android#{v})
       when /x86/          then flags += %W(-target i686-none-linux-android#{v})
-      when /mips64/       then flags += %W(-target mips64el-none-linux-android#{v})
-      when /mips/         then flags += %W(-target mipsel-none-linux-android#{v})
       end
     end
     flags += %W(-no-canonical-prefixes)
