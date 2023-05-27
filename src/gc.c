@@ -1601,7 +1601,7 @@ mrb_objspace_each_objects(mrb_state *mrb, mrb_each_object_callback *callback, vo
       gc_each_objects(mrb, &mrb->gc, callback, data);
       mrb->jmp = prev_jmp;
       mrb->gc.iterating = iterating;
-   } MRB_CATCH(&c_jmp) {
+    } MRB_CATCH(&c_jmp) {
       mrb->gc.iterating = iterating;
       mrb->jmp = prev_jmp;
       MRB_THROW(prev_jmp);

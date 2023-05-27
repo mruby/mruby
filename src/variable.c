@@ -774,9 +774,8 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym, mrb_bool skip)
   if (skip) c = c->super;
 L_RETRY:
   while (c) {
-    if (!MRB_FLAG_TEST(c, MRB_FL_CLASS_IS_PREPENDED) && c->iv) {
-      if (iv_get(mrb, c->iv, sym, &v))
-        return v;
+    if (!MRB_FLAG_TEST(c, MRB_FL_CLASS_IS_PREPENDED) && c->iv && iv_get(mrb, c->iv, sym, &v)) {
+      return v;
     }
     c = c->super;
     if (!skip && c == mrb->object_class) break;
