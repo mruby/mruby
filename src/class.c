@@ -2737,6 +2737,7 @@ mrb_obj_init_copy(mrb_state *mrb, mrb_value self)
 static void
 init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
 {
+  mrb_assert((mrb_type(dest) == mrb_type(obj)));
   switch (mrb_type(obj)) {
     case MRB_TT_ICLASS:
       copy_class(mrb, dest, obj);
