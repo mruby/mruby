@@ -53,12 +53,12 @@ mrb_class(mrb_state *mrb, mrb_value v)
 }
 
 /* flags:
-   20: frozen
-   19: is_prepended
-   18: is_origin
-   17: is_inherited (used by method cache)
-   16: unused
-   0-15: instance type
+   20:   frozen
+   19:   is_prepended
+   18:   is_origin
+   17:   is_inherited (used by method cache)
+   6-16: unused
+   0-5:  instance type
 */
 #define MRB_FL_CLASS_IS_PREPENDED (1 << 19)
 #define MRB_FL_CLASS_IS_ORIGIN (1 << 18)
@@ -71,7 +71,7 @@ mrb_class(mrb_state *mrb, mrb_value v)
   }\
 } while (0)
 #define MRB_FL_CLASS_IS_INHERITED (1 << 17)
-#define MRB_INSTANCE_TT_MASK (0xFF)
+#define MRB_INSTANCE_TT_MASK (0x1F)
 #define MRB_SET_INSTANCE_TT(c, tt) ((c)->flags = (((c)->flags & ~MRB_INSTANCE_TT_MASK) | (char)(tt)))
 #define MRB_INSTANCE_TT(c) (enum mrb_vtype)((c)->flags & MRB_INSTANCE_TT_MASK)
 
