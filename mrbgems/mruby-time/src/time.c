@@ -199,10 +199,6 @@ struct mrb_time {
 
 static const struct mrb_data_type time_type = { "Time", mrb_free };
 
-#ifndef MRB_NO_FLOAT
-void mrb_check_num_exact(mrb_state *mrb, mrb_float num);
-#endif
-
 #define MRB_TIME_T_UINT (~(time_t)0 > 0)
 #define MRB_TIME_MIN (                                                      \
   MRB_TIME_T_UINT ? 0 :                                                     \

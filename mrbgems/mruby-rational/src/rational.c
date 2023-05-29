@@ -202,8 +202,6 @@ float_decode_internal(mrb_state *mrb, mrb_float f, mrb_float *rf, int *n)
   *rf = f;
 }
 
-void mrb_check_num_exact(mrb_state *mrb, mrb_float num);
-
 static mrb_value
 rational_new_f(mrb_state *mrb, mrb_float f0)
 {
