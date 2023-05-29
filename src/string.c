@@ -137,6 +137,7 @@ str_new_static(mrb_state *mrb, const char *p, mrb_int len)
 static struct RString*
 str_new(mrb_state *mrb, const char *p, mrb_int len)
 {
+  str_check_too_big(mrb, len);
   if (RSTR_EMBEDDABLE_P(len)) {
     return str_init_embed(mrb_obj_alloc_string(mrb), p, len);
   }
