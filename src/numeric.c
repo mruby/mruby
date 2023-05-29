@@ -290,8 +290,10 @@ flo_pow(mrb_state *mrb, mrb_value x)
 static mrb_value
 flo_idiv(mrb_state *mrb, mrb_value xv)
 {
+  mrb_float x = mrb_float(xv);
+  mrb_check_num_exact(mrb, x);
   mrb_int y = mrb_as_int(mrb, mrb_get_arg1(mrb));
-  return mrb_div_int_value(mrb, (mrb_int)mrb_float(xv), y);
+  return mrb_div_int_value(mrb, (mrb_int)x, y);
 }
 
 mrb_float
