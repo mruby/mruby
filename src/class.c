@@ -2712,10 +2712,12 @@ copy_class(mrb_state *mrb, mrb_value dst, mrb_value src)
     c1->super->flags |= MRB_FL_CLASS_IS_ORIGIN;
   }
   if (sc->mt) {
-    dc->mt = mt_copy(mrb, sc->mt);
-  }
-  else {
-    dc->mt = mt_new(mrb);
+    if (sc->tt == MRB_TT_ICLASS && !(sc->flags & MRB_FL_CLASS_IS_ORIGIN)) {
+      dc->mt = sc->mt;
+    }
+    else {
+      dc->mt = mt_copy(mrb, sc->mt);
+    }
   }
   dc->super = sc->super;
   MRB_SET_INSTANCE_TT(dc, MRB_INSTANCE_TT(sc));
