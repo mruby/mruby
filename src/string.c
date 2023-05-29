@@ -33,7 +33,7 @@ const char mrb_digitmap[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 #endif
 
 static void
-str_check_too_big(mrb_state *mrb, mrb_int len)
+str_check_length(mrb_state *mrb, mrb_int len)
 {
   if (len < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "negative (or overflowed) string size");
@@ -49,7 +49,7 @@ static struct RString*
 str_init_normal_capa(mrb_state *mrb, struct RString *s,
                      const char *p, mrb_int len, mrb_int capa)
 {
-  str_check_too_big(mrb, capa);
+  str_check_length(mrb, capa);
   char *dst = (char*)mrb_malloc(mrb, capa + 1);
   if (p) memcpy(dst, p, len);
   dst[len] = '\0';
@@ -137,7 +137,7 @@ str_new_static(mrb_state *mrb, const char *p, mrb_int len)
 static struct RString*
 str_new(mrb_state *mrb, const char *p, mrb_int len)
 {
-  str_check_too_big(mrb, len);
+  str_check_length(mrb, len);
   if (RSTR_EMBEDDABLE_P(len)) {
     return str_init_embed(mrb_obj_alloc_string(mrb), p, len);
   }
@@ -170,7 +170,7 @@ resize_capa(mrb_state *mrb, struct RString *s, mrb_int capacity)
     }
   }
   else {
-    str_check_too_big(mrb, capacity);
+    str_check_length(mrb, capacity);
     s->as.heap.ptr = (char*)mrb_realloc(mrb, RSTR_PTR(s), capacity+1);
     s->as.heap.aux.capa = (mrb_ssize)capacity;
   }
@@ -770,7 +770,7 @@ mrb_str_resize(mrb_state *mrb, mrb_value str, mrb_int len)
   mrb_int slen;
   struct RString *s = mrb_str_ptr(str);
 
-  str_check_too_big(mrb, len);
+  str_check_length(mrb, len);
   mrb_str_modify(mrb, s);
   slen = RSTR_LEN(s);
   if (len != slen) {
