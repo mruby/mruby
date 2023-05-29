@@ -2720,7 +2720,8 @@ copy_class(mrb_state *mrb, mrb_value dst, mrb_value src)
     }
   }
   dc->super = sc->super;
-  MRB_SET_INSTANCE_TT(dc, MRB_INSTANCE_TT(sc));
+  dc->flags = sc->flags;
+  dc->flags &= ~MRB_FL_OBJ_IS_FROZEN;
 }
 
 /* 15.3.1.3.16 */
