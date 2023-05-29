@@ -36,7 +36,7 @@ static void
 str_check_too_big(mrb_state *mrb, mrb_int len)
 {
   if (len < 0) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "[BUG] negative string length");
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative (or overflowed) string size");
   }
 #if MRB_STR_LENGTH_MAX != 0
   if (len > MRB_STR_LENGTH_MAX-1) {
@@ -769,9 +769,7 @@ mrb_str_resize(mrb_state *mrb, mrb_value str, mrb_int len)
   mrb_int slen;
   struct RString *s = mrb_str_ptr(str);
 
-  if (len < 0) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "negative (or overflowed) string size");
-  }
+  str_check_too_big(mrb, len);
   mrb_str_modify(mrb, s);
   slen = RSTR_LEN(s);
   if (len != slen) {
