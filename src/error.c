@@ -518,10 +518,24 @@ mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_value args, char const* fmt,
   mrb_exc_raise(mrb, exc);
 }
 
+static mrb_noreturn void
+frozen_error(mrb_state *mrb, mrb_value v)
+{
+  mrb_raisef(mrb, E_FROZEN_ERROR, "can't modify frozen %t", v);
+}
+
 MRB_API mrb_noreturn void
 mrb_frozen_error(mrb_state *mrb, void *frozen_obj)
 {
-  mrb_raisef(mrb, E_FROZEN_ERROR, "can't modify frozen %t", mrb_obj_value(frozen_obj));
+  frozen_error(mrb, mrb_obj_value(frozen_obj));
+}
+
+MRB_API void
+mrb_check_frozen_value(mrb_state *mrb, mrb_value v)
+{
+  if (mrb_immediate_p(v) || mrb_frozen_p(mrb_basic_ptr(v))) {
+    frozen_error(mrb, v);
+  }
 }
 
 MRB_API mrb_noreturn void

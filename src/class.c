@@ -756,7 +756,13 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
 
   MRB_CLASS_ORIGIN(c);
   h = c->mt;
-  mrb_check_frozen(mrb, c);
+  if (c->tt == MRB_TT_SCLASS && mrb_frozen_p(c)) {
+    mrb_value v = mrb_iv_get(mrb, mrb_obj_value(c), MRB_SYM(__attached__));
+    mrb_check_frozen_value(mrb, v);
+  }
+  else {
+    mrb_check_frozen(mrb, c);
+  }
   if (!h) h = c->mt = mt_new(mrb);
   if (MRB_METHOD_PROC_P(m)) {
     struct RProc *p = MRB_METHOD_PROC(m);
@@ -1011,10 +1017,7 @@ get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list *ap)
       if (i < argc) {
         pickarg = &argv[i++];
         if (needmodify && !mrb_nil_p(*pickarg)) {
-          if (mrb_immediate_p(*pickarg)) {
-            mrb_raisef(mrb, E_FROZEN_ERROR, "can't modify frozen %t", *pickarg);
-          }
-          mrb_check_frozen(mrb, mrb_obj_ptr(*pickarg));
+          mrb_check_frozen_value(mrb, *pickarg);
         }
       }
       else {

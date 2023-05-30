@@ -1434,7 +1434,7 @@ MRB_INLINE void mrb_check_frozen(mrb_state *mrb, void *o)
 {
   if (mrb_frozen_p((struct RBasic*)o)) mrb_frozen_error(mrb, o);
 }
-
+MRB_API void mrb_check_frozen_value(mrb_state *mrb, mrb_value v);
 MRB_API void mrb_define_alias(mrb_state *mrb, struct RClass *c, const char *a, const char *b);
 MRB_API void mrb_define_alias_id(mrb_state *mrb, struct RClass *c, mrb_sym a, mrb_sym b);
 MRB_API const char *mrb_class_name(mrb_state *mrb, struct RClass* klass);
