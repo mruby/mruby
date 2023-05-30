@@ -521,7 +521,7 @@ mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_value args, char const* fmt,
 static mrb_noreturn void
 frozen_error(mrb_state *mrb, mrb_value v)
 {
-  mrb_raisef(mrb, E_FROZEN_ERROR, "can't modify frozen %t", v);
+  mrb_raisef(mrb, E_FROZEN_ERROR, "can't modify frozen %T", v);
 }
 
 MRB_API mrb_noreturn void
