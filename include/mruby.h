@@ -1429,11 +1429,7 @@ MRB_API mrb_value mrb_ensure_int_type(mrb_state *mrb, mrb_value val);
 
 /* string type checking (contrary to the name, it doesn't convert) */
 MRB_API void mrb_check_type(mrb_state *mrb, mrb_value x, enum mrb_vtype t);
-
-MRB_INLINE void mrb_check_frozen(mrb_state *mrb, void *o)
-{
-  if (mrb_frozen_p((struct RBasic*)o)) mrb_frozen_error(mrb, o);
-}
+MRB_API void mrb_check_frozen(mrb_state *mrb, void *);
 MRB_API void mrb_check_frozen_value(mrb_state *mrb, mrb_value v);
 MRB_API void mrb_define_alias(mrb_state *mrb, struct RClass *c, const char *a, const char *b);
 MRB_API void mrb_define_alias_id(mrb_state *mrb, struct RClass *c, mrb_sym a, mrb_sym b);

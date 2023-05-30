@@ -531,6 +531,14 @@ mrb_frozen_error(mrb_state *mrb, void *frozen_obj)
 }
 
 MRB_API void
+mrb_check_frozen(mrb_state *mrb, void *o)
+{
+  if (mrb_frozen_p((struct RBasic*)o)) {
+    mrb_frozen_error(mrb, o);
+  }
+}
+
+MRB_API void
 mrb_check_frozen_value(mrb_state *mrb, mrb_value v)
 {
   if (mrb_immediate_p(v) || mrb_frozen_p(mrb_basic_ptr(v))) {
