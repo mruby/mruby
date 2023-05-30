@@ -541,7 +541,7 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
       print_lv_a(mrb, irep, a, out);
       break;
     CASE(OP_SCLASS, B):
-      fprintf(out, "SCLASS\t\tR%d\t", a);
+      fprintf(out, "SCLASS\tR%d\t", a);
       print_lv_a(mrb, irep, a, out);
       break;
     CASE(OP_TCLASS, B):
