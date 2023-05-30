@@ -624,7 +624,7 @@ mrb_mod_remove_method(mrb_state *mrb, mrb_value mod)
   struct RClass *c = mrb_class_ptr(mod);
 
   mrb_get_args(mrb, "*", &argv, &argc);
-  mrb_check_frozen(mrb, mrb_obj_ptr(mod));
+  mrb_check_frozen(mrb, c);
   while (argc--) {
     mrb_remove_method(mrb, c, mrb_obj_to_sym(mrb, *argv));
     mrb_funcall_id(mrb, mod, MRB_SYM(method_removed), 1, *argv);

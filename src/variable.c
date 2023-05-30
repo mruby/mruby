@@ -504,10 +504,11 @@ MRB_API mrb_value
 mrb_iv_remove(mrb_state *mrb, mrb_value obj, mrb_sym sym)
 {
   if (obj_iv_p(obj)) {
-    iv_tbl *t = mrb_obj_ptr(obj)->iv;
+    struct RObject *o = mrb_obj_ptr(obj);
+    iv_tbl *t = o->iv;
     mrb_value val;
 
-    mrb_check_frozen(mrb, mrb_obj_ptr(obj));
+    mrb_check_frozen(mrb, o);
     if (iv_del(mrb, t, sym, &val)) {
       return val;
     }
