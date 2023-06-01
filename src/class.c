@@ -370,7 +370,7 @@ prepare_singleton_class(mrb_state *mrb, struct RBasic *o)
   if (o->c->tt == MRB_TT_SCLASS) return;
   sc = MRB_OBJ_ALLOC(mrb, MRB_TT_SCLASS, mrb->class_class);
   sc->flags |= MRB_FL_CLASS_IS_INHERITED;
-  sc->mt = mt_new(mrb);
+  sc->mt = NULL;
   sc->iv = NULL;
   if (o->tt == MRB_TT_CLASS) {
     c = (struct RClass*)o;
