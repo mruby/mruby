@@ -1611,14 +1611,13 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_GETUPVAR, BBB) {
-      mrb_value *regs_a = regs + a;
       struct REnv *e = uvenv(mrb, c);
 
       if (e && b < MRB_ENV_LEN(e)) {
-        *regs_a = e->stack[b];
+        regs[a] = e->stack[b];
       }
       else {
-        *regs_a = mrb_nil_value();
+        regs[a] = mrb_nil_value();
       }
       NEXT;
     }
@@ -1627,10 +1626,8 @@ RETRY_TRY_BLOCK:
       struct REnv *e = uvenv(mrb, c);
 
       if (e) {
-        mrb_value *regs_a = regs + a;
-
         if (b < MRB_ENV_LEN(e)) {
-          e->stack[b] = *regs_a;
+          e->stack[b] = regs[a];
           mrb_write_barrier(mrb, (struct RBasic*)e);
         }
       }
