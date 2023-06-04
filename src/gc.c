@@ -153,8 +153,8 @@ typedef struct {
 /* white: 001 or 010, black: 100, gray: 000, red:111 */
 #define GC_GRAY 0
 #define GC_WHITE_A 1
-#define GC_WHITE_B (1 << 1)
-#define GC_BLACK (1 << 2)
+#define GC_WHITE_B 2
+#define GC_BLACK   4
 #define GC_RED MRB_GC_RED
 #define GC_WHITES (GC_WHITE_A | GC_WHITE_B)
 #define GC_COLOR_MASK 7
