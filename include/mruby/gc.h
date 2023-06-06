@@ -82,7 +82,7 @@ typedef struct mrb_gc {
   mrb_bool full          :1;
   mrb_bool generational  :1;
   mrb_bool out_of_memory :1;
-  size_t majorgc_old_threshold;
+  size_t oldgen_threshold;
 } mrb_gc;
 
 MRB_API mrb_bool mrb_object_dead_p(struct mrb_state *mrb, struct RBasic *object);

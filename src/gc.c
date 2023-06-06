@@ -1276,7 +1276,7 @@ mrb_incremental_gc(mrb_state *mrb)
 
       gc->full = FALSE;
       if (threshold < MAJOR_GC_TOOMANY) {
-        gc->majorgc_old_threshold = threshold;
+        gc->oldgen_threshold = threshold;
       }
       else {
         /* too many objects allocated during incremental GC, */
@@ -1285,7 +1285,7 @@ mrb_incremental_gc(mrb_state *mrb)
       }
     }
     else if (is_minor_gc(gc)) {
-      if (gc->live > gc->majorgc_old_threshold) {
+      if (gc->live > gc->oldgen_threshold) {
         clear_all_old(mrb, gc);
         gc->full = TRUE;
       }
@@ -1316,7 +1316,7 @@ mrb_full_gc(mrb_state *mrb)
   gc->threshold = (gc->live_after_mark/100) * gc->interval_ratio;
 
   if (is_generational(gc)) {
-    gc->majorgc_old_threshold = gc->live_after_mark/100 * MAJOR_GC_INC_RATIO;
+    gc->oldgen_threshold = gc->live_after_mark/100 * MAJOR_GC_INC_RATIO;
     gc->full = FALSE;
   }
 
@@ -1521,7 +1521,7 @@ change_gen_gc_mode(mrb_state *mrb, mrb_gc *gc, mrb_bool enable)
   }
   else if (!is_generational(gc) && enable) {
     incremental_gc_finish(mrb, gc);
-    gc->majorgc_old_threshold = gc->live_after_mark/100 * MAJOR_GC_INC_RATIO;
+    gc->oldgen_threshold = gc->live_after_mark/100 * MAJOR_GC_INC_RATIO;
     gc->full = FALSE;
   }
   gc->generational = enable;
