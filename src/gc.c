@@ -1284,11 +1284,9 @@ mrb_incremental_gc(mrb_state *mrb)
         mrb_full_gc(mrb);
       }
     }
-    else if (is_minor_gc(gc)) {
-      if (gc->live > gc->oldgen_threshold) {
-        clear_all_old(mrb, gc);
-        gc->full = TRUE;
-      }
+    else if (is_minor_gc(gc) && gc->live > gc->oldgen_threshold) {
+      clear_all_old(mrb, gc);
+      gc->full = TRUE;
     }
   }
 }
