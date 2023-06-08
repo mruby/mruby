@@ -57,32 +57,32 @@ typedef struct mrb_heap_page {
 #endif
 
 typedef struct mrb_gc {
-  mrb_heap_page *heaps;                /* heaps for GC */
-  mrb_heap_page *sweeps;
+  mrb_heap_page *heaps;            /* heaps for GC */
+  mrb_heap_page *sweeps;           /* page where sweep starts */
   mrb_heap_page *free_heaps;
-  size_t live; /* count of live objects */
+  struct RBasic *gray_list;        /* list of gray objects to be traversed incrementally */
+  struct RBasic *atomic_gray_list; /* list of objects to be traversed atomically */
+  size_t live;                     /* count of live objects */
+  size_t live_after_mark;          /* old generation objects */
+  size_t threshold;                /* threshold to start GC */
+  size_t oldgen_threshold;         /* threshold to kick major GC */
+  mrb_gc_state state;              /* current state of gc */
+  int interval_ratio;
+  int step_ratio;
+  int current_white_part :2;       /* make white object by white_part */
+  mrb_bool iterating     :1;       /* currently iterating over objects */
+  mrb_bool disabled      :1;       /* GC disabled */
+  mrb_bool generational  :1;       /* generational GC mode */
+  mrb_bool full          :1;       /* major GC mode */
+  mrb_bool out_of_memory :1;       /* out-of-memory error occurred */
+
 #ifdef MRB_GC_FIXED_ARENA
   struct RBasic *arena[MRB_GC_ARENA_SIZE]; /* GC protection array */
 #else
   struct RBasic **arena;                   /* GC protection array */
-  int arena_capa;
+  int arena_capa;                          /* size of protection array */
 #endif
   int arena_idx;
-
-  mrb_gc_state state; /* state of gc */
-  int current_white_part; /* make white object by white_part */
-  struct RBasic *gray_list; /* list of gray objects to be traversed incrementally */
-  struct RBasic *atomic_gray_list; /* list of objects to be traversed atomically */
-  size_t live_after_mark;
-  size_t threshold;
-  int interval_ratio;
-  int step_ratio;
-  mrb_bool iterating     :1;
-  mrb_bool disabled      :1;
-  mrb_bool full          :1;
-  mrb_bool generational  :1;
-  mrb_bool out_of_memory :1;
-  size_t oldgen_threshold;
 } mrb_gc;
 
 MRB_API mrb_bool mrb_object_dead_p(struct mrb_state *mrb, struct RBasic *object);
