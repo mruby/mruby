@@ -2905,8 +2905,8 @@ mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value args)
  *       def romanToInt(str)
  *         # ...
  *       end
- *       def method_missing(methId)
- *         str = methId.to_s
+ *       def method_missing(sym)
+ *         str = sym.to_s
  *         romanToInt(str)
  *       end
  *     end
