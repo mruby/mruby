@@ -769,7 +769,6 @@ const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym, mrb_bool skip)
   struct RClass *c = base;
   mrb_value v;
   mrb_bool retry = FALSE;
-  mrb_value name;
 
   /* if skip then skip the current class (already searched) */
   if (skip) c = c->super;
@@ -786,7 +785,7 @@ L_RETRY:
     retry = TRUE;
     goto L_RETRY;
   }
-  name = mrb_symbol_value(sym);
+  mrb_value name = mrb_symbol_value(sym);
   return mrb_funcall_argv(mrb, mrb_obj_value(base), MRB_SYM(const_missing), 1, &name);
 }
 

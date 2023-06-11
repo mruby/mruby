@@ -2554,7 +2554,8 @@ mrb_method_added(mrb_state *mrb, struct RClass *c, mrb_sym mid)
     added = MRB_SYM(method_added);
   }
   if (!mrb_func_basic_p(mrb, recv, added, mrb_do_nothing)) {
-    mrb_funcall_id(mrb, recv, added, 1, mrb_symbol_value(mid));
+    mrb_value sym = mrb_symbol_value(mid);
+    mrb_funcall_argv(mrb, recv, added, 1, &sym);
   }
 }
 
@@ -2784,7 +2785,7 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
       break;
   }
   if (!mrb_func_basic_p(mrb, dest, MRB_SYM(initialize_copy), mrb_obj_init_copy)) {
-    mrb_funcall_id(mrb, dest, MRB_SYM(initialize_copy), 1, obj);
+    mrb_funcall_argv(mrb, dest, MRB_SYM(initialize_copy), 1, &obj);
   }
 }
 

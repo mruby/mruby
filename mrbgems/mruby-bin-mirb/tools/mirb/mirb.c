@@ -117,7 +117,7 @@ p(mrb_state *mrb, mrb_value obj, int prompt)
   mrb_value val;
   char* msg;
 
-  val = mrb_funcall_id(mrb, obj, MRB_SYM(inspect), 0);
+  val = mrb_funcall_argv(mrb, obj, MRB_SYM(inspect), 0, NULL);
   if (prompt) {
     if (!mrb->exc) {
       fputs(" => ", stdout);

@@ -475,9 +475,9 @@ mrb_basicsocket_setsockopt(mrb_state *mrb, mrb_value self)
   else if (argc == 1) {
     if (strcmp(mrb_obj_classname(mrb, so), "Socket::Option") != 0)
       mrb_raise(mrb, E_ARGUMENT_ERROR, "not an instance of Socket::Option");
-    level = mrb_as_int(mrb, mrb_funcall_id(mrb, so, MRB_SYM(level), 0));
-    optname = mrb_as_int(mrb, mrb_funcall_id(mrb, so, MRB_SYM(optname), 0));
-    optval = mrb_funcall_id(mrb, so, MRB_SYM(data), 0);
+    level = mrb_as_int(mrb, mrb_funcall_argv(mrb, so, MRB_SYM(level), 0, NULL));
+    optname = mrb_as_int(mrb, mrb_funcall_argv(mrb, so, MRB_SYM(optname), 0, NULL));
+    optval = mrb_funcall_argv(mrb, so, MRB_SYM(data), 0, NULL);
     mrb_ensure_string_type(mrb, optval);
   }
   else {
