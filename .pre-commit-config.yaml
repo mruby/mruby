@@ -61,7 +61,11 @@ repos:
     rev: v3.11.2
     hooks:
       - id: markdown-link-check
+        name: Run markdown-link-check
+        description: Checks hyperlinks in Markdown files
         args: [-q]
+        types: [markdown]
+        files: \.(md|mdown|markdown)$
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.31.0
     hooks:
