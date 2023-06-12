@@ -2486,14 +2486,9 @@ mrb_mod_remove_const(mrb_state *mrb, mrb_value mod)
   return val;
 }
 
-static mrb_value
-mrb_mod_const_missing(mrb_state *mrb, mrb_value mod)
+mrb_value
+mrb_const_missing(mrb_state *mrb, mrb_value mod, mrb_sym sym)
 {
-  mrb_sym sym;
-
-  mrb_get_args(mrb, "n", &sym);
-  mrb->c->ci->mid = 0;
-
   if (mrb_class_real(mrb_class_ptr(mod)) != mrb->object_class) {
     mrb_name_error(mrb, sym, "uninitialized constant %v::%n", mod, sym);
   }
@@ -2502,6 +2497,16 @@ mrb_mod_const_missing(mrb_state *mrb, mrb_value mod)
   }
   /* not reached */
   return mrb_nil_value();
+}
+
+mrb_value
+mrb_mod_const_missing(mrb_state *mrb, mrb_value mod)
+{
+  mrb_sym sym;
+
+  mrb_get_args(mrb, "n", &sym);
+  mrb->c->ci->mid = 0;
+  return mrb_const_missing(mrb, mod, sym);
 }
 
 /* 15.2.2.4.34 */

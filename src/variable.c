@@ -785,8 +785,12 @@ L_RETRY:
     retry = TRUE;
     goto L_RETRY;
   }
+  mrb_value mod = mrb_obj_value(base);
+  if (mrb_func_basic_p(mrb, mod, MRB_SYM(const_missing), mrb_mod_const_missing)) {
+    return mrb_const_missing(mrb, mod, sym);
+  }
   mrb_value name = mrb_symbol_value(sym);
-  return mrb_funcall_argv(mrb, mrb_obj_value(base), MRB_SYM(const_missing), 1, &name);
+  return mrb_funcall_argv(mrb, mod, MRB_SYM(const_missing), 1, &name);
 }
 
 MRB_API mrb_value
