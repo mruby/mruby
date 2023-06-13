@@ -27,6 +27,3 @@ MD040: false
 
 # MD041 first-line-heading/first-line-h1 - First line in a file should be a top-level heading
 MD041: false
-
-# MD052/reference-links-images Reference links and images should use a label that is defined
-MD052: false
