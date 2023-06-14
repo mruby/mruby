@@ -544,7 +544,6 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_class_method(mrb, krn, "iterator?",            mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.2.5  */
   mrb_define_class_method(mrb, krn, "raise",                mrb_f_raise,                     MRB_ARGS_OPT(2));    /* 15.3.1.2.12 */
 
-
   mrb_define_method(mrb, krn, "===",                        mrb_equal_m,                     MRB_ARGS_REQ(1));    /* 15.3.1.3.2  */
   mrb_define_method(mrb, krn, "<=>",                        mrb_cmp_m,                       MRB_ARGS_REQ(1));
   mrb_define_method(mrb, krn, "block_given?",               mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.3.6  */
@@ -571,6 +570,7 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method(mrb, krn, "__case_eqq",                 mrb_obj_ceqq,                    MRB_ARGS_REQ(1));    /* internal */
   mrb_define_method(mrb, krn, "__to_int",                   mrb_ensure_int_type,             MRB_ARGS_NONE());    /* internal */
   mrb_define_method(mrb, krn, "__ENCODING__",               mrb_encoding,                    MRB_ARGS_NONE());
+  mrb_define_method(mrb, krn, "respond_to_missing?",        mrb_false,                       MRB_ARGS_ARG(1,1));
 
   mrb_include_module(mrb, mrb->object_class, mrb->kernel_module);
 }
