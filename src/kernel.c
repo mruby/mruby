@@ -443,12 +443,6 @@ mrb_obj_remove_instance_variable(mrb_state *mrb, mrb_value self)
   return val;
 }
 
-static inline mrb_bool
-basic_obj_respond_to(mrb_state *mrb, mrb_value obj, mrb_sym id, int pub)
-{
-  return mrb_respond_to(mrb, obj, id);
-}
-
 /* 15.3.1.3.43 */
 /*
  *  call-seq:
@@ -468,18 +462,16 @@ basic_obj_respond_to(mrb_state *mrb, mrb_value obj, mrb_sym id, int pub)
 static mrb_value
 obj_respond_to(mrb_state *mrb, mrb_value self)
 {
-  mrb_sym id, rtm_id;
+  mrb_sym id;
   mrb_bool priv = FALSE, respond_to_p;
 
   mrb_get_args(mrb, "n|b", &id, &priv);
-  respond_to_p = basic_obj_respond_to(mrb, self, id, !priv);
+  respond_to_p = mrb_respond_to(mrb, self, id);
   if (!respond_to_p) {
-    rtm_id = MRB_SYM_Q(respond_to_missing);
-    if (basic_obj_respond_to(mrb, self, rtm_id, !priv)) {
-      mrb_value args[2], v;
-      args[0] = mrb_symbol_value(id);
-      args[1] = mrb_bool_value(priv);
-      v = mrb_funcall_argv(mrb, self, rtm_id, 2, args);
+    mrb_sym rtm_id = MRB_SYM_Q(respond_to_missing);
+    if (!mrb_func_basic_p(mrb, self, rtm_id, mrb_false)) {
+      mrb_value v;
+      v = mrb_funcall_id(mrb, self, rtm_id, 2, mrb_symbol_value(id), mrb_bool_value(priv));
       return mrb_bool_value(mrb_bool(v));
     }
   }
