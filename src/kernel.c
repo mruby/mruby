@@ -556,8 +556,6 @@ mrb_encoding(mrb_state *mrb, mrb_value self)
 #endif
 }
 
-mrb_value mrb_obj_equal_m(mrb_state *mrb, mrb_value);
-
 void
 mrb_init_kernel(mrb_state *mrb)
 {

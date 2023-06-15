@@ -27,6 +27,8 @@ mrb_value mrb_mod_const_missing(mrb_state *mrb, mrb_value mod);
 mrb_value mrb_const_missing(mrb_state *mrb, mrb_value mod, mrb_sym sym);
 #endif
 
+mrb_value mrb_obj_equal_m(mrb_state *mrb, mrb_value);
+
 /* debug */
 size_t mrb_packed_int_len(uint32_t num);
 size_t mrb_packed_int_encode(uint32_t num, uint8_t *p, uint8_t *pend);
