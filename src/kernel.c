@@ -103,7 +103,7 @@ mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
  *  to provide meaningful semantics in <code>case</code> statements.
  */
 static mrb_value
-mrb_equal_m(mrb_state *mrb, mrb_value self)
+mrb_eqq_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value arg = mrb_get_arg1(mrb);
 
@@ -568,7 +568,7 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_class_method(mrb, krn, "iterator?",            mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.2.5  */
   mrb_define_class_method(mrb, krn, "raise",                mrb_f_raise,                     MRB_ARGS_OPT(2));    /* 15.3.1.2.12 */
 
-  mrb_define_method(mrb, krn, "===",                        mrb_equal_m,                     MRB_ARGS_REQ(1));    /* 15.3.1.3.2  */
+  mrb_define_method(mrb, krn, "===",                        mrb_eqq_m,                       MRB_ARGS_REQ(1));    /* 15.3.1.3.2  */
   mrb_define_method(mrb, krn, "<=>",                        mrb_cmp_m,                       MRB_ARGS_REQ(1));
   mrb_define_method(mrb, krn, "block_given?",               mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.3.6  */
   mrb_define_method(mrb, krn, "class",                      mrb_obj_class_m,                 MRB_ARGS_NONE());    /* 15.3.1.3.7  */
