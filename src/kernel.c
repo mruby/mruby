@@ -112,6 +112,16 @@ mrb_cmp_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value arg = mrb_get_arg1(mrb);
 
+  /* recursion check */
+  for (mrb_callinfo *ci=&mrb->c->ci[-1]; ci>=mrb->c->cibase; ci--) {
+    if (ci->mid == MRB_OPSYM(cmp) &&
+        mrb_obj_eq(mrb, self, ci->stack[0]) &&
+        mrb_obj_eq(mrb, arg, ci->stack[1])) {
+      /* recursive <=> calling returns `nil` */
+      return mrb_nil_value();
+    }
+  }
+
   if (mrb_equal(mrb, self, arg))
     return mrb_fixnum_value(0);
   return mrb_nil_value();
