@@ -46,7 +46,11 @@
   #include <unistd.h>
   typedef size_t fsize_t;
   typedef time_t ftime_t;
+#ifdef __DJGPP__
+  typedef long fsuseconds_t;
+#else
   typedef suseconds_t fsuseconds_t;
+#endif
   typedef mode_t fmode_t;
   typedef ssize_t fssize_t;
 #endif
