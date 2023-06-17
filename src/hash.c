@@ -273,7 +273,7 @@ HT_ASSERT_SAFE_READ(ea_capa);
   }                                                                             \
   code;                                                                         \
   if (flags__ != (h__->flags & mask__) ||                                       \
-      tbl__ != h__->hsh.ht ||                                                       \
+      tbl__ != h__->hsh.ht ||                                                   \
       ((H_CHECK_MODIFIED_USE_HT_EA_CAPA_FOR_AR || h_ht_p(h__)) &&               \
        ht_ea_capa__ != ht_ea_capa(h__)) ||                                      \
       ((H_CHECK_MODIFIED_USE_HT_EA_FOR_AR || h_ht_p(h__)) &&                    \
@@ -1109,7 +1109,11 @@ MRB_API void
 mrb_hash_foreach(mrb_state *mrb, struct RHash *h, mrb_hash_foreach_func *func, void *data)
 {
   h_each(h, entry, {
-    if (func(mrb, entry->key, entry->val, data) != 0) return;
+    int n;
+    h_check_modified(mrb, h, {
+      n = func(mrb, entry->key, entry->val, data);
+    });
+    if (n != 0) return;
   });
 }
 
