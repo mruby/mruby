@@ -166,7 +166,7 @@ mrb_dir_chdir(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_dir_chroot(mrb_state *mrb, mrb_value self)
 {
-#if defined(_WIN32) || defined(_WIN64) || defined(__ANDROID__)
+#if defined(_WIN32) || defined(_WIN64) || defined(__ANDROID__) || defined(__MSDOS__)
   mrb_raise(mrb, E_NOTIMP_ERROR, "chroot() unreliable on your system");
   return mrb_fixnum_value(0);
 #else

@@ -38,7 +38,9 @@
   #define GETCWD getcwd
   #define CHMOD(a, b) chmod(a,b)
   #include <sys/file.h>
+#ifndef __DJGPP__
   #include <libgen.h>
+#endif
   #include <sys/param.h>
   #include <pwd.h>
 #endif

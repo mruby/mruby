@@ -20,7 +20,9 @@
   #include <sys/file.h>
   #include <sys/param.h>
   #include <sys/wait.h>
+#ifndef __DJGPP__
   #include <libgen.h>
+#endif
   #include <pwd.h>
   #include <unistd.h>
 #endif
