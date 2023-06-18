@@ -7,12 +7,13 @@ MRuby.each_target do
 
   next unless libmruby_enabled?
 
+  copy_headers_task = "expose_header_files:#{self.name}"
   file libmruby_static => libmruby_objs.flatten do |t|
-    Rake::Task["expose_header_files"].invoke
+    Rake::Task[copy_headers_task].invoke
     archiver.run t.name, t.prerequisites
   end
 
-  task "expose_header_files" do |t|
+  task copy_headers_task do |t|
     # Since header files may be generated dynamically and it is hard to know all of them,
     # the task is executed depending on when libmruby.a is generated.
 
