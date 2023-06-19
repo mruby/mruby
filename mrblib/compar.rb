@@ -49,7 +49,7 @@ module Comparable
   # ISO 15.3.3.2.3
   def == other
     cmp = self <=> other
-    cmp == 0
+    cmp.equal?(0)
   end
 
   ##
