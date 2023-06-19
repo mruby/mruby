@@ -1331,6 +1331,34 @@ mrb_ary_join_m(mrb_state *mrb, mrb_value ary)
   return mrb_ary_join(mrb, ary, sep);
 }
 
+/*
+ * call-seq:
+ *    ary.to_s    -> string
+ *    ary.inspect -> string
+ *
+ * Return the contents of this array as a string.
+ */
+static mrb_value
+mrb_ary_to_s(mrb_state *mrb, mrb_value self)
+{
+  mrb->c->ci->mid = MRB_SYM(inspect);
+  mrb_value ret = mrb_str_new_lit(mrb, "[");
+  int ai = mrb_gc_arena_save(mrb);
+  if (mrb_inspect_recursive_p(mrb, self)) {
+    mrb_str_cat_lit(mrb, ret, "...]");
+    return ret;
+  }
+  mrb_int len = RARRAY_LEN(self);
+  for (mrb_int i=0; i<len; i++) {
+    if (i>0) mrb_str_cat_lit(mrb, ret, ", ");
+    mrb_str_cat_str(mrb, ret, mrb_inspect(mrb, mrb_ary_ref(mrb, self, i)));
+    mrb_gc_arena_restore(mrb, ai);
+  }
+  mrb_str_cat_lit(mrb, ret, "]");
+
+  return ret;
+}
+
 static mrb_value
 mrb_ary_eq(mrb_state *mrb, mrb_value ary1)
 {
@@ -1409,6 +1437,8 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method(mrb, a, "size",            mrb_ary_size,         MRB_ARGS_NONE());   /* 15.2.12.5.28 */
   mrb_define_method(mrb, a, "slice",           mrb_ary_aget,         MRB_ARGS_ARG(1,1)); /* 15.2.12.5.29 */
   mrb_define_method(mrb, a, "unshift",         mrb_ary_unshift_m,    MRB_ARGS_ANY());    /* 15.2.12.5.30 */
+  mrb_define_method(mrb, a, "to_s",            mrb_ary_to_s,         MRB_ARGS_NONE());
+  mrb_define_method(mrb, a, "inspect",         mrb_ary_to_s,         MRB_ARGS_NONE());
 
   mrb_define_method(mrb, a, "__ary_eq",        mrb_ary_eq,           MRB_ARGS_REQ(1));
   mrb_define_method(mrb, a, "__ary_cmp",       mrb_ary_cmp,          MRB_ARGS_REQ(1));
