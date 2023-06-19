@@ -50,6 +50,35 @@ mrb_obj_equal(mrb_state *mrb, mrb_value v1, mrb_value v2)
   return mrb_obj_eq(mrb, v1, v2);
 }
 
+MRB_API mrb_bool
+mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
+{
+  if (mrb_obj_eq(mrb, obj1, obj2)) return TRUE;
+#ifndef MRB_NO_FLOAT
+  /* value mixing with integer and float */
+  else if (mrb_integer_p(obj1) && mrb_float_p(obj2)) {
+    if ((mrb_float)mrb_integer(obj1) == mrb_float(obj2))
+      return TRUE;
+  }
+  else if (mrb_float_p(obj1) && mrb_integer_p(obj2)) {
+    if (mrb_float(obj1) == (mrb_float)mrb_integer(obj2))
+      return TRUE;
+  }
+#endif
+#ifdef MRB_USE_BIGINT
+  else if (mrb_bigint_p(obj1) &&
+      (mrb_integer_p(obj2) || mrb_bigint_p(obj2) || mrb_float_p(obj2))) {
+    if (mrb_bint_cmp(mrb, obj1, obj2) == 0)
+      return TRUE;
+  }
+#endif
+  else if (!mrb_func_basic_p(mrb, obj1, MRB_OPSYM(eq), mrb_obj_equal_m)) {
+    mrb_value result = mrb_funcall_argv(mrb, obj1, MRB_OPSYM(eq), 1, &obj2);
+    if (mrb_test(result)) return TRUE;
+  }
+  return FALSE;
+}
+
 /*
  * Document-class: NilClass
  *
