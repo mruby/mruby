@@ -306,17 +306,13 @@ class Set
     to_a.join(separator)
   end
 
-  def _inspect(recur_list)
+  def inspect
     return "#<#{self.class}: {}>" if empty?
-    return "#<#{self.class}: {...}>" if recur_list[self.object_id]
-    recur_list[self.object_id] = true
-    ary = map { |o| o._inspect(recur_list) }
+    return "#<#{self.class}: {...}>" if self.__inspect_recursive?
+    ary = map {|o| o.inspect }
     "#<#{self.class}: {#{ary.join(", ")}}>"
   end
 
-  def inspect
-    _inspect({})
-  end
   alias to_s inspect
 
   def reset
