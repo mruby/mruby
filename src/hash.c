@@ -1817,6 +1817,43 @@ mrb_hash_compact(mrb_state *mrb, mrb_value hash)
   return hash;
 }
 
+/*
+ * call-seq:
+ *    hash.to_s    -> string
+ *    hash.inspect -> string
+ *
+ * Return the contents of this hash as a string.
+ */
+static mrb_value
+mrb_hash_to_s(mrb_state *mrb, mrb_value self)
+{
+  mrb->c->ci->mid = MRB_SYM(inspect);
+  mrb_value ret = mrb_str_new_lit(mrb, "{");
+  int ai = mrb_gc_arena_save(mrb);
+  if (mrb_inspect_recursive_p(mrb, self)) {
+    mrb_str_cat_lit(mrb, ret, "...}");
+    return ret;
+  }
+
+  mrb_int i = 0;
+  struct RHash *h = mrb_hash_ptr(self);
+  h_each(h, entry, {
+    if (i++ > 0) mrb_str_cat_lit(mrb, ret, ", ");
+    h_check_modified(mrb, h, {
+      mrb_str_cat_str(mrb, ret, mrb_inspect(mrb, entry->key));
+    });
+    mrb_gc_arena_restore(mrb, ai);
+    mrb_str_cat_lit(mrb, ret, "=>");
+    h_check_modified(mrb, h, {
+      mrb_str_cat_str(mrb, ret, mrb_inspect(mrb, entry->val));
+    });
+    mrb_gc_arena_restore(mrb, ai);
+  });
+  mrb_str_cat_lit(mrb, ret, "}");
+
+  return ret;
+}
+
 void
 mrb_init_hash(mrb_state *mrb)
 {
@@ -1849,6 +1886,8 @@ mrb_init_hash(mrb_state *mrb)
   mrb_define_method(mrb, h, "store",           mrb_hash_aset,        MRB_ARGS_REQ(2)); /* 15.2.13.4.26 */
   mrb_define_method(mrb, h, "value?",          mrb_hash_has_value,   MRB_ARGS_REQ(1)); /* 15.2.13.4.27 */
   mrb_define_method(mrb, h, "values",          mrb_hash_values,      MRB_ARGS_NONE()); /* 15.2.13.4.28 */
+  mrb_define_method(mrb, h, "to_s",            mrb_hash_to_s,        MRB_ARGS_NONE());
+  mrb_define_method(mrb, h, "inspect",         mrb_hash_to_s,        MRB_ARGS_NONE());
   mrb_define_method(mrb, h, "rehash",          mrb_hash_rehash,      MRB_ARGS_NONE());
   mrb_define_method(mrb, h, "__merge",         mrb_hash_merge_m,     MRB_ARGS_REQ(1));
   mrb_define_method(mrb, h, "__compact",       mrb_hash_compact,     MRB_ARGS_NONE()); /* implementation of Hash#compact! */
