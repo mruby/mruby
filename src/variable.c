@@ -468,12 +468,7 @@ inspect_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
   s = mrb_sym_name_len(mrb, sym, &len);
   mrb_str_cat(mrb, str, s, len);
   mrb_str_cat_lit(mrb, str, "=");
-  if (mrb_object_p(v)) {
-    ins = mrb_any_to_s(mrb, v);
-  }
-  else {
-    ins = mrb_inspect(mrb, v);
-  }
+  ins = mrb_inspect(mrb, v);
   mrb_str_cat_str(mrb, str, ins);
   return 0;
 }
@@ -493,6 +488,10 @@ mrb_obj_iv_inspect(mrb_state *mrb, struct RObject *obj)
     mrb_str_cat_lit(mrb, str, ":");
     mrb_str_cat_str(mrb, str, mrb_ptr_to_str(mrb, obj));
 
+    if (mrb_inspect_recursive_p(mrb, mrb_obj_value(obj))) {
+      mrb_str_cat_lit(mrb, str, " ...>");
+      return str;
+    }
     iv_foreach(mrb, t, inspect_i, &str);
     mrb_str_cat_lit(mrb, str, ">");
     return str;
