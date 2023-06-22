@@ -635,6 +635,49 @@ mrb_struct_values_at(mrb_state *mrb, mrb_value self)
 }
 
 /*
+ * call-seq:
+ *    struct.to_s    -> string
+ *    struct.inspect -> string
+ *
+ * Returns a string representation of Data
+ */
+static mrb_value
+mrb_struct_to_s(mrb_state *mrb, mrb_value self)
+{
+  mrb_value members, ret, cname;
+  mrb_value *mems;
+  mrb_int mlen;
+
+  mrb->c->ci->mid = MRB_SYM(inspect);
+  ret = mrb_str_new_lit(mrb, "#<struct ");
+  int ai = mrb_gc_arena_save(mrb);
+  cname = mrb_class_path(mrb, mrb_class_real(mrb_class(mrb, self)));
+  if (!mrb_nil_p(cname)) {
+    mrb_str_cat_str(mrb, ret, cname);
+    mrb_str_cat_lit(mrb, ret, " ");
+  }
+  if (mrb_inspect_recursive_p(mrb, self)) {
+    mrb_str_cat_lit(mrb, ret, "...>");
+    return ret;
+  }
+  members = struct_members(mrb, self);
+  mlen = RARRAY_LEN(members);
+  mems = RARRAY_PTR(members);
+  for (mrb_int i=0; i<mlen; i++) {
+    mrb_int len;
+    const char *name = mrb_sym_name_len(mrb, mrb_symbol(mems[i]), &len);
+    if (i>0) mrb_str_cat_lit(mrb, ret, ", ");
+    mrb_str_cat(mrb, ret, name, len);
+    mrb_str_cat_lit(mrb, ret, "=");
+    mrb_str_cat_str(mrb, ret, mrb_inspect(mrb, mrb_ary_ref(mrb, self, i)));
+    mrb_gc_arena_restore(mrb, ai);
+  }
+  mrb_str_cat_lit(mrb, ret, ">");
+
+  return ret;
+}
+
+/*
  *  A <code>Struct</code> is a convenient way to bundle a number of
  *  attributes together, using accessor methods, without having to write
  *  an explicit class.
@@ -665,6 +708,8 @@ mrb_mruby_struct_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, st,       "initialize",      mrb_struct_initialize,  MRB_ARGS_ANY());  /* 15.2.18.4.8  */
   mrb_define_method(mrb, st,       "initialize_copy", mrb_struct_init_copy,   MRB_ARGS_REQ(1)); /* 15.2.18.4.9  */
   mrb_define_method(mrb, st,       "eql?",            mrb_struct_eql,         MRB_ARGS_REQ(1)); /* 15.2.18.4.12(x)  */
+  mrb_define_method(mrb, st,       "to_s",            mrb_struct_to_s,        MRB_ARGS_NONE()); /* 15.2.18.4.11(x) */
+  mrb_define_method(mrb, st,       "inspect",         mrb_struct_to_s,        MRB_ARGS_NONE()); /* 15.2.18.4.10(x) */
 
   mrb_define_method(mrb, st,       "size",            mrb_struct_len,         MRB_ARGS_NONE());
   mrb_define_method(mrb, st,       "length",          mrb_struct_len,         MRB_ARGS_NONE());
