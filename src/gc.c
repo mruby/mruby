@@ -1139,7 +1139,7 @@ incremental_sweep_phase(mrb_state *mrb, mrb_gc *gc, size_t limit)
     }
 
     /* free dead slot */
-    if (dead_slot && freed < MRB_HEAP_PAGE_SIZE) {
+    if (dead_slot) {
       mrb_heap_page *next = page->next;
 
       unlink_heap_page(gc, page);
