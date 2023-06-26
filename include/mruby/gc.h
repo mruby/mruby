@@ -45,8 +45,6 @@ typedef struct mrb_heap_page {
   struct RBasic *freelist;
   struct mrb_heap_page *prev;
   struct mrb_heap_page *next;
-  struct mrb_heap_page *free_next;
-  struct mrb_heap_page *free_prev;
   mrb_bool old:1;
   /* Flexible array members area a C99 feature, not C++ compatible */
   /* void* objects[]; */
@@ -59,7 +57,6 @@ typedef struct mrb_heap_page {
 typedef struct mrb_gc {
   mrb_heap_page *heaps;            /* heaps for GC */
   mrb_heap_page *sweeps;           /* page where sweep starts */
-  mrb_heap_page *free_heaps;
   struct RBasic *gray_list;        /* list of gray objects to be traversed incrementally */
   struct RBasic *atomic_gray_list; /* list of objects to be traversed atomically */
   size_t live;                     /* count of live objects */
