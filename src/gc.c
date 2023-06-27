@@ -288,28 +288,6 @@ mrb_object_dead_p(mrb_state *mrb, struct RBasic *object)
 }
 
 static void
-link_heap_page(mrb_gc *gc, mrb_heap_page *page)
-{
-  page->next = gc->heaps;
-  if (gc->heaps)
-    gc->heaps->prev = page;
-  gc->heaps = page;
-}
-
-static void
-unlink_heap_page(mrb_gc *gc, mrb_heap_page *page)
-{
-  if (page->prev)
-    page->prev->next = page->next;
-  if (page->next)
-    page->next->prev = page->prev;
-  if (gc->heaps == page)
-    gc->heaps = page->next;
-  page->prev = NULL;
-  page->next = NULL;
-}
-
-static void
 add_heap(mrb_state *mrb, mrb_gc *gc)
 {
   mrb_heap_page *page = (mrb_heap_page*)mrb_calloc(mrb, 1, sizeof(mrb_heap_page) + MRB_HEAP_PAGE_SIZE * sizeof(RVALUE));
@@ -323,7 +301,10 @@ add_heap(mrb_state *mrb, mrb_gc *gc)
   }
   page->freelist = prev;
 
-  link_heap_page(gc, page);
+  page->next = gc->heaps;
+  if (gc->heaps)
+    gc->heaps->prev = page;
+  gc->heaps = page;
 }
 
 #define DEFAULT_GC_INTERVAL_RATIO 200
@@ -1118,7 +1099,11 @@ incremental_sweep_phase(mrb_state *mrb, mrb_gc *gc, size_t limit)
     if (dead_slot) {
       mrb_heap_page *next = page->next;
 
-      unlink_heap_page(gc, page);
+      if (page->prev) page->prev->next = next;
+      if (next) next->prev = page->prev;
+      if (gc->heaps == page) gc->heaps = next;
+      page->prev = NULL;
+      page->next = NULL;
       mrb_free(mrb, page);
       page = next;
     }
