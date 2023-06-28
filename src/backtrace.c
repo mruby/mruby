@@ -17,6 +17,35 @@
 #include <mruby/internal.h>
 #include <mruby/presym.h>
 
+static int
+count_backtrace(mrb_state *mrb, ptrdiff_t ciidx)
+{
+  int n = 0;
+
+  if (ciidx >= mrb->c->ciend - mrb->c->cibase)
+    ciidx = 10; /* ciidx is broken... */
+
+  for (ptrdiff_t i=ciidx; i >= 0; i--) {
+    mrb_callinfo *ci;
+    const mrb_irep *irep = 0;
+
+    ci = &mrb->c->cibase[i];
+
+    if (!ci->proc || MRB_PROC_CFUNC_P(ci->proc)) {
+      if (!ci->mid) continue;
+    }
+    else {
+      irep = ci->proc->body.irep;
+      if (!irep) continue;
+      if (!mrb->c->cibase[i].pc) {
+        continue;
+      }
+    }
+    n++;
+  }
+  return n;
+}
+
 struct backtrace_location {
   int32_t lineno;
   mrb_sym method_id;
@@ -157,16 +186,6 @@ mrb_print_backtrace(mrb_state *mrb)
 #endif
 
 static void
-count_backtrace_i(mrb_state *mrb,
-                 const struct backtrace_location *loc,
-                 void *data)
-{
-  int *lenp = (int*)data;
-
-  (*lenp)++;
-}
-
-static void
 pack_backtrace_i(mrb_state *mrb,
                  const struct backtrace_location *loc,
                  void *data)
@@ -187,7 +206,7 @@ packed_backtrace(mrb_state *mrb)
   int size;
   void *ptr;
 
-  each_backtrace(mrb, ciidx, count_backtrace_i, &len);
+  len = count_backtrace(mrb, ciidx);
   size = len * sizeof(struct backtrace_location);
   backtrace = mrb_data_object_alloc(mrb, NULL, NULL, &bt_type);
   ptr = mrb_malloc(mrb, size);
