@@ -1421,7 +1421,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
       if (count == 0 && !(flags & PACK_FLAG_WIDTH))
         break;
 
-      o = mrb_ary_ref(mrb, ary, aidx);
+      o = RARRAY_PTR(ary)[aidx];
       if (type == PACK_TYPE_INTEGER) {
         o = mrb_ensure_int_type(mrb, o);
       }
