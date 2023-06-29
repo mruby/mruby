@@ -56,7 +56,7 @@ typedef void (*each_backtrace_func)(mrb_state*, const struct backtrace_location*
 
 static const mrb_data_type bt_type = { "Backtrace", mrb_free };
 
-struct RObject *mrb_unpack_backtrace(mrb_state *mrb, struct RObject *backtrace);
+static struct RObject *mrb_unpack_backtrace(mrb_state *mrb, struct RObject *backtrace);
 
 static void
 each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, each_backtrace_func func, void *data)
@@ -236,7 +236,7 @@ mrb_keep_backtrace(mrb_state *mrb, mrb_value exc)
   mrb_gc_arena_restore(mrb, ai);
 }
 
-struct RObject*
+static struct RObject*
 mrb_unpack_backtrace(mrb_state *mrb, struct RObject *backtrace)
 {
   const struct backtrace_location *bt;
