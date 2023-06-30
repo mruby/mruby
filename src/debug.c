@@ -90,34 +90,9 @@ debug_get_line(mrb_state *mrb, mrb_irep_debug_info_file* f, uint32_t pc)
   if (f == NULL) return -1;
   switch (f->line_type) {
   case mrb_debug_line_ary:
-    mrb_assert(f->start_pos <= pc && pc < (f->start_pos + f->line_entry_count));
-    return f->lines.ary[pc - f->start_pos];
-
   case mrb_debug_line_flat_map:
-    {
-      /* get upper bound */
-      const mrb_irep_debug_info_line *ret = f->lines.flat_map;
-      uint32_t count = f->line_entry_count;
-      while (count > 0) {
-        int32_t step = count / 2;
-        const mrb_irep_debug_info_line *it = ret + step;
-        if (!(pc < it->start_pos)) {
-          ret = it + 1;
-          count -= step + 1;
-        }
-        else { count = step; }
-      }
-
-      --ret;
-
-      /* check line entry pointer range */
-      mrb_assert(f->lines.flat_map <= ret && ret < (f->lines.flat_map + f->line_entry_count));
-      /* check pc range */
-      //      mrb_assert(ret->start_pos <= pc &&
-      //                 pc < (((uint32_t)(ret + 1 - f->lines.flat_map) < f->line_entry_count)
-      //                       ? (ret+1)->start_pos : irep->debug_info->pc_count));
-      return ret->line;
-    }
+  default:
+    break;
 
   case mrb_debug_line_packed_map:
     {
