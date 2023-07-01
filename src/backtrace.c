@@ -58,9 +58,11 @@ static const mrb_data_type bt_type = { "Backtrace", mrb_free };
 
 static struct RObject *mrb_unpack_backtrace(mrb_state *mrb, struct RObject *backtrace);
 
-static void
+static uint32_t
 each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, each_backtrace_func func, void *data)
 {
+  uint32_t n = 0;
+
   if (ciidx >= mrb->c->ciend - mrb->c->cibase)
     ciidx = 10; /* ciidx is broken... */
 
@@ -117,7 +119,9 @@ each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, each_backtrace_func func, void *
     }
 
     func(mrb, &loc, data);
+    n++;
   }
+  return n;
 }
 
 #ifndef MRB_NO_STDIO
@@ -211,8 +215,7 @@ packed_backtrace(mrb_state *mrb)
   backtrace = mrb_data_object_alloc(mrb, NULL, NULL, &bt_type);
   ptr = mrb_malloc(mrb, size);
   backtrace->data = ptr;
-  backtrace->flags = (uint32_t)len;
-  each_backtrace(mrb, ciidx, pack_backtrace_i, &ptr);
+  backtrace->flags = each_backtrace(mrb, ciidx, pack_backtrace_i, &ptr);
   return (struct RObject*)backtrace;
 }
 
