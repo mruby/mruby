@@ -47,9 +47,9 @@ count_backtrace(mrb_state *mrb, ptrdiff_t ciidx)
 }
 
 struct backtrace_location {
-  int32_t lineno;
   mrb_sym method_id;
-  const char *filename;
+  int32_t idx;
+  const mrb_irep *irep;
 };
 
 typedef void (*each_backtrace_func)(mrb_state*, const struct backtrace_location*, void*);
@@ -69,39 +69,35 @@ each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, each_backtrace_func func, void *
   for (ptrdiff_t i=ciidx; i >= 0; i--) {
     struct backtrace_location loc;
     mrb_callinfo *ci;
-    const mrb_irep *irep = 0;
     const mrb_code *pc;
-    uint32_t idx;
 
     ci = &mrb->c->cibase[i];
 
     if (!ci->proc || MRB_PROC_CFUNC_P(ci->proc)) {
       if (!ci->mid) continue;
-      loc.lineno = -1;
-      idx = 0;
+      loc.irep = NULL;
     }
     else {
-      irep = ci->proc->body.irep;
-      if (!irep) continue;
+      loc.irep = ci->proc->body.irep;
+      if (!loc.irep) continue;
       if (mrb->c->cibase[i].pc) {
         pc = &mrb->c->cibase[i].pc[-1];
       }
       else {
         continue;
       }
-      idx = (uint32_t)(pc - irep->iseq);
-      mrb_debug_get_position(mrb, irep, idx, &loc.lineno, &loc.filename);
+      loc.idx = (uint32_t)(pc - loc.irep->iseq);
     }
     loc.method_id = ci->mid;
-    if (loc.lineno == -1) {
+    if (loc.irep == NULL) {
       for (ptrdiff_t j=i-1; j >= 0; j--) {
         ci = &mrb->c->cibase[j];
 
         if (!ci->proc) continue;
         if (MRB_PROC_CFUNC_P(ci->proc)) continue;
 
-        irep = ci->proc->body.irep;
-        if (!irep) continue;
+        loc.irep = ci->proc->body.irep;
+        if (!loc.irep) continue;
 
         if (mrb->c->cibase[j].pc) {
           pc = &mrb->c->cibase[j].pc[-1];
@@ -110,14 +106,10 @@ each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, each_backtrace_func func, void *
           continue;
         }
 
-        idx = (uint32_t)(pc - irep->iseq);
-        if (mrb_debug_get_position(mrb, irep, idx, &loc.lineno, &loc.filename)) break;
+        loc.idx = (uint32_t)(pc - loc.irep->iseq);
+        break;
       }
     }
-    if (!loc.filename) {
-      loc.filename = "(unknown)";
-    }
-
     func(mrb, &loc, data);
     n++;
   }
@@ -260,12 +252,15 @@ mrb_unpack_backtrace(mrb_state *mrb, struct RObject *backtrace)
   for (i = 0; i < n; i++) {
     const struct backtrace_location *entry = &bt[i];
     mrb_value btline;
+    int32_t lineno;
+    const char *filename;
 
-    if (entry->lineno != -1) {//debug info was available
-      btline = mrb_format(mrb, "%s:%d", entry->filename, (int)entry->lineno);
+    mrb_debug_get_position(mrb, entry->irep, entry->idx, &lineno, &filename);
+    if (lineno != -1) {//debug info was available
+      btline = mrb_format(mrb, "%s:%d", filename, (int)lineno);
     }
     else { //all that was left was the stack frame
-      btline = mrb_format(mrb, "%s:0", entry->filename);
+      btline = mrb_format(mrb, "%s:0", filename);
     }
     if (entry->method_id != 0) {
       mrb_str_cat_lit(mrb, btline, ":in ");
