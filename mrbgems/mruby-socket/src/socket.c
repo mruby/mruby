@@ -84,16 +84,14 @@ static int inet_pton(int af, const char *src, void *dst)
 
   hints.ai_family = af;
 
-  if (getaddrinfo(src, NULL, &hints, &res) != 0)
-  {
+  if (getaddrinfo(src, NULL, &hints, &res) != 0) {
     printf("Couldn't resolve host %s\n", src);
     return -1;
   }
 
   ressave = res;
 
-  while (res)
-  {
+  while (res) {
     memcpy(dst, res->ai_addr, res->ai_addrlen);
     res = res->ai_next;
   }
