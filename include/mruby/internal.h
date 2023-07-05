@@ -27,6 +27,7 @@ mrb_noreturn void mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value sel
 mrb_method_t mrb_vm_find_method(mrb_state *mrb, struct RClass *c, struct RClass **cp, mrb_sym mid);
 mrb_value mrb_mod_const_missing(mrb_state *mrb, mrb_value mod);
 mrb_value mrb_const_missing(mrb_state *mrb, mrb_value mod, mrb_sym sym);
+size_t mrb_class_mt_memsize(mrb_state*, struct RClass*);
 #endif
 
 mrb_value mrb_obj_equal_m(mrb_state *mrb, mrb_value);

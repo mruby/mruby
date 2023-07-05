@@ -72,7 +72,7 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj)
     case MRB_TT_MODULE:
     case MRB_TT_SCLASS:
     case MRB_TT_ICLASS:
-      size += mrb_gc_mark_mt_size(mrb, mrb_class_ptr(obj)) * sizeof(mrb_method_t);
+      size += mrb_class_mt_memsize(mrb, mrb_class_ptr(obj));
       /* fall through */
     case MRB_TT_EXCEPTION:
     case MRB_TT_OBJECT: {

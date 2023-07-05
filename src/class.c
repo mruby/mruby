@@ -310,6 +310,15 @@ mrb_gc_mark_mt_size(mrb_state *mrb, struct RClass *c)
   return (size_t)h->size;
 }
 
+size_t
+mrb_class_mt_memsize(mrb_state *mrb, struct RClass *c)
+{
+  struct mt_tbl *h = c->mt;
+
+  if (!h) return 0;
+  return sizeof(struct mt_tbl) + (size_t)h->size * sizeof(mrb_method_t);
+}
+
 void
 mrb_gc_free_mt(mrb_state *mrb, struct RClass *c)
 {
