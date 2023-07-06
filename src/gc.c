@@ -981,6 +981,7 @@ gc_mark_gray_list(mrb_state *mrb, mrb_gc *gc) {
   while (gc->gray_list) {
     struct RBasic *obj = gc->gray_list;
     gc->gray_list = obj->gcnext;
+    obj->gcnext = NULL;
     gc_mark_children(mrb, gc, obj);
   }
 }
