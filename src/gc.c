@@ -491,7 +491,10 @@ mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
   }
 
   mrb_heap_page *page = gc->heaps;
-  struct RBasic *p = NULL;
+  if (page == NULL) {
+    add_heap(mrb, gc);
+    page = gc->heaps;
+  }
   while (page->freelist == NULL) {
     page = page->next;
     if (page == NULL) {
@@ -499,7 +502,7 @@ mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
       page = gc->heaps;
     }
   }
-  p = page->freelist;
+  struct RBasic *p = page->freelist;
   page->freelist = ((struct free_obj*)p)->next;
 
   gc->live++;
