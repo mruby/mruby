@@ -490,11 +490,10 @@ mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
     mrb_incremental_gc(mrb);
   }
 
-  mrb_heap_page *page = gc->heaps;
-  if (page == NULL) {
+  if (gc->heaps == NULL) {
     add_heap(mrb, gc);
-    page = gc->heaps;
   }
+  mrb_heap_page *page = gc->heaps;
   while (page->freelist == NULL) {
     page = page->next;
     if (page == NULL) {
