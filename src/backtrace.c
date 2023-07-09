@@ -22,9 +22,6 @@ count_backtrace(mrb_state *mrb, ptrdiff_t ciidx)
 {
   int n = 0;
 
-  if (ciidx >= mrb->c->ciend - mrb->c->cibase)
-    ciidx = 10; /* ciidx is broken... */
-
   for (ptrdiff_t i=ciidx; i >= 0; i--) {
     mrb_callinfo *ci;
     const mrb_irep *irep = 0;
@@ -60,9 +57,6 @@ static uint32_t
 each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, each_backtrace_func func, void *data)
 {
   uint32_t n = 0;
-
-  if (ciidx >= mrb->c->ciend - mrb->c->cibase)
-    ciidx = 10; /* ciidx is broken... */
 
   for (ptrdiff_t i=ciidx; i >= 0; i--) {
     struct backtrace_location loc;
@@ -134,6 +128,9 @@ packed_backtrace(mrb_state *mrb)
   int len = 0;
   int size;
   void *ptr;
+
+  if (ciidx >= mrb->c->ciend - mrb->c->cibase)
+    ciidx = mrb->c->ciend - mrb->c->cibase; /* ciidx is broken... */
 
   len = count_backtrace(mrb, ciidx);
   size = len * sizeof(struct backtrace_location);
