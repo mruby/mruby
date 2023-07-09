@@ -269,6 +269,7 @@ static int
 cdump_debug(mrb_state *mrb, const char *name, int n, mrb_irep_debug_info *info,
             mrb_value init_syms_code, FILE *fp)
 {
+  int ai = mrb_gc_arena_save(mrb);
   char buffer[256];
   const char *filename;
   mrb_int file_len;
@@ -328,6 +329,7 @@ cdump_debug(mrb_state *mrb, const char *name, int n, mrb_irep_debug_info *info,
   fprintf(fp, "static mrb_irep_debug_info %s_debug_%d = {\n", name, n);
   fprintf(fp, "%d, %d, &%s_debug_file_%d_};\n", info->pc_count, info->flen, name, n);
 
+  mrb_gc_arena_restore(mrb, ai);
   return MRB_DUMP_OK;
 }
 
