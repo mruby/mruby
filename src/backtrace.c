@@ -79,17 +79,10 @@ each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, each_backtrace_func func, void *
         break;
       }
     }
-    func(mrb, &loc, data);
+    if (func) func(mrb, &loc, data);
     n++;
   }
   return n;
-}
-
-static void
-count_backtrace_i(mrb_state *mrb,
-                 const struct backtrace_location *loc,
-                 void *data)
-{
 }
 
 static void
@@ -113,7 +106,8 @@ packed_backtrace(mrb_state *mrb)
   if (ciidx >= mrb->c->ciend - mrb->c->cibase)
     ciidx = mrb->c->ciend - mrb->c->cibase; /* ciidx is broken... */
 
-  int len = each_backtrace(mrb, ciidx, count_backtrace_i, NULL);
+  /* count the number of backtraces */
+  int len = each_backtrace(mrb, ciidx, NULL, NULL);
   backtrace = mrb_data_object_alloc(mrb, NULL, NULL, &bt_type);
   if (len > 0) {
     void *ptr = mrb_malloc(mrb, len * sizeof(struct backtrace_location));
