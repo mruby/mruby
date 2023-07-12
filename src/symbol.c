@@ -82,12 +82,11 @@ sym_inline_pack(const char *name, size_t len)
 
   char c;
   const char *p;
-  size_t i;
   mrb_sym sym = 0;
 
   if (len > pack_length_max) return 0; /* too long */
   if (len == 0) return 0; /* empty string */
-  for (i=0; i<len; i++) {
+  for (size_t i=0; i<len; i++) {
     uint32_t bits;
 
     c = name[i];
@@ -352,7 +351,7 @@ mrb_free_symtbl(mrb_state *mrb)
 {
   mrb_sym i, lim;
 
-  for (i=1, lim=mrb->symidx+1; i<lim; i++) {
+  for (i=1,lim=mrb->symidx+1; i<lim; i++) {
     if (!sym_lit_p(mrb, i)) {
       mrb_free(mrb, (char*)mrb->symtbl[i]);
     }

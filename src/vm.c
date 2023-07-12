@@ -2853,10 +2853,9 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_HASH, BB) {
       mrb_value hash = mrb_hash_new_capa(mrb, b);
-      int i;
       int lim = a+b*2;
 
-      for (i=a; i<lim; i+=2) {
+      for (int i=a; i<lim; i+=2) {
         mrb_hash_set(mrb, hash, regs[i], regs[i+1]);
       }
       regs[a] = hash;
@@ -2866,12 +2865,11 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_HASHADD, BB) {
       mrb_value hash;
-      int i;
       int lim = a+b*2+1;
 
       hash = regs[a];
       mrb_ensure_hash_type(mrb, hash);
-      for (i=a+1; i<lim; i+=2) {
+      for (int i=a+1; i<lim; i+=2) {
         mrb_hash_set(mrb, hash, regs[i], regs[i+1]);
       }
       mrb_gc_arena_restore(mrb, ai);

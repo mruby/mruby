@@ -99,10 +99,9 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
           irep->nregs, irep->nlocals, (int)irep->plen, (int)irep->slen, (int)irep->rlen, (int)irep->ilen);
 
   if (irep->lv) {
-    int i;
     int head = FALSE;
 
-    for (i = 1; i < irep->nlocals; i++) {
+    for (int i = 1; i < irep->nlocals; i++) {
       char const *s = mrb_sym_dump(mrb, irep->lv[i - 1]);
       if (s) {
         if (!head) {
@@ -115,10 +114,9 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
   }
 
   if (irep->clen > 0) {
-    int i = irep->clen;
     const struct mrb_irep_catch_handler *e = mrb_irep_catch_handler_table(irep);
 
-    for (; i > 0; i--,e++) {
+    for (int i = irep->clen; i > 0; i--,e++) {
       uint32_t begin = mrb_irep_catch_handler_unpack(e->begin);
       uint32_t end = mrb_irep_catch_handler_unpack(e->end);
       uint32_t target = mrb_irep_catch_handler_unpack(e->target);
@@ -620,11 +618,9 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
 static void
 codedump_recur(mrb_state *mrb, const mrb_irep *irep, FILE *out)
 {
-  int i;
-
   codedump(mrb, irep, out);
   if (irep->reps) {
-    for (i=0; i<irep->rlen; i++) {
+    for (int i=0; i<irep->rlen; i++) {
       codedump_recur(mrb, irep->reps[i], out);
     }
   }

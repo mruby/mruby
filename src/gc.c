@@ -426,7 +426,6 @@ mrb_gc_unregister(mrb_state *mrb, mrb_value obj)
   mrb_sym root;
   mrb_value table;
   struct RArray *a;
-  mrb_int i;
 
   if (mrb_immediate_p(obj)) return;
   root = GC_ROOT_SYM;
@@ -438,7 +437,7 @@ mrb_gc_unregister(mrb_state *mrb, mrb_value obj)
   }
   a = mrb_ary_ptr(table);
   mrb_ary_modify(mrb, a);
-  for (i = 0; i < ARY_LEN(a); i++) {
+  for (mrb_int i = 0; i < ARY_LEN(a); i++) {
     if (mrb_ptr(ARY_PTR(a)[i]) == mrb_ptr(obj)) {
       mrb_int len = ARY_LEN(a)-1;
       mrb_value *ptr = ARY_PTR(a);
@@ -529,8 +528,7 @@ add_gray_list(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
 static void
 mark_context_stack(mrb_state *mrb, struct mrb_context *c)
 {
-  size_t i;
-  size_t e;
+  size_t i, e;
   mrb_value nil;
 
   if (c->stbase == NULL) return;
@@ -626,13 +624,12 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
   case MRB_TT_ENV:
     {
       struct REnv *e = (struct REnv*)obj;
-      mrb_int i, len;
 
       if (MRB_ENV_ONSTACK_P(e) && e->cxt && e->cxt->fib) {
         mrb_gc_mark(mrb, (struct RBasic*)e->cxt->fib);
       }
-      len = MRB_ENV_LEN(e);
-      for (i=0; i<len; i++) {
+      mrb_int len = MRB_ENV_LEN(e);
+      for (mrb_int i=0; i<len; i++) {
         mrb_gc_mark_value(mrb, e->stack[i]);
       }
     }
@@ -1515,10 +1512,9 @@ gc_each_objects(mrb_state *mrb, mrb_gc *gc, mrb_each_object_callback *callback, 
   page = gc->heaps;
   while (page != NULL) {
     RVALUE *p;
-    int i;
 
     p = objects(page);
-    for (i=0; i < MRB_HEAP_PAGE_SIZE; i++) {
+    for (int i=0; i < MRB_HEAP_PAGE_SIZE; i++) {
       if ((*callback)(mrb, &p[i].as.basic, data) == MRB_EACH_OBJ_BREAK)
         return;
     }

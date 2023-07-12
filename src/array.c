@@ -90,9 +90,7 @@ mrb_ary_new(mrb_state *mrb)
 static inline void
 array_copy(mrb_value *dst, const mrb_value *src, mrb_int size)
 {
-  mrb_int i;
-
-  for (i = 0; i < size; i++) {
+  for (mrb_int i = 0; i < size; i++) {
     dst[i] = src[i];
   }
 }
@@ -1134,9 +1132,8 @@ static mrb_value
 mrb_ary_index_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value obj = mrb_get_arg1(mrb);
-  mrb_int i;
 
-  for (i = 0; i < RARRAY_LEN(self); i++) {
+  for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
     if (mrb_equal(mrb, RARRAY_PTR(self)[i], obj)) {
       return mrb_int_value(mrb, i);
     }
@@ -1148,9 +1145,10 @@ static mrb_value
 mrb_ary_rindex_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value obj = mrb_get_arg1(mrb);
-  mrb_int i, len;
 
-  for (i = RARRAY_LEN(self) - 1; i >= 0; i--) {
+  for (mrb_int i = RARRAY_LEN(self) - 1; i >= 0; i--) {
+    mrb_int len;
+
     if (mrb_equal(mrb, RARRAY_PTR(self)[i], obj)) {
       return mrb_int_value(mrb, i);
     }
@@ -1248,11 +1246,10 @@ mrb_ary_entry(mrb_value ary, mrb_int n)
 static mrb_value
 join_ary(mrb_state *mrb, mrb_value ary, mrb_value sep, mrb_value list)
 {
-  mrb_int i;
   mrb_value result, val, tmp;
 
   /* check recursive */
-  for (i=0; i<RARRAY_LEN(list); i++) {
+  for (mrb_int i=0; i<RARRAY_LEN(list); i++) {
     if (mrb_obj_equal(mrb, ary, RARRAY_PTR(list)[i])) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "recursive array join");
     }
@@ -1262,7 +1259,7 @@ join_ary(mrb_state *mrb, mrb_value ary, mrb_value sep, mrb_value list)
 
   result = mrb_str_new_capa(mrb, 64);
 
-  for (i=0; i<RARRAY_LEN(ary); i++) {
+  for (mrb_int i=0; i<RARRAY_LEN(ary); i++) {
     if (i > 0 && !mrb_nil_p(sep)) {
       mrb_str_cat_str(mrb, result, sep);
     }

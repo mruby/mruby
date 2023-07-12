@@ -294,7 +294,6 @@ mrb_obj_public_methods(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_obj_singleton_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj)
 {
-  khint_t i;
   mrb_value ary;
   struct RClass *klass;
   khash_t(st) *set = kh_init(st, mrb);
@@ -314,7 +313,7 @@ mrb_obj_singleton_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj)
   }
 
   ary = mrb_ary_new(mrb);
-  for (i=0;i<kh_end(set);i++) {
+  for (khint_t i=0;i<kh_end(set);i++) {
     if (kh_exist(set, i)) {
       mrb_ary_push(mrb, ary, mrb_symbol_value(kh_key(set, i)));
     }

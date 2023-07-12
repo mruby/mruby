@@ -175,15 +175,13 @@ iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 static void
 iv_foreach(mrb_state *mrb, iv_tbl *t, mrb_iv_foreach_func *func, void *p)
 {
-  int i;
-
   if (t == NULL) return;
   if (t->alloc == 0) return;
   if (t->size == 0) return;
 
   mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
   mrb_value *vals = t->ptr;
-  for (i=0; i<t->alloc; i++) {
+  for (int i=0; i<t->alloc; i++) {
     if (IV_KEY_P(keys[i])) {
       if ((*func)(mrb, keys[i], vals[i], p) != 0) {
         return;
@@ -207,7 +205,6 @@ static iv_tbl*
 iv_copy(mrb_state *mrb, iv_tbl *t)
 {
   iv_tbl *t2;
-  int i;
 
   if (t == NULL) return NULL;
   if (t->alloc == 0) return NULL;
@@ -216,7 +213,7 @@ iv_copy(mrb_state *mrb, iv_tbl *t)
   mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
   mrb_value *vals = t->ptr;
   t2 = iv_new(mrb);
-  for (i=0; i<t->alloc; i++) {
+  for (int i=0; i<t->alloc; i++) {
     if (IV_KEY_P(keys[i])) {
       iv_put(mrb, t2, keys[i], vals[i]);
     }
@@ -1135,9 +1132,7 @@ mrb_obj_iv_tbl_memsize(mrb_value obj)
 mrb_bool
 mrb_ident_p(const char *s, mrb_int len)
 {
-  mrb_int i;
-
-  for (i = 0; i < len; i++) {
+  for (mrb_int i = 0; i < len; i++) {
     if (!identchar(s[i])) return FALSE;
   }
   return TRUE;
