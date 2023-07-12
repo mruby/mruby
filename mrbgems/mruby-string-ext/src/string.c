@@ -1183,9 +1183,13 @@ str_casecmp(mrb_state *mrb, mrb_value self)
 
   struct RString *s1 = mrb_str_ptr(self);
   struct RString *s2 = mrb_str_ptr(str);
-  mrb_int len = lesser(RSTR_LEN(s1), RSTR_LEN(s2));
+
+  mrb_int len1 = RSTR_LEN(s1);
+  mrb_int len2 = RSTR_LEN(s2);
+  mrb_int len = lesser(len1, len2);
   char *p1 = RSTR_PTR(s1);
   char *p2 = RSTR_PTR(s2);
+  if (p1 == p2) return mrb_fixnum_value(0);
 
   for (mrb_int i=0; i<len; i++) {
     int c1 = p1[i], c2 = p2[i];
@@ -1194,8 +1198,8 @@ str_casecmp(mrb_state *mrb, mrb_value self)
     if (c1 > c2) return mrb_fixnum_value(1);
     if (c1 < c2) return mrb_fixnum_value(-1);
   }
-  if (RSTR_LEN(s1) == RSTR_LEN(s2)) return mrb_fixnum_value(0);
-  if (RSTR_LEN(s1) > RSTR_LEN(s2))  return mrb_fixnum_value(1);
+  if (len1 == len2) return mrb_fixnum_value(0);
+  if (len1 > len2)  return mrb_fixnum_value(1);
   return mrb_fixnum_value(-1);
 }
 
