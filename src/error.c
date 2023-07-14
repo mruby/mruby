@@ -443,17 +443,12 @@ mrb_warn(mrb_state *mrb, const char *fmt, ...)
 }
 
 MRB_API mrb_noreturn void
-mrb_bug(mrb_state *mrb, const char *fmt, ...)
+mrb_bug(mrb_state *mrb, const char *mesg)
 {
 #ifndef MRB_NO_STDIO
-  va_list ap;
-  mrb_value str;
-
-  va_start(ap, fmt);
-  str = mrb_vformat(mrb, fmt, ap);
   fputs("bug: ", stderr);
-  fwrite(RSTRING_PTR(str), RSTRING_LEN(str), 1, stderr);
-  va_end(ap);
+  fputs(mesg, stderr);
+  fputs("\n", stderr);
 #endif
   exit(EXIT_FAILURE);
 }
