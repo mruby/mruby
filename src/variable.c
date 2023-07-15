@@ -331,7 +331,7 @@ namespace_p(enum mrb_vtype tt)
 static inline void
 assign_class_name(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
 {
-  if (namespace_p(obj->tt) && namespace_p(mrb_type(v))) {
+  if (namespace_p(mrb_type(v))) {
     struct RObject *c = mrb_obj_ptr(v);
     if (obj != c && ISUPPER(mrb_sym_name_len(mrb, sym, NULL)[0])) {
       mrb_sym id_classname = MRB_SYM(__classname__);
@@ -357,7 +357,9 @@ assign_class_name(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
 void
 mrb_obj_iv_set_force(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
 {
-  assign_class_name(mrb, obj, sym, v);
+  if (namespace_p(obj->tt)) {
+    assign_class_name(mrb, obj, sym, v);
+  }
   if (!obj->iv) {
     obj->iv = iv_new(mrb);
   }
