@@ -1,10 +1,10 @@
 # Authors of mruby (mruby developers)
 
-## The List of Contributors sorted by number of commits (as of 2023-03-13 0906cd7)
+## The List of Contributors sorted by number of commits (as of 2023-07-16 5e7d763)
 
-   9000 Yukihiro "Matz" Matsumoto (@matz)*
+   9230 Yukihiro "Matz" Matsumoto (@matz)*
     586 KOBAYASHI Shuji (@shuujii)
-    463 dearblue (@dearblue)*
+    493 dearblue (@dearblue)*
     378 Daniel Bovensiepen (@bovi)*
     346 Takeshi Watanabe (@take-cheeze)*
     334 Masaki Muranaka (@monaka)
@@ -12,8 +12,8 @@
     234 Jun Hiroe (@suzukaze)
     220 Cremno (@cremno)*
     209 Yuki Kurihara (@ksss)+
+    151 John Bampton (@jbampton)
     151 Yasuhiro Matsumoto (@mattn)*
-    125 John Bampton (@jbampton)
     113 Carson McDonald (@carsonmcdonald)
     103 Tomasz Dąbrowski (@dabroz)*
      84 Akira Yumiyama (@akiray03)*
@@ -63,6 +63,7 @@
      12 Kouki Ooyatsu (kaishuu0123)*
      12 NAKAMURA Usaku (@unak)*
      12 RIZAL Reckordp (@Reckordp)+
+     12 Ray Chason (@chasonr)*
      12 Takashi Sawanaka (@sdottaka)*
      12 Ukrainskiy Sergey (@ukrainskiysergey)
      12 Xuejie "Rafael" Xiao (@xxuejie)*
@@ -73,7 +74,6 @@
      11 takkaw (@takkaw)
      10 Miura Hideki (@miura1729)
      10 Narihiro Nakamura (@authorNari)
-     10 Ray Chason (@chasonr)*
      10 Yuichi Nishiwaki (@nyuichi)
       9 Akira Mitsui (@murasesyuka)*
       9 Frank Celler (@fceller)
@@ -96,6 +96,7 @@
       6 Kenji Okimoto (@okkez)+
       6 Selman ULUG (@selman)
       6 Yusuke Endoh (@mame)*
+      6 masahino (@masahino)
       5 Chris Reuter (@suetanvil)
       5 Davide D'Agostino (@DAddYE)
       5 Eric Hodel (@drbrain)
@@ -109,7 +110,6 @@
       5 TOMITA Masahiro (@tmtm)
       5 Yurie Yamane (@yurie)+
       5 dreamedge (@dreamedge)
-      5 masahino (@masahino)
       5 nkshigeru (@nkshigeru)
       5 xuejianqing (@joans321)
       4 Dante Catalfamo (@dantecatalfamo)
@@ -137,10 +137,12 @@
       3 Jan Berdajs (@mrbrdo)
       3 Jonas Minnberg (@sasq64)
       3 Joseph McCullough (@joequery)
+      3 Lanza (@LanzaSchneider)
       3 Mark McCurry (@fundamental)
       3 Nobuhiro Iwamatsu (@iwamatsu)
       3 Per Lundberg (@perlun)*
       3 Rob Fors (@robfors)*
+      3 Robert Rowe (@CaptainJet)
       3 Sebastián Katzer (@katzer)*
       3 Shouji Kuboyama (@Shokuji)*
       3 Shuta Kimura (@kimushu)+
@@ -173,7 +175,6 @@
       2 Kazuhiko Yamashita (@pyama86)+
       2 Kazuhiro Sera (@seratch)
       2 Kuroda Daisuke (@dycoon)+
-      2 Lanza (@LanzaSchneider)
       2 Lothar Scholz (@llothar)
       2 Lukas Joeressen (@kext)
       2 Masahiro Wakame (@vvkame)+
@@ -201,6 +202,7 @@
       1 Ashish Kurmi (@boahc077)
       1 Atsushi Morimoto (@mynz)
       1 Ben A Morgan (@BenMorganIO)
+      1 Colin MacKenzie IV (@sinisterchipmunk)
       1 Benoit Daloze (@eregon)
       1 Daehyub Kim (@lateau)
       1 Daniel Varga (@vargad)
@@ -258,7 +260,6 @@
       1 Prayag Verma (@pra85)
       1 Ranmocy (@ranmocy)
       1 Robert McNally (@wolfmcnally)
-      1 Robert Rowe (@CaptainJet)
       1 Ryan Scott Lewis (@RyanScottLewis)
       1 Ryo Okubo (@syucream)
       1 SAkira a.k.a. Akira Suzuki (@sakisakira)
@@ -286,6 +287,7 @@
       1 Yurii Nakonechnyi (@inobelar)
       1 Yusuke Suzuki (@Constellation)+
       1 Yusuke Tanaka (@csouls)
+      1 alpha.netzilla (@alpha-netzilla)
       1 arton (@arton)
       1 duangsuse (@duangsuse)
       1 fl0l0u (@fl0l0u)
