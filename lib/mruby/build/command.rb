@@ -99,7 +99,11 @@ module MRuby
       gemrake = File.join(source_dir, "mrbgem.rake")
       rakedep = File.exist?(gemrake) ? [ gemrake ] : []
 
-      if build_dir.include? "mrbgems/"
+      bd = build_dir
+      if bd.start_with?(MRUBY_ROOT)
+        bd = bd.sub(MRUBY_ROOT, '')
+      end
+      if bd.include? "mrbgems/"
         generated_file_matcher = Regexp.new("^#{Regexp.escape build_dir}/(?!mrbc/)(.*)#{Regexp.escape out_ext}$")
       else
         generated_file_matcher = Regexp.new("^#{Regexp.escape build_dir}/(?!mrbc/|mrbgems/.+/)(.*)#{Regexp.escape out_ext}$")
