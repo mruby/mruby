@@ -1219,6 +1219,22 @@ alias:
         mrb_raisef(mrb, E_RUNTIME_ERROR, "mruby-pack does not support sizeof(int) == %d", (int)sizeof(int));
     }
     break;
+  case 'J':
+    switch (sizeof(intptr_t)) {
+      case 4: t = 'L'; goto alias;
+      case 8: t = 'Q'; goto alias;
+      default:
+        mrb_raisef(mrb, E_RUNTIME_ERROR, "mruby-pack does not support sizeof(uintptr_t) == %d", (int)sizeof(uintptr_t));
+    }
+    break;
+  case 'j':
+    switch (sizeof(intptr_t)) {
+      case 4: t = 'l'; goto alias;
+      case 8: t = 'q'; goto alias;
+      default:
+        mrb_raisef(mrb, E_RUNTIME_ERROR, "mruby-pack does not support sizeof(intptr_t) == %d", (int)sizeof(intptr_t));
+    }
+    break;
   case 'L':
     dir = PACK_DIR_LONG;
     type = PACK_TYPE_INTEGER;
