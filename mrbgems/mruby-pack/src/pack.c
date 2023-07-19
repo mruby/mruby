@@ -35,7 +35,6 @@ enum pack_dir {
   //PACK_DIR_VAX,
   PACK_DIR_BER,       /* w */
   PACK_DIR_UTF8,      /* U */
-  //PACK_DIR_BER,
   PACK_DIR_DOUBLE,    /* E */
   PACK_DIR_FLOAT,     /* f */
   PACK_DIR_STR,       /* A */
@@ -1333,6 +1332,11 @@ alias:
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "%c is not supported", (char)t);
     break;
   default:
+    if (!ISSPACE((char)t)) {
+      char c = (char)t;
+      mrb_value s = mrb_str_new(mrb, &c, 1);
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "unknown unpack directive %!v", s);
+    }
     dir = PACK_DIR_INVALID;
     type = PACK_TYPE_NONE;
     break;
