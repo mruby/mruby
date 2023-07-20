@@ -38,6 +38,16 @@ assert('pack("M")') do
   assert_equal ["あ"], "=E3=81=82=\n".unpack("M")
 end
 
+# pack & unpack 'B'/'b'
+assert('pack("B/b")') do
+  assert_pack "b*", "\xFF\x00", ["1111111100000000"]
+  assert_pack "b*", "\x01\x02", ["1000000001000000"]
+  assert_pack "b3", "\x01", ["100"]
+
+  assert_pack "B*", "\xFF\x00", ["1111111100000000"]
+  assert_pack "B*", "\x01\x02", ["0000000100000010"]
+end
+
 # pack & unpack 'H'
 assert('pack("H")') do
   assert_pack "H*", "01", ["3031"]
