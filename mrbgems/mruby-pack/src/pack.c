@@ -39,6 +39,7 @@ enum pack_dir {
   PACK_DIR_FLOAT,     /* f */
   PACK_DIR_STR,       /* A */
   PACK_DIR_HEX,       /* h */
+  PACK_DIR_BSTR,      /* b */
   PACK_DIR_BASE64,    /* m */
   PACK_DIR_QENC,      /* M */
   PACK_DIR_NUL,       /* x */
@@ -860,6 +861,92 @@ unpack_hex(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, 
 }
 
 static int
+pack_bstr(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, unsigned int flags)
+{
+  const char *sptr = RSTRING_PTR(src);
+  int slen = (int)RSTRING_LEN(src);
+
+  if (count == -1) {
+    count = slen;
+  }
+  else if (slen > count) {
+    slen = count;
+  }
+
+  dst = str_len_ensure(mrb, dst, didx + count);
+  char *dptr = RSTRING_PTR(dst) + didx;
+  char *dptr0 = dptr;
+
+  unsigned int byte = 0;
+  for (int i=0; i++ < slen; sptr++) {
+    if (flags & PACK_FLAG_LSB) {
+      if (*sptr & 1)
+        byte |= 128;
+      if (i & 7)
+        byte >>= 1;
+      else {
+        char c = (char)(byte&0xff);
+        *dptr++ = c;
+        byte = 0;
+      }
+    }
+    else {
+      byte |= *sptr & 1;
+      if (i & 7)
+        byte <<= 1;
+      else {
+        char c = (char)(byte&0xff);
+        *dptr++ = c;
+        byte = 0;
+      }
+    }
+  }
+  if (slen & 7) {
+    if (flags & PACK_FLAG_LSB) {
+      byte >>= 7 - (slen & 7);
+    }
+    else {
+      byte <<= 7 - (slen & 7);
+    }
+    char c = (char)(byte&0xff);
+    *dptr++ = c;
+  }
+  return (int)(dptr - dptr0);
+}
+
+static int
+unpack_bstr(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, unsigned int flags)
+{
+  CHECK_UNPACK_LEN(mrb, slen, ary);
+
+  const char *sptr0 = (const char*)src;
+  const char *sptr = sptr0;
+  if (count == -1)
+    count = slen * 8;
+
+  mrb_value dst = mrb_str_new(mrb, NULL, count);
+  char *dptr = RSTRING_PTR(dst);
+  const char *dptr0 = dptr;
+  int bits = 0;
+
+  for (int i=0; i<count; i++) {
+    if (flags & PACK_FLAG_LSB) {
+      if (i & 7) bits >>= 1;
+      else bits = (unsigned char)*sptr++;
+      *dptr++ = (bits & 1) ? '1' : '0';
+    }
+    else {
+      if (i & 7) bits <<= 1;
+      else bits = (unsigned char)*sptr++;
+      *dptr++ = (bits & 128) ? '1' : '0';
+    }
+  }
+  dst = mrb_str_resize(mrb, dst, (mrb_int)(dptr - dptr0));
+  mrb_ary_push(mrb, ary, dst);
+  return (int)(sptr - sptr0);
+}
+
+static int
 pack_base64(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count)
 {
   mrb_int dstlen;
@@ -1200,6 +1287,16 @@ alias:
     type = PACK_TYPE_STRING;
     flags |= PACK_FLAG_COUNT2 | PACK_FLAG_LSB;
     break;
+  case 'B':
+    dir = PACK_DIR_BSTR;
+    type = PACK_TYPE_STRING;
+    flags |= PACK_FLAG_COUNT2;
+    break;
+  case 'b':
+    dir = PACK_DIR_BSTR;
+    type = PACK_TYPE_STRING;
+    flags |= PACK_FLAG_COUNT2 | PACK_FLAG_LSB;
+    break;
   case 'I':
     switch (sizeof(int)) {
       case 2: t = 'S'; goto alias;
@@ -1483,6 +1580,9 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
       case PACK_DIR_HEX:
         ridx += pack_hex(mrb, o, result, ridx, count, flags);
         break;
+      case PACK_DIR_BSTR:
+        ridx += pack_bstr(mrb, o, result, ridx, count, flags);
+        break;
       case PACK_DIR_STR:
         ridx += pack_str(mrb, o, result, ridx, count, flags);
         break;
@@ -1564,6 +1664,9 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
     switch (dir) {
     case PACK_DIR_HEX:
       srcidx += unpack_hex(mrb, sptr, srclen - srcidx, result, count, flags);
+      continue;
+    case PACK_DIR_BSTR:
+      srcidx += unpack_bstr(mrb, sptr, srclen - srcidx, result, count, flags);
       continue;
     case PACK_DIR_STR:
       srcidx += unpack_str(mrb, sptr, srclen - srcidx, result, count, flags);

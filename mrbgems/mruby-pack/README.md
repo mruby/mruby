@@ -16,6 +16,8 @@ There is no dependency on other mrbgems.
 
 - A : arbitrary binary string (space padded, count is width)
 - a : arbitrary binary string (null padded, count is width)
+- B : bit string (descending)
+- b : bit string (ascending)
 - C : 8-bit unsigned (unsigned char)
 - c : 8-bit signed (signed char)
 - D, d: 64-bit float, native format
