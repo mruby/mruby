@@ -354,7 +354,8 @@ mrb_float_to_str(mrb_state *mrb, mrb_value flo, const char *fmt)
     if (*p == '.') goto exit;
     if (*p == 'e') {
       memmove(p+2, p, strlen(p)+1);
-      memcpy(p, ".0", 2);
+      p[0] = '.';
+      p[1] = '0';
       goto exit;
     }
   }
