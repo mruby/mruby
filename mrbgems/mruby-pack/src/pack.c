@@ -1218,7 +1218,7 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_dir *dirp, enum pack_type
   tlen = RSTRING_LEN(tmpl->str);
 
   t = tptr[tmpl->idx++];
-alias:
+ alias:
   switch (t) {
   case 'A':
     dir = PACK_DIR_STR;
@@ -1424,6 +1424,13 @@ alias:
     type = PACK_TYPE_STRING;
     flags |= PACK_FLAG_WIDTH | PACK_FLAG_COUNT2 | PACK_FLAG_Z;
     break;
+  case '#':
+    while (++tmpl->idx < tlen && tptr[tmpl->idx] != '\n')
+      ;
+    dir = PACK_DIR_INVALID;
+    type = PACK_TYPE_NONE;
+    return;
+
   case 'p': case 'P':
   case '%':
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "%c is not supported", (char)t);
