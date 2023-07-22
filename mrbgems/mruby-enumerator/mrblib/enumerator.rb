@@ -574,7 +574,7 @@ class Enumerator
   #
   # Examples of usage:
   #
-  #   Enumerator.produce(1, &:succ)   # => enumerator of 1, 2, 3, 4, ....
+  #   Enumerator.produce(1, &:succ)   # => enumerator of 1, 2, 3, 4, ...
   #
   #   Enumerator.produce { rand(10) } # => infinite random number sequence
   #
