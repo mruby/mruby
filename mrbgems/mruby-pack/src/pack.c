@@ -1440,9 +1440,8 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_type *typep, int *sizep, 
       mrb_value s = mrb_str_new(mrb, &c, 1);
       mrb_raisef(mrb, E_ARGUMENT_ERROR, "unknown unpack directive %!v", s);
     }
-    dir = PACK_DIR_SKIP;
-    type = PACK_TYPE_NONE;
-    break;
+    *typep = PACK_TYPE_NONE;
+    return PACK_DIR_SKIP;
   }
 
   /* read suffix [0-9*_!<>] */
