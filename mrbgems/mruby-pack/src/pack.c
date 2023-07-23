@@ -45,7 +45,7 @@ enum pack_dir {
   PACK_DIR_NUL,       /* x */
   PACK_DIR_BACK,      /* X */
   PACK_DIR_ABS,       /* @ */
-  PACK_DIR_INVALID
+  PACK_DIR_SKIP
 };
 
 enum pack_type {
@@ -1427,7 +1427,7 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_dir *dirp, enum pack_type
   case '#':
     while (++tmpl->idx < tlen && tptr[tmpl->idx] != '\n')
       ;
-    dir = PACK_DIR_INVALID;
+    dir = PACK_DIR_SKIP;
     type = PACK_TYPE_NONE;
     return;
 
@@ -1441,7 +1441,7 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_dir *dirp, enum pack_type
       mrb_value s = mrb_str_new(mrb, &c, 1);
       mrb_raisef(mrb, E_ARGUMENT_ERROR, "unknown unpack directive %!v", s);
     }
-    dir = PACK_DIR_INVALID;
+    dir = PACK_DIR_SKIP;
     type = PACK_TYPE_NONE;
     break;
   }
@@ -1516,7 +1516,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
   while (has_tmpl(&tmpl)) {
     read_tmpl(mrb, &tmpl, &dir, &type, &size, &count, &flags);
 
-    if (dir == PACK_DIR_INVALID)
+    if (dir == PACK_DIR_SKIP)
       continue;
     else if (dir == PACK_DIR_NUL) {
     grow:
@@ -1648,7 +1648,7 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
   while (has_tmpl(&tmpl)) {
     read_tmpl(mrb, &tmpl, &dir, &type, &size, &count, &flags);
 
-    if (dir == PACK_DIR_INVALID)
+    if (dir == PACK_DIR_SKIP)
       continue;
     else if (dir == PACK_DIR_NUL) {
       check_x(mrb, srclen-srcidx, count, 'x');
