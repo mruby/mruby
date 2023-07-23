@@ -7,7 +7,7 @@
   </p>
   <h1>mruby</h1>
   <a href="https://github.com/marketplace/actions/super-linter">
-    <img src="https://github.com/mruby/mruby/workflows/Lint%20Code%20Base/badge.svg"
+    <img src="https://github.com/mruby/mruby/actions/workflows/super-linter.yml/badge.svg"
       alt="GitHub Super-Linter">
   </a>
 </div>
