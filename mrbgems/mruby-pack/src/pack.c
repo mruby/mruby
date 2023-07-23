@@ -1203,8 +1203,8 @@ has_tmpl(const struct tmpl *tmpl)
   return (tmpl->idx < RSTRING_LEN(tmpl->str));
 }
 
-static void
-read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_dir *dirp, enum pack_type *typep, int *sizep, int *countp, unsigned int *flagsp)
+static enum pack_dir
+read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_type *typep, int *sizep, int *countp, unsigned int *flagsp)
 {
   mrb_int t, tlen;
   int ch, size = 0;
@@ -1427,9 +1427,8 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_dir *dirp, enum pack_type
   case '#':
     while (++tmpl->idx < tlen && tptr[tmpl->idx] != '\n')
       ;
-    dir = PACK_DIR_SKIP;
-    type = PACK_TYPE_NONE;
-    return;
+    *typep = PACK_TYPE_NONE;
+    return PACK_DIR_SKIP;
 
   case 'p': case 'P':
   case '%':
@@ -1489,11 +1488,11 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_dir *dirp, enum pack_type
     flags |= PACK_FLAG_LITTLEENDIAN;
   }
 
-  *dirp = dir;
   *typep = type;
   *sizep = size;
   *countp = count;
   *flagsp = flags;
+  return dir;
 }
 
 static mrb_value
@@ -1514,7 +1513,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
   aidx = 0;
   ridx = 0;
   while (has_tmpl(&tmpl)) {
-    read_tmpl(mrb, &tmpl, &dir, &type, &size, &count, &flags);
+    dir = read_tmpl(mrb, &tmpl, &type, &size, &count, &flags);
 
     if (dir == PACK_DIR_SKIP)
       continue;
@@ -1646,7 +1645,7 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
 
   result = mrb_ary_new(mrb);
   while (has_tmpl(&tmpl)) {
-    read_tmpl(mrb, &tmpl, &dir, &type, &size, &count, &flags);
+    dir = read_tmpl(mrb, &tmpl, &type, &size, &count, &flags);
 
     if (dir == PACK_DIR_SKIP)
       continue;
