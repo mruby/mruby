@@ -36,7 +36,7 @@ repos:
         args: [--whitespaces-count, '2']
         exclude: Makefile$|Makefile\..+$|makefile$|\.mk$
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.2.4
+    rev: v2.2.5
     hooks:
       - id: codespell
         name: Run codespell
@@ -49,7 +49,7 @@ repos:
         name: Local policy is to exclude extension from all shell files
         types: [shell]
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.34.0
+    rev: v0.35.0
     hooks:
       - id: markdownlint
         name: Run markdownlint
@@ -67,7 +67,7 @@ repos:
         types: [markdown]
         files: \.(md|mdown|markdown)$
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.31.0
+    rev: v1.32.0
     hooks:
       - id: yamllint
         name: Run yamllint
