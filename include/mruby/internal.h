@@ -34,7 +34,7 @@ mrb_value mrb_obj_equal_m(mrb_state *mrb, mrb_value);
 
 /* debug */
 size_t mrb_packed_int_len(uint32_t num);
-size_t mrb_packed_int_encode(uint32_t num, uint8_t *p, uint8_t *pend);
+size_t mrb_packed_int_encode(uint32_t num, uint8_t *p);
 uint32_t mrb_packed_int_decode(const uint8_t *p, const uint8_t **newpos);
 
 /* dump */
