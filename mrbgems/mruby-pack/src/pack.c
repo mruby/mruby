@@ -45,7 +45,6 @@ enum pack_dir {
   PACK_DIR_NUL,       /* x */
   PACK_DIR_BACK,      /* X */
   PACK_DIR_ABS,       /* @ */
-  PACK_DIR_SKIP
 };
 
 enum pack_type {
@@ -1217,6 +1216,7 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_type *typep, int *sizep, 
   tptr = RSTRING_PTR(tmpl->str);
   tlen = RSTRING_LEN(tmpl->str);
 
+ restart:
   t = tptr[tmpl->idx++];
  alias:
   switch (t) {
@@ -1427,8 +1427,7 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_type *typep, int *sizep, 
   case '#':
     while (++tmpl->idx < tlen && tptr[tmpl->idx] != '\n')
       ;
-    *typep = PACK_TYPE_NONE;
-    return PACK_DIR_SKIP;
+    goto restart;
 
   case 'p': case 'P':
   case '%':
@@ -1440,8 +1439,7 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_type *typep, int *sizep, 
       mrb_value s = mrb_str_new(mrb, &c, 1);
       mrb_raisef(mrb, E_ARGUMENT_ERROR, "unknown unpack directive %!v", s);
     }
-    *typep = PACK_TYPE_NONE;
-    return PACK_DIR_SKIP;
+    goto restart;
   }
 
   /* read suffix [0-9*_!<>] */
@@ -1514,9 +1512,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
   while (has_tmpl(&tmpl)) {
     dir = read_tmpl(mrb, &tmpl, &type, &size, &count, &flags);
 
-    if (dir == PACK_DIR_SKIP)
-      continue;
-    else if (dir == PACK_DIR_NUL) {
+    if (dir == PACK_DIR_NUL) {
     grow:
       if (ridx > INT_MAX - count) goto overflow;
       ridx += pack_nul(mrb, result, ridx, count);
@@ -1646,9 +1642,7 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
   while (has_tmpl(&tmpl)) {
     dir = read_tmpl(mrb, &tmpl, &type, &size, &count, &flags);
 
-    if (dir == PACK_DIR_SKIP)
-      continue;
-    else if (dir == PACK_DIR_NUL) {
+    if (dir == PACK_DIR_NUL) {
       check_x(mrb, srclen-srcidx, count, 'x');
       srcidx += count;
       continue;
