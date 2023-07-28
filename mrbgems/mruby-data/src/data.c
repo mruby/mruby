@@ -109,6 +109,50 @@ mrb_data_ref(mrb_state *mrb, mrb_value obj)
   return ptr[i];
 }
 
+static mrb_value
+data_ref(mrb_state *mrb, mrb_value obj, mrb_int i)
+{
+  mrb_int len = RDATA_LEN(obj);
+  mrb_value *ptr = RDATA_PTR(obj);
+
+  if (!ptr || len <= i)
+    return mrb_nil_value();
+  return ptr[i];
+}
+
+static mrb_value
+data_ref_0(mrb_state *mrb, mrb_value obj)
+{
+  return data_ref(mrb, obj, 0);
+}
+
+static mrb_value
+data_ref_1(mrb_state *mrb, mrb_value obj)
+{
+  return data_ref(mrb, obj, 1);
+}
+
+static mrb_value
+data_ref_2(mrb_state *mrb, mrb_value obj)
+{
+  return data_ref(mrb, obj, 2);
+}
+
+static mrb_value
+data_ref_3(mrb_state *mrb, mrb_value obj)
+{
+  return data_ref(mrb, obj, 3);
+}
+
+#define DATA_DIRECT_REF_MAX 4
+
+static mrb_func_t aref[DATA_DIRECT_REF_MAX] = {
+  data_ref_0,
+  data_ref_1,
+  data_ref_2,
+  data_ref_3,
+};
+
 static void
 make_data_define_accessors(mrb_state *mrb, mrb_value members, struct RClass *c)
 {
@@ -118,12 +162,18 @@ make_data_define_accessors(mrb_state *mrb, mrb_value members, struct RClass *c)
 
   for (mrb_int i=0; i<len; i++) {
     mrb_sym id = mrb_symbol(ptr_members[i]);
-    mrb_method_t m;
-    mrb_value at = mrb_fixnum_value(i);
-    struct RProc *aref = mrb_proc_new_cfunc_with_env(mrb, mrb_data_ref, 1, &at);
-    MRB_METHOD_FROM_PROC(m, aref);
-    mrb_define_method_raw(mrb, c, id, m);
-    mrb_gc_arena_restore(mrb, ai);
+
+    if (i < DATA_DIRECT_REF_MAX) {
+      mrb_define_method_id(mrb, c, id, aref[i], MRB_ARGS_NONE());
+    }
+    else {
+      mrb_method_t m;
+      mrb_value at = mrb_fixnum_value(i);
+      struct RProc *aref = mrb_proc_new_cfunc_with_env(mrb, mrb_data_ref, 1, &at);
+      MRB_METHOD_FROM_PROC(m, aref);
+      mrb_define_method_raw(mrb, c, id, m);
+      mrb_gc_arena_restore(mrb, ai);
+    }
   }
 }
 
