@@ -94,13 +94,8 @@ mrb_data_members(mrb_state *mrb, mrb_value obj)
 }
 
 static mrb_value
-mrb_data_ref(mrb_state *mrb, mrb_value obj)
+data_ref(mrb_state *mrb, mrb_value obj, mrb_int i)
 {
-  mrb_int argc = mrb_get_argc(mrb);
-  if (argc != 0) {
-    mrb_argnum_error(mrb, argc, 0, 0);
-  }
-  mrb_int i = mrb_integer(mrb_proc_cfunc_env_get(mrb, 0));
   mrb_int len = RDATA_LEN(obj);
   mrb_value *ptr = RDATA_PTR(obj);
 
@@ -110,14 +105,14 @@ mrb_data_ref(mrb_state *mrb, mrb_value obj)
 }
 
 static mrb_value
-data_ref(mrb_state *mrb, mrb_value obj, mrb_int i)
+mrb_data_ref(mrb_state *mrb, mrb_value obj)
 {
-  mrb_int len = RDATA_LEN(obj);
-  mrb_value *ptr = RDATA_PTR(obj);
-
-  if (!ptr || len <= i)
-    return mrb_nil_value();
-  return ptr[i];
+  mrb_int argc = mrb_get_argc(mrb);
+  if (argc != 0) {
+    mrb_argnum_error(mrb, argc, 0, 0);
+  }
+  mrb_int i = mrb_integer(mrb_proc_cfunc_env_get(mrb, 0));
+  return data_ref(mrb, obj, i);
 }
 
 static mrb_value
