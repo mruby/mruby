@@ -23,6 +23,7 @@ repos:
       - id: detect-private-key
       - id: end-of-file-fixer
       - id: file-contents-sorter
+        args: [--unique]
         files: ^codespell\.txt$
       - id: fix-byte-order-marker
       - id: mixed-line-ending
