@@ -53,10 +53,8 @@ task :build => MRuby.targets.flat_map{|_, build| build.products}
 
 desc "clean all built and in-repo installed artifacts"
 task :clean do
-  MRuby.each_target do |build|
-    rm_rf build.build_dir
-    rm_f build.products
-  end
+  rm_rf "#{MRUBY_ROOT}/bin"
+  rm_rf "#{MRUBY_ROOT}/build"
   puts "Cleaned up target build directory"
 end
 
