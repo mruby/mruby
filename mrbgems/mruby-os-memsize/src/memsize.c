@@ -16,13 +16,24 @@ static size_t
 os_memsize_of_irep(mrb_state* state, const struct mrb_irep *irep)
 {
   size_t size;
-  int i;
 
   size = (irep->slen * sizeof(mrb_sym)) +
-         (irep->plen * sizeof(mrb_code)) +
-         (irep->ilen * sizeof(mrb_code));
+         (irep->plen * sizeof(mrb_pool_value)) +
+         (irep->ilen * sizeof(mrb_code)) +
+         (irep->rlen * sizeof(struct mrb_irep*));
 
-  for (i = 0; i < irep->rlen; i++) {
+  for (int i = 0; i < irep->plen; i++) {
+    const mrb_pool_value *p = &irep->pool[i];
+    if ((p->tt & IREP_TT_NFLAG) == 0) { /* string pool value */
+      size += (p->tt>>2);
+    }
+    else if (p->tt == IREP_TT_BIGINT) { /* bigint pool value */
+      size += p->u.str[0];
+    }
+  }
+
+  for (int i = 0; i < irep->rlen; i++) {
+    size += sizeof(struct mrb_irep); /* size of irep structure */
     size += os_memsize_of_irep(state, irep->reps[i]);
   }
   return size;
