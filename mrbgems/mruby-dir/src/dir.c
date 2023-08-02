@@ -34,6 +34,7 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <string.h>
+#include <errno.h>
 
 #define E_IO_ERROR mrb_exc_get_id(mrb, MRB_SYM(IOError))
 
@@ -128,10 +129,16 @@ static mrb_value
 mrb_dir_getwd(mrb_state *mrb, mrb_value klass)
 {
   mrb_value path;
+  mrb_int size = 64;
 
-  path = mrb_str_buf_new(mrb, MAXPATHLEN);
-  if (getcwd(RSTRING_PTR(path), MAXPATHLEN) == NULL) {
-    mrb_sys_fail(mrb, "getcwd(2)");
+  path = mrb_str_buf_new(mrb, size);
+  while (getcwd(RSTRING_PTR(path), size) == NULL) {
+    int e = errno;
+    if (e != ERANGE) {
+      mrb_sys_fail(mrb, "getcwd(2)");
+    }
+    size *= 2;
+    mrb_str_resize(mrb, path, size);
   }
   mrb_str_resize(mrb, path, strlen(RSTRING_PTR(path)));
   return path;
