@@ -218,30 +218,30 @@ flo_remainder(mrb_state *mrb, mrb_value self)
 void
 mrb_mruby_numeric_ext_gem_init(mrb_state* mrb)
 {
-  struct RClass *i = mrb->integer_class;
+  struct RClass *ic = mrb->integer_class;
 
-  mrb_define_alias(mrb, i, "modulo", "%");
-  mrb_define_method(mrb, i, "remainder", int_remainder, MRB_ARGS_REQ(1));
+  mrb_define_alias(mrb, ic, "modulo", "%");
+  mrb_define_method(mrb, ic, "remainder", int_remainder, MRB_ARGS_REQ(1));
 
-  mrb_define_method_id(mrb, i, MRB_SYM(pow), int_powm, MRB_ARGS_ARG(1,1));
-  mrb_define_method_id(mrb, i, MRB_SYM(digits), int_digits, MRB_ARGS_OPT(1));
+  mrb_define_method_id(mrb, ic, MRB_SYM(pow), int_powm, MRB_ARGS_ARG(1,1));
+  mrb_define_method_id(mrb, ic, MRB_SYM(digits), int_digits, MRB_ARGS_OPT(1));
 
 #ifndef MRB_NO_FLOAT
-  struct RClass *f = mrb->float_class;
+  struct RClass *fc = mrb->float_class;
 
-  mrb_define_alias(mrb, f, "modulo", "%");
-  mrb_define_method(mrb, f, "remainder", flo_remainder, MRB_ARGS_REQ(1));
+  mrb_define_alias(mrb, fc, "modulo", "%");
+  mrb_define_method(mrb, fc, "remainder", flo_remainder, MRB_ARGS_REQ(1));
 
-  mrb_define_const_id(mrb, mrb->float_class, MRB_SYM(RADIX),        mrb_fixnum_value(MRB_FLT_RADIX));
-  mrb_define_const_id(mrb, mrb->float_class, MRB_SYM(MANT_DIG),     mrb_fixnum_value(MRB_FLT_MANT_DIG));
-  mrb_define_const_id(mrb, mrb->float_class, MRB_SYM(EPSILON),      mrb_float_value(mrb, MRB_FLT_EPSILON));
-  mrb_define_const_id(mrb, mrb->float_class, MRB_SYM(DIG),          mrb_fixnum_value(MRB_FLT_DIG));
-  mrb_define_const_id(mrb, mrb->float_class, MRB_SYM(MIN_EXP),      mrb_fixnum_value(MRB_FLT_MIN_EXP));
-  mrb_define_const_id(mrb, mrb->float_class, MRB_SYM(MIN),          mrb_float_value(mrb, MRB_FLT_MIN));
-  mrb_define_const_id(mrb, mrb->float_class, MRB_SYM(MIN_10_EXP),   mrb_fixnum_value(MRB_FLT_MIN_10_EXP));
-  mrb_define_const_id(mrb, mrb->float_class, MRB_SYM(MAX_EXP),      mrb_fixnum_value(MRB_FLT_MAX_EXP));
-  mrb_define_const_id(mrb, mrb->float_class, MRB_SYM(MAX),          mrb_float_value(mrb, MRB_FLT_MAX));
-  mrb_define_const_id(mrb, mrb->float_class, MRB_SYM(MAX_10_EXP),   mrb_fixnum_value(MRB_FLT_MAX_10_EXP));
+  mrb_define_const_id(mrb, fc, MRB_SYM(RADIX),        mrb_fixnum_value(MRB_FLT_RADIX));
+  mrb_define_const_id(mrb, fc, MRB_SYM(MANT_DIG),     mrb_fixnum_value(MRB_FLT_MANT_DIG));
+  mrb_define_const_id(mrb, fc, MRB_SYM(EPSILON),      mrb_float_value(mrb, MRB_FLT_EPSILON));
+  mrb_define_const_id(mrb, fc, MRB_SYM(DIG),          mrb_fixnum_value(MRB_FLT_DIG));
+  mrb_define_const_id(mrb, fc, MRB_SYM(MIN_EXP),      mrb_fixnum_value(MRB_FLT_MIN_EXP));
+  mrb_define_const_id(mrb, fc, MRB_SYM(MIN),          mrb_float_value(mrb, MRB_FLT_MIN));
+  mrb_define_const_id(mrb, fc, MRB_SYM(MIN_10_EXP),   mrb_fixnum_value(MRB_FLT_MIN_10_EXP));
+  mrb_define_const_id(mrb, fc, MRB_SYM(MAX_EXP),      mrb_fixnum_value(MRB_FLT_MAX_EXP));
+  mrb_define_const_id(mrb, fc, MRB_SYM(MAX),          mrb_float_value(mrb, MRB_FLT_MAX));
+  mrb_define_const_id(mrb, fc, MRB_SYM(MAX_10_EXP),   mrb_fixnum_value(MRB_FLT_MAX_10_EXP));
 #endif /* MRB_NO_FLOAT */
 }
 
