@@ -1023,13 +1023,6 @@ bint_new_int(mrb_state *mrb, mrb_int x)
 }
 
 mrb_value
-mrb_bint_new(mrb_state *mrb)
-{
-  struct RBigint *b = bint_new(mrb);
-  return mrb_obj_value(b);
-}
-
-mrb_value
 mrb_bint_new_int(mrb_state *mrb, mrb_int x)
 {
   struct RBigint *b = bint_new_int(mrb, x);
