@@ -118,9 +118,7 @@ mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, ch
       *s++ = 'N' ^ uc;
       *s++ = 'A' ^ uc;
       *s++ = 'N' ^ uc;
-    ret:
-      *s = '\0';
-      return (int)(s - buf);
+      goto ret;
     }
   }
 
@@ -365,8 +363,8 @@ mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, ch
     *s++ = '0' + (e / 10);
     *s++ = '0' + (e % 10);
   }
+ ret:
   *s = '\0';
-
   return (int)(s - buf);
 }
 #endif
