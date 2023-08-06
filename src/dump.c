@@ -767,8 +767,8 @@ lv_defined_p(const mrb_irep *irep)
   return FALSE;
 }
 
-static int
-dump_irep(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, uint8_t **bin, size_t *bin_size)
+int
+mrb_dump_irep(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, uint8_t **bin, size_t *bin_size)
 {
   int result = MRB_DUMP_GENERAL_FAILURE;
   size_t malloc_size;
@@ -855,12 +855,6 @@ error_exit:
   return result;
 }
 
-int
-mrb_dump_irep(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, uint8_t **bin, size_t *bin_size)
-{
-  return dump_irep(mrb, irep, flags, bin, bin_size);
-}
-
 #ifndef MRB_NO_STDIO
 
 int
@@ -874,7 +868,7 @@ mrb_dump_irep_binary(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE* 
     return MRB_DUMP_INVALID_ARGUMENT;
   }
 
-  result = dump_irep(mrb, irep, flags, &bin, &bin_size);
+  result = mrb_dump_irep(mrb, irep, flags, &bin, &bin_size);
   if (result == MRB_DUMP_OK) {
     if (fwrite(bin, sizeof(bin[0]), bin_size, fp) != bin_size) {
       result = MRB_DUMP_WRITE_FAULT;
@@ -895,7 +889,7 @@ mrb_dump_irep_cfunc(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *f
   if (fp == NULL || initname == NULL || initname[0] == '\0') {
     return MRB_DUMP_INVALID_ARGUMENT;
   }
-  result = dump_irep(mrb, irep, flags, &bin, &bin_size);
+  result = mrb_dump_irep(mrb, irep, flags, &bin, &bin_size);
   if (result == MRB_DUMP_OK) {
     if (fprintf(fp, "#include <stdint.h>\n") < 0) { /* for uint8_t under at least Darwin */
       mrb_free(mrb, bin);
