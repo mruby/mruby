@@ -103,16 +103,38 @@ static int inet_pton(int af, const char *src, void *dst)
 #endif
 
 static mrb_value
+gen_addrinfo(mrb_state *mrb, mrb_value addrinfo)
+{
+  mrb_value ary = mrb_ary_new(mrb);
+  int arena_idx = mrb_gc_arena_save(mrb);  /* ary must be on arena! */
+  struct addrinfo *res0 = (struct addrinfo*)mrb_cptr(addrinfo);
+  mrb_value klass = mrb_obj_value(mrb_class_get_id(mrb, MRB_SYM(Addrinfo)));
+
+  for (struct addrinfo *res = res0; res != NULL; res = res->ai_next) {
+    mrb_value sa = mrb_str_new(mrb, (char*)res->ai_addr, res->ai_addrlen);
+    mrb_value ai = mrb_funcall_id(mrb, klass, MRB_SYM(new), 4, sa, mrb_fixnum_value(res->ai_family), mrb_fixnum_value(res->ai_socktype), mrb_fixnum_value(res->ai_protocol));
+    mrb_ary_push(mrb, ary, ai);
+    mrb_gc_arena_restore(mrb, arena_idx);
+  }
+
+  return ary;
+}
+
+static mrb_value
+free_addrinfo(mrb_state *mrb, mrb_value addrinfo)
+{
+  freeaddrinfo((struct addrinfo*)mrb_cptr(addrinfo));
+  return mrb_nil_value();
+}
+
+static mrb_value
 mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
 {
-  struct addrinfo hints = {0}, *res0, *res;
-  mrb_value ai, ary, family, lastai, nodename, protocol, sa, service, socktype;
+  struct addrinfo hints = {0}, *res0;
+  mrb_value family, nodename, protocol, service, socktype;
   mrb_int flags;
-  int arena_idx, error;
+  int error;
   const char *hostname = NULL, *servname = NULL;
-
-  ary = mrb_ary_new(mrb);
-  arena_idx = mrb_gc_arena_save(mrb);  /* ary must be on arena! */
 
   family = socktype = protocol = mrb_nil_value();
   flags = 0;
@@ -155,29 +177,13 @@ mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
     hints.ai_protocol = (int)mrb_integer(protocol);
   }
 
-  lastai = mrb_cv_get(mrb, klass, MRB_SYM(_lastai));
-  if (mrb_cptr_p(lastai)) {
-    freeaddrinfo((struct addrinfo*)mrb_cptr(lastai));
-    mrb_cv_set(mrb, klass, MRB_SYM(_lastai), mrb_nil_value());
-  }
-
   error = getaddrinfo(hostname, servname, &hints, &res0);
   if (error) {
     mrb_raisef(mrb, E_SOCKET_ERROR, "getaddrinfo: %s", gai_strerror(error));
   }
-  mrb_cv_set(mrb, klass, MRB_SYM(_lastai), mrb_cptr_value(mrb, res0));
 
-  for (res = res0; res != NULL; res = res->ai_next) {
-    sa = mrb_str_new(mrb, (char*)res->ai_addr, res->ai_addrlen);
-    ai = mrb_funcall_id(mrb, klass, MRB_SYM(new), 4, sa, mrb_fixnum_value(res->ai_family), mrb_fixnum_value(res->ai_socktype), mrb_fixnum_value(res->ai_protocol));
-    mrb_ary_push(mrb, ary, ai);
-    mrb_gc_arena_restore(mrb, arena_idx);
-  }
-
-  freeaddrinfo(res0);
-  mrb_cv_set(mrb, klass, MRB_SYM(_lastai), mrb_nil_value());
-
-  return ary;
+  mrb_value addrinfo = mrb_cptr_value(mrb, res0);
+  return mrb_ensure(mrb, gen_addrinfo, addrinfo, free_addrinfo, addrinfo);
 }
 
 static mrb_value
@@ -867,7 +873,6 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
 #endif
 
   ai = mrb_define_class(mrb, "Addrinfo", mrb->object_class);
-  mrb_mod_cv_set(mrb, ai, MRB_SYM(_lastai), mrb_nil_value());
   mrb_define_class_method(mrb, ai, "getaddrinfo", mrb_addrinfo_getaddrinfo, MRB_ARGS_REQ(2)|MRB_ARGS_OPT(4));
   mrb_define_method(mrb, ai, "getnameinfo", mrb_addrinfo_getnameinfo, MRB_ARGS_OPT(1));
 #ifndef _WIN32
@@ -954,11 +959,6 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
 void
 mrb_mruby_socket_gem_final(mrb_state* mrb)
 {
-  mrb_value ai;
-  ai = mrb_mod_cv_get(mrb, mrb_class_get_id(mrb, MRB_SYM(Addrinfo)), MRB_SYM(_lastai));
-  if (mrb_cptr_p(ai)) {
-    freeaddrinfo((struct addrinfo*)mrb_cptr(ai));
-  }
 #ifdef _WIN32
   WSACleanup();
 #endif

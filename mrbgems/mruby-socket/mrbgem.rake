@@ -13,5 +13,6 @@ MRuby::Gem::Specification.new('mruby-socket') do |spec|
 
   spec.add_dependency('mruby-io', :core => 'mruby-io')
   spec.add_dependency('mruby-pack', :core => 'mruby-pack')
+  spec.add_dependency('mruby-error', :core => 'mruby-error')
   # spec.add_dependency('mruby-mtest')
 end
