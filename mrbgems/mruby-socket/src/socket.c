@@ -133,7 +133,6 @@ mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
   struct addrinfo hints = {0}, *res0;
   mrb_value family, protocol, service, socktype;
   mrb_int flags;
-  int error;
   const char *hostname, *servname = NULL;
 
   family = socktype = protocol = mrb_nil_value();
@@ -167,7 +166,7 @@ mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
     hints.ai_protocol = (int)mrb_integer(protocol);
   }
 
-  error = getaddrinfo(hostname, servname, &hints, &res0);
+  int error = getaddrinfo(hostname, servname, &hints, &res0);
   if (error) {
     mrb_raisef(mrb, E_SOCKET_ERROR, "getaddrinfo: %s", gai_strerror(error));
   }
