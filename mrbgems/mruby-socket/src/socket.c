@@ -103,7 +103,7 @@ static int inet_pton(int af, const char *src, void *dst)
 #endif
 
 struct gen_addrinfo_args {
-  mrb_value klass;
+  struct RClass *klass;
   struct addrinfo *addrinfo;
 };
 
@@ -116,7 +116,8 @@ gen_addrinfo(mrb_state *mrb, mrb_value args)
 
   for (struct addrinfo *res = a->addrinfo; res != NULL; res = res->ai_next) {
     mrb_value sa = mrb_str_new(mrb, (char*)res->ai_addr, res->ai_addrlen);
-    mrb_value ai = mrb_funcall_id(mrb, a->klass, MRB_SYM(new), 4, sa, mrb_fixnum_value(res->ai_family), mrb_fixnum_value(res->ai_socktype), mrb_fixnum_value(res->ai_protocol));
+    mrb_value args[4] = {sa, mrb_fixnum_value(res->ai_family), mrb_fixnum_value(res->ai_socktype), mrb_fixnum_value(res->ai_protocol)};
+    mrb_value ai = mrb_obj_new(mrb, a->klass, 4, args);
     mrb_ary_push(mrb, ary, ai);
     mrb_gc_arena_restore(mrb, arena_idx);
   }
@@ -174,7 +175,7 @@ mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
     mrb_raisef(mrb, E_SOCKET_ERROR, "getaddrinfo: %s", gai_strerror(error));
   }
 
-  struct gen_addrinfo_args args = {klass, addr};
+  struct gen_addrinfo_args args = {mrb_class_ptr(klass), addr};
   return mrb_ensure(mrb, gen_addrinfo, mrb_cptr_value(mrb, &args), free_addrinfo, mrb_cptr_value(mrb, addr));
 }
 
@@ -343,7 +344,8 @@ mrb_basicsocket_getsockopt(mrb_state *mrb, mrb_value self)
   c = mrb_const_get(mrb, mrb_obj_value(mrb_class_get_id(mrb, MRB_SYM(Socket))), MRB_SYM(Option));
   family = socket_family(s);
   data = mrb_str_new(mrb, opt, optlen);
-  return mrb_funcall_id(mrb, c, MRB_SYM(new), 4, mrb_fixnum_value(family), mrb_fixnum_value(level), mrb_fixnum_value(optname), data);
+  mrb_value args[4] = {mrb_fixnum_value(family), mrb_fixnum_value(level), mrb_fixnum_value(optname), data};
+  return mrb_obj_new(mrb, mrb_class_ptr(c), 4, args);
 }
 
 static mrb_value
