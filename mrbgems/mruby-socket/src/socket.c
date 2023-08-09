@@ -131,24 +131,14 @@ static mrb_value
 mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
 {
   struct addrinfo hints = {0}, *res0;
-  mrb_value family, nodename, protocol, service, socktype;
+  mrb_value family, protocol, service, socktype;
   mrb_int flags;
   int error;
-  const char *hostname = NULL, *servname = NULL;
+  const char *hostname, *servname = NULL;
 
   family = socktype = protocol = mrb_nil_value();
   flags = 0;
-  mrb_get_args(mrb, "oo|oooi", &nodename, &service, &family, &socktype, &protocol, &flags);
-
-  if (mrb_string_p(nodename)) {
-    hostname = RSTRING_CSTR(mrb, nodename);
-  }
-  else if (mrb_nil_p(nodename)) {
-    hostname = NULL;
-  }
-  else {
-    mrb_raise(mrb, E_TYPE_ERROR, "nodename must be String or nil");
-  }
+  mrb_get_args(mrb, "z!o|oooi", &hostname, &service, &family, &socktype, &protocol, &flags);
 
   if (mrb_string_p(service)) {
     servname = RSTRING_CSTR(mrb, service);
