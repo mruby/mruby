@@ -327,13 +327,19 @@ mrb_basicsocket_getsockname(mrb_state *mrb, mrb_value self)
   return mrb_str_new(mrb, (char*)&ss, salen);
 }
 
+static struct RClass *
+socket_option_class(mrb_state *mrb)
+{
+  return mrb_class_get_under_id(mrb, mrb_class_get_id(mrb, MRB_SYM(Socket)), MRB_SYM(Option));
+}
+
 static mrb_value
 mrb_basicsocket_getsockopt(mrb_state *mrb, mrb_value self)
 {
   char opt[8];
   int s;
   mrb_int family, level, optname;
-  mrb_value c, data;
+  mrb_value data;
   socklen_t optlen;
 
   mrb_get_args(mrb, "ii", &level, &optname);
@@ -341,11 +347,10 @@ mrb_basicsocket_getsockopt(mrb_state *mrb, mrb_value self)
   optlen = sizeof(opt);
   if (getsockopt(s, (int)level, (int)optname, opt, &optlen) == -1)
     mrb_sys_fail(mrb, "getsockopt");
-  c = mrb_const_get(mrb, mrb_obj_value(mrb_class_get_id(mrb, MRB_SYM(Socket))), MRB_SYM(Option));
   family = socket_family(s);
   data = mrb_str_new(mrb, opt, optlen);
   mrb_value args[4] = {mrb_fixnum_value(family), mrb_fixnum_value(level), mrb_fixnum_value(optname), data};
-  return mrb_obj_new(mrb, mrb_class_ptr(c), 4, args);
+  return mrb_obj_new(mrb, socket_option_class(mrb), 4, args);
 }
 
 static mrb_value
@@ -471,7 +476,7 @@ mrb_basicsocket_setsockopt(mrb_state *mrb, mrb_value self)
     }
   }
   else if (argc == 1) {
-    if (strcmp(mrb_obj_classname(mrb, so), "Socket::Option") != 0)
+    if (!mrb_obj_is_instance_of(mrb, so, socket_option_class(mrb)))
       mrb_raise(mrb, E_ARGUMENT_ERROR, "not an instance of Socket::Option");
     level = mrb_as_int(mrb, mrb_funcall_argv(mrb, so, MRB_SYM(level), 0, NULL));
     optname = mrb_as_int(mrb, mrb_funcall_argv(mrb, so, MRB_SYM(optname), 0, NULL));
