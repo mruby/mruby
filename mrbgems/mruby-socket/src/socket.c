@@ -450,9 +450,7 @@ mrb_basicsocket_setsockopt(mrb_state *mrb, mrb_value self)
 
   argc = mrb_get_args(mrb, "o|io", &so, &optname, &optval);
   if (argc == 3) {
-    if (!mrb_integer_p(so)) {
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "level is not an integer");
-    }
+    mrb_ensure_int_type(mrb, so);
     level = mrb_integer(so);
     if (mrb_string_p(optval)) {
       /* that's good */
