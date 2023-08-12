@@ -70,9 +70,7 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
           unless g.test_args.empty?
             f.puts %Q[  mrb_value test_args_hash;]
           end
-          f.puts %Q[  int ai;]
           g.test_rbfiles.count.times do |i|
-            f.puts %Q[  ai = mrb_gc_arena_save(mrb);]
             f.puts %Q[  mrb2 = mrb_open_core(mrb_default_allocf, NULL);]
             f.puts %Q[  if (mrb2 == NULL) {]
             f.puts %Q[    fprintf(stderr, "Invalid mrb_state, exiting \%s", __func__);]
@@ -112,7 +110,6 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
 
             f.puts %Q[  mrb_t_pass_result(mrb, mrb2);]
             f.puts %Q[  mrb_close(mrb2);]
-            f.puts %Q[  mrb_gc_arena_restore(mrb, ai);]
           end
         end
         f.puts %Q[}]
