@@ -94,7 +94,7 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
             f.puts %Q[  mrb_const_set(mrb2, mrb_obj_value(mrb2->object_class), mrb_intern_lit(mrb2, "GEMNAME"), mrb_str_new(mrb2, "#{g.name}", #{g.name.length}));]
 
             unless g.test_args.empty?
-              f.puts %Q[  test_args_hash = mrb_hash_new_capa(mrb, #{g.test_args.length}); ]
+              f.puts %Q[  test_args_hash = mrb_hash_new_capa(mrb2, #{g.test_args.length}); ]
               g.test_args.each do |arg_name, arg_value|
                 escaped_arg_name = arg_name.gsub('\\', '\\\\\\\\').gsub('"', '\"')
                 escaped_arg_value = arg_value.gsub('\\', '\\\\\\\\').gsub('"', '\"')
