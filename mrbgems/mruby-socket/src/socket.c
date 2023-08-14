@@ -349,6 +349,30 @@ socket_option_init(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+socket_option_family(mrb_state *mrb, mrb_value self)
+{
+  return mrb_iv_get(mrb, self, MRB_IVSYM(family));
+}
+
+static mrb_value
+socket_option_level(mrb_state *mrb, mrb_value self)
+{
+  return mrb_iv_get(mrb, self, MRB_IVSYM(level));
+}
+
+static mrb_value
+socket_option_optname(mrb_state *mrb, mrb_value self)
+{
+  return mrb_iv_get(mrb, self, MRB_IVSYM(optname));
+}
+
+static mrb_value
+socket_option_data(mrb_state *mrb, mrb_value self)
+{
+  return mrb_iv_get(mrb, self, MRB_IVSYM(data));
+}
+
+static mrb_value
 mrb_basicsocket_getsockopt(mrb_state *mrb, mrb_value self)
 {
   char opt[8];
@@ -960,6 +984,10 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
 
   option = mrb_define_class_under(mrb, sock, "Option", mrb->object_class);
   mrb_define_method(mrb, option, "initialize", socket_option_init, MRB_ARGS_REQ(4));
+  mrb_define_method(mrb, option, "family", socket_option_family, MRB_ARGS_REQ(0));
+  mrb_define_method(mrb, option, "level", socket_option_level, MRB_ARGS_REQ(0));
+  mrb_define_method(mrb, option, "optname", socket_option_optname, MRB_ARGS_REQ(0));
+  mrb_define_method(mrb, option, "data", socket_option_data, MRB_ARGS_REQ(0));
 
   constants = mrb_define_module_under(mrb, sock, "Constants");
 

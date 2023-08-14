@@ -587,8 +587,6 @@ class Socket
     #def self.linger(family, level, optname, integer)
     #end
 
-    attr_reader :data, :family, :level, :optname
-
     def bool
       @data.unpack('i')[0] != 0
     end
