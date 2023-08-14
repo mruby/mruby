@@ -336,12 +336,13 @@ socket_option_class(mrb_state *mrb)
 static mrb_value
 socket_option_init(mrb_state *mrb, mrb_value self)
 {
-  mrb_value family, level, optname, data;
+  mrb_int family, level, optname;
+  mrb_value data;
 
-  mrb_get_args(mrb, "oooo", &family, &level, &optname, &data);
-  mrb_iv_set(mrb, self, MRB_IVSYM(family), family);
-  mrb_iv_set(mrb, self, MRB_IVSYM(level), level);
-  mrb_iv_set(mrb, self, MRB_IVSYM(optname), optname);
+  mrb_get_args(mrb, "iiio", &family, &level, &optname, &data);
+  mrb_iv_set(mrb, self, MRB_IVSYM(family), mrb_int_value(mrb, family));
+  mrb_iv_set(mrb, self, MRB_IVSYM(level), mrb_int_value(mrb, level));
+  mrb_iv_set(mrb, self, MRB_IVSYM(optname), mrb_int_value(mrb, optname));
   mrb_iv_set(mrb, self, MRB_IVSYM(data), data);
 
   return self;
