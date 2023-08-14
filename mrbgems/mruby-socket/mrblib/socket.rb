@@ -576,13 +576,6 @@ end
 
 class Socket
   class Option
-    def initialize(family, level, optname, data)
-      @family  = family
-      @level   = level
-      @optname = optname
-      @data    = data
-    end
-
     def self.bool(family, level, optname, bool)
       self.new(family, level, optname, [(bool ? 1 : 0)].pack('i'))
     end

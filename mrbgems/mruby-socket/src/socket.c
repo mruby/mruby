@@ -334,6 +334,20 @@ socket_option_class(mrb_state *mrb)
 }
 
 static mrb_value
+socket_option_init(mrb_state *mrb, mrb_value self)
+{
+  mrb_value family, level, optname, data;
+
+  mrb_get_args(mrb, "oooo", &family, &level, &optname, &data);
+  mrb_iv_set(mrb, self, MRB_IVSYM(family), family);
+  mrb_iv_set(mrb, self, MRB_IVSYM(level), level);
+  mrb_iv_set(mrb, self, MRB_IVSYM(optname), optname);
+  mrb_iv_set(mrb, self, MRB_IVSYM(data), data);
+
+  return self;
+}
+
+static mrb_value
 mrb_basicsocket_getsockopt(mrb_state *mrb, mrb_value self)
 {
   char opt[8];
@@ -859,7 +873,7 @@ void
 mrb_mruby_socket_gem_init(mrb_state* mrb)
 {
   struct RClass *io, *ai, *sock, *bsock, *ipsock, *tcpsock;
-  struct RClass *constants;
+  struct RClass *constants, *option;
 
 #ifdef _WIN32
   WSADATA wsaData;
@@ -942,6 +956,9 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, bsock, "read", mrb_win32_basicsocket_sysread, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_method(mrb, bsock, "write", mrb_win32_basicsocket_syswrite, MRB_ARGS_REQ(1));
 #endif
+
+  option = mrb_define_class_under(mrb, sock, "Option", mrb->object_class);
+  mrb_define_method(mrb, option, "initialize", socket_option_init, MRB_ARGS_REQ(4));
 
   constants = mrb_define_module_under(mrb, sock, "Constants");
 
