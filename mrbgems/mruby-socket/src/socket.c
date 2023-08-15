@@ -349,6 +349,32 @@ socket_option_init(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
+socket_option_s_bool(mrb_state *mrb, mrb_value klass)
+{
+  mrb_value args[4];
+  mrb_bool data;
+  int tmp;
+
+  mrb_get_args(mrb, "ooob", &args[0], &args[1], &args[2], &data);
+  tmp = (int)data;
+  args[3] = mrb_str_new(mrb, (char*)&tmp, sizeof(int));
+  return mrb_obj_new(mrb, mrb_class_ptr(klass), 4, args);
+}
+
+static mrb_value
+socket_option_s_int(mrb_state *mrb, mrb_value klass)
+{
+  mrb_value args[4];
+  mrb_int data;
+  int tmp;
+
+  mrb_get_args(mrb, "oooi", &args[0], &args[1], &args[2], &data);
+  tmp = (int)data;
+  args[3] = mrb_str_new(mrb, (char*)&tmp, sizeof(int));
+  return mrb_obj_new(mrb, mrb_class_ptr(klass), 4, args);
+}
+
+static mrb_value
 socket_option_family(mrb_state *mrb, mrb_value self)
 {
   return mrb_iv_get(mrb, self, MRB_IVSYM(family));
@@ -370,6 +396,57 @@ static mrb_value
 socket_option_data(mrb_state *mrb, mrb_value self)
 {
   return mrb_iv_get(mrb, self, MRB_IVSYM(data));
+}
+
+static int
+option_int(mrb_state *mrb, mrb_value self)
+{
+  mrb_value data = mrb_obj_as_string(mrb, mrb_iv_get(mrb, self, MRB_IVSYM(data)));
+  int tmp;
+
+  if (RSTRING_LEN(data) != sizeof(int)) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "size differ; expected as sizeof(int)=%i but %i", (mrb_int)sizeof(int), RSTRING_LEN(data));
+  }
+  memcpy((char*)&tmp, RSTRING_PTR(data), sizeof(int));
+  return tmp;
+}
+
+static mrb_value
+socket_option_int(mrb_state *mrb, mrb_value self)
+{
+  int i = option_int(mrb, self);
+  return mrb_int_value(mrb, (mrb_int)i);
+}
+
+static mrb_value
+socket_option_bool(mrb_state *mrb, mrb_value self)
+{
+  int i = option_int(mrb, self);
+  return mrb_bool_value((mrb_bool)i);
+}
+
+static mrb_value
+socket_option_notimp(mrb_state *mrb, mrb_value self)
+{
+  mrb_notimplement(mrb);
+  return mrb_nil_value();
+}
+
+static mrb_value
+socket_option_inspect(mrb_state *mrb, mrb_value self)
+{
+  mrb_value str = mrb_str_new_cstr(mrb, "#<Socket::Option: family:");
+
+  mrb_str_cat_str(mrb, str, mrb_inspect(mrb, mrb_iv_get(mrb, self, MRB_IVSYM(family))));
+  mrb_str_cat_cstr(mrb, str, " level:");
+  mrb_str_cat_str(mrb, str, mrb_inspect(mrb, mrb_iv_get(mrb, self, MRB_IVSYM(level))));
+  mrb_str_cat_cstr(mrb, str, " optname:");
+  mrb_str_cat_str(mrb, str, mrb_inspect(mrb, mrb_iv_get(mrb, self, MRB_IVSYM(optname))));
+  mrb_str_cat_cstr(mrb, str, " ");
+  mrb_str_cat_str(mrb, str, mrb_inspect(mrb, mrb_iv_get(mrb, self, MRB_IVSYM(data))));
+  mrb_str_cat_cstr(mrb, str, ">");
+
+  return str;
 }
 
 static mrb_value
@@ -983,11 +1060,19 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
 #endif
 
   option = mrb_define_class_under(mrb, sock, "Option", mrb->object_class);
+  mrb_define_class_method(mrb, option, "bool", socket_option_s_bool, MRB_ARGS_REQ(4));
+  mrb_define_class_method(mrb, option, "int", socket_option_s_int, MRB_ARGS_REQ(4));
   mrb_define_method(mrb, option, "initialize", socket_option_init, MRB_ARGS_REQ(4));
+  mrb_define_method(mrb, option, "inspect", socket_option_inspect, MRB_ARGS_REQ(0));
   mrb_define_method(mrb, option, "family", socket_option_family, MRB_ARGS_REQ(0));
   mrb_define_method(mrb, option, "level", socket_option_level, MRB_ARGS_REQ(0));
   mrb_define_method(mrb, option, "optname", socket_option_optname, MRB_ARGS_REQ(0));
   mrb_define_method(mrb, option, "data", socket_option_data, MRB_ARGS_REQ(0));
+  mrb_define_method(mrb, option, "bool", socket_option_bool, MRB_ARGS_REQ(0));
+  mrb_define_method(mrb, option, "int", socket_option_int, MRB_ARGS_REQ(0));
+
+  mrb_define_method(mrb, option, "linger", socket_option_notimp, MRB_ARGS_REQ(0));
+  mrb_define_method(mrb, option, "unpack", socket_option_notimp, MRB_ARGS_REQ(1));
 
   constants = mrb_define_module_under(mrb, sock, "Constants");
 
