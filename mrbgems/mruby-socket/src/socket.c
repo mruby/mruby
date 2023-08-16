@@ -1082,6 +1082,8 @@ mrb_mruby_socket_gem_init(mrb_state* mrb)
   } while (0)
 
 #include "const.cstub"
+
+  mrb_include_module(mrb, sock, constants);
 }
 
 void

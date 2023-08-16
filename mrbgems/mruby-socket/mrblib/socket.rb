@@ -570,8 +570,4 @@ class UNIXServer < UNIXSocket
   end
 end
 
-class Socket
-  include Constants
-end
-
 class SocketError < StandardError; end
