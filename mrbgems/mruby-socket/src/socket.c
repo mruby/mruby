@@ -435,9 +435,48 @@ socket_option_notimp(mrb_state *mrb, mrb_value self)
 static mrb_value
 socket_option_inspect(mrb_state *mrb, mrb_value self)
 {
-  mrb_value str = mrb_str_new_cstr(mrb, "#<Socket::Option: family:");
+  mrb_value str = mrb_str_new_cstr(mrb, "#<Socket::Option: ");
 
-  mrb_str_cat_str(mrb, str, mrb_inspect(mrb, mrb_iv_get(mrb, self, MRB_IVSYM(family))));
+  mrb_value family = mrb_iv_get(mrb, self, MRB_IVSYM(family));
+  const char *pf = NULL;
+
+  if (mrb_integer_p(family)) {
+    mrb_int fm = mrb_integer(family);
+    switch (fm) {
+    case PF_INET:
+      pf = "INET"; break;
+#ifdef PF_INET6
+    case PF_INET6:
+      pf = "INET6"; break;
+#endif
+#ifdef PF_IPX
+    case PF_IPX:
+      pf = "IPX"; break;
+#endif
+#ifdef PF_AX25
+    case PF_AX25:
+      pf = "AX25"; break;
+#endif
+#ifdef PF_APPLETALK
+    case PF_APPLETALK:
+      pf = "APPLETALK"; break;
+#endif
+#ifdef PF_UNIX
+    case PF_UNIX:
+      pf = "UNIX"; break;
+#endif
+    default:
+      break;
+    }
+  }
+
+  if (pf) {
+    mrb_str_cat_cstr(mrb, str, pf);
+  }
+  else {
+    mrb_str_cat_cstr(mrb, str, " family:");
+    mrb_str_cat_str(mrb, str, mrb_inspect(mrb, family));
+  }
   mrb_str_cat_cstr(mrb, str, " level:");
   mrb_str_cat_str(mrb, str, mrb_inspect(mrb, mrb_iv_get(mrb, self, MRB_IVSYM(level))));
   mrb_str_cat_cstr(mrb, str, " optname:");
