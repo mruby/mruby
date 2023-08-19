@@ -13,6 +13,8 @@
 # define isatty(x) _isatty(x)
 # define fileno(x) _fileno(x)
 #endif
+#else
+# include <unistd.h>
 #endif
 
 static void
@@ -37,7 +39,6 @@ printstr(mrb_state *mrb, mrb_value s)
     }
 #endif
     fwrite(p, (size_t)len, 1, stdout);
-    fflush(stdout);
   }
 }
 
@@ -53,6 +54,7 @@ mrb_print(mrb_state *mrb, mrb_value self)
     mrb_value str = mrb_obj_as_string(mrb, argv[i]);
     printstr(mrb, str);
   }
+  if (isatty(fileno(stdout))) fflush(stdout);
   return mrb_nil_value();
 }
 
