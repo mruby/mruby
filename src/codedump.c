@@ -630,6 +630,7 @@ void
 mrb_codedump_all_file(mrb_state *mrb, struct RProc *proc, FILE *out)
 {
   codedump_recur(mrb, proc->body.irep, out);
+  fflush(out);
 }
 
 #endif
