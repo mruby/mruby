@@ -19,7 +19,6 @@ class Addrinfo
     end
     @socktype = socktype
     @protocol = protocol
-    @canonname = nil
   end
 
   def self.foreach(nodename, service, family=nil, socktype=nil, protocol=nil, flags=0, &block)
@@ -49,9 +48,7 @@ class Addrinfo
   end
 
   #def bind
-
-  attr_reader :canonname
-
+  #def canonname
   #def connect
   #def connect_from
   #def connect_to
