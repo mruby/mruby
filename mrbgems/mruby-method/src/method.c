@@ -420,8 +420,8 @@ method_to_s(mrb_state *mrb, mrb_value self)
   return str;
 }
 
-static void
-mrb_search_method_owner(mrb_state *mrb, struct RClass *c, mrb_value obj, mrb_sym name, struct RClass **owner, struct RProc **proc, mrb_bool unbound)
+static mrb_bool
+search_method_owner(mrb_state *mrb, struct RClass *c, mrb_value obj, mrb_sym name, struct RClass **owner, struct RProc **proc, mrb_bool unbound)
 {
   mrb_value ret;
 
@@ -429,14 +429,14 @@ mrb_search_method_owner(mrb_state *mrb, struct RClass *c, mrb_value obj, mrb_sym
   *proc = method_search_vm(mrb, owner, name);
   if (!*proc) {
     if (unbound) {
-      goto name_error;
+      return FALSE;
     }
     if (!mrb_respond_to(mrb, obj, MRB_SYM_Q(respond_to_missing))) {
-      goto name_error;
+      return FALSE;
     }
     ret = mrb_funcall_id(mrb, obj, MRB_SYM_Q(respond_to_missing), 2, mrb_symbol_value(name), mrb_true_value());
     if (!mrb_test(ret)) {
-      goto name_error;
+      return FALSE;
     }
     *owner = c;
   }
@@ -444,54 +444,74 @@ mrb_search_method_owner(mrb_state *mrb, struct RClass *c, mrb_value obj, mrb_sym
   while ((*owner)->tt == MRB_TT_ICLASS)
     *owner = (*owner)->c;
 
-  return;
+  return TRUE;
+}
 
-name_error:
-  mrb_raisef(mrb, E_NAME_ERROR, "undefined method '%n' for class '%C'", name, c);
+static mrb_noreturn void
+singleton_method_error(mrb_state *mrb, mrb_sym name, mrb_value obj)
+{
+  mrb_raisef(mrb, E_NAME_ERROR, "undefined singleton method '%n' for '%!v'", name, obj);
 }
 
 static mrb_value
-mrb_kernel_method(mrb_state *mrb, mrb_value self)
+method_alloc(mrb_state *mrb, struct RClass *c, mrb_value obj, mrb_sym name, mrb_bool unbound, mrb_bool singleton)
 {
   struct RClass *owner;
   struct RProc *proc;
   struct RObject *me;
-  mrb_sym name;
 
-  mrb_get_args(mrb, "n", &name);
-
-  mrb_search_method_owner(mrb, mrb_class(mrb, self), self, name, &owner, &proc, FALSE);
-
-  me = method_object_alloc(mrb, mrb_class_get_id(mrb, MRB_SYM(Method)));
+  if (!search_method_owner(mrb, c, obj, name, &owner, &proc, unbound)) {
+    if (singleton) {
+      singleton_method_error(mrb, name, obj);
+    }
+    else {
+      mrb_raisef(mrb, E_NAME_ERROR, "undefined method '%n' for class '%C'", name, c);
+    }
+  }
+  if (singleton && owner != c) {
+    singleton_method_error(mrb, name, obj);
+  }
+  me = method_object_alloc(mrb, mrb_class_get_id(mrb, unbound ? MRB_SYM(UnboundMethod) : MRB_SYM(Method)));
   mrb_obj_iv_set(mrb, me, MRB_SYM(_owner), mrb_obj_value(owner));
-  mrb_obj_iv_set(mrb, me, MRB_SYM(_recv), self);
+  mrb_obj_iv_set(mrb, me, MRB_SYM(_recv), unbound ? mrb_nil_value() : obj);
   mrb_obj_iv_set(mrb, me, MRB_SYM(_name), mrb_symbol_value(name));
   mrb_obj_iv_set(mrb, me, MRB_SYM(_proc), proc ? mrb_obj_value(proc) : mrb_nil_value());
-  mrb_obj_iv_set(mrb, me, MRB_SYM(_klass), mrb_obj_value(mrb_class(mrb, self)));
+  mrb_obj_iv_set(mrb, me, MRB_SYM(_klass), mrb_obj_value(c));
 
   return mrb_obj_value(me);
 }
 
 static mrb_value
-mrb_module_instance_method(mrb_state *mrb, mrb_value self)
+mrb_kernel_method(mrb_state *mrb, mrb_value self)
 {
-  struct RClass *owner;
-  struct RProc *proc;
-  struct RObject *ume;
+  mrb_sym name;
+
+  mrb_get_args(mrb, "n", &name);
+  return method_alloc(mrb, mrb_class(mrb, self), self, name, FALSE, FALSE);
+}
+
+static mrb_value
+mrb_kernel_singleton_method(mrb_state *mrb, mrb_value self)
+{
+  struct RClass *c;
   mrb_sym name;
 
   mrb_get_args(mrb, "n", &name);
 
-  mrb_search_method_owner(mrb, mrb_class_ptr(self), self, name, &owner, &proc, TRUE);
+  c = mrb_class(mrb, self);
+  if (c->tt != MRB_TT_SCLASS) {
+    singleton_method_error(mrb, name, self);
+  }
+  return method_alloc(mrb, c, self, name, FALSE, TRUE);
+}
 
-  ume = method_object_alloc(mrb, mrb_class_get_id(mrb, MRB_SYM(UnboundMethod)));
-  mrb_obj_iv_set(mrb, ume, MRB_SYM(_owner), mrb_obj_value(owner));
-  mrb_obj_iv_set(mrb, ume, MRB_SYM(_recv), mrb_nil_value());
-  mrb_obj_iv_set(mrb, ume, MRB_SYM(_name), mrb_symbol_value(name));
-  mrb_obj_iv_set(mrb, ume, MRB_SYM(_proc), proc ? mrb_obj_value(proc) : mrb_nil_value());
-  mrb_obj_iv_set(mrb, ume, MRB_SYM(_klass), self);
+static mrb_value
+mrb_module_instance_method(mrb_state *mrb, mrb_value self)
+{
+  mrb_sym name;
 
-  return mrb_obj_value(ume);
+  mrb_get_args(mrb, "n", &name);
+  return method_alloc(mrb, mrb_class_ptr(self), self, name, TRUE, FALSE);
 }
 
 static mrb_value
@@ -551,6 +571,7 @@ mrb_mruby_method_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, method, "name", method_name, MRB_ARGS_NONE());
 
   mrb_define_method(mrb, mrb->kernel_module, "method", mrb_kernel_method, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, mrb->kernel_module, "singleton_method", mrb_kernel_singleton_method, MRB_ARGS_REQ(1));
 
   mrb_define_method(mrb, mrb->module_class, "instance_method", mrb_module_instance_method, MRB_ARGS_REQ(1));
 }
