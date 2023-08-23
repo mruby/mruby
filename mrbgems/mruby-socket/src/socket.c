@@ -340,10 +340,10 @@ socket_option_init(mrb_state *mrb, mrb_value self)
   mrb_value data;
 
   mrb_get_args(mrb, "iiio", &family, &level, &optname, &data);
-  mrb_iv_set(mrb, self, MRB_IVSYM(family), mrb_int_value(mrb, family));
-  mrb_iv_set(mrb, self, MRB_IVSYM(level), mrb_int_value(mrb, level));
-  mrb_iv_set(mrb, self, MRB_IVSYM(optname), mrb_int_value(mrb, optname));
-  mrb_iv_set(mrb, self, MRB_IVSYM(data), data);
+  mrb_iv_set(mrb, self, MRB_SYM(family), mrb_int_value(mrb, family));
+  mrb_iv_set(mrb, self, MRB_SYM(level), mrb_int_value(mrb, level));
+  mrb_iv_set(mrb, self, MRB_SYM(optname), mrb_int_value(mrb, optname));
+  mrb_iv_set(mrb, self, MRB_SYM(data), data);
 
   return self;
 }
@@ -377,31 +377,31 @@ socket_option_s_int(mrb_state *mrb, mrb_value klass)
 static mrb_value
 socket_option_family(mrb_state *mrb, mrb_value self)
 {
-  return mrb_iv_get(mrb, self, MRB_IVSYM(family));
+  return mrb_iv_get(mrb, self, MRB_SYM(family));
 }
 
 static mrb_value
 socket_option_level(mrb_state *mrb, mrb_value self)
 {
-  return mrb_iv_get(mrb, self, MRB_IVSYM(level));
+  return mrb_iv_get(mrb, self, MRB_SYM(level));
 }
 
 static mrb_value
 socket_option_optname(mrb_state *mrb, mrb_value self)
 {
-  return mrb_iv_get(mrb, self, MRB_IVSYM(optname));
+  return mrb_iv_get(mrb, self, MRB_SYM(optname));
 }
 
 static mrb_value
 socket_option_data(mrb_state *mrb, mrb_value self)
 {
-  return mrb_iv_get(mrb, self, MRB_IVSYM(data));
+  return mrb_iv_get(mrb, self, MRB_SYM(data));
 }
 
 static int
 option_int(mrb_state *mrb, mrb_value self)
 {
-  mrb_value data = mrb_obj_as_string(mrb, mrb_iv_get(mrb, self, MRB_IVSYM(data)));
+  mrb_value data = mrb_obj_as_string(mrb, mrb_iv_get(mrb, self, MRB_SYM(data)));
   int tmp;
 
   if (RSTRING_LEN(data) != sizeof(int)) {
@@ -437,7 +437,7 @@ socket_option_inspect(mrb_state *mrb, mrb_value self)
 {
   mrb_value str = mrb_str_new_cstr(mrb, "#<Socket::Option: ");
 
-  mrb_value family = mrb_iv_get(mrb, self, MRB_IVSYM(family));
+  mrb_value family = mrb_iv_get(mrb, self, MRB_SYM(family));
   const char *pf = NULL;
 
   if (mrb_integer_p(family)) {
@@ -474,15 +474,15 @@ socket_option_inspect(mrb_state *mrb, mrb_value self)
     mrb_str_cat_cstr(mrb, str, pf);
   }
   else {
-    mrb_str_cat_cstr(mrb, str, " family:");
+    mrb_str_cat_cstr(mrb, str, "family:");
     mrb_str_cat_str(mrb, str, mrb_inspect(mrb, family));
   }
   mrb_str_cat_cstr(mrb, str, " level:");
-  mrb_str_cat_str(mrb, str, mrb_inspect(mrb, mrb_iv_get(mrb, self, MRB_IVSYM(level))));
+  mrb_str_cat_str(mrb, str, mrb_inspect(mrb, mrb_iv_get(mrb, self, MRB_SYM(level))));
   mrb_str_cat_cstr(mrb, str, " optname:");
-  mrb_str_cat_str(mrb, str, mrb_inspect(mrb, mrb_iv_get(mrb, self, MRB_IVSYM(optname))));
+  mrb_str_cat_str(mrb, str, mrb_inspect(mrb, mrb_iv_get(mrb, self, MRB_SYM(optname))));
   mrb_str_cat_cstr(mrb, str, " ");
-  mrb_str_cat_str(mrb, str, mrb_inspect(mrb, mrb_iv_get(mrb, self, MRB_IVSYM(data))));
+  mrb_str_cat_str(mrb, str, mrb_inspect(mrb, mrb_iv_get(mrb, self, MRB_SYM(data))));
   mrb_str_cat_cstr(mrb, str, ">");
 
   return str;
@@ -631,9 +631,9 @@ mrb_basicsocket_setsockopt(mrb_state *mrb, mrb_value self)
   else if (argc == 1) {
     if (!mrb_obj_is_instance_of(mrb, so, socket_option_class(mrb)))
       mrb_raise(mrb, E_ARGUMENT_ERROR, "not an instance of Socket::Option");
-    level = mrb_as_int(mrb, mrb_iv_get(mrb, so, MRB_IVSYM(level)));
-    optname = mrb_as_int(mrb, mrb_iv_get(mrb, so, MRB_IVSYM(optname)));
-    optval = mrb_iv_get(mrb, so, MRB_IVSYM(data));
+    level = mrb_as_int(mrb, mrb_iv_get(mrb, so, MRB_SYM(level)));
+    optname = mrb_as_int(mrb, mrb_iv_get(mrb, so, MRB_SYM(optname)));
+    optval = mrb_iv_get(mrb, so, MRB_SYM(data));
     mrb_ensure_string_type(mrb, optval);
   }
   else {
