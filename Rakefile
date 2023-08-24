@@ -65,6 +65,8 @@ task :deep_clean => %w[clean doc:clean] do
   MRuby.each_target do |build|
     rm_rf build.gem_clone_dir
   end
+  rm_rf "#{MRUBY_ROOT}/bin"
+  rm_rf "#{MRUBY_ROOT}/build"
   puts "Cleaned up mrbgems build directory"
 end
 
