@@ -2046,6 +2046,9 @@ RETRY_TRY_BLOCK:
       else if (MRB_ASPEC_KEY(a) > 0 && !mrb_nil_p(kdict)) {
         kdict = mrb_hash_dup(mrb, kdict);
       }
+      else if (!mrb_nil_p(kdict)) {
+        mrb_gc_protect(mrb, kdict);
+      }
 
       /* arguments is passed with Array */
       if (argc == 15) {
@@ -2053,7 +2056,6 @@ RETRY_TRY_BLOCK:
         argv = ARY_PTR(ary);
         argc = (int)ARY_LEN(ary);
         mrb_gc_protect(mrb, regs[1]);
-        if (kd && !mrb_nil_p(kdict)) mrb_gc_protect(mrb, kdict);
       }
 
       /* strict argument check */
@@ -2105,7 +2107,6 @@ RETRY_TRY_BLOCK:
         mrb_int rnum = 0;
         if (argv0 != argv) {
           mrb_gc_protect(mrb, blk);
-          mrb_gc_protect(mrb, kdict);
           value_move(&regs[1], argv, m1+o);
         }
         if (r) {
