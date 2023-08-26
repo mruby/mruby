@@ -1564,10 +1564,16 @@ mrb_hash_clear(mrb_state *mrb, mrb_value hash)
 static mrb_value
 mrb_hash_aset(mrb_state *mrb, mrb_value self)
 {
-  mrb_value key, val;
+  mrb_int argc = mrb_get_argc(mrb);
 
-  mrb_get_args(mrb, "oo", &key, &val);
-  mrb_hash_set(mrb, self, key, val);
+  if (argc != 2) {
+    mrb_argnum_error(mrb, argc, 2, 2);
+  }
+
+  const mrb_value *argv = mrb_get_argv(mrb);
+  mrb_value val = argv[1];
+
+  mrb_hash_set(mrb, self, argv[0], argv[1]);
   return val;
 }
 
