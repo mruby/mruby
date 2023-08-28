@@ -28,6 +28,7 @@ module Kernel
       if s.kind_of?(Array)
         puts(*s)
       else
+        s = s.to_s
         print s
         print "\n" if (s[-1] != "\n")
       end
