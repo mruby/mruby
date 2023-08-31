@@ -1345,10 +1345,9 @@ mrb_ary_to_s(mrb_state *mrb, mrb_value self)
     mrb_str_cat_lit(mrb, ret, "...]");
     return ret;
   }
-  mrb_int len = RARRAY_LEN(self);
-  for (mrb_int i=0; i<len; i++) {
+  for (mrb_int i=0; i<RARRAY_LEN(self); i++) {
     if (i>0) mrb_str_cat_lit(mrb, ret, ", ");
-    mrb_str_cat_str(mrb, ret, mrb_inspect(mrb, mrb_ary_ref(mrb, self, i)));
+    mrb_str_cat_str(mrb, ret, mrb_inspect(mrb, RARRAY_PTR(self)[i]));
     mrb_gc_arena_restore(mrb, ai);
   }
   mrb_str_cat_lit(mrb, ret, "]");
