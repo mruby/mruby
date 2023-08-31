@@ -429,7 +429,7 @@ mrb_data_to_h(mrb_state *mrb, mrb_value self)
   ret = mrb_hash_new_capa(mrb, RARRAY_LEN(members));
   mrb_int len = RARRAY_LEN(members);
   for (mrb_int i=0; i<len; i++) {
-    mrb_hash_set(mrb, ret, mems[i], mrb_ary_ref(mrb, self, i));
+    mrb_hash_set(mrb, ret, mems[i], RARRAY_PTR(self)[i]);
   }
 
   return ret;
@@ -465,7 +465,7 @@ mrb_data_to_s(mrb_state *mrb, mrb_value self)
     if (i>0) mrb_str_cat_lit(mrb, ret, ", ");
     mrb_str_cat(mrb, ret, name, len);
     mrb_str_cat_lit(mrb, ret, "=");
-    mrb_str_cat_str(mrb, ret, mrb_inspect(mrb, mrb_ary_ref(mrb, self, i)));
+    mrb_str_cat_str(mrb, ret, mrb_inspect(mrb, RARRAY_PTR(self)[i]));
     mrb_gc_arena_restore(mrb, ai);
   }
   mrb_str_cat_lit(mrb, ret, ">");
