@@ -1556,7 +1556,15 @@ RETRY_TRY_BLOCK:
       switch (mrb_type(va)) {
       case MRB_TT_ARRAY:
         if (!mrb_integer_p(vb)) goto getidx_fallback;
-        regs[a] = mrb_ary_entry(va, mrb_integer(vb));
+        else {
+          mrb_int idx = mrb_integer(vb);
+          if (0 <= idx && idx < RARRAY_LEN(va)) {
+            regs[a] = RARRAY_PTR(va)[idx];
+          }
+          else {
+            regs[a] = mrb_ary_entry(va, idx);
+          }
+        }
         break;
       case MRB_TT_HASH:
         va = mrb_hash_get(mrb, va, vb);
