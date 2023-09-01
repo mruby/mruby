@@ -1345,16 +1345,7 @@ hash_new_from_regs(mrb_state *mrb, mrb_int argc, mrb_int idx)
   return hash;
 }
 
-static mrb_value
-ary_new_from_regs(mrb_state *mrb, mrb_int argc, mrb_int idx)
-{
-  mrb_value ary = mrb_ary_new_capa(mrb, argc);
-  while (argc--) {
-    mrb_ary_push(mrb, ary, regs[idx]);
-    idx++;
-  }
-  return ary;
-}
+#define ary_new_from_regs(mrb, argc, idx) mrb_ary_new_from_values(mrb, (argc), &regs[idx]);
 
 MRB_API mrb_value
 mrb_vm_exec(mrb_state *mrb, const struct RProc *proc, const mrb_code *pc)
