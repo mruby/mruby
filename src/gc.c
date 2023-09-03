@@ -148,6 +148,15 @@ typedef struct {
 #define MRB_HEAP_PAGE_SIZE 1024
 #endif
 
+typedef struct mrb_heap_page {
+  struct RBasic *freelist;
+  struct mrb_heap_page *prev;
+  struct mrb_heap_page *next;
+  mrb_bool old:1;
+  /* Flexible array members area a C99 feature, not C++ compatible */
+  /* void* objects[]; */
+} mrb_heap_page;
+
 #define GC_STEP_SIZE 1024
 
 /* white: 001 or 010, black: 100, gray: 000, red:111 */
