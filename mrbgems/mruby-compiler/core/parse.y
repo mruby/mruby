@@ -1460,56 +1460,56 @@ heredoc_end(parser_state *p)
 }
 
 %token <num>
-        keyword_class
-        keyword_module
-        keyword_def
-        keyword_begin
-        keyword_if
-        keyword_unless
-        keyword_while
-        keyword_until
-        keyword_for
+        keyword_class   "'class'"
+        keyword_module  "'module'"
+        keyword_def     "'def'"
+        keyword_begin   "'begin'"
+        keyword_if      "'if'"
+        keyword_unless  "'unless'"
+        keyword_while   "'while'"
+        keyword_until   "'until'"
+        keyword_for     "'for'"
 
 %token
-        keyword_undef
-        keyword_rescue
-        keyword_ensure
-        keyword_end
-        keyword_then
-        keyword_elsif
-        keyword_else
-        keyword_case
-        keyword_when
-        keyword_break
-        keyword_next
-        keyword_redo
-        keyword_retry
-        keyword_in
-        keyword_do
-        keyword_do_cond
-        keyword_do_block
-        keyword_do_LAMBDA
-        keyword_return
-        keyword_yield
-        keyword_super
-        keyword_self
-        keyword_nil
-        keyword_true
-        keyword_false
-        keyword_and
-        keyword_or
-        keyword_not
-        modifier_if
-        modifier_unless
-        modifier_while
-        modifier_until
-        modifier_rescue
-        keyword_alias
-        keyword_BEGIN
-        keyword_END
-        keyword__LINE__
-        keyword__FILE__
-        keyword__ENCODING__
+        keyword_undef   "'undef'"
+        keyword_rescue  "'rescue'"
+        keyword_ensure  "'ensure'"
+        keyword_end     "'end'"
+        keyword_then    "'then'"
+        keyword_elsif   "'elsif'"
+        keyword_else    "'else'"
+        keyword_case    "'case'"
+        keyword_when    "'when'"
+        keyword_break   "'break'"
+        keyword_next    "'next'"
+        keyword_redo    "'redo'"
+        keyword_retry   "'retry'"
+        keyword_in      "'in'"
+        keyword_do      "'do'"
+        keyword_do_cond         "'do' for condition"
+        keyword_do_block        "'do' for block"
+        keyword_do_LAMBDA       "'do' for lambda"
+        keyword_return  "'return'"
+        keyword_yield   "'yield'"
+        keyword_super   "'super'"
+        keyword_self    "'self'"
+        keyword_nil     "'nil'"
+        keyword_true    "'true'"
+        keyword_false   "'false'"
+        keyword_and     "'and'"
+        keyword_or      "'or'"
+        keyword_not     "'not'"
+        modifier_if     "'if' modifier"
+        modifier_unless "'unless' modifier"
+        modifier_while  "'while' modifier"
+        modifier_until  "'until' modifier"
+        modifier_rescue "'rescue' modifier"
+        keyword_alias   "'alis'"
+        keyword_BEGIN   "'BEGIN'"
+        keyword_END     "'END'"
+        keyword__LINE__ "'__LINE__'"
+        keyword__FILE__ "'__FILE__'"
+        keyword__ENCODING__     "'__ENCODING__'"
 
 %token <id>  tIDENTIFIER "local variable or method"
 %token <id>  tFID "method"
