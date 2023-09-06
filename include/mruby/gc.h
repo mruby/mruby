@@ -46,7 +46,8 @@ typedef enum {
 #endif
 
 typedef struct mrb_gc {
-  struct mrb_heap_page *heaps;     /* heaps for GC */
+  struct mrb_heap_page *heaps;     /* all heaps pages */
+  struct mrb_heap_page *free_heaps;/* heaps for allocation */
   struct mrb_heap_page *sweeps;    /* page where sweep starts */
   struct RBasic *gray_list;        /* list of gray objects to be traversed incrementally */
   struct RBasic *atomic_gray_list; /* list of objects to be traversed atomically */

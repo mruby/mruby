@@ -152,6 +152,8 @@ typedef struct mrb_heap_page {
   struct RBasic *freelist;
   struct mrb_heap_page *prev;
   struct mrb_heap_page *next;
+  struct mrb_heap_page *free_next;
+  struct mrb_heap_page *free_prev;
   mrb_bool old:1;
   /* Flexible array members area a C99 feature, not C++ compatible */
   /* void* objects[]; */
@@ -297,6 +299,51 @@ mrb_object_dead_p(mrb_state *mrb, struct RBasic *object)
 }
 
 static void
+link_heap_page(mrb_gc *gc, mrb_heap_page *page)
+{
+  page->next = gc->heaps;
+  if (gc->heaps)
+    gc->heaps->prev = page;
+  gc->heaps = page;
+}
+
+static void
+unlink_heap_page(mrb_gc *gc, mrb_heap_page *page)
+{
+  if (page->prev)
+    page->prev->next = page->next;
+  if (page->next)
+    page->next->prev = page->prev;
+  if (gc->heaps == page)
+    gc->heaps = page->next;
+  page->prev = NULL;
+  page->next = NULL;
+}
+
+static void
+link_free_heap_page(mrb_gc *gc, mrb_heap_page *page)
+{
+  page->free_next = gc->free_heaps;
+  if (gc->free_heaps) {
+    gc->free_heaps->free_prev = page;
+  }
+  gc->free_heaps = page;
+}
+
+static void
+unlink_free_heap_page(mrb_gc *gc, mrb_heap_page *page)
+{
+  if (page->free_prev)
+    page->free_prev->free_next = page->free_next;
+  if (page->free_next)
+    page->free_next->free_prev = page->free_prev;
+  if (gc->free_heaps == page)
+    gc->free_heaps = page->free_next;
+  page->free_prev = NULL;
+  page->free_next = NULL;
+}
+
+static void
 add_heap(mrb_state *mrb, mrb_gc *gc)
 {
   mrb_heap_page *page = (mrb_heap_page*)mrb_calloc(mrb, 1, sizeof(mrb_heap_page) + MRB_HEAP_PAGE_SIZE * sizeof(RVALUE));
@@ -310,10 +357,8 @@ add_heap(mrb_state *mrb, mrb_gc *gc)
   }
   page->freelist = prev;
 
-  page->next = gc->heaps;
-  if (gc->heaps)
-    gc->heaps->prev = page;
-  gc->heaps = page;
+  link_heap_page(gc, page);
+  link_free_heap_page(gc, page);
 }
 
 #define DEFAULT_GC_INTERVAL_RATIO 200
@@ -334,6 +379,7 @@ mrb_gc_init(mrb_state *mrb, mrb_gc *gc)
 
   gc->current_white_part = GC_WHITE_A;
   gc->heaps = NULL;
+  gc->free_heaps = NULL;
   add_heap(mrb, gc);
   gc->interval_ratio = DEFAULT_GC_INTERVAL_RATIO;
   gc->step_ratio = DEFAULT_GC_STEP_RATIO;
@@ -493,20 +539,15 @@ mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
   if (gc->threshold < gc->live) {
     mrb_incremental_gc(mrb);
   }
-
-  if (gc->heaps == NULL) {
+  if (gc->free_heaps == NULL) {
     add_heap(mrb, gc);
   }
-  mrb_heap_page *page = gc->heaps;
-  while (page->freelist == NULL) {
-    page = page->next;
-    if (page == NULL) {
-      add_heap(mrb, gc);
-      page = gc->heaps;
-    }
+
+  struct RBasic *p = gc->free_heaps->freelist;
+  gc->free_heaps->freelist = ((struct free_obj*)p)->next;
+  if (gc->free_heaps->freelist == NULL) {
+    unlink_free_heap_page(gc, gc->free_heaps);
   }
-  struct RBasic *p = page->freelist;
-  page->freelist = ((struct free_obj*)p)->next;
 
   gc->live++;
   gc_protect(mrb, gc, p);
@@ -1072,6 +1113,7 @@ incremental_sweep_phase(mrb_state *mrb, mrb_gc *gc, size_t limit)
     RVALUE *e = p + MRB_HEAP_PAGE_SIZE;
     size_t freed = 0;
     mrb_bool dead_slot = TRUE;
+    mrb_bool full = (page->freelist == NULL);
 
     if (is_minor_gc(gc) && page->old) {
       /* skip a slot which doesn't contain any young object */
@@ -1104,15 +1146,15 @@ incremental_sweep_phase(mrb_state *mrb, mrb_gc *gc, size_t limit)
     if (dead_slot) {
       mrb_heap_page *next = page->next;
 
-      if (page->prev) page->prev->next = next;
-      if (next) next->prev = page->prev;
-      if (gc->heaps == page) gc->heaps = next;
-      page->prev = NULL;
-      page->next = NULL;
+      unlink_heap_page(gc, page);
+      unlink_free_heap_page(gc, page);
       mrb_free(mrb, page);
       page = next;
     }
     else {
+      if (full && freed > 0) {
+        link_free_heap_page(gc, page);
+      }
       if (page->freelist == NULL && is_minor_gc(gc))
         page->old = TRUE;
       else
