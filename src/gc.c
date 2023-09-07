@@ -153,7 +153,6 @@ typedef struct mrb_heap_page {
   struct mrb_heap_page *prev;
   struct mrb_heap_page *next;
   struct mrb_heap_page *free_next;
-  struct mrb_heap_page *free_prev;
   mrb_bool old:1;
   /* Flexible array members area a C99 feature, not C++ compatible */
   /* void* objects[]; */
@@ -316,31 +315,6 @@ unlink_heap_page(mrb_gc *gc, mrb_heap_page *page)
     page->next->prev = page->prev;
   if (gc->heaps == page)
     gc->heaps = page->next;
-  page->prev = NULL;
-  page->next = NULL;
-}
-
-static void
-link_free_heap_page(mrb_gc *gc, mrb_heap_page *page)
-{
-  page->free_next = gc->free_heaps;
-  if (gc->free_heaps) {
-    gc->free_heaps->free_prev = page;
-  }
-  gc->free_heaps = page;
-}
-
-static void
-unlink_free_heap_page(mrb_gc *gc, mrb_heap_page *page)
-{
-  if (page->free_prev)
-    page->free_prev->free_next = page->free_next;
-  if (page->free_next)
-    page->free_next->free_prev = page->free_prev;
-  if (gc->free_heaps == page)
-    gc->free_heaps = page->free_next;
-  page->free_prev = NULL;
-  page->free_next = NULL;
 }
 
 static void
@@ -358,7 +332,9 @@ add_heap(mrb_state *mrb, mrb_gc *gc)
   page->freelist = prev;
 
   link_heap_page(gc, page);
-  link_free_heap_page(gc, page);
+
+  page->free_next = gc->free_heaps;
+  gc->free_heaps = page;
 }
 
 #define DEFAULT_GC_INTERVAL_RATIO 200
@@ -546,7 +522,7 @@ mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
   struct RBasic *p = gc->free_heaps->freelist;
   gc->free_heaps->freelist = ((struct free_obj*)p)->next;
   if (gc->free_heaps->freelist == NULL) {
-    unlink_free_heap_page(gc, gc->free_heaps);
+    gc->free_heaps = gc->free_heaps->free_next;
   }
 
   gc->live++;
@@ -1113,7 +1089,6 @@ incremental_sweep_phase(mrb_state *mrb, mrb_gc *gc, size_t limit)
     RVALUE *e = p + MRB_HEAP_PAGE_SIZE;
     size_t freed = 0;
     mrb_bool dead_slot = TRUE;
-    mrb_bool full = (page->freelist == NULL);
 
     if (is_minor_gc(gc) && page->old) {
       /* skip a slot which doesn't contain any young object */
@@ -1147,14 +1122,10 @@ incremental_sweep_phase(mrb_state *mrb, mrb_gc *gc, size_t limit)
       mrb_heap_page *next = page->next;
 
       unlink_heap_page(gc, page);
-      unlink_free_heap_page(gc, page);
       mrb_free(mrb, page);
       page = next;
     }
     else {
-      if (full && freed > 0) {
-        link_free_heap_page(gc, page);
-      }
       if (page->freelist == NULL && is_minor_gc(gc))
         page->old = TRUE;
       else
@@ -1166,6 +1137,16 @@ incremental_sweep_phase(mrb_state *mrb, mrb_gc *gc, size_t limit)
     gc->live_after_mark -= freed;
   }
   gc->sweeps = page;
+
+  /* rebuild free_heaps link */
+  gc->free_heaps = NULL;
+  for (mrb_heap_page *p = gc->heaps; p; p=p->next) {
+    if (p->freelist) {
+      p->free_next = gc->free_heaps;
+      gc->free_heaps = p;
+    }
+  }
+
   return tried_sweep;
 }
 
