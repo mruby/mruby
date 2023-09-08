@@ -298,15 +298,6 @@ mrb_object_dead_p(mrb_state *mrb, struct RBasic *object)
 }
 
 static void
-link_heap_page(mrb_gc *gc, mrb_heap_page *page)
-{
-  page->next = gc->heaps;
-  if (gc->heaps)
-    gc->heaps->prev = page;
-  gc->heaps = page;
-}
-
-static void
 unlink_heap_page(mrb_gc *gc, mrb_heap_page *page)
 {
   if (page->prev)
@@ -331,7 +322,10 @@ add_heap(mrb_state *mrb, mrb_gc *gc)
   }
   page->freelist = prev;
 
-  link_heap_page(gc, page);
+  page->next = gc->heaps;
+  if (gc->heaps)
+    gc->heaps->prev = page;
+  gc->heaps = page;
 
   page->free_next = gc->free_heaps;
   gc->free_heaps = page;
