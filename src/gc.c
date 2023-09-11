@@ -1057,14 +1057,15 @@ prepare_incremental_sweep(mrb_state *mrb, mrb_gc *gc)
   //  mrb_assert(gc->atomic_gray_list == NULL);
   //  mrb_assert(gc->gray_list == NULL);
   gc->state = MRB_GC_STATE_SWEEP;
-  gc->sweeps = gc->heaps;
+  gc->sweeps = NULL;
   gc->live_after_mark = gc->live;
 }
 
 static size_t
 incremental_sweep_phase(mrb_state *mrb, mrb_gc *gc, size_t limit)
 {
-  mrb_heap_page *page = gc->sweeps;
+  mrb_heap_page *prev = gc->sweeps;
+  mrb_heap_page *page = prev ? prev->next : gc->heaps;
   size_t tried_sweep = 0;
   mrb_bool rebuild = FALSE;
 
@@ -1105,6 +1106,7 @@ incremental_sweep_phase(mrb_state *mrb, mrb_gc *gc, size_t limit)
     if (dead_slot) {
       mrb_heap_page *next = page->next;
 
+      mrb_assert(prev == page->prev);
       /* unlink_heap_page */
       if (page->prev)
         page->prev->next = page->next;
@@ -1122,13 +1124,14 @@ incremental_sweep_phase(mrb_state *mrb, mrb_gc *gc, size_t limit)
         page->old = TRUE;
       else
         page->old = FALSE;
+      prev = page;
       page = page->next;
     }
     tried_sweep += MRB_HEAP_PAGE_SIZE;
     gc->live -= freed;
     gc->live_after_mark -= freed;
   }
-  gc->sweeps = page;
+  gc->sweeps = prev;
 
   /* rebuild free_heaps link */
   if (rebuild) {
