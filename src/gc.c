@@ -1067,7 +1067,6 @@ incremental_sweep_phase(mrb_state *mrb, mrb_gc *gc, size_t limit)
   mrb_heap_page *prev = gc->sweeps;
   mrb_heap_page *page = prev ? prev->next : gc->heaps;
   size_t tried_sweep = 0;
-  mrb_bool rebuild = FALSE;
 
   while (page && (tried_sweep < limit)) {
     RVALUE *p = objects(page);
@@ -1117,7 +1116,6 @@ incremental_sweep_phase(mrb_state *mrb, mrb_gc *gc, size_t limit)
 
       mrb_free(mrb, page);
       page = next;
-      rebuild = TRUE;
     }
     else {
       if (page->freelist == NULL && is_minor_gc(gc))
@@ -1134,13 +1132,11 @@ incremental_sweep_phase(mrb_state *mrb, mrb_gc *gc, size_t limit)
   gc->sweeps = prev;
 
   /* rebuild free_heaps link */
-  if (rebuild) {
-    gc->free_heaps = NULL;
-    for (mrb_heap_page *p = gc->heaps; p; p=p->next) {
-      if (p->freelist) {
-        p->free_next = gc->free_heaps;
-        gc->free_heaps = p;
-      }
+  gc->free_heaps = NULL;
+  for (mrb_heap_page *p = gc->heaps; p; p=p->next) {
+    if (p->freelist) {
+      p->free_next = gc->free_heaps;
+      gc->free_heaps = p;
     }
   }
 
