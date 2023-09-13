@@ -150,7 +150,6 @@ typedef struct {
 
 typedef struct mrb_heap_page {
   struct RBasic *freelist;
-  struct mrb_heap_page *prev;
   struct mrb_heap_page *next;
   struct mrb_heap_page *free_next;
   mrb_bool old:1;
@@ -312,8 +311,6 @@ add_heap(mrb_state *mrb, mrb_gc *gc)
   page->freelist = prev;
 
   page->next = gc->heaps;
-  if (gc->heaps)
-    gc->heaps->prev = page;
   gc->heaps = page;
 
   page->free_next = gc->free_heaps;
@@ -1105,12 +1102,7 @@ incremental_sweep_phase(mrb_state *mrb, mrb_gc *gc, size_t limit)
     if (dead_slot) {
       mrb_heap_page *next = page->next;
 
-      mrb_assert(prev == page->prev);
-      /* unlink_heap_page */
-      if (page->prev)
-        page->prev->next = page->next;
-      if (page->next)
-        page->next->prev = page->prev;
+      if (prev) prev->next = next;
       if (gc->heaps == page)
         gc->heaps = page->next;
 
