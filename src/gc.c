@@ -153,7 +153,7 @@ typedef struct mrb_heap_page {
   struct mrb_heap_page *next;
   struct mrb_heap_page *free_next;
   mrb_bool old:1;
-  /* Flexible array members area a C99 feature, not C++ compatible */
+  /* Flexible array members are not C++ compatible */
   /* void* objects[]; */
 } mrb_heap_page;
 
