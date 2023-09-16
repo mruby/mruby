@@ -2337,12 +2337,9 @@ RETRY_TRY_BLOCK:
           break;
         case OP_R_BREAK:
           if (MRB_PROC_STRICT_P(proc)) goto NORMAL_RETURN;
-          if (MRB_PROC_ORPHAN_P(proc)) {
+          if (MRB_PROC_ORPHAN_P(proc) || !MRB_PROC_ENV_P(proc) || !MRB_ENV_ONSTACK_P(MRB_PROC_ENV(proc))) {
           L_BREAK_ERROR:
             RAISE_LIT(mrb, E_LOCALJUMP_ERROR, "break from proc-closure");
-          }
-          if (!MRB_PROC_ENV_P(proc) || !MRB_ENV_ONSTACK_P(MRB_PROC_ENV(proc))) {
-            goto L_BREAK_ERROR;
           }
           else {
             struct REnv *e = MRB_PROC_ENV(proc);
