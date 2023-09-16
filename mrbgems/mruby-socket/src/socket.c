@@ -214,7 +214,7 @@ mrb_addrinfo_unix_path(mrb_state *mrb, mrb_value self)
   mrb_value sastr;
 
   sastr = mrb_iv_get(mrb, self, MRB_IVSYM(sockaddr));
-  if (((struct sockaddr*)RSTRING_PTR(sastr))->sa_family != AF_UNIX)
+  if (!mrb_string_p(sastr) || ((struct sockaddr*)RSTRING_PTR(sastr))->sa_family != AF_UNIX)
     mrb_raise(mrb, E_SOCKET_ERROR, "need AF_UNIX address");
   if (RSTRING_LEN(sastr) < (mrb_int)offsetof(struct sockaddr_un, sun_path) + 1) {
     return mrb_str_new(mrb, "", 0);
