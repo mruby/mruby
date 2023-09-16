@@ -67,10 +67,10 @@ class Addrinfo
       else
         proto = '???'
       end
-      "#<Addrinfo: #{inspect_sockaddr} #{proto}>"
     else
-      "#<Addrinfo: #{self.unix_path} SOCK_STREAM>"
+      proto = "SOCK_STREAM"
     end
+    "#<Addrinfo: #{inspect_sockaddr} #{proto}>"
   end
 
   def inspect_sockaddr
