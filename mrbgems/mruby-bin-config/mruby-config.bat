@@ -17,6 +17,12 @@ shift
 if "%0" equ "" goto :eof
 if "%0" equ "--cc" goto cc
 if "%0" equ "--cflags" goto cflags
+if "%0" equ "--cxx" goto cxx
+if "%0" equ "--cxxflags" goto cxxflags
+if "%0" equ "--as" goto as
+if "%0" equ "--asflags" goto asflags
+if "%0" equ "--objc" goto objc
+if "%0" equ "--objcflags" goto objcflags
 if "%0" equ "--ld" goto ld
 if "%0" equ "--ldflags" goto ldflags
 if "%0" equ "--ldflags-before-libs" goto ldflagsbeforelibs
@@ -32,6 +38,30 @@ goto top
 
 :cflags
 echo MRUBY_CFLAGS
+goto top
+
+:cxx
+echo MRUBY_CXX
+goto top
+
+:cxxflags
+echo MRUBY_CXXFLAGS
+goto top
+
+:as
+echo MRUBY_AS
+goto top
+
+:asflags
+echo MRUBY_ASFLAGS
+goto top
+
+:objc
+echo MRUBY_OBJC
+goto top
+
+:objcflags
+echo MRUBY_OBJCFLAGS
 goto top
 
 :ld
@@ -57,8 +87,14 @@ goto top
 :showhelp
 echo Usage: mruby-config [switches]
 echo   switches:
-echo   --cc                       print compiler name
-echo   --cflags                   print flags passed to compiler
+echo   --cc                       print C compiler name
+echo   --cflags                   print flags passed to C compiler
+echo   --cxx                      print C++ compiler name
+echo   --cxxflags                 print flags passed to C++ compiler
+echo   --as                       print assembler name
+echo   --asflags                  print flags passed to assembler
+echo   --objc                     print Objective C compiler name
+echo   --objcflags                print flags passed to Objective C compiler
 echo   --ld                       print linker name
 echo   --ldflags                  print flags passed to linker
 echo   --ldflags-before-libs      print flags passed to linker before linked libraries
