@@ -79,7 +79,8 @@ MRuby.each_target do
       f.puts "MRUBY_LDFLAGS_BEFORE_LIBS = #{[linker.flags_before_libraries, gem_flags_before_libraries].flatten.join(' ')}"
 
       gem_libraries = libgems.map {|g| g.linker.libraries }
-      f.puts "MRUBY_LIBS = #{linker.option_library % 'mruby'} #{linker.library_flags(gem_libraries)}"
+      libmruby = (toolchains.find { |e| e == "visualcpp" }) ? "libmruby" : "mruby"
+      f.puts "MRUBY_LIBS = #{linker.option_library % libmruby} #{linker.library_flags(gem_libraries)}"
 
       f.puts "MRUBY_LIBMRUBY_PATH = #{libmruby_static.replace_prefix_by(build_dir => "$(MRUBY_PACKAGE_DIR)")}"
     end
