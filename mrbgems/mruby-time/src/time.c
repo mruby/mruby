@@ -363,7 +363,7 @@ time_alloc_time(mrb_state *mrb, time_t sec, time_t usec, enum mrb_timezone timez
   tm = (struct mrb_time*)mrb_malloc(mrb, sizeof(struct mrb_time));
   tm->sec  = sec;
   tm->usec = usec;
-  if (MRB_TIME_T_UINT && tm->usec < 0) {
+  if (!MRB_TIME_T_UINT && tm->usec < 0) {
     long sec2 = (long)NDIV(tm->usec,1000000); /* negative div */
     tm->usec -= sec2 * 1000000;
     tm->sec += sec2;
