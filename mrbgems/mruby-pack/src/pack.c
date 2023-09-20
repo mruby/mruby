@@ -45,6 +45,7 @@ enum pack_dir {
   PACK_DIR_NUL,       /* x */
   PACK_DIR_BACK,      /* X */
   PACK_DIR_ABS,       /* @ */
+  PACK_DIR_NONE,      /* - */
 };
 
 enum pack_type {
@@ -1217,6 +1218,7 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_type *typep, int *sizep, 
   tlen = RSTRING_LEN(tmpl->str);
 
  restart:
+  if (tmpl->idx >= tlen) return PACK_DIR_NONE;
   t = tptr[tmpl->idx++];
  alias:
   switch (t) {
@@ -1512,6 +1514,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
   while (has_tmpl(&tmpl)) {
     dir = read_tmpl(mrb, &tmpl, &type, &size, &count, &flags);
 
+    if (dir == PACK_DIR_NONE) break;
     if (dir == PACK_DIR_NUL) {
     grow:
       if (ridx > INT_MAX - count) goto overflow;
@@ -1642,6 +1645,7 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
   while (has_tmpl(&tmpl)) {
     dir = read_tmpl(mrb, &tmpl, &type, &size, &count, &flags);
 
+    if (dir == PACK_DIR_NONE) break;
     if (dir == PACK_DIR_NUL) {
       check_x(mrb, srclen-srcidx, count, 'x');
       srcidx += count;
