@@ -96,4 +96,12 @@ class Range
     # delegate to Enumerable
     super()
   end
+
+  # Compare two ranges and see if they overlap each other
+  #  (1..5).overlap?(4..6) # => true
+  #  (1..5).overlap?(7..9) # => false
+  def overlap?(other)
+    raise TypeError, "argument must be a range" unless other.kind_of?(Range)
+    other.begin == self.begin || self.cover?(other.begin) || other.cover?(self.begin)
+  end
 end
