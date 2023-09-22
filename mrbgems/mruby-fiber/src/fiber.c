@@ -257,7 +257,14 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
       }
     }
     c->cibase->n = (uint8_t)len;
-    value = c->stbase[0] = MRB_PROC_ENV(c->cibase->proc)->stack[0];
+    struct REnv *env = MRB_PROC_ENV(c->cibase->proc);
+    if (env && env->stack) {
+      value = env->stack[0];
+    }
+    else {
+      value = mrb_top_self(mrb);
+    }
+    c->stbase[0] = value;
   }
   else {
     value = fiber_result(mrb, a, len);
