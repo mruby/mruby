@@ -1037,6 +1037,26 @@ str_ord(mrb_state* mrb, mrb_value str)
   if (c < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid UTF-8 byte sequence");
   return mrb_fixnum_value(c);
 }
+
+static mrb_value
+str_codepoints(mrb_state *mrb, mrb_value self)
+{
+  mrb_value result;
+  char *p = RSTRING_PTR(self);
+  mrb_int len = RSTRING_LEN(self);
+  char *e = p + len;
+
+  mrb->c->ci->mid = 0;
+  result = mrb_ary_new(mrb);
+  while (p < e) {
+    mrb_int c = utf8code((unsigned char*)p, len);
+    mrb_ary_push(mrb, result, mrb_int_value(mrb, c));
+    mrb_int ulen = mrb_utf8len(p, e);
+    len -= ulen;
+    p += ulen;
+  }
+  return result;
+}
 #else
 static mrb_value
 str_ord(mrb_state* mrb, mrb_value str)
@@ -1044,6 +1064,22 @@ str_ord(mrb_state* mrb, mrb_value str)
   if (RSTRING_LEN(str) == 0)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "empty string");
   return mrb_fixnum_value((unsigned char)RSTRING_PTR(str)[0]);
+}
+
+static mrb_value
+str_codepoints(mrb_state *mrb, mrb_value self)
+{
+  mrb_value result;
+  char *p = RSTRING_PTR(self);
+  char *e = b + RSTRING_LEN(self);
+
+  mrb->c->ci->mid = 0;
+  result = mrb_ary_new(mrb);
+  while (p < e) {
+    mrb_ary_push(mrb, result, mrb_int_value(mrb, (mrb_int)*p));
+    p++;
+  }
+  return result;
 }
 #endif
 
@@ -1320,6 +1356,7 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, s, "-@",              str_uminus,          MRB_ARGS_REQ(1));
 
   mrb_define_method(mrb, s, "__lines",         str_lines,           MRB_ARGS_NONE());
+  mrb_define_method(mrb, s, "__codepoints",    str_codepoints,      MRB_ARGS_NONE());
 
   mrb_define_method(mrb, mrb->integer_class, "chr", int_chr, MRB_ARGS_OPT(1));
 }
