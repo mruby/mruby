@@ -1071,7 +1071,7 @@ str_codepoints(mrb_state *mrb, mrb_value self)
 {
   mrb_value result;
   char *p = RSTRING_PTR(self);
-  char *e = b + RSTRING_LEN(self);
+  char *e = p + RSTRING_LEN(self);
 
   mrb->c->ci->mid = 0;
   result = mrb_ary_new(mrb);
