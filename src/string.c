@@ -29,7 +29,11 @@ const char mrb_digitmap[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 #define mrb_obj_alloc_string(mrb) MRB_OBJ_ALLOC((mrb), MRB_TT_STRING, (mrb)->string_class)
 
 #ifndef MRB_STR_LENGTH_MAX
+#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__)
+#define MRB_STR_LENGTH_MAX 0
+#else
 #define MRB_STR_LENGTH_MAX 1048576
+#endif
 #endif
 
 static void

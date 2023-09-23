@@ -18,7 +18,11 @@
 #define ARY_SHRINK_RATIO  5 /* must be larger than 2 */
 #define ARY_C_MAX_SIZE (SIZE_MAX / sizeof(mrb_value))
 #ifndef MRB_ARY_LENGTH_MAX
+#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__)
+#define MRB_ARY_LENGTH_MAX 0
+#else
 #define MRB_ARY_LENGTH_MAX 131072
+#endif
 #endif
 #define ARY_MAX_SIZE ((mrb_int)((ARY_C_MAX_SIZE < (size_t)MRB_INT_MAX) ? ARY_C_MAX_SIZE : MRB_INT_MAX-1))
 
