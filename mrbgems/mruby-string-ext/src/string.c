@@ -1003,7 +1003,7 @@ str_succ(mrb_state *mrb, mrb_value self)
 extern const char mrb_utf8len_table[];
 
 MRB_INLINE mrb_int
-utf8code(const unsigned char* p, const unsigned char *e)
+utf8code(mrb_state* mrb, const unsigned char* p, const unsigned char *e)
 {
   mrb_int len;
 
@@ -1025,6 +1025,8 @@ utf8code(const unsigned char* p, const unsigned char *e)
       }
     }
   }
+  mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid UTF-8 byte sequence");
+  /* not reached */
   return -1;
 }
 
@@ -1036,8 +1038,7 @@ str_ord(mrb_state* mrb, mrb_value str)
   const unsigned char *p = (unsigned char*)RSTRING_PTR(str);
   const unsigned char *e = p + RSTRING_LEN(str);
 
-  mrb_int c = utf8code(p, e);
-  if (c < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid UTF-8 byte sequence");
+  mrb_int c = utf8code(mrb, p, e);
   return mrb_fixnum_value(c);
 }
 
@@ -1051,10 +1052,9 @@ str_codepoints(mrb_state *mrb, mrb_value str)
   mrb->c->ci->mid = 0;
   result = mrb_ary_new(mrb);
   while (p < e) {
-    mrb_int c = utf8code((unsigned char*)p, e);
+    mrb_int c = utf8code(mrb, p, e);
     mrb_ary_push(mrb, result, mrb_int_value(mrb, c));
-    mrb_int ulen = mrb_utf8len(p, e);
-    p += ulen;
+    p += mrb_utf8len_table[p[0]>>3];
   }
   return result;
 }
