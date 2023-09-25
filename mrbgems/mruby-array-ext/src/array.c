@@ -227,7 +227,7 @@ ary_compact_bang(mrb_state *mrb, mrb_value self)
     }
   }
   if (i == j) return mrb_nil_value();
-  if (j < len) ARY_SET_LEN(RARRAY(self), j);
+  ARY_SET_LEN(RARRAY(self), j);
   return self;
 }
 
