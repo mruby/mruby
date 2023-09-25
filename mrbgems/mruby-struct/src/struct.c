@@ -617,7 +617,7 @@ mrb_struct_to_h(mrb_state *mrb, mrb_value self)
   ret = mrb_hash_new_capa(mrb, RARRAY_LEN(members));
 
   for (i = 0; i < RARRAY_LEN(members); i++) {
-    mrb_hash_set(mrb, ret, RARRAY_PTR(members)[i], RARRAY_PTR(self)[i]);
+    mrb_hash_set(mrb, ret, RARRAY_PTR(members)[i], mrb_ary_ref(mrb, self, i));
   }
 
   return ret;
@@ -669,7 +669,7 @@ mrb_struct_to_s(mrb_state *mrb, mrb_value self)
     if (i>0) mrb_str_cat_lit(mrb, ret, ", ");
     mrb_str_cat(mrb, ret, name, len);
     mrb_str_cat_lit(mrb, ret, "=");
-    mrb_str_cat_str(mrb, ret, mrb_inspect(mrb, RARRAY_PTR(self)[i]));
+    mrb_str_cat_str(mrb, ret, mrb_inspect(mrb, mrb_ary_ref(mrb, self, i)));
     mrb_gc_arena_restore(mrb, ai);
   }
   mrb_str_cat_lit(mrb, ret, ">");
