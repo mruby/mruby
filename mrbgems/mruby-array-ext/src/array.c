@@ -217,9 +217,9 @@ ary_compact_bang(mrb_state *mrb, mrb_value self)
   struct RArray *a = mrb_ary_ptr(self);
   mrb_int i, j = 0;
   mrb_int len = ARY_LEN(a);
-  mrb_value *p = ARY_PTR(a);
 
   mrb_ary_modify(mrb, a);
+  mrb_value *p = ARY_PTR(a);
   for (i = 0; i < len; i++) {
     if (!mrb_nil_p(p[i])) {
       if (i != j) p[j] = p[i];
