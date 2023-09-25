@@ -308,7 +308,6 @@ fiber_resume(mrb_state *mrb, mrb_value self)
   const mrb_value *a;
   mrb_int len;
 
-  fiber_check_cfunc(mrb, mrb->c);
   mrb_get_args(mrb, "*!", &a, &len);
   return fiber_switch(mrb, self, len, a, TRUE, FALSE);
 }
