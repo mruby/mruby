@@ -411,7 +411,7 @@ mrb_false(mrb_state *mrb, mrb_value self)
  *     raise "Failed to create socket"
  *     raise ArgumentError, "No parameters", caller
  */
-MRB_API mrb_value
+mrb_value
 mrb_f_raise(mrb_state *mrb, mrb_value self)
 {
   mrb_value exc, mesg;
