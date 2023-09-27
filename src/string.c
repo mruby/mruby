@@ -246,7 +246,8 @@ str_modify_keep_ascii(mrb_state *mrb, struct RString *s)
 static void
 check_null_byte(mrb_state *mrb, struct RString *str)
 {
-  if (memchr(RSTR_PTR(str), '\0', RSTR_LEN(str))) {
+  const char *p = RSTR_PTR(str);
+  if (p && memchr(p, '\0', RSTR_LEN(str))) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string contains null byte");
   }
 }
