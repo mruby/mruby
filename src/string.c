@@ -2436,6 +2436,7 @@ mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr)
   check_null_byte(mrb, ps);
   p = RSTR_PTR(ps);
   len = RSTR_LEN(ps);
+  if (p == NULL) return "";
   if (p[len] == '\0') {
     return p;
   }
