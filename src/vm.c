@@ -898,6 +898,8 @@ eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
   }
   ci->u.target_class = c;
   p = mrb_proc_ptr(blk);
+  /* just in case irep is NULL; #6065 */
+  if (p->body.irep == NULL) return mrb_nil_value();
   CI_PROC_SET(ci, p);
   ci->n = 1;
   ci->nk = 0;
