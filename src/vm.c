@@ -41,8 +41,14 @@ void abort(void);
 #endif
 
 /* Maximum recursive depth. Should be set lower on memory constrained systems. */
+#ifdef __clang__
+#if __has_feature(address_sanitizer) && !defined(__SANITIZE_ADDRESS__)
+#define __SANITIZE_ADDRESS__
+#endif
+#endif
+
 #ifndef MRB_CALL_LEVEL_MAX
-#if __has_feature(address_sanitizer) || defined(__SANITIZE_ADDRESS__)
+#if defined(__SANITIZE_ADDRESS__)
 #define MRB_CALL_LEVEL_MAX 128
 #else
 #define MRB_CALL_LEVEL_MAX 512
