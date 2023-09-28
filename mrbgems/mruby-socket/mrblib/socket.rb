@@ -251,7 +251,7 @@ class TCPSocket < IPSocket
     end
   end
 
-  def self.new_with_prelude pre, *args
+  def self._new_with_prelude(*args, &pre)
     o = self._allocate
     o.instance_eval(&pre)
     o.initialize(*args)
@@ -277,7 +277,9 @@ class TCPServer < TCPSocket
   def accept
     fd = self.sysaccept
     begin
-      TCPSocket.new_with_prelude(proc { @init_with_fd = true }, fd, "r+")
+      TCPSocket._new_with_prelude(fd, "r+") {
+        @init_with_fd = true
+      }
     rescue
       IO._sysclose(fd) rescue nil
       raise
