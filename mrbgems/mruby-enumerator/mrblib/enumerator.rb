@@ -132,16 +132,20 @@ class Enumerator
     @stop_exc = false
   end
 
-  attr_accessor :obj, :meth, :args, :kwd
-  attr_reader :fib
-
   def initialize_copy(obj)
     raise TypeError, "can't copy type #{obj.class}" unless obj.kind_of? Enumerator
-    raise TypeError, "can't copy execution context" if obj.fib
-    @obj = obj.obj
-    @meth = obj.meth
-    @args = obj.args
-    @kwd = obj.kwd
+    raise TypeError, "can't copy execution context" if obj.instance_eval{@fib}
+    meth = args = kwd = fib = nil
+    obj.instance_eval {
+      obj = @obj
+      meth = @meth
+      args = @args
+      kwd = @kwd
+    }
+    @obj = obj
+    @meth = meth
+    @args = args
+    @kwd = kwd
     @fib = nil
     @lookahead = nil
     @feedvalue = nil
@@ -274,14 +278,14 @@ class Enumerator
     obj = self
     if 0 < argv.length
       obj = self.dup
-      args = obj.args
+      args = obj.instance_eval{@args}
       if !args.empty?
         args = args.dup
         args.concat argv
       else
         args = argv.dup
       end
-      obj.args = args
+      obj.instance_eval{@args = args}
     end
     return obj unless block
     enumerator_block_call(&block)
