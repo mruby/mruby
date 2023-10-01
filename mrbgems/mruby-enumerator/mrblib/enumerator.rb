@@ -238,6 +238,14 @@ class Enumerator
     end
   end
 
+  def size
+    if @size
+      @size
+    elsif @obj.respond_to?(:size)
+      @obj.size
+    end
+  end
+
   ##
   # call-seq:
   #   enum.each { |elm| block }                    -> obj
