@@ -173,7 +173,7 @@ class Enumerator
     end
 
     n = offset - 1
-    enumerator_block_call do |*i|
+    __enumerator_block_call do |*i|
       n += 1
       block.call i.__svalue, n
     end
@@ -223,7 +223,7 @@ class Enumerator
   def with_object(object, &block)
     return to_enum(:with_object, object) unless block
 
-    enumerator_block_call do |i|
+    __enumerator_block_call do |i|
       block.call [i,object]
     end
     object
@@ -288,13 +288,13 @@ class Enumerator
       obj.instance_eval{@args = args}
     end
     return obj unless block
-    enumerator_block_call(&block)
+    __enumerator_block_call(&block)
   end
 
-  def enumerator_block_call(&block)
+  def __enumerator_block_call(&block)
     @obj.__send__ @meth, *@args, **@kwd, &block
   end
-  private :enumerator_block_call
+  private :__enumerator_block_call
 
   ##
   # call-seq:
