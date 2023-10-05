@@ -149,10 +149,12 @@ MRB_API void*
 mrb_pool_realloc(mrb_pool *pool, void *p, size_t oldlen, size_t newlen)
 {
   if (!pool) return NULL;
+  if (newlen < oldlen) return p;
   oldlen += ALIGN_PADDING(oldlen);
   newlen += ALIGN_PADDING(newlen);
   for (struct mrb_pool_page *page = pool->pages; page; page = page->next) {
     if (page->last == p) {
+      /* if p is a last allocation from the page */
       size_t beg = (char*)p - page->page;
       if (beg + oldlen != page->offset) break;
       if (beg + newlen > page->len) {
