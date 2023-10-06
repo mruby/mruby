@@ -128,23 +128,6 @@ mrb_pool_alloc(mrb_pool *pool, size_t len)
   return page->last;
 }
 
-MRB_API mrb_bool
-mrb_pool_can_realloc(mrb_pool *pool, void *p, size_t len)
-{
-  if (!pool) return FALSE;
-  len += ALIGN_PADDING(len);
-  for (struct mrb_pool_page *page = pool->pages; page; page = page->next) {
-    if (page->last == p) {
-      size_t beg;
-
-      beg = (char*)p - page->page;
-      if (beg + len > page->len) return FALSE;
-      return TRUE;
-    }
-  }
-  return FALSE;
-}
-
 MRB_API void*
 mrb_pool_realloc(mrb_pool *pool, void *p, size_t oldlen, size_t newlen)
 {
@@ -184,7 +167,7 @@ main(void)
   pool = mrb_pool_open(NULL);
   p = mrb_pool_alloc(pool, len);
   for (i=1; i<20; i++) {
-    printf("%p (len=%d) %ud\n", p, len, mrb_pool_can_realloc(pool, p, len*2));
+    printf("%p (len=%d)\n", p, len);
     p = mrb_pool_realloc(pool, p, len, len*2);
     len *= 2;
   }
