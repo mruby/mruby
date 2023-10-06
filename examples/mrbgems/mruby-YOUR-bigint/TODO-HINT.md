@@ -21,9 +21,9 @@ The file structure in this example is as follows:
                             May be depended on by other GEMs.
 ```
 
-Implementors of their own bigints should copy below this directory to another directory and do the following:
+Implementers of their own bigints should copy below this directory to another directory and do the following:
 
-- Rewrite `spec.author`, `spec.license`, `spec.homepage` and `spec.summary` in `<gem-dir>/mrbgem.rake` file to those of your own implementors.
+- Rewrite `spec.author`, `spec.license`, `spec.homepage` and `spec.summary` in `<gem-dir>/mrbgem.rake` file to those of your own implementers.
 - Implement the respective functions in `<gem-dir>/core/bigint.c`.
   - Define and use an object structure for `MRB_TT_BIGINT` type-tag.
     It is recommended to use `mrb_static_assert_object_size()` to ensure that the size of the object structure is within six words.

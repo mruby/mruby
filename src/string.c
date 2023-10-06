@@ -2423,7 +2423,7 @@ mrb_str_len_to_integer(mrb_state *mrb, const char *str, size_t len, mrb_int base
   return mrb_fixnum_value(0);
 }
 
-/* obslete: use RSTRING_CSTR() or mrb_string_cstr() */
+/* obsolete: use RSTRING_CSTR() or mrb_string_cstr() */
 MRB_API const char*
 mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr)
 {
