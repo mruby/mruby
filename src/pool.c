@@ -139,8 +139,12 @@ mrb_pool_realloc(mrb_pool *pool, void *p, size_t oldlen, size_t newlen)
     if (page->last == p) {
       /* if p is a last allocation from the page */
       size_t beg = (char*)p - page->page;
+      /* check beg + oldlen points bottom */
+      /* assert(beg + oldlen == page->offset) */
       if (beg + oldlen != page->offset) break;
       if (beg + newlen > page->len) {
+        /* new allocation need more space */
+        /* abandon this space */
         page->offset = beg;
         break;
       }
