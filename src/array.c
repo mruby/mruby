@@ -1114,14 +1114,13 @@ static mrb_value
 mrb_ary_last(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
-  mrb_int n, size, alen;
+  mrb_int alen = ARY_LEN(a);
 
-  n = mrb_get_args(mrb, "|i", &size);
-  alen = ARY_LEN(a);
-  if (n == 0) {
+  if (mrb_get_argc(mrb) == 0) {
     return (alen > 0) ? ARY_PTR(a)[alen - 1]: mrb_nil_value();
   }
 
+  mrb_int size = mrb_integer(mrb_get_arg1(mrb));
   if (size < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "negative array size");
   }
