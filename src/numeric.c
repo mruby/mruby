@@ -2012,9 +2012,14 @@ mrb_integer_to_str(mrb_state *mrb, mrb_value x, mrb_int base)
 static mrb_value
 int_to_s(mrb_state *mrb, mrb_value self)
 {
-  mrb_int base = 10;
+  mrb_int base;
 
-  mrb_get_args(mrb, "|i", &base);
+  if (mrb_get_argc(mrb) > 0) {
+    base = mrb_integer(mrb_get_arg1(mrb));
+  }
+  else {
+    base = 10;
+  }
   return mrb_integer_to_str(mrb, self, base);
 }
 
