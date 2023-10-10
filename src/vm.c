@@ -2210,14 +2210,13 @@ RETRY_TRY_BLOCK:
       if (mrb->exc) {
       L_RAISE:
         ci = mrb->c->ci;
-        while ((ch = catch_handler_find(mrb, ci, pc, MRB_CATCH_FILTER_ALL)) == NULL) {
+        while ((ch = catch_handler_find(mrb, ci, ci->pc, MRB_CATCH_FILTER_ALL)) == NULL) {
           if (ci != mrb->c->cibase) {
             ci = cipop(mrb);
             if (ci[1].cci == CINFO_SKIP && prev_jmp) {
               mrb->jmp = prev_jmp;
               MRB_THROW(prev_jmp);
             }
-            pc = ci[0].pc;
           }
           else if (mrb->c == mrb->root_c) {
             mrb->c->ci->stack = mrb->c->stbase;
