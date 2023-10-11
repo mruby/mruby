@@ -189,6 +189,20 @@ range_size(mrb_state *mrb, mrb_value range)
 }
 #endif /* MRB_NO_FLOAT */
 
+static mrb_value
+range_empty_p(mrb_state *mrb, mrb_value range)
+{
+  mrb_value b, e;
+  mrb_bool excl;
+
+  mrb_get_args(mrb, "oob", &b, &e, &excl);
+  if (mrb_nil_p(b) || mrb_nil_p(e))
+    return mrb_false_value();
+
+  mrb_int comp = mrb_cmp(mrb, b, e);
+  return mrb_bool_value(comp == -2 || comp > 0 || (comp == 0 && excl));
+}
+
 void
 mrb_mruby_range_ext_gem_init(mrb_state* mrb)
 {
@@ -196,6 +210,7 @@ mrb_mruby_range_ext_gem_init(mrb_state* mrb)
 
   mrb_define_method(mrb, s, "cover?", range_cover, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, s, "size",   range_size,  MRB_ARGS_NONE());
+  mrb_define_method(mrb, s, "__empty_range?", range_empty_p,  MRB_ARGS_REQ(3));
 }
 
 void

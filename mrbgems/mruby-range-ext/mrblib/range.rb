@@ -121,11 +121,4 @@ class Range
 
     true
   end
-
-  def __empty_range?(b, e, excl)
-    return false if b.nil? || e.nil?
-
-    comp = b <=> e
-    comp.nil? || comp > 0 || (comp == 0 && excl)
-  end
 end
