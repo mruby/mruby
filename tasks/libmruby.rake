@@ -41,7 +41,7 @@ MRuby.each_target do
     open(t.name, 'w') do |f|
       f.puts <<~FLAGS_MAKE
         # GNU make is required to use this file.
-        MRUBY_PACKAGE_DIR_GNU := $(shell dirname "$(firstword $(MAKEFILE_LIST))")
+        MRUBY_PACKAGE_DIR_GNU := $(shell dirname "$(lastword $(MAKEFILE_LIST))")
         MRUBY_PACKAGE_DIR != dirname "$(MRUBY_PACKAGE_DIR_GNU)"
       FLAGS_MAKE
 
