@@ -140,9 +140,9 @@ class Set
     end
   end
 
- def disjoint?(set)
-  !intersect?(set)
- end
+  def disjoint?(set)
+    !intersect?(set)
+  end
 
   def each(&block)
     return to_enum :each unless block_given?
@@ -190,10 +190,10 @@ class Set
   end
 
   def collect!
-   return to_enum :collect! unless block_given?
-   set = self.class.new
-   each { |o| set << yield(o) }
-   replace(set)
+    return to_enum :collect! unless block_given?
+    set = self.class.new
+    each { |o| set << yield(o) }
+    replace(set)
   end
   alias map! collect!
 

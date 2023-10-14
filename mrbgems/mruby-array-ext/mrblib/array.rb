@@ -820,7 +820,7 @@ class Array
     return to_enum(:combination, n) unless block
     size = self.size
     if n == 0
-       yield []
+      yield []
     elsif n == 1
       i = 0
       while i<size
