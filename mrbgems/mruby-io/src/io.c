@@ -139,8 +139,7 @@ io_modestr_to_flags(mrb_state *mrb, const char *mode)
       flags = O_WRONLY | O_CREAT | O_APPEND;
       break;
     default:
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal access mode %s", mode);
-      flags = 0; /* not reached */
+      goto modeerr;
   }
 
   while (*m) {
@@ -156,11 +155,15 @@ io_modestr_to_flags(mrb_state *mrb, const char *mode)
       case ':':
         /* XXX: PASSTHROUGH*/
       default:
-        mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal access mode %s", mode);
+        goto modeerr;
     }
   }
 
   return flags;
+
+ modeerr:
+  mrb_raisef(mrb, E_ARGUMENT_ERROR, "illegal access mode %s", mode);
+  return 0; /* not reached */
 }
 
 static int
