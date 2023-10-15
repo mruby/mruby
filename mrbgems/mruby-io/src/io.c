@@ -149,6 +149,10 @@ io_modestr_to_flags(mrb_state *mrb, const char *mode)
         flags |= O_BINARY;
 #endif
         break;
+      case 'x':
+        if (mode[0] != 'w') goto modeerr;
+        flags |= O_EXCL;
+        break;
       case '+':
         flags = (flags & ~OPEN_ACCESS_MODE_FLAGS) | O_RDWR;
         break;
