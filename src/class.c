@@ -1268,7 +1268,7 @@ get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list *ap)
           const mrb_sym *kname = kwargs->table;
           mrb_value *values = kwargs->values;
           mrb_int j;
-          const uint32_t keyword_max = 40;
+          const mrb_int keyword_max = 40;
 
           mrb_assert(kwnum >= 0);
           mrb_assert(required >= 0);
