@@ -260,4 +260,30 @@ assert('File.chmod') do
   end
 end
 
+assert('File.open with "x" mode') do
+  File.unlink $mrbtest_io_wfname rescue nil
+  assert_nothing_raised do
+    File.open($mrbtest_io_wfname, "wx") {}
+  end
+  assert_raise(RuntimeError) do
+    File.open($mrbtest_io_wfname, "wx") {}
+  end
+
+  File.unlink $mrbtest_io_wfname rescue nil
+  assert_nothing_raised do
+    File.open($mrbtest_io_wfname, "w+x") {}
+  end
+  assert_raise(RuntimeError) do
+    File.open($mrbtest_io_wfname, "w+x") {}
+  end
+
+  assert_raise(ArgumentError) do
+    File.open($mrbtest_io_wfname, "rx") {}
+  end
+
+  assert_raise(ArgumentError) do
+    File.open($mrbtest_io_wfname, "ax") {}
+  end
+end
+
 MRubyIOTestUtil.io_test_cleanup
