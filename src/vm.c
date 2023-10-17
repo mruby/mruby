@@ -747,7 +747,7 @@ exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p)
   ci->stack[0] = self;
   CI_PROC_SET(ci, p);
   if (MRB_PROC_CFUNC_P(p)) {
-    if (MRB_PROC_NOARG_P(p)) {
+    if (MRB_PROC_NOARG_P(p) && (ci->n > 0 || ci->nk > 0)) {
       check_method_noarg(mrb, ci);
     }
     return MRB_PROC_CFUNC(p)(mrb, self);
@@ -777,7 +777,7 @@ mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p)
   else {
     mrb_value ret;
     if (MRB_PROC_CFUNC_P(p)) {
-      if (MRB_PROC_NOARG_P(p)) {
+      if (MRB_PROC_NOARG_P(p) && (ci->n > 0 || ci->nk > 0)) {
         check_method_noarg(mrb, ci);
       }
       cipush(mrb, 0, CINFO_DIRECT, CI_TARGET_CLASS(ci), p, NULL, ci->mid, ci->n|(ci->nk<<4));
@@ -870,7 +870,7 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
   }
 
   if (MRB_METHOD_CFUNC_P(m)) {
-    if (MRB_METHOD_NOARG_P(m)) {
+    if (MRB_METHOD_NOARG_P(m) && (ci->n > 0 || ci->nk > 0)) {
       check_method_noarg(mrb, ci);
     }
 
@@ -1824,7 +1824,7 @@ RETRY_TRY_BLOCK:
           recv = p->body.func(mrb, recv);
         }
         else {
-          if (MRB_METHOD_NOARG_P(m)) {
+          if (MRB_METHOD_NOARG_P(m) && (ci->n > 0 || ci->nk > 0)) {
             check_method_noarg(mrb, ci);
           }
           recv = MRB_METHOD_FUNC(m)(mrb, recv);
