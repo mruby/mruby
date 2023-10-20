@@ -1868,33 +1868,33 @@ mrb_init_hash(mrb_state *mrb)
   mrb->hash_class = h = mrb_define_class(mrb, "Hash", mrb->object_class);              /* 15.2.13 */
   MRB_SET_INSTANCE_TT(h, MRB_TT_HASH);
 
-  mrb_define_method(mrb, h, "[]",              mrb_hash_aget,        MRB_ARGS_REQ(1)); /* 15.2.13.4.2  */
-  mrb_define_method(mrb, h, "[]=",             mrb_hash_aset,        MRB_ARGS_REQ(2)); /* 15.2.13.4.3  */
-  mrb_define_method(mrb, h, "clear",           mrb_hash_clear,       MRB_ARGS_NONE()); /* 15.2.13.4.4  */
-  mrb_define_method(mrb, h, "default",         mrb_hash_default,     MRB_ARGS_OPT(1)); /* 15.2.13.4.5  */
-  mrb_define_method(mrb, h, "default=",        mrb_hash_set_default, MRB_ARGS_REQ(1)); /* 15.2.13.4.6  */
-  mrb_define_method(mrb, h, "default_proc",    mrb_hash_default_proc,MRB_ARGS_NONE()); /* 15.2.13.4.7  */
-  mrb_define_method(mrb, h, "default_proc=",   mrb_hash_set_default_proc,MRB_ARGS_REQ(1)); /* 15.2.13.4.7  */
-  mrb_define_method(mrb, h, "__delete",        mrb_hash_delete,      MRB_ARGS_REQ(1)); /* core of 15.2.13.4.8  */
-  mrb_define_method(mrb, h, "empty?",          mrb_hash_empty_m,     MRB_ARGS_NONE()); /* 15.2.13.4.12 */
-  mrb_define_method(mrb, h, "has_key?",        mrb_hash_has_key,     MRB_ARGS_REQ(1)); /* 15.2.13.4.13 */
-  mrb_define_method(mrb, h, "has_value?",      mrb_hash_has_value,   MRB_ARGS_REQ(1)); /* 15.2.13.4.14 */
-  mrb_define_method(mrb, h, "include?",        mrb_hash_has_key,     MRB_ARGS_REQ(1)); /* 15.2.13.4.15 */
-  mrb_define_method(mrb, h, "initialize",      mrb_hash_init,        MRB_ARGS_OPT(1)|MRB_ARGS_BLOCK()); /* 15.2.13.4.16 */
-  mrb_define_method(mrb, h, "initialize_copy", mrb_hash_init_copy,   MRB_ARGS_REQ(1)); /* 15.2.13.4.17 */
-  mrb_define_method(mrb, h, "key?",            mrb_hash_has_key,     MRB_ARGS_REQ(1)); /* 15.2.13.4.18 */
-  mrb_define_method(mrb, h, "keys",            mrb_hash_keys,        MRB_ARGS_NONE()); /* 15.2.13.4.19 */
-  mrb_define_method(mrb, h, "length",          mrb_hash_size_m,      MRB_ARGS_NONE()); /* 15.2.13.4.20 */
-  mrb_define_method(mrb, h, "member?",         mrb_hash_has_key,     MRB_ARGS_REQ(1)); /* 15.2.13.4.21 */
-  mrb_define_method(mrb, h, "replace",         mrb_hash_init_copy,   MRB_ARGS_REQ(1)); /* 15.2.13.4.23 */
-  mrb_define_method(mrb, h, "shift",           mrb_hash_shift,       MRB_ARGS_NONE()); /* 15.2.13.4.24 */
-  mrb_define_method(mrb, h, "size",            mrb_hash_size_m,      MRB_ARGS_NONE()); /* 15.2.13.4.25 */
-  mrb_define_method(mrb, h, "store",           mrb_hash_aset,        MRB_ARGS_REQ(2)); /* 15.2.13.4.26 */
-  mrb_define_method(mrb, h, "value?",          mrb_hash_has_value,   MRB_ARGS_REQ(1)); /* 15.2.13.4.27 */
-  mrb_define_method(mrb, h, "values",          mrb_hash_values,      MRB_ARGS_NONE()); /* 15.2.13.4.28 */
-  mrb_define_method(mrb, h, "to_s",            mrb_hash_to_s,        MRB_ARGS_NONE());
-  mrb_define_method(mrb, h, "inspect",         mrb_hash_to_s,        MRB_ARGS_NONE());
-  mrb_define_method(mrb, h, "rehash",          mrb_hash_rehash,      MRB_ARGS_NONE());
-  mrb_define_method(mrb, h, "__merge",         mrb_hash_merge_m,     MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, h, "__compact",       mrb_hash_compact,     MRB_ARGS_NONE()); /* implementation of Hash#compact! */
+  mrb_define_method_id(mrb, h, MRB_OPSYM(aref),          mrb_hash_aget,        MRB_ARGS_REQ(1)); /* 15.2.13.4.2  */
+  mrb_define_method_id(mrb, h, MRB_OPSYM(aset),          mrb_hash_aset,        MRB_ARGS_REQ(2)); /* 15.2.13.4.3  */
+  mrb_define_method_id(mrb, h, MRB_SYM(clear),           mrb_hash_clear,       MRB_ARGS_NONE()); /* 15.2.13.4.4  */
+  mrb_define_method_id(mrb, h, MRB_SYM(default),         mrb_hash_default,     MRB_ARGS_OPT(1)); /* 15.2.13.4.5  */
+  mrb_define_method_id(mrb, h, MRB_SYM_E(default),       mrb_hash_set_default, MRB_ARGS_REQ(1)); /* 15.2.13.4.6  */
+  mrb_define_method_id(mrb, h, MRB_SYM(default_proc),    mrb_hash_default_proc,MRB_ARGS_NONE()); /* 15.2.13.4.7  */
+  mrb_define_method_id(mrb, h, MRB_SYM_E(default_proc),  mrb_hash_set_default_proc,MRB_ARGS_REQ(1)); /* 15.2.13.4.7  */
+  mrb_define_method_id(mrb, h, MRB_SYM(__delete),        mrb_hash_delete,      MRB_ARGS_REQ(1)); /* core of 15.2.13.4.8  */
+  mrb_define_method_id(mrb, h, MRB_SYM_Q(empty),         mrb_hash_empty_m,     MRB_ARGS_NONE()); /* 15.2.13.4.12 */
+  mrb_define_method_id(mrb, h, MRB_SYM_Q(has_key),       mrb_hash_has_key,     MRB_ARGS_REQ(1)); /* 15.2.13.4.13 */
+  mrb_define_method_id(mrb, h, MRB_SYM_Q(has_value),     mrb_hash_has_value,   MRB_ARGS_REQ(1)); /* 15.2.13.4.14 */
+  mrb_define_method_id(mrb, h, MRB_SYM_Q(include),       mrb_hash_has_key,     MRB_ARGS_REQ(1)); /* 15.2.13.4.15 */
+  mrb_define_method_id(mrb, h, MRB_SYM(initialize),      mrb_hash_init,        MRB_ARGS_OPT(1)|MRB_ARGS_BLOCK()); /* 15.2.13.4.16 */
+  mrb_define_method_id(mrb, h, MRB_SYM(initialize_copy), mrb_hash_init_copy,   MRB_ARGS_REQ(1)); /* 15.2.13.4.17 */
+  mrb_define_method_id(mrb, h, MRB_SYM_Q(key),           mrb_hash_has_key,     MRB_ARGS_REQ(1)); /* 15.2.13.4.18 */
+  mrb_define_method_id(mrb, h, MRB_SYM(keys),            mrb_hash_keys,        MRB_ARGS_NONE()); /* 15.2.13.4.19 */
+  mrb_define_method_id(mrb, h, MRB_SYM(length),          mrb_hash_size_m,      MRB_ARGS_NONE()); /* 15.2.13.4.20 */
+  mrb_define_method_id(mrb, h, MRB_SYM_Q(member),        mrb_hash_has_key,     MRB_ARGS_REQ(1)); /* 15.2.13.4.21 */
+  mrb_define_method_id(mrb, h, MRB_SYM(replace),         mrb_hash_init_copy,   MRB_ARGS_REQ(1)); /* 15.2.13.4.23 */
+  mrb_define_method_id(mrb, h, MRB_SYM(shift),           mrb_hash_shift,       MRB_ARGS_NONE()); /* 15.2.13.4.24 */
+  mrb_define_method_id(mrb, h, MRB_SYM(size),            mrb_hash_size_m,      MRB_ARGS_NONE()); /* 15.2.13.4.25 */
+  mrb_define_method_id(mrb, h, MRB_SYM(store),           mrb_hash_aset,        MRB_ARGS_REQ(2)); /* 15.2.13.4.26 */
+  mrb_define_method_id(mrb, h, MRB_SYM_Q(value),         mrb_hash_has_value,   MRB_ARGS_REQ(1)); /* 15.2.13.4.27 */
+  mrb_define_method_id(mrb, h, MRB_SYM(values),          mrb_hash_values,      MRB_ARGS_NONE()); /* 15.2.13.4.28 */
+  mrb_define_method_id(mrb, h, MRB_SYM(to_s),            mrb_hash_to_s,        MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, h, MRB_SYM(inspect),         mrb_hash_to_s,        MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, h, MRB_SYM(rehash),          mrb_hash_rehash,      MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, h, MRB_SYM(__merge),         mrb_hash_merge_m,     MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, h, MRB_SYM(__compact),       mrb_hash_compact,     MRB_ARGS_NONE()); /* implementation of Hash#compact! */
 }

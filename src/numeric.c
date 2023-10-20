@@ -2221,50 +2221,50 @@ mrb_init_numeric(mrb_state *mrb)
 
   /* Numeric Class */
   numeric = mrb_define_class(mrb, "Numeric",  mrb->object_class);                /* 15.2.7 */
-  mrb_define_method(mrb, numeric, "finite?",  num_finite_p,    MRB_ARGS_NONE());
-  mrb_define_method(mrb, numeric, "infinite?",num_infinite_p,  MRB_ARGS_NONE());
-  mrb_define_method(mrb, numeric, "eql?",     num_eql,         MRB_ARGS_REQ(1)); /* 15.2.8.3.16 */
+  mrb_define_method_id(mrb, numeric, MRB_SYM_Q(finite),  num_finite_p,    MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, numeric, MRB_SYM_Q(infinite),num_infinite_p,  MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, numeric, MRB_SYM_Q(eql),     num_eql,         MRB_ARGS_REQ(1)); /* 15.2.8.3.16 */
 
   /* Integer Class */
   mrb->integer_class = integer = mrb_define_class(mrb, "Integer",  numeric);     /* 15.2.8 */
   MRB_SET_INSTANCE_TT(integer, MRB_TT_UNDEF);
   mrb_undef_class_method(mrb, integer, "new");
-  mrb_define_method(mrb, integer, "**",       int_pow,         MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, integer, "<=>",      num_cmp,         MRB_ARGS_REQ(1)); /* 15.2.8.3.1  */
-  mrb_define_method(mrb, integer, "<",        num_lt,          MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, integer, "<=",       num_le,          MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, integer, ">",        num_gt,          MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, integer, ">=",       num_ge,          MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, integer, MRB_OPSYM(pow),    int_pow,         MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, integer, MRB_OPSYM(cmp),    num_cmp,         MRB_ARGS_REQ(1)); /* 15.2.8.3.1  */
+  mrb_define_method_id(mrb, integer, MRB_OPSYM(lt),     num_lt,          MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, integer, MRB_OPSYM(le),     num_le,          MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, integer, MRB_OPSYM(gt),     num_gt,          MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, integer, MRB_OPSYM(ge),     num_ge,          MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, integer, "to_i",     int_to_i,        MRB_ARGS_NONE()); /* 15.2.8.3.24 */
-  mrb_define_method(mrb, integer, "to_int",   int_to_i,        MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, integer, MRB_SYM(to_i),     int_to_i,        MRB_ARGS_NONE()); /* 15.2.8.3.24 */
+  mrb_define_method_id(mrb, integer, MRB_SYM(to_int),   int_to_i,        MRB_ARGS_NONE());
 
-  mrb_define_method(mrb, integer, "+",        int_add,         MRB_ARGS_REQ(1)); /* 15.2.8.3.1 */
-  mrb_define_method(mrb, integer, "-",        int_sub,         MRB_ARGS_REQ(1)); /* 15.2.8.3.2 */
-  mrb_define_method(mrb, integer, "*",        int_mul,         MRB_ARGS_REQ(1)); /* 15.2.8.3.3 */
-  mrb_define_method(mrb, integer, "%",        int_mod,         MRB_ARGS_REQ(1)); /* 15.2.8.3.5 */
-  mrb_define_method(mrb, integer, "/",        int_div,         MRB_ARGS_REQ(1)); /* 15.2.8.3.6 */
-  mrb_define_method(mrb, integer, "quo",      int_quo,         MRB_ARGS_REQ(1)); /* 15.2.7.4.5(x) */
-  mrb_define_method(mrb, integer, "div",      int_idiv,        MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, integer, "==",       int_equal,       MRB_ARGS_REQ(1)); /* 15.2.8.3.7 */
-  mrb_define_method(mrb, integer, "~",        int_rev,         MRB_ARGS_NONE()); /* 15.2.8.3.8 */
-  mrb_define_method(mrb, integer, "&",        int_and,         MRB_ARGS_REQ(1)); /* 15.2.8.3.9 */
-  mrb_define_method(mrb, integer, "|",        int_or,          MRB_ARGS_REQ(1)); /* 15.2.8.3.10 */
-  mrb_define_method(mrb, integer, "^",        int_xor,         MRB_ARGS_REQ(1)); /* 15.2.8.3.11 */
-  mrb_define_method(mrb, integer, "<<",       int_lshift,      MRB_ARGS_REQ(1)); /* 15.2.8.3.12 */
-  mrb_define_method(mrb, integer, ">>",       int_rshift,      MRB_ARGS_REQ(1)); /* 15.2.8.3.13 */
-  mrb_define_method(mrb, integer, "ceil",     int_ceil,        MRB_ARGS_OPT(1)); /* 15.2.8.3.14 */
-  mrb_define_method(mrb, integer, "floor",    int_floor,       MRB_ARGS_OPT(1)); /* 15.2.8.3.17 */
-  mrb_define_method(mrb, integer, "round",    int_round,       MRB_ARGS_OPT(1)); /* 15.2.8.3.20 */
-  mrb_define_method(mrb, integer, "truncate", int_truncate,    MRB_ARGS_OPT(1)); /* 15.2.8.3.26 */
-  mrb_define_method(mrb, integer, "hash",     int_hash,        MRB_ARGS_NONE()); /* 15.2.8.3.18 */
+  mrb_define_method_id(mrb, integer, MRB_OPSYM(add),    int_add,         MRB_ARGS_REQ(1)); /* 15.2.8.3.1 */
+  mrb_define_method_id(mrb, integer, MRB_OPSYM(sub),    int_sub,         MRB_ARGS_REQ(1)); /* 15.2.8.3.2 */
+  mrb_define_method_id(mrb, integer, MRB_OPSYM(mul),    int_mul,         MRB_ARGS_REQ(1)); /* 15.2.8.3.3 */
+  mrb_define_method_id(mrb, integer, MRB_OPSYM(mod),    int_mod,         MRB_ARGS_REQ(1)); /* 15.2.8.3.5 */
+  mrb_define_method_id(mrb, integer, MRB_OPSYM(div),    int_div,         MRB_ARGS_REQ(1)); /* 15.2.8.3.6 */
+  mrb_define_method_id(mrb, integer, MRB_SYM(quo),      int_quo,         MRB_ARGS_REQ(1)); /* 15.2.7.4.5(x) */
+  mrb_define_method_id(mrb, integer, MRB_SYM(div),      int_idiv,        MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, integer, MRB_OPSYM(eq),     int_equal,       MRB_ARGS_REQ(1)); /* 15.2.8.3.7 */
+  mrb_define_method_id(mrb, integer, MRB_OPSYM(neg),    int_rev,         MRB_ARGS_NONE()); /* 15.2.8.3.8 */
+  mrb_define_method_id(mrb, integer, MRB_OPSYM(and),    int_and,         MRB_ARGS_REQ(1)); /* 15.2.8.3.9 */
+  mrb_define_method_id(mrb, integer, MRB_OPSYM(or),     int_or,          MRB_ARGS_REQ(1)); /* 15.2.8.3.10 */
+  mrb_define_method_id(mrb, integer, MRB_OPSYM(xor),    int_xor,         MRB_ARGS_REQ(1)); /* 15.2.8.3.11 */
+  mrb_define_method_id(mrb, integer, MRB_OPSYM(lshift), int_lshift,      MRB_ARGS_REQ(1)); /* 15.2.8.3.12 */
+  mrb_define_method_id(mrb, integer, MRB_OPSYM(rshift), int_rshift,      MRB_ARGS_REQ(1)); /* 15.2.8.3.13 */
+  mrb_define_method_id(mrb, integer, MRB_SYM(ceil),     int_ceil,        MRB_ARGS_OPT(1)); /* 15.2.8.3.14 */
+  mrb_define_method_id(mrb, integer, MRB_SYM(floor),    int_floor,       MRB_ARGS_OPT(1)); /* 15.2.8.3.17 */
+  mrb_define_method_id(mrb, integer, MRB_SYM(round),    int_round,       MRB_ARGS_OPT(1)); /* 15.2.8.3.20 */
+  mrb_define_method_id(mrb, integer, MRB_SYM(truncate), int_truncate,    MRB_ARGS_OPT(1)); /* 15.2.8.3.26 */
+  mrb_define_method_id(mrb, integer, MRB_SYM(hash),     int_hash,        MRB_ARGS_NONE()); /* 15.2.8.3.18 */
 #ifndef MRB_NO_FLOAT
-  mrb_define_method(mrb, integer, "to_f",     int_to_f,        MRB_ARGS_NONE()); /* 15.2.8.3.23 */
+  mrb_define_method_id(mrb, integer, MRB_SYM(to_f),     int_to_f,        MRB_ARGS_NONE()); /* 15.2.8.3.23 */
 #endif
-  mrb_define_method(mrb, integer, "to_s",     int_to_s,        MRB_ARGS_OPT(1)); /* 15.2.8.3.25 */
-  mrb_define_method(mrb, integer, "inspect",  int_to_s,        MRB_ARGS_OPT(1));
-  mrb_define_method(mrb, integer, "divmod",   int_divmod,      MRB_ARGS_REQ(1)); /* 15.2.8.3.30(x) */
-  mrb_define_method(mrb, integer, "__coerce_step_counter", coerce_step_counter, MRB_ARGS_REQ(2));
+  mrb_define_method_id(mrb, integer, MRB_SYM(to_s),     int_to_s,        MRB_ARGS_OPT(1)); /* 15.2.8.3.25 */
+  mrb_define_method_id(mrb, integer, MRB_SYM(inspect),  int_to_s,        MRB_ARGS_OPT(1));
+  mrb_define_method_id(mrb, integer, MRB_SYM(divmod),   int_divmod,      MRB_ARGS_REQ(1)); /* 15.2.8.3.30(x) */
+  mrb_define_method_id(mrb, integer, MRB_SYM(__coerce_step_counter), coerce_step_counter, MRB_ARGS_REQ(2));
 
   /* Fixnum Class for compatibility */
   mrb_define_const(mrb, mrb->object_class, "Fixnum", mrb_obj_value(integer));
@@ -2274,41 +2274,41 @@ mrb_init_numeric(mrb_state *mrb)
   mrb->float_class = fl = mrb_define_class(mrb, "Float", numeric);                 /* 15.2.9 */
   MRB_SET_INSTANCE_TT(fl, MRB_TT_UNDEF);
   mrb_undef_class_method(mrb,  fl, "new");
-  mrb_define_method(mrb, fl,      "**",        flo_pow,        MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, fl,      "/",         flo_div,        MRB_ARGS_REQ(1)); /* 15.2.9.3.6 */
-  mrb_define_method(mrb, fl,      "quo",       flo_div,        MRB_ARGS_REQ(1)); /* 15.2.7.4.5(x) */
-  mrb_define_method(mrb, fl,      "div",       flo_idiv,       MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, fl,      "+",         flo_add,        MRB_ARGS_REQ(1)); /* 15.2.9.3.3 */
-  mrb_define_method(mrb, fl,      "-",         flo_sub,        MRB_ARGS_REQ(1)); /* 15.2.9.3.4 */
-  mrb_define_method(mrb, fl,      "*",         flo_mul,        MRB_ARGS_REQ(1)); /* 15.2.9.3.5 */
-  mrb_define_method(mrb, fl,      "%",         flo_mod,        MRB_ARGS_REQ(1)); /* 15.2.9.3.7 */
-  mrb_define_method(mrb, fl,      "<=>",       num_cmp,        MRB_ARGS_REQ(1)); /* 15.2.9.3.1 */
-  mrb_define_method(mrb, fl,      "<",         num_lt,         MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, fl,      "<=",        num_le,         MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, fl,      ">",         num_gt,         MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, fl,      ">=",        num_ge,         MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, fl,      "==",        flo_eq,         MRB_ARGS_REQ(1)); /* 15.2.9.3.2 */
-  mrb_define_method(mrb, fl,      "~",         flo_rev,        MRB_ARGS_NONE());
-  mrb_define_method(mrb, fl,      "&",         flo_and,        MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, fl,      "|",         flo_or,         MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, fl,      "^",         flo_xor,        MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, fl,      ">>",        flo_rshift,     MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, fl,      "<<",        flo_lshift,     MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, fl,      "ceil",      flo_ceil,       MRB_ARGS_OPT(1)); /* 15.2.9.3.8  */
-  mrb_define_method(mrb, fl,      "finite?",   flo_finite_p,   MRB_ARGS_NONE()); /* 15.2.9.3.9  */
-  mrb_define_method(mrb, fl,      "floor",     flo_floor,      MRB_ARGS_OPT(1)); /* 15.2.9.3.10 */
-  mrb_define_method(mrb, fl,      "infinite?", flo_infinite_p, MRB_ARGS_NONE()); /* 15.2.9.3.11 */
-  mrb_define_method(mrb, fl,      "round",     flo_round,      MRB_ARGS_OPT(1)); /* 15.2.9.3.12 */
-  mrb_define_method(mrb, fl,      "to_f",      flo_to_f,       MRB_ARGS_NONE()); /* 15.2.9.3.13 */
-  mrb_define_method(mrb, fl,      "to_i",      flo_to_i,       MRB_ARGS_NONE()); /* 15.2.9.3.14 */
-  mrb_define_method(mrb, fl,      "truncate",  flo_truncate,   MRB_ARGS_OPT(1)); /* 15.2.9.3.15 */
-  mrb_define_method(mrb, fl,      "divmod",    flo_divmod,     MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, fl,      MRB_OPSYM(pow),     flo_pow,        MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, fl,      MRB_OPSYM(div),     flo_div,        MRB_ARGS_REQ(1)); /* 15.2.9.3.6 */
+  mrb_define_method_id(mrb, fl,      MRB_SYM(quo),       flo_div,        MRB_ARGS_REQ(1)); /* 15.2.7.4.5(x) */
+  mrb_define_method_id(mrb, fl,      MRB_SYM(div),       flo_idiv,       MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, fl,      MRB_OPSYM(add),     flo_add,        MRB_ARGS_REQ(1)); /* 15.2.9.3.3 */
+  mrb_define_method_id(mrb, fl,      MRB_OPSYM(sub),     flo_sub,        MRB_ARGS_REQ(1)); /* 15.2.9.3.4 */
+  mrb_define_method_id(mrb, fl,      MRB_OPSYM(mul),     flo_mul,        MRB_ARGS_REQ(1)); /* 15.2.9.3.5 */
+  mrb_define_method_id(mrb, fl,      MRB_OPSYM(mod),     flo_mod,        MRB_ARGS_REQ(1)); /* 15.2.9.3.7 */
+  mrb_define_method_id(mrb, fl,      MRB_OPSYM(cmp),     num_cmp,        MRB_ARGS_REQ(1)); /* 15.2.9.3.1 */
+  mrb_define_method_id(mrb, fl,      MRB_OPSYM(lt),      num_lt,         MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, fl,      MRB_OPSYM(le),      num_le,         MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, fl,      MRB_OPSYM(gt),      num_gt,         MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, fl,      MRB_OPSYM(ge),      num_ge,         MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, fl,      MRB_OPSYM(eq),      flo_eq,         MRB_ARGS_REQ(1)); /* 15.2.9.3.2 */
+  mrb_define_method_id(mrb, fl,      MRB_OPSYM(neg),     flo_rev,        MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, fl,      MRB_OPSYM(and),     flo_and,        MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, fl,      MRB_OPSYM(or),      flo_or,         MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, fl,      MRB_OPSYM(xor),     flo_xor,        MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, fl,      MRB_OPSYM(rshift),  flo_rshift,     MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, fl,      MRB_OPSYM(lshift),  flo_lshift,     MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, fl,      MRB_SYM(ceil),      flo_ceil,       MRB_ARGS_OPT(1)); /* 15.2.9.3.8  */
+  mrb_define_method_id(mrb, fl,      MRB_SYM_Q(finite),  flo_finite_p,   MRB_ARGS_NONE()); /* 15.2.9.3.9  */
+  mrb_define_method_id(mrb, fl,      MRB_SYM(floor),     flo_floor,      MRB_ARGS_OPT(1)); /* 15.2.9.3.10 */
+  mrb_define_method_id(mrb, fl,      MRB_SYM_Q(infinite),flo_infinite_p, MRB_ARGS_NONE()); /* 15.2.9.3.11 */
+  mrb_define_method_id(mrb, fl,      MRB_SYM(round),     flo_round,      MRB_ARGS_OPT(1)); /* 15.2.9.3.12 */
+  mrb_define_method_id(mrb, fl,      MRB_SYM(to_f),      flo_to_f,       MRB_ARGS_NONE()); /* 15.2.9.3.13 */
+  mrb_define_method_id(mrb, fl,      MRB_SYM(to_i),      flo_to_i,       MRB_ARGS_NONE()); /* 15.2.9.3.14 */
+  mrb_define_method_id(mrb, fl,      MRB_SYM(truncate),  flo_truncate,   MRB_ARGS_OPT(1)); /* 15.2.9.3.15 */
+  mrb_define_method_id(mrb, fl,      MRB_SYM(divmod),    flo_divmod,     MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, fl,      "to_s",      flo_to_s,       MRB_ARGS_NONE()); /* 15.2.9.3.16(x) */
-  mrb_define_method(mrb, fl,      "inspect",   flo_to_s,       MRB_ARGS_NONE());
-  mrb_define_method(mrb, fl,      "nan?",      flo_nan_p,      MRB_ARGS_NONE());
-  mrb_define_method(mrb, fl,      "abs",       flo_abs,        MRB_ARGS_NONE()); /* 15.2.7.4.3 */
-  mrb_define_method(mrb, fl,      "hash",      flo_hash,       MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, fl,      MRB_SYM(to_s),      flo_to_s,       MRB_ARGS_NONE()); /* 15.2.9.3.16(x) */
+  mrb_define_method_id(mrb, fl,      MRB_SYM(inspect),   flo_to_s,       MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, fl,      MRB_SYM_Q(nan),     flo_nan_p,      MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, fl,      MRB_SYM(abs),       flo_abs,        MRB_ARGS_NONE()); /* 15.2.7.4.3 */
+  mrb_define_method_id(mrb, fl,      MRB_SYM(hash),      flo_hash,       MRB_ARGS_NONE());
 
 #ifdef INFINITY
   mrb_define_const_id(mrb, fl, MRB_SYM(INFINITY), mrb_float_value(mrb, INFINITY));
