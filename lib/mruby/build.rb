@@ -397,7 +397,7 @@ EOS
         dst = "#{self.class.install_dir}/#{File.basename(src)}"
         define_installer_outline(src, dst) do
           File.unlink(dst) rescue nil
-          File.symlink(File.expand_path(src), dst)
+          File.symlink(src.relative_path_from(self.class.install_dir), dst)
         end
       end
     end
