@@ -547,17 +547,6 @@ mrb_obj_ceqq(mrb_state *mrb, mrb_value self)
   return mrb_false_value();
 }
 
-static mrb_value
-mrb_encoding(mrb_state *mrb, mrb_value self)
-{
-  mrb_get_args(mrb, "");
-#ifdef MRB_UTF8_STRING
-  return mrb_str_new_lit(mrb, "UTF-8");
-#else
-  return mrb_str_new_lit(mrb, "ASCII-8BIT");
-#endif
-}
-
 void
 mrb_init_kernel(mrb_state *mrb)
 {
@@ -593,7 +582,6 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method_id(mrb, krn, MRB_SYM(to_s),                       mrb_any_to_s,                    MRB_ARGS_NONE());    /* 15.3.1.3.46 */
   mrb_define_method_id(mrb, krn, MRB_SYM(__case_eqq),                 mrb_obj_ceqq,                    MRB_ARGS_REQ(1));    /* internal */
   mrb_define_method_id(mrb, krn, MRB_SYM(__to_int),                   mrb_ensure_int_type,             MRB_ARGS_NONE());    /* internal */
-  mrb_define_method_id(mrb, krn, MRB_SYM(__ENCODING__),               mrb_encoding,                    MRB_ARGS_NONE());
   mrb_define_method_id(mrb, krn, MRB_SYM_Q(respond_to_missing),       mrb_false,                       MRB_ARGS_ARG(1,1));
   mrb_define_method_id(mrb, krn, MRB_SYM_Q(__inspect_recursive),      mrb_obj_inspect_recursive_p,     MRB_ARGS_NONE());
 

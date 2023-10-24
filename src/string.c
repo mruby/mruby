@@ -3037,6 +3037,17 @@ mrb_str_bytesplice(mrb_state *mrb, mrb_value str)
   mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arumgnts");
 }
 
+static mrb_value
+mrb_encoding(mrb_state *mrb, mrb_value self)
+{
+  mrb_get_args(mrb, "");
+#ifdef MRB_UTF8_STRING
+  return mrb_str_new_lit(mrb, "UTF-8");
+#else
+  return mrb_str_new_lit(mrb, "ASCII-8BIT");
+#endif
+}
+
 /* ---------------------------*/
 void
 mrb_init_string(mrb_state *mrb)
@@ -3103,4 +3114,6 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method_id(mrb, s, MRB_SYM(bytesplice),      mrb_str_bytesplice,      MRB_ARGS_ANY());
 
   mrb_define_method_id(mrb, s, MRB_SYM(__sub_replace),   sub_replace,             MRB_ARGS_REQ(3)); /* internal */
+
+  mrb_define_method_id(mrb, mrb->kernel_module, MRB_SYM(__ENCODING__), mrb_encoding, MRB_ARGS_NONE());
 }
