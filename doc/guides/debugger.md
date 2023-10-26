@@ -61,20 +61,20 @@ $ mrdb sample.rb
 
 You can execute the shell commands listed below:
 
-|command|description|
-|:-:|:--|
-|run|execute programs|
-|step|execute stepping|
-|continue|execute continuing program|
-|break|configure the breaking point|
-|delete|deleting the breaking points|
-|disable|disabling the breaking points|
-|enable|enabling the breaking points|
-|info breakpoints|showing list of the breaking points|
-|print|evaluating and printing the values of the mruby expressions in the script|
-|list|displaying the source cords|
-|help|showing help|
-|quit|terminating the mruby debugger|
+|     command      | description                                                               |
+|:----------------:|:--------------------------------------------------------------------------|
+|       run        | execute programs                                                          |
+|       step       | execute stepping                                                          |
+|     continue     | execute continuing program                                                |
+|      break       | configure the breaking point                                              |
+|      delete      | deleting the breaking points                                              |
+|     disable      | disabling the breaking points                                             |
+|      enable      | enabling the breaking points                                              |
+| info breakpoints | showing list of the breaking points                                       |
+|      print       | evaluating and printing the values of the mruby expressions in the script |
+|       list       | displaying the source cords                                               |
+|       help       | showing help                                                              |
+|       quit       | terminating the mruby debugger                                            |
 
 ### 2.2.2 Debugging mruby Binary Files (mrb file) with mrdb
 
