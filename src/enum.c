@@ -6,6 +6,7 @@
 
 #include <mruby.h>
 #include <mruby/proc.h>
+#include <mruby/presym.h>
 
 /* internal method `__update_hash(oldhash, index, itemhash)` */
 static mrb_value
@@ -25,6 +26,6 @@ void
 mrb_init_enumerable(mrb_state *mrb)
 {
   struct RClass *enumerable;
-  enumerable = mrb_define_module(mrb, "Enumerable");  /* 15.3.2 */
-  mrb_define_module_function(mrb, enumerable, "__update_hash", enum_update_hash, MRB_ARGS_REQ(3));
+  enumerable = mrb_define_module_id(mrb, MRB_SYM(Enumerable));  /* 15.3.2 */
+  mrb_define_module_function_id(mrb, enumerable, MRB_SYM(__update_hash), enum_update_hash, MRB_ARGS_REQ(3));
 }
