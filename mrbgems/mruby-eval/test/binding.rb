@@ -62,3 +62,20 @@ assert "access local variables into procs" do
   bx.eval("a = 2")
   assert_equal 2, block.call
 end
+
+assert "Binding#eval on another target class" do
+  obj = Object.new
+  Module.new do
+    self::BINDING = obj.instance_eval { binding }
+
+    def self.eval(code)
+      self::BINDING.eval code
+    end
+
+    self.eval "def self.m1; :m1; end"
+    self.eval "def m2; :m2; end"
+  end
+
+  assert_equal :m1, obj.m1
+  assert_equal :m2, obj.m2
+end
