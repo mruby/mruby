@@ -1343,7 +1343,7 @@ finish:
     s:      String         [const char*,mrb_int]  Receive two arguments; s! gives (NULL,0) for nil
     z:      String         [const char*]          NUL terminated string; z! gives NULL for nil
     a:      Array          [const mrb_value*,mrb_int] Receive two arguments; a! gives (NULL,0) for nil
-    c:      Class/Module   [strcut RClass*]       c! gives NULL for nil
+    c:      Class/Module   [struct RClass*]       c! gives NULL for nil
     f:      Integer/Float  [mrb_float]
     i:      Integer/Float  [mrb_int]
     b:      boolean        [mrb_bool]
