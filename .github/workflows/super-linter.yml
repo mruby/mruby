@@ -20,7 +20,7 @@ jobs:
           # Full git history is needed to get a proper list of changed files within `super-linter`
           fetch-depth: 0
       - name: Lint Code Base
-        uses: super-linter/super-linter/slim@v5.4.3
+        uses: super-linter/super-linter/slim@v5.6.0
         env:
           ERROR_ON_MISSING_EXEC_BIT: true
           VALIDATE_BASH: true
