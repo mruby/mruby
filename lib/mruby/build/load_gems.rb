@@ -299,7 +299,7 @@ module MRuby
           @build.gem_dir_to_repo_url[repo_dir] = url
           @build.locks[url] = {
             'url' => url,
-            'branch' => @build.git.current_branch(repo_dir),
+            'branch' => branch || @build.git.current_branch(repo_dir),
             'commit' => @build.git.commit_hash(repo_dir),
           }
         end
