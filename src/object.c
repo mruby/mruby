@@ -302,9 +302,9 @@ mrb_init_object(mrb_state *mrb)
   struct RClass *t;
   struct RClass *f;
 
-  mrb->nil_class = n = mrb_define_class(mrb, "NilClass", mrb->object_class);
+  mrb->nil_class = n = mrb_define_class_id(mrb, MRB_SYM(NilClass), mrb->object_class);
   MRB_SET_INSTANCE_TT(n, MRB_TT_FALSE);
-  mrb_undef_class_method(mrb, n, "new");
+  mrb_undef_class_method_id(mrb, n, MRB_SYM(new));
   mrb_define_method_id(mrb, n, MRB_OPSYM(and),  false_and,      MRB_ARGS_REQ(1));  /* 15.2.4.3.1  */
   mrb_define_method_id(mrb, n, MRB_OPSYM(or),   false_or,       MRB_ARGS_REQ(1));  /* 15.2.4.3.2  */
   mrb_define_method_id(mrb, n, MRB_OPSYM(xor),  false_xor,      MRB_ARGS_REQ(1));  /* 15.2.4.3.3  */
@@ -312,18 +312,18 @@ mrb_init_object(mrb_state *mrb)
   mrb_define_method_id(mrb, n, MRB_SYM(to_s),   nil_to_s,       MRB_ARGS_NONE());  /* 15.2.4.3.5  */
   mrb_define_method_id(mrb, n, MRB_SYM(inspect), nil_inspect, MRB_ARGS_NONE());
 
-  mrb->true_class = t = mrb_define_class(mrb, "TrueClass", mrb->object_class);
+  mrb->true_class = t = mrb_define_class_id(mrb, MRB_SYM(TrueClass), mrb->object_class);
   MRB_SET_INSTANCE_TT(t, MRB_TT_TRUE);
-  mrb_undef_class_method(mrb, t, "new");
+  mrb_undef_class_method_id(mrb, t, MRB_SYM(new));
   mrb_define_method_id(mrb, t, MRB_OPSYM(and),  true_and,       MRB_ARGS_REQ(1));  /* 15.2.5.3.1  */
   mrb_define_method_id(mrb, t, MRB_OPSYM(or),   true_or,        MRB_ARGS_REQ(1));  /* 15.2.5.3.2  */
   mrb_define_method_id(mrb, t, MRB_OPSYM(xor),  true_xor,       MRB_ARGS_REQ(1));  /* 15.2.5.3.3  */
   mrb_define_method_id(mrb, t, MRB_SYM(to_s),   true_to_s,      MRB_ARGS_NONE());  /* 15.2.5.3.4  */
   mrb_define_method_id(mrb, t, MRB_SYM(inspect), true_to_s,   MRB_ARGS_NONE());
 
-  mrb->false_class = f = mrb_define_class(mrb, "FalseClass", mrb->object_class);
+  mrb->false_class = f = mrb_define_class_id(mrb, MRB_SYM(FalseClass), mrb->object_class);
   MRB_SET_INSTANCE_TT(f, MRB_TT_FALSE);
-  mrb_undef_class_method(mrb, f, "new");
+  mrb_undef_class_method_id(mrb, f, MRB_SYM(new));
   mrb_define_method_id(mrb, f, MRB_OPSYM(and),  false_and,      MRB_ARGS_REQ(1));  /* 15.2.6.3.1  */
   mrb_define_method_id(mrb, f, MRB_OPSYM(or),   false_or,       MRB_ARGS_REQ(1));  /* 15.2.6.3.2  */
   mrb_define_method_id(mrb, f, MRB_OPSYM(xor),  false_xor,      MRB_ARGS_REQ(1));  /* 15.2.6.3.3  */
