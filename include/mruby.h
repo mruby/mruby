@@ -1446,6 +1446,13 @@ MRB_API mrb_bool mrb_func_basic_p(mrb_state *mrb, mrb_value obj, mrb_sym mid, mr
 #define mrb_int(mrb, val) mrb_as_int(mrb, val)
 
 /**
+ * Create a new Fiber from proc object
+ *
+ * Implemented in mruby-fiber
+ */
+MRB_API mrb_value mrb_fiber_new(mrb_state *mrb, const struct RProc *proc);
+
+/**
  * Resume a Fiber
  *
  * Implemented in mruby-fiber
