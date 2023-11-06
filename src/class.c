@@ -3018,9 +3018,6 @@ mrb_init_class(mrb_state *mrb)
   mrb_class_name_class(mrb, NULL, mod, MRB_SYM(Module)); /* 15.2.2 */
   mrb_class_name_class(mrb, NULL, cls, MRB_SYM(Class));  /* 15.2.3 */
 
-  mrb->proc_class = mrb_define_class(mrb, "Proc", mrb->object_class);  /* 15.2.17 */
-  MRB_SET_INSTANCE_TT(mrb->proc_class, MRB_TT_PROC);
-
   MRB_SET_INSTANCE_TT(cls, MRB_TT_CLASS);
   mrb_define_method_id(mrb, bob, MRB_SYM(initialize),              mrb_do_nothing,           MRB_ARGS_NONE());
   mrb_define_method_id(mrb, bob, MRB_OPSYM(not),                   mrb_bob_not,              MRB_ARGS_NONE());

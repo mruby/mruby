@@ -485,7 +485,9 @@ void
 mrb_init_proc(mrb_state *mrb)
 {
   mrb_method_t m;
-  struct RClass *pc = mrb->proc_class;
+  struct RClass *pc = mrb->proc_class = mrb_define_class_id(mrb, MRB_SYM(Proc), mrb->object_class); /* 15.2.17 */
+
+  MRB_SET_INSTANCE_TT(mrb->proc_class, MRB_TT_PROC);
 
   MRB_SET_INSTANCE_TT(pc, MRB_TT_UNDEF);
   mrb_define_class_method(mrb, pc, "new", mrb_proc_s_new, MRB_ARGS_NONE()|MRB_ARGS_BLOCK());
