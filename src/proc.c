@@ -490,12 +490,12 @@ mrb_init_proc(mrb_state *mrb)
   MRB_SET_INSTANCE_TT(mrb->proc_class, MRB_TT_PROC);
 
   MRB_SET_INSTANCE_TT(pc, MRB_TT_UNDEF);
-  mrb_define_class_method(mrb, pc, "new", mrb_proc_s_new, MRB_ARGS_NONE()|MRB_ARGS_BLOCK());
-  mrb_define_method(mrb, pc, "initialize_copy", mrb_proc_init_copy, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, pc, "arity", proc_arity, MRB_ARGS_NONE()); /* 15.2.17.4.2 */
-  mrb_define_method(mrb, pc, "==", proc_eql, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, pc, "eql?", proc_eql, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, pc, "hash", proc_hash, MRB_ARGS_NONE()); /* 15.2.17.4.2 */
+  mrb_define_class_method_id(mrb, pc, MRB_SYM(new), mrb_proc_s_new, MRB_ARGS_NONE()|MRB_ARGS_BLOCK());
+  mrb_define_method_id(mrb, pc, MRB_SYM(initialize_copy), mrb_proc_init_copy, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, pc, MRB_SYM(arity), proc_arity, MRB_ARGS_NONE()); /* 15.2.17.4.2 */
+  mrb_define_method_id(mrb, pc, MRB_OPSYM(eq), proc_eql, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, pc, MRB_SYM_Q(eql), proc_eql, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, pc, MRB_SYM(hash), proc_hash, MRB_ARGS_NONE()); /* 15.2.17.4.2 */
 
   MRB_METHOD_FROM_PROC(m, &call_proc);
   mrb_define_method_raw(mrb, pc, MRB_SYM(call), m);   /* 15.2.17.4.3 */
