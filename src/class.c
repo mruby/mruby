@@ -3070,10 +3070,10 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method_id(mrb, mod, MRB_SYM(dup),                     mrb_mod_dup,              MRB_ARGS_NONE());
   mrb_define_method_id(mrb, mod, MRB_SYM(method_added),            mrb_do_nothing,           MRB_ARGS_REQ(1));
 
-  mrb_undef_method(mrb, cls, "append_features");
-  mrb_undef_method(mrb, cls, "prepend_features");
-  mrb_undef_method(mrb, cls, "extend_object");
-  mrb_undef_method(mrb, cls, "module_function");
+  mrb_undef_method_id(mrb, cls, MRB_SYM(append_features));
+  mrb_undef_method_id(mrb, cls, MRB_SYM(prepend_features));
+  mrb_undef_method_id(mrb, cls, MRB_SYM(extend_object));
+  mrb_undef_method_id(mrb, cls, MRB_SYM(module_function));
 
   mrb->top_self = MRB_OBJ_ALLOC(mrb, MRB_TT_OBJECT, mrb->object_class);
   mrb_define_singleton_method_id(mrb, mrb->top_self, MRB_SYM(inspect), inspect_main, MRB_ARGS_NONE());
