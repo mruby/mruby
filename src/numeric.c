@@ -2220,15 +2220,15 @@ mrb_init_numeric(mrb_state *mrb)
 #endif
 
   /* Numeric Class */
-  numeric = mrb_define_class(mrb, "Numeric",  mrb->object_class);                /* 15.2.7 */
+  numeric = mrb_define_class_id(mrb, MRB_SYM(Numeric), mrb->object_class);                  /* 15.2.7 */
   mrb_define_method_id(mrb, numeric, MRB_SYM_Q(finite),  num_finite_p,    MRB_ARGS_NONE());
   mrb_define_method_id(mrb, numeric, MRB_SYM_Q(infinite),num_infinite_p,  MRB_ARGS_NONE());
   mrb_define_method_id(mrb, numeric, MRB_SYM_Q(eql),     num_eql,         MRB_ARGS_REQ(1)); /* 15.2.8.3.16 */
 
   /* Integer Class */
-  mrb->integer_class = integer = mrb_define_class(mrb, "Integer",  numeric);     /* 15.2.8 */
+  mrb->integer_class = integer = mrb_define_class_id(mrb, MRB_SYM(Integer),  numeric);     /* 15.2.8 */
   MRB_SET_INSTANCE_TT(integer, MRB_TT_UNDEF);
-  mrb_undef_class_method(mrb, integer, "new");
+  mrb_undef_class_method_id(mrb, integer, MRB_SYM(new));
   mrb_define_method_id(mrb, integer, MRB_OPSYM(pow),    int_pow,         MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, integer, MRB_OPSYM(cmp),    num_cmp,         MRB_ARGS_REQ(1)); /* 15.2.8.3.1  */
   mrb_define_method_id(mrb, integer, MRB_OPSYM(lt),     num_lt,          MRB_ARGS_REQ(1));
@@ -2267,11 +2267,11 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method_id(mrb, integer, MRB_SYM(__coerce_step_counter), coerce_step_counter, MRB_ARGS_REQ(2));
 
   /* Fixnum Class for compatibility */
-  mrb_define_const(mrb, mrb->object_class, "Fixnum", mrb_obj_value(integer));
+  mrb_define_const_id(mrb, mrb->object_class, MRB_SYM(Fixnum), mrb_obj_value(integer));
 
 #ifndef MRB_NO_FLOAT
   /* Float Class */
-  mrb->float_class = fl = mrb_define_class(mrb, "Float", numeric);                 /* 15.2.9 */
+  mrb->float_class = fl = mrb_define_class_id(mrb, MRB_SYM(Float), numeric);               /* 15.2.9 */
   MRB_SET_INSTANCE_TT(fl, MRB_TT_UNDEF);
   mrb_undef_class_method(mrb,  fl, "new");
   mrb_define_method_id(mrb, fl,      MRB_OPSYM(pow),     flo_pow,        MRB_ARGS_REQ(1));
