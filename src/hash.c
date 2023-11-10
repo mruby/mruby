@@ -1865,7 +1865,7 @@ mrb_init_hash(mrb_state *mrb)
 {
   struct RClass *h;
 
-  mrb->hash_class = h = mrb_define_class(mrb, "Hash", mrb->object_class);              /* 15.2.13 */
+  mrb->hash_class = h = mrb_define_class_id(mrb, MRB_SYM(Hash), mrb->object_class);              /* 15.2.13 */
   MRB_SET_INSTANCE_TT(h, MRB_TT_HASH);
 
   mrb_define_method_id(mrb, h, MRB_OPSYM(aref),          mrb_hash_aget,        MRB_ARGS_REQ(1)); /* 15.2.13.4.2  */
