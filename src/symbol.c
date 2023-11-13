@@ -690,13 +690,13 @@ mrb_init_symbol(mrb_state *mrb)
 {
   struct RClass *sym;
 
-  mrb->symbol_class = sym = mrb_define_class(mrb, "Symbol", mrb->object_class);  /* 15.2.11 */
+  mrb->symbol_class = sym = mrb_define_class_id(mrb, MRB_SYM(Symbol), mrb->object_class);  /* 15.2.11 */
   MRB_SET_INSTANCE_TT(sym, MRB_TT_SYMBOL);
-  mrb_undef_class_method(mrb,  sym, "new");
+  mrb_undef_class_method_id(mrb,  sym, MRB_SYM(new));
 
-  mrb_define_method(mrb, sym, "to_s",    sym_to_s,    MRB_ARGS_NONE());          /* 15.2.11.3.3 */
-  mrb_define_method(mrb, sym, "name",    sym_name,    MRB_ARGS_NONE());
-  mrb_define_method(mrb, sym, "to_sym",  sym_to_sym,  MRB_ARGS_NONE());          /* 15.2.11.3.4 */
-  mrb_define_method(mrb, sym, "inspect", sym_inspect, MRB_ARGS_NONE());          /* 15.2.11.3.5(x) */
-  mrb_define_method(mrb, sym, "<=>",     sym_cmp,     MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, sym, MRB_SYM(to_s),    sym_to_s,    MRB_ARGS_NONE());          /* 15.2.11.3.3 */
+  mrb_define_method_id(mrb, sym, MRB_SYM(name),    sym_name,    MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, sym, MRB_SYM(to_sym),  sym_to_sym,  MRB_ARGS_NONE());          /* 15.2.11.3.4 */
+  mrb_define_method_id(mrb, sym, MRB_SYM(inspect), sym_inspect, MRB_ARGS_NONE());          /* 15.2.11.3.5(x) */
+  mrb_define_method_id(mrb, sym, MRB_OPSYM(cmp),   sym_cmp,     MRB_ARGS_REQ(1));
 }
