@@ -1918,7 +1918,7 @@ RETRY_TRY_BLOCK:
       struct RClass* target_class = CI_TARGET_CLASS(ci);
 
       mid = ci->mid;
-      if (MRB_PROC_ENV_P(p) && p->e.env->mid && p->e.env->mid != mid) { /* alias support */
+      if (MRB_PROC_ALIAS_P(p) && MRB_PROC_ENV_P(p) && p->e.env->mid && p->e.env->mid != mid) { /* alias support */
         mid = p->e.env->mid;    /* restore old mid */
       }
 
