@@ -1044,13 +1044,13 @@ io_seek(mrb_state *mrb, mrb_value io)
 static mrb_value
 io_write_common(mrb_state *mrb,
     fssize_t (*writefunc)(int, const void*, fsize_t, off_t),
-    struct mrb_io *fptr, const void *buf, fsize_t blen, off_t offset)
+    struct mrb_io *fptr, const void *buf, mrb_ssize blen, off_t offset)
 {
   int fd;
   fssize_t length;
 
   fd = io_get_write_fd(fptr);
-  length = writefunc(fd, buf, blen, offset);
+  length = writefunc(fd, buf, (fsize_t)blen, offset);
   if (length == -1) {
     mrb_sys_fail(mrb, "syswrite");
   }
