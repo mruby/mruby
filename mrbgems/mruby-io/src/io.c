@@ -1578,6 +1578,9 @@ io_ungetc(mrb_state *mrb, mrb_value io)
 
   mrb_get_args(mrb, "S", &str);
   len = RSTRING_LEN(str);
+  if (len > SHRT_MAX) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "string too long to ungetc");
+  }
   if (len > MRB_IO_BUF_SIZE - buf->len) {
     fptr->buf = (struct mrb_io_buf*)mrb_realloc(mrb, buf, sizeof(struct mrb_io_buf)+buf->len+len-MRB_IO_BUF_SIZE);
     buf = fptr->buf;
@@ -1585,7 +1588,7 @@ io_ungetc(mrb_state *mrb, mrb_value io)
   memmove(buf->mem+len, buf->mem+buf->start, buf->len);
   memcpy(buf->mem, RSTRING_PTR(str), len);
   buf->start = 0;
-  buf->len += len;
+  buf->len += (short)len;
   return mrb_nil_value();
 }
 
@@ -1603,8 +1606,9 @@ io_buf_shift(struct mrb_io *fptr, mrb_int n)
 {
   struct mrb_io_buf *buf = fptr->buf;
 
-  buf->start += n;
-  buf->len -= n;
+  mrb_assert(n <= SHRT_MAX);
+  buf->start += (short)n;
+  buf->len -= (short)n;
 }
 
 #ifdef MRB_UTF8_STRING
