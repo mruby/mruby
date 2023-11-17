@@ -1866,18 +1866,18 @@ RETRY_TRY_BLOCK:
     CASE(OP_CALL, Z) {
       mrb_callinfo *ci = mrb->c->ci;
       mrb_value recv = ci->stack[0];
-      struct RProc *m = mrb_proc_ptr(recv);
+      struct RProc *p = mrb_proc_ptr(recv);
 
       /* replace callinfo */
-      ci->u.target_class = MRB_PROC_TARGET_CLASS(m);
-      CI_PROC_SET(ci, m);
-      if (MRB_PROC_ENV_P(m)) {
-        ci->mid = MRB_PROC_ENV(m)->mid;
+      ci->u.target_class = MRB_PROC_TARGET_CLASS(p);
+      CI_PROC_SET(ci, p);
+      if (MRB_PROC_ENV_P(p)) {
+        ci->mid = MRB_PROC_ENV(p)->mid;
       }
 
       /* prepare stack */
-      if (MRB_PROC_CFUNC_P(m)) {
-        recv = MRB_PROC_CFUNC(m)(mrb, recv);
+      if (MRB_PROC_CFUNC_P(p)) {
+        recv = MRB_PROC_CFUNC(p)(mrb, recv);
         mrb_gc_arena_shrink(mrb, ai);
         if (mrb->exc) goto L_RAISE;
         /* pop stackpos */
@@ -1888,8 +1888,8 @@ RETRY_TRY_BLOCK:
       }
       else {
         /* setup environment for calling method */
-        proc = m;
-        irep = m->body.irep;
+        proc = p;
+        irep = p->body.irep;
         if (!irep) {
           mrb->c->ci->stack[0] = mrb_nil_value();
           a = 0;
@@ -1901,8 +1901,8 @@ RETRY_TRY_BLOCK:
           stack_extend(mrb, irep->nregs);
           stack_clear(regs+nargs, irep->nregs-nargs);
         }
-        if (MRB_PROC_ENV_P(m)) {
-          regs[0] = MRB_PROC_ENV(m)->stack[0];
+        if (MRB_PROC_ENV_P(p)) {
+          regs[0] = MRB_PROC_ENV(p)->stack[0];
         }
         pc = irep->iseq;
       }
