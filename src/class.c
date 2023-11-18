@@ -2252,22 +2252,14 @@ mrb_alias_method(mrb_state *mrb, struct RClass *c, mrb_sym a, mrb_sym b)
 
   if (!MRB_METHOD_CFUNC_P(m)) {
     struct RProc *p = MRB_METHOD_PROC(m);
+    if (!MRB_PROC_CFUNC_P(p) && !MRB_PROC_ALIAS_P(p)) {
+      struct RProc *pnew = MRB_OBJ_ALLOC(mrb, MRB_TT_PROC, mrb->proc_class);
 
-    if (MRB_PROC_ENV_P(p)) {
-      MRB_PROC_ENV(p)->mid = b;
-    }
-    else if (p->color != MRB_GC_RED) {
-      struct RClass *tc = MRB_PROC_TARGET_CLASS(p);
-      struct REnv *e = MRB_OBJ_ALLOC(mrb, MRB_TT_ENV, NULL);
-
-      e->mid = b;
-      if (tc) {
-        e->c = tc;
-        mrb_field_write_barrier(mrb, (struct RBasic*)e, (struct RBasic*)tc);
-      }
-      p->e.env = e;
-      p->flags |= MRB_PROC_ENVSET | MRB_PROC_ALIAS;
-      mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)e);
+      pnew->body.mid = b;
+      pnew->upper = p;
+      pnew->e.env = NULL;
+      pnew->flags |= MRB_PROC_ALIAS;
+      MRB_METHOD_FROM_PROC(m, pnew);
     }
   }
   mrb_define_method_raw(mrb, c, a, m);

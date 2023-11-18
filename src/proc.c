@@ -102,6 +102,9 @@ closure_setup(mrb_state *mrb, struct RProc *p)
   else if (up) {
     struct RClass *tc = ci->u.target_class;
 
+    if (MRB_PROC_ALIAS_P(up)) { /* alias */
+      up = up->upper;
+    }
     e = mrb_env_new(mrb, mrb->c, ci, up->body.irep->nlocals, ci->stack, tc);
     ci->u.env = e;
     if (MRB_PROC_ENV_P(up) && MRB_PROC_ENV(up)->cxt == NULL) {

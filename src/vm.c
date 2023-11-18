@@ -708,6 +708,11 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
       cipop(mrb);
     }
     else {
+      /* handle alias */
+      if (MRB_PROC_ALIAS_P(ci->proc)) {
+        ci->mid = ci->proc->body.mid;
+        ci->proc = ci->proc->upper;
+      }
       ci->cci = CINFO_SKIP;
       val = mrb_run(mrb, ci->proc, self);
     }
@@ -739,7 +744,7 @@ check_method_noarg(mrb_state *mrb, const mrb_callinfo *ci)
 }
 
 static mrb_value
-exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p)
+exec_irep(mrb_state *mrb, mrb_value self, const struct RProc *p)
 {
   mrb_callinfo *ci = mrb->c->ci;
   mrb_int keep, nregs;
@@ -869,18 +874,23 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
     ci->n--;
   }
 
+  const struct RProc *p;
+  if (MRB_METHOD_PROC_P(m)) {
+    p = MRB_METHOD_PROC(m);
+    /* handle alias */
+    if (MRB_PROC_ALIAS_P(p)) {
+      ci->mid = p->body.mid;
+      p = p->upper;
+    }
+    CI_PROC_SET(ci, p);
+  }
   if (MRB_METHOD_CFUNC_P(m)) {
     if (MRB_METHOD_NOARG_P(m) && (ci->n > 0 || ci->nk > 0)) {
       check_method_noarg(mrb, ci);
     }
-
-    if (MRB_METHOD_PROC_P(m)) {
-      const struct RProc *p = MRB_METHOD_PROC(m);
-      CI_PROC_SET(ci, p);
-    }
     return MRB_METHOD_CFUNC(m)(mrb, self);
   }
-  return exec_irep(mrb, self, MRB_METHOD_PROC(m));
+  return exec_irep(mrb, self, p);
 }
 
 static void
@@ -1853,6 +1863,11 @@ RETRY_TRY_BLOCK:
       else {
         /* setup environment for calling method */
         proc = MRB_METHOD_PROC(m);
+        /* handle alias */
+        if (MRB_PROC_ALIAS_P(proc)) {
+          ci->mid = proc->body.mid;
+          proc = proc->upper;
+        }
         CI_PROC_SET(ci, proc);
         irep = proc->body.irep;
         pool = irep->pool;
@@ -1866,14 +1881,19 @@ RETRY_TRY_BLOCK:
     CASE(OP_CALL, Z) {
       mrb_callinfo *ci = mrb->c->ci;
       mrb_value recv = ci->stack[0];
-      struct RProc *p = mrb_proc_ptr(recv);
+      const struct RProc *p = mrb_proc_ptr(recv);
 
+      /* handle alias */
+      if (MRB_PROC_ALIAS_P(p)) {
+        ci->mid = p->body.mid;
+        p = p->upper;
+      }
+      else if (MRB_PROC_ENV_P(p)) {
+        ci->mid = MRB_PROC_ENV(p)->mid;
+      }
       /* replace callinfo */
       ci->u.target_class = MRB_PROC_TARGET_CLASS(p);
       CI_PROC_SET(ci, p);
-      if (MRB_PROC_ENV_P(p)) {
-        ci->mid = MRB_PROC_ENV(p)->mid;
-      }
 
       /* prepare stack */
       if (MRB_PROC_CFUNC_P(p)) {
@@ -1914,14 +1934,9 @@ RETRY_TRY_BLOCK:
     CASE(OP_SUPER, BB) {
       mrb_callinfo *ci = mrb->c->ci;
       mrb_value recv;
-      const struct RProc *p = ci->proc;
       struct RClass* target_class = CI_TARGET_CLASS(ci);
 
       mid = ci->mid;
-      if (MRB_PROC_ALIAS_P(p) && MRB_PROC_ENV_P(p) && p->e.env->mid && p->e.env->mid != mid) { /* alias support */
-        mid = p->e.env->mid;    /* restore old mid */
-      }
-
       if (mid == 0 || !target_class) {
         RAISE_LIT(mrb, E_NOMETHOD_ERROR, "super called outside of method");
       }

@@ -44,6 +44,7 @@ struct RProc {
   union {
     const mrb_irep *irep;
     mrb_func_t func;
+    mrb_sym mid;
   } body;
   const struct RProc *upper;
   union {
