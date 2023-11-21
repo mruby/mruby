@@ -1,10 +1,10 @@
 # Authors of mruby (mruby developers)
 
-## The List of Contributors sorted by number of commits (as of 2023-10-21 0443f14)
+## The List of Contributors sorted by number of commits (as of 2023-11-20 6a3a810)
 
-   9370 Yukihiro "Matz" Matsumoto (@matz)*
+   9408 Yukihiro "Matz" Matsumoto (@matz)*
     586 KOBAYASHI Shuji (@shuujii)
-    503 dearblue (@dearblue)*
+    508 dearblue (@dearblue)*
     378 Daniel Bovensiepen (@bovi)*
     346 Takeshi Watanabe (@take-cheeze)*
     334 Masaki Muranaka (@monaka)
@@ -12,7 +12,7 @@
     234 Jun Hiroe (@suzukaze)
     220 Cremno (@cremno)*
     209 Yuki Kurihara (@ksss)+
-    164 John Bampton (@jbampton)
+    165 John Bampton (@jbampton)
     151 Yasuhiro Matsumoto (@mattn)*
     113 Carson McDonald (@carsonmcdonald)
     103 Tomasz Dąbrowski (@dabroz)*
@@ -119,6 +119,7 @@
       4 Jon Moss (@maclover7)
       4 Ken Muramatsu (@ken-mu)+
       4 Kohei Suzuki (@eagletmt)
+      4 Lanza (@LanzaSchneider)
       4 Li Yazhou (@flaneur2020)
       4 Marcus Stollsteimer (@stomar)
       4 NARUSE, Yui (@nurse)
@@ -137,7 +138,6 @@
       3 Jan Berdajs (@mrbrdo)
       3 Jonas Minnberg (@sasq64)
       3 Joseph McCullough (@joequery)
-      3 Lanza (@LanzaSchneider)
       3 Mark McCurry (@fundamental)
       3 Nobuhiro Iwamatsu (@iwamatsu)
       3 Per Lundberg (@perlun)*
@@ -283,6 +283,7 @@
       1 Yevhen Viktorov (@yevgenko)
       1 Yoji SHIDARA (@darashi)
       1 Yoshiori SHOJI (@yoshiori)
+      1 Yuji Yokoo (@yujiyokoo)
       1 Yukang (@chenyukang)
       1 Yurii Nakonechnyi (@inobelar)
       1 Yusuke Suzuki (@Constellation)+
