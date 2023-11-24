@@ -4,7 +4,7 @@
 #include <mruby/variable.h>
 
 /* provided by mruby-proc-ext */
-mrb_value mrb_proc_source_location(mrb_state *mrb, struct RProc *p);
+mrb_value mrb_proc_source_location(mrb_state *mrb, const struct RProc *p);
 
 /* provided by mruby-binding */
 mrb_value mrb_binding_new(mrb_state *mrb, const struct RProc *proc, mrb_value recv, struct REnv *env);

@@ -14,7 +14,7 @@ proc_lambda_p(mrb_state *mrb, mrb_value self)
 }
 
 mrb_value
-mrb_proc_source_location(mrb_state *mrb, struct RProc *p)
+mrb_proc_source_location(mrb_state *mrb, const struct RProc *p)
 {
   if (MRB_PROC_CFUNC_P(p)) {
     return mrb_nil_value();

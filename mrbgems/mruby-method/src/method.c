@@ -9,7 +9,7 @@
 
 // Defined by mruby-proc-ext on which mruby-method depends
 mrb_value mrb_proc_parameters(mrb_state *mrb, mrb_value proc);
-mrb_value mrb_proc_source_location(mrb_state *mrb, struct RProc *p);
+mrb_value mrb_proc_source_location(mrb_state *mrb, const struct RProc *p);
 
 static mrb_value
 args_shift(mrb_state *mrb)
