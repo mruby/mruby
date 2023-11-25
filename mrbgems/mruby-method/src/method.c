@@ -380,7 +380,6 @@ method_to_s(mrb_state *mrb, mrb_value self)
   mrb_value klass = mrb_iv_get(mrb, self, MRB_SYM(_klass));
   mrb_value name = mrb_iv_get(mrb, self, MRB_SYM(_name));
   mrb_value str = mrb_str_new_lit(mrb, "#<");
-  struct RClass *rklass;
 
   mrb_str_cat_cstr(mrb, str, mrb_obj_classname(mrb, self));
   mrb_str_cat_lit(mrb, str, ": ");
@@ -394,14 +393,15 @@ method_to_s(mrb_state *mrb, mrb_value self)
     }
   }
 
-  rklass = mrb_class_ptr(klass);
-  if (mrb_class_ptr(owner) == rklass) {
+  struct RClass *ok = mrb_class_ptr(owner);
+  struct RClass *rk = mrb_class_ptr(klass);
+  struct RClass *rklass = mrb_class_real(rk); /* skip internal class */
+  if (ok == rk || ok == rklass) {
     mrb_str_concat(mrb, str, owner);
     mrb_str_cat_lit(mrb, str, "#");
     mrb_str_concat(mrb, str, name);
   }
   else {
-    rklass = mrb_class_real(rklass); /* skip internal class */
     mrb_str_concat(mrb, str, mrb_obj_value(rklass));
     mrb_str_cat_lit(mrb, str, "(");
     mrb_str_concat(mrb, str, owner);
