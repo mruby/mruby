@@ -380,6 +380,7 @@ method_to_s(mrb_state *mrb, mrb_value self)
   mrb_value klass = mrb_iv_get(mrb, self, MRB_SYM(_klass));
   mrb_value name = mrb_iv_get(mrb, self, MRB_SYM(_name));
   mrb_value str = mrb_str_new_lit(mrb, "#<");
+  mrb_value proc = mrb_iv_get(mrb, self, MRB_SYM(_proc));
 
   mrb_str_cat_cstr(mrb, str, mrb_obj_classname(mrb, self));
   mrb_str_cat_lit(mrb, str, ": ");
@@ -409,6 +410,17 @@ method_to_s(mrb_state *mrb, mrb_value self)
     mrb_str_concat(mrb, str, name);
   }
  finish:;
+  const struct RProc *p = mrb_proc_ptr(proc);
+  if (MRB_PROC_ALIAS_P(p)) {
+    mrb_sym mid;
+    while (MRB_PROC_ALIAS_P(p)) {
+      mid = p->body.mid;
+      p = p->upper;
+    }
+    mrb_str_cat_lit(mrb, str, "(");
+    mrb_str_concat(mrb, str, mrb_symbol_value(mid));
+    mrb_str_cat_lit(mrb, str, ")#");
+  }
   mrb_value loc = method_source_location(mrb, self);
   if (mrb_array_p(loc) && RARRAY_LEN(loc) == 2) {
     mrb_str_cat_lit(mrb, str, " ");
