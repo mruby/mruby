@@ -750,6 +750,11 @@ exec_irep(mrb_state *mrb, mrb_value self, const struct RProc *p)
   mrb_int keep, nregs;
 
   ci->stack[0] = self;
+  /* handle alias */
+  if (MRB_PROC_ALIAS_P(p)) {
+    ci->mid = p->body.mid;
+    p = p->upper;
+  }
   CI_PROC_SET(ci, p);
   if (MRB_PROC_CFUNC_P(p)) {
     if (MRB_PROC_NOARG_P(p) && (ci->n > 0 || ci->nk > 0)) {
