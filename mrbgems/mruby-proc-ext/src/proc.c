@@ -19,16 +19,20 @@ mrb_proc_source_location(mrb_state *mrb, const struct RProc *p)
   if (MRB_PROC_CFUNC_P(p)) {
     return mrb_nil_value();
   }
-  else {
-    const mrb_irep *irep = p->body.irep;
-    int32_t line;
-    const char *filename;
 
-    if (!mrb_debug_get_position(mrb, irep, 0, &line, &filename)) {
-      return mrb_nil_value();
-    }
-    return mrb_assoc_new(mrb, mrb_str_new_cstr(mrb, filename), mrb_fixnum_value(line));
+  /* handle alias */
+  if (MRB_PROC_ALIAS_P(p)) {
+    p = p->upper;
   }
+
+  const mrb_irep *irep = p->body.irep;
+  int32_t line;
+  const char *filename;
+
+  if (!mrb_debug_get_position(mrb, irep, 0, &line, &filename)) {
+    return mrb_nil_value();
+  }
+  return mrb_assoc_new(mrb, mrb_str_new_cstr(mrb, filename), mrb_fixnum_value(line));
 }
 
 static mrb_value
