@@ -393,21 +393,22 @@ method_to_s(mrb_state *mrb, mrb_value self)
       goto finish;
     }
   }
-
-  struct RClass *ok = mrb_class_ptr(owner);
-  struct RClass *rk = mrb_class_ptr(klass);
-  struct RClass *rklass = mrb_class_real(rk); /* skip internal class */
-  if (ok == rk || ok == rklass) {
-    mrb_str_concat(mrb, str, owner);
-    mrb_str_cat_lit(mrb, str, "#");
-    mrb_str_concat(mrb, str, name);
-  }
-  else {
-    mrb_str_concat(mrb, str, mrb_obj_value(rklass));
-    mrb_str_cat_lit(mrb, str, "(");
-    mrb_str_concat(mrb, str, owner);
-    mrb_str_cat_lit(mrb, str, ")#");
-    mrb_str_concat(mrb, str, name);
+  {
+    struct RClass *ok = mrb_class_ptr(owner);
+    struct RClass *rk = mrb_class_ptr(klass);
+    struct RClass *rklass = mrb_class_real(rk); /* skip internal class */
+    if (ok == rk || ok == rklass) {
+      mrb_str_concat(mrb, str, owner);
+      mrb_str_cat_lit(mrb, str, "#");
+      mrb_str_concat(mrb, str, name);
+    }
+    else {
+      mrb_str_concat(mrb, str, mrb_obj_value(rklass));
+      mrb_str_cat_lit(mrb, str, "(");
+      mrb_str_concat(mrb, str, owner);
+      mrb_str_cat_lit(mrb, str, ")#");
+      mrb_str_concat(mrb, str, name);
+    }
   }
  finish:;
   if (!mrb_nil_p(proc)) {
