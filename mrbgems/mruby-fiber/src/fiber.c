@@ -1,8 +1,11 @@
 #include <mruby.h>
 #include <mruby/array.h>
 #include <mruby/class.h>
+#include <mruby/debug.h>
 #include <mruby/error.h>
+#include <mruby/numeric.h>
 #include <mruby/proc.h>
+#include <mruby/string.h>
 #include <mruby/presym.h>
 
 #define fiber_ptr(o) ((struct RFiber*)mrb_ptr(o))
@@ -350,6 +353,56 @@ fiber_eq(mrb_state *mrb, mrb_value self)
 
 /*
  *  call-seq:
+ *      fiber.to_s      ->   string
+ *      fiber.inspect   ->   string
+ *
+ *  Returns fiber object information as a string.
+ *
+ *  If the file information cannot be obtained, it is replaced with `(unknown):1`.
+ *  Also, if the fiber is terminated, it will be replaced in the same way (mruby limitation).
+ */
+static mrb_value
+fiber_to_s(mrb_state *mrb, mrb_value self)
+{
+  fiber_check(mrb, self);
+  const struct RFiber *f = fiber_ptr(self);
+
+  mrb_value s = mrb_any_to_s(mrb, self);
+  mrb_assert(RSTRING_END(s)[-1] == '>');
+  RSTRING_END(s)[-1] = ' ';
+
+  const char *file;
+  int32_t line;
+  if (f->cxt->ci > f->cxt->cibase &&
+      mrb_debug_get_position(mrb, f->cxt->cibase->proc->body.irep, 0, &line, &file)) {
+    mrb_str_cat_cstr(mrb, s, file);
+    mrb_str_cat_lit(mrb, s, ":");
+    char buf[16];
+    mrb_str_cat_cstr(mrb, s, mrb_int_to_cstr(buf, sizeof(buf), line, 10));
+  }
+  else {
+    mrb_str_cat_lit(mrb, s, "(unknown):1");
+  }
+
+  const char *st;
+  switch (fiber_ptr(self)->cxt->status) {
+  case MRB_FIBER_CREATED:       st = "created"; break;
+  case MRB_FIBER_RUNNING:       st = "resumed"; break;
+  case MRB_FIBER_RESUMED:       st = "suspended by resuming"; break;
+  case MRB_FIBER_SUSPENDED:     st = "suspended"; break;
+  case MRB_FIBER_TRANSFERRED:   st = "suspended"; break;
+  case MRB_FIBER_TERMINATED:    st = "terminated"; break;
+  default:                      st = "UNKNOWN STATUS (BUG)"; break;
+  }
+  mrb_str_cat_lit(mrb, s, " (");
+  mrb_str_cat_cstr(mrb, s, st);
+  mrb_str_cat_lit(mrb, s, ")>");
+
+  return s;
+}
+
+/*
+ *  call-seq:
  *     fiber.transfer(args, ...) -> obj
  *
  *  Transfers control to receiver fiber of the method call.
@@ -485,6 +538,8 @@ mrb_mruby_fiber_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, c, "transfer",   fiber_transfer, MRB_ARGS_ANY());
   mrb_define_method(mrb, c, "alive?",     fiber_alive_p, MRB_ARGS_NONE());
   mrb_define_method(mrb, c, "==",         fiber_eq,      MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, c, "to_s",       fiber_to_s,    MRB_ARGS_NONE());
+  mrb_define_alias(mrb, c, "inspect", "to_s");
 
   mrb_define_class_method(mrb, c, "yield", fiber_yield, MRB_ARGS_ANY());
   mrb_define_class_method(mrb, c, "current", fiber_current, MRB_ARGS_NONE());
