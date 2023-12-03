@@ -152,25 +152,25 @@ MRB_API mrb_value mrb_load_proc(mrb_state *mrb, const struct RProc *proc);
  *      main(int argc, char **argv)
  *      {
  *        mrb_state *mrb;
- *        mrbc_context *cxt;
+ *        mrb_ccontext *cxt;
  *        mrb_value blk, ret;
  *
  *        mrb = mrb_open();
- *        cxt = mrbc_context_new(mrb);
+ *        cxt = mrb_ccontext_new(mrb);
  *        blk = mrb_load_string_cxt(mrb, "x, y, z = 1, 2, 3; proc { [x, y, z] }", cxt);
  *        mrb_vm_ci_env_clear(mrb, mrb->c->cibase);
  *        mrb_load_string_cxt(mrb, "x, y, z = 4, 5, 6", cxt);
  *        ret = mrb_funcall(mrb, blk, "call", 0);
  *        mrb_p(mrb, ret);  // => [1, 2, 3]
  *                          // => [4, 5, 6] if `mrb_vm_ci_env_clear()` is commented out
- *        mrbc_context_free(mrb, cxt);
+ *        mrb_ccontext_free(mrb, cxt);
  *        mrb_close(mrb);
  *
  *        return 0;
  *      }
  *
- *  The top-level local variable names stored in `mrbc_context` are retained.
- *  Use also `mrbc_cleanup_local_variables()` at the same time, if necessary.
+ *  The top-level local variable names stored in `mrb_ccontext` are retained.
+ *  Use also `mrb_ccontext_cleanup_local_variables()` at the same time, if necessary.
  */
 MRB_API void mrb_vm_ci_env_clear(mrb_state *mrb, mrb_callinfo *ci);
 
