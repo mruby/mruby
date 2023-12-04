@@ -168,6 +168,17 @@ fiber_check_cfunc(mrb_state *mrb, struct mrb_context *c)
 }
 
 static void
+fiber_check_cfunc_recursive(mrb_state *mrb, struct mrb_context *c)
+{
+  for (;; c = c->prev) {
+    fiber_check_cfunc(mrb, c);
+    if (c == mrb->root_c || !c->prev) {
+      break;
+    }
+  }
+}
+
+static void
 fiber_switch_context(mrb_state *mrb, struct mrb_context *c)
 {
   if (mrb->c->fib) {
@@ -370,7 +381,7 @@ fiber_transfer(mrb_state *mrb, mrb_value self)
   const mrb_value* a;
   mrb_int len;
 
-  fiber_check_cfunc(mrb, mrb->c);
+  fiber_check_cfunc_recursive(mrb, mrb->c);
   mrb_get_args(mrb, "*!", &a, &len);
 
   if (c->status == MRB_FIBER_RESUMED) {
