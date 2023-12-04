@@ -104,13 +104,13 @@ MRB_API mrb_value mrb_load_irep(mrb_state*, const uint8_t*);
 MRB_API mrb_value mrb_load_irep_buf(mrb_state*, const void*, size_t);
 
 /* @param [const uint8_t*] irep code, expected as a literal */
-MRB_API mrb_value mrb_load_irep_cxt(mrb_state*, const uint8_t*, mrbc_context*);
+MRB_API mrb_value mrb_load_irep_cxt(mrb_state*, const uint8_t*, mrb_ccontext*);
 
 /*
  * @param [const void*] irep code
  * @param [size_t] size of irep buffer.
  */
-MRB_API mrb_value mrb_load_irep_buf_cxt(mrb_state*, const void*, size_t, mrbc_context*);
+MRB_API mrb_value mrb_load_irep_buf_cxt(mrb_state*, const void*, size_t, mrb_ccontext*);
 
 struct mrb_insn_data {
   uint8_t insn;

@@ -670,7 +670,7 @@ irep_error(mrb_state *mrb)
 }
 
 static mrb_value
-load_irep(mrb_state *mrb, struct RProc *proc, mrbc_context *c)
+load_irep(mrb_state *mrb, struct RProc *proc, mrb_ccontext *c)
 {
   if (!proc || !proc->body.irep) {
     irep_error(mrb);
@@ -683,7 +683,7 @@ load_irep(mrb_state *mrb, struct RProc *proc, mrbc_context *c)
 }
 
 MRB_API mrb_value
-mrb_load_irep_cxt(mrb_state *mrb, const uint8_t *bin, mrbc_context *c)
+mrb_load_irep_cxt(mrb_state *mrb, const uint8_t *bin, mrb_ccontext *c)
 {
   struct RProc *proc = mrb_proc_read_irep(mrb, bin);
   if (!proc) return mrb_undef_value();
@@ -691,7 +691,7 @@ mrb_load_irep_cxt(mrb_state *mrb, const uint8_t *bin, mrbc_context *c)
 }
 
 MRB_API mrb_value
-mrb_load_irep_buf_cxt(mrb_state *mrb, const void *buf, size_t bufsize, mrbc_context *c)
+mrb_load_irep_buf_cxt(mrb_state *mrb, const void *buf, size_t bufsize, mrb_ccontext *c)
 {
   return load_irep(mrb, mrb_proc_read_irep_buf(mrb, buf, bufsize), c);
 }
@@ -755,7 +755,7 @@ DEFINE_READ_IREP_FUNC(
   mrb_proc_read_irep_file(mrb, fp))
 
 MRB_API mrb_value
-mrb_load_irep_file_cxt(mrb_state *mrb, FILE* fp, mrbc_context *c)
+mrb_load_irep_file_cxt(mrb_state *mrb, FILE* fp, mrb_ccontext *c)
 {
   return load_irep(mrb, mrb_proc_read_irep_file(mrb, fp), c);
 }
