@@ -1839,6 +1839,7 @@ RETRY_TRY_BLOCK:
           }
           recv = MRB_METHOD_FUNC(m)(mrb, recv);
         }
+        mrb_assert(mrb->c->ci > mrb->c->cibase);
         mrb_gc_arena_shrink(mrb, ai);
         if (mrb->exc) goto L_RAISE;
         ci = mrb->c->ci;

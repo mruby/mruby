@@ -272,6 +272,7 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
   else {
     value = fiber_result(mrb, a, len);
     if (vmexec) {
+      if (c->ci > c->cibase) c->ci--; /* pop dummy callinfo */
       c->ci[1].stack[0] = value;
     }
   }
@@ -412,7 +413,6 @@ mrb_fiber_yield(mrb_state *mrb, mrb_int len, const mrb_value *a)
   if (c->vmexec) {
     c->vmexec = FALSE;
     mrb->c->ci->cci = CINFO_RESUMED;
-    c->ci--;                    /* pop callinfo for yield */
   }
   MARK_CONTEXT_MODIFY(mrb->c);
   return fiber_result(mrb, a, len);
