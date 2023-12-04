@@ -2244,7 +2244,10 @@ RETRY_TRY_BLOCK:
             mrb->c = c->prev;
             if (!mrb->c) mrb->c = mrb->root_c;
             else c->prev = NULL;
-            goto L_RAISE;
+            if (!c->vmexec) goto L_RAISE;
+            mrb->jmp = prev_jmp;
+            if (!prev_jmp) return mrb_obj_value(mrb->exc);
+            MRB_THROW(prev_jmp);
           }
         }
 
