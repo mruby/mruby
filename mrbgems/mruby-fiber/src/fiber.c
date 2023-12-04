@@ -277,9 +277,11 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
   }
 
   if (vmexec) {
+    int cci = old_c->ci->cci;
     c->vmexec = TRUE;
     value = mrb_vm_exec(mrb, c->ci->proc, c->ci->pc);
     mrb->c = old_c;
+    old_c->ci->cci = cci; /* restore values as they may have changed in Fiber.yield */
   }
   else {
     MARK_CONTEXT_MODIFY(c);
