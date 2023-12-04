@@ -301,19 +301,19 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
  *  to the next <code>Fiber.yield</code> statement inside the fiber's block
  *  or to the block value if it runs to completion without any
  *  <code>Fiber.yield</code>
- *
- *  This method cannot be called from C using <code>mrb_funcall()</code>.
- *  Use <code>mrb_fiber_resume()</code> function instead.
  */
 static mrb_value
 fiber_resume(mrb_state *mrb, mrb_value self)
 {
   const mrb_value *a;
   mrb_int len;
+  mrb_bool vmexec = FALSE;
 
-  fiber_check_cfunc(mrb, mrb->c);
   mrb_get_args(mrb, "*!", &a, &len);
-  return fiber_switch(mrb, self, len, a, TRUE, FALSE);
+  if (mrb->c->ci->cci > 0) {
+    vmexec = TRUE;
+  }
+  return fiber_switch(mrb, self, len, a, TRUE, vmexec);
 }
 
 MRB_API mrb_value
