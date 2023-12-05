@@ -2395,10 +2395,8 @@ RETRY_TRY_BLOCK:
           if (mrb->c->ci == ci) {
             break;
           }
-          else if (mrb->c->ci->cci == CINFO_NONE) {
-            cipop(mrb);
-          }
-          else {
+          cipop(mrb);
+          if (mrb->c->ci[1].cci != CINFO_NONE) {
             mrb->exc = (struct RObject*)break_new(mrb, RBREAK_TAG_BREAK, proc, v);
             mrb_gc_arena_restore(mrb, ai);
             mrb->c->vmexec = FALSE;
