@@ -74,10 +74,6 @@ typedef enum {
   MRB_DEBUG_BPTYPE_METHOD,
 } mrb_debug_bptype;
 
-struct mrb_irep;
-struct mrbc_context;
-struct mrb_debug_context;
-
 typedef struct mrb_debug_linepoint {
   const char *file;
   uint16_t lineno;
