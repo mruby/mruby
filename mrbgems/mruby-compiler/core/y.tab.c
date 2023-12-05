@@ -13163,7 +13163,7 @@ yylex(void *lval, parser_state *p)
 }
 
 static void
-parser_init_cxt(parser_state *p, mrbc_context *cxt)
+parser_init_cxt(parser_state *p, mrb_ccontext *cxt)
 {
   if (!cxt) return;
   if (cxt->filename) mrb_parser_set_filename(p, cxt->filename);
@@ -13186,7 +13186,7 @@ parser_init_cxt(parser_state *p, mrbc_context *cxt)
 }
 
 static void
-parser_update_cxt(parser_state *p, mrbc_context *cxt)
+parser_update_cxt(parser_state *p, mrb_ccontext *cxt)
 {
   node *n, *n0;
   int i = 0;
@@ -13209,7 +13209,7 @@ parser_update_cxt(parser_state *p, mrbc_context *cxt)
 void mrb_parser_dump(mrb_state *mrb, node *tree, int offset);
 
 MRB_API void
-mrb_parser_parse(parser_state *p, mrbc_context *c)
+mrb_parser_parse(parser_state *p, mrb_ccontext *c)
 {
   struct mrb_jmpbuf buf1;
   struct mrb_jmpbuf *prev = p->mrb->jmp;
@@ -13297,14 +13297,14 @@ mrb_parser_free(parser_state *p) {
   mrb_pool_close(p->pool);
 }
 
-MRB_API mrbc_context*
-mrbc_context_new(mrb_state *mrb)
+MRB_API mrb_ccontext*
+mrb_ccontext_new(mrb_state *mrb)
 {
-  return (mrbc_context*)mrb_calloc(mrb, 1, sizeof(mrbc_context));
+  return (mrb_ccontext*)mrb_calloc(mrb, 1, sizeof(mrb_ccontext));
 }
 
 MRB_API void
-mrbc_context_free(mrb_state *mrb, mrbc_context *cxt)
+mrb_ccontext_free(mrb_state *mrb, mrb_ccontext *cxt)
 {
   mrb_free(mrb, cxt->filename);
   mrb_free(mrb, cxt->syms);
@@ -13312,7 +13312,7 @@ mrbc_context_free(mrb_state *mrb, mrbc_context *cxt)
 }
 
 MRB_API const char*
-mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s)
+mrb_ccontext_filename(mrb_state *mrb, mrb_ccontext *c, const char *s)
 {
   if (s) {
     size_t len = strlen(s);
@@ -13329,14 +13329,14 @@ mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s)
 }
 
 MRB_API void
-mrbc_partial_hook(mrb_state *mrb, mrbc_context *c, int (*func)(struct mrb_parser_state*), void *data)
+mrb_ccontext_partial_hook(mrb_state *mrb, mrb_ccontext *c, int (*func)(struct mrb_parser_state*), void *data)
 {
   c->partial_hook = func;
   c->partial_data = data;
 }
 
 MRB_API void
-mrbc_cleanup_local_variables(mrb_state *mrb, mrbc_context *c)
+mrb_ccontext_cleanup_local_variables(mrb_state *mrb, mrb_ccontext *c)
 {
   if (c->syms) {
     mrb_free(mrb, c->syms);
@@ -13388,7 +13388,7 @@ mrb_parser_get_filename(struct mrb_parser_state* p, uint16_t idx) {
 
 #ifndef MRB_NO_STDIO
 static struct mrb_parser_state *
-mrb_parse_file_continue(mrb_state *mrb, FILE *f, const void *prebuf, size_t prebufsize, mrbc_context *c)
+mrb_parse_file_continue(mrb_state *mrb, FILE *f, const void *prebuf, size_t prebufsize, mrb_ccontext *c)
 {
   parser_state *p;
 
@@ -13408,14 +13408,14 @@ mrb_parse_file_continue(mrb_state *mrb, FILE *f, const void *prebuf, size_t preb
 }
 
 MRB_API parser_state*
-mrb_parse_file(mrb_state *mrb, FILE *f, mrbc_context *c)
+mrb_parse_file(mrb_state *mrb, FILE *f, mrb_ccontext *c)
 {
   return mrb_parse_file_continue(mrb, f, NULL, 0, c);
 }
 #endif
 
 MRB_API parser_state*
-mrb_parse_nstring(mrb_state *mrb, const char *s, size_t len, mrbc_context *c)
+mrb_parse_nstring(mrb_state *mrb, const char *s, size_t len, mrb_ccontext *c)
 {
   parser_state *p;
 
@@ -13429,13 +13429,13 @@ mrb_parse_nstring(mrb_state *mrb, const char *s, size_t len, mrbc_context *c)
 }
 
 MRB_API parser_state*
-mrb_parse_string(mrb_state *mrb, const char *s, mrbc_context *c)
+mrb_parse_string(mrb_state *mrb, const char *s, mrb_ccontext *c)
 {
   return mrb_parse_nstring(mrb, s, strlen(s), c);
 }
 
 MRB_API mrb_value
-mrb_load_exec(mrb_state *mrb, struct mrb_parser_state *p, mrbc_context *c)
+mrb_load_exec(mrb_state *mrb, struct mrb_parser_state *p, mrb_ccontext *c)
 {
   struct RClass *target = mrb->object_class;
   struct RProc *proc;
@@ -13498,7 +13498,7 @@ mrb_load_exec(mrb_state *mrb, struct mrb_parser_state *p, mrbc_context *c)
 
 #ifndef MRB_NO_STDIO
 MRB_API mrb_value
-mrb_load_file_cxt(mrb_state *mrb, FILE *f, mrbc_context *c)
+mrb_load_file_cxt(mrb_state *mrb, FILE *f, mrb_ccontext *c)
 {
   return mrb_load_exec(mrb, mrb_parse_file(mrb, f, c), c);
 }
@@ -13518,7 +13518,7 @@ mrb_load_file(mrb_state *mrb, FILE *f)
  * - `NUL` is included in the first 64 bytes of the file
  */
 MRB_API mrb_value
-mrb_load_detect_file_cxt(mrb_state *mrb, FILE *fp, mrbc_context *c)
+mrb_load_detect_file_cxt(mrb_state *mrb, FILE *fp, mrb_ccontext *c)
 {
   union {
     char b[DETECT_SIZE];
@@ -13561,7 +13561,7 @@ mrb_load_detect_file_cxt(mrb_state *mrb, FILE *fp, mrbc_context *c)
 #endif
 
 MRB_API mrb_value
-mrb_load_nstring_cxt(mrb_state *mrb, const char *s, size_t len, mrbc_context *c)
+mrb_load_nstring_cxt(mrb_state *mrb, const char *s, size_t len, mrb_ccontext *c)
 {
   return mrb_load_exec(mrb, mrb_parse_nstring(mrb, s, len, c), c);
 }
@@ -13573,7 +13573,7 @@ mrb_load_nstring(mrb_state *mrb, const char *s, size_t len)
 }
 
 MRB_API mrb_value
-mrb_load_string_cxt(mrb_state *mrb, const char *s, mrbc_context *c)
+mrb_load_string_cxt(mrb_state *mrb, const char *s, mrb_ccontext *c)
 {
   return mrb_load_nstring_cxt(mrb, s, strlen(s), c);
 }
