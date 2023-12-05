@@ -706,10 +706,10 @@ main(int argc, char **argv)
     v = mrb_load_irep_file(mrb, args.rfp);
   }
   else {              /* .rb */
-    mrbc_context *cc = mrbc_context_new(mrb);
-    mrbc_filename(mrb, cc, args.fname);
+    mrb_ccontext *cc = mrb_ccontext_new(mrb);
+    mrb_ccontext_filename(mrb, cc, args.fname);
     v = mrb_load_file_cxt(mrb, args.rfp, cc);
-    mrbc_context_free(mrb, cc);
+    mrb_ccontext_free(mrb, cc);
   }
   if (mrdb->dbg->xm == DBG_QUIT && !mrb_undef_p(v) && mrb->exc) {
     const char *classname = mrb_obj_classname(mrb, mrb_obj_value(mrb->exc));
