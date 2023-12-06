@@ -22,7 +22,7 @@ void mrb_parser_foreach_top_variable(mrb_state *mrb, struct mrb_parser_state *p,
 static struct RProc*
 create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value binding, const char *file, mrb_int line)
 {
-  mrbc_context *cxt;
+  mrb_ccontext *cxt;
   struct mrb_parser_state *p;
   struct RProc *proc;
   const struct RProc *scope;
@@ -60,10 +60,10 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
     file = "(eval)";
   }
 
-  cxt = mrbc_context_new(mrb);
+  cxt = mrb_ccontext_new(mrb);
   cxt->lineno = (uint16_t)line;
 
-  mrbc_filename(mrb, cxt, file);
+  mrb_ccontext_filename(mrb, cxt, file);
   cxt->capture_errors = TRUE;
   cxt->no_optimize = TRUE;
   cxt->upper = scope && MRB_PROC_CFUNC_P(scope) ? NULL : scope;
@@ -72,7 +72,7 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
 
   /* only occur when memory ran out */
   if (!p) {
-    mrbc_context_free(mrb, cxt);
+    mrb_ccontext_free(mrb, cxt);
     mrb_raise(mrb, E_RUNTIME_ERROR, "Failed to create parser state (out of memory)");
   }
 
@@ -80,7 +80,7 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
     /* parse error */
     mrb_value str;
 
-    mrbc_context_free(mrb, cxt);
+    mrb_ccontext_free(mrb, cxt);
     if (!p->error_buffer[0].message) {
       mrb_parser_free(p);
       mrb_raise(mrb, E_SYNTAX_ERROR, "compile error");
@@ -104,7 +104,7 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
   if (proc == NULL) {
     /* codegen error */
     mrb_parser_free(p);
-    mrbc_context_free(mrb, cxt);
+    mrb_ccontext_free(mrb, cxt);
     mrb_raise(mrb, E_SCRIPT_ERROR, "codegen error");
   }
   if (c->ci > c->cibase) {
@@ -134,7 +134,7 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
   /* mrb_codedump_all(mrb, proc); */
 
   mrb_parser_free(p);
-  mrbc_context_free(mrb, cxt);
+  mrb_ccontext_free(mrb, cxt);
 
   return proc;
 }
@@ -207,7 +207,7 @@ expand_lvspace(mrb_state *mrb, mrb_sym sym, void *user)
 struct binding_eval_prepare_body {
   mrb_value binding;
   const char *file;
-  mrbc_context *mrbc;
+  mrb_ccontext *cxt;
   struct mrb_parser_state *pstate;
 };
 
@@ -218,7 +218,7 @@ binding_eval_prepare_body(mrb_state *mrb, void *opaque)
 
   const struct RProc *proc = mrb_binding_extract_proc(mrb, p->binding);
   mrb_assert(!MRB_PROC_CFUNC_P(proc));
-  p->mrbc->upper = proc;
+  p->cxt->upper = proc;
   binding_eval_error_check(mrb, p->pstate, p->file);
 
   struct expand_lvspace args = {
@@ -240,15 +240,15 @@ binding_eval_prepare(mrb_state *mrb, mrb_value binding, const char *expr, mrb_in
 {
   struct binding_eval_prepare_body d = { binding };
 
-  d.mrbc = mrbc_context_new(mrb);
-  d.file = mrbc_filename(mrb, d.mrbc, file ? file : "(eval)");
-  d.mrbc->capture_errors = TRUE;
-  d.pstate = mrb_parse_nstring(mrb, expr, exprlen, d.mrbc);
+  d.cxt = mrb_ccontext_new(mrb);
+  d.file = mrb_ccontext_filename(mrb, d.cxt, file ? file : "(eval)");
+  d.cxt->capture_errors = TRUE;
+  d.pstate = mrb_parse_nstring(mrb, expr, exprlen, d.cxt);
 
   mrb_bool error;
   mrb_value ret = mrb_protect_error(mrb, binding_eval_prepare_body, &d, &error);
   if (d.pstate) mrb_parser_free(d.pstate);
-  if (d.mrbc) mrbc_context_free(mrb, d.mrbc);
+  if (d.cxt) mrb_ccontext_free(mrb, d.cxt);
   if (error) mrb_exc_raise(mrb, ret);
 }
 
