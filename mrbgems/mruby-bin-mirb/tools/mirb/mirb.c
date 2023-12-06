@@ -422,7 +422,7 @@ ctrl_c_handler(int signo)
 #endif
 
 #ifndef MRB_NO_MIRB_UNDERSCORE
-void decl_lv_underscore(mrb_state *mrb, mrbc_context *cxt)
+void decl_lv_underscore(mrb_state *mrb, mrb_ccontext *cxt)
 {
   struct RProc *proc;
   struct mrb_parser_state *parser;
@@ -453,7 +453,7 @@ main(int argc, char **argv)
   char *history_path;
   char* line;
 #endif
-  mrbc_context *cxt;
+  mrb_ccontext *cxt;
   struct mrb_parser_state *parser;
   mrb_state *mrb;
   mrb_value result;
@@ -504,7 +504,7 @@ main(int argc, char **argv)
 
   print_hint();
 
-  cxt = mrbc_context_new(mrb);
+  cxt = mrb_ccontext_new(mrb);
 
   /* Load libraries */
   for (i = 0; i < args.libc; i++) {
@@ -517,7 +517,7 @@ main(int argc, char **argv)
     mrb_load_file_cxt(mrb, lfp, cxt);
     fclose(lfp);
     mrb_vm_ci_env_clear(mrb, mrb->c->cibase);
-    mrbc_cleanup_local_variables(mrb, cxt);
+    mrb_ccontext_cleanup_local_variables(mrb, cxt);
   }
 
 #ifndef MRB_NO_MIRB_UNDERSCORE
@@ -526,7 +526,7 @@ main(int argc, char **argv)
 
   cxt->capture_errors = TRUE;
   cxt->lineno = 1;
-  mrbc_filename(mrb, cxt, "(mirb)");
+  mrb_ccontext_filename(mrb, cxt, "(mirb)");
   if (args.verbose) cxt->dump_result = TRUE;
 
   ai = mrb_gc_arena_save(mrb);
@@ -707,7 +707,7 @@ main(int argc, char **argv)
     }
     mrb_free(mrb, args.libv);
   }
-  mrbc_context_free(mrb, cxt);
+  mrb_ccontext_free(mrb, cxt);
   mrb_close(mrb);
 
   return 0;
