@@ -281,7 +281,7 @@ main(int argc, char **argv)
   int i;
   struct _args args;
   mrb_value ARGV;
-  mrbc_context *c;
+  mrb_ccontext *c;
   mrb_value v;
 
   if (mrb == NULL) {
@@ -307,7 +307,7 @@ main(int argc, char **argv)
     mrb_define_global_const(mrb, "ARGV", ARGV);
     mrb_gv_set(mrb, mrb_intern_lit(mrb, "$DEBUG"), mrb_bool_value(args.debug));
 
-    c = mrbc_context_new(mrb);
+    c = mrb_ccontext_new(mrb);
     if (args.verbose)
       c->dump_result = TRUE;
     if (args.check_syntax)
@@ -328,11 +328,11 @@ main(int argc, char **argv)
       FILE *lfp = fopen(args.libv[i], "rb");
       if (lfp == NULL) {
         fprintf(stderr, "%s: Cannot open library file: %s\n", *argv, args.libv[i]);
-        mrbc_context_free(mrb, c);
+        mrb_ccontext_free(mrb, c);
         cleanup(mrb, &args);
         return EXIT_FAILURE;
       }
-      mrbc_filename(mrb, c, args.libv[i]);
+      mrb_ccontext_filename(mrb, c, args.libv[i]);
       if (mrb_extension_p(args.libv[i])) {
         v = mrb_load_irep_file_cxt(mrb, lfp, c);
       }
@@ -341,11 +341,11 @@ main(int argc, char **argv)
       }
       fclose(lfp);
       mrb_vm_ci_env_clear(mrb, mrb->c->cibase);
-      mrbc_cleanup_local_variables(mrb, c);
+      mrb_ccontext_cleanup_local_variables(mrb, c);
     }
 
     /* set program file name */
-    mrbc_filename(mrb, c, cmdline);
+    mrb_ccontext_filename(mrb, c, cmdline);
 
     /* Load program */
     if (args.mrbfile || mrb_extension_p(cmdline)) {
@@ -362,7 +362,7 @@ main(int argc, char **argv)
     }
 
     mrb_gc_arena_restore(mrb, ai);
-    mrbc_context_free(mrb, c);
+    mrb_ccontext_free(mrb, c);
     if (mrb->exc) {
       MRB_EXC_CHECK_EXIT(mrb, mrb->exc);
       if (!mrb_undef_p(v)) {
