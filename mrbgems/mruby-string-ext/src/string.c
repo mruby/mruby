@@ -1318,6 +1318,48 @@ str_uminus(mrb_state *mrb, mrb_value str)
   return mrb_obj_freeze(mrb, mrb_str_dup(mrb, str));
 }
 
+/*
+ * call-seq:
+ *   string.valid_encoding? -> true or false
+ *
+ * Returns true for a string which is encoded correctly.
+ *
+ */
+static mrb_value
+str_valid_enc_p(mrb_state *mrb, mrb_value str)
+{
+#ifdef MRB_UTF8_STRING
+#define utf8_islead(c) ((unsigned char)((c)&0xc0) != 0x80)
+
+  struct RString *s = mrb_str_ptr(str);
+  if (RSTR_ASCII_P(s)) return mrb_true_value();
+
+  mrb_int byte_len = RSTR_LEN(s);
+  mrb_int utf8_len = 0;
+  const char *p = RSTR_PTR(s);
+  const char *e = p + byte_len;
+  while (p < e) {
+    mrb_int len = mrb_utf8len_table[(unsigned char)p[0] >> 3];
+    if (len == 0 || len > e - p)
+      return mrb_false_value();
+    switch (len) {
+    case 4:
+      if (utf8_islead(p[3])) return mrb_false_value();
+    case 3:
+      if (utf8_islead(p[2])) return mrb_false_value();
+    case 2:
+      if (utf8_islead(p[1])) return mrb_false_value();
+    default:
+      break;
+    }
+    p += len;
+    utf8_len++;
+  }
+  if (byte_len == utf8_len) RSTR_SET_ASCII_FLAG(s);
+#endif
+  return mrb_true_value();
+}
+
 void
 mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 {
@@ -1355,6 +1397,7 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, s, "casecmp?",        str_casecmp_p,       MRB_ARGS_REQ(1));
   mrb_define_method(mrb, s, "+@",              str_uplus,           MRB_ARGS_REQ(1));
   mrb_define_method(mrb, s, "-@",              str_uminus,          MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, s, "valid_encoding?", str_valid_enc_p,     MRB_ARGS_NONE());
 
   mrb_define_method(mrb, s, "__lines",         str_lines,           MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "__codepoints",    str_codepoints,      MRB_ARGS_NONE());
