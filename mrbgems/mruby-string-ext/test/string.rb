@@ -726,3 +726,14 @@ assert('String#-@') do
   a = -(a.freeze)
   assert_true(a.frozen?)
 end
+
+assert('String#valid_encoding?') do
+  assert_true "hello".valid_encoding?
+  if UTF8STRING
+    assert_true "あ".valid_encoding?
+    assert_false "\xfe".valid_encoding?
+    assert_false "あ\xfe".valid_encoding?
+  else
+    assert_true "\xfe".valid_encoding?
+  end
+end
