@@ -367,9 +367,17 @@ fiber_to_s(mrb_state *mrb, mrb_value self)
   fiber_check(mrb, self);
   const struct RFiber *f = fiber_ptr(self);
 
-  mrb_value s = mrb_any_to_s(mrb, self);
-  mrb_assert(RSTRING_END(s)[-1] == '>');
-  RSTRING_END(s)[-1] = ' ';
+  mrb_value s = mrb_str_new_lit(mrb, "#<");
+  mrb_value cname = mrb_class_path(mrb, mrb_class_real(mrb_class(mrb, self)));
+  if (mrb_nil_p(cname)) {
+    mrb_str_cat_lit(mrb, s, "Fiber:");
+  }
+  else {
+    mrb_str_cat_str(mrb, s, cname);
+    mrb_str_cat_lit(mrb, s, ":");
+  }
+  mrb_str_cat_str(mrb, s, mrb_ptr_to_str(mrb, mrb_ptr(self)));
+  mrb_str_cat_lit(mrb, s, " ");
 
   const char *file;
   int32_t line;
