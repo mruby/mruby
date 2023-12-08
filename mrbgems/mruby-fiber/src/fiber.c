@@ -358,7 +358,7 @@ fiber_eq(mrb_state *mrb, mrb_value self)
  *
  *  Returns fiber object information as a string.
  *
- *  If the file information cannot be obtained, it is replaced with `(unknown):1`.
+ *  If the file information cannot be obtained, it is replaced with `(unknown):0`.
  *  Also, if the fiber is terminated, it will be replaced in the same way (mruby limitation).
  */
 static mrb_value
@@ -381,7 +381,7 @@ fiber_to_s(mrb_state *mrb, mrb_value self)
     mrb_str_cat_cstr(mrb, s, mrb_int_to_cstr(buf, sizeof(buf), line, 10));
   }
   else {
-    mrb_str_cat_lit(mrb, s, "(unknown):1");
+    mrb_str_cat_lit(mrb, s, "(unknown):0");
   }
 
   const char *st;
