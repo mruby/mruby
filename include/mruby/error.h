@@ -37,19 +37,30 @@ MRB_API mrb_value mrb_exc_new_str(mrb_state *mrb, struct RClass* c, mrb_value st
 MRB_API mrb_noreturn void mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_value args, const char *fmt, ...);
 
 #if defined(MRB_64BIT) || defined(MRB_USE_FLOAT32) || defined(MRB_NAN_BOXING) || defined(MRB_WORD_BOXING)
+#undef MRB_USE_RBREAK_VALUE_UNION
+#else
+#define MRB_USE_RBREAK_VALUE_UNION 1
+#endif
+
+/*
+ *  flags:
+ *      0..7:   enum mrb_vtype (only when defined MRB_USE_RBREAK_VALUE_UNION)
+ *      8..10:  RBREAK_TAGs in src/vm.c (otherwise, set to 0)
+ */
 struct RBreak {
   MRB_OBJECT_HEADER;
-  const struct RProc *proc;
+  uintptr_t ci_break_index; // The top-level ci index to break. One before the return destination.
+#ifndef MRB_USE_RBREAK_VALUE_UNION
   mrb_value val;
+#else
+  union mrb_value_union value;
+#endif
 };
+
+#ifndef MRB_USE_RBREAK_VALUE_UNION
 #define mrb_break_value_get(brk) ((brk)->val)
 #define mrb_break_value_set(brk, v) ((brk)->val = v)
 #else
-struct RBreak {
-  MRB_OBJECT_HEADER;
-  const struct RProc *proc;
-  union mrb_value_union value;
-};
 #define RBREAK_VALUE_TT_MASK ((1 << 8) - 1)
 static inline mrb_value
 mrb_break_value_get(struct RBreak *brk)
@@ -66,9 +77,7 @@ mrb_break_value_set(struct RBreak *brk, mrb_value val)
   brk->flags &= ~RBREAK_VALUE_TT_MASK;
   brk->flags |= val.tt;
 }
-#endif  /* MRB_64BIT || MRB_USE_FLOAT32 || MRB_NAN_BOXING || MRB_WORD_BOXING */
-#define mrb_break_proc_get(brk) ((brk)->proc)
-#define mrb_break_proc_set(brk, p) ((brk)->proc = p)
+#endif  /* MRB_USE_RBREAK_VALUE_UNION */
 
 /**
  * Error check

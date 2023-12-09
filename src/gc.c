@@ -677,7 +677,6 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
   case MRB_TT_BREAK:
     {
       struct RBreak *brk = (struct RBreak*)obj;
-      mrb_gc_mark(mrb, (struct RBasic*)mrb_break_proc_get(brk));
       mrb_gc_mark_value(mrb, mrb_break_value_get(brk));
     }
     break;
