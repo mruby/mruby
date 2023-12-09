@@ -382,7 +382,7 @@ fiber_to_s(mrb_state *mrb, mrb_value self)
   const char *file;
   int32_t line;
   const struct RProc *p = f->cxt->cibase->proc;
-  if (!MRB_PROC_CFUNC_P(p) && !MRB_PROC_ALIAS_P(p) &&
+  if (f->cxt->status != MRB_FIBER_TERMINATED && !MRB_PROC_CFUNC_P(p) && !MRB_PROC_ALIAS_P(p) &&
       mrb_debug_get_position(mrb, p->body.irep, 0, &line, &file)) {
     mrb_str_cat_cstr(mrb, s, file);
     mrb_str_cat_lit(mrb, s, ":");
