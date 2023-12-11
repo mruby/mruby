@@ -2228,7 +2228,8 @@ RETRY_TRY_BLOCK:
         while ((ch = catch_handler_find(mrb, ci, ci->pc, MRB_CATCH_FILTER_ALL)) == NULL) {
           if (ci != mrb->c->cibase) {
             ci = cipop(mrb);
-            if (ci[1].cci == CINFO_SKIP && prev_jmp) {
+            if (ci[1].cci == CINFO_SKIP) {
+              mrb_assert(prev_jmp != NULL);
               mrb->jmp = prev_jmp;
               MRB_THROW(prev_jmp);
             }
@@ -2380,6 +2381,7 @@ RETRY_TRY_BLOCK:
           }
           cipop(mrb);
           if (mrb->c->ci[1].cci != CINFO_NONE) {
+            mrb_assert(prev_jmp != NULL);
             mrb->exc = (struct RObject*)break_new(mrb, RBREAK_TAG_BREAK, ci, v);
             mrb_gc_arena_restore(mrb, ai);
             mrb->c->vmexec = FALSE;
