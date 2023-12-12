@@ -2332,14 +2332,6 @@ RETRY_TRY_BLOCK:
               goto L_BREAK_ERROR;
             }
           }
-          /* break from fiber block */
-          if (ci == mrb->c->cibase && ci->pc) {
-            struct mrb_context *c = mrb->c;
-
-            mrb->c = c->prev;
-            c->prev = NULL;
-            ci = mrb->c->ci;
-          }
           proc = proc->upper;
           while (mrb->c->cibase < ci && ci[-1].proc != proc) {
             ci--;
