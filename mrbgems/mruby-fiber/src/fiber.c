@@ -171,6 +171,17 @@ fiber_check_cfunc(mrb_state *mrb, struct mrb_context *c)
 }
 
 static void
+fiber_check_cfunc_recursive(mrb_state *mrb, struct mrb_context *c)
+{
+  for (;; c = c->prev) {
+    fiber_check_cfunc(mrb, c);
+    if (c == mrb->root_c || !c->prev) {
+      break;
+    }
+  }
+}
+
+static void
 fiber_switch_context(mrb_state *mrb, struct mrb_context *c)
 {
   if (mrb->c->fib) {
@@ -275,14 +286,17 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
   else {
     value = fiber_result(mrb, a, len);
     if (vmexec) {
+      if (c->ci > c->cibase) c->ci--; /* pop dummy callinfo */
       c->ci[1].stack[0] = value;
     }
   }
 
   if (vmexec) {
+    int cci = old_c->ci->cci;
     c->vmexec = TRUE;
     value = mrb_vm_exec(mrb, c->ci->proc, c->ci->pc);
     mrb->c = old_c;
+    old_c->ci->cci = cci; /* restore values as they may have changed in Fiber.yield */
   }
   else {
     MARK_CONTEXT_MODIFY(c);
@@ -304,19 +318,19 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
  *  to the next <code>Fiber.yield</code> statement inside the fiber's block
  *  or to the block value if it runs to completion without any
  *  <code>Fiber.yield</code>
- *
- *  This method cannot be called from C using <code>mrb_funcall()</code>.
- *  Use <code>mrb_fiber_resume()</code> function instead.
  */
 static mrb_value
 fiber_resume(mrb_state *mrb, mrb_value self)
 {
   const mrb_value *a;
   mrb_int len;
+  mrb_bool vmexec = FALSE;
 
-  fiber_check_cfunc(mrb, mrb->c);
   mrb_get_args(mrb, "*!", &a, &len);
-  return fiber_switch(mrb, self, len, a, TRUE, FALSE);
+  if (mrb->c->ci->cci > 0) {
+    vmexec = TRUE;
+  }
+  return fiber_switch(mrb, self, len, a, TRUE, vmexec);
 }
 
 MRB_API mrb_value
@@ -429,7 +443,7 @@ fiber_transfer(mrb_state *mrb, mrb_value self)
   const mrb_value* a;
   mrb_int len;
 
-  fiber_check_cfunc(mrb, mrb->c);
+  fiber_check_cfunc_recursive(mrb, mrb->c);
   mrb_get_args(mrb, "*!", &a, &len);
 
   if (c->status == MRB_FIBER_RESUMED) {
@@ -472,7 +486,6 @@ mrb_fiber_yield(mrb_state *mrb, mrb_int len, const mrb_value *a)
   if (c->vmexec) {
     c->vmexec = FALSE;
     mrb->c->ci->cci = CINFO_RESUMED;
-    c->ci--;                    /* pop callinfo for yield */
   }
   MARK_CONTEXT_MODIFY(mrb->c);
   return fiber_result(mrb, a, len);

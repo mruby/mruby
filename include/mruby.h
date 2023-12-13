@@ -1458,8 +1458,6 @@ MRB_API mrb_value mrb_fiber_new(mrb_state *mrb, const struct RProc *proc);
  * Implemented in mruby-fiber
  *
  * Switches to the specified fiber and executes. Like the `Fiber#resume` method.
- *
- * @note It can only be called before entering the mruby VM (e.g. in the `main()` function).
  */
 MRB_API mrb_value mrb_fiber_resume(mrb_state *mrb, mrb_value fib, mrb_int argc, const mrb_value *argv);
 
