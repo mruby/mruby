@@ -106,15 +106,17 @@ binding_env_new_lvspace(mrb_state *mrb, const struct REnv *e)
   return env;
 }
 
-static size_t
-binding_proc_upper_count(const struct RProc *proc)
+static void
+binding_check_proc_upper_count(mrb_state *mrb, const struct RProc *proc)
 {
-  size_t count = 0;
-  for (; proc && !MRB_PROC_CFUNC_P(proc); proc = proc->upper) {
+  for (size_t count = 0; proc && !MRB_PROC_CFUNC_P(proc); proc = proc->upper) {
     count++;
+    if (count > BINDING_UPPER_MAX) {
+      mrb_raise(mrb, E_RUNTIME_ERROR,
+                "too many upper procs for local variables (mruby limitation; maximum is " MRB_STRINGIZE(BINDING_UPPER_MAX) ")");
+    }
     if (MRB_PROC_SCOPE_P(proc)) break;
   }
-  return count;
 }
 
 mrb_bool
@@ -166,10 +168,7 @@ binding_initialize_copy(mrb_state *mrb, mrb_value binding)
     lvspace = binding_wrap_lvspace(mrb, src_proc->upper, &env);
   }
   else {
-    if (binding_proc_upper_count(src_proc) > BINDING_UPPER_MAX) {
-      mrb_raise(mrb, E_RUNTIME_ERROR,
-                "too many upper procs for local variables (mruby limitation; maximum is " MRB_STRINGIZE(BINDING_UPPER_MAX) ")");
-    }
+    binding_check_proc_upper_count(mrb, src_proc);
 
     env = src_env;
     lvspace = binding_wrap_lvspace(mrb, src_proc, &env);
