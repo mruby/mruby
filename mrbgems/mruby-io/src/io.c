@@ -1702,13 +1702,24 @@ io_read(mrb_state *mrb, mrb_value io)
         mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative length %d given", length);
       }
       if (length == 0) {
-        return mrb_str_new(mrb, NULL, 0);
+        if (mrb_nil_p(outbuf)) {
+          outbuf = mrb_str_new(mrb, NULL, 0);
+        }
+        else {
+          mrb_str_modify(mrb, mrb_str_ptr(outbuf));
+          RSTR_SET_LEN(mrb_str_ptr(outbuf), 0);
+        }
+        return outbuf;
       }
     }
   }
 
   if (mrb_nil_p(outbuf)) {
     outbuf = mrb_str_new_capa(mrb, MRB_IO_BUF_SIZE);
+  }
+  else {
+    mrb_str_modify(mrb, mrb_str_ptr(outbuf));
+    RSTR_SET_LEN(mrb_str_ptr(outbuf), 0);
   }
   if (!length_given) {          /* read as much as possible */
     return io_read_all(mrb, fptr, outbuf);
