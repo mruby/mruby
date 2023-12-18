@@ -2364,31 +2364,31 @@ RETRY_TRY_BLOCK:
           break;
         }
 
-        for (;;) {
-          CHECKPOINT_RESTORE(RBREAK_TAG_BREAK) {
-            struct RBreak *brk = (struct RBreak*)mrb->exc;
-            ci = &mrb->c->cibase[brk->ci_break_index];
-            v = mrb_break_value_get(brk);
-            mrb_gc_protect(mrb, v);
-          }
-          CHECKPOINT_MAIN(RBREAK_TAG_BREAK) {
+        CHECKPOINT_RESTORE(RBREAK_TAG_BREAK) {
+          struct RBreak *brk = (struct RBreak*)mrb->exc;
+          ci = &mrb->c->cibase[brk->ci_break_index];
+          v = mrb_break_value_get(brk);
+          mrb_gc_protect(mrb, v);
+        }
+        CHECKPOINT_MAIN(RBREAK_TAG_BREAK) {
+          for (;;) {
             UNWIND_ENSURE(mrb, mrb->c->ci, mrb->c->ci->pc, RBREAK_TAG_BREAK, ci, v);
-          }
-          CHECKPOINT_END(RBREAK_TAG_BREAK);
 
-          if (mrb->c->ci == ci) {
-            break;
-          }
-          cipop(mrb);
-          if (mrb->c->ci[1].cci != CINFO_NONE) {
-            mrb_assert(prev_jmp != NULL);
-            mrb->exc = (struct RObject*)break_new(mrb, RBREAK_TAG_BREAK, ci, v);
-            mrb_gc_arena_restore(mrb, ai);
-            mrb->c->vmexec = FALSE;
-            mrb->jmp = prev_jmp;
-            MRB_THROW(prev_jmp);
+            if (mrb->c->ci == ci) {
+              break;
+            }
+            cipop(mrb);
+            if (mrb->c->ci[1].cci != CINFO_NONE) {
+              mrb_assert(prev_jmp != NULL);
+              mrb->exc = (struct RObject*)break_new(mrb, RBREAK_TAG_BREAK, ci, v);
+              mrb_gc_arena_restore(mrb, ai);
+              mrb->c->vmexec = FALSE;
+              mrb->jmp = prev_jmp;
+              MRB_THROW(prev_jmp);
+            }
           }
         }
+        CHECKPOINT_END(RBREAK_TAG_BREAK);
         mrb->exc = NULL; /* clear break object */
 
         if (ci == mrb->c->cibase) {
