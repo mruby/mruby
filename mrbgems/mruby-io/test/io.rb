@@ -150,6 +150,30 @@ assert "IO#read(n) with n > IO::BUF_SIZE" do
   end
 end
 
+assert "IO#read(n, buf)" do
+  IO.open(IO.sysopen($mrbtest_io_rfname)) do |io|
+    buf = "12345"
+    assert_same buf, io.read(0, buf)
+    assert_equal "", buf
+
+    buf = "12345"
+    assert_same buf, io.read(5, buf)
+    assert_equal "mruby", buf
+
+    buf = "12345"
+    assert_same buf, io.read(nil, buf)
+    assert_equal " io test\n", buf
+
+    buf = "12345"
+    assert_nil io.read(99, buf)
+    assert_equal "", buf
+
+    buf = "12345"
+    assert_same buf, io.read(0, buf)
+    assert_equal "", buf
+  end
+end
+
 assert('IO#readchar', '15.2.20.5.15') do
   # almost same as IO#getc
   IO.open(IO.sysopen($mrbtest_io_rfname)) do |io|
