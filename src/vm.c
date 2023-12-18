@@ -1879,57 +1879,62 @@ RETRY_TRY_BLOCK:
       }
       ci->cci = CINFO_NONE;
 
-      if (MRB_METHOD_CFUNC_P(m)) {
-        if (MRB_METHOD_PROC_P(m)) {
-          struct RProc *p = MRB_METHOD_PROC(m);
-          CI_PROC_SET(ci, p);
-          recv = p->body.func(mrb, recv);
+      if (MRB_METHOD_PROC_P(m)) {
+        const struct RProc *p = MRB_METHOD_PROC(m);
+        /* handle alias */
+        if (MRB_PROC_ALIAS_P(p)) {
+          ci->mid = p->body.mid;
+          p = p->upper;
+        }
+        CI_PROC_SET(ci, p);
+        if (!MRB_PROC_CFUNC_P(p)) {
+          /* setup environment for calling method */
+          proc = p;
+          irep = proc->body.irep;
+          pool = irep->pool;
+          syms = irep->syms;
+          stack_extend(mrb, (irep->nregs < 4) ? 4 : irep->nregs);
+          pc = irep->iseq;
+          JUMP;
         }
         else {
-          if (MRB_METHOD_NOARG_P(m) && (ci->n > 0 || ci->nk > 0)) {
+          if (MRB_PROC_NOARG_P(p) && (ci->n > 0 || ci->nk > 0)) {
             check_method_noarg(mrb, ci);
           }
-          recv = MRB_METHOD_FUNC(m)(mrb, recv);
+          recv = MRB_PROC_CFUNC(p)(mrb, recv);
         }
-        mrb_assert(mrb->c->ci > mrb->c->cibase);
-        mrb_gc_arena_shrink(mrb, ai);
-        if (mrb->exc) goto L_RAISE;
-        ci = mrb->c->ci;
-        if (!ci->u.target_class) { /* return from context modifying method (resume/yield) */
-          if (ci->cci == CINFO_RESUMED) {
-            mrb->jmp = prev_jmp;
-            return recv;
-          }
-          else {
-            mrb_assert(!MRB_PROC_CFUNC_P(ci[-1].proc));
-            proc = ci[-1].proc;
-            irep = proc->body.irep;
-            pool = irep->pool;
-            syms = irep->syms;
-          }
-        }
-        ci->stack[0] = recv;
-        /* pop stackpos */
-        ci = cipop(mrb);
-        pc = ci->pc;
       }
       else {
-        /* setup environment for calling method */
-        proc = MRB_METHOD_PROC(m);
-        /* handle alias */
-        if (MRB_PROC_ALIAS_P(proc)) {
-          ci->mid = proc->body.mid;
-          proc = proc->upper;
+        if (MRB_METHOD_NOARG_P(m) && (ci->n > 0 || ci->nk > 0)) {
+          check_method_noarg(mrb, ci);
         }
-        CI_PROC_SET(ci, proc);
-        irep = proc->body.irep;
-        pool = irep->pool;
-        syms = irep->syms;
-        stack_extend(mrb, (irep->nregs < 4) ? 4 : irep->nregs);
-        pc = irep->iseq;
+        recv = MRB_METHOD_FUNC(m)(mrb, recv);
       }
+
+      /* cfunc epilogue */
+      mrb_assert(mrb->c->ci > mrb->c->cibase);
+      mrb_gc_arena_shrink(mrb, ai);
+      if (mrb->exc) goto L_RAISE;
+      ci = mrb->c->ci;
+      if (!ci->u.target_class) { /* return from context modifying method (resume/yield) */
+        if (ci->cci == CINFO_RESUMED) {
+          mrb->jmp = prev_jmp;
+          return recv;
+        }
+        else {
+          mrb_assert(!MRB_PROC_CFUNC_P(ci[-1].proc));
+          proc = ci[-1].proc;
+          irep = proc->body.irep;
+          pool = irep->pool;
+          syms = irep->syms;
+        }
+      }
+      ci->stack[0] = recv;
+      /* pop stackpos */
+      ci = cipop(mrb);
+      pc = ci->pc;
+      JUMP;
     }
-    JUMP;
 
     CASE(OP_CALL, Z) {
       mrb_callinfo *ci = mrb->c->ci;
