@@ -1685,6 +1685,19 @@ io_read_all(mrb_state *mrb, struct mrb_io *fptr, mrb_value outbuf)
 }
 
 static mrb_value
+io_reset_outbuf(mrb_state *mrb, mrb_value outbuf, mrb_int len)
+{
+  if (mrb_nil_p(outbuf)) {
+    outbuf = mrb_str_new(mrb, NULL, 0);
+  }
+  else {
+    mrb_str_modify(mrb, mrb_str_ptr(outbuf));
+    RSTR_SET_LEN(mrb_str_ptr(outbuf), 0);
+  }
+  return outbuf;
+}
+
+static mrb_value
 io_read(mrb_state *mrb, mrb_value io)
 {
   mrb_value outbuf = mrb_nil_value();
@@ -1704,25 +1717,12 @@ io_read(mrb_state *mrb, mrb_value io)
         mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative length %d given", length);
       }
       if (length == 0) {
-        if (mrb_nil_p(outbuf)) {
-          outbuf = mrb_str_new(mrb, NULL, 0);
-        }
-        else {
-          mrb_str_modify(mrb, mrb_str_ptr(outbuf));
-          RSTR_SET_LEN(mrb_str_ptr(outbuf), 0);
-        }
-        return outbuf;
+        return io_reset_outbuf(mrb, outbuf, 0);
       }
     }
   }
 
-  if (mrb_nil_p(outbuf)) {
-    outbuf = mrb_str_new_capa(mrb, MRB_IO_BUF_SIZE);
-  }
-  else {
-    mrb_str_modify(mrb, mrb_str_ptr(outbuf));
-    RSTR_SET_LEN(mrb_str_ptr(outbuf), 0);
-  }
+  outbuf = io_reset_outbuf(mrb, outbuf, MRB_IO_BUF_SIZE);
   if (!length_given) {          /* read as much as possible */
     return io_read_all(mrb, fptr, outbuf);
   }
