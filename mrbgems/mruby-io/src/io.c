@@ -1648,8 +1648,9 @@ io_eof(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr = io_get_read_fptr(mrb, io);
 
-  io_buf_fill(mrb, fptr);
+  if (fptr->eof) return mrb_true_value();
   if (fptr->buf->len > 0) return mrb_false_value();
+  io_buf_fill(mrb, fptr);
   return mrb_bool_value(fptr->eof);
 }
 
