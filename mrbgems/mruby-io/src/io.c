@@ -1595,19 +1595,15 @@ io_ungetc(mrb_state *mrb, mrb_value io)
 }
 
 static void
-io_buf_reset(struct mrb_io *fptr)
+io_buf_reset(struct mrb_io_buf *buf)
 {
-  struct mrb_io_buf *buf = fptr->buf;
-
   buf->start = 0;
   buf->len = 0;
 }
 
 static void
-io_buf_shift(struct mrb_io *fptr, mrb_int n)
+io_buf_shift(struct mrb_io_buf *buf, mrb_int n)
 {
-  struct mrb_io_buf *buf = fptr->buf;
-
   mrb_assert(n <= SHRT_MAX);
   buf->start += (short)n;
   buf->len -= (short)n;
@@ -1655,22 +1651,18 @@ io_eof(mrb_state *mrb, mrb_value io)
 }
 
 static void
-io_buf_cat(mrb_state *mrb, mrb_value outbuf, struct mrb_io *fptr, mrb_int n)
+io_buf_cat(mrb_state *mrb, mrb_value outbuf, struct mrb_io_buf *buf, mrb_int n)
 {
-  struct mrb_io_buf *buf = fptr->buf;
-
   mrb_assert(n <= buf->len);
   mrb_str_cat(mrb, outbuf, buf->mem+buf->start, n);
-  io_buf_shift(fptr, n);
+  io_buf_shift(buf, n);
 }
 
 static void
-io_buf_cat_all(mrb_state *mrb, mrb_value outbuf, struct mrb_io *fptr)
+io_buf_cat_all(mrb_state *mrb, mrb_value outbuf, struct mrb_io_buf *buf)
 {
-  struct mrb_io_buf *buf = fptr->buf;
-
   mrb_str_cat(mrb, outbuf, buf->mem+buf->start, buf->len);
-  io_buf_reset(fptr);
+  io_buf_reset(buf);
 }
 
 static mrb_value
@@ -1681,7 +1673,7 @@ io_read_all(mrb_state *mrb, struct mrb_io *fptr, mrb_value outbuf)
     if (fptr->eof) {
       return outbuf;
     }
-    io_buf_cat_all(mrb, outbuf, fptr);
+    io_buf_cat_all(mrb, outbuf, fptr->buf);
   }
 }
 
@@ -1727,6 +1719,9 @@ io_read(mrb_state *mrb, mrb_value io)
   if (!length_given) {          /* read as much as possible */
     return io_read_all(mrb, fptr, outbuf);
   }
+
+  struct mrb_io_buf *buf = fptr->buf;
+
   for (;;) {
     io_buf_fill(mrb, fptr);
     if (fptr->eof || length == 0) {
@@ -1734,12 +1729,12 @@ io_read(mrb_state *mrb, mrb_value io)
         return mrb_nil_value();
       return outbuf;
     }
-    if (fptr->buf->len < length) {
-      length -= fptr->buf->len;
-      io_buf_cat_all(mrb, outbuf, fptr);
+    if (buf->len < length) {
+      length -= buf->len;
+      io_buf_cat_all(mrb, outbuf, buf);
     }
     else {
-      io_buf_cat(mrb, outbuf, fptr, length);
+      io_buf_cat(mrb, outbuf, buf, length);
       return outbuf;
     }
   }
@@ -1831,18 +1826,18 @@ io_gets(mrb_state *mrb, mrb_value io)
         if (limit_given && limit < n) {
           n = limit;
         }
-        io_buf_cat(mrb, outbuf, fptr, n);
+        io_buf_cat(mrb, outbuf, buf, n);
         return outbuf;
       }
     }
     if (limit_given) {
       if (limit <= buf->len) {
-        io_buf_cat(mrb, outbuf, fptr, limit);
+        io_buf_cat(mrb, outbuf, buf, limit);
         return outbuf;
       }
       limit -= buf->len;
     }
-    io_buf_cat_all(mrb, outbuf, fptr);
+    io_buf_cat_all(mrb, outbuf, buf);
     io_buf_fill(mrb, fptr);
     if (fptr->eof) {
       if (RSTRING_LEN(outbuf) == 0) return mrb_nil_value();
@@ -1878,11 +1873,11 @@ io_getc(mrb_state *mrb, mrb_value io)
 {
   mrb_int len = 1;
   struct mrb_io *fptr = io_get_read_fptr(mrb, io);
+  struct mrb_io_buf *buf = fptr->buf;
 
   io_buf_fill(mrb, fptr);
   if (fptr->eof) return mrb_nil_value();
 #ifdef MRB_UTF8_STRING
-  struct mrb_io_buf *buf = fptr->buf;
   const char *p = &buf->mem[buf->start];
   if ((*p) & 0x80) {
     len = mrb_utf8len(p, p+buf->len);
@@ -1893,8 +1888,8 @@ io_getc(mrb_state *mrb, mrb_value io)
     }
   }
 #endif
-  mrb_value str = mrb_str_new(mrb, fptr->buf->mem+fptr->buf->start, len);
-  io_buf_shift(fptr, len);
+  mrb_value str = mrb_str_new(mrb, buf->mem+buf->start, len);
+  io_buf_shift(buf, len);
   return str;
 }
 
@@ -1912,12 +1907,13 @@ static mrb_value
 io_getbyte(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr = io_get_read_fptr(mrb, io);
+  struct mrb_io_buf *buf = fptr->buf;
 
   io_buf_fill(mrb, fptr);
   if (fptr->eof) return mrb_nil_value();
 
-  unsigned char c = fptr->buf->mem[fptr->buf->start];
-  io_buf_shift(fptr, 1);
+  unsigned char c = buf->mem[buf->start];
+  io_buf_shift(buf, 1);
   return mrb_int_value(mrb, (mrb_int)c);
 }
 
