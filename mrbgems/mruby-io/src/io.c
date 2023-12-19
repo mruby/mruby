@@ -320,7 +320,7 @@ io_free(mrb_state *mrb, void *ptr)
 }
 
 static void
-io_buf_init(mrb_state *mrb, struct mrb_io *fptr)
+io_init_buf(mrb_state *mrb, struct mrb_io *fptr)
 {
   if (fptr->readable) {
     fptr->buf = (struct mrb_io_buf*)mrb_malloc(mrb, sizeof(struct mrb_io_buf));
@@ -478,7 +478,7 @@ io_s_popen(mrb_state *mrb, mrb_value klass)
   fptr->pid = pid;
   fptr->readable = OPEN_READABLE_P(flags);
   fptr->writable = OPEN_WRITABLE_P(flags);
-  io_buf_init(mrb, fptr);
+  io_init_buf(mrb, fptr);
 
   DATA_TYPE(io) = &mrb_io_type;
   DATA_PTR(io)  = fptr;
@@ -587,7 +587,7 @@ io_s_popen(mrb_state *mrb, mrb_value klass)
       fptr->pid = pid;
       fptr->readable = OPEN_READABLE_P(flags);
       fptr->writable = OPEN_WRITABLE_P(flags);
-      io_buf_init(mrb, fptr);
+      io_init_buf(mrb, fptr);
 
       DATA_TYPE(io) = &mrb_io_type;
       DATA_PTR(io)  = fptr;
@@ -649,7 +649,7 @@ io_init_copy(mrb_state *mrb, mrb_value copy)
   fptr_copy->sync = fptr_orig->sync;
   fptr_copy->is_socket = fptr_orig->is_socket;
 
-  io_buf_init(mrb, fptr_copy);
+  io_init_buf(mrb, fptr_copy);
 
   DATA_TYPE(copy) = &mrb_io_type;
   DATA_PTR(copy) = fptr_copy;
@@ -747,7 +747,7 @@ io_init(mrb_state *mrb, mrb_value io)
   fptr->fd = (int)fd;
   fptr->readable = OPEN_READABLE_P(flags);
   fptr->writable = OPEN_WRITABLE_P(flags);
-  io_buf_init(mrb, fptr);
+  io_init_buf(mrb, fptr);
   return io;
 }
 
@@ -1239,7 +1239,7 @@ io_s_pipe(mrb_state *mrb, mrb_value klass)
   fptr_r->readable = 1;
   DATA_TYPE(r) = &mrb_io_type;
   DATA_PTR(r)  = fptr_r;
-  io_buf_init(mrb, fptr_r);
+  io_init_buf(mrb, fptr_r);
 
   w = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
   fptr_w = io_alloc(mrb);
@@ -1611,7 +1611,7 @@ io_buf_shift(struct mrb_io_buf *buf, mrb_int n)
 
 #ifdef MRB_UTF8_STRING
 static void
-io_buf_fill_comp(mrb_state *mrb, struct mrb_io *fptr)
+io_fill_buf_comp(mrb_state *mrb, struct mrb_io *fptr)
 {
   struct mrb_io_buf *buf = fptr->buf;
   int keep = buf->len;
@@ -1626,7 +1626,7 @@ io_buf_fill_comp(mrb_state *mrb, struct mrb_io *fptr)
 #endif
 
 static void
-io_buf_fill(mrb_state *mrb, struct mrb_io *fptr)
+io_fill_buf(mrb_state *mrb, struct mrb_io *fptr)
 {
   struct mrb_io_buf *buf = fptr->buf;
 
@@ -1646,7 +1646,7 @@ io_eof(mrb_state *mrb, mrb_value io)
 
   if (fptr->eof) return mrb_true_value();
   if (fptr->buf->len > 0) return mrb_false_value();
-  io_buf_fill(mrb, fptr);
+  io_fill_buf(mrb, fptr);
   return mrb_bool_value(fptr->eof);
 }
 
@@ -1669,7 +1669,7 @@ static mrb_value
 io_read_all(mrb_state *mrb, struct mrb_io *fptr, mrb_value outbuf)
 {
   for (;;) {
-    io_buf_fill(mrb, fptr);
+    io_fill_buf(mrb, fptr);
     if (fptr->eof) {
       return outbuf;
     }
@@ -1723,7 +1723,7 @@ io_read(mrb_state *mrb, mrb_value io)
   struct mrb_io_buf *buf = fptr->buf;
 
   for (;;) {
-    io_buf_fill(mrb, fptr);
+    io_fill_buf(mrb, fptr);
     if (fptr->eof || length == 0) {
       if (RSTRING_LEN(outbuf) == 0)
         return mrb_nil_value();
@@ -1806,7 +1806,7 @@ io_gets(mrb_state *mrb, mrb_value io)
     return io_read_all(mrb, fptr, mrb_str_new_capa(mrb, MRB_IO_BUF_SIZE));
   }
 
-  io_buf_fill(mrb, fptr);
+  io_fill_buf(mrb, fptr);
   if (fptr->eof) return mrb_nil_value();
 
   if (limit_given) {
@@ -1838,7 +1838,7 @@ io_gets(mrb_state *mrb, mrb_value io)
       limit -= buf->len;
     }
     io_buf_cat_all(mrb, outbuf, buf);
-    io_buf_fill(mrb, fptr);
+    io_fill_buf(mrb, fptr);
     if (fptr->eof) {
       if (RSTRING_LEN(outbuf) == 0) return mrb_nil_value();
       return outbuf;
@@ -1875,14 +1875,14 @@ io_getc(mrb_state *mrb, mrb_value io)
   struct mrb_io *fptr = io_get_read_fptr(mrb, io);
   struct mrb_io_buf *buf = fptr->buf;
 
-  io_buf_fill(mrb, fptr);
+  io_fill_buf(mrb, fptr);
   if (fptr->eof) return mrb_nil_value();
 #ifdef MRB_UTF8_STRING
   const char *p = &buf->mem[buf->start];
   if ((*p) & 0x80) {
     len = mrb_utf8len(p, p+buf->len);
     if (len == 1 && buf->len < 4) { /* partial UTF-8 */
-      io_buf_fill_comp(mrb, fptr);
+      io_fill_buf_comp(mrb, fptr);
       p = &buf->mem[buf->start];
       len = mrb_utf8len(p, p+buf->len);
     }
@@ -1909,7 +1909,7 @@ io_getbyte(mrb_state *mrb, mrb_value io)
   struct mrb_io *fptr = io_get_read_fptr(mrb, io);
   struct mrb_io_buf *buf = fptr->buf;
 
-  io_buf_fill(mrb, fptr);
+  io_fill_buf(mrb, fptr);
   if (fptr->eof) return mrb_nil_value();
 
   unsigned char c = buf->mem[buf->start];
