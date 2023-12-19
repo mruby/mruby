@@ -680,6 +680,7 @@ check_file_descriptor(mrb_state *mrb, mrb_int fd)
 
 #if MRB_INT_MIN < INT_MIN || MRB_INT_MAX > INT_MAX
   if (fdi != fd) {
+    errno = EBADF;
     goto badfd;
   }
 #endif
@@ -695,6 +696,7 @@ check_file_descriptor(mrb_state *mrb, mrb_int fd)
   }
 
   if (fdi < 0 || fdi > _getmaxstdio()) {
+    errno = EBADF;
     goto badfd;
   }
 #endif /* _WIN32 */
