@@ -19,10 +19,6 @@ enum mrb_insn {
 #define OP_L_LAMBDA  (OP_L_STRICT|OP_L_CAPTURE)
 #define OP_L_BLOCK   OP_L_CAPTURE
 
-#define OP_R_NORMAL 0
-#define OP_R_BREAK  1
-#define OP_R_RETURN 2
-
 #define PEEK_B(pc) (*(pc))
 #define PEEK_S(pc) ((pc)[0]<<8|(pc)[1])
 #define PEEK_W(pc) ((pc)[0]<<16|(pc)[1]<<8|(pc)[2])
