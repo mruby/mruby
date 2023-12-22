@@ -319,7 +319,7 @@ mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, ch
     }
     if (*rs == '0') {
       // We need to insert a 1
-      if (rs[1] == '.' && fmt != 'f') {
+      if (fmt != 'f' && rs[1] == '.') {
         // We're going to round 9.99 to 10.00
         // Move the decimal point
         rs[0] = '.';
