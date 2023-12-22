@@ -397,7 +397,8 @@ void
 mrb_mruby_binding_gem_init(mrb_state *mrb)
 {
   struct RClass *binding = mrb_define_class(mrb, "Binding", mrb->object_class);
-  MRB_SET_INSTANCE_TT(binding, MRB_TT_UNDEF);
+  MRB_SET_INSTANCE_TT(binding, MRB_TT_OBJECT);
+  MRB_UNDEF_ALLOCATOR(binding);
   mrb_undef_class_method(mrb, binding, "new");
   mrb_undef_class_method(mrb, binding, "allocate");
 

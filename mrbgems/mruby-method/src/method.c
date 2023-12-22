@@ -546,7 +546,8 @@ mrb_mruby_method_gem_init(mrb_state* mrb)
   struct RClass *unbound_method = mrb_define_class_id(mrb, MRB_SYM(UnboundMethod), mrb->object_class);
   struct RClass *method = mrb_define_class_id(mrb, MRB_SYM(Method), mrb->object_class);
 
-  MRB_SET_INSTANCE_TT(unbound_method, MRB_TT_UNDEF);
+  MRB_SET_INSTANCE_TT(unbound_method, MRB_TT_OBJECT);
+  MRB_UNDEF_ALLOCATOR(unbound_method);
   mrb_undef_class_method(mrb, unbound_method, "new");
   mrb_define_method(mrb, unbound_method, "bind", unbound_method_bind, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, unbound_method, "super_method", method_super_method, MRB_ARGS_NONE());
@@ -561,7 +562,8 @@ mrb_mruby_method_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, unbound_method, "owner", method_owner, MRB_ARGS_NONE());
   mrb_define_method(mrb, unbound_method, "name", method_name, MRB_ARGS_NONE());
 
-  MRB_SET_INSTANCE_TT(method, MRB_TT_UNDEF);
+  MRB_SET_INSTANCE_TT(method, MRB_TT_OBJECT);
+  MRB_UNDEF_ALLOCATOR(method);
   mrb_undef_class_method(mrb, method, "new");
   mrb_define_method(mrb, method, "==", method_eql, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, method, "eql?", method_eql, MRB_ARGS_REQ(1));

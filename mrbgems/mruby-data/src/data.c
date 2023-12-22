@@ -492,7 +492,8 @@ mrb_mruby_data_gem_init(mrb_state* mrb)
 {
   struct RClass *d;
   d = mrb_define_class(mrb, "Data",  mrb->object_class);
-  MRB_SET_INSTANCE_TT(d, MRB_TT_UNDEF);
+  MRB_SET_INSTANCE_TT(d, MRB_TT_STRUCT);
+  MRB_UNDEF_ALLOCATOR(d);
 
   mrb_undef_class_method(mrb, d, "new");
   mrb_define_class_method(mrb, d, "define",          mrb_data_s_def,      MRB_ARGS_ANY());

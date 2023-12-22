@@ -57,7 +57,8 @@ mrb_class(mrb_state *mrb, mrb_value v)
    19:   is_prepended
    18:   is_origin
    17:   is_inherited (used by method cache)
-   6-16: unused
+   7-16: unused
+   6:    prohibit Class#allocate
    0-5:  instance type
 */
 #define MRB_FL_CLASS_IS_PREPENDED (1 << 19)
@@ -74,6 +75,9 @@ mrb_class(mrb_state *mrb, mrb_value v)
 #define MRB_INSTANCE_TT_MASK (0x1F)
 #define MRB_SET_INSTANCE_TT(c, tt) ((c)->flags = (((c)->flags & ~MRB_INSTANCE_TT_MASK) | (char)(tt)))
 #define MRB_INSTANCE_TT(c) (enum mrb_vtype)((c)->flags & MRB_INSTANCE_TT_MASK)
+#define MRB_FL_UNDEF_ALLOCATE (1 << 6)
+#define MRB_UNDEF_ALLOCATOR(c) (mrb_assert((c)->tt == MRB_TT_CLASS), (c)->flags |= MRB_FL_UNDEF_ALLOCATE)
+#define MRB_UNDEF_ALLOCATOR_P(c) ((c)->flags & MRB_FL_UNDEF_ALLOCATE)
 
 MRB_API void mrb_define_method_raw(mrb_state*, struct RClass*, mrb_sym, mrb_method_t);
 MRB_API void mrb_alias_method(mrb_state*, struct RClass *c, mrb_sym a, mrb_sym b);

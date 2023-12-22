@@ -697,7 +697,8 @@ mrb_mruby_struct_gem_init(mrb_state* mrb)
 {
   struct RClass *st;
   st = mrb_define_class(mrb, "Struct",  mrb->object_class);
-  MRB_SET_INSTANCE_TT(st, MRB_TT_UNDEF);
+  MRB_SET_INSTANCE_TT(st, MRB_TT_STRUCT);
+  MRB_UNDEF_ALLOCATOR(st);
 
   mrb_define_class_method(mrb, st, "new",             mrb_struct_s_def,       MRB_ARGS_ANY());  /* 15.2.18.3.1  */
 
