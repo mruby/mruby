@@ -228,6 +228,7 @@ make_data_class(mrb_state *mrb, mrb_value members, struct RClass *klass)
 {
   struct RClass *c = mrb_class_new(mrb, klass);
   MRB_SET_INSTANCE_TT(c, MRB_TT_STRUCT);
+  MRB_DEFINE_ALLOCATOR(c);
   mrb_value data = mrb_obj_value(c);
   mrb_iv_set(mrb, data, MRB_SYM(__members__), members);
 

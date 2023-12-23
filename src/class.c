@@ -2207,6 +2207,7 @@ mrb_class_new(mrb_state *mrb, struct RClass *super)
   c = boot_defclass(mrb, super);
   if (super) {
     MRB_SET_INSTANCE_TT(c, MRB_INSTANCE_TT(super));
+    c->flags |= super->flags & MRB_FL_UNDEF_ALLOCATE;
   }
   make_metaclass(mrb, c);
 

@@ -210,6 +210,7 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass *kl
     c = mrb_define_class_under_id(mrb, klass, id, klass);
   }
   MRB_SET_INSTANCE_TT(c, MRB_TT_STRUCT);
+  MRB_DEFINE_ALLOCATOR(c);
   nstr = mrb_obj_value(c);
   mrb_iv_set(mrb, nstr, MRB_SYM(__members__), members);
 
