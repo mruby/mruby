@@ -490,9 +490,8 @@ mrb_init_proc(mrb_state *mrb)
   mrb_method_t m;
   struct RClass *pc = mrb->proc_class = mrb_define_class_id(mrb, MRB_SYM(Proc), mrb->object_class); /* 15.2.17 */
 
-  MRB_SET_INSTANCE_TT(mrb->proc_class, MRB_TT_PROC);
-
-  MRB_SET_INSTANCE_TT(pc, MRB_TT_UNDEF);
+  MRB_SET_INSTANCE_TT(pc, MRB_TT_PROC);
+  MRB_UNDEF_ALLOCATOR(pc);
   mrb_define_class_method_id(mrb, pc, MRB_SYM(new), mrb_proc_s_new, MRB_ARGS_NONE()|MRB_ARGS_BLOCK());
   mrb_define_method_id(mrb, pc, MRB_SYM(initialize_copy), mrb_proc_init_copy, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, pc, MRB_SYM(arity), proc_arity, MRB_ARGS_NONE()); /* 15.2.17.4.2 */

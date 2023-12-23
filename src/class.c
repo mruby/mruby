@@ -1949,10 +1949,10 @@ mrb_instance_alloc(mrb_state *mrb, mrb_value cv)
   else if (ttype == 0) {
     ttype = MRB_TT_OBJECT;
   }
+  if (MRB_UNDEF_ALLOCATOR_P(c)) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "allocator undefined for %v", cv);
+  }
   if (ttype <= MRB_TT_CPTR) {
-    if (ttype == MRB_TT_UNDEF) {
-      mrb_raisef(mrb, E_TYPE_ERROR, "allocator undefined for %v", cv);
-    }
     mrb_raisef(mrb, E_TYPE_ERROR, "can't create instance of %v", cv);
   }
   o = (struct RObject*)mrb_obj_alloc(mrb, ttype, c);

@@ -767,7 +767,8 @@ void mrb_mruby_rational_gem_init(mrb_state *mrb)
   struct RClass *rat;
 
   rat = mrb_define_class_id(mrb, MRB_SYM(Rational), mrb_class_get_id(mrb, MRB_SYM(Numeric)));
-  MRB_SET_INSTANCE_TT(rat, MRB_TT_UNDEF);
+  MRB_SET_INSTANCE_TT(rat, MRB_TT_RATIONAL);
+  MRB_UNDEF_ALLOCATOR(rat);
   mrb_undef_class_method(mrb, rat, "new");
   mrb_define_class_method(mrb, rat, "_new", rational_s_new, MRB_ARGS_REQ(2));
   mrb_define_method(mrb, rat, "numerator", rational_numerator, MRB_ARGS_NONE());

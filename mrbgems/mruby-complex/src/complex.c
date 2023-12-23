@@ -395,7 +395,8 @@ void mrb_mruby_complex_gem_init(mrb_state *mrb)
   struct RClass *comp;
 
   comp = mrb_define_class_id(mrb, MRB_SYM(Complex), mrb_class_get_id(mrb, MRB_SYM(Numeric)));
-  MRB_SET_INSTANCE_TT(comp, MRB_TT_UNDEF);
+  MRB_SET_INSTANCE_TT(comp, MRB_TT_COMPLEX);
+  MRB_UNDEF_ALLOCATOR(comp);
 
   mrb_undef_class_method(mrb, comp, "new");
   mrb_define_class_method(mrb, comp, "rectangular", complex_s_rect, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
