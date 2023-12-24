@@ -2319,10 +2319,6 @@ RETRY_TRY_BLOCK:
       }
       /* check jump destination */
       while (cibase <= ci && ci->proc != dst) {
-        if (ci->cci > CINFO_NONE) { /* jump cross C boundary */
-          localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
-          goto L_RAISE;
-        }
         ci--;
       }
       if (ci <= cibase) { /* no jump destination */
