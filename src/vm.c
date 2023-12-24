@@ -2300,7 +2300,7 @@ RETRY_TRY_BLOCK:
 
       mrb_callinfo *ci = mrb->c->ci;
 
-      if (ci->cci != CINFO_NONE || !MRB_PROC_ENV_P(proc) || MRB_PROC_STRICT_P(proc)) {
+      if (!MRB_PROC_ENV_P(proc) || MRB_PROC_STRICT_P(proc)) {
         goto NORMAL_RETURN;
       }
 
