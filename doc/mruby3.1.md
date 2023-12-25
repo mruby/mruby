@@ -141,8 +141,8 @@ Method calling instructions are unified. Now `OP_SEND` and `OP_SENDB` (method ca
 
 The brief description of the instructions:
 
-|`OP_SEND`   | BBB | `R[a] = R[a].call(Syms[b],R[a+1..n],R[a+n+1],R[a+n+2]..nk) c=n|nk<<4`                    |
-|`OP_SENDB`  | BBB | `R[a] = R[a].call(Syms[b],R[a+1..n],R[a+n+1..nk],R[a+n+2..nk],&R[a+n+2*nk+2]) c=n|nk<<4` |
+|`OP_SEND` | BBB | `R[a] = R[a].call(Syms[b],R[a+1..n],R[a+n+1],R[a+n+2]..nk) c=n|nk<<4` |
+|`OP_SENDB` | BBB | `R[a] = R[a].call(Syms[b],R[a+1..n],R[a+n+1..nk],R[a+n+2..nk],&R[a+n+2*nk+2]) c=n|nk<<4` |
 
 Operand C specifies the number of arguments. Lower 4 bits (`n`) represents the number of ordinal arguments, and higher 4 bits (`nk`) represents the number of keyword arguments.
 When `n == 15`, the method takes arguments packed in an array. When `nk == 15`, the method takes keyword arguments are packed in a hash.
@@ -225,31 +225,31 @@ For better and faster hash values.
 
 Following CVEs are fixed in this release.
 
-- [CVE-2021-4110](https://nvd.nist.gov/vuln/detail/CVE-2021-4110)
-- [CVE-2021-4188](https://nvd.nist.gov/vuln/detail/CVE-2021-4188)
-- [CVE-2022-0080](https://nvd.nist.gov/vuln/detail/CVE-2022-0080)
-- [CVE-2022-0240](https://nvd.nist.gov/vuln/detail/CVE-2022-0240)
-- [CVE-2022-0326](https://nvd.nist.gov/vuln/detail/CVE-2022-0326)
-- [CVE-2022-0481](https://nvd.nist.gov/vuln/detail/CVE-2022-0481)
-- [CVE-2022-0631](https://nvd.nist.gov/vuln/detail/CVE-2022-0631)
-- [CVE-2022-0632](https://nvd.nist.gov/vuln/detail/CVE-2022-0632)
-- [CVE-2022-0890](https://nvd.nist.gov/vuln/detail/CVE-2022-0890)
-- [CVE-2022-1071](https://nvd.nist.gov/vuln/detail/CVE-2022-1071)
-- [CVE-2022-1106](https://nvd.nist.gov/vuln/detail/CVE-2022-1106)
-- [CVE-2022-1201](https://nvd.nist.gov/vuln/detail/CVE-2022-1201)
-- [CVE-2022-1427](https://nvd.nist.gov/vuln/detail/CVE-2022-1427)
+- [CVE-2021-4110](https://www.cve.org/CVERecord?id=CVE-2021-4110)
+- [CVE-2021-4188](https://www.cve.org/CVERecord?id=CVE-2021-4188)
+- [CVE-2022-0080](https://www.cve.org/CVERecord?id=CVE-2022-0080)
+- [CVE-2022-0240](https://www.cve.org/CVERecord?id=CVE-2022-0240)
+- [CVE-2022-0326](https://www.cve.org/CVERecord?id=CVE-2022-0326)
+- [CVE-2022-0481](https://www.cve.org/CVERecord?id=CVE-2022-0481)
+- [CVE-2022-0631](https://www.cve.org/CVERecord?id=CVE-2022-0631)
+- [CVE-2022-0632](https://www.cve.org/CVERecord?id=CVE-2022-0632)
+- [CVE-2022-0890](https://www.cve.org/CVERecord?id=CVE-2022-0890)
+- [CVE-2022-1071](https://www.cve.org/CVERecord?id=CVE-2022-1071)
+- [CVE-2022-1106](https://www.cve.org/CVERecord?id=CVE-2022-1106)
+- [CVE-2022-1201](https://www.cve.org/CVERecord?id=CVE-2022-1201)
+- [CVE-2022-1427](https://www.cve.org/CVERecord?id=CVE-2022-1427)
 
 ## Unaffected CVEs
 
 Following CVEs do not cause problems in this release. They are fixed in the later release.
 
-- [CVE-2022-0481](https://nvd.nist.gov/vuln/detail/CVE-2022-0481)
-- [CVE-2022-0525](https://nvd.nist.gov/vuln/detail/CVE-2022-0525)
-- [CVE-2022-0570](https://nvd.nist.gov/vuln/detail/CVE-2022-0570)
-- [CVE-2022-0614](https://nvd.nist.gov/vuln/detail/CVE-2022-0614)
-- [CVE-2022-0623](https://nvd.nist.gov/vuln/detail/CVE-2022-0623)
-- [CVE-2022-0630](https://nvd.nist.gov/vuln/detail/CVE-2022-0630)
-- [CVE-2022-0717](https://nvd.nist.gov/vuln/detail/CVE-2022-0817)
-- [CVE-2022-1212](https://nvd.nist.gov/vuln/detail/CVE-2022-1212)
-- [CVE-2022-1276](https://nvd.nist.gov/vuln/detail/CVE-2022-1276)
-- [CVE-2022-1286](https://nvd.nist.gov/vuln/detail/CVE-2022-1286)
+- [CVE-2022-0481](https://www.cve.org/CVERecord?id=CVE-2022-0481)
+- [CVE-2022-0525](https://www.cve.org/CVERecord?id=CVE-2022-0525)
+- [CVE-2022-0570](https://www.cve.org/CVERecord?id=CVE-2022-0570)
+- [CVE-2022-0614](https://www.cve.org/CVERecord?id=CVE-2022-0614)
+- [CVE-2022-0623](https://www.cve.org/CVERecord?id=CVE-2022-0623)
+- [CVE-2022-0630](https://www.cve.org/CVERecord?id=CVE-2022-0630)
+- [CVE-2022-0717](https://www.cve.org/CVERecord?id=CVE-2022-0817)
+- [CVE-2022-1212](https://www.cve.org/CVERecord?id=CVE-2022-1212)
+- [CVE-2022-1276](https://www.cve.org/CVERecord?id=CVE-2022-1276)
+- [CVE-2022-1286](https://www.cve.org/CVERecord?id=CVE-2022-1286)
