@@ -1,53 +1,66 @@
 name: Build & Test
-
-on: [push, pull_request]
-
+'on':
+  - push
+  - pull_request
 permissions:
   contents: read
-
 jobs:
   GCC-CLANG:
-    name: "${{ matrix.os }}-${{ matrix.altname || matrix.cc }}"
-    runs-on: ${{ matrix.os }}
+    name: '${{ matrix.os }}-${{ matrix.altname || matrix.cc }}'
+    runs-on: '${{ matrix.os }}'
     timeout-minutes: 10
     strategy:
       fail-fast: false
       max-parallel: 8
       matrix:
         include:
-          - {os: ubuntu-22.04, cc: gcc, cxx: g++}
-          - {os: ubuntu-22.04, cc: clang, cxx: clang++}
-          - {os: ubuntu-20.04, cc: gcc, cxx: g++}
-          - {os: ubuntu-20.04, cc: clang, cxx: clang++}
-          - {os: macos-latest, cc: clang, cxx: clang++}
-          - {os: windows-latest, cc: gcc, cxx: g++, altname: "mingw-gcc"}
+          - os: ubuntu-22.04
+            cc: gcc
+            cxx: g++
+          - os: ubuntu-22.04
+            cc: clang
+            cxx: clang++
+          - os: ubuntu-20.04
+            cc: gcc
+            cxx: g++
+          - os: ubuntu-20.04
+            cc: clang
+            cxx: clang++
+          - os: macos-latest
+            cc: clang
+            cxx: clang++
+          - os: windows-latest
+            cc: gcc
+            cxx: g++
+            altname: mingw-gcc
     env:
       MRUBY_CONFIG: ci/gcc-clang
-      CC: ${{ matrix.cc }}
-      CXX: ${{ matrix.cxx }}
-      LD: ${{ matrix.cc }}
+      CC: '${{ matrix.cc }}'
+      CXX: '${{ matrix.cxx }}'
+      LD: '${{ matrix.cc }}'
     steps:
-      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+      - name: 'Checkout ${{ github.ref }} ( ${{ github.sha }} )'
         uses: actions/checkout@v4
       - name: Ruby version
         run: ruby -v
       - name: Compiler version
-        run: ${{ env.CC }} --version
+        run: '${{ env.CC }} --version'
       - name: Build and test
-        run: rake -m test:build && rake test:run
-
+        run: 'rake -m test:build && rake test:run'
   Windows-VC:
     runs-on: windows-2022
     timeout-minutes: 10
     env:
       MRUBY_CONFIG: ci/msvc
     steps:
-      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+      - name: 'Checkout ${{ github.ref }} ( ${{ github.sha }} )'
         uses: actions/checkout@v4
       - name: Ruby version
         run: ruby -v
       - name: Build and test
         shell: cmd
-        run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+        run: >
+          call "C:\Program Files\Microsoft Visual
+          Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+
           rake -m test:build && rake test:run
