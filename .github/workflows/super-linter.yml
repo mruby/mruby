@@ -1,23 +1,21 @@
 # https://github.com/super-linter/super-linter
 name: Super-Linter
-
-on: [pull_request]
-
+'on':
+  - pull_request
 permissions:
   contents: read
-
 jobs:
   build:
     permissions:
-      contents: read  # for actions/checkout to fetch code
-      statuses: write  # for github/super-linter/slim to mark status of each linter run
+      contents: read    # for actions/checkout to fetch code
+      statuses: write   # Full git history is needed to get a proper list of changed files within `super-linter`
     name: Lint Code Base
     runs-on: ubuntu-latest
     steps:
-      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+      - name: 'Checkout ${{ github.ref }} ( ${{ github.sha }} )'
         uses: actions/checkout@v4
         with:
-          # Full git history is needed to get a proper list of changed files within `super-linter`
+          # Full git history is needed to get a proper list of changed files within `super-linter`        
           fetch-depth: 0
       - name: Lint Code Base
         uses: super-linter/super-linter/slim@v5.7.2
@@ -26,7 +24,7 @@ jobs:
           VALIDATE_BASH: true
           # VALIDATE_BASH_EXEC: true
           # VALIDATE_EDITORCONFIG: true
-          # VALIDATE_SHELL_SHFMT: true
+          # VALIDATE_SHELL_SHFMT: true          
           DEFAULT_BRANCH: master
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
           VALIDATE_ALL_CODEBASE: false
