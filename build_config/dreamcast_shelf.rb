@@ -23,9 +23,8 @@ MRuby::CrossBuild.new("dreamcast") do |conf|
     raise "Error: KallistiOS is required; KOS_BASE/KOS_CC_BASE needs to be declared; Stop."
   end
 
-  # All flags and settings below were extracted from KallistiOS environment files
-  
   # C compiler
+  # All flags and settings below were extracted from KallistiOS environment files
   conf.cc do |cc|
     cc.command = "#{KOS_CC_BASE}/bin/sh-elf-gcc"
     cc.include_paths << ["#{KOS_BASE}/include", "#{KOS_BASE}/kernel/arch/dreamcast/include", "#{KOS_BASE}/addons/include", "#{KOS_BASE}/../kos-ports/include"]
