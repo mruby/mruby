@@ -26,4 +26,4 @@ usleep(10000)
 
 under the MIT License:
 
-- <https://www.opensource.org/licenses/mit-license.php>
+- <http://opensource.org/license/mit/>
