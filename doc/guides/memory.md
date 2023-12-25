@@ -2,9 +2,9 @@
 
 There are three methods to customize memory allocation in mruby.
 
- 1. Provide your own `realloc()`/`free()`
- 2. Redefine `mrb_default_allocf()`
- 3. Specify a function with `mrb_open_allocf()`
+1. Provide your own `realloc()`/`free()`
+2. Redefine `mrb_default_allocf()`
+3. Specify a function with `mrb_open_allocf()`
 
 ## Provide your own `realloc()`/`free()`
 
