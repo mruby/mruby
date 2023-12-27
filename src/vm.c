@@ -2340,28 +2340,18 @@ RETRY_TRY_BLOCK:
 
       NORMAL_RETURN:
         ci = mrb->c->ci;
-        v = regs[a];
-        mrb_gc_protect(mrb, v);
 
         if (ci == mrb->c->cibase) {
           struct mrb_context *c;
           c = mrb->c;
 
-          if (!c->prev) {
-            if (c != mrb->root_c) {
-              /* fiber termination should transfer to root */
-              c->prev = mrb->root_c;
-            }
-            else { /* toplevel return */
-              regs[irep->nlocals] = v;
-              goto CHECKPOINT_LABEL_MAKE(RBREAK_TAG_STOP);
-            }
-          }
-          else if (!c->vmexec && c->prev->ci == c->prev->cibase) {
+          if (c->prev && !c->vmexec && c->prev->ci == c->prev->cibase) {
             RAISE_LIT(mrb, E_FIBER_ERROR, "double resume");
           }
         }
 
+        v = regs[a];
+        mrb_gc_protect(mrb, v);
         CHECKPOINT_RESTORE(RBREAK_TAG_BREAK) {
           if (TRUE) {
             struct RBreak *brk = (struct RBreak*)mrb->exc;
@@ -2398,11 +2388,17 @@ RETRY_TRY_BLOCK:
 
         if (ci == mrb->c->cibase) {
           struct mrb_context *c = mrb->c;
-          /* automatic yield at the end */
+          if (c == mrb->root_c) {
+            /* toplevel return */
+            regs[irep->nlocals] = v;
+            goto L_STOP;
+          }
+
+          /* fiber termination should automatic yield or transfer to root */
           c->status = MRB_FIBER_TERMINATED;
-          mrb->c = c->prev;
-          mrb->c->status = MRB_FIBER_RUNNING;
+          mrb->c = c->prev ? c->prev : mrb->root_c;
           c->prev = NULL;
+          mrb->c->status = MRB_FIBER_RUNNING;
           if (c->vmexec) {
             mrb_gc_arena_restore(mrb, ai);
             c->vmexec = FALSE;
