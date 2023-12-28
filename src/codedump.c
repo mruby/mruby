@@ -99,10 +99,9 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
           irep->nregs, irep->nlocals, (int)irep->plen, (int)irep->slen, (int)irep->rlen, (int)irep->ilen);
 
   if (irep->lv) {
-    int i;
     int head = FALSE;
 
-    for (i = 1; i < irep->nlocals; i++) {
+    for (int i = 1; i < irep->nlocals; i++) {
       char const *s = mrb_sym_dump(mrb, irep->lv[i - 1]);
       if (s) {
         if (!head) {
@@ -115,10 +114,9 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
   }
 
   if (irep->clen > 0) {
-    int i = irep->clen;
     const struct mrb_irep_catch_handler *e = mrb_irep_catch_handler_table(irep);
 
-    for (; i > 0; i--,e++) {
+    for (int i = irep->clen; i > 0; i--,e++) {
       uint32_t begin = mrb_irep_catch_handler_unpack(e->begin);
       uint32_t end = mrb_irep_catch_handler_unpack(e->end);
       uint32_t target = mrb_irep_catch_handler_unpack(e->target);
@@ -173,19 +171,19 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
       switch (irep->pool[b].tt) {
 #ifndef MRB_NO_FLOAT
       case IREP_TT_FLOAT:
-        fprintf(out, "LOADL\t\tR%d\tL(%d)\t; %f", a, b, (double)irep->pool[b].u.f);
+        fprintf(out, "LOADL\t\tR%d\tL[%d]\t; %f", a, b, (double)irep->pool[b].u.f);
         break;
 #endif
       case IREP_TT_INT32:
-        fprintf(out, "LOADL\t\tR%d\tL(%d)\t; %" PRId32, a, b, irep->pool[b].u.i32);
+        fprintf(out, "LOADL\t\tR%d\tL[%d]\t; %" PRId32, a, b, irep->pool[b].u.i32);
         break;
 #ifdef MRB_64BIT
       case IREP_TT_INT64:
-        fprintf(out, "LOADL\t\tR%d\tL(%d)\t; %" PRId64, a, b, irep->pool[b].u.i64);
+        fprintf(out, "LOADL\t\tR%d\tL[%d]\t; %" PRId64, a, b, irep->pool[b].u.i64);
         break;
 #endif
       default:
-        fprintf(out, "LOADL\t\tR%d\tL(%d)\t", a, b);
+        fprintf(out, "LOADL\t\tR%d\tL[%d]\t", a, b);
         break;
       }
       print_lv_a(mrb, irep, a, out);
@@ -403,13 +401,13 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
       print_lv_a(mrb, irep, a, out);
       break;
     CASE(OP_LAMBDA, BB):
-      fprintf(out, "LAMBDA\tR%d\tI(%d:%p)\n", a, b, (void*)irep->reps[b]);
+      fprintf(out, "LAMBDA\tR%d\tI[%d]\n", a, b);
       break;
     CASE(OP_BLOCK, BB):
-      fprintf(out, "BLOCK\t\tR%d\tI(%d:%p)\n", a, b, (void*)irep->reps[b]);
+      fprintf(out, "BLOCK\t\tR%d\tI[%d]\n", a, b);
       break;
     CASE(OP_METHOD, BB):
-      fprintf(out, "METHOD\tR%d\tI(%d:%p)\n", a, b, (void*)irep->reps[b]);
+      fprintf(out, "METHOD\tR%d\tI[%d]\n", a, b);
       break;
     CASE(OP_RANGE_INC, B):
       fprintf(out, "RANGE_INC\tR%d\n", a);
@@ -499,12 +497,12 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
       break;
     CASE(OP_SYMBOL, BB):
       mrb_assert((irep->pool[b].tt&IREP_TT_NFLAG)==0);
-      fprintf(out, "SYMBOL\tR%d\tL(%d)\t; %s", a, b, irep->pool[b].u.str);
+      fprintf(out, "SYMBOL\tR%d\tL[%d]\t; %s", a, b, irep->pool[b].u.str);
       print_lv_a(mrb, irep, a, out);
       break;
     CASE(OP_STRING, BB):
       mrb_assert((irep->pool[b].tt&IREP_TT_NFLAG)==0);
-      fprintf(out, "STRING\tR%d\tL(%d)\t; %s", a, b, irep->pool[b].u.str);
+      fprintf(out, "STRING\tR%d\tL[%d]\t; %s", a, b, irep->pool[b].u.str);
       print_lv_a(mrb, irep, a, out);
       break;
     CASE(OP_STRCAT, B):
@@ -537,11 +535,11 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
       print_lv_a(mrb, irep, a, out);
       break;
     CASE(OP_EXEC, BB):
-      fprintf(out, "EXEC\t\tR%d\tI(%d:%p)", a, b, (void*)irep->reps[b]);
+      fprintf(out, "EXEC\t\tR%d\tI[%d]", a, b);
       print_lv_a(mrb, irep, a, out);
       break;
     CASE(OP_SCLASS, B):
-      fprintf(out, "SCLASS\t\tR%d\t", a);
+      fprintf(out, "SCLASS\tR%d\t", a);
       print_lv_a(mrb, irep, a, out);
       break;
     CASE(OP_TCLASS, B):
@@ -553,7 +551,7 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
         fprintf(out, "ERR\t\t%s\n", irep->pool[a].u.str);
       }
       else {
-        fprintf(out, "ERR\tL(%d)\n", a);
+        fprintf(out, "ERR\tL[%d]\n", a);
       }
       break;
     CASE(OP_EXCEPT, B):
@@ -620,11 +618,9 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
 static void
 codedump_recur(mrb_state *mrb, const mrb_irep *irep, FILE *out)
 {
-  int i;
-
   codedump(mrb, irep, out);
   if (irep->reps) {
-    for (i=0; i<irep->rlen; i++) {
+    for (int i=0; i<irep->rlen; i++) {
       codedump_recur(mrb, irep->reps[i], out);
     }
   }
@@ -634,6 +630,7 @@ void
 mrb_codedump_all_file(mrb_state *mrb, struct RProc *proc, FILE *out)
 {
   codedump_recur(mrb, proc->body.irep, out);
+  fflush(out);
 }
 
 #endif

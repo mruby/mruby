@@ -31,6 +31,7 @@ load "#{MRUBY_ROOT}/tasks/presym.rake"
 load "#{MRUBY_ROOT}/tasks/test.rake"
 load "#{MRUBY_ROOT}/tasks/benchmark.rake"
 load "#{MRUBY_ROOT}/tasks/doc.rake"
+load "#{MRUBY_ROOT}/tasks/install.rake"
 
 ##############################
 # generic build targets, rules
@@ -56,7 +57,7 @@ task :clean do
     rm_rf build.build_dir
     rm_f build.products
   end
-  puts "Cleaned up target build folder"
+  puts "Cleaned up target build directory"
 end
 
 desc "clean everything!"
@@ -64,35 +65,9 @@ task :deep_clean => %w[clean doc:clean] do
   MRuby.each_target do |build|
     rm_rf build.gem_clone_dir
   end
-  puts "Cleaned up mrbgems build folder"
-end
-
-PREFIX = ENV['PREFIX'] || ENV['INSTALL_PREFIX'] || '/usr/local'
-
-desc "install compiled products"
-task :install => :install_bin do
-  if host = MRuby.targets['host']
-    install_D host.libmruby_static, File.join(PREFIX, "lib", File.basename(host.libmruby_static))
-    # install mruby.h and mrbconf.h
-    Dir.glob(File.join(MRUBY_ROOT, "include", "*.h")) do |src|
-      install_D src, File.join(PREFIX, "include", File.basename(src))
-    end
-    Dir.glob(File.join(MRUBY_ROOT, "include", "mruby", "*.h")) do |src|
-      install_D src, File.join(PREFIX, "include", "mruby", File.basename(src))
-    end
-    Dir.glob(File.join(File.join(MRUBY_ROOT, "build", "host", "include", "mruby", "presym", "*.h"))) do |src|
-      install_D src, File.join(PREFIX, "include", "mruby", "presym", File.basename(src))
-    end
-  end
-end
-
-desc "install compiled executable (on host)"
-task :install_bin => :all do
-  if host = MRuby.targets['host']
-    Dir.glob(File.join(MRUBY_ROOT, "bin", "*")) do |src|
-      install_D src, File.join(PREFIX, "bin", File.basename(src))
-    end
-  end
+  rm_rf "#{MRUBY_ROOT}/bin"
+  rm_rf "#{MRUBY_ROOT}/build"
+  puts "Cleaned up mrbgems build directory"
 end
 
 desc "run all pre-commit hooks against all files"
@@ -100,7 +75,22 @@ task :check do
   sh "pre-commit run --all-files"
 end
 
+desc "install the pre-commit hooks"
+task :checkinstall do
+  sh "pre-commit install"
+end
+
 desc "check the pre-commit hooks for updates"
 task :checkupdate do
   sh "pre-commit autoupdate"
+end
+
+desc "run all pre-commit hooks against all files with docker-compose"
+task :composecheck do
+  sh "docker-compose -p mruby run test pre-commit run --all-files"
+end
+
+desc "build and run all mruby tests with docker-compose"
+task :composetest do
+  sh "docker-compose -p mruby run test"
 end

@@ -4,16 +4,14 @@
 #include <mruby/variable.h>
 
 /* provided by mruby-proc-ext */
-mrb_value mrb_proc_source_location(mrb_state *mrb, struct RProc *p);
+mrb_value mrb_proc_source_location(mrb_state *mrb, const struct RProc *p);
 
-/* provided by mruby-binding-core */
-mrb_value mrb_binding_alloc(mrb_state *mrb);
-struct RProc *mrb_binding_wrap_lvspace(mrb_state *mrb, const struct RProc *proc, struct REnv **envp);
+/* provided by mruby-binding */
+mrb_value mrb_binding_new(mrb_state *mrb, const struct RProc *proc, mrb_value recv, struct REnv *env);
 
 static mrb_value
 mrb_proc_binding(mrb_state *mrb, mrb_value procval)
 {
-  mrb_value binding = mrb_binding_alloc(mrb);
   const struct RProc *proc = mrb_proc_ptr(procval);
   struct REnv *env;
 
@@ -30,10 +28,7 @@ mrb_proc_binding(mrb_state *mrb, mrb_value procval)
     receiver = MRB_ENV_LEN(env) > 0 ? env->stack[0] : mrb_nil_value();
   }
 
-  proc = mrb_binding_wrap_lvspace(mrb, proc, &env);
-  mrb_iv_set(mrb, binding, MRB_SYM(proc), mrb_obj_value((void *)proc));
-  mrb_iv_set(mrb, binding, MRB_SYM(recv), receiver);
-  mrb_iv_set(mrb, binding, MRB_SYM(env), mrb_obj_value(env));
+  mrb_value binding = mrb_binding_new(mrb, proc, receiver, env);
   mrb_iv_set(mrb, binding, MRB_SYM(source_location), mrb_proc_source_location(mrb, mrb_proc_ptr(procval)));
   return binding;
 }

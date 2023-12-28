@@ -172,8 +172,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
 
           cmdlinelen = strlen(args->cmdline);
           itemlen = strlen(item);
-          args->cmdline =
-            (char *)mrb_realloc(mrb, args->cmdline, cmdlinelen + itemlen + 2);
+          args->cmdline = (char*)mrb_realloc(mrb, args->cmdline, cmdlinelen + itemlen + 2);
           args->cmdline[cmdlinelen] = '\n';
           memcpy(args->cmdline + cmdlinelen + 1, item, itemlen + 1);
         }
@@ -282,7 +281,7 @@ main(int argc, char **argv)
   int i;
   struct _args args;
   mrb_value ARGV;
-  mrbc_context *c;
+  mrb_ccontext *c;
   mrb_value v;
 
   if (mrb == NULL) {
@@ -308,7 +307,7 @@ main(int argc, char **argv)
     mrb_define_global_const(mrb, "ARGV", ARGV);
     mrb_gv_set(mrb, mrb_intern_lit(mrb, "$DEBUG"), mrb_bool_value(args.debug));
 
-    c = mrbc_context_new(mrb);
+    c = mrb_ccontext_new(mrb);
     if (args.verbose)
       c->dump_result = TRUE;
     if (args.check_syntax)
@@ -326,15 +325,14 @@ main(int argc, char **argv)
 
     /* Load libraries */
     for (i = 0; i < args.libc; i++) {
-      struct REnv *e;
       FILE *lfp = fopen(args.libv[i], "rb");
       if (lfp == NULL) {
         fprintf(stderr, "%s: Cannot open library file: %s\n", *argv, args.libv[i]);
-        mrbc_context_free(mrb, c);
+        mrb_ccontext_free(mrb, c);
         cleanup(mrb, &args);
         return EXIT_FAILURE;
       }
-      mrbc_filename(mrb, c, args.libv[i]);
+      mrb_ccontext_filename(mrb, c, args.libv[i]);
       if (mrb_extension_p(args.libv[i])) {
         v = mrb_load_irep_file_cxt(mrb, lfp, c);
       }
@@ -342,14 +340,12 @@ main(int argc, char **argv)
         v = mrb_load_detect_file_cxt(mrb, lfp, c);
       }
       fclose(lfp);
-      e = mrb_vm_ci_env(mrb->c->cibase);
-      mrb_vm_ci_env_set(mrb->c->cibase, NULL);
-      mrb_env_unshare(mrb, e, FALSE);
-      mrbc_cleanup_local_variables(mrb, c);
+      mrb_vm_ci_env_clear(mrb, mrb->c->cibase);
+      mrb_ccontext_cleanup_local_variables(mrb, c);
     }
 
     /* set program file name */
-    mrbc_filename(mrb, c, cmdline);
+    mrb_ccontext_filename(mrb, c, cmdline);
 
     /* Load program */
     if (args.mrbfile || mrb_extension_p(cmdline)) {
@@ -366,7 +362,7 @@ main(int argc, char **argv)
     }
 
     mrb_gc_arena_restore(mrb, ai);
-    mrbc_context_free(mrb, c);
+    mrb_ccontext_free(mrb, c);
     if (mrb->exc) {
       MRB_EXC_CHECK_EXIT(mrb, mrb->exc);
       if (!mrb_undef_p(v)) {

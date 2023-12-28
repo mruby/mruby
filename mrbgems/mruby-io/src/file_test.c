@@ -20,7 +20,9 @@
   #include <sys/file.h>
   #include <sys/param.h>
   #include <sys/wait.h>
+#ifndef __DJGPP__
   #include <libgen.h>
+#endif
   #include <pwd.h>
   #include <unistd.h>
 #endif
@@ -38,7 +40,7 @@ mrb_stat0(mrb_state *mrb, mrb_value obj, struct stat *st, int do_lstat)
 {
   if (mrb_obj_is_kind_of(mrb, obj, mrb_class_get(mrb, "IO"))) {
     struct mrb_io *fptr;
-    fptr = (struct mrb_io *)mrb_data_get_ptr(mrb, obj, &mrb_io_type);
+    fptr = (struct mrb_io*)mrb_data_get_ptr(mrb, obj, &mrb_io_type);
 
     if (fptr && fptr->fd >= 0) {
       return fstat(fptr->fd, st);
@@ -52,7 +54,8 @@ mrb_stat0(mrb_state *mrb, mrb_value obj, struct stat *st, int do_lstat)
     int ret;
     if (do_lstat) {
       ret = LSTAT(path, st);
-    } else {
+    }
+    else {
       ret = stat(path, st);
     }
     mrb_locale_free(path);

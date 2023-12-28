@@ -880,17 +880,6 @@ end
       hh[hh] = :recur
       assert_equal("{#{s}, {...}=>:recur}", hh.__send__(meth))
     end
-
-    [ar_entries, ht_entries].each do |entries|
-      cls = Class.new do
-        attr_accessor :h
-        def inspect; @h.replace(@h.dup); to_s; end
-      end
-      v = cls.new
-      h = entries.hash_for({_k: v})
-      v.h = h
-      assert_nothing_raised{h.__send__(meth)}
-    end
   end
 end
 

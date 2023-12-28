@@ -7,7 +7,7 @@
 #include "mruby/presym.h"
 
 static mrb_value
-mrb_mod_name(mrb_state *mrb, mrb_value self)
+mod_name(mrb_state *mrb, mrb_value self)
 {
   mrb_value name =  mrb_class_path(mrb, mrb_class_ptr(self));
   if (mrb_string_p(name)) {
@@ -17,7 +17,7 @@ mrb_mod_name(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
-mrb_mod_singleton_class_p(mrb_state *mrb, mrb_value self)
+mod_singleton_class_p(mrb_state *mrb, mrb_value self)
 {
   return mrb_bool_value(mrb_sclass_p(self));
 }
@@ -42,7 +42,7 @@ mrb_mod_singleton_class_p(mrb_state *mrb, mrb_value self)
  */
 
 static mrb_value
-mrb_mod_module_exec(mrb_state *mrb, mrb_value self)
+mod_module_exec(mrb_state *mrb, mrb_value self)
 {
   const mrb_value *argv;
   mrb_int argc;
@@ -95,7 +95,7 @@ add_subclasses(mrb_state *mrb, struct RBasic *obj, void *data)
  *     C.subclasses        #=> []
  */
 static mrb_value
-mrb_class_subclasses(mrb_state *mrb, mrb_value self)
+class_subclasses(mrb_state *mrb, mrb_value self)
 {
   struct RClass *c;
   mrb_value ary;
@@ -126,7 +126,7 @@ mrb_class_subclasses(mrb_state *mrb, mrb_value self)
  *     NilClass.attached_object                   #=> TypeError: not a singleton class
  */
 static mrb_value
-mrb_class_attached_object(mrb_state *mrb, mrb_value self)
+class_attached_object(mrb_state *mrb, mrb_value self)
 {
   struct RClass *c;
 
@@ -142,14 +142,14 @@ mrb_mruby_class_ext_gem_init(mrb_state *mrb)
 {
   struct RClass *mod = mrb->module_class;
 
-  mrb_define_method(mrb, mod, "name", mrb_mod_name, MRB_ARGS_NONE());
-  mrb_define_method(mrb, mod, "singleton_class?", mrb_mod_singleton_class_p, MRB_ARGS_NONE());
-  mrb_define_method(mrb, mod, "module_exec", mrb_mod_module_exec, MRB_ARGS_ANY()|MRB_ARGS_BLOCK());
-  mrb_define_method(mrb, mod, "class_exec", mrb_mod_module_exec, MRB_ARGS_ANY()|MRB_ARGS_BLOCK());
+  mrb_define_method(mrb, mod, "name", mod_name, MRB_ARGS_NONE());
+  mrb_define_method(mrb, mod, "singleton_class?", mod_singleton_class_p, MRB_ARGS_NONE());
+  mrb_define_method(mrb, mod, "module_exec", mod_module_exec, MRB_ARGS_ANY()|MRB_ARGS_BLOCK());
+  mrb_define_method(mrb, mod, "class_exec", mod_module_exec, MRB_ARGS_ANY()|MRB_ARGS_BLOCK());
 
   struct RClass *cls = mrb->class_class;
-  mrb_define_method(mrb, cls, "subclasses", mrb_class_subclasses, MRB_ARGS_NONE());
-  mrb_define_method(mrb, cls, "attached_object", mrb_class_attached_object, MRB_ARGS_NONE());
+  mrb_define_method(mrb, cls, "subclasses", class_subclasses, MRB_ARGS_NONE());
+  mrb_define_method(mrb, cls, "attached_object", class_attached_object, MRB_ARGS_NONE());
 }
 
 void

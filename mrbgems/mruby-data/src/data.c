@@ -94,14 +94,59 @@ mrb_data_members(mrb_state *mrb, mrb_value obj)
 }
 
 static mrb_value
-mrb_data_ref(mrb_state *mrb, mrb_value obj)
+data_ref(mrb_state *mrb, mrb_value obj, mrb_int i)
 {
-  mrb_int i = mrb_integer(mrb_proc_cfunc_env_get(mrb, 0));
+  mrb_int len = RDATA_LEN(obj);
   mrb_value *ptr = RDATA_PTR(obj);
 
-  if (!ptr) return mrb_nil_value();
+  if (!ptr || len <= i)
+    return mrb_nil_value();
   return ptr[i];
 }
+
+static mrb_value
+mrb_data_ref(mrb_state *mrb, mrb_value obj)
+{
+  mrb_int argc = mrb_get_argc(mrb);
+  if (argc != 0) {
+    mrb_argnum_error(mrb, argc, 0, 0);
+  }
+  mrb_int i = mrb_integer(mrb_proc_cfunc_env_get(mrb, 0));
+  return data_ref(mrb, obj, i);
+}
+
+static mrb_value
+data_ref_0(mrb_state *mrb, mrb_value obj)
+{
+  return data_ref(mrb, obj, 0);
+}
+
+static mrb_value
+data_ref_1(mrb_state *mrb, mrb_value obj)
+{
+  return data_ref(mrb, obj, 1);
+}
+
+static mrb_value
+data_ref_2(mrb_state *mrb, mrb_value obj)
+{
+  return data_ref(mrb, obj, 2);
+}
+
+static mrb_value
+data_ref_3(mrb_state *mrb, mrb_value obj)
+{
+  return data_ref(mrb, obj, 3);
+}
+
+#define DATA_DIRECT_REF_MAX 4
+
+static mrb_func_t aref[DATA_DIRECT_REF_MAX] = {
+  data_ref_0,
+  data_ref_1,
+  data_ref_2,
+  data_ref_3,
+};
 
 static void
 make_data_define_accessors(mrb_state *mrb, mrb_value members, struct RClass *c)
@@ -112,12 +157,18 @@ make_data_define_accessors(mrb_state *mrb, mrb_value members, struct RClass *c)
 
   for (mrb_int i=0; i<len; i++) {
     mrb_sym id = mrb_symbol(ptr_members[i]);
-    mrb_method_t m;
-    mrb_value at = mrb_fixnum_value(i);
-    struct RProc *aref = mrb_proc_new_cfunc_with_env(mrb, mrb_data_ref, 1, &at);
-    MRB_METHOD_FROM_PROC(m, aref);
-    mrb_define_method_raw(mrb, c, id, m);
-    mrb_gc_arena_restore(mrb, ai);
+
+    if (i < DATA_DIRECT_REF_MAX) {
+      mrb_define_method_id(mrb, c, id, aref[i], MRB_ARGS_NONE());
+    }
+    else {
+      mrb_method_t m;
+      mrb_value at = mrb_fixnum_value(i);
+      struct RProc *aref = mrb_proc_new_cfunc_with_env(mrb, mrb_data_ref, 1, &at);
+      MRB_METHOD_FROM_PROC(m, aref);
+      mrb_define_method_raw(mrb, c, id, m);
+      mrb_gc_arena_restore(mrb, ai);
+    }
   }
 }
 
@@ -145,7 +196,7 @@ mrb_data_new(mrb_state *mrb, mrb_value self)
   }
   else {
     mrb_int argc;
-    mrb_get_args(mrb, "*!", &vals, &argc);
+    mrb_get_args(mrb, "*", &vals, &argc);
     if (n != argc) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments");
     }
@@ -167,8 +218,8 @@ mrb_data_new(mrb_state *mrb, mrb_value self)
     for (mrb_int i = 0; i < n; i++) {
       mrb_ary_set(mrb, data, i, vals[i]);
     }
-    mrb_obj_freeze(mrb, data);
   }
+  mrb_obj_freeze(mrb, data);
   return data;
 }
 
@@ -177,6 +228,7 @@ make_data_class(mrb_state *mrb, mrb_value members, struct RClass *klass)
 {
   struct RClass *c = mrb_class_new(mrb, klass);
   MRB_SET_INSTANCE_TT(c, MRB_TT_STRUCT);
+  MRB_DEFINE_ALLOCATOR(c);
   mrb_value data = mrb_obj_value(c);
   mrb_iv_set(mrb, data, MRB_SYM(__members__), members);
 
@@ -216,30 +268,33 @@ mrb_data_s_def(mrb_state *mrb, mrb_value klass)
   mrb_int argc;
 
   mrb_get_args(mrb, "*&", &argv, &argc, &b);
-  if (argc == 0) { /* special case to avoid crash */
-    mrb_argnum_error(mrb, argc, 1, -1);
+  rest = mrb_ary_new_from_values(mrb, argc, argv);
+  for (mrb_int i=0; i<argc; i++) {
+    id = mrb_obj_to_sym(mrb, RARRAY_PTR(rest)[i]);
+    mrb_ary_set(mrb, rest, i, mrb_symbol_value(id));
   }
-  else {
-    rest = mrb_ary_new_from_values(mrb, argc, argv);
-    for (mrb_int i=0; i<argc; i++) {
-      id = mrb_obj_to_sym(mrb, RARRAY_PTR(rest)[i]);
-      mrb_ary_set(mrb, rest, i, mrb_symbol_value(id));
+  /* check member duplication */
+  mrb_int len = RARRAY_LEN(rest);
+  mrb_value *p = RARRAY_PTR(rest);
+  for (mrb_int i=0; i<len; i++) {
+    mrb_sym sym = mrb_symbol(p[i]);
+    for (mrb_int j=i+1; j<len; j++) {
+      if (sym == mrb_symbol(p[j])) {
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "duplicate member: %n", sym);
+      }
     }
-    data = make_data_class(mrb, rest, mrb_class_ptr(klass));
-    if (!mrb_nil_p(b)) {
-      mrb_yield_with_class(mrb, b, 1, &data, data, mrb_class_ptr(data));
-    }
-    return data;
   }
-  /* not reached */
-  return mrb_nil_value();
+  data = make_data_class(mrb, rest, mrb_class_ptr(klass));
+  if (!mrb_nil_p(b)) {
+    mrb_yield_with_class(mrb, b, 1, &data, data, mrb_class_ptr(data));
+  }
+  return data;
 }
 
 static mrb_value
 mrb_data_initialize(mrb_state *mrb, mrb_value self)
 {
-  struct RClass *klass = mrb_obj_class(mrb, self);
-  mrb_value members = data_s_members(mrb, klass);
+  mrb_value members = data_members(mrb, self);
 
   mrb_int n = RARRAY_LEN(members);
   mrb_value hash;
@@ -367,16 +422,15 @@ static mrb_value
 mrb_data_to_h(mrb_state *mrb, mrb_value self)
 {
   mrb_value members, ret;
-  mrb_value *mems, *vals;
+  mrb_value *mems;
 
   members = data_members(mrb, self);
   mems = RARRAY_PTR(members);
-  vals = RDATA_PTR(self);
 
   ret = mrb_hash_new_capa(mrb, RARRAY_LEN(members));
   mrb_int len = RARRAY_LEN(members);
   for (mrb_int i=0; i<len; i++) {
-    mrb_hash_set(mrb, ret, mems[i], vals[i]);
+    mrb_hash_set(mrb, ret, mems[i], RARRAY_PTR(self)[i]);
   }
 
   return ret;
@@ -393,13 +447,12 @@ static mrb_value
 mrb_data_to_s(mrb_state *mrb, mrb_value self)
 {
   mrb_value members, ret, cname;
-  mrb_value *mems, *vals;
+  mrb_value *mems;
   mrb_int mlen;
 
   members = data_members(mrb, self);
   mlen = RARRAY_LEN(members);
   mems = RARRAY_PTR(members);
-  vals = RDATA_PTR(self);
   ret = mrb_str_new_lit(mrb, "#<data ");
   int ai = mrb_gc_arena_save(mrb);
   cname = mrb_class_path(mrb, mrb_class_real(mrb_class(mrb, self)));
@@ -413,7 +466,7 @@ mrb_data_to_s(mrb_state *mrb, mrb_value self)
     if (i>0) mrb_str_cat_lit(mrb, ret, ", ");
     mrb_str_cat(mrb, ret, name, len);
     mrb_str_cat_lit(mrb, ret, "=");
-    mrb_str_cat_str(mrb, ret, mrb_inspect(mrb, vals[i]));
+    mrb_str_cat_str(mrb, ret, mrb_inspect(mrb, RARRAY_PTR(self)[i]));
     mrb_gc_arena_restore(mrb, ai);
   }
   mrb_str_cat_lit(mrb, ret, ">");
@@ -441,6 +494,7 @@ mrb_mruby_data_gem_init(mrb_state* mrb)
   struct RClass *d;
   d = mrb_define_class(mrb, "Data",  mrb->object_class);
   MRB_SET_INSTANCE_TT(d, MRB_TT_STRUCT);
+  MRB_UNDEF_ALLOCATOR(d);
 
   mrb_undef_class_method(mrb, d, "new");
   mrb_define_class_method(mrb, d, "define",          mrb_data_s_def,      MRB_ARGS_ANY());

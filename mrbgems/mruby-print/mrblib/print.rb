@@ -6,32 +6,20 @@ module Kernel
   ##
   # Print human readable object description
   #
-  # ISO 15.3.1.2.9
-  # ISO 15.3.1.3.34
+  # ISO 15.3.1.2.9   Kernel.p
+  # ISO 15.3.1.3.34  Kernel#p
   def p(*args)
     i = 0
     len = args.size
     while i < len
-      __printstr__ args[i].inspect
-      __printstr__ "\n"
+      print args[i].inspect, "\n"
       i += 1
     end
     args.__svalue
   end
 
-  # 15.3.1.2.10
-  # 15.3.1.3.35
-  def print(*args)
-    i = 0
-    len = args.size
-    while i < len
-      __printstr__ args[i].to_s
-      i += 1
-    end
-  end
-
-  # 15.3.1.2.11
-  # 15.3.1.3.39
+  # ISO 15.3.1.2.11 Kernel.puts
+  # ISO 15.3.1.3.39 Kernel#puts
   def puts(*args)
     i = 0
     len = args.size
@@ -41,15 +29,15 @@ module Kernel
         puts(*s)
       else
         s = s.to_s
-        __printstr__ s
-        __printstr__ "\n" if (s[-1] != "\n")
+        print s
+        print "\n" if (s[-1] != "\n")
       end
       i += 1
     end
-    __printstr__ "\n" if len == 0
+    print "\n" if len == 0
   end
 
   def printf(*args)
-    __printstr__(sprintf(*args))
+    print(sprintf(*args))
   end
 end

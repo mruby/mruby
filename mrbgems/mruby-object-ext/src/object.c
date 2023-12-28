@@ -70,7 +70,7 @@ nil_to_i(mrb_state *mrb, mrb_value obj)
  *
  */
 static mrb_value
-mrb_f_itself(mrb_state *mrb, mrb_value self)
+f_itself(mrb_state *mrb, mrb_value self)
 {
   return self;
 }
@@ -94,7 +94,7 @@ mrb_f_itself(mrb_state *mrb, mrb_value self)
  */
 
 static mrb_value
-mrb_obj_instance_exec(mrb_state *mrb, mrb_value self)
+obj_instance_exec(mrb_state *mrb, mrb_value self)
 {
   const mrb_value *argv;
   mrb_int argc;
@@ -122,9 +122,9 @@ mrb_mruby_object_ext_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, n, "to_h", nil_to_h,       MRB_ARGS_NONE());
   mrb_define_method(mrb, n, "to_i", nil_to_i,       MRB_ARGS_NONE());
 
-  mrb_define_method(mrb, mrb->kernel_module, "itself", mrb_f_itself, MRB_ARGS_NONE());
+  mrb_define_method(mrb, mrb->kernel_module, "itself", f_itself, MRB_ARGS_NONE());
 
-  mrb_define_method(mrb, mrb_class_get_id(mrb, MRB_SYM(BasicObject)), "instance_exec", mrb_obj_instance_exec, MRB_ARGS_ANY() | MRB_ARGS_BLOCK());
+  mrb_define_method(mrb, mrb_class_get_id(mrb, MRB_SYM(BasicObject)), "instance_exec", obj_instance_exec, MRB_ARGS_ANY() | MRB_ARGS_BLOCK());
 }
 
 void

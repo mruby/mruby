@@ -95,7 +95,7 @@ get_history_path(mrb_state *mrb)
     int len = snprintf(NULL, 0, "%s/%s", home, history_file_name);
     if (len >= 0) {
       size_t size = len + 1;
-      path = (char *)mrb_malloc_simple(mrb, size);
+      path = (char*)mrb_malloc_simple(mrb, size);
       if (path != NULL) {
         int n = snprintf(path, size, "%s/%s", home, history_file_name);
         if (n != len) {
@@ -117,7 +117,7 @@ p(mrb_state *mrb, mrb_value obj, int prompt)
   mrb_value val;
   char* msg;
 
-  val = mrb_funcall_id(mrb, obj, MRB_SYM(inspect), 0);
+  val = mrb_funcall_argv(mrb, obj, MRB_SYM(inspect), 0, NULL);
   if (prompt) {
     if (!mrb->exc) {
       fputs(" => ", stdout);
@@ -422,7 +422,7 @@ ctrl_c_handler(int signo)
 #endif
 
 #ifndef MRB_NO_MIRB_UNDERSCORE
-void decl_lv_underscore(mrb_state *mrb, mrbc_context *cxt)
+void decl_lv_underscore(mrb_state *mrb, mrb_ccontext *cxt)
 {
   struct RProc *proc;
   struct mrb_parser_state *parser;
@@ -453,7 +453,7 @@ main(int argc, char **argv)
   char *history_path;
   char* line;
 #endif
-  mrbc_context *cxt;
+  mrb_ccontext *cxt;
   struct mrb_parser_state *parser;
   mrb_state *mrb;
   mrb_value result;
@@ -504,11 +504,10 @@ main(int argc, char **argv)
 
   print_hint();
 
-  cxt = mrbc_context_new(mrb);
+  cxt = mrb_ccontext_new(mrb);
 
   /* Load libraries */
   for (i = 0; i < args.libc; i++) {
-    struct REnv *e;
     FILE *lfp = fopen(args.libv[i], "r");
     if (lfp == NULL) {
       printf("Cannot open library file. (%s)\n", args.libv[i]);
@@ -517,10 +516,8 @@ main(int argc, char **argv)
     }
     mrb_load_file_cxt(mrb, lfp, cxt);
     fclose(lfp);
-    e = mrb_vm_ci_env(mrb->c->cibase);
-    mrb_vm_ci_env_set(mrb->c->cibase, NULL);
-    mrb_env_unshare(mrb, e, FALSE);
-    mrbc_cleanup_local_variables(mrb, cxt);
+    mrb_vm_ci_env_clear(mrb, mrb->c->cibase);
+    mrb_ccontext_cleanup_local_variables(mrb, cxt);
   }
 
 #ifndef MRB_NO_MIRB_UNDERSCORE
@@ -529,7 +526,7 @@ main(int argc, char **argv)
 
   cxt->capture_errors = TRUE;
   cxt->lineno = 1;
-  mrbc_filename(mrb, cxt, "(mirb)");
+  mrb_ccontext_filename(mrb, cxt, "(mirb)");
   if (args.verbose) cxt->dump_result = TRUE;
 
   ai = mrb_gc_arena_save(mrb);
@@ -710,7 +707,7 @@ main(int argc, char **argv)
     }
     mrb_free(mrb, args.libv);
   }
-  mrbc_context_free(mrb, cxt);
+  mrb_ccontext_free(mrb, cxt);
   mrb_close(mrb);
 
   return 0;

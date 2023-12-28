@@ -181,9 +181,9 @@ class Hash
   #
   # ISO 15.2.13.4.22
   def merge(*others, &block)
-    i=0; len=others.size
     h = self.dup
     return h.__merge(*others) unless block
+    i=0; len=others.size
     while i<len
       other = others[i]
       i += 1
@@ -194,30 +194,6 @@ class Hash
     end
     h
   end
-
-  # internal method for Hash inspection
-  def _inspect(recur_list)
-    return "{}" if self.size == 0
-    return "{...}" if recur_list[self.object_id]
-    recur_list[self.object_id] = true
-    ary=[]
-    keys=self.keys
-    vals=self.values
-    size=keys.size
-    i=0
-    while i<size
-      ary<<(keys[i]._inspect(recur_list) + "=>" + vals[i]._inspect(recur_list))
-      i+=1
-    end
-    "{"+ary.join(", ")+"}"
-  end
-  ##
-  # Return the contents of this hash as a string.
-  #
-  def inspect
-    self._inspect({})
-  end
-  alias to_s inspect
 
   ##
   #  call-seq:

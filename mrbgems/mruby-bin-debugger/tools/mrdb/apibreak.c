@@ -68,7 +68,7 @@ get_break_index(mrb_debug_context *dbg, uint32_t bpno)
   int32_t index;
   char hit = FALSE;
 
-  for(i = 0 ; i < dbg->bpnum; i++) {
+  for (i = 0; i < dbg->bpnum; i++) {
     if (dbg->bp[i].bpno == bpno) {
       hit = TRUE;
       index = i;
@@ -341,7 +341,7 @@ mrb_debug_delete_break(mrb_state *mrb, mrb_debug_context *dbg, uint32_t bpno)
 
   free_breakpoint(mrb, &dbg->bp[index]);
 
-  for(i = index ; i < dbg->bpnum; i++) {
+  for (i = index; i < dbg->bpnum; i++) {
     if ((i + 1) == dbg->bpnum) {
       dbg->bp[i] = (mrb_debug_breakpoint){0};
     }
@@ -364,7 +364,7 @@ mrb_debug_delete_break_all(mrb_state *mrb, mrb_debug_context *dbg)
     return MRB_DEBUG_INVALID_ARGUMENT;
   }
 
-  for(i = 0 ; i < dbg->bpnum ; i++) {
+  for (i = 0; i < dbg->bpnum; i++) {
     free_breakpoint(mrb, &dbg->bp[i]);
   }
 
@@ -401,7 +401,7 @@ mrb_debug_enable_break_all(mrb_state *mrb, mrb_debug_context *dbg)
     return MRB_DEBUG_INVALID_ARGUMENT;
   }
 
-  for(i = 0 ; i < dbg->bpnum; i++) {
+  for (i = 0; i < dbg->bpnum; i++) {
     dbg->bp[i].enable = TRUE;
   }
 
@@ -436,7 +436,7 @@ mrb_debug_disable_break_all(mrb_state *mrb, mrb_debug_context *dbg)
     return MRB_DEBUG_INVALID_ARGUMENT;
   }
 
-  for(i = 0 ; i < dbg->bpnum; i++) {
+  for (i = 0; i < dbg->bpnum; i++) {
     dbg->bp[i].enable = FALSE;
   }
 
@@ -470,7 +470,7 @@ mrb_debug_check_breakpoint_line(mrb_state *mrb, mrb_debug_context *dbg, const ch
   }
 
   bp = dbg->bp;
-  for(i=0; i<dbg->bpnum; i++) {
+  for (i=0; i<dbg->bpnum; i++) {
     switch (bp->type) {
       case MRB_DEBUG_BPTYPE_LINE:
         if (bp->enable == TRUE) {
@@ -504,7 +504,7 @@ mrb_debug_check_breakpoint_method(mrb_state *mrb, mrb_debug_context *dbg, struct
   }
 
   bp = dbg->bp;
-  for(i=0; i<dbg->bpnum; i++) {
+  for (i=0; i<dbg->bpnum; i++) {
     if (bp->type == MRB_DEBUG_BPTYPE_METHOD) {
       if (bp->enable == TRUE) {
         bpno = compare_break_method(mrb, bp, class_obj, method_sym, isCfunc);

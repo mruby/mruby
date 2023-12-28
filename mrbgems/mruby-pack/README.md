@@ -16,6 +16,8 @@ There is no dependency on other mrbgems.
 
 - A : arbitrary binary string (space padded, count is width)
 - a : arbitrary binary string (null padded, count is width)
+- B : bit string (descending)
+- b : bit string (ascending)
 - C : 8-bit unsigned (unsigned char)
 - c : 8-bit signed (signed char)
 - D, d: 64-bit float, native format
@@ -28,6 +30,8 @@ There is no dependency on other mrbgems.
 - h : hex string (low nibble first)
 - I : unsigned integer, native endian (`unsigned int` in C)
 - i : signed integer, native endian (`int` in C)
+- J : unsigned integer, native endian (`uintptr_t` in C)
+- j : signed integer, native endian (`intptr_t` in C)
 - L : 32-bit unsigned, native endian (`uint32_t`)
 - l : 32-bit signed, native endian (`int32_t`)
 - m : base64 encoded string (see RFC 2045, count is width)

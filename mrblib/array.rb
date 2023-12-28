@@ -101,27 +101,6 @@ class Array
     self
   end
 
-  def _inspect(recur_list)
-    size = self.size
-    return "[]" if size == 0
-    return "[...]" if recur_list[self.object_id]
-    recur_list[self.object_id] = true
-    ary=[]
-    i=0
-    while i<size
-      ary<<self[i]._inspect(recur_list)
-      i+=1
-    end
-    "["+ary.join(", ")+"]"
-  end
-  ##
-  # Return the contents of this array as a string.
-  #
-  def inspect
-    self._inspect({})
-  end
-  alias to_s inspect
-
   ##
   # call-seq:
   #   array == other   -> true or false

@@ -18,7 +18,7 @@ int FuzzRB(const uint8_t *Data, size_t size) {
   if (!mrb)
     return 0;
 
-  char *code = (char *)malloc(size+1);
+  char *code = (char*)malloc(size+1);
   if (!code)
     return 0;
   memcpy(code, Data, size);

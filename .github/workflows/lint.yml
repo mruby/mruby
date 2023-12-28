@@ -1,3 +1,4 @@
+# https://pre-commit.com/
 name: Lint
 
 on: [pull_request]
@@ -6,22 +7,12 @@ permissions:
   contents: read
 
 jobs:
-  misspell:
-    name: Check spelling with misspell
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check Out
-        uses: actions/checkout@v3
-      - name: Install
-        run: wget -O - -q https://git.io/misspell | sh -s -- -b .
-      - name: Run misspell
-        run: git ls-files --empty-directory | xargs ./misspell -error
   pre-commit:
     name: Run pre-commit
     runs-on: ubuntu-latest
     steps:
-      - name: Check Out
-        uses: actions/checkout@v3
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v4
       - name: Install
         run: |
           python -m pip install --upgrade pip

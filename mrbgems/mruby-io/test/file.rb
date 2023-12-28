@@ -69,6 +69,32 @@ assert('File#flock') do
   end
 end
 
+assert('File#atime') do
+  begin
+    File.open("#{$mrbtest_io_wfname}.atime", 'w') do |f|
+      assert_equal Time, f.mtime.class
+      File.open("#{$mrbtest_io_wfname}.atime", 'r') do |f2|
+        assert_equal true, f.atime == f2.atime
+      end
+    end
+  ensure
+    File.delete("#{$mrbtest_io_wfname}.atime")
+  end
+end
+
+assert('File#ctime') do
+  begin
+    File.open("#{$mrbtest_io_wfname}.ctime", 'w') do |f|
+      assert_equal Time, f.ctime.class
+      File.open("#{$mrbtest_io_wfname}.ctime", 'r') do |f2|
+        assert_equal true, f.ctime == f2.ctime
+      end
+    end
+  ensure
+    File.delete("#{$mrbtest_io_wfname}.ctime")
+  end
+end
+
 assert('File#mtime') do
   begin
     File.open("#{$mrbtest_io_wfname}.mtime", 'w') do |f|
@@ -231,6 +257,32 @@ assert('File.chmod') do
     assert_equal 1, File.chmod(0400, "#{$mrbtest_io_wfname}.chmod-test")
   ensure
     File.delete("#{$mrbtest_io_wfname}.chmod-test")
+  end
+end
+
+assert('File.open with "x" mode') do
+  File.unlink $mrbtest_io_wfname rescue nil
+  assert_nothing_raised do
+    File.open($mrbtest_io_wfname, "wx") {}
+  end
+  assert_raise(RuntimeError) do
+    File.open($mrbtest_io_wfname, "wx") {}
+  end
+
+  File.unlink $mrbtest_io_wfname rescue nil
+  assert_nothing_raised do
+    File.open($mrbtest_io_wfname, "w+x") {}
+  end
+  assert_raise(RuntimeError) do
+    File.open($mrbtest_io_wfname, "w+x") {}
+  end
+
+  assert_raise(ArgumentError) do
+    File.open($mrbtest_io_wfname, "rx") {}
+  end
+
+  assert_raise(ArgumentError) do
+    File.open($mrbtest_io_wfname, "ax") {}
   end
 end
 

@@ -265,7 +265,8 @@ mrb_sce_errno(mrb_state *mrb, mrb_value self)
   sym = MRB_SYM(Errno);
   if (mrb_const_defined_at(mrb, mrb_obj_value(c), sym)) {
     return mrb_const_get(mrb, mrb_obj_value(c), sym);
-  } else {
+  }
+  else {
     sym = MRB_SYM(errno);
     return mrb_attr_get(mrb, self, sym);
   }
@@ -296,11 +297,9 @@ mrb_sce_sys_fail(mrb_state *mrb, mrb_value cls)
 void
 mrb_mruby_errno_gem_init(mrb_state *mrb)
 {
-  struct RClass *e, *eno, *sce, *ste;
+  struct RClass *e, *eno, *sce;
 
-  ste = mrb->eStandardError_class;
-
-  sce = mrb_define_class(mrb, "SystemCallError", ste);
+  sce = mrb_define_class(mrb, "SystemCallError", E_STANDARD_ERROR);
   mrb_define_class_method(mrb, sce, "_sys_fail", mrb_sce_sys_fail, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, sce, "errno", mrb_sce_errno, MRB_ARGS_NONE());
   mrb_define_method(mrb, sce, "initialize", mrb_sce_init_m, MRB_ARGS_ARG(1, 1));

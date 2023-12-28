@@ -47,9 +47,12 @@ class Enumerator
         raise ArgumentError, "undefined method #{meth}"
       end
       lz = Lazy.new(self, &block)
-      lz.obj = self
-      lz.meth = meth
-      lz.args = args
+      obj = self
+      lz.instance_eval {
+        @obj = obj
+        @meth = meth
+        @args = args
+      }
       lz
     end
     alias enum_for to_enum

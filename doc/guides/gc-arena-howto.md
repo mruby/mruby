@@ -3,6 +3,7 @@
 _This is an English translation of [Matz's blog post][matz blog post]
 written in Japanese._
 _Some parts are updated to reflect recent changes._
+
 [matz blog post]: <https://www.rubyist.net/~matz/20130731.html>
 
 When you are extending mruby using C language, you may encounter
@@ -62,7 +63,7 @@ memory leak.
 
 As of this writing, mruby automatically extend arena to remember
 objects (See `MRB_GC_FIXED_ARENA` and `MRB_GC_ARENA_SIZE` in
-doc/guides/mrbconf.md).
+[doc/guides/mrbconf.md](mrbconf.md)).
 
 If you create many objects in C functions, memory usage will increase, since
 GC never kicks in. This memory usage may look like memory leaks, but will also
@@ -106,7 +107,7 @@ inspect_ary(mrb_state *mrb, mrb_value ary, mrb_value list)
   char tail[] = { ']' };
 
   /* check recursive */
-  for(i=0; i<RARRAY_LEN(list); i++) {
+  for (i=0; i<RARRAY_LEN(list); i++) {
     if (mrb_obj_equal(mrb, ary, RARRAY_PTR(list)[i])) {
       return mrb_str_new(mrb, "[...]", 5);
     }
@@ -117,7 +118,7 @@ inspect_ary(mrb_state *mrb, mrb_value ary, mrb_value list)
   arystr = mrb_str_new_capa(mrb, 64);
   mrb_str_cat(mrb, arystr, head, sizeof(head));
 
-  for(i=0; i<RARRAY_LEN(ary); i++) {
+  for (i=0; i<RARRAY_LEN(ary); i++) {
     int ai = mrb_gc_arena_save(mrb);
 
     if (i > 0) {

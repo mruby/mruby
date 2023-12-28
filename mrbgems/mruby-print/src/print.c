@@ -13,13 +13,13 @@
 # define isatty(x) _isatty(x)
 # define fileno(x) _fileno(x)
 #endif
+#else
+# include <unistd.h>
 #endif
 
-static mrb_value
-mrb_printstr(mrb_state *mrb, mrb_value self)
+static void
+printstr(mrb_state *mrb, mrb_value s)
 {
-  mrb_value s = mrb_get_arg1(mrb);
-
   if (mrb_string_p(s)) {
     const char *p = RSTRING_PTR(s);
     mrb_int len = RSTRING_LEN(s);
@@ -35,21 +35,33 @@ mrb_printstr(mrb_state *mrb, mrb_value self)
                       utf16, (DWORD)wlen, &written, NULL);
       }
       mrb_free(mrb, utf16);
+      return;
     }
-    else
 #endif
-    {
-      fwrite(p, (size_t)len, 1, stdout);
-    }
-    fflush(stdout);
+    fwrite(p, (size_t)len, 1, stdout);
   }
+}
+
+// ISO 15.3.1.2.10 Kernel.print
+// ISO 15.3.1.3.35 Kernel#print
+static mrb_value
+mrb_print(mrb_state *mrb, mrb_value self)
+{
+  mrb_int argc = mrb_get_argc(mrb);
+  const mrb_value *argv = mrb_get_argv(mrb);
+
+  for (mrb_int i=0; i<argc; i++) {
+    mrb_value str = mrb_obj_as_string(mrb, argv[i]);
+    printstr(mrb, str);
+  }
+  if (isatty(fileno(stdout))) fflush(stdout);
   return mrb_nil_value();
 }
 
 void
 mrb_mruby_print_gem_init(mrb_state* mrb)
 {
-  mrb_define_method(mrb, mrb->kernel_module, "__printstr__", mrb_printstr, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, mrb->kernel_module, "print", mrb_print, MRB_ARGS_ANY()); /* 15.3.1.3.35 */
 }
 
 void

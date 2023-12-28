@@ -314,13 +314,14 @@ class String
   end
 
   def codepoints(&block)
+    cp = __codepoints()
     if block_given?
-      self.split('').each do|x|
-        block.call(x.ord)
+      cp.each do|x|
+        block.call(x)
       end
       self
     else
-      self.split('').map{|x| x.ord}
+      cp
     end
   end
   alias each_codepoint codepoints

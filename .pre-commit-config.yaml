@@ -3,14 +3,14 @@ default_stages: [commit, push]
 default_language_version:
   # force all unspecified Python hooks to run python3
   python: python3
-minimum_pre_commit_version: '2.18.1'
+minimum_pre_commit_version: "2.18.1"
 repos:
   - repo: meta
     hooks:
       - id: identity
       - id: check-hooks-apply
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v4.5.0
     hooks:
       - id: check-added-large-files
       - id: check-case-conflict
@@ -23,20 +23,22 @@ repos:
       - id: detect-private-key
       - id: end-of-file-fixer
       - id: file-contents-sorter
+        args: [--unique]
         files: ^codespell\.txt$
       - id: fix-byte-order-marker
+      - id: forbid-submodules
       - id: mixed-line-ending
       - id: trailing-whitespace
   - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.3.1
+    rev: v1.5.4
     hooks:
       - id: forbid-tabs
         exclude: Makefile$|Makefile\..+$|makefile$|\.mk$
       - id: remove-tabs
-        args: [--whitespaces-count, '2']
+        args: [--whitespaces-count, "2"]
         exclude: Makefile$|Makefile\..+$|makefile$|\.mk$
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.2.2
+    rev: v2.2.6
     hooks:
       - id: codespell
         name: Run codespell
@@ -48,8 +50,12 @@ repos:
       - id: script-must-not-have-extension
         name: Local policy is to exclude extension from all shell files
         types: [shell]
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.33.0
+    rev: v0.38.0
     hooks:
       - id: markdownlint
         name: Run markdownlint
@@ -57,8 +63,17 @@ repos:
         entry: markdownlint -c .github/linters/.markdown-lint.yml .
         types: [markdown]
         files: \.(md|mdown|markdown)$
+  - repo: https://github.com/tcort/markdown-link-check
+    rev: v3.11.2
+    hooks:
+      - id: markdown-link-check
+        name: Run markdown-link-check
+        description: Checks hyperlinks in Markdown files
+        args: [-q]
+        types: [markdown]
+        files: \.(md|mdown|markdown)$
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.28.0
+    rev: v1.33.0
     hooks:
       - id: yamllint
         name: Run yamllint

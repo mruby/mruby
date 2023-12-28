@@ -10,7 +10,7 @@
 #include "common.h"
 
 /**
- * MRuby Compiler
+ * mruby Compiler
  */
 MRB_BEGIN_DECL
 
@@ -18,7 +18,7 @@ MRB_BEGIN_DECL
 
 struct mrb_parser_state;
 /* load context */
-typedef struct mrbc_context {
+typedef struct mrb_ccontext {
   mrb_sym *syms;
   int slen;
   char *filename;
@@ -35,13 +35,21 @@ typedef struct mrbc_context {
   const struct RProc *upper;
 
   size_t parser_nerr;
-} mrbc_context;
+} mrb_ccontext;                 /* compiler context */
 
-MRB_API mrbc_context* mrbc_context_new(mrb_state *mrb);
-MRB_API void mrbc_context_free(mrb_state *mrb, mrbc_context *cxt);
-MRB_API const char *mrbc_filename(mrb_state *mrb, mrbc_context *c, const char *s);
-MRB_API void mrbc_partial_hook(mrb_state *mrb, mrbc_context *c, int (*partial_hook)(struct mrb_parser_state*), void*data);
-MRB_API void mrbc_cleanup_local_variables(mrb_state *mrb, mrbc_context *c);
+MRB_API mrb_ccontext* mrb_ccontext_new(mrb_state *mrb);
+MRB_API void mrb_ccontext_free(mrb_state *mrb, mrb_ccontext *cxt);
+MRB_API const char *mrb_ccontext_filename(mrb_state *mrb, mrb_ccontext *c, const char *s);
+MRB_API void mrb_ccontext_partial_hook(mrb_state *mrb, mrb_ccontext *c, int (*partial_hook)(struct mrb_parser_state*), void*data);
+MRB_API void mrb_ccontext_cleanup_local_variables(mrb_state *mrb, mrb_ccontext *c);
+
+/* compatibility macros */
+#define mrbc_context mrb_ccontext
+#define mrbc_context_new mrb_ccontext_new
+#define mrbc_context_free mrb_ccontext_free
+#define mrbc_filename mrb_ccontext_filename
+#define mrbc_partial_hook mrb_ccontext_partial_hook
+#define mrbc_cleanup_local_variables mrb_ccontext_cleanup_local_variables
 
 /* AST node structure */
 typedef struct mrb_ast_node {
@@ -121,7 +129,7 @@ struct mrb_parser_state {
   /* If both f and s are non-null, it will be taken preferentially from s until s < send. */
   FILE *f;
 #endif
-  mrbc_context *cxt;
+  mrb_ccontext *cxt;
   mrb_sym filename_sym;
   uint16_t lineno;
   int column;
@@ -168,19 +176,19 @@ struct mrb_parser_state {
 
 MRB_API struct mrb_parser_state* mrb_parser_new(mrb_state*);
 MRB_API void mrb_parser_free(struct mrb_parser_state*);
-MRB_API void mrb_parser_parse(struct mrb_parser_state*,mrbc_context*);
+MRB_API void mrb_parser_parse(struct mrb_parser_state*,mrb_ccontext*);
 
 MRB_API void mrb_parser_set_filename(struct mrb_parser_state*, char const*);
 MRB_API mrb_sym mrb_parser_get_filename(struct mrb_parser_state*, uint16_t idx);
 
 /* utility functions */
 #ifndef MRB_NO_STDIO
-MRB_API struct mrb_parser_state* mrb_parse_file(mrb_state*,FILE*,mrbc_context*);
+MRB_API struct mrb_parser_state* mrb_parse_file(mrb_state*,FILE*,mrb_ccontext*);
 #endif
-MRB_API struct mrb_parser_state* mrb_parse_string(mrb_state*,const char*,mrbc_context*);
-MRB_API struct mrb_parser_state* mrb_parse_nstring(mrb_state*,const char*,size_t,mrbc_context*);
+MRB_API struct mrb_parser_state* mrb_parse_string(mrb_state*,const char*,mrb_ccontext*);
+MRB_API struct mrb_parser_state* mrb_parse_nstring(mrb_state*,const char*,size_t,mrb_ccontext*);
 MRB_API struct RProc* mrb_generate_code(mrb_state*, struct mrb_parser_state*);
-MRB_API mrb_value mrb_load_exec(mrb_state *mrb, struct mrb_parser_state *p, mrbc_context *c);
+MRB_API mrb_value mrb_load_exec(mrb_state *mrb, struct mrb_parser_state *p, mrb_ccontext *c);
 
 /** program load functions
 * Please note! Currently due to interactions with the GC calling these functions will
@@ -193,13 +201,13 @@ MRB_API mrb_value mrb_load_exec(mrb_state *mrb, struct mrb_parser_state *p, mrbc
 */
 #ifndef MRB_NO_STDIO
 MRB_API mrb_value mrb_load_file(mrb_state*,FILE*);
-MRB_API mrb_value mrb_load_file_cxt(mrb_state*,FILE*, mrbc_context *cxt);
-MRB_API mrb_value mrb_load_detect_file_cxt(mrb_state *mrb, FILE *fp, mrbc_context *c);
+MRB_API mrb_value mrb_load_file_cxt(mrb_state*,FILE*, mrb_ccontext *cxt);
+MRB_API mrb_value mrb_load_detect_file_cxt(mrb_state *mrb, FILE *fp, mrb_ccontext *c);
 #endif
 MRB_API mrb_value mrb_load_string(mrb_state *mrb, const char *s);
 MRB_API mrb_value mrb_load_nstring(mrb_state *mrb, const char *s, size_t len);
-MRB_API mrb_value mrb_load_string_cxt(mrb_state *mrb, const char *s, mrbc_context *cxt);
-MRB_API mrb_value mrb_load_nstring_cxt(mrb_state *mrb, const char *s, size_t len, mrbc_context *cxt);
+MRB_API mrb_value mrb_load_string_cxt(mrb_state *mrb, const char *s, mrb_ccontext *cxt);
+MRB_API mrb_value mrb_load_nstring_cxt(mrb_state *mrb, const char *s, size_t len, mrb_ccontext *cxt);
 
 /** @} */
 MRB_END_DECL

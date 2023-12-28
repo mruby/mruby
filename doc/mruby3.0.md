@@ -159,4 +159,4 @@ For better and faster random number generation.
 
 Preallocated symbols are interned at compile-time. They can be accessed via symbols macros (e.g. `MRB_SYM()`).
 
-See [Symbols](https://github.com/mruby/mruby/blob/master/doc/guides/symbol.md).
+See [Symbols](guides/symbol.md).

@@ -56,9 +56,8 @@ istruct_test_test_receive(mrb_state *mrb, mrb_value self)
 static mrb_value
 istruct_test_test_receive_direct(mrb_state *mrb, mrb_value self)
 {
-  mrb_value is;
+  mrb_value is = mrb_get_arg1(mrb);
   struct RClass *klass = mrb_class_get(mrb, "InlineStructTest");
-  mrb_get_args(mrb, "o", &is);
   /* if you need to protect istruct retrieval from untrusted code,
      you need to care about class replacing.
      See mrbgem/mruby-random/src/random.c for detail */

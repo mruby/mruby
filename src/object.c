@@ -53,32 +53,29 @@ mrb_obj_equal(mrb_state *mrb, mrb_value v1, mrb_value v2)
 MRB_API mrb_bool
 mrb_equal(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
 {
-  mrb_value result;
-
   if (mrb_obj_eq(mrb, obj1, obj2)) return TRUE;
 #ifndef MRB_NO_FLOAT
   /* value mixing with integer and float */
-  if (mrb_integer_p(obj1) && mrb_float_p(obj2)) {
+  else if (mrb_integer_p(obj1) && mrb_float_p(obj2)) {
     if ((mrb_float)mrb_integer(obj1) == mrb_float(obj2))
       return TRUE;
-    return FALSE;
   }
   else if (mrb_float_p(obj1) && mrb_integer_p(obj2)) {
     if (mrb_float(obj1) == (mrb_float)mrb_integer(obj2))
       return TRUE;
-    return FALSE;
   }
 #endif
 #ifdef MRB_USE_BIGINT
-  if (mrb_bigint_p(obj1) &&
+  else if (mrb_bigint_p(obj1) &&
       (mrb_integer_p(obj2) || mrb_bigint_p(obj2) || mrb_float_p(obj2))) {
     if (mrb_bint_cmp(mrb, obj1, obj2) == 0)
       return TRUE;
-    return FALSE;
   }
 #endif
-  result = mrb_funcall_id(mrb, obj1, MRB_OPSYM(eq), 1, obj2);
-  if (mrb_test(result)) return TRUE;
+  else if (!mrb_func_basic_p(mrb, obj1, MRB_OPSYM(eq), mrb_obj_equal_m)) {
+    mrb_value result = mrb_funcall_argv(mrb, obj1, MRB_OPSYM(eq), 1, &obj2);
+    if (mrb_test(result)) return TRUE;
+  }
   return FALSE;
 }
 
@@ -305,33 +302,33 @@ mrb_init_object(mrb_state *mrb)
   struct RClass *t;
   struct RClass *f;
 
-  mrb->nil_class   = n = mrb_define_class(mrb, "NilClass",   mrb->object_class);
+  mrb->nil_class = n = mrb_define_class_id(mrb, MRB_SYM(NilClass), mrb->object_class);
   MRB_SET_INSTANCE_TT(n, MRB_TT_FALSE);
-  mrb_undef_class_method(mrb, n, "new");
-  mrb_define_method(mrb, n, "&",    false_and,      MRB_ARGS_REQ(1));  /* 15.2.4.3.1  */
-  mrb_define_method(mrb, n, "^",    false_xor,      MRB_ARGS_REQ(1));  /* 15.2.4.3.2  */
-  mrb_define_method(mrb, n, "|",    false_or,       MRB_ARGS_REQ(1));  /* 15.2.4.3.3  */
-  mrb_define_method(mrb, n, "nil?", mrb_true,       MRB_ARGS_NONE());  /* 15.2.4.3.4  */
-  mrb_define_method(mrb, n, "to_s", nil_to_s,       MRB_ARGS_NONE());  /* 15.2.4.3.5  */
-  mrb_define_method(mrb, n, "inspect", nil_inspect, MRB_ARGS_NONE());
+  mrb_undef_class_method_id(mrb, n, MRB_SYM(new));
+  mrb_define_method_id(mrb, n, MRB_OPSYM(and),  false_and,      MRB_ARGS_REQ(1));  /* 15.2.4.3.1  */
+  mrb_define_method_id(mrb, n, MRB_OPSYM(or),   false_or,       MRB_ARGS_REQ(1));  /* 15.2.4.3.2  */
+  mrb_define_method_id(mrb, n, MRB_OPSYM(xor),  false_xor,      MRB_ARGS_REQ(1));  /* 15.2.4.3.3  */
+  mrb_define_method_id(mrb, n, MRB_SYM_Q(nil),  mrb_true,       MRB_ARGS_NONE());  /* 15.2.4.3.4  */
+  mrb_define_method_id(mrb, n, MRB_SYM(to_s),   nil_to_s,       MRB_ARGS_NONE());  /* 15.2.4.3.5  */
+  mrb_define_method_id(mrb, n, MRB_SYM(inspect), nil_inspect, MRB_ARGS_NONE());
 
-  mrb->true_class  = t = mrb_define_class(mrb, "TrueClass",  mrb->object_class);
+  mrb->true_class = t = mrb_define_class_id(mrb, MRB_SYM(TrueClass), mrb->object_class);
   MRB_SET_INSTANCE_TT(t, MRB_TT_TRUE);
-  mrb_undef_class_method(mrb, t, "new");
-  mrb_define_method(mrb, t, "&",    true_and,       MRB_ARGS_REQ(1));  /* 15.2.5.3.1  */
-  mrb_define_method(mrb, t, "^",    true_xor,       MRB_ARGS_REQ(1));  /* 15.2.5.3.2  */
-  mrb_define_method(mrb, t, "to_s", true_to_s,      MRB_ARGS_NONE());  /* 15.2.5.3.3  */
-  mrb_define_method(mrb, t, "|",    true_or,        MRB_ARGS_REQ(1));  /* 15.2.5.3.4  */
-  mrb_define_method(mrb, t, "inspect", true_to_s,   MRB_ARGS_NONE());
+  mrb_undef_class_method_id(mrb, t, MRB_SYM(new));
+  mrb_define_method_id(mrb, t, MRB_OPSYM(and),  true_and,       MRB_ARGS_REQ(1));  /* 15.2.5.3.1  */
+  mrb_define_method_id(mrb, t, MRB_OPSYM(or),   true_or,        MRB_ARGS_REQ(1));  /* 15.2.5.3.2  */
+  mrb_define_method_id(mrb, t, MRB_OPSYM(xor),  true_xor,       MRB_ARGS_REQ(1));  /* 15.2.5.3.3  */
+  mrb_define_method_id(mrb, t, MRB_SYM(to_s),   true_to_s,      MRB_ARGS_NONE());  /* 15.2.5.3.4  */
+  mrb_define_method_id(mrb, t, MRB_SYM(inspect), true_to_s,   MRB_ARGS_NONE());
 
-  mrb->false_class = f = mrb_define_class(mrb, "FalseClass", mrb->object_class);
+  mrb->false_class = f = mrb_define_class_id(mrb, MRB_SYM(FalseClass), mrb->object_class);
   MRB_SET_INSTANCE_TT(f, MRB_TT_FALSE);
-  mrb_undef_class_method(mrb, f, "new");
-  mrb_define_method(mrb, f, "&",    false_and,      MRB_ARGS_REQ(1));  /* 15.2.6.3.1  */
-  mrb_define_method(mrb, f, "^",    false_xor,      MRB_ARGS_REQ(1));  /* 15.2.6.3.2  */
-  mrb_define_method(mrb, f, "to_s", false_to_s,     MRB_ARGS_NONE());  /* 15.2.6.3.3  */
-  mrb_define_method(mrb, f, "|",    false_or,       MRB_ARGS_REQ(1));  /* 15.2.6.3.4  */
-  mrb_define_method(mrb, f, "inspect", false_to_s,  MRB_ARGS_NONE());
+  mrb_undef_class_method_id(mrb, f, MRB_SYM(new));
+  mrb_define_method_id(mrb, f, MRB_OPSYM(and),  false_and,      MRB_ARGS_REQ(1));  /* 15.2.6.3.1  */
+  mrb_define_method_id(mrb, f, MRB_OPSYM(or),   false_or,       MRB_ARGS_REQ(1));  /* 15.2.6.3.2  */
+  mrb_define_method_id(mrb, f, MRB_OPSYM(xor),  false_xor,      MRB_ARGS_REQ(1));  /* 15.2.6.3.3  */
+  mrb_define_method_id(mrb, f, MRB_SYM(to_s),   false_to_s,     MRB_ARGS_NONE());  /* 15.2.6.3.4  */
+  mrb_define_method_id(mrb, f, MRB_SYM(inspect), false_to_s,  MRB_ARGS_NONE());
 }
 
 static const char*
@@ -638,7 +635,7 @@ mrb_check_hash_type(mrb_state *mrb, mrb_value hash)
 MRB_API mrb_value
 mrb_inspect(mrb_state *mrb, mrb_value obj)
 {
-  mrb_value v = mrb_funcall_id(mrb, obj, MRB_SYM(inspect), 0);
+  mrb_value v = mrb_funcall_argv(mrb, obj, MRB_SYM(inspect), 0, NULL);
   if (!mrb_string_p(v)) {
     v = mrb_obj_as_string(mrb, obj);
   }
@@ -649,5 +646,6 @@ MRB_API mrb_bool
 mrb_eql(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
 {
   if (mrb_obj_eq(mrb, obj1, obj2)) return TRUE;
-  return mrb_test(mrb_funcall_id(mrb, obj1, MRB_SYM_Q(eql), 1, obj2));
+  if (mrb_class(mrb, obj1) != mrb_class(mrb, obj2)) return FALSE;
+  return mrb_test(mrb_funcall_argv(mrb, obj1, MRB_SYM_Q(eql), 1, &obj2));
 }

@@ -100,7 +100,8 @@ mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, ch
   if (signbit(f)) {
     *s++ = '-';
     f = -f;
-  } else if (sign) {
+  }
+  else if (sign) {
     *s++ = sign;
   }
   buf_remaining -= (int)(s - buf); // Adjust for sign
@@ -112,7 +113,8 @@ mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, ch
       *s++ = 'N' ^ uc;
       *s++ = 'F' ^ uc;
       goto ret;
-    } else if (isnan(f)) {
+    }
+    else if (isnan(f)) {
       *s++ = 'N' ^ uc;
       *s++ = 'A' ^ uc;
       *s++ = 'N' ^ uc;
@@ -142,10 +144,12 @@ mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, ch
     e = 0;
     if (fmt == 'e') {
       e_sign = '+';
-    } else if (fmt == 'f') {
+    }
+    else if (fmt == 'f') {
       num_digits = prec + 1;
     }
-  } else if (f < 1.0) { // f < 1.0
+  }
+  else if (f < 1.0) { // f < 1.0
     char first_dig = '0';
     if (f >= FLT_ROUND_TO_ONE) {
       first_dig = '1';
@@ -165,7 +169,8 @@ mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, ch
         if (e == 0) {
           e_sign_char = '+';
         }
-      } else {
+      }
+      else {
         e++;
         f *= 10.0;
       }
@@ -194,7 +199,8 @@ mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, ch
           num_digits--;
         }
       }
-    } else {
+    }
+    else {
       // For e & g formats, we'll be printing the exponent, so set the
       // sign.
       e_sign = e_sign_char;
@@ -207,7 +213,8 @@ mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, ch
         }
       }
     }
-  } else {
+  }
+  else {
     // Build positive exponent
     for (e = 0, e1 = FLT_DECEXP; e1; e1 >>= 1, pos_pow++, neg_pow++) {
       if (*pos_pow <= f) {
@@ -223,7 +230,8 @@ mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, ch
     if (fmt == 'f') {
       if (e >= buf_remaining) {
         fmt = 'e';
-      } else if ((e + prec + 2) > buf_remaining) {
+      }
+      else if ((e + prec + 2) > buf_remaining) {
         prec = buf_remaining - e - 2;
         if (prec < 0) {
           // This means no decimal point, so we can add one back
@@ -245,7 +253,8 @@ mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, ch
     if (fmt == 'f') {
       dec = e;
       num_digits = prec + e + 1;
-    } else {
+    }
+    else {
       e_sign = '+';
     }
   }
@@ -267,10 +276,9 @@ mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, ch
 
   if (fmt == 'e') {
     num_digits = prec + 1;
-  } else if (fmt == 'g') {
-    if (prec == 0) {
-      prec = 1;
-    }
+    if (prec == 0) prec = 1;
+  }
+  else if (fmt == 'g') {
     num_digits = prec;
   }
 
@@ -311,14 +319,15 @@ mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, ch
     }
     if (*rs == '0') {
       // We need to insert a 1
-      if (rs[1] == '.' && fmt != 'f') {
+      if (fmt != 'f' && rs[1] == '.') {
         // We're going to round 9.99 to 10.00
         // Move the decimal point
         rs[0] = '.';
         rs[1] = '0';
         if (e_sign == '-') {
           e--;
-        } else {
+        }
+        else {
           e++;
         }
       }
@@ -356,8 +365,8 @@ mrb_format_float(mrb_float f, char *buf, size_t buf_size, char fmt, int prec, ch
     *s++ = '0' + (e / 10);
     *s++ = '0' + (e % 10);
   }
-  *s = '\0';
 
+  *s = '\0';
   return (int)(s - buf);
 }
 #endif

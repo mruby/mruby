@@ -22,8 +22,6 @@ typedef enum {
   NOEX_RESPONDS  = 0x80
 } mrb_method_flag_t;
 
-mrb_value mrb_proc_local_variables(mrb_state *mrb, const struct RProc *proc);
-
 static mrb_value
 mrb_f_nil(mrb_state *mrb, mrb_value cv)
 {
@@ -296,7 +294,6 @@ mrb_obj_public_methods(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_obj_singleton_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj)
 {
-  khint_t i;
   mrb_value ary;
   struct RClass *klass;
   khash_t(st) *set = kh_init(st, mrb);
@@ -316,7 +313,7 @@ mrb_obj_singleton_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj)
   }
 
   ary = mrb_ary_new(mrb);
-  for (i=0;i<kh_end(set);i++) {
+  for (khint_t i=0;i<kh_end(set);i++) {
     if (kh_exist(set, i)) {
       mrb_ary_push(mrb, ary, mrb_symbol_value(kh_key(set, i)));
     }
@@ -626,10 +623,10 @@ mrb_mod_remove_method(mrb_state *mrb, mrb_value mod)
   struct RClass *c = mrb_class_ptr(mod);
 
   mrb_get_args(mrb, "*", &argv, &argc);
-  mrb_check_frozen(mrb, mrb_obj_ptr(mod));
+  mrb_check_frozen(mrb, c);
   while (argc--) {
     mrb_remove_method(mrb, c, mrb_obj_to_sym(mrb, *argv));
-    mrb_funcall_id(mrb, mod, MRB_SYM(method_removed), 1, *argv);
+    mrb_funcall_argv(mrb, mod, MRB_SYM(method_removed), 1, argv);
     argv++;
   }
   return mod;

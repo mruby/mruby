@@ -99,12 +99,16 @@ module MRuby
       gemrake = File.join(source_dir, "mrbgem.rake")
       rakedep = File.exist?(gemrake) ? [ gemrake ] : []
 
-      if build_dir.include? "mrbgems/"
+      bd = build_dir
+      if bd.start_with?(MRUBY_ROOT)
+        bd = bd.sub(MRUBY_ROOT, '')
+      end
+      if bd.include? "mrbgems/"
         generated_file_matcher = Regexp.new("^#{Regexp.escape build_dir}/(?!mrbc/)(.*)#{Regexp.escape out_ext}$")
       else
         generated_file_matcher = Regexp.new("^#{Regexp.escape build_dir}/(?!mrbc/|mrbgems/.+/)(.*)#{Regexp.escape out_ext}$")
       end
-      source_exts.each do |ext, compile|
+      source_exts.each do |ext|
         rule generated_file_matcher => [
           proc { |file|
             file.sub(generated_file_matcher, "#{source_dir}/\\1#{ext}")
@@ -127,6 +131,12 @@ module MRuby
           run t.name, t.prerequisites.first
         end
       end
+    end
+
+    # This method can be redefined as a singleton method where appropriate.
+    # Manipulate `flags`, `include_paths` and/or more if necessary.
+    def setup_debug(conf)
+      nil
     end
 
     private
@@ -335,7 +345,7 @@ module MRuby
       opt << " -s" if static
       cmd = %["#{filename @command}" #{opt} #{filename(infiles).map{|f| %["#{f}"]}.join(' ')}]
       puts cmd if Rake.verbose
-      IO.popen(cmd, 'r+') do |io|
+      IO.popen(cmd, 'r') do |io|
         out.puts io.read
       end
       # if mrbc execution fail, drop the file

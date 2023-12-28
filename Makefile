@@ -18,6 +18,18 @@ check :
 	pre-commit run --all-files
 .PHONY : check
 
+checkinstall :
+	pre-commit install
+.PHONY : checkinstall
+
 checkupdate :
 	pre-commit autoupdate
 .PHONY : checkupdate
+
+composecheck :
+	docker-compose -p mruby run test pre-commit run --all-files
+.PHONY : composecheck
+
+composetest :
+	docker-compose -p mruby run test
+.PHONY : composetest

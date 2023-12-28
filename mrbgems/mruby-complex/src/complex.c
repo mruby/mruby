@@ -284,12 +284,15 @@ add_pair(struct float_pair *s, struct float_pair const *a,
 {
   if (b->s == 0.0F) {
     *s = *a;
-  } else if (a->s == 0.0F) {
+  }
+  else if (a->s == 0.0F) {
     *s = *b;
-  } else if (a->x >= b->x) {
+  }
+  else if (a->x >= b->x) {
     s->s = a->s + F(ldexp)(b->s, b->x - a->x);
     s->x = a->x;
-  } else {
+  }
+  else {
     s->s = F(ldexp)(a->s, a->x - b->x) + b->s;
     s->x = b->x;
   }
@@ -393,6 +396,7 @@ void mrb_mruby_complex_gem_init(mrb_state *mrb)
 
   comp = mrb_define_class_id(mrb, MRB_SYM(Complex), mrb_class_get_id(mrb, MRB_SYM(Numeric)));
   MRB_SET_INSTANCE_TT(comp, MRB_TT_COMPLEX);
+  MRB_UNDEF_ALLOCATOR(comp);
 
   mrb_undef_class_method(mrb, comp, "new");
   mrb_define_class_method(mrb, comp, "rectangular", complex_s_rect, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));

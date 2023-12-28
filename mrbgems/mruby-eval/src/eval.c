@@ -1,4 +1,5 @@
 #include <mruby.h>
+#include <mruby/array.h>
 #include <mruby/class.h>
 #include <mruby/compile.h>
 #include <mruby/irep.h>
@@ -9,10 +10,19 @@
 #include <mruby/variable.h>
 #include <mruby/internal.h>
 
+/* provided by mruby-binding */
+mrb_bool mrb_binding_p(mrb_state *mrb, mrb_value binding);
+const struct RProc * mrb_binding_extract_proc(mrb_state *mrb, mrb_value binding);
+struct REnv * mrb_binding_extract_env(mrb_state *mrb, mrb_value binding);
+
+/* provided by mruby-compiler */
+typedef mrb_bool mrb_parser_foreach_top_variable_func(mrb_state *mrb, mrb_sym sym, void *user);
+void mrb_parser_foreach_top_variable(mrb_state *mrb, struct mrb_parser_state *p, mrb_parser_foreach_top_variable_func *func, void *user);
+
 static struct RProc*
 create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value binding, const char *file, mrb_int line)
 {
-  mrbc_context *cxt;
+  mrb_ccontext *cxt;
   struct mrb_parser_state *p;
   struct RProc *proc;
   const struct RProc *scope;
@@ -22,22 +32,16 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
   struct mrb_context *c = mrb->c;
 
   if (!mrb_nil_p(binding)) {
-    mrb_value scope_obj;
-    if (!mrb_class_defined_id(mrb, MRB_SYM(Binding))
-        || !mrb_obj_is_kind_of(mrb, binding, mrb_class_get_id(mrb, MRB_SYM(Binding)))) {
+    if (!mrb_binding_p(mrb, binding)) {
       mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %C (expected binding)",
-          mrb_obj_class(mrb, binding));
+                 mrb_obj_class(mrb, binding));
     }
-    scope_obj = mrb_iv_get(mrb, binding, MRB_SYM(proc));
-    mrb_check_type(mrb, scope_obj, MRB_TT_PROC);
-    scope = mrb_proc_ptr(scope_obj);
+    scope = mrb_binding_extract_proc(mrb, binding);
     if (MRB_PROC_CFUNC_P(scope)) {
       e = NULL;
     }
     else {
-      mrb_value env = mrb_iv_get(mrb, binding, MRB_SYM(env));
-      mrb_check_type(mrb, env, MRB_TT_ENV);
-      e = (struct REnv *)mrb_obj_ptr(env);
+      e = mrb_binding_extract_env(mrb, binding);
       mrb_assert(e != NULL);
     }
   }
@@ -56,10 +60,10 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
     file = "(eval)";
   }
 
-  cxt = mrbc_context_new(mrb);
+  cxt = mrb_ccontext_new(mrb);
   cxt->lineno = (uint16_t)line;
 
-  mrbc_filename(mrb, cxt, file);
+  mrb_ccontext_filename(mrb, cxt, file);
   cxt->capture_errors = TRUE;
   cxt->no_optimize = TRUE;
   cxt->upper = scope && MRB_PROC_CFUNC_P(scope) ? NULL : scope;
@@ -68,7 +72,7 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
 
   /* only occur when memory ran out */
   if (!p) {
-    mrbc_context_free(mrb, cxt);
+    mrb_ccontext_free(mrb, cxt);
     mrb_raise(mrb, E_RUNTIME_ERROR, "Failed to create parser state (out of memory)");
   }
 
@@ -76,7 +80,7 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
     /* parse error */
     mrb_value str;
 
-    mrbc_context_free(mrb, cxt);
+    mrb_ccontext_free(mrb, cxt);
     if (!p->error_buffer[0].message) {
       mrb_parser_free(p);
       mrb_raise(mrb, E_SYNTAX_ERROR, "compile error");
@@ -100,7 +104,7 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
   if (proc == NULL) {
     /* codegen error */
     mrb_parser_free(p);
-    mrbc_context_free(mrb, cxt);
+    mrb_ccontext_free(mrb, cxt);
     mrb_raise(mrb, E_SCRIPT_ERROR, "codegen error");
   }
   if (c->ci > c->cibase) {
@@ -130,7 +134,7 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
   /* mrb_codedump_all(mrb, proc); */
 
   mrb_parser_free(p);
-  mrbc_context_free(mrb, cxt);
+  mrb_ccontext_free(mrb, cxt);
 
   return proc;
 }
@@ -146,6 +150,108 @@ exec_irep(mrb_state *mrb, mrb_value self, struct RProc *proc)
   return mrb_exec_irep(mrb, self, proc);
 }
 
+static void
+binding_eval_error_check(mrb_state *mrb, struct mrb_parser_state *p, const char *file)
+{
+  if (!p) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "Failed to create parser state (out of memory)");
+  }
+
+  if (0 < p->nerr) {
+    mrb_value str;
+
+    if (file) {
+      str = mrb_format(mrb, "file %s line %d: %s",
+                       file,
+                       p->error_buffer[0].lineno,
+                       p->error_buffer[0].message);
+    }
+    else {
+      str = mrb_format(mrb, "line %d: %s",
+                       p->error_buffer[0].lineno,
+                       p->error_buffer[0].message);
+    }
+    mrb_exc_raise(mrb, mrb_exc_new_str(mrb, E_SYNTAX_ERROR, str));
+  }
+}
+
+#define LV_BUFFERS 8
+
+struct expand_lvspace {
+  mrb_irep *irep;
+  struct REnv *env;
+  int numvar;
+  mrb_sym syms[LV_BUFFERS];
+};
+
+static mrb_bool
+expand_lvspace(mrb_state *mrb, mrb_sym sym, void *user)
+{
+  struct expand_lvspace *p = (struct expand_lvspace*)user;
+  mrb_int symlen;
+  const char *symname = mrb_sym_name_len(mrb, sym, &symlen);
+
+  if (symname && symlen > 0) {
+    if (symname[0] != '&' && symname[0] != '*') {
+      p->syms[p->numvar++] = sym;
+      if (p->numvar >= LV_BUFFERS) {
+        mrb_proc_merge_lvar(mrb, p->irep, p->env, p->numvar, p->syms, NULL);
+        p->numvar = 0;
+      }
+    }
+  }
+
+  return TRUE;
+}
+
+struct binding_eval_prepare_body {
+  mrb_value binding;
+  const char *file;
+  mrb_ccontext *cxt;
+  struct mrb_parser_state *pstate;
+};
+
+static mrb_value
+binding_eval_prepare_body(mrb_state *mrb, void *opaque)
+{
+  struct binding_eval_prepare_body *p = (struct binding_eval_prepare_body*)opaque;
+
+  const struct RProc *proc = mrb_binding_extract_proc(mrb, p->binding);
+  mrb_assert(!MRB_PROC_CFUNC_P(proc));
+  p->cxt->upper = proc;
+  binding_eval_error_check(mrb, p->pstate, p->file);
+
+  struct expand_lvspace args = {
+    (mrb_irep*)proc->body.irep,
+    mrb_binding_extract_env(mrb, p->binding),
+    0,
+    { 0 }
+  };
+  mrb_parser_foreach_top_variable(mrb, p->pstate, expand_lvspace, &args);
+  if (args.numvar > 0) {
+    mrb_proc_merge_lvar(mrb, args.irep, args.env, args.numvar, args.syms, NULL);
+  }
+
+  return mrb_nil_value();
+}
+
+static void
+binding_eval_prepare(mrb_state *mrb, mrb_value binding, const char *expr, mrb_int exprlen, const char *file)
+{
+  struct binding_eval_prepare_body d = { binding };
+
+  d.cxt = mrb_ccontext_new(mrb);
+  d.file = mrb_ccontext_filename(mrb, d.cxt, file ? file : "(eval)");
+  d.cxt->capture_errors = TRUE;
+  d.pstate = mrb_parse_nstring(mrb, expr, exprlen, d.cxt);
+
+  mrb_bool error;
+  mrb_value ret = mrb_protect_error(mrb, binding_eval_prepare_body, &d, &error);
+  if (d.pstate) mrb_parser_free(d.pstate);
+  if (d.cxt) mrb_ccontext_free(mrb, d.cxt);
+  if (error) mrb_exc_raise(mrb, ret);
+}
+
 static mrb_value
 f_eval(mrb_state *mrb, mrb_value self)
 {
@@ -158,6 +264,9 @@ f_eval(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "s|ozi", &s, &len, &binding, &file, &line);
 
+  if (!mrb_nil_p(binding)) {
+    binding_eval_prepare(mrb, binding, s, len, file);
+  }
   proc = create_proc_from_string(mrb, s, len, binding, file, line);
   if (!mrb_nil_p(binding)) {
     self = mrb_iv_get(mrb, binding, MRB_SYM(recv));
@@ -214,6 +323,22 @@ f_class_eval(mrb_state *mrb, mrb_value self)
   }
 }
 
+static mrb_value
+mrb_binding_eval(mrb_state *mrb, mrb_value binding)
+{
+  mrb_callinfo *ci = mrb->c->ci;
+  int argc = ci->n;
+  mrb_value *argv = ci->stack + 1;
+
+  if (argc < 15) {
+    argv[0] = mrb_ary_new_from_values(mrb, argc, argv);
+    argv[1] = argv[argc];       /* copy block */
+    ci->n = 15;
+  }
+  mrb_ary_splice(mrb, argv[0], 1, 0, binding); /* insert binding as 2nd argument */
+  return f_eval(mrb, binding);
+}
+
 void
 mrb_mruby_eval_gem_init(mrb_state* mrb)
 {
@@ -221,6 +346,9 @@ mrb_mruby_eval_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, mrb_class_get_id(mrb, MRB_SYM(BasicObject)), MRB_SYM(instance_eval), f_instance_eval, MRB_ARGS_OPT(3)|MRB_ARGS_BLOCK());
   mrb_define_method_id(mrb, mrb_class_get_id(mrb, MRB_SYM(Module)), MRB_SYM(module_eval), f_class_eval, MRB_ARGS_OPT(3)|MRB_ARGS_BLOCK());
   mrb_define_method_id(mrb, mrb_class_get_id(mrb, MRB_SYM(Module)), MRB_SYM(class_eval), f_class_eval, MRB_ARGS_OPT(3)|MRB_ARGS_BLOCK());
+
+  struct RClass *binding = mrb_class_get_id(mrb, MRB_SYM(Binding));
+  mrb_define_method(mrb, binding, "eval", mrb_binding_eval, MRB_ARGS_ANY());
 }
 
 void

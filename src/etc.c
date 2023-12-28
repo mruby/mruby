@@ -71,7 +71,7 @@ mrb_obj_to_sym(mrb_state *mrb, mrb_value name)
   return 0;  /* not reached */
 }
 
-#ifndef MRB_NO_FLOAT
+#if !defined(MRB_NO_FLOAT) && !defined(MRB_NAN_BOXING)
 static mrb_int
 mrb_float_id(mrb_float f)
 {

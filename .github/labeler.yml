@@ -1,0 +1,50 @@
+benchmark:
+  - any:
+      - changed-files:
+          - any-glob-to-any-file:
+              - benchmark/**/*
+build:
+  - any:
+      - changed-files:
+          - any-glob-to-any-file:
+              - Makefile
+              - Rakefile
+              - build_config/**/*
+              - lib/**/*
+              - tasks/**/*
+core:
+  - any:
+      - changed-files:
+          - any-glob-to-any-file:
+              - include/**/*
+              - mrblib/**/*
+              - src/**/*
+              - test/**/*
+doc:
+  - any:
+      - changed-files:
+          - any-glob-to-any-file:
+              - CONTRIBUTING.md
+              - LEGAL
+              - LICENSE
+              - NEWS
+              - README.md
+              - SECURITY.md
+              - TODO.md
+              - doc/**/*
+              - examples/**/*
+github:
+  - any:
+      - changed-files:
+          - any-glob-to-any-file:
+              - .github/**/*
+mrbgems:
+  - any:
+      - changed-files:
+          - any-glob-to-any-file:
+              - mrbgems/**/*
+oss-fuzz:
+  - any:
+      - changed-files:
+          - any-glob-to-any-file:
+              - oss-fuzz/**/*

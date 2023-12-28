@@ -16,13 +16,24 @@ static size_t
 os_memsize_of_irep(mrb_state* state, const struct mrb_irep *irep)
 {
   size_t size;
-  int i;
 
   size = (irep->slen * sizeof(mrb_sym)) +
-         (irep->plen * sizeof(mrb_code)) +
-         (irep->ilen * sizeof(mrb_code));
+         (irep->plen * sizeof(mrb_pool_value)) +
+         (irep->ilen * sizeof(mrb_code)) +
+         (irep->rlen * sizeof(struct mrb_irep*));
 
-  for(i = 0; i < irep->rlen; i++) {
+  for (int i = 0; i < irep->plen; i++) {
+    const mrb_pool_value *p = &irep->pool[i];
+    if ((p->tt & IREP_TT_NFLAG) == 0) { /* string pool value */
+      size += (p->tt>>2);
+    }
+    else if (p->tt == IREP_TT_BIGINT) { /* bigint pool value */
+      size += p->u.str[0];
+    }
+  }
+
+  for (int i = 0; i < irep->rlen; i++) {
+    size += sizeof(struct mrb_irep); /* size of irep structure */
     size += os_memsize_of_irep(state, irep->reps[i]);
   }
   return size;
@@ -72,7 +83,7 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj)
     case MRB_TT_MODULE:
     case MRB_TT_SCLASS:
     case MRB_TT_ICLASS:
-      size += mrb_gc_mark_mt_size(mrb, mrb_class_ptr(obj)) * sizeof(mrb_method_t);
+      size += mrb_class_mt_memsize(mrb, mrb_class_ptr(obj));
       /* fall through */
     case MRB_TT_EXCEPTION:
     case MRB_TT_OBJECT: {
@@ -95,14 +106,16 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj)
       /* Arrays that do not fit within an RArray perform a heap allocation
       *  storing an array of pointers to the original objects*/
       size += mrb_objspace_page_slot_size();
-      if(len > MRB_ARY_EMBED_LEN_MAX) size += sizeof(mrb_value *) * len;
+      if (len > MRB_ARY_EMBED_LEN_MAX)
+        size += sizeof(mrb_value*) * len;
       break;
     }
     case MRB_TT_PROC: {
       struct RProc* proc = mrb_proc_ptr(obj);
       size += mrb_objspace_page_slot_size();
       size += MRB_ENV_LEN(proc->e.env) * sizeof(mrb_value);
-      if(!MRB_PROC_CFUNC_P(proc)) size += os_memsize_of_irep(mrb, proc->body.irep);
+      if (!MRB_PROC_CFUNC_P(proc))
+        size += os_memsize_of_irep(mrb, proc->body.irep);
       break;
     }
     case MRB_TT_RANGE:
@@ -112,7 +125,7 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj)
 #endif
       break;
     case MRB_TT_FIBER: {
-      struct RFiber* f = (struct RFiber *)mrb_ptr(obj);
+      struct RFiber* f = (struct RFiber*)mrb_ptr(obj);
       ptrdiff_t stack_size = f->cxt->stend - f->cxt->stbase;
       ptrdiff_t ci_size = f->cxt->ciend - f->cxt->cibase;
 
@@ -192,9 +205,7 @@ static mrb_value
 os_memsize_of(mrb_state *mrb, mrb_value self)
 {
   size_t total;
-  mrb_value obj;
-
-  mrb_get_args(mrb, "o", &obj);
+  mrb_value obj = mrb_get_arg1(mrb);
 
   total = os_memsize_of_object(mrb, obj);
   return mrb_fixnum_value((mrb_int)total);
@@ -208,7 +219,7 @@ struct os_memsize_of_all_cb_data {
 static int
 os_memsize_of_all_cb(mrb_state *mrb, struct RBasic *obj, void *d)
 {
-  struct os_memsize_of_all_cb_data *data = (struct os_memsize_of_all_cb_data *)d;
+  struct os_memsize_of_all_cb_data *data = (struct os_memsize_of_all_cb_data*)d;
   switch (obj->tt) {
   case MRB_TT_FREE: case MRB_TT_ENV:
   case MRB_TT_BREAK: case MRB_TT_ICLASS:

@@ -78,7 +78,7 @@ mpz_set_int(mrb_state *mrb, mpz_t *y, mrb_int v)
     y->sn = 1;
     u = v;
   }
-  if (v < 0) {
+  else /* if (v < 0) */ {
     y->sn = -1;
     if (v == MRB_INT_MIN) u = v;
     else u = -v;
@@ -96,6 +96,39 @@ mpz_set_int(mrb_state *mrb, mpz_t *y, mrb_int v)
     y->p[0] = (mp_limb)u;
   }
 }
+
+static void
+mpz_set_uint64(mrb_state *mrb, mpz_t *y, uint64_t u)
+{
+  const size_t len = sizeof(uint64_t) / sizeof(mp_limb);
+
+  y->sn = (u != 0);
+  mpz_realloc(mrb, y, len);
+  for (size_t i=0; i<len; i++) {
+    y->p[i++] = (mp_limb)LOW(u);
+    u >>= DIG_SIZE;
+  }
+}
+
+#ifdef MRB_INT32
+static void
+mpz_set_int64(mrb_state *mrb, mpz_t *y, int64_t v)
+{
+  uint64_t u;
+
+  if (v < 0) {
+    if (v == INT64_MIN) u = v;
+    else u = -v;
+  }
+  else {
+    u = v;
+  }
+  mpz_set_uint64(mrb, y, u);
+  if (v < 0) {
+    y->sn = -1;
+  }
+}
+#endif
 
 static void
 mpz_init_set_int(mrb_state *mrb, mpz_t *y, mrb_int v)
@@ -131,7 +164,7 @@ digits(mpz_t *x)
   size_t i;
 
   if (x->sz == 0) return 0;
-  for (i = x->sz - 1; x->p[i] == 0 ; i--)
+  for (i = x->sz - 1; x->p[i] == 0; i--)
     if (i == 0) break;
   return i+1;
 }
@@ -362,7 +395,7 @@ lzb(mp_limb x)
 
   int j=0;
 
-  for (mp_limb i = ((mp_limb)1 << (DIG_SIZE-1)); i && !(x&i) ; j++,i>>=1)
+  for (mp_limb i = ((mp_limb)1 << (DIG_SIZE-1)); i && !(x&i); j++,i>>=1)
     ;
   return j;
 }
@@ -909,7 +942,41 @@ mpz_pow(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int e)
 }
 
 static void
-mpz_powm(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int ex, mpz_t *n)
+mpz_powm(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
+{
+  mpz_t t, b;
+
+  if (uzero(ex)) {
+    mpz_set_int(mrb, zz, 1);
+    return;
+  }
+
+  if (ex->sn < 0) {
+    return;
+  }
+
+  mpz_init_set_int(mrb, &t, 1);
+  mpz_init_set(mrb, &b, x);
+
+  size_t len = digits(ex);
+  for (size_t i=0; i<len; i++) {
+    mp_limb e = ex->p[i];
+    for (size_t j=0; j<sizeof(mp_limb)*8; j++) {
+      if ((e & 1) == 1) {
+        mpz_mul(mrb, &t, &t, &b);
+        mpz_mod(mrb, &t, &t, n);
+      }
+      e >>= 1;
+      mpz_mul(mrb, &b, &b, &b);
+      mpz_mod(mrb, &b, &b, n);
+    }
+  }
+  mpz_move(mrb, zz, &t);
+  mpz_clear(mrb, &b);
+}
+
+static void
+mpz_powm_i(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int ex, mpz_t *n)
 {
   mpz_t t, b;
 
@@ -956,16 +1023,29 @@ bint_new_int(mrb_state *mrb, mrb_int x)
 }
 
 mrb_value
-mrb_bint_new(mrb_state *mrb)
-{
-  struct RBigint *b = bint_new(mrb);
-  return mrb_obj_value(b);
-}
-
-mrb_value
 mrb_bint_new_int(mrb_state *mrb, mrb_int x)
 {
   struct RBigint *b = bint_new_int(mrb, x);
+  return mrb_obj_value(b);
+}
+
+#ifdef MRB_INT32
+mrb_value
+mrb_bint_new_int64(mrb_state *mrb, int64_t x)
+{
+  struct RBigint *b = bint_new(mrb);
+  mpz_init(mrb, &b->mp);
+  mpz_set_int64(mrb, &b->mp, x);
+  return mrb_obj_value(b);
+}
+#endif
+
+mrb_value
+mrb_bint_new_uint64(mrb_state *mrb, uint64_t x)
+{
+  struct RBigint *b = bint_new(mrb);
+  mpz_init(mrb, &b->mp);
+  mpz_set_uint64(mrb, &b->mp, x);
   return mrb_obj_value(b);
 }
 
@@ -1086,6 +1166,61 @@ mrb_bint_as_int(mrb_state *mrb, mrb_value x)
   return i;
 }
 
+#ifdef MRB_INT32
+int64_t
+mrb_bint_as_int64(mrb_state *mrb, mrb_value x)
+{
+  struct RBigint *b = RBIGINT(x);
+  mpz_t *m = &b->mp;
+  uint64_t u = 0;
+  size_t len = digits(m);
+
+  if (len*sizeof(mp_limb) > sizeof(uint64_t)) {
+  out_of_range:
+    mrb_raise(mrb, E_RANGE_ERROR, "integer out of range");
+  }
+  for (size_t i=len-1; ; i--) {
+    u <<= DIG_SIZE;
+    u |= m->p[i];
+    if (i==0) break;
+  }
+  if (u > INT64_MAX) goto out_of_range;
+  if (m->sn < 0) return -(int64_t)u;
+  return (int64_t)u;
+}
+#endif
+
+uint64_t
+mrb_bint_as_uint64(mrb_state *mrb, mrb_value x)
+{
+  struct RBigint *b = RBIGINT(x);
+  mpz_t *m = &b->mp;
+  uint64_t u = 0;
+  size_t len = digits(m);
+
+  if (m->sn < 0 || len*sizeof(mp_limb) > sizeof(uint64_t)) {
+    mrb_raise(mrb, E_RANGE_ERROR, "integer out of range");
+  }
+  for (size_t i=len-1; ; i--) {
+    u <<= DIG_SIZE;
+    u |= m->p[i];
+    if (i==0) break;
+  }
+  return u;
+}
+
+/* unnormalize version of mrb_bint_add */
+mrb_value
+mrb_bint_add_d(mrb_state *mrb, mrb_value x, mrb_value y)
+{
+  y = mrb_as_bint(mrb, y);
+  struct RBigint *b = RBIGINT(x);
+  struct RBigint *b2 = RBIGINT(y);
+  struct RBigint *b3 = bint_new(mrb);
+  mpz_add(mrb, &b3->mp, &b->mp, &b2->mp);
+  return mrb_obj_value(b3);
+}
+
 mrb_value
 mrb_bint_add(mrb_state *mrb, mrb_value x, mrb_value y)
 {
@@ -1096,12 +1231,20 @@ mrb_bint_add(mrb_state *mrb, mrb_value x, mrb_value y)
     return mrb_float_value(mrb,v1+v2);
   }
 #endif
+  x = mrb_bint_add_d(mrb, x, y);
+  return bint_norm(mrb, RBIGINT(x));
+}
+
+/* unnormalize version of mrb_bint_sub */
+mrb_value
+mrb_bint_sub_d(mrb_state *mrb, mrb_value x, mrb_value y)
+{
   y = mrb_as_bint(mrb, y);
   struct RBigint *b = RBIGINT(x);
   struct RBigint *b2 = RBIGINT(y);
   struct RBigint *b3 = bint_new(mrb);
-  mpz_add(mrb, &b3->mp, &b->mp, &b2->mp);
-  return bint_norm(mrb, b3);
+  mpz_sub(mrb, &b3->mp, &b->mp, &b2->mp);
+  return mrb_obj_value(b3);
 }
 
 mrb_value
@@ -1114,12 +1257,8 @@ mrb_bint_sub(mrb_state *mrb, mrb_value x, mrb_value y)
     return mrb_float_value(mrb,v1-v2);
   }
 #endif
-  y = mrb_as_bint(mrb, y);
-  struct RBigint *b = RBIGINT(x);
-  struct RBigint *b2 = RBIGINT(y);
-  struct RBigint *b3 = bint_new(mrb);
-  mpz_sub(mrb, &b3->mp, &b->mp, &b2->mp);
-  return bint_norm(mrb, b3);
+  x = mrb_bint_sub_d(mrb, x, y);
+  return bint_norm(mrb, RBIGINT(x));
 }
 
 mrb_value
@@ -1201,20 +1340,6 @@ mrb_bint_mul_ii(mrb_state *mrb, mrb_int x, mrb_int y)
   mpz_init_set_int(mrb, &z1, x);
   mpz_init_set_int(mrb, &z2, y);
   mpz_mul(mrb, &b->mp, &z1, &z2);
-  mpz_clear(mrb, &z1);
-  mpz_clear(mrb, &z2);
-  return bint_norm(mrb, b);
-}
-
-mrb_value
-mrb_bint_div_ii(mrb_state *mrb, mrb_int x, mrb_int y)
-{
-  struct RBigint *b = bint_new(mrb);
-  mpz_t z1, z2;
-
-  mpz_init_set_int(mrb, &z1, x);
-  mpz_init_set_int(mrb, &z2, y);
-  mpz_mdiv(mrb, &b->mp, &z1, &z2);
   mpz_clear(mrb, &z1);
   mpz_clear(mrb, &z2);
   return bint_norm(mrb, b);
@@ -1334,32 +1459,36 @@ mrb_bint_pow(mrb_state *mrb, mrb_value x, mrb_value y)
 }
 
 mrb_value
-mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_int exp, mrb_value mod)
+mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_value exp, mrb_value mod)
 {
   struct RBigint *b = RBIGINT(x);
-  switch (mrb_type(mod)) {
-  case MRB_TT_INTEGER:
-    {
-      mrb_int m = mrb_integer(mod);
-      if (m == 0) mrb_int_zerodiv(mrb);
-      struct RBigint *b2 = bint_new_int(mrb, m);
-      struct RBigint *b3 = bint_new(mrb);
-      mpz_powm(mrb, &b3->mp, &b->mp, exp, &b2->mp);
-      return bint_norm(mrb, b3);
-    }
-  case MRB_TT_BIGINT:
-    {
-      struct RBigint *b2 = RBIGINT(mod);
-      struct RBigint *b3 = bint_new(mrb);
-      if (uzero(&b2->mp)) mrb_int_zerodiv(mrb);
-      mpz_powm(mrb, &b3->mp, &b->mp, exp, &b2->mp);
-      return bint_norm(mrb, b3);
-    }
-    mrb_raise(mrb, E_TYPE_ERROR, "too big power");
-  default:
-    mrb_raisef(mrb, E_TYPE_ERROR, "%v cannot be convert to integer", mod);
+  struct RBigint *b2, *b3;
+
+  if (mrb_bigint_p(mod)) {
+    b2 = RBIGINT(mod);
+    if (uzero(&b2->mp)) mrb_int_zerodiv(mrb);
   }
-  return mrb_nil_value();
+  else {
+    mrb_int m = mrb_integer(mod);
+    if (m == 0) mrb_int_zerodiv(mrb);
+    b2 = bint_new_int(mrb, m);
+  }
+  b3 = bint_new(mrb);
+  if (mrb_bigint_p(exp)) {
+    struct RBigint *be = RBIGINT(exp);
+    if (be->mp.sn < 0) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "int.pow(n,m): n must be positive");
+    }
+    mpz_powm(mrb, &b3->mp, &b->mp, &be->mp, &b2->mp);
+  }
+  else {
+    mrb_int e = mrb_integer(exp);
+    if (e < 0) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "int.pow(n,m): n must be positive");
+    }
+    mpz_powm_i(mrb, &b3->mp, &b->mp, e, &b2->mp);
+  }
+  return bint_norm(mrb, b3);
 }
 
 mrb_value

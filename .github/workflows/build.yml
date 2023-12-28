@@ -27,7 +27,8 @@ jobs:
       CXX: ${{ matrix.cxx }}
       LD: ${{ matrix.cc }}
     steps:
-      - uses: actions/checkout@v3
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v4
       - name: Ruby version
         run: ruby -v
       - name: Compiler version
@@ -41,7 +42,8 @@ jobs:
     env:
       MRUBY_CONFIG: ci/msvc
     steps:
-      - uses: actions/checkout@v3
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v4
       - name: Ruby version
         run: ruby -v
       - name: Build and test

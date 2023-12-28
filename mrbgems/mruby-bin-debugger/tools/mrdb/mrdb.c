@@ -20,7 +20,7 @@
 #include "apibreak.h"
 #include "apilist.h"
 
-void mrdb_state_free(mrb_state *);
+void mrdb_state_free(mrb_state*);
 
 static mrb_debug_context *_debug_context = NULL;
 static mrdb_state *_mrdb_state = NULL;
@@ -113,7 +113,7 @@ append_srcpath:
           char *buf;
 
           buflen = strlen(item) + 1;
-          buf = (char *)mrb_malloc(mrb, buflen);
+          buf = (char*)mrb_malloc(mrb, buflen);
           memcpy(buf, item, buflen);
           args->srcpath = buf;
         }
@@ -123,8 +123,7 @@ append_srcpath:
 
           srcpathlen = strlen(args->srcpath);
           itemlen = strlen(item);
-          args->srcpath =
-            (char *)mrb_realloc(mrb, args->srcpath, srcpathlen + itemlen + 2);
+          args->srcpath = (char*)mrb_realloc(mrb, args->srcpath, srcpathlen + itemlen + 2);
           args->srcpath[srcpathlen] = '\n';
           memcpy(args->srcpath + srcpathlen + 1, item, itemlen + 1);
         }
@@ -280,7 +279,7 @@ get_command(mrb_state *mrb, mrdb_state *mrdb)
   }
 
   if (i == MAX_COMMAND_LINE) {
-    for ( ; (c=getchar()) != EOF && c !='\n'; i++) ;
+    for (; (c=getchar()) != EOF && c !='\n'; i++) ;
   }
 
   if (i > MAX_COMMAND_LINE) {
@@ -297,7 +296,8 @@ pick_out_word(mrb_state *mrb, char **pp)
 {
   char *ps;
 
-  for (ps=*pp; ISBLANK(*ps); ps++) ;
+  for (ps=*pp; ISBLANK(*ps); ps++)
+    ;
   if (*ps == '\0') {
     return NULL;
   }
@@ -336,7 +336,8 @@ parse_command(mrb_state *mrb, mrdb_state *mrdb, char *buf)
   }
   mrdb->wcnt = 1;
   /* set remain parameter */
-  for ( ; *p && ISBLANK(*p); p++) ;
+  for (; *p && ISBLANK(*p); p++)
+    ;
   if (*p) {
     mrdb->words[mrdb->wcnt++] = p;
   }
@@ -356,7 +357,8 @@ parse_command(mrb_state *mrb, mrdb_state *mrdb, char *buf)
       mrdb->words[1] = pick_out_word(mrb, &p);
       if (mrdb->words[1]) {
         /* update remain parameter */
-        for ( ; *p && ISBLANK(*p); p++) ;
+        for (; *p && ISBLANK(*p); p++)
+          ;
         if (*p) {
           mrdb->words[mrdb->wcnt++] = p;
         }
@@ -364,7 +366,7 @@ parse_command(mrb_state *mrb, mrdb_state *mrdb, char *buf)
     }
 
     /* check word #1,#2 */
-    for ( ; cmd->cmd1; cmd++) {
+    for (; cmd->cmd1; cmd++) {
       wlen = strlen(mrdb->words[0]);
       if (wlen < cmd->len1 ||
           strncmp(mrdb->words[0], cmd->cmd1, wlen)) {
@@ -386,7 +388,7 @@ parse_command(mrb_state *mrb, mrdb_state *mrdb, char *buf)
   /* divide remain parameters */
   if (cmd->cmd1 && cmd->div) {
     p = mrdb->words[--mrdb->wcnt];
-    for ( ; mrdb->wcnt<MAX_COMMAND_WORD; mrdb->wcnt++) {
+    for (; mrdb->wcnt<MAX_COMMAND_WORD; mrdb->wcnt++) {
       mrdb->words[mrdb->wcnt] = pick_out_word(mrb, &p);
       if (!mrdb->words[mrdb->wcnt]) {
         break;
@@ -704,10 +706,10 @@ main(int argc, char **argv)
     v = mrb_load_irep_file(mrb, args.rfp);
   }
   else {              /* .rb */
-    mrbc_context *cc = mrbc_context_new(mrb);
-    mrbc_filename(mrb, cc, args.fname);
+    mrb_ccontext *cc = mrb_ccontext_new(mrb);
+    mrb_ccontext_filename(mrb, cc, args.fname);
     v = mrb_load_file_cxt(mrb, args.rfp, cc);
-    mrbc_context_free(mrb, cc);
+    mrb_ccontext_free(mrb, cc);
   }
   if (mrdb->dbg->xm == DBG_QUIT && !mrb_undef_p(v) && mrb->exc) {
     const char *classname = mrb_obj_classname(mrb, mrb_obj_value(mrb->exc));

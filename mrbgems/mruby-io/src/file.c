@@ -38,7 +38,9 @@
   #define GETCWD getcwd
   #define CHMOD(a, b) chmod(a,b)
   #include <sys/file.h>
+#ifndef __DJGPP__
   #include <libgen.h>
+#endif
   #include <sys/param.h>
   #include <pwd.h>
 #endif
@@ -105,7 +107,8 @@ mrb_file_s_umask(mrb_state *mrb, mrb_value klass)
   if (mrb_get_args(mrb, "|i", &mask) == 0) {
     omask = umask(0);
     umask(omask);
-  } else {
+  }
+  else {
     omask = umask(mask);
   }
   return mrb_fixnum_value(omask);
@@ -179,7 +182,8 @@ mrb_file_dirname(mrb_state *mrb, mrb_value klass)
   ridx = strlen(buffer);
   if (ridx == 0) {
     strncpy(buffer, ".", 2);  /* null terminated */
-  } else if (ridx > 1) {
+  }
+  else if (ridx > 1) {
     ridx--;
     while (ridx > 0 && (buffer[ridx] == '/' || buffer[ridx] == '\\')) {
       buffer[ridx] = '\0';  /* remove last char */
@@ -275,6 +279,7 @@ mrb_file__getwd(mrb_state *mrb, mrb_value klass)
   mrb_value path;
   char buf[MAXPATHLEN], *utf8;
 
+  mrb->c->ci->mid = 0;
   if (GETCWD(buf, MAXPATHLEN) == NULL) {
     mrb_sys_fail(mrb, "getcwd(2)");
   }
@@ -344,6 +349,7 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
   char *home;
   mrb_value path;
 
+  mrb->c->ci->mid = 0;
 #ifndef _WIN32
   mrb_value username;
 
@@ -356,7 +362,8 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
     if (!mrb_file_is_absolute_path(home)) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "non-absolute home");
     }
-  } else {
+  }
+  else {
     const char *cuser = RSTRING_CSTR(mrb, username);
     struct passwd *pwd = getpwnam(cuser);
     if (pwd == NULL) {
@@ -381,7 +388,8 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
     if (!mrb_file_is_absolute_path(home)) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "non-absolute home");
     }
-  } else {
+  }
+  else {
     return mrb_nil_value();
   }
   home = mrb_locale_from_utf8(home, -1);
@@ -391,14 +399,60 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
 #endif
 }
 
+#define TIME_OVERFLOW_P(a) (sizeof(time_t) >= sizeof(mrb_int) && ((a) > MRB_INT_MAX || (a) < MRB_INT_MIN))
+#define TIME_T_UINT (~(time_t)0 > 0)
+#if defined(MRB_USE_BITINT)
+#define TIME_BIGTIME(mrb, a)                                                   \
+  return (TIME_T_UINT ? mrb_bint_new_uint64((mrb), (uint64_t)(a))              \
+               : mrb_bint_new_int64(mrb, (int64_t)(a)))
+#elif !defined(MRB_NO_FLOAT)
+#define TIME_BIGTIME(mrb,a) return mrb_float_value((mrb), (mrb_float)(a))
+#else
+#define TIME_BIGTIME(mrb, a) mrb_raise(mrb, E_IO_ERROR, #a " overflow")
+#endif
+
+static mrb_value
+mrb_file_atime(mrb_state *mrb, mrb_value self)
+{
+  int fd = mrb_io_fileno(mrb, self);
+  mrb_stat st;
+
+  mrb->c->ci->mid = 0;
+  if (mrb_fstat(fd, &st) == -1)
+    mrb_sys_fail(mrb, "atime");
+  if (TIME_OVERFLOW_P(st.st_atime)) {
+    TIME_BIGTIME(mrb, st.st_atime);
+  }
+  return mrb_int_value(mrb, (mrb_int)st.st_atime);
+}
+
+static mrb_value
+mrb_file_ctime(mrb_state *mrb, mrb_value self)
+{
+  int fd = mrb_io_fileno(mrb, self);
+  mrb_stat st;
+
+  mrb->c->ci->mid = 0;
+  if (mrb_fstat(fd, &st) == -1)
+    mrb_sys_fail(mrb, "ctime");
+  if (TIME_OVERFLOW_P(st.st_ctime)) {
+    TIME_BIGTIME(mrb, st. st_ctime);
+  }
+  return mrb_int_value(mrb, (mrb_int)st.st_ctime);
+}
+
 static mrb_value
 mrb_file_mtime(mrb_state *mrb, mrb_value self)
 {
   int fd = mrb_io_fileno(mrb, self);
   mrb_stat st;
 
+  mrb->c->ci->mid = 0;
   if (mrb_fstat(fd, &st) == -1)
-    return mrb_false_value();
+    mrb_sys_fail(mrb, "mtime");
+  if (TIME_OVERFLOW_P(st.st_mtime)) {
+    TIME_BIGTIME(mrb, st. st_mtime);
+  }
   return mrb_int_value(mrb, (mrb_int)st.st_mtime);
 }
 
@@ -567,10 +621,10 @@ mrb_file_s_readlink(mrb_state *mrb, mrb_value klass) {
   mrb_get_args(mrb, "z", &path);
   tmp = mrb_locale_from_utf8(path, -1);
 
-  buf = (char *)mrb_malloc(mrb, bufsize);
+  buf = (char*)mrb_malloc(mrb, bufsize);
   while ((rc = readlink(tmp, buf, bufsize)) == (ssize_t)bufsize && rc != -1) {
     bufsize *= 2;
-    buf = (char *)mrb_realloc(mrb, buf, bufsize);
+    buf = (char*)mrb_realloc(mrb, buf, bufsize);
   }
   mrb_locale_free(tmp);
   if (rc == -1) {
@@ -610,6 +664,8 @@ mrb_init_file(mrb_state *mrb)
   mrb_define_class_method(mrb, file, "_gethome",  mrb_file__gethome,   MRB_ARGS_OPT(1));
 
   mrb_define_method(mrb, file, "flock", mrb_file_flock, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, file, "_atime", mrb_file_atime, MRB_ARGS_NONE());
+  mrb_define_method(mrb, file, "_ctime", mrb_file_ctime, MRB_ARGS_NONE());
   mrb_define_method(mrb, file, "_mtime", mrb_file_mtime, MRB_ARGS_NONE());
   mrb_define_method(mrb, file, "size", mrb_file_size, MRB_ARGS_NONE());
   mrb_define_method(mrb, file, "truncate", mrb_file_truncate, MRB_ARGS_REQ(1));

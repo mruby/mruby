@@ -146,7 +146,8 @@ fmt_float(char *buf, size_t buf_size, char fmt, int flags, int width, int prec, 
   memmove(&buf[width - len], buf, len);
   if (zero_pad) {
     memset(buf, '0', width - len);
-  } else {
+  }
+  else {
     memset(buf, ' ', width - len);
   }
   return width;
@@ -604,7 +605,8 @@ mrb_str_format(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value fm
     mrb_sym id = 0;
     int flags = FNONE;
 
-    for (t = p; t < end && *t != '%'; t++) ;
+    for (t = p; t < end && *t != '%'; t++)
+      ;
     if (t + 1 == end) t++;
     PUSH(p, t - p);
     if (t >= end)
@@ -761,7 +763,7 @@ retry:
             tmp = mrb_str_new(mrb, buf, 1);
           }
           else {
-            tmp = mrb_funcall_id(mrb, val, MRB_SYM(chr), 0);
+            tmp = mrb_funcall_argv(mrb, val, MRB_SYM(chr), 0, NULL);
             mrb_check_type(mrb, tmp, MRB_TT_STRING);
           }
 #endif
@@ -994,7 +996,8 @@ retry:
           if ((flags & (FMINUS|FPREC)) != FMINUS) {
             char c = '0';
             FILL(c, prec - len);
-          } else if (v < 0) {
+          }
+          else if (v < 0) {
             char c = sign_bits(base, p);
             FILL(c, prec - len);
           }

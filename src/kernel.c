@@ -71,7 +71,7 @@ mrb_obj_inspect(mrb_state *mrb, mrb_value obj)
  *  to provide meaningful semantics in <code>case</code> statements.
  */
 static mrb_value
-mrb_equal_m(mrb_state *mrb, mrb_value self)
+mrb_eqq_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value arg = mrb_get_arg1(mrb);
 
@@ -83,9 +83,43 @@ mrb_cmp_m(mrb_state *mrb, mrb_value self)
 {
   mrb_value arg = mrb_get_arg1(mrb);
 
+  /* recursion check */
+  for (mrb_callinfo *ci=&mrb->c->ci[-1]; ci>=mrb->c->cibase; ci--) {
+    if (ci->mid == MRB_OPSYM(cmp) &&
+        mrb_obj_eq(mrb, self, ci->stack[0]) &&
+        mrb_obj_eq(mrb, arg, ci->stack[1])) {
+      /* recursive <=> calling returns `nil` */
+      return mrb_nil_value();
+    }
+  }
+
   if (mrb_equal(mrb, self, arg))
     return mrb_fixnum_value(0);
   return mrb_nil_value();
+}
+
+static mrb_bool
+inspect_recursive_p(mrb_state *mrb, mrb_value obj, int n)
+{
+  for (mrb_callinfo *ci=&mrb->c->ci[-1-n]; ci>=mrb->c->cibase; ci--) {
+    if (ci->mid == MRB_SYM(inspect) &&
+        mrb_obj_eq(mrb, obj, ci->stack[0])) {
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+mrb_bool
+mrb_inspect_recursive_p(mrb_state *mrb, mrb_value obj)
+{
+  return inspect_recursive_p(mrb, obj, 0);
+}
+
+static mrb_value
+mrb_obj_inspect_recursive_p(mrb_state *mrb, mrb_value obj)
+{
+  return mrb_bool_value(inspect_recursive_p(mrb, obj, 1));
 }
 
 /* 15.3.1.3.3  */
@@ -377,27 +411,29 @@ mrb_false(mrb_state *mrb, mrb_value self)
  *     raise "Failed to create socket"
  *     raise ArgumentError, "No parameters", caller
  */
-MRB_API mrb_value
+mrb_value
 mrb_f_raise(mrb_state *mrb, mrb_value self)
 {
-  mrb_value a[2], exc;
+  mrb_value exc, mesg;
   mrb_int argc;
 
-  argc = mrb_get_args(mrb, "|oo", &a[0], &a[1]);
+  argc = mrb_get_args(mrb, "|oo", &exc, &mesg);
   mrb->c->ci->mid = 0;
   switch (argc) {
   case 0:
     mrb_raise(mrb, E_RUNTIME_ERROR, "");
     break;
   case 1:
-    if (mrb_string_p(a[0])) {
-      a[1] = a[0];
-      argc = 2;
-      a[0] = mrb_obj_value(E_RUNTIME_ERROR);
+    if (mrb_string_p(exc)) {
+      mesg = exc;
+      exc = mrb_obj_value(E_RUNTIME_ERROR);
+    }
+    else {
+      mesg = mrb_nil_value();
     }
     /* fall through */
   default:
-    exc = mrb_make_exception(mrb, argc, a);
+    exc = mrb_make_exception(mrb, exc, mesg);
     mrb_exc_raise(mrb, exc);
     break;
   }
@@ -441,12 +477,6 @@ mrb_obj_remove_instance_variable(mrb_state *mrb, mrb_value self)
   return val;
 }
 
-static inline mrb_bool
-basic_obj_respond_to(mrb_state *mrb, mrb_value obj, mrb_sym id, int pub)
-{
-  return mrb_respond_to(mrb, obj, id);
-}
-
 /* 15.3.1.3.43 */
 /*
  *  call-seq:
@@ -466,18 +496,16 @@ basic_obj_respond_to(mrb_state *mrb, mrb_value obj, mrb_sym id, int pub)
 static mrb_value
 obj_respond_to(mrb_state *mrb, mrb_value self)
 {
-  mrb_sym id, rtm_id;
+  mrb_sym id;
   mrb_bool priv = FALSE, respond_to_p;
 
   mrb_get_args(mrb, "n|b", &id, &priv);
-  respond_to_p = basic_obj_respond_to(mrb, self, id, !priv);
+  respond_to_p = mrb_respond_to(mrb, self, id);
   if (!respond_to_p) {
-    rtm_id = MRB_SYM_Q(respond_to_missing);
-    if (basic_obj_respond_to(mrb, self, rtm_id, !priv)) {
-      mrb_value args[2], v;
-      args[0] = mrb_symbol_value(id);
-      args[1] = mrb_bool_value(priv);
-      v = mrb_funcall_argv(mrb, self, rtm_id, 2, args);
+    mrb_sym rtm_id = MRB_SYM_Q(respond_to_missing);
+    if (!mrb_func_basic_p(mrb, self, rtm_id, mrb_false)) {
+      mrb_value v;
+      v = mrb_funcall_id(mrb, self, rtm_id, 2, mrb_symbol_value(id), mrb_bool_value(priv));
       return mrb_bool_value(mrb_bool(v));
     }
   }
@@ -505,7 +533,7 @@ mrb_obj_ceqq(mrb_state *mrb, mrb_value self)
     return mrb_false_value();
   }
   else {
-    ary = mrb_funcall_id(mrb, self, MRB_SYM(to_a), 0);
+    ary = mrb_funcall_argv(mrb, self, MRB_SYM(to_a), 0, NULL);
     if (mrb_nil_p(ary)) {
       return mrb_funcall_argv(mrb, self, eqq, 1, &v);
     }
@@ -513,62 +541,49 @@ mrb_obj_ceqq(mrb_state *mrb, mrb_value self)
   }
   len = RARRAY_LEN(ary);
   for (i=0; i<len; i++) {
-    mrb_value c = mrb_funcall_argv(mrb, mrb_ary_entry(ary, i), eqq, 1, &v);
+    mrb_value c = mrb_funcall_argv(mrb, RARRAY_PTR(ary)[i], eqq, 1, &v);
     if (mrb_test(c)) return mrb_true_value();
   }
   return mrb_false_value();
 }
-
-static mrb_value
-mrb_encoding(mrb_state *mrb, mrb_value self)
-{
-  mrb_get_args(mrb, "");
-#ifdef MRB_UTF8_STRING
-  return mrb_str_new_lit(mrb, "UTF-8");
-#else
-  return mrb_str_new_lit(mrb, "ASCII-8BIT");
-#endif
-}
-
-mrb_value mrb_obj_equal_m(mrb_state *mrb, mrb_value);
 
 void
 mrb_init_kernel(mrb_state *mrb)
 {
   struct RClass *krn;
 
-  mrb->kernel_module = krn = mrb_define_module(mrb, "Kernel");                                                    /* 15.3.1 */
-  mrb_define_class_method(mrb, krn, "block_given?",         mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.2.2  */
-  mrb_define_class_method(mrb, krn, "iterator?",            mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.2.5  */
-  mrb_define_class_method(mrb, krn, "raise",                mrb_f_raise,                     MRB_ARGS_OPT(2));    /* 15.3.1.2.12 */
+  mrb->kernel_module = krn = mrb_define_module_id(mrb, MRB_SYM(Kernel));                                                    /* 15.3.1 */
+  mrb_define_class_method_id(mrb, krn, MRB_SYM_Q(block_given),        mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.2.2  */
+  mrb_define_class_method_id(mrb, krn, MRB_SYM_Q(iterator),           mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.2.5  */
+  mrb_define_class_method_id(mrb, krn, MRB_SYM(raise),                mrb_f_raise,                     MRB_ARGS_OPT(2));    /* 15.3.1.2.12 */
 
+  mrb_define_method_id(mrb, krn, MRB_OPSYM(eqq),                      mrb_eqq_m,                       MRB_ARGS_REQ(1));    /* 15.3.1.3.2  */
+  mrb_define_method_id(mrb, krn, MRB_OPSYM(cmp),                      mrb_cmp_m,                       MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, krn, MRB_SYM_Q(block_given),              mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.3.6  */
+  mrb_define_method_id(mrb, krn, MRB_SYM(class),                      mrb_obj_class_m,                 MRB_ARGS_NONE());    /* 15.3.1.3.7  */
+  mrb_define_method_id(mrb, krn, MRB_SYM(clone),                      mrb_obj_clone,                   MRB_ARGS_NONE());    /* 15.3.1.3.8  */
+  mrb_define_method_id(mrb, krn, MRB_SYM(dup),                        mrb_obj_dup,                     MRB_ARGS_NONE());    /* 15.3.1.3.9  */
+  mrb_define_method_id(mrb, krn, MRB_SYM_Q(eql),                      mrb_obj_equal_m,                 MRB_ARGS_REQ(1));    /* 15.3.1.3.10 */
+  mrb_define_method_id(mrb, krn, MRB_SYM(freeze),                     mrb_obj_freeze,                  MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, krn, MRB_SYM_Q(frozen),                   mrb_obj_frozen,                  MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, krn, MRB_SYM(hash),                       mrb_obj_hash,                    MRB_ARGS_NONE());    /* 15.3.1.3.15 */
+  mrb_define_method_id(mrb, krn, MRB_SYM(initialize_copy),            mrb_obj_init_copy,               MRB_ARGS_REQ(1));    /* 15.3.1.3.16 */
+  mrb_define_method_id(mrb, krn, MRB_SYM(inspect),                    mrb_obj_inspect,                 MRB_ARGS_NONE());    /* 15.3.1.3.17 */
+  mrb_define_method_id(mrb, krn, MRB_SYM_Q(instance_of),              obj_is_instance_of,              MRB_ARGS_REQ(1));    /* 15.3.1.3.19 */
 
-  mrb_define_method(mrb, krn, "===",                        mrb_equal_m,                     MRB_ARGS_REQ(1));    /* 15.3.1.3.2  */
-  mrb_define_method(mrb, krn, "<=>",                        mrb_cmp_m,                       MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, krn, "block_given?",               mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.3.6  */
-  mrb_define_method(mrb, krn, "class",                      mrb_obj_class_m,                 MRB_ARGS_NONE());    /* 15.3.1.3.7  */
-  mrb_define_method(mrb, krn, "clone",                      mrb_obj_clone,                   MRB_ARGS_NONE());    /* 15.3.1.3.8  */
-  mrb_define_method(mrb, krn, "dup",                        mrb_obj_dup,                     MRB_ARGS_NONE());    /* 15.3.1.3.9  */
-  mrb_define_method(mrb, krn, "eql?",                       mrb_obj_equal_m,                 MRB_ARGS_REQ(1));    /* 15.3.1.3.10 */
-  mrb_define_method(mrb, krn, "freeze",                     mrb_obj_freeze,                  MRB_ARGS_NONE());
-  mrb_define_method(mrb, krn, "frozen?",                    mrb_obj_frozen,                  MRB_ARGS_NONE());
-  mrb_define_method(mrb, krn, "hash",                       mrb_obj_hash,                    MRB_ARGS_NONE());    /* 15.3.1.3.15 */
-  mrb_define_method(mrb, krn, "initialize_copy",            mrb_obj_init_copy,               MRB_ARGS_REQ(1));    /* 15.3.1.3.16 */
-  mrb_define_method(mrb, krn, "inspect",                    mrb_obj_inspect,                 MRB_ARGS_NONE());    /* 15.3.1.3.17 */
-  mrb_define_method(mrb, krn, "instance_of?",               obj_is_instance_of,              MRB_ARGS_REQ(1));    /* 15.3.1.3.19 */
-
-  mrb_define_method(mrb, krn, "is_a?",                      mrb_obj_is_kind_of_m,            MRB_ARGS_REQ(1));    /* 15.3.1.3.24 */
-  mrb_define_method(mrb, krn, "iterator?",                  mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.3.25 */
-  mrb_define_method(mrb, krn, "kind_of?",                   mrb_obj_is_kind_of_m,            MRB_ARGS_REQ(1));    /* 15.3.1.3.26 */
-  mrb_define_method(mrb, krn, "nil?",                       mrb_false,                       MRB_ARGS_NONE());    /* 15.3.1.3.32 */
-  mrb_define_method(mrb, krn, "object_id",                  mrb_obj_id_m,                    MRB_ARGS_NONE());    /* 15.3.1.3.33 */
-  mrb_define_method(mrb, krn, "raise",                      mrb_f_raise,                     MRB_ARGS_ANY());     /* 15.3.1.3.40 */
-  mrb_define_method(mrb, krn, "remove_instance_variable",   mrb_obj_remove_instance_variable,MRB_ARGS_REQ(1));    /* 15.3.1.3.41 */
-  mrb_define_method(mrb, krn, "respond_to?",                obj_respond_to,                  MRB_ARGS_ARG(1,1));     /* 15.3.1.3.43 */
-  mrb_define_method(mrb, krn, "to_s",                       mrb_any_to_s,                    MRB_ARGS_NONE());    /* 15.3.1.3.46 */
-  mrb_define_method(mrb, krn, "__case_eqq",                 mrb_obj_ceqq,                    MRB_ARGS_REQ(1));    /* internal */
-  mrb_define_method(mrb, krn, "__to_int",                   mrb_ensure_int_type,             MRB_ARGS_NONE());    /* internal */
-  mrb_define_method(mrb, krn, "__ENCODING__",               mrb_encoding,                    MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, krn, MRB_SYM_Q(is_a),                     mrb_obj_is_kind_of_m,            MRB_ARGS_REQ(1));    /* 15.3.1.3.24 */
+  mrb_define_method_id(mrb, krn, MRB_SYM_Q(iterator),                 mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.3.25 */
+  mrb_define_method_id(mrb, krn, MRB_SYM_Q(kind_of),                  mrb_obj_is_kind_of_m,            MRB_ARGS_REQ(1));    /* 15.3.1.3.26 */
+  mrb_define_method_id(mrb, krn, MRB_SYM_Q(nil),                      mrb_false,                       MRB_ARGS_NONE());    /* 15.3.1.3.32 */
+  mrb_define_method_id(mrb, krn, MRB_SYM(object_id),                  mrb_obj_id_m,                    MRB_ARGS_NONE());    /* 15.3.1.3.33 */
+  mrb_define_method_id(mrb, krn, MRB_SYM(raise),                      mrb_f_raise,                     MRB_ARGS_ANY());     /* 15.3.1.3.40 */
+  mrb_define_method_id(mrb, krn, MRB_SYM(remove_instance_variable),   mrb_obj_remove_instance_variable,MRB_ARGS_REQ(1));    /* 15.3.1.3.41 */
+  mrb_define_method_id(mrb, krn, MRB_SYM_Q(respond_to),               obj_respond_to,                  MRB_ARGS_ARG(1,1));     /* 15.3.1.3.43 */
+  mrb_define_method_id(mrb, krn, MRB_SYM(to_s),                       mrb_any_to_s,                    MRB_ARGS_NONE());    /* 15.3.1.3.46 */
+  mrb_define_method_id(mrb, krn, MRB_SYM(__case_eqq),                 mrb_obj_ceqq,                    MRB_ARGS_REQ(1));    /* internal */
+  mrb_define_method_id(mrb, krn, MRB_SYM(__to_int),                   mrb_ensure_int_type,             MRB_ARGS_NONE());    /* internal */
+  mrb_define_method_id(mrb, krn, MRB_SYM_Q(respond_to_missing),       mrb_false,                       MRB_ARGS_ARG(1,1));
+  mrb_define_method_id(mrb, krn, MRB_SYM_Q(__inspect_recursive),      mrb_obj_inspect_recursive_p,     MRB_ARGS_NONE());
 
   mrb_include_module(mrb, mrb->object_class, mrb->kernel_module);
 }

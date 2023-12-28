@@ -16,14 +16,15 @@ def assert_io_open(meth)
       io1.close
     end
 
-    io2 = IO.__send__(meth, IO.sysopen($mrbtest_io_rfname))do |io|
-      if meth == :open
-        assert_equal $mrbtest_io_msg, io.read
-      else
-        flunk "IO.#{meth} does not take block"
+    if meth == :open
+      io2 = IO.__send__(meth, IO.sysopen($mrbtest_io_rfname))do |io|
+        if meth == :open
+          assert_equal $mrbtest_io_msg, io.read
+        else
+          flunk "IO.#{meth} does not take block"
+        end
       end
     end
-    io2.close unless meth == :open
 
     assert_raise(RuntimeError) { IO.__send__(meth, 1023) } # For Windows
     assert_raise(RuntimeError) { IO.__send__(meth, 1 << 26) }
@@ -146,6 +147,30 @@ assert "IO#read(n) with n > IO::BUF_SIZE" do
     n = buf_size+1
     w.write 'a'*n
     assert_equal 'a'*n, r.read(n)
+  end
+end
+
+assert "IO#read(n, buf)" do
+  IO.open(IO.sysopen($mrbtest_io_rfname)) do |io|
+    buf = "12345"
+    assert_same buf, io.read(0, buf)
+    assert_equal "", buf
+
+    buf = "12345"
+    assert_same buf, io.read(5, buf)
+    assert_equal "mruby", buf
+
+    buf = "12345"
+    assert_same buf, io.read(nil, buf)
+    assert_equal " io test\n", buf
+
+    buf = "12345"
+    assert_nil io.read(99, buf)
+    assert_equal "", buf
+
+    buf = "12345"
+    assert_same buf, io.read(0, buf)
+    assert_equal "", buf
   end
 end
 

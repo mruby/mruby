@@ -140,9 +140,9 @@ class Set
     end
   end
 
- def disjoint?(set)
-  !intersect?(set)
- end
+  def disjoint?(set)
+    !intersect?(set)
+  end
 
   def each(&block)
     return to_enum :each unless block_given?
@@ -190,10 +190,10 @@ class Set
   end
 
   def collect!
-   return to_enum :collect! unless block_given?
-   set = self.class.new
-   each { |o| set << yield(o) }
-   replace(set)
+    return to_enum :collect! unless block_given?
+    set = self.class.new
+    each { |o| set << yield(o) }
+    replace(set)
   end
   alias map! collect!
 
@@ -306,17 +306,13 @@ class Set
     to_a.join(separator)
   end
 
-  def _inspect(recur_list)
+  def inspect
     return "#<#{self.class}: {}>" if empty?
-    return "#<#{self.class}: {...}>" if recur_list[self.object_id]
-    recur_list[self.object_id] = true
-    ary = map { |o| o._inspect(recur_list) }
+    return "#<#{self.class}: {...}>" if self.__inspect_recursive?
+    ary = map {|o| o.inspect }
     "#<#{self.class}: {#{ary.join(", ")}}>"
   end
 
-  def inspect
-    _inspect({})
-  end
   alias to_s inspect
 
   def reset

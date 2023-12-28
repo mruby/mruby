@@ -452,7 +452,7 @@ get_filename_table_size(mrb_state *mrb, const mrb_irep *irep, mrb_sym **fp, uint
     if (find_filename_index(filenames, *lp, file->filename_sym) == -1) {
       /* register filename */
       *lp += 1;
-      *fp = filenames = (mrb_sym *)mrb_realloc(mrb, filenames, sizeof(mrb_sym) * (*lp));
+      *fp = filenames = (mrb_sym*)mrb_realloc(mrb, filenames, sizeof(mrb_sym) * (*lp));
       filenames[*lp - 1] = file->filename_sym;
 
       /* filename */
@@ -557,7 +557,7 @@ write_section_debug(mrb_state *mrb, const mrb_irep *irep, uint8_t *cur, mrb_sym 
     return MRB_DUMP_INVALID_ARGUMENT;
   }
 
-  header = (struct rite_section_debug_header *)bin;
+  header = (struct rite_section_debug_header*)bin;
   cur += sizeof(struct rite_section_debug_header);
   section_size += sizeof(struct rite_section_debug_header);
 
@@ -728,7 +728,7 @@ lv_section_exit:
 static int
 write_rite_binary_header(mrb_state *mrb, size_t binary_size, uint8_t *bin, uint8_t flags)
 {
-  struct rite_binary_header *header = (struct rite_binary_header *)bin;
+  struct rite_binary_header *header = (struct rite_binary_header*)bin;
 
   memcpy(header->binary_ident, RITE_BINARY_IDENT, sizeof(header->binary_ident));
   memcpy(header->major_version, RITE_BINARY_MAJOR_VER, sizeof(header->major_version));
@@ -767,8 +767,8 @@ lv_defined_p(const mrb_irep *irep)
   return FALSE;
 }
 
-static int
-dump_irep(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, uint8_t **bin, size_t *bin_size)
+int
+mrb_dump_irep(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, uint8_t **bin, size_t *bin_size)
 {
   int result = MRB_DUMP_GENERAL_FAILURE;
   size_t malloc_size;
@@ -855,12 +855,6 @@ error_exit:
   return result;
 }
 
-int
-mrb_dump_irep(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, uint8_t **bin, size_t *bin_size)
-{
-  return dump_irep(mrb, irep, flags, bin, bin_size);
-}
-
 #ifndef MRB_NO_STDIO
 
 int
@@ -874,7 +868,7 @@ mrb_dump_irep_binary(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE* 
     return MRB_DUMP_INVALID_ARGUMENT;
   }
 
-  result = dump_irep(mrb, irep, flags, &bin, &bin_size);
+  result = mrb_dump_irep(mrb, irep, flags, &bin, &bin_size);
   if (result == MRB_DUMP_OK) {
     if (fwrite(bin, sizeof(bin[0]), bin_size, fp) != bin_size) {
       result = MRB_DUMP_WRITE_FAULT;
@@ -895,7 +889,7 @@ mrb_dump_irep_cfunc(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *f
   if (fp == NULL || initname == NULL || initname[0] == '\0') {
     return MRB_DUMP_INVALID_ARGUMENT;
   }
-  result = dump_irep(mrb, irep, flags, &bin, &bin_size);
+  result = mrb_dump_irep(mrb, irep, flags, &bin, &bin_size);
   if (result == MRB_DUMP_OK) {
     if (fprintf(fp, "#include <stdint.h>\n") < 0) { /* for uint8_t under at least Darwin */
       mrb_free(mrb, bin);

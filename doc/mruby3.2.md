@@ -32,9 +32,9 @@
 
 ## New bundled gems
 
-- mruby-errno from [https://github.com/iij/mruby-errno.git]
-- mruby-set from [https://github.com/yui-knk/mruby-set.git]
-- mruby-dir from [https://github.com/iij/mruby-dir.git]
+- mruby-errno from <https://github.com/iij/mruby-errno.git>
+- mruby-set from <https://github.com/yui-knk/mruby-set.git>
+- mruby-dir from <https://github.com/iij/mruby-dir.git>
 - mruby-data
 
 # Breaking Changes
@@ -59,22 +59,21 @@ Intentional reliance on previous behavior may cause compatibility problems in yo
 
 Following CVEs are fixed.
 
-- [CVE-2022-0080](https://nvd.nist.gov/vuln/detail/CVE-2022-0080)
-- [CVE-2022-0240](https://nvd.nist.gov/vuln/detail/CVE-2022-0240)
-- [CVE-2022-0326](https://nvd.nist.gov/vuln/detail/CVE-2022-0326)
-- [CVE-2022-0631](https://nvd.nist.gov/vuln/detail/CVE-2022-0631)
-- [CVE-2022-0481](https://nvd.nist.gov/vuln/detail/CVE-2022-0481)
-- [CVE-2022-0525](https://nvd.nist.gov/vuln/detail/CVE-2022-0525)
-- [CVE-2022-0570](https://nvd.nist.gov/vuln/detail/CVE-2022-0570)
-- [CVE-2022-0614](https://nvd.nist.gov/vuln/detail/CVE-2022-0614)
-- [CVE-2022-0623](https://nvd.nist.gov/vuln/detail/CVE-2022-0623)
-- [CVE-2022-0630](https://nvd.nist.gov/vuln/detail/CVE-2022-0630)
-- [CVE-2022-0631](https://nvd.nist.gov/vuln/detail/CVE-2022-0631)
-- [CVE-2022-0632](https://nvd.nist.gov/vuln/detail/CVE-2022-0632)
-- [CVE-2022-0717](https://nvd.nist.gov/vuln/detail/CVE-2022-0717)
-- [CVE-2022-0890](https://nvd.nist.gov/vuln/detail/CVE-2022-0890)
-- [CVE-2022-1106](https://nvd.nist.gov/vuln/detail/CVE-2022-1106)
-- [CVE-2022-1212](https://nvd.nist.gov/vuln/detail/CVE-2022-1212)
-- [CVE-2022-1276](https://nvd.nist.gov/vuln/detail/CVE-2022-1276)
-- [CVE-2022-1286](https://nvd.nist.gov/vuln/detail/CVE-2022-1286)
-- [CVE-2022-1934](https://nvd.nist.gov/vuln/detail/CVE-2022-1934)
+- [CVE-2022-0080](https://www.cve.org/CVERecord?id=CVE-2022-0080)
+- [CVE-2022-0240](https://www.cve.org/CVERecord?id=CVE-2022-0240)
+- [CVE-2022-0326](https://www.cve.org/CVERecord?id=CVE-2022-0326)
+- [CVE-2022-0481](https://www.cve.org/CVERecord?id=CVE-2022-0481)
+- [CVE-2022-0525](https://www.cve.org/CVERecord?id=CVE-2022-0525)
+- [CVE-2022-0570](https://www.cve.org/CVERecord?id=CVE-2022-0570)
+- [CVE-2022-0614](https://www.cve.org/CVERecord?id=CVE-2022-0614)
+- [CVE-2022-0623](https://www.cve.org/CVERecord?id=CVE-2022-0623)
+- [CVE-2022-0630](https://www.cve.org/CVERecord?id=CVE-2022-0630)
+- [CVE-2022-0631](https://www.cve.org/CVERecord?id=CVE-2022-0631)
+- [CVE-2022-0632](https://www.cve.org/CVERecord?id=CVE-2022-0632)
+- [CVE-2022-0717](https://www.cve.org/CVERecord?id=CVE-2022-0717)
+- [CVE-2022-0890](https://www.cve.org/CVERecord?id=CVE-2022-0890)
+- [CVE-2022-1106](https://www.cve.org/CVERecord?id=CVE-2022-1106)
+- [CVE-2022-1212](https://www.cve.org/CVERecord?id=CVE-2022-1212)
+- [CVE-2022-1276](https://www.cve.org/CVERecord?id=CVE-2022-1276)
+- [CVE-2022-1286](https://www.cve.org/CVERecord?id=CVE-2022-1286)
+- [CVE-2022-1934](https://www.cve.org/CVERecord?id=CVE-2022-1934)

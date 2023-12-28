@@ -26,8 +26,8 @@ A framework for managing and maintaining multi-language `pre-commit` hooks.
 You need to first install `pre-commit` and then install the `pre-commit` hooks with `pre-commit install`.
 Now `pre-commit` will run automatically on git commit!
 
-It's usually a good idea to run the hooks against all the files when adding new hooks (usually `pre-commit` will only run on the changed files during git hooks).
-Use `pre-commit run --all-files` to check all files.
+It's usually a good idea to run the hooks against all the files when adding new hooks (usually `pre-commit`
+will only run on the changed files during git hooks). Use `pre-commit run --all-files` to check all files.
 
 To run a single hook use `pre-commit run --all-files <hook_id>`
 
@@ -37,11 +37,15 @@ Sometimes you might need to skip one or more hooks which can be done with the `S
 
 `$ SKIP=yamllint git commit -m "foo"`
 
-For convenience, we have added `pre-commit run --all-files` and `pre-commit autoupdate`
+For convenience, we have added `pre-commit run --all-files`, `pre-commit install` and `pre-commit autoupdate`
 to both the Makefile and the Rakefile. Run them with:
 
 - `make check` or `rake check`
+- `make checkinstall` or `rake checkinstall`
 - `make checkupdate` or `rake checkupdate`
+
+To configure `pre-commit` you can modify the config file [.pre-commit-config.yaml](.pre-commit-config.yaml).
+We use [GitHub Actions](.github/workflows/lint.yml) to run `pre-commit` on every pull request.
 
 ### pre-commit quick links
 
@@ -50,21 +54,73 @@ to both the Makefile and the Rakefile. Run them with:
 - [pre-commit autoupdate](https://pre-commit.com/#pre-commit-autoupdate)
 - [Temporarily disabling hooks](https://pre-commit.com/#temporarily-disabling-hooks)
 
-## Spell Checking
+## Docker
 
-We are running [misspell](https://github.com/client9/misspell) which is mainly written in
-[Golang](https://golang.org/) to check spelling with [GitHub Actions](.github/workflows/lint.yml).
-Correct commonly misspelled English words quickly with `misspell`. You can run `misspell` locally
-against all files with:
+We have both a `Dockerfile` and `docker-compose.yml` files in the repository root.
+You can run these with the command line or use
+[Docker Desktop](https://www.docker.com/products/docker-desktop/).
 
-```bash
-find . -type f | xargs ./misspell -error
+The Docker image is running Debian bullseye with Ruby and Python installed.
+You can build the Docker image with:
+
+`$ docker-compose build test`
+
+So far we just have one service: `test`. Running the default `docker-compose`
+command will create the Docker image, spin up a container and then build and
+run all mruby tests.
+
+The default `docker-compose` command is:
+
+`$ docker-compose -p mruby run test`
+
+You can also use Make or Rake to run the default `docker-compose`
+command from above:
+
+- `make composetest`
+- `rake composetest`
+
+List your Docker images with:
+
+```console
+$ docker images
+REPOSITORY   TAG       IMAGE ID       CREATED          SIZE
+mruby-test   latest    ec60f9536948   29 seconds ago   1.29GB
 ```
 
-Notable `misspell` help options or flags are:
+You can also run any custom `docker-compose` command which will override
+the default. For example to run `pre-commit run --all-files` type:
 
-- `-i` string: ignore the following corrections, comma separated
-- `-w`: Overwrite file with corrections (default is just to display)
+`$ docker-compose -p mruby run test pre-commit run --all-files`
+
+For convenience, you can also run `pre-commit` with:
+
+- `make composecheck`
+- `rake composecheck`
+
+The bonus of running `pre-commit` with `docker-compose` is that you won't need
+to install `pre-commit` and the hooks on your local machine. And that also
+means you won't need to install `brew`, `conda` or `pip`.
+
+Note limitation: currently running `pre-commit` with `docker-compose` we
+skip the `check-executables-have-shebangs` hook.
+
+Two more examples of custom `docker-compose` commands are:
+
+- `$ docker-compose -p mruby run test ls`
+- `$ docker-compose -p mruby run test rake doc:api`
+
+If you want to test using a different `docker-compose` YAML config file you
+can use the `-f` flag:
+
+`$ docker-compose -p mruby -f docker-compose.test.yml run test`
+
+- <https://docs.docker.com/compose/>
+- <https://docs.docker.com/engine/reference/commandline/cli/>
+
+## Spell Checking
+
+We are using `pre-commit` to run [codespell](https://github.com/codespell-project/codespell)
+to check code for common misspellings. We have a small custom dictionary file [codespell.txt](codespell.txt).
 
 ## Coding conventions
 
@@ -120,7 +176,7 @@ unless there's a clear reason, e.g. the latest Ruby has changed behavior from IS
 ### mruby API
 
 - [YARD](https://yardoc.org/) - YARD is a documentation generation tool for the Ruby programming language
-- [yard-mruby](https://rubygems.org/gems/yard-mruby) - Document MRuby sources with YARD
+- [yard-mruby](https://rubygems.org/gems/yard-mruby) - Document mruby sources with YARD
 - [yard-coderay](https://rubygems.org/gems/yard-coderay) - Adds coderay syntax highlighting to YARD docs
 
 ### C API

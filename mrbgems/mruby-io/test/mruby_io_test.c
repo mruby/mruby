@@ -97,7 +97,8 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
     if (tmpdir && strlen(tmpdir) > 0) {
       mrb_str_cat_cstr(mrb, fname, tmpdir);
       if (*(RSTRING_END(fname)-1) != '/') mrb_str_cat_lit(mrb, fname, "/");
-    } else {
+    }
+    else {
       mrb_str_cat_lit(mrb, fname, "/tmp/");
     }
 #endif
@@ -142,7 +143,7 @@ mrb_io_test_io_setup(mrb_state *mrb, mrb_value self)
   sun0.sun_family = AF_UNIX;
   strncpy(sun0.sun_path, fnames[IDX_SOCKET], sizeof(sun0.sun_path)-1);
   sun0.sun_path[sizeof(sun0.sun_path)-1] = 0;
-  if (bind(fds[IDX_SOCKET], (struct sockaddr *)&sun0, sizeof(sun0)) == -1) {
+  if (bind(fds[IDX_SOCKET], (struct sockaddr*)&sun0, sizeof(sun0)) == -1) {
     mrb_raisef(mrb, E_RUNTIME_ERROR, "can't bind AF_UNIX socket to %s: %d",
                sun0.sun_path,
                errno);

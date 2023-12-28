@@ -202,8 +202,6 @@ float_decode_internal(mrb_state *mrb, mrb_float f, mrb_float *rf, int *n)
   *rf = f;
 }
 
-void mrb_check_num_exact(mrb_state *mrb, mrb_float num);
-
 static mrb_value
 rational_new_f(mrb_state *mrb, mrb_float f0)
 {
@@ -487,7 +485,7 @@ rational_cmp(mrb_state *mrb, mrb_value x)
     }
 #endif
   default:
-    x = mrb_funcall_id(mrb, y, MRB_OPSYM(cmp), 1, x);
+    x = mrb_funcall_argv(mrb, y, MRB_OPSYM(cmp), 1, &x);
     if (mrb_integer_p(x)) {
       mrb_int z = mrb_integer(x);
       return mrb_fixnum_value(-z);
@@ -544,7 +542,7 @@ mrb_rational_add(mrb_state *mrb, mrb_value x, mrb_value y)
 #endif
 
   default:
-    return mrb_funcall_id(mrb, y, MRB_OPSYM(add), 1, x);
+    return mrb_funcall_argv(mrb, y, MRB_OPSYM(add), 1, &x);
   }
 }
 
@@ -642,7 +640,7 @@ mrb_rational_mul(mrb_state *mrb, mrb_value x, mrb_value y)
 #endif
 
   default:
-    return mrb_funcall_id(mrb, y, MRB_OPSYM(mul), 1, x);
+    return mrb_funcall_argv(mrb, y, MRB_OPSYM(mul), 1, &x);
   }
 }
 
@@ -770,6 +768,7 @@ void mrb_mruby_rational_gem_init(mrb_state *mrb)
 
   rat = mrb_define_class_id(mrb, MRB_SYM(Rational), mrb_class_get_id(mrb, MRB_SYM(Numeric)));
   MRB_SET_INSTANCE_TT(rat, MRB_TT_RATIONAL);
+  MRB_UNDEF_ALLOCATOR(rat);
   mrb_undef_class_method(mrb, rat, "new");
   mrb_define_class_method(mrb, rat, "_new", rational_s_new, MRB_ARGS_REQ(2));
   mrb_define_method(mrb, rat, "numerator", rational_numerator, MRB_ARGS_NONE());

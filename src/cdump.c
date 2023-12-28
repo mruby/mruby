@@ -267,8 +267,9 @@ simple_debug_info(mrb_irep_debug_info *info)
 //adds filenames in init_syms_code block
 static int
 cdump_debug(mrb_state *mrb, const char *name, int n, mrb_irep_debug_info *info,
-    mrb_value init_syms_code, FILE *fp)
+            mrb_value init_syms_code, FILE *fp)
 {
+  int ai = mrb_gc_arena_save(mrb);
   char buffer[256];
   const char *filename;
   mrb_int file_len;
@@ -281,11 +282,10 @@ cdump_debug(mrb_state *mrb, const char *name, int n, mrb_irep_debug_info *info,
   len = info->files[0]->line_entry_count;
 
   filename = mrb_sym_name_len(mrb, info->files[0]->filename_sym, &file_len);
-  snprintf(buffer, sizeof(buffer), "  %s_debug_file_%d.filename_sym = mrb_intern_lit(mrb,\"",
-      name, n);
+  snprintf(buffer, sizeof(buffer), "  %s_debug_file_%d.filename_sym = mrb_intern_lit(mrb,", name, n);
   mrb_str_cat_cstr(mrb, init_syms_code, buffer);
-  mrb_str_cat_cstr(mrb, init_syms_code, filename);
-  mrb_str_cat_cstr(mrb, init_syms_code, "\");\n");
+  mrb_str_cat_str(mrb, init_syms_code, mrb_str_dump(mrb, mrb_str_new_cstr(mrb, filename)));
+  mrb_str_cat_cstr(mrb, init_syms_code, ");\n");
 
   switch (info->files[0]->line_type) {
   case mrb_debug_line_ary:
@@ -329,6 +329,7 @@ cdump_debug(mrb_state *mrb, const char *name, int n, mrb_irep_debug_info *info,
   fprintf(fp, "static mrb_irep_debug_info %s_debug_%d = {\n", name, n);
   fprintf(fp, "%d, %d, &%s_debug_file_%d_};\n", info->pc_count, info->flen, name, n);
 
+  mrb_gc_arena_restore(mrb, ai);
   return MRB_DUMP_OK;
 }
 
@@ -380,8 +381,7 @@ cdump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp,
   }
   /* dump debug */
   if (flags & MRB_DUMP_DEBUG_INFO) {
-    if(cdump_debug(mrb, name, n, irep->debug_info,
-                init_syms_code, fp) == MRB_DUMP_OK) {
+    if (cdump_debug(mrb, name, n, irep->debug_info, init_syms_code, fp) == MRB_DUMP_OK) {
       debug_available = 1;
     }
   }
@@ -415,7 +415,7 @@ cdump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp,
   else {
     fputs(      "  NULL,\t\t\t\t\t/* lv */\n", fp);
   }
-  if(debug_available) {
+  if (debug_available) {
     fprintf(fp, "  &%s_debug_%d,\n", name, n);
   }
   else {

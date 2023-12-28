@@ -11,9 +11,23 @@ class File < IO
     end
   end
 
+  def atime
+    t = self._atime
+    t && Time.at(t)
+  end
+
+  def ctime
+    t = self._ctime
+    t && Time.at(t)
+  end
+
   def mtime
     t = self._mtime
     t && Time.at(t)
+  end
+
+  def inspect
+    "<#{self.class}:#{@path}>"
   end
 
   def self.join(*names)
@@ -199,8 +213,6 @@ class File < IO
   def self.path(filename)
     if filename.kind_of?(String)
       filename
-    elsif filename.respond_to?(:to_path)
-      filename.to_path
     else
       raise TypeError, "no implicit conversion of #{filename.class} into String"
     end

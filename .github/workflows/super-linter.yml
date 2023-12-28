@@ -1,3 +1,4 @@
+# https://github.com/super-linter/super-linter
 name: Super-Linter
 
 on: [pull_request]
@@ -13,13 +14,13 @@ jobs:
     name: Lint Code Base
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v4
         with:
           # Full git history is needed to get a proper list of changed files within `super-linter`
           fetch-depth: 0
       - name: Lint Code Base
-        uses: github/super-linter/slim@v4.10.1
+        uses: super-linter/super-linter/slim@v5.7.2
         env:
           ERROR_ON_MISSING_EXEC_BIT: true
           VALIDATE_BASH: true

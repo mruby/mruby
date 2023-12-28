@@ -102,8 +102,8 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
     uint8_t *p = (uint8_t*)mrb_malloc_simple(mrb, sizeof(uint8_t)*sz/4+len*sz); \
     if (!p) { return 1; }                                               \
     h->size = 0;                                                        \
-    h->keys = (khkey_t *)p;                                             \
-    h->vals = kh_is_map ? (khval_t *)(p+sizeof(khkey_t)*sz) : NULL;     \
+    h->keys = (khkey_t*)p;                                              \
+    h->vals = kh_is_map ? (khval_t*)(p+sizeof(khkey_t)*sz) : NULL;      \
     h->ed_flags = p+len*sz;                                             \
     kh_fill_flags(h->ed_flags, 0xaa, sz/4);                             \
     return 0;                                                           \
@@ -171,7 +171,7 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
       hh.n_buckets = new_n_buckets;                                     \
       kh_alloc_##name(mrb, &hh);                                        \
       /* relocate */                                                    \
-      for (i=0 ; i<old_n_buckets ; i++) {                               \
+      for (i=0; i<old_n_buckets; i++) {                                 \
         if (!__ac_iseither(old_ed_flags, i)) {                          \
           khint_t k = kh_put_##name(mrb, &hh, old_keys[i], NULL);       \
           if (kh_is_map) kh_value(&hh,k) = old_vals[i];                 \
@@ -271,7 +271,7 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
 static inline khint_t __ac_X31_hash_string(const char *s)
 {
     khint_t h = *s;
-    if (h) for (++s ; *s; ++s) h = (h << 5) - h + *s;
+    if (h) for (++s; *s; ++s) h = (h << 5) - h + *s;
     return h;
 }
 #define kh_str_hash_func(mrb,key) __ac_X31_hash_string(key)

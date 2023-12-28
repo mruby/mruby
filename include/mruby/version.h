@@ -117,7 +117,7 @@ MRB_BEGIN_DECL
 #define MRUBY_BIRTH_YEAR 2010
 
 /*
- * MRuby's authors.
+ * mruby's authors.
  */
 #define MRUBY_AUTHOR "mruby developers"
 

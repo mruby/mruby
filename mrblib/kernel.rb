@@ -39,11 +39,6 @@ module Kernel
     !(self =~ y)
   end
 
-  # internal method for inspect
-  def _inspect(_recur_list)
-    self.inspect
-  end
-
   def to_enum(*a)
     raise NotImplementedError.new("fiber required for enumerator")
   end

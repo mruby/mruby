@@ -198,8 +198,8 @@ cleanup(mrb_state *mrb, struct mrbc_args *args)
 static int
 partial_hook(struct mrb_parser_state *p)
 {
-  mrbc_context *c = p->cxt;
-  struct mrbc_args *args = (struct mrbc_args *)c->partial_data;
+  mrb_ccontext *c = p->cxt;
+  struct mrbc_args *args = (struct mrbc_args*)c->partial_data;
   const char *fn;
 
   if (p->f) fclose(p->f);
@@ -220,13 +220,13 @@ partial_hook(struct mrb_parser_state *p)
 static mrb_value
 load_file(mrb_state *mrb, struct mrbc_args *args)
 {
-  mrbc_context *c;
+  mrb_ccontext *c;
   mrb_value result;
   char *input = args->argv[args->idx];
   FILE *infile;
   mrb_bool need_close = FALSE;
 
-  c = mrbc_context_new(mrb);
+  c = mrb_ccontext_new(mrb);
   if (args->verbose)
     c->dump_result = TRUE;
   c->no_exec = TRUE;
@@ -242,16 +242,16 @@ load_file(mrb_state *mrb, struct mrbc_args *args)
       return mrb_nil_value();
     }
   }
-  mrbc_filename(mrb, c, input);
+  mrb_ccontext_filename(mrb, c, input);
   args->idx++;
   if (args->idx < args->argc) {
     need_close = FALSE;
-    mrbc_partial_hook(mrb, c, partial_hook, (void*)args);
+    mrb_ccontext_partial_hook(mrb, c, partial_hook, (void*)args);
   }
 
   result = mrb_load_file_cxt(mrb, infile, c);
   if (need_close) fclose(infile);
-  mrbc_context_free(mrb, c);
+  mrb_ccontext_free(mrb, c);
   if (mrb_undef_p(result)) {
     return mrb_nil_value();
   }
@@ -366,11 +366,6 @@ mrb_init_mrblib(mrb_state *mrb)
 #ifndef MRB_NO_GEMS
 void
 mrb_init_mrbgems(mrb_state *mrb)
-{
-}
-
-void
-mrb_final_mrbgems(mrb_state *mrb)
 {
 }
 #endif

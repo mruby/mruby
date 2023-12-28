@@ -22,6 +22,27 @@ class String
   def remove_leading_parents
     Pathname.new(".#{Pathname.new("/#{self}").cleanpath}").cleanpath.to_s
   end
+
+  def replace_prefix_by(dirmap)
+    [self].replace_prefix_by(dirmap)[0]
+  end
+end
+
+class Array
+  # Replace the prefix of each string that is a file path that contains in its own array.
+  #
+  # dirmap is a hash whose elements are `{ "path/to/old-prefix" => "path/to/new-prefix", ... }`.
+  # If it does not match any element of dirmap, the file path is not replaced.
+  def replace_prefix_by(dirmap)
+    dirmap = dirmap.map { |older, newer| [File.join(older, "/"), File.join(newer, "/")] }
+    dirmap.sort!
+    dirmap.reverse!
+    self.flatten.map do |e|
+      map = dirmap.find { |older, newer| e.start_with?(older) }
+      e = e.sub(map[0], map[1]) if map
+      e
+    end
+  end
 end
 
 def install_D(src, dst)

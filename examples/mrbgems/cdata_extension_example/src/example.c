@@ -35,7 +35,7 @@ mrb_foo_get_bar(mrb_state *mrb, mrb_value self)
   struct Foo *f;
 
   f = (struct Foo*)mrb_data_get_ptr(mrb, self, &mrb_foo_type);
-  if(f == NULL) {
+  if (f == NULL) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "uninitialized data");
   }
 
@@ -49,7 +49,7 @@ mrb_foo_set_bar(mrb_state *mrb, mrb_value self)
   int v;
 
   f = (struct Foo*)mrb_data_get_ptr(mrb, self, &mrb_foo_type);
-  if(f == NULL) {
+  if (f == NULL) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "uninitialized data");
   }
 
