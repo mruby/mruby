@@ -1,0 +1,46 @@
+name: Release Builds
+
+on:
+  push:
+    tags:
+      - "*.*.*"
+
+permissions: read-all
+
+jobs:
+  source:
+    name: Source Code Releasing
+    if: ${{ github.repository == 'mruby/mruby' }}
+    permissions:
+      contents: write
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+    steps:
+      - name: "Checkout ${{ github.ref_name }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v4
+      - name: Builds
+        id: builds
+        run: |
+          tagname="$GITHUB_REF_NAME"
+          packagename="mruby-$tagname"
+          destdir=packages
+
+          mkdir -p "$destdir"
+          git archive --format zip --prefix "$packagename/" -o "$destdir/$packagename.zip" "$GITHUB_REF"
+          git archive --format tar.gz --prefix "$packagename/" -o "$destdir/$packagename.tar.gz" "$GITHUB_REF"
+          gunzip -c "$destdir/$packagename.tar.gz" | xz > "$destdir/$packagename.tar.xz"
+
+          (
+            cd "$destdir"
+            sha256sum * > .sha256
+            mv .sha256 "$packagename.sha256"
+          )
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          # draft: true
+          prerelease: ${{ contains(github.ref_name, '-rc') }}
+          body_path: NEWS
+          files: packages/*
