@@ -1727,12 +1727,12 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
         count--;
       }
     }
-    if (single) {
-      if (RARRAY_LEN(result) > 0) {
-        return RARRAY_PTR(result)[0];
-      }
-      return mrb_nil_value();
+  }
+  if (single) {
+    if (RARRAY_LEN(result) > 0) {
+      return RARRAY_PTR(result)[0];
     }
+    return mrb_nil_value();
   }
   return result;
 }
