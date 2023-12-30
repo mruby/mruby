@@ -731,7 +731,7 @@ unpack_str(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, 
   CHECK_UNPACK_LEN(mrb, slen, ary);
 
   mrb_value dst;
-  const char *cp, *sptr;
+  const char *sptr;
   int copylen;
 
   sptr = (const char*)src;
@@ -741,6 +741,8 @@ unpack_str(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, 
   copylen = slen;
 
   if (slen >= 0 && flags & PACK_FLAG_Z) {  /* "Z" */
+    const char *cp;
+
     if ((cp = (const char*)memchr(sptr, '\0', slen)) != NULL) {
       copylen = (int)(cp - sptr);
       if (count == -1) {
