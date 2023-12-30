@@ -1669,18 +1669,23 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
     switch (dir) {
     case PACK_DIR_HEX:
       srcidx += unpack_hex(mrb, sptr, srclen - srcidx, result, count, flags);
+      if (single) goto single_return;
       continue;
     case PACK_DIR_BSTR:
       srcidx += unpack_bstr(mrb, sptr, srclen - srcidx, result, count, flags);
+      if (single) goto single_return;
       continue;
     case PACK_DIR_STR:
       srcidx += unpack_str(mrb, sptr, srclen - srcidx, result, count, flags);
+      if (single) goto single_return;
       continue;
     case PACK_DIR_BASE64:
       srcidx += unpack_base64(mrb, sptr, srclen - srcidx, result);
+      if (single) goto single_return;
       continue;
     case PACK_DIR_QENC:
       srcidx += unpack_qenc(mrb, sptr, srclen - srcidx, result);
+      if (single) goto single_return;
       continue;
     default:
       break;
@@ -1731,6 +1736,7 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
     }
   }
   if (single) {
+  single_return:
     if (RARRAY_LEN(result) > 0) {
       return RARRAY_PTR(result)[0];
     }
