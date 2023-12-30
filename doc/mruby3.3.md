@@ -1,6 +1,3 @@
-NEWS
-----
-
 # User visible changes in `mruby3.3` from `mruby3.2`
 
 # The language
@@ -44,7 +41,7 @@ NEWS
 # Bugs Fixed
 
 - [#5712](https://github.com/mruby/mruby/issues/5712) No "make install"
-- [#5724](https://github.com/mruby/mruby/issues/5724) Rational#** is missing
+- [#5724](https://github.com/mruby/mruby/issues/5724) Rational#\*\* is missing
 - [#5725](https://github.com/mruby/mruby/issues/5725) weird const_missing exceptions in mrblib code
 - [#5789](https://github.com/mruby/mruby/issues/5789) No memory release of backtrace information due to stack error
 - [#5943](https://github.com/mruby/mruby/issues/5943) TCPSocket#write is failed
