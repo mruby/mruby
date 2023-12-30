@@ -293,23 +293,22 @@ u64tostr(char *buf, size_t len, uint64_t n)
 #ifdef MRB_NO_STDIO
   mrb_assert(len > 0);
 
+  if (n < 10) {
+    buf[0] = '0' + n;
+    buf[1] = '\0';
+    return;
+  }
+
   char *bufend = buf + len;
   char *p = bufend - 1;
 
   *p-- = '\0';
   len--;
 
-  if (n > 0) {
-    for (; len > 0 && n > 0; len--, n /= 10) {
-      *p-- = '0' + (n % 10);
-    }
-    p++;
+  for (; len > 0 && n > 0; len--, n /= 10) {
+    *p-- = '0' + (n % 10);
   }
-  else if (len > 0) {
-    *p = '0';
-    len--;
-  }
-
+  p++;
   memmove(buf, p, bufend - p);
 #else
   snprintf(buf, len, "%" PRIu64, n);
