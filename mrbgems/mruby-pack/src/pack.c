@@ -291,12 +291,10 @@ static void
 u64tostr(char *buf, size_t len, uint64_t n)
 {
 #ifdef MRB_NO_STDIO
+  mrb_assert(len > 0);
+
   char *bufend = buf + len;
   char *p = bufend - 1;
-
-  if (len < 1) {
-    return;
-  }
 
   *p-- = '\0';
   len--;
@@ -323,9 +321,7 @@ static void
 i64tostr(char *buf, size_t len, int64_t n)
 {
 #ifdef MRB_NO_STDIO
-  if (len < 1) {
-    return;
-  }
+  mrb_assert(len > 0);
 
   if (n < 0) {
     *buf++ = '-';
