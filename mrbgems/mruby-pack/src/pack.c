@@ -766,7 +766,6 @@ unpack_str(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, 
 static int
 pack_hex(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, unsigned int flags)
 {
-  int a, b;
   unsigned int ashift, bshift;
   long slen;
   char *dptr, *dptr0, *sptr;
@@ -795,7 +794,8 @@ pack_hex(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, 
 
   dptr0 = dptr;
   for (; count > 0; count -= 2) {
-    a = b = 0;
+    int a = 0, b = 0;
+
     if (slen > 0) {
       a = hex2int(*sptr++);
       if (a < 0) break;
