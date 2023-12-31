@@ -2340,16 +2340,6 @@ RETRY_TRY_BLOCK:
 
       NORMAL_RETURN:
         ci = mrb->c->ci;
-
-        if (ci == mrb->c->cibase) {
-          struct mrb_context *c;
-          c = mrb->c;
-
-          if (c->prev && !c->vmexec && c->prev->ci == c->prev->cibase) {
-            RAISE_LIT(mrb, E_FIBER_ERROR, "double resume");
-          }
-        }
-
         v = regs[a];
         mrb_gc_protect(mrb, v);
         CHECKPOINT_RESTORE(RBREAK_TAG_BREAK) {
