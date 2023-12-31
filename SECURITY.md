@@ -11,7 +11,7 @@ We consider the following issues as vulnerabilities:
 - Remote code execution
 - Crash caused by a valid Ruby script
 
-We *don't* consider the following issues as vulnerabilities:
+We _don't_ consider the following issues as vulnerabilities:
 
 - Runtime C undefined behavior (including integer overflow)
 - Crash caused by misused API

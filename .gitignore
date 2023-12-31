@@ -31,5 +31,6 @@ compile_commands.json
 compile_flags.txt
 cscope.files
 cscope.out
+node_modules
 tags
 !Gemfile.lock

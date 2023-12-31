@@ -248,7 +248,7 @@ Version requirement supports following operators:
 - '<=': is equal or lesser
 - '~>': is equal or greater and is lesser than the next major version
   - example 1: '~> 2.2.2' means '>= 2.2.2' and '< 2.3.0'
-  - example 2: '~> 2.2'   means '>= 2.2.0' and '< 3.0.0'
+  - example 2: '~> 2.2' means '>= 2.2.0' and '< 3.0.0'
 
 When more than one version requirements is passed, the dependency must satisfy all of it.
 
@@ -395,8 +395,8 @@ override existing classes or add new ones in this way. Put all Ruby files
 into the `mrblib` directory and all C files into the `src` directory.
 
 mruby codes under `mrblib` directory would be executed after gem init C
-function is called. Make sure *mruby script* depends on *C code* and
-*C code* doesn't depend on *mruby script*.
+function is called. Make sure _mruby script_ depends on _C code_ and
+_C code_ doesn't depend on _mruby script_.
 
 ### Pre-Conditions
 
