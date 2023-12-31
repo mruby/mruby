@@ -15,7 +15,7 @@ Some values (called immediate values, e.g. integers, booleans, symbols, etc.) ar
 The Word boxing packing bit patterns are like following:
 
 | Types  | Bit Pattern                           |
-|--------|---------------------------------------|
+| ------ | ------------------------------------- |
 | object | `xxxxxxxx xxxxxxxx xxxxxxxx xxxxx000` |
 | fixnum | `xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxx1` |
 | nil    | `00000000 00000000 00000000 00000000` |
@@ -34,7 +34,7 @@ NaN boxing packs the Ruby data in a floating-point numbers, which represent NaN 
 The NaN boxing packing bit patterns are like following:
 
 | Types  | Bit Pattern                                                               |
-|--------|---------------------------------------------------------------------------|
+| ------ | ------------------------------------------------------------------------- |
 | float  | `SEEEEEEE EEEEFFFF FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF` |
 | +/-inf | `S1111111 11110000 00000000 00000000 00000000 00000000 00000000 00000000` |
 | nan    | `01111111 11111000 00000000 00000000 00000000 00000000 00000000 00000000` |

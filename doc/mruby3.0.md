@@ -42,10 +42,10 @@ We have ported some new syntax from CRuby.
 ## Renamed for consistency
 
 Some configuration macro names are changed for consistency (use `MRB_USE_XXX`
- or `MRB_NO_XXX`).
+or `MRB_NO_XXX`).
 
-|             mruby2             |          mruby3           |
-|--------------------------------|---------------------------|
+| mruby2                         | mruby3                    |
+| ------------------------------ | ------------------------- |
 | `MRB_ENABLE_ALL_SYMBOLS`       | `MRB_USE_ALL_SYMBOLS`     |
 | `MRB_ENABLE_CXX_ABI`           | `MRB_USE_CXX_ABI`         |
 | `MRB_ENABLE_CXX_EXCEPTION`     | `MRB_USE_CXX_EXCEPTION`   |
@@ -149,7 +149,8 @@ No more operand extension
 
 ## Changed Instructions
 
-Jump addresses used to be specified by absolute offset from the start of `iseq`. Now they are relative offset from the address of the next instruction.
+Jump addresses used to be specified by absolute offset from the start of `iseq`. Now they are relative offset from the
+address of the next instruction.
 
 ## `Random` now use `xoshiro128++`.
 

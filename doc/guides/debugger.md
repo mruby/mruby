@@ -62,7 +62,7 @@ $ mrdb sample.rb
 You can execute the shell commands listed below:
 
 |     command      | description                                                               |
-|:----------------:|:--------------------------------------------------------------------------|
+| :--------------: | :------------------------------------------------------------------------ |
 |       run        | execute programs                                                          |
 |       step       | execute stepping                                                          |
 |     continue     | execute continuing program                                                |
@@ -83,7 +83,7 @@ You can debug the mruby binary files.
 #### 2.2.2.1 Debugging the binary files
 
 - notice
-To debug mruby binary files, you need to compile mruby files with option `-g`.
+  To debug mruby binary files, you need to compile mruby files with option `-g`.
 
 ```bash
 $ mrbc -g sample.rb

@@ -51,8 +51,8 @@ for example:
 To retrieve compiler options used to build `mruby`, you can use `mruby-config`
 command with following options:
 
-- `--cc`                    compiler name
-- `--cflags`                options passed to compiler
+- `--cc` compiler name
+- `--cflags` options passed to compiler
 
 ```console
 $ mruby-config --cflags
@@ -66,10 +66,10 @@ compatible to mruby configuration.
 
 To retrieve linker options, you can use `mruby-config` with following options:
 
-- `--ld`                    linker name
-- `--ldflags`               options passed to linker
-- `--ldflags-before-libs`   options passed to linker before linked libraries
-- `--libs`                  linked libraries
+- `--ld` linker name
+- `--ldflags` options passed to linker
+- `--ldflags-before-libs` options passed to linker before linked libraries
+- `--libs` linked libraries
 
 ```console
 $ mruby-config --ldflags

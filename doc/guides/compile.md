@@ -80,7 +80,7 @@ conf.toolchain :clang
 #### Visual Studio 2010, 2012 and 2013
 
 Toolchain configuration for Visual Studio on Windows. If you use the
-[Visual Studio Command Prompt](https://msdn.microsoft.com/en-us/library/ms229859\(v=vs.110\).aspx),
+[Visual Studio Command Prompt](<https://msdn.microsoft.com/en-us/library/ms229859(v=vs.110).aspx>),
 you normally do not have to specify this manually, since it gets automatically detected by our build process.
 
 ```ruby
@@ -460,7 +460,7 @@ compile for `i386` a directory called `i386` is created under the
 build directory.
 
 The cross compilation workflow starts in the same way as the normal
-compilation by compiling all *native* libraries and binaries, except
+compilation by compiling all _native_ libraries and binaries, except
 for we don't have `host/mrbc` directory (`host` directory itself works
 as placeholder for `mrbc`). Afterwards the cross compilation process
 proceeds like this:

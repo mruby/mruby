@@ -25,7 +25,7 @@ MRuby::Build.new do |conf|
 end
 ```
 
-***NOTE***
+**_NOTE_**
 
 - Use common definitions (`conf.defines`) instead of per-compiler definitions (e.g., `conf.cc.defines`) unless there is a special reason not to.
 - It is now deprecated to edit the `include/mruby/mrbconf.h` file or give it directly as a compiler flag, as was the case before.
@@ -123,7 +123,7 @@ end
 
 - Defines value is `1024`.
 - Specifies number of `RBasic` per each heap page.
-- To calculate the number of bytes per heap page, it is "(size of management data per heap page) + (size per object) * `MRB_HEAP_PAGE_SIZE`".
+- To calculate the number of bytes per heap page, it is "(size of management data per heap page) + (size per object) \* `MRB_HEAP_PAGE_SIZE`".
   In mruby 3.1.0, the "size of management data per heap page" is 6 words, also "size per object" is 6 words.
   For a 32-bit CPU, `(6 * 4) + (6 * 4) * MRB_HEAP_PAGE_SIZE` gives the bytes of size per heap page.
   Conversely, for example, to keep the size per heap page to 4 Ki bytes,
@@ -135,7 +135,7 @@ end
 
 - Default value is `4`.
 - If you're allocating data types that requires alignment more than default value define the
-largest value of required alignment.
+  largest value of required alignment.
 
 `POOL_PAGE_SIZE`
 
@@ -149,7 +149,7 @@ largest value of required alignment.
 
 - If defined enables fixed size `mrb_state` atexit stack.
 - Raises `RuntimeError` when `mrb_state_atexit` call count to same `mrb_state` exceeds
-`MRB_FIXED_STATE_ATEXIT_STACK_SIZE`'s value.
+  `MRB_FIXED_STATE_ATEXIT_STACK_SIZE`'s value.
 
 `MRB_FIXED_STATE_ATEXIT_STACK_SIZE`
 
