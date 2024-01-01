@@ -24,14 +24,14 @@ hash_values_at(mrb_state *mrb, mrb_value hash)
 {
   const mrb_value *argv;
   mrb_value result;
-  mrb_int argc, i;
+  mrb_int argc;
   int ai;
 
   mrb_get_args(mrb, "*", &argv, &argc);
   result = mrb_ary_new_capa(mrb, argc);
   if (argc == 0) return result;
   ai = mrb_gc_arena_save(mrb);
-  for (i = 0; i < argc; i++) {
+  for (mrb_int i = 0; i < argc; i++) {
     mrb_ary_push(mrb, result, mrb_hash_get(mrb, hash, argv[i]));
     mrb_gc_arena_restore(mrb, ai);
   }
@@ -53,12 +53,12 @@ hash_slice(mrb_state *mrb, mrb_value hash)
 {
   const mrb_value *argv;
   mrb_value result;
-  mrb_int argc, i;
+  mrb_int argc;
 
   mrb_get_args(mrb, "*", &argv, &argc);
   result = mrb_hash_new_capa(mrb, argc);
   if (argc == 0) return result; /* empty hash */
-  for (i = 0; i < argc; i++) {
+  for (mrb_int i = 0; i < argc; i++) {
     mrb_value key = argv[i];
     mrb_value val;
 
@@ -85,11 +85,11 @@ hash_except(mrb_state *mrb, mrb_value hash)
 {
   const mrb_value *argv;
   mrb_value result;
-  mrb_int argc, i;
+  mrb_int argc;
 
   mrb_get_args(mrb, "*", &argv, &argc);
   result = mrb_hash_dup(mrb, hash);
-  for (i = 0; i < argc; i++) {
+  for (mrb_int i = 0; i < argc; i++) {
     mrb_hash_delete_key(mrb, result, argv[i]);
   }
   return result;
