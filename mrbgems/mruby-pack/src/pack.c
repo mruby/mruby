@@ -291,27 +291,24 @@ static void
 u64tostr(char *buf, size_t len, uint64_t n)
 {
 #ifdef MRB_NO_STDIO
-  char *bufend = buf + len;
-  char *p = bufend - 1;
+  mrb_assert(len > 0);
 
-  if (len < 1) {
+  if (n < 10) {
+    buf[0] = '0' + n;
+    buf[1] = '\0';
     return;
   }
+
+  char *bufend = buf + len;
+  char *p = bufend - 1;
 
   *p-- = '\0';
   len--;
 
-  if (n > 0) {
-    for (; len > 0 && n > 0; len--, n /= 10) {
-      *p-- = '0' + (n % 10);
-    }
-    p++;
+  for (; len > 0 && n > 0; len--, n /= 10) {
+    *p-- = '0' + (n % 10);
   }
-  else if (len > 0) {
-    *p = '0';
-    len--;
-  }
-
+  p++;
   memmove(buf, p, bufend - p);
 #else
   snprintf(buf, len, "%" PRIu64, n);
@@ -323,9 +320,7 @@ static void
 i64tostr(char *buf, size_t len, int64_t n)
 {
 #ifdef MRB_NO_STDIO
-  if (len < 1) {
-    return;
-  }
+  mrb_assert(len > 0);
 
   if (n < 0) {
     *buf++ = '-';
@@ -731,7 +726,7 @@ unpack_str(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, 
   CHECK_UNPACK_LEN(mrb, slen, ary);
 
   mrb_value dst;
-  const char *cp, *sptr;
+  const char *sptr;
   int copylen;
 
   sptr = (const char*)src;
@@ -741,6 +736,8 @@ unpack_str(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, 
   copylen = slen;
 
   if (slen >= 0 && flags & PACK_FLAG_Z) {  /* "Z" */
+    const char *cp;
+
     if ((cp = (const char*)memchr(sptr, '\0', slen)) != NULL) {
       copylen = (int)(cp - sptr);
       if (count == -1) {
@@ -764,7 +761,6 @@ unpack_str(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, 
 static int
 pack_hex(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, unsigned int flags)
 {
-  int a, b;
   unsigned int ashift, bshift;
   long slen;
   char *dptr, *dptr0, *sptr;
@@ -793,7 +789,8 @@ pack_hex(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, 
 
   dptr0 = dptr;
   for (; count > 0; count -= 2) {
-    a = b = 0;
+    int a = 0, b = 0;
+
     if (slen > 0) {
       a = hex2int(*sptr++);
       if (a < 0) break;
@@ -1667,18 +1664,23 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
     switch (dir) {
     case PACK_DIR_HEX:
       srcidx += unpack_hex(mrb, sptr, srclen - srcidx, result, count, flags);
+      if (single) goto single_return;
       continue;
     case PACK_DIR_BSTR:
       srcidx += unpack_bstr(mrb, sptr, srclen - srcidx, result, count, flags);
+      if (single) goto single_return;
       continue;
     case PACK_DIR_STR:
       srcidx += unpack_str(mrb, sptr, srclen - srcidx, result, count, flags);
+      if (single) goto single_return;
       continue;
     case PACK_DIR_BASE64:
       srcidx += unpack_base64(mrb, sptr, srclen - srcidx, result);
+      if (single) goto single_return;
       continue;
     case PACK_DIR_QENC:
       srcidx += unpack_qenc(mrb, sptr, srclen - srcidx, result);
+      if (single) goto single_return;
       continue;
     default:
       break;
@@ -1729,6 +1731,7 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
     }
   }
   if (single) {
+  single_return:
     if (RARRAY_LEN(result) > 0) {
       return RARRAY_PTR(result)[0];
     }

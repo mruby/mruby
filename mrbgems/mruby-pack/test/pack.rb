@@ -156,3 +156,18 @@ assert 'pack/unpack "U"' do
   assert_raise(RangeError) { [-1].pack("U") }
   assert_raise(RangeError) { [0x40000000].pack("U") }
 end
+
+assert 'unpack1' do
+  d = 1234
+  assert_equal(d, [d].pack("i").unpack1("i"))
+  d = "foobar"
+  assert_equal(d, [d].pack("a*").unpack1("a*"))
+  assert_equal(d, [d].pack("A*").unpack1("A*"))
+  assert_equal(d, [d].pack("Z*").unpack1("Z*"))
+  assert_equal(d, [d].pack("m").unpack1("m"))
+  assert_equal(d, [d].pack("M").unpack1("M"))
+  d = "10010101"
+  assert_equal(d, [d].pack("b*").unpack1("b*"))
+  d = "f00b00"
+  assert_equal(d, [d].pack("h*").unpack1("h*"))
+end
