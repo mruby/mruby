@@ -34,7 +34,7 @@ MRuby::CrossBuild.new("dreamcast") do |conf|
     cc.defines << %w(_arch_sub_pristine)
   end
 
-  # C++ compiler  
+  # C++ compiler
   conf.cxx do |cxx|
     cxx.command = conf.cc.command.dup
     cxx.include_paths = conf.cc.include_paths.dup

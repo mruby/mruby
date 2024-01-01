@@ -17,7 +17,7 @@ Add the line below to your build configuration.
 - <https://doc.ruby-lang.org/ja/1.9.3/class/IO.html>
 
 | method                     | mruby-io | memo     |
-|----------------------------|----------|----------|
+| -------------------------- | -------- | -------- |
 | IO.binread                 |          |          |
 | IO.binwrite                |          |          |
 | IO.copy_stream             |          |          |
@@ -102,7 +102,7 @@ Add the line below to your build configuration.
 - <https://doc.ruby-lang.org/ja/1.9.3/class/File.html>
 
 | method                      | mruby-io | memo     |
-|-----------------------------|----------|----------|
+| --------------------------- | -------- | -------- |
 | File.absolute_path          |          |          |
 | File.atime                  |          |          |
 | File.basename               | o        |          |
