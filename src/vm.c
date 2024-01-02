@@ -2399,7 +2399,8 @@ RETRY_TRY_BLOCK:
           mrb->c = c->prev ? c->prev : mrb->root_c;
           c->prev = NULL;
           mrb->c->status = MRB_FIBER_RUNNING;
-          if (c->vmexec) {
+          if (c->vmexec ||
+              (mrb->c == mrb->root_c && mrb->c->ci == mrb->c->cibase) /* case using Fiber#transfer in mrb_fiber_resume() */) {
             mrb_gc_arena_restore(mrb, ai);
             c->vmexec = FALSE;
             mrb->jmp = prev_jmp;
