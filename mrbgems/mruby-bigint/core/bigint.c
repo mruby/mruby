@@ -1112,7 +1112,6 @@ mrb_bint_new_float(mrb_state *mrb, mrb_float x)
   mrb_float bi = 1.0 / b;
   size_t rn;
   mp_limb *rp;
-  mp_limb f;
 
   for (rn = 1; x >= b; rn++)
     x *= bi;
@@ -1120,7 +1119,7 @@ mrb_bint_new_float(mrb_state *mrb, mrb_float x)
   mpz_realloc(mrb, r, rn);
   rp = r->p;
   for (size_t i=rn-1;;i--) {
-    f = LOW((mp_limb)x);
+    mp_limb f = LOW((mp_limb)x);
     x -= f;
     mrb_assert(x < 1.0);
     rp[i] = f;
