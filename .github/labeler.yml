@@ -7,11 +7,17 @@ build:
   - any:
       - changed-files:
           - any-glob-to-any-file:
+              - Dockerfile
               - Makefile
               - Rakefile
+              - appveyor.yml
+              - build_config.rb
               - build_config/**/*
+              - docker-compose.yml
               - lib/**/*
+              - minirake
               - tasks/**/*
+              - .travis.yml
 core:
   - any:
       - changed-files:
