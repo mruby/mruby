@@ -43,12 +43,12 @@ fiber_init_fiber(mrb_state *mrb, struct RFiber *f, const struct RProc *p)
   c->stend = c->stbase + slen;
 
   {
-    mrb_value *p = c->stbase;
-    mrb_value *pend = c->stend;
+    mrb_value *s = c->stbase;
+    mrb_value *send = c->stend;
 
-    while (p < pend) {
-      SET_NIL_VALUE(*p);
-      p++;
+    while (s < send) {
+      SET_NIL_VALUE(*s);
+      s++;
     }
   }
 
