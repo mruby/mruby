@@ -176,7 +176,6 @@ static mrb_value
 mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass *klass)
 {
   mrb_value ary;
-  struct RClass *oldklass;
   khash_t(st) *set = kh_init(st, mrb);
 
   if (!recur) {
@@ -187,8 +186,8 @@ mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass *kl
   }
   else {
     khash_t(st) *undef = kh_init(st, mrb);
+    struct RClass *oldklass = NULL;
 
-    oldklass = NULL;
     while (klass && (klass != oldklass)) {
       method_entry_loop(mrb, klass, set, undef);
       oldklass = klass;
