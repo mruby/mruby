@@ -522,8 +522,6 @@ io_s_popen(mrb_state *mrb, mrb_value klass)
   }
 
   if (!doexec) {
-    // XXX
-    fflush(stdin);
     fflush(stdout);
     fflush(stderr);
   }
