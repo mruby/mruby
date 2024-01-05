@@ -1220,26 +1220,22 @@ time2timeval(mrb_state *mrb, mrb_value time)
 static mrb_value
 io_s_pipe(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value r = mrb_nil_value();
-  mrb_value w = mrb_nil_value();
-  struct mrb_io *fptr_r;
-  struct mrb_io *fptr_w;
   int pipes[2];
 
   if (io_pipe(mrb, pipes) == -1) {
     mrb_sys_fail(mrb, "pipe");
   }
 
-  r = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
-  fptr_r = io_alloc(mrb);
+  mrb_value r = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
+  struct mrb_io *fptr_r = io_alloc(mrb);
   fptr_r->fd = pipes[0];
   fptr_r->readable = 1;
   DATA_TYPE(r) = &mrb_io_type;
   DATA_PTR(r)  = fptr_r;
   io_init_buf(mrb, fptr_r);
 
-  w = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
-  fptr_w = io_alloc(mrb);
+  mrb_value w = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
+  struct mrb_io *fptr_w = io_alloc(mrb);
   fptr_w->fd = pipes[1];
   fptr_w->writable = 1;
   fptr_w->sync = 1;
