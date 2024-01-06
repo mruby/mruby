@@ -215,7 +215,7 @@ ary_expand_capa(mrb_state *mrb, struct RArray *a, mrb_int len)
       capa = len;
     }
   }
-  if (capa < len || capa > ARY_MAX_SIZE) {
+  if (capa > ARY_MAX_SIZE) {
     ary_too_big(mrb);
   }
 
