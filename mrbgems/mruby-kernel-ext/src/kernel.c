@@ -59,7 +59,7 @@ mrb_f_caller(mrb_state *mrb, mrb_value self)
   if (n < 0) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative size (%d)", n);
   }
-  if (n == 0 || bt_len <= lev) {
+  if (n == 0) {
     return mrb_ary_new(mrb);
   }
   if (bt_len <= n + lev) n = bt_len - lev - 1;
