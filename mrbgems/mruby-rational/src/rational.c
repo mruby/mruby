@@ -702,9 +702,10 @@ rational_div(mrb_state *mrb, mrb_value x)
 static mrb_value
 rational_pow(mrb_state *mrb, mrb_value x)
 {
+#ifndef MRB_NO_FLOAT
   mrb_value y = mrb_get_arg1(mrb);
   struct mrb_rational *p1 = rational_ptr(mrb, x);
-#ifndef MRB_NO_FLOAT
+
   double d1, d2;
 
   switch (mrb_type(y)) {
