@@ -105,7 +105,7 @@ double erfc(double x);
 double
 erf(double x)
 {
-  static const double two_sqrtpi =  1.128379167095512574;
+  static const double two_sqrtpi = 1.128379167095512574;
   double sum  = x;
   double term = x;
   double xsqr = x*x;
@@ -129,7 +129,7 @@ erf(double x)
 double
 erfc(double x)
 {
-  static const double one_sqrtpi=  0.564189583547756287;
+  static const double one_sqrtpi = 0.564189583547756287;
   double a = 1;
   double b = x;
   double c = x;
