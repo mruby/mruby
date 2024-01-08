@@ -137,7 +137,7 @@ erfc(double x)
   double q1;
   double q2 = b/d;
   double n = 1.0;
-  double t;
+
   if (fabs(x) < 2.2) {
     return 1.0 - erf(x);
   }
@@ -145,7 +145,7 @@ erfc(double x)
     return 2.0 - erfc(-x);
   }
   do {
-    t  = a*n+b*x;
+    double t = a*n+b*x;
     a  = b;
     b  = t;
     t  = c*n+d*x;
