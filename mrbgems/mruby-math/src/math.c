@@ -74,7 +74,7 @@ atanh(double x)
   }
   else {
     /* Basic formula for atanh */
-    y = 0.5 * (log(1.0+x) - log(1.0-x));
+    y = 0.5 * (log1p(x) - log1p(-x));
   }
 
   return y;
