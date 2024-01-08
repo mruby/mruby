@@ -139,7 +139,7 @@ erfc(double x)
   double n = 1.0;
 
   if (fabs(x) < 2.2) {
-    return 1.0 - erf(x);
+    return erfc(x);
   }
   if (x < 0.0) { /*signbit(x)*/
     return 2.0 - erfc(-x);
