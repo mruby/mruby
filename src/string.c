@@ -400,13 +400,12 @@ str_index_str_by_char_search(mrb_state *mrb, const char *p, const char *pend, co
 
   /* Searching */
   while (p < pend && pend - p >= slen) {
-    const char *pivot;
 
     if (memcmp(p, s, slen) == 0) {
       return off;
     }
 
-    pivot = p + qstable[(unsigned char)p[slen - 1]];
+    const char *pivot = p + qstable[(unsigned char)p[slen - 1]];
     if (pivot >= pend || pivot < p /* overflowed */) { return -1; }
 
     do {
