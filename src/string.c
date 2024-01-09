@@ -2070,8 +2070,7 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
   mrb_int pos;
 
   if (mrb_get_args(mrb, "S|i", &sub, &pos) == 1) {
-    pos = RSTRING_CHAR_LEN(str);
-    pos = chars2bytes(str, 0, pos);
+    pos = RSTRING_LEN(str);
   }
   else if (pos >= 0) {
     pos = chars2bytes(str, 0, pos);
