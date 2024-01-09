@@ -409,7 +409,10 @@ str_index_str_by_char_search(mrb_state *mrb, const char *p, const char *pend, co
     if (pivot >= pend || pivot < p /* overflowed */) { return -1; }
 
     do {
-      p += mrb_utf8len(p, pend);
+      mrb_int len = mrb_utf8len(p, pend);
+
+      if (len == 0) p++;      /* invalid character */
+      else p += len;
       off++;
     } while (p < pivot);
   }
