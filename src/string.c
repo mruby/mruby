@@ -555,17 +555,12 @@ mrb_str_byte_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
   return mrb_obj_value(s);
 }
 
-static void
-str_range_to_bytes(mrb_value str, mrb_int *pos, mrb_int *len)
-{
-  *pos = chars2bytes(str, 0, *pos);
-  *len = chars2bytes(str, *pos, *len);
-}
 #ifdef MRB_UTF8_STRING
 static inline mrb_value
 str_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 {
-  str_range_to_bytes(str, &beg, &len);
+  beg = chars2bytes(str, 0, beg);
+  len = chars2bytes(str, beg, len);
   return mrb_str_byte_subseq(mrb, str, beg, len);
 }
 #else
@@ -1297,7 +1292,8 @@ mrb_str_aset(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen, mrb_
       if (beg < 0 || beg > charlen) { str_out_of_index(mrb, indx); }
       /* fall through */
     case STR_CHAR_RANGE_CORRECTED:
-      str_range_to_bytes(str, &beg, &len);
+      beg = chars2bytes(str, 0, beg);
+      len = chars2bytes(str, beg, len);
       /* fall through */
     case STR_BYTE_RANGE_CORRECTED:
       if (mrb_int_add_overflow(beg, len, &len)) {
