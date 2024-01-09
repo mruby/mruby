@@ -330,12 +330,12 @@ chars2bytes(mrb_value s, mrb_int off, mrb_int idx)
     return idx;
   }
   else {
-    mrb_int i, b, n;
+    mrb_int b = 0;
     const char *p = RSTRING_PTR(s) + off;
     const char *e = RSTRING_END(s);
 
-    for (b=i=0; p<e && i<idx; i++) {
-      n = mrb_utf8len(p, e);
+    for (mrb_int i=0; p<e && i<idx; i++) {
+      mrb_int n = mrb_utf8len(p, e);
       b += n;
       p += n;
     }
