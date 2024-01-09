@@ -278,6 +278,7 @@ mrb_utf8len(const char* p, const char* e)
   mrb_int len = mrb_utf8len_table[(unsigned char)p[0] >> 3];
   if (len > e - p) return 1;
   switch (len) {
+  case 0:
   case 1:
     return 1;
   case 4:
@@ -409,10 +410,7 @@ str_index_str_by_char_search(mrb_state *mrb, const char *p, const char *pend, co
     if (pivot >= pend || pivot < p /* overflowed */) { return -1; }
 
     do {
-      mrb_int len = mrb_utf8len(p, pend);
-
-      if (len == 0) p++;      /* invalid character */
-      else p += len;
+      p += mrb_utf8len(p, pend);
       off++;
     } while (p < pivot);
   }
