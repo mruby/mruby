@@ -348,6 +348,10 @@ chars2bytes(mrb_value s, mrb_int off, mrb_int idx)
 static mrb_int
 bytes2chars(mrb_value s, mrb_int bi)
 {
+  if (RSTR_ASCII_P(mrb_str_ptr(s))) {
+    return bi;
+  }
+
   const char *p = RSTRING_PTR(s);
   const char *e = RSTRING_END(s);
   const char *pivot = p + bi;
