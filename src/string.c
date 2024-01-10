@@ -444,15 +444,13 @@ str_index_str_by_char(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
   return str_index_str_by_char_search(mrb, p, pend, s, slen, off);
 }
 
-#define BYTES_ALIGN_CHECK(pos) if (pos < 0) return mrb_nil_value();
 #else
 #define RSTRING_CHAR_LEN(s) RSTRING_LEN(s)
 #define chars2bytes(s, off, ci) (ci)
 #define bytes2chars(s, bi) (bi)
 #define char_adjust(beg, end, ptr) (ptr)
 #define char_backtrack(ptr, end) ((end) - 1)
-#define BYTES_ALIGN_CHECK(pos)
-#define str_index_str_by_char(mrb, str, sub, pos) str_index_str(mrb, str, sub, pos)
+#define str_index_str_by_char(mrb, str, sub, pos) str_index_str((mrb), (str), (sub), (pos))
 #endif
 
 #ifndef MRB_QS_SHORT_STRING_LENGTH
@@ -489,7 +487,7 @@ mrb_memsearch_qs(const unsigned char *xs, mrb_int m, const unsigned char *ys, mr
       qstable[*x] = xe - x;
 
     /* Searching */
-    for (; y + m <= ys + n; y += *(qstable + y[m])) {
+    for (; y + m <= ys + n; y += qstable[y[m]]) {
       if (*xs == *y && memcmp(xs, y, m) == 0)
         return (mrb_int)(y - ys);
     }
