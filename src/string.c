@@ -345,9 +345,10 @@ chars2bytes(mrb_value s, mrb_int off, mrb_int idx)
 
 /* map byte offset to character index */
 static mrb_int
-bytes2chars(char *p, mrb_int len, mrb_int bi)
+bytes2chars(mrb_value s, mrb_int bi)
 {
-  const char *e = p + (size_t)len;
+  const char *p = RSTRING_PTR(s);
+  const char *e = RSTRING_END(s);
   const char *pivot = p + bi;
   mrb_int i;
 
@@ -440,8 +441,8 @@ str_index_str_by_char(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
 #define BYTES_ALIGN_CHECK(pos) if (pos < 0) return mrb_nil_value();
 #else
 #define RSTRING_CHAR_LEN(s) RSTRING_LEN(s)
-#define chars2bytes(p, off, ci) (ci)
-#define bytes2chars(p, end, bi) (bi)
+#define chars2bytes(s, off, ci) (ci)
+#define bytes2chars(s, bi) (bi)
 #define char_adjust(beg, end, ptr) (ptr)
 #define char_backtrack(ptr, end) ((end) - 1)
 #define BYTES_ALIGN_CHECK(pos)
@@ -2082,8 +2083,8 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
   }
   pos = str_rindex(mrb, str, sub, pos);
   if (pos >= 0) {
-    pos = bytes2chars(RSTRING_PTR(str), RSTRING_LEN(str), pos);
-    BYTES_ALIGN_CHECK(pos);
+    pos = bytes2chars(str, pos);
+    if (pos < 0) return mrb_nil_value();
     return mrb_int_value(mrb, pos);
   }
   return mrb_nil_value();
