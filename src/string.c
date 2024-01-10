@@ -477,15 +477,17 @@ mrb_memsearch_qs(const unsigned char *xs, mrb_int m, const unsigned char *ys, mr
     return -1;
   }
   else {
-    const unsigned char *x = xs, *xe = xs + m;
     const unsigned char *y = ys;
     ptrdiff_t qstable[256];
 
     /* Preprocessing */
     for (int i = 0; i < 256; i++)
       qstable[i] = m + 1;
+
+    const unsigned char *x = xs, *xe = xs + m;
     for (; x < xe; x++)
       qstable[*x] = xe - x;
+
     /* Searching */
     for (; y + m <= ys + n; y += *(qstable + y[m])) {
       if (*xs == *y && memcmp(xs, y, m) == 0)
