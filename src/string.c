@@ -329,17 +329,19 @@ chars2bytes(mrb_value s, mrb_int off, mrb_int idx)
   if (RSTR_ASCII_P(mrb_str_ptr(s))) {
     return idx;
   }
-  else {
-    const char *p0 = RSTRING_PTR(s) + off;
-    const char *p = p0;
-    const char *e = RSTRING_END(s);
-    while (p < e && idx--) {
-      p += mrb_utf8len(p, e);
-    }
-    mrb_int len = (mrb_int)(p-p0);
-    if (idx > 0 || p > e) len++;
-    return len;
+
+  const char *p0 = RSTRING_PTR(s) + off;
+  const char *p = p0;
+  const char *e = RSTRING_END(s);
+
+  while (p < e && idx--) {
+    if ((*p & 0x80) == 0) p++;
+    else p += mrb_utf8len(p, e);
   }
+
+  mrb_int len = (mrb_int)(p-p0);
+  if (idx > 0 || p > e) len++;
+  return len;
 }
 
 /* map byte offset to character index */
