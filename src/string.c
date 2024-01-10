@@ -358,7 +358,8 @@ bytes2chars(mrb_value s, mrb_int bi)
   mrb_int i;
 
   for (i = 0; p < pivot; i++) {
-    p += mrb_utf8len(p, e);
+    if ((*p & 0x80) == 0) p++;
+    else p += mrb_utf8len(p, e);
   }
   if (p != pivot) return -1;
   return i;
