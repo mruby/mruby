@@ -264,6 +264,18 @@ mrb_gc_free_str(mrb_state *mrb, struct RString *str)
 }
 
 #ifdef MRB_UTF8_STRING
+
+#define NOASCII(c) ((c) & 0x80)
+
+static const char*
+search_nonascii(const char* p, const char *e)
+{
+  for (; p < e; ++p) {
+    if (NOASCII(*p)) return p;
+  }
+  return e;
+}
+
 #define utf8_islead(c) ((unsigned char)((c)&0xc0) != 0x80)
 
 extern const char mrb_utf8len_table[];
@@ -279,7 +291,6 @@ mrb_utf8len(const char* p, const char* e)
   if (len > e - p) return 1;
   switch (len) {
   case 0:
-  case 1:
     return 1;
   case 4:
     if (utf8_islead(p[3])) return 1;
@@ -333,14 +344,29 @@ chars2bytes(mrb_value s, mrb_int off, mrb_int idx)
   const char *p0 = RSTRING_PTR(s) + off;
   const char *p = p0;
   const char *e = RSTRING_END(s);
+  mrb_int i = 0;
 
-  while (p < e && idx--) {
-    if ((*p & 0x80) == 0) p++;
-    else p += mrb_utf8len(p, e);
+  while (p<e && i<idx) {
+    if ((*p & 0x80) == 0) {
+      const char *np = search_nonascii(p, e);
+      ptrdiff_t alen = np - p;
+      if (idx < i+alen) {
+        p += idx-i;
+        i=idx;
+      }
+      else {
+        p = np;
+        i += alen;
+      }
+    }
+    else {
+      p += mrb_utf8len(p, e);
+      i++;
+    }
   }
 
   mrb_int len = (mrb_int)(p-p0);
-  if (idx > 0) len++;
+  if (i<idx) len++;
   return len;
 }
 
@@ -353,13 +379,20 @@ bytes2chars(mrb_value s, mrb_int bi)
   }
 
   const char *p = RSTRING_PTR(s);
-  const char *e = RSTRING_END(s);
   const char *pivot = p + bi;
-  mrb_int i;
+  mrb_int i = 0;
 
-  for (i = 0; p < pivot; i++) {
-    if ((*p & 0x80) == 0) p++;
-    else p += mrb_utf8len(p, e);
+  if (RSTRING_END(s) < pivot) return -1;
+  while (p < pivot) {
+    if ((*p & 0x80) == 0) {
+      const char *np = search_nonascii(p, pivot);
+      i += np - p;
+      p = np;
+    }
+    else {
+      p += mrb_utf8len(p, pivot);
+      i++;
+    }
   }
   if (p != pivot) return -1;
   return i;
