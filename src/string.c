@@ -340,7 +340,7 @@ chars2bytes(mrb_value s, mrb_int off, mrb_int idx)
   }
 
   mrb_int len = (mrb_int)(p-p0);
-  if (idx > 0 || p > e) len++;
+  if (idx > 0) len++;
   return len;
 }
 
