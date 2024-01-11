@@ -388,60 +388,21 @@ char_backtrack(const char *ptr, const char *end)
 }
 
 static mrb_int
-str_index_str_by_char_search(mrb_state *mrb, const char *p, const char *pend, const char *s, const mrb_int slen, mrb_int off)
-{
-  /* Based on Quick Search algorithm (Boyer-Moore-Horspool algorithm) */
-
-  ptrdiff_t qstable[1 << CHAR_BIT];
-
-  /* Preprocessing */
-  {
-    mrb_int i;
-
-    for (i = 0; i < 1 << CHAR_BIT; i++) {
-      qstable[i] = slen;
-    }
-    for (i = 0; i < slen; i++) {
-      qstable[(unsigned char)s[i]] = slen - (i + 1);
-    }
-  }
-
-  /* Searching */
-  while (p < pend && pend - p >= slen) {
-
-    if (memcmp(p, s, slen) == 0) {
-      return off;
-    }
-
-    const char *pivot = p + qstable[(unsigned char)p[slen - 1]];
-    if (pivot >= pend || pivot < p /* overflowed */) { return -1; }
-
-    do {
-      p += mrb_utf8len(p, pend);
-      off++;
-    } while (p < pivot);
-  }
-
-  return -1;
-}
-
-static mrb_int
 str_index_str_by_char(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
 {
-  const char *p = RSTRING_PTR(str);
-  const char *pend = p + RSTRING_LEN(str);
-  const char *s = RSTRING_PTR(sub);
-  const mrb_int slen = RSTRING_LEN(sub);
-  mrb_int off = pos;
+  const char *ptr = RSTRING_PTR(sub);
+  mrb_int len = RSTRING_LEN(sub);
 
-  for (; pos > 0; pos --) {
-    if (pend - p < 1) { return -1; }
-    p += mrb_utf8len(p, pend);
+  if (pos > 0) {
+    pos = chars2bytes(str, 0, pos);
   }
 
-  if (slen < 1) { return off; }
+  pos = mrb_str_index(mrb, str, ptr, len, pos);
 
-  return str_index_str_by_char_search(mrb, p, pend, s, slen, off);
+  if (pos > 0) {
+    pos = bytes2chars(str, pos);
+  }
+  return pos;
 }
 
 #else
