@@ -1304,10 +1304,6 @@ str_uplus(mrb_state *mrb, mrb_value str)
  *
  * Returns a frozen, possibly pre-existing copy of the string.
  *
- * The returned \String will be deduplicated as long as it does not have
- * any instance variables set on it and is not a String subclass.
- *
- * String#dedup is an alias for String#-@.
  */
 static mrb_value
 str_uminus(mrb_state *mrb, mrb_value str)
