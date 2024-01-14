@@ -98,8 +98,8 @@ options_opt(struct options *opts)
   while (++opts->argv, --opts->argc) {
     opts->opt = *opts->argv;
 
-    /*  empty         || not start with `-`  || `-` */
-    if (!opts->opt[0] || opts->opt[0] != '-' || !opts->opt[1]) return NULL;
+    /*  not start with `-`  || `-` */
+    if (opts->opt[0] != '-' || !opts->opt[1]) return NULL;
 
     if (opts->opt[1] == '-') {
       /* `--` */
