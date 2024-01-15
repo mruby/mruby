@@ -278,7 +278,6 @@ main(int argc, char **argv)
 {
   mrb_state *mrb = mrb_open();
   int n = -1;
-  int i;
   struct _args args;
   mrb_value ARGV;
   mrb_value v;
@@ -296,7 +295,7 @@ main(int argc, char **argv)
   else {
     int ai = mrb_gc_arena_save(mrb);
     ARGV = mrb_ary_new_capa(mrb, args.argc);
-    for (i = 0; i < args.argc; i++) {
+    for (int i = 0; i < args.argc; i++) {
       char* utf8 = mrb_utf8_from_locale(args.argv[i], -1);
       if (utf8) {
         mrb_ary_push(mrb, ARGV, mrb_str_new_cstr(mrb, utf8));
@@ -323,7 +322,7 @@ main(int argc, char **argv)
     mrb_gv_set(mrb, mrb_intern_lit(mrb, "$0"), mrb_str_new_cstr(mrb, cmdline));
 
     /* Load libraries */
-    for (i = 0; i < args.libc; i++) {
+    for (int i = 0; i < args.libc; i++) {
       FILE *lfp = fopen(args.libv[i], "rb");
       if (lfp == NULL) {
         fprintf(stderr, "%s: Cannot open library file: %s\n", *argv, args.libv[i]);
