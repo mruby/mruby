@@ -281,7 +281,6 @@ main(int argc, char **argv)
   int i;
   struct _args args;
   mrb_value ARGV;
-  mrb_ccontext *c;
   mrb_value v;
 
   if (mrb == NULL) {
@@ -307,7 +306,7 @@ main(int argc, char **argv)
     mrb_define_global_const(mrb, "ARGV", ARGV);
     mrb_gv_set(mrb, mrb_intern_lit(mrb, "$DEBUG"), mrb_bool_value(args.debug));
 
-    c = mrb_ccontext_new(mrb);
+    mrb_ccontext *c = mrb_ccontext_new(mrb);
     if (args.verbose)
       c->dump_result = TRUE;
     if (args.check_syntax)
