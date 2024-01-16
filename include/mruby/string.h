@@ -85,7 +85,7 @@ struct RStringEmbed {
 # define RSTR_WRITE_ASCII_FLAG(s, v) (RSTR_UNSET_ASCII_FLAG(s), (s)->flags |= v)
 # define RSTR_COPY_ASCII_FLAG(dst, src) RSTR_WRITE_ASCII_FLAG(dst, RSTR_ASCII_P(src))
 #else
-# define RSTR_ASCII_P(s) (void)0
+# define RSTR_ASCII_P(s) (void)1
 # define RSTR_SET_ASCII_FLAG(s) (void)0
 # define RSTR_UNSET_ASCII_FLAG(s) (void)0
 # define RSTR_WRITE_ASCII_FLAG(s, v) (void)0
