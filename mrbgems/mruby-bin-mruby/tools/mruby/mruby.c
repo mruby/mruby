@@ -332,10 +332,10 @@ main(int argc, char **argv)
       }
       mrb_ccontext_filename(mrb, c, args.libv[i]);
       if (mrb_extension_p(args.libv[i])) {
-        v = mrb_load_irep_file_cxt(mrb, lfp, c);
+        mrb_load_irep_file_cxt(mrb, lfp, c);
       }
       else {
-        v = mrb_load_detect_file_cxt(mrb, lfp, c);
+        mrb_load_detect_file_cxt(mrb, lfp, c);
       }
       fclose(lfp);
       mrb_vm_ci_env_clear(mrb, mrb->c->cibase);
