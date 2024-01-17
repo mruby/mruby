@@ -321,12 +321,12 @@ utf8_strlen(mrb_value str)
   struct RString *s = mrb_str_ptr(str);
   mrb_int byte_len = RSTR_LEN(s);
 
-  if (RSTR_ASCII_P(s)) {
+  if (RSTR_SINGLE_BYTE_P(s)) {
     return byte_len;
   }
   else {
     mrb_int utf8_len = mrb_utf8_strlen(RSTR_PTR(s), byte_len);
-    if (byte_len == utf8_len) RSTR_SET_ASCII_FLAG(s);
+    if (byte_len == utf8_len) RSTR_SET_SINGLE_BYTE_FLAG(s);
     return utf8_len;
   }
 }
@@ -337,7 +337,7 @@ utf8_strlen(mrb_value str)
 static mrb_int
 chars2bytes(mrb_value s, mrb_int off, mrb_int idx)
 {
-  if (RSTR_ASCII_P(mrb_str_ptr(s))) {
+  if (RSTR_SINGLE_BYTE_P(mrb_str_ptr(s))) {
     return idx;
   }
 
@@ -374,7 +374,7 @@ chars2bytes(mrb_value s, mrb_int off, mrb_int idx)
 static mrb_int
 bytes2chars(mrb_value s, mrb_int bi)
 {
-  if (RSTR_ASCII_P(mrb_str_ptr(s))) {
+  if (RSTR_SINGLE_BYTE_P(mrb_str_ptr(s))) {
     return bi;
   }
 
@@ -552,7 +552,7 @@ mrb_str_byte_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
     s->as.heap.ptr += (mrb_ssize)beg;
     s->as.heap.len = (mrb_ssize)len;
   }
-  RSTR_COPY_ASCII_FLAG(s, orig);
+  RSTR_COPY_SINGLE_BYTE_FLAG(s, orig);
   return mrb_obj_value(s);
 }
 
@@ -635,7 +635,7 @@ str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
 
   mrb_check_frozen(mrb, s1);
   if (s1 == s2) return mrb_obj_value(s1);
-  RSTR_COPY_ASCII_FLAG(s1, s2);
+  RSTR_COPY_SINGLE_BYTE_FLAG(s1, s2);
   if (RSTR_SHARED_P(s1)) {
     str_decref(mrb, s1->as.heap.aux.shared);
   }
@@ -761,7 +761,7 @@ MRB_API void
 mrb_str_modify(mrb_state *mrb, struct RString *s)
 {
   mrb_str_modify_keep_ascii(mrb, s);
-  RSTR_UNSET_ASCII_FLAG(s);
+  RSTR_UNSET_SINGLE_BYTE_FLAG(s);
 }
 
 MRB_API mrb_value
@@ -899,7 +899,7 @@ mrb_str_times(mrb_state *mrb, mrb_value self)
     memcpy(p + n, p, len-n);
   }
   p[RSTR_LEN(str2)] = '\0';
-  RSTR_COPY_ASCII_FLAG(str2, mrb_str_ptr(self));
+  RSTR_COPY_SINGLE_BYTE_FLAG(str2, mrb_str_ptr(self));
 
   return mrb_obj_value(str2);
 }
@@ -1209,7 +1209,7 @@ str_escape(mrb_state *mrb, mrb_value str, mrb_bool inspect)
   char buf[4];  /* `\x??` or UTF-8 character */
   mrb_value result = mrb_str_new_lit(mrb, "\"");
 #ifdef MRB_UTF8_STRING
-  uint32_t ascii_flag = MRB_STR_ASCII;
+  uint32_t sb_flag = MRB_STR_SINGLE_BYTE;
 #endif
 
   p = RSTRING_PTR(str); pend = RSTRING_END(str);
@@ -1221,7 +1221,7 @@ str_escape(mrb_state *mrb, mrb_value str, mrb_bool inspect)
       if (clen > 1) {
         mrb_str_cat(mrb, result, p, clen);
         p += clen-1;
-        ascii_flag = 0;
+        sb_flag = 0;
         continue;
       }
     }
@@ -1263,11 +1263,11 @@ str_escape(mrb_state *mrb, mrb_value str, mrb_bool inspect)
   mrb_str_cat_lit(mrb, result, "\"");
 #ifdef MRB_UTF8_STRING
   if (inspect) {
-    mrb_str_ptr(str)->flags |= ascii_flag;
-    mrb_str_ptr(result)->flags |= ascii_flag;
+    mrb_str_ptr(str)->flags |= sb_flag;
+    mrb_str_ptr(result)->flags |= sb_flag;
   }
   else {
-    RSTR_SET_ASCII_FLAG(mrb_str_ptr(result));
+    RSTR_SET_SINGLE_BYTE_FLAG(mrb_str_ptr(result));
   }
 #endif
 
@@ -1788,7 +1788,7 @@ mrb_str_byteindex_m(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_index_m(mrb_state *mrb, mrb_value str)
 {
-  if (RSTR_ASCII_P(mrb_str_ptr(str))) {
+  if (RSTR_SINGLE_BYTE_P(mrb_str_ptr(str))) {
     return mrb_str_byteindex_m(mrb, str);
   }
 
@@ -2059,7 +2059,7 @@ mrb_str_byterindex_m(mrb_state *mrb, mrb_value str)
 static mrb_value
 mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
 {
-  if (RSTR_ASCII_P(mrb_str_ptr(str))) {
+  if (RSTR_SINGLE_BYTE_P(mrb_str_ptr(str))) {
     return mrb_str_byterindex_m(mrb, str);
   }
 

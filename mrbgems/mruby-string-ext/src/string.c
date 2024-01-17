@@ -53,7 +53,7 @@ int_chr_utf8(mrb_state *mrb, mrb_value num)
   char utf8[4];
   mrb_int len;
   mrb_value str;
-  uint32_t ascii_flag = 0;
+  uint32_t sb_flag = 0;
 
   if (cp < 0 || 0x10FFFF < cp) {
     mrb_raisef(mrb, E_RANGE_ERROR, "%v out of char range", num);
@@ -61,7 +61,7 @@ int_chr_utf8(mrb_state *mrb, mrb_value num)
   if (cp < 0x80) {
     utf8[0] = (char)cp;
     len = 1;
-    ascii_flag = MRB_STR_ASCII;
+    sb_flag = MRB_STR_SINGLE_BYTE;
   }
   else if (cp < 0x800) {
     utf8[0] = (char)(0xC0 | (cp >> 6));
@@ -82,7 +82,7 @@ int_chr_utf8(mrb_state *mrb, mrb_value num)
     len = 4;
   }
   str = mrb_str_new(mrb, utf8, len);
-  mrb_str_ptr(str)->flags |= ascii_flag;
+  mrb_str_ptr(str)->flags |= sb_flag;
   return str;
 }
 #endif
@@ -1328,7 +1328,7 @@ str_valid_enc_p(mrb_state *mrb, mrb_value str)
 #define utf8_islead(c) ((unsigned char)((c)&0xc0) != 0x80)
 
   struct RString *s = mrb_str_ptr(str);
-  if (RSTR_ASCII_P(s)) return mrb_true_value();
+  if (RSTR_SINGLE_BYTE_P(s)) return mrb_true_value();
 
   mrb_int byte_len = RSTR_LEN(s);
   mrb_int utf8_len = 0;
@@ -1341,7 +1341,7 @@ str_valid_enc_p(mrb_state *mrb, mrb_value str)
     p += len;
     utf8_len++;
   }
-  if (byte_len == utf8_len) RSTR_SET_ASCII_FLAG(s);
+  if (byte_len == utf8_len) RSTR_SET_SINGLE_BYTE_FLAG(s);
 #endif
   return mrb_true_value();
 }
