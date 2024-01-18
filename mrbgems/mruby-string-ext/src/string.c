@@ -1346,6 +1346,21 @@ str_valid_enc_p(mrb_state *mrb, mrb_value str)
   return mrb_true_value();
 }
 
+static mrb_value
+str_ascii_only_p(mrb_state *mrb, mrb_value str)
+{
+  struct RString *s = mrb_str_ptr(str);
+  const char *p = RSTR_PTR(s);
+  const char *e = p + RSTR_LEN(s);
+
+  while (p < e) {
+    if (*p & 0x80) return mrb_false_value();
+    p++;
+  }
+  RSTR_SET_SINGLE_BYTE_FLAG(mrb_str_ptr(str));
+  return mrb_true_value();
+}
+
 void
 mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 {
@@ -1384,6 +1399,7 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, s, "+@",              str_uplus,           MRB_ARGS_REQ(1));
   mrb_define_method(mrb, s, "-@",              str_uminus,          MRB_ARGS_REQ(1));
   mrb_define_method(mrb, s, "valid_encoding?", str_valid_enc_p,     MRB_ARGS_NONE());
+  mrb_define_method(mrb, s, "ascii_only?",     str_ascii_only_p,    MRB_ARGS_NONE());
 
   mrb_define_method(mrb, s, "__lines",         str_lines,           MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "__codepoints",    str_codepoints,      MRB_ARGS_NONE());
