@@ -494,9 +494,9 @@ mrb_memsearch(const void *x0, mrb_int m, const void *y0, mrb_int n)
       return -1;
   }
   if (n + m < MRB_QS_SHORT_STRING_LENGTH) {
-    const unsigned char *ys = y0;
+    const unsigned char *ys = (unsigned char*)y0;
     const unsigned char *y = ys;
-    const unsigned char *ye = y0+n-m+1;
+    const unsigned char *ye = ys+n-m+1;
 
     for (;;) {
       y = (const unsigned char*)memchr(y, x[0], (size_t)(ye-ys));
