@@ -744,17 +744,13 @@ flo_lshift(mrb_state *mrb, mrb_value x)
 
 /* 15.2.9.3.13 */
 /*
+ * Document-method: Float#to_f
+ *
  * call-seq:
  *   flt.to_f  ->  self
  *
  * As <code>flt</code> is already a float, returns +self+.
  */
-
-static mrb_value
-flo_to_f(mrb_state *mrb, mrb_value num)
-{
-  return num;
-}
 
 /* 15.2.9.3.11 */
 /*
@@ -1105,18 +1101,16 @@ flo_abs(mrb_state *mrb, mrb_value num)
 
 /* 15.2.9.3.24 */
 /*
+ *  Document-method: Integer#to_i
+ *  Document-method: Integer#to_int
+ *
  *  call-seq:
  *     int.to_i      ->  integer
+ *     int.to_int    ->  integer
  *
  *  As <i>int</i> is already an <code>Integer</code>, all these
  *  methods simply return the receiver.
  */
-
-static mrb_value
-int_to_i(mrb_state *mrb, mrb_value num)
-{
-  return num;
-}
 
 mrb_value
 mrb_int_mul(mrb_state *mrb, mrb_value x, mrb_value y)
@@ -2237,8 +2231,8 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method_id(mrb, integer, MRB_OPSYM(gt),     num_gt,          MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, integer, MRB_OPSYM(ge),     num_ge,          MRB_ARGS_REQ(1));
 
-  mrb_define_method_id(mrb, integer, MRB_SYM(to_i),     int_to_i,        MRB_ARGS_NONE()); /* 15.2.8.3.24 */
-  mrb_define_method_id(mrb, integer, MRB_SYM(to_int),   int_to_i,        MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, integer, MRB_SYM(to_i),     mrb_obj_itself,  MRB_ARGS_NONE()); /* 15.2.8.3.24 */
+  mrb_define_method_id(mrb, integer, MRB_SYM(to_int),   mrb_obj_itself,  MRB_ARGS_NONE());
 
   mrb_define_method_id(mrb, integer, MRB_OPSYM(add),    int_add,         MRB_ARGS_REQ(1)); /* 15.2.8.3.1 */
   mrb_define_method_id(mrb, integer, MRB_OPSYM(sub),    int_sub,         MRB_ARGS_REQ(1)); /* 15.2.8.3.2 */
@@ -2301,7 +2295,7 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method_id(mrb, fl,      MRB_SYM(floor),     flo_floor,      MRB_ARGS_OPT(1)); /* 15.2.9.3.10 */
   mrb_define_method_id(mrb, fl,      MRB_SYM_Q(infinite),flo_infinite_p, MRB_ARGS_NONE()); /* 15.2.9.3.11 */
   mrb_define_method_id(mrb, fl,      MRB_SYM(round),     flo_round,      MRB_ARGS_OPT(1)); /* 15.2.9.3.12 */
-  mrb_define_method_id(mrb, fl,      MRB_SYM(to_f),      flo_to_f,       MRB_ARGS_NONE()); /* 15.2.9.3.13 */
+  mrb_define_method_id(mrb, fl,      MRB_SYM(to_f),      mrb_obj_itself, MRB_ARGS_NONE()); /* 15.2.9.3.13 */
   mrb_define_method_id(mrb, fl,      MRB_SYM(to_i),      flo_to_i,       MRB_ARGS_NONE()); /* 15.2.9.3.14 */
   mrb_define_method_id(mrb, fl,      MRB_SYM(truncate),  flo_truncate,   MRB_ARGS_OPT(1)); /* 15.2.9.3.15 */
   mrb_define_method_id(mrb, fl,      MRB_SYM(divmod),    flo_divmod,     MRB_ARGS_REQ(1));

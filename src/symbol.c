@@ -441,6 +441,8 @@ sym_name(mrb_state *mrb, mrb_value vsym)
 
 /* 15.2.11.3.4  */
 /*
+ * Document-method: Symbol#to_sym
+ *
  * call-seq:
  *   sym.to_sym   -> sym
  *   sym.intern   -> sym
@@ -449,12 +451,6 @@ sym_name(mrb_state *mrb, mrb_value vsym)
  * to an object. As <i>sym</i> is already a symbol, <code>self</code> is returned
  * in this case.
  */
-
-static mrb_value
-sym_to_sym(mrb_state *mrb, mrb_value sym)
-{
-  return sym;
-}
 
 /* 15.2.11.3.5(x)  */
 /*
@@ -696,7 +692,7 @@ mrb_init_symbol(mrb_state *mrb)
 
   mrb_define_method_id(mrb, sym, MRB_SYM(to_s),    sym_to_s,    MRB_ARGS_NONE());          /* 15.2.11.3.3 */
   mrb_define_method_id(mrb, sym, MRB_SYM(name),    sym_name,    MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, sym, MRB_SYM(to_sym),  sym_to_sym,  MRB_ARGS_NONE());          /* 15.2.11.3.4 */
+  mrb_define_method_id(mrb, sym, MRB_SYM(to_sym),  mrb_obj_itself,  MRB_ARGS_NONE());      /* 15.2.11.3.4 */
   mrb_define_method_id(mrb, sym, MRB_SYM(inspect), sym_inspect, MRB_ARGS_NONE());          /* 15.2.11.3.5(x) */
   mrb_define_method_id(mrb, sym, MRB_OPSYM(cmp),   sym_cmp,     MRB_ARGS_REQ(1));
 }
