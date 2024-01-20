@@ -499,7 +499,7 @@ mrb_memsearch(const void *x0, mrb_int m, const void *y0, mrb_int n)
     const unsigned char *ye = ys+n-m+1;
 
     for (;;) {
-      y = (const unsigned char*)memchr(y, x[0], (size_t)(ye-ys));
+      y = (const unsigned char*)memchr(y, x[0], (size_t)(ye-y));
       if (y == NULL) return -1;
       if (memcmp(x, y, m) == 0) {
         return (mrb_int)(y - ys);
