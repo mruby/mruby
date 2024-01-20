@@ -344,8 +344,8 @@ mrb_mruby_eval_gem_init(mrb_state* mrb)
 {
   mrb_define_module_function(mrb, mrb->kernel_module, "eval", f_eval, MRB_ARGS_ARG(1, 3));
   mrb_define_method_id(mrb, mrb_class_get_id(mrb, MRB_SYM(BasicObject)), MRB_SYM(instance_eval), f_instance_eval, MRB_ARGS_OPT(3)|MRB_ARGS_BLOCK());
-  mrb_define_method_id(mrb, mrb_class_get_id(mrb, MRB_SYM(Module)), MRB_SYM(module_eval), f_class_eval, MRB_ARGS_OPT(3)|MRB_ARGS_BLOCK());
-  mrb_define_method_id(mrb, mrb_class_get_id(mrb, MRB_SYM(Module)), MRB_SYM(class_eval), f_class_eval, MRB_ARGS_OPT(3)|MRB_ARGS_BLOCK());
+  mrb_define_method_id(mrb, mrb->module_class, MRB_SYM(module_eval), f_class_eval, MRB_ARGS_OPT(3)|MRB_ARGS_BLOCK());
+  mrb_define_method_id(mrb, mrb->module_class, MRB_SYM(class_eval), f_class_eval, MRB_ARGS_OPT(3)|MRB_ARGS_BLOCK());
 
   struct RClass *binding = mrb_class_get_id(mrb, MRB_SYM(Binding));
   mrb_define_method(mrb, binding, "eval", mrb_binding_eval, MRB_ARGS_ANY());
