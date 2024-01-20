@@ -254,47 +254,6 @@ rational_new_f(mrb_state *mrb, mrb_float f0)
 }
 #endif
 
-static mrb_value
-rational_s_new(mrb_state *mrb, mrb_value self)
-{
-  mrb_int numerator, denominator;
-
-#ifdef MRB_NO_FLOAT
-  mrb_get_args(mrb, "ii", &numerator, &denominator);
-#else
-
- mrb_value numv, denomv;
-
-  mrb_get_args(mrb, "oo", &numv, &denomv);
-  if (mrb_integer_p(numv)) {
-    numerator = mrb_integer(numv);
-
-    if (mrb_integer_p(denomv)) {
-      denominator = mrb_integer(denomv);
-    }
-    else {
-      mrb_float numf = (mrb_float)numerator;
-      mrb_float denomf = mrb_as_float(mrb, denomv);
-
-      return rational_new_f(mrb, numf/denomf);
-    }
-  }
-  else {
-    mrb_float numf = mrb_as_float(mrb, numv);
-    mrb_float denomf;
-
-    if (mrb_integer_p(denomv)) {
-      denomf = (mrb_float)mrb_integer(denomv);
-    }
-    else {
-      denomf = mrb_as_float(mrb, denomv);
-    }
-    return rational_new_f(mrb, numf/denomf);
-  }
-#endif
-  return rational_new(mrb, numerator, denominator);
-}
-
 #ifndef MRB_NO_FLOAT
 static mrb_float
 rat_float(struct mrb_rational *p)
@@ -771,7 +730,6 @@ void mrb_mruby_rational_gem_init(mrb_state *mrb)
   MRB_SET_INSTANCE_TT(rat, MRB_TT_RATIONAL);
   MRB_UNDEF_ALLOCATOR(rat);
   mrb_undef_class_method(mrb, rat, "new");
-  mrb_define_class_method(mrb, rat, "_new", rational_s_new, MRB_ARGS_REQ(2));
   mrb_define_method(mrb, rat, "numerator", rational_numerator, MRB_ARGS_NONE());
   mrb_define_method(mrb, rat, "denominator", rational_denominator, MRB_ARGS_NONE());
 #ifndef MRB_NO_FLOAT
