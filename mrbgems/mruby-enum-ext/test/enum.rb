@@ -195,3 +195,10 @@ end
 assert("Enumerable#tally") do
   assert_equal({"a"=>1, "b"=>2, "c"=>1}, ["a", "b", "c", "b"].tally)
 end
+
+assert("Enumerable#grep_v") do
+  a = [1, 2, 3, 4, 5, 0]
+  assert_equal [1, 5, 0], a.grep_v(2..4)
+  assert_equal [1, 2, 3, 4, 5, 0], a.grep_v(6..8)
+  assert_equal [2, 4, 6, 8, 10], a.grep_v(0) {|v| v * 2}
+end

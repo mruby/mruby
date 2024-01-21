@@ -840,6 +840,17 @@ module Enumerable
 
   alias filter select
 
+  def grep_v(pattern, &block)
+    ary = []
+    self.each{|*val|
+      sv = val.__svalue
+      unless pattern === sv
+        ary.push((block)? block.call(*val): sv)
+      end
+    }
+    ary
+  end
+
   ##
   # call-seq:
   #   enum.tally -> a_hash
