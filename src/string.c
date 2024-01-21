@@ -267,6 +267,9 @@ mrb_gc_free_str(mrb_state *mrb, struct RString *str)
 
 #define NOASCII(c) ((c) & 0x80)
 
+#ifdef SIMPLE_SEARCH_NONASCII
+/* the naive implementation. define SIMPLE_SEARCH_NONASCII, */
+/* if you need it for any constraint (e.g. code size).      */
 static const char*
 search_nonascii(const char* p, const char *e)
 {
@@ -275,6 +278,69 @@ search_nonascii(const char* p, const char *e)
   }
   return e;
 }
+
+#else
+
+#ifdef MRB_64BIT
+# define NONASCII_MASK 0x8080808080808080ULL
+#else /* MRB_32BIT */
+# define NONASCII_MASK 0x80808080UL
+#endif
+
+static const char*
+search_nonascii(const char *p, const char *e)
+{
+  if (e - p >= sizeof(void*)) {
+    if ((uintptr_t)p % sizeof(void*)) {
+      int l = sizeof(void*) - (uintptr_t)p % sizeof(void*);
+      p += l;
+      switch (l) {
+#ifdef MRB_64BIT
+      case 7: if (p[-7]&0x80) return p-7;
+      case 6: if (p[-6]&0x80) return p-6;
+      case 5: if (p[-5]&0x80) return p-5;
+      case 4: if (p[-4]&0x80) return p-4;
+#endif
+      case 3: if (p[-3]&0x80) return p-3;
+      case 2: if (p[-2]&0x80) return p-2;
+      case 1: if (p[-1]&0x80) return p-1;
+      case 0: break;
+      }
+    }
+
+    const uintptr_t *s = (uintptr_t*)p;
+    const uintptr_t *t = (uintptr_t*)(e - (sizeof(void*)-1));
+
+    for (;s < t; s++) {
+      if (*s & NONASCII_MASK) {
+        p = (const char*)s;
+        if (NOASCII(p[0])) return p+0;
+        if (NOASCII(p[1])) return p+1;
+        if (NOASCII(p[2])) return p+2;
+        if (NOASCII(p[3])) return p+3;
+        if (NOASCII(p[4])) return p+4;
+        if (NOASCII(p[5])) return p+5;
+        if (NOASCII(p[6])) return p+6;
+        if (NOASCII(p[7])) return p+7;
+      }
+    }
+  }
+  switch (e - p) {
+  default:
+#ifdef MRB_64BIT
+  case 7: if (e[-7]&0x80) return e-7;
+  case 6: if (e[-6]&0x80) return e-6;
+  case 5: if (e[-5]&0x80) return e-5;
+  case 4: if (e[-4]&0x80) return e-4;
+#endif
+  case 3: if (e[-3]&0x80) return e-3;
+  case 2: if (e[-2]&0x80) return e-2;
+  case 1: if (e[-1]&0x80) return e-1;
+  }
+  return e;
+}
+
+#endif  /* SIMPLE_SEARCH_NONASCII */
 
 #define utf8_islead(c) ((unsigned char)((c)&0xc0) != 0x80)
 
