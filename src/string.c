@@ -279,6 +279,45 @@ search_nonascii(const char* p, const char *e)
   return e;
 }
 
+#elif defined(__SSE2__)
+# include <emmintrin.h>
+
+static inline const char *
+search_nonascii(const char *p, const char *e)
+{
+  if (16 < e - p) {
+    if (!_mm_movemask_epi8(_mm_loadu_si128((__m128i const*)p))) {
+      const intptr_t lowbits = sizeof(__m128i) - 1;
+      const __m128i *s, *t;
+      s = (const __m128i*)(~lowbits & ((intptr_t)p + lowbits));
+      t = (const __m128i*)(~lowbits & (intptr_t)e);
+      for (; s < t; ++s) {
+        if (_mm_movemask_epi8(_mm_load_si128(s)))
+          break;
+      }
+      p = (const char *)s;
+    }
+  }
+  switch (e - p) {
+  case 15: if (NOASCII(*p)) return p; ++p;
+  case 14: if (NOASCII(*p)) return p; ++p;
+  case 13: if (NOASCII(*p)) return p; ++p;
+  case 12: if (NOASCII(*p)) return p; ++p;
+  case 11: if (NOASCII(*p)) return p; ++p;
+  case 10: if (NOASCII(*p)) return p; ++p;
+  case 9:  if (NOASCII(*p)) return p; ++p;
+  case 8:  if (NOASCII(*p)) return p; ++p;
+  case 7:  if (NOASCII(*p)) return p; ++p;
+  case 6:  if (NOASCII(*p)) return p; ++p;
+  case 5:  if (NOASCII(*p)) return p; ++p;
+  case 4:  if (NOASCII(*p)) return p; ++p;
+  case 3:  if (NOASCII(*p)) return p; ++p;
+  case 2:  if (NOASCII(*p)) return p; ++p;
+  case 1:  if (NOASCII(*p)) return p;
+  }
+  return e;
+}
+
 #else
 
 #ifdef MRB_64BIT
