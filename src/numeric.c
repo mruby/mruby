@@ -1976,7 +1976,6 @@ MRB_API mrb_value
 mrb_integer_to_str(mrb_state *mrb, mrb_value x, mrb_int base)
 {
   char buf[MRB_INT_BIT+1];
-  mrb_int val = mrb_integer(x);
 
   if (base < 2 || 36 < base) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid radix %i", base);
@@ -1986,6 +1985,7 @@ mrb_integer_to_str(mrb_state *mrb, mrb_value x, mrb_int base)
     return mrb_bint_to_s(mrb, x, base);
   }
 #endif
+  mrb_int val = mrb_integer(x);
   const char *p = mrb_int_to_cstr(buf, sizeof(buf), val, base);
   mrb_assert(p != NULL);
   mrb_value str = mrb_str_new_cstr(mrb, p);
