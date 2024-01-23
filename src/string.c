@@ -285,20 +285,20 @@ search_nonascii(const char* p, const char *e)
 static inline const char *
 search_nonascii(const char *p, const char *e)
 {
-  if (16 < e - p) {
+  if (sizeof(__m128i) < e - p) {
     if (!_mm_movemask_epi8(_mm_loadu_si128((__m128i const*)p))) {
       const intptr_t lowbits = sizeof(__m128i) - 1;
       const __m128i *s, *t;
       s = (const __m128i*)(~lowbits & ((intptr_t)p + lowbits));
       t = (const __m128i*)(~lowbits & (intptr_t)e);
       for (; s < t; ++s) {
-        if (_mm_movemask_epi8(_mm_load_si128(s)))
-          break;
+        if (_mm_movemask_epi8(_mm_load_si128(s))) break;
       }
       p = (const char *)s;
     }
   }
   switch (e - p) {
+  default:
   case 15: if (NOASCII(*p)) return p; ++p;
   case 14: if (NOASCII(*p)) return p; ++p;
   case 13: if (NOASCII(*p)) return p; ++p;
@@ -313,7 +313,8 @@ search_nonascii(const char *p, const char *e)
   case 4:  if (NOASCII(*p)) return p; ++p;
   case 3:  if (NOASCII(*p)) return p; ++p;
   case 2:  if (NOASCII(*p)) return p; ++p;
-  case 1:  if (NOASCII(*p)) return p;
+  case 1:  if (NOASCII(*p)) return p; ++p;
+           if (NOASCII(*p)) return p;
   }
   return e;
 }
@@ -552,10 +553,6 @@ str_index_str_by_char(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
 #define str_index_str_by_char(mrb, str, sub, pos) str_index_str((mrb), (str), (sub), (pos))
 #endif
 
-#ifndef MRB_QS_SHORT_STRING_LENGTH
-#define MRB_QS_SHORT_STRING_LENGTH 2048
-#endif
-
 static inline mrb_int
 mrb_memsearch_qs(const unsigned char *xs, mrb_int m, const unsigned char *ys, mrb_int n)
 {
@@ -578,6 +575,10 @@ mrb_memsearch_qs(const unsigned char *xs, mrb_int m, const unsigned char *ys, mr
   return -1;
 }
 
+#ifndef MRB_SEARCH_SHORT_STRING_LENGTH
+#define MRB_SEARCH_SHORT_STRING_LENGTH 2048
+#endif
+
 static mrb_int
 mrb_memsearch(const void *x0, mrb_int m, const void *y0, mrb_int n)
 {
@@ -598,7 +599,7 @@ mrb_memsearch(const void *x0, mrb_int m, const void *y0, mrb_int n)
     else
       return -1;
   }
-  if (n + m < MRB_QS_SHORT_STRING_LENGTH) {
+  if (n + m < MRB_SEARCH_SHORT_STRING_LENGTH) {
     const unsigned char *ys = (unsigned char*)y0;
     const unsigned char *y = ys;
     const unsigned char *ye = ys+n-m+1;
