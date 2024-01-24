@@ -580,7 +580,7 @@ mrb_memsearch_qs(const unsigned char *xs, mrb_int m, const unsigned char *ys, mr
 #endif
 
 static mrb_int
-mrb_memsearch(const void *x0, mrb_int m, const void *y0, mrb_int n)
+mrb_memsearch(const char *x0, mrb_int m, const char *y0, mrb_int n)
 {
   const unsigned char *x = (const unsigned char*)x0, *y = (const unsigned char*)y0;
 
