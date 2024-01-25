@@ -327,10 +327,20 @@ search_nonascii(const char *p, const char *e)
 # define NONASCII_MASK 0x80808080UL
 #endif
 
+#if defined(__i386) || defined(__i386__) || defined(_M_IX86) || \
+     defined(__x86_64) || defined(__x86_64__) || defined(_M_AMD64) || \
+     defined(__powerpc64__) || defined(__POWERPC__) || defined(__aarch64__) || \
+     defined(__mc68020__)
+#   define ALIGNED_WORD_ACCESS 0
+#else
+# define ALIGNED_WORD_ACCESS 1
+#endif
+
 static const char*
 search_nonascii(const char *p, const char *e)
 {
   if (e - p >= sizeof(void*)) {
+#if ALIGNED_WORD_ACCESS
     if ((uintptr_t)p % sizeof(void*)) {
       int l = sizeof(void*) - (uintptr_t)p % sizeof(void*);
       p += l;
@@ -347,6 +357,7 @@ search_nonascii(const char *p, const char *e)
       case 0: break;
       }
     }
+#endif
 
     const uintptr_t *s = (uintptr_t*)p;
     const uintptr_t *t = (uintptr_t*)(e - (sizeof(void*)-1));
