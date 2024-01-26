@@ -576,9 +576,6 @@ str_index_str_by_char(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
 static inline mrb_int
 mrb_memsearch_ss(const unsigned char *xs, long m, const unsigned char *ys, long n)
 {
-/* maximum pattern length */
-#define MAX_PATLEN 100
-
 #ifdef MRB_64BIT
 #define bitint uint64_t
 #define MASK1 0x0101010101010101llu
@@ -628,32 +625,6 @@ mrb_memsearch_ss(const unsigned char *xs, long m, const unsigned char *ys, long 
   return -1;
 }
 
-static inline mrb_int
-mrb_memsearch_qs(const unsigned char *xs, mrb_int m, const unsigned char *ys, mrb_int n)
-{
-  const unsigned char *y = ys;
-  ptrdiff_t qstable[256];
-
-  /* Preprocessing */
-  for (int i = 0; i < 256; i++)
-    qstable[i] = m + 1;
-
-  const unsigned char *x = xs, *xe = xs + m;
-  for (; x < xe; x++)
-    qstable[*x] = xe - x;
-
-  /* Searching */
-  for (; y + m <= ys + n; y += qstable[y[m]]) {
-    if (*xs == *y && memcmp(xs, y, m) == 0)
-      return (mrb_int)(y - ys);
-  }
-  return -1;
-}
-
-#ifndef MRB_SEARCH_SHORT_STRING_LENGTH
-#define MRB_SEARCH_SHORT_STRING_LENGTH 2048
-#endif
-
 static mrb_int
 mrb_memsearch(const char *x0, mrb_int m, const char *y0, mrb_int n)
 {
@@ -674,25 +645,7 @@ mrb_memsearch(const char *x0, mrb_int m, const char *y0, mrb_int n)
     else
       return -1;
   }
-  if (n + m < MRB_SEARCH_SHORT_STRING_LENGTH) {
-    const unsigned char *ys = (unsigned char*)y0;
-    const unsigned char *y = ys;
-    const unsigned char *ye = ys+n-m+1;
-
-    for (;;) {
-      y = (const unsigned char*)memchr(y, x[0], (size_t)(ye-y));
-      if (y == NULL) return -1;
-      if (memcmp(x, y, m) == 0) {
-        return (mrb_int)(y - ys);
-      }
-      y++;
-    }
-    return -1;
-  }
-  if (m <= MAX_PATLEN) {
-    return mrb_memsearch_ss((const unsigned char*)x0, m, (const unsigned char*)y0, n);
-  }
-  return mrb_memsearch_qs((const unsigned char*)x0, m, (const unsigned char*)y0, n);
+  return mrb_memsearch_ss((const unsigned char*)x0, m, (const unsigned char*)y0, n);
 }
 
 static void
