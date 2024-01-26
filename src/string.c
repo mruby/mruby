@@ -572,6 +572,7 @@ str_index_str_by_char(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
    * takes unsigned char*
    * returns mrb_int
    * alignment adjustment added
+   * support bigendian CPU
 */
 static inline mrb_int
 mrb_memsearch_ss(const unsigned char *xs, long m, const unsigned char *ys, long n)
@@ -586,6 +587,15 @@ mrb_memsearch_ss(const unsigned char *xs, long m, const unsigned char *ys, long 
 #define MASK1 0x01010101lu
 #define MASK2 0x7f7f7f7flu
 #define MASK3 0x80808080lu
+#endif
+#if defined(MRB_ENDIAN_BIG)
+#ifdef MRB_64BIT
+#define MASK4 0x8000000000000000llu
+#else
+#define MASK4 0x80000000
+#endif
+#else
+#define MASK4 0x80
 #endif
 
 #if ALIGNED_WORD_ACCESS
@@ -611,14 +621,18 @@ mrb_memsearch_ss(const unsigned char *xs, long m, const unsigned char *ys, long 
     size_t j = 0;
 
     while (zeros) {
-      if (zeros & 0x80) {
+      if (zeros & MASK4) {
         const char* substr = (char*)s0 + j + 1;
         if (memcmp(substr, xs + 1, m - 2) == 0) {
           return i + j;
         }
       }
 
+#if defined(MRB_ENDIAN_BIG)
+      zeros <<= 8;
+#else
       zeros >>= 8;
+#endif
       j += 1;
     }
   }
