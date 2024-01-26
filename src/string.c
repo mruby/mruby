@@ -263,6 +263,15 @@ mrb_gc_free_str(mrb_state *mrb, struct RString *str)
     mrb_free(mrb, str->as.heap.ptr);
 }
 
+#if defined(__i386) || defined(__i386__) || defined(_M_IX86) || \
+     defined(__x86_64) || defined(__x86_64__) || defined(_M_AMD64) || \
+     defined(__powerpc64__) || defined(__POWERPC__) || defined(__aarch64__) || \
+     defined(__mc68020__)
+# define ALIGNED_WORD_ACCESS 0
+#else
+# define ALIGNED_WORD_ACCESS 1
+#endif
+
 #ifdef MRB_UTF8_STRING
 
 #define NOASCII(c) ((c) & 0x80)
@@ -325,15 +334,6 @@ search_nonascii(const char *p, const char *e)
 # define NONASCII_MASK 0x8080808080808080ULL
 #else /* MRB_32BIT */
 # define NONASCII_MASK 0x80808080UL
-#endif
-
-#if defined(__i386) || defined(__i386__) || defined(_M_IX86) || \
-     defined(__x86_64) || defined(__x86_64__) || defined(_M_AMD64) || \
-     defined(__powerpc64__) || defined(__POWERPC__) || defined(__aarch64__) || \
-     defined(__mc68020__)
-#   define ALIGNED_WORD_ACCESS 0
-#else
-# define ALIGNED_WORD_ACCESS 1
 #endif
 
 static const char*
@@ -564,6 +564,70 @@ str_index_str_by_char(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
 #define str_index_str_by_char(mrb, str, sub, pos) str_index_str((mrb), (str), (sub), (pos))
 #endif
 
+/* The function is taken from https://github.com/WojciechMula/sse4-strstr.git */
+/* The original source code is under 2 clause BSD license; see LEGAL file.    */
+/* The modifications:
+
+   * port from C++ to C
+   * takes unsigned char*
+   * returns mrb_int
+   * alignment adjustment added
+*/
+static inline mrb_int
+mrb_memsearch_ss(const unsigned char *xs, long m, const unsigned char *ys, long n)
+{
+/* maximum pattern length */
+#define MAX_PATLEN 100
+
+#ifdef MRB_64BIT
+#define bitint uint64_t
+#define MASK1 0x0101010101010101llu
+#define MASK2 0x7f7f7f7f7f7f7f7fllu
+#define MASK3 0x8080808080808080llu
+#else
+#define bitint uint32_t
+#define MASK1 0x01010101lu
+#define MASK2 0x7f7f7f7flu
+#define MASK3 0x80808080lu
+#endif
+
+#if ALIGNED_WORD_ACCESS
+  if ((uintptr_t)ys % sizeof(bitint)) {
+    int l = sizeof(bitint) - (bitint)ys % sizeof(bitint);
+    const unsigned char *p = (unsigned char*)memchr(ys, *xs, l);
+    if (p && (p - ys) < m) {
+      if (memcmp(p, xs, m) == 0) return (mrb_int)(p - ys);
+      ys = p;
+    }
+  }
+#endif
+
+  const bitint first = MASK1 * (uint8_t)xs[0];
+  const bitint last  = MASK1 * (uint8_t)xs[m-1];
+
+  bitint *s0 = (bitint*)(ys);
+  bitint *s1 = (bitint*)(ys+m-1);
+
+  for (mrb_int i=0; i < n; i+=sizeof(bitint), s0++, s1++) {
+    const bitint eq = (*s0 ^ first) | (*s1 ^ last);
+    bitint zeros = ((~eq & MASK2) + MASK1) & (~eq & MASK3);
+    size_t j = 0;
+
+    while (zeros) {
+      if (zeros & 0x80) {
+        const char* substr = (char*)s0 + j + 1;
+        if (memcmp(substr, xs + 1, m - 2) == 0) {
+          return i + j;
+        }
+      }
+
+      zeros >>= 8;
+      j += 1;
+    }
+  }
+  return -1;
+}
+
 static inline mrb_int
 mrb_memsearch_qs(const unsigned char *xs, mrb_int m, const unsigned char *ys, mrb_int n)
 {
@@ -624,6 +688,9 @@ mrb_memsearch(const char *x0, mrb_int m, const char *y0, mrb_int n)
       y++;
     }
     return -1;
+  }
+  if (m <= MAX_PATLEN) {
+    return mrb_memsearch_ss((const unsigned char*)x0, m, (const unsigned char*)y0, n);
   }
   return mrb_memsearch_qs((const unsigned char*)x0, m, (const unsigned char*)y0, n);
 }
