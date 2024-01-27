@@ -6,6 +6,7 @@
 #define MRUBY_IO_H
 
 #include <mruby.h>
+#include <mruby/presym.h>
 
 #ifdef MRB_NO_STDIO
 # error IO and File conflicts 'MRB_NO_STDIO' in your build configuration
@@ -63,8 +64,8 @@ struct mrb_io {
 #define MRB_O_DSYNC             0x00008000
 #define MRB_O_RSYNC             0x00010000
 
-#define E_IO_ERROR              (mrb_exc_get(mrb, "IOError"))
-#define E_EOF_ERROR             (mrb_exc_get(mrb, "EOFError"))
+#define E_IO_ERROR              mrb_exc_get_id(mrb, MRB_SYM(IOError))
+#define E_EOF_ERROR             mrb_exc_get_id(mrb, MRB_SYM(EOFError))
 
 int mrb_io_fileno(mrb_state *mrb, mrb_value io);
 
