@@ -294,7 +294,7 @@ search_nonascii(const char* p, const char *e)
 static inline const char *
 search_nonascii(const char *p, const char *e)
 {
-  if (sizeof(__m128i) < e - p) {
+  if (sizeof(__m128i) < (size_t)(e - p)) {
     if (!_mm_movemask_epi8(_mm_loadu_si128((__m128i const*)p))) {
       const intptr_t lowbits = sizeof(__m128i) - 1;
       const __m128i *s, *t;
