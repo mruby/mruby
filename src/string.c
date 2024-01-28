@@ -369,10 +369,12 @@ search_nonascii(const char *p, const char *e)
         if (NOASCII(p[1])) return p+1;
         if (NOASCII(p[2])) return p+2;
         if (NOASCII(p[3])) return p+3;
+#ifdef MRB_64BIT
         if (NOASCII(p[4])) return p+4;
         if (NOASCII(p[5])) return p+5;
         if (NOASCII(p[6])) return p+6;
         if (NOASCII(p[7])) return p+7;
+#endif
       }
     }
   }
