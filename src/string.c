@@ -654,12 +654,10 @@ mrb_memsearch(const char *x0, mrb_int m, const char *y0, mrb_int n)
     return 0;
   }
   else if (m == 1) {
-    const unsigned char *ys = (const unsigned char*)memchr(y, *x, n);
+    const unsigned char *p = (const unsigned char*)memchr(y, *x, n);
 
-    if (ys)
-      return (mrb_int)(ys - y);
-    else
-      return -1;
+    if (p) return (mrb_int)(p - y);
+    return -1;
   }
   return mrb_memsearch_ss((const unsigned char*)x0, m, (const unsigned char*)y0, n);
 }
