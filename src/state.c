@@ -161,6 +161,9 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
   }
   mrb_free(mrb, (void*)irep->lv);
   mrb_debug_info_free(mrb, irep->debug_info);
+#ifdef MRB_DEBUG
+  memset(irep, -1, sizeof(*irep));
+#endif
   mrb_free(mrb, irep);
 }
 
