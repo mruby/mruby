@@ -574,6 +574,7 @@ str_index_str_by_char(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
    * returns mrb_int
    * alignment adjustment added
    * support bigendian CPU
+   * fixed potential buffer overflow
 */
 static inline mrb_int
 mrb_memsearch_ss(const unsigned char *xs, long m, const unsigned char *ys, long n)
@@ -599,22 +600,33 @@ mrb_memsearch_ss(const unsigned char *xs, long m, const unsigned char *ys, long 
 #define MASK4 0x80
 #endif
 
+#define MAX(a,b) ((a) > (b) ? (a) : (b))
+
   const bitint first = MASK1 * (uint8_t)xs[0];
   const bitint last  = MASK1 * (uint8_t)xs[m-1];
 
-  bitint *s0 = (bitint*)(ys);
-  bitint *s1 = (bitint*)(ys+m-1);
+  const unsigned char *s0 = ys;
+  const unsigned char *s1 = ys+m-1;
 
-  for (mrb_int i=0; i < n; i+=sizeof(bitint), s0++, s1++) {
-    const bitint eq = (*s0 ^ first) | (*s1 ^ last);
+  const mrb_int lim = n - MAX(m, (mrb_int)sizeof(bitint));
+  mrb_int i;
+
+  for (i=0; i < lim; i+=sizeof(bitint)) {
+    bitint t0, t1;
+
+    memcpy(&t0, s0+i, sizeof(bitint));
+    memcpy(&t1, s1+i, sizeof(bitint));
+
+    const bitint eq = (t0 ^ first) | (t1 ^ last);
     bitint zeros = ((~eq & MASK2) + MASK1) & (~eq & MASK3);
     size_t j = 0;
 
     while (zeros) {
       if (zeros & MASK4) {
-        const char* substr = (char*)s0 + j + 1;
-        if (memcmp(substr, xs + 1, m - 2) == 0) {
-          return i + j;
+        const mrb_int idx = i + j;
+        const unsigned char* p = s0 + idx + 1;
+        if (memcmp(p, xs + 1, m - 2) == 0) {
+          return idx;
         }
       }
 
@@ -623,9 +635,21 @@ mrb_memsearch_ss(const unsigned char *xs, long m, const unsigned char *ys, long 
 #else
       zeros >>= 8;
 #endif
-      j += 1;
+      j++;
     }
   }
+
+  if (i+m < n) {
+    const unsigned char *p = s0;
+    const unsigned char *e = ys + n;
+    for (;p<e;) {
+      p = (const unsigned char*)memchr(p, *xs, e-p);
+      if (p == NULL) break;
+      if (memcmp(p+1, xs+1, m-1) == 0) return (mrb_int)(p - ys);
+      p++;
+    }
+  }
+
   return -1;
 }
 
