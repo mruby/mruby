@@ -600,17 +600,6 @@ mrb_memsearch_ss(const unsigned char *xs, long m, const unsigned char *ys, long 
 #define MASK4 0x80
 #endif
 
-#if ALIGNED_WORD_ACCESS
-  if ((uintptr_t)ys % sizeof(bitint)) {
-    int l = sizeof(bitint) - (bitint)ys % sizeof(bitint);
-    const unsigned char *p = (unsigned char*)memchr(ys, *xs, l);
-    if (p && (p - ys) < m) {
-      if (memcmp(p, xs, m) == 0) return (mrb_int)(p - ys);
-      ys = p;
-    }
-  }
-#endif
-
   const bitint first = MASK1 * (uint8_t)xs[0];
   const bitint last  = MASK1 * (uint8_t)xs[m-1];
 
