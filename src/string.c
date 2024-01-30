@@ -566,10 +566,9 @@ str_index_str_by_char(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
 #define str_index_str_by_char(mrb, str, sub, pos) str_index_str((mrb), (str), (sub), (pos))
 #endif
 
-/* The function is taken from https://github.com/WojciechMula/sse4-strstr.git */
-/* The original source code is under 2 clause BSD license; see LEGAL file.    */
+/* The function is taken from http://0x80.pl/articles/simd-strfind.html */
+/* The original source code is under 2-clause BSD license; see LEGAL file.    */
 /* The modifications:
-
    * port from C++ to C
    * takes unsigned char*
    * returns mrb_int
