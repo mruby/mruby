@@ -1,4 +1,5 @@
 #include <mruby.h>
+#include <mruby/error.h>
 #include <mruby/gc.h>
 #include <mruby/hash.h>
 #include <mruby/class.h>
@@ -166,6 +167,9 @@ os_memsize_of_object(mrb_state* mrb, mrb_value obj)
     case MRB_TT_CDATA:
     case MRB_TT_ISTRUCT:
       size += mrb_objspace_page_slot_size();
+      break;
+    case MRB_TT_BACKTRACE:
+      size += ((struct RBacktrace*)mrb_obj_ptr(obj))->len * sizeof(struct mrb_backtrace_location);
       break;
     /*  zero heap size types.
      *  immediate VM stack values, contained within mrb_state, or on C stack */
