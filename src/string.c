@@ -571,7 +571,7 @@ str_index_str_by_char(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
 /* The modifications:
    * port from C++ to C
    * returns mrb_int
-   * alignment adjustment added
+   * remove alignment issue
    * support bigendian CPU
    * fixed potential buffer overflow
 */
