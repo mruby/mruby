@@ -570,7 +570,6 @@ str_index_str_by_char(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
 /* The original source code is under 2-clause BSD license; see LEGAL file.    */
 /* The modifications:
    * port from C++ to C
-   * takes unsigned char*
    * returns mrb_int
    * alignment adjustment added
    * support bigendian CPU
