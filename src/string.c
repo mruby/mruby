@@ -566,8 +566,10 @@ str_index_str_by_char(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
 #define str_index_str_by_char(mrb, str, sub, pos) str_index_str((mrb), (str), (sub), (pos))
 #endif
 
-/* The function is taken from http://0x80.pl/articles/simd-strfind.html */
-/* The original source code is under 2-clause BSD license; see LEGAL file.    */
+/* memsearch_swar (SWAR stands for SIMD within a register)                 */
+/* See https://en.wikipedia.org/wiki/SWAR                                  */
+/* The function is taken from http://0x80.pl/articles/simd-strfind.html    */
+/* The original source code is under 2-clause BSD license; see LEGAL file. */
 /* The modifications:
    * port from C++ to C
    * returns mrb_int
@@ -576,7 +578,7 @@ str_index_str_by_char(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
    * fixed potential buffer overflow
 */
 static inline mrb_int
-mrb_memsearch_ss(const char *xs, long m, const char *ys, long n)
+memsearch_swar(const char *xs, long m, const char *ys, long n)
 {
 #ifdef MRB_64BIT
 #define bitint uint64_t
@@ -668,7 +670,7 @@ mrb_memsearch(const char *x, mrb_int m, const char *y, mrb_int n)
     if (p) return (mrb_int)(p - y);
     return -1;
   }
-  return mrb_memsearch_ss(x, m, y, n);
+  return memsearch_swar(x, m, y, n);
 }
 
 static void
