@@ -577,7 +577,7 @@ str_index_str_by_char(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
    * fixed potential buffer overflow
 */
 static inline mrb_int
-mrb_memsearch_ss(const unsigned char *xs, long m, const unsigned char *ys, long n)
+mrb_memsearch_ss(const char *xs, long m, const char *ys, long n)
 {
 #ifdef MRB_64BIT
 #define bitint uint64_t
@@ -605,8 +605,8 @@ mrb_memsearch_ss(const unsigned char *xs, long m, const unsigned char *ys, long 
   const bitint first = MASK1 * (uint8_t)xs[0];
   const bitint last  = MASK1 * (uint8_t)xs[m-1];
 
-  const unsigned char *s0 = ys;
-  const unsigned char *s1 = ys+m-1;
+  const char *s0 = ys;
+  const char *s1 = ys+m-1;
 
   const mrb_int lim = n - MAX(m, (mrb_int)sizeof(bitint));
   mrb_int i;
@@ -624,7 +624,7 @@ mrb_memsearch_ss(const unsigned char *xs, long m, const unsigned char *ys, long 
     while (zeros) {
       if (zeros & MASK4) {
         const mrb_int idx = i + j;
-        const unsigned char* p = s0 + idx + 1;
+        const char* p = s0 + idx + 1;
         if (memcmp(p, xs + 1, m - 2) == 0) {
           return idx;
         }
@@ -640,10 +640,10 @@ mrb_memsearch_ss(const unsigned char *xs, long m, const unsigned char *ys, long 
   }
 
   if (i+m < n) {
-    const unsigned char *p = s0;
-    const unsigned char *e = ys + n;
+    const char *p = s0;
+    const char *e = ys + n;
     for (;p<e;) {
-      p = (const unsigned char*)memchr(p, *xs, e-p);
+      p = (const char*)memchr(p, *xs, e-p);
       if (p == NULL) break;
       if (memcmp(p+1, xs+1, m-1) == 0) return (mrb_int)(p - ys);
       p++;
@@ -654,24 +654,22 @@ mrb_memsearch_ss(const unsigned char *xs, long m, const unsigned char *ys, long 
 }
 
 static mrb_int
-mrb_memsearch(const char *x0, mrb_int m, const char *y0, mrb_int n)
+mrb_memsearch(const char *x, mrb_int m, const char *y, mrb_int n)
 {
-  const unsigned char *x = (const unsigned char*)x0, *y = (const unsigned char*)y0;
-
   if (m > n) return -1;
   else if (m == n) {
-    return memcmp(x0, y0, m) == 0 ? 0 : -1;
+    return memcmp(x, y, m) == 0 ? 0 : -1;
   }
   else if (m < 1) {
     return 0;
   }
   else if (m == 1) {
-    const unsigned char *p = (const unsigned char*)memchr(y, *x, n);
+    const char *p = (const char*)memchr(y, *x, n);
 
     if (p) return (mrb_int)(p - y);
     return -1;
   }
-  return mrb_memsearch_ss((const unsigned char*)x0, m, (const unsigned char*)y0, n);
+  return mrb_memsearch_ss(x, m, y, n);
 }
 
 static void
