@@ -798,6 +798,8 @@ MRB_API struct RClass * mrb_module_get_under_id(mrb_state *mrb, struct RClass *o
 MRB_API void mrb_notimplement(mrb_state*);
 /* a function to be replacement of unimplemented method */
 MRB_API mrb_value mrb_notimplement_m(mrb_state*, mrb_value);
+/* just return it self */
+MRB_API mrb_value mrb_obj_itself(mrb_state*, mrb_value);
 
 /**
  * Duplicate an object.

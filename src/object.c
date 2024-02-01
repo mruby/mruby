@@ -649,3 +649,9 @@ mrb_eql(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
   if (mrb_class(mrb, obj1) != mrb_class(mrb, obj2)) return FALSE;
   return mrb_test(mrb_funcall_argv(mrb, obj1, MRB_SYM_Q(eql), 1, &obj2));
 }
+
+MRB_API mrb_value
+mrb_obj_itself(mrb_state *mrb, mrb_value self)
+{
+  return self;
+}
