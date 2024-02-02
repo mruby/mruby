@@ -2025,6 +2025,9 @@ cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
   if (mrb_bigint_p(v1)) {
     return mrb_bint_cmp(mrb, v1, v2);
   }
+  if (mrb_bigint_p(v2)) {
+    return mrb_bint_cmp(mrb, mrb_bint_new_int(mrb, mrb_integer(v1)), v2);
+  }
 #endif
 
 #ifdef MRB_NO_FLOAT
