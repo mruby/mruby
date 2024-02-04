@@ -827,7 +827,9 @@ obj_free(mrb_state *mrb, struct RBasic *obj, int end)
     {
       struct RBacktrace *bt = (struct RBacktrace*)obj;
       for (size_t i = 0; i < bt->len; i++) {
-        mrb_irep_decref(mrb, (mrb_irep*)bt->locations[i].irep);
+        const mrb_irep *irep = bt->locations[i].irep;
+        if (irep == NULL) continue;
+        mrb_irep_decref(mrb, (mrb_irep*)irep);
       }
       mrb_free(mrb, bt->locations);
     }
