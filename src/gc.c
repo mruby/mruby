@@ -688,15 +688,6 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
     mrb_gc_mark(mrb, (struct RBasic*)((struct RException*)obj)->backtrace);
     break;
 
-  case MRB_TT_BACKTRACE:
-    {
-      struct RBacktrace *bt = (struct RBacktrace*)obj;
-      for (size_t i = 0; i < bt->len; i++) {
-        mrb_gc_mark(mrb, (struct RBasic*)bt->locations[i].proc);
-      }
-    }
-    break;
-
   default:
     break;
   }
@@ -835,6 +826,9 @@ obj_free(mrb_state *mrb, struct RBasic *obj, int end)
   case MRB_TT_BACKTRACE:
     {
       struct RBacktrace *bt = (struct RBacktrace*)obj;
+      for (size_t i = 0; i < bt->len; i++) {
+        mrb_irep_decref(mrb, (mrb_irep*)bt->locations[i].irep);
+      }
       mrb_free(mrb, bt->locations);
     }
 

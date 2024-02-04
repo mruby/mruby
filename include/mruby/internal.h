@@ -70,7 +70,7 @@ struct RBacktrace {
 struct mrb_backtrace_location {
   mrb_sym method_id;
   int32_t idx;
-  const struct RProc *proc;
+  const mrb_irep *irep;
 };
 
 /* gc */
