@@ -107,9 +107,11 @@
 
 */
 
+typedef struct RVALUE RVALUE;
+
 struct free_obj {
   MRB_OBJECT_HEADER;
-  struct RBasic *next;
+  RVALUE *next;
 };
 
 struct RVALUE_initializer {
@@ -117,7 +119,7 @@ struct RVALUE_initializer {
   char padding[sizeof(void*) * 4 - sizeof(uint32_t)];
 };
 
-typedef struct {
+struct RVALUE {
   union {
     struct RVALUE_initializer init;  /* must be first member to ensure initialization */
     struct free_obj free;
@@ -136,7 +138,7 @@ typedef struct {
     struct RException exc;
     struct RBreak brk;
   } as;
-} RVALUE;
+};
 
 #ifdef GC_DEBUG
 #define DEBUG(x) (x)
@@ -149,7 +151,7 @@ typedef struct {
 #endif
 
 typedef struct mrb_heap_page {
-  struct RBasic *freelist;
+  RVALUE *freelist;
   struct mrb_heap_page *next;
   struct mrb_heap_page *free_next;
   mrb_bool old:1;
@@ -301,12 +303,12 @@ add_heap(mrb_state *mrb, mrb_gc *gc)
 {
   mrb_heap_page *page = (mrb_heap_page*)mrb_calloc(mrb, 1, sizeof(mrb_heap_page) + MRB_HEAP_PAGE_SIZE * sizeof(RVALUE));
   RVALUE *p, *e;
-  struct RBasic *prev = NULL;
+  RVALUE *prev = NULL;
 
   for (p = objects(page), e=p+MRB_HEAP_PAGE_SIZE; p<e; p++) {
     p->as.free.tt = MRB_TT_FREE;
     p->as.free.next = prev;
-    prev = &p->as.basic;
+    prev = p;
   }
   page->freelist = prev;
 
@@ -498,19 +500,19 @@ mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
     add_heap(mrb, gc);
   }
 
-  struct RBasic *p = gc->free_heaps->freelist;
-  gc->free_heaps->freelist = ((struct free_obj*)p)->next;
+  RVALUE *p = gc->free_heaps->freelist;
+  gc->free_heaps->freelist = p->as.free.next;
   if (gc->free_heaps->freelist == NULL) {
     gc->free_heaps = gc->free_heaps->free_next;
   }
 
   gc->live++;
-  gc_protect(mrb, gc, p);
-  *(RVALUE*)p = RVALUE_zero;
-  p->tt = ttype;
-  p->c = cls;
-  paint_partial_white(gc, p);
-  return p;
+  gc_protect(mrb, gc, &p->as.basic);
+  *p = RVALUE_zero;
+  p->as.basic.tt = ttype;
+  p->as.basic.c = cls;
+  paint_partial_white(gc, &p->as.basic);
+  return &p->as.basic;
 }
 
 static inline void
@@ -1095,7 +1097,7 @@ incremental_sweep_phase(mrb_state *mrb, mrb_gc *gc, size_t limit)
           obj_free(mrb, &p->as.basic, FALSE);
           if (p->as.basic.tt == MRB_TT_FREE) {
             p->as.free.next = page->freelist;
-            page->freelist = (struct RBasic*)p;
+            page->freelist = p;
             freed++;
           }
           else {
