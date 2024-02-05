@@ -155,8 +155,7 @@ typedef struct mrb_heap_page {
   struct mrb_heap_page *next;
   struct mrb_heap_page *free_next;
   mrb_bool old:1;
-  /* Flexible array members are not C++ compatible */
-  /* void* objects[]; */
+  RVALUE objects[MRB_HEAP_PAGE_SIZE];
 } mrb_heap_page;
 
 #define GC_STEP_SIZE 1024
@@ -182,12 +181,6 @@ mrb_static_assert(MRB_GC_RED <= GC_COLOR_MASK);
 #define flip_white_part(s) ((s)->current_white_part = other_white_part(s))
 #define other_white_part(s) ((s)->current_white_part ^ GC_WHITES)
 #define is_dead(s, o) (((o)->color & other_white_part(s) & GC_WHITES) || (o)->tt == MRB_TT_FREE)
-
-/* We have removed `objects[]` from `mrb_heap_page` since it was not C++
- * compatible. Using array index to get pointer after structure instead. */
-
-/* #define objects(p) ((RVALUE*)p->objects) */
-#define objects(p) ((RVALUE*)&p[1])
 
 mrb_noreturn void mrb_raise_nomemory(mrb_state *mrb);
 
@@ -281,7 +274,7 @@ heap_p(mrb_gc *gc, struct RBasic *object)
   while (page) {
     RVALUE *p;
 
-    p = objects(page);
+    p = page->objects;
     if (&p[0].as.basic <= object && object <= &p[MRB_HEAP_PAGE_SIZE - 1].as.basic) {
       return TRUE;
     }
@@ -301,11 +294,11 @@ mrb_object_dead_p(mrb_state *mrb, struct RBasic *object)
 static void
 add_heap(mrb_state *mrb, mrb_gc *gc)
 {
-  mrb_heap_page *page = (mrb_heap_page*)mrb_calloc(mrb, 1, sizeof(mrb_heap_page) + MRB_HEAP_PAGE_SIZE * sizeof(RVALUE));
+  mrb_heap_page *page = (mrb_heap_page*)mrb_calloc(mrb, 1, sizeof(mrb_heap_page));
   RVALUE *p, *e;
   RVALUE *prev = NULL;
 
-  for (p = objects(page), e=p+MRB_HEAP_PAGE_SIZE; p<e; p++) {
+  for (p = page->objects, e=p+MRB_HEAP_PAGE_SIZE; p<e; p++) {
     p->as.free.tt = MRB_TT_FREE;
     p->as.free.next = prev;
     prev = p;
@@ -359,7 +352,7 @@ free_heap(mrb_state *mrb, mrb_gc *gc)
   while (page) {
     tmp = page;
     page = page->next;
-    for (p = objects(tmp), e=p+MRB_HEAP_PAGE_SIZE; p<e; p++) {
+    for (p = tmp->objects, e=p+MRB_HEAP_PAGE_SIZE; p<e; p++) {
       if (p->as.free.tt != MRB_TT_FREE)
         obj_free(mrb, &p->as.basic, TRUE);
     }
@@ -1081,7 +1074,7 @@ incremental_sweep_phase(mrb_state *mrb, mrb_gc *gc, size_t limit)
   size_t tried_sweep = 0;
 
   while (page && (tried_sweep < limit)) {
-    RVALUE *p = objects(page);
+    RVALUE *p = page->objects;
     RVALUE *e = p + MRB_HEAP_PAGE_SIZE;
     size_t freed = 0;
     mrb_bool dead_slot = TRUE;
@@ -1541,7 +1534,7 @@ gc_each_objects(mrb_state *mrb, mrb_gc *gc, mrb_each_object_callback *callback, 
   while (page != NULL) {
     RVALUE *p;
 
-    p = objects(page);
+    p = page->objects;
     for (int i=0; i < MRB_HEAP_PAGE_SIZE; i++) {
       if ((*callback)(mrb, &p[i].as.basic, data) == MRB_EACH_OBJ_BREAK)
         return;
