@@ -1495,19 +1495,17 @@ static mrb_value
 mrb_pack_pack(mrb_state *mrb, mrb_value ary)
 {
   mrb_value o, result;
-  mrb_int aidx;
   struct tmpl tmpl;
-  int count;
+  enum pack_type type;
+  int count, size;
   unsigned int flags;
   enum pack_dir dir;
-  enum pack_type type;
-  int ridx, size;
 
   prepare_tmpl(mrb, &tmpl);
 
   result = mrb_str_new(mrb, NULL, 128);  /* allocate initial buffer */
-  aidx = 0;
-  ridx = 0;
+  mrb_int aidx = 0;
+  mrb_int ridx = 0;
   while (has_tmpl(&tmpl)) {
     dir = read_tmpl(mrb, &tmpl, &type, &size, &count, &flags);
 
