@@ -345,7 +345,7 @@ mrb_gc_init(mrb_state *mrb, mrb_gc *gc)
 #endif
 }
 
-static void obj_free(mrb_state *mrb, struct RBasic *obj, int end);
+static void obj_free(mrb_state *mrb, struct RBasic *obj, mrb_bool end);
 
 static void
 free_heap(mrb_state *mrb, mrb_gc *gc)
@@ -704,7 +704,7 @@ mrb_gc_mark(mrb_state *mrb, struct RBasic *obj)
 }
 
 static void
-obj_free(mrb_state *mrb, struct RBasic *obj, int end)
+obj_free(mrb_state *mrb, struct RBasic *obj, mrb_bool end)
 {
   DEBUG(fprintf(stderr, "obj_free(%p,tt=%d)\n",obj,obj->tt));
   switch (obj->tt) {
