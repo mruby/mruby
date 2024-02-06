@@ -85,10 +85,15 @@ pack_backtrace_i(mrb_state *mrb,
   struct mrb_backtrace_location **pptr = (struct mrb_backtrace_location**)data;
   struct mrb_backtrace_location *ptr = *pptr;
 
-  if (loc->irep) {
-    mrb_irep_incref(mrb, (mrb_irep*)loc->irep);
-  }
   *ptr = *loc;
+  if (ptr->irep) {
+    if (ptr->irep->refcnt == UINT16_MAX) {
+      ptr->irep = NULL;
+    }
+    else {
+      mrb_irep_incref(mrb, (mrb_irep*)ptr->irep);
+    }
+  }
   *pptr = ptr+1;
 }
 
