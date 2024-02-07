@@ -106,19 +106,14 @@ packed_backtrace(mrb_state *mrb)
   if (ciidx >= mrb->c->ciend - mrb->c->cibase)
     ciidx = mrb->c->ciend - mrb->c->cibase; /* ciidx is broken... */
 
-  /* count the number of backtraces */
-  int len = each_backtrace(mrb, ciidx, NULL, NULL);
+  ptrdiff_t len = ciidx + 1;
+
   backtrace = MRB_OBJ_ALLOC(mrb, MRB_TT_BACKTRACE, NULL);
-  if (len > 0) {
-    void *ptr = mrb_malloc(mrb, len * sizeof(struct mrb_backtrace_location));
-    backtrace->locations = (struct mrb_backtrace_location*)ptr;
-    backtrace->len = len;
-    each_backtrace(mrb, ciidx, pack_backtrace_i, &ptr);
-  }
-  else {
-    backtrace->locations = NULL;
-    backtrace->len = 0;
-  }
+
+  void *ptr = mrb_malloc(mrb, len * sizeof(struct mrb_backtrace_location));
+  backtrace->locations = (struct mrb_backtrace_location*)ptr;
+  backtrace->len = each_backtrace(mrb, ciidx, pack_backtrace_i, &ptr);
+
   return (struct RObject*)backtrace;
 }
 
