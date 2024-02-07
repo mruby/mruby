@@ -19,10 +19,10 @@
 
 typedef void (*each_backtrace_func)(mrb_state*, const struct mrb_backtrace_location*, void*);
 
-static uint32_t
+static size_t
 each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, each_backtrace_func func, void *data)
 {
-  uint32_t n = 0;
+  size_t n = 0;
 
   for (ptrdiff_t i=ciidx; i >= 0; i--) {
     struct mrb_backtrace_location loc;
