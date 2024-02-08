@@ -18,27 +18,24 @@
 #include <mruby/presym.h>
 
 static void
-pack_backtrace_i(mrb_state *mrb,
+copy_backtrace(mrb_state *mrb,
                  const struct mrb_backtrace_location *loc,
-                 void *data)
+                 struct mrb_backtrace_location *ptr,
+                 size_t n)
 {
-  struct mrb_backtrace_location **pptr = (struct mrb_backtrace_location**)data;
-  struct mrb_backtrace_location *ptr = *pptr;
-
-  *ptr = *loc;
-  if (ptr->irep) {
-    if (ptr->irep->refcnt == UINT16_MAX) {
-      ptr->irep = NULL;
+  ptr[n] = *loc;
+  if (loc->irep) {
+    if (loc->irep->refcnt == UINT16_MAX) {
+      ptr[n].irep = NULL;
     }
     else {
-      mrb_irep_incref(mrb, (mrb_irep*)ptr->irep);
+      mrb_irep_incref(mrb, (mrb_irep*)loc->irep);
     }
   }
-  *pptr = ptr+1;
 }
 
 static size_t
-pack_backtrace(mrb_state *mrb, ptrdiff_t ciidx, void *data)
+pack_backtrace(mrb_state *mrb, ptrdiff_t ciidx, struct mrb_backtrace_location *ptr)
 {
   size_t n = 0;
 
@@ -89,7 +86,7 @@ pack_backtrace(mrb_state *mrb, ptrdiff_t ciidx, void *data)
         break;
       }
     }
-    pack_backtrace_i(mrb, &loc, data);
+    copy_backtrace(mrb, &loc, ptr, n);
     n++;
   }
   return n;
@@ -110,7 +107,7 @@ packed_backtrace(mrb_state *mrb)
 
   void *ptr = mrb_malloc(mrb, len * sizeof(struct mrb_backtrace_location));
   backtrace->locations = (struct mrb_backtrace_location*)ptr;
-  backtrace->len = pack_backtrace(mrb, ciidx, &ptr);
+  backtrace->len = pack_backtrace(mrb, ciidx, backtrace->locations);
 
   return (struct RObject*)backtrace;
 }
