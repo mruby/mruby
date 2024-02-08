@@ -17,10 +17,28 @@
 #include <mruby/internal.h>
 #include <mruby/presym.h>
 
-typedef void (*each_backtrace_func)(mrb_state*, const struct mrb_backtrace_location*, void*);
+static void
+pack_backtrace_i(mrb_state *mrb,
+                 const struct mrb_backtrace_location *loc,
+                 void *data)
+{
+  struct mrb_backtrace_location **pptr = (struct mrb_backtrace_location**)data;
+  struct mrb_backtrace_location *ptr = *pptr;
+
+  *ptr = *loc;
+  if (ptr->irep) {
+    if (ptr->irep->refcnt == UINT16_MAX) {
+      ptr->irep = NULL;
+    }
+    else {
+      mrb_irep_incref(mrb, (mrb_irep*)ptr->irep);
+    }
+  }
+  *pptr = ptr+1;
+}
 
 static size_t
-each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, each_backtrace_func func, void *data)
+pack_backtrace(mrb_state *mrb, ptrdiff_t ciidx, void *data)
 {
   size_t n = 0;
 
@@ -71,30 +89,10 @@ each_backtrace(mrb_state *mrb, ptrdiff_t ciidx, each_backtrace_func func, void *
         break;
       }
     }
-    if (func) func(mrb, &loc, data);
+    pack_backtrace_i(mrb, &loc, data);
     n++;
   }
   return n;
-}
-
-static void
-pack_backtrace_i(mrb_state *mrb,
-                 const struct mrb_backtrace_location *loc,
-                 void *data)
-{
-  struct mrb_backtrace_location **pptr = (struct mrb_backtrace_location**)data;
-  struct mrb_backtrace_location *ptr = *pptr;
-
-  *ptr = *loc;
-  if (ptr->irep) {
-    if (ptr->irep->refcnt == UINT16_MAX) {
-      ptr->irep = NULL;
-    }
-    else {
-      mrb_irep_incref(mrb, (mrb_irep*)ptr->irep);
-    }
-  }
-  *pptr = ptr+1;
 }
 
 static struct RObject*
@@ -112,7 +110,7 @@ packed_backtrace(mrb_state *mrb)
 
   void *ptr = mrb_malloc(mrb, len * sizeof(struct mrb_backtrace_location));
   backtrace->locations = (struct mrb_backtrace_location*)ptr;
-  backtrace->len = each_backtrace(mrb, ciidx, pack_backtrace_i, &ptr);
+  backtrace->len = pack_backtrace(mrb, ciidx, &ptr);
 
   return (struct RObject*)backtrace;
 }
