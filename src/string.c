@@ -601,15 +601,13 @@ memsearch_swar(const char *xs, long m, const char *ys, long n)
 #define MASK4 0x80
 #endif
 
-#define MAX(a,b) ((a) > (b) ? (a) : (b))
-
   const bitint first = MASK1 * (uint8_t)xs[0];
   const bitint last  = MASK1 * (uint8_t)xs[m-1];
 
   const char *s0 = ys;
   const char *s1 = ys+m-1;
 
-  const mrb_int lim = n - MAX(m, (mrb_int)sizeof(bitint));
+  const mrb_int lim = n - m - (mrb_int)sizeof(bitint);
   mrb_int i;
 
   for (i=0; i < lim; i+=sizeof(bitint)) {
@@ -620,9 +618,9 @@ memsearch_swar(const char *xs, long m, const char *ys, long n)
 
     const bitint eq = (t0 ^ first) | (t1 ^ last);
     bitint zeros = ((~eq & MASK2) + MASK1) & (~eq & MASK3);
-    size_t j = 0;
 
-    while (zeros) {
+
+    for (size_t j = 0; zeros; j++) {
       if (zeros & MASK4) {
         const mrb_int idx = i + j;
         const char* p = s0 + idx + 1;
@@ -636,7 +634,6 @@ memsearch_swar(const char *xs, long m, const char *ys, long n)
 #else
       zeros >>= 8;
 #endif
-      j++;
     }
   }
 
