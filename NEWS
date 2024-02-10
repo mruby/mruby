@@ -100,6 +100,9 @@ NEWS
 
 # Bugs Fixed
 
+- [#5724](https://github.com/mruby/mruby/issues/5724) Rational#\*\* is missing
+- [#5725](https://github.com/mruby/mruby/issues/5725) weird const_missing exceptions in mrblib code
+- [#5789](https://github.com/mruby/mruby/issues/5789) No memory release of backtrace information due to stack error
 - [#5932](https://github.com/mruby/mruby/issues/5932) How to create a block using the C API? mrb_yield keeps crashing!
 - [#5943](https://github.com/mruby/mruby/issues/5943) TCPSocket#write is failed
 - [#5944](https://github.com/mruby/mruby/issues/5944) Behavior of calling method with a hash variable
