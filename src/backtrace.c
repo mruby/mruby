@@ -133,45 +133,47 @@ mrb_keep_backtrace(mrb_state *mrb, mrb_value exc)
   mrb_gc_arena_restore(mrb, ai);
 }
 
+static mrb_value
+decode_location(mrb_state *mrb, const struct mrb_backtrace_location *entry)
+{
+  mrb_value btline;
+  int32_t lineno;
+  const char *filename;
+
+  if (!entry->irep || !mrb_debug_get_position(mrb, entry->irep, entry->idx, &lineno, &filename)) {
+    btline = mrb_str_new_lit(mrb, "(unknown):0");
+  }
+  else if (lineno != -1) {//debug info was available
+    btline = mrb_format(mrb, "%s:%d", filename, (int)lineno);
+  }
+  else { //all that was left was the stack frame
+    btline = mrb_format(mrb, "%s:0", filename);
+  }
+  if (entry->method_id != 0) {
+    mrb_str_cat_lit(mrb, btline, ":in ");
+    mrb_str_cat_cstr(mrb, btline, mrb_sym_name(mrb, entry->method_id));
+  }
+  return btline;
+}
+
 static struct RObject*
 mrb_unpack_backtrace(mrb_state *mrb, struct RObject *backtrace)
 {
-  const struct mrb_backtrace_location *bt;
-  mrb_int n, i;
-  int ai;
-
   if (backtrace == NULL) {
-  empty_backtrace:
     return mrb_obj_ptr(mrb_ary_new_capa(mrb, 0));
   }
   if (backtrace->tt == MRB_TT_ARRAY) return backtrace;
-  mrb_assert(backtrace->tt == MRB_TT_BACKTRACE);
-  struct RBacktrace *btobj = (struct RBacktrace*)backtrace;
-  bt = btobj->locations;
-  if (bt == NULL) goto empty_backtrace;
-  n = (mrb_int)btobj->len;
-  if (n == 0) goto empty_backtrace;
-  backtrace = mrb_obj_ptr(mrb_ary_new_capa(mrb, n));
-  ai = mrb_gc_arena_save(mrb);
-  for (i = 0; i < n; i++) {
-    const struct mrb_backtrace_location *entry = &bt[i];
-    mrb_value btline;
-    int32_t lineno;
-    const char *filename;
 
-    if (!entry->irep || !mrb_debug_get_position(mrb, entry->irep, entry->idx, &lineno, &filename)) {
-      btline = mrb_str_new_lit(mrb, "(unknown):0");
-    }
-    else if (lineno != -1) {//debug info was available
-      btline = mrb_format(mrb, "%s:%d", filename, (int)lineno);
-    }
-    else { //all that was left was the stack frame
-      btline = mrb_format(mrb, "%s:0", filename);
-    }
-    if (entry->method_id != 0) {
-      mrb_str_cat_lit(mrb, btline, ":in ");
-      mrb_str_cat_cstr(mrb, btline, mrb_sym_name(mrb, entry->method_id));
-    }
+  mrb_assert(backtrace->tt == MRB_TT_BACKTRACE);
+
+  struct RBacktrace *bt = (struct RBacktrace*)backtrace;
+  mrb_int n = bt ? (mrb_int)bt->len : 0;
+  const struct mrb_backtrace_location *loc = bt->locations;
+
+  backtrace = mrb_obj_ptr(mrb_ary_new_capa(mrb, n));
+  int ai = mrb_gc_arena_save(mrb);
+  for (mrb_int i = 0; i < n; i++) {
+    mrb_value btline = decode_location(mrb, &loc[i]);
     mrb_ary_push(mrb, mrb_obj_value(backtrace), btline);
     mrb_gc_arena_restore(mrb, ai);
   }
