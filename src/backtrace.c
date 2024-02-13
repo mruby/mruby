@@ -92,7 +92,7 @@ pack_backtrace(mrb_state *mrb, ptrdiff_t ciidx, struct mrb_backtrace_location *p
   return n;
 }
 
-static struct RObject*
+static struct RBasic*
 packed_backtrace(mrb_state *mrb)
 {
   struct RBacktrace *backtrace;
@@ -109,15 +109,15 @@ packed_backtrace(mrb_state *mrb)
   backtrace->locations = (struct mrb_backtrace_location*)ptr;
   backtrace->len = pack_backtrace(mrb, ciidx, backtrace->locations);
 
-  return (struct RObject*)backtrace;
+  return (struct RBasic*)backtrace;
 }
 
 static void
-store_backtrace(mrb_state *mrb, mrb_value exc, struct RObject *backtrace)
+store_backtrace(mrb_state *mrb, mrb_value exc, struct RBasic *backtrace)
 {
   struct RException *e = mrb_exc_ptr(exc);
   e->backtrace = backtrace;
-  mrb_field_write_barrier(mrb, (struct RBasic*)e, (struct RBasic*)backtrace);
+  mrb_field_write_barrier(mrb, (struct RBasic*)e, backtrace);
 }
 
 void
@@ -128,7 +128,7 @@ mrb_keep_backtrace(mrb_state *mrb, mrb_value exc)
   if (mrb->c->ci == NULL) return;
   if (mrb_exc_ptr(exc)->backtrace) return;
   ai = mrb_gc_arena_save(mrb);
-  struct RObject *backtrace = packed_backtrace(mrb);
+  struct RBasic *backtrace = packed_backtrace(mrb);
   store_backtrace(mrb, exc, backtrace);
   mrb_gc_arena_restore(mrb, ai);
 }
@@ -156,11 +156,11 @@ decode_location(mrb_state *mrb, const struct mrb_backtrace_location *entry)
   return btline;
 }
 
-static struct RObject*
-mrb_unpack_backtrace(mrb_state *mrb, struct RObject *backtrace)
+static struct RBasic*
+mrb_unpack_backtrace(mrb_state *mrb, struct RBasic *backtrace)
 {
   if (backtrace == NULL) {
-    return mrb_obj_ptr(mrb_ary_new_capa(mrb, 0));
+    return mrb_basic_ptr(mrb_ary_new_capa(mrb, 0));
   }
   if (backtrace->tt == MRB_TT_ARRAY) return backtrace;
 
@@ -170,7 +170,7 @@ mrb_unpack_backtrace(mrb_state *mrb, struct RObject *backtrace)
   mrb_int n = bt ? (mrb_int)bt->len : 0;
   const struct mrb_backtrace_location *loc = bt->locations;
 
-  backtrace = mrb_obj_ptr(mrb_ary_new_capa(mrb, n));
+  backtrace = mrb_basic_ptr(mrb_ary_new_capa(mrb, n));
   int ai = mrb_gc_arena_save(mrb);
   for (mrb_int i = 0; i < n; i++) {
     mrb_value btline = decode_location(mrb, &loc[i]);
@@ -184,7 +184,7 @@ mrb_unpack_backtrace(mrb_state *mrb, struct RObject *backtrace)
 mrb_value
 mrb_exc_backtrace(mrb_state *mrb, mrb_value exc)
 {
-  struct RObject *backtrace = mrb_exc_ptr(exc)->backtrace;
+  struct RBasic *backtrace = mrb_exc_ptr(exc)->backtrace;
   if (backtrace == NULL) {
     return mrb_nil_value();
   }
@@ -206,16 +206,16 @@ mrb_get_backtrace(mrb_state *mrb)
 #ifndef MRB_NO_STDIO
 
 static void
-print_backtrace(mrb_state *mrb, struct RObject *exc, struct RArray *backtrace)
+print_backtrace(mrb_state *mrb, struct RObject *exc, struct RBasic *bt)
 {
-  mrb_int i;
+  struct RArray *backtrace = (struct RArray*)bt;
   mrb_int n = (backtrace ? ARY_LEN(backtrace) : 0);
-  mrb_value *loc, mesg;
 
   if (n != 0) {
-    if (n > 1) {
-      fputs("trace (most recent call last):\n", stderr);
-    }
+    mrb_value *loc;
+    mrb_int i;
+
+    fputs("trace (most recent call last):\n", stderr);
     for (i=n-1,loc=&ARY_PTR(backtrace)[i]; i>0; i--,loc--) {
       if (mrb_string_p(*loc)) {
         fprintf(stderr, "\t[%d] ", (int)i);
@@ -237,7 +237,7 @@ print_backtrace(mrb_state *mrb, struct RObject *exc, struct RArray *backtrace)
     fwrite(nomem, sizeof(nomem)-1, 1, stderr);
   }
   else {
-    mesg = mrb_exc_inspect(mrb, mrb_obj_value(exc));
+    mrb_value mesg = mrb_exc_inspect(mrb, mrb_obj_value(exc));
     fwrite(RSTRING_PTR(mesg), RSTRING_LEN(mesg), 1, stderr);
     fputc('\n', stderr);
   }
@@ -255,9 +255,9 @@ mrb_print_backtrace(mrb_state *mrb)
     return;
   }
 
-  struct RObject *backtrace = ((struct RException*)mrb->exc)->backtrace;
+  struct RBasic *backtrace = ((struct RException*)mrb->exc)->backtrace;
   if (backtrace && backtrace->tt != MRB_TT_ARRAY) backtrace = mrb_unpack_backtrace(mrb, backtrace);
-  print_backtrace(mrb, mrb->exc, (struct RArray*)backtrace);
+  print_backtrace(mrb, mrb->exc, backtrace);
 }
 #else
 MRB_API void

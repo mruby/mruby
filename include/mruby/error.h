@@ -17,8 +17,8 @@ MRB_BEGIN_DECL
 struct RException {
   MRB_OBJECT_HEADER;
   struct iv_tbl *iv;
-  struct RObject *mesg;         // NULL or probably RString
-  struct RObject *backtrace;    // NULL, RArray or RData
+  struct RBasic *mesg;         // NULL or probably RString
+  struct RBasic *backtrace;    // NULL, RArray or RData
 };
 
 /* error that should terminate execution */

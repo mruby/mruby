@@ -24,7 +24,7 @@ mrb_exc_mesg_set(mrb_state *mrb, struct RException *exc, mrb_value mesg)
   if (!mrb_string_p(mesg)) {
     mesg = mrb_obj_as_string(mrb, mesg);
   }
-  exc->mesg = mrb_obj_ptr(mesg);
+  exc->mesg = mrb_basic_ptr(mesg);
   mrb_field_write_barrier_value(mrb, (struct RBasic*)exc, mesg);
 }
 
@@ -160,7 +160,7 @@ set_backtrace(mrb_state *mrb, mrb_value exc, mrb_value backtrace)
       p++;
     }
   }
-  mrb_exc_ptr(exc)->backtrace = mrb_obj_ptr(backtrace);
+  mrb_exc_ptr(exc)->backtrace = mrb_basic_ptr(backtrace);
   mrb_field_write_barrier_value(mrb, mrb_basic_ptr(exc), backtrace);
 }
 
