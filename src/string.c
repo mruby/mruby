@@ -578,7 +578,7 @@ str_index_str_by_char(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
    * fixed potential buffer overflow
 */
 static inline mrb_int
-memsearch_swar(const char *xs, long m, const char *ys, long n)
+memsearch_swar(const char *xs, mrb_int m, const char *ys, mrb_int n)
 {
 #ifdef MRB_64BIT
 #define bitint uint64_t
@@ -641,9 +641,9 @@ memsearch_swar(const char *xs, long m, const char *ys, long n)
     const char *p = s0;
     const char *e = ys + n;
     for (;p<e;) {
-      size_t len = e-p;
+      size_t len = e - p;
       p = (const char*)memchr(p, *xs, len);
-      if (p == NULL || len < m) break;
+      if (p == NULL || (e - p) < m) break;
       if (memcmp(p+1, xs+1, m-1) == 0) return (mrb_int)(p - ys);
       p++;
     }
