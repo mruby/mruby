@@ -206,25 +206,40 @@ mrb_get_backtrace(mrb_state *mrb)
 #ifndef MRB_NO_STDIO
 
 static void
-print_backtrace(mrb_state *mrb, struct RObject *exc, struct RBasic *bt)
+print_backtrace(mrb_state *mrb, struct RObject *exc, struct RBasic *ptr)
 {
-  struct RArray *backtrace = (struct RArray*)bt;
-  mrb_int n = (backtrace ? ARY_LEN(backtrace) : 0);
+  struct RArray *ary = NULL;
+  struct RBacktrace *bt = NULL;
+  mrb_int n = 0;
+
+  if (ptr) {
+    if (ptr->tt == MRB_TT_ARRAY) {
+      ary = (struct RArray*)ptr;
+      n = ARY_LEN(ary);
+    }
+    else {
+      bt = (struct RBacktrace*)ptr;
+      n = (mrb_int)bt->len;
+    }
+  }
 
   if (n != 0) {
-    mrb_value *loc;
-    mrb_int i;
+    mrb_value btline;
 
     fputs("trace (most recent call last):\n", stderr);
-    for (i=n-1,loc=&ARY_PTR(backtrace)[i]; i>0; i--,loc--) {
-      if (mrb_string_p(*loc)) {
+    for (mrb_int i=n-1; i>0; i--) {
+      if (ary) btline = ARY_PTR(ary)[i];
+      else btline = decode_location(mrb, &bt->locations[i]);
+      if (mrb_string_p(btline)) {
         fprintf(stderr, "\t[%d] ", (int)i);
-        fwrite(RSTRING_PTR(*loc), (int)RSTRING_LEN(*loc), 1, stderr);
+        fwrite(RSTRING_PTR(btline), (int)RSTRING_LEN(btline), 1, stderr);
         fputc('\n', stderr);
       }
     }
-    if (mrb_string_p(*loc)) {
-      fwrite(RSTRING_PTR(*loc), (int)RSTRING_LEN(*loc), 1, stderr);
+    if (ary) btline = ARY_PTR(ary)[0];
+    else btline = decode_location(mrb, &bt->locations[0]);
+    if (mrb_string_p(btline)) {
+      fwrite(RSTRING_PTR(btline), (int)RSTRING_LEN(btline), 1, stderr);
       fputs(": ", stderr);
     }
   }
@@ -256,7 +271,6 @@ mrb_print_backtrace(mrb_state *mrb)
   }
 
   struct RBasic *backtrace = ((struct RException*)mrb->exc)->backtrace;
-  if (backtrace && backtrace->tt != MRB_TT_ARRAY) backtrace = mrb_unpack_backtrace(mrb, backtrace);
   print_backtrace(mrb, mrb->exc, backtrace);
 }
 #else
