@@ -478,7 +478,6 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
   }
 
   mpz_t q, x, y;
-  size_t i;
 
   mrb_assert(!uzero(yy));       /* divided by zero */
   mpz_init(mrb, &q);
@@ -502,6 +501,8 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
       else
         qhat = (((mp_dbl_limb)x.p[j+yd] << DIG_SIZE) + x.p[j+yd-1]) / z;
       if (qhat) {
+        size_t i;
+
         for (i=0; i<yd; i++) {
           mp_dbl_limb zz = qhat * y.p[i];
           mp_dbl_limb_signed u = LOW(b)+x.p[i+j]-LOW(zz);
@@ -512,7 +513,7 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
       }
       for (; b!=0; qhat--) {
         mp_dbl_limb c = 0;
-        for (i=0; i<yd; i++) {
+        for (size_t i=0; i<yd; i++) {
           c += (mp_dbl_limb)x.p[i+j] + (mp_dbl_limb)y.p[i];
           x.p[i+j] = LOW(c);
           c = HIGH(c);
@@ -1111,7 +1112,6 @@ mrb_bint_new_float(mrb_state *mrb, mrb_float x)
   mrb_float bi = 1.0 / b;
   size_t rn;
   mp_limb *rp;
-  mp_limb f;
 
   for (rn = 1; x >= b; rn++)
     x *= bi;
@@ -1119,7 +1119,7 @@ mrb_bint_new_float(mrb_state *mrb, mrb_float x)
   mpz_realloc(mrb, r, rn);
   rp = r->p;
   for (size_t i=rn-1;;i--) {
-    f = LOW((mp_limb)x);
+    mp_limb f = LOW((mp_limb)x);
     x -= f;
     mrb_assert(x < 1.0);
     rp[i] = f;

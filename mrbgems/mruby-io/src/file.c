@@ -120,15 +120,13 @@ mrb_file_s_unlink(mrb_state *mrb, mrb_value obj)
 {
   const mrb_value *argv;
   mrb_int argc, i;
-  char *path;
 
   mrb_get_args(mrb, "*", &argv, &argc);
   for (i = 0; i < argc; i++) {
-    const char *utf8_path;
     mrb_value pathv = argv[i];
     mrb_ensure_string_type(mrb, pathv);
-    utf8_path = RSTRING_CSTR(mrb, pathv);
-    path = mrb_locale_from_utf8(utf8_path, -1);
+    const char *utf8_path = RSTRING_CSTR(mrb, pathv);
+    char *path = mrb_locale_from_utf8(utf8_path, -1);
     if (UNLINK(path) < 0) {
       mrb_locale_free(path);
       mrb_sys_fail(mrb, utf8_path);

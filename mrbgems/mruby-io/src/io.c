@@ -102,12 +102,11 @@ io_get_open_fptr(mrb_state *mrb, mrb_value io)
 static void
 io_set_process_status(mrb_state *mrb, pid_t pid, int status)
 {
-  struct RClass *c_process, *c_status;
+  struct RClass *c_status = NULL;
   mrb_value v;
 
-  c_status = NULL;
   if (mrb_class_defined_id(mrb, MRB_SYM(Process))) {
-    c_process = mrb_module_get_id(mrb, MRB_SYM(Process));
+    struct RClass *c_process = mrb_module_get_id(mrb, MRB_SYM(Process));
     if (mrb_const_defined(mrb, mrb_obj_value(c_process), MRB_SYM(Status))) {
       c_status = mrb_class_get_under_id(mrb, c_process, MRB_SYM(Status));
     }
@@ -522,8 +521,6 @@ io_s_popen(mrb_state *mrb, mrb_value klass)
   }
 
   if (!doexec) {
-    // XXX
-    fflush(stdin);
     fflush(stdout);
     fflush(stderr);
   }
@@ -1223,26 +1220,22 @@ time2timeval(mrb_state *mrb, mrb_value time)
 static mrb_value
 io_s_pipe(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value r = mrb_nil_value();
-  mrb_value w = mrb_nil_value();
-  struct mrb_io *fptr_r;
-  struct mrb_io *fptr_w;
   int pipes[2];
 
   if (io_pipe(mrb, pipes) == -1) {
     mrb_sys_fail(mrb, "pipe");
   }
 
-  r = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
-  fptr_r = io_alloc(mrb);
+  mrb_value r = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
+  struct mrb_io *fptr_r = io_alloc(mrb);
   fptr_r->fd = pipes[0];
   fptr_r->readable = 1;
   DATA_TYPE(r) = &mrb_io_type;
   DATA_PTR(r)  = fptr_r;
   io_init_buf(mrb, fptr_r);
 
-  w = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
-  fptr_w = io_alloc(mrb);
+  mrb_value w = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
+  struct mrb_io *fptr_w = io_alloc(mrb);
   fptr_w->fd = pipes[1];
   fptr_w->writable = 1;
   fptr_w->sync = 1;

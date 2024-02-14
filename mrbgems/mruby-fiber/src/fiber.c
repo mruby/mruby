@@ -43,12 +43,12 @@ fiber_init_fiber(mrb_state *mrb, struct RFiber *f, const struct RProc *p)
   c->stend = c->stbase + slen;
 
   {
-    mrb_value *p = c->stbase;
-    mrb_value *pend = c->stend;
+    mrb_value *s = c->stbase;
+    mrb_value *send = c->stend;
 
-    while (p < pend) {
-      SET_NIL_VALUE(*p);
-      p++;
+    while (s < send) {
+      SET_NIL_VALUE(*s);
+      s++;
     }
   }
 
@@ -252,8 +252,6 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
   }
   fiber_switch_context(mrb, c);
   if (status == MRB_FIBER_CREATED) {
-    mrb_value *b, *e;
-
     if (!c->ci->proc) {
       return fiber_error(mrb, "double resume (current)");
     }
@@ -267,8 +265,10 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
     }
     else {
       mrb_stack_extend(mrb, len+2); /* for receiver and (optional) block */
-      b = c->stbase+1;
-      e = b + len;
+
+      mrb_value *b = c->stbase+1;
+      mrb_value *e = b + len;
+
       while (b<e) {
         *b++ = *a++;
       }

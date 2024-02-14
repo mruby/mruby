@@ -98,8 +98,8 @@ options_opt(struct options *opts)
   while (++opts->argv, --opts->argc) {
     opts->opt = *opts->argv;
 
-    /*  empty         || not start with `-`  || `-` */
-    if (!opts->opt[0] || opts->opt[0] != '-' || !opts->opt[1]) return NULL;
+    /*  not start with `-`  || `-` */
+    if (opts->opt[0] != '-' || !opts->opt[1]) return NULL;
 
     if (opts->opt[1] == '-') {
       /* `--` */
@@ -278,10 +278,8 @@ main(int argc, char **argv)
 {
   mrb_state *mrb = mrb_open();
   int n = -1;
-  int i;
   struct _args args;
   mrb_value ARGV;
-  mrb_ccontext *c;
   mrb_value v;
 
   if (mrb == NULL) {
@@ -297,7 +295,7 @@ main(int argc, char **argv)
   else {
     int ai = mrb_gc_arena_save(mrb);
     ARGV = mrb_ary_new_capa(mrb, args.argc);
-    for (i = 0; i < args.argc; i++) {
+    for (int i = 0; i < args.argc; i++) {
       char* utf8 = mrb_utf8_from_locale(args.argv[i], -1);
       if (utf8) {
         mrb_ary_push(mrb, ARGV, mrb_str_new_cstr(mrb, utf8));
@@ -307,7 +305,7 @@ main(int argc, char **argv)
     mrb_define_global_const(mrb, "ARGV", ARGV);
     mrb_gv_set(mrb, mrb_intern_lit(mrb, "$DEBUG"), mrb_bool_value(args.debug));
 
-    c = mrb_ccontext_new(mrb);
+    mrb_ccontext *c = mrb_ccontext_new(mrb);
     if (args.verbose)
       c->dump_result = TRUE;
     if (args.check_syntax)
@@ -324,7 +322,7 @@ main(int argc, char **argv)
     mrb_gv_set(mrb, mrb_intern_lit(mrb, "$0"), mrb_str_new_cstr(mrb, cmdline));
 
     /* Load libraries */
-    for (i = 0; i < args.libc; i++) {
+    for (int i = 0; i < args.libc; i++) {
       FILE *lfp = fopen(args.libv[i], "rb");
       if (lfp == NULL) {
         fprintf(stderr, "%s: Cannot open library file: %s\n", *argv, args.libv[i]);
@@ -334,10 +332,10 @@ main(int argc, char **argv)
       }
       mrb_ccontext_filename(mrb, c, args.libv[i]);
       if (mrb_extension_p(args.libv[i])) {
-        v = mrb_load_irep_file_cxt(mrb, lfp, c);
+        mrb_load_irep_file_cxt(mrb, lfp, c);
       }
       else {
-        v = mrb_load_detect_file_cxt(mrb, lfp, c);
+        mrb_load_detect_file_cxt(mrb, lfp, c);
       }
       fclose(lfp);
       mrb_vm_ci_env_clear(mrb, mrb->c->cibase);

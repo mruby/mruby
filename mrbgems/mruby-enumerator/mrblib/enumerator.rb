@@ -701,4 +701,72 @@ module Enumerable
 
     result
   end
+
+  ##
+  #  call-seq:
+  #    enum.chunk                 -> enumerator
+  #    enum.chunk { |arr| block } -> enumerator
+  #
+  #  Each element in the returned enumerator is a 2-element array consisting of:
+  #
+  #  - A value returned by the block.
+  #  - An array ("chunk") containing the element for which that value was returned,
+  #    and all following elements for which the block returned the same value:
+  #
+  #  So that:
+  #
+  #  - Each block return value that is different from its predecessor
+  #    begins a new chunk.
+  #  - Each block return value that is the same as its predecessor
+  #    continues the same chunk.
+  #
+  #  Example:
+  #
+  #     e = (0..10).chunk {|i| (i / 3).floor } # => #<Enumerator: ...>
+  #     # The enumerator elements.
+  #     e.next # => [0, [0, 1, 2]]
+  #     e.next # => [1, [3, 4, 5]]
+  #     e.next # => [2, [6, 7, 8]]
+  #     e.next # => [3, [9, 10]]
+  #
+  #  You can use the special symbol <tt>:_alone</tt> to force an element
+  #  into its own separate chuck:
+  #
+  #     a = [0, 0, 1, 1]
+  #     e = a.chunk{|i| i.even? ? :_alone : true }
+  #     e.to_a # => [[:_alone, [0]], [:_alone, [0]], [true, [1, 1]]]
+  #
+  #  You can use the special symbol <tt>:_separator</tt> or +nil+
+  #  to force an element to be ignored (not included in any chunk):
+  #
+  #     a = [0, 0, -1, 1, 1]
+  #     e = a.chunk{|i| i < 0 ? :_separator : true }
+  #     e.to_a # => [[true, [0, 0]], [true, [1, 1]]]
+  def chunk(&block)
+    return to_enum :chunk unless block
+
+    enum = self
+    Enumerator.new do |y|
+      last_value, arr = nil, []
+      enum.each do |element|
+        value = block.call(element)
+        case value
+        when :_alone
+          y.yield [last_value, arr] if arr.size > 0
+          y.yield [value, [element]]
+          last_value, arr = nil, []
+        when :_separator, nil
+          y.yield [last_value, arr] if arr.size > 0
+          last_value, arr = nil, []
+        when last_value
+          arr << element
+        else
+          raise 'symbols beginning with an underscore are reserved' if value.is_a?(Symbol) && value.to_s[0] == '_'
+          y.yield [last_value, arr] if arr.size > 0
+          last_value, arr = value, [element]
+        end
+      end
+      y.yield [last_value, arr] if arr.size > 0
+    end
+  end
 end

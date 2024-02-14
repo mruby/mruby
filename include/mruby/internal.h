@@ -61,6 +61,18 @@ mrb_value mrb_exc_mesg_get(mrb_state *mrb, struct RException *exc);
 mrb_value mrb_f_raise(mrb_state*, mrb_value);
 mrb_value mrb_make_exception(mrb_state *mrb, mrb_value exc, mrb_value mesg);
 
+struct RBacktrace {
+  MRB_OBJECT_HEADER;
+  size_t len;
+  struct mrb_backtrace_location *locations;
+};
+
+struct mrb_backtrace_location {
+  mrb_sym method_id;
+  int32_t idx;
+  const mrb_irep *irep;
+};
+
 /* gc */
 void mrb_gc_mark_mt(mrb_state*, struct RClass*);
 size_t mrb_gc_mark_mt_size(mrb_state*, struct RClass*);

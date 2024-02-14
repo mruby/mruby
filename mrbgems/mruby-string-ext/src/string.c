@@ -53,7 +53,7 @@ int_chr_utf8(mrb_state *mrb, mrb_value num)
   char utf8[4];
   mrb_int len;
   mrb_value str;
-  uint32_t ascii_flag = 0;
+  uint32_t sb_flag = 0;
 
   if (cp < 0 || 0x10FFFF < cp) {
     mrb_raisef(mrb, E_RANGE_ERROR, "%v out of char range", num);
@@ -61,7 +61,7 @@ int_chr_utf8(mrb_state *mrb, mrb_value num)
   if (cp < 0x80) {
     utf8[0] = (char)cp;
     len = 1;
-    ascii_flag = MRB_STR_ASCII;
+    sb_flag = MRB_STR_SINGLE_BYTE;
   }
   else if (cp < 0x800) {
     utf8[0] = (char)(0xC0 | (cp >> 6));
@@ -82,7 +82,7 @@ int_chr_utf8(mrb_state *mrb, mrb_value num)
     len = 4;
   }
   str = mrb_str_new(mrb, utf8, len);
-  mrb_str_ptr(str)->flags |= ascii_flag;
+  mrb_str_ptr(str)->flags |= sb_flag;
   return str;
 }
 #endif
@@ -1304,10 +1304,6 @@ str_uplus(mrb_state *mrb, mrb_value str)
  *
  * Returns a frozen, possibly pre-existing copy of the string.
  *
- * The returned \String will be deduplicated as long as it does not have
- * any instance variables set on it and is not a String subclass.
- *
- * String#dedup is an alias for String#-@.
  */
 static mrb_value
 str_uminus(mrb_state *mrb, mrb_value str)
@@ -1332,31 +1328,36 @@ str_valid_enc_p(mrb_state *mrb, mrb_value str)
 #define utf8_islead(c) ((unsigned char)((c)&0xc0) != 0x80)
 
   struct RString *s = mrb_str_ptr(str);
-  if (RSTR_ASCII_P(s)) return mrb_true_value();
+  if (RSTR_SINGLE_BYTE_P(s)) return mrb_true_value();
 
   mrb_int byte_len = RSTR_LEN(s);
   mrb_int utf8_len = 0;
   const char *p = RSTR_PTR(s);
   const char *e = p + byte_len;
   while (p < e) {
-    mrb_int len = mrb_utf8len_table[(unsigned char)p[0] >> 3];
-    if (len == 0 || len > e - p)
-      return mrb_false_value();
-    switch (len) {
-    case 4:
-      if (utf8_islead(p[3])) return mrb_false_value();
-    case 3:
-      if (utf8_islead(p[2])) return mrb_false_value();
-    case 2:
-      if (utf8_islead(p[1])) return mrb_false_value();
-    default:
-      break;
-    }
+    mrb_int len = mrb_utf8len(p, e);
+
+    if (len == 1 && (*p & 0x80)) return mrb_false_value();
     p += len;
     utf8_len++;
   }
-  if (byte_len == utf8_len) RSTR_SET_ASCII_FLAG(s);
+  if (byte_len == utf8_len) RSTR_SET_SINGLE_BYTE_FLAG(s);
 #endif
+  return mrb_true_value();
+}
+
+static mrb_value
+str_ascii_only_p(mrb_state *mrb, mrb_value str)
+{
+  struct RString *s = mrb_str_ptr(str);
+  const char *p = RSTR_PTR(s);
+  const char *e = p + RSTR_LEN(s);
+
+  while (p < e) {
+    if (*p & 0x80) return mrb_false_value();
+    p++;
+  }
+  RSTR_SET_SINGLE_BYTE_FLAG(mrb_str_ptr(str));
   return mrb_true_value();
 }
 
@@ -1398,6 +1399,7 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method(mrb, s, "+@",              str_uplus,           MRB_ARGS_REQ(1));
   mrb_define_method(mrb, s, "-@",              str_uminus,          MRB_ARGS_REQ(1));
   mrb_define_method(mrb, s, "valid_encoding?", str_valid_enc_p,     MRB_ARGS_NONE());
+  mrb_define_method(mrb, s, "ascii_only?",     str_ascii_only_p,    MRB_ARGS_NONE());
 
   mrb_define_method(mrb, s, "__lines",         str_lines,           MRB_ARGS_NONE());
   mrb_define_method(mrb, s, "__codepoints",    str_codepoints,      MRB_ARGS_NONE());

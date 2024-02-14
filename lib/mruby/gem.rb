@@ -372,6 +372,7 @@ module MRuby
 
       def each(&b)
         @ary.each(&b)
+        self
       end
 
       def [](name)
@@ -384,6 +385,7 @@ module MRuby
         else
           # GEM was already added to this list
         end
+        self
       end
 
       def empty?

@@ -165,8 +165,7 @@ int_digits(mrb_state *mrb, mrb_value self)
     }
 
     while (mrb_bint_cmp(mrb, x, zero) > 0) {
-      mrb_value q = mrb_bint_mod(mrb, x, bv);
-      mrb_ary_push(mrb, digits, q);
+      mrb_ary_push(mrb, digits, mrb_bint_mod(mrb, x, bv));
       x = mrb_bint_div(mrb, x, bv);
       if (!mrb_bigint_p(x)) {
         mrb_int n = mrb_integer(x);

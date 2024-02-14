@@ -288,7 +288,6 @@ mrb_sce_sys_fail(mrb_state *mrb, mrb_value cls)
   if (argc == 1) {
     msg = mrb_nil_value();
   }
-  exc = mrb_obj_value(e);
   mrb_sce_init(mrb, exc, msg, no);
   mrb_exc_raise(mrb, exc);
   return mrb_nil_value();  /* NOTREACHED */

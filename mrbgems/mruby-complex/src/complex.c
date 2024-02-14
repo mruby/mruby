@@ -149,12 +149,6 @@ mrb_complex_to_i(mrb_state *mrb, mrb_value self)
   return mrb_int_value(mrb, (mrb_int)p->real);
 }
 
-static mrb_value
-complex_to_c(mrb_state *mrb, mrb_value self)
-{
-  return self;
-}
-
 mrb_bool
 mrb_complex_eq(mrb_state *mrb, mrb_value x, mrb_value y)
 {
@@ -406,7 +400,7 @@ void mrb_mruby_complex_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, comp, "imaginary", complex_imaginary, MRB_ARGS_NONE());
   mrb_define_method(mrb, comp, "to_f", mrb_complex_to_f, MRB_ARGS_NONE());
   mrb_define_method(mrb, comp, "to_i", mrb_complex_to_i, MRB_ARGS_NONE());
-  mrb_define_method(mrb, comp, "to_c", complex_to_c, MRB_ARGS_NONE());
+  mrb_define_method(mrb, comp, "to_c", mrb_obj_itself, MRB_ARGS_NONE());
   mrb_define_method(mrb, comp, "+", complex_add, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, comp, "-", complex_sub, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, comp, "*", complex_mul, MRB_ARGS_REQ(1));

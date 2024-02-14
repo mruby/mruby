@@ -215,18 +215,18 @@ ary_expand_capa(mrb_state *mrb, struct RArray *a, mrb_int len)
       capa = len;
     }
   }
-  if (capa < len || capa > ARY_MAX_SIZE) {
+  if (capa > ARY_MAX_SIZE) {
     ary_too_big(mrb);
   }
 
   if (ARY_EMBED_P(a)) {
     mrb_value *ptr = ARY_EMBED_PTR(a);
-    mrb_int len = ARY_EMBED_LEN(a);
+    mrb_int slen = ARY_EMBED_LEN(a);
     mrb_value *expanded_ptr = (mrb_value*)mrb_malloc(mrb, sizeof(mrb_value)*capa);
 
     ARY_UNSET_EMBED_FLAG(a);
-    array_copy(expanded_ptr, ptr, len);
-    a->as.heap.len = len;
+    array_copy(expanded_ptr, ptr, slen);
+    a->as.heap.len = slen;
     a->as.heap.aux.capa = capa;
     a->as.heap.ptr = expanded_ptr;
   }

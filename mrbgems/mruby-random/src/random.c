@@ -344,28 +344,27 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
   }
   else {
     mrb_value result;
-    mrb_int i, j;
 
     if (n < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "negative sample number");
     if (n > len) n = len;
     result = mrb_ary_new_capa(mrb, n);
-    for (i=0; i<n; i++) {
-      mrb_int r;
+    for (mrb_int i=0; i<n; i++) {
+      mrb_int idx;
 
       for (;;) {
       retry:
-        r = rand_i(random, len);
+        idx = rand_i(random, len);
 
-        for (j=0; j<i; j++) {
-          if (mrb_integer(RARRAY_PTR(result)[j]) == r) {
+        for (mrb_int j=0; j<i; j++) {
+          if (mrb_integer(RARRAY_PTR(result)[j]) == idx) {
             goto retry;         /* retry if duplicate */
           }
         }
         break;
       }
-      mrb_ary_push(mrb, result, mrb_int_value(mrb, r));
+      mrb_ary_push(mrb, result, mrb_int_value(mrb, idx));
     }
-    for (i=0; i<n; i++) {
+    for (mrb_int i=0; i<n; i++) {
       mrb_int idx = mrb_integer(RARRAY_PTR(result)[i]);
       mrb_value elem = RARRAY_PTR(ary)[idx];
       mrb_ary_set(mrb, result, i, elem);

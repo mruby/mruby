@@ -74,7 +74,7 @@ atanh(double x)
   }
   else {
     /* Basic formula for atanh */
-    y = 0.5 * (log(1.0+x) - log(1.0-x));
+    y = 0.5 * (log1p(x) - log1p(-x));
   }
 
   return y;
@@ -105,7 +105,7 @@ double erfc(double x);
 double
 erf(double x)
 {
-  static const double two_sqrtpi =  1.128379167095512574;
+  static const double two_sqrtpi = 1.128379167095512574;
   double sum  = x;
   double term = x;
   double xsqr = x*x;
@@ -129,7 +129,7 @@ erf(double x)
 double
 erfc(double x)
 {
-  static const double one_sqrtpi=  0.564189583547756287;
+  static const double one_sqrtpi = 0.564189583547756287;
   double a = 1;
   double b = x;
   double c = x;
@@ -137,15 +137,15 @@ erfc(double x)
   double q1;
   double q2 = b/d;
   double n = 1.0;
-  double t;
+
   if (fabs(x) < 2.2) {
-    return 1.0 - erf(x);
+    return erfc(x);
   }
   if (x < 0.0) { /*signbit(x)*/
     return 2.0 - erfc(-x);
   }
   do {
-    t  = a*n+b*x;
+    double t = a*n+b*x;
     a  = b;
     b  = t;
     t  = c*n+d*x;

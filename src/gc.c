@@ -107,9 +107,11 @@
 
 */
 
+typedef struct RVALUE RVALUE;
+
 struct free_obj {
   MRB_OBJECT_HEADER;
-  struct RBasic *next;
+  RVALUE *next;
 };
 
 struct RVALUE_initializer {
@@ -117,7 +119,7 @@ struct RVALUE_initializer {
   char padding[sizeof(void*) * 4 - sizeof(uint32_t)];
 };
 
-typedef struct {
+struct RVALUE {
   union {
     struct RVALUE_initializer init;  /* must be first member to ensure initialization */
     struct free_obj free;
@@ -136,7 +138,7 @@ typedef struct {
     struct RException exc;
     struct RBreak brk;
   } as;
-} RVALUE;
+};
 
 #ifdef GC_DEBUG
 #define DEBUG(x) (x)
@@ -149,12 +151,11 @@ typedef struct {
 #endif
 
 typedef struct mrb_heap_page {
-  struct RBasic *freelist;
+  RVALUE *freelist;
   struct mrb_heap_page *next;
   struct mrb_heap_page *free_next;
   mrb_bool old:1;
-  /* Flexible array members are not C++ compatible */
-  /* void* objects[]; */
+  RVALUE objects[MRB_HEAP_PAGE_SIZE];
 } mrb_heap_page;
 
 #define GC_STEP_SIZE 1024
@@ -180,12 +181,6 @@ mrb_static_assert(MRB_GC_RED <= GC_COLOR_MASK);
 #define flip_white_part(s) ((s)->current_white_part = other_white_part(s))
 #define other_white_part(s) ((s)->current_white_part ^ GC_WHITES)
 #define is_dead(s, o) (((o)->color & other_white_part(s) & GC_WHITES) || (o)->tt == MRB_TT_FREE)
-
-/* We have removed `objects[]` from `mrb_heap_page` since it was not C++
- * compatible. Using array index to get pointer after structure instead. */
-
-/* #define objects(p) ((RVALUE*)p->objects) */
-#define objects(p) ((RVALUE*)&p[1])
 
 mrb_noreturn void mrb_raise_nomemory(mrb_state *mrb);
 
@@ -279,7 +274,7 @@ heap_p(mrb_gc *gc, struct RBasic *object)
   while (page) {
     RVALUE *p;
 
-    p = objects(page);
+    p = page->objects;
     if (&p[0].as.basic <= object && object <= &p[MRB_HEAP_PAGE_SIZE - 1].as.basic) {
       return TRUE;
     }
@@ -299,14 +294,14 @@ mrb_object_dead_p(mrb_state *mrb, struct RBasic *object)
 static void
 add_heap(mrb_state *mrb, mrb_gc *gc)
 {
-  mrb_heap_page *page = (mrb_heap_page*)mrb_calloc(mrb, 1, sizeof(mrb_heap_page) + MRB_HEAP_PAGE_SIZE * sizeof(RVALUE));
+  mrb_heap_page *page = (mrb_heap_page*)mrb_calloc(mrb, 1, sizeof(mrb_heap_page));
   RVALUE *p, *e;
-  struct RBasic *prev = NULL;
+  RVALUE *prev = NULL;
 
-  for (p = objects(page), e=p+MRB_HEAP_PAGE_SIZE; p<e; p++) {
+  for (p = page->objects, e=p+MRB_HEAP_PAGE_SIZE; p<e; p++) {
     p->as.free.tt = MRB_TT_FREE;
     p->as.free.next = prev;
-    prev = &p->as.basic;
+    prev = p;
   }
   page->freelist = prev;
 
@@ -345,7 +340,7 @@ mrb_gc_init(mrb_state *mrb, mrb_gc *gc)
 #endif
 }
 
-static void obj_free(mrb_state *mrb, struct RBasic *obj, int end);
+static void obj_free(mrb_state *mrb, struct RBasic *obj, mrb_bool end);
 
 static void
 free_heap(mrb_state *mrb, mrb_gc *gc)
@@ -357,7 +352,7 @@ free_heap(mrb_state *mrb, mrb_gc *gc)
   while (page) {
     tmp = page;
     page = page->next;
-    for (p = objects(tmp), e=p+MRB_HEAP_PAGE_SIZE; p<e; p++) {
+    for (p = tmp->objects, e=p+MRB_HEAP_PAGE_SIZE; p<e; p++) {
       if (p->as.free.tt != MRB_TT_FREE)
         obj_free(mrb, &p->as.basic, TRUE);
     }
@@ -498,19 +493,19 @@ mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
     add_heap(mrb, gc);
   }
 
-  struct RBasic *p = gc->free_heaps->freelist;
-  gc->free_heaps->freelist = ((struct free_obj*)p)->next;
+  RVALUE *p = gc->free_heaps->freelist;
+  gc->free_heaps->freelist = p->as.free.next;
   if (gc->free_heaps->freelist == NULL) {
     gc->free_heaps = gc->free_heaps->free_next;
   }
 
   gc->live++;
-  gc_protect(mrb, gc, p);
-  *(RVALUE*)p = RVALUE_zero;
-  p->tt = ttype;
-  p->c = cls;
-  paint_partial_white(gc, p);
-  return p;
+  gc_protect(mrb, gc, &p->as.basic);
+  *p = RVALUE_zero;
+  p->as.basic.tt = ttype;
+  p->as.basic.c = cls;
+  paint_partial_white(gc, &p->as.basic);
+  return &p->as.basic;
 }
 
 static inline void
@@ -704,7 +699,7 @@ mrb_gc_mark(mrb_state *mrb, struct RBasic *obj)
 }
 
 static void
-obj_free(mrb_state *mrb, struct RBasic *obj, int end)
+obj_free(mrb_state *mrb, struct RBasic *obj, mrb_bool end)
 {
   DEBUG(fprintf(stderr, "obj_free(%p,tt=%d)\n",obj,obj->tt));
   switch (obj->tt) {
@@ -822,6 +817,17 @@ obj_free(mrb_state *mrb, struct RBasic *obj, int end)
     mrb_gc_free_bint(mrb, obj);
     break;
 #endif
+
+  case MRB_TT_BACKTRACE:
+    {
+      struct RBacktrace *bt = (struct RBacktrace*)obj;
+      for (size_t i = 0; i < bt->len; i++) {
+        const mrb_irep *irep = bt->locations[i].irep;
+        if (irep == NULL) continue;
+        mrb_irep_decref(mrb, (mrb_irep*)irep);
+      }
+      mrb_free(mrb, bt->locations);
+    }
 
   default:
     break;
@@ -969,6 +975,10 @@ gc_gray_counts(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
     }
     break;
 
+  case MRB_TT_BACKTRACE:
+    children += ((struct RBacktrace*)obj)->len;
+    break;
+
   default:
     break;
   }
@@ -1064,7 +1074,7 @@ incremental_sweep_phase(mrb_state *mrb, mrb_gc *gc, size_t limit)
   size_t tried_sweep = 0;
 
   while (page && (tried_sweep < limit)) {
-    RVALUE *p = objects(page);
+    RVALUE *p = page->objects;
     RVALUE *e = p + MRB_HEAP_PAGE_SIZE;
     size_t freed = 0;
     mrb_bool dead_slot = TRUE;
@@ -1080,7 +1090,7 @@ incremental_sweep_phase(mrb_state *mrb, mrb_gc *gc, size_t limit)
           obj_free(mrb, &p->as.basic, FALSE);
           if (p->as.basic.tt == MRB_TT_FREE) {
             p->as.free.next = page->freelist;
-            page->freelist = (struct RBasic*)p;
+            page->freelist = p;
             freed++;
           }
           else {
@@ -1524,7 +1534,7 @@ gc_each_objects(mrb_state *mrb, mrb_gc *gc, mrb_each_object_callback *callback, 
   while (page != NULL) {
     RVALUE *p;
 
-    p = objects(page);
+    p = page->objects;
     for (int i=0; i < MRB_HEAP_PAGE_SIZE; i++) {
       if ((*callback)(mrb, &p[i].as.basic, data) == MRB_EACH_OBJ_BREAK)
         return;
