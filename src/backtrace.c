@@ -270,8 +270,7 @@ mrb_print_backtrace(mrb_state *mrb)
     return;
   }
 
-  struct RBasic *backtrace = ((struct RException*)mrb->exc)->backtrace;
-  print_backtrace(mrb, mrb->exc, backtrace);
+  print_backtrace(mrb, mrb->exc, ((struct RException*)mrb->exc)->backtrace);
 }
 #else
 MRB_API void
