@@ -641,8 +641,7 @@ memsearch_swar(const char *xs, mrb_int m, const char *ys, mrb_int n)
     const char *p = s0;
     const char *e = ys + n;
     for (;p<e;) {
-      size_t len = e - p;
-      p = (const char*)memchr(p, *xs, len);
+      p = (const char*)memchr(p, *xs, e - p);
       if (p == NULL || (e - p) < m) break;
       if (memcmp(p+1, xs+1, m-1) == 0) return (mrb_int)(p - ys);
       p++;
