@@ -298,7 +298,7 @@ typedef struct mrb_state {
   mrb_sym symhash[256];
   size_t symcapa;
 #ifndef MRB_USE_ALL_SYMBOLS
-  char symbuf[8];               /* buffer for small symbol names */
+  char symbuf[8];                         /* buffer for small symbol names */
 #endif
 
 #ifdef MRB_USE_DEBUG_HOOK
