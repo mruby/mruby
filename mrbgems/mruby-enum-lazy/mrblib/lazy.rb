@@ -10,6 +10,7 @@ module Enumerable
   #   - select    find_all
   #   - reject
   #   - grep
+  #   - grep_v
   #   - drop
   #   - drop_while
   #   - take_while
@@ -84,6 +85,14 @@ class Enumerator
     def grep(pattern)
       Lazy.new(self){|yielder, val|
         if pattern === val
+          yielder << val
+        end
+      }
+    end
+
+    def grep_v(pattern)
+      Lazy.new(self){|yielder, val|
+        unless pattern === val
           yielder << val
         end
       }
