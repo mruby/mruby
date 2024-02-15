@@ -30,11 +30,9 @@ of the Ministry of Economy, Trade and Industry of Japan.
 
 ## How to get mruby
 
-To get mruby, you can download the stable version 3.2.0 from the official mruby
+To get mruby, you can download the stable version 3.3.0 from the official mruby
 GitHub repository or clone the trunk of the mruby source tree with the "git
 clone" command. You can also install and compile mruby using [ruby-install](https://github.com/postmodern/ruby-install), [ruby-build](https://github.com/rbenv/ruby-build) or [rvm](https://github.com/rvm/rvm).
-
-The stable version 3.2.0 of mruby can be downloaded via the following URL: [https://github.com/mruby/mruby/archive/3.2.0.zip](https://github.com/mruby/mruby/archive/3.2.0.zip)
 
 The latest development version of mruby can be downloaded via the following URL: [https://github.com/mruby/mruby/zipball/master](https://github.com/mruby/mruby/zipball/master)
 
