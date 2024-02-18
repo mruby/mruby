@@ -1320,7 +1320,7 @@ mrb_vm_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, mrb_int sta
     nregs = stack_keep;
   else {
     struct REnv *e = CI_ENV(mrb->c->ci);
-    if (stack_keep == 0 || (e && irep->nlocals < MRB_ENV_LEN(e))) {
+    if (e && (stack_keep == 0 || irep->nlocals < MRB_ENV_LEN(e))) {
       ci_env_set(mrb->c->ci, NULL);
       mrb_env_unshare(mrb, e, FALSE);
     }
