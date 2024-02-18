@@ -265,7 +265,8 @@ top_proc(mrb_state *mrb, const struct RProc *proc)
 
 #define CI_PROC_SET(ci, p) do {\
   ci->proc = p;\
-  ci->pc = (p && !MRB_PROC_CFUNC_P(p) && !MRB_PROC_ALIAS_P(p) && p->body.irep) ? p->body.irep->iseq : NULL; \
+  mrb_assert(!p || !MRB_PROC_ALIAS_P(p));\
+  ci->pc = (p && !MRB_PROC_CFUNC_P(p) && p->body.irep) ? p->body.irep->iseq : NULL;\
 } while (0)
 
 void
