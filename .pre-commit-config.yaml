@@ -72,7 +72,7 @@ repos:
       - id: markdown-link-check
         name: Run markdown-link-check
         description: Checks hyperlinks in Markdown files
-        args: [-q]
+        args: [--config=.github/linters/mlc_config.json, -q]
         types: [markdown]
         files: \.(md|mdown|markdown)$
   - repo: https://github.com/adrienverge/yamllint
