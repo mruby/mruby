@@ -18,7 +18,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install pre-commit
       - name: Set PY
-        run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> $GITHUB_ENV
+        run: echo "PY=$(python -VV | sha256sum | cut -d' ' -f1)" >> "$GITHUB_ENV"
       - uses: actions/cache@v4
         with:
           path: ~/.cache/pre-commit

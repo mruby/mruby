@@ -25,6 +25,7 @@ jobs:
           VALIDATE_BASH: true
           # VALIDATE_BASH_EXEC: true
           # VALIDATE_EDITORCONFIG: true
+          VALIDATE_GITHUB_ACTIONS: true
           VALIDATE_GITLEAKS: true
           # VALIDATE_SHELL_SHFMT: true
           DEFAULT_BRANCH: master

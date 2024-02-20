@@ -33,8 +33,8 @@ jobs:
           gunzip -c "$destdir/$packagename.tar.gz" | xz > "$destdir/$packagename.tar.xz"
 
           (
-            cd "$destdir"
-            sha256sum * > .sha256
+            cd "$destdir" || exit
+            sha256sum -- * > .sha256
             mv .sha256 "$packagename.sha256"
           )
       - name: Release
