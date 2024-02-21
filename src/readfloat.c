@@ -29,7 +29,6 @@ mrb_read_float(const char *str, char **endp, double *fp)
 {
   double d = 0.0;
   int sign;
-  int n = 0;
   const char *p, *a;
 
   a = p = str;
@@ -49,7 +48,6 @@ mrb_read_float(const char *str, char **endp, double *fp)
     while (*p && ISDIGIT(*p)) {
       d = d * 10.0 + (double)(*p - '0');
       p++;
-      n++;
     }
     a = p;
   }
@@ -68,7 +66,6 @@ mrb_read_float(const char *str, char **endp, double *fp)
         f += base * (*p - '0');
         base /= 10.0;
         p++;
-        n++;
       }
     }
     d += f * sign;
