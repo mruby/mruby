@@ -3121,7 +3121,3 @@ mrb_top_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, mrb_int st
   }
   return mrb_vm_run(mrb, proc, self, stack_keep);
 }
-
-#if defined(MRB_USE_CXX_EXCEPTION) && defined(__cplusplus)
-mrb_int mrb_jmpbuf_id = 0;
-#endif
