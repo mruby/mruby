@@ -2311,7 +2311,7 @@ RETRY_TRY_BLOCK:
       if (MRB_PROC_ENV_P(dst)) {
         struct REnv *e = MRB_PROC_ENV(dst);
 
-        if (!MRB_ENV_ONSTACK_P(e) || (e->cxt && e->cxt != mrb->c)) {
+        if (!MRB_ENV_ONSTACK_P(e) || e->cxt != mrb->c) {
           localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
           goto L_RAISE;
         }
