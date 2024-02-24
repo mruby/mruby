@@ -2734,7 +2734,7 @@ bad:
       mrb_raisef(mrb, E_ARGUMENT_ERROR, "invalid string for float(%!s)", s);
       /* not reached */
     }
-    return d;
+    return 0.0;
   }
   if (badcheck) {
     if (!end || p == end) goto bad;
