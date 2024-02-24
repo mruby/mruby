@@ -156,7 +156,7 @@ fiber_result(mrb_state *mrb, const mrb_value *a, mrb_int len)
 }
 
 /* mark return from context modifying method */
-#define MARK_CONTEXT_MODIFY(c) (c)->ci->u.target_class = NULL
+#define MARK_CONTEXT_MODIFY(c) (c)->ci->u.keep_context = NULL
 
 static void
 fiber_check_cfunc(mrb_state *mrb, struct mrb_context *c)

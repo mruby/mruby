@@ -184,6 +184,7 @@ typedef struct {
   union {
     struct REnv *env;
     struct RClass *target_class;
+    const void *keep_context;   /* if NULL, it means that the fiber has switched; for internal use */
   } u;
 } mrb_callinfo;
 
