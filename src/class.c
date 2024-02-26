@@ -2637,8 +2637,7 @@ mrb_mod_module_function(mrb_state *mrb, mrb_value mod)
   mrb_int argc;
   mrb_sym mid;
   mrb_method_t m;
-  struct RClass *rclass;
-  int ai;
+
 
   mrb_check_type(mrb, mod, MRB_TT_MODULE);
 
@@ -2652,14 +2651,14 @@ mrb_mod_module_function(mrb_state *mrb, mrb_value mod)
   /* mrb_mod_dummy_visibility(mrb, mod); */
 
   for (int i=0; i<argc; i++) {
-    mrb_check_type(mrb, argv[i], MRB_TT_SYMBOL);
+    struct RClass *rclass = mrb_class_ptr(mod);
 
+    mrb_check_type(mrb, argv[i], MRB_TT_SYMBOL);
     mid = mrb_symbol(argv[i]);
-    rclass = mrb_class_ptr(mod);
     m = mrb_method_search(mrb, rclass, mid);
 
     prepare_singleton_class(mrb, (struct RBasic*)rclass);
-    ai = mrb_gc_arena_save(mrb);
+    int ai = mrb_gc_arena_save(mrb);
     mrb_define_method_raw(mrb, rclass->c, mid, m);
     mrb_gc_arena_restore(mrb, ai);
   }
