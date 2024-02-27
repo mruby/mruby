@@ -87,9 +87,7 @@ dump_float(mrb_state *mrb, uint8_t *buf, mrb_float f)
     memcpy(buf, u.s, sizeof(double));
   }
   else {
-    size_t i;
-
-    for (i=0; i<sizeof(double); i++) {
+    for (size_t i=0; i<sizeof(double); i++) {
       buf[i] = u.s[sizeof(double)-i-1];
     }
   }
@@ -293,10 +291,9 @@ static size_t
 get_irep_record_size(mrb_state *mrb, const mrb_irep *irep)
 {
   size_t size = 0;
-  int irep_no;
 
   size = get_irep_record_size_1(mrb, irep);
-  for (irep_no = 0; irep_no < irep->rlen; irep_no++) {
+  for (int irep_no = 0; irep_no < irep->rlen; irep_no++) {
     size += get_irep_record_size(mrb, irep->reps[irep_no]);
   }
   return size;
@@ -305,7 +302,6 @@ get_irep_record_size(mrb_state *mrb, const mrb_irep *irep)
 static int
 write_irep_record(mrb_state *mrb, const mrb_irep *irep, uint8_t *bin, size_t *irep_record_size, uint8_t flags)
 {
-  int i;
   uint8_t *src = bin;
 
   if (irep == NULL) {
@@ -317,7 +313,7 @@ write_irep_record(mrb_state *mrb, const mrb_irep *irep, uint8_t *bin, size_t *ir
   bin += write_pool_block(mrb, irep, bin);
   bin += write_syms_block(mrb, irep, bin);
 
-  for (i = 0; i < irep->rlen; i++) {
+  for (int i = 0; i < irep->rlen; i++) {
     int result;
     size_t rsize;
 
@@ -387,7 +383,6 @@ get_debug_record_size(mrb_state *mrb, const mrb_irep *irep)
 {
   size_t ret = 0;
   uint16_t f_idx;
-  int i;
 
   ret += sizeof(uint32_t); /* record size */
   ret += sizeof(uint16_t); /* file count */
@@ -417,7 +412,7 @@ get_debug_record_size(mrb_state *mrb, const mrb_irep *irep)
       default: mrb_assert(0); break;
     }
   }
-  for (i=0; i<irep->rlen; i++) {
+  for (int i=0; i<irep->rlen; i++) {
     ret += get_debug_record_size(mrb, irep->reps[i]);
   }
 
@@ -427,9 +422,7 @@ get_debug_record_size(mrb_state *mrb, const mrb_irep *irep)
 static int
 find_filename_index(const mrb_sym *ary, int ary_len, mrb_sym s)
 {
-  int i;
-
-  for (i = 0; i < ary_len; ++i) {
+  for (int i = 0; i < ary_len; i++) {
     if (ary[i] == s) { return i; }
   }
   return -1;
@@ -441,10 +434,9 @@ get_filename_table_size(mrb_state *mrb, const mrb_irep *irep, mrb_sym **fp, uint
   mrb_sym *filenames = *fp;
   size_t size = 0;
   const mrb_irep_debug_info *di = irep->debug_info;
-  int i;
 
   mrb_assert(lp);
-  for (i = 0; i < di->flen; ++i) {
+  for (int i = 0; i < di->flen; i++) {
     mrb_irep_debug_info_file *file;
     mrb_int filename_len;
 
@@ -460,7 +452,7 @@ get_filename_table_size(mrb_state *mrb, const mrb_irep *irep, mrb_sym **fp, uint
       size += sizeof(uint16_t) + (size_t)filename_len;
     }
   }
-  for (i=0; i<irep->rlen; i++) {
+  for (int i=0; i<irep->rlen; i++) {
     size += get_filename_table_size(mrb, irep->reps[i], fp, lp);
   }
   return size;
@@ -470,13 +462,12 @@ static size_t
 write_debug_record_1(mrb_state *mrb, const mrb_irep *irep, uint8_t *bin, mrb_sym const* filenames, uint16_t filenames_len)
 {
   uint8_t *cur;
-  uint16_t f_idx;
   ptrdiff_t ret;
 
   cur = bin + sizeof(uint32_t); /* skip record size */
   cur += uint16_to_bin(irep->debug_info->flen, cur); /* file count */
 
-  for (f_idx = 0; f_idx < irep->debug_info->flen; ++f_idx) {
+  for (int f_idx = 0; f_idx < irep->debug_info->flen; ++f_idx) {
     int filename_idx;
     const mrb_irep_debug_info_file *file = irep->debug_info->files[f_idx];
 
@@ -528,13 +519,11 @@ write_debug_record_1(mrb_state *mrb, const mrb_irep *irep, uint8_t *bin, mrb_sym
 static size_t
 write_debug_record(mrb_state *mrb, const mrb_irep *irep, uint8_t *bin, mrb_sym const* filenames, uint16_t filenames_len)
 {
-  size_t size, len;
-  int irep_no;
+  size_t size = write_debug_record_1(mrb, irep, bin, filenames, filenames_len);
 
-  size = len = write_debug_record_1(mrb, irep, bin, filenames, filenames_len);
-  bin += len;
-  for (irep_no = 0; irep_no < irep->rlen; irep_no++) {
-    len = write_debug_record(mrb, irep->reps[irep_no], bin, filenames, filenames_len);
+  bin += size;
+  for (int irep_no = 0; irep_no < irep->rlen; irep_no++) {
+    size_t len = write_debug_record(mrb, irep->reps[irep_no], bin, filenames, filenames_len);
     bin += len;
     size += len;
   }
@@ -550,8 +539,6 @@ write_section_debug(mrb_state *mrb, const mrb_irep *irep, uint8_t *cur, mrb_sym 
   const uint8_t *bin = cur;
   struct rite_section_debug_header *header;
   size_t dlen;
-  uint16_t i;
-  char const *sym; mrb_int sym_len;
 
   if (mrb == NULL || cur == NULL) {
     return MRB_DUMP_INVALID_ARGUMENT;
@@ -564,7 +551,10 @@ write_section_debug(mrb_state *mrb, const mrb_irep *irep, uint8_t *cur, mrb_sym 
   /* filename table */
   cur += uint16_to_bin(filenames_len, cur);
   section_size += sizeof(uint16_t);
-  for (i = 0; i < filenames_len; ++i) {
+  for (int i = 0; i < filenames_len; i++) {
+    char const *sym;
+    mrb_int sym_len;
+
     sym = mrb_sym_name_len(mrb, filenames[i], &sym_len);
     mrb_assert(sym);
     cur += uint16_to_bin((uint16_t)sym_len, cur);
@@ -587,13 +577,11 @@ write_section_debug(mrb_state *mrb, const mrb_irep *irep, uint8_t *cur, mrb_sym 
 static void
 create_lv_sym_table(mrb_state *mrb, const mrb_irep *irep, mrb_sym **syms, uint32_t *syms_len)
 {
-  int i;
-
   if (*syms == NULL) {
     *syms = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym) * 1);
   }
 
-  for (i = 0; i + 1 < irep->nlocals; ++i) {
+  for (int i = 0; i + 1 < irep->nlocals; i++) {
     mrb_sym const name = irep->lv[i];
     if (name == 0) continue;
     if (find_filename_index(*syms, *syms_len, name) != -1) continue;
@@ -603,7 +591,7 @@ create_lv_sym_table(mrb_state *mrb, const mrb_irep *irep, mrb_sym **syms, uint32
     (*syms)[*syms_len - 1] = name;
   }
 
-  for (i = 0; i < irep->rlen; ++i) {
+  for (int i = 0; i < irep->rlen; i++) {
     create_lv_sym_table(mrb, irep->reps[i], syms, syms_len);
   }
 }
@@ -612,13 +600,12 @@ static int
 write_lv_sym_table(mrb_state *mrb, uint8_t **start, mrb_sym const *syms, uint32_t syms_len)
 {
   uint8_t *cur = *start;
-  uint32_t i;
   const char *str;
   mrb_int str_len;
 
   cur += uint32_to_bin(syms_len, cur);
 
-  for (i = 0; i < syms_len; ++i) {
+  for (uint32_t i = 0; i < syms_len; i++) {
     str = mrb_sym_name_len(mrb, syms[i], &str_len);
     cur += uint16_to_bin((uint16_t)str_len, cur);
     memcpy(cur, str, str_len);
@@ -634,9 +621,8 @@ static int
 write_lv_record(mrb_state *mrb, const mrb_irep *irep, uint8_t **start, mrb_sym const *syms, uint32_t syms_len)
 {
   uint8_t *cur = *start;
-  int i;
 
-  for (i = 0; i + 1 < irep->nlocals; ++i) {
+  for (int i = 0; i + 1 < irep->nlocals; i++) {
     if (irep->lv[i] == 0) {
       cur += uint16_to_bin(RITE_LV_NULL_MARK, cur);
     }
@@ -648,7 +634,7 @@ write_lv_record(mrb_state *mrb, const mrb_irep *irep, uint8_t **start, mrb_sym c
     }
   }
 
-  for (i = 0; i < irep->rlen; ++i) {
+  for (int i = 0; i < irep->rlen; i++) {
     write_lv_record(mrb, irep->reps[i], &cur, syms, syms_len);
   }
 
@@ -660,12 +646,9 @@ write_lv_record(mrb_state *mrb, const mrb_irep *irep, uint8_t **start, mrb_sym c
 static size_t
 get_lv_record_size(mrb_state *mrb, const mrb_irep *irep)
 {
-  size_t ret = 0;
-  int i;
+  size_t ret = sizeof(uint16_t) * (irep->nlocals - 1);
 
-  ret += sizeof(uint16_t) * (irep->nlocals - 1);
-
-  for (i = 0; i < irep->rlen; ++i) {
+  for (int i = 0; i < irep->rlen; i++) {
     ret += get_lv_record_size(mrb, irep->reps[i]);
   }
 
@@ -675,11 +658,9 @@ get_lv_record_size(mrb_state *mrb, const mrb_irep *irep)
 static size_t
 get_lv_section_size(mrb_state *mrb, const mrb_irep *irep, mrb_sym const *syms, uint32_t syms_len)
 {
-  size_t ret = 0, i;
-
-  ret += sizeof(uint32_t); /* syms_len */
+  size_t ret = sizeof(uint32_t);      /* syms_len */
   ret += sizeof(uint16_t) * syms_len; /* symbol name lengths */
-  for (i = 0; i < syms_len; ++i) {
+  for (uint32_t i = 0; i < syms_len; i++) {
     mrb_int str_len;
     mrb_sym_name_len(mrb, syms[i], &str_len);
     ret += str_len;
@@ -744,10 +725,8 @@ write_rite_binary_header(mrb_state *mrb, size_t binary_size, uint8_t *bin, uint8
 static mrb_bool
 debug_info_defined_p(const mrb_irep *irep)
 {
-  int i;
-
   if (!irep->debug_info) return FALSE;
-  for (i=0; i<irep->rlen; i++) {
+  for (int i=0; i<irep->rlen; i++) {
     if (!debug_info_defined_p(irep->reps[i])) return FALSE;
   }
   return TRUE;
@@ -756,11 +735,9 @@ debug_info_defined_p(const mrb_irep *irep)
 static mrb_bool
 lv_defined_p(const mrb_irep *irep)
 {
-  int i;
-
   if (irep->lv) { return TRUE; }
 
-  for (i = 0; i < irep->rlen; ++i) {
+  for (int i = 0; i < irep->rlen; i++) {
     if (lv_defined_p(irep->reps[i])) { return TRUE; }
   }
 
