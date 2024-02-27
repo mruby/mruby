@@ -75,12 +75,12 @@ mrb_pool_open(mrb_state *mrb)
 MRB_API void
 mrb_pool_close(mrb_pool *pool)
 {
-  struct mrb_pool_page *page, *tmp;
+  struct mrb_pool_page *page;
 
   if (!pool) return;
   page = pool->pages;
   while (page) {
-    tmp = page;
+    struct mrb_pool_page *tmp = page;
     page = page->next;
     mrb_free(pool->mrb, tmp);
   }
