@@ -482,12 +482,9 @@ mrb_make_exception(mrb_state *mrb, mrb_value exc, mrb_value mesg)
 MRB_API mrb_noreturn void
 mrb_sys_fail(mrb_state *mrb, const char *mesg)
 {
-  struct RClass *sce;
-  mrb_int no;
-
-  no = (mrb_int)errno;
   if (mrb_class_defined_id(mrb, MRB_SYM(SystemCallError))) {
-    sce = mrb_class_get_id(mrb, MRB_SYM(SystemCallError));
+    struct RClass *sce = mrb_class_get_id(mrb, MRB_SYM(SystemCallError));
+    mrb_int no = (mrb_int)errno;
     if (mesg != NULL) {
       mrb_funcall_id(mrb, mrb_obj_value(sce), MRB_SYM(_sys_fail), 2, mrb_fixnum_value(no), mrb_str_new_cstr(mrb, mesg));
     }
