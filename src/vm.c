@@ -1915,7 +1915,7 @@ RETRY_TRY_BLOCK:
       mrb_gc_arena_shrink(mrb, ai);
       if (mrb->exc) goto L_RAISE;
       ci = mrb->c->ci;
-      if (!ci->u.target_class) { /* return from context modifying method (resume/yield) */
+      if (!ci->u.keep_context) { /* return from context modifying method (resume/yield) */
         if (ci->cci == CINFO_RESUMED) {
           mrb->jmp = prev_jmp;
           return recv;
@@ -2410,7 +2410,7 @@ RETRY_TRY_BLOCK:
           ci = mrb->c->ci;
         }
 
-        if (mrb->c->vmexec && !CI_TARGET_CLASS(ci)) {
+        if (mrb->c->vmexec && !ci->u.keep_context) {
           mrb_gc_arena_restore(mrb, ai);
           mrb->c->vmexec = FALSE;
           mrb->jmp = prev_jmp;
