@@ -315,7 +315,7 @@ mrb_obj_init_copy(mrb_state *mrb, mrb_value self)
 }
 
 MRB_API mrb_bool
-mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, struct RClass* c)
+mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, const struct RClass* c)
 {
   if (mrb_obj_class(mrb, obj) == c) return TRUE;
   return FALSE;
