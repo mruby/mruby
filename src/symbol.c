@@ -26,11 +26,10 @@ presym_find(const char *name, size_t len)
 {
   if (presym_length_table[MRB_PRESYM_MAX-1] < len) return 0;
 
-  mrb_sym start, idx, presym_size = MRB_PRESYM_MAX;
-  int cmp;
-  for (start = 0; presym_size != 0; presym_size/=2) {
-    idx = start+presym_size/2;
-    cmp = (int)len-(int)presym_length_table[idx];
+  mrb_sym presym_size = MRB_PRESYM_MAX;
+  for (mrb_sym start = 0; presym_size != 0; presym_size/=2) {
+    mrb_sym idx = start+presym_size/2;
+    int cmp = (int)len-(int)presym_length_table[idx];
     if (cmp == 0) {
       cmp = memcmp(name, presym_name_table[idx], len);
       if (cmp == 0) return idx+1;
@@ -80,20 +79,17 @@ sym_inline_pack(const char *name, size_t len)
   const size_t pack_length_max = 5;
 #endif
 
-  char c;
-  const char *p;
   mrb_sym sym = 0;
 
   if (len > pack_length_max) return 0; /* too long */
   if (len == 0) return 0; /* empty string */
   for (size_t i=0; i<len; i++) {
-    uint32_t bits;
-
-    c = name[i];
+    char c = name[i];
     if (c == 0) return 0;       /* NUL in name */
-    p = strchr(pack_table, (int)c);
+    const char *p = strchr(pack_table, (int)c);
     if (p == 0) return 0;       /* non alnum char */
-    bits = (uint32_t)(p - pack_table)+1;
+
+    uint32_t bits = (uint32_t)(p - pack_table)+1;
     sym |= bits<<(24-i*6);
   }
   mrb_assert(SYMBOL_INLINE_P(sym));
