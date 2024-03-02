@@ -8,6 +8,7 @@ build:
       - changed-files:
           - any-glob-to-any-file:
               - Dockerfile
+              - Doxyfile
               - Makefile
               - Rakefile
               - appveyor.yml
@@ -17,7 +18,10 @@ build:
               - lib/**/*
               - minirake
               - tasks/**/*
+              - .dockerignore
+              - .pre-commit-config.yaml
               - .travis.yml
+              - .yardopts
 core:
   - any:
       - changed-files:
