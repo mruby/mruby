@@ -475,15 +475,15 @@ is_special_global_name(const char* m)
     case ':': case '<': case '>': case '\"':
     case '&': case '`': case '\'': case '+':
     case '0':
-      ++m;
+      m++;
       break;
     case '-':
-      ++m;
+      m++;
       if (is_identchar(*m)) m += 1;
       break;
     default:
       if (!ISDIGIT(*m)) return FALSE;
-      do ++m; while (ISDIGIT(*m));
+      do m++; while (ISDIGIT(*m));
       break;
   }
   return !*m;
@@ -511,7 +511,7 @@ symname_p(const char *name)
     case '<':
       switch (*++m) {
         case '<': ++m; break;
-        case '=': if (*++m == '>') ++m; break;
+        case '=': if (*++m == '>') m++; break;
         default: break;
       }
       break;
@@ -525,37 +525,37 @@ symname_p(const char *name)
 
     case '=':
       switch (*++m) {
-        case '~': ++m; break;
-        case '=': if (*++m == '=') ++m; break;
+        case '~': m++; break;
+        case '=': if (*++m == '=') m++; break;
         default: return FALSE;
       }
       break;
 
     case '*':
-      if (*++m == '*') ++m;
+      if (*++m == '*') m++;
       break;
     case '!':
       switch (*++m) {
-        case '=': case '~': ++m;
+        case '=': case '~': m++;
       }
       break;
     case '+': case '-':
-      if (*++m == '@') ++m;
+      if (*++m == '@') m++;
       break;
     case '|':
-      if (*++m == '|') ++m;
+      if (*++m == '|') m++;
       break;
     case '&':
-      if (*++m == '&') ++m;
+      if (*++m == '&') m++;
       break;
 
     case '^': case '/': case '%': case '~': case '`':
-      ++m;
+      m++;
       break;
 
     case '[':
       if (*++m != ']') return FALSE;
-      if (*++m == '=') ++m;
+      if (*++m == '=') m++;
       break;
 
     default:
@@ -565,7 +565,7 @@ id:
       while (is_identchar(*m)) m += 1;
       if (localid) {
         switch (*m) {
-          case '!': case '?': case '=': ++m;
+          case '!': case '?': case '=': m++;
           default: break;
         }
       }
