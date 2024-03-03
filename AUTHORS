@@ -1,10 +1,10 @@
 # Authors of mruby (mruby developers)
 
-## The List of Contributors sorted by number of commits (as of 2024-02-10 d2af9da)
+## The List of Contributors sorted by number of commits (as of 2024-03-02 c75579a)
 
-   9592 Yukihiro "Matz" Matsumoto (@matz)*
+   9629 Yukihiro "Matz" Matsumoto (@matz)*
     586 KOBAYASHI Shuji (@shuujii)
-    547 dearblue (@dearblue)*
+    555 dearblue (@dearblue)*
     378 Daniel Bovensiepen (@bovi)*
     346 Takeshi Watanabe (@take-cheeze)*
     334 Masaki Muranaka (@monaka)
@@ -12,13 +12,13 @@
     234 Jun Hiroe (@suzukaze)
     220 Cremno (@cremno)*
     209 Yuki Kurihara (@ksss)+
-    170 John Bampton (@jbampton)
+    175 John Bampton (@jbampton)
     151 Yasuhiro Matsumoto (@mattn)*
     113 Carson McDonald (@carsonmcdonald)
     103 Tomasz Dąbrowski (@dabroz)*
+     88 Hiroshi Mimaki (@mimaki)*
      84 Akira Yumiyama (@akiray03)*
      84 skandhas (@skandhas)
-     81 Hiroshi Mimaki (@mimaki)*
      80 Masamitsu MURASE (@masamitsu-murase)
      74 Yuichiro MASUI (@masuidrive)
      71 Tatsuhiko Kubo (@cubicdaiya)*
@@ -194,6 +194,7 @@
       2 Tomás Pollak (@tomas)*
       2 Yutaka HARA (@yhara)*+
       2 Zhang Xiaohui (@hifoolno)
+      2 buty4649 (@buty4649)
       2 icm7216 (@icm7216)
       1 A-Sat (@asatou)+
       1 Abinoam Praxedes Marques Junior (@abinoam)
@@ -291,7 +292,6 @@
       1 Yusuke Tanaka (@csouls)
       1 alpha.netzilla (@alpha-netzilla)
       1 arton (@arton)
-      1 buty4649 (@buty4649)
       1 duangsuse (@duangsuse)
       1 fl0l0u (@fl0l0u)
       1 hhc0null (@hhc0null)
