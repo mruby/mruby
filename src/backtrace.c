@@ -167,7 +167,7 @@ mrb_unpack_backtrace(mrb_state *mrb, struct RBasic *backtrace)
   mrb_assert(backtrace->tt == MRB_TT_BACKTRACE);
 
   struct RBacktrace *bt = (struct RBacktrace*)backtrace;
-  mrb_int n = bt ? (mrb_int)bt->len : 0;
+  mrb_int n = (mrb_int)bt->len;
   const struct mrb_backtrace_location *loc = bt->locations;
 
   backtrace = mrb_basic_ptr(mrb_ary_new_capa(mrb, n));
