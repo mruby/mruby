@@ -1780,7 +1780,8 @@ RETRY_TRY_BLOCK:
           }
           else if (mrb->c == mrb->root_c) {
             mrb->c->ci->stack = mrb->c->stbase;
-            goto L_STOP;
+            mrb->jmp = prev_jmp;
+            return mrb_obj_value(mrb->exc);
           }
           else {
             struct mrb_context *c = mrb->c;
@@ -2391,8 +2392,9 @@ RETRY_TRY_BLOCK:
           struct mrb_context *c = mrb->c;
           if (c == mrb->root_c) {
             /* toplevel return */
-            regs[irep->nlocals] = v;
-            goto L_STOP;
+            mrb_gc_arena_restore(mrb, ai);
+            mrb->jmp = prev_jmp;
+            return v;
           }
 
           /* fiber termination should automatic yield or transfer to root */
@@ -3083,7 +3085,6 @@ RETRY_TRY_BLOCK:
         UNWIND_ENSURE(mrb, mrb->c->ci, mrb->c->ci->pc, RBREAK_TAG_STOP, mrb->c->ci, mrb_nil_value());
       }
       CHECKPOINT_END(RBREAK_TAG_STOP);
-    L_STOP:
       mrb->jmp = prev_jmp;
       if (mrb->exc) {
         mrb_assert(mrb->exc->tt == MRB_TT_EXCEPTION);
