@@ -98,10 +98,10 @@ debug_get_line(mrb_state *mrb, mrb_irep_debug_info_file* f, uint32_t pc)
     {
       const uint8_t *p = f->lines.packed_map;
       const uint8_t *pend = p + f->line_entry_count;
-      uint32_t pos = 0, line = 0, line_diff;
+      uint32_t pos = 0, line = 0;
       while (p < pend) {
         pos += mrb_packed_int_decode(p, &p);
-        line_diff = mrb_packed_int_decode(p, &p);
+        uint32_t line_diff = mrb_packed_int_decode(p, &p);
         if (pc < pos) break;
         line += line_diff;
       }
@@ -224,12 +224,10 @@ mrb_debug_info_append_file(mrb_state *mrb, mrb_irep_debug_info *d,
 MRB_API void
 mrb_debug_info_free(mrb_state *mrb, mrb_irep_debug_info *d)
 {
-  uint32_t i;
-
   if (!d) { return; }
 
   if (d->files) {
-    for (i = 0; i < d->flen; i++) {
+    for (uint32_t i = 0; i < d->flen; i++) {
       if (d->files[i]) {
         mrb_free(mrb, d->files[i]->lines.ptr);
         mrb_free(mrb, d->files[i]);
