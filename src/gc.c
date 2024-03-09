@@ -939,10 +939,8 @@ gc_gray_counts(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
 
       /* mark closure */
       if (c->cibase) {
-        for (i=0, ci = c->cibase; ci <= c->ci; i++, ci++)
-          ;
+        children += c->ci - c->cibase + 1;
       }
-      children += i;
     }
     break;
 
