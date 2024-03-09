@@ -3068,18 +3068,22 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_STOP, Z) {
       /*        stop VM */
+      mrb_value v;
+      v = mrb->exc ? mrb_obj_value(mrb->exc) : mrb_nil_value();
       CHECKPOINT_RESTORE(RBREAK_TAG_STOP) {
-        /* do nothing */
+        struct RBreak *brk = (struct RBreak*)mrb->exc;
+        v = mrb_break_value_get(brk);
       }
       CHECKPOINT_MAIN(RBREAK_TAG_STOP) {
-        UNWIND_ENSURE(mrb, mrb->c->ci, mrb->c->ci->pc, RBREAK_TAG_STOP, mrb->c->ci, mrb_nil_value());
+        UNWIND_ENSURE(mrb, mrb->c->ci, mrb->c->ci->pc, RBREAK_TAG_STOP, mrb->c->ci, v);
       }
       CHECKPOINT_END(RBREAK_TAG_STOP);
       mrb->jmp = prev_jmp;
-      if (mrb->exc) {
-        mrb_assert(mrb->exc->tt == MRB_TT_EXCEPTION);
-        return mrb_obj_value(mrb->exc);
+      if (!mrb_nil_p(v)) {
+        mrb->exc = mrb_obj_ptr(v);
+        return v;
       }
+      mrb->exc = NULL;
       return regs[irep->nlocals];
     }
   }
