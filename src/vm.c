@@ -2662,7 +2662,7 @@ RETRY_TRY_BLOCK:
       if (mrb_obj_eq(mrb, regs[a], regs[a+1])) {
         SET_TRUE_VALUE(regs[a]);
       }
-      else if (mrb_type(regs[a]) == MRB_TT_SYMBOL) {
+      else if (mrb_symbol_p(regs[a])) {
         SET_FALSE_VALUE(regs[a]);
       }
       else {
