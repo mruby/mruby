@@ -926,7 +926,6 @@ gc_gray_counts(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
     {
       struct mrb_context *c = ((struct RFiber*)obj)->cxt;
       size_t i;
-      mrb_callinfo *ci;
 
       if (!c || c->status == MRB_FIBER_TERMINATED) break;
       if (!c->ci) break;
