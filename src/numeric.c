@@ -1455,7 +1455,7 @@ int_xor(mrb_state *mrb, mrb_value x)
     return mrb_bint_xor(mrb, mrb_as_bint(mrb, x), y);
   }
 #endif
-  bit_op(x, y, or, ^);
+  bit_op(x, y, xor, ^);
 }
 
 #define NUMERIC_SHIFT_WIDTH_MAX (MRB_INT_BIT-1)
