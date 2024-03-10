@@ -465,7 +465,7 @@ time_now(mrb_state *mrb, mrb_value self)
 }
 
 MRB_API mrb_value
-time_at(mrb_state *mrb, time_t sec, time_t usec, enum mrb_timezone zone)
+mrb_time_at(mrb_state *mrb, time_t sec, time_t usec, enum mrb_timezone zone)
 {
   return time_make_time(mrb, mrb_class_get_id(mrb, MRB_SYM(Time)), sec, usec, zone);
 }
