@@ -12,10 +12,9 @@ MRB_API mrb_bool
 mrb_read_int(const char *p, const char *e, char **endp, mrb_int *np)
 {
   mrb_int n = 0;
-  int ch;
 
   while ((e == NULL || p < e) && ISDIGIT(*p)) {
-    ch = *p - '0';
+    int ch = *p - '0';
     if (mrb_int_mul_overflow(n, 10, &n) ||
         mrb_int_add_overflow(n, ch, &n)) {
       return FALSE;
