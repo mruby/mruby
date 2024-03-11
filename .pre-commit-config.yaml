@@ -63,7 +63,7 @@ repos:
       - id: markdownlint
         name: Run markdownlint
         description: Checks the style of Markdown files
-        entry: markdownlint -c .github/linters/.markdown-lint.yml .
+        args: [--config=.github/linters/.markdown-lint.yml]
         types: [markdown]
         files: \.(md|mdown|markdown)$
   - repo: https://github.com/tcort/markdown-link-check
@@ -81,6 +81,6 @@ repos:
       - id: yamllint
         name: Run yamllint
         description: Check YAML files with yamllint
-        entry: yamllint --strict -c .github/linters/.yaml-lint.yml
+        args: [--strict, -c=.github/linters/.yaml-lint.yml]
         types: [yaml]
         files: \.(yaml|yml)$
