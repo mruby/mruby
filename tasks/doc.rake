@@ -9,8 +9,8 @@ namespace :doc do
     begin
       sh "mrbdoc"
     rescue
-      puts "ERROR: To generate YARD documentation, you should install yard-mruby gem."
-      puts "  $ gem install yard-mruby yard-coderay"
+      puts "ERROR: To generate YARD documentation, you should install the yard-coderay and yard-mruby gems."
+      puts "  $ gem install yard-coderay yard-mruby"
       puts "https://yardoc.org/"
       puts "https://rubygems.org/gems/yard-mruby"
       puts "https://rubygems.org/gems/yard-coderay"
@@ -22,7 +22,7 @@ namespace :doc do
     begin
       sh "doxygen Doxyfile"
     rescue
-      puts "ERROR: To generate C API documents, you need Doxygen and Graphviz."
+      puts "ERROR: To generate C API documentation, you should install Doxygen and Graphviz."
       puts "On Debian-based systems:"
       puts "  $ sudo apt-get install doxygen graphviz"
       puts "On RHEL-based systems:"
