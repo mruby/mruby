@@ -48,6 +48,12 @@ github:
       - changed-files:
           - any-glob-to-any-file:
               - .github/**/*
+miscellaneous:
+  - any:
+      - changed-files:
+          - any-glob-to-any-file:
+              - .editorconfig
+              - .prettierrc
 mrbgems:
   - any:
       - changed-files:
