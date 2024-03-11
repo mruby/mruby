@@ -38,7 +38,7 @@ jobs:
             mv .sha256 "$packagename.sha256"
           )
       - name: Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           # draft: true
           prerelease: ${{ contains(github.ref_name, '-rc') }}
