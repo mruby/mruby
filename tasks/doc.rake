@@ -40,7 +40,7 @@ namespace :doc do
   namespace :clean do
     desc 'clean yard docs'
     task :api do
-      rm_rf 'doc/api'
+      rm_rf %w(doc/api .yardoc)
     end
 
     desc 'clean doxygen docs'
