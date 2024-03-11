@@ -28,7 +28,3 @@ indent_style = tab
 [*.bat]
 end_of_line = crlf
 #max_line_length = 80
-
-#[*.{yaml,yml}]
-
-#[*.md]
