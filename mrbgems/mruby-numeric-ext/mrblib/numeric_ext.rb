@@ -76,6 +76,19 @@ class Numeric
   def nobits?(mask)
     (self & mask) == 0
   end
+
+  ##
+  #  call-seq:
+  #    num.integer?  ->  true or false
+  #
+  #  Returns true if num is an Integer.
+  #
+  #  1.0.integer?   #=> false
+  #  1.integer?     #=> true
+  #
+  def integer?
+    false
+  end
 end
 
 class Integer
@@ -95,5 +108,9 @@ class Integer
   #    3.ceildiv(1.2) # => 3
   def ceildiv(other)
     -div(-other)
+  end
+
+  def integer?
+    true
   end
 end
