@@ -49,6 +49,21 @@ class Numeric
 
   ##
   #  call-seq:
+  #    num.integer?  ->  true or false
+  #
+  #  Returns true if num is an Integer.
+  #
+  #  1.0.integer?   #=> false
+  #  1.integer?     #=> true
+  #
+  def integer?
+    false
+  end
+end
+
+class Integer
+  ##
+  #  call-seq:
   #    int.allbits?(mask)  ->  true or false
   #
   #  Returns +true+ if all bits of <code>+int+ & +mask+</code> are 1.
@@ -77,21 +92,6 @@ class Numeric
     (self & mask) == 0
   end
 
-  ##
-  #  call-seq:
-  #    num.integer?  ->  true or false
-  #
-  #  Returns true if num is an Integer.
-  #
-  #  1.0.integer?   #=> false
-  #  1.integer?     #=> true
-  #
-  def integer?
-    false
-  end
-end
-
-class Integer
   #  call-seq:
   #    ceildiv(other) -> integer
   #
