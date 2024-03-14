@@ -588,8 +588,9 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
   case MRB_TT_ICLASS:
     {
       struct RClass *c = (struct RClass*)obj;
-      if (MRB_FLAG_TEST(c, MRB_FL_CLASS_IS_ORIGIN))
-        mrb_gc_mark_mt(mrb, c);
+      if (MRB_FLAG_TEST(c, MRB_FL_CLASS_IS_ORIGIN)) {
+        children += mrb_gc_mark_mt(mrb, c);
+      }
       mrb_gc_mark(mrb, (struct RBasic*)((struct RClass*)obj)->super);
       children++;
     }
@@ -603,7 +604,7 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
 
       mrb_gc_mark_mt(mrb, c);
       mrb_gc_mark(mrb, (struct RBasic*)c->super);
-      children += mrb_gc_mark_mt_size(mrb, c);
+      children += mrb_gc_mark_mt(mrb, c);
       children++;
     }
     /* fall through */

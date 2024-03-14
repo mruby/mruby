@@ -74,8 +74,7 @@ struct mrb_backtrace_location {
 };
 
 /* gc */
-void mrb_gc_mark_mt(mrb_state*, struct RClass*);
-size_t mrb_gc_mark_mt_size(mrb_state*, struct RClass*);
+size_t mrb_gc_mark_mt(mrb_state*, struct RClass*);
 void mrb_gc_free_mt(mrb_state*, struct RClass*);
 
 /* hash */

@@ -281,14 +281,14 @@ mrb_mt_foreach(mrb_state *mrb, struct RClass *c, mrb_mt_foreach_func *fn, void *
   return;
 }
 
-void
+size_t
 mrb_gc_mark_mt(mrb_state *mrb, struct RClass *c)
 {
   mt_tbl *t = c->mt;
 
-  if (t == NULL) return;
-  if (t->alloc == 0) return;
-  if (t->size == 0) return;
+  if (t == NULL) return 0;
+  if (t->alloc == 0) return 0;
+  if (t->size == 0) return 0;
 
   mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
   union mt_ptr *vals = t->ptr;
@@ -298,16 +298,8 @@ mrb_gc_mark_mt(mrb_state *mrb, struct RClass *c)
       mrb_gc_mark(mrb, (struct RBasic*)p);
     }
   }
-  return;
-}
-
-size_t
-mrb_gc_mark_mt_size(mrb_state *mrb, struct RClass *c)
-{
-  struct mt_tbl *h = c->mt;
-
-  if (!h) return 0;
-  return (size_t)h->size;
+  if (!t) return 0;
+  return (size_t)t->size;
 }
 
 size_t
