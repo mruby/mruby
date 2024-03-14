@@ -1072,18 +1072,13 @@ h_replace(mrb_state *mrb, struct RHash *h, struct RHash *orig_h)
   }
 }
 
-void
+size_t
 mrb_gc_mark_hash(mrb_state *mrb, struct RHash *h)
 {
   h_each(h, entry, {
     mrb_gc_mark_value(mrb, entry->key);
     mrb_gc_mark_value(mrb, entry->val);
   });
-}
-
-size_t
-mrb_gc_mark_hash_size(mrb_state *mrb, struct RHash *h)
-{
   return h_size(h) * 2;
 }
 

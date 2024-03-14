@@ -80,8 +80,7 @@ void mrb_gc_free_mt(mrb_state*, struct RClass*);
 
 /* hash */
 size_t mrb_hash_memsize(mrb_value obj);
-void mrb_gc_mark_hash(mrb_state*, struct RHash*);
-size_t mrb_gc_mark_hash_size(mrb_state*, struct RHash*);
+size_t mrb_gc_mark_hash(mrb_state*, struct RHash*);
 void mrb_gc_free_hash(mrb_state*, struct RHash*);
 
 /* irep */

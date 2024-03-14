@@ -675,8 +675,7 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
 
   case MRB_TT_HASH:
     children += mrb_gc_mark_iv(mrb, (struct RObject*)obj);
-    mrb_gc_mark_hash(mrb, (struct RHash*)obj);
-    children += mrb_gc_mark_hash_size(mrb, (struct RHash*)obj);
+    children += mrb_gc_mark_hash(mrb, (struct RHash*)obj);
     break;
 
   case MRB_TT_STRING:
