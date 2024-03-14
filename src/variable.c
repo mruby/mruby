@@ -255,15 +255,10 @@ mrb_gc_free_gv(mrb_state *mrb)
     iv_free(mrb, mrb->globals);
 }
 
-void
+size_t
 mrb_gc_mark_iv(mrb_state *mrb, struct RObject *obj)
 {
   mark_tbl(mrb, obj->iv);
-}
-
-size_t
-mrb_gc_mark_iv_size(mrb_state *mrb, struct RObject *obj)
-{
   return iv_size(mrb, obj->iv);
 }
 
