@@ -144,7 +144,7 @@ mrb_bool mrb_proc_eql(mrb_state *mrb, mrb_value self, mrb_value other);
 /* range */
 #ifdef MRUBY_RANGE_H
 mrb_value mrb_get_values_at(mrb_state *mrb, mrb_value obj, mrb_int olen, mrb_int argc, const mrb_value *argv, mrb_value (*func)(mrb_state*, mrb_value, mrb_int));
-void mrb_gc_mark_range(mrb_state *mrb, struct RRange *r);
+size_t mrb_gc_mark_range(mrb_state *mrb, struct RRange *r);
 #endif
 
 /* string */

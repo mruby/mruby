@@ -687,8 +687,7 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
     break;
 
   case MRB_TT_RANGE:
-    mrb_gc_mark_range(mrb, (struct RRange*)obj);
-    children+=2;
+    children += mrb_gc_mark_range(mrb, (struct RRange*)obj);
     break;
 
   case MRB_TT_BREAK:
@@ -705,8 +704,10 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
       mrb_gc_mark(mrb, (struct RBasic*)((struct RException*)obj)->mesg);
       children++;
     }
-    mrb_gc_mark(mrb, (struct RBasic*)((struct RException*)obj)->backtrace);
-    children++;
+    if (((struct RException*)obj)->backtrace) {
+      mrb_gc_mark(mrb, (struct RBasic*)((struct RException*)obj)->backtrace);
+      children++;
+    }
     break;
 
   case MRB_TT_BACKTRACE:

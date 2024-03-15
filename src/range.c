@@ -437,13 +437,13 @@ mrb_get_values_at(mrb_state *mrb, mrb_value obj, mrb_int olen, mrb_int argc, con
   return result;
 }
 
-void
+size_t
 mrb_gc_mark_range(mrb_state *mrb, struct RRange *r)
 {
-  if (RANGE_INITIALIZED_P(r)) {
-    mrb_gc_mark_value(mrb, RANGE_BEG(r));
-    mrb_gc_mark_value(mrb, RANGE_END(r));
-  }
+  if (!RANGE_INITIALIZED_P(r)) return 0;
+  mrb_gc_mark_value(mrb, RANGE_BEG(r));
+  mrb_gc_mark_value(mrb, RANGE_END(r));
+  return 2;
 }
 
 MRB_API struct RRange*
