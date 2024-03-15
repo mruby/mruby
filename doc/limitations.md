@@ -253,3 +253,32 @@ def g(a: 1, b: a)
 end
 g(a:1)
 ```
+
+## String to floating-point number conversion
+
+Not only in Ruby, but in general, there is inevitably an error when converting floating-point numbers from strings.
+The process to reduce this error as much as possible is complicated and expensive, and mruby omits the process.
+Therefore, the results do not match those of CRuby.
+This difference also applies to floating-point number literals written in Ruby code.
+
+If your code has problems with the standard C library function `strtod()`,
+consider whether it is acceptable to replace `strtod()` with `mrb_read_float()`.
+Also, for the same reason, please consider replacing `printf("%f", num)` with `mrb_float_to_str()`.
+
+#### Ruby [ruby 3.3.0 (2023-12-25 revision 5124f9ac75)]
+
+```console
+$ ruby33 -e 'p 4.9406564584124654418e-324'
+5.0e-324
+$ ruby33 -e 'p 0.0000000000000000000000000000000000007777777'
+7.777777e-37
+```
+
+#### mruby [3.3.0 (2024-02-14)]
+
+```console
+$ bin/mruby -e 'p 4.9406564584124654418e-324'
+0.0
+$ bin/mruby -e 'p 0.0000000000000000000000000000000000007777777'
+7.77777700000001e-37
+```
