@@ -24,6 +24,7 @@ jobs:
         env:
           VALIDATE_BASH: true
           # VALIDATE_BASH_EXEC: true
+          VALIDATE_DOCKERFILE_HADOLINT: true
           # VALIDATE_EDITORCONFIG: true
           VALIDATE_GITHUB_ACTIONS: true
           VALIDATE_GITLEAKS: true

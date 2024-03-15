@@ -8,6 +8,6 @@ WORKDIR /app
 
 COPY Gemfile Gemfile.lock .pre-commit-config.yaml ./
 
-RUN bundle install && pip3 install pre-commit && git init . && pre-commit install-hooks
+RUN bundle install && pip3 install --no-cache-dir pre-commit && git init . && pre-commit install-hooks
 
 COPY . .

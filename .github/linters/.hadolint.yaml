@@ -1,0 +1,4 @@
+failure-threshold: info
+ignored:
+  - DL3008 # https://github.com/hadolint/hadolint/wiki/DL3008
+  - DL3013 # https://github.com/hadolint/hadolint/wiki/DL3013
