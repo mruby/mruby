@@ -67,11 +67,8 @@ static void
 mt_rehash(mrb_state *mrb, mt_tbl *t)
 {
   int old_alloc = t->alloc;
-  int new_alloc = old_alloc+8;
+  int new_alloc = old_alloc > 0 ? old_alloc << 1 : 8;
   union mt_ptr *old_ptr = t->ptr;
-
-  khash_power2(new_alloc);
-  if (old_alloc == new_alloc) return;
 
   t->ptr = (union mt_ptr*)mrb_calloc(mrb, sizeof(union mt_ptr)+sizeof(mrb_sym), new_alloc);
   t->alloc = new_alloc;
