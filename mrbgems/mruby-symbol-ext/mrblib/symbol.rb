@@ -56,7 +56,7 @@ class Symbol
   def casecmp?(sym)
     c = self.casecmp(sym)
     return nil if c.nil?
-    return c == 0
+    c == 0
   end
 
   #

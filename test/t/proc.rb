@@ -110,19 +110,19 @@ assert('Proc#return_does_not_break_self') do
     end
     def return_array
       @block = Proc.new { self }
-      return []
+      []
     end
     def return_instance_variable
       @block = Proc.new { self }
-      return @block
+      @block
     end
     def return_const_fixnum
       @block = Proc.new { self }
-      return 123
+      123
     end
     def return_nil
       @block = Proc.new { self }
-      return nil
+      nil
     end
   end
 

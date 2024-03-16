@@ -68,19 +68,19 @@ module MRuby
 
       def full_gemdir
         return @gemdir unless @path
-        return File.join(@gemdir, @path)
+        File.join(@gemdir, @path)
       end
 
-      def canonical?()  return @canonical;                  end
-      def git?()        return !!@repo;                     end
-      def gemname()     return File.basename(@gemdir);      end
+      def canonical?()  @canonical;                  end
+      def git?()        !!@repo;                     end
+      def gemname()     File.basename(@gemdir);      end
 
       def hash
-        return [@gemdir, @repo, @branch, @commit, @canonical, @path].hash
+        [@gemdir, @repo, @branch, @commit, @canonical, @path].hash
       end
 
       def ==(other)
-        return @gemdir == other.gemdir &&
+        @gemdir == other.gemdir &&
           @repo == other.repo &&
           @branch == other.branch &&
           @commit == other.commit &&
@@ -93,7 +93,7 @@ module MRuby
         desc = @gemdir
         desc += " -> #{@repo}/#{@branch}" if git?
         desc += "/#{commit}" if commit
-        return desc
+        desc
       end
     end
 
@@ -206,11 +206,11 @@ module MRuby
           gem_src = File.expand_path(gem_src, root_dir)
         end
 
-        return GemCheckout.new(gem_src, nil, nil, nil, @canonical)
+        GemCheckout.new(gem_src, nil, nil, nil, @canonical)
       end
 
       def fromCore!
-        return GemCheckout.new("#{@build.root}/mrbgems/#{@core}", nil, nil,
+        GemCheckout.new("#{@build.root}/mrbgems/#{@core}", nil, nil,
                                nil, @canonical)
       end
 
@@ -221,7 +221,7 @@ module MRuby
 
       def fromGitHub!
         url = "https://github.com/#{@github}.git"
-        return fromGit!(url, @branch)
+        fromGit!(url, @branch)
       end
 
       def fromBitBucket!
@@ -231,7 +231,7 @@ module MRuby
           url = "https://bitbucket.org/#{@bitbucket}.git"
         end
 
-        return fromGit!(url, @branch)
+        fromGit!(url, @branch)
       end
 
 
@@ -245,7 +245,7 @@ module MRuby
         url = mgem['repository']
         branch = mgem['branch'] || @branch
 
-        return fromGit!(url, branch)
+        fromGit!(url, branch)
       end
 
       # Fetch the contents of the named mgem item. Will clone the
@@ -265,7 +265,7 @@ module MRuby
         fail "unknown mgem protocol: #{conf['protocol']}" if
           conf['protocol'] != 'git'
 
-        return conf
+        conf
       end
 
 
@@ -304,7 +304,7 @@ module MRuby
           }
         end
 
-        return GemCheckout.new(repo_dir, url, branch, commit, @canonical,@path)
+        GemCheckout.new(repo_dir, url, branch, commit, @canonical,@path)
       end
 
 

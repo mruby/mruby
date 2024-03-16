@@ -219,7 +219,7 @@ module Enumerable
       self.each do |*val|
         return val.__svalue
       end
-      return nil
+      nil
     when 1
       i = args[0].__to_int
       raise ArgumentError, "attempt to take negative size" if i < 0

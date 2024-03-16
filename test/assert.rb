@@ -392,7 +392,7 @@ def _eval_assertion(meth, exp, act_or_msg, msg, block)
   else
     exp, act, msg = exp, act_or_msg, msg
   end
-  return exp.__send__(meth, act), exp, act, msg
+  [exp.__send__(meth, act), exp, act, msg]
 end
 
 ##

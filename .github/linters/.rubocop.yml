@@ -1,0 +1,6 @@
+AllCops:
+  DisabledByDefault: true
+  TargetRubyVersion: 3.3.0
+
+Style/RedundantReturn:
+  Enabled: true

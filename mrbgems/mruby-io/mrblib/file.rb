@@ -159,7 +159,7 @@ class File < IO
         f.each {|l| yield l}
       end
     else
-      return self.new(file)
+      self.new(file)
     end
   end
 
@@ -207,7 +207,7 @@ class File < IO
     fname = self.basename(filename)
     epos = fname.rindex('.')
     return '' if epos == 0 || epos.nil?
-    return fname[epos..-1]
+    fname[epos..-1]
   end
 
   def self.path(filename)

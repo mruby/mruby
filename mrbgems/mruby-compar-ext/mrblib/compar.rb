@@ -84,9 +84,9 @@ module Comparable
     if c.nil?
       raise ArgumentError, "comparison of #{self.class} with #{max.class} failed"
     elsif c > 0
-      return max
+      max
     else
-      return self
+      self
     end
   end
 end

@@ -29,7 +29,7 @@ class Hash
       return false unless hash.key?(k)
       return false unless self[k] == hash[k]
     end
-    return true
+    true
   end
 
   ##
@@ -49,7 +49,7 @@ class Hash
       return false unless hash.key?(k)
       return false unless self[k].eql?(hash[k])
     end
-    return true
+    true
   end
 
   ##

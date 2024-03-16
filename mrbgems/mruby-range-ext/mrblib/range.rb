@@ -50,7 +50,7 @@ class Range
     nv = args[0]
     n = nv.__to_int
     raise ArgumentError, "negative array size (or size too big)" unless 0 <= n
-    return self.to_a.last(nv)
+    self.to_a.last(nv)
   end
 
   def max(&block)

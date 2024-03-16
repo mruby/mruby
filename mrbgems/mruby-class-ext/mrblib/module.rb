@@ -29,9 +29,9 @@ class Module
   def <=(other)
     raise TypeError, 'compared with non class/module' unless other.is_a?(Module)
     if self.ancestors.include?(other)
-      return true
+      true
     elsif other.ancestors.include?(self)
-      return false
+      false
     end
   end
 
@@ -64,7 +64,7 @@ class Module
   #
   def >=(other)
     raise TypeError, 'compared with non class/module' unless other.is_a?(Module)
-    return other < self
+    other < self
   end
 
   ##
@@ -84,6 +84,6 @@ class Module
     cmp = self < other
     return -1 if cmp
     return 1 unless cmp.nil?
-    return nil
+    nil
   end
 end

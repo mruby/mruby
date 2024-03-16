@@ -49,6 +49,9 @@ repos:
   - repo: https://github.com/jumanjihouse/pre-commit-hooks
     rev: 3.0.0
     hooks:
+      - id: rubocop
+        args: [--config=.github/linters/.rubocop.yml]
+        exclude: ^test/t/syntax\.rb$|^test/t/vformat\.rb$
       - id: script-must-not-have-extension
         name: Local policy is to exclude extension from all shell files
         types: [shell]
