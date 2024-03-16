@@ -26,7 +26,7 @@ repos:
       - id: end-of-file-fixer
       - id: file-contents-sorter
         args: [--unique]
-        files: ^codespell\.txt$
+        files: ^\.github/linters/codespell\.txt$
       - id: fix-byte-order-marker
       - id: forbid-submodules
       - id: mixed-line-ending
@@ -35,17 +35,18 @@ repos:
     rev: v1.5.5
     hooks:
       - id: forbid-tabs
-        exclude: Makefile$|Makefile\..+$|makefile$|\.mk$
+        exclude: Makefile$
       - id: remove-tabs
         args: [--whitespaces-count, "2"]
-        exclude: Makefile$|Makefile\..+$|makefile$|\.mk$
+        exclude: Makefile$
   - repo: https://github.com/codespell-project/codespell
     rev: v2.2.6
     hooks:
       - id: codespell
         name: Run codespell
         description: Check spelling with codespell
-        entry: codespell --ignore-words=codespell.txt
+        entry: codespell
+        args: [--ignore-words=.github/linters/codespell.txt]
   - repo: https://github.com/jumanjihouse/pre-commit-hooks
     rev: 3.0.0
     hooks:
@@ -65,7 +66,7 @@ repos:
         description: Checks the style of Markdown files
         args: [--config=.github/linters/.markdown-lint.yml]
         types: [markdown]
-        files: \.(md|mdown|markdown)$
+        files: \.md$
   - repo: https://github.com/tcort/markdown-link-check
     rev: v3.11.2
     hooks:
@@ -74,7 +75,7 @@ repos:
         description: Checks hyperlinks in Markdown files
         args: [--config=.github/linters/mlc_config.json, -q]
         types: [markdown]
-        files: \.(md|mdown|markdown)$
+        files: \.md$
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.35.1
     hooks:
@@ -83,4 +84,4 @@ repos:
         description: Check YAML files with yamllint
         args: [--strict, -c=.github/linters/.yaml-lint.yml]
         types: [yaml]
-        files: \.(yaml|yml)$
+        files: \.ya?ml$
