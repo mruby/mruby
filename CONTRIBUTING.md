@@ -120,7 +120,7 @@ can use the `-f` flag:
 ## Spell Checking
 
 We are using `pre-commit` to run [codespell](https://github.com/codespell-project/codespell)
-to check code for common misspellings. We have a small custom dictionary file [codespell.txt](codespell.txt).
+to check code for common misspellings. We have a small custom dictionary file [codespell.txt](.github/linters/codespell.txt).
 
 ## Coding conventions
 
