@@ -3366,19 +3366,14 @@ codegen(codegen_scope *s, node *tree, int val)
         break;
 
       default:
-        if (val) {
-          codegen(s, tree, VAL);
-          pop();
-          push_n(2);pop_n(2); /* space for receiver&block */
-          mrb_sym minus = MRB_OPSYM_2(s->mrb, minus);
-          if (!gen_uniop(s, minus, cursp())) {
-            genop_3(s, OP_SEND, cursp(), new_sym(s, minus), 0);
-          }
-          push();
+        codegen(s, tree, VAL);
+        pop();
+        push_n(2);pop_n(2); /* space for receiver&block */
+        mrb_sym minus = MRB_OPSYM_2(s->mrb, minus);
+        if (!gen_uniop(s, minus, cursp())) {
+          genop_3(s, OP_SEND, cursp(), new_sym(s, minus), 0);
         }
-        else {
-          codegen(s, tree, NOVAL);
-        }
+        if (val) push();
         break;
       }
     }
