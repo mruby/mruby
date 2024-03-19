@@ -15,10 +15,10 @@
 .DS_Store
 .ccls*
 .ccmalloc
+.git
 .svn
 .vscode
 .yardoc
-.git
 benchmark/**/*.dat
 benchmark/*.pdf
 benchmark/*.png
@@ -26,11 +26,11 @@ bin
 build
 doc/api
 doc/capi
-mruby-source-*.gem
 compile_commands.json
 compile_flags.txt
 cscope.files
 cscope.out
+mruby-source-*.gem
 node_modules
 tags
 !Gemfile.lock
