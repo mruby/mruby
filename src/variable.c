@@ -73,7 +73,7 @@ iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
 
   mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
   mrb_value *vals = t->ptr;
-  hash = kh_int_hash_func(mrb, sym);
+  hash = mrb_int_hash_func(mrb, sym);
   start = pos = hash & (t->alloc-1);
   for (;;) {
     mrb_sym key = keys[pos];
@@ -119,7 +119,7 @@ iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 
   mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
   mrb_value *vals = t->ptr;
-  hash = kh_int_hash_func(mrb, sym);
+  hash = mrb_int_hash_func(mrb, sym);
   start = pos = hash & (t->alloc-1);
   for (;;) {
     mrb_sym key = keys[pos];
@@ -149,7 +149,7 @@ iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 
   mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
   mrb_value *vals = t->ptr;
-  hash = kh_int_hash_func(mrb, sym);
+  hash = mrb_int_hash_func(mrb, sym);
   start = pos = hash & (t->alloc-1);
   for (;;) {
     mrb_sym key = keys[pos];

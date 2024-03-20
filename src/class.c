@@ -100,7 +100,7 @@ mt_put(mrb_state *mrb, mt_tbl *t, mrb_sym sym, mrb_sym flags, union mt_ptr ptr)
 
   mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
   union mt_ptr *vals = t->ptr;
-  hash = kh_int_hash_func(mrb, sym);
+  hash = mrb_int_hash_func(mrb, sym);
   start = pos = hash & (t->alloc-1);
   for (;;) {
     mrb_sym key = keys[pos];
@@ -145,7 +145,7 @@ mt_get(mrb_state *mrb, mt_tbl *t, mrb_sym sym, union mt_ptr *pp)
 
   mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
   union mt_ptr *vals = t->ptr;
-  hash = kh_int_hash_func(mrb, sym);
+  hash = mrb_int_hash_func(mrb, sym);
 #ifdef MRB_USE_INLINE_METHOD_CACHE
   int cpos = (hash^(uintptr_t)t) % MT_INLINE_CACHE_SIZE;
   pos = mt_cache[cpos];
@@ -192,7 +192,7 @@ mt_del(mrb_state *mrb, mt_tbl *t, mrb_sym sym)
   if (t->size == 0) return FALSE;
 
   mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
-  hash = kh_int_hash_func(mrb, sym);
+  hash = mrb_int_hash_func(mrb, sym);
   start = pos = hash & (t->alloc-1);
   for (;;) {
     mrb_sym key = keys[pos];
@@ -1767,7 +1767,7 @@ mrb_vm_find_method(mrb_state *mrb, struct RClass *c, struct RClass **cp, mrb_sym
   mrb_method_t m;
 #ifndef MRB_NO_METHOD_CACHE
   struct RClass *oc = c;
-  int h = kh_int_hash_func(mrb, ((intptr_t)oc) ^ mid) & (MRB_METHOD_CACHE_SIZE-1);
+  int h = mrb_int_hash_func(mrb, ((intptr_t)oc) ^ mid) & (MRB_METHOD_CACHE_SIZE-1);
   struct mrb_cache_entry *mc = &mrb->cache[h];
 
   if (mc->c == c && mc->mid == mid) {
