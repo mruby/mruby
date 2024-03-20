@@ -1543,6 +1543,8 @@ mrbmemset(void *s, int c, size_t n)
 #define memset(a,b,c) mrbmemset(a,b,c)
 #endif
 
+#define mrb_int_hash_func(mrb,key) (uint32_t)((key)^((key)<<2)^((key)>>2))
+
 MRB_END_DECL
 
 #endif  /* MRUBY_H */

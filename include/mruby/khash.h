@@ -264,7 +264,7 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
 #define kh_size(h) ((h)->size)
 #define kh_n_buckets(h) ((h)->n_buckets)
 
-#define kh_int_hash_func(mrb,key) (khint_t)((key)^((key)<<2)^((key)>>2))
+#define kh_int_hash_func(mrb,key) mrb_int_hash_func(mrb,key)
 #define kh_int_hash_equal(mrb,a, b) (a == b)
 #define kh_int64_hash_func(mrb,key) (khint_t)((key)>>33^(key)^(key)<<11)
 #define kh_int64_hash_equal(mrb,a, b) (a == b)
