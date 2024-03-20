@@ -6,6 +6,7 @@
 #include "mruby/class.h"
 #include "mruby/string.h"
 #include <mruby/internal.h>
+#include "mruby/khash.h"
 #include "mruby/presym.h"
 
 typedef enum {
