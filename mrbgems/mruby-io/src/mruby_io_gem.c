@@ -1,4 +1,4 @@
-#include "mruby.h"
+#include <mruby.h>
 
 void mrb_init_io(mrb_state *mrb);
 void mrb_init_file(mrb_state *mrb);

@@ -9,7 +9,7 @@
 
 enum mrb_insn {
 #define OPCODE(x,_) OP_ ## x,
-#include "mruby/ops.h"
+#include <mruby/ops.h>
 #undef OPCODE
 };
 

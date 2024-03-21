@@ -3,13 +3,13 @@
  */
 
 #include <mruby.h>
-#include "mruby/error.h"
-#include "mruby/array.h"
-#include "mruby/class.h"
-#include "mruby/numeric.h"
-#include "mruby/string.h"
-#include "mruby/variable.h"
-#include "mruby/endian.h"
+#include <mruby/error.h>
+#include <mruby/array.h>
+#include <mruby/class.h>
+#include <mruby/numeric.h>
+#include <mruby/string.h>
+#include <mruby/variable.h>
+#include <mruby/endian.h>
 
 #include <ctype.h>
 #include <string.h>

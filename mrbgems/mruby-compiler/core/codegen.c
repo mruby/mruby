@@ -347,7 +347,7 @@ mrb_decode_insn(const mrb_code *pc)
   switch (insn) {
 #define FETCH_Z() /* empty */
 #define OPCODE(i,x) case OP_ ## i: FETCH_ ## x (); break;
-#include "mruby/ops.h"
+#include <mruby/ops.h>
 #undef OPCODE
   }
   switch (insn) {
@@ -355,7 +355,7 @@ mrb_decode_insn(const mrb_code *pc)
     insn = READ_B();
     switch (insn) {
 #define OPCODE(i,x) case OP_ ## i: FETCH_ ## x ## _1 (); break;
-#include "mruby/ops.h"
+#include <mruby/ops.h>
 #undef OPCODE
     }
     break;
@@ -363,7 +363,7 @@ mrb_decode_insn(const mrb_code *pc)
     insn = READ_B();
     switch (insn) {
 #define OPCODE(i,x) case OP_ ## i: FETCH_ ## x ## _2 (); break;
-#include "mruby/ops.h"
+#include <mruby/ops.h>
 #undef OPCODE
     }
     break;
@@ -371,7 +371,7 @@ mrb_decode_insn(const mrb_code *pc)
     insn = READ_B();
     switch (insn) {
 #define OPCODE(i,x) case OP_ ## i: FETCH_ ## x ## _3 (); break;
-#include "mruby/ops.h"
+#include <mruby/ops.h>
 #undef OPCODE
     }
     break;
@@ -397,7 +397,7 @@ static uint8_t mrb_insn_size[] = {
 #define BBB 4
 #define BS 4
 #define BSS 6
-#include "mruby/ops.h"
+#include <mruby/ops.h>
 #undef B
 #undef BB
 #undef BBB
@@ -411,7 +411,7 @@ static uint8_t mrb_insn_size1[] = {
 #define BBB 5
 #define BS 5
 #define BSS 7
-#include "mruby/ops.h"
+#include <mruby/ops.h>
 #undef B
 #undef BS
 #undef BSS
@@ -421,7 +421,7 @@ static uint8_t mrb_insn_size2[] = {
 #define B 2
 #define BS 4
 #define BSS 6
-#include "mruby/ops.h"
+#include <mruby/ops.h>
 #undef B
 #undef BB
 #undef BBB
@@ -435,7 +435,7 @@ static uint8_t mrb_insn_size2[] = {
 #define BS 5
 #define BSS 7
 static uint8_t mrb_insn_size3[] = {
-#include "mruby/ops.h"
+#include <mruby/ops.h>
 };
 #undef B
 #undef BB

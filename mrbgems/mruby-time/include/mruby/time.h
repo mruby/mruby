@@ -7,7 +7,7 @@
 #ifndef MRUBY_TIME_H
 #define MRUBY_TIME_H
 
-#include "mruby/common.h"
+#include <mruby/common.h>
 #include <time.h>
 
 MRB_BEGIN_DECL

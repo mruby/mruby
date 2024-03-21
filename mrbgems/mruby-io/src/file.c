@@ -2,13 +2,13 @@
 ** file.c - File class
 */
 
-#include "mruby.h"
-#include "mruby/class.h"
-#include "mruby/data.h"
-#include "mruby/string.h"
-#include "mruby/ext/io.h"
-#include "mruby/error.h"
-#include "mruby/presym.h"
+#include <mruby.h>
+#include <mruby/class.h>
+#include <mruby/data.h>
+#include <mruby/string.h>
+#include <mruby/ext/io.h>
+#include <mruby/error.h>
+#include <mruby/presym.h>
 
 #include <sys/types.h>
 #include <sys/stat.h>

@@ -60,11 +60,11 @@ mkdtemp(char *temp)
 #include <sys/stat.h>
 #include <stdlib.h>
 
-#include "mruby.h"
-#include "mruby/array.h"
-#include "mruby/error.h"
-#include "mruby/string.h"
-#include "mruby/variable.h"
+#include <mruby.h>
+#include <mruby/array.h>
+#include <mruby/error.h>
+#include <mruby/string.h>
+#include <mruby/variable.h>
 #include <mruby/ext/io.h>
 
 static mrb_value

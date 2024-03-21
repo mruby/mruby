@@ -4,12 +4,12 @@
 ** See Copyright Notice in mruby.h
 */
 
-#include "mruby.h"
-#include "mruby/class.h"
-#include "mruby/data.h"
-#include "mruby/error.h"
-#include "mruby/string.h"
-#include "mruby/presym.h"
+#include <mruby.h>
+#include <mruby/class.h>
+#include <mruby/data.h>
+#include <mruby/error.h>
+#include <mruby/string.h>
+#include <mruby/presym.h>
 #include <sys/types.h>
 #if defined(_WIN32) || defined(_WIN64)
   #define MAXPATHLEN 1024

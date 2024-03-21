@@ -31,9 +31,9 @@ int closedir(DIR *dir);
 #include <dirent.h>
 #endif
 
-#include "mruby.h"
-#include "mruby/string.h"
-#include "mruby/variable.h"
+#include <mruby.h>
+#include <mruby/string.h>
+#include <mruby/variable.h>
 
 static void
 make_dir(mrb_state *mrb, const char *name, const char *up)

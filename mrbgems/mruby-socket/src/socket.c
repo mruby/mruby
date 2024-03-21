@@ -30,18 +30,18 @@
 
 #include <string.h>
 
-#include "mruby.h"
-#include "mruby/array.h"
-#include "mruby/class.h"
-#include "mruby/data.h"
-#include "mruby/numeric.h"
-#include "mruby/string.h"
-#include "mruby/variable.h"
-#include "mruby/error.h"
-#include "mruby/internal.h"
-#include "mruby/presym.h"
+#include <mruby.h>
+#include <mruby/array.h>
+#include <mruby/class.h>
+#include <mruby/data.h>
+#include <mruby/numeric.h>
+#include <mruby/string.h>
+#include <mruby/variable.h>
+#include <mruby/error.h>
+#include <mruby/internal.h>
+#include <mruby/presym.h>
 
-#include "mruby/ext/io.h"
+#include <mruby/ext/io.h>
 
 #if !defined(HAVE_SA_LEN)
 #if (defined(BSD) && (BSD >= 199006))

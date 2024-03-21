@@ -1387,7 +1387,7 @@ mrb_vm_exec(mrb_state *mrb, const struct RProc *proc, const mrb_code *pc)
 #ifndef MRB_USE_VM_SWITCH_DISPATCH
   static const void * const optable[] = {
 #define OPCODE(x,_) &&L_OP_ ## x,
-#include "mruby/ops.h"
+#include <mruby/ops.h>
 #undef OPCODE
   };
 #endif
@@ -3039,7 +3039,7 @@ RETRY_TRY_BLOCK:
       insn = READ_B();
       switch (insn) {
 #define OPCODE(insn,ops) case OP_ ## insn: FETCH_ ## ops ## _1(); mrb->c->ci->pc = pc; goto L_OP_ ## insn ## _BODY;
-#include "mruby/ops.h"
+#include <mruby/ops.h>
 #undef OPCODE
       }
       pc--;
@@ -3049,7 +3049,7 @@ RETRY_TRY_BLOCK:
       insn = READ_B();
       switch (insn) {
 #define OPCODE(insn,ops) case OP_ ## insn: FETCH_ ## ops ## _2(); mrb->c->ci->pc = pc; goto L_OP_ ## insn ## _BODY;
-#include "mruby/ops.h"
+#include <mruby/ops.h>
 #undef OPCODE
       }
       pc--;
@@ -3059,7 +3059,7 @@ RETRY_TRY_BLOCK:
       insn = READ_B();
       switch (insn) {
 #define OPCODE(insn,ops) case OP_ ## insn: FETCH_ ## ops ## _3(); mrb->c->ci->pc = pc; goto L_OP_ ## insn ## _BODY;
-#include "mruby/ops.h"
+#include <mruby/ops.h>
 #undef OPCODE
       }
       pc--;

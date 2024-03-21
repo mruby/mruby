@@ -581,7 +581,7 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
       ins = READ_B();
       switch (ins) {
 #define OPCODE(i,x) case OP_ ## i: FETCH_ ## x ## _1 (); goto L_OP_ ## i;
-#include "mruby/ops.h"
+#include <mruby/ops.h>
 #undef OPCODE
       }
       break;
@@ -591,7 +591,7 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
       ins = READ_B();
       switch (ins) {
 #define OPCODE(i,x) case OP_ ## i: FETCH_ ## x ## _2 (); goto L_OP_ ## i;
-#include "mruby/ops.h"
+#include <mruby/ops.h>
 #undef OPCODE
       }
       break;
@@ -601,7 +601,7 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
       ins = READ_B();
       switch (ins) {
 #define OPCODE(i,x) case OP_ ## i: FETCH_ ## x ## _3 (); goto L_OP_ ## i;
-#include "mruby/ops.h"
+#include <mruby/ops.h>
 #undef OPCODE
       }
       break;

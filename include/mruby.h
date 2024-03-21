@@ -1084,7 +1084,7 @@ MRB_API mrb_bool mrb_block_given_p(mrb_state *mrb);
  *
  *      #include <stdio.h>
  *      #include <mruby.h>
- *      #include "mruby/compile.h"
+ *      #include <mruby/compile.h>
  *
  *      int
  *      main()
@@ -1115,7 +1115,7 @@ MRB_API mrb_value mrb_funcall_id(mrb_state *mrb, mrb_value val, mrb_sym mid, mrb
  *
  *      #include <stdio.h>
  *      #include <mruby.h>
- *      #include "mruby/compile.h"
+ *      #include <mruby/compile.h>
  *      int
  *      main()
  *      {

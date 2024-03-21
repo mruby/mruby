@@ -1,10 +1,10 @@
-#include "mruby.h"
-#include "mruby/class.h"
-#include "mruby/string.h"
-#include "mruby/array.h"
-#include "mruby/proc.h"
-#include "mruby/variable.h"
-#include "mruby/presym.h"
+#include <mruby.h>
+#include <mruby/class.h>
+#include <mruby/string.h>
+#include <mruby/array.h>
+#include <mruby/proc.h>
+#include <mruby/variable.h>
+#include <mruby/presym.h>
 
 static mrb_value
 mod_name(mrb_state *mrb, mrb_value self)

@@ -3,9 +3,8 @@
 **
 ** See Copyright Notice in mruby.h
 */
-
 #include <stdlib.h>
-#include "mruby.h"
+#include <mruby.h>
 
 /* This function serves as the default memory allocation function and accepts four arguments:
  *
