@@ -266,7 +266,7 @@ mrb_alloca(mrb_state *mrb, size_t size)
 }
 
 static mrb_bool
-heap_p(mrb_gc *gc, struct RBasic *object)
+heap_p(mrb_gc *gc, const struct RBasic *object)
 {
   mrb_heap_page* page;
 
