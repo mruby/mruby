@@ -88,7 +88,7 @@ mrb_gc_arena_shrink(mrb_state *mrb, int idx)
   }
 }
 #else
-#define mrb_gc_arena_shrink(mrb,idx) mrb_gc_arena_restore(mrb,idx)
+#define mrb_gc_arena_shrink(mrb, idx) mrb_gc_arena_restore(mrb, idx)
 #endif
 
 #define CALL_MAXARGS 15
