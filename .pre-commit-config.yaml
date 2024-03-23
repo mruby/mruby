@@ -1,4 +1,5 @@
 ---
+# https://pre-commit.com/
 default_stages: [commit, push]
 default_language_version:
   # force all unspecified Python hooks to run python3
@@ -45,7 +46,6 @@ repos:
       - id: codespell
         name: Run codespell
         description: Check spelling with codespell
-        entry: codespell
         args: [--ignore-words=.github/linters/codespell.txt]
   - repo: https://github.com/jumanjihouse/pre-commit-hooks
     rev: 3.0.0
