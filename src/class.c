@@ -1843,7 +1843,6 @@ prepare_name_common(mrb_state *mrb, mrb_sym sym, const char *prefix, const char 
 
   if (suffix_len > 0) {
     memcpy(p, suffix, suffix_len);
-    p += suffix_len;
   }
 
   return mrb_intern(mrb, buf, name_len);
