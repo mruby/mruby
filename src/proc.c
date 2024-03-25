@@ -96,7 +96,8 @@ closure_setup(mrb_state *mrb, struct RProc *p)
   const struct RProc *up = p->upper;
   struct REnv *e = NULL;
 
-  if (ci && (e = mrb_vm_ci_env(ci)) != NULL) {
+  mrb_assert(ci != NULL);
+  if ((e = mrb_vm_ci_env(ci)) != NULL) {
     /* do nothing, because e is assigned already */
   }
   else if (up) {
