@@ -32,7 +32,7 @@ def test_lists
   else
     # compare li1 and li2 for equality
     if li1 != li2
-      return(0)
+      0
     else
       # return the length of the list
       li1.length

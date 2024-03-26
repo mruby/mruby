@@ -110,7 +110,7 @@ module MRuby
         elsif build.kind_of?(MRuby::Build)
           return ('A'..'Z').to_a.any? { |vol| Dir.exist?("#{vol}:") }
         end
-        return false
+        false
       end
 
       def disable_cdump
