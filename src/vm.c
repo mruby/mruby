@@ -447,7 +447,7 @@ mrb_protect_error(mrb_state *mrb, mrb_protect_error_func *body, void *userdata, 
 {
   struct mrb_jmpbuf *prev_jmp = mrb->jmp;
   struct mrb_jmpbuf c_jmp;
-  mrb_value result = mrb_nil_value();
+  mrb_value result;
   int ai = mrb_gc_arena_save(mrb);
   const struct mrb_context *c = mrb->c;
   ptrdiff_t ci_index = c->ci - c->cibase;
@@ -2156,7 +2156,7 @@ RETRY_TRY_BLOCK:
       }
 
       /* rest arguments */
-      mrb_value rest = mrb_nil_value();
+      mrb_value rest;
       if (argc < len) {
         mrb_int mlen = m2;
         if (argc < m1+m2) {
