@@ -193,6 +193,18 @@ assert('Module#class_variable_defined?', '15.2.2.4.16') do
   assert_true Test4ClassVariableDefined.class_variable_defined?(:@@cv)
   assert_false Test4ClassVariableDefined.class_variable_defined?(:@@noexisting)
   assert_raise(NameError) { Test4ClassVariableDefined.class_variable_defined?("@@2") }
+
+  # shared empty iv_tbl (include)
+  m = Module.new
+  c = Class.new{include m}
+  m.class_variable_set(:@@cv2, 2)
+  assert_true c.class_variable_defined?(:@@cv2)
+
+  # shared empty iv_tbl (prepend)
+  m = Module.new
+  c = Class.new{prepend m}
+  m.class_variable_set(:@@cv2, 2)
+  assert_true c.class_variable_defined?(:@@cv2)
 end
 
 assert('Module#class_variable_get', '15.2.2.4.17') do
@@ -204,6 +216,26 @@ assert('Module#class_variable_get', '15.2.2.4.17') do
   assert_raise(NameError) { Test4ClassVariableGet.class_variable_get(:@@a) }
   %w[@@a? @@! @a a].each do |n|
     assert_raise(NameError) { Test4ClassVariableGet.class_variable_get(n) }
+  end
+
+  # shared empty iv_tbl (include)
+  m = Module.new
+  class Test4ClassVariableGet end
+  Test4ClassVariableGet.include m
+  m.class_variable_set(:@@cv2, 2)
+  assert_equal 2, Test4ClassVariableGet.class_variable_get(:@@cv2)
+  class Test4ClassVariableGet
+    assert_equal 2, @@cv2
+  end
+
+  # shared empty iv_tbl (prepend)
+  m = Module.new
+  class Test4ClassVariableGet end
+  Test4ClassVariableGet.prepend m
+  m.class_variable_set(:@@cv2, 2)
+  assert_equal 2, Test4ClassVariableGet.class_variable_get(:@@cv2)
+  class Test4ClassVariableGet
+    assert_equal 2, @@cv2
   end
 end
 
@@ -241,6 +273,18 @@ assert('Module#class_variables', '15.2.2.4.19') do
 
   assert_equal [:@@var1], Test4ClassVariables1.class_variables
   assert_equal [:@@var2, :@@var1], Test4ClassVariables2.class_variables
+
+  # shared empty iv_tbl (include)
+  m = Module.new
+  c = Class.new{include m}
+  m.class_variable_set(:@@var3, 3)
+  assert_equal [:@@var3], c.class_variables
+
+  # shared empty iv_tbl (prepend)
+  m = Module.new
+  c = Class.new{prepend m}
+  m.class_variable_set(:@@var3, 3)
+  assert_equal [:@@var3], c.class_variables
 end
 
 assert('Module#constants', '15.2.2.4.24') do
@@ -256,6 +300,18 @@ assert('Module#constants', '15.2.2.4.24') do
 
   assert_equal [ :C ], TestA.constants
   assert_equal [ :C, :C2 ], $n
+
+  # shared empty iv_tbl (include)
+  m = Module.new
+  TestC = Class.new{include m}
+  m::C3 = 1
+  assert_equal [ :C3 ], TestC.constants
+
+  # shared empty iv_tbl (prepend)
+  m = Module.new
+  TestC = Class.new{prepend m}
+  m::C3 = 1
+  assert_equal [ :C3 ], TestC.constants
 end
 
 assert('Module#included_modules', '15.2.2.4.30') do
