@@ -1392,7 +1392,7 @@ mrb_vm_exec(mrb_state *mrb, const struct RProc *proc, const mrb_code *pc)
   };
 #endif
 
-  mrb_bool exc_catched = FALSE;
+  volatile mrb_bool exc_catched = FALSE;
 RETRY_TRY_BLOCK:
 
   MRB_TRY(&c_jmp) {
