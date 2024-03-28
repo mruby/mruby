@@ -30,7 +30,7 @@ struct RIStruct {
 #define RISTRUCT(obj)         ((struct RIStruct*)(mrb_ptr(obj)))
 #define ISTRUCT_PTR(obj)      (RISTRUCT(obj)->inline_data)
 
-MRB_INLINE mrb_int mrb_istruct_size()
+MRB_INLINE mrb_int mrb_istruct_size(void)
 {
   return ISTRUCT_DATA_SIZE;
 }
