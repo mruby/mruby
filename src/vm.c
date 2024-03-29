@@ -943,7 +943,7 @@ eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
   mrb->c->ci->stack[0] = self;
   mrb->c->ci->stack[1] = self;
   stack_clear(mrb->c->ci->stack+2, nregs-2);
-  ci = cipush(mrb, 0, 0, NULL, NULL, NULL, 0, 0);
+  cipush(mrb, 0, 0, NULL, NULL, NULL, 0, 0);
 
   return self;
 }
@@ -2332,7 +2332,6 @@ RETRY_TRY_BLOCK:
     CASE(OP_RETURN, B) {
       mrb_callinfo *ci;
 
-      ci = mrb->c->ci;
       if (mrb->exc) {
         goto L_RAISE;
       }
@@ -2399,7 +2398,6 @@ RETRY_TRY_BLOCK:
             mrb->jmp = prev_jmp;
             return v;
           }
-          ci = mrb->c->ci;
         }
 
         if (mrb->c->vmexec && !ci->u.keep_context) {
