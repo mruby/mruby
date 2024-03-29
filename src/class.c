@@ -2636,15 +2636,14 @@ mrb_mod_module_function(mrb_state *mrb, mrb_value mod)
   /* set PRIVATE method visibility if implemented */
   /* mrb_mod_dummy_visibility(mrb, mod); */
 
+  struct RClass *rclass = mrb_class_ptr(mod);
+  int ai = mrb_gc_arena_save(mrb);
   for (int i=0; i<argc; i++) {
-    struct RClass *rclass = mrb_class_ptr(mod);
-
     mrb_check_type(mrb, argv[i], MRB_TT_SYMBOL);
     mid = mrb_symbol(argv[i]);
     m = mrb_method_search(mrb, rclass, mid);
 
     prepare_singleton_class(mrb, (struct RBasic*)rclass);
-    int ai = mrb_gc_arena_save(mrb);
     mrb_define_method_raw(mrb, rclass->c, mid, m);
     mrb_gc_arena_restore(mrb, ai);
   }
