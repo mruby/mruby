@@ -1401,7 +1401,6 @@ include_class_new(mrb_state *mrb, struct RClass *m, struct RClass *super)
     m = m->c;
   }
   MRB_CLASS_ORIGIN(m);
-  ic->iv = m->iv;
   ic->mt = m->mt;
   ic->super = super;
   if (m->tt == MRB_TT_ICLASS) {
@@ -1526,7 +1525,6 @@ mrb_prepend_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
     c->super = origin;
     origin->mt = c->mt;
     c->mt = NULL;
-    origin->iv = c->iv;
     mrb_field_write_barrier(mrb, (struct RBasic*)c, (struct RBasic*)origin);
     c->flags |= MRB_FL_CLASS_IS_PREPENDED;
   }
