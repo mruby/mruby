@@ -236,12 +236,6 @@ end
 - Ignored if `MRB_NO_METHOD_CACHE` is defined.
 - Need to be the power of 2.
 
-`MRB_USE_METHOD_T_STRUCT`
-
-- Use C struct to represent `mrb_method_t`
-- No `MRB_USE_METHOD_T_STRUCT` requires highest 2 bits of function pointers to be zero
-- Define this macro on machines that use higher bits of pointers
-
 `MRB_USE_ALL_SYMBOLS`
 
 - Make it available `Symbol.all_symbols` in `mrbgems/mruby-symbol-ext`

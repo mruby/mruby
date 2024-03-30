@@ -230,22 +230,19 @@ mrb_static_assert_powerof2(MRB_METHOD_CACHE_SIZE);
  */
 typedef mrb_value (*mrb_func_t)(struct mrb_state *mrb, mrb_value self);
 
-#ifndef MRB_USE_METHOD_T_STRUCT
-typedef uintptr_t mrb_method_t;
-#else
 typedef struct {
-  uint8_t flags;
+  uint32_t flags;                       /* compatible with mt keys in class.c */
+
   union {
     struct RProc *proc;
     mrb_func_t func;
   };
 } mrb_method_t;
-#endif
 
 #ifndef MRB_NO_METHOD_CACHE
 struct mrb_cache_entry {
   struct RClass *c, *c0;
-  mrb_sym mid;
+  /* mrb_sym mid; // mid is stored in mrb_method_t::flags */
   mrb_method_t m;
 };
 #endif
