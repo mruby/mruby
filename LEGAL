@@ -4,7 +4,7 @@ LEGAL NOTICE INFORMATION
 All the files in this distribution are covered under the MIT license
 (see the file LICENSE) except some files mentioned below:
 
-- src/string.c: mrb_memsearch_ss() is based on 2 clause BSD license code by Wojciech Muła (@WojciechMula)
+- src/string.c (memsearch_swar): 2 clause BSD license code by Wojciech Muła (@WojciechMula)
 - src/readfloat.c: public domain by Yasuhiro Matsumoto (@mattn)
 - src/fmt_fp.c: public domain by Dave Hylands (@dhylands)
 - mrbgems/mruby-dir/src/Win/dirent.c: MIT-like license by Kevlin Henney
