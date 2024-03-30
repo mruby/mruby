@@ -272,6 +272,14 @@ mrb_gc_free_str(mrb_state *mrb, struct RString *str)
 # define ALIGNED_WORD_ACCESS 1
 #endif
 
+#ifdef MRB_64BIT
+#define bitint uint64_t
+#define MASK1 0x0101010101010101ull
+#else
+#define bitint uint32_t
+#define MASK1 0x01010101ul
+#endif
+
 #ifdef MRB_UTF8_STRING
 
 #define NOASCII(c) ((c) & 0x80)
@@ -421,15 +429,46 @@ mrb_utf8len(const char* p, const char* e)
   return len;
 }
 
+#if defined(__GNUC__) || __has_builtin(__builtin_popcount)
+# ifdef MRB_64BIT
+# define popcount(x) __builtin_popcountll(x)
+# else
+# define popcount(x) __builtin_popcountl(x)
+# endif
+#else
+static inline uint32_t popcount(bitint x)
+{
+  x = (x & (MASK1*0x55)) + ((x >>  1) & (MASK1*0x55));
+  x = (x & (MASK1*0x33)) + ((x >>  2) & (MASK1*0x33));
+  x = (x & (MASK1*0x0F)) + ((x >>  4) & (MASK1*0x0F));
+  return (x * MASK1) >> 56;
+}
+#endif
+
 mrb_int
 mrb_utf8_strlen(const char *str, mrb_int byte_len)
 {
   mrb_int len = 0;
+
   const char *p = str;
-  const char *e = p + byte_len;
-  while (p < e) {
-    if (utf8_islead(*p)) len++;
-    p++;
+  const char *be = p + sizeof(bitint) * (byte_len / sizeof(bitint));
+  for (; p < be; p+=sizeof(bitint)) {
+    bitint t0;
+
+    memcpy(&t0, p, sizeof(bitint));
+    const bitint t1 = t0 & (MASK1*0xc0);
+    const bitint t2 = t1 + (MASK1*0x40);
+    const bitint t3 = t1 & t2;
+    len += popcount(t3);
+  }
+  len = sizeof(bitint) * (byte_len / sizeof(bitint)) - len;
+
+  if (byte_len % sizeof(bitint)) {
+    const char *e = str + byte_len;
+    while (p < e) {
+      if (utf8_islead(*p)) len++;
+      p++;
+    }
   }
   return len;
 }
