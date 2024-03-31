@@ -19,6 +19,8 @@
 #include <mruby/internal.h>
 #include <mruby/presym.h>
 
+#define METHOD_MID(m) MT_KEY_SYM((m).flags)
+
 union mt_ptr {
   struct RProc *proc;
   mrb_func_t func;
@@ -243,17 +245,7 @@ mt_free(mrb_state *mrb, mt_tbl *t)
 static inline mrb_method_t
 create_method_value(mrb_state *mrb, mrb_sym key, union mt_ptr val)
 {
-  mrb_method_t m;
-
-  if (key & MT_FUNC_P) {
-    MRB_METHOD_FROM_FUNC(m, val.func);
-  }
-  else {
-    MRB_METHOD_FROM_PROC(m, val.proc);
-  }
-  if (key & MT_NOARG_P) {
-    MRB_METHOD_NOARG_SET(m);
-  }
+  mrb_method_t m = { key, { val.proc } };
   return m;
 }
 
@@ -795,9 +787,6 @@ mrb_define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t f
   int ai = mrb_gc_arena_save(mrb);
 
   MRB_METHOD_FROM_FUNC(m, func);
-#ifndef MRB_USE_METHOD_T_STRUCT
-  mrb_assert(MRB_METHOD_FUNC(m) == func);
-#endif
   if (aspec == MRB_ARGS_NONE()) {
     MRB_METHOD_NOARG_SET(m);
   }
@@ -1754,10 +1743,10 @@ mc_clear_by_id(mrb_state *mrb, mrb_sym id)
   struct mrb_cache_entry *mc = mrb->cache;
 
   for (int i=0; i<MRB_METHOD_CACHE_SIZE; mc++,i++) {
-    if (mc->mid == id) mc->c = NULL;
+    if (METHOD_MID(mc->m) == id) mc->c = NULL;
   }
 }
-#endif
+#endif // MRB_NO_METHOD_CACHE
 
 mrb_method_t
 mrb_vm_find_method(mrb_state *mrb, struct RClass *c, struct RClass **cp, mrb_sym mid)
@@ -1768,7 +1757,7 @@ mrb_vm_find_method(mrb_state *mrb, struct RClass *c, struct RClass **cp, mrb_sym
   int h = mrb_int_hash_func(mrb, ((intptr_t)oc) ^ mid) & (MRB_METHOD_CACHE_SIZE-1);
   struct mrb_cache_entry *mc = &mrb->cache[h];
 
-  if (mc->c == c && mc->mid == mid) {
+  if (mc->c == c && METHOD_MID(mc->m) == mid) {
     *cp = mc->c0;
     return mc->m;
   }
@@ -1787,7 +1776,6 @@ mrb_vm_find_method(mrb_state *mrb, struct RClass *c, struct RClass **cp, mrb_sym
 #ifndef MRB_NO_METHOD_CACHE
         mc->c = oc;
         mc->c0 = c;
-        mc->mid = mid;
         mc->m = m;
 #endif
         return m;

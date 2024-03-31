@@ -48,16 +48,6 @@
 //#define MRB_METHOD_CACHE_SIZE (1<<8)
 //#define MRB_USE_INLINE_METHOD_CACHE
 
-/* add -DMRB_USE_METHOD_T_STRUCT on machines that use higher bits of function pointers */
-/* no MRB_USE_METHOD_T_STRUCT requires highest 2 bits of function pointers to be zero */
-#ifndef MRB_USE_METHOD_T_STRUCT
-  // can't use highest 2 bits of function pointers at least on 32bit
-  // Windows and 32bit Linux.
-# ifdef MRB_32BIT
-#   define MRB_USE_METHOD_T_STRUCT
-# endif
-#endif
-
 /* define on big endian machines; used by MRB_NAN_BOXING, etc. */
 #ifndef MRB_ENDIAN_BIG
 # if (defined(BYTE_ORDER) && defined(BIG_ENDIAN) && BYTE_ORDER == BIG_ENDIAN) || \
@@ -170,9 +160,6 @@
 //#define MRB_USE_ALL_SYMBOLS /* Symbol.all_symbols */
 
 /* obsolete configurations */
-#ifdef MRB_METHOD_T_STRUCT
-# define MRB_USE_METHOD_T_STRUCT
-#endif
 #if defined(DISABLE_STDIO) || defined(MRB_DISABLE_STDIO)
 # define MRB_NO_STDIO
 #endif
