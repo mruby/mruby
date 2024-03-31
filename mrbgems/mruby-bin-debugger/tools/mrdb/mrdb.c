@@ -640,6 +640,7 @@ mrb_code_fetch_hook(mrb_state *mrb, const mrb_irep *irep, const mrb_code *pc, mr
 static mrdb_exemode
 mrb_debug_break_hook(mrb_state *mrb, mrb_debug_context *dbg)
 {
+  ptrdiff_t regs_off = dbg->regs - mrb->c->ci->stack;
   debug_command *cmd;
   dbgcmd_state st = DBGST_CONTINUE;
   mrdb_state *mrdb = mrdb_state_get(mrb);
@@ -651,6 +652,7 @@ mrb_debug_break_hook(mrb_state *mrb, mrb_debug_context *dbg)
     mrb_assert(cmd);
 
     st = cmd->func(mrb, mrdb);
+    dbg->regs = mrb->c->ci->stack + regs_off;
 
     if ((st == DBGST_CONTINUE) || (st == DBGST_RESTART)) break;
   }
