@@ -45,42 +45,32 @@ pack_backtrace(mrb_state *mrb, ptrdiff_t ciidx, struct mrb_backtrace_location *p
     const mrb_code *pc;
 
     ci = &mrb->c->cibase[i];
+    loc.method_id = ci->mid;
 
-    if (!ci->proc || MRB_PROC_CFUNC_P(ci->proc)) {
-      if (!ci->mid) continue;
-      loc.irep = NULL;
-    }
-    else {
+    if (ci->proc && !MRB_PROC_CFUNC_P(ci->proc)) {
+      mrb_assert(!MRB_PROC_ALIAS_P(ci->proc));
       loc.irep = ci->proc->body.irep;
       if (!loc.irep) continue;
       if (!loc.irep->debug_info) continue;
-      if (mrb->c->cibase[i].pc) {
-        pc = &mrb->c->cibase[i].pc[-1];
-      }
-      else {
-        continue;
-      }
+      if (!ci->pc) continue;
+      pc = &ci->pc[-1];
       loc.idx = (uint32_t)(pc - loc.irep->iseq);
     }
-    loc.method_id = ci->mid;
-    if (loc.irep == NULL) {
+    else {
+      if (!loc.method_id) continue;
+      loc.irep = NULL;
       for (ptrdiff_t j=i-1; j >= 0; j--) {
         ci = &mrb->c->cibase[j];
 
         if (!ci->proc) continue;
         if (MRB_PROC_CFUNC_P(ci->proc)) continue;
+        mrb_assert(!MRB_PROC_ALIAS_P(ci->proc));
 
         const mrb_irep *irep = ci->proc->body.irep;
         if (!irep) continue;
         if (!irep->debug_info) continue;
-
-        if (mrb->c->cibase[j].pc) {
-          pc = &mrb->c->cibase[j].pc[-1];
-        }
-        else {
-          continue;
-        }
-
+        if (!ci->pc) continue;
+        pc = &ci->pc[-1];
         loc.irep = irep;
         loc.idx = (uint32_t)(pc - irep->iseq);
         break;
