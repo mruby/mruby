@@ -338,56 +338,25 @@ search_nonascii(const char *p, const char *e)
 
 #else
 
-#ifdef MRB_64BIT
-# define NONASCII_MASK 0x8080808080808080ULL
-#else /* MRB_32BIT */
-# define NONASCII_MASK 0x80808080UL
-#endif
-
 static const char*
 search_nonascii(const char *p, const char *e)
 {
-  if (e - p >= sizeof(void*)) {
-#if ALIGNED_WORD_ACCESS
-    if ((uintptr_t)p % sizeof(void*)) {
-      int l = sizeof(void*) - (uintptr_t)p % sizeof(void*);
-      p += l;
-      switch (l) {
-#ifdef MRB_64BIT
-      case 7: if (p[-7]&0x80) return p-7;
-      case 6: if (p[-6]&0x80) return p-6;
-      case 5: if (p[-5]&0x80) return p-5;
-      case 4: if (p[-4]&0x80) return p-4;
-#endif
-      case 3: if (p[-3]&0x80) return p-3;
-      case 2: if (p[-2]&0x80) return p-2;
-      case 1: if (p[-1]&0x80) return p-1;
-      case 0: break;
-      }
-    }
-#endif
+  ptrdiff_t byte_len = e - p;
 
-    const uintptr_t *s = (uintptr_t*)p;
-    const uintptr_t *t = (uintptr_t*)(e - (sizeof(void*)-1));
+  const char *be = p + sizeof(bitint) * (byte_len / sizeof(bitint));
+  for (; p < be; p+=sizeof(bitint)) {
+    bitint t0;
 
-    for (;s < t; s++) {
-      if (*s & NONASCII_MASK) {
-        p = (const char*)s;
-        if (NOASCII(p[0])) return p+0;
-        if (NOASCII(p[1])) return p+1;
-        if (NOASCII(p[2])) return p+2;
-        if (NOASCII(p[3])) return p+3;
-#ifdef MRB_64BIT
-        if (NOASCII(p[4])) return p+4;
-        if (NOASCII(p[5])) return p+5;
-        if (NOASCII(p[6])) return p+6;
-        if (NOASCII(p[7])) return p+7;
-#endif
-      }
+    memcpy(&t0, p, sizeof(bitint));
+    const bitint t1 = t0 & (MASK1*0x80);
+    if (t1) {
+      e = p + sizeof(bitint)-1;
+      byte_len = sizeof(bitint)-1;
+      break;
     }
   }
-  switch (e - p) {
-  default:
+
+  switch (byte_len % sizeof(bitint)) {
 #ifdef MRB_64BIT
   case 7: if (e[-7]&0x80) return e-7;
   case 6: if (e[-6]&0x80) return e-6;
