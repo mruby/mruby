@@ -142,16 +142,6 @@ envadjust(mrb_state *mrb, mrb_value *oldbase, mrb_value *newbase, size_t oldsize
         (st = e->stack) && (size_t)(st - oldbase) < oldsize) {
       e->stack += delta;
     }
-
-    if (ci->proc && MRB_PROC_ENV_P(ci->proc) && e != MRB_PROC_ENV(ci->proc)) {
-      e = MRB_PROC_ENV(ci->proc);
-
-      if (e && MRB_ENV_ONSTACK_P(e) &&
-          (st = e->stack) && (size_t)(st - oldbase) < oldsize) {
-        e->stack += delta;
-      }
-    }
-
     ci->stack += delta;
     ci++;
   }
