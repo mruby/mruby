@@ -387,6 +387,8 @@ mrb_env_unshare(mrb_state *mrb, struct REnv *e, mrb_bool noraise)
   if (e->cxt != mrb->c) return TRUE;
   if (e == CI_ENV(mrb->c->cibase)) return TRUE; /* for mirb */
 
+  e->cxt = NULL; /* make possible to GC the fiber that generated the env */
+
   size_t len = (size_t)MRB_ENV_LEN(e);
   if (len == 0) {
     e->stack = NULL;
