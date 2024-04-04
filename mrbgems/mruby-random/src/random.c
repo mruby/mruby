@@ -261,7 +261,7 @@ static mrb_value
 mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
 {
   if (RARRAY_LEN(ary) > 1) {
-    mrb_int i, max;
+    mrb_int i;
     rand_state *random;
     mrb_sym kname = MRB_SYM(random);
     mrb_value r;
@@ -270,13 +270,12 @@ mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
     mrb_get_args(mrb, ":", &kw);
     random = check_random_arg(mrb, r);
     mrb_ary_modify(mrb, mrb_ary_ptr(ary));
-    max = RARRAY_LEN(ary);
     for (i = RARRAY_LEN(ary) - 1; i > 0; i--)  {
       mrb_int j;
       mrb_value *ptr = RARRAY_PTR(ary);
       mrb_value tmp;
 
-      j = rand_i(random, max);
+      j = rand_i(random, i + 1);
 
       tmp = ptr[i];
       ptr[i] = ptr[j];
