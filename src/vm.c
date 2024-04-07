@@ -2389,6 +2389,7 @@ RETRY_TRY_BLOCK:
             mrb->jmp = prev_jmp;
             return v;
           }
+          ci = mrb->c->ci;
         }
 
         if (mrb->c->vmexec && !ci->u.keep_context) {
