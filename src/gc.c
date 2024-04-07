@@ -761,13 +761,9 @@ obj_free(mrb_state *mrb, struct RBasic *obj, mrb_bool end)
     {
       struct REnv *e = (struct REnv*)obj;
 
-      if (MRB_ENV_ONSTACK_P(e)) {
-        /* cannot be freed */
-        e->stack = NULL;
-        break;
+      if (!MRB_ENV_ONSTACK_P(e)) {
+        mrb_free(mrb, e->stack);
       }
-      mrb_free(mrb, e->stack);
-      e->stack = NULL;
     }
     break;
 
