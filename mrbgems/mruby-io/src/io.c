@@ -343,6 +343,8 @@ io_alloc(mrb_state *mrb)
   fptr->sync = 0;
   fptr->eof = 0;
   fptr->is_socket = 0;
+  fptr->close_fd = 1;
+  fptr->close_fd2 = 1;
   return fptr;
 }
 
@@ -761,13 +763,13 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet)
   if (fptr->fd >= limit) {
 #ifdef _WIN32
     if (fptr->is_socket) {
-      if (closesocket(fptr->fd) != 0) {
+      if (fptr->close_fd && closesocket(fptr->fd) != 0) {
         saved_errno = WSAGetLastError();
       }
       fptr->fd = -1;
     }
 #endif
-    if (fptr->fd != -1) {
+    if (fptr->fd != -1 && fptr->close_fd) {
       if (close(fptr->fd) == -1) {
         saved_errno = errno;
       }
@@ -776,7 +778,7 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet)
   }
 
   if (fptr->fd2 >= limit) {
-    if (close(fptr->fd2) == -1) {
+    if (fptr->close_fd2 && close(fptr->fd2) == -1) {
       if (saved_errno == 0) {
         saved_errno = errno;
       }
