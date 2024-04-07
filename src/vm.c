@@ -369,6 +369,20 @@ cipush(mrb_state *mrb, mrb_int push_stacks, uint8_t cci, struct RClass *target_c
   return ci;
 }
 
+static void
+fiber_terminate(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci)
+{
+  mrb_assert(c != mrb->root_c);
+
+  c->status = MRB_FIBER_TERMINATED;
+
+  /* fiber termination should automatic yield or transfer to root */
+  mrb->c = c->prev;
+  if (!mrb->c) mrb->c = mrb->root_c;
+  else c->prev = NULL;
+  mrb->c->status = MRB_FIBER_RUNNING;
+}
+
 mrb_bool
 mrb_env_unshare(mrb_state *mrb, struct REnv *e, mrb_bool noraise)
 {
@@ -1777,10 +1791,7 @@ RETRY_TRY_BLOCK:
           else {
             struct mrb_context *c = mrb->c;
 
-            c->status = MRB_FIBER_TERMINATED;
-            mrb->c = c->prev;
-            if (!mrb->c) mrb->c = mrb->root_c;
-            else c->prev = NULL;
+            fiber_terminate(mrb, c, ci);
             if (!c->vmexec) goto L_RAISE;
             mrb->jmp = prev_jmp;
             if (!prev_jmp) return mrb_obj_value(mrb->exc);
@@ -2377,11 +2388,7 @@ RETRY_TRY_BLOCK:
             return v;
           }
 
-          /* fiber termination should automatic yield or transfer to root */
-          c->status = MRB_FIBER_TERMINATED;
-          mrb->c = c->prev ? c->prev : mrb->root_c;
-          c->prev = NULL;
-          mrb->c->status = MRB_FIBER_RUNNING;
+          fiber_terminate(mrb, c, ci);
           if (c->vmexec ||
               (mrb->c == mrb->root_c && mrb->c->ci == mrb->c->cibase) /* case using Fiber#transfer in mrb_fiber_resume() */) {
             mrb_gc_arena_restore(mrb, ai);
