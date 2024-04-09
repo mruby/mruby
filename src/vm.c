@@ -374,7 +374,45 @@ fiber_terminate(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci)
 {
   mrb_assert(c != mrb->root_c);
 
+  struct REnv *env = CI_ENV(ci);
+  mrb_assert(env == NULL || MRB_ENV_LEN(env) <= c->stend - ci->stack);
+
   c->status = MRB_FIBER_TERMINATED;
+  mrb_free(mrb, c->cibase);
+  c->cibase = c->ciend = c->ci = NULL;
+  mrb_value *stack = c->stbase;
+  c->stbase = c->stend = NULL;
+
+  if (!env) {
+    mrb_free(mrb, stack);
+  }
+  else {
+    env->cxt = NULL;
+
+    size_t len = (size_t)MRB_ENV_LEN(env);
+    if (len == 0) {
+      env->stack = NULL;
+      MRB_ENV_CLOSE(env);
+      mrb_free(mrb, stack);
+    }
+    else {
+      mrb_assert(stack == env->stack);
+      mrb_write_barrier(mrb, (struct RBasic*)env);
+
+      // don't call MRB_ENV_CLOSE() before mrb_realloc().
+      // the reason is that env->stack may be freed by mrb_realloc() if MRB_DEBUG + MRB_GC_STRESS are enabled.
+      // realloc() on a freed heap will cause double-free.
+
+      stack = (mrb_value*)mrb_realloc(mrb, stack, len * sizeof(mrb_value));
+      if (mrb_object_dead_p(mrb, (struct RBasic*)env)) {
+        mrb_free(mrb, stack);
+      }
+      else {
+        env->stack = stack;
+        MRB_ENV_CLOSE(env);
+      }
+    }
+  }
 
   /* fiber termination should automatic yield or transfer to root */
   mrb->c = c->prev;
