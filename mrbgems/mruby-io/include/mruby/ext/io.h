@@ -33,10 +33,6 @@ struct mrb_io_buf {
 };
 
 struct mrb_io {
-  int fd;   /* file descriptor, or -1 */
-  int fd2;  /* file descriptor to write if it's different from fd, or -1 */
-  int pid;  /* child's pid (for pipes)  */
-  struct mrb_io_buf *buf;
   unsigned int readable:1,
                writable:1,
                eof:1,
@@ -44,6 +40,10 @@ struct mrb_io {
                is_socket:1,
                close_fd:1,
                close_fd2:1;
+  int fd;   /* file descriptor, or -1 */
+  int fd2;  /* file descriptor to write if it's different from fd, or -1 */
+  int pid;  /* child's pid (for pipes)  */
+  struct mrb_io_buf *buf;
 };
 
 #define MRB_O_RDONLY            0x0000
