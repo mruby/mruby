@@ -41,7 +41,9 @@ struct mrb_io {
                writable:1,
                eof:1,
                sync:1,
-               is_socket:1;
+               is_socket:1,
+               close_fd:1,
+               close_fd2:1;
 };
 
 #define MRB_O_RDONLY            0x0000
