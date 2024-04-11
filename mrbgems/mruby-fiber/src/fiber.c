@@ -223,7 +223,6 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
     return fiber_error(mrb, "attempt to resume the current fiber");
   }
 
-  fiber_check_cfunc(mrb, c);
   status = c->status;
   switch (status) {
   case MRB_FIBER_TRANSFERRED:
@@ -241,6 +240,7 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
   default:
     break;
   }
+  fiber_check_cfunc(mrb, c);
   if (resume) {
     old_c->status = MRB_FIBER_RESUMED;
     c->prev = mrb->c;
@@ -394,8 +394,9 @@ fiber_to_s(mrb_state *mrb, mrb_value self)
 
   const char *file;
   int32_t line;
-  const struct RProc *p = f->cxt->cibase->proc;
-  if (f->cxt->status != MRB_FIBER_TERMINATED && !MRB_PROC_CFUNC_P(p) && !MRB_PROC_ALIAS_P(p) &&
+  const struct RProc *p;
+  if (f->cxt->status != MRB_FIBER_TERMINATED &&
+      !MRB_PROC_CFUNC_P(p = f->cxt->cibase->proc) && !MRB_PROC_ALIAS_P(p) &&
       mrb_debug_get_position(mrb, p->body.irep, 0, &line, &file)) {
     mrb_str_cat_lit(mrb, s, " ");
     mrb_str_cat_cstr(mrb, s, file);
