@@ -355,10 +355,9 @@ obj_hash_code(mrb_state *mrb, mrb_value key, struct RHash *h)
 static mrb_bool
 obj_eql(mrb_state *mrb, mrb_value a, mrb_value b, struct RHash *h)
 {
-  enum mrb_vtype tt = mrb_type(a);
   mrb_bool eql;
 
-  switch (tt) {
+  switch (mrb_type(a)) {
   case MRB_TT_STRING:
     return mrb_str_equal(mrb, a, b);
 
