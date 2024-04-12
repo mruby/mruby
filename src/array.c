@@ -1422,7 +1422,7 @@ mrb_ary_delete(mrb_state *mrb, mrb_value self)
   for (; i < len; ++i) {
     mrb_value elem = val_ptr[i];
 
-    if (mrb_equal(mrb, obj, elem)) {
+    if (mrb_equal(mrb, elem, obj)) {
       ret = elem;
       continue;
     }
@@ -1430,6 +1430,7 @@ mrb_ary_delete(mrb_state *mrb, mrb_value self)
     if (i != j) {
       if (!modified) {
         ary_modify(mrb, ary);
+        val_ptr = ARY_PTR(ary);
         modified = TRUE;
       }
       val_ptr[j] = elem;
