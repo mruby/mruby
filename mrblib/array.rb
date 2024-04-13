@@ -191,31 +191,9 @@ class Array
   #
   # Delete element with index +key+
   def delete(key, &block)
-    ret = key
-    i = 0
-    j = 0
     len = self.length
-    while i < len
-      elem = self[i]
-
-      if key == elem
-        ret = elem
-        i += 1
-        next
-      end
-
-      self[j] = elem if i != j
-
-      i += 1
-      j += 1
-    end
-
-    if i == j
-      return block.call if block
-      return nil
-    end
-
-    self.replace(self[0...j])
+    ret = self.__delete(key)
+    return block.call() if len == self.length
 
     ret
   end
