@@ -85,7 +85,6 @@ pack_backtrace(mrb_state *mrb, ptrdiff_t ciidx, struct mrb_backtrace_location *p
 static struct RBasic*
 packed_backtrace(mrb_state *mrb)
 {
-  struct RBacktrace *backtrace;
   ptrdiff_t ciidx = mrb->c->ci - mrb->c->cibase;
 
   if (ciidx >= mrb->c->ciend - mrb->c->cibase)
@@ -93,7 +92,7 @@ packed_backtrace(mrb_state *mrb)
 
   ptrdiff_t len = ciidx + 1;
 
-  backtrace = MRB_OBJ_ALLOC(mrb, MRB_TT_BACKTRACE, NULL);
+  struct RBacktrace *backtrace = MRB_OBJ_ALLOC(mrb, MRB_TT_BACKTRACE, NULL);
 
   void *ptr = mrb_malloc(mrb, len * sizeof(struct mrb_backtrace_location));
   backtrace->locations = (struct mrb_backtrace_location*)ptr;
