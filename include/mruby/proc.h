@@ -16,6 +16,13 @@
  */
 MRB_BEGIN_DECL
 
+/*
+ * env object (for internal used)
+ *
+ * - don't create multiple envs on one ci.
+ * - don't share a env to different ci.
+ * - don't attach a closed env to any ci.
+ */
 struct REnv {
   MRB_OBJECT_HEADER;
   mrb_value *stack;
