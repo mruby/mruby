@@ -467,15 +467,16 @@ class Array
   def delete_if(&block)
     return to_enum :delete_if unless block
 
+    result = []
     idx = 0
-    while idx < self.size do
-      if block.call(self[idx])
-        self.delete_at(idx)
-      else
-        idx += 1
-      end
+    len = size
+    while idx < len
+      elem = self[idx]
+      result << elem unless block.call(elem)
+      idx += 1
     end
-    self
+
+    self.replace(result)
   end
 
   ##
@@ -496,20 +497,18 @@ class Array
   def reject!(&block)
     return to_enum :reject! unless block
 
-    len = self.size
+    result = []
     idx = 0
-    while idx < self.size do
-      if block.call(self[idx])
-        self.delete_at(idx)
-      else
-        idx += 1
-      end
+    len = size
+    while idx < len
+      elem = self[idx]
+      result << elem unless block.call(elem)
+      idx += 1
     end
-    if self.size == len
-      nil
-    else
-      self
-    end
+
+    return nil if len == result.size
+
+    self.replace(result)
   end
 
   ##
@@ -658,15 +657,16 @@ class Array
   def keep_if(&block)
     return to_enum :keep_if unless block
 
+    result = []
     idx = 0
-    while idx < self.size do
-      if block.call(self[idx])
-        idx += 1
-      else
-        self.delete_at(idx)
-      end
+    len = size
+    while idx < len
+      elem = self[idx]
+      result << elem if block.call(elem)
+      idx += 1
     end
-    self
+
+    self.replace(result)
   end
 
   ##
@@ -694,7 +694,9 @@ class Array
       result << elem if block.call(elem)
       idx += 1
     end
+
     return nil if len == result.size
+
     self.replace(result)
   end
 
