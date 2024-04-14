@@ -154,9 +154,8 @@ sym_operator_name(const char *sym_name, mrb_int len)
   mrb_sym table_size = sizeof(operator_table)/sizeof(struct operator_symbol);
   if (operator_table[table_size-1].sym_name_len < len) return NULL;
 
-  mrb_sym start, idx;
-  for (start = 0; table_size != 0; table_size/=2) {
-    idx = start+table_size/2;
+  for (mrb_sym start = 0; table_size != 0; table_size/=2) {
+    mrb_sym idx = start+table_size/2;
     const struct operator_symbol *op_sym = &operator_table[idx];
     int cmp = (int)len-(int)op_sym->sym_name_len;
     if (cmp == 0) {
@@ -193,6 +192,7 @@ cdump_sym(mrb_state *mrb, mrb_sym sym, const char *var_name, int idx, mrb_value 
   }
 
   mrb_int len;
+
   const char *name = mrb_sym_name_len(mrb, sym, &len), *op_name;
   if (!name) return MRB_DUMP_INVALID_ARGUMENT;
   if (sym_name_word_p(name, len)) {
@@ -238,6 +238,7 @@ cdump_syms(mrb_state *mrb, const char *name, const char *key, int n, int syms_le
   int ai = mrb_gc_arena_save(mrb);
   mrb_int code_len = RSTRING_LEN(init_syms_code);
   const char *var_name = sym_var_name(mrb, name, key, n);
+
   fprintf(fp, "mrb_DEFINE_SYMS_VAR(%s, %d, (", var_name, syms_len);
   for (int i=0; i<syms_len; i++) {
     cdump_sym(mrb, syms[i], var_name, i, init_syms_code, fp);
@@ -269,17 +270,14 @@ cdump_debug(mrb_state *mrb, const char *name, int n, mrb_irep_debug_info *info,
 {
   int ai = mrb_gc_arena_save(mrb);
   char buffer[256];
-  const char *filename;
-  mrb_int file_len;
-  int len, i;
   const char *line_type = "mrb_debug_line_ary";
 
   if (!simple_debug_info(info))
     return MRB_DUMP_INVALID_IREP;
 
-  len = info->files[0]->line_entry_count;
+  int len = info->files[0]->line_entry_count;
 
-  filename = mrb_sym_name_len(mrb, info->files[0]->filename_sym, &file_len);
+  const char *filename = mrb_sym_name_len(mrb, info->files[0]->filename_sym, NULL);
   snprintf(buffer, sizeof(buffer), "  %s_debug_file_%d.filename_sym = mrb_intern_lit(mrb,", name, n);
   mrb_str_cat_cstr(mrb, init_syms_code, buffer);
   mrb_str_cat_str(mrb, init_syms_code, mrb_str_dump(mrb, mrb_str_new_cstr(mrb, filename)));
@@ -288,7 +286,7 @@ cdump_debug(mrb_state *mrb, const char *name, int n, mrb_irep_debug_info *info,
   switch (info->files[0]->line_type) {
   case mrb_debug_line_ary:
     fprintf(fp, "static uint16_t %s_debug_lines_%d[%d] = {", name, n, len);
-    for (i=0; i<len; i++) {
+    for (int i=0; i<len; i++) {
       if (i%10 == 0) fputs("\n", fp);
       fprintf(fp, "0x%04x,", info->files[0]->lines.ary[i]);
     }
@@ -298,7 +296,7 @@ cdump_debug(mrb_state *mrb, const char *name, int n, mrb_irep_debug_info *info,
   case mrb_debug_line_flat_map:
     line_type = "mrb_debug_line_flat_map";
     fprintf(fp, "static struct mrb_irep_debug_info_line %s_debug_lines_%d[%d] = {", name, n, len);
-    for (i=0; i<len; i++) {
+    for (int i=0; i<len; i++) {
       const mrb_irep_debug_info_line *fmap = &info->files[0]->lines.flat_map[i];
       fprintf(fp, "\t{.start_pos=0x%04x,.line=%d},\n", fmap->start_pos, fmap->line);
     }
@@ -309,7 +307,7 @@ cdump_debug(mrb_state *mrb, const char *name, int n, mrb_irep_debug_info *info,
     line_type = "mrb_debug_line_packed_map";
     fprintf(fp, "static const char %s_debug_lines_%d[] = \"", name, n);
     const uint8_t *pmap = info->files[0]->lines.packed_map;
-    for (i=0; i<len; i++) {
+    for (int i=0; i<len; i++) {
       fprintf(fp, "\\x%02x", pmap[i]&0xff);
     }
     fputs("\";\n", fp);
@@ -321,7 +319,7 @@ cdump_debug(mrb_state *mrb, const char *name, int n, mrb_irep_debug_info *info,
           info->files[0]->filename_sym,
           info->files[0]->line_entry_count,
           line_type,
-          name,n);
+          name, n);
   fprintf(fp, "static mrb_irep_debug_info_file *%s_debug_file_%d_ = &%s_debug_file_%d;\n", name, n, name, n);
 
   fprintf(fp, "static mrb_irep_debug_info %s_debug_%d = {\n", name, n);
