@@ -43,8 +43,8 @@ fiber_init_fiber(mrb_state *mrb, struct RFiber *f, const struct RProc *p)
   c->stend = c->stbase + slen;
 
   {
-    mrb_value *s = c->stbase;
-    mrb_value *send = c->stend;
+    mrb_value *s = c->stbase + 1;
+    mrb_value *send = c->stbase + p->body.irep->nregs;
 
     while (s < send) {
       SET_NIL_VALUE(*s);
@@ -56,9 +56,11 @@ fiber_init_fiber(mrb_state *mrb, struct RFiber *f, const struct RProc *p)
   c->stbase[0] = mrb->c->ci->stack[0];
 
   /* initialize callinfo stack */
-  c->cibase = (mrb_callinfo*)mrb_calloc(mrb, FIBER_CI_INIT_SIZE, sizeof(mrb_callinfo));
+  static const mrb_callinfo ci_zero = { 0 };
+  c->cibase = (mrb_callinfo*)mrb_malloc(mrb, FIBER_CI_INIT_SIZE * sizeof(mrb_callinfo));
   c->ciend = c->cibase + FIBER_CI_INIT_SIZE;
   c->ci = c->cibase;
+  c->cibase[0] = ci_zero;
 
   /* adjust return callinfo */
   ci = c->ci;
