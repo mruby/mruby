@@ -1367,6 +1367,48 @@ mrb_ary_svalue(mrb_state *mrb, mrb_value ary)
   }
 }
 
+static mrb_value
+mrb_ary_delete(mrb_state *mrb, mrb_value self)
+{
+  struct RArray *ary = RARRAY(self);
+  mrb_value *val_ptr = ARY_PTR(ary);
+  size_t len = ARY_LEN(ary);
+  mrb_bool modified = FALSE;
+
+  mrb_value obj = mrb_get_arg1(mrb);
+  mrb_value ret = obj;
+
+  size_t i = 0;
+  size_t j = 0;
+  for (; i < len; ++i) {
+    mrb_value elem = val_ptr[i];
+
+    if (mrb_equal(mrb, elem, obj)) {
+      ret = elem;
+      continue;
+    }
+
+    if (i != j) {
+      if (!modified) {
+        ary_modify(mrb, ary);
+        val_ptr = ARY_PTR(ary);
+        modified = TRUE;
+      }
+      val_ptr[j] = elem;
+    }
+
+    ++j;
+  }
+
+  if (i == j) {
+    return mrb_nil_value();
+  }
+
+  ARY_SET_LEN(ary, j);
+
+  return ret;
+}
+
 void
 mrb_init_array(mrb_state *mrb)
 {
@@ -1408,5 +1450,6 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method_id(mrb, a, MRB_SYM(__ary_eq),        mrb_ary_eq,           MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, a, MRB_SYM(__ary_cmp),       mrb_ary_cmp,          MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, a, MRB_SYM(__ary_index),     mrb_ary_index_m,      MRB_ARGS_REQ(1));   /* kept for mruby-array-ext */
+  mrb_define_method_id(mrb, a, MRB_SYM(__delete),        mrb_ary_delete,       MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, a, MRB_SYM(__svalue),        mrb_ary_svalue,       MRB_ARGS_NONE());
 }
