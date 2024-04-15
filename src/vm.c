@@ -130,7 +130,7 @@ stack_init(mrb_state *mrb)
 }
 
 static inline void
-envadjust(mrb_state *mrb, mrb_value *oldbase, mrb_value *newbase, size_t oldsize)
+envadjust(mrb_state *mrb, mrb_value *oldbase, mrb_value *newbase)
 {
   mrb_callinfo *ci = mrb->c->cibase;
   ptrdiff_t delta = newbase - oldbase;
@@ -138,10 +138,11 @@ envadjust(mrb_state *mrb, mrb_value *oldbase, mrb_value *newbase, size_t oldsize
   if (delta == 0) return;
   while (ci <= mrb->c->ci) {
     struct REnv *e = mrb_vm_ci_env(ci);
-    mrb_value *st;
 
-    if (e && MRB_ENV_ONSTACK_P(e) &&
-        (st = e->stack) && (size_t)(st - oldbase) < oldsize) {
+    if (e) {
+      mrb_assert(e->cxt == mrb->c && MRB_ENV_ONSTACK_P(e));
+      mrb_assert(e->stack == ci->stack);
+
       e->stack += delta;
     }
     ci->stack += delta;
@@ -178,7 +179,7 @@ stack_extend_alloc(mrb_state *mrb, mrb_int room)
 
   newstack = (mrb_value*)mrb_realloc(mrb, mrb->c->stbase, sizeof(mrb_value) * size);
   stack_clear(&(newstack[oldsize]), size - oldsize);
-  envadjust(mrb, oldbase, newstack, oldsize);
+  envadjust(mrb, oldbase, newstack);
   mrb->c->stbase = newstack;
   mrb->c->stend = mrb->c->stbase + size;
 
