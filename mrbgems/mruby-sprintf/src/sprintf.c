@@ -1090,7 +1090,6 @@ retry:
       }
       break;
     }
-    flags = FNONE;
   }
 
   sprint_exit:
