@@ -14,9 +14,8 @@
 MRB_API struct RData*
 mrb_data_object_alloc(mrb_state *mrb, struct RClass *klass, void *ptr, const mrb_data_type *type)
 {
-  struct RData *data;
+  struct RData *data = MRB_OBJ_ALLOC(mrb, MRB_TT_CDATA, klass);
 
-  data = MRB_OBJ_ALLOC(mrb, MRB_TT_CDATA, klass);
   data->data = ptr;
   data->type = type;
 
@@ -203,9 +202,7 @@ mrb_boxing_int_value(mrb_state *mrb, mrb_int n)
   if (FIXABLE(n)) return mrb_fixnum_value(n);
   else {
     mrb_value v;
-    struct RInteger *p;
-
-    p = (struct RInteger*)mrb_obj_alloc(mrb, MRB_TT_INTEGER, mrb->integer_class);
+    struct RInteger *p = (struct RInteger*)mrb_obj_alloc(mrb, MRB_TT_INTEGER, mrb->integer_class);
     p->i = n;
     MRB_SET_FROZEN_FLAG((struct RBasic*)p);
     SET_OBJ_VALUE(v, p);
@@ -242,9 +239,9 @@ MRB_API int
 mrb_msvc_snprintf(char *s, size_t n, const char *format, ...)
 {
   va_list arg;
-  int ret;
   va_start(arg, format);
-  ret = mrb_msvc_vsnprintf(s, n, format, arg);
+
+  int ret = mrb_msvc_vsnprintf(s, n, format, arg);
   va_end(arg);
   return ret;
 }
