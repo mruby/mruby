@@ -68,18 +68,25 @@ enum pack_type {
 
 #define PACK_BASE64_IGNORE      0xff
 #define PACK_BASE64_PADDING     0xfe
+#define IGN                     PACK_BASE64_IGNORE
+#define PAD                     PACK_BASE64_PADDING
 
-const static unsigned char base64chars[] =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-const static unsigned char base64_dec_tab[] =
-  "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff"
-  "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff"
-  "\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\x3e\xff\xff\xff\x3f"
-  "\x34\x35\x36\x37\x38\x39\x3a\x3b\x3c\x3d\xff\xff\xff\xfe\xff\xff"
-  "\xff\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e"
-  "\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\xff\xff\xff\xff\xff"
-  "\xff\x1a\x1b\x1c\x1d\x1e\x1f\x20\x21\x22\x23\x24\x25\x26\x27\x28"
-  "\x29\x2a\x2b\x2c\x2d\x2e\x2f\x30\x31\x32\x33\xff\xff\xff\xff\xff";
+static const unsigned char base64chars[64] = {
+  'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+  'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 'a', 'b', 'c', 'd', 'e', 'f',
+  'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v',
+  'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+', '/',
+};
+static const unsigned char base64_dec_tab[128] = {
+  IGN, IGN, IGN, IGN, IGN, IGN, IGN, IGN, IGN, IGN, IGN, IGN, IGN, IGN, IGN, IGN,
+  IGN, IGN, IGN, IGN, IGN, IGN, IGN, IGN, IGN, IGN, IGN, IGN, IGN, IGN, IGN, IGN,
+  IGN, IGN, IGN, IGN, IGN, IGN, IGN, IGN, IGN, IGN, IGN,  62, IGN, IGN, IGN,  63,
+   52,  53,  54,  55,  56,  57,  58,  59,  60,  61, IGN, IGN, IGN, PAD, IGN, IGN,
+  IGN,   0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,
+   15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25, IGN, IGN, IGN, IGN, IGN,
+  IGN,  26,  27,  28,  29,  30,  31,  32,  33,  34,  35,  36,  37,  38,  39,  40,
+   41,  42,  43,  44,  45,  46,  47,  48,  49,  50,  51, IGN, IGN, IGN, IGN, IGN,
+};
 
 static int
 hex2int(unsigned char ch)
