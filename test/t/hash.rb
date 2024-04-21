@@ -1001,7 +1001,7 @@ assert('#== receiver should be specified value') do
   end
 end
 
-assert('test value ommision') do
+assert('test value omission') do
   x = 1
   y = 2
   assert_equal({x:1, y:2}, {x:, y:})
