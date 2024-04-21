@@ -1438,13 +1438,13 @@ mrb_vm_exec(mrb_state *mrb, const struct RProc *proc, const mrb_code *pc)
   };
 #endif
 
-  volatile mrb_bool exc_catched = FALSE;
+  volatile mrb_bool exc_caught = FALSE;
 RETRY_TRY_BLOCK:
 
   MRB_TRY(&c_jmp) {
 
-  if (exc_catched) {
-    exc_catched = FALSE;
+  if (exc_caught) {
+    exc_caught = FALSE;
     mrb_gc_arena_restore(mrb, ai);
     if (mrb->exc && mrb->exc->tt == MRB_TT_BREAK)
       goto L_BREAK;
@@ -3136,7 +3136,7 @@ RETRY_TRY_BLOCK:
     while (ci > mrb->c->cibase && ci->cci == CINFO_DIRECT) {
       ci = cipop(mrb);
     }
-    exc_catched = TRUE;
+    exc_caught = TRUE;
     pc = ci->pc;
     goto RETRY_TRY_BLOCK;
   }
