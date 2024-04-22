@@ -54,7 +54,15 @@ miscellaneous:
       - changed-files:
           - any-glob-to-any-file:
               - .editorconfig
+              - .git-blame-ignore-revs
+              - .gitattributes
+              - .gitignore
               - .prettierrc
+              - AUTHORS
+              - CODEOWNERS
+              - Gemfile
+              - Gemfile.lock
+              - mruby-source.gemspec
 mrbgems:
   - any:
       - changed-files:
