@@ -905,7 +905,7 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
 
   c = mrb_class(mrb, self);
   m = mrb_vm_find_method(mrb, c, &c, name);
-  if (MRB_METHOD_UNDEF_P(m)) {            /* call method_mising */
+  if (MRB_METHOD_UNDEF_P(m)) {            /* call method_missing */
     goto funcall;
   }
 
