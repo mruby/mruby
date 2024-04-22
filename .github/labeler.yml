@@ -59,7 +59,6 @@ miscellaneous:
               - .gitignore
               - .prettierrc
               - AUTHORS
-              - CODEOWNERS
               - Gemfile
               - Gemfile.lock
               - mruby-source.gemspec
