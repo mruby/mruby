@@ -190,10 +190,12 @@ mrb_realloc_simple(mrb_state *mrb, void *p,  size_t len)
   void *p2;
 
 #if defined(MRB_GC_STRESS) && defined(MRB_DEBUG)
-  mrb_full_gc(mrb);
+  if (mrb->gc.state != MRB_GC_STATE_SWEEP) {
+    mrb_full_gc(mrb);
+  }
 #endif
   p2 = (mrb->allocf)(mrb, p, len, mrb->allocf_ud);
-  if (!p2 && len > 0 && mrb->gc.heaps) {
+  if (!p2 && len > 0 && mrb->gc.heaps && mrb->gc.state != MRB_GC_STATE_SWEEP) {
     mrb_full_gc(mrb);
     p2 = (mrb->allocf)(mrb, p, len, mrb->allocf_ud);
   }
