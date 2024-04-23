@@ -1357,7 +1357,9 @@ mrb_vm_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, mrb_int sta
   const mrb_irep *irep = proc->body.irep;
   mrb_value result;
   struct mrb_context *c = mrb->c;
+#ifdef MRB_DEBUG
   ptrdiff_t cioff = c->ci - c->cibase;
+#endif
   mrb_int nregs = irep->nregs;
 
   if (!c->stbase) {
@@ -1376,15 +1378,8 @@ mrb_vm_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, mrb_int sta
   stack_clear(c->ci->stack + stack_keep, nregs - stack_keep);
   c->ci->stack[0] = self;
   result = mrb_vm_exec(mrb, proc, irep->iseq);
-  if (mrb->c != c) {
-    if (mrb->c->fib) {
-      mrb_write_barrier(mrb, (struct RBasic*)mrb->c->fib);
-    }
-    mrb->c = c;
-  }
-  else if (c->ci - c->cibase > cioff) {
-    c->ci = c->cibase + cioff;
-  }
+  mrb_assert(mrb->c == c);      /* do not switch fibers via mrb_vm_run(), unlike mrb_vm_exec() */
+  mrb_assert(c->ci == c->cibase || (c->ci - c->cibase) == cioff - 1);
   return result;
 }
 
