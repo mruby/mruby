@@ -630,9 +630,8 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
     {
       struct REnv *e = (struct REnv*)obj;
 
-      if (MRB_ENV_ONSTACK_P(e) && e->cxt && e->cxt->fib) {
-        mrb_gc_mark(mrb, (struct RBasic*)e->cxt->fib);
-      }
+      // The data stack must always be protected from GC regardless of the MRB_ENV_CLOSE flag.
+      // This is because the data stack is not protected if the fiber is GC'd.
       mrb_int len = MRB_ENV_LEN(e);
       for (mrb_int i=0; i<len; i++) {
         mrb_gc_mark_value(mrb, e->stack[i]);
@@ -773,7 +772,20 @@ obj_free(mrb_state *mrb, struct RBasic *obj, mrb_bool end)
     {
       struct mrb_context *c = ((struct RFiber*)obj)->cxt;
 
-      if (c != mrb->root_c) {
+      if (c && c != mrb->root_c) {
+        if (!end && c->status != MRB_FIBER_TERMINATED) {
+          mrb_callinfo *ci = c->ci;
+          mrb_callinfo *ce = c->cibase;
+
+          while (ce <= ci) {
+            struct REnv *e = ci->u.env;
+            if (e && !is_dead(&mrb->gc, (struct RBasic*)e) &&
+                e->tt == MRB_TT_ENV && MRB_ENV_ONSTACK_P(e)) {
+              mrb_env_unshare(mrb, e, TRUE);
+            }
+            ci--;
+          }
+        }
         mrb_free_context(mrb, c);
       }
     }
