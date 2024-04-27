@@ -105,7 +105,7 @@ end
 
 `MRB_GC_TURN_OFF_GENERATIONAL`
 
-- When defined turns generational GC by default.
+- When defined turns generational GC off by default.
 
 `MRB_GC_FIXED_ARENA`
 
@@ -121,7 +121,7 @@ end
 
 `MRB_HEAP_PAGE_SIZE`
 
-- Defines value is `1024`.
+- Default value is `1024`.
 - Specifies number of `RBasic` per each heap page.
 - To calculate the number of bytes per heap page, it is "(size of management data per heap page) + (size per object) \* `MRB_HEAP_PAGE_SIZE`".
   In mruby 3.1.0, the "size of management data per heap page" is 6 words, also "size per object" is 6 words.
@@ -197,7 +197,7 @@ end
 
 `MRB_MALLOC_TRIM`
 
-- call malloc_trim(0) for each mrb_full_gc() call
+- call `malloc_trim(0)` for each `mrb_full_gc()` call
 
 `MRB_UTF8_STRING`
 
@@ -211,7 +211,7 @@ end
 
 `MRB_ARY_LENGTH_MAX`
 
-- The maximum length of strings (default 1MB)
+- The maximum length of arrays (default 1MB)
 - set this value to zero to skip the check
 
 `MRB_FUNCALL_ARGC_MAX`
@@ -244,3 +244,7 @@ end
 `MRB_USE_VM_SWITCH_DISPATCH`
 
 - Turn on switch dispatch in VM loop
+
+`MRB_NO_GEMS`
+
+- Disable mgem usage
