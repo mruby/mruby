@@ -244,7 +244,3 @@ end
 `MRB_USE_VM_SWITCH_DISPATCH`
 
 - Turn on switch dispatch in VM loop
-
-`MRB_NO_GEMS`
-
-- Disable mgem usage
