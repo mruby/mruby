@@ -1277,7 +1277,29 @@ MRB_API void mrb_close(mrb_state *mrb);
 MRB_API void* mrb_default_allocf(mrb_state*, void*, size_t, void*);
 
 MRB_API mrb_value mrb_top_self(mrb_state *mrb);
+
+/**
+ * Enter the mruby VM and execute the proc.
+ *
+ * @param mrb
+ *      The current mruby state.
+ * @param proc
+ *      An object containing `irep`.
+ *      If supplied an object containing anything other than `irep`, it will probably crash.
+ * @param self
+ *      `self` on the execution context of `proc`.
+ * @param stack_keep
+ *      Specifies the number of values to hold from the stack top.
+ *      Values on the stack outside this range will be initialized to `nil`.
+ *
+ * @note
+ *      When called from a C function defined as a method, the current stack is destroyed.
+ *      If you want to use arguments obtained by `mrb_get_args()` or other methods after `mrb_top_run()`,
+ *      you must protect them by `mrb_gc_protect()` or other ways before this function.
+ *      Or consider using `mrb_yield()` family functions.
+ */
 MRB_API mrb_value mrb_top_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, mrb_int stack_keep);
+
 MRB_API mrb_value mrb_vm_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, mrb_int stack_keep);
 MRB_API mrb_value mrb_vm_exec(mrb_state *mrb, const struct RProc *proc, const mrb_code *iseq);
 /* compatibility macros */
