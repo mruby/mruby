@@ -87,14 +87,13 @@ exc_initialize(mrb_state *mrb, mrb_value exc)
 static mrb_value
 exc_exception(mrb_state *mrb, mrb_value self)
 {
-  mrb_value exc;
   mrb_value a;
-  mrb_int argc;
+  mrb_int argc = mrb_get_args(mrb, "|o", &a);
 
-  argc = mrb_get_args(mrb, "|o", &a);
   if (argc == 0) return self;
   if (mrb_obj_equal(mrb, self, a)) return self;
-  exc = mrb_obj_clone(mrb, self);
+
+  mrb_value exc = mrb_obj_clone(mrb, self);
   mrb_exc_mesg_set(mrb, mrb_exc_ptr(exc), a);
 
   return exc;
@@ -112,12 +111,11 @@ static mrb_value
 exc_to_s(mrb_state *mrb, mrb_value exc)
 {
   mrb_value mesg = mrb_exc_mesg_get(mrb, mrb_exc_ptr(exc));
-  struct RObject *p;
 
   if (!mrb_string_p(mesg)) {
     return mrb_str_new_cstr(mrb, mrb_obj_classname(mrb, exc));
   }
-  p = mrb_obj_ptr(mesg);
+  struct RObject *p = mrb_obj_ptr(mesg);
   if (!p->c) {
     p->c = mrb->string_class;
   }
@@ -384,10 +382,10 @@ MRB_API mrb_value
 mrb_format(mrb_state *mrb, const char *format, ...)
 {
   va_list ap;
-  mrb_value str;
 
   va_start(ap, format);
-  str = mrb_vformat(mrb, format, ap);
+
+  mrb_value str = mrb_vformat(mrb, format, ap);
   va_end(ap);
 
   return str;
@@ -396,18 +394,17 @@ mrb_format(mrb_state *mrb, const char *format, ...)
 static mrb_value
 error_va(mrb_state *mrb, struct RClass *c, const char *fmt, va_list ap)
 {
-  mrb_value mesg = mrb_vformat(mrb, fmt, ap);
-  return mrb_exc_new_str(mrb, c, mesg);
+  return mrb_exc_new_str(mrb, c, mrb_vformat(mrb, fmt, ap));
 }
 
 MRB_API mrb_noreturn void
 mrb_raisef(mrb_state *mrb, struct RClass *c, const char *fmt, ...)
 {
   va_list ap;
-  mrb_value exc;
 
   va_start(ap, fmt);
-  exc = error_va(mrb, c, fmt, ap);
+
+  mrb_value exc = error_va(mrb, c, fmt, ap);
   va_end(ap);
 
   mrb_exc_raise(mrb, exc);
@@ -417,10 +414,10 @@ MRB_API mrb_noreturn void
 mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...)
 {
   va_list ap;
-  mrb_value exc;
 
   va_start(ap, fmt);
-  exc = error_va(mrb, E_NAME_ERROR, fmt, ap);
+
+  mrb_value exc = error_va(mrb, E_NAME_ERROR, fmt, ap);
   va_end(ap);
   mrb_iv_set(mrb, exc, MRB_IVSYM(name), mrb_symbol_value(id));
   mrb_exc_raise(mrb, exc);
@@ -431,10 +428,10 @@ mrb_warn(mrb_state *mrb, const char *fmt, ...)
 {
 #ifndef MRB_NO_STDIO
   va_list ap;
-  mrb_value str;
 
   va_start(ap, fmt);
-  str = mrb_vformat(mrb, fmt, ap);
+
+  mrb_value str = mrb_vformat(mrb, fmt, ap);
   fputs("warning: ", stderr);
   fwrite(RSTRING_PTR(str), RSTRING_LEN(str), 1, stderr);
   putc('\n', stderr);
@@ -500,10 +497,10 @@ MRB_API mrb_noreturn void
 mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_value args, char const* fmt, ...)
 {
   va_list ap;
-  mrb_value exc;
 
   va_start(ap, fmt);
-  exc = error_va(mrb, E_NOMETHOD_ERROR, fmt, ap);
+
+  mrb_value exc = error_va(mrb, E_NOMETHOD_ERROR, fmt, ap);
   va_end(ap);
   mrb_iv_set(mrb, exc, MRB_IVSYM(name), mrb_symbol_value(id));
   mrb_iv_set(mrb, exc, MRB_IVSYM(args), args);
@@ -558,7 +555,7 @@ mrb_core_init_protect(mrb_state *mrb, void (*body)(mrb_state*, void*), void *opa
 {
   struct mrb_jmpbuf *prev_jmp = mrb->jmp;
   struct mrb_jmpbuf c_jmp;
-  int err = 1;
+  volatile int err = 1;
 
   MRB_TRY(&c_jmp) {
     mrb->jmp = &c_jmp;
@@ -660,9 +657,7 @@ mrb_check_error(mrb_state *mrb)
 void
 mrb_init_exception(mrb_state *mrb)
 {
-  struct RClass *exception, *script_error, *stack_error, *nomem_error;
-
-  mrb->eException_class = exception = mrb_define_class_id(mrb, MRB_SYM(Exception), mrb->object_class); /* 15.2.22 */
+  struct RClass *exception = mrb->eException_class = mrb_define_class_id(mrb, MRB_SYM(Exception), mrb->object_class); /* 15.2.22 */
   MRB_SET_INSTANCE_TT(exception, MRB_TT_EXCEPTION);
   mrb_define_class_method_id(mrb, exception, MRB_SYM(exception), mrb_instance_new,  MRB_ARGS_OPT(1));
   mrb_define_method_id(mrb, exception, MRB_SYM(exception),       exc_exception,     MRB_ARGS_OPT(1));
@@ -674,12 +669,12 @@ mrb_init_exception(mrb_state *mrb)
 
   mrb->eStandardError_class = mrb_define_class_id(mrb, MRB_SYM(StandardError), mrb->eException_class); /* 15.2.23 */
   mrb_define_class_id(mrb, MRB_SYM(RuntimeError), E_STANDARD_ERROR);          /* 15.2.28 */
-  script_error = mrb_define_class_id(mrb, MRB_SYM(ScriptError), exception);   /* 15.2.37 */
+  struct RClass *script_error = mrb_define_class_id(mrb, MRB_SYM(ScriptError), exception);   /* 15.2.37 */
   mrb_define_class_id(mrb, MRB_SYM(SyntaxError), script_error);               /* 15.2.38 */
-  stack_error = mrb_define_class_id(mrb, MRB_SYM(SystemStackError), exception);
+  struct RClass *stack_error = mrb_define_class_id(mrb, MRB_SYM(SystemStackError), exception);
   mrb->stack_err = mrb_obj_ptr(mrb_exc_new_lit(mrb, stack_error, "stack level too deep"));
 
-  nomem_error = mrb_define_class_id(mrb, MRB_SYM(NoMemoryError), exception);
+  struct RClass *nomem_error = mrb_define_class_id(mrb, MRB_SYM(NoMemoryError), exception);
   mrb->nomem_err = mrb_obj_ptr(mrb_exc_new_lit(mrb, nomem_error, "Out of memory"));
 #ifdef MRB_GC_FIXED_ARENA
   mrb->arena_err = mrb_obj_ptr(mrb_exc_new_lit(mrb, nomem_error, "arena overflow error"));
