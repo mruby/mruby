@@ -332,6 +332,7 @@ search_nonascii(const char *p, const char *e)
   case 2:  if (NOASCII(*p)) return p; ++p;
   case 1:  if (NOASCII(*p)) return p; ++p;
            if (NOASCII(*p)) return p;
+  case 0:  break;
   }
   return e;
 }
