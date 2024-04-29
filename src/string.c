@@ -417,26 +417,19 @@ static inline uint32_t popcount(bitint x)
 mrb_int
 mrb_utf8_strlen(const char *str, mrb_int byte_len)
 {
+  const char *p = str;
+  const char *e = str + byte_len;
   mrb_int len = 0;
 
-  const char *p = str;
-  const char *be = p + sizeof(bitint) * (byte_len / sizeof(bitint));
-  for (; p < be; p+=sizeof(bitint)) {
-    bitint t0;
+  while (p < e) {
+    const char *np = search_nonascii(p, e);
 
-    memcpy(&t0, p, sizeof(bitint));
-    const bitint t1 = t0 & (MASK1*0xc0);
-    const bitint t2 = t1 + (MASK1*0x40);
-    const bitint t3 = t1 & t2;
-    len += popcount(t3);
-  }
-  len = sizeof(bitint) * (byte_len / sizeof(bitint)) - len;
-
-  if (byte_len % sizeof(bitint)) {
-    const char *e = str + byte_len;
-    while (p < e) {
-      if (utf8_islead(*p)) len++;
-      p++;
+    len += np - p;
+    if (np == e) break;
+    p = np;
+    while (NOASCII(*p)) {
+      p += mrb_utf8len(p, e);
+      len++;
     }
   }
   return len;
