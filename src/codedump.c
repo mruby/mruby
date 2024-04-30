@@ -89,10 +89,7 @@ print_args(uint16_t i, FILE *out)
 static void
 codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
 {
-  int ai;
-  const mrb_code *pc, *pcend;
-  mrb_code ins;
-  const char *file = NULL, *next_file;
+  const char *file = NULL;
 
   if (!irep) return;
   fprintf(out, "irep %p nregs=%d nlocals=%d pools=%d syms=%d reps=%d ilen=%d\n", (void*)irep,
@@ -140,18 +137,18 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
     }
   }
 
-  pc = irep->iseq;
-  pcend = pc + irep->ilen;
+  const mrb_code *pc = irep->iseq;
+  const mrb_code *pcend = pc + irep->ilen;
   while (pc < pcend) {
-    ptrdiff_t i;
     uint32_t a;
     uint16_t b;
     uint16_t c;
+    mrb_code ins;
 
-    ai = mrb_gc_arena_save(mrb);
+    int ai = mrb_gc_arena_save(mrb);
+    ptrdiff_t i = pc - irep->iseq;
 
-    i = pc - irep->iseq;
-    next_file = mrb_debug_get_filename(mrb, irep, (uint32_t)i);
+    const char *next_file = mrb_debug_get_filename(mrb, irep, (uint32_t)i);
     if (next_file && file != next_file) {
       fprintf(out, "file: %s\n", next_file);
       file = next_file;
