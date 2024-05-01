@@ -52,10 +52,9 @@ t_print(mrb_state *mrb, mrb_value self)
 {
   const mrb_value *argv;
   mrb_int argc;
-  mrb_int i;
 
   mrb_get_args(mrb, "*!", &argv, &argc);
-  for (i = 0; i < argc; i++) {
+  for (mrb_int i = 0; i < argc; i++) {
     mrb_value s = mrb_obj_as_string(mrb, argv[i]);
     fwrite(RSTRING_PTR(s), RSTRING_LEN(s), 1, stdout);
   }
@@ -212,13 +211,11 @@ m_str_match_p(mrb_state *mrb, mrb_value self)
 void
 mrb_init_test_driver(mrb_state *mrb, mrb_bool verbose)
 {
-  struct RClass *krn, *mrbtest;
-
-  krn = mrb->kernel_module;
+  struct RClass *krn = mrb->kernel_module;
   mrb_define_method(mrb, krn, "t_print", t_print, MRB_ARGS_ANY());
   mrb_define_method(mrb, krn, "_str_match?", m_str_match_p, MRB_ARGS_REQ(2));
 
-  mrbtest = mrb_define_module(mrb, "Mrbtest");
+  struct RClass *mrbtest = mrb_define_module(mrb, "Mrbtest");
 
 #ifndef MRB_NO_FLOAT
 #ifdef MRB_USE_FLOAT32
@@ -242,8 +239,6 @@ mrb_init_test_driver(mrb_state *mrb, mrb_bool verbose)
 void
 mrb_t_pass_result(mrb_state *mrb_dst, mrb_state *mrb_src)
 {
-  mrb_value res_src;
-
   if (mrb_src->exc) {
     mrb_print_error(mrb_src);
     exit(EXIT_FAILURE);
@@ -251,7 +246,7 @@ mrb_t_pass_result(mrb_state *mrb_dst, mrb_state *mrb_src)
 
 #define TEST_COUNT_PASS(name)                                           \
   do {                                                                  \
-    res_src = mrb_gv_get(mrb_src, mrb_intern_lit(mrb_src, "$" #name));  \
+    mrb_value res_src = mrb_gv_get(mrb_src, mrb_intern_lit(mrb_src, "$" #name)); \
     if (mrb_integer_p(res_src)) {                                       \
       mrb_value res_dst = mrb_gv_get(mrb_dst, mrb_intern_lit(mrb_dst, "$" #name)); \
       mrb_gv_set(mrb_dst, mrb_intern_lit(mrb_dst, "$" #name), mrb_int_value(mrb_dst, mrb_integer(res_dst) + mrb_integer(res_src))); \
@@ -266,7 +261,7 @@ mrb_t_pass_result(mrb_state *mrb_dst, mrb_state *mrb_src)
 
 #undef TEST_COUNT_PASS
 
-  res_src = mrb_gv_get(mrb_src, mrb_intern_lit(mrb_src, "$asserts"));
+  mrb_value res_src = mrb_gv_get(mrb_src, mrb_intern_lit(mrb_src, "$asserts"));
 
   if (mrb_array_p(res_src)) {
     mrb_int i;
@@ -283,7 +278,6 @@ int
 main(int argc, char **argv)
 {
   mrb_state *mrb;
-  int ret;
   mrb_bool verbose = FALSE;
 
   print_hint();
@@ -303,7 +297,8 @@ main(int argc, char **argv)
   mrb_init_test_driver(mrb, verbose);
   mrb_load_irep(mrb, mrbtest_assert_irep);
   mrbgemtest_init(mrb);
-  ret = eval_test(mrb);
+
+  int ret = eval_test(mrb);
   mrb_close(mrb);
 
   return ret;

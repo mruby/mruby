@@ -9,11 +9,8 @@ static mrb_value
 vf_s_format_0(mrb_state *mrb, mrb_value klass)
 {
   mrb_value fmt_str;
-  const char *fmt;
-
   mrb_get_args(mrb, "S", &fmt_str);
-  fmt = RSTRING_CSTR(mrb, fmt_str);
-
+  const char *fmt = RSTRING_CSTR(mrb, fmt_str);
   return mrb_format(mrb, fmt);
 }
 
@@ -22,12 +19,10 @@ static mrb_value
 vf_s_format_c(mrb_state *mrb, mrb_value klass)
 {
   mrb_value fmt_str, arg_str;
-  const char *fmt;
-  char c;
 
   mrb_get_args(mrb, "SS", &fmt_str, &arg_str);
-  fmt = RSTRING_CSTR(mrb, fmt_str);
-  c = RSTRING_CSTR(mrb, arg_str)[0];
+  const char *fmt = RSTRING_CSTR(mrb, fmt_str);
+  char c = RSTRING_CSTR(mrb, arg_str)[0];
 
   return mrb_format(mrb, fmt, c);
 }
@@ -37,14 +32,11 @@ static mrb_value
 vf_s_format_d(mrb_state *mrb, mrb_value klass)
 {
   mrb_value fmt_str;
-  const char *fmt;
   mrb_int i;
-  int d;
 
   mrb_get_args(mrb, "Si", &fmt_str, &i);
-  fmt = RSTRING_CSTR(mrb, fmt_str);
-  d = (int)i;
-
+  const char *fmt = RSTRING_CSTR(mrb, fmt_str);
+  int d = (int)i;
   return mrb_format(mrb, fmt, d);
 }
 
@@ -54,12 +46,10 @@ static mrb_value
 vf_s_format_f(mrb_state *mrb, mrb_value klass)
 {
   mrb_value fmt_str;
-  const char *fmt;
   mrb_float f;
 
   mrb_get_args(mrb, "Sf", &fmt_str, &f);
-  fmt = RSTRING_CSTR(mrb, fmt_str);
-
+  const char *fmt = RSTRING_CSTR(mrb, fmt_str);
   return mrb_format(mrb, fmt, f);
 }
 #endif
@@ -69,12 +59,10 @@ static mrb_value
 vf_s_format_i(mrb_state *mrb, mrb_value klass)
 {
   mrb_value fmt_str;
-  const char *fmt;
   mrb_int i;
 
   mrb_get_args(mrb, "Si", &fmt_str, &i);
-  fmt = RSTRING_CSTR(mrb, fmt_str);
-
+  const char *fmt = RSTRING_CSTR(mrb, fmt_str);
   return mrb_format(mrb, fmt, i);
 }
 
@@ -83,15 +71,12 @@ static mrb_value
 vf_s_format_l(mrb_state *mrb, mrb_value klass)
 {
   mrb_value fmt_str, arg_str;
-  const char *fmt;
-  const char *s;
   mrb_int i;
-  size_t len;
 
   mrb_get_args(mrb, "SSi", &fmt_str, &arg_str, &i);
-  fmt = RSTRING_CSTR(mrb, fmt_str);
-  s = RSTRING_PTR(arg_str);
-  len = (size_t)i;
+  const char *fmt = RSTRING_CSTR(mrb, fmt_str);
+  const char *s = RSTRING_PTR(arg_str);
+  size_t len = (size_t)i;
   if (len > (size_t)RSTRING_LEN(arg_str)) len = (size_t)RSTRING_LEN(arg_str);
 
   return mrb_format(mrb, fmt, s, len);
@@ -102,12 +87,10 @@ static mrb_value
 vf_s_format_n(mrb_state *mrb, mrb_value klass)
 {
   mrb_value fmt_str;
-  const char *fmt;
   mrb_sym sym;
 
   mrb_get_args(mrb, "Sn", &fmt_str, &sym);
-  fmt = RSTRING_CSTR(mrb, fmt_str);
-
+  const char *fmt = RSTRING_CSTR(mrb, fmt_str);
   return mrb_format(mrb, fmt, sym);
 }
 
@@ -116,13 +99,9 @@ static mrb_value
 vf_s_format_s(mrb_state *mrb, mrb_value klass)
 {
   mrb_value fmt_str, arg_str;
-  const char *fmt;
-  const char *s;
-
   mrb_get_args(mrb, "SS", &fmt_str, &arg_str);
-  fmt = RSTRING_CSTR(mrb, fmt_str);
-  s = RSTRING_CSTR(mrb, arg_str);
-
+  const char *fmt = RSTRING_CSTR(mrb, fmt_str);
+  const char *s = RSTRING_CSTR(mrb, arg_str);
   return mrb_format(mrb, fmt, s);
 }
 
@@ -131,13 +110,10 @@ static mrb_value
 vf_s_format_C(mrb_state *mrb, mrb_value klass)
 {
   mrb_value fmt_str, arg_cls;
-  const char *fmt;
-  struct RClass *c;
 
   mrb_get_args(mrb, "SC", &fmt_str, &arg_cls);
-  fmt = RSTRING_CSTR(mrb, fmt_str);
-  c = mrb_class_ptr(arg_cls);
-
+  const char *fmt = RSTRING_CSTR(mrb, fmt_str);
+  struct RClass *c = mrb_class_ptr(arg_cls);
   return mrb_format(mrb, fmt, c);
 }
 
@@ -146,20 +122,16 @@ static mrb_value
 vf_s_format_v(mrb_state *mrb, mrb_value klass)
 {
   mrb_value fmt_str, arg_v;
-  const char *fmt;
 
   mrb_get_args(mrb, "So", &fmt_str, &arg_v);
-  fmt = RSTRING_CSTR(mrb, fmt_str);
-
+  const char *fmt = RSTRING_CSTR(mrb, fmt_str);
   return mrb_format(mrb, fmt, arg_v);
 }
 
 void
 mrb_init_test_vformat(mrb_state *mrb)
 {
-  struct RClass *vf;
-
-  vf = mrb_define_module(mrb, "TestVFormat");
+  struct RClass *vf = mrb_define_module(mrb, "TestVFormat");
   mrb_define_class_method(mrb, vf, "z", vf_s_format_0, MRB_ARGS_REQ(1));
 
 #define VF_DEFINE_FORMAT_METHOD(t) VF_DEFINE_FORMAT_METHOD_n(t,2)
