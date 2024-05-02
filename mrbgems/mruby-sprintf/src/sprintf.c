@@ -607,7 +607,10 @@ mrb_str_format(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value fm
 
     for (t = p; t < end && *t != '%'; t++)
       ;
-    if (t + 1 == end) t++;
+    if (t + 1 == end) {
+      /* % at the bottom */
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "incomplete format specifier; use %% (double %) instead");
+    }
     PUSH(p, t - p);
     if (t >= end)
       goto sprint_exit; /* end of fmt string */
