@@ -447,6 +447,7 @@ utf8_strlen(mrb_value str)
   }
   else {
     mrb_int utf8_len = mrb_utf8_strlen(RSTR_PTR(s), byte_len);
+    mrb_assert(utf8_len <= byte_len);
     if (byte_len == utf8_len) RSTR_SET_SINGLE_BYTE_FLAG(s);
     return utf8_len;
   }
