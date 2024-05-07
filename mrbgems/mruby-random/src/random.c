@@ -88,9 +88,8 @@ rand_uint32(rand_state *state)
   uint32_t x = seed[0];
   uint32_t y = seed[1];
   uint32_t z = seed[2];
-  uint32_t t;
+  uint32_t t = (x ^ (x << 3)) ^ (y ^ (y >> 19)) ^ (z ^ (z << 6));
 
-  t = (x ^ (x << 3)) ^ (y ^ (y >> 19)) ^ (z ^ (z << 6));
   x = y; y = z; z = t;
   seed[0] = x;
   seed[1] = y;
@@ -145,9 +144,8 @@ rand_i(rand_state *t, mrb_int max)
 static mrb_int
 get_opt(mrb_state* mrb)
 {
-  mrb_int arg;
+  mrb_int arg = 0;
 
-  arg = 0;
   mrb_get_args(mrb, "|i", &arg);
   if (arg < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid argument");
@@ -175,9 +173,8 @@ static mrb_value
 random_m_init(mrb_state *mrb, mrb_value self)
 {
   mrb_int seed;
-  rand_state *t;
+  rand_state *t = random_ptr(self);
 
-  t = random_ptr(self);
   if (mrb_get_args(mrb, "|i", &seed) == 0) {
     rand_init(t);
   }
@@ -202,7 +199,6 @@ static mrb_value
 random_m_srand(mrb_state *mrb, mrb_value self)
 {
   uint32_t seed;
-  uint32_t old_seed;
   mrb_int i;
   rand_state *t = random_ptr(self);
 
@@ -212,8 +208,8 @@ random_m_srand(mrb_state *mrb, mrb_value self)
   else {
     seed = (uint32_t)i;
   }
-  old_seed = rand_seed(t, seed);
 
+  uint32_t old_seed = rand_seed(t, seed);
   return mrb_int_value(mrb, (mrb_int)old_seed);
 }
 
@@ -221,11 +217,10 @@ static mrb_value
 random_m_bytes(mrb_state *mrb, mrb_value self)
 {
   rand_state *t = random_ptr(self);
-
   mrb_int i = mrb_as_int(mrb, mrb_get_arg1(mrb));
-
   mrb_value bytes = mrb_str_new(mrb, NULL, i);
   uint8_t *p = (uint8_t*)RSTRING_PTR(bytes);
+
   for (; i > 0; i--, p++) {
     *p = (uint8_t)rand_uint32(t);
   }
@@ -261,23 +256,17 @@ static mrb_value
 mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
 {
   if (RARRAY_LEN(ary) > 1) {
-    mrb_int i;
-    rand_state *random;
     mrb_sym kname = MRB_SYM(random);
     mrb_value r;
     const mrb_kwargs kw = {1, 0, &kname, &r, NULL};
 
     mrb_get_args(mrb, ":", &kw);
-    random = check_random_arg(mrb, r);
+    rand_state *random = check_random_arg(mrb, r);
     mrb_ary_modify(mrb, mrb_ary_ptr(ary));
-    for (i = RARRAY_LEN(ary) - 1; i > 0; i--)  {
-      mrb_int j;
+    for (mrb_int i = RARRAY_LEN(ary) - 1; i > 0; i--)  {
       mrb_value *ptr = RARRAY_PTR(ary);
-      mrb_value tmp;
-
-      j = rand_i(random, i + 1);
-
-      tmp = ptr[i];
+      mrb_int j = rand_i(random, i + 1);
+      mrb_value tmp = ptr[i];
       ptr[i] = ptr[j];
       ptr[j] = tmp;
     }
@@ -322,15 +311,13 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
 {
   mrb_int n = 0;
   mrb_bool given;
-  rand_state *random;
-  mrb_int len;
   mrb_sym kname = MRB_SYM(random);
   mrb_value r;
   const mrb_kwargs kw = {1, 0, &kname, &r, NULL};
 
   mrb_get_args(mrb, "|i?:", &n, &given, &kw);
-  random = check_random_arg(mrb, r);
-  len = RARRAY_LEN(ary);
+  rand_state *random = check_random_arg(mrb, r);
+  mrb_int len = RARRAY_LEN(ary);
   if (!given) {                 /* pick one element */
     switch (len) {
     case 0:
@@ -342,11 +329,9 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
     }
   }
   else {
-    mrb_value result;
-
     if (n < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "negative sample number");
     if (n > len) n = len;
-    result = mrb_ary_new_capa(mrb, n);
+    mrb_value result = mrb_ary_new_capa(mrb, n);
     for (mrb_int i=0; i<n; i++) {
       mrb_int idx;
 
@@ -396,7 +381,6 @@ random_f_bytes(mrb_state *mrb, mrb_value self)
 
 void mrb_mruby_random_gem_init(mrb_state *mrb)
 {
-  struct RClass *random;
   struct RClass *array = mrb->array_class;
 
   mrb_static_assert(sizeof(rand_state) <= ISTRUCT_DATA_SIZE);
@@ -404,7 +388,7 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, mrb->kernel_module, "rand", random_f_rand, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, mrb->kernel_module, "srand", random_f_srand, MRB_ARGS_OPT(1));
 
-  random = mrb_define_class(mrb, "Random", mrb->object_class);
+  struct RClass *random = mrb_define_class(mrb, "Random", mrb->object_class);
   mrb_const_set(mrb, mrb_obj_value(mrb->object_class), ID_RANDOM, mrb_obj_value(random)); // for class check
   MRB_SET_INSTANCE_TT(random, MRB_TT_ISTRUCT);
   mrb_define_class_method(mrb, random, "rand", random_f_rand, MRB_ARGS_OPT(1));
