@@ -193,7 +193,7 @@ class Array
   def delete(key, &block)
     len = self.length
     ret = self.__delete(key)
-    return block.call() if len == self.length
+    return block&.call() if len == self.length
 
     ret
   end
