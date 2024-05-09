@@ -358,6 +358,10 @@ range_num_to_a(mrb_state *mrb, mrb_value range)
     if (mrb_integer_p(end)) {
       mrb_int a = mrb_integer(beg);
       mrb_int b = mrb_integer(end);
+
+      if (a > b) {
+        return mrb_ary_new_capa(mrb, 0);
+      }
       mrb_int len;
 
       if (mrb_int_sub_overflow(b, a, &len)) {
