@@ -164,7 +164,7 @@ class Hash
     unless self.key?(key)
       if block
         block.call(key)
-      elsif none != NONE
+      elsif !NONE.equal?(none)
         none
       else
         raise KeyError, "Key not found: #{key.inspect}"
