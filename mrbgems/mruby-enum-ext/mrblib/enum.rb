@@ -253,7 +253,7 @@ module Enumerable
         count += 1 if block.call(*val)
       end
     else
-      if v == NONE
+      if NONE.equal?(v)
         self.each { count += 1 }
       else
         self.each do |*val|
@@ -464,7 +464,7 @@ module Enumerable
   #     [nil, true].none?                                  #=> false
 
   def none?(pat=NONE, &block)
-    if pat != NONE
+    if !NONE.equal?(pat)
       self.each do |*val|
         return false if pat === val.__svalue
       end
@@ -505,7 +505,7 @@ module Enumerable
 
   def one?(pat=NONE, &block)
     count = 0
-    if pat!=NONE
+    if !NONE.equal?(pat)
       self.each do |*val|
         count += 1 if pat === val.__svalue
         return false if count > 1
@@ -547,7 +547,7 @@ module Enumerable
   #     [nil, true, 99].all?                              #=> false
   #
   def all?(pat=NONE, &block)
-    if pat != NONE
+    if !NONE.equal?(pat)
       self.each{|*val| return false unless pat === val.__svalue}
     elsif block
       self.each{|*val| return false unless block.call(*val)}
@@ -580,7 +580,7 @@ module Enumerable
   #     [].any?                                           #=> false
   #
   def any?(pat=NONE, &block)
-    if pat != NONE
+    if !NONE.equal?(pat)
       self.each{|*val| return true if pat === val.__svalue}
     elsif block
       self.each{|*val| return true if block.call(*val)}
@@ -708,7 +708,7 @@ module Enumerable
   #
 
   def find_index(val=NONE, &block)
-    return to_enum(:find_index, val) if !block && val == NONE
+    return to_enum(:find_index, val) if !block && NONE.equal?(val)
 
     idx = 0
     if block
