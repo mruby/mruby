@@ -659,8 +659,8 @@ module Kernel
   #       # => returns an Enumerator when called without a block
   #     enum.first(4) # => [1, 1, 1, 2]
   #
-  def to_enum(meth=:each, *args)
-    Enumerator.new self, meth, *args
+  def to_enum(meth=:each, *args, **kwd)
+    Enumerator.new self, meth, *args, **kwd
   end
   alias enum_for to_enum
 end
