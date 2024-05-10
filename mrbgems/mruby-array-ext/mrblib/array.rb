@@ -339,7 +339,7 @@ class Array
     end
     if idx < 0 || size <= idx
       return block.call(n) if block
-      if ifnone == NONE
+      if NONE.equal?(ifnone)
         raise IndexError, "index #{n} outside of array bounds: #{-size}...#{size}"
       end
       return ifnone
@@ -714,7 +714,7 @@ class Array
   #
   # ISO 15.2.12.5.14
   def index(val=NONE, &block)
-    return to_enum(:find_index, val) if !block && val == NONE
+    return to_enum(:find_index, val) if !block && NONE.equal?(val)
 
     if block
       idx = 0
