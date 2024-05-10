@@ -117,7 +117,7 @@ class Enumerator
   def initialize(obj=NONE, meth=:each, *args, **kwd, &block)
     if block
       obj = Generator.new(&block)
-    elsif obj == NONE
+    elsif NONE.equal?(obj)
       raise ArgumentError, "wrong number of arguments (given 0, expected 1+)"
     end
 
@@ -595,7 +595,7 @@ class Enumerator
   def Enumerator.produce(init=NONE, &block)
     raise ArgumentError, "no block given" if block.nil?
     Enumerator.new do |y|
-      if init == NONE
+      if NONE.equal?(init)
         val = nil
       else
         val = init
