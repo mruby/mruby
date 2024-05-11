@@ -19,9 +19,6 @@ static mrb_value
 fiber_init_fiber(mrb_state *mrb, struct RFiber *f, const struct RProc *p)
 {
   static const struct mrb_context mrb_context_zero = { 0 };
-  struct mrb_context *c;
-  mrb_callinfo *ci;
-  size_t slen;
 
   if (f->cxt) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "cannot initialize twice");
@@ -30,12 +27,12 @@ fiber_init_fiber(mrb_state *mrb, struct RFiber *f, const struct RProc *p)
     mrb_raise(mrb, E_FIBER_ERROR, "tried to create Fiber from C defined method");
   }
 
-  c = (struct mrb_context*)mrb_malloc(mrb, sizeof(struct mrb_context));
+  struct mrb_context *c = (struct mrb_context*)mrb_malloc(mrb, sizeof(struct mrb_context));
   *c = mrb_context_zero;
   f->cxt = c;
 
   /* initialize VM stack */
-  slen = FIBER_STACK_INIT_SIZE;
+  size_t slen = FIBER_STACK_INIT_SIZE;
   if (p->body.irep->nregs > slen) {
     slen += p->body.irep->nregs;
   }
@@ -63,7 +60,7 @@ fiber_init_fiber(mrb_state *mrb, struct RFiber *f, const struct RProc *p)
   c->cibase[0] = ci_zero;
 
   /* adjust return callinfo */
-  ci = c->ci;
+  mrb_callinfo *ci = c->ci;
   mrb_vm_ci_target_class_set(ci, MRB_PROC_TARGET_CLASS(p));
   mrb_vm_ci_proc_set(ci, p);
   mrb_field_write_barrier(mrb, (struct RBasic*)f, (struct RBasic*)p);
@@ -218,14 +215,13 @@ fiber_switch(mrb_state *mrb, mrb_value self, mrb_int len, const mrb_value *a, mr
 {
   struct mrb_context *c = fiber_check(mrb, self);
   struct mrb_context *old_c = mrb->c;
-  enum mrb_fiber_state status;
   mrb_value value;
 
   if (resume && c == mrb->c) {
     return fiber_error(mrb, "attempt to resume the current fiber");
   }
 
-  status = c->status;
+  enum mrb_fiber_state status = c->status;
   switch (status) {
   case MRB_FIBER_TRANSFERRED:
     if (resume) {
@@ -550,9 +546,7 @@ mrb_fiber_new(mrb_state *mrb, const struct RProc *p)
 void
 mrb_mruby_fiber_gem_init(mrb_state* mrb)
 {
-  struct RClass *c;
-
-  c = mrb_define_class(mrb, "Fiber", mrb->object_class);
+  struct RClass *c = mrb_define_class(mrb, "Fiber", mrb->object_class);
   MRB_SET_INSTANCE_TT(c, MRB_TT_FIBER);
 
   mrb_define_method(mrb, c, "initialize", fiber_init,    MRB_ARGS_NONE()|MRB_ARGS_BLOCK());
