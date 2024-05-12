@@ -164,7 +164,6 @@ bind_check(mrb_state *mrb, mrb_value recv, mrb_value owner)
 static mrb_value
 unbound_method_bind(mrb_state *mrb, mrb_value self)
 {
-  struct RObject *me;
   mrb_value owner = mrb_iv_get(mrb, self, MRB_SYM(_owner));
   mrb_value name = mrb_iv_get(mrb, self, MRB_SYM(_name));
   mrb_value proc = mrb_iv_get(mrb, self, MRB_SYM(_proc));
@@ -172,7 +171,8 @@ unbound_method_bind(mrb_state *mrb, mrb_value self)
   mrb_value recv = mrb_get_arg1(mrb);
 
   bind_check(mrb, recv, owner);
-  me = method_object_alloc(mrb, mrb_class_get_id(mrb, MRB_SYM(Method)));
+
+  struct RObject *me = method_object_alloc(mrb, mrb_class_get_id(mrb, MRB_SYM(Method)));
   mrb_obj_iv_set(mrb, me, MRB_SYM(_owner), owner);
   mrb_obj_iv_set(mrb, me, MRB_SYM(_recv), recv);
   mrb_obj_iv_set(mrb, me, MRB_SYM(_name), name);
