@@ -368,7 +368,7 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
   mrb_locale_free(home);
   return path;
 #else  /* _WIN32 */
-  argc = mrb_get_argc(mrb);
+  mrb_int argc = mrb_get_argc(mrb);
   if (argc == 0) {
     home = getenv("USERPROFILE");
     if (home == NULL) {

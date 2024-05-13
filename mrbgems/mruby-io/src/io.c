@@ -396,7 +396,6 @@ io_s_popen_args(mrb_state *mrb, mrb_value klass,
 static mrb_value
 io_s_popen(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value io;
   int doexec;
   int opt_in, opt_out, opt_err;
   const char *cmd;
@@ -1792,7 +1791,7 @@ io_gets(mrb_state *mrb, mrb_value io)
 
   for (;;) {
     if (rs_given) {                /* with RS */
-      int rslen = RSTRING_LEN(rs);
+      mrb_int rslen = RSTRING_LEN(rs);
       mrb_int idx = io_find_index(fptr, RSTRING_PTR(rs), rslen);
       if (idx >= 0) {              /* found */
         mrb_int n = idx+rslen;
