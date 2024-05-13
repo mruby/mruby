@@ -82,9 +82,7 @@ static void fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet);
 static struct mrb_io*
 io_get_open_fptr(mrb_state *mrb, mrb_value io)
 {
-  struct mrb_io *fptr;
-
-  fptr = (struct mrb_io*)mrb_data_get_ptr(mrb, io, &mrb_io_type);
+  struct mrb_io *fptr = (struct mrb_io*)mrb_data_get_ptr(mrb, io, &mrb_io_type);
   if (fptr == NULL) {
     mrb_raise(mrb, E_IO_ERROR, "uninitialized stream");
   }
@@ -242,9 +240,9 @@ static void
 io_fd_cloexec(mrb_state *mrb, int fd)
 {
 #if defined(F_GETFD) && defined(F_SETFD) && defined(FD_CLOEXEC)
-  int flags, flags2;
+  int flags = fcntl(fd, F_GETFD);
+  int flags2;
 
-  flags = fcntl(fd, F_GETFD);
   if (flags < 0) {
     mrb_sys_fail(mrb, "cloexec GETFD");
   }
@@ -266,8 +264,7 @@ io_fd_cloexec(mrb_state *mrb, int fd)
 static int
 io_cloexec_pipe(mrb_state *mrb, int fildes[2])
 {
-  int ret;
-  ret = pipe(fildes);
+  int ret = pipe(fildes);
   if (ret == -1)
     return -1;
   io_fd_cloexec(mrb, fildes[0]);
@@ -278,8 +275,7 @@ io_cloexec_pipe(mrb_state *mrb, int fildes[2])
 static int
 io_pipe(mrb_state *mrb, int pipes[2])
 {
-  int ret;
-  ret = io_cloexec_pipe(mrb, pipes);
+  int ret = io_cloexec_pipe(mrb, pipes);
   if (ret == -1) {
     if (errno == EMFILE || errno == ENFILE) {
       mrb_garbage_collect(mrb);
@@ -292,8 +288,7 @@ io_pipe(mrb_state *mrb, int pipes[2])
 static int
 io_process_exec(const char *pname)
 {
-  const char *s;
-  s = pname;
+  const char *s = pname;
 
   while (*s == ' ' || *s == '\t' || *s == '\n')
     s++;
@@ -331,9 +326,7 @@ io_init_buf(mrb_state *mrb, struct mrb_io *fptr)
 static struct mrb_io *
 io_alloc(mrb_state *mrb)
 {
-  struct mrb_io *fptr;
-
-  fptr = (struct mrb_io*)mrb_malloc(mrb, sizeof(struct mrb_io));
+  struct mrb_io *fptr = (struct mrb_io*)mrb_malloc(mrb, sizeof(struct mrb_io));
   fptr->fd = -1;
   fptr->fd2 = -1;
   fptr->pid = 0;
@@ -412,7 +405,6 @@ io_s_popen(mrb_state *mrb, mrb_value klass)
   int pid = 0, flags;
   STARTUPINFO si;
   PROCESS_INFORMATION pi;
-  SECURITY_ATTRIBUTES saAttr;
 
   HANDLE ifd[2];
   HANDLE ofd[2];
@@ -423,9 +415,10 @@ io_s_popen(mrb_state *mrb, mrb_value klass)
   ofd[1] = INVALID_HANDLE_VALUE;
 
   mrb->c->ci->mid = 0;
-  io = io_s_popen_args(mrb, klass, &cmd, &flags, &doexec,
-                       &opt_in, &opt_out, &opt_err);
+  mrb_value io = io_s_popen_args(mrb, klass, &cmd, &flags, &doexec,
+                                 &opt_in, &opt_out, &opt_err);
 
+  SECURITY_ATTRIBUTES saAttr;
   saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
   saAttr.bInheritHandle = TRUE;
   saAttr.lpSecurityDescriptor = NULL;
@@ -489,20 +482,17 @@ io_s_popen(mrb_state *mrb, mrb_value klass)
 static mrb_value
 io_s_popen(mrb_state *mrb, mrb_value klass)
 {
-  mrb_value io, result;
   int doexec;
   int opt_in, opt_out, opt_err;
   const char *cmd;
 
-  struct mrb_io *fptr;
-  int pid, flags, fd, write_fd = -1;
+  int pid, flags, write_fd = -1;
   int pr[2] = { -1, -1 };
   int pw[2] = { -1, -1 };
-  int saved_errno;
 
   mrb->c->ci->mid = 0;
-  io = io_s_popen_args(mrb, klass, &cmd, &flags, &doexec,
-                       &opt_in, &opt_out, &opt_err);
+  mrb_value io = io_s_popen_args(mrb, klass, &cmd, &flags, &doexec,
+                                 &opt_in, &opt_out, &opt_err);
 
   if (OPEN_READABLE_P(flags)) {
     if (pipe(pr) == -1) {
@@ -527,7 +517,7 @@ io_s_popen(mrb_state *mrb, mrb_value klass)
     fflush(stderr);
   }
 
-  result = mrb_nil_value();
+  mrb_value result = mrb_nil_value();
   switch (pid = fork()) {
     case 0: /* child */
       if (opt_in != -1) {
@@ -554,7 +544,7 @@ io_s_popen(mrb_state *mrb, mrb_value klass)
         }
       }
       if (doexec) {
-        for (fd = 3; fd < NOFILE; fd++) {
+        for (int fd = 3; fd < NOFILE; fd++) {
           close(fd);
         }
         io_process_exec(cmd);
@@ -565,46 +555,52 @@ io_s_popen(mrb_state *mrb, mrb_value klass)
       break;
 
     default: /* parent */
-      if (OPEN_RDWR_P(flags)) {
-        close(pr[1]);
-        fd = pr[0];
-        close(pw[0]);
-        write_fd = pw[1];
-      }
-      else if (OPEN_RDONLY_P(flags)) {
-        close(pr[1]);
-        fd = pr[0];
-      }
-      else {
-        close(pw[0]);
-        fd = pw[1];
-      }
+      {
+        int fd;
 
-      fptr = io_alloc(mrb);
-      fptr->fd = fd;
-      fptr->fd2 = write_fd;
-      fptr->pid = pid;
-      fptr->readable = OPEN_READABLE_P(flags);
-      fptr->writable = OPEN_WRITABLE_P(flags);
-      io_init_buf(mrb, fptr);
+        if (OPEN_RDWR_P(flags)) {
+          close(pr[1]);
+          fd = pr[0];
+          close(pw[0]);
+          write_fd = pw[1];
+        }
+        else if (OPEN_RDONLY_P(flags)) {
+          close(pr[1]);
+          fd = pr[0];
+        }
+        else {
+          close(pw[0]);
+          fd = pw[1];
+        }
 
-      DATA_TYPE(io) = &mrb_io_type;
-      DATA_PTR(io)  = fptr;
-      result = io;
+        struct mrb_io *fptr = io_alloc(mrb);
+        fptr->fd = fd;
+        fptr->fd2 = write_fd;
+        fptr->pid = pid;
+        fptr->readable = OPEN_READABLE_P(flags);
+        fptr->writable = OPEN_WRITABLE_P(flags);
+        io_init_buf(mrb, fptr);
+
+        DATA_TYPE(io) = &mrb_io_type;
+        DATA_PTR(io)  = fptr;
+        result = io;
+      }
       break;
 
     case -1: /* error */
-      saved_errno = errno;
-      if (OPEN_READABLE_P(flags)) {
-        close(pr[0]);
-        close(pr[1]);
-      }
-      if (OPEN_WRITABLE_P(flags)) {
+      {
+        int saved_errno = errno;
+        if (OPEN_READABLE_P(flags)) {
+          close(pr[0]);
+          close(pr[1]);
+        }
+        if (OPEN_WRITABLE_P(flags)) {
         close(pw[0]);
         close(pw[1]);
+        }
+        errno = saved_errno;
+        mrb_sys_fail(mrb, "pipe_open failed");
       }
-      errno = saved_errno;
-      mrb_sys_fail(mrb, "pipe_open failed");
       break;
   }
   return result;
@@ -855,9 +851,7 @@ io_get_write_fd(struct mrb_io *fptr)
 static mrb_value
 io_isatty(mrb_state *mrb, mrb_value io)
 {
-  struct mrb_io *fptr;
-
-  fptr = io_get_open_fptr(mrb, io);
+  struct mrb_io *fptr = io_get_open_fptr(mrb, io);
   if (isatty(fptr->fd) == 0)
     return mrb_false_value();
   return mrb_true_value();
@@ -868,11 +862,11 @@ io_s_for_fd(mrb_state *mrb, mrb_value klass)
 {
   struct RClass *c = mrb_class_ptr(klass);
   enum mrb_vtype ttype = MRB_INSTANCE_TT(c);
-  mrb_value obj;
 
   /* copied from mrb_instance_alloc() */
   if (ttype == 0) ttype = MRB_TT_OBJECT;
-  obj = mrb_obj_value((struct RObject*)mrb_obj_alloc(mrb, ttype, c));
+
+  mrb_value obj = mrb_obj_value((struct RObject*)mrb_obj_alloc(mrb, ttype, c));
   return io_init(mrb, obj);
 }
 
@@ -891,8 +885,9 @@ io_s_sysclose(mrb_state *mrb, mrb_value klass)
 static int
 io_cloexec_open(mrb_state *mrb, const char *pathname, int flags, fmode_t mode)
 {
-  int fd, retry = FALSE;
-  char* fname = mrb_locale_from_utf8(pathname, -1);
+  int retry = FALSE;
+  char *fname = mrb_locale_from_utf8(pathname, -1);
+  int fd;
 
 #ifdef O_CLOEXEC
   /* O_CLOEXEC is available since Linux 2.6.23.  Linux 2.6.18 silently ignore it. */
@@ -905,14 +900,13 @@ reopen:
   if (fd == -1) {
     if (!retry) {
       switch (errno) {
-        case ENFILE:
-        case EMFILE:
+      case ENFILE:
+      case EMFILE:
         mrb_garbage_collect(mrb);
         retry = TRUE;
         goto reopen;
       }
     }
-
     mrb_sys_fail(mrb, RSTRING_CSTR(mrb, mrb_format(mrb, "open %s", pathname)));
   }
   mrb_locale_free(fname);
@@ -928,18 +922,16 @@ io_s_sysopen(mrb_state *mrb, mrb_value klass)
 {
   mrb_value path = mrb_nil_value();
   mrb_value mode = mrb_nil_value();
-  mrb_int fd, perm = -1;
-  const char *pat;
-  int flags;
+  mrb_int perm = -1;
 
   mrb_get_args(mrb, "S|oi", &path, &mode, &perm);
   if (perm < 0) {
     perm = 0666;
   }
 
-  pat = RSTRING_CSTR(mrb, path);
-  flags = io_mode_to_flags(mrb, mode);
-  fd = io_cloexec_open(mrb, pat, flags, (fmode_t)perm);
+  const char *pat = RSTRING_CSTR(mrb, path);
+  int flags = io_mode_to_flags(mrb, mode);
+  mrb_int fd = io_cloexec_open(mrb, pat, flags, (fmode_t)perm);
   return mrb_fixnum_value(fd);
 }
 
@@ -954,8 +946,6 @@ io_read_common(mrb_state *mrb,
     fssize_t (*readfunc)(int, void*, fsize_t, off_t),
     mrb_value io, mrb_value buf, mrb_int maxlen, off_t offset)
 {
-  int ret;
-
   if (maxlen < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "negative expanding string size");
   }
@@ -975,7 +965,7 @@ io_read_common(mrb_state *mrb,
   }
 
   struct mrb_io *fptr = io_get_read_fptr(mrb, io);
-  ret = readfunc(fptr->fd, RSTRING_PTR(buf), (fsize_t)maxlen, offset);
+  int ret = readfunc(fptr->fd, RSTRING_PTR(buf), (fsize_t)maxlen, offset);
   if (ret < 0) {
     mrb_sys_fail(mrb, "sysread failed");
   }
@@ -1009,8 +999,6 @@ io_sysread(mrb_state *mrb, mrb_value io)
 static mrb_value
 io_sysseek(mrb_state *mrb, mrb_value io)
 {
-  struct mrb_io *fptr;
-  off_t pos;
   mrb_int offset, whence = -1;
 
   mrb_get_args(mrb, "i|i", &offset, &whence);
@@ -1018,8 +1006,8 @@ io_sysseek(mrb_state *mrb, mrb_value io)
     whence = 0;
   }
 
-  fptr = io_get_open_fptr(mrb, io);
-  pos = lseek(fptr->fd, (off_t)offset, (int)whence);
+  struct mrb_io *fptr = io_get_open_fptr(mrb, io);
+  off_t pos = lseek(fptr->fd, (off_t)offset, (int)whence);
   if (pos == -1) {
     mrb_sys_fail(mrb, "sysseek");
   }
@@ -1047,11 +1035,8 @@ io_write_common(mrb_state *mrb,
     fssize_t (*writefunc)(int, const void*, fsize_t, off_t),
     struct mrb_io *fptr, const void *buf, mrb_ssize blen, off_t offset)
 {
-  int fd;
-  fssize_t length;
-
-  fd = io_get_write_fd(fptr);
-  length = writefunc(fd, buf, (fsize_t)blen, offset);
+  int fd = io_get_write_fd(fptr);
+  fssize_t length = writefunc(fd, buf, (fsize_t)blen, offset);
   if (length == -1) {
     mrb_sys_fail(mrb, "syswrite");
   }
@@ -1084,13 +1069,13 @@ io_syswrite(mrb_state *mrb, mrb_value io)
 static mrb_int
 fd_write(mrb_state *mrb, int fd, mrb_value str)
 {
-  fssize_t len, sum, n;
+  fssize_t n;
 
   str = mrb_obj_as_string(mrb, str);
-  len = (fssize_t)RSTRING_LEN(str);
-  if (len == 0)return 0;
+  fssize_t len = (fssize_t)RSTRING_LEN(str);
+  if (len == 0) return 0;
 
-  for (sum=0; sum<len; sum+=n) {
+  for (fssize_t sum=0; sum<len; sum+=n) {
     n = write(fd, RSTRING_PTR(str), (fsize_t)len);
     if (n == -1) {
       mrb_sys_fail(mrb, "syswrite");
@@ -1104,7 +1089,6 @@ io_write(mrb_state *mrb, mrb_value io)
 {
   struct mrb_io *fptr = io_get_write_fptr(mrb, io);
   int fd = io_get_write_fd(fptr);
-  mrb_int len = 0;
 
   if (fptr->buf && fptr->buf->len > 0) {
     off_t n;
@@ -1118,6 +1102,7 @@ io_write(mrb_state *mrb, mrb_value io)
     fptr->buf->start = fptr->buf->len = 0;
   }
 
+  mrb_int len = 0;
   if (mrb_get_argc(mrb) == 1) {
     len = fd_write(mrb, fd, mrb_get_arg1(mrb));
   }
@@ -1145,8 +1130,7 @@ io_close(mrb_state *mrb, mrb_value io)
 static mrb_value
 io_close_write(mrb_state *mrb, mrb_value io)
 {
-  struct mrb_io *fptr;
-  fptr = io_get_open_fptr(mrb, io);
+  struct mrb_io *fptr = io_get_open_fptr(mrb, io);
   if (close((int)fptr->fd2) == -1) {
     mrb_sys_fail(mrb, "close");
   }
@@ -1156,8 +1140,7 @@ io_close_write(mrb_state *mrb, mrb_value io)
 static mrb_value
 io_closed(mrb_state *mrb, mrb_value io)
 {
-  struct mrb_io *fptr;
-  fptr = (struct mrb_io*)mrb_data_get_ptr(mrb, io, &mrb_io_type);
+  struct mrb_io *fptr = (struct mrb_io*)mrb_data_get_ptr(mrb, io, &mrb_io_type);
   if (fptr == NULL || fptr->fd >= 0) {
     return mrb_false_value();
   }
@@ -1183,8 +1166,7 @@ io_pos(mrb_state *mrb, mrb_value io)
 static mrb_value
 io_pid(mrb_state *mrb, mrb_value io)
 {
-  struct mrb_io *fptr;
-  fptr = io_get_open_fptr(mrb, io);
+  struct mrb_io *fptr = io_get_open_fptr(mrb, io);
 
   if (fptr->pid > 0) {
     return mrb_fixnum_value(fptr->pid);
@@ -1260,16 +1242,12 @@ io_s_select(mrb_state *mrb, mrb_value klass)
 {
   const mrb_value *argv;
   mrb_int argc;
-  mrb_value read, read_io, write, except, timeout, list;
-  struct timeval *tp, timerec;
-  fd_set pset, rset, wset, eset;
-  fd_set *rp, *wp, *ep;
+  mrb_value read_io, list;
   struct mrb_io *fptr;
   int pending = 0;
   mrb_value result;
   int max = 0;
   int interrupt_flag = 0;
-  int i, n;
 
   mrb_get_args(mrb, "*", &argv, &argc);
 
@@ -1277,17 +1255,18 @@ io_s_select(mrb_state *mrb, mrb_value klass)
     mrb_argnum_error(mrb, argc, 1, 4);
   }
 
-  timeout = mrb_nil_value();
-  except = mrb_nil_value();
-  write = mrb_nil_value();
+  mrb_value timeout = mrb_nil_value();
+  mrb_value except = mrb_nil_value();
+  mrb_value write = mrb_nil_value();
   if (argc > 3)
     timeout = argv[3];
   if (argc > 2)
     except = argv[2];
   if (argc > 1)
     write = argv[1];
-  read = argv[0];
+  mrb_value read = argv[0];
 
+  struct timeval *tp, timerec;
   if (mrb_nil_p(timeout)) {
     tp = NULL;
   }
@@ -1296,12 +1275,13 @@ io_s_select(mrb_state *mrb, mrb_value klass)
     tp = &timerec;
   }
 
+  fd_set pset, rset, *rp;
   FD_ZERO(&pset);
   if (!mrb_nil_p(read)) {
     mrb_check_type(mrb, read, MRB_TT_ARRAY);
     rp = &rset;
     FD_ZERO(rp);
-    for (i = 0; i < RARRAY_LEN(read); i++) {
+    for (int i = 0; i < RARRAY_LEN(read); i++) {
       read_io = RARRAY_PTR(read)[i];
       fptr = io_get_open_fptr(mrb, read_io);
       if (fptr->fd >= FD_SETSIZE) continue;
@@ -1322,11 +1302,12 @@ io_s_select(mrb_state *mrb, mrb_value klass)
     rp = NULL;
   }
 
+  fd_set wset, *wp;
   if (!mrb_nil_p(write)) {
     mrb_check_type(mrb, write, MRB_TT_ARRAY);
     wp = &wset;
     FD_ZERO(wp);
-    for (i = 0; i < RARRAY_LEN(write); i++) {
+    for (int i = 0; i < RARRAY_LEN(write); i++) {
       fptr = io_get_open_fptr(mrb, RARRAY_PTR(write)[i]);
       if (fptr->fd >= FD_SETSIZE) continue;
       FD_SET(fptr->fd, wp);
@@ -1343,11 +1324,12 @@ io_s_select(mrb_state *mrb, mrb_value klass)
     wp = NULL;
   }
 
+  fd_set eset, *ep;
   if (!mrb_nil_p(except)) {
     mrb_check_type(mrb, except, MRB_TT_ARRAY);
     ep = &eset;
     FD_ZERO(ep);
-    for (i = 0; i < RARRAY_LEN(except); i++) {
+    for (int i = 0; i < RARRAY_LEN(except); i++) {
       fptr = io_get_open_fptr(mrb, RARRAY_PTR(except)[i]);
       if (fptr->fd >= FD_SETSIZE) continue;
       FD_SET(fptr->fd, ep);
@@ -1366,6 +1348,7 @@ io_s_select(mrb_state *mrb, mrb_value klass)
 
   max++;
 
+  int n;
 retry:
   n = select(max, rp, wp, ep, tp);
   if (n < 0) {
@@ -1386,14 +1369,14 @@ retry:
     return mrb_nil_value();
 
   result = mrb_ary_new_capa(mrb, 3);
-  mrb_ary_push(mrb, result, rp? mrb_ary_new(mrb) : mrb_ary_new_capa(mrb, 0));
-  mrb_ary_push(mrb, result, wp? mrb_ary_new(mrb) : mrb_ary_new_capa(mrb, 0));
-  mrb_ary_push(mrb, result, ep? mrb_ary_new(mrb) : mrb_ary_new_capa(mrb, 0));
+  mrb_ary_push(mrb, result, rp ? mrb_ary_new(mrb) : mrb_ary_new_capa(mrb, 0));
+  mrb_ary_push(mrb, result, wp ? mrb_ary_new(mrb) : mrb_ary_new_capa(mrb, 0));
+  mrb_ary_push(mrb, result, ep ? mrb_ary_new(mrb) : mrb_ary_new_capa(mrb, 0));
 
   if (interrupt_flag == 0) {
     if (rp) {
       list = RARRAY_PTR(result)[0];
-      for (i = 0; i < RARRAY_LEN(read); i++) {
+      for (int i = 0; i < RARRAY_LEN(read); i++) {
         fptr = io_get_open_fptr(mrb, RARRAY_PTR(read)[i]);
         if (FD_ISSET(fptr->fd, rp) ||
             FD_ISSET(fptr->fd, &pset)) {
@@ -1404,7 +1387,7 @@ retry:
 
     if (wp) {
       list = RARRAY_PTR(result)[1];
-      for (i = 0; i < RARRAY_LEN(write); i++) {
+      for (int i = 0; i < RARRAY_LEN(write); i++) {
         fptr = io_get_open_fptr(mrb, RARRAY_PTR(write)[i]);
         if (FD_ISSET(fptr->fd, wp)) {
           mrb_ary_push(mrb, list, RARRAY_PTR(write)[i]);
@@ -1417,7 +1400,7 @@ retry:
 
     if (ep) {
       list = RARRAY_PTR(result)[2];
-      for (i = 0; i < RARRAY_LEN(except); i++) {
+      for (int i = 0; i < RARRAY_LEN(except); i++) {
         fptr = io_get_open_fptr(mrb, RARRAY_PTR(except)[i]);
         if (FD_ISSET(fptr->fd, ep)) {
           mrb_ary_push(mrb, list, RARRAY_PTR(except)[i]);
@@ -1435,8 +1418,7 @@ retry:
 int
 mrb_io_fileno(mrb_state *mrb, mrb_value io)
 {
-  struct mrb_io *fptr;
-  fptr = io_get_open_fptr(mrb, io);
+  struct mrb_io *fptr = io_get_open_fptr(mrb, io);
   return fptr->fd;
 }
 
@@ -1451,10 +1433,8 @@ io_fileno(mrb_state *mrb, mrb_value io)
 static mrb_value
 io_close_on_exec_p(mrb_state *mrb, mrb_value io)
 {
-  struct mrb_io *fptr;
+  struct mrb_io *fptr = io_get_open_fptr(mrb, io);
   int ret;
-
-  fptr = io_get_open_fptr(mrb, io);
 
   if (fptr->fd2 >= 0) {
     if ((ret = fcntl(fptr->fd2, F_GETFD)) == -1) mrb_sys_fail(mrb, "F_GETFD failed");
@@ -1473,13 +1453,14 @@ io_close_on_exec_p(mrb_state *mrb, mrb_value io)
 static mrb_value
 io_set_close_on_exec(mrb_state *mrb, mrb_value io)
 {
-  struct mrb_io *fptr;
-  int flag, ret;
+
+  struct mrb_io *fptr = io_get_open_fptr(mrb, io);
   mrb_bool b;
 
-  fptr = io_get_open_fptr(mrb, io);
   mrb_get_args(mrb, "b", &b);
-  flag = b ? FD_CLOEXEC : 0;
+
+  int flag = b ? FD_CLOEXEC : 0;
+  int ret;
 
   if (fptr->fd2 >= 0) {
     if ((ret = fcntl(fptr->fd2, F_GETFD)) == -1) mrb_sys_fail(mrb, "F_GETFD failed");
@@ -1507,10 +1488,9 @@ io_set_close_on_exec(mrb_state *mrb, mrb_value io)
 static mrb_value
 io_set_sync(mrb_state *mrb, mrb_value io)
 {
-  struct mrb_io *fptr;
+  struct mrb_io *fptr = io_get_open_fptr(mrb, io);
   mrb_bool b;
 
-  fptr = io_get_open_fptr(mrb, io);
   mrb_get_args(mrb, "b", &b);
   fptr->sync = b;
   return mrb_bool_value(b);
@@ -1519,8 +1499,7 @@ io_set_sync(mrb_state *mrb, mrb_value io)
 static mrb_value
 io_sync(mrb_state *mrb, mrb_value io)
 {
-  struct mrb_io *fptr;
-  fptr = io_get_open_fptr(mrb, io);
+  struct mrb_io *fptr = io_get_open_fptr(mrb, io);
   return mrb_bool_value(fptr->sync);
 }
 
@@ -1571,10 +1550,9 @@ io_ungetc(mrb_state *mrb, mrb_value io)
   struct mrb_io *fptr = io_get_read_fptr(mrb, io);
   struct mrb_io_buf *buf = fptr->buf;
   mrb_value str;
-  mrb_int len;
 
   mrb_get_args(mrb, "S", &str);
-  len = RSTRING_LEN(str);
+  mrb_int len = RSTRING_LEN(str);
   if (len > SHRT_MAX) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string too long to ungetc");
   }
@@ -1756,10 +1734,9 @@ static mrb_value
 io_gets(mrb_state *mrb, mrb_value io)
 {
   mrb_value rs = mrb_nil_value();
-  mrb_int limit;
   mrb_bool rs_given = FALSE;    /* newline break */
+  mrb_int limit;
   mrb_bool limit_given = FALSE; /* no limit */
-  mrb_value outbuf;
   struct mrb_io *fptr = io_get_read_fptr(mrb, io);
   struct mrb_io_buf *buf = fptr->buf;
 
@@ -1804,6 +1781,7 @@ io_gets(mrb_state *mrb, mrb_value io)
   io_fill_buf(mrb, fptr);
   if (fptr->eof) return mrb_nil_value();
 
+  mrb_value outbuf;
   if (limit_given) {
     if (limit == 0) return mrb_str_new(mrb, NULL, 0);
     outbuf = mrb_str_new_capa(mrb, limit);
@@ -1932,9 +1910,7 @@ io_flush(mrb_state *mrb, mrb_value io)
 void
 mrb_init_io(mrb_state *mrb)
 {
-  struct RClass *io;
-
-  io      = mrb_define_class(mrb, "IO", mrb->object_class);
+  struct RClass *io = mrb_define_class(mrb, "IO", mrb->object_class);
   MRB_SET_INSTANCE_TT(io, MRB_TT_CDATA);
 
   mrb_include_module(mrb, io, mrb_module_get(mrb, "Enumerable")); /* 15.2.20.3 */
