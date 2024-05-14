@@ -445,3 +445,16 @@ assert('Array#freeze') do
     a[0] = 1
   end
 end
+
+assert('Array#delete') do
+  a = ["a", "b", "c"]
+  assert_equal nil, a.delete("x")
+  assert_equal "x", a.delete("x") { _1 }
+  assert_equal ["a", "b", "c"], a
+  assert_equal "a", a.delete("a")
+  assert_equal ["b", "c"], a
+
+  a = [nil]
+  assert_equal nil, a.delete(nil) { "?" }
+  assert_equal [], a
+end
