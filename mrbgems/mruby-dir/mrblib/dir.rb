@@ -2,6 +2,7 @@ class Dir
   include Enumerable
 
   def each(&block)
+    return to_enum(:each) unless block
     while s = self.read
       block.call(s)
     end
@@ -9,6 +10,7 @@ class Dir
   end
 
   def each_child(&block)
+    return to_enum(:each_child) unless block
     while s = self.read
       block.call(s) unless s == "." || s == ".."
     end
@@ -40,7 +42,8 @@ class Dir
     end
 
     def foreach(path, &block)
-      self.open(path) do |d|
+      return to_enum(:foreach, path) unless block
+     self.open(path) do |d|
         d.each(&block)
       end
     end
