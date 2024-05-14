@@ -8,7 +8,13 @@ class Dir
     self
   end
 
-  alias each_child each
+  def each_child(&block)
+    while s = self.read
+      block.call(s) unless s == "." || s == ".."
+    end
+    self
+  end
+
   alias pos tell
   alias pos= seek
 
@@ -22,7 +28,16 @@ class Dir
       end
       a
     end
-    alias children entries
+
+    def children(path)
+      a = []
+      self.open(path) do |d|
+        while s = d.read
+          a << s unless s == "." || s == ".."
+        end
+      end
+      a
+    end
 
     def foreach(path, &block)
       self.open(path) do |d|
