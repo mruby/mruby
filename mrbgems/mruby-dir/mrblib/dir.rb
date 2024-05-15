@@ -43,7 +43,7 @@ class Dir
 
     def foreach(path, &block)
       return to_enum(:foreach, path) unless block
-     self.open(path) do |d|
+      self.open(path) do |d|
         d.each(&block)
       end
     end
