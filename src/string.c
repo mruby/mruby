@@ -501,10 +501,11 @@ bytes2chars(mrb_value s, mrb_int bi)
   }
 
   const char *p = RSTRING_PTR(s);
+  const char *e = p + RSTRING_LEN(s);
   const char *pivot = p + bi;
   mrb_int i = 0;
 
-  if (RSTRING_END(s) < pivot) return -1;
+  if (e < pivot) return -1;
   while (p < pivot) {
     if ((*p & 0x80) == 0) {
       const char *np = search_nonascii(p, pivot);
@@ -512,7 +513,7 @@ bytes2chars(mrb_value s, mrb_int bi)
       p = np;
     }
     else {
-      p += mrb_utf8len(p, pivot);
+      p += mrb_utf8len(p, e);
       i++;
     }
   }
