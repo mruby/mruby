@@ -9,4 +9,9 @@ MRuby.each_target do
     end
   end
   self.libmruby_core_objs << objs
+
+  Dir.glob("#{MRUBY_ROOT}/src/coreonly/*.c").each do |src|
+    obj = objfile(src.pathmap("#{build_dir}/src/coreonly/%n"))
+    self.libmruby_core_only_objs << obj
+  end
 end
