@@ -80,23 +80,19 @@ static const char *inet_ntop(int af, const void *src, char *dst, socklen_t cnt)
 static int inet_pton(int af, const char *src, void *dst)
 {
   struct addrinfo hints = {0};
-  struct addrinfo *res, *ressave;
-
   hints.ai_family = af;
 
+  struct addrinfo *res;
   if (getaddrinfo(src, NULL, &hints, &res) != 0) {
     printf("Couldn't resolve host %s\n", src);
     return -1;
   }
 
-  ressave = res;
-
-  while (res) {
-    memcpy(dst, res->ai_addr, res->ai_addrlen);
-    res = res->ai_next;
+  for (struct addrinfo *r; r; r = r->ai_next) {
+    memcpy(dst, r->ai_addr, r->ai_addrlen);
   }
 
-  freeaddrinfo(ressave);
+  freeaddrinfo(res);
   return 0;
 }
 
