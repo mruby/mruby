@@ -274,10 +274,10 @@ mrb_gc_free_str(mrb_state *mrb, struct RString *str)
 
 #ifdef MRB_64BIT
 #define bitint uint64_t
-#define MASK1 0x0101010101010101ull
+#define MASK01 0x0101010101010101ull
 #else
 #define bitint uint32_t
-#define MASK1 0x01010101ul
+#define MASK01 0x01010101ul
 #endif
 
 #ifdef MRB_UTF8_STRING
@@ -349,7 +349,7 @@ search_nonascii(const char *p, const char *e)
     bitint t0;
 
     memcpy(&t0, p, sizeof(bitint));
-    const bitint t1 = t0 & (MASK1*0x80);
+    const bitint t1 = t0 & (MASK01*0x80);
     if (t1) {
       e = p + sizeof(bitint)-1;
       byte_len = sizeof(bitint)-1;
@@ -408,10 +408,10 @@ mrb_utf8len(const char* p, const char* e)
 #else
 static inline uint32_t popcount(bitint x)
 {
-  x = (x & (MASK1*0x55)) + ((x >>  1) & (MASK1*0x55));
-  x = (x & (MASK1*0x33)) + ((x >>  2) & (MASK1*0x33));
-  x = (x & (MASK1*0x0F)) + ((x >>  4) & (MASK1*0x0F));
-  return (x * MASK1) >> 56;
+  x = (x & (MASK01*0x55)) + ((x >>  1) & (MASK01*0x55));
+  x = (x & (MASK01*0x33)) + ((x >>  2) & (MASK01*0x33));
+  x = (x & (MASK01*0x0F)) + ((x >>  4) & (MASK01*0x0F));
+  return (x * MASK01) >> 56;
 }
 #endif
 
@@ -584,29 +584,20 @@ str_index_str_by_char(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
 static inline mrb_int
 memsearch_swar(const char *xs, mrb_int m, const char *ys, mrb_int n)
 {
-#ifdef MRB_64BIT
-#define bitint uint64_t
-#define MASK1 0x0101010101010101ull
-#define MASK2 0x7f7f7f7f7f7f7f7full
-#define MASK3 0x8080808080808080ull
-#else
-#define bitint uint32_t
-#define MASK1 0x01010101ul
-#define MASK2 0x7f7f7f7ful
-#define MASK3 0x80808080ul
-#endif
+#define MASK7f (MASK01*0x7f)
+#define MASK80 (MASK01*0x80)
 #if defined(MRB_ENDIAN_BIG)
 #ifdef MRB_64BIT
-#define MASK4 0x8000000000000000ull
+#define MASKtop 0x8000000000000000ull
 #else
-#define MASK4 0x80000000ul
+#define MASKtop 0x80000000ul
 #endif
 #else
-#define MASK4 0x80
+#define MASKtop 0x80
 #endif
 
-  const bitint first = MASK1 * (uint8_t)xs[0];
-  const bitint last  = MASK1 * (uint8_t)xs[m-1];
+  const bitint first = MASK01 * (uint8_t)xs[0];
+  const bitint last  = MASK01 * (uint8_t)xs[m-1];
 
   const char *s0 = ys;
   const char *s1 = ys+m-1;
@@ -621,11 +612,10 @@ memsearch_swar(const char *xs, mrb_int m, const char *ys, mrb_int n)
     memcpy(&t1, s1+i, sizeof(bitint));
 
     const bitint eq = (t0 ^ first) | (t1 ^ last);
-    bitint zeros = ((~eq & MASK2) + MASK1) & (~eq & MASK3);
-
+    bitint zeros = ((~eq & MASK7f) + MASK01) & (~eq & MASK80);
 
     for (size_t j = 0; zeros; j++) {
-      if (zeros & MASK4) {
+      if (zeros & MASKtop) {
         const mrb_int idx = i + j;
         const char* p = s0 + idx + 1;
         if (memcmp(p, xs + 1, m - 2) == 0) {
@@ -644,7 +634,7 @@ memsearch_swar(const char *xs, mrb_int m, const char *ys, mrb_int n)
   if (i+m < n) {
     const char *p = s0;
     const char *e = ys + n;
-    for (;p<e;) {
+    while (p<e) {
       p = (const char*)memchr(p, *xs, e - p);
       if (p == NULL || (e - p) < m) break;
       if (memcmp(p+1, xs+1, m-1) == 0) return (mrb_int)(p - ys);
