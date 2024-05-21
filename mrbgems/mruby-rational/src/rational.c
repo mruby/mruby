@@ -49,8 +49,7 @@ mrb_static_assert_object_size(struct RRational);
 static struct RBasic*
 rational_alloc(mrb_state *mrb, struct RClass *c, struct mrb_rational **p)
 {
-  struct RRational *s;
-  s = MRB_OBJ_ALLOC(mrb, MRB_TT_RATIONAL, c);
+  struct RRational *s = MRB_OBJ_ALLOC(mrb, MRB_TT_RATIONAL, c);
 #ifdef RATIONAL_INLINE
   *p = &s->r;
 #else
@@ -89,8 +88,6 @@ mrb_value
 mrb_rational_new(mrb_state *mrb, mrb_int numerator, mrb_int denominator)
 {
   struct RClass *c = mrb_class_get_id(mrb, MRB_SYM(Rational));
-  struct mrb_rational *p;
-  struct RBasic *rat;
 
   if (denominator == 0) {
     rat_zerodiv(mrb);
@@ -102,7 +99,8 @@ mrb_rational_new(mrb_state *mrb, mrb_int numerator, mrb_int denominator)
     numerator *= -1;
     denominator *= -1;
   }
-  rat = rational_alloc(mrb, c, &p);
+  struct mrb_rational *p;
+  struct RBasic *rat = rational_alloc(mrb, c, &p);
   p->numerator = numerator;
   p->denominator = denominator;
   MRB_SET_FROZEN_FLAG(rat);
@@ -164,15 +162,13 @@ i_gcd(mrb_int x, mrb_int y)
 static mrb_value
 rational_new_i(mrb_state *mrb, mrb_int n, mrb_int d)
 {
-  mrb_int a;
-
   if (d == 0) {
     rat_zerodiv(mrb);
   }
   if (n == MRB_INT_MIN || d == MRB_INT_MIN) {
     rat_overflow(mrb);
   }
-  a = i_gcd(n, d);
+  mrb_int a = i_gcd(n, d);
   return rational_new(mrb, n/a, d/a);
 }
 
@@ -718,9 +714,7 @@ rational_hash(mrb_state *mrb, mrb_value rat)
 
 void mrb_mruby_rational_gem_init(mrb_state *mrb)
 {
-  struct RClass *rat;
-
-  rat = mrb_define_class_id(mrb, MRB_SYM(Rational), mrb_class_get_id(mrb, MRB_SYM(Numeric)));
+  struct RClass *rat = mrb_define_class_id(mrb, MRB_SYM(Rational), mrb_class_get_id(mrb, MRB_SYM(Numeric)));
   MRB_SET_INSTANCE_TT(rat, MRB_TT_RATIONAL);
   MRB_UNDEF_ALLOCATOR(rat);
   mrb_undef_class_method(mrb, rat, "new");
