@@ -690,6 +690,12 @@ rational_pow(mrb_state *mrb, mrb_value x)
       if (i == 1) {
         return x;
       }
+      if (i < 0) {
+        i = -i;
+        if (i < 0) rat_overflow(mrb);
+        return rational_new_i(mrb, (mrb_int)pow((mrb_float)p1->denominator, (mrb_float)i),
+                                   (mrb_int)pow((mrb_float)p1->numerator, (mrb_float)i));
+      }
       return rational_new_i(mrb, (mrb_int)pow((mrb_float)p1->numerator, (mrb_float)i),
                                  (mrb_int)pow((mrb_float)p1->denominator, (mrb_float)i));
     }
