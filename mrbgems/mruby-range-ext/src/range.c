@@ -39,10 +39,8 @@ range_cover(mrb_state *mrb, mrb_value range)
 {
   struct RRange *r = mrb_range_ptr(mrb, range);
   mrb_value val = mrb_get_arg1(mrb);
-  mrb_value beg, end;
-
-  beg = RANGE_BEG(r);
-  end = RANGE_END(r);
+  mrb_value beg = RANGE_BEG(r);
+  mrb_value end = RANGE_END(r);
 
   if (mrb_nil_p(beg) && mrb_nil_p(end)) return mrb_true_value();
 
@@ -110,18 +108,17 @@ static mrb_value
 range_size(mrb_state *mrb, mrb_value range)
 {
   struct RRange *r = mrb_range_ptr(mrb, range);
-  mrb_value beg, end;
-  mrb_float beg_f, end_f;
-  mrb_bool num_p = TRUE;
-  mrb_bool excl;
+  mrb_value beg = RANGE_BEG(r);
+  mrb_value end = RANGE_END(r);
 
-  beg = RANGE_BEG(r);
-  end = RANGE_END(r);
   if ((mrb_integer_p(beg) || mrb_float_p(beg)) && mrb_nil_p(end)) {
     return mrb_float_value(mrb, INFINITY);
   }
 
-  excl = RANGE_EXCL(r);
+  mrb_bool excl = RANGE_EXCL(r);
+  mrb_float beg_f, end_f;
+  mrb_bool num_p = TRUE;
+
   if (mrb_integer_p(beg)) {
     beg_f = (mrb_float)mrb_integer(beg);
   }
@@ -167,17 +164,14 @@ static mrb_value
 range_size(mrb_state *mrb, mrb_value range)
 {
   struct RRange *r = mrb_range_ptr(mrb, range);
-  mrb_value beg, end;
-  mrb_int excl;
 
-  beg = RANGE_BEG(r);
-  end = RANGE_END(r);
+  mrb_value beg = RANGE_BEG(r);
+  mrb_value end = RANGE_END(r);
   if (mrb_integer_p(beg) && mrb_nil_p(end)) {
     return mrb_nil_value();
   }
 
-  excl = RANGE_EXCL(r) ? 0 : 1;
-
+  mrb_int excl = RANGE_EXCL(r) ? 0 : 1;
   if (mrb_integer_p(beg) && mrb_integer_p(end)) {
     mrb_int a = mrb_integer(beg);
     mrb_int b = mrb_integer(end);
@@ -206,7 +200,7 @@ range_empty_p(mrb_state *mrb, mrb_value range)
 void
 mrb_mruby_range_ext_gem_init(mrb_state* mrb)
 {
-  struct RClass * s = mrb->range_class;
+  struct RClass *s = mrb->range_class;
 
   mrb_define_method(mrb, s, "cover?", range_cover, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, s, "size",   range_size,  MRB_ARGS_NONE());
