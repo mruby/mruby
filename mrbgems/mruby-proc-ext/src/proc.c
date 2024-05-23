@@ -108,20 +108,13 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
     {MRB_SYM(key),    0},
     {0, 0}
   };
+  int i;
   const struct RProc *proc = mrb_proc_ptr(self);
-  const struct mrb_irep *irep;
-  mrb_aspec aspec;
-  mrb_value parameters;
-  mrb_value krest = mrb_nil_value();
-  mrb_value block = mrb_nil_value();
-  int i, j;
-  int max = 0;
-
   if (MRB_PROC_CFUNC_P(proc)) {
     // TODO cfunc aspec is not implemented yet
     return mrb_ary_new(mrb);
   }
-  irep = proc->body.irep;
+  const struct mrb_irep *irep = proc->body.irep;
   if (!irep || !irep->lv || *irep->iseq != OP_ENTER) {
     return mrb_ary_new(mrb);
   }
@@ -131,7 +124,7 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
     parameters_list[3].name = MRB_SYM(opt);
   }
 
-  aspec = PEEK_W(irep->iseq+1);
+  mrb_aspec aspec = PEEK_W(irep->iseq+1);
   parameters_list[0].size = MRB_ASPEC_REQ(aspec);
   parameters_list[1].size = MRB_ASPEC_OPT(aspec);
   parameters_list[2].size = MRB_ASPEC_REST(aspec);
@@ -140,18 +133,20 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
   parameters_list[5].size = MRB_ASPEC_BLOCK(aspec);
   parameters_list[6].size = MRB_ASPEC_KEY(aspec);
 
+  int max = 0;
   for (i = 0; parameters_list[i].name; i++) {
     max += parameters_list[i].size;
   }
-  parameters = mrb_ary_new_capa(mrb, max);
+
+  mrb_value parameters = mrb_ary_new_capa(mrb, max);
+  mrb_value krest = mrb_nil_value();
+  mrb_value block = mrb_nil_value();
 
   for (i = 0, p = parameters_list; p->name; p++) {
     mrb_value sname = mrb_symbol_value(p->name);
 
-    for (j = 0; j < p->size; i++, j++) {
-      mrb_value a;
-
-      a = mrb_ary_new(mrb);
+    for (int j = 0; j < p->size; i++, j++) {
+      mrb_value a = mrb_ary_new(mrb);
       mrb_ary_push(mrb, a, sname);
       if (i < max && irep->lv[i]) {
         mrb_ary_push(mrb, a, mrb_symbol_value(irep->lv[i]));
