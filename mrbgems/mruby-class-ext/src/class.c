@@ -47,11 +47,10 @@ mod_module_exec(mrb_state *mrb, mrb_value self)
   const mrb_value *argv;
   mrb_int argc;
   mrb_value blk;
-  struct RClass *c;
 
   mrb_get_args(mrb, "*&!", &argv, &argc, &blk);
 
-  c = mrb_class_ptr(self);
+  struct RClass *c = mrb_class_ptr(self);
   if (mrb->c->ci->cci > 0) {
     return mrb_yield_with_class(mrb, blk, argc, argv, self, c);
   }
@@ -97,11 +96,8 @@ add_subclasses(mrb_state *mrb, struct RBasic *obj, void *data)
 static mrb_value
 class_subclasses(mrb_state *mrb, mrb_value self)
 {
-  struct RClass *c;
-  mrb_value ary;
-
-  c = mrb_class_ptr(self);
-  ary = mrb_ary_new(mrb);
+  struct RClass *c = mrb_class_ptr(self);
+  mrb_value ary = mrb_ary_new(mrb);
 
   if (c->flags & MRB_FL_CLASS_IS_INHERITED) {
     struct subclass_args arg = {c, ary};
@@ -128,9 +124,7 @@ class_subclasses(mrb_state *mrb, mrb_value self)
 static mrb_value
 class_attached_object(mrb_state *mrb, mrb_value self)
 {
-  struct RClass *c;
-
-  c = mrb_class_ptr(self);
+  struct RClass *c = mrb_class_ptr(self);
   if (c->tt != MRB_TT_SCLASS) {
     mrb_raise(mrb, E_TYPE_ERROR, "not a singleton class");
   }
