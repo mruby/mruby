@@ -1,10 +1,10 @@
 # Authors of mruby (mruby developers)
 
-## The List of Contributors sorted by number of commits (as of 2024-04-08 3ce5f3a)
+## The List of Contributors sorted by number of commits (as of 2024-05-24 10bc15c)
 
-   5617 Yukihiro "Matz" Matsumoto (@matz)*
+   5662 Yukihiro "Matz" Matsumoto (@matz)*
     587 KOBAYASHI Shuji (@shuujii)
-    570 dearblue (@dearblue)*
+    583 dearblue (@dearblue)*
     353 Daniel Bovensiepen (@bovi)*
     345 Takeshi Watanabe (@take-cheeze)*
     333 Masaki Muranaka (@monaka)
@@ -12,7 +12,7 @@
     228 Tomoyuki Sahara (@tsahara)*
     220 Cremno (@cremno)*
     209 Yuki Kurihara (@ksss)+
-    189 John Bampton (@jbampton)
+    196 John Bampton (@jbampton)
     144 Yasuhiro Matsumoto (@mattn)*
     113 Carson McDonald (@carsonmcdonald)
     103 Tomasz Dąbrowski (@dabroz)*
@@ -66,6 +66,7 @@
      12 Takashi Sawanaka (@sdottaka)*
      12 Ukrainskiy Sergey (@ukrainskiysergey)
      12 Xuejie "Rafael" Xiao (@xxuejie)*
+     12 leviongit (@leviongit)
      11 Julien Ammous (@schmurfy)
      11 Kazuho Oku (@kazuho)
      11 RIZAL Reckordp (@Reckordp)+
@@ -128,8 +129,6 @@
       4 Yuhei Okazaki (@Yuuhei-Okazaki)*
       4 Yuji Yamano (@yyamano)
       4 kurodash (@kurodash)*
-      4 kurodash (@kurodash)*
-      4 leviongit (@leviongit)
       4 wanabe (@wanabe)*
       3 Anton Davydov (@davydovanton)
       3 Carlo Prelz (@asfluido)*
@@ -140,6 +139,7 @@
       3 Jan Berdajs (@mrbrdo)
       3 Jonas Minnberg (@sasq64)
       3 Joseph McCullough (@joequery)
+      3 Mark Delk (@jethrodaniel)
       3 Mark McCurry (@fundamental)
       3 Nobuhiro Iwamatsu (@iwamatsu)
       3 Per Lundberg (@perlun)*
@@ -203,6 +203,7 @@
       1 AlexDenisov (@AlexDenisov)
       1 Andrew Nordman (@cadwallion)
       1 Ashish Kurmi (@boahc077)
+      1 Hendrik (@Asmod4n)
       1 Atsushi Morimoto (@mynz)
       1 Ben A Morgan (@BenMorganIO)
       1 Benoit Daloze (@eregon)
@@ -245,7 +246,6 @@
       1 Lukas Elmer (@lukaselmer)
       1 Lukas Stabe (@Ahti)
       1 M.Naruoka (@fenrir-naru)
-      1 Mark Delk (@jethrodaniel)
       1 Martin Bosslet (@emboss)+
       1 Masahiko Sawada (@MasahikoSawada)
       1 Matt Aimonetti (@mattetti)
