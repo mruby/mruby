@@ -270,9 +270,6 @@ zero(mpz_t *x)
 static void
 mpz_add(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y)
 {
-  int mg;
-  mpz_t z;
-
   if (x->sn == 0) {
     mpz_set(mrb, zz, y);
     return;
@@ -281,6 +278,7 @@ mpz_add(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y)
     mpz_set(mrb, zz, x);
     return;
   }
+  mpz_t z;
   mpz_init(mrb, &z);
 
   if (x->sn > 0 && y->sn > 0) {
@@ -292,6 +290,8 @@ mpz_add(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y)
     z.sn = -1;
   }
   else {
+    int mg;
+
     /* signs differ */
     if ((mg = ucmp(x,y)) == 0) {
       zero(&z);
@@ -337,16 +337,15 @@ mpz_sub_int(mrb_state *mrb, mpz_t *x, mpz_t *y, mrb_int n)
 static void
 mpz_mul(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
 {
-  size_t i, j;
-  mpz_t w;
-
   if (uzero(u) || uzero(v)) {
     mpz_set_int(mrb, ww, 0);
     return;
   }
+  mpz_t w;
   mpz_init(mrb, &w);
   mpz_realloc(mrb, &w, u->sz + v->sz);
-  for (j=0; j < u->sz; j++) {
+  for (size_t j=0; j < u->sz; j++) {
+    size_t i;
     mp_dbl_limb cc = (mp_limb)0;
     mp_limb u0 = u->p[j];
     if (u0 == 0) continue;
@@ -375,7 +374,6 @@ mpz_mul_int(mrb_state *mrb, mpz_t *x, mpz_t *y, mrb_int n)
   }
 
   mpz_t z;
-
   mpz_init_set_int(mrb, &z, n);
   mpz_mul(mrb, x, y, &z);
   mpz_clear(mrb, &z);
@@ -637,12 +635,11 @@ mpz_mod(mrb_state *mrb, mpz_t *r, mpz_t *x, mpz_t *y)
 static mrb_int
 mpz_cmp(mrb_state *mrb, mpz_t *x, mpz_t *y)
 {
-  int abscmp;
   if (x->sn < 0 && y->sn > 0)
     return (-1);
   if (x->sn > 0 && y->sn < 0)
     return 1;
-  abscmp=ucmp(x, y);
+  int abscmp=ucmp(x, y);
   if (x->sn >=0 && y->sn >=0)
     return abscmp;
   return (-abscmp);          // if (x->sn <=0 && y->sn <=0)
@@ -887,11 +884,10 @@ mpz_and(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y) /* not the most efficient 
 static void
 mpz_or(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient way to do this */
 {
-  size_t i;
   size_t sz = imax(x->sz, y->sz);
 
   mpz_realloc(mrb, z, sz);
-  for (i=0; i < sz; i++)
+  for (size_t i=0; i < sz; i++)
     z->p[i] = dg(x,i) | dg(y,i);
   if (x->sn < 0 || y->sn < 0)
     z->sn = (-1);
@@ -904,11 +900,9 @@ mpz_or(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient 
 static void
 mpz_xor(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient way to do this */
 {
-  size_t i;
-
   size_t sz = imax(x->sz, y->sz);
   mpz_realloc(mrb, z, sz);
-  for (i=0; i < sz; i++)
+  for (size_t i=0; i < sz; i++)
     z->p[i] = dg(x,i) ^ dg(y,i);
   if ((x->sn <= 0 && y->sn > 0) || (x->sn > 0 && y->sn <=0))
     z->sn = (-1);
@@ -945,8 +939,6 @@ mpz_pow(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int e)
 static void
 mpz_powm(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
 {
-  mpz_t t, b;
-
   if (uzero(ex)) {
     mpz_set_int(mrb, zz, 1);
     return;
@@ -956,6 +948,7 @@ mpz_powm(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
     return;
   }
 
+  mpz_t t, b;
   mpz_init_set_int(mrb, &t, 1);
   mpz_init_set(mrb, &b, x);
 
@@ -979,8 +972,6 @@ mpz_powm(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
 static void
 mpz_powm_i(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int ex, mpz_t *n)
 {
-  mpz_t t, b;
-
   if (ex == 0) {
     mpz_set_int(mrb, zz, 1);
     return;
@@ -990,6 +981,7 @@ mpz_powm_i(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int ex, mpz_t *n)
     return;
   }
 
+  mpz_t t, b;
   mpz_init_set_int(mrb, &t, 1);
   mpz_init_set(mrb, &b, x);
 
