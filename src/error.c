@@ -589,19 +589,24 @@ mrb_protect_atexit(mrb_state *mrb)
   if (mrb->atexit_stack_len > 0) {
     struct mrb_jmpbuf *prev_jmp = mrb->jmp;
     struct mrb_jmpbuf c_jmp;
-    for (int i = mrb->atexit_stack_len; i > 0; --i) {
+    int i = mrb->atexit_stack_len;
+    while (i > 0) {
       MRB_TRY(&c_jmp) {
         mrb->jmp = &c_jmp;
-        mrb->atexit_stack[i - 1](mrb);
+        do {
+          mrb->atexit_stack[--i](mrb);
+          mrb_gc_arena_restore(mrb, 0);
+        } while (i > 0);
         mrb->jmp = prev_jmp;
       } MRB_CATCH(&c_jmp) {
+        mrb->jmp = prev_jmp;
         /* ignore atexit errors */
+        mrb_gc_arena_restore(mrb, 0);
       } MRB_END_EXC(&c_jmp);
     }
 #ifndef MRB_FIXED_STATE_ATEXIT_STACK
     mrb_free(mrb, mrb->atexit_stack);
 #endif
-    mrb->jmp = prev_jmp;
   }
 }
 
