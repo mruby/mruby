@@ -215,14 +215,10 @@ static mrb_value
 binding_eval_prepare_body(mrb_state *mrb, void *opaque)
 {
   struct binding_eval_prepare_body *p = (struct binding_eval_prepare_body*)opaque;
-
-  const struct RProc *proc = mrb_binding_extract_proc(mrb, p->binding);
-  mrb_assert(!MRB_PROC_CFUNC_P(proc));
-  p->cxt->upper = proc;
   binding_eval_error_check(mrb, p->pstate, p->file);
 
   struct expand_lvspace args = {
-    (mrb_irep*)proc->body.irep,
+    (mrb_irep*)p->cxt->upper->body.irep,
     mrb_binding_extract_env(mrb, p->binding),
     0,
     { 0 }
@@ -239,10 +235,13 @@ static void
 binding_eval_prepare(mrb_state *mrb, mrb_value binding, const char *expr, mrb_int exprlen, const char *file)
 {
   struct binding_eval_prepare_body d = { binding };
+  const struct RProc *proc = mrb_binding_extract_proc(mrb, binding);
+  mrb_assert(!MRB_PROC_CFUNC_P(proc));
 
   d.cxt = mrb_ccontext_new(mrb);
   d.file = mrb_ccontext_filename(mrb, d.cxt, file ? file : "(eval)");
   d.cxt->capture_errors = TRUE;
+  d.cxt->upper = proc;
   d.pstate = mrb_parse_nstring(mrb, expr, exprlen, d.cxt);
 
   mrb_bool error;
