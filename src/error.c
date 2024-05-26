@@ -587,6 +587,17 @@ void
 mrb_protect_atexit(mrb_state *mrb)
 {
   if (mrb->atexit_stack_len > 0) {
+    if (mrb->c && mrb->c->ci) {
+      // Even if the call stack is incomplete due to some fault, atexit to be executed at the top level is desirable.
+      // Clean-up also makes it easier to collect unnecessary objects.
+      mrb_callinfo zero = { 0 };
+      struct mrb_context *c = mrb->c = mrb->root_c;
+      c->ci = c->cibase;
+      *c->ci = zero;
+      c->ci->stack = c->stbase;
+      mrb_gc_arena_restore(mrb, 0);
+    }
+
     struct mrb_jmpbuf *prev_jmp = mrb->jmp;
     struct mrb_jmpbuf c_jmp;
     int i = mrb->atexit_stack_len;
