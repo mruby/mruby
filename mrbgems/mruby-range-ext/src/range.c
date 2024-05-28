@@ -111,7 +111,13 @@ range_size(mrb_state *mrb, mrb_value range)
   mrb_value beg = RANGE_BEG(r);
   mrb_value end = RANGE_END(r);
 
-  if ((mrb_integer_p(beg) || mrb_float_p(beg)) && mrb_nil_p(end)) {
+  if (mrb_float_p(beg)) {
+    mrb_raise(mrb, E_TYPE_ERROR, "can't iterate from Float");
+  }
+  if (mrb_nil_p(beg)) {
+    mrb_raise(mrb, E_TYPE_ERROR, "can't iterate from nil");
+  }
+  if (mrb_integer_p(beg) && mrb_nil_p(end)) {
     return mrb_float_value(mrb, INFINITY);
   }
 
@@ -167,6 +173,9 @@ range_size(mrb_state *mrb, mrb_value range)
 
   mrb_value beg = RANGE_BEG(r);
   mrb_value end = RANGE_END(r);
+  if (mrb_nil_p(beg)) {
+    mrb_raise(mrb, E_TYPE_ERROR, "can't iterate from nil");
+  }
   if (mrb_integer_p(beg) && mrb_nil_p(end)) {
     return mrb_nil_value();
   }

@@ -55,13 +55,10 @@ assert('Range#size') do
   skip unless Object.const_defined?(:Float)
   assert_equal 6, (1...6.3).size
   assert_equal 5, (1...6.0).size
-  assert_equal 5, (1.1...6).size
-  assert_equal 15, (1.0..15.9).size
   assert_equal Float::INFINITY, (0..Float::INFINITY).size
 
   assert_equal Float::INFINITY, (1..).size
   assert_equal Float::INFINITY, (1...).size
-  assert_equal Float::INFINITY, (1.0..).size
 end
 
 assert('Range#max') do
