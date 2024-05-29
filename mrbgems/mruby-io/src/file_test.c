@@ -50,7 +50,7 @@ mrb_stat0(mrb_state *mrb, mrb_value obj, struct stat *st, int do_lstat)
     return -1;
   }
   else {
-    char *path = mrb_locale_from_utf8(RSTRING_CSTR(mrb, obj), -1);
+    char *path = mrb_locale_from_utf8(mrb, RSTRING_CSTR(mrb, obj), -1);
     int ret;
     if (do_lstat) {
       ret = LSTAT(path, st);
@@ -58,7 +58,7 @@ mrb_stat0(mrb_state *mrb, mrb_value obj, struct stat *st, int do_lstat)
     else {
       ret = stat(path, st);
     }
-    mrb_locale_free(path);
+    mrb_locale_free(mrb, path);
     return ret;
   }
 }

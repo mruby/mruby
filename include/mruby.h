@@ -1215,15 +1215,15 @@ MRB_API mrb_value mrb_obj_freeze(mrb_state*, mrb_value);
 #define mrb_str_new_lit_frozen(mrb,lit) mrb_obj_freeze(mrb,mrb_str_new_lit(mrb,lit))
 
 #ifdef _WIN32
-MRB_API char* mrb_utf8_from_locale(const char *p, int len);
-MRB_API char* mrb_locale_from_utf8(const char *p, int len);
-#define mrb_locale_free(p) free(p)
-#define mrb_utf8_free(p) free(p)
+MRB_API char* mrb_utf8_from_locale(mrb_state *mrb, const char *p, int len);
+MRB_API char* mrb_locale_from_utf8(mrb_state *mrb, const char *p, int len);
+#define mrb_locale_free(mrb, p) mrb_free((mrb), (p))
+#define mrb_utf8_free(mrb, p) mrb_free((mrb), (p))
 #else
-#define mrb_utf8_from_locale(p, l) ((char*)(p))
-#define mrb_locale_from_utf8(p, l) ((char*)(p))
-#define mrb_locale_free(p)
-#define mrb_utf8_free(p)
+#define mrb_utf8_from_locale(mrb, p, l) ((char*)(p))
+#define mrb_locale_from_utf8(mrb, p, l) ((char*)(p))
+#define mrb_locale_free(mrb, p)
+#define mrb_utf8_free(mrb, p)
 #endif
 
 /**

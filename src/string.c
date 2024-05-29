@@ -6,6 +6,7 @@
 
 #ifdef _MSC_VER
 # define _CRT_NONSTDC_NO_DEPRECATE
+# define WIN32_LEAN_AND_MEAN
 #endif
 
 #include <mruby.h>
@@ -843,7 +844,7 @@ str_rindex(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
 #include <windows.h>
 
 char*
-mrb_utf8_from_locale(const char *str, int len)
+mrb_utf8_from_locale(mrb_state *mrb, const char *str, int len)
 {
   wchar_t* wcsp;
   char* mbsp;
@@ -854,26 +855,26 @@ mrb_utf8_from_locale(const char *str, int len)
   if (len == -1)
     len = (int)strlen(str);
   wcssize = MultiByteToWideChar(GetACP(), 0, str, len,  NULL, 0);
-  wcsp = (wchar_t*) malloc((wcssize + 1) * sizeof(wchar_t));
+  wcsp = (wchar_t*) mrb_malloc(mrb, (wcssize + 1) * sizeof(wchar_t));
   if (!wcsp)
     return NULL;
   wcssize = MultiByteToWideChar(GetACP(), 0, str, len, wcsp, wcssize + 1);
   wcsp[wcssize] = 0;
 
   mbssize = WideCharToMultiByte(CP_UTF8, 0, (LPCWSTR) wcsp, -1, NULL, 0, NULL, NULL);
-  mbsp = (char*) malloc((mbssize + 1));
+  mbsp = (char*) mrb_malloc(mrb, (mbssize + 1));
   if (!mbsp) {
-    free(wcsp);
+    mrb_free(mrb, wcsp);
     return NULL;
   }
   mbssize = WideCharToMultiByte(CP_UTF8, 0, (LPCWSTR) wcsp, -1, mbsp, mbssize, NULL, NULL);
   mbsp[mbssize] = 0;
-  free(wcsp);
+  mrb_free(mrb, wcsp);
   return mbsp;
 }
 
 char*
-mrb_locale_from_utf8(const char *utf8, int len)
+mrb_locale_from_utf8(mrb_state *mrb, const char *utf8, int len)
 {
   wchar_t* wcsp;
   char* mbsp;
@@ -884,20 +885,20 @@ mrb_locale_from_utf8(const char *utf8, int len)
   if (len == -1)
     len = (int)strlen(utf8);
   wcssize = MultiByteToWideChar(CP_UTF8, 0, utf8, len,  NULL, 0);
-  wcsp = (wchar_t*) malloc((wcssize + 1) * sizeof(wchar_t));
+  wcsp = (wchar_t*) mrb_malloc(mrb, (wcssize + 1) * sizeof(wchar_t));
   if (!wcsp)
     return NULL;
   wcssize = MultiByteToWideChar(CP_UTF8, 0, utf8, len, wcsp, wcssize + 1);
   wcsp[wcssize] = 0;
   mbssize = WideCharToMultiByte(GetACP(), 0, (LPCWSTR) wcsp, -1, NULL, 0, NULL, NULL);
-  mbsp = (char*) malloc((mbssize + 1));
+  mbsp = (char*) mrb_malloc(mrb, (mbssize + 1));
   if (!mbsp) {
-    free(wcsp);
+    mrb_free(mrb, wcsp);
     return NULL;
   }
   mbssize = WideCharToMultiByte(GetACP(), 0, (LPCWSTR) wcsp, -1, mbsp, mbssize, NULL, NULL);
   mbsp[mbssize] = 0;
-  free(wcsp);
+  mrb_free(mrb, wcsp);
   return mbsp;
 }
 #endif

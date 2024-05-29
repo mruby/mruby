@@ -129,9 +129,9 @@ p(mrb_state *mrb, mrb_value obj, int prompt)
   if (!mrb_string_p(val)) {
     val = mrb_obj_as_string(mrb, obj);
   }
-  msg = mrb_locale_from_utf8(RSTRING_PTR(val), (int)RSTRING_LEN(val));
+  msg = mrb_locale_from_utf8(mrb, RSTRING_PTR(val), (int)RSTRING_LEN(val));
   fwrite(msg, strlen(msg), 1, stdout);
-  mrb_locale_free(msg);
+  mrb_locale_free(mrb, msg);
   putc('\n', stdout);
 }
 
@@ -481,10 +481,10 @@ main(int argc, char **argv)
 
   ARGV = mrb_ary_new_capa(mrb, args.argc);
   for (i = 0; i < args.argc; i++) {
-    char* utf8 = mrb_utf8_from_locale(args.argv[i], -1);
+    char* utf8 = mrb_utf8_from_locale(mrb, args.argv[i], -1);
     if (utf8) {
       mrb_ary_push(mrb, ARGV, mrb_str_new_cstr(mrb, utf8));
-      mrb_utf8_free(utf8);
+      mrb_utf8_free(mrb, utf8);
     }
   }
   mrb_define_global_const(mrb, "ARGV", ARGV);
@@ -612,7 +612,7 @@ main(int argc, char **argv)
       strcpy(ruby_code, last_code_line);
     }
 
-    utf8 = mrb_utf8_from_locale(ruby_code, -1);
+    utf8 = mrb_utf8_from_locale(mrb, ruby_code, -1);
     if (!utf8) abort();
 
     /* parse code */
@@ -626,7 +626,7 @@ main(int argc, char **argv)
     parser->lineno = cxt->lineno;
     mrb_parser_parse(parser, cxt);
     code_block_open = is_code_block_open(parser);
-    mrb_utf8_free(utf8);
+    mrb_utf8_free(mrb, utf8);
 
     if (code_block_open) {
       /* no evaluation of code */
@@ -634,15 +634,15 @@ main(int argc, char **argv)
     else {
       if (0 < parser->nwarn) {
         /* warning */
-        char* msg = mrb_locale_from_utf8(parser->warn_buffer[0].message, -1);
+        char* msg = mrb_locale_from_utf8(mrb, parser->warn_buffer[0].message, -1);
         printf("line %d: %s\n", parser->warn_buffer[0].lineno, msg);
-        mrb_locale_free(msg);
+        mrb_locale_free(mrb, msg);
       }
       if (0 < parser->nerr) {
         /* syntax error */
-        char* msg = mrb_locale_from_utf8(parser->error_buffer[0].message, -1);
+        char* msg = mrb_locale_from_utf8(mrb, parser->error_buffer[0].message, -1);
         printf("line %d: %s\n", parser->error_buffer[0].lineno, msg);
-        mrb_locale_free(msg);
+        mrb_locale_free(mrb, msg);
       }
       else {
         /* generate bytecode */

@@ -126,12 +126,12 @@ mrb_file_s_unlink(mrb_state *mrb, mrb_value obj)
     mrb_value pathv = argv[i];
     mrb_ensure_string_type(mrb, pathv);
     const char *utf8_path = RSTRING_CSTR(mrb, pathv);
-    char *path = mrb_locale_from_utf8(utf8_path, -1);
+    char *path = mrb_locale_from_utf8(mrb, utf8_path, -1);
     if (UNLINK(path) < 0) {
-      mrb_locale_free(path);
+      mrb_locale_free(mrb, path);
       mrb_sys_fail(mrb, utf8_path);
     }
-    mrb_locale_free(path);
+    mrb_locale_free(mrb, path);
   }
   return mrb_fixnum_value(argc);
 }
@@ -142,23 +142,23 @@ mrb_file_s_rename(mrb_state *mrb, mrb_value obj)
   mrb_value from, to;
 
   mrb_get_args(mrb, "SS", &from, &to);
-  char *src = mrb_locale_from_utf8(RSTRING_CSTR(mrb, from), -1);
-  char *dst = mrb_locale_from_utf8(RSTRING_CSTR(mrb, to), -1);
+  char *src = mrb_locale_from_utf8(mrb, RSTRING_CSTR(mrb, from), -1);
+  char *dst = mrb_locale_from_utf8(mrb, RSTRING_CSTR(mrb, to), -1);
   if (rename(src, dst) < 0) {
 #if defined(_WIN32) || defined(_WIN64)
     if (CHMOD(dst, 0666) == 0 && UNLINK(dst) == 0 && rename(src, dst) == 0) {
-      mrb_locale_free(src);
-      mrb_locale_free(dst);
+      mrb_locale_free(mrb, src);
+      mrb_locale_free(mrb, dst);
       return mrb_fixnum_value(0);
     }
 #endif
-    mrb_locale_free(src);
-    mrb_locale_free(dst);
+    mrb_locale_free(mrb, src);
+    mrb_locale_free(mrb, dst);
     mrb_sys_fail(mrb, RSTRING_CSTR(mrb, mrb_format(mrb, "(%v, %v)", from, to)));
     return mrb_fixnum_value(-1); /* not reached */
   }
-  mrb_locale_free(src);
-  mrb_locale_free(dst);
+  mrb_locale_free(mrb, src);
+  mrb_locale_free(mrb, dst);
   return mrb_fixnum_value(0);
 }
 
@@ -170,10 +170,10 @@ mrb_file_dirname(mrb_state *mrb, mrb_value klass)
   char buffer[_MAX_DRIVE + _MAX_DIR];
   const char *utf8_path;
   mrb_get_args(mrb, "z", &utf8_path);
-  char *path = mrb_locale_from_utf8(utf8_path, -1);
+  char *path = mrb_locale_from_utf8(mrb, utf8_path, -1);
   _splitpath(path, vname, dname, NULL, NULL);
   snprintf(buffer, _MAX_DRIVE + _MAX_DIR, "%s%s", vname, dname);
-  mrb_locale_free(path);
+  mrb_locale_free(mrb, path);
   size_t ridx = strlen(buffer);
   if (ridx == 0) {
     strncpy(buffer, ".", 2);  /* null terminated */
@@ -189,13 +189,13 @@ mrb_file_dirname(mrb_state *mrb, mrb_value klass)
 #else
   mrb_value s;
   mrb_get_args(mrb, "S", &s);
-  char *path = mrb_locale_from_utf8(mrb_str_to_cstr(mrb, s), -1);
+  char *path = mrb_locale_from_utf8(mrb, mrb_str_to_cstr(mrb, s), -1);
   char *dname;
   if ((dname = dirname(path)) == NULL) {
-    mrb_locale_free(path);
+    mrb_locale_free(mrb, path);
     mrb_sys_fail(mrb, "dirname");
   }
-  mrb_locale_free(path);
+  mrb_locale_free(mrb, path);
   return mrb_str_new_cstr(mrb, dname);
 #endif
 }
@@ -250,14 +250,14 @@ mrb_file_realpath(mrb_state *mrb, mrb_value klass)
     s = mrb_str_append(mrb, s, pathname);
     pathname = s;
   }
-  char *cpath = mrb_locale_from_utf8(RSTRING_CSTR(mrb, pathname), -1);
+  char *cpath = mrb_locale_from_utf8(mrb, RSTRING_CSTR(mrb, pathname), -1);
   mrb_value result = mrb_str_new_capa(mrb, PATH_MAX);
   if (realpath(cpath, RSTRING_PTR(result)) == NULL) {
-    mrb_locale_free(cpath);
+    mrb_locale_free(mrb, cpath);
     mrb_sys_fail(mrb, RSTRING_CSTR(mrb, pathname));
     return result;              /* not reached */
   }
-  mrb_locale_free(cpath);
+  mrb_locale_free(mrb, cpath);
   mrb_str_resize(mrb, result, strlen(RSTRING_PTR(result)));
   return result;
 }
@@ -271,9 +271,9 @@ mrb_file__getwd(mrb_state *mrb, mrb_value klass)
   if (GETCWD(buf, MAXPATHLEN) == NULL) {
     mrb_sys_fail(mrb, "getcwd(2)");
   }
-  char *utf8 = mrb_utf8_from_locale(buf, -1);
+  char *utf8 = mrb_utf8_from_locale(mrb, buf, -1);
   mrb_value path = mrb_str_new_cstr(mrb, utf8);
-  mrb_utf8_free(utf8);
+  mrb_utf8_free(mrb, utf8);
   return path;
 }
 
@@ -363,9 +363,9 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
       mrb_raisef(mrb, E_ARGUMENT_ERROR, "non-absolute home of ~%v", username);
     }
   }
-  home = mrb_locale_from_utf8(home, -1);
+  home = mrb_locale_from_utf8(mrb, home, -1);
   path = mrb_str_new_cstr(mrb, home);
-  mrb_locale_free(home);
+  mrb_locale_free(mrb, home);
   return path;
 #else  /* _WIN32 */
   mrb_int argc = mrb_get_argc(mrb);
@@ -381,9 +381,9 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
   else {
     return mrb_nil_value();
   }
-  home = mrb_locale_from_utf8(home, -1);
+  home = mrb_locale_from_utf8(mrb, home, -1);
   path = mrb_str_new_cstr(mrb, home);
-  mrb_locale_free(home);
+  mrb_locale_free(mrb, home);
   return path;
 #endif
 }
@@ -549,15 +549,15 @@ mrb_file_s_symlink(mrb_state *mrb, mrb_value klass)
   int ai = mrb_gc_arena_save(mrb);
 
   mrb_get_args(mrb, "SS", &from, &to);
-  const char *src = mrb_locale_from_utf8(RSTRING_CSTR(mrb, from), -1);
-  const char *dst = mrb_locale_from_utf8(RSTRING_CSTR(mrb, to), -1);
+  const char *src = mrb_locale_from_utf8(mrb, RSTRING_CSTR(mrb, from), -1);
+  const char *dst = mrb_locale_from_utf8(mrb, RSTRING_CSTR(mrb, to), -1);
   if (symlink(src, dst) == -1) {
-    mrb_locale_free(src);
-    mrb_locale_free(dst);
+    mrb_locale_free(mrb, src);
+    mrb_locale_free(mrb, dst);
     mrb_sys_fail(mrb, RSTRING_CSTR(mrb, mrb_format(mrb, "(%v, %v)", from, to)));
   }
-  mrb_locale_free(src);
-  mrb_locale_free(dst);
+  mrb_locale_free(mrb, src);
+  mrb_locale_free(mrb, dst);
   mrb_gc_arena_restore(mrb, ai);
 #endif
   return mrb_fixnum_value(0);
@@ -574,12 +574,12 @@ mrb_file_s_chmod(mrb_state *mrb, mrb_value klass)
   mrb_get_args(mrb, "i*", &mode, &filenames, &argc);
   for (int i = 0; i < argc; i++) {
     const char *utf8_path = RSTRING_CSTR(mrb, filenames[i]);
-    char *path = mrb_locale_from_utf8(utf8_path, -1);
+    char *path = mrb_locale_from_utf8(mrb, utf8_path, -1);
     if (CHMOD(path, mode) == -1) {
-      mrb_locale_free(path);
+      mrb_locale_free(mrb, path);
       mrb_sys_fail(mrb, utf8_path);
     }
-    mrb_locale_free(path);
+    mrb_locale_free(mrb, path);
     mrb_gc_arena_restore(mrb, ai);
   }
 
@@ -601,21 +601,21 @@ mrb_file_s_readlink(mrb_state *mrb, mrb_value klass)
   int ai = mrb_gc_arena_save(mrb);
 
   mrb_get_args(mrb, "z", &path);
-  tmp = mrb_locale_from_utf8(path, -1);
+  tmp = mrb_locale_from_utf8(mrb, path, -1);
 
   buf = (char*)mrb_malloc(mrb, bufsize);
   while ((rc = readlink(tmp, buf, bufsize)) == (ssize_t)bufsize && rc != -1) {
     bufsize *= 2;
     buf = (char*)mrb_realloc(mrb, buf, bufsize);
   }
-  mrb_locale_free(tmp);
+  mrb_locale_free(mrb, tmp);
   if (rc == -1) {
     mrb_free(mrb, buf);
     mrb_sys_fail(mrb, path);
   }
-  tmp = mrb_utf8_from_locale(buf, -1);
+  tmp = mrb_utf8_from_locale(mrb, buf, -1);
   ret = mrb_str_new(mrb, tmp, rc);
-  mrb_locale_free(tmp);
+  mrb_locale_free(mrb, tmp);
   mrb_free(mrb, buf);
 
   mrb_gc_arena_restore(mrb, ai);

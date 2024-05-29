@@ -885,7 +885,7 @@ static int
 io_cloexec_open(mrb_state *mrb, const char *pathname, int flags, fmode_t mode)
 {
   int retry = FALSE;
-  char *fname = mrb_locale_from_utf8(pathname, -1);
+  char *fname = mrb_locale_from_utf8(mrb, pathname, -1);
   int fd;
 
 #ifdef O_CLOEXEC
@@ -908,7 +908,7 @@ reopen:
     }
     mrb_sys_fail(mrb, RSTRING_CSTR(mrb, mrb_format(mrb, "open %s", pathname)));
   }
-  mrb_locale_free(fname);
+  mrb_locale_free(mrb, fname);
 
   if (fd <= 2) {
     io_fd_cloexec(mrb, fd);
