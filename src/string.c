@@ -6,6 +6,7 @@
 
 #ifdef _MSC_VER
 # define _CRT_NONSTDC_NO_DEPRECATE
+# define WIN32_LEAN_AND_MEAN
 #endif
 
 #include <mruby.h>
@@ -840,6 +841,8 @@ str_rindex(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
 }
 
 #ifdef _WIN32
+#include <stdlib.h>
+#include <malloc.h>
 #include <windows.h>
 
 char*
