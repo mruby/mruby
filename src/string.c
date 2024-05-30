@@ -693,10 +693,9 @@ str_share(mrb_state *mrb, struct RString *orig, struct RString *s)
 mrb_value
 mrb_str_byte_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 {
-  struct RString *orig, *s;
+  struct RString *orig = mrb_str_ptr(str);
+  struct RString *s = mrb_obj_alloc_string(mrb);
 
-  orig = mrb_str_ptr(str);
-  s = mrb_obj_alloc_string(mrb);
   if (RSTR_EMBEDDABLE_P(len)) {
     str_init_embed(s, RSTR_PTR(orig)+beg, len);
   }
@@ -747,24 +746,23 @@ str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 MRB_API mrb_int
 mrb_str_index(mrb_state *mrb, mrb_value str, const char *sptr, mrb_int slen, mrb_int offset)
 {
-  mrb_int pos;
-  char *s;
-  mrb_int len;
+  mrb_int len = RSTRING_LEN(str);
 
-  len = RSTRING_LEN(str);
   if (offset < 0) {
     offset += len;
     if (offset < 0) return -1;
   }
   if (len - offset < slen) return -1;
-  s = RSTRING_PTR(str);
+
+  char *s = RSTRING_PTR(str);
   if (offset) {
     s += offset;
   }
   if (slen == 0) return offset;
   /* need proceed one character at a time */
   len = RSTRING_LEN(str) - offset;
-  pos = mrb_memsearch(sptr, slen, s, len);
+
+  mrb_int pos = mrb_memsearch(sptr, slen, s, len);
   if (pos < 0) return pos;
   return pos + offset;
 }
@@ -772,11 +770,8 @@ mrb_str_index(mrb_state *mrb, mrb_value str, const char *sptr, mrb_int slen, mrb
 static mrb_int
 str_index_str(mrb_state *mrb, mrb_value str, mrb_value str2, mrb_int offset)
 {
-  const char *ptr;
-  mrb_int len;
-
-  ptr = RSTRING_PTR(str2);
-  len = RSTRING_LEN(str2);
+  const char *ptr = RSTRING_PTR(str2);
+  mrb_int len = RSTRING_LEN(str2);
 
   return mrb_str_index(mrb, str, ptr, len, offset);
 }
@@ -784,20 +779,17 @@ str_index_str(mrb_state *mrb, mrb_value str, mrb_value str2, mrb_int offset)
 static mrb_value
 str_replace(mrb_state *mrb, struct RString *s1, struct RString *s2)
 {
-  size_t len;
-
   mrb_check_frozen(mrb, s1);
   if (s1 == s2) return mrb_obj_value(s1);
   RSTR_COPY_SINGLE_BYTE_FLAG(s1, s2);
   if (RSTR_SHARED_P(s1)) {
     str_decref(mrb, s1->as.heap.aux.shared);
   }
-  else if (!RSTR_EMBED_P(s1) && !RSTR_NOFREE_P(s1) && !RSTR_FSHARED_P(s1)
-           && s1->as.heap.ptr) {
+  else if (!RSTR_EMBED_P(s1) && !RSTR_NOFREE_P(s1) && !RSTR_FSHARED_P(s1)) {
     mrb_free(mrb, s1->as.heap.ptr);
   }
 
-  len = (size_t)RSTR_LEN(s2);
+  size_t len = (size_t)RSTR_LEN(s2);
   if (RSTR_EMBEDDABLE_P(len)) {
     str_init_embed(s1, RSTR_PTR(s2), len);
   }
@@ -1014,8 +1006,7 @@ mrb_str_size(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_str_bytesize(mrb_state *mrb, mrb_value self)
 {
-  mrb_int len = RSTRING_LEN(self);
-  return mrb_int_value(mrb, len);
+  return mrb_int_value(mrb, RSTRING_LEN(self));
 }
 
 /* 15.2.10.5.1  */
@@ -1031,9 +1022,7 @@ mrb_str_bytesize(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_str_times(mrb_state *mrb, mrb_value self)
 {
-  mrb_int n, len, times;
-  struct RString *str2;
-  char *p;
+  mrb_int len, times;
 
   mrb_get_args(mrb, "i", &times);
   if (times < 0) {
@@ -1042,10 +1031,11 @@ mrb_str_times(mrb_state *mrb, mrb_value self)
   if (mrb_int_mul_overflow(RSTRING_LEN(self), times, &len)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "argument too big");
   }
-  str2 = str_new(mrb, 0, len);
-  p = RSTR_PTR(str2);
+
+  struct RString *str2 = str_new(mrb, 0, len);
+  char *p = RSTR_PTR(str2);
   if (len > 0) {
-    n = RSTRING_LEN(self);
+    mrb_int n = RSTRING_LEN(self);
     memcpy(p, RSTRING_PTR(self), n);
     while (n <= len/2) {
       memcpy(p + n, p, n);
@@ -1073,15 +1063,13 @@ mrb_str_times(mrb_state *mrb, mrb_value self)
 MRB_API int
 mrb_str_cmp(mrb_state *mrb, mrb_value str1, mrb_value str2)
 {
-  mrb_int len, len1, len2;
-  mrb_int retval;
   struct RString *s1 = mrb_str_ptr(str1);
   struct RString *s2 = mrb_str_ptr(str2);
 
-  len1 = RSTR_LEN(s1);
-  len2 = RSTR_LEN(s2);
-  len = lesser(len1, len2);
-  retval = memcmp(RSTR_PTR(s1), RSTR_PTR(s2), len);
+  mrb_int len1 = RSTR_LEN(s1);
+  mrb_int len2 = RSTR_LEN(s2);
+  mrb_int len = lesser(len1, len2);
+  mrb_int retval = memcmp(RSTR_PTR(s1), RSTR_PTR(s2), len);
   if (retval == 0) {
     if (len1 == len2) return 0;
     if (len1 > len2)  return 1;
