@@ -68,7 +68,7 @@ binding_irep_new_lvspace(mrb_state *mrb)
   irep->flags = MRB_ISEQ_NO_FREE;
   irep->iseq = iseq_dummy;
   irep->ilen = sizeof(iseq_dummy) / sizeof(iseq_dummy[0]);
-  irep->lv = (mrb_sym*)mrb_calloc(mrb, 1, sizeof(mrb_sym)); /* initial allocation for dummy */
+  irep->lv = NULL;
   irep->nlocals = 1;
   irep->nregs = 1;
   return irep;
