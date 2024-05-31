@@ -26,16 +26,15 @@ MRB_BEGIN_DECL
 struct REnv {
   MRB_OBJECT_HEADER;
   mrb_value *stack;
-  struct mrb_context *cxt;
+  struct mrb_context *cxt; /* if not null, it means that the stack is shared with the call frame */
   mrb_sym mid;
 };
 
-/* flags (21bits): 1(close):1(touched):1(heap):8(cioff/bidx):8(stack_len) */
+/* flags (21bits): 5(ZERO):8(cioff/bidx):8(stack_len) */
 #define MRB_ENV_SET_LEN(e,len) ((e)->flags = (((e)->flags & ~0xff)|((unsigned int)(len) & 0xff)))
 #define MRB_ENV_LEN(e) ((mrb_int)((e)->flags & 0xff))
-#define MRB_ENV_CLOSED (1<<20)
-#define MRB_ENV_CLOSE(e) ((e)->flags |= MRB_ENV_CLOSED)
-#define MRB_ENV_ONSTACK_P(e) (((e)->flags & MRB_ENV_CLOSED) == 0)
+#define MRB_ENV_CLOSE(e) ((e)->cxt = NULL)
+#define MRB_ENV_ONSTACK_P(e) ((e)->cxt != NULL)
 #define MRB_ENV_BIDX(e) (((e)->flags >> 8) & 0xff)
 #define MRB_ENV_SET_BIDX(e,idx) ((e)->flags = (((e)->flags & ~(0xff<<8))|((unsigned int)(idx) & 0xff)<<8))
 
