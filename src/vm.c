@@ -349,9 +349,15 @@ cipush(mrb_state *mrb, mrb_int push_stacks, uint8_t cci, struct RClass *target_c
     c->ciend = c->cibase + size * 2;
   }
   ci = ++c->ci;
+  ci->flags = 0;
+  if (blk && (blk->flags & (MRB_PROC_CFUNC_FL | MRB_PROC_ENVSET | MRB_PROC_ORPHAN)) == MRB_PROC_ENVSET &&
+      blk->e.env == ci[-1].u.env) {
+    mrb_assert(blk->color != MRB_GC_RED); // no exist red object with env set
+    ci->flags = MRB_CI_COMPANION_BLOCK;
+    ((struct RProc*)blk)->flags |= MRB_PROC_ORPHAN;
+  }
   ci->mid = mid;
   CI_PROC_SET(ci, proc);
-  ci->blk = blk;
   ci->stack = ci[-1].stack + push_stacks;
   ci->n = argc & 0xf;
   ci->nk = (argc>>4) & 0xf;
@@ -459,11 +465,6 @@ cipop(mrb_state *mrb)
   struct REnv *env = CI_ENV(ci);
 
   ci_env_set(ci, NULL); // make possible to free env by GC if not needed
-  struct RProc *b = ci->blk;
-  if (b && !mrb_object_dead_p(mrb, (struct RBasic*)b) && b->tt == MRB_TT_PROC &&
-      !MRB_PROC_STRICT_P(b) && MRB_PROC_ENV(b) == CI_ENV(&ci[-1])) {
-    b->flags |= MRB_PROC_ORPHAN;
-  }
   if (env && !mrb_env_unshare(mrb, env, TRUE)) {
     c->ci--; // exceptions are handled at the method caller; see #3087
     mrb_exc_raise(mrb, mrb_obj_value(mrb->nomem_err));
@@ -2290,14 +2291,27 @@ RETRY_TRY_BLOCK:
       }
 
       if (MRB_PROC_STRICT_P(proc)) goto NORMAL_RETURN;
-      if (MRB_PROC_ORPHAN_P(proc) || !MRB_PROC_ENV_P(proc) || !MRB_ENV_ONSTACK_P(MRB_PROC_ENV(proc))) {
+      if (!MRB_PROC_ENV_P(proc)) {
       L_BREAK_ERROR:
         RAISE_LIT(mrb, E_LOCALJUMP_ERROR, "break from proc-closure");
       }
       else {
         struct REnv *e = MRB_PROC_ENV(proc);
 
-        if (e->cxt != mrb->c) {
+        if (!MRB_ENV_ONSTACK_P(e) || e->cxt != mrb->c) {
+          goto L_BREAK_ERROR;
+        }
+
+        mrb_callinfo *birth_ci = mrb->c->ci - 1;
+        for (; birth_ci >= mrb->c->cibase; birth_ci--) {
+          if (e == birth_ci->u.env) {
+            if (!(birth_ci[1].flags & MRB_CI_COMPANION_BLOCK)) {
+              goto L_BREAK_ERROR;
+            }
+            break;
+          }
+        }
+        if (birth_ci < mrb->c->cibase) {
           goto L_BREAK_ERROR;
         }
       }
