@@ -354,7 +354,7 @@ cipush(mrb_state *mrb, mrb_int push_stacks, uint8_t cci, struct RClass *target_c
       blk->e.env == ci[-1].u.env) {
     mrb_assert(blk->color != MRB_GC_RED); // no exist red object with env set
     ci->flags = MRB_CI_COMPANION_BLOCK;
-    ((struct RProc*)blk)->flags |= MRB_PROC_ORPHAN;
+    blk->flags |= MRB_PROC_ORPHAN;
   }
   ci->mid = mid;
   CI_PROC_SET(ci, proc);
