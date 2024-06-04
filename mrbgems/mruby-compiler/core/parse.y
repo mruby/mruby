@@ -1320,24 +1320,27 @@ ret_args(parser_state *p, node *n)
 static void
 assignable(parser_state *p, node *lhs)
 {
-  if (intn(lhs->car) == NODE_LVAR) {
+  switch (intn(lhs->car)) {
+  case NODE_LVAR:
     local_add(p, sym(lhs->cdr));
+    break;
+  case NODE_CONST:
+    if (p->in_def)
+      yyerror(p, "dynamic constant assignment");
+    break;
   }
 }
 
 static node*
 var_reference(parser_state *p, node *lhs)
 {
-  node *n;
-
   if (intn(lhs->car) == NODE_LVAR) {
     if (!local_var_p(p, sym(lhs->cdr))) {
-      n = new_fcall(p, sym(lhs->cdr), 0);
+      node *n = new_fcall(p, sym(lhs->cdr), 0);
       cons_free(lhs);
       return n;
     }
   }
-
   return lhs;
 }
 
@@ -1345,18 +1348,16 @@ static node*
 label_reference(parser_state *p, mrb_sym sym)
 {
   const char *name = mrb_sym_name(p->mrb, sym);
-  node *n;
 
   if (local_var_p(p, sym)) {
-    n = new_lvar(p, sym);
+    return new_lvar(p, sym);
   }
   else if (ISUPPER(name[0])) {
-    n = new_const(p, sym);
+    return new_const(p, sym);
   }
   else {
-    n = new_fcall(p, sym, 0);
+    return new_fcall(p, sym, 0);
   }
-  return n;
 }
 
 typedef enum mrb_string_type  string_type;
@@ -1409,8 +1410,7 @@ static parser_heredoc_info *
 parsing_heredoc_info(parser_state *p)
 {
   node *nd = p->parsing_heredoc;
-  if (nd == NULL)
-    return NULL;
+  if (nd == NULL) return NULL;
   /* mrb_assert(nd->car->car == NODE_HEREDOC); */
   return (parser_heredoc_info*)nd->car->cdr;
 }
