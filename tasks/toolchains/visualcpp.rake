@@ -33,11 +33,6 @@ MRuby::Toolchain.new(:visualcpp) do |conf, _params|
     archiver.archive_options = '/nologo /OUT:"%{outfile}" %{objs}'
   end
 
-  conf.yacc do |yacc|
-    yacc.command = ENV['YACC'] || 'bison.exe'
-    yacc.compile_options = %q[-o "%{outfile}" "%{infile}"]
-  end
-
   conf.gperf do |gperf|
     gperf.command = 'gperf.exe'
     gperf.compile_options = %q[-L ANSI-C -C -p -j1 -i 1 -g -o -t -N mrb_reserved_word -k"1,3,$" "%{infile}" > "%{outfile}"]

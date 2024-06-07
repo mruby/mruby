@@ -249,7 +249,7 @@ module MRuby
 
     def initialize(build)
       super
-      @command = 'bison'
+      @command = "ruby #{MRUBY_ROOT}/tools/lrama/exe/lrama"
       @compile_options = %q[-o "%{outfile}" "%{infile}"]
     end
 

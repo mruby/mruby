@@ -34,3 +34,4 @@ mruby-source-*.gem
 node_modules
 tags
 !Gemfile.lock
+y.tab.c
