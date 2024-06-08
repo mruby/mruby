@@ -2298,20 +2298,7 @@ RETRY_TRY_BLOCK:
       else {
         struct REnv *e = MRB_PROC_ENV(proc);
 
-        if (!MRB_ENV_ONSTACK_P(e) || e->cxt != mrb->c) {
-          goto L_BREAK_ERROR;
-        }
-
-        mrb_callinfo *birth_ci = mrb->c->ci - 1;
-        for (; birth_ci >= mrb->c->cibase; birth_ci--) {
-          if (e == birth_ci->u.env) {
-            if (!(birth_ci[1].flags & MRB_CI_COMPANION_BLOCK)) {
-              goto L_BREAK_ERROR;
-            }
-            break;
-          }
-        }
-        if (birth_ci < mrb->c->cibase) {
+        if (e->cxt != mrb->c) {
           goto L_BREAK_ERROR;
         }
       }
@@ -2320,7 +2307,7 @@ RETRY_TRY_BLOCK:
       while (mrb->c->cibase < ci && ci[-1].proc != proc) {
         ci--;
       }
-      if (ci == mrb->c->cibase) {
+      if (ci == mrb->c->cibase || !(ci->flags & MRB_CI_COMPANION_BLOCK)) {
         goto L_BREAK_ERROR;
       }
       c = a; // release the "a" variable, which can handle 32-bit values
@@ -2346,7 +2333,7 @@ RETRY_TRY_BLOCK:
       if (MRB_PROC_ENV_P(dst)) {
         struct REnv *e = MRB_PROC_ENV(dst);
 
-        if (!MRB_ENV_ONSTACK_P(e) || e->cxt != mrb->c) {
+        if (e->cxt != mrb->c) {
           localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
           goto L_RAISE;
         }
