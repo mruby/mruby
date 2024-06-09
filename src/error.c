@@ -592,10 +592,33 @@ mrb_protect_atexit(mrb_state *mrb)
       // Clean-up also makes it easier to collect unnecessary objects.
       mrb_callinfo zero = { 0 };
       struct mrb_context *c = mrb->c = mrb->root_c;
-      c->ci = c->cibase;
-      *c->ci = zero;
-      c->ci->stack = c->stbase;
       mrb_gc_arena_restore(mrb, 0);
+
+      if (c->ci == c->cibase) {
+        // Since there is no problem with the ci, the env object is detached normally.
+        struct REnv *e = mrb_vm_ci_env(c->ci);
+        *c->ci = zero;
+        c->ci->stack = c->stbase;
+        if (e) {
+          c->ci->u.env = NULL;
+          mrb_env_unshare(mrb, e, TRUE);
+        }
+      }
+      else {
+        // Any env objects on the ci that are in the process of being executed are destroyed.
+        do {
+          struct REnv *e = mrb_vm_ci_env(c->ci);
+          if (e) {
+            e->stack = NULL;
+            MRB_ENV_SET_LEN(e, 0);
+            MRB_ENV_SET_BIDX(e, 0);
+            MRB_ENV_CLOSE(e);
+          }
+        } while (c->ci-- > c->cibase);
+        c->ci = c->cibase;
+        *c->ci = zero;
+        c->ci->stack = c->stbase;
+      }
     }
 
     struct mrb_jmpbuf *prev_jmp = mrb->jmp;
