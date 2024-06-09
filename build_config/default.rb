@@ -73,6 +73,9 @@ MRuby::Build.new do |conf|
   # file separator
   # conf.file_separator = '/'
 
+  # change library directory name from the default "lib" if necessary
+  # conf.libdir_name = 'lib64'
+
   # Turn on `enable_debug` for better debugging
   # conf.enable_debug
   conf.enable_bintest

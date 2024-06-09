@@ -18,7 +18,7 @@ MRuby.each_target do |build|
   task "install:full" => "install:full:#{build.name}"
 
   task "install:full:#{build.name}" => "install:bin:#{build.name}" do
-    Dir.glob(File.join(build.build_dir.gsub(/[\[\{\*\?]/, "\\\0"), "{include,lib}/**/*")) do |path|
+    Dir.glob(File.join(build.build_dir.gsub(/[\[\{\*\?]/, "\\\0"), "{include,#{libdir_name}}/**/*")) do |path|
       install_D path, File.join(prefix, path.relative_path_from(build.build_dir)) if File.file? path
     end
   end

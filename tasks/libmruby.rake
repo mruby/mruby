@@ -36,7 +36,7 @@ MRuby.each_target do
     end
   end
 
-  file "#{build_dir}/lib/libmruby.flags.mak" => [__FILE__, libmruby_static] do |t|
+  file "#{build_dir}/#{libdir_name}/libmruby.flags.mak" => [__FILE__, libmruby_static] do |t|
     mkdir_p File.dirname t.name
     open(t.name, 'w') do |f|
       f.puts <<~FLAGS_MAKE
@@ -73,7 +73,7 @@ MRuby.each_target do
       libgems = gems.reject{|g| g.bin?}
       gem_flags = libgems.map {|g| g.linker.flags }
       gem_library_paths = libgems.map {|g| g.linker.library_paths }
-      f.puts "MRUBY_LDFLAGS = #{linker.all_flags(gem_library_paths, gem_flags)} #{linker.option_library_path % "$(MRUBY_PACKAGE_DIR)/lib"}"
+      f.puts "MRUBY_LDFLAGS = #{linker.all_flags(gem_library_paths, gem_flags)} #{linker.option_library_path % "$(MRUBY_PACKAGE_DIR)/#{libdir_name}"}"
 
       gem_flags_before_libraries = libgems.map {|g| g.linker.flags_before_libraries }
       f.puts "MRUBY_LDFLAGS_BEFORE_LIBS = #{[linker.flags_before_libraries, gem_flags_before_libraries].flatten.join(' ')}"
