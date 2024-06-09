@@ -75,7 +75,7 @@ module MRuby
 
     include Rake::DSL
     include LoadGems
-    attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir, :defines
+    attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir, :defines, :libdir_name
     attr_reader :products, :libmruby_core_objs, :libmruby_objs, :gems, :toolchains, :presym, :mrbc_build, :gem_dir_to_repo_url
 
     alias libmruby libmruby_objs
@@ -101,6 +101,7 @@ module MRuby
         @file_separator = '/'
         @build_dir = "#{build_dir}/#{@name}"
         @gem_clone_dir = "#{build_dir}/repos/#{@name}"
+        @libdir_name = (self.kind_of?(MRuby::CrossBuild) ? nil : ENV["MRUBY_SYSTEM_LIBDIR_NAME"]) || "lib"
         @install_prefix = nil
         @defines = []
         @cc = Command::Compiler.new(self, %w(.c), label: "CC")
@@ -490,11 +491,11 @@ EOS
     end
 
     def libmruby_static
-      libfile("#{build_dir}/lib/libmruby")
+      libfile("#{build_dir}/#{libdir_name}/libmruby")
     end
 
     def libmruby_core_static
-      libfile("#{build_dir}/lib/libmruby_core")
+      libfile("#{build_dir}/#{libdir_name}/libmruby_core")
     end
 
     def libraries

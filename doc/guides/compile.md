@@ -117,6 +117,36 @@ set the character via `conf.file_separator`.
 conf.file_separator = '/'
 ```
 
+### Name of library directory
+
+In some environments, the `libmruby.a` file requires a different directory name than `lib`.
+You can be changed to any name by the `conf.libdir_name` accessor.
+
+```ruby
+conf.libdir_name = 'lib64'
+```
+
+Alternatively, it can be changed via the environment variable `MRUBY_SYSTEM_LIBDIR_NAME` when
+the `rake` command is run.
+
+```console
+$ export MRUBY_SYSTEM_LIBDIR_NAME=lib64
+$ rake clean all
+```
+
+NOTES:
+
+- This environment variable `MRUBY_SYSTEM_LIBDIR_NAME` does not affect `MRuby::CrossBuild`.
+  In other words, if you want to change it for `MRuby::CrossBuild`, you must set it with `MRuby::CrossBuild#libdir_name=`.
+- If you want to switch this environment variable `MRUBY_SYSTEM_LIBDIR_NAME`, you must do `rake clean`.
+
+  A bad usage example is shown below.
+
+  ```console
+  $ rake clean all
+  $ rake MRUBY_SYSTEM_LIBDIR_NAME=lib64 install
+  ```
+
 ### C Compiler
 
 Configuration of the C compiler binary, flags and include paths.
