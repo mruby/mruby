@@ -10,6 +10,7 @@
 #include <mruby/string.h>
 #include <mruby/variable.h>
 #include <mruby/endian.h>
+#include <mruby/presym.h>
 
 #include <ctype.h>
 #include <string.h>
@@ -1760,9 +1761,9 @@ mrb_pack_unpack1(mrb_state *mrb, mrb_value str)
 void
 mrb_mruby_pack_gem_init(mrb_state *mrb)
 {
-  mrb_define_method(mrb, mrb->array_class, "pack", mrb_pack_pack, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, mrb->string_class, "unpack", mrb_pack_unpack, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, mrb->string_class, "unpack1", mrb_pack_unpack1, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, mrb->array_class, MRB_SYM(pack), mrb_pack_pack, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, mrb->string_class, MRB_SYM(unpack), mrb_pack_unpack, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, mrb->string_class, MRB_SYM(unpack1), mrb_pack_unpack1, MRB_ARGS_REQ(1));
 }
 
 void
