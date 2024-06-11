@@ -385,24 +385,24 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
 
   mrb_static_assert(sizeof(rand_state) <= ISTRUCT_DATA_SIZE);
 
-  mrb_define_method(mrb, mrb->kernel_module, "rand", random_f_rand, MRB_ARGS_OPT(1));
-  mrb_define_method(mrb, mrb->kernel_module, "srand", random_f_srand, MRB_ARGS_OPT(1));
+  mrb_define_method_id(mrb, mrb->kernel_module, MRB_SYM(rand), random_f_rand, MRB_ARGS_OPT(1));
+  mrb_define_method_id(mrb, mrb->kernel_module, MRB_SYM(srand), random_f_srand, MRB_ARGS_OPT(1));
 
-  struct RClass *random = mrb_define_class(mrb, "Random", mrb->object_class);
+  struct RClass *random = mrb_define_class_id(mrb, MRB_SYM(Random), mrb->object_class);
   mrb_const_set(mrb, mrb_obj_value(mrb->object_class), ID_RANDOM, mrb_obj_value(random)); // for class check
   MRB_SET_INSTANCE_TT(random, MRB_TT_ISTRUCT);
-  mrb_define_class_method(mrb, random, "rand", random_f_rand, MRB_ARGS_OPT(1));
-  mrb_define_class_method(mrb, random, "srand", random_f_srand, MRB_ARGS_OPT(1));
-  mrb_define_class_method(mrb, random, "bytes", random_f_bytes, MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, random, MRB_SYM(rand), random_f_rand, MRB_ARGS_OPT(1));
+  mrb_define_class_method_id(mrb, random, MRB_SYM(srand), random_f_srand, MRB_ARGS_OPT(1));
+  mrb_define_class_method_id(mrb, random, MRB_SYM(bytes), random_f_bytes, MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, random, "initialize", random_m_init, MRB_ARGS_OPT(1));
-  mrb_define_method(mrb, random, "rand", random_m_rand, MRB_ARGS_OPT(1));
-  mrb_define_method(mrb, random, "srand", random_m_srand, MRB_ARGS_OPT(1));
-  mrb_define_method(mrb, random, "bytes", random_m_bytes, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, random, MRB_SYM(initialize), random_m_init, MRB_ARGS_OPT(1));
+  mrb_define_method_id(mrb, random, MRB_SYM(rand), random_m_rand, MRB_ARGS_OPT(1));
+  mrb_define_method_id(mrb, random, MRB_SYM(srand), random_m_srand, MRB_ARGS_OPT(1));
+  mrb_define_method_id(mrb, random, MRB_SYM(bytes), random_m_bytes, MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, array, "shuffle", mrb_ary_shuffle, MRB_ARGS_OPT(1));
-  mrb_define_method(mrb, array, "shuffle!", mrb_ary_shuffle_bang, MRB_ARGS_OPT(1));
-  mrb_define_method(mrb, array, "sample", mrb_ary_sample, MRB_ARGS_OPT(2));
+  mrb_define_method_id(mrb, array, MRB_SYM(shuffle), mrb_ary_shuffle, MRB_ARGS_OPT(1));
+  mrb_define_method_id(mrb, array, MRB_SYM_B(shuffle), mrb_ary_shuffle_bang, MRB_ARGS_OPT(1));
+  mrb_define_method_id(mrb, array, MRB_SYM(sample), mrb_ary_sample, MRB_ARGS_OPT(2));
 
   mrb_value d = mrb_obj_new(mrb, random, 0, NULL);
   rand_state *t = random_ptr(d);
