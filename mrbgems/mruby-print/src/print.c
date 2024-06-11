@@ -5,6 +5,7 @@
 #endif
 
 #include <mruby/string.h>
+#include <mruby/presym.h>
 #include <string.h>
 #if defined(_WIN32)
 # include <windows.h>
@@ -61,7 +62,7 @@ mrb_print(mrb_state *mrb, mrb_value self)
 void
 mrb_mruby_print_gem_init(mrb_state* mrb)
 {
-  mrb_define_method(mrb, mrb->kernel_module, "print", mrb_print, MRB_ARGS_ANY()); /* 15.3.1.3.35 */
+  mrb_define_method_id(mrb, mrb->kernel_module, MRB_SYM(print), mrb_print, MRB_ARGS_ANY()); /* 15.3.1.3.35 */
 }
 
 void
