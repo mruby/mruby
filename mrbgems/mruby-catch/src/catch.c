@@ -90,7 +90,7 @@ mrb_mruby_catch_gem_init(mrb_state *mrb)
   MRB_METHOD_FROM_PROC(m, &catch_proc);
   mrb_define_method_raw(mrb, mrb->kernel_module, MRB_SYM(catch), m);
 
-  mrb_define_method(mrb, mrb->kernel_module, "throw", throw_m, MRB_ARGS_ARG(1,1));
+  mrb_define_method_id(mrb, mrb->kernel_module, MRB_SYM(throw), throw_m, MRB_ARGS_ARG(1,1));
 }
 
 void
