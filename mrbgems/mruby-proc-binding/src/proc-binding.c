@@ -36,7 +36,7 @@ mrb_proc_binding(mrb_state *mrb, mrb_value procval)
 void
 mrb_mruby_proc_binding_gem_init(mrb_state *mrb)
 {
-  mrb_define_method(mrb, mrb->proc_class, "binding", mrb_proc_binding, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, mrb->proc_class, MRB_SYM(binding), mrb_proc_binding, MRB_ARGS_NONE());
 }
 
 void
