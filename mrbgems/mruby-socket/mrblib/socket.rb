@@ -487,12 +487,12 @@ class UNIXSocket < BasicSocket
     end
   end
 
-  def self.socketpair(type=Socket::SOCK_STREAM, protocol=0)
-    a = Socket.socketpair(Socket::AF_UNIX, type, protocol)
-    [ UNIXSocket.for_fd(a[0]), UNIXSocket.for_fd(a[1]) ]
-  end
-
   class << self
+    def socketpair(type=Socket::SOCK_STREAM, protocol=0)
+      a = Socket.socketpair(Socket::AF_UNIX, type, protocol)
+      [ UNIXSocket.for_fd(a[0]), UNIXSocket.for_fd(a[1]) ]
+    end
+
     alias pair socketpair
   end
 
