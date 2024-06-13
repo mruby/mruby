@@ -219,8 +219,8 @@ mrb_mruby_numeric_ext_gem_init(mrb_state* mrb)
 {
   struct RClass *ic = mrb->integer_class;
 
-  mrb_define_alias(mrb, ic, "modulo", "%");
-  mrb_define_method(mrb, ic, "remainder", int_remainder, MRB_ARGS_REQ(1));
+  mrb_define_alias_id(mrb, ic, MRB_SYM(modulo), MRB_OPSYM(mod));
+  mrb_define_method_id(mrb, ic, MRB_SYM(remainder), int_remainder, MRB_ARGS_REQ(1));
 
   mrb_define_method_id(mrb, ic, MRB_SYM(pow), int_powm, MRB_ARGS_ARG(1,1));
   mrb_define_method_id(mrb, ic, MRB_SYM(digits), int_digits, MRB_ARGS_OPT(1));
@@ -228,8 +228,8 @@ mrb_mruby_numeric_ext_gem_init(mrb_state* mrb)
 #ifndef MRB_NO_FLOAT
   struct RClass *fc = mrb->float_class;
 
-  mrb_define_alias(mrb, fc, "modulo", "%");
-  mrb_define_method(mrb, fc, "remainder", flo_remainder, MRB_ARGS_REQ(1));
+  mrb_define_alias_id(mrb, fc, MRB_SYM(modulo), MRB_OPSYM(mod));
+  mrb_define_method_id(mrb, fc, MRB_SYM(remainder), flo_remainder, MRB_ARGS_REQ(1));
 
   mrb_define_const_id(mrb, fc, MRB_SYM(RADIX),        mrb_fixnum_value(MRB_FLT_RADIX));
   mrb_define_const_id(mrb, fc, MRB_SYM(MANT_DIG),     mrb_fixnum_value(MRB_FLT_MANT_DIG));
