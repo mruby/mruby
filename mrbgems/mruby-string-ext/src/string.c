@@ -5,6 +5,7 @@
 #include <mruby/string.h>
 #include <mruby/range.h>
 #include <mruby/internal.h>
+#include <mruby/presym.h>
 
 #define ENC_ASCII_8BIT "ASCII-8BIT"
 #define ENC_BINARY     "BINARY"
@@ -1329,45 +1330,45 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 {
   struct RClass *s = mrb->string_class;
 
-  mrb_define_method(mrb, s, "dump",            mrb_str_dump,        MRB_ARGS_NONE());
-  mrb_define_method(mrb, s, "swapcase!",       str_swapcase_bang,   MRB_ARGS_NONE());
-  mrb_define_method(mrb, s, "swapcase",        str_swapcase,        MRB_ARGS_NONE());
-  mrb_define_method(mrb, s, "concat",          str_concat_m,        MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, s, "<<",              str_concat_m,        MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, s, "count",           str_count,           MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, s, "tr",              str_tr_m,            MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, s, "tr!",             str_tr_bang,         MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, s, "tr_s",            str_tr_s,            MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, s, "tr_s!",           str_tr_s_bang,       MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, s, "squeeze",         str_squeeze_m,       MRB_ARGS_OPT(1));
-  mrb_define_method(mrb, s, "squeeze!",        str_squeeze_bang,    MRB_ARGS_OPT(1));
-  mrb_define_method(mrb, s, "delete",          str_delete_m,        MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, s, "delete!",         str_delete_bang,     MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, s, "start_with?",     str_start_with,      MRB_ARGS_REST());
-  mrb_define_method(mrb, s, "end_with?",       str_end_with,        MRB_ARGS_REST());
-  mrb_define_method(mrb, s, "hex",             str_hex,             MRB_ARGS_NONE());
-  mrb_define_method(mrb, s, "oct",             str_oct,             MRB_ARGS_NONE());
-  mrb_define_method(mrb, s, "chr",             str_chr,             MRB_ARGS_NONE());
-  mrb_define_method(mrb, s, "succ",            str_succ,            MRB_ARGS_NONE());
-  mrb_define_method(mrb, s, "succ!",           str_succ_bang,       MRB_ARGS_NONE());
-  mrb_define_method(mrb, s, "next",            str_succ,            MRB_ARGS_NONE());
-  mrb_define_method(mrb, s, "next!",           str_succ_bang,       MRB_ARGS_NONE());
-  mrb_define_method(mrb, s, "ord",             str_ord,             MRB_ARGS_NONE());
-  mrb_define_method(mrb, s, "delete_prefix!",  str_del_prefix_bang, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, s, "delete_prefix",   str_del_prefix,      MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, s, "delete_suffix!",  str_del_suffix_bang, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, s, "delete_suffix",   str_del_suffix,      MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, s, "casecmp",         str_casecmp,         MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, s, "casecmp?",        str_casecmp_p,       MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, s, "+@",              str_uplus,           MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, s, "-@",              str_uminus,          MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, s, "valid_encoding?", str_valid_enc_p,     MRB_ARGS_NONE());
-  mrb_define_method(mrb, s, "ascii_only?",     str_ascii_only_p,    MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM(dump),             mrb_str_dump,        MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM_B(swapcase),       str_swapcase_bang,   MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM(swapcase),         str_swapcase,        MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM(concat),           str_concat_m,        MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_OPSYM(lshift),         str_concat_m,        MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_SYM(count),            str_count,           MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_SYM(tr),               str_tr_m,            MRB_ARGS_REQ(2));
+  mrb_define_method_id(mrb, s, MRB_SYM_B(tr),             str_tr_bang,         MRB_ARGS_REQ(2));
+  mrb_define_method_id(mrb, s, MRB_SYM(tr_s),             str_tr_s,            MRB_ARGS_REQ(2));
+  mrb_define_method_id(mrb, s, MRB_SYM_B(tr_s),           str_tr_s_bang,       MRB_ARGS_REQ(2));
+  mrb_define_method_id(mrb, s, MRB_SYM(squeeze),          str_squeeze_m,       MRB_ARGS_OPT(1));
+  mrb_define_method_id(mrb, s, MRB_SYM_B(squeeze),        str_squeeze_bang,    MRB_ARGS_OPT(1));
+  mrb_define_method_id(mrb, s, MRB_SYM(delete),           str_delete_m,        MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_SYM_B(delete),         str_delete_bang,     MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_SYM_Q(start_with),     str_start_with,      MRB_ARGS_REST());
+  mrb_define_method_id(mrb, s, MRB_SYM_Q(end_with),       str_end_with,        MRB_ARGS_REST());
+  mrb_define_method_id(mrb, s, MRB_SYM(hex),              str_hex,             MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM(oct),              str_oct,             MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM(chr),              str_chr,             MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM(succ),             str_succ,            MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM_B(succ),           str_succ_bang,       MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM(next),             str_succ,            MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM_B(next),           str_succ_bang,       MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM(ord),              str_ord,             MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM_B(delete_prefix),  str_del_prefix_bang, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_SYM(delete_prefix),    str_del_prefix,      MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_SYM_B(delete_suffix),  str_del_suffix_bang, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_SYM(delete_suffix),    str_del_suffix,      MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_SYM(casecmp),          str_casecmp,         MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_SYM_B(casecmp),        str_casecmp_p,       MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_OPSYM(plus),           str_uplus,           MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_OPSYM(minus),          str_uminus,          MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_SYM_Q(valid_encoding), str_valid_enc_p,     MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM_Q(ascii_only),     str_ascii_only_p,    MRB_ARGS_NONE());
 
-  mrb_define_method(mrb, s, "__lines",         str_lines,           MRB_ARGS_NONE());
-  mrb_define_method(mrb, s, "__codepoints",    str_codepoints,      MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM(__lines),          str_lines,           MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM(__codepoints),     str_codepoints,      MRB_ARGS_NONE());
 
-  mrb_define_method(mrb, mrb->integer_class, "chr", int_chr, MRB_ARGS_OPT(1));
+  mrb_define_method_id(mrb, mrb->integer_class, MRB_SYM(chr), int_chr, MRB_ARGS_OPT(1));
 }
 
 void
