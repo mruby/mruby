@@ -546,21 +546,21 @@ mrb_fiber_new(mrb_state *mrb, const struct RProc *p)
 void
 mrb_mruby_fiber_gem_init(mrb_state* mrb)
 {
-  struct RClass *c = mrb_define_class(mrb, "Fiber", mrb->object_class);
+  struct RClass *c = mrb_define_class_id(mrb, MRB_SYM(Fiber), mrb->object_class);
   MRB_SET_INSTANCE_TT(c, MRB_TT_FIBER);
 
-  mrb_define_method(mrb, c, "initialize", fiber_init,    MRB_ARGS_NONE()|MRB_ARGS_BLOCK());
-  mrb_define_method(mrb, c, "resume",     fiber_resume,  MRB_ARGS_ANY());
-  mrb_define_method(mrb, c, "transfer",   fiber_transfer, MRB_ARGS_ANY());
-  mrb_define_method(mrb, c, "alive?",     fiber_alive_p, MRB_ARGS_NONE());
-  mrb_define_method(mrb, c, "==",         fiber_eq,      MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, c, "to_s",       fiber_to_s,    MRB_ARGS_NONE());
-  mrb_define_alias(mrb, c, "inspect", "to_s");
+  mrb_define_method_id(mrb, c, MRB_SYM(initialize), fiber_init,     MRB_ARGS_NONE()|MRB_ARGS_BLOCK());
+  mrb_define_method_id(mrb, c, MRB_SYM(resume),     fiber_resume,   MRB_ARGS_ANY());
+  mrb_define_method_id(mrb, c, MRB_SYM(transfer),   fiber_transfer, MRB_ARGS_ANY());
+  mrb_define_method_id(mrb, c, MRB_SYM_Q(alive),    fiber_alive_p,  MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, c, MRB_OPSYM(eq),       fiber_eq,       MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, c, MRB_SYM(to_s),       fiber_to_s,     MRB_ARGS_NONE());
+  mrb_define_alias_id(mrb, c, MRB_SYM(inspect), MRB_SYM(to_s));
 
-  mrb_define_class_method(mrb, c, "yield", fiber_yield, MRB_ARGS_ANY());
-  mrb_define_class_method(mrb, c, "current", fiber_current, MRB_ARGS_NONE());
+  mrb_define_class_method_id(mrb, c, MRB_SYM(yield), fiber_yield, MRB_ARGS_ANY());
+  mrb_define_class_method_id(mrb, c, MRB_SYM(current), fiber_current, MRB_ARGS_NONE());
 
-  mrb_define_class(mrb, "FiberError", E_STANDARD_ERROR);
+  mrb_define_class_id(mrb, MRB_SYM(FiberError), E_STANDARD_ERROR);
 }
 
 void
