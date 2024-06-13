@@ -1,5 +1,6 @@
 #include <mruby.h>
 #include <mruby/range.h>
+#include <mruby/presym.h>
 
 static mrb_bool
 r_less(mrb_state *mrb, mrb_value a, mrb_value b, mrb_bool excl)
@@ -211,9 +212,9 @@ mrb_mruby_range_ext_gem_init(mrb_state* mrb)
 {
   struct RClass *s = mrb->range_class;
 
-  mrb_define_method(mrb, s, "cover?", range_cover, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, s, "size",   range_size,  MRB_ARGS_NONE());
-  mrb_define_method(mrb, s, "__empty_range?", range_empty_p,  MRB_ARGS_REQ(3));
+  mrb_define_method_id(mrb, s, MRB_SYM_Q(cover), range_cover, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_SYM(size), range_size,  MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM_Q(__empty_range), range_empty_p,  MRB_ARGS_REQ(3));
 }
 
 void
