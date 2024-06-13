@@ -136,14 +136,14 @@ mrb_mruby_class_ext_gem_init(mrb_state *mrb)
 {
   struct RClass *mod = mrb->module_class;
 
-  mrb_define_method(mrb, mod, "name", mod_name, MRB_ARGS_NONE());
-  mrb_define_method(mrb, mod, "singleton_class?", mod_singleton_class_p, MRB_ARGS_NONE());
-  mrb_define_method(mrb, mod, "module_exec", mod_module_exec, MRB_ARGS_ANY()|MRB_ARGS_BLOCK());
-  mrb_define_method(mrb, mod, "class_exec", mod_module_exec, MRB_ARGS_ANY()|MRB_ARGS_BLOCK());
+  mrb_define_method_id(mrb, mod, MRB_SYM(name), mod_name, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, mod, MRB_SYM_Q(singleton_class), mod_singleton_class_p, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, mod, MRB_SYM(module_exec), mod_module_exec, MRB_ARGS_ANY()|MRB_ARGS_BLOCK());
+  mrb_define_method_id(mrb, mod, MRB_SYM(class_exec), mod_module_exec, MRB_ARGS_ANY()|MRB_ARGS_BLOCK());
 
   struct RClass *cls = mrb->class_class;
-  mrb_define_method(mrb, cls, "subclasses", class_subclasses, MRB_ARGS_NONE());
-  mrb_define_method(mrb, cls, "attached_object", class_attached_object, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, cls, MRB_SYM(subclasses), class_subclasses, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, cls, MRB_SYM(attached_object), class_attached_object, MRB_ARGS_NONE());
 }
 
 void
