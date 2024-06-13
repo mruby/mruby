@@ -296,21 +296,19 @@ mrb_sce_sys_fail(mrb_state *mrb, mrb_value cls)
 void
 mrb_mruby_errno_gem_init(mrb_state *mrb)
 {
-  struct RClass *e, *eno, *sce;
+  struct RClass *sce = mrb_define_class_id(mrb, MRB_SYM(SystemCallError), E_STANDARD_ERROR);
+  mrb_define_class_method_id(mrb, sce, MRB_SYM(_sys_fail), mrb_sce_sys_fail, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, sce, MRB_SYM(errno), mrb_sce_errno, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, sce, MRB_SYM(initialize), mrb_sce_init_m, MRB_ARGS_ARG(1, 1));
 
-  sce = mrb_define_class(mrb, "SystemCallError", E_STANDARD_ERROR);
-  mrb_define_class_method(mrb, sce, "_sys_fail", mrb_sce_sys_fail, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, sce, "errno", mrb_sce_errno, MRB_ARGS_NONE());
-  mrb_define_method(mrb, sce, "initialize", mrb_sce_init_m, MRB_ARGS_ARG(1, 1));
+  struct RClass *eno = mrb_define_module_id(mrb, MRB_SYM(Errno));
+  mrb_define_class_method_id(mrb, eno, MRB_SYM_Q(__errno_defined), mrb_errno_defined_p, MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, eno, MRB_SYM(__errno_define), mrb_errno_define, MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, eno, MRB_SYM(__errno_list), mrb_errno_list, MRB_ARGS_REQ(1));
 
-  eno = mrb_define_module_id(mrb, MRB_SYM(Errno));
-  mrb_define_class_method(mrb, eno, "__errno_defined?", mrb_errno_defined_p, MRB_ARGS_REQ(1));
-  mrb_define_class_method(mrb, eno, "__errno_define", mrb_errno_define, MRB_ARGS_REQ(1));
-  mrb_define_class_method(mrb, eno, "__errno_list", mrb_errno_list, MRB_ARGS_REQ(1));
-
-  e = mrb_define_class_under_id(mrb, eno, MRB_SYM(NOERROR), sce);
+  struct RClass *e = mrb_define_class_under_id(mrb, eno, MRB_SYM(NOERROR), sce);
   mrb_define_const_id(mrb, e, MRB_SYM(Errno), mrb_fixnum_value(0));
-  //mrb_define_method(mrb, e, "===", mrb_exxx_cmp, MRB_ARGS_REQ(1));
+  //mrb_define_method_id(mrb, e, MRB_SYM(eqq), mrb_exxx_cmp, MRB_ARGS_REQ(1));
 
   // Pre-allocation for Errno::ENOMEM only
   mrb_errno_define_exxx(mrb, MRB_SYM(ENOMEM), ENOMEM);
