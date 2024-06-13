@@ -171,13 +171,13 @@ void
 mrb_mruby_proc_ext_gem_init(mrb_state* mrb)
 {
   struct RClass *p = mrb->proc_class;
-  mrb_define_method(mrb, p, "lambda?",         proc_lambda_p,        MRB_ARGS_NONE());
-  mrb_define_method(mrb, p, "source_location", proc_source_location, MRB_ARGS_NONE());
-  mrb_define_method(mrb, p, "to_s",            proc_inspect,         MRB_ARGS_NONE());
-  mrb_define_method(mrb, p, "inspect",         proc_inspect,         MRB_ARGS_NONE());
-  mrb_define_method(mrb, p, "parameters",      mrb_proc_parameters,  MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, p, MRB_SYM_Q(lambda),        proc_lambda_p,        MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, p, MRB_SYM(source_location), proc_source_location, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, p, MRB_SYM(to_s),            proc_inspect,         MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, p, MRB_SYM(inspect),         proc_inspect,         MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, p, MRB_SYM(parameters),      mrb_proc_parameters,  MRB_ARGS_NONE());
 
-  mrb_define_method(mrb, mrb->kernel_module,   "proc", kernel_proc,  MRB_ARGS_NONE()|MRB_ARGS_BLOCK());
+  mrb_define_method_id(mrb, mrb->kernel_module, MRB_SYM(proc), kernel_proc,  MRB_ARGS_NONE()|MRB_ARGS_BLOCK());
 }
 
 void
