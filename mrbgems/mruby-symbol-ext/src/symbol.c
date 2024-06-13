@@ -2,9 +2,7 @@
 #include <mruby/array.h>
 #include <mruby/string.h>
 #include <mruby/internal.h>
-#ifdef MRB_USE_ALL_SYMBOLS
-# include <mruby/presym.h>
-#endif
+#include <mruby/presym.h>
 
 /*
  *  call-seq:
@@ -64,10 +62,10 @@ mrb_mruby_symbol_ext_gem_init(mrb_state* mrb)
 {
   struct RClass *s = mrb->symbol_class;
 #ifdef MRB_USE_ALL_SYMBOLS
-  mrb_define_class_method(mrb, s, "all_symbols", mrb_sym_all_symbols, MRB_ARGS_NONE());
+  mrb_define_class_method_id(mrb, s, MRB_SYM(all_symbols), mrb_sym_all_symbols, MRB_ARGS_NONE());
 #endif
-  mrb_define_method(mrb, s, "length", mrb_sym_length, MRB_ARGS_NONE());
-  mrb_define_method(mrb, s, "size", mrb_sym_length, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM(length), mrb_sym_length, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM(size), mrb_sym_length, MRB_ARGS_NONE());
 }
 
 void
