@@ -7,6 +7,7 @@
 #include <mruby.h>
 #include <mruby/array.h>
 #include <mruby/hash.h>
+#include <mruby/presym.h>
 
 /*
  * call-seq:
@@ -101,9 +102,9 @@ mrb_mruby_hash_ext_gem_init(mrb_state *mrb)
   struct RClass *h;
 
   h = mrb->hash_class;
-  mrb_define_method(mrb, h, "values_at", hash_values_at, MRB_ARGS_ANY());
-  mrb_define_method(mrb, h, "slice",     hash_slice, MRB_ARGS_ANY());
-  mrb_define_method(mrb, h, "except",    hash_except, MRB_ARGS_ANY());
+  mrb_define_method_id(mrb, h, MRB_SYM(values_at), hash_values_at, MRB_ARGS_ANY());
+  mrb_define_method_id(mrb, h, MRB_SYM(slice),     hash_slice, MRB_ARGS_ANY());
+  mrb_define_method_id(mrb, h, MRB_SYM(except),    hash_except, MRB_ARGS_ANY());
 }
 
 void
