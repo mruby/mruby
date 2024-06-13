@@ -481,22 +481,22 @@ mrb_data_to_s(mrb_state *mrb, mrb_value self)
 void
 mrb_mruby_data_gem_init(mrb_state* mrb)
 {
-  struct RClass *d = mrb_define_class(mrb, "Data",  mrb->object_class);
+  struct RClass *d = mrb_define_class_id(mrb, MRB_SYM(Data),  mrb->object_class);
   MRB_SET_INSTANCE_TT(d, MRB_TT_STRUCT);
   MRB_UNDEF_ALLOCATOR(d);
 
-  mrb_undef_class_method(mrb, d, "new");
-  mrb_define_class_method(mrb, d, "define",          mrb_data_s_def,      MRB_ARGS_ANY());
+  mrb_undef_class_method_id(mrb, d, MRB_SYM(new));
+  mrb_define_class_method_id(mrb, d, MRB_SYM(define), mrb_data_s_def,      MRB_ARGS_ANY());
 
-  mrb_define_method(mrb, d,       "==",              mrb_data_equal,      MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, d,       "members",         mrb_data_members,    MRB_ARGS_NONE());
-  mrb_define_method(mrb, d,       "initialize",      mrb_data_initialize, MRB_ARGS_ANY());
-  mrb_define_method(mrb, d,       "initialize_copy", mrb_data_init_copy,  MRB_ARGS_ANY());
-  mrb_define_method(mrb, d,       "eql?",            mrb_data_eql,        MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, d, MRB_OPSYM(eq),            mrb_data_equal,      MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, d, MRB_SYM(members),         mrb_data_members,    MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, d, MRB_SYM(initialize),      mrb_data_initialize, MRB_ARGS_ANY());
+  mrb_define_method_id(mrb, d, MRB_SYM(initialize_copy), mrb_data_init_copy,  MRB_ARGS_ANY());
+  mrb_define_method_id(mrb, d, MRB_SYM_Q(eql),           mrb_data_eql,        MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, d,       "to_h",            mrb_data_to_h,       MRB_ARGS_NONE());
-  mrb_define_method(mrb, d,       "to_s",            mrb_data_to_s,       MRB_ARGS_NONE());
-  mrb_define_method(mrb, d,       "inspect",         mrb_data_to_s,       MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, d, MRB_SYM(to_h),            mrb_data_to_h,       MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, d, MRB_SYM(to_s),            mrb_data_to_s,       MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, d, MRB_SYM(inspect),         mrb_data_to_s,       MRB_ARGS_NONE());
 }
 
 void
