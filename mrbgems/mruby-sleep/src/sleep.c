@@ -37,6 +37,7 @@
 #endif
 
 #include <mruby.h>
+#include <mruby/presym.h>
 
 /* not implemented forever sleep (called without an argument)*/
 static mrb_value
@@ -128,8 +129,8 @@ f_usleep(mrb_state *mrb, mrb_value self)
 void
 mrb_mruby_sleep_gem_init(mrb_state *mrb)
 {
-    mrb_define_method(mrb, mrb->kernel_module, "sleep",   f_sleep,   MRB_ARGS_REQ(1));
-    mrb_define_method(mrb, mrb->kernel_module, "usleep",  f_usleep,  MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, mrb->kernel_module, MRB_SYM(sleep),   f_sleep,   MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, mrb->kernel_module, MRB_SYM(usleep),  f_usleep,  MRB_ARGS_REQ(1));
 }
 
 void
