@@ -548,42 +548,42 @@ mrb_mruby_method_gem_init(mrb_state* mrb)
 
   MRB_SET_INSTANCE_TT(unbound_method, MRB_TT_OBJECT);
   MRB_UNDEF_ALLOCATOR(unbound_method);
-  mrb_undef_class_method(mrb, unbound_method, "new");
-  mrb_define_method(mrb, unbound_method, "bind", unbound_method_bind, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, unbound_method, "super_method", method_super_method, MRB_ARGS_NONE());
-  mrb_define_method(mrb, unbound_method, "==", method_eql, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, unbound_method, "eql?", method_eql, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, unbound_method, "to_s", method_to_s, MRB_ARGS_NONE());
-  mrb_define_method(mrb, unbound_method, "inspect", method_to_s, MRB_ARGS_NONE());
-  mrb_define_method(mrb, unbound_method, "arity", method_arity, MRB_ARGS_NONE());
-  mrb_define_method(mrb, unbound_method, "source_location", method_source_location, MRB_ARGS_NONE());
-  mrb_define_method(mrb, unbound_method, "parameters", method_parameters, MRB_ARGS_NONE());
-  mrb_define_method(mrb, unbound_method, "bind_call", method_bcall, MRB_ARGS_REQ(1)|MRB_ARGS_ANY());
-  mrb_define_method(mrb, unbound_method, "owner", method_owner, MRB_ARGS_NONE());
-  mrb_define_method(mrb, unbound_method, "name", method_name, MRB_ARGS_NONE());
+  mrb_undef_class_method_id(mrb, unbound_method, MRB_SYM(new));
+  mrb_define_method_id(mrb, unbound_method, MRB_SYM(bind), unbound_method_bind, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, unbound_method, MRB_SYM(super_method), method_super_method, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, unbound_method, MRB_OPSYM(eq), method_eql, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, unbound_method, MRB_SYM_Q(eql), method_eql, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, unbound_method, MRB_SYM(to_s), method_to_s, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, unbound_method, MRB_SYM(inspect), method_to_s, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, unbound_method, MRB_SYM(arity), method_arity, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, unbound_method, MRB_SYM(source_location), method_source_location, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, unbound_method, MRB_SYM(parameters), method_parameters, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, unbound_method, MRB_SYM(bind_call), method_bcall, MRB_ARGS_REQ(1)|MRB_ARGS_ANY());
+  mrb_define_method_id(mrb, unbound_method, MRB_SYM(owner), method_owner, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, unbound_method, MRB_SYM(name), method_name, MRB_ARGS_NONE());
 
   MRB_SET_INSTANCE_TT(method, MRB_TT_OBJECT);
   MRB_UNDEF_ALLOCATOR(method);
-  mrb_undef_class_method(mrb, method, "new");
-  mrb_define_method(mrb, method, "==", method_eql, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, method, "eql?", method_eql, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, method, "to_s", method_to_s, MRB_ARGS_NONE());
-  mrb_define_method(mrb, method, "inspect", method_to_s, MRB_ARGS_NONE());
-  mrb_define_method(mrb, method, "call", method_call, MRB_ARGS_ANY());
-  mrb_define_method(mrb, method, "[]", method_call, MRB_ARGS_ANY());
-  mrb_define_method(mrb, method, "unbind", method_unbind, MRB_ARGS_NONE());
-  mrb_define_method(mrb, method, "super_method", method_super_method, MRB_ARGS_NONE());
-  mrb_define_method(mrb, method, "arity", method_arity, MRB_ARGS_NONE());
-  mrb_define_method(mrb, method, "source_location", method_source_location, MRB_ARGS_NONE());
-  mrb_define_method(mrb, method, "parameters", method_parameters, MRB_ARGS_NONE());
-  mrb_define_method(mrb, method, "owner", method_owner, MRB_ARGS_NONE());
-  mrb_define_method(mrb, method, "receiver", method_receiver, MRB_ARGS_NONE());
-  mrb_define_method(mrb, method, "name", method_name, MRB_ARGS_NONE());
+  mrb_undef_class_method_id(mrb, method, MRB_SYM(new));
+  mrb_define_method_id(mrb, method, MRB_OPSYM(eq), method_eql, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, method, MRB_SYM_Q(eql), method_eql, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, method, MRB_SYM(to_s), method_to_s, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, method, MRB_SYM(inspect), method_to_s, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, method, MRB_SYM(call), method_call, MRB_ARGS_ANY());
+  mrb_define_method_id(mrb, method, MRB_OPSYM(aref), method_call, MRB_ARGS_ANY());
+  mrb_define_method_id(mrb, method, MRB_SYM(unbind), method_unbind, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, method, MRB_SYM(super_method), method_super_method, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, method, MRB_SYM(arity), method_arity, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, method, MRB_SYM(source_location), method_source_location, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, method, MRB_SYM(parameters), method_parameters, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, method, MRB_SYM(owner), method_owner, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, method, MRB_SYM(receiver), method_receiver, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, method, MRB_SYM(name), method_name, MRB_ARGS_NONE());
 
-  mrb_define_method(mrb, mrb->kernel_module, "method", mrb_kernel_method, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, mrb->kernel_module, "singleton_method", mrb_kernel_singleton_method, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, mrb->kernel_module, MRB_SYM(method), mrb_kernel_method, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, mrb->kernel_module, MRB_SYM(singleton_method), mrb_kernel_singleton_method, MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, mrb->module_class, "instance_method", mrb_module_instance_method, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, mrb->module_class, MRB_SYM(instance_method), mrb_module_instance_method, MRB_ARGS_REQ(1));
 }
 
 void
