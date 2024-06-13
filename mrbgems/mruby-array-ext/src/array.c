@@ -346,15 +346,15 @@ mrb_mruby_array_ext_gem_init(mrb_state* mrb)
 {
   struct RClass * a = mrb->array_class;
 
-  mrb_define_method(mrb, a, "assoc",  ary_assoc,  MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, a, "at",     ary_at,     MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, a, "rassoc", ary_rassoc, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, a, "values_at", ary_values_at, MRB_ARGS_ANY());
-  mrb_define_method(mrb, a, "slice!", ary_slice_bang, MRB_ARGS_ARG(1,1));
-  mrb_define_method(mrb, a, "compact", ary_compact, MRB_ARGS_NONE());
-  mrb_define_method(mrb, a, "compact!", ary_compact_bang, MRB_ARGS_NONE());
-  mrb_define_method(mrb, a, "rotate", ary_rotate, MRB_ARGS_OPT(1));
-  mrb_define_method(mrb, a, "rotate!", ary_rotate_bang, MRB_ARGS_OPT(1));
+  mrb_define_method_id(mrb, a, MRB_SYM(assoc), ary_assoc,  MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, a, MRB_SYM(at), ary_at,     MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, a, MRB_SYM(rassoc), ary_rassoc, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, a, MRB_SYM(values_at), ary_values_at, MRB_ARGS_ANY());
+  mrb_define_method_id(mrb, a, MRB_SYM_B(slice), ary_slice_bang, MRB_ARGS_ARG(1,1));
+  mrb_define_method_id(mrb, a, MRB_SYM(compact), ary_compact, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, a, MRB_SYM_B(compact), ary_compact_bang, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, a, MRB_SYM(rotate), ary_rotate, MRB_ARGS_OPT(1));
+  mrb_define_method_id(mrb, a, MRB_SYM_B(rotate), ary_rotate_bang, MRB_ARGS_OPT(1));
 }
 
 void
