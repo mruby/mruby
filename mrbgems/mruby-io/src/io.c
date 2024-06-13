@@ -1909,50 +1909,50 @@ io_flush(mrb_state *mrb, mrb_value io)
 void
 mrb_init_io(mrb_state *mrb)
 {
-  struct RClass *io = mrb_define_class(mrb, "IO", mrb->object_class);
+  struct RClass *io = mrb_define_class_id(mrb, MRB_SYM(IO), mrb->object_class);
   MRB_SET_INSTANCE_TT(io, MRB_TT_CDATA);
 
-  mrb_include_module(mrb, io, mrb_module_get(mrb, "Enumerable")); /* 15.2.20.3 */
-  mrb_define_class_method(mrb, io, "_popen",  io_s_popen,   MRB_ARGS_ARG(1,2));
-  mrb_define_class_method(mrb, io, "_sysclose",  io_s_sysclose, MRB_ARGS_REQ(1));
-  mrb_define_class_method(mrb, io, "for_fd",  io_s_for_fd,   MRB_ARGS_ARG(1,2));
-  mrb_define_class_method(mrb, io, "select",  io_s_select,  MRB_ARGS_ARG(1,3));
-  mrb_define_class_method(mrb, io, "sysopen", io_s_sysopen, MRB_ARGS_ARG(1,2));
+  mrb_include_module(mrb, io, mrb_module_get_id(mrb, MRB_SYM(Enumerable))); /* 15.2.20.3 */
+  mrb_define_class_method_id(mrb, io, MRB_SYM(_popen),  io_s_popen,   MRB_ARGS_ARG(1,2));
+  mrb_define_class_method_id(mrb, io, MRB_SYM(_sysclose),  io_s_sysclose, MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, io, MRB_SYM(for_fd),  io_s_for_fd,   MRB_ARGS_ARG(1,2));
+  mrb_define_class_method_id(mrb, io, MRB_SYM(select),  io_s_select,  MRB_ARGS_ARG(1,3));
+  mrb_define_class_method_id(mrb, io, MRB_SYM(sysopen), io_s_sysopen, MRB_ARGS_ARG(1,2));
 #if !defined(_WIN32) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
-  mrb_define_class_method(mrb, io, "_pipe", io_s_pipe, MRB_ARGS_NONE());
+  mrb_define_class_method_id(mrb, io, MRB_SYM(_pipe), io_s_pipe, MRB_ARGS_NONE());
 #endif
 
-  mrb_define_method(mrb, io, "initialize",      io_init, MRB_ARGS_ARG(1,2));
-  mrb_define_method(mrb, io, "initialize_copy", io_init_copy, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, io, "isatty",     io_isatty,     MRB_ARGS_NONE());
-  mrb_define_method(mrb, io, "eof?",       io_eof,        MRB_ARGS_NONE());   /* 15.2.20.5.6 */
-  mrb_define_method(mrb, io, "getc",       io_getc,       MRB_ARGS_NONE());   /* 15.2.20.5.8 */
-  mrb_define_method(mrb, io, "gets",       io_gets,       MRB_ARGS_OPT(2));   /* 15.2.20.5.9 */
-  mrb_define_method(mrb, io, "read",       io_read,       MRB_ARGS_OPT(2));   /* 15.2.20.5.14 */
-  mrb_define_method(mrb, io, "readchar",   io_readchar,   MRB_ARGS_NONE());   /* 15.2.20.5.15 */
-  mrb_define_method(mrb, io, "readline",   io_readline,   MRB_ARGS_OPT(2));   /* 15.2.20.5.16 */
-  mrb_define_method(mrb, io, "readlines",  io_readlines,  MRB_ARGS_OPT(2));   /* 15.2.20.5.17 */
-  mrb_define_method(mrb, io, "sync",       io_sync,       MRB_ARGS_NONE());   /* 15.2.20.5.18 */
-  mrb_define_method(mrb, io, "sync=",      io_set_sync,   MRB_ARGS_REQ(1));   /* 15.2.20.5.19 */
-  mrb_define_method(mrb, io, "sysread",    io_sysread,    MRB_ARGS_ARG(1,1));
-  mrb_define_method(mrb, io, "sysseek",    io_sysseek,    MRB_ARGS_ARG(1,1));
-  mrb_define_method(mrb, io, "syswrite",   io_syswrite,   MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, io, "seek",       io_seek,       MRB_ARGS_ARG(1,1));
-  mrb_define_method(mrb, io, "close",      io_close,      MRB_ARGS_NONE());   /* 15.2.20.5.1 */
-  mrb_define_method(mrb, io, "close_write",    io_close_write,       MRB_ARGS_NONE());
-  mrb_define_method(mrb, io, "close_on_exec=", io_set_close_on_exec, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, io, "close_on_exec?", io_close_on_exec_p,   MRB_ARGS_NONE());
-  mrb_define_method(mrb, io, "closed?",    io_closed,     MRB_ARGS_NONE());   /* 15.2.20.5.2 */
-  mrb_define_method(mrb, io, "flush",      io_flush,      MRB_ARGS_NONE());   /* 15.2.20.5.7 */
-  mrb_define_method(mrb, io, "ungetc",     io_ungetc,     MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, io, "pos",        io_pos,        MRB_ARGS_NONE());
-  mrb_define_method(mrb, io, "pid",        io_pid,        MRB_ARGS_NONE());
-  mrb_define_method(mrb, io, "fileno",     io_fileno,     MRB_ARGS_NONE());
-  mrb_define_method(mrb, io, "write",      io_write,      MRB_ARGS_ANY());    /* 15.2.20.5.20 */
-  mrb_define_method(mrb, io, "pread",      io_pread,      MRB_ARGS_ANY());    /* ruby 2.5 feature */
-  mrb_define_method(mrb, io, "pwrite",     io_pwrite,     MRB_ARGS_ANY());    /* ruby 2.5 feature */
-  mrb_define_method(mrb, io, "getbyte",    io_getbyte,    MRB_ARGS_NONE());
-  mrb_define_method(mrb, io, "readbyte",   io_readbyte,   MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, io, MRB_SYM(initialize),      io_init, MRB_ARGS_ARG(1,2));
+  mrb_define_method_id(mrb, io, MRB_SYM(initialize_copy), io_init_copy, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, io, MRB_SYM(isatty),     io_isatty,     MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, io, MRB_SYM_Q(eof),      io_eof,        MRB_ARGS_NONE());   /* 15.2.20.5.6 */
+  mrb_define_method_id(mrb, io, MRB_SYM(getc),       io_getc,       MRB_ARGS_NONE());   /* 15.2.20.5.8 */
+  mrb_define_method_id(mrb, io, MRB_SYM(gets),       io_gets,       MRB_ARGS_OPT(2));   /* 15.2.20.5.9 */
+  mrb_define_method_id(mrb, io, MRB_SYM(read),       io_read,       MRB_ARGS_OPT(2));   /* 15.2.20.5.14 */
+  mrb_define_method_id(mrb, io, MRB_SYM(readchar),   io_readchar,   MRB_ARGS_NONE());   /* 15.2.20.5.15 */
+  mrb_define_method_id(mrb, io, MRB_SYM(readline),   io_readline,   MRB_ARGS_OPT(2));   /* 15.2.20.5.16 */
+  mrb_define_method_id(mrb, io, MRB_SYM(readlines),  io_readlines,  MRB_ARGS_OPT(2));   /* 15.2.20.5.17 */
+  mrb_define_method_id(mrb, io, MRB_SYM(sync),       io_sync,       MRB_ARGS_NONE());   /* 15.2.20.5.18 */
+  mrb_define_method_id(mrb, io, MRB_SYM_E(sync),     io_set_sync,   MRB_ARGS_REQ(1));   /* 15.2.20.5.19 */
+  mrb_define_method_id(mrb, io, MRB_SYM(sysread),    io_sysread,    MRB_ARGS_ARG(1,1));
+  mrb_define_method_id(mrb, io, MRB_SYM(sysseek),    io_sysseek,    MRB_ARGS_ARG(1,1));
+  mrb_define_method_id(mrb, io, MRB_SYM(syswrite),   io_syswrite,   MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, io, MRB_SYM(seek),       io_seek,       MRB_ARGS_ARG(1,1));
+  mrb_define_method_id(mrb, io, MRB_SYM(close),      io_close,      MRB_ARGS_NONE());   /* 15.2.20.5.1 */
+  mrb_define_method_id(mrb, io, MRB_SYM(close_write),    io_close_write,       MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, io, MRB_SYM_E(close_on_exec), io_set_close_on_exec, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, io, MRB_SYM_Q(close_on_exec), io_close_on_exec_p,   MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, io, MRB_SYM_Q(closed),   io_closed,     MRB_ARGS_NONE());   /* 15.2.20.5.2 */
+  mrb_define_method_id(mrb, io, MRB_SYM(flush),      io_flush,      MRB_ARGS_NONE());   /* 15.2.20.5.7 */
+  mrb_define_method_id(mrb, io, MRB_SYM(ungetc),     io_ungetc,     MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, io, MRB_SYM(pos),        io_pos,        MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, io, MRB_SYM(pid),        io_pid,        MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, io, MRB_SYM(fileno),     io_fileno,     MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, io, MRB_SYM(write),      io_write,      MRB_ARGS_ANY());    /* 15.2.20.5.20 */
+  mrb_define_method_id(mrb, io, MRB_SYM(pread),      io_pread,      MRB_ARGS_ANY());    /* ruby 2.5 feature */
+  mrb_define_method_id(mrb, io, MRB_SYM(pwrite),     io_pwrite,     MRB_ARGS_ANY());    /* ruby 2.5 feature */
+  mrb_define_method_id(mrb, io, MRB_SYM(getbyte),    io_getbyte,    MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, io, MRB_SYM(readbyte),   io_readbyte,   MRB_ARGS_NONE());
 
   mrb_define_const_id(mrb, io, MRB_SYM(SEEK_SET), mrb_fixnum_value(SEEK_SET));
   mrb_define_const_id(mrb, io, MRB_SYM(SEEK_CUR), mrb_fixnum_value(SEEK_CUR));

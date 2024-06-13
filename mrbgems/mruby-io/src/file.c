@@ -627,28 +627,28 @@ void
 mrb_init_file(mrb_state *mrb)
 {
   struct RClass *io   = mrb_class_get_id(mrb, MRB_SYM(IO));
-  struct RClass *file = mrb_define_class(mrb, "File", io);
+  struct RClass *file = mrb_define_class_id(mrb, MRB_SYM(File), io);
   MRB_SET_INSTANCE_TT(file, MRB_TT_CDATA);
-  mrb_define_class_method(mrb, file, "umask",  mrb_file_s_umask, MRB_ARGS_OPT(1));
-  mrb_define_class_method(mrb, file, "delete", mrb_file_s_unlink, MRB_ARGS_ANY());
-  mrb_define_class_method(mrb, file, "unlink", mrb_file_s_unlink, MRB_ARGS_ANY());
-  mrb_define_class_method(mrb, file, "rename", mrb_file_s_rename, MRB_ARGS_REQ(2));
-  mrb_define_class_method(mrb, file, "symlink", mrb_file_s_symlink, MRB_ARGS_REQ(2));
-  mrb_define_class_method(mrb, file, "chmod", mrb_file_s_chmod, MRB_ARGS_REQ(1) | MRB_ARGS_REST());
-  mrb_define_class_method(mrb, file, "readlink", mrb_file_s_readlink, MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, file, MRB_SYM(umask),  mrb_file_s_umask, MRB_ARGS_OPT(1));
+  mrb_define_class_method_id(mrb, file, MRB_SYM(delete), mrb_file_s_unlink, MRB_ARGS_ANY());
+  mrb_define_class_method_id(mrb, file, MRB_SYM(unlink), mrb_file_s_unlink, MRB_ARGS_ANY());
+  mrb_define_class_method_id(mrb, file, MRB_SYM(rename), mrb_file_s_rename, MRB_ARGS_REQ(2));
+  mrb_define_class_method_id(mrb, file, MRB_SYM(symlink), mrb_file_s_symlink, MRB_ARGS_REQ(2));
+  mrb_define_class_method_id(mrb, file, MRB_SYM(chmod), mrb_file_s_chmod, MRB_ARGS_REQ(1) | MRB_ARGS_REST());
+  mrb_define_class_method_id(mrb, file, MRB_SYM(readlink), mrb_file_s_readlink, MRB_ARGS_REQ(1));
 
-  mrb_define_class_method(mrb, file, "dirname",   mrb_file_dirname,    MRB_ARGS_REQ(1));
-  mrb_define_class_method(mrb, file, "basename",  mrb_file_basename,   MRB_ARGS_REQ(1));
-  mrb_define_class_method(mrb, file, "realpath",  mrb_file_realpath,   MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
-  mrb_define_class_method(mrb, file, "_getwd",    mrb_file__getwd,     MRB_ARGS_NONE());
-  mrb_define_class_method(mrb, file, "_gethome",  mrb_file__gethome,   MRB_ARGS_OPT(1));
+  mrb_define_class_method_id(mrb, file, MRB_SYM(dirname),   mrb_file_dirname,    MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, file, MRB_SYM(basename),  mrb_file_basename,   MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, file, MRB_SYM(realpath),  mrb_file_realpath,   MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
+  mrb_define_class_method_id(mrb, file, MRB_SYM(_getwd),    mrb_file__getwd,     MRB_ARGS_NONE());
+  mrb_define_class_method_id(mrb, file, MRB_SYM(_gethome),  mrb_file__gethome,   MRB_ARGS_OPT(1));
 
-  mrb_define_method(mrb, file, "flock", mrb_file_flock, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, file, "_atime", mrb_file_atime, MRB_ARGS_NONE());
-  mrb_define_method(mrb, file, "_ctime", mrb_file_ctime, MRB_ARGS_NONE());
-  mrb_define_method(mrb, file, "_mtime", mrb_file_mtime, MRB_ARGS_NONE());
-  mrb_define_method(mrb, file, "size", mrb_file_size, MRB_ARGS_NONE());
-  mrb_define_method(mrb, file, "truncate", mrb_file_truncate, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, file, MRB_SYM(flock), mrb_file_flock, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, file, MRB_SYM(_atime), mrb_file_atime, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, file, MRB_SYM(_ctime), mrb_file_ctime, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, file, MRB_SYM(_mtime), mrb_file_mtime, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, file, MRB_SYM(size), mrb_file_size, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, file, MRB_SYM(truncate), mrb_file_truncate, MRB_ARGS_REQ(1));
 
   struct RClass *cnst = mrb_define_module_under_id(mrb, file, MRB_SYM(Constants));
   mrb_define_const_id(mrb, cnst, MRB_SYM(LOCK_SH), mrb_fixnum_value(LOCK_SH));
