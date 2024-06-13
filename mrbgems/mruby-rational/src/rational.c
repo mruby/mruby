@@ -723,31 +723,31 @@ void mrb_mruby_rational_gem_init(mrb_state *mrb)
   struct RClass *rat = mrb_define_class_id(mrb, MRB_SYM(Rational), mrb_class_get_id(mrb, MRB_SYM(Numeric)));
   MRB_SET_INSTANCE_TT(rat, MRB_TT_RATIONAL);
   MRB_UNDEF_ALLOCATOR(rat);
-  mrb_undef_class_method(mrb, rat, "new");
-  mrb_define_method(mrb, rat, "numerator", rational_numerator, MRB_ARGS_NONE());
-  mrb_define_method(mrb, rat, "denominator", rational_denominator, MRB_ARGS_NONE());
+  mrb_undef_class_method_id(mrb, rat, MRB_SYM(new));
+  mrb_define_method_id(mrb, rat, MRB_SYM(numerator), rational_numerator, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, rat, MRB_SYM(denominator), rational_denominator, MRB_ARGS_NONE());
 #ifndef MRB_NO_FLOAT
-  mrb_define_method(mrb, rat, "to_f", mrb_rational_to_f, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, rat, MRB_SYM(to_f), mrb_rational_to_f, MRB_ARGS_NONE());
 #endif
-  mrb_define_method(mrb, rat, "to_i", mrb_rational_to_i, MRB_ARGS_NONE());
-  mrb_define_method(mrb, rat, "to_r", mrb_obj_itself, MRB_ARGS_NONE());
-  mrb_define_method(mrb, rat, "negative?", rational_negative_p, MRB_ARGS_NONE());
-  mrb_define_method(mrb, rat, "==", rational_eq, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, rat, "<=>", rational_cmp, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, rat, "-@", rational_minus, MRB_ARGS_NONE());
-  mrb_define_method(mrb, rat, "+", rational_add, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, rat, "-", rational_sub, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, rat, "*", rational_mul, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, rat, "/", rational_div, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, rat, "quo", rational_div, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, rat, "**", rational_pow, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, rat, "hash", rational_hash, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, rat, MRB_SYM(to_i), mrb_rational_to_i, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, rat, MRB_SYM(to_r), mrb_obj_itself, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, rat, MRB_SYM_Q(negative), rational_negative_p, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, rat, MRB_OPSYM(eq), rational_eq, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, rat, MRB_OPSYM(cmp), rational_cmp, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, rat, MRB_OPSYM(minus), rational_minus, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, rat, MRB_OPSYM(add), rational_add, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, rat, MRB_OPSYM(sub), rational_sub, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, rat, MRB_OPSYM(mul), rational_mul, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, rat, MRB_OPSYM(div), rational_div, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, rat, MRB_SYM(quo), rational_div, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, rat, MRB_OPSYM(pow), rational_pow, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, rat, MRB_SYM(hash), rational_hash, MRB_ARGS_NONE());
 #ifndef MRB_NO_FLOAT
-  mrb_define_method(mrb, mrb->float_class, "to_r", float_to_r, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, mrb->float_class, MRB_SYM(to_r), float_to_r, MRB_ARGS_NONE());
 #endif
-  mrb_define_method(mrb, mrb->integer_class, "to_r", fix_to_r, MRB_ARGS_NONE());
-  mrb_define_method(mrb, mrb->nil_class, "to_r", nil_to_r, MRB_ARGS_NONE());
-  mrb_define_method(mrb, mrb->kernel_module, "Rational", rational_m, MRB_ARGS_ARG(1,1));
+  mrb_define_method_id(mrb, mrb->integer_class, MRB_SYM(to_r), fix_to_r, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, mrb->nil_class, MRB_SYM(to_r), nil_to_r, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, mrb->kernel_module, MRB_SYM(Rational), rational_m, MRB_ARGS_ARG(1,1));
 }
 
 void
