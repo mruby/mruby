@@ -1897,7 +1897,7 @@ cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
 #endif
 
 #ifdef MRB_NO_FLOAT
-  x = mrb_integer(v1);
+  x = mrb_as_int(mrb, v1);
 #else
   x = mrb_as_float(mrb, v1);
 #endif
