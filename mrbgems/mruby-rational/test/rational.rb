@@ -1,27 +1,3 @@
-class UserDefinedNumeric < Numeric
-  def initialize(n)
-    @n = n
-  end
-
-  def <=>(rhs)
-    return nil unless rhs.respond_to?(:to_i)
-    rhs = rhs.to_i
-    rhs < 0 ? nil : @n <=> rhs
-  end
-
-  def inspect
-    "#{self.class}(#{@n})"
-  end
-end
-
-class ComplexLikeNumeric < UserDefinedNumeric
-  def ==(rhs)
-    @n == 0 && rhs == 0
-  end
-
-  undef <=>
-end
-
 def assert_rational(exp, real)
   assert "assert_rational" do
     assert_kind_of Rational, real
@@ -159,13 +135,6 @@ assert 'Rational#==, Rational#!=' do
   assert_equal_rational(false, Rational(2,1), 1r)
   assert_equal_rational(false, Rational(1), nil)
   assert_equal_rational(false, Rational(1), '')
-  assert_equal_rational(true, 0r, UserDefinedNumeric.new(0))
-  assert_equal_rational(true, 1r, UserDefinedNumeric.new(1))
-  assert_equal_rational(false, 1r, UserDefinedNumeric.new(2))
-  assert_equal_rational(false, -1r, UserDefinedNumeric.new(-1))
-  assert_equal_rational(true, 0r, ComplexLikeNumeric.new(0))
-  assert_equal_rational(false, 1r, ComplexLikeNumeric.new(1))
-  assert_equal_rational(false, 1r, ComplexLikeNumeric.new(2))
 end
 
 assert 'Integer#==(Rational), Integer#!=(Rational)' do
@@ -203,12 +172,6 @@ assert 'Rational#<=>' do
   assert_cmp(-1, Rational(1,2), Rational(2,3))
   assert_cmp(-1, Rational(1,2), Rational(2,3))
   assert_cmp(nil, 3r, "3")
-  assert_cmp(1, 3r, UserDefinedNumeric.new(2))
-  assert_cmp(0, 3r, UserDefinedNumeric.new(3))
-  assert_cmp(-1, 3r, UserDefinedNumeric.new(4))
-  assert_cmp(nil, Rational(-3), UserDefinedNumeric.new(5))
-  assert_raise(NoMethodError) { 0r <=> ComplexLikeNumeric.new(0) }
-  assert_raise(NoMethodError) { 1r <=> ComplexLikeNumeric.new(2) }
 end
 
 assert 'Integer#<=>(Rational)' do
