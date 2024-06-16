@@ -6,6 +6,13 @@ class Rational < Numeric
   def to_s
     "#{numerator}/#{denominator}"
   end
+
+  def <=>(other)
+    return nil unless other.kind_of?(Numeric)
+    self.to_f <=> other.to_f
+  rescue
+    nil
+  end
 end
 
 class Numeric
