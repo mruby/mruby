@@ -1920,15 +1920,17 @@ cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
 #endif
 #endif
   default:
+    v1 = mrb_funcall_argv(mrb, v2, MRB_OPSYM(cmp), 1, &v1);
+    if (mrb_integer_p(v1)) {
+      return -mrb_integer(v1);
+    }
     return -2;
   }
   if (x > y)
     return 1;
-  else {
-    if (x < y)
-      return -1;
-    return 0;
-  }
+  else if (x < y)
+    return -1;
+  return 0;
 }
 
 static mrb_value
