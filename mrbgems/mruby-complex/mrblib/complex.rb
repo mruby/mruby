@@ -19,6 +19,13 @@ class Complex < Numeric
     Complex(-real, -imaginary)
   end
 
+  def <=>(other)
+    return nil unless other.kind_of?(Numeric)
+    self.to_f <=> other.to_f
+  rescue
+    nil
+  end
+
   def abs
     Math.hypot imaginary, real
   end
