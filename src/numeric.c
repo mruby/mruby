@@ -2148,7 +2148,7 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method_id(mrb, fl,      MRB_OPSYM(le),      num_le,         MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, fl,      MRB_OPSYM(gt),      num_gt,         MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, fl,      MRB_OPSYM(ge),      num_ge,         MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, fl,      MRB_OPSYM(eq),      flo_eq,         MRB_ARGS_REQ(1)); /* 15.2.9.3.2 */
+  mrb_define_method_id(mrb, fl,      MRB_OPSYM(eq),      flo_eq,         MRB_ARGS_REQ(1)); /* 15.2.9.3.2  */
   mrb_define_method_id(mrb, fl,      MRB_SYM(ceil),      flo_ceil,       MRB_ARGS_OPT(1)); /* 15.2.9.3.8  */
   mrb_define_method_id(mrb, fl,      MRB_SYM_Q(finite),  flo_finite_p,   MRB_ARGS_NONE()); /* 15.2.9.3.9  */
   mrb_define_method_id(mrb, fl,      MRB_SYM(floor),     flo_floor,      MRB_ARGS_OPT(1)); /* 15.2.9.3.10 */
