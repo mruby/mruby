@@ -1881,15 +1881,6 @@ int_to_s(mrb_state *mrb, mrb_value self)
 static mrb_int
 cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
 {
-#ifdef MRB_USE_BIGINT
-  if (mrb_bigint_p(v1)) {
-    return mrb_bint_cmp(mrb, v1, v2);
-  }
-  if (mrb_bigint_p(v2)) {
-    return mrb_bint_cmp(mrb, mrb_bint_new_int(mrb, mrb_integer(v1)), v2);
-  }
-#endif
-
 #ifdef MRB_NO_FLOAT
   mrb_int x, y;
 #else
@@ -1904,8 +1895,17 @@ cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
   switch (mrb_type(v2)) {
   case MRB_TT_INTEGER:
 #ifdef MRB_NO_FLOAT
+#ifdef MRB_USE_BIGINT
+    return -2;
+#endif
     y = mrb_integer(v2);
 #else
+#ifdef MRB_USE_BIGINT
+    if (mrb_bigint_p(v2)) {
+      y = mrb_bint_as_float(mrb, v2);
+      break;
+    }
+#endif
     y = (mrb_float)mrb_integer(v2);
 #endif
     break;
