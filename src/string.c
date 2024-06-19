@@ -1109,14 +1109,12 @@ static mrb_value
 mrb_str_cmp_m(mrb_state *mrb, mrb_value str1)
 {
   mrb_value str2 = mrb_get_arg1(mrb);
-  mrb_int result;
 
   if (!mrb_string_p(str2)) {
     return mrb_nil_value();
   }
-  else {
-    result = mrb_str_cmp(mrb, str1, str2);
-  }
+
+  mrb_int result = mrb_str_cmp(mrb, str1, str2);
   return mrb_int_value(mrb, result);
 }
 
@@ -1126,9 +1124,7 @@ str_eql(mrb_state *mrb, const mrb_value str1, const mrb_value str2)
   const mrb_int len = RSTRING_LEN(str1);
 
   if (len != RSTRING_LEN(str2)) return FALSE;
-  if (memcmp(RSTRING_PTR(str1), RSTRING_PTR(str2), (size_t)len) == 0)
-    return TRUE;
-  return FALSE;
+  return (memcmp(RSTRING_PTR(str1), RSTRING_PTR(str2), (size_t)len) == 0);
 }
 
 MRB_API mrb_bool
@@ -1786,9 +1782,7 @@ static mrb_value
 mrb_str_eql(mrb_state *mrb, mrb_value self)
 {
   mrb_value str2 = mrb_get_arg1(mrb);
-  mrb_bool eql_p;
-
-  eql_p = (mrb_string_p(str2)) && str_eql(mrb, self, str2);
+  mrb_bool eql_p = (mrb_string_p(str2)) && str_eql(mrb, self, str2);
 
   return mrb_bool_value(eql_p);
 }
