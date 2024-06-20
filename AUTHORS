@@ -1,10 +1,10 @@
 # Authors of mruby (mruby developers)
 
-## The List of Contributors sorted by number of commits (as of 2024-05-24 10bc15c)
+## The List of Contributors sorted by number of commits (as of 2024-06-19 c592e7b)
 
-   5662 Yukihiro "Matz" Matsumoto (@matz)*
+   5714 Yukihiro "Matz" Matsumoto (@matz)*
+    593 dearblue (@dearblue)*
     587 KOBAYASHI Shuji (@shuujii)
-    583 dearblue (@dearblue)*
     353 Daniel Bovensiepen (@bovi)*
     345 Takeshi Watanabe (@take-cheeze)*
     333 Masaki Muranaka (@monaka)
@@ -31,8 +31,8 @@
      42 fleuria (@flaneur2020)
      40 Christopher Aue (@christopheraue)
      40 Seba Gamboa (@sagmor)
+     39 Kouhei Sutou (@kou)*
      38 Koji Yoshioka (@kyab)*+
-     38 Kouhei Sutou (@kou)*
      32 Masayoshi Takahashi (@takahashim)+
      31 MATSUMOTO Ryosuke (@matsumotory)*
      30 Nobuyoshi Nakada (@nobu)
@@ -102,6 +102,7 @@
       5 Chris Reuter (@suetanvil)
       5 Davide D'Agostino (@DAddYE)
       5 Eric Hodel (@drbrain)
+      5 Hendrik (@Asmod4n)
       5 Ichito Nagata (@i110)
       5 Keita Obo (@ktaobo)*
       5 Max Anselm (@silverhammermba)
@@ -113,7 +114,6 @@
       5 nkshigeru (@nkshigeru)
       5 xuejianqing (@joans321)
       4 Dante Catalfamo (@dantecatalfamo)
-      4 Hendrik (@Asmod4n)
       4 Goro Kikuchi (@gorogit)
       4 Herwin Weststrate (@herwinw)
       4 Horimoto Yasuhiro (@komainu8)
@@ -203,7 +203,6 @@
       1 AlexDenisov (@AlexDenisov)
       1 Andrew Nordman (@cadwallion)
       1 Ashish Kurmi (@boahc077)
-      1 Hendrik (@Asmod4n)
       1 Atsushi Morimoto (@mynz)
       1 Ben A Morgan (@BenMorganIO)
       1 Benoit Daloze (@eregon)
