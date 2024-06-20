@@ -20,6 +20,9 @@ MD025: false
 # MD026 no-trailing-punctuation - Trailing punctuation in heading
 MD026: false
 
+# MD029/ol-prefix Ordered list item prefix
+MD029: false
+
 # MD033/no-inline-html - Inline HTML
 MD033: false
 
