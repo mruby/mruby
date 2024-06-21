@@ -57,7 +57,6 @@ miscellaneous:
               - .git-blame-ignore-revs
               - .gitattributes
               - .gitignore
-              - .prettierrc
               - AUTHORS
               - Gemfile
               - Gemfile.lock

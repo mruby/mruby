@@ -322,7 +322,7 @@ module MRuby
         return false unless prev
 
         # Canonical declarations must precede all others.
-        fail("Attempted to re-declare #{prev.gemname} as canonical!\n" +
+        fail("Attempted to redeclare #{prev.gemname} as canonical!\n" +
              "('canonical' can only be used on its first declaration.)") if
           prev && @canonical
 
