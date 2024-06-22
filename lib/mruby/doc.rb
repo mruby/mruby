@@ -21,15 +21,16 @@ module MRuby
       diff = ""
 
       spliter = <<~'SPLITER'
-        | Instruction Name   | Operand type   | Semantics                                                  |
-        |--------------------|----------------|------------------------------------------------------------|
+        | No. | Instruction Name | Operand type | Semantics
+        | --: | ---------------- | ------------ | ---------------
       SPLITER
 
       diff = path_opcode_md.read.sub(/^#{Regexp.escape spliter}.*?(?=\z|^$\n)/m) do
         repl = spliter
 
         ops = path_ops_h.read
-        ops.scan(/^\s*OPCODE\s*\(\s*(\w+)\s*,\s*(\w+)\s*\)\s*(?:\/\*\s*(.*?)\s*\*\/\s*)?/).each do |ins, opr, cmt|
+        pat = /^\s*OPCODE\s*\(\s*(\w+)\s*,\s*(\w+)\s*\)\s*(?:\/\*\s*(.*?)\s*\*\/\s*)?/
+        ops.scan(pat).each_with_index do |(ins, opr, cmt), no|
           if cmt
             cmt.sub!(/\s*#.*/, "")
             cmt.sub!(/\b(?=L_\w+\b)/, "OP_")
@@ -37,7 +38,7 @@ module MRuby
             cmt.gsub!(/[\\\|]/) { |m| "\\#{m}" } # Ruby-2.5 is not support "Numbered block parameter"
           end
           spec = opspecs[opr] or raise "unknown operand type: #{opr}"
-          item = format(%(| %-18s | %-14s | %-58s |\n), "`OP_#{ins}`", "`#{spec[:modified] || opr}`", cmt && "`#{cmt}`")
+          item = format("| %3d | %-16s | %-12s | %s\n", no, "`OP_#{ins}`", "`#{spec[:modified] || opr}`", cmt && "`#{cmt}`")
           repl << item
         end
 
