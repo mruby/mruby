@@ -1881,51 +1881,42 @@ int_to_s(mrb_state *mrb, mrb_value self)
 static mrb_int
 cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
 {
-#ifdef MRB_NO_FLOAT
-  mrb_int x, y;
-#else
-  mrb_float x, y;
-#endif
+#ifdef MRB_NO_FLOAT             /* integer version */
 
-#ifdef MRB_NO_FLOAT
-  x = mrb_as_int(mrb, v1);
-#else
-  x = mrb_as_float(mrb, v1);
-#endif
-  switch (mrb_type(v2)) {
-  case MRB_TT_INTEGER:
-#ifdef MRB_NO_FLOAT
-#ifdef MRB_USE_BIGINT
-    return -2;
-#endif
-    y = mrb_integer(v2);
-#else
-#ifdef MRB_USE_BIGINT
-    if (mrb_bigint_p(v2)) {
-      y = mrb_bint_as_float(mrb, v2);
-      break;
-    }
-#endif
-    y = (mrb_float)mrb_integer(v2);
-#endif
-    break;
-#ifndef MRB_NO_FLOAT
-  case MRB_TT_FLOAT:
-    y = mrb_float(v2);
-    break;
-#ifdef MRB_USE_RATIONAL
-  case MRB_TT_RATIONAL:
-    y = mrb_as_float(mrb, v2);
-    break;
-#endif
-#endif
-  default:
+  if (!mrb_fixnum_p(v2)) {
     v1 = mrb_funcall_argv(mrb, v2, MRB_OPSYM(cmp), 1, &v1);
     if (mrb_integer_p(v1)) {
       return -mrb_integer(v1);
     }
     return -2;
   }
+  mrb_int x = mrb_as_int(mrb, v1);
+  mrb_int y = mrb_integer(v2);
+
+#else                           /* float version */
+
+  mrb_float x = mrb_as_float(mrb, v1);
+  mrb_float y;
+
+  switch (mrb_type(v2)) {
+#ifdef MRB_USE_RATIONAL
+  case MRB_TT_RATIONAL:
+#endif
+#ifdef MRB_USE_BIGINT
+  case MRB_TT_BIGINT:
+#endif
+  case MRB_TT_FLOAT:
+  case MRB_TT_INTEGER:
+    y = mrb_as_float(mrb, v2);
+    break;
+  default:
+    v1 = mrb_funcall_argv(mrb, v2, MRB_OPSYM(cmp), 1, &v1);
+    if (mrb_fixnum_p(v1)) {
+      return -mrb_integer(v1);
+    }
+    return -2;
+  }
+#endif
   if (x > y)
     return 1;
   else if (x < y)
