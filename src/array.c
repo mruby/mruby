@@ -1409,6 +1409,76 @@ mrb_ary_delete(mrb_state *mrb, mrb_value self)
   return ret;
 }
 
+static mrb_bool
+sort_cmp(mrb_state *mrb, mrb_value *p, mrb_int a, mrb_int b, mrb_value blk)
+{
+  mrb_int cmp;
+
+  if (mrb_nil_p(blk)) {
+    cmp = mrb_cmp(mrb, p[a], p[b]);
+  }
+  else {
+    mrb_value c = mrb_funcall_id(mrb, blk, MRB_SYM(call), 2, p[a], p[b]);
+    if (mrb_nil_p(c) || !mrb_fixnum_p(c)) {
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "comparison of %!v and %!v failed", p[a], p[b]);
+    }
+    cmp = mrb_fixnum(c);
+  }
+  return cmp > 0;
+}
+
+static void
+heapify(mrb_state *mrb, mrb_value *a, mrb_int index, mrb_int size, mrb_value blk)
+{
+  mrb_int max = index;
+  mrb_int left_index = 2 * index + 1;
+  mrb_int right_index = left_index + 1;
+  if (left_index < size && sort_cmp(mrb, a, left_index, max, blk)) {
+    max = left_index;
+  }
+  if (right_index < size && sort_cmp(mrb, a, right_index, max, blk)) {
+    max = right_index;
+  }
+  if (max != index) {
+    mrb_value tmp = a[max];
+    a[max] = a[index];
+    a[index] = tmp;
+    heapify(mrb, a, max, size, blk);
+  }
+}
+
+/*
+ *  call-seq:
+ *    array.sort! -> self
+ *    array.sort! {|a, b| ... } -> self
+ *
+ *  Sort all elements and replace +self+ with these
+ *  elements.
+ */
+static mrb_value
+mrb_ary_sort_bang(mrb_state *mrb, mrb_value ary)
+{
+  mrb_value blk;
+
+  mrb_int n = RARRAY_LEN(ary);
+  if (n < 2) return ary;
+
+  ary_modify(mrb, mrb_ary_ptr(ary));
+  mrb_get_args(mrb, "&", &blk);
+
+  mrb_value *a = RARRAY_PTR(ary);
+  for (mrb_int i = n / 2 - 1; i > -1; i--) {
+    heapify(mrb, a, i, n, blk);
+  }
+  for (mrb_int i = n - 1; i > 0; i--) {
+    mrb_value tmp = a[0];
+    a[0] = a[i];
+    a[i] = tmp;
+    heapify(mrb, a, 0, i, blk);
+  }
+  return ary;
+}
+
 void
 mrb_init_array(mrb_state *mrb)
 {
@@ -1446,6 +1516,7 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method_id(mrb, a, MRB_SYM(unshift),         mrb_ary_unshift_m,    MRB_ARGS_ANY());    /* 15.2.12.5.30 */
   mrb_define_method_id(mrb, a, MRB_SYM(to_s),            mrb_ary_to_s,         MRB_ARGS_NONE());
   mrb_define_method_id(mrb, a, MRB_SYM(inspect),         mrb_ary_to_s,         MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, a, MRB_SYM_B(sort),          mrb_ary_sort_bang,    MRB_ARGS_NONE());
 
   mrb_define_method_id(mrb, a, MRB_SYM(__ary_eq),        mrb_ary_eq,           MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, a, MRB_SYM(__ary_cmp),       mrb_ary_cmp,          MRB_ARGS_REQ(1));
