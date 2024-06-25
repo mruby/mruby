@@ -1884,6 +1884,9 @@ cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
 #ifdef MRB_NO_FLOAT             /* integer version */
 
   if (!mrb_fixnum_p(v2)) {
+    if (!mrb_obj_is_kind_of(mrb, v2, mrb_class_get_id(mrb, MRB_SYM(Numeric)))) {
+      return -2;
+    }
     v1 = mrb_funcall_argv(mrb, v2, MRB_OPSYM(cmp), 1, &v1);
     if (mrb_integer_p(v1)) {
       return -mrb_integer(v1);
@@ -1910,6 +1913,13 @@ cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
     y = mrb_as_float(mrb, v2);
     break;
   default:
+    if (!mrb_obj_is_kind_of(mrb, v2, mrb_class_get_id(mrb, MRB_SYM(Numeric)))) {
+      return -2;
+    }
+    /* fall through */
+#ifdef MRB_USE_COMPLEX
+  case MRB_TT_COMPLEX:
+#endif
     v1 = mrb_funcall_argv(mrb, v2, MRB_OPSYM(cmp), 1, &v1);
     if (mrb_fixnum_p(v1)) {
       return -mrb_integer(v1);
