@@ -1898,8 +1898,22 @@ cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
 
 #else                           /* float version */
 
-  mrb_float x = mrb_as_float(mrb, v1);
-  mrb_float y;
+  mrb_float x, y;
+
+  if (mrb_fixnum_p(v1)) {
+    if (mrb_fixnum_p(v2)) {
+      mrb_int x = mrb_integer(v1);
+      mrb_int y = mrb_integer(v2);
+
+      if (x > y) return 1;
+      else if (x < y) return -1;
+      return 0;
+    }
+    x = (mrb_float)mrb_integer(v1);
+  }
+  else {
+    x = mrb_as_float(mrb, v1);
+  }
 
   switch (mrb_type(v2)) {
 #ifdef MRB_USE_RATIONAL
