@@ -228,4 +228,17 @@ mrb_type(mrb_value o)
          mrb_val_union(o).bp->tt;
 }
 
+MRB_INLINE enum mrb_vtype
+mrb_unboxed_type(mrb_value o)
+{
+  if (mrb_nil_p(o)) {
+    return MRB_TT_FALSE;
+  } else if ((o.w & WORDBOX_IMMEDIATE_MASK) == 0) {
+    return mrb_val_union(o).bp->tt;
+  } else {
+    return MRB_TT_FALSE;
+  }
+}
+
+
 #endif  /* MRUBY_BOXING_WORD_H */
