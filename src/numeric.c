@@ -2043,6 +2043,9 @@ mrb_cmp(mrb_state *mrb, mrb_value obj1, mrb_value obj2)
 {
   mrb_value v;
 
+  if (mrb_fixnum_p(obj1) || mrb_float_p(obj1)) {
+    return cmpnum(mrb, obj1, obj2);
+  }
   switch (mrb_type(obj1)) {
   case MRB_TT_INTEGER:
   case MRB_TT_FLOAT:
