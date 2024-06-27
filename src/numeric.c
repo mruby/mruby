@@ -1922,8 +1922,13 @@ cmpnum(mrb_state *mrb, mrb_value v1, mrb_value v2)
 #ifdef MRB_USE_BIGINT
   case MRB_TT_BIGINT:
 #endif
-  case MRB_TT_FLOAT:
   case MRB_TT_INTEGER:
+    if (mrb_fixnum_p(v2)) {
+      y = (mrb_float)mrb_integer(v2);
+      break;
+    }
+    /* fall through */
+  case MRB_TT_FLOAT:
     y = mrb_as_float(mrb, v2);
     break;
   default:
