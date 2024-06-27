@@ -292,6 +292,40 @@ mrb_ary_s_create(mrb_state *mrb, mrb_value klass)
 
 static void ary_replace(mrb_state*, struct RArray*, struct RArray*);
 
+static mrb_value
+mrb_ary_init(mrb_state *mrb, mrb_value ary)
+{
+  mrb_value ss = mrb_fixnum_value(0);
+  mrb_value obj = mrb_nil_value();
+  mrb_value blk = mrb_nil_value();
+
+  mrb_get_args(mrb, "|oo&", &ss, &obj, &blk);
+
+  if (mrb_array_p(ss) && mrb_nil_p(obj) && mrb_nil_p(blk)) {
+    ary_replace(mrb, mrb_ary_ptr(ary), mrb_ary_ptr(ss));
+    return ary;
+  }
+
+  mrb_int size = mrb_as_int(mrb, ss);
+  struct RArray *a = mrb_ary_ptr(ary);
+
+  if (ARY_CAPA(a) < size) {
+    ary_expand_capa(mrb, a, size);
+  }
+
+  for (mrb_int i=0; i<size; i++) {
+    mrb_value val;
+    if (mrb_nil_p(blk)) {
+      val = obj;
+    }
+    else {
+      val = mrb_funcall_id(mrb, blk, MRB_SYM(call), 1, mrb_fixnum_value(i));
+    }
+    mrb_ary_set(mrb, ary, i, val);
+  }
+  return ary;
+}
+
 static void
 ary_concat(mrb_state *mrb, struct RArray *a, struct RArray *a2)
 {
@@ -1500,6 +1534,7 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method_id(mrb, a, MRB_SYM_Q(empty),         mrb_ary_empty_p,      MRB_ARGS_NONE());   /* 15.2.12.5.12 */
   mrb_define_method_id(mrb, a, MRB_SYM(first),           mrb_ary_first,        MRB_ARGS_OPT(1));   /* 15.2.12.5.13 */
   mrb_define_method_id(mrb, a, MRB_SYM(index),           mrb_ary_index_m,      MRB_ARGS_REQ(1));   /* 15.2.12.5.14 */
+  mrb_define_method_id(mrb, a, MRB_SYM(initialize),      mrb_ary_init,         MRB_ARGS_OPT(2));   /* 15.2.12.5.15 */
   mrb_define_method_id(mrb, a, MRB_SYM(initialize_copy), mrb_ary_replace_m,    MRB_ARGS_REQ(1));   /* 15.2.12.5.16 */
   mrb_define_method_id(mrb, a, MRB_SYM(join),            mrb_ary_join_m,       MRB_ARGS_OPT(1));   /* 15.2.12.5.17 */
   mrb_define_method_id(mrb, a, MRB_SYM(last),            mrb_ary_last,         MRB_ARGS_OPT(1));   /* 15.2.12.5.18 */
