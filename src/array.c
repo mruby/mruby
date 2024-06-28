@@ -1358,19 +1358,64 @@ mrb_ary_to_s(mrb_state *mrb, mrb_value self)
   return ret;
 }
 
+/* check array equality: 1=equal,0=not_equal,-1=need_elments_check */
+static mrb_int
+ary_eq(mrb_state *mrb, mrb_value ary1, mrb_value ary2)
+{
+  if (mrb_obj_equal(mrb, ary1, ary2)) return 1;
+  if (!mrb_array_p(ary2)) return 0;
+  if (RARRAY_LEN(ary1) != RARRAY_LEN(ary2)) return 0;
+
+  return -1;
+}
+
+/*
+ * call-seq:
+ *   array == other   -> true or false
+ *
+ *  Equality---Two arrays are equal if they contain the same number
+ *  of elements and if each element is equal to (according to
+ *  Object.==) the corresponding element in the other array.
+ *
+ */
 static mrb_value
 mrb_ary_eq(mrb_state *mrb, mrb_value ary1)
 {
   mrb_value ary2 = mrb_get_arg1(mrb);
+  mrb_int n = ary_eq(mrb, ary1, ary2);
 
-  mrb->c->ci->mid = 0;
-  if (mrb_obj_equal(mrb, ary1, ary2)) return mrb_true_value();
-  if (!mrb_array_p(ary2)) {
-    return mrb_false_value();
+  if (n == 1) return mrb_true_value();
+  if (n == 0) return mrb_false_value();
+
+  for (mrb_int i=0; i<RARRAY_LEN(ary1); i++) {
+    mrb_value eq = mrb_funcall_id(mrb, mrb_ary_entry(ary1, i), MRB_OPSYM(eq), 1, mrb_ary_entry(ary2, i));
+    if (!mrb_test(eq)) return mrb_false_value();
   }
-  if (RARRAY_LEN(ary1) != RARRAY_LEN(ary2)) return mrb_false_value();
+  return mrb_true_value();
+}
 
-  return ary2;
+/*
+ * call-seq:
+ *   array.eql? other_array -> true or false
+ *
+ *  Returns <code>true</code> if +self+ and _other_ are the same object,
+ *  or are both arrays with the same content.
+ *
+ */
+static mrb_value
+mrb_ary_eql(mrb_state *mrb, mrb_value ary1)
+{
+  mrb_value ary2 = mrb_get_arg1(mrb);
+  mrb_int n = ary_eq(mrb, ary1, ary2);
+
+  if (n == 1) return mrb_true_value();
+  if (n == 0) return mrb_false_value();
+
+  for (mrb_int i=0; i<RARRAY_LEN(ary1); i++) {
+    mrb_value eq = mrb_funcall_id(mrb, mrb_ary_entry(ary1, i), MRB_SYM_Q(eql), 1, mrb_ary_entry(ary2, i));
+    if (!mrb_test(eq)) return mrb_false_value();
+  }
+  return mrb_true_value();
 }
 
 static mrb_value
@@ -1532,6 +1577,8 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method_id(mrb, a, MRB_SYM(concat),          mrb_ary_concat_m,     MRB_ARGS_REQ(1));   /* 15.2.12.5.8  */
   mrb_define_method_id(mrb, a, MRB_SYM(delete_at),       mrb_ary_delete_at,    MRB_ARGS_REQ(1));   /* 15.2.12.5.9  */
   mrb_define_method_id(mrb, a, MRB_SYM_Q(empty),         mrb_ary_empty_p,      MRB_ARGS_NONE());   /* 15.2.12.5.12 */
+  mrb_define_method_id(mrb, a, MRB_OPSYM(eq),            mrb_ary_eq,           MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, a, MRB_SYM_Q(eql),           mrb_ary_eql,          MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, a, MRB_SYM(first),           mrb_ary_first,        MRB_ARGS_OPT(1));   /* 15.2.12.5.13 */
   mrb_define_method_id(mrb, a, MRB_SYM(index),           mrb_ary_index_m,      MRB_ARGS_REQ(1));   /* 15.2.12.5.14 */
   mrb_define_method_id(mrb, a, MRB_SYM(initialize),      mrb_ary_init,         MRB_ARGS_OPT(2));   /* 15.2.12.5.15 */
@@ -1553,7 +1600,6 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method_id(mrb, a, MRB_SYM(inspect),         mrb_ary_to_s,         MRB_ARGS_NONE());
   mrb_define_method_id(mrb, a, MRB_SYM_B(sort),          mrb_ary_sort_bang,    MRB_ARGS_NONE());
 
-  mrb_define_method_id(mrb, a, MRB_SYM(__ary_eq),        mrb_ary_eq,           MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, a, MRB_SYM(__ary_cmp),       mrb_ary_cmp,          MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, a, MRB_SYM(__ary_index),     mrb_ary_index_m,      MRB_ARGS_REQ(1));   /* kept for mruby-array-ext */
   mrb_define_method_id(mrb, a, MRB_SYM(__delete),        mrb_ary_delete,       MRB_ARGS_REQ(1));

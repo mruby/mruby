@@ -77,47 +77,6 @@ class Array
 
   ##
   # call-seq:
-  #   array == other   -> true or false
-  #
-  #  Equality---Two arrays are equal if they contain the same number
-  #  of elements and if each element is equal to (according to
-  #  Object.==) the corresponding element in the other array.
-  #
-  def ==(other)
-    other = self.__ary_eq(other)
-    return false if other == false
-    return true  if other == true
-    len = self.size
-    i = 0
-    while i < len
-      return false if self[i] != other[i]
-      i += 1
-    end
-    return true
-  end
-
-  ##
-  # call-seq:
-  #   array.eql? other_array -> true or false
-  #
-  #  Returns <code>true</code> if +self+ and _other_ are the same object,
-  #  or are both arrays with the same content.
-  #
-  def eql?(other)
-    other = self.__ary_eq(other)
-    return false if other == false
-    return true  if other == true
-    len = self.size
-    i = 0
-    while i < len
-      return false unless self[i].eql?(other[i])
-      i += 1
-    end
-    return true
-  end
-
-  ##
-  # call-seq:
   #   array <=> other_array -> -1, 0, or 1
   #
   #  Comparison---Returns an integer (-1, 0, or +1)
