@@ -701,35 +701,6 @@ class Array
   end
 
   ##
-  #  call-seq:
-  #     ary.index(val)            -> int or nil
-  #     ary.index {|item| block } ->  int or nil
-  #
-  #  Returns the _index_ of the first object in +ary+ such that the object is
-  #  <code>==</code> to +obj+.
-  #
-  #  If a block is given instead of an argument, returns the _index_ of the
-  #  first object for which the block returns +true+. Returns +nil+ if no
-  #  match is found.
-  #
-  # ISO 15.2.12.5.14
-  def index(val=NONE, &block)
-    return to_enum(:find_index, val) if !block && NONE.equal?(val)
-
-    if block
-      idx = 0
-      len = size
-      while idx < len
-        return idx if block.call self[idx]
-        idx += 1
-      end
-    else
-      return self.__ary_index(val)
-    end
-    nil
-  end
-
-  ##
   # call-seq:
   #   ary.dig(idx, ...)                 -> object
   #

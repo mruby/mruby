@@ -189,6 +189,11 @@ assert('Array#index', '15.2.12.5.14') do
   assert_equal(nil, a.index(0))
 end
 
+assert("Array#index (block)") do
+  assert_nil (1..10).to_a.index { |i| i % 5 == 0 and i % 7 == 0 }
+  assert_equal 34, (1..100).to_a.index { |i| i % 5 == 0 and i % 7 == 0 }
+end
+
 assert('Array#initialize', '15.2.12.5.15') do
   a = [].initialize(1)
   b = [].initialize(2)
@@ -286,6 +291,11 @@ assert('Array#rindex', '15.2.12.5.26') do
 
   assert_equal(1, a.rindex(2))
   assert_equal(nil, a.rindex(0))
+end
+
+assert("Array#rindex (block)") do
+  assert_nil (1..10).to_a.rindex { |i| i % 5 == 0 and i % 7 == 0 }
+  assert_equal 69, (1..100).to_a.rindex { |i| i % 5 == 0 and i % 7 == 0 }
 end
 
 assert('Array#shift', '15.2.12.5.27') do
