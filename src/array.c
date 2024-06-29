@@ -1418,18 +1418,40 @@ mrb_ary_eql(mrb_state *mrb, mrb_value ary1)
   return mrb_true_value();
 }
 
+/*
+ * call-seq:
+ *   array <=> other_array -> -1, 0, or 1
+ *
+ *  Comparison---Returns an integer (-1, 0, or +1)
+ *  if this array is less than, equal to, or greater than <i>other_ary</i>.
+ *  Each object in each array is compared (using <=>). If any value isn't
+ *  equal, then that inequality is the return value. If all the
+ *  values found are equal, then the return is based on a
+ *  comparison of the array lengths. Thus, two arrays are
+ *  "equal" according to <code>Array*<=></code> if and only if they have
+ *  the same length and the value of each element is equal to the
+ *  value of the corresponding element in the other array.
+ */
 static mrb_value
 mrb_ary_cmp(mrb_state *mrb, mrb_value ary1)
 {
   mrb_value ary2 = mrb_get_arg1(mrb);
 
-  mrb->c->ci->mid = 0;
   if (mrb_obj_equal(mrb, ary1, ary2)) return mrb_fixnum_value(0);
-  if (!mrb_array_p(ary2)) {
-    return mrb_nil_value();
-  }
+  if (!mrb_array_p(ary2)) return mrb_nil_value();
 
-  return ary2;
+  mrb_int len = RARRAY_LEN(ary1);
+  mrb_int n =  RARRAY_LEN(ary2);
+  if (len > n) len = n;
+  for (mrb_int i=0; i<len; i++) {
+    n = mrb_cmp(mrb, RARRAY_PTR(ary1)[i], RARRAY_PTR(ary2)[i]);
+    if (n == -2) return mrb_nil_value();
+    if (n != 0) return mrb_fixnum_value(n);
+  }
+  len = RSTRING_LEN(ary1) - RSTRING_LEN(ary2);
+  if (len == 0) return mrb_fixnum_value(0);
+  else if (len > 0) return mrb_fixnum_value(1);
+  else return mrb_fixnum_value(-1);
 }
 
 /* internal method to convert multi-value to single value */
@@ -1574,6 +1596,7 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method_id(mrb, a, MRB_OPSYM(aref),          mrb_ary_aget,         MRB_ARGS_ARG(1,1)); /* 15.2.12.5.4  */
   mrb_define_method_id(mrb, a, MRB_OPSYM(aset),          mrb_ary_aset,         MRB_ARGS_ARG(2,1)); /* 15.2.12.5.5  */
   mrb_define_method_id(mrb, a, MRB_SYM(clear),           mrb_ary_clear_m,      MRB_ARGS_NONE());   /* 15.2.12.5.6  */
+  mrb_define_method_id(mrb, a, MRB_OPSYM(cmp),           mrb_ary_cmp,          MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, a, MRB_SYM(concat),          mrb_ary_concat_m,     MRB_ARGS_REQ(1));   /* 15.2.12.5.8  */
   mrb_define_method_id(mrb, a, MRB_SYM(delete_at),       mrb_ary_delete_at,    MRB_ARGS_REQ(1));   /* 15.2.12.5.9  */
   mrb_define_method_id(mrb, a, MRB_SYM_Q(empty),         mrb_ary_empty_p,      MRB_ARGS_NONE());   /* 15.2.12.5.12 */
@@ -1600,7 +1623,6 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method_id(mrb, a, MRB_SYM(inspect),         mrb_ary_to_s,         MRB_ARGS_NONE());
   mrb_define_method_id(mrb, a, MRB_SYM_B(sort),          mrb_ary_sort_bang,    MRB_ARGS_NONE());
 
-  mrb_define_method_id(mrb, a, MRB_SYM(__ary_cmp),       mrb_ary_cmp,          MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, a, MRB_SYM(__ary_index),     mrb_ary_index_m,      MRB_ARGS_REQ(1));   /* kept for mruby-array-ext */
   mrb_define_method_id(mrb, a, MRB_SYM(__delete),        mrb_ary_delete,       MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, a, MRB_SYM(__svalue),        mrb_ary_svalue,       MRB_ARGS_NONE());
