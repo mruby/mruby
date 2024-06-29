@@ -119,7 +119,7 @@ class Array
       return false if self[i] != other[i]
       i += 1
     end
-    return true
+    true
   end
 
   ##
@@ -139,7 +139,7 @@ class Array
       return false unless self[i].eql?(other[i])
       i += 1
     end
-    return true
+    true
   end
 
   ##

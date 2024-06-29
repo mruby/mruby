@@ -371,7 +371,7 @@ module MRuby
 
     def emulator
       return "" unless @command
-      return [@command, *@flags].map{|c| shellquote(c)}.join(' ')
+      [@command, *@flags].map{|c| shellquote(c)}.join(' ')
     end
 
     def run(testbinfile)
