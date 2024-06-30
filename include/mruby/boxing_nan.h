@@ -98,6 +98,16 @@ mrb_type(mrb_value o)
   }
 }
 
+MRB_INLINE enum mrb_vtype
+mrb_unboxed_type(mrb_value o)
+{
+  if (!mrb_float_p(o) && mrb_nb_tt(o) == MRB_NANBOX_TT_OBJECT && o.u != 0) {
+    return ((struct RBasic*)(uintptr_t)o.u)->tt;
+  } else {
+    return MRB_TT_FALSE;
+  }
+}
+
 #define NANBOX_SET_MISC_VALUE(r,t,i) NANBOX_SET_VALUE(r, MRB_NANBOX_TT_MISC, ((uint64_t)(t)<<32) | (i))
 
 #define mrb_float(o) mrb_nan_boxing_value_float(o)

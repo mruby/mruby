@@ -26,15 +26,16 @@ typedef struct mrb_value {
   enum mrb_vtype tt;
 } mrb_value;
 
-#define mrb_ptr(o)      (o).value.p
-#define mrb_cptr(o)     mrb_ptr(o)
+#define mrb_ptr(o)          (o).value.p
+#define mrb_cptr(o)         mrb_ptr(o)
 #ifndef MRB_NO_FLOAT
-#define mrb_float(o)    (o).value.f
+#define mrb_float(o)        (o).value.f
 #endif
-#define mrb_fixnum(o)   (o).value.i
-#define mrb_integer(o)  mrb_fixnum(o)
-#define mrb_symbol(o)   (o).value.sym
-#define mrb_type(o)     (o).tt
+#define mrb_fixnum(o)       (o).value.i
+#define mrb_integer(o)      mrb_fixnum(o)
+#define mrb_symbol(o)       (o).value.sym
+#define mrb_type(o)         (o).tt
+#define mrb_unboxed_type(o) (o).tt
 
 #define BOXNIX_SET_VALUE(o, ttt, attr, v) do {\
   (o).tt = ttt;\

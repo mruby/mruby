@@ -143,16 +143,16 @@ static const unsigned int IEEE754_INFINITY_BITS_SINGLE = 0x7F800000;
   f(MRB_TT_OBJECT,      struct RObject,     "Object") \
   f(MRB_TT_CLASS,       struct RClass,      "Class") \
   f(MRB_TT_MODULE,      struct RClass,      "Module") \
-  f(MRB_TT_ICLASS,      struct RClass,      "iClass") \
   f(MRB_TT_SCLASS,      struct RClass,      "SClass") \
+  f(MRB_TT_HASH,        struct RHash,       "Hash") \
+  f(MRB_TT_CDATA,       struct RData,       "C data") \
+  f(MRB_TT_EXCEPTION,   struct RException,  "Exception") \
+  f(MRB_TT_ICLASS,      struct RClass,      "iClass") \
   f(MRB_TT_PROC,        struct RProc,       "Proc") \
   f(MRB_TT_ARRAY,       struct RArray,      "Array") \
-  f(MRB_TT_HASH,        struct RHash,       "Hash") \
   f(MRB_TT_STRING,      struct RString,     "String") \
   f(MRB_TT_RANGE,       struct RRange,      "Range") \
-  f(MRB_TT_EXCEPTION,   struct RException,  "Exception") \
   f(MRB_TT_ENV,         struct REnv,        "env") \
-  f(MRB_TT_CDATA,       struct RData,       "C data") \
   f(MRB_TT_FIBER,       struct RFiber,      "Fiber") \
   f(MRB_TT_STRUCT,      struct RArray,      "Struct") \
   f(MRB_TT_ISTRUCT,     struct RIStruct,    "istruct") \
