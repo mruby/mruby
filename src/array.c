@@ -1501,7 +1501,7 @@ mrb_ary_cmp(mrb_state *mrb, mrb_value ary1)
     if (n == -2) return mrb_nil_value();
     if (n != 0) return mrb_fixnum_value(n);
   }
-  len = RSTRING_LEN(ary1) - RSTRING_LEN(ary2);
+  len = RARRAY_LEN(ary1) - RARRAY_LEN(ary2);
   if (len == 0) return mrb_fixnum_value(0);
   else if (len > 0) return mrb_fixnum_value(1);
   else return mrb_fixnum_value(-1);
