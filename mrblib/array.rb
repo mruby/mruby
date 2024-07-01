@@ -77,20 +77,6 @@ class Array
 
   ##
   # call-seq:
-  #   array.delete(obj) -> deleted_object
-  #   array.delete(obj) {|nosuch| ... } -> deleted_object or block_return
-  #
-  # Delete element with index +key+
-  def delete(key, &block)
-    len = self.length
-    ret = self.__delete(key)
-    return block&.call(key) if len == self.length
-
-    ret
-  end
-
-  ##
-  # call-seq:
   #   array.sort -> new_array
   #   array.sort {|a, b| ... } -> new_array
   #

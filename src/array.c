@@ -1521,15 +1521,34 @@ mrb_ary_svalue(mrb_state *mrb, mrb_value ary)
   }
 }
 
+/*
+ * call-seq:
+ *   array.delete(obj) -> deleted_object
+ *   array.delete(obj) {|nosuch| ... } -> deleted_object or block_return
+ *
+ * Removes zero or more elements from self; returns self.
+ *
+ * When no block is given, removes from self each element e such
+ * that e == obj; returns the last deleted element
+ *
+ * Returns nil if no elements removed.
+ *
+ * When a block is given, removes from self each element e such
+ * that e == obj. If any such elements are found, ignores the block and
+ * returns the last. Otherwise, returns the block's return value.
+ */
 static mrb_value
 mrb_ary_delete(mrb_state *mrb, mrb_value self)
 {
+  mrb_value obj, blk;
+
+  mrb_get_args(mrb, "o&", &obj, &blk);
+
   struct RArray *ary = RARRAY(self);
   mrb_value *val_ptr = ARY_PTR(ary);
   size_t len = ARY_LEN(ary);
   mrb_bool modified = FALSE;
 
-  mrb_value obj = mrb_get_arg1(mrb);
   mrb_value ret = obj;
 
   size_t i = 0;
@@ -1555,11 +1574,11 @@ mrb_ary_delete(mrb_state *mrb, mrb_value self)
   }
 
   if (i == j) {
-    return mrb_nil_value();
+    if (mrb_nil_p(blk)) return mrb_nil_value();
+    return mrb_funcall_id(mrb, blk, MRB_SYM(call), 1, obj);
   }
 
   ARY_SET_LEN(ary, j);
-
   return ret;
 }
 
@@ -1651,6 +1670,7 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method_id(mrb, a, MRB_SYM(clear),           mrb_ary_clear_m,      MRB_ARGS_NONE());   /* 15.2.12.5.6  */
   mrb_define_method_id(mrb, a, MRB_OPSYM(cmp),           mrb_ary_cmp,          MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, a, MRB_SYM(concat),          mrb_ary_concat_m,     MRB_ARGS_REQ(1));   /* 15.2.12.5.8  */
+  mrb_define_method_id(mrb, a, MRB_SYM(delete),          mrb_ary_delete,       MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, a, MRB_SYM(delete_at),       mrb_ary_delete_at,    MRB_ARGS_REQ(1));   /* 15.2.12.5.9  */
   mrb_define_method_id(mrb, a, MRB_SYM_Q(empty),         mrb_ary_empty_p,      MRB_ARGS_NONE());   /* 15.2.12.5.12 */
   mrb_define_method_id(mrb, a, MRB_OPSYM(eq),            mrb_ary_eq,           MRB_ARGS_REQ(1));
@@ -1676,6 +1696,5 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method_id(mrb, a, MRB_SYM(inspect),         mrb_ary_to_s,         MRB_ARGS_NONE());
   mrb_define_method_id(mrb, a, MRB_SYM_B(sort),          mrb_ary_sort_bang,    MRB_ARGS_NONE());
 
-  mrb_define_method_id(mrb, a, MRB_SYM(__delete),        mrb_ary_delete,       MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, a, MRB_SYM(__svalue),        mrb_ary_svalue,       MRB_ARGS_NONE());
 }
