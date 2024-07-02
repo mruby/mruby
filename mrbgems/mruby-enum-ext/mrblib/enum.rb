@@ -189,20 +189,9 @@ module Enumerable
   # values in <i>enum</i> through the given block.
   #
   # If no block is given, an enumerator is returned instead.
-
   def sort_by(&block)
     return to_enum :sort_by unless block
-
-    ary = []
-    orig = []
-    self.each_with_index{|e, i|
-      orig.push(e)
-      ary.push([block.call(e), i])
-    }
-    if ary.size > 1
-      ary.sort!
-    end
-    ary.collect{|e,i| orig[i]}
+    self.to_a.sort_by(&block)
   end
 
   ##
@@ -890,5 +879,20 @@ module Enumerable
       end
     end
     result
+  end
+end
+
+class Array
+  def sort_by(&block)
+    return to_enum :sort_by unless block
+
+    ary = []
+    self.each_with_index{|e, i|
+      ary.push([block.call(e), i])
+    }
+    if ary.size > 1
+      ary.sort!
+    end
+    ary.collect!{|e,i| self[i]}
   end
 end
