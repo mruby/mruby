@@ -9,6 +9,7 @@
 #include <mruby/hash.h>
 #include <mruby/numeric.h>
 #include <mruby/presym.h>
+#include <mruby/internal.h>
 #include <string.h>
 #include <ctype.h>
 
@@ -864,24 +865,6 @@ retry:
           }
         }
 
-  bin_retry:
-        switch (mrb_type(val)) {
-#ifndef MRB_NO_FLOAT
-          case MRB_TT_FLOAT:
-            val = mrb_float_to_integer(mrb, val);
-            goto bin_retry;
-#endif
-          case MRB_TT_STRING:
-            val = mrb_str_to_integer(mrb, val, 0, TRUE);
-            goto bin_retry;
-          case MRB_TT_INTEGER:
-            v = mrb_integer(val);
-            break;
-          default:
-            v = mrb_as_int(mrb, val);
-            break;
-        }
-
         switch (*p) {
           case 'o':
             base = 8; break;
@@ -898,6 +881,33 @@ retry:
             /* fall through */
           default:
             base = 10; break;
+        }
+
+  bin_retry:
+        switch (mrb_type(val)) {
+#ifndef MRB_NO_FLOAT
+          case MRB_TT_FLOAT:
+            val = mrb_float_to_integer(mrb, val);
+            goto bin_retry;
+#endif
+#ifdef MRB_USE_BIGINT
+          case MRB_TT_BIGINT:
+            {
+              mrb_value str = mrb_bint_to_s(mrb, val, base);
+              s = RSTRING_PTR(str);
+              len = RSTRING_LEN(str);
+            }
+            goto str_skip;
+#endif
+          case MRB_TT_STRING:
+            val = mrb_str_to_integer(mrb, val, 0, TRUE);
+            goto bin_retry;
+          case MRB_TT_INTEGER:
+            v = mrb_integer(val);
+            break;
+          default:
+            v = mrb_as_int(mrb, val);
+            break;
         }
 
         if (sign) {
@@ -925,6 +935,7 @@ retry:
             dots = 1;
           }
         }
+
         {
           size_t size;
           size = strlen(s);
@@ -932,6 +943,7 @@ retry:
           len = (int)size;
         }
 
+      str_skip:
         if (*p == 'X') {
           char *pp = s;
           int c;
