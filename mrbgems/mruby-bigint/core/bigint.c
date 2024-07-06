@@ -620,11 +620,12 @@ mpz_mod(mrb_state *mrb, mpz_t *r, mpz_t *x, mpz_t *y)
 {
   mpz_t q;
   short sn = x->sn;
-  mpz_init(mrb, &q);
+
   if (x->sn == 0) {
     zero(r);
     return;
   }
+  mpz_init(mrb, &q);
   udiv(mrb, &q, r, x, y);
   r->sn = sn;
   if (uzero(r))
