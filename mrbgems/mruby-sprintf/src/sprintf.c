@@ -70,16 +70,15 @@ mrb_uint_to_cstr(char *buf, size_t len, mrb_int num, int base)
   const int mask = base-1;
   int shift;
   mrb_uint val = (uint64_t)num;
-  char d;
 
   if (num == 0) {
     buf[0] = '0'; buf[1] = '\0';
     return buf;
   }
   switch (base) {
-  case 16: d = 'f'; shift = 4; break;
-  case 8:  d = '7'; shift = 3; break;
-  case 2:  d = '1'; shift = 1; break;
+  case 16: shift = 4; break;
+  case 8:  shift = 3; break;
+  case 2:  shift = 1; break;
   default: return NULL;
   }
   *--b = '\0';
@@ -89,9 +88,6 @@ mrb_uint_to_cstr(char *buf, size_t len, mrb_int num, int base)
 
   if (num < 0) {
     b = remove_sign_bits(b, base);
-    if (d && *b != d) {
-      *--b = d;
-    }
   }
 
   return b;
@@ -728,6 +724,11 @@ retry:
           prec -= 2;
           width -= 2;
           PUSH("..", 2);
+          char c = sign_bits(base, p);
+          if (*s != c) {
+            FILL(c, 1);
+            prec--; width--;
+          }
         }
 
         if (prec > len) {
