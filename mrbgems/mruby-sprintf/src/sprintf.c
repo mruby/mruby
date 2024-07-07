@@ -43,26 +43,6 @@ remove_sign_bits(char *str, int base)
   return t;
 }
 
-static char
-sign_bits(int base, const char *p)
-{
-  char c;
-
-  switch (base) {
-  case 16:
-    if (*p == 'X') c = 'F';
-    else c = 'f';
-    break;
-  case 8:
-    c = '7'; break;
-  case 2:
-    c = '1'; break;
-  default:
-    c = '.'; break;
-  }
-  return c;
-}
-
 static char *
 mrb_uint_to_cstr(char *buf, size_t len, mrb_int num, int base)
 {
@@ -570,6 +550,7 @@ retry:
         const char *prefix = NULL;
         int sign = 0, dots = 0;
         char sc = 0;
+        char fc = 0;
         mrb_int v = 0;
         int base;
         int len;
@@ -664,12 +645,24 @@ retry:
         }
 
       str_skip:
+        switch (base) {
+        case 16:
+          fc = 'f'; break;
+        case 8:
+          fc = '7'; break;
+        case 2:
+          fc = '1'; break;
+        }
+
         if (*p == 'X') {
           char *pp = s;
           int c;
           while ((c = (int)(unsigned char)*pp) != 0) {
             *pp = toupper(c);
             pp++;
+          }
+          if (base == 16 && fc) {
+            fc = 'F';
           }
         }
 
@@ -724,9 +717,8 @@ retry:
           prec -= 2;
           width -= 2;
           PUSH("..", 2);
-          char c = sign_bits(base, p);
-          if (*s != c) {
-            FILL(c, 1);
+          if (*s != fc) {
+            FILL(fc, 1);
             prec--; width--;
           }
         }
@@ -738,8 +730,7 @@ retry:
             FILL(c, prec - len);
           }
           else if (v < 0) {
-            char c = sign_bits(base, p);
-            FILL(c, prec - len);
+            FILL(fc, prec - len);
           }
         }
         PUSH(s, len);
