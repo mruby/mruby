@@ -1626,3 +1626,41 @@ mrb_bint_hash(mrb_state *mrb, mrb_value x)
   hash = mrb_byte_hash_step((uint8_t*)&b->mp.sn, sizeof(b->mp.sn), hash);
   return mrb_int_value(mrb, hash);
 }
+
+mrb_value
+mrb_bint_2comp(mrb_state *mrb, mrb_value x, mrb_int base)
+{
+  struct RBigint *b = RBIGINT(x);
+  mrb_int i;
+
+  for (i=b->mp.sz-1; i>=0; i--) {
+    if (b->mp.p[i] > 0) break;
+  }
+
+#ifdef __GNUC__
+  mrb_int dbits = __builtin_ctz(base);
+#else
+  mrb_int dbits;
+  switch (base) {
+  case 16: dbits = 4; break;
+  case  8: dbits = 3; break;
+  case  2: dbits = 1; break;
+  }
+#endif
+  mrb_int topbit = DIG_SIZE * (i+1) - lzb(b->mp.p[i]);
+  mrb_int nbits = (topbit / dbits + 1) * dbits;
+
+  mpz_t one;
+  mpz_t up;
+  struct RBigint *b2 = bint_new(mrb);
+
+  /* rounding up to nearest power of 2 */
+  mpz_init_set_int(mrb, &one, 1);
+  mpz_init(mrb, &up);
+  mpz_mul_2exp(mrb, &up, &one, nbits);
+  mpz_clear(mrb, &one);
+  mpz_add(mrb, &b2->mp, &up, &b->mp);
+  mpz_clear(mrb, &up);
+
+  return mrb_obj_value(b2);
+}
