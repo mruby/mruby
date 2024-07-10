@@ -155,31 +155,32 @@ int_div(mrb_state *mrb, mrb_value x)
   mrb_value y = mrb_get_arg1(mrb);
 #ifdef MRB_USE_BIGINT
   if (mrb_bigint_p(x)) {
-    return mrb_bint_div(mrb, x, y);
-  }
+    if (mrb_bigint_p(y) || mrb_integer_p(y)) {
+      return mrb_bint_div(mrb, x, y);
+    }
+  } else
 #endif
- mrb_int a = mrb_integer(x);
-
   if (mrb_integer_p(y)) {
-    return mrb_div_int_value(mrb, a, mrb_integer(y));
+    return mrb_div_int_value(mrb, mrb_integer(x), mrb_integer(y));
   }
   switch (mrb_type(y)) {
 #ifdef MRB_USE_BIGINT
+  case MRB_TT_INTEGER:
   case MRB_TT_BIGINT:
-    return mrb_bint_div(mrb, mrb_bint_new_int(mrb, a), y);
+    return mrb_bint_div(mrb, mrb_as_bint(mrb, x), y);
 #endif
 #ifdef MRB_USE_RATIONAL
   case MRB_TT_RATIONAL:
-    return mrb_rational_div(mrb, mrb_rational_new(mrb, a, 1), y);
+    return mrb_rational_div(mrb, mrb_as_rational(mrb, x), y);
 #endif
 #ifdef MRB_USE_COMPLEX
   case MRB_TT_COMPLEX:
-    x = mrb_complex_new(mrb, (mrb_float)a, 0);
+    x = mrb_complex_new(mrb, mrb_as_float(mrb, x), 0);
     return mrb_complex_div(mrb, x, y);
 #endif
 #ifndef MRB_NO_FLOAT
   case MRB_TT_FLOAT:
-    return mrb_float_value(mrb, mrb_div_float((mrb_float)a, mrb_as_float(mrb, y)));
+    return mrb_float_value(mrb, mrb_div_float(mrb_as_float(mrb, x), mrb_as_float(mrb, y)));
 #endif
   default:
     mrb_int_noconv(mrb, y);

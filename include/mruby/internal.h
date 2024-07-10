@@ -126,6 +126,7 @@ mrb_value mrb_rational_add(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_rational_sub(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_rational_mul(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_rational_div(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_value mrb_as_rational(mrb_state *mrb, mrb_value x);
 void mrb_rational_copy(mrb_state *mrb, mrb_value x, mrb_value y);
 #endif
 

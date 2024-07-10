@@ -284,6 +284,26 @@ mrb_rational_to_i(mrb_state *mrb, mrb_value self)
   return mrb_int_value(mrb, p->numerator / p->denominator);
 }
 
+mrb_value
+mrb_as_rational(mrb_state *mrb, mrb_value x)
+{
+  switch(mrb_type(x)) {
+  case MRB_TT_INTEGER:
+    return rational_new_i(mrb, mrb_integer(x), 1);
+  case MRB_TT_RATIONAL:
+    return x;
+#ifndef MRB_NO_FLOAT
+#ifdef MRB_USE_COMPLEX
+  case MRB_TT_COMPLEX:
+#endif
+  case MRB_TT_FLOAT:
+    return rational_new_f(mrb, mrb_as_float(mrb, x));
+#endif
+  default:
+    mrb_raisef(mrb, E_TYPE_ERROR, "%Y cannot convert to Rational", x);
+  }
+}
+
 static mrb_value
 rational_negative_p(mrb_state *mrb, mrb_value self)
 {
