@@ -200,6 +200,21 @@ int_digits(mrb_state *mrb, mrb_value self)
   return digits;
 }
 
+/*
+ *  call-seq:
+ *     int.size -> int
+ *
+ * Returns the number of bytes in the machine representation of int
+ * (machine dependent).
+ *
+ *   1.size               #=> 8
+ *   -1.size              #=> 8
+ *   2147483647.size      #=> 8
+ *   (256**10 - 1).size   #=> 12
+ *   (256**20 - 1).size   #=> 20
+ *   (256**40 - 1).size   #=> 40
+ */
+
 static mrb_value
 int_size(mrb_state *mrb, mrb_value self)
 {
