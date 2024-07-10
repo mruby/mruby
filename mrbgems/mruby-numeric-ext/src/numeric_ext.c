@@ -200,6 +200,18 @@ int_digits(mrb_state *mrb, mrb_value self)
   return digits;
 }
 
+static mrb_value
+int_size(mrb_state *mrb, mrb_value self)
+{
+  size_t size = sizeof(mrb_int);
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(self)) {
+    size = mrb_bint_memsize(self);
+  }
+#endif
+  return mrb_fixnum_value((mrb_int)size);
+}
+
 #ifndef MRB_NO_FLOAT
 static mrb_value
 flo_remainder(mrb_state *mrb, mrb_value self)
@@ -224,6 +236,7 @@ mrb_mruby_numeric_ext_gem_init(mrb_state* mrb)
 
   mrb_define_method_id(mrb, ic, MRB_SYM(pow), int_powm, MRB_ARGS_ARG(1,1));
   mrb_define_method_id(mrb, ic, MRB_SYM(digits), int_digits, MRB_ARGS_OPT(1));
+  mrb_define_method_id(mrb, ic, MRB_SYM(size), int_size, MRB_ARGS_NONE());
 
 #ifndef MRB_NO_FLOAT
   struct RClass *fc = mrb->float_class;
