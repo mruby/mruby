@@ -895,4 +895,8 @@ class Array
     end
     ary.collect!{|e,i| self[i]}
   end
+
+  def sort_by!(&block)
+    self.replace(self.sort_by(&block))
+  end
 end
