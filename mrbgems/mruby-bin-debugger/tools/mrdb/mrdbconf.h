@@ -18,7 +18,7 @@
 /* maximum size for command buffer */
 #define MAX_COMMAND_LINE 1024
 
-/* maximum number of setable breakpoint */
+/* maximum number of settable breakpoint */
 #define MAX_BREAKPOINT 5
 
 #endif

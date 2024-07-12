@@ -45,7 +45,7 @@ static const struct RProc catch_proc = {
 static uintptr_t
 find_catcher(mrb_state *mrb, mrb_value tag)
 {
-  const mrb_callinfo *ci = mrb->c->ci - 1; // skip ownself throw
+  const mrb_callinfo *ci = mrb->c->ci - 1; // skip oneself throw
   ptrdiff_t n = ci - mrb->c->cibase;
 
   for (; n > 0; n--, ci--) {
