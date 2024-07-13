@@ -213,13 +213,10 @@ int_idiv(mrb_state *mrb, mrb_value x)
   return mrb_div_int_value(mrb, mrb_integer(x), y);
 }
 
+#ifndef MRB_NO_FLOAT
 static mrb_value
-int_quo(mrb_state *mrb, mrb_value x)
+int_fdiv(mrb_state *mrb, mrb_value x)
 {
-#ifndef MRB_USE_RATIONAL
-#ifdef MRB_NO_FLOAT
-  return int_idiv(mrb, x);
-#else
   mrb_float y = mrb_as_float(mrb,  mrb_get_arg1(mrb));
 
   if (y == 0) {
@@ -231,7 +228,20 @@ int_quo(mrb_state *mrb, mrb_value x)
   }
 #endif
   return mrb_float_value(mrb, mrb_integer(x) / y);
+}
 #endif
+
+static mrb_value
+int_quo(mrb_state *mrb, mrb_value x)
+{
+#ifndef MRB_USE_RATIONAL
+
+#ifdef MRB_NO_FLOAT
+  return int_idiv(mrb, x);
+#else
+  return int_fdiv(mrb, x);
+#endif
+
 #else
   mrb_int a = mrb_integer(x);
   mrb_value y = mrb_get_arg1(mrb);
@@ -2129,6 +2139,9 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method_id(mrb, integer, MRB_OPSYM(div),    int_div,         MRB_ARGS_REQ(1)); /* 15.2.8.3.6 */
   mrb_define_method_id(mrb, integer, MRB_SYM(quo),      int_quo,         MRB_ARGS_REQ(1)); /* 15.2.7.4.5(x) */
   mrb_define_method_id(mrb, integer, MRB_SYM(div),      int_idiv,        MRB_ARGS_REQ(1));
+#ifndef MRB_NO_FLOAT
+  mrb_define_method_id(mrb, integer, MRB_SYM(fdiv),     int_fdiv,        MRB_ARGS_REQ(1));
+#endif
   mrb_define_method_id(mrb, integer, MRB_OPSYM(eq),     int_equal,       MRB_ARGS_REQ(1)); /* 15.2.8.3.7 */
   mrb_define_method_id(mrb, integer, MRB_OPSYM(neg),    int_rev,         MRB_ARGS_NONE()); /* 15.2.8.3.8 */
   mrb_define_method_id(mrb, integer, MRB_OPSYM(and),    int_and,         MRB_ARGS_REQ(1)); /* 15.2.8.3.9 */
@@ -2161,6 +2174,7 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method_id(mrb, fl,      MRB_OPSYM(pow),     flo_pow,        MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, fl,      MRB_OPSYM(div),     flo_div,        MRB_ARGS_REQ(1)); /* 15.2.9.3.6 */
   mrb_define_method_id(mrb, fl,      MRB_SYM(quo),       flo_div,        MRB_ARGS_REQ(1)); /* 15.2.7.4.5(x) */
+  mrb_define_method_id(mrb, fl,      MRB_SYM(fdiv),      flo_div,        MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, fl,      MRB_SYM(div),       flo_idiv,       MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, fl,      MRB_OPSYM(add),     flo_add,        MRB_ARGS_REQ(1)); /* 15.2.9.3.3 */
   mrb_define_method_id(mrb, fl,      MRB_OPSYM(sub),     flo_sub,        MRB_ARGS_REQ(1)); /* 15.2.9.3.4 */
