@@ -349,6 +349,12 @@ flo_div(mrb_state *mrb, mrb_value x)
   return mrb_float_value(mrb, a);
 }
 
+static mrb_value
+num_fdiv(mrb_state *mrb, mrb_value x)
+{
+  return flo_div(mrb, mrb_ensure_float_type(mrb, x));
+}
+
 /* the argument `fmt` is no longer used; you can pass `NULL` */
 mrb_value
 mrb_float_to_str(mrb_state *mrb, mrb_value flo, const char *fmt)
@@ -2116,6 +2122,9 @@ mrb_init_numeric(mrb_state *mrb)
   mrb_define_method_id(mrb, numeric, MRB_SYM_Q(finite),  num_finite_p,    MRB_ARGS_NONE());
   mrb_define_method_id(mrb, numeric, MRB_SYM_Q(infinite),num_infinite_p,  MRB_ARGS_NONE());
   mrb_define_method_id(mrb, numeric, MRB_SYM_Q(eql),     num_eql,         MRB_ARGS_REQ(1)); /* 15.2.8.3.16 */
+#ifndef MRB_NO_FLOAT
+  mrb_define_method_id(mrb, numeric, MRB_SYM(fdiv),      num_fdiv,        MRB_ARGS_REQ(1));
+#endif
 
   /* Integer Class */
   mrb->integer_class = integer = mrb_define_class_id(mrb, MRB_SYM(Integer),  numeric);     /* 15.2.8 */
