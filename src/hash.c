@@ -1854,6 +1854,18 @@ mrb_hash_to_s(mrb_state *mrb, mrb_value self)
   return ret;
 }
 
+/*
+ * call-seq:
+ *    hash.to_hash -> self
+ *
+ * Returns self.
+ */
+static mrb_value
+mrb_hash_to_hash(mrb_state *mrb, mrb_value self)
+{
+  return self;
+}
+
 void
 mrb_init_hash(mrb_state *mrb)
 {
@@ -1889,6 +1901,7 @@ mrb_init_hash(mrb_state *mrb)
   mrb_define_method_id(mrb, h, MRB_SYM(to_s),            mrb_hash_to_s,        MRB_ARGS_NONE());
   mrb_define_method_id(mrb, h, MRB_SYM(inspect),         mrb_hash_to_s,        MRB_ARGS_NONE());
   mrb_define_method_id(mrb, h, MRB_SYM(rehash),          mrb_hash_rehash,      MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, h, MRB_SYM(to_hash),         mrb_hash_to_hash,     MRB_ARGS_NONE());
   mrb_define_method_id(mrb, h, MRB_SYM(__merge),         mrb_hash_merge_m,     MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, h, MRB_SYM(__compact),       mrb_hash_compact,     MRB_ARGS_NONE()); /* implementation of Hash#compact! */
 }
