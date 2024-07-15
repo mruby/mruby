@@ -10,7 +10,7 @@
  * FREE GMP - a public domain implementation of a subset of the
  *           gmp library
  *
- * I hearby place the file in the public domain.
+ * I hereby place the file in the public domain.
  *
  * Do whatever you want with this code. Change it. Sell it. Claim you
  *  wrote it.

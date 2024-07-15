@@ -46,7 +46,7 @@ Mark Henderson <markh@wimsey.bc.ca>
 
 # This is the fifth BETA release. 1.0b5
 
-I hearby place this file and all of FGMP in the public domain.
+I hereby place this file and all of FGMP in the public domain.
 
 Thanks to Paul Rouse <par@r-cube.demon.co.uk> for changes to get fgmp
 to work on a 286 MS-DOS compiler, the functions mpz_sqrt and

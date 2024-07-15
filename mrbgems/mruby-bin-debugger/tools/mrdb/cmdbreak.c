@@ -26,7 +26,7 @@
 #define BREAK_ERR_MSG_INVALIDARG            "Internal error."
 #define BREAK_ERR_MSG_BLANK                 "Try \'help break\' for more information."
 #define BREAK_ERR_MSG_RANGEOVER             "The line number range is from 1 to 65535."
-#define BREAK_ERR_MSG_NUMOVER               "Exceeded the setable number of breakpoint."
+#define BREAK_ERR_MSG_NUMOVER               "Exceeded the settable number of breakpoint."
 #define BREAK_ERR_MSG_NOOVER                "Breakno is over the available number.Please 'quit' and restart mrdb."
 #define BREAK_ERR_MSG_INVALIDSTR            "String \'%s\' is invalid.\n"
 #define BREAK_ERR_MSG_INVALIDLINENO         "Line %d in file \"%s\" is unavailable.\n"
