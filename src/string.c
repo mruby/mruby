@@ -1452,6 +1452,7 @@ mrb_str_aset(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen, mrb_
  *
  * Modify +self+ by replacing the content of +self+.
  * The portion of the string affected is determined using the same criteria as +String#[]+.
+ * The return value of this expression is +replace+.
  */
 static mrb_value
 mrb_str_aset_m(mrb_state *mrb, mrb_value str)
@@ -1467,7 +1468,7 @@ mrb_str_aset_m(mrb_state *mrb, mrb_value str)
       break;
   }
   mrb_str_aset(mrb, str, indx, alen, replace);
-  return str;
+  return replace;
 }
 
 /* 15.2.10.5.8  */
