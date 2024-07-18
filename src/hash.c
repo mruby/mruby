@@ -1866,6 +1866,56 @@ mrb_hash_to_hash(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ * call-seq:
+ *   hash.assoc(key) -> new_array or nil
+ *
+ * If the given key is found, returns a 2-element Array containing that key
+ * and its value:
+ *
+ *  h = {foo: 0, bar: 1, baz: 2}
+ *  h.assoc(:bar) # => [:bar, 1]
+ *
+ * Returns nil if key key is not found.
+ */
+static mrb_value
+mrb_hash_assoc(mrb_state *mrb, mrb_value hash)
+{
+  mrb_value key = mrb_get_arg1(mrb);
+  struct RHash *h = mrb_hash_ptr(hash);
+  h_each(h, entry, {
+    if (obj_eql(mrb, entry->key, key, h)) {
+      return mrb_assoc_new(mrb, entry->key, entry->val);
+    }
+  });
+  return mrb_nil_value();
+}
+
+/*
+ * call-seq:
+ *   hash.rassoc(value) -> new_array or nil
+ *
+ * Returns a new 2-element Array consisting of the key and value of the
+ * first-found entry whose value is == to value.
+ *
+ *  h = {foo: 0, bar: 1, baz: 1}
+ *  h.rassoc(1) # => [:bar, 1]
+ *
+ * Returns nil if no such value found.
+ */
+static mrb_value
+mrb_hash_rassoc(mrb_state *mrb, mrb_value hash)
+{
+  mrb_value value = mrb_get_arg1(mrb);
+  struct RHash *h = mrb_hash_ptr(hash);
+  h_each(h, entry, {
+    if (obj_eql(mrb, entry->val, value, h)) {
+      return mrb_assoc_new(mrb, entry->key, entry->val);
+    }
+  });
+  return mrb_nil_value();
+}
+
 void
 mrb_init_hash(mrb_state *mrb)
 {
@@ -1902,6 +1952,8 @@ mrb_init_hash(mrb_state *mrb)
   mrb_define_method_id(mrb, h, MRB_SYM(inspect),         mrb_hash_to_s,        MRB_ARGS_NONE());
   mrb_define_method_id(mrb, h, MRB_SYM(rehash),          mrb_hash_rehash,      MRB_ARGS_NONE());
   mrb_define_method_id(mrb, h, MRB_SYM(to_hash),         mrb_hash_to_hash,     MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, h, MRB_SYM(assoc),           mrb_hash_assoc,       MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, h, MRB_SYM(rassoc),          mrb_hash_rassoc,      MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, h, MRB_SYM(__merge),         mrb_hash_merge_m,     MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, h, MRB_SYM(__compact),       mrb_hash_compact,     MRB_ARGS_NONE()); /* implementation of Hash#compact! */
 }
