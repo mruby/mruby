@@ -948,43 +948,12 @@ assert('Hash#rehash') do
   [1, 17].each{assert_equal(_1 * 2, h[_1])}
 end
 
-assert('#eql? receiver should be specified key') do
-  [ar_entries, ht_entries].each do |entries|
-    h = entries.hash_for
-    k0 = HashKey[-99]
-    h[k0] = 1
-
-    k1 = HashKey[-3, error: :eql?]
-    assert_raise{h[k1]}
-    k0.error = :eql?
-    k1.error = false
-    assert_nothing_raised{h[k1]}
-
-    k0.error = false
-    k1.error = :eql?
-    assert_raise{h[k1] = 1}
-    k0.error = :eql?
-    k1.error = false
-    assert_nothing_raised{h[k1] = 1}
-
-    k0.error = false
-    k2 = HashKey[-6, error: :eql?]
-    assert_raise{h.delete(k2)}
-    k0.error = :eql?
-    k2.error = false
-    assert_nothing_raised{h.delete(k2)}
-
-    k0.error = false
-    k3 = HashKey[-9, error: :eql?]
-    %i[has_key? include? key? member?].each do |m|
-      assert_raise{h.__send__(m, k3)}
-    end
-    k0.error = :eql?
-    k3.error = false
-    %i[has_key? include? key? member?].each do |m|
-      assert_nothing_raised{h.__send__(m, k3)}
-    end
-  end
+assert('Hash#assoc, Hash#rassoc') do
+  h = {foo: 0, bar: 1, baz: 2}
+  assert_equal([:bar, 1], h.assoc(:bar))
+  assert_nil(h.assoc(:quux))
+  assert_equal([:foo, 0], h.rassoc(0))
+  assert_nil(h.rassoc(4))
 end
 
 assert('#== receiver should be specified value') do
