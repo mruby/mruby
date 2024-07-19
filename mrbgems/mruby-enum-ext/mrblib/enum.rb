@@ -880,6 +880,41 @@ module Enumerable
     end
     result
   end
+
+  ##
+  # call-seq:
+  #   enum.each_entry { |obj| block }  -> enum
+  #   enum.each_entry                  -> an_enumerator
+  #
+  # Calls block once for each element in self, passing that
+  # element as a parameter, converting multiple values from yield to an
+  # array.
+  #
+  # If no block is given, an enumerator is returned instead.
+  #
+  #    class Foo
+  #      include Enumerable
+  #      def each
+  #        yield 1
+  #        yield 1, 2
+  #        yield
+  #      end
+  #    end
+  #    Foo.new.each_entry{ |o| p o }
+  #
+  #  produces:
+  #
+  #    1
+  #    [1, 2]
+  #    nil
+  #
+  def each_entry(*args, &blk)
+    return to_enum(:each_entry) unless blk
+    self.each do |*a|
+      yield a.__svalue
+    end
+    return self
+  end
 end
 
 class Array
