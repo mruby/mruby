@@ -629,7 +629,6 @@ prepare_missing(mrb_state *mrb, mrb_callinfo *ci, mrb_value recv, mrb_sym mid, m
   stack_extend(mrb, 4);
 
   argv = &ci->stack[1];         /* maybe reallocated */
-  argv[0] = args;
   if (ci->nk == 0) {
     argv[1] = blk;
   }
@@ -638,6 +637,7 @@ prepare_missing(mrb_state *mrb, mrb_callinfo *ci, mrb_value recv, mrb_sym mid, m
     argv[1] = argv[ci->n];
     argv[2] = blk;
   }
+  argv[0] = args;               /* must be replaced after saving argv[0] as it may be a keyword argument */
   ci->n = CALL_MAXARGS;
   /* ci->nk is already set to zero or CALL_MAXARGS */
   mrb_ary_unshift(mrb, args, mrb_symbol_value(mid));
