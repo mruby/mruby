@@ -202,3 +202,22 @@ assert("Enumerable#grep_v") do
   assert_equal [1, 2, 3, 4, 5, 0], a.grep_v(6..8)
   assert_equal [2, 4, 6, 8, 10], a.grep_v(0) {|v| v * 2}
 end
+
+assert("Enumerable#each_entry") do
+  each_entry_test = Class.new {
+    include Enumerable
+    def each
+      yield 1
+      yield 1, 2
+      yield
+    end
+  }
+  e = each_entry_test.new
+  a = []
+  e.each_entry {|v|
+    a.push(v)
+  }
+  assert_equal 1, a[0]
+  assert_equal [1,2], a[1]
+  assert_equal nil, a[2]
+end
