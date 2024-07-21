@@ -3109,6 +3109,8 @@ RETRY_TRY_BLOCK:
 #undef regs
   }
   MRB_CATCH(&c_jmp) {
+    mrb_assert(mrb->exc != NULL);
+
     mrb_callinfo *ci = mrb->c->ci;
     while (ci > mrb->c->cibase && ci->cci == CINFO_DIRECT) {
       ci = cipop(mrb);
