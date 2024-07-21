@@ -219,13 +219,31 @@ mrb_integer_func(mrb_value o) {
 MRB_INLINE enum mrb_vtype
 mrb_type(mrb_value o)
 {
-  return !mrb_bool(o)    ? MRB_TT_FALSE :
-         mrb_true_p(o)   ? MRB_TT_TRUE :
-         mrb_fixnum_p(o) ? MRB_TT_INTEGER :
-         mrb_symbol_p(o) ? MRB_TT_SYMBOL :
-         mrb_undef_p(o)  ? MRB_TT_UNDEF :
-         mrb_float_p(o)  ? MRB_TT_FLOAT :
-         mrb_val_union(o).bp->tt;
+  switch (o.w & 0x07) {
+  case 0x00:
+    return (o.w == 0) ? MRB_TT_FALSE : mrb_val_union(o).bp->tt;
+  case 0x02: case 0x06:
+#ifdef MRB_WORDBOX_NO_FLOAT_TRUNCATE
+    return MRB_TT_SYMBOL;
+#else
+    return MRB_TT_FLOAT;
+#endif
+  case 0x04:
+    switch (o.w) {
+    case 0x04:
+      return MRB_TT_FALSE;
+    case 0x0c:
+      return MRB_TT_TRUE;
+    case 0x14:
+      return MRB_TT_UNDEF;
+    default:
+      /* SHALL NOT be reached if MRB_WORDBOX_NO_FLOAT_TRUNCATE is defined */
+      return MRB_TT_SYMBOL;
+    }
+  case 0x01: case 0x03: case 0x05: case 0x07:
+  default:
+    return MRB_TT_INTEGER;
+  }
 }
 
 MRB_INLINE enum mrb_vtype
