@@ -769,4 +769,74 @@ module Enumerable
       y.yield [last_value, arr] if arr.size > 0
     end
   end
+
+
+  ##
+  #  call-seq:
+  #     enum.chunk_while {|elt_before, elt_after| bool } -> an_enumerator
+  #
+  # Creates an enumerator for each chunked elements.
+  # The beginnings of chunks are defined by the block.
+  #
+  # This method splits each chunk using adjacent elements,
+  # _elt_before_ and _elt_after_,
+  # in the receiver enumerator.
+  # This method split chunks between _elt_before_ and _elt_after_ where
+  # the block returns <code>false</code>.
+  #
+  # The block is called the length of the receiver enumerator minus one.
+  #
+  # The result enumerator yields the chunked elements as an array.
+  # So +each+ method can be called as follows:
+  #
+  #   enum.chunk_while { |elt_before, elt_after| bool }.each { |ary| ... }
+  #
+  # Other methods of the Enumerator class and Enumerable module,
+  # such as +to_a+, +map+, etc., are also usable.
+  #
+  # For example, one-by-one increasing subsequence can be chunked as follows:
+  #
+  #   a = [1,2,4,9,10,11,12,15,16,19,20,21]
+  #   b = a.chunk_while {|i, j| i+1 == j }
+  #   p b.to_a #=> [[1, 2], [4], [9, 10, 11, 12], [15, 16], [19, 20, 21]]
+  #   c = b.map {|a| a.length < 3 ? a : "#{a.first}-#{a.last}" }
+  #   p c #=> [[1, 2], [4], "9-12", [15, 16], "19-21"]
+  #   d = c.join(",")
+  #   p d #=> "1,2,4,9-12,15,16,19-21"
+  #
+  # Increasing (non-decreasing) subsequence can be chunked as follows:
+  #
+  #   a = [0, 9, 2, 2, 3, 2, 7, 5, 9, 5]
+  #   p a.chunk_while {|i, j| i <= j }.to_a
+  #  #=> [[0, 9], [2, 2, 3], [2, 7], [5, 9], [5]]
+  #
+  # Adjacent evens and odds can be chunked as follows:
+  # (Enumerable#chunk is another way to do it.)
+  #
+  #   a = [7, 5, 9, 2, 0, 7, 9, 4, 2, 0]
+  #   p a.chunk_while {|i, j| i.even? == j.even? }.to_a
+  #   #=> [[7, 5, 9], [2, 0], [7, 9], [4, 2, 0]]
+  #
+  # Enumerable#slice_when does the same, except splitting when the block
+  # returns <code>true</code> instead of <code>false</code>.
+  #
+  def chunk_while(&block)
+    enum = self
+    Enumerator.new do |y|
+      n = 0
+      last_value, arr = nil, []
+      enum.each do |element|
+        if n > 0
+          unless block.call(last_value, element)
+            y.yield arr
+            arr = []
+          end
+        end
+        arr.push(element)
+        n += 1
+        last_value = element
+      end
+      y.yield arr if arr.size > 0
+    end
+  end
 end
