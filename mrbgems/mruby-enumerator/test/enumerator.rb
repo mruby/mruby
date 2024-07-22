@@ -647,3 +647,18 @@ assert("Enumerable#chunk") do
   enum = e.chunk { |x| true }
   assert_nil enum.size
 end
+
+assert("Enumerable#chunk_while") do
+  a = [1,2,4,9,10,11,12,15,16,19,20,21]
+  b = a.chunk_while {|i, j| i+1 == j }
+  assert_equal [[1, 2], [4], [9, 10, 11, 12], [15, 16], [19, 20, 21]], b.to_a
+  c = b.map {|a| a.length < 3 ? a : "#{a.first}-#{a.last}" }
+  assert_equal [[1, 2], [4], "9-12", [15, 16], "19-21"], c
+
+  a = [0, 9, 2, 2, 3, 2, 7, 5, 9, 5]
+  assert_equal [[0], [9], [2], [2], [3], [2], [7], [5], [9], [5]], a.chunk_while {|i, j| false }.to_a
+  assert_equal [[0, 9], [2, 2, 3], [2, 7], [5, 9], [5]], a.chunk_while {|i, j| i <= j }.to_a
+
+  a = [7, 5, 9, 2, 0, 7, 9, 4, 2, 0]
+  assert_equal [[7, 5, 9], [2, 0], [7, 9], [4, 2, 0]], a.chunk_while {|i, j| i % 2 == j % 2 }.to_a
+end
