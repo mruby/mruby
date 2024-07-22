@@ -227,6 +227,27 @@ int_size(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value((mrb_int)size);
 }
 
+static mrb_value
+int_even(mrb_state *mrb, mrb_value self)
+{
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(self)) {
+    mrb_value mod2 = mrb_bint_mod(mrb, self, mrb_fixnum_value(2));
+    if (mrb_integer(mod2) == 0) return mrb_true_value();
+    return mrb_false_value();
+  }
+#endif
+  return mrb_bool_value(mrb_integer(self) % 2 == 0);
+}
+
+static mrb_value
+int_odd(mrb_state *mrb, mrb_value self)
+{
+  mrb_value even = int_even(mrb, self);
+  mrb_bool odd = !mrb_test(even);
+  return mrb_bool_value(odd);
+}
+
 #ifndef MRB_NO_FLOAT
 static mrb_value
 flo_remainder(mrb_state *mrb, mrb_value self)
@@ -252,6 +273,8 @@ mrb_mruby_numeric_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, ic, MRB_SYM(pow), int_powm, MRB_ARGS_ARG(1,1));
   mrb_define_method_id(mrb, ic, MRB_SYM(digits), int_digits, MRB_ARGS_OPT(1));
   mrb_define_method_id(mrb, ic, MRB_SYM(size), int_size, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, ic, MRB_SYM_Q(odd), int_odd, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, ic, MRB_SYM_Q(even), int_even, MRB_ARGS_NONE());
 
 #ifndef MRB_NO_FLOAT
   struct RClass *fc = mrb->float_class;
