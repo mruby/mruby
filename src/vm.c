@@ -1859,21 +1859,29 @@ RETRY_TRY_BLOCK:
       mrb_callinfo *ci;
       mrb_method_t m;
       mrb_value recv, blk;
-      int n = c&0xf;
-      int nk = (c>>4)&0xf;
-      mrb_int bidx = a + mrb_bidx(n,nk);
-      mrb_int new_bidx = bidx;
+      mrb_int bidx, new_bidx;
 
-      if (nk == CALL_MAXARGS) {
-        mrb_ensure_hash_type(mrb, regs[a+(n==CALL_MAXARGS?1:n)+1]);
+      if (c < CALL_MAXARGS) {
+        /* fast path limited to fixed length arguments of less than 15 */
+        bidx = a + c + 1 /* self */;
+        new_bidx = bidx;
       }
-      else if (nk > 0) {  /* pack keyword arguments */
-        mrb_int kidx = a+(n==CALL_MAXARGS?1:n)+1;
-        mrb_value kdict = hash_new_from_regs(mrb, nk, kidx);
-        regs[kidx] = kdict;
-        nk = CALL_MAXARGS;
-        c = n | (nk<<4);
-        new_bidx = a+mrb_bidx(n, nk);
+      else {
+        int n = c&0xf;
+        int nk = (c>>4)&0xf;
+        bidx = a + mrb_bidx(n,nk);
+        new_bidx = bidx;
+        if (nk == CALL_MAXARGS) {
+          mrb_ensure_hash_type(mrb, regs[a+(n==CALL_MAXARGS?1:n)+1]);
+        }
+        else if (nk > 0) {  /* pack keyword arguments */
+          mrb_int kidx = a+(n==CALL_MAXARGS?1:n)+1;
+          mrb_value kdict = hash_new_from_regs(mrb, nk, kidx);
+          regs[kidx] = kdict;
+          nk = CALL_MAXARGS;
+          c = n | (nk<<4);
+          new_bidx = a+mrb_bidx(n, nk);
+        }
       }
 
       mrb_assert(bidx < irep->nregs);
