@@ -49,3 +49,29 @@ assert('Integer#ceildiv') do
   assert_equal(-8, (-2).pow(3))
 #  assert_equal(361, 9.pow(1024,1000))
 end
+
+assert('Integer#even?') do
+  assert_true(0.even?)
+  assert_true(2.even?)
+  assert_true(-2.even?)
+  assert_false(1.even?)
+  assert_false(-1.even?)
+
+  # assert_true((10**100).even?)
+  # assert_true((-10**100).even?)
+  # assert_false((10**100+1).even?)
+  # assert_false((-10**100-1).even?)
+end
+
+assert('Integer#odd?') do
+  assert_false(0.odd?)
+  assert_false(2.odd?)
+  assert_false(-2.odd?)
+  assert_true(1.odd?)
+  assert_true(-1.odd?)
+
+  # assert_false((10**100).odd?)
+  # assert_false((-10**100).odd?)
+  # assert_true((10**100+1).odd?)
+  # assert_true((-10**100-1).odd?)
+end
