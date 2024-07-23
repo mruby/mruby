@@ -232,8 +232,8 @@ int_even(mrb_state *mrb, mrb_value self)
 {
 #ifdef MRB_USE_BIGINT
   if (mrb_bigint_p(self)) {
-    mrb_value mod2 = mrb_bint_mod(mrb, self, mrb_fixnum_value(2));
-    if (mrb_integer(mod2) == 0) return mrb_true_value();
+    mrb_value and1 = mrb_bint_and(mrb, self, mrb_fixnum_value(1));
+    if (mrb_integer(and1) == 0) return mrb_true_value();
     return mrb_false_value();
   }
 #endif
