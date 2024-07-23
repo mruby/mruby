@@ -12,7 +12,7 @@ have 106 instructions. Instructions can take 0 to 3 operands.
 ## operands
 
 The size of operands can be either 8bits, 16bits or 24bits.
-In the table.1 below, the second field describes the size
+In the table.1 below, the third field describes the size
 of operands.
 
 - B: 8bit
