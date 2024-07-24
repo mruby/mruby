@@ -1507,15 +1507,6 @@ mrb_bint_and(mrb_state *mrb, mrb_value x, mrb_value y)
   struct RBigint *b1 = RBIGINT(x);
   struct RBigint *b3 = bint_new(mrb);
 
-#ifndef MRB_NO_FLOAT
-  if (mrb_float_p(y)) {
-    mpz_t z;
-    mpz_init_set_int(mrb, &z, (mrb_int)mrb_float(y));
-    mpz_and(mrb, &b3->mp, &b1->mp, &z);
-    mpz_clear(mrb, &z);
-    return bint_norm(mrb, b3);
-  }
-#endif
   y = mrb_as_bint(mrb, y);
   struct RBigint *b2 = RBIGINT(y);
   mpz_and(mrb, &b3->mp, &b1->mp, &b2->mp);
@@ -1528,19 +1519,21 @@ mrb_bint_or(mrb_state *mrb, mrb_value x, mrb_value y)
   struct RBigint *b1 = RBIGINT(x);
   struct RBigint *b3 = bint_new(mrb);
 
-#ifndef MRB_NO_FLOAT
-  if (mrb_float_p(y)) {
-    mpz_t z;
-    mpz_init_set_int(mrb, &z, (mrb_int)mrb_float(y));
-    mpz_or(mrb, &b3->mp, &b1->mp, &z);
-    mpz_clear(mrb, &z);
-    return bint_norm(mrb, b3);
-  }
-#endif
   y = mrb_as_bint(mrb, y);
   struct RBigint *b2 = RBIGINT(y);
   mpz_or(mrb, &b3->mp, &b1->mp, &b2->mp);
   return bint_norm(mrb, b3);
+}
+
+mrb_value
+mrb_bint_neg(mrb_state *mrb, mrb_value x)
+{
+  struct RBigint *b1 = RBIGINT(x);
+  struct RBigint *b2 = bint_new(mrb);
+
+  mpz_neg(mrb, &b2->mp, &b1->mp);
+  /* no normalization */
+  return mrb_obj_value(b2);
 }
 
 mrb_value
@@ -1549,15 +1542,6 @@ mrb_bint_xor(mrb_state *mrb, mrb_value x, mrb_value y)
   struct RBigint *b3 = bint_new(mrb);
   struct RBigint *b1 = RBIGINT(x);
 
-#ifndef MRB_NO_FLOAT
-  if (mrb_float_p(y)) {
-    mpz_t z;
-    mpz_init_set_int(mrb, &z, (mrb_int)mrb_float(y));
-    mpz_xor(mrb, &b3->mp, &b1->mp, &z);
-    mpz_clear(mrb, &z);
-    return bint_norm(mrb, b3);
-  }
-#endif
   y = mrb_as_bint(mrb, y);
   struct RBigint *b2 = RBIGINT(y);
   mpz_xor(mrb, &b3->mp, &b1->mp, &b2->mp);
