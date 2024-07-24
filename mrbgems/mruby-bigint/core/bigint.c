@@ -1507,6 +1507,13 @@ mrb_bint_and(mrb_state *mrb, mrb_value x, mrb_value y)
   struct RBigint *b1 = RBIGINT(x);
   struct RBigint *b3 = bint_new(mrb);
 
+  if (mrb_integer_p(y)) {
+    mrb_int z = mrb_integer(y);
+    if (z < DIG_BASE) {
+      z &= b1->mp.p[0];
+      return mrb_int_value(mrb, z);
+    }
+  }
   y = mrb_as_bint(mrb, y);
   struct RBigint *b2 = RBIGINT(y);
   mpz_and(mrb, &b3->mp, &b1->mp, &b2->mp);
