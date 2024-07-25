@@ -479,7 +479,7 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
 
   mpz_t q, x, y;
 
-  mrb_assert(!uzero_p(yy));       /* divided by zero */
+  mrb_assert(yy->sn != 0);      /* divided by zero */
   mpz_init(mrb, &q);
   mpz_init(mrb, &x);
   mpz_init(mrb, &y);
@@ -711,7 +711,7 @@ static char*
 mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
 {
   mrb_assert(2 <= base && base <= 36);
-  if (uzero_p(x)) {
+  if (x->sn == 0) {
     *s='0';
     *(s+1)='\0';
     return s;
@@ -1447,7 +1447,7 @@ mrb_bint_div(mrb_state *mrb, mrb_value x, mrb_value y)
   struct RBigint *b = RBIGINT(x);
   struct RBigint *b2 = RBIGINT(y);
   struct RBigint *b3 = bint_new(mrb);
-  if (b2->mp.sn == 0 || uzero_p(&b2->mp)) {
+  if (b2->mp.sn == 0) {
     mrb_int_zerodiv(mrb);
   }
   mpz_mdiv(mrb, &b3->mp, &b->mp, &b2->mp);
@@ -1513,7 +1513,7 @@ mrb_bint_mod(mrb_state *mrb, mrb_value x, mrb_value y)
   struct RBigint *b = RBIGINT(x);
   struct RBigint *b2 = RBIGINT(y);
   struct RBigint *b3 = bint_new(mrb);
-  if (b2->mp.sn == 0 || uzero_p(&b2->mp)) {
+  if (b2->mp.sn == 0) {
     mrb_int_zerodiv(mrb);
   }
   mpz_mmod(mrb, &b3->mp, &b->mp, &b2->mp);
@@ -1532,7 +1532,7 @@ mrb_bint_rem(mrb_state *mrb, mrb_value x, mrb_value y)
   struct RBigint *b = RBIGINT(x);
   struct RBigint *b2 = RBIGINT(y);
   struct RBigint *b3 = bint_new(mrb);
-  if (b2->mp.sn == 0 || uzero_p(&b2->mp)) {
+  if (b2->mp.sn == 0) {
     mrb_int_zerodiv(mrb);
   }
   mpz_mod(mrb, &b3->mp, &b->mp, &b2->mp);
@@ -1552,7 +1552,7 @@ mrb_bint_divmod(mrb_state *mrb, mrb_value x, mrb_value y)
   struct RBigint *b2 = RBIGINT(y);
   struct RBigint *b3 = bint_new(mrb);
   struct RBigint *b4 = bint_new(mrb);
-  if (b2->mp.sn == 0 || uzero_p(&b2->mp)) {
+  if (b2->mp.sn == 0) {
     mrb_int_zerodiv(mrb);
   }
   mpz_mdivmod(mrb, &b3->mp, &b4->mp, &b->mp, &b2->mp);
@@ -1617,7 +1617,7 @@ mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_value exp, mrb_value mod)
 
   if (mrb_bigint_p(mod)) {
     b2 = RBIGINT(mod);
-    if (b2->mp.sn == 0 || uzero_p(&b2->mp)) mrb_int_zerodiv(mrb);
+    if (b2->mp.sn == 0) mrb_int_zerodiv(mrb);
   }
   else {
     mrb_int m = mrb_integer(mod);
