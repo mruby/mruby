@@ -17,7 +17,7 @@
 #define BITSPERDIG MRB_INT_BIT
 #define EXTENDSIGN(n, l) (((~0U << (n)) >> (((n)*(l)) % BITSPERDIG)) & ~(~0U << (n)))
 
-mrb_value mrb_bint_2comp(mrb_state *mrb, mrb_value x, mrb_int base);
+mrb_value mrb_bint_2comp(mrb_state *mrb, mrb_value x);
 
 static char*
 remove_sign_bits(char *str, int base)
@@ -599,7 +599,7 @@ retry:
               mrb_int n = (mrb_bint_cmp(mrb, val, mrb_fixnum_value(0)));
               mrb_bool need_dots = ((flags & FPLUS) == 0) && (base == 16 || base == 8 || base == 2) && n < 0;
               if (need_dots) {
-                val = mrb_bint_2comp(mrb, val, base);
+                val = mrb_bint_2comp(mrb, val);
                 dots = 1;
                 v = -1;
               }
@@ -665,6 +665,11 @@ retry:
           fc = '1'; break;
         }
 
+        if (dots) {
+          while (*s == fc) {
+            s++; len--;
+          }
+        }
         if (*p == 'X') {
           char *pp = s;
           int c;
@@ -672,7 +677,7 @@ retry:
             *pp = toupper(c);
             pp++;
           }
-          if (base == 16 && fc) {
+          if (base == 16) {
             fc = 'F';
           }
         }
