@@ -244,8 +244,9 @@ ucmp(mpz_t *y, mpz_t *x)
   return 0;
 }
 
+/* check if all digits are zero */
 static int
-uzero(mpz_t *x)
+uzero_p(mpz_t *x)
 {
   for (size_t i=0; i < x->sz; i++)
     if (x->p[i] != 0)
@@ -337,7 +338,7 @@ mpz_sub_int(mrb_state *mrb, mpz_t *x, mpz_t *y, mrb_int n)
 static void
 mpz_mul(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
 {
-  if (uzero(u) || uzero(v)) {
+  if (u->sn == 0 || v->sn == 0) {
     mpz_set_int(mrb, ww, 0);
     return;
   }
@@ -407,7 +408,7 @@ urshift(mrb_state *mrb, mpz_t *c1, mpz_t *a, size_t n)
 
   if (n == 0)
     mpz_set(mrb, c1, a);
-  else if (uzero(a)) {
+  else if (uzero_p(a)) {
     mpz_set_int(mrb, c1, 0);
   }
   else {
@@ -435,7 +436,7 @@ ulshift(mrb_state *mrb, mpz_t *c1, mpz_t *a, size_t n)
   mrb_assert(n < DIG_SIZE);
   if (n == 0)
     mpz_set(mrb, c1, a);
-  else if (uzero(a)) {
+  else if (uzero_p(a)) {
     mpz_set_int(mrb, c1, 0);
   }
   else {
@@ -477,7 +478,7 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
 
   mpz_t q, x, y;
 
-  mrb_assert(!uzero(yy));       /* divided by zero */
+  mrb_assert(!uzero_p(yy));       /* divided by zero */
   mpz_init(mrb, &q);
   mpz_init(mrb, &x);
   mpz_init(mrb, &y);
@@ -536,17 +537,17 @@ mpz_mdiv(mrb_state *mrb, mpz_t *q, mpz_t *x, mpz_t *y)
   mpz_t r;
   short sn1 = x->sn, sn2 = y->sn, qsign;
 
-  if (uzero(x)) {
+  if (x->sn == 0) {
     mpz_init_set_int(mrb, q, 0);
     return;
   }
   mpz_init(mrb, &r);
   udiv(mrb, q, &r, x, y);
   qsign = q->sn = sn1*sn2;
-  if (uzero(q))
+  if (uzero_p(q))
     q->sn = 0;
   /* now if r != 0 and q < 0 we need to round q towards -inf */
-  if (!uzero(&r) && qsign < 0)
+  if (!uzero_p(&r) && qsign < 0)
     mpz_sub_int(mrb, q, q, 1);
   mpz_clear(mrb, &r);
 }
@@ -564,7 +565,7 @@ mpz_mmod(mrb_state *mrb, mpz_t *r, mpz_t *x, mpz_t *y)
   }
   udiv(mrb, &q, r, x, y);
   mpz_clear(mrb, &q);
-  if (uzero(r)) {
+  if (uzero_p(r)) {
     r->sn = 0;
     return;
   }
@@ -593,7 +594,7 @@ mpz_mdivmod(mrb_state *mrb, mpz_t *q, mpz_t *r, mpz_t *x, mpz_t *y)
   }
   udiv(mrb, q, r, x, y);
   qsign = q->sn = sn1*sn2;
-  if (uzero(r)) {
+  if (uzero_p(r)) {
     /* q != 0, since q=r=0 would mean x=0, which was tested above */
     r->sn = 0;
     return;
@@ -608,10 +609,10 @@ mpz_mdivmod(mrb_state *mrb, mpz_t *q, mpz_t *r, mpz_t *x, mpz_t *y)
     r->sn = 1;
     mpz_add(mrb, r, y, r);
   }
-  if (uzero(q))
+  if (uzero_p(q))
     q->sn = 0;
   /* now if r != 0 and q < 0 we need to round q towards -inf */
-  if (!uzero(r) && qsign < 0)
+  if (!uzero_p(r) && qsign < 0)
     mpz_sub_int(mrb, q, q, 1);
 }
 
@@ -628,7 +629,7 @@ mpz_mod(mrb_state *mrb, mpz_t *r, mpz_t *x, mpz_t *y)
   mpz_init(mrb, &q);
   udiv(mrb, &q, r, x, y);
   r->sn = sn;
-  if (uzero(r))
+  if (uzero_p(r))
     r->sn = 0;
   mpz_clear(mrb, &q);
 }
@@ -709,7 +710,7 @@ static char*
 mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
 {
   mrb_assert(2 <= base && base <= 36);
-  if (uzero(x)) {
+  if (uzero_p(x)) {
     *s='0';
     *(s+1)='\0';
     return s;
@@ -774,7 +775,7 @@ mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
 static int
 mpz_get_int(mpz_t *y, mrb_int *v)
 {
-  if (uzero(y)) {
+  if (y->sn == 0) {
     *v = 0;
     return TRUE;
   }
@@ -850,7 +851,7 @@ mpz_div_2exp(mrb_state *mrb, mpz_t *z, mpz_t *x, mrb_int e)
     else {
       mpz_move(mrb, z, &y);
     }
-    if (uzero(z))
+    if (uzero_p(z))
       z->sn = 0;
     else {
       z->sn = sn;
@@ -1065,7 +1066,7 @@ mpz_xor(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient
     z->sn = (-1);
   else
     z->sn = 1;
-  if (uzero(z))
+  if (uzero_p(z))
     z->sn = 0;
 }
 
@@ -1096,7 +1097,7 @@ mpz_pow(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int e)
 static void
 mpz_powm(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
 {
-  if (uzero(ex)) {
+  if (ex->sn == 0) {
     mpz_set_int(mrb, zz, 1);
     return;
   }
@@ -1445,7 +1446,7 @@ mrb_bint_div(mrb_state *mrb, mrb_value x, mrb_value y)
   struct RBigint *b = RBIGINT(x);
   struct RBigint *b2 = RBIGINT(y);
   struct RBigint *b3 = bint_new(mrb);
-  if (b2->mp.sn == 0 || uzero(&b2->mp)) {
+  if (b2->mp.sn == 0 || uzero_p(&b2->mp)) {
     mrb_int_zerodiv(mrb);
   }
   mpz_mdiv(mrb, &b3->mp, &b->mp, &b2->mp);
@@ -1511,7 +1512,7 @@ mrb_bint_mod(mrb_state *mrb, mrb_value x, mrb_value y)
   struct RBigint *b = RBIGINT(x);
   struct RBigint *b2 = RBIGINT(y);
   struct RBigint *b3 = bint_new(mrb);
-  if (b2->mp.sn == 0 || uzero(&b2->mp)) {
+  if (b2->mp.sn == 0 || uzero_p(&b2->mp)) {
     mrb_int_zerodiv(mrb);
   }
   mpz_mmod(mrb, &b3->mp, &b->mp, &b2->mp);
@@ -1530,7 +1531,7 @@ mrb_bint_rem(mrb_state *mrb, mrb_value x, mrb_value y)
   struct RBigint *b = RBIGINT(x);
   struct RBigint *b2 = RBIGINT(y);
   struct RBigint *b3 = bint_new(mrb);
-  if (b2->mp.sn == 0 || uzero(&b2->mp)) {
+  if (b2->mp.sn == 0 || uzero_p(&b2->mp)) {
     mrb_int_zerodiv(mrb);
   }
   mpz_mod(mrb, &b3->mp, &b->mp, &b2->mp);
@@ -1550,7 +1551,7 @@ mrb_bint_divmod(mrb_state *mrb, mrb_value x, mrb_value y)
   struct RBigint *b2 = RBIGINT(y);
   struct RBigint *b3 = bint_new(mrb);
   struct RBigint *b4 = bint_new(mrb);
-  if (b2->mp.sn == 0 || uzero(&b2->mp)) {
+  if (b2->mp.sn == 0 || uzero_p(&b2->mp)) {
     mrb_int_zerodiv(mrb);
   }
   mpz_mdivmod(mrb, &b3->mp, &b4->mp, &b->mp, &b2->mp);
@@ -1615,7 +1616,7 @@ mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_value exp, mrb_value mod)
 
   if (mrb_bigint_p(mod)) {
     b2 = RBIGINT(mod);
-    if (uzero(&b2->mp)) mrb_int_zerodiv(mrb);
+    if (b2->mp.sn == 0 || uzero_p(&b2->mp)) mrb_int_zerodiv(mrb);
   }
   else {
     mrb_int m = mrb_integer(mod);
