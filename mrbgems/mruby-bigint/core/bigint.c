@@ -248,6 +248,7 @@ ucmp(mpz_t *y, mpz_t *x)
 static int
 uzero_p(mpz_t *x)
 {
+  if (x->sz == 0) return 1;
   for (size_t i=0; i < x->sz; i++)
     if (x->p[i] != 0)
       return 0;
