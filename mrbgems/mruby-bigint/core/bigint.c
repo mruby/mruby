@@ -1003,6 +1003,60 @@ mpz_or(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient 
 static void
 mpz_xor(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient way to do this */
 {
+  if (x->sn == 0) {
+    mpz_set(mrb, z, y);
+    return;
+  }
+  if (y->sn == 0) {
+    mpz_set(mrb, z, x);
+    return;
+  }
+  mrb_assert(x->sz > 0 || y->sz > 0);
+
+  z->sn = x->sn > 0 && y->sn > 0 ? 1 : -1;
+
+  mpz_t xx, yy;
+  if (x->sn < 0) {
+    mpz_init_set(mrb, &xx, x);
+    x = &xx;
+    mpz_2comp(mrb, x);
+  }
+  if (y->sn < 0) {
+    mpz_init_set(mrb, &yy, y);
+    y = &yy;
+    mpz_2comp(mrb, y);
+  }
+
+  uint32_t *ds1, *ds2, *zds;
+  size_t l1, l2;
+  short sign;
+
+  if (x->sz > y->sz) {
+    l1 = y->sz;
+    l2 = x->sz;
+    ds1 = y->p;
+    ds2 = x->p;
+    sign = y->sn;
+  }
+  else {
+    l1 = x->sz;
+    l2 = y->sz;
+    ds1 = x->p;
+    ds2 = y->p;
+    sign =x->sn;
+  }
+  mpz_realloc(mrb, z, l2);
+  zds = z->p;
+
+  size_t i;
+  for (i=0; i<l1; i++) {
+    zds[i] = ds1[i] ^ ds2[i];
+  }
+  for (; i<l2; i++) {
+    zds[i] = sign>0?ds2[i]:~ds2[i];
+  }
+  if (z->sn < 0) mpz_2comp(mrb, z);
+
   size_t sz = imax(x->sz, y->sz);
   mpz_realloc(mrb, z, sz);
   for (size_t i=0; i < sz; i++)
