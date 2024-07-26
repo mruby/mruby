@@ -890,6 +890,8 @@ mpz_2comp(mrb_state *mrb, mpz_t *x)
   }
 }
 
+#define make_2comp(v,c) do { v=~(v)+(c); c=((v)==0 && (c));} while (0)
+
 void
 mpz_and(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
 {
@@ -899,49 +901,21 @@ mpz_and(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
   }
   mrb_assert(x->sz > 0 || y->sz > 0);
 
-  z->sn = x->sn < 0 && y->sn < 0 ? -1 : 1;
+  size_t max_sz = (x->sz > y->sz) ? x->sz : y->sz;
+  mpz_realloc(mrb, z, max_sz);
+  z->sn = (x->sn == y->sn) ? x->sn : 1;
 
-  mpz_t xx, yy;
-  if (x->sn < 0) {
-    mpz_init_set(mrb, &xx, x);
-    x = &xx;
-    mpz_2comp(mrb, x);
-  }
-  if (y->sn < 0) {
-    mpz_init_set(mrb, &yy, y);
-    y = &yy;
-    mpz_2comp(mrb, y);
-  }
+  char c1 = 1, c2 = 1, c3 = 1;
+  for (size_t i = 0; i < max_sz; i++) {
+    uint32_t xv = (i < x->sz) ? x->p[i] : 0;
+    uint32_t yv = (i < y->sz) ? y->p[i] : 0;
 
-  uint32_t *ds1, *ds2, *zds;
-  size_t l1, l2;
-  short sign;
-
-  if (x->sz > y->sz) {
-    l1 = y->sz;
-    l2 = x->sz;
-    ds1 = y->p;
-    ds2 = x->p;
-    sign = y->sn;
+    if (x->sn < 0) make_2comp(xv, c1);
+    if (y->sn < 0) make_2comp(yv, c2);
+    uint32_t zv = xv & yv;
+    if (z->sn < 0) make_2comp(zv, c3);
+    z->p[i] = zv;
   }
-  else {
-    l1 = x->sz;
-    l2 = y->sz;
-    ds1 = x->p;
-    ds2 = y->p;
-    sign =x->sn;
-  }
-  mpz_realloc(mrb, z, l2);
-  zds = z->p;
-
-  size_t i;
-  for (i=0; i<l1; i++) {
-    zds[i] = ds1[i] & ds2[i];
-  }
-  for (; i<l2; i++) {
-    zds[i] = sign>0?0:ds2[i];
-  }
-  if (z->sn < 0) mpz_2comp(mrb, z);
 }
 
 static void
