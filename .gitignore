@@ -13,6 +13,7 @@
 *.tmp
 *~
 .DS_Store
+.cache
 .ccls*
 .ccmalloc
 .git
@@ -30,8 +31,10 @@ compile_commands.json
 compile_flags.txt
 cscope.files
 cscope.out
+gmon.out
 mruby-source-*.gem
 node_modules
+perf.data*
 tags
 !Gemfile.lock
 y.tab.c
