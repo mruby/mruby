@@ -1665,7 +1665,7 @@ mrb_value
 mrb_bint_hash(mrb_state *mrb, mrb_value x)
 {
   struct RBigint *b = RBIGINT(x);
-  uint32_t hash = mrb_byte_hash((uint8_t*)b->mp.p, b->mp.sz);
+  uint32_t hash = mrb_byte_hash((uint8_t*)b->mp.p, b->mp.sz*sizeof(mp_limb));
   hash = mrb_byte_hash_step((uint8_t*)&b->mp.sn, sizeof(b->mp.sn), hash);
   return mrb_int_value(mrb, hash);
 }
