@@ -907,12 +907,12 @@ mpz_and(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
 
   char c1 = 1, c2 = 1, c3 = 1;
   for (size_t i = 0; i < max_sz; i++) {
-    uint32_t xv = (i < x->sz) ? x->p[i] : 0;
-    uint32_t yv = (i < y->sz) ? y->p[i] : 0;
+    mp_limb xv = (i < x->sz) ? x->p[i] : 0;
+    mp_limb yv = (i < y->sz) ? y->p[i] : 0;
 
     if (x->sn < 0) make_2comp(xv, c1);
     if (y->sn < 0) make_2comp(yv, c2);
-    uint32_t zv = xv & yv;
+    mp_limb zv = xv & yv;
     if (z->sn < 0) make_2comp(zv, c3);
     z->p[i] = zv;
   }
@@ -937,12 +937,12 @@ mpz_or(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient 
 
   char c1 = 1, c2 = 1, c3 = 1;
   for (size_t i = 0; i < max_sz; i++) {
-    uint32_t xv = (i < x->sz) ? x->p[i] : 0;
-    uint32_t yv = (i < y->sz) ? y->p[i] : 0;
+    mp_limb xv = (i < x->sz) ? x->p[i] : 0;
+    mp_limb yv = (i < y->sz) ? y->p[i] : 0;
 
     if (x->sn < 0) make_2comp(xv, c1);
     if (y->sn < 0) make_2comp(yv, c2);
-    uint32_t zv = xv | yv;
+    mp_limb zv = xv | yv;
     if (z->sn < 0) make_2comp(zv, c3);
     z->p[i] = zv;
   }
@@ -977,12 +977,12 @@ mpz_xor(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient
 
   char c1 = 1, c2 = 1, c3 = 1;
   for (size_t i = 0; i < max_sz; i++) {
-    uint32_t xv = (i < x->sz) ? x->p[i] : 0;
-    uint32_t yv = (i < y->sz) ? y->p[i] : 0;
+    mp_limb xv = (i < x->sz) ? x->p[i] : 0;
+    mp_limb yv = (i < y->sz) ? y->p[i] : 0;
 
     if (x->sn < 0) make_2comp(xv, c1);
     if (y->sn < 0) make_2comp(yv, c2);
-    uint32_t zv = xv ^ yv;
+    mp_limb zv = xv ^ yv;
     if (z->sn < 0) make_2comp(zv, c3);
     z->p[i] = zv;
   }
