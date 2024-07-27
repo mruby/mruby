@@ -868,28 +868,6 @@ mpz_neg(mrb_state *mrb, mpz_t *x, mpz_t *y)
   x->sn = -(y->sn);
 }
 
-static void
-mpz_2comp(mrb_state *mrb, mpz_t *x)
-{
-  size_t i = x->sz;
-  uint32_t *ds = x->p;
-  uint64_t num;
-
-  if (!i) return;
-  while (i--) ds[i] = ~ds[i];
-  i = 0; num = 1;
-  do {
-    num += ds[i];
-    ds[i++] = LOW(num);
-    num >>= DIG_SIZE;
-  } while (i < x->sz);
-  if (num != 0) {
-    mpz_realloc(mrb, x, x->sz + 1);
-    ds = x->p;
-    ds[x->sz-1] = x->sn > 0 ? ~0 : 1;
-  }
-}
-
 #define make_2comp(v,c) do { v=~(v)+(c); c=((v)==0 && (c));} while (0)
 
 void
@@ -1705,12 +1683,22 @@ mrb_bint_hash(mrb_state *mrb, mrb_value x)
 mrb_value
 mrb_bint_2comp(mrb_state *mrb, mrb_value x)
 {
+  mrb_assert(x->sn < 0);
+
   struct RBigint *b = RBIGINT(x);
-
   struct RBigint *b2 = bint_new(mrb);
-  mpz_set(mrb, &b2->mp, &b->mp);
-  mpz_2comp(mrb, &b2->mp);
-  b2->mp.sn = 1;
 
+  size_t size = b->mp.sz;
+  mpz_t *z = &b2->mp;
+  mpz_realloc(mrb, z, size);
+  mp_limb *ds = b->mp.p;
+  mp_limb *dd = z->p;
+  char carry = 1;
+  for (size_t i=0; i<size; i++) {
+    mp_limb xv = ds[i];
+    make_2comp(xv, carry);
+    dd[i] = xv;
+  }
+  z->sn = 1;
   return mrb_obj_value(b2);
 }
