@@ -863,8 +863,7 @@ mpz_div_2exp(mrb_state *mrb, mpz_t *z, mpz_t *x, mrb_int e)
 static void
 mpz_neg(mrb_state *mrb, mpz_t *x, mpz_t *y)
 {
-  if (x!=y)
-    mpz_set(mrb, x, y);
+  mpz_set(mrb, x, y);
   x->sn = -(y->sn);
 }
 
