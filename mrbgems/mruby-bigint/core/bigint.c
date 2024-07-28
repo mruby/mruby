@@ -1553,12 +1553,12 @@ mrb_bint_and(mrb_state *mrb, mrb_value x, mrb_value y)
   if (mrb_integer_p(y)) {
     mrb_int z = mrb_integer(y);
     if (z == 0) return mrb_fixnum_value(0);
-    if (z > 0 && z < DIG_BASE) {
+    if (z > 0 && (mp_dbl_limb)z < DIG_BASE) {
       z &= b1->mp.p[0];
       return mrb_int_value(mrb, z);
     }
     if (z == -1) return x;
-    if (z < 0 && -z < DIG_BASE) {
+    if (z < 0 && (mp_dbl_limb)-z < DIG_BASE) {
       struct RBigint *b3 = bint_new(mrb);
       mpz_set(mrb, &b3->mp, &b1->mp);
       b3->mp.p[0] &= (mp_limb)z;
