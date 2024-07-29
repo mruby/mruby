@@ -659,7 +659,7 @@ mpz_sizeinbase(mpz_t *x, mrb_int base)
   size_t bits = digits(x) * DIG_SIZE;
   mrb_assert(2 <= base && base <= 36);
 
-  if (x->sz == 0) return 0;
+  if (zero_p(x) || x->sz == 0) return 0;
   for (j=0,i=1; i<=(size_t)base; i*=2,j++)
     ;
   return bits/(j-1)+1;
@@ -1533,7 +1533,8 @@ mrb_bint_to_s(mrb_state *mrb, mrb_value x, mrb_int base)
 {
   struct RBigint *b = RBIGINT(x);
 
-  if (b->mp.sz == 0) return mrb_str_new_lit(mrb, "0");
+  if (zero_p(&b->mp) || b->mp.sz == 0)
+    return mrb_str_new_lit(mrb, "0");
 
   size_t len = mpz_sizeinbase(&b->mp, (int)base);
   if (MRB_INT_MAX-2 < len) {
