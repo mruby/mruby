@@ -1615,11 +1615,20 @@ mrb_bint_neg(mrb_state *mrb, mrb_value x)
 mrb_value
 mrb_bint_xor(mrb_state *mrb, mrb_value x, mrb_value y)
 {
-  struct RBigint *b3 = bint_new(mrb);
   struct RBigint *b1 = RBIGINT(x);
 
+  if (mrb_integer_p(y)) {
+    mrb_int z = mrb_integer(y);
+    if (z == 0) return x;
+    // if (z == -1) return ;
+    if (0 < z && (mp_dbl_limb)z < DIG_BASE) {
+      z ^= b1->mp.p[0];
+      return mrb_int_value(mrb, z);
+    }
+  }
   y = mrb_as_bint(mrb, y);
   struct RBigint *b2 = RBIGINT(y);
+  struct RBigint *b3 = bint_new(mrb);
   mpz_xor(mrb, &b3->mp, &b1->mp, &b2->mp);
   return bint_norm(mrb, b3);
 }
