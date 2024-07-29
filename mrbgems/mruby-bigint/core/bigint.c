@@ -1691,11 +1691,10 @@ mrb_bint_hash(mrb_state *mrb, mrb_value x)
 mrb_value
 mrb_bint_2comp(mrb_state *mrb, mrb_value x)
 {
-  mrb_assert(x->sn < 0);
-
   struct RBigint *b = RBIGINT(x);
   struct RBigint *b2 = bint_new(mrb);
 
+  mrb_assert(b->mp.sn < 0);
   size_t size = b->mp.sz;
   mpz_t *z = &b2->mp;
   mpz_realloc(mrb, z, size);
