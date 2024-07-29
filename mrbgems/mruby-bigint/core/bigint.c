@@ -1577,10 +1577,26 @@ mrb_value
 mrb_bint_or(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   struct RBigint *b1 = RBIGINT(x);
-  struct RBigint *b3 = bint_new(mrb);
+
+  if (mrb_integer_p(y)) {
+    mrb_int z = mrb_integer(y);
+    if (z == 0) return x;
+    if (z == -1) return y;
+    if (z > 0 && (mp_dbl_limb)z < DIG_BASE) {
+      z |= b1->mp.p[0];
+      return mrb_int_value(mrb, z);
+    }
+    if (z < 0 && (mp_dbl_limb)-z < DIG_BASE) {
+      struct RBigint *b3 = bint_new(mrb);
+      mpz_set(mrb, &b3->mp, &b1->mp);
+      b3->mp.p[0] |= (mp_limb)z;
+      return bint_norm(mrb, b3);
+    }
+  }
 
   y = mrb_as_bint(mrb, y);
   struct RBigint *b2 = RBIGINT(y);
+  struct RBigint *b3 = bint_new(mrb);
   mpz_or(mrb, &b3->mp, &b1->mp, &b2->mp);
   return bint_norm(mrb, b3);
 }
