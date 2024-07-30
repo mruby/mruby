@@ -666,6 +666,9 @@ retry:
         }
 
         if (dots) {
+          if (base == 8 && (*s == '1' || *s == '3')) {
+            s++; len--;
+          }
           while (*s == fc) {
             s++; len--;
           }
