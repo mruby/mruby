@@ -333,7 +333,7 @@ class Array
   def fetch(n, ifnone=NONE, &block)
     #warn "block supersedes default value argument" if !n.nil? && ifnone != NONE && block
 
-    idx = n
+    idx = n.__to_int
     if idx < 0
       idx += size
     end
@@ -400,12 +400,12 @@ class Array
         len += 1 unless arg0.exclude_end?
       elsif !arg0.nil?
         # ary.fill(start [, length] ) { |index| block } -> ary
-        beg = arg0
+        beg = arg0.__to_int
         beg += self.size if beg < 0
         if arg1.nil?
           len = self.size
         else
-          len = arg0 + arg1
+          len = beg + arg1.__to_int
         end
       end
     else
@@ -422,12 +422,12 @@ class Array
         len += 1 unless arg1.exclude_end?
       elsif !arg0.nil? && !arg1.nil?
         # ary.fill(obj, start [, length])               -> ary
-        beg = arg1
+        beg = arg1.__to_int
         beg += self.size if beg < 0
         if arg2.nil?
           len = self.size
         else
-          len = beg + arg2
+          len = beg + arg2.__to_int
         end
       end
     end
@@ -525,6 +525,7 @@ class Array
   #     a.insert(-2, 1, 2, 3)   #=> ["a", "b", 99, "c", 1, 2, 3, "d"]
 
   def insert(idx, *args)
+    idx = idx.__to_int
     idx += self.size + 1 if idx < 0
     self[idx, 0] = args
     self
@@ -709,6 +710,7 @@ class Array
   # intermediate step is +nil+.
   #
   def dig(idx,*args)
+    idx = idx.__to_int
     n = self[idx]
     if args.size > 0
       n&.dig(*args)
@@ -744,6 +746,7 @@ class Array
   #  a.permutation(0).to_a #=> [[]] # one permutation of length 0
   #  a.permutation(4).to_a #=> []   # no permutations of length 4
   def permutation(n=self.size, &block)
+    n = n.__to_int
     return to_enum(:permutation, n) unless block
     size = self.size
     if n == 0
@@ -790,6 +793,7 @@ class Array
   #    a.combination(5).to_a  #=> []   # no combinations of length 5
 
   def combination(n, &block)
+    n = n.__to_int
     return to_enum(:combination, n) unless block
     size = self.size
     if n == 0
@@ -936,12 +940,14 @@ class Array
   #
   # A +permutation+ method that contains the same elements.
   def repeated_permutation(n, &block)
+    n = n.__to_int
     raise TypeError, "no implicit conversion into Integer" unless 0 <=> n
     return to_enum(:repeated_permutation, n) unless block
     __repeated_combination(n, true, &block)
   end
 
   def __repeated_combination(n, permutation, &block)
+    n = n.__to_int
     case n
     when 0
       yield []
