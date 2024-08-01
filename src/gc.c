@@ -418,11 +418,14 @@ mrb_gc_register(mrb_state *mrb, mrb_value obj)
 
   if (mrb_immediate_p(obj)) return;
   table = mrb_gv_get(mrb, GC_ROOT_SYM);
+  int ai = mrb_gc_arena_save(mrb);
+  mrb_gc_protect(mrb, obj);
   if (mrb_nil_p(table) || !mrb_array_p(table)) {
     table = mrb_ary_new(mrb);
     mrb_gv_set(mrb, GC_ROOT_SYM, table);
   }
   mrb_ary_push(mrb, table, obj);
+  mrb_gc_arena_restore(mrb, ai);
 }
 
 /* mrb_gc_unregister() removes the object from GC root. */
