@@ -514,7 +514,7 @@ mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
 }
 
 static inline void
-add_gray_list(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
+add_gray_list(mrb_gc *gc, struct RBasic *obj)
 {
 #ifdef MRB_GC_STRESS
   if (obj->tt > MRB_TT_MAXDEFINE) {
@@ -731,7 +731,7 @@ mrb_gc_mark(mrb_state *mrb, struct RBasic *obj)
   if (!is_white(obj)) return;
   if (is_red(obj)) return;
   mrb_assert((obj)->tt != MRB_TT_FREE);
-  add_gray_list(mrb, &mrb->gc, obj);
+  add_gray_list(&mrb->gc, obj);
 }
 
 static void
@@ -1262,7 +1262,7 @@ mrb_field_write_barrier(mrb_state *mrb, struct RBasic *obj, struct RBasic *value
   mrb_assert(is_generational(gc) || gc->state != MRB_GC_STATE_ROOT);
 
   if (is_generational(gc) || gc->state == MRB_GC_STATE_MARK) {
-    add_gray_list(mrb, gc, value);
+    add_gray_list(gc, value);
   }
   else {
     mrb_assert(gc->state == MRB_GC_STATE_SWEEP);
