@@ -104,7 +104,7 @@ class Integer
     raise ArgumentError, "step can't be 0" if step == 0
     return to_enum(:step, num, step) unless block
 
-    i = __coerce_step_counter(num, step)
+    i = __coerce_step_counter(step)
     if num == self || step.infinite?
       block.call(i) if step > 0 && i <= (num||i) || step < 0 && i >= (num||-i)
     elsif num == nil

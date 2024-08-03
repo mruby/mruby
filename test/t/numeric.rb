@@ -66,7 +66,7 @@ assert('Numeric#step') do
   skip unless Object.const_defined?(:Float)
   inf = Float::INFINITY
   assert_raise(ArgumentError) { 1.step(2, 0.0) { break } }
-  assert_step([2.0, 3.0, 4.0], 2, [4.0])
+  assert_step([2, 3, 4], 2, [4.0])
   assert_step([7.0, 4.0, 1.0, -2.0], 7, [-4, -3.0])
   assert_step([2.0, 3.0, 4.0], 2.0, [4])
   assert_step([10.0, 11.0, 12.0, 13.0], 10.0, [], inf: true)
