@@ -1,9 +1,9 @@
 # Authors of mruby (mruby developers)
 
-## The List of Contributors sorted by number of commits (as of 2024-06-19 c592e7b)
+## The List of Contributors sorted by number of commits (as of 2024-08-03 e8bb03d)
 
-   5714 Yukihiro "Matz" Matsumoto (@matz)*
-    593 dearblue (@dearblue)*
+   5782 Yukihiro "Matz" Matsumoto (@matz)*
+    601 dearblue (@dearblue)*
     587 KOBAYASHI Shuji (@shuujii)
     353 Daniel Bovensiepen (@bovi)*
     345 Takeshi Watanabe (@take-cheeze)*
@@ -12,7 +12,7 @@
     228 Tomoyuki Sahara (@tsahara)*
     220 Cremno (@cremno)*
     209 Yuki Kurihara (@ksss)+
-    196 John Bampton (@jbampton)
+    201 John Bampton (@jbampton)
     144 Yasuhiro Matsumoto (@mattn)*
     113 Carson McDonald (@carsonmcdonald)
     103 Tomasz Dąbrowski (@dabroz)*
@@ -115,6 +115,7 @@
       5 xuejianqing (@joans321)
       4 Dante Catalfamo (@dantecatalfamo)
       4 Goro Kikuchi (@gorogit)
+      34 HASUMI Hitoshi (@hasumikin)
       4 Herwin Weststrate (@herwinw)
       4 Horimoto Yasuhiro (@komainu8)
       4 Jon Moss (@maclover7)
@@ -131,10 +132,11 @@
       4 kurodash (@kurodash)*
       4 wanabe (@wanabe)*
       3 Anton Davydov (@davydovanton)
+      3 Aurora Nockert (@auroranockert)
       3 Carlo Prelz (@asfluido)*
       3 David Turnbull (@AE9RB)
       3 Franck Verrot (@franckverrot)
-      3 HASUMI Hitoshi (@hasumikin)
+      3 Hoshiumi Arata (@hoshiumiarata)
       3 J. Mutua (@katmutua)+
       3 Jan Berdajs (@mrbrdo)
       3 Jonas Minnberg (@sasq64)
@@ -259,6 +261,7 @@
       1 Patrick Ellis (@pje)
       1 Patrick Pokatilo (@SHyx0rmZ)
       1 Pavel Evstigneev (@Paxa)+
+      1 Pete Kinnecom (@petekinnecom)
       1 Prayag Verma (@pra85)
       1 Ranmocy (@ranmocy)
       1 Robert McNally (@wolfmcnally)
