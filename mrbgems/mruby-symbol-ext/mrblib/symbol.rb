@@ -69,4 +69,10 @@ class Symbol
     self.length == 0
   end
 
+  def slice *args
+    to_s.slice(*args)
+  end
+
+  alias [] slice
+
 end
