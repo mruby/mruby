@@ -722,45 +722,67 @@ mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
   char *ps = s;
   char *se = s+sz;
   int xlen = (int)digits(x);
-  mp_limb *t = (mp_limb*)mrb_malloc(mrb, xlen*sizeof(mp_limb));
-  mp_limb *tend = t + xlen;
-  memcpy(t, x->p, xlen*sizeof(mp_limb));
-  mp_limb b2 = (mp_limb)base;
-  const int blim = (sizeof(mp_limb)<4)?(base<=10?4:3):(base<=10?9:5);
-  for (int i=1; i<blim; i++) {
-    b2 *= (mp_limb)base;
+
+  if ((base & (base - 1)) == 0) {  // base is a power of 2
+    int shift = 0;
+    while ((1 << shift) < base) shift++;
+    mp_limb mask = base - 1;
+    mp_dbl_limb value = 0;
+    int bits = 0;
+
+    for (int i = 0; i < xlen; i++) {
+      value |= (mp_dbl_limb)x->p[i] << bits;
+      bits += DIG_SIZE;
+      while (bits >= shift) {
+        mp_limb digit = value & mask;
+        value >>= shift;
+        bits -= shift;
+
+        if (digit < 10) *s++ = '0' + digit;
+        else *s++ = 'a' + digit - 10;
+      }
+    }
+  }
+  else {
+    mp_limb *t = (mp_limb*)mrb_malloc(mrb, xlen*sizeof(mp_limb));
+    mp_limb *tend = t + xlen;
+    memcpy(t, x->p, xlen*sizeof(mp_limb));
+    mp_limb b2 = (mp_limb)base;
+    const int blim = (sizeof(mp_limb)<4)?(base<=10?4:3):(base<=10?9:5);
+    for (int i=1; i<blim; i++) {
+      b2 *= (mp_limb)base;
+    }
+
+    for (;;) {
+      mp_limb *d = tend;
+      mp_dbl_limb a = 0;
+      while (--d >= t) {
+        mp_limb d0 = *d;
+        a = (a<<DIG_SIZE) | d0;
+        *d = (mp_limb)(a / b2);
+        a %= b2;
+      }
+
+      // convert to character
+      for (int i=0; i<blim; i++) {
+        mp_limb a0 = (mp_limb)(a % base);
+        if (a0 < 10) a0 += '0';
+        else a0 += 'a' - 10;
+        if (s == se) break;
+        *s++ = (char)a0;
+        a /= base;
+      }
+
+      // check if number is zero
+      for (d = t; d < tend; d++) {
+        if (*d != 0) break;
+      }
+      if (d == tend) break;
+    }
+    mrb_free(mrb, t);
   }
 
-  for (;;) {
-    mp_limb *d = tend;
-    mp_dbl_limb a = 0;
-    while (--d >= t) {
-      mp_limb d0 = *d;
-      a = (a<<DIG_SIZE) | d0;
-      *d = (mp_limb)(a / b2);
-      a %= b2;
-    }
-
-    // convert to character
-    for (int i=0; i<blim; i++) {
-      mp_limb a0 = (mp_limb)(a % base);
-      if (a0 < 10) a0 += '0';
-      else a0 += 'a' - 10;
-      if (s == se) break;
-      *s++ = (char)a0;
-      a /= base;
-    }
-
-    // check if number is zero
-    for (d = t; d < tend; d++) {
-      if (*d != 0) break;
-    }
-    if (d == tend) goto done;
-  }
-
- done:
   while (ps<s && s[-1]=='0') s--;
-  mrb_free(mrb, t);
   if (x->sn < 0) {
     *s++ = '-';
   }
