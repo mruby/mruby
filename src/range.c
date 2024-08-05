@@ -420,10 +420,17 @@ mrb_get_values_at(mrb_state *mrb, mrb_value obj, mrb_int olen, mrb_int argc, con
   result = mrb_ary_new(mrb);
 
   for (i = 0; i < argc; i++) {
-    if (mrb_integer_p(argv[i])) {
-      mrb_ary_push(mrb, result, func(mrb, obj, mrb_integer(argv[i])));
+    mrb_value v = argv[i];
+
+    if (mrb_integer_p(v)
+#ifdef MRB_USE_BIGINT
+        || mrb_bigint_p(v)
+#endif
+        ) {
+      mrb_int i = mrb_as_int(mrb, v);
+      mrb_ary_push(mrb, result, func(mrb, obj, i));
     }
-    else if (mrb_range_beg_len(mrb, argv[i], &beg, &len, olen, FALSE) == MRB_RANGE_OK) {
+    else if (mrb_range_beg_len(mrb, v, &beg, &len, olen, FALSE) == MRB_RANGE_OK) {
       mrb_int const end = olen < beg + len ? olen : beg + len;
       for (j = beg; j < end; j++) {
         mrb_ary_push(mrb, result, func(mrb, obj, j));
@@ -434,7 +441,7 @@ mrb_get_values_at(mrb_state *mrb, mrb_value obj, mrb_int olen, mrb_int argc, con
       }
     }
     else {
-      mrb_raisef(mrb, E_TYPE_ERROR, "invalid values selector: %v", argv[i]);
+      mrb_raisef(mrb, E_TYPE_ERROR, "invalid values selector: %v", v);
     }
   }
 
