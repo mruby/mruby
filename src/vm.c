@@ -2899,8 +2899,7 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_RANGE_INC, B) {
-      mrb_value v = mrb_range_new(mrb, regs[a], regs[a+1], FALSE);
-      regs[a] = v;
+      regs[a] = mrb_range_new(mrb, regs[a], regs[a+1], FALSE);
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
