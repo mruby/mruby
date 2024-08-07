@@ -2918,11 +2918,10 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_CLASS, BB) {
       struct RClass *c = 0, *baseclass;
-      mrb_value base, super;
       mrb_sym id = irep->syms[b];
+      mrb_value base = regs[a];
+      mrb_value super = regs[a+1];
 
-      base = regs[a];
-      super = regs[a+1];
       if (mrb_nil_p(base)) {
         baseclass = MRB_PROC_TARGET_CLASS(ci->proc);
         if (!baseclass) baseclass = mrb->object_class;
@@ -2937,10 +2936,9 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_MODULE, BB) {
       struct RClass *cls = 0, *baseclass;
-      mrb_value base;
       mrb_sym id = irep->syms[b];
+      mrb_value base = regs[a];
 
-      base = regs[a];
       if (mrb_nil_p(base)) {
         baseclass = MRB_PROC_TARGET_CLASS(ci->proc);
         if (!baseclass) baseclass = mrb->object_class;
