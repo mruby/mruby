@@ -3486,7 +3486,6 @@ words           : tWORDS_BEG tSTRING
 
 symbol          : basic_symbol
                     {
-                      p->lstate = EXPR_ENDARG;
                       $$ = new_sym(p, $1);
                     }
                 | tSYMBEG tSTRING_BEG string_rep tSTRING
@@ -3505,6 +3504,7 @@ symbol          : basic_symbol
 
 basic_symbol    : tSYMBEG sym
                     {
+                      p->lstate = EXPR_END;
                       $$ = $2;
                     }
                 ;
@@ -5053,7 +5053,7 @@ parse_string(parser_state *p)
   }
 
   tokfix(p);
-  p->lstate = EXPR_ENDARG;
+  p->lstate = EXPR_END;
   end_strterm(p);
 
   if (type & STR_FUNC_XQUOTE) {
@@ -5614,7 +5614,7 @@ parser_yylex(parser_state *p)
     }
     tokfix(p);
     pylval.nd = new_str(p, tok(p), toklen(p));
-    p->lstate = EXPR_ENDARG;
+    p->lstate = EXPR_END;
     return tCHAR;
 
   case '&':
@@ -5768,7 +5768,7 @@ parser_yylex(parser_state *p)
     int suffix = 0;
 
     is_float = seen_point = seen_e = nondigit = 0;
-    p->lstate = EXPR_ENDARG;
+    p->lstate = EXPR_END;
     newtok(p);
     if (c == '-' || c == '+') {
       tokadd(p, c);
