@@ -156,7 +156,6 @@ static void
 stack_extend_alloc(mrb_state *mrb, mrb_int room)
 {
   mrb_value *oldbase = mrb->c->stbase;
-  mrb_value *newstack;
   size_t oldsize = mrb->c->stend - mrb->c->stbase;
   size_t size = oldsize;
   size_t off = mrb->c->ci->stack ? mrb->c->stend - mrb->c->ci->stack : 0;
@@ -177,7 +176,7 @@ stack_extend_alloc(mrb_state *mrb, mrb_int room)
     size += room;
 #endif
 
-  newstack = (mrb_value*)mrb_realloc(mrb, mrb->c->stbase, sizeof(mrb_value) * size);
+  mrb_value *newstack = (mrb_value*)mrb_realloc(mrb, mrb->c->stbase, sizeof(mrb_value) * size);
   stack_clear(&(newstack[oldsize]), size - oldsize);
   envadjust(mrb, oldbase, newstack);
   mrb->c->stbase = newstack;
