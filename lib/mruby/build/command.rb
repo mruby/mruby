@@ -317,7 +317,7 @@ module MRuby
     end
 
     def commit_hash(dir)
-      `#{@command} --git-dir #{shellquote(dir +'/.git')} --work-tree #{shellquote(dir)} rev-parse --verify HEAD`.strip
+      `#{@command} --git-dir #{shellquote(dir + '/.git')} --work-tree #{shellquote(dir)} rev-parse --verify HEAD`.strip
     end
 
     def current_branch(dir)

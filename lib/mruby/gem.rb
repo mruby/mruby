@@ -465,8 +465,8 @@ module MRuby
         table.instance_variable_set :@root_gems, ary
         class << table
           include TSort
-          def tsort_each_node &b
-            @root_gems.each &b
+          def tsort_each_node(&b)
+            @root_gems.each(&b)
           end
 
           def tsort_each_child(n, &b)
