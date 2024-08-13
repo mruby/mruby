@@ -446,10 +446,9 @@ mrb_ro_data_p(const char *p)
   struct mach_header *mhp;
 #endif
   mhp = _NSGetMachExecuteHeader();
-  unsigned long textsize, datasize;
+  unsigned long textsize;
   char *text = (char*)getsegmentdata(mhp, SEG_TEXT, &textsize);
-  char *data = (char*)getsegmentdata(mhp, SEG_DATA, &datasize);
-  return text + textsize < p && p < data + datasize;
+  return text <= p && p < text + textsize;
 }
 #endif  /* Linux or macOS */
 #endif  /* MRB_NO_DEFAULT_RO_DATA_P */
