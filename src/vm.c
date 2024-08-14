@@ -2303,25 +2303,16 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_BREAK, B) {
       if (MRB_PROC_STRICT_P(ci->proc)) goto NORMAL_RETURN;
-      if (MRB_PROC_ORPHAN_P(ci->proc) || !MRB_PROC_ENV_P(ci->proc) || !MRB_ENV_ONSTACK_P(MRB_PROC_ENV(ci->proc))) {
-      L_BREAK_ERROR:
-        RAISE_LIT(mrb, E_LOCALJUMP_ERROR, "break from proc-closure");
-      }
-      else {
-        struct REnv *e = MRB_PROC_ENV(ci->proc);
-
-        if (e->cxt != mrb->c) {
-          goto L_BREAK_ERROR;
+      if (!MRB_PROC_ORPHAN_P(ci->proc) && MRB_PROC_ENV_P(ci->proc) && ci->proc->e.env->cxt == mrb->c) {
+        const struct RProc *dst = ci->proc->upper;
+        for (ptrdiff_t i = ci - mrb->c->cibase; i > 0; i--, ci--) {
+          if (ci[-1].proc == dst) {
+            goto L_UNWINDING;
+          }
         }
       }
-      const struct RProc *dst = ci->proc->upper;
-      while (mrb->c->cibase < ci && ci[-1].proc != dst) {
-        ci--;
-      }
-      if (ci == mrb->c->cibase) {
-        goto L_BREAK_ERROR;
-      }
-      goto L_UNWINDING;
+      RAISE_LIT(mrb, E_LOCALJUMP_ERROR, "break from proc-closure");
+      /* not reached */
     }
     CASE(OP_RETURN_BLK, B) {
       if (!MRB_PROC_ENV_P(ci->proc) || MRB_PROC_STRICT_P(ci->proc)) {
@@ -2329,25 +2320,18 @@ RETRY_TRY_BLOCK:
       }
 
       const struct RProc *dst = top_proc(mrb, ci->proc);
-      mrb_callinfo *cibase = mrb->c->cibase;
-
-      if (MRB_PROC_ENV_P(dst)) {
-        struct REnv *e = MRB_PROC_ENV(dst);
-
-        if (!MRB_ENV_ONSTACK_P(e) || e->cxt != mrb->c) {
-          localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
-          goto L_RAISE;
+      if (!MRB_PROC_ENV_P(dst) || dst->e.env->cxt == mrb->c) {
+        /* check jump destination */
+        for (ptrdiff_t i = ci - mrb->c->cibase; i >= 0; i--, ci--) {
+          if (ci->proc == dst) {
+            goto L_UNWINDING;
+          }
         }
       }
-      /* check jump destination */
-      while (cibase <= ci && ci->proc != dst) {
-        ci--;
-      }
-      if (ci <= cibase) { /* no jump destination */
-        localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
-        goto L_RAISE;
-      }
-      goto L_UNWINDING;
+      /* no jump destination */
+      localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
+      goto L_RAISE;
+      /* not reached */
     }
     CASE(OP_RETURN, B) {
       mrb_int acc;
