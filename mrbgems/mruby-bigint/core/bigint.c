@@ -1151,6 +1151,10 @@ mrb_bint_new_float(mrb_state *mrb, mrb_float x)
   /* x should not be NaN nor Infinity */
   mrb_assert(x == x && x != x * 0.5);
 
+  if (FIXABLE_FLOAT(x)) {
+    return mrb_int_value(mrb, (mrb_int)x);
+  }
+
   int sn;
   if (x < 0.0) {
     x = -x;
