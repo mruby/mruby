@@ -52,9 +52,7 @@ mpz_set(mrb_state *mrb, mpz_t *y, mpz_t *x)
   for (i=0;i < k; i++)
     y->p[i] = x->p[i];
 
-  for (;i<y->sz;i++)
-    y->p[i] = 0;
-
+  y->sz = k;
   y->sn = x->sn;
 }
 
