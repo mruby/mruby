@@ -2719,6 +2719,14 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
     case MRB_TT_ISTRUCT:
       mrb_istruct_copy(dest, obj);
       break;
+#if !defined(MRB_NO_FLOAT) && defined(MRB_WORDBOX_NO_FLOAT_TRUNCATE)
+    case MRB_TT_FLOAT:
+      {
+        struct RFloat *f = (struct RFloat*)mrb_obj_ptr(dest);
+        f->f = mrb_float(obj);
+      }
+      break;
+#endif
 #ifdef MRB_USE_BIGINT
     case MRB_TT_BIGINT:
       mrb_bint_copy(mrb, dest, obj);
