@@ -1191,28 +1191,6 @@ catch_handler_find(const mrb_irep *irep, const mrb_code *pc, uint32_t filter)
   return NULL;
 }
 
-typedef enum {
-  LOCALJUMP_ERROR_RETURN = 0,
-  LOCALJUMP_ERROR_BREAK = 1,
-  LOCALJUMP_ERROR_YIELD = 2
-} localjump_error_kind;
-
-static void
-localjump_error(mrb_state *mrb, localjump_error_kind kind)
-{
-  char kind_str[3][7] = { "return", "break", "yield" };
-  char kind_str_len[] = { 6, 5, 5 };
-  static const char lead[] = "unexpected ";
-  mrb_value msg;
-  mrb_value exc;
-
-  msg = mrb_str_new_capa(mrb, sizeof(lead) + 7);
-  mrb_str_cat(mrb, msg, lead, sizeof(lead) - 1);
-  mrb_str_cat(mrb, msg, kind_str[kind], kind_str_len[kind]);
-  exc = mrb_exc_new_str(mrb, E_LOCALJUMP_ERROR, msg);
-  mrb_exc_set(mrb, exc);
-}
-
 #define RAISE_EXC(mrb, exc) do { \
   mrb_value exc_value = (exc); \
   mrb_exc_set(mrb, exc_value); \
@@ -2329,8 +2307,7 @@ RETRY_TRY_BLOCK:
         }
       }
       /* no jump destination */
-      localjump_error(mrb, LOCALJUMP_ERROR_RETURN);
-      goto L_RAISE;
+      RAISE_LIT(mrb, E_LOCALJUMP_ERROR, "unexpected return");
       /* not reached */
     }
     CASE(OP_RETURN, B) {
@@ -2428,14 +2405,12 @@ RETRY_TRY_BLOCK:
         struct REnv *e = uvenv(mrb, lv-1);
         if (!e || (!MRB_ENV_ONSTACK_P(e) && e->mid == 0) ||
             MRB_ENV_LEN(e) <= m1+r+m2+1) {
-          localjump_error(mrb, LOCALJUMP_ERROR_YIELD);
-          goto L_RAISE;
+          RAISE_LIT(mrb, E_LOCALJUMP_ERROR, "unexpected yield");
         }
         stack = e->stack + 1;
       }
       if (mrb_nil_p(stack[m1+r+m2+kd])) {
-        localjump_error(mrb, LOCALJUMP_ERROR_YIELD);
-        goto L_RAISE;
+        RAISE_LIT(mrb, E_LOCALJUMP_ERROR, "unexpected yield");
       }
       regs[a] = stack[m1+r+m2+kd];
       NEXT;
