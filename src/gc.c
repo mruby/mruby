@@ -718,6 +718,12 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
     children += ((struct RBacktrace*)obj)->len;
     break;
 
+#if defined(MRB_USE_RATIONAL) && defined(MRB_USE_BIGINT)
+  case MRB_TT_RATIONAL:
+    children += mrb_rational_mark(mrb, obj);
+    break;
+#endif
+
   default:
     break;
   }

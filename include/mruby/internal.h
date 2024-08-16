@@ -128,6 +128,7 @@ mrb_value mrb_rational_mul(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_rational_div(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_as_rational(mrb_state *mrb, mrb_value x);
 void mrb_rational_copy(mrb_state *mrb, mrb_value x, mrb_value y);
+int mrb_rational_mark(mrb_state *mrb, struct RBasic *rat);
 #endif
 
 #ifdef MRUBY_PROC_H
@@ -222,6 +223,7 @@ mrb_value mrb_bint_pow(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_value y, mrb_value z);
 mrb_value mrb_bint_and(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_bint_or(mrb_state *mrb, mrb_value x, mrb_value y);
+mrb_value mrb_bint_neg(mrb_state *mrb, mrb_value x);
 mrb_value mrb_bint_xor(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_bint_rev(mrb_state *mrb, mrb_value x);
 mrb_value mrb_bint_lshift(mrb_state *mrb, mrb_value x, mrb_int width);

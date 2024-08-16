@@ -1063,6 +1063,36 @@ mpz_powm_i(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int ex, mpz_t *n)
   mpz_clear(mrb, &b);
 }
 
+#ifdef MRB_USE_RATIONAL
+static void
+mpz_abs(mrb_state *mrb, mpz_t *x, mpz_t *y)
+{
+  mpz_init_set(mrb, x, y);
+  if (y->sn == 0)
+    x->sn = 0;
+  else
+    x->sn = 1;
+}
+
+static void
+mpz_gcd(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
+{
+  mpz_t a, b, t;
+  mpz_abs(mrb, &a, aa); mpz_abs(mrb, &b, bb);
+  mpz_init(mrb, &t);
+
+  while (b.sn != 0) {
+    mpz_mod(mrb, &t, &a, &b);
+    mpz_set(mrb, &a, &b);
+    mpz_set(mrb, &b, &t);
+  }
+  trim(&a);
+  mpz_move(mrb, gg, &a);
+  mpz_clear(mrb, &b);
+  mpz_clear(mrb, &t);
+}
+#endif
+
 /* --- mruby functions --- */
 static struct RBigint*
 bint_new(mrb_state *mrb)
@@ -1322,6 +1352,17 @@ mrb_bint_sub(mrb_state *mrb, mrb_value x, mrb_value y)
   return bint_norm(mrb, RBIGINT(x));
 }
 
+static struct RBigint*
+bint_mul(mrb_state *mrb, mrb_value x, mrb_value y)
+{
+  y = mrb_as_bint(mrb, y);
+  struct RBigint *b = RBIGINT(x);
+  struct RBigint *b2 = RBIGINT(y);
+  struct RBigint *b3 = bint_new(mrb);
+  mpz_mul(mrb, &b3->mp, &b->mp, &b2->mp);
+  return b3;
+}
+
 mrb_value
 mrb_bint_mul(mrb_state *mrb, mrb_value x, mrb_value y)
 {
@@ -1336,12 +1377,14 @@ mrb_bint_mul(mrb_state *mrb, mrb_value x, mrb_value y)
     return mrb_float_value(mrb,v1*v2);
   }
 #endif
-  y = mrb_as_bint(mrb, y);
-  struct RBigint *b = RBIGINT(x);
-  struct RBigint *b2 = RBIGINT(y);
-  struct RBigint *b3 = bint_new(mrb);
-  mpz_mul(mrb, &b3->mp, &b->mp, &b2->mp);
-  return bint_norm(mrb, b3);
+  return bint_norm(mrb, bint_mul(mrb, x, y));
+}
+
+mrb_value
+mrb_bint_mul_n(mrb_state *mrb, mrb_value x, mrb_value y)
+{
+  struct RBigint *b = bint_mul(mrb, x, y);
+  return mrb_obj_value(b);
 }
 
 mrb_value
@@ -1519,7 +1562,7 @@ mrb_bint_pow(mrb_state *mrb, mrb_value x, mrb_value y)
   case MRB_TT_BIGINT:
     mrb_raise(mrb, E_TYPE_ERROR, "too big power");
   default:
-    mrb_raisef(mrb, E_TYPE_ERROR, "%v cannot be convert to integer", y);
+    mrb_raisef(mrb, E_TYPE_ERROR, "%Y cannot be convert to integer", y);
   }
   return mrb_nil_value();
 }
@@ -1747,3 +1790,24 @@ mrb_bint_2comp(mrb_state *mrb, mrb_value x)
   z->sn = 1;
   return mrb_obj_value(b2);
 }
+
+#ifdef MRB_USE_RATIONAL
+void
+mrb_bint_reduce(mrb_state *mrb, mrb_value *xp, mrb_value *yp)
+{
+  struct RBigint *b1 = RBIGINT(*xp);
+  struct RBigint *b2 = RBIGINT(*yp);
+  mpz_t r; mpz_init(mrb, &r);
+
+  mpz_gcd(mrb, &r, &b1->mp, &b2->mp);
+
+  struct RBigint *b3 = bint_new(mrb);
+  struct RBigint *b4 = bint_new(mrb);
+  mpz_mdiv(mrb, &b3->mp, &b1->mp, &r);
+  mpz_mdiv(mrb, &b4->mp, &b2->mp, &r);
+
+  mpz_clear(mrb, &r);
+  *xp = mrb_obj_value(b3);
+  *yp = mrb_obj_value(b4);
+}
+#endif
