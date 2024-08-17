@@ -453,6 +453,7 @@ nil_to_r(mrb_state *mrb, mrb_value self)
   return rational_new_i(mrb, 0, 1);
 }
 
+#if !defined(MRB_NO_FLOAT) || defined(RAT_BIGINT)
 static mrb_value
 rational_new(mrb_state *mrb, mrb_value a, mrb_value b)
 {
@@ -480,16 +481,21 @@ rational_new(mrb_state *mrb, mrb_value a, mrb_value b)
 static mrb_value
 rational_m(mrb_state *mrb, mrb_value self)
 {
-#ifdef MRB_NO_FLOAT
+  mrb_value a, b = ONE;
+  mrb_get_args(mrb, "o|o", &a, &b);
+  return rational_new(mrb, a, b);
+}
+
+#else
+
+static mrb_value
+rational_m(mrb_state *mrb, mrb_value self)
+{
   mrb_int n, d = 1;
   mrb_get_args(mrb, "i|i", &n, &d);
   return rational_new_i(mrb, n, d);
-#else
-  mrb_value a, b = mrb_fixnum_value(1);
-  mrb_get_args(mrb, "o|o", &a, &b);
-  return rational_new(mrb, a, b);
-#endif
 }
+#endif
 
 static mrb_value
 rational_eq_b(mrb_state *mrb, mrb_value x, mrb_value y)
