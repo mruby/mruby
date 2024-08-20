@@ -780,7 +780,6 @@ static mrb_value
 exec_irep(mrb_state *mrb, mrb_value self, const struct RProc *p)
 {
   mrb_callinfo *ci = mrb->c->ci;
-  mrb_int keep, nregs;
 
   ci->stack[0] = self;
   /* handle alias */
@@ -795,8 +794,8 @@ exec_irep(mrb_state *mrb, mrb_value self, const struct RProc *p)
     }
     return MRB_PROC_CFUNC(p)(mrb, self);
   }
-  nregs = p->body.irep->nregs;
-  keep = ci_bidx(ci)+1;
+  mrb_int nregs = p->body.irep->nregs;
+  mrb_int keep = ci_bidx(ci)+1;
   if (nregs < keep) {
     stack_extend(mrb, keep);
   }
