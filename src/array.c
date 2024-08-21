@@ -1586,20 +1586,21 @@ static mrb_bool
 sort_cmp(mrb_state *mrb, mrb_value ary, mrb_value *p, mrb_int a, mrb_int b, mrb_value blk)
 {
   mrb_int cmp;
+  mrb_value va = p[a], vb = p[b];
 
   if (mrb_nil_p(blk)) {
-    cmp = mrb_cmp(mrb, p[a], p[b]);
+    cmp = mrb_cmp(mrb, va, vb);
   }
   else {
-    mrb_value c = mrb_funcall_id(mrb, blk, MRB_SYM(call), 2, p[a], p[b]);
-    mrb_int size = RARRAY_LEN(ary);
-    if (RARRAY_PTR(ary) != p || size < a || size < b) {
-      mrb_raise(mrb, E_RUNTIME_ERROR, "array modified during sort");
-    }
+    mrb_value c = mrb_funcall_id(mrb, blk, MRB_SYM(call), 2, va, vb);
     if (mrb_nil_p(c) || !mrb_fixnum_p(c)) {
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "comparison of %!v and %!v failed", p[a], p[b]);
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "comparison of %!v and %!v failed", va, vb);
     }
     cmp = mrb_fixnum(c);
+  }
+  mrb_int size = RARRAY_LEN(ary);
+  if (RARRAY_PTR(ary) != p || size < a || size < b) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "array modified during sort");
   }
   return cmp > 0;
 }
