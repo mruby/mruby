@@ -1586,15 +1586,14 @@ static mrb_bool
 sort_cmp(mrb_state *mrb, mrb_value ary, mrb_value *p, mrb_int a, mrb_int b, mrb_value blk)
 {
   mrb_int cmp;
-  mrb_value va = p[a], vb = p[b];
 
   if (mrb_nil_p(blk)) {
-    cmp = mrb_cmp(mrb, va, vb);
+    cmp = mrb_cmp(mrb, p[a], p[b]);
   }
   else {
-    mrb_value c = mrb_funcall_id(mrb, blk, MRB_SYM(call), 2, va, vb);
+    mrb_value c = mrb_funcall_id(mrb, blk, MRB_SYM(call), 2, p[a], p[b]);
     if (mrb_nil_p(c) || !mrb_fixnum_p(c)) {
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "comparison of %!v and %!v failed", va, vb);
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "comparison failed (element %d and %d)", a, b);
     }
     cmp = mrb_fixnum(c);
   }
