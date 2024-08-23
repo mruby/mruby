@@ -33,6 +33,14 @@ MRuby::Gem::Specification.new('mruby-bin-mirb') do |spec|
       end
       if spec.build.cc.search_header_path 'curses.h'
         spec.linker.libraries << 'ncurses'
+        if spec.build.cc.search_header_path 'term.h'
+          spec.linker.libraries << 'tinfo'
+        end
+      elsif spec.build.cc.search_header_path 'ncursesw/curses.h'
+        spec.linker.libraries << 'ncursesw'
+        if spec.build.cc.search_header_path 'ncursesw/term.h'
+          spec.linker.libraries << 'tinfow'
+        end
       end
     end
   elsif spec.build.cc.search_header_path 'edit/readline/readline.h'
