@@ -30,8 +30,7 @@ MRuby::Gem::Specification.new('mruby-bin-mirb') do |spec|
                             File.exist?("#{lib_path}/libreadline.a")
         end
         spec.linker.library_paths << lib_path if lib_path
-      end
-      if spec.build.cc.search_header_path 'curses.h'
+      elsif spec.build.cc.search_header_path 'curses.h'
         spec.linker.libraries << 'ncurses'
         if spec.build.cc.search_header_path 'term.h'
           spec.linker.libraries << 'tinfo'
