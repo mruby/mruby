@@ -414,8 +414,8 @@ fiber_terminate(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci)
 mrb_bool
 mrb_env_unshare(mrb_state *mrb, struct REnv *e, mrb_bool noraise)
 {
-  if (e == NULL) return TRUE;
-  if (!MRB_ENV_ONSTACK_P(e)) return TRUE;
+  mrb_assert(e != NULL);
+  mrb_assert(MRB_ENV_ONSTACK_P(e));
 
   size_t len = (size_t)MRB_ENV_LEN(e);
   if (len == 0) {
