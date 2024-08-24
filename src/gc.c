@@ -372,7 +372,7 @@ mrb_gc_destroy(mrb_state *mrb, mrb_gc *gc)
 }
 
 static void
-gc_protect(mrb_state *mrb, mrb_gc *gc, struct RBasic *p)
+gc_arena_keep(mrb_state *mrb, mrb_gc *gc)
 {
 #ifdef MRB_GC_FIXED_ARENA
   if (gc->arena_idx >= MRB_GC_ARENA_SIZE) {
@@ -388,6 +388,16 @@ gc_protect(mrb_state *mrb, mrb_gc *gc, struct RBasic *p)
     gc->arena_capa = newcapa;
   }
 #endif
+}
+
+static inline void
+gc_protect(mrb_state *mrb, mrb_gc *gc, struct RBasic *p)
+{
+#ifdef MRB_GC_FIXED_ARENA
+  mrb_assert(gc->arena_idx < MRB_GC_ARENA_SIZE);
+#else
+  mrb_assert(gc->arena_idx < gc->arena_capa);
+#endif
   gc->arena[gc->arena_idx++] = p;
 }
 
@@ -398,6 +408,7 @@ mrb_gc_protect(mrb_state *mrb, mrb_value obj)
   if (mrb_immediate_p(obj)) return;
   struct RBasic *p = mrb_basic_ptr(obj);
   if (is_red(p)) return;
+  gc_arena_keep(mrb, &mrb->gc);
   gc_protect(mrb, &mrb->gc, p);
 }
 
@@ -494,6 +505,7 @@ mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
   if (gc->threshold < gc->live) {
     mrb_incremental_gc(mrb);
   }
+  gc_arena_keep(mrb, gc);
   if (gc->free_heaps == NULL) {
     add_heap(mrb, gc);
   }
