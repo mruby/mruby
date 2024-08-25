@@ -2699,7 +2699,7 @@ static void
 init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
 {
   mrb_assert((mrb_type(dest) == mrb_type(obj)));
-  switch (mrb_type(obj)) {
+  switch (mrb_unboxed_type(obj)) {
     case MRB_TT_ICLASS:
       copy_class(mrb, dest, obj);
       return;
@@ -2786,7 +2786,7 @@ mrb_obj_clone(mrb_state *mrb, mrb_value self)
   if (mrb_sclass_p(self)) {
     mrb_raise(mrb, E_TYPE_ERROR, "can't clone singleton class");
   }
-  struct RObject *p = (struct RObject*)mrb_obj_alloc(mrb, mrb_type(self), mrb_obj_class(mrb, self));
+  struct RObject *p = (struct RObject*)mrb_obj_alloc(mrb, mrb_unboxed_type(self), mrb_obj_class(mrb, self));
   p->c = mrb_singleton_class_clone(mrb, self);
   mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)p->c);
 
