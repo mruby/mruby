@@ -277,7 +277,7 @@ heap_p(mrb_gc *gc, const struct RBasic *object)
     RVALUE *p;
 
     p = page->objects;
-    if (&p[0].as.basic <= object && object <= &p[MRB_HEAP_PAGE_SIZE - 1].as.basic) {
+    if ((uintptr_t)object - (uintptr_t)p <= (MRB_HEAP_PAGE_SIZE - 1) * sizeof(RVALUE)) {
       return TRUE;
     }
     page = page->next;
