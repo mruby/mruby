@@ -54,9 +54,11 @@ t_print(mrb_state *mrb, mrb_value self)
   mrb_int argc;
 
   mrb_get_args(mrb, "*!", &argv, &argc);
+  int ai = mrb_gc_arena_save(mrb);
   for (mrb_int i = 0; i < argc; i++) {
     mrb_value s = mrb_obj_as_string(mrb, argv[i]);
     fwrite(RSTRING_PTR(s), RSTRING_LEN(s), 1, stdout);
+    mrb_gc_arena_restore(mrb, ai);
   }
   fflush(stdout);
 
@@ -266,10 +268,12 @@ mrb_t_pass_result(mrb_state *mrb_dst, mrb_state *mrb_src)
   if (mrb_array_p(res_src)) {
     mrb_int i;
     mrb_value res_dst = mrb_gv_get(mrb_dst, mrb_intern_lit(mrb_dst, "$asserts"));
+    int ai = mrb_gc_arena_save(mrb_dst);
     for (i = 0; i < RARRAY_LEN(res_src); i++) {
       mrb_value val_src = RARRAY_PTR(res_src)[i];
       mrb_ensure_string_type(mrb_dst, val_src);
       mrb_ary_push(mrb_dst, res_dst, mrb_str_new(mrb_dst, RSTRING_PTR(val_src), RSTRING_LEN(val_src)));
+      mrb_gc_arena_restore(mrb_dst, ai);
     }
   }
 }
@@ -294,8 +298,11 @@ main(int argc, char **argv)
     verbose = TRUE;
   }
 
+  int ai = mrb_gc_arena_save(mrb);
   mrb_init_test_driver(mrb, verbose);
+  mrb_gc_arena_restore(mrb, ai);
   mrb_load_irep(mrb, mrbtest_assert_irep);
+  mrb_gc_arena_restore(mrb, ai);
   mrbgemtest_init(mrb);
 
   int ret = eval_test(mrb);

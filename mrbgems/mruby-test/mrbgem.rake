@@ -74,7 +74,9 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
           f.puts %Q[    fprintf(stderr, "Invalid mrb_state, exiting \%s", __func__);]
           f.puts %Q[    exit(EXIT_FAILURE);]
           f.puts %Q[  }]
+          f.puts %Q[  int ai = mrb_gc_arena_save(mrb2);]
           f.puts %Q[  mrb_const_set(mrb2, mrb_obj_value(mrb2->object_class), mrb_intern_lit(mrb2, "GEMNAME"), mrb_str_new(mrb2, "#{g.name}", #{g.name.length}));]
+          f.puts %Q[  mrb_gc_arena_restore(mrb2, ai);]
           if test_preload.nil?
             f.puts %Q[  mrb_load_irep(mrb2, mrbtest_assert_irep);]
           else
@@ -83,8 +85,10 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
           dep_list.each do |d|
             f.puts %Q[  GENERATED_TMP_mrb_#{d.funcname}_gem_init(mrb2);]
             f.puts %Q[  mrb_state_atexit(mrb2, GENERATED_TMP_mrb_#{d.funcname}_gem_final);]
+            f.puts %Q[  mrb_gc_arena_restore(mrb2, ai);]
           end
           f.puts %Q[  mrb_init_test_driver(mrb2, mrb_test(mrb_gv_get(mrb, mrb_intern_lit(mrb, "$mrbtest_verbose"))));]
+          f.puts %Q[  mrb_gc_arena_restore(mrb2, ai);]
           f.puts %Q[  ]
           g.test_rbfiles.count.times do |i|
             unless g.test_args.empty?
@@ -96,8 +100,10 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
               end
               f.puts %Q[  mrb_const_set(mrb2, mrb_obj_value(mrb2->object_class), mrb_intern_lit(mrb2, "TEST_ARGS"), test_args_hash); ]
             end
+            f.puts %Q[  mrb_gc_arena_restore(mrb2, ai);]
 
             f.puts %Q[  mrb_#{g.funcname}_gem_test(mrb2);] if g.custom_test_init?
+            f.puts %Q[  mrb_gc_arena_restore(mrb2, ai);]
             f.puts %Q[  mrb_load_irep(mrb2, gem_test_irep_#{g.funcname}_#{i});]
             f.puts %Q[  if (mrb2->exc) {]
             f.puts %Q[    mrb_print_error(mrb2);]
@@ -146,6 +152,7 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
         f.puts %Q[void GENERATED_TMP_mrb_#{g.funcname}_gem_test(mrb_state *mrb);]
       end
       f.puts %Q[void mrbgemtest_init(mrb_state* mrb) {]
+      f.puts %Q[  int ai = mrb_gc_arena_save(mrb);]
       build.gems.each do |g|
         if g.skip_test?
           f.puts %Q[    do {]
@@ -158,6 +165,7 @@ MRuby::Gem::Specification.new('mruby-test') do |spec|
         else
           f.puts %Q[    GENERATED_TMP_mrb_#{g.funcname}_gem_test(mrb);]
         end
+        f.puts %Q[    mrb_gc_arena_restore(mrb, ai);]
       end
       f.puts %Q[}]
     end
