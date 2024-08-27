@@ -1582,6 +1582,12 @@ mrb_ary_delete(mrb_state *mrb, mrb_value self)
   return ret;
 }
 
+static mrb_noreturn void
+cmp_failed(mrb_state *mrb, mrb_int a, mrb_int b)
+{
+  mrb_raisef(mrb, E_ARGUMENT_ERROR, "comparison failed (element %d and %d)", a, b);
+}
+
 static mrb_bool
 sort_cmp(mrb_state *mrb, mrb_value ary, mrb_value *p, mrb_int a, mrb_int b, mrb_value blk)
 {
@@ -1589,11 +1595,12 @@ sort_cmp(mrb_state *mrb, mrb_value ary, mrb_value *p, mrb_int a, mrb_int b, mrb_
 
   if (mrb_nil_p(blk)) {
     cmp = mrb_cmp(mrb, p[a], p[b]);
+    if (cmp == -2) cmp_failed(mrb, a, b);
   }
   else {
     mrb_value c = mrb_funcall_id(mrb, blk, MRB_SYM(call), 2, p[a], p[b]);
     if (mrb_nil_p(c) || !mrb_fixnum_p(c)) {
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "comparison failed (element %d and %d)", a, b);
+      cmp_failed(mrb, a, b);
     }
     cmp = mrb_fixnum(c);
   }
