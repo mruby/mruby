@@ -2310,34 +2310,37 @@ RETRY_TRY_BLOCK:
     CASE(OP_RETURN, B) {
       mrb_int acc;
       mrb_value v;
+      mrb_callinfo *return_ci;
 
     NORMAL_RETURN:
-      ci = mrb->c->ci;
       v = regs[a];
       mrb_gc_protect(mrb, v);
+      return_ci = ci;
       CHECKPOINT_RESTORE(RBREAK_TAG_BREAK) {
         if (TRUE) {
           struct RBreak *brk = (struct RBreak*)mrb->exc;
-          ci = &mrb->c->cibase[brk->ci_break_index];
+          return_ci = &mrb->c->cibase[brk->ci_break_index];
           v = mrb_break_value_get(brk);
         }
         else {
         L_UNWINDING:
-          v = mrb->c->ci->stack[a];
+          return_ci = ci;
+          ci = mrb->c->ci;
+          v = ci->stack[a];
         }
         mrb_gc_protect(mrb, v);
       }
       CHECKPOINT_MAIN(RBREAK_TAG_BREAK) {
         for (;;) {
-          UNWIND_ENSURE(mrb, mrb->c->ci, mrb->c->ci->pc, RBREAK_TAG_BREAK, ci, v);
+          UNWIND_ENSURE(mrb, ci, ci->pc, RBREAK_TAG_BREAK, return_ci, v);
 
-          if (mrb->c->ci == ci) {
+          if (ci == return_ci) {
             break;
           }
-          cipop(mrb);
-          if (mrb->c->ci[1].cci != CINFO_NONE) {
+          ci = cipop(mrb);
+          if (ci[1].cci != CINFO_NONE) {
             mrb_assert(prev_jmp != NULL);
-            mrb->exc = (struct RObject*)break_new(mrb, RBREAK_TAG_BREAK, ci, v);
+            mrb->exc = (struct RObject*)break_new(mrb, RBREAK_TAG_BREAK, return_ci, v);
             mrb_gc_arena_restore(mrb, ai);
             mrb->c->vmexec = FALSE;
             mrb->jmp = prev_jmp;
