@@ -302,7 +302,7 @@ mrb_rational_new(mrb_state *mrb, mrb_int nume, mrb_int deno)
 #define RAT_HUGE_VAL HUGE_VAL
 #endif
 
-#define mrb_int_p(x) (MRB_INT_MIN <= (x) && (x) <= MRB_INT_MAX)
+#define mrb_int_fit_p(x,t) ((t)MRB_INT_MIN <= (x) && (x) <= (t)MRB_INT_MAX)
 
 static mrb_value
 float_decode_internal(mrb_state *mrb, mrb_float f, mrb_value *v, int *n)
@@ -312,10 +312,10 @@ float_decode_internal(mrb_state *mrb, mrb_float f, mrb_value *v, int *n)
   f = (mrb_float)ldexp_rat(f, RAT_MANT_DIG);
   *n -= RAT_MANT_DIG;
 #ifdef RAT_BIGINT
-  if (mrb_int_p(f)) return mrb_int_value(mrb, (mrb_int)f);
+  if (mrb_int_fit_p(f, mrb_float)) return mrb_int_value(mrb, (mrb_int)f);
   return mrb_bint_new_float(mrb, f);
 #else
-  if (!mrb_int_p(f)) rat_overflow(mrb);
+  if (!mrb_int_fit_p(f, mrb_float)) rat_overflow(mrb);
   return mrb_int_value(mrb, (mrb_int)f);
 #endif
 }
@@ -325,7 +325,7 @@ int_lshift(mrb_state *mrb, mrb_value v, mrb_int n)
 {
   if (mrb_integer_p(v)) {
     uint64_t u = (uint64_t)mrb_integer(v);
-    if (mrb_int_p(u << n))
+    if (mrb_int_fit_p(u << n, uint64_t))
       return mrb_int_value(mrb, u << n);
   }
 #ifndef RAT_BIGINT
