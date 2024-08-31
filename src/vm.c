@@ -860,22 +860,21 @@ mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p)
 mrb_value
 mrb_f_send(mrb_state *mrb, mrb_value self)
 {
-  mrb_sym name;
-  mrb_value block, *regs;
-  mrb_method_t m;
-  struct RClass *c;
   mrb_callinfo *ci = mrb->c->ci;
   int n = ci->n;
+  mrb_sym name;
 
   if (ci->cci > CINFO_NONE) {
   funcall:;
     const mrb_value *argv;
     mrb_int argc;
+    mrb_value block;
     mrb_get_args(mrb, "n*&", &name, &argv, &argc, &block);
     return mrb_funcall_with_block(mrb, self, name, argc, argv, block);
   }
 
-  regs = mrb->c->ci->stack+1;
+  mrb_method_t m;
+  mrb_value *regs = mrb->c->ci->stack+1;
 
   if (n == 0) {
   argnum_error:
@@ -889,7 +888,7 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
     name = mrb_obj_to_sym(mrb, regs[0]);
   }
 
-  c = mrb_class(mrb, self);
+  struct RClass *c = mrb_class(mrb, self);
   m = mrb_vm_find_method(mrb, c, &c, name);
   if (MRB_METHOD_UNDEF_P(m)) {            /* call method_missing */
     goto funcall;
