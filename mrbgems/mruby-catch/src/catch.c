@@ -37,6 +37,7 @@ static const mrb_irep catch_irep = {
   NULL,
   sizeof(catch_iseq),0,3,0,0
 };
+mrb_alignas(8)
 static const struct RProc catch_proc = {
   NULL, NULL, MRB_TT_PROC, MRB_GC_RED, MRB_FL_OBJ_IS_FROZEN | MRB_PROC_SCOPE | MRB_PROC_STRICT,
   { &catch_irep }, NULL, { NULL }
