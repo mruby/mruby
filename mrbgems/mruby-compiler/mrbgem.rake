@@ -14,10 +14,10 @@ MRuby::Gem::Specification.new 'mruby-compiler' do |spec|
   build.libmruby_core_objs << objs
 end
 
-if MRuby::Build.current.name == "host"
-  dir = __dir__
-  lex_def = "#{dir}/core/lex.def"
+dir = __dir__
+lex_def = "#{dir}/core/lex.def"
 
+unless Rake::Task.task_defined?(lex_def)
   # Parser
   file "#{dir}/core/y.tab.c" => ["#{dir}/core/parse.y", lex_def] do |t|
     MRuby.targets["host"].yacc.run t.name, t.prerequisites.first
