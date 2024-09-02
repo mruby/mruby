@@ -371,23 +371,8 @@ mrb_gc_destroy(mrb_state *mrb, mrb_gc *gc)
 #endif
 }
 
-#ifdef MRB_GC_FIXED_ARENA
-#define gc_arena_keep(mrb, gc)  /* empty */
-#else
 static void
 gc_arena_keep(mrb_state *mrb, mrb_gc *gc)
-{
-  if (gc->arena_idx >= gc->arena_capa) {
-    /* extend arena */
-    int newcapa = gc->arena_capa * 3 / 2;
-    gc->arena = (struct RBasic**)mrb_realloc(mrb, gc->arena, sizeof(struct RBasic*)*newcapa);
-    gc->arena_capa = newcapa;
-  }
-}
-#endif
-
-static inline void
-gc_protect(mrb_state *mrb, mrb_gc *gc, struct RBasic *p)
 {
 #ifdef MRB_GC_FIXED_ARENA
   if (gc->arena_idx >= MRB_GC_ARENA_SIZE) {
@@ -395,6 +380,21 @@ gc_protect(mrb_state *mrb, mrb_gc *gc, struct RBasic *p)
     gc->arena_idx = MRB_GC_ARENA_SIZE - 4; /* force room in arena */
     mrb_exc_raise(mrb, mrb_obj_value(mrb->arena_err));
   }
+#else
+  if (gc->arena_idx >= gc->arena_capa) {
+    /* extend arena */
+    int newcapa = gc->arena_capa * 3 / 2;
+    gc->arena = (struct RBasic**)mrb_realloc(mrb, gc->arena, sizeof(struct RBasic*)*newcapa);
+    gc->arena_capa = newcapa;
+  }
+#endif
+}
+
+static inline void
+gc_protect(mrb_state *mrb, mrb_gc *gc, struct RBasic *p)
+{
+#ifdef MRB_GC_FIXED_ARENA
+  mrb_assert(gc->arena_idx < MRB_GC_ARENA_SIZE);
 #else
   mrb_assert(gc->arena_idx < gc->arena_capa);
 #endif
