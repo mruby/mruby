@@ -944,17 +944,13 @@ check_block(mrb_state *mrb, mrb_value blk)
 static mrb_value
 eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
 {
-  struct RProc *p;
-  mrb_callinfo *ci;
-  int nregs;
-
   check_block(mrb, blk);
-  ci = mrb->c->ci;
+  mrb_callinfo *ci = mrb->c->ci;
   if (ci->cci == CINFO_DIRECT) {
     return mrb_yield_with_class(mrb, blk, 1, &self, self, c);
   }
   ci->u.target_class = c;
-  p = mrb_proc_ptr(blk);
+  struct RProc *p = mrb_proc_ptr(blk);
   /* just in case irep is NULL; #6065 */
   if (p->body.irep == NULL) return mrb_nil_value();
   CI_PROC_SET(ci, p);
@@ -968,7 +964,7 @@ eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
     mrb->c->ci->stack[2] = mrb_nil_value();
     return MRB_PROC_CFUNC(p)(mrb, self);
   }
-  nregs = p->body.irep->nregs;
+  int nregs = p->body.irep->nregs;
   if (nregs < 4) nregs = 4;
   stack_extend(mrb, nregs);
   mrb->c->ci->stack[0] = self;
