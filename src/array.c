@@ -313,6 +313,7 @@ mrb_ary_init(mrb_state *mrb, mrb_value ary)
     ary_expand_capa(mrb, a, size);
   }
 
+  int ai = mrb_gc_arena_save(mrb);
   for (mrb_int i=0; i<size; i++) {
     mrb_value val;
     if (mrb_nil_p(blk)) {
@@ -322,6 +323,7 @@ mrb_ary_init(mrb_state *mrb, mrb_value ary)
       val = mrb_funcall_id(mrb, blk, MRB_SYM(call), 1, mrb_fixnum_value(i));
     }
     mrb_ary_set(mrb, ary, i, val);
+    mrb_gc_arena_restore(mrb, ai); // for mrb_funcall
   }
   return ary;
 }
@@ -1440,9 +1442,11 @@ mrb_ary_eq(mrb_state *mrb, mrb_value ary1)
   if (n == 1) return mrb_true_value();
   if (n == 0) return mrb_false_value();
 
+  int ai = mrb_gc_arena_save(mrb);
   for (mrb_int i=0; i<RARRAY_LEN(ary1); i++) {
     mrb_value eq = mrb_funcall_id(mrb, mrb_ary_entry(ary1, i), MRB_OPSYM(eq), 1, mrb_ary_entry(ary2, i));
     if (!mrb_test(eq)) return mrb_false_value();
+    mrb_gc_arena_restore(mrb, ai);
   }
   return mrb_true_value();
 }
@@ -1464,9 +1468,11 @@ mrb_ary_eql(mrb_state *mrb, mrb_value ary1)
   if (n == 1) return mrb_true_value();
   if (n == 0) return mrb_false_value();
 
+  int ai = mrb_gc_arena_save(mrb);
   for (mrb_int i=0; i<RARRAY_LEN(ary1); i++) {
     mrb_value eq = mrb_funcall_id(mrb, mrb_ary_entry(ary1, i), MRB_SYM_Q(eql), 1, mrb_ary_entry(ary2, i));
     if (!mrb_test(eq)) return mrb_false_value();
+    mrb_gc_arena_restore(mrb, ai);
   }
   return mrb_true_value();
 }
