@@ -1031,16 +1031,13 @@ mrb_obj_instance_eval(mrb_state *mrb, mrb_value self)
 MRB_API mrb_value
 mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv, mrb_value self, struct RClass *c)
 {
-  struct RProc *p;
-  mrb_sym mid;
-  mrb_callinfo *ci;
-  mrb_value val;
-  mrb_int n;
-
   check_block(mrb, b);
-  ci = mrb->c->ci;
-  n = mrb_ci_nregs(ci);
-  p = mrb_proc_ptr(b);
+
+  mrb_callinfo *ci = mrb->c->ci;
+  mrb_int n = mrb_ci_nregs(ci);
+  struct RProc *p = mrb_proc_ptr(b);
+  mrb_sym mid;
+
   if (MRB_PROC_ENV_P(p)) {
     mid = p->e.env->mid;
   }
@@ -1052,6 +1049,7 @@ mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value 
   ci->u.target_class = c;
   ci->proc = p;
 
+  mrb_value val;
   if (MRB_PROC_CFUNC_P(p)) {
     mrb->exc = NULL;
     ci->stack[0] = self;
