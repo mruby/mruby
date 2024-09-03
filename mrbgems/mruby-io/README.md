@@ -169,6 +169,11 @@ Add the line below to your build configuration.
 | File#size                   |          |          |
 | File#truncate               |          |          |
 
+## Porting Note
+
+If your (non Windows) platform does not support `getpwnam(3)` for some reason, define `MRB_IO_NO_PWNAM`.
+See [mruby#5358](https://github.com/mruby/mruby/issues/5358).
+
 ## License
 
 Copyright (c) 2013 Internet Initiative Japan Inc.
