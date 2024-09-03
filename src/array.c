@@ -1493,15 +1493,12 @@ mrb_ary_cmp(mrb_state *mrb, mrb_value ary1)
   if (mrb_obj_equal(mrb, ary1, ary2)) return mrb_fixnum_value(0);
   if (!mrb_array_p(ary2)) return mrb_nil_value();
 
-  mrb_int len = RARRAY_LEN(ary1);
-  mrb_int n =  RARRAY_LEN(ary2);
-  if (len > n) len = n;
-  for (mrb_int i=0; i<len; i++) {
-    n = mrb_cmp(mrb, RARRAY_PTR(ary1)[i], RARRAY_PTR(ary2)[i]);
+  for (mrb_int i=0; i<RARRAY_LEN(ary1) && i<RARRAY_LEN(ary2); i++) {
+    mrb_int n = mrb_cmp(mrb, RARRAY_PTR(ary1)[i], RARRAY_PTR(ary2)[i]);
     if (n == -2) return mrb_nil_value();
     if (n != 0) return mrb_fixnum_value(n);
   }
-  len = RARRAY_LEN(ary1) - RARRAY_LEN(ary2);
+  mrb_int len = RARRAY_LEN(ary1) - RARRAY_LEN(ary2);
   if (len == 0) return mrb_fixnum_value(0);
   else if (len > 0) return mrb_fixnum_value(1);
   else return mrb_fixnum_value(-1);
