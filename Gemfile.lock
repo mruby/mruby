@@ -3,9 +3,7 @@ GEM
   specs:
     coderay (1.1.3)
     rake (13.2.1)
-    webrick (1.7.0)
-    yard (0.9.36)
-      webrick (~> 1.7.0)
+    yard (0.9.37)
     yard-coderay (0.1.0)
       coderay
       yard
