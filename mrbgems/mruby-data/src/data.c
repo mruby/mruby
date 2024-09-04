@@ -366,10 +366,12 @@ mrb_data_equal(mrb_state *mrb, mrb_value s)
   mrb_value *ptr = RDATA_PTR(s);
   mrb_value *ptr2 = RDATA_PTR(s2);
   mrb_int len = RDATA_LEN(s);
+  int ai = mrb_gc_arena_save(mrb);
   for (mrb_int i=0; i<len; i++) {
     if (!mrb_equal(mrb, ptr[i], ptr2[i])) {
       return mrb_false_value();
     }
+    mrb_gc_arena_restore(mrb, ai);
   }
 
   return mrb_true_value();
