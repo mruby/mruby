@@ -320,7 +320,6 @@ mrb_ary_init(mrb_state *mrb, mrb_value ary)
       val = obj;
     }
     else {
-      mrb_assert(mrb_proc_p(blk));
       val = mrb_yield(mrb, blk, mrb_fixnum_value(i));
     }
     mrb_ary_set(mrb, ary, i, val);
@@ -1169,7 +1168,6 @@ mrb_ary_index_m(mrb_state *mrb, mrb_value self)
   }
   else {
     for (mrb_int i = 0; i < RARRAY_LEN(self); i++) {
-      mrb_assert(mrb_proc_p(blk));
       mrb_value eq = mrb_yield(mrb, blk, RARRAY_PTR(self)[i]);
       if (mrb_test(eq)) {
         return mrb_int_value(mrb, i);
@@ -1210,7 +1208,6 @@ mrb_ary_rindex_m(mrb_state *mrb, mrb_value self)
       }
     }
     else {
-      mrb_assert(mrb_proc_p(blk));
       mrb_value eq = mrb_yield(mrb, blk, RARRAY_PTR(self)[i]);
       if (mrb_test(eq)) return mrb_int_value(mrb, i);
     }
@@ -1584,7 +1581,6 @@ mrb_ary_delete(mrb_state *mrb, mrb_value self)
 
   if (i == j) {
     if (mrb_nil_p(blk)) return mrb_nil_value();
-      mrb_assert(mrb_proc_p(blk));
     return mrb_yield(mrb, blk, obj);
   }
 
@@ -1608,7 +1604,6 @@ sort_cmp(mrb_state *mrb, mrb_value ary, mrb_value *p, mrb_int a, mrb_int b, mrb_
     if (cmp == -2) cmp_failed(mrb, a, b);
   }
   else {
-    mrb_assert(mrb_proc_p(blk));
     mrb_value args[2] = {p[a], p[b]};
     mrb_value c = mrb_yield_argv(mrb, blk, 2, args);
     if (mrb_nil_p(c) || !mrb_fixnum_p(c)) {
