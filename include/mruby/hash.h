@@ -237,6 +237,9 @@ typedef struct mrb_hash_iterator {
 /*
  * Returns an iterator for the given hash.
  *
+ * NOTE: the iterator is considered invalid if the hash object is modified
+ * after the iterator is created. Use with caution.
+ *
  * @param h The target hash.
  */
 MRB_API mrb_hash_iterator mrb_hash_iterator_new(struct RHash *h);
