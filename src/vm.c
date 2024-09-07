@@ -1151,22 +1151,18 @@ break_new(mrb_state *mrb, uint32_t tag, const mrb_callinfo *return_ci, mrb_value
 static const struct mrb_irep_catch_handler *
 catch_handler_find(const mrb_irep *irep, const mrb_code *pc, uint32_t filter)
 {
-  ptrdiff_t xpc;
-  size_t cnt;
-  const struct mrb_irep_catch_handler *e;
-
 /* The comparison operators use `>` and `<=` because pc already points to the next instruction */
 #define catch_cover_p(pc, beg, end) ((pc) > (ptrdiff_t)(beg) && (pc) <= (ptrdiff_t)(end))
 
   mrb_assert(irep && irep->clen > 0);
-  xpc = pc - irep->iseq;
+  ptrdiff_t xpc = pc - irep->iseq;
   /* If it retry at the top level, pc will be 0, so check with -1 as the start position */
   mrb_assert(catch_cover_p(xpc, -1, irep->ilen));
   if (!catch_cover_p(xpc, -1, irep->ilen)) return NULL;
 
   /* Currently uses a simple linear search to avoid processing complexity. */
-  cnt = irep->clen;
-  e = mrb_irep_catch_handler_table(irep) + cnt - 1;
+  size_t cnt = irep->clen;
+  const struct mrb_irep_catch_handler *e = mrb_irep_catch_handler_table(irep) + cnt - 1;
   for (; cnt > 0; cnt--, e--) {
     if (((UINT32_C(1) << e->type) & filter) &&
         catch_cover_p(xpc, mrb_irep_catch_handler_unpack(e->begin), mrb_irep_catch_handler_unpack(e->end))) {
