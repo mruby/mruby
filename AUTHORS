@@ -1,9 +1,9 @@
 # Authors of mruby (mruby developers)
 
-## The List of Contributors sorted by number of commits (as of 2024-08-03 e8bb03d)
+## The List of Contributors sorted by number of commits (as of 2024-09-07 2d871fb)
 
-   5782 Yukihiro "Matz" Matsumoto (@matz)*
-    601 dearblue (@dearblue)*
+   5818 Yukihiro "Matz" Matsumoto (@matz)*
+    614 dearblue (@dearblue)*
     587 KOBAYASHI Shuji (@shuujii)
     353 Daniel Bovensiepen (@bovi)*
     345 Takeshi Watanabe (@take-cheeze)*
@@ -59,6 +59,7 @@
      14 fn ⌃ ⌥ (@FnControlOption)
      13 Jose Narvaez (@goyox86)
      13 Patrick Hogan (@pbhogan)
+     13 leviongit (@leviongit)
      12 Akira Kuroda (@akuroda)
      12 Kouki Ooyatsu (kaishuu0123)*
      12 NAKAMURA Usaku (@unak)*
@@ -66,7 +67,6 @@
      12 Takashi Sawanaka (@sdottaka)*
      12 Ukrainskiy Sergey (@ukrainskiysergey)
      12 Xuejie "Rafael" Xiao (@xxuejie)*
-     12 leviongit (@leviongit)
      11 Julien Ammous (@schmurfy)
      11 Kazuho Oku (@kazuho)
      11 RIZAL Reckordp (@Reckordp)+
@@ -115,9 +115,10 @@
       5 xuejianqing (@joans321)
       4 Dante Catalfamo (@dantecatalfamo)
       4 Goro Kikuchi (@gorogit)
-      34 HASUMI Hitoshi (@hasumikin)
+      4 HASUMI Hitoshi (@hasumikin)
       4 Herwin Weststrate (@herwinw)
       4 Horimoto Yasuhiro (@komainu8)
+      4 Hoshiumi Arata (@hoshiumiarata)
       4 Jon Moss (@maclover7)
       4 Ken Muramatsu (@ken-mu)+
       4 Kohei Suzuki (@eagletmt)
@@ -136,7 +137,6 @@
       3 Carlo Prelz (@asfluido)*
       3 David Turnbull (@AE9RB)
       3 Franck Verrot (@franckverrot)
-      3 Hoshiumi Arata (@hoshiumiarata)
       3 J. Mutua (@katmutua)+
       3 Jan Berdajs (@mrbrdo)
       3 Jonas Minnberg (@sasq64)
@@ -247,6 +247,7 @@
       1 Lukas Elmer (@lukaselmer)
       1 Lukas Stabe (@Ahti)
       1 M.Naruoka (@fenrir-naru)
+      1 Marcelo Juchem (@juchem)
       1 Martin Bosslet (@emboss)+
       1 Masahiko Sawada (@MasahikoSawada)
       1 Matt Aimonetti (@mattetti)
