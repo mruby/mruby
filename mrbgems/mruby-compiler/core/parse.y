@@ -552,18 +552,11 @@ new_zsuper(parser_state *p)
 static node*
 new_yield(parser_state *p, node *c)
 {
-  if (c) {
-    if (c->cdr) {
-      if (c->cdr->cdr) {
+  if (c && c->cdr && c->cdr->cdr) {
         yyerror(NULL, p, "both block arg and actual block given");
-      }
-      if (c->cdr->car) {
-        return cons((node*)NODE_YIELD, push(c->car, c->cdr->car));
-      }
-    }
-    return cons((node*)NODE_YIELD, c->car);
   }
-  return cons((node*)NODE_YIELD, 0);
+
+  return cons((node*)NODE_YIELD, c);
 }
 
 /* (:return . c) */
