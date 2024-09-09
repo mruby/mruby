@@ -1557,12 +1557,15 @@ mrb_ary_delete(mrb_state *mrb, mrb_value self)
 
   mrb_value ret = obj;
 
+  int ai = mrb_gc_arena_save(mrb);
   size_t i = 0;
   size_t j = 0;
-  for (; i < len; ++i) {
+  for (; i < len; i++) {
     mrb_value elem = val_ptr[i];
 
     if (mrb_equal(mrb, elem, obj)) {
+      mrb_gc_arena_restore(mrb, ai);
+      mrb_gc_protect(mrb, elem);
       ret = elem;
       continue;
     }
@@ -1576,7 +1579,7 @@ mrb_ary_delete(mrb_state *mrb, mrb_value self)
       val_ptr[j] = elem;
     }
 
-    ++j;
+    j++;
   }
 
   if (i == j) {
