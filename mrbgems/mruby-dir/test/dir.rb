@@ -133,5 +133,6 @@ assert('Dir#seek') do
 end
 
 assert('DirTest.teardown') do
+  GC.start
   assert_nothing_raised{DirTest.teardown}
 end
