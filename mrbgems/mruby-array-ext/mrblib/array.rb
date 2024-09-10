@@ -876,6 +876,27 @@ class Array
 
   ##
   # call-seq:
+  #   ary.fetch_values(idx, ...)                 -> array
+  #   ary.fetch_values(idx, ...) { |i| block } -> array
+  #
+  # Returns an array containing the values associated with the given indexes.
+  # but also raises <code>IndexError</code> when one of indexes can't be found.
+  # Also see <code>Array#values_at</code> and <code>Array#fetch</code>.
+  #
+  #   a = ["cat", "dog", "cow"]
+  #
+  #   a.fetch_values(2, 0)                #=> ["cow", "cat"]
+  #   a.fetch_values(2, 5)                # raises KeyError
+  #   a.fetch_values(2, 5) {|i| "BIRD" }  #=> ["cow", "BIRD"]
+  #
+  def fetch_values(*idx, &block)
+    idx.map do |i|
+      self.fetch(i, &block)
+    end
+  end
+
+  ##
+  # call-seq:
   #   ary.product(*arys)                  ->   array
   #   ary.product(*arys) { |item| ... }   ->   self
   def product(*arys, &block)
