@@ -1136,10 +1136,9 @@ mrb_hash_iterator_new(struct RHash *h)
 MRB_API mrb_bool
 mrb_hash_iterator_move_next(mrb_hash_iterator *it)
 {
-  if (0 < it->rem) {
+  if (0 < it->rem && 0 < --it->rem) {
     while (entry_deleted_p(++it->entry));
-    --it->rem;
-    return it->rem > 0;
+    return TRUE;
   }
 
   return FALSE;

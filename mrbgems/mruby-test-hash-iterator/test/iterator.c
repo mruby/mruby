@@ -4,6 +4,7 @@
 #include <mruby/data.h>
 #include <mruby/hash.h>
 #include <mruby/value.h>
+#include <mruby/variable.h>
 
 struct hash_iterator {
   mrb_value hash;
@@ -13,7 +14,6 @@ struct hash_iterator {
 static void
 hash_iterator_free(mrb_state *mrb, void *p) {
   struct hash_iterator *iterator = (struct hash_iterator *)p;
-  mrb_gc_unregister(mrb, iterator->hash);
   mrb_free(mrb, iterator);
 }
 
@@ -32,7 +32,7 @@ hash_iterator_initialize(mrb_state *mrb, mrb_value self)
   mrb_data_init(self, iterator, &hash_iterator_type);
 
   iterator->hash = mrb_get_arg1(mrb);
-  mrb_gc_register(mrb, iterator->hash);
+  mrb_iv_set(mrb, self, mrb_intern_cstr(mrb, "hash"), iterator->hash);
 
   iterator->it = mrb_hash_iterator_new(mrb_hash_ptr(iterator->hash));
 
