@@ -374,9 +374,9 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
     }
   }
 #endif
-  home = mrb_locale_from_utf8(home, -1);
+  home = mrb_utf8_from_locale(home, -1);
   path = mrb_str_new_cstr(mrb, home);
-  mrb_locale_free(home);
+  mrb_utf8_free(home);
   return path;
 }
 
@@ -607,7 +607,7 @@ mrb_file_s_readlink(mrb_state *mrb, mrb_value klass)
   }
   tmp = mrb_utf8_from_locale(buf, -1);
   ret = mrb_str_new(mrb, tmp, rc);
-  mrb_locale_free(tmp);
+  mrb_utf8_free(tmp);
   mrb_free(mrb, buf);
 
   mrb_gc_arena_restore(mrb, ai);
