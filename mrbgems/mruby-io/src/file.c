@@ -538,7 +538,6 @@ mrb_file_s_symlink(mrb_state *mrb, mrb_value klass)
   mrb_raise(mrb, E_NOTIMP_ERROR, "symlink is not supported on this platform");
 #else
   mrb_value from, to;
-  int ai = mrb_gc_arena_save(mrb);
 
   mrb_get_args(mrb, "SS", &from, &to);
   const char *src = mrb_locale_from_utf8(RSTRING_CSTR(mrb, from), -1);
@@ -550,7 +549,6 @@ mrb_file_s_symlink(mrb_state *mrb, mrb_value klass)
   }
   mrb_locale_free(src);
   mrb_locale_free(dst);
-  mrb_gc_arena_restore(mrb, ai);
 #endif
   return mrb_fixnum_value(0);
 }
@@ -590,7 +588,6 @@ mrb_file_s_readlink(mrb_state *mrb, mrb_value klass)
   size_t bufsize = 100;
   ssize_t rc;
   mrb_value ret;
-  int ai = mrb_gc_arena_save(mrb);
 
   mrb_get_args(mrb, "z", &path);
   tmp = mrb_locale_from_utf8(path, -1);
@@ -610,7 +607,6 @@ mrb_file_s_readlink(mrb_state *mrb, mrb_value klass)
   mrb_locale_free(tmp);
   mrb_free(mrb, buf);
 
-  mrb_gc_arena_restore(mrb, ai);
   return ret;
 #endif
 }
