@@ -2915,6 +2915,7 @@ static const mrb_irep new_irep = {
   sizeof(new_iseq), 0, 2, 0, 0,
 };
 
+mrb_alignas(8)
 static const struct RProc new_proc = {
   NULL, NULL, MRB_TT_PROC, MRB_GC_RED, MRB_FL_OBJ_IS_FROZEN | MRB_PROC_SCOPE | MRB_PROC_STRICT,
   { &new_irep }, NULL, { NULL }

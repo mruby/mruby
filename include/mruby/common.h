@@ -59,6 +59,26 @@ MRB_BEGIN_DECL
 # define mrb_deprecated
 #endif
 
+/** Declare a type or object as an alignment requirement. */
+#ifndef mrb_alignas
+# if defined(__cplusplus) && __cplusplus >= 201103L
+#  // https://en.cppreference.com/w/cpp/language/alignas
+#  define mrb_alignas(n) alignas(n)
+# elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 201112L
+#  // https://en.cppreference.com/w/c/language/_Alignas
+#  define mrb_alignas(n) _Alignas(n)
+# elif defined(_MSC_VER) || defined(__INTEL_COMPILER)
+#  // https://learn.microsoft.com/en-us/cpp/cpp/align-cpp?view=msvc-170
+#  define mrb_alignas(n) __declspec(align(n))
+# elif defined(__GNUC__) || defined(__clang__)
+#  // https://gcc.gnu.org/onlinedocs/gcc/Common-Type-Attributes.html#index-aligned-type-attribute
+#  define mrb_alignas(n) __attribute__((aligned(n)))
+# else
+#  // `mrb_alignas` defined as dummy. If necessary, send issues to https://github.com/mruby/mruby .
+#  define mrb_alignas(n)
+# endif
+#endif
+
 /** Declare a function as always inlined. */
 #if defined _MSC_VER && _MSC_VER < 1900
 # ifndef __cplusplus
