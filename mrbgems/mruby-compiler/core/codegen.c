@@ -3109,7 +3109,7 @@ codegen(codegen_scope *s, node *tree, int val)
     {
       codegen_scope *s2 = s;
       int lv = 0, ainfo = -1;
-      int n = 0, sendv = 0;
+      int n = 0, nk = 0, sendv = 0;
 
       while (!s2->mscope) {
         lv++;
@@ -3122,17 +3122,26 @@ codegen(codegen_scope *s, node *tree, int val)
       if (ainfo < 0) codegen_error(s, "invalid yield (SyntaxError)");
       push();
       if (tree) {
-        n = gen_values(s, tree, VAL, 14);
-        if (n < 0) {
-          n = sendv = 1;
-          push();
+        if (tree->car) {
+          n = gen_values(s, tree->car, VAL, 14);
+          if (n < 0) {
+            n = sendv = 1;
+            push();
+          }
+        }
+
+        if (tree->cdr->car) {
+          nk = gen_hash(s, tree->cdr->car->cdr, VAL, 14);
+          if (nk < 0) {
+            nk = 15;
+          }
         }
       }
       push();pop(); /* space for a block */
-      pop_n(n+1);
+      pop_n(n + (nk == 15 ? 1 : nk * 2) + 1);
       genop_2S(s, OP_BLKPUSH, cursp(), (ainfo<<4)|(lv & 0xf));
       if (sendv) n = CALL_MAXARGS;
-      genop_3(s, OP_SEND, cursp(), new_sym(s, MRB_SYM_2(s->mrb, call)), n);
+      genop_3(s, OP_SEND, cursp(), new_sym(s, MRB_SYM_2(s->mrb, call)), n|(nk<<4));
       if (val) push();
     }
     break;
