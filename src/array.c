@@ -1551,17 +1551,12 @@ mrb_ary_delete(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "o&", &obj, &blk);
 
   struct RArray *ary = RARRAY(self);
-  mrb_value *val_ptr = ARY_PTR(ary);
-  size_t len = ARY_LEN(ary);
-  mrb_bool modified = FALSE;
-
   mrb_value ret = obj;
-
   int ai = mrb_gc_arena_save(mrb);
   size_t i = 0;
   size_t j = 0;
-  for (; i < len; i++) {
-    mrb_value elem = val_ptr[i];
+  for (; i < ARY_LEN(ary); i++) {
+    mrb_value elem = ARY_PTR(ary)[i];
 
     if (mrb_equal(mrb, elem, obj)) {
       mrb_gc_arena_restore(mrb, ai);
@@ -1571,12 +1566,13 @@ mrb_ary_delete(mrb_state *mrb, mrb_value self)
     }
 
     if (i != j) {
-      if (!modified) {
-        ary_modify(mrb, ary);
-        val_ptr = ARY_PTR(ary);
-        modified = TRUE;
+      if (j >= ARY_LEN(ary)) {
+        // Since breaking here will further change the array length,
+        // there is no choice but to raise an exception or return.
+        mrb_raise(mrb, E_RUNTIME_ERROR, "array modified during delete");
       }
-      val_ptr[j] = elem;
+      ary_modify(mrb, ary);
+      ARY_PTR(ary)[j] = elem;
     }
 
     j++;
