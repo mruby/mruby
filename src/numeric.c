@@ -1481,7 +1481,7 @@ int_ceil(mrb_state *mrb, mrb_value x)
   if (mrb_nil_p(f)) return x;
 #ifdef MRB_USE_BIGINT
   if (mrb_bigint_p(x)) {
-    x = mrb_bint_add_d(mrb, x, f);
+    x = mrb_bint_add_n(mrb, x, f);
     return mrb_bint_sub(mrb, x, mrb_bint_mod(mrb, x, f));
   }
 #endif
