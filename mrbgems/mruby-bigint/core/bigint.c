@@ -1302,7 +1302,7 @@ mrb_bint_as_uint64(mrb_state *mrb, mrb_value x)
 
 /* unnormalize version of mrb_bint_add */
 mrb_value
-mrb_bint_add_d(mrb_state *mrb, mrb_value x, mrb_value y)
+mrb_bint_add_n(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   y = mrb_as_bint(mrb, y);
   struct RBigint *b = RBIGINT(x);
@@ -1322,13 +1322,13 @@ mrb_bint_add(mrb_state *mrb, mrb_value x, mrb_value y)
     return mrb_float_value(mrb,v1+v2);
   }
 #endif
-  x = mrb_bint_add_d(mrb, x, y);
+  x = mrb_bint_add_n(mrb, x, y);
   return bint_norm(mrb, RBIGINT(x));
 }
 
 /* unnormalize version of mrb_bint_sub */
 mrb_value
-mrb_bint_sub_d(mrb_state *mrb, mrb_value x, mrb_value y)
+mrb_bint_sub_n(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   y = mrb_as_bint(mrb, y);
   struct RBigint *b = RBIGINT(x);
@@ -1348,7 +1348,7 @@ mrb_bint_sub(mrb_state *mrb, mrb_value x, mrb_value y)
     return mrb_float_value(mrb,v1-v2);
   }
 #endif
-  x = mrb_bint_sub_d(mrb, x, y);
+  x = mrb_bint_sub_n(mrb, x, y);
   return bint_norm(mrb, RBIGINT(x));
 }
 

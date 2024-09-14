@@ -1629,7 +1629,7 @@ int_truncate(mrb_state *mrb, mrb_value x)
 #ifdef MRB_USE_BIGINT
   if (mrb_bigint_p(x)) {
     mrb_value m = mrb_bint_mod(mrb, x, f);
-    x = mrb_bint_sub_d(mrb, x, m);
+    x = mrb_bint_sub_n(mrb, x, m);
     if (mrb_bint_cmp(mrb, x, mrb_fixnum_value(0)) < 0) {
       return mrb_bint_add(mrb, x, f);
     }
