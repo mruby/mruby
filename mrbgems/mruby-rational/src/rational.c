@@ -838,8 +838,8 @@ rat_mul_b(mrb_state *mrb, mrb_value x, mrb_value y)
     rat_type_error(mrb, y);
   }
 
-  mrb_value a = mrb_bint_mul(mrb, mrb_as_bint(mrb, rat_numerator(mrb, x)), num);
-  mrb_value b = mrb_bint_mul(mrb, mrb_as_bint(mrb, rat_denominator(mrb, x)), den);
+  mrb_value a = mrb_bint_mul_n(mrb, mrb_as_bint(mrb, rat_numerator(mrb, x)), num);
+  mrb_value b = mrb_bint_mul_n(mrb, mrb_as_bint(mrb, rat_denominator(mrb, x)), den);
   return rational_new_b(mrb, a, b);
 }
 #endif
