@@ -747,9 +747,9 @@ rat_sub_b(mrb_state *mrb, mrb_value x, mrb_value y)
   }
 
   mrb_value a = mrb_bint_mul_n(mrb, mrb_as_bint(mrb, num1), den2);
-  mrb_value b = mrb_bint_mul(mrb, mrb_as_bint(mrb, num2), den1);
-  a = mrb_bint_sub(mrb, a, b);
-  b = mrb_bint_mul(mrb, mrb_as_bint(mrb, den1), den2);
+  mrb_value b = mrb_bint_mul_n(mrb, mrb_as_bint(mrb, num2), den1);
+  a = mrb_bint_sub_n(mrb, a, b);
+  b = mrb_bint_mul_n(mrb, mrb_as_bint(mrb, den1), den2);
   return rational_new_b(mrb, a, b);
 }
 #endif
