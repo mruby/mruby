@@ -1309,7 +1309,6 @@ MRB_API mrb_value
 mrb_vm_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, mrb_int stack_keep)
 {
   const mrb_irep *irep = proc->body.irep;
-  mrb_value result;
   struct mrb_context *c = mrb->c;
 #ifdef MRB_DEBUG
   ptrdiff_t cioff = c->ci - c->cibase;
@@ -1331,7 +1330,7 @@ mrb_vm_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, mrb_int sta
   stack_extend(mrb, nregs);
   stack_clear(c->ci->stack + stack_keep, nregs - stack_keep);
   c->ci->stack[0] = self;
-  result = mrb_vm_exec(mrb, proc, irep->iseq);
+  mrb_value result = mrb_vm_exec(mrb, proc, irep->iseq);
   mrb_assert(mrb->c == c);      /* do not switch fibers via mrb_vm_run(), unlike mrb_vm_exec() */
   mrb_assert(c->ci == c->cibase || (c->ci - c->cibase) == cioff - 1);
   return result;
