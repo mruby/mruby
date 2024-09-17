@@ -88,7 +88,7 @@ static int inet_pton(int af, const char *src, void *dst)
     return -1;
   }
 
-  for (struct addrinfo *r; r; r = r->ai_next) {
+  for (struct addrinfo *r = res; r; r = r->ai_next) {
     memcpy(dst, r->ai_addr, r->ai_addrlen);
   }
 
