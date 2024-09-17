@@ -1550,8 +1550,8 @@ mrb_ary_delete(mrb_state *mrb, mrb_value self)
   struct RArray *ary = RARRAY(self);
   mrb_value ret = obj;
   int ai = mrb_gc_arena_save(mrb);
-  size_t i = 0;
-  size_t j = 0;
+  mrb_int i = 0;
+  mrb_int j = 0;
   for (; i < ARY_LEN(ary); i++) {
     mrb_value elem = ARY_PTR(ary)[i];
 
