@@ -1376,7 +1376,6 @@ mrb_vm_exec(mrb_state *mrb, const struct RProc *begin_proc, const mrb_code *iseq
   uint16_t c;
   mrb_sym mid;
   const struct mrb_irep_catch_handler *ch;
-  mrb_callinfo *ci;
 
 #ifndef MRB_USE_VM_SWITCH_DISPATCH
   static const void * const optable[] = {
@@ -1388,7 +1387,7 @@ mrb_vm_exec(mrb_state *mrb, const struct RProc *begin_proc, const mrb_code *iseq
 
   mrb->exc = NULL;
 
-  ci = mrb->c->ci;
+  mrb_callinfo *ci = mrb->c->ci;
   CI_PROC_SET(ci, begin_proc);
   ci->pc = iseq;
 
@@ -2895,18 +2894,18 @@ RETRY_TRY_BLOCK:
     CASE(OP_EXEC, BB)
     {
       mrb_value recv = regs[a];
-      struct RProc *p;
+      struct RClass *c = mrb_class_ptr(recv);
       const mrb_irep *nirep = irep->reps[b];
 
       /* prepare closure */
-      p = mrb_proc_new(mrb, nirep);
+      struct RProc *p = mrb_proc_new(mrb, nirep);
       p->c = NULL;
       mrb_field_write_barrier(mrb, (struct RBasic*)p, (struct RBasic*)ci->proc);
-      MRB_PROC_SET_TARGET_CLASS(p, mrb_class_ptr(recv));
+      MRB_PROC_SET_TARGET_CLASS(p, c);
       p->flags |= MRB_PROC_SCOPE;
 
       /* prepare call stack */
-      ci = cipush(mrb, a, 0, mrb_class_ptr(recv), p, NULL, 0, 0);
+      ci = cipush(mrb, a, 0, c, p, NULL, 0, 0);
 
       irep = p->body.irep;
       stack_extend(mrb, irep->nregs);
