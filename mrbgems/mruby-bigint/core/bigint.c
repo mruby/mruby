@@ -311,6 +311,17 @@ mpz_add(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y)
   mpz_move(mrb, zz, &z);
 }
 
+/* x = y - n */
+static void
+mpz_add_int(mrb_state *mrb, mpz_t *x, mpz_t *y, mrb_int n)
+{
+  mpz_t z;
+
+  mpz_init_set_int(mrb, &z, n);
+  mpz_add(mrb, x, y, &z);
+  mpz_clear(mrb, &z);
+}
+
 /* z = x - y  -- just use mpz_add - I'm lazy */
 static void
 mpz_sub(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
@@ -667,20 +678,16 @@ static int
 mpz_init_set_str(mrb_state *mrb, mpz_t *x, const char *s, mrb_int len, mrb_int base)
 {
   int retval = 0;
-  mpz_t t, m, bb;
   short sn;
   uint8_t k;
   mpz_init(mrb, x);
-  mpz_init_set_int(mrb, &m, 1);
-  mpz_init(mrb, &t);
   zero(x);
   if (*s == '-') {
     sn = -1; s++;
   }
   else
     sn = 1;
-  mpz_init_set_int(mrb, &bb, base);
-  for (mrb_int i = len-1; i>=0; i--) {
+  for (mrb_int i=0; i<len; i++) {
     if (s[i]=='_') continue;
     if (s[i] >= '0' && s[i] <= '9')
       k = (uint8_t)s[i] - (uint8_t)'0';
@@ -696,14 +703,10 @@ mpz_init_set_str(mrb_state *mrb, mpz_t *x, const char *s, mrb_int len, mrb_int b
       retval = (-1);
       break;
     }
-    mpz_mul_int(mrb, &t, &m, (mrb_int)k);
-    mpz_add(mrb, x, x, &t);
-    mpz_mul(mrb, &m, &m, &bb);
+    mpz_mul_int(mrb, x, x, base);
+    mpz_add_int(mrb, x, x, k);
   }
   x->sn = sn;
-  mpz_clear(mrb, &m);
-  mpz_clear(mrb, &bb);
-  mpz_clear(mrb, &t);
   return retval;
 }
 
