@@ -1067,9 +1067,13 @@ get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list *ap)
             *pl = 0;
           }
           else {
-            mrb_ensure_string_type(mrb, *pickarg);
-            *ps = RSTRING_PTR(*pickarg);
-            *pl = RSTRING_LEN(*pickarg);
+            mrb_value s = *pickarg;
+            mrb_ensure_string_type(mrb, s);
+            if (!mrb_frozen_p(mrb_basic_ptr(s))) {
+              s = mrb_obj_freeze(mrb, mrb_str_dup(mrb, s));
+            }
+            *ps = RSTRING_PTR(s);
+            *pl = RSTRING_LEN(s);
           }
         }
       }
@@ -1085,15 +1089,18 @@ get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list *ap)
             *ps = NULL;
           }
           else {
-            mrb_ensure_string_type(mrb, *pickarg);
-            *ps = RSTRING_CSTR(mrb, *pickarg);
+            mrb_value s = *pickarg;
+            mrb_ensure_string_type(mrb, s);
+            if (!mrb_frozen_p(mrb_basic_ptr(s))) {
+              s = mrb_obj_freeze(mrb, mrb_str_dup(mrb, s));
+            }
+            *ps = RSTRING_CSTR(mrb, s);
           }
         }
       }
       break;
     case 'a':
       {
-        struct RArray *a;
         const mrb_value **pb;
         mrb_int *pl;
 
@@ -1106,10 +1113,16 @@ get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list *ap)
             *pl = 0;
           }
           else {
-            mrb_ensure_array_type(mrb, *pickarg);
-            a = mrb_ary_ptr(*pickarg);
-            *pb = ARY_PTR(a);
-            *pl = ARY_LEN(a);
+            mrb_value a = *pickarg;
+            mrb_ensure_array_type(mrb, a);
+            if (!mrb_frozen_p(mrb_basic_ptr(a))) {
+              mrb_value dup = mrb_ary_new(mrb);
+              mrb_ary_replace(mrb, dup, a);
+              mrb_obj_freeze(mrb, dup);
+              a = dup;
+            }
+            *pb = RARRAY_PTR(a);
+            *pl = RARRAY_LEN(a);
           }
         }
       }
