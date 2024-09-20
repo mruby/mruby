@@ -834,6 +834,7 @@ mrb_get_argc(mrb_state *mrb)
   if (argc == 15) {
     struct RArray *a = mrb_ary_ptr(mrb->c->ci->stack[1]);
 
+    a->c = NULL; /* hide from ObjectSpace.each_object */
     argc = ARY_LEN(a);
   }
   return argc;
@@ -847,6 +848,7 @@ mrb_get_argv(mrb_state *mrb)
   if (argc == 15) {
     struct RArray *a = mrb_ary_ptr(*array_argv);
 
+    a->c = NULL; /* hide from ObjectSpace.each_object */
     array_argv = ARY_PTR(a);
   }
   return array_argv;
@@ -965,6 +967,7 @@ get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list *ap)
     struct RArray *a = mrb_ary_ptr(*argv);
     argv = ARY_PTR(a);
     argc = ARY_LEN(a);
+    a->c = NULL; /* hide from ObjectSpace.each_object */
   }
 
   opt = FALSE;
