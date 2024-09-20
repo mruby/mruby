@@ -206,6 +206,9 @@ check_name_arg(mrb_state *mrb, int posarg, const char *name, size_t len)
   check_pos_arg(mrb, posarg, n),\
   (posarg = -1, GETNTHARG(n)))
 
+// Since a string literal is given, use-after-free does not occur when using the original mrb_raise
+#undef mrb_raise
+
 #define GETNTHARG(nth) \
   ((nth >= argc) ? (mrb_raise(mrb, E_ARGUMENT_ERROR, "too few arguments"), mrb_undef_value()) : argv[nth])
 

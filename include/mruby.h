@@ -1566,4 +1566,6 @@ mrbmemset(void *s, int c, size_t n)
 
 MRB_END_DECL
 
+#include <mruby/addition.h>
+
 #endif  /* MRUBY_H */
