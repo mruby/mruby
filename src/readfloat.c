@@ -1,25 +1,6 @@
 #include <mruby.h>
 
 #ifndef MRB_NO_FLOAT
-/*
- * strtod implementation.
- * author: Yasuhiro Matsumoto (@mattn)
- * license: public domain
- */
-
-/*
-The original code can be found in https://github.com/mattn/strtod
-
-I modified the routine for mruby:
-
- * renamed the function `vim_strtod` -> `mrb_read_float`
- * simplified the code
- * changed the API
-
-My modifications in this file are also placed in the public domain.
-
-Matz (Yukihiro Matsumoto)
-*/
 
 #include <string.h>
 #include <math.h>
@@ -27,91 +8,87 @@ Matz (Yukihiro Matsumoto)
 MRB_API mrb_bool
 mrb_read_float(const char *str, char **endp, double *fp)
 {
-  double d = 0.0;
-  int sign;
-  const char *p, *a;
+  const char *p = str;
+  const char *a = p;
+  long double res = 0.0, frac = 0.0, div = 1.0;
+  int sign = 1;
+  int digits = 0;
 
-  a = p = str;
-  while (ISSPACE(*p))
-    p++;
+  // Skip whitespace
+  while (ISSPACE((unsigned char)*p)) p++;
 
-  /* decimal part */
-  sign = 1;
-  if (*p == '-') {
-    sign = -1;
-    p++;
+  // Handle sign
+  if (*p == '-') { sign = -1.0; p++; }
+  else if (*p == '+') p++;
+
+  // Parse integer part
+  while (ISDIGIT(*p)) {
+    res = res * 10.0 + (*p - '0');
+    digits++;
+    a = ++p;
   }
-  else if (*p == '+')
-    p++;
-  if (ISDIGIT(*p)) {
-    d = (double)(*p++ - '0');
-    while (*p && ISDIGIT(*p)) {
-      d = d * 10.0 + (double)(*p - '0');
-      p++;
-    }
-    a = p;
-  }
-  else if (*p != '.')
-    goto done;
-  d *= sign;
 
-  /* fraction part */
+  // Parse fractional part
   if (*p == '.') {
-    double f = 0.0;
-    double base = 0.1;
     p++;
-
-    if (ISDIGIT(*p)) {
-      while (*p && ISDIGIT(*p)) {
-        f += base * (*p - '0');
-        base /= 10.0;
-        p++;
-      }
+    while (ISDIGIT(*p)) {
+      frac = frac * 10.0 + (*p++ - '0');
+      div *= 10.0;
+      digits++;
     }
-    d += f * sign;
     a = p;
   }
 
-  /* exponential part */
-  if ((*p == 'E') || (*p == 'e')) {
+  // If no digits were found, return 0
+  if (digits == 0) {
+    if (endp) *endp = (char*)str;
+    *fp = 0.0;
+    return FALSE;
+  }
+
+  // Combine integer and fractional parts
+  res += frac / div;
+  res *= sign;
+
+  // Handle exponent
+  if ((*p | 32) == 'e') {
     int e = 0;
-
-    p++;
     sign = 1;
-    if (*p == '-') {
-      sign = -1;
-      p++;
-    }
-    else if (*p == '+')
-      p++;
+    p++;
+    if (*p == '-') { sign = -1; p++; }
+    else if (*p == '+') p++;
 
-    if (ISDIGIT(*p)) {
-      while (*p == '0')
-        p++;
-      if (*p == '\0') --p;
-      e = (int)(*p++ - '0');
-      for (; *p && ISDIGIT(*p); p++) {
-        if (e < 10000)
-          e = e * 10 + (*p - '0');
-      }
-      e *= sign;
+    // If no digits follow 'e', ignore the exponent part
+    if (!ISDIGIT(*p)) goto done;
+
+    while (ISDIGIT(*p)) {
+      if (e < 10000)  // 10000 is big enough to get Infinity
+        e = e * 10 + (*p - '0');
+      p++;
     }
-    else if (!ISDIGIT(*(a-1))) {
-      return FALSE;
-    }
-    else if (*p == 0)
-      goto done;
-    d *= pow(10.0, (double)e);
+    res *= powl(10.0, sign * e);
     a = p;
   }
-  else if (p > str && !ISDIGIT(*(p-1))) {
-    goto done;
+
+  // Set endp
+ done:
+  if (endp) *endp = (char*)a;
+  *fp = res;
+
+  // strtod(3) stores ERANGE to errno for overflow/underflow
+  // mruby does not require those checks
+#if 0
+  // Check for underflow after applying the exponent
+  if (res != 0.0 && fabsl(res) < (long double)DBL_MIN) {
+    return FALSE;
   }
 
-done:
-  *fp = d;
-  if (endp) *endp = (char*)a;
-  if (str == a) return FALSE;
+  // Check if the result is infinity or NaN
+  if (isinf(res) || isnan(res)) {
+    return FALSE;
+  }
+#endif
   return TRUE;
 }
+
 #endif

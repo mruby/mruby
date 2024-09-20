@@ -5,7 +5,6 @@ All the files in this distribution are covered under the MIT license
 (see the file LICENSE) except some files mentioned below:
 
 - src/string.c (memsearch_swar): 2 clause BSD license code by Wojciech Muła (@WojciechMula)
-- src/readfloat.c: public domain by Yasuhiro Matsumoto (@mattn)
 - src/fmt_fp.c: public domain by Dave Hylands (@dhylands)
 - mrbgems/mruby-dir/src/Win/dirent.c: MIT-like license by Kevlin Henney
 
@@ -38,14 +37,6 @@ PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
 LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-[src/readfloat.c]
-
-strtod implementation.
-author: Yasuhiro Matsumoto (@mattn)
-license: public domain
-
-The original code can be found in https://github.com/mattn/strtod
 
 [src/fmt_fp.c]
 
