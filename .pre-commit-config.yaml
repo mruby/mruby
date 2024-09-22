@@ -41,6 +41,10 @@ repos:
       - id: remove-tabs
         args: [--whitespaces-count, "2"]
         exclude: Makefile$
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.1
+    hooks:
+      - id: actionlint
   - repo: https://github.com/codespell-project/codespell
     rev: v2.3.0
     hooks:
