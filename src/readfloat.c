@@ -10,7 +10,7 @@ mrb_read_float(const char *str, char **endp, double *fp)
 {
   const char *p = str;
   const char *a = p;
-  long double res = 0.0, frac = 0.0, div = 1.0;
+  double res = 0.0, frac = 0.0, div = 1.0;
   int sign = 1;
   int digits = 0;
 
@@ -66,7 +66,7 @@ mrb_read_float(const char *str, char **endp, double *fp)
         e = e * 10 + (*p - '0');
       p++;
     }
-    res *= powl(10.0, sign * e);
+    res *= pow(10.0, sign * e);
     a = p;
   }
 
@@ -79,7 +79,7 @@ mrb_read_float(const char *str, char **endp, double *fp)
   // mruby does not require those checks
 #if 0
   // Check for underflow after applying the exponent
-  if (res != 0.0 && fabsl(res) < (long double)DBL_MIN) {
+  if (res != 0.0 && fabs(res) < DBL_MIN) {
     return FALSE;
   }
 
