@@ -29,7 +29,7 @@ If you need full precision for floating-point numbers, define `MRB_WORDBOX_NO_FL
 
 ## NaN Boxing
 
-NaN boxing packs the Ruby data in a floating-point numbers, which represent NaN (Not a Number) values. Under IEEE753 definitions every value that exponent is all set are considered as NaN. That means NaN can represent `2^51` values. NaN boxing is a teaching to pack the values in those NaN representation. In theory, 64 bit pointers are too big to fit in NaN, but practically most OS use only 48 bits at most for pointers (except for some OS e.g. Solaris).
+NaN boxing packs the Ruby data in a floating-point numbers, which represent NaN (Not a Number) values. Under IEEE753 definitions every value that exponent is all set are considered as NaN. That means NaN can represent `2^51` values. NaN boxing is a teaching to pack the values in those NaN representation. In theory, 64-bit pointers are too big to fit in NaN, but practically most OS use only 48 bits at most for pointers (except for some OS e.g. Solaris).
 
 The NaN boxing packing bit patterns are like following:
 

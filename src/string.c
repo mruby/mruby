@@ -1795,7 +1795,7 @@ mrb_str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 }
 
 /*
- * 32 bit magic FNV-0 and FNV-1 prime
+ * 32-bit magic FNV-0 and FNV-1 prime
 b */
 #define FNV_32_PRIME ((uint32_t)0x01000193)
 #define FNV1_32_INIT ((uint32_t)0x811c9dc5)
@@ -1809,7 +1809,7 @@ mrb_byte_hash_step(const uint8_t *s, mrb_int len, uint32_t hval)
    * FNV-1 hash each octet in the buffer
    */
   while (s < send) {
-    /* multiply by the 32 bit FNV magic prime mod 2^32 */
+    /* multiply by the 32-bit FNV magic prime mod 2^32 */
 #if defined(NO_FNV_GCC_OPTIMIZATION)
     hval *= FNV_32_PRIME;
 #else

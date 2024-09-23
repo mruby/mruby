@@ -119,7 +119,7 @@ get_pool_block_size(mrb_state *mrb, const mrb_irep *irep)
       /* fall through */
 #endif
     case IREP_TT_INT32:
-      size += 4;                /* 32bits = 4bytes */
+      size += 4;                /* 32 bits = 4 bytes */
       break;
 
     case IREP_TT_BIGINT:

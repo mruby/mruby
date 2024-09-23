@@ -98,21 +98,21 @@ end
 
 # 64-bit mode
 if InlineStructTest.length == 24
-  assert('InlineStructTest length [64 bit]') do
+  assert('InlineStructTest length [64-bit]') do
     assert_equal InlineStructTest.length, 3 * 8
   end
 end
 
 # 32-bit mode
 if InlineStructTest.length == 12
-  assert('InlineStructTest length [32 bit]') do
+  assert('InlineStructTest length [32-bit]') do
     assert_equal InlineStructTest.length, 3 * 4
   end
 end
 
 # 16-bit mode
 if InlineStructTest.length == 6
-  assert('InlineStructTest length [16 bit]') do
+  assert('InlineStructTest length [16-bit]') do
     assert_equal InlineStructTest.length, 3 * 2
   end
 end
