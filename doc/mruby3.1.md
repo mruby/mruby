@@ -37,7 +37,7 @@ We have added several new build configurations in the `build_config` directory.
 - `nintendo_switch.rb`
 - `serenity.rb`
 - `minimal`: minimal configuration
-- `host-f32`: compiles with `mrb_float` as 32 bit `float`
+- `host-f32`: compiles with `mrb_float` as 32-bit `float`
 - `host-nofloat`: compiles with no float configuration
 - `android_arm64_v8a.rb`: renamed from `android_arm64-v8a.rb`
 

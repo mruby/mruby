@@ -80,7 +80,7 @@ enum mrb_special_consts {
 /*
  * mrb_value representation:
  *
- * 64bit word with inline float:
+ * 64-bit word with inline float:
  *   nil   : ...0000 0000 (all bits are 0)
  *   false : ...0000 0100 (mrb_fixnum(v) != 0)
  *   true  : ...0000 1100
@@ -90,7 +90,7 @@ enum mrb_special_consts {
  *   float : ...FFFF FF10 (51 bit significands; require MRB_64BIT)
  *   object: ...PPPP P000
  *
- * 32bit word with inline float:
+ * 32-bit word with inline float:
  *   nil   : ...0000 0000 (all bits are 0)
  *   false : ...0000 0100 (mrb_fixnum(v) != 0)
  *   true  : ...0000 1100

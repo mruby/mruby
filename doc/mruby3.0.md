@@ -9,7 +9,7 @@ directory. For examples:
 
 - `default`: the default configuration
 - `host-gprof`: compiles with `gprof` for performance tuning
-- `host-m32`: compiles in gcc 32bit mode on 64bit platforms
+- `host-m32`: compiles in gcc 32-bit mode on 64-bit platforms
 - `boxing`: compiles all three boxing options
 - `clang-asan`: compiles with `clang`'s Address Sanitizer
 
@@ -62,7 +62,7 @@ or `MRB_NO_XXX`).
 - `MRB_USE_FLOAT32` is changed from `MRB_USE_FLOAT` to make sure `float` here
   means using single-precision float, and not the opposite of `MRB_NO_FLOAT`.
 - `MRB_USE_METHOD_T_STRUCT` uses `struct` version of `mrb_method_t`. More
-  portable but consumes more memory. Turned on by default on 32bit platforms.
+  portable but consumes more memory. Turned on by default on 32-bit platforms.
 - `MRB_` prefix is added to those without.
 
 ## `MRB_NO_BOXING`

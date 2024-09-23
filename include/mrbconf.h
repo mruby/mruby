@@ -18,7 +18,7 @@
 #endif
 
 #if defined(MRB_32BIT) && defined(MRB_64BIT)
-#error Cannot build for 32 and 64 bit architecture at the same time
+#error Cannot build for 32 and 64-bit architecture at the same time
 #endif
 
 /* configuration options: */
@@ -73,21 +73,21 @@
 /* if defined mruby allocates Float objects in the heap to keep full precision if needed */
 //#define MRB_WORDBOX_NO_FLOAT_TRUNCATE
 
-/* add -DMRB_INT32 to use 32bit integer for mrb_int; conflict with MRB_INT64;
+/* add -DMRB_INT32 to use 32-bit integer for mrb_int; conflict with MRB_INT64;
    Default for 32-bit CPU mode. */
 //#define MRB_INT32
 
-/* add -DMRB_INT64 to use 64bit integer for mrb_int; conflict with MRB_INT32;
+/* add -DMRB_INT64 to use 64-bit integer for mrb_int; conflict with MRB_INT32;
    Default for 64-bit CPU mode (unless using MRB_NAN_BOXING). */
 //#define MRB_INT64
 
 /* if no specific integer type is chosen */
 #if !defined(MRB_INT32) && !defined(MRB_INT64)
 # if defined(MRB_64BIT) && !defined(MRB_NAN_BOXING)
-/* Use 64bit integers on 64bit architecture (without MRB_NAN_BOXING) */
+/* Use 64-bit integers on 64-bit architecture (without MRB_NAN_BOXING) */
 #  define MRB_INT64
 # else
-/* Otherwise use 32bit integers */
+/* Otherwise use 32-bit integers */
 #  define MRB_INT32
 # endif
 #endif
