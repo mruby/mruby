@@ -1376,7 +1376,7 @@ lambda_body(codegen_scope *s, node *tree, int blk)
     pa = node_len(tree->car->cdr->cdr->cdr->car);
     pargs = tree->car->cdr->cdr->cdr->car;
     /* keyword arguments */
-    ka = tail? node_len(tail->cdr->car) : 0;
+    ka = tail ? node_len(tail->cdr->car) : 0;
     /* keyword dictionary? */
     kd = tail && tail->cdr->cdr->car? 1 : 0;
     /* block argument? */
@@ -1388,16 +1388,16 @@ lambda_body(codegen_scope *s, node *tree, int blk)
     /* (23bits = 5:5:1:5:5:1:1) */
     a = MRB_ARGS_REQ(ma)
       | MRB_ARGS_OPT(oa)
-      | (ra? MRB_ARGS_REST() : 0)
+      | (ra ? MRB_ARGS_REST() : 0)
       | MRB_ARGS_POST(pa)
       | MRB_ARGS_KEY(ka, kd)
-      | (ba? MRB_ARGS_BLOCK() : 0);
+      | (ba ? MRB_ARGS_BLOCK() : 0);
     genop_W(s, OP_ENTER, a);
     /* (12bits = 5:1:5:1) */
     s->ainfo = (((ma+oa) & 0x3f) << 7)
       | ((ra & 0x1) << 6)
       | ((pa & 0x1f) << 1)
-      | ((ka | kd) ? 1 : 0);
+      | (ka || kd);
     /* generate jump table for optional arguments initializer */
     pos = new_label(s);
     for (i=0; i<oa; i++) {
@@ -1474,6 +1474,14 @@ lambda_body(codegen_scope *s, node *tree, int blk)
       }
       if (tail->cdr->car && !kwrest) {
         genop_0(s, OP_KEYEND);
+      }
+      if (ba) {
+        mrb_sym bparam = nsym(tail->cdr->cdr->cdr->car);
+        pos = ma+oa+ra+pa+(ka||kd);
+        if (bparam) {
+          int idx = lv_idx(s, bparam);
+          genop_2(s, OP_MOVE, idx, pos+1);
+        }
       }
     }
 

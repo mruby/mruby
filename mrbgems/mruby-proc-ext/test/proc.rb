@@ -33,11 +33,6 @@ assert('Proc#inspect') do
   assert_match "#<Proc:0x* #{file}:#{line}>", ins
 end
 
-assert('Proc#parameters') do
-  parameters = Proc.new{|x,y=42,*other|}.parameters
-  assert_equal [[:opt, :x], [:opt, :y], [:rest, :other]], parameters
-end
-
 assert('Proc#lambda?') do
   assert_true lambda{}.lambda?
   assert_true !Proc.new{}.lambda?
@@ -80,6 +75,7 @@ assert('Proc#parameters') do
   assert_equal([[:req, :a]], ->(a){}.parameters)
   assert_equal([[:rest, :*]], lambda { |*| }.parameters)
   assert_equal([[:rest, :a]], Proc.new {|*a|}.parameters)
+  assert_equal([[:opt, :x], [:opt, :y], [:rest, :other]], Proc.new{|x,y=42,*other|}.parameters)
   assert_equal([[:opt, :a], [:opt, :b], [:opt, :c], [:opt, :d], [:rest, :e], [:opt, :f], [:opt, :g], [:block, :h]], Proc.new {|a,b,c=:c,d=:d,*e,f,g,&h|}.parameters)
   assert_equal([[:req, :a], [:req, :b], [:opt, :c], [:opt, :d], [:rest, :e], [:req, :f], [:req, :g], [:block, :h]], lambda {|a,b,c=:c,d=:d,*e,f,g,&h|}.parameters)
 end

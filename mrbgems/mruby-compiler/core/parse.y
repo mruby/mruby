@@ -334,12 +334,8 @@ local_add(parser_state *p, mrb_sym sym)
   }
 }
 
-static void
-local_add_blk(parser_state *p, mrb_sym blk)
-{
-  /* allocate register for block */
-  local_add_f(p, blk ? blk : 0);
-}
+/* allocate register for block */
+#define local_add_blk(p) local_add_f(p, 0)
 
 static void
 local_add_kw(parser_state *p, mrb_sym kwd)
@@ -865,7 +861,8 @@ new_args_tail(parser_state *p, node *kws, node *kwrest, mrb_sym blk)
     local_add_kw(p, (kwrest && kwrest->cdr)? sym(kwrest->cdr) : 0);
   }
 
-  local_add_blk(p, blk);
+  local_add_blk(p);
+  if (blk) local_add_f(p, blk);
 
   /* allocate register for keywords arguments */
   /* order is for Proc#parameters */
@@ -3096,7 +3093,7 @@ block_param     : f_arg ',' f_block_optarg ',' f_rest_arg opt_block_args_tail
 
 opt_block_param : none
                     {
-                      local_add_blk(p, 0);
+                      local_add_blk(p);
                       $$ = 0;
                     }
                 | block_param_def
@@ -3106,13 +3103,13 @@ opt_block_param : none
                     }
                 ;
 
-block_param_def : '|' {local_add_blk(p, 0);} opt_bv_decl '|'
+block_param_def : '|' {local_add_blk(p);} opt_bv_decl '|'
                     {
                       $$ = 0;
                     }
                 | tOROP
                     {
-                      local_add_blk(p, 0);
+                      local_add_blk(p);
                       $$ = 0;
                     }
                 | '|' block_param opt_bv_decl '|'

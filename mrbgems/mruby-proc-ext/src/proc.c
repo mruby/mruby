@@ -152,6 +152,9 @@ mrb_proc_parameters(mrb_state *mrb, mrb_value self)
         mrb_ary_push(mrb, a, mrb_symbol_value(irep->lv[i]));
       }
       if (p->name == MRB_SYM(block)) {
+        if (irep->lv[i+1]) {
+          mrb_ary_push(mrb, a, mrb_symbol_value(irep->lv[i+1]));
+        }
         block = a; continue;
       }
       if (p->name == MRB_SYM(keyrest)) {
