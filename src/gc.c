@@ -582,7 +582,6 @@ mark_context(mrb_state *mrb, struct mrb_context *c)
   if (c->cibase) {
     for (ci = c->cibase; ci <= c->ci; ci++) {
       mrb_gc_mark(mrb, (struct RBasic*)ci->proc);
-      mrb_gc_mark(mrb, (struct RBasic*)ci->blk);
       mrb_gc_mark(mrb, (struct RBasic*)ci->u.target_class);
     }
   }
