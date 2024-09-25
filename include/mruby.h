@@ -236,7 +236,7 @@ typedef struct {
   union {
     struct RProc *proc;
     mrb_func_t func;
-  };
+  } as;
 } mrb_method_t;
 
 #ifndef MRB_NO_METHOD_CACHE
