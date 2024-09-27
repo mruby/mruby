@@ -2380,21 +2380,22 @@ RETRY_TRY_BLOCK:
       int m2 = (b>>5)&0x1f;
       int kd = (b>>4)&0x1;
       int lv = (b>>0)&0xf;
+      int offset = m1+r+m2+kd;
       mrb_value *stack;
 
       if (lv == 0) stack = regs + 1;
       else {
         struct REnv *e = uvenv(mrb, lv-1);
         if (!e || (!MRB_ENV_ONSTACK_P(e) && e->mid == 0) ||
-            MRB_ENV_LEN(e) <= m1+r+m2+1) {
+            MRB_ENV_LEN(e) <= offset+1) {
           RAISE_LIT(mrb, E_LOCALJUMP_ERROR, "unexpected yield");
         }
         stack = e->stack + 1;
       }
-      if (mrb_nil_p(stack[m1+r+m2+kd])) {
+      if (mrb_nil_p(stack[offset])) {
         RAISE_LIT(mrb, E_LOCALJUMP_ERROR, "unexpected yield");
       }
-      regs[a] = stack[m1+r+m2+kd];
+      regs[a] = stack[offset];
       NEXT;
     }
 
