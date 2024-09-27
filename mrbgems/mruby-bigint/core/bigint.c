@@ -347,35 +347,115 @@ mpz_sub_int(mrb_state *mrb, mpz_t *x, mpz_t *y, mrb_int n)
 }
 
 /* w = u * v */
+/* Simple Multiply */
 static void
-mpz_mul(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
+mul_base(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
 {
   if (zero_p(u) || zero_p(v)) {
     mpz_set_int(mrb, ww, 0);
     return;
   }
+
   mpz_t w;
   mpz_init(mrb, &w);
   mpz_realloc(mrb, &w, u->sz + v->sz);
-  for (size_t j=0; j < u->sz; j++) {
+
+  for (size_t j = 0; j < u->sz; j++) {
     size_t i;
     mp_dbl_limb cc = (mp_limb)0;
     mp_limb u0 = u->p[j];
     if (u0 == 0) continue;
-    for (i=0; i < v->sz; i++) {
+    for (i = 0; i < v->sz; i++) {
       mp_limb v0 = v->p[i];
       if (v0 == 0) continue;
-      cc += (mp_dbl_limb)w.p[i+j] + (mp_dbl_limb)u0 * (mp_dbl_limb)v0;
-      w.p[i+j] = LOW(cc);
+      cc += (mp_dbl_limb)w.p[i + j] + (mp_dbl_limb)u0 * (mp_dbl_limb)v0;
+      w.p[i + j] = LOW(cc);
       cc = HIGH(cc);
     }
     if (cc) {
-      w.p[i+j] = (mp_limb)cc;
+      w.p[i + j] = (mp_limb)cc;
     }
   }
+
   w.sn = u->sn * v->sn;
   trim(&w);
   mpz_move(mrb, ww, &w);
+}
+
+static void mpz_mul_2exp(mrb_state *mrb, mpz_t *z, mpz_t *x, mrb_int e);
+
+/* Thresholds */
+#define KARATSUBA_THRESHOLD 32
+#define MAX_RECURSION_DEPTH 16
+
+/* Karatsuba Multiply */
+static void
+mul_karatsuba(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v, int depth)
+{
+  if (depth > MAX_RECURSION_DEPTH || u->sz < KARATSUBA_THRESHOLD || v->sz < KARATSUBA_THRESHOLD) {
+    mul_base(mrb, ww, u, v);
+    return;
+  }
+
+  size_t n = (u->sz > v->sz ? v->sz : u->sz) / 2;
+
+  /* Split u, v into low/high */
+  mpz_t u0, u1, v0, v1;
+  mpz_init(mrb, &u0); mpz_init(mrb, &u1);
+  mpz_init(mrb, &v0); mpz_init(mrb, &v1);
+  u0.sn = u1.sn = v0.sn = v1.sn = 1;
+
+  mpz_realloc(mrb, &u0, n);
+  mpz_realloc(mrb, &u1, u->sz - n);
+  mpz_realloc(mrb, &v0, n);
+  mpz_realloc(mrb, &v1, v->sz - n);
+
+  memcpy(u0.p, u->p, n * sizeof(mp_limb));
+  memcpy(u1.p, u->p + n, (u->sz - n) * sizeof(mp_limb));
+  memcpy(v0.p, v->p, n * sizeof(mp_limb));
+  memcpy(v1.p, v->p + n, (v->sz - n) * sizeof(mp_limb));
+
+  /* u1*v1 (high part) */
+  mpz_t z2;
+  mpz_init(mrb, &z2);
+  mul_karatsuba(mrb, &z2, &u1, &v1, depth + 1);
+
+  /* u0*v0 (low part) */
+  mpz_t z0;
+  mpz_init(mrb, &z0);
+  mul_karatsuba(mrb, &z0, &u0, &v0, depth + 1);
+
+  /* (u1+u0)*(v1+v0) */
+  mpz_t u0u1, v0v1, z1;
+  mpz_init(mrb, &u0u1); mpz_init(mrb, &v0v1); mpz_init(mrb, &z1);
+
+  mpz_add(mrb, &u0u1, &u0, &u1);
+  mpz_add(mrb, &v0v1, &v0, &v1);
+  mul_karatsuba(mrb, &z1, &u0u1, &v0v1, depth + 1);
+  mpz_sub(mrb, &z1, &z1, &z0);
+  mpz_sub(mrb, &z1, &z1, &z2);
+
+  /* Bitshift z1/z2 */
+  mpz_mul_2exp(mrb, &z2, &z2, 2 * n * sizeof(mp_limb) * 8);
+  mpz_mul_2exp(mrb, &z1, &z1, n * sizeof(mp_limb) * 8);
+
+  /* Combine the result*/
+  mpz_add(mrb, ww, &z2, &z1);
+  mpz_add(mrb, ww, ww, &z0);
+
+  // Clean-Up Memory
+  mpz_clear(mrb, &u0); mpz_clear(mrb, &u1);
+  mpz_clear(mrb, &v0); mpz_clear(mrb, &v1);
+  mpz_clear(mrb, &z0); mpz_clear(mrb, &z1); mpz_clear(mrb, &z2);
+  mpz_clear(mrb, &u0u1); mpz_clear(mrb, &v0v1);
+}
+
+// Multiplication Entry Point */
+static void
+mpz_mul(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
+{
+  mul_karatsuba(mrb, ww, u, v, 0);
+  ww->sn = u->sn * v->sn;
 }
 
 static void
