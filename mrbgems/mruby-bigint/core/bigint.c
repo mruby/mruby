@@ -401,19 +401,13 @@ mul_karatsuba(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v, int depth)
 
   /* Split u, v into low/high */
   mpz_t u0, u1, v0, v1;
-  mpz_init(mrb, &u0); mpz_init(mrb, &u1);
-  mpz_init(mrb, &v0); mpz_init(mrb, &v1);
   u0.sn = u1.sn = v0.sn = v1.sn = 1;
 
-  mpz_realloc(mrb, &u0, n);
-  mpz_realloc(mrb, &u1, u->sz - n);
-  mpz_realloc(mrb, &v0, n);
-  mpz_realloc(mrb, &v1, v->sz - n);
-
-  memcpy(u0.p, u->p, n * sizeof(mp_limb));
-  memcpy(u1.p, u->p + n, (u->sz - n) * sizeof(mp_limb));
-  memcpy(v0.p, v->p, n * sizeof(mp_limb));
-  memcpy(v1.p, v->p + n, (v->sz - n) * sizeof(mp_limb));
+  /* u/v share memory with low/high mpz */
+  u0.sz = n; u0.p = u->p;
+  u1.sz = u->sz - n; u1.p = u->p + n;
+  v0.sz = n; v0.p = v->p;
+  v1.sz = v->sz - n; v1.p = v->p + n;
 
   /* u1*v1 (high part) */
   mpz_t z2;
@@ -444,8 +438,6 @@ mul_karatsuba(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v, int depth)
   mpz_add(mrb, ww, ww, &z0);
 
   // Clean-Up Memory
-  mpz_clear(mrb, &u0); mpz_clear(mrb, &u1);
-  mpz_clear(mrb, &v0); mpz_clear(mrb, &v1);
   mpz_clear(mrb, &z0); mpz_clear(mrb, &z1); mpz_clear(mrb, &z2);
   mpz_clear(mrb, &u0u1); mpz_clear(mrb, &v0v1);
 }
