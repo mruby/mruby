@@ -96,8 +96,10 @@ mpz_set_int(mrb_state *mrb, mpz_t *y, mrb_int v)
 static void
 mpz_set_uint64(mrb_state *mrb, mpz_t *y, uint64_t u)
 {
-  const size_t len = sizeof(uint64_t) / sizeof(mp_limb);
+  size_t len = 0;
 
+  for (uint64_t u0=u; u0; u0>>=DIG_SIZE,len++)
+    ;
   y->sn = (u != 0);
   mpz_realloc(mrb, y, len);
   for (size_t i=0; i<len; i++) {
