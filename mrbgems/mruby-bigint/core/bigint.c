@@ -101,7 +101,7 @@ mpz_set_uint64(mrb_state *mrb, mpz_t *y, uint64_t u)
   y->sn = (u != 0);
   mpz_realloc(mrb, y, len);
   for (size_t i=0; i<len; i++) {
-    y->p[i++] = (mp_limb)LOW(u);
+    y->p[i] = (mp_limb)LOW(u);
     u >>= DIG_SIZE;
   }
 }
