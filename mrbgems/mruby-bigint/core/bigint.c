@@ -86,13 +86,11 @@ mpz_set_int(mrb_state *mrb, mpz_t *y, mrb_int v)
     mpz_realloc(mrb, y, 2);
     y->p[1] = (mp_limb)HIGH(u);
     y->p[0] = (mp_limb)LOW(u);
+    return;
   }
-  else
 #endif
-  {
-    mpz_realloc(mrb, y, 1);
-    y->p[0] = (mp_limb)u;
-  }
+  mpz_realloc(mrb, y, 1);
+  y->p[0] = (mp_limb)u;
 }
 
 static void
