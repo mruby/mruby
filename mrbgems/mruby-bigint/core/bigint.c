@@ -329,10 +329,10 @@ mpz_sub(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
   mpz_t u;
 
   mpz_init(mrb, &u);
-  mpz_set(mrb, &u, y);
-  u.sn = -(u.sn);
+  u.p = y->p;
+  u.sz = y->sz;
+  u.sn = -(y->sn);
   mpz_add(mrb, z, x, &u);
-  mpz_clear(mrb, &u);
 }
 
 /* x = y - n */
