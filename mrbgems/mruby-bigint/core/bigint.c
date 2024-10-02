@@ -352,7 +352,7 @@ static void
 mul_base(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
 {
   if (zero_p(u) || zero_p(v)) {
-    mpz_set_int(mrb, ww, 0);
+    zero(ww);
     return;
   }
 
@@ -493,7 +493,7 @@ urshift(mrb_state *mrb, mpz_t *c1, mpz_t *a, size_t n)
   if (n == 0)
     mpz_set(mrb, c1, a);
   else if (uzero_p(a)) {
-    mpz_set_int(mrb, c1, 0);
+    zero(c1);
   }
   else {
     mpz_t c;
@@ -521,7 +521,7 @@ ulshift(mrb_state *mrb, mpz_t *c1, mpz_t *a, size_t n)
   if (n == 0)
     mpz_set(mrb, c1, a);
   else if (uzero_p(a)) {
-    mpz_set_int(mrb, c1, 0);
+    zero(c1);
   }
   else {
     mp_limb cc = 0;
