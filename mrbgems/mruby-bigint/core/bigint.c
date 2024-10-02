@@ -1143,7 +1143,7 @@ static void
 mpz_abs(mrb_state *mrb, mpz_t *x, mpz_t *y)
 {
   mpz_init_set(mrb, x, y);
-  if (y->sn == 0)
+  if (zero_p(y))
     x->sn = 0;
   else
     x->sn = 1;
