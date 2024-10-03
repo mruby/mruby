@@ -385,8 +385,8 @@ mul_base(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
 static void mpz_mul_2exp(mrb_state *mrb, mpz_t *z, mpz_t *x, mrb_int e);
 
 /* Thresholds */
-#define KARATSUBA_THRESHOLD 32
-#define MAX_RECURSION_DEPTH 16
+#define KARATSUBA_THRESHOLD 512
+#define MAX_RECURSION_DEPTH 10
 
 /* Karatsuba Multiply */
 static void
