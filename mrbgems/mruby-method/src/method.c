@@ -449,10 +449,6 @@ search_method_owner(mrb_state *mrb, struct RClass *c, mrb_value obj, mrb_sym nam
     }
     *owner = c;
   }
-
-  while ((*owner)->tt == MRB_TT_ICLASS)
-    *owner = (*owner)->c;
-
   return TRUE;
 }
 
@@ -476,9 +472,11 @@ method_alloc(mrb_state *mrb, struct RClass *c, mrb_value obj, mrb_sym name, mrb_
       mrb_raisef(mrb, E_NAME_ERROR, "undefined method '%n' for class '%C'", name, c);
     }
   }
-  if (singleton && owner != c) {
+  if (singleton && (owner->tt != MRB_TT_SCLASS && owner->tt != MRB_TT_ICLASS)) {
     singleton_method_error(mrb, name, obj);
   }
+  while ((owner)->tt == MRB_TT_ICLASS)
+    owner = (owner)->c;
 
   struct RObject *me = method_object_alloc(mrb, mrb_class_get_id(mrb, unbound ? MRB_SYM(UnboundMethod) : MRB_SYM(Method)));
   mrb_obj_iv_set(mrb, me, MRB_SYM(_owner), mrb_obj_value(owner));
@@ -507,9 +505,6 @@ mrb_kernel_singleton_method(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "n", &name);
 
   struct RClass *c = mrb_class(mrb, self);
-  if (c->tt != MRB_TT_SCLASS) {
-    singleton_method_error(mrb, name, self);
-  }
   return method_alloc(mrb, c, self, name, FALSE, TRUE);
 }
 
