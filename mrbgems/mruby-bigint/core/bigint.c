@@ -381,7 +381,22 @@ mul_base(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
   mpz_move(mrb, ww, &w);
 }
 
-static void mpz_mul_2exp(mrb_state *mrb, mpz_t *z, mpz_t *x, mrb_int e);
+/* Zero Initialization */
+static void limb_zero(mp_limb *p, size_t count) {
+  while (count--) {
+    *p++ = 0;
+  }
+}
+
+/* Add arrays of limbs */
+static void limb_add(mp_limb *result, mp_limb *src, size_t src_size) {
+  mp_dbl_limb carry = 0;
+  for (size_t i = 0; i < src_size; i++) {
+    mp_dbl_limb sum = (mp_dbl_limb)result[i] + src[i] + carry;
+    result[i] = LOW(sum);
+    carry = HIGH(sum);
+  }
+}
 
 /* Thresholds */
 #define KARATSUBA_THRESHOLD 512
@@ -421,13 +436,12 @@ mul_karatsuba(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v, int depth)
   mpz_sub(mrb, &z1, &z1, &z0);  // z1 -= z0
   mpz_sub(mrb, &z1, &z1, &z2);  // z1 -= u1*v1 (z2 currently holds u1*v1)
 
-  /* Bitshift z1/z2 */
-  mpz_mul_2exp(mrb, &z2, &z2, 2 * n * sizeof(mp_limb) * 8);
-  mpz_mul_2exp(mrb, &z1, &z1, n * sizeof(mp_limb) * 8);
-
-  /* Combine the result*/
-  mpz_add(mrb, ww, &z2, &z1);
-  mpz_add(mrb, ww, ww, &z0);
+  // Combine z0, z1, and z2 into ww->p without extra memory reallocation
+  mpz_realloc(mrb, ww, u->sz + v->sz);
+  limb_zero(ww->p, ww->sz);
+  limb_add(ww->p, z0.p, z0.sz);
+  limb_add(ww->p + n, z1.p, z1.sz);
+  limb_add(ww->p + 2 * n, z2.p, z2.sz);
   trim(ww);
 
   // Free memory allocated for z0, z1, z2, and temp
