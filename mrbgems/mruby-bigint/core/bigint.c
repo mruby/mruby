@@ -399,35 +399,28 @@ mul_karatsuba(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v, int depth)
 
   size_t n = (u->sz > v->sz ? v->sz : u->sz) / 2;
 
-  /* Split u, v into low/high */
   mpz_t u0, u1, v0, v1;
-  u0.sn = u1.sn = v0.sn = v1.sn = 1;
+  u0.sn = 1; u0.sz = n; u0.p = u->p;              // u0 references the lower half of u
+  u1.sn = 1; u1.sz = u->sz - n; u1.p = u->p + n;  // u1 references the upper half of u
+  v0.sn = 1; v0.sz = n; v0.p = v->p;              // v0 references the lower half of v
+  v1.sn = 1; v1.sz = v->sz - n; v1.p = v->p + n;  // v1 references the upper half of v
 
-  /* u/v share memory with low/high mpz */
-  u0.sz = n; u0.p = u->p;
-  u1.sz = u->sz - n; u1.p = u->p + n;
-  v0.sz = n; v0.p = v->p;
-  v1.sz = v->sz - n; v1.p = v->p + n;
+  mpz_t z0, z1, z2;
+  mpz_init(mrb, &z0);  // z0 = u0 * v0 (lower part)
+  mpz_init(mrb, &z1);  // z1 = (u0 + u1) * (v0 + v1) (intermediate result)
+  mpz_init(mrb, &z2);  // z2 = u1 * v1 (upper part)
 
-  /* u1*v1 (high part) */
-  mpz_t z2;
-  mpz_init(mrb, &z2);
-  mul_karatsuba(mrb, &z2, &u1, &v1, depth + 1);
+  // Calculate (u0 + u1) and (v0 + v1) using z1 and z2 temporarily
+  mpz_add(mrb, &z1, &u0, &u1);  // temp = u0 + u1
+  mpz_add(mrb, &z2, &v0, &v1);  // z2 = v0 + v1
 
-  /* u0*v0 (low part) */
-  mpz_t z0;
-  mpz_init(mrb, &z0);
-  mul_karatsuba(mrb, &z0, &u0, &v0, depth + 1);
+  mul_karatsuba(mrb, &z1, &z1, &z2, depth + 1); // Calculate (u0 + u1) * (v0 + v1) and store in z1
+  mul_karatsuba(mrb, &z2, &u1, &v1, depth + 1); // Calculate high product (u1 * v1)
+  mul_karatsuba(mrb, &z0, &u0, &v0, depth + 1); // Calculate low product (u0 * v0)
 
-  /* (u1+u0)*(v1+v0) */
-  mpz_t u0u1, v0v1, z1;
-  mpz_init(mrb, &u0u1); mpz_init(mrb, &v0v1); mpz_init(mrb, &z1);
-
-  mpz_add(mrb, &u0u1, &u0, &u1);
-  mpz_add(mrb, &v0v1, &v0, &v1);
-  mul_karatsuba(mrb, &z1, &u0u1, &v0v1, depth + 1);
-  mpz_sub(mrb, &z1, &z1, &z0);
-  mpz_sub(mrb, &z1, &z1, &z2);
+  // Calculate z1 = z1 - z0 - z2 for intermediate calculations
+  mpz_sub(mrb, &z1, &z1, &z0);  // z1 -= z0
+  mpz_sub(mrb, &z1, &z1, &z2);  // z1 -= u1*v1 (z2 currently holds u1*v1)
 
   /* Bitshift z1/z2 */
   mpz_mul_2exp(mrb, &z2, &z2, 2 * n * sizeof(mp_limb) * 8);
@@ -436,10 +429,12 @@ mul_karatsuba(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v, int depth)
   /* Combine the result*/
   mpz_add(mrb, ww, &z2, &z1);
   mpz_add(mrb, ww, ww, &z0);
+  trim(ww);
 
-  // Clean-Up Memory
-  mpz_clear(mrb, &z0); mpz_clear(mrb, &z1); mpz_clear(mrb, &z2);
-  mpz_clear(mrb, &u0u1); mpz_clear(mrb, &v0v1);
+  // Free memory allocated for z0, z1, z2, and temp
+  mpz_clear(mrb, &z0);
+  mpz_clear(mrb, &z1);
+  mpz_clear(mrb, &z2);
 }
 
 // Multiplication Entry Point */
