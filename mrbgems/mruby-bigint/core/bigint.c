@@ -200,7 +200,6 @@ uadd(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
     c >>= DIG_SIZE;
   }
   z->p[y->sz] = (mp_limb)c;
-  trim(z);
 }
 
 /* z = y - x, ignoring sign */
