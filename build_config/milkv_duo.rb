@@ -4,6 +4,9 @@
 # Requires: https://github.com/milkv-duo/duo-sdk
 #
 MRuby::CrossBuild.new("milkv_duo") do |conf|
+  # Set this string to match your board: milkv_duo, milkv_duo256m, milkv_duos
+  MILKV_DUO_VARIANT = "milkv_duo256m"
+
   # Expect duo-sdk directory is same level as (next to) mruby top-level directory.
   SDK_BASE = File.expand_path("../../../", File.expand_path(__FILE__)) + "/duo-sdk"
   TOOLCHAIN_BASE = "#{SDK_BASE}/riscv64-linux-musl-x86_64"
@@ -21,7 +24,8 @@ MRuby::CrossBuild.new("milkv_duo") do |conf|
     cc.include_paths << "#{SYSROOT}/usr/include"
     cc.flags << ["-mcpu=c906fdv", "-march=rv64imafdcv0p7xthead", "-mcmodel=medany", "-mabi=lp64d"]
     cc.flags << ["-D_LARGEFILE_SOURCE", "-D_LARGEFILE64_SOURCE", "-D_FILE_OFFSET_BITS=64"]
-    cc.flags << ["-Wl,--copy-dt-needed-entries", "-Wl,-lc,-lgcc_s"]
+    cc.flags << ["-Wl,--copy-dt-needed-entries", "-Wl,-lc,-lgcc_s,-lwiringx"]
+    cc.defines << "MILKV_DUO_VARIANT=_#{MILKV_DUO_VARIANT}"
   end
 
   # Linker settings
@@ -42,7 +46,7 @@ MRuby::CrossBuild.new("milkv_duo") do |conf|
   # Disable C++ exception
   conf.disable_cxx_exception
 
-  # All the gems.
+  # All standard gems.
   conf.gem 'mrbgems/mruby-array-ext/'
   conf.gem 'mrbgems/mruby-bigint/'
   conf.gem 'mrbgems/mruby-bin-config/'
@@ -97,4 +101,7 @@ MRuby::CrossBuild.new("milkv_duo") do |conf|
   # conf.gem 'mrbgems/mruby-test/'
   conf.gem 'mrbgems/mruby-time/'
   conf.gem 'mrbgems/mruby-toplevel-ext/'
+
+  # mruby bindings for WiringX (GPIO).
+  # conf.gem :github => 'denko-rb/mruby-milkv-wiringx'
 end
