@@ -21,13 +21,13 @@ MRuby::CrossBuild.new("milkv_duo") do |conf|
     cc.include_paths << "#{SYSROOT}/usr/include"
     cc.flags << ["-mcpu=c906fdv", "-march=rv64imafdcv0p7xthead", "-mcmodel=medany", "-mabi=lp64d"]
     cc.flags << ["-D_LARGEFILE_SOURCE", "-D_LARGEFILE64_SOURCE", "-D_FILE_OFFSET_BITS=64"]
-    cc.flags << ["-Wl,--copy-dt-needed-entries", "-Wl,-lc", "-Wl,-lgcc_s"]
+    cc.flags << ["-Wl,--copy-dt-needed-entries", "-Wl,-lc,-lgcc_s"]
   end
 
   # Linker settings
   conf.linker do |linker|
     linker.command = cc.command
-    linker.library_paths << ["-L#{SYSROOT}/lib", "-L#{SYSROOT}/usr/lib"]
+    linker.library_paths << ["#{SYSROOT}/lib", "#{SYSROOT}/usr/lib"]
     linker.flags = cc.flags
   end
 
