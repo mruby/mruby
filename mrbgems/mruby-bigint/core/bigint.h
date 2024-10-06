@@ -72,7 +72,7 @@ struct RBigint {
  *        01: zero      (<-->  0)
  *        10: positive  (<--> +1)
  *        11: UNUSED
- *  0..3: size of embeded array; 15 means used with heap
+ *  0..3: size of embedded array; 15 means used with heap
  */
 
 #define RBIGINT_EMBED_SIZE_MASK 0x0f
