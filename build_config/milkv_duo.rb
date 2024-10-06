@@ -93,7 +93,7 @@ MRuby::CrossBuild.new("milkv_duo") do |conf|
   conf.gem 'mrbgems/mruby-string-ext/'
   conf.gem 'mrbgems/mruby-struct/'
   conf.gem 'mrbgems/mruby-symbol-ext/'
-  conf.gem 'mrbgems/mruby-test-inline-struct/'
+  # conf.gem 'mrbgems/mruby-test-inline-struct/'
   # conf.gem 'mrbgems/mruby-test/'
   conf.gem 'mrbgems/mruby-time/'
   conf.gem 'mrbgems/mruby-toplevel-ext/'
