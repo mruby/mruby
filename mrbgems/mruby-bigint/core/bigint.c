@@ -348,7 +348,7 @@ mpz_sub_int(mrb_state *mrb, mpz_t *x, mpz_t *y, mrb_int n)
 /* w = u * v */
 /* Simple Multiply */
 static void
-mul_base(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
+mpz_mul(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
 {
   if (zero_p(u) || zero_p(v)) {
     zero(ww);
@@ -379,83 +379,6 @@ mul_base(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
   w.sn = u->sn * v->sn;
   trim(&w);
   mpz_move(mrb, ww, &w);
-}
-
-/* Zero Initialization */
-static void limb_zero(mp_limb *p, size_t count) {
-  while (count--) {
-    *p++ = 0;
-  }
-}
-
-/* Add arrays of limbs */
-static void limb_add(mp_limb *result, mp_limb *src, size_t src_size) {
-  mp_dbl_limb carry = 0;
-  for (size_t i = 0; i < src_size; i++) {
-    mp_dbl_limb sum = (mp_dbl_limb)result[i] + src[i] + carry;
-    result[i] = LOW(sum);
-    carry = HIGH(sum);
-  }
-}
-
-/* Thresholds */
-#define KARATSUBA_THRESHOLD 512
-#define MAX_RECURSION_DEPTH 10
-
-/* Karatsuba Multiply */
-static void
-mul_karatsuba(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v, int depth)
-{
-  if (depth > MAX_RECURSION_DEPTH || u->sz < KARATSUBA_THRESHOLD || v->sz < KARATSUBA_THRESHOLD) {
-    mul_base(mrb, ww, u, v);
-    return;
-  }
-
-  size_t n = (u->sz > v->sz ? v->sz : u->sz) / 2;
-
-  mpz_t u0, u1, v0, v1;
-  u0.sn = 1; u0.sz = n; u0.p = u->p;              // u0 references the lower half of u
-  u1.sn = 1; u1.sz = u->sz - n; u1.p = u->p + n;  // u1 references the upper half of u
-  v0.sn = 1; v0.sz = n; v0.p = v->p;              // v0 references the lower half of v
-  v1.sn = 1; v1.sz = v->sz - n; v1.p = v->p + n;  // v1 references the upper half of v
-
-  mpz_t z0, z1, z2;
-  mpz_init(mrb, &z0);  // z0 = u0 * v0 (lower part)
-  mpz_init(mrb, &z1);  // z1 = (u0 + u1) * (v0 + v1) (intermediate result)
-  mpz_init(mrb, &z2);  // z2 = u1 * v1 (upper part)
-
-  // Calculate (u0 + u1) and (v0 + v1) using z1 and z2 temporarily
-  mpz_add(mrb, &z1, &u0, &u1);  // temp = u0 + u1
-  mpz_add(mrb, &z2, &v0, &v1);  // z2 = v0 + v1
-
-  mul_karatsuba(mrb, &z1, &z1, &z2, depth + 1); // Calculate (u0 + u1) * (v0 + v1) and store in z1
-  mul_karatsuba(mrb, &z2, &u1, &v1, depth + 1); // Calculate high product (u1 * v1)
-  mul_karatsuba(mrb, &z0, &u0, &v0, depth + 1); // Calculate low product (u0 * v0)
-
-  // Calculate z1 = z1 - z0 - z2 for intermediate calculations
-  mpz_sub(mrb, &z1, &z1, &z0);  // z1 -= z0
-  mpz_sub(mrb, &z1, &z1, &z2);  // z1 -= u1*v1 (z2 currently holds u1*v1)
-
-  // Combine z0, z1, and z2 into ww->p without extra memory reallocation
-  mpz_realloc(mrb, ww, u->sz + v->sz);
-  limb_zero(ww->p, ww->sz);
-  limb_add(ww->p, z0.p, z0.sz);
-  limb_add(ww->p + n, z1.p, z1.sz);
-  limb_add(ww->p + 2 * n, z2.p, z2.sz);
-  trim(ww);
-
-  // Free memory allocated for z0, z1, z2, and temp
-  mpz_clear(mrb, &z0);
-  mpz_clear(mrb, &z1);
-  mpz_clear(mrb, &z2);
-}
-
-// Multiplication Entry Point */
-static void
-mpz_mul(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
-{
-  mul_karatsuba(mrb, ww, u, v, 0);
-  ww->sn = u->sn * v->sn;
 }
 
 static void
