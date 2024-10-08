@@ -310,17 +310,6 @@ mpz_add(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y)
   mpz_move(mrb, zz, &z);
 }
 
-/* x = y - n */
-static void
-mpz_add_int(mrb_state *mrb, mpz_t *x, mpz_t *y, mrb_int n)
-{
-  mpz_t z;
-
-  mpz_init_set_int(mrb, &z, n);
-  mpz_add(mrb, x, y, &z);
-  mpz_clear(mrb, &z);
-}
-
 /* z = x - y  -- just use mpz_add - I'm lazy */
 static void
 mpz_sub(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
@@ -379,20 +368,6 @@ mpz_mul(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
   w.sn = u->sn * v->sn;
   trim(&w);
   mpz_move(mrb, ww, &w);
-}
-
-static void
-mpz_mul_int(mrb_state *mrb, mpz_t *x, mpz_t *y, mrb_int n)
-{
-  if (n == 0) {
-    zero(x);
-    return;
-  }
-
-  mpz_t z;
-  mpz_init_set_int(mrb, &z, n);
-  mpz_mul(mrb, x, y, &z);
-  mpz_clear(mrb, &z);
 }
 
 /* number of leading zero bits in digit */
@@ -677,13 +652,78 @@ mpz_sizeinbase(mpz_t *x, mrb_int base)
   return bits/(j-1)+1;
 }
 
+/* x = y * n (only called from mpz_init_set_str) */
+/*   assumes x and n are positive or zero        */
+/*   assumes n is small (fits in mp_limb)        */
+static void
+mpz_mul_int(mrb_state *mrb, mpz_t *x, mrb_int n)
+{
+  if (n == 0 || zero_p(x)) {
+    zero(x);
+    return;
+  }
+
+  size_t x_sz = x->sz;
+  size_t new_sz = x_sz + 1; // Maximum possible size after multiplication
+
+  // Reallocate x if necessary
+  mpz_realloc(mrb, x, new_sz);
+
+  mp_dbl_limb cc = 0;
+  mp_limb n_limb = (mp_limb)n;
+
+  for (size_t i = 0; i < x_sz; i++) {
+    // Multiply each limb and add carry
+    cc += (mp_dbl_limb)x->p[i] * n_limb;
+    x->p[i] = LOW(cc);
+    cc = HIGH(cc);
+  }
+
+  if (cc) {
+    // If there is a remaining carry, store it
+    x->p[x_sz] = (mp_limb)cc;
+  } else {
+    x->sz = x_sz;
+  }
+
+  x->sn = 1;
+  trim(x);
+}
+
+/* x = y + n (only called from mpz_init_set_str) */
+/*   assumes x and n are positive or zero        */
+/*   assumes n is small (fits in mp_limb)        */
+static void
+mpz_add_int(mrb_state *mrb, mpz_t *x, mrb_int n)
+{
+  if (n == 0) {
+    // If n is zero, no operation is needed
+    return;
+  }
+
+  // Assume x is positive and n is a small positive integer (n < 36)
+  mp_dbl_limb carry = n; // Initialize carry with n
+  for (size_t i = 0; i < x->sz && carry; i++) {
+    carry += (mp_dbl_limb)x->p[i]; // Add current limb and carry
+    x->p[i] = LOW(carry);          // Store lower 32 bits in current limb
+    carry = HIGH(carry);           // Update carry with higher bits
+  }
+
+  if (carry != 0) {
+    mpz_realloc(mrb, x, x->sz + 1);
+    x->p[x->sz-1] = (mp_limb)carry;
+    x->sn = 1;
+  }
+  trim(x);
+}
+
 static int
 mpz_init_set_str(mrb_state *mrb, mpz_t *x, const char *s, mrb_int len, mrb_int base)
 {
   int retval = 0;
   short sn;
   uint8_t k;
-  mpz_init(mrb, x);
+
   zero(x);
   if (*s == '-') {
     sn = -1; s++;
@@ -706,8 +746,8 @@ mpz_init_set_str(mrb_state *mrb, mpz_t *x, const char *s, mrb_int len, mrb_int b
       retval = (-1);
       break;
     }
-    mpz_mul_int(mrb, x, x, base);
-    mpz_add_int(mrb, x, x, k);
+    mpz_mul_int(mrb, x, base);
+    mpz_add_int(mrb, x, k);
   }
   x->sn = sn;
   return retval;
