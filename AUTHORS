@@ -1,9 +1,9 @@
 # Authors of mruby (mruby developers)
 
-## The List of Contributors sorted by number of commits (as of 2024-09-07 2d871fb)
+## The List of Contributors sorted by number of commits (as of 2024-10-08 b56ad8f)
 
-   5818 Yukihiro "Matz" Matsumoto (@matz)*
-    614 dearblue (@dearblue)*
+   5851 Yukihiro "Matz" Matsumoto (@matz)*
+    623 dearblue (@dearblue)*
     587 KOBAYASHI Shuji (@shuujii)
     353 Daniel Bovensiepen (@bovi)*
     345 Takeshi Watanabe (@take-cheeze)*
@@ -12,10 +12,10 @@
     228 Tomoyuki Sahara (@tsahara)*
     220 Cremno (@cremno)*
     209 Yuki Kurihara (@ksss)+
-    201 John Bampton (@jbampton)
+    206 John Bampton (@jbampton)
     144 Yasuhiro Matsumoto (@mattn)*
     113 Carson McDonald (@carsonmcdonald)
-    103 Tomasz Pędraszewski (@dabroz)*
+    104 Tomasz Pędraszewski (@dabroz)*
      83 Akira Yumiyama (@akiray03)*
      83 skandhas (@skandhas)
      80 Masamitsu MURASE (@masamitsu-murase)
@@ -57,9 +57,9 @@
      14 Kazuki Tsujimoto (@k-tsj)
      14 Tadashi FUKUZAWA (@FUKUZAWA-Tadashi)+
      14 fn ⌃ ⌥ (@FnControlOption)
+     14 leviongit (@leviongit)
      13 Jose Narvaez (@goyox86)
      13 Patrick Hogan (@pbhogan)
-     13 leviongit (@leviongit)
      12 Akira Kuroda (@akuroda)
      12 Kouki Ooyatsu (kaishuu0123)*
      12 NAKAMURA Usaku (@unak)*
@@ -131,6 +131,7 @@
       4 Yuhei Okazaki (@Yuuhei-Okazaki)*
       4 Yuji Yamano (@yyamano)
       4 kurodash (@kurodash)*
+      4 vickash (@vickash)
       4 wanabe (@wanabe)*
       3 Anton Davydov (@davydovanton)
       3 Aurora Nockert (@auroranockert)
