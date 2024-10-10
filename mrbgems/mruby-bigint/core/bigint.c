@@ -22,124 +22,95 @@
 #define iabs(x) (((x)>0)?(x):(-x))
 #define imax(x,y) (((x)>(y))?(x):(y))
 #define imin(x,y) (((x)<(y))?(x):(y))
-#define dg(x,i) (((size_t)i < RBIGINT_SIZE(x))?RBIGINT_ARY(x)[i]:0)
-
-#define LIMB_COPY(x, y, num) do { \
-  mp_limb *_x = (x); \
-  const mp_limb *_y = (y); \
-  for (size_t _num = (num); _num > 0; _num--) { \
-    *_x++ = *_y++; \
-  } \
-} while (0)
-#define LIMB_ZERO(x, num) do { \
-  mp_limb *_x = (x); \
-  for (size_t _num = (num); _num > 0; _num--) { \
-    *_x++ = 0; \
-  } \
-} while (0)
+#define dg(x,i) (((size_t)i < (x)->sz)?(x)->p[i]:0)
 
 static void
-mpz_init(mrb_state *mrb, struct RBigint *s)
+mpz_init(mrb_state *mrb, mpz_t *s)
 {
-  LIMB_ZERO(s->as.ary, RBIGINT_EMBED_SIZE_MAX);
-  RBIGINT_SET_EMBED_SIGN(s, 0);
-  RBIGINT_SET_EMBED_ZERO(s);
+  s->p = NULL;
+  s->sn=0;
+  s->sz=0;
 }
 
 static void
-mpz_realloc(mrb_state *mrb, struct RBigint *x, size_t size)
+mpz_realloc(mrb_state *mrb, mpz_t *x, size_t size)
 {
-  if (RBIGINT_SIZE(x) < size) {
-    if (RBIGINT_EMBED_P(x)) {
-      if (size <= RBIGINT_EMBED_SIZE_MAX) {
-        LIMB_ZERO(RBIGINT_EMBED_ARY(x) + RBIGINT_EMBED_SIZE(x), size - RBIGINT_EMBED_SIZE(x));
-        RBIGINT_SET_EMBED_SIZE(x, size);
-        return;
-      }
-
-      mp_limb *p = (mp_limb*)mrb_malloc(mrb, size*sizeof(mp_limb));
-      LIMB_COPY(p, RBIGINT_EMBED_ARY(x), RBIGINT_EMBED_SIZE(x));
-      x->as.heap.p = p;
-      x->as.heap.sn = RBIGINT_EMBED_SIGN(x);
-      x->as.heap.sz = RBIGINT_EMBED_SIZE(x);
-      RBIGINT_SET_HEAP(x);
-    }
-    else {
-      x->as.heap.p = (mp_limb*)mrb_realloc(mrb, x->as.heap.p, size*sizeof(mp_limb));
-    }
-
-    LIMB_ZERO(x->as.heap.p + x->as.heap.sz, size - x->as.heap.sz);
-    x->as.heap.sz = size;
+  if (x->sz < size) {
+    x->p=(mp_limb*)mrb_realloc(mrb, x->p, size*sizeof(mp_limb));
+    for (size_t i=x->sz; i<size; i++)
+      x->p[i] = 0;
+    x->sz = size;
   }
 }
 
 static void
-mpz_set(mrb_state *mrb, struct RBigint *y, struct RBigint *x)
+mpz_set(mrb_state *mrb, mpz_t *y, mpz_t *x)
 {
-  size_t k = RBIGINT_SIZE(x);
+  size_t i, k = x->sz;
 
   mpz_realloc(mrb, y, k);
-  LIMB_COPY(RBIGINT_ARY(y), RBIGINT_ARY(x), k);
-  RBIGINT_SET_SIZE(y, k);
-  RBIGINT_SET_SIGN(y, RBIGINT_SIGN(x));
+  for (i=0;i < k; i++)
+    y->p[i] = x->p[i];
+
+  y->sz = k;
+  y->sn = x->sn;
 }
 
 static void
-mpz_init_set(mrb_state *mrb, struct RBigint *s, struct RBigint *t)
+mpz_init_set(mrb_state *mrb, mpz_t *s, mpz_t *t)
 {
   mpz_init(mrb, s);
   mpz_set(mrb, s, t);
 }
 
 static void
-mpz_set_int(mrb_state *mrb, struct RBigint *y, mrb_int v)
+mpz_set_int(mrb_state *mrb, mpz_t *y, mrb_int v)
 {
   mrb_uint u;
 
   if (v == 0) {
-    RBIGINT_SET_SIGN(y, 0);
+    y->sn=0;
     u = 0;
   }
   else if (v > 0) {
-    RBIGINT_SET_SIGN(y, 1);
+    y->sn = 1;
     u = v;
   }
   else /* if (v < 0) */ {
-    RBIGINT_SET_SIGN(y, -1);
+    y->sn = -1;
     if (v == MRB_INT_MIN) u = v;
     else u = -v;
   }
 #if MRB_INT_BIT > DIG_SIZE
   if ((u & ~DIG_MASK) != 0) {
     mpz_realloc(mrb, y, 2);
-    y->as.ary[1] = (mp_limb)HIGH(u);
-    y->as.ary[0] = (mp_limb)LOW(u);
+    y->p[1] = (mp_limb)HIGH(u);
+    y->p[0] = (mp_limb)LOW(u);
   }
   else
 #endif
   {
     mpz_realloc(mrb, y, 1);
-    y->as.ary[0] = (mp_limb)u;
+    y->p[0] = (mp_limb)u;
   }
 }
 
 static void
-mpz_set_uint64(mrb_state *mrb, struct RBigint *y, uint64_t u)
+mpz_set_uint64(mrb_state *mrb, mpz_t *y, uint64_t u)
 {
   const size_t len = sizeof(uint64_t) / sizeof(mp_limb);
 
+  y->sn = (u != 0);
   mpz_realloc(mrb, y, len);
-  mrb_assert(RBIGINT_EMBED_P(y));
-  RBIGINT_SET_EMBED_SIGN(y, (u != 0 ? 1 : 0));
   for (size_t i=0; i<len; i++) {
-    y->as.ary[i++] = (mp_limb)LOW(u);
+    y->p[i++] = (mp_limb)LOW(u);
     u >>= DIG_SIZE;
   }
 }
 
 #ifdef MRB_INT32
 static void
-mpz_set_int64(mrb_state *mrb, struct RBigint *y, int64_t v)
+mpz_set_int64(mrb_state *mrb, mpz_t *y, int64_t v)
 {
   uint64_t u;
 
@@ -152,149 +123,117 @@ mpz_set_int64(mrb_state *mrb, struct RBigint *y, int64_t v)
   }
   mpz_set_uint64(mrb, y, u);
   if (v < 0) {
-    RBIGINT_SET_EMBED_SIGN(y, -1);
+    y->sn = -1;
   }
 }
 #endif
 
 static void
-mpz_init_set_int(mrb_state *mrb, struct RBigint *y, mrb_int v)
+mpz_init_set_int(mrb_state *mrb, mpz_t *y, mrb_int v)
 {
   mpz_init(mrb, y);
   mpz_set_int(mrb, y, v);
 }
 
 static void
-mpz_clear(mrb_state *mrb, struct RBigint *s)
+mpz_clear(mrb_state *mrb, mpz_t *s)
 {
-  if (!RBIGINT_EMBED_P(s)) mrb_free(mrb, RBIGINT_HEAP_ARY(s));
-  for (size_t i = 0; i < RBIGINT_EMBED_SIZE_MAX; i++) {
-    s->as.ary[i] = 0;
-  }
-  RBIGINT_SET_EMBED_SIGN(s, 0);
-  RBIGINT_SET_EMBED_ZERO(s);
+  if (s->p) mrb_free(mrb, s->p);
+  s->p = NULL;
+  s->sn = 0;
+  s->sz = 0;
 }
 
 static void
-mpz_move(mrb_state *mrb, struct RBigint *y, struct RBigint *x)
+mpz_move(mrb_state *mrb, mpz_t *y, mpz_t *x)
 {
   mpz_clear(mrb, y);
-
-  if (RBIGINT_EMBED_P(x)) {
-    LIMB_COPY(y->as.ary, x->as.ary, RBIGINT_EMBED_SIZE_MAX);
-    RBIGINT_SET_EMBED_SIGN(y, RBIGINT_EMBED_SIGN(x));
-    RBIGINT_SET_EMBED_SIZE(y, RBIGINT_EMBED_SIZE(x));
-  }
-  else {
-    y->as.heap.sn = x->as.heap.sn;
-    y->as.heap.sz = x->as.heap.sz;
-    y->as.heap.p = x->as.heap.p;
-    RBIGINT_SET_HEAP(y);
-    x->as.heap.p = NULL;
-    x->as.heap.sn = 0;
-    x->as.heap.sz = 0;
-  }
+  y->sn = x->sn;
+  y->sz = x->sz;
+  y->p = x->p;
+  x->p = NULL;
+  x->sn = 0;
+  x->sz = 0;
 }
 
 static size_t
-digits(struct RBigint *x)
+digits(mpz_t *x)
 {
   size_t i;
 
-  if (RBIGINT_SIZE(x) == 0) return 0;
-  const mp_limb *p = RBIGINT_ARY(x);
-  for (i = RBIGINT_SIZE(x) - 1; p[i] == 0; i--)
+  if (x->sz == 0) return 0;
+  for (i = x->sz - 1; x->p[i] == 0; i--)
     if (i == 0) break;
   return i+1;
 }
 
 static void
-trim(struct RBigint *x)
+trim(mpz_t *x)
 {
-  size_t n = RBIGINT_SIZE(x);
-  const mp_limb *p = RBIGINT_ARY(x) + n;
-  while (n > 0 && *--p == 0) {
-    n--;
+  while (x->sz && x->p[x->sz-1] == 0) {
+    x->sz--;
   }
-  RBIGINT_SET_SIZE(x, n);
 }
 
 /* z = x + y, without regard for sign */
 static void
-uadd(mrb_state *mrb, struct RBigint *z, struct RBigint *x, struct RBigint *y)
+uadd(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
 {
-  size_t xsz = RBIGINT_SIZE(x);
-  size_t ysz = RBIGINT_SIZE(y);
-  if (ysz < xsz) {
-    struct RBigint *t;          /* swap x,y */
+  if (y->sz < x->sz) {
+    mpz_t *t;                   /* swap x,y */
     t=x; x=y; y=t;
-    xsz = RBIGINT_SIZE(x);
-    ysz = RBIGINT_SIZE(y);
   }
 
-  /* now RBIGINT_SIZE(y) >= RBIGINT_SIZE(x) */
-  mpz_realloc(mrb, z, ysz+1);
+  /* now y->sz >= x->sz */
+  mpz_realloc(mrb, z, y->sz+1);
 
-  const mp_limb *xp = RBIGINT_ARY(x);
-  const mp_limb *yp = RBIGINT_ARY(y);
-  mp_limb *zp = RBIGINT_ARY(z);
   mp_dbl_limb c = 0;
   size_t i;
-  for (i=0; i<xsz; i++) {
-    c += (mp_dbl_limb)yp[i] + (mp_dbl_limb)xp[i];
-    zp[i] = LOW(c);
+  for (i=0; i<x->sz; i++) {
+    c += (mp_dbl_limb)y->p[i] + (mp_dbl_limb)x->p[i];
+    z->p[i] = LOW(c);
     c >>= DIG_SIZE;
   }
-  for (;i<ysz; i++) {
-    c += yp[i];
-    zp[i] = LOW(c);
+  for (;i<y->sz; i++) {
+    c += y->p[i];
+    z->p[i] = LOW(c);
     c >>= DIG_SIZE;
   }
-  zp[ysz] = (mp_limb)c;
-  trim(z);
+  z->p[y->sz] = (mp_limb)c;
 }
 
 /* z = y - x, ignoring sign */
 /* precondition: abs(y) >= abs(x) */
 static void
-usub(mrb_state *mrb, struct RBigint *z, struct RBigint *y, struct RBigint *x)
+usub(mrb_state *mrb, mpz_t *z, mpz_t *y, mpz_t *x)
 {
-  size_t xsz = RBIGINT_SIZE(x);
-  size_t ysz = RBIGINT_SIZE(y);
-  mpz_realloc(mrb, z, ysz);
+  mpz_realloc(mrb, z, (size_t)(y->sz));
   mp_dbl_limb_signed b = 0;
-  const mp_limb *xp = RBIGINT_ARY(x);
-  const mp_limb *yp = RBIGINT_ARY(y);
-  mp_limb *zp = RBIGINT_ARY(z);
   size_t i;
-  for (i=0;i<xsz;i++) {
-    b += (mp_dbl_limb_signed)yp[i];
-    b -= (mp_dbl_limb_signed)xp[i];
-    zp[i] = LOW(b);
+  for (i=0;i<x->sz;i++) {
+    b += (mp_dbl_limb_signed)y->p[i];
+    b -= (mp_dbl_limb_signed)x->p[i];
+    z->p[i] = LOW(b);
     b = HIGH(b);
   }
-  for (;i<ysz; i++) {
-    b += yp[i];
-    zp[i] = LOW(b);
+  for (;i<y->sz; i++) {
+    b += y->p[i];
+    z->p[i] = LOW(b);
     b = HIGH(b);
   }
-  RBIGINT_SET_SIZE(z, digits(z));
+  z->sz = digits(z);
 }
 
 /* compare abs(x) and abs(y) */
 static int
-ucmp(struct RBigint *y, struct RBigint *x)
+ucmp(mpz_t *y, mpz_t *x)
 {
-  size_t xsz = RBIGINT_SIZE(x);
-  size_t ysz = RBIGINT_SIZE(y);
-  if (ysz < xsz) return -1;
-  if (ysz > xsz) return 1;
-  if (xsz == 0) return 0;
-  const mp_limb *xp = RBIGINT_ARY(x);
-  const mp_limb *yp = RBIGINT_ARY(y);
-  for (size_t i=xsz-1;; i--) {
-    mp_limb a = yp[i];
-    mp_limb b = xp[i];
+  if (y->sz < x->sz) return -1;
+  if (y->sz > x->sz) return 1;
+  if (x->sz == 0) return 0;
+  for (size_t i=x->sz-1;; i--) {
+    mp_limb a = y->p[i];
+    mp_limb b = x->p[i];
     if (a > b) return 1;
     if (a < b) return -1;
     if (i == 0) break;
@@ -302,42 +241,35 @@ ucmp(struct RBigint *y, struct RBigint *x)
   return 0;
 }
 
-#define zero_p(x) (RBIGINT_SIGN(x) == 0)
+#define zero_p(x) ((x)->sn == 0)
 
 /* check if all digits are zero */
 static int
-uzero_p(struct RBigint *x)
+uzero_p(mpz_t *x)
 {
-  size_t xsz = RBIGINT_SIZE(x);
-  if (xsz == 0) return 1;
-  const mp_limb *xp = RBIGINT_ARY(x);
-  for (size_t i=0; i < xsz; i++)
-    if (xp[i] != 0)
+  if (x->sz == 0) return 1;
+  for (size_t i=x->sz-1; 0 <= i; i--)
+    if (x->p[i] != 0)
       return 0;
   return 1;
 }
 
 static void
-zero(struct RBigint *x)
+zero(mpz_t *x)
 {
-  RBIGINT_SET_SIGN(x, 0);
-  if (RBIGINT_EMBED_P(x)) {
-    for (size_t i = 0; i < RBIGINT_EMBED_SIZE_MAX; i++) {
-      x->as.ary[i] = 0;
-    }
-  }
-  else if (x->as.heap.p) {
-    RBIGINT_SET_HEAP_SIZE(x, 1);
-    RBIGINT_HEAP_ARY(x)[0]=0;
+  x->sn=0;
+  if (x->p) {
+    x->sz=1;
+    x->p[0]=0;
   }
   else {
-    RBIGINT_SET_HEAP_SIZE(x, 0);
+    x->sz=0;
   }
 }
 
 /* z = x + y */
 static void
-mpz_add(mrb_state *mrb, struct RBigint *zz, struct RBigint *x, struct RBigint *y)
+mpz_add(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y)
 {
   if (zero_p(x)) {
     mpz_set(mrb, zz, y);
@@ -347,16 +279,16 @@ mpz_add(mrb_state *mrb, struct RBigint *zz, struct RBigint *x, struct RBigint *y
     mpz_set(mrb, zz, x);
     return;
   }
-  struct RBigint z;
+  mpz_t z;
   mpz_init(mrb, &z);
 
-  if (RBIGINT_SIGN(x) > 0 && RBIGINT_SIGN(y) > 0) {
+  if (x->sn > 0 && y->sn > 0) {
     uadd(mrb, &z, x, y);
-    RBIGINT_SET_SIGN(&z, 1);
+    z.sn = 1;
   }
-  else if (RBIGINT_SIGN(x) < 0 && RBIGINT_SIGN(y) < 0) {
+  else if (x->sn < 0 && y->sn < 0) {
     uadd(mrb, &z, x, y);
-    RBIGINT_SET_SIGN(&z, -1);
+    z.sn = -1;
   }
   else {
     int mg;
@@ -367,46 +299,35 @@ mpz_add(mrb_state *mrb, struct RBigint *zz, struct RBigint *x, struct RBigint *y
     }
     else if (mg > 0) {  /* abs(y) < abs(x) */
       usub(mrb, &z, x, y);
-      RBIGINT_SET_SIGN(&z, (RBIGINT_SIGN(x) > 0 && RBIGINT_SIGN(y) < 0) ? 1 : (-1));
+      z.sn = (x->sn > 0 && y->sn < 0) ? 1 : (-1);
     }
     else { /* abs(y) > abs(x) */
       usub(mrb, &z, y, x);
-      RBIGINT_SET_SIGN(&z, (RBIGINT_SIGN(x) < 0 && RBIGINT_SIGN(y) > 0) ? 1 : (-1));
+      z.sn = (x->sn < 0 && y->sn > 0) ? 1 : (-1);
     }
   }
   trim(&z);
   mpz_move(mrb, zz, &z);
 }
 
-/* x = y - n */
-static void
-mpz_add_int(mrb_state *mrb, struct RBigint *x, struct RBigint *y, mrb_int n)
-{
-  struct RBigint z;
-
-  mpz_init_set_int(mrb, &z, n);
-  mpz_add(mrb, x, y, &z);
-  mpz_clear(mrb, &z);
-}
-
 /* z = x - y  -- just use mpz_add - I'm lazy */
 static void
-mpz_sub(mrb_state *mrb, struct RBigint *z, struct RBigint *x, struct RBigint *y)
+mpz_sub(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
 {
-  struct RBigint u;
+  mpz_t u;
 
   mpz_init(mrb, &u);
-  mpz_set(mrb, &u, y);
-  RBIGINT_SET_SIGN(&u, -(RBIGINT_SIGN(&u)));
+  u.p = y->p;
+  u.sz = y->sz;
+  u.sn = -(y->sn);
   mpz_add(mrb, z, x, &u);
-  mpz_clear(mrb, &u);
 }
 
 /* x = y - n */
 static void
-mpz_sub_int(mrb_state *mrb, struct RBigint *x, struct RBigint *y, mrb_int n)
+mpz_sub_int(mrb_state *mrb, mpz_t *x, mpz_t *y, mrb_int n)
 {
-  struct RBigint z;
+  mpz_t z;
 
   mpz_init_set_int(mrb, &z, n);
   mpz_sub(mrb, x, y, &z);
@@ -416,56 +337,37 @@ mpz_sub_int(mrb_state *mrb, struct RBigint *x, struct RBigint *y, mrb_int n)
 /* w = u * v */
 /* Simple Multiply */
 static void
-mpz_mul(mrb_state *mrb, struct RBigint *ww, struct RBigint *u, struct RBigint *v)
+mpz_mul(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
 {
   if (zero_p(u) || zero_p(v)) {
-    mpz_set_int(mrb, ww, 0);
+    zero(ww);
     return;
   }
 
-  size_t usz = RBIGINT_SIZE(u);
-  size_t vsz = RBIGINT_SIZE(v);
-  struct RBigint w;
+  mpz_t w;
   mpz_init(mrb, &w);
-  mpz_realloc(mrb, &w, usz + vsz);
+  mpz_realloc(mrb, &w, u->sz + v->sz);
 
-  const mp_limb *up = RBIGINT_ARY(u);
-  const mp_limb *vp = RBIGINT_ARY(v);
-  mp_limb *wp = RBIGINT_ARY(&w);
-  for (size_t j = 0; j < usz; j++) {
+  for (size_t j = 0; j < u->sz; j++) {
     size_t i;
     mp_dbl_limb cc = (mp_limb)0;
-    mp_limb u0 = up[j];
+    mp_limb u0 = u->p[j];
     if (u0 == 0) continue;
-    for (i = 0; i < vsz; i++) {
-      mp_limb v0 = vp[i];
+    for (i = 0; i < v->sz; i++) {
+      mp_limb v0 = v->p[i];
       if (v0 == 0) continue;
-      cc += (mp_dbl_limb)wp[i + j] + (mp_dbl_limb)u0 * (mp_dbl_limb)v0;
-      wp[i + j] = LOW(cc);
+      cc += (mp_dbl_limb)w.p[i + j] + (mp_dbl_limb)u0 * (mp_dbl_limb)v0;
+      w.p[i + j] = LOW(cc);
       cc = HIGH(cc);
     }
     if (cc) {
-      wp[i + j] = (mp_limb)cc;
+      w.p[i + j] = (mp_limb)cc;
     }
   }
-  RBIGINT_SET_SIGN(&w, RBIGINT_SIGN(u) * RBIGINT_SIGN(v));
+
+  w.sn = u->sn * v->sn;
   trim(&w);
   mpz_move(mrb, ww, &w);
-  RBIGINT_SET_SIGN(ww, RBIGINT_SIGN(u) * RBIGINT_SIGN(v));
-}
-
-static void
-mpz_mul_int(mrb_state *mrb, struct RBigint *x, struct RBigint *y, mrb_int n)
-{
-  if (n == 0) {
-    zero(x);
-    return;
-  }
-
-  struct RBigint z;
-  mpz_init_set_int(mrb, &z, n);
-  mpz_mul(mrb, x, y, &z);
-  mpz_clear(mrb, &z);
 }
 
 /* number of leading zero bits in digit */
@@ -490,28 +392,25 @@ lzb(mp_limb x)
 /* c1 = a>>n */
 /* n must be < DIG_SIZE */
 static void
-urshift(mrb_state *mrb, struct RBigint *c1, struct RBigint *a, size_t n)
+urshift(mrb_state *mrb, mpz_t *c1, mpz_t *a, size_t n)
 {
   mrb_assert(n < DIG_SIZE);
 
   if (n == 0)
     mpz_set(mrb, c1, a);
   else if (uzero_p(a)) {
-    mpz_set_int(mrb, c1, 0);
+    zero(c1);
   }
   else {
-    struct RBigint c;
+    mpz_t c;
     mp_limb cc = 0;
     mp_dbl_limb rm = (((mp_dbl_limb)1<<n) - 1);
-    size_t asz = RBIGINT_SIZE(a);
 
     mpz_init(mrb, &c);
-    mpz_realloc(mrb, &c, asz);
-    const mp_limb *ap = RBIGINT_ARY(a);
-    mp_limb *cp = RBIGINT_ARY(&c);
-    for (size_t i=asz-1;; i--) {
-      cp[i] = ((ap[i] >> n) | cc) & DIG_MASK;
-      cc = (ap[i] & rm) << (DIG_SIZE - n);
+    mpz_realloc(mrb, &c, a->sz);
+    for (size_t i=a->sz-1;; i--) {
+      c.p[i] = ((a->p[i] >> n) | cc) & DIG_MASK;
+      cc = (a->p[i] & rm) << (DIG_SIZE - n);
       if (i == 0) break;
     }
     trim(&c);
@@ -522,31 +421,28 @@ urshift(mrb_state *mrb, struct RBigint *c1, struct RBigint *a, size_t n)
 /* c1 = a<<n */
 /* n must be < DIG_SIZE */
 static void
-ulshift(mrb_state *mrb, struct RBigint *c1, struct RBigint *a, size_t n)
+ulshift(mrb_state *mrb, mpz_t *c1, mpz_t *a, size_t n)
 {
   mrb_assert(n < DIG_SIZE);
   if (n == 0)
     mpz_set(mrb, c1, a);
   else if (uzero_p(a)) {
-    mpz_set_int(mrb, c1, 0);
+    zero(c1);
   }
   else {
     mp_limb cc = 0;
-    struct RBigint c;
+    mpz_t c;
     mp_limb rm = (((mp_dbl_limb)1<<n) - 1) << (DIG_SIZE-n);
-    size_t asz = RBIGINT_SIZE(a);
 
     mpz_init(mrb, &c);
-    mpz_realloc(mrb, &c, asz+1);
+    mpz_realloc(mrb, &c, a->sz+1);
 
-    const mp_limb *ap = RBIGINT_ARY(a);
-    mp_limb *cp = RBIGINT_ARY(&c);
     size_t i;
-    for (i=0; i<asz; i++) {
-      cp[i] = ((ap[i] << n) | cc) & DIG_MASK;
-      cc = (ap[i] & rm) >> (DIG_SIZE-n);
+    for (i=0; i<a->sz; i++) {
+      c.p[i] = ((a->p[i] << n) | cc) & DIG_MASK;
+      cc = (a->p[i] & rm) >> (DIG_SIZE-n);
     }
-    cp[i] = cc;
+    c.p[i] = cc;
     trim(&c);
     mpz_move(mrb, c1, &c);
   }
@@ -555,7 +451,7 @@ ulshift(mrb_state *mrb, struct RBigint *c1, struct RBigint *a, size_t n)
 /* internal routine to compute x/y and x%y ignoring signs */
 /* qq = xx/yy; rr = xx%yy */
 static void
-udiv(mrb_state *mrb, struct RBigint *qq, struct RBigint *rr, struct RBigint *xx, struct RBigint *yy)
+udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
 {
   /* simple cases */
   int cmp = ucmp(xx, yy);
@@ -570,59 +466,54 @@ udiv(mrb_state *mrb, struct RBigint *qq, struct RBigint *rr, struct RBigint *xx,
     return;
   }
 
-  struct RBigint q, x, y;
+  mpz_t q, x, y;
 
-  mrb_assert(RBIGINT_SIGN(yy) != 0);      /* divided by zero */
+  mrb_assert(yy->sn != 0);      /* divided by zero */
   mpz_init(mrb, &q);
   mpz_init(mrb, &x);
   mpz_init(mrb, &y);
-  mpz_realloc(mrb, &x, RBIGINT_SIZE(xx)+1);
+  mpz_realloc(mrb, &x, xx->sz+1);
   size_t yd = digits(yy);
-  size_t ns = lzb(RBIGINT_ARY(yy)[yd-1]);
+  size_t ns = lzb(yy->p[yd-1]);
   ulshift(mrb, &x, xx, ns);
   ulshift(mrb, &y, yy, ns);
   size_t xd = digits(&x);
   mpz_realloc(mrb, &q, xd);
-  mp_dbl_limb z = RBIGINT_ARY(&y)[yd-1];
+  mp_dbl_limb z = y.p[yd-1];
   if (xd>=yd) {
-    mp_limb *xp = RBIGINT_ARY(&x);
-    const mp_limb *yp = RBIGINT_ARY(&y);
-    mp_limb *qp = RBIGINT_ARY(&q);
     for (size_t j=xd-yd;; j--) {
       mp_dbl_limb_signed b=0;
       mp_dbl_limb qhat;
 
       if (j+yd == xd)
-        qhat = xp[j+yd-1] / z;
+        qhat = x.p[j+yd-1] / z;
       else
-        qhat = (((mp_dbl_limb)xp[j+yd] << DIG_SIZE) + xp[j+yd-1]) / z;
+        qhat = (((mp_dbl_limb)x.p[j+yd] << DIG_SIZE) + x.p[j+yd-1]) / z;
       if (qhat) {
         size_t i;
 
         for (i=0; i<yd; i++) {
-          mp_dbl_limb zz = qhat * yp[i];
-          mp_dbl_limb_signed u = LOW(b)+xp[i+j]-LOW(zz);
-          xp[i+j] = LOW(u);
+          mp_dbl_limb zz = qhat * y.p[i];
+          mp_dbl_limb_signed u = LOW(b)+x.p[i+j]-LOW(zz);
+          x.p[i+j] = LOW(u);
           b = HIGH(b) - HIGH(zz) + HIGH(u);
         }
-        if (xd > i+j) {
-          b += xp[i+j];
-        }
+        b += x.p[i+j];
       }
       for (; b!=0; qhat--) {
         mp_dbl_limb c = 0;
         for (size_t i=0; i<yd; i++) {
-          c += (mp_dbl_limb)xp[i+j] + (mp_dbl_limb)yp[i];
-          xp[i+j] = LOW(c);
+          c += (mp_dbl_limb)x.p[i+j] + (mp_dbl_limb)y.p[i];
+          x.p[i+j] = LOW(c);
           c = HIGH(c);
         }
         b += c;
       }
-      qp[j] = (mp_limb)qhat;
+      q.p[j] = (mp_limb)qhat;
       if (j == 0) break;
     }
   }
-  RBIGINT_SET_SIZE(&x, RBIGINT_SIZE(yy));
+  x.sz = yy->sz;
   urshift(mrb, rr, &x, ns);
   trim(&q);
   mpz_move(mrb, qq, &q);
@@ -631,10 +522,10 @@ udiv(mrb_state *mrb, struct RBigint *qq, struct RBigint *rr, struct RBigint *xx,
 }
 
 static void
-mpz_mdiv(mrb_state *mrb, struct RBigint *q, struct RBigint *x, struct RBigint *y)
+mpz_mdiv(mrb_state *mrb, mpz_t *q, mpz_t *x, mpz_t *y)
 {
-  struct RBigint r;
-  short sn1 = RBIGINT_SIGN(x), sn2 = RBIGINT_SIGN(y), qsign;
+  mpz_t r;
+  short sn1 = x->sn, sn2 = y->sn, qsign;
 
   if (zero_p(x)) {
     mpz_init_set_int(mrb, q, 0);
@@ -642,9 +533,9 @@ mpz_mdiv(mrb_state *mrb, struct RBigint *q, struct RBigint *x, struct RBigint *y
   }
   mpz_init(mrb, &r);
   udiv(mrb, q, &r, x, y);
-  RBIGINT_SET_SIGN(q, qsign = sn1*sn2);
+  qsign = q->sn = sn1*sn2;
   if (uzero_p(q))
-    RBIGINT_SET_SIGN(q, 0);
+    q->sn = 0;
   /* now if r != 0 and q < 0 we need to round q towards -inf */
   if (!uzero_p(&r) && qsign < 0)
     mpz_sub_int(mrb, q, q, 1);
@@ -652,10 +543,10 @@ mpz_mdiv(mrb_state *mrb, struct RBigint *q, struct RBigint *x, struct RBigint *y
 }
 
 static void
-mpz_mmod(mrb_state *mrb, struct RBigint *r, struct RBigint *x, struct RBigint *y)
+mpz_mmod(mrb_state *mrb, mpz_t *r, mpz_t *x, mpz_t *y)
 {
-  struct RBigint q;
-  short sn1 = RBIGINT_SIGN(x), sn2 = RBIGINT_SIGN(y), sn3;
+  mpz_t q;
+  short sn1 = x->sn, sn2 = y->sn, sn3;
 
   mpz_init(mrb, &q);
   if (sn1 == 0) {
@@ -665,26 +556,26 @@ mpz_mmod(mrb_state *mrb, struct RBigint *r, struct RBigint *x, struct RBigint *y
   udiv(mrb, &q, r, x, y);
   mpz_clear(mrb, &q);
   if (uzero_p(r)) {
-    RBIGINT_SET_SIGN(r, 0);
+    r->sn = 0;
     return;
   }
   sn3 = sn1*sn2;
   if (sn3 > 0)
-    RBIGINT_SET_SIGN(r, sn1);
+    r->sn = sn1;
   else if (sn1 < 0 && sn2 > 0) {
-    RBIGINT_SET_SIGN(r, 1);
+    r->sn = 1;
     mpz_sub(mrb, r, y, r);
   }
   else {
-    RBIGINT_SET_SIGN(r, 1);
+    r->sn = 1;
     mpz_add(mrb, r, y, r);
   }
 }
 
 static void
-mpz_mdivmod(mrb_state *mrb, struct RBigint *q, struct RBigint *r, struct RBigint *x, struct RBigint *y)
+mpz_mdivmod(mrb_state *mrb, mpz_t *q, mpz_t *r, mpz_t *x, mpz_t *y)
 {
-  short sn1 = RBIGINT_SIGN(x), sn2 = RBIGINT_SIGN(y), qsign;
+  short sn1 = x->sn, sn2 = y->sn, qsign;
 
   if (sn1 == 0) {
     zero(q);
@@ -692,34 +583,34 @@ mpz_mdivmod(mrb_state *mrb, struct RBigint *q, struct RBigint *r, struct RBigint
     return;
   }
   udiv(mrb, q, r, x, y);
-  RBIGINT_SET_SIGN(q, qsign = sn1*sn2);
+  qsign = q->sn = sn1*sn2;
   if (uzero_p(r)) {
     /* q != 0, since q=r=0 would mean x=0, which was tested above */
-    RBIGINT_SET_SIGN(r, 0);
+    r->sn = 0;
     return;
   }
-  if (RBIGINT_SIGN(q) > 0)
-    RBIGINT_SET_SIGN(r, sn1);
+  if (q->sn > 0)
+    r->sn = sn1;
   else if (sn1 < 0 && sn2 > 0) {
-    RBIGINT_SET_SIGN(r, 1);
+    r->sn = 1;
     mpz_sub(mrb, r, y, r);
   }
   else {
-    RBIGINT_SET_SIGN(r, 1);
+    r->sn = 1;
     mpz_add(mrb, r, y, r);
   }
   if (uzero_p(q))
-    RBIGINT_SET_SIGN(q, 0);
+    q->sn = 0;
   /* now if r != 0 and q < 0 we need to round q towards -inf */
   if (!uzero_p(r) && qsign < 0)
     mpz_sub_int(mrb, q, q, 1);
 }
 
 static void
-mpz_mod(mrb_state *mrb, struct RBigint *r, struct RBigint *x, struct RBigint *y)
+mpz_mod(mrb_state *mrb, mpz_t *r, mpz_t *x, mpz_t *y)
 {
-  struct RBigint q;
-  short sn = RBIGINT_SIGN(x);
+  mpz_t q;
+  short sn = x->sn;
 
   if (zero_p(x)) {
     zero(r);
@@ -727,48 +618,113 @@ mpz_mod(mrb_state *mrb, struct RBigint *r, struct RBigint *x, struct RBigint *y)
   }
   mpz_init(mrb, &q);
   udiv(mrb, &q, r, x, y);
-  RBIGINT_SET_SIGN(r, sn);
+  r->sn = sn;
   if (uzero_p(r))
-    RBIGINT_SET_SIGN(r, 0);
+    r->sn = 0;
   mpz_clear(mrb, &q);
 }
 
 static mrb_int
-mpz_cmp(mrb_state *mrb, struct RBigint *x, struct RBigint *y)
+mpz_cmp(mrb_state *mrb, mpz_t *x, mpz_t *y)
 {
-  if (RBIGINT_SIGN(x) < 0 && RBIGINT_SIGN(y) > 0)
+  if (x->sn < 0 && y->sn > 0)
     return (-1);
-  if (RBIGINT_SIGN(x) > 0 && RBIGINT_SIGN(y) < 0)
+  if (x->sn > 0 && y->sn < 0)
     return 1;
   int abscmp=ucmp(x, y);
-  if (RBIGINT_SIGN(x) >=0 && RBIGINT_SIGN(y) >=0)
+  if (x->sn >=0 && y->sn >=0)
     return abscmp;
-  return (-abscmp);          // if (RBIGINT_SIGN(x) <=0 && RBIGINT_SIGN(y) <=0)
+  return (-abscmp);          // if (x->sn <=0 && y->sn <=0)
 }
 
 /* 2<=base<=36 - this overestimates the optimal value, which is OK */
 static size_t
-mpz_sizeinbase(struct RBigint *x, mrb_int base)
+mpz_sizeinbase(mpz_t *x, mrb_int base)
 {
   size_t i, j;
 
   size_t bits = digits(x) * DIG_SIZE;
   mrb_assert(2 <= base && base <= 36);
 
-  if (zero_p(x) || RBIGINT_SIZE(x) == 0) return 0;
+  if (zero_p(x) || x->sz == 0) return 0;
   for (j=0,i=1; i<=(size_t)base; i*=2,j++)
     ;
   return bits/(j-1)+1;
 }
 
+/* x = y * n (only called from mpz_init_set_str) */
+/*   assumes x and n are positive or zero        */
+/*   assumes n is small (fits in mp_limb)        */
+static void
+mpz_mul_int(mrb_state *mrb, mpz_t *x, mrb_int n)
+{
+  if (n == 0 || zero_p(x)) {
+    zero(x);
+    return;
+  }
+
+  size_t x_sz = x->sz;
+  size_t new_sz = x_sz + 1; // Maximum possible size after multiplication
+
+  // Reallocate x if necessary
+  mpz_realloc(mrb, x, new_sz);
+
+  mp_dbl_limb cc = 0;
+  mp_limb n_limb = (mp_limb)n;
+
+  for (size_t i = 0; i < x_sz; i++) {
+    // Multiply each limb and add carry
+    cc += (mp_dbl_limb)x->p[i] * n_limb;
+    x->p[i] = LOW(cc);
+    cc = HIGH(cc);
+  }
+
+  if (cc) {
+    // If there is a remaining carry, store it
+    x->p[x_sz] = (mp_limb)cc;
+  } else {
+    x->sz = x_sz;
+  }
+
+  x->sn = 1;
+  trim(x);
+}
+
+/* x = y + n (only called from mpz_init_set_str) */
+/*   assumes x and n are positive or zero        */
+/*   assumes n is small (fits in mp_limb)        */
+static void
+mpz_add_int(mrb_state *mrb, mpz_t *x, mrb_int n)
+{
+  if (n == 0) {
+    // If n is zero, no operation is needed
+    return;
+  }
+
+  // Assume x is positive and n is a small positive integer (n < 36)
+  mp_dbl_limb carry = n; // Initialize carry with n
+  for (size_t i = 0; i < x->sz && carry; i++) {
+    carry += (mp_dbl_limb)x->p[i]; // Add current limb and carry
+    x->p[i] = LOW(carry);          // Store lower 32 bits in current limb
+    carry = HIGH(carry);           // Update carry with higher bits
+  }
+
+  if (carry != 0) {
+    mpz_realloc(mrb, x, x->sz + 1);
+    x->p[x->sz-1] = (mp_limb)carry;
+    x->sn = 1;
+  }
+  trim(x);
+}
+
 static int
-mpz_init_set_str(mrb_state *mrb, struct RBigint *x, const char *s, mrb_int len, mrb_int base)
+mpz_init_set_str(mrb_state *mrb, mpz_t *x, const char *s, mrb_int len, mrb_int base)
 {
   int retval = 0;
   short sn;
   uint8_t k;
+
   mpz_init(mrb, x);
-  zero(x);
   if (*s == '-') {
     sn = -1; s++;
   }
@@ -790,15 +746,15 @@ mpz_init_set_str(mrb_state *mrb, struct RBigint *x, const char *s, mrb_int len, 
       retval = (-1);
       break;
     }
-    mpz_mul_int(mrb, x, x, base);
-    mpz_add_int(mrb, x, x, k);
+    mpz_mul_int(mrb, x, base);
+    mpz_add_int(mrb, x, k);
   }
-  RBIGINT_SET_SIGN(x, sn);
+  x->sn = sn;
   return retval;
 }
 
 static char*
-mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, struct RBigint *x)
+mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
 {
   mrb_assert(2 <= base && base <= 36);
   if (zero_p(x)) {
@@ -818,9 +774,8 @@ mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, struct RBigint *x
     mp_dbl_limb value = 0;
     int bits = 0;
 
-    const mp_limb *xp = RBIGINT_ARY(x);
     for (int i = 0; i < xlen; i++) {
-      value |= (mp_dbl_limb)xp[i] << bits;
+      value |= (mp_dbl_limb)x->p[i] << bits;
       bits += DIG_SIZE;
       while (bits >= shift) {
         mp_limb digit = value & mask;
@@ -835,7 +790,7 @@ mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, struct RBigint *x
   else {
     mp_limb *t = (mp_limb*)mrb_malloc(mrb, xlen*sizeof(mp_limb));
     mp_limb *tend = t + xlen;
-    memcpy(t, RBIGINT_ARY(x), xlen*sizeof(mp_limb));
+    memcpy(t, x->p, xlen*sizeof(mp_limb));
     mp_limb b2 = (mp_limb)base;
     const int blim = (sizeof(mp_limb)<4)?(base<=10?4:3):(base<=10?9:5);
     for (int i=1; i<blim; i++) {
@@ -872,7 +827,7 @@ mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, struct RBigint *x
   }
 
   while (ps<s && s[-1]=='0') s--;
-  if (RBIGINT_SIGN(x) < 0) {
+  if (x->sn < 0) {
     *s++ = '-';
   }
 
@@ -887,7 +842,7 @@ mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, struct RBigint *x
 }
 
 static int
-mpz_get_int(struct RBigint *y, mrb_int *v)
+mpz_get_int(mpz_t *y, mrb_int *v)
 {
   if (zero_p(y)) {
     *v = 0;
@@ -895,11 +850,9 @@ mpz_get_int(struct RBigint *y, mrb_int *v)
   }
 
   mp_dbl_limb i = 0;
-  size_t ysz = RBIGINT_SIZE(y);
-  const mp_limb *yp = RBIGINT_ARY(y);
-  const mp_limb *d = yp + ysz;
+  mp_limb *d = y->p + y->sz;
 
-  while (d-- > yp) {
+  while (d-- > y->p) {
     if (HIGH(i) != 0) {
       /* will overflow */
       return FALSE;
@@ -910,7 +863,7 @@ mpz_get_int(struct RBigint *y, mrb_int *v)
     /* overflow */
     return FALSE;
   }
-  if (RBIGINT_SIGN(y) < 0) {
+  if (y->sn < 0) {
     *v = -(mrb_int)i;
   }
   else {
@@ -920,23 +873,20 @@ mpz_get_int(struct RBigint *y, mrb_int *v)
 }
 
 static void
-mpz_mul_2exp(mrb_state *mrb, struct RBigint *z, struct RBigint *x, mrb_int e)
+mpz_mul_2exp(mrb_state *mrb, mpz_t *z, mpz_t *x, mrb_int e)
 {
   if (e==0)
     mpz_set(mrb, z, x);
   else {
-    short sn = RBIGINT_SIGN(x);
+    short sn = x->sn;
     size_t digs = e / DIG_SIZE;
     size_t bs = e % DIG_SIZE;
-    size_t xsz = RBIGINT_SIZE(x);
-    struct RBigint y;
+    mpz_t y;
 
     mpz_init(mrb, &y);
-    mpz_realloc(mrb, &y, xsz+digs);
-    const mp_limb *xp = RBIGINT_ARY(x);
-    mp_limb *yp = RBIGINT_ARY(&y);
-    for (size_t i=0;i<xsz;i++)
-      yp[i+digs] = xp[i];
+    mpz_realloc(mrb, &y, x->sz+digs);
+    for (size_t i=0;i<x->sz;i++)
+      y.p[i+digs] = x->p[i];
     if (bs) {
       ulshift(mrb, z, &y, bs);
       mpz_clear(mrb, &y);
@@ -944,28 +894,25 @@ mpz_mul_2exp(mrb_state *mrb, struct RBigint *z, struct RBigint *x, mrb_int e)
     else {
       mpz_move(mrb, z, &y);
     }
-    RBIGINT_SET_SIGN(z, sn);
+    z->sn = sn;
   }
 }
 
 static void
-mpz_div_2exp(mrb_state *mrb, struct RBigint *z, struct RBigint *x, mrb_int e)
+mpz_div_2exp(mrb_state *mrb, mpz_t *z, mpz_t *x, mrb_int e)
 {
-  short sn = RBIGINT_SIGN(x);
+  short sn = x->sn;
   if (e==0)
     mpz_set(mrb, z, x);
   else {
     size_t digs = e / DIG_SIZE;
     size_t bs = e % DIG_SIZE;
-    size_t xsz = RBIGINT_SIZE(x);
-    struct RBigint y;
+    mpz_t y;
 
     mpz_init(mrb, &y);
-    mpz_realloc(mrb, &y, xsz-digs);
-    const mp_limb *xp = RBIGINT_ARY(x);
-    mp_limb *yp = RBIGINT_ARY(&y);
-    for (size_t i=0; i < xsz-digs; i++)
-      yp[i] = xp[i+digs];
+    mpz_realloc(mrb, &y, x->sz-digs);
+    for (size_t i=0; i < x->sz-digs; i++)
+      y.p[i] = x->p[i+digs];
     if (bs) {
       urshift(mrb, z, &y, bs);
       mpz_clear(mrb, &y);
@@ -974,58 +921,50 @@ mpz_div_2exp(mrb_state *mrb, struct RBigint *z, struct RBigint *x, mrb_int e)
       mpz_move(mrb, z, &y);
     }
     if (uzero_p(z))
-      RBIGINT_SET_SIGN(z, 0);
+      z->sn = 0;
     else {
-      RBIGINT_SET_SIGN(z, sn);
+      z->sn = sn;
     }
   }
 }
 
 static void
-mpz_neg(mrb_state *mrb, struct RBigint *x, struct RBigint *y)
+mpz_neg(mrb_state *mrb, mpz_t *x, mpz_t *y)
 {
   mpz_set(mrb, x, y);
-  RBIGINT_SET_SIGN(x, -RBIGINT_SIGN(y));
+  x->sn = -(y->sn);
 }
 
 #define make_2comp(v,c) do { v=~(v)+(c); c=((v)==0 && (c));} while (0)
 
 void
-mpz_and(mrb_state *mrb, struct RBigint *z, struct RBigint *x, struct RBigint *y)
+mpz_and(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
 {
   if (zero_p(x) || zero_p(y)) {
     zero(z);
     return;
   }
-  size_t xsz = RBIGINT_SIZE(x);
-  size_t ysz = RBIGINT_SIZE(y);
-  mrb_assert(xsz > 0 || ysz > 0);
+  mrb_assert(x->sz > 0 || y->sz > 0);
 
-  size_t max_sz = (xsz > ysz) ? xsz : ysz;
+  size_t max_sz = (x->sz > y->sz) ? x->sz : y->sz;
   mpz_realloc(mrb, z, max_sz);
-  RBIGINT_SET_SIGN(z, (RBIGINT_SIGN(x) == RBIGINT_SIGN(y)) ? RBIGINT_SIGN(x) : 1);
+  z->sn = (x->sn == y->sn) ? x->sn : 1;
 
-  const mp_limb *xp = RBIGINT_ARY(x);
-  const mp_limb *yp = RBIGINT_ARY(y);
-  mp_limb *zp = RBIGINT_ARY(z);
-  mrb_bool xneg = RBIGINT_SIGN(x) < 0;
-  mrb_bool yneg = RBIGINT_SIGN(y) < 0;
-  mrb_bool zneg = RBIGINT_SIGN(z) < 0;
   char c1 = 1, c2 = 1, c3 = 1;
   for (size_t i = 0; i < max_sz; i++) {
-    mp_limb xv = (i < xsz) ? xp[i] : 0;
-    mp_limb yv = (i < ysz) ? yp[i] : 0;
+    mp_limb xv = (i < x->sz) ? x->p[i] : 0;
+    mp_limb yv = (i < y->sz) ? y->p[i] : 0;
 
-    if (xneg) make_2comp(xv, c1);
-    if (yneg) make_2comp(yv, c2);
+    if (x->sn < 0) make_2comp(xv, c1);
+    if (y->sn < 0) make_2comp(yv, c2);
     mp_limb zv = xv & yv;
-    if (zneg) make_2comp(zv, c3);
-    zp[i] = zv;
+    if (z->sn < 0) make_2comp(zv, c3);
+    z->p[i] = zv;
   }
 }
 
 static void
-mpz_or(mrb_state *mrb, struct RBigint *z, struct RBigint *x, struct RBigint *y)  /* not the most efficient way to do this */
+mpz_or(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient way to do this */
 {
   if (zero_p(x)) {
     mpz_set(mrb, z, y);
@@ -1035,35 +974,27 @@ mpz_or(mrb_state *mrb, struct RBigint *z, struct RBigint *x, struct RBigint *y) 
     mpz_set(mrb, z, x);
     return;
   }
-  size_t xsz = RBIGINT_SIZE(x);
-  size_t ysz = RBIGINT_SIZE(y);
-  mrb_assert(xsz > 0 || ysz > 0);
+  mrb_assert(x->sz > 0 || y->sz > 0);
 
-  size_t max_sz = (xsz > ysz) ? xsz : ysz;
+  size_t max_sz = (x->sz > y->sz) ? x->sz : y->sz;
   mpz_realloc(mrb, z, max_sz);
-  RBIGINT_SET_SIGN(z, (RBIGINT_SIGN(x) == RBIGINT_SIGN(y)) ? RBIGINT_SIGN(x) : -1);
+  z->sn = (x->sn == y->sn) ? x->sn : -1;
 
-  const mp_limb *xp = RBIGINT_ARY(x);
-  const mp_limb *yp = RBIGINT_ARY(y);
-  mp_limb *zp = RBIGINT_ARY(z);
-  mrb_bool xneg = RBIGINT_SIGN(x) < 0;
-  mrb_bool yneg = RBIGINT_SIGN(y) < 0;
-  mrb_bool zneg = RBIGINT_SIGN(z) < 0;
   char c1 = 1, c2 = 1, c3 = 1;
   for (size_t i = 0; i < max_sz; i++) {
-    mp_limb xv = (i < xsz) ? xp[i] : 0;
-    mp_limb yv = (i < ysz) ? yp[i] : 0;
+    mp_limb xv = (i < x->sz) ? x->p[i] : 0;
+    mp_limb yv = (i < y->sz) ? y->p[i] : 0;
 
-    if (xneg) make_2comp(xv, c1);
-    if (yneg) make_2comp(yv, c2);
+    if (x->sn < 0) make_2comp(xv, c1);
+    if (y->sn < 0) make_2comp(yv, c2);
     mp_limb zv = xv | yv;
-    if (zneg) make_2comp(zv, c3);
-    zp[i] = zv;
+    if (z->sn < 0) make_2comp(zv, c3);
+    z->p[i] = zv;
   }
 }
 
 static void
-mpz_xor(mrb_state *mrb, struct RBigint *z, struct RBigint *x, struct RBigint *y)  /* not the most efficient way to do this */
+mpz_xor(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient way to do this */
 {
   if (zero_p(x)) {
     mpz_set(mrb, z, y);
@@ -1073,37 +1004,29 @@ mpz_xor(mrb_state *mrb, struct RBigint *z, struct RBigint *x, struct RBigint *y)
     mpz_set(mrb, z, x);
     return;
   }
-  size_t xsz = RBIGINT_SIZE(x);
-  size_t ysz = RBIGINT_SIZE(y);
-  mrb_assert(xsz > 0 || ysz > 0);
+  mrb_assert(x->sz > 0 || y->sz > 0);
 
-  size_t max_sz = (xsz > ysz) ? xsz : ysz;
+  size_t max_sz = (x->sz > y->sz) ? x->sz : y->sz;
   mpz_realloc(mrb, z, max_sz);
-  RBIGINT_SET_SIGN(z, (RBIGINT_SIGN(x) == RBIGINT_SIGN(y)) ? 1 : -1);
+  z->sn = (x->sn == y->sn) ? 1 : -1;
 
-  const mp_limb *xp = RBIGINT_ARY(x);
-  const mp_limb *yp = RBIGINT_ARY(y);
-  mp_limb *zp = RBIGINT_ARY(z);
-  mrb_bool xneg = RBIGINT_SIGN(x) < 0;
-  mrb_bool yneg = RBIGINT_SIGN(y) < 0;
-  mrb_bool zneg = RBIGINT_SIGN(z) < 0;
   char c1 = 1, c2 = 1, c3 = 1;
   for (size_t i = 0; i < max_sz; i++) {
-    mp_limb xv = (i < xsz) ? xp[i] : 0;
-    mp_limb yv = (i < ysz) ? yp[i] : 0;
+    mp_limb xv = (i < x->sz) ? x->p[i] : 0;
+    mp_limb yv = (i < y->sz) ? y->p[i] : 0;
 
-    if (xneg) make_2comp(xv, c1);
-    if (yneg) make_2comp(yv, c2);
+    if (x->sn < 0) make_2comp(xv, c1);
+    if (y->sn < 0) make_2comp(yv, c2);
     mp_limb zv = xv ^ yv;
-    if (zneg) make_2comp(zv, c3);
-    zp[i] = zv;
+    if (z->sn < 0) make_2comp(zv, c3);
+    z->p[i] = zv;
   }
 }
 
 static void
-mpz_pow(mrb_state *mrb, struct RBigint *zz, struct RBigint *x, mrb_int e)
+mpz_pow(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int e)
 {
-  struct RBigint t;
+  mpz_t t;
   mrb_uint mask = 1ULL<<(sizeof(mrb_int)*8-1);
 
   if (e==0) {
@@ -1125,24 +1048,24 @@ mpz_pow(mrb_state *mrb, struct RBigint *zz, struct RBigint *x, mrb_int e)
 }
 
 static void
-mpz_powm(mrb_state *mrb, struct RBigint *zz, struct RBigint *x, struct RBigint *ex, struct RBigint *n)
+mpz_powm(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
 {
   if (zero_p(ex)) {
     mpz_set_int(mrb, zz, 1);
     return;
   }
 
-  if (RBIGINT_SIGN(ex) < 0) {
+  if (ex->sn < 0) {
     return;
   }
 
-  struct RBigint t, b;
+  mpz_t t, b;
   mpz_init_set_int(mrb, &t, 1);
   mpz_init_set(mrb, &b, x);
 
   size_t len = digits(ex);
   for (size_t i=0; i<len; i++) {
-    mp_limb e = RBIGINT_ARY(ex)[i];
+    mp_limb e = ex->p[i];
     for (size_t j=0; j<sizeof(mp_limb)*8; j++) {
       if ((e & 1) == 1) {
         mpz_mul(mrb, &t, &t, &b);
@@ -1158,7 +1081,7 @@ mpz_powm(mrb_state *mrb, struct RBigint *zz, struct RBigint *x, struct RBigint *
 }
 
 static void
-mpz_powm_i(mrb_state *mrb, struct RBigint *zz, struct RBigint *x, mrb_int ex, struct RBigint *n)
+mpz_powm_i(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int ex, mpz_t *n)
 {
   if (ex == 0) {
     mpz_set_int(mrb, zz, 1);
@@ -1169,7 +1092,7 @@ mpz_powm_i(mrb_state *mrb, struct RBigint *zz, struct RBigint *x, mrb_int ex, st
     return;
   }
 
-  struct RBigint t, b;
+  mpz_t t, b;
   mpz_init_set_int(mrb, &t, 1);
   mpz_init_set(mrb, &b, x);
 
@@ -1188,23 +1111,23 @@ mpz_powm_i(mrb_state *mrb, struct RBigint *zz, struct RBigint *x, mrb_int ex, st
 
 #ifdef MRB_USE_RATIONAL
 static void
-mpz_abs(mrb_state *mrb, struct RBigint *x, struct RBigint *y)
+mpz_abs(mrb_state *mrb, mpz_t *x, mpz_t *y)
 {
   mpz_init_set(mrb, x, y);
-  if (RBIGINT_SIGN(y) == 0)
-    RBIGINT_SET_SIGN(x, 0);
+  if (zero_p(y))
+    x->sn = 0;
   else
-    RBIGINT_SET_SIGN(x, 1);
+    x->sn = 1;
 }
 
 static void
-mpz_gcd(mrb_state *mrb, struct RBigint *gg, struct RBigint *aa, struct RBigint *bb)
+mpz_gcd(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
 {
-  struct RBigint a, b, t;
+  mpz_t a, b, t;
   mpz_abs(mrb, &a, aa); mpz_abs(mrb, &b, bb);
   mpz_init(mrb, &t);
 
-  while (RBIGINT_SIGN(&b) != 0) {
+  while (b.sn != 0) {
     mpz_mod(mrb, &t, &a, &b);
     mpz_set(mrb, &a, &b);
     mpz_set(mrb, &b, &t);
@@ -1217,20 +1140,39 @@ mpz_gcd(mrb_state *mrb, struct RBigint *gg, struct RBigint *aa, struct RBigint *
 #endif
 
 /* --- mruby functions --- */
+/* initialize mpz_t from RBigint (not need to clear) */
+static void
+bint_as_mpz(struct RBigint *b, mpz_t *x)
+{
+  x->p = RBIGINT_ARY(b);
+  x->sz = RBIGINT_SIZE(b);
+  x->sn = RBIGINT_SIGN(b);
+}
+
 static struct RBigint*
-bint_new(mrb_state *mrb)
+bint_new(mrb_state *mrb, mpz_t *x)
 {
   struct RBigint *b = MRB_OBJ_ALLOC(mrb, MRB_TT_BIGINT, mrb->integer_class);
-  mpz_init(mrb, b);
+  if (x->sz <= RBIGINT_EMBED_SIZE_MAX) {
+    RBIGINT_SET_EMBED_SIZE(b, x->sz);
+    RBIGINT_SET_EMBED_SIGN(b, x->sn);
+    memcpy(RBIGINT_EMBED_ARY(b), x->p, x->sz*sizeof(mp_limb));
+    mpz_clear(mrb, x);
+  }
+  else {
+    RBIGINT_SET_HEAP(b);
+    b->as.heap = *x;
+  }
   return b;
 }
 
 static struct RBigint*
-bint_new_int(mrb_state *mrb, mrb_int x)
+bint_new_int(mrb_state *mrb, mrb_int n)
 {
-  struct RBigint *b = MRB_OBJ_ALLOC(mrb, MRB_TT_BIGINT, mrb->integer_class);
-  mpz_init_set_int(mrb, b, x);
-  return b;
+  mpz_t x;
+
+  mpz_init_set_int(mrb, &x, n);
+  return bint_new(mrb, &x);
 }
 
 mrb_value
@@ -1242,38 +1184,40 @@ mrb_bint_new_int(mrb_state *mrb, mrb_int x)
 
 #ifdef MRB_INT32
 mrb_value
-mrb_bint_new_int64(mrb_state *mrb, int64_t x)
+mrb_bint_new_int64(mrb_state *mrb, int64_t n)
 {
-  struct RBigint *b = bint_new(mrb);
-  mpz_init(mrb, b);
-  mpz_set_int64(mrb, b, x);
-  return mrb_obj_value(b);
+  mpz_t x;
+  mpz_set_int64(mrb, &x, n);
+  return bint_new(mrb, &x);
 }
 #endif
 
 mrb_value
 mrb_bint_new_uint64(mrb_state *mrb, uint64_t x)
 {
-  struct RBigint *b = bint_new(mrb);
-  mpz_init(mrb, b);
-  mpz_set_uint64(mrb, b, x);
+  mpz_t z;
+  mpz_init(mrb, &z);
+  mpz_set_uint64(mrb, &z, x);
+  struct RBigint *b = bint_new(mrb ,&z);
   return mrb_obj_value(b);
 }
 
 mrb_value
 mrb_bint_new_str(mrb_state *mrb, const char *x, mrb_int len, mrb_int base)
 {
-  struct RBigint *b = MRB_OBJ_ALLOC(mrb, MRB_TT_BIGINT, mrb->integer_class);
+  mpz_t z;
+
   int sn = 1;
   if (base < 0) {
     base = -base;
     sn = -1;
   }
   mrb_assert(2 <= base && base <= 36);
-  mpz_init_set_str(mrb, b, x, len, base);
+  mpz_init_set_str(mrb, &z, x, len, base);
   if (sn < 0) {
-    RBIGINT_SET_SIGN(b, sn);
+    z.sn = sn;
   }
+  struct RBigint *b = bint_new(mrb, &z);
   return mrb_obj_value(b);
 }
 
@@ -1281,8 +1225,10 @@ static mrb_value
 bint_norm(mrb_state *mrb, struct RBigint *b)
 {
   mrb_int i;
+  mpz_t a;
 
-  if (mpz_get_int(b, &i)) {
+  bint_as_mpz(b, &a);
+  if (mpz_get_int(&a, &i)) {
     return mrb_int_value(mrb, i);
   }
   return mrb_obj_value(b);
@@ -1292,7 +1238,9 @@ void
 mrb_gc_free_bint(mrb_state *mrb, struct RBasic *x)
 {
   struct RBigint *b = (struct RBigint*)x;
-  mpz_clear(mrb, b);
+  if (!RBIGINT_EMBED_P(b)) {
+    mpz_clear(mrb, &b->as.heap);
+  }
 }
 
 #ifndef MRB_NO_FLOAT
@@ -1318,20 +1266,19 @@ mrb_bint_new_float(mrb_state *mrb, mrb_float x)
     return mrb_fixnum_value(0);
   }
 
-  struct RBigint *bint = bint_new(mrb);
-  struct RBigint *r = bint;
-  RBIGINT_SET_SIGN(r, sn);
+  mpz_t r;
+  mpz_init(mrb, &r);
+  r.sn = sn;
 
   mrb_float b = (double)DIG_BASE;
   mrb_float bi = 1.0 / b;
   size_t rn;
-  mp_limb *rp;
 
   for (rn = 1; x >= b; rn++)
     x *= bi;
 
-  mpz_realloc(mrb, r, rn);
-  rp = RBIGINT_ARY(r);
+  mpz_realloc(mrb, &r, rn);
+  mp_limb *rp = r.p;
   for (size_t i=rn-1;;i--) {
     mp_limb f = LOW((mp_limb)x);
     x -= f;
@@ -1339,22 +1286,23 @@ mrb_bint_new_float(mrb_state *mrb, mrb_float x)
     rp[i] = f;
     if (i == 0) break;
   }
-  return bint_norm(mrb, bint);
+  return bint_norm(mrb, bint_new(mrb, &r));
 }
 
 mrb_float
 mrb_bint_as_float(mrb_state *mrb, mrb_value self)
 {
-  struct RBigint *b = RBIGINT(self);
-  struct RBigint *i = b;
-  mp_limb *d = RBIGINT_ARY(i) + RBIGINT_SIZE(i);
+  mpz_t m;
+  bint_as_mpz(RBIGINT(self), &m);
+
+  mp_limb *d = m.p + m.sz;
   mrb_float val = 0;
 
-  while (d-- > RBIGINT_ARY(i)) {
+  while (d-- > m.p) {
     val = val * DIG_BASE + *d;
   }
 
-  if (RBIGINT_SIGN(i) < 0) {
+  if (m.sn < 0) {
     val = -val;
   }
   return val;
@@ -1371,10 +1319,11 @@ mrb_as_bint(mrb_state *mrb, mrb_value x)
 mrb_int
 mrb_bint_as_int(mrb_state *mrb, mrb_value x)
 {
-  struct RBigint *b = RBIGINT(x);
+  mpz_t m;
   mrb_int i;
 
-  if (!mpz_get_int(b, &i)) {
+  bint_as_mpz(RBIGINT(x), &m);
+  if (!mpz_get_int(&m, &i)) {
     mrb_raise(mrb, E_RANGE_ERROR, "integer out of range");
   }
   return i;
@@ -1384,10 +1333,11 @@ mrb_bint_as_int(mrb_state *mrb, mrb_value x)
 int64_t
 mrb_bint_as_int64(mrb_state *mrb, mrb_value x)
 {
-  struct RBigint *b = RBIGINT(x);
-  struct RBigint *m = b;
+  mpz_t m;
+  bint_as_mpz(RBIGINT(x), &m);
+
   uint64_t u = 0;
-  size_t len = digits(m);
+  size_t len = digits(&m);
 
   if (len*sizeof(mp_limb) > sizeof(uint64_t)) {
   out_of_range:
@@ -1395,11 +1345,11 @@ mrb_bint_as_int64(mrb_state *mrb, mrb_value x)
   }
   for (size_t i=len-1; ; i--) {
     u <<= DIG_SIZE;
-    u |= RBIGINT_ARY(m)[i];
+    u |= m.p[i];
     if (i==0) break;
   }
   if (u > INT64_MAX) goto out_of_range;
-  if (RBIGINT_SIGN(m) < 0) return -(int64_t)u;
+  if (m.sn < 0) return -(int64_t)u;
   return (int64_t)u;
 }
 #endif
@@ -1407,17 +1357,18 @@ mrb_bint_as_int64(mrb_state *mrb, mrb_value x)
 uint64_t
 mrb_bint_as_uint64(mrb_state *mrb, mrb_value x)
 {
-  struct RBigint *b = RBIGINT(x);
-  struct RBigint *m = b;
-  uint64_t u = 0;
-  size_t len = digits(m);
+  mpz_t m;
+  bint_as_mpz(RBIGINT(x), &m);
 
-  if (RBIGINT_SIGN(m) < 0 || len*sizeof(mp_limb) > sizeof(uint64_t)) {
+  uint64_t u = 0;
+  size_t len = digits(&m);
+
+  if (m.sn < 0 || len*sizeof(mp_limb) > sizeof(uint64_t)) {
     mrb_raise(mrb, E_RANGE_ERROR, "integer out of range");
   }
   for (size_t i=len-1; ; i--) {
     u <<= DIG_SIZE;
-    u |= RBIGINT_ARY(m)[i];
+    u |= m.p[i];
     if (i==0) break;
   }
   return u;
@@ -1427,12 +1378,15 @@ mrb_bint_as_uint64(mrb_state *mrb, mrb_value x)
 mrb_value
 mrb_bint_add_n(mrb_state *mrb, mrb_value x, mrb_value y)
 {
+  mpz_t a, b, z;
+
   y = mrb_as_bint(mrb, y);
-  struct RBigint *b = RBIGINT(x);
-  struct RBigint *b2 = RBIGINT(y);
-  struct RBigint *b3 = bint_new(mrb);
-  mpz_add(mrb, b3, b, b2);
-  return mrb_obj_value(b3);
+  bint_as_mpz(RBIGINT(x), &a);
+  bint_as_mpz(RBIGINT(y), &b);
+  mpz_init(mrb, &z);
+  mpz_add(mrb, &z, &a, &b);
+  struct RBigint *v = bint_new(mrb, &z);
+  return mrb_obj_value(v);
 }
 
 mrb_value
@@ -1453,12 +1407,15 @@ mrb_bint_add(mrb_state *mrb, mrb_value x, mrb_value y)
 mrb_value
 mrb_bint_sub_n(mrb_state *mrb, mrb_value x, mrb_value y)
 {
+  mpz_t a, b, z;
+
   y = mrb_as_bint(mrb, y);
-  struct RBigint *b = RBIGINT(x);
-  struct RBigint *b2 = RBIGINT(y);
-  struct RBigint *b3 = bint_new(mrb);
-  mpz_sub(mrb, b3, b, b2);
-  return mrb_obj_value(b3);
+  bint_as_mpz(RBIGINT(x), &a);
+  bint_as_mpz(RBIGINT(y), &b);
+  mpz_init(mrb, &z);
+  mpz_sub(mrb, &z, &a, &b);
+  struct RBigint *v = bint_new(mrb, &z);
+  return mrb_obj_value(v);
 }
 
 mrb_value
@@ -1478,12 +1435,14 @@ mrb_bint_sub(mrb_state *mrb, mrb_value x, mrb_value y)
 static struct RBigint*
 bint_mul(mrb_state *mrb, mrb_value x, mrb_value y)
 {
+  mpz_t a, b, z;
+
   y = mrb_as_bint(mrb, y);
-  struct RBigint *b = RBIGINT(x);
-  struct RBigint *b2 = RBIGINT(y);
-  struct RBigint *b3 = bint_new(mrb);
-  mpz_mul(mrb, b3, b, b2);
-  return b3;
+  bint_as_mpz(RBIGINT(x), &a);
+  bint_as_mpz(RBIGINT(y), &b);
+  mpz_init(mrb, &z);
+  mpz_mul(mrb, &z, &a, &b);
+  return bint_new(mrb, &z);
 }
 
 mrb_value
@@ -1524,57 +1483,59 @@ mrb_bint_div(mrb_state *mrb, mrb_value x, mrb_value y)
     return mrb_float_value(mrb,v1*v2);
   }
 #endif
+  mpz_t a, b, z;
+
   y = mrb_as_bint(mrb, y);
-  struct RBigint *b = RBIGINT(x);
-  struct RBigint *b2 = RBIGINT(y);
-  struct RBigint *b3 = bint_new(mrb);
-  if (zero_p(b2)) {
+  bint_as_mpz(RBIGINT(y), &b);
+  if (zero_p(&b)) {
     mrb_int_zerodiv(mrb);
   }
-  mpz_mdiv(mrb, b3, b, b2);
-  return bint_norm(mrb, b3);
+  bint_as_mpz(RBIGINT(x), &a);
+  mpz_init(mrb, &z);
+  mpz_mdiv(mrb, &z, &a, &b);
+  return bint_norm(mrb, bint_new(mrb, &z));
 }
 
 mrb_value
 mrb_bint_add_ii(mrb_state *mrb, mrb_int x, mrb_int y)
 {
-  struct RBigint *b = bint_new(mrb);
-  struct RBigint z1, z2;
+  mpz_t a, b, z;
 
-  mpz_init_set_int(mrb, &z1, x);
-  mpz_init_set_int(mrb, &z2, y);
-  mpz_add(mrb, b, &z1, &z2);
-  mpz_clear(mrb, &z1);
-  mpz_clear(mrb, &z2);
-  return bint_norm(mrb, b);
+  mpz_init_set_int(mrb, &a, x);
+  mpz_init_set_int(mrb, &b, y);
+  mpz_init(mrb, &z);
+  mpz_add(mrb, &z, &a, &b);
+  mpz_clear(mrb, &a);
+  mpz_clear(mrb, &b);
+  return bint_norm(mrb, bint_new(mrb, &z));
 }
 
 mrb_value
 mrb_bint_sub_ii(mrb_state *mrb, mrb_int x, mrb_int y)
 {
-  struct RBigint *b = bint_new(mrb);
-  struct RBigint z1, z2;
+  mpz_t a, b, z;
 
-  mpz_init_set_int(mrb, &z1, x);
-  mpz_init_set_int(mrb, &z2, y);
-  mpz_sub(mrb, b, &z1, &z2);
-  mpz_clear(mrb, &z1);
-  mpz_clear(mrb, &z2);
-  return bint_norm(mrb, b);
+  mpz_init_set_int(mrb, &a, x);
+  mpz_init_set_int(mrb, &b, y);
+  mpz_init(mrb, &z);
+  mpz_sub(mrb, &z, &a, &b);
+  mpz_clear(mrb, &a);
+  mpz_clear(mrb, &b);
+  return bint_norm(mrb, bint_new(mrb, &z));
 }
 
 mrb_value
 mrb_bint_mul_ii(mrb_state *mrb, mrb_int x, mrb_int y)
 {
-  struct RBigint *b = bint_new(mrb);
-  struct RBigint z1, z2;
+  mpz_t a, b, z;
 
-  mpz_init_set_int(mrb, &z1, x);
-  mpz_init_set_int(mrb, &z2, y);
-  mpz_mul(mrb, b, &z1, &z2);
-  mpz_clear(mrb, &z1);
-  mpz_clear(mrb, &z2);
-  return bint_norm(mrb, b);
+  mpz_init_set_int(mrb, &a, x);
+  mpz_init_set_int(mrb, &b, y);
+  mpz_init(mrb, &z);
+  mpz_mul(mrb, &z, &a, &b);
+  mpz_clear(mrb, &a);
+  mpz_clear(mrb, &b);
+  return bint_norm(mrb, bint_new(mrb, &z));
 }
 
 mrb_value
@@ -1590,15 +1551,16 @@ mrb_bint_mod(mrb_state *mrb, mrb_value x, mrb_value y)
   if (mrb_integer_p(y) && mrb_integer(y) == 0) {
     mrb_int_zerodiv(mrb);
   }
+  mpz_t a, b, z;
   y = mrb_as_bint(mrb, y);
-  struct RBigint *b = RBIGINT(x);
-  struct RBigint *b2 = RBIGINT(y);
-  struct RBigint *b3 = bint_new(mrb);
-  if (zero_p(b2)) {
+  bint_as_mpz(RBIGINT(y), &b);
+  if (zero_p(&b)) {
     mrb_int_zerodiv(mrb);
   }
-  mpz_mmod(mrb, b3, b, b2);
-  return bint_norm(mrb, b3);
+  bint_as_mpz(RBIGINT(x), &a);
+  mpz_init(mrb, &z);
+  mpz_mmod(mrb, &z, &a, &b);
+  return bint_norm(mrb, bint_new(mrb, &z));
 }
 
 mrb_value
@@ -1609,15 +1571,16 @@ mrb_bint_rem(mrb_state *mrb, mrb_value x, mrb_value y)
   if (mrb_integer_p(y) && mrb_integer(y) == 0) {
     mrb_int_zerodiv(mrb);
   }
+  mpz_t a, b, z;
   y = mrb_as_bint(mrb, y);
-  struct RBigint *b = RBIGINT(x);
-  struct RBigint *b2 = RBIGINT(y);
-  struct RBigint *b3 = bint_new(mrb);
-  if (zero_p(b2)) {
+  bint_as_mpz(RBIGINT(y), &b);
+  if (zero_p(&b)) {
     mrb_int_zerodiv(mrb);
   }
-  mpz_mod(mrb, b3, b, b2);
-  return bint_norm(mrb, b3);
+  bint_as_mpz(RBIGINT(x), &a);
+  mpz_init(mrb, &z);
+  mpz_mod(mrb, &z, &a, &b);
+  return bint_norm(mrb, bint_new(mrb, &z));
 }
 
 mrb_value
@@ -1629,17 +1592,16 @@ mrb_bint_divmod(mrb_state *mrb, mrb_value x, mrb_value y)
     mrb_int_zerodiv(mrb);
   }
   y = mrb_as_bint(mrb, y);
-  struct RBigint *b = RBIGINT(x);
-  struct RBigint *b2 = RBIGINT(y);
-  struct RBigint *b3 = bint_new(mrb);
-  struct RBigint *b4 = bint_new(mrb);
-  if (zero_p(b2)) {
+  mpz_t a, b, c, d;
+  bint_as_mpz(RBIGINT(y), &b);
+  if (zero_p(&b)) {
     mrb_int_zerodiv(mrb);
   }
-  mpz_mdivmod(mrb, b3, b4, b, b2);
-  x = bint_norm(mrb, b3);
-  y = bint_norm(mrb, b4);
-  return mrb_assoc_new(mrb, x, y);
+  bint_as_mpz(RBIGINT(x), &a);
+  mpz_init(mrb, &c);
+  mpz_init(mrb, &d);
+  mpz_mdivmod(mrb, &c, &d, &a, &b);
+  return mrb_assoc_new(mrb, bint_norm(mrb, bint_new(mrb, &c)), bint_norm(mrb, bint_new(mrb, &d)));
 }
 
 mrb_int
@@ -1654,89 +1616,96 @@ mrb_bint_cmp(mrb_state *mrb, mrb_value x, mrb_value y)
     return -1;
   }
 #endif
-  struct RBigint *b = RBIGINT(x);
+  mpz_t a;
+
+  bint_as_mpz(RBIGINT(x), &a);
   if (!mrb_bigint_p(y)) {
     if (!mrb_integer_p(y)) return -2; /* type mismatch */
 
     mrb_int i1, i2 = mrb_integer(y);
-    if (mpz_get_int(b, &i1)) {
+    if (mpz_get_int(&a, &i1)) {
       if (i1 == i2) return 0;
       if (i1 > i2) return 1;
       return -1;
     }
-    if (RBIGINT_SIGN(b) > 0) return 1;
+    if (a.sn > 0) return 1;
     return -1;
   }
-  struct RBigint *b2 = RBIGINT(y);
-  return mpz_cmp(mrb, b, b2);
+  mpz_t b;
+  bint_as_mpz(RBIGINT(y), &b);
+  return mpz_cmp(mrb, &a, &b);
 }
 
 mrb_value
 mrb_bint_pow(mrb_state *mrb, mrb_value x, mrb_value y)
 {
-  struct RBigint *b = RBIGINT(x);
+  mpz_t a;
+
+  bint_as_mpz(RBIGINT(x), &a);
   switch (mrb_type(y)) {
   case MRB_TT_INTEGER:
-    {
-      struct RBigint *b3 = bint_new(mrb);
-      mpz_pow(mrb, b3, b, mrb_integer(y));
-      return mrb_obj_value(b3);
-    }
+    break;
   case MRB_TT_BIGINT:
     mrb_raise(mrb, E_TYPE_ERROR, "too big power");
   default:
     mrb_raisef(mrb, E_TYPE_ERROR, "%Y cannot be convert to integer", y);
   }
-  return mrb_nil_value();
+
+  mpz_t z;
+  mpz_init(mrb, &z);
+  mpz_pow(mrb, &z, &a, mrb_integer(y));
+
+  struct RBigint *b = bint_new(mrb, &z);
+  return mrb_obj_value(b);
 }
 
 mrb_value
 mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_value exp, mrb_value mod)
 {
-  struct RBigint *b = RBIGINT(x);
-  struct RBigint *b2, *b3;
+  mpz_t a, b, c, z;
 
+  bint_as_mpz(RBIGINT(x), &a);
   if (mrb_bigint_p(mod)) {
-    b2 = RBIGINT(mod);
-    if (zero_p(b2)) mrb_int_zerodiv(mrb);
+    bint_as_mpz(RBIGINT(mod), &c);
+    if (zero_p(&c)) mrb_int_zerodiv(mrb);
   }
   else {
     mrb_int m = mrb_integer(mod);
     if (m == 0) mrb_int_zerodiv(mrb);
-    b2 = bint_new_int(mrb, m);
+    mpz_init_set_int(mrb, &c, m);
   }
-  b3 = bint_new(mrb);
+  mpz_init(mrb, &z);
   if (mrb_bigint_p(exp)) {
-    struct RBigint *be = RBIGINT(exp);
-    if (RBIGINT_SIGN(be) < 0) {
+    bint_as_mpz(RBIGINT(exp), &b);
+    if (b.sn < 0) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "int.pow(n,m): n must be positive");
     }
-    mpz_powm(mrb, b3, b, be, b2);
+    mpz_powm(mrb, &z, &a, &b, &c);
   }
   else {
     mrb_int e = mrb_integer(exp);
     if (e < 0) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "int.pow(n,m): n must be positive");
     }
-    mpz_powm_i(mrb, b3, b, e, b2);
+    mpz_powm_i(mrb, &z, &a, e, &c);
   }
-  return bint_norm(mrb, b3);
+  return bint_norm(mrb, bint_new(mrb, &z));
 }
 
 mrb_value
 mrb_bint_to_s(mrb_state *mrb, mrb_value x, mrb_int base)
 {
-  struct RBigint *b = RBIGINT(x);
-
-  if (zero_p(b) || RBIGINT_SIZE(b) == 0)
+  mpz_t a;
+  bint_as_mpz(RBIGINT(x), &a);
+  if (zero_p(&a) || a.sz == 0)
     return mrb_str_new_lit(mrb, "0");
 
-  size_t len = mpz_sizeinbase(b, (int)base);
+  size_t len = mpz_sizeinbase(&a, (int)base);
   if (MRB_INT_MAX-2 < len) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "too long string from Integer");
   }
   mrb_value str = mrb_str_new(mrb, NULL, len+2);
-  mpz_get_str(mrb, RSTRING_PTR(str), len, base, b);
+  mpz_get_str(mrb, RSTRING_PTR(str), len, base, &a);
   RSTR_SET_LEN(RSTRING(str), strlen(RSTRING_PTR(str)));
   return str;
 }
@@ -1744,65 +1713,72 @@ mrb_bint_to_s(mrb_state *mrb, mrb_value x, mrb_int base)
 mrb_value
 mrb_bint_and(mrb_state *mrb, mrb_value x, mrb_value y)
 {
-  struct RBigint *b1 = RBIGINT(x);
+  mpz_t a;
 
+  bint_as_mpz(RBIGINT(x), &a);
   if (mrb_integer_p(y)) {
     mrb_int z = mrb_integer(y);
     if (z == 0) return mrb_fixnum_value(0);
     if (z > 0 && (mp_dbl_limb)z < DIG_BASE) {
-      z &= RBIGINT_ARY(b1)[0];
+      z &= a.p[0];
       return mrb_int_value(mrb, z);
     }
     if (z == -1) return x;
     if (z < 0 && (mp_dbl_limb)-z < DIG_BASE) {
-      struct RBigint *b3 = bint_new(mrb);
-      mpz_set(mrb, b3, b1);
-      RBIGINT_ARY(b3)[0] &= (mp_limb)z;
-      return bint_norm(mrb, b3);
+      mpz_t b;
+      mpz_init(mrb, &b);
+      mpz_set(mrb, &b, &a);
+      b.p[0] &= (mp_limb)z;
+      return bint_norm(mrb, bint_new(mrb, &b));
     }
   }
   y = mrb_as_bint(mrb, y);
-  struct RBigint *b2 = RBIGINT(y);
-  struct RBigint *b3 = bint_new(mrb);
-  mpz_and(mrb, b3, b1, b2);
-  return bint_norm(mrb, b3);
+  mpz_t b, z;
+  bint_as_mpz(RBIGINT(y), &b);
+  mpz_init(mrb, &z);
+  mpz_and(mrb, &z, &a, &b);
+  return bint_norm(mrb, bint_new(mrb, &z));
 }
 
 mrb_value
 mrb_bint_or(mrb_state *mrb, mrb_value x, mrb_value y)
 {
-  struct RBigint *b1 = RBIGINT(x);
-
+  mpz_t a;
+  bint_as_mpz(RBIGINT(x), &a);
   if (mrb_integer_p(y)) {
     mrb_int z = mrb_integer(y);
     if (z == 0) return x;
     if (z == -1) return y;
     if (z > 0 && (mp_dbl_limb)z < DIG_BASE) {
-      z |= RBIGINT_ARY(b1)[0];
+      z |= a.p[0];
       return mrb_int_value(mrb, z);
     }
     if (z < 0 && (mp_dbl_limb)-z < DIG_BASE) {
-      struct RBigint *b3 = bint_new(mrb);
-      mpz_set(mrb, b3, b1);
-      RBIGINT_ARY(b3)[0] |= (mp_limb)z;
-      return bint_norm(mrb, b3);
+      mpz_t b;
+      mpz_init(mrb, &b);
+      mpz_set(mrb, &b, &a);
+      b.p[0] |= (mp_limb)z;
+      return bint_norm(mrb, bint_new(mrb, &b));
     }
   }
 
   y = mrb_as_bint(mrb, y);
-  struct RBigint *b2 = RBIGINT(y);
-  struct RBigint *b3 = bint_new(mrb);
-  mpz_or(mrb, b3, b1, b2);
-  return bint_norm(mrb, b3);
+  mpz_t b, c;
+  bint_as_mpz(RBIGINT(y), &b);
+  mpz_init(mrb, &c);
+  mpz_or(mrb, &c, &b, &a);
+  return bint_norm(mrb, bint_new(mrb, &c));
 }
 
 mrb_value
 mrb_bint_neg(mrb_state *mrb, mrb_value x)
 {
-  struct RBigint *b1 = RBIGINT(x);
-  struct RBigint *b2 = bint_new(mrb);
+  mpz_t a, b;
 
-  mpz_neg(mrb, b2, b1);
+  bint_as_mpz(RBIGINT(x), &a);
+  mpz_init(mrb, &b);
+  mpz_neg(mrb, &b, &a);
+  struct RBigint *b2 = bint_new(mrb, &b);
   /* no normalization */
   return mrb_obj_value(b2);
 }
@@ -1810,85 +1786,95 @@ mrb_bint_neg(mrb_state *mrb, mrb_value x)
 mrb_value
 mrb_bint_xor(mrb_state *mrb, mrb_value x, mrb_value y)
 {
-  struct RBigint *b1 = RBIGINT(x);
+  mpz_t a;
 
+  bint_as_mpz(RBIGINT(x), &a);
   if (mrb_integer_p(y)) {
     mrb_int z = mrb_integer(y);
     if (z == 0) return x;
-    // if (z == -1) return ;
     if (0 < z && (mp_dbl_limb)z < DIG_BASE) {
-      z ^= RBIGINT_ARY(b1)[0];
+      z ^= a.p[0];
       return mrb_int_value(mrb, z);
     }
   }
   y = mrb_as_bint(mrb, y);
-  struct RBigint *b2 = RBIGINT(y);
-  struct RBigint *b3 = bint_new(mrb);
-  mpz_xor(mrb, b3, b1, b2);
-  return bint_norm(mrb, b3);
+  mpz_t b, c;
+  bint_as_mpz(RBIGINT(y), &b);
+  mpz_init(mrb, &c);
+  mpz_xor(mrb, &c, &a, &b);
+  return bint_norm(mrb, bint_new(mrb, &c));
 }
 
 mrb_value
 mrb_bint_rev(mrb_state *mrb, mrb_value x)
 {
-  struct RBigint *b1 = RBIGINT(x);
-  struct RBigint *b2 = bint_new(mrb);
-
-  mpz_neg(mrb, b2, b1);
-  mpz_sub_int(mrb, b2, b2, 1);
-  return bint_norm(mrb, b2);
+  mpz_t a, b;
+  bint_as_mpz(RBIGINT(x), &a);
+  mpz_init(mrb, &b);
+  mpz_neg(mrb, &b, &a);
+  mpz_sub_int(mrb, &b, &b, 1);
+  return bint_norm(mrb, bint_new(mrb, &b));
 }
 
 mrb_value
 mrb_bint_lshift(mrb_state *mrb, mrb_value x, mrb_int width)
 {
-  struct RBigint *b = RBIGINT(x);
-  struct RBigint *b2 = bint_new(mrb);
+  mpz_t a, z;
+
+  bint_as_mpz(RBIGINT(x), &a);
+  mpz_init(mrb, &z);
   if (width < 0) {
-    mpz_div_2exp(mrb, b2, b, -width);
+    mpz_div_2exp(mrb, &z, &a, -width);
   }
   else {
-    mpz_mul_2exp(mrb, b2, b, width);
+    mpz_mul_2exp(mrb, &z, &a, width);
   }
-  return bint_norm(mrb, b2);
+  return bint_norm(mrb, bint_new(mrb, &z));
 }
 
 mrb_value
 mrb_bint_rshift(mrb_state *mrb, mrb_value x, mrb_int width)
 {
-  struct RBigint *b = RBIGINT(x);
-  struct RBigint *b2 = bint_new(mrb);
+  mpz_t a, z;
+
+  bint_as_mpz(RBIGINT(x), &a);
+  mpz_init(mrb, &z);
   if (width < 0) {
-    mpz_mul_2exp(mrb, b2, b, -width);
+    mpz_mul_2exp(mrb, &z, &a, -width);
   }
   else {
-    mpz_div_2exp(mrb, b2, b, width);
+    mpz_div_2exp(mrb, &z, &a, width);
   }
-  return bint_norm(mrb, b2);
+  return bint_norm(mrb, bint_new(mrb, &z));
 }
 
 void
 mrb_bint_copy(mrb_state *mrb, mrb_value x, mrb_value y)
 {
-  struct RBigint *b = RBIGINT(x);
-  struct RBigint *b2 = RBIGINT(y);
-  mpz_init_set(mrb, b, b2);
+  mpz_t a, b;
+
+  bint_as_mpz(RBIGINT(x), &a);
+  bint_as_mpz(RBIGINT(y), &b);
+  mpz_init_set(mrb, &a, &b);
 }
 
 size_t
 mrb_bint_memsize(mrb_value x)
 {
-  struct RBigint *b = RBIGINT(x);
-  return RBIGINT_EMBED_P(b) ? 0 : RBIGINT_SIZE(b) * sizeof(mp_limb);
+  mpz_t z;
+
+  bint_as_mpz(RBIGINT(x), &z);
+  return z.sz * sizeof(mp_limb);
 }
 
 mrb_value
 mrb_bint_hash(mrb_state *mrb, mrb_value x)
 {
-  struct RBigint *b = RBIGINT(x);
-  short sign = RBIGINT_SIGN(b);
-  uint32_t hash = mrb_byte_hash((uint8_t*)RBIGINT_ARY(b), RBIGINT_SIZE(b)*sizeof(mp_limb));
-  hash = mrb_byte_hash_step((uint8_t*)&sign, sizeof(sign), hash);
+  mpz_t z;
+
+  bint_as_mpz(RBIGINT(x), &z);
+  uint32_t hash = mrb_byte_hash((uint8_t*)z.p, z.sz*sizeof(mp_limb));
+  hash = mrb_byte_hash_step((uint8_t*)&z.sn, sizeof(z.sn), hash);
   return mrb_int_value(mrb, hash);
 }
 
@@ -1896,21 +1882,23 @@ mrb_bint_hash(mrb_state *mrb, mrb_value x)
 mrb_value
 mrb_bint_2comp(mrb_state *mrb, mrb_value x)
 {
-  struct RBigint *b = RBIGINT(x);
-  struct RBigint *b2 = bint_new(mrb);
+  mpz_t a, z;
 
-  mrb_assert(RBIGINT_SIGN(b) < 0);
-  size_t size = RBIGINT_SIZE(b);
-  mpz_realloc(mrb, b2, size);
-  mp_limb *ds = RBIGINT_ARY(b);
-  mp_limb *dd = RBIGINT_ARY(b2);
+  bint_as_mpz(RBIGINT(x), &a);
+  mrb_assert(a.sn < 0);
+  size_t size = a.sz;
+  mpz_realloc(mrb, &z, size);
+  mp_limb *ds = a.p;
+  mp_limb *dd = z.p;
   char carry = 1;
   for (size_t i=0; i<size; i++) {
     mp_limb xv = ds[i];
     make_2comp(xv, carry);
     dd[i] = xv;
   }
-  RBIGINT_SET_SIGN(b2, 1);
+  z.sn = 1;
+
+  struct RBigint *b2 = bint_new(mrb, &z);
   return mrb_obj_value(b2);
 }
 
@@ -1918,19 +1906,23 @@ mrb_bint_2comp(mrb_state *mrb, mrb_value x)
 void
 mrb_bint_reduce(mrb_state *mrb, mrb_value *xp, mrb_value *yp)
 {
-  struct RBigint *b1 = RBIGINT(*xp);
-  struct RBigint *b2 = RBIGINT(*yp);
-  struct RBigint r; mpz_init(mrb, &r);
+  mpz_t r, x, y, a, b;
+  mpz_init(mrb, &r);
+  mpz_init(mrb, &a); mpz_init(mrb, &b);
 
-  mpz_gcd(mrb, &r, b1, b2);
+  bint_as_mpz(RBIGINT(*xp), &x);
+  bint_as_mpz(RBIGINT(*yp), &y);
 
-  struct RBigint *b3 = bint_new(mrb);
-  struct RBigint *b4 = bint_new(mrb);
-  mpz_mdiv(mrb, b3, b1, &r);
-  mpz_mdiv(mrb, b4, b2, &r);
+  mpz_gcd(mrb, &r, &x, &y);
+
+  mpz_mdiv(mrb, &a, &x, &r);
+  mpz_mdiv(mrb, &b, &y, &r);
 
   mpz_clear(mrb, &r);
-  *xp = mrb_obj_value(b3);
-  *yp = mrb_obj_value(b4);
+
+  struct RBigint *b1 = bint_new(mrb, &a);
+  struct RBigint *b2 = bint_new(mrb, &b);
+  *xp = mrb_obj_value(b1);
+  *yp = mrb_obj_value(b2);
 }
 #endif
