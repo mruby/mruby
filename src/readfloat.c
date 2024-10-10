@@ -18,7 +18,7 @@ mrb_read_float(const char *str, char **endp, double *fp)
   while (ISSPACE((unsigned char)*p)) p++;
 
   // Handle sign
-  if (*p == '-') { sign = -1.0; p++; }
+  if (*p == '-') { sign = -1; p++; }
   else if (*p == '+') p++;
 
   // Parse integer part
