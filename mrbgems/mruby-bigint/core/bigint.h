@@ -84,22 +84,6 @@ struct RBigint {
 #define RBIGINT_ARY(m) (RBIGINT_EMBED_P(m) ? RBIGINT_EMBED_ARY(m) : RBIGINT_HEAP_ARY(m))
 #define RBIGINT_SIGN(m) (RBIGINT_EMBED_P(m) ? RBIGINT_EMBED_SIGN(m) : RBIGINT_HEAP_SIGN(m))
 #define RBIGINT_SIZE(m) (RBIGINT_EMBED_P(m) ? RBIGINT_EMBED_SIZE(m) : RBIGINT_HEAP_SIZE(m))
-#define RBIGINT_SET_SIGN(m, s) do { \
-  if (RBIGINT_EMBED_P(m)) { \
-    RBIGINT_SET_EMBED_SIGN(m, s); \
-  } \
-  else { \
-    RBIGINT_SET_HEAP_SIGN(m, s); \
-  } \
-} while (0)
-#define RBIGINT_SET_SIZE(m, s) do { \
-  if (RBIGINT_EMBED_P(m)) { \
-    RBIGINT_SET_EMBED_SIZE(m, s); \
-  } \
-  else { \
-    RBIGINT_SET_HEAP_SIZE(m, s); \
-  } \
-} while (0)
 
 #define RBIGINT_HEAP_ARY(m) ((m)->as.heap.p)
 #define RBIGINT_HEAP_SIGN(m) ((m)->as.heap.sn)
