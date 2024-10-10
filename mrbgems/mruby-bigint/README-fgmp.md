@@ -55,7 +55,7 @@ mpz_sqrtrem, plus other general bug fixes.
 Thanks also to Erick Gallesio <eg@kaolin.unice.fr> for a fix
 to mpz_init_set_str
 
-Define B64 if your "long" type is 64 bits. Otherwise we assume 32
+Define B64 if your "long" type is 64 bits. Otherwise, we assume 32
 bit longs. (The 64-bit version hasn't been tested enough)
 
 ```
@@ -91,7 +91,7 @@ MS-DOS 286 C compiler (see credits above)
   all files which include gmp.h)
 - link with gmp.o instead of libgmp.a
 
-Here's a complete sorted list of function implemented in fgmp:
+Here's a completely sorted list of functions implemented in fgmp:
 
 ```
 _mpz_realloc
