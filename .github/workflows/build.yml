@@ -1,3 +1,4 @@
+# https://github.com/actions/runner-images#available-images
 name: Build & Test
 
 on: [push, pull_request]
@@ -20,6 +21,7 @@ jobs:
           - {os: ubuntu-20.04, cc: gcc, cxx: g++}
           - {os: ubuntu-20.04, cc: clang, cxx: clang++}
           - {os: macos-latest, cc: clang, cxx: clang++}
+          - {os: macos-13, cc: clang, cxx: clang++}
           - {os: macos-12, cc: clang, cxx: clang++}
           - {os: windows-latest, cc: gcc, cxx: g++, altname: "mingw-gcc"}
     env:
