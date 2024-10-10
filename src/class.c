@@ -659,7 +659,7 @@ mrb_class_get_id(mrb_state *mrb, mrb_sym name)
 MRB_API struct RClass*
 mrb_exc_get_id(mrb_state *mrb, mrb_sym name)
 {
-  mrb_value c = mrb_const_get(mrb, mrb_obj_value(mrb->object_class), name);
+  mrb_value c = mrb_exc_const_get(mrb, name);
 
   if (!mrb_class_p(c)) {
     mrb_raise(mrb, E_EXCEPTION, "exception corrupted");
@@ -670,7 +670,9 @@ mrb_exc_get_id(mrb_state *mrb, mrb_sym name)
     if (e == E_EXCEPTION)
       return exc;
   }
-  return E_EXCEPTION;
+  mrb_raise(mrb, E_EXCEPTION, "non-exception raised");
+  /* not reached */
+  return NULL;
 }
 
 MRB_API struct RClass*

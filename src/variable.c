@@ -764,7 +764,7 @@ mod_const_check(mrb_state *mrb, mrb_value mod)
 }
 
 static mrb_value
-const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym, mrb_bool skip)
+const_get_nohook(mrb_state *mrb, struct RClass *base, mrb_sym sym, mrb_bool skip)
 {
   struct RClass *c = base;
   mrb_value v;
@@ -785,12 +785,30 @@ L_RETRY:
     retry = TRUE;
     goto L_RETRY;
   }
-  mrb_value mod = mrb_obj_value(base);
-  if (mrb_func_basic_p(mrb, mod, MRB_SYM(const_missing), mrb_mod_const_missing)) {
-    return mrb_const_missing(mrb, mod, sym);
+  return mrb_undef_value();
+}
+
+static mrb_value
+const_get(mrb_state *mrb, struct RClass *base, mrb_sym sym, mrb_bool skip)
+{
+  mrb_value v = const_get_nohook(mrb, base, sym, skip);
+
+  /* call const_missing hook */
+  if (mrb_undef_p(v)) {
+    mrb_value mod = mrb_obj_value(base);
+    if (mrb_func_basic_p(mrb, mod, MRB_SYM(const_missing), mrb_mod_const_missing)) {
+      return mrb_const_missing(mrb, mod, sym);
+    }
+    mrb_value name = mrb_symbol_value(sym);
+    return mrb_funcall_argv(mrb, mod, MRB_SYM(const_missing), 1, &name);
   }
-  mrb_value name = mrb_symbol_value(sym);
-  return mrb_funcall_argv(mrb, mod, MRB_SYM(const_missing), 1, &name);
+  return v;
+}
+
+mrb_value
+mrb_exc_const_get(mrb_state *mrb, mrb_sym sym)
+{
+  return const_get_nohook(mrb, mrb->object_class, sym, FALSE);
 }
 
 MRB_API mrb_value
