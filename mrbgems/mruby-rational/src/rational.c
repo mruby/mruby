@@ -326,7 +326,7 @@ int_lshift(mrb_state *mrb, mrb_value v, mrb_int n)
   if (mrb_integer_p(v)) {
     uint64_t u = (uint64_t)mrb_integer(v);
     if (mrb_int_fit_p(u << n, uint64_t))
-      return mrb_int_value(mrb, u << n);
+      return mrb_int_value(mrb, (mrb_int)(u << n));
   }
 #ifndef RAT_BIGINT
   rat_overflow(mrb);
