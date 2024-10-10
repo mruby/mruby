@@ -214,12 +214,6 @@ mrb_exc_raise(mrb_state *mrb, mrb_value exc)
   exc_throw(mrb, exc);
 }
 
-MRB_API mrb_noreturn void
-mrb_raise(mrb_state *mrb, struct RClass *c, const char *msg)
-{
-  mrb_exc_raise(mrb, mrb_exc_new_str(mrb, c, mrb_str_new_cstr(mrb, msg)));
-}
-
 /*
  * <code>vsprintf</code> like formatting.
  *
@@ -395,19 +389,6 @@ static mrb_value
 error_va(mrb_state *mrb, struct RClass *c, const char *fmt, va_list ap)
 {
   return mrb_exc_new_str(mrb, c, mrb_vformat(mrb, fmt, ap));
-}
-
-MRB_API mrb_noreturn void
-mrb_raisef(mrb_state *mrb, struct RClass *c, const char *fmt, ...)
-{
-  va_list ap;
-
-  va_start(ap, fmt);
-
-  mrb_value exc = error_va(mrb, c, fmt, ap);
-  va_end(ap);
-
-  mrb_exc_raise(mrb, exc);
 }
 
 MRB_API mrb_noreturn void
@@ -718,4 +699,32 @@ mrb_init_exception(mrb_state *mrb)
 #ifdef MRB_GC_FIXED_ARENA
   mrb->arena_err = mrb_obj_ptr(mrb_exc_new_lit(mrb, nomem_error, "arena overflow error"));
 #endif
+}
+
+#undef mrb_raise
+#undef mrb_raisef
+
+MRB_API mrb_noreturn void
+mrb_raise(mrb_state *mrb, struct RClass *c, const char *msg)
+{
+  mrb_exc_raise(mrb, mrb_exc_new_str(mrb, c, mrb_str_new_cstr(mrb, msg)));
+}
+
+MRB_API mrb_noreturn void
+mrb_raisef(mrb_state *mrb, struct RClass *c, const char *fmt, ...)
+{
+  va_list ap;
+
+  va_start(ap, fmt);
+
+  mrb_value exc = error_va(mrb, c, fmt, ap);
+  va_end(ap);
+
+  mrb_exc_raise(mrb, exc);
+}
+
+mrb_noreturn void
+mrb_raise_str(mrb_state *mrb, struct RClass *c, mrb_value msg)
+{
+  mrb_exc_raise(mrb, mrb_exc_new_str(mrb, c, msg));
 }
