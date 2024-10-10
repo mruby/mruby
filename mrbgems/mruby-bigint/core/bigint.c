@@ -1188,7 +1188,8 @@ mrb_bint_new_int64(mrb_state *mrb, int64_t n)
 {
   mpz_t x;
   mpz_set_int64(mrb, &x, n);
-  return bint_new(mrb, &x);
+  struct RBigint *b = bint_new_int(mrb, x);
+  return mrb_obj_value(b);
 }
 #endif
 
