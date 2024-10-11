@@ -10,6 +10,8 @@
 # define YYDEBUG 1
 #endif
 #define YYSTACK_USE_ALLOCA 1
+#define YYMALLOC
+#define YYFREE
 
 #include <ctype.h>
 #include <string.h>
