@@ -3066,6 +3066,7 @@ codegen(codegen_scope *s, node *tree, int val)
       if (s2 && s2->ainfo > 0) {
         ainfo = s2->ainfo;
       }
+      if (lv > 0xf) codegen_error(s, "too deep nesting");
       if (ainfo > 0) {
         genop_2S(s, OP_ARGARY, cursp(), (ainfo<<4)|(lv & 0xf));
         push(); push(); push();   /* ARGARY pushes 3 values at most */
@@ -3128,6 +3129,7 @@ codegen(codegen_scope *s, node *tree, int val)
         ainfo = (int)s2->ainfo;
       }
       if (ainfo < 0) codegen_error(s, "invalid yield (SyntaxError)");
+      if (lv > 0xf) codegen_error(s, "too deep nesting");
       push();
       if (tree) {
         if (tree->car) {
