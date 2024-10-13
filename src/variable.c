@@ -39,11 +39,13 @@ iv_new(mrb_state *mrb)
 
 static void iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val);
 
+#define IV_INITIAL_SIZE 4
+
 static void
 iv_rehash(mrb_state *mrb, iv_tbl *t)
 {
   int old_alloc = t->alloc;
-  int new_alloc = old_alloc > 0 ? old_alloc << 1 : 4;
+  int new_alloc = old_alloc > 0 ? old_alloc << 1 : IV_INITIAL_SIZE;
   mrb_value *old_ptr = t->ptr;
 
   t->ptr = (mrb_value*)mrb_calloc(mrb, sizeof(mrb_value)+sizeof(mrb_sym), new_alloc);
