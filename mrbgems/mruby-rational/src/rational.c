@@ -307,60 +307,54 @@ mrb_rational_new(mrb_state *mrb, mrb_int nume, mrb_int deno)
 #define mrb_int_fit_p(x,t) ((t)MRB_INT_MIN <= (x) && (x) <= (t)MRB_INT_MAX)
 
 static mrb_value
-float_decode_internal(mrb_state *mrb, mrb_float f, mrb_value *v, int *n)
-{
-  f = (mrb_float)frexp_rat(f, n);
-  if (isinf(f)) rat_overflow(mrb);
-  f = (mrb_float)ldexp_rat(f, RAT_MANT_DIG);
-  *n -= RAT_MANT_DIG;
-#ifdef RAT_BIGINT
-  if (mrb_int_fit_p(f, mrb_float)) return mrb_int_value(mrb, (mrb_int)f);
-  return mrb_bint_new_float(mrb, f);
-#else
-  if (!mrb_int_fit_p(f, mrb_float)) rat_overflow(mrb);
-  return mrb_int_value(mrb, (mrb_int)f);
-#endif
-}
-
-static mrb_value
 int_lshift(mrb_state *mrb, mrb_value v, mrb_int n)
 {
   if (mrb_integer_p(v)) {
-    uint64_t u = (uint64_t)mrb_integer(v);
-    if (mrb_int_fit_p(u << n, uint64_t))
-      return mrb_int_value(mrb, (mrb_int)(u << n));
+    mrb_float f = (mrb_float)mrb_integer(v);
+    f *= 1<<n;
+    if (mrb_int_fit_p(f, mrb_float))
+      return mrb_int_value(mrb, (mrb_int)f);
   }
 #ifndef RAT_BIGINT
   rat_overflow(mrb);
 #else
-  if (!mrb_bigint_p(v)) {
-    v = mrb_as_bint(mrb, v);
-  }
-  return mrb_bint_lshift(mrb, v, n);
+  return mrb_bint_lshift(mrb, mrb_as_bint(mrb, v), n);
 #endif
 }
 
 static mrb_value
 rational_new_f(mrb_state *mrb, mrb_float f)
 {
-  int n;
-
   mrb_check_num_exact(mrb, f);
-  mrb_value v = float_decode_internal(mrb, f, &v, &n);
+  if (f == 0.0) {
+    return rational_new_i(mrb, 0, 1);
+  }
+  int exp;
+  // Extract mantissa and exponent
+  double mantissa = frexp_rat(f, &exp);
+  const mrb_int precision = ((mrb_int)1) << RAT_MANT_DIG;
 
-  if (n == 0) {
-    return rational_new_b(mrb, v, ONE);
-  }
-  if (n > 0)
-    return mrb_as_rational(mrb, int_lshift(mrb, v, n));
-  n = -n;
-  mrb_value d = int_lshift(mrb, ONE, n);
-#ifdef RAT_BIGINT
-  if (!mrb_integer_p(v) || !mrb_integer_p(d)) {
-    return rational_new_b(mrb, mrb_as_bint(mrb, v), mrb_as_bint(mrb, d));
-  }
+  mrb_int nume = (mrb_int)(mantissa * precision);
+  mrb_int deno = precision;
+
+  if (exp > 0) {
+    mrb_int temp;
+    if (mrb_int_mul_overflow(nume, ((mrb_int)1)<<exp, &temp)) {
+#ifndef RAT_BIGINT
+      rat_overflow(mrb);
+#else
+      mrb_value n = int_lshift(mrb, mrb_int_value(mrb, nume), exp);
+      if (mrb_bigint_p(n)) {
+        return rational_new_b(mrb, n, mrb_int_value(mrb, deno));
+      }
 #endif
-  return rational_new_i(mrb, mrb_integer(v), mrb_integer(d));
+    }
+    nume = temp;
+  }
+  else {
+    deno >>= exp;
+  }
+  return rational_new_i(mrb, nume, deno);
 }
 
 static mrb_float
