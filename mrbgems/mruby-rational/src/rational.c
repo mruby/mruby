@@ -116,6 +116,7 @@ rational_numerator(mrb_state *mrb, mrb_value self)
 {
   mrb_value n = rat_numerator(mrb, self);
   if (mrb_bigint_p(n)) {
+    /* normalize bigint */
     return mrb_bint_mul(mrb, n, ONE);
   }
   return n;
@@ -139,6 +140,7 @@ rational_denominator(mrb_state *mrb, mrb_value self)
 {
   mrb_value n = rat_denominator(mrb, self);
   if (mrb_bigint_p(n)) {
+    /* normalize bigint */
     return mrb_bint_mul(mrb, n, ONE);
   }
   return n;
