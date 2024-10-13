@@ -115,9 +115,9 @@ iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 {
   int hash, pos, start;
 
-  if (t == NULL) return FALSE;
-  if (t->alloc == 0) return FALSE;
-  if (t->size == 0) return FALSE;
+  if (t == NULL) return 0;
+  if (t->alloc == 0) return 0;
+  if (t->size == 0) return 0;
 
   mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
   mrb_value *vals = t->ptr;
@@ -613,7 +613,7 @@ mrb_mod_cv_get(mrb_state *mrb, struct RClass *c, mrb_sym sym)
 {
   struct RClass * cls = c;
   mrb_value v;
-  int given = FALSE;
+  mrb_bool given = FALSE;
 
   while (c) {
     if (iv_get(mrb, class_iv_ptr(c), sym, &v)) {
