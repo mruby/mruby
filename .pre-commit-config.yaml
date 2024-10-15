@@ -10,6 +10,11 @@ repos:
     hooks:
       - id: identity
       - id: check-hooks-apply
+  - repo: https://github.com/shssoichiro/oxipng
+    rev: v9.1.2
+    hooks:
+      - id: oxipng
+        args: ["-o", "4", "--strip", "safe", "--alpha"]
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
