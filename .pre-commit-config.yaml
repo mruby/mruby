@@ -18,6 +18,8 @@ repos:
       - id: check-executables-have-shebangs
         exclude: ^test/t/lang\.rb$
       - id: check-illegal-windows-names
+      - id: pretty-format-json
+        args: [--autofix, --no-sort-keys]
       - id: check-json
       - id: check-merge-conflict
       - id: check-shebang-scripts-are-executable
