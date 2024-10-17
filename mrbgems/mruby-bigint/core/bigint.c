@@ -755,6 +755,82 @@ mpz_init_set_str(mrb_state *mrb, mpz_t *x, const char *s, mrb_int len, mrb_int b
   return retval;
 }
 
+/* power of base no bigger than DIG_BASE */
+/* power of 2 is handled differently */
+static const mp_limb base_limit[34*2] = {
+#ifdef MRB_NO_MPZ64BIT
+  59049,        // 3^10
+  0,            // 4^8 (skip)
+  15625,        // 5^6
+  46656,        // 6^6
+  16807,        // 7^5
+  0,            // 8^5 (skip)
+  59049,        // 9^5
+  10000,        // 10^4
+  14641,        // 11^4
+  20736,        // 12^4
+  28561,        // 13^4
+  38416,        // 14^4
+  50625,        // 15^4
+  0,            // 16^4 (skip)
+  4913,         // 17^3
+  5832,         // 18^3
+  6859,         // 19^3
+  8000,         // 20^3
+  9261,         // 21^3
+  10648,        // 22^3
+  12167,        // 23^3
+  13824,        // 24^3
+  15625,        // 25^3
+  17576,        // 26^3
+  19683,        // 27^3
+  21952,        // 28^3
+  24389,        // 29^3
+  27000,        // 30^3
+  29791,        // 31^3
+  0,            // 32^3 (skip)
+  35937,        // 33^3
+  39304,        // 34^3
+  42875,        // 35^3
+  46656,        // 36^3
+#else
+  3486784401,   // 3^20
+  0,            // 4^16 (skip)
+  1220703125,   // 5^13
+  2176782336,   // 6^12
+  1977326743,   // 7^11
+  0,            // 8^10 (skip)
+  3486784401,   // 9^10
+  1000000000,   // 10^9
+  2357947691,   // 11^9
+  429981696,    // 12^8
+  815730721,    // 13^8
+  1475789056,   // 14^8
+  2562890625,   // 15^8
+  0,            // 16^8 (skip)
+  410338673,    // 17^7
+  612220032,    // 18^7
+  893871739,    // 19^7
+  1280000000,   // 20^7
+  1801088541,   // 21^7
+  2494357888,   // 22^7
+  3404825447,   // 23^7
+  191102976,    // 24^6
+  244140625,    // 25^6
+  308915776,    // 26^6
+  387420489,    // 27^6
+  481890304,    // 28^6
+  594823321,    // 29^6
+  729000000,    // 30^6
+  887503681,    // 31^6
+  0,            // 32^6 (skip)
+  1291467969,   // 33^6
+  1544804416,   // 34^6
+  1838265625,   // 35^6
+  2176782336,   // 36^6
+#endif
+};
+
 static char*
 mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
 {
@@ -793,11 +869,7 @@ mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
     mp_limb *t = (mp_limb*)mrb_malloc(mrb, xlen*sizeof(mp_limb));
     mp_limb *tend = t + xlen;
     memcpy(t, x->p, xlen*sizeof(mp_limb));
-    mp_limb b2 = (mp_limb)base;
-    const int blim = (sizeof(mp_limb)<4)?(base<=10?4:3):(base<=10?9:5);
-    for (int i=1; i<blim; i++) {
-      b2 *= (mp_limb)base;
-    }
+    mp_limb b2 = base_limit[(base-3)];
 
     for (;;) {
       mp_limb *d = tend;
@@ -810,7 +882,7 @@ mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
       }
 
       // convert to character
-      for (int i=0; i<blim; i++) {
+      while (a > 0) {
         mp_limb a0 = (mp_limb)(a % base);
         if (a0 < 10) a0 += '0';
         else a0 += 'a' - 10;
