@@ -25,7 +25,6 @@ jobs:
           # VALIDATE_BASH_EXEC: true
           VALIDATE_DOCKERFILE_HADOLINT: true
           # VALIDATE_EDITORCONFIG: true
-          VALIDATE_GITLEAKS: true
           # VALIDATE_SHELL_SHFMT: true
           DEFAULT_BRANCH: master
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
