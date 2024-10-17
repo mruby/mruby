@@ -1888,6 +1888,7 @@ mrb_bint_2comp(mrb_state *mrb, mrb_value x)
   mpz_t a, z;
 
   bint_as_mpz(RBIGINT(x), &a);
+  mpz_init(mrb, &z);
   mrb_assert(a.sn < 0);
   size_t size = a.sz;
   mpz_realloc(mrb, &z, size);
