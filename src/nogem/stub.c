@@ -1,9 +1,26 @@
-#include <mruby.h>
+/*
+** stub.c - stub functions for libmruby_core
+**
+** See Copyright Notice in mruby.h
+*/
 
 /*
   functions defined in mrbgems referenced from the core should be listed here
   to avoid link errors, since mrbc does not link any mrbgem ignoring configuration.
 */
+
+#include <mruby.h>
+
+void
+mrb_init_mrblib(mrb_state *mrb)
+{
+}
+
+#ifndef MRB_NO_GEMS
+void mrb_init_mrbgems(mrb_state *mrb)
+{
+}
+#endif
 
 #ifdef MRB_USE_COMPLEX
 mrb_value mrb_complex_new(mrb_state *mrb, mrb_float x, mrb_float y)
