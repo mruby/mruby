@@ -321,7 +321,8 @@ struct RCptr {
  * Takes a float and boxes it into an mrb_value
  */
 #ifndef MRB_NO_FLOAT
-MRB_INLINE mrb_value mrb_float_value(struct mrb_state *mrb, mrb_float f)
+MRB_INLINE mrb_value
+mrb_float_value(struct mrb_state *mrb, mrb_float f)
 {
   mrb_value v;
   (void) mrb;
