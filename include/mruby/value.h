@@ -342,14 +342,16 @@ mrb_cptr_value(struct mrb_state *mrb, void *p)
 /**
  * Returns an integer in Ruby.
  */
-MRB_INLINE mrb_value mrb_int_value(struct mrb_state *mrb, mrb_int i)
+MRB_INLINE mrb_value
+mrb_int_value(struct mrb_state *mrb, mrb_int i)
 {
   mrb_value v;
   SET_INT_VALUE(mrb, v, i);
   return v;
 }
 
-MRB_INLINE mrb_value mrb_fixnum_value(mrb_int i)
+MRB_INLINE mrb_value
+mrb_fixnum_value(mrb_int i)
 {
   mrb_value v;
   SET_FIXNUM_VALUE(v, i);
@@ -378,7 +380,8 @@ mrb_obj_value(void *p)
  * @return
  *      nil mrb_value object reference.
  */
-MRB_INLINE mrb_value mrb_nil_value(void)
+MRB_INLINE mrb_value
+mrb_nil_value(void)
 {
   mrb_value v;
   SET_NIL_VALUE(v);
@@ -388,7 +391,8 @@ MRB_INLINE mrb_value mrb_nil_value(void)
 /**
  * Returns false in Ruby.
  */
-MRB_INLINE mrb_value mrb_false_value(void)
+MRB_INLINE mrb_value
+mrb_false_value(void)
 {
   mrb_value v;
   SET_FALSE_VALUE(v);
@@ -398,7 +402,8 @@ MRB_INLINE mrb_value mrb_false_value(void)
 /**
  * Returns true in Ruby.
  */
-MRB_INLINE mrb_value mrb_true_value(void)
+MRB_INLINE mrb_value
+mrb_true_value(void)
 {
   mrb_value v;
   SET_TRUE_VALUE(v);
