@@ -248,9 +248,11 @@ static int
 uzero_p(mpz_t *x)
 {
   if (x->sz == 0) return 1;
-  for (size_t i=x->sz-1; 0 <= i; i--)
+  for (size_t i=x->sz-1;; i--) {
     if (x->p[i] != 0)
       return 0;
+    if (i == 0) break;
+  }
   return 1;
 }
 

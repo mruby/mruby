@@ -1276,12 +1276,6 @@ mrb_ary_clear(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_value
-mrb_ary_clear_m(mrb_state *mrb, mrb_value self)
-{
-  return mrb_ary_clear(mrb, self);
-}
-
-static mrb_value
 mrb_ary_empty_p(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
@@ -1681,7 +1675,7 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method_id(mrb, a, MRB_OPSYM(lshift),        mrb_ary_push_m,       MRB_ARGS_REQ(1));   /* 15.2.12.5.3  */
   mrb_define_method_id(mrb, a, MRB_OPSYM(aref),          mrb_ary_aget,         MRB_ARGS_ARG(1,1)); /* 15.2.12.5.4  */
   mrb_define_method_id(mrb, a, MRB_OPSYM(aset),          mrb_ary_aset,         MRB_ARGS_ARG(2,1)); /* 15.2.12.5.5  */
-  mrb_define_method_id(mrb, a, MRB_SYM(clear),           mrb_ary_clear_m,      MRB_ARGS_NONE());   /* 15.2.12.5.6  */
+  mrb_define_method_id(mrb, a, MRB_SYM(clear),           mrb_ary_clear,        MRB_ARGS_NONE());   /* 15.2.12.5.6  */
   mrb_define_method_id(mrb, a, MRB_OPSYM(cmp),           mrb_ary_cmp,          MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, a, MRB_SYM(concat),          mrb_ary_concat_m,     MRB_ARGS_REQ(1));   /* 15.2.12.5.8  */
   mrb_define_method_id(mrb, a, MRB_SYM(delete),          mrb_ary_delete,       MRB_ARGS_REQ(1));
