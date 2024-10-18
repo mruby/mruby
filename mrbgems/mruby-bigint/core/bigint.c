@@ -1764,6 +1764,7 @@ mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_value exp, mrb_value mod)
     }
     mpz_powm_i(mrb, &z, &a, e, &c);
   }
+  mpz_clear(mrb, &c);
   return bint_norm(mrb, bint_new(mrb, &z));
 }
 
