@@ -1832,19 +1832,6 @@ mrb_bint_or(mrb_state *mrb, mrb_value x, mrb_value y)
 }
 
 mrb_value
-mrb_bint_neg(mrb_state *mrb, mrb_value x)
-{
-  mpz_t a, b;
-
-  bint_as_mpz(RBIGINT(x), &a);
-  mpz_init(mrb, &b);
-  mpz_neg(mrb, &b, &a);
-  struct RBigint *b2 = bint_new(mrb, &b);
-  /* no normalization */
-  return mrb_obj_value(b2);
-}
-
-mrb_value
 mrb_bint_xor(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mpz_t a, b, c;
@@ -1866,6 +1853,19 @@ mrb_bint_xor(mrb_state *mrb, mrb_value x, mrb_value y)
   mpz_init(mrb, &c);
   mpz_xor(mrb, &c, &a, &b);
   return bint_norm(mrb, bint_new(mrb, &c));
+}
+
+mrb_value
+mrb_bint_neg(mrb_state *mrb, mrb_value x)
+{
+  mpz_t a, b;
+
+  bint_as_mpz(RBIGINT(x), &a);
+  mpz_init(mrb, &b);
+  mpz_neg(mrb, &b, &a);
+  struct RBigint *b2 = bint_new(mrb, &b);
+  /* no normalization */
+  return mrb_obj_value(b2);
 }
 
 mrb_value
