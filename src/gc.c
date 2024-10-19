@@ -431,7 +431,7 @@ mrb_gc_register(mrb_state *mrb, mrb_value obj)
   table = mrb_gv_get(mrb, GC_ROOT_SYM);
   int ai = mrb_gc_arena_save(mrb);
   mrb_gc_protect(mrb, obj);
-  if (mrb_nil_p(table) || !mrb_array_p(table)) {
+  if (!mrb_array_p(table)) {
     table = mrb_ary_new(mrb);
     mrb_gv_set(mrb, GC_ROOT_SYM, table);
   }
