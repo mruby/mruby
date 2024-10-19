@@ -1789,7 +1789,7 @@ mrb_bint_to_s(mrb_state *mrb, mrb_value x, mrb_int base)
 mrb_value
 mrb_bint_and(mrb_state *mrb, mrb_value x, mrb_value y)
 {
-  mpz_t a;
+  mpz_t a, b, c;
 
   bint_as_mpz(RBIGINT(x), &a);
   if (mrb_integer_p(y)) {
@@ -1800,47 +1800,32 @@ mrb_bint_and(mrb_state *mrb, mrb_value x, mrb_value y)
       return mrb_int_value(mrb, z);
     }
     if (z == -1) return x;
-    if (z < 0 && (mp_dbl_limb)-z < DIG_BASE) {
-      mpz_t b;
-      mpz_init(mrb, &b);
-      mpz_set(mrb, &b, &a);
-      b.p[0] &= (mp_limb)z;
-      return bint_norm(mrb, bint_new(mrb, &b));
-    }
   }
+
   y = mrb_as_bint(mrb, y);
-  mpz_t b, z;
   bint_as_mpz(RBIGINT(y), &b);
-  mpz_init(mrb, &z);
-  mpz_and(mrb, &z, &a, &b);
-  return bint_norm(mrb, bint_new(mrb, &z));
+  if (zero_p(&a) || zero_p(&b)) return mrb_fixnum_value(0);
+  mpz_init(mrb, &c);
+  mpz_and(mrb, &c, &a, &b);
+  return bint_norm(mrb, bint_new(mrb, &c));
 }
 
 mrb_value
 mrb_bint_or(mrb_state *mrb, mrb_value x, mrb_value y)
 {
-  mpz_t a;
+  mpz_t a, b, c;
+
   bint_as_mpz(RBIGINT(x), &a);
   if (mrb_integer_p(y)) {
     mrb_int z = mrb_integer(y);
     if (z == 0) return x;
     if (z == -1) return y;
-    if (z > 0 && (mp_dbl_limb)z < DIG_BASE) {
-      z |= a.p[0];
-      return mrb_int_value(mrb, z);
-    }
-    if (z < 0 && (mp_dbl_limb)-z < DIG_BASE) {
-      mpz_t b;
-      mpz_init(mrb, &b);
-      mpz_set(mrb, &b, &a);
-      b.p[0] |= (mp_limb)z;
-      return bint_norm(mrb, bint_new(mrb, &b));
-    }
   }
 
   y = mrb_as_bint(mrb, y);
-  mpz_t b, c;
   bint_as_mpz(RBIGINT(y), &b);
+  if (zero_p(&a)) return y;
+  if (zero_p(&b)) return x;
   mpz_init(mrb, &c);
   mpz_or(mrb, &c, &b, &a);
   return bint_norm(mrb, bint_new(mrb, &c));
@@ -1862,7 +1847,7 @@ mrb_bint_neg(mrb_state *mrb, mrb_value x)
 mrb_value
 mrb_bint_xor(mrb_state *mrb, mrb_value x, mrb_value y)
 {
-  mpz_t a;
+  mpz_t a, b, c;
 
   bint_as_mpz(RBIGINT(x), &a);
   if (mrb_integer_p(y)) {
@@ -1873,9 +1858,11 @@ mrb_bint_xor(mrb_state *mrb, mrb_value x, mrb_value y)
       return mrb_int_value(mrb, z);
     }
   }
+
   y = mrb_as_bint(mrb, y);
-  mpz_t b, c;
   bint_as_mpz(RBIGINT(y), &b);
+  if (zero_p(&a)) return y;
+  if (zero_p(&b)) return x;
   mpz_init(mrb, &c);
   mpz_xor(mrb, &c, &a, &b);
   return bint_norm(mrb, bint_new(mrb, &c));
