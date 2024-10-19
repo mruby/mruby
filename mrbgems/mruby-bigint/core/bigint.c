@@ -1752,20 +1752,20 @@ mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_value exp, mrb_value mod)
   mpz_init(mrb, &z);
   if (mrb_bigint_p(exp)) {
     bint_as_mpz(RBIGINT(exp), &b);
-    if (b.sn < 0) {
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "int.pow(n,m): n must be positive");
-    }
+    if (b.sn < 0) goto raise;
     mpz_powm(mrb, &z, &a, &b, &c);
   }
   else {
     mrb_int e = mrb_integer(exp);
-    if (e < 0) {
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "int.pow(n,m): n must be positive");
-    }
+    if (e < 0) goto raise;
     mpz_powm_i(mrb, &z, &a, e, &c);
   }
-  mpz_clear(mrb, &c);
+  if (!mrb_bigint_p(mod)) mpz_clear(mrb, &c);
   return bint_norm(mrb, bint_new(mrb, &z));
+
+ raise:
+  if (!mrb_bigint_p(mod)) mpz_clear(mrb, &c);
+  mrb_raise(mrb, E_ARGUMENT_ERROR, "int.pow(n,m): n must be positive");
 }
 
 mrb_value
