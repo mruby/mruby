@@ -452,11 +452,10 @@ mrb_gc_unregister(mrb_state *mrb, mrb_value obj)
   if (!mrb_array_p(table)) return;
   a = mrb_ary_ptr(table);
   mrb_ary_modify(mrb, a);
-  for (mrb_int i = 0; i < ARY_LEN(a); i++) {
-    if (mrb_ptr(ARY_PTR(a)[i]) == mrb_ptr(obj)) {
-      mrb_int len = ARY_LEN(a)-1;
-      mrb_value *ptr = ARY_PTR(a);
-
+  mrb_int len = ARY_LEN(a)-1;
+  mrb_value *ptr = ARY_PTR(a);
+  for (mrb_int i = 0; i <= len; i++) {
+    if (mrb_ptr(ptr[i]) == mrb_ptr(obj)) {
       ARY_SET_LEN(a, len);
       memmove(&ptr[i], &ptr[i + 1], (len - i) * sizeof(mrb_value));
       break;
