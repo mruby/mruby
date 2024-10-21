@@ -449,11 +449,7 @@ mrb_gc_unregister(mrb_state *mrb, mrb_value obj)
 
   if (mrb_immediate_p(obj)) return;
   table = mrb_gv_get(mrb, GC_ROOT_SYM);
-  if (mrb_nil_p(table)) return;
-  if (!mrb_array_p(table)) {
-    mrb_gv_set(mrb, GC_ROOT_SYM, mrb_nil_value());
-    return;
-  }
+  if (!mrb_array_p(table)) return;
   a = mrb_ary_ptr(table);
   mrb_ary_modify(mrb, a);
   for (mrb_int i = 0; i < ARY_LEN(a); i++) {
