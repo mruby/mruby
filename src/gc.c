@@ -433,6 +433,7 @@ mrb_gc_register(mrb_state *mrb, mrb_value obj)
   mrb_gc_protect(mrb, obj);
   if (mrb_nil_p(table) || !mrb_array_p(table)) {
     table = mrb_ary_new(mrb);
+    mrb_obj_ptr(table)->c = NULL; /* hide from ObjectSpace.each_object */
     mrb_gv_set(mrb, GC_ROOT_SYM, table);
   }
   mrb_ary_push(mrb, table, obj);
