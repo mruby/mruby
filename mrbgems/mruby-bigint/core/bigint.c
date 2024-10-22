@@ -730,6 +730,9 @@ mpz_init_set_str(mrb_state *mrb, mpz_t *x, const char *s, mrb_int len, mrb_int b
   if (*s == '-') {
     sn = -1; s++;
   }
+  else if (*s == '+') {
+    sn = 1; s++;
+  }
   else
     sn = 1;
   for (mrb_int i=0; i<len; i++) {
@@ -751,7 +754,7 @@ mpz_init_set_str(mrb_state *mrb, mpz_t *x, const char *s, mrb_int len, mrb_int b
     mpz_mul_int(mrb, x, base);
     mpz_add_int(mrb, x, k);
   }
-  x->sn = sn;
+  x->sn = x->sz == 0 ? 0 : sn;
   return retval;
 }
 
