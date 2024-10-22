@@ -5762,8 +5762,11 @@ parser_yylex(parser_state *p)
     is_float = seen_point = seen_e = nondigit = 0;
     p->lstate = EXPR_END;
     newtok(p);
-    if (c == '-' || c == '+') {
+    if (c == '-') {
       tokadd(p, c);
+      c = nextc(p);
+    }
+    else if (c == '+') {
       c = nextc(p);
     }
     if (c == '0') {
