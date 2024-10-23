@@ -1744,14 +1744,17 @@ mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_value exp, mrb_value mod)
   mpz_t a, b, c, z;
 
   bint_as_mpz(RBIGINT(x), &a);
-  if (mrb_bigint_p(mod)) {
-    bint_as_mpz(RBIGINT(mod), &c);
-    if (zero_p(&c)) mrb_int_zerodiv(mrb);
-  }
-  else {
+  if (mrb_integer_p(mod)) {
     mrb_int m = mrb_integer(mod);
     if (m == 0) mrb_int_zerodiv(mrb);
     mpz_init_set_int(mrb, &c, m);
+  }
+  else {
+    mod = mrb_as_bint(mrb, mod);
+    bint_as_mpz(RBIGINT(mod), &c);
+    if (zero_p(&c) || uzero_p(&c)) {
+      mrb_int_zerodiv(mrb);
+    }
   }
   mpz_init(mrb, &z);
   if (mrb_bigint_p(exp)) {
@@ -1764,11 +1767,11 @@ mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_value exp, mrb_value mod)
     if (e < 0) goto raise;
     mpz_powm_i(mrb, &z, &a, e, &c);
   }
-  if (!mrb_bigint_p(mod)) mpz_clear(mrb, &c);
+  if (mrb_integer_p(mod)) mpz_clear(mrb, &c);
   return bint_norm(mrb, bint_new(mrb, &z));
 
  raise:
-  if (!mrb_bigint_p(mod)) mpz_clear(mrb, &c);
+  if (mrb_integer_p(mod)) mpz_clear(mrb, &c);
   mrb_raise(mrb, E_ARGUMENT_ERROR, "int.pow(n,m): n must be positive");
 }
 
