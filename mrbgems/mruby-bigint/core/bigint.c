@@ -1128,7 +1128,7 @@ mpz_pow(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int e)
 static void
 mpz_powm(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
 {
-  if (zero_p(ex)) {
+  if (zero_p(ex) || uzero_p(ex)) {
     mpz_set_int(mrb, zz, 1);
     return;
   }
@@ -1566,7 +1566,7 @@ mrb_bint_div(mrb_state *mrb, mrb_value x, mrb_value y)
 
   y = mrb_as_bint(mrb, y);
   bint_as_mpz(RBIGINT(y), &b);
-  if (zero_p(&b)) {
+  if (zero_p(&b) || uzero_p(&b)) {
     mrb_int_zerodiv(mrb);
   }
   bint_as_mpz(RBIGINT(x), &a);
@@ -1633,7 +1633,7 @@ mrb_bint_mod(mrb_state *mrb, mrb_value x, mrb_value y)
   mpz_t a, b, z;
   y = mrb_as_bint(mrb, y);
   bint_as_mpz(RBIGINT(y), &b);
-  if (zero_p(&b)) {
+  if (zero_p(&b) || uzero_p(&b)) {
     mrb_int_zerodiv(mrb);
   }
   bint_as_mpz(RBIGINT(x), &a);
@@ -1653,7 +1653,7 @@ mrb_bint_rem(mrb_state *mrb, mrb_value x, mrb_value y)
   mpz_t a, b, z;
   y = mrb_as_bint(mrb, y);
   bint_as_mpz(RBIGINT(y), &b);
-  if (zero_p(&b)) {
+  if (zero_p(&b) || uzero_p(&b)) {
     mrb_int_zerodiv(mrb);
   }
   bint_as_mpz(RBIGINT(x), &a);
@@ -1673,7 +1673,7 @@ mrb_bint_divmod(mrb_state *mrb, mrb_value x, mrb_value y)
   y = mrb_as_bint(mrb, y);
   mpz_t a, b, c, d;
   bint_as_mpz(RBIGINT(y), &b);
-  if (zero_p(&b)) {
+  if (zero_p(&b) || uzero_p(&b)) {
     mrb_int_zerodiv(mrb);
   }
   bint_as_mpz(RBIGINT(x), &a);
