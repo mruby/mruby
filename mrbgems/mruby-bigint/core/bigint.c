@@ -1776,10 +1776,11 @@ mrb_value
 mrb_bint_to_s(mrb_state *mrb, mrb_value x, mrb_int base)
 {
   mpz_t a;
-  bint_as_mpz(RBIGINT(x), &a);
-  if (zero_p(&a) || a.sz == 0)
-    return mrb_str_new_lit(mrb, "0");
 
+  bint_as_mpz(RBIGINT(x), &a);
+  if (zero_p(&a) || uzero_p(&a)) {
+    return mrb_str_new_lit(mrb, "0");
+  }
   size_t len = mpz_sizeinbase(&a, (int)base);
   if (MRB_INT_MAX-2 < len) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "too long string from Integer");
