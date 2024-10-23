@@ -471,6 +471,7 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
   mpz_t q, x, y;
 
   mrb_assert(yy->sn != 0);      /* divided by zero */
+  mrb_assert(yy->sz > 0);       /* divided by zero */
   mpz_init(mrb, &q);
   mpz_init(mrb, &x);
   mpz_init(mrb, &y);
