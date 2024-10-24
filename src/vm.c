@@ -828,7 +828,8 @@ mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p)
     }
     else {
       mrb_int keep = ci_bidx(ci) + 1; /* receiver + block */
-      ret = mrb_top_run(mrb, p, self, keep);
+      cipush(mrb, 0, CINFO_SKIP, CI_TARGET_CLASS(ci), p, NULL, ci->mid, ci->n|(ci->nk<<4));
+      ret = mrb_vm_run(mrb, p, self, keep);
     }
     if (mrb->exc && mrb->jmp) {
       mrb_exc_raise(mrb, mrb_obj_value(mrb->exc));
