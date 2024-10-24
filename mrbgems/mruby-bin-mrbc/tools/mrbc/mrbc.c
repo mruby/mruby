@@ -357,15 +357,3 @@ main(int argc, char **argv)
   }
   return EXIT_SUCCESS;
 }
-
-void
-mrb_init_mrblib(mrb_state *mrb)
-{
-}
-
-#ifndef MRB_NO_GEMS
-void
-mrb_init_mrbgems(mrb_state *mrb)
-{
-}
-#endif

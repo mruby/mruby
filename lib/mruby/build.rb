@@ -76,7 +76,8 @@ module MRuby
     include Rake::DSL
     include LoadGems
     attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir, :defines, :libdir_name
-    attr_reader :products, :libmruby_core_objs, :libmruby_objs, :gems, :toolchains, :presym, :mrbc_build, :gem_dir_to_repo_url
+    attr_reader :products, :libmruby_core_only_objs, :libmruby_core_objs, :libmruby_objs
+    attr_reader :gems, :toolchains, :presym, :mrbc_build, :gem_dir_to_repo_url
 
     alias libmruby libmruby_objs
 
@@ -118,6 +119,7 @@ module MRuby
         @products = []
         @bins = []
         @gems = MRuby::Gem::List.new
+        @libmruby_core_only_objs = []
         @libmruby_core_objs = []
         @libmruby_objs = [@libmruby_core_objs]
         @enable_libmruby = true
