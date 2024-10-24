@@ -51,3 +51,17 @@ assert('instance_exec on primitives with class and module definition') do
     Object.remove_const :A
   end
 end
+
+assert('argument forwarding via instance_exec') do
+  assert_equal [[], {}, nil], instance_exec { |*args, **kw, &blk| [args, kw, blk] }
+  assert_equal [[1, 2, 3], {}, nil], instance_exec(1, 2, 3) { |*args, **kw, &blk| [args, kw, blk] }
+  assert_equal [[], { a: 1 }, nil], instance_exec(a: 1) { |*args, **kw, &blk| [args, kw, blk] }
+end
+
+assert('argument forwarding via instance_exec from c') do
+  assert_equal [[], {}, nil], instance_exec_from_c { |*args, **kw, &blk| [args, kw, blk] }
+  assert_equal [[1, 2, 3], {}, nil], instance_exec_from_c(1, 2, 3) { |*args, **kw, &blk| [args, kw, blk] }
+
+  # currently there is no easy way to call a method from C passing keyword arguments
+  #assert_equal [[], { a: 1 }, nil], instance_exec_from_c(a: 1) { |*args, **kw, &blk| [args, kw, blk] }
+end

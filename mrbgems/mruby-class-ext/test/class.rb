@@ -27,3 +27,20 @@ assert 'Class#attached_object' do
   assert_raise(TypeError){TrueClass.attached_object}
   assert_raise(TypeError){NilClass.attached_object}
 end
+
+assert 'Class#class_exec' do
+  c = Class.new
+  class << c
+    def index
+      12345
+    end
+  end
+  c.class_exec do
+    def index
+      54321
+    end
+  end
+
+  assert_equal 12345, c.index
+  assert_equal 54321, c.new.index
+end
