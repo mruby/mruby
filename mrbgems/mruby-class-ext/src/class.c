@@ -4,6 +4,7 @@
 #include <mruby/array.h>
 #include <mruby/proc.h>
 #include <mruby/variable.h>
+#include <mruby/internal.h>
 #include <mruby/presym.h>
 
 static mrb_value
@@ -44,18 +45,7 @@ mod_singleton_class_p(mrb_state *mrb, mrb_value self)
 static mrb_value
 mod_module_exec(mrb_state *mrb, mrb_value self)
 {
-  const mrb_value *argv;
-  mrb_int argc;
-  mrb_value blk;
-
-  mrb_get_args(mrb, "*&!", &argv, &argc, &blk);
-
-  struct RClass *c = mrb_class_ptr(self);
-  if (mrb->c->ci->cci > 0) {
-    return mrb_yield_with_class(mrb, blk, argc, argv, self, c);
-  }
-  mrb_vm_ci_target_class_set(mrb->c->ci, c);
-  return mrb_yield_cont(mrb, blk, self, argc, argv);
+  return mrb_object_exec(mrb, self, mrb_class_ptr(self));
 }
 
 struct subclass_args {
