@@ -842,14 +842,6 @@ mrb_value
 mrb_object_exec(mrb_state *mrb, mrb_value self, struct RClass *target_class)
 {
   mrb_callinfo *ci = mrb->c->ci;
-  if (ci->cci > 0) {
-    const mrb_value *argv;
-    mrb_int argc;
-    mrb_value blk;
-    mrb_get_args(mrb, "*!&!", &argv, &argc, &blk);
-    return mrb_yield_with_class(mrb, blk, argc, argv, self, target_class);
-  }
-
   int bidx = mrb_ci_bidx(ci);
   mrb_value blk = ci->stack[bidx];
   if (mrb_nil_p(blk)) {
