@@ -102,6 +102,6 @@ MRuby::CrossBuild.new("milkv_duo") do |conf|
   conf.gem 'mrbgems/mruby-time/'
   conf.gem 'mrbgems/mruby-toplevel-ext/'
 
-  # mruby bindings for WiringX (GPIO).
-  # conf.gem :github => 'denko-rb/mruby-milkv-wiringx'
+  # GPIO, ADC, PWM, I2C and SPI support for Milk-V Duo
+  # conf.gem :github => 'denko-rb/mruby-milkv-duo'
 end
