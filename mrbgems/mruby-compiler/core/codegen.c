@@ -70,7 +70,7 @@ typedef struct scope {
   uint32_t icapa;
 
   mrb_irep *irep;
-  mrb_pool_value *pool;
+  mrb_irep_pool *pool;
   mrb_sym *syms;
   mrb_irep **reps;
   struct mrb_irep_catch_handler *catch_table;
@@ -126,9 +126,9 @@ codegen_error(codegen_scope *s, const char *message)
     if (s->irep) {
       mrb_free(s->mrb, s->iseq);
       for (int i=0; i<s->irep->plen; i++) {
-        mrb_pool_value *pv = &s->pool[i];
-        if ((pv->tt & 0x3) == IREP_TT_STR || pv->tt == IREP_TT_BIGINT) {
-          mrb_free(s->mrb, (void*)pv->u.str);
+        mrb_irep_pool *p = &s->pool[i];
+        if ((p->tt & 0x3) == IREP_TT_STR || p->tt == IREP_TT_BIGINT) {
+          mrb_free(s->mrb, (void*)p->u.str);
         }
       }
       mrb_free(s->mrb, s->pool);
@@ -776,14 +776,14 @@ get_int_operand(codegen_scope *s, struct mrb_insn_data *data, mrb_int *n)
 
   case OP_LOADL:
     {
-      mrb_pool_value *pv = &s->pool[data->b];
+      mrb_irep_pool *p = &s->pool[data->b];
 
-      if (pv->tt == IREP_TT_INT32) {
-        *n = (mrb_int)pv->u.i32;
+      if (p->tt == IREP_TT_INT32) {
+        *n = (mrb_int)p->u.i32;
       }
 #ifdef MRB_INT64
-      else if (pv->tt == IREP_TT_INT64) {
-        *n = (mrb_int)pv->u.i64;
+      else if (p->tt == IREP_TT_INT64) {
+        *n = (mrb_int)p->u.i64;
       }
 #endif
       else {
@@ -989,12 +989,12 @@ pop_n_(codegen_scope *s, int n)
 #define pop_n(n) pop_n_(s,n)
 #define cursp() (s->sp)
 
-static mrb_pool_value*
+static mrb_irep_pool*
 lit_pool_extend(codegen_scope *s)
 {
   if (s->irep->plen == s->pcapa) {
     s->pcapa *= 2;
-    s->pool = (mrb_pool_value*)codegen_realloc(s, s->pool, sizeof(mrb_pool_value)*s->pcapa);
+    s->pool = (mrb_irep_pool*)codegen_realloc(s, s->pool, sizeof(mrb_irep_pool)*s->pcapa);
   }
 
   return &s->pool[s->irep->plen++];
@@ -1005,7 +1005,7 @@ new_litbint(codegen_scope *s, const char *p, int base, mrb_bool neg)
 {
   int i;
   size_t plen;
-  mrb_pool_value *pv;
+  mrb_irep_pool *pv;
 
   plen = strlen(p);
   if (plen > 255) {
@@ -1039,30 +1039,30 @@ static int
 new_lit_str(codegen_scope *s, const char *str, mrb_int len)
 {
   int i;
-  mrb_pool_value *pv;
+  mrb_irep_pool *pool;
 
   for (i=0; i<s->irep->plen; i++) {
-    pv = &s->pool[i];
-    if (pv->tt & IREP_TT_NFLAG) continue;
-    mrb_int plen = pv->tt>>2;
+    pool = &s->pool[i];
+    if (pool->tt & IREP_TT_NFLAG) continue;
+    mrb_int plen = pool->tt>>2;
     if (len != plen) continue;
-    if (memcmp(pv->u.str, str, plen) == 0)
+    if (memcmp(pool->u.str, str, plen) == 0)
       return i;
   }
 
-  pv = lit_pool_extend(s);
+  pool = lit_pool_extend(s);
 
   if (mrb_ro_data_p(str)) {
-    pv->tt = (uint32_t)(len<<2) | IREP_TT_SSTR;
-    pv->u.str = str;
+    pool->tt = (uint32_t)(len<<2) | IREP_TT_SSTR;
+    pool->u.str = str;
   }
   else {
     char *p;
-    pv->tt = (uint32_t)(len<<2) | IREP_TT_STR;
+    pool->tt = (uint32_t)(len<<2) | IREP_TT_STR;
     p = (char*)codegen_realloc(s, NULL, len+1);
     memcpy(p, str, len);
     p[len] = '\0';
-    pv->u.str = p;
+    pool->u.str = p;
   }
 
   return i;
@@ -1078,29 +1078,29 @@ static int
 new_lit_int(codegen_scope *s, mrb_int num)
 {
   int i;
-  mrb_pool_value *pv;
+  mrb_irep_pool *pool;
 
   for (i=0; i<s->irep->plen; i++) {
-    pv = &s->pool[i];
-    if (pv->tt == IREP_TT_INT32) {
-      if (num == pv->u.i32) return i;
+    pool = &s->pool[i];
+    if (pool->tt == IREP_TT_INT32) {
+      if (num == pool->u.i32) return i;
     }
 #ifdef MRB_64BIT
-    else if (pv->tt == IREP_TT_INT64) {
-      if (num == pv->u.i64) return i;
+    else if (pool->tt == IREP_TT_INT64) {
+      if (num == pool->u.i64) return i;
     }
     continue;
 #endif
   }
 
-  pv = lit_pool_extend(s);
+  pool = lit_pool_extend(s);
 
 #ifdef MRB_INT64
-  pv->tt = IREP_TT_INT64;
-  pv->u.i64 = num;
+  pool->tt = IREP_TT_INT64;
+  pool->u.i64 = num;
 #else
-  pv->tt = IREP_TT_INT32;
-  pv->u.i32 = num;
+  pool->tt = IREP_TT_INT32;
+  pool->u.i32 = num;
 #endif
 
   return i;
@@ -1111,20 +1111,20 @@ static int
 new_lit_float(codegen_scope *s, mrb_float num)
 {
   int i;
-  mrb_pool_value *pv;
+  mrb_irep_pool *pool;
 
   for (i=0; i<s->irep->plen; i++) {
     mrb_float f;
-    pv = &s->pool[i];
-    if (pv->tt != IREP_TT_FLOAT) continue;
-    f = pv->u.f;
+    pool = &s->pool[i];
+    if (pool->tt != IREP_TT_FLOAT) continue;
+    f = pool->u.f;
     if (f == num && !signbit(f) == !signbit(num)) return i;
   }
 
-  pv = lit_pool_extend(s);
+  pool = lit_pool_extend(s);
 
-  pv->tt = IREP_TT_FLOAT;
-  pv->u.f = num;
+  pool->tt = IREP_TT_FLOAT;
+  pool->u.f = num;
 
   return i;
 }
@@ -3862,7 +3862,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *nlv)
   s->iseq = (mrb_code*)mrb_malloc(mrb, sizeof(mrb_code)*s->icapa);
 
   s->pcapa = 32;
-  s->pool = (mrb_pool_value*)mrb_malloc(mrb, sizeof(mrb_pool_value)*s->pcapa);
+  s->pool = (mrb_irep_pool*)mrb_malloc(mrb, sizeof(mrb_irep_pool)*s->pcapa);
 
   s->scapa = 256;
   s->syms = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym)*s->scapa);
@@ -3928,7 +3928,7 @@ scope_finish(codegen_scope *s)
   }
   mrb_free(s->mrb, s->catch_table);
   s->catch_table = NULL;
-  irep->pool = (const mrb_pool_value*)codegen_realloc(s, s->pool, sizeof(mrb_pool_value)*irep->plen);
+  irep->pool = (const mrb_irep_pool*)codegen_realloc(s, s->pool, sizeof(mrb_irep_pool)*irep->plen);
   irep->syms = (const mrb_sym*)codegen_realloc(s, s->syms, sizeof(mrb_sym)*irep->slen);
   irep->reps = (const mrb_irep**)codegen_realloc(s, s->reps, sizeof(mrb_irep*)*irep->rlen);
   if (s->filename_sym) {

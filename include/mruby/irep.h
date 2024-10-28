@@ -27,7 +27,7 @@ enum irep_pool_type {
 #define IREP_TT_NFLAG 1 /* number (non string) flag */
 #define IREP_TT_SFLAG 2 /* static string flag */
 
-typedef struct mrb_pool_value {
+typedef struct mrb_irep_pool {
   uint32_t tt; /* packed type and length (for string) */
   union {
     const char *str;
@@ -37,7 +37,7 @@ typedef struct mrb_pool_value {
     mrb_float f;
 #endif
   } u;
-} mrb_pool_value;
+} mrb_irep_pool;
 
 enum mrb_catch_type {
   MRB_CATCH_RESCUE = 0,
@@ -65,7 +65,7 @@ struct mrb_irep {
    * structure from bloating. The catch handler table can be obtained with
    * `mrb_irep_catch_handler_table(irep)`.
    */
-  const mrb_pool_value *pool;
+  const mrb_irep_pool *pool;
   const mrb_sym *syms;
   const struct mrb_irep *const *reps;
 

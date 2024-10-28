@@ -67,7 +67,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, const uint8_t *end, size_
   ptrdiff_t diff;
   uint16_t tt, pool_data_len, snl;
   int plen;
-  mrb_pool_value *pool;
+  mrb_irep_pool *pool;
   mrb_sym *syms;
   int ai = mrb_gc_arena_save(mrb);
   mrb_irep *irep = mrb_add_irep(mrb);
@@ -124,7 +124,7 @@ read_irep_record_1(mrb_state *mrb, const uint8_t *bin, const uint8_t *end, size_
     if (SIZE_ERROR_MUL(plen, sizeof(mrb_value))) {
       return FALSE;
     }
-    irep->pool = pool = (mrb_pool_value*)mrb_calloc(mrb, sizeof(mrb_pool_value), plen);
+    irep->pool = pool = (mrb_irep_pool*)mrb_calloc(mrb, sizeof(mrb_irep_pool), plen);
 
     for (i = 0; i < plen; i++) {
       mrb_bool st = (flags & FLAG_SRC_MALLOC)==0;

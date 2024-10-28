@@ -21,7 +21,7 @@
 #endif
 
 static int
-cdump_pool(mrb_state *mrb, const mrb_pool_value *p, FILE *fp)
+cdump_pool(mrb_state *mrb, const mrb_irep_pool *p, FILE *fp)
 {
   if (p->tt & IREP_TT_NFLAG) {  /* number */
     switch (p->tt) {
@@ -352,7 +352,7 @@ cdump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp,
   /* dump pool */
   if (irep->pool) {
     len=irep->plen;
-    fprintf(fp,   "static const mrb_pool_value %s_pool_%d[%d] = {\n", name, n, len);
+    fprintf(fp,   "static const mrb_irep_pool %s_pool_%d[%d] = {\n", name, n, len);
     for (i=0; i<len; i++) {
       if (cdump_pool(mrb, &irep->pool[i], fp) != MRB_DUMP_OK)
         return MRB_DUMP_INVALID_ARGUMENT;
