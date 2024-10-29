@@ -110,7 +110,7 @@ cons_free_gen(parser_state *p, node *cons)
 static void*
 parser_palloc(parser_state *p, size_t size)
 {
-  void *m = mrb_pool_alloc(p->pool, size);
+  void *m = mrb_mempool_alloc(p->pool, size);
 
   if (!m) {
     MRB_THROW(p->mrb->jmp);
@@ -1058,7 +1058,7 @@ static node*
 composite_string_node(parser_state *p, node *a, node *b)
 {
   size_t newlen = (size_t)a->cdr + (size_t)b->cdr;
-  char *str = (char*)mrb_pool_realloc(p->pool, a->car, (size_t)a->cdr + 1, newlen + 1);
+  char *str = (char*)mrb_mempool_realloc(p->pool, a->car, (size_t)a->cdr + 1, newlen + 1);
   memcpy(str + (size_t)a->cdr, b->car, (size_t)b->cdr);
   str[newlen] = '\0';
   a->car = (node*)str;
@@ -6668,13 +6668,13 @@ mrb_parser_parse(parser_state *p, mrb_ccontext *c)
 MRB_API parser_state*
 mrb_parser_new(mrb_state *mrb)
 {
-  mrb_pool *pool;
+  mrb_mempool *pool;
   parser_state *p;
   static const parser_state parser_state_zero = { 0 };
 
-  pool = mrb_pool_open(mrb);
+  pool = mrb_mempool_open(mrb);
   if (!pool) return NULL;
-  p = (parser_state*)mrb_pool_alloc(pool, sizeof(parser_state));
+  p = (parser_state*)mrb_mempool_alloc(pool, sizeof(parser_state));
   if (!p) return NULL;
 
   *p = parser_state_zero;
@@ -6712,7 +6712,7 @@ mrb_parser_free(parser_state *p) {
   if (p->tokbuf != p->buf) {
     mrb_free(p->mrb, p->tokbuf);
   }
-  mrb_pool_close(p->pool);
+  mrb_mempool_close(p->pool);
 }
 
 MRB_API mrb_ccontext*

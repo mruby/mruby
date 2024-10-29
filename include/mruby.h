@@ -1514,13 +1514,6 @@ MRB_API mrb_value mrb_fiber_alive_p(mrb_state *mrb, mrb_value fib);
 #define E_FIBER_ERROR mrb_exc_get_id(mrb, MRB_ERROR_SYM(FiberError))
 MRB_API void mrb_stack_extend(mrb_state*, mrb_int);
 
-/* memory pool implementation */
-typedef struct mrb_pool mrb_pool;
-MRB_API struct mrb_pool* mrb_pool_open(mrb_state*);
-MRB_API void mrb_pool_close(struct mrb_pool*);
-MRB_API void* mrb_pool_alloc(struct mrb_pool*, size_t);
-MRB_API void* mrb_pool_realloc(struct mrb_pool*, void*, size_t oldlen, size_t newlen);
-MRB_API mrb_bool mrb_pool_can_realloc(struct mrb_pool*, void*, size_t);
 /* temporary memory allocation, only effective while GC arena is kept */
 MRB_API void* mrb_alloca(mrb_state *mrb, size_t);
 
