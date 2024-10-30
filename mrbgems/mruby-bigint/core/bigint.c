@@ -1773,6 +1773,8 @@ mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_value exp, mrb_value mod)
  raise:
   if (mrb_integer_p(mod)) mpz_clear(mrb, &c);
   mrb_raise(mrb, E_ARGUMENT_ERROR, "int.pow(n,m): n must be positive");
+  /* not reached */
+  return mrb_nil_value();
 }
 
 mrb_value
