@@ -22,10 +22,6 @@ jobs:
       - name: Lint Code Base
         uses: super-linter/super-linter/slim@v7.3.0
         env:
-          # VALIDATE_BASH_EXEC: true
-          VALIDATE_DOCKERFILE_HADOLINT: true
-          # VALIDATE_EDITORCONFIG: true
-          # VALIDATE_SHELL_SHFMT: true
           DEFAULT_BRANCH: master
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VALIDATE_ALL_CODEBASE: true
