@@ -979,6 +979,8 @@ mrb_rational_div(mrb_state *mrb, mrb_value x, mrb_value y)
 
   default:
     rat_type_error(mrb, y);
+    /* not reached */
+    return mrb_nil_value();
   }
 }
 
@@ -1012,6 +1014,8 @@ rational_pow(mrb_state *mrb, mrb_value x)
   }
 #else
   mrb_raisef(mrb, E_NOTIMP_ERROR, "Rational#** not implemented with MRB_NO_FLOAT");
+  /* not reached */
+  return mrb_nil_value();
 #endif
 }
 
