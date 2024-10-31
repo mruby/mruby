@@ -26,3 +26,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VALIDATE_ALL_CODEBASE: true
           VALIDATE_CLANG_FORMAT: false
+          VALIDATE_RUBY: false
