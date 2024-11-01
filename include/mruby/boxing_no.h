@@ -37,23 +37,23 @@ typedef struct mrb_value {
 #define mrb_type(o)         (o).tt
 #define mrb_unboxed_type(o) (o).tt
 
-#define BOXNIX_SET_VALUE(o, ttt, attr, v) do {\
+#define BOXNO_SET_VALUE(o, ttt, attr, v) do {\
   (o).tt = ttt;\
   (o).attr = v;\
 } while (0)
 
-#define SET_NIL_VALUE(r) BOXNIX_SET_VALUE(r, MRB_TT_FALSE, value.i, 0)
-#define SET_FALSE_VALUE(r) BOXNIX_SET_VALUE(r, MRB_TT_FALSE, value.i, 1)
-#define SET_TRUE_VALUE(r) BOXNIX_SET_VALUE(r, MRB_TT_TRUE, value.i, 1)
-#define SET_BOOL_VALUE(r,b) BOXNIX_SET_VALUE(r, b ? MRB_TT_TRUE : MRB_TT_FALSE, value.i, 1)
-#define SET_INT_VALUE(mrb,r,n) BOXNIX_SET_VALUE(r, MRB_TT_INTEGER, value.i, (n))
-#define SET_FIXNUM_VALUE(r,n) BOXNIX_SET_VALUE(r, MRB_TT_INTEGER, value.i, (n))
+#define SET_NIL_VALUE(r) BOXNO_SET_VALUE(r, MRB_TT_FALSE, value.i, 0)
+#define SET_FALSE_VALUE(r) BOXNO_SET_VALUE(r, MRB_TT_FALSE, value.i, 1)
+#define SET_TRUE_VALUE(r) BOXNO_SET_VALUE(r, MRB_TT_TRUE, value.i, 1)
+#define SET_BOOL_VALUE(r,b) BOXNO_SET_VALUE(r, b ? MRB_TT_TRUE : MRB_TT_FALSE, value.i, 1)
+#define SET_INT_VALUE(mrb,r,n) BOXNO_SET_VALUE(r, MRB_TT_INTEGER, value.i, (n))
+#define SET_FIXNUM_VALUE(r,n) BOXNO_SET_VALUE(r, MRB_TT_INTEGER, value.i, (n))
 #ifndef MRB_NO_FLOAT
-#define SET_FLOAT_VALUE(mrb,r,v) BOXNIX_SET_VALUE(r, MRB_TT_FLOAT, value.f, (v))
+#define SET_FLOAT_VALUE(mrb,r,v) BOXNO_SET_VALUE(r, MRB_TT_FLOAT, value.f, (v))
 #endif
-#define SET_SYM_VALUE(r,v) BOXNIX_SET_VALUE(r, MRB_TT_SYMBOL, value.sym, (v))
-#define SET_OBJ_VALUE(r,v) BOXNIX_SET_VALUE(r, (((struct RObject*)(v))->tt), value.p, (v))
-#define SET_CPTR_VALUE(mrb,r,v) BOXNIX_SET_VALUE(r, MRB_TT_CPTR, value.p, v)
-#define SET_UNDEF_VALUE(r) BOXNIX_SET_VALUE(r, MRB_TT_UNDEF, value.i, 0)
+#define SET_SYM_VALUE(r,v) BOXNO_SET_VALUE(r, MRB_TT_SYMBOL, value.sym, (v))
+#define SET_OBJ_VALUE(r,v) BOXNO_SET_VALUE(r, (((struct RObject*)(v))->tt), value.p, (v))
+#define SET_CPTR_VALUE(mrb,r,v) BOXNO_SET_VALUE(r, MRB_TT_CPTR, value.p, v)
+#define SET_UNDEF_VALUE(r) BOXNO_SET_VALUE(r, MRB_TT_UNDEF, value.i, 0)
 
 #endif  /* MRUBY_BOXING_NO_H */
