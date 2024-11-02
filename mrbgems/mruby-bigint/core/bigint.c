@@ -352,15 +352,39 @@ mpz_sub(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
   mpz_add(mrb, z, x, &u);
 }
 
-/* x = y - n */
+/* x -= n                                 */
+/*   assumes n is small (fits in mp_limb) */
 static void
-mpz_sub_int(mrb_state *mrb, mpz_t *x, mpz_t *y, mrb_int n)
+mpz_sub_int(mrb_state *mrb, mpz_t *x, mrb_int n)
 {
-  mpz_t z;
+ // If x is zero, set x to -1
+  if (zero_p(x) || x->sz == 0) {
+    mpz_set_int(mrb, x, n);
+    return;
+  }
+  if (x->sn < 0) {
+    mpz_add_int(mrb, x, 1);
+    return;
+  }
 
-  mpz_init_set_int(mrb, &z, n);
-  mpz_sub(mrb, x, y, &z);
-  mpz_clear(mrb, &z);
+  // Initialize borrow and start decrement
+  mp_dbl_limb_signed borrow = (mp_limb)n;
+  size_t i = 0;
+
+  // Subtract 1 from the least significant limb and propagate if necessary
+  borrow = (mp_dbl_limb_signed)x->p[i] - borrow;
+  x->p[i] = LOW(borrow);
+  borrow = (borrow < 0) ? 1 : 0;
+
+  // Continue through limbs while there is a borrow
+  for (i = 1; i < x->sz && borrow; i++) {
+    borrow = (mp_dbl_limb_signed)x->p[i] - borrow;
+    x->p[i] = LOW(borrow);
+    borrow = (borrow < 0) ? 1 : 0;
+  }
+
+  // Trim any unnecessary leading zeros
+  trim(x);
 }
 
 /* w = u * v */
@@ -568,7 +592,7 @@ mpz_mdiv(mrb_state *mrb, mpz_t *q, mpz_t *x, mpz_t *y)
     q->sn = 0;
   /* now if r != 0 and q < 0 we need to round q towards -inf */
   if (!uzero_p(&r) && qsign < 0)
-    mpz_sub_int(mrb, q, q, 1);
+    mpz_sub_int(mrb, q, 1);
   mpz_clear(mrb, &r);
 }
 
@@ -633,7 +657,7 @@ mpz_mdivmod(mrb_state *mrb, mpz_t *q, mpz_t *r, mpz_t *x, mpz_t *y)
     q->sn = 0;
   /* now if r != 0 and q < 0 we need to round q towards -inf */
   if (!uzero_p(r) && qsign < 0)
-    mpz_sub_int(mrb, q, q, 1);
+    mpz_sub_int(mrb, q, 1);
 }
 
 static void
@@ -1885,7 +1909,7 @@ mrb_bint_rev(mrb_state *mrb, mrb_value x)
   bint_as_mpz(RBIGINT(x), &a);
   mpz_init(mrb, &b);
   mpz_neg(mrb, &b, &a);
-  mpz_sub_int(mrb, &b, &b, 1);
+  mpz_sub_int(mrb, &b, 1);
   return bint_norm(mrb, bint_new(mrb, &b));
 }
 
