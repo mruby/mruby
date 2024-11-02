@@ -312,6 +312,33 @@ mpz_add(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y)
   mpz_move(mrb, zz, &z);
 }
 
+/* x = x + n (only called from mpz_init_set_str) */
+/*   assumes x and n are positive or zero        */
+/*   assumes n is small (fits in mp_limb)        */
+static void
+mpz_add_int(mrb_state *mrb, mpz_t *x, mrb_int n)
+{
+  if (n == 0) {
+    // If n is zero, no operation is needed
+    return;
+  }
+
+  // Assume x is positive and n is a small positive integer (n < 36)
+  mp_dbl_limb carry = n; // Initialize carry with n
+  for (size_t i = 0; i < x->sz && carry; i++) {
+    carry += (mp_dbl_limb)x->p[i]; // Add current limb and carry
+    x->p[i] = LOW(carry);          // Store lower 32 bits in current limb
+    carry = HIGH(carry);           // Update carry with higher bits
+  }
+
+  if (carry != 0) {
+    mpz_realloc(mrb, x, x->sz + 1);
+    x->p[x->sz-1] = (mp_limb)carry;
+    x->sn = 1;
+  }
+  trim(x);
+}
+
 /* z = x - y  -- just use mpz_add - I'm lazy */
 static void
 mpz_sub(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
@@ -690,33 +717,6 @@ mpz_mul_int(mrb_state *mrb, mpz_t *x, mrb_int n)
   }
 
   x->sn = 1;
-  trim(x);
-}
-
-/* x = y + n (only called from mpz_init_set_str) */
-/*   assumes x and n are positive or zero        */
-/*   assumes n is small (fits in mp_limb)        */
-static void
-mpz_add_int(mrb_state *mrb, mpz_t *x, mrb_int n)
-{
-  if (n == 0) {
-    // If n is zero, no operation is needed
-    return;
-  }
-
-  // Assume x is positive and n is a small positive integer (n < 36)
-  mp_dbl_limb carry = n; // Initialize carry with n
-  for (size_t i = 0; i < x->sz && carry; i++) {
-    carry += (mp_dbl_limb)x->p[i]; // Add current limb and carry
-    x->p[i] = LOW(carry);          // Store lower 32 bits in current limb
-    carry = HIGH(carry);           // Update carry with higher bits
-  }
-
-  if (carry != 0) {
-    mpz_realloc(mrb, x, x->sz + 1);
-    x->p[x->sz-1] = (mp_limb)carry;
-    x->sn = 1;
-  }
   trim(x);
 }
 
