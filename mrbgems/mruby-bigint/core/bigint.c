@@ -1483,8 +1483,22 @@ mrb_bint_add_n(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mpz_t a, b, z;
 
-  y = mrb_as_bint(mrb, y);
   bint_as_mpz(RBIGINT(x), &a);
+  if (mrb_integer_p(y)) {
+    mrb_int i = mrb_integer(y);
+    if (LOW(i) == i) {
+      mpz_init_set(mrb, &z, &a);
+      if ((i > 0) ^ (z.sn > 0)) {
+        mpz_sub_int(mrb, &z, i);
+      }
+      else {
+        mpz_add_int(mrb, &z, i);
+      }
+      struct RBigint *v = bint_new(mrb, &z);
+      return mrb_obj_value(v);
+    }
+  }
+  y = mrb_as_bint(mrb, y);
   bint_as_mpz(RBIGINT(y), &b);
   mpz_init(mrb, &z);
   mpz_add(mrb, &z, &a, &b);
