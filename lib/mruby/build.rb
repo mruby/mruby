@@ -77,6 +77,7 @@ module MRuby
     include LoadGems
     attr_accessor :name, :bins, :exts, :file_separator, :build_dir, :gem_clone_dir, :defines, :libdir_name
     attr_reader :products, :libmruby_core_objs, :libmruby_objs, :gems, :toolchains, :presym, :mrbc_build, :gem_dir_to_repo_url
+    attr_reader :install_excludes
 
     alias libmruby libmruby_objs
 
@@ -103,6 +104,7 @@ module MRuby
         @gem_clone_dir = "#{build_dir}/repos/#{@name}"
         @libdir_name = (self.kind_of?(MRuby::CrossBuild) ? nil : ENV["MRUBY_SYSTEM_LIBDIR_NAME"]) || "lib"
         @install_prefix = nil
+        @install_excludes = []
         @defines = []
         @cc = Command::Compiler.new(self, %w(.c), label: "CC")
         @cxx = Command::Compiler.new(self, %w(.cc .cxx .cpp), label: "CXX")
@@ -134,6 +136,13 @@ module MRuby
         @internal = internal
         @toolchains = []
         @gem_dir_to_repo_url = {}
+
+        # Add lambda instead of string because libdir_name or lib may be changed by user configuration
+        libmruby_core_name = nil
+        @install_excludes << ->(file) {
+          libmruby_core_name ||= File.join(libdir_name, libfile("libmruby_core"))
+          file == libmruby_core_name
+        }
 
         MRuby.targets[@name] = current = self
       end
@@ -533,12 +542,20 @@ EOS
       @install_prefix = dir&.to_s
     end
 
+    def list_install_excludes
+      install_excludes.flatten.flat_map { |e|
+        e.kind_of?(Proc) ? e.call(self) : e
+      }.map { |e|
+        File.join(build_dir, e)
+      }
+    end
+
     protected
 
     attr_writer :presym
 
     def create_mrbc_build
-      exclusions = %i[@name @build_dir @gems @enable_test @enable_bintest @internal]
+      exclusions = %i[@name @build_dir @gems @enable_test @enable_bintest @internal @install_excludes]
       name = "#{@name}/mrbc"
       MRuby.targets.delete(name)
       build = self.class.new(name, internal: true){}
