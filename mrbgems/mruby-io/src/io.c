@@ -1679,7 +1679,7 @@ io_read(mrb_state *mrb, mrb_value io)
     else {
       length = mrb_as_int(mrb, len);
       if (length < 0) {
-        mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative length %d given", length);
+        mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative length %i given", length);
       }
       if (length == 0) {
         return io_reset_outbuf(mrb, outbuf, 0);
