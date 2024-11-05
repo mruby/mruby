@@ -14,12 +14,16 @@ MRuby.each_target do |build|
   next if build.internal?
 
   prefix = File.join(MRuby::INSTALL_DESTDIR, build.install_prefix)
+  exclude_filter = build.install_excludes.flatten
 
   task "install:full" => "install:full:#{build.name}"
 
   task "install:full:#{build.name}" => "install:bin:#{build.name}" do
     Dir.glob(File.join(build.build_dir.gsub(/[\[\{\*\?]/, "\\\0"), "{include,#{libdir_name}}/**/*")) do |path|
-      install_D path, File.join(prefix, path.relative_path_from(build.build_dir)) if File.file? path
+      next unless File.file? path
+      file = path.relative_path_from(build.build_dir)
+      next if exclude_filter.any? { |filter| filter.respond_to?(:call) ? filter.call(file) : filter.match?(file) }
+      install_D path, File.join(prefix, file)
     end
   end
 
@@ -27,7 +31,10 @@ MRuby.each_target do |build|
 
   task "install:bin:#{build.name}" => "all" do
     Dir.glob(File.join(build.build_dir.gsub(/[\[\{\*\?]/, "\\\0"), "{bin,host-bin}/**/*")) do |path|
-      install_D path, File.join(prefix, path.relative_path_from(build.build_dir)) if File.file? path
+      next unless File.file? path
+      file = path.relative_path_from(build.build_dir)
+      next if exclude_filter.any? { |filter| filter.respond_to?(:call) ? filter.call(file) : filter.match?(file) }
+      install_D path, File.join(prefix, file)
     end
   end
 end
