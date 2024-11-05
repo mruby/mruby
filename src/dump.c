@@ -81,7 +81,7 @@ dump_float(mrb_state *mrb, uint8_t *buf, mrb_float f)
   union {
     double f;
     char s[sizeof(double)];
-  } u = {.f = (double)f};
+  } u = {(double)f};
 
   if (littleendian) {
     memcpy(buf, u.s, sizeof(double));
