@@ -12,6 +12,7 @@
 #define YYSTACK_USE_ALLOCA 1
 
 #include <ctype.h>
+#include <stdlib.h>
 #include <string.h>
 #include <mruby.h>
 #include <mruby/compile.h>
