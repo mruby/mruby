@@ -1,9 +1,9 @@
 # Authors of mruby (mruby developers)
 
-## The List of Contributors sorted by number of commits (as of 2024-10-08 b56ad8f)
+## The List of Contributors sorted by number of commits (as of 2024-11-07 90764b1)
 
-   5851 Yukihiro "Matz" Matsumoto (@matz)*
-    623 dearblue (@dearblue)*
+   5895 Yukihiro "Matz" Matsumoto (@matz)*
+    638 dearblue (@dearblue)*
     587 KOBAYASHI Shuji (@shuujii)
     353 Daniel Bovensiepen (@bovi)*
     345 Takeshi Watanabe (@take-cheeze)*
@@ -11,8 +11,8 @@
     234 Jun Hiroe (@suzukaze)
     228 Tomoyuki Sahara (@tsahara)*
     220 Cremno (@cremno)*
+    215 John Bampton (@jbampton)
     209 Yuki Kurihara (@ksss)+
-    206 John Bampton (@jbampton)
     144 Yasuhiro Matsumoto (@mattn)*
     113 Carson McDonald (@carsonmcdonald)
     104 Tomasz Pędraszewski (@dabroz)*
@@ -80,13 +80,13 @@
       9 Frank Celler (@fceller)
       9 Tatsuya Matsumoto (@tmash06)*
       8 Takashi Sogabe (@sogabe)
+      8 Wataru Ashihara (@wataash)*
       7 Bhargava Shastry (@bshastry)*
       7 Kouichi Nakanishi (@keizo042)
       7 Rubyist (@expeditiousRubyist)
       7 SiZiOUS (@sizious)
       7 Simon Génier (@simon-shopify)
       7 Terence Lee (@hone)
-      7 Wataru Ashihara (@wataash)*
       7 roco (@rystyle)*
       6 Akito Mochizuki (@ak-mochi)
       6 Beoran (@beoran)
@@ -112,6 +112,7 @@
       5 Yurie Yamane (@yurie)+
       5 dreamedge (@dreamedge)
       5 nkshigeru (@nkshigeru)
+      5 vickash (@vickash)
       5 xuejianqing (@joans321)
       4 Dante Catalfamo (@dantecatalfamo)
       4 Goro Kikuchi (@gorogit)
@@ -131,7 +132,6 @@
       4 Yuhei Okazaki (@Yuuhei-Okazaki)*
       4 Yuji Yamano (@yyamano)
       4 kurodash (@kurodash)*
-      4 vickash (@vickash)
       4 wanabe (@wanabe)*
       3 Anton Davydov (@davydovanton)
       3 Aurora Nockert (@auroranockert)
@@ -159,6 +159,7 @@
       3 William Light (@wrl)
       3 bamchoh (@bamchoh)
       3 sasaki takeru (@takeru)
+      3 Daniel K. Sierpiński (@513ry)+
       3 windwiny (@windwiny)
       3 星湖新 (@hoshiumiarata)
       2 Akira Moroo (@retrage)
@@ -205,6 +206,7 @@
       1 Alex Wang (@nanamiwang)+
       1 AlexDenisov (@AlexDenisov)
       1 Andrew Nordman (@cadwallion)
+      1 Sinkevich Artem (@ArtSin)+
       1 Ashish Kurmi (@boahc077)
       1 Atsushi Morimoto (@mynz)
       1 Ben A Morgan (@BenMorganIO)
