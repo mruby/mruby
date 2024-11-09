@@ -1,4 +1,3 @@
-# coding: utf-8-emacs
 def sclass(v)
   class << v
     self
@@ -22,7 +21,7 @@ assert('mrb_vformat') do
   assert_match '#<Class:#<Class:#<Hash:0x*>>>', vf.v('%t', sclass({}))
   assert_equal 'string and length', vf.l('string %l length', 'andante', 3)
   assert_equal '`n`: sym', vf.n('`n`: %n', :sym)
-  assert_equal '%Cæ–‡å­—åˆ—õ€•º%', vf.s('%s', '%Cæ–‡å­—åˆ—õ€•º%')
+  assert_equal '%CÊ¸»úÎó¯÷%', vf.s('%s', '%CÊ¸»úÎó¯÷%')
   assert_equal '`C`: Kernel module', vf.C('`C`: %C module', Kernel)
   assert_equal '`C`: NilClass', vf.C('`C`: %C', nil.class)
   assert_match '#<Class:#<String:0x*>>', vf.C('%C', sclass(""))
@@ -40,7 +39,7 @@ assert('mrb_vformat') do
   assert_equal 'Class', vf.v('%Y', sclass({}))
   assert_match '#<Class:#<String:0x*>>', vf.v('%v', sclass(""))
   assert_equal '`v`: 1...3', vf.v('`v`: %v', 1...3)
-  assert_equal '`S`: {:a=>1, "b"=>"c"}', vf.v('`S`: %S', {a: 1, "b" => ?c})
+  assert_equal '`S`: {:a => 1, "b" => "c"}', vf.v('`S`: %S', {a: 1, "b" => ?c})
   assert_equal 'percent: %', vf.z('percent: %%')
   assert_equal '"I": inspect char', vf.c('%!c: inspect char', ?I)
   assert_equal '709: inspect mrb_int', vf.i('%!d: inspect mrb_int', 709)

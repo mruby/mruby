@@ -1843,7 +1843,7 @@ mrb_hash_to_s(mrb_state *mrb, mrb_value self)
       mrb_str_cat_str(mrb, ret, mrb_inspect(mrb, entry->key));
     });
     mrb_gc_arena_restore(mrb, ai);
-    mrb_str_cat_lit(mrb, ret, "=>");
+    mrb_str_cat_lit(mrb, ret, " => ");
     h_check_modified(mrb, h, {
       mrb_str_cat_str(mrb, ret, mrb_inspect(mrb, entry->val));
     });
