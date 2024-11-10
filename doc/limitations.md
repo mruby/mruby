@@ -1,3 +1,5 @@
+<!-- summary: About the Limitations of mruby -->
+
 # Limitations and Differences
 
 The philosophy of mruby is to be a lightweight implementation of

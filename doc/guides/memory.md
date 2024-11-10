@@ -1,3 +1,5 @@
+<!-- summary: About Memory Allocator Customization -->
+
 # Memory Allocation
 
 There are three methods to customize memory allocation in mruby.

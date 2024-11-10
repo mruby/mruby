@@ -1,3 +1,5 @@
+<!-- summary: About Linking with `libmruby` -->
+
 # Linking `libmruby` to your application
 
 You have two ways to link `libmruby` to your application.

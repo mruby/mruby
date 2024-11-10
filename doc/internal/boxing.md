@@ -1,3 +1,5 @@
+<!-- summary: About Value Boxing -->
+
 # Boxing
 
 The mruby objects and data are represented by C data type `mrb_value`. There are three options how to pack the data values in the `mrb_value`.

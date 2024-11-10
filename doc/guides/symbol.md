@@ -1,3 +1,5 @@
+<!-- summary: About the Symbols -->
+
 # Symbols
 
 Symbols in `mruby` C source code is represented by `mrb_sym` which is alias of

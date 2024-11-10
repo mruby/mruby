@@ -1,3 +1,5 @@
+<!-- summary: About GC Arena -->
+
 # How to use `mrb_gc_arena_save()`/`mrb_gc_arena_restore()`/`mrb_gc_protect()`
 
 _This is an English translation of [Matz's blog post][matz blog post]
