@@ -532,3 +532,89 @@ assert('BS Block 39') do
     }
   end
 end
+
+assert('BS Block 40 (https://github.com/mruby/mruby/issues/6411)') do
+  assert_equal "GOOD" do
+    Object.new.instance_eval do
+      def test(&b)
+        if b
+          b.call
+        else
+          test { return "GOOD" }
+        end
+        "BAD"
+      end
+
+      test
+    end
+  end
+
+  assert_equal "GOOD" do
+    Object.new.instance_eval do
+      # since Kernel#proc is defined in proc-ext
+      def make_proc(&b)
+        b
+      end
+
+      def chocolate(&b)
+        biscuit(&b)
+      end
+
+      def biscuit(&b)
+        if b
+          b.call
+        else
+          b = make_proc { return "GOOD" }
+          chocolate(&b)
+        end
+        "BAD"
+      end
+
+      biscuit
+    end
+  end
+
+  assert_equal [0, 1, 2, 3] do
+    Object.new.instance_eval do
+      def test(a = [], &b)
+        if b
+          b.call
+        else
+          if a.empty?
+            a << 0
+            test(a)
+          else
+            a << 1
+            test(a) { return 1 }
+          end
+          a << 2
+        end
+        a << 3
+      end
+
+      test
+    end
+  end
+
+  assert_equal [0, 1, 3, 2, 3, 2, 3] do
+    Object.new.instance_eval do
+      def test(a = [], &b)
+        if b
+          b.call
+        else
+          if a.empty?
+            a << 0
+            test(a)
+          else
+            a << 1
+            test(a, &-> { return 1 })
+          end
+          a << 2
+        end
+        a << 3
+      end
+
+      test
+    end
+  end
+end
