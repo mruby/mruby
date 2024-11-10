@@ -233,11 +233,12 @@ uvenv(mrb_state *mrb, mrb_int up)
 }
 
 static inline const struct RProc*
-top_proc(mrb_state *mrb, const struct RProc *proc)
+top_proc(mrb_state *mrb, const struct RProc *proc, const struct REnv **envp)
 {
   while (proc->upper) {
     if (MRB_PROC_SCOPE_P(proc) || MRB_PROC_STRICT_P(proc))
       return proc;
+    *envp = proc->e.env;
     proc = proc->upper;
   }
   return proc;
@@ -2294,11 +2295,12 @@ RETRY_TRY_BLOCK:
         goto NORMAL_RETURN;
       }
 
-      const struct RProc *dst = top_proc(mrb, ci->proc);
+      const struct REnv *env = ci->u.env;
+      const struct RProc *dst = top_proc(mrb, ci->proc, &env);
       if (!MRB_PROC_ENV_P(dst) || dst->e.env->cxt == mrb->c) {
         /* check jump destination */
         for (ptrdiff_t i = ci - mrb->c->cibase; i >= 0; i--, ci--) {
-          if (ci->proc == dst) {
+          if (ci->u.env == env) {
             goto L_UNWINDING;
           }
         }
