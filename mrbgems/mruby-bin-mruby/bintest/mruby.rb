@@ -166,8 +166,8 @@ assert('top level local variables are in file scope') do
   system "#{cmd('mrbc')} -g -o #{amrb.path} #{arb.path}"
   File.write brb.path, 'p a'
   system "#{cmd('mrbc')} -g -o #{bmrb.path} #{brb.path}"
-  assert_mruby("", /:1: undefined method 'a' \(NoMethodError\)\n\z/, false, ["-r", arb.path, brb.path])
-  assert_mruby("", /:1: undefined method 'a' \(NoMethodError\)\n\z/, false, ["-b", "-r", amrb.path, bmrb.path])
+  assert_mruby("", /:1: undefined method 'a' .*\(NoMethodError\)\n\z/, false, ["-r", arb.path, brb.path])
+  assert_mruby("", /:1: undefined method 'a' .*\(NoMethodError\)\n\z/, false, ["-b", "-r", amrb.path, bmrb.path])
 
   File.write crb.path, 'a, b, c = 1, 2, 3; A = -> { b = -2; [a, b, c] }'
   system "#{cmd('mrbc')} -g -o #{cmrb.path} #{crb.path}"

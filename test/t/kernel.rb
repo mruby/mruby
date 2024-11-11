@@ -352,7 +352,7 @@ assert('Kernel#method_missing', '15.3.1.3.30') do
   end
 
   a = String.new
-  msg = "undefined method 'no_method_named_this'"
+  msg = "undefined method 'no_method_named_this' for String"
   assert_raise_with_message(NoMethodError, msg) do
     a.no_method_named_this
   end

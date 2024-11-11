@@ -54,5 +54,5 @@ a = 5
 A.call
   TESTCODE
 
-  assert_kind_of Integer, o =~ /\bundefined method 'a' \(NoMethodError\).*=> 5\b.*=> 1\b/m
+  assert_kind_of Integer, o =~ /\bundefined method 'a' .*\(NoMethodError\).*=> 5\b.*=> 1\b/m
 end

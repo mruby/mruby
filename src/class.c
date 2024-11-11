@@ -2844,7 +2844,7 @@ mrb_value mrb_obj_id_m(mrb_state *mrb, mrb_value self);
 mrb_noreturn void
 mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value args)
 {
-  mrb_no_method_error(mrb, name, args, "undefined method '%n'", name);
+  mrb_no_method_error(mrb, name, args, "undefined method '%n' for %T", name, self);
 }
 
 /* 15.3.1.3.30 */
