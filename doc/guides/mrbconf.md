@@ -1,3 +1,5 @@
+<!-- summary: About Build-time Configurations -->
+
 # mruby configuration macros
 
 ## The configuration file

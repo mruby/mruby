@@ -1,3 +1,5 @@
+<!-- summary: About the Build-time Library Manager -->
+
 # mrbgems
 
 mrbgems is a library manager to integrate C and Ruby extensions in an easy and

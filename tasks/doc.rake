@@ -80,6 +80,32 @@ namespace :doc do
 
     MRuby::Documentation.update_opcode_md
   end
+
+  task 'update-index' do
+    rev_order = %w(doc/internal/ doc/guides/ doc/)
+    cmd = %W(git --git-dir #{MRUBY_ROOT}/.git --work-tree #{MRUBY_ROOT} ls-files -- doc/*.md)
+    doc = IO.popen(cmd, "r") { |io| io.read.split("\n") }
+    doc.sort_by! { |e| [-rev_order.index { |o| e.start_with?(o) }, e] }
+    readme_path = File.join(MRUBY_ROOT, "README.md")
+    readme = File.read(readme_path)
+    matched = false
+    mark_begin = "<!-- BEGIN OF MRUBY DOCUMENT INDEX -->\n"
+    mark_end = "<!-- END OF MRUBY DOCUMENT INDEX -->\n"
+    readme1 = readme.sub(/^#{mark_begin}\K.*(?=^#{mark_end})/m) {
+      matched = true
+      doc.each_with_object("") { |d, a|
+        summary = File.open(File.join(MRUBY_ROOT, d)) { |f|
+          f.each_line.first.slice(/^<!--\s*summary:\s*(.*?)\s*-->/, 1)
+        }
+        if summary
+          summary = "Internal Implementation / #{summary}" if d.start_with?("doc/internal/")
+          a << "- [#{summary}](#{d})\n"
+        end
+      }
+    }
+    raise "missing marker for document index in README.md" unless matched
+    File.write(readme_path, readme1, mode: "wb") unless readme == readme1
+  end
 end
 
 # deprecated

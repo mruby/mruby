@@ -1,3 +1,5 @@
+<!-- summary: About the Compile -->
+
 # Compile
 
 mruby uses Rake to compile and cross-compile all libraries and
