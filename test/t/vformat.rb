@@ -21,7 +21,7 @@ assert('mrb_vformat') do
   assert_match '#<Class:#<Class:#<Hash:0x*>>>', vf.v('%t', sclass({}))
   assert_equal 'string and length', vf.l('string %l length', 'andante', 3)
   assert_equal '`n`: sym', vf.n('`n`: %n', :sym)
-  assert_equal '%CÊ¸»úÎó¯÷%', vf.s('%s', '%CÊ¸»úÎó¯÷%')
+  assert_equal '%Cæ–‡å­—åˆ—%', vf.s('%s', '%Cæ–‡å­—åˆ—%')
   assert_equal '`C`: Kernel module', vf.C('`C`: %C module', Kernel)
   assert_equal '`C`: NilClass', vf.C('`C`: %C', nil.class)
   assert_match '#<Class:#<String:0x*>>', vf.C('%C', sclass(""))
