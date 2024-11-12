@@ -2674,10 +2674,6 @@ primary         : literal
                 | heredoc
                 | var_ref
                 | backref
-                | tNUMPARAM
-                    {
-                      $$ = new_nvar(p, $1);
-                    }
                 | tFID
                     {
                       $$ = new_fcall(p, $1, 0);
@@ -3491,6 +3487,11 @@ symbol          : basic_symbol
                       }
                       $$ = new_dsym(p, new_dstr(p, n));
                     }
+                | tSYMBEG tNUMPARAM
+                    {
+                      mrb_sym sym = intern_numparam($2);
+                      $$ = new_sym(p, sym);
+                    }
                 ;
 
 basic_symbol    : tSYMBEG sym
@@ -3575,6 +3576,10 @@ var_lhs         : variable
 var_ref         : variable
                     {
                       $$ = var_reference(p, $1);
+                    }
+                | tNUMPARAM
+                    {
+                      $$ = new_nvar(p, $1);
                     }
                 | keyword_nil
                     {
@@ -6435,7 +6440,7 @@ parser_yylex(parser_state *p)
       break;
 
     case '_':
-      if (p->lstate != EXPR_FNAME && toklen(p) == 2 && ISDIGIT(tok(p)[1]) && p->nvars) {
+      if (toklen(p) == 2 && ISDIGIT(tok(p)[1]) && p->nvars) {
         int n = tok(p)[1] - '0';
         int nvar;
 
