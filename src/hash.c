@@ -84,6 +84,7 @@ typedef struct hash_table {
   uint32_t ea_capa;
   uint32_t ea_n_used;
 #endif
+  uint32_t *ib_conflict;
   uint32_t ib[];
 } hash_table;
 
@@ -297,6 +298,7 @@ static void ht_init(
 static void ht_set(mrb_state *mrb, struct RHash *h, mrb_value key, mrb_value val);
 static void ht_set_without_ib_adjustment(
   mrb_state *mrb, struct RHash *h, mrb_value key, mrb_value val);
+static void ht_rehash_after_delete(mrb_state *mrb, struct RHash *h, index_buckets_iter *it);
 
 static uint32_t
 next_power2(uint32_t v)
@@ -717,6 +719,22 @@ ib_it_entry(index_buckets_iter *it)
   return ea_get(ht_ea(it->h), it->ea_index);
 }
 
+static mrb_bool
+ib_it_conflict(const index_buckets_iter *it)
+{
+  uint32_t idx = it->bit / 32;
+  uint32_t mask = 1 << (it->bit % 32);
+  return h_ht(it->h)->ib_conflict[idx] & mask;
+}
+
+static void
+ib_it_conflict_mark(const index_buckets_iter *it)
+{
+  uint32_t idx = it->bit / 32;
+  uint32_t mask = 1 << (it->bit % 32);
+  h_ht(it->h)->ib_conflict[idx] |= mask;
+}
+
 static uint32_t
 ib_capa_to_bit(uint32_t capa)
 {
@@ -775,6 +793,9 @@ ib_init(mrb_state *mrb, struct RHash *h, uint32_t ib_bit, size_t ib_byte_size)
       break;
     });
   });
+
+  h_ht(h)->ib_conflict = (uint32_t *)((char*)ht_ib(h) + ib_byte_size);
+  memset(h_ht(h)->ib_conflict, 0, ht_ea_capa(h) / 8);
 }
 
 static void
@@ -782,7 +803,8 @@ ht_init(mrb_state *mrb, struct RHash *h, uint32_t size,
         hash_entry *ea, uint32_t ea_capa, hash_table *ht, uint32_t ib_bit)
 {
   size_t ib_byte_size = ib_byte_size_for(ib_bit);
-  size_t ht_byte_size = sizeof(hash_table) + ib_byte_size;
+  size_t ib_conflict_byte_size = ea_capa / 8;
+  size_t ht_byte_size = sizeof(hash_table) + ib_byte_size + ib_conflict_byte_size;
   ht = (hash_table*)mrb_realloc(mrb, ht, ht_byte_size);
   h_ht_on(h);
   h_set_ht(h, ht);
@@ -853,7 +875,10 @@ ht_set_without_ib_adjustment(mrb_state *mrb, struct RHash *h,
   mrb_assert(ht_size(h) < ib_bit_to_capa(ib_bit(h)));
   ib_cycle_by_key(mrb, h, key, it, {
     if (ib_it_active_p(it)) {
-      if (!obj_eql(mrb, key, ib_it_entry(it)->key, h)) continue;
+      if (!obj_eql(mrb, key, ib_it_entry(it)->key, h)) {
+        ib_it_conflict_mark(it);
+        continue;
+      }
       ib_it_entry(it)->val = val;
     }
     else {
@@ -905,6 +930,7 @@ ht_delete(mrb_state *mrb, struct RHash *h, mrb_value key, mrb_value *valp)
     ib_it_delete(it);
     entry_delete(entry);
     ht_dec_size(h);
+    ht_rehash_after_delete(mrb, h, it);
     return TRUE;
   });
   return FALSE;
@@ -922,6 +948,7 @@ ht_shift(mrb_state *mrb, struct RHash *h, mrb_value *keyp, mrb_value *valp)
       ib_it_delete(it);
       entry_delete(entry);
       ht_dec_size(h);
+      ht_rehash_after_delete(mrb, h, it);
       return;
     });
   });
@@ -963,6 +990,17 @@ ht_rehash(mrb_state *mrb, struct RHash *h)
   mrb_assert(size == w_size);
   ht_set_ea_n_used(h, size);
   size <= AR_MAX_SIZE ? ht_to_ar(mrb, h) : ht_adjust_ea(mrb, h, size, ea_capa);
+}
+
+inline static void
+ht_rehash_after_delete(mrb_state *mrb, struct RHash *h, index_buckets_iter *it)
+{
+  // @NOTE It's only technically necessary to do this when removing an entry
+  //       that "bumped" another entry into another slot. Conflict data might
+  //       be more efficiently stored alongside the ea index in the future.
+  if (ib_it_conflict(it)) {
+    ht_rehash(mrb, h);
+  }
 }
 
 static mrb_value

@@ -975,3 +975,43 @@ assert('test value omission') do
   y = 2
   assert_equal({x:1, y:2}, {x:, y:})
 end
+
+assert('hash tables are properly rehashed as necessary after #delete') do
+  keys = []
+  20.times { |key| keys << key }
+
+  root = {}
+  keys.each { |key| root[key] = true }
+
+  keys.each do |delete_key|
+    keys.each do |update_key|
+      next if update_key == delete_key
+
+      hash = root.dup
+      hash.delete(delete_key)
+      hash[update_key] = true
+
+      assert_equal(19, hash.size, "Hash size should not grow on update")
+      assert_equal(19, hash.keys.size, "Keys should not change on update")
+    end
+  end
+end
+
+assert('hash tables are properly rehashed as necessary after #shift') do
+  keys = []
+  20.times { |key| keys << key }
+
+  root = {}
+  keys.each { |key| root[key] = true }
+
+  keys.each do |update_key|
+    next if update_key == keys.first
+
+    hash = root.dup
+    hash.shift
+    hash[update_key] = true
+
+    assert_equal(19, hash.size, "Hash size should not grow on update")
+    assert_equal(19, hash.keys.size, "Keys should not change on update")
+  end
+end
