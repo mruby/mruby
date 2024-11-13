@@ -593,7 +593,7 @@ mrb_vm_define_class(mrb_state *mrb, mrb_value outer, mrb_value super, mrb_sym id
     if (s) {
       /* check super class */
       if (mrb_class_real(c->super) != s) {
-        mrb_raisef(mrb, E_TYPE_ERROR, "superclass mismatch for class %v", old);
+        mrb_raisef(mrb, E_TYPE_ERROR, "superclass mismatch for %v", old);
       }
     }
     return c;
