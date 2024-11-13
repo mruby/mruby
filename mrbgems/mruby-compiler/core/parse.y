@@ -958,6 +958,7 @@ new_block(parser_state *p, node *a, node *b)
 static node*
 new_lambda(parser_state *p, node *a, node *b)
 {
+  a = setup_numparams(p, a);
   return list4((node*)NODE_LAMBDA, locals_node(p), a, b);
 }
 
@@ -7165,7 +7166,7 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
 
   case NODE_LAMBDA:
     printf("NODE_LAMBDA:\n");
-    dump_prefix(tree, offset);
+    dump_prefix(tree, offset+1);
     goto block;
 
   case NODE_BLOCK:
