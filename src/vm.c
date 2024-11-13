@@ -615,7 +615,7 @@ prepare_missing(mrb_state *mrb, mrb_callinfo *ci, mrb_value recv, mrb_sym mid, m
 
   if (mrb_func_basic_p(mrb, recv, missing, mrb_obj_missing)) {
   method_missing:
-    if (super) mrb_no_method_error(mrb, mid, args, "no superclass method '%n'", mid);
+    if (super) mrb_no_method_error(mrb, mid, args, "no superclass method '%n' for %T", mid, recv);
     else mrb_method_missing(mrb, mid, recv, args);
     /* not reached */
   }
