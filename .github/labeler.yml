@@ -71,7 +71,6 @@ oss-fuzz:
       - changed-files:
           - any-glob-to-any-file:
               - oss-fuzz/**/*
-
 tools:
   - any:
       - changed-files:
