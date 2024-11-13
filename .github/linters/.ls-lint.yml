@@ -1,0 +1,12 @@
+ls:
+  .c: snake_case
+  .cpp: snake_case
+  .h: snake_case
+  .json: snake_case
+  .rb: snake_case
+  .yaml: regex:\.?[a-z]+(-[a-z]+)*
+  .yml: regex:\.?[a-z]+(-[a-z]+)*
+
+ignore:
+  - build_config
+  - mrbgems/mruby-compiler/core/y.tab.c
