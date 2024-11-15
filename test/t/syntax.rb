@@ -718,6 +718,16 @@ assert('_0 is not numbered parameter') do
   assert_equal(:l, ->{_0}.call)
 end
 
+assert('numbered parameters in symbol name (https://github.com/mruby/mruby/issues/5295)') do
+  assert_equal([:_1], Array.new(1) {:_1})
+end
+
+assert('numbered parameters as singleton') do
+  o = Object.new
+  lambda { def _1.a(b) = "a#{b}" }.call(o)
+  assert_equal('ab', o.a('b'))
+end
+
 assert('argument forwarding') do
   c = Class.new {
     def a0(*a,&b)
