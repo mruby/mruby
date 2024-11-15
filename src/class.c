@@ -2902,8 +2902,7 @@ inspect_main(mrb_state *mrb, mrb_value mod)
 
 static const mrb_code new_iseq[] = {
   OP_ENTER, 0x0, 0x10, 0x3,  // OP_ENTER     0:0:1:0:0:1:1
-  OP_LOADSELF, 4,            // OP_LOADSELF  R4
-  OP_SEND, 4, 0, 0,          // OP_SEND      R4  :allocate  n=0
+  OP_SSEND, 4, 0, 0,         // OP_SSEND     R4  :allocate  n=0
   OP_MOVE, 0, 4,             // OP_MOVE      R0  R4
   OP_MOVE, 4, 3,             // OP_MOVE      R4  R3 (&)
   OP_MOVE, 3, 2,             // OP_MOVE      R3  R2 (**)
