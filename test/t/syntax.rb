@@ -711,6 +711,7 @@ end
 assert('numbered parameters') do
   assert_equal(15, [1,2,3,4,5].reduce {_1+_2})
   assert_equal(45, Proc.new do _1 + _2 + _3 + _4 + _5 + _6 + _7 + _8 + _9 end.call(*[1, 2, 3, 4, 5, 6, 7, 8, 9]))
+  assert_equal(5, -> { _1 }.call(5))
 end
 
 assert('_0 is not numbered parameter') do
