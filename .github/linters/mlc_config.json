@@ -1,7 +1,10 @@
 {
   "ignorePatterns": [
     {
-      "pattern": "^https://github.com/mruby/mruby/commit/.*"
+      "pattern": "^https://github.com/mruby/mruby/commit/"
+    },
+    {
+      "pattern": "^mailto:"
     }
   ]
 }
