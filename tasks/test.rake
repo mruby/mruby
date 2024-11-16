@@ -36,6 +36,21 @@ namespace :test do |test_ns|
     desc "run command binaries tests"
     task :bin
   end
+
+  desc "run all mruby tests serially"
+  task "run:serial" => "build" do
+    Rake::Task["test:run"].prerequisite_tasks.each(&:invoke)
+  end
+
+  desc "run library tests serially"
+  task "run:serial:bin" => "build:bin" do
+    Rake::Task["test:run:lib"].prerequisite_tasks.each(&:invoke)
+  end
+
+  desc "run command binaries tests serially"
+  task "run:serial:lib" => "build:lib" do
+    Rake::Task["test:run:bin"].prerequisite_tasks.each(&:invoke)
+  end
 end
 
 MRuby.each_target do |build|

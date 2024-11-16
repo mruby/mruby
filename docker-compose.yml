@@ -3,7 +3,7 @@ services:
   test:
     build:
       context: .
-    command: sh -c 'rake deep_clean && rake -m test:build && rake test:run'
+    command: sh -c 'rake deep_clean && rake -m test:run:serial'
     environment:
       - MRUBY_CONFIG=ci/gcc-clang
       - CC=gcc
