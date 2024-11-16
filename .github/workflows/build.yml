@@ -36,7 +36,7 @@ jobs:
       - name: Compiler version
         run: ${{ env.CC }} --version
       - name: Build and test
-        run: rake -m test:build && rake test:run
+        run: rake -m test:run:serial
 
   Windows-VC:
     runs-on: windows-2022
@@ -52,4 +52,4 @@ jobs:
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-          rake -m test:build && rake test:run
+          rake -m test:run:serial
