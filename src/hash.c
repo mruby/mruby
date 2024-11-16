@@ -145,28 +145,28 @@ typedef struct index_buckets_iter {
   }
 
 #ifdef MRB_64BIT
-DEFINE_ACCESSOR(ar, ea_capa, uint32_t, ea_capa)
-DEFINE_ACCESSOR(ar, ea_n_used, uint32_t, ea_n_used)
-DEFINE_ACCESSOR(ht, ea_capa, uint32_t, ea_capa)
-DEFINE_ACCESSOR(ht, ea_n_used, uint32_t, ea_n_used)
+DEFINE_ACCESSOR(ar, ea_capa, uint32_t, ea_capa)                 /* ar_ea_capa   ar_set_ea_capa   */
+DEFINE_ACCESSOR(ar, ea_n_used, uint32_t, ea_n_used)             /* ar_ea_n_used ar_set_ea_n_used */
+DEFINE_ACCESSOR(ht, ea_capa, uint32_t, ea_capa)                 /* ht_ea_capa   ht_set_ea_capa   */
+DEFINE_ACCESSOR(ht, ea_n_used, uint32_t, ea_n_used)             /* ht_ea_n_used ht_set_ea_n_used */
 #else
-DEFINE_FLAG_ACCESSOR(ar, ea_capa, uint32_t, AR_EA_CAPA)
-DEFINE_FLAG_ACCESSOR(ar, ea_n_used, uint32_t, AR_EA_N_USED)
-DEFINE_ACCESSOR(ht, ea_capa, uint32_t, hsh.ht->ea_capa)
-DEFINE_ACCESSOR(ht, ea_n_used, uint32_t, hsh.ht->ea_n_used)
+DEFINE_FLAG_ACCESSOR(ar, ea_capa, uint32_t, AR_EA_CAPA)         /* ar_ea_capa   ar_set_ea_capa   */
+DEFINE_FLAG_ACCESSOR(ar, ea_n_used, uint32_t, AR_EA_N_USED)     /* ar_ea_n_used ar_set_ea_n_used */
+DEFINE_ACCESSOR(ht, ea_capa, uint32_t, hsh.ht->ea_capa)         /* ht_ea_capa   ht_set_ea_capa   */
+DEFINE_ACCESSOR(ht, ea_n_used, uint32_t, hsh.ht->ea_n_used)     /* ht_ea_n_used ht_set_ea_n_used */
 #endif
-DEFINE_FLAG_ACCESSOR(ib, bit, uint32_t, IB_BIT)
-DEFINE_ACCESSOR(ar, size, uint32_t, size)
-DEFINE_ACCESSOR(ar, ea, hash_entry*, hsh.ea)
-DEFINE_DECREMENTER(ar, size)
-DEFINE_ACCESSOR(ht, size, uint32_t, size)
-DEFINE_ACCESSOR(ht, ea, hash_entry*, hsh.ht->ea)
-DEFINE_GETTER(ht, ib, uint32_t*, hsh.ht->ib)
-DEFINE_INCREMENTER(ht, size)
-DEFINE_DECREMENTER(ht, size)
-DEFINE_GETTER(h, size, uint32_t, size)
-DEFINE_ACCESSOR(h, ht, hash_table*, hsh.ht)
-DEFINE_SWITCHER(ht, HT)
+DEFINE_FLAG_ACCESSOR(ib, bit, uint32_t, IB_BIT)                 /* ib_bit       ib_set_bit       */
+DEFINE_ACCESSOR(ar, size, uint32_t, size)                       /* ar_size      ar_set_size      */
+DEFINE_ACCESSOR(ar, ea, hash_entry*, hsh.ea)                    /* ar_ea        ar_set_ea        */
+DEFINE_DECREMENTER(ar, size)                                    /* ar_dec_size                   */
+DEFINE_ACCESSOR(ht, size, uint32_t, size)                       /* ht_size      ht_set_size      */
+DEFINE_ACCESSOR(ht, ea, hash_entry*, hsh.ht->ea)                /* ht_ea        ht_set_ea        */
+DEFINE_GETTER(ht, ib, uint32_t*, hsh.ht->ib)                    /* ht_ib                         */
+DEFINE_INCREMENTER(ht, size)                                    /* ht_inc_size                   */
+DEFINE_DECREMENTER(ht, size)                                    /* ht_dec_size                   */
+DEFINE_GETTER(h, size, uint32_t, size)                          /* h_size                        */
+DEFINE_ACCESSOR(h, ht, hash_table*, hsh.ht)                     /* h_ht         h_set_ht         */
+DEFINE_SWITCHER(ht, HT)                                         /* h_ht_on  h_ht_off  h_ht_p     */
 
 #define ea_each_used(ea, n_used, entry_var, code) do {                        \
   hash_entry *entry_var = ea, *ea_end__ = entry_var + (n_used);               \
