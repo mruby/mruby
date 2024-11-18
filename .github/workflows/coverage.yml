@@ -28,10 +28,10 @@ jobs:
         run: |
           {
             echo "# Coverage report"
-            echo "\`\`\`"
+            echo \`\`\`
             gcovr -e ".*_test.c" -e ".*/test/.*" -s --html-details -o coverage/ build
-            echo "\`\`\`"
-          } > $GITHUB_STEP_SUMMARY
+            echo \`\`\`
+          } > "$GITHUB_STEP_SUMMARY"
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
