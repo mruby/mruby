@@ -817,7 +817,7 @@ gen_addsub(codegen_scope *s, uint8_t op, uint16_t dst)
     mrb_int n0;
     if (addr_pc(s, data.addr) == s->lastlabel || !get_int_operand(s, &data0, &n0)) {
       /* OP_ADDI/OP_SUBI takes upto 8bits */
-      if (n > INT8_MAX || n < INT8_MIN) goto normal;
+      if (n > UINT8_MAX || n < -UINT8_MAX) goto normal;
       rewind_pc(s);
       if (n == 0) return;
       if (n > 0) {
