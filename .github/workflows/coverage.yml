@@ -37,4 +37,4 @@ jobs:
         with:
           name: coverage-${{ github.sha }}
           path: coverage/
-          retention-days: 14
+          retention-days: 3
