@@ -8,9 +8,9 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       MRUBY_CONFIG: ci/gcc-clang
-      CC: clang
-      CXX: clang++
-      LD: clang
+      CC: clang-18
+      CXX: clang++-18
+      LD: clang-18
       CFLAGS: -O0 -g --coverage
       CXXFLAGS: -O0 -g --coverage
       LDFLAGS: --coverage
@@ -30,7 +30,7 @@ jobs:
           {
             echo "# Coverage report"
             echo \`\`\`
-            gcovr --gcov-executable "llvm-cov gcov" -e ".*_test.c" -e ".*/test/.*" -s --html-details -o coverage/ build
+            gcovr --gcov-executable "llvm-cov-18 gcov" -e ".*_test.c" -e ".*/test/.*" -s --html-details -o coverage/ build
             echo \`\`\`
           } > "$GITHUB_STEP_SUMMARY"
       - name: Upload coverage report
