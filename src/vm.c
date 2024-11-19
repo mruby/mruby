@@ -1373,6 +1373,7 @@ hash_new_from_regs(mrb_state *mrb, mrb_int argc, mrb_int idx)
   mrb_callinfo *ci = mrb->c->ci;
   while (argc--) {
     mrb_hash_set(mrb, hash, regs[idx+0], regs[idx+1]);
+    ci = mrb->c->ci;
     idx += 2;
   }
   return hash;
@@ -1601,6 +1602,7 @@ RETRY_TRY_BLOCK:
         break;
       case MRB_TT_HASH:
         va = mrb_hash_get(mrb, va, vb);
+        ci = mrb->c->ci;
         regs[a] = va;
         break;
       case MRB_TT_STRING:
@@ -1875,6 +1877,7 @@ RETRY_TRY_BLOCK:
         else if (nk > 0) {  /* pack keyword arguments */
           mrb_int kidx = a+(n==CALL_MAXARGS?1:n)+1;
           mrb_value kdict = hash_new_from_regs(mrb, nk, kidx);
+          ci = mrb->c->ci;
           regs[kidx] = kdict;
           nk = CALL_MAXARGS;
           c = n | (nk<<4);
@@ -2247,8 +2250,10 @@ RETRY_TRY_BLOCK:
         RAISE_FORMAT(mrb, E_ARGUMENT_ERROR, "missing keyword: %v", k);
       }
       v = mrb_hash_get(mrb, kdict, k);
+      ci = mrb->c->ci;
       regs[a] = v;
       mrb_hash_delete_key(mrb, kdict, k);
+      ci = mrb->c->ci;
       NEXT;
     }
 
@@ -2260,6 +2265,7 @@ RETRY_TRY_BLOCK:
 
       if (kidx >= 0 && mrb_hash_p(kdict=regs[kidx])) {
         key_p = mrb_hash_key_p(mrb, kdict, k);
+        ci = mrb->c->ci;
       }
       regs[a] = mrb_bool_value(key_p);
       NEXT;
@@ -2669,6 +2675,7 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_ARYCAT, B) {
       mrb_value splat = mrb_ary_splat(mrb, regs[a+1]);
+      ci = mrb->c->ci;
       if (mrb_nil_p(regs[a])) {
         regs[a] = splat;
       }
@@ -2690,6 +2697,7 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_ARYSPLAT, B) {
       mrb_value ary = mrb_ary_splat(mrb, regs[a]);
+      ci = mrb->c->ci;
       regs[a] = ary;
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
@@ -2804,6 +2812,7 @@ RETRY_TRY_BLOCK:
 
       for (int i=a; i<lim; i+=2) {
         mrb_hash_set(mrb, hash, regs[i], regs[i+1]);
+        ci = mrb->c->ci;
       }
       regs[a] = hash;
       mrb_gc_arena_restore(mrb, ai);
@@ -2818,6 +2827,7 @@ RETRY_TRY_BLOCK:
       mrb_ensure_hash_type(mrb, hash);
       for (int i=a+1; i<lim; i+=2) {
         mrb_hash_set(mrb, hash, regs[i], regs[i+1]);
+        ci = mrb->c->ci;
       }
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
@@ -2827,6 +2837,7 @@ RETRY_TRY_BLOCK:
 
       mrb_assert(mrb_hash_p(hash));
       mrb_hash_merge(mrb, hash, regs[a+1]);
+      ci = mrb->c->ci;
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
@@ -2860,13 +2871,16 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_RANGE_INC, B) {
-      regs[a] = mrb_range_new(mrb, regs[a], regs[a+1], FALSE);
+      mrb_value v = mrb_range_new(mrb, regs[a], regs[a+1], FALSE);
+      ci = mrb->c->ci;
+      regs[a] = v;
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
     }
 
     CASE(OP_RANGE_EXC, B) {
       mrb_value v = mrb_range_new(mrb, regs[a], regs[a+1], TRUE);
+      ci = mrb->c->ci;
       regs[a] = v;
       mrb_gc_arena_restore(mrb, ai);
       NEXT;
