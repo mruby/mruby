@@ -1,0 +1,41 @@
+name: Coverage
+
+on: [push, pull_request]
+
+jobs:
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-24.04
+    env:
+      MRUBY_CONFIG: ci/gcc-clang
+      CC: clang-18
+      CXX: clang++-18
+      LD: clang-18
+      CFLAGS: -O0 -g --coverage
+      CXXFLAGS: -O0 -g --coverage
+      LDFLAGS: --coverage
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@v4
+      - name: Ruby version
+        run: ruby -v
+      - name: Compiler version
+        run: ${{ env.CC }} --version
+      - name: Build and test
+        run: rake test
+      - name: Install gcovr
+        run: pip install gcovr
+      - name: Generate coverage report
+        run: |
+          {
+            echo "# Coverage report"
+            echo \`\`\`
+            gcovr --gcov-executable "llvm-cov-18 gcov" -e ".*_test.c" -e ".*/test/.*" -s --html-details -o coverage/ build
+            echo \`\`\`
+          } > "$GITHUB_STEP_SUMMARY"
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ github.sha }}
+          path: coverage/
+          retention-days: 3
