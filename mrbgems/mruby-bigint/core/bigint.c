@@ -1491,7 +1491,7 @@ int_fit_limb_p(mrb_int i)
 #else /* MRB_INT32 */
 #if DIG_SIZE == 32
   // if mp_limb is also int32_t, it always fits
-  return true;
+  return TRUE;
 #else /* if DIG_SIZE == 16 */
   // if mp_limb is int16_t
   return (i >= INT16_MIN && i <= INT16_MAX);
