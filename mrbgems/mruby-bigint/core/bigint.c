@@ -1477,6 +1477,28 @@ mrb_bint_as_uint64(mrb_state *mrb, mrb_value x)
   return u;
 }
 
+static mrb_bool
+int_fit_limb_p(mrb_int i)
+{
+#ifdef MRB_INT64
+#if DIG_SIZE == 32
+  // if mp_limb is int32_t
+  return (i >= INT32_MIN && i <= INT32_MAX);
+#else /* if DIG_SIZE == 16 */
+  // if mp_limb is int16_t
+  return (i >= INT16_MIN && i <= INT16_MAX);
+#endif
+#else /* MRB_INT32 */
+#if DIG_SIZE == 32
+  // if mp_limb is also int32_t, it always fits
+  return true;
+#else /* if DIG_SIZE == 16 */
+  // if mp_limb is int16_t
+  return (i >= INT16_MIN && i <= INT16_MAX);
+#endif
+#endif
+}
+
 /* unnormalize version of mrb_bint_add */
 mrb_value
 mrb_bint_add_n(mrb_state *mrb, mrb_value x, mrb_value y)
@@ -1486,7 +1508,7 @@ mrb_bint_add_n(mrb_state *mrb, mrb_value x, mrb_value y)
   bint_as_mpz(RBIGINT(x), &a);
   if (mrb_integer_p(y)) {
     mrb_int i = mrb_integer(y);
-    if (LOW(i) == i) {
+    if (int_fit_limb_p(i)) {
       mpz_init_set(mrb, &z, &a);
       if ((i > 0) ^ (z.sn > 0)) {
         mpz_sub_int(mrb, &z, i);
@@ -1529,7 +1551,7 @@ mrb_bint_sub_n(mrb_state *mrb, mrb_value x, mrb_value y)
   bint_as_mpz(RBIGINT(x), &a);
   if (mrb_integer_p(y)) {
     mrb_int i = mrb_integer(y);
-    if (LOW(i) == i) {
+    if (int_fit_limb_p(i)) {
       mpz_init_set(mrb, &z, &a);
       if ((i > 0) ^ (z.sn > 0)) {
         mpz_add_int(mrb, &z, i);
