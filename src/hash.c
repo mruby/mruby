@@ -295,7 +295,6 @@ static void ht_init(
   mrb_state *mrb, struct RHash *h, uint32_t size,
   hash_entry *ea, uint32_t ea_capa, hash_table *ht, uint32_t ib_bit);
 static void ht_set(mrb_state *mrb, struct RHash *h, mrb_value key, mrb_value val);
-static void ht_set_without_ib_adjustment(mrb_state *mrb, struct RHash *h, mrb_value key, mrb_value val);
 
 static uint32_t
 next_power2(uint32_t v)
@@ -846,8 +845,30 @@ ht_set_as_ar(mrb_state *mrb, struct RHash *h, mrb_value key, mrb_value val)
 }
 
 static void
-ht_set_without_ib_adjustment(mrb_state *mrb, struct RHash *h, mrb_value key, mrb_value val)
+ht_set(mrb_state *mrb, struct RHash *h, mrb_value key, mrb_value val)
 {
+  uint32_t size = ht_size(h);
+  uint32_t ib_bit_width = ib_bit(h), ib_capa = ib_bit_to_capa(ib_bit_width);
+  if (ib_upper_bound_for(ib_capa) <= size) {
+    if (size != ht_ea_n_used(h)) ea_compress(ht_ea(h), ht_ea_n_used(h));
+    ht_init(mrb, h, size, ht_ea(h), ht_ea_capa(h), h_ht(h), ++ib_bit_width);
+  }
+  else if (size != ht_ea_n_used(h)) {
+    if (ib_capa - EA_N_RESERVED_INDICES <= ht_ea_n_used(h)) goto compress;
+    if (ht_ea_capa(h) == ht_ea_n_used(h)) {
+      if (size <= AR_MAX_SIZE) {
+        ht_set_as_ar(mrb, h, key, val);
+        return;
+      }
+      if (ea_next_capa_for(size, EA_MAX_CAPA) <= ht_ea_capa(h)) {
+       compress:
+        ea_compress(ht_ea(h), ht_ea_n_used(h));
+        ht_adjust_ea(mrb, h, size, ht_ea_capa(h));
+        ht_init(mrb, h, size, ht_ea(h), ht_ea_capa(h), h_ht(h), ib_bit_width);
+      }
+    }
+  }
+
   mrb_assert(ht_size(h) < ib_bit_to_capa(ib_bit(h)));
   ib_cycle_by_key(mrb, h, key, it, {
     if (ib_it_active_p(it)) {
@@ -871,30 +892,6 @@ ht_set_without_ib_adjustment(mrb_state *mrb, struct RHash *h, mrb_value key, mrb
     }
     return;
   });
-}
-
-static void
-ht_set(mrb_state *mrb, struct RHash *h, mrb_value key, mrb_value val)
-{
-  uint32_t size = ht_size(h);
-  uint32_t ib_bit_width = ib_bit(h), ib_capa = ib_bit_to_capa(ib_bit_width);
-  if (ib_upper_bound_for(ib_capa) <= size) {
-    if (size != ht_ea_n_used(h)) ea_compress(ht_ea(h), ht_ea_n_used(h));
-    ht_init(mrb, h, size, ht_ea(h), ht_ea_capa(h), h_ht(h), ++ib_bit_width);
-  }
-  else if (size != ht_ea_n_used(h)) {
-    if (ib_capa - EA_N_RESERVED_INDICES <= ht_ea_n_used(h)) goto compress;
-    if (ht_ea_capa(h) == ht_ea_n_used(h)) {
-      if (size <= AR_MAX_SIZE) {ht_set_as_ar(mrb, h, key, val); return;}
-      if (ea_next_capa_for(size, EA_MAX_CAPA) <= ht_ea_capa(h)) {
-       compress:
-        ea_compress(ht_ea(h), ht_ea_n_used(h));
-        ht_adjust_ea(mrb, h, size, ht_ea_capa(h));
-        ht_init(mrb, h, size, ht_ea(h), ht_ea_capa(h), h_ht(h), ib_bit_width);
-      }
-    }
-  }
-  ht_set_without_ib_adjustment(mrb, h, key, val);
 }
 
 static mrb_bool
