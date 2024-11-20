@@ -295,8 +295,7 @@ static void ht_init(
   mrb_state *mrb, struct RHash *h, uint32_t size,
   hash_entry *ea, uint32_t ea_capa, hash_table *ht, uint32_t ib_bit);
 static void ht_set(mrb_state *mrb, struct RHash *h, mrb_value key, mrb_value val);
-static void ht_set_without_ib_adjustment(
-  mrb_state *mrb, struct RHash *h, mrb_value key, mrb_value val);
+static void ht_set_without_ib_adjustment(mrb_state *mrb, struct RHash *h, mrb_value key, mrb_value val);
 
 static uint32_t
 next_power2(uint32_t v)
@@ -847,14 +846,16 @@ ht_set_as_ar(mrb_state *mrb, struct RHash *h, mrb_value key, mrb_value val)
 }
 
 static void
-ht_set_without_ib_adjustment(mrb_state *mrb, struct RHash *h,
-                             mrb_value key, mrb_value val)
+ht_set_without_ib_adjustment(mrb_state *mrb, struct RHash *h, mrb_value key, mrb_value val)
 {
   mrb_assert(ht_size(h) < ib_bit_to_capa(ib_bit(h)));
   ib_cycle_by_key(mrb, h, key, it, {
     if (ib_it_active_p(it)) {
       if (!obj_eql(mrb, key, ib_it_entry(it)->key, h)) continue;
       ib_it_entry(it)->val = val;
+    }
+    else if (ib_it_deleted_p(it)) {
+      continue;
     }
     else {
       uint32_t ea_n_used = ht_ea_n_used(h);
