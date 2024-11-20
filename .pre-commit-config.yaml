@@ -11,7 +11,7 @@ repos:
       - id: identity
       - id: check-hooks-apply
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.20.1
+    rev: v8.21.2
     hooks:
       - id: gitleaks
   - repo: https://github.com/shssoichiro/oxipng
@@ -55,7 +55,7 @@ repos:
         args: [--whitespaces-count, "2"]
         exclude: Makefile$
   - repo: https://github.com/rhysd/actionlint
-    rev: v1.7.3
+    rev: v1.7.4
     hooks:
       - id: actionlint
   - repo: https://github.com/codespell-project/codespell
@@ -81,7 +81,7 @@ repos:
         types: [markdown]
         files: \.md$
   - repo: https://github.com/tcort/markdown-link-check
-    rev: v3.12.2
+    rev: v3.13.6
     hooks:
       - id: markdown-link-check
         name: Run markdown-link-check
