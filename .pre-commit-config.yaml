@@ -4,16 +4,28 @@ default_stages: [pre-commit, pre-push]
 default_language_version:
   # force all unspecified Python hooks to run python3
   python: python3
+  node: 22.2.0
 minimum_pre_commit_version: "3.2.0"
 repos:
   - repo: meta
     hooks:
       - id: identity
       - id: check-hooks-apply
+        name: check hooks apply to the repository
+  - repo: local
+    hooks:
+      - id: prettier
+        name: run prettier
+        description: format files with prettier
+        entry: prettier --write .
+        files: \.(json|md|ya?ml)$
+        language: node
+        additional_dependencies: ["prettier@3.3.3"]
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.20.1
     hooks:
       - id: gitleaks
+        name: detect hardcoded secrets
   - repo: https://github.com/shssoichiro/oxipng
     rev: v9.1.2
     hooks:
@@ -50,32 +62,35 @@ repos:
     rev: v1.5.5
     hooks:
       - id: forbid-tabs
+        name: no-tabs checker
         exclude: Makefile$
       - id: remove-tabs
+        name: tabs remover
         args: [--whitespaces-count, "2"]
         exclude: Makefile$
   - repo: https://github.com/rhysd/actionlint
     rev: v1.7.3
     hooks:
       - id: actionlint
+        name: lint GitHub Actions workflow files
   - repo: https://github.com/codespell-project/codespell
     rev: v2.3.0
     hooks:
       - id: codespell
-        name: Run codespell
+        name: run codespell
         description: Check spelling with codespell
         args: [--ignore-words=.github/linters/codespell.txt]
   - repo: https://github.com/jumanjihouse/pre-commit-hooks
     rev: 3.0.0
     hooks:
       - id: script-must-not-have-extension
-        name: Local policy is to exclude extension from all shell files
+        name: local policy is to exclude extension from all shell files
         types: [shell]
   - repo: https://github.com/igorshubovych/markdownlint-cli
     rev: v0.42.0
     hooks:
       - id: markdownlint
-        name: Run markdownlint
+        name: run markdownlint
         description: Checks the style of Markdown files
         args: [--config=.github/linters/.markdown-lint.yml]
         types: [markdown]
@@ -84,7 +99,7 @@ repos:
     rev: v3.12.2
     hooks:
       - id: markdown-link-check
-        name: Run markdown-link-check
+        name: run markdown-link-check
         description: Checks hyperlinks in Markdown files
         args: [--config=.github/linters/mlc_config.json, -q]
         types: [markdown]
@@ -97,7 +112,7 @@ repos:
     rev: v1.35.1
     hooks:
       - id: yamllint
-        name: Run yamllint
+        name: run yamllint
         description: Check YAML files with yamllint
         args: [--strict, -c=.github/linters/.yaml-lint.yml]
         types: [yaml]
