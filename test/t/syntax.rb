@@ -723,6 +723,12 @@ assert('numbered parameters in symbol name (https://github.com/mruby/mruby/issue
   assert_equal([:_1], Array.new(1) {:_1})
 end
 
+assert('numbered parameters as hash key') do
+  h = {_1: 3}
+  assert_equal(3, h[:_1])
+  assert_equal(7, -> { _1 }.call(7))
+end
+
 assert('numbered parameters as singleton') do
   o = Object.new
   lambda { def _1.a(b) = "a#{b}" }.call(o)

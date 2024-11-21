@@ -713,6 +713,25 @@ new_cvar(parser_state *p, mrb_sym sym)
 static node*
 new_nvar(parser_state *p, int num)
 {
+  int nvar;
+  node *nvars = p->nvars->cdr;
+  while (nvars) {
+    nvar = intn(nvars->car);
+    if (nvar == -2) break; /* top of the scope */
+    if (nvar > 0) {
+      yyerror(NULL, p, "numbered parameter used in outer block");
+      break;
+    }
+    nvars->car = nint(-1);
+    nvars = nvars->cdr;
+  }
+  nvar = intn(p->nvars->car);
+  if (nvar == -1) {
+    yyerror(NULL, p, "numbered parameter used in inner block");
+  }
+  else {
+    p->nvars->car = nint(nvar > num ? nvar : num);
+  }
   return cons((node*)NODE_NVAR, nint(num));
 }
 
@@ -6446,26 +6465,8 @@ parser_yylex(parser_state *p)
         int nvar;
 
         if (n > 0) {
-          node *nvars = p->nvars->cdr;
-
-          while (nvars) {
-            nvar = intn(nvars->car);
-            if (nvar == -2) break; /* top of the scope */
-            if (nvar > 0) {
-              yywarning(p, "numbered parameter used in outer block");
-              break;
-            }
-            nvars->car = nint(-1);
-            nvars = nvars->cdr;
-          }
           nvar = intn(p->nvars->car);
           if (nvar != -2) {     /* numbered parameters never appear on toplevel */
-            if (nvar == -1) {
-              yywarning(p, "numbered parameter used in inner block");
-            }
-            else {
-              p->nvars->car = nint(nvar > n ? nvar : n);
-            }
             pylval.num = n;
             p->lstate = EXPR_END;
             return tNUMPARAM;
