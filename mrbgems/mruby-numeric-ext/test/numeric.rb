@@ -75,3 +75,9 @@ assert('Integer#odd?') do
   # assert_true((10**100+1).odd?)
   # assert_true((-10**100-1).odd?)
 end
+
+assert('Integer#digits') do
+  assert_equal([5, 4, 3, 2, 1], 12345.digits)
+  assert_equal([4, 6, 6, 0, 5], 12345.digits(7))
+  assert_equal([45, 23, 1],     12345.digits(100))
+end
