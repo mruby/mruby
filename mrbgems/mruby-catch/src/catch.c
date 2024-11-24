@@ -43,7 +43,7 @@ static const struct RProc catch_proc = {
   { &catch_irep }, NULL, { NULL }
 };
 
-static uintptr_t
+static size_t
 find_catcher(mrb_state *mrb, mrb_value tag)
 {
   const mrb_callinfo *ci = mrb->c->ci - 1; // skip oneself throw
@@ -68,16 +68,14 @@ throw_m(mrb_state *mrb, mrb_value self)
   }
 
   uintptr_t ci_index = find_catcher(mrb, tag);
-  if (ci_index > 0) {
-    struct RBreak *b = MRB_OBJ_ALLOC(mrb, MRB_TT_BREAK, NULL);
-    mrb_break_value_set(b, obj);
-    b->ci_break_index = ci_index; /* Back to the caller directly */
-    mrb_exc_raise(mrb, mrb_obj_value(b));
-  }
-  else {
+  if (ci_idex == 0) {
     mrb_value argv[2] = {tag, obj};
     mrb_exc_raise(mrb, mrb_obj_new(mrb, mrb_exc_get_id(mrb, MRB_ERROR_SYM(UncaughtThrowError)), 2, argv));
   }
+  struct RBreak *b = MRB_OBJ_ALLOC(mrb, MRB_TT_BREAK, NULL);
+  mrb_break_value_set(b, obj);
+  b->ci_break_index = ci_index; /* Back to the caller directly */
+  mrb_exc_raise(mrb, mrb_obj_value(b));
   /* not reached */
   return mrb_nil_value();
 }
