@@ -10,6 +10,7 @@ repos:
   - repo: meta
     hooks:
       - id: identity
+        name: run identity check
       - id: check-hooks-apply
         name: check hooks apply to the repository
   - repo: local
@@ -30,6 +31,7 @@ repos:
     rev: v9.1.2
     hooks:
       - id: oxipng
+        name: run oxipng
         args: ["-o", "4", "--strip", "safe", "--alpha"]
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
@@ -72,7 +74,8 @@ repos:
     rev: v1.7.3
     hooks:
       - id: actionlint
-        name: lint GitHub Actions workflow files
+        name: run actionlint
+        description: lint GitHub Actions workflow files
   - repo: https://github.com/codespell-project/codespell
     rev: v2.3.0
     hooks:
@@ -84,7 +87,8 @@ repos:
     rev: 3.0.0
     hooks:
       - id: script-must-not-have-extension
-        name: local policy is to exclude extension from all shell files
+        name: run script-must-not-have-extension
+        description: local policy is to exclude extension from all shell files
         types: [shell]
   - repo: https://github.com/igorshubovych/markdownlint-cli
     rev: v0.42.0
@@ -108,6 +112,7 @@ repos:
     rev: v0.10.0.1
     hooks:
       - id: shellcheck
+        name: run shellcheck
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.35.1
     hooks:
