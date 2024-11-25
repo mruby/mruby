@@ -91,7 +91,7 @@ namespace :doc do
     matched = false
     mark_begin = "<!-- BEGIN OF MRUBY DOCUMENT INDEX -->\n"
     mark_end = "<!-- END OF MRUBY DOCUMENT INDEX -->\n"
-    readme1 = readme.sub(/^#{mark_begin}\K.*(?=^#{mark_end})/m) {
+    readme1 = readme.sub(/^#{mark_begin}\n\K.*(?=^\n#{mark_end})/m) {
       matched = true
       doc.each_with_object("") { |d, a|
         summary = File.open(File.join(MRUBY_ROOT, d)) { |f|
