@@ -68,7 +68,7 @@ throw_m(mrb_state *mrb, mrb_value self)
   }
 
   uintptr_t ci_index = find_catcher(mrb, tag);
-  if (ci_idex == 0) {
+  if (ci_index == 0) {
     mrb_value argv[2] = {tag, obj};
     mrb_exc_raise(mrb, mrb_obj_new(mrb, mrb_exc_get_id(mrb, MRB_ERROR_SYM(UncaughtThrowError)), 2, argv));
   }
