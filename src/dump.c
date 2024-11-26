@@ -373,7 +373,7 @@ get_debug_record_size(mrb_state *mrb, const mrb_irep *irep)
   size_t ret = sizeof(uint32_t); /* record size */
   ret += sizeof(uint16_t); /* file count */
 
-  for (uint16_t f_idx = 0; f_idx < irep->debug_info->flen; ++f_idx) {
+  for (uint16_t f_idx = 0; f_idx < irep->debug_info->flen; f_idx++) {
     mrb_irep_debug_info_file const* file = irep->debug_info->files[f_idx];
 
     ret += sizeof(uint32_t); /* position */
@@ -452,7 +452,7 @@ write_debug_record_1(mrb_state *mrb, const mrb_irep *irep, uint8_t *bin, mrb_sym
   cur = bin + sizeof(uint32_t); /* skip record size */
   cur += uint16_to_bin(irep->debug_info->flen, cur); /* file count */
 
-  for (int f_idx = 0; f_idx < irep->debug_info->flen; ++f_idx) {
+  for (int f_idx = 0; f_idx < irep->debug_info->flen; f_idx++) {
     int filename_idx;
     const mrb_irep_debug_info_file *file = irep->debug_info->files[f_idx];
 
@@ -471,14 +471,14 @@ write_debug_record_1(mrb_state *mrb, const mrb_irep *irep, uint8_t *bin, mrb_sym
     switch (file->line_type) {
       case mrb_debug_line_ary: {
         uint32_t l;
-        for (l = 0; l < file->line_entry_count; ++l) {
+        for (l = 0; l < file->line_entry_count; l++) {
           cur += uint16_to_bin(file->lines.ary[l], cur);
         }
       } break;
 
       case mrb_debug_line_flat_map: {
         uint32_t line;
-        for (line = 0; line < file->line_entry_count; ++line) {
+        for (line = 0; line < file->line_entry_count; line++) {
           cur += uint32_to_bin(file->lines.flat_map[line].start_pos, cur);
           cur += uint16_to_bin(file->lines.flat_map[line].line, cur);
         }
@@ -568,7 +568,7 @@ create_lv_sym_table(mrb_state *mrb, const mrb_irep *irep, mrb_sym **syms, uint32
     if (name == 0) continue;
     if (find_filename_index(*syms, *syms_len, name) != -1) continue;
 
-    ++(*syms_len);
+    (*syms_len)++;
     *syms = (mrb_sym*)mrb_realloc(mrb, *syms, sizeof(mrb_sym) * (*syms_len));
     (*syms)[*syms_len - 1] = name;
   }
