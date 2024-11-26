@@ -105,6 +105,7 @@ extensions in C and/or Ruby. For a guide on how to use mrbgems, consult the
 - [About the Symbols](doc/guides/symbol.md)
 - [Internal Implementation / About Value Boxing](doc/internal/boxing.md)
 - [Internal Implementation / About mruby Virtual Machine Instructions](doc/internal/opcode.md)
+
 <!-- END OF MRUBY DOCUMENT INDEX -->
 
 ## License
