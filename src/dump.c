@@ -409,7 +409,7 @@ static int
 find_filename_index(const mrb_sym *ary, int ary_len, mrb_sym s)
 {
   for (int i = 0; i < ary_len; i++) {
-    if (ary[i] == s) { return i; }
+    if (ary[i] == s) return i;
   }
   return -1;
 }
@@ -712,10 +712,9 @@ debug_info_defined_p(const mrb_irep *irep)
 static mrb_bool
 lv_defined_p(const mrb_irep *irep)
 {
-  if (irep->lv) { return TRUE; }
-
+  if (irep->lv) return TRUE;
   for (int i = 0; i < irep->rlen; i++) {
-    if (lv_defined_p(irep->reps[i])) { return TRUE; }
+    if (lv_defined_p(irep->reps[i])) return TRUE;
   }
 
   return FALSE;
