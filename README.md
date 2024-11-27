@@ -98,6 +98,7 @@ extensions in C and/or Ruby. For a guide on how to use mrbgems, consult the
 - [About the Compile](doc/guides/compile.md)
 - [About the Debugger with the `mrdb` Command](doc/guides/debugger.md)
 - [About GC Arena](doc/guides/gc-arena-howto.md)
+- [About the mruby directory structure](doc/guides/hier.md)
 - [About Linking with `libmruby`](doc/guides/link.md)
 - [About Memory Allocator Customization](doc/guides/memory.md)
 - [About Build-time Configurations](doc/guides/mrbconf.md)
