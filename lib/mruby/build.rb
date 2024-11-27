@@ -542,14 +542,6 @@ EOS
       @install_prefix = dir&.to_s
     end
 
-    def list_install_excludes
-      install_excludes.flatten.flat_map { |e|
-        e.kind_of?(Proc) ? e.call(self) : e
-      }.map { |e|
-        File.join(build_dir, e)
-      }
-    end
-
     protected
 
     attr_writer :presym
