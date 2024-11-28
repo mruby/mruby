@@ -738,18 +738,12 @@ mrb_dump_irep(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, uint8_t **bin
   section_irep_size += get_irep_record_size(mrb, irep);
 
   /* DEBUG section size */
-  if (flags & MRB_DUMP_DEBUG_INFO) {
-    if (debug_info_defined) {
-      section_lineno_size += sizeof(struct rite_section_debug_header);
-      /* filename table */
-      filenames = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym) + 1);
-
-      /* filename table size */
-      section_lineno_size += sizeof(uint16_t);
-      section_lineno_size += get_filename_table_size(mrb, irep, &filenames, &filenames_len);
-
-      section_lineno_size += get_debug_record_size(mrb, irep);
-    }
+  if ((flags & MRB_DUMP_DEBUG_INFO) && debug_info_defined) {
+    section_lineno_size += sizeof(struct rite_section_debug_header);
+    /* filename table size */
+    section_lineno_size += sizeof(uint16_t);
+    section_lineno_size += get_filename_table_size(mrb, irep, &filenames, &filenames_len);
+    section_lineno_size += get_debug_record_size(mrb, irep);
   }
 
   if (lv_defined) {
@@ -774,12 +768,10 @@ mrb_dump_irep(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, uint8_t **bin
               sizeof(struct rite_binary_footer);
 
   /* write DEBUG section */
-  if (flags & MRB_DUMP_DEBUG_INFO) {
-    if (debug_info_defined) {
-      result = write_section_debug(mrb, irep, cur, filenames, filenames_len);
-      if (result != MRB_DUMP_OK) {
-        goto error_exit;
-      }
+  if ((flags & MRB_DUMP_DEBUG_INFO) && debug_info_defined) {
+    result = write_section_debug(mrb, irep, cur, filenames, filenames_len);
+    if (result != MRB_DUMP_OK) {
+      goto error_exit;
     }
     cur += section_lineno_size;
   }
