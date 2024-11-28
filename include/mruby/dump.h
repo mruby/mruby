@@ -19,6 +19,7 @@ MRB_BEGIN_DECL
 /* flags for mrb_dump_irep{,_binary,_cfunc,_cstruct} */
 #define MRB_DUMP_DEBUG_INFO 1
 #define MRB_DUMP_STATIC 2
+#define MRB_DUMP_NO_LVAR 4
 #define DUMP_DEBUG_INFO MRB_DUMP_DEBUG_INFO  /* deprecated */
 
 #ifndef MRB_NO_STDIO
