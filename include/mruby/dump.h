@@ -20,7 +20,6 @@ MRB_BEGIN_DECL
 #define MRB_DUMP_DEBUG_INFO 1
 #define MRB_DUMP_STATIC 2
 #define MRB_DUMP_NO_LVAR 4
-#define DUMP_DEBUG_INFO MRB_DUMP_DEBUG_INFO  /* deprecated */
 
 #ifndef MRB_NO_STDIO
 MRB_API mrb_value mrb_load_irep_file(mrb_state*,FILE*);
