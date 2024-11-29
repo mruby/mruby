@@ -86,7 +86,6 @@ void mrb_gc_free_hash(mrb_state*, struct RHash*);
 struct mrb_insn_data mrb_decode_insn(const mrb_code *pc);
 #ifdef MRUBY_IREP_H
 void mrb_irep_free(mrb_state*, struct mrb_irep*);
-void mrb_irep_remove_lv(mrb_state *mrb, mrb_irep *irep);
 
 static inline const struct mrb_irep_catch_handler *
 mrb_irep_catch_handler_table(const struct mrb_irep *irep)
