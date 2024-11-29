@@ -725,7 +725,8 @@ mrb_dump_irep(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, uint8_t **bin
 {
   size_t section_lineno_size = 0, section_lv_size = 0;
   uint8_t *cur = NULL;
-  mrb_bool const debug_info_defined = debug_info_defined_p(irep), lv_defined = lv_defined_p(irep);
+  mrb_bool const debug_info_defined = (flags & MRB_DUMP_DEBUG_INFO) ? debug_info_defined_p(irep) : FALSE;
+  mrb_bool lv_defined = (flags & MRB_DUMP_NO_LVAR) ? FALSE : lv_defined_p(irep);
   mrb_sym *lv_syms = NULL; uint32_t lv_syms_len = 0;
   mrb_sym *filenames = NULL; uint16_t filenames_len = 0;
 
@@ -738,7 +739,7 @@ mrb_dump_irep(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, uint8_t **bin
   section_irep_size += get_irep_record_size(mrb, irep);
 
   /* DEBUG section size */
-  if ((flags & MRB_DUMP_DEBUG_INFO) && debug_info_defined) {
+  if (debug_info_defined) {
     section_lineno_size += sizeof(struct rite_section_debug_header);
     /* filename table size */
     section_lineno_size += sizeof(uint16_t);
