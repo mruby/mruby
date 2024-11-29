@@ -24,7 +24,6 @@ struct mrbc_args {
   mrb_bool dump_struct  : 1;
   mrb_bool check_syntax : 1;
   mrb_bool verbose      : 1;
-  mrb_bool remove_lv    : 1;
   mrb_bool no_ext_ops   : 1;
   mrb_bool no_optimize  : 1;
   uint8_t flags         : 2;
@@ -165,7 +164,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct mrbc_args *args)
           exit(EXIT_SUCCESS);
         }
         else if (strcmp(argv[i] + 2, "remove-lv") == 0) {
-          args->remove_lv = TRUE;
+          args->flags |= MRB_DUMP_NO_LVAR;
           break;
         }
         else if (strcmp(argv[i] + 2, "no-ext-ops") == 0) {
@@ -264,9 +263,6 @@ dump_file(mrb_state *mrb, FILE *wfp, const char *outfile, struct RProc *proc, st
   int n = MRB_DUMP_OK;
   const mrb_irep *irep = proc->body.irep;
 
-  if (args->remove_lv) {
-    mrb_irep_remove_lv(mrb, (mrb_irep*)irep);
-  }
   if (args->initname) {
     if (args->dump_struct) {
       n = mrb_dump_irep_cstruct(mrb, irep, args->flags, wfp, args->initname);
