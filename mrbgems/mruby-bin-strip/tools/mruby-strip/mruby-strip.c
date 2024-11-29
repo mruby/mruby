@@ -14,7 +14,7 @@ struct strip_args {
   int argc_start;
   int argc;
   char **argv;
-  mrb_bool lvar;
+  uint8_t flags;
 };
 
 static void
@@ -33,18 +33,18 @@ parse_args(int argc, char **argv, struct strip_args *args)
   args->argc_start = 0;
   args->argc = argc;
   args->argv = argv;
-  args->lvar = FALSE;
+  args->flags = 0;
 
   for (i = 1; i < argc; i++) {
     const size_t len = strlen(argv[i]);
     if (len >= 2 && argv[i][0] == '-') {
       switch (argv[i][1]) {
       case 'l':
-        args->lvar = TRUE;
+        args->flags = MRB_DUMP_NO_LVAR;
         break;
       case '-':
         if (strncmp((*argv) + 2, "lvar", len) == 0) {
-          args->lvar = TRUE;
+          args->flags = MRB_DUMP_NO_LVAR;
           break;
         }
       default:
@@ -86,11 +86,6 @@ strip(mrb_state *mrb, struct strip_args *args)
       return EXIT_FAILURE;
     }
 
-    /* clear lv if --lvar is enabled */
-    if (args->lvar) {
-      mrb_irep_remove_lv(mrb, irep);
-    }
-
     wfile = fopen(filename, "wb");
     if (wfile == NULL) {
       fprintf(stderr, "can't open file for writing %s\n", filename);
@@ -99,7 +94,7 @@ strip(mrb_state *mrb, struct strip_args *args)
     }
 
     /* debug flag must always be false */
-    dump_result = mrb_dump_irep_binary(mrb, irep, FALSE, wfile);
+    dump_result = mrb_dump_irep_binary(mrb, irep, args->flags, wfile);
 
     fclose(wfile);
     mrb_irep_decref(mrb, irep);
