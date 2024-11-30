@@ -335,20 +335,17 @@ cipush(mrb_state *mrb, mrb_int push_stacks, uint8_t cci, struct RClass *target_c
        const struct RProc *proc, struct RProc *blk, mrb_sym mid, uint16_t argc)
 {
   struct mrb_context *c = mrb->c;
-  mrb_callinfo *ci = c->ci + 1;
+  mrb_callinfo *ci = ++c->ci;
 
-  if (ci < c->ciend) {
-    c->ci = ci;
-  }
-  else {
-    ptrdiff_t size = ci - c->cibase;
+  if (ci == c->ciend) {
+    ptrdiff_t diff = ci - c->cibase;
 
-    if (size >= MRB_CALL_LEVEL_MAX) {
+    if (diff >= MRB_CALL_LEVEL_MAX) {
       mrb_exc_raise(mrb, mrb_obj_value(mrb->stack_err));
     }
-    c->cibase = (mrb_callinfo*)mrb_realloc(mrb, c->cibase, sizeof(mrb_callinfo)*size*2);
-    c->ci = ci = c->cibase + size;
-    c->ciend = c->cibase + size * 2;
+    c->cibase = (mrb_callinfo*)mrb_realloc(mrb, c->cibase, sizeof(mrb_callinfo)*diff*2);
+    c->ci = ci = c->cibase + diff;
+    c->ciend = c->cibase + diff * 2;
   }
   ci->mid = mid;
   CI_PROC_SET(ci, proc);
