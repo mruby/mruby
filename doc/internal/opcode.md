@@ -33,7 +33,7 @@ See also `OP_EXT1`, `OP_EXT2` and `OP_EXT3`.
 |   0 | `OP_NOP`         | `-`          | `no operation`
 |   1 | `OP_MOVE`        | `BB`         | `R(a) = R(b)`
 |   2 | `OP_LOADL`       | `BB`         | `R(a) = Pool(b)`
-|   3 | `OP_LOADI`       | `BB`         | `R(a) = mrb_int(b)`
+|   3 | `OP_LOADI8`      | `BB`         | `R(a) = mrb_int(b)`
 |   4 | `OP_LOADINEG`    | `BB`         | `R(a) = mrb_int(-b)`
 |   5 | `OP_LOADI__1`    | `B`          | `R(a) = mrb_int(-1)`
 |   6 | `OP_LOADI_0`     | `B`          | `R(a) = mrb_int(0)`

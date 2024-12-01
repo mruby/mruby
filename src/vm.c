@@ -1471,7 +1471,7 @@ RETRY_TRY_BLOCK:
       NEXT;
     }
 
-    CASE(OP_LOADI, BB) {
+    CASE(OP_LOADI8, BB) {
       SET_FIXNUM_VALUE(regs[a], b);
       NEXT;
     }

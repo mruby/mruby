@@ -549,7 +549,7 @@ genjmp2(codegen_scope *s, mrb_code i, uint16_t a, uint32_t pc, int val)
         }
       }
       break;
-    case OP_LOADT: case OP_LOADI: case OP_LOADINEG: case OP_LOADI__1:
+    case OP_LOADT: case OP_LOADI8: case OP_LOADINEG: case OP_LOADI__1:
     case OP_LOADI_0: case OP_LOADI_1: case OP_LOADI_2: case OP_LOADI_3:
     case OP_LOADI_4: case OP_LOADI_5: case OP_LOADI_6: case OP_LOADI_7:
       if (data.a == a || data.a > s->nlocals) {
@@ -623,7 +623,7 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
     case OP_HASH:
       if (data.b != 0) goto normal;
       /* fall through */
-    case OP_LOADI: case OP_LOADINEG:
+    case OP_LOADI8: case OP_LOADINEG:
     case OP_LOADL: case OP_LOADSYM:
     case OP_GETGV: case OP_GETSV: case OP_GETIV: case OP_GETCV:
     case OP_GETCONST: case OP_STRING:
@@ -765,7 +765,7 @@ get_int_operand(codegen_scope *s, struct mrb_insn_data *data, mrb_int *n)
     *n = data->insn - OP_LOADI_0;
     return TRUE;
 
-  case OP_LOADI:
+  case OP_LOADI8:
   case OP_LOADI16:
     *n = (int16_t)data->b;
     return TRUE;
@@ -1177,7 +1177,7 @@ gen_int(codegen_scope *s, uint16_t dst, mrb_int i)
     else goto int_lit;
   }
   else if (i < 8) genop_1(s, OP_LOADI_0 + (uint8_t)i, dst);
-  else if (i <= 0xff) genop_2(s, OP_LOADI, dst, (uint16_t)i);
+  else if (i <= 0xff) genop_2(s, OP_LOADI8, dst, (uint16_t)i);
   else if (i <= INT16_MAX) genop_2S(s, OP_LOADI16, dst, (uint16_t)i);
   else if (i <= INT32_MAX) genop_2SS(s, OP_LOADI32, dst, (uint32_t)i);
   else {

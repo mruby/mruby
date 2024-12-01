@@ -15,7 +15,7 @@ operation code    operands      semantics
 OPCODE(NOP,        Z)        /* no operation */
 OPCODE(MOVE,       BB)       /* R[a] = R[b] */
 OPCODE(LOADL,      BB)       /* R[a] = Pool[b] */
-OPCODE(LOADI,      BB)       /* R[a] = mrb_int(b) */
+OPCODE(LOADI8,     BB)       /* R[a] = mrb_int(b) */
 OPCODE(LOADINEG,   BB)       /* R[a] = mrb_int(-b) */
 OPCODE(LOADI__1,   B)        /* R[a] = mrb_int(-1) */
 OPCODE(LOADI_0,    B)        /* R[a] = mrb_int(0) */

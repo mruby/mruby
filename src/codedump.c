@@ -185,8 +185,8 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
       }
       print_lv_a(mrb, irep, a, out);
       break;
-    CASE(OP_LOADI, BB):
-      fprintf(out, "LOADI\t\tR%d\t%d\t", a, b);
+    CASE(OP_LOADI8, BB):
+      fprintf(out, "LOADI8\tR%d\t%d\t", a, b);
       print_lv_a(mrb, irep, a, out);
       break;
     CASE(OP_LOADINEG, BB):
