@@ -3183,11 +3183,14 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
 
   case NODE_REDO:
-    if (!s->loop || s->loop->type == LOOP_BEGIN || s->loop->type == LOOP_RESCUE) {
-      raise_error(s, "unexpected redo");
-    }
-    else {
-      genjmp(s, OP_JMPUW, s->loop->pc1);
+    for (const struct loopinfo *lp = s->loop; ; lp = lp->prev) {
+      if (!lp) {
+        raise_error(s, "unexpected redo");
+      }
+      if (lp->type != LOOP_BEGIN && lp->type != LOOP_RESCUE) {
+        genjmp(s, OP_JMPUW, lp->pc1);
+        break;
+      }
     }
     if (val) push();
     break;
