@@ -1721,7 +1721,7 @@ RETRY_TRY_BLOCK:
         if (irep->clen > 0 &&
             (ch = catch_handler_find(irep, ci->pc, MRB_CATCH_FILTER_ENSURE))) {
           /* avoiding a jump from a catch handler into the same handler */
-          if (a < mrb_irep_catch_handler_unpack(ch->begin) || a >= mrb_irep_catch_handler_unpack(ch->end)) {
+          if (a < mrb_irep_catch_handler_unpack(ch->begin) || a > mrb_irep_catch_handler_unpack(ch->end)) {
             THROW_TAGGED_BREAK(mrb, RBREAK_TAG_JUMP, mrb->c->ci, mrb_fixnum_value(a));
           }
         }

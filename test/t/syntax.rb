@@ -71,6 +71,63 @@ assert('break', '11.5.2.4.3') do
     end
   end
   assert_equal [1,2,3,4], a
+
+  a = []
+  begin
+    while true
+      a.push 1
+      break
+      a.push "NG"
+    end
+  ensure
+    a.push 2
+  end
+  assert_equal [1, 2], a
+
+  a = []
+  begin
+    while true
+      a.push 1
+      break
+    end
+    a.push 2
+  ensure
+    a.push 3
+  end
+  assert_equal [1, 2, 3], a
+
+  a = []
+  begin
+    while true
+      begin
+        a.push 1
+        break
+      ensure
+        a.push 2
+      end
+      a.push "NG"
+    end
+  ensure
+    a.push 3
+  end
+  assert_equal [1, 2, 3], a
+
+  a = []
+  begin
+    while true
+      begin
+        a.push 1
+        break
+      ensure
+        a.push 2
+      end
+      a.push "NG"
+    end
+    a.push 3
+  ensure
+    a.push 4
+  end
+  assert_equal [1, 2, 3, 4], a
 end
 
 assert('redo', '11.5.2.4.5') do
