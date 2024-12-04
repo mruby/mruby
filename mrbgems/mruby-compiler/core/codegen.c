@@ -1001,7 +1001,7 @@ lit_pool_extend(codegen_scope *s)
 }
 
 static int
-new_litbint(codegen_scope *s, const char *p, int base, mrb_bool neg)
+new_litbint(codegen_scope *s, const char *p, int base)
 {
   int i;
   size_t plen;
@@ -1026,8 +1026,7 @@ new_litbint(codegen_scope *s, const char *p, int base, mrb_bool neg)
   pv->tt = IREP_TT_BIGINT;
   buf = (char*)codegen_realloc(s, NULL, plen+3);
   buf[0] = (char)plen;
-  if (neg) buf[1] = -base;
-  else buf[1] = base;
+  buf[1] = base;
   memcpy(buf+2, p, plen);
   buf[plen+2] = '\0';
   pv->u.str = buf;
@@ -3323,7 +3322,7 @@ codegen(codegen_scope *s, node *tree, int val)
 
       i = readint(s, p, base, FALSE, &overflow);
       if (overflow) {
-        int off = new_litbint(s, p, base, FALSE);
+        int off = new_litbint(s, p, base);
         genop_2(s, OP_LOADL, cursp(), off);
       }
       else {
@@ -3374,7 +3373,8 @@ codegen(codegen_scope *s, node *tree, int val)
 
           i = readint(s, p, base, TRUE, &overflow);
           if (overflow) {
-            int off = new_litbint(s, p, base, TRUE);
+            base = -base;
+            int off = new_litbint(s, p, base);
             genop_2(s, OP_LOADL, cursp(), off);
           }
           else {
