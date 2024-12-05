@@ -1,9 +1,9 @@
 # Authors of mruby (mruby developers)
 
-## The List of Contributors sorted by number of commits (as of 2024-11-07 90764b1)
+## The List of Contributors sorted by number of commits (as of 2024-12-04 1602844)
 
-   5895 Yukihiro "Matz" Matsumoto (@matz)*
-    638 dearblue (@dearblue)*
+   5922 Yukihiro "Matz" Matsumoto (@matz)*
+    648 dearblue (@dearblue)*
     587 KOBAYASHI Shuji (@shuujii)
     353 Daniel Bovensiepen (@bovi)*
     345 Takeshi Watanabe (@take-cheeze)*
@@ -11,7 +11,7 @@
     234 Jun Hiroe (@suzukaze)
     228 Tomoyuki Sahara (@tsahara)*
     220 Cremno (@cremno)*
-    215 John Bampton (@jbampton)
+    219 John Bampton (@jbampton)
     209 Yuki Kurihara (@ksss)+
     144 Yasuhiro Matsumoto (@mattn)*
     113 Carson McDonald (@carsonmcdonald)
@@ -38,6 +38,7 @@
      30 Nobuyoshi Nakada (@nobu)
      25 Julian Aron Prenner (@furunkel)*
      22 Clayton Smith (@clayton-shopify)
+     22 Hoshiumi Arata (@hoshiumiarata)*
      22 Uchio Kondo (@udzura)*
      22 Zachary Scott (@zzak)*
      21 Ryan Lopopolo (@lopopolo)
@@ -119,7 +120,6 @@
       4 HASUMI Hitoshi (@hasumikin)
       4 Herwin Weststrate (@herwinw)
       4 Horimoto Yasuhiro (@komainu8)
-      4 Hoshiumi Arata (@hoshiumiarata)
       4 Jon Moss (@maclover7)
       4 Ken Muramatsu (@ken-mu)+
       4 Kohei Suzuki (@eagletmt)
@@ -136,6 +136,7 @@
       3 Anton Davydov (@davydovanton)
       3 Aurora Nockert (@auroranockert)
       3 Carlo Prelz (@asfluido)*
+      3 Daniel K. Sierpiński (@513ry)+
       3 David Turnbull (@AE9RB)
       3 Franck Verrot (@franckverrot)
       3 J. Mutua (@katmutua)+
@@ -159,9 +160,7 @@
       3 William Light (@wrl)
       3 bamchoh (@bamchoh)
       3 sasaki takeru (@takeru)
-      3 Daniel K. Sierpiński (@513ry)+
       3 windwiny (@windwiny)
-      3 星湖新 (@hoshiumiarata)
       2 Akira Moroo (@retrage)
       2 Artur K (@nemerle)
       2 Christian Mauceri (@mauceri)
@@ -206,7 +205,6 @@
       1 Alex Wang (@nanamiwang)+
       1 AlexDenisov (@AlexDenisov)
       1 Andrew Nordman (@cadwallion)
-      1 Sinkevich Artem (@ArtSin)+
       1 Ashish Kurmi (@boahc077)
       1 Atsushi Morimoto (@mynz)
       1 Ben A Morgan (@BenMorganIO)
@@ -254,6 +252,7 @@
       1 Martin Bosslet (@emboss)+
       1 Masahiko Sawada (@MasahikoSawada)
       1 Matt Aimonetti (@mattetti)
+      1 Max Base (@MaxFork)
       1 Maxim Abramchuk (@MaximAbramchuck)
       1 Megumi Tomita (@tomykaira)+
       1 Mitchell Hashimoto (@mitchellh)
@@ -278,6 +277,7 @@
       1 Sayed Abdelhaleem (@visualsayed)
       1 Sergey Ukrainskiy (@ukrainskiysergey)
       1 Shugo Maeda (@shugo)
+      1 Sinkevich Artem (@ArtSin)
       1 Sorah Fukumori (@sorah)
       1 Stephen Jothen (@sjothen)
       1 Stuart Hinson (@stuarth)
