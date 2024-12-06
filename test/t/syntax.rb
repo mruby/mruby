@@ -95,6 +95,43 @@ assert('redo', '11.5.2.4.5') do
     a.push(n)
   end
   assert_equal [1,3,4], a
+
+  a = []
+  limit = 3
+  e = RuntimeError.new("!")
+  for i in 0...3
+    begin
+      limit -= 1
+      break unless limit > 0
+      a.push i * 3 + 1
+      raise e
+    rescue
+      a.push i * 3 + 2
+      redo
+    ensure
+      a.push i * 3 + 3
+    end
+  end
+  assert_equal [1, 2, 3, 1, 2, 3, 3], a
+
+  a = []
+  limit = 3
+  e = RuntimeError.new("!")
+  for i in 0...3
+    a.push i * 4 + 1
+    begin
+      limit -= 1
+      break unless limit > 0
+      a.push i * 4 + 2
+      raise e
+    rescue
+      a.push i * 4 + 3
+      redo
+    ensure
+      a.push i * 4 + 4
+    end
+  end
+  assert_equal [1, 2, 3, 4, 1, 2, 3, 4, 1, 4], a
 end
 
 assert('Abbreviated variable assignment', '11.4.2.3.2') do

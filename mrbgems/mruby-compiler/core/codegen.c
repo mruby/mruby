@@ -1322,6 +1322,7 @@ for_body(codegen_scope *s, node *tree)
   /* construct loop */
   lp = loop_push(s, LOOP_FOR);
   lp->pc1 = new_label(s);
+  genop_0(s, OP_NOP); /* for redo */
 
   /* loop body */
   codegen(s, tree->cdr->cdr->car, VAL);
@@ -2588,6 +2589,7 @@ codegen(codegen_scope *s, node *tree, int val)
         pos = genjmp2_0(s, OP_JMPIF, cursp(), NOVAL);
       }
       lp->pc1 = new_label(s);
+      genop_0(s, OP_NOP); /* for redo */
       codegen(s, tree->cdr, NOVAL);
       genjmp(s, OP_JMP, lp->pc0);
       dispatch(s, pos);
@@ -3182,11 +3184,14 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
 
   case NODE_REDO:
-    if (!s->loop || s->loop->type == LOOP_BEGIN || s->loop->type == LOOP_RESCUE) {
-      raise_error(s, "unexpected redo");
-    }
-    else {
-      genjmp(s, OP_JMPUW, s->loop->pc1);
+    for (const struct loopinfo *lp = s->loop; ; lp = lp->prev) {
+      if (!lp) {
+        raise_error(s, "unexpected redo");
+      }
+      if (lp->type != LOOP_BEGIN && lp->type != LOOP_RESCUE) {
+        genjmp(s, OP_JMPUW, lp->pc1);
+        break;
+      }
     }
     if (val) push();
     break;
