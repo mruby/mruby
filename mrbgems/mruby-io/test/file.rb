@@ -210,13 +210,13 @@ assert('File.expand_path') do
   end
 end
 
-assert('File.expand_path (with ENV)') do
-  skip unless Object.const_defined?(:ENV) && ENV['HOME']
+assert('File.expand_path (with getenv(3))') do
+  skip unless MRubyIOTestUtil.const_defined?(:ENV_HOME)
 
-  assert_equal ENV['HOME'], File.expand_path("~/"),      "home"
-  assert_equal ENV['HOME'], File.expand_path("~/", "/"), "home with base_dir"
+  assert_equal MRubyIOTestUtil::ENV_HOME, File.expand_path("~/"),      "home"
+  assert_equal MRubyIOTestUtil::ENV_HOME, File.expand_path("~/", "/"), "home with base_dir"
 
-  assert_equal "#{ENV['HOME']}/user", File.expand_path("user", ENV['HOME']), "relative with base_dir"
+  assert_equal "#{MRubyIOTestUtil::ENV_HOME}/user", File.expand_path("user", MRubyIOTestUtil::ENV_HOME), "relative with base_dir"
 end
 
 assert('File.path') do
