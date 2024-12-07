@@ -18,7 +18,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
-#if defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32)
   #include <windows.h>
   #include <io.h>
   #define NULL_FILE "NUL"
@@ -47,7 +47,7 @@
 
 #define FILE_SEPARATOR "/"
 
-#if defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32)
   #define PATH_SEPARATOR ";"
   #define FILE_ALT_SEPARATOR "\\"
   #define VOLUME_SEPARATOR ":"
@@ -99,7 +99,7 @@ flock(int fd, int operation)
 static mrb_value
 mrb_file_s_umask(mrb_state *mrb, mrb_value klass)
 {
-#if defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32)
   /* nothing to do on windows */
   return mrb_fixnum_value(0);
 
@@ -146,7 +146,7 @@ mrb_file_s_rename(mrb_state *mrb, mrb_value obj)
   char *src = mrb_locale_from_utf8(RSTRING_CSTR(mrb, from), -1);
   char *dst = mrb_locale_from_utf8(RSTRING_CSTR(mrb, to), -1);
   if (rename(src, dst) < 0) {
-#if defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32)
     if (CHMOD(dst, 0666) == 0 && UNLINK(dst) == 0 && rename(src, dst) == 0) {
       mrb_locale_free(src);
       mrb_locale_free(dst);
@@ -166,7 +166,7 @@ mrb_file_s_rename(mrb_state *mrb, mrb_value obj)
 static mrb_value
 mrb_file_dirname(mrb_state *mrb, mrb_value klass)
 {
-#if defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32)
   char dname[_MAX_DIR], vname[_MAX_DRIVE];
   char buffer[_MAX_DRIVE + _MAX_DIR];
   const char *utf8_path;
@@ -205,7 +205,7 @@ static mrb_value
 mrb_file_basename(mrb_state *mrb, mrb_value klass)
 {
   // NOTE: Do not use mrb_locale_from_utf8 here
-#if defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32)
   char bname[_MAX_DIR];
   char extname[_MAX_EXT];
   char buffer[_MAX_DIR + _MAX_EXT];
@@ -535,7 +535,7 @@ mrb_file_truncate(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_file_s_symlink(mrb_state *mrb, mrb_value klass)
 {
-#if defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32)
   mrb_raise(mrb, E_NOTIMP_ERROR, "symlink is not supported on this platform");
 #else
   mrb_value from, to;
@@ -580,7 +580,7 @@ mrb_file_s_chmod(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_file_s_readlink(mrb_state *mrb, mrb_value klass)
 {
-#if defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32)
   mrb_raise(mrb, E_NOTIMP_ERROR, "readlink is not supported on this platform");
   return mrb_nil_value(); // unreachable
 #else
@@ -646,7 +646,7 @@ mrb_init_file(mrb_state *mrb)
   mrb_define_const_id(mrb, cnst, MRB_SYM(LOCK_NB), mrb_fixnum_value(LOCK_NB));
   mrb_define_const_id(mrb, cnst, MRB_SYM(SEPARATOR), mrb_str_new_cstr(mrb, FILE_SEPARATOR));
   mrb_define_const_id(mrb, cnst, MRB_SYM(PATH_SEPARATOR), mrb_str_new_cstr(mrb, PATH_SEPARATOR));
-#if defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32)
   mrb_define_const_id(mrb, cnst, MRB_SYM(ALT_SEPARATOR), mrb_str_new_cstr(mrb, FILE_ALT_SEPARATOR));
 #else
   mrb_define_const_id(mrb, cnst, MRB_SYM(ALT_SEPARATOR), mrb_nil_value());
