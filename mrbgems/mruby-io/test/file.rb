@@ -204,7 +204,7 @@ assert('File.expand_path') do
   assert_equal "/", File.expand_path("../../../..", "/")
   if File._getwd[1] == ":"
     drive_letter = File._getwd[0]
-    assert_equal drive_letter + ":\\", File.expand_path(([".."] * 100).join("/"))
+    assert_equal drive_letter + ":/", File.expand_path(([".."] * 100).join("/"))
   else
     assert_equal "/", File.expand_path(([".."] * 100).join("/"))
   end

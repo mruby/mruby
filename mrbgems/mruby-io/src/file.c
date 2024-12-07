@@ -345,15 +345,14 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
   mrb_int argc = mrb_get_args(mrb, "|S", &username);
   if (argc == 0) {
     home = getenv("HOME");
-    if (home == NULL) {
-      return mrb_nil_value();
-    }
 #ifdef _WIN32
-    home = getenv("USERPROFILE");
     if (home == NULL) {
-      return mrb_nil_value();
+      home = getenv("USERPROFILE");
     }
 #endif
+    if (home == NULL) {
+      return mrb_nil_value();
+    }
     if (!mrb_file_is_absolute_path(home)) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "non-absolute home");
     }
@@ -378,6 +377,15 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
   home = mrb_utf8_from_locale(home, -1);
   path = mrb_str_new_cstr(mrb, home);
   mrb_utf8_free(home);
+#ifdef _WIN32
+  char *pathp = RSTRING_PTR(path);
+  const char *const pathend = pathp + RSTRING_LEN(path);
+  for (;;) {
+    pathp = memchr(pathp, '\\', pathend - pathp);
+    if (!pathp) break;
+    *pathp++ = '/';
+  }
+#endif
   return path;
 }
 
