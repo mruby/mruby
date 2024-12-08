@@ -17,7 +17,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#if defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32)
   #include <winsock.h>
   #include <io.h>
   #include <basetsd.h>
@@ -783,7 +783,7 @@ fptr_finalize(mrb_state *mrb, struct mrb_io *fptr, int quiet)
 
 #ifndef MRB_NO_IO_POPEN
   if (fptr->pid != 0) {
-#if !defined(_WIN32) && !defined(_WIN64)
+#if !defined(_WIN32)
     pid_t pid;
     int status;
     do {

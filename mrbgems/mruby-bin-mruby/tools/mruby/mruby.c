@@ -14,7 +14,7 @@
 #include <mruby/error.h>
 #include <mruby/presym.h>
 
-#if defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32)
 # include <io.h> /* for setmode */
 # include <fcntl.h>
 #endif
@@ -244,7 +244,7 @@ parse_args(mrb_state *mrb, int argc, char **argv, struct _args *args)
       argc--; argv++;
     }
   }
-#if defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32)
   if (args->rfp == stdin) {
     _setmode(_fileno(stdin), O_BINARY);
   }
