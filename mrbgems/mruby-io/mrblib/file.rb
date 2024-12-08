@@ -149,7 +149,7 @@ class File < IO
     if drive_prefix.empty?
       expanded_path
     else
-      drive_prefix + expanded_path.gsub("/", File::ALT_SEPARATOR)
+      drive_prefix + expanded_path
     end
   end
 
