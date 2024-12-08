@@ -363,7 +363,7 @@ mpz_sub_int(mrb_state *mrb, mpz_t *x, mrb_int n)
     return;
   }
   if (x->sn < 0) {
-    mpz_add_int(mrb, x, 1);
+    mpz_add_int(mrb, x, n);
     return;
   }
 
@@ -1511,10 +1511,13 @@ mrb_bint_add_n(mrb_state *mrb, mrb_value x, mrb_value y)
     if (int_fit_limb_p(i)) {
       mpz_init_set(mrb, &z, &a);
       if ((i > 0) ^ (z.sn > 0)) {
-        mpz_sub_int(mrb, &z, i);
+        short sn = z.sn;
+        z.sn = 1;
+        mpz_sub_int(mrb, &z, iabs(i));
+        z.sn = sn;
       }
       else {
-        mpz_add_int(mrb, &z, i);
+        mpz_add_int(mrb, &z, iabs(i));
       }
       struct RBigint *v = bint_new(mrb, &z);
       return mrb_obj_value(v);
@@ -1554,10 +1557,13 @@ mrb_bint_sub_n(mrb_state *mrb, mrb_value x, mrb_value y)
     if (int_fit_limb_p(i)) {
       mpz_init_set(mrb, &z, &a);
       if ((i > 0) ^ (z.sn > 0)) {
-        mpz_add_int(mrb, &z, i);
+        mpz_add_int(mrb, &z, iabs(i));
       }
       else {
-        mpz_sub_int(mrb, &z, i);
+        short sn = z.sn;
+        z.sn = 1;
+        mpz_sub_int(mrb, &z, iabs(i));
+        z.sn = sn;
       }
       struct RBigint *v = bint_new(mrb, &z);
       return mrb_obj_value(v);
