@@ -364,12 +364,6 @@ mpz_sub_int(mrb_state *mrb, mpz_t *x, mrb_int n)
     mpz_set_int(mrb, x, n);
     return;
   }
-  #if 0
-  if (x->sn < 0) {
-    mpz_add_int(mrb, x, n);
-    return;
-  }
-  #endif
 
   // Initialize borrow and start decrement
   mp_dbl_limb_signed borrow = (mp_limb)n;
@@ -901,7 +895,7 @@ mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
     mp_limb *t = (mp_limb*)mrb_malloc(mrb, xlen*sizeof(mp_limb));
     mp_limb *tend = t + xlen;
     memcpy(t, x->p, xlen*sizeof(mp_limb));
-    mp_limb b2 = base_limit[(base-3)];
+    mp_limb b2 = base_limit[base-3];
 
     for (;;) {
       mp_limb *d = tend;
@@ -914,12 +908,12 @@ mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
       }
 
       // convert to character
-      while (a > 0) {
-        mp_limb a0 = (mp_limb)(a % base);
+      for (mp_limb b=b2/base; b>0; b/=base) {
+        char a0 = (char)(a % base);
         if (a0 < 10) a0 += '0';
         else a0 += 'a' - 10;
         if (s == se) break;
-        *s++ = (char)a0;
+        *s++ = a0;
         a /= base;
       }
 
