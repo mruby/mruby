@@ -11,7 +11,7 @@
 #include <mruby/string.h>
 #include <mruby/presym.h>
 #include <sys/types.h>
-#if defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32)
   #define MAXPATHLEN 1024
  #if !defined(PATH_MAX)
   #define PATH_MAX MAX_PATH
@@ -173,7 +173,7 @@ mrb_dir_chdir(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_dir_chroot(mrb_state *mrb, mrb_value self)
 {
-#if defined(_WIN32) || defined(_WIN64) || defined(__ANDROID__) || defined(__MSDOS__)
+#if defined(_WIN32) || defined(__ANDROID__) || defined(__MSDOS__)
   mrb_raise(mrb, E_NOTIMP_ERROR, "chroot() unreliable on your system");
   return mrb_fixnum_value(0);
 #else
@@ -259,7 +259,7 @@ mrb_dir_rewind(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_dir_seek(mrb_state *mrb, mrb_value self)
 {
-  #if defined(_WIN32) || defined(_WIN64) || defined(__ANDROID__)
+  #if defined(_WIN32) || defined(__ANDROID__)
   mrb_raise(mrb, E_NOTIMP_ERROR, "dirseek() unreliable on your system");
   return self;
   #else
@@ -280,7 +280,7 @@ mrb_dir_seek(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_dir_tell(mrb_state *mrb, mrb_value self)
 {
-#if defined(_WIN32) || defined(_WIN64) || defined(__ANDROID__)
+#if defined(_WIN32) || defined(__ANDROID__)
   mrb_raise(mrb, E_NOTIMP_ERROR, "dirtell() unreliable on your system");
   return mrb_fixnum_value(0);
 #else

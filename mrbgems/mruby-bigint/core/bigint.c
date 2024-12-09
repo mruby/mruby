@@ -312,18 +312,16 @@ mpz_add(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y)
   mpz_move(mrb, zz, &z);
 }
 
-/* x = x + n (only called from mpz_init_set_str) */
-/*   assumes x and n are positive or zero        */
-/*   assumes n is small (fits in mp_limb)        */
+/* x += n                                              */
+/*   ignores sign of x                                 */
+/*   assumes n is positive and small (fits in mp_limb) */
 static void
 mpz_add_int(mrb_state *mrb, mpz_t *x, mrb_int n)
 {
-  if (n == 0) {
-    // If n is zero, no operation is needed
-    return;
-  }
+  // If n is zero, no operation is needed
+  if (n == 0) return;
 
-  // Assume x is positive and n is a small positive integer (n < 36)
+  // Assume x is positive and n is a small positive integer
   mp_dbl_limb carry = n; // Initialize carry with n
   for (size_t i = 0; i < x->sz && carry; i++) {
     carry += (mp_dbl_limb)x->p[i]; // Add current limb and carry
@@ -352,18 +350,18 @@ mpz_sub(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
   mpz_add(mrb, z, x, &u);
 }
 
-/* x -= n                                 */
-/*   assumes n is small (fits in mp_limb) */
+/* x -= n                                              */
+/*   ignores sign of x                                 */
+/*   assumes n is positive and small (fits in mp_limb) */
 static void
 mpz_sub_int(mrb_state *mrb, mpz_t *x, mrb_int n)
 {
- // If x is zero, set x to -1
+  // If n is zero, no operation is needed
+  if (n == 0) return;
+
+  // If x is zero, set x to n
   if (zero_p(x) || x->sz == 0) {
     mpz_set_int(mrb, x, n);
-    return;
-  }
-  if (x->sn < 0) {
-    mpz_add_int(mrb, x, 1);
     return;
   }
 
@@ -897,7 +895,7 @@ mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
     mp_limb *t = (mp_limb*)mrb_malloc(mrb, xlen*sizeof(mp_limb));
     mp_limb *tend = t + xlen;
     memcpy(t, x->p, xlen*sizeof(mp_limb));
-    mp_limb b2 = base_limit[(base-3)];
+    mp_limb b2 = base_limit[base-3];
 
     for (;;) {
       mp_limb *d = tend;
@@ -910,12 +908,12 @@ mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
       }
 
       // convert to character
-      while (a > 0) {
-        mp_limb a0 = (mp_limb)(a % base);
+      for (mp_limb b=b2/base; b>0; b/=base) {
+        char a0 = (char)(a % base);
         if (a0 < 10) a0 += '0';
         else a0 += 'a' - 10;
         if (s == se) break;
-        *s++ = (char)a0;
+        *s++ = a0;
         a /= base;
       }
 
@@ -1480,22 +1478,17 @@ mrb_bint_as_uint64(mrb_state *mrb, mrb_value x)
 static mrb_bool
 int_fit_limb_p(mrb_int i)
 {
-#ifdef MRB_INT64
 #if DIG_SIZE == 32
+# ifdef MRB_INT64
   // if mp_limb is int32_t
-  return (i >= INT32_MIN && i <= INT32_MAX);
-#else /* if DIG_SIZE == 16 */
-  // if mp_limb is int16_t
-  return (i >= INT16_MIN && i <= INT16_MAX);
-#endif
-#else /* MRB_INT32 */
-#if DIG_SIZE == 32
+  return (i > INT32_MIN && i <= INT32_MAX);
+# else
   // if mp_limb is also int32_t, it always fits
   return TRUE;
+# endif
 #else /* if DIG_SIZE == 16 */
   // if mp_limb is int16_t
-  return (i >= INT16_MIN && i <= INT16_MAX);
-#endif
+  return (i > INT16_MIN && i <= INT16_MAX);
 #endif
 }
 
@@ -1507,17 +1500,15 @@ mrb_bint_add_n(mrb_state *mrb, mrb_value x, mrb_value y)
 
   bint_as_mpz(RBIGINT(x), &a);
   if (mrb_integer_p(y)) {
-    mrb_int i = mrb_integer(y);
-    if (int_fit_limb_p(i)) {
+    mrb_int n = mrb_integer(y);
+    if (int_fit_limb_p(n)) {
       mpz_init_set(mrb, &z, &a);
-      if ((i > 0) ^ (z.sn > 0)) {
-        mpz_sub_int(mrb, &z, i);
+      if ((n > 0) ^ (z.sn > 0)) {
+        mpz_sub_int(mrb, &z, n<0 ? -n : n);
       }
       else {
-        mpz_add_int(mrb, &z, i);
+        mpz_add_int(mrb, &z, n<0 ? -n : n);
       }
-      struct RBigint *v = bint_new(mrb, &z);
-      return mrb_obj_value(v);
     }
   }
   y = mrb_as_bint(mrb, y);
@@ -1550,14 +1541,14 @@ mrb_bint_sub_n(mrb_state *mrb, mrb_value x, mrb_value y)
 
   bint_as_mpz(RBIGINT(x), &a);
   if (mrb_integer_p(y)) {
-    mrb_int i = mrb_integer(y);
-    if (int_fit_limb_p(i)) {
+    mrb_int n = mrb_integer(y);
+    if (int_fit_limb_p(n)) {
       mpz_init_set(mrb, &z, &a);
-      if ((i > 0) ^ (z.sn > 0)) {
-        mpz_add_int(mrb, &z, i);
+      if ((n > 0) ^ (z.sn > 0)) {
+        mpz_add_int(mrb, &z, n<0 ? -n : n);
       }
       else {
-        mpz_sub_int(mrb, &z, i);
+        mpz_sub_int(mrb, &z, n<0 ? -n : n);
       }
       struct RBigint *v = bint_new(mrb, &z);
       return mrb_obj_value(v);
