@@ -589,7 +589,7 @@ assert('IO#sysseek') do
 end
 
 assert('IO#pread') do
-  skip "IO#pread is not implemented on this configuration" unless MRubyIOTestUtil::MRB_WITH_IO_PREAD_PWRITE
+  skip "IO#pread is not implemented on this configuration" unless MRubyIOTestUtil::MRB_USE_IO_PREAD_PWRITE
 
   IO.open(IO.sysopen($mrbtest_io_rfname, 'r'), 'r') do |io|
     assert_equal $mrbtest_io_msg.byteslice(5, 8), io.pread(8, 5)
@@ -601,7 +601,7 @@ assert('IO#pread') do
 end
 
 assert('IO#pwrite') do
-  skip "IO#pwrite is not implemented on this configuration" unless MRubyIOTestUtil::MRB_WITH_IO_PREAD_PWRITE
+  skip "IO#pwrite is not implemented on this configuration" unless MRubyIOTestUtil::MRB_USE_IO_PREAD_PWRITE
 
   IO.open(IO.sysopen($mrbtest_io_wfname, 'w+'), 'w+') do |io|
     assert_equal 6, io.pwrite("Warld!", 7)
