@@ -243,4 +243,26 @@ mrb_mruby_io_gem_test(mrb_state* mrb)
   mrb_define_class_method(mrb, io_test, "win?", mrb_io_win_p, MRB_ARGS_NONE());
 
   mrb_define_const(mrb, io_test, "MRB_WITH_IO_PREAD_PWRITE", mrb_bool_value(MRB_WITH_IO_PREAD_PWRITE_ENABLED));
+
+  const char *env_home = getenv("HOME");
+#ifdef _WIN32
+  if (!env_home) {
+    env_home = getenv("USERPROFILE");
+  }
+#endif
+  if (env_home) {
+    char *utf8 = mrb_utf8_from_locale(env_home, strlen(env_home));
+    mrb_value path = mrb_str_new_cstr(mrb, utf8);
+#ifdef _WIN32
+    char *pathp = RSTRING_PTR(path);
+    const char *const pathend = pathp + RSTRING_LEN(path);
+    for (;;) {
+      pathp = memchr(pathp, '\\', pathend - pathp);
+      if (!pathp) break;
+      *pathp++ = '/';
+    }
+#endif
+    mrb_define_const(mrb, io_test, "ENV_HOME", path);
+    mrb_utf8_free(utf8);
+  }
 }

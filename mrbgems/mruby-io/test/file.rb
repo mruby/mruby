@@ -204,19 +204,19 @@ assert('File.expand_path') do
   assert_equal "/", File.expand_path("../../../..", "/")
   if File._getwd[1] == ":"
     drive_letter = File._getwd[0]
-    assert_equal drive_letter + ":\\", File.expand_path(([".."] * 100).join("/"))
+    assert_equal drive_letter + ":/", File.expand_path(([".."] * 100).join("/"))
   else
     assert_equal "/", File.expand_path(([".."] * 100).join("/"))
   end
 end
 
-assert('File.expand_path (with ENV)') do
-  skip unless Object.const_defined?(:ENV) && ENV['HOME']
+assert('File.expand_path (with getenv(3))') do
+  skip unless MRubyIOTestUtil.const_defined?(:ENV_HOME)
 
-  assert_equal ENV['HOME'], File.expand_path("~/"),      "home"
-  assert_equal ENV['HOME'], File.expand_path("~/", "/"), "home with base_dir"
+  assert_equal MRubyIOTestUtil::ENV_HOME, File.expand_path("~/"),      "home"
+  assert_equal MRubyIOTestUtil::ENV_HOME, File.expand_path("~/", "/"), "home with base_dir"
 
-  assert_equal "#{ENV['HOME']}/user", File.expand_path("user", ENV['HOME']), "relative with base_dir"
+  assert_equal "#{MRubyIOTestUtil::ENV_HOME}/user", File.expand_path("user", MRubyIOTestUtil::ENV_HOME), "relative with base_dir"
 end
 
 assert('File.path') do
