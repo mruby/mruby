@@ -1911,15 +1911,15 @@ mrb_bint_xor(mrb_state *mrb, mrb_value x, mrb_value y)
   mpz_t a, b, c;
 
   bint_as_mpz(RBIGINT(x), &a);
-  if (mrb_integer_p(y)) {
+  if (mrb_integer_p(y) && a.sn > 0) {
     mrb_int z = mrb_integer(y);
     if (z == 0) return x;
     if (0 < z && (mp_dbl_limb)z < DIG_BASE) {
-      z ^= a.p[0];
-      return mrb_int_value(mrb, z);
+      mpz_init_set(mrb, &c, &a);
+      c.p[0] ^= z;
+      return bint_norm(mrb, bint_new(mrb, &c));
     }
   }
-
   y = mrb_as_bint(mrb, y);
   bint_as_mpz(RBIGINT(y), &b);
   if (zero_p(&a)) return y;
