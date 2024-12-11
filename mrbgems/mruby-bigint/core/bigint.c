@@ -1134,8 +1134,7 @@ mpz_pow(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int e)
     return;
   }
 
-  mpz_init(mrb, &t);
-  mpz_set(mrb, &t, x);
+  mpz_init_set(mrb, &t, x);
   for (;!(mask &e); mask>>=1)
     ;
   mask>>=1;
