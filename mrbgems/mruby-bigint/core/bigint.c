@@ -908,7 +908,7 @@ mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
       }
 
       // convert to character
-      for (mp_limb b=b2/base; b>0; b/=base) {
+      for (mp_limb b=b2; b>=base; b/=base) {
         char a0 = (char)(a % base);
         if (a0 < 10) a0 += '0';
         else a0 += 'a' - 10;
