@@ -1111,6 +1111,9 @@ int_mod(mrb_state *mrb, mrb_value x)
   if (mrb_bigint_p(x)) {
     return mrb_bint_mod(mrb, x, y);
   }
+  if (mrb_bigint_p(y)) {
+    return mrb_bint_mod(mrb, mrb_as_bint(mrb, x), y);
+  }
 #endif
   a = mrb_integer(x);
   if (a == 0) return x;
@@ -1158,6 +1161,9 @@ int_divmod(mrb_state *mrb, mrb_value x)
     }
 #endif
     return mrb_bint_divmod(mrb, x, y);
+  }
+  if (mrb_bigint_p(y)) {
+    return mrb_bint_divmod(mrb, mrb_as_bint(mrb, x), y);
   }
 #endif
   if (mrb_integer_p(y)) {
