@@ -1508,6 +1508,8 @@ mrb_bint_add_n(mrb_state *mrb, mrb_value x, mrb_value y)
       else {
         mpz_add_int(mrb, &z, n<0 ? -n : n);
       }
+      struct RBigint *v = bint_new(mrb, &z);
+      return mrb_obj_value(v);
     }
   }
   y = mrb_as_bint(mrb, y);
