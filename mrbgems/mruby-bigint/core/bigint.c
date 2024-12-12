@@ -590,7 +590,7 @@ mpz_mdiv(mrb_state *mrb, mpz_t *q, mpz_t *x, mpz_t *y)
     q->sn = 0;
   /* now if r != 0 and q < 0 we need to round q towards -inf */
   if (!uzero_p(&r) && qsign < 0)
-    mpz_sub_int(mrb, q, 1);
+    mpz_add_int(mrb, q, 1);
   mpz_clear(mrb, &r);
 }
 
@@ -655,7 +655,7 @@ mpz_mdivmod(mrb_state *mrb, mpz_t *q, mpz_t *r, mpz_t *x, mpz_t *y)
     q->sn = 0;
   /* now if r != 0 and q < 0 we need to round q towards -inf */
   if (!uzero_p(r) && qsign < 0)
-    mpz_sub_int(mrb, q, 1);
+    mpz_add_int(mrb, q, 1);
 }
 
 static void
@@ -908,7 +908,7 @@ mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
       }
 
       // convert to character
-      for (mp_limb b=b2/base; b>0; b/=base) {
+      for (mp_limb b=b2; b>=base; b/=base) {
         char a0 = (char)(a % base);
         if (a0 < 10) a0 += '0';
         else a0 += 'a' - 10;
@@ -1134,8 +1134,7 @@ mpz_pow(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int e)
     return;
   }
 
-  mpz_init(mrb, &t);
-  mpz_set(mrb, &t, x);
+  mpz_init_set(mrb, &t, x);
   for (;!(mask &e); mask>>=1)
     ;
   mask>>=1;
@@ -1509,6 +1508,8 @@ mrb_bint_add_n(mrb_state *mrb, mrb_value x, mrb_value y)
       else {
         mpz_add_int(mrb, &z, n<0 ? -n : n);
       }
+      struct RBigint *v = bint_new(mrb, &z);
+      return mrb_obj_value(v);
     }
   }
   y = mrb_as_bint(mrb, y);
@@ -1912,15 +1913,15 @@ mrb_bint_xor(mrb_state *mrb, mrb_value x, mrb_value y)
   mpz_t a, b, c;
 
   bint_as_mpz(RBIGINT(x), &a);
-  if (mrb_integer_p(y)) {
+  if (mrb_integer_p(y) && a.sn > 0) {
     mrb_int z = mrb_integer(y);
     if (z == 0) return x;
     if (0 < z && (mp_dbl_limb)z < DIG_BASE) {
-      z ^= a.p[0];
-      return mrb_int_value(mrb, z);
+      mpz_init_set(mrb, &c, &a);
+      c.p[0] ^= z;
+      return bint_norm(mrb, bint_new(mrb, &c));
     }
   }
-
   y = mrb_as_bint(mrb, y);
   bint_as_mpz(RBIGINT(y), &b);
   if (zero_p(&a)) return y;
