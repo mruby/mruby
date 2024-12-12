@@ -590,7 +590,7 @@ mpz_mdiv(mrb_state *mrb, mpz_t *q, mpz_t *x, mpz_t *y)
     q->sn = 0;
   /* now if r != 0 and q < 0 we need to round q towards -inf */
   if (!uzero_p(&r) && qsign < 0)
-    mpz_sub_int(mrb, q, 1);
+    mpz_add_int(mrb, q, 1);
   mpz_clear(mrb, &r);
 }
 
@@ -655,7 +655,7 @@ mpz_mdivmod(mrb_state *mrb, mpz_t *q, mpz_t *r, mpz_t *x, mpz_t *y)
     q->sn = 0;
   /* now if r != 0 and q < 0 we need to round q towards -inf */
   if (!uzero_p(r) && qsign < 0)
-    mpz_sub_int(mrb, q, 1);
+    mpz_add_int(mrb, q, 1);
 }
 
 static void
