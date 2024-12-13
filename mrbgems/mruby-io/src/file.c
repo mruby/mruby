@@ -381,7 +381,7 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
   char *pathp = RSTRING_PTR(path);
   const char *const pathend = pathp + RSTRING_LEN(path);
   for (;;) {
-    pathp = memchr(pathp, '\\', pathend - pathp);
+    pathp = memchr((void*)pathp, '\\', (size_t)(pathend - pathp));
     if (!pathp) break;
     *pathp++ = '/';
   }

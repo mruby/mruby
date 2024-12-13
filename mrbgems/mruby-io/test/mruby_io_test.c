@@ -225,10 +225,10 @@ mrb_io_win_p(mrb_state *mrb, mrb_value klass)
 #endif
 }
 
-#ifdef MRB_WITH_IO_PREAD_PWRITE
-# define MRB_WITH_IO_PREAD_PWRITE_ENABLED TRUE
+#ifdef MRB_USE_IO_PREAD_PWRITE
+# define MRB_USE_IO_PREAD_PWRITE_ENABLED TRUE
 #else
-# define MRB_WITH_IO_PREAD_PWRITE_ENABLED FALSE
+# define MRB_USE_IO_PREAD_PWRITE_ENABLED FALSE
 #endif
 
 void
@@ -242,7 +242,7 @@ mrb_mruby_io_gem_test(mrb_state* mrb)
   mrb_define_class_method(mrb, io_test, "rmdir", mrb_io_test_rmdir, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, io_test, "win?", mrb_io_win_p, MRB_ARGS_NONE());
 
-  mrb_define_const(mrb, io_test, "MRB_WITH_IO_PREAD_PWRITE", mrb_bool_value(MRB_WITH_IO_PREAD_PWRITE_ENABLED));
+  mrb_define_const(mrb, io_test, "MRB_USE_IO_PREAD_PWRITE", mrb_bool_value(MRB_USE_IO_PREAD_PWRITE_ENABLED));
 
   const char *env_home = getenv("HOME");
 #ifdef _WIN32

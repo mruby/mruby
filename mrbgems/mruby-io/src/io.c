@@ -1502,7 +1502,7 @@ io_sync(mrb_state *mrb, mrb_value io)
   return mrb_bool_value(fptr->sync);
 }
 
-#ifndef MRB_WITH_IO_PREAD_PWRITE
+#ifndef MRB_USE_IO_PREAD_PWRITE
 # define io_pread   mrb_notimplement_m
 # define io_pwrite  mrb_notimplement_m
 #else
@@ -1541,7 +1541,7 @@ io_pwrite(mrb_state *mrb, mrb_value io)
 
   return io_write_common(mrb, pwrite, io_get_write_fptr(mrb, io), RSTRING_PTR(buf), RSTRING_LEN(buf), value2off(mrb, off));
 }
-#endif /* MRB_WITH_IO_PREAD_PWRITE */
+#endif /* MRB_USE_IO_PREAD_PWRITE */
 
 static mrb_value
 io_ungetc(mrb_state *mrb, mrb_value io)
