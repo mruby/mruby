@@ -12,6 +12,7 @@
 #define MRB_PRESYM_MAX 0
 
 #define MRB_OPSYM(name) MRB_OPSYM__##name(mrb)
+#define MRB_GVSYM(name) mrb_intern_lit(mrb, "$" #name)
 #define MRB_CVSYM(name) mrb_intern_lit(mrb, "@@" #name)
 #define MRB_IVSYM(name) mrb_intern_lit(mrb, "@" #name)
 #define MRB_SYM_B(name) mrb_intern_lit(mrb, #name "!")
@@ -20,6 +21,7 @@
 #define MRB_SYM(name) mrb_intern_lit(mrb, #name)
 
 #define MRB_OPSYM_2(mrb, name) MRB_OPSYM__##name(mrb)
+#define MRB_GVSYM_2(mrb, name) mrb_intern_lit(mrb, "$" #name)
 #define MRB_CVSYM_2(mrb, name) mrb_intern_lit(mrb, "@@" #name)
 #define MRB_IVSYM_2(mrb, name) mrb_intern_lit(mrb, "@" #name)
 #define MRB_SYM_B_2(mrb, name) mrb_intern_lit(mrb, #name "!")

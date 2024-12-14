@@ -36,6 +36,7 @@ module MRuby
     SYMBOL_TO_MACRO = {
     #      Symbol      =>      Macro
     # [prefix, suffix] => [prefix, suffix]
+      ["$"   , ""    ] => ["GV"  , ""    ],
       ["@@"  , ""    ] => ["CV"  , ""    ],
       ["@"   , ""    ] => ["IV"  , ""    ],
       [""    , "!"   ] => [""    , "_B"  ],

@@ -10,6 +10,7 @@
 #include <mruby/presym/id.h>
 
 #define MRB_OPSYM(name) MRB_OPSYM__##name
+#define MRB_GVSYM(name) MRB_GVSYM__##name
 #define MRB_CVSYM(name) MRB_CVSYM__##name
 #define MRB_IVSYM(name) MRB_IVSYM__##name
 #define MRB_SYM_B(name) MRB_SYM_B__##name
@@ -18,6 +19,7 @@
 #define MRB_SYM(name) MRB_SYM__##name
 
 #define MRB_OPSYM_2(mrb, name) MRB_OPSYM__##name
+#define MRB_GVSYM_2(mrb, name) MRB_GVSYM__##name
 #define MRB_CVSYM_2(mrb, name) MRB_CVSYM__##name
 #define MRB_IVSYM_2(mrb, name) MRB_IVSYM__##name
 #define MRB_SYM_B_2(mrb, name) MRB_SYM_B__##name

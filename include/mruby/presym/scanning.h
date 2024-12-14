@@ -30,6 +30,7 @@
 #define mrb_funcall(mrb, v, name, ...) MRB_PRESYM_SCANNING_TAGGED(name) (v) (__VA_ARGS__)
 
 #define MRB_OPSYM(name) MRB_OPSYM__##name(mrb)
+#define MRB_GVSYM(name) MRB_PRESYM_SCANNING_TAGGED("$" #name)
 #define MRB_CVSYM(name) MRB_PRESYM_SCANNING_TAGGED("@@" #name)
 #define MRB_IVSYM(name) MRB_PRESYM_SCANNING_TAGGED("@" #name)
 #define MRB_SYM_B(name) MRB_PRESYM_SCANNING_TAGGED(#name "!")
@@ -38,6 +39,7 @@
 #define MRB_SYM(name) MRB_PRESYM_SCANNING_TAGGED(#name)
 
 #define MRB_OPSYM_2(mrb, name) MRB_OPSYM__##name(mrb)
+#define MRB_GVSYM_2(mrb, name) MRB_PRESYM_SCANNING_TAGGED("$" #name)
 #define MRB_CVSYM_2(mrb, name) MRB_PRESYM_SCANNING_TAGGED("@@" #name)
 #define MRB_IVSYM_2(mrb, name) MRB_PRESYM_SCANNING_TAGGED("@" #name)
 #define MRB_SYM_B_2(mrb, name) MRB_PRESYM_SCANNING_TAGGED(#name "!")

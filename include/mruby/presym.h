@@ -19,6 +19,7 @@
  * macros.
  *
  *   MRB_OPSYM(xor)  //=> ^      (Operator)
+ *   MRB_GVSYM(xor)  //=> $xor   (Global Variable)
  *   MRB_CVSYM(xor)  //=> @@xor  (Class Variable)
  *   MRB_IVSYM(xor)  //=> @xor   (Instance Variable)
  *   MRB_SYM_B(xor)  //=> xor!   (Method with Bang)

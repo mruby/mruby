@@ -1141,8 +1141,9 @@ MRB_API mrb_value mrb_funcall_argv(mrb_state *mrb, mrb_value val, mrb_sym name, 
  */
 MRB_API mrb_value mrb_funcall_with_block(mrb_state *mrb, mrb_value val, mrb_sym name, mrb_int argc, const mrb_value *argv, mrb_value block);
 /**
- * Create a symbol from C string. But usually it's better to use MRB_SYM,
- * MRB_OPSYM, MRB_CVSYM, MRB_IVSYM, MRB_SYM_B, MRB_SYM_Q, MRB_SYM_E macros.
+ * Create a symbol from C string. But usually it's better to
+ * use MRB_SYM, MRB_OPSYM, MRB_CVSYM, MRB_IVSYM, MRB_GVSYM,
+ * MRB_SYM_B, MRB_SYM_Q, MRB_SYM_E macros.
  *
  * Example:
  *
