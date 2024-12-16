@@ -2101,7 +2101,7 @@ RETRY_TRY_BLOCK:
         /* clear local (but non-argument) variables */
         mrb_int pos = m1+2;     /* self+m1+blk */
         if (irep->nlocals-pos  > 0) {
-          stack_clear(&regs[pos], irep->nregs-pos);
+          stack_clear(&regs[pos], irep->nlocals-pos);
         }
         NEXT;
       }
