@@ -41,7 +41,7 @@ fiber_init_fiber(mrb_state *mrb, struct RFiber *f, const struct RProc *p)
 
   {
     mrb_value *s = c->stbase + 1;
-    mrb_value *send = c->stbase + p->body.irep->nregs;
+    mrb_value *send = c->stend;
 
     while (s < send) {
       SET_NIL_VALUE(*s);
