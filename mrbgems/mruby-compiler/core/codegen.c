@@ -3187,6 +3187,7 @@ codegen(codegen_scope *s, node *tree, int val)
     for (const struct loopinfo *lp = s->loop; ; lp = lp->prev) {
       if (!lp) {
         raise_error(s, "unexpected redo");
+        break;
       }
       if (lp->type != LOOP_BEGIN && lp->type != LOOP_RESCUE) {
         genjmp(s, OP_JMPUW, lp->pc1);
