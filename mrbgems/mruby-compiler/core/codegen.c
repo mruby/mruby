@@ -3199,14 +3199,14 @@ codegen(codegen_scope *s, node *tree, int val)
 
   case NODE_RETRY:
     {
-      const char *msg = "unexpected retry";
       const struct loopinfo *lp = s->loop;
 
       while (lp && lp->type != LOOP_RESCUE) {
         lp = lp->prev;
       }
       if (!lp) {
-        raise_error(s, msg);
+        raise_error(s, "unexpected retry");
+        break;
       }
       else {
         genjmp(s, OP_JMPUW, lp->pc0);
