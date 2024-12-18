@@ -1263,7 +1263,7 @@ bint_new(mrb_state *mrb, mpz_t *x)
   if (x->sz <= RBIGINT_EMBED_SIZE_MAX) {
     RBIGINT_SET_EMBED_SIZE(b, x->sz);
     RBIGINT_SET_EMBED_SIGN(b, x->sn);
-    memcpy(RBIGINT_EMBED_ARY(b), x->p, x->sz*sizeof(mp_limb));
+    if (x->p) memcpy(RBIGINT_EMBED_ARY(b), x->p, x->sz*sizeof(mp_limb));
     mpz_clear(mrb, x);
   }
   else {
