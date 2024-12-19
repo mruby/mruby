@@ -538,7 +538,6 @@ static void
 mark_context_stack(mrb_state *mrb, struct mrb_context *c)
 {
   size_t i, e;
-  mrb_value nil;
 
   if (c->stbase == NULL) return;
   if (c->ci) {
@@ -557,9 +556,8 @@ mark_context_stack(mrb_state *mrb, struct mrb_context *c)
     }
   }
   e = c->stend - c->stbase;
-  nil = mrb_nil_value();
   for (; i<e; i++) {
-    c->stbase[i] = nil;
+    SET_NIL_VALUE(c->stbase[i]);
   }
 }
 
