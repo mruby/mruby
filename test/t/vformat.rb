@@ -39,7 +39,7 @@ assert('mrb_vformat') do
   assert_equal 'Class', vf.v('%Y', sclass({}))
   assert_match '#<Class:#<String:0x*>>', vf.v('%v', sclass(""))
   assert_equal '`v`: 1...3', vf.v('`v`: %v', 1...3)
-  assert_equal '`S`: {:a => 1, "b" => "c"}', vf.v('`S`: %S', {a: 1, "b" => ?c})
+  assert_equal '`S`: {a: 1, "b" => "c"}', vf.v('`S`: %S', {a: 1, "b" => ?c})
   assert_equal 'percent: %', vf.z('percent: %%')
   assert_equal '"I": inspect char', vf.c('%!c: inspect char', ?I)
   assert_equal '709: inspect mrb_int', vf.i('%!d: inspect mrb_int', 709)

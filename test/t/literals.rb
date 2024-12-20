@@ -233,8 +233,8 @@ ZZZ
   assert_equal "  iii\n", i
   assert_equal ["  j1j\n", "  j2j\n", "  j\#{3}j\n"], j
   assert_equal 123, k
-  assert_equal ["x{:x => \"mm3\\n\"}y\nmm1\n", "mm2\n"], m
-  assert_equal ({:x=>"mm3\n"}), m2
+  assert_equal ["x{x: \"mm3\\n\"}y\nmm1\n", "mm2\n"], m
+  assert_equal ({x: "mm3\n"}), m2
   assert_equal [1, "nn1\n", 3, 4], n
   assert_equal "a $ q\n $ c $ d", q1
   assert_equal "l $ mqq\nn $ o", q2

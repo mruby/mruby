@@ -857,10 +857,10 @@ end
   assert("Hash##{meth}") do
     assert_equal('{}', Hash.new.__send__(meth))
 
-    h1 = {:s => 0, :a => [1,2], 37 => :b, :d => "del", "c" => nil}
+    h1 = {s: 0, a: [1,2], 37 => :b, d: "del", "c" => nil}
     h1.shift
     h1.delete(:d)
-    s1 = ':a => [1, 2], 37 => :b, "c" => nil'
+    s1 = 'a: [1, 2], 37 => :b, "c" => nil'
     h2 = Hash.new(100)
 
     (1..14).each{h2[_1] = _1 * 2}
@@ -874,7 +874,7 @@ end
       hh = {}
       hh[:recur] = hh
       h.each{|k, v| hh[k] = v}
-      assert_equal("{:recur => {...}, #{s}}", hh.__send__(meth))
+      assert_equal("{recur: {...}, #{s}}", hh.__send__(meth))
 
       hh = h.dup
       hh[hh] = :recur

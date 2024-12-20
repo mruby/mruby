@@ -434,10 +434,10 @@ SRC
 
   tc << {:cmd=>'p {}',                              :exp=>'$1 = {}'}
   tc << {:cmd=>'p {"one"=>1,"two"=>2}',             :exp=>'$2 = {"one" => 1, "two" => 2}'}
-  tc << {:cmd=>'p {:eins=>"1", :zwei=>"2",}',       :exp=>'$3 = {:eins => "1", :zwei => "2"}'}
-  tc << {:cmd=>'p {uno:"one", dos: 2}',             :exp=>'$4 = {:uno => "one", :dos => 2}'}
-  tc << {:cmd=>'p {"one"=>1, :zwei=>2, tres:3}',    :exp=>'$5 = {"one" => 1, :zwei => 2, :tres => 3}'}
-  tc << {:cmd=>'p {:foo=>"#{foo}",:bar=>"#{bar}"}', :exp=>'$6 = {:foo => "foo", :bar => "bar"}'}
+  tc << {:cmd=>'p {eins: "1", zwei: "2",}',         :exp=>'$3 = {eins: "1", zwei: "2"}'}
+  tc << {:cmd=>'p {uno: "one", dos: 2}',            :exp=>'$4 = {uno: "one", dos: 2}'}
+  tc << {:cmd=>'p {"one"=>1, zwei: 2, tres: 3}',    :exp=>'$5 = {"one" => 1, zwei: 2, tres: 3}'}
+  tc << {:cmd=>'p {foo: "#{foo}",bar: "#{bar}"}',   :exp=>'$6 = {foo: "foo", bar: "bar"}'}
 
   BinTest_MrubyBinDebugger.test(src, tc)
 end

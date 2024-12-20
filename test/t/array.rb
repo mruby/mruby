@@ -33,7 +33,7 @@ assert('Array#*', '15.2.12.5.2') do
   assert_equal([1, 1, 1], [1].*(3))
   assert_equal([], [1].*(0))
   assert_equal('abc', ['a', 'b', 'c'].*(''))
-  assert_equal('0, 0, 1, {:foo => 0}', [0, [0, 1], {foo: 0}].*(', '))
+  assert_equal('0, 0, 1, {foo: 0}', [0, [0, 1], {foo: 0}].*(', '))
 end
 
 assert('Array#<<', '15.2.12.5.3') do
