@@ -1858,11 +1858,18 @@ mrb_hash_to_s(mrb_state *mrb, mrb_value self)
   struct RHash *h = mrb_hash_ptr(self);
   H_EACH(h, entry) {
     if (i++ > 0) mrb_str_cat_lit(mrb, ret, ", ");
-    H_CHECK_MODIFIED(mrb, h) {
-      mrb_str_cat_str(mrb, ret, mrb_inspect(mrb, entry->key));
+    if (mrb_symbol_p(entry->key)) {
+      mrb_str_cat_str(mrb, ret, mrb_obj_as_string(mrb, entry->key));
+      mrb_gc_arena_restore(mrb, ai);
+      mrb_str_cat_lit(mrb, ret, ": ");
     }
-    mrb_gc_arena_restore(mrb, ai);
-    mrb_str_cat_lit(mrb, ret, " => ");
+    else {
+      H_CHECK_MODIFIED(mrb, h) {
+        mrb_str_cat_str(mrb, ret, mrb_inspect(mrb, entry->key));
+      }
+      mrb_gc_arena_restore(mrb, ai);
+      mrb_str_cat_lit(mrb, ret, " => ");
+    }
     H_CHECK_MODIFIED(mrb, h) {
       mrb_str_cat_str(mrb, ret, mrb_inspect(mrb, entry->val));
     }
