@@ -16,7 +16,7 @@
 #define CINFO_RESUMED 3
 
 static mrb_value
-fiber_init_fiber(mrb_state *mrb, struct RFiber *f, const struct RProc *p)
+init_fiber(mrb_state *mrb, struct RFiber *f, const struct RProc *p)
 {
   static const struct mrb_context mrb_context_zero = { 0 };
 
@@ -131,7 +131,7 @@ fiber_init(mrb_state *mrb, mrb_value self)
 {
   mrb_value blk;
   mrb_get_args(mrb, "&!", &blk);
-  return fiber_init_fiber(mrb, fiber_ptr(self), mrb_proc_ptr(blk));
+  return init_fiber(mrb, fiber_ptr(self), mrb_proc_ptr(blk));
 }
 
 static struct mrb_context*
@@ -540,7 +540,7 @@ mrb_fiber_new(mrb_state *mrb, const struct RProc *p)
   }
 
   struct RFiber *f = MRB_OBJ_ALLOC(mrb, MRB_TT_FIBER, c);
-  return fiber_init_fiber(mrb, f, p);
+  return init_fiber(mrb, f, p);
 }
 
 void
