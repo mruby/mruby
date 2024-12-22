@@ -1035,36 +1035,44 @@ new_litbint(codegen_scope *s, const char *p, int base)
 }
 
 static int
-new_lit_str(codegen_scope *s, const char *str, mrb_int len)
+new_lit_str2(codegen_scope *s, const char *str1, mrb_int len1, const char *str2, mrb_int len2)
 {
-  int i;
   mrb_irep_pool *pool;
+  mrb_int len = len1 + len2;
+  int i;
 
   for (i=0; i<s->irep->plen; i++) {
     pool = &s->pool[i];
     if (pool->tt & IREP_TT_NFLAG) continue;
     mrb_int plen = pool->tt>>2;
     if (len != plen) continue;
-    if (memcmp(pool->u.str, str, plen) == 0)
+    if (memcmp(pool->u.str, str1, plen) == 0)
       return i;
   }
 
   pool = lit_pool_extend(s);
 
-  if (mrb_ro_data_p(str)) {
+  if (mrb_ro_data_p(str1) && !str2) {
     pool->tt = (uint32_t)(len<<2) | IREP_TT_SSTR;
-    pool->u.str = str;
+    pool->u.str = str1;
   }
   else {
     char *p;
     pool->tt = (uint32_t)(len<<2) | IREP_TT_STR;
     p = (char*)codegen_realloc(s, NULL, len+1);
-    memcpy(p, str, len);
+    memcpy(p, str1, len1);
+    if (str2) memcpy(p+len1, str2, len2);
     p[len] = '\0';
     pool->u.str = p;
   }
 
   return i;
+}
+
+static int
+new_lit_str(codegen_scope *s, const char *str, mrb_int len)
+{
+  return new_lit_str2(s, str, len, NULL, 0);
 }
 
 static int
@@ -2261,6 +2269,26 @@ gen_blkmove(codegen_scope *s, uint16_t ainfo, int lv)
   push();
 }
 
+static int
+opt_str_add(codegen_scope *s, node *tree)
+{
+  /* optimize */
+  if (no_optimize(s)) return 0;
+  /* receiver is a string */
+  if (!tree->car || nint(tree->car->car) != NODE_STR) return 0;
+  /* + call */
+  if (!tree->cdr || nsym(tree->cdr->car) != MRB_OPSYM_2(s->mrb, add)) return 0;
+  /* valid arguments */
+  if (!tree->cdr->cdr || tree->cdr->cdr->cdr) return FALSE;
+  /* takes 1 argument */
+  if (!tree->cdr->cdr->car->car && tree->cdr->cdr->car->car->cdr) return 0;
+  /* valid 1st arguments */
+  if (!tree->cdr->cdr->car->car->car) return 0;
+  if (nint(tree->cdr->cdr->car->car->car->car) == NODE_STR) return 1;
+  // if (nint(tree->cdr->cdr->car->car->car->car) == NODE_CALL) return 2;
+  return 0;
+}
+
 static void
 codegen(codegen_scope *s, node *tree, int val)
 {
@@ -2672,8 +2700,19 @@ codegen(codegen_scope *s, node *tree, int val)
     scope_body(s, tree, NOVAL);
     break;
 
-  case NODE_FCALL:
   case NODE_CALL:
+    if (opt_str_add(s, tree)) {
+      if (val) {
+        node *n1 = tree->car->cdr;
+        node *n2 = tree->cdr->cdr->car->car->car->cdr;
+        int off = new_lit_str2(s, (char*)n1->car, nint(n1->cdr), (char*)n2->car, nint(n2->cdr));
+        genop_2(s, OP_STRING, cursp(), off);
+        push();
+      }
+      break;
+    }
+    /* fall through */
+  case NODE_FCALL:
     gen_call(s, tree, val, 0);
     break;
   case NODE_SCALL:
