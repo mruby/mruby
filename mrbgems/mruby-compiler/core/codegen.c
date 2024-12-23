@@ -797,6 +797,97 @@ get_int_operand(codegen_scope *s, struct mrb_insn_data *data, mrb_int *n)
   }
 }
 
+static int new_lit_str2(codegen_scope *s, const char *str1, mrb_int len1, const char *str2, mrb_int len2);
+
+static void
+realloc_pool_str(codegen_scope *s, mrb_irep_pool *p, mrb_int len)
+{
+  char *str;
+  if ((p->tt & 3) == IREP_TT_SSTR) {
+    str = codegen_realloc(s, NULL, len+1);
+  }
+  else {
+    str = (char*)p->u.str;
+    str = codegen_realloc(s, str, len+1);
+  }
+  p->tt = len<<2 | IREP_TT_STR;
+  str[len] = '\0';
+  p->u.str = (const char*)str;
+}
+
+static void
+free_pool_str(codegen_scope *s, mrb_irep_pool *p)
+{
+  if ((p->tt & 3) != IREP_TT_SSTR) {
+    codegen_realloc(s, (char*)p->u.str, 0);
+  }
+  p->u.str = NULL;
+  s->irep->plen--;
+}
+
+static void
+merge_op_string(codegen_scope *s, uint16_t dst, uint16_t b1, uint16_t b2, const mrb_code *pc)
+{
+  int used = 0;
+  const mrb_code *i = s->iseq;
+
+  /* scan OP_STRING that refers b1 or b2 */
+  mrb_assert(pc < s->iseq + s->icapa);
+  while (i<pc) {
+    struct mrb_insn_data data = mrb_decode_insn(i);
+    if (data.insn == OP_STRING) {
+      if (data.b == b1) used |= 1;
+      else if (data.b == b2) used |= 2;
+    }
+    switch (i[0]) {
+    case OP_EXT1:
+      i += mrb_insn_size1[i[1]] + 1;
+      break;
+    case OP_EXT2:
+      i += mrb_insn_size2[i[1]] + 1;
+      break;
+    case OP_EXT3:
+      i += mrb_insn_size3[i[1]] + 1;
+      break;
+    default:
+      i += mrb_insn_size[i[0]];
+      break;
+    }
+  }
+
+  mrb_irep_pool *p1 = &s->pool[b1];
+  mrb_irep_pool *p2 = &s->pool[b2];
+  mrb_int len1 = p1->tt>>2;
+  mrb_int len2 = p2->tt>>2;
+  int off;
+
+  switch (used) {
+  case 0:                       /* both pools are free */
+  case 2:                       /* b2 is referenced */
+    /* overwrite p1; free b2 if possible */
+    off = b1;
+    realloc_pool_str(s, p1, len1+len2);
+    memcpy((void*)p1->u.str+len1, (void*)p2->u.str, len2);
+    if (used == 0 && b2+1 == s->irep->plen) {
+      free_pool_str(s, p2);
+    }
+    break;
+  case 1:                       /* b1 is referenced */
+    /* overwrite p2 */
+    off = b2;
+    realloc_pool_str(s, p2, len1+len2);
+    memmove((void*)p2->u.str+len1, (void*)p2->u.str, len2);
+    memcpy((void*)p2->u.str, p1->u.str, len1);
+    break;
+  case 3:                       /* both b1&b2 are referenced */
+    /* create new pool */
+    off = new_lit_str2(s, p1->u.str, len1, p2->u.str, len2);
+    break;
+  }
+  s->pc = addr_pc(s, pc);
+  genop_2(s, OP_STRING, dst, off);
+}
+
 static void
 gen_addsub(codegen_scope *s, uint8_t op, uint16_t dst)
 {
@@ -811,6 +902,13 @@ gen_addsub(codegen_scope *s, uint8_t op, uint16_t dst)
 
     if (!get_int_operand(s, &data, &n)) {
       /* not integer immediate */
+      if (op == OP_ADD && data.insn == OP_STRING) {
+        struct mrb_insn_data data0 = mrb_decode_insn(mrb_prev_pc(s, data.addr));
+        if (data0.insn == OP_STRING) {
+          merge_op_string(s, dst, data0.b, data.b, data0.addr);
+          return;
+        }
+      }
       goto normal;
     }
     struct mrb_insn_data data0 = mrb_decode_insn(mrb_prev_pc(s, data.addr));
@@ -2269,26 +2367,6 @@ gen_blkmove(codegen_scope *s, uint16_t ainfo, int lv)
   push();
 }
 
-static int
-opt_str_add(codegen_scope *s, node *tree)
-{
-  /* optimize */
-  if (no_optimize(s)) return 0;
-  /* receiver is a string */
-  if (!tree->car || nint(tree->car->car) != NODE_STR) return 0;
-  /* + call */
-  if (!tree->cdr || nsym(tree->cdr->car) != MRB_OPSYM_2(s->mrb, add)) return 0;
-  /* valid arguments */
-  if (!tree->cdr->cdr || tree->cdr->cdr->cdr) return FALSE;
-  /* takes 1 argument */
-  if (!tree->cdr->cdr->car->car && tree->cdr->cdr->car->car->cdr) return 0;
-  /* valid 1st arguments */
-  if (!tree->cdr->cdr->car->car->car) return 0;
-  if (nint(tree->cdr->cdr->car->car->car->car) == NODE_STR) return 1;
-  // if (nint(tree->cdr->cdr->car->car->car->car) == NODE_CALL) return 2;
-  return 0;
-}
-
 static void
 codegen(codegen_scope *s, node *tree, int val)
 {
@@ -2701,17 +2779,6 @@ codegen(codegen_scope *s, node *tree, int val)
     break;
 
   case NODE_CALL:
-    if (opt_str_add(s, tree)) {
-      if (val) {
-        node *n1 = tree->car->cdr;
-        node *n2 = tree->cdr->cdr->car->car->car->cdr;
-        int off = new_lit_str2(s, (char*)n1->car, nint(n1->cdr), (char*)n2->car, nint(n2->cdr));
-        genop_2(s, OP_STRING, cursp(), off);
-        push();
-      }
-      break;
-    }
-    /* fall through */
   case NODE_FCALL:
     gen_call(s, tree, val, 0);
     break;
