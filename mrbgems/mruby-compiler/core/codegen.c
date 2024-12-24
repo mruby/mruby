@@ -798,6 +798,7 @@ get_int_operand(codegen_scope *s, struct mrb_insn_data *data, mrb_int *n)
 }
 
 static int new_lit_str2(codegen_scope *s, const char *str1, mrb_int len1, const char *str2, mrb_int len2);
+static int find_pool_str(codegen_scope *s, const char *str1, mrb_int len1, const char *str2, mrb_int len2);
 
 static void
 realloc_pool_str(codegen_scope *s, mrb_irep_pool *p, mrb_int len)
@@ -859,30 +860,32 @@ merge_op_string(codegen_scope *s, uint16_t dst, uint16_t b1, uint16_t b2, const 
   mrb_irep_pool *p2 = &s->pool[b2];
   mrb_int len1 = p1->tt>>2;
   mrb_int len2 = p2->tt>>2;
-  int off;
+  int off = find_pool_str(s, p1->u.str, len1, p2->u.str, len2);;
 
-  switch (used) {
-  case 0:                       /* both pools are free */
-  case 2:                       /* b2 is referenced */
-    /* overwrite p1; free b2 if possible */
-    off = b1;
-    realloc_pool_str(s, p1, len1+len2);
-    memcpy((void*)p1->u.str+len1, (void*)p2->u.str, len2);
-    if (used == 0 && b2+1 == s->irep->plen) {
-      free_pool_str(s, p2);
+  if (off < 0) {
+    switch (used) {
+    case 0:                       /* both pools are free */
+    case 2:                       /* b2 is referenced */
+      /* overwrite p1; free b2 if possible */
+      off = b1;
+      realloc_pool_str(s, p1, len1+len2);
+      memcpy((void*)p1->u.str+len1, (void*)p2->u.str, len2);
+      if (used == 0 && b2+1 == s->irep->plen) {
+        free_pool_str(s, p2);
+      }
+      break;
+    case 1:                       /* b1 is referenced */
+      /* overwrite p2 */
+      off = b2;
+      realloc_pool_str(s, p2, len1+len2);
+      memmove((void*)p2->u.str+len1, (void*)p2->u.str, len2);
+      memcpy((void*)p2->u.str, p1->u.str, len1);
+      break;
+    case 3:                       /* both b1&b2 are referenced */
+      /* create new pool */
+      off = new_lit_str2(s, p1->u.str, len1, p2->u.str, len2);
+      break;
     }
-    break;
-  case 1:                       /* b1 is referenced */
-    /* overwrite p2 */
-    off = b2;
-    realloc_pool_str(s, p2, len1+len2);
-    memmove((void*)p2->u.str+len1, (void*)p2->u.str, len2);
-    memcpy((void*)p2->u.str, p1->u.str, len1);
-    break;
-  case 3:                       /* both b1&b2 are referenced */
-    /* create new pool */
-    off = new_lit_str2(s, p1->u.str, len1, p2->u.str, len2);
-    break;
   }
   s->pc = addr_pc(s, pc);
   genop_2(s, OP_STRING, dst, off);
