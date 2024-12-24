@@ -1133,7 +1133,7 @@ new_litbint(codegen_scope *s, const char *p, int base)
 }
 
 static int
-new_lit_str2(codegen_scope *s, const char *str1, mrb_int len1, const char *str2, mrb_int len2)
+find_pool_str(codegen_scope *s, const char *str1, mrb_int len1, const char *str2, mrb_int len2)
 {
   mrb_irep_pool *pool;
   mrb_int len = len1 + len2;
@@ -1144,9 +1144,22 @@ new_lit_str2(codegen_scope *s, const char *str1, mrb_int len1, const char *str2,
     if (pool->tt & IREP_TT_NFLAG) continue;
     mrb_int plen = pool->tt>>2;
     if (len != plen) continue;
-    if (memcmp(pool->u.str, str1, plen) == 0)
+    if (memcmp(pool->u.str, str1, len1) == 0 &&
+        (len2 == 0 || memcmp(pool->u.str + len1, str2, len2) == 0))
       return i;
   }
+  return -1;
+}
+
+static int
+new_lit_str2(codegen_scope *s, const char *str1, mrb_int len1, const char *str2, mrb_int len2)
+{
+  mrb_irep_pool *pool;
+  mrb_int len = len1 + len2;
+  int i = find_pool_str(s, str1, len1, str2, len2);
+
+  if (i >= 0) return i;
+  i = s->irep->plen;
 
   pool = lit_pool_extend(s);
 
