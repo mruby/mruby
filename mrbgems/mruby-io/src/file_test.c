@@ -338,7 +338,7 @@ mrb_init_file_test(mrb_state *mrb)
 {
   struct RClass *f;
 
-  f = mrb_define_class_id(mrb, MRB_SYM(FileTest), mrb->object_class);
+  f = mrb_define_module_id(mrb, MRB_SYM(FileTest));
 
   mrb_define_class_method_id(mrb, f, MRB_SYM_Q(directory), mrb_filetest_s_directory_p, MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, f, MRB_SYM_Q(exist),     mrb_filetest_s_exist_p,     MRB_ARGS_REQ(1));
