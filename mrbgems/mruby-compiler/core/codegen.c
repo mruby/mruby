@@ -450,6 +450,7 @@ mrb_prev_pc(codegen_scope *s, const mrb_code *pc)
   const mrb_code *prev_pc = NULL;
   const mrb_code *i = s->iseq;
 
+  mrb_assert(pc < s->iseq + s->icapa);
   while (i<pc) {
     uint8_t insn = i[0];
     prev_pc = i;
