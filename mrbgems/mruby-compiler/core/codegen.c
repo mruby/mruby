@@ -452,9 +452,8 @@ mrb_prev_pc(codegen_scope *s, const mrb_code *pc)
 
   mrb_assert(pc < s->iseq + s->icapa);
   while (i<pc) {
-    uint8_t insn = i[0];
     prev_pc = i;
-    switch (insn) {
+    switch (i[0]) {
     case OP_EXT1:
       i += mrb_insn_size1[i[1]] + 1;
       break;
@@ -465,7 +464,7 @@ mrb_prev_pc(codegen_scope *s, const mrb_code *pc)
       i += mrb_insn_size3[i[1]] + 1;
       break;
     default:
-      i += mrb_insn_size[insn];
+      i += mrb_insn_size[i[0]];
       break;
     }
   }
