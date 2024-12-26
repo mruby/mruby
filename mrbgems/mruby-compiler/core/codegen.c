@@ -1157,14 +1157,13 @@ find_pool_str(codegen_scope *s, const char *str1, mrb_int len1, const char *str2
 static int
 new_lit_str2(codegen_scope *s, const char *str1, mrb_int len1, const char *str2, mrb_int len2)
 {
-  mrb_irep_pool *pool;
-  mrb_int len = len1 + len2;
   int i = find_pool_str(s, str1, len1, str2, len2);
 
   if (i >= 0) return i;
   i = s->irep->plen;
 
-  pool = lit_pool_extend(s);
+  mrb_irep_pool *pool = lit_pool_extend(s);
+  mrb_int len = len1 + len2;
 
   if (mrb_ro_data_p(str1) && !str2) {
     pool->tt = (uint32_t)(len<<2) | IREP_TT_SSTR;
