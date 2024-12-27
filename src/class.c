@@ -29,8 +29,8 @@ union mt_ptr {
 #define MT_KEY_SHIFT 2
 #define MT_KEY_MASK  ((1<<2)-1)
 #define MT_KEY_P(k) (((k)>>MT_KEY_SHIFT) != 0)
-#define MT_FUNC_P 1
-#define MT_NOARG_P 2
+#define MT_FUNC_P MRB_METHOD_FUNC_FL
+#define MT_NOARG_P MRB_METHOD_NOARG_FL
 #define MT_EMPTY 0
 #define MT_DELETED 1
 
