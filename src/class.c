@@ -26,16 +26,18 @@ union mt_ptr {
   mrb_func_t func;
 };
 
-#define MT_KEY_P(k) (((k)>>2) != 0)
+#define MT_KEY_SHIFT 2
+#define MT_KEY_MASK  ((1<<2)-1)
+#define MT_KEY_P(k) (((k)>>MT_KEY_SHIFT) != 0)
 #define MT_FUNC_P 1
 #define MT_NOARG_P 2
 #define MT_EMPTY 0
 #define MT_DELETED 1
 
-#define MT_KEY(sym, flags) ((sym)<<2|(flags))
+#define MT_KEY(sym, flags) ((sym)<<MT_KEY_SHIFT|(flags))
 #define MT_FLAGS(func_p, noarg_p) ((func_p)?MT_FUNC_P:0)|((noarg_p)?MT_NOARG_P:0)
-#define MT_KEY_SYM(k) ((k)>>2)
-#define MT_KEY_FLG(k) ((k)&3)
+#define MT_KEY_SYM(k) ((k)>>MT_KEY_SHIFT)
+#define MT_KEY_FLG(k) ((k)&MT_KEY_MASK)
 
 /* method table structure */
 typedef struct mt_tbl {
