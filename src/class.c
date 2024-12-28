@@ -29,13 +29,13 @@ union mt_ptr {
 #define MT_KEY_SHIFT 2
 #define MT_KEY_MASK  ((1<<2)-1)
 #define MT_KEY_P(k) (((k)>>MT_KEY_SHIFT) != 0)
-#define MT_FUNC_P MRB_METHOD_FUNC_FL
-#define MT_NOARG_P MRB_METHOD_NOARG_FL
+#define MT_FUNC MRB_METHOD_FUNC_FL
+#define MT_NOARG MRB_METHOD_NOARG_FL
 #define MT_EMPTY 0
 #define MT_DELETED 1
 
 #define MT_KEY(sym, flags) ((sym)<<MT_KEY_SHIFT|(flags))
-#define MT_FLAGS(func_p, noarg_p) ((func_p)?MT_FUNC_P:0)|((noarg_p)?MT_NOARG_P:0)
+#define MT_FLAGS(isfunc, isnoarg) ((isfunc)?MT_FUNC:0)|((isnoarg)?MT_NOARG:0)
 #define MT_KEY_SYM(k) ((k)>>MT_KEY_SHIFT)
 #define MT_KEY_FLG(k) ((k)&MT_KEY_MASK)
 
@@ -284,7 +284,7 @@ mrb_gc_mark_mt(mrb_state *mrb, struct RClass *c)
   mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
   union mt_ptr *vals = t->ptr;
   for (int i=0; i<t->alloc; i++) {
-    if (MT_KEY_P(keys[i]) && (keys[i] & MT_FUNC_P) == 0) { /* Proc pointer */
+    if (MT_KEY_P(keys[i]) && (keys[i] & MT_FUNC) == 0) { /* Proc pointer */
       struct RProc *p = vals[i].proc;
       mrb_gc_mark(mrb, (struct RBasic*)p);
     }
