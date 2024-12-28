@@ -805,11 +805,11 @@ realloc_pool_str(codegen_scope *s, mrb_irep_pool *p, mrb_int len)
 {
   char *str;
   if ((p->tt & 3) == IREP_TT_SSTR) {
-    str = codegen_realloc(s, NULL, len+1);
+    str = (char*)codegen_realloc(s, NULL, len+1);
   }
   else {
     str = (char*)p->u.str;
-    str = codegen_realloc(s, str, len+1);
+    str = (char*)codegen_realloc(s, str, len+1);
   }
   p->tt = len<<2 | IREP_TT_STR;
   str[len] = '\0';
@@ -869,7 +869,7 @@ merge_op_string(codegen_scope *s, uint16_t dst, uint16_t b1, uint16_t b2, const 
       /* overwrite p1; free b2 if possible */
       off = b1;
       realloc_pool_str(s, p1, len1+len2);
-      memcpy((void*)p1->u.str+len1, (void*)p2->u.str, len2);
+      memcpy((void*)(p1->u.str+len1), (void*)p2->u.str, len2);
       if (used == 0 && b2+1 == s->irep->plen) {
         free_pool_str(s, p2);
       }
@@ -878,7 +878,7 @@ merge_op_string(codegen_scope *s, uint16_t dst, uint16_t b1, uint16_t b2, const 
       /* overwrite p2 */
       off = b2;
       realloc_pool_str(s, p2, len1+len2);
-      memmove((void*)p2->u.str+len1, (void*)p2->u.str, len2);
+      memmove((void*)(p2->u.str+len1), (void*)p2->u.str, len2);
       memcpy((void*)p2->u.str, p1->u.str, len1);
       break;
     case 3:                       /* both b1&b2 are referenced */
