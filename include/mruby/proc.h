@@ -111,6 +111,8 @@ MRB_API mrb_value mrb_proc_cfunc_env_get(mrb_state *mrb, mrb_int idx);
 
 #define MRB_METHOD_FUNC_FL 1
 #define MRB_METHOD_NOARG_FL 2
+#define MRB_METHOD_PRIVATE_FL 4
+#define MRB_METHOD_PROTECTED_FL 8
 
 #define MRB_METHOD_FUNC_P(m) ((m).flags&MRB_METHOD_FUNC_FL)
 #define MRB_METHOD_NOARG_P(m) (((m).flags&MRB_METHOD_NOARG_FL)?1:0)
