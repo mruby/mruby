@@ -1772,7 +1772,7 @@ mrb_vm_find_method(mrb_state *mrb, struct RClass *c, struct RClass **cp, mrb_sym
       if (ret) {
         if (ptr.proc == 0) break;
         *cp = c;
-        m =  create_method_value(mrb, ret, ptr);
+        m = create_method_value(mrb, ret, ptr);
 #ifndef MRB_NO_METHOD_CACHE
         mc->c = oc;
         mc->c0 = c;
