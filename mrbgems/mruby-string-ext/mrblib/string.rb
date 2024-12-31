@@ -439,6 +439,8 @@ class String
     self
   end
 
+  alias append_as_bytes concat
+
   def __upto_endless(&block)
     len = self.length
     # both edges are all digits
