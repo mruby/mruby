@@ -40,7 +40,7 @@ jobs:
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          # draft: true
+          draft: true
           prerelease: ${{ contains(github.ref_name, '-rc') }}
           body_path: NEWS
           files: packages/*
