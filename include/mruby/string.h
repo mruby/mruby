@@ -92,6 +92,8 @@ struct RStringEmbed {
 # define RSTR_COPY_SINGLE_BYTE_FLAG(dst, src) (void)0
 #endif
 #define RSTR_SET_ASCII_FLAG(s) RSTR_SET_SINGLE_BYTE_FLAG(s)
+#define RSTR_BINARY_P(s) ((s)->flags & MRB_STR_BINARY)
+#define RSTR_SET_BINARY_FLAG(s) ((s)->flags |= MRB_STR_BINARY)
 
 /**
  * Returns a pointer from a Ruby string
@@ -109,7 +111,8 @@ struct RStringEmbed {
 #define MRB_STR_FSHARED   2
 #define MRB_STR_NOFREE    4
 #define MRB_STR_EMBED     8  /* type flags up to here */
-#define MRB_STR_SINGLE_BYTE    16
+#define MRB_STR_BINARY    16
+#define MRB_STR_SINGLE_BYTE    32
 #define MRB_STR_EMBED_LEN_SHIFT 6
 #define MRB_STR_EMBED_LEN_BIT 5
 #define MRB_STR_EMBED_LEN_MASK (((1 << MRB_STR_EMBED_LEN_BIT) - 1) << MRB_STR_EMBED_LEN_SHIFT)
