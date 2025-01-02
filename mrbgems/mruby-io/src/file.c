@@ -51,8 +51,10 @@
   #define PATH_SEPARATOR ";"
   #define FILE_ALT_SEPARATOR "\\"
   #define VOLUME_SEPARATOR ":"
+  #define DIRSEP_P(ch) (((ch) == '/') | ((ch) == '\\'))
 #else
   #define PATH_SEPARATOR ":"
+  #define DIRSEP_P(ch) ((ch) == '/')
 #endif
 
 #ifndef LOCK_SH
@@ -163,42 +165,72 @@ mrb_file_s_rename(mrb_state *mrb, mrb_value obj)
   return mrb_fixnum_value(0);
 }
 
+#define SKIP_DIRSEP(p) for (; DIRSEP_P(*(p)); (p)++)
+#define NEXT_DIRSEP(p) for (; *(p) != '\0' && !DIRSEP_P(*(p)); (p)++)
+
+static const char*
+scan_dirname(const char *path, mrb_int level)
+{
+  const char *p = path + strlen(path);
+  if (level < 1) return p;
+  for (; p > path && DIRSEP_P(p[-1]); p--)
+    ;
+  for (; level > 0; level--) {
+    for (; p > path && !DIRSEP_P(p[-1]); p--)
+      ;
+    for (; p > path && DIRSEP_P(p[-1]); p--)
+      ;
+  }
+  return p > path ? p : path;
+}
+
 static mrb_value
 mrb_file_dirname(mrb_state *mrb, mrb_value klass)
 {
-#if defined(_WIN32)
-  char dname[_MAX_DIR], vname[_MAX_DRIVE];
-  char buffer[_MAX_DRIVE + _MAX_DIR];
-  const char *utf8_path;
-  mrb_get_args(mrb, "z", &utf8_path);
-  char *path = mrb_locale_from_utf8(utf8_path, -1);
-  _splitpath(path, vname, dname, NULL, NULL);
-  snprintf(buffer, _MAX_DRIVE + _MAX_DIR, "%s%s", vname, dname);
-  mrb_locale_free(path);
-  size_t ridx = strlen(buffer);
-  if (ridx == 0) {
-    strncpy(buffer, ".", 2);  /* null terminated */
+  const char *path;
+  mrb_int level = 1;
+  mrb_get_args(mrb, "z|i", &path, &level);
+
+  if (level < 0) {
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative level: %i", level);
   }
-  else if (ridx > 1) {
-    ridx--;
-    while (ridx > 0 && (buffer[ridx] == '/' || buffer[ridx] == '\\')) {
-      buffer[ridx] = '\0';  /* remove last char */
-      ridx--;
+
+  const char *p = path;
+#ifdef _WIN32
+  if (DIRSEP_P(p[0]) && DIRSEP_P(p[1])) {
+    p += 2;
+    SKIP_DIRSEP(p);
+    path = p - 2; /* if consecutive, point to the trailing slash */
+    NEXT_DIRSEP(p);
+    const char *o = p;
+    SKIP_DIRSEP(p);
+    if (*p == '\0') {
+      p = o;
     }
+    else {
+      NEXT_DIRSEP(p);
+      p = scan_dirname(p, level);
+    }
+    return mrb_str_new(mrb, path, p - path);
   }
-  return mrb_str_new_cstr(mrb, buffer);
-#else
-  mrb_value s;
-  mrb_get_args(mrb, "S", &s);
-  char *path = mrb_locale_from_utf8(mrb_str_to_cstr(mrb, s), -1);
-  char *dname;
-  if ((dname = dirname(path)) == NULL) {
-    mrb_locale_free(path);
-    mrb_sys_fail(mrb, "dirname");
+  else if (ISALPHA(p[0]) && p[1] == ':') {
+    p += 2;
+    const char *o = p;
+    SKIP_DIRSEP(p);
+    p = scan_dirname(p, level);
+    mrb_value s = mrb_str_new(mrb, path, p - path);
+    if (p == o) {
+      mrb_str_cat_lit(mrb, s, ".");
+    }
+    return s;
   }
-  mrb_locale_free(path);
-  return mrb_str_new_cstr(mrb, dname);
 #endif
+  SKIP_DIRSEP(p);
+  if (p > path) {
+    path = p - 1; /* if consecutive, point to the trailing slash */
+  }
+  p = scan_dirname(p, level);
+  return (p == path) ? mrb_str_new_lit(mrb, ".") : mrb_str_new(mrb, path, p - path);
 }
 
 static mrb_value
