@@ -257,7 +257,7 @@ mrb_mruby_io_gem_test(mrb_state* mrb)
     char *pathp = RSTRING_PTR(path);
     const char *const pathend = pathp + RSTRING_LEN(path);
     for (;;) {
-      pathp = memchr(pathp, '\\', pathend - pathp);
+      pathp = (char*)memchr(pathp, '\\', pathend - pathp);
       if (!pathp) break;
       *pathp++ = '/';
     }
