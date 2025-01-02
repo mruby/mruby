@@ -40,8 +40,48 @@ assert('File.dirname') do
   assert_equal '.',    File.dirname('')
   assert_equal '.',    File.dirname('a')
   assert_equal '/',    File.dirname('/a')
+  assert_equal '/',    File.dirname('/a/')
   assert_equal 'a',    File.dirname('a/b')
+  assert_equal 'a',    File.dirname('a/b/')
+  assert_equal 'a/b',  File.dirname('a/b/c')
   assert_equal '/a',   File.dirname('/a/b')
+  assert_equal '/a',   File.dirname('/a/b/')
+  assert_equal '/a/b', File.dirname('/a/b/c')
+  assert_equal '/a/b', File.dirname('/a/b/c/')
+  assert_equal '/',    File.dirname('/a//')
+  assert_equal '/a',   File.dirname('/a//b')
+  assert_equal '/a/b', File.dirname('/a/b//c//')
+end
+
+unless MRubyIOTestUtil.win?
+  assert('File.dirname (not Windows)') do
+    assert_equal '/a',   File.dirname('//a//b/')
+  end
+else
+  assert('File.dirname (on Windows)') do
+    assert_equal 'c:.',           File.dirname('c:')
+    assert_equal 'c:.',           File.dirname('c:a')
+    assert_equal 'c:.',           File.dirname('c:a/')
+    assert_equal 'c:a',           File.dirname('c:a/b')
+    assert_equal 'c:/',           File.dirname('c:/')
+    assert_equal 'c:/',           File.dirname('c:/a')
+    assert_equal 'c:/',           File.dirname('c:/a/')
+    assert_equal 'c:/a',          File.dirname('c:/a/b')
+    assert_equal '//.',           File.dirname('//.')
+    assert_equal '//.',           File.dirname('//./')
+    assert_equal '//./a',         File.dirname('//./a')
+    assert_equal '//./a',         File.dirname('//./a/')
+    assert_equal '//./a',         File.dirname('//./a/b')
+    assert_equal '//./a/b',       File.dirname('//./a/b/c')
+    assert_equal '//?',           File.dirname('//?/')
+    assert_equal '//?/a',         File.dirname('//?/a')
+    assert_equal '//?/a',         File.dirname('//?/a/')
+    assert_equal '//?/a',         File.dirname('//?/a/b')
+    assert_equal '//host1',       File.dirname('//host1/')
+    assert_equal '//host1/a',     File.dirname('//host1/a')
+    assert_equal '//host1/a',     File.dirname('//host1/a/')
+    assert_equal '//host1/a',     File.dirname('//host1/a/b')
+  end
 end
 
 assert('File.extname') do
