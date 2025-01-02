@@ -169,15 +169,18 @@ mrb_file_s_rename(mrb_state *mrb, mrb_value obj)
 #define NEXT_DIRSEP(p) for (; *(p) != '\0' && !DIRSEP_P(*(p)); (p)++)
 
 static const char*
-scan_dirname(const char *path)
+scan_dirname(const char *path, mrb_int level)
 {
   const char *p = path + strlen(path);
+  if (level < 1) return p;
   for (; p > path && DIRSEP_P(p[-1]); p--)
     ;
-  for (; p > path && !DIRSEP_P(p[-1]); p--)
-    ;
-  for (; p > path && DIRSEP_P(p[-1]); p--)
-    ;
+  for (; level > 0; level--) {
+    for (; p > path && !DIRSEP_P(p[-1]); p--)
+      ;
+    for (; p > path && DIRSEP_P(p[-1]); p--)
+      ;
+  }
   return p > path ? p : path;
 }
 
@@ -185,7 +188,12 @@ static mrb_value
 mrb_file_dirname(mrb_state *mrb, mrb_value klass)
 {
   const char *path;
-  mrb_get_args(mrb, "z", &path);
+  mrb_int level = 1;
+  mrb_get_args(mrb, "z|i", &path, &level);
+
+  if (level < 0) {
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "negative level: %i", level);
+  }
 
   const char *p = path;
 #ifdef _WIN32
@@ -201,7 +209,7 @@ mrb_file_dirname(mrb_state *mrb, mrb_value klass)
     }
     else {
       NEXT_DIRSEP(p);
-      p = scan_dirname(p);
+      p = scan_dirname(p, level);
     }
     return mrb_str_new(mrb, path, p - path);
   }
@@ -209,7 +217,7 @@ mrb_file_dirname(mrb_state *mrb, mrb_value klass)
     p += 2;
     const char *o = p;
     SKIP_DIRSEP(p);
-    p = scan_dirname(p);
+    p = scan_dirname(p, level);
     mrb_value s = mrb_str_new(mrb, path, p - path);
     if (p == o) {
       mrb_str_cat_lit(mrb, s, ".");
@@ -221,7 +229,7 @@ mrb_file_dirname(mrb_state *mrb, mrb_value klass)
   if (p > path) {
     path = p - 1; /* if consecutive, point to the trailing slash */
   }
-  p = scan_dirname(p);
+  p = scan_dirname(p, level);
   return (p == path) ? mrb_str_new_lit(mrb, ".") : mrb_str_new(mrb, path, p - path);
 }
 
