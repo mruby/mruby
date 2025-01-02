@@ -1328,7 +1328,7 @@ str_ascii_only_p(mrb_state *mrb, mrb_value str)
 static mrb_value
 str_b(mrb_state *mrb, mrb_value str)
 {
-  RSTR_SET_BINARY_FLAG(mrb_str_ptr(str));
+  mrb_str_ptr(str)->flags |= MRB_STR_BINARY;
   return str;
 }
 
