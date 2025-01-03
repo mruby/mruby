@@ -11,7 +11,7 @@
   struct RClass *c;       \
   struct RBasic *gcnext;  \
   enum mrb_vtype tt:8;    \
-  uint32_t color:3;       \
+  uint32_t gccolor:3;     \
   uint32_t flags:21
 
 #define MRB_FLAG_TEST(obj, flag) ((obj)->flags & (flag))
