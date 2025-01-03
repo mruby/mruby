@@ -38,7 +38,7 @@ struct RStringEmbed {
   char ary[RSTRING_EMBED_LEN_MAX+1];
 };
 
-#define RSTR_SET_TYPE_FLAG(s, type) (RSTR_UNSET_TYPE_FLAG(s), (s)->flags |= MRB_STR_##type)
+#define RSTR_SET_TYPE(s, type) (RSTR_UNSET_TYPE_FLAG(s), (s)->flags |= MRB_STR_##type)
 #define RSTR_UNSET_TYPE_FLAG(s) ((s)->flags &= ~(MRB_STR_TYPE_MASK|MRB_STR_EMBED_LEN_MASK))
 
 #define RSTR_EMBED_P(s) ((s)->flags & MRB_STR_EMBED)
@@ -107,6 +107,7 @@ struct RStringEmbed {
 #define RSTRING_END(s)       (RSTRING_PTR(s) + RSTRING_LEN(s))
 #define RSTRING_CSTR(mrb,s)  mrb_string_cstr(mrb, s)
 
+#define MRB_STR_NORMAL    0
 #define MRB_STR_SHARED    1
 #define MRB_STR_FSHARED   2
 #define MRB_STR_NOFREE    4

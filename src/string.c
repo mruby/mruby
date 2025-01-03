@@ -61,7 +61,7 @@ str_init_normal_capa(mrb_state *mrb, struct RString *s,
   s->as.heap.ptr = dst;
   s->as.heap.len = len;
   s->as.heap.aux.capa = capa;
-  RSTR_UNSET_TYPE_FLAG(s);
+  RSTR_SET_TYPE(s, NORMAL);
   return s;
 }
 
@@ -77,7 +77,7 @@ str_init_embed(struct RString *s, const char *p, mrb_int len)
   mrb_assert(len >= 0);
   if (p) memcpy(RSTR_EMBED_PTR(s), p, len);
   RSTR_EMBED_PTR(s)[len] = '\0';
-  RSTR_SET_TYPE_FLAG(s, EMBED);
+  RSTR_SET_TYPE(s, EMBED);
   RSTR_SET_EMBED_LEN(s, len);
   return s;
 }
@@ -88,7 +88,7 @@ str_init_nofree(struct RString *s, const char *p, mrb_int len)
   s->as.heap.ptr = (char*)p;
   s->as.heap.len = len;
   s->as.heap.aux.capa = 0;             /* nofree */
-  RSTR_SET_TYPE_FLAG(s, NOFREE);
+  RSTR_SET_TYPE(s, NOFREE);
   return s;
 }
 
@@ -107,7 +107,7 @@ str_init_shared(mrb_state *mrb, const struct RString *orig, struct RString *s, m
   s->as.heap.ptr = orig->as.heap.ptr;
   s->as.heap.len = orig->as.heap.len;
   s->as.heap.aux.shared = shared;
-  RSTR_SET_TYPE_FLAG(s, SHARED);
+  RSTR_SET_TYPE(s, SHARED);
   return s;
 }
 
@@ -117,7 +117,7 @@ str_init_fshared(const struct RString *orig, struct RString *s, struct RString *
   s->as.heap.ptr = orig->as.heap.ptr;
   s->as.heap.len = orig->as.heap.len;
   s->as.heap.aux.fshared = fshared;
-  RSTR_SET_TYPE_FLAG(s, FSHARED);
+  RSTR_SET_TYPE(s, FSHARED);
   return s;
 }
 
