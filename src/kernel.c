@@ -547,6 +547,25 @@ mrb_obj_ceqq(mrb_state *mrb, mrb_value self)
   return mrb_false_value();
 }
 
+// ISO 15.3.1.2.9   Kernel.p
+// ISO 15.3.1.3.34  Kernel#p
+//
+// Print human readable object description
+//
+static mrb_value
+mrb_p_m(mrb_state *mrb, mrb_value self)
+{
+ mrb_int argc;
+  mrb_value *argv;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+  for (mrb_int i=0; i<argc; i++) {
+    mrb_p(mrb, argv[i]);
+  }
+  if (argc == 1) return argv[0];
+  return mrb_ary_new_from_values(mrb, argc, argv);
+}
+
 void
 mrb_init_kernel(mrb_state *mrb)
 {
@@ -576,6 +595,7 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method_id(mrb, krn, MRB_SYM_Q(kind_of),                  mrb_obj_is_kind_of_m,            MRB_ARGS_REQ(1));    /* 15.3.1.3.26 */
   mrb_define_method_id(mrb, krn, MRB_SYM_Q(nil),                      mrb_false,                       MRB_ARGS_NONE());    /* 15.3.1.3.32 */
   mrb_define_method_id(mrb, krn, MRB_SYM(object_id),                  mrb_obj_id_m,                    MRB_ARGS_NONE());    /* 15.3.1.3.33 */
+  mrb_define_method_id(mrb, krn, MRB_SYM(p),                          mrb_p_m,                         MRB_ARGS_ANY());     /* 15.3.1.3.34 */
   mrb_define_method_id(mrb, krn, MRB_SYM(raise),                      mrb_f_raise,                     MRB_ARGS_ANY());     /* 15.3.1.3.40 */
   mrb_define_method_id(mrb, krn, MRB_SYM(remove_instance_variable),   mrb_obj_remove_instance_variable,MRB_ARGS_REQ(1));    /* 15.3.1.3.41 */
   mrb_define_method_id(mrb, krn, MRB_SYM_Q(respond_to),               obj_respond_to,                  MRB_ARGS_ARG(1,1));     /* 15.3.1.3.43 */
