@@ -387,7 +387,7 @@ prepare_singleton_class(mrb_state *mrb, struct RBasic *o)
   o->c = sc;
   mrb_field_write_barrier(mrb, (struct RBasic*)o, (struct RBasic*)sc);
   mrb_obj_iv_set(mrb, (struct RObject*)sc, MRB_SYM(__attached__), mrb_obj_value(o));
-  sc->flags |= o->flags & MRB_FL_OBJ_IS_FROZEN;
+  sc->frozen = o->frozen;
 }
 
 static mrb_value
@@ -2686,7 +2686,7 @@ copy_class(mrb_state *mrb, mrb_value dst, mrb_value src)
   }
   dc->super = sc->super;
   dc->flags = sc->flags;
-  dc->flags &= ~MRB_FL_OBJ_IS_FROZEN;
+  dc->frozen = 0;
 }
 
 /* 15.3.1.3.16 */
@@ -2789,7 +2789,7 @@ mrb_obj_clone(mrb_state *mrb, mrb_value self)
 
   mrb_value clone = mrb_obj_value(p);
   init_copy(mrb, clone, self);
-  p->flags |= mrb_obj_ptr(self)->flags & MRB_FL_OBJ_IS_FROZEN;
+  p->frozen = mrb_obj_ptr(self)->frozen;
 
   return clone;
 }
@@ -2913,7 +2913,7 @@ static const mrb_irep new_irep = {
 
 mrb_alignas(8)
 static const struct RProc new_proc = {
-  NULL, NULL, MRB_TT_PROC, MRB_GC_RED, MRB_FL_OBJ_IS_FROZEN | MRB_PROC_SCOPE | MRB_PROC_STRICT,
+  NULL, NULL, MRB_TT_PROC, MRB_GC_RED, MRB_OBJ_IS_FROZEN, MRB_PROC_SCOPE | MRB_PROC_STRICT,
   { &new_irep }, NULL, { NULL }
 };
 
