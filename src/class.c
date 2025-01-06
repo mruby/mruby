@@ -2690,17 +2690,7 @@ copy_class(mrb_state *mrb, mrb_value dst, mrb_value src)
 }
 
 /* 15.3.1.3.16 */
-static mrb_value
-mrb_obj_init_copy(mrb_state *mrb, mrb_value self)
-{
-  mrb_value orig = mrb_get_arg1(mrb);
-
-  if (mrb_obj_equal(mrb, self, orig)) return self;
-  if ((mrb_type(self) != mrb_type(orig)) || (mrb_obj_class(mrb, self) != mrb_obj_class(mrb, orig))) {
-      mrb_raise(mrb, E_TYPE_ERROR, "initialize_copy should take same class object");
-  }
-  return self;
-}
+mrb_value mrb_obj_init_copy(mrb_state *mrb, mrb_value self);
 
 static void
 init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
