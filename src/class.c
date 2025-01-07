@@ -768,7 +768,7 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
         }
       }
       else {
-        mrb_assert(MRB_FROZEN_P(p) && MRB_PROC_SCOPE_P(p));
+        mrb_assert(mrb_frozen_p(p) && MRB_PROC_SCOPE_P(p));
         mrb_assert(p->c == NULL && p->upper == NULL && p->e.target_class == NULL);
       }
     }

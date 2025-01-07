@@ -987,7 +987,7 @@ ht_rehash(mrb_state *mrb, struct RHash *h)
 static mrb_value
 h_key_for(mrb_state *mrb, mrb_value key)
 {
-  if (mrb_string_p(key) && !MRB_FROZEN_P(mrb_str_ptr(key))) {
+  if (mrb_string_p(key) && !mrb_frozen_p(mrb_str_ptr(key))) {
     key = mrb_str_dup(mrb, key);
     MRB_SET_FROZEN_FLAG(mrb_str_ptr(key));
   }
