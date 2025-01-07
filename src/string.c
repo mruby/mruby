@@ -223,7 +223,7 @@ str_decref(mrb_state *mrb, mrb_shared_string *shared)
 }
 
 static void
-str_modify_keep_ascii(mrb_state *mrb, struct RString *s)
+str_unshare_buffer(mrb_state *mrb, struct RString *s)
 {
   if (RSTR_SHARED_P(s)) {
     mrb_shared_string *shared = s->as.heap.aux.shared;
@@ -901,7 +901,7 @@ MRB_API void
 mrb_str_modify_keep_ascii(mrb_state *mrb, struct RString *s)
 {
   mrb_check_frozen(mrb, s);
-  str_modify_keep_ascii(mrb, s);
+  str_unshare_buffer(mrb, s);
 }
 
 MRB_API void
@@ -2578,7 +2578,7 @@ mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr)
    * Even after str_modify_keep_ascii(), NULL termination is not ensured if
    * RSTR_SET_LEN() is used explicitly (e.g. String#delete_suffix!).
    */
-  str_modify_keep_ascii(mrb, ps);
+  str_unshare_buffer(mrb, ps);
   RSTR_PTR(ps)[len] = '\0';
   return RSTR_PTR(ps);
 }
