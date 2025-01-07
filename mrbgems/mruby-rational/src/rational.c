@@ -248,7 +248,7 @@ rational_new_b(mrb_state *mrb, mrb_value n, mrb_value d)
   rat->flags |= RAT_BIGINT;
   p->b.num = (struct RBasic*)mrb_obj_ptr(n);
   p->b.den = (struct RBasic*)mrb_obj_ptr(d);
-  MRB_SET_FROZEN_FLAG(rat);
+  rat->frozen = 1;
   return mrb_obj_value(rat);
 }
 #endif
@@ -282,7 +282,7 @@ mrb_rational_new(mrb_state *mrb, mrb_int nume, mrb_int deno)
   struct mrb_rational *p = rat_alloc(mrb, c, &rat);
   p->numerator = nume;
   p->denominator = deno;
-  MRB_SET_FROZEN_FLAG(rat);
+  rat->frozen = 1;
   return mrb_obj_value(rat);
 }
 

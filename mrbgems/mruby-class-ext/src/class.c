@@ -12,7 +12,7 @@ mod_name(mrb_state *mrb, mrb_value self)
 {
   mrb_value name =  mrb_class_path(mrb, mrb_class_ptr(self));
   if (mrb_string_p(name)) {
-    MRB_SET_FROZEN_FLAG(mrb_basic_ptr(name));
+    mrb_basic_ptr(name)->frozen = 1;
   }
   return name;
 }

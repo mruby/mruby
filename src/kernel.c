@@ -266,8 +266,8 @@ mrb_obj_freeze(mrb_state *mrb, mrb_value self)
   if (!mrb_immediate_p(self)) {
     struct RBasic *b = mrb_basic_ptr(self);
     if (!mrb_frozen_p(b)) {
-      MRB_SET_FROZEN_FLAG(b);
-      if (b->c->tt == MRB_TT_SCLASS) MRB_SET_FROZEN_FLAG(b->c);
+      b->frozen = 1;
+      if (b->c->tt == MRB_TT_SCLASS) b->c->frozen = 1;
     }
   }
   return self;

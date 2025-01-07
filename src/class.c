@@ -2584,7 +2584,7 @@ static mrb_value
 mrb_mod_dup(mrb_state *mrb, mrb_value self)
 {
   mrb_value mod = mrb_obj_clone(mrb, self);
-  MRB_UNSET_FROZEN_FLAG(mrb_obj_ptr(mod));
+  mrb_obj_ptr(mod)->frozen = 0;
   return mod;
 }
 

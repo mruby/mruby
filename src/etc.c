@@ -154,7 +154,7 @@ mrb_word_boxing_float_value(mrb_state *mrb, mrb_float f)
 #ifdef MRB_WORDBOX_NO_FLOAT_TRUNCATE
   v.p = mrb_obj_alloc(mrb, MRB_TT_FLOAT, mrb->float_class);
   v.fp->f = f;
-  MRB_SET_FROZEN_FLAG(v.bp);
+  v.bp->frozen = 1;
 #elif defined(MRB_64BIT) && defined(MRB_USE_FLOAT32)
   v.w = 0;
   v.f = f;
@@ -204,7 +204,7 @@ mrb_boxing_int_value(mrb_state *mrb, mrb_int n)
     mrb_value v;
     struct RInteger *p = (struct RInteger*)mrb_obj_alloc(mrb, MRB_TT_INTEGER, mrb->integer_class);
     p->i = n;
-    MRB_SET_FROZEN_FLAG((struct RBasic*)p);
+    p->frozen = 1;
     SET_OBJ_VALUE(v, p);
     return v;
   }

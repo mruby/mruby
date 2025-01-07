@@ -78,7 +78,7 @@ mrb_complex_new(mrb_state *mrb, mrb_float real, mrb_float imaginary)
   struct RBasic *comp = complex_alloc(mrb, c, &p);
   p->real = real;
   p->imaginary = imaginary;
-  MRB_SET_FROZEN_FLAG(comp);
+  comp->frozen = 1;
 
   return mrb_obj_value(comp);
 }
