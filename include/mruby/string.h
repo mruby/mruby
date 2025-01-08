@@ -57,7 +57,6 @@ struct RStringEmbed {
 
 #define RSTR_EMBED_P(s) ((s)->flags & MRB_STR_EMBED)
 #define RSTR_SET_EMBED_FLAG(s) ((s)->flags |= MRB_STR_EMBED)
-#define RSTR_UNSET_EMBED_FLAG(s) ((s)->flags &= ~(MRB_STR_EMBED|MRB_STR_EMBED_LEN_MASK))
 #define RSTR_SET_EMBED_LEN(s, n) do {\
   size_t tmp_n = (n);\
   (s)->flags &= ~MRB_STR_EMBED_LEN_MASK;\
@@ -81,16 +80,8 @@ struct RStringEmbed {
 #define RSTR_CAPA(s) (RSTR_EMBED_P(s) ? RSTRING_EMBED_LEN_MAX : (s)->as.heap.aux.capa)
 
 #define RSTR_SHARED_P(s) ((s)->flags & MRB_STR_SHARED)
-#define RSTR_SET_SHARED_FLAG(s) ((s)->flags |= MRB_STR_SHARED)
-#define RSTR_UNSET_SHARED_FLAG(s) ((s)->flags &= ~MRB_STR_SHARED)
-
 #define RSTR_FSHARED_P(s) ((s)->flags & MRB_STR_FSHARED)
-#define RSTR_SET_FSHARED_FLAG(s) ((s)->flags |= MRB_STR_FSHARED)
-#define RSTR_UNSET_FSHARED_FLAG(s) ((s)->flags &= ~MRB_STR_FSHARED)
-
 #define RSTR_NOFREE_P(s) ((s)->flags & MRB_STR_NOFREE)
-#define RSTR_SET_NOFREE_FLAG(s) ((s)->flags |= MRB_STR_NOFREE)
-#define RSTR_UNSET_NOFREE_FLAG(s) ((s)->flags &= ~MRB_STR_NOFREE)
 
 #ifdef MRB_UTF8_STRING
 # define RSTR_SINGLE_BYTE_P(s) ((s)->flags & MRB_STR_SINGLE_BYTE)
@@ -107,7 +98,6 @@ struct RStringEmbed {
 #endif
 #define RSTR_SET_ASCII_FLAG(s) RSTR_SET_SINGLE_BYTE_FLAG(s)
 #define RSTR_BINARY_P(s) ((s)->flags & MRB_STR_BINARY)
-#define RSTR_SET_BINARY_FLAG(s) ((s)->flags |= MRB_STR_BINARY)
 
 /**
  * Returns a pointer from a Ruby string

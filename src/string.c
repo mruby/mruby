@@ -231,7 +231,7 @@ str_unshare_buffer(mrb_state *mrb, struct RString *s)
     if (shared->refcnt == 1 && s->as.heap.ptr == shared->ptr) {
       s->as.heap.aux.capa = shared->capa;
       s->as.heap.ptr[s->as.heap.len] = '\0';
-      RSTR_UNSET_SHARED_FLAG(s);
+      RSTR_SET_TYPE(s, NORMAL);
       mrb_free(mrb, shared);
     }
     else {
