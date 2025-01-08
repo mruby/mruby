@@ -138,17 +138,41 @@ str_swapcase(mrb_state *mrb, mrb_value self)
 }
 
 static void
-str_concat(mrb_state *mrb, mrb_value self, mrb_value str)
+str_concat(mrb_state *mrb, mrb_value self, mrb_value str, mrb_bool binary)
 {
-  if (mrb_integer_p(str) || mrb_float_p(str))
+  if (mrb_integer_p(str) || mrb_float_p(str)) {
 #ifdef MRB_UTF8_STRING
-    str = int_chr_utf8(mrb, str);
+    if (binary) {
+      str = int_chr_binary(mrb, str);
+    }
+    else {
+      str = int_chr_utf8(mrb, str);
+    }
 #else
     str = int_chr_binary(mrb, str);
 #endif
+  }
   else
     mrb_ensure_string_type(mrb, str);
   mrb_str_cat_str(mrb, self, str);
+}
+
+static mrb_value
+str_concat0(mrb_state *mrb, mrb_value self, mrb_bool binary)
+{
+  if (mrb_get_argc(mrb) == 1) {
+    str_concat(mrb, self, mrb_get_arg1(mrb), binary);
+    return self;
+  }
+
+  mrb_value *args;
+  mrb_int alen;
+
+  mrb_get_args(mrb, "*", &args, &alen);
+  for (mrb_int i=0; i<alen; i++) {
+    str_concat(mrb, self, args[i], binary);
+  }
+  return self;
 }
 
 /*
@@ -170,19 +194,21 @@ str_concat(mrb_state *mrb, mrb_value self, mrb_value str)
 static mrb_value
 str_concat_m(mrb_state *mrb, mrb_value self)
 {
-  if (mrb_get_argc(mrb) == 1) {
-    str_concat(mrb, self, mrb_get_arg1(mrb));
-    return self;
-  }
+  mrb_bool binary = RSTR_BINARY_P(mrb_str_ptr(self));
+  return str_concat0(mrb, self, binary);
+}
 
-  mrb_value *args;
-  mrb_int alen;
-
-  mrb_get_args(mrb, "*", &args, &alen);
-  for (mrb_int i=0; i<alen; i++) {
-    str_concat(mrb, self, args[i]);
-  }
-  return self;
+/*
+ *  call-seq:
+ *     str.append_as_bytes(*obj)     -> str
+ *
+ *  Works like `concat` but consider arguments as binary strings.
+ *
+ */
+static mrb_value
+str_append_as_bytes(mrb_state *mrb, mrb_value self)
+{
+  return str_concat0(mrb, self, TRUE);
 }
 
 /*
@@ -1342,6 +1368,7 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, s, MRB_SYM(swapcase),         str_swapcase,        MRB_ARGS_NONE());
   mrb_define_method_id(mrb, s, MRB_SYM(concat),           str_concat_m,        MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, s, MRB_OPSYM(lshift),         str_concat_m,        MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_SYM(append_as_bytes),  str_append_as_bytes, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, s, MRB_SYM(count),            str_count,           MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, s, MRB_SYM(tr),               str_tr_m,            MRB_ARGS_REQ(2));
   mrb_define_method_id(mrb, s, MRB_SYM_B(tr),             str_tr_bang,         MRB_ARGS_REQ(2));
