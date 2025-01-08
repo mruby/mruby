@@ -40,6 +40,21 @@ struct RStringEmbed {
 
 #define RSTR_SET_TYPE(s, type) ((s)->flags = ((s)->flags & ~(MRB_STR_TYPE_MASK|MRB_STR_EMBED_LEN_MASK)) | MRB_STR_##type)
 
+#define MRB_STR_NORMAL    0
+#define MRB_STR_SHARED    1
+#define MRB_STR_FSHARED   2
+#define MRB_STR_NOFREE    4
+#define MRB_STR_EMBED     8
+#define MRB_STR_TYPE_MASK 15
+
+#define MRB_STR_EMBED_LEN_SHIFT 6
+#define MRB_STR_EMBED_LEN_BIT 5
+#define MRB_STR_EMBED_LEN_MASK (((1 << MRB_STR_EMBED_LEN_BIT) - 1) << MRB_STR_EMBED_LEN_SHIFT)
+
+#define MRB_STR_BINARY    16
+#define MRB_STR_SINGLE_BYTE 32
+#define MRB_STR_STATE_MASK 48
+
 #define RSTR_EMBED_P(s) ((s)->flags & MRB_STR_EMBED)
 #define RSTR_SET_EMBED_FLAG(s) ((s)->flags |= MRB_STR_EMBED)
 #define RSTR_UNSET_EMBED_FLAG(s) ((s)->flags &= ~(MRB_STR_EMBED|MRB_STR_EMBED_LEN_MASK))
@@ -105,18 +120,6 @@ struct RStringEmbed {
 #define RSTRING_CAPA(s)      RSTR_CAPA(RSTRING(s))
 #define RSTRING_END(s)       (RSTRING_PTR(s) + RSTRING_LEN(s))
 #define RSTRING_CSTR(mrb,s)  mrb_string_cstr(mrb, s)
-
-#define MRB_STR_NORMAL    0
-#define MRB_STR_SHARED    1
-#define MRB_STR_FSHARED   2
-#define MRB_STR_NOFREE    4
-#define MRB_STR_EMBED     8  /* type flags up to here */
-#define MRB_STR_BINARY    16
-#define MRB_STR_SINGLE_BYTE    32
-#define MRB_STR_EMBED_LEN_SHIFT 6
-#define MRB_STR_EMBED_LEN_BIT 5
-#define MRB_STR_EMBED_LEN_MASK (((1 << MRB_STR_EMBED_LEN_BIT) - 1) << MRB_STR_EMBED_LEN_SHIFT)
-#define MRB_STR_TYPE_MASK 15
 
 MRB_API void mrb_str_modify(mrb_state *mrb, struct RString *s);
 /* mrb_str_modify() with keeping ASCII flag if set */
