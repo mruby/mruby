@@ -458,15 +458,16 @@ utf8_strlen(mrb_value str)
 
 /* map character index to byte offset index */
 static mrb_int
-chars2bytes(mrb_value s, mrb_int off, mrb_int idx)
+chars2bytes(mrb_value str, mrb_int off, mrb_int idx)
 {
-  if (RSTR_SINGLE_BYTE_P(mrb_str_ptr(s))) {
+  struct RString *s = mrb_str_ptr(str);
+  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
     return idx;
   }
 
-  const char *p0 = RSTRING_PTR(s) + off;
+  const char *p0 = RSTR_PTR(s) + off;
   const char *p = p0;
-  const char *e = RSTRING_END(s);
+  const char *e = p0 + RSTR_LEN(s);
   mrb_int i = 0;
 
   while (p<e && i<idx) {
@@ -495,14 +496,15 @@ chars2bytes(mrb_value s, mrb_int off, mrb_int idx)
 
 /* map byte offset to character index */
 static mrb_int
-bytes2chars(mrb_value s, mrb_int bi)
+bytes2chars(mrb_value str, mrb_int bi)
 {
-  if (RSTR_SINGLE_BYTE_P(mrb_str_ptr(s))) {
+  struct RString *s = mrb_str_ptr(str);
+  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
     return bi;
   }
 
-  const char *p = RSTRING_PTR(s);
-  const char *e = p + RSTRING_LEN(s);
+  const char *p = RSTR_PTR(s);
+  const char *e = p + RSTR_LEN(s);
   const char *pivot = p + bi;
   mrb_int i = 0;
 
