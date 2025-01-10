@@ -525,7 +525,7 @@ bytes2chars(mrb_value str, mrb_int bi)
 }
 
 static const char*
-char_adjust(const char *beg, const char *end, const char *ptr)
+char_adjust(const char *ptr, const char *end)
 {
   ptrdiff_t len = end - ptr;
   if (len < 1 || utf8_islead(ptr[0])) return ptr;
@@ -568,7 +568,7 @@ str_index_str_by_char(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
 #define RSTRING_CHAR_LEN(s) RSTRING_LEN(s)
 #define chars2bytes(s, off, ci) (ci)
 #define bytes2chars(s, bi) (bi)
-#define char_adjust(beg, end, ptr) (ptr)
+#define char_adjust(ptr, end) (ptr)
 #define char_backtrack(ptr, end) ((end) - 1)
 #define str_index_str_by_char(mrb, str, sub, pos) str_index_str((mrb), (str), (sub), (pos))
 #endif
@@ -820,7 +820,7 @@ str_rindex(mrb_state *mrb, mrb_value str, mrb_value sub, mrb_int pos)
   s = sbeg + pos;
   t = RSTRING_PTR(sub);
   if (len) {
-    s = char_adjust(sbeg, send, s);
+    s = char_adjust(s, send);
     while (sbeg <= s) {
       if ((mrb_int)(send - s) >= len && memcmp(s, t, len) == 0) {
         return (mrb_int)(s - sbeg);
