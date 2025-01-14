@@ -10,60 +10,100 @@
 #include <mruby/error.h>
 #include <mruby/presym.h>
 #include <string.h>
+#if defined(_WIN32)
+# include <windows.h>
+# include <io.h>
+#ifdef _MSC_VER
+# define isatty(x) _isatty(x)
+# define fileno(x) _fileno(x)
+#endif
+#else
+# include <unistd.h>
+#endif
 
 #ifndef MRB_NO_STDIO
 static void
-printcstr(const char *str, size_t len, FILE *stream)
+printcstr(mrb_state *mrb, const char *str, size_t len, FILE *stream)
 {
-  if (str) {
-    fwrite(str, len, 1, stream);
-    putc('\n', stream);
+#if defined(_WIN32)
+  if (isatty(fileno(stream))) {
+    DWORD written;
+    int wlen = MultiByteToWideChar(CP_UTF8, 0, str, (int)len, NULL, 0);
+    wchar_t* utf16 = (wchar_t*)mrb_malloc(mrb, (wlen+1) * sizeof(wchar_t));
+    if (MultiByteToWideChar(CP_UTF8, 0, str, (int)len, utf16, wlen) > 0) {
+      utf16[wlen] = 0;
+      WriteConsoleW(GetStdHandle(STD_OUTPUT_HANDLE),
+                    utf16, (DWORD)wlen, &written, NULL);
+    }
+    mrb_free(mrb, utf16);
+    return;
   }
+#endif
+  fwrite(str, (size_t)len, 1, stream);
 }
 
 static void
-printstr(mrb_value obj, FILE *stream)
+printstr(mrb_state *mrb, mrb_value obj, FILE *stream)
 {
   if (mrb_string_p(obj)) {
-    printcstr(RSTRING_PTR(obj), RSTRING_LEN(obj), stream);
+    printcstr(mrb, RSTRING_PTR(obj), RSTRING_LEN(obj), stream);
   }
 }
 
 void
-mrb_core_init_printabort(void)
+mrb_core_init_printabort(mrb_state *mrb)
 {
   static const char *str = "Failed mruby core initialization";
-  printcstr(str, strlen(str), stdout);
+  printcstr(mrb, str, strlen(str), stdout);
 }
+
+#ifndef HAVE_MRUBY_IO_GEM
+mrb_value
+mrb_print_m(mrb_state *mrb, mrb_value self)
+{
+  mrb_int argc = mrb_get_argc(mrb);
+  const mrb_value *argv = mrb_get_argv(mrb);
+
+  for (mrb_int i=0; i<argc; i++) {
+    printstr(mrb, mrb_obj_as_string(mrb, argv[i]), stdout);
+  }
+  if (isatty(fileno(stdout))) fflush(stdout);
+  return mrb_nil_value();
+}
+#endif
 
 MRB_API void
 mrb_p(mrb_state *mrb, mrb_value obj)
 {
   if (mrb_type(obj) == MRB_TT_EXCEPTION && mrb_obj_ptr(obj) == mrb->nomem_err) {
     static const char *str = "Out of memory";
-    printcstr(str, strlen(str), stdout);
+    printcstr(mrb, str, strlen(str), stdout);
   }
   else {
-    printstr(mrb_inspect(mrb, obj), stdout);
+    printstr(mrb, mrb_inspect(mrb, obj), stdout);
   }
+  printcstr(mrb, "\n", 1, stdout);
+  if (isatty(fileno(stdout))) fflush(stdout);
 }
 
 
 MRB_API void
 mrb_show_version(mrb_state *mrb)
 {
-  printstr(mrb_const_get(mrb, mrb_obj_value(mrb->object_class), MRB_SYM(MRUBY_DESCRIPTION)), stdout);
+  printstr(mrb, mrb_const_get(mrb, mrb_obj_value(mrb->object_class), MRB_SYM(MRUBY_DESCRIPTION)), stdout);
+  printcstr(mrb, "\n", 1, stdout);
 }
 
 MRB_API void
 mrb_show_copyright(mrb_state *mrb)
 {
-  printstr(mrb_const_get(mrb, mrb_obj_value(mrb->object_class), MRB_SYM(MRUBY_COPYRIGHT)), stdout);
+  printstr(mrb, mrb_const_get(mrb, mrb_obj_value(mrb->object_class), MRB_SYM(MRUBY_COPYRIGHT)), stdout);
+  printcstr(mrb, "\n", 1, stdout);
 }
 
 #else
 void
-mrb_core_init_printabort(void)
+mrb_core_init_printabort(mrb_state *mrb)
 {
 }
 

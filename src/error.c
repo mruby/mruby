@@ -548,7 +548,7 @@ mrb_argnum_error(mrb_state *mrb, mrb_int argc, int min, int max)
 #undef FMT
 }
 
-void mrb_core_init_printabort(void);
+void mrb_core_init_printabort(mrb_state *mrb);
 
 int
 mrb_core_init_protect(mrb_state *mrb, void (*body)(mrb_state*, void*), void *opaque)
@@ -567,7 +567,7 @@ mrb_core_init_protect(mrb_state *mrb, void (*body)(mrb_state*, void*), void *opa
       mrb->exc = NULL;
     }
     else {
-      mrb_core_init_printabort();
+      mrb_core_init_printabort(mrb);
     }
   } MRB_END_EXC(&c_jmp);
 
