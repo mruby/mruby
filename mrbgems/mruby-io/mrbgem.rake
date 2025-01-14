@@ -6,5 +6,6 @@ MRuby::Gem::Specification.new('mruby-io') do |spec|
   if spec.for_windows?
     spec.linker.libraries << "ws2_32"
   end
+  spec.build.defines << "HAVE_MRUBY_IO_GEM"
   spec.add_test_dependency 'mruby-time', core: 'mruby-time'
 end
