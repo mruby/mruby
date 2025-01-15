@@ -45,9 +45,17 @@ printcstr(mrb_state *mrb, const char *str, size_t len, FILE *stream)
 static void
 printstr(mrb_state *mrb, mrb_value obj, FILE *stream)
 {
-  if (mrb_string_p(obj)) {
-    printcstr(mrb, RSTRING_PTR(obj), RSTRING_LEN(obj), stream);
+  if (!mrb_string_p(obj)) {
+    obj = mrb_obj_as_string(mrb, obj);
   }
+  printcstr(mrb, RSTRING_PTR(obj), RSTRING_LEN(obj), stream);
+}
+
+static void
+printstrln(mrb_state *mrb, mrb_value obj, FILE *stream)
+{
+  printstr(mrb, obj, stream);
+  printcstr(mrb, "\n", 1, stdout);
 }
 
 void
@@ -76,13 +84,12 @@ MRB_API void
 mrb_p(mrb_state *mrb, mrb_value obj)
 {
   if (mrb_type(obj) == MRB_TT_EXCEPTION && mrb_obj_ptr(obj) == mrb->nomem_err) {
-    static const char *str = "Out of memory";
+    static const char *str = "Out of memory\n";
     printcstr(mrb, str, strlen(str), stdout);
   }
   else {
-    printstr(mrb, mrb_inspect(mrb, obj), stdout);
+    printstrln(mrb, mrb_inspect(mrb, obj), stdout);
   }
-  printcstr(mrb, "\n", 1, stdout);
   if (isatty(fileno(stdout))) fflush(stdout);
 }
 
@@ -90,15 +97,13 @@ mrb_p(mrb_state *mrb, mrb_value obj)
 MRB_API void
 mrb_show_version(mrb_state *mrb)
 {
-  printstr(mrb, mrb_const_get(mrb, mrb_obj_value(mrb->object_class), MRB_SYM(MRUBY_DESCRIPTION)), stdout);
-  printcstr(mrb, "\n", 1, stdout);
+  printstrln(mrb, mrb_const_get(mrb, mrb_obj_value(mrb->object_class), MRB_SYM(MRUBY_DESCRIPTION)), stdout);
 }
 
 MRB_API void
 mrb_show_copyright(mrb_state *mrb)
 {
-  printstr(mrb, mrb_const_get(mrb, mrb_obj_value(mrb->object_class), MRB_SYM(MRUBY_COPYRIGHT)), stdout);
-  printcstr(mrb, "\n", 1, stdout);
+  printstrln(mrb, mrb_const_get(mrb, mrb_obj_value(mrb->object_class), MRB_SYM(MRUBY_COPYRIGHT)), stdout);
 }
 
 #else
