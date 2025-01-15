@@ -107,6 +107,12 @@ mrb_core_init_printabort(mrb_state *mrb)
 {
 }
 
+mrb_value
+mrb_print_m(mrb_state *mrb, mrb_value self)
+{
+  return mrb_nil_value();
+}
+
 MRB_API void
 mrb_p(mrb_state *mrb, mrb_value obj)
 {
