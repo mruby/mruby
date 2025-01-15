@@ -1,5 +1,5 @@
 /*
-** print.c - Kernel.#p
+** print.c - Kernel#p, Kernel#print
 **
 ** See Copyright Notice in mruby.h
 */
