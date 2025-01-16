@@ -1048,15 +1048,24 @@ str_ord(mrb_state* mrb, mrb_value str)
 static mrb_value
 str_codepoints(mrb_state *mrb, mrb_value str)
 {
-  const unsigned char *p = (unsigned char*)RSTRING_PTR(str);
-  const unsigned char *e = p + RSTRING_LEN(str);
+  struct RString *s = mrb_str_ptr(str);
+  const unsigned char *p = (unsigned char*)RSTR_PTR(s);
+  const unsigned char *e = p + RSTR_LEN(s);
 
   mrb->c->ci->mid = 0;
   mrb_value result = mrb_ary_new(mrb);
-  while (p < e) {
-    mrb_int c = utf8code(mrb, p, e);
-    mrb_ary_push(mrb, result, mrb_int_value(mrb, c));
-    p += mrb_utf8len_table[p[0]>>3];
+  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
+    while (p < e) {
+      mrb_ary_push(mrb, result, mrb_int_value(mrb, (mrb_int)*p));
+      p++;
+    }
+  }
+  else {
+    while (p < e) {
+      mrb_int c = utf8code(mrb, p, e);
+      mrb_ary_push(mrb, result, mrb_int_value(mrb, c));
+      p += mrb_utf8len_table[p[0]>>3];
+    }
   }
   return result;
 }
