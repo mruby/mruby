@@ -1321,38 +1321,6 @@ str_uminus(mrb_state *mrb, mrb_value str)
   return mrb_obj_freeze(mrb, mrb_str_dup(mrb, str));
 }
 
-/*
- * call-seq:
- *   string.valid_encoding? -> true or false
- *
- * Returns true for a string which is encoded correctly.
- *
- */
-static mrb_value
-str_valid_enc_p(mrb_state *mrb, mrb_value str)
-{
-#ifdef MRB_UTF8_STRING
-#define utf8_islead(c) ((unsigned char)((c)&0xc0) != 0x80)
-
-  struct RString *s = mrb_str_ptr(str);
-  if (RSTR_SINGLE_BYTE_P(s)) return mrb_true_value();
-
-  mrb_int byte_len = RSTR_LEN(s);
-  mrb_int utf8_len = 0;
-  const char *p = RSTR_PTR(s);
-  const char *e = p + byte_len;
-  while (p < e) {
-    mrb_int len = mrb_utf8len(p, e);
-
-    if (len == 1 && (*p & 0x80)) return mrb_false_value();
-    p += len;
-    utf8_len++;
-  }
-  if (byte_len == utf8_len) RSTR_SET_SINGLE_BYTE_FLAG(s);
-#endif
-  return mrb_true_value();
-}
-
 static mrb_value
 str_ascii_only_p(mrb_state *mrb, mrb_value str)
 {
@@ -1377,29 +1345,6 @@ str_b(mrb_state *mrb, mrb_value self)
   return str;
 }
 #endif
-
-static mrb_value
-str_force_encoding(mrb_state *mrb, mrb_value self)
-{
-  mrb_value enc;
-
-  mrb_get_args(mrb, "S", &enc);
-
-  struct RString *s = mrb_str_ptr(self);
-  if (ENC_COMP_P(enc, ENC_ASCII_8BIT) ||
-      ENC_COMP_P(enc, ENC_BINARY)) {
-    s->flags |= MRB_STR_BINARY;
-  }
-#ifdef MRB_UTF8_STRING
-  else if (ENC_COMP_P(enc, ENC_UTF8)) {
-    s->flags &= ~MRB_STR_BINARY;
-  }
-#endif
-  else {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "unknown encoding name - %v", enc);
-  }
-  return self;
-}
 
 void
 mrb_mruby_string_ext_gem_init(mrb_state* mrb)
@@ -1439,9 +1384,7 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, s, MRB_SYM_Q(casecmp),        str_casecmp_p,       MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, s, MRB_OPSYM(plus),           str_uplus,           MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, s, MRB_OPSYM(minus),          str_uminus,          MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, s, MRB_SYM_Q(valid_encoding), str_valid_enc_p,     MRB_ARGS_NONE());
   mrb_define_method_id(mrb, s, MRB_SYM_Q(ascii_only),     str_ascii_only_p,    MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, s, MRB_SYM(force_encoding),   str_force_encoding,  MRB_ARGS_REQ(1));
 #ifndef HAVE_MRUBY_ENCODING_GEM
   mrb_define_method_id(mrb, s, MRB_SYM(b),                str_b,               MRB_ARGS_NONE());
 #endif
