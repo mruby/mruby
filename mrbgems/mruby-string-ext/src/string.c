@@ -1028,12 +1028,20 @@ utf8code(mrb_state* mrb, const unsigned char* p, const unsigned char *e)
 static mrb_value
 str_ord(mrb_state* mrb, mrb_value str)
 {
-  if (RSTRING_LEN(str) == 0)
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "empty string");
-  const unsigned char *p = (unsigned char*)RSTRING_PTR(str);
-  const unsigned char *e = p + RSTRING_LEN(str);
+  struct RString *s = mrb_str_ptr(str);
+  const unsigned char *p = (unsigned char*)RSTR_PTR(s);
+  const unsigned char *e = p + RSTR_LEN(s);
+  mrb_int c;
 
-  mrb_int c = utf8code(mrb, p, e);
+  if (p == e) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "empty string");
+  }
+  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
+    c = p[0];
+  }
+  else {
+    c = utf8code(mrb, p, e);
+  }
   return mrb_fixnum_value(c);
 }
 
