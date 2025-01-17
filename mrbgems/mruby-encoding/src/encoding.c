@@ -58,14 +58,6 @@ str_valid_enc_p(mrb_state *mrb, mrb_value str)
 }
 
 static mrb_value
-str_b(mrb_state *mrb, mrb_value self)
-{
-  mrb_value str = mrb_str_dup(mrb, self);
-  mrb_str_ptr(str)->flags |= MRB_STR_BINARY;
-  return str;
-}
-
-static mrb_value
 get_encoding(mrb_state *mrb, mrb_sym enc)
 {
   struct RClass *e = mrb_module_get_id(mrb, MRB_SYM(Encoding));
@@ -108,7 +100,6 @@ mrb_mruby_encoding_gem_init(mrb_state* mrb)
 {
   struct RClass *s = mrb->string_class;
 
-  mrb_define_method_id(mrb, s, MRB_SYM(b),                str_b,               MRB_ARGS_NONE());
   mrb_define_method_id(mrb, s, MRB_SYM_Q(valid_encoding), str_valid_enc_p,     MRB_ARGS_NONE());
   mrb_define_method_id(mrb, s, MRB_SYM(encoding),         str_encoding,        MRB_ARGS_NONE());
   mrb_define_method_id(mrb, s, MRB_SYM(force_encoding),   str_force_encoding,  MRB_ARGS_REQ(1));

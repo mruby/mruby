@@ -1336,7 +1336,6 @@ str_ascii_only_p(mrb_state *mrb, mrb_value str)
   return mrb_true_value();
 }
 
-#ifndef HAVE_MRUBY_ENCODING_GEM
 static mrb_value
 str_b(mrb_state *mrb, mrb_value self)
 {
@@ -1344,7 +1343,6 @@ str_b(mrb_state *mrb, mrb_value self)
   mrb_str_ptr(str)->flags |= MRB_STR_BINARY;
   return str;
 }
-#endif
 
 void
 mrb_mruby_string_ext_gem_init(mrb_state* mrb)
@@ -1385,9 +1383,7 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, s, MRB_OPSYM(plus),           str_uplus,           MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, s, MRB_OPSYM(minus),          str_uminus,          MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, s, MRB_SYM_Q(ascii_only),     str_ascii_only_p,    MRB_ARGS_NONE());
-#ifndef HAVE_MRUBY_ENCODING_GEM
   mrb_define_method_id(mrb, s, MRB_SYM(b),                str_b,               MRB_ARGS_NONE());
-#endif
 
   mrb_define_method_id(mrb, s, MRB_SYM(__lines),          str_lines,           MRB_ARGS_NONE());
   mrb_define_method_id(mrb, s, MRB_SYM(__codepoints),     str_codepoints,      MRB_ARGS_NONE());
