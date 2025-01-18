@@ -69,9 +69,10 @@ mrb_core_init_printabort(mrb_state *mrb)
 mrb_value
 mrb_print_m(mrb_state *mrb, mrb_value self)
 {
-  mrb_int argc = mrb_get_argc(mrb);
-  const mrb_value *argv = mrb_get_argv(mrb);
+  mrb_int argc;
+  mrb_value *argv;
 
+  mrb_get_args(mrb, "*", &argv, &argc);
   for (mrb_int i=0; i<argc; i++) {
     printstr(mrb, mrb_obj_as_string(mrb, argv[i]), stdout);
   }
