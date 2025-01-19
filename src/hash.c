@@ -1584,9 +1584,10 @@ mrb_hash_aset(mrb_state *mrb, mrb_value self)
   }
 
   const mrb_value *argv = mrb_get_argv(mrb);
+  mrb_value key = argv[0];
   mrb_value val = argv[1];
 
-  mrb_hash_set(mrb, self, argv[0], argv[1]);
+  mrb_hash_set(mrb, self, key, val);
   return val;
 }
 
