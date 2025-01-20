@@ -810,7 +810,7 @@ exec_irep(mrb_state *mrb, mrb_value self, const struct RProc *p)
 }
 
 mrb_value
-mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p)
+mrb_exec_irep(mrb_state *mrb, mrb_value self, const struct RProc *p)
 {
   mrb_callinfo *ci = mrb->c->ci;
   if (ci->cci == CINFO_NONE) {
@@ -968,7 +968,7 @@ eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
     return mrb_yield_with_class(mrb, blk, 1, &self, self, c);
   }
   ci->u.target_class = c;
-  struct RProc *p = mrb_proc_ptr(blk);
+  const struct RProc *p = mrb_proc_ptr(blk);
   /* just in case irep is NULL; #6065 */
   if (p->body.irep == NULL) return mrb_nil_value();
   CI_PROC_SET(ci, p);
@@ -1053,7 +1053,7 @@ mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value 
 
   mrb_callinfo *ci = mrb->c->ci;
   mrb_int n = mrb_ci_nregs(ci);
-  struct RProc *p = mrb_proc_ptr(b);
+  const struct RProc *p = mrb_proc_ptr(b);
   mrb_sym mid;
 
   if (MRB_PROC_ENV_P(p)) {
@@ -1087,7 +1087,7 @@ mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value 
 MRB_API mrb_value
 mrb_yield_argv(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv)
 {
-  struct RProc *p = mrb_proc_ptr(b);
+  const struct RProc *p = mrb_proc_ptr(b);
   struct RClass *tc;
   mrb_value self = mrb_proc_get_self(mrb, p, &tc);
 
@@ -1097,7 +1097,7 @@ mrb_yield_argv(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv)
 MRB_API mrb_value
 mrb_yield(mrb_state *mrb, mrb_value b, mrb_value arg)
 {
-  struct RProc *p = mrb_proc_ptr(b);
+  const struct RProc *p = mrb_proc_ptr(b);
   struct RClass *tc;
   mrb_value self = mrb_proc_get_self(mrb, p, &tc);
 
@@ -1109,7 +1109,7 @@ mrb_yield_cont(mrb_state *mrb, mrb_value b, mrb_value self, mrb_int argc, const 
 {
   check_block(mrb, b);
 
-  struct RProc *p = mrb_proc_ptr(b);
+  const struct RProc *p = mrb_proc_ptr(b);
   mrb_callinfo *ci = mrb->c->ci;
 
   stack_extend_adjust(mrb, 4, &argv);
@@ -2951,7 +2951,7 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_DEF, BB) {
       struct RClass *target = mrb_class_ptr(regs[a]);
-      struct RProc *p = mrb_proc_ptr(regs[a+1]);
+      const struct RProc *p = mrb_proc_ptr(regs[a+1]);
       mrb_method_t m;
       mrb_sym mid = irep->syms[b];
 

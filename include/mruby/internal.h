@@ -132,13 +132,13 @@ int mrb_rational_mark(mrb_state *mrb, struct RBasic *rat);
 
 #ifdef MRUBY_PROC_H
 struct RProc *mrb_closure_new(mrb_state*, const mrb_irep*);
-void mrb_proc_copy(mrb_state *mrb, struct RProc *a, struct RProc *b);
+void mrb_proc_copy(mrb_state *mrb, struct RProc *a, const struct RProc *b);
 mrb_int mrb_proc_arity(const struct RProc *p);
 struct REnv *mrb_env_new(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci, int nstacks, mrb_value *stack, struct RClass *tc);
 void mrb_proc_merge_lvar(mrb_state *mrb, mrb_irep *irep, struct REnv *env, int num, const mrb_sym *lv, const mrb_value *stack);
 mrb_value mrb_proc_local_variables(mrb_state *mrb, const struct RProc *proc);
 const struct RProc *mrb_proc_get_caller(mrb_state *mrb, struct REnv **env);
-mrb_value mrb_proc_get_self(mrb_state *mrb, struct RProc *p, struct RClass **target_class_p);
+mrb_value mrb_proc_get_self(mrb_state *mrb, const struct RProc *p, struct RClass **target_class_p);
 mrb_bool mrb_proc_eql(mrb_state *mrb, mrb_value self, mrb_value other);
 #endif
 
@@ -192,7 +192,7 @@ void mrb_gc_free_iv(mrb_state*, struct RObject*);
 /* VM */
 mrb_int mrb_ci_bidx(mrb_callinfo *ci);
 mrb_int mrb_ci_nregs(mrb_callinfo *ci);
-mrb_value mrb_exec_irep(mrb_state *mrb, mrb_value self, struct RProc *p);
+mrb_value mrb_exec_irep(mrb_state *mrb, mrb_value self, const struct RProc *p);
 mrb_value mrb_obj_instance_eval(mrb_state*, mrb_value);
 mrb_value mrb_object_exec(mrb_state *mrb, mrb_value self, struct RClass *target_class);
 mrb_value mrb_mod_module_eval(mrb_state*, mrb_value);
