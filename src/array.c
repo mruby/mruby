@@ -721,12 +721,12 @@ mrb_ary_unshift_m(mrb_state *mrb, mrb_value self)
   mrb_value *ptr;
 
   mrb_int alen = mrb_get_argc(mrb);
-  const mrb_value *vals = mrb_get_argv(mrb);
 
   if (alen == 0) {
     ary_modify_check(mrb, a);
     return self;
   }
+  const mrb_value *vals = mrb_get_argv(mrb);
   mrb_int len = ARY_LEN(a);
   if (alen > ARY_MAX_SIZE - len) {
     ary_too_big(mrb);
