@@ -184,7 +184,7 @@ DEFINE_SWITCHER(ht, HT)                                         /* h_ht_on  h_ht
        (ib_it_next(it_var), TRUE);                                            \
        /* do nothing */)
 
-#define IB_FIND_BY_KEY(mrb, h_, key_, it_var)                                 \
+#define IB_FIND_BY_KEY(mrb, h, key, it_var)                                   \
   for (index_buckets_iter it_var[1] = { ib_it_init(mrb, h, key) };            \
        ib_it_find_by_key(mrb, it_var, key);                                   \
        it_var[0].h = NULL)
