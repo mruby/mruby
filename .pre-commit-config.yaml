@@ -23,12 +23,12 @@ repos:
         language: node
         additional_dependencies: ["prettier@3.3.3"]
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.20.1
+    rev: v8.23.1
     hooks:
       - id: gitleaks
         name: detect hardcoded secrets
   - repo: https://github.com/shssoichiro/oxipng
-    rev: v9.1.2
+    rev: v9.1.3
     hooks:
       - id: oxipng
         name: run oxipng
@@ -71,7 +71,7 @@ repos:
         args: [--whitespaces-count, "2"]
         exclude: Makefile$
   - repo: https://github.com/rhysd/actionlint
-    rev: v1.7.3
+    rev: v1.7.7
     hooks:
       - id: actionlint
         name: run actionlint
@@ -91,7 +91,7 @@ repos:
         description: local policy is to exclude extension from all shell files
         types: [shell]
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.42.0
+    rev: v0.43.0
     hooks:
       - id: markdownlint
         name: run markdownlint
@@ -100,7 +100,7 @@ repos:
         types: [markdown]
         files: \.md$
   - repo: https://github.com/tcort/markdown-link-check
-    rev: v3.12.2
+    rev: v3.13.6
     hooks:
       - id: markdown-link-check
         name: run markdown-link-check
