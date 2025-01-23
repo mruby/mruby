@@ -199,7 +199,7 @@ mrb_proc_cfunc_env_get(mrb_state *mrb, mrb_int idx)
 }
 
 mrb_value
-mrb_proc_get_self(mrb_state *mrb, struct RProc *p, struct RClass **target_class_p)
+mrb_proc_get_self(mrb_state *mrb, const struct RProc *p, struct RClass **target_class_p)
 {
   if (MRB_PROC_CFUNC_P(p)) {
     *target_class_p = mrb->object_class;
@@ -222,7 +222,7 @@ mrb_proc_get_self(mrb_state *mrb, struct RProc *p, struct RClass **target_class_
 }
 
 void
-mrb_proc_copy(mrb_state *mrb, struct RProc *a, struct RProc *b)
+mrb_proc_copy(mrb_state *mrb, struct RProc *a, const struct RProc *b)
 {
   if (a->body.irep) {
     /* already initialized proc */
@@ -288,8 +288,8 @@ mrb_proc_eql(mrb_state *mrb, mrb_value self, mrb_value other)
   if (mrb_type(self) != MRB_TT_PROC) return FALSE;
   if (mrb_type(other) != MRB_TT_PROC) return FALSE;
 
-  struct RProc *p1 = mrb_proc_ptr(self);
-  struct RProc *p2 = mrb_proc_ptr(other);
+  const struct RProc *p1 = mrb_proc_ptr(self);
+  const struct RProc *p2 = mrb_proc_ptr(other);
   if (MRB_PROC_CFUNC_P(p1)) {
     if (!MRB_PROC_CFUNC_P(p1)) return FALSE;
     if (p1->body.func != p2->body.func) return FALSE;
@@ -308,7 +308,7 @@ proc_eql(mrb_state *mrb, mrb_value self)
 static mrb_value
 proc_hash(mrb_state *mrb, mrb_value self)
 {
-  struct RProc *p = mrb_proc_ptr(self);
+  const struct RProc *p = mrb_proc_ptr(self);
   return mrb_int_value(mrb, (mrb_int)(((intptr_t)p->body.irep)^MRB_TT_PROC));
 }
 
@@ -325,7 +325,7 @@ static mrb_value
 proc_lambda(mrb_state *mrb, mrb_value self)
 {
   mrb_value blk;
-  struct RProc *p;
+  const struct RProc *p;
 
   mrb_get_args(mrb, "&", &blk);
   if (mrb_nil_p(blk)) {

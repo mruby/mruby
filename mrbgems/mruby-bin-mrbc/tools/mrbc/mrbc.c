@@ -258,7 +258,7 @@ load_file(mrb_state *mrb, struct mrbc_args *args)
 }
 
 static int
-dump_file(mrb_state *mrb, FILE *wfp, const char *outfile, struct RProc *proc, struct mrbc_args *args)
+dump_file(mrb_state *mrb, FILE *wfp, const char *outfile, const struct RProc *proc, struct mrbc_args *args)
 {
   int n = MRB_DUMP_OK;
   const mrb_irep *irep = proc->body.irep;

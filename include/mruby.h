@@ -234,7 +234,7 @@ typedef struct {
   uint32_t flags;                       /* compatible with mt keys in class.c */
 
   union {
-    struct RProc *proc;
+    const struct RProc *proc;
     mrb_func_t func;
   } as;
 } mrb_method_t;

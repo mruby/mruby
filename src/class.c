@@ -22,7 +22,7 @@
 #define METHOD_MID(m) MT_KEY_SYM((m).flags)
 
 union mt_ptr {
-  struct RProc *proc;
+  const struct RProc *proc;
   mrb_func_t func;
 };
 
@@ -285,7 +285,7 @@ mrb_gc_mark_mt(mrb_state *mrb, struct RClass *c)
   union mt_ptr *vals = t->ptr;
   for (int i=0; i<t->alloc; i++) {
     if (MT_KEY_P(keys[i]) && (keys[i] & MT_FUNC) == 0) { /* Proc pointer */
-      struct RProc *p = vals[i].proc;
+      const struct RProc *p = vals[i].proc;
       mrb_gc_mark(mrb, (struct RBasic*)p);
     }
   }
@@ -755,7 +755,7 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
   }
   if (!h) h = c->mt = mt_new(mrb);
   if (MRB_METHOD_PROC_P(m)) {
-    struct RProc *p = MRB_METHOD_PROC(m);
+    struct RProc *p = (struct RProc*)MRB_METHOD_PROC(m);
 
     ptr.proc = p;
     if (p) {
@@ -2217,7 +2217,7 @@ mrb_alias_method(mrb_state *mrb, struct RClass *c, mrb_sym a, mrb_sym b)
   mrb_method_t m = mrb_method_search(mrb, c, b);
 
   if (!MRB_METHOD_CFUNC_P(m)) {
-    struct RProc *p = MRB_METHOD_PROC(m);
+    const struct RProc *p = MRB_METHOD_PROC(m);
     if (!MRB_PROC_CFUNC_P(p) && !MRB_PROC_ALIAS_P(p)) {
       struct RProc *pnew = MRB_OBJ_ALLOC(mrb, MRB_TT_PROC, mrb->proc_class);
 

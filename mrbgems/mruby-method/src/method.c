@@ -63,7 +63,7 @@ args_unshift(mrb_state *mrb, mrb_value obj)
   mrb_ary_unshift(mrb, *argv, obj);
 }
 
-static struct RProc*
+static const struct RProc*
 method_missing_prepare(mrb_state *mrb, mrb_sym *mid, mrb_value recv, struct RClass **tc)
 {
   const mrb_sym id_method_missing = MRB_SYM(method_missing);
@@ -83,10 +83,11 @@ method_missing_prepare(mrb_state *mrb, mrb_sym *mid, mrb_value recv, struct RCla
     goto method_missing;
   }
 
-  struct RProc *proc;
+  const struct RProc *proc;
   if (MRB_METHOD_FUNC_P(m)) {
-    proc = mrb_proc_new_cfunc(mrb, MRB_METHOD_FUNC(m));
-    MRB_PROC_SET_TARGET_CLASS(proc, *tc);
+    struct RProc *p = mrb_proc_new_cfunc(mrb, MRB_METHOD_FUNC(m));
+    MRB_PROC_SET_TARGET_CLASS(p, *tc);
+    proc = p;
   }
   else {
     proc = MRB_METHOD_PROC(m);
@@ -104,7 +105,7 @@ method_object_alloc(mrb_state *mrb, struct RClass *mclass)
   return MRB_OBJ_ALLOC(mrb, MRB_TT_OBJECT, mclass);
 }
 
-static struct RProc*
+static const struct RProc*
 method_extract_proc(mrb_state *mrb, mrb_value self)
 {
   mrb_value obj = mrb_iv_get(mrb, self, MRB_SYM(_proc));
@@ -230,7 +231,7 @@ method_eql(mrb_state *mrb, mrb_value self)
 static mrb_value
 mcall(mrb_state *mrb, mrb_value self, mrb_value recv)
 {
-  struct RProc *proc = method_extract_proc(mrb, self);
+  const struct RProc *proc = method_extract_proc(mrb, self);
   mrb_sym mid = method_extract_mid(mrb, self);
   struct RClass *tc = method_extract_owner(mrb, self);
 
@@ -282,7 +283,7 @@ method_unbind(mrb_state *mrb, mrb_value self)
   return mrb_obj_value(ume);
 }
 
-static struct RProc *
+static const struct RProc *
 method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
 {
   mrb_method_t m = mrb_method_search_vm(mrb, cp, mid);
@@ -320,7 +321,7 @@ method_super_method(mrb_state *mrb, mrb_value self)
     super = mrb_class_ptr(owner)->super;
   }
 
-  struct RProc *proc = method_search_vm(mrb, &super, mrb_symbol(name));
+  const struct RProc *proc = method_search_vm(mrb, &super, mrb_symbol(name));
   if (!proc) return mrb_nil_value();
 
   if (!super) return mrb_nil_value();
@@ -330,7 +331,7 @@ method_super_method(mrb_state *mrb, mrb_value self)
   mrb_obj_iv_set(mrb, me, MRB_SYM(_owner), mrb_obj_value(super));
   mrb_obj_iv_set(mrb, me, MRB_SYM(_recv), recv);
   mrb_obj_iv_set(mrb, me, MRB_SYM(_name), name);
-  mrb_obj_iv_set(mrb, me, MRB_SYM(_proc), mrb_obj_value(proc));
+  mrb_obj_iv_set(mrb, me, MRB_SYM(_proc), mrb_obj_value((void*)proc));
   mrb_obj_iv_set(mrb, me, MRB_SYM(_klass), mrb_obj_value(super));
 
   return mrb_obj_value(me);
@@ -432,7 +433,7 @@ method_to_s(mrb_state *mrb, mrb_value self)
 }
 
 static mrb_bool
-search_method_owner(mrb_state *mrb, struct RClass *c, mrb_value obj, mrb_sym name, struct RClass **owner, struct RProc **proc, mrb_bool unbound)
+search_method_owner(mrb_state *mrb, struct RClass *c, mrb_value obj, mrb_sym name, struct RClass **owner, const struct RProc **proc, mrb_bool unbound)
 {
   *owner = c;
   *proc = method_search_vm(mrb, owner, name);
@@ -462,7 +463,7 @@ static mrb_value
 method_alloc(mrb_state *mrb, struct RClass *c, mrb_value obj, mrb_sym name, mrb_bool unbound, mrb_bool singleton)
 {
   struct RClass *owner;
-  struct RProc *proc;
+  const struct RProc *proc;
 
   if (!search_method_owner(mrb, c, obj, name, &owner, &proc, unbound)) {
     if (singleton) {
@@ -482,7 +483,7 @@ method_alloc(mrb_state *mrb, struct RClass *c, mrb_value obj, mrb_sym name, mrb_
   mrb_obj_iv_set(mrb, me, MRB_SYM(_owner), mrb_obj_value(owner));
   mrb_obj_iv_set(mrb, me, MRB_SYM(_recv), unbound ? mrb_nil_value() : obj);
   mrb_obj_iv_set(mrb, me, MRB_SYM(_name), mrb_symbol_value(name));
-  mrb_obj_iv_set(mrb, me, MRB_SYM(_proc), proc ? mrb_obj_value(proc) : mrb_nil_value());
+  mrb_obj_iv_set(mrb, me, MRB_SYM(_proc), proc ? mrb_obj_value((void*)proc) : mrb_nil_value());
   mrb_obj_iv_set(mrb, me, MRB_SYM(_klass), mrb_obj_value(c));
 
   return mrb_obj_value(me);
