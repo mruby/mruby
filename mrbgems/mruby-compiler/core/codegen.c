@@ -1883,34 +1883,34 @@ gen_call(codegen_scope *s, node *tree, int val, int safe)
   }
   push();pop();
   s->sp = sp_save;
-  if (!noop && sym == MRB_OPSYM_2(s->mrb, add) && n == 1)  {
+  if (!noop && sym == MRB_OPSYM_2(s->mrb, add) && n == 1) {
     gen_addsub(s, OP_ADD, cursp());
   }
-  else if (!noop && sym == MRB_OPSYM_2(s->mrb, sub) && n == 1)  {
+  else if (!noop && sym == MRB_OPSYM_2(s->mrb, sub) && n == 1) {
     gen_addsub(s, OP_SUB, cursp());
   }
-  else if (!noop && sym == MRB_OPSYM_2(s->mrb, mul) && n == 1)  {
+  else if (!noop && sym == MRB_OPSYM_2(s->mrb, mul) && n == 1) {
     gen_muldiv(s, OP_MUL, cursp());
   }
-  else if (!noop && sym == MRB_OPSYM_2(s->mrb, div) && n == 1)  {
+  else if (!noop && sym == MRB_OPSYM_2(s->mrb, div) && n == 1) {
     gen_muldiv(s, OP_DIV, cursp());
   }
-  else if (!noop && sym == MRB_OPSYM_2(s->mrb, lt) && n == 1)  {
+  else if (!noop && sym == MRB_OPSYM_2(s->mrb, lt) && n == 1) {
     genop_1(s, OP_LT, cursp());
   }
-  else if (!noop && sym == MRB_OPSYM_2(s->mrb, le) && n == 1)  {
+  else if (!noop && sym == MRB_OPSYM_2(s->mrb, le) && n == 1) {
     genop_1(s, OP_LE, cursp());
   }
-  else if (!noop && sym == MRB_OPSYM_2(s->mrb, gt) && n == 1)  {
+  else if (!noop && sym == MRB_OPSYM_2(s->mrb, gt) && n == 1) {
     genop_1(s, OP_GT, cursp());
   }
-  else if (!noop && sym == MRB_OPSYM_2(s->mrb, ge) && n == 1)  {
+  else if (!noop && sym == MRB_OPSYM_2(s->mrb, ge) && n == 1) {
     genop_1(s, OP_GE, cursp());
   }
-  else if (!noop && sym == MRB_OPSYM_2(s->mrb, eq) && n == 1)  {
+  else if (!noop && sym == MRB_OPSYM_2(s->mrb, eq) && n == 1) {
     genop_1(s, OP_EQ, cursp());
   }
-  else if (!noop && sym == MRB_OPSYM_2(s->mrb, aset) && n == 2)  {
+  else if (!noop && sym == MRB_OPSYM_2(s->mrb, aset) && n == 2) {
     genop_1(s, OP_SETIDX, cursp());
   }
   else if (!noop && n == 0 && gen_uniop(s, sym, cursp())) {
@@ -1919,7 +1919,7 @@ gen_call(codegen_scope *s, node *tree, int val, int safe)
   else if (!noop && n == 1 && gen_binop(s, sym, cursp())) {
     /* constant folding succeeded */
   }
-  else if (noself){
+  else if (noself) {
     genop_3(s, blk ? OP_SSENDB : OP_SSEND, cursp(), new_sym(s, sym), n|(nk<<4));
   }
   else {
