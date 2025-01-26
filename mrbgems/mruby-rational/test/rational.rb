@@ -309,3 +309,8 @@ assert 'Rational#**' do
   assert_float(16.0, (4r)**(2.0))
   assert_float(3.5**1.5, (7/2r)**(1.5))
 end
+
+assert 'Integer#quo' do
+  a = 6.quo(5)
+  assert_equal 6/5r, a
+end
