@@ -1846,24 +1846,22 @@ gen_call(codegen_scope *s, node *tree, int val, int safe)
 {
   mrb_sym sym = nsym(tree->cdr->car);
   int skip = 0, n = 0, nk = 0, noop = no_optimize(s), noself = 0, blk = 0, sp_save = cursp();
-  mrb_sym opt_sym = 0;
+  enum mrb_insn opt_op = OP_NOP;
 
   if (!noop) {
-    if (sym == MRB_OPSYM_2(s->mrb, add) ||
-        sym == MRB_OPSYM_2(s->mrb, sub) ||
-        sym == MRB_OPSYM_2(s->mrb, mul) ||
-        sym == MRB_OPSYM_2(s->mrb, div) ||
-        sym == MRB_OPSYM_2(s->mrb, lt)  ||
-        sym == MRB_OPSYM_2(s->mrb, le)  ||
-        sym == MRB_OPSYM_2(s->mrb, gt)  ||
-        sym == MRB_OPSYM_2(s->mrb, ge)  ||
-        sym == MRB_OPSYM_2(s->mrb, eq)  ||
-        sym == MRB_OPSYM_2(s->mrb, aref)||
-        sym == MRB_OPSYM_2(s->mrb, aset)) {
-      opt_sym = sym;
-    }
+    if (sym == MRB_OPSYM_2(s->mrb, add)) opt_op = OP_ADD;
+    else if (sym == MRB_OPSYM_2(s->mrb, sub)) opt_op = OP_SUB;
+    else if (sym == MRB_OPSYM_2(s->mrb, mul)) opt_op = OP_MUL;
+    else if (sym == MRB_OPSYM_2(s->mrb, div)) opt_op = OP_DIV;
+    else if (sym == MRB_OPSYM_2(s->mrb, lt)) opt_op = OP_LT;
+    else if (sym == MRB_OPSYM_2(s->mrb, le)) opt_op = OP_LE;
+    else if (sym == MRB_OPSYM_2(s->mrb, gt)) opt_op = OP_GT;
+    else if (sym == MRB_OPSYM_2(s->mrb, ge)) opt_op = OP_GE;
+    else if (sym == MRB_OPSYM_2(s->mrb, eq)) opt_op = OP_EQ;
+    else if (sym == MRB_OPSYM_2(s->mrb, aref)) opt_op = OP_GETIDX;
+    else if (sym == MRB_OPSYM_2(s->mrb, aset)) opt_op = OP_SETIDX;
   }
-  if (!tree->car || (opt_sym == 0 && nint(tree->car->car) == NODE_SELF)) {
+  if (!tree->car || (opt_op == OP_NOP && nint(tree->car->car) == NODE_SELF)) {
     noself = 1;
     push();
   }
@@ -1899,34 +1897,34 @@ gen_call(codegen_scope *s, node *tree, int val, int safe)
   }
   push();
   s->sp = sp_save;
-  if (opt_sym == MRB_OPSYM_2(s->mrb, add) && n == 1) {
+  if (opt_op == OP_ADD && n == 1) {
     gen_addsub(s, OP_ADD, cursp());
   }
-  else if (opt_sym == MRB_OPSYM_2(s->mrb, sub) && n == 1) {
+  else if (opt_op == OP_SUB && n == 1) {
     gen_addsub(s, OP_SUB, cursp());
   }
-  else if (opt_sym == MRB_OPSYM_2(s->mrb, mul) && n == 1) {
+  else if (opt_op == OP_MUL && n == 1) {
     gen_muldiv(s, OP_MUL, cursp());
   }
-  else if (opt_sym == MRB_OPSYM_2(s->mrb, div) && n == 1) {
+  else if (opt_op == OP_DIV && n == 1) {
     gen_muldiv(s, OP_DIV, cursp());
   }
-  else if (opt_sym == MRB_OPSYM_2(s->mrb, lt) && n == 1) {
+  else if (opt_op == OP_LT && n == 1) {
     genop_1(s, OP_LT, cursp());
   }
-  else if (opt_sym == MRB_OPSYM_2(s->mrb, le) && n == 1) {
+  else if (opt_op == OP_LE && n == 1) {
     genop_1(s, OP_LE, cursp());
   }
-  else if (opt_sym == MRB_OPSYM_2(s->mrb, gt) && n == 1) {
+  else if (opt_op == OP_GT && n == 1) {
     genop_1(s, OP_GT, cursp());
   }
-  else if (opt_sym == MRB_OPSYM_2(s->mrb, ge) && n == 1) {
+  else if (opt_op == OP_GE && n == 1) {
     genop_1(s, OP_GE, cursp());
   }
-  else if (opt_sym == MRB_OPSYM_2(s->mrb, eq) && n == 1) {
+  else if (opt_op == OP_EQ && n == 1) {
     genop_1(s, OP_EQ, cursp());
   }
-  else if (opt_sym == MRB_OPSYM_2(s->mrb, aset) && n == 2) {
+  else if (opt_op == OP_SETIDX && n == 2) {
     genop_1(s, OP_SETIDX, cursp());
   }
   else if (!noop && n == 0 && gen_uniop(s, sym, cursp())) {
