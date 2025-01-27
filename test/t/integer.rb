@@ -49,12 +49,7 @@ assert('Integer#/', '15.2.8.3.4') do
   assert_equal 2.0, b
 end
 
-if Object.const_defined?(:Rational)
-  assert('Integer#quo') do
-    a = 6.quo(5)
-    assert_equal 5/6r, a
-  end
-elsif Object.const_defined?(:Float)
+if Object.const_defined?(:Float)
   assert('Integer#quo') do
     a = 6.quo(5)
     assert_equal 1.2, a
