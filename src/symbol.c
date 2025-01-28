@@ -66,7 +66,7 @@ sym_validate_len(mrb_state *mrb, size_t len)
 # define sym_inline_pack(name, len) 0
 # define sym_inline_unpack(sym, buf, lenp) NULL
 #else
-# define SYMBOL_INLINE_P(sym) ((sym) >= (1<<24))
+# define SYMBOL_INLINE_P(sym) ((sym) > (1<<20))
 
 static const char pack_table[] = "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
@@ -85,7 +85,7 @@ sym_inline_pack(const char *name, size_t len)
     if (p == 0) return 0;       /* non alnum char */
 
     uint32_t bits = (uint32_t)(p - pack_table)+1;
-    sym |= bits<<(24-i*6);
+    sym |= bits<<(20-i*6);
   }
   mrb_assert(SYMBOL_INLINE_P(sym));
   return sym;
@@ -99,7 +99,7 @@ sym_inline_unpack(mrb_sym sym, char *buf, mrb_int *lenp)
   mrb_assert(SYMBOL_INLINE_P(sym));
 
   for (i=0; i<5; i++) {
-    uint32_t bits = sym>>(24-i*6) & 0x3f;
+    uint32_t bits = sym>>(20-i*6) & 0x3f;
     if (bits == 0) break;
     buf[i] = pack_table[bits-1];
   }
