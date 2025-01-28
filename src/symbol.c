@@ -73,12 +73,7 @@ static const char pack_table[] = "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRS
 static mrb_sym
 sym_inline_pack(const char *name, size_t len)
 {
-#if defined(MRB_WORD_BOXING) && defined(MRB_32BIT) && !defined(MRB_WORDBOX_NO_FLOAT_TRUNCATE)
   const size_t pack_length_max = 4;
-#else
-  const size_t pack_length_max = 5;
-#endif
-
   mrb_sym sym = 0;
 
   if (len > pack_length_max) return 0; /* too long */
