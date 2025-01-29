@@ -413,7 +413,7 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
       fprintf(out, "RANGE_EXC\tR%d\n", a);
       break;
     CASE(OP_DEF, BB):
-      fprintf(out, "DEF\t\tR%d\t:%s\n", a, mrb_sym_dump(mrb, irep->syms[b]));
+      fprintf(out, "DEF\t\tR%d\t:%s\t(R%d)\n", a, mrb_sym_dump(mrb, irep->syms[b]),a+1);
       break;
     CASE(OP_UNDEF, B):
       fprintf(out, "UNDEF\t\t:%s\n", mrb_sym_dump(mrb, irep->syms[a]));
