@@ -26,16 +26,18 @@ union mt_ptr {
   mrb_func_t func;
 };
 
-#define MT_KEY_SHIFT 2
-#define MT_KEY_MASK  ((1<<2)-1)
+#define MT_KEY_SHIFT 4
+#define MT_KEY_MASK  ((1<<MT_KEY_SHIFT)-1)
 #define MT_KEY_P(k) (((k)>>MT_KEY_SHIFT) != 0)
 #define MT_FUNC MRB_METHOD_FUNC_FL
 #define MT_NOARG MRB_METHOD_NOARG_FL
+#define MT_PUBLIC MRB_METHOD_PUBLIC_FL
+#define MT_PRIVATE MRB_METHOD_PRIVATE_FL
+#define MT_PROTECTED MRB_METHOD_PROTECTED_FL
 #define MT_EMPTY 0
 #define MT_DELETED 1
 
 #define MT_KEY(sym, flags) ((sym)<<MT_KEY_SHIFT|(flags))
-#define MT_FLAGS(isfunc, isnoarg) ((isfunc)?MT_FUNC:0)|((isnoarg)?MT_NOARG:0)
 #define MT_KEY_SYM(k) ((k)>>MT_KEY_SHIFT)
 #define MT_KEY_FLG(k) ((k)&MT_KEY_MASK)
 
@@ -349,6 +351,7 @@ setup_class(mrb_state *mrb, struct RClass *outer, struct RClass *c, mrb_sym id)
 {
   mrb_class_name_class(mrb, outer, c, id);
   mrb_obj_iv_set(mrb, (struct RObject*)outer, id, mrb_obj_value(c));
+  MRB_SET_VISIBILITY(c, MT_PUBLIC);
 }
 
 #define make_metaclass(mrb, c) prepare_singleton_class((mrb), (struct RBasic*)(c))
@@ -776,7 +779,7 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
   else {
     ptr.func = MRB_METHOD_FUNC(m);
   }
-  mt_put(mrb, h, mid, MT_FLAGS(MRB_METHOD_FUNC_P(m), MRB_METHOD_NOARG_P(m)), ptr);
+  mt_put(mrb, h, mid, (MT_KEY_FLG(m.flags)&0xC)|MRB_VISIBILITY(c), ptr);
   mc_clear_by_id(mrb, mid);
 }
 
@@ -1629,9 +1632,51 @@ mrb_mod_initialize(mrb_state *mrb, mrb_value mod)
   return mod;
 }
 
-static mrb_value
-mrb_mod_dummy_visibility(mrb_state *mrb, mrb_value mod)
+static void
+mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int visibility)
 {
+  mrb_assert((visibility&0x3)==visibility);
+  mrb_int argc;
+  mrb_value *argv;
+  struct RClass *c = mrb_class_ptr(mod);
+
+  mrb_get_args(mrb, "*!", &argv, &argc);
+  if (argc == 0) {
+    MRB_SET_VISIBILITY(c, visibility);
+  }
+  else {
+    mt_tbl *h = c->mt;
+    for (int i=0; i<argc; i++) {
+      mrb_check_type(mrb, argv[i], MRB_TT_SYMBOL);
+      mrb_sym mid = mrb_symbol(argv[i]);
+      union mt_ptr ptr;
+      mrb_sym ret = mt_get(mrb, h, mid, &ptr);
+      if (ret == 0) {
+        mrb_raisef(mrb, E_NAME_ERROR, "undefined method %n for %C", mid, c);
+      }
+      mt_put(mrb, h, mid, (ret&0xC)|visibility, ptr);
+    }
+  }
+}
+
+static mrb_value
+mrb_mod_public(mrb_state *mrb, mrb_value mod)
+{
+  mrb_mod_visibility(mrb, mod, MT_PUBLIC);
+  return mod;
+}
+
+static mrb_value
+mrb_mod_private(mrb_state *mrb, mrb_value mod)
+{
+  mrb_mod_visibility(mrb, mod, MT_PRIVATE);
+  return mod;
+}
+
+static mrb_value
+mrb_mod_protected(mrb_state *mrb, mrb_value mod)
+{
+  mrb_mod_visibility(mrb, mod, MT_PROTECTED);
   return mod;
 }
 
@@ -2989,9 +3034,9 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method_id(mrb, mod, MRB_SYM(initialize),              mrb_mod_initialize,       MRB_ARGS_NONE()); /* 15.2.2.4.31 */
   mrb_define_method_id(mrb, mod, MRB_SYM(module_eval),             mrb_mod_module_eval,      MRB_ARGS_ANY());  /* 15.2.2.4.35 */
   mrb_define_method_id(mrb, mod, MRB_SYM(module_function),         mrb_mod_module_function,  MRB_ARGS_ANY());
-  mrb_define_method_id(mrb, mod, MRB_SYM(private),                 mrb_mod_dummy_visibility, MRB_ARGS_ANY());  /* 15.2.2.4.36 */
-  mrb_define_method_id(mrb, mod, MRB_SYM(protected),               mrb_mod_dummy_visibility, MRB_ARGS_ANY());  /* 15.2.2.4.37 */
-  mrb_define_method_id(mrb, mod, MRB_SYM(public),                  mrb_mod_dummy_visibility, MRB_ARGS_ANY());  /* 15.2.2.4.38 */
+  mrb_define_method_id(mrb, mod, MRB_SYM(private),                 mrb_mod_private,          MRB_ARGS_ANY());  /* 15.2.2.4.36 */
+  mrb_define_method_id(mrb, mod, MRB_SYM(protected),               mrb_mod_protected,        MRB_ARGS_ANY());  /* 15.2.2.4.37 */
+  mrb_define_method_id(mrb, mod, MRB_SYM(public),                  mrb_mod_public,           MRB_ARGS_ANY());  /* 15.2.2.4.38 */
   mrb_define_method_id(mrb, mod, MRB_SYM(attr_reader),             mrb_mod_attr_reader,      MRB_ARGS_ANY());  /* 15.2.2.4.13 */
   mrb_define_method_id(mrb, mod, MRB_SYM(attr_writer),             mrb_mod_attr_writer,      MRB_ARGS_ANY());  /* 15.2.2.4.14 */
   mrb_define_method_id(mrb, mod, MRB_SYM(to_s),                    mrb_mod_to_s,             MRB_ARGS_NONE());
