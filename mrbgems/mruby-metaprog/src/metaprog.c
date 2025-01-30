@@ -9,19 +9,9 @@
 #include <mruby/khash.h>
 #include <mruby/presym.h>
 
-typedef enum {
-  NOEX_PUBLIC    = 0x00,
-  NOEX_NOSUPER   = 0x01,
-  NOEX_PRIVATE   = 0x02,
-  NOEX_PROTECTED = 0x04,
-  NOEX_MASK      = 0x06,
-  NOEX_BASIC     = 0x08,
-  NOEX_UNDEF     = NOEX_NOSUPER,
-  NOEX_MODFUNC   = 0x12,
-  NOEX_SUPER     = 0x20,
-  NOEX_VCALL     = 0x40,
-  NOEX_RESPONDS  = 0x80
-} mrb_method_flag_t;
+#define MT_PUBLIC MRB_METHOD_PUBLIC_FL
+#define MT_PRIVATE MRB_METHOD_PRIVATE_FL
+#define MT_PROTECTED MRB_METHOD_PROTECTED_FL
 
 static mrb_value
 mrb_f_nil(mrb_state *mrb, mrb_value cv)
@@ -209,7 +199,7 @@ mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass *kl
 }
 
 static mrb_value
-mrb_obj_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj, mrb_method_flag_t flag)
+mrb_obj_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj, int flag)
 {
   return mrb_class_instance_method_list(mrb, recur, mrb_class(mrb, obj));
 }
@@ -237,7 +227,7 @@ mrb_obj_methods_m(mrb_state *mrb, mrb_value self)
 {
   mrb_bool recur = TRUE;
   mrb_get_args(mrb, "|b", &recur);
-  return mrb_obj_methods(mrb, recur, self, (mrb_method_flag_t)0); /* everything but private */
+  return mrb_obj_methods(mrb, recur, self, MT_PUBLIC); /* everything but private */
 }
 
 /* 15.3.1.3.36 */
@@ -254,7 +244,7 @@ mrb_obj_private_methods(mrb_state *mrb, mrb_value self)
 {
   mrb_bool recur = TRUE;
   mrb_get_args(mrb, "|b", &recur);
-  return mrb_obj_methods(mrb, recur, self, NOEX_PRIVATE); /* private attribute not define */
+  return mrb_obj_methods(mrb, recur, self, MT_PRIVATE); /* private attribute not define */
 }
 
 /* 15.3.1.3.37 */
@@ -271,7 +261,7 @@ mrb_obj_protected_methods(mrb_state *mrb, mrb_value self)
 {
   mrb_bool recur = TRUE;
   mrb_get_args(mrb, "|b", &recur);
-  return mrb_obj_methods(mrb, recur, self, NOEX_PROTECTED); /* protected attribute not define */
+  return mrb_obj_methods(mrb, recur, self, MT_PROTECTED); /* protected attribute not define */
 }
 
 /* 15.3.1.3.38 */
@@ -288,7 +278,7 @@ mrb_obj_public_methods(mrb_state *mrb, mrb_value self)
 {
   mrb_bool recur = TRUE;
   mrb_get_args(mrb, "|b", &recur);
-  return mrb_obj_methods(mrb, recur, self, NOEX_PUBLIC); /* public attribute not define */
+  return mrb_obj_methods(mrb, recur, self, MT_PUBLIC); /* public attribute not define */
 }
 
 static mrb_value
