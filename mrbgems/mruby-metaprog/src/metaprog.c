@@ -563,6 +563,24 @@ mrb_mod_instance_methods(mrb_state *mrb, mrb_value mod)
   return mod_instance_methods(mrb, mod, MT_NOPRIV);
 }
 
+static mrb_value
+mrb_mod_public_instance_methods(mrb_state *mrb, mrb_value mod)
+{
+  return mod_instance_methods(mrb, mod, MT_PUBLIC);
+}
+
+static mrb_value
+mrb_mod_private_instance_methods(mrb_state *mrb, mrb_value mod)
+{
+  return mod_instance_methods(mrb, mod, MT_PRIVATE);
+}
+
+static mrb_value
+mrb_mod_protected_instance_methods(mrb_state *mrb, mrb_value mod)
+{
+  return mod_instance_methods(mrb, mod, MT_PROTECTED);
+}
+
 static int
 undefined_method_i(mrb_state *mrb, mrb_sym mid, mrb_method_t m, void *p)
 {
@@ -683,6 +701,9 @@ mrb_mruby_metaprog_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, mod, MRB_SYM(class_variable_set), mrb_mod_cvar_set, MRB_ARGS_REQ(2)); /* 15.2.2.4.18 */
   mrb_define_method_id(mrb, mod, MRB_SYM(included_modules), mrb_mod_included_modules, MRB_ARGS_NONE()); /* 15.2.2.4.30 */
   mrb_define_method_id(mrb, mod, MRB_SYM(instance_methods), mrb_mod_instance_methods, MRB_ARGS_ANY()); /* 15.2.2.4.33 */
+  mrb_define_method_id(mrb, mod, MRB_SYM(public_instance_methods), mrb_mod_public_instance_methods, MRB_ARGS_OPT(1));
+  mrb_define_method_id(mrb, mod, MRB_SYM(private_instance_methods), mrb_mod_private_instance_methods, MRB_ARGS_OPT(1));
+  mrb_define_method_id(mrb, mod, MRB_SYM(protected_instance_methods), mrb_mod_protected_instance_methods, MRB_ARGS_OPT(1));
   mrb_define_method_id(mrb, mod, MRB_SYM(undefined_instance_methods), mrb_mod_undefined_methods, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, mod, MRB_SYM(remove_method), mrb_mod_remove_method, MRB_ARGS_ANY()); /* 15.2.2.4.41 */
   mrb_define_method_id(mrb, mod, MRB_SYM(method_removed), mrb_f_nil, MRB_ARGS_REQ(1));
