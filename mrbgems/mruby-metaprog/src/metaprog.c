@@ -12,6 +12,7 @@
 #define MT_PUBLIC MRB_METHOD_PUBLIC_FL
 #define MT_PRIVATE MRB_METHOD_PRIVATE_FL
 #define MT_PROTECTED MRB_METHOD_PROTECTED_FL
+#define MT_NOPRIV (MT_PRIVATE|MT_PROTECTED)
 
 static mrb_value
 mrb_f_nil(mrb_state *mrb, mrb_value cv)
@@ -128,43 +129,38 @@ mrb_local_variables(mrb_state *mrb, mrb_value self)
   return mrb_proc_local_variables(mrb, mrb->c->ci[-1].proc);
 }
 
-KHASH_DECLARE(st, mrb_sym, char, FALSE)
-KHASH_DEFINE(st, mrb_sym, char, FALSE, kh_int_hash_func, kh_int_hash_equal)
+KHASH_DECLARE(st, mrb_sym, char, TRUE)
+KHASH_DEFINE(st, mrb_sym, char, TRUE, kh_int_hash_func, kh_int_hash_equal)
 
 struct mt_set {
+  unsigned int visibility;
   khash_t(st) *set;
-  khash_t(st) *undef;
 };
+
+#define vicheck(flags, visi) (((visi)==MT_NOPRIV) ? (((flags)&0x3)!=MT_PRIVATE) : (((flags)&0x3)==(visi)))
 
 static int
 method_entry_i(mrb_state *mrb, mrb_sym mid, mrb_method_t m, void *p)
 {
   struct mt_set *s = (struct mt_set*)p;
 
-  if (MRB_METHOD_UNDEF_P(m)) {
-    if (s->undef) {
-      kh_put(st, mrb, s->undef, mid);
-    }
-  }
-  else if (s->undef == NULL ||
-           kh_get(st, mrb, s->undef, mid) == kh_end(s->undef)) {
-    kh_put(st, mrb, s->set, mid);
+  if (vicheck(m.flags, s->visibility) && kh_get(st, mrb, s->set, mid) == kh_end(s->set)) {
+    khint_t k = kh_put(st, mrb, s->set, mid);
+    kh_val(s->set, k) = !MRB_METHOD_UNDEF_P(m);
   }
   return 0;
 }
 
 static void
-method_entry_loop(mrb_state *mrb, struct RClass *klass, khash_t(st) *set, khash_t(st) *undef)
+method_entry_loop(mrb_state *mrb, struct RClass *klass, khash_t(st) *set, unsigned int visibility)
 {
-  struct mt_set s;
+  struct mt_set s = {visibility, set};
 
-  s.set = set;
-  s.undef = undef;
   mrb_mt_foreach(mrb, klass, method_entry_i, (void*)&s);
 }
 
 static mrb_value
-mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass *klass)
+mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass *klass, unsigned int flags)
 {
   mrb_value ary;
   khash_t(st) *set = kh_init(st, mrb);
@@ -173,24 +169,24 @@ mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass *kl
     if (klass->flags & MRB_FL_CLASS_IS_PREPENDED) {
       MRB_CLASS_ORIGIN(klass);
     }
-    method_entry_loop(mrb, klass, set, NULL);
+    method_entry_loop(mrb, klass, set, flags);
   }
   else {
-    khash_t(st) *undef = kh_init(st, mrb);
     struct RClass *oldklass = NULL;
 
     while (klass && (klass != oldklass)) {
-      method_entry_loop(mrb, klass, set, undef);
+      method_entry_loop(mrb, klass, set, flags);
       oldklass = klass;
       klass = klass->super;
     }
-    kh_destroy(st, mrb, undef);
   }
 
   ary = mrb_ary_new_capa(mrb, kh_size(set));
   for (khint_t i=0; i<kh_end(set); i++) {
     if (kh_exist(set, i)) {
-      mrb_ary_push(mrb, ary, mrb_symbol_value(kh_key(set, i)));
+      if (kh_val(set, i)) {
+        mrb_ary_push(mrb, ary, mrb_symbol_value(kh_key(set, i)));
+      }
     }
   }
   kh_destroy(st, mrb, set);
@@ -199,18 +195,26 @@ mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass *kl
 }
 
 static mrb_value
-mrb_obj_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj, int flag)
+mrb_obj_methods(mrb_state *mrb, mrb_value obj, unsigned int flags)
 {
-  return mrb_class_instance_method_list(mrb, recur, mrb_class(mrb, obj));
+  mrb_bool regular = TRUE;
+  mrb_get_args(mrb, "|b", &regular);
+
+  struct RClass *c = (regular) ? mrb_class(mrb, obj) : mrb_obj_ptr(obj)->c;
+  return mrb_class_instance_method_list(mrb, regular, c, flags);
 }
+
 /* 15.3.1.3.31 */
 /*
  *  call-seq:
- *     obj.methods    -> array
+ *     obj.methods(regular=true)    -> array
  *
- *  Returns a list of the names of methods publicly accessible in
- *  <i>obj</i>. This will include all the methods accessible in
- *  <i>obj</i>'s ancestors.
+ *  Returns a list of the names of public and protected methods of
+ *  `obj`. This will include all the methods accessible in
+ *  `obj`'s ancestors.
+ *  If the optional parameter is `false`, it
+ *  returns an array of `obj`'s public and protected singleton methods,
+ *  the array will not include methods in modules included in `obj`.
  *
  *     class Klass
  *       def kMethod()
@@ -225,9 +229,7 @@ mrb_obj_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj, int flag)
 static mrb_value
 mrb_obj_methods_m(mrb_state *mrb, mrb_value self)
 {
-  mrb_bool recur = TRUE;
-  mrb_get_args(mrb, "|b", &recur);
-  return mrb_obj_methods(mrb, recur, self, MT_PUBLIC); /* everything but private */
+  return mrb_obj_methods(mrb, self, MT_NOPRIV);
 }
 
 /* 15.3.1.3.36 */
@@ -242,9 +244,7 @@ mrb_obj_methods_m(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_obj_private_methods(mrb_state *mrb, mrb_value self)
 {
-  mrb_bool recur = TRUE;
-  mrb_get_args(mrb, "|b", &recur);
-  return mrb_obj_methods(mrb, recur, self, MT_PRIVATE); /* private attribute not define */
+  return mrb_obj_methods(mrb, self, MT_PRIVATE);
 }
 
 /* 15.3.1.3.37 */
@@ -259,9 +259,7 @@ mrb_obj_private_methods(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_obj_protected_methods(mrb_state *mrb, mrb_value self)
 {
-  mrb_bool recur = TRUE;
-  mrb_get_args(mrb, "|b", &recur);
-  return mrb_obj_methods(mrb, recur, self, MT_PROTECTED); /* protected attribute not define */
+  return mrb_obj_methods(mrb, self, MT_PROTECTED);
 }
 
 /* 15.3.1.3.38 */
@@ -276,9 +274,7 @@ mrb_obj_protected_methods(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_obj_public_methods(mrb_state *mrb, mrb_value self)
 {
-  mrb_bool recur = TRUE;
-  mrb_get_args(mrb, "|b", &recur);
-  return mrb_obj_methods(mrb, recur, self, MT_PUBLIC); /* public attribute not define */
+  return mrb_obj_methods(mrb, self, MT_PUBLIC);
 }
 
 static mrb_value
@@ -287,17 +283,16 @@ mrb_obj_singleton_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj)
   mrb_value ary;
   struct RClass *klass;
   khash_t(st) *set = kh_init(st, mrb);
-  khash_t(st) *undef = (recur ? kh_init(st, mrb) : NULL);
 
   klass = mrb_class(mrb, obj);
 
   if (klass && (klass->tt == MRB_TT_SCLASS)) {
-      method_entry_loop(mrb, klass, set, undef);
+      method_entry_loop(mrb, klass, set, MT_PUBLIC);
       klass = klass->super;
   }
   if (recur) {
       while (klass && ((klass->tt == MRB_TT_SCLASS) || (klass->tt == MRB_TT_ICLASS))) {
-        method_entry_loop(mrb, klass, set, undef);
+        method_entry_loop(mrb, klass, set, MT_PUBLIC);
         klass = klass->super;
       }
   }
@@ -309,7 +304,6 @@ mrb_obj_singleton_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj)
     }
   }
   kh_destroy(st, mrb, set);
-  if (undef) kh_destroy(st, mrb, undef);
 
   return ary;
 }
@@ -526,6 +520,15 @@ mrb_mod_included_modules(mrb_state *mrb, mrb_value self)
   return result;
 }
 
+static mrb_value
+mod_instance_methods(mrb_state *mrb, mrb_value mod, unsigned int visibility)
+{
+  struct RClass *c = mrb_class_ptr(mod);
+  mrb_bool recur = TRUE;
+  mrb_get_args(mrb, "|b", &recur);
+  return mrb_class_instance_method_list(mrb, recur, c, visibility);
+}
+
 /* 15.2.2.4.33 */
 /*
  *  call-seq:
@@ -557,10 +560,7 @@ mrb_mod_included_modules(mrb_state *mrb, mrb_value self)
 static mrb_value
 mrb_mod_instance_methods(mrb_state *mrb, mrb_value mod)
 {
-  struct RClass *c = mrb_class_ptr(mod);
-  mrb_bool recur = TRUE;
-  mrb_get_args(mrb, "|b", &recur);
-  return mrb_class_instance_method_list(mrb, recur, c);
+  return mod_instance_methods(mrb, mod, MT_NOPRIV);
 }
 
 static int
