@@ -1,5 +1,5 @@
 def self.include(*modules)
-  self.class.include(*modules)
+  Object.include(*modules)
 end
 
 def self.private(*methods)
