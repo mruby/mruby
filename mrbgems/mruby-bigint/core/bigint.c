@@ -1045,7 +1045,7 @@ mpz_neg(mrb_state *mrb, mpz_t *x, mpz_t *y)
 
 #define make_2comp(v,c) do { v=~(v)+(c); c=((v)==0 && (c));} while (0)
 
-void
+static void
 mpz_and(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
 {
   if (zero_p(x) || zero_p(y)) {
