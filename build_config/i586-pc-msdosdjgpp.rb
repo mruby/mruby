@@ -42,7 +42,6 @@ MRuby::CrossBuild.new("i586-pc-msdosdjgpp") do |conf|
   conf.gem :core => 'mruby-io'              # stdlib-io.gembox <- default.gembox
 # No socket support in DJGPP
 # conf.gem :core => 'mruby-socket'          # stdlib-io.gembox <- default.gembox
-  conf.gem :core => 'mruby-print'           # stdlib-io.gembox <- default.gembox
   conf.gem :core => 'mruby-errno'           # stdlib-io.gembox <- default.gembox
   conf.gem :core => 'mruby-dir'             # stdlib-io.gembox <- default.gembox
 

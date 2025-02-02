@@ -76,7 +76,6 @@ MRuby::CrossBuild.new("wii") do |conf|
   conf.gem 'mrbgems/mruby-objectspace/'
   conf.gem 'mrbgems/mruby-os-memsize/'
   conf.gem 'mrbgems/mruby-pack/'
-  conf.gem 'mrbgems/mruby-print/'
   conf.gem 'mrbgems/mruby-proc-binding/'
   conf.gem 'mrbgems/mruby-proc-ext/'
   conf.gem 'mrbgems/mruby-random/'

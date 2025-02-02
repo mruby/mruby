@@ -56,7 +56,6 @@ MRuby::CrossBuild.new("Galileo") do |conf|
 
   #official mrbgems
   conf.gem :core => "mruby-sprintf"
-  conf.gem :core => "mruby-print"
   conf.gem :core => "mruby-math"
   conf.gem :core => "mruby-time"
   conf.gem :core => "mruby-struct"
