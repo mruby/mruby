@@ -1284,8 +1284,7 @@ get_args_v(mrb_state *mrb, mrb_args_format format, void** ptr, va_list *ap)
           *rest = ksrc;
         }
         else if (!mrb_hash_empty_p(mrb, ksrc)) {
-          ksrc = mrb_hash_keys(mrb, ksrc);
-          ksrc = RARRAY_PTR(ksrc)[0];
+          ksrc = mrb_hash_first_key(mrb, ksrc);
           mrb_raisef(mrb, E_ARGUMENT_ERROR, "unknown keyword: %v", ksrc);
         }
       }

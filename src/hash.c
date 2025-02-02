@@ -1130,6 +1130,15 @@ mrb_hash_foreach(mrb_state *mrb, struct RHash *h, mrb_hash_foreach_func *func, v
   }
 }
 
+mrb_value
+mrb_hash_first_key(mrb_state *mrb, mrb_value h)
+{
+  H_EACH(mrb_hash_ptr(h), entry) {
+    return entry->key;
+  }
+  return mrb_nil_value();
+}
+
 MRB_API mrb_value
 mrb_hash_new(mrb_state *mrb)
 {

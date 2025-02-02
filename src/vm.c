@@ -2276,8 +2276,7 @@ RETRY_TRY_BLOCK:
       mrb_value kdict;
 
       if (kidx >= 0 && mrb_hash_p(kdict=regs[kidx]) && !mrb_hash_empty_p(mrb, kdict)) {
-        mrb_value keys = mrb_hash_keys(mrb, kdict);
-        mrb_value key1 = RARRAY_PTR(keys)[0];
+        mrb_value key1 = mrb_hash_first_key(mrb, kdict);
         RAISE_FORMAT(mrb, E_ARGUMENT_ERROR, "unknown keyword: %v", key1);
       }
       NEXT;
