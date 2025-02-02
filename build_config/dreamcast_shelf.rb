@@ -77,7 +77,6 @@ MRuby::CrossBuild.new("dreamcast") do |conf|
   conf.gem :core => "mruby-error"
   conf.gem :core => "mruby-exit"
   conf.gem :core => "mruby-os-memsize"
-  conf.gem :core => "mruby-print"
   conf.gem :core => "mruby-proc-binding"
   conf.gem :core => "mruby-sleep"
 end

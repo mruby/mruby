@@ -47,7 +47,6 @@ MRuby::CrossBuild.new("gameboyadvance") do |conf|
   conf.gem core: "mruby-metaprog"
   conf.gem core: "mruby-pack"
   conf.gem core: "mruby-sprintf"
-  conf.gem core: "mruby-print"
   conf.gem core: "mruby-math"
   conf.gem core: "mruby-time"
   conf.gem core: "mruby-struct"

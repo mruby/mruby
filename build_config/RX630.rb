@@ -50,7 +50,6 @@ MRuby::CrossBuild.new("RX630") do |conf|
 
   #gems from core
   conf.gem :core => "mruby-sprintf"
-  conf.gem :core => "mruby-print"
   conf.gem :core => "mruby-math"
   conf.gem :core => "mruby-enum-ext"
   conf.gem :core => "mruby-numeric-ext"

@@ -56,7 +56,6 @@ MRuby::CrossBuild.new("chipKITMax32") do |conf|
   conf.disable_cxx_exception
 
   #gems from core
-  conf.gem :core => "mruby-print"
   conf.gem :core => "mruby-math"
   conf.gem :core => "mruby-enum-ext"
 
