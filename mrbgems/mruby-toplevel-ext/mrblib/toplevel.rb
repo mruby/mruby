@@ -1,9 +1,9 @@
-def self.include(*modules)
-  Object.include(*modules)
-end
-
 class <<self
   private
+
+  def include(*modules)
+    Object.include(*modules)
+  end
 
   def private(*methods)
     Object.instance_eval do
