@@ -786,8 +786,8 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
   mc_clear_by_id(mrb, mid);
 }
 
-MRB_API void
-mrb_define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t func, mrb_aspec aspec)
+static void
+define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t func, mrb_aspec aspec, int vis)
 {
   mrb_method_t m;
   int ai = mrb_gc_arena_save(mrb);
@@ -796,14 +796,35 @@ mrb_define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t f
   if (aspec == MRB_ARGS_NONE()) {
     MRB_METHOD_NOARG_SET(m);
   }
+  if (vis) {
+    m.flags = (m.flags & ~0x3)|(vis & 0x3);
+  }
   mrb_define_method_raw(mrb, c, mid, m);
   mrb_gc_arena_restore(mrb, ai);
+}
+
+MRB_API void
+mrb_define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t func, mrb_aspec aspec)
+{
+  define_method_id(mrb, c, mid, func, aspec, 0);
 }
 
 MRB_API void
 mrb_define_method(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t func, mrb_aspec aspec)
 {
   mrb_define_method_id(mrb, c, mrb_intern_cstr(mrb, name), func, aspec);
+}
+
+MRB_API void
+mrb_define_private_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t func, mrb_aspec aspec)
+{
+  define_method_id(mrb, c, mid, func, aspec, MT_PRIVATE);
+}
+
+MRB_API void
+mrb_define_private_method(mrb_state *mrb, struct RClass *c, const char *name, mrb_func_t func, mrb_aspec aspec)
+{
+  mrb_define_private_method_id(mrb, c, mrb_intern_cstr(mrb, name), func, aspec);
 }
 
 /* a function to raise NotImplementedError with current method name */
