@@ -779,7 +779,10 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
   else {
     ptr.func = MRB_METHOD_FUNC(m);
   }
-  mt_put(mrb, h, mid, (MT_KEY_FLG(m.flags)&0xC)|MRB_VISIBILITY(c), ptr);
+
+  int flags = MT_KEY_FLG(m.flags);
+  if ((flags & 0x3) == 0) flags |= MRB_VISIBILITY(c);
+  mt_put(mrb, h, mid, flags, ptr);
   mc_clear_by_id(mrb, mid);
 }
 
