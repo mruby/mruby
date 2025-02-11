@@ -870,7 +870,7 @@ merge_op_string(codegen_scope *s, uint16_t dst, uint16_t b1, uint16_t b2, const 
       off = b1;
       realloc_pool_str(s, p1, len1+len2);
       memcpy((void*)(p1->u.str+len1), (void*)p2->u.str, len2);
-      if (used == 0 && b2+1 == s->irep->plen) {
+      if (b1 != b2 && used == 0 && b2+1 == s->irep->plen) {
         free_pool_str(s, p2);
       }
       break;
