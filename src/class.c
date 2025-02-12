@@ -781,7 +781,8 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
   }
 
   int flags = MT_KEY_FLG(m.flags);
-  if ((flags & 0x3) == 0) flags |= MRB_VISIBILITY(c);
+  if (mid == MRB_SYM(initialize)) flags = (flags & ~0x3) | MT_PRIVATE;
+  else if ((flags & 0x3) == 0) flags |= MRB_VISIBILITY(c);
   mt_put(mrb, h, mid, flags, ptr);
   mc_clear_by_id(mrb, mid);
 }
@@ -3028,7 +3029,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_class_name_class(mrb, NULL, cls, MRB_SYM(Class));  /* 15.2.3 */
 
   MRB_SET_INSTANCE_TT(cls, MRB_TT_CLASS);
-  mrb_define_private_method_id(mrb, bob, MRB_SYM(initialize),              mrb_do_nothing,           MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, bob, MRB_SYM(initialize),                      mrb_do_nothing,           MRB_ARGS_NONE());
   mrb_define_method_id(mrb, bob, MRB_OPSYM(not),                           mrb_bob_not,              MRB_ARGS_NONE());
   mrb_define_method_id(mrb, bob, MRB_OPSYM(eq),                            mrb_obj_equal_m,          MRB_ARGS_REQ(1)); /* 15.3.1.3.1  */
   mrb_define_method_id(mrb, bob, MRB_SYM(__id__),                          mrb_obj_id_m,             MRB_ARGS_NONE()); /* 15.3.1.3.4  */
@@ -3041,7 +3042,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_class_method_id(mrb, cls, MRB_SYM(new),                       mrb_class_new_class,      MRB_ARGS_OPT(1)|MRB_ARGS_BLOCK());
   mrb_define_method_id(mrb, cls, MRB_SYM(allocate),                        mrb_instance_alloc,       MRB_ARGS_NONE());
   mrb_define_method_id(mrb, cls, MRB_SYM(superclass),                      mrb_class_superclass,     MRB_ARGS_NONE()); /* 15.2.3.3.4 */
-  mrb_define_private_method_id(mrb, cls, MRB_SYM(initialize),              mrb_class_initialize,     MRB_ARGS_OPT(1)); /* 15.2.3.3.1 */
+  mrb_define_method_id(mrb, cls, MRB_SYM(initialize),                      mrb_class_initialize,     MRB_ARGS_OPT(1)); /* 15.2.3.3.1 */
   mrb_define_private_method_id(mrb, cls, MRB_SYM(inherited),               mrb_do_nothing,           MRB_ARGS_REQ(1));
 
   init_class_new(mrb, cls);
@@ -3055,7 +3056,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_private_method_id(mrb, mod, MRB_SYM(prepend_features),        mrb_mod_prepend_features, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, mod, MRB_SYM(class_eval),                      mrb_mod_module_eval,      MRB_ARGS_ANY());  /* 15.2.2.4.15 */
   mrb_define_private_method_id(mrb, mod, MRB_SYM(included),                mrb_do_nothing,           MRB_ARGS_REQ(1)); /* 15.2.2.4.29 */
-  mrb_define_private_method_id(mrb, mod, MRB_SYM(initialize),              mrb_mod_initialize,       MRB_ARGS_NONE()); /* 15.2.2.4.31 */
+  mrb_define_method_id(mrb, mod, MRB_SYM(initialize),                      mrb_mod_initialize,       MRB_ARGS_NONE()); /* 15.2.2.4.31 */
   mrb_define_method_id(mrb, mod, MRB_SYM(module_eval),                     mrb_mod_module_eval,      MRB_ARGS_ANY());  /* 15.2.2.4.35 */
   mrb_define_private_method_id(mrb, mod, MRB_SYM(module_function),         mrb_mod_module_function,  MRB_ARGS_ANY());
   mrb_define_private_method_id(mrb, mod, MRB_SYM(private),                 mrb_mod_private,          MRB_ARGS_ANY());  /* 15.2.2.4.36 */
