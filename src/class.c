@@ -2403,7 +2403,22 @@ mrb_remove_method(mrb_state *mrb, struct RClass *c, mrb_sym mid)
   mt_tbl *h = c->mt;
 
   if (h && mt_del(mrb, h, mid)) {
+    mrb_sym removed;
+    mrb_value recv;
+
     mc_clear_by_id(mrb, mid);
+    if (c->tt == MRB_TT_SCLASS) {
+      removed = MRB_SYM(singleton_method_removed);
+      recv = mrb_iv_get(mrb, mrb_obj_value(c), MRB_SYM(__attached__));
+    }
+    else {
+      removed = MRB_SYM(method_removed);
+      recv = mrb_obj_value(c);
+    }
+    if (!mrb_func_basic_p(mrb, recv, removed, mrb_do_nothing)) {
+      mrb_value sym = mrb_symbol_value(mid);
+      mrb_funcall_argv(mrb, recv, removed, 1, &sym);
+    }
     return;
   }
   mrb_name_error(mrb, mid, "method '%n' not defined in %C", mid, c);
