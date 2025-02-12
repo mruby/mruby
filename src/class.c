@@ -2364,9 +2364,23 @@ static void
 undef_method(mrb_state *mrb, struct RClass *c, mrb_sym a)
 {
   mrb_method_t m;
+  mrb_sym undefined;
+  mrb_value recv;
 
   MRB_METHOD_FROM_PROC(m, NULL);
   mrb_define_method_raw(mrb, c, a, m);
+  if (c->tt == MRB_TT_SCLASS) {
+    undefined = MRB_SYM(singleton_method_undefined);
+    recv = mrb_iv_get(mrb, mrb_obj_value(c), MRB_SYM(__attached__));
+  }
+  else {
+    undefined = MRB_SYM(method_undefined);
+    recv = mrb_obj_value(c);
+  }
+  if (!mrb_func_basic_p(mrb, recv, undefined, mrb_do_nothing)) {
+    mrb_value sym = mrb_symbol_value(a);
+    mrb_funcall_argv(mrb, recv, undefined, 1, &sym);
+  }
 }
 
 MRB_API void
