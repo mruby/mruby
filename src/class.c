@@ -3079,6 +3079,8 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method_id(mrb, mod, MRB_OPSYM(eqq),                           mrb_mod_eqq,              MRB_ARGS_REQ(1)); /* 15.2.2.4.7 */
   mrb_define_method_id(mrb, mod, MRB_SYM(dup),                             mrb_mod_dup,              MRB_ARGS_NONE());
   mrb_define_private_method_id(mrb, mod, MRB_SYM(method_added),            mrb_do_nothing,           MRB_ARGS_REQ(1));
+  mrb_define_private_method_id(mrb, mod, MRB_SYM(method_removed),          mrb_do_nothing,           MRB_ARGS_REQ(1));
+  mrb_define_private_method_id(mrb, mod, MRB_SYM(method_undefined),        mrb_do_nothing,           MRB_ARGS_REQ(1));
 
   mrb_undef_method_id(mrb, cls, MRB_SYM(append_features));
   mrb_undef_method_id(mrb, cls, MRB_SYM(prepend_features));
