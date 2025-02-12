@@ -635,7 +635,6 @@ mrb_mod_remove_method(mrb_state *mrb, mrb_value mod)
   int ai = mrb_gc_arena_save(mrb);
   while (argc--) {
     mrb_remove_method(mrb, c, mrb_obj_to_sym(mrb, *argv));
-    mrb_funcall_argv(mrb, mod, MRB_SYM(method_removed), 1, argv);
     mrb_gc_arena_restore(mrb, ai);
     argv++;
   }
