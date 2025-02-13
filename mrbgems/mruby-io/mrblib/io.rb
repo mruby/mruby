@@ -144,10 +144,14 @@ class IO
   def puts(*args)
     i = 0
     len = args.size
+    if len == 0
+      write "\n"
+      return
+    end
     while i < len
       s = args[i]
       if s.kind_of?(Array)
-        puts(*s)
+        puts(*s) if s.size > 0
       else
         s = s.to_s
         write s
@@ -155,7 +159,6 @@ class IO
       end
       i += 1
     end
-    write "\n" if len == 0
     nil
   end
 
