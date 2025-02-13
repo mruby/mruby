@@ -2411,8 +2411,9 @@ mrb_undef_class_method(mrb_state *mrb, struct RClass *c, const char *name)
 }
 
 MRB_API void
-mrb_remove_method(mrb_state *mrb, struct RClass *c, mrb_sym mid)
+mrb_remove_method(mrb_state *mrb, struct RClass *c0, mrb_sym mid)
 {
+  struct RClass *c = c0;
   MRB_CLASS_ORIGIN(c);
   mt_tbl *h = c->mt;
 
@@ -2421,13 +2422,13 @@ mrb_remove_method(mrb_state *mrb, struct RClass *c, mrb_sym mid)
     mrb_value recv;
 
     mc_clear_by_id(mrb, mid);
-    if (c->tt == MRB_TT_SCLASS) {
+    if (c0->tt == MRB_TT_SCLASS) {
       removed = MRB_SYM(singleton_method_removed);
-      recv = mrb_iv_get(mrb, mrb_obj_value(c), MRB_SYM(__attached__));
+      recv = mrb_iv_get(mrb, mrb_obj_value(c0), MRB_SYM(__attached__));
     }
     else {
       removed = MRB_SYM(method_removed);
-      recv = mrb_obj_value(c);
+      recv = mrb_obj_value(c0);
     }
     if (!mrb_func_basic_p(mrb, recv, removed, mrb_do_nothing)) {
       mrb_value sym = mrb_symbol_value(mid);
