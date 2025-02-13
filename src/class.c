@@ -1918,7 +1918,7 @@ prepare_writer_name(mrb_state *mrb, mrb_sym sym)
 }
 
 static mrb_value
-mod_attr_define(mrb_state *mrb, mrb_value mod, mrb_value (*accessor)(mrb_state *, mrb_value), mrb_sym (*access_name)(mrb_state *, mrb_sym))
+mod_attr_define(mrb_state *mrb, mrb_value mod, mrb_value (*accessor)(mrb_state*, mrb_value), mrb_sym (*access_name)(mrb_state*, mrb_sym))
 {
   struct RClass *c = mrb_class_ptr(mod);
   const mrb_value *argv;
@@ -1974,6 +1974,13 @@ static mrb_value
 mrb_mod_attr_writer(mrb_state *mrb, mrb_value mod)
 {
   return mod_attr_define(mrb, mod, attr_writer, prepare_writer_name);
+}
+
+static mrb_value
+mrb_mod_attr_accessor(mrb_state *mrb, mrb_value mod)
+{
+  mrb_mod_attr_reader(mrb, mod);
+  return mrb_mod_attr_writer(mrb, mod);
 }
 
 static mrb_value
@@ -3094,6 +3101,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_private_method_id(mrb, mod, MRB_SYM(private),                 mrb_mod_private,          MRB_ARGS_ANY());  /* 15.2.2.4.36 */
   mrb_define_private_method_id(mrb, mod, MRB_SYM(protected),               mrb_mod_protected,        MRB_ARGS_ANY());  /* 15.2.2.4.37 */
   mrb_define_private_method_id(mrb, mod, MRB_SYM(public),                  mrb_mod_public,           MRB_ARGS_ANY());  /* 15.2.2.4.38 */
+  mrb_define_method_id(mrb, mod, MRB_SYM(attr_accessor),                   mrb_mod_attr_accessor,    MRB_ARGS_ANY());  /* 15.2.2.4.12 */
   mrb_define_method_id(mrb, mod, MRB_SYM(attr_reader),                     mrb_mod_attr_reader,      MRB_ARGS_ANY());  /* 15.2.2.4.13 */
   mrb_define_method_id(mrb, mod, MRB_SYM(attr_writer),                     mrb_mod_attr_writer,      MRB_ARGS_ANY());  /* 15.2.2.4.14 */
   mrb_define_method_id(mrb, mod, MRB_SYM(to_s),                            mrb_mod_to_s,             MRB_ARGS_NONE());
