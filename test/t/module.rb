@@ -288,16 +288,15 @@ assert('Module#remove_const', '15.2.2.4.40') do
   module Test4RemoveConst
     ExistingConst = 23
   end
-
-  assert_equal 23, Test4RemoveConst.remove_const(:ExistingConst)
+  assert_equal 23, Test4RemoveConst.__send__(:remove_const,:ExistingConst)
   assert_false Test4RemoveConst.const_defined?(:ExistingConst)
   assert_raise_with_message_pattern(NameError, "constant * not defined") do
-    Test4RemoveConst.remove_const(:NonExistingConst)
+    Test4RemoveConst.__send__(:remove_const,:NonExistingConst)
   end
   %i[x X!].each do |n|
-    assert_wrong_const_name { Test4RemoveConst.remove_const(n) }
+    assert_wrong_const_name { Test4RemoveConst.__send__(:remove_const,n) }
   end
-  assert_raise(FrozenError) { Test4RemoveConst.freeze.remove_const(:A) }
+  assert_raise(FrozenError) { Test4RemoveConst.freeze.__send__(:remove_const,:A) }
 end
 
 assert('Module#const_missing', '15.2.2.4.22') do
