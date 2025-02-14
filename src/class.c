@@ -1774,7 +1774,7 @@ MRB_API void
 mrb_define_module_function_id(mrb_state *mrb, struct RClass *c, mrb_sym name, mrb_func_t func, mrb_aspec aspec)
 {
   mrb_define_class_method_id(mrb, c, name, func, aspec);
-  mrb_define_method_id(mrb, c, name, func, aspec);
+  mrb_define_private_method_id(mrb, c, name, func, aspec);
 }
 
 MRB_API void
