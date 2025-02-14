@@ -485,10 +485,10 @@ end if UTF8STRING
 
 assert('String#initialize', '15.2.10.5.23') do
   a = ''
-  a.initialize('abc')
+  a.__send__(:initialize,'abc')
   assert_equal 'abc', a
 
-  a.initialize('abcdefghijklmnopqrstuvwxyz')
+  a.__send__(:initialize,'abcdefghijklmnopqrstuvwxyz')
   assert_equal 'abcdefghijklmnopqrstuvwxyz', a
 end
 
