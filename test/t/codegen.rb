@@ -178,7 +178,7 @@ assert('register window of calls (#3783)') do
   # NODE_REGX
   assert_raise(NoMethodError){ /static/ }
   assert_raise(NoMethodError){ /static/iu }
-  Object.remove_const :Regexp
+  Object.__send__(:remove_const,:Regexp)
 
   # NODE_UNDEF
   assert_nothing_raised do
