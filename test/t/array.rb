@@ -195,10 +195,10 @@ assert("Array#index (block)") do
 end
 
 assert('Array#initialize', '15.2.12.5.15') do
-  a = [].initialize(1)
-  b = [].initialize(2)
-  c = [].initialize(2, 1)
-  d = [].initialize(2) {|i| i}
+  a = [].__send__(:initialize,1)
+  b = [].__send__(:initialize,2)
+  c = [].__send__(:initialize,2, 1)
+  d = [].__send__(:initialize,2) {|i| i}
 
   assert_equal([nil], a)
   assert_equal([nil,nil], b)
