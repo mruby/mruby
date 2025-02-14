@@ -36,7 +36,7 @@ end
 
 assert('Exception.exception', '15.2.22.4.1') do
   e = Exception.exception()
-  e.initialize('a')
+  e.__send__(:initialize,'a')
 
   assert_equal 'a', e.message
 end
