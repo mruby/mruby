@@ -26,9 +26,10 @@ module Kernel
   # ISO 15.3.1.3.13
   def extend(*args)
     args.reverse!
+    obj = self
     args.each do |m|
-      m.extend_object(self)
-      m.extended(self)
+      m.__send__(:extend_object, obj)
+      m.__send__(:extended, obj)
     end
     self
   end
