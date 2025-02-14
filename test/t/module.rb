@@ -67,7 +67,7 @@ assert('Module#append_features', '15.2.2.4.10') do
   end
 
   assert_equal Test4AppendFeatures2, Test4AppendFeatures2.const_get(:Const4AppendFeatures2)
-  assert_raise(FrozenError) { Module.new.append_features Class.new.freeze }
+  assert_raise(FrozenError) { Module.new.__send__(:append_features,Class.new.freeze) }
 end
 
 assert('Module#attr NameError') do
