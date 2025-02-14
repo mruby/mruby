@@ -166,13 +166,13 @@ assert("Struct#initialize_copy requires struct to be the same type") do
   begin
     Struct.new("Test", :a)
     a = Struct::Test.new("a")
-    Struct.remove_const :Test
+    Struct.__send__(:remove_const,:Test)
     Struct.new("Test", :a, :b)
     assert_raise(TypeError) do
       a.initialize_copy(Struct::Test.new("a", "b"))
     end
   ensure
-    Struct.remove_const :Test
+    Struct.__send__(:remove_const,:Test)
   end
 end
 
