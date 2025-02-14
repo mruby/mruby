@@ -35,7 +35,7 @@ assert('instance_exec on primitives with class and module definition') do
 
     assert_kind_of Class, A::B
   ensure
-    Object.remove_const :A
+    Object.__send__(:remove_const,:A)
   end
 
   begin
@@ -48,7 +48,7 @@ assert('instance_exec on primitives with class and module definition') do
 
     assert_kind_of Module, A::B
   ensure
-    Object.remove_const :A
+    Object.__send__(:remove_const,:A)
   end
 end
 
