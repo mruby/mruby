@@ -51,7 +51,7 @@ assert "Binding#eval with Binding.new via Method" do
   # The following test is OK if SIGSEGV does not occur
   cx = Class.new(Binding)
   cx.define_singleton_method(:allocate, &Object.method(:allocate))
-  Class.instance_method(:new).bind_call(cx).eval("")
+  Class.instance_method(:new).bind_call(cx).__send__(:eval,"")
 
   assert_true true
 end
