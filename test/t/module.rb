@@ -315,11 +315,11 @@ assert('Module#extend_object', '15.2.2.4.25') do
   mod = Module.new { def foo; end }
   a = cls.new
   b = cls.new
-  mod.extend_object(b)
+  mod.__send__(:extend_object,b)
   assert_false a.respond_to?(:foo)
   assert_true b.respond_to?(:foo)
-  assert_raise(FrozenError) { mod.extend_object(cls.new.freeze) }
-  assert_raise(FrozenError, TypeError) { mod.extend_object(1) }
+  assert_raise(FrozenError) { mod.__send__(:extend_object,cls.new.freeze) }
+  assert_raise(FrozenError, TypeError) { mod.__send__(:extend_object,1) }
 end
 
 assert('Module#include', '15.2.2.4.27') do
