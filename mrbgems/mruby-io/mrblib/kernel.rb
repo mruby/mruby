@@ -1,5 +1,5 @@
 module Kernel
-  private def `(cmd)
+  private def `(cmd) #`
     IO.popen(cmd) { |io| io.read }
   end
 
@@ -13,19 +13,27 @@ module Kernel
     end
   end
 
-  private def print(*args)
-    $stdout.print(*args)
+  private def print(...)
+    $stdout.print(...)
   end
 
-  private def puts(*args)
-    $stdout.puts(*args)
+  private def puts(...)
+    $stdout.puts(...)
   end
 
-  private def printf(*args)
-    $stdout.printf(*args)
+  private def printf(...)
+    $stdout.printf(...)
   end
 
-  private def gets(*args)
-    $stdin.gets(*args)
+  private def gets(...)
+    $stdin.gets(...)
+  end
+
+  private def readline(...)
+    $stdin.readline(...)
+  end
+
+  private def readlines(...)
+    $stdin.readlines(...)
   end
 end
