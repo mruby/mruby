@@ -3597,7 +3597,6 @@ codegen(codegen_scope *s, node *tree, int val)
       node *n;
       int sym = new_sym(s, MRB_SYM_2(s->mrb, Kernel));
 
-      genop_1(s, OP_LOADSELF, cursp());
       push();
       codegen(s, tree->car, VAL);
       n = tree->cdr;
@@ -3615,7 +3614,7 @@ codegen(codegen_scope *s, node *tree, int val)
       push();                   /* for block */
       pop_n(3);
       sym = new_sym(s, MRB_OPSYM_2(s->mrb, tick)); /* ` */
-      genop_3(s, OP_SEND, cursp(), sym, 1);
+      genop_3(s, OP_SSEND, cursp(), sym, 1);
       if (val) push();
     }
     break;
