@@ -73,8 +73,8 @@ void
 mrb_mruby_exit_gem_init(mrb_state* mrb)
 {
   mrb_define_class_id(mrb, MRB_SYM(SystemExit), E_EXCEPTION);
-  mrb_define_method_id(mrb, mrb->kernel_module, MRB_SYM(exit), f_exit, MRB_ARGS_OPT(1));
-  mrb_define_method_id(mrb, mrb->kernel_module, MRB_SYM_B(exit), f_exit_bang, MRB_ARGS_OPT(1));
+  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(exit), f_exit, MRB_ARGS_OPT(1));
+  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM_B(exit), f_exit_bang, MRB_ARGS_OPT(1));
 }
 
 void
