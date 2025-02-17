@@ -87,9 +87,10 @@ mrb_mruby_catch_gem_init(mrb_state *mrb)
 
   MRB_PRESYM_INIT_SYMBOLS(mrb, catch_syms);
   MRB_METHOD_FROM_PROC(m, &catch_proc);
+  m.flags |= MRB_METHOD_PRIVATE_FL;
   mrb_define_method_raw(mrb, mrb->kernel_module, MRB_SYM(catch), m);
 
-  mrb_define_method_id(mrb, mrb->kernel_module, MRB_SYM(throw), throw_m, MRB_ARGS_ARG(1,1));
+  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(throw), throw_m, MRB_ARGS_ARG(1,1));
 }
 
 void
