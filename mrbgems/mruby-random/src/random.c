@@ -385,8 +385,8 @@ void mrb_mruby_random_gem_init(mrb_state *mrb)
 
   mrb_static_assert(sizeof(rand_state) <= ISTRUCT_DATA_SIZE);
 
-  mrb_define_method_id(mrb, mrb->kernel_module, MRB_SYM(rand), random_f_rand, MRB_ARGS_OPT(1));
-  mrb_define_method_id(mrb, mrb->kernel_module, MRB_SYM(srand), random_f_srand, MRB_ARGS_OPT(1));
+  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(rand), random_f_rand, MRB_ARGS_OPT(1));
+  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(srand), random_f_srand, MRB_ARGS_OPT(1));
 
   struct RClass *random = mrb_define_class_id(mrb, MRB_SYM(Random), mrb->object_class);
   mrb_const_set(mrb, mrb_obj_value(mrb->object_class), ID_RANDOM, mrb_obj_value(random)); // for class check

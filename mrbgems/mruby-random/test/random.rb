@@ -9,7 +9,7 @@ assert("Random.new") do
   assert_not_equal(r1.rand, r3.rand)
 end
 
-assert("Kernel.srand") do
+assert("Kernel#srand") do
   srand(234)
   r1 = rand
   srand(234)
@@ -45,7 +45,7 @@ assert("Random#bytes") do
   assert_equal num / 2, b.bytesize
 end
 
-assert("return class of Kernel.rand") do
+assert("return class of Kernel#rand") do
   assert_kind_of(Integer, rand(3))
   assert_kind_of(Integer, rand(1.5))
   skip unless Object.const_defined?(:Float)
