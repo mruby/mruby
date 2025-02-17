@@ -35,18 +35,7 @@ assert('Kernel.iterator?', '15.3.1.2.5') do
   assert_false Kernel.iterator?
 end
 
-assert('Kernel.lambda', '15.3.1.2.6') do
-  l = Kernel.lambda do
-    true
-  end
-
-  m = Kernel.lambda(&l)
-
-  assert_true l.call
-  assert_equal Proc, l.class
-  assert_true m.call
-  assert_equal Proc, m.class
-end
+# Kernel.lambda is not provided by mruby. '15.3.1.2.6'
 
 assert('Kernel.loop', '15.3.1.2.8') do
   i = 0
