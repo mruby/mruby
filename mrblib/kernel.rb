@@ -18,13 +18,13 @@ module Kernel
 
   ##
   # ISO 15.3.1.2.8 Kernel.loop
-  # provided by Kernel#loop
+  # not provided by mruby
 
   ##
   # Calls the given block repetitively.
   #
   # ISO 15.3.1.3.29
-  def loop(&block)
+  private def loop(&block)
     return to_enum :loop unless block
 
     while true

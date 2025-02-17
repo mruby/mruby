@@ -13,16 +13,7 @@ end
 
 # Kernel.lambda is not provided by mruby. '15.3.1.2.6'
 
-assert('Kernel.loop', '15.3.1.2.8') do
-  i = 0
-
-  Kernel.loop do
-    i += 1
-    break if i == 100
-  end
-
-  assert_equal 100, i
-end
+# Kernel.loop is not provided by mruby. '15.3.1.2.8'
 
 # Kernel.p is provided by the mruby-io mrbgem. '15.3.1.2.9'
 
