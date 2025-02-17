@@ -576,8 +576,10 @@ mrb_init_kernel(mrb_state *mrb)
   struct RClass *krn;
 
   mrb->kernel_module = krn = mrb_define_module_id(mrb, MRB_SYM(Kernel));                                                    /* 15.3.1 */
+#if 0
   mrb_define_class_method_id(mrb, krn, MRB_SYM_Q(block_given),        mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.2.2  */
   mrb_define_class_method_id(mrb, krn, MRB_SYM_Q(iterator),           mrb_f_block_given_p_m,           MRB_ARGS_NONE());    /* 15.3.1.2.5  */
+#endif
   mrb_define_class_method_id(mrb, krn, MRB_SYM(raise),                mrb_f_raise,                     MRB_ARGS_OPT(2));    /* 15.3.1.2.12 */
 
   mrb_define_method_id(mrb, krn, MRB_OPSYM(eqq),                      mrb_eqq_m,                       MRB_ARGS_REQ(1));    /* 15.3.1.3.2  */

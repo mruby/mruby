@@ -5,35 +5,11 @@ assert('Kernel', '15.3.1') do
   assert_equal Module, Kernel.class
 end
 
-assert('Kernel.block_given?', '15.3.1.2.2') do
-  def bg_try(&b)
-    if Kernel.block_given?
-      yield
-    else
-      "no block"
-    end
-  end
-
-  assert_false Kernel.block_given?
-  # test without block
-  assert_equal "no block", bg_try
-  # test with block
-  assert_equal "block" do
-    bg_try { "block" }
-  end
-  # test with block
-  assert_equal "block" do
-    bg_try do
-      "block"
-    end
-  end
-end
+# Kernel.block_given? is not provided by mruby. '15.3.1.2.2'
 
 # Kernel.eval is provided by the mruby-eval mrbgem. '15.3.1.2.3'
 
-assert('Kernel.iterator?', '15.3.1.2.5') do
-  assert_false Kernel.iterator?
-end
+# Kernel.iterator? is not provided by mruby. '15.3.1.2.5'
 
 # Kernel.lambda is not provided by mruby. '15.3.1.2.6'
 
