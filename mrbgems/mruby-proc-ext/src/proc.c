@@ -180,7 +180,7 @@ mrb_mruby_proc_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, p, MRB_SYM(inspect),         proc_inspect,         MRB_ARGS_NONE());
   mrb_define_method_id(mrb, p, MRB_SYM(parameters),      mrb_proc_parameters,  MRB_ARGS_NONE());
 
-  mrb_define_method_id(mrb, mrb->kernel_module, MRB_SYM(proc), kernel_proc,  MRB_ARGS_NONE()|MRB_ARGS_BLOCK());
+  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(proc), kernel_proc,  MRB_ARGS_NONE()|MRB_ARGS_BLOCK());
 }
 
 void
