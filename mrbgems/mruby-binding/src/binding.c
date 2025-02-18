@@ -400,7 +400,7 @@ mrb_mruby_binding_gem_init(mrb_state *mrb)
   mrb_undef_class_method_id(mrb, binding, MRB_SYM(new));
   mrb_undef_class_method_id(mrb, binding, MRB_SYM(allocate));
 
-  mrb_define_method_id(mrb, mrb->kernel_module, MRB_SYM(binding), mrb_f_binding, MRB_ARGS_NONE());
+  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(binding), mrb_f_binding, MRB_ARGS_NONE());
 
   mrb_define_method_id(mrb, binding, MRB_SYM(initialize_copy), binding_initialize_copy, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, binding, MRB_SYM_Q(local_variable_defined), binding_local_variable_defined_p, MRB_ARGS_REQ(1));
