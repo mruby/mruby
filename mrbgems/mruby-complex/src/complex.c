@@ -395,7 +395,7 @@ void mrb_mruby_complex_gem_init(mrb_state *mrb)
   mrb_undef_class_method_id(mrb, comp, MRB_SYM(new));
   mrb_define_class_method_id(mrb, comp, MRB_SYM(rectangular), complex_s_rect, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_class_method_id(mrb, comp, MRB_SYM(rect), complex_s_rect, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
-  mrb_define_method_id(mrb, mrb->kernel_module, MRB_SYM(Complex), complex_s_rect, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
+  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(Complex), complex_s_rect, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_method_id(mrb, comp, MRB_SYM(real), complex_real, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, comp, MRB_SYM(imaginary), complex_imaginary, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, comp, MRB_SYM(to_f), mrb_complex_to_f, MRB_ARGS_NONE());
