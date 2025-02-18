@@ -1,6 +1,5 @@
-assert('Kernel.fail, Kernel#fail') do
+assert('Kernel#fail') do
   assert_raise(RuntimeError) { fail }
-  assert_raise(RuntimeError) { Kernel.fail }
 end
 
 assert('Kernel.caller, Kernel#caller') do
@@ -121,10 +120,10 @@ assert('Kernel#String') do
 end
 
 assert('Kernel#Array') do
-  assert_equal([1], Kernel.Array(1))
-  assert_equal([1, 2, 3, 4, 5], Kernel.Array([1, 2, 3, 4, 5]))
-  assert_equal([1, 2, 3, 4, 5], Kernel.Array(1..5))
-  assert_equal([[:a, 1], [:b, 2], [:c, 3]], Kernel.Array({a:1, b:2, c:3}))
+  assert_equal([1], Array(1))
+  assert_equal([1, 2, 3, 4, 5], Array([1, 2, 3, 4, 5]))
+  assert_equal([1, 2, 3, 4, 5], Array(1..5))
+  assert_equal([[:a, 1], [:b, 2], [:c, 3]], Array({a:1, b:2, c:3}))
 end
 
 assert('Kernel#Hash') do
