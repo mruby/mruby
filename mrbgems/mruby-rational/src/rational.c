@@ -1067,7 +1067,7 @@ void mrb_mruby_rational_gem_init(mrb_state *mrb)
 #endif
   mrb_define_method_id(mrb, mrb->integer_class, MRB_SYM(to_r), int_to_r, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, mrb->nil_class, MRB_SYM(to_r), nil_to_r, MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, mrb->kernel_module, MRB_SYM(Rational), rational_m, MRB_ARGS_ARG(1,1));
+  mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(Rational), rational_m, MRB_ARGS_ARG(1,1));
 }
 
 void
