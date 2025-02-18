@@ -1,52 +1,50 @@
-assert('Kernel.eval', '15.3.1.2.3') do
-  assert_equal(10) { Kernel.eval '1 * 10' }
-  assert_equal('aaa') { Kernel.eval "'a' * 3" }
+# Kernel.eval is not provided by mruby. '15.3.1.2.3'
+
+assert('Kernel#eval', '15.3.1.3.12') do
+  assert_equal(10) { eval '1 * 10' }
+  assert_equal('aaa') { eval "'a' * 3" }
   assert_equal(10) {
     a = 10
-    Kernel.eval "a"
+    eval "a"
   }
   assert_equal(20) {
     a = 10
-    Kernel.eval "a = 20"
+    eval "a = 20"
     a
   }
   assert_equal(15) {
     c = 5
     lambda {
       a = 10
-      Kernel.eval "c = a + c"
+      eval "c = a + c"
     }.call
     c
   }
   assert_equal(5) {
     c = 5
     lambda {
-      Kernel.eval 'lambda { c }.call'
+      eval 'lambda { c }.call'
     }.call
   }
   assert_equal(15) {
     c = 5
     lambda {
       a = 10
-      Kernel.eval 'lambda { c = a + c }.call'
+      eval 'lambda { c = a + c }.call'
     }.call
     c
   }
   assert_equal(2) {
     a = 10
-    Kernel.eval 'def f(a); b=a+1; end'
+    eval 'def f(a); b=a+1; end'
     f(1)
   }
 end
 
-assert('Kernel#eval', '15.3.1.3.12') do
-  assert_equal(10) { eval '1 * 10' }
-end
-
 assert('rest arguments of eval') do
-  assert_raise(TypeError) { Kernel.eval('0', 0, 'test', 0) }
+  assert_raise(TypeError) { eval('0', 0, 'test', 0) }
   assert_equal ['test', 'test.rb', 10] do
-    Kernel.eval('[\'test\', __FILE__, __LINE__]', nil, 'test.rb', 10)
+    eval('[\'test\', __FILE__, __LINE__]', nil, 'test.rb', 10)
   end
 end
 
@@ -68,7 +66,7 @@ assert('String instance_eval') do
   assert_equal ['', o, o], o.instance_eval("[''].each { |s| break [s, o, self] }")
 end
 
-assert('Kernel.#eval(string) context') do
+assert('Kernel#eval(string) context') do
   class TestEvalConstScope
     EVAL_CONST_CLASS = 'class'
     def const_string
@@ -115,7 +113,7 @@ assert('BasicObject#instance_eval to define singleton methods Issue #3141') do
   assert_equal(2){f2.baz}
 end
 
-assert('Kernel.#eval(string) Issue #4021') do
+assert('Kernel#eval(string) Issue #4021') do
   assert_equal('FOO') { (eval <<'EOS').call }
 foo = "FOO"
 Proc.new { foo }
