@@ -66,7 +66,7 @@ sym_validate_len(mrb_state *mrb, size_t len)
 # define sym_inline_pack(name, len) 0
 # define sym_inline_unpack(sym, buf, lenp) NULL
 #else
-# define SYMBOL_INLINE_P(sym) ((sym) > (1<<20))
+# define SYMBOL_INLINE_P(sym) ((sym) >= (1<<20))
 
 static const char pack_table[] = "_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
