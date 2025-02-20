@@ -69,6 +69,11 @@ struct RProc {
 #define MRB_ASPEC_KDICT(a)        (((a) >> 1) & 0x1)
 #define MRB_ASPEC_BLOCK(a)        ((a) & 1)
 
+#define MRB_PROC_PRIVATE_FL 1
+#define MRB_PROC_PROTECTED_FL 2
+#define MRB_PROC_VISIBILITY_MASK 3
+#define MRB_PROC_VISIBILITY(p) ((p)->flags & MRB_PROC_VISIBILITY_MASK)
+#define MRB_PROC_SET_VISIBILITY(p,v) ((p)->flags = (((p)->flags & ~MRB_PROC_VISIBILITY_MASK) | ((v) & MRB_PROC_VISIBILITY_MASK)))
 #define MRB_PROC_CFUNC_FL 128
 #define MRB_PROC_CFUNC_P(p) (((p)->flags & MRB_PROC_CFUNC_FL) != 0)
 #define MRB_PROC_CFUNC(p) (p)->body.func
