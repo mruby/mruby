@@ -34,6 +34,7 @@ union mt_ptr {
 #define MT_PUBLIC MRB_METHOD_PUBLIC_FL
 #define MT_PRIVATE MRB_METHOD_PRIVATE_FL
 #define MT_PROTECTED MRB_METHOD_PROTECTED_FL
+#define MT_VMASK 3
 #define MT_EMPTY 0
 #define MT_DELETED 1
 
@@ -781,8 +782,12 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
   }
 
   int flags = MT_KEY_FLG(m.flags);
-  if (mid == MRB_SYM(initialize)) flags = (flags & ~0x3) | MT_PRIVATE;
-  else if ((flags & 0x3) == 0) flags |= MRB_VISIBILITY(c);
+  if (mid == MRB_SYM(initialize)) {
+    flags = (flags & ~MT_VMASK) | MT_PRIVATE;
+  }
+  else if ((flags & MT_VMASK) == 0) {
+    flags |= MRB_VISIBILITY(c);
+  }
   mt_put(mrb, h, mid, flags, ptr);
   mc_clear_by_id(mrb, mid);
 }
