@@ -1834,7 +1834,6 @@ RETRY_TRY_BLOCK:
 
     CASE(OP_SSEND, BBB) {
       regs[a] = regs[0];
-      insn = OP_SEND;
     }
     goto L_SENDB;
 
@@ -1886,7 +1885,7 @@ RETRY_TRY_BLOCK:
       }
 
       mrb_assert(bidx < irep->nregs);
-      if (insn == OP_SEND) {
+      if (insn == OP_SEND || insn == OP_SSEND) {
         /* clear block argument */
         SET_NIL_VALUE(regs[new_bidx]);
         SET_NIL_VALUE(blk);
@@ -1906,6 +1905,16 @@ RETRY_TRY_BLOCK:
       }
       else {
         ci->mid = mid;
+      }
+      if (insn == OP_SEND || insn == OP_SENDB) {
+        if (m.flags & MRB_METHOD_PRIVATE_FL) {
+          mrb_value args = (ci->n == 15) ? regs[1] : mrb_ary_new_from_values(mrb, ci->n, regs+1);
+          mrb_no_method_error(mrb, mid, args, "private method '%n' called for %T", mid, recv);
+        }
+        else if ((m.flags & MRB_METHOD_PROTECTED_FL) && mrb_obj_is_kind_of(mrb, recv, ci->u.target_class)) {
+          mrb_value args = (ci->n == 15) ? regs[1] : mrb_ary_new_from_values(mrb, ci->n, regs+1);
+          mrb_no_method_error(mrb, mid, args, "proteced method '%n' called for %T", mid, recv);
+        }
       }
       ci->cci = CINFO_NONE;
 
