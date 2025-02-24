@@ -70,6 +70,11 @@ end
 
 assert('Kernel#private_methods', '15.3.1.3.36') do
   assert_equal Array, private_methods.class
+  c = Class.new do
+    private def foo
+    end
+  end
+  assert_equal [:foo], c.new.private_methods(false)
 end
 
 assert('Kernel#protected_methods', '15.3.1.3.37') do
