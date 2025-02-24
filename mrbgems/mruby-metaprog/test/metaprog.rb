@@ -78,11 +78,11 @@ end
 
 assert('Kernel#public_methods', '15.3.1.3.38') do
   assert_equal Array, public_methods.class
-  class Foo
+  c = Class.new do
     def foo
     end
   end
-  assert_equal [:foo], Foo.new.public_methods(false)
+  assert_equal [:foo], c.new.public_methods(false)
 end
 
 assert('Kernel#singleton_methods', '15.3.1.3.45') do
