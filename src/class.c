@@ -803,7 +803,7 @@ define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t func,
     MRB_METHOD_NOARG_SET(m);
   }
   if (vis) {
-    m.flags = (m.flags & ~0x3)|(vis & 0x3);
+    m.flags = (m.flags & ~MT_VMASK)|vis;
   }
   mrb_define_method_raw(mrb, c, mid, m);
   mrb_gc_arena_restore(mrb, ai);
@@ -1665,7 +1665,7 @@ mrb_mod_initialize(mrb_state *mrb, mrb_value mod)
 static void
 mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int visibility)
 {
-  mrb_assert((visibility&0x3)==visibility);
+  mrb_assert((visibility&MT_VMASK)==visibility);
   mrb_int argc;
   mrb_value *argv;
   struct RClass *c = mrb_class_ptr(mod);
@@ -1684,7 +1684,7 @@ mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int visibility)
       if (ret == 0) {
         mrb_raisef(mrb, E_NAME_ERROR, "undefined method %n for %C", mid, c);
       }
-      mt_put(mrb, h, mid, (ret&0xC)|visibility, ptr);
+      mt_put(mrb, h, mid, (ret&~MT_VMASK)|visibility, ptr);
     }
   }
 }
