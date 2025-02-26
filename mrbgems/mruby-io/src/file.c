@@ -3,6 +3,7 @@
 */
 
 #include <mruby.h>
+#include <mruby/array.h>
 #include <mruby/class.h>
 #include <mruby/data.h>
 #include <mruby/string.h>
@@ -53,8 +54,9 @@
   #define VOLUME_SEPARATOR ":"
   #define DIRSEP_P(ch) (((ch) == '/') | ((ch) == '\\'))
   #define VOLSEP_P(ch) ((ch) == ':')
-  #define DEVICEID_P(ch) ((ch) == '.' || (ch) == '?')
   #define UNC_PATH_P(path) (DIRSEP_P((path)[0]) && DIRSEP_P((path)[1]))
+  #define DRIVE_LETTER_P(path) (((size_t)(((path)[0]) | 0x20) - 'a' <= (size_t)'z' - 'a') && (path)[1] == ':')
+  #define DRIVE_EQUAL_P(x, y) (((x)[0] | 0x20) == ((y)[0] | 0x20))
 #else
   #define PATH_SEPARATOR ":"
   #define DIRSEP_P(ch) ((ch) == '/')
@@ -298,76 +300,123 @@ mrb_file_realpath(mrb_state *mrb, mrb_value klass)
   return result;
 }
 
-static mrb_value
-mrb_file__getwd(mrb_state *mrb, mrb_value klass)
+static const char*
+path_getwd(mrb_state *mrb)
 {
   char buf[MAXPATHLEN];
 
-  mrb->c->ci->mid = 0;
   if (GETCWD(buf, MAXPATHLEN) == NULL) {
     mrb_sys_fail(mrb, "getcwd(2)");
   }
   char *utf8 = mrb_utf8_from_locale(buf, -1);
   mrb_value path = mrb_str_new_cstr(mrb, utf8);
   mrb_utf8_free(utf8);
-  return path;
+  return RSTRING_CSTR(mrb, path);
 }
 
+static mrb_bool
+path_absolute_p(const char *path)
+{
 #ifdef _WIN32
-static int
-is_absolute_traditional_path(const char *path, size_t len)
-{
-  if (len < 3) return 0;
-  return (ISALPHA(path[0]) && VOLSEP_P(path[1]) && DIRSEP_P(path[2]));
-}
-
-static int
-is_absolute_unc_path(const char *path, size_t len)
-{
-  if (len < 2) return 0;
-  return (UNC_PATH_P(path) && !DEVICEID_P(path[2]));
-}
-
-static int
-is_absolute_device_path(const char *path, size_t len)
-{
-  if (len < 4) return 0;
-  return (UNC_PATH_P(path) && DEVICEID_P(path[2]) && DIRSEP_P(path[3]));
-}
-
-static int
-mrb_file_is_absolute_path(const char *path)
-{
-  size_t len = strlen(path);
-  if (DIRSEP_P(path[0])) return 1;
-  if (len > 0)
-    return (
-      is_absolute_traditional_path(path, len) ||
-      is_absolute_unc_path(path, len) ||
-      is_absolute_device_path(path, len)
-      );
-  else
-    return 0;
-}
+  return UNC_PATH_P(path) ||
+         (ISALPHA(path[0]) && VOLSEP_P(path[1]) && DIRSEP_P(path[2]));
 #else
-static int
-mrb_file_is_absolute_path(const char *path)
-{
-  return (path[0] == *(char*)(FILE_SEPARATOR));
-}
+  return DIRSEP_P(path[0]);
 #endif
+}
 
-static mrb_value
-mrb_file__gethome(mrb_state *mrb, mrb_value klass)
+static void
+path_parse(mrb_state *mrb, mrb_value ary, const char *path, int ai)
 {
+#ifdef _WIN32
+  if (DRIVE_LETTER_P(path)) {
+    mrb_ary_set(mrb, ary, 0, mrb_str_new(mrb, path, 2));
+    path += 2;
+    if (DIRSEP_P(*path)) {
+      ARY_SET_LEN(mrb_ary_ptr(ary), 1);
+    }
+    mrb_gc_arena_restore(mrb, ai);
+  }
+  else if (UNC_PATH_P(path)) {
+    path += 2;
+    SKIP_DIRSEP(path);
+    const char *path0 = path;
+    NEXT_DIRSEP(path);
+    mrb_value prefix = mrb_str_new_lit(mrb, "//");
+    mrb_str_cat(mrb, prefix, path0, path - path0);
+    ARY_SET_LEN(mrb_ary_ptr(ary), 0);
+    mrb_ary_push(mrb, ary, prefix);
+    mrb_gc_arena_restore(mrb, ai);
+  }
+  else
+#endif /* _WIN32 */
+  {
+    if (RARRAY_LEN(ary) == 0) {
+      mrb_ary_set(mrb, ary, 0, mrb_nil_value());
+    }
+    else if (DIRSEP_P(*path)) {
+      ARY_SET_LEN(mrb_ary_ptr(ary), 1);
+    }
+  }
+
+  for (;;) {
+    SKIP_DIRSEP(path);
+    const char *path0 = path;
+    NEXT_DIRSEP(path);
+    int len = path - path0;
+    if (len == 0) {
+      break;
+    }
+    else if (len == 1 && path0[0] == '.') {
+      /* do nothing */
+    }
+    else if (len == 2 && path0[0] == '.' && path0[1] == '.') {
+      if (RARRAY_LEN(ary) >= 2) {
+        mrb_ary_pop(mrb, ary);
+      }
+    }
+    else {
+      mrb_ary_push(mrb, ary, mrb_str_new(mrb, path0, path - path0));
+      mrb_gc_arena_restore(mrb, ai);
+    }
+  }
+}
+
+// This function decomposes path into an array based on basedir and workdir.
+// The array consists of the root prefix at ary[0], zero or more directories, and finally file names.
+// The root prefix is nil for non-Windows, or the drive name or UNC host name for Windows.
+static mrb_value
+path_split(mrb_state *mrb, const char *path, const char *basedir, const char *workdir)
+{
+  mrb_value ary = mrb_ary_new(mrb);
+  int ai = mrb_gc_arena_save(mrb);
+
+  if (workdir) {
+    path_parse(mrb, ary, workdir, ai);
+  }
+
+  if (basedir) {
+    path_parse(mrb, ary, basedir, ai);
+  }
+
+  path_parse(mrb, ary, path, ai);
+
+  return ary;
+}
+
+static const char*
+path_gethome(mrb_state *mrb, const char **pathp)
+{
+  mrb_assert(pathp && *pathp && **pathp == '~');
+
   char *home;
   mrb_value path;
 
-  mrb->c->ci->mid = 0;
-  mrb_value username;
+  const char *username = ++*pathp;
+  NEXT_DIRSEP(*pathp);
+  int len = *pathp - username;
 
-  mrb_int argc = mrb_get_args(mrb, "|S", &username);
-  if (argc == 0) {
+  if (len == 0) {
     home = getenv("HOME");
 #ifdef _WIN32
     if (home == NULL) {
@@ -375,42 +424,120 @@ mrb_file__gethome(mrb_state *mrb, mrb_value klass)
     }
 #endif
     if (home == NULL) {
-      return mrb_nil_value();
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "couldn't find HOME environment -- expanding '~'");
     }
-    if (!mrb_file_is_absolute_path(home)) {
+    if (!path_absolute_p(home)) {
       mrb_raise(mrb, E_ARGUMENT_ERROR, "non-absolute home");
     }
   }
+  else {
+    const char *uname = RSTRING_CSTR(mrb, mrb_str_new(mrb, username, len));
 #if defined(_WIN32) || defined(MRB_IO_NO_PWNAM)
-  else {
-    return mrb_nil_value();
-  }
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "user %s doesn't exist", uname);
 #else
-  else {
-    const char *cuser = RSTRING_CSTR(mrb, username);
-    struct passwd *pwd = getpwnam(cuser);
+    const struct passwd *pwd = getpwnam(uname);
     if (pwd == NULL) {
-      return mrb_nil_value();
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "user %s doesn't exist", uname);
     }
     home = pwd->pw_dir;
-    if (!mrb_file_is_absolute_path(home)) {
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "non-absolute home of ~%v", username);
+    if (!path_absolute_p(home)) {
+      mrb_raisef(mrb, E_ARGUMENT_ERROR, "non-absolute home of ~%s", uname);
     }
-  }
 #endif
+  }
   home = mrb_utf8_from_locale(home, -1);
   path = mrb_str_new_cstr(mrb, home);
   mrb_utf8_free(home);
-#ifdef _WIN32
-  char *pathp = RSTRING_PTR(path);
-  const char *const pathend = pathp + RSTRING_LEN(path);
-  for (;;) {
-    pathp = (char*)memchr((void*)pathp, '\\', (size_t)(pathend - pathp));
-    if (!pathp) break;
-    *pathp++ = '/';
+
+  SKIP_DIRSEP(*pathp);
+  return RSTRING_CSTR(mrb, path);
+}
+
+static mrb_value
+path_expand(mrb_state *mrb, const char *path, const char *base)
+{
+  mrb_value ary;
+
+  // split path conponents as array and normalization
+  if (path[0] == '~') {
+    base = path_gethome(mrb, &path);
+    ary = path_split(mrb, path, base, NULL);
   }
+  else if (path_absolute_p(path)) {
+    ary = path_split(mrb, path, NULL, NULL);
+  }
+  else {
+    const char *wd = NULL;
+    if (base[0] == '~') {
+      wd = path_gethome(mrb, &base);
+    }
+#ifndef _WIN32
+    else if (!path_absolute_p(base)) {
+      wd = path_getwd(mrb);
+    }
+#else
+    else if (DRIVE_LETTER_P(path)) {
+      if (DRIVE_LETTER_P(base) && DRIVE_EQUAL_P(path, base) && DIRSEP_P(base[2])) {
+        wd = NULL;
+      }
+      else {
+        wd = path_getwd(mrb);
+        if (UNC_PATH_P(base) || (DRIVE_LETTER_P(base) && !DRIVE_EQUAL_P(path, base))) {
+          base = NULL;
+        }
+        if (!DRIVE_EQUAL_P(path, wd)) {
+          wd = NULL;
+        }
+      }
+    }
+    else if (UNC_PATH_P(base)) {
+      wd = NULL;
+    }
+    else {
+      wd = path_getwd(mrb);
+    }
+#endif /* _WIN32 */
+    ary = path_split(mrb, path, base, wd);
+  }
+
+  // join path components as string
+  mrb_value ret;
+  mrb_assert(RARRAY_LEN(ary) >= 1);
+#ifndef _WIN32
+  mrb_assert(mrb_nil_p(RARRAY_PTR(ary)[0]));
+  ret = mrb_str_new(mrb, NULL, 0);
+#else
+  mrb_assert(mrb_string_p(RARRAY_PTR(ary)[0]));
+  ret = RARRAY_PTR(ary)[0];
 #endif
-  return path;
+  if (RARRAY_LEN(ary) == 1) {
+#ifdef _WIN32
+    mrb_assert(mrb_string_p(ret));
+    mrb_assert(RSTRING_LEN(ret) >= 2); // drive letter or UNC prefix
+    if (!DIRSEP_P(RSTRING_PTR(ret)[0]))
+#endif
+    {
+      mrb_str_cat_lit(mrb, ret, "/");
+    }
+  }
+  else {
+    for (int i = 1; i < RARRAY_LEN(ary); i++) {
+      mrb_str_cat_lit(mrb, ret, "/");
+      mrb_assert(mrb_string_p(RARRAY_PTR(ary)[i]));
+      mrb_str_cat_str(mrb, ret, RARRAY_PTR(ary)[i]);
+    }
+  }
+
+  return ret;
+}
+
+static mrb_value
+mrb_file_expand_path(mrb_state *mrb, mrb_value self)
+{
+  const char *path;
+  const char *default_dir = ".";
+  mrb_get_args(mrb, "z|z", &path, &default_dir);
+  return path_expand(mrb, path, default_dir);
 }
 
 #define TIME_OVERFLOW_P(a) (sizeof(time_t) >= sizeof(mrb_int) && ((a) > MRB_INT_MAX || (a) < MRB_INT_MIN))
@@ -661,8 +788,7 @@ mrb_init_file(mrb_state *mrb)
   mrb_define_class_method_id(mrb, file, MRB_SYM(dirname),   mrb_file_dirname,    MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM(basename),  mrb_file_basename,   MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM(realpath),  mrb_file_realpath,   MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
-  mrb_define_class_method_id(mrb, file, MRB_SYM(_getwd),    mrb_file__getwd,     MRB_ARGS_NONE());
-  mrb_define_class_method_id(mrb, file, MRB_SYM(_gethome),  mrb_file__gethome,   MRB_ARGS_OPT(1));
+  mrb_define_class_method_id(mrb, file, MRB_SYM(expand_path),  mrb_file_expand_path, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
 
   mrb_define_method_id(mrb, file, MRB_SYM(flock), mrb_file_flock, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, file, MRB_SYM(_atime), mrb_file_atime, MRB_ARGS_NONE());
