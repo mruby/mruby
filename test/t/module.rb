@@ -565,8 +565,8 @@ end
 
     bug6662 = '[ruby-dev:45868]'
     c2 = labeled_class("c2", c)
-    anc = c2.ancestors
-    assert_equal([c2, m, c, Object], anc[0..anc.index(Object)], bug6662)
+    as = c2.ancestors
+    assert_equal([c2, m, c, Object], as[0..as.index(Object)], bug6662)
   end
 
   assert 'Module#prepend + Module#ancestors' do
