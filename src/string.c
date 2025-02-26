@@ -465,9 +465,10 @@ chars2bytes(mrb_value str, mrb_int off, mrb_int idx)
     return idx;
   }
 
-  const char *p0 = RSTR_PTR(s) + off;
+  const char *o = RSTR_PTR(s);
+  const char *p0 = o + off;
   const char *p = p0;
-  const char *e = p0 + RSTR_LEN(s);
+  const char *e = o + RSTR_LEN(s);
   mrb_int i = 0;
 
   while (p<e && i<idx) {
