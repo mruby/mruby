@@ -52,6 +52,9 @@
   #define FILE_ALT_SEPARATOR "\\"
   #define VOLUME_SEPARATOR ":"
   #define DIRSEP_P(ch) (((ch) == '/') | ((ch) == '\\'))
+  #define VOLSEP_P(ch) ((ch) == ':')
+  #define DEVICEID_P(ch) ((ch) == '.' || (ch) == '?')
+  #define UNC_PATH_P(path) (DIRSEP_P((path)[0]) && DIRSEP_P((path)[1]))
 #else
   #define PATH_SEPARATOR ":"
   #define DIRSEP_P(ch) ((ch) == '/')
@@ -197,7 +200,7 @@ mrb_file_dirname(mrb_state *mrb, mrb_value klass)
 
   const char *p = path;
 #ifdef _WIN32
-  if (DIRSEP_P(p[0]) && DIRSEP_P(p[1])) {
+  if (UNC_PATH_P(p)) {
     p += 2;
     SKIP_DIRSEP(p);
     path = p - 2; /* if consecutive, point to the trailing slash */
@@ -311,37 +314,32 @@ mrb_file__getwd(mrb_state *mrb, mrb_value klass)
 }
 
 #ifdef _WIN32
-#define IS_FILESEP(x) (x == (*(char*)(FILE_SEPARATOR)) || x == (*(char*)(FILE_ALT_SEPARATOR)))
-#define IS_VOLSEP(x) (x == (*(char*)(VOLUME_SEPARATOR)))
-#define IS_DEVICEID(x) (x == '.' || x == '?')
-#define CHECK_UNCDEV_PATH (IS_FILESEP(path[0]) && IS_FILESEP(path[1]))
-
 static int
 is_absolute_traditional_path(const char *path, size_t len)
 {
   if (len < 3) return 0;
-  return (ISALPHA(path[0]) && IS_VOLSEP(path[1]) && IS_FILESEP(path[2]));
+  return (ISALPHA(path[0]) && VOLSEP_P(path[1]) && DIRSEP_P(path[2]));
 }
 
 static int
 is_absolute_unc_path(const char *path, size_t len)
 {
   if (len < 2) return 0;
-  return (CHECK_UNCDEV_PATH && !IS_DEVICEID(path[2]));
+  return (UNC_PATH_P(path) && !DEVICEID_P(path[2]));
 }
 
 static int
 is_absolute_device_path(const char *path, size_t len)
 {
   if (len < 4) return 0;
-  return (CHECK_UNCDEV_PATH && IS_DEVICEID(path[2]) && IS_FILESEP(path[3]));
+  return (UNC_PATH_P(path) && DEVICEID_P(path[2]) && DIRSEP_P(path[3]));
 }
 
 static int
 mrb_file_is_absolute_path(const char *path)
 {
   size_t len = strlen(path);
-  if (IS_FILESEP(path[0])) return 1;
+  if (DIRSEP_P(path[0])) return 1;
   if (len > 0)
     return (
       is_absolute_traditional_path(path, len) ||
@@ -351,12 +349,6 @@ mrb_file_is_absolute_path(const char *path)
   else
     return 0;
 }
-
-#undef IS_FILESEP
-#undef IS_VOLSEP
-#undef IS_DEVICEID
-#undef CHECK_UNCDEV_PATH
-
 #else
 static int
 mrb_file_is_absolute_path(const char *path)
