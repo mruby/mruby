@@ -1685,6 +1685,7 @@ mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int visibility)
         mrb_raisef(mrb, E_NAME_ERROR, "undefined method %n for %C", mid, c);
       }
       mt_put(mrb, h, mid, (ret&~MT_VMASK)|visibility, ptr);
+      mc_clear_by_id(mrb, mid);
     }
   }
 }
