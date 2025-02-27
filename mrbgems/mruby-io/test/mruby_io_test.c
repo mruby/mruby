@@ -225,6 +225,30 @@ mrb_io_win_p(mrb_state *mrb, mrb_value klass)
 #endif
 }
 
+#if defined(_WIN32)
+#define MAXPATHLEN 1024
+#define getcwd _getcwd
+#else
+#include <limits.h>
+#include <sys/param.h>
+#include <unistd.h>
+#endif
+
+static mrb_value
+mrb_io_test_getwd(mrb_state *mrb, mrb_value klass)
+{
+  char buf[MAXPATHLEN];
+
+  mrb->c->ci->mid = 0;
+  if (getcwd(buf, MAXPATHLEN) == NULL) {
+    mrb_sys_fail(mrb, "getcwd(2)");
+  }
+  char *utf8 = mrb_utf8_from_locale(buf, -1);
+  mrb_value path = mrb_str_new_cstr(mrb, utf8);
+  mrb_utf8_free(utf8);
+  return path;
+}
+
 #ifdef MRB_USE_IO_PREAD_PWRITE
 # define MRB_USE_IO_PREAD_PWRITE_ENABLED TRUE
 #else
@@ -238,6 +262,7 @@ mrb_mruby_io_gem_test(mrb_state* mrb)
   mrb_define_class_method(mrb, io_test, "io_test_setup", mrb_io_test_io_setup, MRB_ARGS_NONE());
   mrb_define_class_method(mrb, io_test, "io_test_cleanup", mrb_io_test_io_cleanup, MRB_ARGS_NONE());
 
+  mrb_define_class_method(mrb, io_test, "getwd", mrb_io_test_getwd, MRB_ARGS_NONE());
   mrb_define_class_method(mrb, io_test, "mkdtemp", mrb_io_test_mkdtemp, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, io_test, "rmdir", mrb_io_test_rmdir, MRB_ARGS_REQ(1));
   mrb_define_class_method(mrb, io_test, "win?", mrb_io_win_p, MRB_ARGS_NONE());

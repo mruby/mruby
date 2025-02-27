@@ -202,7 +202,7 @@ assert('File.realpath') do
   begin
     sep = File::ALT_SEPARATOR || File::SEPARATOR
     relative_path = "#{File.basename(dir)}#{sep}realpath_test"
-    path = "#{File._getwd}#{sep}#{relative_path}"
+    path = "#{MRubyIOTestUtil.getwd}#{sep}#{relative_path}"
     File.open(path, "w"){}
     assert_equal path, File.realpath(relative_path)
 
@@ -251,22 +251,46 @@ assert("File.readlink fails with non-symlink") do
   end
 end
 
-assert('File.expand_path') do
-  assert_equal "/",    File.expand_path("..", "/tmp"),       "parent path with base_dir (1)"
-  assert_equal "/tmp", File.expand_path("..", "/tmp/mruby"), "parent path with base_dir (2)"
+if MRubyIOTestUtil.win?
+  assert('File.expand_path (for windows)') do
+    drive = MRubyIOTestUtil.getwd[0, 2]
+    alt1 = (drive.downcase != "c:") ? "c:" : "x:"
+    alt2 = (drive.downcase != "d:") ? "d:" : "y:"
 
-  assert_equal "/home", File.expand_path("/home"),      "absolute"
-  assert_equal "/home", File.expand_path("/home", "."), "absolute with base_dir"
+    assert_equal "#{drive}/",    File.expand_path("..", "/tmp"),       "parent path with base_dir (1)"
+    assert_equal "#{drive}/tmp", File.expand_path("..", "/tmp/mruby"), "parent path with base_dir (2)"
 
-  assert_equal "/hoge", File.expand_path("/tmp/..//hoge")
-  assert_equal "/hoge", File.expand_path("////tmp/..///////hoge")
+    assert_equal "#{drive}/home", File.expand_path("/home"),      "absolute"
+    assert_equal "#{drive}/home", File.expand_path("/home", "."), "absolute with base_dir"
 
-  assert_equal "/", File.expand_path("../../../..", "/")
-  if File._getwd[1] == ":"
-    drive_letter = File._getwd[0]
-    assert_equal drive_letter + ":/", File.expand_path(([".."] * 100).join("/"))
-  else
+    assert_equal "#{drive}/hoge", File.expand_path("/tmp/..//hoge")
+    assert_equal "//tmp/hoge", File.expand_path("////tmp/..///////hoge")
+
+    assert_equal "#{drive}/", File.expand_path("../../../..", "/")
+
+    assert_equal "#{drive}/", File.expand_path(([".."] * 100).join("/"))
+
+    assert_equal "#{alt1}/x/y", File.expand_path("#{alt1}y", "/x")
+    assert_equal "#{alt2}/x/y", File.expand_path("#{alt2}y", "/x")
+    assert_equal "#{alt1}/x", File.expand_path("#{alt1}x", "#{alt2}y")
+    assert_equal "#{alt1}/y/x", File.expand_path("#{alt1}x", "./y")
+  end
+else
+  assert('File.expand_path') do
+    assert_equal "/",    File.expand_path("..", "/tmp"),       "parent path with base_dir (1)"
+    assert_equal "/tmp", File.expand_path("..", "/tmp/mruby"), "parent path with base_dir (2)"
+
+    assert_equal "/home", File.expand_path("/home"),      "absolute"
+    assert_equal "/home", File.expand_path("/home", "."), "absolute with base_dir"
+
+    assert_equal "/hoge", File.expand_path("/tmp/..//hoge")
+    assert_equal "/hoge", File.expand_path("////tmp/..///////hoge")
+
+    assert_equal "/", File.expand_path("../../../..", "/")
+
     assert_equal "/", File.expand_path(([".."] * 100).join("/"))
+
+    assert_equal "/x/c:y", File.expand_path("c:y", "/x")
   end
 end
 
