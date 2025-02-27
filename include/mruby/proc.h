@@ -114,6 +114,8 @@ MRB_API mrb_value mrb_proc_cfunc_env_get(mrb_state *mrb, mrb_int idx);
 #define MRB_METHOD_PUBLIC_FL 0
 #define MRB_METHOD_PRIVATE_FL 1
 #define MRB_METHOD_PROTECTED_FL 2
+#define MRB_METHOD_VDEFAULT_FL 3
+#define MRB_METHOD_VISIBILITY_MASK 3
 
 #define MRB_METHOD_FUNC_P(m) ((m).flags&MRB_METHOD_FUNC_FL)
 #define MRB_METHOD_NOARG_P(m) (((m).flags&MRB_METHOD_NOARG_FL)?1:0)
@@ -124,6 +126,8 @@ MRB_API mrb_value mrb_proc_cfunc_env_get(mrb_state *mrb, mrb_int idx);
 #define MRB_METHOD_PROC_P(m) (!MRB_METHOD_FUNC_P(m))
 #define MRB_METHOD_PROC(m) ((m).as.proc)
 #define MRB_METHOD_UNDEF_P(m) ((m).as.proc==NULL)
+#define MRB_METHOD_VISIBILITY(m) ((m).flags & MRB_METHOD_VISIBILITY_MASK)
+#define MRB_METHOD_SET_VISIBILITY(m,v) ((m).flags=(((m).flags&~MRB_METHOD_VISIBILITY_MASK)|(v)))
 
 #define MRB_METHOD_CFUNC_P(m) (MRB_METHOD_FUNC_P(m) || (MRB_METHOD_PROC(m)?(MRB_PROC_CFUNC_P(MRB_METHOD_PROC(m))):FALSE))
 /* use MRB_METHOD_CFUNC(m) only when MRB_METHOD_CFUNC_P(m) is true */

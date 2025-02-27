@@ -34,7 +34,8 @@ union mt_ptr {
 #define MT_PUBLIC MRB_METHOD_PUBLIC_FL
 #define MT_PRIVATE MRB_METHOD_PRIVATE_FL
 #define MT_PROTECTED MRB_METHOD_PROTECTED_FL
-#define MT_VMASK 3
+#define MT_VDEFAULT MRB_METHOD_VDEFAULT_FL
+#define MT_VMASK MRB_METHOD_VISIBILITY_MASK
 #define MT_EMPTY 0
 #define MT_DELETED 1
 
@@ -2302,12 +2303,14 @@ mrb_alias_method(mrb_state *mrb, struct RClass *c, mrb_sym a, mrb_sym b)
     const struct RProc *p = MRB_METHOD_PROC(m);
     if (!MRB_PROC_CFUNC_P(p) && !MRB_PROC_ALIAS_P(p)) {
       struct RProc *pnew = MRB_OBJ_ALLOC(mrb, MRB_TT_PROC, mrb->proc_class);
+      int vis = MRB_METHOD_VISIBILITY(m);
 
       pnew->body.mid = b;
       pnew->upper = p;
       pnew->e.env = NULL;
       pnew->flags |= MRB_PROC_ALIAS;
       MRB_METHOD_FROM_PROC(m, pnew);
+      MRB_METHOD_SET_VISIBILITY(m,vis);
     }
   }
   mrb_define_method_raw(mrb, c, a, m);
