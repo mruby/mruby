@@ -1712,6 +1712,30 @@ mrb_mod_protected(mrb_state *mrb, mrb_value mod)
   return mod;
 }
 
+static mrb_value
+top_public(mrb_state *mrb, mrb_value self)
+{
+  self = mrb_obj_value(mrb->object_class);
+  mrb_mod_visibility(mrb, self, MT_PUBLIC);
+  return self;
+}
+
+static mrb_value
+top_private(mrb_state *mrb, mrb_value self)
+{
+  self = mrb_obj_value(mrb->object_class);
+  mrb_mod_visibility(mrb, self, MT_PRIVATE);
+  return self;
+}
+
+static mrb_value
+top_protected(mrb_state *mrb, mrb_value self)
+{
+  self = mrb_obj_value(mrb->object_class);
+  mrb_mod_visibility(mrb, self, MT_PROTECTED);
+  return self;
+}
+
 MRB_API struct RClass*
 mrb_singleton_class_ptr(mrb_state *mrb, mrb_value v)
 {
@@ -3140,4 +3164,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_singleton_method_id(mrb, mrb->top_self, MRB_SYM(inspect), inspect_main, MRB_ARGS_NONE());
   mrb_define_singleton_method_id(mrb, mrb->top_self, MRB_SYM(to_s), inspect_main, MRB_ARGS_NONE());
   mrb_define_singleton_method_id(mrb, mrb->top_self, MRB_SYM(define_method), top_define_method, MRB_ARGS_ARG(1,1));
+  mrb_define_singleton_method_id(mrb, mrb->top_self, MRB_SYM(public), top_public, MRB_ARGS_ANY());
+  mrb_define_singleton_method_id(mrb, mrb->top_self, MRB_SYM(private), top_private, MRB_ARGS_ANY());
+  mrb_define_singleton_method_id(mrb, mrb->top_self, MRB_SYM(protected), top_protected, MRB_ARGS_ANY());
 }
