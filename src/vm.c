@@ -1011,7 +1011,7 @@ mrb_mod_module_eval(mrb_state *mrb, mrb_value mod)
   if (mrb_get_args(mrb, "|S&", &a, &b) == 1) {
     mrb_raise(mrb, E_NOTIMP_ERROR, "module_eval/class_eval with string not implemented");
   }
-  MRB_SET_VISIBILITY(mrb_class_ptr(mod), MRB_METHOD_PUBLIC_FL);
+  MRB_CLASS_SET_VISIBILITY(mrb_class_ptr(mod), MRB_METHOD_PUBLIC_FL);
   return eval_under(mrb, mod, b, mrb_class_ptr(mod));
 }
 
@@ -2942,7 +2942,7 @@ RETRY_TRY_BLOCK:
       const mrb_irep *nirep = irep->reps[b];
 
       /* restore visibility */
-      MRB_SET_VISIBILITY(c, MRB_METHOD_PUBLIC_FL);
+      MRB_CLASS_SET_VISIBILITY(c, MRB_METHOD_PUBLIC_FL);
 
       /* prepare closure */
       struct RProc *p = mrb_proc_new(mrb, nirep);

@@ -353,7 +353,7 @@ setup_class(mrb_state *mrb, struct RClass *outer, struct RClass *c, mrb_sym id)
 {
   mrb_class_name_class(mrb, outer, c, id);
   mrb_obj_iv_set(mrb, (struct RObject*)outer, id, mrb_obj_value(c));
-  MRB_SET_VISIBILITY(c, MT_PUBLIC);
+  MRB_CLASS_SET_VISIBILITY(c, MT_PUBLIC);
 }
 
 #define make_metaclass(mrb, c) prepare_singleton_class((mrb), (struct RBasic*)(c))
@@ -787,7 +787,7 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
     flags = (flags & ~MT_VMASK) | MT_PRIVATE;
   }
   else if ((flags & MT_VMASK) == 0) {
-    flags |= MRB_VISIBILITY(c);
+    flags |= MRB_CLASS_VISIBILITY(c);
   }
   mt_put(mrb, h, mid, flags, ptr);
   mc_clear_by_id(mrb, mid);
@@ -1673,7 +1673,7 @@ mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int visibility)
 
   mrb_get_args(mrb, "*!", &argv, &argc);
   if (argc == 0) {
-    MRB_SET_VISIBILITY(c, visibility);
+    MRB_CLASS_SET_VISIBILITY(c, visibility);
   }
   else {
     mt_tbl *h = c->mt;

@@ -79,8 +79,8 @@ mrb_class(mrb_state *mrb, mrb_value v)
 #define MRB_UNDEF_ALLOCATOR(c) (mrb_assert((c)->tt == MRB_TT_CLASS), (c)->flags |= MRB_FL_UNDEF_ALLOCATE)
 #define MRB_UNDEF_ALLOCATOR_P(c) ((c)->flags & MRB_FL_UNDEF_ALLOCATE)
 #define MRB_DEFINE_ALLOCATOR(c) ((c)->flags &= ~MRB_FL_UNDEF_ALLOCATE)
-#define MRB_SET_VISIBILITY(c,v) ((c)->flags = (((c)->flags & ~(0x3<<7)) | (((v)&0x3)<<7)))
-#define MRB_VISIBILITY(c) (((c)->flags>>7) & 0x3)
+#define MRB_CLASS_SET_VISIBILITY(c,v) ((c)->flags = (((c)->flags & ~(0x3<<7)) | (((v)&0x3)<<7)))
+#define MRB_CLASS_VISIBILITY(c) (((c)->flags>>7) & 0x3)
 
 MRB_API void mrb_define_method_raw(mrb_state*, struct RClass*, mrb_sym, mrb_method_t);
 MRB_API void mrb_alias_method(mrb_state*, struct RClass *c, mrb_sym a, mrb_sym b);
