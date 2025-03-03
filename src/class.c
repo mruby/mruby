@@ -1680,12 +1680,16 @@ mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int visibility)
     for (int i=0; i<argc; i++) {
       mrb_check_type(mrb, argv[i], MRB_TT_SYMBOL);
       mrb_sym mid = mrb_symbol(argv[i]);
+      mrb_method_t m = mrb_method_search(mrb, c, mid);
+      MRB_METHOD_SET_VISIBILITY(m, visibility);
       union mt_ptr ptr;
-      mrb_sym ret = mt_get(mrb, h, mid, &ptr);
-      if (ret == 0) {
-        mrb_raisef(mrb, E_NAME_ERROR, "undefined method %n for %C", mid, c);
+      if (MRB_METHOD_PROC_P(m)) {
+        ptr.proc = MRB_METHOD_PROC(m);
       }
-      mt_put(mrb, h, mid, (ret&~MT_VMASK)|visibility, ptr);
+      else {
+        ptr.func = MRB_METHOD_FUNC(m);
+      }
+      mt_put(mrb, h, mid, MT_KEY_FLG(m.flags), ptr);
       mc_clear_by_id(mrb, mid);
     }
   }
@@ -1894,7 +1898,7 @@ mrb_method_search_vm(mrb_state *mrb, struct RClass **cp, mrb_sym mid)
 }
 
 MRB_API mrb_method_t
-mrb_method_search(mrb_state *mrb, struct RClass* c, mrb_sym mid)
+mrb_method_search(mrb_state *mrb, struct RClass *c, mrb_sym mid)
 {
   mrb_method_t m;
 
