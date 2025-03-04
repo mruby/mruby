@@ -94,11 +94,12 @@ sym_inline_pack(const char *name, size_t len)
 static const char*
 sym_inline_unpack(mrb_sym sym, char *buf, mrb_int *lenp)
 {
+  const size_t pack_length_max = 4;
   int i;
 
   mrb_assert(SYMBOL_INLINE_P(sym));
 
-  for (i=0; i<5; i++) {
+  for (i=0; i<pack_length_max; i++) {
     uint32_t bits = sym>>(20-i*6) & 0x3f;
     if (bits == 0) break;
     buf[i] = pack_table[bits-1];
