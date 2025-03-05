@@ -127,6 +127,7 @@ stack_init(mrb_state *mrb)
   c->ci = c->cibase;
   c->ci->u.target_class = mrb->object_class;
   c->ci->stack = c->stbase;
+  c->ci->vis = MRB_METHOD_PRIVATE_FL;
 }
 
 static inline void
@@ -357,6 +358,7 @@ cipush(mrb_state *mrb, mrb_int push_stacks, uint8_t cci, struct RClass *target_c
   ci->n = argc & 0xf;
   ci->nk = (argc>>4) & 0xf;
   ci->cci = cci;
+  ci->vis = MRB_METHOD_PUBLIC_FL;
   ci->u.target_class = target_class;
 
   return ci;
@@ -1011,7 +1013,6 @@ mrb_mod_module_eval(mrb_state *mrb, mrb_value mod)
   if (mrb_get_args(mrb, "|S&", &a, &b) == 1) {
     mrb_raise(mrb, E_NOTIMP_ERROR, "module_eval/class_eval with string not implemented");
   }
-  MRB_CLASS_SET_VISIBILITY(mrb_class_ptr(mod), MRB_METHOD_PUBLIC_FL);
   return eval_under(mrb, mod, b, mrb_class_ptr(mod));
 }
 
@@ -2941,9 +2942,6 @@ RETRY_TRY_BLOCK:
       struct RClass *c = mrb_class_ptr(recv);
       const mrb_irep *nirep = irep->reps[b];
 
-      /* restore visibility */
-      MRB_CLASS_SET_VISIBILITY(c, MRB_METHOD_PUBLIC_FL);
-
       /* prepare closure */
       struct RProc *p = mrb_proc_new(mrb, nirep);
       p->c = NULL;
@@ -2968,6 +2966,7 @@ RETRY_TRY_BLOCK:
       mrb_sym mid = irep->syms[b];
 
       MRB_METHOD_FROM_PROC(m, p);
+      MRB_METHOD_SET_VISIBILITY(m, MRB_METHOD_VDEFAULT_FL);
       mrb_define_method_raw(mrb, target, mid, m);
       mrb_method_added(mrb, target, mid);
       ci = mrb->c->ci;

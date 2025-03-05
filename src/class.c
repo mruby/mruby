@@ -353,7 +353,6 @@ setup_class(mrb_state *mrb, struct RClass *outer, struct RClass *c, mrb_sym id)
 {
   mrb_class_name_class(mrb, outer, c, id);
   mrb_obj_iv_set(mrb, (struct RObject*)outer, id, mrb_obj_value(c));
-  MRB_CLASS_SET_VISIBILITY(c, MT_PUBLIC);
 }
 
 #define make_metaclass(mrb, c) prepare_singleton_class((mrb), (struct RBasic*)(c))
@@ -743,6 +742,13 @@ mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, s
   return mrb_define_class_under_id(mrb, outer, mrb_intern_cstr(mrb, name), super);
 }
 
+static mrb_callinfo*
+find_visibility_ci(mrb_state *mrb, int n)
+{
+  mrb_callinfo *ci = mrb->c->ci - n;
+  return ci;
+}
+
 MRB_API void
 mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_t m)
 {
@@ -784,10 +790,11 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
 
   int flags = MT_KEY_FLG(m.flags);
   if (mid == MRB_SYM(initialize)) {
-    flags = (flags & ~MT_VMASK) | MT_PRIVATE;
+    MRB_SET_VISIBILITY(flags, MT_PRIVATE);
   }
-  else if ((flags & MT_VMASK) == 0) {
-    flags |= MRB_CLASS_VISIBILITY(c);
+  else if ((flags & MT_VMASK) == MT_VDEFAULT) {
+    mrb_callinfo *ci = find_visibility_ci(mrb, 0);
+    MRB_SET_VISIBILITY(flags, ci->vis);
   }
   mt_put(mrb, h, mid, flags, ptr);
   mc_clear_by_id(mrb, mid);
@@ -803,9 +810,7 @@ define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t func,
   if (aspec == MRB_ARGS_NONE()) {
     MRB_METHOD_NOARG_SET(m);
   }
-  if (vis) {
-    m.flags = (m.flags & ~MT_VMASK)|vis;
-  }
+  MRB_METHOD_SET_VISIBILITY(m, vis);
   mrb_define_method_raw(mrb, c, mid, m);
   mrb_gc_arena_restore(mrb, ai);
 }
@@ -813,7 +818,7 @@ define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t func,
 MRB_API void
 mrb_define_method_id(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_func_t func, mrb_aspec aspec)
 {
-  define_method_id(mrb, c, mid, func, aspec, 0);
+  define_method_id(mrb, c, mid, func, aspec, MT_PUBLIC);
 }
 
 MRB_API void
@@ -1664,16 +1669,17 @@ mrb_mod_initialize(mrb_state *mrb, mrb_value mod)
 }
 
 static void
-mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int visibility)
+mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int vis)
 {
-  mrb_assert((visibility&MT_VMASK)==visibility);
+  mrb_assert((vis&MT_VMASK)==vis);
   mrb_int argc;
   mrb_value *argv;
   struct RClass *c = mrb_class_ptr(mod);
 
   mrb_get_args(mrb, "*!", &argv, &argc);
   if (argc == 0) {
-    MRB_CLASS_SET_VISIBILITY(c, visibility);
+    mrb_callinfo *ci = find_visibility_ci(mrb, 1);
+    ci->vis = vis;
   }
   else {
     mt_tbl *h = c->mt;
@@ -1681,7 +1687,7 @@ mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int visibility)
       mrb_check_type(mrb, argv[i], MRB_TT_SYMBOL);
       mrb_sym mid = mrb_symbol(argv[i]);
       mrb_method_t m = mrb_method_search(mrb, c, mid);
-      MRB_METHOD_SET_VISIBILITY(m, visibility);
+      MRB_METHOD_SET_VISIBILITY(m, vis);
       union mt_ptr ptr;
       if (MRB_METHOD_PROC_P(m)) {
         ptr.proc = MRB_METHOD_PROC(m);
@@ -2338,7 +2344,7 @@ mrb_alias_method(mrb_state *mrb, struct RClass *c, mrb_sym a, mrb_sym b)
       pnew->e.env = NULL;
       pnew->flags |= MRB_PROC_ALIAS;
       MRB_METHOD_FROM_PROC(m, pnew);
-      MRB_METHOD_SET_VISIBILITY(m,vis);
+      MRB_METHOD_SET_VISIBILITY(m, vis);
     }
   }
   mrb_define_method_raw(mrb, c, a, m);
@@ -2670,7 +2676,7 @@ mrb_method_added(mrb_state *mrb, struct RClass *c, mrb_sym mid)
 }
 
 mrb_value
-mrb_mod_define_method_m(mrb_state *mrb, struct RClass *c)
+define_method_m(mrb_state *mrb, struct RClass *c, int vis)
 {
   mrb_sym mid;
   mrb_value proc = mrb_undef_value();
@@ -2697,9 +2703,16 @@ mrb_mod_define_method_m(mrb_state *mrb, struct RClass *c)
 
   mrb_method_t m;
   MRB_METHOD_FROM_PROC(m, p);
+  MRB_METHOD_SET_VISIBILITY(m, vis);
   mrb_define_method_raw(mrb, c, mid, m);
   mrb_method_added(mrb, c, mid);
   return mrb_symbol_value(mid);
+}
+
+mrb_value
+mrb_mod_define_method_m(mrb_state *mrb, struct RClass *c)
+{
+  return define_method_m(mrb, c, MT_PUBLIC);
 }
 
 static mrb_value
@@ -2711,7 +2724,7 @@ mod_define_method(mrb_state *mrb, mrb_value self)
 static mrb_value
 top_define_method(mrb_state *mrb, mrb_value self)
 {
-  return mrb_mod_define_method_m(mrb, mrb->object_class);
+  return define_method_m(mrb, mrb->object_class, MT_PRIVATE);
 }
 
 static mrb_value
@@ -2757,6 +2770,7 @@ mrb_mod_module_function(mrb_state *mrb, mrb_value mod)
     mrb_method_t m = mrb_method_search(mrb, rclass, mid);
 
     prepare_singleton_class(mrb, (struct RBasic*)rclass);
+    MRB_METHOD_SET_VISIBILITY(m, MT_PRIVATE);
     mrb_define_method_raw(mrb, rclass->c, mid, m);
     mrb_gc_arena_restore(mrb, ai);
   }
