@@ -303,6 +303,29 @@ assert('File.expand_path (with getenv(3))') do
   assert_equal "#{MRubyIOTestUtil::ENV_HOME}/user", File.expand_path("user", MRubyIOTestUtil::ENV_HOME), "relative with base_dir"
 end
 
+if MRubyIOTestUtil.win?
+  assert('File.absolute_path? (for windows)') do
+    assert_true File.absolute_path?("c:/")
+    assert_true File.absolute_path?("c:/a")
+    assert_true File.absolute_path?("//")
+    assert_true File.absolute_path?("//?")
+    assert_true File.absolute_path?("//?/")
+    assert_false File.absolute_path?("")
+    assert_false File.absolute_path?("/")
+    assert_false File.absolute_path?("c:")
+  end
+else
+  assert('File.absolute_path?') do
+    assert_true File.absolute_path?("/")
+    assert_true File.absolute_path?("/a")
+    assert_true File.absolute_path?("/a/b/")
+    assert_false File.absolute_path?("")
+    assert_false File.absolute_path?("a")
+    assert_false File.absolute_path?("a/b/")
+    assert_false File.absolute_path?("c:/")
+  end
+end
+
 assert('File.path') do
   assert_equal "", File.path("")
   assert_equal "a/b/c", File.path("a/b/c")
