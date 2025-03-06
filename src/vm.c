@@ -854,7 +854,7 @@ mrb_object_exec(mrb_state *mrb, mrb_value self, struct RClass *target_class)
   mrb_assert(mrb_proc_p(blk));
   mrb_gc_protect(mrb, blk);
   ci->stack[bidx] = mrb_nil_value();
-  ci->u.target_class = target_class;
+  mrb_vm_ci_target_class_set(ci, target_class);
   return mrb_exec_irep(mrb, self, mrb_proc_ptr(blk));
 }
 
