@@ -95,7 +95,7 @@ static const char*
 sym_inline_unpack(mrb_sym sym, char *buf, mrb_int *lenp)
 {
   const size_t pack_length_max = 4;
-  int i;
+  size_t i;
 
   mrb_assert(SYMBOL_INLINE_P(sym));
 
