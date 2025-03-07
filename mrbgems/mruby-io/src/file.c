@@ -540,6 +540,14 @@ mrb_file_expand_path(mrb_state *mrb, mrb_value self)
   return path_expand(mrb, path, default_dir);
 }
 
+static mrb_value
+mrb_file_absolute_path_p(mrb_state *mrb, mrb_value klass)
+{
+  mrb_value path = mrb_get_arg1(mrb);
+  mrb_ensure_string_type(mrb, path);
+  return mrb_bool_value(path_absolute_p(RSTRING_CSTR(mrb, path)));
+}
+
 #define TIME_OVERFLOW_P(a) (sizeof(time_t) >= sizeof(mrb_int) && ((a) > MRB_INT_MAX || (a) < MRB_INT_MIN))
 #define TIME_T_UINT (~(time_t)0 > 0)
 #if defined(MRB_USE_BITINT)
@@ -788,6 +796,7 @@ mrb_init_file(mrb_state *mrb)
   mrb_define_class_method_id(mrb, file, MRB_SYM(dirname),   mrb_file_dirname,    MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM(basename),  mrb_file_basename,   MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM(realpath),  mrb_file_realpath,   MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
+  mrb_define_class_method_id(mrb, file, MRB_SYM_Q(absolute_path), mrb_file_absolute_path_p, MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM(expand_path),  mrb_file_expand_path, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
 
   mrb_define_method_id(mrb, file, MRB_SYM(flock), mrb_file_flock, MRB_ARGS_REQ(1));
