@@ -745,18 +745,6 @@ mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, s
 #define CI_TARGET_CLASS(ci) (((ci)->u.env && (ci)->u.env->tt == MRB_TT_ENV)? (ci)->u.env->c : (ci)->u.target_class)
 
 static mrb_callinfo*
-find_ci_from_proc(const struct RProc *p, mrb_callinfo *ci, const mrb_callinfo *cibase)
-{
-  if (ci == cibase) return NULL;
-  ci--;
-  while (cibase < ci) {
-    if (ci->proc == p) break;
-    ci--;
-  }
-  return ci;
-}
-
-static mrb_callinfo*
 find_visibility_ci(mrb_state *mrb, const struct RClass *c, int n)
 {
   mrb_callinfo *ci = mrb->c->ci - n;
@@ -767,11 +755,18 @@ find_visibility_ci(mrb_state *mrb, const struct RClass *c, int n)
   if (c == NULL) c = CI_TARGET_CLASS(ci);
   while (p->upper && cibase < ci) {
     p = p->upper;
-    mrb_callinfo *nci = find_ci_from_proc(p, ci, cibase);
-    if (nci == NULL || CI_TARGET_CLASS(nci) != c) {
-      return ci;
+
+    mrb_callinfo *upper_ci = ci - 1;
+    while (cibase < upper_ci) {
+      if (upper_ci->proc == p) {
+        if (CI_TARGET_CLASS(upper_ci) != c) {
+          return ci;
+        }
+        ci = upper_ci;
+        break;
+      }
+      upper_ci--;
     }
-    ci = nci;
   }
   return ci;
 }
