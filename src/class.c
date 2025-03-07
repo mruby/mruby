@@ -742,10 +742,37 @@ mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, s
   return mrb_define_class_under_id(mrb, outer, mrb_intern_cstr(mrb, name), super);
 }
 
+#define CI_TARGET_CLASS(ci) (((ci)->u.env && (ci)->u.env->tt == MRB_TT_ENV)? (ci)->u.env->c : (ci)->u.target_class)
+
 static mrb_callinfo*
-find_visibility_ci(mrb_state *mrb, int n)
+find_ci_from_proc(const struct RProc *p, mrb_callinfo *ci, const mrb_callinfo *cibase)
+{
+  if (ci == cibase) return NULL;
+  ci--;
+  while (cibase < ci) {
+    if (ci->proc == p) break;
+    ci--;
+  }
+  return ci;
+}
+
+static mrb_callinfo*
+find_visibility_ci(mrb_state *mrb, const struct RClass *c, int n)
 {
   mrb_callinfo *ci = mrb->c->ci - n;
+  const mrb_callinfo *cibase = mrb->c->cibase;
+  const struct RProc *p = ci->proc;
+
+  mrb_assert(p != NULL);
+  if (c == NULL) c = CI_TARGET_CLASS(ci);
+  while (p->upper && cibase < ci) {
+    p = p->upper;
+    mrb_callinfo *nci = find_ci_from_proc(p, ci, cibase);
+    if (nci == NULL || CI_TARGET_CLASS(nci) != c) {
+      return ci;
+    }
+    ci = nci;
+  }
   return ci;
 }
 
@@ -793,7 +820,7 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
     MRB_SET_VISIBILITY(flags, MT_PRIVATE);
   }
   else if ((flags & MT_VMASK) == MT_VDEFAULT) {
-    mrb_callinfo *ci = find_visibility_ci(mrb, 0);
+    mrb_callinfo *ci = find_visibility_ci(mrb, c, 0);
     MRB_SET_VISIBILITY(flags, ci->vis);
   }
   mt_put(mrb, h, mid, flags, ptr);
@@ -1678,7 +1705,7 @@ mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int vis)
 
   mrb_get_args(mrb, "*!", &argv, &argc);
   if (argc == 0) {
-    mrb_callinfo *ci = find_visibility_ci(mrb, 1);
+    mrb_callinfo *ci = find_visibility_ci(mrb, NULL, 1);
     ci->vis = vis;
   }
   else {
