@@ -1816,6 +1816,7 @@ mrb_hash_merge_m(mrb_state *mrb, mrb_value hash)
 static mrb_value
 mrb_hash_rehash(mrb_state *mrb, mrb_value self)
 {
+  hash_modify(mrb, self);
   h_rehash(mrb, mrb_hash_ptr(self));
   return self;
 }
