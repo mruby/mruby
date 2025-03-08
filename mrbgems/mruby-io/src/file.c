@@ -454,12 +454,12 @@ path_gethome(mrb_state *mrb, const char **pathp)
 }
 
 static mrb_value
-path_expand(mrb_state *mrb, const char *path, const char *base)
+path_expand(mrb_state *mrb, const char *path, const char *base, mrb_bool tilda)
 {
   mrb_value ary;
 
   // split path conponents as array and normalization
-  if (path[0] == '~') {
+  if (tilda && path[0] == '~') {
     base = path_gethome(mrb, &path);
     ary = path_split(mrb, path, base, NULL);
   }
@@ -468,7 +468,7 @@ path_expand(mrb_state *mrb, const char *path, const char *base)
   }
   else {
     const char *wd = NULL;
-    if (base[0] == '~') {
+    if (tilda && base[0] == '~') {
       wd = path_gethome(mrb, &base);
     }
 #ifndef _WIN32
@@ -537,7 +537,16 @@ mrb_file_expand_path(mrb_state *mrb, mrb_value self)
   const char *path;
   const char *default_dir = ".";
   mrb_get_args(mrb, "z|z", &path, &default_dir);
-  return path_expand(mrb, path, default_dir);
+  return path_expand(mrb, path, default_dir, TRUE);
+}
+
+static mrb_value
+mrb_file_absolute_path(mrb_state *mrb, mrb_value self)
+{
+  const char *path;
+  const char *default_dir = ".";
+  mrb_get_args(mrb, "z|z", &path, &default_dir);
+  return path_expand(mrb, path, default_dir, FALSE);
 }
 
 static mrb_value
@@ -796,6 +805,7 @@ mrb_init_file(mrb_state *mrb)
   mrb_define_class_method_id(mrb, file, MRB_SYM(dirname),   mrb_file_dirname,    MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM(basename),  mrb_file_basename,   MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM(realpath),  mrb_file_realpath,   MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
+  mrb_define_class_method_id(mrb, file, MRB_SYM(absolute_path), mrb_file_absolute_path, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM_Q(absolute_path), mrb_file_absolute_path_p, MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM(expand_path),  mrb_file_expand_path, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
 
