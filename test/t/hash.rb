@@ -903,7 +903,6 @@ assert('Hash#rehash') do
     pairs1 = pairs.dup
     pairs1.delete([:_del, h.delete(:_del)])
     exp_pairs1 = pairs1.hash_for.to_a
-    h.freeze
     assert_same(h, h.rehash)
     assert_equal(exp_pairs1, h.to_a)
     assert_equal(exp_pairs1.size, h.size)
