@@ -1477,7 +1477,9 @@ mrb_hash_set_default_proc(mrb_state *mrb, mrb_value hash)
   mrb_value ifnone = mrb_get_arg1(mrb);
 
   hash_modify(mrb, hash);
-  mrb_check_type(mrb, ifnone, MRB_TT_PROC);
+  if (!mrb_nil_p(ifnone)) {
+    mrb_check_type(mrb, ifnone, MRB_TT_PROC);
+  }
   mrb_iv_set(mrb, hash, MRB_SYM(ifnone), ifnone);
   if (!mrb_nil_p(ifnone)) {
     RHASH(hash)->flags |= MRB_HASH_PROC_DEFAULT;
