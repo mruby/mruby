@@ -1828,7 +1828,7 @@ mrb_hash_compact(mrb_state *mrb, mrb_value hash)
   uint32_t size = ht_p ? ht_size(h) : ar_size(h);
   uint32_t dec = 0;
 
-  mrb_check_frozen(mrb, h);
+  hash_modify(mrb, hash);
   H_EACH(h, entry) {
     if (mrb_nil_p(entry->val)) {
       entry_delete(entry);
