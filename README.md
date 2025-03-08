@@ -6,9 +6,13 @@
     </a>
   </p>
   <h1>mruby</h1>
-  <a href="https://github.com/marketplace/actions/super-linter">
+  <a href="https://github.com/mruby/mruby/actions/workflows/super-linter.yml">
     <img src="https://github.com/mruby/mruby/actions/workflows/super-linter.yml/badge.svg"
       alt="GitHub Super-Linter">
+  </a>
+  <a href="https://ci.appveyor.com/project/matz/mruby/history">
+    <img src="https://ci.appveyor.com/api/projects/status/github/mruby/mruby?branch=master&svg=true"
+      alt="AppVeyor">
   </a>
 </div>
 
