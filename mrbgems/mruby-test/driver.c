@@ -229,6 +229,8 @@ mrb_init_test_driver(mrb_state *mrb, mrb_bool verbose)
 #else
   mrb_define_const(mrb, mrbtest, "FLOAT_TOLERANCE", mrb_float_value(mrb, 1e-10));
 #endif
+#else
+  (void)mrbtest;
 #endif
 
   mrb_init_test_vformat(mrb);
