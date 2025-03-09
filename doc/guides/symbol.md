@@ -71,7 +71,7 @@ header.
 For `MRB_OPSYM()`, specify the names corresponding to operators (see
 `MRuby::Presym::OPERATORS` in `lib/mruby/presym.rb` for the names that
 can be specified for it). Other than that, describe only word characters
-excluding leading and ending punctuations.
+excluding leading and ending punctuation.
 
 These macros are converted to static symbol IDs at compile time, unless
 preallocate symbols are disabled by `conf.disable_presym`. In that case,
