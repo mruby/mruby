@@ -4,7 +4,7 @@
 
 # The language
 
-- mruby now supports `private` and `protected` visibitily ([b0db0bd](https://github.com/mruby/mruby/commit/b0db0bd))
+- mruby now supports `private` and `protected` visibility ([b0db0bd](https://github.com/mruby/mruby/commit/b0db0bd))
 - Maximum length of inlined symbols reduced from 5 to 4 characters to provide space for visibility flags ([6442a01](https://github.com/mruby/mruby/commit/6442a01))
 - Many methods are made private according to CRuby visibility ([4a0e806](https://github.com/mruby/mruby/commit/4a0e806))
 - Generate OP_SSEND for `self.method` type calls ([111fe4b](https://github.com/mruby/mruby/commit/111fe4b))

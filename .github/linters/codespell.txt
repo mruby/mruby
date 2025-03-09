@@ -1,4 +1,6 @@
+abd
 ans
+catched
 celler
 clen
 delet
@@ -6,6 +8,7 @@ disabl
 filetest
 fo
 hel
+indx
 ist
 nd
 quitt
