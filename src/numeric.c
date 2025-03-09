@@ -267,8 +267,8 @@ static mrb_value
 coerce_step_counter(mrb_state *mrb, mrb_value self)
 {
   mrb->c->ci->mid = 0;
-  mrb_value step = mrb_get_arg1(mrb);
 #ifndef MRB_NO_FLOAT
+  mrb_value step = mrb_get_arg1(mrb);
   if (mrb_float_p(step)) {
     return mrb_ensure_float_type(mrb, self);
   }
