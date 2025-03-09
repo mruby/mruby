@@ -92,7 +92,9 @@ CXDIVc(mrb_complex a, mrb_complex b)
 
 #else
 
-#if defined(__cplusplus) && (defined(__APPLE__) || (defined(__clang__) && (defined(__FreeBSD__) || defined(__OpenBSD__))))
+#if defined(__cplusplus) && \
+    (defined(__APPLE__) || defined(__EMSCRIPTEN__) || \
+     (defined(__clang__) && (defined(__FreeBSD__) || defined(__OpenBSD__))))
 
 #ifdef MRB_USE_FLOAT32
 typedef std::complex<float> mrb_complex;
