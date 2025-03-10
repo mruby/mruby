@@ -200,8 +200,7 @@ mrb_obj_methods(mrb_state *mrb, mrb_value obj, unsigned int flags)
   mrb_bool regular = TRUE;
   mrb_get_args(mrb, "|b", &regular);
 
-  struct RClass *c = (regular) ? mrb_class(mrb, obj) : mrb_obj_ptr(obj)->c;
-  return mrb_class_instance_method_list(mrb, regular, c, flags);
+  return mrb_class_instance_method_list(mrb, regular, mrb_class(mrb, obj) , flags);
 }
 
 /* 15.3.1.3.31 */
