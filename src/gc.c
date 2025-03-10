@@ -88,7 +88,7 @@
 
   == Generational Mode
 
-  mruby's GC offers an Generational Mode while re-using the tri-color GC
+  mruby's GC offers an Generational Mode while reusing the tri-color GC
   infrastructure. It will treat the Black objects as Old objects after each
   sweep phase, instead of painting them White. The key ideas are still the same
   as traditional generational GC:
