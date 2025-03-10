@@ -1464,7 +1464,6 @@ include_class_new(mrb_state *mrb, struct RClass *m, struct RClass *super)
 static int
 include_module_at(mrb_state *mrb, struct RClass *c, struct RClass *ins_pos, struct RClass *m, int search_super)
 {
-  struct RClass *ic;
   void *klass_mt = find_origin(c)->mt;
 
   while (m) {
@@ -1495,7 +1494,7 @@ include_module_at(mrb_state *mrb, struct RClass *c, struct RClass *ins_pos, stru
       p = p->super;
     }
 
-    ic = include_class_new(mrb, m, ins_pos->super);
+    struct RClass *ic = include_class_new(mrb, m, ins_pos->super);
     m->flags |= MRB_FL_CLASS_IS_INHERITED;
     ins_pos->super = ic;
     mrb_field_write_barrier(mrb, (struct RBasic*)ins_pos, (struct RBasic*)ic);
