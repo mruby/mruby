@@ -34,6 +34,8 @@ To get mruby, you can download the stable version 3.3.0 from the official mruby
 GitHub repository or clone the trunk of the mruby source tree with the "git
 clone" command. You can also install and compile mruby using [ruby-install](https://github.com/postmodern/ruby-install), [ruby-build](https://github.com/rbenv/ruby-build) or [rvm](https://github.com/rvm/rvm).
 
+The release candidate version 3.4.0 of mruby can be downloaded via the following URL: [https://github.com/mruby/mruby/archive/3.4.0-rc.zip](https://github.com/mruby/mruby/archive/3.4.0-rc.zip)
+
 The latest development version of mruby can be downloaded via the following URL: [https://github.com/mruby/mruby/zipball/master](https://github.com/mruby/mruby/zipball/master)
 
 The trunk of the mruby source tree can be checked out with the
