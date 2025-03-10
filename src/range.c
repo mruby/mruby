@@ -382,27 +382,25 @@ range_num_to_a(mrb_state *mrb, mrb_value range)
     }
 #ifndef MRB_NO_FLOAT
     if (mrb_float_p(end)) {
-      mrb_float a = (mrb_float)mrb_integer(beg);
+      mrb_int a = mrb_integer(beg);
       mrb_float b = mrb_float(end);
 
       if (a > b) {
         return mrb_ary_new_capa(mrb, 0);
       }
-      ary = mrb_ary_new_capa(mrb, (mrb_int)(b - a) + 1);
+      mrb_int alen = (mrb_int)(b - a) + 1;
+      ary = mrb_ary_new_capa(mrb, alen);
       mrb_value *ptr = RARRAY_PTR(ary);
-      mrb_int i = 0;
       if (RANGE_EXCL(r)) {
-        while (a < b) {
-          ptr[i++] = mrb_int_value(mrb, (mrb_int)a);
+        for (mrb_int i=0; a<b; a++) {
+          ptr[i++] = mrb_int_value(mrb, a);
           ARY_SET_LEN(RARRAY(ary), i);
-          a += 1.0;
         }
       }
       else {
-        while (a <= b) {
-          ptr[i++] = mrb_int_value(mrb, (mrb_int)a);
+        for (mrb_int i=0; a<=b; a++) {
+          ptr[i++] = mrb_int_value(mrb, a);
           ARY_SET_LEN(RARRAY(ary), i);
-          a += 1.0;
         }
       }
       return ary;
