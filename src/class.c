@@ -1420,9 +1420,8 @@ mrb_get_args_a(mrb_state *mrb, mrb_args_format format, void **args)
 static struct RClass*
 boot_defclass(mrb_state *mrb, struct RClass *super)
 {
-  struct RClass *c;
+  struct RClass *c = MRB_OBJ_ALLOC(mrb, MRB_TT_CLASS, mrb->class_class);
 
-  c = MRB_OBJ_ALLOC(mrb, MRB_TT_CLASS, mrb->class_class);
   if (super) {
     c->super = super;
     mrb_field_write_barrier(mrb, (struct RBasic*)c, (struct RBasic*)super);
