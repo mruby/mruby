@@ -790,7 +790,7 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
 
     ptr.proc = p;
     if (p) {
-      if (p->gccolor != MRB_GC_RED) {
+      if (p->gc_color != MRB_GC_RED) {
         p->flags |= MRB_PROC_SCOPE;
         p->c = NULL;
         mrb_field_write_barrier(mrb, (struct RBasic*)c, (struct RBasic*)p);
