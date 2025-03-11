@@ -3223,8 +3223,11 @@ codegen(codegen_scope *s, node *tree, int val)
         if (tree && tree->cdr && tree->cdr->cdr) {
           codegen(s, tree->cdr->cdr, VAL);
         }
-        else {
+        else if (s2) {
           gen_blkmove(s, 0, lv);
+        }
+        else {
+          genop_1(s, OP_LOADNIL, cursp());
         }
         n = 0;
       }
