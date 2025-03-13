@@ -90,7 +90,7 @@ struct RStringEmbed {
 # define RSTR_WRITE_SINGLE_BYTE_FLAG(s, v) (RSTR_UNSET_SINGLE_BYTE_FLAG(s), (s)->flags |= v)
 # define RSTR_COPY_SINGLE_BYTE_FLAG(dst, src) RSTR_WRITE_SINGLE_BYTE_FLAG(dst, RSTR_SINGLE_BYTE_P(src))
 #else
-# define RSTR_SINGLE_BYTE_P(s) (void)1
+# define RSTR_SINGLE_BYTE_P(s) TRUE
 # define RSTR_SET_SINGLE_BYTE_FLAG(s) (void)0
 # define RSTR_UNSET_SINGLE_BYTE_FLAG(s) (void)0
 # define RSTR_WRITE_SINGLE_BYTE_FLAG(s, v) (void)0
