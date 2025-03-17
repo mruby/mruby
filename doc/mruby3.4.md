@@ -88,6 +88,7 @@
 - [#6477](https://github.com/mruby/mruby/issues/6477) heap-buffer-overflow in mrb_vm_exec
 - [#6485](https://github.com/mruby/mruby/issues/6485) Hash#rehash does not check if the hash is frozen
 - [#6483](https://github.com/mruby/mruby/issues/6483) Hash#default_proc= accepts arbitrary objects that are not callable
+- [#6491](https://github.com/mruby/mruby/issues/6491) Destroy existing string literals when composing string literals
 
 # Merged Pull Requests (User Visible Ones)
 
