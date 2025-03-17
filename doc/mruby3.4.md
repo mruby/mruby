@@ -1,0 +1,251 @@
+# User visible changes in `mruby3.4` from `mruby3.3`
+
+"**_NOTE_**:" are changes to be aware of.
+
+# The language
+
+- mruby now supports `private` and `protected` visibitily ([b0db0bd](https://github.com/mruby/mruby/commit/b0db0bd))
+- Maximum length of inlined symbols reduced from 5 to 4 characters to provide space for visibility flags ([6442a01](https://github.com/mruby/mruby/commit/6442a01))
+- Many methods are made private according to CRuby visibility ([4a0e806](https://github.com/mruby/mruby/commit/4a0e806))
+- Generate OP_SSEND for `self.method` type calls ([111fe4b](https://github.com/mruby/mruby/commit/111fe4b))
+- `initialize` method will be always private ([eb8b412](https://github.com/mruby/mruby/commit/eb8b412))
+- Add new hooks `method_removed`, `method_undefined` ([9c74f6e](https://github.com/mruby/mruby/commit/9c74f6e))
+- Add new hooks `singleton_method_removed`, `singleton_method_undefined` ([0863c08](https://github.com/mruby/mruby/commit/0863c08))
+- Updated `OP_DEF` output from codedump ([3a3e877](https://github.com/mruby/mruby/commit/3a3e877))
+- Better handling of binary strings, e.g. String#b ([b0127f0](https://github.com/mruby/mruby/commit/b0127f0))
+- Hash `to_s` format has changed ([baeeb5e](https://github.com/mruby/mruby/commit/baeeb5e))
+- Some encoding related method such as `#force_encoding` ([e47b4ca](https://github.com/mruby/mruby/commit/e47b4ca)), `#b` ([b0127f0](https://github.com/mruby/mruby/commit/b0127f0))
+- Constant folding for `String#+` ([6687bdd](https://github.com/mruby/mruby/commit/6687bdd))
+- Remove Float bit-operation ([db8368f](https://github.com/mruby/mruby/commit/db8368f))
+- use SWAR technique for strlen performance ([cbb31e6](https://github.com/mruby/mruby/commit/cbb31e6))
+- use merge sort for `Array#sort` ([5bd63d6](https://github.com/mruby/mruby/commit/5bd63d6))
+
+# Changes in C API
+
+- pool.c renamed to mempool.c (and mrb_pool to mrb_mempool) ([49525fa](https://github.com/mruby/mruby/commit/49525fa))
+- mrb_pool_value renamed to mrb_irep_pool to reduce confusion ([62ef5db](https://github.com/mruby/mruby/commit/62ef5db))
+- rename BOXNIX_SET_VALUE to BOXNO_SET_VALUE ([#6397](https://github.com/mruby/mruby/pull/6397))
+- `MRB_FROZEN_P()` is replaced by `mrb_frozen_p()` ([c11d18e](https://github.com/mruby/mruby/commit/c11d18e))
+- rename `color` to `gc_color` ([0e79f6b](https://github.com/mruby/mruby/commit/0e79f6b), [1e36d76](https://github.com/mruby/mruby/commit/1e36d76))
+- add `obj->frozen` instead of flags `MRB_SET_FROZEN_FLAG`/`MRB_UNSET_FROZEN_FLAG` ([8276143](https://github.com/mruby/mruby/commit/8276143))
+
+# Build & Configuration
+
+- New Build Target: `test:run:serial`, `test:run:serial:lib`, `test:run:serial:bin` ([#6423](https://github.com/mruby/mruby/pull/6423))
+- New Platform: Playstation Portable ([#6022](https://github.com/mruby/mruby/pull/6465))
+- New Platform: emscripten ([#6487](https://github.com/mruby/mruby/pull/6487))
+- New Config: no-float (with MRB_NO_FLOAT) ([32200f1](https://github.com/mruby/mruby/commit/32200f1))
+
+# Changes in mrbgems
+
+- **mruby-print**: removed; if you do not use `mruby-io`, mruby use `#print` etc. in the core ([8c8bbd9](https://github.com/mruby/mruby/commit/8c8bbd9))
+- **mruby-enum-lazy**: Add Enumerable::Lazy#grep_v to mruby-enum-lazy ([#6171](https://github.com/mruby/mruby/pull/6171))
+- **mruby-io**: Add `level` argument to `File.dirname` ([#6463](https://github.com/mruby/mruby/pull/6463))
+- **mruby-io**: File.absolute_path? ([#6482](https://github.com/mruby/mruby/pull/6482))
+- **mruby-io**: File.absolute_path ([96113a2](https://github.com/mruby/mruby/commit/96113a2))
+- **mruby-toplevel-ext**: top-level public/private/protected moved to the core ([2a876d2](https://github.com/mruby/mruby/commit/2a876d2))
+- **mruby-metaprog**: method list methods now works according to the visibility ([9229da1](https://github.com/mruby/mruby/commit/9229da1))
+- **mruby-metaprog**: `public_instance_methods`, `private_instance_methods`, `protected_instance_methods` ([9e3e7b2](https://github.com/mruby/mruby/commit/9e3e7b2))
+- **mruby-encoding**: MRB_UTF8_STRING turned on automatically with this gem ([74bdae9](https://github.com/mruby/mruby/commit/74bdae9))
+
+# Fixed GitHub Issues
+
+- [#6173](https://github.com/mruby/mruby/issues/6173) Fails to build with tcc(Tiny C Compiler)
+- [#6156](https://github.com/mruby/mruby/issues/6156) '/LIBPATH' issue
+- [#6183](https://github.com/mruby/mruby/issues/6183) ".e".to_f returns NAN
+- [#6182](https://github.com/mruby/mruby/issues/6182) mrb_read_float() converts "0.3" with a small error compared to strtod()
+- [#6210](https://github.com/mruby/mruby/issues/6210) Unary minus seems broken
+- [#6255](https://github.com/mruby/mruby/issues/6255) Wrong number of characters in broken UTF-8 string
+- [#4038](https://github.com/mruby/mruby/issues/4038) Heap buffer overflow in OP_ENTER
+- [#6262](https://github.com/mruby/mruby/issues/6262) Unable to define == for objects when using Array#delete
+- [#6267](https://github.com/mruby/mruby/issues/6267) When MRB_UTF8_STRING is enabled, giving byte characters for String#index and String#split gives wrong results
+- [#6277](https://github.com/mruby/mruby/issues/6277) MSVC: can't use malloc() in string.c with WIN32_LEAN_AND_MEAN
+- [#6240](https://github.com/mruby/mruby/issues/6240) Differentiate between lib and lib64 in the build settings.
+- [#6304](https://github.com/mruby/mruby/issues/6304) Calling method_missing with only Kwargs passes arguments incorrectly
+- [#6317](https://github.com/mruby/mruby/issues/6317) mrb_gc_register() may cause GC and collect the object being protected
+- [#6307](https://github.com/mruby/mruby/issues/6307) Planned change patch for mrb_vm_exec()
+- [#6298](https://github.com/mruby/mruby/issues/6298) foo :bar {} is legal in mruby?
+- [#6326](https://github.com/mruby/mruby/issues/6326) Detect “Use-after-free” with address sanitizer
+- [#5358](https://github.com/mruby/mruby/issues/5358) static warning from getpwnam
+- [#6339](https://github.com/mruby/mruby/issues/6339) mrb_ary_delete() may refer to an invalid address (use-after-free)
+- [#6346](https://github.com/mruby/mruby/issues/6346) Block kwargs are passed as last positional arg when using yield
+- [#6365](https://github.com/mruby/mruby/issues/6365) powl() not available when compiling for Dreamcast
+- [#6369](https://github.com/mruby/mruby/issues/6369) 100x Performance Regression from 3.1
+- [#6270](https://github.com/mruby/mruby/issues/6270) NODE_ZSUPER from deeply nested blocks will result in a truncated digits for block index in OP_ARGARY
+- [#6297](https://github.com/mruby/mruby/issues/6297) Assigning to a block variable changes the actual block (thus affecting block_given? and yield)
+- [#6389](https://github.com/mruby/mruby/issues/6389) instance_exec named block args don't work properly
+- [#6388](https://github.com/mruby/mruby/issues/6388) Recent commit broke my windows build
+- [#6411](https://github.com/mruby/mruby/issues/6411) Wrong function unwinding when using return in a block
+- [#6439](https://github.com/mruby/mruby/issues/6439) OP_JMPUW does not call the ensure block when it jumps to the beginning of the begin block
+- [#6441](https://github.com/mruby/mruby/issues/6441) break inside while loop will execute the ensure block outside of the while loop
+- [#6453](https://github.com/mruby/mruby/issues/6453) Bigint: incorrect behavior of ^ operator
+- [#6452](https://github.com/mruby/mruby/issues/6452) Bigint: weird mod behavior
+- [#6451](https://github.com/mruby/mruby/issues/6451) Bigint: incorrect division behavior
+- [#6456](https://github.com/mruby/mruby/issues/6456) bigint: bug with division of a small number by a bigint
+- [#6466](https://github.com/mruby/mruby/issues/6466) mruby-bin-mruby using Kernel#p and Kernel#print in bintest fails test
+- [#6467](https://github.com/mruby/mruby/issues/6467) Heap-Use-After-Free due to Recursive group_by Calls
+- [#6471](https://github.com/mruby/mruby/issues/6471) Discrepancy in codegen for binary operations between master branch and 3.3.0
+- [#6477](https://github.com/mruby/mruby/issues/6477) heap-buffer-overflow in mrb_vm_exec
+- [#6485](https://github.com/mruby/mruby/issues/6485) Hash#rehash does not check if the hash is frozen
+- [#6483](https://github.com/mruby/mruby/issues/6483) Hash#default_proc= accepts arbitrary objects that are not callable
+- [#6491](https://github.com/mruby/mruby/issues/6491) Destroy existing string literals when composing string literals
+
+# Merged Pull Requests (User Visible Ones)
+
+- [#6171](https://github.com/mruby/mruby/pull/6171) Add Enumerable::Lazy#grep_v to mruby-enum-lazy
+- [#6174](https://github.com/mruby/mruby/pull/6174) Fix MRUBY_PACKAGE_DIR in mruby-config.bat
+- [#6175](https://github.com/mruby/mruby/pull/6175) Corrected strange conditional in mrb_vm_run()
+- [#6176](https://github.com/mruby/mruby/pull/6176) Stop assuming alias proc in CI_PROC_SET()
+- [#6177](https://github.com/mruby/mruby/pull/6177) gha: add macOS 14 to the build
+- [#6184](https://github.com/mruby/mruby/pull/6184) Remove the L_STOP label
+- [#6185](https://github.com/mruby/mruby/pull/6185) Added mrb_callinfo::u.keep_context for clarity
+- [#6186](https://github.com/mruby/mruby/pull/6186) Omit NULL check of e->cxt in OP_RETURN_BLK
+- [#6191](https://github.com/mruby/mruby/pull/6191) Speed up symbol equality comparison
+- [#6192](https://github.com/mruby/mruby/pull/6192) Fix `OP_STOP` with exception
+- [#6193](https://github.com/mruby/mruby/pull/6193) Fix wrong assertion in `OP_SENDB`.
+- [#6194](https://github.com/mruby/mruby/pull/6194) Simplify the calculation of the number of closures in `MRB_TT_FIBER`
+- [#6197](https://github.com/mruby/mruby/pull/6197) Fix int_xor to call flo_xor.
+- [#6201](https://github.com/mruby/mruby/pull/6201) tasks/doc.rake: standardize the `rake doc` error messages
+- [#6202](https://github.com/mruby/mruby/pull/6202) Remove the `.yardoc` folder with `rake doc:clean:api`
+- [#6204](https://github.com/mruby/mruby/pull/6204) Clean up the `.editorconfig` file
+- [#6209](https://github.com/mruby/mruby/pull/6209) Minor `.gitignore` clean up
+- [#6211](https://github.com/mruby/mruby/pull/6211) Minor `.gitignore` clean up; order entries
+- [#6216](https://github.com/mruby/mruby/pull/6216) Shared empty `iv_tbl` of module
+- [#6217](https://github.com/mruby/mruby/pull/6217) Strict declaration for `mrb_istruct_size()`
+- [#6219](https://github.com/mruby/mruby/pull/6219) Avoid assigning a fixed value in the loop
+- [#6220](https://github.com/mruby/mruby/pull/6220) Reorganize `mrb_cache_entry` and `mrb_method_t` types
+- [#6221](https://github.com/mruby/mruby/pull/6221) Arranging `each_backtrace()`
+- [#6222](https://github.com/mruby/mruby/pull/6222) Need to synchronize `dbg->regs` after VM call in `mrdb`
+- [#6224](https://github.com/mruby/mruby/pull/6224) `mrb_env_unshare()` to break the link to fiber
+- [#6225](https://github.com/mruby/mruby/pull/6225) Revert "Adjust environment when `mrb_exec_irep` happened."
+- [#6227](https://github.com/mruby/mruby/pull/6227) fix: `Array#shuffle(!)` result distribution
+- [#6228](https://github.com/mruby/mruby/pull/6228) Revert "`env` referred from top-level callinfo should not be unshared; fix #4019"
+- [#6230](https://github.com/mruby/mruby/pull/6230) Fix status of fiber after switched by exception raised
+- [#6231](https://github.com/mruby/mruby/pull/6231) Add a way to let other gems handle closing of fds in mruby-io
+- [#6232](https://github.com/mruby/mruby/pull/6232) Fold the code for freeing `env`
+- [#6233](https://github.com/mruby/mruby/pull/6233) Free stack memory at end of fiber
+- [#6235](https://github.com/mruby/mruby/pull/6235) fix `Array#delete` always firing the block when deleting `nil`
+- [#6236](https://github.com/mruby/mruby/pull/6236) unify the code for filter methods (and speed up `#reject!`)
+- [#6237](https://github.com/mruby/mruby/pull/6237) Stricter env objects to attach to ci
+- [#6238](https://github.com/mruby/mruby/pull/6238) Minimize zero initialization of the stack
+- [#6243](https://github.com/mruby/mruby/pull/6243) Fixed base64 decoding in `mruby-pack`
+- [#6244](https://github.com/mruby/mruby/pull/6244) Revise scope of role of `mrb_vm_run()`
+- [#6246](https://github.com/mruby/mruby/pull/6246) Fix typo in `test/t/hash.rb`
+- [#6249](https://github.com/mruby/mruby/pull/6249) Fix grammar in `src/vm.c`; `catched` -> `caught`
+- [#6250](https://github.com/mruby/mruby/pull/6250) Fix spelling
+- [#6251](https://github.com/mruby/mruby/pull/6251) Clean up root move `CODEOWNERS` to `.github` directory
+- [#6253](https://github.com/mruby/mruby/pull/6253) Allow recycling fibers by GC if not referenced directly
+- [#6256](https://github.com/mruby/mruby/pull/6256) Update documentation for `mrb_top_run()`
+- [#6257](https://github.com/mruby/mruby/pull/6257) fix some mrbconf.md typos
+- [#6260](https://github.com/mruby/mruby/pull/6260) Remove `exc_caught` from `mrb_vm_exec()`
+- [#6261](https://github.com/mruby/mruby/pull/6261) fix: `to_a` integer ranges with `begin > end` failing
+- [#6263](https://github.com/mruby/mruby/pull/6263) fix: `Array#delete` mistakenly calling block even if not passed
+- [#6264](https://github.com/mruby/mruby/pull/6264) Must pass keyword arguments for `Kernel#to_enum`
+- [#6265](https://github.com/mruby/mruby/pull/6265) Fixes `Dir.children` and `Dir.each_child`
+- [#6266](https://github.com/mruby/mruby/pull/6266) Passes the nonexistent key as a block argument in `Array#delete`
+- [#6273](https://github.com/mruby/mruby/pull/6273) Improvements to `mrb_protect_atexit()`
+- [#6275](https://github.com/mruby/mruby/pull/6275) Fixed `Binding#eval` that failed to assign to the same variable
+- [#6276](https://github.com/mruby/mruby/pull/6276) Always run `atexit` on the top-level call frame
+- [#6279](https://github.com/mruby/mruby/pull/6279) Include headers for malloc() explicitly; fix #6277
+- [#6280](https://github.com/mruby/mruby/pull/6280) Remove `MRB_ENV_CLOSED` flag
+- [#6281](https://github.com/mruby/mruby/pull/6281) Fixes local variables in `mruby-binding`.
+- [#6283](https://github.com/mruby/mruby/pull/6283) Simplify `uvenv()`
+- [#6288](https://github.com/mruby/mruby/pull/6288) Detach `env` of ci explicitly on atexit
+- [#6289](https://github.com/mruby/mruby/pull/6289) Simplify `OP_RETURN_BLK` and `OP_BREAK`
+- [#6290](https://github.com/mruby/mruby/pull/6290) Allow to change the output directory name of the `libmruby` file
+- [#6293](https://github.com/mruby/mruby/pull/6293) Changed the instruction table in `opcode.md`
+- [#6294](https://github.com/mruby/mruby/pull/6294) Optimise `mrb_iv_get`
+- [#6302](https://github.com/mruby/mruby/pull/6302) Minor cleanup in mrb_str_init
+- [#6303](https://github.com/mruby/mruby/pull/6303) mrb_str_aset_m() should return replace instead of str
+- [#6305](https://github.com/mruby/mruby/pull/6305) Protect keyword arguments in `prepare_missing()`
+- [#6308](https://github.com/mruby/mruby/pull/6308) Assume that `MRB_CATCH()` has `mrb->exc` set
+- [#6310](https://github.com/mruby/mruby/pull/6310) Doubling the call stack when extending it
+- [#6311](https://github.com/mruby/mruby/pull/6311) Added fast-path for positional arguments less than 15 in `OP_SEND`
+- [#6312](https://github.com/mruby/mruby/pull/6312) Omit error checking at `OP_RETURN`, `OP_RETURN_BLK` and `OP_BREAK`
+- [#6313](https://github.com/mruby/mruby/pull/6313) Fix wrong column number in opcode.md
+- [#6314](https://github.com/mruby/mruby/pull/6314) Optimize even?/odd? for big integers
+- [#6318](https://github.com/mruby/mruby/pull/6318) Shrink variables in `mrb_vm_exec()`
+- [#6320](https://github.com/mruby/mruby/pull/6320) Shrinking the code in `OP_BREAK` and `OP_RETURN_BLK`
+- [#6321](https://github.com/mruby/mruby/pull/6321) Avoid warnings in `lib/**/*.rb`
+- [#6322](https://github.com/mruby/mruby/pull/6322) Fix mrb_ro_data_p on Intel Mac
+- [#6324](https://github.com/mruby/mruby/pull/6324) Remove `localjump_error()`
+- [#6327](https://github.com/mruby/mruby/pull/6327) fix ncurses linking issues
+- [#6328](https://github.com/mruby/mruby/pull/6328) Fix use-after-free in `obj_free()` for env objects
+- [#6329](https://github.com/mruby/mruby/pull/6329) Fix use-after-free in `mrb_obj_alloc()`
+- [#6330](https://github.com/mruby/mruby/pull/6330) Add a precondition to call `mrb_env_unshare()`.
+- [#6331](https://github.com/mruby/mruby/pull/6331) Restore the GC arena with tests
+- [#6332](https://github.com/mruby/mruby/pull/6332) Must not depend on the “host” build to generate `mruby-compiler/core/y.tab.c`
+- [#6333](https://github.com/mruby/mruby/pull/6333) Reduce the number of branch instructions in the `heap_p()`
+- [#6335](https://github.com/mruby/mruby/pull/6335) Add `return_ci` in `CHECKPOINT_MAIN()` of `OP_RETURN`
+- [#6338](https://github.com/mruby/mruby/pull/6338) Need to place static proc objects into 8-byte alignments
+- [#6340](https://github.com/mruby/mruby/pull/6340) Fix use-after-free for `Array#<=>`
+- [#6341](https://github.com/mruby/mruby/pull/6341) Need to restore the GC arena after some function calls
+- [#6344](https://github.com/mruby/mruby/pull/6344) prefer using `mrb_yield` to call block arguments
+- [#6347](https://github.com/mruby/mruby/pull/6347) codegen.c,parse.y: remove flattening of `yield` arguments; fix #6346
+- [#6348](https://github.com/mruby/mruby/pull/6348) Cancel the warning disablement
+- [#6349](https://github.com/mruby/mruby/pull/6349) Perform GC before deleting directories
+- [#6350](https://github.com/mruby/mruby/pull/6350) Fixed character encoding conversion function mismatch
+- [#6351](https://github.com/mruby/mruby/pull/6351) Remove unnecessary `mrb_gc_arena_restore()`
+- [#6353](https://github.com/mruby/mruby/pull/6353) Fix use-after-free in `mrb_ary_delete()`
+- [#6356](https://github.com/mruby/mruby/pull/6356) Making splat argument objects invisible from Ruby side
+- [#6373](https://github.com/mruby/mruby/pull/6373) Add build config for Milk-V Duo (RISC-V Linux) board
+- [#6382](https://github.com/mruby/mruby/pull/6382) Make array objects invisible in `mrb_gc_register()`
+- [#6385](https://github.com/mruby/mruby/pull/6385) Small improvements for `mrb_gc_register()`
+- [#6386](https://github.com/mruby/mruby/pull/6386) Avoid calling `mrb_gv_set()` from `mrb_gc_unregister()`
+- [#6387](https://github.com/mruby/mruby/pull/6387) Small improvements for `mrb_gc_unregister()`
+- [#6390](https://github.com/mruby/mruby/pull/6390) Fix use-after-free by `mrb_gc_unregistor()`
+- [#6391](https://github.com/mruby/mruby/pull/6391) Fixed argument forwarding in `instance_exec`
+- [#6392](https://github.com/mruby/mruby/pull/6392) Fix argument forwarding in `mrb_exec_irep()`
+- [#6393](https://github.com/mruby/mruby/pull/6393) Follow-up to #6391
+- [#6395](https://github.com/mruby/mruby/pull/6395) Storing method-id inside Symbol#to_proc
+- [#6396](https://github.com/mruby/mruby/pull/6396) Milk-V Build Config: update GPIO gem URL
+- [#6397](https://github.com/mruby/mruby/pull/6397) boxing_no.h: rename BOXNIX_SET_VALUE -> BOXNO_SET_VALUE
+- [#6399](https://github.com/mruby/mruby/pull/6399) Add macOS 15 to the build
+- [#6405](https://github.com/mruby/mruby/pull/6405) `io_read`: use `%i` instead of `%d` in call to `mrb_raisef`
+- [#6407](https://github.com/mruby/mruby/pull/6407) Allow to exclude specific files in `rake install`
+- [#6408](https://github.com/mruby/mruby/pull/6408) Improve compliance with C++ standards
+- [#6410](https://github.com/mruby/mruby/pull/6410) Put `#include <stdlib.h>` in `parse.y`
+- [#6412](https://github.com/mruby/mruby/pull/6412) Distinguish the call frame of the generator with `OP_RETURN_BLK`
+- [#6413](https://github.com/mruby/mruby/pull/6413) Add links to documentation in `README.md`
+- [#6415](https://github.com/mruby/mruby/pull/6415) Fix numbered parameters when used as a singleton
+- [#6416](https://github.com/mruby/mruby/pull/6416) Optimize the "new" method's iseq
+- [#6419](https://github.com/mruby/mruby/pull/6419) Follow Ruby's behavior for numbered parameters in -> {}
+- [#6420](https://github.com/mruby/mruby/pull/6420) Update `labeler.yml`: add label for the `tools` directory
+- [#6422](https://github.com/mruby/mruby/pull/6422) Add annotations for function names defined in the preprocessor
+- [#6423](https://github.com/mruby/mruby/pull/6423) Adding a serialized test task
+- [#6427](https://github.com/mruby/mruby/pull/6427) Need to update `ci` variable after re-entry to VM
+- [#6428](https://github.com/mruby/mruby/pull/6428) Change the limits of OP_ADDI and OP_SUBI from 0-127 to 0-255.
+- [#6429](https://github.com/mruby/mruby/pull/6429) Fix numbered parameters when used as hash keys
+- [#6432](https://github.com/mruby/mruby/pull/6432) Moving code in macro arguments out of macros
+- [#6434](https://github.com/mruby/mruby/pull/6434) Added document "Layout of the mruby filesystem"
+- [#6436](https://github.com/mruby/mruby/pull/6436) Make `rake doc:update-index` prettier friendly
+- [#6437](https://github.com/mruby/mruby/pull/6437) Add more details to the pre-commit config
+- [#6438](https://github.com/mruby/mruby/pull/6438) Remove unused `MRuby::Build#list_install_excludes` method
+- [#6440](https://github.com/mruby/mruby/pull/6440) Fix `redo` keyword
+- [#6442](https://github.com/mruby/mruby/pull/6442) Fixed wrong range condition in `OP_JMPUW`
+- [#6443](https://github.com/mruby/mruby/pull/6443) Fix NODE_NEGATE for bigints
+- [#6444](https://github.com/mruby/mruby/pull/6444) Add test cases for bigints
+- [#6446](https://github.com/mruby/mruby/pull/6446) Omit the `_WIN64` definition check
+- [#6447](https://github.com/mruby/mruby/pull/6447) Fixed `File.expand_path`
+- [#6448](https://github.com/mruby/mruby/pull/6448) Suppress presym in `mruby/ext/io.h` file
+- [#6449](https://github.com/mruby/mruby/pull/6449) Using presym in the `mruby-io/src/file_test.c` file
+- [#6450](https://github.com/mruby/mruby/pull/6450) Change `MRB_WITH_IO_PREAD_PWRITE` configuration name
+- [#6454](https://github.com/mruby/mruby/pull/6454) mruby-bigint: handle rhs bigint in int_mod and int_divmod functions
+- [#6455](https://github.com/mruby/mruby/pull/6455) mruby-bigint: fix rounding behavior in mpz_mdiv and mpz_mdivmod functions
+- [#6457](https://github.com/mruby/mruby/pull/6457) bigint: fix bug with division of a small number by a bigint
+- [#6459](https://github.com/mruby/mruby/pull/6459) `FileTest` is a module
+- [#6461](https://github.com/mruby/mruby/pull/6461) To create a release package file in draft
+- [#6462](https://github.com/mruby/mruby/pull/6462) Properly cast the return value of `memchr()`
+- [#6463](https://github.com/mruby/mruby/pull/6463) Add `level` argument to `File.dirname`
+- [#6465](https://github.com/mruby/mruby/pull/6465) Add initial playstation portable crossbuild support
+- [#6468](https://github.com/mruby/mruby/pull/6468) Fixed missing changes to `IB_FIND_BY_KEY()` parameter names
+- [#6469](https://github.com/mruby/mruby/pull/6469) Add more `const` qualifier for `RProc`
+- [#6472](https://github.com/mruby/mruby/pull/6472) Moved tests for `Integer#quo`
+- [#6473](https://github.com/mruby/mruby/pull/6473) Hide `mpz_and()` symbol
+- [#6473](https://github.com/mruby/mruby/pull/6473) Hide mpz_and() symbol
+- [#6474](https://github.com/mruby/mruby/pull/6474) Avoid array object creation with “unknown keyword” error
+- [#6475](https://github.com/mruby/mruby/pull/6475) Don't include deleted mruby-print
+- [#6478](https://github.com/mruby/mruby/pull/6478) Fixed buffer overrun in function `chars2bytes()`
+- [#6479](https://github.com/mruby/mruby/pull/6479) Reimplementation of `File.expand_path` method
+- [#6482](https://github.com/mruby/mruby/pull/6482) Add `File.absolute_path?` method
+- [#6487](https://github.com/mruby/mruby/pull/6487) Add Emscripten toolchain & build_config

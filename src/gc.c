@@ -88,7 +88,7 @@
 
   == Generational Mode
 
-  mruby's GC offers an Generational Mode while re-using the tri-color GC
+  mruby's GC offers an Generational Mode while reusing the tri-color GC
   infrastructure. It will treat the Black objects as Old objects after each
   sweep phase, instead of painting them White. The key ideas are still the same
   as traditional generational GC:
@@ -170,17 +170,17 @@ typedef struct mrb_heap_page {
 #define GC_COLOR_MASK 7
 mrb_static_assert(MRB_GC_RED <= GC_COLOR_MASK);
 
-#define paint_gray(o) ((o)->gccolor = GC_GRAY)
-#define paint_black(o) ((o)->gccolor = GC_BLACK)
-#define paint_white(o) ((o)->gccolor = GC_WHITES)
-#define paint_partial_white(s, o) ((o)->gccolor = (s)->current_white_part)
-#define is_gray(o) ((o)->gccolor == GC_GRAY)
-#define is_white(o) ((o)->gccolor & GC_WHITES)
-#define is_black(o) ((o)->gccolor == GC_BLACK)
-#define is_red(o) ((o)->gccolor == GC_RED)
+#define paint_gray(o) ((o)->gc_color = GC_GRAY)
+#define paint_black(o) ((o)->gc_color = GC_BLACK)
+#define paint_white(o) ((o)->gc_color = GC_WHITES)
+#define paint_partial_white(s, o) ((o)->gc_color = (s)->current_white_part)
+#define is_gray(o) ((o)->gc_color == GC_GRAY)
+#define is_white(o) ((o)->gc_color & GC_WHITES)
+#define is_black(o) ((o)->gc_color == GC_BLACK)
+#define is_red(o) ((o)->gc_color == GC_RED)
 #define flip_white_part(s) ((s)->current_white_part = other_white_part(s))
 #define other_white_part(s) ((s)->current_white_part ^ GC_WHITES)
-#define is_dead(s, o) (((o)->gccolor & other_white_part(s) & GC_WHITES) || (o)->tt == MRB_TT_FREE)
+#define is_dead(s, o) (((o)->gc_color & other_white_part(s) & GC_WHITES) || (o)->tt == MRB_TT_FREE)
 
 mrb_noreturn void mrb_raise_nomemory(mrb_state *mrb);
 

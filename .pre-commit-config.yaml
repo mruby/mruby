@@ -100,7 +100,7 @@ repos:
         types: [markdown]
         files: \.md$
   - repo: https://github.com/tcort/markdown-link-check
-    rev: v3.13.6
+    rev: v3.13.7
     hooks:
       - id: markdown-link-check
         name: run markdown-link-check
@@ -114,7 +114,7 @@ repos:
       - id: shellcheck
         name: run shellcheck
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.35.1
+    rev: v1.36.0
     hooks:
       - id: yamllint
         name: run yamllint

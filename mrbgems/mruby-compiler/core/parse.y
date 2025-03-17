@@ -1453,6 +1453,31 @@ heredoc_end(parser_state *p)
 }
 #define is_strterm_type(p,str_func) ((p)->lex_strterm->type & (str_func))
 
+static void
+prohibit_literals(parser_state *p, node *n)
+{
+  if (n == 0) {
+    yyerror(NULL, p, "can't define singleton method for ().");
+  }
+  else {
+    switch (typen(n->car)) {
+    case NODE_INT:
+    case NODE_STR:
+    case NODE_DSTR:
+    case NODE_XSTR:
+    case NODE_DXSTR:
+    case NODE_DREGX:
+    case NODE_MATCH:
+    case NODE_FLOAT:
+    case NODE_ARRAY:
+    case NODE_HEREDOC:
+      yyerror(NULL, p, "can't define singleton method for literals");
+    default:
+      break;
+    }
+  }
+}
+
 /* xxx ----------------------------- */
 
 %}
@@ -4009,30 +4034,13 @@ opt_f_block_arg : ',' f_block_arg
 
 singleton       : var_ref
                     {
+                      prohibit_literals(p, $1);
                       $$ = $1;
                       if (!$$) $$ = new_nil(p);
                     }
                 | '(' {p->lstate = EXPR_BEG;} expr rparen
                     {
-                      if ($3 == 0) {
-                        yyerror(&@1, p, "can't define singleton method for ().");
-                      }
-                      else {
-                        switch (typen($3->car)) {
-                        case NODE_STR:
-                        case NODE_DSTR:
-                        case NODE_XSTR:
-                        case NODE_DXSTR:
-                        case NODE_DREGX:
-                        case NODE_MATCH:
-                        case NODE_FLOAT:
-                        case NODE_ARRAY:
-                        case NODE_HEREDOC:
-                          yyerror(&@1, p, "can't define singleton method for literals");
-                        default:
-                          break;
-                        }
-                      }
+                      prohibit_literals(p, $3);
                       $$ = $3;
                     }
                 ;

@@ -11,7 +11,7 @@
   struct RClass *c;       \
   struct RBasic *gcnext;  \
   enum mrb_vtype tt:8;    \
-  unsigned int gccolor:3; \
+  unsigned int gc_color:3; \
   unsigned int frozen:1;  \
   uint32_t flags:20
 

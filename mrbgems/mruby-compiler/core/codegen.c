@@ -838,7 +838,7 @@ merge_op_string(codegen_scope *s, uint16_t dst, uint16_t b1, uint16_t b2, const 
     struct mrb_insn_data data = mrb_decode_insn(i);
     if (data.insn == OP_STRING) {
       if (data.b == b1) used |= 1;
-      else if (data.b == b2) used |= 2;
+      if (data.b == b2) used |= 2;
     }
     switch (i[0]) {
     case OP_EXT1:
@@ -3223,8 +3223,11 @@ codegen(codegen_scope *s, node *tree, int val)
         if (tree && tree->cdr && tree->cdr->cdr) {
           codegen(s, tree->cdr->cdr, VAL);
         }
-        else {
+        else if (s2) {
           gen_blkmove(s, 0, lv);
+        }
+        else {
+          genop_1(s, OP_LOADNIL, cursp());
         }
         n = 0;
       }
