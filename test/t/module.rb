@@ -802,14 +802,18 @@ assert('method visibility') do
 
   v = CallTypeTest.new
 
-  assert_raise(NoMethodError) { v.func { :test } }
+  assert_raise_with_message_pattern(NameError, "private method 'func' called for CallTypeTest") do
+    v.func { :test }
+  end
   assert_equal :test, v.test_private { :test }
 
   class CallTypeTest
     protected :func
   end
 
-  assert_raise(NoMethodError) { v.func { :test } }
+  assert_raise_with_message_pattern(NameError, "protected method 'func' called for CallTypeTest") do
+    v.func { :test }
+  end
   assert_equal :test, v.test_protected { :test }
   assert_equal :test, v.test_private { :test }
 
