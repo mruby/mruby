@@ -16,7 +16,7 @@ First, `realloc(NULL, size)` behaves the same as malloc(size). Second, `free(NUL
 
 ## Redefine `mrb_default_allocf()`
 
-The only function in mruby that uses the standard C library's memory allocation functions is `mrb_default_allocf()`, defined in `alloc.c`. By defining this function within your application, you can customize the memory management of your application.
+The only function in mruby that uses the standard C library's memory allocation functions is `mrb_default_allocf()`, defined in `allocf.c`. By defining this function within your application, you can customize the memory management of your application.
 
 ## Specify a function with `mrb_open_allocf()`
 
