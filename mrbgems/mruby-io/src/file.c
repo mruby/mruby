@@ -279,10 +279,10 @@ static mrb_value
 mrb_file_realpath(mrb_state *mrb, mrb_value klass)
 {
   mrb_value pathname, dir_string;
-  mrb_int argc = mrb_get_args(mrb, "S|S", &pathname, &dir_string);
-  if (argc == 2) {
+
+  if (mrb_get_args(mrb, "S|S", &pathname, &dir_string) == 2) {
     mrb_value s = mrb_str_dup(mrb, dir_string);
-    s = mrb_str_append(mrb, s, mrb_str_new_cstr(mrb, FILE_SEPARATOR));
+    s = mrb_str_cat_cstr(mrb, s, FILE_SEPARATOR);
     s = mrb_str_append(mrb, s, pathname);
     pathname = s;
   }
