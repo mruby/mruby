@@ -245,7 +245,6 @@ mrb_file_basename(mrb_state *mrb, mrb_value klass)
 #if defined(_WIN32)
   char bname[_MAX_DIR];
   char extname[_MAX_EXT];
-  char buffer[_MAX_DIR + _MAX_EXT];
   char *path;
 
   mrb_get_args(mrb, "z", &path);
@@ -261,8 +260,9 @@ mrb_file_basename(mrb_state *mrb, mrb_value klass)
     }
   }
   _splitpath((const char*)path, NULL, NULL, bname, extname);
-  snprintf(buffer, _MAX_DIR + _MAX_EXT, "%s%s", bname, extname);
-  return mrb_str_new_cstr(mrb, buffer);
+  mrb_value buffer = mrb_str_new_cstr(mrb, bname);
+  mrb_str_cat_cstr(mrb, buffer, extname);
+  return buffer;
 #else
   char *path, *bname;
 
