@@ -246,10 +246,9 @@ mrb_file_basename(mrb_state *mrb, mrb_value klass)
   char bname[_MAX_DIR];
   char extname[_MAX_EXT];
   char buffer[_MAX_DIR + _MAX_EXT];
-  mrb_value s;
+  char *path;
 
-  mrb_get_args(mrb, "S", &s);
-  char *path = mrb_str_to_cstr(mrb, s);
+  mrb_get_args(mrb, "z", &path);
   size_t ridx = strlen(path);
   if (ridx > 0) {
     ridx--;
@@ -265,10 +264,9 @@ mrb_file_basename(mrb_state *mrb, mrb_value klass)
   snprintf(buffer, _MAX_DIR + _MAX_EXT, "%s%s", bname, extname);
   return mrb_str_new_cstr(mrb, buffer);
 #else
-  mrb_value s;
-  mrb_get_args(mrb, "S", &s);
-  char *path = mrb_str_to_cstr(mrb, s);
-  char *bname;
+  char *path, *bname;
+
+  mrb_get_args(mrb, "z", &path);
   if ((bname = basename(path)) == NULL) {
     mrb_sys_fail(mrb, "basename");
   }
