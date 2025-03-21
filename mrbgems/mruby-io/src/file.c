@@ -768,7 +768,7 @@ mrb_file_s_readlink(mrb_state *mrb, mrb_value klass)
   tmp = mrb_locale_from_utf8(path, -1);
 
   buf = (char*)mrb_malloc(mrb, bufsize);
-  while ((rc = readlink(tmp, buf, bufsize)) == (ssize_t)bufsize && rc != -1) {
+  while ((rc = readlink(tmp, buf, bufsize)) == (ssize_t)bufsize) {
     bufsize *= 2;
     buf = (char*)mrb_realloc(mrb, buf, bufsize);
   }
