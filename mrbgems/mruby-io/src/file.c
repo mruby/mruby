@@ -637,7 +637,7 @@ mrb_file_flock(mrb_state *mrb, mrb_value self)
         }
         /* FALLTHRU - should not happen */
       default:
-        mrb_sys_fail(mrb, "flock failed");
+        mrb_sys_fail(mrb, "flock");
         break;
     }
   }
@@ -651,7 +651,7 @@ mrb_file_size(mrb_state *mrb, mrb_value self)
   mrb_stat st;
   int fd = mrb_io_fileno(mrb, self);
   if (mrb_fstat(fd, &st) == -1) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "fstat failed");
+    mrb_sys_fail(mrb, "fstat");
   }
 
   if (st.st_size > MRB_INT_MAX) {
@@ -700,7 +700,7 @@ mrb_file_truncate(mrb_state *mrb, mrb_value self)
   int fd = mrb_io_fileno(mrb, self);
   mrb_int length = mrb_as_int(mrb, lenv);
   if (mrb_ftruncate(fd, length) != 0) {
-    mrb_raise(mrb, E_IO_ERROR, "ftruncate failed");
+    mrb_sys_fail(mrb, "ftruncate");
   }
 
   return mrb_fixnum_value(0);
