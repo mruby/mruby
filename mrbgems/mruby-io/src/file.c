@@ -255,7 +255,7 @@ mrb_file_basename(mrb_state *mrb, mrb_value klass)
       path[ridx] = '\0';
       ridx--;
     }
-    if (ridx == 0 && path[0] == "/") {
+    if (ridx == 0 && path[0] == '/') {
       return mrb_str_new_cstr(mrb, path);
     }
   }
