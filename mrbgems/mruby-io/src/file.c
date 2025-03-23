@@ -738,6 +738,7 @@ mrb_file_s_chmod(mrb_state *mrb, mrb_value klass)
 
   mrb_get_args(mrb, "i*", &mode, &filenames, &argc);
   for (int i = 0; i < argc; i++) {
+    mrb_ensure_string_type(mrb, filenames[i]);
     const char *utf8_path = RSTRING_CSTR(mrb, filenames[i]);
     char *path = mrb_locale_from_utf8(utf8_path, -1);
     if (CHMOD(path, mode) == -1) {
