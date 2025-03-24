@@ -811,7 +811,7 @@ realloc_pool_str(codegen_scope *s, mrb_irep_pool *p, mrb_int len)
     str = (char*)p->u.str;
     str = (char*)codegen_realloc(s, str, len+1);
   }
-  p->tt = len<<2 | IREP_TT_STR;
+  p->tt = (uint32_t)(len<<2 | IREP_TT_STR);
   str[len] = '\0';
   p->u.str = (const char*)str;
 }
