@@ -1280,7 +1280,7 @@ hash_set_default_proc(mrb_state *mrb, mrb_value hash, mrb_value proc)
 {
   struct RProc *p = mrb_proc_ptr(proc);
   if (MRB_PROC_STRICT_P(p)) {
-    int n = mrb_proc_arity(p);
+    mrb_int n = mrb_proc_arity(p);
     if (n != 2 && (n >= 0 || n < -3)) {
       if (n < 0) n = -n-1;
       mrb_raisef(mrb, E_TYPE_ERROR, "default_proc takes two arguments (2 for %d)", n);
