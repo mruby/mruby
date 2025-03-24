@@ -429,7 +429,7 @@ path_gethome(mrb_state *mrb, const char **pathp)
     }
   }
   else {
-    const char *uname = RSTRING_CSTR(mrb, mrb_str_new(mrb, username, len));
+    const char *uname = RSTRING_CSTR(mrb, mrb_str_new(mrb, username, (mrb_int)len));
 #if defined(_WIN32) || defined(MRB_IO_NO_PWNAM)
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "user %s doesn't exist", uname);
 #else
@@ -760,15 +760,14 @@ mrb_file_s_readlink(mrb_state *mrb, mrb_value klass)
   return mrb_nil_value(); // unreachable
 #else
   const char *path;
-  char *buf, *tmp;
   size_t bufsize = 100;
-  ssize_t rc;
-  mrb_value ret;
 
   mrb_get_args(mrb, "z", &path);
-  tmp = mrb_locale_from_utf8(path, -1);
 
-  buf = (char*)mrb_malloc(mrb, bufsize);
+  char *tmp = mrb_locale_from_utf8(path, -1);
+  char *buf = (char*)mrb_malloc(mrb, bufsize);
+
+  ssize_t rc;
   while ((rc = readlink(tmp, buf, bufsize)) == (ssize_t)bufsize) {
     bufsize += 100;
     buf = (char*)mrb_realloc(mrb, buf, bufsize);
@@ -779,7 +778,8 @@ mrb_file_s_readlink(mrb_state *mrb, mrb_value klass)
     mrb_sys_fail(mrb, path);
   }
   tmp = mrb_utf8_from_locale(buf, -1);
-  ret = mrb_str_new(mrb, tmp, rc);
+
+  mrb_value ret = mrb_str_new(mrb, tmp, rc);
   mrb_utf8_free(tmp);
   mrb_free(mrb, buf);
 
