@@ -276,7 +276,7 @@ mrb_mruby_io_gem_test(mrb_state* mrb)
   }
 #endif
   if (env_home) {
-    char *utf8 = mrb_utf8_from_locale(env_home, strlen(env_home));
+    char *utf8 = mrb_utf8_from_locale(env_home, -1);
     mrb_value path = mrb_str_new_cstr(mrb, utf8);
 #ifdef _WIN32
     char *pathp = RSTRING_PTR(path);
