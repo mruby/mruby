@@ -21,7 +21,7 @@ fiber_s_yield_by_c_method(mrb_state *mrb, mrb_value self)
 static mrb_value
 fiber_resume_by_c_func(mrb_state *mrb, mrb_value self)
 {
-  int ci_index = mrb->c->ci - mrb->c->cibase;
+  ptrdiff_t ci_index = mrb->c->ci - mrb->c->cibase;
   mrb_value ret = mrb_fiber_resume(mrb, self, 0, NULL);
   if (ci_index != mrb->c->ci - mrb->c->cibase) {
     mrb_raisef(mrb, E_EXCEPTION,
@@ -34,7 +34,7 @@ fiber_resume_by_c_func(mrb_state *mrb, mrb_value self)
 static mrb_value
 fiber_resume_by_c_method(mrb_state *mrb, mrb_value self)
 {
-  int ci_index = mrb->c->ci - mrb->c->cibase;
+  ptrdiff_t ci_index = mrb->c->ci - mrb->c->cibase;
   mrb_value ret = mrb_funcall_argv(mrb, self, mrb_intern_lit(mrb, "resume"), 0, NULL);
   if (ci_index != mrb->c->ci - mrb->c->cibase) {
     mrb_raisef(mrb, E_EXCEPTION,
