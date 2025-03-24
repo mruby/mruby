@@ -361,7 +361,7 @@ path_parse(mrb_state *mrb, mrb_value ary, const char *path, int ai)
     SKIP_DIRSEP(path);
     const char *path0 = path;
     NEXT_DIRSEP(path);
-    int len = path - path0;
+    ptrdiff_t len = path - path0;
     if (len == 0) {
       break;
     }
@@ -412,7 +412,7 @@ path_gethome(mrb_state *mrb, const char **pathp)
 
   const char *username = ++*pathp;
   NEXT_DIRSEP(*pathp);
-  int len = *pathp - username;
+  ptrdiff_t len = *pathp - username;
 
   if (len == 0) {
     home = getenv("HOME");
