@@ -1140,6 +1140,51 @@ mrb_hash_first_key(mrb_state *mrb, mrb_value h)
   return mrb_nil_value();
 }
 
+MRB_API mrb_hash_iterator
+mrb_hash_iterator_new(struct RHash *h)
+{
+  mrb_hash_iterator it;
+
+  if (h_ar_p(h)) {
+    it.entry = ar_ea(h);
+    it.rem = ar_size(h);
+  } else {
+    it.entry = ht_ea(h);
+    it.rem = ht_size(h);
+  }
+
+  if (0 < it.rem) {
+    while (entry_deleted_p(it.entry)) {
+      ++it.entry;
+    }
+  }
+
+  return it;
+}
+
+MRB_API mrb_bool
+mrb_hash_iterator_move_next(mrb_hash_iterator *it)
+{
+  if (0 < it->rem && 0 < --it->rem) {
+    while (entry_deleted_p(++it->entry));
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+MRB_API mrb_value
+mrb_hash_iterator_key(mrb_hash_iterator *it)
+{
+  return it->entry->key;
+}
+
+MRB_API mrb_value
+mrb_hash_iterator_value(mrb_hash_iterator *it)
+{
+  return it->entry->val;
+}
+
 MRB_API mrb_value
 mrb_hash_new(mrb_state *mrb)
 {
