@@ -845,7 +845,7 @@ mrb_value
 mrb_object_exec(mrb_state *mrb, mrb_value self, struct RClass *target_class)
 {
   mrb_callinfo *ci = mrb->c->ci;
-  int bidx = mrb_ci_bidx(ci);
+  mrb_int bidx = ci_bidx(ci);
   mrb_value blk = ci->stack[bidx];
   if (mrb_nil_p(blk)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
