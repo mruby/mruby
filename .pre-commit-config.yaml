@@ -25,7 +25,7 @@ repos:
         language: node
         additional_dependencies: ["prettier@3.3.3"]
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.24.0
+    rev: v8.24.2
     hooks:
       - id: gitleaks
         name: run gitleaks
@@ -121,7 +121,7 @@ repos:
         name: run shellcheck
         description: check shell scripts with a static analysis tool
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.36.0
+    rev: v1.37.0
     hooks:
       - id: yamllint
         name: run yamllint
