@@ -10,9 +10,11 @@ repos:
   - repo: meta
     hooks:
       - id: identity
-        name: run identity check
+        name: run identity
+        description: check your identity
       - id: check-hooks-apply
-        name: check hooks apply to the repository
+        name: run check-hooks-apply
+        description: check hooks apply to the repository
   - repo: local
     hooks:
       - id: prettier
@@ -26,12 +28,14 @@ repos:
     rev: v8.24.0
     hooks:
       - id: gitleaks
-        name: detect hardcoded secrets
+        name: run gitleaks
+        description: detect hardcoded secrets with gitleaks
   - repo: https://github.com/shssoichiro/oxipng
     rev: v9.1.4
     hooks:
       - id: oxipng
         name: run oxipng
+        description: use lossless compression to optimize PNG files
         args: ["-o", "4", "--strip", "safe", "--alpha"]
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
@@ -64,10 +68,12 @@ repos:
     rev: v1.5.5
     hooks:
       - id: forbid-tabs
-        name: no-tabs checker
+        name: run no-tabs checker
+        description: check the codebase for tabs
         exclude: Makefile$
       - id: remove-tabs
-        name: tabs remover
+        name: run tabs remover
+        description: find and convert tabs to spaces
         args: [--whitespaces-count, "2"]
         exclude: Makefile$
   - repo: https://github.com/rhysd/actionlint
@@ -81,7 +87,7 @@ repos:
     hooks:
       - id: codespell
         name: run codespell
-        description: Check spelling with codespell
+        description: check spelling with codespell
         args: [--ignore-words=.github/linters/codespell.txt]
   - repo: https://github.com/jumanjihouse/pre-commit-hooks
     rev: 3.0.0
@@ -95,7 +101,7 @@ repos:
     hooks:
       - id: markdownlint
         name: run markdownlint
-        description: Checks the style of Markdown files
+        description: checks the style of Markdown files
         args: [--config=.github/linters/.markdown-lint.yml]
         types: [markdown]
         files: \.md$
@@ -104,7 +110,7 @@ repos:
     hooks:
       - id: markdown-link-check
         name: run markdown-link-check
-        description: Checks hyperlinks in Markdown files
+        description: checks hyperlinks in Markdown files
         args: [--config=.github/linters/mlc_config.json, -q]
         types: [markdown]
         files: \.md$
@@ -113,12 +119,13 @@ repos:
     hooks:
       - id: shellcheck
         name: run shellcheck
+        description: check shell scripts with a static analysis tool
   - repo: https://github.com/adrienverge/yamllint
     rev: v1.36.0
     hooks:
       - id: yamllint
         name: run yamllint
-        description: Check YAML files with yamllint
+        description: check YAML files with yamllint
         args: [--strict, -c=.github/linters/.yaml-lint.yml]
         types: [yaml]
         files: \.ya?ml$
