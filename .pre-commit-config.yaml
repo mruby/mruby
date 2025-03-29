@@ -24,7 +24,7 @@ repos:
         entry: prettier --write .
         files: \.(json|md|ya?ml)$
         language: node
-        additional_dependencies: ["prettier@3.3.3"]
+        additional_dependencies: ["prettier@3.5.3"]
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.24.2
     hooks:
