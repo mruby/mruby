@@ -4,7 +4,8 @@ default_stages: [pre-commit, pre-push]
 default_language_version:
   # force all unspecified Python hooks to run python3
   python: python3
-  node: 22.2.0
+  # force all unspecified Node hooks to run Node.js v22.14.0 LTS
+  node: 22.14.0
 minimum_pre_commit_version: "3.2.0"
 repos:
   - repo: meta
