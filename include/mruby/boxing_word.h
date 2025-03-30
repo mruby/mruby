@@ -50,8 +50,9 @@ enum mrb_special_consts {
 #define WORDBOX_FIXNUM_FLAG     (1 << (WORDBOX_FIXNUM_BIT_POS - 1))
 #define WORDBOX_FIXNUM_MASK     ((1 << WORDBOX_FIXNUM_BIT_POS) - 1)
 
-#if defined(MRB_WORDBOX_NO_FLOAT_TRUNCATE)
+#if defined(MRB_WORDBOX_NO_FLOAT_TRUNCATE) || defined(MRB_NO_FLOAT)
 /* floats are allocated in heaps */
+#define WORDBOX_IMMEDIATE_MASK  0x03
 #define WORDBOX_SYMBOL_BIT_POS  2
 #define WORDBOX_SYMBOL_SHIFT    WORDBOX_SYMBOL_BIT_POS
 #define WORDBOX_SYMBOL_FLAG     (1 << (WORDBOX_SYMBOL_BIT_POS - 1))
@@ -68,7 +69,9 @@ enum mrb_special_consts {
 #define WORDBOX_SYMBOL_MASK     0x1f
 #endif
 
+#ifndef WORDBOX_IMMEDIATE_MASK
 #define WORDBOX_IMMEDIATE_MASK  0x07
+#endif
 
 #define WORDBOX_SET_SHIFT_VALUE(o,n,v) \
   ((o).w = (((uintptr_t)(v)) << WORDBOX_##n##_SHIFT) | WORDBOX_##n##_FLAG)
@@ -107,7 +110,7 @@ enum mrb_special_consts {
  *   undef : ...0001 0100
  *   fixnum: ...IIII III1
  *   symbol: ...SSSS SS10
- *   object: ...PPPP P000 (any bits are 1)
+ *   object: ...PPPP PP00 (any bits are 1)
  */
 typedef struct mrb_value {
   uintptr_t w;
@@ -145,7 +148,11 @@ MRB_API mrb_value mrb_word_boxing_float_value(struct mrb_state*, mrb_float);
 #endif
 MRB_API mrb_value mrb_boxing_int_value(struct mrb_state*, mrb_int);
 
+#if WORDBOX_IMMEDIATE_MASK == 0x3
+#define mrb_immediate_p(o) ((o).w & WORDBOX_IMMEDIATE_MASK || (o).w <= MRB_Qundef)
+#else
 #define mrb_immediate_p(o) ((o).w & WORDBOX_IMMEDIATE_MASK || (o).w == MRB_Qnil)
+#endif
 
 #define mrb_ptr(o)     mrb_val_union(o).p
 #define mrb_cptr(o)    mrb_val_union(o).vp->p
