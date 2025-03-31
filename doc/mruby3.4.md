@@ -131,7 +131,7 @@
 - [#6243](https://github.com/mruby/mruby/pull/6243) Fixed base64 decoding in `mruby-pack`
 - [#6244](https://github.com/mruby/mruby/pull/6244) Revise scope of role of `mrb_vm_run()`
 - [#6246](https://github.com/mruby/mruby/pull/6246) Fix typo in `test/t/hash.rb`
-- [#6249](https://github.com/mruby/mruby/pull/6249) Fix grammar in `src/vm.c`; `catched` -> `caught`
+- [#6249](https://github.com/mruby/mruby/pull/6249) Fix spelling in `src/vm.c`
 - [#6250](https://github.com/mruby/mruby/pull/6250) Fix spelling
 - [#6251](https://github.com/mruby/mruby/pull/6251) Clean up root move `CODEOWNERS` to `.github` directory
 - [#6253](https://github.com/mruby/mruby/pull/6253) Allow recycling fibers by GC if not referenced directly
