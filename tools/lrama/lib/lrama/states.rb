@@ -1,6 +1,8 @@
+# frozen_string_literal: true
+
 require "forwardable"
-require "lrama/report/duration"
-require "lrama/states/item"
+require_relative "report/duration"
+require_relative "states/item"
 
 module Lrama
   # States is passed to a template file
@@ -16,9 +18,8 @@ module Lrama
 
     attr_reader :states, :reads_relation, :includes_relation, :lookback_relation
 
-    def initialize(grammar, warning, trace_state: false)
+    def initialize(grammar, trace_state: false)
       @grammar = grammar
-      @warning = warning
       @trace_state = trace_state
 
       @states = []
@@ -40,6 +41,8 @@ module Lrama
       # value is array of [state.id, nterm.token_id].
       @reads_relation = {}
 
+      # `Read(p, A) =s DR(p, A) ∪ ∪{Read(r, C) | (p, A) reads (r, C)}`
+      #
       # `@read_sets` is a hash whose
       # key is [state.id, nterm.token_id],
       # value is bitmap of term.
@@ -61,6 +64,8 @@ module Lrama
       # value is array of [state.id, nterm.token_id].
       @lookback_relation = {}
 
+      # `Follow(p, A) =s Read(p, A) ∪ ∪{Follow(p', B) | (p, A) includes (p', B)}`
+      #
       # `@follow_sets` is a hash whose
       # key is [state.id, rule.id],
       # value is bitmap of term.
@@ -89,8 +94,20 @@ module Lrama
       report_duration(:compute_conflicts) { compute_conflicts }
 
       report_duration(:compute_default_reduction) { compute_default_reduction }
+    end
 
-      check_conflicts
+    def compute_ielr
+      report_duration(:split_states) { split_states }
+      report_duration(:compute_direct_read_sets) { compute_direct_read_sets }
+      report_duration(:compute_reads_relation) { compute_reads_relation }
+      report_duration(:compute_read_sets) { compute_read_sets }
+      report_duration(:compute_includes_relation) { compute_includes_relation }
+      report_duration(:compute_lookback_relation) { compute_lookback_relation }
+      report_duration(:compute_follow_sets) { compute_follow_sets }
+      report_duration(:compute_look_ahead_sets) { compute_look_ahead_sets }
+      report_duration(:compute_conflicts) { compute_conflicts }
+
+      report_duration(:compute_default_reduction) { compute_default_reduction }
     end
 
     def reporter
@@ -125,15 +142,15 @@ module Lrama
       end
     end
 
+    def sr_conflicts_count
+      @sr_conflicts_count ||= @states.flat_map(&:sr_conflicts).count
+    end
+
+    def rr_conflicts_count
+      @rr_conflicts_count ||= @states.flat_map(&:rr_conflicts).count
+    end
+
     private
-
-    def sr_conflicts
-      @states.flat_map(&:sr_conflicts)
-    end
-
-    def rr_conflicts
-      @states.flat_map(&:rr_conflicts)
-    end
 
     def trace_state
       if @trace_state
@@ -236,7 +253,7 @@ module Lrama
       # Trace
       previous = state.kernels.first.previous_sym
       trace_state do |out|
-        out << sprintf("state_list_append (state = %d, symbol = %d (%s))",
+        out << sprintf("state_list_append (state = %d, symbol = %d (%s))\n",
           @states.count, previous.number, previous.display_name)
       end
 
@@ -266,7 +283,10 @@ module Lrama
         state.shifts.each do |shift|
           new_state, created = create_state(shift.next_sym, shift.next_items, states_created)
           state.set_items_to_state(shift.next_items, new_state)
-          enqueue_state(states, new_state) if created
+          if created
+            enqueue_state(states, new_state)
+            new_state.append_predecessor(state)
+          end
         end
       end
     end
@@ -350,7 +370,7 @@ module Lrama
               # TODO: need to omit if state == state2 ?
               @includes_relation[key] ||= []
               @includes_relation[key] << [state.id, nterm.token_id]
-              break if !sym.nullable
+              break unless sym.nullable
               i -= 1
             end
           end
@@ -385,7 +405,7 @@ module Lrama
       @states.each do |state|
         rules.each do |rule|
           ary = @lookback_relation[[state.id, rule.id]]
-          next if !ary
+          next unless ary
 
           ary.each do |state2_id, nterm_token_id|
             # q = state, A -> ω = rule, p = state2, A = nterm
@@ -428,7 +448,7 @@ module Lrama
             sym = shift.next_sym
 
             next unless reduce.look_ahead
-            next if !reduce.look_ahead.include?(sym)
+            next unless reduce.look_ahead.include?(sym)
 
             # Shift/Reduce conflict
             shift_prec = sym.precedence
@@ -492,17 +512,17 @@ module Lrama
       states.each do |state|
         count = state.reduces.count
 
-        for i in 0...count do
+        (0...count).each do |i|
           reduce1 = state.reduces[i]
           next if reduce1.look_ahead.nil?
 
-          for j in (i+1)...count do
+          ((i+1)...count).each do |j|
             reduce2 = state.reduces[j]
             next if reduce2.look_ahead.nil?
 
             intersection = reduce1.look_ahead & reduce2.look_ahead
 
-            if !intersection.empty?
+            unless intersection.empty?
               state.conflicts << State::ReduceReduceConflict.new(symbols: intersection, reduce1: reduce1, reduce2: reduce2)
             end
           end
@@ -514,7 +534,7 @@ module Lrama
       states.each do |state|
         next if state.reduces.empty?
         # Do not set, if conflict exist
-        next if !state.conflicts.empty?
+        next unless state.conflicts.empty?
         # Do not set, if shift with `error` exists.
         next if state.shifts.map(&:next_sym).include?(@grammar.error_symbol)
 
@@ -526,30 +546,49 @@ module Lrama
       end
     end
 
-    def check_conflicts
-      sr_count = sr_conflicts.count
-      rr_count = rr_conflicts.count
-
-      if @grammar.expect
-
-        expected_sr_conflicts = @grammar.expect
-        expected_rr_conflicts = 0
-
-        if expected_sr_conflicts != sr_count
-          @warning.error("shift/reduce conflicts: #{sr_count} found, #{expected_sr_conflicts} expected")
+    def split_states
+      @states.each do |state|
+        state.transitions.each do |shift, next_state|
+          compute_state(state, shift, next_state)
         end
+      end
+    end
 
-        if expected_rr_conflicts != rr_count
-          @warning.error("reduce/reduce conflicts: #{rr_count} found, #{expected_rr_conflicts} expected")
+    def merge_lookaheads(state, filtered_lookaheads)
+      return if state.kernels.all? {|item| (filtered_lookaheads[item] - state.item_lookahead_set[item]).empty? }
+
+      state.item_lookahead_set = state.item_lookahead_set.merge {|_, v1, v2| v1 | v2 }
+      state.transitions.each do |shift, next_state|
+        next if next_state.lookaheads_recomputed
+        compute_state(state, shift, next_state)
+      end
+    end
+
+    def compute_state(state, shift, next_state)
+      filtered_lookaheads = state.propagate_lookaheads(next_state)
+      s = next_state.ielr_isocores.find {|st| st.compatible_lookahead?(filtered_lookaheads) }
+
+      if s.nil?
+        s = next_state.ielr_isocores.last
+        new_state = State.new(@states.count, s.accessing_symbol, s.kernels)
+        new_state.closure = s.closure
+        new_state.compute_shifts_reduces
+        s.transitions.each do |sh, next_state|
+          new_state.set_items_to_state(sh.next_items, next_state)
         end
+        @states << new_state
+        new_state.lalr_isocore = s
+        s.ielr_isocores << new_state
+        s.ielr_isocores.each do |st|
+          st.ielr_isocores = s.ielr_isocores
+        end
+        new_state.item_lookahead_set = filtered_lookaheads
+        state.update_transition(shift, new_state)
+      elsif(!s.lookaheads_recomputed)
+        s.item_lookahead_set = filtered_lookaheads
       else
-        if sr_count != 0
-          @warning.warn("shift/reduce conflicts: #{sr_count} found")
-        end
-
-        if rr_count != 0
-          @warning.warn("reduce/reduce conflicts: #{rr_count} found")
-        end
+        state.update_transition(shift, s)
+        merge_lookaheads(s, filtered_lookaheads)
       end
     end
   end

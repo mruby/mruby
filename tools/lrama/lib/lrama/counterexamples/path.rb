@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Lrama
   class Counterexamples
     class Path
@@ -18,6 +20,10 @@ module Lrama
         "#<Path(#{type})>"
       end
       alias :inspect :to_s
+
+      def type
+        raise NotImplementedError
+      end
     end
   end
 end

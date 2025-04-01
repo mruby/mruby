@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Lrama
   class Command
     LRAMA_LIB = File.realpath(File.join(File.dirname(__FILE__)))
@@ -14,11 +16,10 @@ module Lrama
 
       Report::Duration.enable if options.trace_opts[:time]
 
-      warning = Lrama::Warning.new
       text = options.y.read
       options.y.close if options.y != STDIN
       begin
-        grammar = Lrama::Parser.new(text, options.grammar_file, options.debug).parse
+        grammar = Lrama::Parser.new(text, options.grammar_file, options.debug, options.define).parse
         unless grammar.no_stdlib
           stdlib_grammar = Lrama::Parser.new(File.read(STDLIB_FILE_PATH), STDLIB_FILE_PATH, options.debug).parse
           grammar.insert_before_parameterizing_rules(stdlib_grammar.parameterizing_rules)
@@ -31,8 +32,9 @@ module Lrama
         message = message.gsub(/.+/, "\e[1m\\&\e[m") if Exception.to_tty?
         abort message
       end
-      states = Lrama::States.new(grammar, warning, trace_state: (options.trace_opts[:automaton] || options.trace_opts[:closure]))
+      states = Lrama::States.new(grammar, trace_state: (options.trace_opts[:automaton] || options.trace_opts[:closure]))
       states.compute
+      states.compute_ielr if grammar.ielr_defined?
       context = Lrama::Context.new(states)
 
       if options.report_file
@@ -42,15 +44,8 @@ module Lrama
         end
       end
 
-      if options.trace_opts && options.trace_opts[:rules]
-        puts "Grammar rules:"
-        puts grammar.rules
-      end
-
-      if options.trace_opts && options.trace_opts[:actions]
-        puts "Grammar rules with actions:"
-        grammar.rules.each { |rule| puts rule.with_actions }
-      end
+      reporter = Lrama::TraceReporter.new(grammar)
+      reporter.report(**options.trace_opts)
 
       File.open(options.outfile, "w+") do |f|
         Lrama::Output.new(
@@ -65,9 +60,9 @@ module Lrama
         ).render
       end
 
-      if warning.has_error?
-        exit false
-      end
+      logger = Lrama::Logger.new
+      exit false unless Lrama::GrammarValidator.new(grammar, states, logger).valid?
+      Lrama::Diagnostics.new(grammar, states, logger).run(options.diagnostic)
     end
   end
 end
