@@ -909,8 +909,8 @@ int_chr(mrb_state *mrb, mrb_value num)
  *
  *  Returns next sequence of the string;
  *
- *     a = "abc"
- *     a.succ    #=> "abd"
+ *     a = "bed"
+ *     a.succ    #=> "bee"
  */
 static mrb_value
 str_succ_bang(mrb_state *mrb, mrb_value self)
