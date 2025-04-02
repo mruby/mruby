@@ -1627,7 +1627,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
 }
 
 static mrb_value
-pack_unpack(mrb_state *mrb, mrb_value str, int single)
+pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
 {
   mrb_value result;
   struct tmpl tmpl;
@@ -1749,13 +1749,13 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
 static mrb_value
 mrb_pack_unpack(mrb_state *mrb, mrb_value str)
 {
-  return pack_unpack(mrb, str, 0);
+  return pack_unpack(mrb, str, FALSE);
 }
 
 static mrb_value
 mrb_pack_unpack1(mrb_state *mrb, mrb_value str)
 {
-  return pack_unpack(mrb, str, 1);
+  return pack_unpack(mrb, str, TRUE);
 }
 
 void
