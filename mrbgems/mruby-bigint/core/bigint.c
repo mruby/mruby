@@ -882,7 +882,7 @@ mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
   if ((base & (base - 1)) == 0) {  // base is a power of 2
     int shift = 0;
     while ((1 << shift) < base) shift++;
-    mp_limb mask = base - 1;
+    mp_limb mask = (mp_limb)base - 1;
     mp_dbl_limb value = 0;
     int bits = 0;
 
