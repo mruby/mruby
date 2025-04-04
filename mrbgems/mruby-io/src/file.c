@@ -456,7 +456,7 @@ path_expand(mrb_state *mrb, const char *path, const char *base, mrb_bool tilda)
 {
   mrb_value ary;
 
-  // split path conponents as array and normalization
+  // split path components as array and normalization
   if (tilda && path[0] == '~') {
     base = path_gethome(mrb, &path);
     ary = path_split(mrb, path, base, NULL);
