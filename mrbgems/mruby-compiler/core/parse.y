@@ -1540,7 +1540,7 @@ prohibit_literals(parser_state *p, node *n)
         modifier_while  "'while' modifier"
         modifier_until  "'until' modifier"
         modifier_rescue "'rescue' modifier"
-        keyword_alias   "'alis'"
+        keyword_alias   "'alias'"
         keyword_BEGIN   "'BEGIN'"
         keyword_END     "'END'"
         keyword__LINE__ "'__LINE__'"
