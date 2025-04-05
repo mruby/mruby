@@ -820,8 +820,8 @@ module Enumerable
     return to_enum(:filter_map) unless blk
 
     ary = []
-    self.each do |x|
-      x = blk.call(x)
+    self.each do |*x|
+      x = blk.call(*x)
       ary.push x if x
     end
     ary
