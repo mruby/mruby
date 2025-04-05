@@ -851,7 +851,8 @@ module Enumerable
   #    ["a", "b", "c", "b"].tally #=> {"a"=>1, "b"=>2, "c"=>1}
   def tally
     hash = {}
-    self.each do |x|
+    self.each do |*x|
+      x = x.__svalue
       hash[x] = (hash[x]||0)+1
     end
     hash
