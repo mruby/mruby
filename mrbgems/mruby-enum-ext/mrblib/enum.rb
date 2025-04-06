@@ -670,7 +670,7 @@ module Enumerable
     return nil if ary.empty?
 
     while n < 0 || 0 < (n -= 1)
-      ary.each do |*i|
+      ary.each do |i|
         yield(*i)
       end
     end
