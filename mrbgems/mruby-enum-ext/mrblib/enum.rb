@@ -871,12 +871,12 @@ module Enumerable
   def sum(init=0,&block)
     result=init
     if block
-      self.each do |e|
-        result += block.call(e)
+      self.each do |*e|
+        result += block.call(*e)
       end
     else
-      self.each do |e|
-        result += e
+      self.each do |*e|
+        result += e.__svalue
       end
     end
     result
