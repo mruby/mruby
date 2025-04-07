@@ -4012,7 +4012,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *nlv)
 
   s->lv = nlv;
   s->sp += node_len(nlv)+1;        /* add self */
-  s->nlocals = s->sp;
+  s->nlocals = s->nregs = s->sp;
   if (nlv) {
     mrb_sym *lv;
     node *n = nlv;
