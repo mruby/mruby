@@ -838,6 +838,9 @@ assert('Module#module_function') do
   end
 
   assert_true M.respond_to?(:modfunc)
+  assert_equal nil do
+    M.modfunc
+  end
 end
 
 assert('module with non-class/module outer raises TypeError') do

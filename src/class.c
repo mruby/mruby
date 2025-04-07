@@ -2789,7 +2789,7 @@ mrb_mod_module_function(mrb_state *mrb, mrb_value mod)
     mrb_method_t m = mrb_method_search(mrb, rclass, mid);
 
     prepare_singleton_class(mrb, (struct RBasic*)rclass);
-    MRB_METHOD_SET_VISIBILITY(m, MT_PRIVATE);
+    MRB_METHOD_SET_VISIBILITY(m, MT_PUBLIC);
     mrb_define_method_raw(mrb, rclass->c, mid, m);
     mrb_gc_arena_restore(mrb, ai);
   }
