@@ -7,6 +7,7 @@ default_language_version:
   # force all unspecified Node hooks to run Node.js v22.14.0 LTS
   node: 22.14.0
 minimum_pre_commit_version: "3.2.0"
+exclude: "^tools/lrama/"
 repos:
   - repo: meta
     hooks:
