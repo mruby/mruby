@@ -743,30 +743,30 @@ mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, s
 }
 
 static mrb_callinfo*
-find_visibility_ci(mrb_state *mrb, const struct RClass *c, int n)
+find_visibility_ci(mrb_state *mrb, const struct RClass *c, int n, struct REnv **e)
 {
-  mrb_callinfo *ci = mrb->c->ci - n;
-  const mrb_callinfo *cibase = mrb->c->cibase;
+  const struct mrb_context *ec = mrb->c;
+  mrb_callinfo *ci = ec->ci - n;
   const struct RProc *p = ci->proc;
 
-  mrb_assert(p != NULL);
   if (c == NULL) c = mrb_vm_ci_target_class(ci);
-  while (p->upper && cibase < ci) {
-    p = p->upper;
 
-    mrb_callinfo *upper_ci = ci - 1;
-    while (cibase < upper_ci) {
-      if (upper_ci->proc == p) {
-        if (mrb_vm_ci_target_class(upper_ci) != c) {
-          return ci;
-        }
-        ci = upper_ci;
-        break;
-      }
-      upper_ci--;
+  if (!p || p->upper == NULL || MRB_PROC_SCOPE_P(p) ||
+      p->e.env == NULL || !MRB_PROC_ENV_P(p) || mrb_vm_ci_target_class(ci) != c || MRB_CI_SEPARATE_MODULE_P(ci)) {
+    mrb_assert(ci->u.env);
+    *e = (ci->u.env->tt == MRB_TT_ENV ? ci->u.env : NULL);
+    return ci;
+  }
+
+  for (;;) {
+    struct REnv *env = p->e.env;
+    p = p->upper;
+    if (p->upper == NULL || MRB_PROC_SCOPE_P(p) ||
+        p->e.env == NULL || !MRB_PROC_ENV_P(p) || p->e.env->c != c || MRB_ENV_SEPARATE_MODULE_P(env)) {
+      *e = env;
+      return NULL;
     }
   }
-  return ci;
 }
 
 MRB_API void
@@ -813,8 +813,10 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
     MRB_SET_VISIBILITY(flags, MT_PRIVATE);
   }
   else if ((flags & MT_VMASK) == MT_VDEFAULT) {
-    mrb_callinfo *ci = find_visibility_ci(mrb, c, 0);
-    MRB_SET_VISIBILITY(flags, ci->vis);
+    struct REnv *e;
+    mrb_callinfo *ci = find_visibility_ci(mrb, c, 0, &e);
+    mrb_assert(ci || e);
+    MRB_SET_VISIBILITY(flags, (e ? MRB_ENV_VISIBILITY(e) : MRB_CI_VISIBILITY(ci)));
   }
   mt_put(mrb, h, mid, flags, ptr);
   mc_clear_by_id(mrb, mid);
@@ -1697,8 +1699,14 @@ mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int vis)
 
   mrb_get_args(mrb, "*!", &argv, &argc);
   if (argc == 0) {
-    mrb_callinfo *ci = find_visibility_ci(mrb, NULL, 1);
-    ci->vis = vis;
+    struct REnv *e;
+    mrb_callinfo *ci = find_visibility_ci(mrb, NULL, 1, &e);
+    if (e) {
+      MRB_ENV_SET_VISIBILITY(e, vis);
+    }
+    else {
+      MRB_CI_SET_VISIBILITY(ci, vis);
+    }
   }
   else {
     mt_tbl *h = c->mt;
