@@ -825,17 +825,15 @@ mrb_const_get(mrb_state *mrb, mrb_value mod, mrb_sym sym)
 mrb_value
 mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
 {
-  struct RClass *c;
-  struct RClass *c2;
-  mrb_value v;
   const struct RProc *proc = mrb->c->ci->proc;
+  struct RClass *c = MRB_PROC_TARGET_CLASS(proc);
+  mrb_value v;
 
-  c = MRB_PROC_TARGET_CLASS(proc);
   if (!c) c = mrb->object_class;
   if (iv_get(mrb, class_iv_ptr(c), sym, &v)) {
     return v;
   }
-  c2 = c;
+  struct RClass *c2 = c;
   while (c2 && c2->tt == MRB_TT_SCLASS) {
     mrb_value klass;
 
