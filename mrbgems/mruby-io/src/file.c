@@ -654,7 +654,7 @@ mrb_file_size(mrb_state *mrb, mrb_value self)
     mrb_sys_fail(mrb, "fstat");
   }
 
-  if (st.st_size > MRB_INT_MAX) {
+  if (sizeof(st.st_size) >= sizeof(mrb_int) && st.st_size > MRB_INT_MAX) {
 #ifdef MRB_NO_FLOAT
     mrb_raise(mrb, E_RUNTIME_ERROR, "File#size too large for MRB_NO_FLOAT");
 #else
