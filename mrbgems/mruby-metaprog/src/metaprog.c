@@ -643,6 +643,9 @@ mrb_mod_remove_method(mrb_state *mrb, mrb_value mod)
 static mrb_value
 mrb_mod_s_constants(mrb_state *mrb, mrb_value mod)
 {
+  if (mrb_get_argc(mrb) > 0 || mrb_class_ptr(mod) != mrb->module_class) {
+    return mrb_mod_constants(mrb, mod);
+  }
   mrb_raise(mrb, E_NOTIMP_ERROR, "Module.constants not implemented");
   return mrb_nil_value();       /* not reached */
 }
