@@ -147,7 +147,7 @@ exec_irep(mrb_state *mrb, mrb_value self, struct RProc *proc)
   mrb->c->ci->nk = 0;
   /* clear block */
   mrb->c->ci->stack[1] = mrb_nil_value();
-  return mrb_exec_irep(mrb, self, proc);
+  return mrb_exec_irep(mrb, self, proc, TRUE);
 }
 
 static void
