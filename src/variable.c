@@ -924,6 +924,13 @@ const_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
   return 0;
 }
 
+mrb_value
+mrb_mod_const_at(mrb_state *mrb, struct RClass *c, mrb_value ary)
+{
+  iv_foreach(mrb, class_iv_ptr(c), const_i, &ary);
+  return ary;
+}
+
 /* 15.2.2.4.24 */
 /*
  *  call-seq:
@@ -941,7 +948,7 @@ mrb_mod_constants(mrb_state *mrb, mrb_value mod)
   mrb_get_args(mrb, "|b", &inherit);
   ary = mrb_ary_new(mrb);
   while (c) {
-    iv_foreach(mrb, class_iv_ptr(c), const_i, &ary);
+    mrb_mod_const_at(mrb, c, ary);
     if (!inherit) break;
     c = c->super;
     if (c == mrb->object_class) break;

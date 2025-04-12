@@ -176,11 +176,12 @@ size_t mrb_obj_iv_tbl_memsize(mrb_value);
 mrb_value mrb_obj_iv_inspect(mrb_state*, struct RObject*);
 void mrb_obj_iv_set_force(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v);
 mrb_value mrb_mod_constants(mrb_state *mrb, mrb_value mod);
+mrb_value mrb_mod_const_at(mrb_state *mrb, struct RClass *c, mrb_value ary);
 mrb_value mrb_f_global_variables(mrb_state *mrb, mrb_value self);
 mrb_value mrb_obj_instance_variables(mrb_state*, mrb_value);
 mrb_value mrb_mod_class_variables(mrb_state*, mrb_value);
-mrb_value mrb_mod_cv_get(mrb_state *mrb, struct RClass * c, mrb_sym sym);
-mrb_bool mrb_mod_cv_defined(mrb_state *mrb, struct RClass * c, mrb_sym sym);
+mrb_value mrb_mod_cv_get(mrb_state *mrb, struct RClass *c, mrb_sym sym);
+mrb_bool mrb_mod_cv_defined(mrb_state *mrb, struct RClass *c, mrb_sym sym);
 mrb_bool mrb_ident_p(const char *s, mrb_int len);
 mrb_value mrb_exc_const_get(mrb_state *mrb, mrb_sym sym);
 
