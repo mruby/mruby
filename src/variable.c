@@ -669,7 +669,7 @@ mrb_mod_cv_set(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value v)
     c = c->super;
   }
 
-  if (cls && cls->tt == MRB_TT_SCLASS) {
+  if (cls->tt == MRB_TT_SCLASS) {
     mrb_value klass;
 
     klass = mrb_obj_iv_get(mrb, (struct RObject*)cls, MRB_SYM(__attached__));
@@ -684,7 +684,7 @@ mrb_mod_cv_set(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value v)
       break;
     }
   }
-  else if (cls && cls->tt == MRB_TT_ICLASS) {
+  else if (cls->tt == MRB_TT_ICLASS) {
     c = cls->c;
   }
   else {
