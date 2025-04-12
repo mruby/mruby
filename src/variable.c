@@ -624,7 +624,7 @@ mrb_mod_cv_get(mrb_state *mrb, struct RClass *c, mrb_sym sym)
     c = c->super;
   }
   if (given) return v;
-  if (cls && cls->tt == MRB_TT_SCLASS) {
+  if (cls->tt == MRB_TT_SCLASS) {
     mrb_value klass;
 
     klass = mrb_obj_iv_get(mrb, (struct RObject*)cls, MRB_SYM(__attached__));
