@@ -646,8 +646,26 @@ mrb_mod_s_constants(mrb_state *mrb, mrb_value mod)
   if (mrb_get_argc(mrb) > 0 || mrb_class_ptr(mod) != mrb->module_class) {
     return mrb_mod_constants(mrb, mod);
   }
-  mrb_raise(mrb, E_NOTIMP_ERROR, "Module.constants not implemented");
-  return mrb_nil_value();       /* not reached */
+
+  const struct RProc *proc = mrb->c->ci[-1].proc;
+  struct RClass *c = MRB_PROC_TARGET_CLASS(proc);
+  mrb_value ary = mrb_ary_new(mrb);
+
+  if (!c) c = mrb->object_class;
+  mrb_mod_const_at(mrb, c, ary);
+  proc = proc->upper;
+  while (proc) {
+    struct RClass *c2 = MRB_PROC_TARGET_CLASS(proc);
+    if (!c2) c2 = mrb->object_class;
+    mrb_mod_const_at(mrb, c2, ary);
+    proc = proc->upper;
+  }
+  while (c) {
+    mrb_mod_const_at(mrb, c, ary);
+    c = c->super;
+    if (c == mrb->object_class) break;
+  }
+  return ary;
 }
 
 static mrb_value
