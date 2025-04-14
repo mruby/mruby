@@ -889,3 +889,23 @@ assert('shared empty iv_tbl (prepend)') do
   m2::CONST2 = 2
   assert_equal 2, c::CONST2
 end
+
+assert('constant lookup #6506') do
+  Module.new do
+    module X
+      module A
+        class WWW; end
+      end
+    end
+
+    module X::Y; end
+
+    module X::Y::Z
+      extend X::A
+
+      class << self
+        assert_nothing_raised{WWW}
+      end
+    end
+  end
+end
