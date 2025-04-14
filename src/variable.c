@@ -826,32 +826,29 @@ mrb_value
 mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
 {
   const struct RProc *proc = mrb->c->ci->proc;
-  struct RClass *c = MRB_PROC_TARGET_CLASS(proc);
+  struct RClass *c = MRB_PROC_TARGET_CLASS(proc), *c2;
   mrb_value v;
 
   if (!c) c = mrb->object_class;
   if (iv_get(mrb, class_iv_ptr(c), sym, &v)) {
     return v;
   }
-  struct RClass *c2 = c;
-  while (c2 && c2->tt == MRB_TT_SCLASS) {
-    mrb_value klass;
-
-    if (!iv_get(mrb, class_iv_ptr(c2), MRB_SYM(__attached__), &klass)) {
-      c2 = NULL;
-      break;
-    }
-    c2 = mrb_class_ptr(klass);
-  }
-  if (c2 && (c2->tt == MRB_TT_CLASS || c2->tt == MRB_TT_MODULE)) c = c2;
-  proc = proc->upper;
-  while (proc) {
+  for (proc = proc->upper; proc; proc = proc->upper) {
     c2 = MRB_PROC_TARGET_CLASS(proc);
     if (!c2) c2 = mrb->object_class;
-    if (c2 && iv_get(mrb, class_iv_ptr(c2), sym, &v)) {
+    if (iv_get(mrb, class_iv_ptr(c2), sym, &v)) {
       return v;
     }
-    proc = proc->upper;
+  }
+  if (c->tt == MRB_TT_SCLASS) {
+    mrb_value klass;
+    for (c2 = c; c2 && c2->tt == MRB_TT_SCLASS; c2 = mrb_class_ptr(klass)) {
+      if (!iv_get(mrb, class_iv_ptr(c2), MRB_SYM(__attached__), &klass)) {
+        c2 = NULL;
+        break;
+      }
+    }
+    if (c2 && (c2->tt == MRB_TT_CLASS || c2->tt == MRB_TT_MODULE)) c = c2;
   }
   return const_get(mrb, c, sym, TRUE);
 }
