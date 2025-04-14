@@ -3046,6 +3046,9 @@ sub_replace(mrb_state *mrb, mrb_value self)
   mrb_value result;
 
   mrb_get_args(mrb, "ssi", &p, &plen, &match, &mlen, &found);
+  if (found < 0 || RSTRING_LEN(self) < found) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "argument out of range");
+  }
   result = mrb_str_new(mrb, 0, 0);
   for (mrb_int i=0; i<plen; i++) {
     if (p[i] != '\\' || i+1==plen) {
