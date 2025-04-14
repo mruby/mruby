@@ -841,6 +841,11 @@ mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
     }
   }
   if (c->tt == MRB_TT_SCLASS) {
+    v = const_get_nohook(mrb, c, sym, TRUE);
+    if (!mrb_undef_p(v)) {
+      return v;
+    }
+
     mrb_value klass;
     for (c2 = c; c2 && c2->tt == MRB_TT_SCLASS; c2 = mrb_class_ptr(klass)) {
       if (!iv_get(mrb, class_iv_ptr(c2), MRB_SYM(__attached__), &klass)) {
