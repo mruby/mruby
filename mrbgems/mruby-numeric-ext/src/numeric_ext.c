@@ -283,14 +283,23 @@ isqrt(mrb_int n)
 static mrb_value
 int_sqrt(mrb_state *mrb, mrb_value self)
 {
-  mrb_int n;
-  mrb_get_args(mrb, "i", &n);
-  if (n < 0) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "non-negative integer required");
-  }
+  mrb_value arg = mrb_get_arg1(mrb);
 
-  mrb_int result = isqrt(n);
-  return mrb_int_value(mrb, result);
+  if (mrb_integer_p(arg)) {
+    mrb_int n = mrb_integer(arg);
+    if (n < 0) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "non-negative integer required");
+    }
+    return mrb_int_value(mrb, isqrt(n));
+  }
+#ifdef MRB_USE_BIGINT
+  else if (mrb_bigint_p(arg)) {
+    return mrb_bint_sqrt(mrb, arg);
+  }
+#endif
+  else {
+    mrb_raise(mrb, E_TYPE_ERROR, "expected Integer");
+  }
 }
 
 void
