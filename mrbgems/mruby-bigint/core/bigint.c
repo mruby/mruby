@@ -1251,18 +1251,14 @@ mpz_bits(const mpz_t *x)
 {
   if (x->sz == 0 || x->sn == 0) return 0;
 
-  // Get the most significant limb (last element in little-endian order)
+  size_t limb_bits = sizeof(mp_limb) * 8;
+
+  // Get the most significant limb
   size_t i = x->sz - 1;
   mp_limb high = x->p[i];
 
-  // Count the number of bits in the most significant limb
-  size_t bits = 0;
-  while (high != 0) {
-    high >>= 1;
-    bits++;
-  }
-
-  return i * (sizeof(mp_limb) * 8) + bits;
+  // Number of bits = total full limbs + significant bits in top limb
+  return i * limb_bits + (limb_bits - lzb(high));
 }
 
 static void
