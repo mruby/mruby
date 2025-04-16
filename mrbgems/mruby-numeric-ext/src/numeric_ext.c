@@ -262,6 +262,37 @@ flo_remainder(mrb_state *mrb, mrb_value self)
 }
 #endif
 
+static mrb_int
+isqrt(mrb_int n)
+{
+  mrb_assert(n >= 0);
+  if (n < 2) return n;
+
+  mrb_int x = n;
+  mrb_int y = (x + 1) / 2;
+
+  // Babylonian method (integer version)
+  while (y < x) {
+    x = y;
+    y = (x + n / x) / 2;
+  }
+
+  return x;
+}
+
+static mrb_value
+int_sqrt(mrb_state *mrb, mrb_value self)
+{
+  mrb_int n;
+  mrb_get_args(mrb, "i", &n);
+  if (n < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "non-negative integer required");
+  }
+
+  mrb_int result = isqrt(n);
+  return mrb_int_value(mrb, result);
+}
+
 void
 mrb_mruby_numeric_ext_gem_init(mrb_state* mrb)
 {
@@ -275,6 +306,7 @@ mrb_mruby_numeric_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, ic, MRB_SYM(size), int_size, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, ic, MRB_SYM_Q(odd), int_odd, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, ic, MRB_SYM_Q(even), int_even, MRB_ARGS_NONE());
+  mrb_define_class_method_id(mrb, ic, MRB_SYM(sqrt), int_sqrt, MRB_ARGS_REQ(1));
 
 #ifndef MRB_NO_FLOAT
   struct RClass *fc = mrb->float_class;
