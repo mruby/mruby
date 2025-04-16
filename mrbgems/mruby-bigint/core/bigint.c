@@ -1247,7 +1247,7 @@ mpz_gcd(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
 #endif
 
 static size_t
-mpz_bit_length(const mpz_t *x)
+mpz_bits(const mpz_t *x)
 {
   if (x->sz == 0 || x->sn == 0) return 0;
 
@@ -1278,7 +1278,7 @@ mpz_sqrt(mrb_state *mrb, mpz_t *z, mpz_t *x)
   }
 
   // Estimate initial value: 1 << (bit_length(x) / 2)
-  size_t xbits = mpz_bit_length(x);
+  size_t xbits = mpz_bits(x);
   size_t sbit = (xbits + 1) / 2;
   mpz_t s, t;
   mpz_init_set_int(mrb, &s, 1);
