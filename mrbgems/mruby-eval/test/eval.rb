@@ -160,3 +160,26 @@ assert('Module#class_eval with string') do
   b = c.class_eval("class A; def a; 55; end; end; class B; def b; A; end; end; B")
   assert_equal 55, b.new.b.new.a
 end
+
+assert 'method visibility with eval' do
+  c = Class.new do
+    eval <<~CODE
+      private
+      def bad!
+        "BAD!"
+      end
+    CODE
+
+    def good!
+      "GOOD!"
+    end
+  end
+
+  assert_raise NoMethodError do
+    c.new.bad!
+  end
+
+  assert_equal "GOOD!" do
+    c.new.good!
+  end
+end
