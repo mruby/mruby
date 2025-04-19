@@ -865,17 +865,7 @@ mrb_const_set(mrb_state *mrb, mrb_value mod, mrb_sym sym, mrb_value v)
   if (mrb_type(v) == MRB_TT_CLASS || mrb_type(v) == MRB_TT_MODULE) {
     mrb_class_name_class(mrb, mrb_class_ptr(mod), mrb_class_ptr(v), sym);
   }
-  mrb_iv_set(mrb, mod, sym, v);
-}
-
-void
-mrb_vm_const_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
-{
-  struct RClass *c;
-
-  c = MRB_PROC_TARGET_CLASS(mrb->c->ci->proc);
-  if (!c) c = mrb->object_class;
-  mrb_obj_iv_set(mrb, (struct RObject*)c, sym, v);
+  mrb_obj_iv_set(mrb, mrb_obj_ptr(mod), sym, v);
 }
 
 MRB_API void

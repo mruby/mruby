@@ -1642,8 +1642,10 @@ RETRY_TRY_BLOCK:
     }
 
     CASE(OP_SETCONST, BB) {
-      mrb_vm_const_set(mrb, irep->syms[b], regs[a]);
       ci = mrb->c->ci;
+      struct RClass *c = MRB_PROC_TARGET_CLASS(ci->proc);
+      if (!c) c = mrb->object_class;
+      mrb_const_set(mrb, mrb_obj_value(c), irep->syms[b], regs[a]);
       NEXT;
     }
 
