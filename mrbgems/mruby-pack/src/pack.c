@@ -1188,7 +1188,7 @@ pack_nul(mrb_state *mrb, mrb_value dst, mrb_int didx, int count)
 }
 
 static void
-check_x(mrb_state *mrb, int a, int count, char c)
+check_x(mrb_state *mrb, mrb_int a, mrb_int count, char c)
 {
   if (a < count) {
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "%c outside of string", c);
@@ -1209,7 +1209,7 @@ has_tmpl(const struct tmpl *tmpl)
 }
 
 static enum pack_dir
-read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_type *typep, int *sizep, int *countp, unsigned int *flagsp)
+read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_type *typep, mrb_int *sizep, mrb_int *countp, unsigned int *flagsp)
 {
   mrb_int t, tlen;
   int ch, size = 0;
@@ -1505,7 +1505,7 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
   mrb_value o, result;
   struct tmpl tmpl;
   enum pack_type type;
-  int count, size;
+  mrb_int count, size;
   unsigned int flags;
   enum pack_dir dir;
 
@@ -1627,16 +1627,15 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
 }
 
 static mrb_value
-pack_unpack(mrb_state *mrb, mrb_value str, int single)
+pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
 {
   mrb_value result;
   struct tmpl tmpl;
-  int count;
+  mrb_int count;
   unsigned int flags;
   enum pack_dir dir;
   enum pack_type type;
-  int size;
-  int srcidx, srclen;
+  mrb_int size, srcidx, srclen;
   const unsigned char *sptr;
 
   prepare_tmpl(mrb, &tmpl);
@@ -1749,13 +1748,13 @@ pack_unpack(mrb_state *mrb, mrb_value str, int single)
 static mrb_value
 mrb_pack_unpack(mrb_state *mrb, mrb_value str)
 {
-  return pack_unpack(mrb, str, 0);
+  return pack_unpack(mrb, str, FALSE);
 }
 
 static mrb_value
 mrb_pack_unpack1(mrb_state *mrb, mrb_value str)
 {
-  return pack_unpack(mrb, str, 1);
+  return pack_unpack(mrb, str, TRUE);
 }
 
 void

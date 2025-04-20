@@ -1274,12 +1274,13 @@ mrb_hash_set(mrb_state *mrb, mrb_value hash, mrb_value key, mrb_value val)
   mrb_field_write_barrier_value(mrb, mrb_basic_ptr(hash), key);
   mrb_field_write_barrier_value(mrb, mrb_basic_ptr(hash), val);
 }
+
 static void
 hash_set_default_proc(mrb_state *mrb, mrb_value hash, mrb_value proc)
 {
   struct RProc *p = mrb_proc_ptr(proc);
   if (MRB_PROC_STRICT_P(p)) {
-    int n = mrb_proc_arity(p);
+    mrb_int n = mrb_proc_arity(p);
     if (n != 2 && (n >= 0 || n < -3)) {
       if (n < 0) n = -n-1;
       mrb_raisef(mrb, E_TYPE_ERROR, "default_proc takes two arguments (2 for %d)", n);
@@ -1493,11 +1494,12 @@ mrb_hash_set_default_proc(mrb_state *mrb, mrb_value hash)
   mrb_value ifnone = mrb_get_arg1(mrb);
 
   hash_modify(mrb, hash);
-  if (!mrb_nil_p(ifnone)) {
+  mrb_bool has_ifnone = !mrb_nil_p(ifnone);
+  if (has_ifnone) {
     mrb_check_type(mrb, ifnone, MRB_TT_PROC);
   }
   mrb_iv_set(mrb, hash, MRB_SYM(ifnone), ifnone);
-  if (!mrb_nil_p(ifnone)) {
+  if (has_ifnone) {
     hash_set_default_proc(mrb, hash, ifnone);
   }
   else {

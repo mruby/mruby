@@ -1407,7 +1407,7 @@ mrb_ary_to_s(mrb_state *mrb, mrb_value self)
   return ret;
 }
 
-/* check array equality: 1=equal,0=not_equal,-1=need_elments_check */
+/* check array equality: 1=equal,0=not_equal,-1=need_elements_check */
 static mrb_int
 ary_eq(mrb_state *mrb, mrb_value ary1, mrb_value ary2)
 {

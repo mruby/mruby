@@ -1028,9 +1028,9 @@ rational_hash(mrb_state *mrb, mrb_value rat)
 #ifdef RAT_BIGINT
   if (RAT_BIGINT_P(rat)) {
     mrb_value tmp = mrb_bint_hash(mrb, mrb_obj_value(r->b.num));
-    hash = mrb_integer(tmp);
+    hash = (uint32_t)mrb_integer(tmp);
     tmp = mrb_bint_hash(mrb, mrb_obj_value(r->b.den));
-    hash ^= mrb_integer(tmp);
+    hash ^= (uint32_t)mrb_integer(tmp);
     return mrb_int_value(mrb, hash);
   }
 #endif

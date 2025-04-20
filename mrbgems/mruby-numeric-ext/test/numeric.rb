@@ -81,3 +81,9 @@ assert('Integer#digits') do
   assert_equal([4, 6, 6, 0, 5], 12345.digits(7))
   assert_equal([45, 23, 1],     12345.digits(100))
 end
+
+assert('Integer.sqrt') do
+  assert_equal(4, Integer.sqrt(16))
+  assert_equal(10, Integer.sqrt(100))
+  assert_equal(85, Integer.sqrt(7244))
+end

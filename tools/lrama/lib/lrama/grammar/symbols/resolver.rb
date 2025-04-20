@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Lrama
   class Grammar
     class Symbols
@@ -42,7 +44,9 @@ module Lrama
         end
 
         def add_nterm(id:, alias_name: nil, tag: nil)
-          return if find_symbol_by_id(id)
+          if (sym = find_symbol_by_id(id))
+            return sym
+          end
 
           @symbols = nil
           nterm = Symbol.new(
@@ -51,6 +55,10 @@ module Lrama
           )
           @nterms << nterm
           nterm
+        end
+
+        def find_term_by_s_value(s_value)
+          terms.find { |s| s.id.s_value == s_value }
         end
 
         def find_symbol_by_s_value(s_value)

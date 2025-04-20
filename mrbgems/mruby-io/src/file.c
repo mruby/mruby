@@ -245,11 +245,9 @@ mrb_file_basename(mrb_state *mrb, mrb_value klass)
 #if defined(_WIN32)
   char bname[_MAX_DIR];
   char extname[_MAX_EXT];
-  char buffer[_MAX_DIR + _MAX_EXT];
-  mrb_value s;
+  char *path;
 
-  mrb_get_args(mrb, "S", &s);
-  char *path = mrb_str_to_cstr(mrb, s);
+  mrb_get_args(mrb, "z", &path);
   size_t ridx = strlen(path);
   if (ridx > 0) {
     ridx--;
@@ -257,22 +255,22 @@ mrb_file_basename(mrb_state *mrb, mrb_value klass)
       path[ridx] = '\0';
       ridx--;
     }
-    if (strncmp(path, "/", 2) == 0) {
+    if (ridx == 0 && path[0] == '/') {
       return mrb_str_new_cstr(mrb, path);
     }
   }
   _splitpath((const char*)path, NULL, NULL, bname, extname);
-  snprintf(buffer, _MAX_DIR + _MAX_EXT, "%s%s", bname, extname);
-  return mrb_str_new_cstr(mrb, buffer);
+  mrb_value buffer = mrb_str_new_cstr(mrb, bname);
+  mrb_str_cat_cstr(mrb, buffer, extname);
+  return buffer;
 #else
-  mrb_value s;
-  mrb_get_args(mrb, "S", &s);
-  char *path = mrb_str_to_cstr(mrb, s);
-  char *bname;
+  char *path, *bname;
+
+  mrb_get_args(mrb, "z", &path);
   if ((bname = basename(path)) == NULL) {
     mrb_sys_fail(mrb, "basename");
   }
-  if (strncmp(bname, "//", 3) == 0) bname[1] = '\0';  /* patch for Cygwin */
+  if (strcmp(bname, "//") == 0) bname[1] = '\0';  /* patch for Cygwin */
   return mrb_str_new_cstr(mrb, bname);
 #endif
 }
@@ -281,10 +279,10 @@ static mrb_value
 mrb_file_realpath(mrb_state *mrb, mrb_value klass)
 {
   mrb_value pathname, dir_string;
-  mrb_int argc = mrb_get_args(mrb, "S|S", &pathname, &dir_string);
-  if (argc == 2) {
+
+  if (mrb_get_args(mrb, "S|S", &pathname, &dir_string) == 2) {
     mrb_value s = mrb_str_dup(mrb, dir_string);
-    s = mrb_str_append(mrb, s, mrb_str_new_cstr(mrb, FILE_SEPARATOR));
+    s = mrb_str_cat_cstr(mrb, s, FILE_SEPARATOR);
     s = mrb_str_append(mrb, s, pathname);
     pathname = s;
   }
@@ -363,7 +361,7 @@ path_parse(mrb_state *mrb, mrb_value ary, const char *path, int ai)
     SKIP_DIRSEP(path);
     const char *path0 = path;
     NEXT_DIRSEP(path);
-    int len = path - path0;
+    ptrdiff_t len = path - path0;
     if (len == 0) {
       break;
     }
@@ -414,7 +412,7 @@ path_gethome(mrb_state *mrb, const char **pathp)
 
   const char *username = ++*pathp;
   NEXT_DIRSEP(*pathp);
-  int len = *pathp - username;
+  ptrdiff_t len = *pathp - username;
 
   if (len == 0) {
     home = getenv("HOME");
@@ -431,7 +429,7 @@ path_gethome(mrb_state *mrb, const char **pathp)
     }
   }
   else {
-    const char *uname = RSTRING_CSTR(mrb, mrb_str_new(mrb, username, len));
+    const char *uname = RSTRING_CSTR(mrb, mrb_str_new(mrb, username, (mrb_int)len));
 #if defined(_WIN32) || defined(MRB_IO_NO_PWNAM)
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "user %s doesn't exist", uname);
 #else
@@ -458,7 +456,7 @@ path_expand(mrb_state *mrb, const char *path, const char *base, mrb_bool tilda)
 {
   mrb_value ary;
 
-  // split path conponents as array and normalization
+  // split path components as array and normalization
   if (tilda && path[0] == '~') {
     base = path_gethome(mrb, &path);
     ary = path_split(mrb, path, base, NULL);
@@ -639,7 +637,7 @@ mrb_file_flock(mrb_state *mrb, mrb_value self)
         }
         /* FALLTHRU - should not happen */
       default:
-        mrb_sys_fail(mrb, "flock failed");
+        mrb_sys_fail(mrb, "flock");
         break;
     }
   }
@@ -653,10 +651,10 @@ mrb_file_size(mrb_state *mrb, mrb_value self)
   mrb_stat st;
   int fd = mrb_io_fileno(mrb, self);
   if (mrb_fstat(fd, &st) == -1) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "fstat failed");
+    mrb_sys_fail(mrb, "fstat");
   }
 
-  if (st.st_size > MRB_INT_MAX) {
+  if (sizeof(st.st_size) >= sizeof(mrb_int) && st.st_size > MRB_INT_MAX) {
 #ifdef MRB_NO_FLOAT
     mrb_raise(mrb, E_RUNTIME_ERROR, "File#size too large for MRB_NO_FLOAT");
 #else
@@ -702,7 +700,7 @@ mrb_file_truncate(mrb_state *mrb, mrb_value self)
   int fd = mrb_io_fileno(mrb, self);
   mrb_int length = mrb_as_int(mrb, lenv);
   if (mrb_ftruncate(fd, length) != 0) {
-    mrb_raise(mrb, E_IO_ERROR, "ftruncate failed");
+    mrb_sys_fail(mrb, "ftruncate");
   }
 
   return mrb_fixnum_value(0);
@@ -740,6 +738,7 @@ mrb_file_s_chmod(mrb_state *mrb, mrb_value klass)
 
   mrb_get_args(mrb, "i*", &mode, &filenames, &argc);
   for (int i = 0; i < argc; i++) {
+    mrb_ensure_string_type(mrb, filenames[i]);
     const char *utf8_path = RSTRING_CSTR(mrb, filenames[i]);
     char *path = mrb_locale_from_utf8(utf8_path, -1);
     if (CHMOD(path, mode) == -1) {
@@ -761,17 +760,16 @@ mrb_file_s_readlink(mrb_state *mrb, mrb_value klass)
   return mrb_nil_value(); // unreachable
 #else
   const char *path;
-  char *buf, *tmp;
   size_t bufsize = 100;
-  ssize_t rc;
-  mrb_value ret;
 
   mrb_get_args(mrb, "z", &path);
-  tmp = mrb_locale_from_utf8(path, -1);
 
-  buf = (char*)mrb_malloc(mrb, bufsize);
-  while ((rc = readlink(tmp, buf, bufsize)) == (ssize_t)bufsize && rc != -1) {
-    bufsize *= 2;
+  char *tmp = mrb_locale_from_utf8(path, -1);
+  char *buf = (char*)mrb_malloc(mrb, bufsize);
+
+  ssize_t rc;
+  while ((rc = readlink(tmp, buf, bufsize)) == (ssize_t)bufsize) {
+    bufsize += 100;
     buf = (char*)mrb_realloc(mrb, buf, bufsize);
   }
   mrb_locale_free(tmp);
@@ -780,7 +778,8 @@ mrb_file_s_readlink(mrb_state *mrb, mrb_value klass)
     mrb_sys_fail(mrb, path);
   }
   tmp = mrb_utf8_from_locale(buf, -1);
-  ret = mrb_str_new(mrb, tmp, rc);
+
+  mrb_value ret = mrb_str_new(mrb, tmp, rc);
   mrb_utf8_free(tmp);
   mrb_free(mrb, buf);
 

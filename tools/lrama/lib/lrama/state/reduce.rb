@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module Lrama
   class State
     class Reduce
@@ -24,8 +26,8 @@ module Lrama
       end
 
       def selected_look_ahead
-        if @look_ahead
-          @look_ahead - @not_selected_symbols
+        if look_ahead
+          look_ahead - @not_selected_symbols
         else
           []
         end

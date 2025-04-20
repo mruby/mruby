@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # TODO: Validate position is not over rule rhs
 
 require "forwardable"
@@ -54,12 +56,16 @@ module Lrama
         Item.new(rule: rule, position: position + 1)
       end
 
-      def symbols_before_dot
+      def symbols_before_dot # steep:ignore
         rhs[0...position]
       end
 
-      def symbols_after_dot
+      def symbols_after_dot # steep:ignore
         rhs[position..-1]
+      end
+
+      def symbols_after_transition
+        rhs[position+1..-1]
       end
 
       def to_s
@@ -73,8 +79,12 @@ module Lrama
 
       # Right after position
       def display_rest
-        r = rhs[position..-1].map(&:display_name).join(" ")
+        r = symbols_after_dot.map(&:display_name).join(" ")
         ". #{r}  (rule #{rule_id})"
+      end
+
+      def predecessor_item_of?(other_item)
+        rule == other_item.rule && position == other_item.position - 1
       end
     end
   end

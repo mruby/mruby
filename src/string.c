@@ -1181,32 +1181,32 @@ enum str_convert_range {
 };
 
 static enum str_convert_range
-str_convert_range(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen, mrb_int *beg, mrb_int *len)
+str_convert_range(mrb_state *mrb, mrb_value str, mrb_value idx, mrb_value alen, mrb_int *beg, mrb_int *len)
 {
   if (!mrb_undef_p(alen)) {
-    *beg = mrb_as_int(mrb, indx);
+    *beg = mrb_as_int(mrb, idx);
     *len = mrb_as_int(mrb, alen);
     return STR_CHAR_RANGE;
   }
   else {
-    switch (mrb_type(indx)) {
+    switch (mrb_type(idx)) {
       default:
-        indx = mrb_ensure_int_type(mrb, indx);
+        idx = mrb_ensure_int_type(mrb, idx);
         /* fall through */
       case MRB_TT_INTEGER:
-        *beg = mrb_integer(indx);
+        *beg = mrb_integer(idx);
         *len = 1;
         return STR_CHAR_RANGE;
 
       case MRB_TT_STRING:
-        *beg = str_index_str(mrb, str, indx, 0);
+        *beg = str_index_str(mrb, str, idx, 0);
         if (*beg < 0) { break; }
-        *len = RSTRING_LEN(indx);
+        *len = RSTRING_LEN(idx);
         return STR_BYTE_RANGE_CORRECTED;
 
       case MRB_TT_RANGE:
         *len = RSTRING_CHAR_LEN(str);
-        switch (mrb_range_beg_len(mrb, indx, beg, len, *len, TRUE)) {
+        switch (mrb_range_beg_len(mrb, idx, beg, len, *len, TRUE)) {
           case MRB_RANGE_OK:
             return STR_CHAR_RANGE_CORRECTED;
           case MRB_RANGE_OUT:
@@ -1220,11 +1220,11 @@ str_convert_range(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen,
 }
 
 mrb_value
-mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen)
+mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value idx, mrb_value alen)
 {
   mrb_int beg, len;
 
-  switch (str_convert_range(mrb, str, indx, alen, &beg, &len)) {
+  switch (str_convert_range(mrb, str, idx, alen, &beg, &len)) {
     case STR_CHAR_RANGE_CORRECTED:
       return str_subseq(mrb, str, beg, len);
     case STR_CHAR_RANGE:
@@ -1232,8 +1232,8 @@ mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen)
       if (mrb_undef_p(alen) && !mrb_nil_p(str) && RSTRING_LEN(str) == 0) return mrb_nil_value();
       return str;
     case STR_BYTE_RANGE_CORRECTED:
-      if (mrb_string_p(indx)) {
-        return mrb_str_dup(mrb, indx);
+      if (mrb_string_p(idx)) {
+        return mrb_str_dup(mrb, idx);
       }
       else {
         return mrb_str_byte_subseq(mrb, str, beg, len);
@@ -1417,12 +1417,12 @@ str_escape(mrb_state *mrb, mrb_value str, mrb_bool inspect)
 }
 
 static void
-mrb_str_aset(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen, mrb_value replace)
+mrb_str_aset(mrb_state *mrb, mrb_value str, mrb_value idx, mrb_value alen, mrb_value replace)
 {
   mrb_int beg, len, charlen;
 
   mrb_ensure_string_type(mrb, replace);
-  switch (str_convert_range(mrb, str, indx, alen, &beg, &len)) {
+  switch (str_convert_range(mrb, str, idx, alen, &beg, &len)) {
     case STR_OUT_OF_RANGE:
     default:
       mrb_raise(mrb, E_INDEX_ERROR, "string not matched");
@@ -1432,7 +1432,7 @@ mrb_str_aset(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen, mrb_
       }
       charlen = RSTRING_CHAR_LEN(str);
       if (beg < 0) { beg += charlen; }
-      if (beg < 0 || beg > charlen) { str_out_of_index(mrb, indx); }
+      if (beg < 0 || beg > charlen) { str_out_of_index(mrb, idx); }
       /* fall through */
     case STR_CHAR_RANGE_CORRECTED:
       beg = chars2bytes(str, 0, beg);
@@ -1460,9 +1460,9 @@ mrb_str_aset(mrb_state *mrb, mrb_value str, mrb_value indx, mrb_value alen, mrb_
 static mrb_value
 mrb_str_aset_m(mrb_state *mrb, mrb_value str)
 {
-  mrb_value indx, alen, replace;
+  mrb_value idx, alen, replace;
 
-  switch (mrb_get_args(mrb, "oo|S!", &indx, &alen, &replace)) {
+  switch (mrb_get_args(mrb, "oo|S!", &idx, &alen, &replace)) {
     case 2:
       replace = alen;
       alen = mrb_undef_value();
@@ -1470,7 +1470,7 @@ mrb_str_aset_m(mrb_state *mrb, mrb_value str)
     case 3:
       break;
   }
-  mrb_str_aset(mrb, str, indx, alen, replace);
+  mrb_str_aset(mrb, str, idx, alen, replace);
   return replace;
 }
 
@@ -3046,6 +3046,9 @@ sub_replace(mrb_state *mrb, mrb_value self)
   mrb_value result;
 
   mrb_get_args(mrb, "ssi", &p, &plen, &match, &mlen, &found);
+  if (found < 0 || RSTRING_LEN(self) < found) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "argument out of range");
+  }
   result = mrb_str_new(mrb, 0, 0);
   for (mrb_int i=0; i<plen; i++) {
     if (p[i] != '\\' || i+1==plen) {

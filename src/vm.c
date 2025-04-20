@@ -845,7 +845,7 @@ mrb_value
 mrb_object_exec(mrb_state *mrb, mrb_value self, struct RClass *target_class)
 {
   mrb_callinfo *ci = mrb->c->ci;
-  int bidx = mrb_ci_bidx(ci);
+  mrb_int bidx = ci_bidx(ci);
   mrb_value blk = ci->stack[bidx];
   if (mrb_nil_p(blk)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "no block given");
@@ -1915,7 +1915,7 @@ RETRY_TRY_BLOCK:
         }
         else if ((m.flags & MRB_METHOD_PROTECTED_FL) && mrb_obj_is_kind_of(mrb, recv, ci->u.target_class)) {
           mrb_value args = (ci->n == 15) ? regs[1] : mrb_ary_new_from_values(mrb, ci->n, regs+1);
-          mrb_no_method_error(mrb, mid, args, "proteced method '%n' called for %T", mid, recv);
+          mrb_no_method_error(mrb, mid, args, "protected method '%n' called for %T", mid, recv);
         }
       }
       ci->cci = CINFO_NONE;

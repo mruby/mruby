@@ -811,7 +811,7 @@ realloc_pool_str(codegen_scope *s, mrb_irep_pool *p, mrb_int len)
     str = (char*)p->u.str;
     str = (char*)codegen_realloc(s, str, len+1);
   }
-  p->tt = len<<2 | IREP_TT_STR;
+  p->tt = (uint32_t)(len<<2 | IREP_TT_STR);
   str[len] = '\0';
   p->u.str = (const char*)str;
 }
@@ -4012,7 +4012,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *nlv)
 
   s->lv = nlv;
   s->sp += node_len(nlv)+1;        /* add self */
-  s->nlocals = s->sp;
+  s->nlocals = s->nregs = s->sp;
   if (nlv) {
     mrb_sym *lv;
     node *n = nlv;

@@ -802,14 +802,18 @@ assert('method visibility') do
 
   v = CallTypeTest.new
 
-  assert_raise(NoMethodError) { v.func { :test } }
+  assert_raise_with_message_pattern(NameError, "private method 'func' called for CallTypeTest") do
+    v.func { :test }
+  end
   assert_equal :test, v.test_private { :test }
 
   class CallTypeTest
     protected :func
   end
 
-  assert_raise(NoMethodError) { v.func { :test } }
+  assert_raise_with_message_pattern(NameError, "protected method 'func' called for CallTypeTest") do
+    v.func { :test }
+  end
   assert_equal :test, v.test_protected { :test }
   assert_equal :test, v.test_private { :test }
 
@@ -834,6 +838,9 @@ assert('Module#module_function') do
   end
 
   assert_true M.respond_to?(:modfunc)
+  assert_equal nil do
+    M.modfunc
+  end
 end
 
 assert('module with non-class/module outer raises TypeError') do
@@ -881,4 +888,24 @@ assert('shared empty iv_tbl (prepend)') do
   assert_equal 1, c::CONST1
   m2::CONST2 = 2
   assert_equal 2, c::CONST2
+end
+
+assert('constant lookup #6506') do
+  Module.new do
+    module X
+      module A
+        class WWW; end
+      end
+    end
+
+    module X::Y; end
+
+    module X::Y::Z
+      extend X::A
+
+      class << self
+        assert_nothing_raised{WWW}
+      end
+    end
+  end
 end

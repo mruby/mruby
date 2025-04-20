@@ -820,8 +820,8 @@ module Enumerable
     return to_enum(:filter_map) unless blk
 
     ary = []
-    self.each do |x|
-      x = blk.call(x)
+    self.each do |*x|
+      x = blk.call(*x)
       ary.push x if x
     end
     ary
@@ -851,7 +851,8 @@ module Enumerable
   #    ["a", "b", "c", "b"].tally #=> {"a"=>1, "b"=>2, "c"=>1}
   def tally
     hash = {}
-    self.each do |x|
+    self.each do |*x|
+      x = x.__svalue
       hash[x] = (hash[x]||0)+1
     end
     hash
@@ -870,12 +871,12 @@ module Enumerable
   def sum(init=0,&block)
     result=init
     if block
-      self.each do |e|
-        result += block.call(e)
+      self.each do |*e|
+        result += block.call(*e)
       end
     else
-      self.each do |e|
-        result += e
+      self.each do |*e|
+        result += e.__svalue
       end
     end
     result

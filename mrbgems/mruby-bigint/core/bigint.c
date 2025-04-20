@@ -882,7 +882,7 @@ mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
   if ((base & (base - 1)) == 0) {  // base is a power of 2
     int shift = 0;
     while ((1 << shift) < base) shift++;
-    mp_limb mask = base - 1;
+    mp_limb mask = (mp_limb)base - 1;
     mp_dbl_limb value = 0;
     int bits = 0;
 
@@ -1245,6 +1245,61 @@ mpz_gcd(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
   mpz_clear(mrb, &t);
 }
 #endif
+
+static size_t
+mpz_bits(const mpz_t *x)
+{
+  if (x->sz == 0 || x->sn == 0) return 0;
+
+  size_t limb_bits = sizeof(mp_limb) * 8;
+
+  // Get the most significant limb
+  size_t i = x->sz - 1;
+  mp_limb high = x->p[i];
+
+  // Number of bits = total full limbs + significant bits in top limb
+  return i * limb_bits + (limb_bits - lzb(high));
+}
+
+static void
+mpz_sqrt(mrb_state *mrb, mpz_t *z, mpz_t *x)
+{
+  mrb_assert(x->sn >= 0);
+
+  if (x->sz == 0) {
+    // sqrt(0) = 0
+    z->sn = 0;
+    z->sz = 0;
+    return;
+  }
+
+  // Estimate initial value: 1 << (bit_length(x) / 2)
+  size_t xbits = mpz_bits(x);
+  size_t sbit = (xbits + 1) / 2;
+  mpz_t s, t;
+  mpz_init_set_int(mrb, &s, 1);
+  mpz_mul_2exp(mrb, &s, &s, sbit);
+
+  mpz_init(mrb, &t);
+
+  // Iteratively refine s using Newton-Raphson method:
+  // s = (s + x / s) / 2
+  for (;;) {
+    mpz_mdiv(mrb, &t, x, &s);     // t = x / s
+    mpz_add(mrb, &t, &t, &s);     // t = s + x/s
+    mpz_div_2exp(mrb, &t, &t, 1); // t = (s + x/s) / 2
+
+    if (mpz_cmp(mrb, &t, &s) >= 0) {
+      // Converged: t >= s
+      break;
+    }
+
+    mpz_set(mrb, &s, &t);
+  }
+
+  mpz_move(mrb, z, &s);
+  mpz_clear(mrb, &t);
+}
 
 /* --- mruby functions --- */
 /* initialize mpz_t from RBigint (not need to clear) */
@@ -1861,7 +1916,7 @@ mrb_bint_to_s(mrb_state *mrb, mrb_value x, mrb_int base)
     return mrb_str_new_lit(mrb, "0");
   }
   size_t len = mpz_sizeinbase(&a, (int)base);
-  if (MRB_INT_MAX-2 < len) {
+  if (sizeof(size_t) >= sizeof(mrb_int) && MRB_INT_MAX-2 < len) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "too long string from Integer");
   }
   mrb_value str = mrb_str_new(mrb, NULL, len+2);
@@ -2012,6 +2067,23 @@ mrb_bint_memsize(mrb_value x)
 
   bint_as_mpz(RBIGINT(x), &z);
   return z.sz * sizeof(mp_limb);
+}
+
+mrb_value
+mrb_bint_sqrt(mrb_state *mrb, mrb_value x)
+{
+  mpz_t a;
+
+  bint_as_mpz(RBIGINT(x), &a);
+  if (a.sn < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "square root of negative number");
+  }
+
+  mpz_t z;
+  mpz_init(mrb, &z);
+  mpz_sqrt(mrb, &z, &a);
+
+  return bint_norm(mrb, bint_new(mrb, &z));
 }
 
 mrb_value
