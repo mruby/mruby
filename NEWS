@@ -7,7 +7,7 @@ NEWS
 
 # The language
 
-- mruby now supports `private` and `protected` visibitily ([b0db0bd](https://github.com/mruby/mruby/commit/b0db0bd))
+- mruby now supports `private` and `protected` visibility ([b0db0bd](https://github.com/mruby/mruby/commit/b0db0bd))
 - Maximum length of inlined symbols reduced from 5 to 4 characters to provide space for visibility flags ([6442a01](https://github.com/mruby/mruby/commit/6442a01))
 - Many methods are made private according to CRuby visibility ([4a0e806](https://github.com/mruby/mruby/commit/4a0e806))
 - Generate OP_SSEND for `self.method` type calls ([111fe4b](https://github.com/mruby/mruby/commit/111fe4b))
@@ -134,7 +134,7 @@ NEWS
 - [#6243](https://github.com/mruby/mruby/pull/6243) Fixed base64 decoding in `mruby-pack`
 - [#6244](https://github.com/mruby/mruby/pull/6244) Revise scope of role of `mrb_vm_run()`
 - [#6246](https://github.com/mruby/mruby/pull/6246) Fix typo in `test/t/hash.rb`
-- [#6249](https://github.com/mruby/mruby/pull/6249) Fix grammar in `src/vm.c`; `catched` -> `caught`
+- [#6249](https://github.com/mruby/mruby/pull/6249) Fix spelling in `src/vm.c`
 - [#6250](https://github.com/mruby/mruby/pull/6250) Fix spelling
 - [#6251](https://github.com/mruby/mruby/pull/6251) Clean up root move `CODEOWNERS` to `.github` directory
 - [#6253](https://github.com/mruby/mruby/pull/6253) Allow recycling fibers by GC if not referenced directly
