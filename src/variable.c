@@ -866,6 +866,9 @@ mrb_const_set(mrb_state *mrb, mrb_value mod, mrb_sym sym, mrb_value v)
     mrb_class_name_class(mrb, mrb_class_ptr(mod), mrb_class_ptr(v), sym);
   }
   mrb_obj_iv_set(mrb, mrb_obj_ptr(mod), sym, v);
+
+  mrb_value name = mrb_symbol_value(sym);
+  mrb_funcall_argv(mrb, mod, MRB_SYM(const_added), 1, &name);
 }
 
 MRB_API void
