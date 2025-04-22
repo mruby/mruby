@@ -858,27 +858,14 @@ mrb_object_exec(mrb_state *mrb, mrb_value self, struct RClass *target_class)
   return mrb_exec_irep(mrb, self, mrb_proc_ptr(blk));
 }
 
-/* 15.3.1.3.4  */
-/* 15.3.1.3.44 */
-/*
- *  call-seq:
- *     obj.send(symbol [, args...])        -> obj
- *     obj.__send__(symbol [, args...])      -> obj
- *
- *  Invokes the method identified by _symbol_, passing it any
- *  arguments specified. You can use <code>__send__</code> if the name
- *  +send+ clashes with an existing method in _obj_.
- *
- *     class Klass
- *       def hello(*args)
- *         "Hello " + args.join(' ')
- *       end
- *     end
- *     k = Klass.new
- *     k.send :hello, "gentle", "readers"   #=> "Hello gentle readers"
- */
-mrb_value
-mrb_f_send(mrb_state *mrb, mrb_value self)
+static mrb_noreturn void
+vis_error(mrb_state *mrb, mrb_sym mid, mrb_value args, mrb_value recv, mrb_bool priv)
+{
+  mrb_no_method_error(mrb, mid, args, "%s method '%n' called for %T", (priv ? "private" : "protected"), mid, recv);
+}
+
+static mrb_value
+send_method(mrb_state *mrb, mrb_value self, mrb_bool public)
 {
   mrb_callinfo *ci = mrb->c->ci;
   int n = ci->n;
@@ -912,6 +899,22 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
   m = mrb_vm_find_method(mrb, c, &c, name);
   if (MRB_METHOD_UNDEF_P(m)) {            /* call method_missing */
     goto funcall;
+  }
+
+  if (public) {
+    mrb_bool priv = TRUE;
+    if (m.flags & MRB_METHOD_PRIVATE_FL) {
+    vis_err:;
+      if (n == 15) {
+        n = RARRAY_LEN(regs[0]) - 1;
+        regs = RARRAY_PTR(regs[0]);
+      }
+      vis_error(mrb, name, mrb_ary_new_from_values(mrb, n, regs+1), self, priv);
+    }
+    else if ((m.flags & MRB_METHOD_PROTECTED_FL) && mrb_obj_is_kind_of(mrb, self, ci->u.target_class)) {
+      priv = FALSE;
+      goto vis_err;
+    }
   }
 
   ci->mid = name;
@@ -948,6 +951,48 @@ mrb_f_send(mrb_state *mrb, mrb_value self)
     return MRB_METHOD_CFUNC(m)(mrb, self);
   }
   return exec_irep(mrb, self, p);
+}
+
+/* 15.3.1.3.4  */
+/* 15.3.1.3.44 */
+/*
+ *  call-seq:
+ *     obj.send(symbol [, args...])        -> obj
+ *     obj.__send__(symbol [, args...])      -> obj
+ *
+ *  Invokes the method identified by _symbol_, passing it any
+ *  arguments specified. You can use <code>__send__</code> if the name
+ *  +send+ clashes with an existing method in _obj_.
+ *
+ *     class Klass
+ *       def hello(*args)
+ *         "Hello " + args.join(' ')
+ *       end
+ *     end
+ *     k = Klass.new
+ *     k.send :hello, "gentle", "readers"   #=> "Hello gentle readers"
+ */
+mrb_value
+mrb_f_send(mrb_state *mrb, mrb_value self)
+{
+  return send_method(mrb, self, FALSE);
+}
+
+/*
+ *  call-seq:
+ *     obj.public_send(symbol [, args...])  -> obj
+ *
+ * Invokes the method identified by symbol, passing it any
+ * arguments specified. Unlike send, public_send calls public methods only.
+ * When the method is identified by a string, the string is converted to a
+ * symbol.
+ *
+ *  1.public_send(:puts, "hello")  # causes NoMethodError
+ */
+mrb_value
+mrb_f_public_send(mrb_state *mrb, mrb_value self)
+{
+  return send_method(mrb, self, TRUE);
 }
 
 static void
@@ -1911,13 +1956,15 @@ RETRY_TRY_BLOCK:
         ci->mid = mid;
       }
       if (insn == OP_SEND || insn == OP_SENDB) {
+        mrb_bool priv = TRUE;
         if (m.flags & MRB_METHOD_PRIVATE_FL) {
+        vis_err:;
           mrb_value args = (ci->n == 15) ? regs[1] : mrb_ary_new_from_values(mrb, ci->n, regs+1);
-          mrb_no_method_error(mrb, mid, args, "private method '%n' called for %T", mid, recv);
+          vis_error(mrb, mid, args, recv, priv);
         }
         else if ((m.flags & MRB_METHOD_PROTECTED_FL) && mrb_obj_is_kind_of(mrb, recv, ci->u.target_class)) {
-          mrb_value args = (ci->n == 15) ? regs[1] : mrb_ary_new_from_values(mrb, ci->n, regs+1);
-          mrb_no_method_error(mrb, mid, args, "protected method '%n' called for %T", mid, recv);
+          priv = FALSE;
+          goto vis_err;
         }
       }
       ci->cci = CINFO_NONE;

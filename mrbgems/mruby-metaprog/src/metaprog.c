@@ -712,6 +712,7 @@ mrb_mruby_metaprog_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, krn, MRB_SYM(singleton_methods), mrb_obj_singleton_methods_m, MRB_ARGS_OPT(1)); /* 15.3.1.3.45 */
   mrb_define_method_id(mrb, krn, MRB_SYM(define_singleton_method), mod_define_singleton_method, MRB_ARGS_REQ(1)|MRB_ARGS_BLOCK());
   mrb_define_method_id(mrb, krn, MRB_SYM(send), mrb_f_send, MRB_ARGS_REQ(1)|MRB_ARGS_REST()|MRB_ARGS_BLOCK()); /* 15.3.1.3.44 */
+  mrb_define_method_id(mrb, krn, MRB_SYM(public_send), mrb_f_public_send, MRB_ARGS_REQ(1)|MRB_ARGS_REST()|MRB_ARGS_BLOCK());
 
   mrb_define_method_id(mrb, mod, MRB_SYM(class_variables), mrb_mod_class_variables, MRB_ARGS_OPT(1)); /* 15.2.2.4.19 */
   mrb_define_method_id(mrb, mod, MRB_SYM(remove_class_variable), mrb_mod_remove_cvar, MRB_ARGS_REQ(1)); /* 15.2.2.4.39 */

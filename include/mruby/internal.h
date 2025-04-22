@@ -198,6 +198,7 @@ mrb_value mrb_obj_instance_eval(mrb_state*, mrb_value);
 mrb_value mrb_object_exec(mrb_state *mrb, mrb_value self, struct RClass *target_class);
 mrb_value mrb_mod_module_eval(mrb_state*, mrb_value);
 mrb_value mrb_f_send(mrb_state *mrb, mrb_value self);
+mrb_value mrb_f_public_send(mrb_state *mrb, mrb_value self);
 
 #ifdef MRB_USE_BIGINT
 mrb_value mrb_bint_new_int(mrb_state *mrb, mrb_int x);
