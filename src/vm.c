@@ -865,7 +865,7 @@ vis_error(mrb_state *mrb, mrb_sym mid, mrb_value args, mrb_value recv, mrb_bool 
 }
 
 static mrb_value
-send_method(mrb_state *mrb, mrb_value self, mrb_bool public)
+send_method(mrb_state *mrb, mrb_value self, mrb_bool pub)
 {
   mrb_callinfo *ci = mrb->c->ci;
   int n = ci->n;
@@ -901,7 +901,7 @@ send_method(mrb_state *mrb, mrb_value self, mrb_bool public)
     goto funcall;
   }
 
-  if (public) {
+  if (pub) {
     mrb_bool priv = TRUE;
     if (m.flags & MRB_METHOD_PRIVATE_FL) {
     vis_err:;
