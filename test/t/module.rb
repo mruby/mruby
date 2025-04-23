@@ -454,15 +454,6 @@ assert('Module#define_method') do
   end
 end
 
-assert 'Module#prepend_features' do
-  mod = Module.new { def m; :mod end }
-  cls = Class.new { def m; :cls end }
-  assert_equal :cls, cls.new.m
-  mod.__send__(:prepend_features,cls)
-  assert_equal :mod, cls.new.m
-  assert_raise(FrozenError) { Module.new.__send__(:prepend_features,Class.new.freeze) }
-end
-
 # @!group prepend
   assert('Module#prepend') do
     module M0

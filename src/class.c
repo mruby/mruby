@@ -1586,13 +1586,22 @@ mrb_prepend_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
 }
 
 static mrb_value
-mrb_mod_prepend_features(mrb_state *mrb, mrb_value mod)
+mrb_mod_prepend(mrb_state *mrb, mrb_value mod)
 {
-  struct RClass *c;
+  struct RClass *c = mrb_class_ptr(mod);
+  mrb_int argc;
+  mrb_value *argv;
+  mrb_sym prepended = MRB_SYM(prepended);
 
-  mrb_check_type(mrb, mod, MRB_TT_MODULE);
-  mrb_get_args(mrb, "c", &c);
-  mrb_prepend_module(mrb, c, mrb_class_ptr(mod));
+  mrb_get_args(mrb, "*", &argv, &argc);
+  while (argc--) {
+    mrb_value m = argv[argc];
+    mrb_check_type(mrb, m, MRB_TT_MODULE);
+    mrb_prepend_module(mrb, c, mrb_class_ptr(m));
+    if (!mrb_func_basic_p(mrb, m, prepended, mrb_do_nothing)) {
+      mrb_funcall_argv(mrb, m, prepended, 1, &mod);
+    }
+  }
   return mod;
 }
 
@@ -3171,7 +3180,7 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_method_id(mrb, mod, MRB_SYM_Q(include),                       mrb_mod_include_p,        MRB_ARGS_REQ(1)); /* 15.2.2.4.28 */
 
   mrb_define_method_id(mrb, mod, MRB_SYM(include),                         mrb_mod_include,          MRB_ARGS_REQ(1)); /* 15.2.2.4.27 */
-  mrb_define_private_method_id(mrb, mod, MRB_SYM(prepend_features),        mrb_mod_prepend_features, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, mod, MRB_SYM(prepend),                         mrb_mod_prepend, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, mod, MRB_SYM(class_eval),                      mrb_mod_module_eval,      MRB_ARGS_ANY());  /* 15.2.2.4.15 */
   mrb_define_private_method_id(mrb, mod, MRB_SYM(included),                mrb_do_nothing,           MRB_ARGS_REQ(1)); /* 15.2.2.4.29 */
   mrb_define_method_id(mrb, mod, MRB_SYM(initialize),                      mrb_mod_initialize,       MRB_ARGS_NONE()); /* 15.2.2.4.31 */
@@ -3202,7 +3211,6 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_private_method_id(mrb, mod, MRB_SYM(method_undefined),        mrb_do_nothing,           MRB_ARGS_REQ(1));
   mrb_define_private_method_id(mrb, mod, MRB_SYM(const_added),             mrb_do_nothing,           MRB_ARGS_REQ(1));
 
-  mrb_undef_method_id(mrb, cls, MRB_SYM(prepend_features));
   mrb_undef_method_id(mrb, cls, MRB_SYM(extend_object));
   mrb_undef_method_id(mrb, cls, MRB_SYM(module_function));
 
