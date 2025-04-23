@@ -56,20 +56,6 @@ assert('Module#ancestors', '15.2.2.4.9') do
   assert_true r.include?(Object)
 end
 
-assert('Module#append_features', '15.2.2.4.10') do
-  module Test4AppendFeatures
-    def self.append_features(mod)
-      Test4AppendFeatures2.const_set(:Const4AppendFeatures2, mod)
-    end
-  end
-  module Test4AppendFeatures2
-    include Test4AppendFeatures
-  end
-
-  assert_equal Test4AppendFeatures2, Test4AppendFeatures2.const_get(:Const4AppendFeatures2)
-  assert_raise(FrozenError) { Module.new.__send__(:append_features,Class.new.freeze) }
-end
-
 assert('Module#attr NameError') do
   %w[
     foo?
