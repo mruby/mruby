@@ -1,5 +1,5 @@
 module Kernel
-  private def `(cmd) #`
+  def `(cmd) #`
     IO.popen(cmd) { |io| io.read }
   end
 
