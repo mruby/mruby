@@ -860,7 +860,7 @@ merge_op_string(codegen_scope *s, uint16_t dst, uint16_t b1, uint16_t b2, const 
   mrb_irep_pool *p2 = &s->pool[b2];
   mrb_int len1 = p1->tt>>2;
   mrb_int len2 = p2->tt>>2;
-  int off = find_pool_str(s, p1->u.str, len1, p2->u.str, len2);;
+  int off = find_pool_str(s, p1->u.str, len1, p2->u.str, len2);
 
   if (off < 0) {
     switch (used) {
