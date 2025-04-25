@@ -591,6 +591,7 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method_id(mrb, krn, MRB_SYM_Q(eql),                      mrb_obj_equal_m,                 MRB_ARGS_REQ(1));    /* 15.3.1.3.10 */
   mrb_define_method_id(mrb, krn, MRB_SYM(freeze),                     mrb_obj_freeze,                  MRB_ARGS_NONE());
   mrb_define_method_id(mrb, krn, MRB_SYM_Q(frozen),                   mrb_obj_frozen,                  MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, krn, MRB_SYM(extend),                     mrb_obj_extend,                  MRB_ARGS_ANY());     /* 15.3.1.3.13 */
   mrb_define_method_id(mrb, krn, MRB_SYM(hash),                       mrb_obj_hash,                    MRB_ARGS_NONE());    /* 15.3.1.3.15 */
   mrb_define_private_method_id(mrb, krn, MRB_SYM(initialize_copy),    mrb_obj_init_copy,               MRB_ARGS_REQ(1));    /* 15.3.1.3.16 */
   mrb_define_method_id(mrb, krn, MRB_SYM(inspect),                    mrb_obj_inspect,                 MRB_ARGS_NONE());    /* 15.3.1.3.17 */
@@ -611,7 +612,7 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method_id(mrb, krn, MRB_SYM(to_s),                       mrb_any_to_s,                    MRB_ARGS_NONE());    /* 15.3.1.3.46 */
   mrb_define_method_id(mrb, krn, MRB_SYM(__case_eqq),                 mrb_obj_ceqq,                    MRB_ARGS_REQ(1));    /* internal */
   mrb_define_method_id(mrb, krn, MRB_SYM(__to_int),                   mrb_ensure_int_type,             MRB_ARGS_NONE());    /* internal */
-  mrb_define_private_method_id(mrb, krn, MRB_SYM_Q(respond_to_missing), mrb_false,                       MRB_ARGS_ARG(1,1));
+  mrb_define_private_method_id(mrb, krn, MRB_SYM_Q(respond_to_missing), mrb_false,                     MRB_ARGS_ARG(1,1));
   mrb_define_method_id(mrb, krn, MRB_SYM_Q(__inspect_recursive),      mrb_obj_inspect_recursive_p,     MRB_ARGS_NONE());
 
   mrb_include_module(mrb, mrb->object_class, mrb->kernel_module);

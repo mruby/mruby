@@ -1625,6 +1625,53 @@ mrb_mod_include(mrb_state *mrb, mrb_value mod)
   return mod;
 }
 
+/* 15.3.1.3.13 */
+/*
+ *  call-seq:
+ *    obj.extend(module, ...)    -> obj
+ *
+ *  Adds to _obj_ the instance methods from each module given as a
+ *  parameter.
+ *
+ *     module Mod
+ *      def hello
+ *         "Hello from Mod.\n"
+ *      end
+ *     end
+ *
+ *     class Klass
+ *       def hello
+ *         "Hello from Klass.\n"
+ *       end
+ *     end
+ *
+ *     k = Klass.new
+ *     k.hello         #=> "Hello from Klass.\n"
+ *     k.extend(Mod)   #=> #<Klass:0x401b3bc8>
+ *     k.hello         #=> "Hello from Mod.\n"
+ *
+ */
+mrb_value
+mrb_obj_extend(mrb_state *mrb, mrb_value obj)
+{
+  mrb_int argc;
+  mrb_value *argv;
+  mrb_sym extended = MRB_SYM(extended);
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+
+  mrb_value cc = mrb_singleton_class(mrb, obj);
+  while (argc--) {
+    mrb_value mod = argv[argc];
+    mrb_check_type(mrb, mod, MRB_TT_MODULE);
+    mrb_include_module(mrb, mrb_class_ptr(cc), mrb_class_ptr(mod));
+    if (!mrb_func_basic_p(mrb, cc, extended, mrb_do_nothing)) {
+      mrb_funcall_argv(mrb, cc, extended, 1, &mod);
+    }
+  }
+  return obj;
+}
+
 /* 15.2.2.4.28 */
 /*
  *  call-seq:
@@ -1679,16 +1726,6 @@ mrb_mod_ancestors(mrb_state *mrb, mrb_value self)
   }
 
   return result;
-}
-
-static mrb_value
-mrb_mod_extend_object(mrb_state *mrb, mrb_value mod)
-{
-  mrb_value obj = mrb_get_arg1(mrb);
-
-  mrb_check_type(mrb, mod, MRB_TT_MODULE);
-  mrb_include_module(mrb, mrb_class_ptr(mrb_singleton_class(mrb, obj)), mrb_class_ptr(mod));
-  return mod;
 }
 
 static mrb_value
@@ -3174,7 +3211,6 @@ mrb_init_class(mrb_state *mrb)
   init_class_new(mrb, cls);
 
   MRB_SET_INSTANCE_TT(mod, MRB_TT_MODULE);
-  mrb_define_private_method_id(mrb, mod, MRB_SYM(extend_object),           mrb_mod_extend_object,    MRB_ARGS_REQ(1)); /* 15.2.2.4.25 */
   mrb_define_private_method_id(mrb, mod, MRB_SYM(extended),                mrb_do_nothing,           MRB_ARGS_REQ(1)); /* 15.2.2.4.26 */
   mrb_define_private_method_id(mrb, mod, MRB_SYM(prepended),               mrb_do_nothing,           MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, mod, MRB_SYM_Q(include),                       mrb_mod_include_p,        MRB_ARGS_REQ(1)); /* 15.2.2.4.28 */
@@ -3211,7 +3247,6 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_private_method_id(mrb, mod, MRB_SYM(method_undefined),        mrb_do_nothing,           MRB_ARGS_REQ(1));
   mrb_define_private_method_id(mrb, mod, MRB_SYM(const_added),             mrb_do_nothing,           MRB_ARGS_REQ(1));
 
-  mrb_undef_method_id(mrb, cls, MRB_SYM(extend_object));
   mrb_undef_method_id(mrb, cls, MRB_SYM(module_function));
 
   mrb->top_self = MRB_OBJ_ALLOC(mrb, MRB_TT_OBJECT, mrb->object_class);

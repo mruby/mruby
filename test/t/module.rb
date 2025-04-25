@@ -295,18 +295,6 @@ assert('Module#const_missing', '15.2.2.4.22') do
   assert_equal 42, Test4ConstMissing.const_get(:ConstDoesntExist)
 end
 
-assert('Module#extend_object', '15.2.2.4.25') do
-  cls = Class.new
-  mod = Module.new { def foo; end }
-  a = cls.new
-  b = cls.new
-  mod.__send__(:extend_object,b)
-  assert_false a.respond_to?(:foo)
-  assert_true b.respond_to?(:foo)
-  assert_raise(FrozenError) { mod.__send__(:extend_object,cls.new.freeze) }
-  assert_raise(FrozenError, TypeError) { mod.__send__(:extend_object,1) }
-end
-
 assert('Module#include', '15.2.2.4.27') do
   module Test4Include
     Const4Include = 42
