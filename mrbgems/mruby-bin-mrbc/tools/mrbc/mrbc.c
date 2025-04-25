@@ -26,7 +26,7 @@ struct mrbc_args {
   mrb_bool verbose      : 1;
   mrb_bool no_ext_ops   : 1;
   mrb_bool no_optimize  : 1;
-  uint8_t flags         : 2;
+  uint8_t flags         : 3;
 };
 
 static void
