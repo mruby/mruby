@@ -186,3 +186,30 @@ def g(a: 1, b: a)
 end
 g(a:1)
 ```
+
+## No Double Dispatch in Module Loading
+
+To make implementation simpler, mruby does not use double dispatching in module loading (`include`/`prepend`/`extend`).
+Those method internally called corresponding actual load methods (`append_features`/`prepend_features`/`extend_object`).
+But they are rarely overloaded, consumes more memory, and make loading little bit slower. As a Ruby implementation for the smaller device,
+we decided mruby simpler.
+
+```ruby
+module M
+  def self.append_features(mod)
+     p :append
+  end
+end
+
+class C
+  include M
+end
+```
+
+#### Ruby [ruby 3.5.0dev (2025-04-21 85bab61565))]
+
+Prints `:append`.
+
+#### mruby [3.5.0 (2025-04-28)]
+
+Nothing printed (since `include` does not call `append_features` internally).
