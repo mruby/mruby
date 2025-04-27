@@ -3629,13 +3629,12 @@ codegen(codegen_scope *s, node *tree, int val)
       int off = new_lit_str(s, p, len);
       int sym;
 
-      genop_1(s, OP_LOADSELF, cursp());
       push();
       genop_2(s, OP_STRING, cursp(), off);
       push(); push();
       pop_n(3);
       sym = new_sym(s, MRB_OPSYM_2(s->mrb, tick)); /* ` */
-      genop_3(s, OP_SEND, cursp(), sym, 1);
+      genop_3(s, OP_SSEND, cursp(), sym, 1);
       if (val) push();
     }
     break;
