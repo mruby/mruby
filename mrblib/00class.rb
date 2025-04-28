@@ -7,8 +7,3 @@ class BasicObject
     end
   end
 end
-
-class Module
-  # 15.2.2.4.11
-  alias attr attr_reader
-end
