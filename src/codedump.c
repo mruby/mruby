@@ -263,11 +263,11 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
       print_lv_a(mrb, irep, a, out);
       break;
     CASE(OP_GETMCNST, BB):
-      fprintf(out, "GETMCNST\tR%d\tR%d::%s\t", a, a, mrb_sym_dump(mrb, irep->syms[b]));
+      fprintf(out, "GETMCNST\tR%d\t(R%d)::%s\t", a, a, mrb_sym_dump(mrb, irep->syms[b]));
       print_lv_a(mrb, irep, a, out);
       break;
     CASE(OP_SETMCNST, BB):
-      fprintf(out, "SETMCNST\tR%d::%s\tR%d\t", a+1, mrb_sym_dump(mrb, irep->syms[b]), a);
+      fprintf(out, "SETMCNST\t(R%d)::%s\tR%d\t", a+1, mrb_sym_dump(mrb, irep->syms[b]), a);
       print_lv_a(mrb, irep, a, out);
       break;
     CASE(OP_GETIV, BB):
@@ -295,10 +295,10 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
       print_lv_a(mrb, irep, a, out);
       break;
     CASE(OP_GETIDX, B):
-      fprintf(out, "GETIDX\tR%d\tR%d\n", a, a+1);
+      fprintf(out, "GETIDX\tR%d\t(R%d)\n", a, a+1);
       break;
     CASE(OP_SETIDX, B):
-      fprintf(out, "SETIDX\tR%d\tR%d\tR%d\n", a, a+1, a+2);
+      fprintf(out, "SETIDX\tR%d\t(R%d)\t(R%d)\n", a, a+1, a+2);
       break;
     CASE(OP_JMP, S):
       i = pc - irep->iseq;
@@ -422,39 +422,39 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
       fprintf(out, "ALIAS\t\t:%s\t%s\n", mrb_sym_dump(mrb, irep->syms[a]), mrb_sym_dump(mrb, irep->syms[b]));
       break;
     CASE(OP_ADD, B):
-      fprintf(out, "ADD\t\tR%d\tR%d\n", a, a+1);
+      fprintf(out, "ADD\t\tR%d\t(R%d)\n", a, a+1);
       break;
     CASE(OP_ADDI, BB):
       fprintf(out, "ADDI\t\tR%d\t%d\t", a, b);
       print_lv_a(mrb, irep, a, out);
       break;
     CASE(OP_SUB, B):
-      fprintf(out, "SUB\t\tR%d\tR%d\n", a, a+1);
+      fprintf(out, "SUB\t\tR%d\t(R%d)\n", a, a+1);
       break;
     CASE(OP_SUBI, BB):
       fprintf(out, "SUBI\t\tR%d\t%d\t", a, b);
       print_lv_a(mrb, irep, a, out);
       break;
     CASE(OP_MUL, B):
-      fprintf(out, "MUL\t\tR%d\tR%d\n", a, a+1);
+      fprintf(out, "MUL\t\tR%d\t(R%d)\n", a, a+1);
       break;
     CASE(OP_DIV, B):
-      fprintf(out, "DIV\t\tR%d\tR%d\n", a, a+1);
+      fprintf(out, "DIV\t\tR%d\t(R%d)\n", a, a+1);
       break;
     CASE(OP_LT, B):
-      fprintf(out, "LT\t\tR%d\tR%d\n", a, a+1);
+      fprintf(out, "LT\t\tR%d\t(R%d)\n", a, a+1);
       break;
     CASE(OP_LE, B):
-      fprintf(out, "LE\t\tR%d\tR%d\n", a, a+1);
+      fprintf(out, "LE\t\tR%d\t(R%d)\n", a, a+1);
       break;
     CASE(OP_GT, B):
-      fprintf(out, "GT\t\tR%d\tR%d\n", a, a+1);
+      fprintf(out, "GT\t\tR%d\t(R%d)\n", a, a+1);
       break;
     CASE(OP_GE, B):
-      fprintf(out, "GE\t\tR%d\tR%d\n", a, a+1);
+      fprintf(out, "GE\t\tR%d\t(R%d)\n", a, a+1);
       break;
     CASE(OP_EQ, B):
-      fprintf(out, "EQ\t\tR%d\tR%d\n", a, a+1);
+      fprintf(out, "EQ\t\tR%d\t(R%d)\n", a, a+1);
       break;
     CASE(OP_ARRAY, BB):
       fprintf(out, "ARRAY\t\tR%d\tR%d\t%d", a, a, b);
@@ -465,7 +465,7 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
       print_lv_ab(mrb, irep, a, b, out);
       break;
     CASE(OP_ARYCAT, B):
-      fprintf(out, "ARYCAT\tR%d\tR%d\t", a, a+1);
+      fprintf(out, "ARYCAT\tR%d\t(R%d)\t", a, a+1);
       print_lv_a(mrb, irep, a, out);
       break;
     CASE(OP_ARYPUSH, BB):
@@ -503,7 +503,7 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
       print_lv_a(mrb, irep, a, out);
       break;
     CASE(OP_STRCAT, B):
-      fprintf(out, "STRCAT\tR%d\tR%d\t", a, a+1);
+      fprintf(out, "STRCAT\tR%d\t(R%d)\t", a, a+1);
       print_lv_a(mrb, irep, a, out);
       break;
     CASE(OP_HASH, BB):
@@ -515,7 +515,7 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
       print_lv_a(mrb, irep, a, out);
       break;
     CASE(OP_HASHCAT, B):
-      fprintf(out, "HASHCAT\tR%d\tR%d\t", a, a+1);
+      fprintf(out, "HASHCAT\tR%d\t(R%d)\t", a, a+1);
       print_lv_a(mrb, irep, a, out);
       break;
 
