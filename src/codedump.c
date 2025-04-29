@@ -8,6 +8,16 @@
 #include <mruby/internal.h>
 
 #ifndef MRB_NO_STDIO
+static mrb_bool
+print_r_p(mrb_state *mrb, const mrb_irep *irep, size_t n)
+{
+  if (n == 0) return FALSE;
+  if (!irep->lv) return FALSE;
+  if (n >= irep->nlocals) return FALSE;
+  if (!irep->lv[n-1]) return FALSE;
+  return TRUE;
+}
+
 static void
 print_r(mrb_state *mrb, const mrb_irep *irep, size_t n, FILE *out)
 {
@@ -20,25 +30,21 @@ print_r(mrb_state *mrb, const mrb_irep *irep, size_t n, FILE *out)
 static void
 print_lv_a(mrb_state *mrb, const mrb_irep *irep, uint16_t a, FILE *out)
 {
-  if (!irep->lv || a >= irep->nlocals || a == 0) {
-    fprintf(out, "\n");
-    return;
+  if (print_r_p(mrb, irep, a)) {
+    fprintf(out, "\t;");
+    print_r(mrb, irep, a, out);
   }
-  fprintf(out, "\t;");
-  print_r(mrb, irep, a, out);
   fprintf(out, "\n");
 }
 
 static void
 print_lv_ab(mrb_state *mrb, const mrb_irep *irep, uint16_t a, uint16_t b, FILE *out)
 {
-  if (!irep->lv || (a >= irep->nlocals && b >= irep->nlocals) || a+b == 0) {
-    fprintf(out, "\n");
-    return;
+  if (print_r_p(mrb, irep, a) || print_r_p(mrb, irep, b)) {
+    fprintf(out, "\t;");
+    print_r(mrb, irep, a, out);
+    print_r(mrb, irep, b, out);
   }
-  fprintf(out, "\t;");
-  if (a > 0) print_r(mrb, irep, a, out);
-  if (b > 0) print_r(mrb, irep, b, out);
   fprintf(out, "\n");
 }
 
