@@ -3157,6 +3157,28 @@ init_class_new(mrb_state *mrb, struct RClass *cls)
   mrb_define_method_raw(mrb, cls, MRB_SYM(new), m);
 }
 
+static const mrb_code neq_iseq[] = {
+  OP_ENTER, 0x4, 0, 0,       // OP_ENTER     1:0:0:0:0:0:0
+  OP_EQ, 0,                  // OP_EQ        R0  (R1)
+  OP_JMPNOT, 0, 0, 5,        // OP_JMPNOT    R3  016
+  OP_LOADF, 0,               // OP_LOADF     R0  (true)
+  OP_JMP, 0, 2,              // OP_JMP       R1  018
+  OP_LOADT, 0,               // OP_LOADT     R3  (true)
+  OP_RETURN, 0               // OP_RETURN    R0
+};
+
+static const mrb_irep neq_irep = {
+  4, 6, 0, MRB_IREP_STATIC,
+  neq_iseq, NULL, NULL, NULL, NULL, NULL,
+  sizeof(neq_iseq), 0, 2, 0, 0,
+};
+
+mrb_alignas(8)
+static const struct RProc neq_proc = {
+  NULL, NULL, MRB_TT_PROC, MRB_GC_RED, MRB_OBJ_IS_FROZEN, MRB_PROC_SCOPE | MRB_PROC_STRICT,
+  { &neq_irep }, NULL, { NULL }
+};
+
 void
 mrb_init_class(mrb_state *mrb)
 {
@@ -3201,6 +3223,10 @@ mrb_init_class(mrb_state *mrb)
   mrb_define_private_method_id(mrb, bob, MRB_SYM(singleton_method_removed),mrb_do_nothing,           MRB_ARGS_REQ(1));
   mrb_define_private_method_id(mrb, bob, MRB_SYM(singleton_method_undefined),mrb_do_nothing,         MRB_ARGS_REQ(1));
   mrb_define_private_method_id(mrb, bob, MRB_SYM(method_missing),          mrb_obj_missing,          MRB_ARGS_ANY());  /* 15.3.1.3.30 */
+
+  mrb_method_t m;
+  MRB_METHOD_FROM_PROC(m, &neq_proc);
+  mrb_define_method_raw(mrb, bob, MRB_OPSYM(neq), m);
 
   mrb_define_class_method_id(mrb, cls, MRB_SYM(new),                       mrb_class_new_class,      MRB_ARGS_OPT(1)|MRB_ARGS_BLOCK());
   mrb_define_method_id(mrb, cls, MRB_SYM(allocate),                        mrb_instance_alloc,       MRB_ARGS_NONE());
