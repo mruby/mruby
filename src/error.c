@@ -710,7 +710,9 @@ mrb_init_exception(mrb_state *mrb)
   mrb->eStandardError_class = mrb_define_class_id(mrb, MRB_SYM(StandardError), mrb->eException_class); /* 15.2.23 */
   mrb_define_class_id(mrb, MRB_SYM(ArgumentError), E_STANDARD_ERROR);                                  /* 15.2.24 */
   mrb_define_class_id(mrb, MRB_SYM(LocalJumpError), E_STANDARD_ERROR);                                 /* 15.2.25 */
-  mrb_define_class_id(mrb, MRB_SYM(RangeError), E_STANDARD_ERROR);                                     /* 15.2.26 */
+  struct RClass *range_error = mrb_define_class_id(mrb, MRB_SYM(RangeError), E_STANDARD_ERROR);        /* 15.2.26 */
+  mrb_define_class_id(mrb, MRB_SYM(FloatDomainError), range_error);
+  mrb_define_class_id(mrb, MRB_SYM(RegexpError), E_STANDARD_ERROR);                                    /* 15.2.27 */
   struct RClass *runtime_error = mrb_define_class_id(mrb, MRB_SYM(RuntimeError), E_STANDARD_ERROR);    /* 15.2.28 */
   mrb_define_class_id(mrb, MRB_SYM(FrozenError), runtime_error);
   mrb_define_class_id(mrb, MRB_SYM(TypeError), E_STANDARD_ERROR);                                      /* 15.2.29 */

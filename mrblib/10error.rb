@@ -1,10 +1,3 @@
-class FloatDomainError < RangeError
-end
-
-# ISO 15.2.26
-class RegexpError < StandardError
-end
-
 # ISO 15.2.31
 class NameError < StandardError
   attr_accessor :name
