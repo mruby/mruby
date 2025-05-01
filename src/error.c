@@ -702,14 +702,24 @@ mrb_init_exception(mrb_state *mrb)
   mrb_define_method_id(mrb, exception, MRB_SYM(exception),       exc_exception,     MRB_ARGS_OPT(1));
   mrb_define_method_id(mrb, exception, MRB_SYM(initialize),      exc_initialize,    MRB_ARGS_OPT(1));
   mrb_define_method_id(mrb, exception, MRB_SYM(to_s),            exc_to_s,          MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, exception, MRB_SYM(message),         exc_to_s,          MRB_ARGS_NONE());
   mrb_define_method_id(mrb, exception, MRB_SYM(inspect),         mrb_exc_inspect,   MRB_ARGS_NONE());
   mrb_define_method_id(mrb, exception, MRB_SYM(backtrace),       mrb_exc_backtrace, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, exception, MRB_SYM(set_backtrace),   exc_set_backtrace, MRB_ARGS_REQ(1));
 
   mrb->eStandardError_class = mrb_define_class_id(mrb, MRB_SYM(StandardError), mrb->eException_class); /* 15.2.23 */
-  mrb_define_class_id(mrb, MRB_SYM(RuntimeError), E_STANDARD_ERROR);          /* 15.2.28 */
-  struct RClass *script_error = mrb_define_class_id(mrb, MRB_SYM(ScriptError), exception);   /* 15.2.37 */
-  mrb_define_class_id(mrb, MRB_SYM(SyntaxError), script_error);               /* 15.2.38 */
+  mrb_define_class_id(mrb, MRB_SYM(ArgumentError), E_STANDARD_ERROR);                                  /* 15.2.24 */
+  mrb_define_class_id(mrb, MRB_SYM(LocalJumpError), E_STANDARD_ERROR);                                 /* 15.2.25 */
+  mrb_define_class_id(mrb, MRB_SYM(RangeError), E_STANDARD_ERROR);                                     /* 15.2.26 */
+  struct RClass *runtime_error = mrb_define_class_id(mrb, MRB_SYM(RuntimeError), E_STANDARD_ERROR);    /* 15.2.28 */
+  mrb_define_class_id(mrb, MRB_SYM(FrozenError), runtime_error);
+  mrb_define_class_id(mrb, MRB_SYM(TypeError), E_STANDARD_ERROR);                                      /* 15.2.29 */
+  mrb_define_class_id(mrb, MRB_SYM(ZeroDivisionError), E_STANDARD_ERROR);                              /* 15.2.30 */
+  struct RClass *script_error = mrb_define_class_id(mrb, MRB_SYM(ScriptError), exception);             /* 15.2.37 */
+  mrb_define_class_id(mrb, MRB_SYM(NotImplementedError), script_error);
+  mrb_define_class_id(mrb, MRB_SYM(SyntaxError), script_error);                                        /* 15.2.38 */
+  struct RClass *index_error = mrb_define_class_id(mrb, MRB_SYM(IndexError), E_STANDARD_ERROR);        /* 15.2.33 */
+  mrb_define_class_id(mrb, MRB_SYM(KeyError), index_error);
   struct RClass *stack_error = mrb_define_class_id(mrb, MRB_SYM(SystemStackError), exception);
   mrb->stack_err = mrb_obj_ptr(mrb_exc_new_lit(mrb, stack_error, "stack level too deep"));
 
