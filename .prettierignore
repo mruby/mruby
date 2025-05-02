@@ -2,3 +2,4 @@
 build
 coverage
 doc/internal/opcode.md
+tools/lrama
