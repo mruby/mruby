@@ -1,16 +1,16 @@
 # Authors of mruby (mruby developers)
 
-## The List of Contributors sorted by number of commits (as of 2025-04-02 07d7aa6)
+## The List of Contributors sorted by number of commits (as of 2025-05-01 30d1db4)
 
-   6146 Yukihiro "Matz" Matsumoto (@matz)*
-    676 dearblue (@dearblue)*
+   6190 Yukihiro "Matz" Matsumoto (@matz)*
+    678 dearblue (@dearblue)*
     587 KOBAYASHI Shuji (@shuujii)
     353 Daniel Bovensiepen (@bovi)*
     345 Takeshi Watanabe (@take-cheeze)*
     333 Masaki Muranaka (@monaka)
     234 Jun Hiroe (@suzukaze)
     228 Tomoyuki Sahara (@tsahara)*
-    225 John Bampton (@jbampton)
+    227 John Bampton (@jbampton)
     220 Cremno (@cremno)*
     209 Yuki Kurihara (@ksss)+
     144 Yasuhiro Matsumoto (@mattn)*
@@ -19,9 +19,9 @@
      83 Akira Yumiyama (@akiray03)*
      83 skandhas (@skandhas)
      80 Masamitsu MURASE (@masamitsu-murase)
+     73 Hiroshi Mimaki (@mimaki)*
      71 Tatsuhiko Kubo (@cubicdaiya)*
      71 Yuichiro MASUI (@masuidrive)
-     69 Hiroshi Mimaki (@mimaki)*
      62 Yuichiro Kaneko (@yui-knk)+
      59 Kurebayashi, Takahiro (@crimsonwoods)*
      56 h2so5 (@h2so5)
@@ -140,6 +140,7 @@
       3 Daniel K. Sierpiński (@513ry)+
       3 David Turnbull (@AE9RB)
       3 Franck Verrot (@franckverrot)
+      3 Hirohito Higashi (@HirohitoHigashi)
       3 J. Mutua (@katmutua)+
       3 Jan Berdajs (@mrbrdo)
       3 Jonas Minnberg (@sasq64)
@@ -171,7 +172,6 @@
       2 Francois Chagnon (@EiNSTeiN-)*
       2 Gilad Zohari (@gzohari)
       2 Go Saito (@govm)
-      2 Hirohito Higashi (@HirohitoHigashi)
       2 Hiroyuki Iwatsuki (@iwadon)
       2 Huei-Horng Yo (@hiroshiyui)
       2 Jonas Kulla (@Ancurio)
@@ -209,6 +209,7 @@
       1 Atsushi Morimoto (@mynz)
       1 Ben A Morgan (@BenMorganIO)
       1 Benoit Daloze (@eregon)
+      1 Bradley Whited (@esotericpig)
       1 Colin MacKenzie IV (@sinisterchipmunk)
       1 Daehyub Kim (@lateau)
       1 Daniel Varga (@vargad)
@@ -303,7 +304,6 @@
       1 arton (@arton)
       1 duangsuse (@duangsuse)
       1 fl0l0u (@fl0l0u)
-      1 Bradley Whited (@esotericpig)
       1 hhc0null (@hhc0null)
       1 iTitou (@titouanc)
       1 javier ramírez (@javier)
