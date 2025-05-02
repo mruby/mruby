@@ -21,6 +21,8 @@ build:
               - tasks/**/*
               - .dockerignore
               - .pre-commit-config.yaml
+              - .prettierignore
+              - .prettierrc
               - .travis.yml
               - .yardopts
 core:
