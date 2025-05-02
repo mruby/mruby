@@ -1,0 +1,3 @@
+[codespell]
+ignore-words = .github/linters/codespell.txt
+skip = ./build,./doc/api,./doc/capi
