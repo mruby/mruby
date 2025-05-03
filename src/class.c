@@ -809,11 +809,11 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
 
   int flags = MT_KEY_FLG(m.flags);
   if (mid == MRB_SYM(initialize)) {
-    MRB_SET_VISIBILITY(flags, MT_PRIVATE);
+    MRB_SET_VISIBILITY_FLAGS(flags, MT_PRIVATE);
   }
   else if ((flags & MT_VMASK) == MT_VDEFAULT) {
     mrb_callinfo *ci = find_visibility_ci(mrb, c, 0);
-    MRB_SET_VISIBILITY(flags, ci->vis);
+    MRB_SET_VISIBILITY_FLAGS(flags, ci->vis);
   }
   mt_put(mrb, h, mid, flags, ptr);
   mc_clear_by_id(mrb, mid);
