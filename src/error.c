@@ -137,7 +137,7 @@ mrb_exc_inspect(mrb_state *mrb, mrb_value exc)
 {
   mrb_value cname = mrb_mod_to_s(mrb, mrb_obj_value(mrb_obj_class(mrb, exc)));
   mrb_value mesg = mrb_exc_mesg_get(mrb, mrb_exc_ptr(exc)); /* string or nil */
-  return (mrb_nil_p(mesg)||RSTRING_LEN(mesg)==0) ? cname : mrb_format(mrb, "%v (%v)", mesg, cname);
+  return (mrb_nil_p(mesg)||RSTRING_LEN(mesg)==0) ? cname : mrb_format(mrb, "#<%v: %v>", cname, mesg);
 }
 
 void mrb_keep_backtrace(mrb_state *mrb, mrb_value exc);
