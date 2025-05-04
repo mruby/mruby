@@ -147,4 +147,5 @@ assert("Kernel#rand()") do
   assert_equal(rand(0.0...0), nil)
   assert_equal(rand(0...0.0), nil)
   assert_equal(rand(0.0...0.0), nil)
+  assert_equal(rand(1..0), nil)
 end

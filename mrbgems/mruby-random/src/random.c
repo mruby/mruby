@@ -146,7 +146,7 @@ static mrb_value
 rand_range_int(mrb_state *mrb, rand_state *t, mrb_int begin,
                mrb_int end, mrb_bool excl) {
   mrb_int span = end - begin + (excl ? 0 : 1);
-  if (span == 0)
+  if (span <= 0)
     return mrb_nil_value();
 
   return mrb_int_value(mrb, (rand_i(t, span)) + begin);
@@ -158,7 +158,7 @@ rand_range_float(mrb_state *mrb, rand_state *t,
                  mrb_float begin, mrb_float end,
                  mrb_bool excl) {
   mrb_float span = end - begin + (excl ? 0.0 : 1.0);
-  if (span == 0.0)
+  if (span <= 0.0)
     return mrb_nil_value();
 
   return mrb_float_value(mrb, rand_real(t) * span + begin);
