@@ -15,7 +15,9 @@ end
 
 # Kernel.loop is not provided by mruby. '15.3.1.2.8'
 
-# Kernel.p is provided by the mruby-io mrbgem. '15.3.1.2.9'
+assert('Kernel.p', '15.3.1.2.9') do
+  assert_equal 1, Kernel.__send__(:p, 1)
+end
 
 # Kernel.print is provided by the mruby-io mrbgem. '15.3.1.2.10'
 
@@ -333,7 +335,11 @@ assert('Kernel#object_id', '15.3.1.3.33') do
   assert_kind_of Numeric, 1.0.object_id
 end
 
-# Kernel#p is defined in mruby-io mrbgem. '15.3.1.3.34'
+assert('Kernel#p', '15.3.1.3.34') do
+  assert_equal nil, p
+  assert_equal nil, p(p)
+  assert_equal [:a, :b], p(:a, :b)
+end
 
 # Kernel#print is defined in mruby-io mrbgem. '15.3.1.3.35'
 
