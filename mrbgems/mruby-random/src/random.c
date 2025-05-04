@@ -243,7 +243,7 @@ static mrb_value
 random_m_rand(mrb_state *mrb, mrb_value self)
 {
   rand_state *t = random_ptr(self);
-  random_rand_impl(mrb, t, self);
+  return random_rand_impl(mrb, t, self);
 }
 
 static mrb_value

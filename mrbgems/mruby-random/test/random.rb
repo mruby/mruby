@@ -137,8 +137,8 @@ assert('Array#sample(random)') do
 end
 
 assert("Kernel#rand()") do
-  100.times { 
-    assert_include(0.0..1.0, rand) 
+  100.times {
+    assert_include(0.0..1.0, rand)
     assert_include(0...100, rand(0...100))
     assert_include(0...100, rand(100))
   }
