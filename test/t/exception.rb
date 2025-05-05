@@ -355,7 +355,7 @@ end
 assert('Exception#inspect') do
   assert_equal "Exception", Exception.new.inspect
   assert_equal "Exception", Exception.new("").inspect
-  assert_equal "error! (Exception)", Exception.new("error!").inspect
+  assert_equal "#<Exception: error!>", Exception.new("error!").inspect
 end
 
 assert('Exception#backtrace') do
