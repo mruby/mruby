@@ -86,6 +86,7 @@ mrb_env_new(mrb_state *mrb, struct mrb_context *c, mrb_callinfo *ci, int nstacks
   e->mid = ci->mid;
   e->stack = stack;
   e->cxt = c;
+  MRB_ENV_COPY_FLAGS_FROM_CI(e, ci);
 
   return e;
 }

@@ -193,9 +193,13 @@ size_t mrb_gc_mark_iv(mrb_state*, struct RObject*);
 void mrb_gc_free_iv(mrb_state*, struct RObject*);
 
 /* VM */
+#define MRB_CI_VISIBILITY(ci) MRB_FLAGS_GET((ci)->vis, 0, 2)
+#define MRB_CI_SET_VISIBILITY(ci, visi) MRB_FLAGS_SET((ci)->vis, 0, 2, visi)
+#define MRB_CI_SEPARATE_MODULE_P(ci) MRB_FLAG_P((ci)->vis, 2)
+#define MRB_CI_SET_SEPARATE_MODULE(ci) MRB_FLAG_ENABLE((ci)->vis, 2)
 mrb_int mrb_ci_bidx(mrb_callinfo *ci);
 mrb_int mrb_ci_nregs(mrb_callinfo *ci);
-mrb_value mrb_exec_irep(mrb_state *mrb, mrb_value self, const struct RProc *p);
+mrb_value mrb_exec_irep(mrb_state *mrb, mrb_value self, const struct RProc *p, mrb_bool separate_module);
 mrb_value mrb_obj_instance_eval(mrb_state*, mrb_value);
 mrb_value mrb_object_exec(mrb_state *mrb, mrb_value self, struct RClass *target_class);
 mrb_value mrb_mod_module_eval(mrb_state*, mrb_value);
