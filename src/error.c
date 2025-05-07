@@ -140,6 +140,14 @@ mrb_exc_inspect(mrb_state *mrb, mrb_value exc)
   return (mrb_nil_p(mesg)||RSTRING_LEN(mesg)==0) ? cname : mrb_format(mrb, "#<%v: %v>", cname, mesg);
 }
 
+mrb_value
+mrb_exc_get_output(mrb_state *mrb, struct RObject *exc)
+{
+  mrb_value cname = mrb_mod_to_s(mrb, mrb_obj_value(mrb_class_real(exc->c)));
+  mrb_value mesg = mrb_exc_mesg_get(mrb, (struct RException*)exc); /* string or nil */
+  return (mrb_nil_p(mesg)||RSTRING_LEN(mesg)==0) ? cname : mrb_format(mrb, "%v (%v)", mesg, cname);
+}
+
 void mrb_keep_backtrace(mrb_state *mrb, mrb_value exc);
 
 static void

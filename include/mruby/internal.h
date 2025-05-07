@@ -61,6 +61,7 @@ void mrb_exc_mesg_set(mrb_state *mrb, struct RException *exc, mrb_value mesg);
 mrb_value mrb_exc_mesg_get(mrb_state *mrb, struct RException *exc);
 mrb_value mrb_f_raise(mrb_state*, mrb_value);
 mrb_value mrb_make_exception(mrb_state *mrb, mrb_value exc, mrb_value mesg);
+mrb_value mrb_exc_get_output(mrb_state *mrb, struct RObject *exc);
 
 struct RBacktrace {
   MRB_OBJECT_HEADER;
