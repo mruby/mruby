@@ -142,11 +142,13 @@ create_proc_from_string(mrb_state *mrb, const char *s, mrb_int len, mrb_value bi
 static mrb_value
 exec_irep(mrb_state *mrb, mrb_value self, struct RProc *proc)
 {
+  mrb_callinfo *ci = mrb->c->ci;
+
   /* no argument passed from eval() */
-  mrb->c->ci->n = 0;
-  mrb->c->ci->nk = 0;
+  ci->n = 0;
+  ci->nk = 0;
   /* clear block */
-  mrb->c->ci->stack[1] = mrb_nil_value();
+  ci->stack[1] = mrb_nil_value();
   return mrb_exec_irep(mrb, self, proc, TRUE);
 }
 
