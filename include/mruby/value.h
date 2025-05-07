@@ -96,11 +96,12 @@ struct mrb_state;
 
 #define MRB_FLAGS_MASK(shift, width)    (~(~0U << (width)) << (shift))
 #define MRB_FLAGS_GET(b, s, w)          (((b) >> (s)) & MRB_FLAGS_MASK(0, w))
-#define MRB_FLAGS_SET(b, s, w, n)       ((b) = MRB_FLAGS_INVERT_TRIM(b, s, w) | MRB_FLAGS_MAKE(s, w, n))
-#define MRB_FLAGS_INVERT_TRIM(b, s, w)  ((b) & ~MRB_FLAGS_MASK(s, w))
+#define MRB_FLAGS_SET(b, s, w, n)       ((b) = MRB_FLAGS_ZERO(b, s, w) | MRB_FLAGS_MAKE(s, w, n))
+#define MRB_FLAGS_ZERO(b, s, w)         ((b) & ~MRB_FLAGS_MASK(s, w))
 #define MRB_FLAGS_MAKE(s, w, n)         (((n) & MRB_FLAGS_MASK(0, w)) << (s))
-#define MRB_FLAG_ENABLE(b, s)           ((b) |= MRB_FLAGS_MASK(s, 1))
-#define MRB_FLAG_P(b, s)                (!!((b) & MRB_FLAGS_MASK(s, 1)))
+#define MRB_FLAG_ON(b, s)               ((b) |= MRB_FLAGS_MASK(s, 1))
+#define MRB_FLAG_OFF(b, s)              ((b) &= ~MRB_FLAGS_MASK(s, 1))
+#define MRB_FLAG_CHECK(b, s)            (!!((b) & MRB_FLAGS_MASK(s, 1)))
 
 MRB_API mrb_bool mrb_read_int(const char *p, const char *e, char **endp, mrb_int *np);
 /* obsolete; do not use mrb_int_read() */

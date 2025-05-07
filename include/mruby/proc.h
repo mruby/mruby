@@ -39,7 +39,7 @@ struct REnv {
 #define MRB_ENV_SET_BIDX(e,idx) ((e)->flags = (((e)->flags & ~(0xff<<8))|((unsigned int)(idx) & 0xff)<<8))
 #define MRB_ENV_SET_VISIBILITY(e, vis) MRB_FLAGS_SET((e)->flags, 16, 2, vis)
 #define MRB_ENV_VISIBILITY(e) MRB_FLAGS_GET((e)->flags, 16, 2)
-#define MRB_ENV_SEPARATE_MODULE_P(e) MRB_FLAG_P((e)->flags, 18)
+#define MRB_ENV_SEPARATE_MODULE_P(e) MRB_FLAG_CHECK((e)->flags, 18)
 #define MRB_ENV_COPY_FLAGS_FROM_CI(e, ci) MRB_FLAGS_SET((e)->flags, 16, 3, (ci)->vis)
 
 /*
