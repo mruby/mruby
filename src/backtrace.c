@@ -241,8 +241,8 @@ print_backtrace(mrb_state *mrb, struct RObject *exc, struct RBasic *ptr)
     fwrite(nomem, sizeof(nomem)-1, 1, stderr);
   }
   else {
-    mrb_value mesg = mrb_exc_inspect(mrb, mrb_obj_value(exc));
-    fwrite(RSTRING_PTR(mesg), RSTRING_LEN(mesg), 1, stderr);
+    mrb_value output = mrb_exc_get_output(mrb, exc);
+    fwrite(RSTRING_PTR(output), RSTRING_LEN(output), 1, stderr);
     fputc('\n', stderr);
   }
 }
