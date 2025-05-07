@@ -812,13 +812,10 @@ exec_irep(mrb_state *mrb, mrb_value self, const struct RProc *p)
 }
 
 mrb_value
-mrb_exec_irep(mrb_state *mrb, mrb_value self, const struct RProc *p, mrb_bool separate_module)
+mrb_exec_irep(mrb_state *mrb, mrb_value self, const struct RProc *p)
 {
   mrb_callinfo *ci = mrb->c->ci;
   if (ci->cci == CINFO_NONE) {
-    if (separate_module) {
-      MRB_CI_SET_SEPARATE_MODULE(ci);
-    }
     return exec_irep(mrb, self, p);
   }
   else {
@@ -828,9 +825,6 @@ mrb_exec_irep(mrb_state *mrb, mrb_value self, const struct RProc *p, mrb_bool se
         check_method_noarg(mrb, ci);
       }
       ci = cipush(mrb, 0, CINFO_DIRECT, CI_TARGET_CLASS(ci), p, NULL, ci->mid, ci->n|(ci->nk<<4));
-      if (separate_module) {
-        MRB_CI_SET_SEPARATE_MODULE(ci);
-      }
       mrb->exc = NULL;
       ret = MRB_PROC_CFUNC(p)(mrb, self);
       cipop(mrb);
@@ -838,9 +832,6 @@ mrb_exec_irep(mrb_state *mrb, mrb_value self, const struct RProc *p, mrb_bool se
     else {
       mrb_int keep = ci_bidx(ci) + 1; /* receiver + block */
       ci = cipush(mrb, 0, CINFO_SKIP, CI_TARGET_CLASS(ci), p, NULL, ci->mid, ci->n|(ci->nk<<4));
-      if (separate_module) {
-        MRB_CI_SET_SEPARATE_MODULE(ci);
-      }
       ret = mrb_vm_run(mrb, p, self, keep);
     }
     if (mrb->exc && mrb->jmp) {
@@ -864,7 +855,7 @@ mrb_object_exec(mrb_state *mrb, mrb_value self, struct RClass *target_class)
   mrb_gc_protect(mrb, blk);
   ci->stack[bidx] = mrb_nil_value();
   mrb_vm_ci_target_class_set(ci, target_class);
-  return mrb_exec_irep(mrb, self, mrb_proc_ptr(blk), FALSE);
+  return mrb_exec_irep(mrb, self, mrb_proc_ptr(blk));
 }
 
 static mrb_noreturn void

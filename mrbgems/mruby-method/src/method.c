@@ -248,7 +248,7 @@ mcall(mrb_state *mrb, mrb_value self, mrb_value recv)
   mrb->c->ci->mid = mid;
   mrb->c->ci->u.target_class = tc;
 
-  return mrb_exec_irep(mrb, recv, proc, FALSE);
+  return mrb_exec_irep(mrb, recv, proc);
 }
 
 static mrb_value

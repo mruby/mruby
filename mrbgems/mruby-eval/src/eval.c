@@ -147,9 +147,11 @@ exec_irep(mrb_state *mrb, mrb_value self, struct RProc *proc)
   /* no argument passed from eval() */
   ci->n = 0;
   ci->nk = 0;
+  /* clear visibility */
+  MRB_CI_SET_SEPARATE_MODULE(ci);
   /* clear block */
   ci->stack[1] = mrb_nil_value();
-  return mrb_exec_irep(mrb, self, proc, TRUE);
+  return mrb_exec_irep(mrb, self, proc);
 }
 
 static void
