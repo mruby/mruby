@@ -812,10 +812,13 @@ exec_irep(mrb_state *mrb, mrb_value self, const struct RProc *p)
 }
 
 mrb_value
-mrb_exec_irep(mrb_state *mrb, mrb_value self, const struct RProc *p)
+mrb_exec_irep(mrb_state *mrb, mrb_value self, const struct RProc *p, mrb_bool separate_module)
 {
   mrb_callinfo *ci = mrb->c->ci;
   if (ci->cci == CINFO_NONE) {
+    if (separate_module) {
+      MRB_CI_SET_SEPARATE_MODULE(ci);
+    }
     return exec_irep(mrb, self, p);
   }
   else {
@@ -824,14 +827,20 @@ mrb_exec_irep(mrb_state *mrb, mrb_value self, const struct RProc *p)
       if (MRB_PROC_NOARG_P(p) && (ci->n > 0 || ci->nk > 0)) {
         check_method_noarg(mrb, ci);
       }
-      cipush(mrb, 0, CINFO_DIRECT, CI_TARGET_CLASS(ci), p, NULL, ci->mid, ci->n|(ci->nk<<4));
+      ci = cipush(mrb, 0, CINFO_DIRECT, CI_TARGET_CLASS(ci), p, NULL, ci->mid, ci->n|(ci->nk<<4));
+      if (separate_module) {
+        MRB_CI_SET_SEPARATE_MODULE(ci);
+      }
       mrb->exc = NULL;
       ret = MRB_PROC_CFUNC(p)(mrb, self);
       cipop(mrb);
     }
     else {
       mrb_int keep = ci_bidx(ci) + 1; /* receiver + block */
-      cipush(mrb, 0, CINFO_SKIP, CI_TARGET_CLASS(ci), p, NULL, ci->mid, ci->n|(ci->nk<<4));
+      ci = cipush(mrb, 0, CINFO_SKIP, CI_TARGET_CLASS(ci), p, NULL, ci->mid, ci->n|(ci->nk<<4));
+      if (separate_module) {
+        MRB_CI_SET_SEPARATE_MODULE(ci);
+      }
       ret = mrb_vm_run(mrb, p, self, keep);
     }
     if (mrb->exc && mrb->jmp) {
@@ -855,7 +864,7 @@ mrb_object_exec(mrb_state *mrb, mrb_value self, struct RClass *target_class)
   mrb_gc_protect(mrb, blk);
   ci->stack[bidx] = mrb_nil_value();
   mrb_vm_ci_target_class_set(ci, target_class);
-  return mrb_exec_irep(mrb, self, mrb_proc_ptr(blk));
+  return mrb_exec_irep(mrb, self, mrb_proc_ptr(blk), FALSE);
 }
 
 static mrb_noreturn void
@@ -1022,6 +1031,7 @@ eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
   ci->n = 1;
   ci->nk = 0;
   ci->mid = ci[-1].mid;
+  MRB_CI_SET_SEPARATE_MODULE(ci);
   if (MRB_PROC_CFUNC_P(p)) {
     stack_extend(mrb, 4);
     mrb->c->ci->stack[0] = self;
@@ -1093,8 +1103,9 @@ mrb_obj_instance_eval(mrb_state *mrb, mrb_value self)
   return eval_under(mrb, self, b, mrb_singleton_class_ptr(mrb, self));
 }
 
-MRB_API mrb_value
-mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv, mrb_value self, struct RClass *c)
+static mrb_value
+yield_with_attr(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv, mrb_value self, struct RClass *c,
+                mrb_bool separate_module)
 {
   check_block(mrb, b);
 
@@ -1113,6 +1124,9 @@ mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value 
   funcall_args_capture(mrb, 0, argc, argv, mrb_nil_value(), ci);
   ci->u.target_class = c;
   ci->proc = p;
+  if (separate_module) {
+    MRB_CI_SET_SEPARATE_MODULE(ci);
+  }
 
   mrb_value val;
   if (MRB_PROC_CFUNC_P(p)) {
@@ -1132,13 +1146,19 @@ mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value 
 }
 
 MRB_API mrb_value
+mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv, mrb_value self, struct RClass *c)
+{
+  return yield_with_attr(mrb, b, argc, argv, self, c, TRUE);
+}
+
+MRB_API mrb_value
 mrb_yield_argv(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv)
 {
   const struct RProc *p = mrb_proc_ptr(b);
   struct RClass *tc;
   mrb_value self = mrb_proc_get_self(mrb, p, &tc);
 
-  return mrb_yield_with_class(mrb, b, argc, argv, self, tc);
+  return yield_with_attr(mrb, b, argc, argv, self, tc, FALSE);
 }
 
 MRB_API mrb_value
@@ -1148,7 +1168,7 @@ mrb_yield(mrb_state *mrb, mrb_value b, mrb_value arg)
   struct RClass *tc;
   mrb_value self = mrb_proc_get_self(mrb, p, &tc);
 
-  return mrb_yield_with_class(mrb, b, 1, &arg, self, tc);
+  return yield_with_attr(mrb, b, 1, &arg, self, tc, FALSE);
 }
 
 mrb_value

@@ -796,6 +796,51 @@ assert('method visibility') do
   assert_equal :test, v.test_private { :test }
 end
 
+assert('method visibility with meta programming') do
+  assert_equal "GOOD!" do
+    f = nil
+    c = Class.new {
+      private
+      f = ->(&blk) {
+        class_eval(&blk)
+      }
+    }
+    f.call {
+      def good!
+        "GOOD!"
+      end
+    }
+    c.new.good!
+  end
+
+  assert_equal "GOOD!" do
+    c = Class.new
+    c.class_eval {
+      private
+      c.class_eval {
+        def good!
+          "GOOD!"
+        end
+      }
+    }
+    c.new.good!
+  end
+
+  assert_raise NoMethodError do
+    f = nil
+    c = Class.new {
+      private
+      f = -> {
+        def bad!
+          "BAD!"
+        end
+      }
+    }
+    f.call
+    c.new.bad!
+  end
+end
+
 assert('Module#module_function') do
   module M
     def modfunc; end

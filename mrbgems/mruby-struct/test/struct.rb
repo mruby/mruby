@@ -208,3 +208,24 @@ assert 'Struct#freeze' do
   assert_raise(FrozenError) { o[:m] = :modify }
   assert_equal :test, o.m
 end
+
+assert 'method visibility with Struct' do
+  c = Struct.new :r, :g, :b do
+    def good!
+      "GOOD!"
+    end
+
+    private
+    def bad!
+      "BAD!"
+    end
+  end
+
+  assert_equal "GOOD!" do
+    c.new.good!
+  end
+
+  assert_raise NoMethodError do
+    c.new.bad!
+  end
+end

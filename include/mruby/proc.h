@@ -30,13 +30,17 @@ struct REnv {
   mrb_sym mid;
 };
 
-/* flags (21bits): 5(ZERO):8(cioff/bidx):8(stack_len) */
+/* flags (20bits): 1(ZERO):1(separate module):2(visibility):8(cioff/bidx):8(stack_len) */
 #define MRB_ENV_SET_LEN(e,len) ((e)->flags = (((e)->flags & ~0xff)|((unsigned int)(len) & 0xff)))
 #define MRB_ENV_LEN(e) ((mrb_int)((e)->flags & 0xff))
 #define MRB_ENV_CLOSE(e) ((e)->cxt = NULL)
 #define MRB_ENV_ONSTACK_P(e) ((e)->cxt != NULL)
 #define MRB_ENV_BIDX(e) (((e)->flags >> 8) & 0xff)
 #define MRB_ENV_SET_BIDX(e,idx) ((e)->flags = (((e)->flags & ~(0xff<<8))|((unsigned int)(idx) & 0xff)<<8))
+#define MRB_ENV_SET_VISIBILITY(e, vis) MRB_FLAGS_SET((e)->flags, 16, 2, vis)
+#define MRB_ENV_VISIBILITY(e) MRB_FLAGS_GET((e)->flags, 16, 2)
+#define MRB_ENV_SEPARATE_MODULE_P(e) MRB_FLAG_P((e)->flags, 18)
+#define MRB_ENV_COPY_FLAGS_FROM_CI(e, ci) MRB_FLAGS_SET((e)->flags, 16, 3, (ci)->vis)
 
 /*
  * Returns TRUE on success.
