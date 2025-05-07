@@ -741,6 +741,18 @@ mrb_define_class_under(mrb_state *mrb, struct RClass *outer, const char *name, s
   return mrb_define_class_under_id(mrb, outer, mrb_intern_cstr(mrb, name), super);
 }
 
+static mrb_bool
+check_visibility_break(const struct RProc *p, const struct RClass *c, mrb_callinfo *ci, struct REnv *env)
+{
+  if (!p || p->upper == NULL || MRB_PROC_SCOPE_P(p) || p->e.env == NULL || !MRB_PROC_ENV_P(p)) {
+    return TRUE;
+  }
+  if (env) {
+    return p->e.env->c != c || MRB_ENV_VISIBILITY_BREAK_P(env);
+  }
+  return mrb_vm_ci_target_class(ci) != c || MRB_CI_VISIBILITY_BREAK_P(ci);
+}
+
 static mrb_callinfo*
 find_visibility_ci(mrb_state *mrb, const struct RClass *c, int n, struct REnv **e)
 {
@@ -750,8 +762,7 @@ find_visibility_ci(mrb_state *mrb, const struct RClass *c, int n, struct REnv **
 
   if (c == NULL) c = mrb_vm_ci_target_class(ci);
 
-  if (!p || p->upper == NULL || MRB_PROC_SCOPE_P(p) ||
-      p->e.env == NULL || !MRB_PROC_ENV_P(p) || mrb_vm_ci_target_class(ci) != c || MRB_CI_VISIBILITY_BREAK_P(ci)) {
+  if (check_visibility_break(p, c, ci, NULL)) {
     mrb_assert(ci->u.env);
     *e = (ci->u.env->tt == MRB_TT_ENV ? ci->u.env : NULL);
     return ci;
@@ -760,8 +771,7 @@ find_visibility_ci(mrb_state *mrb, const struct RClass *c, int n, struct REnv **
   for (;;) {
     struct REnv *env = p->e.env;
     p = p->upper;
-    if (p->upper == NULL || MRB_PROC_SCOPE_P(p) ||
-        p->e.env == NULL || !MRB_PROC_ENV_P(p) || p->e.env->c != c || MRB_ENV_VISIBILITY_BREAK_P(env)) {
+    if (check_visibility_break(p, c, ci, env)) {
       *e = env;
       return NULL;
     }
