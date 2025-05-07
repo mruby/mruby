@@ -1022,7 +1022,7 @@ eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
   ci->n = 1;
   ci->nk = 0;
   ci->mid = ci[-1].mid;
-  MRB_CI_SET_SEPARATE_MODULE(ci);
+  MRB_CI_SET_VISIBILITY_BREAK(ci);
   if (MRB_PROC_CFUNC_P(p)) {
     stack_extend(mrb, 4);
     mrb->c->ci->stack[0] = self;
@@ -1096,7 +1096,7 @@ mrb_obj_instance_eval(mrb_state *mrb, mrb_value self)
 
 static mrb_value
 yield_with_attr(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv, mrb_value self, struct RClass *c,
-                mrb_bool separate_module)
+                mrb_bool vis_break)
 {
   check_block(mrb, b);
 
@@ -1115,8 +1115,8 @@ yield_with_attr(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv
   funcall_args_capture(mrb, 0, argc, argv, mrb_nil_value(), ci);
   ci->u.target_class = c;
   ci->proc = p;
-  if (separate_module) {
-    MRB_CI_SET_SEPARATE_MODULE(ci);
+  if (vis_break) {
+    MRB_CI_SET_VISIBILITY_BREAK(ci);
   }
 
   mrb_value val;

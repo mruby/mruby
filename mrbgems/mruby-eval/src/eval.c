@@ -148,7 +148,7 @@ exec_irep(mrb_state *mrb, mrb_value self, struct RProc *proc)
   ci->n = 0;
   ci->nk = 0;
   /* clear visibility */
-  MRB_CI_SET_SEPARATE_MODULE(ci);
+  MRB_CI_SET_VISIBILITY_BREAK(ci);
   /* clear block */
   ci->stack[1] = mrb_nil_value();
   return mrb_exec_irep(mrb, self, proc);
