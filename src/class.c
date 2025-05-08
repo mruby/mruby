@@ -764,7 +764,7 @@ find_visibility_scope(mrb_state *mrb, const struct RClass *c, int n, mrb_callinf
 
   if (check_visibility_break(p, c, ci, NULL)) {
     mrb_assert(ci->u.env);
-    *ep = (ci->u.env->tt == MRB_TT_ENV ? ci->u.env : NULL);
+    *ep = NULL;
     *cp = ci;
     return;
   }
