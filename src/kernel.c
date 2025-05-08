@@ -559,10 +559,11 @@ mrb_value mrb_print_m(mrb_state *mrb, mrb_value self);
 static mrb_value
 mrb_p_m(mrb_state *mrb, mrb_value self)
 {
- mrb_int argc;
+  mrb_int argc;
   mrb_value *argv;
 
   mrb_get_args(mrb, "*", &argv, &argc);
+  if (argc == 0) return mrb_nil_value();
   for (mrb_int i=0; i<argc; i++) {
     mrb_p(mrb, argv[i]);
   }
