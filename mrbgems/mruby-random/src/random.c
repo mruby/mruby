@@ -11,6 +11,7 @@
 #include <mruby/array.h>
 #include <mruby/istruct.h>
 #include <mruby/presym.h>
+#include <mruby/range.h>
 #include <mruby/string.h>
 
 #include <time.h>
@@ -141,16 +142,69 @@ rand_i(rand_state *t, mrb_int max)
   return rand_uint32(t) % max;
 }
 
-static mrb_int
-get_opt(mrb_state* mrb)
-{
-  mrb_int arg = 0;
+static mrb_value
+rand_range_int(mrb_state *mrb, rand_state *t, mrb_int begin,
+               mrb_int end, mrb_bool excl) {
+  mrb_int span = end - begin + (excl ? 0 : 1);
+  if (span <= 0)
+    return mrb_nil_value();
 
-  mrb_get_args(mrb, "|i", &arg);
-  if (arg < 0) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid argument");
+  return mrb_int_value(mrb, (rand_i(t, span)) + begin);
+}
+
+#ifndef MRB_NO_FLOAT
+static mrb_value
+rand_range_float(mrb_state *mrb, rand_state *t,
+                 mrb_float begin, mrb_float end,
+                 mrb_bool excl) {
+  mrb_float span = end - begin + (excl ? 0.0 : 1.0);
+  if (span <= 0.0)
+    return mrb_nil_value();
+
+  return mrb_float_value(mrb, rand_real(t) * span + begin);
+}
+#endif
+
+static mrb_value
+random_range(mrb_state *mrb, rand_state *t, mrb_value rv)
+{
+  struct RRange *r = mrb_range_ptr(mrb, rv);
+  if (mrb_integer_p(RANGE_BEG(r)) && mrb_integer_p(RANGE_END(r))) {
+    return rand_range_int(mrb, t, mrb_integer(RANGE_BEG(r)),
+                          mrb_integer(RANGE_END(r)), RANGE_EXCL(r));
   }
-  return arg;
+
+#define cast_to_float(v)                                                       \
+  (mrb_float_p(v)     ? mrb_float(v)                                           \
+   : mrb_integer_p(v) ? (mrb_float)mrb_integer(v)                              \
+                      : (mrb_raise(mrb, E_ARGUMENT_ERROR, ""), 0.0))
+
+  return rand_range_float(mrb, t, cast_to_float(RANGE_BEG(r)),
+                          cast_to_float(RANGE_END(r)), RANGE_EXCL(r));
+#undef cast_to_float
+}
+
+static mrb_value
+random_rand_impl(mrb_state *mrb, rand_state *t, mrb_value self)
+{
+  mrb_value arg;
+  if (!mrb_get_args(mrb, "|o", &arg) || mrb_nil_p(arg)) {
+    return random_rand(mrb, t, 0);
+  }
+
+  if (mrb_float_p(arg)) {
+    return random_rand(mrb, t, (mrb_int)mrb_float(arg));
+  }
+
+  if (mrb_integer_p(arg)) {
+    return random_rand(mrb, t, mrb_integer(arg));
+  }
+
+  if (mrb_range_p(arg)) {
+    return random_range(mrb, t, arg);
+  }
+
+  mrb_raise(mrb, E_ARGUMENT_ERROR, "");
 }
 
 #define ID_RANDOM MRB_SYM(mruby_Random)
@@ -188,11 +242,8 @@ random_m_init(mrb_state *mrb, mrb_value self)
 static mrb_value
 random_m_rand(mrb_state *mrb, mrb_value self)
 {
-  mrb_int max;
   rand_state *t = random_ptr(self);
-
-  max = get_opt(mrb);
-  return random_rand(mrb, t, max);
+  return random_rand_impl(mrb, t, self);
 }
 
 static mrb_value
@@ -361,7 +412,7 @@ static mrb_value
 random_f_rand(mrb_state *mrb, mrb_value self)
 {
   rand_state *t = random_default_state(mrb);
-  return random_rand(mrb, t, get_opt(mrb));
+  return random_rand_impl(mrb, t, self);
 }
 
 static mrb_value

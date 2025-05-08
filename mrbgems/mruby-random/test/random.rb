@@ -135,3 +135,17 @@ assert('Array#sample(random)') do
   assert_equal(samples1, samples2)
   assert_not_equal(samples1, samples3)
 end
+
+assert("Kernel#rand()") do
+  100.times {
+    assert_include(0.0..1.0, rand)
+    assert_include(0...100, rand(0...100))
+    assert_include(0...100, rand(100))
+  }
+
+  assert_equal(rand(0...0), nil)
+  assert_equal(rand(0.0...0), nil)
+  assert_equal(rand(0...0.0), nil)
+  assert_equal(rand(0.0...0.0), nil)
+  assert_equal(rand(1..0), nil)
+end
