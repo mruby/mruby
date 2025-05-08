@@ -194,7 +194,7 @@ static mrb_value
 random_rand_impl(mrb_state *mrb, rand_state *t, mrb_value self)
 {
   mrb_value arg;
-  if (!mrb_get_args(mrb, "|o", &arg) || mrb_nil_p(arg)) {
+  if (mrb_get_args(mrb, "|o", &arg) == 0) {
     return random_rand(mrb, t, 0);
   }
 
