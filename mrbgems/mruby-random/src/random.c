@@ -165,6 +165,12 @@ rand_range_float(mrb_state *mrb, rand_state *t,
 }
 #endif
 
+static mrb_noreturn void
+range_error(mrb_state *mrb, mrb_value v)
+{
+  mrb_raisef(mrb, E_TYPE_ERROR, "no implicit conversion of %Y into Integer", v);
+}
+
 static mrb_value
 random_range(mrb_state *mrb, rand_state *t, mrb_value rv)
 {
@@ -177,7 +183,7 @@ random_range(mrb_state *mrb, rand_state *t, mrb_value rv)
 #define cast_to_float(v)                                                       \
   (mrb_float_p(v)     ? mrb_float(v)                                           \
    : mrb_integer_p(v) ? (mrb_float)mrb_integer(v)                              \
-                      : (mrb_raise(mrb, E_ARGUMENT_ERROR, ""), 0.0))
+                      : (range_error(mrb, v), 0.0))
 
   return rand_range_float(mrb, t, cast_to_float(RANGE_BEG(r)),
                           cast_to_float(RANGE_END(r)), RANGE_EXCL(r));
@@ -204,7 +210,7 @@ random_rand_impl(mrb_state *mrb, rand_state *t, mrb_value self)
     return random_range(mrb, t, arg);
   }
 
-  mrb_raise(mrb, E_ARGUMENT_ERROR, "");
+  range_error(mrb, arg);
 }
 
 #define ID_RANDOM MRB_SYM(mruby_Random)
