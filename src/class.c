@@ -753,8 +753,8 @@ check_visibility_break(const struct RProc *p, const struct RClass *c, mrb_callin
   return mrb_vm_ci_target_class(ci) != c || MRB_CI_VISIBILITY_BREAK_P(ci);
 }
 
-static mrb_callinfo*
-find_visibility_ci(mrb_state *mrb, const struct RClass *c, int n, struct REnv **e)
+static void
+find_visibility_scope(mrb_state *mrb, const struct RClass *c, int n, mrb_callinfo **cp, struct REnv **ep)
 {
   const struct mrb_context *ec = mrb->c;
   mrb_callinfo *ci = ec->ci - n;
@@ -764,16 +764,18 @@ find_visibility_ci(mrb_state *mrb, const struct RClass *c, int n, struct REnv **
 
   if (check_visibility_break(p, c, ci, NULL)) {
     mrb_assert(ci->u.env);
-    *e = (ci->u.env->tt == MRB_TT_ENV ? ci->u.env : NULL);
-    return ci;
+    *ep = (ci->u.env->tt == MRB_TT_ENV ? ci->u.env : NULL);
+    *cp = ci;
+    return;
   }
 
   for (;;) {
     struct REnv *env = p->e.env;
     p = p->upper;
     if (check_visibility_break(p, c, ci, env)) {
-      *e = env;
-      return NULL;
+      *ep = env;
+      *cp = NULL;
+      return;
     }
   }
 }
@@ -822,8 +824,9 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
     MRB_SET_VISIBILITY_FLAGS(flags, MT_PRIVATE);
   }
   else if ((flags & MT_VMASK) == MT_VDEFAULT) {
+    mrb_callinfo *ci;
     struct REnv *e;
-    mrb_callinfo *ci = find_visibility_ci(mrb, c, 0, &e);
+    find_visibility_scope(mrb, c, 0, &ci, &e);
     mrb_assert(ci || e);
     MRB_SET_VISIBILITY_FLAGS(flags, (e ? MRB_ENV_VISIBILITY(e) : MRB_CI_VISIBILITY(ci)));
   }
@@ -1763,8 +1766,9 @@ mrb_mod_visibility(mrb_state *mrb, mrb_value mod, int vis)
 
   mrb_get_args(mrb, "*!", &argv, &argc);
   if (argc == 0) {
+    mrb_callinfo *ci;
     struct REnv *e;
-    mrb_callinfo *ci = find_visibility_ci(mrb, NULL, 1, &e);
+    find_visibility_scope(mrb, NULL, 1, &ci, &e);
     if (e) {
       MRB_ENV_SET_VISIBILITY(e, vis);
     }
