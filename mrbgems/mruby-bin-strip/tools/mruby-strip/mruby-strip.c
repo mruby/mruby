@@ -126,7 +126,7 @@ main(int argc, char **argv)
     print_usage(argv[0]);
     return EXIT_FAILURE;
   }
-  mrb = mrb_open_core(mrb_basic_alloc_func, NULL);
+  mrb = mrb_open_core();
   if (mrb == NULL) {
     fputs("Invalid mrb_state, exiting mruby-strip\n", stderr);
     return EXIT_FAILURE;

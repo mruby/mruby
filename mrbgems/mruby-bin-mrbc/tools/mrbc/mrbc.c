@@ -286,7 +286,7 @@ dump_file(mrb_state *mrb, FILE *wfp, const char *outfile, const struct RProc *pr
 int
 main(int argc, char **argv)
 {
-  mrb_state *mrb = mrb_open_core(NULL, NULL);
+  mrb_state *mrb = mrb_open_core();
   int n, result;
   struct mrbc_args args;
   FILE *wfp;

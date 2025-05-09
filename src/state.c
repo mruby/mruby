@@ -36,13 +36,12 @@ init_gc_and_core(mrb_state *mrb, void *opaque)
 }
 
 MRB_API mrb_state*
-mrb_open_core(mrb_allocf f, void *ud)
+mrb_open_core(void)
 {
   static const mrb_state mrb_state_zero = { 0 };
   mrb_state *mrb;
 
-  if (f == NULL) f = mrb_basic_alloc_func;
-  mrb = (mrb_state*)(f)(NULL, sizeof(mrb_state));
+  mrb = (mrb_state*)mrb_basic_alloc_func(NULL, sizeof(mrb_state));
   if (mrb == NULL) return NULL;
 
   *mrb = mrb_state_zero;
@@ -56,14 +55,6 @@ mrb_open_core(mrb_allocf f, void *ud)
   return mrb;
 }
 
-MRB_API mrb_state*
-mrb_open(void)
-{
-  mrb_state *mrb = mrb_open_allocf(mrb_basic_alloc_func, NULL);
-
-  return mrb;
-}
-
 #ifndef MRB_NO_GEMS
 static void
 init_mrbgems(mrb_state *mrb, void *opaque)
@@ -73,9 +64,9 @@ init_mrbgems(mrb_state *mrb, void *opaque)
 #endif
 
 MRB_API mrb_state*
-mrb_open_allocf(mrb_allocf f, void *ud)
+mrb_open(void)
 {
-  mrb_state *mrb = mrb_open_core(f, ud);
+  mrb_state *mrb = mrb_open_core();
 
   if (mrb == NULL) {
     return NULL;
