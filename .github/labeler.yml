@@ -19,6 +19,7 @@ build:
               - lib/**/*
               - minirake
               - tasks/**/*
+              - .codespellrc
               - .dockerignore
               - .pre-commit-config.yaml
               - .prettierignore
