@@ -256,9 +256,6 @@ typedef void (*mrb_atexit_func)(struct mrb_state*);
 typedef struct mrb_state {
   struct mrb_jmpbuf *jmp;
 
-  mrb_allocf allocf;                      /* memory allocation function */
-  void *allocf_ud;                        /* auxiliary data of allocf */
-
   struct mrb_context *c;
   struct mrb_context *root_c;
   struct iv_tbl *globals;                 /* global variable table */

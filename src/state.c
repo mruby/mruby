@@ -46,8 +46,6 @@ mrb_open_core(mrb_allocf f, void *ud)
   if (mrb == NULL) return NULL;
 
   *mrb = mrb_state_zero;
-  mrb->allocf_ud = ud;
-  mrb->allocf = f;
   mrb->atexit_stack_len = 0;
 
   if (mrb_core_init_protect(mrb, init_gc_and_core, NULL)) {
