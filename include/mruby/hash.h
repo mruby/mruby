@@ -229,6 +229,50 @@ MRB_API void mrb_hash_merge(mrb_state *mrb, mrb_value hash1, mrb_value hash2);
 typedef int (mrb_hash_foreach_func)(mrb_state *mrb, mrb_value key, mrb_value val, void *data);
 MRB_API void mrb_hash_foreach(mrb_state *mrb, struct RHash *hash, mrb_hash_foreach_func *func, void *p);
 
+typedef struct mrb_hash_iterator {
+  struct hash_entry *entry;
+  uint32_t rem;
+} mrb_hash_iterator;
+
+/*
+ * Returns an iterator for the given hash.
+ *
+ * NOTE: the iterator is considered invalid if the hash object is modified
+ * after the iterator is created. Use with caution.
+ *
+ * @param h The target hash.
+ */
+MRB_API mrb_hash_iterator mrb_hash_iterator_new(struct RHash *h);
+
+/*
+ * Moves to the next element in the iterator.
+ * Returns false if no more elements.
+ *
+ * @param it Pointer to the hash iterator.
+ */
+MRB_API mrb_bool mrb_hash_iterator_move_next(mrb_hash_iterator *it);
+
+/*
+ * Returns the number of items left in the iterator.
+ *
+ * @param it Pointer to the hash iterator.
+ */
+#define mrb_hash_iterator_remaining(it) ((it)->rem)
+
+/*
+ * Returns the key for the current hash element of the iterator.
+ *
+ * @param it Pointer to the hash iterator.
+ */
+MRB_API mrb_value mrb_hash_iterator_key(mrb_hash_iterator *it);
+
+/*
+ * Returns the value for the current hash element of the iterator.
+ *
+ * @param it Pointer to the hash iterator.
+ */
+MRB_API mrb_value mrb_hash_iterator_value(mrb_hash_iterator *it);
+
 MRB_END_DECL
 
 #endif  /* MRUBY_HASH_H */
