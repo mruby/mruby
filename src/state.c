@@ -41,8 +41,8 @@ mrb_open_core(mrb_allocf f, void *ud)
   static const mrb_state mrb_state_zero = { 0 };
   mrb_state *mrb;
 
-  if (f == NULL) f = mrb_default_allocf;
-  mrb = (mrb_state*)(f)(NULL, NULL, sizeof(mrb_state), ud);
+  if (f == NULL) f = mrb_basic_alloc_func;
+  mrb = (mrb_state*)(f)(NULL, sizeof(mrb_state), ud);
   if (mrb == NULL) return NULL;
 
   *mrb = mrb_state_zero;
@@ -59,7 +59,7 @@ mrb_open_core(mrb_allocf f, void *ud)
 MRB_API mrb_state*
 mrb_open(void)
 {
-  mrb_state *mrb = mrb_open_allocf(mrb_default_allocf, NULL);
+  mrb_state *mrb = mrb_open_allocf(mrb_basic_alloc_func, NULL);
 
   return mrb;
 }

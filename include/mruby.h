@@ -164,9 +164,9 @@ struct mrb_state;
  * - If ptr is NULL it must allocate new space.
  * - If size is zero, ptr must be freed.
  *
- * See @see mrb_default_allocf for the default implementation.
+ * See mrb_basic_alloc_func in src/allocf.c for the default implementation.
  */
-typedef void* (*mrb_allocf) (struct mrb_state *mrb, void *ptr, size_t size, void *ud);
+typedef void* (*mrb_allocf) (void *ptr, size_t size, void *ud);
 
 #ifndef MRB_FIXED_STATE_ATEXIT_STACK_SIZE
 #define MRB_FIXED_STATE_ATEXIT_STACK_SIZE 5
@@ -1255,7 +1255,7 @@ MRB_API mrb_state* mrb_open_allocf(mrb_allocf f, void *ud);
  *
  * @param f
  *      Reference to the allocation function.
- *      Use mrb_default_allocf for the default
+ *      Use mrb_basic_alloc_func for the default
  * @param ud
  *      User data will be passed to custom allocator f.
  *      If user data isn't required just pass NULL.
@@ -1273,11 +1273,10 @@ MRB_API mrb_state* mrb_open_core(mrb_allocf f, void *ud);
 MRB_API void mrb_close(mrb_state *mrb);
 
 /**
- * The default allocation function.
+ * The memory allocation function. You can redefine this function for your own allocator.
  *
- * @see mrb_allocf
  */
-MRB_API void* mrb_default_allocf(mrb_state*, void*, size_t, void*);
+MRB_API void* mrb_basic_alloc_func(void*, size_t, void*);
 
 MRB_API mrb_value mrb_top_self(mrb_state *mrb);
 
