@@ -194,10 +194,10 @@ mrb_realloc_simple(mrb_state *mrb, void *p,  size_t len)
     mrb_full_gc(mrb);
   }
 #endif
-  p2 = mrb_basic_alloc_func(p, len, NULL);
+  p2 = mrb_basic_alloc_func(p, len);
   if (!p2 && len > 0 && mrb->gc.heaps && mrb->gc.state != MRB_GC_STATE_SWEEP) {
     mrb_full_gc(mrb);
-    p2 = mrb_basic_alloc_func(p, len, NULL);
+    p2 = mrb_basic_alloc_func(p, len);
   }
 
   return p2;
@@ -256,7 +256,7 @@ mrb_calloc(mrb_state *mrb, size_t nelem, size_t len)
 MRB_API void
 mrb_free(mrb_state *mrb, void *p)
 {
-  mrb_basic_alloc_func(p, 0, NULL);
+  mrb_basic_alloc_func(p, 0);
 }
 
 MRB_API void*

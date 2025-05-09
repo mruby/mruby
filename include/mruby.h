@@ -166,7 +166,7 @@ struct mrb_state;
  *
  * See mrb_basic_alloc_func in src/allocf.c for the default implementation.
  */
-typedef void* (*mrb_allocf) (void *ptr, size_t size, void *ud);
+typedef void* (*mrb_allocf) (void *ptr, size_t size);
 
 #ifndef MRB_FIXED_STATE_ATEXIT_STACK_SIZE
 #define MRB_FIXED_STATE_ATEXIT_STACK_SIZE 5
@@ -1276,7 +1276,7 @@ MRB_API void mrb_close(mrb_state *mrb);
  * The memory allocation function. You can redefine this function for your own allocator.
  *
  */
-MRB_API void* mrb_basic_alloc_func(void*, size_t, void*);
+MRB_API void* mrb_basic_alloc_func(void*, size_t);
 
 MRB_API mrb_value mrb_top_self(mrb_state *mrb);
 

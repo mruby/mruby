@@ -42,7 +42,7 @@ mrb_open_core(mrb_allocf f, void *ud)
   mrb_state *mrb;
 
   if (f == NULL) f = mrb_basic_alloc_func;
-  mrb = (mrb_state*)(f)(NULL, sizeof(mrb_state), ud);
+  mrb = (mrb_state*)(f)(NULL, sizeof(mrb_state));
   if (mrb == NULL) return NULL;
 
   *mrb = mrb_state_zero;
