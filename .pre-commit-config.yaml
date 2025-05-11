@@ -90,7 +90,6 @@ repos:
       - id: codespell
         name: run codespell
         description: check spelling with codespell
-        args: [--ignore-words=.github/linters/codespell.txt]
   - repo: https://github.com/jumanjihouse/pre-commit-hooks
     rev: 3.0.0
     hooks:
