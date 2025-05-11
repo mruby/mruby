@@ -31,8 +31,8 @@
 #pragma warning(disable : 4200)
 #endif
 
-struct mrb_mempool_page {
-  struct mrb_mempool_page *next;
+struct mempool_page {
+  struct mempool_page *next;
   size_t offset;
   size_t len;
   void *last;
@@ -43,16 +43,16 @@ struct mrb_mempool_page {
 #pragma warning(pop)
 #endif
 
-struct mrb_mempool {
-  mrb_state *mrb;
-  struct mrb_mempool_page *pages;
+struct mempool {
+  struct mempool_page *pages;
 };
 
-#undef TEST_POOL
-#ifdef TEST_POOL
+#ifndef TEST_POOL
 
-#define mrb_malloc_simple(m,s) malloc(s)
-#define mrb_free(m,p) free(p)
+/* use mruby's memory allocator */
+#define malloc(s) mrb_basic_alloc_func(NULL, (s))
+#define free(p) mrb_basic_alloc_func((p), 0)
+
 #endif
 
 #ifdef POOL_ALIGNMENT
@@ -61,41 +61,39 @@ struct mrb_mempool {
 #  define ALIGN_PADDING(x) (0)
 #endif
 
-MRB_API mrb_mempool*
-mrb_mempool_open(mrb_state *mrb)
+MRB_API mempool*
+mempool_open(void)
 {
-  mrb_mempool *pool = (mrb_mempool*)mrb_malloc_simple(mrb, sizeof(mrb_mempool));
+  mrb_mempool *pool = (mempool*)malloc(sizeof(struct mempool));
 
   if (pool) {
-    pool->mrb = mrb;
     pool->pages = NULL;
   }
   return pool;
 }
 
 MRB_API void
-mrb_mempool_close(mrb_mempool *pool)
+mempool_close(mempool *pool)
 {
-  struct mrb_mempool_page *page;
+  struct mempool_page *page;
 
   if (!pool) return;
   page = pool->pages;
   while (page) {
-    struct mrb_mempool_page *tmp = page;
+    struct mempool_page *tmp = page;
     page = page->next;
-    mrb_free(pool->mrb, tmp);
+    free(tmp);
   }
-  mrb_free(pool->mrb, pool);
+  free(pool);
 }
 
-static struct mrb_mempool_page*
-page_alloc(mrb_mempool *pool, size_t len)
+static struct mempool_page*
+page_alloc(mempool *pool, size_t len)
 {
-  struct mrb_mempool_page *page;
-
   if (len < POOL_PAGE_SIZE)
     len = POOL_PAGE_SIZE;
-  page = (struct mrb_mempool_page*)mrb_malloc_simple(pool->mrb, sizeof(struct mrb_mempool_page)+len);
+
+  struct mempool_page *page = (struct mempool_page*)malloc(sizeof(struct mempool_page)+len);
   if (page) {
     page->offset = 0;
     page->len = len;
@@ -105,9 +103,9 @@ page_alloc(mrb_mempool *pool, size_t len)
 }
 
 MRB_API void*
-mrb_mempool_alloc(mrb_mempool *pool, size_t len)
+mempool_alloc(mempool *pool, size_t len)
 {
-  struct mrb_mempool_page *page;
+  struct mempool_page *page;
 
   if (!pool) return NULL;
   len += ALIGN_PADDING(len);
@@ -130,13 +128,13 @@ mrb_mempool_alloc(mrb_mempool *pool, size_t len)
 }
 
 MRB_API void*
-mrb_mempool_realloc(mrb_mempool *pool, void *p, size_t oldlen, size_t newlen)
+mempool_realloc(mempool *pool, void *p, size_t oldlen, size_t newlen)
 {
   if (!pool) return NULL;
   if (newlen < oldlen) return p;
   oldlen += ALIGN_PADDING(oldlen);
   newlen += ALIGN_PADDING(newlen);
-  for (struct mrb_mempool_page *page = pool->pages; page; page = page->next) {
+  for (struct mempool_page *page = pool->pages; page; page = page->next) {
     if (page->last == p) {
       /* if p is a last allocation from the page */
       size_t beg = (char*)p - page->page;
@@ -153,7 +151,7 @@ mrb_mempool_realloc(mrb_mempool *pool, void *p, size_t oldlen, size_t newlen)
       return p;
     }
   }
-  void *np = mrb_mempool_alloc(pool, newlen);
+  void *np = mempool_alloc(pool, newlen);
   if (np == NULL) {
     return NULL;
   }
@@ -166,17 +164,17 @@ int
 main(void)
 {
   int i, len = 250;
-  mrb_mempool *pool;
+  mempool *pool;
   void *p;
 
-  pool = mrb_mempool_open(NULL);
-  p = mrb_mempool_alloc(pool, len);
+  pool = mempool_open();
+  p = mempool_alloc(pool, len);
   for (i=1; i<20; i++) {
     printf("%p (len=%d)\n", p, len);
-    p = mrb_mempool_realloc(pool, p, len, len*2);
+    p = mempool_realloc(pool, p, len, len*2);
     len *= 2;
   }
-  mrb_mempool_close(pool);
+  mempool_close(pool);
   return 0;
 }
 #endif
