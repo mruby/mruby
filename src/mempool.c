@@ -64,7 +64,7 @@ struct mempool {
 MRB_API mempool*
 mempool_open(void)
 {
-  mrb_mempool *pool = (mempool*)malloc(sizeof(struct mempool));
+  mempool *pool = (mempool*)malloc(sizeof(struct mempool));
 
   if (pool) {
     pool->pages = NULL;
