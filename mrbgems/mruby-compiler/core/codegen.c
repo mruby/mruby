@@ -48,7 +48,7 @@ struct loopinfo {
 
 typedef struct scope {
   mrb_state *mrb;
-  mrb_mempool *mpool;
+  mempool *mpool;
 
   struct scope *prev;
 
@@ -144,7 +144,7 @@ codegen_error(codegen_scope *s, const char *message)
       }
       mrb_free(s->mrb, s->lines);
     }
-    mrb_mempool_close(s->mpool);
+    mempool_close(s->mpool);
     s = tmp;
   }
   MRB_THROW(s->mrb->jmp);
@@ -153,7 +153,7 @@ codegen_error(codegen_scope *s, const char *message)
 static void*
 codegen_palloc(codegen_scope *s, size_t len)
 {
-  void *p = mrb_mempool_alloc(s->mpool, len);
+  void *p = mempool_alloc(s->mpool, len);
 
   if (!p) codegen_error(s, "pool memory allocation");
   return p;
@@ -3979,8 +3979,8 @@ static codegen_scope*
 scope_new(mrb_state *mrb, codegen_scope *prev, node *nlv)
 {
   static const codegen_scope codegen_scope_zero = { 0 };
-  mrb_mempool *pool = mrb_mempool_open(mrb);
-  codegen_scope *s = (codegen_scope*)mrb_mempool_alloc(pool, sizeof(codegen_scope));
+  mempool *pool = mempool_open();
+  codegen_scope *s = (codegen_scope*)mempool_alloc(pool, sizeof(codegen_scope));
 
   if (!s) {
     if (prev)
@@ -4086,7 +4086,7 @@ scope_finish(codegen_scope *s)
   irep->nregs = s->nregs;
 
   mrb_gc_arena_restore(mrb, s->ai);
-  mrb_mempool_close(s->mpool);
+  mempool_close(s->mpool);
 }
 
 static struct loopinfo*
@@ -4215,7 +4215,7 @@ generate_code(mrb_state *mrb, parser_state *p, int val)
     codegen(scope, p->tree, val);
     proc = mrb_proc_new(mrb, scope->irep);
     mrb_irep_decref(mrb, scope->irep);
-    mrb_mempool_close(scope->mpool);
+    mempool_close(scope->mpool);
     proc->c = NULL;
     if (mrb->c->cibase && mrb->c->cibase->proc == proc->upper) {
       proc->upper = NULL;
@@ -4225,7 +4225,7 @@ generate_code(mrb_state *mrb, parser_state *p, int val)
   }
   MRB_CATCH(mrb->jmp) {
     mrb_irep_decref(mrb, scope->irep);
-    mrb_mempool_close(scope->mpool);
+    mempool_close(scope->mpool);
     mrb->jmp = prev_jmp;
     return NULL;
   }
