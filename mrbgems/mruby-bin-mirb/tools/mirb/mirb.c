@@ -607,7 +607,9 @@ main(int argc, char **argv)
     }
     strcpy(last_code_line, line);
     strcat(last_code_line, "\n");
-    MIRB_ADD_HISTORY(line);
+    if (strlen(line) > 0) {
+      MIRB_ADD_HISTORY(line);
+    }
     MIRB_LINE_FREE(line);
 #endif
 
