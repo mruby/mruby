@@ -12,7 +12,7 @@ MRB_API void* mempool_alloc(struct mempool*, size_t);
 MRB_API void* mempool_realloc(struct mempool*, void*, size_t oldlen, size_t newlen);
 
 /* compatibility layer */
-#define mrb_mempool mempool
+typedef struct mempool mrb_mempool;
 #define mrb_mempool_open(m) mempool_open()
 #define mrb_mempool_close(m) mempool_close(m)
 #define mrb_mempool_alloc(m, size) mempool_alloc((m),(size))

@@ -123,7 +123,7 @@ struct mrb_parser_heredoc_info {
 /* parser structure */
 struct mrb_parser_state {
   mrb_state *mrb;
-  struct mrb_mempool *pool;
+  mrb_mempool *pool;
   mrb_ast_node *cells;
   const char *s, *send;
 #ifndef MRB_NO_STDIO
