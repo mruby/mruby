@@ -8,7 +8,7 @@
 #
 MRuby::CrossBuild.new("luckfox_pico") do |conf|
   # Clone the luckfox-pico repo above next to (same directory level) as mruby.
-  SDK_BASE = File.expand_path("../../../", File.expand_path(__FILE__)) + "/luckfox-pico"
+  SDK_BASE = File.realpath(File.expand_path("../../../", File.expand_path(__FILE__)) + "/luckfox-pico")
   TOOLCHAIN_BASE = "#{SDK_BASE}/tools/linux/toolchain/arm-rockchip830-linux-uclibcgnueabihf"
   SYSROOT = "#{TOOLCHAIN_BASE}/arm-rockchip830-linux-uclibcgnueabihf/sysroot"
 
@@ -23,9 +23,10 @@ MRuby::CrossBuild.new("luckfox_pico") do |conf|
     cc.include_paths << "#{TOOLCHAIN_BASE}/arm-rockchip830-linux-uclibcgnueabihf/include/c++/8.3.0/arm-rockchip830-linux-uclibcgnueabihf"
     cc.include_paths << "#{SYSROOT}/usr/include"
 
+    # Flags taken from the SDK's Makefile
     cc.flags << ["-march=armv7-a", "-mfpu=neon", "-mfloat-abi=hard"]
-    cc.flags << ["-O2", "-fPIC"]
     cc.flags << ["-D_LARGEFILE_SOURCE", "-D_LARGEFILE64_SOURCE", "-D_FILE_OFFSET_BITS=64", "-ffunction-sections", "-fdata-sections"]
+    cc.flags << ["-O2", "-fPIC"]
     cc.flags << ["-Wl,--copy-dt-needed-entries", "-Wl,-lc,-lgcc_s"]
   end
 
@@ -59,6 +60,7 @@ MRuby::CrossBuild.new("luckfox_pico") do |conf|
   conf.gem 'mrbgems/mruby-binding/'
   conf.gem 'mrbgems/mruby-catch/'
   conf.gem 'mrbgems/mruby-class-ext/'
+  # SDK doesn't include complex math for uClibc
   # conf.gem 'mrbgems/mruby-cmath/'
   conf.gem 'mrbgems/mruby-compar-ext/'
   conf.gem 'mrbgems/mruby-compiler/'
