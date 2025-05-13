@@ -115,6 +115,14 @@ repos:
         args: [--config=.github/linters/mlc_config.json, -q]
         types: [markdown]
         files: \.md$
+  - repo: https://github.com/yoheimuta/protolint
+    rev: v0.55.2
+    hooks:
+      - id: protolint
+        name: run protolint
+        description: lint Protocol Buffer Files
+        files: \.proto$
+        args: [-config_path=.github/linters/.protolint.yaml]
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.10.0.1
     hooks:

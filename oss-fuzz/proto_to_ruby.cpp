@@ -34,79 +34,79 @@ void protoConverter::visit(ArrType const& x)
 void protoConverter::visit(Array const& x)
 {
   switch (x.arr_func()) {
-    case Array::FLATTEN:
+    case Array::ARR_METHODS_FLATTEN:
       visit(x.arr_arg());
       m_output << ".flatten";
       break;
-    case Array::COMPACT:
+    case Array::ARR_METHODS_COMPACT:
       visit(x.arr_arg());
       m_output << ".compact";
       break;
-    case Array::FETCH:
+    case Array::ARR_METHODS_FETCH:
       visit(x.arr_arg());
       m_output << ".fetch";
       break;
-    case Array::FILL:
+    case Array::ARR_METHODS_FILL:
       visit(x.arr_arg());
       m_output << ".fill";
       break;
-    case Array::ROTATE:
+    case Array::ARR_METHODS_ROTATE:
       visit(x.arr_arg());
       m_output << ".rotate";
       break;
-    case Array::ROTATE_E:
+    case Array::ARR_METHODS_ROTATE_E:
       visit(x.arr_arg());
       m_output << ".rotate!";
       break;
-    case Array::DELETEIF:
+    case Array::ARR_METHODS_DELETEIF:
       visit(x.arr_arg());
       m_output << ".delete_if";
       break;
-    case Array::INSERT:
+    case Array::ARR_METHODS_INSERT:
       visit(x.arr_arg());
       m_output << ".insert";
       break;
-    case Array::BSEARCH:
+    case Array::ARR_METHODS_BSEARCH:
       visit(x.arr_arg());
       m_output << ".bsearch";
       break;
-    case Array::KEEPIF:
+    case Array::ARR_METHODS_KEEPIF:
       visit(x.arr_arg());
       m_output << ".keep_if";
       break;
-    case Array::SELECT:
+    case Array::ARR_METHODS_SELECT:
       visit(x.arr_arg());
       m_output << ".select";
       break;
-    case Array::VALUES_AT:
+    case Array::ARR_METHODS_VALUES_AT:
       visit(x.arr_arg());
       m_output << ".values_at";
       break;
-    case Array::BLOCK:
+    case Array::ARR_METHODS_BLOCK:
       visit(x.arr_arg());
       m_output << ".index";
       break;
-    case Array::DIG:
+    case Array::ARR_METHODS_DIG:
       visit(x.arr_arg());
       m_output << ".dig";
       break;
-    case Array::SLICE:
+    case Array::ARR_METHODS_SLICE:
       visit(x.arr_arg());
       m_output << ".slice";
       break;
-    case Array::PERM:
+    case Array::ARR_METHODS_PERM:
       visit(x.arr_arg());
       m_output << ".permutation";
       break;
-    case Array::COMB:
+    case Array::ARR_METHODS_COMB:
       visit(x.arr_arg());
       m_output << ".combination";
       break;
-    case Array::ASSOC:
+    case Array::ARR_METHODS_ASSOC:
       visit(x.arr_arg());
       m_output << ".assoc";
       break;
-    case Array::RASSOC:
+    case Array::ARR_METHODS_RASSOC:
       visit(x.arr_arg());
       m_output << ".rassoc";
       break;
@@ -130,21 +130,21 @@ void protoConverter::visit(BinaryOp const& x)
   m_output << "(";
   visit(x.left());
   switch (x.op()) {
-    case BinaryOp::ADD: m_output << " + "; break;
-    case BinaryOp::SUB: m_output << " - "; break;
-    case BinaryOp::MUL: m_output << " * "; break;
-    case BinaryOp::DIV: m_output << " / "; break;
-    case BinaryOp::MOD: m_output << " % "; break;
-    case BinaryOp::XOR: m_output << " ^ "; break;
-    case BinaryOp::AND: m_output << " and "; break;
-    case BinaryOp::OR: m_output << " or "; break;
-    case BinaryOp::EQ: m_output << " == "; break;
-    case BinaryOp::NE: m_output << " != "; break;
-    case BinaryOp::LE: m_output << " <= "; break;
-    case BinaryOp::GE: m_output << " >= "; break;
-    case BinaryOp::LT: m_output << " < "; break;
-    case BinaryOp::GT: m_output << " > "; break;
-    case BinaryOp::RS: m_output << " >> "; break;
+    case BinaryOp::OP_ADD_UNSPECIFIED: m_output << " + "; break;
+    case BinaryOp::OP_SUB: m_output << " - "; break;
+    case BinaryOp::OP_MUL: m_output << " * "; break;
+    case BinaryOp::OP_DIV: m_output << " / "; break;
+    case BinaryOp::OP_MOD: m_output << " % "; break;
+    case BinaryOp::OP_XOR: m_output << " ^ "; break;
+    case BinaryOp::OP_AND: m_output << " and "; break;
+    case BinaryOp::OP_OR: m_output << " or "; break;
+    case BinaryOp::OP_EQ: m_output << " == "; break;
+    case BinaryOp::OP_NE: m_output << " != "; break;
+    case BinaryOp::OP_LE: m_output << " <= "; break;
+    case BinaryOp::OP_GE: m_output << " >= "; break;
+    case BinaryOp::OP_LT: m_output << " < "; break;
+    case BinaryOp::OP_GT: m_output << " > "; break;
+    case BinaryOp::OP_RS: m_output << " >> "; break;
   }
   visit(x.right());
   m_output << ")";
@@ -197,10 +197,10 @@ void protoConverter::visit(Function const& x)
 
 void protoConverter::visit(HashType const& x)
 {
-  if (x.keyval_size() > 0) {
-    int i = x.keyval_size();
+  if (x.keyvals_size() > 0) {
+    int i = x.keyvals_size();
     m_output << "{";
-    for (auto &e : x.keyval()) {
+    for (auto &e : x.keyvals()) {
       i--;
       if (i == 0) {
         visit(e);
@@ -235,10 +235,10 @@ void protoConverter::visit(KVPair const& x)
 void protoConverter::visit(MathConst const& x)
 {
   switch (x.math_const()) {
-    case MathConst::PI:
+    case MathConst::MATH_CONST_LIT_PI_UNSPECIFIED:
       m_output << "Math::PI";
       break;
-    case MathConst::E:
+    case MathConst::MATH_CONST_LIT_E:
       m_output << "Math::E";
       break;
   }
@@ -247,52 +247,52 @@ void protoConverter::visit(MathConst const& x)
 void protoConverter::visit(MathOps const& x)
 {
   switch (x.math_op()) {
-    case MathOps::CBRT:
+    case MathOps::MOPS_CBRT:
       m_output << "Math.cbrt(";
       visit(x.math_arg());
       m_output << ")";
       break;
-    case MathOps::COS:
+    case MathOps::MOPS_COS:
       m_output << "Math.cos(";
       visit(x.math_arg());
       m_output << ")";
       break;
-    case MathOps::ERF:
+    case MathOps::MOPS_ERF:
       m_output << "Math.erf(";
       visit(x.math_arg());
       m_output << ")";
       break;
-    case MathOps::ERFC:
+    case MathOps::MOPS_ERFC:
       m_output << "Math.erfc(";
       visit(x.math_arg());
       m_output << ")";
       break;
-    case MathOps::LOG:
+    case MathOps::MOPS_LOG:
       m_output << "Math.log(";
       visit(x.math_arg());
       m_output << ")";
       break;
-    case MathOps::LOG10:
+    case MathOps::MOPS_LOG10:
       m_output << "Math.log10(";
       visit(x.math_arg());
       m_output << ")";
       break;
-    case MathOps::LOG2:
+    case MathOps::MOPS_LOG2:
       m_output << "Math.log2(";
       visit(x.math_arg());
       m_output << ")";
       break;
-    case MathOps::SIN:
+    case MathOps::MOPS_SIN:
       m_output << "Math.sin(";
       visit(x.math_arg());
       m_output << ")";
       break;
-    case MathOps::SQRT:
+    case MathOps::MOPS_SQRT:
       m_output << "Math.sqrt(";
       visit(x.math_arg());
       m_output << ")";
       break;
-    case MathOps::TAN:
+    case MathOps::MOPS_TAN:
       m_output << "Math.tan(";
       visit(x.math_arg());
       m_output << ")";
@@ -318,7 +318,7 @@ void protoConverter::visit(MathType const& x)
 void protoConverter::visit(ObjectSpace const& x)
 {
   switch (x.os_func()) {
-    case ObjectSpace::COUNT:
+    case ObjectSpace::OS_METHODS_COUNT:
       m_output << "ObjectSpace.count_objects";
       break;
   }
@@ -386,34 +386,34 @@ void protoConverter::visit(StringExtNoArg const& x)
 {
   m_output << "\"" << removeSpecial(x.str_arg()) << "\"";
   switch (x.str_op()) {
-    case StringExtNoArg::DUMP:
+    case StringExtNoArg::STR_EXT_OP_DUMP_UNSPECIFIED:
       m_output << ".dump";
       break;
-    case StringExtNoArg::STRIP:
+    case StringExtNoArg::STR_EXT_OP_STRIP:
       m_output << ".strip";
       break;
-    case StringExtNoArg::LSTRIP:
+    case StringExtNoArg::STR_EXT_OP_LSTRIP:
       m_output << ".lstrip";
       break;
-    case StringExtNoArg::RSTRIP:
+    case StringExtNoArg::STR_EXT_OP_RSTRIP:
       m_output << ".rstrip";
       break;
-    case StringExtNoArg::STRIPE:
+    case StringExtNoArg::STR_EXT_OP_STRIPE:
       m_output << ".strip!";
       break;
-    case StringExtNoArg::LSTRIPE:
+    case StringExtNoArg::STR_EXT_OP_LSTRIPE:
       m_output << ".lstrip!";
       break;
-    case StringExtNoArg::RSTRIPE:
+    case StringExtNoArg::STR_EXT_OP_RSTRIPE:
       m_output << ".rstrip!";
       break;
-    case StringExtNoArg::SWAPCASE:
+    case StringExtNoArg::STR_EXT_OP_SWAPCASE:
       m_output << ".swapcase";
       break;
-    case StringExtNoArg::SWAPCASEE:
+    case StringExtNoArg::STR_EXT_OP_SWAPCASEE:
       m_output << ".swapcase!";
       break;
-    case StringExtNoArg::SQUEEZE:
+    case StringExtNoArg::STR_EXT_OP_SQUEEZE:
       m_output << ".squeeze";
       break;
   }
@@ -433,10 +433,10 @@ void protoConverter::visit(Ternary const& x)
 void protoConverter::visit(Time const& x)
 {
   switch (x.t_func()) {
-    case Time::AT:
+    case Time::TMETHODS_AT:
       m_output << "Time.at";
       break;
-    case Time::GM:
+    case Time::TMETHODS_GM:
       m_output << "Time.gm";
       break;
   }
