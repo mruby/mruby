@@ -126,9 +126,9 @@ exc_to_s(mrb_state *mrb, mrb_value exc)
  * call-seq:
  *   exception.inspect   -> string
  *
- * Returns this exception's file name, line number,
+ * Returns this exception's filename, line number,
  * message and class name.
- * If file name or line number is not set,
+ * If filename or line number is not set,
  * returns message and class name.
  */
 

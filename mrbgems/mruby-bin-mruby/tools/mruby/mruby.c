@@ -342,7 +342,7 @@ main(int argc, char **argv)
       mrb_ccontext_cleanup_local_variables(mrb, c);
     }
 
-    /* set program file name */
+    /* set program filename */
     mrb_ccontext_filename(mrb, c, cmdline);
 
     /* Load program */

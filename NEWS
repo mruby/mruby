@@ -35,7 +35,7 @@ NEWS
 # Build & Configuration
 
 - New Build Target: `test:run:serial`, `test:run:serial:lib`, `test:run:serial:bin` ([#6423](https://github.com/mruby/mruby/pull/6423))
-- New Platform: Playstation Portable ([#6022](https://github.com/mruby/mruby/pull/6465))
+- New Platform: PlayStation Portable ([#6022](https://github.com/mruby/mruby/pull/6465))
 - New Platform: emscripten ([#6487](https://github.com/mruby/mruby/pull/6487))
 - New Config: no-float (with MRB_NO_FLOAT) ([32200f1](https://github.com/mruby/mruby/commit/32200f1))
 
@@ -240,7 +240,7 @@ NEWS
 - [#6461](https://github.com/mruby/mruby/pull/6461) To create a release package file in draft
 - [#6462](https://github.com/mruby/mruby/pull/6462) Properly cast the return value of `memchr()`
 - [#6463](https://github.com/mruby/mruby/pull/6463) Add `level` argument to `File.dirname`
-- [#6465](https://github.com/mruby/mruby/pull/6465) Add initial playstation portable crossbuild support
+- [#6465](https://github.com/mruby/mruby/pull/6465) Add initial PlayStation portable crossbuild support
 - [#6468](https://github.com/mruby/mruby/pull/6468) Fixed missing changes to `IB_FIND_BY_KEY()` parameter names
 - [#6469](https://github.com/mruby/mruby/pull/6469) Add more `const` qualifier for `RProc`
 - [#6472](https://github.com/mruby/mruby/pull/6472) Moved tests for `Integer#quo`

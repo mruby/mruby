@@ -12,7 +12,7 @@ things in mind before submitting your pull request:
 - Create a branch which is dedicated to your change
 - Test your changes before creating a pull request (`rake test`)
 - If possible write a test case which confirms your change
-- Don't mix several features or bug-fixes in one pull request
+- Don't mix several features or bugfixes in one pull request
 - Create a meaningful commit message
 - Explain your change (i.e. with a link to the issue you are fixing)
 - Use mrbgem to provide non ISO features (classes, modules and methods) unless

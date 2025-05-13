@@ -176,7 +176,7 @@ If you need an include path of header file use `search_header_path`:
 fail 'iconv.h not found' unless conf.cc.search_header_path 'iconv.h'
 ```
 
-If you need a full file name of header file use `search_header`:
+If you need a full filename of header file use `search_header`:
 
 ```ruby
 # Searches `iconv.h`.
