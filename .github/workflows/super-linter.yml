@@ -24,7 +24,8 @@ jobs:
         env:
           DEFAULT_BRANCH: master
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VALIDATE_ALL_CODEBASE: true
+          VALIDATE_ALL_CODEBASE: false
           VALIDATE_CLANG_FORMAT: false
           VALIDATE_CPP: false
+          VALIDATE_DOCKERFILE_HADOLINT: true
           VALIDATE_RUBY: false
