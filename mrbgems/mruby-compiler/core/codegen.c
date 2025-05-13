@@ -20,6 +20,10 @@
 #include <string.h>
 #include <mruby/internal.h>
 
+#define mrbc_malloc(s) mrb_basic_alloc_func(NULL,(s))
+#define mrbc_realloc(p,s) mrb_basic_alloc_func((p),(s))
+#define mrbc_free(p) mrb_basic_alloc_func((p),0)
+
 #ifndef MRB_CODEGEN_LEVEL_MAX
 #define MRB_CODEGEN_LEVEL_MAX 256
 #endif
@@ -159,15 +163,6 @@ codegen_palloc(codegen_scope *s, size_t len)
   return p;
 }
 
-static void*
-codegen_realloc(codegen_scope *s, void *p, size_t len)
-{
-  p = mrb_realloc_simple(s->mrb, p, len);
-
-  if (!p && len > 0) codegen_error(s, "mrb_realloc");
-  return p;
-}
-
 static void
 check_no_ext_ops(codegen_scope *s, uint16_t a, uint16_t b)
 {
@@ -195,9 +190,9 @@ emit_B(codegen_scope *s, uint32_t pc, uint8_t i)
     else {
       s->icapa *= 2;
     }
-    s->iseq = (mrb_code*)codegen_realloc(s, s->iseq, sizeof(mrb_code)*s->icapa);
+    s->iseq = (mrb_code*)mrbc_realloc(s->iseq, sizeof(mrb_code)*s->icapa);
     if (s->lines) {
-      s->lines = (uint16_t*)codegen_realloc(s, s->lines, sizeof(uint16_t)*s->icapa);
+      s->lines = (uint16_t*)mrbc_realloc(s->lines, sizeof(uint16_t)*s->icapa);
     }
   }
   if (s->lines) {
@@ -805,11 +800,11 @@ realloc_pool_str(codegen_scope *s, mrb_irep_pool *p, mrb_int len)
 {
   char *str;
   if ((p->tt & 3) == IREP_TT_SSTR) {
-    str = (char*)codegen_realloc(s, NULL, len+1);
+    str = (char*)mrbc_malloc(len+1);
   }
   else {
     str = (char*)p->u.str;
-    str = (char*)codegen_realloc(s, str, len+1);
+    str = (char*)mrbc_realloc(str, len+1);
   }
   p->tt = (uint32_t)(len<<2 | IREP_TT_STR);
   str[len] = '\0';
@@ -820,7 +815,7 @@ static void
 free_pool_str(codegen_scope *s, mrb_irep_pool *p)
 {
   if ((p->tt & 3) != IREP_TT_SSTR) {
-    codegen_realloc(s, (char*)p->u.str, 0);
+    mrbc_free((char*)p->u.str);
   }
   p->u.str = NULL;
   s->irep->plen--;
@@ -1095,7 +1090,7 @@ lit_pool_extend(codegen_scope *s)
 {
   if (s->irep->plen == s->pcapa) {
     s->pcapa *= 2;
-    s->pool = (mrb_irep_pool*)codegen_realloc(s, s->pool, sizeof(mrb_irep_pool)*s->pcapa);
+    s->pool = (mrb_irep_pool*)mrbc_realloc(s->pool, sizeof(mrb_irep_pool)*s->pcapa);
   }
 
   return &s->pool[s->irep->plen++];
@@ -1125,7 +1120,7 @@ new_litbint(codegen_scope *s, const char *p, int base)
 
   char *buf;
   pv->tt = IREP_TT_BIGINT;
-  buf = (char*)codegen_realloc(s, NULL, plen+3);
+  buf = (char*)mrbc_malloc(plen+3);
   buf[0] = (char)plen;
   buf[1] = base;
   memcpy(buf+2, p, plen);
@@ -1172,7 +1167,7 @@ new_lit_str2(codegen_scope *s, const char *str1, mrb_int len1, const char *str2,
   else {
     char *p;
     pool->tt = (uint32_t)(len<<2) | IREP_TT_STR;
-    p = (char*)codegen_realloc(s, NULL, len+1);
+    p = (char*)mrbc_malloc(len+1);
     memcpy(p, str1, len1);
     if (str2) memcpy(p+len1, str2, len2);
     p[len] = '\0';
@@ -1266,7 +1261,7 @@ new_sym(codegen_scope *s, mrb_sym sym)
     if (s->scapa > 0xffff) {
       codegen_error(s, "too many symbols");
     }
-    s->syms = (mrb_sym*)codegen_realloc(s, s->syms, sizeof(mrb_sym)*s->scapa);
+    s->syms = (mrb_sym*)mrbc_realloc(s->syms, sizeof(mrb_sym)*s->scapa);
   }
   s->syms[s->irep->slen] = sym;
   return s->irep->slen++;
@@ -3968,7 +3963,7 @@ scope_add_irep(codegen_scope *s)
     s->irep = irep = mrb_add_irep(s->mrb);
     if (prev->irep->rlen == prev->rcapa) {
       prev->rcapa *= 2;
-      prev->reps = (mrb_irep**)codegen_realloc(s, prev->reps, sizeof(mrb_irep*)*prev->rcapa);
+      prev->reps = (mrb_irep**)mrbc_realloc(prev->reps, sizeof(mrb_irep*)*prev->rcapa);
     }
     prev->reps[prev->irep->rlen] = irep;
     prev->irep->rlen++;
@@ -3998,16 +3993,16 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *nlv)
   scope_add_irep(s);
 
   s->rcapa = 8;
-  s->reps = (mrb_irep**)mrb_malloc(mrb, sizeof(mrb_irep*)*s->rcapa);
+  s->reps = (mrb_irep**)mrbc_malloc(sizeof(mrb_irep*)*s->rcapa);
 
   s->icapa = 1024;
-  s->iseq = (mrb_code*)mrb_malloc(mrb, sizeof(mrb_code)*s->icapa);
+  s->iseq = (mrb_code*)mrbc_malloc(sizeof(mrb_code)*s->icapa);
 
   s->pcapa = 32;
-  s->pool = (mrb_irep_pool*)mrb_malloc(mrb, sizeof(mrb_irep_pool)*s->pcapa);
+  s->pool = (mrb_irep_pool*)mrbc_malloc(sizeof(mrb_irep_pool)*s->pcapa);
 
   s->scapa = 256;
-  s->syms = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym)*s->scapa);
+  s->syms = (mrb_sym*)mrbc_malloc(sizeof(mrb_sym)*s->scapa);
 
   s->lv = nlv;
   s->sp += node_len(nlv)+1;        /* add self */
@@ -4017,7 +4012,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *nlv)
     node *n = nlv;
     size_t i = 0;
 
-    s->irep->lv = lv = (mrb_sym*)mrb_malloc(mrb, sizeof(mrb_sym)*(s->nlocals-1));
+    s->irep->lv = lv = (mrb_sym*)mrbc_malloc(sizeof(mrb_sym)*(s->nlocals-1));
     for (i=0, n=nlv; n; i++,n=n->cdr) {
       lv[i] = lv_name(n);
     }
@@ -4027,7 +4022,7 @@ scope_new(mrb_state *mrb, codegen_scope *prev, node *nlv)
 
   s->filename_sym = prev->filename_sym;
   if (s->filename_sym) {
-    s->lines = (uint16_t*)mrb_malloc(mrb, sizeof(short)*s->icapa);
+    s->lines = (uint16_t*)mrbc_malloc(sizeof(short)*s->icapa);
   }
   s->lineno = prev->lineno;
 
@@ -4059,7 +4054,7 @@ scope_finish(codegen_scope *s)
   irep->flags = 0;
   if (s->iseq) {
     size_t catchsize = sizeof(struct mrb_irep_catch_handler) * irep->clen;
-    irep->iseq = (const mrb_code*)codegen_realloc(s, s->iseq, sizeof(mrb_code)*s->pc + catchsize);
+    irep->iseq = (const mrb_code*)mrbc_realloc(s->iseq, sizeof(mrb_code)*s->pc + catchsize);
     irep->ilen = s->pc;
     if (irep->clen > 0) {
       memcpy((void*)(irep->iseq + irep->ilen), s->catch_table, catchsize);
@@ -4068,11 +4063,11 @@ scope_finish(codegen_scope *s)
   else {
     irep->clen = 0;
   }
-  mrb_free(s->mrb, s->catch_table);
+  mrbc_free(s->catch_table);
   s->catch_table = NULL;
-  irep->pool = (const mrb_irep_pool*)codegen_realloc(s, s->pool, sizeof(mrb_irep_pool)*irep->plen);
-  irep->syms = (const mrb_sym*)codegen_realloc(s, s->syms, sizeof(mrb_sym)*irep->slen);
-  irep->reps = (const mrb_irep**)codegen_realloc(s, s->reps, sizeof(mrb_irep*)*irep->rlen);
+  irep->pool = (const mrb_irep_pool*)mrbc_realloc(s->pool, sizeof(mrb_irep_pool)*irep->plen);
+  irep->syms = (const mrb_sym*)mrbc_realloc(s->syms, sizeof(mrb_sym)*irep->slen);
+  irep->reps = (const mrb_irep**)mrbc_realloc(s->reps, sizeof(mrb_irep*)*irep->rlen);
   if (s->filename_sym) {
     mrb_sym fname = mrb_parser_get_filename(s->parser, s->filename_index);
     const char *filename = mrb_sym_name_len(s->mrb, fname, NULL);
@@ -4177,7 +4172,7 @@ static int
 catch_handler_new(codegen_scope *s)
 {
   size_t newsize = sizeof(struct mrb_irep_catch_handler) * (s->irep->clen + 1);
-  s->catch_table = (struct mrb_irep_catch_handler*)codegen_realloc(s, (void*)s->catch_table, newsize);
+  s->catch_table = (struct mrb_irep_catch_handler*)mrbc_realloc((void*)s->catch_table, newsize);
   return s->irep->clen++;
 }
 

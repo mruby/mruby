@@ -27,6 +27,10 @@
 
 #define YYLEX_PARAM p
 
+#define mrbc_malloc(s) mrb_basic_alloc_func(NULL,(s))
+#define mrbc_realloc(p,s) mrb_basic_alloc_func((p),(s))
+#define mrbc_free(p) mrb_basic_alloc_func((p),0)
+
 typedef mrb_ast_node node;
 typedef struct mrb_parser_state parser_state;
 typedef struct mrb_parser_heredoc_info parser_heredoc_info;
@@ -4489,7 +4493,7 @@ static int
 newtok(parser_state *p)
 {
   if (p->tokbuf != p->buf) {
-    mrb_free(p->mrb, p->tokbuf);
+    mrbc_free(p->tokbuf);
     p->tokbuf = p->buf;
     p->tsiz = MRB_PARSER_TOKBUF_SIZE;
   }
@@ -4542,11 +4546,11 @@ tokadd(parser_state *p, int32_t c)
     }
     p->tsiz *= 2;
     if (p->tokbuf == p->buf) {
-      p->tokbuf = (char*)mrb_malloc(p->mrb, p->tsiz);
+      p->tokbuf = (char*)mrbc_malloc(p->tsiz);
       memcpy(p->tokbuf, p->buf, MRB_PARSER_TOKBUF_SIZE);
     }
     else {
-      p->tokbuf = (char*)mrb_realloc(p->mrb, p->tokbuf, p->tsiz);
+      p->tokbuf = (char*)mrbc_realloc(p->tokbuf, p->tsiz);
     }
   }
   for (i = 0; i < len; i++) {
@@ -6633,7 +6637,7 @@ parser_update_cxt(parser_state *p, mrb_ccontext *cxt)
     i++;
     n = n->cdr;
   }
-  cxt->syms = (mrb_sym*)mrb_realloc(p->mrb, cxt->syms, i*sizeof(mrb_sym));
+  cxt->syms = (mrb_sym*)mrbc_realloc(cxt->syms, i*sizeof(mrb_sym));
   cxt->slen = i;
   for (i=0, n=n0; n; i++,n=n->cdr) {
     cxt->syms[i] = sym(n->car);
@@ -6726,7 +6730,7 @@ mrb_parser_new(mrb_state *mrb)
 MRB_API void
 mrb_parser_free(parser_state *p) {
   if (p->tokbuf != p->buf) {
-    mrb_free(p->mrb, p->tokbuf);
+    mrbc_free(p->tokbuf);
   }
   mempool_close(p->pool);
 }
@@ -6740,9 +6744,9 @@ mrb_ccontext_new(mrb_state *mrb)
 MRB_API void
 mrb_ccontext_free(mrb_state *mrb, mrb_ccontext *cxt)
 {
-  mrb_free(mrb, cxt->filename);
-  mrb_free(mrb, cxt->syms);
-  mrb_free(mrb, cxt);
+  mrbc_free(cxt->filename);
+  mrbc_free(cxt->syms);
+  mrbc_free(cxt);
 }
 
 MRB_API const char*
@@ -6750,12 +6754,12 @@ mrb_ccontext_filename(mrb_state *mrb, mrb_ccontext *c, const char *s)
 {
   if (s) {
     size_t len = strlen(s);
-    char *p = (char*)mrb_malloc_simple(mrb, len + 1);
+    char *p = (char*)mrbc_malloc(len + 1);
 
     if (p == NULL) return NULL;
     memcpy(p, s, len + 1);
     if (c->filename) {
-      mrb_free(mrb, c->filename);
+      mrbc_free(c->filename);
     }
     c->filename = p;
   }
