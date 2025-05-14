@@ -10,6 +10,12 @@ MRuby::GemBox.new do |conf|
   # Use eval()
   conf.gem :core => "mruby-eval"
 
+  # Use binding()
+  conf.gem :core => "mruby-binding"
+
+  # Use Proc#binding()
+  conf.gem :core => "mruby-proc-binding"
+
   # Use mruby-compiler to build other mrbgems
   conf.gem :core => "mruby-compiler"
 end
