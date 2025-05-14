@@ -57,4 +57,7 @@ MRuby::GemBox.new do |conf|
 
   # Use class/module extension
   conf.gem :core => "mruby-class-ext"
+
+  # Use catch/throw methods
+  conf.gem :core => "mruby-catch"
 end
