@@ -197,7 +197,7 @@ For better and faster hash values.
 
 ---
 
-# Major bug fixes
+# Major bugfixes
 
 - Fix infinite recursive call bugs in integer division [98799aa6](https://github.com/mruby/mruby/commit/98799aa6)
 - Fix to raise TypeError with super inside instance_eval / class_eval [#5476](https://github.com/mruby/mruby/pull/5476)
