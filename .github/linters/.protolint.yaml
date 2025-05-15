@@ -1,0 +1,21 @@
+---
+# Lint directives.
+lint:
+  # Linter rules.
+  # Run `protolint list` to see all available rules.
+  rules:
+    # Set the default to all linters.
+    all_default: true
+    # The specific linters to remove.
+    remove:
+      - ENUM_FIELDS_HAVE_COMMENT
+      - ENUMS_HAVE_COMMENT
+      - FIELDS_HAVE_COMMENT
+      - FILE_HAS_COMMENT
+      - MESSAGES_HAVE_COMMENT
+  # Linter rules option.
+  rules_option:
+    # SYNTAX_CONSISTENT rule option.
+    syntax_consistent:
+      # Default is proto3.
+      version: proto2
