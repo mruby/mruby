@@ -245,7 +245,7 @@ load_file(mrb_state *mrb, struct mrbc_args *args)
   args->idx++;
   if (args->idx < args->argc) {
     need_close = FALSE;
-    mrb_ccontext_partial_hook(mrb, c, partial_hook, (void*)args);
+    mrb_ccontext_partial_hook(c, partial_hook, (void*)args);
   }
 
   result = mrb_load_file_cxt(mrb, infile, c);
