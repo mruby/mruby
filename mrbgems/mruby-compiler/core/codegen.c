@@ -128,25 +128,25 @@ codegen_error(codegen_scope *s, const char *message)
   while (s->prev) {
     codegen_scope *tmp = s->prev;
     if (s->irep) {
-      mrb_free(s->mrb, s->iseq);
+      mrbc_free(s->iseq);
       for (int i=0; i<s->irep->plen; i++) {
         mrb_irep_pool *p = &s->pool[i];
         if ((p->tt & 0x3) == IREP_TT_STR || p->tt == IREP_TT_BIGINT) {
-          mrb_free(s->mrb, (void*)p->u.str);
+          mrbc_free((void*)p->u.str);
         }
       }
-      mrb_free(s->mrb, s->pool);
-      mrb_free(s->mrb, s->syms);
-      mrb_free(s->mrb, s->catch_table);
+      mrbc_free(s->pool);
+      mrbc_free(s->syms);
+      mrbc_free(s->catch_table);
       if (s->reps) {
         /* copied from mrb_irep_free() in state.c */
         for (int i=0; i<s->irep->rlen; i++) {
           if (s->reps[i])
             mrb_irep_decref(s->mrb, (mrb_irep*)s->reps[i]);
         }
-        mrb_free(s->mrb, s->reps);
+        mrbc_free(s->reps);
       }
-      mrb_free(s->mrb, s->lines);
+      mrbc_free(s->lines);
     }
     mempool_close(s->mpool);
     s = tmp;
@@ -4075,7 +4075,7 @@ scope_finish(codegen_scope *s)
     mrb_debug_info_append_file(s->mrb, s->irep->debug_info,
                                filename, s->lines, s->debug_start_pos, s->pc);
   }
-  mrb_free(s->mrb, s->lines);
+  mrbc_free(s->lines);
 
   irep->nlocals = s->nlocals;
   irep->nregs = s->nregs;
