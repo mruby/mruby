@@ -6738,7 +6738,10 @@ mrb_parser_free(parser_state *p) {
 MRB_API mrb_ccontext*
 mrb_ccontext_new(mrb_state *mrb)
 {
-  return (mrb_ccontext*)mrb_calloc(mrb, 1, sizeof(mrb_ccontext));
+  static const mrb_ccontext cc_zero = { 0 };
+  mrb_ccontext *cc = (mrb_ccontext*)mrbc_malloc(sizeof(mrb_ccontext));
+  *cc = cc_zero;
+  return cc;
 }
 
 MRB_API void
