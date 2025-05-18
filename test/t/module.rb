@@ -839,6 +839,16 @@ assert('method visibility with meta programming') do
     f.call
     c.new.bad!
   end
+
+  assert_raise NoMethodError do
+    c = Class.new {
+      -> { private }.call
+      def bad!
+        "BAD!"
+      end
+    }
+    c.new.bad!
+  end
 end
 
 assert('Module#module_function') do
