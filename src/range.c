@@ -10,6 +10,7 @@
 #include <mruby/string.h>
 #include <mruby/array.h>
 #include <mruby/numeric.h>
+#include <mruby/internal.h>
 #include <mruby/presym.h>
 
 #define RANGE_INITIALIZED_FLAG 1
@@ -348,7 +349,6 @@ range_num_to_a(mrb_state *mrb, mrb_value range)
   struct RRange *r = mrb_range_ptr(mrb, range);
   mrb_value beg = RANGE_BEG(r);
   mrb_value end = RANGE_END(r);
-  mrb_value ary;
 
   mrb->c->ci->mid = 0;
   if (mrb_nil_p(end)) {
@@ -372,7 +372,7 @@ range_num_to_a(mrb_state *mrb, mrb_value range)
         if (len == MRB_INT_MAX) goto too_long;
         len++;
       }
-      ary = mrb_ary_new_capa(mrb, len);
+      mrb_value ary = mrb_ary_new_capa(mrb, len);
       mrb_value *ptr = RARRAY_PTR(ary);
       for (mrb_int i=0; i<len; i++) {
         ptr[i] = mrb_int_value(mrb, a+i);
@@ -389,7 +389,7 @@ range_num_to_a(mrb_state *mrb, mrb_value range)
         return mrb_ary_new_capa(mrb, 0);
       }
       mrb_int alen = (mrb_int)(b - a) + RANGE_EXCL(r);
-      ary = mrb_ary_new_capa(mrb, alen);
+      mrb_value ary = mrb_ary_new_capa(mrb, alen);
       mrb_value *ptr = RARRAY_PTR(ary);
       for (mrb_int i=0; i<alen; i++) {
         ptr[i] = mrb_int_value(mrb, a+i);
@@ -399,6 +399,29 @@ range_num_to_a(mrb_state *mrb, mrb_value range)
     }
 #endif
   }
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(beg)) {
+    end = mrb_as_bint(mrb, end);
+    switch (mrb_bint_cmp(mrb, end, beg)) {
+    case 0: case -1:
+      return mrb_ary_new_capa(mrb, 0);
+    case -2:
+      return mrb_nil_value();
+    default:
+      break;
+    }
+    mrb_value lenv = mrb_bint_sub(mrb, end, beg);
+    if (!mrb_fixnum_p(lenv)) goto too_long;
+    mrb_int len = mrb_integer(lenv);
+    if (!RANGE_EXCL(r)) len++;
+    mrb_value ary = mrb_ary_new_capa(mrb, len);
+    for (mrb_int i=0; i<len; i++) {
+      RARRAY_PTR(ary)[i] = mrb_bint_add(mrb, beg, mrb_int_value(mrb, i));
+      ARY_SET_LEN(RARRAY(ary), i+1);
+    }
+    return ary;
+  }
+#endif
   return mrb_nil_value();
 }
 
