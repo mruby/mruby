@@ -463,7 +463,7 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
       fprintf(out, "EQ\t\tR%d\t(R%d)\n", a, a+1);
       break;
     CASE(OP_ARRAY, BB):
-      fprintf(out, "ARRAY\t\tR%d\tR%d\t%d", a, a, b);
+      fprintf(out, "ARRAY\t\tR%d\t%d", a, b);
       print_lv_a(mrb, irep, a, out);
       break;
     CASE(OP_ARRAY2, BBB):
