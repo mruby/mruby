@@ -388,20 +388,12 @@ range_num_to_a(mrb_state *mrb, mrb_value range)
       if (a > b) {
         return mrb_ary_new_capa(mrb, 0);
       }
-      mrb_int alen = (mrb_int)(b - a) + 1;
+      mrb_int alen = (mrb_int)(b - a) + RANGE_EXCL(r);
       ary = mrb_ary_new_capa(mrb, alen);
       mrb_value *ptr = RARRAY_PTR(ary);
-      if (RANGE_EXCL(r)) {
-        for (mrb_int i=0; a<b; a++) {
-          ptr[i++] = mrb_int_value(mrb, a);
-          ARY_SET_LEN(RARRAY(ary), i);
-        }
-      }
-      else {
-        for (mrb_int i=0; a<=b; a++) {
-          ptr[i++] = mrb_int_value(mrb, a);
-          ARY_SET_LEN(RARRAY(ary), i);
-        }
+      for (mrb_int i=0; i<alen; i++) {
+        ptr[i] = mrb_int_value(mrb, a+i);
+        ARY_SET_LEN(RARRAY(ary), i);
       }
       return ary;
     }
