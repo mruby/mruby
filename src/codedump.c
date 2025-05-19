@@ -505,7 +505,10 @@ codedump(mrb_state *mrb, const mrb_irep *irep, FILE *out)
       break;
     CASE(OP_STRING, BB):
       mrb_assert((irep->pool[b].tt&IREP_TT_NFLAG)==0);
-      fprintf(out, "STRING\tR%d\tL[%d]\t; %s", a, b, irep->pool[b].u.str);
+      fprintf(out, "STRING\tR%d\tL[%d]\t", a, b);
+      if (irep->pool[b].u.str[0]) {
+        fprintf(out, "; %s", irep->pool[b].u.str);
+      }
       print_lv_a(mrb, irep, a, out);
       break;
     CASE(OP_STRCAT, B):
