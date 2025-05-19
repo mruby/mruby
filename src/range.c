@@ -411,7 +411,9 @@ range_num_to_a(mrb_state *mrb, mrb_value range)
       break;
     }
     mrb_value lenv = mrb_bint_sub(mrb, end, beg);
-    if (!mrb_fixnum_p(lenv)) goto too_long;
+    if (!mrb_fixnum_p(lenv)) {
+      mrb_raise(mrb, E_RANGE_ERROR, "integer range too long");
+    }
     mrb_int len = mrb_integer(lenv);
     if (!RANGE_EXCL(r)) len++;
     mrb_value ary = mrb_ary_new_capa(mrb, len);
