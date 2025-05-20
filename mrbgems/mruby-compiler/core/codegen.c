@@ -583,9 +583,8 @@ static void gen_int(codegen_scope *s, uint16_t dst, mrb_int i);
 static void
 gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
 {
-  if (nopeep || no_peephole(s)) goto normal;
-  else if (dst == src) return;
-  else {
+  if (dst == src) return;
+  if (!(nopeep || no_peephole(s))) {
     struct mrb_insn_data data = mrb_last_insn(s);
 
     switch (data.insn) {
@@ -594,7 +593,7 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
       if (data.a == src) {
         if (data.b == dst)      /* skip swapping MOVE */
           return;
-        if (data.a < s->nlocals) goto normal;
+        if (data.a < s->nlocals) break;
         rewind_pc(s);
         s->lastpc = addr_pc(s, mrb_prev_pc(s, data.addr));
         gen_move(s, dst, data.b, FALSE);
@@ -606,34 +605,34 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
         gen_move(s, dst, src, FALSE);
         return;
       }
-      goto normal;
+      break;
     case OP_LOADNIL: case OP_LOADSELF: case OP_LOADT: case OP_LOADF:
     case OP_LOADI__1:
     case OP_LOADI_0: case OP_LOADI_1: case OP_LOADI_2: case OP_LOADI_3:
     case OP_LOADI_4: case OP_LOADI_5: case OP_LOADI_6: case OP_LOADI_7:
-      if (data.a != src || data.a < s->nlocals) goto normal;
+      if (data.a != src || data.a < s->nlocals) break;
       rewind_pc(s);
       genop_1(s, data.insn, dst);
       return;
     case OP_HASH:
-      if (data.b != 0) goto normal;
+      if (data.b != 0) break;
       /* fall through */
     case OP_LOADI8: case OP_LOADINEG:
     case OP_LOADL: case OP_LOADSYM:
     case OP_GETGV: case OP_GETSV: case OP_GETIV: case OP_GETCV:
     case OP_GETCONST: case OP_STRING:
     case OP_LAMBDA: case OP_BLOCK: case OP_METHOD: case OP_BLKPUSH:
-      if (data.a != src || data.a < s->nlocals) goto normal;
+      if (data.a != src || data.a < s->nlocals) break;
       rewind_pc(s);
       genop_2(s, data.insn, dst, data.b);
       return;
     case OP_LOADI16:
-      if (data.a != src || data.a < s->nlocals) goto normal;
+      if (data.a != src || data.a < s->nlocals) break;
       rewind_pc(s);
       genop_2S(s, data.insn, dst, data.b);
       return;
     case OP_LOADI32:
-      if (data.a != src || data.a < s->nlocals) goto normal;
+      if (data.a != src || data.a < s->nlocals) break;
       else {
         uint32_t i = (uint32_t)data.b<<16|data.c;
         rewind_pc(s);
@@ -641,7 +640,7 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
       }
       return;
     case OP_ARRAY:
-      if (data.a != src || data.a < s->nlocals || data.a < dst) goto normal;
+      if (data.a != src || data.a < s->nlocals || data.a < dst) break;
       rewind_pc(s);
       if (data.b == 0 || dst == data.a)
         genop_2(s, OP_ARRAY, dst, 0);
@@ -649,18 +648,18 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
         genop_3(s, OP_ARRAY2, dst, data.a, data.b);
       return;
     case OP_ARRAY2:
-      if (data.a != src || data.a < s->nlocals || data.a < dst) goto normal;
+      if (data.a != src || data.a < s->nlocals || data.a < dst) break;
       rewind_pc(s);
       genop_3(s, OP_ARRAY2, dst, data.b, data.c);
       return;
     case OP_AREF:
     case OP_GETUPVAR:
-      if (data.a != src || data.a < s->nlocals) goto normal;
+      if (data.a != src || data.a < s->nlocals) break;
       rewind_pc(s);
       genop_3(s, data.insn, dst, data.b, data.c);
       return;
     case OP_ADDI: case OP_SUBI:
-      if (addr_pc(s, data.addr) == s->lastlabel || data.a != src || data.a < s->nlocals) goto normal;
+      if (addr_pc(s, data.addr) == s->lastlabel || data.a != src || data.a < s->nlocals) break;
       else {
         struct mrb_insn_data data0 = mrb_decode_insn(mrb_prev_pc(s, data.addr));
         if (data0.insn != OP_MOVE || data0.a != data.a || data0.b != dst) break;
