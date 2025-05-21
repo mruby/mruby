@@ -329,6 +329,7 @@ mrb_vformat(mrb_state *mrb, const char *format, va_list ap)
           goto L_cat_obj;
         case 's':
           chars = va_arg(ap, char*);
+          if (chars == NULL) chars = "(null)";
           len = strlen(chars);
           goto L_cat;
         case 't':
