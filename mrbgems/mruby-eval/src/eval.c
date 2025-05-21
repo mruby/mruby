@@ -162,6 +162,10 @@ binding_eval_error_check(mrb_state *mrb, struct mrb_parser_state *p, const char 
   }
 
   if (0 < p->nerr) {
+    if (p->mrb->exc) {
+      mrb_exc_raise(mrb, mrb_obj_value(p->mrb->exc));
+    }
+
     mrb_value str;
 
     if (file) {
