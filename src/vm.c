@@ -118,6 +118,7 @@ stack_init(mrb_state *mrb)
   /* mrb_assert(mrb->stack == NULL); */
   c->stbase = (mrb_value*)mrb_malloc(mrb, STACK_INIT_SIZE * sizeof(mrb_value));
   c->stend = c->stbase + STACK_INIT_SIZE;
+  stack_clear(c->stbase, STACK_INIT_SIZE);
 
   /* mrb_assert(ci == NULL); */
   static const mrb_callinfo ci_zero = { 0 };
