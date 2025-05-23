@@ -407,12 +407,13 @@ mrb_utf8len(const char* p, const char* e)
 # define popcount(x) __builtin_popcountl(x)
 # endif
 #else
+#define POPC_SHIFT (8 * sizeof(bitint) - 8)
 static inline uint32_t popcount(bitint x)
 {
   x = (x & (MASK01*0x55)) + ((x >>  1) & (MASK01*0x55));
   x = (x & (MASK01*0x33)) + ((x >>  2) & (MASK01*0x33));
   x = (x & (MASK01*0x0F)) + ((x >>  4) & (MASK01*0x0F));
-  return (x * MASK01) >> 56;
+  return (uint32_t)((x * MASK01) >> POPC_SHIFT);
 }
 #endif
 
