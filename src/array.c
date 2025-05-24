@@ -854,7 +854,6 @@ mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_val
     ARY_SET_LEN(a, len);
   }
   else {
-
     if (alen - len > ARY_MAX_SIZE - argc) {
       head = alen + argc - len;
       goto out_of_range;
