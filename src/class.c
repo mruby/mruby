@@ -16,9 +16,6 @@
 #include <mruby/data.h>
 #include <mruby/istruct.h>
 #include <mruby/opcode.h>
-
-#define MT_LOAD_FACTOR_NUM 3 // Numerator for load factor (represents 0.75)
-#define MT_LOAD_FACTOR_DEN 4 // Denominator for load factor
 #include <mruby/internal.h>
 #include <mruby/presym.h>
 
@@ -105,55 +102,42 @@ mt_put(mrb_state *mrb, mt_tbl *t, mrb_sym sym, mrb_sym flags, union mt_ptr ptr)
 {
   int pos, start, dpos = -1;
 
-  // Rehash if t->alloc is 0 (initial allocation)
-  // or if (t->size + 1) / t->alloc would meet or exceed the load factor.
-  // This check helps maintain performance by keeping the table from getting too full.
-  if (t->alloc == 0 || ((t->size + 1) * MT_LOAD_FACTOR_DEN >= t->alloc * MT_LOAD_FACTOR_NUM)) {
+  if (t->alloc == 0) {
     mt_rehash(mrb, t);
   }
 
-  // These assignments MUST come AFTER any potential mt_rehash call,
-  // as mt_rehash changes t->ptr and t->alloc.
   mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
   union mt_ptr *vals = t->ptr;
   int hash = mrb_int_hash_func(mrb, sym);
-  start = pos = hash & (t->alloc-1); // t->alloc is always a power of 2 after mt_rehash
-
+  start = pos = hash & (t->alloc-1);
   for (;;) {
     mrb_sym key = keys[pos];
-    if (MT_KEY_SYM(key) == sym) { // Key found, update existing method
-    value_set: // Label to jump to for setting the value
+    if (MT_KEY_SYM(key) == sym) {
+    value_set:
       keys[pos] = MT_KEY(sym, flags);
       vals[pos] = ptr;
       return;
     }
-    else if (key == MT_EMPTY) { // Empty slot found
-      if (dpos != -1) { // If we passed a deleted slot, use that one instead
-        pos = dpos;
-      }
-      t->size++; // A new element is being added, so increment size.
+    else if (key == MT_EMPTY) {
+      t->size++;
       goto value_set;
     }
-    else if (key == MT_DELETED) { // Deleted slot found
-      if (dpos == -1) { // Store the first deleted slot found
-        dpos = pos;
-      }
+    else if (key == MT_DELETED && dpos < 0) {
+      dpos = pos;
     }
-    pos = (pos+1) & (t->alloc-1); // Move to the next slot (linear probing)
-    if (pos == start) {         // Cycled through all slots
-      if (dpos != -1) { // If we found a deleted slot during the cycle, use it
+    pos = (pos+1) & (t->alloc-1);
+    if (pos == start) {         /* not found */
+      if (dpos > 0) { // In original code, this was dpos > 0, not dpos != -1
+        t->size++;
         pos = dpos;
-        t->size++; // We are using a deleted slot for a new entry.
         goto value_set;
       }
-      // No empty or deleted slot found in the probe sequence. The table is full.
-      // This rehash is a fallback. The load factor check should ideally prevent this.
+      /* no room */
       mt_rehash(mrb, t);
-      // Recalculate pointers and hash position after rehash
-      keys = (mrb_sym*)&t->ptr[t->alloc];
-      vals = t->ptr;
       start = pos = hash & (t->alloc-1);
-      dpos = -1; // Reset dpos as the table structure changed
+      keys = (mrb_sym*)&t->ptr[t->alloc]; // Need to re-assign keys
+      vals = t->ptr; // Need to re-assign vals
+      dpos = -1; // dpos should be reset as well
     }
   }
 }
