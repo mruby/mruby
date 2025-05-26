@@ -614,7 +614,7 @@ mrb_value
 mrb_mod_cv_get(mrb_state *mrb, struct RClass *c, mrb_sym sym)
 {
   struct RClass * cls = c;
-  mrb_value v;
+  mrb_value v = mrb_nil_value();
   mrb_bool given = FALSE;
 
   while (c) {
