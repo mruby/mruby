@@ -205,13 +205,20 @@ iv_size(mrb_state *mrb, iv_tbl *t)
 static iv_tbl*
 iv_copy(mrb_state *mrb, iv_tbl *t)
 {
-  if (t == NULL || t->size == 0) return NULL;
+  if (t == NULL || t->alloc == 0 || t->size == 0) return NULL;
+
+  /* create new table and mirror alloc/size */
   iv_tbl *t2 = iv_new(mrb);
-  mrb_sym   *keys1 = (mrb_sym*)&t->ptr[t->alloc];
-  mrb_value *vals1 =  t->ptr;
-  for (int i = 0; i < t->size; i++) {
-    iv_put(mrb, t2, keys1[i], vals1[i]);
-  }
+  t2->alloc = t->alloc;
+  t2->size  = t->size;
+
+  /* allocate the same block shape */
+  t2->ptr = (mrb_value*)mrb_calloc(mrb, sizeof(mrb_value)+sizeof(mrb_sym), t2->alloc);
+
+  /* copy values[0...size] and keys[0...size] */
+  memcpy(t2->ptr, t->ptr, sizeof(mrb_value)*t2->size);
+  memcpy(&t2->ptr[t2->alloc], &t->ptr[t->alloc], sizeof(mrb_sym)*t2->size);
+
   return t2;
 }
 
