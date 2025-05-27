@@ -192,12 +192,10 @@ iv_foreach(mrb_state *mrb, iv_tbl *t, mrb_iv_foreach_func *func, void *p)
 }
 
 /* Get the size of the instance variable table. */
-/* Size is approximated by the allocated table size. */
 static size_t
 iv_size(mrb_state *mrb, iv_tbl *t)
 {
-  if (t == NULL) return 0;
-  return (size_t)t->size;
+  return t ? t->size : 0;
 }
 
 /* Copy the instance variable table. */
