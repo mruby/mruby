@@ -48,20 +48,24 @@ iv_rehash(mrb_state *mrb, iv_tbl *t)
   int new_alloc = old_alloc > 0 ? old_alloc << 1 : IV_INITIAL_SIZE;
   mrb_value *old_ptr = t->ptr;
 
-  /* allocate the same total size as before */
+  /* allocate exactly the same total shape as before */
   t->ptr   = (mrb_value*)mrb_calloc(mrb, sizeof(mrb_value)+sizeof(mrb_sym), new_alloc);
-  t->size  = 0;
+  /* size remains unchanged, alloc grows */
   t->alloc = new_alloc;
-  if (old_alloc == 0) return;
 
-  /* collect old entries */
-  mrb_sym   *old_keys = (mrb_sym*)&old_ptr[old_alloc];
-  mrb_value *old_vals =  old_ptr;
-  for (int i = 0; i < old_alloc; i++) {
-    if (IV_KEY_P(old_keys[i])) {
-      iv_put(mrb, t, old_keys[i], old_vals[i]);
-    }
+  if (old_alloc == 0) {
+    /* first‐time init: nothing to copy */
+    return;
   }
+
+  /* pointers into the old block */
+  mrb_value *old_vals = old_ptr;
+  mrb_sym   *old_keys = (mrb_sym*)&old_ptr[old_alloc];
+
+  /* copy just the live range [0..size-1] */
+  memcpy(t->ptr, old_vals, sizeof(mrb_value)*t->size);
+  memcpy((mrb_sym*)&t->ptr[new_alloc], old_keys, sizeof(mrb_sym)*t->size);
+
   mrb_free(mrb, old_ptr);
 }
 
