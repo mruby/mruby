@@ -45,15 +45,46 @@ union mt_ptr {
 
 /* method table structure */
 typedef struct mt_tbl {
-  int size;
-  int alloc;
-  union mt_ptr *ptr;
+  int             size;  /* # of used entries */
+  int             alloc; /* capacity */
+  union mt_ptr   *ptr;   /* block: [ ptr[0...alloc] | keys[0...alloc] ] */
 } mt_tbl;
 
 #ifdef MRB_USE_INLINE_METHOD_CACHE
 #define MT_INLINE_CACHE_SIZE 256
 static uint8_t mt_cache[MT_INLINE_CACHE_SIZE];
 #endif
+
+/* helper to get keys array */
+static inline mrb_sym*
+mt_keys(mt_tbl *t) {
+  return (mrb_sym*)&t->ptr[t->alloc];
+}
+
+static union mt_ptr*
+mt_vals(mt_tbl *t) {
+  return t->ptr;
+}
+
+/* allocate or grow the block to exactly alloc entries */
+static void
+mt_grow(mrb_state *mrb, mt_tbl *t, int new_alloc)
+{
+  int old_alloc = t->alloc;
+  size_t new_block = new_alloc * (sizeof(union mt_ptr) + sizeof(mrb_sym));
+
+  t->ptr = (union mt_ptr*)mrb_realloc(mrb, t->ptr, new_block);
+  if (old_alloc > 0) {
+    /* keys used to live at &ptr[old_alloc] */
+    mrb_sym *old_keys = (mrb_sym*)&t->ptr[old_alloc];
+    /* keys must now live at &ptr[new_alloc] */
+    mrb_sym *new_keys = (mrb_sym*)&t->ptr[new_alloc];
+
+    /* move the old key array up to its new position */
+    memmove(new_keys, old_keys, old_alloc * sizeof(mrb_sym));
+  }
+  t->alloc = new_alloc;
+}
 
 /* Creates the method table. */
 static mt_tbl*
@@ -69,175 +100,107 @@ mt_new(mrb_state *mrb)
   return t;
 }
 
-static void mt_put(mrb_state *mrb, mt_tbl *t, mrb_sym sym, mrb_sym flags, union mt_ptr ptr);
-
 static void
-mt_rehash(mrb_state *mrb, mt_tbl *t)
+mt_put(mrb_state *mrb, mt_tbl *t, mrb_sym sym, mrb_sym flags, union mt_ptr ptrval)
 {
-  int old_alloc = t->alloc;
-  int new_alloc = old_alloc > 0 ? old_alloc << 1 : 8;
-  union mt_ptr *old_ptr = t->ptr;
+  mrb_sym key = MT_KEY(sym, flags);
 
-  t->ptr = (union mt_ptr*)mrb_calloc(mrb, new_alloc, sizeof(union mt_ptr)+sizeof(mrb_sym));
-  t->alloc = new_alloc;
-  t->size = 0;
-  if (old_alloc == 0) return;
-
-  mrb_sym *keys = (mrb_sym*)&old_ptr[old_alloc];
-  union mt_ptr *vals = old_ptr;
-  for (int i = 0; i < old_alloc; i++) {
-    mrb_sym key = keys[i];
-    if (MT_KEY_P(key)) {
-      mt_put(mrb, t, MT_KEY_SYM(key), MT_KEY_FLG(key), vals[i]);
-    }
-  }
-  mrb_free(mrb, old_ptr);
-}
-
-#define slot_empty_p(slot) ((slot)->key == 0 && (slot)->func_p == 0)
-
-/* Set the value for the symbol in the method table. */
-static void
-mt_put(mrb_state *mrb, mt_tbl *t, mrb_sym sym, mrb_sym flags, union mt_ptr ptr)
-{
-  int pos, start, dpos = -1;
-
+  /* ensure capacity */
   if (t->alloc == 0) {
-    mt_rehash(mrb, t);
+    mt_grow(mrb, t, 8);
+  }
+  else if (t->size == t->alloc) {
+    mt_grow(mrb, t, t->alloc * 2);
   }
 
-  mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
-  union mt_ptr *vals = t->ptr;
-  int hash = mrb_int_hash_func(mrb, sym);
-  start = pos = hash & (t->alloc-1);
-  for (;;) {
-    mrb_sym key = keys[pos];
-    if (MT_KEY_SYM(key) == sym) {
-    value_set:
-      keys[pos] = MT_KEY(sym, flags);
-      vals[pos] = ptr;
-      return;
-    }
-    else if (key == MT_EMPTY) {
-      t->size++;
-      goto value_set;
-    }
-    else if (key == MT_DELETED && dpos < 0) {
-      dpos = pos;
-    }
-    pos = (pos+1) & (t->alloc-1);
-    if (pos == start) {         /* not found */
-      if (dpos > 0) { // In original code, this was dpos > 0, not dpos != -1
-        t->size++;
-        pos = dpos;
-        goto value_set;
-      }
-      /* no room */
-      mt_rehash(mrb, t);
-      start = pos = hash & (t->alloc-1);
-      keys = (mrb_sym*)&t->ptr[t->alloc]; // Need to re-assign keys
-      vals = t->ptr; // Need to re-assign vals
-      dpos = -1; // dpos should be reset as well
-    }
+  mrb_sym      *keys = mt_keys(t);
+  union mt_ptr *vals = mt_vals(t);
+
+  /* binary search [0..size) for sym */
+  int lo = 0, hi = t->size;
+  while (lo < hi) {
+    int mid = (lo + hi) >> 1;
+    mrb_sym mid_sym = MT_KEY_SYM(keys[mid]);
+    if (mid_sym < sym) lo = mid + 1;
+    else               hi = mid;
   }
+  /* update if exists */
+  if (lo < t->size && MT_KEY_SYM(keys[lo]) == sym) {
+    keys[lo]    = key;
+    vals[lo]    = ptrval;
+    return;
+  }
+  /* insert at lo: shift right */
+  if (t->size > lo) {
+    int size = t->size - lo;
+    memmove(&vals[lo+1], &vals[lo], size * sizeof(union mt_ptr));
+    memmove(&keys[lo+1], &keys[lo], size * sizeof(mrb_sym));
+  }
+  keys[lo] = key;
+  vals[lo] = ptrval;
+  t->size++;
 }
 
 /* Get a value for a symbol from the method table. */
 static mrb_sym
 mt_get(mrb_state *mrb, mt_tbl *t, mrb_sym sym, union mt_ptr *pp)
 {
-  int pos;
+  if (!t || t->size == 0) return 0;
 
-  if (t == NULL) return 0;
-  if (t->alloc == 0) return 0;
-  if (t->size == 0) return 0;
+  mrb_sym      *keys = mt_keys(t);
+  union mt_ptr *vals = mt_vals(t);
 
-  mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
-  union mt_ptr *vals = t->ptr;
-  int hash = mrb_int_hash_func(mrb, sym);
-#ifdef MRB_USE_INLINE_METHOD_CACHE
-  int cpos = (hash^(uintptr_t)t) % MT_INLINE_CACHE_SIZE;
-  pos = mt_cache[cpos];
-  if (pos < t->alloc) {
-    mrb_sym key = keys[pos];
-    if (key) {
-      if (MT_KEY_SYM(key) == sym) {
-        *pp = vals[pos];
-        return key;
-      }
-    }
+  int lo = 0, hi = t->size;
+  while (lo < hi) {
+    int mid = (lo + hi) >> 1;
+    mrb_sym mid_sym = MT_KEY_SYM(keys[mid]);
+    if (mid_sym < sym) lo = mid + 1;
+    else               hi = mid;
   }
-#endif
-  int start = pos = hash & (t->alloc-1);
-  for (;;) {
-    mrb_sym key = keys[pos];
-    if (MT_KEY_SYM(key) == sym) {
-      *pp = vals[pos];
-#ifdef MRB_USE_INLINE_METHOD_CACHE
-      if (pos < 0x100) {
-        mt_cache[cpos] = pos;
-      }
-#endif
-      return key;
-    }
-    else if (key == MT_EMPTY) {
-      return 0;
-    }
-    pos = (pos+1) & (t->alloc-1);
-    if (pos == start) {         /* not found */
-      return 0;
-    }
+  if (lo < t->size && MT_KEY_SYM(keys[lo]) == sym) {
+    *pp = vals[lo];
+    return keys[lo];
   }
+  return 0;
 }
 
 /* Deletes the value for the symbol from the method table. */
 static mrb_bool
 mt_del(mrb_state *mrb, mt_tbl *t, mrb_sym sym)
 {
-  int pos, start;
+  if (!t || t->size == 0) return FALSE;
 
-  if (t == NULL) return FALSE;
-  if (t->alloc == 0) return  FALSE;
-  if (t->size == 0) return FALSE;
+  mrb_sym      *keys = mt_keys(t);
+  union mt_ptr *vals = t->ptr;
 
-  mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
-  int hash = mrb_int_hash_func(mrb, sym);
-  start = pos = hash & (t->alloc-1);
-  for (;;) {
-    mrb_sym key = keys[pos];
-    if (MT_KEY_SYM(key) == sym) {
-      t->size--;
-      keys[pos] = MT_DELETED;
-      return TRUE;
-    }
-    else if (key == MT_EMPTY) {
-      return FALSE;
-    }
-    pos = (pos+1) & (t->alloc-1);
-    if (pos == start) {         /* not found */
-      return FALSE;
-    }
+  int lo = 0, hi = t->size;
+  while (lo < hi) {
+    int mid = (lo + hi) >> 1;
+    mrb_sym mid_sym = MT_KEY_SYM(keys[mid]);
+    if (mid_sym < sym) lo = mid + 1;
+    else               hi = mid;
   }
+  if (lo < t->size && MT_KEY_SYM(keys[lo]) == sym) {
+    /* shift left to remove entry */
+    memmove(&vals[lo], &vals[lo+1], (t->size - lo - 1) * sizeof(union mt_ptr));
+    memmove(&keys[lo], &keys[lo+1], (t->size - lo - 1) * sizeof(mrb_sym));
+    t->size--;
+    return TRUE;
+  }
+  return FALSE;
 }
 
 /* Copy the method table. */
-static struct mt_tbl*
+static mt_tbl*
 mt_copy(mrb_state *mrb, mt_tbl *t)
 {
-  mt_tbl *t2;
-
-  if (t == NULL) return NULL;
-  if (t->alloc == 0) return NULL;
-  if (t->size == 0) return NULL;
-
-  t2 = mt_new(mrb);
-  mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
-  union mt_ptr *vals = t->ptr;
-  for (int i=0; i<t->alloc; i++) {
-    if (MT_KEY_P(keys[i])) {
-      mt_put(mrb, t2, MT_KEY_SYM(keys[i]), MT_KEY_FLG(keys[i]), vals[i]);
-    }
-  }
+  if (!t || t->size == 0) return NULL;
+  mt_tbl *t2 = mt_new(mrb);
+  mt_grow(mrb, t2, t->size);
+  /* copy used entries */
+  memcpy(mt_vals(t2), mt_vals(t), t->size * sizeof(union mt_ptr));
+  memcpy(mt_keys(t2), mt_keys(t), t->size * sizeof(mrb_sym));
+  t2->size = t->size;
   return t2;
 }
 
@@ -260,21 +223,16 @@ MRB_API void
 mrb_mt_foreach(mrb_state *mrb, struct RClass *c, mrb_mt_foreach_func *fn, void *p)
 {
   mt_tbl *t = c->mt;
+  if (!t || t->size == 0) return;
 
-  if (t == NULL) return;
-  if (t->alloc == 0) return;
-  if (t->size == 0) return;
-
-  mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
-  union mt_ptr *vals = t->ptr;
-  for (int i=0; i<t->alloc; i++) {
+  union mt_ptr *vals = mt_vals(t);
+  mrb_sym      *keys = mt_keys(t);
+  for (int i=0; i<t->size; i++) {
     mrb_sym key = keys[i];
-    if (MT_KEY_SYM(key)) {
-      if (fn(mrb, MT_KEY_SYM(key), create_method_value(mrb, key, vals[i]), p) != 0)
-        return;
+    if (fn(mrb, MT_KEY_SYM(key), create_method_value(mrb, key, vals[i]), p) != 0) {
+      return;
     }
   }
-  return;
 }
 
 size_t
@@ -282,13 +240,11 @@ mrb_gc_mark_mt(mrb_state *mrb, struct RClass *c)
 {
   mt_tbl *t = c->mt;
 
-  if (t == NULL) return 0;
-  if (t->alloc == 0) return 0;
-  if (t->size == 0) return 0;
+  if (!t || t->size == 0) return 0;
 
-  mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
-  union mt_ptr *vals = t->ptr;
-  for (int i=0; i<t->alloc; i++) {
+  mrb_sym *keys = mt_keys(t);
+  union mt_ptr *vals = mt_vals(t);
+  for (int i=0; i<t->size; i++) {
     if (MT_KEY_P(keys[i]) && (keys[i] & MT_FUNC) == 0) { /* Proc pointer */
       const struct RProc *p = vals[i].proc;
       mrb_gc_mark(mrb, (struct RBasic*)p);
