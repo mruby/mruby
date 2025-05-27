@@ -48,16 +48,18 @@ iv_rehash(mrb_state *mrb, iv_tbl *t)
   int new_alloc = old_alloc > 0 ? old_alloc << 1 : IV_INITIAL_SIZE;
   mrb_value *old_ptr = t->ptr;
 
-  t->ptr = (mrb_value*)mrb_calloc(mrb, sizeof(mrb_value)+sizeof(mrb_sym), new_alloc);
-  t->size = 0;
+  /* allocate the same total size as before */
+  t->ptr   = (mrb_value*)mrb_calloc(mrb, sizeof(mrb_value)+sizeof(mrb_sym), new_alloc);
+  t->size  = 0;
   t->alloc = new_alloc;
   if (old_alloc == 0) return;
 
-  mrb_sym *keys = (mrb_sym*)&old_ptr[old_alloc];
-  mrb_value *vals = old_ptr;
+  /* collect old entries */
+  mrb_sym   *old_keys = (mrb_sym*)&old_ptr[old_alloc];
+  mrb_value *old_vals =  old_ptr;
   for (int i = 0; i < old_alloc; i++) {
-    if (IV_KEY_P(keys[i])) {
-      iv_put(mrb, t, keys[i], vals[i]);
+    if (IV_KEY_P(old_keys[i])) {
+      iv_put(mrb, t, old_keys[i], old_vals[i]);
     }
   }
   mrb_free(mrb, old_ptr);
@@ -67,128 +69,125 @@ iv_rehash(mrb_state *mrb, iv_tbl *t)
 static void
 iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
 {
-  int hash, pos, start, dpos = -1;
-
   if (t->alloc == 0) {
     iv_rehash(mrb, t);
   }
-
-  mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
+  mrb_sym   *keys = (mrb_sym*)&t->ptr[t->alloc];
   mrb_value *vals = t->ptr;
-  hash = mrb_int_hash_func(mrb, sym);
-  start = pos = hash & (t->alloc-1);
-  for (;;) {
-    mrb_sym key = keys[pos];
-    if (key == sym) {
-      vals[pos] = val;
+
+  /* 1) binary search for existing key */
+  int lo = 0, hi = t->size - 1;
+  while (lo <= hi) {
+    int mid = (lo + hi) >> 1;
+    mrb_sym k = keys[mid];
+    if (k == sym) {
+      vals[mid] = val;  /* update */
       return;
     }
-    else if (key == IV_EMPTY) {
-      t->size++;
-      keys[pos] = sym;
-      vals[pos] = val;
-      return;
+    else if (k < sym) {
+      lo = mid + 1;
     }
-    else if (key == IV_DELETED && dpos < 0) {
-      dpos = pos;
-    }
-    pos = (pos+1) & (t->alloc-1);
-    if (pos == start) {         /* not found */
-      if (dpos >= 0) {
-        t->size++;
-        keys[dpos] = sym;
-        vals[dpos] = val;
-        return;
-      }
-      /* no room */
-      iv_rehash(mrb, t);
-      keys = (mrb_sym*)&t->ptr[t->alloc];
-      vals = t->ptr;
-      start = pos = hash & (t->alloc-1);
+    else {
+      hi = mid - 1;
     }
   }
+  /* lo is insertion position */
+
+  /* 2) grow if full */
+  if (t->size == t->alloc) {
+    iv_rehash(mrb, t);
+    keys = (mrb_sym*)&t->ptr[t->alloc];
+    vals =  t->ptr;
+    /* re-run binary search on the larger, sorted arrays */
+    lo = 0; hi = t->size - 1;
+    while (lo <= hi) {
+      int mid = (lo + hi) >> 1;
+      if (keys[mid] < sym) lo = mid + 1;
+      else                  hi = mid - 1;
+    }
+  }
+
+  /* 3) shift tail to make room */
+  int move = t->size - lo;
+  if (move > 0) {
+    memmove(&keys[lo+1], &keys[lo], sizeof(mrb_sym)   * move);
+    memmove(&vals[lo+1], &vals[lo], sizeof(mrb_value) * move);
+  }
+  /* 4) insert new entry */
+  keys[lo] = sym;
+  vals[lo] = val;
+  t->size++;
 }
 
 /* Get a value for a symbol from the instance variable table. */
 static int
 iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 {
-  int hash, pos, start;
+  if (t == NULL || t->alloc == 0 || t->size == 0) return 0;
+  mrb_sym   *keys = (mrb_sym*)&t->ptr[t->alloc];
+  mrb_value *vals =  t->ptr;
 
-  if (t == NULL) return 0;
-  if (t->alloc == 0) return 0;
-  if (t->size == 0) return 0;
-
-  mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
-  mrb_value *vals = t->ptr;
-  hash = mrb_int_hash_func(mrb, sym);
-  start = pos = hash & (t->alloc-1);
-  for (;;) {
-    mrb_sym key = keys[pos];
-    if (key == sym) {
-      if (vp) *vp = vals[pos];
-      return pos+1;
+  int lo = 0, hi = t->size - 1;
+  while (lo <= hi) {
+    int mid = (lo + hi) >> 1;
+    mrb_sym k = keys[mid];
+    if (k == sym) {
+      if (vp) *vp = vals[mid];
+      return mid + 1;
     }
-    else if (key == IV_EMPTY) {
-      return 0;
+    else if (k < sym) {
+      lo = mid + 1;
     }
-    pos = (pos+1) & (t->alloc-1);
-    if (pos == start) {         /* not found */
-      return 0;
+    else {
+      hi = mid - 1;
     }
   }
+  return 0;
 }
 
 /* Deletes the value for the symbol from the instance variable table. */
 static mrb_bool
 iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 {
-  int hash, pos, start;
+  if (t == NULL || t->alloc == 0 || t->size == 0) return FALSE;
+  mrb_sym   *keys = (mrb_sym*)&t->ptr[t->alloc];
+  mrb_value *vals =  t->ptr;
 
-  if (t == NULL) return FALSE;
-  if (t->alloc == 0) return FALSE;
-  if (t->size == 0) return FALSE;
-
-  mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
-  mrb_value *vals = t->ptr;
-  hash = mrb_int_hash_func(mrb, sym);
-  start = pos = hash & (t->alloc-1);
-  for (;;) {
-    mrb_sym key = keys[pos];
-    if (key == sym) {
-      if (vp) *vp = vals[pos];
+  int lo = 0, hi = t->size - 1;
+  while (lo <= hi) {
+    int mid = (lo + hi) >> 1;
+    mrb_sym k = keys[mid];
+    if (k == sym) {
+      if (vp) *vp = vals[mid];
+      /* shift to remove */
+      int move = t->size - mid - 1;
+      if (move > 0) {
+        memmove(&keys[mid], &keys[mid+1], sizeof(mrb_sym)   * move);
+        memmove(&vals[mid], &vals[mid+1], sizeof(mrb_value) * move);
+      }
       t->size--;
-      keys[pos] = IV_DELETED;
       return TRUE;
     }
-    else if (key == IV_EMPTY) {
-      return FALSE;
+    else if (k < sym) {
+      lo = mid + 1;
     }
-    pos = (pos+1) & (t->alloc-1);
-    if (pos == start) {         /* not found */
-      return FALSE;
+    else {
+      hi = mid - 1;
     }
   }
+  return FALSE;
 }
 
 /* Iterates over the instance variable table. */
 static void
 iv_foreach(mrb_state *mrb, iv_tbl *t, mrb_iv_foreach_func *func, void *p)
 {
-  if (t == NULL) return;
-  if (t->alloc == 0) return;
-  if (t->size == 0) return;
-
-  mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
-  mrb_value *vals = t->ptr;
-  for (int i=0; i<t->alloc; i++) {
-    if (IV_KEY_P(keys[i])) {
-      if ((*func)(mrb, keys[i], vals[i], p) != 0) {
-        return;
-      }
-    }
+  if (t == NULL || t->alloc == 0 || t->size == 0) return;
+  mrb_sym   *keys = (mrb_sym*)&t->ptr[t->alloc];
+  mrb_value *vals =  t->ptr;
+  for (int i = 0; i < t->size; i++) {
+    if ((*func)(mrb, keys[i], vals[i], p) != 0) return;
   }
-  return;
 }
 
 /* Get the size of the instance variable table. */
@@ -198,23 +197,16 @@ iv_size(mrb_state *mrb, iv_tbl *t)
   return t ? t->size : 0;
 }
 
-/* Copy the instance variable table. */
+/* Copy the sorted table */
 static iv_tbl*
 iv_copy(mrb_state *mrb, iv_tbl *t)
 {
-  iv_tbl *t2;
-
-  if (t == NULL) return NULL;
-  if (t->alloc == 0) return NULL;
-  if (t->size == 0) return NULL;
-
-  mrb_sym *keys = (mrb_sym*)&t->ptr[t->alloc];
-  mrb_value *vals = t->ptr;
-  t2 = iv_new(mrb);
-  for (int i=0; i<t->alloc; i++) {
-    if (IV_KEY_P(keys[i])) {
-      iv_put(mrb, t2, keys[i], vals[i]);
-    }
+  if (t == NULL || t->size == 0) return NULL;
+  iv_tbl *t2 = iv_new(mrb);
+  mrb_sym   *keys1 = (mrb_sym*)&t->ptr[t->alloc];
+  mrb_value *vals1 =  t->ptr;
+  for (int i = 0; i < t->size; i++) {
+    iv_put(mrb, t2, keys1[i], vals1[i]);
   }
   return t2;
 }
