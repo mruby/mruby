@@ -50,11 +50,6 @@ typedef struct mt_tbl {
   union mt_ptr   *ptr;   /* block: [ ptr[0...alloc] | keys[0...alloc] ] */
 } mt_tbl;
 
-#ifdef MRB_USE_INLINE_METHOD_CACHE
-#define MT_INLINE_CACHE_SIZE 256
-static uint8_t mt_cache[MT_INLINE_CACHE_SIZE];
-#endif
-
 /* helper to get keys array */
 static inline mrb_sym*
 mt_keys(mt_tbl *t) {

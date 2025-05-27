@@ -42,12 +42,6 @@
 #error Cannot define MRB_USE_FLOAT32 and MRB_NO_FLOAT at the same time
 #endif
 
-/* add -DMRB_NO_METHOD_CACHE to disable method cache to save memory */
-//#define MRB_NO_METHOD_CACHE
-/* size of the method cache (need to be the power of 2) */
-//#define MRB_METHOD_CACHE_SIZE (1<<8)
-//#define MRB_USE_INLINE_METHOD_CACHE
-
 /* define on big endian machines; used by MRB_NAN_BOXING, etc. */
 #ifndef MRB_ENDIAN_BIG
 # if (defined(BYTE_ORDER) && defined(BIG_ENDIAN) && BYTE_ORDER == BIG_ENDIAN) || \
