@@ -1632,8 +1632,8 @@ mrb_obj_extend(mrb_state *mrb, mrb_value obj)
     mrb_value mod = argv[argc];
     mrb_check_type(mrb, mod, MRB_TT_MODULE);
     mrb_include_module(mrb, mrb_class_ptr(cc), mrb_class_ptr(mod));
-    if (!mrb_func_basic_p(mrb, cc, extended, mrb_do_nothing)) {
-      mrb_funcall_argv(mrb, cc, extended, 1, &mod);
+    if (!mrb_func_basic_p(mrb, mod, extended, mrb_do_nothing)) {
+      mrb_funcall_argv(mrb, mod, extended, 1, &obj);
     }
   }
   return obj;
