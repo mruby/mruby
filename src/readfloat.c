@@ -5,6 +5,17 @@
 #include <string.h>
 #include <math.h>
 
+/*
+** Parses a string representation of a floating-point number.
+**
+** @param str The input string to parse.
+** @param endp A pointer to a char* that will be updated to point to the
+**             character in str after the last character used in the
+**             conversion. Can be NULL.
+** @param fp A pointer to a double that will be set to the parsed
+**           floating-point number.
+** @return TRUE if a float is successfully parsed, FALSE otherwise.
+*/
 MRB_API mrb_bool
 mrb_read_float(const char *str, char **endp, double *fp)
 {
