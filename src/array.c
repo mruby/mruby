@@ -59,6 +59,17 @@ ary_new_capa(mrb_state *mrb, mrb_int capa)
   return a;
 }
 
+/**
+ * Creates a new array with a specified initial capacity.
+ *
+ * This function allocates an array that can hold at least `capa` elements
+ * without needing to immediately reallocate memory. If `capa` is 0,
+ * it may still allocate a small default capacity.
+ *
+ * @param mrb The mruby state.
+ * @param capa The initial capacity desired for the array.
+ * @return A new mrb_value representing the created array.
+ */
 MRB_API mrb_value
 mrb_ary_new_capa(mrb_state *mrb, mrb_int capa)
 {
@@ -66,6 +77,15 @@ mrb_ary_new_capa(mrb_state *mrb, mrb_int capa)
   return mrb_obj_value(a);
 }
 
+/**
+ * Creates a new, empty array.
+ *
+ * This function is equivalent to calling `mrb_ary_new_capa` with a capacity of 0.
+ * The array will dynamically resize as elements are added.
+ *
+ * @param mrb The mruby state.
+ * @return A new mrb_value representing the created empty array.
+ */
 MRB_API mrb_value
 mrb_ary_new(mrb_state *mrb)
 {
@@ -104,6 +124,17 @@ ary_new_from_values(mrb_state *mrb, mrb_int size, const mrb_value *vals)
   return a;
 }
 
+/**
+ * Creates a new array initialized with a given sequence of values.
+ *
+ * This function allocates an array and copies `size` elements from the `vals`
+ * pointer into the new array.
+ *
+ * @param mrb The mruby state.
+ * @param size The number of values to initialize the array with.
+ * @param vals A pointer to an array of `mrb_value`s to copy into the new array.
+ * @return A new mrb_value representing the created array.
+ */
 MRB_API mrb_value
 mrb_ary_new_from_values(mrb_state *mrb, mrb_int size, const mrb_value *vals)
 {
@@ -111,6 +142,17 @@ mrb_ary_new_from_values(mrb_state *mrb, mrb_int size, const mrb_value *vals)
   return mrb_obj_value(a);
 }
 
+/**
+ * Creates a new array of size 2, typically used to represent an association (key-value pair).
+ *
+ * The first element of the array is `car` (often the key), and the second element
+ * is `cdr` (often the value).
+ *
+ * @param mrb The mruby state.
+ * @param car The first value to be placed in the array.
+ * @param cdr The second value to be placed in the array.
+ * @return A new mrb_value representing the created 2-element array.
+ */
 MRB_API mrb_value
 mrb_assoc_new(mrb_state *mrb, mrb_value car, mrb_value cdr)
 {
@@ -163,6 +205,17 @@ ary_modify(mrb_state *mrb, struct RArray *a)
   }
 }
 
+/**
+ * Prepares an array for modification.
+ *
+ * This function ensures that the array is not frozen and is not shared.
+ * If the array is shared and has multiple references, this function will
+ * duplicate the array data to ensure that modifications do not affect
+ * other references. It also triggers a write barrier for the garbage collector.
+ *
+ * @param mrb The mruby state.
+ * @param a A pointer to the RArray structure to modify.
+ */
 MRB_API void
 mrb_ary_modify(mrb_state *mrb, struct RArray* a)
 {
@@ -255,6 +308,19 @@ ary_shrink_capa(mrb_state *mrb, struct RArray *a)
   }
 }
 
+/**
+ * Resizes an array to a new length.
+ *
+ * If `new_len` is smaller than the current length, the array is truncated.
+ * If `new_len` is larger than the current length, the array is expanded,
+ * and new elements are filled with `nil`.
+ * This function modifies the array in place.
+ *
+ * @param mrb The mruby state.
+ * @param ary The array (mrb_value) to resize.
+ * @param new_len The desired new length of the array.
+ * @return The resized array (the same mrb_value as `ary`).
+ */
 MRB_API mrb_value
 mrb_ary_resize(mrb_state *mrb, mrb_value ary, mrb_int new_len)
 {
@@ -351,6 +417,16 @@ ary_concat(mrb_state *mrb, struct RArray *a, struct RArray *a2)
   ARY_SET_LEN(a, newlen);
 }
 
+/**
+ * Concatenates one array to another.
+ *
+ * Appends all elements from the `other` array to the `self` array.
+ * This function modifies the `self` array in place.
+ *
+ * @param mrb The mruby state.
+ * @param self The array (mrb_value) to which elements will be added.
+ * @param other The array (mrb_value) whose elements will be appended.
+ */
 MRB_API void
 mrb_ary_concat(mrb_state *mrb, mrb_value self, mrb_value other)
 {
@@ -446,6 +522,16 @@ ary_replace(mrb_state *mrb, struct RArray *a, struct RArray *b)
   ARY_SET_LEN(a, len);
 }
 
+/**
+ * Replaces the contents of an array with the contents of another array.
+ *
+ * After this operation, the `self` array will contain the same elements
+ * as the `other` array. This function modifies the `self` array in place.
+ *
+ * @param mrb The mruby state.
+ * @param self The array (mrb_value) whose contents will be replaced.
+ * @param other The array (mrb_value) from which to copy the elements.
+ */
 MRB_API void
 mrb_ary_replace(mrb_state *mrb, mrb_value self, mrb_value other)
 {
@@ -540,6 +626,17 @@ mrb_ary_reverse(mrb_state *mrb, mrb_value self)
   return mrb_obj_value(b);
 }
 
+/**
+ * Pushes an element onto the end of an array.
+ *
+ * This function appends `elem` to the `ary` array, increasing its length by one.
+ * The array capacity may be expanded if necessary.
+ * This function modifies the array in place.
+ *
+ * @param mrb The mruby state.
+ * @param ary The array (mrb_value) to push the element onto.
+ * @param elem The mrb_value to append to the array.
+ */
 MRB_API void
 mrb_ary_push(mrb_state *mrb, mrb_value ary, mrb_value elem)
 {
@@ -579,6 +676,16 @@ mrb_ary_push_m(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/**
+ * Removes and returns the last element from an array.
+ *
+ * If the array is empty, returns `nil`.
+ * This function modifies the array in place.
+ *
+ * @param mrb The mruby state.
+ * @param ary The array (mrb_value) from which to pop the element.
+ * @return The last element of the array, or `nil` if the array is empty.
+ */
 MRB_API mrb_value
 mrb_ary_pop(mrb_state *mrb, mrb_value ary)
 {
@@ -593,6 +700,17 @@ mrb_ary_pop(mrb_state *mrb, mrb_value ary)
 
 #define ARY_SHIFT_SHARED_MIN 10
 
+/**
+ * Removes and returns the first element from an array.
+ *
+ * If the array is empty, returns `nil`.
+ * All other elements are shifted down by one index.
+ * This function modifies the array in place.
+ *
+ * @param mrb The mruby state.
+ * @param self The array (mrb_value) from which to shift the element.
+ * @return The first element of the array, or `nil` if the array is empty.
+ */
 MRB_API mrb_value
 mrb_ary_shift(mrb_state *mrb, mrb_value self)
 {
@@ -672,6 +790,19 @@ mrb_ary_shift_m(mrb_state *mrb, mrb_value self)
    item = 0
    self.unshift item
    p self #=> [0, 1, 2, 3] */
+/**
+ * Prepends an element to the beginning of an array.
+ *
+ * This function adds `item` to the front of the `self` array,
+ * shifting all existing elements up by one index.
+ * The array capacity may be expanded if necessary.
+ * This function modifies the array in place.
+ *
+ * @param mrb The mruby state.
+ * @param self The array (mrb_value) to unshift the element onto.
+ * @param item The mrb_value to prepend to the array.
+ * @return The modified array (the same mrb_value as `self`).
+ */
 MRB_API mrb_value
 mrb_ary_unshift(mrb_state *mrb, mrb_value self, mrb_value item)
 {
@@ -756,6 +887,22 @@ mrb_ary_unshift_m(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/**
+ * Sets the element at a given index in an array.
+ *
+ * If `n` is within the current bounds of the array, the element at that index
+ * is replaced with `val`.
+ * If `n` is beyond the current bounds, the array is expanded to accommodate
+ * the new element, and any intermediate elements are filled with `nil`.
+ * If `n` is negative, it counts from the end of the array.
+ * An IndexError is raised if a negative index points past the beginning of the array.
+ * This function modifies the array in place.
+ *
+ * @param mrb The mruby state.
+ * @param ary The array (mrb_value) to modify.
+ * @param n The index at which to set the element.
+ * @param val The mrb_value to set at the specified index.
+ */
 MRB_API void
 mrb_ary_set(mrb_state *mrb, mrb_value ary, mrb_int n, mrb_value val)
 {
@@ -790,6 +937,24 @@ ary_dup(mrb_state *mrb, struct RArray *a)
   return ary_new_from_values(mrb, ARY_LEN(a), ARY_PTR(a));
 }
 
+/**
+ * Replaces a portion of an array with elements from another array or a single value.
+ *
+ * Removes `len` elements from `ary` starting at `head` index, and inserts
+ * the elements from `rpl` (if `rpl` is an array) or `rpl` itself (if it's not an array)
+ * at that position.
+ * If `head` is negative, it counts from the end of the array.
+ * If `len` is negative, an IndexError is raised.
+ * If `rpl` is `mrb_undef_p()`, then the elements are removed without replacement.
+ * This function modifies the `ary` array in place.
+ *
+ * @param mrb The mruby state.
+ * @param ary The array (mrb_value) to modify.
+ * @param head The starting index for the splice operation.
+ * @param len The number of elements to remove.
+ * @param rpl The mrb_value to insert (can be an array or a single value, or mrb_undef_p()).
+ * @return The modified array (the same mrb_value as `ary`).
+ */
 MRB_API mrb_value
 mrb_ary_splice(mrb_state *mrb, mrb_value ary, mrb_int head, mrb_int len, mrb_value rpl)
 {
@@ -905,6 +1070,19 @@ ary_subseq(mrb_state *mrb, struct RArray *a, mrb_int beg, mrb_int len)
   return mrb_obj_value(b);
 }
 
+/**
+ * Creates a new array that is a subsequence of an existing array.
+ *
+ * The new array contains `len` elements, starting from index `beg` of the
+ * original `ary`.
+ * This function attempts to create a shared array if appropriate for efficiency.
+ *
+ * @param mrb The mruby state.
+ * @param ary The original array (mrb_value).
+ * @param beg The starting index of the subsequence.
+ * @param len The length of the subsequence.
+ * @return A new mrb_value representing the subsequence array.
+ */
 mrb_value
 mrb_ary_subseq(mrb_state *mrb, mrb_value ary, mrb_int beg, mrb_int len)
 {
@@ -1218,6 +1396,20 @@ mrb_ary_rindex_m(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
+/**
+ * Creates a new array from a given value, performing a "splat" operation.
+ *
+ * If `v` is already an array, a duplicate of `v` is returned.
+ * If `v` responds to `to_a`, it is called, and if the result is an array,
+ * a duplicate of that result is returned. If `to_a` returns `nil` or something
+ * other than an array, `v` itself is wrapped in a new, single-element array.
+ * Otherwise (if `v` is not an array and does not respond to `to_a`),
+ * `v` itself is wrapped in a new, single-element array.
+ *
+ * @param mrb The mruby state.
+ * @param v The mrb_value to convert into an array.
+ * @return A new mrb_value representing the "splatted" array.
+ */
 MRB_API mrb_value
 mrb_ary_splat(mrb_state *mrb, mrb_value v)
 {
@@ -1250,6 +1442,15 @@ mrb_ary_size(mrb_state *mrb, mrb_value self)
   return mrb_int_value(mrb, ARY_LEN(a));
 }
 
+/**
+ * Removes all elements from an array, making it empty.
+ *
+ * This function modifies the array in place.
+ *
+ * @param mrb The mruby state.
+ * @param self The array (mrb_value) to clear.
+ * @return The cleared (now empty) array (the same mrb_value as `self`).
+ */
 MRB_API mrb_value
 mrb_ary_clear(mrb_state *mrb, mrb_value self)
 {
@@ -1282,6 +1483,19 @@ mrb_ary_empty_p(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(ARY_LEN(a) == 0);
 }
 
+/**
+ * Retrieves an element from an array at a specific index.
+ * This is a direct (unsafe) equivalent of `RARRAY_PTR(ary)[n]`.
+ *
+ * If `n` is negative, it counts from the end of the array.
+ * Returns `nil` if the index is out of bounds.
+ * This function does not perform a bounds check before accessing the element if the index is positive.
+ * Prefer using `mrb_ary_ref` for safe access or ensure `n` is within bounds.
+ *
+ * @param ary The array (mrb_value) from which to retrieve the element.
+ * @param n The index of the element to retrieve.
+ * @return The mrb_value at the specified index, or `nil` if out of bounds.
+ */
 MRB_API mrb_value
 mrb_ary_entry(mrb_value ary, mrb_int n)
 {
@@ -1350,6 +1564,20 @@ join_ary(mrb_state *mrb, mrb_value ary, mrb_value sep, mrb_value list)
   return result;
 }
 
+/**
+ * Joins the elements of an array into a string, separated by a given separator.
+ *
+ * Each element of `ary` is converted to a string. These strings are then
+ * concatenated, with the string representation of `sep` inserted between
+ * adjacent elements.
+ * If `sep` is `nil`, no separator is used.
+ * This function handles recursive array joins by raising an E_ARGUMENT_ERROR.
+ *
+ * @param mrb The mruby state.
+ * @param ary The array (mrb_value) whose elements are to be joined.
+ * @param sep The separator (mrb_value) to use between elements. Can be `nil`.
+ * @return A new mrb_value string representing the joined array elements.
+ */
 MRB_API mrb_value
 mrb_ary_join(mrb_state *mrb, mrb_value ary, mrb_value sep)
 {
