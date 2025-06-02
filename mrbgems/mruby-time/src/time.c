@@ -131,6 +131,12 @@ struct timeval {
 };
 # endif
 
+/*
+ * Polyfill for gettimeofday on Windows platforms that may not have it (e.g., older MSVC).
+ * Retrieves the current system time as FILETIME, converts it to Unix epoch,
+ * and then splits it into seconds and microseconds.
+ * The timezone argument (tz) is not supported.
+ */
 static int
 gettimeofday(struct timeval *tv, void *tz)
 {
@@ -215,23 +221,23 @@ timegm(struct tm *tm)
 */
 
 #ifndef MRB_NO_STDIO
-static const char mon_names[12][4] = {
+static const char mon_names[MONTHS_PER_YEAR][4] = {
   "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 };
 
-static const char wday_names[7][4] = {
+static const char wday_names[7][4] = { /* Consider defining DAYS_PER_WEEK = 7 if used elsewhere */
   "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat",
 };
 #endif
 
 struct mrb_time {
-  time_t              sec;
-  time_t              usec;
-  enum mrb_timezone   timezone;
-  struct tm           datetime;
+  time_t              sec;      /* Seconds since the Epoch */
+  time_t              usec;     /* Microsecond fraction of the second */
+  enum mrb_timezone   timezone; /* Timezone setting (MRB_TIMEZONE_UTC or MRB_TIMEZONE_LOCAL) */
+  struct tm           datetime; /* Cache for broken-down time based on sec, usec, and timezone. Updated by time_update_datetime. */
 };
 
-static const struct mrb_data_type time_type = { "Time", mrb_free };
+static const struct mrb_data_type time_type = { "Time", mrb_free }; /* mrb_free is the standard C free() */
 
 #define MRB_TIME_T_UINT (~(time_t)0 > 0)
 #define MRB_TIME_MIN (                                                      \
@@ -243,7 +249,13 @@ static const struct mrb_data_type time_type = { "Time", mrb_free };
                     (sizeof(time_t) <= 4 ? INT32_MAX : INT64_MAX)           \
 )
 
-/* return true if time_t is fit in mrb_int */
+/*
+ * Checks if a time_t value `v` can be represented as an mrb_int without overflow or precision loss.
+ * This is important because mruby integers (mrb_int) might be smaller than time_t on some platforms.
+ * - If mrb_int can fully encompass the range of time_t, it's always TRUE.
+ * - Otherwise, it checks if `v` falls within the representable range of mrb_int.
+ * - Considers if time_t is unsigned (MRB_TIME_T_UINT).
+ */
 static mrb_bool
 fixable_time_t_p(time_t v)
 {
@@ -334,6 +346,13 @@ mrb_to_time_t(mrb_state *mrb, mrb_value obj, time_t *usec)
   return t;
 }
 
+/*
+ * Converts a time_t value `t` into an appropriate mruby numeric value.
+ * - If `t` fits in mrb_int (checked by fixable_time_t_p), returns an mrb_int_value.
+ * - Otherwise, if MRB_USE_BIGINT is defined, returns a BigInt.
+ * - Otherwise, if MRB_NO_FLOAT is not defined, returns a Float.
+ * - Otherwise, raises an ArgumentError if the time value is too large to represent.
+ */
 static mrb_value
 time_value_from_time_t(mrb_state *mrb, time_t t)
 {
@@ -376,7 +395,13 @@ time_update_datetime(mrb_state *mrb, struct mrb_time *self, int dealloc)
     return NULL;
   }
 #ifdef NO_GMTIME_R
-  self->datetime = *aid; /* copy data */
+  /*
+   * If reentrant gmtime_r/localtime_r are not available (NO_GMTIME_R is defined),
+   * standard gmtime/localtime are used. These functions often return a pointer
+   * to a static internal buffer. To avoid this buffer being overwritten by subsequent
+   * calls, the data pointed to by `aid` must be copied into `self->datetime`.
+   */
+  self->datetime = *aid; /* copy data from static buffer */
 #endif
 
   return self;
@@ -392,30 +417,46 @@ time_wrap(mrb_state *mrb, struct RClass *tc, struct mrb_time *tm)
 static struct mrb_time*
 time_alloc_time(mrb_state *mrb, time_t sec, time_t usec, enum mrb_timezone timezone)
 {
-  struct mrb_time *tm = (struct mrb_time*)mrb_malloc(mrb, sizeof(struct mrb_time));
-  tm->sec  = sec;
-  tm->usec = usec;
+  struct mrb_time *time_obj = (struct mrb_time*)mrb_malloc(mrb, sizeof(struct mrb_time));
+  time_obj->sec  = sec;
+  time_obj->usec = usec;
 
-  if (!MRB_TIME_T_UINT && tm->usec < 0) {
-    long sec2 = (long)NDIV(tm->usec,1000000); /* negative div */
-    tm->usec -= sec2 * 1000000;
-    tm->sec += sec2;
+  /* Normalize seconds and microseconds. */
+  /* This is only necessary if time_t is signed and usec is negative. */
+  if (!MRB_TIME_T_UINT && time_obj->usec < 0) {
+    /*
+     * If usec is negative, adjust seconds downwards.
+     * NDIV calculates division rounded towards negative infinity.
+     * For example, NDIV(-1, USECS_PER_SEC) is -1, so 1 second is subtracted.
+     * NDIV(-1000001, USECS_PER_SEC) is -2, so 2 seconds are subtracted.
+     */
+    long sec_adjustment = (long)NDIV(time_obj->usec, USECS_PER_SEC);
+    time_obj->usec -= sec_adjustment * USECS_PER_SEC; /* Becomes positive or zero */
+    time_obj->sec  += sec_adjustment;
   }
-  else if (tm->usec >= 1000000) {
-    long sec2 = (long)(tm->usec / 1000000);
-    tm->usec -= sec2 * 1000000;
-    tm->sec += sec2;
+  /* Handle positive microsecond overflow. */
+  else if (time_obj->usec >= USECS_PER_SEC) {
+    /* If usec is USECS_PER_SEC or more, adjust seconds upwards. */
+    long sec_adjustment = (long)(time_obj->usec / USECS_PER_SEC);
+    time_obj->usec -= sec_adjustment * USECS_PER_SEC; /* Reduce to < USECS_PER_SEC */
+    time_obj->sec  += sec_adjustment;
   }
-  tm->timezone = timezone;
-  time_update_datetime(mrb, tm, TRUE);
+  time_obj->timezone = timezone;
+  /* Update the datetime struct; this also handles potential deallocation on error. */
+  time_update_datetime(mrb, time_obj, TRUE);
 
-  return tm;
+  return time_obj;
 }
 
+/*
+ * Allocates and initializes an mrb_time structure from mruby values for seconds and microseconds.
+ * It first converts the mruby values to time_t using mrb_to_time_t,
+ * then calls time_alloc_time to perform the actual allocation and normalization.
+ */
 static struct mrb_time*
 time_alloc(mrb_state *mrb, mrb_value sec, mrb_value usec, enum mrb_timezone timezone)
 {
-  time_t tsec, tusec;
+  time_t tsec, tusec; /* Variables to hold converted seconds and microseconds */
 
   tsec = mrb_to_time_t(mrb, sec, &tusec);
   tusec += mrb_to_time_t(mrb, usec, NULL);
@@ -423,22 +464,39 @@ time_alloc(mrb_state *mrb, mrb_value sec, mrb_value usec, enum mrb_timezone time
   return time_alloc_time(mrb, tsec, tusec, timezone);
 }
 
+/*
+ * Creates a new Time object from C-native time_t seconds and microseconds.
+ * This is a lower-level constructor compared to time_make.
+ */
 static mrb_value
 time_make_time(mrb_state *mrb, struct RClass *c, time_t sec, time_t usec, enum mrb_timezone timezone)
 {
   return time_wrap(mrb, c, time_alloc_time(mrb, sec, usec, timezone));
 }
 
+/*
+ * Creates a new Time object from mruby values representing seconds and microseconds.
+ * This is a higher-level constructor that handles mruby type conversions.
+ */
 static mrb_value
 time_make(mrb_state *mrb, struct RClass *c, mrb_value sec, mrb_value usec, enum mrb_timezone timezone)
 {
   return time_wrap(mrb, c, time_alloc(mrb, sec, usec, timezone));
 }
 
+/*
+ * Retrieves the current system time and creates a new mrb_time object.
+ * It uses different strategies based on platform capabilities:
+ * 1. timespec_get (C11 standard, if TIME_UTC is defined)
+ * 2. clock_gettime (POSIX standard, if USE_CLOCK_GETTIME is defined)
+ * 3. gettimeofday (Commonly available POSIX function, or our polyfill on Windows)
+ * 4. time(NULL) (Standard C, second precision only; microseconds are faked if called rapidly)
+ * The new Time object is initialized to the local timezone.
+ */
 static struct mrb_time*
 current_mrb_time(mrb_state *mrb)
 {
-  struct mrb_time tmzero = {0};
+  struct mrb_time tmzero = {0}; /* Used to initialize the new mrb_time struct */
   time_t sec, usec;
 
 #if defined(TIME_UTC) && !defined(__ANDROID__)
@@ -446,26 +504,29 @@ current_mrb_time(mrb_state *mrb)
     struct timespec ts;
     timespec_get(&ts, TIME_UTC);
     sec = ts.tv_sec;
-    usec = ts.tv_nsec / 1000;
+    usec = ts.tv_nsec / NSECS_PER_USEC;
   }
 #elif defined(USE_CLOCK_GETTIME)
   {
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
     sec = ts.tv_sec;
-    usec = ts.tv_nsec / 1000;
+    usec = ts.tv_nsec / NSECS_PER_USEC;
   }
 #elif defined(NO_GETTIMEOFDAY)
   {
     static time_t last_sec = 0, last_usec = 0;
 
     sec = time(NULL);
-    if (sec != last_sec) {
+    if (sec != last_sec) { /* Time has advanced by at least one second */
       last_sec = sec;
       last_usec = 0;
     }
-    else {
-      /* add 1 usec to differentiate two times */
+    else { /* Called multiple times within the same second */
+      /* Add 1 usec to differentiate two Time objects created in rapid succession.
+       * This is a simple way to ensure distinctness when second-level precision is the best available.
+       * Note: This might lead to microsecond values that don't reflect actual time but ensure uniqueness.
+       */
       last_usec += 1;
     }
     usec = last_usec;
@@ -562,13 +623,21 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
   }
 
   time_t nowsecs = (*mk)(&nowtime);
+  /*
+   * Handle mktime/timegm failure:
+   * If mk() returns -1, it usually indicates an error or an out-of-range date.
+   * A special case is when the time is exactly one second before the epoch (Epoch-1).
+   * Some mktime implementations might return -1 for this valid time.
+   * The code tries to detect this by adding one second to tm_sec and calling mk() again.
+   * If the result is 0 (Epoch), then the original time was indeed Epoch-1.
+   */
   if (nowsecs == (time_t)-1) {
-    nowtime.tm_sec += 1;        /* maybe Epoch-1 sec */
-    nowsecs = (*mk)(&nowtime);
-    if (nowsecs != 0) {         /* check if Epoch */
+    nowtime.tm_sec += 1;        /* Check if it was Epoch-1 by trying Epoch */
+    nowsecs = (*mk)(&nowtime);  /* Call mktime/timegm again */
+    if (nowsecs != 0) {         /* If it's not Epoch, then the original time was invalid */
       mrb_raise(mrb, E_ARGUMENT_ERROR, "Not a valid time");
     }
-    nowsecs = (time_t)-1;       /* valid Epoch-1 */
+    nowsecs = (time_t)-1;       /* Reset to Epoch-1, which is a valid time_t */
   }
 
   return time_alloc_time(mrb, nowsecs, ausec, timezone);
@@ -890,22 +959,23 @@ time_init(mrb_state *mrb, mrb_value self)
   mrb_int ayear = 0, amonth = 1, aday = 1, ahour = 0,
   amin = 0, asec = 0, ausec = 0;
 
-  mrb_int n = mrb_get_args(mrb, "|iiiiiii",
+  mrb_int n = mrb_get_args(mrb, "|iiiiiii", /* year, month, day, hour, minute, second, microsecond (all optional) */
                            &ayear, &amonth, &aday, &ahour, &amin, &asec, &ausec);
   struct mrb_time *tm = (struct mrb_time*)DATA_PTR(self);
 
-  if (tm) {
-    mrb_free(mrb, tm);
+  if (tm) { /* If Time object is being re-initialized (e.g. time_obj.send(:initialize, ...)) */
+    mrb_free(mrb, tm); /* Free existing data */
   }
-  mrb_data_init(self, NULL, &time_type);
+  mrb_data_init(self, NULL, &time_type); /* Prepare for new data */
 
-  if (n == 0) {
-    tm = current_mrb_time(mrb);
+  if (n == 0) { /* Time.new (no arguments) */
+    tm = current_mrb_time(mrb); /* Get current time */
   }
-  else {
+  else { /* Time.new(year, [mon, day, hour, min, sec, usec]) */
+    /* Create time from specified components in local timezone */
     tm = time_mktime(mrb, ayear, amonth, aday, ahour, amin, asec, ausec, MRB_TIMEZONE_LOCAL);
   }
-  mrb_data_init(self, tm, &time_type);
+  mrb_data_init(self, tm, &time_type); /* Attach the new mrb_time struct to the mruby object */
   return self;
 }
 
@@ -1059,59 +1129,72 @@ time_hash(mrb_state *mrb, mrb_value self)
   return mrb_int_value(mrb, hash);
 }
 
-#define wday_impl(num) \
-  struct mrb_time *tm = time_get_ptr(mrb, self);\
-  return mrb_bool_value(tm->datetime.tm_wday == (num));
-
 static mrb_value
 time_sunday(mrb_state *mrb, mrb_value self)
 {
-  wday_impl(0);
+  struct mrb_time *tm = time_get_ptr(mrb, self);
+  return mrb_bool_value(tm->datetime.tm_wday == 0);
 }
 
 static mrb_value
 time_monday(mrb_state *mrb, mrb_value self)
 {
-  wday_impl(1);
+  struct mrb_time *tm = time_get_ptr(mrb, self);
+  return mrb_bool_value(tm->datetime.tm_wday == 1);
 }
 
 static mrb_value
 time_tuesday(mrb_state *mrb, mrb_value self)
 {
-  wday_impl(2);
+  struct mrb_time *tm = time_get_ptr(mrb, self);
+  return mrb_bool_value(tm->datetime.tm_wday == 2);
 }
 
 static mrb_value
 time_wednesday(mrb_state *mrb, mrb_value self)
 {
-  wday_impl(3);
+  struct mrb_time *tm = time_get_ptr(mrb, self);
+  return mrb_bool_value(tm->datetime.tm_wday == 3);
 }
 
 static mrb_value
 time_thursday(mrb_state *mrb, mrb_value self)
 {
-  wday_impl(4);
+  struct mrb_time *tm = time_get_ptr(mrb, self);
+  return mrb_bool_value(tm->datetime.tm_wday == 4);
 }
 
 static mrb_value
 time_friday(mrb_state *mrb, mrb_value self)
 {
-  wday_impl(5);
+  struct mrb_time *tm = time_get_ptr(mrb, self);
+  return mrb_bool_value(tm->datetime.tm_wday == 5);
 }
 
 static mrb_value
 time_saturday(mrb_state *mrb, mrb_value self)
 {
-  wday_impl(6);
+  struct mrb_time *tm = time_get_ptr(mrb, self);
+  return mrb_bool_value(tm->datetime.tm_wday == 6);
 }
 
 void
 mrb_mruby_time_gem_init(mrb_state* mrb)
 {
+  /*
+   * Initializes the Time class in the mruby state.
+   * - Defines the Time class (ISO 15.2.19.2).
+   * - Sets its instance type to MRB_TT_CDATA, meaning instances carry a C data pointer.
+   * - Includes the Comparable module.
+   * - Defines class methods (e.g., Time.at, Time.now, Time.gm, Time.local).
+   * - Defines instance methods (e.g., +, -, <=>, to_s, year, month, day, etc.).
+   *   Many instance methods are aliased (e.g., day and mday).
+   *   Ruby standard library method references (e.g., 15.2.19.6.1) are from an older ISO Ruby spec.
+   */
   /* ISO 15.2.19.2 */
   struct RClass *tc = mrb_define_class_id(mrb, MRB_SYM(Time), mrb->object_class);
-  MRB_SET_INSTANCE_TT(tc, MRB_TT_CDATA);
-  mrb_include_module(mrb, tc, mrb_module_get_id(mrb, MRB_SYM(Comparable)));
+  MRB_SET_INSTANCE_TT(tc, MRB_TT_CDATA); /* Time instances will hold a C pointer (struct mrb_time) */
+  mrb_include_module(mrb, tc, mrb_module_get_id(mrb, MRB_SYM(Comparable))); /* Include Comparable module */
   mrb_define_class_method_id(mrb, tc, MRB_SYM(at), time_at_m, MRB_ARGS_ARG(1, 1));    /* 15.2.19.6.1 */
   mrb_define_class_method_id(mrb, tc, MRB_SYM(gm), time_gm, MRB_ARGS_ARG(1,6));       /* 15.2.19.6.2 */
   mrb_define_class_method_id(mrb, tc, MRB_SYM(local), time_local, MRB_ARGS_ARG(1,6)); /* 15.2.19.6.3 */
