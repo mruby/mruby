@@ -272,78 +272,94 @@ time_out_of_range(mrb_state *mrb, mrb_value obj)
   mrb_raisef(mrb, E_ARGUMENT_ERROR, "%v out of Time range", obj);
 }
 
+#ifndef MRB_NO_FLOAT
+static time_t
+mrb_time_t_from_float(mrb_state *mrb, mrb_value obj, time_t *usec)
+{
+  time_t t;
+  mrb_float f = mrb_float(obj);
+
+  mrb_check_num_exact(mrb, f);
+  if (f >= ((mrb_float)MRB_TIME_MAX-1.0) || f < ((mrb_float)MRB_TIME_MIN+1.0)) {
+    time_out_of_range(mrb, obj);
+  }
+
+  if (usec) {
+    double tt = floor(f);
+    if (!isfinite(tt)) time_out_of_range(mrb, obj);
+    t = (time_t)tt;
+    *usec = (time_t)trunc((f - tt) * USECS_PER_SEC_F);
+  }
+  else {
+    double tt = round(f);
+    if (!isfinite(tt)) time_out_of_range(mrb, obj);
+    t = (time_t)tt;
+  }
+  return t;
+}
+#endif /* MRB_NO_FLOAT */
+
+static time_t
+mrb_time_t_from_integer(mrb_state *mrb, mrb_value obj, time_t *usec)
+{
+  time_t t;
+  mrb_int i = mrb_integer(obj);
+
+  if ((MRB_INT_MAX > MRB_TIME_MAX && i > 0 && (time_t)i > MRB_TIME_MAX) ||
+      (0 > MRB_TIME_MIN && MRB_TIME_MIN > MRB_INT_MIN && MRB_TIME_MIN > i)) {
+    time_out_of_range(mrb, obj);
+  }
+
+  t = (time_t)i;
+  if (usec) { *usec = 0; }
+  return t;
+}
+
+#ifdef MRB_USE_BIGINT
+static time_t
+mrb_time_t_from_bigint(mrb_state *mrb, mrb_value obj, time_t *usec)
+{
+  time_t t;
+  if (sizeof(time_t) > sizeof(mrb_int)) {
+    if (MRB_TIME_T_UINT) {
+      t = (time_t)mrb_bint_as_uint64(mrb, obj);
+    }
+    else {
+      t = (time_t)mrb_bint_as_int64(mrb, obj);
+    }
+    if (usec) { *usec = 0; }
+  }
+  else {
+    mrb_int i = mrb_bint_as_int(mrb, obj);
+    obj = mrb_int_value(mrb, i);
+    /* Call the integer handler for the converted value */
+    t = mrb_time_t_from_integer(mrb, obj, usec);
+  }
+  return t;
+}
+#endif  /* MRB_USE_BIGINT */
+
 static time_t
 mrb_to_time_t(mrb_state *mrb, mrb_value obj, time_t *usec)
 {
-  time_t t;
-
   switch (mrb_type(obj)) {
 #ifndef MRB_NO_FLOAT
     case MRB_TT_FLOAT:
-      {
-        mrb_float f = mrb_float(obj);
-
-        mrb_check_num_exact(mrb, f);
-        if (f >= ((mrb_float)MRB_TIME_MAX-1.0) || f < ((mrb_float)MRB_TIME_MIN+1.0)) {
-          time_out_of_range(mrb, obj);
-        }
-
-        if (usec) {
-          double tt = floor(f);
-          if (!isfinite(tt)) time_out_of_range(mrb, obj);
-          t = (time_t)tt;
-          *usec = (time_t)trunc((f - tt) * 1.0e+6);
-        }
-        else {
-          double tt = round(f);
-          if (!isfinite(tt)) time_out_of_range(mrb, obj);
-          t = (time_t)tt;
-        }
-      }
-      break;
+      return mrb_time_t_from_float(mrb, obj, usec);
 #endif /* MRB_NO_FLOAT */
 
 #ifdef MRB_USE_BIGINT
     case MRB_TT_BIGINT:
-      {
-        if (sizeof(time_t) > sizeof(mrb_int)) {
-          if (MRB_TIME_T_UINT) {
-            t = (time_t)mrb_bint_as_uint64(mrb, obj);
-          }
-          else {
-            t = (time_t)mrb_bint_as_int64(mrb, obj);
-          }
-          if (usec) { *usec = 0; }
-          break;
-        }
-        else {
-          mrb_int i = mrb_bint_as_int(mrb, obj);
-          obj = mrb_int_value(mrb, i);
-        }
-      }
-      /* fall through */
+      return mrb_time_t_from_bigint(mrb, obj, usec);
 #endif  /* MRB_USE_BIGINT */
 
     case MRB_TT_INTEGER:
-      {
-        mrb_int i = mrb_integer(obj);
-
-        if ((MRB_INT_MAX > MRB_TIME_MAX && i > 0 && (time_t)i > MRB_TIME_MAX) ||
-            (0 > MRB_TIME_MIN && MRB_TIME_MIN > MRB_INT_MIN && MRB_TIME_MIN > i)) {
-          time_out_of_range(mrb, obj);
-        }
-
-        t = (time_t)i;
-        if (usec) { *usec = 0; }
-      }
-      break;
+      return mrb_time_t_from_integer(mrb, obj, usec);
 
     default:
       mrb_raisef(mrb, E_TYPE_ERROR, "cannot convert %Y to time", obj);
-      return 0;
+      return 0; /* Should not reach here */
   }
-
-  return t;
 }
 
 /*
