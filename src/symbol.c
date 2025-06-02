@@ -226,30 +226,78 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
   return (sym+MRB_PRESYM_MAX);
 }
 
+/*
+ * Interns a string, creating a symbol from it if it doesn't already exist,
+ * or returning the existing symbol if it does.
+ *
+ * mrb: The mruby state.
+ * name: The string to intern.
+ * len: The length of the string.
+ *
+ * Returns the interned symbol.
+ */
 MRB_API mrb_sym
 mrb_intern(mrb_state *mrb, const char *name, size_t len)
 {
   return sym_intern(mrb, name, len, FALSE);
 }
 
+/*
+ * Interns a static string, creating a symbol from it.
+ * This function is similar to mrb_intern, but it assumes that the given
+ * string is static and will not be freed.
+ *
+ * mrb: The mruby state.
+ * name: The static string to intern.
+ * len: The length of the string.
+ *
+ * Returns the interned symbol.
+ */
 MRB_API mrb_sym
 mrb_intern_static(mrb_state *mrb, const char *name, size_t len)
 {
   return sym_intern(mrb, name, len, TRUE);
 }
 
+/*
+ * Interns a C string (null-terminated), creating a symbol from it.
+ * This function is a convenience wrapper around mrb_intern that
+ * automatically calculates the length of the string.
+ *
+ * mrb: The mruby state.
+ * name: The C string to intern.
+ *
+ * Returns the interned symbol.
+ */
 MRB_API mrb_sym
 mrb_intern_cstr(mrb_state *mrb, const char *name)
 {
   return mrb_intern(mrb, name, strlen(name));
 }
 
+/*
+ * Interns an mruby string value, creating a symbol from it.
+ *
+ * mrb: The mruby state.
+ * str: The mruby string value to intern.
+ *
+ * Returns the interned symbol.
+ */
 MRB_API mrb_sym
 mrb_intern_str(mrb_state *mrb, mrb_value str)
 {
   return mrb_intern(mrb, RSTRING_PTR(str), RSTRING_LEN(str));
 }
 
+/*
+ * Checks if a symbol already exists for the given string.
+ *
+ * mrb: The mruby state.
+ * name: The string to check.
+ * len: The length of the string.
+ *
+ * Returns the symbol if it exists, otherwise 0.
+ */
 MRB_API mrb_sym
 mrb_intern_check(mrb_state *mrb, const char *name, size_t len)
 {
@@ -261,6 +309,15 @@ mrb_intern_check(mrb_state *mrb, const char *name, size_t len)
   return 0;
 }
 
+/*
+ * Checks if a symbol already exists for the given string.
+ *
+ * mrb: The mruby state.
+ * name: The string to check.
+ * len: The length of the string.
+ *
+ * Returns the symbol as an mrb_value if it exists, otherwise a nil value.
+ */
 MRB_API mrb_value
 mrb_check_intern(mrb_state *mrb, const char *name, size_t len)
 {
@@ -269,12 +326,32 @@ mrb_check_intern(mrb_state *mrb, const char *name, size_t len)
   return mrb_symbol_value(sym);
 }
 
+/*
+ * Checks if a symbol already exists for the given C string (null-terminated).
+ * This function is a convenience wrapper around mrb_intern_check that
+ * automatically calculates the length of the string.
+ *
+ * mrb: The mruby state.
+ * name: The C string to check.
+ *
+ * Returns the symbol if it exists, otherwise 0.
+ */
 MRB_API mrb_sym
 mrb_intern_check_cstr(mrb_state *mrb, const char *name)
 {
   return mrb_intern_check(mrb, name, strlen(name));
 }
 
+/*
+ * Checks if a symbol already exists for the given C string (null-terminated).
+ * This function is similar to mrb_intern_check_cstr, but returns the result
+ * as an mrb_value (either the symbol or nil).
+ *
+ * mrb: The mruby state.
+ * name: The C string to check.
+ *
+ * Returns the symbol as an mrb_value if it exists, otherwise a nil value.
+ */
 MRB_API mrb_value
 mrb_check_intern_cstr(mrb_state *mrb, const char *name)
 {
@@ -283,12 +360,30 @@ mrb_check_intern_cstr(mrb_state *mrb, const char *name)
   return mrb_symbol_value(sym);
 }
 
+/*
+ * Checks if a symbol already exists for the given mruby string value.
+ *
+ * mrb: The mruby state.
+ * str: The mruby string value to check.
+ *
+ * Returns the symbol if it exists, otherwise 0.
+ */
 MRB_API mrb_sym
 mrb_intern_check_str(mrb_state *mrb, mrb_value str)
 {
   return mrb_intern_check(mrb, RSTRING_PTR(str), RSTRING_LEN(str));
 }
 
+/*
+ * Checks if a symbol already exists for the given mruby string value.
+ * This function is similar to mrb_intern_check_str, but returns the result
+ * as an mrb_value (either the symbol or nil).
+ *
+ * mrb: The mruby state.
+ * str: The mruby string value to check.
+ *
+ * Returns the symbol as an mrb_value if it exists, otherwise a nil value.
+ */
 MRB_API mrb_value
 mrb_check_intern_str(mrb_state *mrb, mrb_value str)
 {
@@ -328,6 +423,19 @@ sym2name_len(mrb_state *mrb, mrb_sym sym, char *buf, mrb_int *lenp)
   return symname;
 }
 
+/*
+ * Retrieves the name and length of a symbol.
+ *
+ * mrb: The mruby state.
+ * sym: The symbol to retrieve the name and length for.
+ * lenp: A pointer to an mrb_int where the length of the symbol name will be stored.
+ *       This can be NULL if the length is not needed.
+ *
+ * Returns a pointer to the C string representing the symbol's name,
+ * or NULL if the symbol is invalid.
+ * For inline symbols, the name is copied to an internal buffer (mrb->symbuf)
+ * unless MRB_USE_ALL_SYMBOLS is defined.
+ */
 MRB_API const char*
 mrb_sym_name_len(mrb_state *mrb, mrb_sym sym, mrb_int *lenp)
 {
@@ -597,6 +705,17 @@ sym_inspect(mrb_state *mrb, mrb_value sym)
   return str;
 }
 
+/*
+ * Converts a symbol to an mruby string value.
+ *
+ * mrb: The mruby state.
+ * sym: The symbol to convert.
+ *
+ * Returns the mruby string value corresponding to the symbol.
+ * If the symbol is an inline symbol, a new string is created.
+ * Otherwise, a static string (sharing the symbol's name buffer) is returned.
+ * Returns an undefined value if the symbol is invalid (though this should not happen).
+ */
 MRB_API mrb_value
 mrb_sym_str(mrb_state *mrb, mrb_sym sym)
 {
@@ -629,12 +748,36 @@ sym_cstr(mrb_state *mrb, mrb_sym sym, mrb_bool dump)
   }
 }
 
+/*
+ * Retrieves the C string representation of a symbol's name.
+ *
+ * mrb: The mruby state.
+ * sym: The symbol to retrieve the name for.
+ *
+ * Returns a pointer to the C string representing the symbol's name.
+ * Returns NULL if the symbol is invalid.
+ * If the symbol's name contains null bytes or is not a valid identifier
+ * for direct use (based on internal checks in sym_cstr), this function
+ * might return a "dumped" (quoted and escaped) version of the name.
+ */
 MRB_API const char*
 mrb_sym_name(mrb_state *mrb, mrb_sym sym)
 {
   return sym_cstr(mrb, sym, FALSE);
 }
 
+/*
+ * Retrieves the C string representation of a symbol's name, suitable for dumping.
+ * This version is intended for producing a string that can be safely outputted,
+ * for example, in debugging or serialization contexts. It may quote or escape
+ * the symbol name if it's not a simple identifier.
+ *
+ * mrb: The mruby state.
+ * sym: The symbol to retrieve the dump name for.
+ *
+ * Returns a pointer to the C string representing the symbol's name for dumping.
+ * Returns NULL if the symbol is invalid.
+ */
 MRB_API const char*
 mrb_sym_dump(mrb_state *mrb, mrb_sym sym)
 {
