@@ -207,6 +207,19 @@ exc_throw(mrb_state *mrb, mrb_value exc)
   MRB_THROW(mrb->jmp);
 }
 
+/*
+ * Raises the given exception object.
+ *
+ * This function sets the provided exception object as the current
+ * exception in the mruby state and then triggers the exception
+ * handling mechanism (longjmp).
+ *
+ * If the provided object is a 'break' object, it's handled specially.
+ * If it's not an exception object, a TypeError is raised.
+ *
+ * mrb: The mruby state.
+ * exc: The exception object to raise.
+ */
 MRB_API mrb_noreturn void
 mrb_exc_raise(mrb_state *mrb, mrb_value exc)
 {
@@ -222,6 +235,16 @@ mrb_exc_raise(mrb_state *mrb, mrb_value exc)
   exc_throw(mrb, exc);
 }
 
+/*
+ * Creates a new exception of class `c` with the message `msg` and raises it.
+ *
+ * This is a convenience function that combines creating an exception
+ * from a C string and then raising it.
+ *
+ * mrb: The mruby state.
+ * c:   The exception class to instantiate.
+ * msg: The C string message for the exception.
+ */
 MRB_API mrb_noreturn void
 mrb_raise(mrb_state *mrb, struct RClass *c, const char *msg)
 {
@@ -229,42 +252,41 @@ mrb_raise(mrb_state *mrb, struct RClass *c, const char *msg)
 }
 
 /*
- * <code>vsprintf</code> like formatting.
+ * Formats arguments according to a format string, similar to vsprintf.
+ * This function is the core of mruby's string formatting capabilities.
+ * It takes a format string and a va_list of arguments and returns a
+ * new mruby string with the formatted result.
  *
- * The syntax of a format sequence is as follows.
+ * The format string supports various specifiers to control how arguments
+ * are converted to strings.
  *
+ * Format Sequence Syntax:
  *   %[modifier]specifier
  *
- * The modifiers are:
+ * Modifier:
+ *   !  : Use the 'inspect' method for conversion instead of 'to_s'.
  *
- *   ----------+------------------------------------------------------------
- *   Modifier  | Meaning
- *   ----------+------------------------------------------------------------
- *       !     | Convert to string by corresponding `inspect` instead of
- *             | corresponding `to_s`.
- *   ----------+------------------------------------------------------------
+ * Specifiers:
+ *   c  : char
+ *   d  : int (decimal)
+ *   i  : mrb_int (decimal)
+ *   f  : mrb_float
+ *   l  : char* and size_t (string with length)
+ *   n  : mrb_sym (symbol name)
+ *   s  : char* (NUL-terminated C string)
+ *   t  : mrb_value (type/class of the object)
+ *   v,S: mrb_value (converted using to_s or inspect based on '!')
+ *   C  : struct RClass* (class name)
+ *   T  : mrb_value (real type/class of the object)
+ *   Y  : mrb_value (uses 'inspect' if true, false, or nil, otherwise same as 'T')
+ *   %  : Literal '%' character (no argument consumed)
  *
- * The specifiers are:
+ * mrb: The mruby state.
+ * format: The format string.
+ * ap: The va_list of arguments.
  *
- *   ----------+----------------+--------------------------------------------
- *   Specifier | Argument Type  | Note
- *   ----------+----------------+--------------------------------------------
- *       c     | char           |
- *       d     | int            |
- *       f     | mrb_float      |
- *       i     | mrb_int        |
- *       l     | char*, size_t  | Arguments are string and length.
- *       n     | mrb_sym        |
- *       s     | char*          | Argument is NUL terminated string.
- *       t     | mrb_value      | Convert to type (class) of object.
- *      v,S    | mrb_value      |
- *       C     | struct RClass* |
- *       T     | mrb_value      | Convert to real type (class) of object.
- *       Y     | mrb_value      | Same as `!v` if argument is `true`, `false`
- *             |                | or `nil`, otherwise same as `T`.
- *       %     | -              | Convert to percent sign itself (no argument
- *             |                | taken).
- *   ----------+----------------+--------------------------------------------
+ * Returns a new mrb_value string containing the formatted output.
+ * Raises ArgumentError if the format string is malformed.
  */
 MRB_API mrb_value
 mrb_vformat(mrb_state *mrb, const char *format, va_list ap)
@@ -387,6 +409,19 @@ mrb_vformat(mrb_state *mrb, const char *format, va_list ap)
   return result;
 }
 
+/*
+ * Formats arguments according to a format string, similar to sprintf.
+ *
+ * This function takes a format string and a variable number of arguments,
+ * then calls mrb_vformat to perform the actual formatting.
+ * See mrb_vformat for details on the format string specifiers.
+ *
+ * mrb: The mruby state.
+ * format: The format string.
+ * ...: Variable arguments to be formatted.
+ *
+ * Returns a new mrb_value string containing the formatted output.
+ */
 MRB_API mrb_value
 mrb_format(mrb_state *mrb, const char *format, ...)
 {
@@ -406,6 +441,19 @@ error_va(mrb_state *mrb, struct RClass *c, const char *fmt, va_list ap)
   return mrb_exc_new_str(mrb, c, mrb_vformat(mrb, fmt, ap));
 }
 
+/*
+ * Creates a new exception of class `c` with a formatted message and raises it.
+ *
+ * This function formats a message string using `fmt` and the subsequent
+ * variable arguments, then creates an exception of class `c` with this
+ * message, and finally raises the exception.
+ * See mrb_vformat for details on the format string specifiers.
+ *
+ * mrb: The mruby state.
+ * c:   The exception class to instantiate.
+ * fmt: The format string for the exception message.
+ * ...: Variable arguments for the format string.
+ */
 MRB_API mrb_noreturn void
 mrb_raisef(mrb_state *mrb, struct RClass *c, const char *fmt, ...)
 {
@@ -419,6 +467,20 @@ mrb_raisef(mrb_state *mrb, struct RClass *c, const char *fmt, ...)
   mrb_exc_raise(mrb, exc);
 }
 
+/*
+ * Raises a NameError exception with a formatted message.
+ *
+ * This function creates a NameError exception. The message is generated
+ * from `fmt` and the variable arguments. The symbol `id` (e.g., the name
+ * of a missing constant or variable) is associated with the exception object
+ * via an instance variable named 'name'.
+ * See mrb_vformat for details on the format string specifiers.
+ *
+ * mrb: The mruby state.
+ * id:  The symbol representing the name that caused the error.
+ * fmt: The format string for the exception message.
+ * ...: Variable arguments for the format string.
+ */
 MRB_API mrb_noreturn void
 mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...)
 {
@@ -432,6 +494,18 @@ mrb_name_error(mrb_state *mrb, mrb_sym id, const char *fmt, ...)
   mrb_exc_raise(mrb, exc);
 }
 
+/*
+ * Prints a warning message to stderr.
+ *
+ * The message is formatted using `fmt` and the subsequent variable arguments.
+ * The output is prefixed with "warning: " and followed by a newline.
+ * This function does nothing if MRB_NO_STDIO is defined.
+ * See mrb_vformat for details on the format string specifiers.
+ *
+ * mrb: The mruby state.
+ * fmt: The format string for the warning message.
+ * ...: Variable arguments for the format string.
+ */
 MRB_API void
 mrb_warn(mrb_state *mrb, const char *fmt, ...)
 {
@@ -448,6 +522,17 @@ mrb_warn(mrb_state *mrb, const char *fmt, ...)
 #endif
 }
 
+/*
+ * Reports an internal mruby bug, prints a message to stderr, and terminates the program.
+ *
+ * This function is called when an unexpected internal error occurs within mruby.
+ * It prints the given message prefixed with "bug: " to stderr and then
+ * calls exit(EXIT_FAILURE).
+ * If MRB_NO_STDIO is defined, the message is not printed, but the program still exits.
+ *
+ * mrb: The mruby state (currently unused in the function body but part of the API).
+ * mesg: The C string message describing the bug.
+ */
 MRB_API mrb_noreturn void
 mrb_bug(mrb_state *mrb, const char *mesg)
 {
@@ -485,6 +570,26 @@ mrb_make_exception(mrb_state *mrb, mrb_value exc, mrb_value mesg)
   return exc;
 }
 
+/*
+ * Raises a SystemCallError if available, otherwise a RuntimeError,
+ * based on the current `errno` value.
+ *
+ * If the SystemCallError class is defined, this function attempts to call
+ * its `_sys_fail` method with the current `errno` and an optional
+ * message. This typically results in a SystemCallError being raised.
+ *
+ * If SystemCallError is not defined, or if the call to `_sys_fail`
+ * itself fails (which shouldn't happen in normal circumstances but leads
+ * to mrb_raise), it falls back to raising a RuntimeError with the
+ * given message (or a default message if `mesg` is NULL, though the
+ * current implementation would pass NULL to mrb_raise which might be
+ * an issue).
+ *
+ * mrb: The mruby state.
+ * mesg: An optional C string message to append to the error. If NULL,
+ *       a default message or no message might be used depending on the
+ *       error path.
+ */
 MRB_API mrb_noreturn void
 mrb_sys_fail(mrb_state *mrb, const char *mesg)
 {
@@ -502,6 +607,22 @@ mrb_sys_fail(mrb_state *mrb, const char *mesg)
   mrb_raise(mrb, E_RUNTIME_ERROR, mesg);
 }
 
+/*
+ * Raises a NoMethodError exception with a formatted message.
+ *
+ * This function creates a NoMethodError. The message is generated from
+ * `fmt` and the variable arguments. The symbol `id` (the name of the
+ * missing method) and `args` (the arguments passed to the method)
+ * are associated with the exception object via instance variables
+ * named 'name' and 'args', respectively.
+ * See mrb_vformat for details on the format string specifiers.
+ *
+ * mrb:  The mruby state.
+ * id:   The symbol representing the name of the undefined method.
+ * args: The arguments that were passed to the method call.
+ * fmt:  The format string for the exception message.
+ * ...:  Variable arguments for the format string.
+ */
 MRB_API mrb_noreturn void
 mrb_no_method_error(mrb_state *mrb, mrb_sym id, mrb_value args, char const* fmt, ...)
 {
@@ -522,12 +643,31 @@ frozen_error(mrb_state *mrb, mrb_value v)
   mrb_raisef(mrb, E_FROZEN_ERROR, "can't modify frozen %T", v);
 }
 
+/*
+ * Raises a FrozenError for the given frozen object.
+ *
+ * This function is called when an attempt is made to modify an object
+ * that has been frozen. It constructs and raises a FrozenError,
+ * indicating the specific object that could not be modified.
+ *
+ * mrb:        The mruby state.
+ * frozen_obj: A pointer to the RBasic structure of the frozen object.
+ */
 MRB_API mrb_noreturn void
 mrb_frozen_error(mrb_state *mrb, void *frozen_obj)
 {
   frozen_error(mrb, mrb_obj_value(frozen_obj));
 }
 
+/*
+ * Checks if the given object is frozen. If it is, raises a FrozenError.
+ *
+ * This utility function is used before attempting an operation that
+ * would modify an object, to ensure that the operation is allowed.
+ *
+ * mrb: The mruby state.
+ * o:   A pointer to the RBasic structure of the object to check.
+ */
 MRB_API void
 mrb_check_frozen(mrb_state *mrb, void *o)
 {
@@ -536,6 +676,21 @@ mrb_check_frozen(mrb_state *mrb, void *o)
   }
 }
 
+/*
+ * Checks if the given mrb_value refers to a frozen object.
+ * If it is frozen, or if it's an immediate value (which are implicitly
+ * unmodifiable in a way that would trigger a FrozenError for heap objects),
+ * this function raises a FrozenError.
+ *
+ * Note: The check `mrb_immediate_p(v)` combined with `frozen_error`
+ * might be misleading. Immediate values are not "frozen" in the same
+ * sense as heap objects. This function effectively raises a FrozenError
+ * if an attempt is made to modify an immediate value or a
+ * heap-allocated object that is explicitly frozen.
+ *
+ * mrb: The mruby state.
+ * v:   The mrb_value to check.
+ */
 MRB_API void
 mrb_check_frozen_value(mrb_state *mrb, mrb_value v)
 {
@@ -544,6 +699,21 @@ mrb_check_frozen_value(mrb_state *mrb, mrb_value v)
   }
 }
 
+/*
+ * Raises an ArgumentError indicating a mismatch in the number of arguments.
+ *
+ * This function is used to report errors when a method receives an
+ * incorrect number of arguments. It formats a message specifying the
+ * number of arguments received (`argc`) and the expected number,
+ * which can be an exact number (`min` == `max`), a minimum (`max` < 0),
+ * or a range (`min` to `max`).
+ *
+ * mrb: The mruby state.
+ * argc: The number of arguments actually received.
+ * min: The minimum number of arguments expected.
+ * max: The maximum number of arguments expected. If negative, it means
+ *      `min` or more arguments are expected.
+ */
 MRB_API mrb_noreturn void
 mrb_argnum_error(mrb_state *mrb, mrb_int argc, int min, int max)
 {
@@ -664,6 +834,19 @@ mrb_raise_nomemory(mrb_state *mrb)
   }
 }
 
+/*
+ * Prints the current exception and its backtrace to stderr.
+ *
+ * If an exception is set in the mruby state (`mrb->exc`), this function
+ * attempts to print its details, including the class name, message,
+ * and backtrace.
+ * It takes precautions to handle potential errors during the backtrace
+ * printing itself, especially if called from a context without an active
+ * jump buffer (e.g., top-level error).
+ * This function does nothing if MRB_NO_STDIO is defined.
+ *
+ * mrb: The mruby state.
+ */
 MRB_API void
 mrb_print_error(mrb_state *mrb)
 {
@@ -684,7 +867,14 @@ mrb_print_error(mrb_state *mrb)
 #endif
 }
 
-/* clear error status in the mrb_state structure */
+/*
+ * Clears the current exception status in the mruby state.
+ *
+ * After this function is called, `mrb->exc` will be NULL, indicating
+ * that there is no pending exception.
+ *
+ * mrb: The mruby state.
+ */
 MRB_API void
 mrb_clear_error(mrb_state *mrb)
 {
