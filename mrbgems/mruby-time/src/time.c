@@ -26,6 +26,28 @@
 #define NDIV(x,y) (-(-((x)+1)/(y))-1)
 #define TO_S_FMT "%Y-%m-%d %H:%M:%S "
 
+/* Time unit constants */
+#define USECS_PER_SEC             1000000L
+#define USECS_PER_SEC_F           1.0e6
+#define NSECS_PER_USEC            1000L
+#define SECS_PER_MIN              60
+#define MINS_PER_HOUR             60
+#define HOURS_PER_DAY             24
+#define DAYS_PER_YEAR             365
+#define DAYS_PER_LEAP_YEAR        366
+#define MONTHS_PER_YEAR           12
+
+/* Calendar calculation constants */
+#define TM_YEAR_BASE              1900
+#define EPOCH_YEAR_OFFSET         70
+#define LEAP_YEAR_DIVISOR         4
+#define LEAP_YEAR_NON_DIVISOR_CENTURY 100
+#define LEAP_YEAR_DIVISOR_QUAD_CENTURY 400
+
+/* Windows specific time constants */
+#define WINDOWS_EPOCH_BIAS_USEC   UI64(116444736000000000) /* Unix epoch bias in 100ns intervals for Windows FILETIME */
+#define HUNDRED_NS_PER_USEC       10                     /* Number of 100-nanosecond intervals in a microsecond */
+
 #if defined(_MSC_VER) && _MSC_VER < 1800
 double round(double x) {
   return floor(x + 0.5);
@@ -121,10 +143,10 @@ gettimeofday(struct timeval *tv, void *tz)
       unsigned __int64 u64;
     } t;
     GetSystemTimeAsFileTime(&t.ft);   /* 100 ns intervals since Windows epoch */
-    t.u64 -= UI64(116444736000000000);  /* Unix epoch bias */
-    t.u64 /= 10;                      /* to microseconds */
-    tv->tv_sec = (time_t)(t.u64 / (1000 * 1000));
-    tv->tv_usec = t.u64 % (1000 * 1000);
+    t.u64 -= WINDOWS_EPOCH_BIAS_USEC;  /* Unix epoch bias */
+    t.u64 /= HUNDRED_NS_PER_USEC;      /* to microseconds */
+    tv->tv_sec = (time_t)(t.u64 / USECS_PER_SEC);
+    tv->tv_usec = t.u64 % USECS_PER_SEC;
   }
   return 0;
 }
@@ -137,40 +159,51 @@ gettimeofday(struct timeval *tv, void *tz)
 #define localtime_r(t,r) localtime(t)
 #endif
 
+/*
+ * USE_SYSTEM_TIMEGM: If defined, the system's `timegm` is used.
+ * Otherwise, a custom implementation `my_timgm` is used.
+ * `timegm` converts a `struct tm` (broken-down time) in UTC to a `time_t` (seconds since epoch).
+ * This is the reverse of `gmtime_r`.
+ */
 #ifndef USE_SYSTEM_TIMEGM
 #define timegm my_timgm
 
+/* Helper function to check for leap years. */
 static unsigned int
 is_leapyear(unsigned int y)
 {
-  return (y % 4) == 0 && ((y % 100) != 0 || (y % 400) == 0);
+  return (y % LEAP_YEAR_DIVISOR) == 0 && ((y % LEAP_YEAR_NON_DIVISOR_CENTURY) != 0 || (y % LEAP_YEAR_DIVISOR_QUAD_CENTURY) == 0);
 }
 
 static time_t
 timegm(struct tm *tm)
 {
-  static const unsigned int ndays[2][12] = {
-    {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
-    {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
+  static const unsigned int ndays[2][MONTHS_PER_YEAR] = {
+    {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}, /* Non-leap year */
+    {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}  /* Leap year */
   };
-  time_t r = 0;
+  time_t r = 0; /* Accumulator for seconds since epoch */
   int i;
-  unsigned int *nday = (unsigned int*) ndays[is_leapyear(tm->tm_year+1900)];
+  /* Get a pointer to the array of days in each month for the given year (leap or non-leap) */
+  unsigned int *nday = (unsigned int*) ndays[is_leapyear(tm->tm_year+TM_YEAR_BASE)];
 
-  static const int epoch_year = 70;
-  if (tm->tm_year >= epoch_year) {
-    for (i = epoch_year; i < tm->tm_year; ++i)
-      r += is_leapyear(i+1900) ? 366*24*60*60 : 365*24*60*60;
+  /* Calculate seconds from years since epoch */
+  if (tm->tm_year >= EPOCH_YEAR_OFFSET) { /* Years from 1970 up to tm_year */
+    for (i = EPOCH_YEAR_OFFSET; i < tm->tm_year; ++i)
+      r += is_leapyear(i+TM_YEAR_BASE) ? (DAYS_PER_LEAP_YEAR*HOURS_PER_DAY*SECS_PER_MIN*MINS_PER_HOUR) : (DAYS_PER_YEAR*HOURS_PER_DAY*SECS_PER_MIN*MINS_PER_HOUR);
   }
-  else {
-    for (i = tm->tm_year; i < epoch_year; ++i)
-      r -= is_leapyear(i+1900) ? 366*24*60*60 : 365*24*60*60;
+  else { /* Years before 1970 down to tm_year */
+    for (i = tm->tm_year; i < EPOCH_YEAR_OFFSET; ++i)
+      r -= is_leapyear(i+TM_YEAR_BASE) ? (DAYS_PER_LEAP_YEAR*HOURS_PER_DAY*SECS_PER_MIN*MINS_PER_HOUR) : (DAYS_PER_YEAR*HOURS_PER_DAY*SECS_PER_MIN*MINS_PER_HOUR);
   }
+  /* Add seconds from months in the current year */
   for (i = 0; i < tm->tm_mon; ++i)
-    r += nday[i] * 24 * 60 * 60;
-  r += (tm->tm_mday - 1) * 24 * 60 * 60;
-  r += tm->tm_hour * 60 * 60;
-  r += tm->tm_min * 60;
+    r += nday[i] * HOURS_PER_DAY * SECS_PER_MIN * MINS_PER_HOUR;
+  /* Add seconds from days in the current month */
+  r += (tm->tm_mday - 1) * HOURS_PER_DAY * SECS_PER_MIN * MINS_PER_HOUR;
+  /* Add seconds from hours, minutes, and seconds in the current day */
+  r += tm->tm_hour * SECS_PER_MIN * MINS_PER_HOUR;
+  r += tm->tm_min * SECS_PER_MIN;
   r += tm->tm_sec;
   return r;
 }
@@ -495,18 +528,25 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
 #define OUTINT(x) 0
 #endif
 
-  ayear -= 1900;
+  /* Adjust year to be relative to TM_YEAR_BASE (1900) for struct tm */
+  ayear -= TM_YEAR_BASE;
+
+  /* Validate arguments: year (after adjustment), month, day, hour, minute, second.
+   * This checks for valid ranges for each component.
+   * For hour, it allows 24 only if minutes and seconds are zero (midnight).
+   * For second, it allows up to 60 to accommodate leap seconds.
+   */
   if (OUTINT(ayear) ||
-      amonth  < 1 || amonth  > 12 ||
-      aday    < 1 || aday    > 31 ||
-      ahour   < 0 || ahour   > 24 ||
-      (ahour == 24 && (amin > 0 || asec > 0)) ||
-      amin    < 0 || amin    > 59 ||
-      asec    < 0 || asec    > 60)
+      amonth  < 1 || amonth  > MONTHS_PER_YEAR ||
+      aday    < 1 || aday    > 31 || /* Max days in a month, could be more specific but 31 is a safe upper bound for validation */
+      ahour   < 0 || ahour   > HOURS_PER_DAY ||
+      (ahour == HOURS_PER_DAY && (amin > 0 || asec > 0)) || /* Allow 24:00:00 */
+      amin    < 0 || amin    > (MINS_PER_HOUR -1) ||
+      asec    < 0 || asec    > SECS_PER_MIN) /* tm_sec can be 60 for leap seconds */
     mrb_raise(mrb, E_ARGUMENT_ERROR, "argument out of range");
 
   nowtime.tm_year  = (int)ayear;
-  nowtime.tm_mon   = (int)(amonth - 1);
+  nowtime.tm_mon   = (int)(amonth - 1); /* tm_mon is 0-11 */
   nowtime.tm_mday  = (int)aday;
   nowtime.tm_hour  = (int)ahour;
   nowtime.tm_min   = (int)amin;
@@ -621,21 +661,26 @@ time_plus(mrb_state *mrb, mrb_value self)
   struct mrb_time *tm = time_get_ptr(mrb, self);
   sec = mrb_to_time_t(mrb, o, &usec);
 #ifdef MRB_HAVE_TYPE_GENERIC_CHECKED_ARITHMETIC_BUILTINS
-  if (__builtin_add_overflow(tm->sec, sec, &sec)) {
+  /*
+   * Add seconds and handle potential overflow.
+   * If __builtin_add_overflow is available (GCC/Clang extension), use it for safe addition.
+   * Otherwise, perform manual overflow checks before addition.
+   */
+  if (__builtin_add_overflow(tm->sec, sec, &sec)) { /* sec result is stored back in sec */
     int_overflow(mrb, "addition");
   }
 #else
-  if (sec >= 0) {
-    if (tm->sec > MRB_TIME_MAX - sec) {
+  if (sec >= 0) { /* Adding a positive number */
+    if (tm->sec > MRB_TIME_MAX - sec) { /* Check for positive overflow */
       int_overflow(mrb, "addition");
     }
   }
-  else {
-    if (tm->sec < MRB_TIME_MIN - sec) {
+  else { /* Adding a negative number (effectively subtraction) */
+    if (tm->sec < MRB_TIME_MIN - sec) { /* Check for negative overflow */
       int_overflow(mrb, "addition");
     }
   }
-  sec = tm->sec + sec;
+  sec = tm->sec + sec; /* Perform the addition */
 #endif
   return time_make_time(mrb, mrb_obj_class(mrb, self), sec, tm->usec+usec, tm->timezone);
 }
@@ -651,7 +696,7 @@ time_minus(mrb_state *mrb, mrb_value self)
 #ifndef MRB_NO_FLOAT
     mrb_float f;
     f = (mrb_float)(tm->sec - tm2->sec)
-      + (mrb_float)(tm->usec - tm2->usec) / 1.0e6;
+      + (mrb_float)(tm->usec - tm2->usec) / USECS_PER_SEC_F;
     return mrb_float_value(mrb, f);
 #else
     mrb_int f;
@@ -664,21 +709,26 @@ time_minus(mrb_state *mrb, mrb_value self)
     time_t sec, usec;
     sec = mrb_to_time_t(mrb, other, &usec);
 #ifdef MRB_HAVE_TYPE_GENERIC_CHECKED_ARITHMETIC_BUILTINS
-    if (__builtin_sub_overflow(tm->sec, sec, &sec)) {
-      int_overflow(mrb, "subtraction");
-    }
+  /*
+   * Subtract seconds and handle potential overflow.
+   * If __builtin_sub_overflow is available, use it.
+   * Otherwise, perform manual overflow checks. Note that `sec` here is the subtrahend.
+   */
+    if (__builtin_sub_overflow(tm->sec, sec, &sec)) { /* sec result is stored back in sec */
+        int_overflow(mrb, "subtraction");
+      }
 #else
-    if (sec >= 0) {
-      if (tm->sec < MRB_TIME_MIN + sec) {
+    if (sec >= 0) { /* Subtracting a positive number */
+      if (tm->sec < MRB_TIME_MIN + sec) { /* Check for negative overflow */
         int_overflow(mrb, "subtraction");
       }
     }
-    else {
-      if (tm->sec > MRB_TIME_MAX + sec) {
+    else { /* Subtracting a negative number (effectively addition) */
+      if (tm->sec > MRB_TIME_MAX + sec) { /* Check for positive overflow */
         int_overflow(mrb, "subtraction");
       }
-    }
-    sec = tm->sec - sec;
+      }
+    sec = tm->sec - sec; /* Perform the subtraction */
 #endif
     return time_make_time(mrb, mrb_obj_class(mrb, self), sec, tm->usec-usec, tm->timezone);
   }
@@ -708,22 +758,29 @@ static mrb_value
 time_year(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm = time_get_ptr(mrb, self);
-  return mrb_fixnum_value(tm->datetime.tm_year + 1900);
+  return mrb_fixnum_value(tm->datetime.tm_year + TM_YEAR_BASE);
 }
 
 static size_t
 time_zonename(mrb_state *mrb, struct mrb_time *tm, char *buf, size_t len)
 {
 #if defined(_MSC_VER) && _MSC_VER < 1900 || defined(__MINGW64__) || defined(__MINGW32__)
-  struct tm datetime = {0};
-  time_t utc_sec = timegm(&tm->datetime);
-  int offset = abs((int)(utc_sec - tm->sec) / 60);
-  datetime.tm_year = 100;
-  datetime.tm_hour = offset / 60;
-  datetime.tm_min = offset % 60;
-  buf[0] = utc_sec < tm->sec ? '-' : '+';
-  return strftime(buf+1, len-1, "%H%M", &datetime) + 1;
+  /*
+   * On some Windows versions (specifically with MSC_VER < 1900, i.e., pre-VS2015, or MinGW),
+   * strftime's "%z" (timezone offset) specifier might not be available or reliable.
+   * This block manually calculates the UTC offset.
+   */
+  struct tm datetime = {0}; /* Temporary tm struct for strftime */
+  time_t utc_sec = timegm(&tm->datetime); /* Convert current datetime (interpreted as UTC) to time_t */
+  /* Calculate offset in minutes: difference between this UTC time_t and the stored local time_t */
+  int offset = abs((int)(utc_sec - tm->sec) / SECS_PER_MIN);
+  datetime.tm_year = 100; /* Arbitrary year for strftime, not relevant to offset display (e.g. Y2K bug-like) */
+  datetime.tm_hour = offset / MINS_PER_HOUR; /* Convert offset to hours and minutes */
+  datetime.tm_min = offset % MINS_PER_HOUR;
+  buf[0] = utc_sec < tm->sec ? '-' : '+'; /* Determine sign of the offset */
+  return strftime(buf+1, len-1, "%H%M", &datetime) + 1; /* Format as +HHMM or -HHMM */
 #else
+  /* On other systems, use strftime with "%z" to get the timezone offset */
   return strftime(buf, len, "%z", &tm->datetime);
 #endif
 }
@@ -765,7 +822,7 @@ time_asctime(mrb_state *mrb, mrb_value self)
   len = snprintf(buf, sizeof(buf), "%s %s %2d %02d:%02d:%02d %.4d",
     wday_names[d->tm_wday], mon_names[d->tm_mon], d->tm_mday,
     d->tm_hour, d->tm_min, d->tm_sec,
-    d->tm_year + 1900);
+    d->tm_year + TM_YEAR_BASE);
 #endif
   return mrb_str_new(mrb, buf, len);
 }
@@ -931,7 +988,7 @@ static mrb_value
 time_to_f(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm = time_get_ptr(mrb, self);
-  return mrb_float_value(mrb, (mrb_float)tm->sec + (mrb_float)tm->usec/1.0e6);
+  return mrb_float_value(mrb, (mrb_float)tm->sec + (mrb_float)tm->usec/USECS_PER_SEC_F);
 }
 #endif
 
