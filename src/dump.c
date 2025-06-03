@@ -32,6 +32,16 @@ get_irep_header_size(mrb_state *mrb)
   return size;
 }
 
+/**
+ * Writes the header of an IREP (Intermediate Representation) record to the provided buffer.
+ * This header includes information like the record size, number of local variables,
+ * number of registers, and number of child IREPs.
+ *
+ * @param mrb The mruby state. (Primarily used for `get_irep_record_size_1`)
+ * @param irep Pointer to the IREP structure whose header is to be written.
+ * @param buf Pointer to the buffer where the header will be written.
+ * @return `ptrdiff_t` representing the number of bytes written to the buffer.
+ */
 static ptrdiff_t
 write_irep_header(mrb_state *mrb, const mrb_irep *irep, uint8_t *buf)
 {
@@ -58,6 +68,17 @@ get_iseq_block_size(mrb_state *mrb, const mrb_irep *irep)
   return size;
 }
 
+/**
+ * Writes the instruction sequence (iseq) block of an IREP to the provided buffer.
+ * This block includes the number of catch handlers, the number of opcodes,
+ * and the instruction sequence itself along with catch handler data.
+ *
+ * @param mrb The mruby state (currently unused in the function body but good to document).
+ * @param irep Pointer to the IREP structure whose instruction sequence is to be written.
+ * @param buf Pointer to the buffer where the instruction sequence block will be written.
+ * @param flags Flags to control the dump process (currently unused in this specific function but part of its signature).
+ * @return `ptrdiff_t` representing the number of bytes written to the buffer.
+ */
 static ptrdiff_t
 write_iseq_block(mrb_state *mrb, const mrb_irep *irep, uint8_t *buf, uint8_t flags)
 {
@@ -74,6 +95,15 @@ write_iseq_block(mrb_state *mrb, const mrb_irep *irep, uint8_t *buf, uint8_t fla
 }
 
 #ifndef MRB_NO_FLOAT
+/**
+ * Dumps an `mrb_float` value into the provided buffer as a `double` in IEEE 754
+ * binary format, ensuring little-endian byte order. If the system is already
+ * little-endian, it uses `memcpy`. Otherwise, it manually reverses the bytes.
+ *
+ * @param mrb The mruby state (currently unused in the function body but good to document).
+ * @param buf Pointer to the buffer where the float data will be written.
+ * @param f The float value to be dumped.
+ */
 static void
 dump_float(mrb_state *mrb, uint8_t *buf, mrb_float f)
 {
@@ -94,6 +124,17 @@ dump_float(mrb_state *mrb, uint8_t *buf, mrb_float f)
 }
 #endif
 
+/**
+ * Calculates the total size in bytes required to store the literal pool of an IREP.
+ * The pool can contain various data types like integers (32-bit or 64-bit),
+ * big integers, floats, and strings. The function iterates through each pool entry,
+ * determines its type and corresponding size, and accumulates the total.
+ *
+ * @param mrb The mruby state, used for memory allocation and garbage collection
+ *            management (`mrb_gc_arena_save`/`restore`).
+ * @param irep Pointer to the IREP structure whose literal pool size is to be calculated.
+ * @return `size_t` representing the total calculated size of the pool block in bytes.
+ */
 static size_t
 get_pool_block_size(mrb_state *mrb, const mrb_irep *irep)
 {
@@ -153,6 +194,18 @@ get_pool_block_size(mrb_state *mrb, const mrb_irep *irep)
   return size;
 }
 
+/**
+ * Writes the literal pool of an IREP to the provided buffer.
+ * It iterates through each entry in the pool, determines its type
+ * (integer, float, string, bigint), and writes the type identifier
+ * and a binary representation of the value to the buffer.
+ *
+ * @param mrb The mruby state, used for garbage collection management
+ *            (`mrb_gc_arena_save`/`restore`) and potentially for `dump_float`.
+ * @param irep Pointer to the IREP structure whose literal pool is to be written.
+ * @param buf Pointer to the buffer where the literal pool data will be written.
+ * @return `ptrdiff_t` representing the number of bytes written to the buffer.
+ */
 static ptrdiff_t
 write_pool_block(mrb_state *mrb, const mrb_irep *irep, uint8_t *buf)
 {
@@ -223,6 +276,15 @@ write_pool_block(mrb_state *mrb, const mrb_irep *irep, uint8_t *buf)
   return cur - buf;
 }
 
+/**
+ * Calculates the total size in bytes required to store the symbol block of an IREP.
+ * This includes the count of symbols and, for each symbol, its length and
+ * the string representation (including a null terminator).
+ *
+ * @param mrb The mruby state, used for `mrb_sym_name_len` to get symbol details.
+ * @param irep Pointer to the IREP structure whose symbol block size is to be calculated.
+ * @return `size_t` representing the total calculated size of the symbol block in bytes.
+ */
 static size_t
 get_syms_block_size(mrb_state *mrb, const mrb_irep *irep)
 {
@@ -242,6 +304,17 @@ get_syms_block_size(mrb_state *mrb, const mrb_irep *irep)
   return size;
 }
 
+/**
+ * Writes the symbol block of an IREP to the provided buffer.
+ * It first writes the number of symbols. Then, for each symbol, it writes the
+ * length of the symbol's string representation followed by the string itself
+ * and a null terminator. Handles null symbols by writing `MRB_DUMP_NULL_SYM_LEN`.
+ *
+ * @param mrb The mruby state, used for `mrb_sym_name_len` to get symbol details.
+ * @param irep Pointer to the IREP structure whose symbol block is to be written.
+ * @param buf Pointer to the buffer where the symbol block data will be written.
+ * @return `ptrdiff_t` representing the number of bytes written to the buffer.
+ */
 static ptrdiff_t
 write_syms_block(mrb_state *mrb, const mrb_irep *irep, uint8_t *buf)
 {
@@ -278,6 +351,16 @@ get_irep_record_size_1(mrb_state *mrb, const mrb_irep *irep)
   return size;
 }
 
+/**
+ * Recursively calculates the total size in bytes of an IREP record.
+ * This includes the size of the current IREP's own data (header, iseq, pool,
+ * symbols - obtained via `get_irep_record_size_1`) and the sizes of all
+ * its child IREPs (reps).
+ *
+ * @param mrb The mruby state, passed through to helper functions.
+ * @param irep Pointer to the IREP structure for which the record size is to be calculated.
+ * @return `size_t` representing the total calculated size of the IREP record and its children in bytes.
+ */
 static size_t
 get_irep_record_size(mrb_state *mrb, const mrb_irep *irep)
 {
@@ -720,6 +803,24 @@ lv_defined_p(const mrb_irep *irep)
   return FALSE;
 }
 
+/**
+ * Dumps an IREP (Intermediate Representation) into a binary format.
+ *
+ * This function takes an IREP and converts it into a binary representation that can be
+ * stored or transmitted. The binary format includes sections for the IREP data,
+ * debug information (if specified by flags), and local variable information.
+ *
+ * @param mrb The mruby state.
+ * @param irep The IREP to dump.
+ * @param flags Flags to control the dump process (e.g., MRB_DUMP_DEBUG_INFO).
+ * @param bin A pointer to a buffer where the binary data will be stored.
+ *            The buffer is allocated by this function and must be freed by the caller
+ *            using mrb_free().
+ * @param bin_size A pointer to a variable where the size of the binary data will be stored.
+ *
+ * @return MRB_DUMP_OK on success, or an error code (e.g., MRB_DUMP_GENERAL_FAILURE,
+ *         MRB_DUMP_INVALID_ARGUMENT) on failure.
+ */
 int
 mrb_dump_irep(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, uint8_t **bin, size_t *bin_size)
 {
@@ -800,6 +901,20 @@ error_exit:
 
 #ifndef MRB_NO_STDIO
 
+/**
+ * Dumps an IREP (Intermediate Representation) into a binary format and writes it to a file.
+ *
+ * This function first calls `mrb_dump_irep` to get the binary representation of the IREP,
+ * then writes the binary data to the specified file pointer.
+ *
+ * @param mrb The mruby state.
+ * @param irep The IREP to dump.
+ * @param flags Flags to control the dump process.
+ * @param fp The file pointer to write the binary data to.
+ *
+ * @return MRB_DUMP_OK on success, or an error code (e.g., MRB_DUMP_INVALID_ARGUMENT,
+ *         MRB_DUMP_WRITE_FAULT) on failure.
+ */
 int
 mrb_dump_irep_binary(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE* fp)
 {
@@ -821,6 +936,22 @@ mrb_dump_irep_binary(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE* 
   return result;
 }
 
+/**
+ * Dumps an IREP (Intermediate Representation) as a C source file.
+ *
+ * This function converts an IREP into a C source file. The generated file
+ * will contain a `uint8_t` array holding the binary representation of the IREP.
+ *
+ * @param mrb The mruby state.
+ * @param irep The IREP to dump.
+ * @param flags Flags to control the dump process (e.g., `MRB_DUMP_STATIC` to
+ *              make the array static).
+ * @param fp The file pointer to write the C source code to.
+ * @param initname The name of the `uint8_t` array in the generated C code.
+ *
+ * @return MRB_DUMP_OK on success, or an error code (e.g.,
+ *         `MRB_DUMP_INVALID_ARGUMENT`, `MRB_DUMP_WRITE_FAULT`) on failure.
+ */
 int
 mrb_dump_irep_cfunc(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, const char *initname)
 {
