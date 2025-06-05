@@ -16,6 +16,10 @@
 #include <mruby/internal.h>
 #include <mruby/presym.h>
 
+/*
+ * Checks if the method `mid` for object `obj` is implemented by
+ * the C function `func`.
+ */
 MRB_API mrb_bool
 mrb_func_basic_p(mrb_state *mrb, mrb_value obj, mrb_sym mid, mrb_func_t func)
 {
@@ -260,6 +264,10 @@ mrb_obj_class_m(mrb_state *mrb, mrb_value self)
   return mrb_obj_value(mrb_obj_class(mrb, self));
 }
 
+/*
+ * Freezes the object `self`, preventing further modifications.
+ * Immediate values cannot be frozen.
+ */
 MRB_API mrb_value
 mrb_obj_freeze(mrb_state *mrb, mrb_value self)
 {
@@ -314,6 +322,9 @@ mrb_obj_init_copy(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ * Checks if the object `obj` is an instance of the class `c`.
+ */
 MRB_API mrb_bool
 mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, const struct RClass* c)
 {
