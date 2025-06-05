@@ -199,6 +199,16 @@ stack_extend(mrb_state *mrb, mrb_int room)
   }
 }
 
+/**
+ * @brief Extends the VM stack.
+ *
+ * This function extends the virtual machine stack to accommodate more values.
+ * If the current stack size is insufficient, it reallocates the stack
+ * with a larger size.
+ *
+ * @param mrb The mruby state.
+ * @param room The additional number of mrb_value slots required.
+ */
 MRB_API void
 mrb_stack_extend(mrb_state *mrb, mrb_int room)
 {
@@ -475,6 +485,26 @@ cipop(mrb_state *mrb)
   return c->ci;
 }
 
+/**
+ * @brief Protects a C function call from mruby exceptions.
+ *
+ * This function executes a C function (`body`) within a protected environment.
+ * If an mruby exception occurs during the execution of `body`, this function
+ * catches the exception, sets the `error` flag, and returns the exception object.
+ * Otherwise, it returns the result of the `body` function and `error` remains FALSE.
+ *
+ * This is crucial for calling mruby-related C functions from within C code
+ * that needs to handle potential mruby exceptions gracefully.
+ *
+ * @param mrb The mruby state.
+ * @param body A pointer to the C function to be executed.
+ *             The function should have the signature: `mrb_value func(mrb_state *mrb, void *userdata)`
+ * @param userdata A pointer to arbitrary data that will be passed to the `body` function.
+ * @param error A pointer to an mrb_bool that will be set to TRUE if an exception
+ *              occurred, and FALSE otherwise. Can be NULL if not needed.
+ * @return The value returned by the `body` function if no exception occurred,
+ *         or the exception object if an exception occurred.
+ */
 MRB_API mrb_value
 mrb_protect_error(mrb_state *mrb, mrb_protect_error_func *body, void *userdata, mrb_bool *error)
 {
@@ -525,6 +555,21 @@ static mrb_value mrb_run(mrb_state *mrb, const struct RProc* proc, mrb_value sel
 #define MRB_FUNCALL_ARGC_MAX 16
 #endif
 
+/**
+ * @brief Calls a method on an object.
+ *
+ * This function invokes a method identified by its name on the `self` object,
+ * passing the given arguments.
+ *
+ * @param mrb The mruby state.
+ * @param self The receiver object of the method call.
+ * @param name The name of the method to call (C string).
+ * @param argc The number of arguments to pass to the method.
+ * @param ... The variable arguments to pass to the method.
+ *            Each argument must be of type `mrb_value`.
+ * @return The result of the method call.
+ * @raise E_ARGUMENT_ERROR if `argc` is greater than `MRB_FUNCALL_ARGC_MAX`.
+ */
 MRB_API mrb_value
 mrb_funcall(mrb_state *mrb, mrb_value self, const char *name, mrb_int argc, ...)
 {
@@ -544,6 +589,23 @@ mrb_funcall(mrb_state *mrb, mrb_value self, const char *name, mrb_int argc, ...)
   return mrb_funcall_argv(mrb, self, mid, argc, argv);
 }
 
+/**
+ * @brief Calls a method on an object using a method ID.
+ *
+ * This function invokes a method identified by its symbol ID (`mid`) on
+ * the `self` object, passing the given arguments. Using a method ID
+ * can be more efficient than using a string name if the method is called
+ * frequently, as it avoids repeated string-to-symbol lookups.
+ *
+ * @param mrb The mruby state.
+ * @param self The receiver object of the method call.
+ * @param mid The symbol ID of the method to call.
+ * @param argc The number of arguments to pass to the method.
+ * @param ... The variable arguments to pass to the method.
+ *            Each argument must be of type `mrb_value`.
+ * @return The result of the method call.
+ * @raise E_ARGUMENT_ERROR if `argc` is greater than `MRB_FUNCALL_ARGC_MAX`.
+ */
 MRB_API mrb_value
 mrb_funcall_id(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc, ...)
 {
@@ -684,6 +746,24 @@ ensure_block(mrb_state *mrb, mrb_value blk)
   return blk;
 }
 
+/**
+ * @brief Calls a method on an object with a block.
+ *
+ * This function invokes a method identified by its symbol ID (`mid`) on
+ * the `self` object, passing the given arguments (`argv`) and a block (`blk`).
+ *
+ * @param mrb The mruby state.
+ * @param self The receiver object of the method call.
+ * @param mid The symbol ID of the method to call.
+ * @param argc The number of arguments in `argv`.
+ * @param argv A pointer to an array of `mrb_value` arguments.
+ * @param blk The block to pass to the method. If no block is to be passed,
+ *            use `mrb_nil_value()`. If `blk` is not nil and not a proc,
+ *            it will be converted to a proc using `to_proc`.
+ * @return The result of the method call.
+ * @raise E_ARGUMENT_ERROR if `argc` is negative or too large.
+ * @raise E_STACK_ERROR if the call level exceeds `MRB_CALL_LEVEL_MAX`.
+ */
 MRB_API mrb_value
 mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc, const mrb_value *argv, mrb_value blk)
 {
@@ -758,6 +838,23 @@ mrb_funcall_with_block(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc
   return val;
 }
 
+/**
+ * @brief Calls a method on an object with an array of arguments.
+ *
+ * This function is similar to `mrb_funcall_with_block` but takes arguments
+ * as a C array (`argv`) and does not take an explicit block argument.
+ * If a block is needed, `mrb_funcall_with_block` should be used.
+ * This function is essentially a convenience wrapper around
+ * `mrb_funcall_with_block` with `mrb_nil_value()` for the block.
+ *
+ * @param mrb The mruby state.
+ * @param self The receiver object of the method call.
+ * @param mid The symbol ID of the method to call.
+ * @param argc The number of arguments in `argv`.
+ * @param argv A pointer to an array of `mrb_value` arguments.
+ * @return The result of the method call.
+ * @see mrb_funcall_with_block
+ */
 MRB_API mrb_value
 mrb_funcall_argv(mrb_state *mrb, mrb_value self, mrb_sym mid, mrb_int argc, const mrb_value *argv)
 {
@@ -1137,12 +1234,50 @@ yield_with_attr(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv
   return val;
 }
 
+/**
+ * @brief Yields to a block with a specific `self` object and class context.
+ *
+ * This function executes a given block (`b`) with the provided arguments (`argv`).
+ * The `self` object within the block will be `self_obj`, and the class context
+ * will be `c`. This allows for more control over the execution environment of
+ * the block. The `vis_break` flag is set to TRUE, meaning visibility checks
+ * (public/private/protected) are enforced.
+ *
+ * @param mrb The mruby state.
+ * @param b The block (proc) to yield to.
+ * @param argc The number of arguments in `argv`.
+ * @param argv A pointer to an array of `mrb_value` arguments to pass to the block.
+ * @param self_obj The object that will be `self` inside the block.
+ * @param c The class context for the block execution.
+ * @return The result of the block execution.
+ * @raise E_TYPE_ERROR if `b` is not a proc or nil.
+ * @see mrb_yield_argv
+ * @see mrb_yield
+ */
 MRB_API mrb_value
-mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv, mrb_value self, struct RClass *c)
+mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv, mrb_value self_obj, struct RClass *c)
 {
-  return yield_with_attr(mrb, b, argc, argv, self, c, TRUE);
+  return yield_with_attr(mrb, b, argc, argv, self_obj, c, TRUE);
 }
 
+/**
+ * @brief Yields to a block with an array of arguments.
+ *
+ * This function executes a given block (`b`) with the provided arguments (`argv`).
+ * The `self` object and class context for the block execution are determined
+ * from the block itself (its captured environment).
+ * Visibility checks (public/private/protected) are not strictly enforced
+ * in the same way as `mrb_yield_with_class` (vis_break is FALSE).
+ *
+ * @param mrb The mruby state.
+ * @param b The block (proc) to yield to.
+ * @param argc The number of arguments in `argv`.
+ * @param argv A pointer to an array of `mrb_value` arguments to pass to the block.
+ * @return The result of the block execution.
+ * @raise E_TYPE_ERROR if `b` is not a proc or nil.
+ * @see mrb_yield_with_class
+ * @see mrb_yield
+ */
 MRB_API mrb_value
 mrb_yield_argv(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv)
 {
@@ -1153,6 +1288,23 @@ mrb_yield_argv(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv)
   return yield_with_attr(mrb, b, argc, argv, self, tc, FALSE);
 }
 
+/**
+ * @brief Yields to a block with a single argument.
+ *
+ * This function executes a given block (`b`) with a single argument (`arg`).
+ * It's a convenience function for the common case of yielding with one argument.
+ * The `self` object and class context for the block execution are determined
+ * from the block itself.
+ * Visibility checks are not strictly enforced (vis_break is FALSE).
+ *
+ * @param mrb The mruby state.
+ * @param b The block (proc) to yield to.
+ * @param arg The single `mrb_value` argument to pass to the block.
+ * @return The result of the block execution.
+ * @raise E_TYPE_ERROR if `b` is not a proc or nil.
+ * @see mrb_yield_with_class
+ * @see mrb_yield_argv
+ */
 MRB_API mrb_value
 mrb_yield(mrb_state *mrb, mrb_value b, mrb_value arg)
 {
@@ -1382,6 +1534,31 @@ prepare_tagged_break(mrb_state *mrb, uint32_t tag, const mrb_callinfo *return_ci
 
 #endif
 
+/**
+ * @brief Executes a mruby bytecode sequence (iseq) within the VM.
+ *
+ * This function is a core part of the mruby execution process. It sets up
+ * the VM environment for executing the bytecode instructions associated with
+ * the given proc (Ruby procedure/method).
+ *
+ * It initializes the stack if necessary, extends it to accommodate the
+ * required number of registers for the proc, and then calls `mrb_vm_exec`
+ * to actually execute the bytecode.
+ *
+ * @param mrb The mruby state.
+ * @param proc The RProc object containing the bytecode (iseq) to execute.
+ *             This proc represents a Ruby method or block.
+ * @param self The `self` object for the context of this execution.
+ * @param stack_keep The number of values to preserve on the stack from the
+ *                   previous context. This is used for managing nested calls
+ *                   and ensuring that arguments or local variables from the
+ *                   caller are accessible if needed, or that the stack is
+ *                   correctly cleared.
+ * @return The result of the bytecode execution (typically the value of the
+ *         last evaluated expression).
+ * @see mrb_vm_exec
+ * @see mrb_top_run
+ */
 MRB_API mrb_value
 mrb_vm_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, mrb_int stack_keep)
 {
@@ -1440,6 +1617,33 @@ hash_new_from_regs(mrb_state *mrb, mrb_int argc, mrb_int idx)
 
 #define ary_new_from_regs(mrb, argc, idx) mrb_ary_new_from_values(mrb, (argc), &regs[idx]);
 
+/**
+ * @brief Executes a sequence of mruby bytecode instructions.
+ *
+ * This is the main bytecode interpreter loop. It takes a starting proc
+ * (`begin_proc`) and a pointer to the initial instruction (`iseq`) within
+ * that proc's instruction sequence. It then enters a loop, fetching and
+ * dispatching bytecode operations until an OP_STOP instruction is encountered,
+ * an exception occurs, or a C function call returns.
+ *
+ * This function handles the low-level details of instruction decoding,
+ * stack manipulation, exception handling (try/catch blocks within mruby code),
+ * and calling C functions or other mruby methods.
+ *
+ * @param mrb The mruby state.
+ * @param begin_proc The initial RProc whose bytecode is to be executed.
+ *                   While the name suggests it's the "beginning" proc,
+ *                   execution might involve other procs called from this one.
+ * @param iseq A pointer to the first bytecode instruction to execute within
+ *             `begin_proc`'s instruction sequence.
+ * @return The result of the execution. This could be the return value of
+ *         the executed Ruby code, an exception object if an unhandled
+ *         exception occurred, or the result of a fiber switch.
+ * @note This function is highly complex and central to mruby's operation.
+ *       It uses a jump table (`optable`) for efficient instruction dispatch
+ *       when not using switch-based dispatch. It also manages the callinfo
+ *       stack (`ci`) for tracking method/block calls.
+ */
 MRB_API mrb_value
 mrb_vm_exec(mrb_state *mrb, const struct RProc *begin_proc, const mrb_code *iseq)
 {
@@ -3165,6 +3369,27 @@ mrb_run(mrb_state *mrb, const struct RProc *proc, mrb_value self)
   return mrb_vm_run(mrb, proc, self, ci_bidx(mrb->c->ci) + 1);
 }
 
+/**
+ * @brief Executes a mruby proc in the top-level environment.
+ *
+ * This function is used to execute a proc (like a script loaded from a file
+ * or a string) at the top level of the mruby environment. It's similar to
+ * `mrb_vm_run` but is specifically designed for top-level execution.
+ *
+ * It ensures that if there's an existing callinfo stack, the new execution
+ * is pushed on top with `CINFO_SKIP`, indicating it's a new, distinct
+ * execution context rather than a nested call from within the VM.
+ *
+ * @param mrb The mruby state.
+ * @param proc The RProc object (representing the script or code) to execute.
+ * @param self The `self` object for this top-level execution. Typically,
+ *             this is the main `top_self` object in mruby.
+ * @param stack_keep The number of values to preserve on the stack. For
+ *                   top-level execution, this is often 0 or a small number
+ *                   to set up initial local variables if any.
+ * @return The result of the proc's execution.
+ * @see mrb_vm_run
+ */
 MRB_API mrb_value
 mrb_top_run(mrb_state *mrb, const struct RProc *proc, mrb_value self, mrb_int stack_keep)
 {
