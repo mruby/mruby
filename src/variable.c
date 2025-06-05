@@ -307,6 +307,18 @@ class_iv_ptr(struct RClass *c)
   return c->tt == MRB_TT_ICLASS ? c->c->iv : c->iv;
 }
 
+/*
+ * Retrieves an instance variable from an object.
+ *
+ * Args:
+ *   mrb: The mruby state.
+ *   obj: The object from which to retrieve the instance variable.
+ *   sym: The symbol representing the name of the instance variable.
+ *
+ * Returns:
+ *   The value of the instance variable, or mrb_nil_value() if the
+ *   instance variable is not defined.
+ */
 MRB_API mrb_value
 mrb_obj_iv_get(mrb_state *mrb, struct RObject *obj, mrb_sym sym)
 {
@@ -317,6 +329,23 @@ mrb_obj_iv_get(mrb_state *mrb, struct RObject *obj, mrb_sym sym)
   return mrb_nil_value();
 }
 
+/*
+ * Retrieves an instance variable from an mrb_value.
+ *
+ * This function is a wrapper around mrb_obj_iv_get. It checks if the
+ * given mrb_value is an object that can have instance variables before
+ * attempting to retrieve the variable.
+ *
+ * Args:
+ *   mrb: The mruby state.
+ *   obj: The mrb_value from which to retrieve the instance variable.
+ *   sym: The symbol representing the name of the instance variable.
+ *
+ * Returns:
+ *   The value of the instance variable, or mrb_nil_value() if the
+ *   instance variable is not defined or if the object cannot have
+ *   instance variables.
+ */
 MRB_API mrb_value
 mrb_iv_get(mrb_state *mrb, mrb_value obj, mrb_sym sym)
 {
@@ -371,6 +400,18 @@ mrb_obj_iv_set_force(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value
   mrb_field_write_barrier_value(mrb, (struct RBasic*)obj, v);
 }
 
+/*
+ * Sets an instance variable on an object.
+ *
+ * This function checks if the object is frozen before setting the variable.
+ * It then calls mrb_obj_iv_set_force to actually set the variable.
+ *
+ * Args:
+ *   mrb: The mruby state.
+ *   obj: The object on which to set the instance variable.
+ *   sym: The symbol representing the name of the instance variable.
+ *   v:   The value to set for the instance variable.
+ */
 MRB_API void
 mrb_obj_iv_set(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
 {
@@ -378,7 +419,21 @@ mrb_obj_iv_set(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v)
   mrb_obj_iv_set_force(mrb, obj, sym, v);
 }
 
-/* Iterates over the instance variable table. */
+/*
+ * Iterates over the instance variables of an object.
+ *
+ * This function calls the provided callback function for each instance
+ * variable in the object.
+ *
+ * Args:
+ *   mrb:  The mruby state.
+ *   obj:  The mrb_value whose instance variables to iterate over.
+ *   func: The callback function to call for each instance variable.
+ *         The function should take mrb_state*, mrb_sym, mrb_value, and void*
+ *         as arguments and return an int. If the callback returns a non-zero
+ *         value, iteration stops.
+ *   p:    A pointer to user data that will be passed to the callback function.
+ */
 MRB_API void
 mrb_iv_foreach(mrb_state *mrb, mrb_value obj, mrb_iv_foreach_func *func, void *p)
 {
@@ -386,6 +441,23 @@ mrb_iv_foreach(mrb_state *mrb, mrb_value obj, mrb_iv_foreach_func *func, void *p
   iv_foreach(mrb, mrb_obj_ptr(obj)->iv, func, p);
 }
 
+/*
+ * Sets an instance variable on an mrb_value.
+ *
+ * This function is a wrapper around mrb_obj_iv_set. It checks if the
+ * given mrb_value is an object that can have instance variables before
+ * attempting to set the variable. If the object cannot have instance
+ * variables, it raises an E_ARGUMENT_ERROR.
+ *
+ * Args:
+ *   mrb: The mruby state.
+ *   obj: The mrb_value on which to set the instance variable.
+ *   sym: The symbol representing the name of the instance variable.
+ *   v:   The value to set for the instance variable.
+ *
+ * Raises:
+ *   E_ARGUMENT_ERROR: If the object cannot have instance variables.
+ */
 MRB_API void
 mrb_iv_set(mrb_state *mrb, mrb_value obj, mrb_sym sym, mrb_value v)
 {
@@ -397,6 +469,17 @@ mrb_iv_set(mrb_state *mrb, mrb_value obj, mrb_sym sym, mrb_value v)
   }
 }
 
+/*
+ * Checks if an instance variable is defined on an object.
+ *
+ * Args:
+ *   mrb: The mruby state.
+ *   obj: The object to check.
+ *   sym: The symbol representing the name of the instance variable.
+ *
+ * Returns:
+ *   TRUE if the instance variable is defined, FALSE otherwise.
+ */
 MRB_API mrb_bool
 mrb_obj_iv_defined(mrb_state *mrb, struct RObject *obj, mrb_sym sym)
 {
@@ -407,6 +490,22 @@ mrb_obj_iv_defined(mrb_state *mrb, struct RObject *obj, mrb_sym sym)
   return FALSE;
 }
 
+/*
+ * Checks if an instance variable is defined on an mrb_value.
+ *
+ * This function is a wrapper around mrb_obj_iv_defined. It checks if the
+ * given mrb_value is an object that can have instance variables before
+ * attempting to check for the variable.
+ *
+ * Args:
+ *   mrb: The mruby state.
+ *   obj: The mrb_value to check.
+ *   sym: The symbol representing the name of the instance variable.
+ *
+ * Returns:
+ *   TRUE if the instance variable is defined and the object can have
+ *   instance variables, FALSE otherwise.
+ */
 MRB_API mrb_bool
 mrb_iv_defined(mrb_state *mrb, mrb_value obj, mrb_sym sym)
 {
@@ -414,6 +513,22 @@ mrb_iv_defined(mrb_state *mrb, mrb_value obj, mrb_sym sym)
   return mrb_obj_iv_defined(mrb, mrb_obj_ptr(obj), sym);
 }
 
+/*
+ * Checks if a symbol is a valid instance variable name.
+ *
+ * A valid instance variable name must:
+ *   - Be at least 2 characters long.
+ *   - Start with '@'.
+ *   - Not have a digit as the second character.
+ *   - The rest of the name must be a valid identifier.
+ *
+ * Args:
+ *   mrb:     The mruby state.
+ *   iv_name: The symbol to check.
+ *
+ * Returns:
+ *   TRUE if the symbol is a valid instance variable name, FALSE otherwise.
+ */
 MRB_API mrb_bool
 mrb_iv_name_sym_p(mrb_state *mrb, mrb_sym iv_name)
 {
@@ -427,6 +542,17 @@ mrb_iv_name_sym_p(mrb_state *mrb, mrb_sym iv_name)
   return mrb_ident_p(s+1, len-1);
 }
 
+/*
+ * Checks if a symbol is a valid instance variable name and raises a
+ * name error if it's not.
+ *
+ * Args:
+ *   mrb:     The mruby state.
+ *   iv_name: The symbol to check.
+ *
+ * Raises:
+ *   E_NAME_ERROR: If the symbol is not a valid instance variable name.
+ */
 MRB_API void
 mrb_iv_name_sym_check(mrb_state *mrb, mrb_sym iv_name)
 {
@@ -435,6 +561,17 @@ mrb_iv_name_sym_check(mrb_state *mrb, mrb_sym iv_name)
   }
 }
 
+/*
+ * Copies instance variables from one object to another.
+ *
+ * If the destination object already has instance variables, they are freed
+ * before copying.
+ *
+ * Args:
+ *   mrb:  The mruby state.
+ *   dest: The destination object (mrb_value).
+ *   src:  The source object (mrb_value).
+ */
 MRB_API void
 mrb_iv_copy(mrb_state *mrb, mrb_value dest, mrb_value src)
 {
@@ -502,6 +639,19 @@ mrb_obj_iv_inspect(mrb_state *mrb, struct RObject *obj)
   return mrb_any_to_s(mrb, mrb_obj_value(obj));
 }
 
+/*
+ * Removes an instance variable from an object.
+ *
+ * Args:
+ *   mrb: The mruby state.
+ *   obj: The object (mrb_value) from which to remove the instance variable.
+ *   sym: The symbol representing the name of the instance variable.
+ *
+ * Returns:
+ *   The value of the removed instance variable, or mrb_undef_value() if
+ *   the instance variable was not defined or if the object cannot have
+ *   instance variables.
+ */
 MRB_API mrb_value
 mrb_iv_remove(mrb_state *mrb, mrb_value obj, mrb_sym sym)
 {
@@ -646,12 +796,41 @@ mrb_mod_cv_get(mrb_state *mrb, struct RClass *c, mrb_sym sym)
   return mrb_nil_value();
 }
 
+/*
+ * Retrieves a class variable from a module or class.
+ *
+ * This function is a wrapper around mrb_mod_cv_get.
+ *
+ * Args:
+ *   mrb: The mruby state.
+ *   mod: The module or class (mrb_value) from which to retrieve the class variable.
+ *   sym: The symbol representing the name of the class variable.
+ *
+ * Returns:
+ *   The value of the class variable.
+ *
+ * Raises:
+ *   E_NAME_ERROR: If the class variable is not defined.
+ */
 MRB_API mrb_value
 mrb_cv_get(mrb_state *mrb, mrb_value mod, mrb_sym sym)
 {
   return mrb_mod_cv_get(mrb, mrb_class_ptr(mod), sym);
 }
 
+/*
+ * Sets a class variable in a module or class.
+ *
+ * This function searches for the class variable in the superclass chain.
+ * If found, it updates the value in the class where it's defined.
+ * Otherwise, it sets the variable in the given class `c`.
+ *
+ * Args:
+ *   mrb: The mruby state.
+ *   c:   The class or module (struct RClass*) in which to set the class variable.
+ *   sym: The symbol representing the name of the class variable.
+ *   v:   The value to set for the class variable.
+ */
 MRB_API void
 mrb_mod_cv_set(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value v)
 {
@@ -701,12 +880,34 @@ mrb_mod_cv_set(mrb_state *mrb, struct RClass *c, mrb_sym sym, mrb_value v)
   mrb_field_write_barrier_value(mrb, (struct RBasic*)c, v);
 }
 
+/*
+ * Sets a class variable in a module or class.
+ *
+ * This function is a wrapper around mrb_mod_cv_set.
+ *
+ * Args:
+ *   mrb: The mruby state.
+ *   mod: The module or class (mrb_value) in which to set the class variable.
+ *   sym: The symbol representing the name of the class variable.
+ *   v:   The value to set for the class variable.
+ */
 MRB_API void
 mrb_cv_set(mrb_state *mrb, mrb_value mod, mrb_sym sym, mrb_value v)
 {
   mrb_mod_cv_set(mrb, mrb_class_ptr(mod), sym, v);
 }
 
+/*
+ * Checks if a class variable is defined in a module or class or its ancestors.
+ *
+ * Args:
+ *   mrb: The mruby state.
+ *   c:   The class or module (struct RClass*) to check.
+ *   sym: The symbol representing the name of the class variable.
+ *
+ * Returns:
+ *   TRUE if the class variable is defined, FALSE otherwise.
+ */
 mrb_bool
 mrb_mod_cv_defined(mrb_state *mrb, struct RClass * c, mrb_sym sym)
 {
@@ -719,6 +920,19 @@ mrb_mod_cv_defined(mrb_state *mrb, struct RClass * c, mrb_sym sym)
   return FALSE;
 }
 
+/*
+ * Checks if a class variable is defined in a module or class or its ancestors.
+ *
+ * This function is a wrapper around mrb_mod_cv_defined.
+ *
+ * Args:
+ *   mrb: The mruby state.
+ *   mod: The module or class (mrb_value) to check.
+ *   sym: The symbol representing the name of the class variable.
+ *
+ * Returns:
+ *   TRUE if the class variable is defined, FALSE otherwise.
+ */
 MRB_API mrb_bool
 mrb_cv_defined(mrb_state *mrb, mrb_value mod, mrb_sym sym)
 {
@@ -816,6 +1030,26 @@ mrb_exc_const_get(mrb_state *mrb, mrb_sym sym)
   return const_get_nohook(mrb, mrb->object_class, sym, FALSE);
 }
 
+/*
+ * Retrieves a constant from a module or class.
+ *
+ * It first checks if `mod` is a class or module, then calls the
+ * internal `const_get` function to retrieve the constant.
+ * This function will also call the `const_missing` hook if the
+ * constant is not found.
+ *
+ * Args:
+ *   mrb: The mruby state.
+ *   mod: The module or class (mrb_value) from which to retrieve the constant.
+ *   sym: The symbol representing the name of the constant.
+ *
+ * Returns:
+ *   The value of the constant.
+ *
+ * Raises:
+ *   E_TYPE_ERROR: If `mod` is not a class or module.
+ *   E_NAME_ERROR: If the constant is not defined and `const_missing` is not defined or also raises an error.
+ */
 MRB_API mrb_value
 mrb_const_get(mrb_state *mrb, mrb_value mod, mrb_sym sym)
 {
@@ -859,6 +1093,24 @@ mrb_vm_const_get(mrb_state *mrb, mrb_sym sym)
   return const_get(mrb, c, sym, TRUE);
 }
 
+/*
+ * Sets a constant in a module or class.
+ *
+ * It first checks if `mod` is a class or module.
+ * If the value `v` being set is a class or module, it calls
+ * `mrb_class_name_class` to set up the class/module name.
+ * Then, it sets the constant using `mrb_obj_iv_set` and calls
+ * the `const_added` hook.
+ *
+ * Args:
+ *   mrb: The mruby state.
+ *   mod: The module or class (mrb_value) in which to set the constant.
+ *   sym: The symbol representing the name of the constant.
+ *   v:   The value to set for the constant.
+ *
+ * Raises:
+ *   E_TYPE_ERROR: If `mod` is not a class or module.
+ */
 MRB_API void
 mrb_const_set(mrb_state *mrb, mrb_value mod, mrb_sym sym, mrb_value v)
 {
@@ -872,6 +1124,20 @@ mrb_const_set(mrb_state *mrb, mrb_value mod, mrb_sym sym, mrb_value v)
   mrb_funcall_argv(mrb, mod, MRB_SYM(const_added), 1, &name);
 }
 
+/*
+ * Removes a constant from a module or class.
+ *
+ * It first checks if `mod` is a class or module, then removes the
+ * constant using `mrb_iv_remove`.
+ *
+ * Args:
+ *   mrb: The mruby state.
+ *   mod: The module or class (mrb_value) from which to remove the constant.
+ *   sym: The symbol representing the name of the constant.
+ *
+ * Raises:
+ *   E_TYPE_ERROR: If `mod` is not a class or module.
+ */
 MRB_API void
 mrb_const_remove(mrb_state *mrb, mrb_value mod, mrb_sym sym)
 {
@@ -879,18 +1145,52 @@ mrb_const_remove(mrb_state *mrb, mrb_value mod, mrb_sym sym)
   mrb_iv_remove(mrb, mod, sym);
 }
 
+/*
+ * Defines a constant in a module or class using a symbol for the name.
+ *
+ * This is a direct way to set a constant without triggering `const_added` hook.
+ *
+ * Args:
+ *   mrb:  The mruby state.
+ *   mod:  The module or class (struct RClass*) in which to define the constant.
+ *   name: The symbol representing the name of the constant.
+ *   v:    The value to set for the constant.
+ */
 MRB_API void
 mrb_define_const_id(mrb_state *mrb, struct RClass *mod, mrb_sym name, mrb_value v)
 {
   mrb_obj_iv_set(mrb, (struct RObject*)mod, name, v);
 }
 
+/*
+ * Defines a constant in a module or class using a C string for the name.
+ *
+ * This is a direct way to set a constant without triggering `const_added` hook.
+ * The C string name is interned into a symbol.
+ *
+ * Args:
+ *   mrb:  The mruby state.
+ *   mod:  The module or class (struct RClass*) in which to define the constant.
+ *   name: The C string representing the name of the constant.
+ *   v:    The value to set for the constant.
+ */
 MRB_API void
 mrb_define_const(mrb_state *mrb, struct RClass *mod, const char *name, mrb_value v)
 {
   mrb_obj_iv_set(mrb, (struct RObject*)mod, mrb_intern_cstr(mrb, name), v);
 }
 
+/*
+ * Defines a global constant.
+ *
+ * Global constants are defined in the `Object` class.
+ * This function is a convenience wrapper around `mrb_define_const`.
+ *
+ * Args:
+ *   mrb:  The mruby state.
+ *   name: The C string representing the name of the global constant.
+ *   val:  The value to set for the global constant.
+ */
 MRB_API void
 mrb_define_global_const(mrb_state *mrb, const char *name, mrb_value val)
 {
@@ -952,6 +1252,17 @@ mrb_mod_constants(mrb_state *mrb, mrb_value mod)
   return ary;
 }
 
+/*
+ * Retrieves a global variable.
+ *
+ * Args:
+ *   mrb: The mruby state.
+ *   sym: The symbol representing the name of the global variable.
+ *
+ * Returns:
+ *   The value of the global variable, or mrb_nil_value() if the
+ *   global variable is not defined.
+ */
 MRB_API mrb_value
 mrb_gv_get(mrb_state *mrb, mrb_sym sym)
 {
@@ -962,6 +1273,16 @@ mrb_gv_get(mrb_state *mrb, mrb_sym sym)
   return mrb_nil_value();
 }
 
+/*
+ * Sets a global variable.
+ *
+ * If the global variable table (`mrb->globals`) does not exist, it is created.
+ *
+ * Args:
+ *   mrb: The mruby state.
+ *   sym: The symbol representing the name of the global variable.
+ *   v:   The value to set for the global variable.
+ */
 MRB_API void
 mrb_gv_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
 {
@@ -974,6 +1295,13 @@ mrb_gv_set(mrb_state *mrb, mrb_sym sym, mrb_value v)
   iv_put(mrb, t, sym, v);
 }
 
+/*
+ * Removes a global variable.
+ *
+ * Args:
+ *   mrb: The mruby state.
+ *   sym: The symbol representing the name of the global variable to remove.
+ */
 MRB_API void
 mrb_gv_remove(mrb_state *mrb, mrb_sym sym)
 {
@@ -1034,18 +1362,59 @@ retry:
   return FALSE;
 }
 
+/*
+ * Checks if a constant is defined in a module or class or its ancestors.
+ *
+ * This function calls `const_defined_0` with `recurse = TRUE`, meaning
+ * it will search the superclass chain.
+ *
+ * Args:
+ *   mrb: The mruby state.
+ *   mod: The module or class (mrb_value) to check.
+ *   id:  The symbol representing the name of the constant.
+ *
+ * Returns:
+ *   TRUE if the constant is defined, FALSE otherwise.
+ */
 MRB_API mrb_bool
 mrb_const_defined(mrb_state *mrb, mrb_value mod, mrb_sym id)
 {
   return const_defined_0(mrb, mod, id, TRUE, TRUE);
 }
 
+/*
+ * Checks if a constant is defined directly in a module or class.
+ *
+ * This function calls `const_defined_0` with `recurse = FALSE`, meaning
+ * it will only search the given module/class, not its ancestors.
+ *
+ * Args:
+ *   mrb: The mruby state.
+ *   mod: The module or class (mrb_value) to check.
+ *   id:  The symbol representing the name of the constant.
+ *
+ * Returns:
+ *   TRUE if the constant is defined directly in the module/class, FALSE otherwise.
+ */
 MRB_API mrb_bool
 mrb_const_defined_at(mrb_state *mrb, mrb_value mod, mrb_sym id)
 {
   return const_defined_0(mrb, mod, id, TRUE, FALSE);
 }
 
+/*
+ * Retrieves an attribute (instance variable) from an object.
+ *
+ * This function is a simple wrapper around `mrb_iv_get`.
+ *
+ * Args:
+ *   mrb: The mruby state.
+ *   obj: The object (mrb_value) from which to retrieve the attribute.
+ *   id:  The symbol representing the name of the attribute (instance variable).
+ *
+ * Returns:
+ *   The value of the attribute, or mrb_nil_value() if not defined.
+ */
 MRB_API mrb_value
 mrb_attr_get(mrb_state *mrb, mrb_value obj, mrb_sym id)
 {
