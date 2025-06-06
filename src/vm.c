@@ -1238,7 +1238,7 @@ yield_with_attr(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv
  * @brief Yields to a block with a specific `self` object and class context.
  *
  * This function executes a given block (`b`) with the provided arguments (`argv`).
- * The `self` object within the block will be `self_obj`, and the class context
+ * The `self` object within the block will be `self`, and the class context
  * will be `c`. This allows for more control over the execution environment of
  * the block. The `vis_break` flag is set to TRUE, meaning visibility checks
  * (public/private/protected) are enforced.
@@ -1247,7 +1247,7 @@ yield_with_attr(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv
  * @param b The block (proc) to yield to.
  * @param argc The number of arguments in `argv`.
  * @param argv A pointer to an array of `mrb_value` arguments to pass to the block.
- * @param self_obj The object that will be `self` inside the block.
+ * @param self The object that will be `self` inside the block.
  * @param c The class context for the block execution.
  * @return The result of the block execution.
  * @raise E_TYPE_ERROR if `b` is not a proc or nil.
@@ -1255,9 +1255,9 @@ yield_with_attr(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv
  * @see mrb_yield
  */
 MRB_API mrb_value
-mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv, mrb_value self_obj, struct RClass *c)
+mrb_yield_with_class(mrb_state *mrb, mrb_value b, mrb_int argc, const mrb_value *argv, mrb_value self, struct RClass *c)
 {
-  return yield_with_attr(mrb, b, argc, argv, self_obj, c, TRUE);
+  return yield_with_attr(mrb, b, argc, argv, self, c, TRUE);
 }
 
 /**
