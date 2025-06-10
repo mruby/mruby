@@ -254,7 +254,7 @@ class TCPSocket < IPSocket
   def self._new_with_prelude(*args, &pre)
     o = self._allocate
     o.instance_eval(&pre)
-    o.initialize(*args)
+    o.__send__(:initialize, *args)
     o
   end
 
