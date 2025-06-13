@@ -280,9 +280,9 @@ class TCPServer < TCPSocket
       TCPSocket._new_with_prelude(fd, "r+") {
         @init_with_fd = true
       }
-    rescue
+    rescue => e
       IO._sysclose(fd) rescue nil
-      raise
+      raise e
     end
   end
 
