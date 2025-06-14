@@ -250,14 +250,6 @@ class TCPSocket < IPSocket
       raise e
     end
   end
-
-  def self._new_with_prelude(*args, &pre)
-    o = self._allocate
-    o.instance_eval(&pre)
-    o.__send__(:initialize, *args)
-    o
-  end
-
   #def self.gethostbyname(host)
 end
 
@@ -277,9 +269,12 @@ class TCPServer < TCPSocket
   def accept
     fd = self.sysaccept
     begin
-      TCPSocket._new_with_prelude(fd, "r+") {
+      s = TCPSocket._allocate
+      s.instance_eval{
         @init_with_fd = true
       }
+      s.__send__(:initialize, fd, "r+")
+      s
     rescue => e
       IO._sysclose(fd) rescue nil
       raise e
