@@ -590,6 +590,6 @@ mrb_init_range(mrb_state *mrb)
   mrb_define_method_id(mrb, r, MRB_SYM(to_s),            range_to_s,            MRB_ARGS_NONE()); /* 15.2.14.4.12(x) */
   mrb_define_method_id(mrb, r, MRB_SYM(inspect),         range_inspect,         MRB_ARGS_NONE()); /* 15.2.14.4.13(x) */
   mrb_define_method_id(mrb, r, MRB_SYM_Q(eql),           range_eql,             MRB_ARGS_REQ(1)); /* 15.2.14.4.14(x) */
-  mrb_define_method_id(mrb, r, MRB_SYM(initialize_copy), range_initialize_copy, MRB_ARGS_REQ(1)); /* 15.2.14.4.15(x) */
+  mrb_define_private_method_id(mrb, r, MRB_SYM(initialize_copy), range_initialize_copy, MRB_ARGS_REQ(1)); /* 15.2.14.4.15(x) */
   mrb_define_method_id(mrb, r, MRB_SYM(__num_to_a),      range_num_to_a,        MRB_ARGS_NONE());
 }
