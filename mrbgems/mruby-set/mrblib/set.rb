@@ -31,7 +31,7 @@ class Set
     end
   end
 
-  def initialize_copy(orig)
+  private def initialize_copy(orig)
     super
     @hash = orig.__get_hash.dup
   end
