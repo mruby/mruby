@@ -1257,7 +1257,7 @@ mrb_mruby_time_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, tc, MRB_SYM(zone), time_zone, MRB_ARGS_NONE());       /* 15.2.19.7.33 */
 
   mrb_define_method_id(mrb, tc, MRB_SYM(initialize), time_init, MRB_ARGS_REQ(1)); /* 15.2.19.7.16 */
-  mrb_define_method_id(mrb, tc, MRB_SYM(initialize_copy), time_init_copy, MRB_ARGS_REQ(1)); /* 15.2.19.7.17 */
+  mrb_define_private_method_id(mrb, tc, MRB_SYM(initialize_copy), time_init_copy, MRB_ARGS_REQ(1)); /* 15.2.19.7.17 */
 
   mrb_define_method_id(mrb, tc, MRB_SYM_Q(sunday), time_sunday, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, tc, MRB_SYM_Q(monday), time_monday, MRB_ARGS_NONE());
