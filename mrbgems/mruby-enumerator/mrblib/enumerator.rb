@@ -132,7 +132,7 @@ class Enumerator
     @stop_exc = false
   end
 
-  def initialize_copy(obj)
+  private def initialize_copy(obj)
     raise TypeError, "can't copy type #{obj.class}" unless obj.kind_of? Enumerator
     raise TypeError, "can't copy execution context" if obj.instance_eval{@fib}
     meth = args = kwd = fib = nil
