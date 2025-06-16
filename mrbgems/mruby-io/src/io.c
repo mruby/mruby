@@ -1923,7 +1923,7 @@ mrb_init_io(mrb_state *mrb)
 #endif
 
   mrb_define_method_id(mrb, io, MRB_SYM(initialize),      io_init, MRB_ARGS_ARG(1,2));
-  mrb_define_method_id(mrb, io, MRB_SYM(initialize_copy), io_init_copy, MRB_ARGS_REQ(1));
+  mrb_define_private_method_id(mrb, io, MRB_SYM(initialize_copy), io_init_copy, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, io, MRB_SYM(isatty),     io_isatty,     MRB_ARGS_NONE());
   mrb_define_method_id(mrb, io, MRB_SYM_Q(eof),      io_eof,        MRB_ARGS_NONE());   /* 15.2.20.5.6 */
   mrb_define_method_id(mrb, io, MRB_SYM(getc),       io_getc,       MRB_ARGS_NONE());   /* 15.2.20.5.8 */
