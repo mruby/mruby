@@ -310,8 +310,8 @@ h_check_modified_validate(mrb_state *mrb, struct h_check_modified *checker, stru
   }
 }
 
-static uint32_t
-obj_hash_code(mrb_state *mrb, mrb_value key, struct RHash *h)
+uint32_t
+mrb_obj_hash_code(mrb_state *mrb, mrb_value key)
 {
   enum mrb_vtype tt = mrb_type(key);
   uint32_t hash_code;
@@ -337,14 +337,22 @@ obj_hash_code(mrb_state *mrb, mrb_value key, struct RHash *h)
     hash_code = U32(mrb_obj_id(key));
     break;
   default:
-    H_CHECK_MODIFIED(mrb, h) {
-      hash_code_obj = mrb_funcall_argv(mrb, key, MRB_SYM(hash), 0, NULL);
-    }
-
+    hash_code_obj = mrb_funcall_argv(mrb, key, MRB_SYM(hash), 0, NULL);
     hash_code = U32(tt) ^ U32(mrb_integer(hash_code_obj));
     break;
   }
   return hash_code ^ (hash_code << 2) ^ (hash_code >> 2);
+}
+
+static uint32_t
+obj_hash_code(mrb_state *mrb, mrb_value key, struct RHash *h)
+{
+  uint32_t hash_code;
+
+  H_CHECK_MODIFIED(mrb, h) {
+    hash_code = mrb_obj_hash_code(mrb, key);
+  }
+  return hash_code;
 }
 
 static mrb_bool
