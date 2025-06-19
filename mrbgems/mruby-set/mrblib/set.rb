@@ -8,16 +8,6 @@ class Set
     end
   end
 
-  # internal method to get internal hash (compatibility bridge)
-  def __get_hash
-    # For C implementation, create a Ruby hash representation
-    # This is only used by Ruby fallback methods
-    hash = {}
-    each { |element| hash[element] = true }
-    hash
-  end
-
-
   # Helper method for initialize with block
   def __init_with_block(enum, &block)
     __do_with_enum(enum) { |o| add(block.call(o)) }
