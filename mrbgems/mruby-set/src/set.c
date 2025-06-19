@@ -71,23 +71,13 @@ set_init(mrb_state *mrb, mrb_value self)
     return self;
   }
 
-  /*
-   * To avoid memory leaks if an exception is raised during merge or __init_with_block,
-   * we'll use a temporary set to validate the operation first.
-   * This ensures that if an exception occurs, it happens on the temporary set,
-   * and our main set's khash will be properly freed when the object is GC'd.
-   */
-  mrb_value temp_set = mrb_obj_new(mrb, mrb_obj_class(mrb, self), 0, NULL);
-
   if (!mrb_nil_p(block)) {
     /* Block given - validate with the temporary set first */
     mrb_value args[1] = { enum_obj };
-    mrb_funcall_with_block(mrb, temp_set, MRB_SYM(__init_with_block), 1, args, block);
     /* If we get here, no exception was raised, so we can safely proceed with our main set */
     mrb_funcall_with_block(mrb, self, MRB_SYM(__init_with_block), 1, args, block);
-  } else {
-    /* No block - validate merge with the temporary set first */
-    mrb_funcall_id(mrb, temp_set, MRB_SYM(merge), 1, enum_obj);
+  }
+  else {
     /* If we get here, no exception was raised, so we can safely proceed with our main set */
     mrb_funcall_id(mrb, self, MRB_SYM(merge), 1, enum_obj);
   }
