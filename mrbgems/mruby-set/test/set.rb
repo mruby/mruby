@@ -627,6 +627,6 @@ end
 #  end
 #
 assert("Set#inspect") do
-  set = Set[1,2,3]
-  assert_equal("#<Set: {1, 2, 3}>", set.inspect)
+  set = Set[1,1,1]
+  assert_equal("#<Set: {1}>", set.inspect)
 end

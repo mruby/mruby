@@ -1,6 +1,4 @@
 class Set
-  include Enumerable
-
   # internal method
   def __do_with_enum(enum, &block)
     if enum.respond_to?(:each)
@@ -10,63 +8,50 @@ class Set
     end
   end
 
-  # internal method to get internal hash
+  # internal method to get internal hash (compatibility bridge)
   def __get_hash
-    @hash
+    # For C implementation, create a Ruby hash representation
+    # This is only used by Ruby fallback methods
+    hash = {}
+    each { |element| hash[element] = true }
+    hash
   end
 
-  def self.[](*ary)
-    new(ary)
-  end
 
-  def initialize(enum = nil, &block)
-    @hash ||= Hash.new
-
-    enum.nil? and return
-
-    if block_given?
-      __do_with_enum(enum) { |o| add(block.call(o)) }
-    else
-      merge(enum)
-    end
-  end
-
-  private def initialize_copy(orig)
-    super
-    @hash = orig.__get_hash.dup
-  end
-
-  # def freeze
-  #   @hash.freeze
-  #   super
-  # end
-
-  def size
-    @hash.size
-  end
-  alias length size
-
-  def empty?
-    @hash.empty?
-  end
-
-  def clear
-    @hash.clear
+  # Helper method for initialize with block
+  def __init_with_block(enum, &block)
+    __do_with_enum(enum) { |o| add(block.call(o)) }
     self
   end
 
-  def replace(enum)
-    clear
-    merge(enum)
+  # Helper method for merge with enumerable
+  def __merge_enum(enum)
+    __do_with_enum(enum) { |o| add(o) }
+    self
   end
 
-  def to_a
-    @hash.keys
+  # Helper method for subtract with enumerable
+  def __subtract_enum(enum)
+    __do_with_enum(enum) { |o| delete(o) }
+    self
   end
 
-#  def to_set
-#  end
-#
+  # Helper method for intersection with enumerable
+  def __intersection_enum(enum)
+    n = Set.new
+    __do_with_enum(enum) { |o| n.add(o) if include?(o) }
+    n
+  end
+
+  # Helper method for complex equality checks
+  def __equal_fallback(other)
+    if other.is_a?(self.class) && self.size == other.size
+      other.all? { |o| include?(o) }
+    else
+      false
+    end
+  end
+
   def flatten_merge(set, seen = Set.new)
     seen.add(set.object_id)
     set.each { |e|
@@ -96,12 +81,6 @@ class Set
       nil
     end
   end
-
-  def include?(o)
-    @hash.include?(o)
-  end
-  alias member? include?
-  alias === include?
 
   def superset?(set)
     raise ArgumentError, "value must be a set" unless set.is_a?(Set)
@@ -146,46 +125,20 @@ class Set
 
   def each(&block)
     return to_enum :each unless block_given?
-    @hash.each_key(&block)
+    # Use C implementation's to_a method and iterate
+    to_a.each(&block)
     self
-  end
-
-  def add(o)
-    @hash[o] = true
-    self
-  end
-  alias << add
-
-  def add?(o)
-    if include?(o)
-      nil
-    else
-      add(o)
-    end
-  end
-
-  def delete(o)
-    @hash.delete(o)
-    self
-  end
-
-  def delete?(o)
-    if include?(o)
-      delete(o)
-    else
-      nil
-    end
   end
 
   def delete_if
     return to_enum :delete_if unless block_given?
-    select { |o| yield o }.each { |o| @hash.delete(o) }
+    select { |o| yield o }.each { |o| delete(o) }
     self
   end
 
   def keep_if
     return to_enum :keep_if unless block_given?
-    reject { |o| yield o }.each { |o| @hash.delete(o) }
+    reject { |o| yield o }.each { |o| delete(o) }
     self
   end
 
@@ -212,55 +165,6 @@ class Set
   end
   alias filter! select!
 
-  def merge(enum)
-    if enum.instance_of?(self.class)
-      @hash.merge!(enum.__get_hash)
-    else
-      __do_with_enum(enum) { |o| add(o) }
-    end
-
-    self
-  end
-
-  def subtract(enum)
-    __do_with_enum(enum) { |o| delete(o) }
-    self
-  end
-
-  def |(enum)
-    dup.merge(enum)
-  end
-  alias + |
-  alias union |
-
-  def -(enum)
-    dup.subtract(enum)
-  end
-  alias difference -
-
-  def &(enum)
-    n = Set.new
-    __do_with_enum(enum) { |o| n.add(o) if include?(o) }
-    n
-  end
-  alias intersection &
-
-  def ^(enum)
-    (self | Set.new(enum)) - (self & Set.new(enum))
-  end
-
-  def ==(other)
-    if self.equal?(other)
-      true
-    elsif other.instance_of?(self.class) && self.size == other.size
-      @hash == other.__get_hash
-    elsif other.is_a?(self.class) && self.size == other.size
-      other.all? { |o| include?(o) }
-    else
-      false
-    end
-  end
-
   def <=>(set)
     return unless set.is_a?(Set)
 
@@ -269,15 +173,6 @@ class Set
     when +1 then +1 if proper_superset?(set)
     else 0 if self.==(set)
     end
-  end
-
-  def hash
-    @hash.hash
-  end
-
-  def eql?(o)
-    return false unless o.is_a?(Set)
-    @hash.eql?(o.__get_hash)
   end
 
   def classify
@@ -302,24 +197,70 @@ class Set
     Set.new(classify(&func).values)
   end
 
-  def join(separator = nil)
-    to_a.join(separator)
+  # Additional convenience methods that leverage C optimizations
+
+  # Returns true if this set is a proper subset of the given set
+  def proper_subset_of?(set)
+    proper_subset?(set)
   end
 
-  def inspect
-    return "#<#{self.class}: {}>" if empty?
-    return "#<#{self.class}: {...}>" if self.__inspect_recursive?
-    ary = map {|o| o.inspect }
-    "#<#{self.class}: {#{ary.join(", ")}}>"
+  # Returns true if this set is a proper superset of the given set
+  def proper_superset_of?(set)
+    proper_superset?(set)
   end
 
-  alias to_s inspect
+  # Returns true if this set is a subset of the given set
+  def subset_of?(set)
+    subset?(set)
+  end
 
-  def reset
-    if frozen?
-      raise FrozenError, "can't modify frozen Set"
-    else
-      @hash.rehash
-    end
+  # Returns true if this set is a superset of the given set
+  def superset_of?(set)
+    superset?(set)
+  end
+
+  # Efficiently merge multiple enumerables at once
+  def merge_all(*enums)
+    enums.each { |enum| merge(enum) }
+    self
+  end
+
+  # Efficiently subtract multiple enumerables at once
+  def subtract_all(*enums)
+    enums.each { |enum| subtract(enum) }
+    self
+  end
+
+  # Create a new set with elements from multiple enumerables
+  def self.union(*enums)
+    result = new
+    enums.each { |enum| result.merge(enum) }
+    result
+  end
+
+  # Create a new set with intersection of multiple sets
+  def self.intersection(*sets)
+    return new if sets.empty?
+
+    result = sets.first.dup
+    sets[1..-1].each { |set| result = result & set }
+    result
+  end
+
+  # Optimized version of replace for arrays
+  def replace_with_array(array)
+    clear
+    add_all(*array)
+    self
+  end
+
+  # Fast check if set contains exactly these elements
+  def contains_exactly?(*elements)
+    size == elements.size && include_all?(*elements)
+  end
+
+  # Fast check if set overlaps with given elements
+  def overlaps_with?(*elements)
+    include_any?(*elements)
   end
 end
