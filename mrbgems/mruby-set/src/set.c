@@ -914,7 +914,7 @@ mrb_mruby_set_gem_init(mrb_state *mrb)
   mrb_define_class_method(mrb, set, "[]", set_s_create, MRB_ARGS_ANY());
 
   mrb_define_method(mrb, set, "initialize", set_init, MRB_ARGS_OPT(1) | MRB_ARGS_BLOCK());
-  mrb_define_method(mrb, set, "initialize_copy", set_init_copy, MRB_ARGS_REQ(1));
+  mrb_define_private_method(mrb, set, "initialize_copy", set_init_copy, MRB_ARGS_REQ(1));
 
   mrb_define_method(mrb, set, "size", set_size, MRB_ARGS_NONE());
   mrb_define_method(mrb, set, "length", set_size, MRB_ARGS_NONE());
