@@ -21,19 +21,6 @@ KHASH_DEFINE(set, mrb_value, char, FALSE, mrb_obj_hash_code, mrb_eql)
 
 #define SET_KHASH_IV MRB_SYM(khash)
 
-/* Optional performance monitoring (disabled by default) */
-#ifdef MRB_SET_ENABLE_STATS
-static mrb_int set_operations_count = 0;
-static mrb_int set_optimized_operations = 0;
-
-#define SET_STAT_INC_TOTAL() (set_operations_count++)
-#define SET_STAT_INC_OPTIMIZED() (set_optimized_operations++)
-#else
-#define SET_STAT_INC_TOTAL()
-#define SET_STAT_INC_OPTIMIZED()
-#endif
-
-
 static void
 set_free(mrb_state *mrb, void *ptr)
 {
@@ -367,10 +354,8 @@ set_merge(mrb_state *mrb, mrb_value self)
     mrb_raise(mrb, E_RUNTIME_ERROR, "uninitialized Set");
   }
 
-  SET_STAT_INC_TOTAL();
   if (mrb_obj_class(mrb, enum_obj) == mrb_obj_class(mrb, self)) {
     /* Optimized path for Set objects - direct khash merge */
-    SET_STAT_INC_OPTIMIZED();
     khash_t(set) *other_kh = set_get_khash(mrb, enum_obj);
     if (other_kh) {
       khiter_t k;
@@ -407,10 +392,8 @@ set_subtract(mrb_state *mrb, mrb_value self)
   kh = set_get_khash(mrb, self);
   if (!kh) return self;
 
-  SET_STAT_INC_TOTAL();
   if (mrb_obj_class(mrb, enum_obj) == mrb_obj_class(mrb, self)) {
     /* Optimized path for Set objects */
-    SET_STAT_INC_OPTIMIZED();
     khash_t(set) *other_kh = set_get_khash(mrb, enum_obj);
     if (other_kh) {
       khiter_t k, del_k;
@@ -495,10 +478,8 @@ set_intersection(mrb_state *mrb, mrb_value self)
   self_kh = set_get_khash(mrb, self);
   if (!self_kh) return result_set;
 
-  SET_STAT_INC_TOTAL();
   if (mrb_obj_class(mrb, enum_obj) == mrb_obj_class(mrb, self)) {
     /* Optimized path for Set objects */
-    SET_STAT_INC_OPTIMIZED();
     khash_t(set) *other_kh = set_get_khash(mrb, enum_obj);
     if (other_kh) {
       khiter_t k, self_k;
@@ -864,43 +845,6 @@ set_s_create(mrb_state *mrb, mrb_value klass)
   return set;
 }
 
-#ifdef MRB_SET_ENABLE_STATS
-/*
- * call-seq:
- *   Set.stats -> hash
- *
- * Returns performance statistics (only available when compiled with MRB_SET_ENABLE_STATS).
- */
-static mrb_value
-set_s_stats(mrb_state *mrb, mrb_value klass)
-{
-  mrb_value stats = mrb_hash_new(mrb);
-  mrb_hash_set(mrb, stats, mrb_str_new_lit(mrb, "total_operations"), mrb_fixnum_value(set_operations_count));
-  mrb_hash_set(mrb, stats, mrb_str_new_lit(mrb, "optimized_operations"), mrb_fixnum_value(set_optimized_operations));
-
-  if (set_operations_count > 0) {
-    double optimization_ratio = (double)set_optimized_operations / set_operations_count * 100.0;
-    mrb_hash_set(mrb, stats, mrb_str_new_lit(mrb, "optimization_percentage"), mrb_float_value(mrb, optimization_ratio));
-  }
-
-  return stats;
-}
-
-/*
- * call-seq:
- *   Set.reset_stats -> nil
- *
- * Resets performance statistics.
- */
-static mrb_value
-set_s_reset_stats(mrb_state *mrb, mrb_value klass)
-{
-  set_operations_count = 0;
-  set_optimized_operations = 0;
-  return mrb_nil_value();
-}
-#endif
-
 void
 mrb_mruby_set_gem_init(mrb_state *mrb)
 {
@@ -964,12 +908,6 @@ mrb_mruby_set_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, set, "delete_all", set_delete_all, MRB_ARGS_ANY());
   mrb_define_method(mrb, set, "include_all?", set_include_all_p, MRB_ARGS_ANY());
   mrb_define_method(mrb, set, "include_any?", set_include_any_p, MRB_ARGS_ANY());
-
-#ifdef MRB_SET_ENABLE_STATS
-  /* Performance monitoring methods */
-  mrb_define_class_method(mrb, set, "stats", set_s_stats, MRB_ARGS_NONE());
-  mrb_define_class_method(mrb, set, "reset_stats", set_s_reset_stats, MRB_ARGS_NONE());
-#endif
 }
 
 void
