@@ -250,7 +250,8 @@ set_add_p(mrb_state *mrb, mrb_value self)
   if (ret == 0) {
     /* Key already exists */
     return mrb_nil_value();
-  } else {
+  }
+  else {
     /* Key was added */
     return self;
   }
@@ -302,7 +303,8 @@ set_delete_p(mrb_state *mrb, mrb_value self)
   if (k != kh_end(kh)) {
     kh_del(set, mrb, kh, k);
     return self;
-  } else {
+  }
+  else {
     return mrb_nil_value();
   }
 }
@@ -356,7 +358,8 @@ set_merge(mrb_state *mrb, mrb_value self)
         }
       }
     }
-  } else {
+  }
+  else {
     /* General enumerable path - delegate to Ruby */
     return mrb_funcall_with_block(mrb, self, MRB_SYM(__merge_enum), 1, &enum_obj, mrb_nil_value());
   }
@@ -397,7 +400,8 @@ set_subtract(mrb_state *mrb, mrb_value self)
         }
       }
     }
-  } else {
+  }
+  else {
     /* General enumerable path - delegate to Ruby */
     return mrb_funcall_with_block(mrb, self, MRB_SYM(__subtract_enum), 1, &enum_obj, mrb_nil_value());
   }
@@ -484,7 +488,8 @@ set_intersection(mrb_state *mrb, mrb_value self)
         }
       }
     }
-  } else {
+  }
+  else {
     /* General enumerable path - delegate to Ruby */
     return mrb_funcall_with_block(mrb, self, MRB_SYM(__intersection_enum), 1, &enum_obj, mrb_nil_value());
   }
@@ -545,7 +550,8 @@ set_equal(mrb_state *mrb, mrb_value self)
         }
       }
       return mrb_true_value();
-    } else if (!self_kh && !other_kh) {
+    }
+    else if (!self_kh && !other_kh) {
       return mrb_true_value(); /* Both empty */
     }
   }
