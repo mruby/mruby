@@ -58,12 +58,11 @@ set_init(mrb_state *mrb, mrb_value self)
 {
   mrb_value enum_obj = mrb_nil_value();
   mrb_value block = mrb_nil_value();
-  khash_t(set) *kh;
 
   mrb_get_args(mrb, "|o&", &enum_obj, &block);
 
   /* Initialize the khash and associate it with the Ruby object */
-  kh = kh_init(set, mrb);
+  khash_t(set) *kh = kh_init(set, mrb);
 
   /* Associate the khash with the Ruby object so it will be freed when the object is GC'd */
   set_set_khash(mrb, self, kh);
