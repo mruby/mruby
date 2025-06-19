@@ -46,7 +46,7 @@ class Set
     seen.add(set.object_id)
     set.each { |e|
       if e.is_a?(Set)
-        if seen.include?(e_id = e.object_id)
+        if seen.include?(e.object_id)
           raise ArgumentError, "tried to flatten recursive Set"
         end
 
