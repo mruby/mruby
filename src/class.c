@@ -230,9 +230,9 @@ mrb_mt_foreach(mrb_state *mrb, struct RClass *c, mrb_mt_foreach_func *fn, void *
   mt_tbl *t = c->mt;
   if (!t || t->size == 0) return;
 
-  union mt_ptr *vals = mt_vals(t);
-  mrb_sym      *keys = mt_keys(t);
   for (int i=0; i<t->size; i++) {
+    union mt_ptr *vals = mt_vals(t);
+    mrb_sym      *keys = mt_keys(t);
     mrb_sym key = keys[i];
     if (fn(mrb, MT_KEY_SYM(key), create_method_value(mrb, key, vals[i]), p) != 0) {
       return;
