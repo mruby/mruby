@@ -35,6 +35,7 @@ init_gc_and_core(mrb_state *mrb, void *opaque)
   mrb_init_core(mrb);
 }
 
+/* Initializes the core of mruby, without loading gems. */
 MRB_API mrb_state*
 mrb_open_core(void)
 {
@@ -63,6 +64,7 @@ init_mrbgems(mrb_state *mrb, void *opaque)
 }
 #endif
 
+/* Initializes mruby, including loading gems. */
 MRB_API mrb_state*
 mrb_open(void)
 {
@@ -156,6 +158,7 @@ mrb_irep_free(mrb_state *mrb, mrb_irep *irep)
   mrb_free(mrb, irep);
 }
 
+/* Frees a mruby context. */
 MRB_API void
 mrb_free_context(mrb_state *mrb, struct mrb_context *c)
 {
@@ -167,6 +170,7 @@ mrb_free_context(mrb_state *mrb, struct mrb_context *c)
 
 void mrb_protect_atexit(mrb_state *mrb);
 
+/* Closes and finalizes a mruby state. */
 MRB_API void
 mrb_close(mrb_state *mrb)
 {
@@ -181,6 +185,7 @@ mrb_close(mrb_state *mrb)
   mrb_free(mrb, mrb);
 }
 
+/* Adds an instruction sequence (irep) to the mruby state. */
 MRB_API mrb_irep*
 mrb_add_irep(mrb_state *mrb)
 {
@@ -194,12 +199,14 @@ mrb_add_irep(mrb_state *mrb)
   return irep;
 }
 
+/* Returns the top-level self object. */
 MRB_API mrb_value
 mrb_top_self(mrb_state *mrb)
 {
   return mrb_obj_value(mrb->top_self);
 }
 
+/* Registers a function to be called when the mruby state is closed. */
 MRB_API void
 mrb_state_atexit(mrb_state *mrb, mrb_atexit_func f)
 {

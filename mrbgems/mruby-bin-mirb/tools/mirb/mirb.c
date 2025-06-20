@@ -531,7 +531,7 @@ main(int argc, char **argv)
     mrb_load_file_cxt(mrb, lfp, cxt);
     fclose(lfp);
     mrb_vm_ci_env_clear(mrb, mrb->c->cibase);
-    mrb_ccontext_cleanup_local_variables(mrb, cxt);
+    mrb_ccontext_cleanup_local_variables(cxt);
   }
 
 #ifndef MRB_NO_MIRB_UNDERSCORE

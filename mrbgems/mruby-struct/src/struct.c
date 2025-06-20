@@ -685,7 +685,7 @@ mrb_mruby_struct_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, st, MRB_OPSYM(aset),          mrb_struct_aset,        MRB_ARGS_REQ(2)); /* 15.2.18.4.3  */
   mrb_define_method_id(mrb, st, MRB_SYM(members),         mrb_struct_members,     MRB_ARGS_NONE()); /* 15.2.18.4.6  */
   mrb_define_method_id(mrb, st, MRB_SYM(initialize),      mrb_struct_initialize,  MRB_ARGS_ANY());  /* 15.2.18.4.8  */
-  mrb_define_method_id(mrb, st, MRB_SYM(initialize_copy), mrb_struct_init_copy,   MRB_ARGS_REQ(1)); /* 15.2.18.4.9  */
+  mrb_define_private_method_id(mrb, st, MRB_SYM(initialize_copy), mrb_struct_init_copy,   MRB_ARGS_REQ(1)); /* 15.2.18.4.9  */
   mrb_define_method_id(mrb, st, MRB_SYM_Q(eql),           mrb_struct_eql,         MRB_ARGS_REQ(1)); /* 15.2.18.4.12(x)  */
   mrb_define_method_id(mrb, st, MRB_SYM(to_s),            mrb_struct_to_s,        MRB_ARGS_NONE()); /* 15.2.18.4.11(x) */
   mrb_define_method_id(mrb, st, MRB_SYM(inspect),         mrb_struct_to_s,        MRB_ARGS_NONE()); /* 15.2.18.4.10(x) */

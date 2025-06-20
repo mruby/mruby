@@ -41,8 +41,8 @@ typedef struct mrb_ccontext {
 MRB_API mrb_ccontext* mrb_ccontext_new(mrb_state *mrb);
 MRB_API void mrb_ccontext_free(mrb_state *mrb, mrb_ccontext *cxt);
 MRB_API const char *mrb_ccontext_filename(mrb_state *mrb, mrb_ccontext *c, const char *s);
-MRB_API void mrb_ccontext_partial_hook(mrb_state *mrb, mrb_ccontext *c, int (*partial_hook)(struct mrb_parser_state*), void*data);
-MRB_API void mrb_ccontext_cleanup_local_variables(mrb_state *mrb, mrb_ccontext *c);
+MRB_API void mrb_ccontext_partial_hook(mrb_ccontext *c, int (*partial_hook)(struct mrb_parser_state*), void*data);
+MRB_API void mrb_ccontext_cleanup_local_variables(mrb_ccontext *c);
 
 /* compatibility macros */
 #define mrbc_context mrb_ccontext

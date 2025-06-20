@@ -25,3 +25,11 @@ jobs:
           key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
       - name: Run pre-commit
         run: pre-commit run --all-files
+  ls-lint:
+    name: Run ls-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ls-lint/action@v2.3.1
+        with:
+          config: .github/linters/.ls-lint.yml

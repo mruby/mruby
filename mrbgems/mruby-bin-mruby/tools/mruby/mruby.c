@@ -339,10 +339,10 @@ main(int argc, char **argv)
       }
       fclose(lfp);
       mrb_vm_ci_env_clear(mrb, mrb->c->cibase);
-      mrb_ccontext_cleanup_local_variables(mrb, c);
+      mrb_ccontext_cleanup_local_variables(c);
     }
 
-    /* set program file name */
+    /* set program filename */
     mrb_ccontext_filename(mrb, c, cmdline);
 
     /* Load program */

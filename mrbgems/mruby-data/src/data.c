@@ -493,7 +493,7 @@ mrb_mruby_data_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, d, MRB_OPSYM(eq),            mrb_data_equal,      MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, d, MRB_SYM(members),         mrb_data_members,    MRB_ARGS_NONE());
   mrb_define_method_id(mrb, d, MRB_SYM(initialize),      mrb_data_initialize, MRB_ARGS_ANY());
-  mrb_define_method_id(mrb, d, MRB_SYM(initialize_copy), mrb_data_init_copy,  MRB_ARGS_ANY());
+  mrb_define_private_method_id(mrb, d, MRB_SYM(initialize_copy), mrb_data_init_copy,  MRB_ARGS_ANY());
   mrb_define_method_id(mrb, d, MRB_SYM_Q(eql),           mrb_data_eql,        MRB_ARGS_REQ(1));
 
   mrb_define_method_id(mrb, d, MRB_SYM(to_h),            mrb_data_to_h,       MRB_ARGS_NONE());

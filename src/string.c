@@ -152,6 +152,14 @@ str_new(mrb_state *mrb, const char *p, mrb_int len)
   return str_init_normal(mrb, mrb_obj_alloc_string(mrb), p, len);
 }
 
+/*
+ * @param mrb The mruby state.
+ * @param capa The desired capacity of the new string.
+ * @return A new mruby string with the specified capacity.
+ *
+ * Creates a new mruby string with a given initial capacity.
+ * The string is initially empty.
+ */
 MRB_API mrb_value
 mrb_str_new_capa(mrb_state *mrb, mrb_int capa)
 {
@@ -181,12 +189,29 @@ resize_capa(mrb_state *mrb, struct RString *s, mrb_int capacity)
   }
 }
 
+/*
+ * @param mrb The mruby state.
+ * @param p A pointer to the C string to copy.
+ * @param len The length of the C string.
+ * @return A new mruby string containing the copied C string.
+ *
+ * Creates a new mruby string from a C string and a specified length.
+ * If `p` is NULL, an empty string is created.
+ */
 MRB_API mrb_value
 mrb_str_new(mrb_state *mrb, const char *p, mrb_int len)
 {
   return mrb_obj_value(str_new(mrb, p, len));
 }
 
+/*
+ * @param mrb The mruby state.
+ * @param p A pointer to the null-terminated C string to copy.
+ * @return A new mruby string containing the copied C string.
+ *
+ * Creates a new mruby string from a null-terminated C string.
+ * If `p` is NULL, an empty string is created.
+ */
 MRB_API mrb_value
 mrb_str_new_cstr(mrb_state *mrb, const char *p)
 {
@@ -205,6 +230,16 @@ mrb_str_new_cstr(mrb_state *mrb, const char *p)
   return mrb_obj_value(s);
 }
 
+/*
+ * @param mrb The mruby state.
+ * @param p A pointer to the static C string.
+ * @param len The length of the static C string.
+ * @return A new mruby string referencing the static C string.
+ *
+ * Creates a new mruby string that directly references a static C string.
+ * The C string is not copied and must remain valid for the lifetime of the mruby string.
+ * This is typically used for string literals.
+ */
 MRB_API mrb_value
 mrb_str_new_static(mrb_state *mrb, const char *p, mrb_int len)
 {
@@ -407,12 +442,13 @@ mrb_utf8len(const char* p, const char* e)
 # define popcount(x) __builtin_popcountl(x)
 # endif
 #else
+#define POPC_SHIFT (8 * sizeof(bitint) - 8)
 static inline uint32_t popcount(bitint x)
 {
   x = (x & (MASK01*0x55)) + ((x >>  1) & (MASK01*0x55));
   x = (x & (MASK01*0x33)) + ((x >>  2) & (MASK01*0x33));
   x = (x & (MASK01*0x0F)) + ((x >>  4) & (MASK01*0x0F));
-  return (x * MASK01) >> 56;
+  return (uint32_t)((x * MASK01) >> POPC_SHIFT);
 }
 #endif
 
@@ -693,6 +729,17 @@ str_share(mrb_state *mrb, struct RString *orig, struct RString *s)
   }
 }
 
+/*
+ * @param mrb The mruby state.
+ * @param str The original mruby string.
+ * @param beg The starting byte offset of the substring.
+ * @param len The length in bytes of the substring.
+ * @return A new mruby string representing the byte subsequence.
+ *
+ * Creates a new mruby string that is a subsequence of an existing string,
+ * based on byte offsets and length. This function may share the underlying
+ * buffer with the original string if possible.
+ */
 mrb_value
 mrb_str_byte_subseq(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 {
@@ -746,6 +793,17 @@ str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
     str_subseq(mrb, str, beg, len) : mrb_nil_value();
 }
 
+/*
+ * @param mrb The mruby state.
+ * @param str The mruby string to search in.
+ * @param sptr A pointer to the C string to search for.
+ * @param slen The length of the C string to search for.
+ * @param offset The byte offset at which to start the search.
+ * @return The byte offset of the first occurrence of the substring, or -1 if not found.
+ *
+ * Finds the first occurrence of a C string within an mruby string, starting from a given offset.
+ * The search is performed on a byte-by-byte basis.
+ */
 MRB_API mrb_int
 mrb_str_index(mrb_state *mrb, mrb_value str, const char *sptr, mrb_int slen, mrb_int offset)
 {
@@ -900,6 +958,15 @@ mrb_locale_from_utf8(const char *utf8, int len)
 }
 #endif
 
+/*
+ * @param mrb The mruby state.
+ * @param s The RString structure to modify.
+ *
+ * Prepares a string for modification. If the string is shared or not extensible,
+ * it will be unshared or converted to a normal string. This version preserves
+ * the ASCII/single-byte nature of the string if it was already set.
+ * Raises an error if the string is frozen.
+ */
 MRB_API void
 mrb_str_modify_keep_ascii(mrb_state *mrb, struct RString *s)
 {
@@ -907,6 +974,15 @@ mrb_str_modify_keep_ascii(mrb_state *mrb, struct RString *s)
   str_unshare_buffer(mrb, s);
 }
 
+/*
+ * @param mrb The mruby state.
+ * @param s The RString structure to modify.
+ *
+ * Prepares a string for modification. Similar to `mrb_str_modify_keep_ascii`,
+ * but also unsets the single-byte flag, assuming the modification might
+ * introduce multi-byte characters.
+ * Raises an error if the string is frozen.
+ */
 MRB_API void
 mrb_str_modify(mrb_state *mrb, struct RString *s)
 {
@@ -914,6 +990,18 @@ mrb_str_modify(mrb_state *mrb, struct RString *s)
   RSTR_UNSET_SINGLE_BYTE_FLAG(s);
 }
 
+/*
+ * @param mrb The mruby state.
+ * @param str The mruby string to resize.
+ * @param len The new desired length of the string.
+ * @return The resized mruby string.
+ *
+ * Resizes an mruby string to a new length.
+ * If the new length is shorter, the string is truncated.
+ * If the new length is longer, the string is extended, and the new portion's
+ * content is undefined (it might be null bytes or garbage).
+ * The string is modified in place.
+ */
 MRB_API mrb_value
 mrb_str_resize(mrb_state *mrb, mrb_value str, mrb_int len)
 {
@@ -933,6 +1021,21 @@ mrb_str_resize(mrb_state *mrb, mrb_value str, mrb_int len)
   return str;
 }
 
+/*
+ * @param mrb The mruby state.
+ * @param str0 The mruby string to convert.
+ * @return A pointer to a null-terminated C string.
+ *
+ * Converts an mruby string to a null-terminated C string.
+ * This function may allocate a new C string if the mruby string
+ * contains null bytes or is not already null-terminated.
+ * The caller is responsible for managing the memory of the returned C string
+ * if it's different from the string's internal buffer.
+ * Raises E_ARGUMENT_ERROR if the string contains a null byte.
+ * Note: This function creates a *new* RString object to hold the C-string version if modification is needed.
+ * It's generally recommended to use RSTRING_PTR and RSTRING_LEN for direct access
+ * and ensure null termination manually if needed, or use mrb_string_cstr for a (potentially new) null-terminated string.
+ */
 MRB_API char*
 mrb_str_to_cstr(mrb_state *mrb, mrb_value str0)
 {
@@ -945,6 +1048,14 @@ mrb_str_to_cstr(mrb_state *mrb, mrb_value str0)
   return RSTR_PTR(s);
 }
 
+/*
+ * @param mrb The mruby state.
+ * @param self The mruby string to append to (modified in place).
+ * @param other The mruby value to append (will be converted to a string).
+ *
+ * Concatenates the string representation of `other` to `self`.
+ * `self` is modified in place.
+ */
 MRB_API void
 mrb_str_concat(mrb_state *mrb, mrb_value self, mrb_value other)
 {
@@ -952,6 +1063,14 @@ mrb_str_concat(mrb_state *mrb, mrb_value self, mrb_value other)
   mrb_str_cat_str(mrb, self, other);
 }
 
+/*
+ * @param mrb The mruby state.
+ * @param a The first mruby string.
+ * @param b The second mruby string.
+ * @return A new mruby string that is the concatenation of `a` and `b`.
+ *
+ * Creates a new mruby string by concatenating two existing mruby strings.
+ */
 MRB_API mrb_value
 mrb_str_plus(mrb_state *mrb, mrb_value a, mrb_value b)
 {
@@ -1063,6 +1182,16 @@ mrb_str_times(mrb_state *mrb, mrb_value self)
  *                     =  0
  *                     <  -1
  */
+/*
+ * @param mrb The mruby state.
+ * @param str1 The first mruby string for comparison.
+ * @param str2 The second mruby string for comparison (must be a string).
+ * @return An integer less than, equal to, or greater than zero if `str1` is less than,
+ *         equal to, or greater than `str2`, respectively.
+ *
+ * Compares two mruby strings lexicographically.
+ * Assumes `str2` is already a string. For a version that checks and converts, see `mrb_str_cmp_m`.
+ */
 MRB_API int
 mrb_str_cmp(mrb_state *mrb, mrb_value str1, mrb_value str2)
 {
@@ -1130,6 +1259,15 @@ str_eql(mrb_state *mrb, const mrb_value str1, const mrb_value str2)
   return (memcmp(RSTRING_PTR(str1), RSTRING_PTR(str2), (size_t)len) == 0);
 }
 
+/*
+ * @param mrb The mruby state.
+ * @param str1 The first mruby string.
+ * @param str2 The second mruby value to compare with.
+ * @return `TRUE` if `str1` and `str2` are equal strings, `FALSE` otherwise.
+ *
+ * Checks if two mruby strings are equal.
+ * Returns `FALSE` if `str2` is not a string.
+ */
 MRB_API mrb_bool
 mrb_str_equal(mrb_state *mrb, mrb_value str1, mrb_value str2)
 {
@@ -1157,6 +1295,14 @@ mrb_str_equal_m(mrb_state *mrb, mrb_value str1)
 }
 /* ---------------------------------- */
 
+/*
+ * @param mrb The mruby state.
+ * @param str The mruby string to duplicate.
+ * @return A new mruby string that is a copy of the original.
+ *
+ * Creates a new mruby string that is a duplicate of the given string.
+ * The new string will have its own buffer.
+ */
 MRB_API mrb_value
 mrb_str_dup(mrb_state *mrb, mrb_value str)
 {
@@ -1219,6 +1365,19 @@ str_convert_range(mrb_state *mrb, mrb_value str, mrb_value idx, mrb_value alen, 
   return STR_OUT_OF_RANGE;
 }
 
+/*
+ * @param mrb The mruby state.
+ * @param str The mruby string.
+ * @param idx The index or range. Can be an integer, a string, or a range.
+ * @param alen An optional length (if `idx` is an integer).
+ * @return A new mruby string (substring), or nil if out of bounds or not found.
+ *
+ * Implements string element reference (e.g., `str[idx]`, `str[idx, len]`).
+ * - If `idx` is an Integer, returns a substring of 1 character at that index (or `len` characters if `alen` is provided).
+ * - If `idx` is a String, returns that string if it's a substring of `str`.
+ * - If `idx` is a Range, returns the substring specified by the range.
+ * Character indexing is used if UTF-8 is enabled, otherwise byte indexing.
+ */
 mrb_value
 mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value idx, mrb_value alen)
 {
@@ -1791,6 +1950,18 @@ mrb_str_eql(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(eql_p);
 }
 
+/*
+ * @param mrb The mruby state.
+ * @param str The mruby string from which to take a substring.
+ * @param beg The starting character index of the substring.
+ * @param len The length in characters of the substring.
+ * @return A new mruby string representing the substring, or nil if out of bounds.
+ *
+ * Creates a new mruby string that is a substring of an existing string.
+ * This function considers character indices (which might differ from byte indices
+ * if UTF-8 is enabled) and length.
+ * Handles negative indices and adjusts length to fit within string boundaries.
+ */
 MRB_API mrb_value
 mrb_str_substr(mrb_state *mrb, mrb_value str, mrb_int beg, mrb_int len)
 {
@@ -2013,12 +2184,31 @@ mrb_str_init(mrb_state *mrb, mrb_value self)
  *
  *     'cat and dog'.to_sym   #=> :"cat and dog"
  */
+/*
+ * @param mrb The mruby state.
+ * @param self The mruby string to convert to a symbol.
+ * @return The mruby symbol corresponding to the string.
+ *
+ * Converts a mruby string to a symbol. If the symbol does not exist, it is created.
+ */
 MRB_API mrb_value
 mrb_str_intern(mrb_state *mrb, mrb_value self)
 {
   return mrb_symbol_value(mrb_intern_str(mrb, self));
 }
 /* ---------------------------------- */
+/*
+ * @param mrb The mruby state.
+ * @param obj The mruby value to convert to a string.
+ * @return The string representation of the mruby value.
+ *
+ * Converts any mruby object to its string representation.
+ * For strings, it returns the object itself.
+ * For symbols, it returns the symbol's name as a string.
+ * For integers, it converts the integer to a string (base 10).
+ * For classes/modules, it returns their name.
+ * For other types, it calls the `to_s` method on the object.
+ */
 MRB_API mrb_value
 mrb_obj_as_string(mrb_state *mrb, mrb_value obj)
 {
@@ -2038,6 +2228,13 @@ mrb_obj_as_string(mrb_state *mrb, mrb_value obj)
   }
 }
 
+/*
+ * @param mrb The mruby state.
+ * @param p The pointer to convert.
+ * @return A new mruby string representing the pointer address.
+ *
+ * Converts a C pointer to a mruby string representation (e.g., "0x...").
+ */
 MRB_API mrb_value
 mrb_ptr_to_str(mrb_state *mrb, void *p)
 {
@@ -2560,6 +2757,18 @@ mrb_str_len_to_integer(mrb_state *mrb, const char *str, size_t len, mrb_int base
 }
 
 /* obsolete: use RSTRING_CSTR() or mrb_string_cstr() */
+/*
+ * @deprecated Use `RSTRING_CSTR()` or `mrb_string_cstr()` instead.
+ * @param mrb The mruby state.
+ * @param ptr Pointer to the mruby string value.
+ * @return A pointer to a null-terminated C string.
+ *
+ * Ensures the mruby string pointed to by `ptr` is a string and returns its
+ * C string representation. If the string contains null bytes, it raises an
+ * E_ARGUMENT_ERROR. If the string is not null-terminated, it modifies the
+ * string in place to add a null terminator (this might involve unsharing
+ * the string buffer).
+ */
 MRB_API const char*
 mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr)
 {
@@ -2586,12 +2795,36 @@ mrb_string_value_cstr(mrb_state *mrb, mrb_value *ptr)
   return RSTR_PTR(ps);
 }
 
+/*
+ * @param mrb The mruby state.
+ * @param str The mruby string value.
+ * @return A pointer to a null-terminated C string.
+ *
+ * Ensures the mruby string `str` is a string and returns its C string representation.
+ * This is a convenience wrapper around `mrb_string_value_cstr`.
+ * If the string contains null bytes, it raises an E_ARGUMENT_ERROR.
+ * If the string is not null-terminated, it modifies the string in place
+ * to add a null terminator.
+ */
 MRB_API const char*
 mrb_string_cstr(mrb_state *mrb, mrb_value str)
 {
   return mrb_string_value_cstr(mrb, &str);
 }
 
+/*
+ * @param mrb The mruby state.
+ * @param str The mruby string to convert.
+ * @param base The base for conversion (0 or 2-36).
+ * @param badcheck If `TRUE`, raise an error on invalid input; otherwise, return 0.
+ * @return An mruby integer value.
+ *
+ * Converts an mruby string to an mruby integer.
+ * Interprets leading characters in `str` as an integer of the specified `base`.
+ * If `base` is 0, it auto-detects the base (0x for hex, 0b for binary, 0o or 0 for octal, else decimal).
+ * If `badcheck` is true, invalid characters will raise an `E_ARGUMENT_ERROR`.
+ * Otherwise, extraneous characters are ignored, and 0 is returned for invalid numbers.
+ */
 MRB_API mrb_value
 mrb_str_to_integer(mrb_state *mrb, mrb_value str, mrb_int base, mrb_bool badcheck)
 {
@@ -2638,6 +2871,7 @@ mrb_str_to_i(mrb_state *mrb, mrb_value self)
 }
 
 #ifndef MRB_NO_FLOAT
+/* Internal helper for mrb_str_to_dbl */
 static double
 mrb_str_len_to_dbl(mrb_state *mrb, const char *s, size_t len, mrb_bool badcheck)
 {
@@ -2726,6 +2960,17 @@ bad:
   return d;
 }
 
+/*
+ * @param mrb The mruby state.
+ * @param str The mruby string to convert.
+ * @param badcheck If `TRUE`, raise an error on invalid input; otherwise, return 0.0.
+ * @return A C double value.
+ *
+ * Converts an mruby string to a C double.
+ * Interprets leading characters in `str` as a floating-point number.
+ * If `badcheck` is true, invalid characters will raise an `E_ARGUMENT_ERROR`.
+ * Otherwise, extraneous characters are ignored, and 0.0 is returned for invalid numbers.
+ */
 MRB_API double
 mrb_str_to_dbl(mrb_state *mrb, mrb_value str, mrb_bool badcheck)
 {
@@ -2833,6 +3078,17 @@ mrb_str_dump(mrb_state *mrb, mrb_value str)
   return str_escape(mrb, str, FALSE);
 }
 
+/*
+ * @param mrb The mruby state.
+ * @param str The mruby string to append to (modified in place).
+ * @param ptr A pointer to the C string to append.
+ * @param len The length of the C string to append.
+ * @return The modified mruby string `str`.
+ *
+ * Appends a C string of a given length to an mruby string.
+ * The mruby string `str` is modified in place. Handles resizing and
+ * potential overlap if `ptr` is within `str`'s buffer.
+ */
 MRB_API mrb_value
 mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
 {
@@ -2868,12 +3124,30 @@ mrb_str_cat(mrb_state *mrb, mrb_value str, const char *ptr, size_t len)
   return str;
 }
 
+/*
+ * @param mrb The mruby state.
+ * @param str The mruby string to append to (modified in place).
+ * @param ptr A pointer to the null-terminated C string to append.
+ * @return The modified mruby string `str`.
+ *
+ * Appends a null-terminated C string to an mruby string.
+ * The mruby string `str` is modified in place.
+ */
 MRB_API mrb_value
 mrb_str_cat_cstr(mrb_state *mrb, mrb_value str, const char *ptr)
 {
   return mrb_str_cat(mrb, str, ptr, ptr ? strlen(ptr) : 0);
 }
 
+/*
+ * @param mrb The mruby state.
+ * @param str The mruby string to append to (modified in place).
+ * @param str2 The mruby string to append.
+ * @return The modified mruby string `str`.
+ *
+ * Appends an mruby string (`str2`) to another mruby string (`str`).
+ * The mruby string `str` is modified in place. Handles self-appendage.
+ */
 MRB_API mrb_value
 mrb_str_cat_str(mrb_state *mrb, mrb_value str, mrb_value str2)
 {
@@ -2883,6 +3157,17 @@ mrb_str_cat_str(mrb_state *mrb, mrb_value str, mrb_value str2)
   return mrb_str_cat(mrb, str, RSTRING_PTR(str2), RSTRING_LEN(str2));
 }
 
+/*
+ * @param mrb The mruby state.
+ * @param str1 The mruby string to append to (modified in place).
+ * @param str2 The mruby value to append (will be converted to a string if not already one).
+ * @return The modified mruby string `str1`.
+ *
+ * Appends an mruby value (`str2`) to an mruby string (`str1`).
+ * `str2` is first ensured to be a string (converted if necessary).
+ * Then, `str1` is modified in place. This is similar to `mrb_str_concat`
+ * but `mrb_str_concat` takes `self` and `other` as parameters.
+ */
 MRB_API mrb_value
 mrb_str_append(mrb_state *mrb, mrb_value str1, mrb_value str2)
 {
@@ -2900,6 +3185,15 @@ mrb_str_append(mrb_state *mrb, mrb_value str1, mrb_value str2)
  *    str = "hello"
  *    str[3] = "\b"
  *    str.inspect       #=> "\"hel\\bo\""
+ */
+/*
+ * @param mrb The mruby state.
+ * @param str The mruby string to inspect.
+ * @return A new mruby string that is the inspect-representation of `str`.
+ *
+ * Returns a human-readable, printable version of the string, typically
+ * surrounded by quotes and with special characters escaped.
+ * UTF-8 characters are preserved if `MRB_UTF8_STRING` is defined and `inspect` is true.
  */
 mrb_value
 mrb_str_inspect(mrb_state *mrb, mrb_value str)
@@ -3222,7 +3516,7 @@ mrb_init_string(mrb_state *mrb)
   mrb_define_method_id(mrb, s, MRB_SYM_Q(include),       mrb_str_include,         MRB_ARGS_REQ(1)); /* 15.2.10.5.21 */
   mrb_define_method_id(mrb, s, MRB_SYM(index),           mrb_str_index_m,         MRB_ARGS_ARG(1,1));  /* 15.2.10.5.22 */
   mrb_define_method_id(mrb, s, MRB_SYM(initialize),      mrb_str_init,            MRB_ARGS_REQ(1)); /* 15.2.10.5.23 */
-  mrb_define_method_id(mrb, s, MRB_SYM(initialize_copy), mrb_str_replace,         MRB_ARGS_REQ(1)); /* 15.2.10.5.24 */
+  mrb_define_private_method_id(mrb, s, MRB_SYM(initialize_copy), mrb_str_replace, MRB_ARGS_REQ(1)); /* 15.2.10.5.24 */
   mrb_define_method_id(mrb, s, MRB_SYM(intern),          mrb_str_intern,          MRB_ARGS_NONE()); /* 15.2.10.5.25 */
   mrb_define_method_id(mrb, s, MRB_SYM(length),          mrb_str_size,            MRB_ARGS_NONE()); /* 15.2.10.5.26 */
   mrb_define_method_id(mrb, s, MRB_SYM(replace),         mrb_str_replace,         MRB_ARGS_REQ(1)); /* 15.2.10.5.28 */

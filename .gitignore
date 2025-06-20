@@ -37,4 +37,3 @@ node_modules
 perf.data*
 tags
 !Gemfile.lock
-y.tab.c

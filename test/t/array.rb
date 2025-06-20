@@ -208,7 +208,7 @@ end
 
 assert('Array#initialize_copy', '15.2.12.5.16') do
   a = [1,2,3]
-  b = [].initialize_copy(a)
+  b = [].__send__(:initialize_copy, a)
 
   assert_equal([1,2,3], b)
 end

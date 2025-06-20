@@ -16,6 +16,10 @@
 #include <mruby/internal.h>
 #include <mruby/presym.h>
 
+/*
+ * Checks if the method `mid` for object `obj` is implemented by
+ * the C function `func`.
+ */
 MRB_API mrb_bool
 mrb_func_basic_p(mrb_state *mrb, mrb_value obj, mrb_sym mid, mrb_func_t func)
 {
@@ -260,6 +264,10 @@ mrb_obj_class_m(mrb_state *mrb, mrb_value self)
   return mrb_obj_value(mrb_obj_class(mrb, self));
 }
 
+/*
+ * Freezes the object `self`, preventing further modifications.
+ * Immediate values cannot be frozen.
+ */
 MRB_API mrb_value
 mrb_obj_freeze(mrb_state *mrb, mrb_value self)
 {
@@ -314,6 +322,9 @@ mrb_obj_init_copy(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ * Checks if the object `obj` is an instance of the class `c`.
+ */
 MRB_API mrb_bool
 mrb_obj_is_instance_of(mrb_state *mrb, mrb_value obj, const struct RClass* c)
 {
@@ -551,6 +562,7 @@ mrb_obj_ceqq(mrb_state *mrb, mrb_value self)
 // ISO 15.3.1.3.35 Kernel#print
 mrb_value mrb_print_m(mrb_state *mrb, mrb_value self);
 
+#ifndef HAVE_MRUBY_IO_GEM
 // ISO 15.3.1.2.9   Kernel.p
 // ISO 15.3.1.3.34  Kernel#p
 //
@@ -570,6 +582,7 @@ mrb_p_m(mrb_state *mrb, mrb_value self)
   if (argc == 1) return argv[0];
   return mrb_ary_new_from_values(mrb, argc, argv);
 }
+#endif
 
 void
 mrb_init_kernel(mrb_state *mrb)
@@ -603,8 +616,8 @@ mrb_init_kernel(mrb_state *mrb)
   mrb_define_method_id(mrb, krn, MRB_SYM_Q(kind_of),                  mrb_obj_is_kind_of_m,            MRB_ARGS_REQ(1));    /* 15.3.1.3.26 */
   mrb_define_method_id(mrb, krn, MRB_SYM_Q(nil),                      mrb_false,                       MRB_ARGS_NONE());    /* 15.3.1.3.32 */
   mrb_define_method_id(mrb, krn, MRB_SYM(object_id),                  mrb_obj_id_m,                    MRB_ARGS_NONE());    /* 15.3.1.3.33 */
-  mrb_define_private_method_id(mrb, krn, MRB_SYM(p),                  mrb_p_m,                         MRB_ARGS_ANY());     /* 15.3.1.3.34 */
 #ifndef HAVE_MRUBY_IO_GEM
+  mrb_define_private_method_id(mrb, krn, MRB_SYM(p),                  mrb_p_m,                         MRB_ARGS_ANY());     /* 15.3.1.3.34 */
   mrb_define_private_method_id(mrb, krn, MRB_SYM(print),              mrb_print_m,                     MRB_ARGS_ANY());     /* 15.3.1.3.35 */
 #endif
   mrb_define_private_method_id(mrb, krn, MRB_SYM(raise),              mrb_f_raise,                     MRB_ARGS_OPT(2));    /* 15.3.1.3.40 */

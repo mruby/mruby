@@ -31,20 +31,26 @@
 #pragma warning(disable : 4200)
 #endif
 
+/*
+** Represents a page in the memory pool.
+*/
 struct mempool_page {
-  struct mempool_page *next;
-  size_t offset;
-  size_t len;
-  void *last;
-  char page[];
+  struct mempool_page *next;  /* Pointer to the next page in the pool. */
+  size_t offset;              /* Current offset in the page for allocations. */
+  size_t len;                 /* Total length of the page. */
+  void *last;                 /* Pointer to the last allocation made from this page. */
+  char page[];                /* Flexible array member for the actual page data. */
 };
 
 #ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 
+/*
+** Represents a memory pool.
+*/
 struct mempool {
-  struct mempool_page *pages;
+  struct mempool_page *pages;  /* Pointer to the first page in the pool. */
 };
 
 #ifndef TEST_POOL
@@ -55,12 +61,23 @@ struct mempool {
 
 #endif
 
+/*
+** Calculates the padding needed to align a memory address.
+**
+** @param x The memory address/size to align.
+** @return The padding needed.
+*/
 #ifdef POOL_ALIGNMENT
 #  define ALIGN_PADDING(x) ((SIZE_MAX - (x) + 1) & (POOL_ALIGNMENT - 1))
 #else
 #  define ALIGN_PADDING(x) (0)
 #endif
 
+/*
+** Creates a new memory pool.
+**
+** @return A pointer to the new memory pool, or NULL if allocation fails.
+*/
 MRB_API mempool*
 mempool_open(void)
 {
@@ -72,6 +89,11 @@ mempool_open(void)
   return pool;
 }
 
+/*
+** Closes a memory pool and frees all associated memory.
+**
+** @param pool A pointer to the memory pool to close.
+*/
 MRB_API void
 mempool_close(mempool *pool)
 {
@@ -87,6 +109,13 @@ mempool_close(mempool *pool)
   free(pool);
 }
 
+/*
+** Allocates a new page for the memory pool.
+**
+** @param pool A pointer to the memory pool.
+** @param len The minimum size of the page.
+** @return A pointer to the new page, or NULL if allocation fails.
+*/
 static struct mempool_page*
 page_alloc(mempool *pool, size_t len)
 {
@@ -102,6 +131,13 @@ page_alloc(mempool *pool, size_t len)
   return page;
 }
 
+/*
+** Allocates memory from the memory pool.
+**
+** @param pool A pointer to the memory pool.
+** @param len The size of memory to allocate.
+** @return A pointer to the allocated memory, or NULL if allocation fails.
+*/
 MRB_API void*
 mempool_alloc(mempool *pool, size_t len)
 {
@@ -127,6 +163,15 @@ mempool_alloc(mempool *pool, size_t len)
   return page->last;
 }
 
+/*
+** Reallocates memory from the memory pool.
+**
+** @param pool A pointer to the memory pool.
+** @param p A pointer to the previously allocated memory.
+** @param oldlen The old size of the memory.
+** @param newlen The new size of the memory.
+** @return A pointer to the reallocated memory, or NULL if reallocation fails.
+*/
 MRB_API void*
 mempool_realloc(mempool *pool, void *p, size_t oldlen, size_t newlen)
 {

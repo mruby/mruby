@@ -46,6 +46,9 @@ MRuby::GemBox.new do |conf|
   # Use Enumerator::Lazy class (require mruby-enumerator)
   conf.gem :core => "mruby-enum-lazy"
 
+  # Use Enumerator::Chain class (require mruby-enumerator)
+  conf.gem :core => "mruby-enum-chain"
+
   # Use toplevel object (main) methods extension
   conf.gem :core => "mruby-toplevel-ext"
 
@@ -54,4 +57,7 @@ MRuby::GemBox.new do |conf|
 
   # Use class/module extension
   conf.gem :core => "mruby-class-ext"
+
+  # Use catch/throw methods
+  conf.gem :core => "mruby-catch"
 end

@@ -6738,7 +6738,10 @@ mrb_parser_free(parser_state *p) {
 MRB_API mrb_ccontext*
 mrb_ccontext_new(mrb_state *mrb)
 {
-  return (mrb_ccontext*)mrb_calloc(mrb, 1, sizeof(mrb_ccontext));
+  static const mrb_ccontext cc_zero = { 0 };
+  mrb_ccontext *cc = (mrb_ccontext*)mrbc_malloc(sizeof(mrb_ccontext));
+  *cc = cc_zero;
+  return cc;
 }
 
 MRB_API void
@@ -6767,17 +6770,17 @@ mrb_ccontext_filename(mrb_state *mrb, mrb_ccontext *c, const char *s)
 }
 
 MRB_API void
-mrb_ccontext_partial_hook(mrb_state *mrb, mrb_ccontext *c, int (*func)(struct mrb_parser_state*), void *data)
+mrb_ccontext_partial_hook(mrb_ccontext *c, int (*func)(struct mrb_parser_state*), void *data)
 {
   c->partial_hook = func;
   c->partial_data = data;
 }
 
 MRB_API void
-mrb_ccontext_cleanup_local_variables(mrb_state *mrb, mrb_ccontext *c)
+mrb_ccontext_cleanup_local_variables(mrb_ccontext *c)
 {
   if (c->syms) {
-    mrb_free(mrb, c->syms);
+    mrbc_free(c->syms);
     c->syms = NULL;
     c->slen = 0;
   }

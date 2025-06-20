@@ -13,6 +13,17 @@ module Kernel
     end
   end
 
+  private def p(*a)
+    for e in a
+      $stdout.write e.inspect
+      $stdout.write "\n"
+    end
+    len = a.size
+    return nil if len == 0
+    return a[0] if len == 1
+    a
+  end
+
   private def print(...)
     $stdout.print(...)
   end

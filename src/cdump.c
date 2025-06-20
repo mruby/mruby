@@ -17,6 +17,10 @@
 
 #ifndef MRB_NO_FLOAT
 #include <mruby/endian.h>
+/*
+ * MRB_FLOAT_FMT - String format for dumping float values.
+ * Used when MRB_NO_FLOAT is not defined.
+ */
 #define MRB_FLOAT_FMT "%.17g"
 #endif
 
@@ -422,6 +426,26 @@ cdump_irep_struct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp,
   return MRB_DUMP_OK;
 }
 
+/**
+ * Dumps an mruby irep into a C structure representation.
+ *
+ * This function takes an mruby internal representation (irep) and generates
+ * a C source code representation of it, writing it to the provided file pointer.
+ * This is useful for embedding mruby bytecode directly into C code.
+ * This function is only available when MRB_NO_STDIO is not defined.
+ *
+ * @param mrb The current mruby state.
+ * @param irep Pointer to the mruby irep to dump.
+ * @param flags Flags to control the dumping process. Possible values include
+ *              MRB_DUMP_DEBUG_INFO (to include debug information) and
+ *              MRB_DUMP_STATIC (to declare generated structures as static).
+ * @param fp File pointer where the C structure will be written.
+ * @param initname Base name used for generated C variables and functions.
+ * @return MRB_DUMP_OK on success.
+ * @return MRB_DUMP_INVALID_ARGUMENT if `fp` or `initname` is NULL or `initname` is empty.
+ * @return MRB_DUMP_WRITE_FAULT if a file writing error occurs.
+ * @return Other non-zero values for other errors during the dump.
+ */
 int
 mrb_dump_irep_cstruct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE *fp, const char *initname)
 {
@@ -436,7 +460,18 @@ mrb_dump_irep_cstruct(mrb_state *mrb, const mrb_irep *irep, uint8_t flags, FILE 
                   "\n") < 0) {
     return MRB_DUMP_WRITE_FAULT;
   }
+  /*
+   * Macro to wrap variadic arguments in curly braces.
+   * Useful for array or struct initializations within other macros.
+   */
   fputs("#define mrb_BRACED(...) {__VA_ARGS__}\n", fp);
+  /*
+   * Macro to define a symbol array variable.
+   * name: Variable name for the symbol array.
+   * len: Number of symbols in the array.
+   * syms: Initializer list for the symbols, e.g., (MRB_SYM(foo), MRB_SYM(bar)).
+   * qualifier: Storage class qualifier like 'static' or 'const'.
+   */
   fputs("#define mrb_DEFINE_SYMS_VAR(name, len, syms, qualifier) \\\n", fp);
   fputs("  static qualifier mrb_sym name[len] = mrb_BRACED syms\n", fp);
   fputs("\n", fp);

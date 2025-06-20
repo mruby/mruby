@@ -368,7 +368,7 @@ mruby can be extended with pure Ruby. It is possible to override existing
 classes or add new ones in this way. Put all Ruby files into the `mrblib`
 directory.
 
-### Pre-Conditions
+### Preconditions
 
 none
 
@@ -400,7 +400,7 @@ mruby codes under `mrblib` directory would be executed after gem init C
 function is called. Make sure _mruby script_ depends on _C code_ and
 _C code_ doesn't depend on _mruby script_.
 
-### Pre-Conditions
+### Preconditions
 
 See C and Ruby example.
 

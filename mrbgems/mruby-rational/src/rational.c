@@ -309,9 +309,9 @@ mrb_rational_new(mrb_state *mrb, mrb_int nume, mrb_int deno)
 static mrb_value
 int_lshift(mrb_state *mrb, mrb_value v, mrb_int n)
 {
-  if (mrb_integer_p(v)) {
+  if (mrb_integer_p(v) && n < (mrb_int)sizeof(long) * CHAR_BIT) {
     mrb_float f = (mrb_float)mrb_integer(v);
-    f *= 1<<n;
+    f *= 1L<<n;
     if (mrb_int_fit_p(f, mrb_float))
       return mrb_int_value(mrb, (mrb_int)f);
   }
