@@ -660,7 +660,7 @@ set_inspect(mrb_state *mrb, mrb_value self)
   if (mrb_inspect_recursive_p(mrb, self)) {
     return mrb_format(mrb, "#<%s: {...}>", classname);
   }
-  mrb_value ary = mrb_funcall_id(mrb, self, MRB_SYM(to_a), 0);
+  mrb_value ary = set_to_a(mrb, self);
   mrb_value result_str = mrb_str_new_lit(mrb, "#<");
   mrb_str_cat_cstr(mrb, result_str, classname);
   mrb_str_cat_lit(mrb, result_str, ": {");
