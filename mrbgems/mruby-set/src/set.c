@@ -119,42 +119,11 @@ set_get_khash(mrb_state *mrb, mrb_value self)
   return (khash_t(set)*)mrb_data_get_ptr(mrb, self, &set_data_type);
 }
 
-/*
- * call-seq:
- *   Set.new(enum = nil)
- *   Set.new(enum = nil) { |o| block }
- *
- * Creates a new set containing the members of the given enumerable object.
- */
 static mrb_value
 set_init(mrb_state *mrb, mrb_value self)
 {
-  mrb_value enum_obj = mrb_nil_value();
-  mrb_value block = mrb_nil_value();
-
-  mrb_get_args(mrb, "|o&", &enum_obj, &block);
-
-  /* Initialize the khash and associate it with the Ruby object */
   khash_t(set) *kh = kh_init(set, mrb);
-
-  /* Associate the khash with the Ruby object so it will be freed when the object is GC'd */
   set_set_khash(mrb, self, kh);
-
-  if (mrb_nil_p(enum_obj)) {
-    return self;
-  }
-
-  if (!mrb_nil_p(block)) {
-    /* Block given - validate with the temporary set first */
-    mrb_value args[1] = { enum_obj };
-    /* If we get here, no exception was raised, so we can safely proceed with our main set */
-    mrb_funcall_with_block(mrb, self, MRB_SYM(__init_with_block), 1, args, block);
-  }
-  else {
-    /* If we get here, no exception was raised, so we can safely proceed with our main set */
-    mrb_funcall_id(mrb, self, MRB_SYM(merge), 1, enum_obj);
-  }
-
   return self;
 }
 
@@ -878,7 +847,6 @@ mrb_mruby_set_gem_init(mrb_state *mrb)
 
   mrb_define_class_method(mrb, set, "[]", set_s_create, MRB_ARGS_ANY());
 
-  mrb_define_method(mrb, set, "initialize", set_init, MRB_ARGS_OPT(1) | MRB_ARGS_BLOCK());
   mrb_define_private_method(mrb, set, "initialize_copy", set_init_copy, MRB_ARGS_REQ(1));
 
   mrb_define_method(mrb, set, "size", set_size, MRB_ARGS_NONE());
@@ -898,6 +866,7 @@ mrb_mruby_set_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, set, "delete", set_delete, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, set, "delete?", set_delete_p, MRB_ARGS_REQ(1));
 
+  mrb_define_method(mrb, set, "__set_init", set_init, MRB_ARGS_NONE());
   mrb_define_method(mrb, set, "__set_merge", set_core_merge, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, set, "__set_subtract", set_core_subtract, MRB_ARGS_REQ(1));
 

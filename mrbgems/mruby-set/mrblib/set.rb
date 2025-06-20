@@ -1,4 +1,16 @@
 class Set
+  def initialize(enum = nil, &block)
+    __set_init
+    return self if enum.nil?
+
+    if block
+      __do_with_enum(enum) { |o| add(block.call(o)) }
+      self
+    else
+      merge(enum)
+    end
+  end
+
   # internal method
   def __do_with_enum(enum, &block)
     if enum.respond_to?(:each)
@@ -6,12 +18,6 @@ class Set
     else
       raise ArgumentError, "value must be enumerable"
     end
-  end
-
-  # Helper method for initialize with block
-  def __init_with_block(enum, &block)
-    __do_with_enum(enum) { |o| add(block.call(o)) }
-    self
   end
 
   # Merges the elements of the given enumerable object to the set and returns
