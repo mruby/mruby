@@ -46,6 +46,25 @@ class Set
   # Alias for #intersection
   alias & intersection
 
+  # Returns a new set built by merging the set and the elements of the given
+  # enumerable object.
+  #
+  # @param [Enumerable] enum The enumerable object to merge with
+  # @return [Set] A new set containing all elements from both
+  def union(enum)
+    if enum.is_a?(Set)
+      # Fast path: Call C-implemented function for Set-to-Set union
+      __set_union(enum)
+    else
+      # General path: Create a duplicate and merge the enumerable
+      dup.merge(enum)
+    end
+  end
+
+  # Aliases for #union
+  alias | union
+  alias + union
+
   # Returns a new set containing elements exclusive between the set and the given
   # enumerable object.
   #

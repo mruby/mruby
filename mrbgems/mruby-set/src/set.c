@@ -410,23 +410,41 @@ set_subtract(mrb_state *mrb, mrb_value self)
 }
 
 /*
- * call-seq:
- *   set | enum -> new_set
- *   set + enum -> new_set
- *   set.union(enum) -> new_set
- *
- * Returns a new set built by merging the set and the elements of the given
- * enumerable object.
+ * Core implementation of Set-to-Set union
+ * This is an internal method that will be called from Ruby
  */
 static mrb_value
-set_union(mrb_state *mrb, mrb_value self)
+set_core_union(mrb_state *mrb, mrb_value self)
 {
-  mrb_value enum_obj;
-  mrb_value new_set;
+  mrb_value other;
+  mrb_value result_set;
+  khash_t(set) *result_kh, *self_kh, *other_kh;
 
-  mrb_get_args(mrb, "o", &enum_obj);
-  new_set = mrb_funcall_id(mrb, self, MRB_SYM(dup), 0);
-  return mrb_funcall_id(mrb, new_set, MRB_SYM(merge), 1, enum_obj);
+  mrb_get_args(mrb, "o", &other);
+
+  /* Create a new set by duplicating self */
+  result_set = mrb_obj_dup(mrb, self);
+  result_kh = set_get_khash(mrb, result_set);
+  if (!result_kh) {
+    /* If self is empty, create a new empty set */
+    result_kh = kh_init(set, mrb);
+    set_set_khash(mrb, result_set, result_kh);
+  }
+
+  /* Add all elements from other set */
+  other_kh = set_get_khash(mrb, other);
+  if (other_kh) {
+    khiter_t k;
+    int ai = mrb_gc_arena_save(mrb);
+    for (k = kh_begin(other_kh); k != kh_end(other_kh); k++) {
+      if (kh_exist(other_kh, k)) {
+        kh_put(set, mrb, result_kh, kh_key(other_kh, k));
+        mrb_gc_arena_restore(mrb, ai);
+      }
+    }
+  }
+
+  return result_set;
 }
 
 /*
@@ -925,9 +943,7 @@ mrb_mruby_set_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, set, "merge", set_merge, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, set, "subtract", set_subtract, MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, set, "|", set_union, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, set, "+", set_union, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, set, "union", set_union, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, set, "__set_union", set_core_union, MRB_ARGS_REQ(1));
 
   mrb_define_method(mrb, set, "-", set_difference, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, set, "difference", set_difference, MRB_ARGS_REQ(1));
