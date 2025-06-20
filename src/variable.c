@@ -187,9 +187,9 @@ static void
 iv_foreach(mrb_state *mrb, iv_tbl *t, mrb_iv_foreach_func *func, void *p)
 {
   if (t == NULL || t->alloc == 0 || t->size == 0) return;
-  mrb_sym   *keys = (mrb_sym*)&t->ptr[t->alloc];
-  mrb_value *vals =  t->ptr;
   for (int i = 0; i < t->size; i++) {
+    mrb_sym   *keys = (mrb_sym*)&t->ptr[t->alloc];
+    mrb_value *vals = t->ptr;
     if ((*func)(mrb, keys[i], vals[i], p) != 0) return;
   }
 }
