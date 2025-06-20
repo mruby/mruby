@@ -489,22 +489,86 @@ set_core_intersection(mrb_state *mrb, mrb_value self)
 }
 
 /*
- * call-seq:
- *   set ^ enum -> new_set
- *
- * Returns a new set containing elements exclusive between the set and the
- * given enumerable object.
+ * Core implementation of Set-to-Set XOR (symmetric difference)
+ * This is an internal method that will be called from Ruby
  */
 static mrb_value
-set_xor(mrb_state *mrb, mrb_value self)
+set_core_xor(mrb_state *mrb, mrb_value self)
 {
-  mrb_value enum_obj;
-  mrb_value union_set, intersection_set;
+  mrb_value other;
+  mrb_value result_set;
+  khash_t(set) *result_kh, *self_kh, *other_kh;
 
-  mrb_get_args(mrb, "o", &enum_obj);
-  union_set = mrb_funcall_id(mrb, self, MRB_OPSYM(or), 1, enum_obj);
-  intersection_set = mrb_funcall_id(mrb, self, MRB_OPSYM(and), 1, enum_obj);
-  return mrb_funcall_id(mrb, union_set, MRB_OPSYM(sub), 1, intersection_set);
+  mrb_get_args(mrb, "o", &other);
+
+  /* Create a new empty set of the same class as self */
+  result_set = mrb_obj_new(mrb, mrb_obj_class(mrb, self), 0, NULL);
+  result_kh = set_get_khash(mrb, result_set);
+
+  self_kh = set_get_khash(mrb, self);
+  if (!self_kh) {
+    /* If self is empty, return a copy of other */
+    other_kh = set_get_khash(mrb, other);
+    if (other_kh) {
+      khiter_t k;
+      int ai = mrb_gc_arena_save(mrb);
+      for (k = kh_begin(other_kh); k != kh_end(other_kh); k++) {
+        if (kh_exist(other_kh, k)) {
+          kh_put(set, mrb, result_kh, kh_key(other_kh, k));
+          mrb_gc_arena_restore(mrb, ai);
+        }
+      }
+    }
+    return result_set;
+  }
+
+  other_kh = set_get_khash(mrb, other);
+  if (!other_kh) {
+    /* If other is empty, return a copy of self */
+    khiter_t k;
+    int ai = mrb_gc_arena_save(mrb);
+    for (k = kh_begin(self_kh); k != kh_end(self_kh); k++) {
+      if (kh_exist(self_kh, k)) {
+        kh_put(set, mrb, result_kh, kh_key(self_kh, k));
+        mrb_gc_arena_restore(mrb, ai);
+      }
+    }
+    return result_set;
+  }
+
+  /* Add elements from self that are not in other */
+  {
+    khiter_t k, other_k;
+    int ai = mrb_gc_arena_save(mrb);
+    for (k = kh_begin(self_kh); k != kh_end(self_kh); k++) {
+      if (kh_exist(self_kh, k)) {
+        mrb_value key = kh_key(self_kh, k);
+        other_k = kh_get(set, mrb, other_kh, key);
+        if (other_k == kh_end(other_kh)) {
+          kh_put(set, mrb, result_kh, key);
+        }
+        mrb_gc_arena_restore(mrb, ai);
+      }
+    }
+  }
+
+  /* Add elements from other that are not in self */
+  {
+    khiter_t k, self_k;
+    int ai = mrb_gc_arena_save(mrb);
+    for (k = kh_begin(other_kh); k != kh_end(other_kh); k++) {
+      if (kh_exist(other_kh, k)) {
+        mrb_value key = kh_key(other_kh, k);
+        self_k = kh_get(set, mrb, self_kh, key);
+        if (self_k == kh_end(self_kh)) {
+          kh_put(set, mrb, result_kh, key);
+        }
+        mrb_gc_arena_restore(mrb, ai);
+      }
+    }
+  }
+
+  return result_set;
 }
 
 /*
@@ -869,8 +933,7 @@ mrb_mruby_set_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, set, "difference", set_difference, MRB_ARGS_REQ(1));
 
   mrb_define_method(mrb, set, "__set_intersection", set_core_intersection, MRB_ARGS_REQ(1));
-
-  mrb_define_method(mrb, set, "^", set_xor, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, set, "__set_xor", set_core_xor, MRB_ARGS_REQ(1));
 
   mrb_define_method(mrb, set, "==", set_equal, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, set, "hash", set_hash_m, MRB_ARGS_NONE());

@@ -46,6 +46,22 @@ class Set
   # Alias for #intersection
   alias & intersection
 
+  # Returns a new set containing elements exclusive between the set and the given
+  # enumerable object.
+  #
+  # @param [Enumerable] enum The enumerable object to find exclusive elements with
+  # @return [Set] A new set containing elements exclusive between both
+  def ^(enum)
+    if enum.is_a?(Set)
+      # Fast path: Call C-implemented function for Set-to-Set XOR
+      __set_xor(enum)
+    else
+      # General path: Convert enum to a set and calculate (self|s2)-(self&s2)
+      s2 = Set.new(enum)
+      (self | s2) - (self & s2)
+    end
+  end
+
   def flatten_merge(set, seen = Set.new)
     seen.add(set.object_id)
     set.each { |e|
