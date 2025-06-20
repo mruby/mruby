@@ -93,10 +93,8 @@ set_init(mrb_state *mrb, mrb_value self)
 static mrb_value
 set_init_copy(mrb_state *mrb, mrb_value self)
 {
-  mrb_value orig;
+  mrb_value orig = mrb_get_arg1(mrb);
   khash_t(set) *kh;
-
-  mrb_get_args(mrb, "o", &orig);
 
   if (mrb_type(orig) != MRB_TT_CDATA || (DATA_TYPE(self) && DATA_TYPE(self) != DATA_TYPE(orig))) {
     mrb_raise(mrb, E_TYPE_ERROR, "initialize_copy should take same class object");
@@ -191,11 +189,9 @@ set_to_a(mrb_state *mrb, mrb_value self)
 static mrb_value
 set_include_p(mrb_state *mrb, mrb_value self)
 {
-  mrb_value obj;
+  mrb_value obj = mrb_get_arg1(mrb);
   khash_t(set) *kh;
   khiter_t k;
-
-  mrb_get_args(mrb, "o", &obj);
   kh = set_get_khash(mrb, self);
   if (!kh) return mrb_false_value();
 
@@ -213,10 +209,8 @@ set_include_p(mrb_state *mrb, mrb_value self)
 static mrb_value
 set_add(mrb_state *mrb, mrb_value self)
 {
-  mrb_value obj;
+  mrb_value obj = mrb_get_arg1(mrb);
   khash_t(set) *kh;
-
-  mrb_get_args(mrb, "o", &obj);
   kh = set_get_khash(mrb, self);
   if (!kh) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "uninitialized Set");
@@ -236,11 +230,9 @@ set_add(mrb_state *mrb, mrb_value self)
 static mrb_value
 set_add_p(mrb_state *mrb, mrb_value self)
 {
-  mrb_value obj;
+  mrb_value obj = mrb_get_arg1(mrb);
   khash_t(set) *kh;
   int ret;
-
-  mrb_get_args(mrb, "o", &obj);
   kh = set_get_khash(mrb, self);
   if (!kh) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "uninitialized Set");
@@ -266,11 +258,9 @@ set_add_p(mrb_state *mrb, mrb_value self)
 static mrb_value
 set_delete(mrb_state *mrb, mrb_value self)
 {
-  mrb_value obj;
+  mrb_value obj = mrb_get_arg1(mrb);
   khash_t(set) *kh;
   khiter_t k;
-
-  mrb_get_args(mrb, "o", &obj);
   kh = set_get_khash(mrb, self);
   if (!kh) return self;
 
@@ -291,11 +281,9 @@ set_delete(mrb_state *mrb, mrb_value self)
 static mrb_value
 set_delete_p(mrb_state *mrb, mrb_value self)
 {
-  mrb_value obj;
+  mrb_value obj = mrb_get_arg1(mrb);
   khash_t(set) *kh;
   khiter_t k;
-
-  mrb_get_args(mrb, "o", &obj);
   kh = set_get_khash(mrb, self);
   if (!kh) return mrb_nil_value();
 
@@ -316,10 +304,8 @@ set_delete_p(mrb_state *mrb, mrb_value self)
 static mrb_value
 set_core_replace(mrb_state *mrb, mrb_value self)
 {
-  mrb_value other;
+  mrb_value other = mrb_get_arg1(mrb);
   khash_t(set) *self_kh, *other_kh;
-
-  mrb_get_args(mrb, "o", &other);
 
   /* Clear the current set */
   set_clear(mrb, self);
@@ -354,10 +340,8 @@ set_core_replace(mrb_state *mrb, mrb_value self)
 static mrb_value
 set_core_merge(mrb_state *mrb, mrb_value self)
 {
-  mrb_value other;
+  mrb_value other = mrb_get_arg1(mrb);
   khash_t(set) *self_kh, *other_kh;
-
-  mrb_get_args(mrb, "o", &other);
 
   self_kh = set_get_khash(mrb, self);
   if (!self_kh) {
@@ -387,10 +371,8 @@ set_core_merge(mrb_state *mrb, mrb_value self)
 static mrb_value
 set_core_subtract(mrb_state *mrb, mrb_value self)
 {
-  mrb_value other;
+  mrb_value other = mrb_get_arg1(mrb);
   khash_t(set) *self_kh, *other_kh;
-
-  mrb_get_args(mrb, "o", &other);
 
   self_kh = set_get_khash(mrb, self);
   if (!self_kh) return self;
@@ -421,11 +403,9 @@ set_core_subtract(mrb_state *mrb, mrb_value self)
 static mrb_value
 set_core_union(mrb_state *mrb, mrb_value self)
 {
-  mrb_value other;
   mrb_value result_set;
   khash_t(set) *result_kh, *self_kh, *other_kh;
-
-  mrb_get_args(mrb, "o", &other);
+  mrb_value other = mrb_get_arg1(mrb);
 
   /* Create a new set by duplicating self */
   result_set = mrb_obj_dup(mrb, self);
@@ -459,11 +439,9 @@ set_core_union(mrb_state *mrb, mrb_value self)
 static mrb_value
 set_core_difference(mrb_state *mrb, mrb_value self)
 {
-  mrb_value other;
+  mrb_value other = mrb_get_arg1(mrb);
   mrb_value result_set;
   khash_t(set) *result_kh, *self_kh, *other_kh;
-
-  mrb_get_args(mrb, "o", &other);
 
   /* Create a new set by duplicating self */
   result_set = mrb_obj_dup(mrb, self);
@@ -499,11 +477,9 @@ set_core_difference(mrb_state *mrb, mrb_value self)
 static mrb_value
 set_core_intersection(mrb_state *mrb, mrb_value self)
 {
-  mrb_value other;
+  mrb_value other = mrb_get_arg1(mrb);
   mrb_value result_set;
   khash_t(set) *result_kh, *self_kh, *other_kh;
-
-  mrb_get_args(mrb, "o", &other);
 
   /* Create a new empty set of the same class as self */
   result_set = mrb_obj_new(mrb, mrb_obj_class(mrb, self), 0, NULL);
@@ -539,11 +515,9 @@ set_core_intersection(mrb_state *mrb, mrb_value self)
 static mrb_value
 set_core_xor(mrb_state *mrb, mrb_value self)
 {
-  mrb_value other;
+  mrb_value other = mrb_get_arg1(mrb);
   mrb_value result_set;
   khash_t(set) *result_kh, *self_kh, *other_kh;
-
-  mrb_get_args(mrb, "o", &other);
 
   /* Create a new empty set of the same class as self */
   result_set = mrb_obj_new(mrb, mrb_obj_class(mrb, self), 0, NULL);
@@ -688,10 +662,8 @@ set_hash_m(mrb_state *mrb, mrb_value self)
 static mrb_value
 set_eql(mrb_state *mrb, mrb_value self)
 {
-  mrb_value other;
+  mrb_value other = mrb_get_arg1(mrb);
   khash_t(set) *self_kh, *other_kh;
-
-  mrb_get_args(mrb, "o", &other);
 
   if (!mrb_obj_is_kind_of(mrb, other, mrb_obj_class(mrb, self))) {
     return mrb_false_value();
