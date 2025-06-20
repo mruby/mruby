@@ -137,6 +137,12 @@ class Set
     end
   end
 
+  # Recursively merges nested sets into this set, tracking seen sets to prevent
+  # infinite recursion.
+  #
+  # @param [Set] set The set to flatten and merge
+  # @param [Set] seen Set of object IDs to track visited sets
+  # @return [Set] self
   def flatten_merge(set, seen = Set.new)
     seen.add(set.object_id)
     set.each { |e|
@@ -154,10 +160,16 @@ class Set
     self
   end
 
+  # Returns a new set that is a flattened version of this set.
+  #
+  # @return [Set] A new flattened set
   def flatten
     self.class.new.flatten_merge(self)
   end
 
+  # Replaces the contents of this set with a flattened version of itself.
+  #
+  # @return [Set] self if flattened, nil if no changes were made
   def flatten!
     if detect { |e| e.is_a?(Set) }
       replace(flatten())
@@ -166,6 +178,10 @@ class Set
     end
   end
 
+  # Returns true if this set is a superset of the given set.
+  #
+  # @param [Set] set The set to check against
+  # @return [Boolean] true if this set is a superset of the given set
   def superset?(set)
     raise ArgumentError, "value must be a set" unless set.is_a?(Set)
     return false if size < set.size
@@ -173,6 +189,10 @@ class Set
   end
   alias >= superset?
 
+  # Returns true if this set is a proper superset of the given set.
+  #
+  # @param [Set] set The set to check against
+  # @return [Boolean] true if this set is a proper superset of the given set
   def proper_superset?(set)
     raise ArgumentError, "value must be a set" unless set.is_a?(Set)
     return false if size <= set.size
@@ -180,6 +200,10 @@ class Set
   end
   alias > proper_superset?
 
+  # Returns true if this set is a subset of the given set.
+  #
+  # @param [Set] set The set to check against
+  # @return [Boolean] true if this set is a subset of the given set
   def subset?(set)
     raise ArgumentError, "value must be a set" unless set.is_a?(Set)
     return false if set.size < size
@@ -187,6 +211,10 @@ class Set
   end
   alias <= subset?
 
+  # Returns true if this set is a proper subset of the given set.
+  #
+  # @param [Set] set The set to check against
+  # @return [Boolean] true if this set is a proper subset of the given set
   def proper_subset?(set)
     raise ArgumentError, "value must be a set" unless set.is_a?(Set)
     return false if set.size <= size
@@ -194,6 +222,10 @@ class Set
   end
   alias < proper_subset?
 
+  # Returns true if this set and the given set have at least one element in common.
+  #
+  # @param [Set] set The set to check against
+  # @return [Boolean] true if the sets intersect
   def intersect?(set)
     raise ArgumentError, "value must be a set" unless set.is_a?(Set)
     if size < set.size
@@ -203,10 +235,18 @@ class Set
     end
   end
 
+  # Returns true if this set and the given set have no elements in common.
+  #
+  # @param [Set] set The set to check against
+  # @return [Boolean] true if the sets are disjoint
   def disjoint?(set)
     !intersect?(set)
   end
 
+  # Iterates over each element in the set.
+  #
+  # @yield [Object] Each element in the set
+  # @return [Set] self
   def each(&block)
     return to_enum :each unless block_given?
     # Use C implementation's to_a method and iterate
@@ -214,18 +254,33 @@ class Set
     self
   end
 
+  # Deletes every element for which the given block returns true.
+  #
+  # @yield [Object] Each element in the set
+  # @yieldreturn [Boolean] true if the element should be deleted
+  # @return [Set] self
   def delete_if
     return to_enum :delete_if unless block_given?
     select { yield _1 }.each { delete(_1) }
     self
   end
 
+  # Deletes every element for which the given block returns false.
+  #
+  # @yield [Object] Each element in the set
+  # @yieldreturn [Boolean] true if the element should be kept
+  # @return [Set] self
   def keep_if
     return to_enum :keep_if unless block_given?
     reject { yield _1 }.each { delete(_1) }
     self
   end
 
+  # Replaces each element with the result of the given block.
+  #
+  # @yield [Object] Each element in the set
+  # @yieldreturn [Object] The new value for the element
+  # @return [Set] self
   def collect!
     return to_enum :collect! unless block_given?
     set = self.class.new
@@ -234,6 +289,11 @@ class Set
   end
   alias map! collect!
 
+  # Deletes every element for which the given block returns true.
+  #
+  # @yield [Object] Each element in the set
+  # @yieldreturn [Boolean] true if the element should be deleted
+  # @return [Set] self if any elements were deleted, nil otherwise
   def reject!(&block)
     return to_enum :reject! unless block_given?
     n = size
@@ -241,6 +301,11 @@ class Set
     size == n ? nil : self
   end
 
+  # Deletes every element for which the given block returns false.
+  #
+  # @yield [Object] Each element in the set
+  # @yieldreturn [Boolean] true if the element should be kept
+  # @return [Set] self if any elements were deleted, nil otherwise
   def select!(&block)
     return to_enum :select! unless block_given?
     n = size
@@ -249,6 +314,10 @@ class Set
   end
   alias filter! select!
 
+  # Compares this set with another set.
+  #
+  # @param [Set] set The set to compare with
+  # @return [Integer, nil] -1, 0, 1, or nil if not comparable
   def <=>(set)
     return unless set.is_a?(Set)
 
@@ -259,6 +328,11 @@ class Set
     end
   end
 
+  # Classifies the elements of the set by the result of the given block.
+  #
+  # @yield [Object] Each element in the set
+  # @yieldreturn [Object] The classification key
+  # @return [Hash] A hash mapping classification keys to sets of elements
   def classify
     return to_enum :classify unless block_given?
     h = {}
@@ -269,6 +343,11 @@ class Set
     h
   end
 
+  # Divides the set into subsets based on the result of the given block.
+  #
+  # @yield [Object] Each element in the set
+  # @yieldreturn [Object] The division key
+  # @return [Set] A set containing the divided subsets
   def divide(&func)
     return to_enum :divide unless block_given?
 
