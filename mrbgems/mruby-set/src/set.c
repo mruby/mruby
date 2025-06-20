@@ -637,8 +637,8 @@ set_join(mrb_state *mrb, mrb_value self)
   mrb_value array;
 
   mrb_get_args(mrb, "|S", &separator);
-  array = mrb_funcall_id(mrb, self, MRB_SYM(to_a), 0);
-  return mrb_funcall_id(mrb, array, MRB_SYM(join), 1, separator);
+  array = set_to_a(mrb, self);
+  return mrb_ary_join(mrb, array, separator);
 }
 
 /*
