@@ -20,10 +20,20 @@ class Set
     self
   end
 
-  # Helper method for subtract with enumerable
-  def __subtract_enum(enum)
-    __do_with_enum(enum) { |o| delete(o) }
-    self
+  # Deletes every element that appears in the given enumerable object and
+  # returns self.
+  #
+  # @param [Enumerable] enum The enumerable object containing elements to remove
+  # @return [Set] self
+  def subtract(enum)
+    if enum.is_a?(Set)
+      # Fast path: Call C-implemented function for Set-to-Set subtraction
+      __set_subtract(enum)
+    else
+      # General path: Remove each element from the enumerable
+      __do_with_enum(enum) { |o| delete(o) }
+      self
+    end
   end
 
   # Returns a new set containing elements common to the set and the given
