@@ -36,15 +36,8 @@ class Set
   # @param [Enumerable] enum The enumerable object to replace with
   # @return [Set] self
   def replace(enum)
-    if enum.is_a?(Set)
-      # Fast path: Call C-implemented function for Set-to-Set replace
-      __set_replace(enum)
-    else
-      # General path: Clear and add each element from the enumerable
-      clear
-      __do_with_enum(enum) { |o| add(o) }
-      self
-    end
+    clear
+    merge(enum)
   end
 
   # Deletes every element that appears in the given enumerable object and
@@ -152,7 +145,6 @@ class Set
       end
     }
     seen.delete(set.object_id)
-
     self
   end
 
@@ -264,12 +256,10 @@ class Set
   def classify
     return to_enum :classify unless block_given?
     h = {}
-
     each { |i|
       x = yield(i)
       (h[x] ||= self.class.new).add(i)
     }
-
     h
   end
 

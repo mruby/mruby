@@ -361,32 +361,6 @@ set_delete_p(mrb_state *mrb, mrb_value self)
 }
 
 /*
- * Core implementation of Set-to-Set replace
- * This is an internal method that will be called from Ruby
- */
-static mrb_value
-set_core_replace(mrb_state *mrb, mrb_value self)
-{
-  mrb_value other = mrb_get_arg1(mrb);
-
-  /* Clear the current set */
-  set_clear(mrb, self);
-
-  khash_t(set) *self_kh = set_get_khash(mrb, self);
-  if (!self_kh) {
-    /* If self is empty after clearing, create a new hash */
-    self_kh = kh_init(set, mrb);
-    set_set_khash(mrb, self, self_kh);
-  }
-
-  /* Add all elements from other set */
-  khash_t(set) *other_kh = set_get_khash(mrb, other);
-  set_copy_elements(mrb, self_kh, other_kh);
-
-  return self;
-}
-
-/*
  * Core implementation of Set-to-Set merge (mutating version)
  * This is an internal method that will be called from Ruby
  */
@@ -924,7 +898,6 @@ mrb_mruby_set_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, set, "delete", set_delete, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, set, "delete?", set_delete_p, MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, set, "__set_replace", set_core_replace, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, set, "__set_merge", set_core_merge, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, set, "__set_subtract", set_core_subtract, MRB_ARGS_REQ(1));
 
