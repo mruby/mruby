@@ -65,6 +65,26 @@ class Set
   alias | union
   alias + union
 
+  # Returns a new set built by duplicating the set, removing every element that
+  # appears in the given enumerable object.
+  #
+  # @param [Enumerable] enum The enumerable object to find elements to remove
+  # @return [Set] A new set with elements from self that are not in enum
+  def difference(enum)
+    if enum.is_a?(Set)
+      # Fast path: Call C-implemented function for Set-to-Set difference
+      __set_difference(enum)
+    else
+      # General path: Create a duplicate and remove the enumerable elements
+      result = dup
+      __do_with_enum(enum) { |o| result.delete(o) }
+      result
+    end
+  end
+
+  # Alias for #difference
+  alias - difference
+
   # Returns a new set containing elements exclusive between the set and the given
   # enumerable object.
   #

@@ -448,22 +448,43 @@ set_core_union(mrb_state *mrb, mrb_value self)
 }
 
 /*
- * call-seq:
- *   set - enum -> new_set
- *   set.difference(enum) -> new_set
- *
- * Returns a new set built by duplicating the set, removing every element that
- * appears in the given enumerable object.
+ * Core implementation of Set-to-Set difference
+ * This is an internal method that will be called from Ruby
  */
 static mrb_value
-set_difference(mrb_state *mrb, mrb_value self)
+set_core_difference(mrb_state *mrb, mrb_value self)
 {
-  mrb_value enum_obj;
-  mrb_value new_set;
+  mrb_value other;
+  mrb_value result_set;
+  khash_t(set) *result_kh, *self_kh, *other_kh;
 
-  mrb_get_args(mrb, "o", &enum_obj);
-  new_set = mrb_funcall_id(mrb, self, MRB_SYM(dup), 0);
-  return mrb_funcall_id(mrb, new_set, MRB_SYM(subtract), 1, enum_obj);
+  mrb_get_args(mrb, "o", &other);
+
+  /* Create a new set by duplicating self */
+  result_set = mrb_obj_dup(mrb, self);
+  result_kh = set_get_khash(mrb, result_set);
+  if (!result_kh) {
+    /* If self is empty, return an empty set */
+    return result_set;
+  }
+
+  /* Remove all elements that are in other set */
+  other_kh = set_get_khash(mrb, other);
+  if (other_kh) {
+    khiter_t k, del_k;
+    int ai = mrb_gc_arena_save(mrb);
+    for (k = kh_begin(other_kh); k != kh_end(other_kh); k++) {
+      if (kh_exist(other_kh, k)) {
+        del_k = kh_get(set, mrb, result_kh, kh_key(other_kh, k));
+        if (del_k != kh_end(result_kh)) {
+          kh_del(set, mrb, result_kh, del_k);
+        }
+        mrb_gc_arena_restore(mrb, ai);
+      }
+    }
+  }
+
+  return result_set;
 }
 
 /*
@@ -945,8 +966,7 @@ mrb_mruby_set_gem_init(mrb_state *mrb)
 
   mrb_define_method(mrb, set, "__set_union", set_core_union, MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, set, "-", set_difference, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, set, "difference", set_difference, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, set, "__set_difference", set_core_difference, MRB_ARGS_REQ(1));
 
   mrb_define_method(mrb, set, "__set_intersection", set_core_intersection, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, set, "__set_xor", set_core_xor, MRB_ARGS_REQ(1));
