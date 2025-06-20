@@ -1,6 +1,6 @@
 class Set
   def initialize(enum = nil, &block)
-    __set_init
+    __init
     return self if enum.nil?
 
     if block
@@ -28,7 +28,7 @@ class Set
   def merge(enum)
     if enum.is_a?(Set)
       # Fast path: Call C-implemented function for Set-to-Set merge
-      __set_merge(enum)
+      __merge(enum)
     else
       # General path: Add each element from the enumerable
       __do_with_enum(enum) { |o| add(o) }
@@ -54,7 +54,7 @@ class Set
   def subtract(enum)
     if enum.is_a?(Set)
       # Fast path: Call C-implemented function for Set-to-Set subtraction
-      __set_subtract(enum)
+      __subtract(enum)
     else
       # General path: Remove each element from the enumerable
       __do_with_enum(enum) { |o| delete(o) }
@@ -70,7 +70,7 @@ class Set
   def intersection(enum)
     if enum.is_a?(Set)
       # Fast path: Call C-implemented function for Set-to-Set intersection
-      __set_intersection(enum)
+      __intersection(enum)
     else
       # General path: Implement in Ruby for any enumerable
       n = Set.new
@@ -90,7 +90,7 @@ class Set
   def union(enum)
     if enum.is_a?(Set)
       # Fast path: Call C-implemented function for Set-to-Set union
-      __set_union(enum)
+      __union(enum)
     else
       # General path: Create a duplicate and merge the enumerable
       dup.merge(enum)
@@ -109,7 +109,7 @@ class Set
   def difference(enum)
     if enum.is_a?(Set)
       # Fast path: Call C-implemented function for Set-to-Set difference
-      __set_difference(enum)
+      __difference(enum)
     else
       # General path: Create a duplicate and remove the enumerable elements
       result = dup
@@ -129,7 +129,7 @@ class Set
   def ^(enum)
     if enum.is_a?(Set)
       # Fast path: Call C-implemented function for Set-to-Set XOR
-      __set_xor(enum)
+      __xor(enum)
     else
       # General path: Convert enum to a set and calculate (self|s2)-(self&s2)
       s2 = Set.new(enum)

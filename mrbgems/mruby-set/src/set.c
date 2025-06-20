@@ -866,16 +866,16 @@ mrb_mruby_set_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, set, "delete", set_delete, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, set, "delete?", set_delete_p, MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, set, "__set_init", set_init, MRB_ARGS_NONE());
-  mrb_define_method(mrb, set, "__set_merge", set_core_merge, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, set, "__set_subtract", set_core_subtract, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, set, "__init", set_init, MRB_ARGS_NONE());
+  mrb_define_method(mrb, set, "__merge", set_core_merge, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, set, "__subtract", set_core_subtract, MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, set, "__set_union", set_core_union, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, set, "__union", set_core_union, MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, set, "__set_difference", set_core_difference, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, set, "__difference", set_core_difference, MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, set, "__set_intersection", set_core_intersection, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, set, "__set_xor", set_core_xor, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, set, "__intersection", set_core_intersection, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, set, "__xor", set_core_xor, MRB_ARGS_REQ(1));
 
   mrb_define_method(mrb, set, "==", set_equal, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, set, "hash", set_hash_m, MRB_ARGS_NONE());
