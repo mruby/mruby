@@ -19,6 +19,79 @@
 KHASH_DECLARE(set, mrb_value, char, FALSE)
 KHASH_DEFINE(set, mrb_value, char, FALSE, mrb_obj_hash_code, mrb_eql)
 
+/* Helper function to iterate over a khash and call a callback for each entry */
+typedef void (*khash_each_func)(mrb_state *mrb, khash_t(set) *kh, khiter_t k, void *data);
+
+static void
+set_khash_foreach(mrb_state *mrb, khash_t(set) *kh, khash_each_func func, void *data)
+{
+  if (!kh) return;
+
+  int ai = mrb_gc_arena_save(mrb);
+  for (khiter_t k = kh_begin(kh); k != kh_end(kh); k++) {
+    if (kh_exist(kh, k)) {
+      func(mrb, kh, k, data);
+      mrb_gc_arena_restore(mrb, ai);
+    }
+  }
+}
+
+/* Helper function to copy all elements from source_kh to target_kh */
+static void
+set_copy_key_callback(mrb_state *mrb, khash_t(set) *source_kh, khiter_t k, void *data)
+{
+  khash_t(set) *target_kh = (khash_t(set)*)data;
+  kh_put(set, mrb, target_kh, kh_key(source_kh, k));
+}
+
+static void
+set_copy_elements(mrb_state *mrb, khash_t(set) *target_kh, khash_t(set) *source_kh)
+{
+  if (!source_kh || !target_kh) return;
+  set_khash_foreach(mrb, source_kh, set_copy_key_callback, target_kh);
+}
+
+/* Helper function to convert a khash to an array */
+static void
+set_to_array_callback(mrb_state *mrb, khash_t(set) *kh, khiter_t k, void *data)
+{
+  mrb_value ary = *(mrb_value*)data;
+  mrb_ary_push(mrb, ary, kh_key(kh, k));
+}
+
+/* Helper function to check if a key exists in another khash and delete if found */
+typedef struct {
+  khash_t(set) *target_kh;
+  mrb_bool delete_if_found;
+} set_check_key_data;
+
+static void
+set_check_key_callback(mrb_state *mrb, khash_t(set) *source_kh, khiter_t k, void *data)
+{
+  set_check_key_data *check_data = (set_check_key_data*)data;
+  mrb_value key = kh_key(source_kh, k);
+  khiter_t target_k = kh_get(set, mrb, check_data->target_kh, key);
+
+  if (check_data->delete_if_found) {
+    /* Delete from target if found */
+    if (target_k != kh_end(check_data->target_kh)) {
+      kh_del(set, mrb, check_data->target_kh, target_k);
+    }
+  }
+  else {
+    /* Add to target if not found */
+    if (target_k == kh_end(check_data->target_kh)) {
+      kh_put(set, mrb, check_data->target_kh, key);
+    }
+  }
+}
+
+/* Helper function for set_core_xor to add elements from source to target if not in exclude */
+typedef struct {
+  khash_t(set) *target_kh;
+  khash_t(set) *result_kh;
+} set_operation_data;
+
 #define SET_KHASH_IV MRB_SYM(khash)
 
 static void
@@ -170,11 +243,7 @@ set_to_a(mrb_state *mrb, mrb_value self)
   if (!kh) return mrb_ary_new(mrb);
 
   mrb_value ary = mrb_ary_new_capa(mrb, kh_size(kh));
-  for (khiter_t k = kh_begin(kh); k != kh_end(kh); k++) {
-    if (kh_exist(kh, k)) {
-      mrb_ary_push(mrb, ary, kh_key(kh, k));
-    }
-  }
+  set_khash_foreach(mrb, kh, set_to_array_callback, &ary);
   return ary;
 }
 
@@ -210,8 +279,7 @@ static mrb_value
 set_add(mrb_state *mrb, mrb_value self)
 {
   mrb_value obj = mrb_get_arg1(mrb);
-  khash_t(set) *kh;
-  kh = set_get_khash(mrb, self);
+  khash_t(set) *kh = set_get_khash(mrb, self);
   if (!kh) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "uninitialized Set");
   }
@@ -231,13 +299,12 @@ static mrb_value
 set_add_p(mrb_state *mrb, mrb_value self)
 {
   mrb_value obj = mrb_get_arg1(mrb);
-  khash_t(set) *kh;
-  int ret;
-  kh = set_get_khash(mrb, self);
+  khash_t(set) *kh = set_get_khash(mrb, self);
   if (!kh) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "uninitialized Set");
   }
 
+  int ret;
   kh_put2(set, mrb, kh, obj, &ret);
   if (ret == 0) {
     /* Key already exists */
@@ -259,12 +326,10 @@ static mrb_value
 set_delete(mrb_state *mrb, mrb_value self)
 {
   mrb_value obj = mrb_get_arg1(mrb);
-  khash_t(set) *kh;
-  khiter_t k;
-  kh = set_get_khash(mrb, self);
+  khash_t(set) *kh = set_get_khash(mrb, self);
   if (!kh) return self;
 
-  k = kh_get(set, mrb, kh, obj);
+  khiter_t k = kh_get(set, mrb, kh, obj);
   if (k != kh_end(kh)) {
     kh_del(set, mrb, kh, k);
   }
@@ -282,12 +347,10 @@ static mrb_value
 set_delete_p(mrb_state *mrb, mrb_value self)
 {
   mrb_value obj = mrb_get_arg1(mrb);
-  khash_t(set) *kh;
-  khiter_t k;
-  kh = set_get_khash(mrb, self);
+  khash_t(set) *kh = set_get_khash(mrb, self);
   if (!kh) return mrb_nil_value();
 
-  k = kh_get(set, mrb, kh, obj);
+  khiter_t k = kh_get(set, mrb, kh, obj);
   if (k != kh_end(kh)) {
     kh_del(set, mrb, kh, k);
     return self;
@@ -305,12 +368,11 @@ static mrb_value
 set_core_replace(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
-  khash_t(set) *self_kh, *other_kh;
 
   /* Clear the current set */
   set_clear(mrb, self);
 
-  self_kh = set_get_khash(mrb, self);
+  khash_t(set) *self_kh = set_get_khash(mrb, self);
   if (!self_kh) {
     /* If self is empty after clearing, create a new hash */
     self_kh = kh_init(set, mrb);
@@ -318,17 +380,8 @@ set_core_replace(mrb_state *mrb, mrb_value self)
   }
 
   /* Add all elements from other set */
-  other_kh = set_get_khash(mrb, other);
-  if (other_kh) {
-    khiter_t k;
-    int ai = mrb_gc_arena_save(mrb);
-    for (k = kh_begin(other_kh); k != kh_end(other_kh); k++) {
-      if (kh_exist(other_kh, k)) {
-        kh_put(set, mrb, self_kh, kh_key(other_kh, k));
-        mrb_gc_arena_restore(mrb, ai);
-      }
-    }
-  }
+  khash_t(set) *other_kh = set_get_khash(mrb, other);
+  set_copy_elements(mrb, self_kh, other_kh);
 
   return self;
 }
@@ -341,25 +394,17 @@ static mrb_value
 set_core_merge(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
-  khash_t(set) *self_kh, *other_kh;
 
-  self_kh = set_get_khash(mrb, self);
+  khash_t(set) *self_kh = set_get_khash(mrb, self);
   if (!self_kh) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "uninitialized Set");
   }
 
-  other_kh = set_get_khash(mrb, other);
+  khash_t(set) *other_kh = set_get_khash(mrb, other);
   if (!other_kh) return self;
 
   /* Add all elements from other set */
-  khiter_t k;
-  int ai = mrb_gc_arena_save(mrb);
-  for (k = kh_begin(other_kh); k != kh_end(other_kh); k++) {
-    if (kh_exist(other_kh, k)) {
-      kh_put(set, mrb, self_kh, kh_key(other_kh, k));
-      mrb_gc_arena_restore(mrb, ai);
-    }
-  }
+  set_copy_elements(mrb, self_kh, other_kh);
 
   return self;
 }
@@ -372,26 +417,17 @@ static mrb_value
 set_core_subtract(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
-  khash_t(set) *self_kh, *other_kh;
 
-  self_kh = set_get_khash(mrb, self);
+  khash_t(set) *self_kh = set_get_khash(mrb, self);
   if (!self_kh) return self;
 
-  other_kh = set_get_khash(mrb, other);
+  khash_t(set) *other_kh = set_get_khash(mrb, other);
   if (!other_kh) return self;
 
   /* Remove all elements that are in other set */
-  khiter_t k, del_k;
-  int ai = mrb_gc_arena_save(mrb);
-  for (k = kh_begin(other_kh); k != kh_end(other_kh); k++) {
-    if (kh_exist(other_kh, k)) {
-      del_k = kh_get(set, mrb, self_kh, kh_key(other_kh, k));
-      if (del_k != kh_end(self_kh)) {
-        kh_del(set, mrb, self_kh, del_k);
-      }
-      mrb_gc_arena_restore(mrb, ai);
-    }
-  }
+  set_check_key_data data = {self_kh, TRUE};
+
+  set_khash_foreach(mrb, other_kh, set_check_key_callback, &data);
 
   return self;
 }
@@ -403,13 +439,11 @@ set_core_subtract(mrb_state *mrb, mrb_value self)
 static mrb_value
 set_core_union(mrb_state *mrb, mrb_value self)
 {
-  mrb_value result_set;
-  khash_t(set) *result_kh, *self_kh, *other_kh;
   mrb_value other = mrb_get_arg1(mrb);
 
   /* Create a new set by duplicating self */
-  result_set = mrb_obj_dup(mrb, self);
-  result_kh = set_get_khash(mrb, result_set);
+  mrb_value result_set = mrb_obj_dup(mrb, self);
+  khash_t(set) *result_kh = set_get_khash(mrb, result_set);
   if (!result_kh) {
     /* If self is empty, create a new empty set */
     result_kh = kh_init(set, mrb);
@@ -417,17 +451,8 @@ set_core_union(mrb_state *mrb, mrb_value self)
   }
 
   /* Add all elements from other set */
-  other_kh = set_get_khash(mrb, other);
-  if (other_kh) {
-    khiter_t k;
-    int ai = mrb_gc_arena_save(mrb);
-    for (k = kh_begin(other_kh); k != kh_end(other_kh); k++) {
-      if (kh_exist(other_kh, k)) {
-        kh_put(set, mrb, result_kh, kh_key(other_kh, k));
-        mrb_gc_arena_restore(mrb, ai);
-      }
-    }
-  }
+  khash_t(set) *other_kh = set_get_khash(mrb, other);
+  set_copy_elements(mrb, result_kh, other_kh);
 
   return result_set;
 }
@@ -440,34 +465,37 @@ static mrb_value
 set_core_difference(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
-  mrb_value result_set;
-  khash_t(set) *result_kh, *self_kh, *other_kh;
 
   /* Create a new set by duplicating self */
-  result_set = mrb_obj_dup(mrb, self);
-  result_kh = set_get_khash(mrb, result_set);
+  mrb_value result_set = mrb_obj_dup(mrb, self);
+  khash_t(set) *result_kh = set_get_khash(mrb, result_set);
   if (!result_kh) {
     /* If self is empty, return an empty set */
     return result_set;
   }
 
   /* Remove all elements that are in other set */
-  other_kh = set_get_khash(mrb, other);
+  khash_t(set) *other_kh = set_get_khash(mrb, other);
   if (other_kh) {
-    khiter_t k, del_k;
-    int ai = mrb_gc_arena_save(mrb);
-    for (k = kh_begin(other_kh); k != kh_end(other_kh); k++) {
-      if (kh_exist(other_kh, k)) {
-        del_k = kh_get(set, mrb, result_kh, kh_key(other_kh, k));
-        if (del_k != kh_end(result_kh)) {
-          kh_del(set, mrb, result_kh, del_k);
-        }
-        mrb_gc_arena_restore(mrb, ai);
-      }
-    }
+    set_check_key_data data = {result_kh, TRUE};
+    set_khash_foreach(mrb, other_kh, set_check_key_callback, &data);
   }
 
   return result_set;
+}
+
+/* Helper function for intersection */
+static void
+set_intersection_callback(mrb_state *mrb, khash_t(set) *source_kh, khiter_t k, void *data)
+{
+  set_operation_data *intersect_data = (set_operation_data*)data;
+  mrb_value key = kh_key(source_kh, k);
+  khiter_t target_k = kh_get(set, mrb, intersect_data->target_kh, key);
+
+  /* If key exists in target, add it to result */
+  if (target_k != kh_end(intersect_data->target_kh)) {
+    kh_put(set, mrb, intersect_data->result_kh, key);
+  }
 }
 
 /*
@@ -478,34 +506,34 @@ static mrb_value
 set_core_intersection(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
-  mrb_value result_set;
-  khash_t(set) *result_kh, *self_kh, *other_kh;
 
   /* Create a new empty set of the same class as self */
-  result_set = mrb_obj_new(mrb, mrb_obj_class(mrb, self), 0, NULL);
-  result_kh = set_get_khash(mrb, result_set);
+  mrb_value result_set = mrb_obj_new(mrb, mrb_obj_class(mrb, self), 0, NULL);
+  khash_t(set) *result_kh = set_get_khash(mrb, result_set);
 
-  self_kh = set_get_khash(mrb, self);
+  khash_t(set) *self_kh = set_get_khash(mrb, self);
   if (!self_kh) return result_set;
 
-  other_kh = set_get_khash(mrb, other);
+  khash_t(set) *other_kh = set_get_khash(mrb, other);
   if (!other_kh) return result_set;
 
-  /* Find elements common to both sets */
-  khiter_t k, self_k;
-  int ai = mrb_gc_arena_save(mrb);
-  for (k = kh_begin(other_kh); k != kh_end(other_kh); k++) {
-    if (kh_exist(other_kh, k)) {
-      mrb_value key = kh_key(other_kh, k);
-      self_k = kh_get(set, mrb, self_kh, key);
-      if (self_k != kh_end(self_kh)) {
-        kh_put(set, mrb, result_kh, key);
-      }
-      mrb_gc_arena_restore(mrb, ai);
-    }
-  }
+  set_operation_data data = {self_kh, result_kh};
+  set_khash_foreach(mrb, other_kh, set_intersection_callback, &data);
 
   return result_set;
+}
+
+static void
+set_xor_callback(mrb_state *mrb, khash_t(set) *source_kh, khiter_t k, void *data)
+{
+  set_operation_data *xor_data = (set_operation_data*)data;
+  mrb_value key = kh_key(source_kh, k);
+  khiter_t exclude_k = kh_get(set, mrb, xor_data->target_kh, key);
+
+  /* Add to result if not in exclude */
+  if (exclude_k == kh_end(xor_data->target_kh)) {
+    kh_put(set, mrb, xor_data->result_kh, key);
+  }
 }
 
 /*
@@ -516,75 +544,34 @@ static mrb_value
 set_core_xor(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
-  mrb_value result_set;
-  khash_t(set) *result_kh, *self_kh, *other_kh;
 
   /* Create a new empty set of the same class as self */
-  result_set = mrb_obj_new(mrb, mrb_obj_class(mrb, self), 0, NULL);
-  result_kh = set_get_khash(mrb, result_set);
+  mrb_value result_set = mrb_obj_new(mrb, mrb_obj_class(mrb, self), 0, NULL);
+  khash_t(set) *result_kh = set_get_khash(mrb, result_set);
+  khash_t(set) *self_kh = set_get_khash(mrb, self);
+  khash_t(set) *other_kh = set_get_khash(mrb, other);
 
-  self_kh = set_get_khash(mrb, self);
-  if (!self_kh) {
+  if (!self_kh || kh_size(self_kh) == 0) {
     /* If self is empty, return a copy of other */
-    other_kh = set_get_khash(mrb, other);
     if (other_kh) {
-      khiter_t k;
-      int ai = mrb_gc_arena_save(mrb);
-      for (k = kh_begin(other_kh); k != kh_end(other_kh); k++) {
-        if (kh_exist(other_kh, k)) {
-          kh_put(set, mrb, result_kh, kh_key(other_kh, k));
-          mrb_gc_arena_restore(mrb, ai);
-        }
-      }
+      set_copy_elements(mrb, result_kh, other_kh);
     }
     return result_set;
   }
 
-  other_kh = set_get_khash(mrb, other);
-  if (!other_kh) {
+  if (!other_kh || kh_size(other_kh) == 0) {
     /* If other is empty, return a copy of self */
-    khiter_t k;
-    int ai = mrb_gc_arena_save(mrb);
-    for (k = kh_begin(self_kh); k != kh_end(self_kh); k++) {
-      if (kh_exist(self_kh, k)) {
-        kh_put(set, mrb, result_kh, kh_key(self_kh, k));
-        mrb_gc_arena_restore(mrb, ai);
-      }
-    }
+    set_copy_elements(mrb, result_kh, self_kh);
     return result_set;
   }
 
-  /* Add elements from self that are not in other */
-  {
-    khiter_t k, other_k;
-    int ai = mrb_gc_arena_save(mrb);
-    for (k = kh_begin(self_kh); k != kh_end(self_kh); k++) {
-      if (kh_exist(self_kh, k)) {
-        mrb_value key = kh_key(self_kh, k);
-        other_k = kh_get(set, mrb, other_kh, key);
-        if (other_k == kh_end(other_kh)) {
-          kh_put(set, mrb, result_kh, key);
-        }
-        mrb_gc_arena_restore(mrb, ai);
-      }
-    }
-  }
+  /* Use our helper function to add elements from self that are not in other */
+  set_operation_data self_xor_data = { other_kh, result_kh };
+  set_khash_foreach(mrb, self_kh, set_xor_callback, &self_xor_data);
 
-  /* Add elements from other that are not in self */
-  {
-    khiter_t k, self_k;
-    int ai = mrb_gc_arena_save(mrb);
-    for (k = kh_begin(other_kh); k != kh_end(other_kh); k++) {
-      if (kh_exist(other_kh, k)) {
-        mrb_value key = kh_key(other_kh, k);
-        self_k = kh_get(set, mrb, self_kh, key);
-        if (self_k == kh_end(self_kh)) {
-          kh_put(set, mrb, result_kh, key);
-        }
-        mrb_gc_arena_restore(mrb, ai);
-      }
-    }
-  }
+  /* Use our helper function to add elements from other that are not in self */
+  set_operation_data other_xor_data = { self_kh, result_kh };
+  set_khash_foreach(mrb, other_kh, set_xor_callback, &other_xor_data);
 
   return result_set;
 }
@@ -609,22 +596,35 @@ set_equal(mrb_state *mrb, mrb_value self)
     khash_t(set) *kh2 = set_get_khash(mrb, other);
 
     if (kh1 && kh2 && kh_size(kh1) == kh_size(kh2)) {
-      /* check if all elements in self exist in other */
+      /* Check if all elements in self exist in other */
+      mrb_bool all_found = TRUE;
+
+      /* Use traditional C loop for compatibility */
       for (khiter_t k = kh_begin(kh1); k != kh_end(kh1); k++) {
         if (kh_exist(kh1, k)) {
           khiter_t k2 = kh_get(set, mrb, kh2, kh_key(kh1, k));
           if (k2 == kh_end(kh2)) {
-            return mrb_false_value();
+            all_found = FALSE;
+            break;
           }
         }
       }
-      return mrb_true_value();
+
+      return mrb_bool_value(all_found);
     }
     else if (!kh1 && !kh2) {
       return mrb_true_value(); /* Both empty */
     }
   }
   return mrb_false_value();
+}
+
+/* Helper function for hash computation */
+static void
+set_hash_callback(mrb_state *mrb, khash_t(set) *kh, khiter_t k, void *data)
+{
+  khint_t *hash_val = (khint_t*)data;
+  *hash_val ^= (khint_t)mrb_obj_hash_code(mrb, kh_key(kh, k));
 }
 
 /*
@@ -640,13 +640,7 @@ set_hash_m(mrb_state *mrb, mrb_value self)
   khint_t hash_val = 0x1234;
 
   if (kh) {
-    khiter_t k;
-    /* Simple hash combining all element hashes */
-    for (k = kh_begin(kh); k != kh_end(kh); k++) {
-      if (kh_exist(kh, k)) {
-        hash_val ^= (khint_t)mrb_obj_hash_code(mrb, kh_key(kh, k));
-      }
-    }
+    set_khash_foreach(mrb, kh, set_hash_callback, &hash_val);
   }
 
   return mrb_fixnum_value((mrb_int)hash_val);
@@ -663,14 +657,13 @@ static mrb_value
 set_eql(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
-  khash_t(set) *self_kh, *other_kh;
 
   if (!mrb_obj_is_kind_of(mrb, other, mrb_obj_class(mrb, self))) {
     return mrb_false_value();
   }
 
-  self_kh = set_get_khash(mrb, self);
-  other_kh = set_get_khash(mrb, other);
+  khash_t(set) *self_kh = set_get_khash(mrb, self);
+  khash_t(set) *other_kh = set_get_khash(mrb, other);
 
   if (!self_kh && !other_kh) {
     return mrb_true_value(); /* Both empty */
@@ -680,15 +673,21 @@ set_eql(mrb_state *mrb, mrb_value self)
     return mrb_false_value();
   }
 
-  /* Check if all elements are eql */
-  khiter_t k;
-  for (k = kh_begin(self_kh); k != kh_end(self_kh); k++) {
+  /* Check if all elements are eql - reuse the same logic as set_equal */
+  mrb_bool all_found = TRUE;
+
+  for (khiter_t k = kh_begin(self_kh); k != kh_end(self_kh); k++) {
     if (kh_exist(self_kh, k)) {
       khiter_t other_k = kh_get(set, mrb, other_kh, kh_key(self_kh, k));
       if (other_k == kh_end(other_kh)) {
-        return mrb_false_value();
+        all_found = FALSE;
+        break;
       }
     }
+  }
+
+  if (!all_found) {
+    return mrb_false_value();
   }
 
   return mrb_true_value();
@@ -705,11 +704,9 @@ static mrb_value
 set_join(mrb_state *mrb, mrb_value self)
 {
   mrb_value separator = mrb_nil_value();
-  mrb_value array;
 
   mrb_get_args(mrb, "|S", &separator);
-  array = set_to_a(mrb, self);
-  return mrb_ary_join(mrb, array, separator);
+  return mrb_ary_join(mrb, set_to_a(mrb, self), separator);
 }
 
 /*
@@ -753,11 +750,9 @@ set_inspect(mrb_state *mrb, mrb_value self)
 static mrb_value
 set_reset(mrb_state *mrb, mrb_value self)
 {
-  khash_t(set) *kh;
-
   mrb_check_frozen_value(mrb, self);
 
-  kh = set_get_khash(mrb, self);
+  khash_t(set) *kh = set_get_khash(mrb, self);
   if (kh) {
     /* For khash, we don't need to do anything special for rehashing
        as the hash function is deterministic based on object identity */
@@ -776,16 +771,14 @@ set_add_all(mrb_state *mrb, mrb_value self)
 {
   const mrb_value *argv;
   mrb_int argc;
-  khash_t(set) *kh;
-  int ai;
 
   mrb_get_args(mrb, "*", &argv, &argc);
-  kh = set_get_khash(mrb, self);
+  khash_t(set) *kh = set_get_khash(mrb, self);
   if (!kh) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "uninitialized Set");
   }
 
-  ai = mrb_gc_arena_save(mrb);
+  int ai = mrb_gc_arena_save(mrb);
   for (mrb_int i = 0; i < argc; i++) {
     kh_put(set, mrb, kh, argv[i]);
     mrb_gc_arena_restore(mrb, ai);
@@ -805,14 +798,12 @@ set_delete_all(mrb_state *mrb, mrb_value self)
 {
   const mrb_value *argv;
   mrb_int argc;
-  khash_t(set) *kh;
-  int ai;
 
   mrb_get_args(mrb, "*", &argv, &argc);
-  kh = set_get_khash(mrb, self);
+  khash_t(set) *kh = set_get_khash(mrb, self);
   if (!kh) return self;
 
-  ai = mrb_gc_arena_save(mrb);
+  int ai = mrb_gc_arena_save(mrb);
   for (mrb_int i = 0; i < argc; i++) {
     khiter_t k = kh_get(set, mrb, kh, argv[i]);
     if (k != kh_end(kh)) {
@@ -835,10 +826,9 @@ set_include_all_p(mrb_state *mrb, mrb_value self)
 {
   const mrb_value *argv;
   mrb_int argc;
-  khash_t(set) *kh;
 
   mrb_get_args(mrb, "*", &argv, &argc);
-  kh = set_get_khash(mrb, self);
+  khash_t(set) *kh = set_get_khash(mrb, self);
   if (!kh) return mrb_false_value();
 
   for (mrb_int i = 0; i < argc; i++) {
@@ -862,10 +852,9 @@ set_include_any_p(mrb_state *mrb, mrb_value self)
 {
   const mrb_value *argv;
   mrb_int argc;
-  khash_t(set) *kh;
 
   mrb_get_args(mrb, "*", &argv, &argc);
-  kh = set_get_khash(mrb, self);
+  khash_t(set) *kh = set_get_khash(mrb, self);
   if (!kh) return mrb_false_value();
 
   for (mrb_int i = 0; i < argc; i++) {
@@ -889,14 +878,12 @@ set_s_create(mrb_state *mrb, mrb_value klass)
 {
   const mrb_value *argv;
   mrb_int argc;
-  mrb_value set;
-  khash_t(set) *kh;
 
   mrb_get_args(mrb, "*", &argv, &argc);
 
   /* Optimized direct creation */
-  set = mrb_obj_new(mrb, mrb_class_ptr(klass), 0, NULL);
-  kh = set_get_khash(mrb, set);
+  mrb_value set = mrb_obj_new(mrb, mrb_class_ptr(klass), 0, NULL);
+  khash_t(set) *kh = set_get_khash(mrb, set);
 
   for (mrb_int i = 0; i < argc; i++) {
     kh_put(set, mrb, kh, argv[i]);
