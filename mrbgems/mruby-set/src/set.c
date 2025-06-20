@@ -449,49 +449,40 @@ set_difference(mrb_state *mrb, mrb_value self)
 }
 
 /*
- * call-seq:
- *   set & enum -> new_set
- *   set.intersection(enum) -> new_set
- *
- * Returns a new set containing elements common to the set and the given
- * enumerable object.
+ * Core implementation of Set-to-Set intersection
+ * This is an internal method that will be called from Ruby
  */
 static mrb_value
-set_intersection(mrb_state *mrb, mrb_value self)
+set_core_intersection(mrb_state *mrb, mrb_value self)
 {
-  mrb_value enum_obj;
+  mrb_value other;
   mrb_value result_set;
-  khash_t(set) *result_kh, *self_kh;
+  khash_t(set) *result_kh, *self_kh, *other_kh;
 
-  mrb_get_args(mrb, "o", &enum_obj);
+  mrb_get_args(mrb, "o", &other);
 
+  /* Create a new empty set of the same class as self */
   result_set = mrb_obj_new(mrb, mrb_obj_class(mrb, self), 0, NULL);
   result_kh = set_get_khash(mrb, result_set);
 
   self_kh = set_get_khash(mrb, self);
   if (!self_kh) return result_set;
 
-  if (mrb_obj_class(mrb, enum_obj) == mrb_obj_class(mrb, self)) {
-    /* Optimized path for Set objects */
-    khash_t(set) *other_kh = set_get_khash(mrb, enum_obj);
-    if (other_kh) {
-      khiter_t k, self_k;
-      int ai = mrb_gc_arena_save(mrb);
-      for (k = kh_begin(other_kh); k != kh_end(other_kh); k++) {
-        if (kh_exist(other_kh, k)) {
-          mrb_value key = kh_key(other_kh, k);
-          self_k = kh_get(set, mrb, self_kh, key);
-          if (self_k != kh_end(self_kh)) {
-            kh_put(set, mrb, result_kh, key);
-          }
-          mrb_gc_arena_restore(mrb, ai);
-        }
+  other_kh = set_get_khash(mrb, other);
+  if (!other_kh) return result_set;
+
+  /* Find elements common to both sets */
+  khiter_t k, self_k;
+  int ai = mrb_gc_arena_save(mrb);
+  for (k = kh_begin(other_kh); k != kh_end(other_kh); k++) {
+    if (kh_exist(other_kh, k)) {
+      mrb_value key = kh_key(other_kh, k);
+      self_k = kh_get(set, mrb, self_kh, key);
+      if (self_k != kh_end(self_kh)) {
+        kh_put(set, mrb, result_kh, key);
       }
+      mrb_gc_arena_restore(mrb, ai);
     }
-  }
-  else {
-    /* General enumerable path - delegate to Ruby */
-    return mrb_funcall_with_block(mrb, self, MRB_SYM(__intersection_enum), 1, &enum_obj, mrb_nil_value());
   }
 
   return result_set;
@@ -877,8 +868,7 @@ mrb_mruby_set_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, set, "-", set_difference, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, set, "difference", set_difference, MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, set, "&", set_intersection, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, set, "intersection", set_intersection, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, set, "__set_intersection", set_core_intersection, MRB_ARGS_REQ(1));
 
   mrb_define_method(mrb, set, "^", set_xor, MRB_ARGS_REQ(1));
 

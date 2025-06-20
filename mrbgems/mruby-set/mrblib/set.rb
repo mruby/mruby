@@ -26,12 +26,25 @@ class Set
     self
   end
 
-  # Helper method for intersection with enumerable
-  def __intersection_enum(enum)
-    n = Set.new
-    __do_with_enum(enum) { |o| n.add(o) if include?(o) }
-    n
+  # Returns a new set containing elements common to the set and the given
+  # enumerable object.
+  #
+  # @param [Enumerable] enum The enumerable object to find common elements with
+  # @return [Set] A new set containing elements common to both
+  def intersection(enum)
+    if enum.is_a?(Set)
+      # Fast path: Call C-implemented function for Set-to-Set intersection
+      __set_intersection(enum)
+    else
+      # General path: Implement in Ruby for any enumerable
+      n = Set.new
+      __do_with_enum(enum) { |o| n.add(o) if include?(o) }
+      n
+    end
   end
+
+  # Alias for #intersection
+  alias & intersection
 
   def flatten_merge(set, seen = Set.new)
     seen.add(set.object_id)
