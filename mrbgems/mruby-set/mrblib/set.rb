@@ -33,15 +33,6 @@ class Set
     n
   end
 
-  # Helper method for complex equality checks
-  def __equal_fallback(other)
-    if other.is_a?(self.class) && self.size == other.size
-      other.all? { |o| include?(o) }
-    else
-      false
-    end
-  end
-
   def flatten_merge(set, seen = Set.new)
     seen.add(set.object_id)
     set.each { |e|
