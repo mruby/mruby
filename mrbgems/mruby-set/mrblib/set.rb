@@ -30,6 +30,23 @@ class Set
     end
   end
 
+  # Replaces the contents of the set with the contents of the given enumerable
+  # object and returns self.
+  #
+  # @param [Enumerable] enum The enumerable object to replace with
+  # @return [Set] self
+  def replace(enum)
+    if enum.is_a?(Set)
+      # Fast path: Call C-implemented function for Set-to-Set replace
+      __set_replace(enum)
+    else
+      # General path: Clear and add each element from the enumerable
+      clear
+      __do_with_enum(enum) { |o| add(o) }
+      self
+    end
+  end
+
   # Deletes every element that appears in the given enumerable object and
   # returns self.
   #

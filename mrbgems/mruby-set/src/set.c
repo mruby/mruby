@@ -310,20 +310,41 @@ set_delete_p(mrb_state *mrb, mrb_value self)
 }
 
 /*
- * call-seq:
- *   set.replace(enum) -> self
- *
- * Replaces the contents of the set with the contents of the given enumerable
- * object and returns self.
+ * Core implementation of Set-to-Set replace
+ * This is an internal method that will be called from Ruby
  */
 static mrb_value
-set_replace(mrb_state *mrb, mrb_value self)
+set_core_replace(mrb_state *mrb, mrb_value self)
 {
-  mrb_value enum_obj;
+  mrb_value other;
+  khash_t(set) *self_kh, *other_kh;
 
-  mrb_get_args(mrb, "o", &enum_obj);
+  mrb_get_args(mrb, "o", &other);
+
+  /* Clear the current set */
   set_clear(mrb, self);
-  return mrb_funcall_id(mrb, self, MRB_SYM(merge), 1, enum_obj);
+
+  self_kh = set_get_khash(mrb, self);
+  if (!self_kh) {
+    /* If self is empty after clearing, create a new hash */
+    self_kh = kh_init(set, mrb);
+    set_set_khash(mrb, self, self_kh);
+  }
+
+  /* Add all elements from other set */
+  other_kh = set_get_khash(mrb, other);
+  if (other_kh) {
+    khiter_t k;
+    int ai = mrb_gc_arena_save(mrb);
+    for (k = kh_begin(other_kh); k != kh_end(other_kh); k++) {
+      if (kh_exist(other_kh, k)) {
+        kh_put(set, mrb, self_kh, kh_key(other_kh, k));
+        mrb_gc_arena_restore(mrb, ai);
+      }
+    }
+  }
+
+  return self;
 }
 
 /*
@@ -944,7 +965,7 @@ mrb_mruby_set_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, set, "delete", set_delete, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, set, "delete?", set_delete_p, MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, set, "replace", set_replace, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, set, "__set_replace", set_core_replace, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, set, "__set_merge", set_core_merge, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, set, "__set_subtract", set_core_subtract, MRB_ARGS_REQ(1));
 
