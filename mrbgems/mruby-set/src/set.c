@@ -525,39 +525,33 @@ set_xor(mrb_state *mrb, mrb_value self)
 static mrb_value
 set_equal(mrb_state *mrb, mrb_value self)
 {
-  mrb_value other;
-  khash_t(set) *self_kh, *other_kh;
-
-  mrb_get_args(mrb, "o", &other);
+  mrb_value other = mrb_get_arg1(mrb);
 
   if (mrb_obj_equal(mrb, self, other)) {
     return mrb_true_value();
   }
 
-  if (mrb_obj_class(mrb, other) == mrb_obj_class(mrb, self)) {
-    self_kh = set_get_khash(mrb, self);
-    other_kh = set_get_khash(mrb, other);
+  if (mrb_obj_is_kind_of(mrb, other, mrb_obj_class(mrb, self))) {
+    khash_t(set) *kh1 = set_get_khash(mrb, self);
+    khash_t(set) *kh2 = set_get_khash(mrb, other);
 
-    if (self_kh && other_kh && kh_size(self_kh) == kh_size(other_kh)) {
-      /* Fast path: check if all elements in self exist in other */
-      khiter_t k;
-      for (k = kh_begin(self_kh); k != kh_end(self_kh); k++) {
-        if (kh_exist(self_kh, k)) {
-          khiter_t other_k = kh_get(set, mrb, other_kh, kh_key(self_kh, k));
-          if (other_k == kh_end(other_kh)) {
+    if (kh1 && kh2 && kh_size(kh1) == kh_size(kh2)) {
+      /* check if all elements in self exist in other */
+      for (khiter_t k = kh_begin(kh1); k != kh_end(kh1); k++) {
+        if (kh_exist(kh1, k)) {
+          khiter_t k2 = kh_get(set, mrb, kh2, kh_key(kh1, k));
+          if (k2 == kh_end(kh2)) {
             return mrb_false_value();
           }
         }
       }
       return mrb_true_value();
     }
-    else if (!self_kh && !other_kh) {
+    else if (!kh1 && !kh2) {
       return mrb_true_value(); /* Both empty */
     }
   }
-
-  /* Delegate to Ruby for more complex equality checks */
-  return mrb_funcall_with_block(mrb, self, MRB_SYM(__equal_fallback), 1, &other, mrb_nil_value());
+  return mrb_false_value();
 }
 
 /*
