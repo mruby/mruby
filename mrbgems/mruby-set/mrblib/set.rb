@@ -4,7 +4,7 @@ class Set
     return self if enum.nil?
 
     if block
-      __do_with_enum(enum) { |o| add(block.call(o)) }
+      __do_with_enum(enum) { add(block.call(_1)) }
       self
     else
       merge(enum)
@@ -31,7 +31,7 @@ class Set
       __merge(enum)
     else
       # General path: Add each element from the enumerable
-      __do_with_enum(enum) { |o| add(o) }
+      __do_with_enum(enum) { add(_1) }
       self
     end
   end
@@ -57,7 +57,7 @@ class Set
       __subtract(enum)
     else
       # General path: Remove each element from the enumerable
-      __do_with_enum(enum) { |o| delete(o) }
+      __do_with_enum(enum) { delete(_1) }
       self
     end
   end
@@ -74,7 +74,7 @@ class Set
     else
       # General path: Implement in Ruby for any enumerable
       n = Set.new
-      __do_with_enum(enum) { |o| n.add(o) if include?(o) }
+      __do_with_enum(enum) { n.add(_1) if include?(_1) }
       n
     end
   end
@@ -113,7 +113,7 @@ class Set
     else
       # General path: Create a duplicate and remove the enumerable elements
       result = dup
-      __do_with_enum(enum) { |o| result.delete(o) }
+      __do_with_enum(enum) { result.delete(_1) }
       result
     end
   end
@@ -169,37 +169,37 @@ class Set
   def superset?(set)
     raise ArgumentError, "value must be a set" unless set.is_a?(Set)
     return false if size < set.size
-    set.all? { |o| include?(o) }
+    set.all? { include?(_1) }
   end
   alias >= superset?
 
   def proper_superset?(set)
     raise ArgumentError, "value must be a set" unless set.is_a?(Set)
     return false if size <= set.size
-    set.all? { |o| include?(o) }
+    set.all? { include?(_1) }
   end
   alias > proper_superset?
 
   def subset?(set)
     raise ArgumentError, "value must be a set" unless set.is_a?(Set)
     return false if set.size < size
-    all? { |o| set.include?(o) }
+    all? { set.include?(_1) }
   end
   alias <= subset?
 
   def proper_subset?(set)
     raise ArgumentError, "value must be a set" unless set.is_a?(Set)
     return false if set.size <= size
-    all? { |o| set.include?(o) }
+    all? { set.include?(_1) }
   end
   alias < proper_subset?
 
   def intersect?(set)
     raise ArgumentError, "value must be a set" unless set.is_a?(Set)
     if size < set.size
-      any? { |o| set.include?(o) }
+      any? { set.include?(_1) }
     else
-      set.any? { |o| include?(o) }
+      set.any? { include?(_1) }
     end
   end
 
@@ -216,20 +216,20 @@ class Set
 
   def delete_if
     return to_enum :delete_if unless block_given?
-    select { |o| yield o }.each { |o| delete(o) }
+    select { yield _1 }.each { delete(_1) }
     self
   end
 
   def keep_if
     return to_enum :keep_if unless block_given?
-    reject { |o| yield o }.each { |o| delete(o) }
+    reject { yield _1 }.each { delete(_1) }
     self
   end
 
   def collect!
     return to_enum :collect! unless block_given?
     set = self.class.new
-    each { |o| set << yield(o) }
+    each { set << yield(_1) }
     replace(set)
   end
   alias map! collect!
