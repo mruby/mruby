@@ -322,46 +322,38 @@ set_replace(mrb_state *mrb, mrb_value self)
   mrb_value enum_obj;
 
   mrb_get_args(mrb, "o", &enum_obj);
-  mrb_funcall_id(mrb, self, MRB_SYM(clear), 0);
+  set_clear(mrb, self);
   return mrb_funcall_id(mrb, self, MRB_SYM(merge), 1, enum_obj);
 }
 
 /*
- * call-seq:
- *   set.merge(enum) -> self
- *
- * Merges the elements of the given enumerable object to the set and returns
- * self.
+ * Core implementation of Set-to-Set merge (mutating version)
+ * This is an internal method that will be called from Ruby
  */
 static mrb_value
-set_merge(mrb_state *mrb, mrb_value self)
+set_core_merge(mrb_state *mrb, mrb_value self)
 {
-  mrb_value enum_obj;
-  khash_t(set) *kh;
+  mrb_value other;
+  khash_t(set) *self_kh, *other_kh;
 
-  mrb_get_args(mrb, "o", &enum_obj);
-  kh = set_get_khash(mrb, self);
-  if (!kh) {
+  mrb_get_args(mrb, "o", &other);
+
+  self_kh = set_get_khash(mrb, self);
+  if (!self_kh) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "uninitialized Set");
   }
 
-  if (mrb_obj_class(mrb, enum_obj) == mrb_obj_class(mrb, self)) {
-    /* Optimized path for Set objects - direct khash merge */
-    khash_t(set) *other_kh = set_get_khash(mrb, enum_obj);
-    if (other_kh) {
-      khiter_t k;
-      int ai = mrb_gc_arena_save(mrb);
-      for (k = kh_begin(other_kh); k != kh_end(other_kh); k++) {
-        if (kh_exist(other_kh, k)) {
-          kh_put(set, mrb, kh, kh_key(other_kh, k));
-          mrb_gc_arena_restore(mrb, ai);
-        }
-      }
+  other_kh = set_get_khash(mrb, other);
+  if (!other_kh) return self;
+
+  /* Add all elements from other set */
+  khiter_t k;
+  int ai = mrb_gc_arena_save(mrb);
+  for (k = kh_begin(other_kh); k != kh_end(other_kh); k++) {
+    if (kh_exist(other_kh, k)) {
+      kh_put(set, mrb, self_kh, kh_key(other_kh, k));
+      mrb_gc_arena_restore(mrb, ai);
     }
-  }
-  else {
-    /* General enumerable path - delegate to Ruby */
-    return mrb_funcall_with_block(mrb, self, MRB_SYM(__merge_enum), 1, &enum_obj, mrb_nil_value());
   }
 
   return self;
@@ -953,7 +945,7 @@ mrb_mruby_set_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, set, "delete?", set_delete_p, MRB_ARGS_REQ(1));
 
   mrb_define_method(mrb, set, "replace", set_replace, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, set, "merge", set_merge, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, set, "__set_merge", set_core_merge, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, set, "__set_subtract", set_core_subtract, MRB_ARGS_REQ(1));
 
   mrb_define_method(mrb, set, "__set_union", set_core_union, MRB_ARGS_REQ(1));

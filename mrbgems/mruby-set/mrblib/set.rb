@@ -14,10 +14,20 @@ class Set
     self
   end
 
-  # Helper method for merge with enumerable
-  def __merge_enum(enum)
-    __do_with_enum(enum) { |o| add(o) }
-    self
+  # Merges the elements of the given enumerable object to the set and returns
+  # self.
+  #
+  # @param [Enumerable] enum The enumerable object to merge elements from
+  # @return [Set] self
+  def merge(enum)
+    if enum.is_a?(Set)
+      # Fast path: Call C-implemented function for Set-to-Set merge
+      __set_merge(enum)
+    else
+      # General path: Add each element from the enumerable
+      __do_with_enum(enum) { |o| add(o) }
+      self
+    end
   end
 
   # Deletes every element that appears in the given enumerable object and
