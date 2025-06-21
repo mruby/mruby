@@ -638,6 +638,354 @@ set_eql(mrb_state *mrb, mrb_value self)
 
 /*
  * call-seq:
+ *   set.superset?(other) -> true or false
+ *   set >= other -> true or false
+ *
+ * Returns true if the set is a superset of the given set.
+ */
+static mrb_value
+set_superset_p(mrb_state *mrb, mrb_value self)
+{
+  mrb_value other = mrb_get_arg1(mrb);
+
+  /* Check if other is a Set */
+  if (!mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Set"))) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "value must be a set");
+  }
+
+  khash_t(set) *self_kh = set_get_khash(mrb, self);
+  khash_t(set) *other_kh = set_get_khash(mrb, other);
+
+  /* Handle empty sets */
+  if (!other_kh || kh_size(other_kh) == 0) {
+    return mrb_true_value(); /* Empty set is a subset of any set */
+  }
+
+  if (!self_kh) {
+    return mrb_false_value(); /* Empty set is not a superset of a non-empty set */
+  }
+
+  /* Check size first - a superset must be at least as large as the subset */
+  if (kh_size(self_kh) < kh_size(other_kh)) {
+    return mrb_false_value();
+  }
+
+  /* Check if all elements in other are in self */
+  for (khiter_t k = kh_begin(other_kh); k != kh_end(other_kh); k++) {
+    if (kh_exist(other_kh, k)) {
+      khiter_t self_k = kh_get(set, mrb, self_kh, kh_key(other_kh, k));
+      if (self_k == kh_end(self_kh)) {
+        return mrb_false_value(); /* Element in other not found in self */
+      }
+    }
+  }
+
+  return mrb_true_value();
+}
+
+/*
+ * call-seq:
+ *   set.proper_superset?(other) -> true or false
+ *   set > other -> true or false
+ *
+ * Returns true if the set is a proper superset of the given set.
+ */
+static mrb_value
+set_proper_superset_p(mrb_state *mrb, mrb_value self)
+{
+  mrb_value other = mrb_get_arg1(mrb);
+
+  /* Check if other is a Set */
+  if (!mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Set"))) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "value must be a set");
+  }
+
+  khash_t(set) *self_kh = set_get_khash(mrb, self);
+  khash_t(set) *other_kh = set_get_khash(mrb, other);
+
+  /* Handle empty sets */
+  if (!other_kh || kh_size(other_kh) == 0) {
+    /* Empty set is a proper subset of any non-empty set */
+    return self_kh && kh_size(self_kh) > 0 ? mrb_true_value() : mrb_false_value();
+  }
+
+  if (!self_kh) {
+    return mrb_false_value(); /* Empty set is not a proper superset of any set */
+  }
+
+  /* For a proper superset, self must be strictly larger than other */
+  if (kh_size(self_kh) <= kh_size(other_kh)) {
+    return mrb_false_value();
+  }
+
+  /* Check if all elements in other are in self */
+  for (khiter_t k = kh_begin(other_kh); k != kh_end(other_kh); k++) {
+    if (kh_exist(other_kh, k)) {
+      khiter_t self_k = kh_get(set, mrb, self_kh, kh_key(other_kh, k));
+      if (self_k == kh_end(self_kh)) {
+        return mrb_false_value(); /* Element in other not found in self */
+      }
+    }
+  }
+
+  return mrb_true_value();
+}
+
+/*
+ * call-seq:
+ *   set.subset?(other) -> true or false
+ *   set <= other -> true or false
+ *
+ * Returns true if the set is a subset of the given set.
+ */
+static mrb_value
+set_subset_p(mrb_state *mrb, mrb_value self)
+{
+  mrb_value other = mrb_get_arg1(mrb);
+
+  /* Check if other is a Set */
+  if (!mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Set"))) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "value must be a set");
+  }
+
+  khash_t(set) *self_kh = set_get_khash(mrb, self);
+  khash_t(set) *other_kh = set_get_khash(mrb, other);
+
+  /* Handle empty sets */
+  if (!self_kh || kh_size(self_kh) == 0) {
+    return mrb_true_value(); /* Empty set is a subset of any set */
+  }
+
+  if (!other_kh) {
+    return mrb_false_value(); /* Non-empty set is not a subset of an empty set */
+  }
+
+  /* Check size first - a subset cannot be larger than its superset */
+  if (kh_size(other_kh) < kh_size(self_kh)) {
+    return mrb_false_value();
+  }
+
+  /* Check if all elements in self are in other */
+  for (khiter_t k = kh_begin(self_kh); k != kh_end(self_kh); k++) {
+    if (kh_exist(self_kh, k)) {
+      khiter_t other_k = kh_get(set, mrb, other_kh, kh_key(self_kh, k));
+      if (other_k == kh_end(other_kh)) {
+        return mrb_false_value(); /* Element in self not found in other */
+      }
+    }
+  }
+
+  return mrb_true_value();
+}
+
+/*
+ * call-seq:
+ *   set.proper_subset?(other) -> true or false
+ *   set < other -> true or false
+ *
+ * Returns true if the set is a proper subset of the given set.
+ */
+static mrb_value
+set_proper_subset_p(mrb_state *mrb, mrb_value self)
+{
+  mrb_value other = mrb_get_arg1(mrb);
+
+  /* Check if other is a Set */
+  if (!mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Set"))) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "value must be a set");
+  }
+
+  khash_t(set) *self_kh = set_get_khash(mrb, self);
+  khash_t(set) *other_kh = set_get_khash(mrb, other);
+
+  /* Handle empty sets */
+  if (!self_kh || kh_size(self_kh) == 0) {
+    /* Empty set is a proper subset of any non-empty set */
+    return other_kh && kh_size(other_kh) > 0 ? mrb_true_value() : mrb_false_value();
+  }
+
+  if (!other_kh) {
+    return mrb_false_value(); /* Non-empty set is not a proper subset of an empty set */
+  }
+
+  /* For a proper subset, self must be strictly smaller than other */
+  if (kh_size(other_kh) <= kh_size(self_kh)) {
+    return mrb_false_value();
+  }
+
+  /* Check if all elements in self are in other */
+  for (khiter_t k = kh_begin(self_kh); k != kh_end(self_kh); k++) {
+    if (kh_exist(self_kh, k)) {
+      khiter_t other_k = kh_get(set, mrb, other_kh, kh_key(self_kh, k));
+      if (other_k == kh_end(other_kh)) {
+        return mrb_false_value(); /* Element in self not found in other */
+      }
+    }
+  }
+
+  return mrb_true_value();
+}
+
+/*
+ * call-seq:
+ *   set.intersect?(other) -> true or false
+ *
+ * Returns true if the set and the given set have at least one element in common.
+ */
+static mrb_value
+set_intersect_p(mrb_state *mrb, mrb_value self)
+{
+  mrb_value other = mrb_get_arg1(mrb);
+
+  /* Check if other is a Set */
+  if (!mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Set"))) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "value must be a set");
+  }
+
+  khash_t(set) *self_kh = set_get_khash(mrb, self);
+  khash_t(set) *other_kh = set_get_khash(mrb, other);
+
+  /* Handle empty sets */
+  if (!self_kh || !other_kh || kh_size(self_kh) == 0 || kh_size(other_kh) == 0) {
+    return mrb_false_value(); /* Empty sets have no elements in common */
+  }
+
+  /* Iterate through the smaller set for efficiency */
+  if (kh_size(self_kh) < kh_size(other_kh)) {
+    for (khiter_t k = kh_begin(self_kh); k != kh_end(self_kh); k++) {
+      if (kh_exist(self_kh, k)) {
+        khiter_t other_k = kh_get(set, mrb, other_kh, kh_key(self_kh, k));
+        if (other_k != kh_end(other_kh)) {
+          return mrb_true_value(); /* Found a common element */
+        }
+      }
+    }
+  } else {
+    for (khiter_t k = kh_begin(other_kh); k != kh_end(other_kh); k++) {
+      if (kh_exist(other_kh, k)) {
+        khiter_t self_k = kh_get(set, mrb, self_kh, kh_key(other_kh, k));
+        if (self_k != kh_end(self_kh)) {
+          return mrb_true_value(); /* Found a common element */
+        }
+      }
+    }
+  }
+
+  return mrb_false_value(); /* No common elements found */
+}
+
+/*
+ * call-seq:
+ *   set.disjoint?(other) -> true or false
+ *
+ * Returns true if the set and the given set have no elements in common.
+ */
+static mrb_value
+set_disjoint_p(mrb_state *mrb, mrb_value self)
+{
+  mrb_value result = set_intersect_p(mrb, self);
+  return mrb_bool_value(!mrb_test(result));
+}
+
+/*
+ * call-seq:
+ *   set <=> other -> -1, 0, +1, or nil
+ *
+ * Compares this set with another set.
+ * Returns -1 if this set is a proper subset of the other set,
+ * +1 if this set is a proper superset of the other set,
+ * 0 if the sets are equal,
+ * or nil if the sets cannot be compared (they are neither subsets nor supersets).
+ */
+static mrb_value
+set_cmp(mrb_state *mrb, mrb_value self)
+{
+  mrb_value other = mrb_get_arg1(mrb);
+
+  /* Check if other is a Set */
+  if (!mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Set"))) {
+    return mrb_nil_value();
+  }
+
+  khash_t(set) *self_kh = set_get_khash(mrb, self);
+  khash_t(set) *other_kh = set_get_khash(mrb, other);
+
+  /* Handle empty sets */
+  if (!self_kh || kh_size(self_kh) == 0) {
+    if (!other_kh || kh_size(other_kh) == 0) {
+      return mrb_fixnum_value(0); /* Both empty, they're equal */
+    }
+    return mrb_fixnum_value(-1); /* Empty set is a proper subset of any non-empty set */
+  }
+
+  if (!other_kh || kh_size(other_kh) == 0) {
+    return mrb_fixnum_value(1); /* Any non-empty set is a proper superset of an empty set */
+  }
+
+  /* Compare sizes */
+  int size_cmp = kh_size(self_kh) - kh_size(other_kh);
+
+  if (size_cmp < 0) {
+    /* self might be a proper subset of other */
+    mrb_bool is_subset = TRUE;
+
+    for (khiter_t k = kh_begin(self_kh); k != kh_end(self_kh); k++) {
+      if (kh_exist(self_kh, k)) {
+        khiter_t other_k = kh_get(set, mrb, other_kh, kh_key(self_kh, k));
+        if (other_k == kh_end(other_kh)) {
+          is_subset = FALSE;
+          break;
+        }
+      }
+    }
+
+    if (is_subset) {
+      return mrb_fixnum_value(-1); /* self is a proper subset of other */
+    }
+  }
+  else if (size_cmp > 0) {
+    /* self might be a proper superset of other */
+    mrb_bool is_superset = TRUE;
+
+    for (khiter_t k = kh_begin(other_kh); k != kh_end(other_kh); k++) {
+      if (kh_exist(other_kh, k)) {
+        khiter_t self_k = kh_get(set, mrb, self_kh, kh_key(other_kh, k));
+        if (self_k == kh_end(self_kh)) {
+          is_superset = FALSE;
+          break;
+        }
+      }
+    }
+
+    if (is_superset) {
+      return mrb_fixnum_value(1); /* self is a proper superset of other */
+    }
+  }
+  else {
+    /* Same size, check if they're equal */
+    mrb_bool is_equal = TRUE;
+
+    for (khiter_t k = kh_begin(self_kh); k != kh_end(self_kh); k++) {
+      if (kh_exist(self_kh, k)) {
+        khiter_t other_k = kh_get(set, mrb, other_kh, kh_key(self_kh, k));
+        if (other_k == kh_end(other_kh)) {
+          is_equal = FALSE;
+          break;
+        }
+      }
+    }
+
+    if (is_equal) {
+      return mrb_fixnum_value(0); /* Sets are equal */
+    }
+  }
+
+  /* Sets are not comparable */
+  return mrb_nil_value();
+}
+
+/*
+ * call-seq:
  *   set.join(separator = nil) -> string
  *
  * Returns a string created by converting each element of the set to a string,
@@ -892,6 +1240,22 @@ mrb_mruby_set_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, set, "delete_all", set_delete_all, MRB_ARGS_ANY());
   mrb_define_method(mrb, set, "include_all?", set_include_all_p, MRB_ARGS_ANY());
   mrb_define_method(mrb, set, "include_any?", set_include_any_p, MRB_ARGS_ANY());
+
+  /* Register our new C implementations */
+  mrb_define_method(mrb, set, "superset?", set_superset_p, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, set, ">=", set_superset_p, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, set, "proper_superset?", set_proper_superset_p, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, set, ">", set_proper_superset_p, MRB_ARGS_REQ(1));
+
+  mrb_define_method(mrb, set, "subset?", set_subset_p, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, set, "<=", set_subset_p, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, set, "proper_subset?", set_proper_subset_p, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, set, "<", set_proper_subset_p, MRB_ARGS_REQ(1));
+
+  mrb_define_method(mrb, set, "intersect?", set_intersect_p, MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, set, "disjoint?", set_disjoint_p, MRB_ARGS_REQ(1));
+
+  mrb_define_method(mrb, set, "<=>", set_cmp, MRB_ARGS_REQ(1));
 }
 
 void

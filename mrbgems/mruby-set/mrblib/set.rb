@@ -178,70 +178,14 @@ class Set
     end
   end
 
-  # Returns true if this set is a superset of the given set.
-  #
-  # @param [Set] set The set to check against
-  # @return [Boolean] true if this set is a superset of the given set
-  def superset?(set)
-    raise ArgumentError, "value must be a set" unless set.is_a?(Set)
-    return false if size < set.size
-    set.all? { include?(_1) }
-  end
-  alias >= superset?
+  # superset? and proper_superset? are now implemented in C
+  # See mrbgems/mruby-set/src/set.c
 
-  # Returns true if this set is a proper superset of the given set.
-  #
-  # @param [Set] set The set to check against
-  # @return [Boolean] true if this set is a proper superset of the given set
-  def proper_superset?(set)
-    raise ArgumentError, "value must be a set" unless set.is_a?(Set)
-    return false if size <= set.size
-    set.all? { include?(_1) }
-  end
-  alias > proper_superset?
+  # subset? and proper_subset? are now implemented in C
+  # See mrbgems/mruby-set/src/set.c
 
-  # Returns true if this set is a subset of the given set.
-  #
-  # @param [Set] set The set to check against
-  # @return [Boolean] true if this set is a subset of the given set
-  def subset?(set)
-    raise ArgumentError, "value must be a set" unless set.is_a?(Set)
-    return false if set.size < size
-    all? { set.include?(_1) }
-  end
-  alias <= subset?
-
-  # Returns true if this set is a proper subset of the given set.
-  #
-  # @param [Set] set The set to check against
-  # @return [Boolean] true if this set is a proper subset of the given set
-  def proper_subset?(set)
-    raise ArgumentError, "value must be a set" unless set.is_a?(Set)
-    return false if set.size <= size
-    all? { set.include?(_1) }
-  end
-  alias < proper_subset?
-
-  # Returns true if this set and the given set have at least one element in common.
-  #
-  # @param [Set] set The set to check against
-  # @return [Boolean] true if the sets intersect
-  def intersect?(set)
-    raise ArgumentError, "value must be a set" unless set.is_a?(Set)
-    if size < set.size
-      any? { set.include?(_1) }
-    else
-      set.any? { include?(_1) }
-    end
-  end
-
-  # Returns true if this set and the given set have no elements in common.
-  #
-  # @param [Set] set The set to check against
-  # @return [Boolean] true if the sets are disjoint
-  def disjoint?(set)
-    !intersect?(set)
-  end
+  # intersect? and disjoint? are now implemented in C
+  # See mrbgems/mruby-set/src/set.c
 
   # Iterates over each element in the set.
   #
@@ -313,20 +257,6 @@ class Set
     size == n ? nil : self
   end
   alias filter! select!
-
-  # Compares this set with another set.
-  #
-  # @param [Set] set The set to compare with
-  # @return [Integer, nil] -1, 0, 1, or nil if not comparable
-  def <=>(set)
-    return unless set.is_a?(Set)
-
-    case size <=> set.size
-    when -1 then -1 if proper_subset?(set)
-    when +1 then +1 if proper_superset?(set)
-    else 0 if self.==(set)
-    end
-  end
 
   # Classifies the elements of the set by the result of the given block.
   #
