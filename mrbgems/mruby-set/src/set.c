@@ -119,6 +119,22 @@ set_get_khash(mrb_state *mrb, mrb_value self)
   return (khash_t(set)*)mrb_data_get_ptr(mrb, self, &set_data_type);
 }
 
+/* Helper function to check if a value is a Set and raise an error if not */
+static void
+set_check_type(mrb_state *mrb, mrb_value obj)
+{
+  if (!mrb_obj_is_kind_of(mrb, obj, mrb_class_get(mrb, "Set"))) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "value must be a set");
+  }
+}
+
+/* Helper function to check if a value is a Set and return a boolean result */
+static mrb_bool
+set_is_set(mrb_state *mrb, mrb_value obj)
+{
+  return mrb_obj_is_kind_of(mrb, obj, mrb_class_get(mrb, "Set"));
+}
+
 static mrb_value
 set_init(mrb_state *mrb, mrb_value self)
 {
@@ -534,7 +550,7 @@ set_equal(mrb_state *mrb, mrb_value self)
     return mrb_true_value();
   }
 
-  if (mrb_obj_is_kind_of(mrb, other, mrb_obj_class(mrb, self))) {
+  if (set_is_set(mrb, other)) {
     khash_t(set) *kh1 = set_get_khash(mrb, self);
     khash_t(set) *kh2 = set_get_khash(mrb, other);
 
@@ -601,7 +617,7 @@ set_eql(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
 
-  if (!mrb_obj_is_kind_of(mrb, other, mrb_obj_class(mrb, self))) {
+  if (!set_is_set(mrb, other)) {
     return mrb_false_value();
   }
 
@@ -649,9 +665,7 @@ set_superset_p(mrb_state *mrb, mrb_value self)
   mrb_value other = mrb_get_arg1(mrb);
 
   /* Check if other is a Set */
-  if (!mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Set"))) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "value must be a set");
-  }
+  set_check_type(mrb, other);
 
   khash_t(set) *self_kh = set_get_khash(mrb, self);
   khash_t(set) *other_kh = set_get_khash(mrb, other);
@@ -696,9 +710,7 @@ set_proper_superset_p(mrb_state *mrb, mrb_value self)
   mrb_value other = mrb_get_arg1(mrb);
 
   /* Check if other is a Set */
-  if (!mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Set"))) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "value must be a set");
-  }
+  set_check_type(mrb, other);
 
   khash_t(set) *self_kh = set_get_khash(mrb, self);
   khash_t(set) *other_kh = set_get_khash(mrb, other);
@@ -744,9 +756,7 @@ set_subset_p(mrb_state *mrb, mrb_value self)
   mrb_value other = mrb_get_arg1(mrb);
 
   /* Check if other is a Set */
-  if (!mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Set"))) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "value must be a set");
-  }
+  set_check_type(mrb, other);
 
   khash_t(set) *self_kh = set_get_khash(mrb, self);
   khash_t(set) *other_kh = set_get_khash(mrb, other);
@@ -791,9 +801,7 @@ set_proper_subset_p(mrb_state *mrb, mrb_value self)
   mrb_value other = mrb_get_arg1(mrb);
 
   /* Check if other is a Set */
-  if (!mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Set"))) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "value must be a set");
-  }
+  set_check_type(mrb, other);
 
   khash_t(set) *self_kh = set_get_khash(mrb, self);
   khash_t(set) *other_kh = set_get_khash(mrb, other);
@@ -838,9 +846,7 @@ set_intersect_p(mrb_state *mrb, mrb_value self)
   mrb_value other = mrb_get_arg1(mrb);
 
   /* Check if other is a Set */
-  if (!mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Set"))) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "value must be a set");
-  }
+  set_check_type(mrb, other);
 
   khash_t(set) *self_kh = set_get_khash(mrb, self);
   khash_t(set) *other_kh = set_get_khash(mrb, other);
@@ -902,8 +908,7 @@ set_cmp(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
 
-  /* Check if other is a Set */
-  if (!mrb_obj_is_kind_of(mrb, other, mrb_class_get(mrb, "Set"))) {
+  if (!set_is_set(mrb, other)) {
     return mrb_nil_value();
   }
 
