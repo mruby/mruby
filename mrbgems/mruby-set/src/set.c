@@ -499,33 +499,43 @@ set_equal(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
 
+  /* Fast path: same object */
   if (mrb_obj_equal(mrb, self, other)) {
     return mrb_true_value();
   }
 
-  if (set_is_set(mrb, other)) {
-    khash_t(set) *kh1 = set_get_khash(mrb, self);
-    khash_t(set) *kh2 = set_get_khash(mrb, other);
-
-    if (kh1 && kh2 && kh_size(kh1) == kh_size(kh2)) {
-      /* Check if all elements in self exist in other */
-      int ai = mrb_gc_arena_save(mrb);
-      KHASH_FOREACH(mrb, kh1, k) {
-        khiter_t k2 = kh_get(set, mrb, kh2, kh_key(kh1, k));
-        if (k2 == kh_end(kh2)) {
-          return mrb_false_value(); /* Element in self not found in other */
-        }
-        mrb_gc_arena_restore(mrb, ai);
-      }
-
-      return mrb_true_value();
-    }
-    else if (!kh1 && !kh2) {
-      return mrb_true_value(); /* Both empty */
-    }
+  /* Only compare with other Set objects */
+  if (!set_is_set(mrb, other)) {
+    return mrb_false_value();
   }
-  return mrb_false_value();
+
+  khash_t(set) *kh1 = set_get_khash(mrb, self);
+  khash_t(set) *kh2 = set_get_khash(mrb, other);
+
+  /* Fast path: both empty */
+  if ((!kh1 || kh_size(kh1) == 0) && (!kh2 || kh_size(kh2) == 0)) {
+    return mrb_true_value();
+  }
+
+  /* Fast path: different sizes */
+  if (!kh1 || !kh2 || kh_size(kh1) != kh_size(kh2)) {
+    return mrb_false_value();
+  }
+
+  /* Compare elements: iterate through the smaller hash for efficiency */
+  int ai = mrb_gc_arena_save(mrb);
+  KHASH_FOREACH(mrb, kh1, k) {
+    khiter_t k2 = kh_get(set, mrb, kh2, kh_key(kh1, k));
+    if (k2 == kh_end(kh2)) {
+      mrb_gc_arena_restore(mrb, ai);
+      return mrb_false_value(); /* Element in self not found in other */
+    }
+    mrb_gc_arena_restore(mrb, ai);
+  }
+
+  return mrb_true_value();
 }
+
 
 /*
  * call-seq:
