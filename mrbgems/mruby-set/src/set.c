@@ -970,9 +970,45 @@ static mrb_value
 set_join(mrb_state *mrb, mrb_value self)
 {
   mrb_value separator = mrb_nil_value();
-
   mrb_get_args(mrb, "|S", &separator);
-  return mrb_ary_join(mrb, set_to_a(mrb, self), separator);
+
+  khash_t(set) *kh = set_get_khash(mrb, self);
+  if (!kh || kh_size(kh) == 0) {
+    return mrb_str_new_lit(mrb, "");
+  }
+
+  /* Get separator string */
+  const char *sep_ptr = "";
+  mrb_int sep_len = 0;
+  if (!mrb_nil_p(separator)) {
+    sep_ptr = RSTRING_PTR(separator);
+    sep_len = RSTRING_LEN(separator);
+  }
+
+  /* Create result string */
+  mrb_value result = mrb_str_new_capa(mrb, 64);  /* Initial capacity */
+  mrb_bool first = TRUE;
+
+  /* Iterate through all elements */
+  int ai = mrb_gc_arena_save(mrb);
+  KHASH_FOREACH(mrb, kh, k) {
+    /* Add separator between elements */
+    if (!first) {
+      mrb_str_cat(mrb, result, sep_ptr, sep_len);
+    } else {
+      first = FALSE;
+    }
+
+    /* Convert element to string and append */
+    mrb_value elem = kh_key(kh, k);
+    mrb_value str = mrb_obj_as_string(mrb, elem);
+    mrb_str_cat_str(mrb, result, str);
+
+    /* Manage GC arena to prevent memory leaks */
+    mrb_gc_arena_restore(mrb, ai);
+  }
+
+  return result;
 }
 
 /*
