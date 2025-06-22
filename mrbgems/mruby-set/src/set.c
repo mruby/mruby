@@ -591,26 +591,34 @@ set_eql(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
 
+  /* Fast path: same object */
+  if (mrb_obj_equal(mrb, self, other)) {
+    return mrb_true_value();
+  }
+
+  /* Only compare with other Set objects */
   if (!set_is_set(mrb, other)) {
     return mrb_false_value();
   }
 
-  khash_t(set) *self_kh = set_get_khash(mrb, self);
-  khash_t(set) *other_kh = set_get_khash(mrb, other);
+  khash_t(set) *kh1 = set_get_khash(mrb, self);
+  khash_t(set) *kh2 = set_get_khash(mrb, other);
 
-  if (!self_kh && !other_kh) {
-    return mrb_true_value(); /* Both empty */
+  /* Fast path: both empty */
+  if ((!kh1 || kh_size(kh1) == 0) && (!kh2 || kh_size(kh2) == 0)) {
+    return mrb_true_value();
   }
 
-  if (!self_kh || !other_kh || kh_size(self_kh) != kh_size(other_kh)) {
+  /* Fast path: different sizes */
+  if (!kh1 || !kh2 || kh_size(kh1) != kh_size(kh2)) {
     return mrb_false_value();
   }
 
-  /* Check if all elements are eql */
+  /* Compare elements */
   int ai = mrb_gc_arena_save(mrb);
-  KHASH_FOREACH(mrb, self_kh, k) {
-    khiter_t other_k = kh_get(set, mrb, other_kh, kh_key(self_kh, k));
-    if (other_k == kh_end(other_kh)) {
+  KHASH_FOREACH(mrb, kh1, k) {
+    khiter_t other_k = kh_get(set, mrb, kh2, kh_key(kh1, k));
+    if (other_k == kh_end(kh2)) {
       return mrb_false_value(); /* Element in self not found in other */
     }
     mrb_gc_arena_restore(mrb, ai);
