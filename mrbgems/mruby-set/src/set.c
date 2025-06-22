@@ -1023,23 +1023,51 @@ set_inspect(mrb_state *mrb, mrb_value self)
 {
   struct RClass* c = mrb_obj_class(mrb, self);
   const char* classname = mrb_class_name(mrb, c);
+  khash_t(set) *kh = set_get_khash(mrb, self);
 
-  if (mrb_test(set_empty_p(mrb, self))) {
+  /* Handle empty set */
+  if (!kh || kh_size(kh) == 0) {
     return mrb_format(mrb, "#<%s: {}>", classname);
   }
+
+  /* Handle recursive inspection */
   if (mrb_inspect_recursive_p(mrb, self)) {
     return mrb_format(mrb, "#<%s: {...}>", classname);
   }
-  mrb_value ary = set_to_a(mrb, self);
-  mrb_value result_str = mrb_str_new_lit(mrb, "#<");
+
+  /* Estimate buffer size based on set size */
+  size_t size = kh_size(kh);
+  size_t buffer_size = 16 + strlen(classname) + (size * 8); /* Rough estimate */
+
+  /* Create the beginning of the string with pre-allocated capacity */
+  mrb_value result_str = mrb_str_new_capa(mrb, buffer_size);
+  mrb_str_cat_lit(mrb, result_str, "#<");
   mrb_str_cat_cstr(mrb, result_str, classname);
   mrb_str_cat_lit(mrb, result_str, ": {");
-  for (mrb_int i = 0; i < RARRAY_LEN(ary); i++) {
-    if (i > 0) mrb_str_cat_lit(mrb, result_str, ", ");
-    mrb_value entry_str = mrb_inspect(mrb, mrb_ary_entry(ary, i));
+
+  /* Iterate through all elements */
+  mrb_bool first = TRUE;
+  int ai = mrb_gc_arena_save(mrb);
+
+  KHASH_FOREACH(mrb, kh, k) {
+    /* Add comma between elements */
+    if (!first) {
+      mrb_str_cat_lit(mrb, result_str, ", ");
+    } else {
+      first = FALSE;
+    }
+
+    /* Get element and its string representation */
+    mrb_value elem = kh_key(kh, k);
+    mrb_value entry_str = mrb_inspect(mrb, elem);
     mrb_str_cat_str(mrb, result_str, entry_str);
+
+    mrb_gc_arena_restore(mrb, ai);
   }
+
+  /* Add the closing part */
   mrb_str_cat_lit(mrb, result_str, "}>");
+
   return result_str;
 }
 
