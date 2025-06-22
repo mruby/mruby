@@ -527,54 +527,46 @@ set_equal(mrb_state *mrb, mrb_value self)
   return mrb_false_value();
 }
 
-/* Helper function for hash computation */
-typedef struct {
-  khint_t hash_val;
-  khint_t prime_multiplier;
-} set_hash_data;
-
-
 /*
  * call-seq:
  *   set.hash -> integer
  *
  * Compute a hash-code for this set.
+ * Uses an improved hash algorithm for better distribution.
  */
 static mrb_value
 set_hash_m(mrb_state *mrb, mrb_value self)
 {
   khash_t(set) *kh = set_get_khash(mrb, self);
 
-  /* Use a prime number as the initial hash value */
-  set_hash_data hash_data;
-  hash_data.hash_val = 0x9e3779b9; /* Golden ratio constant */
-  hash_data.prime_multiplier = 0x9e3779b1;
+  /* Use FNV-1a hash algorithm with better distribution properties */
+  uint64_t hash = 0xcbf29ce484222325ULL; /* FNV offset basis */
+  const uint64_t fnv_prime = 0x100000001b3ULL; /* FNV prime */
 
-  if (kh) {
-    /* Include the size of the set in the hash */
-    hash_data.hash_val ^= kh_size(kh);
+  /* Include the size of the set in the hash */
+  size_t size = kh ? kh_size(kh) : 0;
+  hash ^= size;
+  hash *= fnv_prime;
 
+  if (kh && size > 0) {
     /* Process each element */
     int ai = mrb_gc_arena_save(mrb);
     KHASH_FOREACH(mrb, kh, k) {
+      /* Get element's hash code */
       khint_t elem_hash = (khint_t)mrb_obj_hash_code(mrb, kh_key(kh, k));
 
-      /* Combine hashes with bit rotation for better distribution */
-      hash_data.hash_val ^= elem_hash;
-      hash_data.hash_val = (hash_data.hash_val << 5) | (hash_data.hash_val >> (sizeof(khint_t) * 8 - 5));
-      hash_data.hash_val *= hash_data.prime_multiplier;
+      /* Mix using FNV-1a algorithm */
+      hash ^= elem_hash;
+      hash *= fnv_prime;
+
       mrb_gc_arena_restore(mrb, ai);
     }
-
-    /* Final mixing */
-    hash_data.hash_val ^= hash_data.hash_val >> 16;
-    hash_data.hash_val *= 0x85ebca6b;
-    hash_data.hash_val ^= hash_data.hash_val >> 13;
-    hash_data.hash_val *= 0xc2b2ae35;
-    hash_data.hash_val ^= hash_data.hash_val >> 16;
   }
 
-  return mrb_fixnum_value((mrb_int)hash_data.hash_val);
+  /* Final mixing to improve avalanche effect */
+  hash ^= hash >> 32;
+
+  return mrb_fixnum_value((mrb_int)hash);
 }
 
 /*
