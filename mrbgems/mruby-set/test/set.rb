@@ -628,5 +628,5 @@ end
 #
 assert("Set#inspect") do
   set = Set[1,1,1]
-  assert_equal("#<Set: {1}>", set.inspect)
+  assert_equal("Set[1]", set.inspect)
 end

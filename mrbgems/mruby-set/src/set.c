@@ -974,6 +974,7 @@ set_join(mrb_state *mrb, mrb_value self)
  *   set.to_s -> string
  *
  * Returns a string representation of the set.
+ * Format: Set[elem1, elem2, ...]
  */
 static mrb_value
 set_inspect(mrb_state *mrb, mrb_value self)
@@ -984,12 +985,12 @@ set_inspect(mrb_state *mrb, mrb_value self)
 
   /* Handle empty set */
   if (!kh || kh_size(kh) == 0) {
-    return mrb_format(mrb, "#<%s: {}>", classname);
+    return mrb_format(mrb, "%s[]", classname);
   }
 
   /* Handle recursive inspection */
   if (mrb_inspect_recursive_p(mrb, self)) {
-    return mrb_format(mrb, "#<%s: {...}>", classname);
+    return mrb_format(mrb, "%s[...]", classname);
   }
 
   /* Estimate buffer size based on set size */
@@ -998,9 +999,8 @@ set_inspect(mrb_state *mrb, mrb_value self)
 
   /* Create the beginning of the string with pre-allocated capacity */
   mrb_value result_str = mrb_str_new_capa(mrb, buffer_size);
-  mrb_str_cat_lit(mrb, result_str, "#<");
   mrb_str_cat_cstr(mrb, result_str, classname);
-  mrb_str_cat_lit(mrb, result_str, ": {");
+  mrb_str_cat_lit(mrb, result_str, "[");
 
   /* Iterate through all elements */
   mrb_bool first = TRUE;
@@ -1023,7 +1023,7 @@ set_inspect(mrb_state *mrb, mrb_value self)
   }
 
   /* Add the closing part */
-  mrb_str_cat_lit(mrb, result_str, "}>");
+  mrb_str_cat_lit(mrb, result_str, "]");
 
   return result_str;
 }

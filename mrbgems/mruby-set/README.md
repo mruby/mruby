@@ -26,24 +26,24 @@ You can create a set from an array or by using the `Set.[]` shorthand:
 require 'set' # Not strictly necessary in mruby if compiled in
 
 set1 = Set.new([1, 2, 3])
-#=> #<Set: {1, 2, 3}>
+#=> Set[1, 2, 3]
 
 set2 = Set[3, 4, 5]
-#=> #<Set: {3, 4, 5}>
+#=> Set[3, 4, 5]
 ```
 
 ### Adding and Deleting Elements
 
 ```ruby
 s = Set.new
-s.add(10)    #=> #<Set: {10}>
-s << 20      #=> #<Set: {10, 20}>
-s.add?(30)   #=> #<Set: {10, 20, 30}>
+s.add(10)    #=> Set[10]
+s << 20      #=> Set[10, 20]
+s.add?(30)   #=> Set[10, 20, 30]
 s.add?(20)   #=> nil (20 is already in the set)
 
-s.delete(10) #=> #<Set: {20, 30}>
+s.delete(10) #=> Set[20, 30]
 s.delete?(5) #=> nil (5 was not in the set)
-s.delete?(20) #=> #<Set: {30}>
+s.delete?(20) #=> Set[30]
 ```
 
 ### Set Operations
@@ -56,8 +56,8 @@ s.delete?(20) #=> #<Set: {30}>
 set_a = Set[1, 2, 3]
 set_b = Set[3, 4, 5]
 
-set_a | set_b  #=> #<Set: {1, 2, 3, 4, 5}>
-set_a + set_b  #=> #<Set: {1, 2, 3, 4, 5}>
+set_a | set_b  #=> Set[1, 2, 3, 4, 5]
+set_a + set_b  #=> Set[1, 2, 3, 4, 5]
 ```
 
 **Intersection (`&`, `intersection`):** Returns a new set containing elements common to both sets.
@@ -66,7 +66,7 @@ set_a + set_b  #=> #<Set: {1, 2, 3, 4, 5}>
 set_a = Set[1, 2, 3]
 set_b = Set[3, 4, 5]
 
-set_a & set_b  #=> #<Set: {3}>
+set_a & set_b  #=> Set[3]
 ```
 
 **Difference (`-`, `difference`):** Returns a new set containing elements from the first set that are not in the second set.
@@ -75,7 +75,7 @@ set_a & set_b  #=> #<Set: {3}>
 set_a = Set[1, 2, 3]
 set_b = Set[3, 4, 5]
 
-set_a - set_b  #=> #<Set: {1, 2}>
+set_a - set_b  #=> Set[1, 2]
 ```
 
 **Exclusive OR (`^`):** Returns a new set containing elements that are in one or the other of the sets, but not in both.
@@ -84,7 +84,7 @@ set_a - set_b  #=> #<Set: {1, 2}>
 set_a = Set[1, 2, 3]
 set_b = Set[3, 4, 5]
 
-set_a ^ set_b  #=> #<Set: {1, 2, 4, 5}>
+set_a ^ set_b  #=> Set[1, 2, 4, 5]
 ```
 
 ### Querying the Set
@@ -164,42 +164,42 @@ s.each { |x| puts x * 10 }
 
 ```ruby
 s = Set[1, 2, 3]
-s.map! { |x| x * x } #=> #<Set: {1, 4, 9}>
+s.map! { |x| x * x } #=> Set[1, 4, 9]
 ```
 
 **Select/Filter (`select!`, `filter!`):** Keeps elements for which the block returns true.
 
 ```ruby
 s = Set[1, 2, 3, 4, 5]
-s.select! { |x| x.even? } #=> #<Set: {2, 4}>
+s.select! { |x| x.even? } #=> Set[2, 4]
 ```
 
 **Reject (`reject!`):** Deletes elements for which the block returns true.
 
 ```ruby
 s = Set[1, 2, 3, 4, 5]
-s.reject! { |x| x.odd? } #=> #<Set: {2, 4}>
+s.reject! { |x| x.odd? } #=> Set[2, 4]
 ```
 
 **Clear (`clear`):** Removes all elements from the set.
 
 ```ruby
 s = Set[1, 2, 3]
-s.clear #=> #<Set: {}>
+s.clear #=> Set[]
 ```
 
 **Replace (`replace`):** Replaces the contents of the set with the contents of the given enumerable.
 
 ```ruby
 s = Set[1, 2, 3]
-s.replace([4, 5]) #=> #<Set: {4, 5}>
+s.replace([4, 5]) #=> Set[4, 5]
 ```
 
 **Flatten (`flatten`, `flatten!`):** Returns a new set that is a copy of the set, flattening any nested sets. `flatten!` modifies the set in place.
 
 ```ruby
 s = Set[1, Set[2, 3], 4]
-s.flatten #=> #<Set: {1, 2, 3, 4}>
+s.flatten #=> Set[1, 2, 3, 4]
 ```
 
 ## Method Overview
