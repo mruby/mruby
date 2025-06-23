@@ -137,18 +137,6 @@ class Set
     end
   end
 
-  # flatten and flatten! are now implemented in C
-  # See mrbgems/mruby-set/src/set.c
-
-  # superset? and proper_superset? are now implemented in C
-  # See mrbgems/mruby-set/src/set.c
-
-  # subset? and proper_subset? are now implemented in C
-  # See mrbgems/mruby-set/src/set.c
-
-  # intersect? and disjoint? are now implemented in C
-  # See mrbgems/mruby-set/src/set.c
-
   # Iterates over each element in the set.
   #
   # @yield [Object] Each element in the set
