@@ -1127,6 +1127,170 @@ set_add_all(mrb_state *mrb, mrb_value self)
 }
 
 /*
+ * Optimized implementation for flattening sets
+ * Uses a more efficient algorithm with minimal memory usage
+ */
+
+/* Small array for tracking seen object IDs to detect cycles */
+#define MAX_NESTED_DEPTH 16
+
+/*
+ * Recursively flattens a set by merging nested sets into the target set.
+ * This is an internal helper function that does not call back to the VM.
+ *
+ * @param mrb The mruby state
+ * @param target_kh The target hash table to add elements to
+ * @param source_kh The source hash table to flatten
+ * @param seen_ids Array of object IDs to track seen sets
+ * @param seen_count Pointer to the current count of seen sets
+ * @return 0 on success, -1 on error
+ */
+static int
+set_flatten_recursive(mrb_state *mrb, khash_t(set) *target_kh, khash_t(set) *source_kh,
+                     mrb_int *seen_ids, int *seen_count)
+{
+  if (!source_kh || !target_kh) return 0;
+  if (*seen_count >= MAX_NESTED_DEPTH) return -1;
+
+  int ai = mrb_gc_arena_save(mrb);
+
+  /* Process each element in the source set */
+  KHASH_FOREACH(mrb, source_kh, k) {
+    mrb_value elem = kh_key(source_kh, k);
+
+    /* Check if element is a Set */
+    if (mrb_obj_is_kind_of(mrb, elem, mrb_class_get(mrb, "Set"))) {
+      /* Get the object ID to track recursion */
+      mrb_int obj_id = mrb_obj_id(elem);
+
+      /* Check if we've seen this set before to prevent infinite recursion */
+      for (int i = 0; i < *seen_count; i++) {
+        if (seen_ids[i] == obj_id) {
+          mrb_raise(mrb, E_ARGUMENT_ERROR, "tried to flatten recursive Set");
+        }
+      }
+
+      /* Mark this set as seen */
+      seen_ids[(*seen_count)++] = obj_id;
+
+      /* Recursively flatten the nested set */
+      khash_t(set) *nested_kh = set_get_khash(mrb, elem);
+      if (nested_kh) {
+        set_flatten_recursive(mrb, target_kh, nested_kh, seen_ids, seen_count);
+      }
+
+      /* Remove from seen array after processing */
+      (*seen_count)--;
+    } else {
+      /* Add non-Set element directly */
+      kh_put(set, mrb, target_kh, elem);
+    }
+  }
+
+  mrb_gc_arena_restore(mrb, ai);
+  return 0;
+}
+
+/*
+ * call-seq:
+ *   set.flatten -> new_set
+ *
+ * Returns a new set that is a flattened version of this set.
+ * Recursively flattens nested sets.
+ */
+static mrb_value
+set_flatten(mrb_state *mrb, mrb_value self)
+{
+  khash_t(set) *self_kh = set_get_khash(mrb, self);
+
+  /* Fast path for empty sets */
+  if (!self_kh || kh_size(self_kh) == 0) {
+    return mrb_obj_new(mrb, mrb_obj_class(mrb, self), 0, NULL);
+  }
+
+  /* Fast path: check if there are any nested sets */
+  mrb_bool has_nested_sets = FALSE;
+  int ai = mrb_gc_arena_save(mrb);
+  KHASH_FOREACH(mrb, self_kh, k) {
+    if (mrb_obj_is_kind_of(mrb, kh_key(self_kh, k), mrb_class_get(mrb, "Set"))) {
+      has_nested_sets = TRUE;
+      break;
+    }
+  }
+  mrb_gc_arena_restore(mrb, ai);
+
+  /* If no nested sets, just return a duplicate */
+  if (!has_nested_sets) {
+    return mrb_obj_dup(mrb, self);
+  }
+
+  /* Create a new set of the same class */
+  mrb_value result_set = mrb_obj_new(mrb, mrb_obj_class(mrb, self), 0, NULL);
+  khash_t(set) *result_kh = set_get_khash(mrb, result_set);
+
+  /* Use a small array for tracking seen object IDs */
+  mrb_int seen_ids[MAX_NESTED_DEPTH];
+  int seen_count = 0;
+
+  /* Flatten the set */
+  set_flatten_recursive(mrb, result_kh, self_kh, seen_ids, &seen_count);
+
+  return result_set;
+}
+
+/*
+ * call-seq:
+ *   set.flatten! -> self or nil
+ *
+ * Replaces the contents of this set with a flattened version of itself.
+ * Returns self if flattened, nil if no changes were made.
+ */
+static mrb_value
+set_flatten_bang(mrb_state *mrb, mrb_value self)
+{
+  mrb_check_frozen_value(mrb, self);
+
+  khash_t(set) *self_kh = set_get_khash(mrb, self);
+  if (!self_kh || kh_size(self_kh) == 0) {
+    return mrb_nil_value(); /* No changes needed for empty set */
+  }
+
+  /* First, check if there are any nested sets */
+  mrb_bool has_nested_sets = FALSE;
+  int ai = mrb_gc_arena_save(mrb);
+  KHASH_FOREACH(mrb, self_kh, k) {
+    mrb_value elem = kh_key(self_kh, k);
+    if (mrb_obj_is_kind_of(mrb, elem, mrb_class_get(mrb, "Set"))) {
+      has_nested_sets = TRUE;
+      break;
+    }
+  }
+  mrb_gc_arena_restore(mrb, ai);
+
+  if (!has_nested_sets) {
+    return mrb_nil_value(); /* No nested sets, no changes needed */
+  }
+
+  /* Create a temporary hash table for the flattened result */
+  khash_t(set) *new_kh = kh_init(set, mrb);
+
+  /* Use a small array for tracking seen object IDs */
+  mrb_int seen_ids[MAX_NESTED_DEPTH];
+  int seen_count = 0;
+
+  /* Flatten the set into the new hash table */
+  set_flatten_recursive(mrb, new_kh, self_kh, seen_ids, &seen_count);
+
+  /* Replace the old hash table with the new one */
+  set_set_khash(mrb, self, new_kh);
+
+  /* Clean up the old hash table */
+  kh_destroy(set, mrb, self_kh);
+
+  return self;
+}
+
+/*
  * call-seq:
  *   set.delete_all(*objects) -> self
  *
@@ -1304,6 +1468,9 @@ mrb_mruby_set_gem_init(mrb_state *mrb)
   mrb_define_method(mrb, set, "disjoint?", set_disjoint_p, MRB_ARGS_REQ(1));
 
   mrb_define_method(mrb, set, "<=>", set_cmp, MRB_ARGS_REQ(1));
+
+  mrb_define_method(mrb, set, "flatten", set_flatten, MRB_ARGS_NONE());
+  mrb_define_method(mrb, set, "flatten!", set_flatten_bang, MRB_ARGS_NONE());
 }
 
 void

@@ -137,46 +137,8 @@ class Set
     end
   end
 
-  # Recursively merges nested sets into this set, tracking seen sets to prevent
-  # infinite recursion.
-  #
-  # @param [Set] set The set to flatten and merge
-  # @param [Set] seen Set of object IDs to track visited sets
-  # @return [Set] self
-  def flatten_merge(set, seen = Set.new)
-    seen.add(set.object_id)
-    set.each { |e|
-      if e.is_a?(Set)
-        if seen.include?(e.object_id)
-          raise ArgumentError, "tried to flatten recursive Set"
-        end
-
-        flatten_merge(e, seen)
-      else
-        add(e)
-      end
-    }
-    seen.delete(set.object_id)
-    self
-  end
-
-  # Returns a new set that is a flattened version of this set.
-  #
-  # @return [Set] A new flattened set
-  def flatten
-    self.class.new.flatten_merge(self)
-  end
-
-  # Replaces the contents of this set with a flattened version of itself.
-  #
-  # @return [Set] self if flattened, nil if no changes were made
-  def flatten!
-    if detect { |e| e.is_a?(Set) }
-      replace(flatten())
-    else
-      nil
-    end
-  end
+  # flatten and flatten! are now implemented in C
+  # See mrbgems/mruby-set/src/set.c
 
   # superset? and proper_superset? are now implemented in C
   # See mrbgems/mruby-set/src/set.c
