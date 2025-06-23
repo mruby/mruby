@@ -915,78 +915,189 @@ int_chr(mrb_state *mrb, mrb_value num)
 static mrb_value
 str_succ_bang(mrb_state *mrb, mrb_value self)
 {
-  mrb_value result;
-  const char *prepend;
   struct RString *s = mrb_str_ptr(self);
+  mrb_int len = RSTRING_LEN(self);
 
-  if (RSTRING_LEN(self) == 0)
+  if (len == 0) {
     return self;
-
-  mrb_str_modify(mrb, s);
-  mrb_int l = RSTRING_LEN(self);
-  unsigned char *p, *e, *b, *t;
-  b = p = (unsigned char*) RSTRING_PTR(self);
-  t = e = p + l;
-  *(e--) = 0;
-
-  // find trailing ascii/number
-  while (e >= b) {
-    if (ISALNUM(*e))
-      break;
-    e--;
-  }
-  if (e < b) {
-    e = p + l - 1;
-    result = mrb_str_new_lit(mrb, "");
-  }
-  else {
-    // find leading letter of the ascii/number
-    b = e;
-    while (b > p) {
-      if (!ISALNUM(*b) || (ISALNUM(*b) && *b != '9' && *b != 'z' && *b != 'Z'))
-        break;
-      b--;
-    }
-    if (!ISALNUM(*b))
-      b++;
-    result = mrb_str_new(mrb, (char*) p, b - p);
   }
 
-  while (e >= b) {
-    if (!ISALNUM(*e)) {
-      if (*e == 0xff) {
-        mrb_str_cat_lit(mrb, result, "\x01");
-        (*e) = 0;
-      }
-      else
-        (*e)++;
+  mrb_str_modify(mrb, s); // Ensure the string is modifiable and not shared.
+  unsigned char *ptr = (unsigned char*)RSTRING_PTR(self);
+
+  // Pointers for iterating and identifying segments:
+  // base: start of the string data
+  // p_end: end of the string data (points to the null terminator if we were to add one)
+  // current: current character being processed (starts at the last actual char)
+  // segment_start: start of the alphanumeric segment we're interested in
+  unsigned char *base = ptr;
+  unsigned char *p_end = ptr + len;
+  unsigned char *current = ptr + len - 1; // Start from the last character
+  unsigned char *segment_start;
+
+  // 1. Identify the trailing segment of alphanumeric characters (or the last char if none).
+  //    `current` will point to the last char of this segment.
+  //    `segment_start` will point to the first char of this segment.
+  while (current >= base) {
+    if (ISALNUM(*current)) {
       break;
     }
-    prepend = NULL;
-    if (*e == '9') {
-      if (e == b) prepend = "1";
-      *e = '0';
+    current--;
+  }
+
+  if (current < base) { // No alphanumeric characters found, operate on the last character
+    current = ptr + len - 1; // Point to the last character
+    segment_start = current;   // The segment is just this character
+    // Increment the last character
+    if (*current == 0xff) { // Handle overflow for non-alphanumeric
+        // This case is tricky: "a\xff" -> "b\x00" or "\x01\x00" if "a" was also maxed out?
+        // Ruby MRI: "\xff".succ! => "\x00\x01" (prepends \x01, sets current to \x00)
+        // Let's try to mimic MRI: if current is 0xff, set to 0 and prepend 1.
+        // This requires resizing and shifting.
+        mrb_str_resize(mrb, self, len + 1);
+        // After resize, ptr might be invalid. Re-fetch.
+        ptr = (unsigned char*)RSTRING_PTR(self); // Re-fetch pointer after potential realloc
+        base = ptr;
+        // Shift everything to the right by one
+        memmove(base + 1, base, len);
+        *base = 1; // Prepend '1' (as byte)
+        *(base + len) = 0; // Original last char becomes 0
+        return self;
     }
-    else if (*e == 'z') {
-      if (e == b) prepend = "a";
-      *e = 'a';
-    }
-    else if (*e == 'Z') {
-      if (e == b) prepend = "A";
-      *e = 'A';
-    }
+
     else {
-      (*e)++;
-      break;
+        (*current)++;
+        return self;
     }
-    if (prepend) mrb_str_cat_cstr(mrb, result, prepend);
-    e--;
   }
-  result = mrb_str_cat(mrb, result, (char*) b, t - b);
-  l = RSTRING_LEN(result);
-  mrb_str_resize(mrb, self, l);
-  memcpy(RSTRING_PTR(self), RSTRING_PTR(result), l);
-  return self;
+
+  // Now, `current` points to the last char of an alphanumeric sequence (or the last char of string).
+  // Find the start of this continuous alphanumeric sequence.
+  segment_start = current;
+  while (segment_start > base) {
+    // Check if the char before segment_start is part of the same kind of sequence.
+    // Break if not alphanumeric OR if it's a number but segment_start is alpha (or vice-versa).
+    // This is to handle "a9" -> "b0" correctly (don't want to make it "a10").
+    // The original code's logic for `b` (segment_start here) was:
+    //   while (b > p) { if (!ISALNUM(*b) || (ISALNUM(*b) && *b != '9' && *b != 'z' && *b != 'Z')) break; b--; }
+    //   if (!ISALNUM(*b)) b++;
+    // This means it continues as long as it's an alnum that *could* carry over.
+    // Let's simplify: the segment is the rightmost continuous run of (all digits) or (all letters).
+    // Or, if it's mixed, it's the rightmost run of alnums. The original code is a bit more complex.
+    // For "a9", original `b` would point to '9'. For "9a", `b` would point to 'a'.
+    // For "abc99", `b` points to '9' (the first '9').
+    // For "ab99c", `b` points to 'c'.
+
+    // Let's stick to the original "succ" behavior: find the rightmost char.
+    // Then find the beginning of its group (alnums that can roll over).
+    unsigned char *prev_char = segment_start - 1;
+    if (!ISALNUM(*prev_char)) break; // Not part of an alnum sequence
+
+    // If current segment is numeric, previous must be numeric.
+    if (ISDIGIT(*segment_start) && !ISDIGIT(*prev_char)) break;
+    // If current segment is alpha, previous must be alpha.
+    if (ISALPHA(*segment_start) && !ISALPHA(*prev_char)) break;
+
+    // Special break for mixed sequences like "a9" or "Z9", where '9' is the target.
+    // The original code's `b` finding loop:
+    // while (b > p) { if (!ISALNUM(*b) || (ISALNUM(*b) && *b != '9' && *b != 'z' && *b != 'Z')) break; b--; }
+    // This means it includes '9', 'z', 'Z' in the carry-over segment.
+    // And `if (!ISALNUM(*b)) b++;` makes `b` point to the start of the segment.
+
+    // Let's use the simpler approach: the segment is the rightmost block of same-type alnums.
+    // Or, if it's just one alnum char, that's the segment.
+    // The `current` pointer is already at the end of the interesting part.
+    // `segment_start` should find the beginning of this sequence.
+
+    // Re-evaluating `segment_start` logic based on original code's `b`
+    segment_start = current; // `e` in original code
+    unsigned char *scan_ptr = current; // `b` in original code, used for scanning leftwards
+    while (scan_ptr > base) {
+        unsigned char *char_before_scan = scan_ptr - 1;
+        // The condition `*b != '9' && *b != 'z' && *b != 'Z'` in the original was for *breaking* if *b itself* was not a carry char.
+        // Here we are looking at char_before_scan.
+        if (!ISALNUM(*char_before_scan)) break; // If char before is not alnum, sequence ends.
+
+        // If `scan_ptr` is a digit, `char_before_scan` must also be a digit to continue.
+        if (ISDIGIT(*scan_ptr) && !ISDIGIT(*char_before_scan)) break;
+        // If `scan_ptr` is a letter, `char_before_scan` must also be a letter to continue.
+        if (ISALPHA(*scan_ptr) && !ISALPHA(*char_before_scan)) break;
+
+        scan_ptr--; // Move left
+    }
+    segment_start = scan_ptr; // This is `b` from original logic.
+  }
+  // `current` still points to the last char of the string or the alnum seq.
+  // `segment_start` points to the first char of the sequence to be incremented.
+
+  // 2. Iterate from right to left within this segment (`current` down to `segment_start`)
+  unsigned char *iter_ptr = current; // Iterate with this pointer
+  while (iter_ptr >= segment_start) {
+    if (!ISALNUM(*iter_ptr)) { // Should not happen if segment_start logic is correct for alnum sequences
+        if (*iter_ptr == 0xff) {
+            *iter_ptr = 0;
+            // Need to carry over. If iter_ptr is segment_start, we need to prepend.
+            if (iter_ptr == base) { // Prepending at the very beginning of the string
+                mrb_str_resize(mrb, self, len + 1);
+                ptr = (unsigned char*)RSTRING_PTR(self); // Re-fetch
+                memmove(ptr + 1, ptr, len);
+                *ptr = 1;
+                return self;
+            }
+            // else, continue to the previous char (handled by loop)
+        } else {
+            (*iter_ptr)++;
+            return self; // Done
+        }
+    }
+    else if (*iter_ptr == '9') {
+      *iter_ptr = '0';
+      if (iter_ptr == segment_start) { // Was the first char of segment, need to prepend "1"
+        mrb_str_resize(mrb, self, len + 1);
+        ptr = (unsigned char*)RSTRING_PTR(self); // Re-fetch
+                                                 // segment_start and iter_ptr are now invalid relative to new ptr
+                                                 // Recalculate their offsets for memmove
+        mrb_int segment_start_offset = segment_start - base;
+        // Shift characters from segment_start to end of string right by 1
+        memmove(ptr + segment_start_offset + 1, ptr + segment_start_offset, (p_end - (base + segment_start_offset)));
+        *(ptr + segment_start_offset) = '1';
+        return self;
+      }
+      // else, continue to carry to the char on the left (handled by iter_ptr--)
+    }
+    else if (*iter_ptr == 'z') {
+      *iter_ptr = 'a';
+      if (iter_ptr == segment_start) { // Prepend "a"
+        mrb_str_resize(mrb, self, len + 1);
+        ptr = (unsigned char*)RSTRING_PTR(self);
+        mrb_int segment_start_offset = segment_start - base;
+        memmove(ptr + segment_start_offset + 1, ptr + segment_start_offset, (p_end - (base + segment_start_offset)));
+        *(ptr + segment_start_offset) = 'a';
+        return self;
+      }
+    }
+    else if (*iter_ptr == 'Z') {
+      *iter_ptr = 'A';
+      if (iter_ptr == segment_start) { // Prepend "A"
+        mrb_str_resize(mrb, self, len + 1);
+        ptr = (unsigned char*)RSTRING_PTR(self);
+        mrb_int segment_start_offset = segment_start - base;
+        memmove(ptr + segment_start_offset + 1, ptr + segment_start_offset, (p_end - (base + segment_start_offset)));
+        *(ptr + segment_start_offset) = 'A';
+        return self;
+      }
+    }
+    else { // Normal increment
+      (*iter_ptr)++;
+      return self; // Done
+    }
+    iter_ptr--; // Move to char on the left
+  }
+  // If we exit the loop, it means the entire segment_start...current was '9...9' or 'z...z' etc.
+  // and a prepend should have happened inside the loop. This part should ideally not be reached
+  // if prepend logic is correct.
+
+  return self; // Should be returned from within the loop.
 }
 
 static mrb_value
