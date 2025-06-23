@@ -494,6 +494,12 @@ set_core_xor(mrb_state *mrb, mrb_value self)
  *
  * Returns true if two sets are equal.
  */
+/*
+ * call-seq:
+ *   set.eql?(other) -> true or false
+ *
+ * Returns true if two sets are equal.
+ */
 static mrb_value
 set_equal(mrb_state *mrb, mrb_value self)
 {
@@ -536,7 +542,6 @@ set_equal(mrb_state *mrb, mrb_value self)
   return mrb_true_value();
 }
 
-
 /*
  * call-seq:
  *   set.hash -> integer
@@ -577,54 +582,6 @@ set_hash_m(mrb_state *mrb, mrb_value self)
   hash ^= hash >> 32;
 
   return mrb_fixnum_value((mrb_int)hash);
-}
-
-/*
- * call-seq:
- *   set.eql?(other) -> true or false
- *
- * Returns true if the set and the given object are members of the same class
- * and their members are eql? to each other.
- */
-static mrb_value
-set_eql(mrb_state *mrb, mrb_value self)
-{
-  mrb_value other = mrb_get_arg1(mrb);
-
-  /* Fast path: same object */
-  if (mrb_obj_equal(mrb, self, other)) {
-    return mrb_true_value();
-  }
-
-  /* Only compare with other Set objects */
-  if (!set_is_set(mrb, other)) {
-    return mrb_false_value();
-  }
-
-  khash_t(set) *kh1 = set_get_khash(mrb, self);
-  khash_t(set) *kh2 = set_get_khash(mrb, other);
-
-  /* Fast path: both empty */
-  if ((!kh1 || kh_size(kh1) == 0) && (!kh2 || kh_size(kh2) == 0)) {
-    return mrb_true_value();
-  }
-
-  /* Fast path: different sizes */
-  if (!kh1 || !kh2 || kh_size(kh1) != kh_size(kh2)) {
-    return mrb_false_value();
-  }
-
-  /* Compare elements */
-  int ai = mrb_gc_arena_save(mrb);
-  KHASH_FOREACH(mrb, kh1, k) {
-    khiter_t other_k = kh_get(set, mrb, kh2, kh_key(kh1, k));
-    if (other_k == kh_end(kh2)) {
-      return mrb_false_value(); /* Element in self not found in other */
-    }
-    mrb_gc_arena_restore(mrb, ai);
-  }
-
-  return mrb_true_value();
 }
 
 /*
@@ -1437,7 +1394,7 @@ mrb_mruby_set_gem_init(mrb_state *mrb)
 
   mrb_define_method(mrb, set, "==", set_equal, MRB_ARGS_REQ(1));
   mrb_define_method(mrb, set, "hash", set_hash_m, MRB_ARGS_NONE());
-  mrb_define_method(mrb, set, "eql?", set_eql, MRB_ARGS_REQ(1));
+  mrb_define_alias(mrb, set, "eql?", "==");
 
   mrb_define_method(mrb, set, "join", set_join, MRB_ARGS_OPT(1));
   mrb_define_method(mrb, set, "inspect", set_inspect, MRB_ARGS_NONE());
