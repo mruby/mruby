@@ -1141,13 +1141,12 @@ set_add_all(mrb_state *mrb, mrb_value self)
  * @param mrb The mruby state
  * @param target_kh The target hash table to add elements to
  * @param source_kh The source hash table to flatten
- * @param seen_ids Array of object IDs to track seen sets
- * @param seen_count Pointer to the current count of seen sets
- * @return 0 on success, -1 on error
+ * @param seen_count Pointer to the current count of seen sets (recursion depth)
+ * @return 0 on success, -1 if recursion depth exceeds maximum
  */
 static int
 set_flatten_recursive(mrb_state *mrb, khash_t(set) *target_kh, khash_t(set) *source_kh,
-                     mrb_int *seen_ids, int *seen_count)
+                     int *seen_count)
 {
   if (!source_kh || !target_kh) return 0;
   if (*seen_count >= MAX_NESTED_DEPTH) return -1;
@@ -1160,26 +1159,19 @@ set_flatten_recursive(mrb_state *mrb, khash_t(set) *target_kh, khash_t(set) *sou
 
     /* Check if element is a Set */
     if (set_is_set(mrb, elem)) {
-      /* Get the object ID to track recursion */
-      mrb_int obj_id = mrb_obj_id(elem);
-
-      /* Check if we've seen this set before to prevent infinite recursion */
-      for (int i = 0; i < *seen_count; i++) {
-        if (seen_ids[i] == obj_id) {
-          mrb_raise(mrb, E_ARGUMENT_ERROR, "tried to flatten recursive Set");
-        }
-      }
-
-      /* Mark this set as seen */
-      seen_ids[(*seen_count)++] = obj_id;
+      /* Increment recursion depth */
+      (*seen_count)++;
 
       /* Recursively flatten the nested set */
       khash_t(set) *nested_kh = set_get_khash(mrb, elem);
       if (nested_kh) {
-        set_flatten_recursive(mrb, target_kh, nested_kh, seen_ids, seen_count);
+        int nested_result = set_flatten_recursive(mrb, target_kh, nested_kh, seen_count);
+        if (nested_result < 0) {
+          return nested_result; /* Propagate error code */
+        }
       }
 
-      /* Remove from seen array after processing */
+      /* Decrement recursion depth */
       (*seen_count)--;
     } else {
       /* Add non-Set element directly */
@@ -1228,12 +1220,13 @@ set_flatten(mrb_state *mrb, mrb_value self)
   mrb_value result_set = mrb_obj_new(mrb, mrb_obj_class(mrb, self), 0, NULL);
   khash_t(set) *result_kh = set_get_khash(mrb, result_set);
 
-  /* Use a small array for tracking seen object IDs */
-  mrb_int seen_ids[MAX_NESTED_DEPTH];
+  /* Track recursion depth */
   int seen_count = 0;
 
   /* Flatten the set */
-  set_flatten_recursive(mrb, result_kh, self_kh, seen_ids, &seen_count);
+  if (set_flatten_recursive(mrb, result_kh, self_kh, &seen_count) < 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "flatten recursion depth too deep");
+  }
 
   return result_set;
 }
@@ -1274,12 +1267,17 @@ set_flatten_bang(mrb_state *mrb, mrb_value self)
   /* Create a temporary hash table for the flattened result */
   khash_t(set) *new_kh = kh_init(set, mrb);
 
-  /* Use a small array for tracking seen object IDs */
-  mrb_int seen_ids[MAX_NESTED_DEPTH];
+  /* Track recursion depth */
   int seen_count = 0;
 
   /* Flatten the set into the new hash table */
-  set_flatten_recursive(mrb, new_kh, self_kh, seen_ids, &seen_count);
+  if (set_flatten_recursive(mrb, new_kh, self_kh, &seen_count) < 0) {
+    /* Clean up the new hash table if an error occurred */
+    kh_destroy(set, mrb, new_kh);
+
+    /* Raise appropriate exception */
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "flatten recursion depth too deep");
+  }
 
   /* Replace the old hash table with the new one */
   set_set_khash(mrb, self, new_kh);
