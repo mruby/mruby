@@ -58,20 +58,20 @@ set_get_khash(mrb_state *mrb, mrb_value self)
   return (khash_t(set)*)mrb_data_get_ptr(mrb, self, &set_data_type);
 }
 
-/* Helper function to check if a value is a Set and raise an error if not */
-static void
-set_check_type(mrb_state *mrb, mrb_value obj)
-{
-  if (!mrb_obj_is_kind_of(mrb, obj, mrb_class_get(mrb, "Set"))) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "value must be a set");
-  }
-}
-
 /* Helper function to check if a value is a Set and return a boolean result */
 static mrb_bool
 set_is_set(mrb_state *mrb, mrb_value obj)
 {
   return mrb_obj_is_kind_of(mrb, obj, mrb_class_get(mrb, "Set"));
+}
+
+/* Helper function to check if a value is a Set and raise an error if not */
+static void
+set_check_type(mrb_state *mrb, mrb_value obj)
+{
+  if (!set_is_set(mrb, obj)) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "value must be a set");
+  }
 }
 
 static mrb_value
@@ -1159,7 +1159,7 @@ set_flatten_recursive(mrb_state *mrb, khash_t(set) *target_kh, khash_t(set) *sou
     mrb_value elem = kh_key(source_kh, k);
 
     /* Check if element is a Set */
-    if (mrb_obj_is_kind_of(mrb, elem, mrb_class_get(mrb, "Set"))) {
+    if (set_is_set(mrb, elem)) {
       /* Get the object ID to track recursion */
       mrb_int obj_id = mrb_obj_id(elem);
 
@@ -1212,7 +1212,7 @@ set_flatten(mrb_state *mrb, mrb_value self)
   mrb_bool has_nested_sets = FALSE;
   int ai = mrb_gc_arena_save(mrb);
   KHASH_FOREACH(mrb, self_kh, k) {
-    if (mrb_obj_is_kind_of(mrb, kh_key(self_kh, k), mrb_class_get(mrb, "Set"))) {
+    if (set_is_set(mrb, kh_key(self_kh, k))) {
       has_nested_sets = TRUE;
       break;
     }
@@ -1260,7 +1260,7 @@ set_flatten_bang(mrb_state *mrb, mrb_value self)
   int ai = mrb_gc_arena_save(mrb);
   KHASH_FOREACH(mrb, self_kh, k) {
     mrb_value elem = kh_key(self_kh, k);
-    if (mrb_obj_is_kind_of(mrb, elem, mrb_class_get(mrb, "Set"))) {
+    if (set_is_set(mrb, elem)) {
       has_nested_sets = TRUE;
       break;
     }
