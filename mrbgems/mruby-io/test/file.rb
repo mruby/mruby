@@ -45,6 +45,18 @@ assert('File.basename') do
   assert_raise(ArgumentError) { File.basename("/a/b\0") }
 end
 
+assert('File.basename with suffix') do
+  assert_equal 'foo', File.basename('foo.rb', '.rb')
+  assert_equal 'foo.rb', File.basename('foo.rb', '.py')
+  assert_equal 'foo.tar', File.basename('foo.tar.gz', '.gz')
+  assert_equal 'foo.tar.gz', File.basename('foo.tar.gz', '.zip')
+  assert_equal '.profile', File.basename('.profile', '.sh')
+  assert_equal 'foo', File.basename('foo.', '.')
+  assert_equal 'foo', File.basename('foo', '')
+  assert_equal 'foo.rb', File.basename('foo.rb', '')
+  assert_equal 'foo.rb', File.basename('foo.rb', '.RB') # case-sensitive
+end
+
 assert('File.dirname') do
   assert_equal '.',    File.dirname('')
   assert_equal '.',    File.dirname('a')

@@ -1,5 +1,15 @@
 class Set
-  include Enumerable
+  def initialize(enum = nil, &block)
+    __init
+    return self if enum.nil?
+
+    if block
+      __do_with_enum(enum) { add(block.call(_1)) }
+      self
+    else
+      merge(enum)
+    end
+  end
 
   # internal method
   def __do_with_enum(enum, &block)
@@ -10,193 +20,174 @@ class Set
     end
   end
 
-  # internal method to get internal hash
-  def __get_hash
-    @hash
-  end
-
-  def self.[](*ary)
-    new(ary)
-  end
-
-  def initialize(enum = nil, &block)
-    @hash ||= Hash.new
-
-    enum.nil? and return
-
-    if block_given?
-      __do_with_enum(enum) { |o| add(block.call(o)) }
+  # Merges the elements of the given enumerable object to the set and returns
+  # self.
+  #
+  # @param [Enumerable] enum The enumerable object to merge elements from
+  # @return [Set] self
+  def merge(enum)
+    if enum.is_a?(Set)
+      # Fast path: Call C-implemented function for Set-to-Set merge
+      __merge(enum)
     else
-      merge(enum)
+      # General path: Add each element from the enumerable
+      __do_with_enum(enum) { add(_1) }
+      self
     end
   end
 
-  private def initialize_copy(orig)
-    super
-    @hash = orig.__get_hash.dup
-  end
-
-  # def freeze
-  #   @hash.freeze
-  #   super
-  # end
-
-  def size
-    @hash.size
-  end
-  alias length size
-
-  def empty?
-    @hash.empty?
-  end
-
-  def clear
-    @hash.clear
-    self
-  end
-
+  # Replaces the contents of the set with the contents of the given enumerable
+  # object and returns self.
+  #
+  # @param [Enumerable] enum The enumerable object to replace with
+  # @return [Set] self
   def replace(enum)
     clear
     merge(enum)
   end
 
-  def to_a
-    @hash.keys
-  end
-
-#  def to_set
-#  end
-#
-  def flatten_merge(set, seen = Set.new)
-    seen.add(set.object_id)
-    set.each { |e|
-      if e.is_a?(Set)
-        if seen.include?(e_id = e.object_id)
-          raise ArgumentError, "tried to flatten recursive Set"
-        end
-
-        flatten_merge(e, seen)
-      else
-        add(e)
-      end
-    }
-    seen.delete(set.object_id)
-
-    self
-  end
-
-  def flatten
-    self.class.new.flatten_merge(self)
-  end
-
-  def flatten!
-    if detect { |e| e.is_a?(Set) }
-      replace(flatten())
+  # Deletes every element that appears in the given enumerable object and
+  # returns self.
+  #
+  # @param [Enumerable] enum The enumerable object containing elements to remove
+  # @return [Set] self
+  def subtract(enum)
+    if enum.is_a?(Set)
+      # Fast path: Call C-implemented function for Set-to-Set subtraction
+      __subtract(enum)
     else
-      nil
+      # General path: Remove each element from the enumerable
+      __do_with_enum(enum) { delete(_1) }
+      self
     end
   end
 
-  def include?(o)
-    @hash.include?(o)
-  end
-  alias member? include?
-  alias === include?
-
-  def superset?(set)
-    raise ArgumentError, "value must be a set" unless set.is_a?(Set)
-    return false if size < set.size
-    set.all? { |o| include?(o) }
-  end
-  alias >= superset?
-
-  def proper_superset?(set)
-    raise ArgumentError, "value must be a set" unless set.is_a?(Set)
-    return false if size <= set.size
-    set.all? { |o| include?(o) }
-  end
-  alias > proper_superset?
-
-  def subset?(set)
-    raise ArgumentError, "value must be a set" unless set.is_a?(Set)
-    return false if set.size < size
-    all? { |o| set.include?(o) }
-  end
-  alias <= subset?
-
-  def proper_subset?(set)
-    raise ArgumentError, "value must be a set" unless set.is_a?(Set)
-    return false if set.size <= size
-    all? { |o| set.include?(o) }
-  end
-  alias < proper_subset?
-
-  def intersect?(set)
-    raise ArgumentError, "value must be a set" unless set.is_a?(Set)
-    if size < set.size
-      any? { |o| set.include?(o) }
+  # Returns a new set containing elements common to the set and the given
+  # enumerable object.
+  #
+  # @param [Enumerable] enum The enumerable object to find common elements with
+  # @return [Set] A new set containing elements common to both
+  def intersection(enum)
+    if enum.is_a?(Set)
+      # Fast path: Call C-implemented function for Set-to-Set intersection
+      __intersection(enum)
     else
-      set.any? { |o| include?(o) }
+      # General path: Implement in Ruby for any enumerable
+      n = Set.new
+      __do_with_enum(enum) { n.add(_1) if include?(_1) }
+      n
     end
   end
 
-  def disjoint?(set)
-    !intersect?(set)
+  # Alias for #intersection
+  alias & intersection
+
+  # Returns a new set built by merging the set and the elements of the given
+  # enumerable object.
+  #
+  # @param [Enumerable] enum The enumerable object to merge with
+  # @return [Set] A new set containing all elements from both
+  def union(enum)
+    if enum.is_a?(Set)
+      # Fast path: Call C-implemented function for Set-to-Set union
+      __union(enum)
+    else
+      # General path: Create a duplicate and merge the enumerable
+      dup.merge(enum)
+    end
   end
 
+  # Aliases for #union
+  alias | union
+  alias + union
+
+  # Returns a new set built by duplicating the set, removing every element that
+  # appears in the given enumerable object.
+  #
+  # @param [Enumerable] enum The enumerable object to find elements to remove
+  # @return [Set] A new set with elements from self that are not in enum
+  def difference(enum)
+    if enum.is_a?(Set)
+      # Fast path: Call C-implemented function for Set-to-Set difference
+      __difference(enum)
+    else
+      # General path: Create a duplicate and remove the enumerable elements
+      result = dup
+      __do_with_enum(enum) { result.delete(_1) }
+      result
+    end
+  end
+
+  # Alias for #difference
+  alias - difference
+
+  # Returns a new set containing elements exclusive between the set and the given
+  # enumerable object.
+  #
+  # @param [Enumerable] enum The enumerable object to find exclusive elements with
+  # @return [Set] A new set containing elements exclusive between both
+  def ^(enum)
+    if enum.is_a?(Set)
+      # Fast path: Call C-implemented function for Set-to-Set XOR
+      __xor(enum)
+    else
+      # General path: Convert enum to a set and calculate (self|s2)-(self&s2)
+      s2 = Set.new(enum)
+      (self | s2) - (self & s2)
+    end
+  end
+
+  # Iterates over each element in the set.
+  #
+  # @yield [Object] Each element in the set
+  # @return [Set] self
   def each(&block)
     return to_enum :each unless block_given?
-    @hash.each_key(&block)
+    # Use C implementation's to_a method and iterate
+    to_a.each(&block)
     self
   end
 
-  def add(o)
-    @hash[o] = true
-    self
-  end
-  alias << add
-
-  def add?(o)
-    if include?(o)
-      nil
-    else
-      add(o)
-    end
-  end
-
-  def delete(o)
-    @hash.delete(o)
-    self
-  end
-
-  def delete?(o)
-    if include?(o)
-      delete(o)
-    else
-      nil
-    end
-  end
-
+  # Deletes every element for which the given block returns true.
+  #
+  # @yield [Object] Each element in the set
+  # @yieldreturn [Boolean] true if the element should be deleted
+  # @return [Set] self
   def delete_if
     return to_enum :delete_if unless block_given?
-    select { |o| yield o }.each { |o| @hash.delete(o) }
+    select { yield _1 }.each { delete(_1) }
     self
   end
 
+  # Deletes every element for which the given block returns false.
+  #
+  # @yield [Object] Each element in the set
+  # @yieldreturn [Boolean] true if the element should be kept
+  # @return [Set] self
   def keep_if
     return to_enum :keep_if unless block_given?
-    reject { |o| yield o }.each { |o| @hash.delete(o) }
+    reject { yield _1 }.each { delete(_1) }
     self
   end
 
+  # Replaces each element with the result of the given block.
+  #
+  # @yield [Object] Each element in the set
+  # @yieldreturn [Object] The new value for the element
+  # @return [Set] self
   def collect!
     return to_enum :collect! unless block_given?
     set = self.class.new
-    each { |o| set << yield(o) }
+    each { set << yield(_1) }
     replace(set)
   end
   alias map! collect!
 
+  # Deletes every element for which the given block returns true.
+  #
+  # @yield [Object] Each element in the set
+  # @yieldreturn [Boolean] true if the element should be deleted
+  # @return [Set] self if any elements were deleted, nil otherwise
   def reject!(&block)
     return to_enum :reject! unless block_given?
     n = size
@@ -204,6 +195,11 @@ class Set
     size == n ? nil : self
   end
 
+  # Deletes every element for which the given block returns false.
+  #
+  # @yield [Object] Each element in the set
+  # @yieldreturn [Boolean] true if the element should be kept
+  # @return [Set] self if any elements were deleted, nil otherwise
   def select!(&block)
     return to_enum :select! unless block_given?
     n = size
@@ -212,86 +208,26 @@ class Set
   end
   alias filter! select!
 
-  def merge(enum)
-    if enum.instance_of?(self.class)
-      @hash.merge!(enum.__get_hash)
-    else
-      __do_with_enum(enum) { |o| add(o) }
-    end
-
-    self
-  end
-
-  def subtract(enum)
-    __do_with_enum(enum) { |o| delete(o) }
-    self
-  end
-
-  def |(enum)
-    dup.merge(enum)
-  end
-  alias + |
-  alias union |
-
-  def -(enum)
-    dup.subtract(enum)
-  end
-  alias difference -
-
-  def &(enum)
-    n = Set.new
-    __do_with_enum(enum) { |o| n.add(o) if include?(o) }
-    n
-  end
-  alias intersection &
-
-  def ^(enum)
-    (self | Set.new(enum)) - (self & Set.new(enum))
-  end
-
-  def ==(other)
-    if self.equal?(other)
-      true
-    elsif other.instance_of?(self.class) && self.size == other.size
-      @hash == other.__get_hash
-    elsif other.is_a?(self.class) && self.size == other.size
-      other.all? { |o| include?(o) }
-    else
-      false
-    end
-  end
-
-  def <=>(set)
-    return unless set.is_a?(Set)
-
-    case size <=> set.size
-    when -1 then -1 if proper_subset?(set)
-    when +1 then +1 if proper_superset?(set)
-    else 0 if self.==(set)
-    end
-  end
-
-  def hash
-    @hash.hash
-  end
-
-  def eql?(o)
-    return false unless o.is_a?(Set)
-    @hash.eql?(o.__get_hash)
-  end
-
+  # Classifies the elements of the set by the result of the given block.
+  #
+  # @yield [Object] Each element in the set
+  # @yieldreturn [Object] The classification key
+  # @return [Hash] A hash mapping classification keys to sets of elements
   def classify
     return to_enum :classify unless block_given?
     h = {}
-
     each { |i|
       x = yield(i)
       (h[x] ||= self.class.new).add(i)
     }
-
     h
   end
 
+  # Divides the set into subsets based on the result of the given block.
+  #
+  # @yield [Object] Each element in the set
+  # @yieldreturn [Object] The division key
+  # @return [Set] A set containing the divided subsets
   def divide(&func)
     return to_enum :divide unless block_given?
 
@@ -300,26 +236,5 @@ class Set
     end
 
     Set.new(classify(&func).values)
-  end
-
-  def join(separator = nil)
-    to_a.join(separator)
-  end
-
-  def inspect
-    return "#<#{self.class}: {}>" if empty?
-    return "#<#{self.class}: {...}>" if self.__inspect_recursive?
-    ary = map {|o| o.inspect }
-    "#<#{self.class}: {#{ary.join(", ")}}>"
-  end
-
-  alias to_s inspect
-
-  def reset
-    if frozen?
-      raise FrozenError, "can't modify frozen Set"
-    else
-      @hash.rehash
-    end
   end
 end

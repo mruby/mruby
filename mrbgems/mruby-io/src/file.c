@@ -241,13 +241,13 @@ mrb_file_dirname(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_file_basename(mrb_state *mrb, mrb_value klass)
 {
-  // NOTE: Do not use mrb_locale_from_utf8 here
 #if defined(_WIN32)
   char bname[_MAX_DIR];
   char extname[_MAX_EXT];
   char *path;
+  const char *suffix = NULL;
 
-  mrb_get_args(mrb, "z", &path);
+  mrb_get_args(mrb, "z|z", &path, &suffix);
   size_t ridx = strlen(path);
   if (ridx > 0) {
     ridx--;
@@ -256,22 +256,69 @@ mrb_file_basename(mrb_state *mrb, mrb_value klass)
       ridx--;
     }
     if (ridx == 0 && path[0] == '/') {
-      return mrb_str_new_cstr(mrb, path);
+      mrb_value result = mrb_str_new_cstr(mrb, path);
+      if (suffix && *suffix) {
+        mrb_int blen = RSTRING_LEN(result);
+        mrb_int slen = strlen(suffix);
+        if (blen > slen && memcmp(RSTRING_PTR(result) + blen - slen, suffix, slen) == 0) {
+          mrb_str_resize(mrb, result, blen - slen);
+        }
+      }
+      return result;
     }
   }
   _splitpath((const char*)path, NULL, NULL, bname, extname);
   mrb_value buffer = mrb_str_new_cstr(mrb, bname);
   mrb_str_cat_cstr(mrb, buffer, extname);
+  if (suffix && *suffix) {
+    mrb_int blen = RSTRING_LEN(buffer);
+    mrb_int slen = strlen(suffix);
+    if (blen > slen && memcmp(RSTRING_PTR(buffer) + blen - slen, suffix, slen) == 0) {
+      mrb_str_resize(mrb, buffer, blen - slen);
+    }
+  }
   return buffer;
 #else
-  char *path, *bname;
+  char *path;
+  const char *suffix = NULL;
 
-  mrb_get_args(mrb, "z", &path);
-  if ((bname = basename(path)) == NULL) {
-    mrb_sys_fail(mrb, "basename");
+  mrb_get_args(mrb, "z|z", &path, &suffix);
+
+  // Copy path to a local buffer to avoid modifying the original string
+  size_t len = strlen(path);
+  if (len == 0) {
+    return mrb_str_new_lit(mrb, ".");
   }
-  if (strcmp(bname, "//") == 0) bname[1] = '\0';  /* patch for Cygwin */
-  return mrb_str_new_cstr(mrb, bname);
+
+  // Remove trailing slashes (except when path is only "/")
+  while (len > 1 && path[len - 1] == '/') {
+    len--;
+  }
+
+  // Find the last path separator
+  ssize_t base = len - 1;
+  while (base >= 0 && path[base] != '/') {
+    base--;
+  }
+  base++; // move to the first character after '/'
+
+  // If path is all slashes, return "/"
+  if (base == len) {
+    return mrb_str_new_lit(mrb, "/");
+  }
+
+  mrb_value result = mrb_str_new(mrb, path + base, len - base);
+
+  // Suffix removal (CRuby compatible)
+  if (suffix && *suffix) {
+    mrb_int blen = RSTRING_LEN(result);
+    mrb_int slen = strlen(suffix);
+    if (blen > slen && memcmp(RSTRING_PTR(result) + blen - slen, suffix, slen) == 0) {
+      mrb_str_resize(mrb, result, blen - slen);
+    }
+  }
+
+  return result;
 #endif
 }
 
@@ -802,7 +849,7 @@ mrb_init_file(mrb_state *mrb)
   mrb_define_class_method_id(mrb, file, MRB_SYM(readlink), mrb_file_s_readlink, MRB_ARGS_REQ(1));
 
   mrb_define_class_method_id(mrb, file, MRB_SYM(dirname),   mrb_file_dirname,    MRB_ARGS_REQ(1));
-  mrb_define_class_method_id(mrb, file, MRB_SYM(basename),  mrb_file_basename,   MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, file, MRB_SYM(basename),  mrb_file_basename,   MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM(realpath),  mrb_file_realpath,   MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM(absolute_path), mrb_file_absolute_path, MRB_ARGS_REQ(1)|MRB_ARGS_OPT(1));
   mrb_define_class_method_id(mrb, file, MRB_SYM_Q(absolute_path), mrb_file_absolute_path_p, MRB_ARGS_REQ(1));

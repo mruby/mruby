@@ -84,6 +84,7 @@ size_t mrb_hash_memsize(mrb_value obj);
 size_t mrb_gc_mark_hash(mrb_state*, struct RHash*);
 void mrb_gc_free_hash(mrb_state*, struct RHash*);
 mrb_value mrb_hash_first_key(mrb_state*, mrb_value);
+uint32_t mrb_obj_hash_code(mrb_state *mrb, mrb_value key);
 
 /* irep */
 struct mrb_insn_data mrb_decode_insn(const mrb_code *pc);
@@ -131,6 +132,11 @@ mrb_value mrb_rational_div(mrb_state *mrb, mrb_value x, mrb_value y);
 mrb_value mrb_as_rational(mrb_state *mrb, mrb_value x);
 void mrb_rational_copy(mrb_state *mrb, mrb_value x, mrb_value y);
 int mrb_rational_mark(mrb_state *mrb, struct RBasic *rat);
+#endif
+#ifdef MRB_USE_SET
+size_t mrb_gc_mark_set(mrb_state *mrb, struct RBasic *set);
+void mrb_gc_free_set(mrb_state *mrb, struct RBasic *set);
+size_t mrb_set_memsize(mrb_value);
 #endif
 
 #ifdef MRUBY_PROC_H

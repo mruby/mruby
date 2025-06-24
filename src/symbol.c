@@ -6,7 +6,6 @@
 
 #include <string.h>
 #include <mruby.h>
-#include <mruby/khash.h>
 #include <mruby/string.h>
 #include <mruby/dump.h>
 #include <mruby/class.h>

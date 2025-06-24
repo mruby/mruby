@@ -729,6 +729,11 @@ gc_mark_children(mrb_state *mrb, mrb_gc *gc, struct RBasic *obj)
     children += mrb_rational_mark(mrb, obj);
     break;
 #endif
+#ifdef MRB_USE_SET
+  case MRB_TT_SET:
+    children += mrb_gc_mark_set(mrb, obj);
+    break;
+#endif
 
   default:
     break;
@@ -840,6 +845,12 @@ obj_free(mrb_state *mrb, struct RBasic *obj, mrb_bool end)
   case MRB_TT_RANGE:
     mrb_gc_free_range(mrb, ((struct RRange*)obj));
     break;
+
+#ifdef MRB_USE_SET
+  case MRB_TT_SET:
+    mrb_gc_free_set(mrb, obj);
+    break;
+#endif
 
   case MRB_TT_CDATA:
     {

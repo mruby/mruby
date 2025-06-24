@@ -21,7 +21,7 @@ typedef uint32_t khint_t;
 typedef khint_t khiter_t;
 
 #ifndef KHASH_DEFAULT_SIZE
-# define KHASH_DEFAULT_SIZE 32
+# define KHASH_DEFAULT_SIZE 8
 #endif
 #define KHASH_MIN_SIZE 8
 
@@ -280,5 +280,25 @@ static inline khint_t __ac_X31_hash_string(const char *s)
 typedef const char *kh_cstr_t;
 
 MRB_END_DECL
+
+/**
+ * Macro for iterating over all elements in a khash.
+ *
+ * Usage:
+ *   KHASH_FOREACH(mrb, kh, k) {
+ *     // k is the khiter_t iterator
+ *     // Access the key with kh_key(kh, k)
+ *     // Access the value with kh_val(kh, k) if applicable
+ *     // Your code here
+ *   }
+ *
+ * @param mrb The mrb_state
+ * @param kh  The khash to iterate over
+ * @param k   The name to use for the khiter_t iterator variable
+ */
+#define KHASH_FOREACH(mrb, kh, k) \
+  if (kh) \
+    for (khiter_t k = kh_begin(kh); k != kh_end(kh); k++) \
+      if (kh_exist(kh, k))
 
 #endif  /* MRUBY_KHASH_H */

@@ -81,3 +81,16 @@ int mrb_rational_mark(mrb_state *mrb, struct RBasic *x)
   return 2;
 }
 #endif
+
+#ifdef MRB_USE_SET
+size_t mrb_gc_mark_set(mrb_state *mrb, struct RBasic *obj)
+{
+  /* stub for mrbc */
+  return 0;
+}
+
+void mrb_gc_free_set(mrb_state *mrb, struct RBasic *obj)
+{
+  /* stub for mrbc */
+}
+#endif

@@ -4,6 +4,41 @@
 ** See Copyright Notice in mruby.h
 */
 
+/*
+ * ## Code Generator
+ *
+ * This file implements the mruby code generator, a crucial component of the mruby
+ * compilation pipeline. Its primary responsibility is to translate the Abstract
+ * Syntax Tree (AST), produced by the parser, into mruby bytecode (Instruction
+ * Sequence - iseq).
+ *
+ * ### Key Operational Aspects:
+ *
+ * - **AST Traversal:** The generator walks through the AST nodes, processing each
+ *   node type and emitting corresponding bytecode instructions.
+ * - **Scope Management:** It manages lexical scopes, keeping track of local
+ *   variables, upvalues (variables from enclosing scopes), and register
+ *   allocation within each scope. This is vital for correct variable access
+ *   and lifetime.
+ * - **Opcode Generation:** For different AST node types (e.g., literals,
+ *   arithmetic operations, control flow statements, method calls, variable
+ *   assignments), specific opcodes are generated. This involves selecting the
+ *   appropriate instruction and its operands.
+ * - **Loop Handling:** It provides mechanisms to correctly generate bytecode for
+ *   various loop constructs (e.g., `while`, `for`, `until`), including managing
+ *   `break`, `next`, and `redo` statements by patching jump addresses.
+ * - **Instruction Sequence (iseq):** The output of this process is an `mrb_irep`
+ *   structure, which contains the generated instruction sequence (iseq), literal
+ *   pools, symbol tables, and other metadata required for execution by the
+ *   mruby virtual machine.
+ * - **Error Handling:** Includes mechanisms for reporting errors encountered
+ *   during code generation, such as syntax errors not caught by the parser or
+ *   semantic errors.
+ *
+ * This code generator is essential for transforming human-readable mruby code
+ * into a format that the mruby VM can execute efficiently.
+ */
+
 #include <mruby.h>
 #include <mruby/compile.h>
 #include <mruby/proc.h>
@@ -20,75 +55,81 @@
 #include <string.h>
 #include <mruby/internal.h>
 
-#define mrbc_malloc(s) mrb_basic_alloc_func(NULL,(s))
-#define mrbc_realloc(p,s) mrb_basic_alloc_func((p),(s))
-#define mrbc_free(p) mrb_basic_alloc_func((p),0)
+/* Wrappers for mruby's memory management functions. */
+#define mrbc_malloc(s) mrb_basic_alloc_func(NULL,(s))  /* Allocates memory. */
+#define mrbc_realloc(p,s) mrb_basic_alloc_func((p),(s)) /* Reallocates memory. */
+#define mrbc_free(p) mrb_basic_alloc_func((p),0)     /* Frees memory. */
 
 #ifndef MRB_CODEGEN_LEVEL_MAX
+/* Maximum recursion depth for the codegen function to prevent stack overflows. */
 #define MRB_CODEGEN_LEVEL_MAX 256
 #endif
 
+/* Maximum number of arguments for some opcodes like OP_SUPER or OP_ARGARY. */
 #define MAXARG_S (1<<16)
 
 typedef mrb_ast_node node;
 typedef struct mrb_parser_state parser_state;
 
+/* Represents the different kinds of loops or blocks encountered during code generation. */
 enum looptype {
-  LOOP_NORMAL,
-  LOOP_BLOCK,
-  LOOP_FOR,
-  LOOP_BEGIN,
-  LOOP_RESCUE,
+  LOOP_NORMAL,  /* A standard loop construct like `while` or `until`. */
+  LOOP_BLOCK,   /* A block or lambda. */
+  LOOP_FOR,     /* A `for` loop. */
+  LOOP_BEGIN,   /* A `begin...end` block (often with `rescue` or `ensure`). */
+  LOOP_RESCUE,  /* The `rescue` part of a `begin...rescue...end` block. */
 };
 
+/* Information about a loop currently being compiled, used for `break`, `next`, `redo`, etc. */
 struct loopinfo {
-  enum looptype type;
-  uint32_t pc0;                 /* `next` destination */
-  uint32_t pc1;                 /* `redo` destination */
-  uint32_t pc2;                 /* `break` destination */
-  int reg;                      /* destination register */
-  struct loopinfo *prev;
+  enum looptype type;           /* Type of the loop, using `enum looptype`. */
+  uint32_t pc0;                 /* Jump destination for `next`, or start of loop for `retry` in `rescue`. */
+  uint32_t pc1;                 /* Jump destination for `redo`. */
+  uint32_t pc2;                 /* Jump destination for `break`. */
+  int reg;                      /* Register to store the loop's return value (e.g., from `break val`), or -1 if no value. */
+  struct loopinfo *prev;        /* Pointer to the previous `loopinfo` in a linked list (for nested loops). */
 };
 
+/* Represents the state of the code generator for a particular lexical scope. */
 typedef struct scope {
-  mrb_state *mrb;
-  mempool *mpool;
+  mrb_state *mrb;               /* Pointer to the mruby state. */
+  mempool *mpool;               /* Pointer to the memory pool for this scope's allocations. */
 
-  struct scope *prev;
+  struct scope *prev;           /* Pointer to the previous (enclosing) scope. */
 
-  node *lv;
+  node *lv;                     /* AST node representing the list of local variables in this scope. */
 
-  uint16_t sp;
-  uint32_t pc;
-  uint32_t lastpc;
-  uint32_t lastlabel;
-  uint16_t ainfo:15;
-  mrb_bool mscope:1;
+  uint16_t sp;                  /* Current stack pointer (register index) within this scope. */
+  uint32_t pc;                  /* Current program counter (instruction index) for the ISEQ being generated. */
+  uint32_t lastpc;              /* Program counter of the previously emitted instruction (used for peephole optimization). */
+  uint32_t lastlabel;           /* Program counter of the last label emitted (inhibits some peephole optimizations). */
+  uint16_t ainfo:15;            /* Argument information bitfield (counts for req, opt, rest, post, key, kdict, block). */
+  mrb_bool mscope:1;            /* Boolean flag: true if this is a method/module/class scope (not a block). */
 
-  struct loopinfo *loop;
-  mrb_sym filename_sym;
-  uint16_t lineno;
+  struct loopinfo *loop;        /* Pointer to the current innermost `loopinfo` structure for this scope. */
+  mrb_sym filename_sym;         /* `mrb_sym` representing the current filename. */
+  uint16_t lineno;              /* Current line number being processed. */
 
-  mrb_code *iseq;
-  uint16_t *lines;
-  uint32_t icapa;
+  mrb_code *iseq;               /* Pointer to the dynamically growing array of `mrb_code` (instructions). */
+  uint16_t *lines;              /* Array to store line numbers corresponding to each instruction (for debugging). */
+  uint32_t icapa;               /* Current capacity of the `iseq` and `lines` arrays. */
 
-  mrb_irep *irep;
-  mrb_irep_pool *pool;
-  mrb_sym *syms;
-  mrb_irep **reps;
-  struct mrb_irep_catch_handler *catch_table;
-  uint32_t pcapa, scapa, rcapa;
+  mrb_irep *irep;               /* Pointer to the `mrb_irep` (instruction sequence representation) being built. */
+  mrb_irep_pool *pool;          /* Pointer to the literal pool for the `irep`. */
+  mrb_sym *syms;                /* Pointer to the symbol list for the `irep`. */
+  mrb_irep **reps;              /* Pointer to the array of child `irep`s (for nested blocks/methods). */
+  struct mrb_irep_catch_handler *catch_table; /* Pointer to the table of catch handlers for this scope. */
+  uint32_t pcapa, scapa, rcapa; /* Current capacities of the `pool`, `syms`, and `reps` arrays respectively. */
 
-  uint16_t nlocals;
-  uint16_t nregs;
-  int ai;
+  uint16_t nlocals;             /* Number of local variables in this scope. */
+  uint16_t nregs;               /* Number of registers used in this scope (maximum value of `sp`). */
+  int ai;                       /* Arena index for mruby's garbage collector. */
 
-  int debug_start_pos;
-  uint16_t filename_index;
-  parser_state* parser;
+  int debug_start_pos;          /* Starting ISEQ position for the current debug file information. */
+  uint16_t filename_index;      /* Index of the current filename in the parser's filename table. */
+  parser_state* parser;         /* Pointer to the `mrb_parser_state`. */
 
-  int rlev;                     /* recursion levels */
+  int rlev;                     /* Recursion level counter for `codegen` calls, to prevent stack overflow. */
 } codegen_scope;
 
 static codegen_scope* scope_new(mrb_state *mrb, codegen_scope *prev, node *lv);
@@ -112,6 +153,16 @@ static void gen_massignment(codegen_scope *s, node *tree, int sp, int val);
 static void codegen(codegen_scope *s, node *tree, int val);
 static void raise_error(codegen_scope *s, const char *msg);
 
+/*
+ * Reports a compilation error encountered during code generation.
+ *
+ * This function formats an error message, typically including the filename
+ * and line number where the error occurred. It then triggers a longjmp
+ * to unwind the compilation process, effectively halting further code generation.
+ *
+ * @param s The current code generation scope.
+ * @param message The error message string.
+ */
 static void
 codegen_error(codegen_scope *s, const char *message)
 {
@@ -154,6 +205,18 @@ codegen_error(codegen_scope *s, const char *message)
   MRB_THROW(s->mrb->jmp);
 }
 
+/*
+ * Allocates memory from the memory pool associated with the current codegen_scope.
+ *
+ * This function is used for allocations that are expected to have the same
+ * lifetime as the current scope. The memory allocated via this function will be
+ * freed automatically when the scope is finished and its memory pool is closed.
+ * It calls `codegen_error` if allocation fails.
+ *
+ * @param s The current code generation scope.
+ * @param len The number of bytes to allocate.
+ * @return A pointer to the allocated memory.
+ */
 static void*
 codegen_palloc(codegen_scope *s, size_t len)
 {
@@ -163,6 +226,17 @@ codegen_palloc(codegen_scope *s, size_t len)
   return p;
 }
 
+/*
+ * Checks if instruction operands `a` or `b` exceed 8 bits (0xff).
+ *
+ * If the parser option `no_ext_ops` is set (disallowing OP_EXT1/2/3),
+ * and either operand is larger than 0xff, this function calls `codegen_error`
+ * to report that an extended opcode would be required.
+ *
+ * @param s The current code generation scope.
+ * @param a The first operand.
+ * @param b The second operand.
+ */
 static void
 check_no_ext_ops(codegen_scope *s, uint16_t a, uint16_t b)
 {
@@ -171,12 +245,35 @@ check_no_ext_ops(codegen_scope *s, uint16_t a, uint16_t b)
   }
 }
 
+/*
+ * Creates a new label by returning the current program counter (pc)
+ * and updating `s->lastlabel` to this value.
+ *
+ * Marking a PC as a label (`s->lastlabel = s->pc`) can inhibit certain
+ * peephole optimizations that might otherwise modify instructions at this label.
+ *
+ * @param s The current code generation scope.
+ * @return The current program counter, which is now marked as a label.
+ */
 static int
 new_label(codegen_scope *s)
 {
   return s->lastlabel = s->pc;
 }
 
+/*
+ * Emits a single byte (`i`) into the instruction sequence (`s->iseq`)
+ * at the specified program counter (`pc`).
+ *
+ * This function handles dynamic resizing of the `iseq` buffer and the
+ * associated `lines` array (if line number tracking is enabled).
+ * It also records the current line number (`s->lineno`) for the emitted
+ * instruction in `s->lines[pc]`.
+ *
+ * @param s The current code generation scope.
+ * @param pc The program counter where the byte should be emitted.
+ * @param i The byte to emit.
+ */
 static void
 emit_B(codegen_scope *s, uint32_t pc, uint8_t i)
 {
@@ -204,6 +301,15 @@ emit_B(codegen_scope *s, uint32_t pc, uint8_t i)
   s->iseq[pc] = i;
 }
 
+/*
+ * Emits a 2-byte short integer (`i`) into the instruction sequence at `pc`.
+ * The short is emitted in big-endian format (most significant byte first).
+ * This is achieved by calling `emit_B` twice.
+ *
+ * @param s The current code generation scope.
+ * @param pc The program counter where the short should be emitted.
+ * @param i The 2-byte short to emit.
+ */
 static void
 emit_S(codegen_scope *s, int pc, uint16_t i)
 {
@@ -214,6 +320,13 @@ emit_S(codegen_scope *s, int pc, uint16_t i)
   emit_B(s, pc+1, lo);
 }
 
+/*
+ * Generates (emits) a single byte (`i`) at the current program counter (`s->pc`)
+ * and then increments `s->pc` by 1.
+ *
+ * @param s The current code generation scope.
+ * @param i The byte to emit.
+ */
 static void
 gen_B(codegen_scope *s, uint8_t i)
 {
@@ -221,6 +334,13 @@ gen_B(codegen_scope *s, uint8_t i)
   s->pc++;
 }
 
+/*
+ * Generates (emits) a 2-byte short integer (`i`) at the current program
+ * counter (`s->pc`) and then increments `s->pc` by 2.
+ *
+ * @param s The current code generation scope.
+ * @param i The 2-byte short to emit.
+ */
 static void
 gen_S(codegen_scope *s, uint16_t i)
 {
@@ -228,6 +348,13 @@ gen_S(codegen_scope *s, uint16_t i)
   s->pc += 2;
 }
 
+/*
+ * Generates an opcode `i` that takes no operands.
+ * Updates `s->lastpc` to the current `s->pc` before emitting.
+ *
+ * @param s The current code generation scope.
+ * @param i The opcode to generate.
+ */
 static void
 genop_0(codegen_scope *s, mrb_code i)
 {
@@ -235,6 +362,16 @@ genop_0(codegen_scope *s, mrb_code i)
   gen_B(s, i);
 }
 
+/*
+ * Generates an opcode `i` with a single 16-bit operand `a`.
+ * If `a` is larger than 0xFF (255), it prepends `OP_EXT1` and emits `a` as a short.
+ * Otherwise, it emits `a` as a single byte.
+ * Updates `s->lastpc`.
+ *
+ * @param s The current code generation scope.
+ * @param i The opcode to generate.
+ * @param a The 16-bit operand.
+ */
 static void
 genop_1(codegen_scope *s, mrb_code i, uint16_t a)
 {
@@ -251,6 +388,17 @@ genop_1(codegen_scope *s, mrb_code i, uint16_t a)
   }
 }
 
+/*
+ * Generates an opcode `i` with two 16-bit operands `a` and `b`.
+ * It handles operand extensions (`OP_EXT1`, `OP_EXT2`, `OP_EXT3`)
+ * based on whether `a` and/or `b` are larger than 0xFF.
+ * Updates `s->lastpc`.
+ *
+ * @param s The current code generation scope.
+ * @param i The opcode to generate.
+ * @param a The first 16-bit operand.
+ * @param b The second 16-bit operand.
+ */
 static void
 genop_2(codegen_scope *s, mrb_code i, uint16_t a, uint16_t b)
 {
@@ -281,6 +429,18 @@ genop_2(codegen_scope *s, mrb_code i, uint16_t a, uint16_t b)
   }
 }
 
+/*
+ * Generates an opcode `i` with three operands `a`, `b`, and `c`.
+ * It uses `genop_2` to emit `i`, `a`, and `b` (handling extensions for `a` and `b`),
+ * and then emits `c` as a single byte using `gen_B`. `c` is assumed to fit in a byte.
+ * Updates `s->lastpc` (via `genop_2`).
+ *
+ * @param s The current code generation scope.
+ * @param i The opcode to generate.
+ * @param a The first 16-bit operand.
+ * @param b The second 16-bit operand.
+ * @param c The third 16-bit operand (emitted as a byte).
+ */
 static void
 genop_3(codegen_scope *s, mrb_code i, uint16_t a, uint16_t b, uint16_t c)
 {
@@ -288,6 +448,17 @@ genop_3(codegen_scope *s, mrb_code i, uint16_t a, uint16_t b, uint16_t c)
   gen_B(s, (uint8_t)c);
 }
 
+/*
+ * Generates an opcode `i` with a 16-bit operand `a` and a 16-bit operand `b`.
+ * Operand `a` is emitted using `genop_1` (which handles `OP_EXT1` if needed).
+ * Operand `b` is emitted as a 2-byte short using `gen_S`.
+ * Updates `s->lastpc` (via `genop_1`).
+ *
+ * @param s The current code generation scope.
+ * @param i The opcode to generate.
+ * @param a The first 16-bit operand.
+ * @param b The second 16-bit operand (emitted as a short).
+ */
 static void
 genop_2S(codegen_scope *s, mrb_code i, uint16_t a, uint16_t b)
 {
@@ -295,6 +466,17 @@ genop_2S(codegen_scope *s, mrb_code i, uint16_t a, uint16_t b)
   gen_S(s, b);
 }
 
+/*
+ * Generates an opcode `i` with a 16-bit operand `a` and a 32-bit operand `b`.
+ * Operand `a` is emitted using `genop_1` (handling `OP_EXT1`).
+ * Operand `b` is emitted as two 2-byte shorts (high word then low word).
+ * Updates `s->lastpc` (via `genop_1`).
+ *
+ * @param s The current code generation scope.
+ * @param i The opcode to generate.
+ * @param a The first 16-bit operand.
+ * @param b The 32-bit operand (emitted as two shorts).
+ */
 static void
 genop_2SS(codegen_scope *s, mrb_code i, uint16_t a, uint32_t b)
 {
@@ -303,6 +485,15 @@ genop_2SS(codegen_scope *s, mrb_code i, uint16_t a, uint32_t b)
   gen_S(s, b&0xffff);
 }
 
+/*
+ * Generates an opcode `i` followed by a 3-byte "wide" operand `a`.
+ * The 3-byte operand is emitted as three separate bytes (a1, a2, a3).
+ * Updates `s->lastpc`.
+ *
+ * @param s The current code generation scope.
+ * @param i The opcode to generate.
+ * @param a The 32-bit operand, of which the lower 24 bits are used.
+ */
 static void
 genop_W(codegen_scope *s, mrb_code i, uint32_t a)
 {
@@ -317,6 +508,7 @@ genop_W(codegen_scope *s, mrb_code i, uint32_t a)
   gen_B(s, a3);
 }
 
+/* Indicates whether a codegen function should produce a value on the stack (VAL) or not (NOVAL). */
 #define NOVAL  0
 #define VAL    1
 
@@ -328,6 +520,19 @@ no_optimize(codegen_scope *s)
   return FALSE;
 }
 
+/*
+ * Decodes a mruby bytecode instruction starting at the given program counter `pc`.
+ *
+ * It reads the opcode and its operands from the bytecode stream and populates
+ * a `mrb_insn_data` structure. This function handles standard opcodes as well
+ * as extended opcodes (OP_EXT1, OP_EXT2, OP_EXT3) to correctly parse operands
+ * of varying sizes. This is primarily used by the peephole optimizer and
+ * instruction analysis utilities.
+ *
+ * @param pc Pointer to the start of the instruction in the bytecode.
+ * @return A `mrb_insn_data` struct containing the decoded instruction,
+ *         its operands (a, b, c), and the original address.
+ */
 struct mrb_insn_data
 mrb_decode_insn(const mrb_code *pc)
 {
@@ -439,6 +644,19 @@ static uint8_t mrb_insn_size3[] = {
 #undef BSS
 #undef OPCODE
 
+/*
+ * Finds the program counter (PC) of the instruction immediately preceding
+ * the instruction at the given `pc`.
+ *
+ * It iterates backward through the already generated instruction sequence (`s->iseq`)
+ * from its beginning up to `pc`, decoding each instruction to determine its size
+ * and thus find the start of the previous instruction.
+ *
+ * @param s The current code generation scope.
+ * @param pc Pointer to an instruction in `s->iseq`.
+ * @return Pointer to the start of the instruction preceding the one at `pc`,
+ *         or NULL if `pc` is at the beginning of `s->iseq`.
+ */
 static const mrb_code*
 mrb_prev_pc(codegen_scope *s, const mrb_code *pc)
 {
@@ -466,10 +684,22 @@ mrb_prev_pc(codegen_scope *s, const mrb_code *pc)
   return prev_pc;
 }
 
+/* Gets the memory address of the current instruction pointed to by the program counter (pc). */
 #define pc_addr(s) &((s)->iseq[(s)->pc])
+/* Converts an instruction memory address to a program counter (pc) offset. */
 #define addr_pc(s, addr) (uint32_t)((addr) - s->iseq)
+/* Resets the program counter (pc) to the address of the previously generated instruction. Used in peephole optimizations. */
 #define rewind_pc(s) s->pc = s->lastpc
 
+/*
+ * Decodes and returns the last instruction that was emitted into the
+ * instruction sequence (`s->iseq`).
+ * It uses `mrb_decode_insn` on the instruction at `s->iseq[s->lastpc]`.
+ * If no instructions have been emitted (`s->pc == 0`), it returns a NOP.
+ *
+ * @param s The current code generation scope.
+ * @return A `mrb_insn_data` struct for the last emitted instruction.
+ */
 static struct mrb_insn_data
 mrb_last_insn(codegen_scope *s)
 {
@@ -480,14 +710,40 @@ mrb_last_insn(codegen_scope *s)
   return mrb_decode_insn(&s->iseq[s->lastpc]);
 }
 
+/*
+ * Determines if peephole optimizations should be disabled for the current instruction.
+ * Peephole optimization is disabled if:
+ * - General optimization is off (`no_optimize(s)` is true).
+ * - The current program counter (`s->pc`) is the target of a label (`s->lastlabel == s->pc`).
+ * - It's the beginning of the bytecode (`s->pc == 0`).
+ * - The current PC is the same as the PC of the last emitted instruction (`s->pc == s->lastpc`),
+ *   which can happen after a `rewind_pc`.
+ *
+ * @param s The current code generation scope.
+ * @return TRUE if peephole optimizations should be skipped, FALSE otherwise.
+ */
 static mrb_bool
 no_peephole(codegen_scope *s)
 {
   return no_optimize(s) || s->lastlabel == s->pc || s->pc == 0 || s->pc == s->lastpc;
 }
 
+/* Sentinel value for jump offsets that are not yet determined and need to be linked later. */
 #define JMPLINK_START UINT32_MAX
 
+/*
+ * Generates the 2-byte signed offset for a jump instruction.
+ *
+ * The `pc` argument is the absolute target program counter for the jump.
+ * The function calculates the relative offset from the instruction *after*
+ * the current jump instruction (i.e., `s->pc + 2` for the jump opcode and its offset)
+ * to the target `pc`. This offset is then emitted as a 16-bit signed integer.
+ * If the offset is too large to fit in 16 bits, it calls `codegen_error`.
+ * If `pc` is `JMPLINK_START`, it emits an offset of 0 (placeholder for later patching).
+ *
+ * @param s The current code generation scope.
+ * @param pc The absolute target program counter for the jump.
+ */
 static void
 gen_jmpdst(codegen_scope *s, uint32_t pc)
 {
@@ -504,6 +760,18 @@ gen_jmpdst(codegen_scope *s, uint32_t pc)
   gen_S(s, (uint16_t)off);
 }
 
+/*
+ * Generates an unconditional jump instruction `i` (e.g., OP_JMP)
+ * that jumps to the absolute target program counter `pc`.
+ *
+ * It first emits the jump opcode `i` using `genop_0`, then emits
+ * the calculated jump offset using `gen_jmpdst`.
+ *
+ * @param s The current code generation scope.
+ * @param i The jump opcode to generate (e.g., OP_JMP).
+ * @param pc The absolute target program counter.
+ * @return The program counter where the jump offset was written. This is used for jump linking.
+ */
 static uint32_t
 genjmp(codegen_scope *s, mrb_code i, uint32_t pc)
 {
@@ -517,6 +785,32 @@ genjmp(codegen_scope *s, mrb_code i, uint32_t pc)
 
 #define genjmp_0(s,i) genjmp(s,i,JMPLINK_START)
 
+/*
+ * Generates a conditional jump instruction `i` (e.g., OP_JMPNOT, OP_JMPIF)
+ * based on the value in register `a`, targeting the absolute program counter `pc`.
+ *
+ * This function includes several peephole optimizations:
+ * - If the last instruction was a MOVE to register `a` from another temporary register,
+ *   it rewinds and uses the source of the MOVE as the condition register.
+ * - If the last instruction loaded a constant (nil, false, true, integer) into register `a`,
+ *   it may optimize the jump:
+ *     - If the condition is known at compile time (e.g., JMPNOT after LOADF), it can
+ *       transform the conditional jump into an unconditional OP_JMP.
+ *     - If the condition is known and makes the jump always/never taken, it can
+ *       remove the jump entirely (returning JMPLINK_START to signify this).
+ * The `val` parameter influences these optimizations: if `val` is false (NOVAL),
+ * it implies the preceding instruction producing `a` might be removable if the jump
+ * itself is optimized away.
+ *
+ * @param s The current code generation scope.
+ * @param i The conditional jump opcode.
+ * @param a The register index holding the condition value.
+ * @param pc The absolute target program counter for the jump.
+ * @param val Indicates if the value in register `a` from a previous instruction is needed
+ *            beyond this conditional jump.
+ * @return The program counter where the jump offset was written, or `JMPLINK_START` if the
+ *         jump was optimized away.
+ */
 static uint32_t
 genjmp2(codegen_scope *s, mrb_code i, uint16_t a, uint32_t pc, int val)
 {
@@ -580,6 +874,29 @@ genjmp2(codegen_scope *s, mrb_code i, uint16_t a, uint32_t pc, int val)
 static mrb_bool get_int_operand(codegen_scope *s, struct mrb_insn_data *data, mrb_int *ns);
 static void gen_int(codegen_scope *s, uint16_t dst, mrb_int i);
 
+/*
+ * Generates an OP_MOVE instruction to copy the value from register `src` to register `dst`.
+ *
+ * This function incorporates several peephole optimizations to avoid redundant moves or
+ * to combine the move with preceding operations:
+ * - If `dst` and `src` are the same, the function does nothing.
+ * - If the previous instruction was also an `OP_MOVE` involving `src` or `dst`,
+ *   it might combine or reorder them to eliminate redundant operations.
+ * - If the previous instruction loaded a literal (nil, self, true, false, integer,
+ *   symbol, string, etc.) into `src`, and `src` is a temporary register,
+ *   this function can rewind the program counter and generate the load operation
+ *   directly into `dst`, effectively eliminating the `OP_MOVE`.
+ * - It can also perform constant folding for `OP_ADDI`/`OP_SUBI` if a sequence of
+ *   `LOADI`, `MOVE`, `ADDI`/`SUBI` can be resolved at compile time.
+ *
+ * The `nopeep` parameter, if true, disables these peephole optimizations, forcing
+ * the generation of a direct `OP_MOVE` instruction.
+ *
+ * @param s The current code generation scope.
+ * @param dst The destination register index.
+ * @param src The source register index.
+ * @param nopeep If non-zero, disables peephole optimizations for this move.
+ */
 static void
 gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
 {
@@ -687,8 +1004,48 @@ gen_move(codegen_scope *s, uint16_t dst, uint16_t src, int nopeep)
   return;
 }
 
+/*
+ * Searches for a local variable `id` in outer lexical scopes (upvalues).
+ *
+ * It first traverses the chain of enclosing `codegen_scope` structures
+ * (linked by `s->prev`). If not found, it then traverses the chain of
+ * `upper` RProc structures stored in the parser state.
+ *
+ * If the variable `id` is found in an outer scope:
+ * - It returns `lv`, the number of lexical levels (scopes) to go up
+ *   to find the variable.
+ * - It sets the `*idx` output parameter to the variable's index within
+ *   that outer scope's local variable table.
+ *
+ * If the variable is not found in any outer scope, it calls `codegen_error`
+ * to report an error (e.g., "No anonymous block parameter", "Can't find local variables").
+ *
+ * @param s The current code generation scope from which the search begins.
+ * @param id The `mrb_sym` (symbol) of the local variable to search for.
+ * @param idx Output parameter: pointer to an integer where the index of the
+ *            variable in its defining scope will be stored.
+ * @return The lexical distance (number of scopes upwards) to the variable's
+ *         defining scope.
+ */
 static int search_upvar(codegen_scope *s, mrb_sym id, int *idx);
 
+/*
+ * Generates an `OP_GETUPVAR` instruction to retrieve an upvalue.
+ *
+ * The upvalue `id` is first located using `search_upvar` to determine its
+ * lexical level (`lv`) and index (`idx`) within that outer scope.
+ * Then, an `OP_GETUPVAR` instruction is generated to load this upvalue
+ * into the destination register `dst`.
+ *
+ * Peephole Optimization:
+ * - If the immediately preceding instruction was an `OP_SETUPVAR` for the
+ *   same upvalue (`id`), lexical level (`lv`), and destination register (`dst`),
+ *   this `OP_GETUPVAR` is skipped as the value is already in the target register.
+ *
+ * @param s The current code generation scope.
+ * @param dst The destination register index where the upvalue will be loaded.
+ * @param id The `mrb_sym` (symbol) of the upvalue to retrieve.
+ */
 static void
 gen_getupvar(codegen_scope *s, uint16_t dst, mrb_sym id)
 {
@@ -705,6 +1062,24 @@ gen_getupvar(codegen_scope *s, uint16_t dst, mrb_sym id)
   genop_3(s, OP_GETUPVAR, dst, idx, lv);
 }
 
+/*
+ * Generates an `OP_SETUPVAR` instruction to set an upvalue.
+ *
+ * The upvalue `id` is first located using `search_upvar` to determine its
+ * lexical level (`lv`) and index (`idx`) within that outer scope.
+ * Then, an `OP_SETUPVAR` instruction is generated to set this upvalue
+ * using the value from register `dst`.
+ *
+ * Peephole Optimization:
+ * - If the immediately preceding instruction was an `OP_MOVE` where register `dst`
+ *   was the destination (`data.a == dst`), this function will rewind the program
+ *   counter and use the source register of that `OP_MOVE` (`data.b`) as the source
+ *   for `OP_SETUPVAR` instead. This effectively uses the original value before the move.
+ *
+ * @param s The current code generation scope.
+ * @param dst The register index holding the value to set the upvalue to.
+ * @param id The `mrb_sym` (symbol) of the upvalue to set.
+ */
 static void
 gen_setupvar(codegen_scope *s, uint16_t dst, mrb_sym id)
 {
@@ -721,6 +1096,24 @@ gen_setupvar(codegen_scope *s, uint16_t dst, mrb_sym id)
   genop_3(s, OP_SETUPVAR, dst, idx, lv);
 }
 
+/*
+ * Generates a return instruction (e.g., `OP_RETURN`, `OP_RETURN_BLK`).
+ *
+ * This function emits the specified return opcode `op` with the source register `src`
+ * containing the value to be returned.
+ *
+ * Peephole Optimization:
+ * - If peephole optimization is enabled and the immediately preceding instruction
+ *   was an `OP_MOVE` into the `src` register (`data.insn == OP_MOVE && src == data.a`),
+ *   this function will rewind the program counter and generate the return instruction
+ *   using the original source register of that `OP_MOVE` (`data.b`). This avoids
+ *   a redundant move before returning.
+ * - It also avoids emitting multiple consecutive `OP_RETURN` instructions.
+ *
+ * @param s The current code generation scope.
+ * @param op The specific return opcode to generate (e.g., `OP_RETURN`, `OP_RETURN_BLK`).
+ * @param src The register index holding the value to be returned.
+ */
 static void
 gen_return(codegen_scope *s, uint8_t op, uint16_t src)
 {
@@ -740,6 +1133,23 @@ gen_return(codegen_scope *s, uint8_t op, uint16_t src)
   }
 }
 
+/*
+ * Attempts to extract a compile-time integer value from a given instruction.
+ *
+ * This function checks if the instruction described by `data` is one of
+ * the integer loading opcodes (e.g., `OP_LOADI__1`, `OP_LOADINEG`, `OP_LOADI_0`
+ * through `OP_LOADI_7`, `OP_LOADI8`, `OP_LOADI16`, `OP_LOADI32`) or `OP_LOADL`
+ * where the literal pool entry is an integer.
+ *
+ * If successful, it stores the extracted integer value into the output
+ * parameter `*n` and returns `TRUE`. Otherwise, it returns `FALSE`.
+ *
+ * @param s The current code generation scope (used to access the literal pool for `OP_LOADL`).
+ * @param data Pointer to an `mrb_insn_data` structure describing the instruction.
+ * @param n Output parameter: pointer to an `mrb_int` where the extracted integer
+ *          value will be stored if successful.
+ * @return `TRUE` if an integer value was successfully extracted, `FALSE` otherwise.
+ */
 static mrb_bool
 get_int_operand(codegen_scope *s, struct mrb_insn_data *data, mrb_int *n)
 {
@@ -792,14 +1202,35 @@ get_int_operand(codegen_scope *s, struct mrb_insn_data *data, mrb_int *n)
 static int new_lit_str2(codegen_scope *s, const char *str1, mrb_int len1, const char *str2, mrb_int len2);
 static int find_pool_str(codegen_scope *s, const char *str1, mrb_int len1, const char *str2, mrb_int len2);
 
+/*
+ * Reallocates or allocates memory for a string literal in the IREP's literal pool.
+ *
+ * This function is used when a string literal needs to be resized, typically
+ * during string concatenation optimizations (`merge_op_string`).
+ *
+ * - If the original pool entry `p` pointed to a shared string (e.g., a string
+ *   from read-only data, `IREP_TT_SSTR`), new memory is allocated for the resized string.
+ * - If `p` was already a dynamically allocated string (`IREP_TT_STR`), its buffer
+ *   is reallocated to the new `len`.
+ *
+ * After allocation/reallocation, the pool entry `p` is updated:
+ * - Its type `tt` is set to `IREP_TT_STR` (or kept as `IREP_TT_STR`).
+ * - The length in `tt` is updated to the new `len`.
+ * - The string is null-terminated.
+ * - `p->u.str` points to the new or reallocated buffer.
+ *
+ * @param s The current code generation scope.
+ * @param p Pointer to the `mrb_irep_pool` entry for the string literal.
+ * @param len The new length of the string (excluding the null terminator).
+ */
 static void
 realloc_pool_str(codegen_scope *s, mrb_irep_pool *p, mrb_int len)
 {
   char *str;
-  if ((p->tt & 3) == IREP_TT_SSTR) {
-    str = (char*)mrbc_malloc(len+1);
+  if ((p->tt & 3) == IREP_TT_SSTR) { /* Check if it's a shared/static string */
+    str = (char*)mrbc_malloc(len+1); /* Allocate new memory if it was shared */
   }
-  else {
+  else { /* It's already a heap-allocated string */
     str = (char*)p->u.str;
     str = (char*)mrbc_realloc(str, len+1);
   }
@@ -808,16 +1239,65 @@ realloc_pool_str(codegen_scope *s, mrb_irep_pool *p, mrb_int len)
   p->u.str = (const char*)str;
 }
 
+/*
+ * Frees the memory associated with a string literal in the IREP's literal pool,
+ * if it's not a shared (static) string.
+ *
+ * This function is typically called when a string literal pool entry is being
+ * effectively removed or replaced due to optimizations like string merging.
+ *
+ * - It checks if the pool entry `p`'s type `tt` indicates it's a dynamically
+ *   allocated string (not `IREP_TT_SSTR`).
+ * - If so, it frees the memory pointed to by `p->u.str`.
+ * - It then sets `p->u.str` to `NULL` and decrements the total count of literals
+ *   in the pool (`s->irep->plen`). Note: This decrement might be problematic if
+ *   pool entries are not compacted, as it could lead to an incorrect `plen`.
+ *
+ * @param s The current code generation scope.
+ * @param p Pointer to the `mrb_irep_pool` entry of the string to be freed.
+ */
 static void
 free_pool_str(codegen_scope *s, mrb_irep_pool *p)
 {
-  if ((p->tt & 3) != IREP_TT_SSTR) {
+  if ((p->tt & 3) != IREP_TT_SSTR) { /* Only free if not a shared/static string */
     mrbc_free((char*)p->u.str);
   }
   p->u.str = NULL;
-  s->irep->plen--;
+  s->irep->plen--; /* Decrements the count of pool entries. */
 }
 
+/*
+ * Performs a peephole optimization for string concatenation.
+ *
+ * This function is called when an `OP_ADD` (string concatenation) instruction
+ * is encountered. It checks if the two operands to `OP_ADD` were themselves
+ * loaded by `OP_STRING` instructions (i.e., string literals from the pool
+ * at indices `b1` and `b2`).
+ *
+ * If this pattern is found, `merge_op_string` attempts to:
+ * 1. Determine if the literal pool entries `b1` and `b2` are used by any other
+ *    `OP_STRING` instructions prior to the instruction at `pc` (the start of the
+ *    first `OP_STRING` in the sequence).
+ * 2. Based on this usage (`used` flags), it decides on a strategy to merge
+ *    the string content of `b1` and `b2`:
+ *    - If neither `b1` nor `b2` is otherwise referenced, or only `b2` is, it reuses
+ *      and resizes pool entry `b1` to hold the concatenated string. If `b2` was
+ *      the last entry in the pool and not shared, `b2` is freed.
+ *    - If only `b1` is referenced, it reuses and resizes pool entry `b2`.
+ *    - If both `b1` and `b2` are referenced by other instructions, it creates a
+ *      new literal pool entry for the concatenated string.
+ * 3. If an existing pool entry already matches the concatenated string, that entry is used.
+ * 4. Finally, it rewinds the program counter to `pc` (the location of the original
+ *    first `OP_STRING`) and generates a single `OP_STRING` instruction to load the
+ *    merged/reused literal into the destination register `dst`.
+ *
+ * @param s The current code generation scope.
+ * @param dst The destination register for the result of the concatenation.
+ * @param b1 The pool index of the first string literal.
+ * @param b2 The pool index of the second string literal.
+ * @param pc The program counter of the instruction that loaded the first string literal (`b1`).
+ *           This is where the new merged `OP_STRING` will be generated.
+ */
 static void
 merge_op_string(codegen_scope *s, uint16_t dst, uint16_t b1, uint16_t b2, const mrb_code *pc)
 {
@@ -883,6 +1363,31 @@ merge_op_string(codegen_scope *s, uint16_t dst, uint16_t b1, uint16_t b2, const 
   genop_2(s, OP_STRING, dst, off);
 }
 
+/*
+ * Generates code for addition (`OP_ADD`) or subtraction (`OP_SUB`)
+ * operations, storing the result in register `dst`.
+ *
+ * This function includes several peephole optimizations:
+ * 1. String Concatenation: If `op` is `OP_ADD` and the two preceding instructions
+ *    were `OP_STRING` (loading string literals), it calls `merge_op_string`
+ *    to attempt compile-time concatenation of these literals.
+ * 2. Immediate Operations: If the last instruction loaded an integer literal (`n`)
+ *    and the instruction before that loaded another integer (`n0`), but `n0` is not
+ *    suitable for further folding (e.g., it's at a label, or the instruction
+ *    before it isn't an integer load), it attempts to convert the operation to
+ *    `OP_ADDI` or `OP_SUBI` if `n` fits within an 8-bit signed integer.
+ * 3. Constant Folding: If both the last two instructions loaded integer literals
+ *    (`n0` and `n`), it performs the addition or subtraction at compile time.
+ *    The program counter is rewound to the location of the first literal load,
+ *    and code is generated to load the folded result directly using `gen_int`.
+ *
+ * If no optimizations are applicable, it generates the standard `OP_ADD` or `OP_SUB`
+ * instruction.
+ *
+ * @param s The current code generation scope.
+ * @param op The operation code, either `OP_ADD` or `OP_SUB`.
+ * @param dst The destination register index for the result.
+ */
 static void
 gen_addsub(codegen_scope *s, uint8_t op, uint16_t dst)
 {
@@ -935,6 +1440,27 @@ gen_addsub(codegen_scope *s, uint8_t op, uint16_t dst)
   }
 }
 
+/*
+ * Generates code for multiplication (`OP_MUL`) or division (`OP_DIV`)
+ * operations, storing the result in register `dst`.
+ *
+ * Peephole Optimization (Constant Folding):
+ * - If peephole optimization is enabled and the two immediately preceding
+ *   instructions loaded integer literals (into registers that are operands
+ *   for this multiplication/division), this function performs the operation
+ *   at compile time.
+ * - The program counter is rewound to the location of the first literal load,
+ *   and code is generated to load the folded result directly using `gen_int`.
+ * - For division, if the divisor is zero or if it's `MRB_INT_MIN / -1` (which
+ *   would overflow), the optimization is skipped.
+ *
+ * If no optimization is applicable, it generates the standard `OP_MUL` or `OP_DIV`
+ * instruction.
+ *
+ * @param s The current code generation scope.
+ * @param op The operation code, either `OP_MUL` or `OP_DIV`.
+ * @param dst The destination register index for the result.
+ */
 static void
 gen_muldiv(codegen_scope *s, uint8_t op, uint16_t dst)
 {
@@ -969,6 +1495,32 @@ gen_muldiv(codegen_scope *s, uint8_t op, uint16_t dst)
 
 mrb_bool mrb_num_shift(mrb_state *mrb, mrb_int val, mrb_int width, mrb_int *num);
 
+/*
+ * Generates code for various binary operations, identified by `sym_op`,
+ * storing the result in register `dst`.
+ *
+ * This function handles specific binary operations and includes peephole
+ * optimizations for constant folding when operands are integer literals.
+ *
+ * Operations Handled & Optimizations:
+ * - `aref` (`[]`): Generates `OP_GETIDX`.
+ * - Bitwise shifts (`<<`, `>>`): If both operands are integer literals,
+ *   performs the shift at compile time using `mrb_num_shift` and loads the result.
+ * - Modulo (`%`): If both operands are integer literals, performs modulo
+ *   at compile time and loads the result. Handles `MRB_INT_MIN % -1`.
+ * - Bitwise AND (`&`), OR (`|`), XOR (`^`): If both operands are integer
+ *   literals, performs the operation at compile time and loads the result.
+ *
+ * If an optimization is applied (e.g., constant folding), the program counter
+ * is rewound, and `gen_int` is used to load the computed result.
+ *
+ * @param s The current code generation scope.
+ * @param op The `mrb_sym` representing the binary operator (e.g., `MRB_OPSYM_LSHIFT`).
+ * @param dst The destination register index for the result.
+ * @return `TRUE` if a specific optimization was applied (like `OP_GETIDX` or constant folding),
+ *         `FALSE` otherwise. A `FALSE` return typically indicates that a generic
+ *         `OP_SEND` instruction should be generated for the operation.
+ */
 static mrb_bool
 gen_binop(codegen_scope *s, mrb_sym op, uint16_t dst)
 {
@@ -1025,6 +1577,32 @@ gen_binop(codegen_scope *s, mrb_sym op, uint16_t dst)
   }
 }
 
+/*
+ * Resolves the target address of a previously generated jump instruction.
+ *
+ * Jump instructions are often generated with placeholder offsets (e.g., 0 or a
+ * link to another jump) when their final target is not yet known. This function
+ * patches such a jump.
+ *
+ * `pos0` is the program counter (address) of the 2-byte field within a jump
+ * instruction that holds its offset (or a link in a jump chain).
+ *
+ * The function calculates the correct relative offset from the instruction
+ * *after* the jump's offset field (`pos0 + 2`) to the current program
+ * counter (`s->pc`), which is the actual target of the jump. This calculated
+ * offset is then written back into the bytecode at `pos0`.
+ *
+ * If the original value at `pos0` was not 0 (i.e., it was part of a jump chain,
+ * pointing to the next jump to patch), this original value (which is an offset
+ * relative to `pos0 + 2`) is returned so that `dispatch_linked` can continue
+ * patching the chain. If the original value was 0, it signifies the end of a chain,
+ * and 0 is returned.
+ *
+ * @param s The current code generation scope.
+ * @param pos0 The address of the 2-byte offset field within a jump instruction.
+ * @return The next position in a jump chain to dispatch (calculated from the
+ *         original offset stored at `pos0`), or 0 if it's the end of a chain.
+ */
 static uint32_t
 dispatch(codegen_scope *s, uint32_t pos0)
 {
@@ -1046,6 +1624,25 @@ dispatch(codegen_scope *s, uint32_t pos0)
   return pos1+newpos;
 }
 
+/*
+ * Patches a chain of linked jump instructions to all point to the current
+ * program counter (`s->pc`).
+ *
+ * Jump instructions whose targets are not yet known can be linked together.
+ * Each jump's offset field initially stores the relative offset to the next
+ * jump in the chain (or 0 if it's the last one). `pos` is the address of the
+ * first jump's offset field in such a chain.
+ *
+ * This function iterates through the chain:
+ * - It calls `dispatch(s, pos)` to patch the jump at `pos` to target the current `s->pc`.
+ * - `dispatch` returns the address of the next jump in the chain (or 0 if the end).
+ * - The process repeats until the end of the chain is reached.
+ *
+ * If `pos` is `JMPLINK_START`, it means there's no chain to dispatch, so it returns early.
+ *
+ * @param s The current code generation scope.
+ * @param pos The address of the offset field of the first jump instruction in a linked chain.
+ */
 static void
 dispatch_linked(codegen_scope *s, uint32_t pos)
 {
@@ -1056,6 +1653,7 @@ dispatch_linked(codegen_scope *s, uint32_t pos)
   }
 }
 
+/* Updates the nregs (number of registers used) if the current stack pointer (sp) exceeds it. */
 #define nregs_update do {if (s->sp > s->nregs) s->nregs = s->sp;} while (0)
 static void
 push_n_(codegen_scope *s, int n)
@@ -1076,12 +1674,29 @@ pop_n_(codegen_scope *s, int n)
   s->sp-=n;
 }
 
+/* Increments the stack pointer (sp) by 1 and updates nregs. */
 #define push() push_n_(s,1)
+/* Increments the stack pointer (sp) by n and updates nregs. */
 #define push_n(n) push_n_(s,n)
+/* Decrements the stack pointer (sp) by 1. */
 #define pop() pop_n_(s,1)
+/* Decrements the stack pointer (sp) by n. */
 #define pop_n(n) pop_n_(s,n)
+/* Returns the current stack pointer (sp) value. */
 #define cursp() (s->sp)
 
+/*
+ * Extends the literal pool (`s->pool`) of the current IREP (`s->irep`) if necessary.
+ *
+ * If the number of literals currently in the pool (`s->irep->plen`) has reached
+ * the pool's capacity (`s->pcapa`), this function doubles the capacity by
+ * reallocating the `s->pool` array.
+ * After ensuring there's space, it increments `s->irep->plen` and returns a pointer
+ * to the newly available slot in the literal pool.
+ *
+ * @param s The current code generation scope.
+ * @return A pointer to the next available (or newly allocated) `mrb_irep_pool` entry.
+ */
 static mrb_irep_pool*
 lit_pool_extend(codegen_scope *s)
 {
@@ -1093,6 +1708,25 @@ lit_pool_extend(codegen_scope *s)
   return &s->pool[s->irep->plen++];
 }
 
+/*
+ * Adds a big integer literal (BigInt) to the IREP's literal pool.
+ * The BigInt is provided as a string `p` in the given `base`.
+ *
+ * - It first searches the existing literal pool to see if an identical BigInt
+ *   (same string representation and base) already exists. If so, its index is returned.
+ * - If not found, a new entry is created in the pool:
+ *   - The pool is extended if necessary using `lit_pool_extend`.
+ *   - The new pool entry's type `tt` is set to `IREP_TT_BIGINT`.
+ *   - Memory is allocated to store the BigInt's string representation, its length (1 byte),
+ *     and its base (1 byte). The string `p` is copied into this buffer.
+ *   - `pv->u.str` points to this allocated buffer.
+ * - If the length of the string `p` exceeds 255, a "integer too big" error is raised.
+ *
+ * @param s The current code generation scope.
+ * @param p A string representing the big integer.
+ * @param base The base of the string representation (e.g., 10 for decimal).
+ * @return The index of the BigInt literal in the pool.
+ */
 static int
 new_litbint(codegen_scope *s, const char *p, int base)
 {
@@ -1127,6 +1761,23 @@ new_litbint(codegen_scope *s, const char *p, int base)
   return i;
 }
 
+/*
+ * Searches the IREP's literal pool for an existing string that is identical
+ * to the concatenation of `str1` (of length `len1`) and `str2` (of length `len2`).
+ *
+ * It iterates through the existing literal pool entries:
+ * - Skips entries that are not strings or are marked with `IREP_TT_NFLAG`.
+ * - Compares the total length (`len1 + len2`) with the length of the pool string.
+ * - If lengths match, it performs a `memcmp` to check if the content is identical
+ *   to the concatenation of `str1` and `str2`.
+ *
+ * @param s The current code generation scope.
+ * @param str1 Pointer to the first part of the string to find.
+ * @param len1 Length of `str1`.
+ * @param str2 Pointer to the second part of the string to find (can be NULL if `len2` is 0).
+ * @param len2 Length of `str2`.
+ * @return The index of the matching string literal in the pool if found, otherwise -1.
+ */
 static int
 find_pool_str(codegen_scope *s, const char *str1, mrb_int len1, const char *str2, mrb_int len2)
 {
@@ -1146,6 +1797,32 @@ find_pool_str(codegen_scope *s, const char *str1, mrb_int len1, const char *str2
   return -1;
 }
 
+/*
+ * Adds a string literal, potentially formed by concatenating `str1` and `str2`,
+ * to the IREP's literal pool.
+ *
+ * - It first calls `find_pool_str` to check if an identical concatenated string
+ *   already exists in the pool. If so, its index is returned.
+ * - If not found:
+ *   - A new slot in the literal pool is obtained using `lit_pool_extend`.
+ *   - If `str1` points to read-only data (`mrb_ro_data_p(str1)`) and `str2` is NULL
+ *     (meaning `str1` is the complete string and it's from a static source),
+ *     the pool entry is marked as `IREP_TT_SSTR` (shared string) and `pool->u.str`
+ *     points directly to `str1`.
+ *   - Otherwise (if the string needs to be dynamically created or is not from
+ *     read-only data), memory is allocated for the combined length of `str1` and
+ *     `str2` plus a null terminator. `str1` and `str2` (if present) are copied
+ *     into this new buffer. The pool entry is marked as `IREP_TT_STR`, and
+ *     `pool->u.str` points to this newly allocated buffer.
+ * - The index of the new or found literal is returned.
+ *
+ * @param s The current code generation scope.
+ * @param str1 Pointer to the first part of the string.
+ * @param len1 Length of `str1`.
+ * @param str2 Pointer to the second part of the string (can be NULL if `len2` is 0).
+ * @param len2 Length of `str2`.
+ * @return The index of the string literal in the pool.
+ */
 static int
 new_lit_str2(codegen_scope *s, const char *str1, mrb_int len1, const char *str2, mrb_int len2)
 {
@@ -1174,18 +1851,50 @@ new_lit_str2(codegen_scope *s, const char *str1, mrb_int len1, const char *str2,
   return i;
 }
 
+/*
+ * Adds a string literal (from `str` with length `len`) to the IREP's literal pool.
+ * This is a wrapper around `new_lit_str2`, passing NULL for `str2` and 0 for `len2`.
+ *
+ * @param s The current code generation scope.
+ * @param str Pointer to the string.
+ * @param len Length of the string.
+ * @return The index of the string literal in the pool.
+ */
 static int
 new_lit_str(codegen_scope *s, const char *str, mrb_int len)
 {
   return new_lit_str2(s, str, len, NULL, 0);
 }
 
+/*
+ * Adds a C-string literal (null-terminated string `str`) to the IREP's literal pool.
+ * This is a wrapper around `new_lit_str`, calculating the length of `str` using `strlen`.
+ *
+ * @param s The current code generation scope.
+ * @param str Pointer to the null-terminated C-string.
+ * @return The index of the string literal in the pool.
+ */
 static int
 new_lit_cstr(codegen_scope *s, const char *str)
 {
   return new_lit_str(s, str, (mrb_int)strlen(str));
 }
 
+/*
+ * Adds an integer literal `num` to the IREP's literal pool.
+ *
+ * - It first searches the existing literal pool to see if an identical integer
+ *   value already exists. If so, its index is returned.
+ * - If not found, a new entry is created:
+ *   - The pool is extended if necessary using `lit_pool_extend`.
+ *   - The new pool entry's type `tt` is set to `IREP_TT_INT32` or `IREP_TT_INT64`
+ *     depending on whether `MRB_INT64` is defined.
+ *   - The integer `num` is stored in `pool->u.i32` or `pool->u.i64`.
+ *
+ * @param s The current code generation scope.
+ * @param num The `mrb_int` value to add to the pool.
+ * @return The index of the integer literal in the pool.
+ */
 static int
 new_lit_int(codegen_scope *s, mrb_int num)
 {
@@ -1219,6 +1928,22 @@ new_lit_int(codegen_scope *s, mrb_int num)
 }
 
 #ifndef MRB_NO_FLOAT
+/*
+ * Adds a float literal `num` to the IREP's literal pool.
+ * This function is only compiled if `MRB_NO_FLOAT` is not defined.
+ *
+ * - It first searches the existing literal pool to see if an identical float
+ *   value (considering both value and sign bit) already exists. If so, its
+ *   index is returned.
+ * - If not found, a new entry is created:
+ *   - The pool is extended if necessary using `lit_pool_extend`.
+ *   - The new pool entry's type `tt` is set to `IREP_TT_FLOAT`.
+ *   - The float `num` is stored in `pool->u.f`.
+ *
+ * @param s The current code generation scope.
+ * @param num The `mrb_float` value to add to the pool.
+ * @return The index of the float literal in the pool.
+ */
 static int
 new_lit_float(codegen_scope *s, mrb_float num)
 {
@@ -1242,6 +1967,23 @@ new_lit_float(codegen_scope *s, mrb_float num)
 }
 #endif
 
+/*
+ * Adds a symbol `sym` to the IREP's symbol list (`s->syms`).
+ *
+ * - It first iterates through the existing symbols in `s->syms` (up to `s->irep->slen`)
+ *   to check if the symbol `sym` already exists. If found, its index is returned.
+ * - If the symbol is not found:
+ *   - It checks if the current symbol list capacity (`s->scapa`) is sufficient.
+ *     If not, `s->scapa` is doubled, and `s->syms` is reallocated.
+ *     If the new capacity would exceed 0xFFFF, a "too many symbols" error is raised.
+ *   - The symbol `sym` is added to `s->syms` at the current end of the list (`s->irep->slen`).
+ *   - `s->irep->slen` is incremented.
+ * - The index of the (newly added or existing) symbol is returned.
+ *
+ * @param s The current code generation scope.
+ * @param sym The `mrb_sym` to add to the symbol list.
+ * @return The index of the symbol in the IREP's symbol list.
+ */
 static int
 new_sym(codegen_scope *s, mrb_sym sym)
 {
@@ -1264,6 +2006,30 @@ new_sym(codegen_scope *s, mrb_sym sym)
   return s->irep->slen++;
 }
 
+/*
+ * Generates an instruction to set a variable, where the variable is identified by a symbol.
+ * This is a generic helper for opcodes like `OP_SETGV`, `OP_SETIV`, `OP_SETCV`, `OP_SETCONST`.
+ *
+ * - It first ensures the symbol `sym` is in the IREP's symbol list by calling `new_sym`,
+ *   obtaining its index `idx`.
+ * - Peephole Optimization: If `val` is `NOVAL` (false) and peephole optimization is enabled,
+ *   it checks if the immediately preceding instruction was an `OP_MOVE` into the `dst`
+ *   register. If so, it means the value intended for the variable assignment was moved
+ *   into `dst`. In this case, it rewinds the program counter and uses the original source
+ *   register of that `OP_MOVE` as the source for the set operation, effectively using
+ *   the value before it was moved to `dst`.
+ * - Finally, it generates the specified opcode `op` with operands `dst` (the source
+ *   register for the value, possibly modified by peephole optimization) and `idx`
+ *   (the symbol index) using `genop_2`.
+ *
+ * @param s The current code generation scope.
+ * @param op The specific set variable opcode (e.g., `OP_SETGV`, `OP_SETIV`).
+ * @param dst The register index holding the value to be assigned to the variable.
+ * @param sym The `mrb_sym` (symbol) identifying the variable.
+ * @param val A flag indicating context (often whether the value in `dst` is from an
+ *            expression that should be preserved if the set operation is part of a larger one).
+ *            If `NOVAL`, it enables the peephole optimization.
+ */
 static void
 gen_setxv(codegen_scope *s, uint8_t op, uint16_t dst, mrb_sym sym, int val)
 {
@@ -1278,6 +2044,29 @@ gen_setxv(codegen_scope *s, uint8_t op, uint16_t dst, mrb_sym sym, int val)
   genop_2(s, op, dst, idx);
 }
 
+/*
+ * Generates the most compact instruction(s) to load an integer literal `i`
+ * into the destination register `dst`.
+ *
+ * It employs a series of checks to use specialized, shorter opcodes for common integer values:
+ * - `OP_LOADI__1` for -1.
+ * - `OP_LOADINEG` for negative integers between -255 and -2 (operand is positive magnitude).
+ * - `OP_LOADI16` for negative integers fitting in a signed 16-bit integer (INT16_MIN to -256).
+ * - `OP_LOADI32` for negative integers fitting in a signed 32-bit integer (INT32_MIN to not fitting in 16-bit).
+ * - `OP_LOADI_0` through `OP_LOADI_7` for integers 0 through 7.
+ * - `OP_LOADI8` for positive integers between 8 and 255.
+ * - `OP_LOADI16` for positive integers fitting in a signed 16-bit integer (256 to INT16_MAX).
+ * - `OP_LOADI32` for positive integers fitting in a signed 32-bit integer (not fitting in 16-bit to INT32_MAX).
+ *
+ * If the integer `i` does not fit any of these specialized opcodes (i.e., it's too large
+ * or too small for `OP_LOADI32`), it falls back to `OP_LOADL`. This involves adding
+ * the integer to the IREP's literal pool using `new_lit_int` and then generating
+ * `OP_LOADL` with the resulting pool index.
+ *
+ * @param s The current code generation scope.
+ * @param dst The destination register index where the integer will be loaded.
+ * @param i The `mrb_int` value to load.
+ */
 static void
 gen_int(codegen_scope *s, uint16_t dst, mrb_int i)
 {
@@ -1298,6 +2087,36 @@ gen_int(codegen_scope *s, uint16_t dst, mrb_int i)
   }
 }
 
+/*
+ * Generates code for a unary operation specified by `sym`, operating on the
+ * value in register `dst`, and storing the result back into `dst`.
+ *
+ * Supported unary operations:
+ * - Unary plus (`+`): This is a no-op in terms of value change, but the function
+ *   still processes it.
+ * - Unary minus (`-`): Negates the integer value.
+ * - Bitwise NOT (`~`): Performs a bitwise complement on the integer value.
+ *
+ * Peephole Optimization (Constant Folding):
+ * - If peephole optimization is enabled and the immediately preceding instruction
+ *   loaded an integer literal into register `dst` (which is also the operand
+ *   register for this unary operation), this function performs the unary operation
+ *   at compile time.
+ * - The program counter is rewound to the location of the literal load, and code
+ *   is generated to load the folded result directly using `gen_int`.
+ * - For unary minus, if the original integer is `MRB_INT_MIN`, constant folding
+ *   is skipped to avoid overflow.
+ *
+ * If the operation is not one of the recognized unary ops or if constant folding
+ * is not applicable, the function returns `FALSE`.
+ *
+ * @param s The current code generation scope.
+ * @param sym The `mrb_sym` representing the unary operator (e.g., `MRB_OPSYM_PLUS`, `MRB_OPSYM_MINUS`).
+ * @param dst The register index which holds the operand and will store the result.
+ * @return `TRUE` if a constant folding optimization was successfully applied,
+ *         `FALSE` otherwise (e.g., if the operation is not supported for folding,
+ *         or if the preceding instruction was not a suitable integer load).
+ */
 static mrb_bool
 gen_uniop(codegen_scope *s, mrb_sym sym, uint16_t dst)
 {
@@ -1324,6 +2143,13 @@ gen_uniop(codegen_scope *s, mrb_sym sym, uint16_t dst)
   return TRUE;
 }
 
+/*
+ * Calculates and returns the number of elements in a linked list of AST nodes.
+ * The list is traversed via the `cdr` field of each `node`.
+ *
+ * @param tree Pointer to the head of the AST node list.
+ * @return The number of nodes in the list.
+ */
 static int
 node_len(node *tree)
 {
@@ -1336,12 +2162,26 @@ node_len(node *tree)
   return n;
 }
 
+/* Casts a void* (typically from an AST node part) to an int. */
 #define nint(x) ((int)(intptr_t)(x))
+/* Casts a void* (typically from an AST node part) to a char. */
 #define nchar(x) ((char)(intptr_t)(x))
+/* Casts a void* (typically from an AST node part) to an mrb_sym. */
 #define nsym(x) ((mrb_sym)(intptr_t)(x))
 
+/* Extracts the symbol (name) of a local variable from its AST node representation. */
 #define lv_name(lv) nsym((lv)->car)
 
+/*
+ * Searches for a local variable `id` within the current scope's local variable list (`s->lv`).
+ * The local variable list `s->lv` is a linked list of AST nodes, where each node's
+ * `car` holds the symbol of the local variable.
+ *
+ * @param s The current code generation scope.
+ * @param id The `mrb_sym` (symbol) of the local variable to search for.
+ * @return The 1-based index of the local variable in the current scope if found;
+ *         otherwise, returns 0.
+ */
 static int
 lv_idx(codegen_scope *s, mrb_sym id)
 {
@@ -1408,6 +2248,37 @@ search_upvar(codegen_scope *s, mrb_sym id, int *idx)
   return -1; /* not reached */
 }
 
+/*
+ * Generates the bytecode for a `for` loop.
+ *
+ * A `for` loop in mruby, like `for x in collection`, is typically syntactic sugar for
+ * `collection.each { |x| ... }`. This function implements that transformation.
+ *
+ * The process involves:
+ * 1. Generating code for the `collection` (the receiver of the `each` call).
+ * 2. Creating a new scope for the block that will be passed to `each`.
+ * 3. Inside this new block scope:
+ *    a. Emitting `OP_ENTER` to set up the block's argument handling.
+ *       The argument specification `0x40000` likely indicates a block that
+ *       takes one mandatory argument.
+ *    b. Generating code to assign the iterated item (passed as a block argument)
+ *       to the loop variable(s) specified in `tree->car`. This can be a simple
+ *       assignment or a multiple assignment (destructuring).
+ *    c. Setting up a `LOOP_FOR` context for handling `break`/`next`/`redo` within the loop.
+ *    d. Generating code for the actual body of the `for` loop (`tree->cdr->cdr->car`).
+ *    e. Emitting `OP_RETURN` for the block's implicit return.
+ * 4. Finalizing the block scope and obtaining its `mrb_irep`.
+ * 5. Back in the original scope, generating `OP_BLOCK` to create a closure from the
+ *    block's `mrb_irep`.
+ * 6. Generating `OP_SENDB` to call the `each` method (by symbol) on the collection,
+ *    passing the newly created block.
+ *
+ * @param s The current code generation scope.
+ * @param tree The AST node representing the `for` loop.
+ *             `tree->car` contains the loop variable(s).
+ *             `tree->cdr->car` is the collection being iterated over.
+ *             `tree->cdr->cdr->car` is the body of the loop.
+ */
 static void
 for_body(codegen_scope *s, node *tree)
 {
@@ -1451,24 +2322,43 @@ for_body(codegen_scope *s, node *tree)
   genop_3(s, OP_SENDB, cursp(), idx, 0);
 }
 
+/*
+ * Generates the bytecode for the body of a lambda or a block.
+ * This function is responsible for creating a new scope, handling arguments
+ * (including optional, rest, keyword, and block arguments), generating code
+ * for the body's expressions, and finalizing the resulting `mrb_irep`.
+ *
+ * @param s The parent code generation scope.
+ * @param tree The AST node representing the lambda or block.
+ *             `tree->car` contains the argument list AST.
+ *             `tree->cdr->car` is the body of the lambda/block.
+ * @param blk A flag indicating if this is a block (`TRUE`) or a lambda (`FALSE`).
+ *            This affects `s->mscope` and loop setup.
+ * @return The index of the newly created `mrb_irep` in the parent scope's `reps` array.
+ */
 static int
 lambda_body(codegen_scope *s, node *tree, int blk)
 {
   codegen_scope *parent = s;
+  /* Create a new scope for the lambda/block body. */
   s = scope_new(s->mrb, s, tree->car);
 
+  /* `mscope` is false for blocks, true for lambdas/methods. */
   s->mscope = !blk;
 
+  /* If it's a block, push a LOOP_BLOCK structure for break/next/return handling. */
   if (blk) {
     struct loopinfo *lp = loop_push(s, LOOP_BLOCK);
-    lp->pc0 = new_label(s);
+    lp->pc0 = new_label(s); /* Mark entry point for potential retry/redo. */
   }
   tree = tree->cdr;
-  if (tree->car == NULL) {
-    genop_W(s, OP_ENTER, 0);
+
+  /* Argument processing */
+  if (tree->car == NULL) { /* No arguments */
+    genop_W(s, OP_ENTER, 0); /* Generate OP_ENTER with no argument specification. */
     s->ainfo = 0;
   }
-  else {
+  else { /* Has arguments */
     mrb_aspec a;
     int ma, oa, ra, pa, ka, kd, ba, i;
     uint32_t pos;
@@ -1506,49 +2396,50 @@ lambda_body(codegen_scope *s, node *tree, int blk)
       | MRB_ARGS_KEY(ka, kd)
       | (ba ? MRB_ARGS_BLOCK() : 0);
     genop_W(s, OP_ENTER, a);
-    /* (12bits = 5:1:5:1) */
+    /* (12bits = 5:1:5:1) - Store argument counts for block argument passing (OP_BLKPUSH) */
     s->ainfo = (((ma+oa) & 0x3f) << 7)
       | ((ra & 0x1) << 6)
       | ((pa & 0x1f) << 1)
       | (ka || kd);
-    /* generate jump table for optional arguments initializer */
-    pos = new_label(s);
+
+    /* Optional argument default value initialization */
+    pos = new_label(s); /* Start of the optional argument jump table. */
     for (i=0; i<oa; i++) {
       new_label(s);
-      genjmp_0(s, OP_JMP);
+      genjmp_0(s, OP_JMP); /* Placeholder jump for each optional arg. */
     }
     if (oa > 0) {
-      genjmp_0(s, OP_JMP);
+      genjmp_0(s, OP_JMP); /* Jump to skip all default assignments if all optional args are provided. */
     }
-    opt = tree->car->cdr->car;
+    opt = tree->car->cdr->car; /* AST node for optional arguments. */
     i = 0;
-    while (opt) {
+    while (opt) { /* Iterate through optional arguments. */
       int idx;
-      mrb_sym id = nsym(opt->car->car);
+      mrb_sym id = nsym(opt->car->car); /* Symbol of the optional argument. */
 
-      dispatch(s, pos+i*3+1);
-      codegen(s, opt->car->cdr, VAL);
+      dispatch(s, pos+i*3+1); /* Patch the jump to this argument's default value code. */
+      codegen(s, opt->car->cdr, VAL); /* Generate code for the default value expression. */
       pop();
-      idx = lv_idx(s, id);
+      idx = lv_idx(s, id); /* Get local variable index. */
       if (idx > 0) {
-        gen_move(s, idx, cursp(), 0);
+        gen_move(s, idx, cursp(), 0); /* Move default value to the local variable. */
       }
-      else {
+      else { /* Should not happen for optional args, but handle as upvar if it does. */
         gen_getupvar(s, cursp(), id);
       }
       i++;
       opt = opt->cdr;
     }
     if (oa > 0) {
-      dispatch(s, pos+i*3+1);
+      dispatch(s, pos+i*3+1); /* Patch the final jump to after all default assignments. */
     }
 
-    /* keyword arguments */
-    if (tail) {
-      node *kwds = tail->cdr->car;
-      int kwrest = 0;
+    /* Keyword argument processing */
+    if (tail) { /* `tail` contains keyword arguments and block argument */
+      node *kwds = tail->cdr->car; /* AST node for keyword arguments. */
+      int kwrest = 0; /* Flag for keyword rest argument (e.g., **kwargs) */
 
-      if (tail->cdr->cdr->car) {
+      if (tail->cdr->cdr->car) { /* Check if a keyword rest argument exists. */
         kwrest = 1;
       }
       mrb_assert(nint(tail->car) == NODE_ARGS_TAIL);
@@ -1585,38 +2476,37 @@ lambda_body(codegen_scope *s, node *tree, int blk)
 
         kwds = kwds->cdr;
       }
-      if (tail->cdr->car && !kwrest) {
-        genop_0(s, OP_KEYEND);
+      if (tail->cdr->car && !kwrest) { /* If there are keyword args but no keyword rest. */
+        genop_0(s, OP_KEYEND); /* Signal end of keyword arguments. */
       }
-      if (ba) {
-        mrb_sym bparam = nsym(tail->cdr->cdr->cdr->car);
-        pos = ma+oa+ra+pa+(ka||kd);
-        if (bparam) {
+      /* Block argument processing */
+      if (ba) { /* If a block argument (e.g., &blk) is present. */
+        mrb_sym bparam = nsym(tail->cdr->cdr->cdr->car); /* Symbol of the block parameter. */
+        pos = ma+oa+ra+pa+(ka||kd); /* Calculate register offset for the block parameter. */
+        if (bparam) { /* If it's a named block parameter. */
           int idx = lv_idx(s, bparam);
-          genop_2(s, OP_MOVE, idx, pos+1);
+          genop_2(s, OP_MOVE, idx, pos+1); /* Move the block from its argument slot to the local variable. */
         }
       }
     }
 
-    /* argument destructuring */
-    if (margs) {
+    /* Argument destructuring for mandatory and post-mandatory arguments */
+    if (margs) { /* Mandatory arguments */
       node *n = margs;
-
-      pos = 1;
+      pos = 1; /* Start from register 1 (after self). */
       while (n) {
-        if (nint(n->car->car) == NODE_MASGN) {
+        if (nint(n->car->car) == NODE_MASGN) { /* If the argument is a mass assignment (e.g., |(a,b)| ). */
           gen_massignment(s, n->car->cdr->car, pos, NOVAL);
         }
         pos++;
         n = n->cdr;
       }
     }
-    if (pargs) {
+    if (pargs) { /* Post-mandatory arguments */
       node *n = pargs;
-
-      pos = ma+oa+ra+1;
+      pos = ma+oa+ra+1; /* Calculate starting register for post-mandatory args. */
       while (n) {
-        if (nint(n->car->car) == NODE_MASGN) {
+        if (nint(n->car->car) == NODE_MASGN) { /* If argument is a mass assignment. */
           gen_massignment(s, n->car->cdr->car, pos, NOVAL);
         }
         pos++;
@@ -1625,33 +2515,63 @@ lambda_body(codegen_scope *s, node *tree, int blk)
     }
   }
 
+  /* Generate code for the actual body of the lambda/block. */
   codegen(s, tree->cdr->car, VAL);
-  pop();
-  if (s->pc > 0) {
+  pop(); /* Pop the result of the body. */
+
+  /* Implicit return of the last evaluated expression. */
+  if (s->pc > 0) { /* Ensure there's some code before adding return. */
     gen_return(s, OP_RETURN, cursp());
   }
+
   if (blk) {
-    loop_pop(s, NOVAL);
+    loop_pop(s, NOVAL); /* Pop the LOOP_BLOCK structure. */
   }
-  scope_finish(s);
-  return parent->irep->rlen - 1;
+  scope_finish(s); /* Finalize the IREP for this lambda/block. */
+  return parent->irep->rlen - 1; /* Return the index of this IREP in the parent's REP list. */
 }
 
+/*
+ * Generates code for a new lexical scope, typically for class/module definitions
+ * or the top-level script.
+ *
+ * This function handles the creation of a new `codegen_scope`, recursively
+ * generates code for the body of that scope, and then finalizes the scope
+ * to produce an `mrb_irep`.
+ *
+ * @param s The parent code generation scope.
+ * @param tree The AST node representing the scope.
+ *             `tree->car` contains the list of local variables for the new scope.
+ *             `tree->cdr` is the body (sequence of expressions) of the scope.
+ * @param val Unused in this specific function's direct logic for return value,
+ *            but passed to `codegen` for the body.
+ * @return The index of the newly created `mrb_irep` in the parent scope's `reps` array.
+ *         Returns 0 if `s->irep` is NULL (should not happen in normal operation).
+ */
 static int
 scope_body(codegen_scope *s, node *tree, int val)
 {
+  /* Create a new scope, inheriting from `s`, with local variables from `tree->car`. */
   codegen_scope *scope = scope_new(s->mrb, s, tree->car);
 
+  /* Generate code for the body of the scope. */
   codegen(scope, tree->cdr, VAL);
+  /* Ensure the scope returns the value of its last expression. */
   gen_return(scope, OP_RETURN, scope->sp-1);
-  if (!s->iseq) {
+
+  /* If this is the outermost scope (e.g., top-level script), add OP_STOP. */
+  if (!s->iseq) { /* s->iseq would be NULL for the initial dummy scope. */
     genop_0(scope, OP_STOP);
   }
+
+  /* Finalize the IREP for this scope. */
   scope_finish(scope);
+
   if (!s->irep) {
-    /* should not happen */
+    /* This case should ideally not be reached in normal compilation. */
     return 0;
   }
+  /* Return the index of the newly created IREP in the parent's list of REPs. */
   return s->irep->rlen - 1;
 }
 
@@ -1686,8 +2606,11 @@ attrsym(codegen_scope *s, mrb_sym a)
   return mrb_intern(s->mrb, name2, len+1);
 }
 
+/* Maximum number of arguments for a call that can be encoded directly in some opcodes (e.g. OP_SEND). */
 #define CALL_MAXARGS 15
+/* Maximum number of elements in a literal array/hash handled by simpler opcodes before needing OP_ARYPUSH/OP_HASHADD. */
 #define GEN_LIT_ARY_MAX 64
+/* Stack pointer threshold during value sequence generation; if cursp() exceeds this, intermediate arrays might be formed. */
 #define GEN_VAL_STACK_MAX 99
 
 static int
