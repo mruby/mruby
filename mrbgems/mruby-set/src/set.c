@@ -49,14 +49,53 @@ static const struct mrb_data_type set_data_type = {
 static void
 set_set_khash(mrb_state *mrb, mrb_value self, khash_t(set) *kh)
 {
-  mrb_data_init(self, kh, &set_data_type);
+  /* When MRB_TT_SET is used, RData's type field is not strictly necessary */
+  /* for type checking if mrb_type() is MRB_TT_SET. However, it can still hold */
+  /* the dfree function if we choose to use it via a generic RData path. */
+  /* For now, keeping it for set_free via set_data_type if needed. */
+  ((struct RData*)mrb_obj_ptr(self))->type = &set_data_type;
+  ((struct RData*)mrb_obj_ptr(self))->data = kh;
 }
 
 static khash_t(set) *
 set_get_khash(mrb_state *mrb, mrb_value self)
 {
-  return (khash_t(set)*)mrb_data_get_ptr(mrb, self, &set_data_type);
+  mrb_assert(mrb_type(self) == MRB_TT_SET);
+  return (khash_t(set)*)((struct RData*)mrb_obj_ptr(self))->data;
 }
+
+#ifdef MRB_USE_SET
+/* Mark function for Set instances */
+size_t
+mrb_gc_mark_set(mrb_state *mrb, struct RBasic *obj)
+{
+  struct RData *d = (struct RData*)obj;
+  if (!d->data) return 0;
+
+  khash_t(set) *kh = (khash_t(set)*)d->data;
+  if (!kh) return 0;
+
+  KHASH_FOREACH(mrb, kh, k) {
+    if (kh_exist(kh, k)) {
+      mrb_gc_mark_value(mrb, kh_key(kh, k));
+    }
+  }
+  return kh_size(kh);
+}
+
+void
+mrb_gc_free_set(mrb_state *mrb, struct RBasic *obj)
+{
+  struct RData *d = (struct RData*)obj;
+  if (d->data) {
+    khash_t(set) *kh = (khash_t(set)*)d->data;
+    if (kh) {
+      kh_destroy(set, mrb, kh);
+    }
+  }
+  mrb_gc_free_iv(mrb, (struct RObject*)obj);
+}
+#endif
 
 /* Helper function to check if a value is a Set and return a boolean result */
 static mrb_bool
@@ -93,7 +132,10 @@ set_init_copy(mrb_state *mrb, mrb_value self)
   mrb_value orig = mrb_get_arg1(mrb);
   khash_t(set) *kh;
 
-  if (mrb_type(orig) != MRB_TT_CDATA || (DATA_TYPE(self) && DATA_TYPE(self) != DATA_TYPE(orig))) {
+  if (mrb_type(orig) != MRB_TT_SET) {
+    mrb_raise(mrb, E_TYPE_ERROR, "initialize_copy should take a Set object");
+  }
+  if (mrb_obj_class(mrb, self) != mrb_obj_class(mrb, orig)) {
     mrb_raise(mrb, E_TYPE_ERROR, "initialize_copy should take same class object");
   }
 
@@ -1356,7 +1398,7 @@ mrb_mruby_set_gem_init(mrb_state *mrb)
   struct RClass *set;
 
   set = mrb_define_class(mrb, "Set", mrb->object_class);
-  MRB_SET_INSTANCE_TT(set, MRB_TT_CDATA); /* Set instances will hold a C pointer (khash) */
+  MRB_SET_INSTANCE_TT(set, MRB_TT_SET);
 
   mrb_include_module(mrb, set, mrb_module_get(mrb, "Enumerable"));
 

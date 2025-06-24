@@ -133,6 +133,10 @@ mrb_value mrb_as_rational(mrb_state *mrb, mrb_value x);
 void mrb_rational_copy(mrb_state *mrb, mrb_value x, mrb_value y);
 int mrb_rational_mark(mrb_state *mrb, struct RBasic *rat);
 #endif
+#ifdef MRB_USE_SET
+size_t mrb_gc_mark_set(mrb_state *mrb, struct RBasic *set);
+void mrb_gc_free_set(mrb_state *mrb, struct RBasic *set);
+#endif
 
 #ifdef MRUBY_PROC_H
 struct RProc *mrb_closure_new(mrb_state*, const mrb_irep*);
