@@ -19,6 +19,11 @@
 KHASH_DECLARE(set, mrb_value, char, FALSE)
 KHASH_DEFINE(set, mrb_value, char, FALSE, mrb_obj_hash_code, mrb_eql)
 
+struct RSet {
+  MRB_OBJECT_HEADER;
+  khash_t(set) *kh;
+};
+
 static void
 set_copy_elements(mrb_state *mrb, khash_t(set) *target_kh, khash_t(set) *source_kh)
 {
@@ -31,31 +36,60 @@ set_copy_elements(mrb_state *mrb, khash_t(set) *target_kh, khash_t(set) *source_
   }
 }
 
-#define SET_KHASH_IV MRB_SYM(khash)
-
-static void
-set_free(mrb_state *mrb, void *ptr)
-{
-  khash_t(set) *kh = (khash_t(set)*)ptr;
-  if (kh) {
-    kh_destroy(set, mrb, kh);
-  }
-}
-
-static const struct mrb_data_type set_data_type = {
-  "Set", set_free
-};
-
+#define mrb_set_ptr(o) ((struct RSet*)mrb_obj_ptr(o))
 static void
 set_set_khash(mrb_state *mrb, mrb_value self, khash_t(set) *kh)
 {
-  mrb_data_init(self, kh, &set_data_type);
+  mrb_check_type(mrb, self, MRB_TT_SET);
+  struct RSet *set = mrb_set_ptr(self);
+  set->kh = kh;
 }
 
 static khash_t(set) *
 set_get_khash(mrb_state *mrb, mrb_value self)
 {
-  return (khash_t(set)*)mrb_data_get_ptr(mrb, self, &set_data_type);
+  mrb_check_type(mrb, self, MRB_TT_SET);
+  return mrb_set_ptr(self)->kh;
+}
+
+/* Mark function for Set instances */
+size_t
+mrb_gc_mark_set(mrb_state *mrb, struct RBasic *obj)
+{
+  struct RSet *s = (struct RSet*)obj;
+  khash_t(set) *kh = s->kh;
+  if (!kh) return 0;
+
+  KHASH_FOREACH(mrb, kh, k) {
+    if (kh_exist(kh, k)) {
+      mrb_gc_mark_value(mrb, kh_key(kh, k));
+    }
+  }
+  return kh_size(kh);
+}
+
+void
+mrb_gc_free_set(mrb_state *mrb, struct RBasic *obj)
+{
+  struct RSet *s = (struct RSet*)obj;
+  if (s->kh) {
+    khash_t(set) *kh = s->kh;
+    if (kh) {
+      kh_destroy(set, mrb, kh);
+    }
+  }
+}
+
+size_t
+mrb_set_memsize(mrb_value set)
+{
+
+  size_t size = mrb_objspace_page_slot_size();
+  struct RSet *s = mrb_set_ptr(set);
+  if (s->kh) {
+    size += kh_size(s->kh) * sizeof(mrb_value);
+  }
+  return size;
 }
 
 /* Helper function to check if a value is a Set and return a boolean result */
@@ -93,7 +127,10 @@ set_init_copy(mrb_state *mrb, mrb_value self)
   mrb_value orig = mrb_get_arg1(mrb);
   khash_t(set) *kh;
 
-  if (mrb_type(orig) != MRB_TT_CDATA || (DATA_TYPE(self) && DATA_TYPE(self) != DATA_TYPE(orig))) {
+  if (mrb_type(orig) != MRB_TT_SET) {
+    mrb_raise(mrb, E_TYPE_ERROR, "initialize_copy should take a Set object");
+  }
+  if (mrb_obj_class(mrb, self) != mrb_obj_class(mrb, orig)) {
     mrb_raise(mrb, E_TYPE_ERROR, "initialize_copy should take same class object");
   }
 
@@ -1356,7 +1393,7 @@ mrb_mruby_set_gem_init(mrb_state *mrb)
   struct RClass *set;
 
   set = mrb_define_class(mrb, "Set", mrb->object_class);
-  MRB_SET_INSTANCE_TT(set, MRB_TT_CDATA); /* Set instances will hold a C pointer (khash) */
+  MRB_SET_INSTANCE_TT(set, MRB_TT_SET);
 
   mrb_include_module(mrb, set, mrb_module_get(mrb, "Enumerable"));
 
