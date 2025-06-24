@@ -164,7 +164,7 @@ static const unsigned int IEEE754_INFINITY_BITS_SINGLE = 0x7F800000;
   f(MRB_TT_RATIONAL,    struct RRational,   "Rational") \
   f(MRB_TT_BIGINT,      struct RBigint,     "Integer") \
   f(MRB_TT_BACKTRACE,   struct RBacktrace,  "backtrace") \
-  f(MRB_TT_SET,         struct RData,       "Set")
+  f(MRB_TT_SET,         struct RSet,        "Set")
 
 enum mrb_vtype {
 #define MRB_VTYPE_DEFINE(tt, type, name) tt,
