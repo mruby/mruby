@@ -23,12 +23,13 @@ jobs:
         uses: super-linter/super-linter/slim@v7.4.0
         env:
           DEFAULT_BRANCH: master
+          FILTER_REGEX_EXCLUDE: ^tools/lrama
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VALIDATE_BASH_EXEC: false
           VALIDATE_ALL_CODEBASE: true
+          VALIDATE_BASH_EXEC: false
           VALIDATE_CLANG_FORMAT: false
           VALIDATE_CPP: false
-          VALIDATE_EDITORCONFIG: false
           VALIDATE_DOCKERFILE_HADOLINT: false
+          VALIDATE_EDITORCONFIG: false
           VALIDATE_RUBY: false
           VALIDATE_SHELL_SHFMT: false
