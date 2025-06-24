@@ -50,7 +50,6 @@ Implement mrb_basic_alloc_func() in your code, and mruby will invoke it for ever
 If you are moving from the old API:
 
 1. **Removal of `mrb_open_allocf()`**
-
    - \_Old:
 
      ```c
@@ -65,11 +64,9 @@ If you are moving from the old API:
      ```
 
 2. **`mrb_open_core()` takes no arguments**
-
    - Simply drop any allocf or user-data arguments, and redefine `mrb_basic_alloc_func` as you need.
 
 3. **No more `mrb_allocf` type**
-
    - Definitions using the `mrb_allocf` typedef can be removed; implement `mrb_basic_alloc_func()` with the signature below:
 
      ```c
@@ -77,7 +74,6 @@ If you are moving from the old API:
      ```
 
 4. **`mrb_basic_alloc_func` signature change**
-
    - _Old:_
 
      ```c

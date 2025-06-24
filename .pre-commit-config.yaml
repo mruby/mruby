@@ -4,8 +4,8 @@ default_stages: [pre-commit, pre-push]
 default_language_version:
   # force all unspecified Python hooks to run python3
   python: python3
-  # force all unspecified Node hooks to run Node.js v22.15.0 LTS
-  node: 22.15.0
+  # force all unspecified Node hooks to run Node.js v22.16.0 LTS
+  node: 22.16.0
 minimum_pre_commit_version: "3.2.0"
 exclude: "^tools/lrama/"
 repos:
@@ -22,12 +22,12 @@ repos:
       - id: prettier
         name: run prettier
         description: format files with prettier
-        entry: prettier --write .
+        entry: prettier --write '**/*.json' '**/*.md' '**/*.yaml' '**/*.yml'
         files: \.(json|md|ya?ml)$
         language: node
-        additional_dependencies: ["prettier@3.5.3"]
+        additional_dependencies: ["prettier@3.6.0"]
   - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.25.1
+    rev: v8.27.2
     hooks:
       - id: gitleaks
         name: run gitleaks
@@ -98,7 +98,7 @@ repos:
         description: local policy is to exclude extension from all shell files
         types: [shell]
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.44.0
+    rev: v0.45.0
     hooks:
       - id: markdownlint
         name: run markdownlint
@@ -122,7 +122,7 @@ repos:
         name: run shellcheck
         description: check shell scripts with a static analysis tool
   - repo: https://github.com/adrienverge/yamllint
-    rev: v1.37.0
+    rev: v1.37.1
     hooks:
       - id: yamllint
         name: run yamllint

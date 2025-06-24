@@ -75,7 +75,6 @@ Once you have a `Time` object, you can extract its components:
   ```
 
 - **Subtraction (`-`)**:
-
   - Subtracting a duration (in seconds) from a `Time` object returns a new `Time` object.
   - Subtracting another `Time` object returns the difference in seconds as a Float.
 
