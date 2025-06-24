@@ -136,6 +136,7 @@ int mrb_rational_mark(mrb_state *mrb, struct RBasic *rat);
 #ifdef MRB_USE_SET
 size_t mrb_gc_mark_set(mrb_state *mrb, struct RBasic *set);
 void mrb_gc_free_set(mrb_state *mrb, struct RBasic *set);
+size_t mrb_set_memsize(mrb_value);
 #endif
 
 #ifdef MRUBY_PROC_H

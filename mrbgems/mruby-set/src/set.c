@@ -80,6 +80,18 @@ mrb_gc_free_set(mrb_state *mrb, struct RBasic *obj)
   }
 }
 
+size_t
+mrb_set_memsize(mrb_value set)
+{
+
+  size_t size = mrb_objspace_page_slot_size();
+  struct RSet *s = mrb_set_ptr(set);
+  if (s->kh) {
+    size += kh_size(s->kh) * sizeof(mrb_value);
+  }
+  return size;
+}
+
 /* Helper function to check if a value is a Set and return a boolean result */
 static mrb_bool
 set_is_set(mrb_state *mrb, mrb_value obj)
