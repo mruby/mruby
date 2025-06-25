@@ -655,13 +655,11 @@ set_core_subtract(mrb_state *mrb, mrb_value self)
   if (kset_is_empty(other_set)) return self;
 
   /* Remove all elements that are in other set */
-  for (kset_iter_t k = 0; k != kset_end(other_set); k++) {
-    if (kset_exist(other_set, k)) {
-      mrb_value key = kset_key(other_set, k);
-      kset_iter_t self_k = kset_get(mrb, self_set, key);
-      if (self_k != kset_end(self_set)) {
-        kset_del(mrb, self_set, self_k);
-      }
+  KSET_FOREACH(other_set, k) {
+    mrb_value key = kset_key(other_set, k);
+    kset_iter_t self_k = kset_get(mrb, self_set, key);
+    if (self_k != kset_end(self_set)) {
+      kset_del(mrb, self_set, self_k);
     }
   }
 
@@ -714,7 +712,7 @@ set_core_difference(mrb_state *mrb, mrb_value self)
   /* Remove all elements that are in other set */
   kset_t *other_set = set_get_kset(mrb, other);
   if (other_set->data) {
-    for (kset_iter_t k = 0; k != kset_end(other_set); k++) if (kset_exist(other_set, k)) {
+    KSET_FOREACH(other_set, k) {
       mrb_value key = kset_key(other_set, k);
       kset_iter_t result_k = kset_get(mrb, result_kh, key);
       if (result_k != kset_end(result_kh)) {
@@ -746,7 +744,7 @@ set_core_intersection(mrb_state *mrb, mrb_value self)
   kset_t *other_set = set_get_kset(mrb, other);
   if (!other_set->data) return result;
 
-  for (kset_iter_t k = 0; k != kset_end(other_set); k++) if (kset_exist(other_set, k)) {
+  KSET_FOREACH(other_set, k) {
     mrb_value key = kset_key(other_set, k);
     kset_iter_t self_k = kset_get(mrb, self_set, key);
 
@@ -789,7 +787,7 @@ set_core_xor(mrb_state *mrb, mrb_value self)
 
   /* Add elements from self that are not in other */
   int ai = mrb_gc_arena_save(mrb);
-  for (kset_iter_t k = 0; k != kset_end(self_set); k++) if (kset_exist(self_set, k)) {
+  KSET_FOREACH(self_set, k) {
     mrb_value key = kset_key(self_set, k);
     kset_iter_t other_k = kset_get(mrb, other_set, key);
 
@@ -801,7 +799,7 @@ set_core_xor(mrb_state *mrb, mrb_value self)
   }
 
   /* Add elements from other that are not in self */
-  for (kset_iter_t k = 0; k != kset_end(other_set); k++) if (kset_exist(other_set, k)) {
+  KSET_FOREACH(other_set, k) {
     mrb_value key = kset_key(other_set, k);
     kset_iter_t self_k = kset_get(mrb, self_set, key);
 
@@ -857,7 +855,7 @@ set_equal(mrb_state *mrb, mrb_value self)
 
   /* Compare elements: iterate through the smaller hash for efficiency */
   int ai = mrb_gc_arena_save(mrb);
-  for (kset_iter_t k = 0; k != kset_end(self_set); k++) if (kset_exist(self_set, k)) {
+  KSET_FOREACH(self_set, k) {
     kset_iter_t k2 = kset_get(mrb, other_set, kset_key(self_set, k));
     if (k2 == kset_end(other_set)) {
       return mrb_false_value(); /* Element in self not found in other */
@@ -892,7 +890,7 @@ set_hash_m(mrb_state *mrb, mrb_value self)
   if (set->data && size > 0) {
     /* Process each element */
     int ai = mrb_gc_arena_save(mrb);
-    for (kset_iter_t k = 0; k != kset_end(set); k++) if (kset_exist(set, k)) {
+    KSET_FOREACH(set, k) {
       /* Get element's hash code */
       kset_int_t elem_hash = (kset_int_t)mrb_obj_hash_code(mrb, kset_key(set, k));
 
@@ -944,7 +942,7 @@ set_superset_p(mrb_state *mrb, mrb_value self)
 
   /* Check if all elements in other are in self */
   int ai = mrb_gc_arena_save(mrb);
-  for (kset_iter_t k = 0; k != kset_end(other_set); k++) if (kset_exist(other_set, k)) {
+  KSET_FOREACH(other_set, k) {
     kset_iter_t self_k = kset_get(mrb, self_set, kset_key(other_set, k));
     if (self_k == kset_end(self_set)) {
       return mrb_false_value(); /* Element in other not found in self */
@@ -990,7 +988,7 @@ set_proper_superset_p(mrb_state *mrb, mrb_value self)
 
   /* Check if all elements in other are in self */
   int ai = mrb_gc_arena_save(mrb);
-  for (kset_iter_t k = 0; k != kset_end(other_set); k++) if (kset_exist(other_set, k)) {
+  KSET_FOREACH(other_set, k) {
     kset_iter_t self_k = kset_get(mrb, self_set, kset_key(other_set, k));
     if (self_k == kset_end(self_set)) {
       return mrb_false_value(); /* Element in other not found in self */
@@ -1035,7 +1033,7 @@ set_subset_p(mrb_state *mrb, mrb_value self)
 
   /* Check if all elements in self are in other */
   int ai = mrb_gc_arena_save(mrb);
-  for (kset_iter_t k = 0; k != kset_end(self_set); k++) if (kset_exist(self_set, k)) {
+  KSET_FOREACH(self_set, k) {
     kset_iter_t other_k = kset_get(mrb, other_set, kset_key(self_set, k));
     if (other_k == kset_end(other_set)) {
       return mrb_false_value(); /* Element in self not found in other */
@@ -1081,7 +1079,7 @@ set_proper_subset_p(mrb_state *mrb, mrb_value self)
 
   /* Check if all elements in self are in other */
   int ai = mrb_gc_arena_save(mrb);
-  for (kset_iter_t k = 0; k != kset_end(self_set); k++) if (kset_exist(self_set, k)) {
+  KSET_FOREACH(self_set, k) {
     kset_iter_t other_k = kset_get(mrb, other_set, kset_key(self_set, k));
     if (other_k == kset_end(other_set)) {
       return mrb_false_value(); /* Element in self not found in other */
@@ -1117,7 +1115,7 @@ set_intersect_p(mrb_state *mrb, mrb_value self)
   /* Iterate through the smaller set for efficiency */
   int ai = mrb_gc_arena_save(mrb);
   if (self_set->size < other_set->size) {
-    for (kset_iter_t k = 0; k != kset_end(self_set); k++) if (kset_exist(self_set, k)) {
+    KSET_FOREACH(self_set, k) {
       kset_iter_t other_k = kset_get(mrb, other_set, kset_key(self_set, k));
       if (other_k != kset_end(other_set)) {
         return mrb_true_value(); /* Found a common element */
@@ -1126,7 +1124,7 @@ set_intersect_p(mrb_state *mrb, mrb_value self)
     }
   }
   else {
-    for (kset_iter_t k = 0; k != kset_end(other_set); k++) if (kset_exist(other_set, k)) {
+    KSET_FOREACH(other_set, k) {
       kset_iter_t self_k = kset_get(mrb, self_set, kset_key(other_set, k));
       if (self_k != kset_end(self_set)) {
         return mrb_true_value(); /* Found a common element */
@@ -1191,7 +1189,7 @@ set_cmp(mrb_state *mrb, mrb_value self)
   if (size_cmp < 0) {
     /* self might be a proper subset of other */
     int ai = mrb_gc_arena_save(mrb);
-    for (kset_iter_t k = 0; k != kset_end(self_set); k++) if (kset_exist(self_set, k)) {
+    KSET_FOREACH(self_set, k) {
       kset_iter_t other_k = kset_get(mrb, other_set, kset_key(self_set, k));
       if (other_k == kset_end(other_set)) {
         /* Not a subset */
@@ -1207,7 +1205,7 @@ set_cmp(mrb_state *mrb, mrb_value self)
   else if (size_cmp > 0) {
     /* self might be a proper superset of other */
     int ai = mrb_gc_arena_save(mrb);
-    for (kset_iter_t k = 0; k != kset_end(other_set); k++) if (kset_exist(other_set, k)) {
+    KSET_FOREACH(other_set, k) {
       kset_iter_t self_k = kset_get(mrb, self_set, kset_key(other_set, k));
       if (self_k == kset_end(self_set)) {
         /* Not a superset */
@@ -1225,7 +1223,7 @@ set_cmp(mrb_state *mrb, mrb_value self)
     mrb_bool is_equal = TRUE;
 
     int ai3 = mrb_gc_arena_save(mrb);
-    for (kset_iter_t k = 0; k != kset_end(self_set); k++) if (kset_exist(self_set, k)) {
+    KSET_FOREACH(self_set, k) {
       kset_iter_t other_k = kset_get(mrb, other_set, kset_key(self_set, k));
       if (other_k == kset_end(other_set)) {
         is_equal = FALSE;
@@ -1275,8 +1273,7 @@ set_join(mrb_state *mrb, mrb_value self)
 
   /* Iterate through all elements */
   int ai = mrb_gc_arena_save(mrb);
-  for (kset_iter_t k = 0; k != kset_end(set); k++) if (kset_exist(set, k)) {
-    /* Add separator between elements */
+  KSET_FOREACH(set, k) {
     if (!first) {
       mrb_str_cat(mrb, result, sep_ptr, sep_len);
     }
@@ -1331,9 +1328,7 @@ set_inspect(mrb_state *mrb, mrb_value self)
   /* Iterate through all elements */
   mrb_bool first = TRUE;
   int ai = mrb_gc_arena_save(mrb);
-
-  for (kset_iter_t k = 0; k != kset_end(set); k++) if (kset_exist(set, k)) {
-    /* Add comma between elements */
+  KSET_FOREACH(set, k) {
     if (!first) {
       mrb_str_cat_lit(mrb, result_str, ", ");
     }
@@ -1434,7 +1429,7 @@ set_flatten_recursive(mrb_state *mrb, kset_t *target_kh, kset_t *source_kh,
   int ai = mrb_gc_arena_save(mrb);
 
   /* Process each element in the source set */
-  for (kset_iter_t k = 0; k != kset_end(source_kh); k++) if (kset_exist(source_kh, k)) {
+  KSET_FOREACH(source_kh, k) {
     mrb_value elem = kset_key(source_kh, k);
 
     /* Check if element is a Set */
@@ -1484,7 +1479,7 @@ set_flatten(mrb_state *mrb, mrb_value self)
   /* Fast path: check if there are any nested sets */
   mrb_bool has_nested_sets = FALSE;
   int ai = mrb_gc_arena_save(mrb);
-  for (kset_iter_t k = 0; k != kset_end(self_set); k++) if (kset_exist(self_set, k)) {
+  KSET_FOREACH(self_set, k) {
     if (set_is_set(mrb, kset_key(self_set, k))) {
       has_nested_sets = TRUE;
       break;
@@ -1532,7 +1527,7 @@ set_flatten_bang(mrb_state *mrb, mrb_value self)
   /* First, check if there are any nested sets */
   mrb_bool has_nested_sets = FALSE;
   int ai = mrb_gc_arena_save(mrb);
-  for (kset_iter_t k = 0; k != kset_end(self_set); k++) if (kset_exist(self_set, k)) {
+  KSET_FOREACH(self_set, k) {
     mrb_value elem = kset_key(self_set, k);
     if (set_is_set(mrb, elem)) {
       has_nested_sets = TRUE;
