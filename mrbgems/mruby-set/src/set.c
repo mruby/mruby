@@ -447,16 +447,16 @@ mrb_set_memsize(mrb_value set)
 
 /* Helper function to check if a value is a Set and return a boolean result */
 static mrb_bool
-set_is_set(mrb_state *mrb, mrb_value obj)
+set_is_set(mrb_value obj)
 {
-  return mrb_obj_is_kind_of(mrb, obj, mrb_class_get(mrb, "Set"));
+  return mrb_type(obj) == MRB_TT_SET;
 }
 
 /* Helper function to check if a value is a Set and raise an error if not */
 static void
 set_check_type(mrb_state *mrb, mrb_value obj)
 {
-  if (!set_is_set(mrb, obj)) {
+  if (!set_is_set(obj)) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "value must be a set");
   }
 }
@@ -880,7 +880,7 @@ set_equal(mrb_state *mrb, mrb_value self)
   }
 
   /* Only compare with other Set objects */
-  if (!set_is_set(mrb, other)) {
+  if (!set_is_set(other)) {
     return mrb_false_value();
   }
 
@@ -1208,7 +1208,7 @@ set_cmp(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
 
-  if (!set_is_set(mrb, other)) {
+  if (!set_is_set(other)) {
     return mrb_nil_value();
   }
 
@@ -1468,7 +1468,7 @@ set_flatten_recursive(mrb_state *mrb, kset_t *target, kset_t *source, int *seen_
     mrb_value elem = kset_key(source, k);
 
     /* Check if element is a Set */
-    if (set_is_set(mrb, elem)) {
+    if (set_is_set(elem)) {
       /* Increment recursion depth */
       (*seen_count)++;
 
@@ -1514,7 +1514,7 @@ set_flatten(mrb_state *mrb, mrb_value self)
   mrb_bool has_nested_sets = FALSE;
   int ai = mrb_gc_arena_save(mrb);
   KSET_FOREACH(self_set, k) {
-    if (set_is_set(mrb, kset_key(self_set, k))) {
+    if (set_is_set(kset_key(self_set, k))) {
       has_nested_sets = TRUE;
       break;
     }
@@ -1563,7 +1563,7 @@ set_flatten_bang(mrb_state *mrb, mrb_value self)
   int ai = mrb_gc_arena_save(mrb);
   KSET_FOREACH(self_set, k) {
     mrb_value elem = kset_key(self_set, k);
-    if (set_is_set(mrb, elem)) {
+    if (set_is_set(elem)) {
       has_nested_sets = TRUE;
       break;
     }
