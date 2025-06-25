@@ -1193,7 +1193,6 @@ set_cmp(mrb_state *mrb, mrb_value self)
       kset_iter_t other_k = kset_get(mrb, other_set, kset_key(self_set, k));
       if (other_k == kset_end(other_set)) {
         /* Not a subset */
-        mrb_gc_arena_restore(mrb, ai);
         return mrb_nil_value(); /* Not comparable */
       }
       mrb_gc_arena_restore(mrb, ai);
@@ -1209,7 +1208,6 @@ set_cmp(mrb_state *mrb, mrb_value self)
       kset_iter_t self_k = kset_get(mrb, self_set, kset_key(other_set, k));
       if (self_k == kset_end(self_set)) {
         /* Not a superset */
-        mrb_gc_arena_restore(mrb, ai);
         return mrb_nil_value(); /* Not comparable */
       }
       mrb_gc_arena_restore(mrb, ai);
@@ -1451,9 +1449,8 @@ set_flatten_recursive(mrb_state *mrb, kset_t *target_set, kset_t *source_set, in
       /* Add non-Set element directly */
       kset_put(mrb, target_set, elem);
     }
+    mrb_gc_arena_restore(mrb, ai);
   }
-
-  mrb_gc_arena_restore(mrb, ai);
   return 0;
 }
 
@@ -1482,8 +1479,8 @@ set_flatten(mrb_state *mrb, mrb_value self)
       has_nested_sets = TRUE;
       break;
     }
+    mrb_gc_arena_restore(mrb, ai);
   }
-  mrb_gc_arena_restore(mrb, ai);
 
   /* If no nested sets, just return a duplicate */
   if (!has_nested_sets) {
@@ -1531,8 +1528,8 @@ set_flatten_bang(mrb_state *mrb, mrb_value self)
       has_nested_sets = TRUE;
       break;
     }
+    mrb_gc_arena_restore(mrb, ai);
   }
-  mrb_gc_arena_restore(mrb, ai);
 
   if (!has_nested_sets) {
     return mrb_nil_value(); /* No nested sets, no changes needed */
