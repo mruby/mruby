@@ -570,14 +570,7 @@ set_add_p(mrb_state *mrb, mrb_value self)
 
   int ret;
   kset_put2(mrb, set, obj, &ret);
-  if (ret == 0) {
-    /* Key already exists */
-    return mrb_nil_value();
-  }
-  else {
-    /* Key was added */
-    return self;
-  }
+  return (ret == 0) ? mrb_nil_value() : self;
 }
 
 /*
@@ -639,10 +632,6 @@ set_core_merge(mrb_state *mrb, mrb_value self)
   }
 
   kset_t *other_set = set_get_kset(mrb, other);
-  if (kset_is_empty(other_set)) return self;
-
-  /* Add all elements from other set */
-  kset_copy_elements(mrb, self_set, other_set);
 
   return self;
 }
