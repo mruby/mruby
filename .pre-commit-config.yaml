@@ -90,13 +90,6 @@ repos:
       - id: codespell
         name: run codespell
         description: check spelling with codespell
-  - repo: https://github.com/jumanjihouse/pre-commit-hooks
-    rev: 3.0.0
-    hooks:
-      - id: script-must-not-have-extension
-        name: run script-must-not-have-extension
-        description: local policy is to exclude extension from all shell files
-        types: [shell]
   - repo: https://github.com/igorshubovych/markdownlint-cli
     rev: v0.44.0
     hooks:
