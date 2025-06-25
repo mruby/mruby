@@ -186,10 +186,10 @@ kset_resize(mrb_state *mrb, kset_t *s, kset_int_t new_n_buckets)
   uint8_t *old_flags = kset_flags(s);
 
   /* Allocate new data */
-  s->n_buckets = new_n_buckets;
   size_t keys_size = sizeof(mrb_value) * new_n_buckets;
   size_t flags_size = new_n_buckets / 4;
   s->data = mrb_malloc(mrb, keys_size + flags_size);
+  s->n_buckets = new_n_buckets;
   s->size = 0;
 
   /* Initialize new flags */
