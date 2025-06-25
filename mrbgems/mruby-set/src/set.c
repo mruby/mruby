@@ -1412,21 +1412,21 @@ set_add_all(mrb_state *mrb, mrb_value self)
  * This is an internal helper function that does not call back to the VM.
  *
  * @param mrb The mruby state
- * @param target_set The target set table to add elements to
- * @param source_set The source set table to flatten
+ * @param target The target set table to add elements to
+ * @param source The source set table to flatten
  * @param seen_count Pointer to the current count of seen sets (recursion depth)
  * @return 0 on success, -1 if recursion depth exceeds maximum
  */
 static int
-set_flatten_recursive(mrb_state *mrb, kset_t *target_set, kset_t *source_set, int *seen_count)
+set_flatten_recursive(mrb_state *mrb, kset_t *target, kset_t *source, int *seen_count)
 {
-  if (!source_set || !target_set) return 0;
+  if (!source || !target) return 0;
   if (*seen_count >= MAX_NESTED_DEPTH) return -1;
 
   int ai = mrb_gc_arena_save(mrb);
   /* Process each element in the source set */
-  KSET_FOREACH(source_set, k) {
-    mrb_value elem = kset_key(source_set, k);
+  KSET_FOREACH(source, k) {
+    mrb_value elem = kset_key(source, k);
 
     /* Check if element is a Set */
     if (set_is_set(mrb, elem)) {
@@ -1436,7 +1436,7 @@ set_flatten_recursive(mrb_state *mrb, kset_t *target_set, kset_t *source_set, in
       /* Recursively flatten the nested set */
       kset_t *nested_set = set_get_kset(mrb, elem);
       if (nested_set) {
-        int nested_result = set_flatten_recursive(mrb, target_set, nested_set, seen_count);
+        int nested_result = set_flatten_recursive(mrb, target, nested_set, seen_count);
         if (nested_result < 0) {
           return nested_result; /* Propagate error code */
         }
@@ -1447,7 +1447,7 @@ set_flatten_recursive(mrb_state *mrb, kset_t *target_set, kset_t *source_set, in
     }
     else {
       /* Add non-Set element directly */
-      kset_put(mrb, target_set, elem);
+      kset_put(mrb, target, elem);
     }
     mrb_gc_arena_restore(mrb, ai);
   }
