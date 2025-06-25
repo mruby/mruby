@@ -672,6 +672,11 @@ static mrb_value
 set_core_merge(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
+
+  if (!set_is_set(other)) {
+    return mrb_false_value();
+  }
+
   kset_t *self_set = set_get_kset(mrb, self);
   kset_t *other_set = set_get_kset(mrb, other);
 
@@ -680,7 +685,7 @@ set_core_merge(mrb_state *mrb, mrb_value self)
     kset_copy_elements(mrb, self_set, other_set);
   }
 
-  return self;
+  return mrb_true_value();
 }
 
 /*
@@ -692,11 +697,15 @@ set_core_subtract(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
 
+  if (!set_is_set(other)) {
+    return mrb_false_value();
+  }
+
   kset_t *self_set = set_get_kset(mrb, self);
-  if (kset_is_empty(self_set)) return self;
+  if (kset_is_empty(self_set)) return mrb_true_value();
 
   kset_t *other_set = set_get_kset(mrb, other);
-  if (kset_is_empty(other_set)) return self;
+  if (kset_is_empty(other_set)) return mrb_true_value();
 
   /* Remove all elements that are in other set */
   KSET_FOREACH(other_set, k) {
@@ -707,7 +716,7 @@ set_core_subtract(mrb_state *mrb, mrb_value self)
     }
   }
 
-  return self;
+  return mrb_true_value();
 }
 
 /*
@@ -718,6 +727,10 @@ static mrb_value
 set_core_union(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
+
+  if (!set_is_set(other)) {
+    return mrb_nil_value();
+  }
 
   /* Create a new set by duplicating self */
   mrb_value result = mrb_obj_dup(mrb, self);
@@ -744,6 +757,10 @@ static mrb_value
 set_core_difference(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
+
+  if (!set_is_set(other)) {
+    return mrb_nil_value();
+  }
 
   /* Create a new set by duplicating self */
   mrb_value result = mrb_obj_dup(mrb, self);
@@ -778,6 +795,10 @@ set_core_intersection(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
 
+  if (!set_is_set(other)) {
+    return mrb_nil_value();
+  }
+
   /* Create a new empty set of the same class as self */
   mrb_value result = mrb_obj_new(mrb, mrb_obj_class(mrb, self), 0, NULL);
   kset_t *result_set = set_get_kset(mrb, result);
@@ -810,6 +831,11 @@ static mrb_value
 set_core_xor(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
+
+  if (!set_is_set(other)) {
+    return mrb_nil_value();
+  }
+
   mrb_value result = mrb_obj_new(mrb, mrb_obj_class(mrb, self), 0, NULL);
   kset_t *result_set = set_get_kset(mrb, result);
   kset_t *self_set, *other_set;

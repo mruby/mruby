@@ -26,14 +26,10 @@ class Set
   # @param [Enumerable] enum The enumerable object to merge elements from
   # @return [Set] self
   def merge(enum)
-    if enum.is_a?(Set)
-      # Fast path: Call C-implemented function for Set-to-Set merge
-      __merge(enum)
-    else
-      # General path: Add each element from the enumerable
-      __do_with_enum(enum) { add(_1) }
-      self
+    unless __merge(enum)
+      __do_with_enum(enum) { |o| add(o) }
     end
+    self
   end
 
   # Replaces the contents of the set with the contents of the given enumerable
@@ -52,14 +48,10 @@ class Set
   # @param [Enumerable] enum The enumerable object containing elements to remove
   # @return [Set] self
   def subtract(enum)
-    if enum.is_a?(Set)
-      # Fast path: Call C-implemented function for Set-to-Set subtraction
-      __subtract(enum)
-    else
-      # General path: Remove each element from the enumerable
-      __do_with_enum(enum) { delete(_1) }
-      self
+    unless __subtract(enum)
+      __do_with_enum(enum) { |o| delete(o) }
     end
+    self
   end
 
   # Returns a new set containing elements common to the set and the given
@@ -68,15 +60,12 @@ class Set
   # @param [Enumerable] enum The enumerable object to find common elements with
   # @return [Set] A new set containing elements common to both
   def intersection(enum)
-    if enum.is_a?(Set)
-      # Fast path: Call C-implemented function for Set-to-Set intersection
-      __intersection(enum)
-    else
-      # General path: Implement in Ruby for any enumerable
-      n = Set.new
-      __do_with_enum(enum) { n.add(_1) if include?(_1) }
-      n
-    end
+    n = __intersection(enum)
+    return n if n
+
+    n = Set.new
+    __do_with_enum(enum) { |o| n.add(o) if include?(o) }
+    n
   end
 
   # Alias for #intersection
@@ -88,13 +77,10 @@ class Set
   # @param [Enumerable] enum The enumerable object to merge with
   # @return [Set] A new set containing all elements from both
   def union(enum)
-    if enum.is_a?(Set)
-      # Fast path: Call C-implemented function for Set-to-Set union
-      __union(enum)
-    else
-      # General path: Create a duplicate and merge the enumerable
-      dup.merge(enum)
-    end
+    n = __union(enum)
+    return n if n
+
+    dup.merge(enum)
   end
 
   # Aliases for #union
@@ -107,15 +93,12 @@ class Set
   # @param [Enumerable] enum The enumerable object to find elements to remove
   # @return [Set] A new set with elements from self that are not in enum
   def difference(enum)
-    if enum.is_a?(Set)
-      # Fast path: Call C-implemented function for Set-to-Set difference
-      __difference(enum)
-    else
-      # General path: Create a duplicate and remove the enumerable elements
-      result = dup
-      __do_with_enum(enum) { result.delete(_1) }
-      result
-    end
+    n = __difference(enum)
+    return n if n
+
+    result = dup
+    __do_with_enum(enum) { |o| result.delete(o) }
+    result
   end
 
   # Alias for #difference
@@ -127,14 +110,11 @@ class Set
   # @param [Enumerable] enum The enumerable object to find exclusive elements with
   # @return [Set] A new set containing elements exclusive between both
   def ^(enum)
-    if enum.is_a?(Set)
-      # Fast path: Call C-implemented function for Set-to-Set XOR
-      __xor(enum)
-    else
-      # General path: Convert enum to a set and calculate (self|s2)-(self&s2)
-      s2 = Set.new(enum)
-      (self | s2) - (self & s2)
-    end
+    n = __xor(enum)
+    return n if n
+
+    s2 = Set.new(enum)
+    (self | s2) - (self & s2)
   end
 
   # Iterates over each element in the set.
