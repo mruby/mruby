@@ -343,6 +343,8 @@ struct RSet {
   kset_t set; /* Embedded directly, not a pointer */
 };
 
+mrb_static_assert_object_size(struct RSet);
+
 #define mrb_set_ptr(o) ((struct RSet*)mrb_obj_ptr(o))
 
 /* Get pointer to embedded set */
