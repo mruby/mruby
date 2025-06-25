@@ -206,6 +206,13 @@ kset_resize(mrb_state *mrb, kset_t *s, kset_int_t new_n_buckets)
   mrb_free(mrb, old_data);
 }
 
+/* Resize set */
+static void
+kset_rehash(mrb_state *mrb, kset_t *s)
+{
+  kset_resize(mrb, s, s->n_buckets);
+}
+
 /* Add key to set with return status */
 static kset_iter_t
 kset_put2(mrb_state *mrb, kset_t *s, mrb_value key, int *ret)
@@ -328,15 +335,6 @@ kset_copy_elements(mrb_state *mrb, kset_t *target, kset_t *source)
     kset_put(mrb, target, kset_key(source, k));
     mrb_gc_arena_restore(mrb, ai);
   }
-}
-
-/* Copy set */
-static kset_t*
-kset_copy(mrb_state *mrb, kset_t *s)
-{
-  kset_t *s2 = kset_init(mrb);
-  kset_copy_elements(mrb, s2, s);
-  return s2;
 }
 
 /* Embedded set structure in RSet - exactly 3 pointers */
@@ -1357,15 +1355,10 @@ set_reset(mrb_state *mrb, mrb_value self)
 {
   mrb_check_frozen_value(mrb, self);
 
-  kset_t *old_set = set_get_kset(mrb, self);
-  if (!kset_is_empty(old_set)) {
+  kset_t *set = set_get_kset(mrb, self);
+  if (!kset_is_empty(set)) {
     /* Create a new set by copying the old one */
-    kset_t *new_set = kset_copy(mrb, old_set);
-
-    /* Replace the old data with the new one */
-    kset_destroy_embedded(mrb, old_set);
-    *old_set = *new_set;
-    mrb_free(mrb, new_set);
+    kset_rehash(mrb, set);
   }
 
   return self;
