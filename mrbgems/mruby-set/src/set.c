@@ -358,6 +358,15 @@ set_get_kset(mrb_state *mrb, mrb_value self)
   return &mrb_set_ptr(self)->set;
 }
 
+/* Helper function to ensure set is initialized */
+static void
+set_ensure_initialized(mrb_state *mrb, kset_t *set)
+{
+  if (kset_is_uninitialized(set)) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "uninitialized Set");
+  }
+}
+
 /* Mark function for Set instances */
 size_t
 mrb_gc_mark_set(mrb_state *mrb, struct RBasic *obj)
@@ -434,9 +443,7 @@ set_init_copy(mrb_state *mrb, mrb_value self)
   }
 
   kset_t *orig_set = set_get_kset(mrb, orig);
-  if (kset_is_uninitialized(orig_set)) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid Set object");
-  }
+  set_ensure_initialized(mrb, orig_set);
 
   kset_t *self_set = set_get_kset(mrb, self);
   kset_init_embedded(mrb, self_set);
@@ -544,9 +551,7 @@ set_add(mrb_state *mrb, mrb_value self)
 {
   mrb_value obj = mrb_get_arg1(mrb);
   kset_t *set = set_get_kset(mrb, self);
-  if (kset_is_uninitialized(set)) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "uninitialized Set");
-  }
+  set_ensure_initialized(mrb, set);
 
   kset_put(mrb, set, obj);
   return self;
@@ -564,9 +569,7 @@ set_add_p(mrb_state *mrb, mrb_value self)
 {
   mrb_value obj = mrb_get_arg1(mrb);
   kset_t *set = set_get_kset(mrb, self);
-  if (kset_is_uninitialized(set)) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "uninitialized Set");
-  }
+  set_ensure_initialized(mrb, set);
 
   int ret;
   kset_put2(mrb, set, obj, &ret);
@@ -625,13 +628,13 @@ static mrb_value
 set_core_merge(mrb_state *mrb, mrb_value self)
 {
   mrb_value other = mrb_get_arg1(mrb);
-
   kset_t *self_set = set_get_kset(mrb, self);
-  if (kset_is_uninitialized(self_set)) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "uninitialized Set");
-  }
-
   kset_t *other_set = set_get_kset(mrb, other);
+
+  set_ensure_initialized(mrb, self_set);
+  if (!kset_is_empty(other_set)) {
+    kset_copy_elements(mrb, self_set, other_set);
+  }
 
   return self;
 }
@@ -1392,9 +1395,7 @@ set_add_all(mrb_state *mrb, mrb_value self)
 
   mrb_get_args(mrb, "*", &argv, &argc);
   kset_t *set = set_get_kset(mrb, self);
-  if (!set->data) {
-    mrb_raise(mrb, E_RUNTIME_ERROR, "uninitialized Set");
-  }
+  set_ensure_initialized(mrb, set);
 
   int ai = mrb_gc_arena_save(mrb);
   for (mrb_int i = 0; i < argc; i++) {
