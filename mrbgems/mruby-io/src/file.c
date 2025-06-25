@@ -303,7 +303,7 @@ mrb_file_basename(mrb_state *mrb, mrb_value klass)
   base++; // move to the first character after '/'
 
   // If path is all slashes, return "/"
-  if (base == len) {
+  if ((size_t)base == len) {
     return mrb_str_new_lit(mrb, "/");
   }
 
