@@ -1,0 +1,7 @@
+AllCops:
+  DisabledByDefault: true
+  TargetRubyVersion: 3.4.0
+
+Layout/IndentationStyle:
+  Enabled: true
+  EnforcedStyle: spaces

@@ -115,6 +115,14 @@ repos:
         args: [--config=.github/linters/mlc_config.json, -q]
         types: [markdown]
         files: \.md$
+  - repo: https://github.com/rubocop/rubocop
+    rev: v1.77.0
+    hooks:
+      - id: rubocop
+        name: run rubocop
+        description: RuboCop is a Ruby code style checker (linter) and formatter based on the community-driven Ruby Style Guide
+        exclude: ^test/t/syntax\.rb$
+        args: [--config=.github/linters/.rubocop.yml]
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.10.0.1
     hooks:
