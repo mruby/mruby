@@ -70,9 +70,7 @@ kset_fill_flags(uint8_t *p, uint8_t c, size_t len)
 }
 
 /* Forward declarations */
-static kset_t* kset_init_size(mrb_state *mrb, kset_int_t size);
 static kset_iter_t kset_put(mrb_state *mrb, kset_t *s, mrb_value key);
-static kset_iter_t kset_put2(mrb_state *mrb, kset_t *s, mrb_value key, int *ret);
 
 /* Convenience macros for common operations */
 #define kset_is_uninitialized(s) (!(s)->data)
@@ -95,13 +93,6 @@ static inline mrb_bool
 kset_equal_value(mrb_state *mrb, mrb_value a, mrb_value b)
 {
   return mrb_eql(mrb, a, b);
-}
-
-/* Initialize empty set */
-static kset_t*
-kset_init(mrb_state *mrb)
-{
-  return kset_init_size(mrb, KSET_DEFAULT_SIZE);
 }
 
 /* Initialize set with specific size */
@@ -127,6 +118,13 @@ kset_init_size(mrb_state *mrb, kset_int_t size)
   kset_fill_flags(kset_flags(s), 0xaa, flags_size);
 
   return s;
+}
+
+/* Initialize empty set */
+static kset_t*
+kset_init(mrb_state *mrb)
+{
+  return kset_init_size(mrb, KSET_DEFAULT_SIZE);
 }
 
 /* Destroy set */
@@ -208,14 +206,6 @@ kset_resize(mrb_state *mrb, kset_t *s, kset_int_t new_n_buckets)
   mrb_free(mrb, old_data);
 }
 
-/* Add key to set */
-static kset_iter_t
-kset_put(mrb_state *mrb, kset_t *s, mrb_value key)
-{
-  int ret;
-  return kset_put2(mrb, s, key, &ret);
-}
-
 /* Add key to set with return status */
 static kset_iter_t
 kset_put2(mrb_state *mrb, kset_t *s, mrb_value key, int *ret)
@@ -260,6 +250,13 @@ kset_put2(mrb_state *mrb, kset_t *s, mrb_value key, int *ret)
     if (ret) *ret = 1; /* Used empty slot */
     return k;
   }
+}
+
+/* Add key to set */
+static kset_iter_t
+kset_put(mrb_state *mrb, kset_t *s, mrb_value key)
+{
+  return kset_put2(mrb, s, key, NULL);
 }
 
 /* Delete key from set */
