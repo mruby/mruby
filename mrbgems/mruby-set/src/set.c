@@ -69,18 +69,6 @@ kset_fill_flags(uint8_t *p, uint8_t c, size_t len)
   }
 }
 
-/* Forward declarations */
-static kset_iter_t kset_put(mrb_state *mrb, kset_t *s, mrb_value key);
-
-/* Convenience macros for common operations */
-#define kset_is_uninitialized(s) (!(s)->data)
-#define kset_is_empty(s) (!(s)->data || (s)->size == 0)
-
-/* Macro for iterating over all elements in a kset */
-#define KSET_FOREACH(s, k) \
-  for (kset_iter_t k = 0; k != kset_end(s); k++) \
-    if (kset_exist(s, k))
-
 /* Hash function for mrb_value */
 static inline kset_int_t
 kset_hash_value(mrb_state *mrb, mrb_value key)
@@ -94,6 +82,76 @@ kset_equal_value(mrb_state *mrb, mrb_value a, mrb_value b)
 {
   return mrb_eql(mrb, a, b);
 }
+
+/*
+ * Inserts a key into the provided hash table arrays (keys and flags).
+ * This function encapsulates the core logic of finding a slot and inserting the key.
+ *
+ * Parameters:
+ *   mrb: mrb_state pointer
+ *   key: mrb_value to insert
+ *   keys_array: pointer to the keys array
+ *   flags_array: pointer to the flags array
+ *   n_buckets_val: number of buckets in the arrays
+ *   size_ptr: pointer to the size counter, which is incremented on successful insertion of a new element
+ *   ret_status: pointer to an int to store the status of the operation.
+ *               - 0 if the key already exists.
+ *               - 1 if the key was inserted into a new empty slot.
+ *               - 2 if the key was inserted into a previously deleted slot.
+ *               If NULL, status is not reported.
+ *
+ * Returns:
+ *   The iterator (index) of the key in the keys_array.
+ */
+static inline kset_iter_t
+kset_raw_put(mrb_state *mrb, mrb_value key, mrb_value *keys_array, uint8_t *flags_array,
+             kset_int_t n_buckets_val, kset_int_t *size_ptr, int *ret_status)
+{
+  kset_int_t k, del_k, step = 0;
+  kset_int_t mask = n_buckets_val - 1;
+
+  k = kset_hash_value(mrb, key) & mask;
+  del_k = n_buckets_val; /* Represents an invalid/not-found slot initially */
+
+  while (!KSET_IS_EMPTY(flags_array, k)) {
+    if (!KSET_IS_DEL(flags_array, k)) {
+      if (kset_equal_value(mrb, keys_array[k], key)) {
+        if (ret_status != NULL) { *ret_status = 0; } /* Key already exists */
+        return k;
+      }
+    }
+    else if (del_k == n_buckets_val) { /* Found a deleted slot, mark it if not already marked */
+      del_k = k;
+    }
+    k = (k + (++step)) & mask;
+  }
+
+  if (del_k != n_buckets_val) {
+    /* Use the previously found deleted slot */
+    keys_array[del_k] = key;
+    flags_array[del_k/4] &= ~kset_del_mask[del_k%4]; /* Clear only the deleted flag bit */
+    (*size_ptr)++;
+    if (ret_status != NULL) { *ret_status = 2; } /* Used deleted slot */
+    return del_k;
+  }
+  else {
+    /* Use the new empty slot found */
+    keys_array[k] = key;
+    flags_array[k/4] &= ~kset_empty_mask[k%4]; /* Clear only the empty flag bit */
+    (*size_ptr)++;
+    if (ret_status != NULL) { *ret_status = 1; } /* Used empty slot */
+    return k;
+  }
+}
+
+/* Convenience macros for common operations */
+#define kset_is_uninitialized(s) (!(s)->data)
+#define kset_is_empty(s) (!(s)->data || (s)->size == 0)
+
+/* Macro for iterating over all elements in a kset */
+#define KSET_FOREACH(s, k) \
+  for (kset_iter_t k = 0; k != kset_end(s); k++) \
+    if (kset_exist(s, k))
 
 /* Initialize set with specific size */
 static kset_t*
@@ -179,34 +237,53 @@ kset_resize(mrb_state *mrb, kset_t *s, kset_int_t new_n_buckets)
   }
   kset_power2(new_n_buckets);
 
-  /* Save old data */
-  void *old_data = s->data;
+  if (s->n_buckets == new_n_buckets) return; /* No change needed */
+
+  /* Save old data references */
+  void *old_data_ptr = s->data;
   kset_int_t old_n_buckets = s->n_buckets;
-  mrb_value *old_keys = kset_keys(s);
-  uint8_t *old_flags = kset_flags(s);
+  mrb_value *old_keys = (mrb_value*)old_data_ptr; /* Equivalent to kset_keys(s) before s->data is changed */
+  uint8_t *old_flags = (uint8_t*)old_data_ptr + sizeof(mrb_value) * old_n_buckets; /* Equivalent to kset_flags(s) */
 
-  /* Allocate new data */
-  size_t keys_size = sizeof(mrb_value) * new_n_buckets;
-  size_t flags_size = new_n_buckets / 4;
-  s->data = mrb_malloc(mrb, keys_size + flags_size);
-  s->n_buckets = new_n_buckets;
-  s->size = 0;
+  /* Allocate new data block */
+  size_t new_keys_bytes = sizeof(mrb_value) * new_n_buckets;
+  size_t new_flags_bytes = new_n_buckets / 4;
+  void *new_data_ptr = mrb_malloc(mrb, new_keys_bytes + new_flags_bytes);
 
-  /* Initialize new flags */
-  kset_fill_flags(kset_flags(s), 0xaa, flags_size);
+  mrb_value *new_keys = (mrb_value*)new_data_ptr;
+  uint8_t *new_flags = (uint8_t*)new_data_ptr + new_keys_bytes;
 
-  /* Rehash old elements */
-  for (kset_int_t i = 0; i < old_n_buckets; i++) {
-    if (!KSET_IS_EITHER(old_flags, i)) {
-      kset_put(mrb, s, old_keys[i]);
+  /* Initialize new flags to empty (0xaa pattern) */
+  kset_fill_flags(new_flags, 0xaa, new_flags_bytes);
+
+  kset_int_t new_size = 0;
+  kset_iter_t dummy_iter; /* kset_raw_put requires an iterator, but it's not used here */
+
+  /* Rehash old elements into the new data arrays */
+  /* Iterate only if old_data_ptr is valid (set was not empty/uninitialized) */
+  if (old_data_ptr) {
+    for (kset_int_t i = 0; i < old_n_buckets; i++) {
+      if (!KSET_IS_EITHER(old_flags, i)) {
+        /* Use kset_raw_put to insert the key into new_keys and new_flags */
+        /* Pass NULL for ret_status as kset_resize doesn't use the status */
+        dummy_iter = kset_raw_put(mrb, old_keys[i], new_keys, new_flags, new_n_buckets, &new_size, NULL);
+      }
     }
   }
+  (void)dummy_iter; /* Mark as intentionally unused to suppress warning */
 
-  /* Free old data */
-  mrb_free(mrb, old_data);
+  /* Free the old data block */
+  if (old_data_ptr) {
+    mrb_free(mrb, old_data_ptr);
+  }
+
+  /* Update the set structure with the new data block and properties */
+  s->data = new_data_ptr;
+  s->n_buckets = new_n_buckets;
+  s->size = new_size;
 }
 
-/* Resize set */
+/* Resize set (rehash with current bucket size, mainly for re-compacting deleted slots) */
 static void
 kset_rehash(mrb_state *mrb, kset_t *s)
 {
@@ -217,46 +294,16 @@ kset_rehash(mrb_state *mrb, kset_t *s)
 static kset_iter_t
 kset_put2(mrb_state *mrb, kset_t *s, mrb_value key, int *ret)
 {
-  kset_int_t k, del_k, step = 0;
+  kset_iter_t result_iter;
 
   if (s->size >= kset_upper_bound(s)) {
     kset_resize(mrb, s, s->n_buckets * 2);
   }
 
-  k = kset_hash_value(mrb, key) & kset_mask(s);
-  del_k = kset_end(s);
-  uint8_t *flags = kset_flags(s);
-  mrb_value *keys = kset_keys(s);
+  /* Use the kset_raw_put function to handle the insertion logic */
+  result_iter = kset_raw_put(mrb, key, kset_keys(s), kset_flags(s), s->n_buckets, &s->size, ret);
 
-  while (!KSET_IS_EMPTY(flags, k)) {
-    if (!KSET_IS_DEL(flags, k)) {
-      if (kset_equal_value(mrb, keys[k], key)) {
-        if (ret) *ret = 0; /* Key already exists */
-        return k;
-      }
-    }
-    else if (del_k == kset_end(s)) {
-      del_k = k;
-    }
-    k = (k + (++step)) & kset_mask(s);
-  }
-
-  if (del_k != kset_end(s)) {
-    /* Use deleted slot */
-    keys[del_k] = key;
-    flags[del_k/4] &= ~kset_del_mask[del_k%4];
-    s->size++;
-    if (ret) *ret = 2; /* Used deleted slot */
-    return del_k;
-  }
-  else {
-    /* Use empty slot */
-    keys[k] = key;
-    flags[k/4] &= ~kset_empty_mask[k%4];
-    s->size++;
-    if (ret) *ret = 1; /* Used empty slot */
-    return k;
-  }
+  return result_iter;
 }
 
 /* Add key to set */
