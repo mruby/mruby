@@ -676,20 +676,20 @@ set_core_union(mrb_state *mrb, mrb_value self)
   mrb_value other = mrb_get_arg1(mrb);
 
   /* Create a new set by duplicating self */
-  mrb_value result_set = mrb_obj_dup(mrb, self);
-  kset_t *result_kh = set_get_kset(mrb, result_set);
-  if (!result_kh->data) {
+  mrb_value result = mrb_obj_dup(mrb, self);
+  kset_t *result_set = set_get_kset(mrb, result);
+  if (!result_set->data) {
     /* If self is empty, initialize the set */
-    kset_init_embedded(mrb, result_kh);
+    kset_init_embedded(mrb, result_set);
   }
 
   /* Add all elements from other set */
   kset_t *other_set = set_get_kset(mrb, other);
   if (other_set->data) {
-    kset_copy_elements(mrb, result_kh, other_set);
+    kset_copy_elements(mrb, result_set, other_set);
   }
 
-  return result_set;
+  return result;
 }
 
 /*
@@ -702,11 +702,11 @@ set_core_difference(mrb_state *mrb, mrb_value self)
   mrb_value other = mrb_get_arg1(mrb);
 
   /* Create a new set by duplicating self */
-  mrb_value result_set = mrb_obj_dup(mrb, self);
-  kset_t *result_kh = set_get_kset(mrb, result_set);
-  if (!result_kh->data) {
+  mrb_value result = mrb_obj_dup(mrb, self);
+  kset_t *result_set = set_get_kset(mrb, result);
+  if (!result_set->data) {
     /* If self is empty, return an empty set */
-    return result_set;
+    return result;
   }
 
   /* Remove all elements that are in other set */
@@ -714,14 +714,14 @@ set_core_difference(mrb_state *mrb, mrb_value self)
   if (other_set->data) {
     KSET_FOREACH(other_set, k) {
       mrb_value key = kset_key(other_set, k);
-      kset_iter_t result_k = kset_get(mrb, result_kh, key);
-      if (result_k != kset_end(result_kh)) {
-        kset_del(mrb, result_kh, result_k);
+      kset_iter_t result_k = kset_get(mrb, result_set, key);
+      if (result_k != kset_end(result_set)) {
+        kset_del(mrb, result_set, result_k);
       }
     }
   }
 
-  return result_set;
+  return result;
 }
 
 
@@ -1414,23 +1414,21 @@ set_add_all(mrb_state *mrb, mrb_value self)
  * This is an internal helper function that does not call back to the VM.
  *
  * @param mrb The mruby state
- * @param target_kh The target hash table to add elements to
- * @param source_kh The source hash table to flatten
+ * @param target_set The target set table to add elements to
+ * @param source_set The source set table to flatten
  * @param seen_count Pointer to the current count of seen sets (recursion depth)
  * @return 0 on success, -1 if recursion depth exceeds maximum
  */
 static int
-set_flatten_recursive(mrb_state *mrb, kset_t *target_kh, kset_t *source_kh,
-                     int *seen_count)
+set_flatten_recursive(mrb_state *mrb, kset_t *target_set, kset_t *source_set, int *seen_count)
 {
-  if (!source_kh || !target_kh) return 0;
+  if (!source_set || !target_set) return 0;
   if (*seen_count >= MAX_NESTED_DEPTH) return -1;
 
   int ai = mrb_gc_arena_save(mrb);
-
   /* Process each element in the source set */
-  KSET_FOREACH(source_kh, k) {
-    mrb_value elem = kset_key(source_kh, k);
+  KSET_FOREACH(source_set, k) {
+    mrb_value elem = kset_key(source_set, k);
 
     /* Check if element is a Set */
     if (set_is_set(mrb, elem)) {
@@ -1438,9 +1436,9 @@ set_flatten_recursive(mrb_state *mrb, kset_t *target_kh, kset_t *source_kh,
       (*seen_count)++;
 
       /* Recursively flatten the nested set */
-      kset_t *nested_kh = set_get_kset(mrb, elem);
-      if (nested_kh) {
-        int nested_result = set_flatten_recursive(mrb, target_kh, nested_kh, seen_count);
+      kset_t *nested_set = set_get_kset(mrb, elem);
+      if (nested_set) {
+        int nested_result = set_flatten_recursive(mrb, target_set, nested_set, seen_count);
         if (nested_result < 0) {
           return nested_result; /* Propagate error code */
         }
@@ -1451,7 +1449,7 @@ set_flatten_recursive(mrb_state *mrb, kset_t *target_kh, kset_t *source_kh,
     }
     else {
       /* Add non-Set element directly */
-      kset_put(mrb, target_kh, elem);
+      kset_put(mrb, target_set, elem);
     }
   }
 
