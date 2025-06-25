@@ -134,7 +134,7 @@ static const unsigned int IEEE754_INFINITY_BITS_SINGLE = 0x7F800000;
 #endif
 
 #define MRB_VTYPE_FOREACH(f) \
-    /* mrb_vtype */     /* c type */        /* ruby class */ \
+    /* mrb_vtype */     /* C type */        /* Ruby class */ \
   f(MRB_TT_FALSE,       void,               "false") \
   f(MRB_TT_TRUE,        void,               "true") \
   f(MRB_TT_SYMBOL,      void,               "Symbol") \

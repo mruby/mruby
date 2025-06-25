@@ -389,7 +389,7 @@ MRB_API void mrb_include_module(mrb_state *mrb, struct RClass *cla, struct RClas
 MRB_API void mrb_prepend_module(mrb_state *mrb, struct RClass *cla, struct RClass *prepended);
 
 /**
- * Defines a global function in ruby.
+ * Defines a global function in Ruby.
  *
  * If you're creating a gem it may look something like this
  *
@@ -1066,7 +1066,7 @@ MRB_API mrb_bool mrb_block_given_p(mrb_state *mrb);
 #define mrb_strlen_lit(lit) (sizeof(lit "") - 1)
 
 /**
- * Call existing ruby functions.
+ * Call existing Ruby functions.
  *
  * Example:
  *
@@ -1099,7 +1099,7 @@ MRB_API mrb_bool mrb_block_given_p(mrb_state *mrb);
 MRB_API mrb_value mrb_funcall(mrb_state *mrb, mrb_value val, const char *name, mrb_int argc, ...);
 MRB_API mrb_value mrb_funcall_id(mrb_state *mrb, mrb_value val, mrb_sym mid, mrb_int argc, ...);
 /**
- * Call existing ruby functions. This is basically the type safe version of mrb_funcall.
+ * Call existing Ruby functions. This is basically the type safe version of mrb_funcall.
  *
  *      #include <stdio.h>
  *      #include <mruby.h>
@@ -1114,7 +1114,7 @@ MRB_API mrb_value mrb_funcall_id(mrb_state *mrb, mrb_value val, mrb_sym mid, mrb
  *
  *        FILE *fp = fopen("test.rb","r");
  *        mrb_value obj = mrb_load_file(mrb,fp);
- *        mrb_funcall_argv(mrb, obj, MRB_SYM(method_name), 1, &obj); // Calling ruby function from test.rb.
+ *        mrb_funcall_argv(mrb, obj, MRB_SYM(method_name), 1, &obj); // Calling Ruby function from test.rb.
  *        fclose(fp);
  *        mrb_close(mrb);
  *       }
@@ -1128,7 +1128,7 @@ MRB_API mrb_value mrb_funcall_id(mrb_state *mrb, mrb_value val, mrb_sym mid, mrb
  */
 MRB_API mrb_value mrb_funcall_argv(mrb_state *mrb, mrb_value val, mrb_sym name, mrb_int argc, const mrb_value *argv);
 /**
- * Call existing ruby functions with a block.
+ * Call existing Ruby functions with a block.
  */
 MRB_API mrb_value mrb_funcall_with_block(mrb_state *mrb, mrb_value val, mrb_sym name, mrb_int argc, const mrb_value *argv, mrb_value block);
 /**
