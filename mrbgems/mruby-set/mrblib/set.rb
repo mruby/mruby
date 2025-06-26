@@ -5,10 +5,10 @@ class Set
 
     if block
       __do_with_enum(enum) { add(block.call(_1)) }
-      self
     else
       merge(enum)
     end
+    self
   end
 
   # internal method
