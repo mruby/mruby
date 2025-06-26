@@ -1344,6 +1344,255 @@ str_b(mrb_state *mrb, mrb_value self)
   return str;
 }
 
+/*
+ * Check if character is whitespace (space, tab, newline, carriage return, form feed, vertical tab)
+ */
+static inline mrb_bool
+is_whitespace(char c)
+{
+  return (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v');
+}
+
+/*
+ * Check if character is whitespace or null (for rstrip)
+ */
+static inline mrb_bool
+is_whitespace_or_null(char c)
+{
+  return (c == ' ' || c == '\t' || c == '\n' || c == '\r' || c == '\f' || c == '\v' || c == '\0');
+}
+
+/*
+ *  call-seq:
+ *     str.lstrip   -> new_str
+ *
+ *  Returns a copy of str with leading whitespace removed.
+ *
+ *     "  hello  ".lstrip   #=> "hello  "
+ *     "hello".lstrip       #=> "hello"
+ */
+static mrb_value
+str_lstrip(mrb_state *mrb, mrb_value self)
+{
+  struct RString *s = mrb_str_ptr(self);
+  const char *ptr = RSTR_PTR(s);
+  mrb_int len = RSTR_LEN(s);
+  mrb_int start = 0;
+
+  /* Find first non-whitespace character */
+  while (start < len && is_whitespace(ptr[start])) {
+    start++;
+  }
+
+  /* Return empty string if all whitespace */
+  if (start >= len) {
+    return mrb_str_new_lit(mrb, "");
+  }
+
+  /* Return substring from first non-whitespace to end */
+  return mrb_str_substr(mrb, self, start, len - start);
+}
+
+/*
+ *  call-seq:
+ *     str.rstrip   -> new_str
+ *
+ *  Returns a copy of str with trailing whitespace removed.
+ *
+ *     "  hello  ".rstrip   #=> "  hello"
+ *     "hello".rstrip       #=> "hello"
+ */
+static mrb_value
+str_rstrip(mrb_state *mrb, mrb_value self)
+{
+  struct RString *s = mrb_str_ptr(self);
+  const char *ptr = RSTR_PTR(s);
+  mrb_int len = RSTR_LEN(s);
+  mrb_int end = len;
+
+  /* Find last non-whitespace character */
+  while (end > 0 && is_whitespace_or_null(ptr[end - 1])) {
+    end--;
+  }
+
+  /* Return empty string if all whitespace */
+  if (end <= 0) {
+    return mrb_str_new_lit(mrb, "");
+  }
+
+  /* Return substring from start to last non-whitespace */
+  return mrb_str_substr(mrb, self, 0, end);
+}
+
+/*
+ *  call-seq:
+ *     str.strip   -> new_str
+ *
+ *  Returns a copy of str with leading and trailing whitespace removed.
+ *
+ *     "    hello    ".strip   #=> "hello"
+ *     "\tgoodbye\r\n".strip   #=> "goodbye"
+ */
+static mrb_value
+str_strip(mrb_state *mrb, mrb_value self)
+{
+  struct RString *s = mrb_str_ptr(self);
+  const char *ptr = RSTR_PTR(s);
+  mrb_int len = RSTR_LEN(s);
+  mrb_int start = 0;
+  mrb_int end = len;
+
+  /* Find first non-whitespace character */
+  while (start < len && is_whitespace(ptr[start])) {
+    start++;
+  }
+
+  /* Find last non-whitespace character */
+  while (end > start && is_whitespace_or_null(ptr[end - 1])) {
+    end--;
+  }
+
+  /* Return empty string if all whitespace */
+  if (start >= end) {
+    return mrb_str_new_lit(mrb, "");
+  }
+
+  /* Return substring from first to last non-whitespace */
+  return mrb_str_substr(mrb, self, start, end - start);
+}
+
+/*
+ *  call-seq:
+ *     str.lstrip!   -> self or nil
+ *
+ *  Removes leading whitespace from str, returning nil if no change was made.
+ *
+ *     "  hello  ".lstrip!   #=> "hello  "
+ *     "hello".lstrip!       #=> nil
+ */
+static mrb_value
+str_lstrip_bang(mrb_state *mrb, mrb_value self)
+{
+  struct RString *s = mrb_str_ptr(self);
+  char *ptr = RSTR_PTR(s);
+  mrb_int len = RSTR_LEN(s);
+  mrb_int start = 0;
+
+  mrb_check_frozen(mrb, mrb_obj_ptr(self));
+  mrb_str_modify(mrb, s);
+
+  /* Find first non-whitespace character */
+  while (start < len && is_whitespace(ptr[start])) {
+    start++;
+  }
+
+  /* No change needed */
+  if (start == 0) {
+    return mrb_nil_value();
+  }
+
+  /* Move remaining characters to beginning */
+  if (start < len) {
+    memmove(ptr, ptr + start, len - start);
+    RSTR_SET_LEN(s, len - start);
+  } else {
+    /* All whitespace - make empty */
+    RSTR_SET_LEN(s, 0);
+  }
+
+  return self;
+}
+
+/*
+ *  call-seq:
+ *     str.rstrip!   -> self or nil
+ *
+ *  Removes trailing whitespace from str, returning nil if no change was made.
+ *
+ *     "  hello  ".rstrip!   #=> "  hello"
+ *     "hello".rstrip!       #=> nil
+ */
+static mrb_value
+str_rstrip_bang(mrb_state *mrb, mrb_value self)
+{
+  struct RString *s = mrb_str_ptr(self);
+  char *ptr = RSTR_PTR(s);
+  mrb_int len = RSTR_LEN(s);
+  mrb_int end = len;
+
+  mrb_check_frozen(mrb, mrb_obj_ptr(self));
+  mrb_str_modify(mrb, s);
+
+  /* Find last non-whitespace character */
+  while (end > 0 && is_whitespace_or_null(ptr[end - 1])) {
+    end--;
+  }
+
+  /* No change needed */
+  if (end == len) {
+    return mrb_nil_value();
+  }
+
+  /* Truncate string */
+  RSTR_SET_LEN(s, end);
+
+  return self;
+}
+
+/*
+ *  call-seq:
+ *     str.strip!   -> self or nil
+ *
+ *  Removes leading and trailing whitespace from str, returning nil if no change was made.
+ *
+ *     "    hello    ".strip!   #=> "hello"
+ *     "hello".strip!           #=> nil
+ */
+static mrb_value
+str_strip_bang(mrb_state *mrb, mrb_value self)
+{
+  struct RString *s = mrb_str_ptr(self);
+  char *ptr = RSTR_PTR(s);
+  mrb_int len = RSTR_LEN(s);
+  mrb_int start = 0;
+  mrb_int end = len;
+  mrb_bool changed = FALSE;
+
+  mrb_check_frozen(mrb, mrb_obj_ptr(self));
+  mrb_str_modify(mrb, s);
+
+  /* Find first non-whitespace character */
+  while (start < len && is_whitespace(ptr[start])) {
+    start++;
+  }
+
+  /* Find last non-whitespace character */
+  while (end > start && is_whitespace_or_null(ptr[end - 1])) {
+    end--;
+  }
+
+  /* Check if any changes needed */
+  if (start > 0) {
+    changed = TRUE;
+    if (start < end) {
+      memmove(ptr, ptr + start, end - start);
+    }
+  }
+
+  if (end != len) {
+    changed = TRUE;
+  }
+
+  if (!changed) {
+    return mrb_nil_value();
+  }
+
+  /* Set new length */
+  RSTR_SET_LEN(s, end - start);
+
+  return self;
+}
+
 void
 mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 {
@@ -1387,6 +1636,14 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 
   mrb_define_method_id(mrb, s, MRB_SYM(__lines),          str_lines,           MRB_ARGS_NONE());
   mrb_define_method_id(mrb, s, MRB_SYM(__codepoints),     str_codepoints,      MRB_ARGS_NONE());
+
+  /* Optimized strip methods implemented in C */
+  mrb_define_method_id(mrb, s, MRB_SYM(lstrip),           str_lstrip,          MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM(rstrip),           str_rstrip,          MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM(strip),            str_strip,           MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM_B(lstrip),         str_lstrip_bang,     MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM_B(rstrip),         str_rstrip_bang,     MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM_B(strip),          str_strip_bang,      MRB_ARGS_NONE());
 
   mrb_define_method_id(mrb, mrb->integer_class, MRB_SYM(chr), int_chr, MRB_ARGS_OPT(1));
 }
