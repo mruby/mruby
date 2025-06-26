@@ -1593,6 +1593,26 @@ str_strip_bang(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/* Count UTF-8 characters in a string using mruby's standard function */
+static mrb_int
+str_char_count(mrb_value str)
+{
+#ifdef MRB_UTF8_STRING
+  struct RString *s = mrb_str_ptr(str);
+
+  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
+    /* ASCII/Binary: each byte is a character */
+    return RSTR_LEN(s);
+  }
+
+  /* UTF-8: use mruby's standard UTF-8 character counting function */
+  return mrb_utf8_strlen(RSTR_PTR(s), RSTR_LEN(s));
+#else
+  /* Non-UTF8 build: treat as single bytes */
+  return RSTRING_LEN(str);
+#endif
+}
+
 /* internal fast path for String#chars */
 static mrb_value
 str_chars_ary(mrb_state *mrb, mrb_value self)
@@ -1656,6 +1676,173 @@ str_chars_ary(mrb_state *mrb, mrb_value self)
   return result;
 }
 
+/*
+ *  call-seq:
+ *     str.ljust(integer, padstr=' ')   -> new_str
+ *
+ *  If integer is greater than the length of str, returns a new
+ *  String of length integer with str left justified and padded with padstr;
+ *  otherwise, returns str.
+ */
+static mrb_value
+str_ljust_core(mrb_state *mrb, mrb_value self)
+{
+  mrb_int width;
+  mrb_value padstr = mrb_str_new_lit(mrb, " ");
+  mrb_int char_len, pad_char_len, padsize;
+
+  mrb_get_args(mrb, "i|S", &width, &padstr);
+
+  if (RSTRING_LEN(padstr) == 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
+  }
+
+  char_len = str_char_count(self);
+  if (width <= char_len) {
+    return mrb_str_dup(mrb, self);
+  }
+
+  padsize = width - char_len;
+  pad_char_len = str_char_count(padstr);
+  if (pad_char_len == 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
+  }
+
+  /* Build padding string by repeating padstr */
+  mrb_value padding = mrb_str_new_lit(mrb, "");
+  mrb_int chars_needed = padsize;
+  while (chars_needed > 0) {
+    if (chars_needed >= pad_char_len) {
+      mrb_str_cat_str(mrb, padding, padstr);
+      chars_needed -= pad_char_len;
+    } else {
+      /* Need partial padding - use substr to get exact characters */
+      mrb_value partial = mrb_str_substr(mrb, padstr, 0, chars_needed);
+      mrb_str_cat_str(mrb, padding, partial);
+      chars_needed = 0;
+    }
+  }
+
+  return mrb_str_cat_str(mrb, mrb_str_dup(mrb, self), padding);
+}
+
+/*
+ *  call-seq:
+ *     str.rjust(integer, padstr=' ')   -> new_str
+ *
+ *  If integer is greater than the length of str, returns a new
+ *  String of length integer with str right justified and padded with padstr;
+ *  otherwise, returns str.
+ */
+static mrb_value
+str_rjust_core(mrb_state *mrb, mrb_value self)
+{
+  mrb_int width;
+  mrb_value padstr = mrb_str_new_lit(mrb, " ");
+  mrb_int char_len, pad_char_len, padsize;
+
+  mrb_get_args(mrb, "i|S", &width, &padstr);
+
+  if (RSTRING_LEN(padstr) == 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
+  }
+
+  char_len = str_char_count(self);
+  if (width <= char_len) {
+    return mrb_str_dup(mrb, self);
+  }
+
+  padsize = width - char_len;
+  pad_char_len = str_char_count(padstr);
+  if (pad_char_len == 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
+  }
+
+  /* Build padding string by repeating padstr */
+  mrb_value padding = mrb_str_new_lit(mrb, "");
+  mrb_int chars_needed = padsize;
+  while (chars_needed > 0) {
+    if (chars_needed >= pad_char_len) {
+      mrb_str_cat_str(mrb, padding, padstr);
+      chars_needed -= pad_char_len;
+    } else {
+      /* Need partial padding - use substr to get exact characters */
+      mrb_value partial = mrb_str_substr(mrb, padstr, 0, chars_needed);
+      mrb_str_cat_str(mrb, padding, partial);
+      chars_needed = 0;
+    }
+  }
+
+  return mrb_str_cat_str(mrb, padding, self);
+}
+
+/*
+ *  call-seq:
+ *     str.center(width, padstr=' ')   -> new_str
+ *
+ *  Centers str in width. If width is greater than the length of str,
+ *  returns a new String of length width with str centered and padded with
+ *  padstr; otherwise, returns str.
+ */
+static mrb_value
+str_center_core(mrb_state *mrb, mrb_value self)
+{
+  mrb_int width;
+  mrb_value padstr = mrb_str_new_lit(mrb, " ");
+  mrb_int char_len, pad_char_len, total_pad, left_pad, right_pad;
+
+  mrb_get_args(mrb, "i|S", &width, &padstr);
+
+  if (RSTRING_LEN(padstr) == 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
+  }
+
+  char_len = str_char_count(self);
+  if (width <= char_len) {
+    return mrb_str_dup(mrb, self);
+  }
+
+  total_pad = width - char_len;
+  left_pad = total_pad / 2;
+  right_pad = total_pad - left_pad;
+
+  pad_char_len = str_char_count(padstr);
+  if (pad_char_len == 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "zero width padding");
+  }
+
+  /* Build left padding */
+  mrb_value left_padding = mrb_str_new_lit(mrb, "");
+  mrb_int chars_needed = left_pad;
+  while (chars_needed > 0) {
+    if (chars_needed >= pad_char_len) {
+      mrb_str_cat_str(mrb, left_padding, padstr);
+      chars_needed -= pad_char_len;
+    } else {
+      mrb_value partial = mrb_str_substr(mrb, padstr, 0, chars_needed);
+      mrb_str_cat_str(mrb, left_padding, partial);
+      chars_needed = 0;
+    }
+  }
+
+  /* Build right padding */
+  mrb_value right_padding = mrb_str_new_lit(mrb, "");
+  chars_needed = right_pad;
+  while (chars_needed > 0) {
+    if (chars_needed >= pad_char_len) {
+      mrb_str_cat_str(mrb, right_padding, padstr);
+      chars_needed -= pad_char_len;
+    } else {
+      mrb_value partial = mrb_str_substr(mrb, padstr, 0, chars_needed);
+      mrb_str_cat_str(mrb, right_padding, partial);
+      chars_needed = 0;
+    }
+  }
+
+  mrb_value result = mrb_str_cat_str(mrb, left_padding, self);
+  return mrb_str_cat_str(mrb, result, right_padding);
+}
+
 void
 mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 {
@@ -1710,6 +1897,11 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 
   /* Fast path for chars method implemented in C */
   mrb_define_method_id(mrb, s, MRB_SYM(__chars),          str_chars_ary,       MRB_ARGS_NONE());
+
+  /* Padding methods implemented in C */
+  mrb_define_method_id(mrb, s, MRB_SYM(ljust),            str_ljust_core,      MRB_ARGS_ARG(1,1));
+  mrb_define_method_id(mrb, s, MRB_SYM(rjust),            str_rjust_core,      MRB_ARGS_ARG(1,1));
+  mrb_define_method_id(mrb, s, MRB_SYM(center),           str_center_core,     MRB_ARGS_ARG(1,1));
 
   mrb_define_method_id(mrb, mrb->integer_class, MRB_SYM(chr), int_chr, MRB_ARGS_OPT(1));
 }
