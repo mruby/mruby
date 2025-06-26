@@ -60,12 +60,11 @@ class Set
   # @param [Enumerable] enum The enumerable object to find common elements with
   # @return [Set] A new set containing elements common to both
   def intersection(enum)
-    n = __intersection(enum)
-    return n if n
-
-    n = Set.new
-    __do_with_enum(enum) { |o| n.add(o) if include?(o) }
-    n
+    __intersection(enum) || begin
+      n = Set.new
+      __do_with_enum(enum) { |o| n.add(o) if include?(o) }
+      n
+    end
   end
 
   # Alias for #intersection
@@ -77,10 +76,7 @@ class Set
   # @param [Enumerable] enum The enumerable object to merge with
   # @return [Set] A new set containing all elements from both
   def union(enum)
-    n = __union(enum)
-    return n if n
-
-    dup.merge(enum)
+    __union(enum) || dup.merge(enum)
   end
 
   # Aliases for #union
@@ -93,12 +89,11 @@ class Set
   # @param [Enumerable] enum The enumerable object to find elements to remove
   # @return [Set] A new set with elements from self that are not in enum
   def difference(enum)
-    n = __difference(enum)
-    return n if n
-
-    result = dup
-    __do_with_enum(enum) { |o| result.delete(o) }
-    result
+    __difference(enum) || begin
+      result = dup
+      __do_with_enum(enum) { |o| result.delete(o) }
+      result
+    end
   end
 
   # Alias for #difference
@@ -110,11 +105,10 @@ class Set
   # @param [Enumerable] enum The enumerable object to find exclusive elements with
   # @return [Set] A new set containing elements exclusive between both
   def ^(enum)
-    n = __xor(enum)
-    return n if n
-
-    s2 = Set.new(enum)
-    (self | s2) - (self & s2)
+    __xor(enum) || begin
+      s2 = Set.new(enum)
+      (self | s2) - (self & s2)
+    end
   end
 
   # Iterates over each element in the set.
