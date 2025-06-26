@@ -26,9 +26,7 @@ class Set
   # @param [Enumerable] enum The enumerable object to merge elements from
   # @return [Set] self
   def merge(enum)
-    unless __merge(enum)
-      __do_with_enum(enum) { |o| add(o) }
-    end
+    __merge(enum) || __do_with_enum(enum) { |o| add(o) }
     self
   end
 
@@ -48,9 +46,7 @@ class Set
   # @param [Enumerable] enum The enumerable object containing elements to remove
   # @return [Set] self
   def subtract(enum)
-    unless __subtract(enum)
-      __do_with_enum(enum) { |o| delete(o) }
-    end
+    __subtract(enum) || __do_with_enum(enum) { |o| delete(o) }
     self
   end
 
