@@ -192,16 +192,6 @@ class String
     (padstr*pad1)[0,pad1] + self + (padstr*pad2)[0,pad2]
   end
 
-  def chars(&block)
-    if block_given?
-      self.split('').each do |i|
-        block.call(i)
-      end
-      self
-    else
-      self.split('')
-    end
-  end
 
   ##
   # Call the given block for each character of
@@ -214,6 +204,26 @@ class String
       pos += 1
     end
     self
+  end
+
+  ##
+  # call-seq:
+  #    str.chars                   -> array
+  #    str.chars {|char| block }   -> str
+  #
+  # Returns an array of characters in str when called without a block.
+  # When called with a block, passes each character to the block.
+  #
+  #    "hello".chars                #=> ["h", "e", "l", "l", "o"]
+  #    "hello".chars {|c| print c } #=> "hello"
+  #
+  def chars(&block)
+    if block_given?
+      __chars.each(&block)
+      self
+    else
+      __chars
+    end
   end
 
   def codepoints(&block)

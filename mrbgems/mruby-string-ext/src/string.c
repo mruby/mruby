@@ -1593,6 +1593,69 @@ str_strip_bang(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/* internal fast path for String#chars */
+static mrb_value
+str_chars_ary(mrb_state *mrb, mrb_value self)
+{
+  struct RString *s = mrb_str_ptr(self);
+  const unsigned char *p = (unsigned char*)RSTR_PTR(s);
+  const unsigned char *e = p + RSTR_LEN(s);
+  mrb_value result;
+
+  /* Estimate character count for array pre-allocation */
+  mrb_int estimated_chars = RSTR_LEN(s);
+  if (!RSTR_SINGLE_BYTE_P(s) && !RSTR_BINARY_P(s)) {
+    estimated_chars = estimated_chars / 2; /* rough estimate for UTF-8 */
+  }
+  result = mrb_ary_new_capa(mrb, estimated_chars);
+
+  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
+    /* ASCII/Binary: each byte is a character */
+    while (p < e) {
+      mrb_value char_str = mrb_str_new(mrb, (char*)p, 1);
+      mrb_ary_push(mrb, result, char_str);
+      p++;
+    }
+  } else {
+#ifdef MRB_UTF8_STRING
+    /* UTF-8: handle multi-byte characters */
+    while (p < e) {
+      mrb_int char_len = mrb_utf8len_table[p[0] >> 3];
+      if (char_len == 0 || char_len > 4 || p + char_len > e) {
+        /* Invalid UTF-8, treat as single byte */
+        char_len = 1;
+      } else {
+        /* Validate UTF-8 sequence */
+        mrb_bool valid = TRUE;
+        if (char_len > 1) {
+          for (mrb_int i = 1; i < char_len; i++) {
+            if ((p[i] & 0xC0) != 0x80) {
+              valid = FALSE;
+              break;
+            }
+          }
+        }
+        if (!valid) {
+          char_len = 1;
+        }
+      }
+      mrb_value char_str = mrb_str_new(mrb, (char*)p, char_len);
+      mrb_ary_push(mrb, result, char_str);
+      p += char_len;
+    }
+#else
+    /* Non-UTF8 build: treat as single bytes */
+    while (p < e) {
+      mrb_value char_str = mrb_str_new(mrb, (char*)p, 1);
+      mrb_ary_push(mrb, result, char_str);
+      p++;
+    }
+#endif
+  }
+
+  return result;
+}
+
 void
 mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 {
@@ -1644,6 +1707,9 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, s, MRB_SYM_B(lstrip),         str_lstrip_bang,     MRB_ARGS_NONE());
   mrb_define_method_id(mrb, s, MRB_SYM_B(rstrip),         str_rstrip_bang,     MRB_ARGS_NONE());
   mrb_define_method_id(mrb, s, MRB_SYM_B(strip),          str_strip_bang,      MRB_ARGS_NONE());
+
+  /* Fast path for chars method implemented in C */
+  mrb_define_method_id(mrb, s, MRB_SYM(__chars),          str_chars_ary,       MRB_ARGS_NONE());
 
   mrb_define_method_id(mrb, mrb->integer_class, MRB_SYM(chr), int_chr, MRB_ARGS_OPT(1));
 }
