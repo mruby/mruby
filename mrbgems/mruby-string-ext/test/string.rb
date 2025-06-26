@@ -197,6 +197,9 @@ assert('String#partition') do
   assert_equal ["aaaa", "b", ""], "aaaab".partition("b")
   assert_equal ["", "b", "aaaa"], "baaaa".partition("b")
   assert_equal ["", "", ""],      "".partition("a")
+  assert_equal ["hello", " ", "world"], "hello world".partition(" ")
+  assert_equal ["hell", "o", " world"], "hello world".partition("o")
+  assert_equal ["hello world", "", ""], "hello world".partition("x")
 end
 
 assert('String#rpartition') do
@@ -207,6 +210,9 @@ assert('String#rpartition') do
   assert_equal ["aaaa", "b", ""], "aaaab".rpartition("b")
   assert_equal ["", "b", "aaaa"], "baaaa".rpartition("b")
   assert_equal ["", "", ""],      "".rpartition("a")
+  assert_equal ["hello", " ", "world"], "hello world".rpartition(" ")
+  assert_equal ["hello w", "o", "rld"], "hello world".rpartition("o")
+  assert_equal ["", "", "hello world"], "hello world".rpartition("x")
 end
 
 assert('String#hex') do

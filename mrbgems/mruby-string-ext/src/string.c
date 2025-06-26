@@ -1984,6 +1984,128 @@ mrb_str_slice_bang(mrb_state *mrb, mrb_value self)
   return result;
 }
 
+/*
+ *  call-seq:
+ *     str.partition(sep) -> [head, sep, tail]
+ *
+ *  Searches for the first occurrence of +sep+ in +str+. If +sep+ is found,
+ *  returns a 3-element array containing the part of +str+ before +sep+,
+ *  +sep+ itself, and the part of +str+ after +sep+.
+ *
+ *  If +sep+ is not found, returns a 3-element array containing +str+,
+ *  an empty string, and an empty string.
+ *
+ *     "hello world".partition(" ")   #=> ["hello", " ", "world"]
+ *     "hello world".partition("o")   #=> ["hell", "o", " world"]
+ *     "hello world".partition("x")   #=> ["hello world", "", ""]
+ */
+static mrb_value
+mrb_str_partition(mrb_state *mrb, mrb_value self)
+{
+  mrb_value sep;
+  mrb_get_args(mrb, "S", &sep);
+
+  mrb_int self_len = RSTRING_LEN(self);
+  mrb_int sep_len = RSTRING_LEN(sep);
+  const char *self_ptr = RSTRING_PTR(self);
+  const char *sep_ptr = RSTRING_PTR(sep);
+
+  mrb_value result_ary = mrb_ary_new_capa(mrb, 3);
+
+  if (sep_len == 0) {
+    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
+    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
+    mrb_ary_push(mrb, result_ary, mrb_str_dup(mrb, self));
+    return result_ary;
+  }
+
+  const char *found_ptr = NULL;
+  mrb_int i;
+  for (i = 0; i <= self_len - sep_len; ++i) {
+    if (memcmp(self_ptr + i, sep_ptr, sep_len) == 0) {
+      found_ptr = self_ptr + i;
+      break;
+    }
+  }
+
+  if (found_ptr) {
+    mrb_int pre_len = found_ptr - self_ptr;
+    mrb_int post_len = self_len - pre_len - sep_len;
+
+    mrb_ary_push(mrb, result_ary, mrb_str_new(mrb, self_ptr, pre_len));
+    mrb_ary_push(mrb, result_ary, mrb_str_dup(mrb, sep));
+    mrb_ary_push(mrb, result_ary, mrb_str_new(mrb, found_ptr + sep_len, post_len));
+  }
+  else {
+    mrb_ary_push(mrb, result_ary, mrb_str_dup(mrb, self));
+    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
+    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
+  }
+
+  return result_ary;
+}
+
+/*
+ *  call-seq:
+ *     str.rpartition(sep) -> [head, sep, tail]
+ *
+ *  Searches for the last occurrence of +sep+ in +str+. If +sep+ is found,
+ *  returns a 3-element array containing the part of +str+ before +sep+,
+ *  +sep+ itself, and the part of +str+ after +sep+.
+ *
+ *  If +sep+ is not found, returns a 3-element array containing an empty string,
+ *  an empty string, and +str+.
+ *
+ *     "hello world".rpartition(" ")   #=> ["hello", " ", "world"]
+ *     "hello world".rpartition("o")   #=> ["hello w", "o", "rld"]
+ *     "hello world".rpartition("x")   #=> ["", "", "hello world"]
+ */
+static mrb_value
+mrb_str_rpartition(mrb_state *mrb, mrb_value self)
+{
+  mrb_value sep;
+  mrb_get_args(mrb, "S", &sep);
+
+  mrb_int self_len = RSTRING_LEN(self);
+  mrb_int sep_len = RSTRING_LEN(sep);
+  const char *self_ptr = RSTRING_PTR(self);
+  const char *sep_ptr = RSTRING_PTR(sep);
+
+  mrb_value result_ary = mrb_ary_new_capa(mrb, 3);
+
+  if (sep_len == 0) {
+    mrb_ary_push(mrb, result_ary, mrb_str_dup(mrb, self));
+    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
+    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
+    return result_ary;
+  }
+
+  const char *found_ptr = NULL;
+  mrb_int i;
+  for (i = self_len - sep_len; i >= 0; --i) {
+    if (memcmp(self_ptr + i, sep_ptr, sep_len) == 0) {
+      found_ptr = self_ptr + i;
+      break;
+    }
+  }
+
+  if (found_ptr) {
+    mrb_int pre_len = found_ptr - self_ptr;
+    mrb_int post_len = self_len - pre_len - sep_len;
+
+    mrb_ary_push(mrb, result_ary, mrb_str_new(mrb, self_ptr, pre_len));
+    mrb_ary_push(mrb, result_ary, mrb_str_dup(mrb, sep));
+    mrb_ary_push(mrb, result_ary, mrb_str_new(mrb, found_ptr + sep_len, post_len));
+  }
+  else {
+    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
+    mrb_ary_push(mrb, result_ary, mrb_str_new_lit(mrb, ""));
+    mrb_ary_push(mrb, result_ary, mrb_str_dup(mrb, self));
+  }
+
+  return result_ary;
+}
+
 void
 mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 {
@@ -1998,6 +2120,8 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, s, MRB_SYM(append_as_bytes),  str_append_as_bytes, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, s, MRB_SYM(count),            str_count,           MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, s, MRB_SYM(tr),               str_tr_m,            MRB_ARGS_REQ(2));
+  mrb_define_method_id(mrb, s, MRB_SYM(partition),        mrb_str_partition,   MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_SYM(rpartition),       mrb_str_rpartition,  MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, s, MRB_SYM_B(tr),             str_tr_bang,         MRB_ARGS_REQ(2));
   mrb_define_method_id(mrb, s, MRB_SYM(tr_s),             str_tr_s,            MRB_ARGS_REQ(2));
   mrb_define_method_id(mrb, s, MRB_SYM_B(tr_s),           str_tr_s_bang,       MRB_ARGS_REQ(2));
