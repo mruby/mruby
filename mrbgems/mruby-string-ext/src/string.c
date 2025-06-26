@@ -1843,6 +1843,147 @@ str_center_core(mrb_state *mrb, mrb_value self)
   return mrb_str_cat_str(mrb, result, right_padding);
 }
 
+#ifdef MRB_UTF8_STRING
+/*
+ * Given a character index, find the byte offset in a UTF-8 string.
+ * Returns -1 if the character index is out of bounds.
+ */
+static mrb_int
+str_char_to_byte_offset(mrb_value str, mrb_int char_index)
+{
+  struct RString *s = mrb_str_ptr(str);
+  const char *p = RSTR_PTR(s);
+  mrb_int byte_len = RSTR_LEN(s);
+
+  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
+    return char_index;
+  }
+
+  if (char_index < 0) return -1;
+
+  mrb_int byte_offset = 0;
+  mrb_int current_char_index = 0;
+  while (byte_offset < byte_len && current_char_index < char_index) {
+    mrb_int char_len = mrb_utf8len(p + byte_offset, p + byte_len - byte_offset);
+    if (char_len == 0) break;
+    byte_offset += char_len;
+    current_char_index++;
+  }
+
+  if (current_char_index < char_index) return -1;
+  return byte_offset;
+}
+
+/*
+ * Given a starting character index and a character length, find the byte length.
+ */
+static mrb_int
+str_chars_to_byte_len(mrb_value str, mrb_int char_start, mrb_int char_len)
+{
+  struct RString *s = mrb_str_ptr(str);
+  const char *p = RSTR_PTR(s);
+  mrb_int str_byte_len = RSTR_LEN(s);
+
+  if (RSTR_SINGLE_BYTE_P(s) || RSTR_BINARY_P(s)) {
+    return char_len;
+  }
+
+  mrb_int start_byte_offset = str_char_to_byte_offset(str, char_start);
+  if (start_byte_offset == -1) return 0;
+
+  mrb_int byte_offset = start_byte_offset;
+  mrb_int current_char_len = 0;
+  while (byte_offset < str_byte_len && current_char_len < char_len) {
+    mrb_int cl = mrb_utf8len(p + byte_offset, p + str_byte_len - byte_offset);
+    if (cl == 0) break;
+    byte_offset += cl;
+    current_char_len++;
+  }
+
+  return byte_offset - start_byte_offset;
+}
+#endif
+
+static mrb_value
+mrb_str_slice_bang(mrb_state *mrb, mrb_value self)
+{
+  mrb_check_frozen(mrb, mrb_obj_ptr(self));
+
+  mrb_value arg1, arg2;
+  mrb_int argc = mrb_get_args(mrb, "o|o", &arg1, &arg2);
+
+  struct RString *str = mrb_str_ptr(self);
+  mrb_int str_len;
+  const char *ptr = RSTRING_PTR(self);
+
+#ifdef MRB_UTF8_STRING
+  str_len = str_char_count(self);
+#else
+  str_len = RSTRING_LEN(self);
+#endif
+
+  mrb_int beg, len;
+
+  if (argc == 1) {
+    if (mrb_string_p(arg1)) {
+      mrb_int pos = mrb_str_index(mrb, self, RSTRING_PTR(arg1), RSTRING_LEN(arg1), 0);
+      if (pos == -1) return mrb_nil_value();
+#ifdef MRB_UTF8_STRING
+      beg = str_char_count(mrb_str_substr(mrb, self, 0, pos));
+      len = str_char_count(arg1);
+#else
+      beg = pos;
+      len = RSTRING_LEN(arg1);
+#endif
+    }
+    else if (mrb_range_p(arg1)) {
+      if (mrb_range_beg_len(mrb, arg1, &beg, &len, str_len, TRUE) != MRB_RANGE_OK) {
+        return mrb_nil_value();
+      }
+    }
+    else {
+      beg = mrb_as_int(mrb, arg1);
+      if (beg < 0) beg += str_len;
+      if (beg < 0 || beg >= str_len) return mrb_nil_value();
+      len = 1;
+    }
+  }
+  else { // argc == 2
+    beg = mrb_as_int(mrb, arg1);
+    len = mrb_as_int(mrb, arg2);
+    if (beg < 0) beg += str_len;
+    if (len < 0) return mrb_nil_value();
+    if (beg < 0 || beg > str_len) return mrb_nil_value();
+  }
+
+  if (beg > str_len) return mrb_nil_value();
+  if (beg + len > str_len) {
+    len = str_len - beg;
+  }
+  if (len < 0) len = 0;
+
+#ifdef MRB_UTF8_STRING
+  mrb_int byte_beg = str_char_to_byte_offset(self, beg);
+  mrb_int byte_len = str_chars_to_byte_len(self, beg, len);
+#else
+  mrb_int byte_beg = beg;
+  mrb_int byte_len = len;
+#endif
+
+  if (byte_beg < 0 || byte_beg > RSTRING_LEN(self) || byte_beg + byte_len > RSTRING_LEN(self)) {
+    return mrb_nil_value();
+  }
+
+  mrb_value result = mrb_str_new(mrb, RSTRING_PTR(self) + byte_beg, byte_len);
+
+  mrb_str_modify(mrb, str);
+  ptr = RSTRING_PTR(self);
+  memmove((char*)ptr + byte_beg, ptr + byte_beg + byte_len, RSTRING_LEN(self) - byte_beg - byte_len);
+  RSTR_SET_LEN(str, RSTRING_LEN(self) - byte_len);
+
+  return result;
+}
+
 void
 mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 {
@@ -1850,6 +1991,7 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 
   mrb_define_method_id(mrb, s, MRB_SYM(dump),             mrb_str_dump,        MRB_ARGS_NONE());
   mrb_define_method_id(mrb, s, MRB_SYM_B(swapcase),       str_swapcase_bang,   MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, s, MRB_SYM_B(slice), mrb_str_slice_bang, MRB_ARGS_ARG(1, 1));
   mrb_define_method_id(mrb, s, MRB_SYM(swapcase),         str_swapcase,        MRB_ARGS_NONE());
   mrb_define_method_id(mrb, s, MRB_SYM(concat),           str_concat_m,        MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, s, MRB_OPSYM(lshift),         str_concat_m,        MRB_ARGS_REQ(1));
