@@ -464,29 +464,28 @@ ary_difference(mrb_state *mrb, mrb_value self)
  */
 
 static mrb_value
-ary_union(mrb_state *mrb, mrb_value self)
+ary_union_internal(mrb_state *mrb, mrb_value self, mrb_int other_argc, const mrb_value *other_argv)
 {
-  mrb_value other, result_ary;
-  struct RArray *self_ary, *other_ary;
-  mrb_value *p, *p_end, *other_p, *other_p_end;
-  mrb_int total_len;
+  mrb_value result_ary;
+  mrb_int total_len = RARRAY_LEN(self);
 
-  mrb_get_args(mrb, "A", &other);
-
-  self_ary = mrb_ary_ptr(self);
-  other_ary = mrb_ary_ptr(other);
-  total_len = ARY_LEN(self_ary) + ARY_LEN(other_ary);
+  for (mrb_int i = 0; i < other_argc; i++) {
+    mrb_value other = mrb_check_array_type(mrb, other_argv[i]);
+    if (mrb_nil_p(other)) {
+      mrb_raise(mrb, E_TYPE_ERROR, "can't convert passed argument to Array");
+    }
+    total_len += RARRAY_LEN(other);
+  }
 
   result_ary = mrb_ary_new(mrb);
 
   if (total_len > SET_OP_HASH_THRESHOLD) {
-    /* Use hash for large arrays to achieve O(n) performance */
-    /* Follow the Ruby pattern: hash[key] = true, then check if hash[key] */
     mrb_value hash = mrb_hash_new_capa(mrb, total_len);
 
     /* Add elements from self */
-    p = ARY_PTR(self_ary);
-    p_end = p + ARY_LEN(self_ary);
+    struct RArray *self_ary = mrb_ary_ptr(self);
+    mrb_value *p = ARY_PTR(self_ary);
+    mrb_value *p_end = p + ARY_LEN(self_ary);
     while (p < p_end) {
       mrb_value val = mrb_hash_get(mrb, hash, *p);
       if (mrb_nil_p(val)) {  /* key doesn't exist */
@@ -496,65 +495,94 @@ ary_union(mrb_state *mrb, mrb_value self)
       p++;
     }
 
-    /* Add elements from other */
-    other_p = ARY_PTR(other_ary);
-    other_p_end = other_p + ARY_LEN(other_ary);
-    while (other_p < other_p_end) {
-      mrb_value val = mrb_hash_get(mrb, hash, *other_p);
-      if (mrb_nil_p(val)) {  /* key doesn't exist */
-        mrb_hash_set(mrb, hash, *other_p, mrb_true_value());
-        mrb_ary_push(mrb, result_ary, *other_p);
+    /* Add elements from others */
+    for (mrb_int i = 0; i < other_argc; i++) {
+      struct RArray *other_ary = mrb_ary_ptr(other_argv[i]);
+      mrb_value *other_p = ARY_PTR(other_ary);
+      mrb_value *other_p_end = other_p + ARY_LEN(other_ary);
+      while (other_p < other_p_end) {
+        mrb_value val = mrb_hash_get(mrb, hash, *other_p);
+        if (mrb_nil_p(val)) {  /* key doesn't exist */
+          mrb_hash_set(mrb, hash, *other_p, mrb_true_value());
+          mrb_ary_push(mrb, result_ary, *other_p);
+        }
+        other_p++;
       }
-      other_p++;
     }
   }
   else {
     /* Use linear search for small arrays */
-
-    /* Add elements from self */
-    p = ARY_PTR(self_ary);
-    p_end = p + ARY_LEN(self_ary);
+    /* Add unique elements from self */
+    struct RArray *self_ary = mrb_ary_ptr(self);
+    mrb_value *p = ARY_PTR(self_ary);
+    mrb_value *p_end = p + ARY_LEN(self_ary);
     while (p < p_end) {
-      mrb_int result_len = RARRAY_LEN(result_ary);
-      mrb_value *result_ptr = ARY_PTR(RARRAY(result_ary));
-      mrb_bool found = FALSE;
-
-      for (mrb_int i = 0; i < result_len; i++) {
-        if (mrb_equal(mrb, *p, result_ptr[i])) {
-          found = TRUE;
-          break;
+        mrb_bool found = FALSE;
+        mrb_int result_len = RARRAY_LEN(result_ary);
+        mrb_value *result_ptr = ARY_PTR(RARRAY(result_ary));
+        for (mrb_int j = 0; j < result_len; j++) {
+            if (mrb_equal(mrb, *p, result_ptr[j])) {
+                found = TRUE;
+                break;
+            }
         }
-      }
-
-      if (!found) {
-        mrb_ary_push(mrb, result_ary, *p);
-      }
-      p++;
+        if (!found) {
+            mrb_ary_push(mrb, result_ary, *p);
+        }
+        p++;
     }
 
-    /* Add elements from other */
-    other_p = ARY_PTR(other_ary);
-    other_p_end = other_p + ARY_LEN(other_ary);
-    while (other_p < other_p_end) {
-      mrb_int result_len = RARRAY_LEN(result_ary);
-      mrb_value *result_ptr = ARY_PTR(RARRAY(result_ary));
-      mrb_bool found = FALSE;
-
-      for (mrb_int i = 0; i < result_len; i++) {
-        if (mrb_equal(mrb, *other_p, result_ptr[i])) {
-          found = TRUE;
-          break;
+    /* Add unique elements from others */
+    for (mrb_int i = 0; i < other_argc; i++) {
+      mrb_value other = other_argv[i];
+      mrb_value *other_p = ARY_PTR(RARRAY(other));
+      mrb_value *other_p_end = other_p + ARY_LEN(RARRAY(other));
+      while (other_p < other_p_end) {
+        mrb_bool found = FALSE;
+        mrb_int result_len = RARRAY_LEN(result_ary);
+        mrb_value *result_ptr = ARY_PTR(RARRAY(result_ary));
+        for (mrb_int j = 0; j < result_len; j++) {
+          if (mrb_equal(mrb, *other_p, result_ptr[j])) {
+            found = TRUE;
+            break;
+          }
         }
+        if (!found) {
+          mrb_ary_push(mrb, result_ary, *other_p);
+        }
+        other_p++;
       }
-
-      if (!found) {
-        mrb_ary_push(mrb, result_ary, *other_p);
-      }
-      other_p++;
     }
   }
 
   return result_ary;
+}
+
+static mrb_value
+ary_union(mrb_state *mrb, mrb_value self)
+{
+  mrb_value other;
+  mrb_get_args(mrb, "A", &other);
+  return ary_union_internal(mrb, self, 1, &other);
+}
+
+/*
+ *  call-seq:
+ *    ary.union(other_ary,...)  -> new_ary
+ *
+ *  Set Union---Returns a new array by joining this array with
+ *  <i>other_ary</i>s, removing duplicates.
+ *
+ *    ["a", "b", "c"].union(["c", "d", "a"], ["a", "c", "e"])
+ *           #=> ["a", "b", "c", "d", "e"]
+ */
+static mrb_value
+ary_union_multi(mrb_state *mrb, mrb_value self)
+{
+  const mrb_value *argv;
+  mrb_int argc;
+  mrb_get_args(mrb, "*", &argv, &argc);
+  return ary_union_internal(mrb, self, argc, argv);
 }
 
 /*
@@ -750,6 +778,7 @@ mrb_mruby_array_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, a, MRB_OPSYM(sub), ary_sub, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, a, MRB_SYM(difference), ary_difference, MRB_ARGS_ANY());
   mrb_define_method_id(mrb, a, MRB_OPSYM(or), ary_union, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, a, MRB_SYM(union), ary_union_multi, MRB_ARGS_ANY());
   mrb_define_method_id(mrb, a, MRB_OPSYM(and), ary_intersection, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, a, MRB_SYM_Q(intersect), ary_intersect_p, MRB_ARGS_REQ(1));
 }

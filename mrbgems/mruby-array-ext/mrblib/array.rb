@@ -58,26 +58,6 @@ class Array
 
   ##
   # call-seq:
-  #    ary.union(other_ary,...)  -> new_ary
-  #
-  # Set Union---Returns a new array by joining this array with
-  # <i>other_ary</i>, removing duplicates.
-  #
-  #    ["a", "b", "c"].union(["c", "d", "a"], ["a", "c", "e"])
-  #           #=> ["a", "b", "c", "d", "e"]
-  #
-  def union(*args)
-    ary = self.dup
-    args.each do |x|
-      ary.concat(x)
-      ary.uniq!
-    end
-    ary
-  end
-
-
-  ##
-  # call-seq:
   #    ary.intersection(other_ary,...)  -> new_ary
   #
   # Set Intersection---Returns a new array containing elements common to
