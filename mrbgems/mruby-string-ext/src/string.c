@@ -2000,7 +2000,7 @@ mrb_str_slice_bang(mrb_state *mrb, mrb_value self)
  *     "hello world".partition("x")   #=> ["hello world", "", ""]
  */
 static mrb_value
-mrb_str_partition(mrb_state *mrb, mrb_value self)
+str_partition(mrb_state *mrb, mrb_value self)
 {
   mrb_value sep;
   mrb_get_args(mrb, "S", &sep);
@@ -2061,7 +2061,7 @@ mrb_str_partition(mrb_state *mrb, mrb_value self)
  *     "hello world".rpartition("x")   #=> ["", "", "hello world"]
  */
 static mrb_value
-mrb_str_rpartition(mrb_state *mrb, mrb_value self)
+str_rpartition(mrb_state *mrb, mrb_value self)
 {
   mrb_value sep;
   mrb_get_args(mrb, "S", &sep);
@@ -2123,7 +2123,7 @@ mrb_str_rpartition(mrb_state *mrb, mrb_value self)
  *     "abcd".insert(-1, 'X')   #=> "abcdX"
  */
 static mrb_value
-mrb_str_insert(mrb_state *mrb, mrb_value self)
+str_insert(mrb_state *mrb, mrb_value self)
 {
   mrb_int idx;
   mrb_value str_to_insert;
@@ -2168,9 +2168,9 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, s, MRB_SYM(append_as_bytes),  str_append_as_bytes, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, s, MRB_SYM(count),            str_count,           MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, s, MRB_SYM(tr),               str_tr_m,            MRB_ARGS_REQ(2));
-  mrb_define_method_id(mrb, s, MRB_SYM(partition),        mrb_str_partition,   MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, s, MRB_SYM(rpartition),       mrb_str_rpartition,  MRB_ARGS_REQ(1));
-  mrb_define_method_id(mrb, s, MRB_SYM(insert),           mrb_str_insert,      MRB_ARGS_REQ(2));
+  mrb_define_method_id(mrb, s, MRB_SYM(partition),        str_partition,       MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_SYM(rpartition),       str_rpartition,      MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_SYM(insert),           str_insert,          MRB_ARGS_REQ(2));
   mrb_define_method_id(mrb, s, MRB_SYM_B(tr),             str_tr_bang,         MRB_ARGS_REQ(2));
   mrb_define_method_id(mrb, s, MRB_SYM(tr_s),             str_tr_s,            MRB_ARGS_REQ(2));
   mrb_define_method_id(mrb, s, MRB_SYM_B(tr_s),           str_tr_s_bang,       MRB_ARGS_REQ(2));
