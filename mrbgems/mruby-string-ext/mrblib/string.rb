@@ -1,23 +1,6 @@
 class String
 
   ##
-  #  call-seq:
-  #     str.insert(index, other_str)   -> str
-  #
-  #  Inserts <i>other_str</i> before the character at the given
-  #  <i>index</i>, modifying <i>str</i>. Negative indices count from the
-  #  end of the string, and insert <em>after</em> the given character.
-  #  The intent is insert <i>aString</i> so that it starts at the given
-  #  <i>index</i>.
-  #
-  #     "abcd".insert(0, 'X')    #=> "Xabcd"
-  #     "abcd".insert(3, 'X')    #=> "abcXd"
-  #     "abcd".insert(4, 'X')    #=> "abcdX"
-  #     "abcd".insert(-3, 'X')   #=> "abXcd"
-  #     "abcd".insert(-1, 'X')   #=> "abcdX"
-  #
-
-  ##
   # Call the given block for each character of
   # +self+.
   def each_char(&block)
