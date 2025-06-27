@@ -596,34 +596,46 @@ ary_union_multi(mrb_state *mrb, mrb_value self)
  */
 
 static mrb_value
-ary_intersection(mrb_state *mrb, mrb_value self)
+ary_intersection_internal(mrb_state *mrb, mrb_value self, mrb_int other_argc, const mrb_value *other_argv)
 {
-  mrb_value other, result_ary;
-  struct RArray *self_ary, *other_ary;
-  mrb_value *p, *p_end, *other_p, *other_p_end;
+  mrb_value result_ary;
+  struct RArray *self_ary;
+  mrb_value *p, *p_end;
+  mrb_int total_other_len = 0;
 
-  mrb_get_args(mrb, "A", &other);
+  if (other_argc == 0) {
+    return mrb_ary_new(mrb);
+  }
+
+  for (mrb_int i = 0; i < other_argc; i++) {
+    mrb_value other = mrb_check_array_type(mrb, other_argv[i]);
+    if (mrb_nil_p(other)) {
+      mrb_raise(mrb, E_TYPE_ERROR, "can't convert passed argument to Array");
+    }
+    total_other_len += RARRAY_LEN(other);
+  }
 
   self_ary = mrb_ary_ptr(self);
-  other_ary = mrb_ary_ptr(other);
+  p = ARY_PTR(self_ary);
+  p_end = p + ARY_LEN(self_ary);
 
   result_ary = mrb_ary_new(mrb);
 
-  if (ARY_LEN(other_ary) > SET_OP_HASH_THRESHOLD) {
-    /* Use hash for large arrays to achieve O(n) performance */
-    mrb_value hash = mrb_hash_new_capa(mrb, ARY_LEN(other_ary));
+  if (total_other_len > SET_OP_HASH_THRESHOLD) {
+    mrb_value hash = mrb_hash_new_capa(mrb, total_other_len);
 
-    /* Populate hash with elements from other_ary */
-    other_p = ARY_PTR(other_ary);
-    other_p_end = other_p + ARY_LEN(other_ary);
-    while (other_p < other_p_end) {
-      mrb_hash_set(mrb, hash, *other_p, mrb_true_value());
-      other_p++;
+    /* Populate hash with elements from all other_argv */
+    for (mrb_int i = 0; i < other_argc; i++) {
+      struct RArray *other_ary = mrb_ary_ptr(other_argv[i]);
+      mrb_value *other_p = ARY_PTR(other_ary);
+      mrb_value *other_p_end = other_p + ARY_LEN(other_ary);
+      while (other_p < other_p_end) {
+        mrb_hash_set(mrb, hash, *other_p, mrb_true_value());
+        other_p++;
+      }
     }
 
     /* Check elements from self against hash */
-    p = ARY_PTR(self_ary);
-    p_end = p + ARY_LEN(self_ary);
     while (p < p_end) {
       mrb_value val = mrb_hash_get(mrb, hash, *p);
       if (!mrb_nil_p(val)) {  /* key exists in other_ary */
@@ -635,23 +647,28 @@ ary_intersection(mrb_state *mrb, mrb_value self)
   }
   else {
     /* Use linear search for small arrays */
-    p = ARY_PTR(self_ary);
-    p_end = p + ARY_LEN(self_ary);
     while (p < p_end) {
-      /* Check if element exists in other_ary */
-      other_p = ARY_PTR(other_ary);
-      other_p_end = other_p + ARY_LEN(other_ary);
-      mrb_bool found = FALSE;
+      mrb_bool found_in_all = TRUE;
+      for (mrb_int i = 0; i < other_argc; i++) {
+        struct RArray *other_ary = mrb_ary_ptr(other_argv[i]);
+        mrb_value *other_p = ARY_PTR(other_ary);
+        mrb_value *other_p_end = other_p + ARY_LEN(other_ary);
+        mrb_bool found_in_current_other = FALSE;
 
-      while (other_p < other_p_end) {
-        if (mrb_equal(mrb, *p, *other_p)) {
-          found = TRUE;
+        while (other_p < other_p_end) {
+          if (mrb_equal(mrb, *p, *other_p)) {
+            found_in_current_other = TRUE;
+            break;
+          }
+          other_p++;
+        }
+        if (!found_in_current_other) {
+          found_in_all = FALSE;
           break;
         }
-        other_p++;
       }
 
-      if (found) {
+      if (found_in_all) {
         /* Check if already in result to ensure uniqueness */
         mrb_int result_len = RARRAY_LEN(result_ary);
         mrb_value *result_ptr = RARRAY_PTR(result_ary);
@@ -674,6 +691,34 @@ ary_intersection(mrb_state *mrb, mrb_value self)
 
   return result_ary;
 }
+
+static mrb_value
+ary_intersection(mrb_state *mrb, mrb_value self)
+{
+  mrb_value other;
+  mrb_get_args(mrb, "A", &other);
+  return ary_intersection_internal(mrb, self, 1, &other);
+}
+
+/*
+ *  call-seq:
+ *    ary.intersection(other_ary,...)  -> new_ary
+ *
+ *  Set Intersection---Returns a new array containing elements common to
+ *  this array and <i>other_ary</i>s, removing duplicates. The order is
+ *  preserved from the original array.
+ *
+ *    [1, 2, 3].intersection([3, 4, 1], [1, 3, 5])  #=> [1, 3]
+ */
+static mrb_value
+ary_intersection_multi(mrb_state *mrb, mrb_value self)
+{
+  const mrb_value *argv;
+  mrb_int argc;
+  mrb_get_args(mrb, "*", &argv, &argc);
+  return ary_intersection_internal(mrb, self, argc, argv);
+}
+
 
 /*
  *  call-seq:
@@ -780,6 +825,7 @@ mrb_mruby_array_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, a, MRB_OPSYM(or), ary_union, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, a, MRB_SYM(union), ary_union_multi, MRB_ARGS_ANY());
   mrb_define_method_id(mrb, a, MRB_OPSYM(and), ary_intersection, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, a, MRB_SYM(intersection), ary_intersection_multi, MRB_ARGS_ANY());
   mrb_define_method_id(mrb, a, MRB_SYM_Q(intersect), ary_intersect_p, MRB_ARGS_REQ(1));
 }
 

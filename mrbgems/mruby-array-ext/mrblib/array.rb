@@ -58,25 +58,6 @@ class Array
 
   ##
   # call-seq:
-  #    ary.intersection(other_ary,...)  -> new_ary
-  #
-  # Set Intersection---Returns a new array containing elements common to
-  # this array and <i>other_ary</i>s, removing duplicates. The order is
-  # preserved from the original array.
-  #
-  #    [1, 2, 3].intersection([3, 4, 1], [1, 3, 5])  #=> [1, 3]
-  #
-  def intersection(*args)
-    ary = self
-    args.each do |x|
-      ary = ary & x
-    end
-    ary
-  end
-
-
-  ##
-  # call-seq:
   #    ary.flatten -> new_ary
   #    ary.flatten(level) -> new_ary
   #
