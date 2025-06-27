@@ -343,6 +343,78 @@ ary_rotate_bang(mrb_state *mrb, mrb_value self)
 
 #define SET_OP_HASH_THRESHOLD 32
 
+static mrb_value
+ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int other_argc, const mrb_value *other_argv)
+{
+  mrb_value result_ary;
+  struct RArray *self_ary;
+  mrb_value *p, *p_end;
+  mrb_int total_other_len = 0;
+
+  if (other_argc == 0) {
+    return mrb_ary_new_from_values(mrb, RARRAY_LEN(self), RARRAY_PTR(self));
+  }
+
+  for (mrb_int i = 0; i < other_argc; i++) {
+    mrb_value other = mrb_check_array_type(mrb, other_argv[i]);
+    if (mrb_nil_p(other)) {
+      mrb_raise(mrb, E_TYPE_ERROR, "can't convert passed argument to Array");
+    }
+    total_other_len += RARRAY_LEN(other);
+  }
+
+  self_ary = mrb_ary_ptr(self);
+  p = ARY_PTR(self_ary);
+  p_end = p + ARY_LEN(self_ary);
+  result_ary = mrb_ary_new(mrb);
+
+  if (total_other_len > SET_OP_HASH_THRESHOLD) {
+    mrb_value hash = mrb_hash_new_capa(mrb, total_other_len);
+
+    for (mrb_int i = 0; i < other_argc; i++) {
+      struct RArray *other_ary = mrb_ary_ptr(other_argv[i]);
+      mrb_value *other_p = ARY_PTR(other_ary);
+      mrb_value *other_p_end = other_p + ARY_LEN(other_ary);
+      while (other_p < other_p_end) {
+        mrb_hash_set(mrb, hash, *other_p, mrb_true_value());
+        other_p++;
+      }
+    }
+
+    while (p < p_end) {
+      mrb_value val = mrb_hash_get(mrb, hash, *p);
+      if (mrb_nil_p(val)) {  /* key doesn't exist in any other_ary */
+        mrb_ary_push(mrb, result_ary, *p);
+      }
+      p++;
+    }
+  }
+  else {
+    while (p < p_end) {
+      mrb_bool found = FALSE;
+      for (mrb_int i = 0; i < other_argc; i++) {
+        struct RArray *other_ary = mrb_ary_ptr(other_argv[i]);
+        mrb_value *other_p = ARY_PTR(other_ary);
+        mrb_value *other_p_end = other_p + ARY_LEN(other_ary);
+        while (other_p < other_p_end) {
+          if (mrb_equal(mrb, *p, *other_p)) {
+            found = TRUE;
+            break;
+          }
+          other_p++;
+        }
+        if (found) break;
+      }
+      if (!found) {
+        mrb_ary_push(mrb, result_ary, *p);
+      }
+      p++;
+    }
+  }
+
+  return result_ary;
+}
+
 /*
  *  call-seq:
  *     ary - other_ary   -> new_ary
@@ -356,59 +428,28 @@ ary_rotate_bang(mrb_state *mrb, mrb_value self)
 static mrb_value
 ary_sub(mrb_state *mrb, mrb_value self)
 {
-  mrb_value other, result_ary;
-  struct RArray *self_ary, *other_ary;
-  mrb_value *p, *p_end;
-
+  mrb_value other;
   mrb_get_args(mrb, "A", &other);
+  return ary_subtract_internal(mrb, self, 1, &other);
+}
 
-  self_ary = mrb_ary_ptr(self);
-  other_ary = mrb_ary_ptr(other);
-  p = ARY_PTR(self_ary);
-  p_end = p + ARY_LEN(self_ary);
-
-  result_ary = mrb_ary_new(mrb);
-
-  if (ARY_LEN(other_ary) > SET_OP_HASH_THRESHOLD) {
-    mrb_value hash = mrb_hash_new_capa(mrb, ARY_LEN(other_ary));
-    mrb_value *other_p = ARY_PTR(other_ary);
-    mrb_value *other_p_end = other_p + ARY_LEN(other_ary);
-
-    while (other_p < other_p_end) {
-      mrb_hash_set(mrb, hash, *other_p, mrb_true_value());
-      other_p++;
-    }
-
-    while (p < p_end) {
-      mrb_value val = mrb_hash_get(mrb, hash, *p);
-      if (mrb_nil_p(val)) {  /* key doesn't exist in other_ary */
-        mrb_ary_push(mrb, result_ary, *p);
-      }
-      p++;
-    }
-  }
-  else {
-    while (p < p_end) {
-      mrb_value *other_p = ARY_PTR(other_ary);
-      mrb_value *other_p_end = other_p + ARY_LEN(other_ary);
-      mrb_bool found = FALSE;
-
-      while (other_p < other_p_end) {
-        if (mrb_equal(mrb, *p, *other_p)) {
-          found = TRUE;
-          break;
-        }
-        other_p++;
-      }
-
-      if (!found) {
-        mrb_ary_push(mrb, result_ary, *p);
-      }
-      p++;
-    }
-  }
-
-  return result_ary;
+/*
+ *  call-seq:
+ *     ary.difference(other_ary, ...)   -> new_ary
+ *
+ *  Returns a new array that is a copy of the original array, removing all
+ *  occurrences of any item that also appear in any of the +other_ary+s.
+ *  The order is preserved from the original array.
+ *
+ *    [1, 2, 3, 4, 5].difference([2, 4], [1, 5])  #=> [3]
+ */
+static mrb_value
+ary_difference(mrb_state *mrb, mrb_value self)
+{
+  const mrb_value *argv;
+  mrb_int argc;
+  mrb_get_args(mrb, "*", &argv, &argc);
+  return ary_subtract_internal(mrb, self, argc, argv);
 }
 
 /*
@@ -707,6 +748,7 @@ mrb_mruby_array_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, a, MRB_SYM(rotate), ary_rotate, MRB_ARGS_OPT(1));
   mrb_define_method_id(mrb, a, MRB_SYM_B(rotate), ary_rotate_bang, MRB_ARGS_OPT(1));
   mrb_define_method_id(mrb, a, MRB_OPSYM(sub), ary_sub, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, a, MRB_SYM(difference), ary_difference, MRB_ARGS_ANY());
   mrb_define_method_id(mrb, a, MRB_OPSYM(or), ary_union, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, a, MRB_OPSYM(and), ary_intersection, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, a, MRB_SYM_Q(intersect), ary_intersect_p, MRB_ARGS_REQ(1));
