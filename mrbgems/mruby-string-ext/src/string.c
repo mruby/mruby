@@ -1986,6 +1986,24 @@ mrb_str_slice_bang(mrb_state *mrb, mrb_value self)
 
 /*
  *  call-seq:
+ *     string.clear    ->  string
+ *
+ *  Makes string empty.
+ *
+ *     a = "abcde"
+ *     a.clear    #=> ""
+ */
+static mrb_value
+str_clear(mrb_state *mrb, mrb_value self)
+{
+  struct RString *s = mrb_str_ptr(self);
+  mrb_str_modify(mrb, s);
+  RSTR_SET_LEN(s, 0);
+  return self;
+}
+
+/*
+ *  call-seq:
  *     str.partition(sep) -> [head, sep, tail]
  *
  *  Searches for the first occurrence of +sep+ in +str+. If +sep+ is found,
@@ -2163,8 +2181,9 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, s, MRB_SYM_B(swapcase),       str_swapcase_bang,   MRB_ARGS_NONE());
   mrb_define_method_id(mrb, s, MRB_SYM_B(slice), mrb_str_slice_bang, MRB_ARGS_ARG(1, 1));
   mrb_define_method_id(mrb, s, MRB_SYM(swapcase),         str_swapcase,        MRB_ARGS_NONE());
-  mrb_define_method_id(mrb, s, MRB_SYM(concat),           str_concat_m,        MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_SYM(clear),            str_clear,           MRB_ARGS_NONE());
   mrb_define_method_id(mrb, s, MRB_OPSYM(lshift),         str_concat_m,        MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_SYM(concat),           str_concat_m,        MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, s, MRB_SYM(append_as_bytes),  str_append_as_bytes, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, s, MRB_SYM(count),            str_count,           MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, s, MRB_SYM(tr),               str_tr_m,            MRB_ARGS_REQ(2));

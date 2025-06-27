@@ -1,19 +1,5 @@
 class String
 
-  ##
-  # call-seq:
-  #    string.clear    ->  string
-  #
-  # Makes string empty.
-  #
-  #    a = "abcde"
-  #    a.clear    #=> ""
-  #
-  def clear
-    self.replace("")
-  end
-
-
   def partition(sep)
     raise TypeError, "type mismatch: #{sep.class} given" unless sep.is_a? String
     n = index(sep)
