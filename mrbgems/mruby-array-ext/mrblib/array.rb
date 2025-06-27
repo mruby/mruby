@@ -72,22 +72,6 @@ class Array
     ary
   end
 
-  ##
-  # call-seq:
-  #    ary | other_ary     -> new_ary
-  #
-  # Set Union---Returns a new array by joining this array with
-  # <i>other_ary</i>, removing duplicates.
-  #
-  #    [ "a", "b", "c" ] | [ "c", "d", "a" ]
-  #           #=> [ "a", "b", "c", "d" ]
-  #
-  def |(elem)
-    raise TypeError, "can't convert #{elem.class} into Array" unless elem.class == Array
-
-    ary = self + elem
-    ary.uniq! or ary
-  end
 
   ##
   # call-seq:

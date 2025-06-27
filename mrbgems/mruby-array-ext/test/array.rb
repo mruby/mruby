@@ -139,6 +139,34 @@ assert("Array#|") do
   assert_equal [1, 2, 3, 1], a
 end
 
+assert("Array#| with large arrays") do
+  # Test hash-based implementation (total length > 16)
+  a = (1..20).to_a
+  b = (18..50).to_a
+  result = a | b
+  expected = (1..50).to_a
+
+  assert_equal expected, result
+  assert_equal 50, result.size
+
+  # Test with overlapping ranges
+  a = (1..15).to_a
+  b = (10..25).to_a
+  result = a | b
+  expected = (1..25).to_a
+
+  assert_equal expected, result
+  assert_equal 25, result.size
+
+  # Ensure original arrays are unchanged
+  original_a = (1..20).to_a
+  original_b = (18..50).to_a
+  result = original_a | original_b
+  assert_equal (1..50).to_a, result
+  assert_equal (1..20).to_a, original_a
+  assert_equal (18..50).to_a, original_b
+end
+
 assert("Array#union") do
   a = [1, 2, 3, 1]
   b = [1, 4]

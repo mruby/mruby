@@ -411,6 +411,111 @@ ary_sub(mrb_state *mrb, mrb_value self)
   return result_ary;
 }
 
+/*
+ *  call-seq:
+ *     ary | other_ary     -> new_ary
+ *
+ *  Set Union---Returns a new array by joining this array with
+ *  <i>other_ary</i>, removing duplicates.
+ *
+ *     [ "a", "b", "c" ] | [ "c", "d", "a" ]
+ *           #=> [ "a", "b", "c", "d" ]
+ */
+
+static mrb_value
+ary_union(mrb_state *mrb, mrb_value self)
+{
+  mrb_value other, result_ary;
+  struct RArray *self_ary, *other_ary;
+  mrb_value *p, *p_end, *other_p, *other_p_end;
+  mrb_int total_len;
+
+  mrb_get_args(mrb, "A", &other);
+
+  self_ary = mrb_ary_ptr(self);
+  other_ary = mrb_ary_ptr(other);
+  total_len = ARY_LEN(self_ary) + ARY_LEN(other_ary);
+
+  result_ary = mrb_ary_new(mrb);
+
+  if (total_len > SET_OP_HASH_THRESHOLD) {
+    /* Use hash for large arrays to achieve O(n) performance */
+    /* Follow the Ruby pattern: hash[key] = true, then check if hash[key] */
+    mrb_value hash = mrb_hash_new_capa(mrb, total_len);
+
+    /* Add elements from self */
+    p = ARY_PTR(self_ary);
+    p_end = p + ARY_LEN(self_ary);
+    while (p < p_end) {
+      mrb_value val = mrb_hash_get(mrb, hash, *p);
+      if (mrb_nil_p(val)) {  /* key doesn't exist */
+        mrb_hash_set(mrb, hash, *p, mrb_true_value());
+        mrb_ary_push(mrb, result_ary, *p);
+      }
+      p++;
+    }
+
+    /* Add elements from other */
+    other_p = ARY_PTR(other_ary);
+    other_p_end = other_p + ARY_LEN(other_ary);
+    while (other_p < other_p_end) {
+      mrb_value val = mrb_hash_get(mrb, hash, *other_p);
+      if (mrb_nil_p(val)) {  /* key doesn't exist */
+        mrb_hash_set(mrb, hash, *other_p, mrb_true_value());
+        mrb_ary_push(mrb, result_ary, *other_p);
+      }
+      other_p++;
+    }
+  }
+  else {
+    /* Use linear search for small arrays */
+
+    /* Add elements from self */
+    p = ARY_PTR(self_ary);
+    p_end = p + ARY_LEN(self_ary);
+    while (p < p_end) {
+      mrb_int result_len = RARRAY_LEN(result_ary);
+      mrb_value *result_ptr = ARY_PTR(RARRAY(result_ary));
+      mrb_bool found = FALSE;
+
+      for (mrb_int i = 0; i < result_len; i++) {
+        if (mrb_equal(mrb, *p, result_ptr[i])) {
+          found = TRUE;
+          break;
+        }
+      }
+
+      if (!found) {
+        mrb_ary_push(mrb, result_ary, *p);
+      }
+      p++;
+    }
+
+    /* Add elements from other */
+    other_p = ARY_PTR(other_ary);
+    other_p_end = other_p + ARY_LEN(other_ary);
+    while (other_p < other_p_end) {
+      mrb_int result_len = RARRAY_LEN(result_ary);
+      mrb_value *result_ptr = ARY_PTR(RARRAY(result_ary));
+      mrb_bool found = FALSE;
+
+      for (mrb_int i = 0; i < result_len; i++) {
+        if (mrb_equal(mrb, *other_p, result_ptr[i])) {
+          found = TRUE;
+          break;
+        }
+      }
+
+      if (!found) {
+        mrb_ary_push(mrb, result_ary, *other_p);
+      }
+      other_p++;
+    }
+  }
+
+  return result_ary;
+}
+
 void
 mrb_mruby_array_ext_gem_init(mrb_state* mrb)
 {
@@ -426,6 +531,7 @@ mrb_mruby_array_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, a, MRB_SYM(rotate), ary_rotate, MRB_ARGS_OPT(1));
   mrb_define_method_id(mrb, a, MRB_SYM_B(rotate), ary_rotate_bang, MRB_ARGS_OPT(1));
   mrb_define_method_id(mrb, a, MRB_OPSYM(sub), ary_sub, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, a, MRB_OPSYM(or), ary_union, MRB_ARGS_REQ(1));
 }
 
 void
