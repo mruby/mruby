@@ -83,6 +83,52 @@ assert("Array#-") do
   assert_equal [1, 2, 3, 1], a
 end
 
+assert("Array#- with large arrays") do
+  # Test hash-based implementation (other_ary length > 16)
+  a = (1..30).to_a
+  b = (10..25).to_a  # 16 elements, triggers hash approach
+  result = a - b
+  expected = [1, 2, 3, 4, 5, 6, 7, 8, 9, 26, 27, 28, 29, 30]
+
+  assert_equal expected, result
+  assert_equal 14, result.size
+
+  # Test with larger removal set
+  a = (1..50).to_a
+  b = (20..40).to_a  # 21 elements > 16, triggers hash approach
+  result = a - b
+  expected = (1..19).to_a + (41..50).to_a
+
+  assert_equal expected, result
+  assert_equal 29, result.size
+
+  # Test removing all elements
+  a = (1..20).to_a
+  b = (1..20).to_a
+  result = a - b
+  expected = []
+
+  assert_equal expected, result
+  assert_equal 0, result.size
+
+  # Test removing no elements
+  a = (1..20).to_a
+  b = (30..50).to_a  # 21 elements > 16, triggers hash approach
+  result = a - b
+  expected = (1..20).to_a
+
+  assert_equal expected, result
+  assert_equal 20, result.size
+
+  # Ensure original arrays are unchanged
+  original_a = (1..30).to_a
+  original_b = (10..25).to_a
+  result = original_a - original_b
+  assert_equal [1, 2, 3, 4, 5, 6, 7, 8, 9, 26, 27, 28, 29, 30], result
+  assert_equal (1..30).to_a, original_a
+  assert_equal (10..25).to_a, original_b
+end
+
 assert("Array#|") do
   a = [1, 2, 3, 1]
   b = [1, 4]

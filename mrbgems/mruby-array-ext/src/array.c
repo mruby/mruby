@@ -341,6 +341,76 @@ ary_rotate_bang(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+#define SET_OP_HASH_THRESHOLD 16
+
+/*
+ *  call-seq:
+ *     ary - other_ary   -> new_ary
+ *
+ *  Returns a new array that is a copy of the original array, with any items
+ *  that also appear in +other_ary+ removed.
+ *
+ *     [ 1, 1, 2, 2, 3, 3, 4, 5 ] - [ 1, 2, 4 ]  #=> [ 3, 3, 5 ]
+ */
+
+static mrb_value
+ary_sub(mrb_state *mrb, mrb_value self)
+{
+  mrb_value other, result_ary;
+  struct RArray *self_ary, *other_ary;
+  mrb_value *p, *p_end;
+
+  mrb_get_args(mrb, "A", &other);
+
+  self_ary = mrb_ary_ptr(self);
+  other_ary = mrb_ary_ptr(other);
+  p = ARY_PTR(self_ary);
+  p_end = p + ARY_LEN(self_ary);
+
+  result_ary = mrb_ary_new(mrb);
+
+  if (ARY_LEN(other_ary) > SET_OP_HASH_THRESHOLD) {
+    mrb_value hash = mrb_hash_new_capa(mrb, ARY_LEN(other_ary));
+    mrb_value *other_p = ARY_PTR(other_ary);
+    mrb_value *other_p_end = other_p + ARY_LEN(other_ary);
+
+    while (other_p < other_p_end) {
+      mrb_hash_set(mrb, hash, *other_p, mrb_true_value());
+      other_p++;
+    }
+
+    while (p < p_end) {
+      mrb_value val = mrb_hash_get(mrb, hash, *p);
+      if (mrb_nil_p(val)) {  /* key doesn't exist in other_ary */
+        mrb_ary_push(mrb, result_ary, *p);
+      }
+      p++;
+    }
+  }
+  else {
+    while (p < p_end) {
+      mrb_value *other_p = ARY_PTR(other_ary);
+      mrb_value *other_p_end = other_p + ARY_LEN(other_ary);
+      mrb_bool found = FALSE;
+
+      while (other_p < other_p_end) {
+        if (mrb_equal(mrb, *p, *other_p)) {
+          found = TRUE;
+          break;
+        }
+        other_p++;
+      }
+
+      if (!found) {
+        mrb_ary_push(mrb, result_ary, *p);
+      }
+      p++;
+    }
+  }
+
+  return result_ary;
+}
+
 void
 mrb_mruby_array_ext_gem_init(mrb_state* mrb)
 {
@@ -355,6 +425,7 @@ mrb_mruby_array_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, a, MRB_SYM_B(compact), ary_compact_bang, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, a, MRB_SYM(rotate), ary_rotate, MRB_ARGS_OPT(1));
   mrb_define_method_id(mrb, a, MRB_SYM_B(rotate), ary_rotate_bang, MRB_ARGS_OPT(1));
+  mrb_define_method_id(mrb, a, MRB_OPSYM(sub), ary_sub, MRB_ARGS_REQ(1));
 }
 
 void

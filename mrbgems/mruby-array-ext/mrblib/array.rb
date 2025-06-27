@@ -58,38 +58,6 @@ class Array
 
   ##
   # call-seq:
-  #    ary - other_ary    -> new_ary
-  #
-  # Array Difference---Returns a new array that is a copy of
-  # the original array, removing any items that also appear in
-  # <i>other_ary</i>. (If you need set-like behavior, see the
-  # library class Set.)
-  #
-  #    [ 1, 1, 2, 2, 3, 3, 4, 5 ] - [ 1, 2, 4 ]  #=>  [ 3, 3, 5 ]
-  #
-  def -(elem)
-    raise TypeError, "can't convert #{elem.class} into Array" unless elem.class == Array
-
-    hash = {}
-    array = []
-    idx = 0
-    len = elem.size
-    while idx < len
-      hash[elem[idx]] = true
-      idx += 1
-    end
-    idx = 0
-    len = size
-    while idx < len
-      v = self[idx]
-      array << v unless hash[v]
-      idx += 1
-    end
-    array
-  end
-
-  ##
-  # call-seq:
   #    ary.difference(other_ary1, other_ary2, ...)   -> new_ary
   #
   # Returns a new array that is a copy of the original array, removing all
