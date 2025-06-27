@@ -458,9 +458,40 @@ assert('String#insert') do
 end
 
 assert('String#prepend') do
+  # Basic prepend test
   a = "world"
   assert_equal "hello world", a.prepend("hello ")
   assert_equal "hello world", a
+
+  # Multiple arguments test
+  b = "world"
+  assert_equal "hello beautiful world", b.prepend("hello ", "beautiful ")
+  assert_equal "hello beautiful world", b
+
+  # Empty string test
+  c = "test"
+  assert_equal "test", c.prepend("")
+  assert_equal "test", c
+
+  # No arguments test
+  d = "test"
+  assert_equal "test", d.prepend()
+  assert_equal "test", d
+
+  # Prepend to empty string
+  e = ""
+  assert_equal "hello", e.prepend("hello")
+  assert_equal "hello", e
+
+  # Multiple empty strings
+  f = "world"
+  assert_equal "world", f.prepend("", "", "")
+  assert_equal "world", f
+
+  # Mixed empty and non-empty
+  g = "world"
+  assert_equal "hello world", g.prepend("", "hello ", "")
+  assert_equal "hello world", g
 end
 
 assert('String#ljust') do
