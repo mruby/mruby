@@ -54,19 +54,6 @@ class String
   #     "abcd".insert(-3, 'X')   #=> "abXcd"
   #     "abcd".insert(-1, 'X')   #=> "abcdX"
   #
-  def insert(idx, str)
-    if idx == -1
-      return self << str
-    elsif idx < 0
-      idx += 1
-    end
-    self[idx, 0] = str
-    self
-  end
-
-
-
-
 
   ##
   # Call the given block for each character of

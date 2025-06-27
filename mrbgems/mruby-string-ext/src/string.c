@@ -2106,6 +2106,54 @@ mrb_str_rpartition(mrb_state *mrb, mrb_value self)
   return result_ary;
 }
 
+/*
+ *  call-seq:
+ *     str.insert(index, other_str)   -> str
+ *
+ *  Inserts <i>other_str</i> before the character at the given
+ *  <i>index</i>, modifying <i>str</i>. Negative indices count from the
+ *  end of the string, and insert <em>after</em> the given character.
+ *  The intent is insert <i>aString</i> so that it starts at the given
+ *  <i>index</i>.
+ *
+ *     "abcd".insert(0, 'X')    #=> "Xabcd"
+ *     "abcd".insert(3, 'X')    #=> "abcXd"
+ *     "abcd".insert(4, 'X')    #=> "abcdX"
+ *     "abcd".insert(-3, 'X')   #=> "abXcd"
+ *     "abcd".insert(-1, 'X')   #=> "abcdX"
+ */
+static mrb_value
+mrb_str_insert(mrb_state *mrb, mrb_value self)
+{
+  mrb_int idx;
+  mrb_value str_to_insert;
+  mrb_get_args(mrb, "iS", &idx, &str_to_insert);
+
+  struct RString *s = mrb_str_ptr(self);
+  mrb_int self_len = RSTRING_LEN(self);
+  mrb_int insert_len = RSTRING_LEN(str_to_insert);
+  const char *insert_ptr = RSTRING_PTR(str_to_insert);
+
+  mrb_check_frozen(mrb, s);
+
+  if (idx < 0) {
+    idx = self_len + idx + 1;
+  }
+
+  if (idx < 0 || idx > self_len) {
+    mrb_raisef(mrb, E_INDEX_ERROR, "index %S out of string", mrb_int_value(mrb, idx));
+  }
+
+  mrb_str_modify(mrb, s);
+  mrb_str_resize(mrb, self, self_len + insert_len);
+
+  char *p = RSTRING_PTR(self);
+  memmove(p + idx + insert_len, p + idx, self_len - idx);
+  memcpy(p + idx, insert_ptr, insert_len);
+
+  return self;
+}
+
 void
 mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 {
@@ -2122,6 +2170,7 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, s, MRB_SYM(tr),               str_tr_m,            MRB_ARGS_REQ(2));
   mrb_define_method_id(mrb, s, MRB_SYM(partition),        mrb_str_partition,   MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, s, MRB_SYM(rpartition),       mrb_str_rpartition,  MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, s, MRB_SYM(insert),           mrb_str_insert,      MRB_ARGS_REQ(2));
   mrb_define_method_id(mrb, s, MRB_SYM_B(tr),             str_tr_bang,         MRB_ARGS_REQ(2));
   mrb_define_method_id(mrb, s, MRB_SYM(tr_s),             str_tr_s,            MRB_ARGS_REQ(2));
   mrb_define_method_id(mrb, s, MRB_SYM_B(tr_s),           str_tr_s_bang,       MRB_ARGS_REQ(2));
