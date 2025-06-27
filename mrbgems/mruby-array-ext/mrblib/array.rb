@@ -111,46 +111,6 @@ class Array
     ary
   end
 
-  ##
-  # call-seq:
-  #   ary.intersect?(other_ary)   -> true or false
-  #
-  # Returns +true+ if the array and +other_ary+ have at least one element in
-  # common, otherwise returns +false+.
-  #
-  #    a = [ 1, 2, 3 ]
-  #    b = [ 3, 4, 5 ]
-  #    c = [ 5, 6, 7 ]
-  #    a.intersect?(b)   #=> true
-  #    a.intersect?(c)   #=> false
-  def intersect?(ary)
-    raise TypeError, "cannot convert #{ary.class} into Array" unless ary.class == Array
-
-    hash = {}
-    if self.length > ary.length
-      shorter = ary
-      longer = self
-    else
-      shorter = self
-      longer = ary
-    end
-    idx = 0
-    len = shorter.size
-    while idx < len
-      hash[shorter[idx]] = true
-      idx += 1
-    end
-    idx = 0
-    len = size
-    while idx < len
-      v = longer[idx]
-      if hash[v]
-        return true
-      end
-      idx += 1
-    end
-    false
-  end
 
   ##
   # call-seq:

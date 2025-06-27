@@ -264,6 +264,63 @@ assert("Array#intersect?") do
   assert_false(a.intersect?(c))
 end
 
+assert("Array#intersect? with large arrays") do
+  # Test hash-based implementation (shorter array > 16)
+  a = (1..30).to_a
+  b = (25..50).to_a  # 26 elements > 16, but a is longer so b is shorter
+  result = a.intersect?(b)
+  assert_true(result)  # should find intersection at 25-30
+
+  # Test with larger arrays, no intersection
+  a = (1..20).to_a
+  b = (30..50).to_a  # 21 elements > 16, triggers hash approach
+  result = a.intersect?(b)
+  assert_false(result)  # no intersection
+
+  # Test with first element matching (early termination)
+  a = (1..30).to_a
+  b = [1] + (50..70).to_a  # 22 elements > 16, first element matches
+  result = a.intersect?(b)
+  assert_true(result)  # should terminate early on first element
+
+  # Test with last element matching
+  a = (1..30).to_a
+  b = (50..70).to_a + [30]  # 22 elements > 16, last element matches
+  result = a.intersect?(b)
+  assert_true(result)  # should find match at the end
+
+  # Test empty arrays
+  a = []
+  b = (1..20).to_a
+  result = a.intersect?(b)
+  assert_false(result)  # empty array intersects with nothing
+
+  a = (1..20).to_a
+  b = []
+  result = a.intersect?(b)
+  assert_false(result)  # intersecting with empty array
+
+  # Test array size optimization (shorter array used for hash)
+  a = (1..5).to_a  # shorter
+  b = (3..30).to_a  # longer, 28 elements > 16
+  result = a.intersect?(b)
+  assert_true(result)  # should use a (shorter) for hash, find 3,4,5
+
+  # Test with duplicates
+  a = [1, 1, 2, 2, 3, 3] * 5  # 30 elements with duplicates
+  b = (25..50).to_a  # 26 elements > 16, no intersection
+  result = a.intersect?(b)
+  assert_false(result)
+
+  # Ensure original arrays are unchanged
+  original_a = (1..30).to_a
+  original_b = (25..50).to_a
+  result = original_a.intersect?(original_b)
+  assert_true(result)
+  assert_equal (1..30).to_a, original_a
+  assert_equal (25..50).to_a, original_b
+end
+
 assert("Array#flatten") do
   assert_equal [1, 2, "3", {4=>5}, :'6'],    [1, 2, "3", {4=>5}, :'6'].flatten
   assert_equal [1, 2, 3, 4, 5, 6], [1, 2,    [3, 4, 5], 6].flatten

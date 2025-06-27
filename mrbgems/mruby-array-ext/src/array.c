@@ -606,6 +606,92 @@ ary_intersection(mrb_state *mrb, mrb_value self)
   return result_ary;
 }
 
+/*
+ *  call-seq:
+ *    ary.intersect?(other_ary)   -> true or false
+ *
+ *  Returns +true+ if the array and +other_ary+ have at least one element in
+ *  common, otherwise returns +false+.
+ *
+ *     a = [ 1, 2, 3 ]
+ *     b = [ 3, 4, 5 ]
+ *     c = [ 5, 6, 7 ]
+ *     a.intersect?(b)   #=> true
+ *     a.intersect?(c)   #=> false
+ */
+
+static mrb_value
+ary_intersect_p(mrb_state *mrb, mrb_value self)
+{
+  mrb_value other;
+  struct RArray *self_ary, *other_ary, *shorter_ary, *longer_ary;
+  mrb_value *shorter_p, *shorter_p_end, *longer_p, *longer_p_end;
+
+  mrb_get_args(mrb, "A", &other);
+
+  self_ary = mrb_ary_ptr(self);
+  other_ary = mrb_ary_ptr(other);
+
+  /* Choose shorter array for hash, longer for iteration (optimization) */
+  if (ARY_LEN(self_ary) > ARY_LEN(other_ary)) {
+    shorter_ary = other_ary;
+    longer_ary = self_ary;
+  }
+  else {
+    shorter_ary = self_ary;
+    longer_ary = other_ary;
+  }
+
+  /* Early termination for empty arrays */
+  if (ARY_LEN(shorter_ary) == 0 || ARY_LEN(longer_ary) == 0) {
+    return mrb_false_value();
+  }
+
+  if (ARY_LEN(shorter_ary) > SET_OP_HASH_THRESHOLD) {
+    /* Use hash for large arrays to achieve O(n) performance */
+    mrb_value hash = mrb_hash_new_capa(mrb, ARY_LEN(shorter_ary));
+
+    /* Populate hash with elements from shorter array */
+    shorter_p = ARY_PTR(shorter_ary);
+    shorter_p_end = shorter_p + ARY_LEN(shorter_ary);
+    while (shorter_p < shorter_p_end) {
+      mrb_hash_set(mrb, hash, *shorter_p, mrb_true_value());
+      shorter_p++;
+    }
+
+    /* Check elements from longer array against hash with early termination */
+    longer_p = ARY_PTR(longer_ary);
+    longer_p_end = longer_p + ARY_LEN(longer_ary);
+    while (longer_p < longer_p_end) {
+      mrb_value val = mrb_hash_get(mrb, hash, *longer_p);
+      if (!mrb_nil_p(val)) {  /* key exists in shorter array */
+        return mrb_true_value();  /* Early termination */
+      }
+      longer_p++;
+    }
+  }
+  else {
+    /* Use linear search for small arrays */
+    longer_p = ARY_PTR(longer_ary);
+    longer_p_end = longer_p + ARY_LEN(longer_ary);
+    while (longer_p < longer_p_end) {
+      /* Check if element exists in shorter array */
+      shorter_p = ARY_PTR(shorter_ary);
+      shorter_p_end = shorter_p + ARY_LEN(shorter_ary);
+
+      while (shorter_p < shorter_p_end) {
+        if (mrb_equal(mrb, *longer_p, *shorter_p)) {
+          return mrb_true_value();  /* Early termination */
+        }
+        shorter_p++;
+      }
+      longer_p++;
+    }
+  }
+
+  return mrb_false_value();
+}
+
 void
 mrb_mruby_array_ext_gem_init(mrb_state* mrb)
 {
@@ -623,6 +709,7 @@ mrb_mruby_array_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, a, MRB_OPSYM(sub), ary_sub, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, a, MRB_OPSYM(or), ary_union, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, a, MRB_OPSYM(and), ary_intersection, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, a, MRB_SYM_Q(intersect), ary_intersect_p, MRB_ARGS_REQ(1));
 }
 
 void
