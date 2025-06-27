@@ -1742,68 +1742,68 @@ mrb_mruby_set_gem_init(mrb_state *mrb)
 
   mrb_define_private_method(mrb, set, "initialize_copy", set_init_copy, MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, set, "size", set_size, MRB_ARGS_NONE());
-  mrb_define_method(mrb, set, "length", set_size, MRB_ARGS_NONE());
-  mrb_define_method(mrb, set, "empty?", set_empty_p, MRB_ARGS_NONE());
-  mrb_define_method(mrb, set, "clear", set_clear, MRB_ARGS_NONE());
-  mrb_define_method(mrb, set, "to_a", set_to_a, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, set, MRB_SYM(size), set_size, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, set, MRB_SYM(length), set_size, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, set, MRB_SYM_Q(empty), set_empty_p, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, set, MRB_SYM(clear), set_clear, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, set, MRB_SYM(to_a), set_to_a, MRB_ARGS_NONE());
 
-  mrb_define_method(mrb, set, "include?", set_include_p, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, set, "member?", set_include_p, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, set, "===", set_include_p, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, set, MRB_SYM_Q(include), set_include_p, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, set, MRB_SYM_Q(member), set_include_p, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, set, MRB_OPSYM(eqq), set_include_p, MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, set, "add", set_add, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, set, "<<", set_add, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, set, "add?", set_add_p, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, set, MRB_SYM(add), set_add, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, set, MRB_OPSYM(lshift), set_add, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, set, MRB_SYM_Q(add), set_add_p, MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, set, "delete", set_delete, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, set, "delete?", set_delete_p, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, set, MRB_SYM(delete), set_delete, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, set, MRB_SYM_Q(delete), set_delete_p, MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, set, "__init", set_init, MRB_ARGS_NONE());
-  mrb_define_method(mrb, set, "__merge", set_core_merge, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, set, "__subtract", set_core_subtract, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, set, MRB_SYM(__init), set_init, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, set, MRB_SYM(__merge), set_core_merge, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, set, MRB_SYM(__subtract), set_core_subtract, MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, set, "__union", set_core_union, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, set, MRB_SYM(__union), set_core_union, MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, set, "__difference", set_core_difference, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, set, MRB_SYM(__difference), set_core_difference, MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, set, "__intersection", set_core_intersection, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, set, "__xor", set_core_xor, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, set, MRB_SYM(__intersection), set_core_intersection, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, set, MRB_SYM(__xor), set_core_xor, MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, set, "==", set_equal, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, set, "hash", set_hash_m, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, set, MRB_OPSYM(eq), set_equal, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, set, MRB_SYM(hash), set_hash_m, MRB_ARGS_NONE());
   mrb_define_alias(mrb, set, "eql?", "==");
 
-  mrb_define_method(mrb, set, "join", set_join, MRB_ARGS_OPT(1));
-  mrb_define_method(mrb, set, "inspect", set_inspect, MRB_ARGS_NONE());
-  mrb_define_method(mrb, set, "to_s", set_inspect, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, set, MRB_SYM(join), set_join, MRB_ARGS_OPT(1));
+  mrb_define_method_id(mrb, set, MRB_SYM(inspect), set_inspect, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, set, MRB_SYM(to_s), set_inspect, MRB_ARGS_NONE());
 
-  mrb_define_method(mrb, set, "reset", set_reset, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, set, MRB_SYM(reset), set_reset, MRB_ARGS_NONE());
 
   /* Bulk operation methods */
-  mrb_define_method(mrb, set, "add_all", set_add_all, MRB_ARGS_ANY());
-  mrb_define_method(mrb, set, "delete_all", set_delete_all, MRB_ARGS_ANY());
-  mrb_define_method(mrb, set, "include_all?", set_include_all_p, MRB_ARGS_ANY());
-  mrb_define_method(mrb, set, "include_any?", set_include_any_p, MRB_ARGS_ANY());
+  mrb_define_method_id(mrb, set, MRB_SYM(add_all), set_add_all, MRB_ARGS_ANY());
+  mrb_define_method_id(mrb, set, MRB_SYM(delete_all), set_delete_all, MRB_ARGS_ANY());
+  mrb_define_method_id(mrb, set, MRB_SYM_Q(include_all), set_include_all_p, MRB_ARGS_ANY());
+  mrb_define_method_id(mrb, set, MRB_SYM_Q(include_any), set_include_any_p, MRB_ARGS_ANY());
 
   /* Register our new C implementations */
-  mrb_define_method(mrb, set, "superset?", set_superset_p, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, set, ">=", set_superset_p, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, set, "proper_superset?", set_proper_superset_p, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, set, ">", set_proper_superset_p, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, set, MRB_SYM_Q(superset), set_superset_p, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, set, MRB_OPSYM(ge), set_superset_p, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, set, MRB_SYM_Q(proper_superset), set_proper_superset_p, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, set, MRB_OPSYM(gt), set_proper_superset_p, MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, set, "subset?", set_subset_p, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, set, "<=", set_subset_p, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, set, "proper_subset?", set_proper_subset_p, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, set, "<", set_proper_subset_p, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, set, MRB_SYM_Q(subset), set_subset_p, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, set, MRB_OPSYM(le), set_subset_p, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, set, MRB_SYM_Q(proper_subset), set_proper_subset_p, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, set, MRB_OPSYM(lt), set_proper_subset_p, MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, set, "intersect?", set_intersect_p, MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, set, "disjoint?", set_disjoint_p, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, set, MRB_SYM_Q(intersect), set_intersect_p, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, set, MRB_SYM_Q(disjoint), set_disjoint_p, MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, set, "<=>", set_cmp, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, set, MRB_OPSYM(cmp), set_cmp, MRB_ARGS_REQ(1));
 
-  mrb_define_method(mrb, set, "flatten", set_flatten, MRB_ARGS_NONE());
-  mrb_define_method(mrb, set, "flatten!", set_flatten_bang, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, set, MRB_SYM(flatten), set_flatten, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, set, MRB_SYM_B(flatten), set_flatten_bang, MRB_ARGS_NONE());
 }
 
 void
