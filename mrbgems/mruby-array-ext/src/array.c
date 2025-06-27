@@ -516,6 +516,96 @@ ary_union(mrb_state *mrb, mrb_value self)
   return result_ary;
 }
 
+/*
+ *  call-seq:
+ *     ary & other_ary      -> new_ary
+ *
+ *  Set Intersection---Returns a new array
+ *  containing elements common to the two arrays, with no duplicates.
+ *
+ *     [ 1, 1, 3, 5 ] & [ 1, 2, 3 ]   #=> [ 1, 3 ]
+ */
+
+static mrb_value
+ary_intersection(mrb_state *mrb, mrb_value self)
+{
+  mrb_value other, result_ary;
+  struct RArray *self_ary, *other_ary;
+  mrb_value *p, *p_end, *other_p, *other_p_end;
+
+  mrb_get_args(mrb, "A", &other);
+
+  self_ary = mrb_ary_ptr(self);
+  other_ary = mrb_ary_ptr(other);
+
+  result_ary = mrb_ary_new(mrb);
+
+  if (ARY_LEN(other_ary) > SET_OP_HASH_THRESHOLD) {
+    /* Use hash for large arrays to achieve O(n) performance */
+    mrb_value hash = mrb_hash_new_capa(mrb, ARY_LEN(other_ary));
+
+    /* Populate hash with elements from other_ary */
+    other_p = ARY_PTR(other_ary);
+    other_p_end = other_p + ARY_LEN(other_ary);
+    while (other_p < other_p_end) {
+      mrb_hash_set(mrb, hash, *other_p, mrb_true_value());
+      other_p++;
+    }
+
+    /* Check elements from self against hash */
+    p = ARY_PTR(self_ary);
+    p_end = p + ARY_LEN(self_ary);
+    while (p < p_end) {
+      mrb_value val = mrb_hash_get(mrb, hash, *p);
+      if (!mrb_nil_p(val)) {  /* key exists in other_ary */
+        mrb_ary_push(mrb, result_ary, *p);
+        mrb_hash_delete_key(mrb, hash, *p);  /* remove to ensure uniqueness */
+      }
+      p++;
+    }
+  }
+  else {
+    /* Use linear search for small arrays */
+    p = ARY_PTR(self_ary);
+    p_end = p + ARY_LEN(self_ary);
+    while (p < p_end) {
+      /* Check if element exists in other_ary */
+      other_p = ARY_PTR(other_ary);
+      other_p_end = other_p + ARY_LEN(other_ary);
+      mrb_bool found = FALSE;
+
+      while (other_p < other_p_end) {
+        if (mrb_equal(mrb, *p, *other_p)) {
+          found = TRUE;
+          break;
+        }
+        other_p++;
+      }
+
+      if (found) {
+        /* Check if already in result to ensure uniqueness */
+        mrb_int result_len = RARRAY_LEN(result_ary);
+        mrb_value *result_ptr = RARRAY_PTR(result_ary);
+        mrb_bool already_added = FALSE;
+
+        for (mrb_int i = 0; i < result_len; i++) {
+          if (mrb_equal(mrb, *p, result_ptr[i])) {
+            already_added = TRUE;
+            break;
+          }
+        }
+
+        if (!already_added) {
+          mrb_ary_push(mrb, result_ary, *p);
+        }
+      }
+      p++;
+    }
+  }
+
+  return result_ary;
+}
+
 void
 mrb_mruby_array_ext_gem_init(mrb_state* mrb)
 {
@@ -532,6 +622,7 @@ mrb_mruby_array_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, a, MRB_SYM_B(rotate), ary_rotate_bang, MRB_ARGS_OPT(1));
   mrb_define_method_id(mrb, a, MRB_OPSYM(sub), ary_sub, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, a, MRB_OPSYM(or), ary_union, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, a, MRB_OPSYM(and), ary_intersection, MRB_ARGS_REQ(1));
 }
 
 void

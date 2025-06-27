@@ -92,38 +92,6 @@ class Array
     ary
   end
 
-  ##
-  # call-seq:
-  #    ary & other_ary      -> new_ary
-  #
-  # Set Intersection---Returns a new array
-  # containing elements common to the two arrays, with no duplicates.
-  #
-  #    [ 1, 1, 3, 5 ] & [ 1, 2, 3 ]   #=> [ 1, 3 ]
-  #
-  def &(elem)
-    raise TypeError, "cannot convert #{elem.class} into Array" unless elem.class == Array
-
-    hash = {}
-    array = []
-    idx = 0
-    len = elem.size
-    while idx < len
-      hash[elem[idx]] = true
-      idx += 1
-    end
-    idx = 0
-    len = size
-    while idx < len
-      v = self[idx]
-      if hash[v]
-        array << v
-        hash.delete v
-      end
-      idx += 1
-    end
-    array
-  end
 
   ##
   # call-seq:
