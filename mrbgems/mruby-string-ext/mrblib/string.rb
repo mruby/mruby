@@ -98,8 +98,10 @@ class String
       lines.each do |line|
         blk.call(line)
       end
+      self
+    else
+      lines
     end
-    lines
   end
 
   ##
