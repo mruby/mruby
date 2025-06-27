@@ -47,24 +47,6 @@ class String
   alias each_codepoint codepoints
 
   ##
-  # call-seq:
-  #    str.prepend(other_str)  -> str
-  #
-  # Prepend---Prepend the given string to <i>str</i>.
-  #
-  #    a = "world"
-  #    a.prepend("hello ") #=> "hello world"
-  #    a                   #=> "hello world"
-  def prepend(*args)
-    len = args.size
-    while len > 0
-      len -= 1
-      self[0, 0] = args[len]
-    end
-    self
-  end
-
-  ##
   #  call-seq:
   #    string.lines                ->  array of string
   #    string.lines {|s| block}    ->  array of string

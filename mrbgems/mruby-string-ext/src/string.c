@@ -2172,6 +2172,68 @@ str_insert(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ *  call-seq:
+ *     str.prepend(*other_str)   -> str
+ *
+ *  Prepend---Prepend the given strings to <i>str</i>.
+ *
+ *     a = "world"
+ *     a.prepend("hello ") #=> "hello world"
+ *     a                   #=> "hello world"
+ *
+ *  Multiple arguments are prepended in order:
+ *
+ *     a = "world"
+ *     a.prepend("hello ", "beautiful ") #=> "hello beautiful world"
+ */
+static mrb_value
+str_prepend(mrb_state *mrb, mrb_value self)
+{
+  mrb_value *argv;
+  mrb_int argc;
+  mrb_get_args(mrb, "*", &argv, &argc);
+
+  if (argc == 0) {
+    return self;
+  }
+
+  struct RString *s = mrb_str_ptr(self);
+  mrb_check_frozen(mrb, s);
+
+  /* Calculate total length needed for all prepended strings */
+  mrb_int total_prepend_len = 0;
+  for (mrb_int i = 0; i < argc; i++) {
+    mrb_ensure_string_type(mrb, argv[i]);
+    total_prepend_len += RSTRING_LEN(argv[i]);
+  }
+
+  if (total_prepend_len == 0) {
+    return self;
+  }
+
+  mrb_int self_len = RSTRING_LEN(self);
+  mrb_str_modify(mrb, s);
+  mrb_str_resize(mrb, self, self_len + total_prepend_len);
+
+  char *p = RSTRING_PTR(self);
+
+  /* Move original content to the end */
+  memmove(p + total_prepend_len, p, self_len);
+
+  /* Copy prepended strings in order */
+  mrb_int offset = 0;
+  for (mrb_int i = 0; i < argc; i++) {
+    mrb_int arg_len = RSTRING_LEN(argv[i]);
+    if (arg_len > 0) {
+      memcpy(p + offset, RSTRING_PTR(argv[i]), arg_len);
+      offset += arg_len;
+    }
+  }
+
+  return self;
+}
+
 void
 mrb_mruby_string_ext_gem_init(mrb_state* mrb)
 {
@@ -2190,6 +2252,7 @@ mrb_mruby_string_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, s, MRB_SYM(partition),        str_partition,       MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, s, MRB_SYM(rpartition),       str_rpartition,      MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, s, MRB_SYM(insert),           str_insert,          MRB_ARGS_REQ(2));
+  mrb_define_method_id(mrb, s, MRB_SYM(prepend),          str_prepend,         MRB_ARGS_REST());
   mrb_define_method_id(mrb, s, MRB_SYM_B(tr),             str_tr_bang,         MRB_ARGS_REQ(2));
   mrb_define_method_id(mrb, s, MRB_SYM(tr_s),             str_tr_s,            MRB_ARGS_REQ(2));
   mrb_define_method_id(mrb, s, MRB_SYM_B(tr_s),           str_tr_s_bang,       MRB_ARGS_REQ(2));
