@@ -341,7 +341,7 @@ ary_rotate_bang(mrb_state *mrb, mrb_value self)
   return self;
 }
 
-#define SET_OP_HASH_THRESHOLD 16
+#define SET_OP_HASH_THRESHOLD 32
 
 /*
  *  call-seq:

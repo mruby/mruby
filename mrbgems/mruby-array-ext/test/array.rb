@@ -84,23 +84,23 @@ assert("Array#-") do
 end
 
 assert("Array#- with large arrays") do
-  # Test hash-based implementation (other_ary length > 16)
-  a = (1..30).to_a
-  b = (10..25).to_a  # 16 elements, triggers hash approach
+  # Test hash-based implementation (other_ary length > 32)
+  a = (1..50).to_a
+  b = (15..50).to_a  # 36 elements > 32, triggers hash approach
   result = a - b
-  expected = [1, 2, 3, 4, 5, 6, 7, 8, 9, 26, 27, 28, 29, 30]
+  expected = (1..14).to_a
 
   assert_equal expected, result
   assert_equal 14, result.size
 
   # Test with larger removal set
-  a = (1..50).to_a
-  b = (20..40).to_a  # 21 elements > 16, triggers hash approach
+  a = (1..60).to_a
+  b = (20..55).to_a  # 36 elements > 32, triggers hash approach
   result = a - b
-  expected = (1..19).to_a + (41..50).to_a
+  expected = (1..19).to_a + (56..60).to_a
 
   assert_equal expected, result
-  assert_equal 29, result.size
+  assert_equal 24, result.size
 
   # Test removing all elements
   a = (1..20).to_a
@@ -140,23 +140,23 @@ assert("Array#|") do
 end
 
 assert("Array#| with large arrays") do
-  # Test hash-based implementation (total length > 16)
-  a = (1..20).to_a
-  b = (18..50).to_a
+  # Test hash-based implementation (total length > 32)
+  a = (1..25).to_a
+  b = (20..45).to_a  # total = 51 > 32, triggers hash approach
   result = a | b
-  expected = (1..50).to_a
+  expected = (1..45).to_a
 
   assert_equal expected, result
-  assert_equal 50, result.size
+  assert_equal 45, result.size
 
   # Test with overlapping ranges
-  a = (1..15).to_a
-  b = (10..25).to_a
+  a = (1..20).to_a
+  b = (15..35).to_a  # total = 41 > 32, triggers hash approach
   result = a | b
-  expected = (1..25).to_a
+  expected = (1..35).to_a
 
   assert_equal expected, result
-  assert_equal 25, result.size
+  assert_equal 35, result.size
 
   # Ensure original arrays are unchanged
   original_a = (1..20).to_a
@@ -194,23 +194,23 @@ assert("Array#&") do
 end
 
 assert("Array#& with large arrays") do
-  # Test hash-based implementation (other_ary length > 16)
-  a = (1..30).to_a
-  b = (10..25).to_a  # 16 elements, triggers hash approach
+  # Test hash-based implementation (other_ary length > 32)
+  a = (1..50).to_a
+  b = (20..55).to_a  # 36 elements > 32, triggers hash approach
   result = a & b
-  expected = (10..25).to_a
+  expected = (20..50).to_a
 
   assert_equal expected, result
-  assert_equal 16, result.size
+  assert_equal 31, result.size
 
   # Test with larger intersection set
-  a = (1..50).to_a
-  b = (20..40).to_a  # 21 elements > 16, triggers hash approach
+  a = (1..60).to_a
+  b = (25..60).to_a  # 36 elements > 32, triggers hash approach
   result = a & b
-  expected = (20..40).to_a
+  expected = (25..60).to_a
 
   assert_equal expected, result
-  assert_equal 21, result.size
+  assert_equal 36, result.size
 
   # Test with duplicates in first array
   a = [1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10]
@@ -265,15 +265,15 @@ assert("Array#intersect?") do
 end
 
 assert("Array#intersect? with large arrays") do
-  # Test hash-based implementation (shorter array > 16)
-  a = (1..30).to_a
-  b = (25..50).to_a  # 26 elements > 16, but a is longer so b is shorter
+  # Test hash-based implementation (shorter array > 32)
+  a = (1..50).to_a
+  b = (40..75).to_a  # 36 elements > 32, but a is longer so b is shorter
   result = a.intersect?(b)
-  assert_true(result)  # should find intersection at 25-30
+  assert_true(result)  # should find intersection at 40-50
 
   # Test with larger arrays, no intersection
-  a = (1..20).to_a
-  b = (30..50).to_a  # 21 elements > 16, triggers hash approach
+  a = (1..30).to_a
+  b = (50..85).to_a  # 36 elements > 32, triggers hash approach
   result = a.intersect?(b)
   assert_false(result)  # no intersection
 
