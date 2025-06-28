@@ -16,24 +16,24 @@ class Array
   #    c.uniq! { |s| s.first } # => [["student", "sam"], ["teacher", "matz"]]
   #
   def uniq!(&block)
-    hash = {}
     if block
+      hash = {}
+      result = []
       self.each do |val|
         key = block.call(val)
-        hash[key] = val unless hash.key?(key)
+        unless hash.key?(key)
+          hash[key] = true
+          result << val
+        end
       end
-      result = hash.values
-    else
-      hash = {}
-      self.each do |val|
-        hash[val] = val
+
+      if result.size == self.size
+        nil
+      else
+        self.replace(result)
       end
-      result = hash.keys
-    end
-    if result.size == self.size
-      nil
     else
-      self.replace(result)
+      __uniq!
     end
   end
 
@@ -51,9 +51,13 @@ class Array
   #    b.uniq { |s| s.first } # => [["student", "sam"], ["teacher", "matz"]]
   #
   def uniq(&block)
-    ary = self[0..-1]
-    ary.uniq!(&block)
-    ary
+    if block
+      ary = self.dup
+      ary.uniq!(&block)
+      ary
+    else
+      __uniq
+    end
   end
 
   ##

@@ -932,6 +932,111 @@ ary_fill_exec(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ *  Fast C implementation for Array#uniq without blocks.
+ *  Uses hash-based deduplication for large arrays,
+ *  linear search for small arrays.
+ */
+static mrb_value
+ary_uniq(mrb_state *mrb, mrb_value self)
+{
+  struct RArray *ary = mrb_ary_ptr(self);
+  mrb_int len = ARY_LEN(ary);
+  mrb_value *ptr = ARY_PTR(ary);
+  mrb_value result = mrb_ary_new_capa(mrb, len);
+
+  if (len == 0) {
+    return result;
+  }
+
+  if (len > SET_OP_HASH_THRESHOLD) {
+    mrb_value hash = mrb_hash_new_capa(mrb, len);
+    for (mrb_int i = 0; i < len; i++) {
+      mrb_value elem = ptr[i];
+      if (mrb_nil_p(mrb_hash_get(mrb, hash, elem))) {
+        mrb_hash_set(mrb, hash, elem, mrb_true_value());
+        mrb_ary_push(mrb, result, elem);
+      }
+    }
+  }
+  else {
+    for (mrb_int i = 0; i < len; i++) {
+      mrb_value elem = ptr[i];
+      mrb_bool found = FALSE;
+      mrb_value *result_ptr = ARY_PTR(RARRAY(result));
+      for (mrb_int j = 0; j < RARRAY_LEN(result); j++) {
+        if (mrb_equal(mrb, elem, result_ptr[j])) {
+          found = TRUE;
+          break;
+        }
+      }
+      if (!found) {
+        mrb_ary_push(mrb, result, elem);
+      }
+    }
+  }
+
+  return result;
+}
+
+/*
+ *  Fast C implementation for Array#uniq! without blocks.
+ *  Modifies array in-place, returns nil if no changes.
+ */
+static mrb_value
+ary_uniq_bang(mrb_state *mrb, mrb_value self)
+{
+  struct RArray *ary = mrb_ary_ptr(self);
+  mrb_int len = ARY_LEN(ary);
+
+  if (len <= 1) {
+    return mrb_nil_value();
+  }
+
+  mrb_ary_modify(mrb, ary);
+  mrb_value *ptr = ARY_PTR(ary);
+  mrb_int write_pos = 0;
+
+  if (len > SET_OP_HASH_THRESHOLD) {
+    mrb_value hash = mrb_hash_new_capa(mrb, len);
+    for (mrb_int read_pos = 0; read_pos < len; read_pos++) {
+      mrb_value elem = ptr[read_pos];
+      if (mrb_nil_p(mrb_hash_get(mrb, hash, elem))) {
+        mrb_hash_set(mrb, hash, elem, mrb_true_value());
+        if (write_pos != read_pos) {
+          ptr[write_pos] = elem;
+        }
+        write_pos++;
+      }
+    }
+  }
+  else {
+    for (mrb_int read_pos = 0; read_pos < len; read_pos++) {
+      mrb_value elem = ptr[read_pos];
+      mrb_bool found = FALSE;
+      for (mrb_int j = 0; j < write_pos; j++) {
+        if (mrb_equal(mrb, elem, ptr[j])) {
+          found = TRUE;
+          break;
+        }
+      }
+      if (!found) {
+        if (write_pos != read_pos) {
+          ptr[write_pos] = elem;
+        }
+        write_pos++;
+      }
+    }
+  }
+
+  if (write_pos == len) {
+    return mrb_nil_value();
+  }
+
+  mrb_ary_resize(mrb, self, write_pos);
+  return self;
+}
+
 void
 mrb_mruby_array_ext_gem_init(mrb_state* mrb)
 {
@@ -955,6 +1060,8 @@ mrb_mruby_array_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, a, MRB_SYM_Q(intersect), ary_intersect_p, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, a, MRB_SYM(__fill_parse_arg), ary_fill_parse_arg, MRB_ARGS_ARG(0,4));
   mrb_define_method_id(mrb, a, MRB_SYM(__fill_exec), ary_fill_exec, MRB_ARGS_REQ(3));
+  mrb_define_method_id(mrb, a, MRB_SYM(__uniq), ary_uniq, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, a, MRB_SYM_B(__uniq), ary_uniq_bang, MRB_ARGS_NONE());
 }
 
 void
