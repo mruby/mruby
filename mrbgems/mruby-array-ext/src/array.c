@@ -1037,6 +1037,105 @@ ary_uniq_bang(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+static mrb_value
+flatten_internal(mrb_state *mrb, mrb_value self, mrb_int level, mrb_bool *modified)
+{
+  *modified = FALSE;
+  mrb_value result = mrb_ary_new(mrb);
+  mrb_value stack = mrb_ary_new(mrb);
+  mrb_ary_push(mrb, stack, self);
+  mrb_ary_push(mrb, stack, mrb_fixnum_value(0)); // index
+  mrb_ary_push(mrb, stack, mrb_fixnum_value(1)); // depth
+
+  while (RARRAY_LEN(stack) > 0) {
+    mrb_int depth = mrb_fixnum(mrb_ary_pop(mrb, stack));
+    mrb_int idx = mrb_fixnum(mrb_ary_pop(mrb, stack));
+    mrb_value ary = mrb_ary_pop(mrb, stack);
+
+    while (idx < RARRAY_LEN(ary)) {
+      mrb_value e = mrb_ary_entry(ary, idx);
+      idx++;
+
+      if (mrb_array_p(e) && (level < 0 || depth <= level)) {
+        *modified = TRUE;
+        // Push current state back
+        mrb_ary_push(mrb, stack, ary);
+        mrb_ary_push(mrb, stack, mrb_fixnum_value(idx));
+        mrb_ary_push(mrb, stack, mrb_fixnum_value(depth));
+
+        // Push new array to process
+        ary = e;
+        idx = 0;
+        depth++;
+      }
+      else {
+        mrb_ary_push(mrb, result, e);
+      }
+    }
+  }
+  return result;
+}
+
+/*
+ *  call-seq:
+ *     ary.flatten -> new_ary
+ *     ary.flatten(level) -> new_ary
+ *
+ *  Returns a new array that is a one-dimensional flattening of this
+ *  array (recursively). That is, for every element that is an array,
+ *  extract its elements into the new array. If the optional
+ *  <i>level</i> argument determines the level of recursion to flatten.
+ *
+ *    s = [ 1, 2, 3 ]           #=> [1, 2, 3]
+ *    t = [ 4, 5, 6, [7, 8] ]   #=> [4, 5, 6, [7, 8]]
+ *    a = [ s, t, 9, 10 ]       #=> [[1, 2, 3], [4, 5, 6, [7, 8]], 9, 10]
+ *    a.flatten                 #=> [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+ *    a = [ 1, 2, [3, [4, 5] ] ]
+ *    a.flatten(1)              #=> [1, 2, 3, [4, 5]]
+ */
+static mrb_value
+ary_flatten(mrb_state *mrb, mrb_value self)
+{
+  mrb_int level = -1;
+  mrb_get_args(mrb, "|i", &level);
+  mrb_bool modified; // dummy
+  return flatten_internal(mrb, self, level, &modified);
+}
+
+/*
+ *  call-seq:
+ *     ary.flatten!        -> ary or nil
+ *     ary.flatten!(level) -> array or nil
+ *
+ *  Flattens +self+ in place.
+ *  Returns <code>nil</code> if no modifications were made (i.e.,
+ *  <i>ary</i> contains no subarrays.) If the optional <i>level</i>
+ *  argument determines the level of recursion to flatten.
+ *
+ *    a = [ 1, 2, [3, [4, 5] ] ]
+ *    a.flatten!   #=> [1, 2, 3, 4, 5]
+ *    a.flatten!   #=> nil
+ *    a            #=> [1, 2, 3, 4, 5]
+ *    a = [ 1, 2, [3, [4, 5] ] ]
+ *    a.flatten!(1) #=> [1, 2, 3, [4, 5]]
+ */
+static mrb_value
+ary_flatten_bang(mrb_state *mrb, mrb_value self)
+{
+  mrb_int level = -1;
+  mrb_get_args(mrb, "|i", &level);
+
+  mrb_ary_modify(mrb, mrb_ary_ptr(self));
+  mrb_bool modified;
+  mrb_value result = flatten_internal(mrb, self, level, &modified);
+
+  if (!modified) {
+    return mrb_nil_value();
+  }
+  mrb_ary_replace(mrb, self, result);
+  return self;
+}
+
 void
 mrb_mruby_array_ext_gem_init(mrb_state* mrb)
 {
@@ -1062,6 +1161,8 @@ mrb_mruby_array_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, a, MRB_SYM(__fill_exec), ary_fill_exec, MRB_ARGS_REQ(3));
   mrb_define_method_id(mrb, a, MRB_SYM(__uniq), ary_uniq, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, a, MRB_SYM_B(__uniq), ary_uniq_bang, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, a, MRB_SYM(flatten), ary_flatten, MRB_ARGS_OPT(1));
+  mrb_define_method_id(mrb, a, MRB_SYM_B(flatten), ary_flatten_bang, MRB_ARGS_OPT(1));
 }
 
 void

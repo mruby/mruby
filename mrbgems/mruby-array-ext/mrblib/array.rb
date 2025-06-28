@@ -60,68 +60,6 @@ class Array
     end
   end
 
-  ##
-  # call-seq:
-  #    ary.flatten -> new_ary
-  #    ary.flatten(level) -> new_ary
-  #
-  # Returns a new array that is a one-dimensional flattening of this
-  # array (recursively). That is, for every element that is an array,
-  # extract its elements into the new array. If the optional
-  # <i>level</i> argument determines the level of recursion to flatten.
-  #
-  #    s = [ 1, 2, 3 ]           #=> [1, 2, 3]
-  #    t = [ 4, 5, 6, [7, 8] ]   #=> [4, 5, 6, [7, 8]]
-  #    a = [ s, t, 9, 10 ]       #=> [[1, 2, 3], [4, 5, 6, [7, 8]], 9, 10]
-  #    a.flatten                 #=> [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-  #    a = [ 1, 2, [3, [4, 5] ] ]
-  #    a.flatten(1)              #=> [1, 2, 3, [4, 5]]
-  #
-  def flatten(depth=nil)
-    res = Array.new(self)
-    res.flatten! depth
-    res
-  end
-
-  ##
-  # call-seq:
-  #    ary.flatten!        -> ary or nil
-  #    ary.flatten!(level) -> array or nil
-  #
-  # Flattens +self+ in place.
-  # Returns <code>nil</code> if no modifications were made (i.e.,
-  # <i>ary</i> contains no subarrays.) If the optional <i>level</i>
-  # argument determines the level of recursion to flatten.
-  #
-  #    a = [ 1, 2, [3, [4, 5] ] ]
-  #    a.flatten!   #=> [1, 2, 3, 4, 5]
-  #    a.flatten!   #=> nil
-  #    a            #=> [1, 2, 3, 4, 5]
-  #    a = [ 1, 2, [3, [4, 5] ] ]
-  #    a.flatten!(1) #=> [1, 2, 3, [4, 5]]
-  #
-  def flatten!(depth=nil)
-    modified = false
-    ar = []
-    idx = 0
-    len = size
-    while idx < len
-      e = self[idx]
-      if e.is_a?(Array) && (depth.nil? || depth > 0)
-        ar += e.flatten(depth.nil? ? nil : depth - 1)
-        modified = true
-      else
-        ar << e
-      end
-      idx += 1
-    end
-    if modified
-      self.replace(ar)
-    else
-      nil
-    end
-  end
-
   # for efficiency
   def reverse_each(&block)
     return to_enum :reverse_each unless block
