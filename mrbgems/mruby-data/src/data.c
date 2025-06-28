@@ -73,7 +73,7 @@ static mrb_value
 mrb_data_s_members(mrb_state *mrb, mrb_value klass)
 {
   mrb_value members = data_s_members(mrb, mrb_class_ptr(klass));
-  return mrb_ary_new_from_values(mrb, RARRAY_LEN(members), RARRAY_PTR(members));
+  return mrb_ary_dup(mrb, members);
 }
 
 /*

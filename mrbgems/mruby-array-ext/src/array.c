@@ -352,7 +352,7 @@ ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int other_argc, const 
   mrb_int total_other_len = 0;
 
   if (other_argc == 0) {
-    return mrb_ary_new_from_values(mrb, RARRAY_LEN(self), RARRAY_PTR(self));
+    return mrb_ary_dup(mrb, self);
   }
 
   for (mrb_int i = 0; i < other_argc; i++) {

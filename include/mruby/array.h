@@ -86,6 +86,7 @@ struct RArray {
 #define ARY_UNSET_SHARED_FLAG(a) ((a)->flags &= ~MRB_ARY_SHARED)
 
 MRB_API void mrb_ary_modify(mrb_state*, struct RArray*);
+MRB_API mrb_value mrb_ary_dup(mrb_state*, mrb_value ary);
 MRB_API mrb_value mrb_ary_new_capa(mrb_state*, mrb_int);
 
 /*

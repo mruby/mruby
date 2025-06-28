@@ -937,6 +937,12 @@ ary_dup(mrb_state *mrb, struct RArray *a)
   return ary_new_from_values(mrb, ARY_LEN(a), ARY_PTR(a));
 }
 
+MRB_API mrb_value
+mrb_ary_dup(mrb_state *mrb, mrb_value ary)
+{
+  return mrb_obj_value(ary_dup(mrb, mrb_ary_ptr(ary)));
+}
+
 /**
  * Replaces a portion of an array with elements from another array or a single value.
  *
