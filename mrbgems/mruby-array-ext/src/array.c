@@ -806,6 +806,132 @@ ary_intersect_p(mrb_state *mrb, mrb_value self)
   return mrb_false_value();
 }
 
+/*
+ *  Shared argument parser for Array#fill that handles all the complex
+ *  argument parsing logic including ranges, negative indices, etc.
+ *  Returns normalized start and length values.
+ */
+
+static mrb_value
+ary_fill_parse_arg(mrb_state *mrb, mrb_value self)
+{
+  mrb_value arg0 = mrb_nil_value(), arg1 = mrb_nil_value(), arg2 = mrb_nil_value();
+  mrb_value block = mrb_nil_value();
+  mrb_int argc;
+
+  argc = mrb_get_args(mrb, "|ooo&", &arg0, &arg1, &arg2, &block);
+
+  struct RArray *ary = mrb_ary_ptr(self);
+  mrb_int ary_len = ARY_LEN(ary);
+  mrb_int start = 0, length = 0;
+
+  if (!mrb_nil_p(block)) {
+    if (argc == 0 || (argc >= 1 && mrb_nil_p(arg0))) {
+      /* fill { |index| block } */
+      start = 0;
+      length = ary_len;
+    }
+    else if (argc >= 1 && mrb_range_p(arg0)) {
+      /* fill(range) { |index| block } */
+      mrb_int range_beg, range_end;
+
+      if (mrb_range_beg_len(mrb, arg0, &range_beg, &range_end, ary_len, 1)) {
+        start = range_beg;
+        length = range_end;
+      }
+    }
+    else if (argc >= 1 && !mrb_nil_p(arg0)) {
+      /* fill(start [, length]) { |index| block } */
+      start = mrb_int(mrb, arg0);
+      if (start < 0) start += ary_len;
+      if (start < 0) start = 0;
+
+      if (argc == 1 || mrb_nil_p(arg1)) {
+        length = ary_len - start;
+      }
+      else {
+        length = mrb_int(mrb, arg1);
+        if (length < 0) length = 0;
+      }
+    }
+  }
+  else {
+    if (argc >= 1 && !mrb_nil_p(arg0)) {
+      if (argc == 1 || (argc >= 2 && mrb_nil_p(arg1) && mrb_nil_p(arg2))) {
+        /* fill(obj) */
+        start = 0;
+        length = ary_len;
+      }
+      else if (argc >= 2 && mrb_range_p(arg1)) {
+        /* fill(obj, range) */
+        mrb_int range_beg, range_end;
+
+        if (mrb_range_beg_len(mrb, arg1, &range_beg, &range_end, ary_len, 1)) {
+          start = range_beg;
+          length = range_end;
+        }
+      }
+      else if (argc >= 2 && !mrb_nil_p(arg1)) {
+        /* fill(obj, start [, length]) */
+        start = mrb_int(mrb, arg1);
+        if (start < 0) start += ary_len;
+        if (start < 0) start = 0;
+
+        if (argc == 2 || mrb_nil_p(arg2)) {
+          length = ary_len - start;
+        }
+        else {
+          length = mrb_int(mrb, arg2);
+          if (length < 0) length = 0;
+        }
+      }
+    }
+  }
+
+  /* Return [start, length] array */
+  mrb_value result = mrb_ary_new_capa(mrb, 2);
+  mrb_ary_push(mrb, result, mrb_fixnum_value(start));
+  mrb_ary_push(mrb, result, mrb_fixnum_value(length));
+  return result;
+}
+
+/*
+ *  Fast C implementation that fills a specific range of the array
+ *  with the given object. Handles array extension if necessary.
+ */
+
+static mrb_value
+ary_fill_exec(mrb_state *mrb, mrb_value self)
+{
+  mrb_value obj;
+  mrb_int start, length;
+
+  mrb_get_args(mrb, "iio", &start, &length, &obj);
+
+  struct RArray *ary = mrb_ary_ptr(self);
+  mrb_int ary_len = ARY_LEN(ary);
+
+  /* Extend array if necessary */
+  if (start + length > ary_len) {
+    mrb_ary_resize(mrb, self, start + length);
+    ary = mrb_ary_ptr(self);  /* refresh pointer after resize */
+  }
+
+  /* Ensure we don't go beyond array bounds */
+  if (start >= ARY_LEN(ary) || length <= 0) return self;
+  if (start + length > ARY_LEN(ary)) {
+    length = ARY_LEN(ary) - start;
+  }
+
+  /* Fill the array */
+  mrb_value *ptr = ARY_PTR(ary) + start;
+  for (mrb_int i = 0; i < length; i++) {
+    ptr[i] = obj;
+  }
+
+  return self;
+}
+
 void
 mrb_mruby_array_ext_gem_init(mrb_state* mrb)
 {
@@ -827,6 +953,8 @@ mrb_mruby_array_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, a, MRB_OPSYM(and), ary_intersection, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, a, MRB_SYM(intersection), ary_intersection_multi, MRB_ARGS_ANY());
   mrb_define_method_id(mrb, a, MRB_SYM_Q(intersect), ary_intersect_p, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, a, MRB_SYM(__fill_parse_arg), ary_fill_parse_arg, MRB_ARGS_ARG(0,4));
+  mrb_define_method_id(mrb, a, MRB_SYM(__fill_exec), ary_fill_exec, MRB_ARGS_REQ(3));
 }
 
 void

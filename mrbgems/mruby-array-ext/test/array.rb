@@ -395,7 +395,13 @@ assert("Array#fill") do
   assert_equal [1, 2, 3, 4, 5, 6], [1, 2, 3, 4, 5, 6].fill('x', -2...-2)
   assert_equal [1, 2, 3, 4, 'x', 6], [1, 2, 3, 4, 5, 6].fill('x', -2..-2)
   assert_equal [1, 2, 3, 4, 5, 6], [1, 2, 3, 4, 5, 6].fill('x', -2..0)
+
+  # Test extending array
+  a = [1, 2]
+  assert_equal [1, 2, nil, nil, "x"], a.fill("x", 4, 1)
 end
+
+
 
 assert("Array#reverse_each") do
   a = [ "a", "b", "c", "d" ]

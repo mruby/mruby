@@ -209,65 +209,21 @@ class Array
       raise ArgumentError, "wrong number of arguments (given 0, expected 1..3)"
     end
 
-    beg = len = 0
-    if block
-      if arg0.nil? && arg1.nil? && arg2.nil?
-        # ary.fill { |index| block }                    -> ary
-        beg = 0
-        len = self.size
-      elsif !arg0.nil? && arg0.kind_of?(Range)
-        # ary.fill(range) { |index| block }             -> ary
-        beg = arg0.begin
-        beg += self.size if beg < 0
-        len = arg0.end
-        len += self.size if len < 0
-        len += 1 unless arg0.exclude_end?
-      elsif !arg0.nil?
-        # ary.fill(start [, length] ) { |index| block } -> ary
-        beg = arg0.__to_int
-        beg += self.size if beg < 0
-        if arg1.nil?
-          len = self.size
-        else
-          len = beg + arg1.__to_int
-        end
-      end
-    else
-      if !arg0.nil? && arg1.nil? && arg2.nil?
-        # ary.fill(obj)                                 -> ary
-        beg = 0
-        len = self.size
-      elsif !arg0.nil? && !arg1.nil? && arg1.kind_of?(Range)
-        # ary.fill(obj, range )                         -> ary
-        beg = arg1.begin
-        beg += self.size if beg < 0
-        len = arg1.end
-        len += self.size if len < 0
-        len += 1 unless arg1.exclude_end?
-      elsif !arg0.nil? && !arg1.nil?
-        # ary.fill(obj, start [, length])               -> ary
-        beg = arg1.__to_int
-        beg += self.size if beg < 0
-        if arg2.nil?
-          len = self.size
-        else
-          len = beg + arg2.__to_int
-        end
-      end
-    end
+    # Use shared C argument parser for all cases
+    start, length = __fill_parse_arg(arg0, arg1, arg2, &block)
 
-    i = beg
     if block
-      while i < len
+      # Block-based filling in Ruby
+      i = start
+      while i < start + length
         self[i] = block.call(i)
         i += 1
       end
     else
-      while i < len
-        self[i] = arg0
-        i += 1
-      end
+      # Use fast C implementation for value filling
+      __fill_exec(start, length, arg0)
     end
+
     self
   end
 
