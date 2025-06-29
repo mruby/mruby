@@ -461,12 +461,63 @@ assert("Array#reject!") do
 end
 
 assert("Array#insert") do
-  a = ["a", "b", "c", "d"]
-  assert_equal ["a", "b", 99, "c", "d"], a.insert(2, 99)
-  assert_equal ["a", "b", 99, "c", 1, 2, 3, "d"], a.insert(-2, 1, 2, 3)
+  # Basic insertion
+  a = [1, 2, 3]
+  assert_same a, a.insert(1, 99)
+  assert_equal [1, 99, 2, 3], a
 
-  b = ["a", "b", "c", "d"]
-  assert_equal ["a", "b", "c", "d", nil, nil, 99], b.insert(6, 99)
+  # Multiple elements
+  a = [1, 2, 3]
+  a.insert(2, 'a', 'b')
+  assert_equal [1, 2, 'a', 'b', 3], a
+
+  # Negative index
+  a = [1, 2, 3, 4]
+  a.insert(-2, 99)
+  assert_equal [1, 2, 3, 99, 4], a
+
+  # Negative index out of bounds
+  a = [1, 2, 3]
+  assert_raise(IndexError) { a.insert(-5, 99) }
+  assert_equal [1, 2, 3], a
+
+  # Insertion beyond bounds (creates nils)
+  a = [1, 2]
+  a.insert(5, 99)
+  assert_equal [1, 2, nil, nil, nil, 99], a
+
+  # Insertion at the end
+  a = [1, 2, 3]
+  a.insert(3, 99)
+  assert_equal [1, 2, 3, 99], a
+
+  # Insertion into an empty array
+  a = []
+  a.insert(0, 1, 2)
+  assert_equal [1, 2], a
+
+  # Insertion into an empty array at a non-zero index
+  a = []
+  a.insert(2, 99)
+  assert_equal [nil, nil, 99], a
+
+  # No-op (inserting zero elements)
+  a = [1, 2, 3]
+  a.insert(1)
+  assert_equal [1, 2, 3], a
+
+  # Return value is self
+  a = [1, 2, 3]
+  b = a.insert(1, 99)
+  assert_same a, b
+
+  # Large array insertion
+  a = (0...1000).to_a
+  a.insert(500, "x")
+  assert_equal 1001, a.size
+  assert_equal "x", a[500]
+  assert_equal 499, a[499]
+  assert_equal 500, a[501]
 end
 
 assert("Array#bsearch") do

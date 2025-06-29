@@ -1,4 +1,5 @@
 #include <mruby.h>
+#include <string.h>
 #include <mruby/value.h>
 #include <mruby/array.h>
 #include <mruby/range.h>
@@ -1136,6 +1137,61 @@ ary_flatten_bang(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ *  call-seq:
+ *     ary.insert(index, obj...)    -> ary
+ *
+ *  Inserts the given values before the element with the given index.
+ *
+ *  Negative indices count backwards from the end of the array, where -1
+ *  is the last element. If a negative index is used, the elements are
+ *  inserted after that element.
+ *
+ *  If the index is greater than the length of the array, the array is
+ *  extended with nil elements.
+ *
+ *     a = %w{ a b c d }
+ *     a.insert(2, 99)         #=> ["a", "b", 99, "c", "d"]
+ *     a.insert(-2, 1, 2, 3)   #=> ["a", "b", 99, "c", 1, 2, 3, "d"]
+ */
+static mrb_value
+ary_insert(mrb_state *mrb, mrb_value self)
+{
+  mrb_int idx;
+  const mrb_value *argv;
+  mrb_int argc;
+
+  mrb_get_args(mrb, "i*", &idx, &argv, &argc);
+
+  if (argc == 0) {
+    return self;
+  }
+
+  mrb_int len = RARRAY_LEN(self);
+
+  if (idx < 0) {
+    idx += len + 1;
+    if (idx < 0) {
+       mrb_raisef(mrb, E_INDEX_ERROR, "index %i outside of array bounds", idx - (len + 1));
+    }
+  }
+
+  mrb_ary_modify(mrb, mrb_ary_ptr(self));
+
+  mrb_int new_len = (idx > len ? idx : len) + argc;
+  mrb_ary_resize(mrb, self, new_len);
+
+  if (idx < len) {
+    memmove(RARRAY_PTR(self) + idx + argc, RARRAY_PTR(self) + idx, (len - idx) * sizeof(mrb_value));
+  }
+
+  for (mrb_int i = 0; i < argc; i++) {
+    mrb_ary_set(mrb, self, idx + i, argv[i]);
+  }
+
+  return self;
+}
+
 void
 mrb_mruby_array_ext_gem_init(mrb_state* mrb)
 {
@@ -1163,6 +1219,7 @@ mrb_mruby_array_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, a, MRB_SYM_B(__uniq), ary_uniq_bang, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, a, MRB_SYM(flatten), ary_flatten, MRB_ARGS_OPT(1));
   mrb_define_method_id(mrb, a, MRB_SYM_B(flatten), ary_flatten_bang, MRB_ARGS_OPT(1));
+  mrb_define_method_id(mrb, a, MRB_SYM(insert), ary_insert, MRB_ARGS_ARG(1, -1));
 }
 
 void
