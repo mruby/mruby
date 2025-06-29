@@ -1104,6 +1104,75 @@ ary_flatten(mrb_state *mrb, mrb_value self)
 }
 
 /*
+ *  Shared helper for index normalization and bounds checking.
+ *  Returns normalized index if in bounds, nil if out of bounds.
+ */
+
+static mrb_value
+ary_normalize_index(mrb_state *mrb, mrb_value self)
+{
+  mrb_value index_val;
+  mrb_get_args(mrb, "o", &index_val);
+
+  mrb_int index = mrb_as_int(mrb, index_val);
+  struct RArray *ary = mrb_ary_ptr(self);
+  mrb_int len = ARY_LEN(ary);
+
+  // Handle negative indices
+  if (index < 0) {
+    index += len;
+  }
+
+  // Check bounds
+  if (index >= 0 && index < len) {
+    return mrb_fixnum_value(index);
+  }
+  else {
+    return mrb_nil_value();
+  }
+}
+
+/*
+ *  Fast C implementation for Array#fetch without blocks.
+ *  Returns the element at index, or default if out of bounds.
+ *  Raises IndexError if out of bounds and default equals none.
+ */
+
+static mrb_value
+ary_fetch(mrb_state *mrb, mrb_value self)
+{
+  mrb_value index_val, default_val, none;
+  mrb_get_args(mrb, "ooo", &index_val, &default_val, &none);
+
+  // Convert index to integer
+  mrb_int index = mrb_as_int(mrb, index_val);
+  mrb_int original_index = index;  // Keep original for error message
+
+  struct RArray *ary = mrb_ary_ptr(self);
+  mrb_int len = ARY_LEN(ary);
+
+  // Handle negative indices
+  if (index < 0) {
+    index += len;
+  }
+
+  // Check bounds
+  if (index < 0 || index >= len) {
+    // Check if default is the NONE sentinel (means no default provided)
+    if (mrb_obj_equal(mrb, default_val, none)) {
+      // No default provided - raise IndexError
+      mrb_raisef(mrb, E_INDEX_ERROR,
+                 "index %i outside of array bounds: %i...%i",
+                 original_index, -len, len);
+    }
+    return default_val;
+  }
+
+  // Return element at index
+  return ARY_PTR(ary)[index];
+}
+
+/*
  *  call-seq:
  *     ary.flatten!        -> ary or nil
  *     ary.flatten!(level) -> array or nil
@@ -1219,6 +1288,8 @@ mrb_mruby_array_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, a, MRB_SYM_B(__uniq), ary_uniq_bang, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, a, MRB_SYM(flatten), ary_flatten, MRB_ARGS_OPT(1));
   mrb_define_method_id(mrb, a, MRB_SYM_B(flatten), ary_flatten_bang, MRB_ARGS_OPT(1));
+  mrb_define_method_id(mrb, a, MRB_SYM(__normalize_index), ary_normalize_index, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, a, MRB_SYM(__fetch), ary_fetch, MRB_ARGS_REQ(3));
   mrb_define_method_id(mrb, a, MRB_SYM(insert), ary_insert, MRB_ARGS_ARG(1, -1));
 }
 

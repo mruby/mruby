@@ -358,6 +358,19 @@ assert("Array#fetch") do
   a.fetch(100) { |i| ret = i }
   assert_equal 100, ret
   assert_raise(IndexError) { a.fetch(100) }
+
+  # Additional edge cases
+  assert_equal "default", [].fetch(0, "default")
+  assert_equal "missing 5", ["a"].fetch(5) { |i| "missing #{i}" }
+  assert_equal "from block", ["a"].fetch(5, "default") { "from block" }
+
+  # Error message format
+  begin
+    ["a", "b"].fetch(5)
+    assert_false true
+  rescue IndexError => e
+    assert_true e.message.include?("index 5 outside of array bounds: -2...2")
+  end
 end
 
 assert("Array#fetch_values") do

@@ -99,18 +99,18 @@ class Array
   def fetch(n, ifnone=NONE, &block)
     #warn "block supersedes default value argument" if !n.nil? && ifnone != NONE && block
 
-    idx = n.__to_int
-    if idx < 0
-      idx += size
-    end
-    if idx < 0 || size <= idx
-      return block.call(n) if block
-      if NONE.equal?(ifnone)
-        raise IndexError, "index #{n} outside of array bounds: #{-size}...#{size}"
+    if block
+      # Block case: use shared index helper + Ruby block handling
+      normalized_index = __normalize_index(n)
+      if normalized_index
+        self[normalized_index]
+      else
+        block.call(n)
       end
-      return ifnone
+    else
+      # Fast C implementation for non-block cases
+      __fetch(n, ifnone, NONE)
     end
-    self[idx]
   end
 
   ##
