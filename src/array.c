@@ -1844,20 +1844,31 @@ sort_cmp(mrb_state *mrb, mrb_value ary, mrb_value *p, mrb_int a, mrb_int b, mrb_
 static void
 heapify(mrb_state *mrb, mrb_value ary, mrb_value *a, mrb_int index, mrb_int size, mrb_value blk)
 {
-  mrb_int max = index;
-  mrb_int left_index = 2 * index + 1;
-  mrb_int right_index = left_index + 1;
-  if (left_index < size && sort_cmp(mrb, ary, a, left_index, max, blk)) {
-    max = left_index;
-  }
-  if (right_index < size && sort_cmp(mrb, ary, a, right_index, max, blk)) {
-    max = right_index;
-  }
-  if (max != index) {
+  /* Iterative heapify to avoid stack overflow on memory-constrained devices */
+  while (1) {
+    mrb_int max = index;
+    mrb_int left_index = 2 * index + 1;
+    mrb_int right_index = left_index + 1;
+
+    if (left_index < size && sort_cmp(mrb, ary, a, left_index, max, blk)) {
+      max = left_index;
+    }
+    if (right_index < size && sort_cmp(mrb, ary, a, right_index, max, blk)) {
+      max = right_index;
+    }
+
+    if (max == index) {
+      /* Heap property satisfied, no more swaps needed */
+      break;
+    }
+
+    /* Swap elements and continue heapifying down the affected subtree */
     mrb_value tmp = a[max];
     a[max] = a[index];
     a[index] = tmp;
-    heapify(mrb, ary, a, max, size, blk);
+
+    /* Continue with the affected child subtree */
+    index = max;
   }
 }
 
