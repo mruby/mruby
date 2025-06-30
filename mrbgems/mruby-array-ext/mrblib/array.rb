@@ -594,8 +594,15 @@ class Array
   #   a.fetch_values(2, 5) {|i| "BIRD" }  #=> ["cow", "BIRD"]
   #
   def fetch_values(*idx, &block)
-    idx.map do |i|
-      self.fetch(i, &block)
+    if block
+      idx.map do |i|
+        self.fetch(i, &block)
+      end
+    else
+      # Fast path: use C implementation for non-block cases
+      idx.map do |i|
+        __fetch(i, NONE, NONE)
+      end
     end
   end
 
