@@ -86,16 +86,6 @@ class Array
   end
 
   ##
-  # call-seq:
-  #   array.to_a -> self
-  #
-  # Returns self, no need to convert.
-  def to_a
-    self
-  end
-  alias entries to_a
-
-  ##
   # Array is enumerable
   # ISO 15.2.12.3
   include Enumerable

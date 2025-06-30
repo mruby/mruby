@@ -1893,6 +1893,23 @@ mrb_ary_sort_bang(mrb_state *mrb, mrb_value ary)
   return ary;
 }
 
+/*
+ *  call-seq:
+ *    array.to_a -> self
+ *
+ *  Returns self. If called on a subclass of Array, converts
+ *  the receiver to an Array object.
+ */
+static mrb_value
+mrb_ary_to_a(mrb_state *mrb, mrb_value self)
+{
+  if (mrb_obj_class(mrb, self) != mrb->array_class) {
+    /* Convert subclass to Array */
+    return mrb_ary_dup(mrb, self);
+  }
+  return self;
+}
+
 void
 mrb_init_array(mrb_state *mrb)
 {
@@ -1933,6 +1950,8 @@ mrb_init_array(mrb_state *mrb)
   mrb_define_method_id(mrb, a, MRB_SYM(size),            mrb_ary_size,         MRB_ARGS_NONE());   /* 15.2.12.5.28 */
   mrb_define_method_id(mrb, a, MRB_SYM(slice),           mrb_ary_aget,         MRB_ARGS_ARG(1,1)); /* 15.2.12.5.29 */
   mrb_define_method_id(mrb, a, MRB_SYM(unshift),         mrb_ary_unshift_m,    MRB_ARGS_ANY());    /* 15.2.12.5.30 */
+  mrb_define_method_id(mrb, a, MRB_SYM(to_a),            mrb_ary_to_a,         MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, a, MRB_SYM(entries),         mrb_ary_to_a,         MRB_ARGS_NONE());
   mrb_define_method_id(mrb, a, MRB_SYM(to_s),            mrb_ary_to_s,         MRB_ARGS_NONE());
   mrb_define_method_id(mrb, a, MRB_SYM(inspect),         mrb_ary_to_s,         MRB_ARGS_NONE());
   mrb_define_method_id(mrb, a, MRB_SYM_B(sort),          mrb_ary_sort_bang,    MRB_ARGS_NONE());
