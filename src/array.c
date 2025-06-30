@@ -1823,8 +1823,32 @@ sort_cmp(mrb_state *mrb, mrb_value ary, mrb_value *p, mrb_int a, mrb_int b, mrb_
   mrb_int cmp;
 
   if (mrb_nil_p(blk)) {
-    cmp = mrb_cmp(mrb, p[a], p[b]);
-    if (cmp == -2) cmp_failed(mrb, a, b);
+    enum mrb_vtype type_a = mrb_type(p[a]);
+    enum mrb_vtype type_b = mrb_type(p[b]);
+
+    if (type_a == type_b) {
+      switch (type_a) {
+      case MRB_TT_FIXNUM:
+        cmp = (mrb_fixnum(p[a]) > mrb_fixnum(p[b])) ? 1 : (mrb_fixnum(p[a]) < mrb_fixnum(p[b])) ? -1 : 0;
+        break;
+#ifndef MRB_NO_FLOAT
+      case MRB_TT_FLOAT:
+        cmp = (mrb_float(p[a]) > mrb_float(p[b])) ? 1 : (mrb_float(p[a]) < mrb_float(p[b])) ? -1 : 0;
+        break;
+#endif
+      case MRB_TT_STRING:
+        cmp = mrb_str_cmp(mrb, p[a], p[b]);
+        break;
+      default:
+        cmp = mrb_cmp(mrb, p[a], p[b]);
+        if (cmp == -2) cmp_failed(mrb, a, b);
+        break;
+      }
+    }
+    else {
+      cmp = mrb_cmp(mrb, p[a], p[b]);
+      if (cmp == -2) cmp_failed(mrb, a, b);
+    }
   }
   else {
     mrb_value args[2] = {p[a], p[b]};
