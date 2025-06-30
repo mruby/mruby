@@ -1811,55 +1811,57 @@ mrb_ary_delete(mrb_state *mrb, mrb_value self)
   return ret;
 }
 
-static mrb_noreturn void
-cmp_failed(mrb_state *mrb, mrb_int a, mrb_int b)
-{
-  mrb_raisef(mrb, E_ARGUMENT_ERROR, "comparison failed (element %d and %d)", a, b);
-}
+
+#define SMALL_ARRAY_SORT_THRESHOLD 16
+
 
 static mrb_bool
-sort_cmp(mrb_state *mrb, mrb_value ary, mrb_value *p, mrb_int a, mrb_int b, mrb_value blk)
+sort_cmp(mrb_state *mrb, mrb_value ary, mrb_value *p, mrb_value a_val, mrb_value b_val, mrb_value blk)
 {
   mrb_int cmp;
+  int ai = mrb_gc_arena_save(mrb);
 
   if (mrb_nil_p(blk)) {
-    enum mrb_vtype type_a = mrb_type(p[a]);
-    enum mrb_vtype type_b = mrb_type(p[b]);
+    enum mrb_vtype type_a = mrb_type(a_val);
+    enum mrb_vtype type_b = mrb_type(b_val);
 
     if (type_a == type_b) {
       switch (type_a) {
       case MRB_TT_FIXNUM:
-        cmp = (mrb_fixnum(p[a]) > mrb_fixnum(p[b])) ? 1 : (mrb_fixnum(p[a]) < mrb_fixnum(p[b])) ? -1 : 0;
+        cmp = (mrb_fixnum(a_val) > mrb_fixnum(b_val)) ? 1 : (mrb_fixnum(a_val) < mrb_fixnum(b_val)) ? -1 : 0;
         break;
 #ifndef MRB_NO_FLOAT
       case MRB_TT_FLOAT:
-        cmp = (mrb_float(p[a]) > mrb_float(p[b])) ? 1 : (mrb_float(p[a]) < mrb_float(p[b])) ? -1 : 0;
+        cmp = (mrb_float(a_val) > mrb_float(b_val)) ? 1 : (mrb_float(a_val) < mrb_float(b_val)) ? -1 : 0;
         break;
 #endif
       case MRB_TT_STRING:
-        cmp = mrb_str_cmp(mrb, p[a], p[b]);
+        cmp = mrb_str_cmp(mrb, a_val, b_val);
         break;
       default:
-        cmp = mrb_cmp(mrb, p[a], p[b]);
-        if (cmp == -2) cmp_failed(mrb, a, b);
+        cmp = mrb_cmp(mrb, a_val, b_val);
         break;
       }
     }
     else {
-      cmp = mrb_cmp(mrb, p[a], p[b]);
-      if (cmp == -2) cmp_failed(mrb, a, b);
+      cmp = mrb_cmp(mrb, a_val, b_val);
     }
   }
   else {
-    mrb_value args[2] = {p[a], p[b]};
+    mrb_value args[2] = {a_val, b_val};
     mrb_value c = mrb_yield_argv(mrb, blk, 2, args);
     if (mrb_nil_p(c) || !mrb_fixnum_p(c)) {
-      cmp_failed(mrb, a, b);
+      cmp = -2;
     }
-    cmp = mrb_fixnum(c);
+    else {
+      cmp = mrb_fixnum(c);
+    }
   }
-  mrb_int size = RARRAY_LEN(ary);
-  if (RARRAY_PTR(ary) != p || size < a || size < b) {
+  mrb_gc_arena_restore(mrb, ai);
+  if (cmp == -2) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "comparison failed");
+  }
+  if (RARRAY_PTR(ary) != p) {
     mrb_raise(mrb, E_RUNTIME_ERROR, "array modified during sort");
   }
   return cmp > 0;
@@ -1874,10 +1876,10 @@ heapify(mrb_state *mrb, mrb_value ary, mrb_value *a, mrb_int index, mrb_int size
     mrb_int left_index = 2 * index + 1;
     mrb_int right_index = left_index + 1;
 
-    if (left_index < size && sort_cmp(mrb, ary, a, left_index, max, blk)) {
+    if (left_index < size && sort_cmp(mrb, ary, a, a[left_index], a[max], blk)) {
       max = left_index;
     }
-    if (right_index < size && sort_cmp(mrb, ary, a, right_index, max, blk)) {
+    if (right_index < size && sort_cmp(mrb, ary, a, a[right_index], a[max], blk)) {
       max = right_index;
     }
 
@@ -1893,6 +1895,22 @@ heapify(mrb_state *mrb, mrb_value ary, mrb_value *a, mrb_int index, mrb_int size
 
     /* Continue with the affected child subtree */
     index = max;
+  }
+}
+
+static void
+insertion_sort(mrb_state *mrb, mrb_value ary, mrb_value *a, mrb_int size, mrb_value blk)
+{
+  for (mrb_int i = 1; i < size; i++) {
+    mrb_value key = a[i];
+    mrb_int j = i - 1;
+
+    /* Move elements that are greater than key to one position ahead */
+    while (j >= 0 && sort_cmp(mrb, ary, a, a[j], key, blk)) {
+      a[j + 1] = a[j];
+      j--;
+    }
+    a[j + 1] = key;
   }
 }
 
@@ -1916,14 +1934,23 @@ mrb_ary_sort_bang(mrb_state *mrb, mrb_value ary)
   mrb_get_args(mrb, "&", &blk);
 
   mrb_value *a = RARRAY_PTR(ary);
-  for (mrb_int i = n / 2 - 1; i > -1; i--) {
-    heapify(mrb, ary, a, i, n, blk);
+
+  /* Algorithm selection based on array size */
+  if (n <= SMALL_ARRAY_SORT_THRESHOLD) {
+    /* Use insertion sort for small arrays */
+    insertion_sort(mrb, ary, a, n, blk);
   }
-  for (mrb_int i = n - 1; i > 0; i--) {
-    mrb_value tmp = a[0];
-    a[0] = a[i];
-    a[i] = tmp;
-    heapify(mrb, ary, a, 0, i, blk);
+  else {
+    /* Use heap sort for larger arrays */
+    for (mrb_int i = n / 2 - 1; i >= 0; i--) {
+      heapify(mrb, ary, a, i, n, blk);
+    }
+    for (mrb_int i = n - 1; i > 0; i--) {
+      mrb_value tmp = a[0];
+      a[0] = a[i];
+      a[i] = tmp;
+      heapify(mrb, ary, a, 0, i, blk);
+    }
   }
   return ary;
 }
