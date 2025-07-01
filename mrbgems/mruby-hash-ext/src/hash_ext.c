@@ -247,6 +247,54 @@ hash_key(mrb_state *mrb, mrb_value hash)
   return search.found ? search.result : mrb_nil_value();
 }
 
+/*
+ *  call-seq:
+ *     hsh.deconstruct_keys(keys) -> hash
+ *
+ *  Returns a hash containing the contents of hsh for the given keys.
+ *
+ *  If keys is nil, returns the hash itself.
+ *  If keys is an array, returns a new hash containing only the specified keys.
+ *
+ *     h = { a: 1, b: 2, c: 3, d: 4 }
+ *     h.deconstruct_keys([:a, :c])   #=> { a: 1, c: 3 }
+ *     h.deconstruct_keys(nil)        #=> { a: 1, b: 2, c: 3, d: 4 }
+ *     h.deconstruct_keys([:x, :y])   #=> { x: nil, y: nil }
+ */
+static mrb_value
+hash_deconstruct_keys(mrb_state *mrb, mrb_value hash)
+{
+  mrb_value keys;
+  mrb_value result;
+  mrb_int i, len;
+
+  mrb_get_args(mrb, "o", &keys);
+
+  /* If keys is nil, return the hash itself */
+  if (mrb_nil_p(keys)) {
+    return hash;
+  }
+
+  /* Keys must be an array */
+  if (!mrb_array_p(keys)) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "wrong argument type %C (expected Array or nil)",
+               mrb_obj_class(mrb, keys));
+  }
+
+  /* Create result hash */
+  result = mrb_hash_new(mrb);
+  len = RARRAY_LEN(keys);
+
+  /* Extract specified keys */
+  for (i = 0; i < len; i++) {
+    mrb_value key = mrb_ary_ref(mrb, keys, i);
+    mrb_value val = mrb_hash_get(mrb, hash, key);
+    mrb_hash_set(mrb, result, key, val);
+  }
+
+  return result;
+}
+
 void
 mrb_mruby_hash_ext_gem_init(mrb_state *mrb)
 {
@@ -257,6 +305,7 @@ mrb_mruby_hash_ext_gem_init(mrb_state *mrb)
   mrb_define_method_id(mrb, h, MRB_SYM(slice),     hash_slice, MRB_ARGS_ANY());
   mrb_define_method_id(mrb, h, MRB_SYM(except),    hash_except, MRB_ARGS_ANY());
   mrb_define_method_id(mrb, h, MRB_SYM(key),       hash_key, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, h, MRB_SYM(deconstruct_keys), hash_deconstruct_keys, MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, h, MRB_OPSYM(aref), hash_s_create, MRB_ARGS_ANY());
 }
 
