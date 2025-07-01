@@ -292,6 +292,23 @@ assert("Hash#slice") do
   assert_equal({:b=>200, :c=>300}, h.slice(:b, :c, :d))
 end
 
+assert("Hash#slice!") do
+  h = { a: 1, b: 2, c: 3, d: 4 }
+  removed = h.slice!(:a, :c)
+  assert_equal({ a: 1, c: 3 }, h)
+  assert_equal({ b: 2, d: 4 }, removed)
+
+  h = { a: 1, b: 2 }
+  removed = h.slice!()
+  assert_equal({}, h)
+  assert_equal({ a: 1, b: 2 }, removed)
+
+  h = { a: 1, b: 2 }
+  removed = h.slice!(:a, :b, :c)
+  assert_equal({ a: 1, b: 2 }, h)
+  assert_equal({}, removed)
+end
+
 assert("Hash#except") do
   h = { a: 100, b: 200, c: 300 }
   assert_equal({:b=>200, :c=>300}, h.except(:a))

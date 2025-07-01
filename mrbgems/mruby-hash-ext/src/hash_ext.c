@@ -72,6 +72,62 @@ hash_slice(mrb_state *mrb, mrb_value hash)
   return result;
 }
 
+struct slice_bang_i_arg {
+  mrb_value keep_keys;
+  mrb_value keys_to_remove;
+};
+
+static int
+slice_bang_i(mrb_state *mrb, mrb_value key, mrb_value val, void *data)
+{
+  struct slice_bang_i_arg *args = (struct slice_bang_i_arg *)data;
+  if (!mrb_hash_key_p(mrb, args->keep_keys, key)) {
+    mrb_ary_push(mrb, args->keys_to_remove, key);
+  }
+  return 0; /* Continue iteration */
+}
+
+/*
+ *  call-seq:
+ *     hsh.slice!(*keys) -> a_hash
+ *
+ *  Deletes keys from hsh that are not in +keys+.
+ *  Returns a new hash containing the deleted key-value pairs.
+ *
+ *     h = { a: 1, b: 2, c: 3, d: 4 }
+ *     h.slice!(:a, :c) #=> { b: 2, d: 4 }
+ *     h                #=> { a: 1, c: 3 }
+ */
+static mrb_value
+hash_slice_bang(mrb_state *mrb, mrb_value self)
+{
+  const mrb_value *argv;
+  mrb_int argc;
+  mrb_value removed_hash;
+  struct slice_bang_i_arg args;
+  mrb_int i, len;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+
+  args.keep_keys = mrb_hash_new_capa(mrb, argc);
+  for (i = 0; i < argc; i++) {
+    mrb_hash_set(mrb, args.keep_keys, argv[i], mrb_true_value());
+  }
+
+  args.keys_to_remove = mrb_ary_new(mrb);
+  mrb_hash_foreach(mrb, mrb_hash_ptr(self), slice_bang_i, &args);
+
+  len = RARRAY_LEN(args.keys_to_remove);
+  removed_hash = mrb_hash_new_capa(mrb, len);
+  for (i = 0; i < len; i++) {
+    mrb_value key = mrb_ary_ref(mrb, args.keys_to_remove, i);
+    mrb_value val = mrb_hash_delete_key(mrb, self, key);
+    mrb_hash_set(mrb, removed_hash, key, val);
+  }
+
+  return removed_hash;
+}
+
 /*
  *  call-seq:
  *     hsh.except(*keys) -> a_hash
@@ -341,6 +397,7 @@ mrb_mruby_hash_ext_gem_init(mrb_state *mrb)
   h = mrb->hash_class;
   mrb_define_method_id(mrb, h, MRB_SYM(values_at), hash_values_at, MRB_ARGS_ANY());
   mrb_define_method_id(mrb, h, MRB_SYM(slice),     hash_slice, MRB_ARGS_ANY());
+  mrb_define_method_id(mrb, h, MRB_SYM_B(slice),    hash_slice_bang, MRB_ARGS_ANY());
   mrb_define_method_id(mrb, h, MRB_SYM(except),    hash_except, MRB_ARGS_ANY());
   mrb_define_method_id(mrb, h, MRB_SYM(key),       hash_key, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, h, MRB_SYM(deconstruct_keys), hash_deconstruct_keys, MRB_ARGS_REQ(1));
