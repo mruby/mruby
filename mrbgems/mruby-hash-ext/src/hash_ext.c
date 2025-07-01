@@ -295,6 +295,44 @@ hash_deconstruct_keys(mrb_state *mrb, mrb_value hash)
   return result;
 }
 
+/*
+ *  call-seq:
+ *     hsh.__merge(*others) -> hsh
+ *
+ *  Merges multiple hashes into hsh. This is an internal method
+ *  used by merge! for non-block cases.
+ *
+ *  Raises ArgumentError if no arguments given.
+ *  Raises TypeError if any argument is not a Hash.
+ *
+ *     h = { a: 1, b: 2 }
+ *     h.__merge({ c: 3 }, { d: 4 })  #=> { a: 1, b: 2, c: 3, d: 4 }
+ */
+static mrb_value
+hash_merge(mrb_state *mrb, mrb_value hash)
+{
+  const mrb_value *argv;
+  mrb_int argc;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+
+  /* Validate arguments */
+  if (argc == 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (given 0, expected 1+)");
+  }
+
+  /* Merge multiple hashes in C */
+  for (mrb_int i = 0; i < argc; i++) {
+    if (!mrb_hash_p(argv[i])) {
+      mrb_raisef(mrb, E_TYPE_ERROR, "no implicit conversion of %C into Hash",
+                 mrb_obj_class(mrb, argv[i]));
+    }
+    mrb_hash_merge(mrb, hash, argv[i]);
+  }
+
+  return hash;
+}
+
 void
 mrb_mruby_hash_ext_gem_init(mrb_state *mrb)
 {
@@ -306,6 +344,7 @@ mrb_mruby_hash_ext_gem_init(mrb_state *mrb)
   mrb_define_method_id(mrb, h, MRB_SYM(except),    hash_except, MRB_ARGS_ANY());
   mrb_define_method_id(mrb, h, MRB_SYM(key),       hash_key, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, h, MRB_SYM(deconstruct_keys), hash_deconstruct_keys, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, h, MRB_SYM(__merge),   hash_merge, MRB_ARGS_ANY());
   mrb_define_class_method_id(mrb, h, MRB_OPSYM(aref), hash_s_create, MRB_ARGS_ANY());
 }
 

@@ -32,13 +32,9 @@ class Hash
       other = others[i]
       i += 1
       raise TypeError, "Hash required (#{other.class} given)" unless Hash === other
-      if block
-        other.each_key{|k|
-          self[k] = (self.has_key?(k))? block.call(k, self[k], other[k]): other[k]
-        }
-      else
-        other.each_key{|k| self[k] = other[k]}
-      end
+      other.each_key{|k|
+        self[k] = (self.has_key?(k))? block.call(k, self[k], other[k]): other[k]
+      }
     end
     self
   end
