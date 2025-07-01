@@ -613,9 +613,6 @@ EOS
       targets = @gems.select { |v| File.directory? "#{v.dir}/bintest" }.map { |v| filename v.dir }
       mrbc = @gems["mruby-bin-mrbc"] ? exefile("#{@build_dir}/bin/mrbc") : mrbcfile
 
-      emulator = @test_runner.command
-      emulator = @test_runner.shellquote(emulator) if emulator
-
       env = {
         "BUILD_DIR" => @build_dir,
         "MRBCFILE" => mrbc,
