@@ -1261,6 +1261,31 @@ ary_insert(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ *  call-seq:
+ *     ary.deconstruct -> ary
+ *
+ *  Returns the array itself for pattern matching.
+ *
+ *  This method is used by pattern matching to deconstruct arrays.
+ *  It simply returns the array itself, allowing pattern matching
+ *  to work with array elements.
+ *
+ *     a = [1, 2, 3]
+ *     a.deconstruct   #=> [1, 2, 3]
+ *
+ *  Pattern matching usage:
+ *     case [1, 2, 3]
+ *     in [x, y, z]
+ *       # x=1, y=2, z=3
+ *     end
+ */
+static mrb_value
+ary_deconstruct(mrb_state *mrb, mrb_value ary)
+{
+  return ary;
+}
+
 void
 mrb_mruby_array_ext_gem_init(mrb_state* mrb)
 {
@@ -1291,6 +1316,7 @@ mrb_mruby_array_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, a, MRB_SYM(__normalize_index), ary_normalize_index, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, a, MRB_SYM(__fetch), ary_fetch, MRB_ARGS_REQ(3));
   mrb_define_method_id(mrb, a, MRB_SYM(insert), ary_insert, MRB_ARGS_ARG(1, -1));
+  mrb_define_method_id(mrb, a, MRB_SYM(deconstruct), ary_deconstruct, MRB_ARGS_NONE());
 }
 
 void
