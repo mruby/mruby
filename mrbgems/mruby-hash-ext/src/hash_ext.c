@@ -198,6 +198,55 @@ hash_s_create(mrb_state *mrb, mrb_value klass)
   return hash;
 }
 
+/* Data structure for hash_key search */
+struct key_search {
+  mrb_value target;
+  mrb_value result;
+  mrb_bool found;
+};
+
+/* Iterator function for hash_key */
+static int
+hash_key_i(mrb_state *mrb, mrb_value key, mrb_value val, void *data)
+{
+  struct key_search *search = (struct key_search*)data;
+  if (mrb_equal(mrb, val, search->target)) {
+    search->result = key;
+    search->found = TRUE;
+    return 1; /* Stop iteration */
+  }
+  return 0; /* Continue iteration */
+}
+
+/*
+ *  call-seq:
+ *     hsh.key(value)    -> key
+ *
+ *  Returns the key of an occurrence of a given value. If the value is
+ *  not found, returns <code>nil</code>.
+ *
+ *     h = { "a" => 100, "b" => 200, "c" => 300, "d" => 300 }
+ *     h.key(200)   #=> "b"
+ *     h.key(300)   #=> "c" or "d"
+ *     h.key(999)   #=> nil
+ */
+static mrb_value
+hash_key(mrb_state *mrb, mrb_value hash)
+{
+  mrb_value val;
+  struct key_search search;
+
+  mrb_get_args(mrb, "o", &val);
+
+  search.target = val;
+  search.result = mrb_nil_value();
+  search.found = FALSE;
+
+  mrb_hash_foreach(mrb, mrb_hash_ptr(hash), hash_key_i, &search);
+
+  return search.found ? search.result : mrb_nil_value();
+}
+
 void
 mrb_mruby_hash_ext_gem_init(mrb_state *mrb)
 {
@@ -207,6 +256,7 @@ mrb_mruby_hash_ext_gem_init(mrb_state *mrb)
   mrb_define_method_id(mrb, h, MRB_SYM(values_at), hash_values_at, MRB_ARGS_ANY());
   mrb_define_method_id(mrb, h, MRB_SYM(slice),     hash_slice, MRB_ARGS_ANY());
   mrb_define_method_id(mrb, h, MRB_SYM(except),    hash_except, MRB_ARGS_ANY());
+  mrb_define_method_id(mrb, h, MRB_SYM(key),       hash_key, MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, h, MRB_OPSYM(aref), hash_s_create, MRB_ARGS_ANY());
 }
 
