@@ -7,6 +7,7 @@
 #include <mruby.h>
 #include <mruby/array.h>
 #include <mruby/hash.h>
+#include <mruby/class.h>
 #include <mruby/presym.h>
 
 /*
@@ -96,6 +97,107 @@ hash_except(mrb_state *mrb, mrb_value hash)
   return result;
 }
 
+/*
+ *  call-seq:
+ *     Hash[ key, value, ... ] -> new_hash
+ *     Hash[ [ [key, value], ... ] ] -> new_hash
+ *     Hash[ object ] -> new_hash
+ *
+ *  Creates a new hash populated with the given objects.
+ *
+ *  Similar to the literal `{ _key_ => _value_, ... }`. In the first
+ *  form, keys and values occur in pairs, so there must be an even number of
+ *  arguments.
+ *
+ *  The second and third form take a single argument which is either an array
+ *  of key-value pairs or an object convertible to a hash.
+ *
+ *     Hash["a", 100, "b", 200] #=> {"a"=>100, "b"=>200}
+ *     Hash[ [ ["a", 100], ["b", 200] ] ] #=> {"a"=>100, "b"=>200}
+ *     Hash["a" => 100, "b" => 200] #=> {"a"=>100, "b"=>200}
+ */
+static mrb_value
+hash_s_create(mrb_state *mrb, mrb_value klass)
+{
+  const mrb_value *argv;
+  mrb_int argc;
+  mrb_value hash;
+
+  mrb_get_args(mrb, "*", &argv, &argc);
+
+  if (argc == 1) {
+    mrb_value obj = argv[0];
+
+    /* Case 1: Hash argument - copy constructor */
+    if (mrb_hash_p(obj)) {
+      hash = mrb_hash_new(mrb);
+      mrb_hash_merge(mrb, hash, obj);
+      /* Set the correct class if it's a subclass */
+      if (mrb_class_ptr(klass) != mrb->hash_class) {
+        mrb_obj_ptr(hash)->c = mrb_class_ptr(klass);
+      }
+      return hash;
+    }
+
+    /* Case 2: Array argument with nested arrays */
+    if (mrb_array_p(obj)) {
+      mrb_int ary_len = RARRAY_LEN(obj);
+      hash = mrb_hash_new_capa(mrb, ary_len);
+
+      for (mrb_int i = 0; i < ary_len; i++) {
+        mrb_value elem = mrb_ary_ref(mrb, obj, i);
+        mrb_value key = mrb_nil_value(), val = mrb_nil_value();
+
+        if (!mrb_array_p(elem)) {
+          mrb_raisef(mrb, E_ARGUMENT_ERROR,
+                     "wrong element type %C (expected array)", mrb_obj_class(mrb, elem));
+        }
+
+        mrb_int elem_len = RARRAY_LEN(elem);
+
+        switch (elem_len) {
+        case 2:
+          key = mrb_ary_ref(mrb, elem, 0);
+          val = mrb_ary_ref(mrb, elem, 1);
+          break;
+        case 1:
+          key = mrb_ary_ref(mrb, elem, 0);
+          val = mrb_nil_value();
+          break;
+        case 0:
+        default:
+          mrb_raisef(mrb, E_ARGUMENT_ERROR,
+                     "invalid number of elements (%i for 1..2)", elem_len);
+        }
+
+        mrb_hash_set(mrb, hash, key, val);
+      }
+      /* Set the correct class if it's a subclass */
+      if (mrb_class_ptr(klass) != mrb->hash_class) {
+        mrb_obj_ptr(hash)->c = mrb_class_ptr(klass);
+      }
+      return hash;
+    }
+  }
+
+  /* Case 3: Multiple arguments as key-value pairs */
+  if (argc % 2 != 0) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "odd number of arguments for Hash");
+  }
+
+  hash = mrb_hash_new_capa(mrb, argc / 2);
+  for (mrb_int i = 0; i < argc; i += 2) {
+    mrb_hash_set(mrb, hash, argv[i], argv[i + 1]);
+  }
+
+  /* Set the correct class if it's a subclass */
+  if (mrb_class_ptr(klass) != mrb->hash_class) {
+    mrb_obj_ptr(hash)->c = mrb_class_ptr(klass);
+  }
+
+  return hash;
+}
+
 void
 mrb_mruby_hash_ext_gem_init(mrb_state *mrb)
 {
@@ -105,6 +207,7 @@ mrb_mruby_hash_ext_gem_init(mrb_state *mrb)
   mrb_define_method_id(mrb, h, MRB_SYM(values_at), hash_values_at, MRB_ARGS_ANY());
   mrb_define_method_id(mrb, h, MRB_SYM(slice),     hash_slice, MRB_ARGS_ANY());
   mrb_define_method_id(mrb, h, MRB_SYM(except),    hash_except, MRB_ARGS_ANY());
+  mrb_define_class_method_id(mrb, h, MRB_OPSYM(aref), hash_s_create, MRB_ARGS_ANY());
 }
 
 void
