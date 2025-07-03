@@ -6,19 +6,19 @@ This mrbgem extends the `Module` and `Class` classes in mruby, providing additio
 
 ### `mod < other`
 
-Returns `true` if `mod` is a subclass of `other`. Returns `nil` if there's no relationship between the two. (Think of the relationship in terms of the class definition: "class A < B" implies "A < B".)
+Returns `true` if `mod` is a subclass/submodule of `other`. Returns `false` if `mod` is the same as `other`. Returns `nil` if there's no relationship between the two. (Think of the relationship in terms of the class definition: "class A < B" implies "A < B".)
 
 ### `mod <= other`
 
-Returns `true` if `mod` is a subclass of `other` or is the same as `other`. Returns `nil` if there's no relationship between the two. (Think of the relationship in terms of the class definition: "class A < B" implies "A < B".)
+Returns `true` if `mod` is a subclass/submodule of `other` or is the same as `other`. Returns `nil` if there's no relationship between the two. (Think of the relationship in terms of the class definition: "class A < B" implies "A <= B".)
 
 ### `mod > other`
 
-Returns `true` if `mod` is an ancestor of `other`. Returns `nil` if there's no relationship between the two. (Think of the relationship in terms of the class definition: "class A < B" implies "B > A".)
+Returns `true` if `mod` is an ancestor of `other`. Returns `false` if `mod` is the same as `other`. Returns `nil` if there's no relationship between the two. (Think of the relationship in terms of the class definition: "class A < B" implies "B > A".)
 
 ### `mod >= other`
 
-Returns `true` if `mod` is an ancestor of `other`, or the two modules are the same. Returns `nil` if there's no relationship between the two. (Think of the relationship in terms of the class definition: "class A < B" implies "B > A".)
+Returns `true` if `mod` is an ancestor of `other`, or the two modules are the same. Returns `nil` if there's no relationship between the two. (Think of the relationship in terms of the class definition: "class A < B" implies "B >= A".)
 
 ### `module <=> other_module`
 

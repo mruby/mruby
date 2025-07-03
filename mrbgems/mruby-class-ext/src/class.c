@@ -7,6 +7,20 @@
 #include <mruby/internal.h>
 #include <mruby/presym.h>
 
+/*
+ * Get the name of a module/class.
+ *
+ * Returns the fully qualified name of the module/class as a frozen string.
+ * If the module/class is anonymous, returns nil.
+ *
+ * Args:
+ *   mrb:  The mruby state
+ *   self: The module/class object
+ *
+ * Returns:
+ *   String: The name of the module/class (frozen)
+ *   nil:    If the module/class is anonymous
+ */
 static mrb_value
 mod_name(mrb_state *mrb, mrb_value self)
 {
@@ -17,6 +31,17 @@ mod_name(mrb_state *mrb, mrb_value self)
   return name;
 }
 
+/*
+ * Check if a module/class is a singleton class.
+ *
+ * Args:
+ *   mrb:  The mruby state
+ *   self: The module/class object to check
+ *
+ * Returns:
+ *   true:  if the object is a singleton class
+ *   false: if the object is not a singleton class
+ */
 static mrb_value
 mod_singleton_class_p(mrb_state *mrb, mrb_value self)
 {
@@ -48,11 +73,26 @@ mod_module_exec(mrb_state *mrb, mrb_value self)
   return mrb_object_exec(mrb, self, mrb_class_ptr(self));
 }
 
+/* Helper structure for subclass enumeration */
 struct subclass_args {
-  struct RClass *c;
-  mrb_value ary;
+  struct RClass *c;   /* The parent class to find subclasses of */
+  mrb_value ary;      /* Array to collect subclasses into */
 };
 
+/*
+ * Callback function for mrb_objspace_each_objects to find direct subclasses.
+ *
+ * This function is called for each object in the object space. It checks if
+ * the object is a class whose direct superclass matches the target class.
+ *
+ * Args:
+ *   mrb:  The mruby state
+ *   obj:  The current object being examined
+ *   data: Pointer to subclass_args structure
+ *
+ * Returns:
+ *   MRB_EACH_OBJ_OK: Continue iteration
+ */
 static int
 add_subclasses(mrb_state *mrb, struct RBasic *obj, void *data)
 {
