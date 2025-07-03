@@ -74,6 +74,7 @@ assert("Array#uniq") do
 end
 
 assert("Array#-") do
+  # Test basic functionality
   a = [1, 2, 3, 1]
   b = [1]
   c = 1
@@ -81,9 +82,7 @@ assert("Array#-") do
   assert_raise(TypeError) { a - c }
   assert_equal [2, 3], (a - b)
   assert_equal [1, 2, 3, 1], a
-end
 
-assert("Array#- with large arrays") do
   # Test hash-based implementation (other_ary length > 32)
   a = (1..50).to_a
   b = (15..50).to_a  # 36 elements > 32, triggers hash approach
