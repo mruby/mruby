@@ -69,116 +69,122 @@ iv_rehash(mrb_state *mrb, iv_tbl *t)
   mrb_free(mrb, old_ptr);
 }
 
-/* Set the value for the symbol in the instance variable table. */
+/* Branch-free binary search helper: returns the index where `target` should be inserted/found. */
+static inline int
+bsearch_idx(mrb_sym *keys, int size, mrb_sym target) {
+  if (size == 0) return 0;
+  int n = size;
+  mrb_sym *p = keys;
+  /* While more than one element remains, halve the range each iteration */
+  while (n > 1) {
+    int half = n >> 1;
+    mrb_sym mid_sym = p[half];
+    /*
+     * Update pointer p without a branch:
+     * If mid_sym < target, move p forward by half; otherwise keep p unchanged.
+     * Compiler will emit a CMOV or equivalent.
+     */
+    p = (mid_sym < target) ? p + half : p;
+    n -= half;
+  }
+  /* Final adjustment: if the remaining element is still less than target, advance by one */
+  return (int)(p - keys) + (keys[0] < target);
+}
+
+/* Set (insert or update) the value for `sym` in the instance variable table using branch-free search. */
 static void
 iv_put(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value val)
 {
+  /* If table is uninitialized, allocate and initialize */
   if (t->alloc == 0) {
     iv_rehash(mrb, t);
   }
+
+  /* Obtain pointers to keys and values arrays */
   mrb_sym   *keys = (mrb_sym*)&t->ptr[t->alloc];
-  mrb_value *vals = t->ptr;
+  mrb_value *vals =  t->ptr;
 
-  /* 1) binary search for existing key */
-  int lo = 0, hi = t->size - 1;
-  while (lo <= hi) {
-    int mid = (lo + hi) >> 1;
-    mrb_sym k = keys[mid];
-    if (k == sym) {
-      vals[mid] = val;  /* update */
-      return;
-    }
-    else if (k < sym) {
-      lo = mid + 1;
-    }
-    else {
-      hi = mid - 1;
-    }
+  /* Determine insertion/update index:
+   * If table has entries, use branch-free search; otherwise index = 0.
+   */
+  int lo = bsearch_idx(keys, t->size, sym);
+
+  /* If the key already exists, update its value and return */
+  if (lo < t->size && keys[lo] == sym) {
+    vals[lo] = val;
+    return;
   }
-  /* lo is insertion position */
 
-  /* 2) grow if full */
+  /* Grow table if full, then recompute position */
   if (t->size == t->alloc) {
     iv_rehash(mrb, t);
     keys = (mrb_sym*)&t->ptr[t->alloc];
     vals =  t->ptr;
-    /* re-run binary search on the larger, sorted arrays */
-    lo = 0; hi = t->size - 1;
-    while (lo <= hi) {
-      int mid = (lo + hi) >> 1;
-      if (keys[mid] < sym) lo = mid + 1;
-      else                  hi = mid - 1;
-    }
+    lo = bsearch_idx(keys, t->size, sym);
   }
 
-  /* 3) shift tail to make room */
-  int move = t->size - lo;
-  if (move > 0) {
-    memmove(&keys[lo+1], &keys[lo], sizeof(mrb_sym)   * move);
-    memmove(&vals[lo+1], &vals[lo], sizeof(mrb_value) * move);
+  /* Shift existing entries right to make room at index lo */
+  int move_count = t->size - lo;
+  if (move_count > 0) {
+    memmove(&keys[lo + 1], &keys[lo],     move_count * sizeof(mrb_sym));
+    memmove(&vals[lo + 1], &vals[lo],     move_count * sizeof(mrb_value));
   }
-  /* 4) insert new entry */
+
+  /* Insert the new key and value */
   keys[lo] = sym;
   vals[lo] = val;
   t->size++;
 }
 
-/* Get a value for a symbol from the instance variable table. */
+/* Get a value for `sym` from the instance variable table using branch-free search. */
 static int
 iv_get(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 {
+  /* Return 0 if table is null, uninitialized, or empty */
   if (t == NULL || t->alloc == 0 || t->size == 0) return 0;
+
   mrb_sym   *keys = (mrb_sym*)&t->ptr[t->alloc];
   mrb_value *vals =  t->ptr;
 
-  int lo = 0, hi = t->size - 1;
-  while (lo <= hi) {
-    int mid = (lo + hi) >> 1;
-    mrb_sym k = keys[mid];
-    if (k == sym) {
-      if (vp) *vp = vals[mid];
-      return mid + 1;
-    }
-    else if (k < sym) {
-      lo = mid + 1;
-    }
-    else {
-      hi = mid - 1;
-    }
+  /* Find index in a branch-free manner */
+  int lo = bsearch_idx(keys, t->size, sym);
+
+  /* If found, store value (if vp provided) and return 1-based position */
+  if (lo < t->size && keys[lo] == sym) {
+    if (vp) *vp = vals[lo];
+    return lo + 1;
   }
+
+  /* Not found */
   return 0;
 }
 
-/* Deletes the value for the symbol from the instance variable table. */
+/* Delete the entry for `sym` from the instance variable table using branch-free search. */
 static mrb_bool
 iv_del(mrb_state *mrb, iv_tbl *t, mrb_sym sym, mrb_value *vp)
 {
+  /* Return FALSE if table is null, uninitialized, or empty */
   if (t == NULL || t->alloc == 0 || t->size == 0) return FALSE;
+
   mrb_sym   *keys = (mrb_sym*)&t->ptr[t->alloc];
   mrb_value *vals =  t->ptr;
 
-  int lo = 0, hi = t->size - 1;
-  while (lo <= hi) {
-    int mid = (lo + hi) >> 1;
-    mrb_sym k = keys[mid];
-    if (k == sym) {
-      if (vp) *vp = vals[mid];
-      /* shift to remove */
-      int move = t->size - mid - 1;
-      if (move > 0) {
-        memmove(&keys[mid], &keys[mid+1], sizeof(mrb_sym)   * move);
-        memmove(&vals[mid], &vals[mid+1], sizeof(mrb_value) * move);
-      }
-      t->size--;
-      return TRUE;
+  /* Find index in a branch-free manner */
+  int lo = bsearch_idx(keys, t->size, sym);
+
+  /* If found, optionally return value and shift entries left to delete */
+  if (lo < t->size && keys[lo] == sym) {
+    if (vp) *vp = vals[lo];
+    int move_count = t->size - lo - 1;
+    if (move_count > 0) {
+      memmove(&keys[lo],     &keys[lo + 1],     move_count * sizeof(mrb_sym));
+      memmove(&vals[lo],     &vals[lo + 1],     move_count * sizeof(mrb_value));
     }
-    else if (k < sym) {
-      lo = mid + 1;
-    }
-    else {
-      hi = mid - 1;
-    }
+    t->size--;
+    return TRUE;
   }
+
+  /* Not found */
   return FALSE;
 }
 
