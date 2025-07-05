@@ -3679,12 +3679,13 @@ codegen(codegen_scope *s, node *tree, int val)
       if (!val) lp->reg = -1;
 
       /* Jump to body start on first iteration */
-      uint32_t body_start = genjmp2_0(s, OP_JMP, cursp(), NOVAL);
+      uint32_t body_start = genjmp_0(s, OP_JMP);
 
       /* pc0 is next target - condition check */
       lp->pc0 = new_label(s);
       codegen(s, tree->car, VAL);
       pop();
+      uint32_t pos = JMPLINK_START;
       if (nt == NODE_WHILE_MOD) {
         pos = genjmp2_0(s, OP_JMPNOT, cursp(), NOVAL);
       }

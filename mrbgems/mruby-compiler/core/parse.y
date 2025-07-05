@@ -483,6 +483,22 @@ new_until(parser_state *p, node *a, node *b)
   return cons((node*)NODE_UNTIL, cons(a, b));
 }
 
+/* (:while_mod cond body) */
+static node*
+new_while_mod(parser_state *p, node *a, node *b)
+{
+  void_expr_error(p, a);
+  return cons((node*)NODE_WHILE_MOD, cons(a, b));
+}
+
+/* (:until_mod cond body) */
+static node*
+new_until_mod(parser_state *p, node *a, node *b)
+{
+  void_expr_error(p, a);
+  return cons((node*)NODE_UNTIL_MOD, cons(a, b));
+}
+
 /* (:for var obj body) */
 static node*
 new_for(parser_state *p, node *v, node *o, node *b)
@@ -1794,11 +1810,21 @@ stmt            : keyword_alias fsym {p->lstate = EXPR_FNAME;} fsym
                     }
                 | stmt modifier_while expr_value
                     {
-                      $$ = new_while(p, cond($3), $1);
+                      if ($1 && typen($1->car) == NODE_BEGIN) {
+                        $$ = new_while_mod(p, cond($3), $1);
+                      }
+                      else {
+                        $$ = new_while(p, cond($3), $1);
+                      }
                     }
                 | stmt modifier_until expr_value
                     {
-                      $$ = new_until(p, cond($3), $1);
+                      if ($1 && typen($1->car) == NODE_BEGIN) {
+                        $$ = new_until_mod(p, cond($3), $1);
+                      }
+                      else {
+                        $$ = new_until(p, cond($3), $1);
+                      }
                     }
                 | stmt modifier_rescue stmt
                     {
@@ -7275,6 +7301,26 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
 
   case NODE_UNTIL:
     printf("NODE_UNTIL:\n");
+    dump_prefix(tree, offset+1);
+    printf("cond:\n");
+    mrb_parser_dump(mrb, tree->car, offset+2);
+    dump_prefix(tree, offset+1);
+    printf("body:\n");
+    mrb_parser_dump(mrb, tree->cdr, offset+2);
+    break;
+
+  case NODE_WHILE_MOD:
+    printf("NODE_WHILE_MOD:\n");
+    dump_prefix(tree, offset+1);
+    printf("cond:\n");
+    mrb_parser_dump(mrb, tree->car, offset+2);
+    dump_prefix(tree, offset+1);
+    printf("body:\n");
+    mrb_parser_dump(mrb, tree->cdr, offset+2);
+    break;
+
+  case NODE_UNTIL_MOD:
+    printf("NODE_UNTIL_MOD:\n");
     dump_prefix(tree, offset+1);
     printf("cond:\n");
     mrb_parser_dump(mrb, tree->car, offset+2);

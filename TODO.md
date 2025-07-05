@@ -9,5 +9,4 @@
 
 # Things to do (Things we need to consider)
 
-- `begin ... end while cond` to behave as CRuby
 - special variables ($1,$2..)
