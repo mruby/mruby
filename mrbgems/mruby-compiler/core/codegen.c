@@ -3140,6 +3140,7 @@ gen_literal_array(codegen_scope *s, node *tree, mrb_bool sym, int val)
           break;
         /* fall through */
       case NODE_STMTS:
+      case NODE_BEGIN:
         codegen(s, tree->car, VAL);
         j++;
         break;
@@ -3192,7 +3193,7 @@ gen_literal_array(codegen_scope *s, node *tree, mrb_bool sym, int val)
   else {
     while (tree) {
       switch (nint(tree->car->car)) {
-      case NODE_STMTS: case NODE_BLOCK:
+      case NODE_STMTS: case NODE_BEGIN: case NODE_BLOCK:
         codegen(s, tree->car, NOVAL);
       }
       tree = tree->cdr;
@@ -3353,6 +3354,11 @@ codegen(codegen_scope *s, node *tree, int val)
       codegen(s, tree->car, tree->cdr ? NOVAL : val);
       tree = tree->cdr;
     }
+    break;
+
+  case NODE_BEGIN:
+    /* NODE_BEGIN contains a single body node directly in cdr */
+    codegen(s, tree, val);
     break;
 
   case NODE_RESCUE:
@@ -3642,6 +3648,57 @@ codegen(codegen_scope *s, node *tree, int val)
       genop_0(s, OP_NOP); /* for redo */
       codegen(s, tree->cdr, NOVAL);
       genjmp(s, OP_JMP, lp->pc0);
+      dispatch(s, pos);
+      loop_pop(s, val);
+    }
+    break;
+
+  case NODE_WHILE_MOD:
+  case NODE_UNTIL_MOD:
+    {
+      /* Post-tested loops: execute body first, then check condition */
+      if (false_always(tree->car)) {
+        if (nt == NODE_WHILE_MOD) {
+          /* begin...end while false - execute once then exit */
+          codegen(s, tree->cdr, val);
+          if (val) push();
+          goto exit;
+        }
+      }
+      else if (true_always(tree->car)) {
+        if (nt == NODE_UNTIL_MOD) {
+          /* begin...end until true - execute once then exit */
+          codegen(s, tree->cdr, val);
+          if (val) push();
+          goto exit;
+        }
+      }
+
+      /* Post-tested loops: execute body first, then condition */
+      struct loopinfo *lp = loop_push(s, LOOP_NORMAL);
+      if (!val) lp->reg = -1;
+
+      /* Jump to body start on first iteration */
+      uint32_t body_start = genjmp2_0(s, OP_JMP, cursp(), NOVAL);
+
+      /* pc0 is next target - condition check */
+      lp->pc0 = new_label(s);
+      codegen(s, tree->car, VAL);
+      pop();
+      if (nt == NODE_WHILE_MOD) {
+        pos = genjmp2_0(s, OP_JMPNOT, cursp(), NOVAL);
+      }
+      else {
+        pos = genjmp2_0(s, OP_JMPIF, cursp(), NOVAL);
+      }
+
+      /* pc1 is redo target - body start */
+      lp->pc1 = new_label(s);
+      dispatch(s, body_start); /* patch initial jump to come here */
+
+      codegen(s, tree->cdr, NOVAL);
+      genjmp(s, OP_JMP, lp->pc0);
+
       dispatch(s, pos);
       loop_pop(s, val);
     }

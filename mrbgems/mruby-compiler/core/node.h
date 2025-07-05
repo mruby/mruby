@@ -23,6 +23,7 @@ enum node_type {
   NODE_REDO,
   NODE_RETRY,
   NODE_STMTS,
+  NODE_BEGIN,
   NODE_RESCUE,
   NODE_ENSURE,
   NODE_AND,

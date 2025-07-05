@@ -394,6 +394,13 @@ new_stmts(parser_state *p, node *body)
   return cons((node*)NODE_STMTS, 0);
 }
 
+/* (:begin body) */
+static node*
+new_begin(parser_state *p, node *body)
+{
+  return cons((node*)NODE_BEGIN, body);
+}
+
 #define newline_node(n) (n)
 
 /* (:rescue body rescue else) */
@@ -2740,7 +2747,7 @@ primary         : literal
                   keyword_end
                     {
                       p->cmdarg_stack = $<stack>2;
-                      $$ = $3;
+                      $$ = new_begin(p, $3);
                     }
                 | tLPAREN_ARG
                     {
@@ -4314,6 +4321,7 @@ void_expr_error(parser_state *p, node *n)
     }
     break;
   case NODE_STMTS:
+  case NODE_BEGIN:
     if (n->cdr) {
       while (n->cdr) {
         n = n->cdr;
@@ -7136,6 +7144,11 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
   case NODE_STMTS:
     printf("NODE_STMTS:\n");
     dump_recur(mrb, tree, offset+1);
+    break;
+
+  case NODE_BEGIN:
+    printf("NODE_BEGIN:\n");
+    mrb_parser_dump(mrb, tree, offset+1);
     break;
 
   case NODE_RESCUE:
