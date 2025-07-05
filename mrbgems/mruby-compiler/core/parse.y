@@ -385,6 +385,10 @@ static node*
 new_stmts(parser_state *p, node *body)
 {
   if (body) {
+    /* If body is already a NODE_STMTS, just return it directly */
+    if (typen(body->car) == NODE_STMTS) {
+      return body;
+    }
     return list2((node*)NODE_STMTS, body);
   }
   return cons((node*)NODE_STMTS, 0);
