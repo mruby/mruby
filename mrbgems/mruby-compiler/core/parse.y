@@ -382,12 +382,12 @@ new_scope(parser_state *p, node *body)
 
 /* (:begin prog...) */
 static node*
-new_begin(parser_state *p, node *body)
+new_stmts(parser_state *p, node *body)
 {
   if (body) {
-    return list2((node*)NODE_BEGIN, body);
+    return list2((node*)NODE_STMTS, body);
   }
-  return cons((node*)NODE_BEGIN, 0);
+  return cons((node*)NODE_STMTS, 0);
 }
 
 #define newline_node(n) (n)
@@ -1681,11 +1681,11 @@ top_compstmt    : top_stmts opt_terms
 
 top_stmts       : none
                     {
-                      $$ = new_begin(p, 0);
+                      $$ = new_stmts(p, 0);
                     }
                 | top_stmt
                     {
-                      $$ = new_begin(p, $1);
+                      $$ = new_stmts(p, $1);
                       NODE_LINENO($$, $1);
                     }
                 | top_stmts terms top_stmt
@@ -1694,7 +1694,7 @@ top_stmts       : none
                     }
                 | error top_stmt
                     {
-                      $$ = new_begin(p, 0);
+                      $$ = new_stmts(p, 0);
                     }
                 ;
 
@@ -1748,11 +1748,11 @@ compstmt        : stmts opt_terms
 
 stmts           : none
                     {
-                      $$ = new_begin(p, 0);
+                      $$ = new_stmts(p, 0);
                     }
                 | stmt
                     {
-                      $$ = new_begin(p, $1);
+                      $$ = new_stmts(p, $1);
                       NODE_LINENO($$, $1);
                     }
                 | stmts terms stmt
@@ -1761,7 +1761,7 @@ stmts           : none
                     }
                 | error stmt
                     {
-                      $$ = new_begin(p, $2);
+                      $$ = new_stmts(p, $2);
                     }
                 ;
 
@@ -1892,7 +1892,7 @@ command_asgn    : lhs '=' command_rhs
                 | backref tOP_ASGN command_rhs
                     {
                       backref_error(p, $1);
-                      $$ = new_begin(p, 0);
+                      $$ = new_stmts(p, 0);
                     }
                 ;
 
@@ -2326,17 +2326,17 @@ arg             : lhs '=' arg_rhs
                 | primary_value tCOLON2 tCONSTANT tOP_ASGN arg_rhs
                     {
                       yyerror(&@1, p, "constant re-assignment");
-                      $$ = new_begin(p, 0);
+                      $$ = new_stmts(p, 0);
                     }
                 | tCOLON3 tCONSTANT tOP_ASGN arg_rhs
                     {
                       yyerror(&@1, p, "constant re-assignment");
-                      $$ = new_begin(p, 0);
+                      $$ = new_stmts(p, 0);
                     }
                 | backref tOP_ASGN arg_rhs
                     {
                       backref_error(p, $1);
-                      $$ = new_begin(p, 0);
+                      $$ = new_stmts(p, 0);
                     }
                 | arg tDOT2 arg
                     {
@@ -4309,7 +4309,7 @@ void_expr_error(parser_state *p, node *n)
       void_expr_error(p, n->cdr->cdr);
     }
     break;
-  case NODE_BEGIN:
+  case NODE_STMTS:
     if (n->cdr) {
       while (n->cdr) {
         n = n->cdr;
@@ -7129,8 +7129,8 @@ mrb_parser_dump(mrb_state *mrb, node *tree, int offset)
   nodetype = intn(tree->car);
   tree = tree->cdr;
   switch (nodetype) {
-  case NODE_BEGIN:
-    printf("NODE_BEGIN:\n");
+  case NODE_STMTS:
+    printf("NODE_STMTS:\n");
     dump_recur(mrb, tree, offset+1);
     break;
 

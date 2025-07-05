@@ -22,7 +22,7 @@ enum node_type {
   NODE_NEXT,
   NODE_REDO,
   NODE_RETRY,
-  NODE_BEGIN,
+  NODE_STMTS,
   NODE_RESCUE,
   NODE_ENSURE,
   NODE_AND,
