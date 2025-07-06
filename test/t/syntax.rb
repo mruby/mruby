@@ -882,3 +882,64 @@ assert('endless def') do
   assert_equal(43, c.cs1)
   assert_equal(45, c.cs3(c.cs2))
 end
+
+assert('at-least-once loop') do
+  # basic at-least-once loop that executes once
+  count = 0
+  begin
+    count += 1
+  end while false
+  assert_equal 1, count
+
+  # at-least-once loop with true condition
+  count = 0
+  begin
+    count += 1
+  end while count < 3
+  assert_equal 3, count
+
+  # at-least-once loop with break
+  count = 0
+  begin
+    count += 1
+    break if count == 2
+  end while count < 10
+  assert_equal 2, count
+
+  # at-least-once loop with next
+  count = 0
+  sum = 0
+  begin
+    count += 1
+    if count == 2
+      next
+    end
+    sum += count
+  end while count < 4
+  assert_equal 4, count
+  assert_equal 8, sum  # 1 + 3 + 4 = 8 (skipped 2)
+
+  # nested at-least-once loops
+  outer_count = 0
+  total = 0
+  begin
+    outer_count += 1
+    inner_count = 0
+    begin
+      inner_count += 1
+      total += inner_count
+    end while inner_count < 2
+  end while outer_count < 2
+  assert_equal 2, outer_count
+  assert_equal 6, total  # (1+2) + (1+2) = 6
+
+  # at-least-once loop with exception handling
+  count = 0
+  begin
+    count += 1
+    raise "error" if count == 2
+  rescue
+    count += 10
+  end while count < 5
+  assert_equal 12, count  # 1, then 2+10=12
+end
