@@ -213,3 +213,7 @@ Prints `:append`.
 #### mruby [3.5.0 (2025-04-28)]
 
 Nothing printed (since `include` does not call `append_features` internally).
+
+## No `#hash` call for small hashes
+
+For performance reasons, mruby avoids calling the `#hash` method on keys when a hash table is small. This means that custom `#hash` methods on key objects may not be executed.
