@@ -9,28 +9,6 @@ class Hash
   # ISO 15.2.13.3
   include Enumerable
 
-  ##
-  # call-seq:
-  #   hash == object -> true or false
-  #
-  #  Equality---Two hashes are equal if they each contain the same number
-  #  of keys and if each key-value pair is equal to (according to
-  #  <code>Object#==</code>) the corresponding elements in the other
-  #  hash.
-  #
-  # ISO 15.2.13.4.1
-  def ==(hash)
-    return true if self.equal?(hash)
-    unless Hash === hash
-      return false
-    end
-    return false if self.size != hash.size
-    self.each do |k,v|
-      return false unless hash.key?(k)
-      return false unless self[k] == hash[k]
-    end
-    return true
-  end
 
   ##
   # call-seq:
@@ -45,6 +23,13 @@ class Hash
       return false
     end
     return false if self.size != hash.size
+
+    # Check for recursive calls to prevent stack overflow
+    # Use the same mechanism as inspect_recursive_p but for eql? method
+    if __eql_recursive_p?
+      return false
+    end
+
     self.each do |k,v|
       return false unless hash.key?(k)
       return false unless self[k].eql?(hash[k])
