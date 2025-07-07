@@ -10,32 +10,6 @@ class Hash
   include Enumerable
 
 
-  ##
-  # call-seq:
-  #   hash.eql? object -> true or false
-  #
-  # Returns <code>true</code> if <i>hash</i> and <i>other</i> are
-  # both hashes with the same content compared by eql?.
-  #
-  def eql?(hash)
-    return true if self.equal?(hash)
-    unless Hash === hash
-      return false
-    end
-    return false if self.size != hash.size
-
-    # Check for recursive calls to prevent stack overflow
-    # Use the same mechanism as inspect_recursive_p but for eql? method
-    if __eql_recursive_p?
-      return false
-    end
-
-    self.each do |k,v|
-      return false unless hash.key?(k)
-      return false unless self[k].eql?(hash[k])
-    end
-    return true
-  end
 
   ##
   # call-seq:

@@ -2217,6 +2217,49 @@ mrb_hash_equal(mrb_state *mrb, mrb_value hash)
   return mrb_true_value();
 }
 
+/*
+ * call-seq:
+ *   hash.eql?(other) -> true or false
+ *
+ * Returns true if hash and other are both hashes with the same content
+ * compared by eql?.
+ */
+static mrb_value
+mrb_hash_eql(mrb_state *mrb, mrb_value hash)
+{
+  mrb_value hash2 = mrb_get_arg1(mrb);
+
+  if (mrb_obj_equal(mrb, hash, hash2)) return mrb_true_value();
+  if (!mrb_hash_p(hash2)) {
+    return mrb_false_value();
+  }
+  if (mrb_hash_size(mrb, hash) != mrb_hash_size(mrb, hash2)) {
+    return mrb_false_value();
+  }
+
+  struct RHash *h1 = mrb_hash_ptr(hash);
+  struct RHash *h2 = mrb_hash_ptr(hash2);
+
+  H_EACH(h1, entry) {
+    mrb_value val2;
+    mrb_bool found;
+
+    H_CHECK_MODIFIED(mrb, h1) {
+      found = h_get(mrb, h2, entry->key, &val2);
+    }
+    if (!found) {
+      return mrb_false_value();
+    }
+    H_CHECK_MODIFIED(mrb, h1) {
+      if (!mrb_eql(mrb, entry->val, val2)) {
+        return mrb_false_value();
+      }
+    }
+  }
+
+  return mrb_true_value();
+}
+
 void
 mrb_init_hash(mrb_state *mrb)
 {
@@ -2234,6 +2277,7 @@ mrb_init_hash(mrb_state *mrb)
   mrb_define_method_id(mrb, h, MRB_SYM(default_proc),    mrb_hash_default_proc,MRB_ARGS_NONE()); /* 15.2.13.4.7  */
   mrb_define_method_id(mrb, h, MRB_SYM_E(default_proc),  mrb_hash_set_default_proc,MRB_ARGS_REQ(1)); /* 15.2.13.4.7  */
   mrb_define_method_id(mrb, h, MRB_SYM(__delete),        mrb_hash_delete,      MRB_ARGS_REQ(1)); /* core of 15.2.13.4.8  */
+  mrb_define_method_id(mrb, h, MRB_SYM_Q(eql),           mrb_hash_eql,         MRB_ARGS_REQ(1)); /* Hash#eql? */
   mrb_define_method_id(mrb, h, MRB_SYM_Q(empty),         mrb_hash_empty_m,     MRB_ARGS_NONE()); /* 15.2.13.4.12 */
   mrb_define_method_id(mrb, h, MRB_SYM_Q(has_key),       mrb_hash_has_key,     MRB_ARGS_REQ(1)); /* 15.2.13.4.13 */
   mrb_define_method_id(mrb, h, MRB_SYM_Q(has_value),     mrb_hash_has_value,   MRB_ARGS_REQ(1)); /* 15.2.13.4.14 */
