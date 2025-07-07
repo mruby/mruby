@@ -105,6 +105,8 @@ bsearch_idx(mrb_sym *keys, int size, mrb_sym target)
   /* While more than one element remains, halve the range each iteration */
   while (n > 1) {
     int half = n >> 1;
+    MRB_MEM_PREFETCH(p + (half >> 1));
+    MRB_MEM_PREFETCH(p + half + (half >> 1));
     mrb_sym mid_sym = MT_KEY_SYM(p[half]);
     /*
      * Update pointer p without a branch:
