@@ -12,8 +12,6 @@ void mrb_ary_decref(mrb_state*, mrb_shared_array*);
 mrb_value mrb_ary_subseq(mrb_state *mrb, mrb_value ary, mrb_int beg, mrb_int len);
 #endif
 
-mrb_bool mrb_inspect_recursive_p(mrb_state *mrb, mrb_value self);
-
 #ifdef MRUBY_CLASS_H
 struct RClass *mrb_vm_define_class(mrb_state*, mrb_value, mrb_value, mrb_sym);
 struct RClass *mrb_vm_define_module(mrb_state*, mrb_value, mrb_sym);

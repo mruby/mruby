@@ -1626,7 +1626,7 @@ mrb_ary_to_s(mrb_state *mrb, mrb_value self)
   mrb->c->ci->mid = MRB_SYM(inspect);
   mrb_value ret = mrb_str_new_lit(mrb, "[");
   int ai = mrb_gc_arena_save(mrb);
-  if (mrb_inspect_recursive_p(mrb, self)) {
+  if (MRB_RECURSIVE_UNARY_P(mrb, MRB_SYM(inspect), self)) {
     mrb_str_cat_lit(mrb, ret, "...]");
     return ret;
   }

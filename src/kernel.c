@@ -126,12 +126,6 @@ mrb_recursive_method_p(mrb_state *mrb, mrb_sym mid, mrb_value obj1, mrb_value ob
 #define MRB_RECURSIVE_BINARY_P(mrb, mid, obj1, obj2) \
   mrb_recursive_method_p(mrb, mid, obj1, obj2)
 
-mrb_bool
-mrb_inspect_recursive_p(mrb_state *mrb, mrb_value obj)
-{
-  return MRB_RECURSIVE_UNARY_P(mrb, MRB_SYM(inspect), obj);
-}
-
 static mrb_value
 mrb_obj_method_recursive_p(mrb_state *mrb, mrb_value obj)
 {

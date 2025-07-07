@@ -2032,7 +2032,7 @@ mrb_hash_to_s(mrb_state *mrb, mrb_value self)
   mrb->c->ci->mid = MRB_SYM(inspect);
   mrb_value ret = mrb_str_new_lit(mrb, "{");
   int ai = mrb_gc_arena_save(mrb);
-  if (mrb_inspect_recursive_p(mrb, self)) {
+  if (MRB_RECURSIVE_UNARY_P(mrb, MRB_SYM(inspect), self)) {
     mrb_str_cat_lit(mrb, ret, "...}");
     return ret;
   }
@@ -2123,62 +2123,6 @@ mrb_hash_rassoc(mrb_state *mrb, mrb_value hash)
     }
   }
   return mrb_nil_value();
-}
-
-/*
- * Hash recursion detection for equality comparison
- *
- * This implements a memory-efficient recursion detection mechanism for Hash#== and Hash#eql?
- * to prevent SystemStackError when comparing mutually recursive hash structures.
- *
- * Background:
- * - Issue: Hash#eql? caused infinite recursion and stack overflow with recursive hashes
- * - Example: a = {}; b = {}; a[:self] = a; a[:other] = b; b[:self] = b; b[:other] = a; a.eql?(b)
- *
- * Solution:
- * - Uses call stack inspection (similar to inspect_recursive_p) to detect recursion
- * - Minimal memory overhead - examines existing call frames without additional storage
- * - Returns FALSE when recursion detected (conservative approach for mruby's constraints)
- * - Preserves all normal equality behavior for non-recursive cases
- *
- * Design considerations:
- * - Memory > Performance > Readability (mruby design priority)
- * - Compatible with mruby's embedded/memory-constrained environment
- * - Uses established pattern from kernel.c inspect_recursive_p implementation
- */
-
-static mrb_bool
-hash_eql_recursive_p(mrb_state *mrb, mrb_value obj)
-{
-  /* Look for recursive eql? calls on the same object in the call stack
-   * Start from ci[-2] to skip current call frame (ci[-1] is __eql_recursive_p?, ci[0] is eql?)
-   */
-  for (mrb_callinfo *ci=&mrb->c->ci[-2]; ci>=mrb->c->cibase; ci--) {
-    if (ci->mid == MRB_SYM_Q(eql) &&
-        mrb_obj_eq(mrb, obj, ci->stack[0])) {
-      return TRUE;
-    }
-  }
-  return FALSE;
-}
-
-static mrb_bool
-hash_equal_recursive_p(mrb_state *mrb, mrb_value obj)
-{
-  /* Look for recursive == calls on the same object in the call stack */
-  for (mrb_callinfo *ci=&mrb->c->ci[-2]; ci>=mrb->c->cibase; ci--) {
-    if (ci->mid == MRB_OPSYM(eq) &&
-        mrb_obj_eq(mrb, obj, ci->stack[0])) {
-      return TRUE;
-    }
-  }
-  return FALSE;
-}
-
-static mrb_value
-mrb_hash_eql_recursive_p(mrb_state *mrb, mrb_value self)
-{
-  return mrb_bool_value(hash_eql_recursive_p(mrb, self));
 }
 
 /* 15.2.13.4.1 */
@@ -2313,5 +2257,4 @@ mrb_init_hash(mrb_state *mrb)
   mrb_define_method_id(mrb, h, MRB_SYM(rassoc),          mrb_hash_rassoc,      MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, h, MRB_SYM(__merge),         mrb_hash_merge_m,     MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, h, MRB_SYM(__compact),       mrb_hash_compact,     MRB_ARGS_NONE()); /* implementation of Hash#compact! */
-  mrb_define_private_method_id(mrb, h, MRB_SYM_Q(__eql_recursive_p), mrb_hash_eql_recursive_p, MRB_ARGS_NONE()); /* recursion detection for Hash#eql? */
 }

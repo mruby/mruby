@@ -647,7 +647,7 @@ mrb_struct_to_s(mrb_state *mrb, mrb_value self)
     mrb_str_cat_str(mrb, ret, cname);
     mrb_str_cat_lit(mrb, ret, " ");
   }
-  if (mrb_inspect_recursive_p(mrb, self)) {
+  if (MRB_RECURSIVE_UNARY_P(mrb, MRB_SYM(inspect), self)) {
     mrb_str_cat_lit(mrb, ret, "...>");
     return ret;
   }
