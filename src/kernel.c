@@ -114,6 +114,30 @@ inspect_recursive_p(mrb_state *mrb, mrb_value obj, int n)
   return FALSE;
 }
 
+MRB_API mrb_bool
+mrb_recursive_method_p(mrb_state *mrb, mrb_sym mid, mrb_value obj1, mrb_value obj2)
+{
+  for (mrb_callinfo *ci=&mrb->c->ci[-1]; ci>=mrb->c->cibase; ci--) {
+    if (ci->mid == mid && mrb_obj_eq(mrb, obj1, ci->stack[0])) {
+      /* For unary methods, only check first argument */
+      if (mrb_nil_p(obj2)) return TRUE;
+
+      /* For binary methods, check both arguments */
+      if (mrb_obj_eq(mrb, obj2, ci->stack[1])) return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+#define MRB_RECURSIVE_P(mrb, mid, obj1, obj2) \
+  mrb_recursive_method_p(mrb, mid, obj1, obj2)
+
+#define MRB_RECURSIVE_UNARY_P(mrb, mid, obj) \
+  mrb_recursive_method_p(mrb, mid, obj, mrb_nil_value())
+
+#define MRB_RECURSIVE_BINARY_P(mrb, mid, obj1, obj2) \
+  mrb_recursive_method_p(mrb, mid, obj1, obj2)
+
 mrb_bool
 mrb_inspect_recursive_p(mrb_state *mrb, mrb_value obj)
 {

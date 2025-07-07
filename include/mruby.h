@@ -1303,6 +1303,18 @@ MRB_API mrb_bool mrb_eql(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
 /* mrb_cmp(mrb, obj1, obj2): 1:0:-1; -2 for error */
 MRB_API mrb_int mrb_cmp(mrb_state *mrb, mrb_value obj1, mrb_value obj2);
 
+/* recursion detection */
+MRB_API mrb_bool mrb_recursive_method_p(mrb_state *mrb, mrb_sym mid, mrb_value obj1, mrb_value obj2);
+
+#define MRB_RECURSIVE_P(mrb, mid, obj1, obj2) \
+  mrb_recursive_method_p(mrb, mid, obj1, obj2)
+
+#define MRB_RECURSIVE_UNARY_P(mrb, mid, obj) \
+  mrb_recursive_method_p(mrb, mid, obj, mrb_nil_value())
+
+#define MRB_RECURSIVE_BINARY_P(mrb, mid, obj1, obj2) \
+  mrb_recursive_method_p(mrb, mid, obj1, obj2)
+
 #define mrb_gc_arena_save(mrb) ((mrb)->gc.arena_idx)
 #define mrb_gc_arena_restore(mrb, idx) ((mrb)->gc.arena_idx = (idx))
 

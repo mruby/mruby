@@ -15,6 +15,7 @@
 #include <mruby/internal.h>
 #include <mruby/presym.h>
 
+
 /*
  * === Glossary
  *
@@ -2194,6 +2195,11 @@ mrb_hash_equal(mrb_state *mrb, mrb_value hash)
     return mrb_false_value();
   }
 
+  /* Check for recursion */
+  if (MRB_RECURSIVE_BINARY_P(mrb, MRB_OPSYM(eq), hash, hash2)) {
+    return mrb_false_value();
+  }
+
   struct RHash *h1 = mrb_hash_ptr(hash);
   struct RHash *h2 = mrb_hash_ptr(hash2);
 
@@ -2234,6 +2240,11 @@ mrb_hash_eql(mrb_state *mrb, mrb_value hash)
     return mrb_false_value();
   }
   if (mrb_hash_size(mrb, hash) != mrb_hash_size(mrb, hash2)) {
+    return mrb_false_value();
+  }
+
+  /* Check for recursion */
+  if (MRB_RECURSIVE_BINARY_P(mrb, MRB_SYM_Q(eql), hash, hash2)) {
     return mrb_false_value();
   }
 
