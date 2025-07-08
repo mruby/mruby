@@ -273,6 +273,8 @@ typedef struct mrb_state {
 
   mrb_gc gc;
 
+  mrb_bool bootstrapping;
+
 #ifndef MRB_NO_METHOD_CACHE
   struct mrb_cache_entry cache[MRB_METHOD_CACHE_SIZE];
 #endif
@@ -1247,6 +1249,7 @@ MRB_API mrb_state* mrb_open_core(void);
  *      Pointer to the mrb_state to be closed.
  */
 MRB_API void mrb_close(mrb_state *mrb);
+MRB_API void mrb_method_cache_clear(mrb_state *mrb);
 
 /**
  * The memory allocation function. You can redefine this function for your own allocator.

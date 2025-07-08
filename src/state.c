@@ -47,11 +47,15 @@ mrb_open_core(void)
 
   *mrb = mrb_state_zero;
   mrb->atexit_stack_len = 0;
+  mrb->bootstrapping = TRUE;
 
   if (mrb_core_init_protect(mrb, init_gc_and_core, NULL)) {
     mrb_close(mrb);
     return NULL;
   }
+
+  mrb_method_cache_clear(mrb);
+  mrb->bootstrapping = FALSE;
 
   return mrb;
 }

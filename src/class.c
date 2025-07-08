@@ -600,7 +600,6 @@ mrb_define_class(mrb_state *mrb, const char *name, struct RClass *super)
 
 static mrb_value mrb_do_nothing(mrb_state *mrb, mrb_value);
 #ifndef MRB_NO_METHOD_CACHE
-static void mc_clear(mrb_state *mrb);
 static void mc_clear_by_id(mrb_state *mrb, mrb_sym mid);
 #else
 #define mc_clear(mrb)
@@ -1033,7 +1032,7 @@ mrb_define_method_raw(mrb_state *mrb, struct RClass *c, mrb_sym mid, mrb_method_
     MRB_SET_VISIBILITY_FLAGS(flags, (e ? MRB_ENV_VISIBILITY(e) : MRB_CI_VISIBILITY(ci)));
   }
   mt_put(mrb, h, mid, flags, ptr);
-  mc_clear_by_id(mrb, mid);
+  if (!mrb->bootstrapping) mc_clear_by_id(mrb, mid);
 }
 
 static void
@@ -1900,7 +1899,7 @@ include_module_at(mrb_state *mrb, struct RClass *c, struct RClass *ins_pos, stru
   skip:
     m = m->super;
   }
-  mc_clear(mrb);
+  if (!mrb->bootstrapping) mrb_method_cache_clear(mrb);
   return 0;
 }
 
@@ -2503,8 +2502,8 @@ mrb_define_module_function(mrb_state *mrb, struct RClass *c, const char *name, m
 
 #ifndef MRB_NO_METHOD_CACHE
 /* clear whole method cache table */
-static void
-mc_clear(mrb_state *mrb)
+MRB_API void
+mrb_method_cache_clear(mrb_state *mrb)
 {
   static const struct mrb_cache_entry ce_zero ={0};
 
