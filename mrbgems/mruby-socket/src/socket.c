@@ -765,14 +765,14 @@ mrb_socket_accept2(mrb_state *mrb, mrb_value klass)
 
   socklen_t socklen = sizeof(struct sockaddr_storage);
   mrb_value sastr = mrb_str_new_capa(mrb, (mrb_int)socklen);
+  mrb_value ary = mrb_ary_new_capa(mrb, 2);
+
   int s1 = (int)accept(s0, (struct sockaddr*)RSTRING_PTR(sastr), &socklen);
   if (s1 == -1) {
     mrb_sys_fail(mrb, "accept");
   }
-  // XXX: possible descriptor leakage here!
-  mrb_str_resize(mrb, sastr, socklen);
 
-  mrb_value ary = mrb_ary_new_capa(mrb, 2);
+  mrb_str_resize(mrb, sastr, socklen);
   mrb_ary_push(mrb, ary, mrb_fixnum_value(s1));
   mrb_ary_push(mrb, ary, sastr);
   return ary;
@@ -868,11 +868,12 @@ mrb_socket_socketpair(mrb_state *mrb, mrb_value klass)
   int sv[2];
 
   mrb_get_args(mrb, "iii", &domain, &type, &protocol);
+  mrb_value ary = mrb_ary_new_capa(mrb, 2);
+
   if (socketpair(domain, type, protocol, sv) == -1) {
     mrb_sys_fail(mrb, "socketpair");
   }
-  // XXX: possible descriptor leakage here!
-  mrb_value ary = mrb_ary_new_capa(mrb, 2);
+
   mrb_ary_push(mrb, ary, mrb_fixnum_value(sv[0]));
   mrb_ary_push(mrb, ary, mrb_fixnum_value(sv[1]));
   return ary;
