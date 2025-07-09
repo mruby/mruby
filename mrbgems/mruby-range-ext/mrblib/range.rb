@@ -53,6 +53,19 @@ class Range
     return self.to_a.last(nv)
   end
 
+  ##
+  # call-seq:
+  #    rng.max                   -> obj
+  #    rng.max {|a,b| block }    -> obj
+  #
+  # Returns the maximum value in the range. Returns nil if the range is empty
+  # or excludes its end and the end is not an Integer. For non-numeric ranges
+  # or when a block is given, it delegates to Enumerable#max.
+  #
+  #   (10..20).max      #=> 20
+  #   (10...20).max     #=> 19
+  #   ('a'..'z').max    #=> "z"
+  #
   def max(&block)
     val = self.begin
     last = self.end
@@ -75,6 +88,17 @@ class Range
     super()
   end
 
+  ##
+  # call-seq:
+  #    rng.min                   -> obj
+  #    rng.min {|a,b| block }    -> obj
+  #
+  # Returns the minimum value in the range. For non-numeric ranges or when
+  # a block is given, it delegates to Enumerable#min.
+  #
+  #   (10..20).min      #=> 10
+  #   ('a'..'z').min    #=> "a"
+  #
   def min(&block)
     val = self.begin
     last = self.end
@@ -97,9 +121,16 @@ class Range
     super()
   end
 
-  # Compare two ranges and see if they overlap each other
-  #  (1..5).overlap?(4..6) # => true
-  #  (1..5).overlap?(7..9) # => false
+  ##
+  # call-seq:
+  #    rng.overlap?(other_range) -> true or false
+  #
+  # Returns true if self and other_range have at least one element in common,
+  # false otherwise.
+  #
+  #   (1..5).overlap?(4..6) #=> true
+  #   (1..5).overlap?(7..9) #=> false
+  #
   def overlap?(other)
     raise TypeError, "argument must be a range" unless other.kind_of?(Range)
 
