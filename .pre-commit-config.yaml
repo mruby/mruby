@@ -4,8 +4,8 @@ default_stages: [pre-commit, pre-push]
 default_language_version:
   # force all unspecified Python hooks to run python3
   python: python3
-  # force all unspecified Node hooks to run Node.js v22.16.0 LTS
-  node: 22.16.0
+  # force all unspecified Node hooks to run Node.js v22.17.0 LTS
+  node: 22.17.0
 minimum_pre_commit_version: "3.2.0"
 exclude: "^tools/lrama/"
 repos:
@@ -25,7 +25,7 @@ repos:
         entry: prettier --write '**/*.json' '**/*.md' '**/*.yaml' '**/*.yml'
         files: \.(json|md|ya?ml)$
         language: node
-        additional_dependencies: ["prettier@3.6.0"]
+        additional_dependencies: ["prettier@3.6.2"]
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.27.2
     hooks:
@@ -38,7 +38,7 @@ repos:
       - id: oxipng
         name: run oxipng
         description: use lossless compression to optimize PNG files
-        args: ["-o", "4", "--strip", "safe", "--alpha"]
+        args: ["--fix", "-o", "4", "--strip", "safe", "--alpha"]
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
@@ -109,7 +109,7 @@ repos:
         types: [markdown]
         files: \.md$
   - repo: https://github.com/rubocop/rubocop
-    rev: v1.77.0
+    rev: v1.78.0
     hooks:
       - id: rubocop
         name: run rubocop
