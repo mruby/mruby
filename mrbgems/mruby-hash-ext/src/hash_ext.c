@@ -77,6 +77,20 @@ struct slice_bang_i_arg {
   mrb_value keys_to_remove;
 };
 
+/*
+ * Iterator for `slice!`.
+ *
+ * Iterates over a hash, identifying keys that are not present in the `keep_keys`
+ * hash. Keys identified for removal are appended to the `keys_to_remove` array.
+ *
+ * @param mrb   The mruby state.
+ * @param key   The key of the current hash entry.
+ * @param val   The value of the current hash entry (unused).
+ * @param data  A pointer to a `slice_bang_i_arg` struct, which contains
+ *              `keep_keys` and `keys_to_remove`.
+ * @return      Always returns `0` to ensure the iteration continues over all
+ *              hash entries.
+ */
 static int
 slice_bang_i(mrb_state *mrb, mrb_value key, mrb_value val, void *data)
 {
@@ -261,7 +275,23 @@ struct key_search {
   mrb_bool found;
 };
 
-/* Iterator function for hash_key */
+/*
+ * Iterator for `key`.
+ *
+ * This function is designed to be used with `mrb_hash_foreach`. It iterates
+ * over hash entries to find a key that corresponds to a specific target value.
+ *
+ * When a match is found, it stores the key, sets a flag, and stops the
+ * iteration.
+ *
+ * @param mrb    The mruby state.
+ * @param key    The key of the current hash entry.
+ * @param val    The value of the current hash entry.
+ * @param data   A pointer to a `key_search` struct, which contains the
+ *               target value and holds the result.
+ * @return       Returns `1` to stop the iteration once a match is found,
+ *               otherwise returns `0` to continue.
+ */
 static int
 hash_key_i(mrb_state *mrb, mrb_value key, mrb_value val, void *data)
 {
