@@ -227,6 +227,12 @@ int_size(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value((mrb_int)size);
 }
 
+/*
+ *  call-seq:
+ *    int.even? -> true or false
+ *
+ *  Returns +true+ if +int+ is an even number.
+ */
 static mrb_value
 int_even(mrb_state *mrb, mrb_value self)
 {
@@ -240,6 +246,12 @@ int_even(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(mrb_integer(self) % 2 == 0);
 }
 
+/*
+ *  call-seq:
+ *    int.odd? -> true or false
+ *
+ *  Returns +true+ if +int+ is an odd number.
+ */
 static mrb_value
 int_odd(mrb_state *mrb, mrb_value self)
 {
@@ -249,6 +261,14 @@ int_odd(mrb_state *mrb, mrb_value self)
 }
 
 #ifndef MRB_NO_FLOAT
+/*
+ *  call-seq:
+ *     num.remainder(numeric)  ->  real
+ *
+ *  <code>x.remainder(y)</code> means <code>x-y*(x/y).truncate</code>.
+ *
+ *  See Numeric#divmod.
+ */
 static mrb_value
 flo_remainder(mrb_state *mrb, mrb_value self)
 {
@@ -262,6 +282,11 @@ flo_remainder(mrb_state *mrb, mrb_value self)
 }
 #endif
 
+/*
+ * Integer square root implementation using the Babylonian method.
+ * This is an efficient integer-only algorithm to find the largest
+ * integer `x` such that `x*x <= n`.
+ */
 static mrb_int
 isqrt(mrb_int n)
 {
@@ -280,6 +305,19 @@ isqrt(mrb_int n)
   return x;
 }
 
+/*
+ *  call-seq:
+ *    Integer.sqrt(n) -> integer
+ *
+ *  Returns the integer square root of the non-negative integer +n+,
+ *  which is the largest integer `i` such that `i*i <= n`.
+ *
+ *    Integer.sqrt(0)    # => 0
+ *    Integer.sqrt(1)    # => 1
+ *    Integer.sqrt(24)   # => 4
+ *    Integer.sqrt(25)   # => 5
+ *    Integer.sqrt(10**40) # => 10**20
+ */
 static mrb_value
 int_sqrt(mrb_state *mrb, mrb_value self)
 {
