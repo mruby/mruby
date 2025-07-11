@@ -95,11 +95,26 @@ ary_at(mrb_state *mrb, mrb_value ary)
   return mrb_ary_entry(ary, pos);
 }
 
+/* Helper function for values_at - returns element at index n */
 static mrb_value
 ary_ref(mrb_state *mrb, mrb_value ary, mrb_int n)
 {
   return mrb_ary_entry(ary, n);
 }
+
+/*
+ *  call-seq:
+ *     ary.values_at(selector, ...)  -> new_ary
+ *
+ *  Returns an array containing the elements in +self+ corresponding to the
+ *  given +selector+(s). The selectors may be either integer indices or ranges.
+ *
+ *     a = %w{ a b c d e f }
+ *     a.values_at(1, 3, 5)          # => ["b", "d", "f"]
+ *     a.values_at(1, 3, 5, 7)       # => ["b", "d", "f", nil]
+ *     a.values_at(-1, -2, -2, -7)   # => ["f", "e", "e", nil]
+ *     a.values_at(4..6, 3...6)      # => ["e", "f", nil, "d", "e", "f"]
+ */
 
 static mrb_value
 ary_values_at(mrb_state *mrb, mrb_value self)
@@ -274,6 +289,7 @@ ary_rotate(mrb_state *mrb, mrb_value self)
   return ary;
 }
 
+/* Helper function to reverse array elements in-place between beg and end indices */
 static void
 rev(mrb_value *p, mrb_int beg, mrb_int end)
 {
@@ -808,9 +824,9 @@ ary_intersect_p(mrb_state *mrb, mrb_value self)
 }
 
 /*
- *  Shared argument parser for Array#fill that handles all the complex
+ *  Internal helper for Array#fill that handles all the complex
  *  argument parsing logic including ranges, negative indices, etc.
- *  Returns normalized start and length values.
+ *  Returns normalized [start, length] array for use by ary_fill_exec.
  */
 
 static mrb_value
@@ -897,8 +913,9 @@ ary_fill_parse_arg(mrb_state *mrb, mrb_value self)
 }
 
 /*
- *  Fast C implementation that fills a specific range of the array
+ *  Internal helper that fills a specific range of the array
  *  with the given object. Handles array extension if necessary.
+ *  Used by Ruby-level Array#fill method.
  */
 
 static mrb_value
@@ -934,7 +951,7 @@ ary_fill_exec(mrb_state *mrb, mrb_value self)
 }
 
 /*
- *  Fast C implementation for Array#uniq without blocks.
+ *  Internal helper for Array#uniq without blocks.
  *  Uses hash-based deduplication for large arrays,
  *  linear search for small arrays.
  */
@@ -981,7 +998,7 @@ ary_uniq(mrb_state *mrb, mrb_value self)
 }
 
 /*
- *  Fast C implementation for Array#uniq! without blocks.
+ *  Internal helper for Array#uniq! without blocks.
  *  Modifies array in-place, returns nil if no changes.
  */
 static mrb_value
@@ -1038,6 +1055,7 @@ ary_uniq_bang(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/* Internal helper for flatten operations using iterative stack-based approach */
 static mrb_value
 flatten_internal(mrb_state *mrb, mrb_value self, mrb_int level, mrb_bool *modified)
 {
@@ -1104,8 +1122,9 @@ ary_flatten(mrb_state *mrb, mrb_value self)
 }
 
 /*
- *  Shared helper for index normalization and bounds checking.
+ *  Internal helper for index normalization and bounds checking.
  *  Returns normalized index if in bounds, nil if out of bounds.
+ *  Used by Ruby-level array methods.
  */
 
 static mrb_value
@@ -1133,7 +1152,7 @@ ary_normalize_index(mrb_state *mrb, mrb_value self)
 }
 
 /*
- *  Fast C implementation for Array#fetch without blocks.
+ *  Internal helper for Array#fetch without blocks.
  *  Returns the element at index, or default if out of bounds.
  *  Raises IndexError if out of bounds and default equals none.
  */
