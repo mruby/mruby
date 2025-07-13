@@ -783,6 +783,7 @@ str_delete(mrb_state *mrb, mrb_value str, mrb_value v_pat)
   return flag_changed;
 }
 
+/* Internal helper for String#delete - returns new string with pattern characters removed */
 static mrb_value
 str_delete_m(mrb_state *mrb, mrb_value str)
 {
@@ -794,6 +795,7 @@ str_delete_m(mrb_state *mrb, mrb_value str)
   return dup;
 }
 
+/* Internal helper for String#delete! - removes pattern characters in place */
 static mrb_value
 str_delete_bang(mrb_state *mrb, mrb_value str)
 {
@@ -838,12 +840,14 @@ str_count(mrb_state *mrb, mrb_value str)
   return mrb_fixnum_value(count);
 }
 
+/* Internal helper for String#hex - converts hex string to integer */
 static mrb_value
 str_hex(mrb_state *mrb, mrb_value self)
 {
   return mrb_str_to_integer(mrb, self, 16, FALSE);
 }
 
+/* Internal helper for String#oct - converts octal string to integer */
 static mrb_value
 str_oct(mrb_state *mrb, mrb_value self)
 {
@@ -1045,6 +1049,7 @@ str_ord(mrb_state* mrb, mrb_value str)
   return mrb_fixnum_value(c);
 }
 
+/* Internal helper for String#codepoints - returns array of character codepoints */
 static mrb_value
 str_codepoints(mrb_state *mrb, mrb_value str)
 {
@@ -1263,6 +1268,7 @@ str_casecmp_p(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(mrb_fixnum(c) == 0);
 }
 
+/* Internal helper for String#lines - splits string into array of lines */
 static mrb_value
 str_lines(mrb_state *mrb, mrb_value self)
 {
@@ -1321,6 +1327,7 @@ str_uminus(mrb_state *mrb, mrb_value str)
   return mrb_obj_freeze(mrb, mrb_str_dup(mrb, str));
 }
 
+/* Internal helper for String#ascii_only? - checks if string contains only ASCII characters */
 static mrb_value
 str_ascii_only_p(mrb_state *mrb, mrb_value str)
 {
@@ -1336,6 +1343,7 @@ str_ascii_only_p(mrb_state *mrb, mrb_value str)
   return mrb_true_value();
 }
 
+/* Internal helper for String#b - returns binary encoded copy of string */
 static mrb_value
 str_b(mrb_state *mrb, mrb_value self)
 {
@@ -1593,7 +1601,7 @@ str_strip_bang(mrb_state *mrb, mrb_value self)
   return self;
 }
 
-/* Count UTF-8 characters in a string using mruby's standard function */
+/* Internal helper to count UTF-8 characters in a string using mruby's standard function */
 static mrb_int
 str_char_count(mrb_value str)
 {
@@ -1613,7 +1621,7 @@ str_char_count(mrb_value str)
 #endif
 }
 
-/* internal fast path for String#chars */
+/* Internal fast path for String#chars - returns array of individual characters */
 static mrb_value
 str_chars_ary(mrb_state *mrb, mrb_value self)
 {
