@@ -229,3 +229,23 @@ assert 'method visibility with Struct' do
     c.new.bad!
   end
 end
+
+assert "Struct initialize with keyword arguments" do
+  c = Struct.new(:foo, :bar)
+
+  o = c.new(foo: 1, bar: 2)
+  assert_equal 1, o.foo
+  assert_equal 2, o.bar
+
+  o2 = c.new(bar: 1, foo: 2)
+  assert_equal 2, o2.foo
+  assert_equal 1, o2.bar
+
+  o3 = c.new(foo: :test)
+  assert_equal :test, o3.foo
+  assert_equal nil, o3.bar
+
+  assert_raise_with_message_pattern(ArgumentError, "unknown keywords: roo, baq") do
+    c.new(foo: 1, roo: nil, baq: :test)
+  end
+end

@@ -318,13 +318,59 @@ mrb_struct_initialize_withArg(mrb_state *mrb, mrb_int argc, const mrb_value *arg
 }
 
 static mrb_value
+mrb_struct_initialize_withKw(mrb_state *mrb, mrb_value hash, mrb_value self)
+{
+  mrb_value members = struct_members(mrb, self);
+  mrb_int member_count = num_members(mrb, self);
+
+  /* Initialize members from hash, defaulting to nil */
+  for (mrb_int i = 0; i < member_count; i++) {
+    mrb_value member = RARRAY_PTR(members)[i];
+    if (mrb_hash_key_p(mrb, hash, member)) {
+      mrb_value val = mrb_hash_get(mrb, hash, member);
+      mrb_ary_set(mrb, self, i, val);
+    }
+    else {
+      mrb_ary_set(mrb, self, i, mrb_nil_value());
+    }
+  }
+
+  /* Check if all keys in the hash are valid members */
+  mrb_value keys = mrb_hash_keys(mrb, hash);
+  mrb_value invalid_keys = mrb_ary_new(mrb);
+
+  for (mrb_int i = 0; i < RARRAY_LEN(keys); i++) {
+    mrb_value key = RARRAY_PTR(keys)[i];
+    mrb_value include_result = mrb_funcall(mrb, members, "include?", 1, key);
+    if (mrb_test(include_result) == FALSE) {
+      mrb_ary_push(mrb, invalid_keys, key);
+    }
+  }
+
+  /* If there are any invalid keys, raise an error with all of them */
+  if (RARRAY_LEN(invalid_keys) > 0) {
+    mrb_value keys_str = mrb_funcall(mrb, invalid_keys, "join", 1, mrb_str_new_lit(mrb, ", "));
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "unknown keyword%s: %S",
+              RARRAY_LEN(invalid_keys) > 1 ? "s" : "", keys_str);
+  }
+
+  return self;
+}
+
+static mrb_value
 mrb_struct_initialize(mrb_state *mrb, mrb_value self)
 {
   const mrb_value *argv;
   mrb_int argc;
 
   mrb_get_args(mrb, "*", &argv, &argc);
-  return mrb_struct_initialize_withArg(mrb, argc, argv, self);
+
+  /* If we get a single hash argument, treat it as keyword arguments */
+  if (argc == 1 && mrb_hash_p(argv[0])) {
+    return mrb_struct_initialize_withKw(mrb, argv[0], self);
+  } else {
+    return mrb_struct_initialize_withArg(mrb, argc, argv, self);
+  }
 }
 
 /* 15.2.18.4.9  */
