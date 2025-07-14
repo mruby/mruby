@@ -258,10 +258,22 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
   mrb_value b;
   const mrb_value *argv;
   mrb_int argc;
+  mrb_value keyword_init_val = mrb_nil_value();
 
   mrb_get_args(mrb, "*&", &argv, &argc, &b);
   if (argc == 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong number of arguments (given 0, expected 1+)");
+  }
+
+  /* Check for keyword_init option in arguments */
+  if (argc > 0 && mrb_hash_p(argv[argc-1])) {
+    mrb_value options = argv[argc-1];
+    mrb_sym keyword_init_sym = mrb_intern_lit(mrb, "keyword_init");
+
+    if (mrb_hash_key_p(mrb, options, mrb_symbol_value(keyword_init_sym))) {
+      keyword_init_val = mrb_hash_get(mrb, options, mrb_symbol_value(keyword_init_sym));
+      argc--; /* Don't treat the options hash as a member name */
+    }
   }
 
   const mrb_value *pargv = argv;
@@ -290,6 +302,10 @@ mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
   }
 
   mrb_value st = make_struct(mrb, name, members, mrb_class_ptr(klass));
+
+  /* Set keyword_init value on the struct class */
+  mrb_iv_set(mrb, st, mrb_intern_lit(mrb, "@__keyword_init__"), keyword_init_val);
+
   if (!mrb_nil_p(b)) {
     mrb_yield_with_class(mrb, b, 1, &st, st, mrb_class_ptr(st));
   }
@@ -335,6 +351,7 @@ mrb_struct_initialize_withKw(mrb_state *mrb, mrb_value hash, mrb_value self)
     }
   }
 
+
   /* Check if all keys in the hash are valid members */
   mrb_value keys = mrb_hash_keys(mrb, hash);
   mrb_value invalid_keys = mrb_ary_new(mrb);
@@ -350,8 +367,7 @@ mrb_struct_initialize_withKw(mrb_state *mrb, mrb_value hash, mrb_value self)
   /* If there are any invalid keys, raise an error with all of them */
   if (RARRAY_LEN(invalid_keys) > 0) {
     mrb_value keys_str = mrb_funcall(mrb, invalid_keys, "join", 1, mrb_str_new_lit(mrb, ", "));
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "unknown keyword%s: %S",
-              RARRAY_LEN(invalid_keys) > 1 ? "s" : "", keys_str);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "unknown keywords: %S", keys_str);
   }
 
   return self;
@@ -362,14 +378,30 @@ mrb_struct_initialize(mrb_state *mrb, mrb_value self)
 {
   const mrb_value *argv;
   mrb_int argc;
+  mrb_value klass, keyword_init;
 
   mrb_get_args(mrb, "*", &argv, &argc);
 
-  /* If we get a single hash argument, treat it as keyword arguments */
-  if (argc == 1 && mrb_hash_p(argv[0])) {
-    return mrb_struct_initialize_withKw(mrb, argv[0], self);
-  } else {
+  klass = mrb_obj_value(mrb_obj_class(mrb, self));
+  keyword_init = mrb_iv_get(mrb, klass, mrb_intern_lit(mrb, "@__keyword_init__"));
+
+  if (mrb_test(keyword_init)) { /* keyword_init: true or other truthy value */
+    if (argc > 1 || (argc == 1 && !mrb_hash_p(argv[0]))) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "wrong arguments, expected keyword arguments");
+    }
+    mrb_value hash = (argc == 1) ? argv[0] : mrb_hash_new(mrb);
+    return mrb_struct_initialize_withKw(mrb, hash, self);
+  }
+  else if (mrb_equal(mrb, keyword_init, mrb_false_value())) { /* keyword_init: false */
     return mrb_struct_initialize_withArg(mrb, argc, argv, self);
+  }
+  else { /* keyword_init: nil (default) */
+    if (argc == 1 && mrb_hash_p(argv[0])) {
+      return mrb_struct_initialize_withKw(mrb, argv[0], self);
+    }
+    else {
+      return mrb_struct_initialize_withArg(mrb, argc, argv, self);
+    }
   }
 }
 
