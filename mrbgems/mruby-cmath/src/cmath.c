@@ -141,10 +141,32 @@ cmath_ ## name(mrb_state *mrb, mrb_value self)\
   return mrb_float_value(mrb, F(name)(real));\
 }
 
-/* exp(z): return the exponential of z */
+/*
+ * call-seq:
+ *   CMath.exp(z) -> numeric
+ *
+ * Returns the exponential of +z+.
+ * If +z+ is a complex number, returns a complex result.
+ * If +z+ is real and positive, returns a float.
+ *
+ *   CMath.exp(1)      #=> 2.718281828459045
+ *   CMath.exp(1+1i)   #=> (1.4686939399158851+2.2873552871788423i)
+ */
 DEF_CMATH_METHOD(exp)
 
-/* log(z): return the natural logarithm of z, with branch cut along the negative real axis */
+/*
+ * call-seq:
+ *   CMath.log(z)       -> numeric
+ *   CMath.log(z, base) -> numeric
+ *
+ * Returns the natural logarithm of +z+.
+ * If a second argument +base+ is given, returns the logarithm of +z+ to the given base.
+ * Has a branch cut along the negative real axis.
+ *
+ *   CMath.log(1)      #=> 0.0
+ *   CMath.log(-1)     #=> (0.0+3.141592653589793i)
+ *   CMath.log(8, 2)   #=> 3.0
+ */
 static mrb_value
 cmath_log(mrb_state *mrb, mrb_value self) {
   mrb_value z;
@@ -168,7 +190,16 @@ cmath_log(mrb_state *mrb, mrb_value self) {
   return mrb_float_value(mrb, F(log)(real)/F(log)(base));
 }
 
-/* log10(z): return the base-10 logarithm of z, with branch cut along the negative real axis */
+/*
+ * call-seq:
+ *   CMath.log10(z) -> numeric
+ *
+ * Returns the base-10 logarithm of +z+.
+ * Has a branch cut along the negative real axis.
+ *
+ *   CMath.log10(100)  #=> 2.0
+ *   CMath.log10(-1)   #=> (0.0+1.3643763538418412i)
+ */
 static mrb_value
 cmath_log10(mrb_state *mrb, mrb_value self) {
   mrb_value z = mrb_get_arg1(mrb);
@@ -181,7 +212,16 @@ cmath_log10(mrb_state *mrb, mrb_value self) {
   return mrb_float_value(mrb, F(log10)(real));
 }
 
-/* log2(z): return the base-2 logarithm of z, with branch cut along the negative real axis */
+/*
+ * call-seq:
+ *   CMath.log2(z) -> numeric
+ *
+ * Returns the base-2 logarithm of +z+.
+ * Has a branch cut along the negative real axis.
+ *
+ *   CMath.log2(8)     #=> 3.0
+ *   CMath.log2(-1)    #=> (0.0+4.532360141827194i)
+ */
 static mrb_value
 cmath_log2(mrb_state *mrb, mrb_value self) {
   mrb_value z = mrb_get_arg1(mrb);
@@ -194,7 +234,16 @@ cmath_log2(mrb_state *mrb, mrb_value self) {
   return mrb_float_value(mrb, F(log2)(real));
 }
 
-/* sqrt(z): return square root of z */
+/*
+ * call-seq:
+ *   CMath.sqrt(z) -> numeric
+ *
+ * Returns the square root of +z+.
+ * Has a branch cut along the negative real axis.
+ *
+ *   CMath.sqrt(4)     #=> 2.0
+ *   CMath.sqrt(-1)    #=> (0.0+1.0i)
+ */
 static mrb_value
 cmath_sqrt(mrb_state *mrb, mrb_value self) {
   mrb_value z = mrb_get_arg1(mrb);
@@ -207,29 +256,135 @@ cmath_sqrt(mrb_state *mrb, mrb_value self) {
   return mrb_float_value(mrb, F(sqrt)(real));
 }
 
-/* sin(z): sine function */
+/*
+ * call-seq:
+ *   CMath.sin(z) -> numeric
+ *
+ * Returns the sine of +z+.
+ *
+ *   CMath.sin(0)      #=> 0.0
+ *   CMath.sin(1i)     #=> (0.0+1.1752011936438014i)
+ */
 DEF_CMATH_METHOD(sin)
-/* cos(z): cosine function */
+
+/*
+ * call-seq:
+ *   CMath.cos(z) -> numeric
+ *
+ * Returns the cosine of +z+.
+ *
+ *   CMath.cos(0)      #=> 1.0
+ *   CMath.cos(1i)     #=> (1.5430806348152437+0.0i)
+ */
 DEF_CMATH_METHOD(cos)
-/* tan(z): tangent function */
+
+/*
+ * call-seq:
+ *   CMath.tan(z) -> numeric
+ *
+ * Returns the tangent of +z+.
+ *
+ *   CMath.tan(0)      #=> 0.0
+ *   CMath.tan(1i)     #=> (0.0+0.7615941559557649i)
+ */
 DEF_CMATH_METHOD(tan)
-/* asin(z): arc sine function */
+/*
+ * call-seq:
+ *   CMath.asin(z) -> numeric
+ *
+ * Returns the arc sine of +z+.
+ *
+ *   CMath.asin(0)     #=> 0.0
+ *   CMath.asin(2)     #=> (1.5707963267948966-1.3169578969248166i)
+ */
 DEF_CMATH_METHOD(asin)
-/* acos(z): arc cosine function */
+
+/*
+ * call-seq:
+ *   CMath.acos(z) -> numeric
+ *
+ * Returns the arc cosine of +z+.
+ *
+ *   CMath.acos(1)     #=> 0.0
+ *   CMath.acos(2)     #=> (0.0+1.3169578969248166i)
+ */
 DEF_CMATH_METHOD(acos)
-/* atan(z): arg tangent function */
+
+/*
+ * call-seq:
+ *   CMath.atan(z) -> numeric
+ *
+ * Returns the arc tangent of +z+.
+ *
+ *   CMath.atan(0)     #=> 0.0
+ *   CMath.atan(1i)    #=> (0.0+Infinity*i)
+ */
 DEF_CMATH_METHOD(atan)
-/* sinh(z): hyperbolic sine function */
+/*
+ * call-seq:
+ *   CMath.sinh(z) -> numeric
+ *
+ * Returns the hyperbolic sine of +z+.
+ *
+ *   CMath.sinh(0)     #=> 0.0
+ *   CMath.sinh(1i)    #=> (0.0+0.8414709848078965i)
+ */
 DEF_CMATH_METHOD(sinh)
-/* cosh(z): hyperbolic cosine function */
+
+/*
+ * call-seq:
+ *   CMath.cosh(z) -> numeric
+ *
+ * Returns the hyperbolic cosine of +z+.
+ *
+ *   CMath.cosh(0)     #=> 1.0
+ *   CMath.cosh(1i)    #=> (0.5403023058681398+0.0i)
+ */
 DEF_CMATH_METHOD(cosh)
-/* tanh(z): hyperbolic tangent function */
+
+/*
+ * call-seq:
+ *   CMath.tanh(z) -> numeric
+ *
+ * Returns the hyperbolic tangent of +z+.
+ *
+ *   CMath.tanh(0)     #=> 0.0
+ *   CMath.tanh(1i)    #=> (0.0+1.557407724654902i)
+ */
 DEF_CMATH_METHOD(tanh)
-/* asinh(z): inverse hyperbolic sine function */
+/*
+ * call-seq:
+ *   CMath.asinh(z) -> numeric
+ *
+ * Returns the inverse hyperbolic sine of +z+.
+ *
+ *   CMath.asinh(0)    #=> 0.0
+ *   CMath.asinh(1i)   #=> (0.0+1.5707963267948966i)
+ */
 DEF_CMATH_METHOD(asinh)
-/* acosh(z): inverse hyperbolic cosine function */
+
+/*
+ * call-seq:
+ *   CMath.acosh(z) -> numeric
+ *
+ * Returns the inverse hyperbolic cosine of +z+.
+ * Has a branch cut at values less than 1.
+ *
+ *   CMath.acosh(1)    #=> 0.0
+ *   CMath.acosh(0)    #=> (0.0+1.5707963267948966i)
+ */
 DEF_CMATH_METHOD(acosh)
-/* atanh(z): inverse hyperbolic tangent function */
+
+/*
+ * call-seq:
+ *   CMath.atanh(z) -> numeric
+ *
+ * Returns the inverse hyperbolic tangent of +z+.
+ * Has branch cuts at values less than -1 and greater than 1.
+ *
+ *   CMath.atanh(0)    #=> 0.0
+ *   CMath.atanh(2)    #=> (0.5493061443340549+1.5707963267948966i)
+ */
 DEF_CMATH_METHOD(atanh)
 
 /* ------------------------------------------------------------------------*/
