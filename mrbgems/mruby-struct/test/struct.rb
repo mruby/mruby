@@ -276,7 +276,7 @@ end
 
 assert "Struct initialize when :keyword_init is false" do
   c = Struct.new(:foo, :bar, keyword_init: false)
-  
+
   o = c.new(1, 2)
   assert_equal 1, o.foo
   assert_equal 2, o.bar

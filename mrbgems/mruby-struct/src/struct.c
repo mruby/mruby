@@ -351,15 +351,18 @@ mrb_struct_initialize_withKw(mrb_state *mrb, mrb_value hash, mrb_value self)
     }
   }
 
+  /* Create a hash of valid members for faster lookup */
+  mrb_value members_hash = mrb_hash_new(mrb);
+  for (mrb_int i = 0; i < RARRAY_LEN(members); i++) {
+    mrb_hash_set(mrb, members_hash, RARRAY_PTR(members)[i], mrb_true_value());
+  }
 
   /* Check if all keys in the hash are valid members */
-  mrb_value keys = mrb_hash_keys(mrb, hash);
   mrb_value invalid_keys = mrb_ary_new(mrb);
-
+  mrb_value keys = mrb_hash_keys(mrb, hash);
   for (mrb_int i = 0; i < RARRAY_LEN(keys); i++) {
     mrb_value key = RARRAY_PTR(keys)[i];
-    mrb_value include_result = mrb_funcall(mrb, members, "include?", 1, key);
-    if (mrb_test(include_result) == FALSE) {
+    if (!mrb_hash_key_p(mrb, members_hash, key)) {
       mrb_ary_push(mrb, invalid_keys, key);
     }
   }
