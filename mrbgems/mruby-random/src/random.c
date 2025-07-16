@@ -229,6 +229,17 @@ random_default(mrb_state *mrb)
 #define random_ptr(v) (rand_state*)mrb_istruct_ptr(v)
 #define random_default_state(mrb) random_ptr(random_default(mrb))
 
+/*
+ * call-seq:
+ *   Random.new(seed = nil) -> random
+ *
+ * Creates a new random number generator. If seed is omitted or nil,
+ * the generator is initialized with a default seed. Otherwise,
+ * the generator is initialized with the given seed.
+ *
+ *   Random.new        #=> #<Random:0x...>
+ *   Random.new(1234)  #=> #<Random:0x...>
+ */
 static mrb_value
 random_m_init(mrb_state *mrb, mrb_value self)
 {
@@ -245,6 +256,22 @@ random_m_init(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ * call-seq:
+ *   random.rand -> float
+ *   random.rand(max) -> number
+ *   random.rand(range) -> number
+ *
+ * Returns a random number. When called without arguments, returns a
+ * random float between 0.0 and 1.0. When called with a positive integer,
+ * returns a random integer between 0 and max-1. When called with a range,
+ * returns a random number within that range.
+ *
+ *   prng = Random.new
+ *   prng.rand         #=> 0.2725926052826416
+ *   prng.rand(10)     #=> 7
+ *   prng.rand(1..6)   #=> 4
+ */
 static mrb_value
 random_m_rand(mrb_state *mrb, mrb_value self)
 {
@@ -252,6 +279,18 @@ random_m_rand(mrb_state *mrb, mrb_value self)
   return random_rand_impl(mrb, t, self);
 }
 
+/*
+ * call-seq:
+ *   random.srand(seed = nil) -> old_seed
+ *
+ * Seeds the random number generator with the given seed. If seed is
+ * omitted or nil, uses a combination of current time and internal state.
+ * Returns the previous seed value.
+ *
+ *   prng = Random.new
+ *   prng.srand(1234)  #=> (previous seed)
+ *   prng.srand        #=> 1234
+ */
 static mrb_value
 random_m_srand(mrb_state *mrb, mrb_value self)
 {
@@ -270,6 +309,16 @@ random_m_srand(mrb_state *mrb, mrb_value self)
   return mrb_int_value(mrb, (mrb_int)old_seed);
 }
 
+/*
+ * call-seq:
+ *   random.bytes(size) -> string
+ *
+ * Returns a string of random bytes of the specified size.
+ *
+ *   prng = Random.new
+ *   prng.bytes(4)     #=> "\x8F\x12\xA3\x7C"
+ *   prng.bytes(10).length  #=> 10
+ */
 static mrb_value
 random_m_bytes(mrb_state *mrb, mrb_value self)
 {
@@ -414,6 +463,25 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
   }
 }
 
+/*
+ * call-seq:
+ *   Random.rand -> float
+ *   Random.rand(max) -> number
+ *   Random.rand(range) -> number
+ *   rand -> float
+ *   rand(max) -> number
+ *   rand(range) -> number
+ *
+ * Returns a random number using the default random number generator.
+ * Equivalent to Random.new.rand. When called without arguments, returns
+ * a random float between 0.0 and 1.0. When called with a positive integer,
+ * returns a random integer between 0 and max-1. When called with a range,
+ * returns a random number within that range.
+ *
+ *   Random.rand       #=> 0.8444218515250481
+ *   Random.rand(10)   #=> 5
+ *   rand(1..6)        #=> 3
+ */
 static mrb_value
 random_f_rand(mrb_state *mrb, mrb_value self)
 {
@@ -421,6 +489,18 @@ random_f_rand(mrb_state *mrb, mrb_value self)
   return random_rand_impl(mrb, t, self);
 }
 
+/*
+ * call-seq:
+ *   Random.srand(seed = nil) -> old_seed
+ *   srand(seed = nil) -> old_seed
+ *
+ * Seeds the default random number generator with the given seed.
+ * If seed is omitted or nil, uses current time and internal state.
+ * Returns the previous seed value.
+ *
+ *   Random.srand(1234)  #=> (previous seed)
+ *   srand               #=> 1234
+ */
 static mrb_value
 random_f_srand(mrb_state *mrb, mrb_value self)
 {
@@ -428,6 +508,16 @@ random_f_srand(mrb_state *mrb, mrb_value self)
   return random_m_srand(mrb, random);
 }
 
+/*
+ * call-seq:
+ *   Random.bytes(size) -> string
+ *
+ * Returns a string of random bytes of the specified size using
+ * the default random number generator.
+ *
+ *   Random.bytes(4)     #=> "\x8F\x12\xA3\x7C"
+ *   Random.bytes(10).length  #=> 10
+ */
 static mrb_value
 random_f_bytes(mrb_state *mrb, mrb_value self)
 {
