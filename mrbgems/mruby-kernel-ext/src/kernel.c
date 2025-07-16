@@ -9,6 +9,27 @@
 #include <mruby/internal.h>
 #include <mruby/presym.h>
 
+/*
+ * call-seq:
+ *   caller(start = 1)          -> array or nil
+ *   caller(range)              -> array or nil
+ *   caller(start, length)      -> array or nil
+ *
+ * Returns the current execution stack as an array of strings in the form
+ * "file:line" or "file:line:in `method'". The optional start parameter
+ * determines the number of initial stack entries to omit from the top of the stack.
+ *
+ *   def a(skip)
+ *     caller(skip)
+ *   end
+ *   def b
+ *     a(0)
+ *   end
+ *   def c
+ *     b
+ *   end
+ *   c  #=> ["prog:2:in `a'", "prog:5:in `b'", "prog:8:in `c'", "prog:10:in `<main>'"]
+ */
 static mrb_value
 mrb_f_caller(mrb_state *mrb, mrb_value self)
 {
