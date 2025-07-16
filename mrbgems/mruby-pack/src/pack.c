@@ -1499,6 +1499,43 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_type *typep, mrb_int *siz
   return dir;
 }
 
+/*
+ * call-seq:
+ *   array.pack(template) -> string
+ *
+ * Packs the contents of array into a binary string according to the
+ * directives in template. Directives are single characters from the
+ * table below. Each directive may be followed by a number indicating
+ * the number of times to repeat the directive.
+ *
+ * Template string directives:
+ *   C - 8-bit unsigned integer (unsigned char)
+ *   c - 8-bit signed integer (signed char)
+ *   S - 16-bit unsigned integer, native endian (uint16_t)
+ *   s - 16-bit signed integer, native endian (int16_t)
+ *   L - 32-bit unsigned integer, native endian (uint32_t)
+ *   l - 32-bit signed integer, native endian (int32_t)
+ *   Q - 64-bit unsigned integer, native endian (uint64_t)
+ *   q - 64-bit signed integer, native endian (int64_t)
+ *   n - 16-bit unsigned integer, network byte order
+ *   N - 32-bit unsigned integer, network byte order
+ *   v - 16-bit unsigned integer, little endian
+ *   V - 32-bit unsigned integer, little endian
+ *   f - single precision float, native format
+ *   d - double precision float, native format
+ *   A - ASCII string, space padded
+ *   a - ASCII string, null padded
+ *   Z - null-terminated string
+ *   H - hex string, high nibble first
+ *   h - hex string, low nibble first
+ *   x - null byte
+ *   X - back up one byte
+ *   @ - null fill to absolute position
+ *
+ *   [1, 2, 3].pack("CCC")     #=> "\x01\x02\x03"
+ *   [1, 2].pack("S*")         #=> "\x01\x00\x02\x00" (little endian)
+ *   ["hello"].pack("A10")     #=> "hello     "
+ */
 static mrb_value
 mrb_pack_pack(mrb_state *mrb, mrb_value ary)
 {
@@ -1745,12 +1782,36 @@ pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
   return result;
 }
 
+/*
+ * call-seq:
+ *   string.unpack(template) -> array
+ *
+ * Unpacks the contents of string according to the template string,
+ * returning an array of values. Template uses the same format as
+ * Array#pack. See Array#pack for template string format.
+ *
+ *   "\x01\x02\x03".unpack("CCC")     #=> [1, 2, 3]
+ *   "\x01\x00\x02\x00".unpack("S*")  #=> [1, 2] (little endian)
+ *   "hello     ".unpack("A10")       #=> ["hello"]
+ */
 static mrb_value
 mrb_pack_unpack(mrb_state *mrb, mrb_value str)
 {
   return pack_unpack(mrb, str, FALSE);
 }
 
+/*
+ * call-seq:
+ *   string.unpack1(template) -> object
+ *
+ * Unpacks the first value from string according to the template string.
+ * This is equivalent to string.unpack(template)[0] but more efficient
+ * when only the first value is needed.
+ *
+ *   "\x01\x02\x03".unpack1("C")      #=> 1
+ *   "\x01\x00\x02\x00".unpack1("S")  #=> 1 (little endian)
+ *   "hello     ".unpack1("A10")      #=> "hello"
+ */
 static mrb_value
 mrb_pack_unpack1(mrb_state *mrb, mrb_value str)
 {
