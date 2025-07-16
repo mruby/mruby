@@ -259,6 +259,24 @@ binding_eval_prepare(mrb_state *mrb, mrb_value binding, const char *expr, mrb_in
   if (error) mrb_exc_raise(mrb, ret);
 }
 
+/*
+ * call-seq:
+ *   eval(string, binding = nil, filename = nil, lineno = 1) -> obj
+ *
+ * Evaluates the Ruby expression(s) in string. If binding is given,
+ * which must be a Binding object, the evaluation is performed in its
+ * context. If filename is given, it is used for error reporting.
+ * If lineno is given, it is used as the starting line number for error reporting.
+ *
+ *   eval("1 + 2")                    #=> 3
+ *   eval("x = 10; x * 2")            #=> 20
+ *
+ *   x = 5
+ *   b = binding
+ *   eval("x", b)                     #=> 5
+ *   eval("x = 100", b)               #=> 100
+ *   x                                #=> 100
+ */
 static mrb_value
 f_eval(mrb_state *mrb, mrb_value self)
 {
@@ -282,6 +300,30 @@ f_eval(mrb_state *mrb, mrb_value self)
   return exec_irep(mrb, self, proc);
 }
 
+/*
+ * call-seq:
+ *   obj.instance_eval(string, filename = nil, lineno = 1) -> obj
+ *   obj.instance_eval {|obj| block } -> obj
+ *
+ * Evaluates a string containing Ruby source code, or the given block,
+ * within the context of the receiver (obj). In order to set the context,
+ * the variable self is set to obj while the code is executing, giving
+ * the code access to obj's instance variables and private methods.
+ *
+ *   class KlassWithSecret
+ *     def initialize
+ *       @secret = 99
+ *     end
+ *     private
+ *     def the_secret
+ *       "Ssssh! The secret is #{@secret}."
+ *     end
+ *   end
+ *   k = KlassWithSecret.new
+ *   k.instance_eval { @secret }          #=> 99
+ *   k.instance_eval { the_secret }       #=> "Ssssh! The secret is 99."
+ *   k.instance_eval("@secret = 5")       #=> 5
+ */
 static mrb_value
 f_instance_eval(mrb_state *mrb, mrb_value self)
 {
@@ -307,6 +349,27 @@ f_instance_eval(mrb_state *mrb, mrb_value self)
   }
 }
 
+/*
+ * call-seq:
+ *   mod.class_eval(string, filename = nil, lineno = 1) -> obj
+ *   mod.class_eval {|mod| block } -> obj
+ *   mod.module_eval(string, filename = nil, lineno = 1) -> obj
+ *   mod.module_eval {|mod| block } -> obj
+ *
+ * Evaluates the string or block in the context of mod, except that when
+ * a block is given, constant/class variable lookup is not affected.
+ * This can be used to add methods to a class. module_eval returns the
+ * result of evaluating its argument.
+ *
+ *   class Thing
+ *   end
+ *   a = %q{def hello() "Hello there!" end}
+ *   Thing.module_eval(a)
+ *   puts Thing.new.hello()           #=> "Hello there!"
+ *
+ *   Thing.class_eval("@@var = 99")
+ *   Thing.class_eval { @@var }       #=> 99
+ */
 static mrb_value
 f_class_eval(mrb_state *mrb, mrb_value self)
 {
@@ -330,6 +393,20 @@ f_class_eval(mrb_state *mrb, mrb_value self)
   }
 }
 
+/*
+ * call-seq:
+ *   binding.eval(string, filename = nil, lineno = 1) -> obj
+ *
+ * Evaluates the given string in the context of the binding.
+ * This is equivalent to calling eval(string, binding, filename, lineno).
+ *
+ *   def get_binding(param)
+ *     binding
+ *   end
+ *   b = get_binding("hello")
+ *   b.eval("param")                  #=> "hello"
+ *   b.eval("x = 10; x + param.length") #=> 15
+ */
 static mrb_value
 mrb_binding_eval(mrb_state *mrb, mrb_value binding)
 {
