@@ -69,6 +69,16 @@ data_members(mrb_state *mrb, mrb_value obj)
   return members;
 }
 
+/*
+ * call-seq:
+ *   DataClass.members -> array
+ *
+ * Returns an array of symbols representing the names of the data
+ * structure members for this class.
+ *
+ *   Customer = Data.define(:name, :address, :zip)
+ *   Customer.members  #=> [:name, :address, :zip]
+ */
 static mrb_value
 mrb_data_s_members(mrb_state *mrb, mrb_value klass)
 {
@@ -175,6 +185,19 @@ make_data_define_accessors(mrb_state *mrb, mrb_value members, struct RClass *c)
 
 static mrb_value mrb_data_initialize(mrb_state *mrb, mrb_value self);
 
+/*
+ * call-seq:
+ *   DataClass.new(*args)     -> data_instance
+ *   DataClass.new(**kwargs)  -> data_instance
+ *
+ * Creates a new instance of the data structure. Arguments can be provided
+ * either positionally (in the order the members were defined) or as
+ * keyword arguments using member names.
+ *
+ *   Customer = Data.define(:name, :address, :zip)
+ *   Customer.new("Joe", "123 Main St", 12345)
+ *   Customer.new(name: "Joe", address: "123 Main St", zip: 12345)
+ */
 static mrb_value
 mrb_data_new(mrb_state *mrb, mrb_value self)
 {
@@ -244,7 +267,7 @@ make_data_class(mrb_state *mrb, mrb_value members, struct RClass *klass)
 
 /*
  *  call-seq:
- *     DataClass.new(arg, ...)             -> obj
+ *     DataClass.define(arg, ...)       -> obj
  *
  *  <code>Data::define</code> returns a new <code>Class</code> object,
  *  which can then be used to create specific instances of the new
@@ -291,6 +314,16 @@ mrb_data_s_def(mrb_state *mrb, mrb_value klass)
   return data;
 }
 
+/*
+ * call-seq:
+ *   data.initialize(hash) -> data
+ *
+ * Initializes the data structure with values from a hash.
+ * This is typically called internally when creating data instances
+ * with custom initialize methods.
+ *
+ *   # Usually called internally, not directly by user code
+ */
 static mrb_value
 mrb_data_initialize(mrb_state *mrb, mrb_value self)
 {
@@ -315,6 +348,16 @@ mrb_data_initialize(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ * call-seq:
+ *   data.initialize_copy(other_data) -> data
+ *
+ * Initializes this data structure as a copy of another data structure.
+ * This is a private method used internally by dup and clone.
+ *
+ *   customer = Customer.new("Joe", "123 Main St", 12345)
+ *   copy = customer.dup  # calls initialize_copy internally
+ */
 static mrb_value
 mrb_data_init_copy(mrb_state *mrb, mrb_value copy)
 {
