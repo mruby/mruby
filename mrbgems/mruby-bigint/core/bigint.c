@@ -28,17 +28,34 @@ static void
 mpz_init(mrb_state *mrb, mpz_t *s)
 {
   s->p = NULL;
-  s->sn=0;
-  s->sz=0;
+  s->sn = 0;
+  s->sz = 0;
 }
+
+/* Helper macros for safer temporary variable management */
+#define MPZ_TMP_INIT(mrb, var) \
+  mpz_t var; \
+  mpz_init(mrb, &var)
+
+#define MPZ_TMP_CLEAR(mrb, var) \
+  mpz_clear(mrb, &var)
 
 static void
 mpz_realloc(mrb_state *mrb, mpz_t *x, size_t size)
 {
   if (x->sz < size) {
-    x->p=(mp_limb*)mrb_realloc(mrb, x->p, size*sizeof(mp_limb));
-    for (size_t i=x->sz; i<size; i++)
+    /* Check for overflow in size calculation */
+    if (size > SIZE_MAX / sizeof(mp_limb)) {
+      mrb_raise(mrb, E_RUNTIME_ERROR, "bigint size too large");
+    }
+
+    size_t old_sz = x->sz;
+    x->p = (mp_limb*)mrb_realloc(mrb, x->p, size * sizeof(mp_limb));
+
+    /* Zero-initialize new limbs */
+    for (size_t i = old_sz; i < size; i++) {
       x->p[i] = 0;
+    }
     x->sz = size;
   }
 }
@@ -138,8 +155,10 @@ mpz_init_set_int(mrb_state *mrb, mpz_t *y, mrb_int v)
 static void
 mpz_clear(mrb_state *mrb, mpz_t *s)
 {
-  if (s->p) mrb_free(mrb, s->p);
-  s->p = NULL;
+  if (s->p) {
+    mrb_free(mrb, s->p);
+    s->p = NULL;  /* Prevent double-free */
+  }
   s->sn = 0;
   s->sz = 0;
 }
@@ -343,11 +362,12 @@ mpz_sub(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
 {
   mpz_t u;
 
-  mpz_init(mrb, &u);
+  /* Initialize u as a view of y with negated sign - no new memory allocated */
   u.p = y->p;
   u.sz = y->sz;
   u.sn = -(y->sn);
   mpz_add(mrb, z, x, &u);
+  /* No mpz_clear needed since u.p points to y->p (no separate allocation) */
 }
 
 /* x -= n                                              */
@@ -900,9 +920,15 @@ mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
     }
   }
   else {
-    mp_limb *t = (mp_limb*)mrb_malloc(mrb, xlen*sizeof(mp_limb));
+    /* Check for overflow in size calculation */
+    if (xlen > SIZE_MAX / sizeof(mp_limb)) {
+      mrb_raise(mrb, E_RUNTIME_ERROR, "bigint size too large for string conversion");
+    }
+
+    mp_limb *t = (mp_limb*)mrb_malloc(mrb, xlen * sizeof(mp_limb));
+
     mp_limb *tend = t + xlen;
-    memcpy(t, x->p, xlen*sizeof(mp_limb));
+    memcpy(t, x->p, xlen * sizeof(mp_limb));
     mp_limb b2 = base_limit[base-3];
 
     for (;;) {
