@@ -1253,21 +1253,72 @@ mpz_abs(mrb_state *mrb, mpz_t *x, mpz_t *y)
     x->sn = 1;
 }
 
+/* Binary GCD algorithm (Stein's algorithm) - faster than Euclidean GCD */
 static void
 mpz_gcd(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
 {
   mpz_t a, b, t;
-  mpz_abs(mrb, &a, aa); mpz_abs(mrb, &b, bb);
+
+  /* Handle special cases */
+  if (zero_p(aa)) {
+    mpz_abs(mrb, gg, bb);
+    return;
+  }
+  if (zero_p(bb)) {
+    mpz_abs(mrb, gg, aa);
+    return;
+  }
+
+  mpz_abs(mrb, &a, aa);
+  mpz_abs(mrb, &b, bb);
   mpz_init(mrb, &t);
 
-  while (b.sn != 0) {
-    mpz_mod(mrb, &t, &a, &b);
-    mpz_set(mrb, &a, &b);
-    mpz_set(mrb, &b, &t);
+  /* Find power of 2 that divides both a and b */
+  size_t shift = 0;
+  while ((a.p[0] & 1) == 0 && (b.p[0] & 1) == 0) {
+    mpz_div_2exp(mrb, &a, &a, 1);
+    mpz_div_2exp(mrb, &b, &b, 1);
+    shift++;
   }
-  trim(&a);
-  mpz_move(mrb, gg, &a);
-  mpz_clear(mrb, &b);
+
+  /* Make a odd */
+  while ((a.p[0] & 1) == 0) {
+    mpz_div_2exp(mrb, &a, &a, 1);
+  }
+
+  /* From here on, a is always odd */
+  do {
+    /* Make b odd */
+    while ((b.p[0] & 1) == 0) {
+      mpz_div_2exp(mrb, &b, &b, 1);
+    }
+
+    /* Now both a and b are odd. Ensure a >= b */
+    if (mpz_cmp(mrb, &a, &b) < 0) {
+      mpz_set(mrb, &t, &a);
+      mpz_set(mrb, &a, &b);
+      mpz_set(mrb, &b, &t);
+    }
+
+    /* Replace a with (a - b) */
+    mpz_sub(mrb, &a, &a, &b);
+
+    /* Remove factors of 2 from the result if it's even */
+    if (a.sz > 0 && (a.p[0] & 1) == 0) {
+      size_t a_trailing = mpz_trailing_zeros(&a);
+      if (a_trailing > 0) {
+        mpz_div_2exp(mrb, &a, &a, a_trailing);
+      }
+    }
+
+  } while (!zero_p(&a));
+
+  /* Restore common factors of 2 */
+  mpz_mul_2exp(mrb, &b, &b, shift);
+
+  trim(&b);
+  mpz_move(mrb, gg, &b);
+  mpz_clear(mrb, &a);
   mpz_clear(mrb, &t);
 }
 #endif
