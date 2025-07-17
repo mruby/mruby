@@ -9,6 +9,29 @@ mrb_value mrb_proc_source_location(mrb_state *mrb, const struct RProc *p);
 /* provided by mruby-binding */
 mrb_value mrb_binding_new(mrb_state *mrb, const struct RProc *proc, mrb_value recv, struct REnv *env);
 
+/*
+ * call-seq:
+ *   prc.binding -> binding
+ *
+ * Returns a Binding object, which is the execution context that the proc
+ * was defined in. The returned binding retains the context in which the
+ * proc was created, including local variables, methods, and constants.
+ *
+ *   def fred(param)
+ *     proc {}
+ *   end
+ *
+ *   b = fred(99).binding
+ *   b.eval("param")   #=> 99
+ *   b.eval("param = 1")
+ *   b.eval("param")   #=> 1
+ *
+ *   # Local variables in the binding's scope
+ *   p = proc { |x| x + 1 }
+ *   a, b, c = 1, 2, 3
+ *   bind = p.binding
+ *   bind.local_variables  #=> [:a, :b, :bind, :c, :p]
+ */
 static mrb_value
 mrb_proc_binding(mrb_state *mrb, mrb_value procval)
 {
@@ -33,6 +56,14 @@ mrb_proc_binding(mrb_state *mrb, mrb_value procval)
   return binding;
 }
 
+/*
+ * Initializes the mruby-proc-binding gem by adding the binding method
+ * to the Proc class. This allows any proc object to return its execution
+ * context as a Binding object.
+ *
+ * The binding method takes no arguments and returns a Binding object
+ * that captures the lexical environment where the proc was created.
+ */
 void
 mrb_mruby_proc_binding_gem_init(mrb_state *mrb)
 {
