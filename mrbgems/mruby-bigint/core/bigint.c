@@ -906,6 +906,7 @@ mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
     mp_dbl_limb value = 0;
     int bits = 0;
 
+    /* Process all limbs */
     for (int i = 0; i < xlen; i++) {
       value |= (mp_dbl_limb)x->p[i] << bits;
       bits += DIG_SIZE;
@@ -917,6 +918,16 @@ mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
         if (digit < 10) *s++ = '0' + digit;
         else *s++ = 'a' + digit - 10;
       }
+    }
+
+    /* Handle any remaining bits */
+    while (bits > 0) {
+      mp_limb digit = value & mask;
+      value >>= shift;
+      bits -= shift;
+
+      if (digit < 10) *s++ = '0' + digit;
+      else *s++ = 'a' + digit - 10;
     }
   }
   else {
