@@ -56,6 +56,16 @@ mrb_dir_free(mrb_state *mrb, void *ptr)
 
 static struct mrb_data_type mrb_dir_type = { "DIR", mrb_dir_free };
 
+/*
+ * call-seq:
+ *   dir.close -> nil
+ *
+ * Closes the directory stream. Any further attempts to access dir will
+ * raise an IOError.
+ *
+ *   d = Dir.new("testdir")
+ *   d.close   #=> nil
+ */
 static mrb_value
 mrb_dir_close(mrb_state *mrb, mrb_value self)
 {
@@ -72,6 +82,14 @@ mrb_dir_close(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
+/*
+ * call-seq:
+ *   Dir.new(string) -> aDir
+ *
+ * Returns a new directory object for the named directory.
+ *
+ *   d = Dir.new("testdir")
+ */
 static mrb_value
 mrb_dir_init(mrb_state *mrb, mrb_value self)
 {
@@ -98,6 +116,15 @@ mrb_dir_init(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ * call-seq:
+ *   Dir.delete(string) -> 0
+ *
+ * Deletes the named directory. Raises a subclass of SystemCallError if the
+ * directory isn't empty.
+ *
+ *   Dir.delete("testdir")
+ */
 static mrb_value
 mrb_dir_delete(mrb_state *mrb, mrb_value klass)
 {
@@ -110,6 +137,15 @@ mrb_dir_delete(mrb_state *mrb, mrb_value klass)
   return mrb_fixnum_value(0);
 }
 
+/*
+ * call-seq:
+ *   Dir.exist?(file_name) -> true or false
+ *
+ * Returns true if the named file is a directory, false otherwise.
+ *
+ *   Dir.exist?(".")   #=> true
+ *   Dir.exist?("foo") #=> false
+ */
 static mrb_value
 mrb_dir_existp(mrb_state *mrb, mrb_value klass)
 {
@@ -125,6 +161,15 @@ mrb_dir_existp(mrb_state *mrb, mrb_value klass)
   }
 }
 
+/*
+ * call-seq:
+ *   Dir.getwd -> string
+ *   Dir.pwd   -> string
+ *
+ * Returns the path to the current working directory of this process as a string.
+ *
+ *   Dir.getwd   #=> "/usr/local"
+ */
 static mrb_value
 mrb_dir_getwd(mrb_state *mrb, mrb_value klass)
 {
@@ -144,6 +189,18 @@ mrb_dir_getwd(mrb_state *mrb, mrb_value klass)
   return path;
 }
 
+/*
+ * call-seq:
+ *   Dir.mkdir(string [, integer]) -> 0
+ *
+ * Makes a new directory named by string, with permissions specified by the
+ * optional parameter integer. The permissions may be modified by the value
+ * of File.umask, and are ignored on NT. Raises a SystemCallError if the
+ * directory cannot be created.
+ *
+ *   Dir.mkdir("testdir")         #=> 0
+ *   Dir.mkdir("testdir", 0755)   #=> 0
+ */
 static mrb_value
 mrb_dir_mkdir(mrb_state *mrb, mrb_value klass)
 {
@@ -158,6 +215,7 @@ mrb_dir_mkdir(mrb_state *mrb, mrb_value klass)
   return mrb_fixnum_value(0);
 }
 
+/* Helper for Dir.chdir - internal method to change directory */
 static mrb_value
 mrb_dir_chdir(mrb_state *mrb, mrb_value klass)
 {
@@ -170,6 +228,15 @@ mrb_dir_chdir(mrb_state *mrb, mrb_value klass)
   return mrb_fixnum_value(0);
 }
 
+/*
+ * call-seq:
+ *   Dir.chroot(string) -> 0
+ *
+ * Changes this process's idea of the file system root. Only a privileged
+ * process may make this call. Not available on all platforms.
+ *
+ *   Dir.chroot("/production/secure/root")
+ */
 static mrb_value
 mrb_dir_chroot(mrb_state *mrb, mrb_value self)
 {
@@ -200,6 +267,15 @@ skip_name_p(const char *name)
   return FALSE;
 }
 
+/*
+ * call-seq:
+ *   Dir.empty?(path_name) -> true or false
+ *
+ * Returns true if the named directory is empty, false otherwise.
+ *
+ *   Dir.empty?(".")   #=> false
+ *   Dir.empty?("/tmp") #=> false
+ */
 static mrb_value
 mrb_dir_empty(mrb_state *mrb, mrb_value self)
 {
@@ -222,6 +298,18 @@ mrb_dir_empty(mrb_state *mrb, mrb_value self)
   return result;
 }
 
+/*
+ * call-seq:
+ *   dir.read -> string or nil
+ *
+ * Reads the next entry from dir and returns it as a string. Returns nil
+ * at the end of the stream.
+ *
+ *   d = Dir.new("testdir")
+ *   d.read   #=> "."
+ *   d.read   #=> ".."
+ *   d.read   #=> "config.h"
+ */
 static mrb_value
 mrb_dir_read(mrb_state *mrb, mrb_value self)
 {
@@ -242,6 +330,17 @@ mrb_dir_read(mrb_state *mrb, mrb_value self)
   }
 }
 
+/*
+ * call-seq:
+ *   dir.rewind -> dir
+ *
+ * Repositions dir to the beginning of the stream.
+ *
+ *   d = Dir.new("testdir")
+ *   d.read     #=> "."
+ *   d.rewind   #=> #<Dir:testdir>
+ *   d.read     #=> "."
+ */
 static mrb_value
 mrb_dir_rewind(mrb_state *mrb, mrb_value self)
 {
@@ -256,6 +355,19 @@ mrb_dir_rewind(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ * call-seq:
+ *   dir.seek(integer) -> dir
+ *
+ * Seeks to a particular location in dir. integer must be a value returned
+ * by Dir#tell.
+ *
+ *   d = Dir.new("testdir")
+ *   pos = d.tell      #=> 0
+ *   d.read            #=> "."
+ *   d.seek(pos)       #=> #<Dir:testdir>
+ *   d.read            #=> "."
+ */
 static mrb_value
 mrb_dir_seek(mrb_state *mrb, mrb_value self)
 {
@@ -277,6 +389,18 @@ mrb_dir_seek(mrb_state *mrb, mrb_value self)
   #endif
 }
 
+/*
+ * call-seq:
+ *   dir.tell -> integer
+ *   dir.pos  -> integer
+ *
+ * Returns the current position in dir.
+ *
+ *   d = Dir.new("testdir")
+ *   d.tell   #=> 0
+ *   d.read   #=> "."
+ *   d.tell   #=> 1
+ */
 static mrb_value
 mrb_dir_tell(mrb_state *mrb, mrb_value self)
 {
