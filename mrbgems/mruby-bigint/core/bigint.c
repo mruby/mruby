@@ -1264,6 +1264,49 @@ mpz_abs(mrb_state *mrb, mpz_t *x, mpz_t *y)
     x->sn = 1;
 }
 
+/* Fast GCD for single limbs using binary algorithm */
+static mp_limb
+limb_gcd(mp_limb a, mp_limb b)
+{
+  if (a == 0) return b;
+  if (b == 0) return a;
+
+  /* Find power of 2 dividing both a and b */
+  int shift = 0;
+  while (((a | b) & 1) == 0) {
+    a >>= 1;
+    b >>= 1;
+    shift++;
+  }
+
+  /* Make a odd */
+  while ((a & 1) == 0) {
+    a >>= 1;
+  }
+
+  /* From here on, a is always odd */
+  do {
+    /* Make b odd */
+    while ((b & 1) == 0) {
+      b >>= 1;
+    }
+
+    /* Now both a and b are odd. Ensure a >= b */
+    if (a < b) {
+      mp_limb temp = a;
+      a = b;
+      b = temp;
+    }
+
+    /* Replace b with (b - a) */
+    b = b - a;
+
+  } while (b != 0);
+
+  /* Restore common factors of 2 */
+  return a << shift;
+}
+
 /* Binary GCD algorithm (Stein's algorithm) - faster than Euclidean GCD */
 static void
 mpz_gcd(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
@@ -1277,6 +1320,25 @@ mpz_gcd(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
   }
   if (zero_p(bb)) {
     mpz_abs(mrb, gg, aa);
+    return;
+  }
+
+  /* Fast path for single-limb numbers */
+  if (aa->sz <= 1 && bb->sz <= 1) {
+    mp_limb a_limb = (aa->sz == 0) ? 0 : aa->p[0];
+    mp_limb b_limb = (bb->sz == 0) ? 0 : bb->p[0];
+    mp_limb result = limb_gcd(a_limb, b_limb);
+
+    mpz_init(mrb, gg);
+    if (result == 0) {
+      gg->sn = 0;
+      gg->sz = 0;
+    }
+    else {
+      mpz_realloc(mrb, gg, 1);
+      gg->p[0] = result;
+      gg->sn = 1;
+    }
     return;
   }
 
