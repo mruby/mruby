@@ -762,7 +762,8 @@ mpz_mul_int(mrb_state *mrb, mpz_t *x, mrb_int n)
   if (cc) {
     // If there is a remaining carry, store it
     x->p[x_sz] = (mp_limb)cc;
-  } else {
+  }
+  else {
     x->sz = x_sz;
   }
 
@@ -1307,6 +1308,72 @@ limb_gcd(mp_limb a, mp_limb b)
   return a << shift;
 }
 
+/* Count trailing zero bits in a multi-precision integer */
+static size_t
+mpz_trailing_zeros(mpz_t *x)
+{
+  if (zero_p(x) || x->sz == 0) return 0;
+
+  size_t zeros = 0;
+
+  /* Count complete zero limbs */
+  size_t i = 0;
+  while (i < x->sz && x->p[i] == 0) {
+    zeros += DIG_SIZE;
+    i++;
+  }
+
+  /* Count trailing zeros in first non-zero limb */
+  if (i < x->sz) {
+    mp_limb limb = x->p[i];
+#if (defined(__GNUC__) || __has_builtin(__builtin_ctzll))
+    if (sizeof(mp_limb) == sizeof(unsigned long long)) {
+      zeros += __builtin_ctzll(limb);
+    }
+    else if (sizeof(mp_limb) == sizeof(unsigned long)) {
+      zeros += __builtin_ctzl(limb);
+    }
+    else {
+      zeros += __builtin_ctz(limb);
+    }
+#else
+    /* Fallback bit counting */
+    while ((limb & 1) == 0) {
+      limb >>= 1;
+      zeros++;
+    }
+#endif
+  }
+
+  return zeros;
+}
+
+/* Check if a number is a power of 2 */
+static int
+mpz_power_of_2_p(mpz_t *x)
+{
+  if (zero_p(x) || x->sz == 0) return 0;
+
+  /* Count non-zero limbs */
+  size_t non_zero_limbs = 0;
+  size_t non_zero_index = 0;
+
+  for (size_t i = 0; i < x->sz; i++) {
+    if (x->p[i] != 0) {
+      non_zero_limbs++;
+      non_zero_index = i;
+      if (non_zero_limbs > 1) return 0; /* More than one non-zero limb */
+    }
+  }
+
+  if (non_zero_limbs == 0) return 0; /* All zero */
+  if (non_zero_limbs > 1) return 0;  /* Multiple non-zero limbs */
+
+  /* Check if the single non-zero limb is a power of 2 */
+  mp_limb limb = x->p[non_zero_index];
+  return (limb != 0) && ((limb & (limb - 1)) == 0);
+}
+
 /* Binary GCD algorithm (Stein's algorithm) - faster than Euclidean GCD */
 static void
 mpz_gcd(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
@@ -1342,28 +1409,140 @@ mpz_gcd(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
     return;
   }
 
+  /* Fast path for powers of 2 */
+  if (mpz_power_of_2_p(aa)) {
+    size_t a_zeros = mpz_trailing_zeros(aa);
+    size_t b_zeros = mpz_trailing_zeros(bb);
+    size_t min_zeros = (a_zeros < b_zeros) ? a_zeros : b_zeros;
+
+    mpz_init_set_int(mrb, gg, 1);
+    mpz_mul_2exp(mrb, gg, gg, min_zeros);
+    return;
+  }
+  if (mpz_power_of_2_p(bb)) {
+    size_t a_zeros = mpz_trailing_zeros(aa);
+    size_t b_zeros = mpz_trailing_zeros(bb);
+    size_t min_zeros = (a_zeros < b_zeros) ? a_zeros : b_zeros;
+
+    mpz_init_set_int(mrb, gg, 1);
+    mpz_mul_2exp(mrb, gg, gg, min_zeros);
+    return;
+  }
+
   mpz_abs(mrb, &a, aa);
   mpz_abs(mrb, &b, bb);
   mpz_init(mrb, &t);
 
   /* Find power of 2 that divides both a and b */
-  size_t shift = 0;
-  while ((a.p[0] & 1) == 0 && (b.p[0] & 1) == 0) {
-    mpz_div_2exp(mrb, &a, &a, 1);
-    mpz_div_2exp(mrb, &b, &b, 1);
-    shift++;
+  size_t a_zeros = mpz_trailing_zeros(&a);
+  size_t b_zeros = mpz_trailing_zeros(&b);
+  size_t shift = (a_zeros < b_zeros) ? a_zeros : b_zeros;
+
+  /* Remove common factors of 2 */
+  if (shift > 0) {
+    mpz_div_2exp(mrb, &a, &a, shift);
+    mpz_div_2exp(mrb, &b, &b, shift);
   }
 
-  /* Make a odd */
-  while ((a.p[0] & 1) == 0) {
-    mpz_div_2exp(mrb, &a, &a, 1);
+  /* Remove remaining factors of 2 from a */
+  if (a_zeros > shift) {
+    mpz_div_2exp(mrb, &a, &a, a_zeros - shift);
+  }
+
+  /* Remove remaining factors of 2 from b */
+  if (b_zeros > shift) {
+    mpz_div_2exp(mrb, &b, &b, b_zeros - shift);
+  }
+
+  /* Use Lehmer's algorithm for large multi-limb numbers (> 3 limbs) */
+  if (a.sz > 3 && b.sz > 3) {
+    /* Extract the two most significant limbs for approximation */
+    mp_limb a_high = a.p[a.sz - 1];
+    mp_limb a_low = a.p[a.sz - 2];
+    mp_limb b_high = b.p[b.sz - 1];
+    mp_limb b_low = b.p[b.sz - 2];
+
+    /* Perform Lehmer reduction on double-precision approximations */
+    mp_limb u0 = 1, u1 = 0, v0 = 0, v1 = 1;
+
+    while (b_high > 0) {
+      /* Calculate quotient using double-precision approximation */
+      mp_limb q;
+      if (a_high == b_high) {
+        q = (a_low >= b_low) ? 1 : 0;
+      }
+      else {
+        /* Approximate quotient from most significant limbs */
+        q = a_high / (b_high + 1);
+      }
+
+      if (q == 0) break;
+
+      /* Check if applying this quotient would cause overflow */
+      mp_limb max_limb = (mp_limb)(-1);
+      if (u1 > 0 && q > max_limb / u1) break;
+      if (v1 > 0 && q > max_limb / v1) break;
+
+      /* Update transformation matrix */
+      mp_limb t;
+      t = u0 - q * u1; u0 = u1; u1 = t;
+      t = v0 - q * v1; v0 = v1; v1 = t;
+      t = a_high - q * b_high; a_high = b_high; b_high = t;
+
+      /* Stop if coefficients get too large */
+      if (u1 == 0 && v1 == 0) break;
+    }
+
+    /* Apply the transformation if it's non-trivial */
+    if (u1 != 0 || v1 != 0) {
+      mpz_t temp_a, temp_b, u0_a, v0_b, u1_a, v1_b;
+      mpz_init(mrb, &temp_a);
+      mpz_init(mrb, &temp_b);
+      mpz_init_set(mrb, &u0_a, &a);
+      mpz_init_set(mrb, &v0_b, &b);
+      mpz_init_set(mrb, &u1_a, &a);
+      mpz_init_set(mrb, &v1_b, &b);
+
+      /* Compute u0*a, v0*b, u1*a, v1*b */
+      mpz_mul_int(mrb, &u0_a, u0);
+      mpz_mul_int(mrb, &v0_b, v0);
+      mpz_mul_int(mrb, &u1_a, u1);
+      mpz_mul_int(mrb, &v1_b, v1);
+
+      /* temp_a = u0*a + v0*b */
+      mpz_add(mrb, &temp_a, &u0_a, &v0_b);
+
+      /* temp_b = u1*a + v1*b */
+      mpz_add(mrb, &temp_b, &u1_a, &v1_b);
+
+      /* Update a and b */
+      mpz_set(mrb, &a, &temp_a);
+      mpz_set(mrb, &b, &temp_b);
+
+      mpz_clear(mrb, &temp_a);
+      mpz_clear(mrb, &temp_b);
+      mpz_clear(mrb, &u0_a);
+      mpz_clear(mrb, &v0_b);
+      mpz_clear(mrb, &u1_a);
+      mpz_clear(mrb, &v1_b);
+
+      /* Ensure a >= b after transformation */
+      if (mpz_cmp(mrb, &a, &b) < 0) {
+        mpz_t temp_holder = a;
+        a = b;
+        b = temp_holder;
+      }
+    }
   }
 
   /* From here on, a is always odd */
   do {
-    /* Make b odd */
-    while ((b.p[0] & 1) == 0) {
-      mpz_div_2exp(mrb, &b, &b, 1);
+    /* Make b odd efficiently */
+    if ((b.p[0] & 1) == 0) {
+      size_t b_trailing = mpz_trailing_zeros(&b);
+      if (b_trailing > 0) {
+        mpz_div_2exp(mrb, &b, &b, b_trailing);
+      }
     }
 
     /* Now both a and b are odd. Ensure a >= b */
