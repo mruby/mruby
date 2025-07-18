@@ -381,7 +381,7 @@ mrb_struct_initialize_withKw(mrb_state *mrb, mrb_value hash, mrb_value self)
 
   /* If there are any invalid keys, raise an error with all of them */
   if (RARRAY_LEN(invalid_keys) > 0) {
-    mrb_value keys_str = mrb_funcall_id(mrb, invalid_keys, MRB_SYM(join), 1, mrb_str_new_lit(mrb, ", "));
+    mrb_value keys_str = mrb_ary_join(mrb, invalid_keys, mrb_str_new_lit(mrb, ", "));
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "unknown keywords: %S", keys_str);
   }
 
