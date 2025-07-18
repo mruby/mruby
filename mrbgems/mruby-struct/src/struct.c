@@ -220,9 +220,9 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass *kl
 /* 15.2.18.3.1  */
 /*
  *  call-seq:
- *     Struct.new( [aString] [, aSym]+> )    -> StructClass
- *     StructClass.new(arg, ...)             -> obj
- *     StructClass[arg, ...]                 -> obj
+ *     Struct.new([aString] [, aSym]+, keyword_init: false)    -> StructClass
+ *     StructClass.new(arg, ...)                               -> obj
+ *     StructClass[arg, ...]                                   -> obj
  *
  *  Creates a new class, named by <i>aString</i>, containing accessor
  *  methods for the given symbols. If the name <i>aString</i> is
@@ -240,6 +240,13 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass *kl
  *  class; unset parameters default to <code>nil</code>.  Passing too many
  *  parameters will raise an <code>ArgumentError</code>.
  *
+ *  If <code>keyword_init</code> is true, the struct will accept keyword
+ *  arguments for initialization instead of positional arguments:
+ *
+ *     Person = Struct.new(:name, :age, keyword_init: true)
+ *     Person.new(name: "Alice", age: 30)
+ *     #=> #<struct Person name="Alice", age=30>
+ *
  *  The remaining methods listed in this section (class and instance)
  *  are defined for this generated class.
  *
@@ -250,6 +257,11 @@ make_struct(mrb_state *mrb, mrb_value name, mrb_value members, struct RClass *kl
  *     # Create a structure named by its constant
  *     Customer = Struct.new(:name, :address)     #=> Customer
  *     Customer.new("Dave", "123 Main")           #=> #<struct Customer name="Dave", address="123 Main">
+ *
+ *     # Create a structure with keyword initialization
+ *     User = Struct.new(:id, :email, keyword_init: true)
+ *     User.new(id: 1, email: "user@example.com")
+ *     #=> #<struct User id=1, email="user@example.com">
  */
 static mrb_value
 mrb_struct_s_def(mrb_state *mrb, mrb_value klass)
