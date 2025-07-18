@@ -1378,7 +1378,7 @@ mpz_power_of_2_p(mpz_t *x)
 static void
 mpz_gcd(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
 {
-  mpz_t a, b, t;
+  mpz_t a, b;
 
   /* Handle special cases */
   if (zero_p(aa)) {
@@ -1431,7 +1431,6 @@ mpz_gcd(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
 
   mpz_abs(mrb, &a, aa);
   mpz_abs(mrb, &b, bb);
-  mpz_init(mrb, &t);
 
   /* Find power of 2 that divides both a and b */
   size_t a_zeros = mpz_trailing_zeros(&a);
@@ -1547,9 +1546,10 @@ mpz_gcd(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
 
     /* Now both a and b are odd. Ensure a >= b */
     if (mpz_cmp(mrb, &a, &b) < 0) {
-      mpz_set(mrb, &t, &a);
-      mpz_set(mrb, &a, &b);
-      mpz_set(mrb, &b, &t);
+      /* In-place swap without temporary variable */
+      mpz_t temp_holder = a;
+      a = b;
+      b = temp_holder;
     }
 
     /* Replace a with (a - b) */
@@ -1571,7 +1571,6 @@ mpz_gcd(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
   trim(&b);
   mpz_move(mrb, gg, &b);
   mpz_clear(mrb, &a);
-  mpz_clear(mrb, &t);
 }
 #endif
 
