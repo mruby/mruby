@@ -639,7 +639,7 @@ mrb_file_ctime(mrb_state *mrb, mrb_value self)
   if (mrb_fstat(fd, &st) == -1)
     mrb_sys_fail(mrb, "ctime");
   if (TIME_OVERFLOW_P(st.st_ctime)) {
-    TIME_BIGTIME(mrb, st. st_ctime);
+    TIME_BIGTIME(mrb, st.st_ctime);
   }
   return mrb_int_value(mrb, (mrb_int)st.st_ctime);
 }
@@ -654,7 +654,7 @@ mrb_file_mtime(mrb_state *mrb, mrb_value self)
   if (mrb_fstat(fd, &st) == -1)
     mrb_sys_fail(mrb, "mtime");
   if (TIME_OVERFLOW_P(st.st_mtime)) {
-    TIME_BIGTIME(mrb, st. st_mtime);
+    TIME_BIGTIME(mrb, st.st_mtime);
   }
   return mrb_int_value(mrb, (mrb_int)st.st_mtime);
 }
