@@ -54,6 +54,7 @@
 #define E_SOCKET_ERROR             mrb_class_get_id(mrb, MRB_SYM(SocketError))
 
 #ifdef _WIN32
+/* Windows implementation of inet_ntop - converts network address to string */
 static const char *inet_ntop(int af, const void *src, char *dst, socklen_t cnt)
 {
   if (af == AF_INET) {
@@ -77,6 +78,7 @@ static const char *inet_ntop(int af, const void *src, char *dst, socklen_t cnt)
   return NULL;
 }
 
+/* Windows implementation of inet_pton - converts string address to network format */
 static int inet_pton(int af, const char *src, void *dst)
 {
   struct addrinfo hints = {0};
@@ -103,6 +105,7 @@ struct gen_addrinfo_args {
   struct addrinfo *addrinfo;
 };
 
+/* Helper to generate array of Addrinfo objects from addrinfo linked list */
 static mrb_value
 gen_addrinfo(mrb_state *mrb, mrb_value args)
 {
@@ -120,6 +123,7 @@ gen_addrinfo(mrb_state *mrb, mrb_value args)
   return ary;
 }
 
+/* Helper to free addrinfo structure - used with mrb_ensure */
 static mrb_value
 free_addrinfo(mrb_state *mrb, mrb_value addrinfo)
 {
@@ -127,6 +131,15 @@ free_addrinfo(mrb_state *mrb, mrb_value addrinfo)
   return mrb_nil_value();
 }
 
+/*
+ * call-seq:
+ *   Addrinfo.getaddrinfo(nodename, servname, family=nil, socktype=nil, protocol=nil, flags=0) -> array
+ *
+ * Returns an array of Addrinfo objects for the given nodename and servname.
+ *
+ *   Addrinfo.getaddrinfo("localhost", "http")
+ *   Addrinfo.getaddrinfo("www.example.com", 80, Socket::AF_INET)
+ */
 static mrb_value
 mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
 {
@@ -175,6 +188,15 @@ mrb_addrinfo_getaddrinfo(mrb_state *mrb, mrb_value klass)
   return mrb_ensure(mrb, gen_addrinfo, mrb_cptr_value(mrb, &args), free_addrinfo, mrb_cptr_value(mrb, addr));
 }
 
+/*
+ * call-seq:
+ *   addrinfo.getnameinfo(flags=0) -> [hostname, service]
+ *
+ * Returns the hostname and service name for the address.
+ *
+ *   addr.getnameinfo  #=> ["localhost", "http"]
+ *   addr.getnameinfo(Socket::NI_NUMERICHOST)  #=> ["127.0.0.1", "80"]
+ */
 static mrb_value
 mrb_addrinfo_getnameinfo(mrb_state *mrb, mrb_value self)
 {
@@ -201,6 +223,14 @@ mrb_addrinfo_getnameinfo(mrb_state *mrb, mrb_value self)
 }
 
 #ifndef _WIN32
+/*
+ * call-seq:
+ *   addrinfo.unix_path -> string
+ *
+ * Returns the Unix domain socket path.
+ *
+ *   addr.unix_path  #=> "/tmp/socket"
+ */
 static mrb_value
 mrb_addrinfo_unix_path(mrb_state *mrb, mrb_value self)
 {
@@ -217,6 +247,7 @@ mrb_addrinfo_unix_path(mrb_state *mrb, mrb_value self)
 }
 #endif
 
+/* Helper to convert sockaddr to address list array [family, port, host, host] */
 static mrb_value
 sa2addrlist(mrb_state *mrb, const struct sockaddr *sa, socklen_t salen)
 {
@@ -252,12 +283,14 @@ sa2addrlist(mrb_state *mrb, const struct sockaddr *sa, socklen_t salen)
 
 int mrb_io_fileno(mrb_state *mrb, mrb_value io);
 
+/* Helper to extract file descriptor from socket object */
 static int
 socket_fd(mrb_state *mrb, mrb_value sock)
 {
   return mrb_io_fileno(mrb, sock);
 }
 
+/* Helper to get address family of socket by file descriptor */
 static int
 socket_family(int s)
 {
@@ -269,6 +302,15 @@ socket_family(int s)
   return ss.ss_family;
 }
 
+/*
+ * call-seq:
+ *   basicsocket.getpeereid -> [euid, egid]
+ *
+ * Returns the effective user ID and group ID of the peer process.
+ * Only available on systems that support getpeereid().
+ *
+ *   euid, egid = sock.getpeereid
+ */
 static mrb_value
 mrb_basicsocket_getpeereid(mrb_state *mrb, mrb_value self)
 {
@@ -289,6 +331,14 @@ mrb_basicsocket_getpeereid(mrb_state *mrb, mrb_value self)
 #endif
 }
 
+/*
+ * call-seq:
+ *   basicsocket.getpeername -> string
+ *
+ * Returns the remote socket address as a packed sockaddr string.
+ *
+ *   sockaddr = sock.getpeername
+ */
 static mrb_value
 mrb_basicsocket_getpeername(mrb_state *mrb, mrb_value self)
 {
@@ -301,6 +351,14 @@ mrb_basicsocket_getpeername(mrb_state *mrb, mrb_value self)
   return mrb_str_new(mrb, (char*)&ss, salen);
 }
 
+/*
+ * call-seq:
+ *   basicsocket.getsockname -> string
+ *
+ * Returns the local socket address as a packed sockaddr string.
+ *
+ *   sockaddr = sock.getsockname
+ */
 static mrb_value
 mrb_basicsocket_getsockname(mrb_state *mrb, mrb_value self)
 {
@@ -313,12 +371,21 @@ mrb_basicsocket_getsockname(mrb_state *mrb, mrb_value self)
   return mrb_str_new(mrb, (char*)&ss, salen);
 }
 
+/* Helper to get Socket::Option class reference */
 static struct RClass *
 socket_option_class(mrb_state *mrb)
 {
   return mrb_class_get_under_id(mrb, mrb_class_get_id(mrb, MRB_SYM(Socket)), MRB_SYM(Option));
 }
 
+/*
+ * call-seq:
+ *   Socket::Option.new(family, level, optname, data) -> socket_option
+ *
+ * Creates a new Socket::Option object with the given parameters.
+ *
+ *   opt = Socket::Option.new(Socket::AF_INET, Socket::SOL_SOCKET, Socket::SO_REUSEADDR, [1].pack("i"))
+ */
 static mrb_value
 socket_option_init(mrb_state *mrb, mrb_value self)
 {
@@ -334,6 +401,14 @@ socket_option_init(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ * call-seq:
+ *   Socket::Option.bool(family, level, optname, bool) -> socket_option
+ *
+ * Creates a new Socket::Option object from a boolean value.
+ *
+ *   opt = Socket::Option.bool(Socket::AF_INET, Socket::SOL_SOCKET, Socket::SO_REUSEADDR, true)
+ */
 static mrb_value
 socket_option_s_bool(mrb_state *mrb, mrb_value klass)
 {
@@ -347,6 +422,14 @@ socket_option_s_bool(mrb_state *mrb, mrb_value klass)
   return mrb_obj_new(mrb, mrb_class_ptr(klass), 4, args);
 }
 
+/*
+ * call-seq:
+ *   Socket::Option.int(family, level, optname, integer) -> socket_option
+ *
+ * Creates a new Socket::Option object from an integer value.
+ *
+ *   opt = Socket::Option.int(Socket::AF_INET, Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, 1)
+ */
 static mrb_value
 socket_option_s_int(mrb_state *mrb, mrb_value klass)
 {
@@ -360,30 +443,63 @@ socket_option_s_int(mrb_state *mrb, mrb_value klass)
   return mrb_obj_new(mrb, mrb_class_ptr(klass), 4, args);
 }
 
+/*
+ * call-seq:
+ *   socket_option.family -> integer
+ *
+ * Returns the address family of the socket option.
+ *
+ *   opt.family  #=> Socket::AF_INET
+ */
 static mrb_value
 socket_option_family(mrb_state *mrb, mrb_value self)
 {
   return mrb_iv_get(mrb, self, MRB_SYM(family));
 }
 
+/*
+ * call-seq:
+ *   socket_option.level -> integer
+ *
+ * Returns the protocol level of the socket option.
+ *
+ *   opt.level  #=> Socket::SOL_SOCKET
+ */
 static mrb_value
 socket_option_level(mrb_state *mrb, mrb_value self)
 {
   return mrb_iv_get(mrb, self, MRB_SYM(level));
 }
 
+/*
+ * call-seq:
+ *   socket_option.optname -> integer
+ *
+ * Returns the option name of the socket option.
+ *
+ *   opt.optname  #=> Socket::SO_REUSEADDR
+ */
 static mrb_value
 socket_option_optname(mrb_state *mrb, mrb_value self)
 {
   return mrb_iv_get(mrb, self, MRB_SYM(optname));
 }
 
+/*
+ * call-seq:
+ *   socket_option.data -> string
+ *
+ * Returns the raw data of the socket option as a string.
+ *
+ *   opt.data  #=> "\x01\x00\x00\x00"
+ */
 static mrb_value
 socket_option_data(mrb_state *mrb, mrb_value self)
 {
   return mrb_iv_get(mrb, self, MRB_SYM(data));
 }
 
+/* Helper to extract integer value from Socket::Option data */
 static int
 option_int(mrb_state *mrb, mrb_value self)
 {
@@ -398,6 +514,14 @@ option_int(mrb_state *mrb, mrb_value self)
   return tmp;
 }
 
+/*
+ * call-seq:
+ *   socket_option.int -> integer
+ *
+ * Returns the socket option data as an integer value.
+ *
+ *   opt.int  #=> 1
+ */
 static mrb_value
 socket_option_int(mrb_state *mrb, mrb_value self)
 {
@@ -405,6 +529,14 @@ socket_option_int(mrb_state *mrb, mrb_value self)
   return mrb_int_value(mrb, (mrb_int)i);
 }
 
+/*
+ * call-seq:
+ *   socket_option.bool -> true or false
+ *
+ * Returns the socket option data as a boolean value.
+ *
+ *   opt.bool  #=> true
+ */
 static mrb_value
 socket_option_bool(mrb_state *mrb, mrb_value self)
 {
@@ -412,6 +544,7 @@ socket_option_bool(mrb_state *mrb, mrb_value self)
   return mrb_bool_value((mrb_bool)i);
 }
 
+/* Helper to raise not implemented error for unimplemented Socket::Option methods */
 static mrb_value
 socket_option_notimp(mrb_state *mrb, mrb_value self)
 {
@@ -419,6 +552,14 @@ socket_option_notimp(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
+/*
+ * call-seq:
+ *   socket_option.inspect -> string
+ *
+ * Returns a string representation of the socket option for debugging.
+ *
+ *   opt.inspect  #=> "#<Socket::Option: INET level:1 optname:2 \"\\x01\\x00\\x00\\x00\">"
+ */
 static mrb_value
 socket_option_inspect(mrb_state *mrb, mrb_value self)
 {
@@ -475,6 +616,14 @@ socket_option_inspect(mrb_state *mrb, mrb_value self)
   return str;
 }
 
+/*
+ * call-seq:
+ *   basicsocket.getsockopt(level, optname) -> string
+ *
+ * Gets a socket option. Returns the option value as a string.
+ *
+ *   val = sock.getsockopt(Socket::SOL_SOCKET, Socket::SO_REUSEADDR)
+ */
 static mrb_value
 mrb_basicsocket_getsockopt(mrb_state *mrb, mrb_value self)
 {
@@ -494,6 +643,15 @@ mrb_basicsocket_getsockopt(mrb_state *mrb, mrb_value self)
   return mrb_obj_new(mrb, socket_option_class(mrb), 4, args);
 }
 
+/*
+ * call-seq:
+ *   basicsocket.recv(maxlen, flags=0) -> string
+ *
+ * Receives data from the socket.
+ *
+ *   data = sock.recv(1024)
+ *   data = sock.recv(512, 0)
+ */
 static mrb_value
 mrb_basicsocket_recv(mrb_state *mrb, mrb_value self)
 {
@@ -509,6 +667,13 @@ mrb_basicsocket_recv(mrb_state *mrb, mrb_value self)
   return buf;
 }
 
+/*
+ * call-seq:
+ *   basicsocket._recvfrom(maxlen, flags=0) -> [data, sockaddr]
+ *
+ * Internal method to receive data and sender address from socket.
+ * Returns data and packed sockaddr.
+ */
 static mrb_value
 mrb_basicsocket_recvfrom(mrb_state *mrb, mrb_value self)
 {
@@ -531,6 +696,14 @@ mrb_basicsocket_recvfrom(mrb_state *mrb, mrb_value self)
   return ary;
 }
 
+/*
+ * call-seq:
+ *   basicsocket.send(mesg, flags) -> integer
+ *
+ * Sends data through the socket. Returns the number of bytes sent.
+ *
+ *   bytes_sent = sock.send("Hello", 0)
+ */
 static mrb_value
 mrb_basicsocket_send(mrb_state *mrb, mrb_value self)
 {
@@ -552,6 +725,15 @@ mrb_basicsocket_send(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value((mrb_int)n);
 }
 
+/*
+ * call-seq:
+ *   basicsocket._setnonblock(flag) -> nil
+ *
+ * Internal method to set or unset non-blocking mode on the socket.
+ *
+ *   sock._setnonblock(true)   # enable non-blocking
+ *   sock._setnonblock(false)  # disable non-blocking
+ */
 static mrb_value
 mrb_basicsocket_setnonblock(mrb_state *mrb, mrb_value self)
 {
@@ -580,6 +762,14 @@ mrb_basicsocket_setnonblock(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
+/*
+ * call-seq:
+ *   basicsocket.setsockopt(level, optname, optval) -> 0
+ *
+ * Sets a socket option. Level and optname are constants, optval is the value.
+ *
+ *   sock.setsockopt(Socket::SOL_SOCKET, Socket::SO_REUSEADDR, 1)
+ */
 static mrb_value
 mrb_basicsocket_setsockopt(mrb_state *mrb, mrb_value self)
 {
@@ -629,6 +819,16 @@ mrb_basicsocket_setsockopt(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(0);
 }
 
+/*
+ * call-seq:
+ *   basicsocket.shutdown(how=Socket::SHUT_RDWR) -> 0
+ *
+ * Shuts down part of the socket connection.
+ *
+ *   sock.shutdown(Socket::SHUT_RD)    # shutdown reading
+ *   sock.shutdown(Socket::SHUT_WR)    # shutdown writing
+ *   sock.shutdown(Socket::SHUT_RDWR)  # shutdown both (default)
+ */
 static mrb_value
 mrb_basicsocket_shutdown(mrb_state *mrb, mrb_value self)
 {
@@ -640,6 +840,7 @@ mrb_basicsocket_shutdown(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(0);
 }
 
+/* Helper to set socket flag on IO object */
 static mrb_value
 mrb_basicsocket_set_is_socket(mrb_state *mrb, mrb_value self)
 {
@@ -654,6 +855,14 @@ mrb_basicsocket_set_is_socket(mrb_state *mrb, mrb_value self)
   return mrb_bool_value(b);
 }
 
+/*
+ * call-seq:
+ *   IPSocket.ntop(af, addr) -> string
+ *
+ * Converts a network address to a string representation.
+ *
+ *   IPSocket.ntop(Socket::AF_INET, "\x7f\x00\x00\x01")  #=> "127.0.0.1"
+ */
 static mrb_value
 mrb_ipsocket_ntop(mrb_state *mrb, mrb_value klass)
 {
@@ -668,6 +877,14 @@ mrb_ipsocket_ntop(mrb_state *mrb, mrb_value klass)
   return mrb_str_new_cstr(mrb, buf);
 }
 
+/*
+ * call-seq:
+ *   IPSocket.pton(af, hostname) -> string
+ *
+ * Converts a string representation of an address to network format.
+ *
+ *   IPSocket.pton(Socket::AF_INET, "127.0.0.1")  #=> "\x7f\x00\x00\x01"
+ */
 static mrb_value
 mrb_ipsocket_pton(mrb_state *mrb, mrb_value klass)
 {
@@ -701,6 +918,15 @@ invalid:
   return mrb_nil_value(); /* dummy */
 }
 
+/*
+ * call-seq:
+ *   ipsocket.recvfrom(maxlen, flags=0) -> [data, [family, port, hostname, ip]]
+ *
+ * Receives data from the socket and returns sender address information.
+ *
+ *   data, addr = sock.recvfrom(1024)
+ *   # addr => ["AF_INET", 12345, "hostname", "192.168.1.1"]
+ */
 static mrb_value
 mrb_ipsocket_recvfrom(mrb_state *mrb, mrb_value self)
 {
@@ -727,6 +953,14 @@ mrb_ipsocket_recvfrom(mrb_state *mrb, mrb_value self)
   return pair;
 }
 
+/*
+ * call-seq:
+ *   Socket.gethostname -> string
+ *
+ * Returns the hostname of the current machine.
+ *
+ *   Socket.gethostname  #=> "localhost"
+ */
 static mrb_value
 mrb_socket_gethostname(mrb_state *mrb, mrb_value cls)
 {
@@ -743,6 +977,13 @@ mrb_socket_gethostname(mrb_state *mrb, mrb_value cls)
   return buf;
 }
 
+/*
+ * call-seq:
+ *   Socket._accept(fd) -> [new_fd, sockaddr]
+ *
+ * Internal method to accept a connection on a socket file descriptor.
+ * Returns the new file descriptor and remote address.
+ */
 static mrb_value
 mrb_socket_accept(mrb_state *mrb, mrb_value klass)
 {
@@ -778,6 +1019,12 @@ mrb_socket_accept2(mrb_state *mrb, mrb_value klass)
   return ary;
 }
 
+/*
+ * call-seq:
+ *   Socket._bind(fd, sockaddr) -> 0
+ *
+ * Internal method to bind a socket file descriptor to the given address.
+ */
 static mrb_value
 mrb_socket_bind(mrb_state *mrb, mrb_value klass)
 {
@@ -791,6 +1038,12 @@ mrb_socket_bind(mrb_state *mrb, mrb_value klass)
   return mrb_nil_value();
 }
 
+/*
+ * call-seq:
+ *   Socket._connect(fd, sockaddr) -> 0
+ *
+ * Internal method to connect a socket file descriptor to the given address.
+ */
 static mrb_value
 mrb_socket_connect(mrb_state *mrb, mrb_value klass)
 {
@@ -804,6 +1057,12 @@ mrb_socket_connect(mrb_state *mrb, mrb_value klass)
   return mrb_nil_value();
 }
 
+/*
+ * call-seq:
+ *   Socket._listen(fd, backlog) -> 0
+ *
+ * Internal method to set a socket file descriptor to listen for connections.
+ */
 static mrb_value
 mrb_socket_listen(mrb_state *mrb, mrb_value klass)
 {
@@ -830,6 +1089,15 @@ mrb_socket_sockaddr_family(mrb_state *mrb, mrb_value klass)
   return mrb_fixnum_value(sa->sa_family);
 }
 
+/*
+ * call-seq:
+ *   Socket.sockaddr_un(path) -> string
+ *
+ * Returns a packed sockaddr_un structure for the given Unix socket path.
+ *
+ *   Socket.sockaddr_un("/tmp/socket")
+ *   Socket.sockaddr_un("/var/run/daemon.sock")
+ */
 static mrb_value
 mrb_socket_sockaddr_un(mrb_state *mrb, mrb_value klass)
 {
@@ -857,6 +1125,16 @@ mrb_socket_sockaddr_un(mrb_state *mrb, mrb_value klass)
 #endif
 }
 
+/*
+ * call-seq:
+ *   Socket.socketpair(domain, type, protocol=0) -> [socket1, socket2]
+ *   Socket.pair(domain, type, protocol=0) -> [socket1, socket2]
+ *
+ * Creates a pair of connected sockets.
+ *
+ *   sock1, sock2 = Socket.socketpair(Socket::AF_UNIX, Socket::SOCK_STREAM)
+ *   sock1, sock2 = Socket.pair(Socket::AF_UNIX, Socket::SOCK_DGRAM)
+ */
 static mrb_value
 mrb_socket_socketpair(mrb_state *mrb, mrb_value klass)
 {
@@ -880,6 +1158,14 @@ mrb_socket_socketpair(mrb_state *mrb, mrb_value klass)
 #endif
 }
 
+/*
+ * call-seq:
+ *   Socket._socket(domain, type, protocol) -> fd
+ *
+ * Internal method to create a new socket and return its file descriptor.
+ *
+ *   fd = Socket._socket(Socket::AF_INET, Socket::SOCK_STREAM, 0)
+ */
 static mrb_value
 mrb_socket_socket(mrb_state *mrb, mrb_value klass)
 {
@@ -893,6 +1179,7 @@ mrb_socket_socket(mrb_state *mrb, mrb_value klass)
   return mrb_fixnum_value(s);
 }
 
+/* Helper to allocate TCPSocket object */
 static mrb_value
 mrb_tcpsocket_allocate(mrb_state *mrb, mrb_value klass)
 {
@@ -910,6 +1197,13 @@ mrb_tcpsocket_allocate(mrb_state *mrb, mrb_value klass)
  * will break on socket descriptors.
  */
 #ifdef _WIN32
+/*
+ * call-seq:
+ *   basicsocket.close -> nil
+ *
+ * Windows-specific implementation to close socket using closesocket().
+ * Overrides IO#close for socket objects on Windows.
+ */
 static mrb_value
 mrb_win32_basicsocket_close(mrb_state *mrb, mrb_value self)
 {
@@ -918,6 +1212,13 @@ mrb_win32_basicsocket_close(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
+/*
+ * call-seq:
+ *   basicsocket.sysread(maxlen, outbuf=nil) -> string
+ *
+ * Windows-specific implementation to read from socket using recv().
+ * Overrides IO#sysread for socket objects on Windows.
+ */
 static mrb_value
 mrb_win32_basicsocket_sysread(mrb_state *mrb, mrb_value self)
 {
@@ -961,6 +1262,13 @@ mrb_win32_basicsocket_sysread(mrb_state *mrb, mrb_value self)
   return buf;
 }
 
+/*
+ * call-seq:
+ *   basicsocket.sysseek(offset, whence) -> integer
+ *
+ * Windows-specific implementation that raises NotImplementedError.
+ * Sockets don't support seeking operations.
+ */
 static mrb_value
 mrb_win32_basicsocket_sysseek(mrb_state *mrb, mrb_value self)
 {
@@ -968,6 +1276,13 @@ mrb_win32_basicsocket_sysseek(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
+/*
+ * call-seq:
+ *   basicsocket.syswrite(string) -> integer
+ *
+ * Windows-specific implementation to write to socket using send().
+ * Overrides IO#syswrite for socket objects on Windows.
+ */
 static mrb_value
 mrb_win32_basicsocket_syswrite(mrb_state *mrb, mrb_value self)
 {
