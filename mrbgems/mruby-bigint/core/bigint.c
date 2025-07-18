@@ -686,6 +686,38 @@ mpz_mdivmod(mrb_state *mrb, mpz_t *q, mpz_t *r, mpz_t *x, mpz_t *y)
   }
 }
 
+/* Fast modular reduction for single-limb modulus */
+static void
+mpz_mod_limb(mrb_state *mrb, mpz_t *r, mpz_t *x, mp_limb m)
+{
+  if (zero_p(x)) {
+    zero(r);
+    return;
+  }
+
+  if (x->sz == 1) {
+    /* Single limb case - simple modulo */
+    mp_limb result = x->p[0] % m;
+    mpz_set_int(mrb, r, result);
+    r->sn = x->sn;
+    return;
+  }
+
+  /* Multi-limb case - use repeated division */
+  mp_dbl_limb remainder = 0;
+  for (size_t i = x->sz; i > 0; i--) {
+    remainder = (remainder << DIG_SIZE) | x->p[i-1];
+    remainder %= m;
+  }
+
+  mpz_set_int(mrb, r, (mp_limb)remainder);
+  r->sn = x->sn;
+  if (remainder == 0)
+    r->sn = 0;
+}
+
+/* Barrett reduction will be implemented later after proper function ordering */
+
 static void
 mpz_mod(mrb_state *mrb, mpz_t *r, mpz_t *x, mpz_t *y)
 {
@@ -696,6 +728,14 @@ mpz_mod(mrb_state *mrb, mpz_t *r, mpz_t *x, mpz_t *y)
     zero(r);
     return;
   }
+
+  /* Fast path for single-limb modulus */
+  if (y->sz == 1) {
+    mpz_mod_limb(mrb, r, x, y->p[0]);
+    if (y->sn < 0) r->sn = -r->sn;
+    return;
+  }
+
   mpz_init(mrb, &q);
   udiv(mrb, &q, r, x, y);
   r->sn = sn;
@@ -1079,6 +1119,45 @@ mpz_neg(mrb_state *mrb, mpz_t *x, mpz_t *y)
 {
   mpz_set(mrb, x, y);
   x->sn = -(y->sn);
+}
+
+/* Fast modular reduction by power of 2: z = x mod 2^e */
+static void
+mpz_mod_2exp(mrb_state *mrb, mpz_t *z, mpz_t *x, mrb_int e)
+{
+  if (e <= 0) {
+    zero(z);
+    return;
+  }
+
+  size_t eint = e / DIG_SIZE;
+  size_t bs = e % DIG_SIZE;
+  size_t sz = x->sz;
+
+  if (eint >= sz) {
+    /* x < 2^e, so x mod 2^e = x */
+    mpz_set(mrb, z, x);
+    return;
+  }
+
+  /* Need to mask off high bits */
+  size_t result_sz = eint + (bs > 0 ? 1 : 0);
+  mpz_realloc(mrb, z, result_sz);
+  z->sn = x->sn;
+  z->sz = result_sz;
+
+  /* Copy full limbs */
+  for (size_t i = 0; i < eint; i++) {
+    z->p[i] = x->p[i];
+  }
+
+  /* Mask partial limb if needed */
+  if (bs > 0) {
+    mp_limb mask = (1UL << bs) - 1;
+    z->p[eint] = x->p[eint] & mask;
+  }
+
+  trim(z);
 }
 
 #define make_2comp(v,c) do { v=~(v)+(c); c=((v)==0 && (c));} while (0)
