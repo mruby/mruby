@@ -110,6 +110,15 @@ class Integer
     -div(-other)
   end
 
+  ##
+  #  call-seq:
+  #    int.integer?  ->  true
+  #
+  #  Returns true since this is an Integer.
+  #
+  #  1.integer?     #=> true
+  #  42.integer?    #=> true
+  #
   def integer?
     true
   end
