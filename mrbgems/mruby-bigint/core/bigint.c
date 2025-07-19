@@ -519,6 +519,116 @@ ulshift(mrb_state *mrb, mpz_t *c1, mpz_t *a, size_t n)
   }
 }
 
+/* Fast division by single limb */
+static void
+mpz_div_limb(mrb_state *mrb, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
+{
+  if (zero_p(x)) {
+    zero(q);
+    zero(r);
+    return;
+  }
+
+  if (d == 0) {
+    mrb_raise(mrb, E_ZERODIV_ERROR, "divided by 0");
+  }
+
+  /* Power-of-2 divisor optimization */
+  if ((d & (d - 1)) == 0) {
+    /* d is power of 2, use bit operations */
+    int shift = 0;
+    mp_limb temp = d;
+    while (temp > 1) {
+      temp >>= 1;
+      shift++;
+    }
+
+    /* Quotient = x >> shift */
+    if (shift == 0) {
+      mpz_set(mrb, q, x);
+    }
+    else {
+      /* Manual right shift implementation */
+      size_t limb_shift = shift / DIG_SIZE;
+      size_t bit_shift = shift % DIG_SIZE;
+
+      if (limb_shift >= x->sz) {
+        zero(q);
+      }
+      else {
+        size_t new_size = x->sz - limb_shift;
+        mpz_realloc(mrb, q, new_size);
+
+        if (bit_shift == 0) {
+          /* Simple limb copy */
+          for (size_t i = 0; i < new_size; i++) {
+            q->p[i] = x->p[i + limb_shift];
+          }
+        }
+        else {
+          /* Bit shift within limbs */
+          mp_limb carry = 0;
+          for (size_t i = new_size; i > 0; i--) {
+            mp_limb current = x->p[i - 1 + limb_shift];
+            q->p[i - 1] = (current >> bit_shift) | carry;
+            carry = (current << (DIG_SIZE - bit_shift)) & DIG_MASK;
+          }
+        }
+        q->sz = new_size;
+        trim(q);
+        q->sn = (q->sz == 0) ? 0 : 1;
+      }
+    }
+
+    /* Remainder = x & (d - 1) */
+    mpz_realloc(mrb, r, 1);
+    r->p[0] = x->p[0] & (d - 1);
+    r->sz = (r->p[0] == 0) ? 0 : 1;
+    r->sn = (r->sz == 0) ? 0 : 1;
+    return;
+  }
+
+  /* General single-limb division */
+  if (x->sz == 1) {
+    /* Both dividend and divisor are single limb */
+    mpz_realloc(mrb, q, 1);
+    mpz_realloc(mrb, r, 1);
+
+    q->p[0] = x->p[0] / d;
+    r->p[0] = x->p[0] % d;
+
+    q->sz = (q->p[0] == 0) ? 0 : 1;
+    q->sn = (q->sz == 0) ? 0 : 1;
+
+    r->sz = (r->p[0] == 0) ? 0 : 1;
+    r->sn = (r->sz == 0) ? 0 : 1;
+    return;
+  }
+
+  /* Multi-limb dividend, single-limb divisor */
+  size_t n = x->sz;
+  mpz_realloc(mrb, q, n);
+
+  mp_dbl_limb remainder = 0;
+
+  /* Process from most significant limb to least significant */
+  for (size_t i = n; i > 0; i--) {
+    remainder = (remainder << DIG_SIZE) + x->p[i-1];
+    q->p[i-1] = (mp_limb)(remainder / d);
+    remainder = remainder % d;
+  }
+
+  /* Set remainder */
+  mpz_realloc(mrb, r, 1);
+  r->p[0] = (mp_limb)remainder;
+  r->sz = (remainder == 0) ? 0 : 1;
+  r->sn = (r->sz == 0) ? 0 : 1;
+
+  /* Trim leading zeros from quotient */
+  trim(q);
+  q->sn = (q->sz == 0) ? 0 : 1;
+}
+
 /* internal routine to compute x/y and x%y ignoring signs */
 /* qq = xx/yy; rr = xx%yy */
 static void
@@ -534,6 +644,12 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
   else if (cmp < 0) {
     zero(qq);
     mpz_set(mrb, rr, xx);
+    return;
+  }
+
+  /* Fast path for single-limb divisor */
+  if (yy->sz == 1) {
+    mpz_div_limb(mrb, qq, rr, xx, yy->p[0]);
     return;
   }
 
