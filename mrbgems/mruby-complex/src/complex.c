@@ -94,6 +94,15 @@ mrb_complex_copy(mrb_state *mrb, mrb_value x, mrb_value y)
   p1->imaginary = p2->imaginary;
 }
 
+/*
+ * call-seq:
+ *   complex.real -> float
+ *
+ * Returns the real part of the complex number.
+ *
+ *   Complex(3, 4).real  #=> 3.0
+ *   Complex(-1).real    #=> -1.0
+ */
 static mrb_value
 complex_real(mrb_state *mrb, mrb_value self)
 {
@@ -101,6 +110,16 @@ complex_real(mrb_state *mrb, mrb_value self)
   return mrb_float_value(mrb, p->real);
 }
 
+/*
+ * call-seq:
+ *   complex.imaginary -> float
+ *   complex.imag      -> float
+ *
+ * Returns the imaginary part of the complex number.
+ *
+ *   Complex(3, 4).imaginary  #=> 4.0
+ *   Complex(5).imag          #=> 0.0
+ */
 static mrb_value
 complex_imaginary(mrb_state *mrb, mrb_value self)
 {
@@ -108,6 +127,19 @@ complex_imaginary(mrb_state *mrb, mrb_value self)
   return mrb_float_value(mrb, p->imaginary);
 }
 
+/*
+ * call-seq:
+ *   Complex.rectangular(real, imag = 0) -> complex
+ *   Complex.rect(real, imag = 0)        -> complex
+ *   Complex(real, imag = 0)             -> complex
+ *
+ * Returns a complex number with the given real and imaginary parts.
+ * The imaginary part defaults to 0 if not specified.
+ *
+ *   Complex.rectangular(1, 2)  #=> (1+2i)
+ *   Complex.rect(3)            #=> (3+0i)
+ *   Complex(1, -1)             #=> (1-1i)
+ */
 static mrb_value
 complex_s_rect(mrb_state *mrb, mrb_value self)
 {
@@ -117,6 +149,16 @@ complex_s_rect(mrb_state *mrb, mrb_value self)
   return complex_new(mrb, real, imaginary);
 }
 
+/*
+ * call-seq:
+ *   complex.to_f -> float
+ *
+ * Returns the real part of the complex number as a float.
+ * Raises RangeError if the imaginary part is not zero.
+ *
+ *   Complex(3, 0).to_f  #=> 3.0
+ *   Complex(3, 4).to_f  #=> RangeError: can't convert (3+4i) into Float
+ */
 mrb_value
 mrb_complex_to_f(mrb_state *mrb, mrb_value self)
 {
@@ -129,6 +171,16 @@ mrb_complex_to_f(mrb_state *mrb, mrb_value self)
   return mrb_float_value(mrb, p->real);
 }
 
+/*
+ * call-seq:
+ *   complex.to_i -> integer
+ *
+ * Returns the real part of the complex number as an integer.
+ * Raises RangeError if the imaginary part is not zero.
+ *
+ *   Complex(3, 0).to_i  #=> 3
+ *   Complex(3, 4).to_i  #=> RangeError: can't convert (3+4i) into Integer
+ */
 mrb_value
 mrb_complex_to_i(mrb_state *mrb, mrb_value self)
 {
@@ -176,6 +228,17 @@ mrb_complex_eq(mrb_state *mrb, mrb_value x, mrb_value y)
   }
 }
 
+/*
+ * call-seq:
+ *   complex == object -> true or false
+ *
+ * Returns true if complex equals object. Two complex numbers are equal
+ * if their real and imaginary parts are equal.
+ *
+ *   Complex(1, 2) == Complex(1, 2)  #=> true
+ *   Complex(1, 2) == Complex(2, 1)  #=> false
+ *   Complex(1, 0) == 1              #=> true
+ */
 static mrb_value
 complex_eq(mrb_state *mrb, mrb_value x)
 {
@@ -203,6 +266,17 @@ mrb_complex_add(mrb_state *mrb, mrb_value x, mrb_value y)
   }
 }
 
+/*
+ * call-seq:
+ *   complex + numeric -> complex
+ *
+ * Returns the sum of complex and numeric. If numeric is a complex number,
+ * adds both real and imaginary parts. If numeric is real, adds only to
+ * the real part.
+ *
+ *   Complex(1, 2) + Complex(3, 4)  #=> (4+6i)
+ *   Complex(1, 2) + 3              #=> (4+2i)
+ */
 static mrb_value
 complex_add(mrb_state *mrb, mrb_value x)
 {
@@ -230,6 +304,17 @@ mrb_complex_sub(mrb_state *mrb, mrb_value x, mrb_value y)
   }
 }
 
+/*
+ * call-seq:
+ *   complex - numeric -> complex
+ *
+ * Returns the difference of complex and numeric. If numeric is a complex number,
+ * subtracts both real and imaginary parts. If numeric is real, subtracts only
+ * from the real part.
+ *
+ *   Complex(5, 6) - Complex(1, 2)  #=> (4+4i)
+ *   Complex(5, 6) - 2              #=> (3+6i)
+ */
 static mrb_value
 complex_sub(mrb_state *mrb, mrb_value x)
 {
@@ -258,6 +343,16 @@ mrb_complex_mul(mrb_state *mrb, mrb_value x, mrb_value y)
   }
 }
 
+/*
+ * call-seq:
+ *   complex * numeric -> complex
+ *
+ * Returns the product of complex and numeric. Uses the standard complex
+ * multiplication formula: (a+bi) * (c+di) = (ac-bd) + (ad+bc)i
+ *
+ *   Complex(1, 2) * Complex(3, 4)  #=> (-5+10i)
+ *   Complex(1, 2) * 3              #=> (3+6i)
+ */
 static mrb_value
 complex_mul(mrb_state *mrb, mrb_value x)
 {
@@ -362,6 +457,17 @@ mrb_complex_div(mrb_state *mrb, mrb_value self, mrb_value rhs)
   return complex_new(mrb, F(ldexp)(zr.s, zr.x), F(ldexp)(zi.s, zi.x));
 }
 
+/*
+ * call-seq:
+ *   complex / numeric -> complex
+ *   complex.quo(numeric) -> complex
+ *
+ * Returns the quotient of complex divided by numeric. Uses the standard
+ * complex division formula by multiplying by the conjugate.
+ *
+ *   Complex(10, 5) / Complex(2, 1)  #=> (5+0i)
+ *   Complex(6, 4) / 2               #=> (3+2i)
+ */
 static mrb_value
 complex_div(mrb_state *mrb, mrb_value x)
 {
@@ -369,6 +475,15 @@ complex_div(mrb_state *mrb, mrb_value x)
   return mrb_complex_div(mrb, x, y);
 }
 
+/*
+ * call-seq:
+ *   complex.hash -> integer
+ *
+ * Returns a hash value for the complex number. Two complex numbers with
+ * the same real and imaginary parts will have the same hash value.
+ *
+ *   Complex(1, 2).hash == Complex(1, 2).hash  #=> true
+ */
 static mrb_value
 complex_hash(mrb_state *mrb, mrb_value cpx)
 {
@@ -378,6 +493,14 @@ complex_hash(mrb_state *mrb, mrb_value cpx)
   return mrb_int_value(mrb, hash);
 }
 
+/*
+ * call-seq:
+ *   nil.to_c -> complex
+ *
+ * Returns Complex(0, 0).
+ *
+ *   nil.to_c  #=> (0+0i)
+ */
 static mrb_value
 nil_to_c(mrb_state *mrb, mrb_value self)
 {
