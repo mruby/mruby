@@ -258,6 +258,9 @@ void mrb_bint_copy(mrb_state *mrb, mrb_value x, mrb_value y);
 size_t mrb_bint_memsize(mrb_value x);
 mrb_value mrb_bint_hash(mrb_state *mrb, mrb_value x);
 mrb_value mrb_bint_sqrt(mrb_state *mrb, mrb_value x);
+mrb_int mrb_bint_size(mrb_state *mrb, mrb_value bint);
+mrb_value mrb_bint_from_bytes(mrb_state *mrb, const uint8_t *bytes, mrb_int len);
+mrb_int mrb_bint_sign(mrb_state *mrb, mrb_value bint);
 #endif
 
 #endif  /* MRUBY_INTERNAL_H */

@@ -13,6 +13,7 @@
 #include <mruby/presym.h>
 #include <mruby/range.h>
 #include <mruby/string.h>
+#include <mruby/internal.h>
 
 #include <time.h>
 
@@ -209,6 +210,22 @@ random_rand_impl(mrb_state *mrb, rand_state *t, mrb_value self)
   if (mrb_range_p(arg)) {
     return random_range(mrb, t, arg);
   }
+
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(arg)) {
+    if (mrb_bint_sign(mrb, arg) < 0) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "negative value as random limit");
+    }
+    mrb_int size = mrb_bint_size(mrb, arg);
+    mrb_value bytes = mrb_str_new(mrb, NULL, size);
+    uint8_t *p = (uint8_t*)RSTRING_PTR(bytes);
+    for (mrb_int i = 0; i < size; i++) {
+      p[i] = (uint8_t)rand_uint32(t);
+    }
+    mrb_value rand_bint = mrb_bint_from_bytes(mrb, p, size);
+    return mrb_bint_mod(mrb, rand_bint, arg);
+  }
+#endif
 
   range_error(mrb, arg);
 }

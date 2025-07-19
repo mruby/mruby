@@ -2756,6 +2756,34 @@ mrb_bint_sqrt(mrb_state *mrb, mrb_value x)
   return bint_norm(mrb, bint_new(mrb, &z));
 }
 
+mrb_int
+mrb_bint_sign(mrb_state *mrb, mrb_value bint)
+{
+  return RBIGINT_SIGN(RBIGINT(bint));
+}
+
+mrb_int
+mrb_bint_size(mrb_state *mrb, mrb_value bint)
+{
+  mpz_t z;
+  bint_as_mpz(RBIGINT(bint), &z);
+  return z.sz * sizeof(mp_limb);
+}
+
+mrb_value
+mrb_bint_from_bytes(mrb_state *mrb, const uint8_t *bytes, mrb_int len)
+{
+  mpz_t z;
+  mpz_init(mrb, &z);
+  size_t limb_len = (len + sizeof(mp_limb) - 1) / sizeof(mp_limb);
+  mpz_realloc(mrb, &z, limb_len);
+  memcpy(z.p, bytes, len);
+  z.sn = (len > 0) ? 1 : 0;
+  z.sz = limb_len;
+  trim(&z);
+  return bint_norm(mrb, bint_new(mrb, &z));
+}
+
 mrb_value
 mrb_bint_hash(mrb_state *mrb, mrb_value x)
 {
