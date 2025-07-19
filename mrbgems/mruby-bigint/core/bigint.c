@@ -1515,7 +1515,6 @@ mpz_powm_i(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int ex, mpz_t *n)
   mpz_clear(mrb, &b);
 }
 
-#ifdef MRB_USE_RATIONAL
 static void
 mpz_abs(mrb_state *mrb, mpz_t *x, mpz_t *y)
 {
@@ -1833,7 +1832,6 @@ mpz_gcd(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
   mpz_move(mrb, gg, &b);
   mpz_clear(mrb, &a);
 }
-#endif
 
 static size_t
 mpz_bits(const mpz_t *x)
@@ -2844,3 +2842,69 @@ mrb_bint_reduce(mrb_state *mrb, mrb_value *xp, mrb_value *yp)
   *yp = mrb_obj_value(b2);
 }
 #endif
+
+mrb_value
+mrb_bint_gcd(mrb_state *mrb, mrb_value x, mrb_value y)
+{
+  mpz_t r, a, b;
+
+  mpz_init(mrb, &r);
+  bint_as_mpz(RBIGINT(x), &a);
+  bint_as_mpz(RBIGINT(y), &b);
+
+  mpz_gcd(mrb, &r, &a, &b);
+
+  struct RBigint *result = bint_new(mrb, &r);
+  mpz_clear(mrb, &r);
+  return bint_norm(mrb, result);
+}
+
+mrb_value
+mrb_bint_lcm(mrb_state *mrb, mrb_value x, mrb_value y)
+{
+  mpz_t gcd_val, x_mpz, y_mpz, abs_x, abs_y, product, result_mpz;
+  mrb_value zero = mrb_bint_new_int(mrb, 0);
+
+  if (mrb_bint_cmp(mrb, x, zero) == 0 || mrb_bint_cmp(mrb, y, zero) == 0) {
+    return zero;
+  }
+
+  mpz_init(mrb, &gcd_val);
+  mpz_init(mrb, &abs_x);
+  mpz_init(mrb, &abs_y);
+  mpz_init(mrb, &product);
+  mpz_init(mrb, &result_mpz);
+
+  bint_as_mpz(RBIGINT(x), &x_mpz);
+  bint_as_mpz(RBIGINT(y), &y_mpz);
+
+  mpz_abs(mrb, &abs_x, &x_mpz);
+  mpz_abs(mrb, &abs_y, &y_mpz);
+
+  mpz_gcd(mrb, &gcd_val, &abs_x, &abs_y);
+  mpz_mul(mrb, &product, &abs_x, &abs_y);
+  mpz_mdiv(mrb, &result_mpz, &product, &gcd_val);
+
+  mpz_clear(mrb, &gcd_val);
+  mpz_clear(mrb, &abs_x);
+  mpz_clear(mrb, &abs_y);
+  mpz_clear(mrb, &product);
+
+  struct RBigint *result = bint_new(mrb, &result_mpz);
+  mpz_clear(mrb, &result_mpz);
+  return mrb_obj_value(result);
+}
+
+mrb_value
+mrb_bint_abs(mrb_state *mrb, mrb_value x)
+{
+  mpz_t a, result_mpz;
+
+  mpz_init(mrb, &result_mpz);
+  bint_as_mpz(RBIGINT(x), &a);
+  mpz_abs(mrb, &result_mpz, &a);
+
+  struct RBigint *result = bint_new(mrb, &result_mpz);
+  mpz_clear(mrb, &result_mpz);
+  return mrb_obj_value(result);
+}

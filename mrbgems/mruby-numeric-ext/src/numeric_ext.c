@@ -46,6 +46,90 @@ int_remainder(mrb_state *mrb, mrb_value x)
 
 mrb_value mrb_int_pow(mrb_state *mrb, mrb_value x, mrb_value y);
 
+static mrb_int
+mrb_int_gcd(mrb_int x, mrb_int y)
+{
+  if (x < 0) x = -x;
+  if (y < 0) y = -y;
+
+  while (y != 0) {
+    mrb_int temp = y;
+    y = x % y;
+    x = temp;
+  }
+
+  return x;
+}
+
+/*
+ * call-seq:
+ *     int.gcd(other_int)  ->  integer
+ *
+ * Returns the greatest common divisor of the two integers.
+ * The result is always positive.
+ */
+static mrb_value
+int_gcd(mrb_state *mrb, mrb_value x)
+{
+  mrb_value y = mrb_get_arg1(mrb);
+
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x) || mrb_bigint_p(y)) {
+    if (!mrb_integer_p(y) && !mrb_bigint_p(y)) {
+      mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %Y into Integer", y);
+    }
+    if (!mrb_bigint_p(x)) x = mrb_bint_new_int(mrb, mrb_integer(x));
+    if (!mrb_bigint_p(y)) y = mrb_bint_new_int(mrb, mrb_integer(y));
+    return mrb_bint_gcd(mrb, x, y);
+  }
+#endif
+
+  if (!mrb_integer_p(y)) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %Y into Integer", y);
+  }
+  return mrb_int_value(mrb, mrb_int_gcd(mrb_integer(x), mrb_integer(y)));
+}
+
+/*
+ * call-seq:
+ *     int.lcm(other_int)  ->  integer
+ *
+ * Returns the least common multiple of the two integers.
+ * The result is always positive.
+ */
+static mrb_value
+int_lcm(mrb_state *mrb, mrb_value x)
+{
+  mrb_value y = mrb_get_arg1(mrb);
+  mrb_int a, b, gcd_val;
+
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(x) || mrb_bigint_p(y)) {
+    if (!mrb_integer_p(y) && !mrb_bigint_p(y)) {
+      mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %Y into Integer", y);
+    }
+    if (!mrb_bigint_p(x)) x = mrb_bint_new_int(mrb, mrb_integer(x));
+    if (!mrb_bigint_p(y)) y = mrb_bint_new_int(mrb, mrb_integer(y));
+    return mrb_bint_lcm(mrb, x, y);
+  }
+#endif
+
+  if (!mrb_integer_p(y)) {
+    mrb_raisef(mrb, E_TYPE_ERROR, "can't convert %Y into Integer", y);
+  }
+
+  a = mrb_integer(x);
+  b = mrb_integer(y);
+
+  if (a == 0 || b == 0) return mrb_int_value(mrb, 0);
+
+  gcd_val = mrb_int_gcd(a, b);
+  if (a < 0) a = -a;
+  if (b < 0) b = -b;
+
+  return mrb_int_value(mrb, (a / gcd_val) * b);
+}
+
 /*
  * call-seq:
  *    integer.pow(numeric)           ->  numeric
@@ -353,6 +437,8 @@ mrb_mruby_numeric_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, ic, MRB_SYM(size), int_size, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, ic, MRB_SYM_Q(odd), int_odd, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, ic, MRB_SYM_Q(even), int_even, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, ic, MRB_SYM(gcd), int_gcd, MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, ic, MRB_SYM(lcm), int_lcm, MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, ic, MRB_SYM(sqrt), int_sqrt, MRB_ARGS_REQ(1));
 
 #ifndef MRB_NO_FLOAT

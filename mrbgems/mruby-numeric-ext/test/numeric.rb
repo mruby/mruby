@@ -26,6 +26,30 @@ assert('Integer#pow') do
   assert_equal(361, 9.pow(1024,1000))
 end
 
+assert('Integer#gcd') do
+  assert_equal(1, 2.gcd(3))
+  assert_equal(5, 10.gcd(15))
+  assert_equal(6, 24.gcd(18))
+  assert_equal(7, 7.gcd(0))
+  assert_equal(7, 0.gcd(7))
+  assert_equal(0, 0.gcd(0))
+  assert_equal(5, (-10).gcd(15))
+  assert_equal(5, 10.gcd(-15))
+  assert_equal(5, (-10).gcd(-15))
+end
+
+assert('Integer#lcm') do
+  assert_equal(6, 2.lcm(3))
+  assert_equal(30, 10.lcm(15))
+  assert_equal(72, 24.lcm(18))
+  assert_equal(0, 7.lcm(0))
+  assert_equal(0, 0.lcm(7))
+  assert_equal(0, 0.lcm(0))
+  assert_equal(30, (-10).lcm(15))
+  assert_equal(30, 10.lcm(-15))
+  assert_equal(30, (-10).lcm(-15))
+end
+
 assert('Integer#ceildiv') do
   assert_equal(0, 0.ceildiv(3))
   assert_equal(1, 1.ceildiv(3))
