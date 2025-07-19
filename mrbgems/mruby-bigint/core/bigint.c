@@ -716,7 +716,9 @@ mpz_mod_limb(mrb_state *mrb, mpz_t *r, mpz_t *x, mp_limb m)
     r->sn = 0;
 }
 
-/* Barrett reduction will be implemented later after proper function ordering */
+/* Forward declarations for Barrett reduction functions */
+static void mpz_barrett_mu(mrb_state *mrb, mpz_t *mu, mpz_t *m);
+static void mpz_barrett_reduce(mrb_state *mrb, mpz_t *r, mpz_t *x, mpz_t *m, mpz_t *mu);
 
 static void
 mpz_mod(mrb_state *mrb, mpz_t *r, mpz_t *x, mpz_t *y)
@@ -736,6 +738,20 @@ mpz_mod(mrb_state *mrb, mpz_t *r, mpz_t *x, mpz_t *y)
     return;
   }
 
+  /* Barrett reduction for moderate-sized moduli */
+  if (y->sz >= 2 && y->sz <= 8 && x->sz >= y->sz + 2) {
+    mpz_t mu;
+    mpz_init(mrb, &mu);
+    mpz_barrett_mu(mrb, &mu, y);
+    mpz_barrett_reduce(mrb, r, x, y, &mu);
+    r->sn = sn;
+    if (uzero_p(r))
+      r->sn = 0;
+    mpz_clear(mrb, &mu);
+    return;
+  }
+
+  /* General division fallback */
   mpz_init(mrb, &q);
   udiv(mrb, &q, r, x, y);
   r->sn = sn;
@@ -1668,6 +1684,85 @@ mpz_bits(const mpz_t *x)
   return i * limb_bits + (limb_bits - lzb(high));
 }
 
+/* Compute Barrett parameter μ = floor(2^(2k) / m) where k ≈ log₂(m) */
+static void
+mpz_barrett_mu(mrb_state *mrb, mpz_t *mu, mpz_t *m)
+{
+  size_t k = mpz_bits(m);
+  mpz_t temp;
+
+  mpz_init_set_int(mrb, &temp, 1);
+  mpz_mul_2exp(mrb, &temp, &temp, 2 * k);  /* temp = 2^(2k) */
+  mpz_mdiv(mrb, mu, &temp, m);             /* mu = floor(2^(2k) / m) */
+  mpz_clear(mrb, &temp);
+}
+
+/* Barrett reduction: r = x mod m using precomputed μ */
+static void
+mpz_barrett_reduce(mrb_state *mrb, mpz_t *r, mpz_t *x, mpz_t *m, mpz_t *mu)
+{
+  size_t k = mpz_bits(m);
+
+  /* If x < m, then x mod m = x */
+  if (mpz_cmp(mrb, x, m) < 0) {
+    mpz_set(mrb, r, x);
+    return;
+  }
+
+  mpz_t q1, q2, q3, r1, r2;
+  mpz_init(mrb, &q1);
+  mpz_init(mrb, &q2);
+  mpz_init(mrb, &q3);
+  mpz_init(mrb, &r1);
+  mpz_init(mrb, &r2);
+
+  /* Step 1: q1 = floor(x / 2^(k-1)) */
+  if (k > 1) {
+    mpz_div_2exp(mrb, &q1, x, k - 1);
+  }
+  else {
+    mpz_set(mrb, &q1, x);
+  }
+
+  /* Step 2: q2 = q1 * μ */
+  mpz_mul(mrb, &q2, &q1, mu);
+
+  /* Step 3: q3 = floor(q2 / 2^(k+1)) */
+  mpz_div_2exp(mrb, &q3, &q2, k + 1);
+
+  /* Step 4: r1 = x mod 2^(k+1) */
+  mpz_mod_2exp(mrb, &r1, x, k + 1);
+
+  /* Step 5: r2 = (q3 * m) mod 2^(k+1) */
+  mpz_mul(mrb, &r2, &q3, m);
+  mpz_mod_2exp(mrb, &r2, &r2, k + 1);
+
+  /* Step 6: r = r1 - r2 */
+  if (mpz_cmp(mrb, &r1, &r2) >= 0) {
+    mpz_sub(mrb, r, &r1, &r2);
+  }
+  else {
+    /* r1 < r2, so add 2^(k+1) to r1 */
+    mpz_t power;
+    mpz_init_set_int(mrb, &power, 1);
+    mpz_mul_2exp(mrb, &power, &power, k + 1);
+    mpz_add(mrb, &r1, &r1, &power);
+    mpz_sub(mrb, r, &r1, &r2);
+    mpz_clear(mrb, &power);
+  }
+
+  /* Step 7: Final correction - ensure 0 ≤ r < m */
+  while (mpz_cmp(mrb, r, m) >= 0) {
+    mpz_sub(mrb, r, r, m);
+  }
+
+  mpz_clear(mrb, &q1);
+  mpz_clear(mrb, &q2);
+  mpz_clear(mrb, &q3);
+  mpz_clear(mrb, &r1);
+  mpz_clear(mrb, &r2);
+}
+
 static void
 mpz_sqrt(mrb_state *mrb, mpz_t *z, mpz_t *x)
 {
@@ -1707,6 +1802,8 @@ mpz_sqrt(mrb_state *mrb, mpz_t *z, mpz_t *x)
   mpz_move(mrb, z, &s);
   mpz_clear(mrb, &t);
 }
+
+/* Barrett reduction for efficient modular arithmetic with repeated operations */
 
 /* --- mruby functions --- */
 /* initialize mpz_t from RBigint (not need to clear) */
