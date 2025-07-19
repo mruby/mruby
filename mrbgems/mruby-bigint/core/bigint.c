@@ -1303,18 +1303,42 @@ mpz_powm(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
   mpz_init_set_int(mrb, &t, 1);
   mpz_init_set(mrb, &b, x);
 
+  /* Optimize with Barrett reduction for moderate-sized moduli */
+  mpz_t mu, temp;
+  int use_barrett = (n->sz >= 2 && n->sz <= 8);
+  mpz_init(mrb, &temp);
+  if (use_barrett) {
+    mpz_init(mrb, &mu);
+    mpz_barrett_mu(mrb, &mu, n);
+  }
+
   size_t len = digits(ex);
   for (size_t i=0; i<len; i++) {
     mp_limb e = ex->p[i];
     for (size_t j=0; j<sizeof(mp_limb)*8; j++) {
       if ((e & 1) == 1) {
-        mpz_mul(mrb, &t, &t, &b);
-        mpz_mod(mrb, &t, &t, n);
+        mpz_mul(mrb, &temp, &t, &b);
+        if (use_barrett) {
+          mpz_barrett_reduce(mrb, &t, &temp, n, &mu);
+        }
+        else {
+          mpz_mod(mrb, &t, &temp, n);
+        }
       }
       e >>= 1;
-      mpz_mul(mrb, &b, &b, &b);
-      mpz_mod(mrb, &b, &b, n);
+      mpz_mul(mrb, &temp, &b, &b);
+      if (use_barrett) {
+        mpz_barrett_reduce(mrb, &b, &temp, n, &mu);
+      }
+      else {
+        mpz_mod(mrb, &b, &temp, n);
+      }
     }
+  }
+
+  mpz_clear(mrb, &temp);
+  if (use_barrett) {
+    mpz_clear(mrb, &mu);
   }
   mpz_move(mrb, zz, &t);
   mpz_clear(mrb, &b);
@@ -1336,14 +1360,40 @@ mpz_powm_i(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int ex, mpz_t *n)
   mpz_init_set_int(mrb, &t, 1);
   mpz_init_set(mrb, &b, x);
 
+  /* Optimize with Barrett reduction for moderate-sized moduli */
+  mpz_t mu, temp;
+  int use_barrett = (n->sz >= 2 && n->sz <= 8);
+  mpz_init(mrb, &temp);
+  if (use_barrett) {
+    mpz_init(mrb, &mu);
+    mpz_barrett_mu(mrb, &mu, n);
+  }
+
   while (ex > 0) {
     if ((ex & 1) == 1) {
-      mpz_mul(mrb, &t, &t, &b);
-      mpz_mod(mrb, &t, &t, n);
+      mpz_mul(mrb, &temp, &t, &b);
+      if (use_barrett) {
+        mpz_barrett_reduce(mrb, &t, &temp, n, &mu);
+      }
+      else {
+        mpz_mod(mrb, &t, &temp, n);
+      }
     }
     ex >>= 1;
-    mpz_mul(mrb, &b, &b, &b);
-    mpz_mod(mrb, &b, &b, n);
+    if (ex > 0) {  /* Skip final squaring when ex becomes 0 */
+      mpz_mul(mrb, &temp, &b, &b);
+      if (use_barrett) {
+        mpz_barrett_reduce(mrb, &b, &temp, n, &mu);
+      }
+      else {
+        mpz_mod(mrb, &b, &temp, n);
+      }
+    }
+  }
+
+  mpz_clear(mrb, &temp);
+  if (use_barrett) {
+    mpz_clear(mrb, &mu);
   }
   mpz_move(mrb, zz, &t);
   mpz_clear(mrb, &b);
