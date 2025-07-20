@@ -241,7 +241,7 @@ mrb_file_dirname(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_file_basename(mrb_state *mrb, mrb_value klass)
 {
-  char *path;
+  const char *path;
   const char *suffix = NULL;
 
   mrb_get_args(mrb, "z|z", &path, &suffix);
