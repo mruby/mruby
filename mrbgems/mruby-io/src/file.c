@@ -241,44 +241,6 @@ mrb_file_dirname(mrb_state *mrb, mrb_value klass)
 static mrb_value
 mrb_file_basename(mrb_state *mrb, mrb_value klass)
 {
-#if defined(_WIN32)
-  char bname[_MAX_DIR];
-  char extname[_MAX_EXT];
-  char *path;
-  const char *suffix = NULL;
-
-  mrb_get_args(mrb, "z|z", &path, &suffix);
-  size_t ridx = strlen(path);
-  if (ridx > 0) {
-    ridx--;
-    while (ridx > 0 && (path[ridx] == '/' || path[ridx] == '\\')) {
-      path[ridx] = '\0';
-      ridx--;
-    }
-    if (ridx == 0 && path[0] == '/') {
-      mrb_value result = mrb_str_new_cstr(mrb, path);
-      if (suffix && *suffix) {
-        mrb_int blen = RSTRING_LEN(result);
-        mrb_int slen = strlen(suffix);
-        if (blen > slen && memcmp(RSTRING_PTR(result) + blen - slen, suffix, slen) == 0) {
-          mrb_str_resize(mrb, result, blen - slen);
-        }
-      }
-      return result;
-    }
-  }
-  _splitpath((const char*)path, NULL, NULL, bname, extname);
-  mrb_value buffer = mrb_str_new_cstr(mrb, bname);
-  mrb_str_cat_cstr(mrb, buffer, extname);
-  if (suffix && *suffix) {
-    mrb_int blen = RSTRING_LEN(buffer);
-    mrb_int slen = strlen(suffix);
-    if (blen > slen && memcmp(RSTRING_PTR(buffer) + blen - slen, suffix, slen) == 0) {
-      mrb_str_resize(mrb, buffer, blen - slen);
-    }
-  }
-  return buffer;
-#else
   char *path;
   const char *suffix = NULL;
 
@@ -290,14 +252,34 @@ mrb_file_basename(mrb_state *mrb, mrb_value klass)
     return mrb_str_new_lit(mrb, ".");
   }
 
+#ifdef _WIN32
+  if (UNC_PATH_P(path)) {
+    const char *p = path + 2;
+    SKIP_DIRSEP(p);
+    NEXT_DIRSEP(p); // skip server name
+    SKIP_DIRSEP(p);
+    NEXT_DIRSEP(p); // skip share name
+    len -= p - path;
+    path = p;
+  }
+  else if (DRIVE_LETTER_P(path)) {
+    const char *p = path + 2;
+    if (p == path + len) {
+      return mrb_str_new_lit(mrb, "");
+    }
+    len -= p - path;
+    path = p;
+  }
+#endif // _WIN32
+
   // Remove trailing slashes (except when path is only "/")
-  while (len > 1 && path[len - 1] == '/') {
+  while (len > 1 && DIRSEP_P(path[len - 1])) {
     len--;
   }
 
   // Find the last path separator
   ssize_t base = len - 1;
-  while (base >= 0 && path[base] != '/') {
+  while (base >= 0 && !DIRSEP_P(path[base])) {
     base--;
   }
   base++; // move to the first character after '/'
@@ -319,7 +301,6 @@ mrb_file_basename(mrb_state *mrb, mrb_value klass)
   }
 
   return result;
-#endif
 }
 
 static mrb_value
