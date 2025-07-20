@@ -246,50 +246,44 @@ mrb_file_basename(mrb_state *mrb, mrb_value klass)
 
   mrb_get_args(mrb, "z|z", &path, &suffix);
 
-  // Copy path to a local buffer to avoid modifying the original string
-  size_t len = strlen(path);
-  if (len == 0) {
+  const char *endp = path + strlen(path);
+  if (path == endp) {
     return mrb_str_new_lit(mrb, ".");
   }
 
 #ifdef _WIN32
   if (UNC_PATH_P(path)) {
-    const char *p = path + 2;
-    SKIP_DIRSEP(p);
-    NEXT_DIRSEP(p); // skip server name
-    SKIP_DIRSEP(p);
-    NEXT_DIRSEP(p); // skip share name
-    len -= p - path;
-    path = p;
+    path += 2;
+    SKIP_DIRSEP(path);
+    NEXT_DIRSEP(path); // skip server name
+    SKIP_DIRSEP(path);
+    NEXT_DIRSEP(path); // skip share name
   }
   else if (DRIVE_LETTER_P(path)) {
-    const char *p = path + 2;
-    if (p == path + len) {
+    path += 2;
+    if (path == endp) {
       return mrb_str_new_lit(mrb, "");
     }
-    len -= p - path;
-    path = p;
   }
 #endif // _WIN32
 
   // Remove trailing slashes (except when path is only "/")
-  while (len > 1 && DIRSEP_P(path[len - 1])) {
-    len--;
+  while (path < endp && DIRSEP_P(endp[-1])) {
+    endp--;
   }
 
   // Find the last path separator
-  ssize_t base = len - 1;
-  while (base >= 0 && !DIRSEP_P(path[base])) {
+  const char *base = endp;
+  while (path < base && !DIRSEP_P(base[-1])) {
     base--;
   }
-  base++; // move to the first character after '/'
 
   // If path is all slashes, return "/"
-  if ((size_t)base == len) {
+  if (base == endp) {
     return mrb_str_new_lit(mrb, "/");
   }
 
-  mrb_value result = mrb_str_new(mrb, path + base, len - base);
+  mrb_value result = mrb_str_new(mrb, base, endp - base);
 
   // Suffix removal (CRuby compatible)
   if (suffix && *suffix) {
