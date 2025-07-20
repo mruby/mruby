@@ -283,18 +283,16 @@ mrb_file_basename(mrb_state *mrb, mrb_value klass)
     return mrb_str_new_lit(mrb, "/");
   }
 
-  mrb_value result = mrb_str_new(mrb, base, endp - base);
-
   // Suffix removal (CRuby compatible)
   if (suffix && *suffix) {
-    mrb_int blen = RSTRING_LEN(result);
+    mrb_int blen = endp - base;
     mrb_int slen = strlen(suffix);
-    if (blen > slen && memcmp(RSTRING_PTR(result) + blen - slen, suffix, slen) == 0) {
-      mrb_str_resize(mrb, result, blen - slen);
+    if (blen > slen && memcmp(endp - slen, suffix, slen) == 0) {
+      endp -= slen;
     }
   }
 
-  return result;
+  return mrb_str_new(mrb, base, endp - base);
 }
 
 static mrb_value
