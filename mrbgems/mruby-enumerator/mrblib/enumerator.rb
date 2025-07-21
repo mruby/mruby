@@ -229,6 +229,15 @@ class Enumerator
     object
   end
 
+  ##
+  # call-seq:
+  #   enum.inspect -> string
+  #
+  # Returns a string representation of the enumerator.
+  #
+  #   [1, 2, 3].each.inspect  #=> "#<Enumerator: [1, 2, 3]:each>"
+  #   [1, 2, 3].map.inspect   #=> "#<Enumerator: [1, 2, 3]:map>"
+  #
   def inspect
     if @args && @args.size > 0
       args = @args.join(", ")
@@ -238,6 +247,16 @@ class Enumerator
     end
   end
 
+  ##
+  # call-seq:
+  #   enum.size -> int, float, or nil
+  #
+  # Returns the size of the enumerator, or nil if it cannot be calculated lazily.
+  #
+  #   [1, 2, 3].each.size    #=> 3
+  #   (1..100).each.size     #=> 100
+  #   loop.size              #=> nil
+  #
   def size
     if @size
       @size
