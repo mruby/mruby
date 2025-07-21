@@ -79,16 +79,13 @@ mrb_lstat(mrb_state *mrb, mrb_value obj, struct stat *st)
 #endif
 
 /*
- * Document-method: directory?
- *
  * call-seq:
  *   File.directory?(file_name)   ->  true or false
  *
- * Returns <code>true</code> if the named file is a directory,
- * or a symlink that points at a directory, and <code>false</code>
+ * Returns `true` if the named file is a directory, or a symlink that points at a directory, and `false`
  * otherwise.
  *
- *    File.directory?(".")
+ *    File.directory?(".")   #=> true
  */
 
 static mrb_value

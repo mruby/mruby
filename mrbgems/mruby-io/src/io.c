@@ -1126,6 +1126,17 @@ io_close(mrb_state *mrb, mrb_value io)
   return mrb_nil_value();
 }
 
+/*
+ * call-seq:
+ *   ios.close_write -> nil
+ *
+ * Closes the write end of a duplex I/O stream (i.e., a pipe).
+ * It will raise an `IOError` if the stream is not duplex.
+ *
+ *   r, w = IO.pipe
+ *   w.close_write
+ *   r.read #=> ""
+ */
 static mrb_value
 io_close_write(mrb_state *mrb, mrb_value io)
 {
@@ -1136,6 +1147,16 @@ io_close_write(mrb_state *mrb, mrb_value io)
   return mrb_nil_value();
 }
 
+/*
+ * call-seq:
+ *   ios.closed? -> true or false
+ *
+ * Returns `true` if the stream is closed, `false` otherwise.
+ *
+ *   f = File.new("testfile")
+ *   f.close         #=> nil
+ *   f.closed?       #=> true
+ */
 static mrb_value
 io_closed(mrb_state *mrb, mrb_value io)
 {
@@ -1162,6 +1183,24 @@ io_pos(mrb_state *mrb, mrb_value io)
   }
 }
 
+/*
+ * call-seq:
+ *   ios.pid -> integer or nil
+ *
+ * Returns the process ID of a child process on a pipe, or `nil` if the
+ * stream is not a pipe.
+ *
+ *   r, w = IO.pipe
+ *   fork do
+ *     r.close
+ *     w.write "hello"
+ *     w.close
+ *   end
+ *   w.close
+ *   p r.pid   #=> 2056
+ *   r.read    #=> "hello"
+ *   r.close
+ */
 static mrb_value
 io_pid(mrb_state *mrb, mrb_value io)
 {
@@ -1198,6 +1237,17 @@ time2timeval(mrb_state *mrb, mrb_value time)
 
   return t;
 }
+
+/*
+ * call-seq:
+ *   IO.new(fd, mode="r") -> io
+ *
+ * Returns a new `IO` object for the given integer file descriptor `fd` and
+ * `mode` string.
+ *
+ *   f = IO.new(1, "w")  # STDOUT
+ *   f.puts "hello"
+ */
 
 #if !defined(_WIN32) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
 static mrb_value
@@ -1236,6 +1286,24 @@ mrb_io_read_data_pending(mrb_state *mrb, struct mrb_io *fptr)
   return 0;
 }
 
+/*
+ * call-seq:
+ *   IO.select(read_array, write_array=nil, error_array=nil, timeout=nil) -> array or nil
+ *
+ * Performs a `select(2)` system call on the given arrays of `IO` objects.
+ *
+ * For each array, it can contain `IO` objects or `nil`.
+ *
+ * The `timeout` argument is a number of seconds.
+ *
+ * It returns a three-element array containing the `IO` objects that are
+ * ready for reading, writing, or have an error, respectively.
+ *
+ * If the `timeout` is reached, it returns `nil`.
+ *
+ *   r, w = IO.pipe
+ *   IO.select([r], [w])   #=> [[#<IO:fd 6>], [#<IO:fd 7>], []]
+ */
 static mrb_value
 io_s_select(mrb_state *mrb, mrb_value klass)
 {
@@ -1421,6 +1489,15 @@ mrb_io_fileno(mrb_state *mrb, mrb_value io)
   return fptr->fd;
 }
 
+/*
+ * call-seq:
+ *   ios.fileno -> integer
+ *
+ * Returns the integer file descriptor number for the `IO` object.
+ *
+ *   $stdin.fileno    #=> 0
+ *   $stdout.fileno   #=> 1
+ */
 static mrb_value
 io_fileno(mrb_state *mrb, mrb_value io)
 {
@@ -1429,6 +1506,16 @@ io_fileno(mrb_state *mrb, mrb_value io)
 }
 
 #if defined(F_GETFD) && defined(F_SETFD) && defined(FD_CLOEXEC)
+/*
+ * call-seq:
+ *   ios.close_on_exec? -> true or false
+ *
+ * Returns `true` if the `FD_CLOEXEC` flag is set for the `IO` object, `false`
+ * otherwise.
+ *
+ *   f = IO.new(1, "w")
+ *   f.close_on_exec?   #=> true
+ */
 static mrb_value
 io_close_on_exec_p(mrb_state *mrb, mrb_value io)
 {
@@ -1449,6 +1536,16 @@ io_close_on_exec_p(mrb_state *mrb, mrb_value io)
 #endif
 
 #if defined(F_GETFD) && defined(F_SETFD) && defined(FD_CLOEXEC)
+/*
+ * call-seq:
+ *   ios.close_on_exec = bool -> bool
+ *
+ * Sets the `FD_CLOEXEC` flag on the `IO` object.
+ *
+ *   f = IO.new(1, "w")
+ *   f.close_on_exec = false
+ *   f.close_on_exec?   #=> false
+ */
 static mrb_value
 io_set_close_on_exec(mrb_state *mrb, mrb_value io)
 {
@@ -1484,6 +1581,18 @@ io_set_close_on_exec(mrb_state *mrb, mrb_value io)
 # define io_set_close_on_exec mrb_notimplement_m
 #endif
 
+/*
+ * call-seq:
+ *   ios.sync = bool -> bool
+ *
+ * Sets the sync mode for the `IO` object.
+ *
+ * If `true`, all output is immediately flushed to the underlying operating
+ * system and is not buffered internally.
+ *
+ *   f = File.new("testfile", "w")
+ *   f.sync = true
+ */
 static mrb_value
 io_set_sync(mrb_state *mrb, mrb_value io)
 {
@@ -1495,6 +1604,15 @@ io_set_sync(mrb_state *mrb, mrb_value io)
   return mrb_bool_value(b);
 }
 
+/*
+ * call-seq:
+ *   ios.sync -> true or false
+ *
+ * Returns the sync mode for the `IO` object.
+ *
+ *   f = File.new("testfile", "w")
+ *   f.sync   #=> false
+ */
 static mrb_value
 io_sync(mrb_state *mrb, mrb_value io)
 {
@@ -1543,6 +1661,19 @@ io_pwrite(mrb_state *mrb, mrb_value io)
 }
 #endif /* MRB_USE_IO_PREAD_PWRITE */
 
+/*
+ * call-seq:
+ *   ios.ungetc(string)   -> nil
+ *
+ * Pushes back characters (passed as a parameter) onto ios, such that a
+ * subsequent buffered character read will return it. Has no effect with
+ * unbuffered reads (such as IO#sysread).
+ *
+ *   f = File.new("testfile")   #=> #<File:testfile>
+ *   c = f.getc                 #=> "H"
+ *   f.ungetc(c)                #=> nil
+ *   f.getc                     #=> "H"
+ */
 static mrb_value
 io_ungetc(mrb_state *mrb, mrb_value io)
 {
@@ -1662,6 +1793,18 @@ io_reset_outbuf(mrb_state *mrb, mrb_value outbuf, mrb_int len)
   return outbuf;
 }
 
+/*
+ * call-seq:
+ *   ios.read(length = nil, outbuf = "") -> string, outbuf, or nil
+ *
+ * Reads `length` bytes from the I/O stream.
+ *
+ * If `length` is `nil`, it reads until end of file.
+ * If `outbuf` is given, it will be used as the buffer.
+ *
+ *   f = File.new("testfile")
+ *   f.read(16)   #=> "This is line one"
+ */
 static mrb_value
 io_read(mrb_state *mrb, mrb_value io)
 {
@@ -1875,6 +2018,17 @@ io_readchar(mrb_state *mrb, mrb_value io)
   return result;
 }
 
+/*
+ * call-seq:
+ *   ios.getbyte -> integer or nil
+ *
+ * Reads a byte from the `IO` stream.
+ *
+ * Returns the byte as an integer, or `nil` at end of file.
+ *
+ *   f = File.new("testfile")
+ *   f.getbyte   #=> 72
+ */
 static mrb_value
 io_getbyte(mrb_state *mrb, mrb_value io)
 {
@@ -1889,6 +2043,17 @@ io_getbyte(mrb_state *mrb, mrb_value io)
   return mrb_int_value(mrb, (mrb_int)c);
 }
 
+/*
+ * call-seq:
+ *   ios.readbyte -> integer
+ *
+ * Reads a byte from the `IO` stream.
+ *
+ * Returns the byte as an integer. Raises `EOFError` at end of file.
+ *
+ *   f = File.new("testfile")
+ *   f.readbyte   #=> 72
+ */
 static mrb_value
 io_readbyte(mrb_state *mrb, mrb_value io)
 {
@@ -1899,6 +2064,16 @@ io_readbyte(mrb_state *mrb, mrb_value io)
   return result;
 }
 
+/*
+ * call-seq:
+ *   ios.flush -> ios
+ *
+ * Flushes any buffered data within the `IO` object to the underlying
+ * operating system.
+ *
+ *   $stdout.print "no newline"
+ *   $stdout.flush
+ */
 static mrb_value
 io_flush(mrb_state *mrb, mrb_value io)
 {

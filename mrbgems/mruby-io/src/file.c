@@ -103,6 +103,17 @@ flock(int fd, int operation)
 }
 #endif
 
+/*
+ * call-seq:
+ *   File.umask([mask]) -> integer
+ *
+ * Returns the current umask value for this process. If the optional
+ * `mask` argument is given, set the umask to that value and return
+ * the previous value.
+ *
+ *   File.umask(0006)   #=> 18
+ *   File.umask         #=> 6
+ */
 static mrb_value
 mrb_file_s_umask(mrb_state *mrb, mrb_value klass)
 {
@@ -123,6 +134,15 @@ mrb_file_s_umask(mrb_state *mrb, mrb_value klass)
 #endif
 }
 
+/*
+ * call-seq:
+ *   File.delete(file_name, ...) -> integer
+ *   File.unlink(file_name, ...) -> integer
+ *
+ * Deletes the named file(s). Returns the number of files deleted.
+ *
+ *   File.delete("a.txt", "b.txt") #=> 2
+ */
 static mrb_value
 mrb_file_s_unlink(mrb_state *mrb, mrb_value obj)
 {
@@ -144,6 +164,14 @@ mrb_file_s_unlink(mrb_state *mrb, mrb_value obj)
   return mrb_fixnum_value(argc);
 }
 
+/*
+ * call-seq:
+ *   File.rename(old_name, new_name) -> 0
+ *
+ * Renames the given file to the new name.
+ *
+ *   File.rename("a.txt", "b.txt") #=> 0
+ */
 static mrb_value
 mrb_file_s_rename(mrb_state *mrb, mrb_value obj)
 {
@@ -189,6 +217,14 @@ scan_dirname(const char *path, mrb_int level)
   return p > path ? p : path;
 }
 
+/*
+ * call-seq:
+ *   File.dirname(file_name) -> string
+ *
+ * Returns the directory part of a file name.
+ *
+ *   File.dirname("/usr/bin/ruby") #=> "/usr/bin"
+ */
 static mrb_value
 mrb_file_dirname(mrb_state *mrb, mrb_value klass)
 {
@@ -238,6 +274,15 @@ mrb_file_dirname(mrb_state *mrb, mrb_value klass)
   return (p == path) ? mrb_str_new_lit(mrb, ".") : mrb_str_new(mrb, path, p - path);
 }
 
+/*
+ * call-seq:
+ *   File.basename(file_name, [suffix]) -> string
+ *
+ * Returns the last component of the file name.
+ *
+ *   File.basename("/usr/bin/ruby") #=> "ruby"
+ *   File.basename("/usr/bin/ruby.exe", ".exe") #=> "ruby"
+ */
 static mrb_value
 mrb_file_basename(mrb_state *mrb, mrb_value klass)
 {
@@ -322,6 +367,15 @@ mrb_file_basename(mrb_state *mrb, mrb_value klass)
 #endif
 }
 
+/*
+ * call-seq:
+ *   File.realpath(pathname, [dir_string]) -> string
+ *
+ * Returns the real (absolute) path of `pathname` in the actual
+ * filesystem.
+ *
+ *   File.realpath("../../bin/ruby") #=> "/usr/bin/ruby"
+ */
 static mrb_value
 mrb_file_realpath(mrb_state *mrb, mrb_value klass)
 {
@@ -585,15 +639,32 @@ mrb_file_expand_path(mrb_state *mrb, mrb_value self)
   return path_expand(mrb, path, default_dir, TRUE);
 }
 
+/*
+ * call-seq:
+ *   File.absolute_path(file_name, [dir_string]) -> string
+ *
+ * Converts a pathname to an absolute pathname.
+ *
+ *   File.absolute_path("~oracle/bin/oracle") #=> "/home/oracle/bin/oracle"
+ */
 static mrb_value
 mrb_file_absolute_path(mrb_state *mrb, mrb_value self)
 {
   const char *path;
   const char *default_dir = ".";
   mrb_get_args(mrb, "z|z", &path, &default_dir);
-  return path_expand(mrb, path, default_dir, FALSE);
+  return path_expand(mrb, path, default_dir, TRUE);
 }
 
+/*
+ * call-seq:
+ *   File.absolute_path?(file_name) -> true or false
+ *
+ * Returns `true` if the file name is an absolute path, `false` otherwise.
+ *
+ *   File.absolute_path?("/usr/bin/ruby") #=> true
+ *   File.absolute_path?("bin/ruby")      #=> false
+ */
 static mrb_value
 mrb_file_absolute_path_p(mrb_state *mrb, mrb_value klass)
 {
@@ -659,6 +730,17 @@ mrb_file_mtime(mrb_state *mrb, mrb_value self)
   return mrb_int_value(mrb, (mrb_int)st.st_mtime);
 }
 
+/*
+ * call-seq:
+ *   file.flock(locking_constant) -> 0 or false
+ *
+ * Locks or unlocks a file according to `locking_constant`.
+ * See `File::LOCK_*` for locking constants.
+ *
+ *   f = File.new("testfile")
+ *   f.flock(File::LOCK_EX)  #=> 0
+ *   f.flock(File::LOCK_UN)  #=> 0
+ */
 static mrb_value
 mrb_file_flock(mrb_state *mrb, mrb_value self)
 {
@@ -692,6 +774,14 @@ mrb_file_flock(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(0);
 }
 
+/*
+ * call-seq:
+ *   file.size -> integer
+ *
+ * Returns the size of `file` in bytes.
+ *
+ *   File.new("testfile").size #=> 66
+ */
 static mrb_value
 mrb_file_size(mrb_state *mrb, mrb_value self)
 {
@@ -740,6 +830,17 @@ mrb_ftruncate(int fd, mrb_int length)
 #endif /* _WIN32 */
 }
 
+/*
+ * call-seq:
+ *   file.truncate(integer) -> 0
+ *
+ * Truncates a file to a maximum of `integer` bytes.
+ *
+ *   f = File.new("out", "w")
+ *   f.write("1234567890")   #=> 10
+ *   f.truncate(5)         #=> 0
+ *   f.size                #=> 5
+ */
 static mrb_value
 mrb_file_truncate(mrb_state *mrb, mrb_value self)
 {
@@ -753,6 +854,14 @@ mrb_file_truncate(mrb_state *mrb, mrb_value self)
   return mrb_fixnum_value(0);
 }
 
+/*
+ * call-seq:
+ *   File.symlink(old_name, new_name) -> 0
+ *
+ * Creates a symbolic link `new_name` for the file `old_name`.
+ *
+ *   File.symlink("testfile", "link-to-test") #=> 0
+ */
 static mrb_value
 mrb_file_s_symlink(mrb_state *mrb, mrb_value klass)
 {
@@ -775,6 +884,15 @@ mrb_file_s_symlink(mrb_state *mrb, mrb_value klass)
   return mrb_fixnum_value(0);
 }
 
+/*
+ * call-seq:
+ *   File.chmod(mode_int, file_name, ...) -> integer
+ *
+ * Changes permission bits on the named file(s) to the bit pattern
+ * represented by `mode_int`.
+ *
+ *   File.chmod(0644, "testfile", "out") #=> 2
+ */
 static mrb_value
 mrb_file_s_chmod(mrb_state *mrb, mrb_value klass)
 {
@@ -799,6 +917,15 @@ mrb_file_s_chmod(mrb_state *mrb, mrb_value klass)
   return mrb_fixnum_value(argc);
 }
 
+/*
+ * call-seq:
+ *   File.readlink(link_name) -> string
+ *
+ * Returns the name of the file referenced by the given link.
+ *
+ *   File.symlink("testfile", "link-to-test") #=> 0
+ *   File.readlink("link-to-test")          #=> "testfile"
+ */
 static mrb_value
 mrb_file_s_readlink(mrb_state *mrb, mrb_value klass)
 {
