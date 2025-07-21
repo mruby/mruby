@@ -482,12 +482,12 @@ mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
       mrb_raise(mrb, E_TYPE_ERROR, "allocation failure");
     }
     tt = MRB_INSTANCE_TT(cls);
-    if (tt != MRB_TT_FALSE &&
-        ttype != MRB_TT_SCLASS &&
+    if (ttype != MRB_TT_SCLASS &&
         ttype != MRB_TT_ICLASS &&
         ttype != MRB_TT_ENV &&
         ttype != MRB_TT_BIGINT &&
-        ttype != tt) {
+        ttype != tt &&
+        !(cls == mrb->object_class && (ttype == MRB_TT_CPTR || ttype == MRB_TT_CDATA || ttype == MRB_TT_ISTRUCT))) {
       mrb_raisef(mrb, E_TYPE_ERROR, "allocation failure of %C", cls);
     }
   }
