@@ -42,6 +42,50 @@ mrb_obj_basic_to_s_p(mrb_state *mrb, mrb_value obj)
   return mrb_func_basic_p(mrb, obj, MRB_SYM(to_s), mrb_any_to_s);
 }
 
+struct inspect_i {
+  mrb_value obj, str;
+};
+
+static int
+inspect_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
+{
+  struct inspect_i *a = (struct inspect_i*)p;
+  if (mrb_nil_p(a->str)) {
+    const char *cn = mrb_obj_classname(mrb, a->obj);
+    a->str = mrb_str_new_capa(mrb, 30);
+
+    mrb_str_cat_lit(mrb, a->str, "-<");
+    mrb_str_cat_cstr(mrb, a->str, cn);
+    mrb_str_cat_lit(mrb, a->str, ":");
+    mrb_str_cat_str(mrb, a->str, mrb_ptr_to_str(mrb, mrb_obj_ptr(a->obj)));
+
+    if (MRB_RECURSIVE_UNARY_P(mrb, MRB_SYM(inspect), a->obj)) {
+      mrb_str_cat_lit(mrb, a->str, " ...");
+      return 1;
+    }
+  }
+
+  const char *s;
+  mrb_int len;
+  mrb_value ins;
+  char *sp = RSTRING_PTR(a->str);
+
+  /* need not to show internal data */
+  if (sp[0] == '-') { /* first element */
+    sp[0] = '#';
+    mrb_str_cat_lit(mrb, a->str, " ");
+  }
+  else {
+    mrb_str_cat_lit(mrb, a->str, ", ");
+  }
+  s = mrb_sym_name_len(mrb, sym, &len);
+  mrb_str_cat(mrb, a->str, s, len);
+  mrb_str_cat_lit(mrb, a->str, "=");
+  ins = mrb_inspect(mrb, v);
+  mrb_str_cat_str(mrb, a->str, ins);
+  return 0;
+}
+
 /* 15.3.1.3.17 */
 /*
  *  call-seq:
@@ -60,7 +104,13 @@ MRB_API mrb_value
 mrb_obj_inspect(mrb_state *mrb, mrb_value obj)
 {
   if (mrb_object_p(obj) && mrb_obj_basic_to_s_p(mrb, obj)) {
-    return mrb_obj_iv_inspect(mrb, mrb_obj_ptr(obj));
+    struct inspect_i a = { obj, mrb_nil_value() };
+    mrb_iv_foreach(mrb, obj, inspect_i, &a);
+    if (!mrb_nil_p(a.str)) {
+      mrb_assert(mrb_string_p(a.str));
+      mrb_str_cat_lit(mrb, a.str, ">");
+      return a.str;
+    }
   }
   return mrb_any_to_s(mrb, obj);
 }

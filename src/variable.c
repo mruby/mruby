@@ -596,57 +596,6 @@ mrb_iv_copy(mrb_state *mrb, mrb_value dest, mrb_value src)
   }
 }
 
-static int
-inspect_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
-{
-  mrb_value str = *(mrb_value*)p;
-  const char *s;
-  mrb_int len;
-  mrb_value ins;
-  char *sp = RSTRING_PTR(str);
-
-  /* need not to show internal data */
-  if (sp[0] == '-') { /* first element */
-    sp[0] = '#';
-    mrb_str_cat_lit(mrb, str, " ");
-  }
-  else {
-    mrb_str_cat_lit(mrb, str, ", ");
-  }
-  s = mrb_sym_name_len(mrb, sym, &len);
-  mrb_str_cat(mrb, str, s, len);
-  mrb_str_cat_lit(mrb, str, "=");
-  ins = mrb_inspect(mrb, v);
-  mrb_str_cat_str(mrb, str, ins);
-  return 0;
-}
-
-mrb_value
-mrb_obj_iv_inspect(mrb_state *mrb, struct RObject *obj)
-{
-  iv_tbl *t = obj->iv;
-  size_t len = iv_size(mrb, t);
-
-  if (len > 0) {
-    const char *cn = mrb_obj_classname(mrb, mrb_obj_value(obj));
-    mrb_value str = mrb_str_new_capa(mrb, 30);
-
-    mrb_str_cat_lit(mrb, str, "-<");
-    mrb_str_cat_cstr(mrb, str, cn);
-    mrb_str_cat_lit(mrb, str, ":");
-    mrb_str_cat_str(mrb, str, mrb_ptr_to_str(mrb, obj));
-
-    if (MRB_RECURSIVE_UNARY_P(mrb, MRB_SYM(inspect), mrb_obj_value(obj))) {
-      mrb_str_cat_lit(mrb, str, " ...>");
-      return str;
-    }
-    iv_foreach(mrb, t, inspect_i, &str);
-    mrb_str_cat_lit(mrb, str, ">");
-    return str;
-  }
-  return mrb_any_to_s(mrb, mrb_obj_value(obj));
-}
-
 /*
  * Removes an instance variable from an object.
  *
