@@ -6,11 +6,17 @@
 #include <mruby/opcode.h>
 #include <mruby/presym.h>
 
+/* Pre-defined symbols used by catch implementation */
 MRB_PRESYM_DEFINE_VAR_AND_INITER(catch_syms, 3, MRB_SYM(Object), MRB_SYM(new), MRB_SYM(call))
+
 /*
+ * Bytecode implementation of catch method:
  *  def catch(r1 = Object.new, &r2)
  *    r2.call(r1)
  *  end
+ *
+ * This creates a default tag (Object.new) if none provided, then calls
+ * the block with the tag as argument.
  */
 static const mrb_code catch_iseq[] = {
   OP_ENTER,    0x00, 0x20, 0x01,     // 000 ENTER         0:1:0:0:0:0:1 (0x2001)
@@ -29,6 +35,8 @@ static const mrb_code catch_iseq[] = {
   OP_SEND,     0x02, 0x02, 0x01,     // 023 SEND          R2      :call   n=1
   OP_RETURN,   0x02,                 // 027 RETURN        R2
 };
+
+/* Instruction representation for catch method bytecode */
 static const mrb_irep catch_irep = {
   3,5,0,
   MRB_IREP_STATIC,catch_iseq,
@@ -37,12 +45,15 @@ static const mrb_irep catch_irep = {
   NULL,
   sizeof(catch_iseq),0,3,0,0
 };
+
+/* Procedure object for catch method - used to identify catch blocks in call stack */
 mrb_alignas(8)
 static const struct RProc catch_proc = {
   NULL, NULL, MRB_TT_PROC, MRB_GC_RED, MRB_OBJ_IS_FROZEN, MRB_PROC_SCOPE | MRB_PROC_STRICT,
   { &catch_irep }, NULL, { NULL }
 };
 
+/* Helper function to find a matching catch block in the call stack */
 static size_t
 find_catcher(mrb_state *mrb, mrb_value tag)
 {
@@ -59,6 +70,30 @@ find_catcher(mrb_state *mrb, mrb_value tag)
   return 0;
 }
 
+/*
+ * call-seq:
+ *   throw(tag)        -> obj
+ *   throw(tag, obj)   -> obj
+ *
+ * Transfers control to the end of the active catch block waiting for tag.
+ * Raises UncaughtThrowError if there is no catch block for the tag. The
+ * optional second parameter supplies a return value for the catch block,
+ * which otherwise defaults to nil.
+ *
+ *   def routine(n)
+ *     puts n
+ *     throw :done if n <= 0
+ *     routine(n-1)
+ *   end
+ *
+ *   catch(:done) { routine(3) }
+ *   3
+ *   2
+ *   1
+ *   0
+ *
+ *   catch(:done) { throw :done, "hello" }   #=> "hello"
+ */
 static mrb_value
 throw_m(mrb_state *mrb, mrb_value self)
 {
@@ -80,6 +115,17 @@ throw_m(mrb_state *mrb, mrb_value self)
   return mrb_nil_value();
 }
 
+/*
+ * Initializes the mruby-catch gem by defining catch and throw methods.
+ *
+ * - catch: defined using the pre-compiled bytecode procedure for efficiency,
+ *   marked as private method in Kernel module
+ * - throw: defined as a regular C method that searches for matching catch blocks,
+ *   also marked as private method in Kernel module
+ *
+ * Both methods are added to the Kernel module, making them available globally
+ * as private methods that can be called without a receiver.
+ */
 void
 mrb_mruby_catch_gem_init(mrb_state *mrb)
 {
@@ -93,6 +139,10 @@ mrb_mruby_catch_gem_init(mrb_state *mrb)
   mrb_define_private_method_id(mrb, mrb->kernel_module, MRB_SYM(throw), throw_m, MRB_ARGS_ARG(1,1));
 }
 
+/*
+ * Finalizes the mruby-catch gem. Currently no cleanup is required
+ * as the catch/throw implementation uses static data structures.
+ */
 void
 mrb_mruby_catch_gem_final(mrb_state *mrb)
 {
