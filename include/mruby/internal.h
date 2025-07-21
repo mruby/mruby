@@ -178,7 +178,6 @@ mrb_value mrb_vm_cv_get(mrb_state*, mrb_sym);
 void mrb_vm_cv_set(mrb_state*, mrb_sym, mrb_value);
 mrb_value mrb_vm_const_get(mrb_state*, mrb_sym);
 size_t mrb_obj_iv_tbl_memsize(mrb_value);
-mrb_value mrb_obj_iv_inspect(mrb_state*, struct RObject*);
 void mrb_obj_iv_set_force(mrb_state *mrb, struct RObject *obj, mrb_sym sym, mrb_value v);
 mrb_value mrb_mod_constants(mrb_state *mrb, mrb_value mod);
 mrb_value mrb_mod_const_at(mrb_state *mrb, struct RClass *c, mrb_value ary);
