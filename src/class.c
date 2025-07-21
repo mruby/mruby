@@ -1814,9 +1814,10 @@ mrb_get_args_a(mrb_state *mrb, mrb_args_format format, void **args)
 }
 
 static struct RClass*
-boot_defclass(mrb_state *mrb, struct RClass *super)
+boot_defclass(mrb_state *mrb, struct RClass *super, enum mrb_vtype tt)
 {
   struct RClass *c = MRB_OBJ_ALLOC(mrb, MRB_TT_CLASS, mrb->class_class);
+  MRB_SET_INSTANCE_TT(c, tt);
 
   if (super) {
     c->super = super;
@@ -1824,7 +1825,8 @@ boot_defclass(mrb_state *mrb, struct RClass *super)
     c->flags |= MRB_FL_CLASS_IS_INHERITED;
   }
   else {
-    c->super = mrb->object_class;
+    // limited to cases where BasicObject class is defined during mruby initialization
+    mrb_assert(mrb->object_class == NULL);
   }
   c->mt = mt_new(mrb);
   return c;
@@ -3134,12 +3136,12 @@ mrb_class_new(mrb_state *mrb, struct RClass *super)
   if (super) {
     mrb_check_inheritable(mrb, super);
   }
-
-  struct RClass *c = boot_defclass(mrb, super);
-  if (super) {
-    MRB_SET_INSTANCE_TT(c, MRB_INSTANCE_TT(super));
-    c->flags |= super->flags & MRB_FL_UNDEF_ALLOCATE;
+  else {
+    super = mrb->object_class;
   }
+
+  struct RClass *c = boot_defclass(mrb, super, MRB_INSTANCE_TT(super));
+  c->flags |= super->flags & MRB_FL_UNDEF_ALLOCATE;
   make_metaclass(mrb, c);
 
   return c;
@@ -4188,10 +4190,11 @@ mrb_init_class(mrb_state *mrb)
   struct RClass *cls;           /* Class */
 
   /* boot class hierarchy */
-  bob = boot_defclass(mrb, 0);
-  obj = boot_defclass(mrb, bob); mrb->object_class = obj;
-  mod = boot_defclass(mrb, obj); mrb->module_class = mod;/* obj -> mod */
-  cls = boot_defclass(mrb, mod); mrb->class_class = cls; /* obj -> cls */
+  bob = boot_defclass(mrb, 0, MRB_TT_OBJECT);
+  obj = boot_defclass(mrb, bob, MRB_TT_OBJECT); mrb->object_class = obj;
+  mod = boot_defclass(mrb, obj, MRB_TT_MODULE); mrb->module_class = mod;/* obj -> mod */
+  cls = boot_defclass(mrb, mod, MRB_TT_CLASS);  mrb->class_class = cls; /* obj -> cls */
+
   /* fix-up loose ends */
   bob->c = obj->c = mod->c = cls->c = cls;
   make_metaclass(mrb, bob);
@@ -4211,7 +4214,6 @@ mrb_init_class(mrb_state *mrb)
   mrb_class_name_class(mrb, NULL, mod, MRB_SYM(Module)); /* 15.2.2 */
   mrb_class_name_class(mrb, NULL, cls, MRB_SYM(Class));  /* 15.2.3 */
 
-  MRB_SET_INSTANCE_TT(cls, MRB_TT_CLASS);
   mrb_define_method_id(mrb, bob, MRB_SYM(initialize),                      mrb_do_nothing,           MRB_ARGS_NONE());
   mrb_define_method_id(mrb, bob, MRB_OPSYM(not),                           mrb_bob_not,              MRB_ARGS_NONE());
   mrb_define_method_id(mrb, bob, MRB_OPSYM(eq),                            mrb_obj_equal_m,          MRB_ARGS_REQ(1)); /* 15.3.1.3.1  */
@@ -4236,7 +4238,6 @@ mrb_init_class(mrb_state *mrb)
 
   init_class_new(mrb, cls);
 
-  MRB_SET_INSTANCE_TT(mod, MRB_TT_MODULE);
   mrb_define_private_method_id(mrb, mod, MRB_SYM(extended),                mrb_do_nothing,           MRB_ARGS_REQ(1)); /* 15.2.2.4.26 */
   mrb_define_private_method_id(mrb, mod, MRB_SYM(prepended),               mrb_do_nothing,           MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, mod, MRB_SYM_Q(include),                       mrb_mod_include_p,        MRB_ARGS_REQ(1)); /* 15.2.2.4.28 */
