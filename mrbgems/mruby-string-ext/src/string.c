@@ -2156,9 +2156,8 @@ str_insert(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "iS", &idx, &str_to_insert);
 
   struct RString *s = mrb_str_ptr(self);
-  mrb_int self_len = RSTRING_LEN(self);
+  mrb_int self_len = RSTR_LEN(s);
   mrb_int insert_len = RSTRING_LEN(str_to_insert);
-  const char *insert_ptr = RSTRING_PTR(str_to_insert);
 
   mrb_check_frozen(mrb, s);
 
@@ -2175,7 +2174,7 @@ str_insert(mrb_state *mrb, mrb_value self)
 
   char *p = RSTRING_PTR(self);
   memmove(p + idx + insert_len, p + idx, self_len - idx);
-  memcpy(p + idx, insert_ptr, insert_len);
+  memcpy(p + idx, RSTRING_PTR(str_to_insert), insert_len);
 
   return self;
 }
