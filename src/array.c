@@ -22,12 +22,14 @@
 #endif
 #define ARY_MAX_SIZE ((mrb_int)((ARY_C_MAX_SIZE < (size_t)MRB_INT_MAX) ? ARY_C_MAX_SIZE : MRB_INT_MAX-1))
 
+/* Raises an ArgumentError when array size exceeds limits */
 static void
 ary_too_big(mrb_state *mrb)
 {
   mrb_raise(mrb, E_ARGUMENT_ERROR, "array size too big");
 }
 
+/* Checks if array size would exceed limits and raises error if so */
 static inline void
 ary_check_too_big(mrb_state *mrb, mrb_int a, mrb_int b)
 {
@@ -39,6 +41,7 @@ ary_check_too_big(mrb_state *mrb, mrb_int a, mrb_int b)
 #endif
 }
 
+/* Creates a new RArray with specified capacity */
 static struct RArray*
 ary_new_capa(mrb_state *mrb, mrb_int capa)
 {
@@ -105,6 +108,7 @@ mrb_ary_new(mrb_state *mrb)
  *
  * See also https://togetter.com/li/462898 (Japanese)
  */
+/* Portable array copy function to avoid memcpy issues on some platforms */
 static inline void
 array_copy(mrb_value *dst, const mrb_value *src, mrb_int size)
 {
@@ -113,6 +117,7 @@ array_copy(mrb_value *dst, const mrb_value *src, mrb_int size)
   }
 }
 
+/* Creates a new RArray initialized with values from an array */
 static struct RArray*
 ary_new_from_values(mrb_state *mrb, mrb_int size, const mrb_value *vals)
 {
@@ -165,6 +170,7 @@ mrb_assoc_new(mrb_state *mrb, mrb_value car, mrb_value cdr)
   return mrb_obj_value(a);
 }
 
+/* Fills array elements with nil values */
 static void
 ary_fill_with_nil(mrb_value *ptr, mrb_int size)
 {
@@ -177,6 +183,7 @@ ary_fill_with_nil(mrb_value *ptr, mrb_int size)
 
 #define ary_modify_check(mrb, a) mrb_check_frozen((mrb), (a))
 
+/* Prepares array for modification, handling shared arrays and frozen check */
 static void
 ary_modify(mrb_state *mrb, struct RArray *a)
 {
@@ -223,6 +230,7 @@ mrb_ary_modify(mrb_state *mrb, struct RArray* a)
   ary_modify(mrb, a);
 }
 
+/* Converts array to shared representation for copy-on-write semantics */
 static void
 ary_make_shared(mrb_state *mrb, struct RArray *a)
 {
@@ -244,6 +252,7 @@ ary_make_shared(mrb_state *mrb, struct RArray *a)
   }
 }
 
+/* Expands array capacity to accommodate at least len elements */
 static void
 ary_expand_capa(mrb_state *mrb, struct RArray *a, mrb_int len)
 {
@@ -284,6 +293,7 @@ ary_expand_capa(mrb_state *mrb, struct RArray *a, mrb_int len)
   }
 }
 
+/* Shrinks array capacity to save memory when array becomes much smaller */
 static void
 ary_shrink_capa(mrb_state *mrb, struct RArray *a)
 {
@@ -342,6 +352,16 @@ mrb_ary_resize(mrb_state *mrb, mrb_value ary, mrb_int new_len)
   return ary;
 }
 
+/*
+ *  call-seq:
+ *     Array[obj, ...] -> new_array
+ *
+ *  Creates a new Array containing the given objects:
+ *
+ *     Array[1, 'a', /^A/] # => [1, "a", /^A/]
+ *     Array[1, 2, 3]      # => [1, 2, 3]
+ *     Array[]             # => []
+ */
 static mrb_value
 mrb_ary_s_create(mrb_state *mrb, mrb_value klass)
 {
@@ -358,6 +378,42 @@ mrb_ary_s_create(mrb_state *mrb, mrb_value klass)
 
 static void ary_replace(mrb_state*, struct RArray*, struct RArray*);
 
+/*
+ *  call-seq:
+ *     Array.new(size=0, default=nil) -> new_array
+ *     Array.new(array) -> new_array
+ *     Array.new(size) {|index| ... } -> new_array
+ *
+ *  Returns a new Array.
+ *
+ *  With no block and no arguments, returns a new empty Array object.
+ *
+ *  With no block and a single `size` argument, returns a new Array object
+ *  of the given size whose elements are all `nil`:
+ *
+ *     a = Array.new(3)
+ *     a # => [nil, nil, nil]
+ *     a.size # => 3
+ *
+ *  With no block and arguments `size` and `default`, returns an Array object
+ *  of the given size; each element is the same `default` object:
+ *
+ *     a = Array.new(3, 'x')
+ *     a # => ['x', 'x', 'x']
+ *
+ *  With a block and argument `size`, returns an Array object of the given size;
+ *  the block is called with each successive integer `index`;
+ *  the element for that `index` is the return value from the block:
+ *
+ *     a = Array.new(3) {|index| "Element #{index}" }
+ *     a # => ["Element 0", "Element 1", "Element 2"]
+ *
+ *  With a single Array argument `array`, returns a new Array formed from `array`:
+ *
+ *     a = Array.new([:foo, 'bar', 2])
+ *     a.class # => Array
+ *     a # => [:foo, "bar", 2]
+ */
 static mrb_value
 mrb_ary_init(mrb_state *mrb, mrb_value ary)
 {
@@ -394,6 +450,7 @@ mrb_ary_init(mrb_state *mrb, mrb_value ary)
   return ary;
 }
 
+/* Internal helper to concatenate two arrays */
 static void
 ary_concat(mrb_state *mrb, struct RArray *a, struct RArray *a2)
 {
@@ -461,6 +518,16 @@ mrb_ary_concat_m(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ *  call-seq:
+ *     array + other_array -> new_array
+ *
+ *  Returns a new Array containing all elements of `array`
+ *  followed by all elements of `other_array`:
+ *
+ *     a = [0, 1] + [2, 3]
+ *     a # => [0, 1, 2, 3]
+ */
 static mrb_value
 mrb_ary_plus(mrb_state *mrb, mrb_value self)
 {
@@ -481,6 +548,7 @@ mrb_ary_plus(mrb_state *mrb, mrb_value self)
 
 #define ARY_REPLACE_SHARED_MIN 20
 
+/* Internal helper to replace array contents with another array */
 static void
 ary_replace(mrb_state *mrb, struct RArray *a, struct RArray *b)
 {
@@ -543,6 +611,18 @@ mrb_ary_replace(mrb_state *mrb, mrb_value self, mrb_value other)
   }
 }
 
+/*
+ *  call-seq:
+ *     array.replace(other_array) -> self
+ *     array.initialize_copy(other_array) -> self
+ *
+ *  Replaces the contents of `self` with the contents of `other_array`;
+ *  returns `self`:
+ *
+ *     a = [0, 1, 2]
+ *     a.replace(['foo', 'bar']) # => ["foo", "bar"]
+ *     a # => ["foo", "bar"]
+ */
 static mrb_value
 mrb_ary_replace_m(mrb_state *mrb, mrb_value self)
 {
@@ -554,6 +634,22 @@ mrb_ary_replace_m(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ *  call-seq:
+ *     array * int -> new_array
+ *     array * str -> new_string
+ *
+ *  When the argument is an Integer `n`,
+ *  returns a new Array built by concatenating `n` copies of `self`:
+ *
+ *     a = ['x', 'y']
+ *     a * 3 # => ["x", "y", "x", "y", "x", "y"]
+ *
+ *  When the argument is a String `separator`,
+ *  equivalent to `array.join(separator)`:
+ *
+ *     [1, 2, 3] * '|' # => "1|2|3"
+ */
 static mrb_value
 mrb_ary_times(mrb_state *mrb, mrb_value self)
 {
@@ -587,6 +683,16 @@ mrb_ary_times(mrb_state *mrb, mrb_value self)
   return mrb_obj_value(a2);
 }
 
+/*
+ *  call-seq:
+ *     array.reverse! -> self
+ *
+ *  Reverses `self` in place:
+ *
+ *     a = ['foo', 'bar', 'two']
+ *     a.reverse! # => ["two", "bar", "foo"]
+ *     a # => ["two", "bar", "foo"]
+ */
 static mrb_value
 mrb_ary_reverse_bang(mrb_state *mrb, mrb_value self)
 {
@@ -608,6 +714,17 @@ mrb_ary_reverse_bang(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ *  call-seq:
+ *     array.reverse -> new_array
+ *
+ *  Returns a new Array with the elements of `self` in reverse order:
+ *
+ *     a = ['foo', 'bar', 'two']
+ *     a1 = a.reverse
+ *     a1 # => ["two", "bar", "foo"]
+ *     a # => ["foo", "bar", "two"]
+ */
 static mrb_value
 mrb_ary_reverse(mrb_state *mrb, mrb_value self)
 {
@@ -651,6 +768,23 @@ mrb_ary_push(mrb_state *mrb, mrb_value ary, mrb_value elem)
   mrb_field_write_barrier_value(mrb, (struct RBasic*)a, elem);
 }
 
+/*
+ *  call-seq:
+ *     array.push(*objects) -> self
+ *     array << object -> self
+ *
+ *  Appends trailing elements.
+ *
+ *  Appends each argument in `objects` to `self`; returns `self`:
+ *
+ *     a = [:foo, 'bar', 2]
+ *     a.push(:baz, :bat) # => [:foo, "bar", 2, :baz, :bat]
+ *
+ *  Appends `object` to `self`; returns `self`:
+ *
+ *     a = [:foo, 'bar', 2]
+ *     a << :baz # => [:foo, "bar", 2, :baz]
+ */
 static mrb_value
 mrb_ary_push_m(mrb_state *mrb, mrb_value self)
 {
@@ -743,6 +877,27 @@ mrb_ary_shift(mrb_state *mrb, mrb_value self)
   }
 }
 
+/*
+ *  call-seq:
+ *     array.shift -> object or nil
+ *     array.shift(n) -> new_array
+ *
+ *  Removes and returns leading elements.
+ *
+ *  When no argument is given, removes and returns the first element:
+ *
+ *     a = [:foo, 'bar', 2]
+ *     a.shift # => :foo
+ *     a # => ["bar", 2]
+ *
+ *  Returns `nil` if `self` is empty.
+ *
+ *  When argument `n` is given, removes and returns the first `n` elements in a new Array:
+ *
+ *     a = [:foo, 'bar', 2]
+ *     a.shift(2) # => [:foo, "bar"]
+ *     a # => [2]
+ */
 static mrb_value
 mrb_ary_shift_m(mrb_state *mrb, mrb_value self)
 {
@@ -931,6 +1086,7 @@ mrb_ary_set(mrb_state *mrb, mrb_value ary, mrb_int n, mrb_value val)
   mrb_field_write_barrier_value(mrb, (struct RBasic*)a, val);
 }
 
+/* Creates a duplicate of an array */
 static struct RArray*
 ary_dup(mrb_state *mrb, struct RArray *a)
 {
@@ -1057,6 +1213,7 @@ mrb_ary_decref(mrb_state *mrb, mrb_shared_array *shared)
   }
 }
 
+/* Creates a subsequence array, using shared storage when appropriate */
 static mrb_value
 ary_subseq(mrb_state *mrb, struct RArray *a, mrb_int beg, mrb_int len)
 {
@@ -1096,6 +1253,7 @@ mrb_ary_subseq(mrb_state *mrb, mrb_value ary, mrb_int beg, mrb_int len)
   return ary_subseq(mrb, a, beg, len);
 }
 
+/* Converts various types to array index integer */
 static mrb_int
 aget_index(mrb_state *mrb, mrb_value index)
 {
@@ -1273,6 +1431,27 @@ mrb_ary_delete_at(mrb_state *mrb, mrb_value self)
   return val;
 }
 
+/*
+ *  call-seq:
+ *     array.first -> object or nil
+ *     array.first(n) -> new_array
+ *
+ *  Returns elements from the beginning of `self`.
+ *
+ *  When no argument is given, returns the first element:
+ *
+ *     a = [:foo, 'bar', 2]
+ *     a.first # => :foo
+ *     a # => [:foo, "bar", 2]
+ *
+ *  If `self` is empty, returns `nil`.
+ *
+ *  When non-negative Integer argument `n` is given,
+ *  returns the first `n` elements in a new Array:
+ *
+ *     a = [:foo, 'bar', 2]
+ *     a.first(2) # => [:foo, "bar"]
+ */
 static mrb_value
 mrb_ary_first(mrb_state *mrb, mrb_value self)
 {
@@ -1296,6 +1475,27 @@ mrb_ary_first(mrb_state *mrb, mrb_value self)
   return mrb_ary_new_from_values(mrb, size, ARY_PTR(a));
 }
 
+/*
+ *  call-seq:
+ *     array.last -> object or nil
+ *     array.last(n) -> new_array
+ *
+ *  Returns elements from the end of `self`.
+ *
+ *  When no argument is given, returns the last element:
+ *
+ *     a = [:foo, 'bar', 2]
+ *     a.last # => 2
+ *     a # => [:foo, "bar", 2]
+ *
+ *  If `self` is empty, returns `nil`.
+ *
+ *  When non-negative Integer argument `n` is given,
+ *  returns the last `n` elements in a new Array:
+ *
+ *     a = [:foo, 'bar', 2]
+ *     a.last(2) # => ["bar", 2]
+ */
 static mrb_value
 mrb_ary_last(mrb_state *mrb, mrb_value self)
 {
@@ -1440,6 +1640,16 @@ mrb_ary_splat(mrb_state *mrb, mrb_value v)
   return mrb_obj_value(a);
 }
 
+/*
+ *  call-seq:
+ *     array.size -> integer
+ *     array.length -> integer
+ *
+ *  Returns the count of elements in `self`:
+ *
+ *     [0, 1, 2].size # => 3
+ *     [].size # => 0
+ */
 static mrb_value
 mrb_ary_size(mrb_state *mrb, mrb_value self)
 {
@@ -1481,6 +1691,16 @@ mrb_ary_clear(mrb_state *mrb, mrb_value self)
   return self;
 }
 
+/*
+ *  call-seq:
+ *     array.empty? -> true or false
+ *
+ *  Returns `true` if the count of elements in `self` is zero,
+ *  `false` otherwise:
+ *
+ *     [].empty? # => true
+ *     [0].empty? # => false
+ */
 static mrb_value
 mrb_ary_empty_p(mrb_state *mrb, mrb_value self)
 {
