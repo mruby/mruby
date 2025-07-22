@@ -50,18 +50,19 @@ typedef struct mt_tbl {
   union mt_ptr   *ptr;   /* block: [ ptr[0...alloc] | keys[0...alloc] ] */
 } mt_tbl;
 
-/* helper to get keys array */
+/* Helper to get keys array from method table */
 static inline mrb_sym*
 mt_keys(mt_tbl *t) {
   return (mrb_sym*)&t->ptr[t->alloc];
 }
 
+/* Helper to get values array from method table */
 static union mt_ptr*
 mt_vals(mt_tbl *t) {
   return t->ptr;
 }
 
-/* allocate or grow the block to exactly alloc entries */
+/* Allocates or grows the method table block to exactly new_alloc entries */
 static void
 mt_grow(mrb_state *mrb, mt_tbl *t, int new_alloc)
 {
@@ -81,7 +82,7 @@ mt_grow(mrb_state *mrb, mt_tbl *t, int new_alloc)
   t->alloc = new_alloc;
 }
 
-/* Creates the method table. */
+/* Creates a new empty method table */
 static mt_tbl*
 mt_new(mrb_state *mrb)
 {
@@ -95,7 +96,7 @@ mt_new(mrb_state *mrb)
   return t;
 }
 
-/* Branch-free binary search helper: returns the index where `target` should be inserted/found. */
+/* Branch-free binary search helper for method table keys */
 static inline int
 bsearch_idx(mrb_sym *keys, int size, mrb_sym target)
 {
@@ -121,7 +122,7 @@ bsearch_idx(mrb_sym *keys, int size, mrb_sym target)
   return (int)(p - keys) + offset;
 }
 
-/* Insert or update an entry in the method table using branch-free binary search */
+/* Inserts or updates an entry in the method table */
 static void
 mt_put(mrb_state *mrb, mt_tbl *t, mrb_sym sym, mrb_sym flags, union mt_ptr ptrval)
 {
@@ -164,7 +165,7 @@ mt_put(mrb_state *mrb, mt_tbl *t, mrb_sym sym, mrb_sym flags, union mt_ptr ptrva
   t->size++;
 }
 
-/* Retrieve a value from the method table using branch-free binary search */
+/* Retrieves a value from the method table */
 static mrb_sym
 mt_get(mrb_state *mrb, mt_tbl *t, mrb_sym sym, union mt_ptr *pp)
 {
@@ -187,7 +188,7 @@ mt_get(mrb_state *mrb, mt_tbl *t, mrb_sym sym, union mt_ptr *pp)
   return 0;
 }
 
-/* Deletes the entry for `sym` from the method table using branch-free search. */
+/* Deletes an entry from the method table */
 static mrb_bool
 mt_del(mrb_state *mrb, mt_tbl *t, mrb_sym sym)
 {
@@ -214,7 +215,7 @@ mt_del(mrb_state *mrb, mt_tbl *t, mrb_sym sym)
   return FALSE;
 }
 
-/* Copy the method table. */
+/* Creates a copy of the method table */
 static mt_tbl*
 mt_copy(mrb_state *mrb, mt_tbl *t)
 {
@@ -228,7 +229,7 @@ mt_copy(mrb_state *mrb, mt_tbl *t)
   return t2;
 }
 
-/* Free memory of the method table. */
+/* Frees memory of the method table */
 static void
 mt_free(mrb_state *mrb, mt_tbl *t)
 {
@@ -236,6 +237,7 @@ mt_free(mrb_state *mrb, mt_tbl *t)
   mrb_free(mrb, t);
 }
 
+/* Creates a method value structure from key and pointer */
 static inline mrb_method_t
 create_method_value(mrb_state *mrb, mrb_sym key, union mt_ptr val)
 {
@@ -269,6 +271,7 @@ mrb_mt_foreach(mrb_state *mrb, struct RClass *c, mrb_mt_foreach_func *fn, void *
   }
 }
 
+/* Marks method table entries for garbage collection */
 size_t
 mrb_gc_mark_mt(mrb_state *mrb, struct RClass *c)
 {
@@ -288,6 +291,7 @@ mrb_gc_mark_mt(mrb_state *mrb, struct RClass *c)
   return (size_t)t->size;
 }
 
+/* Returns memory size of class method table */
 size_t
 mrb_class_mt_memsize(mrb_state *mrb, struct RClass *c)
 {
@@ -297,12 +301,14 @@ mrb_class_mt_memsize(mrb_state *mrb, struct RClass *c)
   return sizeof(struct mt_tbl) + (size_t)h->size * sizeof(mrb_method_t);
 }
 
+/* Frees class method table for garbage collection */
 void
 mrb_gc_free_mt(mrb_state *mrb, struct RClass *c)
 {
   if (c->mt) mt_free(mrb, c->mt);
 }
 
+/* Sets the name of a class within an outer namespace */
 void
 mrb_class_name_class(mrb_state *mrb, struct RClass *outer, struct RClass *c, mrb_sym id)
 {
@@ -333,12 +339,14 @@ mrb_class_name_class(mrb_state *mrb, struct RClass *outer, struct RClass *c, mrb
   mrb_obj_iv_set_force(mrb, (struct RObject*)c, nsym, name);
 }
 
+/* Checks if a name is a valid constant name */
 mrb_bool
 mrb_const_name_p(mrb_state *mrb, const char *name, mrb_int len)
 {
   return len > 0 && ISUPPER(name[0]) && mrb_ident_p(name+1, len-1);
 }
 
+/* Sets up a class by defining it as a constant in the outer namespace */
 static void
 setup_class(mrb_state *mrb, struct RClass *outer, struct RClass *c, mrb_sym id)
 {
@@ -347,6 +355,7 @@ setup_class(mrb_state *mrb, struct RClass *outer, struct RClass *c, mrb_sym id)
 
 #define make_metaclass(mrb, c) prepare_singleton_class((mrb), (struct RBasic*)(c))
 
+/* Prepares and creates a singleton class for an object */
 static void
 prepare_singleton_class(mrb_state *mrb, struct RBasic *o)
 {
@@ -384,6 +393,7 @@ prepare_singleton_class(mrb_state *mrb, struct RBasic *o)
   sc->frozen = o->frozen;
 }
 
+/* Returns a string representation of a class name */
 static mrb_value
 class_name_str(mrb_state *mrb, struct RClass* c)
 {
@@ -397,6 +407,7 @@ class_name_str(mrb_state *mrb, struct RClass* c)
   return path;
 }
 
+/* Gets a class from a constant symbol, ensuring it's a class */
 static struct RClass*
 class_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym id)
 {
@@ -406,6 +417,7 @@ class_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym id)
   return mrb_class_ptr(c);
 }
 
+/* Gets a module from a constant symbol, ensuring it's a module */
 static struct RClass*
 module_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym id)
 {
@@ -415,6 +427,7 @@ module_from_sym(mrb_state *mrb, struct RClass *klass, mrb_sym id)
   return mrb_class_ptr(c);
 }
 
+/* Checks if an object is a class or module */
 static mrb_bool
 class_ptr_p(mrb_value obj)
 {
@@ -428,6 +441,7 @@ class_ptr_p(mrb_value obj)
   }
 }
 
+/* Checks if object is class/module and raises TypeError if not */
 static void
 check_if_class_or_module(mrb_state *mrb, mrb_value obj)
 {
@@ -436,6 +450,7 @@ check_if_class_or_module(mrb_state *mrb, mrb_value obj)
   }
 }
 
+/* Defines a new module or returns existing one */
 static struct RClass*
 define_module(mrb_state *mrb, mrb_sym name, struct RClass *outer)
 {
@@ -2019,6 +2034,26 @@ mrb_prepend_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
   }
 }
 
+/*
+ *  call-seq:
+ *     mod.prepend(module, ...) -> self
+ *
+ *  Invokes Module.prepend_features on each parameter in reverse order.
+ *
+ *     module Mod
+ *       def hello
+ *         "Hello from Mod.\n"
+ *       end
+ *     end
+ *
+ *     class Klass
+ *       def hello
+ *         "Hello from Klass.\n"
+ *       end
+ *       prepend Mod
+ *     end
+ *     Klass.new.hello   #=> "Hello from Mod.\n"
+ */
 static mrb_value
 mrb_mod_prepend(mrb_state *mrb, mrb_value mod)
 {
@@ -2039,6 +2074,23 @@ mrb_mod_prepend(mrb_state *mrb, mrb_value mod)
   return mod;
 }
 
+/*
+ *  call-seq:
+ *     mod.include(module, ...) -> self
+ *
+ *  Invokes Module.append_features on each parameter in reverse order.
+ *
+ *     module Mod
+ *       def hello
+ *         "Hello from Mod.\n"
+ *       end
+ *     end
+ *
+ *     class Klass
+ *       include Mod
+ *     end
+ *     Klass.new.hello   #=> "Hello from Mod.\n"
+ */
 static mrb_value
 mrb_mod_include(mrb_state *mrb, mrb_value mod)
 {
@@ -2156,6 +2208,22 @@ mrb_mod_include_p(mrb_state *mrb, mrb_value mod)
   return mrb_false_value();
 }
 
+/*
+ *  call-seq:
+ *     mod.ancestors -> array
+ *
+ *  Returns a list of modules included/prepended in mod (including mod itself).
+ *
+ *     module Mod
+ *       include Math
+ *       include Comparable
+ *       prepend Enumerable
+ *     end
+ *
+ *     Mod.ancestors        #=> [Enumerable, Mod, Comparable, Math]
+ *     Math.ancestors       #=> [Math]
+ *     Numeric.ancestors    #=> [Numeric, Comparable]
+ */
 static mrb_value
 mrb_mod_ancestors(mrb_state *mrb, mrb_value self)
 {
