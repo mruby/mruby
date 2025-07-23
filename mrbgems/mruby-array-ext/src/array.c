@@ -272,7 +272,6 @@ ary_rotate(mrb_state *mrb, mrb_value self)
 
   mrb_value ary = mrb_ary_new(mrb);
   mrb_int len = RARRAY_LEN(self);
-  mrb_value *p = RARRAY_PTR(self);
   mrb_int idx;
 
   if (len <= 0) return ary;
@@ -283,7 +282,7 @@ ary_rotate(mrb_state *mrb, mrb_value self)
     idx = count % len;
   }
   for (mrb_int i = 0; i<len; i++) {
-    mrb_ary_push(mrb, ary, p[idx++]);
+    mrb_ary_push(mrb, ary, RARRAY_PTR(self)[idx++]);
     if (idx == len) idx = 0;
   }
   return ary;
