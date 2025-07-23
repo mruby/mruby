@@ -580,6 +580,86 @@ ary_union_multi(mrb_state *mrb, mrb_value self)
   return ary_union_internal(mrb, self, argc, argv);
 }
 
+static mrb_value
+ary_intersection_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value *argv)
+{
+  if (argc == 0) {
+    return mrb_ary_new(mrb);
+  }
+
+  mrb_value *converted_argv = (mrb_value *)mrb_alloca(mrb, sizeof(mrb_value) * argc);
+
+  mrb_int total_len = 0;
+  for (mrb_int i = 0; i < argc; i++) {
+    mrb_value other = mrb_check_array_type(mrb, argv[i]);
+    if (mrb_nil_p(other)) {
+      mrb_raise(mrb, E_TYPE_ERROR, "can't convert passed argument to Array");
+    }
+    converted_argv[i] = other;
+    total_len += RARRAY_LEN(other);
+  }
+
+  mrb_value result = mrb_ary_new(mrb);
+
+  if (total_len > SET_OP_HASH_THRESHOLD) {
+    mrb_value hash = mrb_hash_new_capa(mrb, total_len);
+
+    for (mrb_int i = 0; i < argc; i++) {
+      mrb_int len = RARRAY_LEN(converted_argv[i]);
+      for (mrb_int j = 0; j < len; j++) {
+        mrb_hash_set(mrb, hash, RARRAY_PTR(converted_argv[i])[j], mrb_true_value());
+      }
+    }
+
+    mrb_int self_len = RARRAY_LEN(self);
+    for (mrb_int i = 0; i < self_len; i++) {
+      mrb_value p = RARRAY_PTR(self)[i];
+      mrb_value val = mrb_hash_get(mrb, hash, p);
+      if (!mrb_nil_p(val)) {
+        mrb_ary_push(mrb, result, p);
+        mrb_hash_delete_key(mrb, hash, p);
+      }
+    }
+  }
+  else {
+    mrb_int self_len = RARRAY_LEN(self);
+    for (mrb_int i = 0; i < self_len; i++) {
+      mrb_value p = RARRAY_PTR(self)[i];
+      mrb_bool found_in_all = TRUE;
+
+      for (mrb_int j = 0; j < argc; j++) {
+        mrb_bool found_in_current_other = FALSE;
+        mrb_int len = RARRAY_LEN(converted_argv[j]);
+        for (mrb_int k = 0; k < len; k++) {
+          if (mrb_equal(mrb, p, RARRAY_PTR(converted_argv[j])[k])) {
+            found_in_current_other = TRUE;
+            break;
+          }
+        }
+        if (!found_in_current_other) {
+          found_in_all = FALSE;
+          break;
+        }
+      }
+
+      if (found_in_all) {
+        mrb_bool already_added = FALSE;
+        mrb_int result_len = RARRAY_LEN(result);
+        for (mrb_int j = 0; j < result_len; j++) {
+          if (mrb_equal(mrb, p, RARRAY_PTR(result)[j])) {
+            already_added = TRUE;
+            break;
+          }
+        }
+        if (!already_added) {
+          mrb_ary_push(mrb, result, p);
+        }
+      }
+    }
+  }
+  return result;
+}
+
 /*
  *  call-seq:
  *     ary & other_ary      -> new_ary
@@ -589,103 +669,6 @@ ary_union_multi(mrb_state *mrb, mrb_value self)
  *
  *     [ 1, 1, 3, 5 ] & [ 1, 2, 3 ]   #=> [ 1, 3 ]
  */
-
-static mrb_value
-ary_intersection_internal(mrb_state *mrb, mrb_value self, mrb_int other_argc, const mrb_value *other_argv)
-{
-  mrb_value result_ary;
-  struct RArray *self_ary;
-  mrb_value *p, *p_end;
-  mrb_int total_other_len = 0;
-
-  if (other_argc == 0) {
-    return mrb_ary_new(mrb);
-  }
-
-  for (mrb_int i = 0; i < other_argc; i++) {
-    mrb_value other = mrb_check_array_type(mrb, other_argv[i]);
-    if (mrb_nil_p(other)) {
-      mrb_raise(mrb, E_TYPE_ERROR, "can't convert passed argument to Array");
-    }
-    total_other_len += RARRAY_LEN(other);
-  }
-
-  self_ary = mrb_ary_ptr(self);
-  p = ARY_PTR(self_ary);
-  p_end = p + ARY_LEN(self_ary);
-
-  result_ary = mrb_ary_new(mrb);
-
-  if (total_other_len > SET_OP_HASH_THRESHOLD) {
-    mrb_value hash = mrb_hash_new_capa(mrb, total_other_len);
-
-    /* Populate hash with elements from all other_argv */
-    for (mrb_int i = 0; i < other_argc; i++) {
-      struct RArray *other_ary = mrb_ary_ptr(other_argv[i]);
-      mrb_value *other_p = ARY_PTR(other_ary);
-      mrb_value *other_p_end = other_p + ARY_LEN(other_ary);
-      while (other_p < other_p_end) {
-        mrb_hash_set(mrb, hash, *other_p, mrb_true_value());
-        other_p++;
-      }
-    }
-
-    /* Check elements from self against hash */
-    while (p < p_end) {
-      mrb_value val = mrb_hash_get(mrb, hash, *p);
-      if (!mrb_nil_p(val)) {  /* key exists in other_ary */
-        mrb_ary_push(mrb, result_ary, *p);
-        mrb_hash_delete_key(mrb, hash, *p);  /* remove to ensure uniqueness */
-      }
-      p++;
-    }
-  }
-  else {
-    /* Use linear search for small arrays */
-    while (p < p_end) {
-      mrb_bool found_in_all = TRUE;
-      for (mrb_int i = 0; i < other_argc; i++) {
-        struct RArray *other_ary = mrb_ary_ptr(other_argv[i]);
-        mrb_value *other_p = ARY_PTR(other_ary);
-        mrb_value *other_p_end = other_p + ARY_LEN(other_ary);
-        mrb_bool found_in_current_other = FALSE;
-
-        while (other_p < other_p_end) {
-          if (mrb_equal(mrb, *p, *other_p)) {
-            found_in_current_other = TRUE;
-            break;
-          }
-          other_p++;
-        }
-        if (!found_in_current_other) {
-          found_in_all = FALSE;
-          break;
-        }
-      }
-
-      if (found_in_all) {
-        /* Check if already in result to ensure uniqueness */
-        mrb_int result_len = RARRAY_LEN(result_ary);
-        mrb_value *result_ptr = RARRAY_PTR(result_ary);
-        mrb_bool already_added = FALSE;
-
-        for (mrb_int i = 0; i < result_len; i++) {
-          if (mrb_equal(mrb, *p, result_ptr[i])) {
-            already_added = TRUE;
-            break;
-          }
-        }
-
-        if (!already_added) {
-          mrb_ary_push(mrb, result_ary, *p);
-        }
-      }
-      p++;
-    }
-  }
-
-  return result_ary;
-}
 
 static mrb_value
 ary_intersection(mrb_state *mrb, mrb_value self)
