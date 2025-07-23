@@ -687,55 +687,86 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
   mp_dbl_limb z = y.p[yd-1];
   if (xd>=yd) {
     for (size_t j=xd-yd;; j--) {
-      mp_dbl_limb_signed b=0;
       mp_dbl_limb qhat;
-
-
-
       mp_dbl_limb rhat;
       if (j+yd == xd) {
-        // Treat missing high limb as 0 and use the same two-limb formula
-        qhat = (((mp_dbl_limb)0 << DIG_SIZE) + x.p[j+yd-1]) / z;
-        rhat = (((mp_dbl_limb)0 << DIG_SIZE) + x.p[j+yd-1]) % z;
-      }
-      else {
-        mp_dbl_limb dividend = ((mp_dbl_limb)x.p[j+yd] << DIG_SIZE) + x.p[j+yd-1];
+        // Only one high limb available
+        mp_dbl_limb dividend = (((mp_dbl_limb)0 << DIG_SIZE) + x.p[j+yd-1]);
         qhat = dividend / z;
         rhat = dividend % z;
       }
+      else {
+        // Two limbs available - use enhanced estimation for better accuracy
+        mp_dbl_limb dividend = ((mp_dbl_limb)x.p[j+yd] << DIG_SIZE) + x.p[j+yd-1];
+        qhat = dividend / z;
+        rhat = dividend % z;
 
-      // Knuth's qhat refinement step - essential to prevent overestimation
+        // Three-limb pre-adjustment when available (reduces correction iterations)
+        if (yd >= 2 && j+yd-2 < x.sz && y.p[yd-2] != 0) {
+          mp_dbl_limb y_second = y.p[yd-2];
+          mp_dbl_limb x_third = x.p[j+yd-2];
+
+          // Pre-check: if qhat * y_second > rhat * base + x_third, reduce qhat
+          if (qhat > 0) {
+            mp_dbl_limb left = qhat * y_second;
+            mp_dbl_limb right = (rhat << DIG_SIZE) + x_third;
+
+            if (qhat >= ((mp_dbl_limb)1 << DIG_SIZE) || left > right) {
+              qhat--;
+              rhat += z;
+              // Note: This pre-adjustment reduces work in the refinement loop
+            }
+          }
+        }
+      }
+
+      // Enhanced qhat refinement step - reduced redundant calculations
       if (yd > 1) {  // Apply refinement for all iterations, including j=0
-        mp_dbl_limb left_side = qhat * y.p[yd-2];
-        mp_dbl_limb right_side = (rhat << DIG_SIZE) + (j+yd-2 < x.sz ? x.p[j+yd-2] : 0);
+        mp_dbl_limb y_second = y.p[yd-2];
+        mp_dbl_limb x_third = (j+yd-2 < x.sz) ? x.p[j+yd-2] : 0;
+        mp_dbl_limb left_side = qhat * y_second;
+        mp_dbl_limb right_side = (rhat << DIG_SIZE) + x_third;
 
         while (qhat >= ((mp_dbl_limb)1 << DIG_SIZE) || (left_side > right_side)) {
           qhat--;
           rhat += z;
           if (rhat >= ((mp_dbl_limb)1 << DIG_SIZE)) break;
-          left_side = qhat * y.p[yd-2];
-          right_side = (rhat << DIG_SIZE) + (j+yd-2 < x.sz ? x.p[j+yd-2] : 0);
+          left_side -= y_second;  // Optimized: subtract instead of multiply
+          right_side = (rhat << DIG_SIZE) + x_third;
         }
       }
-      if (qhat) {
+      if (qhat > 0) {
+        // Optimized subtraction: x -= qhat * y
+        mp_dbl_limb_signed borrow = 0;
         size_t i;
 
-        for (i=0; i<yd; i++) {
-          mp_dbl_limb zz = qhat * y.p[i];
-          mp_dbl_limb_signed u = LOW(b)+x.p[i+j]-LOW(zz);
-          x.p[i+j] = LOW(u);
-          b = HIGH(b) - HIGH(zz) + HIGH(u);
+        for (i = 0; i < yd; i++) {
+          mp_dbl_limb product = qhat * y.p[i];
+          mp_dbl_limb_signed diff = (mp_dbl_limb_signed)x.p[i+j] - (mp_dbl_limb_signed)LOW(product) + borrow;
+          x.p[i+j] = LOW(diff);
+          borrow = HIGH(diff) - (mp_dbl_limb_signed)HIGH(product);
         }
-        b += x.p[i+j];
-      }
-      for (; b!=0; qhat--) {
-        mp_dbl_limb c = 0;
-        for (size_t i=0; i<yd; i++) {
-          c += (mp_dbl_limb)x.p[i+j] + (mp_dbl_limb)y.p[i];
-          x.p[i+j] = LOW(c);
-          c = HIGH(c);
+
+        // Handle final borrow propagation
+        if (i+j < x.sz) {
+          borrow += (mp_dbl_limb_signed)x.p[i+j];
+          x.p[i+j] = LOW(borrow);
+          borrow = HIGH(borrow);
         }
-        b += c;
+
+        // Correction: if borrow is negative, qhat was too large, add back
+        if (borrow < 0) {
+          qhat--;
+          mp_dbl_limb carry = 0;
+          for (i = 0; i < yd; i++) {
+            carry += (mp_dbl_limb)x.p[i+j] + (mp_dbl_limb)y.p[i];
+            x.p[i+j] = LOW(carry);
+            carry = HIGH(carry);
+          }
+          if (i+j < x.sz && carry > 0) {
+            x.p[i+j] += (mp_limb)carry;
+          }
+        }
       }
       q.p[j] = (mp_limb)qhat;
       if (j == 0) break;
