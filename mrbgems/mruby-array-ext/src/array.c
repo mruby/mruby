@@ -361,75 +361,67 @@ ary_rotate_bang(mrb_state *mrb, mrb_value self)
 #define SET_OP_HASH_THRESHOLD 32
 
 static mrb_value
-ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int other_argc, const mrb_value *other_argv)
+ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value *argv)
 {
-  mrb_value result_ary;
-  struct RArray *self_ary;
-  mrb_value *p, *p_end;
-  mrb_int total_other_len = 0;
-
-  if (other_argc == 0) {
+  if (argc == 0) {
     return mrb_ary_dup(mrb, self);
   }
 
-  for (mrb_int i = 0; i < other_argc; i++) {
-    mrb_value other = mrb_check_array_type(mrb, other_argv[i]);
+  mrb_value *converted_argv = (mrb_value *)mrb_alloca(mrb, sizeof(mrb_value) * argc);
+  mrb_int total_len = 0;
+
+  for (mrb_int i = 0; i < argc; i++) {
+    mrb_value other = mrb_check_array_type(mrb, argv[i]);
     if (mrb_nil_p(other)) {
       mrb_raise(mrb, E_TYPE_ERROR, "can't convert passed argument to Array");
     }
-    total_other_len += RARRAY_LEN(other);
+    converted_argv[i] = other;
+    total_len += RARRAY_LEN(other);
   }
 
-  self_ary = mrb_ary_ptr(self);
-  p = ARY_PTR(self_ary);
-  p_end = p + ARY_LEN(self_ary);
-  result_ary = mrb_ary_new(mrb);
+  mrb_value result = mrb_ary_new(mrb);
 
-  if (total_other_len > SET_OP_HASH_THRESHOLD) {
-    mrb_value hash = mrb_hash_new_capa(mrb, total_other_len);
+  if (total_len > SET_OP_HASH_THRESHOLD) {
+    mrb_value hash = mrb_hash_new_capa(mrb, total_len);
 
-    for (mrb_int i = 0; i < other_argc; i++) {
-      struct RArray *other_ary = mrb_ary_ptr(other_argv[i]);
-      mrb_value *other_p = ARY_PTR(other_ary);
-      mrb_value *other_p_end = other_p + ARY_LEN(other_ary);
-      while (other_p < other_p_end) {
-        mrb_hash_set(mrb, hash, *other_p, mrb_true_value());
-        other_p++;
+    for (mrb_int i = 0; i < argc; i++) {
+      mrb_int len = RARRAY_LEN(converted_argv[i]);
+      for (mrb_int j = 0; j < len; j++) {
+        mrb_hash_set(mrb, hash, RARRAY_PTR(converted_argv[i])[j], mrb_true_value());
       }
     }
 
-    while (p < p_end) {
-      mrb_value val = mrb_hash_get(mrb, hash, *p);
-      if (mrb_nil_p(val)) {  /* key doesn't exist in any other_ary */
-        mrb_ary_push(mrb, result_ary, *p);
+    mrb_int self_len = RARRAY_LEN(self);
+    for (mrb_int i = 0; i < self_len; i++) {
+      mrb_value p = RARRAY_PTR(self)[i];
+      mrb_value val = mrb_hash_get(mrb, hash, p);
+      if (mrb_nil_p(val)) {  /* key doesn't exist in any ary */
+        mrb_ary_push(mrb, result, p);
       }
-      p++;
     }
   }
   else {
-    while (p < p_end) {
+    mrb_int self_len = RARRAY_LEN(self);
+    for (mrb_int i = 0; i < self_len; i++) {
+      mrb_value p = RARRAY_PTR(self)[i];
       mrb_bool found = FALSE;
-      for (mrb_int i = 0; i < other_argc; i++) {
-        struct RArray *other_ary = mrb_ary_ptr(other_argv[i]);
-        mrb_value *other_p = ARY_PTR(other_ary);
-        mrb_value *other_p_end = other_p + ARY_LEN(other_ary);
-        while (other_p < other_p_end) {
-          if (mrb_equal(mrb, *p, *other_p)) {
+      for (mrb_int j = 0; j < argc; j++) {
+        mrb_int len = RARRAY_LEN(converted_argv[j]);
+        for (mrb_int k = 0; k < len; k++) {
+          if (mrb_equal(mrb, p, RARRAY_PTR(converted_argv[j])[k])) {
             found = TRUE;
             break;
           }
-          other_p++;
         }
         if (found) break;
       }
       if (!found) {
-        mrb_ary_push(mrb, result_ary, *p);
+        mrb_ary_push(mrb, result, p);
       }
-      p++;
     }
   }
 
-  return result_ary;
+  return result;
 }
 
 /*
