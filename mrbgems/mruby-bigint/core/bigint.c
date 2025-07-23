@@ -409,6 +409,10 @@ mpz_sub_int(mrb_state *mrb, mpz_t *x, mrb_int n)
 /* Window size optimized for L1 cache (4 limbs = 16 bytes) */
 #define WINDOW_SIZE 4
 
+/* Blocked multiplication for large operands with controlled memory overhead */
+/* Block size optimized for cache efficiency while minimizing overhead */
+#define BLOCK_SIZE 8  /* 8 limbs = 32 bytes per block */
+
 /* Multiply window: result[offset..] += a[a_start..a_end) * b[b_start..b_end) */
 static void
 multiply_window(mp_limb *result, size_t offset,
@@ -480,8 +484,147 @@ mpz_mul_sliding_window(mrb_state *mrb, mpz_t *result, mpz_t *first, mpz_t *secon
   return 1; // Success
 }
 
+/* Memory estimation for blocked multiplication */
+static size_t
+estimate_blocked_memory(size_t a_limbs, size_t b_limbs)
+{
+  // Block buffer: BLOCK_SIZE * 2 limbs for intermediate results
+  size_t block_buffer = BLOCK_SIZE * 2 * sizeof(mp_limb);
+
+  // Result allocation (already required)
+  size_t result_size = (a_limbs + b_limbs + 1) * sizeof(mp_limb);
+
+  // Total memory requirement
+  return result_size + block_buffer;
+}
+
+/* Check if blocked multiplication should be used */
+static int
+should_use_blocked_multiplication(size_t a_limbs, size_t b_limbs)
+{
+  size_t max_limbs = (a_limbs > b_limbs) ? a_limbs : b_limbs;
+
+  // Only use for large operands where block benefits outweigh overhead
+  // Target range: 32-128 limbs (beyond sliding window, before classical fallback)
+  if (max_limbs < 32 || max_limbs > 128) {
+    return 0;
+  }
+
+  // Memory constraint check - stay within 2x limit
+  size_t classical_memory = (a_limbs + b_limbs + 1) * sizeof(mp_limb);
+  size_t blocked_memory = estimate_blocked_memory(a_limbs, b_limbs);
+
+  return (blocked_memory <= classical_memory * 2);
+}
+
+/* Multiply single block: result_block = a_block * b_block */
+static void
+multiply_block(mp_limb *result_block,
+               const mp_limb *a_block, size_t a_len,
+               const mp_limb *b_block, size_t b_len)
+{
+  // Initialize result block to zero
+  for (size_t i = 0; i < BLOCK_SIZE * 2; i++) {
+    result_block[i] = 0;
+  }
+
+  // Classical multiplication within block
+  for (size_t i = 0; i < a_len; i++) {
+    mp_limb u = a_block[i];
+    if (u == 0) continue;
+
+    mp_dbl_limb carry = 0;
+    for (size_t j = 0; j < b_len; j++) {
+      mp_limb v = b_block[j];
+      carry += (mp_dbl_limb)result_block[i + j] +
+               (mp_dbl_limb)u * (mp_dbl_limb)v;
+      result_block[i + j] = LOW(carry);
+      carry = HIGH(carry);
+    }
+
+    // Propagate final carry within block bounds
+    if (carry && (i + b_len < BLOCK_SIZE * 2)) {
+      result_block[i + b_len] = LOW(carry);
+    }
+  }
+}
+
+/* Add block result to main result at specified offset */
+static void
+add_block_to_result(mpz_t *result, const mp_limb *block_result,
+                   size_t offset, size_t block_len)
+{
+  mp_dbl_limb carry = 0;
+
+  // Add block result to main result with carry propagation
+  for (size_t i = 0; i < block_len && (offset + i) < result->sz; i++) {
+    carry += (mp_dbl_limb)result->p[offset + i] + (mp_dbl_limb)block_result[i];
+    result->p[offset + i] = LOW(carry);
+    carry = HIGH(carry);
+  }
+
+  // Propagate remaining carry beyond block boundary
+  size_t carry_pos = offset + block_len;
+  while (carry && carry_pos < result->sz) {
+    carry += (mp_dbl_limb)result->p[carry_pos];
+    result->p[carry_pos] = LOW(carry);
+    carry = HIGH(carry);
+    carry_pos++;
+  }
+}
+
+/* Blocked multiplication - processes operands in constant-memory blocks */
+static int
+mpz_mul_blocked(mrb_state *mrb, mpz_t *result, mpz_t *first, mpz_t *second)
+{
+  // Algorithm selection check
+  if (!should_use_blocked_multiplication(first->sz, second->sz)) {
+    return 0;
+  }
+
+  // Initialize result
+  mpz_realloc(mrb, result, first->sz + second->sz + 1);
+  zero(result);
+
+  // Block buffer allocation (constant memory - key advantage)
+  mp_limb block_result[BLOCK_SIZE * 2];
+
+  // Calculate block counts
+  size_t a_blocks = (first->sz + BLOCK_SIZE - 1) / BLOCK_SIZE;
+  size_t b_blocks = (second->sz + BLOCK_SIZE - 1) / BLOCK_SIZE;
+
+  // Process all block combinations
+  for (size_t i = 0; i < a_blocks; i++) {
+    for (size_t j = 0; j < b_blocks; j++) {
+
+      // Calculate block boundaries for operand A
+      size_t a_start = i * BLOCK_SIZE;
+      size_t a_len = (a_start + BLOCK_SIZE <= first->sz) ?
+                     BLOCK_SIZE : (first->sz - a_start);
+
+      // Calculate block boundaries for operand B
+      size_t b_start = j * BLOCK_SIZE;
+      size_t b_len = (b_start + BLOCK_SIZE <= second->sz) ?
+                     BLOCK_SIZE : (second->sz - b_start);
+
+      // Multiply current blocks
+      multiply_block(block_result,
+                    &first->p[a_start], a_len,
+                    &second->p[b_start], b_len);
+
+      // Add block result to main result at appropriate offset
+      size_t result_offset = (i + j) * BLOCK_SIZE;
+      add_block_to_result(result, block_result, result_offset, a_len + b_len);
+    }
+  }
+
+  result->sn = first->sn * second->sn;
+  trim(result);
+  return 1; // Success
+}
+
 /* w = u * v */
-/* Memory-efficient multiplication with sliding window optimization */
+/* Memory-efficient multiplication with algorithm selection hierarchy */
 static void
 mpz_mul(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
 {
@@ -501,9 +644,17 @@ mpz_mul(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
     second = u;
   }
 
-  // Try sliding window multiplication for medium-sized operands
+  // Algorithm selection hierarchy:
+  // 1. Try blocked multiplication for large operands (32-128 limbs)
+  // 2. Try sliding window for medium operands (8-64 limbs)
+  // 3. Fallback to classical multiplication
   mpz_t w;
   mpz_init(mrb, &w);
+
+  if (mpz_mul_blocked(mrb, &w, first, second)) {
+    mpz_move(mrb, ww, &w);
+    return;
+  }
 
   if (mpz_mul_sliding_window(mrb, &w, first, second)) {
     mpz_move(mrb, ww, &w);
