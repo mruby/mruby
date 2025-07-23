@@ -181,8 +181,8 @@ digits(mpz_t *x)
   size_t i;
 
   if (x->sz == 0) return 0;
-  for (i = x->sz - 1; x->p[i] == 0; i--)
-    if (i == 0) break;
+  for (i = x->sz - 1; x->p[i] == 0 && i > 0; i--)
+    ;
   return i+1;
 }
 
@@ -415,24 +415,41 @@ mpz_mul(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
     return;
   }
 
+  // Ensure consistent operand ordering: smaller operand as second argument
+  mpz_t *first, *second;
+  if (u->sz <= v->sz) {
+    first = u;
+    second = v;
+  }
+  else {
+    first = v;
+    second = u;
+  }
+
   mpz_t w;
   mpz_init(mrb, &w);
-  mpz_realloc(mrb, &w, u->sz + v->sz);
+  mpz_realloc(mrb, &w, first->sz + second->sz + 1);
 
-  for (size_t j = 0; j < u->sz; j++) {
-    size_t i;
-    mp_dbl_limb cc = (mp_limb)0;
-    mp_limb u0 = u->p[j];
+  // Standard multiplication algorithm with consistent operand order
+  for (size_t j = 0; j < first->sz; j++) {
+    mp_limb u0 = first->p[j];
     if (u0 == 0) continue;
-    for (i = 0; i < v->sz; i++) {
-      mp_limb v0 = v->p[i];
-      if (v0 == 0) continue;
+
+    mp_dbl_limb cc = 0;
+    size_t i;
+    for (i = 0; i < second->sz; i++) {
+      mp_limb v0 = second->p[i];
       cc += (mp_dbl_limb)w.p[i + j] + (mp_dbl_limb)u0 * (mp_dbl_limb)v0;
       w.p[i + j] = LOW(cc);
       cc = HIGH(cc);
     }
-    if (cc) {
-      w.p[i + j] = (mp_limb)cc;
+
+    // Propagate carries
+    while (cc && (i + j) < w.sz) {
+      cc += (mp_dbl_limb)w.p[i + j];
+      w.p[i + j] = LOW(cc);
+      cc = HIGH(cc);
+      i++;
     }
   }
 
@@ -666,17 +683,40 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
   ulshift(mrb, &x, xx, ns);
   ulshift(mrb, &y, yy, ns);
   size_t xd = digits(&x);
-  mpz_realloc(mrb, &q, xd);
+  mpz_realloc(mrb, &q, xd-yd+1);  // Quotient has xd-yd+1 digits maximum
   mp_dbl_limb z = y.p[yd-1];
   if (xd>=yd) {
     for (size_t j=xd-yd;; j--) {
       mp_dbl_limb_signed b=0;
       mp_dbl_limb qhat;
 
-      if (j+yd == xd)
-        qhat = x.p[j+yd-1] / z;
-      else
-        qhat = (((mp_dbl_limb)x.p[j+yd] << DIG_SIZE) + x.p[j+yd-1]) / z;
+
+
+      mp_dbl_limb rhat;
+      if (j+yd == xd) {
+        // Treat missing high limb as 0 and use the same two-limb formula
+        qhat = (((mp_dbl_limb)0 << DIG_SIZE) + x.p[j+yd-1]) / z;
+        rhat = (((mp_dbl_limb)0 << DIG_SIZE) + x.p[j+yd-1]) % z;
+      }
+      else {
+        mp_dbl_limb dividend = ((mp_dbl_limb)x.p[j+yd] << DIG_SIZE) + x.p[j+yd-1];
+        qhat = dividend / z;
+        rhat = dividend % z;
+      }
+
+      // Knuth's qhat refinement step - essential to prevent overestimation
+      if (yd > 1) {  // Apply refinement for all iterations, including j=0
+        mp_dbl_limb left_side = qhat * y.p[yd-2];
+        mp_dbl_limb right_side = (rhat << DIG_SIZE) + (j+yd-2 < x.sz ? x.p[j+yd-2] : 0);
+
+        while (qhat >= ((mp_dbl_limb)1 << DIG_SIZE) || (left_side > right_side)) {
+          qhat--;
+          rhat += z;
+          if (rhat >= ((mp_dbl_limb)1 << DIG_SIZE)) break;
+          left_side = qhat * y.p[yd-2];
+          right_side = (rhat << DIG_SIZE) + (j+yd-2 < x.sz ? x.p[j+yd-2] : 0);
+        }
+      }
       if (qhat) {
         size_t i;
 
