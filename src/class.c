@@ -245,16 +245,7 @@ create_method_value(mrb_state *mrb, mrb_sym key, union mt_ptr val)
   return m;
 }
 
-/*
- * Iterates over the methods in a class's method table.
- *
- * @param mrb The mruby state.
- * @param c The class whose method table is to be iterated.
- * @param fn The callback function to be called for each method.
- *   The function receives the mruby state, the method symbol, the method itself, and user data.
- *   It should return 0 to continue iteration, or a non-zero value to stop.
- * @param p User data to be passed to the callback function.
- */
+/* Iterates over methods in a class's method table with callback function */
 MRB_API void
 mrb_mt_foreach(mrb_state *mrb, struct RClass *c, mrb_mt_foreach_func *fn, void *p)
 {
@@ -2176,8 +2167,8 @@ mrb_obj_extend(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     mod.include?(module)    -> true or false
  *
- *  Returns <code>true</code> if <i>module</i> is included in
- *  <i>mod</i> or one of <i>mod</i>'s ancestors.
+ *  Returns `true` if *module* is included in
+ *  *mod* or one of *mod*'s ancestors.
  *
  *     module A
  *     end
@@ -2831,9 +2822,9 @@ mrb_instance_alloc(mrb_state *mrb, mrb_value cv)
  *  call-seq:
  *     class.new(args, ...)    ->  obj
  *
- *  Creates a new object of <i>class</i>'s class, then
- *  invokes that object's <code>initialize</code> method,
- *  passing it <i>args</i>. This is the method that ends
+ *  Creates a new object of *class*'s class, then
+ *  invokes that object's `initialize` method,
+ *  passing it *args*. This is the method that ends
  *  up getting called whenever an object is constructed using
  *  `.new`.
  *
@@ -2961,24 +2952,24 @@ mrb_bob_not(mrb_state *mrb, mrb_value cv)
  *     obj.equal?(other)   -> true or false
  *     obj.eql?(other)     -> true or false
  *
- *  Equality---At the <code>Object</code> level, <code>==</code> returns
- *  <code>true</code> only if <i>obj</i> and <i>other</i> are the
+ *  Equality---At the `Object` level, `==` returns
+ *  `true` only if *obj* and *other* are the
  *  same object. Typically, this method is overridden in descendant
  *  classes to provide class-specific meaning.
  *
- *  Unlike <code>==</code>, the <code>equal?</code> method should never be
+ *  Unlike `==`, the `equal?` method should never be
  *  overridden by subclasses: it is used to determine object identity
- *  (that is, <code>a.equal?(b)</code> iff <code>a</code> is the same
- *  object as <code>b</code>).
+ *  (that is, `a.equal?(b)` iff `a` is the same
+ *  object as `b`).
  *
- *  The <code>eql?</code> method returns <code>true</code> if
- *  <i>obj</i> and <i>anObject</i> have the same value. Used by
- *  <code>Hash</code> to test members for equality.  For objects of
- *  class <code>Object</code>, <code>eql?</code> is synonymous with
- *  <code>==</code>. Subclasses normally continue this tradition, but
- *  there are exceptions. <code>Numeric</code> types, for example,
- *  perform type conversion across <code>==</code>, but not across
- *  <code>eql?</code>, so:
+ *  The `eql?` method returns `true` if
+ *  *obj* and *anObject* have the same value. Used by
+ *  `Hash` to test members for equality.  For objects of
+ *  class `Object`, `eql?` is synonymous with
+ *  `==`. Subclasses normally continue this tradition, but
+ *  there are exceptions. `Numeric` types, for example,
+ *  perform type conversion across `==`, but not across
+ *  `eql?`, so:
  *
  *     1 == 1.0     #=> true
  *     1.eql? 1.0   #=> false
@@ -3242,10 +3233,10 @@ mrb_module_new(mrb_state *mrb)
  *  call-seq:
  *     obj.class    => class
  *
- *  Returns the class of <i>obj</i>, now preferred over
- *  <code>Object#type</code>, as an object's type in Ruby is only
+ *  Returns the class of *obj*, now preferred over
+ *  `Object#type`, as an object's type in Ruby is only
  *  loosely tied to that object's class. This method must always be
- *  called with an explicit receiver, as <code>class</code> is also a
+ *  called with an explicit receiver, as `class` is also a
  *  reserved word in Ruby.
  *
  *     1.class      #=> Integer
@@ -3718,7 +3709,7 @@ mrb_mod_const_missing(mrb_state *mrb, mrb_value mod)
  *  call-seq:
  *     mod.method_defined?(symbol)    -> true or false
  *
- *  Returns +true+ if the named method is defined by
+ *  Returns `true` if the named method is defined by
  *  _mod_ (or its included modules and, if _mod_ is a class,
  *  its ancestors). Public and protected methods are matched.
  *
@@ -4003,10 +3994,10 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
  *  call-seq:
  *     obj.clone -> an_object
  *
- *  Produces a shallow copy of <i>obj</i>---the instance variables of
- *  <i>obj</i> are copied, but not the objects they reference. Copies
- *  the frozen state of <i>obj</i>. See also the discussion
- *  under <code>Object#dup</code>.
+ *  Produces a shallow copy of *obj*---the instance variables of
+ *  *obj* are copied, but not the objects they reference. Copies
+ *  the frozen state of *obj*. See also the discussion
+ *  under `Object#dup`.
  *
  *     class Klass
  *        attr_accessor :str
@@ -4019,7 +4010,7 @@ init_copy(mrb_state *mrb, mrb_value dest, mrb_value obj)
  *     s2.inspect          #=> "#<Klass:0x401b3998 @str=\"Hi\">"
  *
  *  This method may have class-specific behavior.  If so, that
- *  behavior will be documented under the #+initialize_copy+ method of
+ *  behavior will be documented under the #`initialize_copy` method of
  *  the class.
  *
  *  Some Class(True False Nil Symbol Integer Float) Object  cannot clone.
@@ -4075,17 +4066,17 @@ mrb_obj_clone(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     obj.dup -> an_object
  *
- *  Produces a shallow copy of <i>obj</i>---the instance variables of
- *  <i>obj</i> are copied, but not the objects they reference.
- *  <code>dup</code> copies the frozen state of <i>obj</i>. See also
- *  the discussion under <code>Object#clone</code>. In general,
- *  <code>clone</code> and <code>dup</code> may have different semantics
- *  in descendant classes. While <code>clone</code> is used to duplicate
- *  an object, including its internal state, <code>dup</code> typically
+ *  Produces a shallow copy of *obj*---the instance variables of
+ *  *obj* are copied, but not the objects they reference.
+ *  `dup` copies the frozen state of *obj*. See also
+ *  the discussion under `Object#clone`. In general,
+ *  `clone` and `dup` may have different semantics
+ *  in descendant classes. While `clone` is used to duplicate
+ *  an object, including its internal state, `dup` typically
  *  uses the class of the descendant object to create the new instance.
  *
  *  This method may have class-specific behavior.  If so, that
- *  behavior will be documented under the #+initialize_copy+ method of
+ *  behavior will be documented under the #`initialize_copy` method of
  *  the class.
  */
 
@@ -4144,16 +4135,16 @@ mrb_method_missing(mrb_state *mrb, mrb_sym name, mrb_value self, mrb_value args)
  *  call-seq:
  *     obj.method_missing(symbol [, *args] )   -> result
  *
- *  Invoked by Ruby when <i>obj</i> is sent a message it cannot handle.
- *  <i>symbol</i> is the symbol for the method called, and <i>args</i>
+ *  Invoked by Ruby when *obj* is sent a message it cannot handle.
+ *  *symbol* is the symbol for the method called, and *args*
  *  are any arguments that were passed to it. By default, the interpreter
  *  raises an error when this method is called. However, it is possible
  *  to override the method to provide more dynamic behavior.
  *  If it is decided that a particular method should not be handled, then
- *  <i>super</i> should be called, so that ancestors can pick up the
+ *  *super* should be called, so that ancestors can pick up the
  *  missing method.
  *  The example below creates
- *  a class <code>Roman</code>, which responds to methods with names
+ *  a class `Roman`, which responds to methods with names
  *  consisting of roman numerals, returning the corresponding integer
  *  values.
  *

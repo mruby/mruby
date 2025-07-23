@@ -80,7 +80,7 @@ exc_initialize(mrb_state *mrb, mrb_value exc)
  *  With no argument, or if the argument is the same as the receiver,
  *  return the receiver. Otherwise, create a new
  *  exception object of the same class as the receiver, but with a
- *  message equal to <code>string</code>.
+ *  message equal to `string`.
  *
  */
 

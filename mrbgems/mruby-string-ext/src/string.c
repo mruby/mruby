@@ -89,8 +89,8 @@ int_chr_utf8(mrb_state *mrb, mrb_value num)
  *  call-seq:
  *     str.swapcase!   -> str or nil
  *
- *  Equivalent to <code>String#swapcase</code>, but modifies the receiver in
- *  place, returning <i>str</i>, or <code>nil</code> if no changes were made.
+ *  Equivalent to `String#swapcase`, but modifies the receiver in
+ *  place, returning *str*, or `nil` if no changes were made.
  *  Note: case conversion is effective only in ASCII region.
  */
 static mrb_value
@@ -122,7 +122,7 @@ str_swapcase_bang(mrb_state *mrb, mrb_value str)
  *  call-seq:
  *     str.swapcase   -> new_str
  *
- *  Returns a copy of <i>str</i> with uppercase alphabetic characters converted
+ *  Returns a copy of *str* with uppercase alphabetic characters converted
  *  to lowercase and lowercase characters converted to uppercase.
  *  Note: case conversion is effective only in ASCII region.
  *
@@ -184,7 +184,7 @@ str_concat0(mrb_state *mrb, mrb_value self, mrb_bool binary)
  *    s.concat('bar', 'baz') # => "foobarbaz"
  *    s                      # => "foobarbaz"
  *
- *  For each given object +object+ that is an \Integer,
+ *  For each given object `object` that is an \Integer,
  *  the value is considered a codepoint and converted to a character before concatenation:
  *
  *    s = 'foo'
@@ -215,7 +215,7 @@ str_append_as_bytes(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     str.start_with?([prefixes]+)   -> true or false
  *
- *  Returns true if +str+ starts with one of the +prefixes+ given.
+ *  Returns true if `str` starts with one of the `prefixes` given.
  *
  *    "hello".start_with?("hell")               #=> true
  *
@@ -251,7 +251,7 @@ str_start_with(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     str.end_with?([suffixes]+)   -> true or false
  *
- *  Returns true if +str+ ends with one of the +suffixes+ given.
+ *  Returns true if `str` ends with one of the `suffixes` given.
  */
 static mrb_value
 str_end_with(mrb_state *mrb, mrb_value self)
@@ -873,9 +873,9 @@ str_chr(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     int.chr([encoding])  ->  string
  *
- *  Returns a string containing the character represented by the +int+'s value
- *  according to +encoding+. +"ASCII-8BIT"+ (+"BINARY"+) and +"UTF-8"+ (only
- *  with +MRB_UTF8_STRING+) can be specified as +encoding+ (default is
+ *  Returns a string containing the character represented by the `int`'s value
+ *  according to `encoding`. +"ASCII-8BIT"+ (+"BINARY"+) and +"UTF-8"+ (only
+ *  with `MRB_UTF8_STRING`) can be specified as `encoding` (default is
  *  +"ASCII-8BIT"+).
  *
  *     65.chr                  #=> "A"
@@ -1103,8 +1103,8 @@ str_codepoints(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     str.delete_prefix!(prefix) -> self or nil
  *
- *  Deletes leading <code>prefix</code> from <i>str</i>, returning
- *  <code>nil</code> if no change was made.
+ *  Deletes leading `prefix` from *str*, returning
+ *  `nil` if no change was made.
  *
  *     "hello".delete_prefix!("hel") #=> "lo"
  *     "hello".delete_prefix!("llo") #=> nil
@@ -1137,7 +1137,7 @@ str_del_prefix_bang(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     str.delete_prefix(prefix) -> new_str
  *
- *  Returns a copy of <i>str</i> with leading <code>prefix</code> deleted.
+ *  Returns a copy of *str* with leading `prefix` deleted.
  *
  *     "hello".delete_prefix("hel") #=> "lo"
  *     "hello".delete_prefix("llo") #=> "hello"
@@ -1160,8 +1160,8 @@ str_del_prefix(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     str.delete_suffix!(suffix) -> self or nil
  *
- *  Deletes trailing <code>suffix</code> from <i>str</i>, returning
- *  <code>nil</code> if no change was made.
+ *  Deletes trailing `suffix` from *str*, returning
+ *  `nil` if no change was made.
  *
  *     "hello".delete_suffix!("llo") #=> "he"
  *     "hello".delete_suffix!("hel") #=> nil
@@ -1192,7 +1192,7 @@ str_del_suffix_bang(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     str.delete_suffix(suffix) -> new_str
  *
- *  Returns a copy of <i>str</i> with leading <code>suffix</code> deleted.
+ *  Returns a copy of *str* with leading `suffix` deleted.
  *
  *     "hello".delete_suffix("hel") #=> "lo"
  *     "hello".delete_suffix("llo") #=> "hello"
@@ -1217,7 +1217,7 @@ str_del_suffix(mrb_state *mrb, mrb_value self)
  * call-seq:
  *   str.casecmp(other_str)   -> -1, 0, +1 or nil
  *
- * Case-insensitive version of <code>String#<=></code>.
+ * Case-insensitive version of `String#<=>`.
  *
  *   "abcdef".casecmp("abcde")     #=> 1
  *   "aBcDeF".casecmp("abcdef")    #=> 0
@@ -1296,9 +1296,9 @@ str_lines(mrb_state *mrb, mrb_value self)
  * call-seq:
  *   +string -> new_string or self
  *
- * Returns +self+ if +self+ is not frozen.
+ * Returns `self` if `self` is not frozen.
  *
- * Otherwise returns <tt>self.dup</tt>, which is not frozen.
+ * Otherwise returns `self.dup`, which is not frozen.
  */
 static mrb_value
 str_uplus(mrb_state *mrb, mrb_value str)
@@ -2014,11 +2014,11 @@ str_clear(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     str.partition(sep) -> [head, sep, tail]
  *
- *  Searches for the first occurrence of +sep+ in +str+. If +sep+ is found,
- *  returns a 3-element array containing the part of +str+ before +sep+,
- *  +sep+ itself, and the part of +str+ after +sep+.
+ *  Searches for the first occurrence of `sep` in `str`. If `sep` is found,
+ *  returns a 3-element array containing the part of `str` before `sep`,
+ *  `sep` itself, and the part of `str` after `sep`.
  *
- *  If +sep+ is not found, returns a 3-element array containing +str+,
+ *  If `sep` is not found, returns a 3-element array containing `str`,
  *  an empty string, and an empty string.
  *
  *     "hello world".partition(" ")   #=> ["hello", " ", "world"]
@@ -2075,12 +2075,12 @@ str_partition(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     str.rpartition(sep) -> [head, sep, tail]
  *
- *  Searches for the last occurrence of +sep+ in +str+. If +sep+ is found,
- *  returns a 3-element array containing the part of +str+ before +sep+,
- *  +sep+ itself, and the part of +str+ after +sep+.
+ *  Searches for the last occurrence of `sep` in `str`. If `sep` is found,
+ *  returns a 3-element array containing the part of `str` before `sep`,
+ *  `sep` itself, and the part of `str` after `sep`.
  *
- *  If +sep+ is not found, returns a 3-element array containing an empty string,
- *  an empty string, and +str+.
+ *  If `sep` is not found, returns a 3-element array containing an empty string,
+ *  an empty string, and `str`.
  *
  *     "hello world".rpartition(" ")   #=> ["hello", " ", "world"]
  *     "hello world".rpartition("o")   #=> ["hello w", "o", "rld"]
@@ -2136,11 +2136,11 @@ str_rpartition(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     str.insert(index, other_str)   -> str
  *
- *  Inserts <i>other_str</i> before the character at the given
- *  <i>index</i>, modifying <i>str</i>. Negative indices count from the
+ *  Inserts *other_str* before the character at the given
+ *  *index*, modifying *str*. Negative indices count from the
  *  end of the string, and insert <em>after</em> the given character.
- *  The intent is insert <i>aString</i> so that it starts at the given
- *  <i>index</i>.
+ *  The intent is insert *aString* so that it starts at the given
+ *  *index*.
  *
  *     "abcd".insert(0, 'X')    #=> "Xabcd"
  *     "abcd".insert(3, 'X')    #=> "abcXd"
@@ -2183,7 +2183,7 @@ str_insert(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     str.prepend(*other_str)   -> str
  *
- *  Prepend---Prepend the given strings to <i>str</i>.
+ *  Prepend---Prepend the given strings to *str*.
  *
  *     a = "world"
  *     a.prepend("hello ") #=> "hello world"

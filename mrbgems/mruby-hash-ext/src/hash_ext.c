@@ -15,7 +15,7 @@
  *   hsh.values_at(key, ...)   -> array
  *
  * Return an array containing the values associated with the given keys.
- * Also see <code>Hash.select</code>.
+ * Also see `Hash.select`.
  *
  *   h = { "cat" => "feline", "dog" => "canine", "cow" => "bovine" }
  *   h.values_at("cow", "cat")  #=> ["bovine", "feline"]
@@ -105,7 +105,7 @@ slice_bang_i(mrb_state *mrb, mrb_value key, mrb_value val, void *data)
  *  call-seq:
  *     hsh.slice!(*keys) -> a_hash
  *
- *  Deletes keys from hsh that are not in +keys+.
+ *  Deletes keys from hsh that are not in `keys`.
  *  Returns a new hash containing the deleted key-value pairs.
  *
  *     h = { a: 1, b: 2, c: 3, d: 4 }
@@ -309,7 +309,7 @@ hash_key_i(mrb_state *mrb, mrb_value key, mrb_value val, void *data)
  *     hsh.key(value)    -> key
  *
  *  Returns the key of an occurrence of a given value. If the value is
- *  not found, returns <code>nil</code>.
+ *  not found, returns `nil`.
  *
  *     h = { "a" => 100, "b" => 200, "c" => 300, "d" => 300 }
  *     h.key(200)   #=> "b"

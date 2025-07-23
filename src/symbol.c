@@ -468,16 +468,16 @@ mrb_init_symtbl(mrb_state *mrb)
 /**********************************************************************
  * Document-class: Symbol
  *
- *  <code>Symbol</code> objects represent names and some strings
+ *  `Symbol` objects represent names and some strings
  *  inside the Ruby
- *  interpreter. They are generated using the <code>:name</code> and
- *  <code>:"string"</code> literals
- *  syntax, and by the various <code>to_sym</code> methods. The same
- *  <code>Symbol</code> object will be created for a given name or string
+ *  interpreter. They are generated using the `:name` and
+ *  `:"string"` literals
+ *  syntax, and by the various `to_sym` methods. The same
+ *  `Symbol` object will be created for a given name or string
  *  for the duration of a program's execution, regardless of the context
- *  or meaning of that name. Thus if <code>Fred</code> is a constant in
+ *  or meaning of that name. Thus if `Fred` is a constant in
  *  one context, a method in another, and a class in a third, the
- *  <code>Symbol</code> <code>:Fred</code> will be the same object in
+ *  `Symbol` `:Fred` will be the same object in
  *  all three contexts.
  *
  *     module One
@@ -504,7 +504,7 @@ mrb_init_symtbl(mrb_state *mrb)
  *  call-seq:
  *     sym.to_s      -> string
  *
- *  Returns the name or string corresponding to <i>sym</i>.
+ *  Returns the name or string corresponding to *sym*.
  *
  *     :fred.to_s   #=> "fred"
  */
@@ -518,7 +518,7 @@ sym_to_s(mrb_state *mrb, mrb_value sym)
  *  call-seq:
  *     sym.name   -> string
  *
- *  Returns the name or string corresponding to <i>sym</i>. Unlike #to_s, the
+ *  Returns the name or string corresponding to *sym*. Unlike #to_s, the
  *  returned string is frozen.
  *
  *     :fred.name         #=> "fred"
@@ -546,8 +546,8 @@ sym_name(mrb_state *mrb, mrb_value vsym)
  *   sym.to_sym   -> sym
  *   sym.intern   -> sym
  *
- * In general, <code>to_sym</code> returns the <code>Symbol</code> corresponding
- * to an object. As <i>sym</i> is already a symbol, <code>self</code> is returned
+ * In general, `to_sym` returns the `Symbol` corresponding
+ * to an object. As *sym* is already a symbol, `self` is returned
  * in this case.
  */
 
@@ -556,7 +556,7 @@ sym_name(mrb_state *mrb, mrb_value vsym)
  *  call-seq:
  *     sym.inspect    -> string
  *
- *  Returns the representation of <i>sym</i> as a symbol literal.
+ *  Returns the representation of *sym* as a symbol literal.
  *
  *     :fred.inspect   #=> ":fred"
  */

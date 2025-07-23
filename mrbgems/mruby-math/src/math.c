@@ -184,7 +184,7 @@ log2(double x)
  *  call-seq:
  *     Math.sin(x)    -> float
  *
- *  Computes the sine of <i>x</i> (expressed in radians). Returns
+ *  Computes the sine of *x* (expressed in radians). Returns
  *  -1..1.
  */
 static mrb_value
@@ -198,7 +198,7 @@ math_sin(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     Math.cos(x)    -> float
  *
- *  Computes the cosine of <i>x</i> (expressed in radians). Returns
+ *  Computes the cosine of *x* (expressed in radians). Returns
  *  -1..1.
  */
 static mrb_value
@@ -212,7 +212,7 @@ math_cos(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     Math.tan(x)    -> float
  *
- *  Returns the tangent of <i>x</i> (expressed in radians).
+ *  Returns the tangent of *x* (expressed in radians).
  */
 static mrb_value
 math_tan(mrb_state *mrb, mrb_value obj)
@@ -229,7 +229,7 @@ math_tan(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     Math.asin(x)    -> float
  *
- *  Computes the arc sine of <i>x</i>.
+ *  Computes the arc sine of *x*.
  *  @return computed value between `-(PI/2)` and `(PI/2)`.
  */
 static mrb_value
@@ -249,7 +249,7 @@ math_asin(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     Math.acos(x)    -> float
  *
- *  Computes the arc cosine of <i>x</i>. Returns 0..PI.
+ *  Computes the arc cosine of *x*. Returns 0..PI.
  */
 static mrb_value
 math_acos(mrb_state *mrb, mrb_value obj)
@@ -268,7 +268,7 @@ math_acos(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     Math.atan(x)    -> float
  *
- *  Computes the arc tangent of <i>x</i>. Returns `-(PI/2) .. (PI/2)`.
+ *  Computes the arc tangent of *x*. Returns `-(PI/2) .. (PI/2)`.
  */
 static mrb_value
 math_atan(mrb_state *mrb, mrb_value obj)
@@ -281,7 +281,7 @@ math_atan(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     Math.atan2(y, x)  -> float
  *
- *  Computes the arc tangent given <i>y</i> and <i>x</i>. Returns
+ *  Computes the arc tangent given *y* and *x*. Returns
  *  -PI..PI.
  *
  *    Math.atan2(-0.0, -1.0) #=> -3.141592653589793
@@ -314,7 +314,7 @@ math_atan2(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     Math.sinh(x)    -> float
  *
- *  Computes the hyperbolic sine of <i>x</i> (expressed in
+ *  Computes the hyperbolic sine of *x* (expressed in
  *  radians).
  */
 static mrb_value
@@ -328,7 +328,7 @@ math_sinh(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     Math.cosh(x)    -> float
  *
- *  Computes the hyperbolic cosine of <i>x</i> (expressed in radians).
+ *  Computes the hyperbolic cosine of *x* (expressed in radians).
  */
 static mrb_value
 math_cosh(mrb_state *mrb, mrb_value obj)
@@ -341,7 +341,7 @@ math_cosh(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     Math.tanh()    -> float
  *
- *  Computes the hyperbolic tangent of <i>x</i> (expressed in
+ *  Computes the hyperbolic tangent of *x* (expressed in
  *  radians).
  */
 static mrb_value
@@ -360,7 +360,7 @@ math_tanh(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     Math.asinh(x)    -> float
  *
- *  Computes the inverse hyperbolic sine of <i>x</i>.
+ *  Computes the inverse hyperbolic sine of *x*.
  */
 static mrb_value
 math_asinh(mrb_state *mrb, mrb_value obj)
@@ -373,7 +373,7 @@ math_asinh(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     Math.acosh(x)    -> float
  *
- *  Computes the inverse hyperbolic cosine of <i>x</i>.
+ *  Computes the inverse hyperbolic cosine of *x*.
  */
 static mrb_value
 math_acosh(mrb_state *mrb, mrb_value obj)
@@ -392,7 +392,7 @@ math_acosh(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     Math.atanh(x)    -> float
  *
- *  Computes the inverse hyperbolic tangent of <i>x</i>.
+ *  Computes the inverse hyperbolic tangent of *x*.
  */
 static mrb_value
 math_atanh(mrb_state *mrb, mrb_value obj)
@@ -434,7 +434,7 @@ math_exp(mrb_state *mrb, mrb_value obj)
  *     Math.log(numeric)    -> float
  *     Math.log(num,base)   -> float
  *
- *  Returns the natural logarithm of <i>numeric</i>.
+ *  Returns the natural logarithm of *numeric*.
  *  If additional second argument is given, it will be the base
  *  of logarithm.
  *
@@ -468,7 +468,7 @@ math_log(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     Math.log2(numeric)    -> float
  *
- *  Returns the base 2 logarithm of <i>numeric</i>.
+ *  Returns the base 2 logarithm of *numeric*.
  *
  *    Math.log2(1)      #=> 0.0
  *    Math.log2(2)      #=> 1.0
@@ -493,7 +493,7 @@ math_log2(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     Math.log10(numeric)    -> float
  *
- *  Returns the base 10 logarithm of <i>numeric</i>.
+ *  Returns the base 10 logarithm of *numeric*.
  *
  *    Math.log10(1)       #=> 0.0
  *    Math.log10(10)      #=> 1.0
@@ -517,7 +517,7 @@ math_log10(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     Math.sqrt(numeric)    -> float
  *
- *  Returns the square root of <i>numeric</i>.
+ *  Returns the square root of *numeric*.
  *
  */
 static mrb_value
@@ -538,7 +538,7 @@ math_sqrt(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     Math.cbrt(numeric)    -> float
  *
- *  Returns the cube root of <i>numeric</i>.
+ *  Returns the cube root of *numeric*.
  *
  *    -9.upto(9) {|x|
  *      p [x, Math.cbrt(x), Math.cbrt(x)**3]
@@ -578,8 +578,8 @@ math_cbrt(mrb_state *mrb, mrb_value obj)
  *     Math.frexp(numeric)    -> [ fraction, exponent ]
  *
  *  Returns a two-element array containing the normalized fraction (a
- *  <code>Float</code>) and exponent (a <code>Integer</code>) of
- *  <i>numeric</i>.
+ *  `Float`) and exponent (a `Integer`) of
+ *  *numeric*.
  *
  *     fraction, exponent = Math.frexp(1234)   #=> [0.6025390625, 11]
  *     fraction * 2**exponent                  #=> 1234.0
@@ -599,7 +599,7 @@ math_frexp(mrb_state *mrb, mrb_value obj)
  *  call-seq:
  *     Math.ldexp(flt, int) -> float
  *
- *  Returns the value of <i>flt</i>*(2**<i>int</i>).
+ *  Returns the value of *flt**(2***int*).
  *
  *     fraction, exponent = Math.frexp(1234)
  *     Math.ldexp(fraction, exponent)   #=> 1234.0
@@ -621,7 +621,7 @@ math_ldexp(mrb_state *mrb, mrb_value obj)
  *     Math.hypot(x, y)    -> float
  *
  *  Returns sqrt(x**2 + y**2), the hypotenuse of a right-angled triangle
- *  with sides <i>x</i> and <i>y</i>.
+ *  with sides *x* and *y*.
  *
  *     Math.hypot(3, 4)   #=> 5.0
  */

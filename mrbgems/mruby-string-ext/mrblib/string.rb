@@ -2,7 +2,7 @@ class String
 
   ##
   # Call the given block for each character of
-  # +self+.
+  # `self`.
   def each_char(&block)
     return to_enum :each_char unless block
     pos = 0
@@ -56,7 +56,7 @@ class String
   #    a = "abc\ndef"
   #    a.lines    #=> ["abc\n", "def"]
   #
-  #  If a block is given, it works the same as <code>each_line</code>.
+  #  If a block is given, it works the same as `each_line`.
   def lines(&blk)
     lines = self.__lines
     if blk
@@ -74,9 +74,9 @@ class String
   #     str.upto(other_str, exclusive=false) {|s| block }   -> str
   #     str.upto(other_str, exclusive=false)                -> an_enumerator
   #
-  #  Iterates through successive values, starting at <i>str</i> and
-  #  ending at <i>other_str</i> inclusive, passing each value in turn to
-  #  the block. The <code>String#succ</code> method is used to generate
+  #  Iterates through successive values, starting at *str* and
+  #  ending at *other_str* inclusive, passing each value in turn to
+  #  the block. The `String#succ` method is used to generate
   #  each value. If optional second argument exclusive is omitted or is false,
   #  the last value will be included; otherwise it will be excluded.
   #
@@ -92,7 +92,7 @@ class String
   #     a8 a9 b0 b1 b2 b3 b4 b5 b6
   #     a8 a9 b0 b1 b2 b3 b4 b5 b6
   #
-  #  If <i>str</i> and <i>other_str</i> contains only ascii numeric characters,
+  #  If *str* and *other_str* contains only ascii numeric characters,
   #  both are recognized as decimal numbers. In addition, the width of
   #  string (e.g. leading zeros) is handled appropriately.
   #

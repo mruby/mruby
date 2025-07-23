@@ -16,8 +16,8 @@
  *  using obj.==.
  *  Returns the first contained array that matches (that
  *  is, the first associated array),
- *  or +nil+ if no match is found.
- *  See also <code>Array#rassoc</code>.
+ *  or `nil` if no match is found.
+ *  See also `Array#rassoc`.
  *
  *     s1 = [ "colors", "red", "blue", "green" ]
  *     s2 = [ "letters", "a", "b", "c" ]
@@ -49,8 +49,8 @@ ary_assoc(mrb_state *mrb, mrb_value ary)
  *
  *  Searches through the array whose elements are also arrays. Compares
  *  _obj_ with the second element of each contained array using
- *  <code>==</code>. Returns the first contained array that matches. See
- *  also <code>Array#assoc</code>.
+ *  `==`. Returns the first contained array that matches. See
+ *  also `Array#assoc`.
  *
  *     a = [ [ 1, "one"], [2, "two"], [3, "three"], ["ii", "two"] ]
  *     a.rassoc("two")    #=> [2, "two"]
@@ -79,8 +79,8 @@ ary_rassoc(mrb_state *mrb, mrb_value ary)
  *     ary.at(index)   ->   obj  or nil
  *
  *  Returns the element at _index_. A
- *  negative index counts from the end of +self+.  Returns +nil+
- *  if the index is out of range. See also <code>Array#[]</code>.
+ *  negative index counts from the end of `self`.  Returns `nil`
+ *  if the index is out of range. See also `Array#[]`.
  *
  *     a = [ "a", "b", "c", "d", "e" ]
  *     a.at(0)     #=> "a"
@@ -106,8 +106,8 @@ ary_ref(mrb_state *mrb, mrb_value ary, mrb_int n)
  *  call-seq:
  *     ary.values_at(selector, ...)  -> new_ary
  *
- *  Returns an array containing the elements in +self+ corresponding to the
- *  given +selector+(s). The selectors may be either integer indices or ranges.
+ *  Returns an array containing the elements in `self` corresponding to the
+ *  given `selector`(s). The selectors may be either integer indices or ranges.
  *
  *     a = %w{ a b c d e f }
  *     a.values_at(1, 3, 5)          # => ["b", "d", "f"]
@@ -133,10 +133,10 @@ mrb_value mrb_ary_delete_at(mrb_state *mrb, mrb_value self);
  *     ary.slice!(start, length) -> new_ary or nil
  *     ary.slice!(range)         -> new_ary or nil
  *
- *  Deletes the element(s) given by an +index+ (optionally up to +length+
- *  elements) or by a +range+.
+ *  Deletes the element(s) given by an `index` (optionally up to `length`
+ *  elements) or by a `range`.
  *
- *  Returns the deleted object (or objects), or +nil+ if the +index+ is out of
+ *  Returns the deleted object (or objects), or `nil` if the `index` is out of
  *  range.
  *
  *     a = [ "a", "b", "c" ]
@@ -195,7 +195,7 @@ ary_slice_bang(mrb_state *mrb, mrb_value self)
  * call-seq:
  *    ary.compact     -> new_ary
  *
- * Returns a copy of +self+ with all +nil+ elements removed.
+ * Returns a copy of `self` with all `nil` elements removed.
  *
  *   [ "a", nil, "b", nil, "c", nil ].compact
  *                      #=> [ "a", "b", "c" ]
@@ -220,9 +220,9 @@ ary_compact(mrb_state *mrb, mrb_value self)
  * call-seq:
  *    ary.compact!    -> ary  or  nil
  *
- * Removes +nil+ elements from the array.
- * Returns +nil+ if no changes were made, otherwise returns
- * <i>ary</i>.
+ * Removes `nil` elements from the array.
+ * Returns `nil` if no changes were made, otherwise returns
+ * *ary*.
  *
  *    [ "a", nil, "b", nil, "c" ].compact! #=> [ "a", "b", "c" ]
  *    [ "a", "b", "c" ].compact!           #=> nil
@@ -252,11 +252,11 @@ ary_compact_bang(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     ary.rotate(count=1)    -> new_ary
  *
- *  Returns a new array by rotating +self+ so that the element at +count+ is
+ *  Returns a new array by rotating `self` so that the element at `count` is
  *  the first element of the new array.
  *
- *  If +count+ is negative then it rotates in the opposite direction, starting
- *  from the end of +self+ where +-1+ is the last element.
+ *  If `count` is negative then it rotates in the opposite direction, starting
+ *  from the end of `self` where +-1+ is the last element.
  *
  *     a = [ "a", "b", "c", "d" ]
  *     a.rotate         #=> ["b", "c", "d", "a"]
@@ -304,11 +304,11 @@ rev(mrb_value *p, mrb_int beg, mrb_int end)
  *  call-seq:
  *     ary.rotate!(count=1)   -> ary
  *
- *  Rotates +self+ in place so that the element at +count+ comes first, and
- *  returns +self+.
+ *  Rotates `self` in place so that the element at `count` comes first, and
+ *  returns `self`.
  *
- *  If +count+ is negative then it rotates in the opposite direction, starting
- *  from the end of the array where +-1+ is the last element.
+ *  If `count` is negative then it rotates in the opposite direction, starting
+ *  from the end of the array where `-1` is the last element.
  *
  *     a = [ "a", "b", "c", "d" ]
  *     a.rotate!        #=> ["b", "c", "d", "a"]
@@ -437,7 +437,7 @@ ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int other_argc, const 
  *     ary - other_ary   -> new_ary
  *
  *  Returns a new array that is a copy of the original array, with any items
- *  that also appear in +other_ary+ removed.
+ *  that also appear in `other_ary` removed.
  *
  *     [ 1, 1, 2, 2, 3, 3, 4, 5 ] - [ 1, 2, 4 ]  #=> [ 3, 3, 5 ]
  */
@@ -455,7 +455,7 @@ ary_sub(mrb_state *mrb, mrb_value self)
  *     ary.difference(other_ary, ...)   -> new_ary
  *
  *  Returns a new array that is a copy of the original array, removing all
- *  occurrences of any item that also appear in any of the +other_ary+s.
+ *  occurrences of any item that also appear in any of the `other_ary`s.
  *  The order is preserved from the original array.
  *
  *    [1, 2, 3, 4, 5].difference([2, 4], [1, 5])  #=> [3]
@@ -547,7 +547,7 @@ ary_union_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value
  *     ary | other_ary     -> new_ary
  *
  *  Set Union---Returns a new array by joining this array with
- *  *other_ary*, removing duplicates.
+ *  `other_ary`, removing duplicates.
  *
  *     [ "a", "b", "c" ] | [ "c", "d", "a" ]
  *           #=> [ "a", "b", "c", "d" ]
@@ -566,7 +566,7 @@ ary_union(mrb_state *mrb, mrb_value self)
  *    ary.union(other_ary,...)  -> new_ary
  *
  *  Set Union---Returns a new array by joining this array with
- *  <i>other_ary</i>s, removing duplicates.
+ *  `other_ary`s, removing duplicates.
  *
  *    ["a", "b", "c"].union(["c", "d", "a"], ["a", "c", "e"])
  *           #=> ["a", "b", "c", "d", "e"]
@@ -683,7 +683,7 @@ ary_intersection(mrb_state *mrb, mrb_value self)
  *    ary.intersection(other_ary,...)  -> new_ary
  *
  *  Set Intersection---Returns a new array containing elements common to
- *  this array and <i>other_ary</i>s, removing duplicates. The order is
+ *  this array and `other_ary`s, removing duplicates. The order is
  *  preserved from the original array.
  *
  *    [1, 2, 3].intersection([3, 4, 1], [1, 3, 5])  #=> [1, 3]
@@ -702,8 +702,8 @@ ary_intersection_multi(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *    ary.intersect?(other_ary)   -> true or false
  *
- *  Returns +true+ if the array and +other_ary+ have at least one element in
- *  common, otherwise returns +false+.
+ *  Returns `true` if the array and `other_ary` have at least one element in
+ *  common, otherwise returns `false`.
  *
  *     a = [ 1, 2, 3 ]
  *     b = [ 3, 4, 5 ]
@@ -1064,7 +1064,7 @@ flatten_internal(mrb_state *mrb, mrb_value self, mrb_int level, mrb_bool *modifi
  *  Returns a new array that is a one-dimensional flattening of this
  *  array (recursively). That is, for every element that is an array,
  *  extract its elements into the new array. If the optional
- *  <i>level</i> argument determines the level of recursion to flatten.
+ *  `level` argument determines the level of recursion to flatten.
  *
  *    s = [ 1, 2, 3 ]           #=> [1, 2, 3]
  *    t = [ 4, 5, 6, [7, 8] ]   #=> [4, 5, 6, [7, 8]]
@@ -1157,10 +1157,9 @@ ary_fetch(mrb_state *mrb, mrb_value self)
  *     ary.flatten!        -> ary or nil
  *     ary.flatten!(level) -> array or nil
  *
- *  Flattens +self+ in place.
- *  Returns <code>nil</code> if no modifications were made (i.e.,
- *  <i>ary</i> contains no subarrays.) If the optional <i>level</i>
- *  argument determines the level of recursion to flatten.
+ *  Flattens `self` in place.  Returns `nil` if no modifications were made
+ *  (i.e., *ary* contains no subarrays.) If the optional `level` argument
+ *  determines the level of recursion to flatten.
  *
  *    a = [ 1, 2, [3, [4, 5] ] ]
  *    a.flatten!   #=> [1, 2, 3, 4, 5]

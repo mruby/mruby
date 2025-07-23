@@ -12,7 +12,7 @@ static mrb_value flo_remainder(mrb_state *mrb, mrb_value self);
  *  call-seq:
  *     num.remainder(numeric)  ->  real
  *
- *  <code>x.remainder(y)</code> means <code>x-y*(x/y).truncate</code>.
+ *  `x.remainder(y)` means `x-y*(x/y).truncate`.
  *
  *  See Numeric#divmod.
  */
@@ -209,15 +209,15 @@ int_powm(mrb_state *mrb, mrb_value x)
  *  call-seq:
  *    digits(base = 10) -> array_of_integers
  *
- *  Returns an array of integers representing the +base+-radix
- *  digits of +self+;
+ *  Returns an array of integers representing the `base`-radix
+ *  digits of `self`;
  *  the first element of the array represents the least significant digit:
  *
  *    12345.digits      # => [5, 4, 3, 2, 1]
  *    12345.digits(7)   # => [4, 6, 6, 0, 5]
  *    12345.digits(100) # => [45, 23, 1]
  *
- *  Raises an exception if +self+ is negative or +base+ is less than 2.
+ *  Raises an exception if `self` is negative or `base` is less than 2.
  *
  */
 
@@ -315,7 +315,7 @@ int_size(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *    int.even? -> true or false
  *
- *  Returns +true+ if +int+ is an even number.
+ *  Returns `true` if `int` is an even number.
  */
 static mrb_value
 int_even(mrb_state *mrb, mrb_value self)
@@ -334,7 +334,7 @@ int_even(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *    int.odd? -> true or false
  *
- *  Returns +true+ if +int+ is an odd number.
+ *  Returns `true` if `int` is an odd number.
  */
 static mrb_value
 int_odd(mrb_state *mrb, mrb_value self)
@@ -349,7 +349,7 @@ int_odd(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     num.remainder(numeric)  ->  real
  *
- *  <code>x.remainder(y)</code> means <code>x-y*(x/y).truncate</code>.
+ *  `x.remainder(y)` means `x-y*(x/y).truncate`.
  *
  *  See Numeric#divmod.
  */
@@ -393,7 +393,7 @@ isqrt(mrb_int n)
  *  call-seq:
  *    Integer.sqrt(n) -> integer
  *
- *  Returns the integer square root of the non-negative integer +n+,
+ *  Returns the integer square root of the non-negative integer `n`,
  *  which is the largest integer `i` such that `i*i <= n`.
  *
  *    Integer.sqrt(0)    # => 0

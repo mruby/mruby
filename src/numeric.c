@@ -133,7 +133,7 @@ mrb_int_pow(mrb_state *mrb, mrb_value x, mrb_value y)
  *
  *  num ** other  ->  num
  *
- * Raises <code>num</code> the <code>other</code> power.
+ * Raises `num` the `other` power.
  *
  *    2.0**3      #=> 8.0
  */
@@ -198,7 +198,7 @@ mrb_div_int_value(mrb_state *mrb, mrb_int x, mrb_int y)
  *   int / num  ->  num
  *
  * Performs division: the class of the resulting object depends on
- * the class of <code>num</code> and on the magnitude of the
+ * the class of `num` and on the magnitude of the
  * result.
  */
 static mrb_value
@@ -333,7 +333,7 @@ coerce_step_counter(mrb_state *mrb, mrb_value self)
  *
  * Document-class: Float
  *
- *  <code>Float</code> objects represent inexact real numbers using
+ *  `Float` objects represent inexact real numbers using
  *  the native architecture's double-precision floating-point
  *  representation.
  */
@@ -448,8 +448,8 @@ mrb_float_to_str(mrb_state *mrb, mrb_value flo, const char *fmt)
  *
  *  Returns a string containing a representation of self. As well as a
  *  fixed or exponential form of the number, the call may return
- *  "<code>NaN</code>", "<code>Infinity</code>", and
- *  "<code>-Infinity</code>".
+ *  "`NaN`", "`Infinity`", and
+ *  "`-Infinity`".
  *
  *     3.0.to_s   #=> 3.0
  *     3.25.to_s  #=> 3.25
@@ -481,8 +481,8 @@ flo_to_s(mrb_state *mrb, mrb_value flt)
  * call-seq:
  *   float + other  ->  float
  *
- * Returns a new float which is the sum of <code>float</code>
- * and <code>other</code>.
+ * Returns a new float which is the sum of `float`
+ * and `other`.
  */
 static mrb_value
 flo_add(mrb_state *mrb, mrb_value x)
@@ -507,8 +507,8 @@ flo_add(mrb_state *mrb, mrb_value x)
  * call-seq:
  *   float - other  ->  float
  *
- * Returns a new float which is the difference of <code>float</code>
- * and <code>other</code>.
+ * Returns a new float which is the difference of `float`
+ * and `other`.
  */
 
 static mrb_value
@@ -534,8 +534,8 @@ flo_sub(mrb_state *mrb, mrb_value x)
  * call-seq:
  *   float * other  ->  float
  *
- * Returns a new float which is the product of <code>float</code>
- * and <code>other</code>.
+ * Returns a new float which is the product of `float`
+ * and `other`.
  */
 
 static mrb_value
@@ -599,7 +599,7 @@ flodivmod(mrb_state *mrb, double x, double y, mrb_float *divp, mrb_float *modp)
  *     flt % other        ->  float
  *     flt.modulo(other)  ->  float
  *
- *  Return the modulo after division of <code>flt</code> by <code>other</code>.
+ *  Return the modulo after division of `flt` by `other`.
  *
  *     6543.21.modulo(137)      #=> 104.21
  *     6543.21.modulo(137.24)   #=> 92.9299999999996
@@ -621,7 +621,7 @@ flo_mod(mrb_state *mrb, mrb_value x)
  *  call-seq:
  *     num.eql?(numeric)  ->  true or false
  *
- *  Returns <code>true</code> if <i>num</i> and <i>numeric</i> are the
+ *  Returns `true` if `num` and `numeric` are the
  *  same type and have equal values.
  *
  *     1 == 1.0          #=> true
@@ -657,9 +657,9 @@ num_eql(mrb_state *mrb, mrb_value x)
  *  call-seq:
  *     flt == obj  ->  true or false
  *
- *  Returns <code>true</code> only if <i>obj</i> has the same value
- *  as <i>flt</i>. Contrast this with <code>Float#eql?</code>, which
- *  requires <i>obj</i> to be a <code>Float</code>.
+ *  Returns `true` only if *obj* has the same value
+ *  as *flt*. Contrast this with `Float#eql?`, which
+ *  requires *obj* to be a `Float`.
  *
  *     1.0 == 1   #=> true
  *
@@ -695,7 +695,7 @@ flo_eq(mrb_state *mrb, mrb_value x)
  * call-seq:
  *   flt.to_f  ->  self
  *
- * As <code>flt</code> is already a float, returns +self+.
+ * As `flt` is already a float, returns `self`.
  */
 
 /* 15.2.9.3.11 */
@@ -703,7 +703,7 @@ flo_eq(mrb_state *mrb, mrb_value x)
  *  call-seq:
  *     flt.infinite?  ->  nil, -1, +1
  *
- *  Returns <code>nil</code>, -1, or +1 depending on whether <i>flt</i>
+ *  Returns `nil`, -1, or +1 depending on whether *flt*
  *  is finite, -infinity, or +infinity.
  *
  *     (0.0).infinite?        #=> nil
@@ -727,9 +727,9 @@ flo_infinite_p(mrb_state *mrb, mrb_value num)
  *  call-seq:
  *     flt.finite?  ->  true or false
  *
- *  Returns <code>true</code> if <i>flt</i> is a valid IEEE floating
- *  point number (it is not infinite, and <code>nan?</code> is
- *  <code>false</code>).
+ *  Returns `true` if *flt* is a valid IEEE floating
+ *  point number (it is not infinite, and `nan?` is
+ *  `false`).
  *
  */
 
@@ -825,13 +825,13 @@ flo_rounding(mrb_state *mrb, mrb_value num, double (*func)(double))
  *  call-seq:
  *     float.floor([ndigits])  ->  integer or float
  *
- *  Returns the largest number less than or equal to +float+ with
- *  a precision of +ndigits+ decimal digits (default: 0).
+ *  Returns the largest number less than or equal to `float` with
+ *  a precision of `ndigits` decimal digits (default: 0).
  *
  *  When the precision is negative, the returned value is an integer
- *  with at least <code>ndigits.abs</code> trailing zeros.
+ *  with at least `ndigits.abs` trailing zeros.
  *
- *  Returns a floating-point number when +ndigits+ is positive,
+ *  Returns a floating-point number when `ndigits` is positive,
  *  otherwise returns an integer.
  *
  *     1.2.floor      #=> 1
@@ -870,13 +870,13 @@ flo_floor(mrb_state *mrb, mrb_value num)
  *  call-seq:
  *     float.ceil([ndigits])  ->  integer or float
  *
- *  Returns the smallest number greater than or equal to +float+ with
- *  a precision of +ndigits+ decimal digits (default: 0).
+ *  Returns the smallest number greater than or equal to `float` with
+ *  a precision of `ndigits` decimal digits (default: 0).
  *
  *  When the precision is negative, the returned value is an integer
- *  with at least <code>ndigits.abs</code> trailing zeros.
+ *  with at least `ndigits.abs` trailing zeros.
  *
- *  Returns a floating-point number when +ndigits+ is positive,
+ *  Returns a floating-point number when `ndigits` is positive,
  *  otherwise returns an integer.
  *
  *     1.2.ceil      #=> 2
@@ -916,7 +916,7 @@ flo_ceil(mrb_state *mrb, mrb_value num)
  *  call-seq:
  *     flt.round([ndigits])  ->  integer or float
  *
- *  Rounds <i>flt</i> to a given precision in decimal digits (default 0 digits).
+ *  Rounds *flt* to a given precision in decimal digits (default 0 digits).
  *  Precision may be negative.  Returns a floating-point number when ndigits
  *  is more than zero.
  *
@@ -1022,7 +1022,7 @@ flo_to_i(mrb_state *mrb, mrb_value num)
  *     flt.to_i      ->  integer
  *     flt.truncate  ->  integer
  *
- *  Returns <i>flt</i> truncated to an <code>Integer</code>.
+ *  Returns *flt* truncated to an `Integer`.
  */
 
 static mrb_value
@@ -1051,7 +1051,7 @@ flo_abs(mrb_state *mrb, mrb_value num)
 /*
  * Document-class: Integer
  *
- *  <code>Integer</code> is hold whole numbers.
+ *  `Integer` is hold whole numbers.
  *
  */
 
@@ -1064,7 +1064,7 @@ flo_abs(mrb_state *mrb, mrb_value num)
  *     int.to_i      ->  integer
  *     int.to_int    ->  integer
  *
- *  As <i>int</i> is already an <code>Integer</code>, all these
+ *  As *int* is already an `Integer`, all these
  *  methods simply return the receiver.
  */
 
@@ -1142,7 +1142,7 @@ mrb_int_mul(mrb_state *mrb, mrb_value x, mrb_value y)
  *   int * numeric  ->  numeric_result
  *
  * Performs multiplication: the class of the resulting object depends on
- * the class of <code>numeric</code> and on the magnitude of the
+ * the class of `numeric` and on the magnitude of the
  * result.
  */
 
@@ -1186,8 +1186,8 @@ intdivmod(mrb_state *mrb, mrb_int x, mrb_int y, mrb_int *divp, mrb_int *modp)
  *  call-seq:
  *    int % num        ->  num
  *
- *  Returns <code>int</code> modulo <code>other</code>.
- *  See <code>numeric.divmod</code> for more information.
+ *  Returns `int` modulo `other`.
+ *  See `numeric.divmod` for more information.
  */
 
 static mrb_value
@@ -1234,7 +1234,7 @@ static mrb_value flo_divmod(mrb_state *mrb, mrb_value x);
  *  call-seq:
  *     int.divmod(numeric)  ->  array
  *
- *  See <code>Numeric#divmod</code>.
+ *  See `Numeric#divmod`.
  */
 static mrb_value
 int_divmod(mrb_state *mrb, mrb_value x)
@@ -1291,7 +1291,7 @@ flo_divmod(mrb_state *mrb, mrb_value x)
  * call-seq:
  *   int == other  ->  true or false
  *
- * Return <code>true</code> if <code>int</code> equals <code>other</code>
+ * Return `true` if `int` equals `other`
  * numerically.
  *
  *   1 == 2      #=> false
@@ -1585,7 +1585,7 @@ prepare_int_rounding(mrb_state *mrb, mrb_value x)
  *  Returns self.
  *
  *  When the precision (ndigits) is negative, the returned value is an integer
- *  with at least <code>ndigits.abs</code> trailing zeros.
+ *  with at least `ndigits.abs` trailing zeros.
  */
 static mrb_value
 int_ceil(mrb_state *mrb, mrb_value x)
@@ -1627,7 +1627,7 @@ int_ceil(mrb_state *mrb, mrb_value x)
  *  Returns self.
  *
  *  When the precision (ndigits) is negative, the returned value is an integer
- *  with at least <code>ndigits.abs</code> trailing zeros.
+ *  with at least `ndigits.abs` trailing zeros.
  */
 static mrb_value
 int_floor(mrb_state *mrb, mrb_value x)
@@ -1668,7 +1668,7 @@ int_floor(mrb_state *mrb, mrb_value x)
  *  Returns self.
  *
  *  When the precision (ndigits) is negative, the returned value is an integer
- *  with at least <code>ndigits.abs</code> trailing zeros.
+ *  with at least `ndigits.abs` trailing zeros.
  */
 static mrb_value
 int_round(mrb_state *mrb, mrb_value x)
@@ -1732,7 +1732,7 @@ int_round(mrb_state *mrb, mrb_value x)
  *  Returns self.
  *
  *  When the precision (ndigits) is negative, the returned value is an integer
- *  with at least <code>ndigits.abs</code> trailing zeros.
+ *  with at least `ndigits.abs` trailing zeros.
  */
 static mrb_value
 int_truncate(mrb_state *mrb, mrb_value x)
@@ -1760,7 +1760,7 @@ int_truncate(mrb_state *mrb, mrb_value x)
  *  call-seq:
  *     int.to_f  ->  float
  *
- *  Converts <i>int</i> to a <code>Float</code>.
+ *  Converts *int* to a `Float`.
  *
  */
 
@@ -1865,7 +1865,7 @@ mrb_int_add(mrb_state *mrb, mrb_value x, mrb_value y)
  *   int + numeric  ->  numeric_result
  *
  * Performs addition: the class of the resulting object depends on
- * the class of <code>numeric</code> and on the magnitude of the
+ * the class of `numeric` and on the magnitude of the
  * result.
  */
 static mrb_value
@@ -1945,7 +1945,7 @@ mrb_int_sub(mrb_state *mrb, mrb_value x, mrb_value y)
  *   int - numeric  ->  numeric
  *
  * Performs subtraction: the class of the resulting object depends on
- * the class of <code>numeric</code> and on the magnitude of the
+ * the class of `numeric` and on the magnitude of the
  * result.
  */
 static mrb_value
@@ -2039,8 +2039,8 @@ mrb_integer_to_str(mrb_state *mrb, mrb_value x, mrb_int base)
  *  call-seq:
  *     int.to_s(base=10)  ->  string
  *
- *  Returns a string containing the representation of <i>int</i> radix
- *  <i>base</i> (between 2 and 36).
+ *  Returns a string containing the representation of *int* radix
+ *  *base* (between 2 and 36).
  *
  *     12345.to_s       #=> "12345"
  *     12345.to_s(2)    #=> "11000000111001"
@@ -2160,9 +2160,9 @@ int_hash(mrb_state *mrb, mrb_value self)
  *             <  => -1
  *             =  =>  0
  *             >  => +1
- *  Comparison---Returns -1, 0, or +1 depending on whether <i>int</i> is
- *  less than, equal to, or greater than <i>numeric</i>. This is the
- *  basis for the tests in <code>Comparable</code>. When the operands are
+ *  Comparison---Returns -1, 0, or +1 depending on whether *int* is
+ *  less than, equal to, or greater than *numeric*. This is the
+ *  basis for the tests in `Comparable`. When the operands are
  *  not comparable, it returns nil instead of raising an exception.
  */
 static mrb_value

@@ -496,7 +496,7 @@ mrb_ary_concat(mrb_state *mrb, mrb_value self, mrb_value other)
  *  call-seq:
  *    array.concat(*other_arrays) -> self
  *
- *  Adds to +array+ all elements from each \Array in +other_arrays+; returns +self+:
+ *  Adds to `array` all elements from each \Array in `other_arrays`; returns `self`:
  *
  *    a = [0, 1]
  *    a.concat([2, 3], [4, 5]) # => [0, 1, 2, 3, 4, 5]
@@ -990,7 +990,7 @@ mrb_ary_unshift(mrb_state *mrb, mrb_value self, mrb_value item)
  *  call-seq:
  *    array.unshift(*objects) -> self
  *
- *  Prepends the given +objects+ to +self+:
+ *  Prepends the given `objects` to `self`:
  *
  *    a = [:foo, 'bar', 2]
  *    a.unshift(:bam, :bat) # => [:bam, :bat, :foo, "bar", 2]
@@ -1283,16 +1283,16 @@ aget_index(mrb_state *mrb, mrb_value index)
  *     ary.slice(start, length)  -> new_ary or nil
  *     ary.slice(range)          -> new_ary or nil
  *
- *  Element Reference --- Returns the element at +index+, or returns a
- *  subarray starting at the +start+ index and continuing for +length+
- *  elements, or returns a subarray specified by +range+ of indices.
+ *  Element Reference --- Returns the element at `index`, or returns a
+ *  subarray starting at the `start` index and continuing for `length`
+ *  elements, or returns a subarray specified by `range` of indices.
  *
  *  Negative indices count backward from the end of the array (-1 is the last
- *  element).  For +start+ and +range+ cases the starting index is just before
+ *  element).  For `start` and `range` cases the starting index is just before
  *  an element.  Additionally, an empty array is returned when the starting
  *  index for an element range is at the end of the array.
  *
- *  Returns +nil+ if the index (or starting index) are out of range.
+ *  Returns `nil` if the index (or starting index) are out of range.
  *
  *  a = [ "a", "b", "c", "d", "e" ]
  *  a[1]     => "b"
@@ -1344,16 +1344,16 @@ mrb_ary_aget(mrb_state *mrb, mrb_value self)
  *     ary[start, length] = obj or other_ary or nil  ->  obj or other_ary or nil
  *     ary[range]         = obj or other_ary or nil  ->  obj or other_ary or nil
  *
- *  Element Assignment --- Sets the element at +index+, or replaces a subarray
- *  from the +start+ index for +length+ elements, or replaces a subarray
- *  specified by the +range+ of indices.
+ *  Element Assignment --- Sets the element at `index`, or replaces a subarray
+ *  from the `start` index for `length` elements, or replaces a subarray
+ *  specified by the `range` of indices.
  *
  *  If indices are greater than the current capacity of the array, the array
- *  grows automatically.  Elements are inserted into the array at +start+ if
- *  +length+ is zero.
+ *  grows automatically.  Elements are inserted into the array at `start` if
+ *  `length` is zero.
  *
  *  Negative indices will count backward from the end of the array.  For
- *  +start+ and +range+ cases the starting index is just before an element.
+ *  `start` and `range` cases the starting index is just before an element.
  *
  *  An IndexError is raised if a negative index points past the beginning of
  *  the array.
@@ -1524,11 +1524,11 @@ mrb_ary_last(mrb_state *mrb, mrb_value self)
  *     ary.index {|item| block } -> int or nil
  *     array.index -> enumerator
  *
- *  Returns the _index_ of the first object in +ary+ such that the object is
- *  <code>==</code> to +obj+.
+ *  Returns the _index_ of the first object in `ary` such that the object is
+ *  `==` to `obj`.
  *
  *  If a block is given instead of an argument, returns the _index_ of the
- *  first object for which the block returns +true+. Returns +nil+ if no
+ *  first object for which the block returns `true`. Returns `nil` if no
  *  match is found.
  *
  * ISO 15.2.12.5.14
@@ -1566,11 +1566,11 @@ mrb_ary_index_m(mrb_state *mrb, mrb_value self)
  *     ary.rindex {|item| block } -> int or nil
  *     array.rindex -> enumerator
  *
- *  Returns the _index_ of the first object in +ary+ such that the object is
- *  <code>==</code> to +obj+.
+ *  Returns the _index_ of the first object in `ary` such that the object is
+ *  `==` to `obj`.
  *
  *  If a block is given instead of an argument, returns the _index_ of the
- *  first object for which the block returns +true+. Returns +nil+ if no
+ *  first object for which the block returns `true`. Returns `nil` if no
  *  match is found.
  *
  * ISO 15.2.12.5.26
@@ -1818,7 +1818,7 @@ mrb_ary_join(mrb_state *mrb, mrb_value ary, mrb_value sep)
  *     ary.join(sep="")    -> str
  *
  *  Returns a string created by converting each element of the array to
- *  a string, separated by <i>sep</i>.
+ *  a string, separated by *sep*.
  *
  *     [ "a", "b", "c" ].join        #=> "abc"
  *     [ "a", "b", "c" ].join("-")   #=> "a-b-c"
@@ -1907,7 +1907,7 @@ mrb_ary_eq(mrb_state *mrb, mrb_value ary1)
  * call-seq:
  *   array.eql? other_array -> true or false
  *
- *  Returns <code>true</code> if +self+ and _other_ are the same object,
+ *  Returns `true` if `self` and _other_ are the same object,
  *  or are both arrays with the same content.
  *
  */
@@ -1939,12 +1939,12 @@ mrb_ary_eql(mrb_state *mrb, mrb_value ary1)
  *   array <=> other_array -> -1, 0, or 1
  *
  *  Comparison---Returns an integer (-1, 0, or +1)
- *  if this array is less than, equal to, or greater than <i>other_ary</i>.
+ *  if this array is less than, equal to, or greater than *other_ary*.
  *  Each object in each array is compared (using <=>). If any value isn't
  *  equal, then that inequality is the return value. If all the
  *  values found are equal, then the return is based on a
  *  comparison of the array lengths. Thus, two arrays are
- *  "equal" according to <code>Array*<=></code> if and only if they have
+ *  "equal" according to `Array#<=>` if and only if they have
  *  the same length and the value of each element is equal to the
  *  value of the corresponding element in the other array.
  */
@@ -2149,7 +2149,7 @@ insertion_sort(mrb_state *mrb, mrb_value ary, mrb_value *a, mrb_int size, mrb_va
  *    array.sort! -> self
  *    array.sort! {|a, b| ... } -> self
  *
- *  Sort all elements and replace +self+ with these
+ *  Sort all elements and replace `self` with these
  *  elements.
  */
 static mrb_value

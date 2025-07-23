@@ -1059,8 +1059,8 @@ send_method(mrb_state *mrb, mrb_value self, mrb_bool pub)
  *     obj.__send__(symbol [, args...])      -> obj
  *
  *  Invokes the method identified by _symbol_, passing it any
- *  arguments specified. You can use <code>__send__</code> if the name
- *  +send+ clashes with an existing method in _obj_.
+ *  arguments specified. You can use `__send__` if the name
+ *  `send` clashes with an existing method in _obj_.
  *
  *     class Klass
  *       def hello(*args)
@@ -1146,7 +1146,7 @@ eval_under(mrb_state *mrb, mrb_value self, mrb_value blk, struct RClass *c)
  *     mod.module_eval {| | block } -> obj
  *
  *  Evaluates block in the context of _mod_. This can
- *  be used to add methods to a class. <code>module_eval</code> returns
+ *  be used to add methods to a class. `module_eval` returns
  *  the result of evaluating its argument.
  */
 mrb_value
@@ -1166,10 +1166,10 @@ mrb_mod_module_eval(mrb_state *mrb, mrb_value mod)
  *     obj.instance_eval {| | block }                       -> obj
  *
  *  Evaluates the given block,within  the context of the receiver (_obj_).
- *  In order to set the context, the variable +self+ is set to _obj_ while
+ *  In order to set the context, the variable `self` is set to _obj_ while
  *  the code is executing, giving the code access to _obj_'s
- *  instance variables. In the version of <code>instance_eval</code>
- *  that takes a +String+, the optional second and third
+ *  instance variables. In the version of `instance_eval`
+ *  that takes a `String`, the optional second and third
  *  parameters supply a filename and starting line number that are used
  *  when reporting compilation errors.
  *

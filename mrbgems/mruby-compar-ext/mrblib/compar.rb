@@ -4,9 +4,9 @@ module Comparable
   #    obj.clamp(min, max) ->  obj
   #    obj.clamp(range)    ->  obj
   #
-  # In <code>(min, max)</code> form, returns _min_ if _obj_
-  # <code><=></code> _min_ is less than zero, _max_ if _obj_
-  # <code><=></code> _max_ is greater than zero, and _obj_
+  # In `(min, max)` form, returns _min_ if _obj_
+  # `<=>` _min_ is less than zero, _max_ if _obj_
+  # `<=>` _max_ is greater than zero, and _obj_
   # otherwise.
   #
   #    12.clamp(0, 100)         #=> 12
@@ -16,9 +16,9 @@ module Comparable
   #    'd'.clamp('a', 'f')      #=> 'd'
   #    'z'.clamp('a', 'f')      #=> 'f'
   #
-  # In <code>(range)</code> form, returns _range.begin_ if _obj_
-  # <code><=></code> _range.begin_ is less than zero, _range.end_
-  # if _obj_ <code><=></code> _range.end_ is greater than zero, and
+  # In `(range)` form, returns _range.begin_ if _obj_
+  # `<=>` _range.begin_ is less than zero, _range.end_
+  # if _obj_ `<=>` _range.end_ is greater than zero, and
   # _obj_ otherwise.
   #
   #    12.clamp(0..100)         #=> 12
@@ -28,14 +28,14 @@ module Comparable
   #    'd'.clamp('a'..'f')      #=> 'd'
   #    'z'.clamp('a'..'f')      #=> 'f'
   #
-  # If _range.begin_ is +nil+, it is considered smaller than _obj_,
-  # and if _range.end_ is +nil+, it is considered greater than
+  # If _range.begin_ is `nil`, it is considered smaller than _obj_,
+  # and if _range.end_ is `nil`, it is considered greater than
   # _obj_.
   #
   #    -20.clamp(0..)           #=> 0
   #    523.clamp(..100)         #=> 100
   #
-  # When _range.end_ is excluded and not +nil+, an exception is
+  # When _range.end_ is excluded and not `nil`, an exception is
   # raised.
   #
   #     100.clamp(0...100)       # ArgumentError

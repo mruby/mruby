@@ -370,7 +370,7 @@ proc_hash(mrb_state *mrb, mrb_value self)
  * call-seq:
  *   lambda { |...| block }  -> a_proc
  *
- * Equivalent to <code>Proc.new</code>, except the resulting Proc objects
+ * Equivalent to `Proc.new`, except the resulting Proc objects
  * check the number of parameters passed when called.
  */
 static mrb_value

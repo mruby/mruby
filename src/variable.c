@@ -689,7 +689,7 @@ cv_i(mrb_state *mrb, mrb_sym sym, mrb_value v, void *p)
  *  call-seq:
  *     mod.class_variables(inherit=true)   -> array
  *
- *  Returns an array of the names of class variables in <i>mod</i>.
+ *  Returns an array of the names of class variables in *mod*.
  *
  *     class One
  *       @@var1 = 1

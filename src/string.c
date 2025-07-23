@@ -1096,8 +1096,8 @@ mrb_str_plus(mrb_state *mrb, mrb_value a, mrb_value b)
  *  call-seq:
  *     str + other_str   -> new_str
  *
- *  Concatenation---Returns a new <code>String</code> containing
- *  <i>other_str</i> concatenated to <i>str</i>.
+ *  Concatenation---Returns a new `String` containing
+ *  `other_str` concatenated to `str`.
  *
  *     "Hello from " + self.to_s   #=> "Hello from main"
  */
@@ -1136,7 +1136,7 @@ mrb_str_bytesize(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     str * integer   => new_str
  *
- *  Copy---Returns a new <code>String</code> containing <i>integer</i> copies of
+ *  Copy---Returns a new `String` containing `integer` copies of
  *  the receiver.
  *
  *     "Ho! " * 3   #=> "Ho! Ho! Ho! "
@@ -1217,20 +1217,19 @@ mrb_str_cmp(mrb_state *mrb, mrb_value str1, mrb_value str2)
  *  call-seq:
  *     str <=> other_str   => -1, 0, +1
  *
- *  Comparison---Returns -1 if <i>other_str</i> is less than, 0 if
- *  <i>other_str</i> is equal to, and +1 if <i>other_str</i> is greater than
- *  <i>str</i>. If the strings are of different lengths, and the strings are
+ *  Comparison---Returns -1 if `other_str` is less than, 0 if
+ *  `other_str` is equal to, and +1 if `other_str` is greater than
+ *  `str`. If the strings are of different lengths, and the strings are
  *  equal when compared up to the shortest length, then the longer string is
- *  considered greater than the shorter one. If the variable <code>$=</code> is
- *  <code>false</code>, the comparison is based on comparing the binary values
+ *  considered greater than the shorter one. If the variable `$=` is
+ *  `false`, the comparison is based on comparing the binary values
  *  of each character in the string. In older versions of Ruby, setting
- *  <code>$=</code> allowed case-insensitive comparisons; this is now deprecated
- *  in favor of using <code>String#casecmp</code>.
+ *  `$=` allowed case-insensitive comparisons; this is now deprecated
+ *  in favor of using `String#casecmp`.
  *
- *  <code><=></code> is the basis for the methods <code><</code>,
- *  <code><=</code>, <code>></code>, <code>>=</code>, and <code>between?</code>,
- *  included from module <code>Comparable</code>.  The method
- *  <code>String#==</code> does not use <code>Comparable#==</code>.
+ *  `<=>` is the basis for the methods `<`, `<=`, `>`, `>=`, and `between?`,
+ *  included from module `Comparable`.  The method `String#==` does not use
+ *  `Comparable#==`.
  *
  *     "abcdef" <=> "abcde"     #=> 1
  *     "abcdef" <=> "abcdef"    #=> 0
@@ -1281,10 +1280,10 @@ mrb_str_equal(mrb_state *mrb, mrb_value str1, mrb_value str2)
  *     str == obj   => true or false
  *
  *  Equality---
- *  If <i>obj</i> is not a <code>String</code>, returns <code>false</code>.
- *  Otherwise, returns <code>false</code> or <code>true</code>
+ *  If `obj` is not a `String`, returns `false`.
+ *  Otherwise, returns `false` or `true`
  *
- *   caution:if <i>str</i> <code><=></code> <i>obj</i> returns zero.
+ *   caution:if `str` `<=>` `obj` returns zero.
  */
 static mrb_value
 mrb_str_equal_m(mrb_state *mrb, mrb_value str1)
@@ -1416,17 +1415,17 @@ mrb_str_aref(mrb_state *mrb, mrb_value str, mrb_value idx, mrb_value alen)
  *     str.slice(range)         => new_str or nil
  *     str.slice(other_str)     => new_str or nil
  *
- *  Element Reference---If passed a single <code>Integer</code>, returns the code
- *  of the character at that position. If passed two <code>Integer</code>
+ *  Element Reference---If passed a single `Integer`, returns the code
+ *  of the character at that position. If passed two `Integer`
  *  objects, returns a substring starting at the offset given by the first, and
  *  a length given by the second. If given a range, a substring containing
  *  characters at offsets given by the range is returned. In all three cases, if
- *  an offset is negative, it is counted from the end of <i>str</i>. Returns
- *  <code>nil</code> if the initial offset falls outside the string, the length
+ *  an offset is negative, it is counted from the end of *str*. Returns
+ *  `nil` if the initial offset falls outside the string, the length
  *  is negative, or the beginning of the range is greater than the end.
  *
- *  If a <code>String</code> is given, that string is returned if it occurs in
- *  <i>str</i>. In both cases, <code>nil</code> is returned if there is no
+ *  If a `String` is given, that string is returned if it occurs in
+ *  *str*. In both cases, `nil` is returned if there is no
  *  match.
  *
  *     a = "hello there"
@@ -1612,9 +1611,9 @@ mrb_str_aset(mrb_state *mrb, mrb_value str, mrb_value idx, mrb_value alen, mrb_v
  *    str[range] = replace
  *    str[other_str] = replace
  *
- * Modify +self+ by replacing the content of +self+.
+ * Modify `self` by replacing the content of `self`.
  * The portion of the string affected is determined using the same criteria as +String#[]+.
- * The return value of this expression is +replace+.
+ * The return value of this expression is `replace`.
  */
 static mrb_value
 mrb_str_aset_m(mrb_state *mrb, mrb_value str)
@@ -1638,8 +1637,8 @@ mrb_str_aset_m(mrb_state *mrb, mrb_value str)
  *  call-seq:
  *     str.capitalize!   => str or nil
  *
- *  Modifies <i>str</i> by converting the first character to uppercase and the
- *  remainder to lowercase. Returns <code>nil</code> if no changes are made.
+ *  Modifies *str* by converting the first character to uppercase and the
+ *  remainder to lowercase. Returns `nil` if no changes are made.
  *
  *     a = "hello"
  *     a.capitalize!   #=> "Hello"
@@ -1676,7 +1675,7 @@ mrb_str_capitalize_bang(mrb_state *mrb, mrb_value str)
  *  call-seq:
  *     str.capitalize   => new_str
  *
- *  Returns a copy of <i>str</i> with the first character converted to uppercase
+ *  Returns a copy of *str* with the first character converted to uppercase
  *  and the remainder to lowercase.
  *
  *     "hello".capitalize    #=> "Hello"
@@ -1698,8 +1697,8 @@ mrb_str_capitalize(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     str.chomp!(separator="\n")   => str or nil
  *
- *  Modifies <i>str</i> in place as described for <code>String#chomp</code>,
- *  returning <i>str</i>, or <code>nil</code> if no modifications were made.
+ *  Modifies *str* in place as described for `String#chomp`,
+ *  returning *str*, or `nil` if no modifications were made.
  */
 static mrb_value
 mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
@@ -1774,10 +1773,10 @@ mrb_str_chomp_bang(mrb_state *mrb, mrb_value str)
  *  call-seq:
  *     str.chomp(separator="\n")   => new_str
  *
- *  Returns a new <code>String</code> with the given record separator removed
- *  from the end of <i>str</i> (if present). <code>chomp</code> also removes
- *  carriage return characters (that is it will remove <code>\n</code>,
- *  <code>\r</code>, and <code>\r\n</code>).
+ *  Returns a new `String` with the given record separator removed
+ *  from the end of *str* (if present). `chomp` also removes
+ *  carriage return characters (that is it will remove `\n`,
+ *  `\r`, and `\r\n`).
  *
  *     "hello".chomp            #=> "hello"
  *     "hello\n".chomp          #=> "hello"
@@ -1802,9 +1801,9 @@ mrb_str_chomp(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     str.chop!   => str or nil
  *
- *  Processes <i>str</i> as for <code>String#chop</code>, returning <i>str</i>,
- *  or <code>nil</code> if <i>str</i> is the empty string.  See also
- *  <code>String#chomp!</code>.
+ *  Processes *str* as for `String#chop`, returning *str*,
+ *  or `nil` if *str* is the empty string.  See also
+ *  `String#chomp!`.
  */
 static mrb_value
 mrb_str_chop_bang(mrb_state *mrb, mrb_value str)
@@ -1844,10 +1843,10 @@ mrb_str_chop_bang(mrb_state *mrb, mrb_value str)
  *  call-seq:
  *     str.chop   => new_str
  *
- *  Returns a new <code>String</code> with the last character removed.  If the
- *  string ends with <code>\r\n</code>, both characters are removed. Applying
- *  <code>chop</code> to an empty string returns an empty
- *  string. <code>String#chomp</code> is often a safer alternative, as it leaves
+ *  Returns a new `String` with the last character removed.  If the
+ *  string ends with `\r\n`, both characters are removed. Applying
+ *  `chop` to an empty string returns an empty
+ *  string. `String#chomp` is often a safer alternative, as it leaves
  *  the string unchanged if it doesn't end in a record separator.
  *
  *     "string\r\n".chop   #=> "string"
@@ -1870,7 +1869,7 @@ mrb_str_chop(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     str.downcase!   => str or nil
  *
- *  Downcases the contents of <i>str</i>, returning <code>nil</code> if no
+ *  Downcases the contents of *str*, returning `nil` if no
  *  changes were made.
  */
 static mrb_value
@@ -1900,7 +1899,7 @@ mrb_str_downcase_bang(mrb_state *mrb, mrb_value str)
  *  call-seq:
  *     str.downcase   => new_str
  *
- *  Returns a copy of <i>str</i> with all uppercase letters replaced with their
+ *  Returns a copy of *str* with all uppercase letters replaced with their
  *  lowercase counterparts. The operation is locale insensitive---only
  *  characters 'A' to 'Z' are affected.
  *
@@ -1921,7 +1920,7 @@ mrb_str_downcase(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     str.empty?   => true or false
  *
- *  Returns <code>true</code> if <i>str</i> has a length of zero.
+ *  Returns `true` if *str* has a length of zero.
  *
  *     "hello".empty?   #=> false
  *     "".empty?        #=> true
@@ -2031,7 +2030,7 @@ mrb_str_hash_m(mrb_state *mrb, mrb_value self)
  *     str.include? other_str   => true or false
  *     str.include? int         => true or false
  *
- *  Returns <code>true</code> if <i>str</i> contains the given string or
+ *  Returns `true` if *str* contains the given string or
  *  character.
  *
  *     "hello".include? "lo"   #=> true
@@ -2053,8 +2052,8 @@ mrb_str_include(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *    str.byteindex(substring, offset = 0) -> integer or nil
  *
- *  Returns the \Integer byte-based index of the first occurrence of the given +substring+,
- *  or +nil+ if none found:
+ *  Returns the \Integer byte-based index of the first occurrence of the given `substring`,
+ *  or `nil` if none found:
  *
  *    'foo'.byteindex('f') # => 0
  *    'foo'.byteindex('oo') # => 1
@@ -2087,7 +2086,7 @@ mrb_str_byteindex_m(mrb_state *mrb, mrb_value str)
  *     str.index(substring [, offset])   => int or nil
  *
  *  Returns the index of the first occurrence of the given
- *  <i>substring</i>. Returns <code>nil</code> if not found.
+ *  *substring*. Returns `nil` if not found.
  *  If the second parameter is present, it
  *  specifies the position in the string to begin the search.
  *
@@ -2149,7 +2148,7 @@ mrb_str_replace(mrb_state *mrb, mrb_value str)
  *  call-seq:
  *     String.new(str="")   => new_str
  *
- *  Returns a new string object containing a copy of <i>str</i>.
+ *  Returns a new string object containing a copy of *str*.
  */
 static mrb_value
 mrb_str_init(mrb_state *mrb, mrb_value self)
@@ -2170,7 +2169,7 @@ mrb_str_init(mrb_state *mrb, mrb_value self)
  *     str.intern   => symbol
  *     str.to_sym   => symbol
  *
- *  Returns the <code>Symbol</code> corresponding to <i>str</i>, creating the
+ *  Returns the `Symbol` corresponding to *str*, creating the
  *  symbol if it did not previously exist.
  *
  *     "Koala".intern         #=> :Koala
@@ -2180,7 +2179,7 @@ mrb_str_init(mrb_state *mrb, mrb_value self)
  *     s == :@cat             #=> true
  *
  *  This can also be used to create symbols that cannot be represented using the
- *  <code>:xxx</code> notation.
+ *  `:xxx` notation.
  *
  *     'cat and dog'.to_sym   #=> :"cat and dog"
  */
@@ -2282,7 +2281,7 @@ str_reverse(char *p, char *e)
  *  call-seq:
  *     str.reverse!   => str
  *
- *  Reverses <i>str</i> in place.
+ *  Reverses *str* in place.
  */
 static mrb_value
 mrb_str_reverse_bang(mrb_state *mrb, mrb_value str)
@@ -2327,7 +2326,7 @@ mrb_str_reverse_bang(mrb_state *mrb, mrb_value str)
  *  call-seq:
  *     str.reverse   => new_str
  *
- *  Returns a new string with the characters from <i>str</i> in reverse order.
+ *  Returns a new string with the characters from *str* in reverse order.
  *
  *     "stressed".reverse   #=> "desserts"
  */
@@ -2343,8 +2342,8 @@ mrb_str_reverse(mrb_state *mrb, mrb_value str)
  *  call-seq:
  *    byterindex(substring, offset = self.bytesize) -> integer or nil
  *
- *  Returns the \Integer byte-based index of the _last_ occurrence of the given +substring+,
- *  or +nil+ if none found:
+ *  Returns the \Integer byte-based index of the _last_ occurrence of the given `substring`,
+ *  or `nil` if none found:
  *
  *    'foo'.byterindex('f') # => 0
  *    'foo'.byterindex('o') # => 2
@@ -2382,8 +2381,8 @@ mrb_str_byterindex_m(mrb_state *mrb, mrb_value str)
  *  call-seq:
  *     str.rindex(substring [, offset])   => int or nil
  *
- *  Returns the index of the last occurrence of the given <i>substring</i>.
- *  Returns <code>nil</code> if not found. If the second parameter is
+ *  Returns the index of the last occurrence of the given *substring*.
+ *  Returns `nil` if not found. If the second parameter is
  *  present, it specifies the position in the string to end the
  *  search---characters beyond this point will not be considered.
  *
@@ -2436,20 +2435,20 @@ mrb_str_rindex_m(mrb_state *mrb, mrb_value str)
  *  call-seq:
  *     str.split(separator=nil, [limit])   => anArray
  *
- *  Divides <i>str</i> into substrings based on a delimiter, returning an array
+ *  Divides *str* into substrings based on a delimiter, returning an array
  *  of these substrings.
  *
- *  If <i>separator</i> is a <code>String</code>, then its contents are used as
- *  the delimiter when splitting <i>str</i>. If <i>separator</i> is a single
- *  space, <i>str</i> is split on whitespace, with leading whitespace and runs
+ *  If *separator* is a `String`, then its contents are used as
+ *  the delimiter when splitting *str*. If *separator* is a single
+ *  space, *str* is split on whitespace, with leading whitespace and runs
  *  of contiguous whitespace characters ignored.
  *
- *  If <i>separator</i> is omitted or <code>nil</code> (which is the default),
- *  <i>str</i> is split on whitespace as if ' ' were specified.
+ *  If *separator* is omitted or `nil` (which is the default),
+ *  *str* is split on whitespace as if ' ' were specified.
  *
- *  If the <i>limit</i> parameter is omitted, trailing null fields are
- *  suppressed. If <i>limit</i> is a positive number, at most that number of
- *  fields will be returned (if <i>limit</i> is <code>1</code>, the entire
+ *  If the *limit* parameter is omitted, trailing null fields are
+ *  suppressed. If *limit* is a positive number, at most that number of
+ *  fields will be returned (if *limit* is `1`, the entire
  *  string is returned as the only entry in an array). If negative, there is no
  *  limit to the number of fields returned, and trailing null fields are not
  *  suppressed.
@@ -2842,10 +2841,10 @@ mrb_str_to_integer(mrb_state *mrb, mrb_value str, mrb_int base, mrb_bool badchec
  *  call-seq:
  *     str.to_i(base=10)   => integer
  *
- *  Returns the result of interpreting leading characters in <i>str</i> as an
- *  integer base <i>base</i> (between 2 and 36). Extraneous characters past the
+ *  Returns the result of interpreting leading characters in *str* as an
+ *  integer base *base* (between 2 and 36). Extraneous characters past the
  *  end of a valid number are ignored. If there is not a valid number at the
- *  start of <i>str</i>, <code>0</code> is returned. This method never raises an
+ *  start of *str*, `0` is returned. This method never raises an
  *  exception.
  *
  *     "12345".to_i             #=> 12345
@@ -2982,10 +2981,10 @@ mrb_str_to_dbl(mrb_state *mrb, mrb_value str, mrb_bool badcheck)
  *  call-seq:
  *     str.to_f   => float
  *
- *  Returns the result of interpreting leading characters in <i>str</i> as a
+ *  Returns the result of interpreting leading characters in *str* as a
  *  floating-point number. Extraneous characters past the end of a valid number
- *  are ignored. If there is not a valid number at the start of <i>str</i>,
- *  <code>0.0</code> is returned. This method never raises an exception.
+ *  are ignored. If there is not a valid number at the start of *str*,
+ *  `0.0` is returned. This method never raises an exception.
  *
  *     "123.45e1".to_f        #=> 1234.5
  *     "45.67 degrees".to_f   #=> 45.67
@@ -3019,7 +3018,7 @@ mrb_str_to_s(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     str.upcase!   => str or nil
  *
- *  Upcases the contents of <i>str</i>, returning <code>nil</code> if no changes
+ *  Upcases the contents of *str*, returning `nil` if no changes
  *  were made.
  */
 static mrb_value
@@ -3049,7 +3048,7 @@ mrb_str_upcase_bang(mrb_state *mrb, mrb_value str)
  *  call-seq:
  *     str.upcase   => new_str
  *
- *  Returns a copy of <i>str</i> with all lowercase letters replaced with their
+ *  Returns a copy of *str* with all lowercase letters replaced with their
  *  uppercase counterparts. The operation is locale insensitive---only
  *  characters 'a' to 'z' are affected.
  *
@@ -3069,8 +3068,8 @@ mrb_str_upcase(mrb_state *mrb, mrb_value self)
  *  call-seq:
  *     str.dump   -> new_str
  *
- *  Produces a version of <i>str</i> with all nonprinting characters replaced by
- *  <code>\nnn</code> notation and all special characters escaped.
+ *  Produces a version of *str* with all nonprinting characters replaced by
+ *  `\nnn` notation and all special characters escaped.
  */
 mrb_value
 mrb_str_dump(mrb_state *mrb, mrb_value str)
@@ -3228,7 +3227,7 @@ mrb_str_bytes(mrb_state *mrb, mrb_value str)
  *  call-seq:
  *     str.getbyte(index)          -> 0 .. 255
  *
- *  returns the <i>index</i>th byte as an integer.
+ *  returns the *index*th byte as an integer.
  */
 static mrb_value
 mrb_str_getbyte(mrb_state *mrb, mrb_value str)
@@ -3248,7 +3247,7 @@ mrb_str_getbyte(mrb_state *mrb, mrb_value str)
  *  call-seq:
  *     str.setbyte(index, integer) -> integer
  *
- *  modifies the <i>index</i>th byte as <i>integer</i>.
+ *  modifies the *index*th byte as *integer*.
  */
 static mrb_value
 mrb_str_setbyte(mrb_state *mrb, mrb_value str)
@@ -3281,8 +3280,8 @@ mrb_str_setbyte(mrb_state *mrb, mrb_value str)
  *  objects, returns a substring starting at the offset given by the first, and
  *  a length given by the second. If given a Range, a substring containing
  *  bytes at offsets given by the range is returned. In all three cases, if
- *  an offset is negative, it is counted from the end of <i>str</i>. Returns
- *  <code>nil</code> if the initial offset falls outside the string, the length
+ *  an offset is negative, it is counted from the end of *str*. Returns
+ *  `nil` if the initial offset falls outside the string, the length
  *  is negative, or the beginning of the range is greater than the end.
  *  The encoding of the resulted string keeps original encoding.
  *
@@ -3427,13 +3426,15 @@ str_bytesplice(mrb_state *mrb, mrb_value str, mrb_int idx1, mrb_int len1, mrb_va
  *    bytesplice(range, str) -> string
  *    bytesplice(range, str, str_range) -> string
  *
- *  Replaces some or all of the content of +self+ with +str+, and returns +self+.
+ *  Replaces some or all of the content of `self` with `str`, and returns `self`.
  *  The portion of the string affected is determined using
- *  the same criteria as String#byteslice, except that +length+ cannot be omitted.
+ *  the same criteria as String#byteslice, except that `length` cannot be omitted.
  *  If the replacement string is not the same length as the text it is replacing,
  *  the string will be adjusted accordingly.
  *
- *  If +str_index+ and +str_length+, or +str_range+ are given, the content of +self+ is replaced by str.byteslice(str_index, str_length) or str.byteslice(str_range); however the substring of +str+ is not allocated as a new string.
+ *  If `str_index` and `str_length`, or `str_range` are given, the content of `self`
+ *  is replaced by str.byteslice(str_index, str_length) or str.byteslice(str_range);
+ *  however the substring of `str` is not allocated as a new string.
  *
  *  The form that take an Integer will raise an IndexError if the value is out
  *  of range; the Range form will raise a RangeError.

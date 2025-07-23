@@ -4,8 +4,8 @@ class Array
   #    ary.uniq!                -> ary or nil
   #    ary.uniq! { |item| ... } -> ary or nil
   #
-  # Removes duplicate elements from +self+.
-  # Returns <code>nil</code> if no changes are made (that is, no
+  # Removes duplicate elements from `self`.
+  # Returns `nil` if no changes are made (that is, no
   # duplicates are found).
   #
   #    a = [ "a", "a", "b", "b", "c" ]
@@ -42,7 +42,7 @@ class Array
   #    ary.uniq                -> new_ary
   #    ary.uniq { |item| ... } -> new_ary
   #
-  # Returns a new array by removing duplicate values in +self+.
+  # Returns a new array by removing duplicate values in `self`.
   #
   #    a = [ "a", "a", "b", "b", "c" ]
   #    a.uniq   #=> ["a", "b", "c"]
@@ -78,15 +78,15 @@ class Array
   #     ary.fetch(index, default)           -> obj
   #     ary.fetch(index) { |index| block }  -> obj
   #
-  #  Tries to return the element at position +index+, but throws an IndexError
-  #  exception if the referenced +index+ lies outside of the array bounds. This
+  #  Tries to return the element at position `index`, but throws an IndexError
+  #  exception if the referenced `index` lies outside of the array bounds. This
   #  error can be prevented by supplying a second argument, which will act as a
-  #  +default+ value.
+  #  `default` value.
   #
   #  Alternatively, if a block is given it will only be executed when an
-  #  invalid +index+ is referenced.
+  #  invalid `index` is referenced.
   #
-  #  Negative values of +index+ count from the end of the array.
+  #  Negative values of `index` count from the end of the array.
   #
   #     a = [ 11, 22, 33, 44 ]
   #     a.fetch(1)               #=> 22
@@ -122,17 +122,17 @@ class Array
   #     ary.fill(start [, length] ) { |index| block } -> ary
   #     ary.fill(range) { |index| block }             -> ary
   #
-  #  The first three forms set the selected elements of +self+ (which
-  #  may be the entire array) to +obj+.
+  #  The first three forms set the selected elements of `self` (which
+  #  may be the entire array) to `obj`.
   #
-  #  A +start+ of +nil+ is equivalent to zero.
+  #  A `start` of `nil` is equivalent to zero.
   #
-  #  A +length+ of +nil+ is equivalent to the length of the array.
+  #  A `length` of `nil` is equivalent to the length of the array.
   #
   #  The last three forms fill the array with the value of the given block,
   #  which is passed the absolute index of each element to be filled.
   #
-  #  Negative values of +start+ count from the end of the array, where +-1+ is
+  #  Negative values of `start` count from the end of the array, where +-1+ is
   #  the last element.
   #
   #     a = [ "a", "b", "c", "d" ]
@@ -174,7 +174,7 @@ class Array
   #     ary.delete_if { |item| block }  -> ary
   #     ary.delete_if                   -> Enumerator
   #
-  #  Deletes every element of +self+ for which block evaluates to +true+.
+  #  Deletes every element of `self` for which block evaluates to `true`.
   #
   #  The array is changed instantly every time the block is called, not after
   #  the iteration is over.
@@ -206,8 +206,8 @@ class Array
   #     ary.reject! { |item| block }  -> ary or nil
   #     ary.reject!                   -> Enumerator
   #
-  #  Equivalent to Array#delete_if, deleting elements from +self+ for which the
-  #  block evaluates to +true+, but returns +nil+ if no changes were made.
+  #  Equivalent to Array#delete_if, deleting elements from `self` for which the
+  #  block evaluates to `true`, but returns `nil` if no changes were made.
   #
   #  The array is changed instantly every time the block is called, not after
   #  the iteration is over.
@@ -349,8 +349,8 @@ class Array
   #     ary.keep_if { |item| block } -> ary
   #     ary.keep_if                  -> Enumerator
   #
-  #  Deletes every element of +self+ for which the given block evaluates to
-  #  +false+.
+  #  Deletes every element of `self` for which the given block evaluates to
+  #  `false`.
   #
   #  See also Array#select!
   #
@@ -379,10 +379,10 @@ class Array
   #     ary.select!  {|item| block } -> ary or nil
   #     ary.select!                  -> Enumerator
   #
-  #  Invokes the given block passing in successive elements from +self+,
-  #  deleting elements for which the block returns a +false+ value.
+  #  Invokes the given block passing in successive elements from `self`,
+  #  deleting elements for which the block returns a `false` value.
   #
-  #  If changes were made, it will return +self+, otherwise it returns +nil+.
+  #  If changes were made, it will return `self`, otherwise it returns `nil`.
   #
   #  See also Array#keep_if
   #
@@ -409,9 +409,9 @@ class Array
   # call-seq:
   #   ary.dig(idx, ...)                 -> object
   #
-  # Extracts the nested value specified by the sequence of <i>idx</i>
-  # objects by calling +dig+ at each step, returning +nil+ if any
-  # intermediate step is +nil+.
+  # Extracts the nested value specified by the sequence of *idx*
+  # objects by calling `dig` at each step, returning `nil` if any
+  # intermediate step is `nil`.
   #
   def dig(idx,*args)
     idx = idx.__to_int
@@ -430,10 +430,10 @@ class Array
   #    ary.permutation(n) { |p| block }       -> ary
   #    ary.permutation(n)                     -> Enumerator
   #
-  # When invoked with a block, yield all permutations of length +n+ of the
+  # When invoked with a block, yield all permutations of length `n` of the
   # elements of the array, then return the array itself.
   #
-  # If +n+ is not specified, yield all permutations of all elements.
+  # If `n` is not specified, yield all permutations of all elements.
   #
   # The implementation makes no guarantees about the order in which the
   # permutations are yielded.
@@ -478,7 +478,7 @@ class Array
   #    ary.combination(n) { |c| block }    -> ary
   #    ary.combination(n)                  -> Enumerator
   #
-  # When invoked with a block, yields all combinations of length +n+ of elements
+  # When invoked with a block, yields all combinations of length `n` of elements
   # from the array and then returns the array itself.
   #
   # The implementation makes no guarantees about the order in which the
@@ -554,9 +554,9 @@ class Array
   #    ary.to_h                ->   Hash
   #    ary.to_h{|item| ... }   ->   Hash
   #
-  # Returns the result of interpreting <i>array</i> as an array of
-  # <tt>[key, value]</tt> pairs. If a block is given, it should
-  # return <tt>[key, value]</tt> pairs to construct a hash.
+  # Returns the result of interpreting *array* as an array of
+  # `[key, value]` pairs. If a block is given, it should
+  # return `[key, value]` pairs to construct a hash.
   #
   #     [[:foo, :bar], [1, 2]].to_h
   #       # => {:foo => :bar, 1 => 2}
@@ -584,8 +584,8 @@ class Array
   #   ary.fetch_values(idx, ...) { |i| block } -> array
   #
   # Returns an array containing the values associated with the given indexes.
-  # but also raises <code>IndexError</code> when one of indexes can't be found.
-  # Also see <code>Array#values_at</code> and <code>Array#fetch</code>.
+  # but also raises `IndexError` when one of indexes can't be found.
+  # Also see `Array#values_at` and `Array#fetch`.
   #
   #   a = ["cat", "dog", "cow"]
   #
@@ -658,7 +658,7 @@ class Array
   #   ary.repeated_combination(n) { |combination| ... }   ->   self
   #   ary.repeated_combination(n)                         ->   enumerator
   #
-  # A +combination+ method that contains the same elements.
+  # A `combination` method that contains the same elements.
   def repeated_combination(n, &block)
     raise TypeError, "no implicit conversion into Integer" unless 0 <=> n
     return to_enum(:repeated_combination, n) unless block
@@ -670,7 +670,7 @@ class Array
   #   ary.repeated_permutation(n) { |permutation| ... }   ->   self
   #   ary.repeated_permutation(n)                         ->   enumerator
   #
-  # A +permutation+ method that contains the same elements.
+  # A `permutation` method that contains the same elements.
   def repeated_permutation(n, &block)
     n = n.__to_int
     raise TypeError, "no implicit conversion into Integer" unless 0 <=> n

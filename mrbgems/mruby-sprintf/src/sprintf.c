@@ -856,7 +856,7 @@ retry:
  *     format(format_string [, arguments...] )   -> string
  *     sprintf(format_string [, arguments...] )  -> string
  *
- *  Returns the string resulting from applying <i>format_string</i> to
+ *  Returns the string resulting from applying *format_string* to
  *  any additional arguments.  Within the format string, any characters
  *  other than format sequences are copied to the result.
  *
@@ -868,7 +868,7 @@ retry:
  *  sequence consists of a percent sign, followed by optional flags,
  *  width, and precision indicators, then terminated with a field type
  *  character.  The field type controls how the corresponding
- *  <code>sprintf</code> argument is to be interpreted, while the flags
+ *  `sprintf` argument is to be interpreted, while the flags
  *  modify that interpretation.
  *
  *  The field type characters are:
@@ -1043,7 +1043,7 @@ retry:
  *  numeric fields, the precision controls the number of decimal places
  *  displayed.  For string fields, the precision determines the maximum
  *  number of characters to be copied from the string.  (Thus, the format
- *  sequence <code>%10.10s</code> will always contribute exactly ten
+ *  sequence `%10.10s` will always contribute exactly ten
  *  characters to the result.)
  *
  *  Examples of precisions:

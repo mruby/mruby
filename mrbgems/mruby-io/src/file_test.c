@@ -110,7 +110,9 @@ mrb_filetest_s_directory_p(mrb_state *mrb, mrb_value klass)
  * call-seq:
  *   File.pipe?(file_name)   ->  true or false
  *
- * Returns <code>true</code> if the named file is a pipe.
+ * Returns `true` if the named file is a pipe.
+ *
+ *   File.pipe?("/dev/stdin")   #=> true
  */
 
 static mrb_value
@@ -141,7 +143,9 @@ mrb_filetest_s_pipe_p(mrb_state *mrb, mrb_value klass)
  * call-seq:
  *   File.symlink?(file_name)   ->  true or false
  *
- * Returns <code>true</code> if the named file is a symbolic link.
+ * Returns `true` if the named file is a symbolic link.
+ *
+ *   File.symlink?("link-to-test")   #=> true
  */
 
 static mrb_value
@@ -182,7 +186,9 @@ mrb_filetest_s_symlink_p(mrb_state *mrb, mrb_value klass)
  * call-seq:
  *   File.socket?(file_name)   ->  true or false
  *
- * Returns <code>true</code> if the named file is a socket.
+ * Returns `true` if the named file is a socket.
+ *
+ *   File.socket?("/tmp/.X11-unix/X0")   #=> true
  */
 
 static mrb_value
@@ -224,7 +230,10 @@ mrb_filetest_s_socket_p(mrb_state *mrb, mrb_value klass)
  *    File.exist?(file_name)    ->  true or false
  *    File.exists?(file_name)   ->  true or false
  *
- * Return <code>true</code> if the named file exists.
+ * Returns `true` if the named file exists.
+ *
+ *   File.exist?("config.h")      #=> true
+ *   File.exist?("no_such_file")  #=> false
  */
 
 static mrb_value
@@ -243,8 +252,9 @@ mrb_filetest_s_exist_p(mrb_state *mrb, mrb_value klass)
  * call-seq:
  *    File.file?(file_name)   -> true or false
  *
- * Returns <code>true</code> if the named file exists and is a
- * regular file.
+ * Returns `true` if the named file exists and is a regular file.
+ *
+ *   File.file?("testfile")   #=> true
  */
 
 static mrb_value
@@ -269,8 +279,9 @@ mrb_filetest_s_file_p(mrb_state *mrb, mrb_value klass)
  * call-seq:
  *    File.zero?(file_name)   -> true or false
  *
- * Returns <code>true</code> if the named file exists and has
- * a zero size.
+ * Returns `true` if the named file exists and has a zero size.
+ *
+ *   File.zero?("testfile")   #=> false
  */
 
 static mrb_value
@@ -291,9 +302,11 @@ mrb_filetest_s_zero_p(mrb_state *mrb, mrb_value klass)
  * call-seq:
  *    File.size(file_name)   -> integer
  *
- * Returns the size of <code>file_name</code>.
+ * Returns the size of `file_name`.
  *
- * _file_name_ can be an IO object.
+ * `file_name` can be an IO object.
+ *
+ *   File.size("testfile")   #=> 66
  */
 
 static mrb_value
@@ -312,8 +325,10 @@ mrb_filetest_s_size(mrb_state *mrb, mrb_value klass)
  * call-seq:
  *    File.size?(file_name)   -> Integer or nil
  *
- * Returns +nil+ if +file_name+ doesn't exist or has zero size, the size of the
+ * Returns `nil` if `file_name` doesn't exist or has zero size, the size of the
  * file otherwise.
+ *
+ *   File.size?("testfile")   #=> 66
  */
 
 static mrb_value
