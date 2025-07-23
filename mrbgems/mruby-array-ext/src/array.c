@@ -206,11 +206,11 @@ ary_compact(mrb_state *mrb, mrb_value self)
 {
   mrb_value ary = mrb_ary_new(mrb);
   mrb_int len = RARRAY_LEN(self);
-  mrb_value *p = RARRAY_PTR(self);
 
   for (mrb_int i = 0; i < len; i++) {
-    if (!mrb_nil_p(p[i])) {
-      mrb_ary_push(mrb, ary, p[i]);
+    mrb_value v = RARRAY_PTR(self)[i];
+    if (!mrb_nil_p(v)) {
+      mrb_ary_push(mrb, ary, v);
     }
   }
   return ary;
