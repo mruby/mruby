@@ -469,111 +469,89 @@ ary_difference(mrb_state *mrb, mrb_value self)
   return ary_subtract_internal(mrb, self, argc, argv);
 }
 
-/*
- *  call-seq:
- *     ary | other_ary     -> new_ary
- *
- *  Set Union---Returns a new array by joining this array with
- *  <i>other_ary</i>, removing duplicates.
- *
- *     [ "a", "b", "c" ] | [ "c", "d", "a" ]
- *           #=> [ "a", "b", "c", "d" ]
- */
+static void
+hash_update(mrb_state *mrb, mrb_value ary, mrb_value hash, mrb_value result)
+{
+  const mrb_int len = RARRAY_LEN(ary);
+  for (mrb_int i = 0; i < len; i++) {
+    mrb_value val = mrb_hash_fetch(mrb, hash, RARRAY_PTR(ary)[i], mrb_undef_value());
+    if (mrb_undef_p(val)) {  /* key doesn't exist */
+      mrb_hash_set(mrb, hash, RARRAY_PTR(ary)[i], mrb_true_value());
+      mrb_ary_push(mrb, result, RARRAY_PTR(ary)[i]);
+    }
+  }
+}
+
+static void
+add_uniq(mrb_state *mrb, mrb_value item, mrb_value result)
+{
+  const mrb_int len = RARRAY_LEN(result);
+  for (mrb_int i = 0; i < len; i++) {
+    if (mrb_eql(mrb, item, RARRAY_PTR(result)[i])) {
+      return;
+    }
+  }
+  mrb_ary_push(mrb, result, item);
+}
 
 static mrb_value
-ary_union_internal(mrb_state *mrb, mrb_value self, mrb_int other_argc, const mrb_value *other_argv)
+ary_union_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value *argv)
 {
-  mrb_value result_ary;
-  mrb_int total_len = RARRAY_LEN(self);
+  mrb_int alen = RARRAY_LEN(self);
+  mrb_int total_len = alen;
 
-  for (mrb_int i = 0; i < other_argc; i++) {
-    mrb_value other = mrb_check_array_type(mrb, other_argv[i]);
+  for (mrb_int i = 0; i < argc; i++) {
+    mrb_value other = mrb_check_array_type(mrb, argv[i]);
     if (mrb_nil_p(other)) {
       mrb_raise(mrb, E_TYPE_ERROR, "can't convert passed argument to Array");
     }
     total_len += RARRAY_LEN(other);
   }
 
-  result_ary = mrb_ary_new(mrb);
+  mrb_value result = mrb_ary_new(mrb);
 
   if (total_len > SET_OP_HASH_THRESHOLD) {
     mrb_value hash = mrb_hash_new_capa(mrb, total_len);
 
     /* Add elements from self */
-    struct RArray *self_ary = mrb_ary_ptr(self);
-    mrb_value *p = ARY_PTR(self_ary);
-    mrb_value *p_end = p + ARY_LEN(self_ary);
-    while (p < p_end) {
-      mrb_value val = mrb_hash_get(mrb, hash, *p);
-      if (mrb_nil_p(val)) {  /* key doesn't exist */
-        mrb_hash_set(mrb, hash, *p, mrb_true_value());
-        mrb_ary_push(mrb, result_ary, *p);
-      }
-      p++;
-    }
+    hash_update(mrb, self, hash, result);
 
     /* Add elements from others */
-    for (mrb_int i = 0; i < other_argc; i++) {
-      struct RArray *other_ary = mrb_ary_ptr(other_argv[i]);
-      mrb_value *other_p = ARY_PTR(other_ary);
-      mrb_value *other_p_end = other_p + ARY_LEN(other_ary);
-      while (other_p < other_p_end) {
-        mrb_value val = mrb_hash_get(mrb, hash, *other_p);
-        if (mrb_nil_p(val)) {  /* key doesn't exist */
-          mrb_hash_set(mrb, hash, *other_p, mrb_true_value());
-          mrb_ary_push(mrb, result_ary, *other_p);
-        }
-        other_p++;
-      }
+    for (mrb_int i = 0; i < argc; i++) {
+      hash_update(mrb, argv[i], hash, result);
     }
   }
   else {
     /* Use linear search for small arrays */
     /* Add unique elements from self */
-    struct RArray *self_ary = mrb_ary_ptr(self);
-    mrb_value *p = ARY_PTR(self_ary);
-    mrb_value *p_end = p + ARY_LEN(self_ary);
-    while (p < p_end) {
-        mrb_bool found = FALSE;
-        mrb_int result_len = RARRAY_LEN(result_ary);
-        mrb_value *result_ptr = ARY_PTR(RARRAY(result_ary));
-        for (mrb_int j = 0; j < result_len; j++) {
-            if (mrb_equal(mrb, *p, result_ptr[j])) {
-                found = TRUE;
-                break;
-            }
-        }
-        if (!found) {
-            mrb_ary_push(mrb, result_ary, *p);
-        }
-        p++;
+    mrb_int alen = RARRAY_LEN(self);
+    for (mrb_int i = 0; i < alen; i++) {
+      add_uniq(mrb, RARRAY_PTR(self)[i], result);
     }
 
     /* Add unique elements from others */
-    for (mrb_int i = 0; i < other_argc; i++) {
-      mrb_value other = other_argv[i];
-      mrb_value *other_p = ARY_PTR(RARRAY(other));
-      mrb_value *other_p_end = other_p + ARY_LEN(RARRAY(other));
-      while (other_p < other_p_end) {
-        mrb_bool found = FALSE;
-        mrb_int result_len = RARRAY_LEN(result_ary);
-        mrb_value *result_ptr = ARY_PTR(RARRAY(result_ary));
-        for (mrb_int j = 0; j < result_len; j++) {
-          if (mrb_equal(mrb, *other_p, result_ptr[j])) {
-            found = TRUE;
-            break;
-          }
-        }
-        if (!found) {
-          mrb_ary_push(mrb, result_ary, *other_p);
-        }
-        other_p++;
+    for (mrb_int i = 0; i < argc; i++) {
+      mrb_value other = argv[i];
+      mrb_int olen = RARRAY_LEN(other);
+      for (mrb_int j = 0; j < olen; j++) {
+        add_uniq(mrb, RARRAY_PTR(other)[j], result);
       }
     }
   }
 
-  return result_ary;
+  return result;
 }
+
+/*
+ *  call-seq:
+ *     ary | other_ary     -> new_ary
+ *
+ *  Set Union---Returns a new array by joining this array with
+ *  *other_ary*, removing duplicates.
+ *
+ *     [ "a", "b", "c" ] | [ "c", "d", "a" ]
+ *           #=> [ "a", "b", "c", "d" ]
+ */
 
 static mrb_value
 ary_union(mrb_state *mrb, mrb_value self)
