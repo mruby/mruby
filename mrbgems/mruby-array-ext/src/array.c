@@ -153,7 +153,6 @@ ary_slice_bang(mrb_state *mrb, mrb_value self)
 {
   struct RArray *a = mrb_ary_ptr(self);
   mrb_int i, j, len, alen;
-  mrb_value *ptr;
   mrb_value ary;
 
   mrb_ary_modify(mrb, a);
@@ -179,12 +178,13 @@ ary_slice_bang(mrb_state *mrb, mrb_value self)
   if (alen == i) return mrb_ary_new(mrb);
   if (len > alen - i) len = alen - i;
 
-  ptr = ARY_PTR(a) + i;
-  ary = mrb_ary_new_from_values(mrb, len, ptr);
+  ary = mrb_ary_new_from_values(mrb, len, ARY_PTR(a) + i);
+
+  /* refresh pointer after mrb_ary_new_from_values */
+  a = mrb_ary_ptr(self);
 
   for (j = i; j < alen - len; j++) {
-    *ptr = *(ptr+len);
-    ptr++;
+    ARY_PTR(a)[j] = ARY_PTR(a)[j+len];
   }
 
   mrb_ary_resize(mrb, self, alen - len);
