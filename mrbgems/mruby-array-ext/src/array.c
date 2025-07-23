@@ -707,68 +707,46 @@ static mrb_value
 ary_intersect_p(mrb_state *mrb, mrb_value self)
 {
   mrb_value other;
-  struct RArray *self_ary, *other_ary, *shorter_ary, *longer_ary;
-  mrb_value *shorter_p, *shorter_p_end, *longer_p, *longer_p_end;
-
   mrb_get_args(mrb, "A", &other);
 
-  self_ary = mrb_ary_ptr(self);
-  other_ary = mrb_ary_ptr(other);
-
-  /* Choose shorter array for hash, longer for iteration (optimization) */
-  if (ARY_LEN(self_ary) > ARY_LEN(other_ary)) {
-    shorter_ary = other_ary;
-    longer_ary = self_ary;
+  mrb_value shorter_ary, longer_ary;
+  if (RARRAY_LEN(self) > RARRAY_LEN(other)) {
+    shorter_ary = other;
+    longer_ary = self;
   }
   else {
-    shorter_ary = self_ary;
-    longer_ary = other_ary;
+    shorter_ary = self;
+    longer_ary = other;
   }
 
-  /* Early termination for empty arrays */
-  if (ARY_LEN(shorter_ary) == 0 || ARY_LEN(longer_ary) == 0) {
+  if (RARRAY_LEN(shorter_ary) == 0 || RARRAY_LEN(longer_ary) == 0) {
     return mrb_false_value();
   }
 
-  if (ARY_LEN(shorter_ary) > SET_OP_HASH_THRESHOLD) {
-    /* Use hash for large arrays to achieve O(n) performance */
-    mrb_value hash = mrb_hash_new_capa(mrb, ARY_LEN(shorter_ary));
-
-    /* Populate hash with elements from shorter array */
-    shorter_p = ARY_PTR(shorter_ary);
-    shorter_p_end = shorter_p + ARY_LEN(shorter_ary);
-    while (shorter_p < shorter_p_end) {
-      mrb_hash_set(mrb, hash, *shorter_p, mrb_true_value());
-      shorter_p++;
+  if (RARRAY_LEN(shorter_ary) > SET_OP_HASH_THRESHOLD) {
+    mrb_value hash = mrb_hash_new_capa(mrb, RARRAY_LEN(shorter_ary));
+    mrb_int shorter_len = RARRAY_LEN(shorter_ary);
+    for (mrb_int i = 0; i < shorter_len; i++) {
+      mrb_hash_set(mrb, hash, RARRAY_PTR(shorter_ary)[i], mrb_true_value());
     }
 
-    /* Check elements from longer array against hash with early termination */
-    longer_p = ARY_PTR(longer_ary);
-    longer_p_end = longer_p + ARY_LEN(longer_ary);
-    while (longer_p < longer_p_end) {
-      mrb_value val = mrb_hash_get(mrb, hash, *longer_p);
-      if (!mrb_nil_p(val)) {  /* key exists in shorter array */
-        return mrb_true_value();  /* Early termination */
+    mrb_int longer_len = RARRAY_LEN(longer_ary);
+    for (mrb_int i = 0; i < longer_len; i++) {
+      mrb_value val = mrb_hash_get(mrb, hash, RARRAY_PTR(longer_ary)[i]);
+      if (!mrb_nil_p(val)) {
+        return mrb_true_value();
       }
-      longer_p++;
     }
   }
   else {
-    /* Use linear search for small arrays */
-    longer_p = ARY_PTR(longer_ary);
-    longer_p_end = longer_p + ARY_LEN(longer_ary);
-    while (longer_p < longer_p_end) {
-      /* Check if element exists in shorter array */
-      shorter_p = ARY_PTR(shorter_ary);
-      shorter_p_end = shorter_p + ARY_LEN(shorter_ary);
-
-      while (shorter_p < shorter_p_end) {
-        if (mrb_equal(mrb, *longer_p, *shorter_p)) {
-          return mrb_true_value();  /* Early termination */
+    mrb_int longer_len = RARRAY_LEN(longer_ary);
+    for (mrb_int i = 0; i < longer_len; i++) {
+      mrb_int shorter_len = RARRAY_LEN(shorter_ary);
+      for (mrb_int j = 0; j < shorter_len; j++) {
+        if (mrb_equal(mrb, RARRAY_PTR(longer_ary)[i], RARRAY_PTR(shorter_ary)[j])) {
+          return mrb_true_value();
         }
-        shorter_p++;
       }
-      longer_p++;
     }
   }
 
