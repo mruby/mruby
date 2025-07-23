@@ -405,8 +405,83 @@ mpz_sub_int(mrb_state *mrb, mpz_t *x, mrb_int n)
   trim(x);
 }
 
+/* Sliding window multiplication for improved cache performance */
+/* Window size optimized for L1 cache (4 limbs = 16 bytes) */
+#define WINDOW_SIZE 4
+
+/* Multiply window: result[offset..] += a[a_start..a_end) * b[b_start..b_end) */
+static void
+multiply_window(mp_limb *result, size_t offset,
+                const mp_limb *a, size_t a_start, size_t a_len,
+                const mp_limb *b, size_t b_start, size_t b_len)
+{
+  for (size_t i = 0; i < a_len; i++) {
+    mp_limb u0 = a[a_start + i];
+    if (u0 == 0) continue;
+
+    mp_dbl_limb cc = 0;
+    size_t j;
+    for (j = 0; j < b_len; j++) {
+      mp_limb v0 = b[b_start + j];
+      size_t pos = offset + i + j;
+      cc += (mp_dbl_limb)result[pos] + (mp_dbl_limb)u0 * (mp_dbl_limb)v0;
+      result[pos] = LOW(cc);
+      cc = HIGH(cc);
+    }
+
+    // Propagate carries beyond window
+    size_t carry_pos = offset + i + j;
+    while (cc) {
+      cc += (mp_dbl_limb)result[carry_pos];
+      result[carry_pos] = LOW(cc);
+      cc = HIGH(cc);
+      carry_pos++;
+    }
+  }
+}
+
+/* Sliding window multiplication - processes operands in cache-friendly chunks */
+static int
+mpz_mul_sliding_window(mrb_state *mrb, mpz_t *result, mpz_t *first, mpz_t *second)
+{
+  // Only use sliding window for medium-sized operands where cache benefits matter
+  // Small operands (< 8 limbs): overhead not worth it
+  // Large operands (> 64 limbs): classical is fine, we're not targeting these
+  size_t max_limbs = (first->sz > second->sz) ? first->sz : second->sz;
+  if (max_limbs < 8 || max_limbs > 64) {
+    return 0; // Use classical multiplication
+  }
+
+  // Initialize result (reuses existing allocation)
+  mpz_realloc(mrb, result, first->sz + second->sz + 1);
+  zero(result);
+
+  // Process first operand in windows
+  for (size_t a_start = 0; a_start < first->sz; a_start += WINDOW_SIZE) {
+    size_t a_end = a_start + WINDOW_SIZE;
+    if (a_end > first->sz) a_end = first->sz;
+    size_t a_len = a_end - a_start;
+
+    // Process second operand in windows
+    for (size_t b_start = 0; b_start < second->sz; b_start += WINDOW_SIZE) {
+      size_t b_end = b_start + WINDOW_SIZE;
+      if (b_end > second->sz) b_end = second->sz;
+      size_t b_len = b_end - b_start;
+
+      // Multiply current windows and add to result
+      multiply_window(result->p, a_start + b_start,
+                     first->p, a_start, a_len,
+                     second->p, b_start, b_len);
+    }
+  }
+
+  result->sn = first->sn * second->sn;
+  trim(result);
+  return 1; // Success
+}
+
 /* w = u * v */
-/* Simple Multiply */
+/* Memory-efficient multiplication with sliding window optimization */
 static void
 mpz_mul(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
 {
@@ -426,8 +501,16 @@ mpz_mul(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
     second = u;
   }
 
+  // Try sliding window multiplication for medium-sized operands
   mpz_t w;
   mpz_init(mrb, &w);
+
+  if (mpz_mul_sliding_window(mrb, &w, first, second)) {
+    mpz_move(mrb, ww, &w);
+    return;
+  }
+
+  // Fallback to classical multiplication for small/large operands
   mpz_realloc(mrb, &w, first->sz + second->sz + 1);
 
   // Standard multiplication algorithm with consistent operand order
