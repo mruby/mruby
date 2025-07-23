@@ -932,25 +932,23 @@ ary_uniq(mrb_state *mrb, mrb_value self)
 static mrb_value
 ary_uniq_bang(mrb_state *mrb, mrb_value self)
 {
-  struct RArray *ary = mrb_ary_ptr(self);
-  mrb_int len = ARY_LEN(ary);
+  mrb_int len = RARRAY_LEN(self);
 
   if (len <= 1) {
     return mrb_nil_value();
   }
 
-  mrb_ary_modify(mrb, ary);
-  mrb_value *ptr = ARY_PTR(ary);
+  mrb_ary_modify(mrb, mrb_ary_ptr(self));
   mrb_int write_pos = 0;
 
   if (len > SET_OP_HASH_THRESHOLD) {
     mrb_value hash = mrb_hash_new_capa(mrb, len);
     for (mrb_int read_pos = 0; read_pos < len; read_pos++) {
-      mrb_value elem = ptr[read_pos];
+      mrb_value elem = RARRAY_PTR(self)[read_pos];
       if (mrb_nil_p(mrb_hash_get(mrb, hash, elem))) {
         mrb_hash_set(mrb, hash, elem, mrb_true_value());
         if (write_pos != read_pos) {
-          ptr[write_pos] = elem;
+          RARRAY_PTR(self)[write_pos] = elem;
         }
         write_pos++;
       }
@@ -958,17 +956,17 @@ ary_uniq_bang(mrb_state *mrb, mrb_value self)
   }
   else {
     for (mrb_int read_pos = 0; read_pos < len; read_pos++) {
-      mrb_value elem = ptr[read_pos];
+      mrb_value elem = RARRAY_PTR(self)[read_pos];
       mrb_bool found = FALSE;
       for (mrb_int j = 0; j < write_pos; j++) {
-        if (mrb_equal(mrb, elem, ptr[j])) {
+        if (mrb_equal(mrb, elem, RARRAY_PTR(self)[j])) {
           found = TRUE;
           break;
         }
       }
       if (!found) {
         if (write_pos != read_pos) {
-          ptr[write_pos] = elem;
+          RARRAY_PTR(self)[write_pos] = elem;
         }
         write_pos++;
       }
