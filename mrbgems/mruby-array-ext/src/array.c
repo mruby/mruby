@@ -235,10 +235,10 @@ ary_compact_bang(mrb_state *mrb, mrb_value self)
   mrb_int len = ARY_LEN(a);
 
   mrb_ary_modify(mrb, a);
-  mrb_value *p = ARY_PTR(a);
+  /* a is still valid here, as mrb_ary_modify only modifies the RArray struct, not reallocates it */
   for (i = 0; i < len; i++) {
-    if (!mrb_nil_p(p[i])) {
-      if (i != j) p[j] = p[i];
+    if (!mrb_nil_p(RARRAY_PTR(self)[i])) {
+      if (i != j) RARRAY_PTR(self)[j] = RARRAY_PTR(self)[i];
       j++;
     }
   }
