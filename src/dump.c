@@ -165,7 +165,7 @@ get_pool_block_size(mrb_state *mrb, const mrb_irep *irep)
 
     case IREP_TT_BIGINT:
       {
-        mrb_int len = irep->pool[pool_no].u.str[0];
+        mrb_int len = (uint8_t)irep->pool[pool_no].u.str[0];
         mrb_assert_int_fit(mrb_int, len, size_t, SIZE_MAX);
         size += (size_t)len+2;
       }
@@ -242,7 +242,7 @@ write_pool_block(mrb_state *mrb, const mrb_irep *irep, uint8_t *buf)
 
     case IREP_TT_BIGINT:
       cur += uint8_to_bin(IREP_TT_BIGINT, cur); /* data type */
-      len = irep->pool[pool_no].u.str[0];
+      len = (uint8_t)irep->pool[pool_no].u.str[0];
       memcpy(cur, irep->pool[pool_no].u.str, (size_t)len+2);
       cur += len+2;
       break;
