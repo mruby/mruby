@@ -40,6 +40,7 @@ static int mpz_add_scoped(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y);
 static int udiv_scoped(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy);
 static int mpz_sqrt_scoped(mrb_state *mrb, mpz_t *z, mpz_t *x);
 static int mpz_powm_scoped(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n);
+static int mpz_gcd_scoped(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb);
 
 /* Memory allocation tracking for benchmarking */
 typedef struct allocation_stats {
@@ -242,17 +243,6 @@ is_pool_memory(mpz_t *z, mpz_scoped_pool_t *pool)
   return ptr_addr >= pool_start && ptr_addr < pool_end;
 }
 
-/* Copy result from pool memory to heap */
-static void
-mpz_copy_from_pool(mrb_state *mrb, mpz_t *dest, mpz_t *src)
-{
-  mpz_realloc(mrb, dest, src->sz);
-  if (src->p && src->sz > 0) {
-    memcpy(dest->p, src->p, src->sz * sizeof(mp_limb));
-  }
-  dest->sz = src->sz;
-  dest->sn = src->sn;
-}
 
 /* Clear pool-aware mpz_t */
 static void
@@ -2769,6 +2759,12 @@ mpz_power_of_2_p(mpz_t *x)
 static void
 mpz_gcd(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
 {
+  /* Try pool-based GCD first for eligible operands */
+  if (mpz_gcd_scoped(mrb, gg, aa, bb)) {
+    return; /* Success with pool-based GCD */
+  }
+
+  /* Fallback to traditional algorithm */
   mpz_t a, b;
 
   /* Handle special cases */
@@ -2962,6 +2958,536 @@ mpz_gcd(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
   trim(&b);
   mpz_move(mrb, gg, &b);
   mpz_clear(mrb, &a);
+}
+
+/* Helper functions for pool-based GCD operations */
+static int mpz_abs_scoped(mrb_state *mrb, mpz_t *result, mpz_t *operand, mpz_scoped_pool_t *pool) {
+  if (!operand || operand->sz == 0) {
+    result->sz = 0;
+    result->sn = 0;
+    return 1;
+  }
+
+  /* Copy limbs */
+  for (size_t i = 0; i < operand->sz && i < result->sz; i++) {
+    result->p[i] = operand->p[i];
+  }
+  result->sz = (operand->sz < result->sz) ? operand->sz : result->sz;
+  result->sn = (operand->sn < 0) ? -operand->sn : operand->sn; /* Always positive */
+
+  return 1;
+}
+
+static int mpz_set_scoped(mrb_state *mrb, mpz_t *result, mpz_t *operand, mpz_scoped_pool_t *pool) {
+  if (!operand || operand->sz == 0) {
+    result->sz = 0;
+    result->sn = 0;
+    return 1;
+  }
+
+  /* Copy limbs */
+  for (size_t i = 0; i < operand->sz && i < result->sz; i++) {
+    result->p[i] = operand->p[i];
+  }
+  result->sz = (operand->sz < result->sz) ? operand->sz : result->sz;
+  result->sn = operand->sn;
+
+  return 1;
+}
+
+static int mpz_div_2exp_scoped(mrb_state *mrb, mpz_t *result, mpz_t *operand, size_t shift_bits, mpz_scoped_pool_t *pool) {
+  if (!operand || operand->sz == 0 || shift_bits == 0) {
+    return mpz_set_scoped(mrb, result, operand, pool);
+  }
+
+  size_t limb_shift = shift_bits / DIG_SIZE;
+  size_t bit_shift = shift_bits % DIG_SIZE;
+
+  if (limb_shift >= operand->sz) {
+    result->sz = 0;
+    result->sn = 0;
+    return 1;
+  }
+
+  /* Manual limb and bit shifting */
+  size_t new_size = operand->sz - limb_shift;
+  if (bit_shift == 0) {
+    /* Simple limb shift */
+    for (size_t i = 0; i < new_size && i < result->sz; i++) {
+      result->p[i] = operand->p[i + limb_shift];
+    }
+    result->sz = (new_size < result->sz) ? new_size : result->sz;
+  }
+  else {
+    /* Bit shift within limbs */
+    for (size_t i = 0; i < new_size && i < result->sz; i++) {
+      result->p[i] = operand->p[i + limb_shift] >> bit_shift;
+      if (i + limb_shift + 1 < operand->sz) {
+        result->p[i] |= operand->p[i + limb_shift + 1] << (DIG_SIZE - bit_shift);
+      }
+    }
+    result->sz = (new_size < result->sz) ? new_size : result->sz;
+
+    /* Remove leading zeros */
+    while (result->sz > 0 && result->p[result->sz - 1] == 0) {
+      result->sz--;
+    }
+  }
+
+  result->sn = (result->sz == 0) ? 0 : operand->sn;
+  return 1;
+}
+
+static int mpz_mul_2exp_scoped(mrb_state *mrb, mpz_t *result, mpz_t *operand, size_t shift_bits, mpz_scoped_pool_t *pool) {
+  if (!operand || operand->sz == 0) {
+    result->sz = 0;
+    result->sn = 0;
+    return 1;
+  }
+
+  if (shift_bits == 0) {
+    return mpz_set_scoped(mrb, result, operand, pool);
+  }
+
+  size_t limb_shift = shift_bits / DIG_SIZE;
+  size_t bit_shift = shift_bits % DIG_SIZE;
+  size_t new_size = operand->sz + limb_shift + (bit_shift > 0 ? 1 : 0);
+
+  if (new_size > result->sz) {
+    return 0; /* Result buffer too small */
+  }
+
+  /* Clear result first */
+  for (size_t i = 0; i < new_size; i++) {
+    result->p[i] = 0;
+  }
+
+  if (bit_shift == 0) {
+    /* Simple limb shift */
+    for (size_t i = 0; i < operand->sz; i++) {
+      result->p[i + limb_shift] = operand->p[i];
+    }
+  }
+  else {
+    /* Bit shift within limbs */
+    mp_limb carry = 0;
+    for (size_t i = 0; i < operand->sz; i++) {
+      mp_limb curr = operand->p[i];
+      result->p[i + limb_shift] = (curr << bit_shift) | carry;
+      carry = curr >> (DIG_SIZE - bit_shift);
+    }
+    if (carry != 0) {
+      result->p[operand->sz + limb_shift] = carry;
+    }
+  }
+
+  /* Update size */
+  result->sz = new_size;
+  while (result->sz > 0 && result->p[result->sz - 1] == 0) {
+    result->sz--;
+  }
+
+  result->sn = (result->sz == 0) ? 0 : operand->sn;
+  return 1;
+}
+
+static int mpz_mul_int_scoped(mrb_state *mrb, mpz_t *result, mp_limb multiplier, mpz_scoped_pool_t *pool) {
+  if (multiplier == 0) {
+    result->sz = 0;
+    result->sn = 0;
+    return 1;
+  }
+
+  if (multiplier == 1) {
+    return 1; /* No change needed */
+  }
+
+  /* Simple multiplication by single limb */
+  mp_limb carry = 0;
+  for (size_t i = 0; i < result->sz; i++) {
+    mp_dbl_limb product = (mp_dbl_limb)result->p[i] * multiplier + carry;
+    result->p[i] = (mp_limb)product;
+    carry = (mp_limb)(product >> DIG_SIZE);
+  }
+
+  /* Handle final carry - we don't expand buffers in pool operations */
+  if (carry != 0) {
+    /* This would overflow the result buffer */
+    return 0;
+  }
+
+  return 1;
+}
+
+static int mpz_sub_scoped(mrb_state *mrb, mpz_t *result, mpz_t *a, mpz_t *b, mpz_scoped_pool_t *pool) {
+  /* Simple implementation to avoid modifying input */
+  if (!a || !b || a->sz == 0) {
+    if (b && b->sz > 0) {
+      /* result = -b */
+      for (size_t i = 0; i < b->sz && i < result->sz; i++) {
+        result->p[i] = b->p[i];
+      }
+      result->sz = (b->sz < result->sz) ? b->sz : result->sz;
+      result->sn = -b->sn;
+    }
+    else {
+      result->sz = 0;
+      result->sn = 0;
+    }
+    return 1;
+  }
+
+  if (b->sz == 0) {
+    /* result = a */
+    return mpz_set_scoped(mrb, result, a, pool);
+  }
+
+  /* For now, use a simple fallback - create temporary copy of b with negated sign */
+  mpz_t b_neg;
+  mpz_init_pool(mrb, &b_neg, pool, b->sz);
+
+  if (!is_pool_memory(&b_neg, pool)) {
+    return 0; /* Pool allocation failed */
+  }
+
+  /* Copy b to b_neg with negated sign */
+  for (size_t i = 0; i < b->sz && i < b_neg.sz; i++) {
+    b_neg.p[i] = b->p[i];
+  }
+  b_neg.sz = (b->sz < b_neg.sz) ? b->sz : b_neg.sz;
+  b_neg.sn = -b->sn;
+
+  /* Use pool-based addition with negated b */
+  int success = mpz_add_scoped(mrb, result, a, &b_neg);
+
+  /* Clean up temporary */
+  mpz_clear_pool(mrb, &b_neg, pool);
+
+  return success;
+}
+
+static int mpz_cmp_scoped(mrb_state *mrb, mpz_t *a, mpz_t *b, mpz_scoped_pool_t *pool) {
+  /* Simple comparison - doesn't need pool operations */
+  if (a->sn != b->sn) {
+    return (a->sn > b->sn) ? 1 : -1;
+  }
+
+  if (a->sz != b->sz) {
+    int size_cmp = (a->sz > b->sz) ? 1 : -1;
+    return (a->sn >= 0) ? size_cmp : -size_cmp;
+  }
+
+  /* Compare limbs from most significant */
+  for (size_t i = a->sz; i > 0; i--) {
+    size_t idx = i - 1;
+    if (a->p[idx] != b->p[idx]) {
+      int limb_cmp = (a->p[idx] > b->p[idx]) ? 1 : -1;
+      return (a->sn >= 0) ? limb_cmp : -limb_cmp;
+    }
+  }
+
+  return 0; /* Equal */
+}
+
+/* Pool-based GCD using binary GCD algorithm with Lehmer acceleration */
+static int
+mpz_gcd_scoped(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
+{
+  /* Handle special cases first - no pool needed */
+  if (zero_p(aa)) {
+    mpz_abs(mrb, gg, bb);
+    return 1; /* Success - trivial case */
+  }
+  if (zero_p(bb)) {
+    mpz_abs(mrb, gg, aa);
+    return 1; /* Success - trivial case */
+  }
+
+  /* Fast path for single-limb numbers - no pool needed */
+  if (aa->sz <= 1 && bb->sz <= 1) {
+    mp_limb a_limb = (aa->sz == 0) ? 0 : aa->p[0];
+    mp_limb b_limb = (bb->sz == 0) ? 0 : bb->p[0];
+    mp_limb result = limb_gcd(a_limb, b_limb);
+
+    mpz_init(mrb, gg);
+    if (result == 0) {
+      gg->sn = 0;
+      gg->sz = 0;
+    }
+    else {
+      mpz_realloc(mrb, gg, 1);
+      gg->p[0] = result;
+      gg->sn = 1;
+    }
+    return 1; /* Success */
+  }
+
+  /* Only use pools for medium-sized operands that will benefit from stack allocation */
+  size_t max_limbs = (aa->sz > bb->sz) ? aa->sz : bb->sz;
+  if (max_limbs < 4 || max_limbs > 32) {
+    return 0; /* Use traditional GCD */
+  }
+
+  /* Fast paths for powers of 2 - delegate to traditional algorithm for clean memory management */
+  if (mpz_power_of_2_p(aa) || mpz_power_of_2_p(bb)) {
+    return 0; /* Use traditional GCD to avoid mixing pool/heap memory */
+  }
+
+  /* Estimate space needed for all GCD temporaries */
+  size_t estimated_temp_size = max_limbs + 2;  /* Working copy size estimation */
+  size_t lehmer_temp_space = estimated_temp_size * 6;  /* 6 temporaries for Lehmer */
+  size_t total_temp_space = estimated_temp_size * 2 + lehmer_temp_space;  /* a, b + Lehmer temps */
+
+  if (total_temp_space > BIGINT_POOL_DEFAULT_SIZE / 2) {
+    return 0; /* Pool too small for all temporaries */
+  }
+
+  do {
+    mpz_scoped_pool_t pool_storage = {0};
+    pool_storage.capacity = BIGINT_POOL_DEFAULT_SIZE;
+    pool_storage.active = 1;
+    mpz_scoped_pool_t *pool = &pool_storage;
+
+    mpz_t a, b;
+    int pool_success = 0;
+
+    /* Initialize working copies in pool */
+    mpz_init_pool(mrb, &a, pool, estimated_temp_size);
+    mpz_init_pool(mrb, &b, pool, estimated_temp_size);
+
+    /* Verify pool allocation succeeded */
+    if (!is_pool_memory(&a, pool) || !is_pool_memory(&b, pool)) {
+      pool_success = 0;
+      goto cleanup_gcd;
+    }
+
+    /* Copy absolute values to working variables using pool-based operations */
+    if (mpz_abs_scoped(mrb, &a, aa, pool) && mpz_abs_scoped(mrb, &b, bb, pool)) {
+      /* Find power of 2 that divides both a and b */
+      size_t a_zeros = mpz_trailing_zeros(&a);
+      size_t b_zeros = mpz_trailing_zeros(&b);
+      size_t shift = (a_zeros < b_zeros) ? a_zeros : b_zeros;
+
+      /* Remove common factors of 2 using manual bit shifting */
+      if (shift > 0) {
+        if (!mpz_div_2exp_scoped(mrb, &a, &a, shift, pool) ||
+            !mpz_div_2exp_scoped(mrb, &b, &b, shift, pool)) {
+          pool_success = 0;
+          goto cleanup_gcd;
+        }
+      }
+
+      /* Remove remaining factors of 2 from a */
+      if (a_zeros > shift) {
+        if (!mpz_div_2exp_scoped(mrb, &a, &a, a_zeros - shift, pool)) {
+          pool_success = 0;
+          goto cleanup_gcd;
+        }
+      }
+
+      /* Remove remaining factors of 2 from b */
+      if (b_zeros > shift) {
+        if (!mpz_div_2exp_scoped(mrb, &b, &b, b_zeros - shift, pool)) {
+          pool_success = 0;
+          goto cleanup_gcd;
+        }
+      }
+
+      /* Use Lehmer's algorithm for large multi-limb numbers (> 3 limbs) */
+      if (a.sz > 3 && b.sz > 3) {
+        /* Extract the two most significant limbs for approximation */
+        mp_limb a_high = a.p[a.sz - 1];
+        mp_limb a_low = a.p[a.sz - 2];
+        mp_limb b_high = b.p[b.sz - 1];
+        mp_limb b_low = b.p[b.sz - 2];
+
+        /* Perform Lehmer reduction on double-precision approximations */
+        mp_limb u0 = 1, u1 = 0, v0 = 0, v1 = 1;
+
+        while (b_high > 0) {
+          /* Calculate quotient using double-precision approximation */
+          mp_limb q;
+          if (a_high == b_high) {
+            q = (a_low >= b_low) ? 1 : 0;
+          }
+          else {
+            /* Approximate quotient from most significant limbs */
+            q = a_high / (b_high + 1);
+          }
+
+          if (q == 0) break;
+
+          /* Check if applying this quotient would cause overflow */
+          mp_limb max_limb = (mp_limb)(-1);
+          if (u1 > 0 && q > max_limb / u1) break;
+          if (v1 > 0 && q > max_limb / v1) break;
+
+          /* Update transformation matrix */
+          mp_limb t;
+          t = u0 - q * u1; u0 = u1; u1 = t;
+          t = v0 - q * v1; v0 = v1; v1 = t;
+          t = a_high - q * b_high; a_high = b_high; b_high = t;
+
+          /* Stop if coefficients get too large */
+          if (u1 == 0 && v1 == 0) break;
+        }
+
+        /* Apply the transformation if it's non-trivial using pool memory */
+        if (u1 != 0 || v1 != 0) {
+          mpz_t temp_a, temp_b, u0_a, v0_b, u1_a, v1_b;
+
+          /* Initialize all Lehmer temporaries in pool */
+          mpz_init_pool(mrb, &temp_a, pool, estimated_temp_size);
+          mpz_init_pool(mrb, &temp_b, pool, estimated_temp_size);
+          mpz_init_pool(mrb, &u0_a, pool, estimated_temp_size);
+          mpz_init_pool(mrb, &v0_b, pool, estimated_temp_size);
+          mpz_init_pool(mrb, &u1_a, pool, estimated_temp_size);
+          mpz_init_pool(mrb, &v1_b, pool, estimated_temp_size);
+
+          /* Verify all Lehmer pool allocations succeeded */
+          int lehmer_pool_ok = is_pool_memory(&temp_a, pool) && is_pool_memory(&temp_b, pool) &&
+                               is_pool_memory(&u0_a, pool) && is_pool_memory(&v0_b, pool) &&
+                               is_pool_memory(&u1_a, pool) && is_pool_memory(&v1_b, pool);
+
+          if (lehmer_pool_ok) {
+            /* Set initial values using pool-based copy operations */
+            if (mpz_set_scoped(mrb, &u0_a, &a, pool) && mpz_set_scoped(mrb, &v0_b, &b, pool) &&
+                mpz_set_scoped(mrb, &u1_a, &a, pool) && mpz_set_scoped(mrb, &v1_b, &b, pool)) {
+
+              /* Compute u0*a, v0*b, u1*a, v1*b using pool-based multiplication */
+              if (mpz_mul_int_scoped(mrb, &u0_a, u0, pool) && mpz_mul_int_scoped(mrb, &v0_b, v0, pool) &&
+                  mpz_mul_int_scoped(mrb, &u1_a, u1, pool) && mpz_mul_int_scoped(mrb, &v1_b, v1, pool)) {
+
+                /* temp_a = u0*a + v0*b using pool-based addition */
+                if (mpz_add_scoped(mrb, &temp_a, &u0_a, &v0_b) &&
+                    mpz_add_scoped(mrb, &temp_b, &u1_a, &v1_b)) {
+
+                  /* Update a and b using pool-based set operations */
+                  if (mpz_set_scoped(mrb, &a, &temp_a, pool) && mpz_set_scoped(mrb, &b, &temp_b, pool)) {
+                    /* Lehmer transformation successful */
+                  }
+                  else {
+                    pool_success = 0;
+                  }
+                }
+                else {
+                  pool_success = 0;
+                }
+              }
+              else {
+                pool_success = 0;
+              }
+            }
+            else {
+              pool_success = 0;
+            }
+
+          }
+          else {
+            /* Lehmer pool allocation failed */
+            pool_success = 0;
+          }
+
+          /* Cleanup Lehmer temporaries - ALWAYS clean up regardless of success/failure */
+          mpz_clear_pool(mrb, &temp_a, pool);
+          mpz_clear_pool(mrb, &temp_b, pool);
+          mpz_clear_pool(mrb, &u0_a, pool);
+          mpz_clear_pool(mrb, &v0_b, pool);
+          mpz_clear_pool(mrb, &u1_a, pool);
+          mpz_clear_pool(mrb, &v1_b, pool);
+
+          if (pool_success == 0) {
+            goto cleanup_gcd;
+          }
+
+          /* Ensure a >= b after transformation using pool-based comparison */
+          if (mpz_cmp_scoped(mrb, &a, &b, pool) < 0) {
+            /* In-place swap - just swap the mpz_t structures */
+            mpz_t temp_holder = a;
+            a = b;
+            b = temp_holder;
+          }
+        }
+      }
+
+      /* Main binary GCD loop using pool-based operations */
+      do {
+        /* Make b odd efficiently using pool-based division */
+        if (b.sz > 0 && (b.p[0] & 1) == 0) {
+          size_t b_trailing = mpz_trailing_zeros(&b);
+          if (b_trailing > 0) {
+            if (!mpz_div_2exp_scoped(mrb, &b, &b, b_trailing, pool)) {
+              pool_success = 0;
+              goto cleanup_gcd;
+            }
+          }
+        }
+
+        /* Now both a and b are odd. Ensure a >= b */
+        if (mpz_cmp_scoped(mrb, &a, &b, pool) < 0) {
+          /* In-place swap without temporary variable */
+          mpz_t temp_holder = a;
+          a = b;
+          b = temp_holder;
+        }
+
+        /* Replace a with (a - b) using pool-based subtraction */
+        if (!mpz_sub_scoped(mrb, &a, &a, &b, pool)) {
+          pool_success = 0;
+          goto cleanup_gcd;
+        }
+
+        /* Remove factors of 2 from the result if it's even */
+        if (a.sz > 0 && (a.p[0] & 1) == 0) {
+          size_t a_trailing = mpz_trailing_zeros(&a);
+          if (a_trailing > 0) {
+            if (!mpz_div_2exp_scoped(mrb, &a, &a, a_trailing, pool)) {
+              pool_success = 0;
+              goto cleanup_gcd;
+            }
+          }
+        }
+
+      } while (!zero_p(&a));
+
+      /* Restore common factors of 2 using pool-based multiplication */
+      if (shift > 0) {
+        if (!mpz_mul_2exp_scoped(mrb, &b, &b, shift, pool)) {
+          pool_success = 0;
+          goto cleanup_gcd;
+        }
+      }
+
+      /* Copy final result from pool to heap-allocated output */
+      trim(&b);
+      mpz_realloc(mrb, gg, b.sz);
+      for (size_t i = 0; i < b.sz; i++) {
+        gg->p[i] = b.p[i];
+      }
+      gg->sz = b.sz;
+      gg->sn = b.sn;
+      pool_success = 1;
+    }
+    else {
+      /* Pool absolute value operations failed */
+      pool_success = 0;
+    }
+
+cleanup_gcd:
+    /* Pool cleanup is automatic */
+    if (a.p) mpz_clear_pool(mrb, &a, pool);
+    if (b.p) mpz_clear_pool(mrb, &b, pool);
+    pool_storage.active = 0;
+
+    if (pool_success == 1) {
+      return 1; /* Success - used pool memory for GCD! */
+    }
+    else {
+      return 0; /* Pool allocation failed, fallback */
+    }
+  } while(0);
+
+  return 0; /* Should not reach here */
 }
 
 static size_t
@@ -4190,7 +4716,6 @@ mrb_bint_gcd(mrb_state *mrb, mrb_value x, mrb_value y)
   mpz_gcd(mrb, &r, &a, &b);
 
   struct RBigint *result = bint_new(mrb, &r);
-  mpz_clear(mrb, &r);
   return bint_norm(mrb, result);
 }
 
