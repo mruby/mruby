@@ -352,6 +352,14 @@ ary_rotate_bang(mrb_state *mrb, mrb_value self)
 
 #define SET_OP_HASH_THRESHOLD 32
 
+static void
+ary_update_hash_set(mrb_state *mrb, mrb_value ary, mrb_value hash)
+{
+  for (mrb_int i = 0; i < RARRAY_LEN(ary); i++) {
+    mrb_hash_set(mrb, hash, RARRAY_PTR(ary)[i], mrb_true_value());
+  }
+}
+
 static mrb_value
 ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value *argv)
 {
@@ -377,10 +385,7 @@ ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_va
     mrb_value hash = mrb_hash_new_capa(mrb, total_len);
 
     for (mrb_int i = 0; i < argc; i++) {
-      mrb_int len = RARRAY_LEN(converted_argv[i]);
-      for (mrb_int j = 0; j < len; j++) {
-        mrb_hash_set(mrb, hash, RARRAY_PTR(converted_argv[i])[j], mrb_true_value());
-      }
+      ary_update_hash_set(mrb, converted_argv[i], hash);
     }
 
     mrb_int self_len = RARRAY_LEN(self);
@@ -589,10 +594,7 @@ ary_intersection_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mr
     mrb_value hash = mrb_hash_new_capa(mrb, total_len);
 
     for (mrb_int i = 0; i < argc; i++) {
-      mrb_int len = RARRAY_LEN(converted_argv[i]);
-      for (mrb_int j = 0; j < len; j++) {
-        mrb_hash_set(mrb, hash, RARRAY_PTR(converted_argv[i])[j], mrb_true_value());
-      }
+      ary_update_hash_set(mrb, converted_argv[i], hash);
     }
 
     mrb_int self_len = RARRAY_LEN(self);
@@ -682,6 +684,14 @@ ary_intersection_multi(mrb_state *mrb, mrb_value self)
 }
 
 
+static mrb_value
+ary_to_hash_set(mrb_state *mrb, mrb_value ary)
+{
+  mrb_value hash = mrb_hash_new_capa(mrb, RARRAY_LEN(ary));
+  ary_update_hash_set(mrb, ary, hash);
+  return hash;
+}
+
 /*
  *  call-seq:
  *    ary.intersect?(other_ary)   -> true or false
@@ -717,12 +727,7 @@ ary_intersect_p(mrb_state *mrb, mrb_value self)
   }
 
   if (RARRAY_LEN(shorter_ary) > SET_OP_HASH_THRESHOLD) {
-    mrb_value hash = mrb_hash_new_capa(mrb, RARRAY_LEN(shorter_ary));
-    mrb_int shorter_len = RARRAY_LEN(shorter_ary);
-    for (mrb_int i = 0; i < shorter_len; i++) {
-      mrb_hash_set(mrb, hash, RARRAY_PTR(shorter_ary)[i], mrb_true_value());
-    }
-
+    mrb_value hash = ary_to_hash_set(mrb, shorter_ary);
     mrb_int longer_len = RARRAY_LEN(longer_ary);
     for (mrb_int i = 0; i < longer_len; i++) {
       mrb_value val = mrb_hash_get(mrb, hash, RARRAY_PTR(longer_ary)[i]);
