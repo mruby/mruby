@@ -881,51 +881,6 @@ ary_fill_exec(mrb_state *mrb, mrb_value self)
 }
 
 /*
- *  Internal helper for Array#uniq without blocks.
- *  Uses hash-based deduplication for large arrays,
- *  linear search for small arrays.
- */
-static mrb_value
-ary_uniq(mrb_state *mrb, mrb_value self)
-{
-  mrb_int len = RARRAY_LEN(self);
-  mrb_value result = mrb_ary_new_capa(mrb, len);
-
-  if (len == 0) {
-    return result;
-  }
-
-  if (len > SET_OP_HASH_THRESHOLD) {
-    mrb_value hash = mrb_hash_new_capa(mrb, len);
-    for (mrb_int i = 0; i < len; i++) {
-      mrb_value elem = RARRAY_PTR(self)[i];
-      if (mrb_nil_p(mrb_hash_get(mrb, hash, elem))) {
-        mrb_hash_set(mrb, hash, elem, mrb_true_value());
-        mrb_ary_push(mrb, result, elem);
-      }
-    }
-  }
-  else {
-    for (mrb_int i = 0; i < len; i++) {
-      mrb_value elem = RARRAY_PTR(self)[i];
-      mrb_bool found = FALSE;
-      mrb_int result_len = RARRAY_LEN(result);
-      for (mrb_int j = 0; j < result_len; j++) {
-        if (mrb_equal(mrb, elem, RARRAY_PTR(result)[j])) {
-          found = TRUE;
-          break;
-        }
-      }
-      if (!found) {
-        mrb_ary_push(mrb, result, elem);
-      }
-    }
-  }
-
-  return result;
-}
-
-/*
  *  Internal helper for Array#uniq! without blocks.
  *  Modifies array in-place, returns nil if no changes.
  */
@@ -979,6 +934,19 @@ ary_uniq_bang(mrb_state *mrb, mrb_value self)
 
   mrb_ary_resize(mrb, self, write_pos);
   return self;
+}
+
+/*
+ *  Internal helper for Array#uniq without blocks.
+ *  Uses hash-based deduplication for large arrays,
+ *  linear search for small arrays.
+ */
+static mrb_value
+ary_uniq(mrb_state *mrb, mrb_value self)
+{
+  mrb_value ary = mrb_ary_dup(mrb, self);
+  ary_uniq_bang(mrb, ary);
+  return ary;
 }
 
 /* Internal helper for flatten operations using iterative stack-based approach */
