@@ -93,6 +93,7 @@ typedef struct index_buckets_iter {
   struct RHash *h;
   uint32_t bit;
   uint32_t mask;
+  uint32_t initial_pos;
   uint32_t pos;
   uint32_t ary_index;
   uint32_t ea_index;
@@ -341,11 +342,15 @@ mrb_obj_hash_code(mrb_state *mrb, mrb_value key)
     if (mrb_fixnum_p(key)) {
       hash_code = U32(mrb_fixnum(key));
     }
-#ifdef MRB_USE_BIGINT
     else {
+#ifdef MRB_USE_BIGINT
       hash_code = U32(mrb_integer(mrb_bint_hash(mrb, key)));
-    }
+#else
+      /* This path should not be reached if bignum is not configured.
+       * Hashing object_id is a fallback to avoid uninitialized value. */
+      hash_code = U32(mrb_obj_id(key));
 #endif
+    }
     break;
 #ifndef MRB_NO_FLOAT
   case MRB_TT_FLOAT:
@@ -669,7 +674,8 @@ ib_it_init(mrb_state *mrb, struct RHash *h, mrb_value key)
   it.h = h;
   it.bit = ib_bit(h);
   it.mask = ib_bit_to_capa(it.bit) - 1;
-  it.pos = ib_it_pos_for(&it, obj_hash_code(mrb, key, h));
+  it.initial_pos = ib_it_pos_for(&it, obj_hash_code(mrb, key, h));
+  it.pos = it.initial_pos;
   it.step = 0;
   return it;
 }
@@ -710,7 +716,8 @@ ib_it_next(index_buckets_iter *it)
   else {
     it->shift1 = 0;
   }
-  it->pos = ib_it_pos_for(it, it->pos + (++it->step));
+  it->step++;
+  it->pos = ib_it_pos_for(it, it->initial_pos + (it->step * it->step + it->step) / 2);
 }
 
 static mrb_bool
