@@ -39,6 +39,7 @@ static int mpz_mul_sliding_window(mrb_state *mrb, mpz_t *result, mpz_t *first, m
 static int mpz_add_scoped(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y);
 static int udiv_scoped(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy);
 static int mpz_sqrt_scoped(mrb_state *mrb, mpz_t *z, mpz_t *x);
+static int mpz_powm_scoped(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n);
 
 /* Memory allocation tracking for benchmarking */
 typedef struct allocation_stats {
@@ -2332,6 +2333,12 @@ mpz_pow(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int e)
 static void
 mpz_powm(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
 {
+  /* Try pool-based modular exponentiation first for eligible operands */
+  if (mpz_powm_scoped(mrb, zz, x, ex, n)) {
+    return; /* Success with pool-based modular exponentiation */
+  }
+
+  /* Fallback to traditional algorithm */
   if (zero_p(ex) || uzero_p(ex)) {
     mpz_set_int(mrb, zz, 1);
     return;
@@ -2384,6 +2391,204 @@ mpz_powm(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
   }
   mpz_move(mrb, zz, &t);
   mpz_clear(mrb, &b);
+}
+
+/* Pool-based modular exponentiation - uses stack memory for temporary variables */
+static int
+mpz_powm_scoped(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
+{
+  if (zero_p(ex) || uzero_p(ex)) {
+    mpz_set_int(mrb, zz, 1);
+    return 1; /* Success - trivial case */
+  }
+
+  if (ex->sn < 0) {
+    return 0; /* Not supported in scoped version */
+  }
+
+  /* Only use pools for medium-sized operands that will benefit from stack allocation */
+  size_t max_limbs = (x->sz > n->sz) ? x->sz : n->sz;
+  max_limbs = (ex->sz > max_limbs) ? ex->sz : max_limbs;
+  if (max_limbs < 4 || max_limbs > 32) {
+    return 0; /* Use traditional modular exponentiation */
+  }
+
+  /* Estimate space needed: t, b, temp, mu (if Barrett), plus multiplication temporaries */
+  size_t estimated_temp_size = n->sz + 2;  /* Result size estimation */
+  size_t temp_space = estimated_temp_size * 5;  /* t, b, temp, mu, plus margins */
+  if (temp_space > BIGINT_POOL_DEFAULT_SIZE / 2) {
+    return 0; /* Pool too small for all temporaries */
+  }
+
+  do {
+    mpz_scoped_pool_t pool_storage = {0};
+    pool_storage.capacity = BIGINT_POOL_DEFAULT_SIZE;
+    pool_storage.active = 1;
+    mpz_scoped_pool_t *pool = &pool_storage;
+
+    mpz_t t, b, temp, mu;
+    int pool_success = 0;
+    int use_barrett = (n->sz >= 2 && n->sz <= 8);
+
+    /* Initialize temporary variables in pool */
+    mpz_init_pool(mrb, &t, pool, estimated_temp_size);
+    mpz_init_pool(mrb, &b, pool, estimated_temp_size);
+    mpz_init_pool(mrb, &temp, pool, estimated_temp_size * 2);  /* Larger for multiplication results */
+
+    /* Initialize Barrett reduction if needed */
+    if (use_barrett) {
+      mpz_init_pool(mrb, &mu, pool, estimated_temp_size);
+    }
+
+    /* Verify all pool allocations succeeded */
+    int all_pool_allocated = is_pool_memory(&t, pool) && is_pool_memory(&b, pool) && is_pool_memory(&temp, pool);
+    if (use_barrett) {
+      all_pool_allocated = all_pool_allocated && is_pool_memory(&mu, pool);
+    }
+
+    if (all_pool_allocated) {
+      /* Initialize t = 1 */
+      t.p[0] = 1;
+      t.sz = 1;
+      t.sn = 1;
+
+      /* Initialize b = x % n using pool-based operations */
+      mpz_t quotient, remainder;
+      mpz_init_pool(mrb, &quotient, pool, estimated_temp_size);
+      mpz_init_pool(mrb, &remainder, pool, estimated_temp_size);
+
+      if (is_pool_memory(&quotient, pool) && is_pool_memory(&remainder, pool) &&
+          udiv_scoped(mrb, &quotient, &remainder, x, n)) {
+        /* Copy remainder to b */
+        for (size_t i = 0; i < remainder.sz && i < b.sz; i++) {
+          b.p[i] = remainder.p[i];
+        }
+        b.sz = (remainder.sz < b.sz) ? remainder.sz : b.sz;
+        b.sn = remainder.sn;
+      }
+      else {
+        /* Pool division failed - fallback */
+        mpz_clear_pool(mrb, &quotient, pool);
+        mpz_clear_pool(mrb, &remainder, pool);
+        pool_success = 0;
+        goto cleanup;
+      }
+
+      mpz_clear_pool(mrb, &quotient, pool);
+      mpz_clear_pool(mrb, &remainder, pool);
+
+      /* Prepare Barrett reduction if enabled */
+      if (use_barrett) {
+        /* For now, skip Barrett in pool version to keep it simple */
+        use_barrett = 0;
+      }
+
+      /* Binary exponentiation loop */
+      size_t len = digits(ex);
+      for (size_t i = 0; i < len && pool_success != -1; i++) {
+        mp_limb e = ex->p[i];
+        for (size_t j = 0; j < sizeof(mp_limb) * 8; j++) {
+          if ((e & 1) == 1) {
+            /* t = (t * b) % n using pool-based operations */
+            if (mpz_mul_sliding_window_scoped(mrb, &temp, &t, &b)) {
+              /* Pool multiplication succeeded - now reduce modulo n */
+              mpz_t q_temp, r_temp;
+              mpz_init_pool(mrb, &q_temp, pool, estimated_temp_size);
+              mpz_init_pool(mrb, &r_temp, pool, estimated_temp_size);
+
+              if (is_pool_memory(&q_temp, pool) && is_pool_memory(&r_temp, pool) &&
+                  udiv_scoped(mrb, &q_temp, &r_temp, &temp, n)) {
+                /* Copy remainder to t */
+                for (size_t k = 0; k < r_temp.sz && k < t.sz; k++) {
+                  t.p[k] = r_temp.p[k];
+                }
+                t.sz = (r_temp.sz < t.sz) ? r_temp.sz : t.sz;
+                t.sn = r_temp.sn;
+              }
+              else {
+                /* Pool operations failed - exit loop */
+                mpz_clear_pool(mrb, &q_temp, pool);
+                mpz_clear_pool(mrb, &r_temp, pool);
+                pool_success = -1;
+                break;
+              }
+
+              mpz_clear_pool(mrb, &q_temp, pool);
+              mpz_clear_pool(mrb, &r_temp, pool);
+            }
+            else {
+              /* Pool multiplication failed - exit loop */
+              pool_success = -1;
+              break;
+            }
+          }
+
+          e >>= 1;
+
+          /* b = (b * b) % n using pool-based operations */
+          if (mpz_mul_sliding_window_scoped(mrb, &temp, &b, &b)) {
+            /* Pool multiplication succeeded - now reduce modulo n */
+            mpz_t q_temp, r_temp;
+            mpz_init_pool(mrb, &q_temp, pool, estimated_temp_size);
+            mpz_init_pool(mrb, &r_temp, pool, estimated_temp_size);
+
+            if (is_pool_memory(&q_temp, pool) && is_pool_memory(&r_temp, pool) &&
+                udiv_scoped(mrb, &q_temp, &r_temp, &temp, n)) {
+              /* Copy remainder to b */
+              for (size_t k = 0; k < r_temp.sz && k < b.sz; k++) {
+                b.p[k] = r_temp.p[k];
+              }
+              b.sz = (r_temp.sz < b.sz) ? r_temp.sz : b.sz;
+              b.sn = r_temp.sn;
+            }
+            else {
+              /* Pool operations failed - exit loop */
+              mpz_clear_pool(mrb, &q_temp, pool);
+              mpz_clear_pool(mrb, &r_temp, pool);
+              pool_success = -1;
+              break;
+            }
+
+            mpz_clear_pool(mrb, &q_temp, pool);
+            mpz_clear_pool(mrb, &r_temp, pool);
+          }
+          else {
+            /* Pool multiplication failed - exit loop */
+            pool_success = -1;
+            break;
+          }
+        }
+      }
+
+      if (pool_success != -1) {
+        /* Copy final result from pool to heap-allocated output */
+        mpz_realloc(mrb, zz, t.sz);
+        for (size_t i = 0; i < t.sz; i++) {
+          zz->p[i] = t.p[i];
+        }
+        zz->sz = t.sz;
+        zz->sn = t.sn;
+        pool_success = 1;
+      }
+    }
+
+cleanup:
+    /* Pool cleanup is automatic */
+    if (t.p) mpz_clear_pool(mrb, &t, pool);
+    if (b.p) mpz_clear_pool(mrb, &b, pool);
+    if (temp.p) mpz_clear_pool(mrb, &temp, pool);
+    if (use_barrett && mu.p) mpz_clear_pool(mrb, &mu, pool);
+    pool_storage.active = 0;
+
+    if (pool_success == 1) {
+      return 1; /* Success - used pool memory for modular exponentiation! */
+    }
+    else {
+      return 0; /* Pool allocation failed, fallback */
+    }
+  } while(0);
+
+  return 0; /* Should not reach here */
 }
 
 static void
