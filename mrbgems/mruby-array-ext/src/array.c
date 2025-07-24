@@ -193,31 +193,6 @@ ary_slice_bang(mrb_state *mrb, mrb_value self)
 
 /*
  * call-seq:
- *    ary.compact     -> new_ary
- *
- * Returns a copy of `self` with all `nil` elements removed.
- *
- *   [ "a", nil, "b", nil, "c", nil ].compact
- *                      #=> [ "a", "b", "c" ]
- */
-
-static mrb_value
-ary_compact(mrb_state *mrb, mrb_value self)
-{
-  mrb_value ary = mrb_ary_new(mrb);
-  mrb_int len = RARRAY_LEN(self);
-
-  for (mrb_int i = 0; i < len; i++) {
-    mrb_value v = RARRAY_PTR(self)[i];
-    if (!mrb_nil_p(v)) {
-      mrb_ary_push(mrb, ary, v);
-    }
-  }
-  return ary;
-}
-
-/*
- * call-seq:
  *    ary.compact!    -> ary  or  nil
  *
  * Removes `nil` elements from the array.
@@ -245,6 +220,24 @@ ary_compact_bang(mrb_state *mrb, mrb_value self)
   if (i == j) return mrb_nil_value();
   ARY_SET_LEN(RARRAY(self), j);
   return self;
+}
+
+/*
+ * call-seq:
+ *    ary.compact     -> new_ary
+ *
+ * Returns a copy of `self` with all `nil` elements removed.
+ *
+ *   [ "a", nil, "b", nil, "c", nil ].compact
+ *                      #=> [ "a", "b", "c" ]
+ */
+
+static mrb_value
+ary_compact(mrb_state *mrb, mrb_value self)
+{
+  mrb_value ary = mrb_ary_dup(mrb, self);
+  ary_compact_bang(mrb, ary);
+  return ary;
 }
 
 
