@@ -360,15 +360,12 @@ ary_update_hash_set(mrb_state *mrb, mrb_value ary, mrb_value hash)
   }
 }
 
-static mrb_value
-ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value *argv)
+static mrb_int
+ary_get_array_args(mrb_state *mrb, mrb_int argc, const mrb_value **argv_ptr)
 {
-  if (argc == 0) {
-    return mrb_ary_dup(mrb, self);
-  }
-
-  mrb_value *converted_argv = (mrb_value *)mrb_alloca(mrb, sizeof(mrb_value) * argc);
   mrb_int total_len = 0;
+  const mrb_value *argv = *argv_ptr;
+  mrb_value *converted_argv = (mrb_value *)mrb_alloca(mrb, sizeof(mrb_value) * argc);
 
   for (mrb_int i = 0; i < argc; i++) {
     mrb_value other = mrb_check_array_type(mrb, argv[i]);
@@ -378,6 +375,18 @@ ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_va
     converted_argv[i] = other;
     total_len += RARRAY_LEN(other);
   }
+  *argv_ptr = converted_argv;
+  return total_len;
+}
+
+static mrb_value
+ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value *argv)
+{
+  if (argc == 0) {
+    return mrb_ary_dup(mrb, self);
+  }
+
+  mrb_int total_len = ary_get_array_args(mrb, argc, &argv);
 
   mrb_value result = mrb_ary_new(mrb);
 
@@ -385,7 +394,7 @@ ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_va
     mrb_value hash = mrb_hash_new_capa(mrb, total_len);
 
     for (mrb_int i = 0; i < argc; i++) {
-      ary_update_hash_set(mrb, converted_argv[i], hash);
+      ary_update_hash_set(mrb, argv[i], hash);
     }
 
     mrb_int self_len = RARRAY_LEN(self);
@@ -403,9 +412,9 @@ ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_va
       mrb_value p = RARRAY_PTR(self)[i];
       mrb_bool found = FALSE;
       for (mrb_int j = 0; j < argc; j++) {
-        mrb_int len = RARRAY_LEN(converted_argv[j]);
+        mrb_int len = RARRAY_LEN(argv[j]);
         for (mrb_int k = 0; k < len; k++) {
-          if (mrb_equal(mrb, p, RARRAY_PTR(converted_argv[j])[k])) {
+          if (mrb_equal(mrb, p, RARRAY_PTR(argv[j])[k])) {
             found = TRUE;
             break;
           }
@@ -486,16 +495,7 @@ add_uniq(mrb_state *mrb, mrb_value item, mrb_value result)
 static mrb_value
 ary_union_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value *argv)
 {
-  mrb_int alen = RARRAY_LEN(self);
-  mrb_int total_len = alen;
-
-  for (mrb_int i = 0; i < argc; i++) {
-    mrb_value other = mrb_check_array_type(mrb, argv[i]);
-    if (mrb_nil_p(other)) {
-      mrb_raise(mrb, E_TYPE_ERROR, "can't convert passed argument to Array");
-    }
-    total_len += RARRAY_LEN(other);
-  }
+  mrb_int total_len = ary_get_array_args(mrb, argc, &argv) + RARRAY_LEN(self);
 
   mrb_value result = mrb_ary_new(mrb);
 
@@ -576,17 +576,7 @@ ary_intersection_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mr
     return mrb_ary_new(mrb);
   }
 
-  mrb_value *converted_argv = (mrb_value *)mrb_alloca(mrb, sizeof(mrb_value) * argc);
-
-  mrb_int total_len = 0;
-  for (mrb_int i = 0; i < argc; i++) {
-    mrb_value other = mrb_check_array_type(mrb, argv[i]);
-    if (mrb_nil_p(other)) {
-      mrb_raise(mrb, E_TYPE_ERROR, "can't convert passed argument to Array");
-    }
-    converted_argv[i] = other;
-    total_len += RARRAY_LEN(other);
-  }
+  mrb_int total_len = ary_get_array_args(mrb, argc, &argv);
 
   mrb_value result = mrb_ary_new(mrb);
 
@@ -594,7 +584,7 @@ ary_intersection_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mr
     mrb_value hash = mrb_hash_new_capa(mrb, total_len);
 
     for (mrb_int i = 0; i < argc; i++) {
-      ary_update_hash_set(mrb, converted_argv[i], hash);
+      ary_update_hash_set(mrb, argv[i], hash);
     }
 
     mrb_int self_len = RARRAY_LEN(self);
@@ -615,9 +605,9 @@ ary_intersection_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mr
 
       for (mrb_int j = 0; j < argc; j++) {
         mrb_bool found_in_current_other = FALSE;
-        mrb_int len = RARRAY_LEN(converted_argv[j]);
+        mrb_int len = RARRAY_LEN(argv[j]);
         for (mrb_int k = 0; k < len; k++) {
-          if (mrb_equal(mrb, p, RARRAY_PTR(converted_argv[j])[k])) {
+          if (mrb_equal(mrb, p, RARRAY_PTR(argv[j])[k])) {
             found_in_current_other = TRUE;
             break;
           }
@@ -896,14 +886,15 @@ ary_uniq_bang(mrb_state *mrb, mrb_value self)
 
   if (len > SET_OP_HASH_THRESHOLD) {
     mrb_value hash = mrb_hash_new_capa(mrb, len);
+    ary_update_hash_set(mrb, self, hash);
     for (mrb_int read_pos = 0; read_pos < len; read_pos++) {
       mrb_value elem = RARRAY_PTR(self)[read_pos];
-      if (mrb_nil_p(mrb_hash_get(mrb, hash, elem))) {
-        mrb_hash_set(mrb, hash, elem, mrb_true_value());
+      if (!mrb_nil_p(mrb_hash_get(mrb, hash, elem))) {
         if (write_pos != read_pos) {
           RARRAY_PTR(self)[write_pos] = elem;
         }
         write_pos++;
+        mrb_hash_delete_key(mrb, hash, elem);
       }
     }
   }
