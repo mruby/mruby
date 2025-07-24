@@ -311,6 +311,17 @@ h_check_modified_validate(mrb_state *mrb, struct h_check_modified *checker, stru
   }
 }
 
+#ifndef MRB_NO_FLOAT
+static uint32_t
+float_hash_code(mrb_float f)
+{
+  if (f == 0.0) return 0;
+  /* normalize -0.0 to 0.0 */
+  if (f == -0.0) f = 0.0;
+  return mrb_byte_hash((const uint8_t*)&f, sizeof(f));
+}
+#endif
+
 uint32_t
 mrb_obj_hash_code(mrb_state *mrb, mrb_value key)
 {
@@ -329,14 +340,18 @@ mrb_obj_hash_code(mrb_state *mrb, mrb_value key)
   case MRB_TT_INTEGER:
     if (mrb_fixnum_p(key)) {
       hash_code = U32(mrb_fixnum(key));
-      break;
     }
-#ifndef MRB_NO_FLOAT
-    /* fall through */
-  case MRB_TT_FLOAT:
+#ifdef MRB_USE_BIGINT
+    else {
+      hash_code = U32(mrb_integer(mrb_bint_hash(mrb, key)));
+    }
 #endif
-    hash_code = U32(mrb_obj_id(key));
     break;
+#ifndef MRB_NO_FLOAT
+  case MRB_TT_FLOAT:
+    hash_code = float_hash_code(mrb_float(key));
+    break;
+#endif
   default:
     hash_code_obj = mrb_funcall_argv(mrb, key, MRB_SYM(hash), 0, NULL);
     hash_code = U32(tt) ^ U32(mrb_integer(hash_code_obj));
