@@ -63,6 +63,44 @@ static allocation_stats_t g_alloc_stats = {0};
   pool_name##_storage.active = 0; \
 } while(0)
 
+/* Pool memory management helper macros */
+#define MPZ_POOL_ALLOC(mrb, var, pool, size) do { \
+  mpz_init_pool(mrb, &(var), pool, size); \
+  if (!is_pool_memory(&(var), pool)) { \
+    mpz_clear_pool(mrb, &(var), pool); \
+    return 0; /* Pool allocation failed, fallback */ \
+  } \
+} while(0)
+
+#define MPZ_POOL_ALLOC_GOTO(mrb, var, pool, size, label) do { \
+  mpz_init_pool(mrb, &(var), pool, size); \
+  if (!is_pool_memory(&(var), pool)) { \
+    mpz_clear_pool(mrb, &(var), pool); \
+    goto label; \
+  } \
+} while(0)
+
+#define MPZ_POOL_CLEANUP(mrb, var, pool) do { \
+  if ((var).p) mpz_clear_pool(mrb, &(var), pool); \
+} while(0)
+
+#define MPZ_POOL_VERIFY(var, pool) is_pool_memory(&(var), pool)
+
+#define MPZ_POOL_VERIFY_2(var1, var2, pool) \
+  (MPZ_POOL_VERIFY(var1, pool) && MPZ_POOL_VERIFY(var2, pool))
+
+#define MPZ_POOL_VERIFY_3(var1, var2, var3, pool) \
+  (MPZ_POOL_VERIFY(var1, pool) && MPZ_POOL_VERIFY(var2, pool) && MPZ_POOL_VERIFY(var3, pool))
+
+#define MPZ_POOL_VERIFY_4(var1, var2, var3, var4, pool) \
+  (MPZ_POOL_VERIFY(var1, pool) && MPZ_POOL_VERIFY(var2, pool) && \
+   MPZ_POOL_VERIFY(var3, pool) && MPZ_POOL_VERIFY(var4, pool))
+
+#define MPZ_POOL_VERIFY_6(var1, var2, var3, var4, var5, var6, pool) \
+  (MPZ_POOL_VERIFY(var1, pool) && MPZ_POOL_VERIFY(var2, pool) && \
+   MPZ_POOL_VERIFY(var3, pool) && MPZ_POOL_VERIFY(var4, pool) && \
+   MPZ_POOL_VERIFY(var5, pool) && MPZ_POOL_VERIFY(var6, pool))
+
 /* Pool allocation functions */
 static mp_limb*
 pool_alloc(mpz_pool_t *pool, size_t limbs)
@@ -343,13 +381,7 @@ uadd_pool(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y, mpz_pool_t *pool)
   }
 
   /* Try to allocate in pool */
-  mpz_init_pool(mrb, z, pool, result_size);
-
-  /* Verify pool allocation worked */
-  if (!is_pool_memory(z, pool)) {
-    mpz_clear_pool(mrb, z, pool);
-    return 0; /* Pool allocation failed, fallback */
-  }
+  MPZ_POOL_ALLOC(mrb, *z, pool, result_size);
 
   /* Perform addition using pool memory */
   mp_dbl_limb c = 0;
@@ -401,13 +433,7 @@ usub_pool(mrb_state *mrb, mpz_t *z, mpz_t *y, mpz_t *x, mpz_pool_t *pool)
   }
 
   /* Try to allocate in pool */
-  mpz_init_pool(mrb, z, pool, y->sz);
-
-  /* Verify pool allocation worked */
-  if (!is_pool_memory(z, pool)) {
-    mpz_clear_pool(mrb, z, pool);
-    return 0; /* Pool allocation failed, fallback */
-  }
+  MPZ_POOL_ALLOC(mrb, *z, pool, y->sz);
 
   /* Perform subtraction using pool memory */
   mp_dbl_limb_signed b = 0;
@@ -596,13 +622,13 @@ mpz_add_pool(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y)
       zz->sn = z_temp.sn;
 
       /* Pool cleanup is automatic */
-      mpz_clear_pool(mrb, &z_temp, pool);
+      MPZ_POOL_CLEANUP(mrb, z_temp, pool);
       return 1; /* Success - used pool memory! */
     }
     else {
       /* Pool allocation failed, cleanup and fallback */
       if (z_temp.p) {
-        mpz_clear_pool(mrb, &z_temp, pool);
+        MPZ_POOL_CLEANUP(mrb, z_temp, pool);
       }
       return 0; /* Fallback to traditional */
     }
@@ -751,9 +777,7 @@ mpz_mul_sliding_window_pool(mrb_state *mrb, mpz_t *result, mpz_t *first, mpz_t *
     // Allocate temporary result in pool
     mpz_t temp_result;
     mpz_init_pool(mrb, &temp_result, pool, result_size);
-
-    // Verify pool allocation worked
-    if (!is_pool_memory(&temp_result, pool)) {
+    if (!MPZ_POOL_VERIFY(temp_result, pool)) {
       // Pool allocation failed - cleanup and fallback
       mpz_clear_pool(mrb, &temp_result, pool);
       pool_storage.active = 0;
@@ -803,7 +827,7 @@ mpz_mul_sliding_window_pool(mrb_state *mrb, mpz_t *result, mpz_t *first, mpz_t *
     result->sn = temp_result.sn;
 
     // Pool cleanup is automatic when scope exits
-    mpz_clear_pool(mrb, &temp_result, pool);
+    MPZ_POOL_CLEANUP(mrb, temp_result, pool);
     pool_storage.active = 0;
 
     return 1; // Success - used pool memory for computation!
@@ -1445,9 +1469,7 @@ udiv_pool(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
     mpz_init_pool(mrb, &y_temp, pool, divisor_limbs);
 
     /* Verify all pool allocations succeeded */
-    if (is_pool_memory(&q_temp, pool) &&
-        is_pool_memory(&x_temp, pool) &&
-        is_pool_memory(&y_temp, pool)) {
+    if (MPZ_POOL_VERIFY_3(q_temp, x_temp, y_temp, pool)) {
 
       /* Perform division using pool-allocated temporaries */
       mrb_assert(yy->sn != 0);      /* divided by zero */
@@ -1610,9 +1632,9 @@ udiv_pool(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
     }
 
     /* Pool cleanup is automatic */
-    if (q_temp.p) mpz_clear_pool(mrb, &q_temp, pool);
-    if (x_temp.p) mpz_clear_pool(mrb, &x_temp, pool);
-    if (y_temp.p) mpz_clear_pool(mrb, &y_temp, pool);
+    MPZ_POOL_CLEANUP(mrb, q_temp, pool);
+    MPZ_POOL_CLEANUP(mrb, x_temp, pool);
+    MPZ_POOL_CLEANUP(mrb, y_temp, pool);
     pool_storage.active = 0;
 
     if (pool_success) {
@@ -2431,9 +2453,9 @@ mpz_powm_pool(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
     }
 
     /* Verify all pool allocations succeeded */
-    int all_pool_allocated = is_pool_memory(&t, pool) && is_pool_memory(&b, pool) && is_pool_memory(&temp, pool);
+    int all_pool_allocated = MPZ_POOL_VERIFY_3(t, b, temp, pool);
     if (use_barrett) {
-      all_pool_allocated = all_pool_allocated && is_pool_memory(&mu, pool);
+      all_pool_allocated = all_pool_allocated && MPZ_POOL_VERIFY(mu, pool);
     }
 
     if (all_pool_allocated) {
@@ -2447,7 +2469,7 @@ mpz_powm_pool(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
       mpz_init_pool(mrb, &quotient, pool, estimated_temp_size);
       mpz_init_pool(mrb, &remainder, pool, estimated_temp_size);
 
-      if (is_pool_memory(&quotient, pool) && is_pool_memory(&remainder, pool) &&
+      if (MPZ_POOL_VERIFY_2(quotient, remainder, pool) &&
           udiv_pool(mrb, &quotient, &remainder, x, n)) {
         /* Copy remainder to b */
         for (size_t i = 0; i < remainder.sz && i < b.sz; i++) {
@@ -2458,8 +2480,8 @@ mpz_powm_pool(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
       }
       else {
         /* Pool division failed - fallback */
-        mpz_clear_pool(mrb, &quotient, pool);
-        mpz_clear_pool(mrb, &remainder, pool);
+        MPZ_POOL_CLEANUP(mrb, quotient, pool);
+        MPZ_POOL_CLEANUP(mrb, remainder, pool);
         pool_success = 0;
         goto cleanup;
       }
@@ -2486,7 +2508,7 @@ mpz_powm_pool(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
               mpz_init_pool(mrb, &q_temp, pool, estimated_temp_size);
               mpz_init_pool(mrb, &r_temp, pool, estimated_temp_size);
 
-              if (is_pool_memory(&q_temp, pool) && is_pool_memory(&r_temp, pool) &&
+              if (MPZ_POOL_VERIFY_2(q_temp, r_temp, pool) &&
                   udiv_pool(mrb, &q_temp, &r_temp, &temp, n)) {
                 /* Copy remainder to t */
                 for (size_t k = 0; k < r_temp.sz && k < t.sz; k++) {
@@ -2503,8 +2525,8 @@ mpz_powm_pool(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
                 break;
               }
 
-              mpz_clear_pool(mrb, &q_temp, pool);
-              mpz_clear_pool(mrb, &r_temp, pool);
+              MPZ_POOL_CLEANUP(mrb, q_temp, pool);
+              MPZ_POOL_CLEANUP(mrb, r_temp, pool);
             }
             else {
               /* Pool multiplication failed - exit loop */
@@ -2522,7 +2544,7 @@ mpz_powm_pool(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
             mpz_init_pool(mrb, &q_temp, pool, estimated_temp_size);
             mpz_init_pool(mrb, &r_temp, pool, estimated_temp_size);
 
-            if (is_pool_memory(&q_temp, pool) && is_pool_memory(&r_temp, pool) &&
+            if (MPZ_POOL_VERIFY_2(q_temp, r_temp, pool) &&
                 udiv_pool(mrb, &q_temp, &r_temp, &temp, n)) {
               /* Copy remainder to b */
               for (size_t k = 0; k < r_temp.sz && k < b.sz; k++) {
@@ -2533,14 +2555,14 @@ mpz_powm_pool(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
             }
             else {
               /* Pool operations failed - exit loop */
-              mpz_clear_pool(mrb, &q_temp, pool);
-              mpz_clear_pool(mrb, &r_temp, pool);
+              MPZ_POOL_CLEANUP(mrb, q_temp, pool);
+              MPZ_POOL_CLEANUP(mrb, r_temp, pool);
               pool_success = -1;
               break;
             }
 
-            mpz_clear_pool(mrb, &q_temp, pool);
-            mpz_clear_pool(mrb, &r_temp, pool);
+            MPZ_POOL_CLEANUP(mrb, q_temp, pool);
+            MPZ_POOL_CLEANUP(mrb, r_temp, pool);
           }
           else {
             /* Pool multiplication failed - exit loop */
@@ -2564,10 +2586,10 @@ mpz_powm_pool(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
 
 cleanup:
     /* Pool cleanup is automatic */
-    if (t.p) mpz_clear_pool(mrb, &t, pool);
-    if (b.p) mpz_clear_pool(mrb, &b, pool);
-    if (temp.p) mpz_clear_pool(mrb, &temp, pool);
-    if (use_barrett && mu.p) mpz_clear_pool(mrb, &mu, pool);
+    MPZ_POOL_CLEANUP(mrb, t, pool);
+    MPZ_POOL_CLEANUP(mrb, b, pool);
+    MPZ_POOL_CLEANUP(mrb, temp, pool);
+    if (use_barrett) MPZ_POOL_CLEANUP(mrb, mu, pool);
     pool_storage.active = 0;
 
     if (pool_success == 1) {
@@ -3166,7 +3188,7 @@ mpz_sub_pool(mrb_state *mrb, mpz_t *result, mpz_t *a, mpz_t *b, mpz_pool_t *pool
   int success = mpz_add_pool(mrb, result, a, &b_neg);
 
   /* Clean up temporary */
-  mpz_clear_pool(mrb, &b_neg, pool);
+  MPZ_POOL_CLEANUP(mrb, b_neg, pool);
 
   return success;
 }
@@ -3350,9 +3372,7 @@ mpz_gcd_pool(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
           mpz_init_pool(mrb, &v1_b, pool, estimated_temp_size);
 
           /* Verify all Lehmer pool allocations succeeded */
-          int lehmer_pool_ok = is_pool_memory(&temp_a, pool) && is_pool_memory(&temp_b, pool) &&
-                               is_pool_memory(&u0_a, pool) && is_pool_memory(&v0_b, pool) &&
-                               is_pool_memory(&u1_a, pool) && is_pool_memory(&v1_b, pool);
+          int lehmer_pool_ok = MPZ_POOL_VERIFY_6(temp_a, temp_b, u0_a, v0_b, u1_a, v1_b, pool);
 
           if (lehmer_pool_ok) {
             /* Set initial values using pool-based copy operations */
@@ -3394,12 +3414,12 @@ mpz_gcd_pool(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
           }
 
           /* Cleanup Lehmer temporaries - ALWAYS clean up regardless of success/failure */
-          mpz_clear_pool(mrb, &temp_a, pool);
-          mpz_clear_pool(mrb, &temp_b, pool);
-          mpz_clear_pool(mrb, &u0_a, pool);
-          mpz_clear_pool(mrb, &v0_b, pool);
-          mpz_clear_pool(mrb, &u1_a, pool);
-          mpz_clear_pool(mrb, &v1_b, pool);
+          MPZ_POOL_CLEANUP(mrb, temp_a, pool);
+          MPZ_POOL_CLEANUP(mrb, temp_b, pool);
+          MPZ_POOL_CLEANUP(mrb, u0_a, pool);
+          MPZ_POOL_CLEANUP(mrb, v0_b, pool);
+          MPZ_POOL_CLEANUP(mrb, u1_a, pool);
+          MPZ_POOL_CLEANUP(mrb, v1_b, pool);
 
           if (pool_success == 0) {
             goto cleanup_gcd;
@@ -3480,8 +3500,8 @@ mpz_gcd_pool(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
 
 cleanup_gcd:
     /* Pool cleanup is automatic */
-    if (a.p) mpz_clear_pool(mrb, &a, pool);
-    if (b.p) mpz_clear_pool(mrb, &b, pool);
+    MPZ_POOL_CLEANUP(mrb, a, pool);
+    MPZ_POOL_CLEANUP(mrb, b, pool);
     pool_storage.active = 0;
 
     if (pool_success == 1) {
@@ -3677,8 +3697,7 @@ mpz_sqrt_pool(mrb_state *mrb, mpz_t *z, mpz_t *x)
     mpz_init_pool(mrb, &remainder, pool, x_limbs);
 
     /* Verify all pool allocations succeeded */
-    if (is_pool_memory(&s, pool) && is_pool_memory(&t, pool) &&
-        is_pool_memory(&quotient, pool) && is_pool_memory(&remainder, pool)) {
+    if (MPZ_POOL_VERIFY_4(s, t, quotient, remainder, pool)) {
 
       /* Estimate initial value: 1 << (bit_length(x) / 2) */
       size_t xbits = mpz_bits(x);
@@ -3740,11 +3759,11 @@ mpz_sqrt_pool(mrb_state *mrb, mpz_t *z, mpz_t *x)
           }
           t.sz = (temp_sum.sz < t.sz) ? temp_sum.sz : t.sz;
           t.sn = temp_sum.sn;
-          mpz_clear_pool(mrb, &temp_sum, pool);
+          MPZ_POOL_CLEANUP(mrb, temp_sum, pool);
         }
         else {
           /* Pool addition failed - fallback to traditional */
-          if (temp_sum.p) mpz_clear_pool(mrb, &temp_sum, pool);
+          MPZ_POOL_CLEANUP(mrb, temp_sum, pool);
           pool_success = 0;
           break;
         }
@@ -3816,10 +3835,10 @@ mpz_sqrt_pool(mrb_state *mrb, mpz_t *z, mpz_t *x)
     }
 
     /* Pool cleanup is automatic */
-    if (s.p) mpz_clear_pool(mrb, &s, pool);
-    if (t.p) mpz_clear_pool(mrb, &t, pool);
-    if (quotient.p) mpz_clear_pool(mrb, &quotient, pool);
-    if (remainder.p) mpz_clear_pool(mrb, &remainder, pool);
+    MPZ_POOL_CLEANUP(mrb, s, pool);
+    MPZ_POOL_CLEANUP(mrb, t, pool);
+    MPZ_POOL_CLEANUP(mrb, quotient, pool);
+    MPZ_POOL_CLEANUP(mrb, remainder, pool);
     pool_storage.active = 0;
 
     if (pool_success) {
