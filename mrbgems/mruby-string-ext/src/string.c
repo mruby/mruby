@@ -1503,7 +1503,8 @@ str_lstrip_bang(mrb_state *mrb, mrb_value self)
   if (start < len) {
     memmove(ptr, ptr + start, len - start);
     RSTR_SET_LEN(s, len - start);
-  } else {
+  }
+  else {
     /* All whitespace - make empty */
     RSTR_SET_LEN(s, 0);
   }
@@ -1644,7 +1645,8 @@ str_chars_ary(mrb_state *mrb, mrb_value self)
       mrb_ary_push(mrb, result, char_str);
       p++;
     }
-  } else {
+  }
+  else {
 #ifdef MRB_UTF8_STRING
     /* UTF-8: handle multi-byte characters */
     while (p < e) {
@@ -1652,7 +1654,8 @@ str_chars_ary(mrb_state *mrb, mrb_value self)
       if (char_len == 0 || char_len > 4 || p + char_len > e) {
         /* Invalid UTF-8, treat as single byte */
         char_len = 1;
-      } else {
+      }
+      else {
         /* Validate UTF-8 sequence */
         mrb_bool valid = TRUE;
         if (char_len > 1) {
@@ -1723,7 +1726,8 @@ str_ljust_core(mrb_state *mrb, mrb_value self)
     if (chars_needed >= pad_char_len) {
       mrb_str_cat_str(mrb, padding, padstr);
       chars_needed -= pad_char_len;
-    } else {
+    }
+    else {
       /* Need partial padding - use substr to get exact characters */
       mrb_value partial = mrb_str_substr(mrb, padstr, 0, chars_needed);
       mrb_str_cat_str(mrb, padding, partial);
@@ -1773,7 +1777,8 @@ str_rjust_core(mrb_state *mrb, mrb_value self)
     if (chars_needed >= pad_char_len) {
       mrb_str_cat_str(mrb, padding, padstr);
       chars_needed -= pad_char_len;
-    } else {
+    }
+    else {
       /* Need partial padding - use substr to get exact characters */
       mrb_value partial = mrb_str_substr(mrb, padstr, 0, chars_needed);
       mrb_str_cat_str(mrb, padding, partial);
@@ -1826,7 +1831,8 @@ str_center_core(mrb_state *mrb, mrb_value self)
     if (chars_needed >= pad_char_len) {
       mrb_str_cat_str(mrb, left_padding, padstr);
       chars_needed -= pad_char_len;
-    } else {
+    }
+    else {
       mrb_value partial = mrb_str_substr(mrb, padstr, 0, chars_needed);
       mrb_str_cat_str(mrb, left_padding, partial);
       chars_needed = 0;
@@ -1840,7 +1846,8 @@ str_center_core(mrb_state *mrb, mrb_value self)
     if (chars_needed >= pad_char_len) {
       mrb_str_cat_str(mrb, right_padding, padstr);
       chars_needed -= pad_char_len;
-    } else {
+    }
+    else {
       mrb_value partial = mrb_str_substr(mrb, padstr, 0, chars_needed);
       mrb_str_cat_str(mrb, right_padding, partial);
       chars_needed = 0;
