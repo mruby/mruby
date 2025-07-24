@@ -27,20 +27,20 @@
 /* Scoped Memory Pool Infrastructure */
 #define BIGINT_POOL_DEFAULT_SIZE 512  /* 2KB on 32-bit, 4KB on 64-bit */
 
-typedef struct mpz_scoped_pool {
+typedef struct mpz_pool {
   mp_limb data[BIGINT_POOL_DEFAULT_SIZE];
   size_t used;
   size_t capacity;
   int active;
-} mpz_scoped_pool_t;
+} mpz_pool_t;
 
 /* Forward declarations */
 static int mpz_mul_sliding_window(mrb_state *mrb, mpz_t *result, mpz_t *first, mpz_t *second);
-static int mpz_add_scoped(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y);
-static int udiv_scoped(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy);
-static int mpz_sqrt_scoped(mrb_state *mrb, mpz_t *z, mpz_t *x);
-static int mpz_powm_scoped(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n);
-static int mpz_gcd_scoped(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb);
+static int mpz_add_pool(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y);
+static int udiv_pool(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy);
+static int mpz_sqrt_pool(mrb_state *mrb, mpz_t *z, mpz_t *x);
+static int mpz_powm_pool(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n);
+static int mpz_gcd_pool(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb);
 
 /* Memory allocation tracking for benchmarking */
 typedef struct allocation_stats {
@@ -55,17 +55,17 @@ typedef struct allocation_stats {
 static allocation_stats_t g_alloc_stats = {0};
 
 #define WITH_SCOPED_POOL(pool_name, code) do { \
-  mpz_scoped_pool_t pool_name##_storage = {0}; \
+  mpz_pool_t pool_name##_storage = {0}; \
   pool_name##_storage.capacity = BIGINT_POOL_DEFAULT_SIZE; \
   pool_name##_storage.active = 1; \
-  mpz_scoped_pool_t *pool_name = &pool_name##_storage; \
+  mpz_pool_t *pool_name = &pool_name##_storage; \
   code \
   pool_name##_storage.active = 0; \
 } while(0)
 
 /* Pool allocation functions */
 static mp_limb*
-pool_alloc(mpz_scoped_pool_t *pool, size_t limbs)
+pool_alloc(mpz_pool_t *pool, size_t limbs)
 {
   if (!pool || !pool->active || pool->used + limbs > pool->capacity) {
     g_alloc_stats.pool_misses++;
@@ -80,7 +80,7 @@ pool_alloc(mpz_scoped_pool_t *pool, size_t limbs)
 }
 
 static void
-mpz_init_pool(mrb_state *mrb, mpz_t *z, mpz_scoped_pool_t *pool, size_t hint)
+mpz_init_pool(mrb_state *mrb, mpz_t *z, mpz_pool_t *pool, size_t hint)
 {
   z->sn = 0;
 
@@ -234,7 +234,7 @@ mpz_init_set_int(mrb_state *mrb, mpz_t *y, mrb_int v)
 
 /* Check if mpz_t uses pool memory */
 static int
-is_pool_memory(mpz_t *z, mpz_scoped_pool_t *pool)
+is_pool_memory(mpz_t *z, mpz_pool_t *pool)
 {
   if (!pool || !z->p) return 0;
   uintptr_t ptr_addr = (uintptr_t)z->p;
@@ -246,7 +246,7 @@ is_pool_memory(mpz_t *z, mpz_scoped_pool_t *pool)
 
 /* Clear pool-aware mpz_t */
 static void
-mpz_clear_pool(mrb_state *mrb, mpz_t *s, mpz_scoped_pool_t *pool)
+mpz_clear_pool(mrb_state *mrb, mpz_t *s, mpz_pool_t *pool)
 {
   if (s->p && !is_pool_memory(s, pool)) {
     mrb_free(mrb, s->p);
@@ -327,7 +327,7 @@ uadd(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
 
 /* Pool-based unsigned addition - uses stack memory for result */
 static int
-uadd_scoped(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y, mpz_scoped_pool_t *pool)
+uadd_pool(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y, mpz_pool_t *pool)
 {
   if (y->sz < x->sz) {
     mpz_t *t;                   /* swap x,y */
@@ -393,7 +393,7 @@ usub(mrb_state *mrb, mpz_t *z, mpz_t *y, mpz_t *x)
 
 /* Pool-based unsigned subtraction - uses stack memory for result */
 static int
-usub_scoped(mrb_state *mrb, mpz_t *z, mpz_t *y, mpz_t *x, mpz_scoped_pool_t *pool)
+usub_pool(mrb_state *mrb, mpz_t *z, mpz_t *y, mpz_t *x, mpz_pool_t *pool)
 {
   /* Check if result fits in pool */
   if (y->sz > BIGINT_POOL_DEFAULT_SIZE) {
@@ -478,7 +478,7 @@ static void
 mpz_add(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y)
 {
   /* Try pool-based addition first for eligible operands */
-  if (mpz_add_scoped(mrb, zz, x, y)) {
+  if (mpz_add_pool(mrb, zz, x, y)) {
     return; /* Success with pool-based addition */
   }
 
@@ -524,7 +524,7 @@ mpz_add(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y)
 
 /* Pool-based signed addition - uses stack memory for intermediate results */
 static int
-mpz_add_scoped(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y)
+mpz_add_pool(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y)
 {
   if (zero_p(x)) {
     mpz_set(mrb, zz, y);
@@ -547,14 +547,14 @@ mpz_add_scoped(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y)
 
     if (x->sn > 0 && y->sn > 0) {
       /* Both positive - use pool-based addition */
-      if (uadd_scoped(mrb, &z_temp, x, y, pool)) {
+      if (uadd_pool(mrb, &z_temp, x, y, pool)) {
         z_temp.sn = 1;
         pool_success = 1;
       }
     }
     else if (x->sn < 0 && y->sn < 0) {
       /* Both negative - use pool-based addition */
-      if (uadd_scoped(mrb, &z_temp, x, y, pool)) {
+      if (uadd_pool(mrb, &z_temp, x, y, pool)) {
         z_temp.sn = -1;
         pool_success = 1;
       }
@@ -572,13 +572,13 @@ mpz_add_scoped(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y)
         }
       }
       else if (mg > 0) {  /* abs(y) < abs(x) */
-        if (usub_scoped(mrb, &z_temp, x, y, pool)) {
+        if (usub_pool(mrb, &z_temp, x, y, pool)) {
           z_temp.sn = (x->sn > 0 && y->sn < 0) ? 1 : (-1);
           pool_success = 1;
         }
       }
       else { /* abs(y) > abs(x) */
-        if (usub_scoped(mrb, &z_temp, y, x, pool)) {
+        if (usub_pool(mrb, &z_temp, y, x, pool)) {
           z_temp.sn = (x->sn < 0 && y->sn > 0) ? 1 : (-1);
           pool_success = 1;
         }
@@ -726,7 +726,7 @@ multiply_window(mp_limb *result, size_t offset,
 
 /* Pool-based sliding window multiplication - uses pool memory for temporary result */
 static int
-mpz_mul_sliding_window_scoped(mrb_state *mrb, mpz_t *result, mpz_t *first, mpz_t *second)
+mpz_mul_sliding_window_pool(mrb_state *mrb, mpz_t *result, mpz_t *first, mpz_t *second)
 {
   // Only use sliding window for medium-sized operands where cache benefits matter
   size_t max_limbs = (first->sz > second->sz) ? first->sz : second->sz;
@@ -743,10 +743,10 @@ mpz_mul_sliding_window_scoped(mrb_state *mrb, mpz_t *result, mpz_t *first, mpz_t
   }
 
   do {
-    mpz_scoped_pool_t pool_storage = {0};
+    mpz_pool_t pool_storage = {0};
     pool_storage.capacity = BIGINT_POOL_DEFAULT_SIZE;
     pool_storage.active = 1;
-    mpz_scoped_pool_t *pool = &pool_storage;
+    mpz_pool_t *pool = &pool_storage;
 
     // Allocate temporary result in pool
     mpz_t temp_result;
@@ -1012,7 +1012,7 @@ mpz_mul(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
 
   // Algorithm selection hierarchy:
   // 1. Try blocked multiplication for large operands (32-128 limbs)
-  // 2. Try scoped sliding window for medium operands (8-64 limbs) - uses pool memory
+  // 2. Try pool sliding window for medium operands (8-64 limbs) - uses pool memory
   // 3. Fallback to traditional sliding window if pool fails
   // 4. Fallback to classical multiplication
   mpz_t w;
@@ -1023,8 +1023,8 @@ mpz_mul(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
     return;
   }
 
-  // Try scoped pool version first for medium operands
-  if (mpz_mul_sliding_window_scoped(mrb, &w, first, second)) {
+  // Try pool version first for medium operands
+  if (mpz_mul_sliding_window_pool(mrb, &w, first, second)) {
     mpz_move(mrb, ww, &w);
     return;
   }
@@ -1260,7 +1260,7 @@ static void
 udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
 {
   /* Try pool-based division first for eligible operands */
-  if (udiv_scoped(mrb, qq, rr, xx, yy)) {
+  if (udiv_pool(mrb, qq, rr, xx, yy)) {
     return; /* Success with pool-based division */
   }
 
@@ -1396,7 +1396,7 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
 
 /* Pool-based division - uses stack memory for intermediate calculations */
 static int
-udiv_scoped(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
+udiv_pool(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
 {
   /* Only use pools for medium-sized operands */
   size_t dividend_limbs = xx->sz;
@@ -1431,10 +1431,10 @@ udiv_scoped(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
   }
 
   do {
-    mpz_scoped_pool_t pool_storage = {0};
+    mpz_pool_t pool_storage = {0};
     pool_storage.capacity = BIGINT_POOL_DEFAULT_SIZE;
     pool_storage.active = 1;
-    mpz_scoped_pool_t *pool = &pool_storage;
+    mpz_pool_t *pool = &pool_storage;
 
     mpz_t q_temp, x_temp, y_temp;
     int pool_success = 0;
@@ -2324,7 +2324,7 @@ static void
 mpz_powm(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
 {
   /* Try pool-based modular exponentiation first for eligible operands */
-  if (mpz_powm_scoped(mrb, zz, x, ex, n)) {
+  if (mpz_powm_pool(mrb, zz, x, ex, n)) {
     return; /* Success with pool-based modular exponentiation */
   }
 
@@ -2385,7 +2385,7 @@ mpz_powm(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
 
 /* Pool-based modular exponentiation - uses stack memory for temporary variables */
 static int
-mpz_powm_scoped(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
+mpz_powm_pool(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
 {
   if (zero_p(ex) || uzero_p(ex)) {
     mpz_set_int(mrb, zz, 1);
@@ -2393,7 +2393,7 @@ mpz_powm_scoped(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
   }
 
   if (ex->sn < 0) {
-    return 0; /* Not supported in scoped version */
+    return 0; /* Not supported in pool version */
   }
 
   /* Only use pools for medium-sized operands that will benefit from stack allocation */
@@ -2411,10 +2411,10 @@ mpz_powm_scoped(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
   }
 
   do {
-    mpz_scoped_pool_t pool_storage = {0};
+    mpz_pool_t pool_storage = {0};
     pool_storage.capacity = BIGINT_POOL_DEFAULT_SIZE;
     pool_storage.active = 1;
-    mpz_scoped_pool_t *pool = &pool_storage;
+    mpz_pool_t *pool = &pool_storage;
 
     mpz_t t, b, temp, mu;
     int pool_success = 0;
@@ -2448,7 +2448,7 @@ mpz_powm_scoped(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
       mpz_init_pool(mrb, &remainder, pool, estimated_temp_size);
 
       if (is_pool_memory(&quotient, pool) && is_pool_memory(&remainder, pool) &&
-          udiv_scoped(mrb, &quotient, &remainder, x, n)) {
+          udiv_pool(mrb, &quotient, &remainder, x, n)) {
         /* Copy remainder to b */
         for (size_t i = 0; i < remainder.sz && i < b.sz; i++) {
           b.p[i] = remainder.p[i];
@@ -2480,14 +2480,14 @@ mpz_powm_scoped(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
         for (size_t j = 0; j < sizeof(mp_limb) * 8; j++) {
           if ((e & 1) == 1) {
             /* t = (t * b) % n using pool-based operations */
-            if (mpz_mul_sliding_window_scoped(mrb, &temp, &t, &b)) {
+            if (mpz_mul_sliding_window_pool(mrb, &temp, &t, &b)) {
               /* Pool multiplication succeeded - now reduce modulo n */
               mpz_t q_temp, r_temp;
               mpz_init_pool(mrb, &q_temp, pool, estimated_temp_size);
               mpz_init_pool(mrb, &r_temp, pool, estimated_temp_size);
 
               if (is_pool_memory(&q_temp, pool) && is_pool_memory(&r_temp, pool) &&
-                  udiv_scoped(mrb, &q_temp, &r_temp, &temp, n)) {
+                  udiv_pool(mrb, &q_temp, &r_temp, &temp, n)) {
                 /* Copy remainder to t */
                 for (size_t k = 0; k < r_temp.sz && k < t.sz; k++) {
                   t.p[k] = r_temp.p[k];
@@ -2516,14 +2516,14 @@ mpz_powm_scoped(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
           e >>= 1;
 
           /* b = (b * b) % n using pool-based operations */
-          if (mpz_mul_sliding_window_scoped(mrb, &temp, &b, &b)) {
+          if (mpz_mul_sliding_window_pool(mrb, &temp, &b, &b)) {
             /* Pool multiplication succeeded - now reduce modulo n */
             mpz_t q_temp, r_temp;
             mpz_init_pool(mrb, &q_temp, pool, estimated_temp_size);
             mpz_init_pool(mrb, &r_temp, pool, estimated_temp_size);
 
             if (is_pool_memory(&q_temp, pool) && is_pool_memory(&r_temp, pool) &&
-                udiv_scoped(mrb, &q_temp, &r_temp, &temp, n)) {
+                udiv_pool(mrb, &q_temp, &r_temp, &temp, n)) {
               /* Copy remainder to b */
               for (size_t k = 0; k < r_temp.sz && k < b.sz; k++) {
                 b.p[k] = r_temp.p[k];
@@ -2760,7 +2760,7 @@ static void
 mpz_gcd(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
 {
   /* Try pool-based GCD first for eligible operands */
-  if (mpz_gcd_scoped(mrb, gg, aa, bb)) {
+  if (mpz_gcd_pool(mrb, gg, aa, bb)) {
     return; /* Success with pool-based GCD */
   }
 
@@ -2961,7 +2961,7 @@ mpz_gcd(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
 }
 
 /* Helper functions for pool-based GCD operations */
-static int mpz_abs_scoped(mrb_state *mrb, mpz_t *result, mpz_t *operand, mpz_scoped_pool_t *pool) {
+static int mpz_abs_pool(mrb_state *mrb, mpz_t *result, mpz_t *operand, mpz_pool_t *pool) {
   if (!operand || operand->sz == 0) {
     result->sz = 0;
     result->sn = 0;
@@ -2978,7 +2978,8 @@ static int mpz_abs_scoped(mrb_state *mrb, mpz_t *result, mpz_t *operand, mpz_sco
   return 1;
 }
 
-static int mpz_set_scoped(mrb_state *mrb, mpz_t *result, mpz_t *operand, mpz_scoped_pool_t *pool) {
+static int
+mpz_set_pool(mrb_state *mrb, mpz_t *result, mpz_t *operand, mpz_pool_t *pool) {
   if (!operand || operand->sz == 0) {
     result->sz = 0;
     result->sn = 0;
@@ -2995,9 +2996,10 @@ static int mpz_set_scoped(mrb_state *mrb, mpz_t *result, mpz_t *operand, mpz_sco
   return 1;
 }
 
-static int mpz_div_2exp_scoped(mrb_state *mrb, mpz_t *result, mpz_t *operand, size_t shift_bits, mpz_scoped_pool_t *pool) {
+static int
+mpz_div_2exp_pool(mrb_state *mrb, mpz_t *result, mpz_t *operand, size_t shift_bits, mpz_pool_t *pool) {
   if (!operand || operand->sz == 0 || shift_bits == 0) {
-    return mpz_set_scoped(mrb, result, operand, pool);
+    return mpz_set_pool(mrb, result, operand, pool);
   }
 
   size_t limb_shift = shift_bits / DIG_SIZE;
@@ -3038,7 +3040,8 @@ static int mpz_div_2exp_scoped(mrb_state *mrb, mpz_t *result, mpz_t *operand, si
   return 1;
 }
 
-static int mpz_mul_2exp_scoped(mrb_state *mrb, mpz_t *result, mpz_t *operand, size_t shift_bits, mpz_scoped_pool_t *pool) {
+static int
+mpz_mul_2exp_pool(mrb_state *mrb, mpz_t *result, mpz_t *operand, size_t shift_bits, mpz_pool_t *pool) {
   if (!operand || operand->sz == 0) {
     result->sz = 0;
     result->sn = 0;
@@ -3046,7 +3049,7 @@ static int mpz_mul_2exp_scoped(mrb_state *mrb, mpz_t *result, mpz_t *operand, si
   }
 
   if (shift_bits == 0) {
-    return mpz_set_scoped(mrb, result, operand, pool);
+    return mpz_set_pool(mrb, result, operand, pool);
   }
 
   size_t limb_shift = shift_bits / DIG_SIZE;
@@ -3091,7 +3094,8 @@ static int mpz_mul_2exp_scoped(mrb_state *mrb, mpz_t *result, mpz_t *operand, si
   return 1;
 }
 
-static int mpz_mul_int_scoped(mrb_state *mrb, mpz_t *result, mp_limb multiplier, mpz_scoped_pool_t *pool) {
+static int
+mpz_mul_int_pool(mrb_state *mrb, mpz_t *result, mp_limb multiplier, mpz_pool_t *pool) {
   if (multiplier == 0) {
     result->sz = 0;
     result->sn = 0;
@@ -3119,7 +3123,8 @@ static int mpz_mul_int_scoped(mrb_state *mrb, mpz_t *result, mp_limb multiplier,
   return 1;
 }
 
-static int mpz_sub_scoped(mrb_state *mrb, mpz_t *result, mpz_t *a, mpz_t *b, mpz_scoped_pool_t *pool) {
+static int
+mpz_sub_pool(mrb_state *mrb, mpz_t *result, mpz_t *a, mpz_t *b, mpz_pool_t *pool) {
   /* Simple implementation to avoid modifying input */
   if (!a || !b || a->sz == 0) {
     if (b && b->sz > 0) {
@@ -3139,7 +3144,7 @@ static int mpz_sub_scoped(mrb_state *mrb, mpz_t *result, mpz_t *a, mpz_t *b, mpz
 
   if (b->sz == 0) {
     /* result = a */
-    return mpz_set_scoped(mrb, result, a, pool);
+    return mpz_set_pool(mrb, result, a, pool);
   }
 
   /* For now, use a simple fallback - create temporary copy of b with negated sign */
@@ -3158,7 +3163,7 @@ static int mpz_sub_scoped(mrb_state *mrb, mpz_t *result, mpz_t *a, mpz_t *b, mpz
   b_neg.sn = -b->sn;
 
   /* Use pool-based addition with negated b */
-  int success = mpz_add_scoped(mrb, result, a, &b_neg);
+  int success = mpz_add_pool(mrb, result, a, &b_neg);
 
   /* Clean up temporary */
   mpz_clear_pool(mrb, &b_neg, pool);
@@ -3166,7 +3171,7 @@ static int mpz_sub_scoped(mrb_state *mrb, mpz_t *result, mpz_t *a, mpz_t *b, mpz
   return success;
 }
 
-static int mpz_cmp_scoped(mrb_state *mrb, mpz_t *a, mpz_t *b, mpz_scoped_pool_t *pool) {
+static int mpz_cmp_pool(mrb_state *mrb, mpz_t *a, mpz_t *b, mpz_pool_t *pool) {
   /* Simple comparison - doesn't need pool operations */
   if (a->sn != b->sn) {
     return (a->sn > b->sn) ? 1 : -1;
@@ -3191,7 +3196,7 @@ static int mpz_cmp_scoped(mrb_state *mrb, mpz_t *a, mpz_t *b, mpz_scoped_pool_t 
 
 /* Pool-based GCD using binary GCD algorithm with Lehmer acceleration */
 static int
-mpz_gcd_scoped(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
+mpz_gcd_pool(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
 {
   /* Handle special cases first - no pool needed */
   if (zero_p(aa)) {
@@ -3243,10 +3248,10 @@ mpz_gcd_scoped(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
   }
 
   do {
-    mpz_scoped_pool_t pool_storage = {0};
+    mpz_pool_t pool_storage = {0};
     pool_storage.capacity = BIGINT_POOL_DEFAULT_SIZE;
     pool_storage.active = 1;
-    mpz_scoped_pool_t *pool = &pool_storage;
+    mpz_pool_t *pool = &pool_storage;
 
     mpz_t a, b;
     int pool_success = 0;
@@ -3262,7 +3267,7 @@ mpz_gcd_scoped(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
     }
 
     /* Copy absolute values to working variables using pool-based operations */
-    if (mpz_abs_scoped(mrb, &a, aa, pool) && mpz_abs_scoped(mrb, &b, bb, pool)) {
+    if (mpz_abs_pool(mrb, &a, aa, pool) && mpz_abs_pool(mrb, &b, bb, pool)) {
       /* Find power of 2 that divides both a and b */
       size_t a_zeros = mpz_trailing_zeros(&a);
       size_t b_zeros = mpz_trailing_zeros(&b);
@@ -3270,8 +3275,8 @@ mpz_gcd_scoped(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
 
       /* Remove common factors of 2 using manual bit shifting */
       if (shift > 0) {
-        if (!mpz_div_2exp_scoped(mrb, &a, &a, shift, pool) ||
-            !mpz_div_2exp_scoped(mrb, &b, &b, shift, pool)) {
+        if (!mpz_div_2exp_pool(mrb, &a, &a, shift, pool) ||
+            !mpz_div_2exp_pool(mrb, &b, &b, shift, pool)) {
           pool_success = 0;
           goto cleanup_gcd;
         }
@@ -3279,7 +3284,7 @@ mpz_gcd_scoped(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
 
       /* Remove remaining factors of 2 from a */
       if (a_zeros > shift) {
-        if (!mpz_div_2exp_scoped(mrb, &a, &a, a_zeros - shift, pool)) {
+        if (!mpz_div_2exp_pool(mrb, &a, &a, a_zeros - shift, pool)) {
           pool_success = 0;
           goto cleanup_gcd;
         }
@@ -3287,7 +3292,7 @@ mpz_gcd_scoped(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
 
       /* Remove remaining factors of 2 from b */
       if (b_zeros > shift) {
-        if (!mpz_div_2exp_scoped(mrb, &b, &b, b_zeros - shift, pool)) {
+        if (!mpz_div_2exp_pool(mrb, &b, &b, b_zeros - shift, pool)) {
           pool_success = 0;
           goto cleanup_gcd;
         }
@@ -3351,19 +3356,19 @@ mpz_gcd_scoped(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
 
           if (lehmer_pool_ok) {
             /* Set initial values using pool-based copy operations */
-            if (mpz_set_scoped(mrb, &u0_a, &a, pool) && mpz_set_scoped(mrb, &v0_b, &b, pool) &&
-                mpz_set_scoped(mrb, &u1_a, &a, pool) && mpz_set_scoped(mrb, &v1_b, &b, pool)) {
+            if (mpz_set_pool(mrb, &u0_a, &a, pool) && mpz_set_pool(mrb, &v0_b, &b, pool) &&
+                mpz_set_pool(mrb, &u1_a, &a, pool) && mpz_set_pool(mrb, &v1_b, &b, pool)) {
 
               /* Compute u0*a, v0*b, u1*a, v1*b using pool-based multiplication */
-              if (mpz_mul_int_scoped(mrb, &u0_a, u0, pool) && mpz_mul_int_scoped(mrb, &v0_b, v0, pool) &&
-                  mpz_mul_int_scoped(mrb, &u1_a, u1, pool) && mpz_mul_int_scoped(mrb, &v1_b, v1, pool)) {
+              if (mpz_mul_int_pool(mrb, &u0_a, u0, pool) && mpz_mul_int_pool(mrb, &v0_b, v0, pool) &&
+                  mpz_mul_int_pool(mrb, &u1_a, u1, pool) && mpz_mul_int_pool(mrb, &v1_b, v1, pool)) {
 
                 /* temp_a = u0*a + v0*b using pool-based addition */
-                if (mpz_add_scoped(mrb, &temp_a, &u0_a, &v0_b) &&
-                    mpz_add_scoped(mrb, &temp_b, &u1_a, &v1_b)) {
+                if (mpz_add_pool(mrb, &temp_a, &u0_a, &v0_b) &&
+                    mpz_add_pool(mrb, &temp_b, &u1_a, &v1_b)) {
 
                   /* Update a and b using pool-based set operations */
-                  if (mpz_set_scoped(mrb, &a, &temp_a, pool) && mpz_set_scoped(mrb, &b, &temp_b, pool)) {
+                  if (mpz_set_pool(mrb, &a, &temp_a, pool) && mpz_set_pool(mrb, &b, &temp_b, pool)) {
                     /* Lehmer transformation successful */
                   }
                   else {
@@ -3401,7 +3406,7 @@ mpz_gcd_scoped(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
           }
 
           /* Ensure a >= b after transformation using pool-based comparison */
-          if (mpz_cmp_scoped(mrb, &a, &b, pool) < 0) {
+          if (mpz_cmp_pool(mrb, &a, &b, pool) < 0) {
             /* In-place swap - just swap the mpz_t structures */
             mpz_t temp_holder = a;
             a = b;
@@ -3416,7 +3421,7 @@ mpz_gcd_scoped(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
         if (b.sz > 0 && (b.p[0] & 1) == 0) {
           size_t b_trailing = mpz_trailing_zeros(&b);
           if (b_trailing > 0) {
-            if (!mpz_div_2exp_scoped(mrb, &b, &b, b_trailing, pool)) {
+            if (!mpz_div_2exp_pool(mrb, &b, &b, b_trailing, pool)) {
               pool_success = 0;
               goto cleanup_gcd;
             }
@@ -3424,7 +3429,7 @@ mpz_gcd_scoped(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
         }
 
         /* Now both a and b are odd. Ensure a >= b */
-        if (mpz_cmp_scoped(mrb, &a, &b, pool) < 0) {
+        if (mpz_cmp_pool(mrb, &a, &b, pool) < 0) {
           /* In-place swap without temporary variable */
           mpz_t temp_holder = a;
           a = b;
@@ -3432,7 +3437,7 @@ mpz_gcd_scoped(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
         }
 
         /* Replace a with (a - b) using pool-based subtraction */
-        if (!mpz_sub_scoped(mrb, &a, &a, &b, pool)) {
+        if (!mpz_sub_pool(mrb, &a, &a, &b, pool)) {
           pool_success = 0;
           goto cleanup_gcd;
         }
@@ -3441,7 +3446,7 @@ mpz_gcd_scoped(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
         if (a.sz > 0 && (a.p[0] & 1) == 0) {
           size_t a_trailing = mpz_trailing_zeros(&a);
           if (a_trailing > 0) {
-            if (!mpz_div_2exp_scoped(mrb, &a, &a, a_trailing, pool)) {
+            if (!mpz_div_2exp_pool(mrb, &a, &a, a_trailing, pool)) {
               pool_success = 0;
               goto cleanup_gcd;
             }
@@ -3452,7 +3457,7 @@ mpz_gcd_scoped(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
 
       /* Restore common factors of 2 using pool-based multiplication */
       if (shift > 0) {
-        if (!mpz_mul_2exp_scoped(mrb, &b, &b, shift, pool)) {
+        if (!mpz_mul_2exp_pool(mrb, &b, &b, shift, pool)) {
           pool_success = 0;
           goto cleanup_gcd;
         }
@@ -3588,7 +3593,7 @@ static void
 mpz_sqrt(mrb_state *mrb, mpz_t *z, mpz_t *x)
 {
   /* Try pool-based square root first for eligible operands */
-  if (mpz_sqrt_scoped(mrb, z, x)) {
+  if (mpz_sqrt_pool(mrb, z, x)) {
     return; /* Success with pool-based square root */
   }
 
@@ -3632,7 +3637,7 @@ mpz_sqrt(mrb_state *mrb, mpz_t *z, mpz_t *x)
 
 /* Pool-based square root using Newton-Raphson method with stack memory */
 static int
-mpz_sqrt_scoped(mrb_state *mrb, mpz_t *z, mpz_t *x)
+mpz_sqrt_pool(mrb_state *mrb, mpz_t *z, mpz_t *x)
 {
   mrb_assert(x->sn >= 0);
 
@@ -3657,10 +3662,10 @@ mpz_sqrt_scoped(mrb_state *mrb, mpz_t *z, mpz_t *x)
   }
 
   do {
-    mpz_scoped_pool_t pool_storage = {0};
+    mpz_pool_t pool_storage = {0};
     pool_storage.capacity = BIGINT_POOL_DEFAULT_SIZE;
     pool_storage.active = 1;
-    mpz_scoped_pool_t *pool = &pool_storage;
+    mpz_pool_t *pool = &pool_storage;
 
     mpz_t s, t, quotient, remainder;
     int pool_success = 0;
@@ -3711,7 +3716,7 @@ mpz_sqrt_scoped(mrb_state *mrb, mpz_t *z, mpz_t *x)
       int max_iterations = 100; /* Safety limit */
       for (int iter = 0; iter < max_iterations; iter++) {
         /* t = x / s using pool-based division */
-        if (udiv_scoped(mrb, &quotient, &remainder, x, &s)) {
+        if (udiv_pool(mrb, &quotient, &remainder, x, &s)) {
           /* Pool division succeeded - copy quotient to t */
           for (size_t i = 0; i < quotient.sz && i < t.sz; i++) {
             t.p[i] = quotient.p[i];
@@ -3728,7 +3733,7 @@ mpz_sqrt_scoped(mrb_state *mrb, mpz_t *z, mpz_t *x)
         /* t = t + s using pool-based addition */
         mpz_t temp_sum;
         mpz_init_pool(mrb, &temp_sum, pool, estimated_s_size + 1);
-        if (is_pool_memory(&temp_sum, pool) && mpz_add_scoped(mrb, &temp_sum, &t, &s)) {
+        if (is_pool_memory(&temp_sum, pool) && mpz_add_pool(mrb, &temp_sum, &t, &s)) {
           /* Copy sum back to t */
           for (size_t i = 0; i < temp_sum.sz && i < t.sz; i++) {
             t.p[i] = temp_sum.p[i];
