@@ -57,7 +57,7 @@
  */
 
 #define EA_N_RESERVED_INDICES 2  /* empty and deleted */
-#define EA_INCREASE_RATIO 6 / 5 + 6
+
 #define EA_MAX_INCREASE UINT16_MAX
 #define EA_MAX_CAPA U32(lesser(IB_MAX_CAPA - EA_N_RESERVED_INDICES, MRB_INT_MAX))
 #define IB_MAX_CAPA (U32(1) << IB_MAX_BIT)
@@ -438,7 +438,8 @@ ea_next_capa_for(uint32_t size, uint32_t max_capa)
      * `EA_INCREASE_RATIO` is the current value, 32-bit range will not be
      * exceeded during the calculation of `capa`, so `size_t` is used.
      */
-    size_t capa = (size_t)size * EA_INCREASE_RATIO, inc = capa - size;
+    size_t capa = ((size_t)size * 6) / 5 + 6;
+    size_t inc = capa - size;
     if (EA_MAX_INCREASE < inc) capa = size + EA_MAX_INCREASE;
     return capa <= max_capa ? U32(capa) : max_capa;
   }
