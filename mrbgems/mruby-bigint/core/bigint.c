@@ -24,6 +24,78 @@
 #define imin(x,y) (((x)<(y))?(x):(y))
 #define dg(x,i) (((size_t)i < (x)->sz)?(x)->p[i]:0)
 
+/* Scoped Memory Pool Infrastructure */
+#define BIGINT_POOL_DEFAULT_SIZE 512  /* 2KB on 32-bit, 4KB on 64-bit */
+
+typedef struct mpz_scoped_pool {
+  mp_limb data[BIGINT_POOL_DEFAULT_SIZE];
+  size_t used;
+  size_t capacity;
+  int active;
+} mpz_scoped_pool_t;
+
+/* Forward declarations */
+static int mpz_mul_sliding_window(mrb_state *mrb, mpz_t *result, mpz_t *first, mpz_t *second);
+static int mpz_add_scoped(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y);
+static int udiv_scoped(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy);
+static int mpz_sqrt_scoped(mrb_state *mrb, mpz_t *z, mpz_t *x);
+
+/* Memory allocation tracking for benchmarking */
+typedef struct allocation_stats {
+  size_t malloc_calls;
+  size_t free_calls;
+  size_t bytes_allocated;
+  size_t pool_allocations;
+  size_t pool_hits;
+  size_t pool_misses;
+} allocation_stats_t;
+
+static allocation_stats_t g_alloc_stats = {0};
+
+#define WITH_SCOPED_POOL(pool_name, code) do { \
+  mpz_scoped_pool_t pool_name##_storage = {0}; \
+  pool_name##_storage.capacity = BIGINT_POOL_DEFAULT_SIZE; \
+  pool_name##_storage.active = 1; \
+  mpz_scoped_pool_t *pool_name = &pool_name##_storage; \
+  code \
+  pool_name##_storage.active = 0; \
+} while(0)
+
+/* Pool allocation functions */
+static mp_limb*
+pool_alloc(mpz_scoped_pool_t *pool, size_t limbs)
+{
+  if (!pool || !pool->active || pool->used + limbs > pool->capacity) {
+    g_alloc_stats.pool_misses++;
+    return NULL;  /* Force fallback to heap */
+  }
+
+  mp_limb *ptr = &pool->data[pool->used];
+  pool->used += limbs;
+  g_alloc_stats.pool_hits++;
+  g_alloc_stats.pool_allocations++;
+  return ptr;
+}
+
+static void
+mpz_init_pool(mrb_state *mrb, mpz_t *z, mpz_scoped_pool_t *pool, size_t hint)
+{
+  z->sn = 0;
+
+  mp_limb *pool_ptr = pool_alloc(pool, hint);
+  if (pool_ptr) {
+    z->p = pool_ptr;
+    z->sz = hint;
+  }
+  else {
+    /* Fallback to heap allocation */
+    z->p = mrb_malloc(mrb, hint * sizeof(mp_limb));
+    z->sz = hint;
+    g_alloc_stats.malloc_calls++;
+    g_alloc_stats.bytes_allocated += hint * sizeof(mp_limb);
+  }
+}
+
 static void
 mpz_init(mrb_state *mrb, mpz_t *s)
 {
@@ -51,6 +123,12 @@ mpz_realloc(mrb_state *mrb, mpz_t *x, size_t size)
 
     size_t old_sz = x->sz;
     x->p = (mp_limb*)mrb_realloc(mrb, x->p, size * sizeof(mp_limb));
+
+    /* Track allocation */
+    if (old_sz == 0) {
+      g_alloc_stats.malloc_calls++;
+    }
+    g_alloc_stats.bytes_allocated += (size - old_sz) * sizeof(mp_limb);
 
     /* Zero-initialize new limbs */
     for (size_t i = old_sz; i < size; i++) {
@@ -152,6 +230,41 @@ mpz_init_set_int(mrb_state *mrb, mpz_t *y, mrb_int v)
   mpz_set_int(mrb, y, v);
 }
 
+/* Check if mpz_t uses pool memory */
+static int
+is_pool_memory(mpz_t *z, mpz_scoped_pool_t *pool)
+{
+  if (!pool || !z->p) return 0;
+  uintptr_t ptr_addr = (uintptr_t)z->p;
+  uintptr_t pool_start = (uintptr_t)pool->data;
+  uintptr_t pool_end = pool_start + sizeof(pool->data);
+  return ptr_addr >= pool_start && ptr_addr < pool_end;
+}
+
+/* Copy result from pool memory to heap */
+static void
+mpz_copy_from_pool(mrb_state *mrb, mpz_t *dest, mpz_t *src)
+{
+  mpz_realloc(mrb, dest, src->sz);
+  if (src->p && src->sz > 0) {
+    memcpy(dest->p, src->p, src->sz * sizeof(mp_limb));
+  }
+  dest->sz = src->sz;
+  dest->sn = src->sn;
+}
+
+/* Clear pool-aware mpz_t */
+static void
+mpz_clear_pool(mrb_state *mrb, mpz_t *s, mpz_scoped_pool_t *pool)
+{
+  if (s->p && !is_pool_memory(s, pool)) {
+    mrb_free(mrb, s->p);
+  }
+  s->p = NULL;
+  s->sn = 0;
+  s->sz = 0;
+}
+
 static void
 mpz_clear(mrb_state *mrb, mpz_t *s)
 {
@@ -221,6 +334,50 @@ uadd(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
   z->p[y->sz] = (mp_limb)c;
 }
 
+/* Pool-based unsigned addition - uses stack memory for result */
+static int
+uadd_scoped(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y, mpz_scoped_pool_t *pool)
+{
+  if (y->sz < x->sz) {
+    mpz_t *t;                   /* swap x,y */
+    t=x; x=y; y=t;
+  }
+
+  /* now y->sz >= x->sz */
+  size_t result_size = y->sz + 1;
+
+  /* Check if result fits in pool */
+  if (result_size > BIGINT_POOL_DEFAULT_SIZE) {
+    return 0; /* Pool too small, fallback to traditional */
+  }
+
+  /* Try to allocate in pool */
+  mpz_init_pool(mrb, z, pool, result_size);
+
+  /* Verify pool allocation worked */
+  if (!is_pool_memory(z, pool)) {
+    mpz_clear_pool(mrb, z, pool);
+    return 0; /* Pool allocation failed, fallback */
+  }
+
+  /* Perform addition using pool memory */
+  mp_dbl_limb c = 0;
+  size_t i;
+  for (i=0; i<x->sz; i++) {
+    c += (mp_dbl_limb)y->p[i] + (mp_dbl_limb)x->p[i];
+    z->p[i] = LOW(c);
+    c >>= DIG_SIZE;
+  }
+  for (;i<y->sz; i++) {
+    c += y->p[i];
+    z->p[i] = LOW(c);
+    c >>= DIG_SIZE;
+  }
+  z->p[y->sz] = (mp_limb)c;
+
+  return 1; /* Success - used pool memory */
+}
+
 /* z = y - x, ignoring sign */
 /* precondition: abs(y) >= abs(x) */
 static void
@@ -241,6 +398,43 @@ usub(mrb_state *mrb, mpz_t *z, mpz_t *y, mpz_t *x)
     b = HIGH(b);
   }
   z->sz = digits(z);
+}
+
+/* Pool-based unsigned subtraction - uses stack memory for result */
+static int
+usub_scoped(mrb_state *mrb, mpz_t *z, mpz_t *y, mpz_t *x, mpz_scoped_pool_t *pool)
+{
+  /* Check if result fits in pool */
+  if (y->sz > BIGINT_POOL_DEFAULT_SIZE) {
+    return 0; /* Pool too small, fallback to traditional */
+  }
+
+  /* Try to allocate in pool */
+  mpz_init_pool(mrb, z, pool, y->sz);
+
+  /* Verify pool allocation worked */
+  if (!is_pool_memory(z, pool)) {
+    mpz_clear_pool(mrb, z, pool);
+    return 0; /* Pool allocation failed, fallback */
+  }
+
+  /* Perform subtraction using pool memory */
+  mp_dbl_limb_signed b = 0;
+  size_t i;
+  for (i=0;i<x->sz;i++) {
+    b += (mp_dbl_limb_signed)y->p[i];
+    b -= (mp_dbl_limb_signed)x->p[i];
+    z->p[i] = LOW(b);
+    b = HIGH(b);
+  }
+  for (;i<y->sz; i++) {
+    b += y->p[i];
+    z->p[i] = LOW(b);
+    b = HIGH(b);
+  }
+  z->sz = digits(z);
+
+  return 1; /* Success - used pool memory */
 }
 
 /* compare abs(x) and abs(y) */
@@ -292,6 +486,12 @@ zero(mpz_t *x)
 static void
 mpz_add(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y)
 {
+  /* Try pool-based addition first for eligible operands */
+  if (mpz_add_scoped(mrb, zz, x, y)) {
+    return; /* Success with pool-based addition */
+  }
+
+  /* Fallback to traditional algorithm */
   if (zero_p(x)) {
     mpz_set(mrb, zz, y);
     return;
@@ -329,6 +529,95 @@ mpz_add(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y)
   }
   trim(&z);
   mpz_move(mrb, zz, &z);
+}
+
+/* Pool-based signed addition - uses stack memory for intermediate results */
+static int
+mpz_add_scoped(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y)
+{
+  if (zero_p(x)) {
+    mpz_set(mrb, zz, y);
+    return 1;
+  }
+  if (zero_p(y)) {
+    mpz_set(mrb, zz, x);
+    return 1;
+  }
+
+  /* Only use pools for medium-sized operands that can benefit from stack allocation */
+  size_t max_limbs = (x->sz > y->sz) ? x->sz : y->sz;
+  if (max_limbs < 4 || max_limbs > 128) {
+    return 0; /* Use traditional addition */
+  }
+
+  WITH_SCOPED_POOL(pool, {
+    mpz_t z_temp;
+    int pool_success = 0;
+
+    if (x->sn > 0 && y->sn > 0) {
+      /* Both positive - use pool-based addition */
+      if (uadd_scoped(mrb, &z_temp, x, y, pool)) {
+        z_temp.sn = 1;
+        pool_success = 1;
+      }
+    }
+    else if (x->sn < 0 && y->sn < 0) {
+      /* Both negative - use pool-based addition */
+      if (uadd_scoped(mrb, &z_temp, x, y, pool)) {
+        z_temp.sn = -1;
+        pool_success = 1;
+      }
+    }
+    else {
+      /* Signs differ - use pool-based subtraction */
+      int mg = ucmp(x, y);
+
+      if (mg == 0) {
+        /* Results in zero */
+        mpz_init_pool(mrb, &z_temp, pool, 1);
+        if (is_pool_memory(&z_temp, pool)) {
+          zero(&z_temp);
+          pool_success = 1;
+        }
+      }
+      else if (mg > 0) {  /* abs(y) < abs(x) */
+        if (usub_scoped(mrb, &z_temp, x, y, pool)) {
+          z_temp.sn = (x->sn > 0 && y->sn < 0) ? 1 : (-1);
+          pool_success = 1;
+        }
+      }
+      else { /* abs(y) > abs(x) */
+        if (usub_scoped(mrb, &z_temp, y, x, pool)) {
+          z_temp.sn = (x->sn < 0 && y->sn > 0) ? 1 : (-1);
+          pool_success = 1;
+        }
+      }
+    }
+
+    if (pool_success) {
+      /* Copy pool result to heap-allocated output */
+      trim(&z_temp);
+      mpz_realloc(mrb, zz, z_temp.sz);
+      for (size_t i = 0; i < z_temp.sz; i++) {
+        zz->p[i] = z_temp.p[i];
+      }
+      zz->sz = z_temp.sz;
+      zz->sn = z_temp.sn;
+
+      /* Pool cleanup is automatic */
+      mpz_clear_pool(mrb, &z_temp, pool);
+      return 1; /* Success - used pool memory! */
+    }
+    else {
+      /* Pool allocation failed, cleanup and fallback */
+      if (z_temp.p) {
+        mpz_clear_pool(mrb, &z_temp, pool);
+      }
+      return 0; /* Fallback to traditional */
+    }
+  });
+
+  return 0; /* Should not reach here */
 }
 
 /* x += n                                              */
@@ -444,7 +733,93 @@ multiply_window(mp_limb *result, size_t offset,
   }
 }
 
-/* Sliding window multiplication - processes operands in cache-friendly chunks */
+/* Pool-based sliding window multiplication - uses pool memory for temporary result */
+static int
+mpz_mul_sliding_window_scoped(mrb_state *mrb, mpz_t *result, mpz_t *first, mpz_t *second)
+{
+  // Only use sliding window for medium-sized operands where cache benefits matter
+  size_t max_limbs = (first->sz > second->sz) ? first->sz : second->sz;
+  if (max_limbs < 8 || max_limbs > 64) {
+    return 0; // Use classical multiplication
+  }
+
+  // Calculate required space for temporary result
+  size_t result_size = first->sz + second->sz + 1;
+
+  // Check if we have enough pool space
+  if (result_size > BIGINT_POOL_DEFAULT_SIZE) {
+    return 0; // Pool too small, fallback to traditional
+  }
+
+  do {
+    mpz_scoped_pool_t pool_storage = {0};
+    pool_storage.capacity = BIGINT_POOL_DEFAULT_SIZE;
+    pool_storage.active = 1;
+    mpz_scoped_pool_t *pool = &pool_storage;
+
+    // Allocate temporary result in pool
+    mpz_t temp_result;
+    mpz_init_pool(mrb, &temp_result, pool, result_size);
+
+    // Verify pool allocation worked
+    if (!is_pool_memory(&temp_result, pool)) {
+      // Pool allocation failed - cleanup and fallback
+      mpz_clear_pool(mrb, &temp_result, pool);
+      pool_storage.active = 0;
+      return 0; // Indicate failure, try next algorithm
+    }
+
+    // Zero-initialize the pool-allocated result
+    for (size_t i = 0; i < temp_result.sz; i++) {
+      temp_result.p[i] = 0;
+    }
+
+    // Perform sliding window multiplication using pool memory
+    // Process first operand in windows
+    for (size_t a_start = 0; a_start < first->sz; a_start += WINDOW_SIZE) {
+      size_t a_end = a_start + WINDOW_SIZE;
+      if (a_end > first->sz) a_end = first->sz;
+      size_t a_len = a_end - a_start;
+
+      // Process second operand in windows
+      for (size_t b_start = 0; b_start < second->sz; b_start += WINDOW_SIZE) {
+        size_t b_end = b_start + WINDOW_SIZE;
+        if (b_end > second->sz) b_end = second->sz;
+        size_t b_len = b_end - b_start;
+
+        // Multiply current windows and add to pool-allocated result
+        multiply_window(temp_result.p, a_start + b_start,
+                       first->p, a_start, a_len,
+                       second->p, b_start, b_len);
+      }
+    }
+
+    // Set sign and trim zeros
+    temp_result.sn = first->sn * second->sn;
+
+    // Find actual size (trim leading zeros)
+    size_t actual_size = temp_result.sz;
+    while (actual_size > 1 && temp_result.p[actual_size - 1] == 0) {
+      actual_size--;
+    }
+
+    // Copy result from pool to caller's mpz_t (this allocates heap memory)
+    mpz_realloc(mrb, result, actual_size);
+    for (size_t i = 0; i < actual_size; i++) {
+      result->p[i] = temp_result.p[i];
+    }
+    result->sz = actual_size;
+    result->sn = temp_result.sn;
+
+    // Pool cleanup is automatic when scope exits
+    mpz_clear_pool(mrb, &temp_result, pool);
+    pool_storage.active = 0;
+
+    return 1; // Success - used pool memory for computation!
+  } while(0);
+}
+
+/* Original sliding window multiplication - processes operands in cache-friendly chunks */
 static int
 mpz_mul_sliding_window(mrb_state *mrb, mpz_t *result, mpz_t *first, mpz_t *second)
 {
@@ -646,8 +1021,9 @@ mpz_mul(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
 
   // Algorithm selection hierarchy:
   // 1. Try blocked multiplication for large operands (32-128 limbs)
-  // 2. Try sliding window for medium operands (8-64 limbs)
-  // 3. Fallback to classical multiplication
+  // 2. Try scoped sliding window for medium operands (8-64 limbs) - uses pool memory
+  // 3. Fallback to traditional sliding window if pool fails
+  // 4. Fallback to classical multiplication
   mpz_t w;
   mpz_init(mrb, &w);
 
@@ -656,6 +1032,13 @@ mpz_mul(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
     return;
   }
 
+  // Try scoped pool version first for medium operands
+  if (mpz_mul_sliding_window_scoped(mrb, &w, first, second)) {
+    mpz_move(mrb, ww, &w);
+    return;
+  }
+
+  // Fallback to traditional sliding window if pool version fails
   if (mpz_mul_sliding_window(mrb, &w, first, second)) {
     mpz_move(mrb, ww, &w);
     return;
@@ -885,6 +1268,12 @@ mpz_div_limb(mrb_state *mrb, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
 static void
 udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
 {
+  /* Try pool-based division first for eligible operands */
+  if (udiv_scoped(mrb, qq, rr, xx, yy)) {
+    return; /* Success with pool-based division */
+  }
+
+  /* Fallback to traditional algorithm */
   /* simple cases */
   int cmp = ucmp(xx, yy);
   if (cmp == 0) {
@@ -1012,6 +1401,238 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
   mpz_move(mrb, qq, &q);
   mpz_clear(mrb, &x);
   mpz_clear(mrb, &y);
+}
+
+/* Pool-based division - uses stack memory for intermediate calculations */
+static int
+udiv_scoped(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
+{
+  /* Only use pools for medium-sized operands */
+  size_t dividend_limbs = xx->sz;
+  size_t divisor_limbs = yy->sz;
+  if (dividend_limbs < 4 || dividend_limbs > 64 || divisor_limbs > 32) {
+    return 0; /* Use traditional division */
+  }
+
+  /* Estimate space needed for temporary variables */
+  size_t temp_space = dividend_limbs + 1 + divisor_limbs + (dividend_limbs - divisor_limbs + 1);
+  if (temp_space > BIGINT_POOL_DEFAULT_SIZE / 3) {
+    return 0; /* Pool too small for all temporaries */
+  }
+
+  /* simple cases */
+  int cmp = ucmp(xx, yy);
+  if (cmp == 0) {
+    mpz_set_int(mrb, qq, 1);
+    zero(rr);
+    return 1;  /* Success - no pool needed for simple case */
+  }
+  else if (cmp < 0) {
+    zero(qq);
+    mpz_set(mrb, rr, xx);
+    return 1;  /* Success - no pool needed for simple case */
+  }
+
+  /* Fast path for single-limb divisor - no pool needed */
+  if (yy->sz == 1) {
+    mpz_div_limb(mrb, qq, rr, xx, yy->p[0]);
+    return 1;  /* Success - handled by limb division */
+  }
+
+  do {
+    mpz_scoped_pool_t pool_storage = {0};
+    pool_storage.capacity = BIGINT_POOL_DEFAULT_SIZE;
+    pool_storage.active = 1;
+    mpz_scoped_pool_t *pool = &pool_storage;
+
+    mpz_t q_temp, x_temp, y_temp;
+    int pool_success = 0;
+
+    /* Initialize temporary variables in pool */
+    mpz_init_pool(mrb, &q_temp, pool, dividend_limbs - divisor_limbs + 1);
+    mpz_init_pool(mrb, &x_temp, pool, dividend_limbs + 1);
+    mpz_init_pool(mrb, &y_temp, pool, divisor_limbs);
+
+    /* Verify all pool allocations succeeded */
+    if (is_pool_memory(&q_temp, pool) &&
+        is_pool_memory(&x_temp, pool) &&
+        is_pool_memory(&y_temp, pool)) {
+
+      /* Perform division using pool-allocated temporaries */
+      mrb_assert(yy->sn != 0);      /* divided by zero */
+      mrb_assert(yy->sz > 0);       /* divided by zero */
+
+      size_t yd = digits(yy);
+      size_t ns = lzb(yy->p[yd-1]);
+
+      /* Manual shift instead of ulshift to avoid mpz_move issues with pool memory */
+      if (ns == 0) {
+        /* No shift needed - direct copy */
+        for (size_t i = 0; i < xx->sz; i++) {
+          x_temp.p[i] = xx->p[i];
+        }
+        x_temp.sz = xx->sz;
+
+        for (size_t i = 0; i < yy->sz; i++) {
+          y_temp.p[i] = yy->p[i];
+        }
+        y_temp.sz = yy->sz;
+      }
+      else {
+        /* Manual left shift by ns bits */
+        mp_limb cc = 0;
+        mp_limb rm = (((mp_dbl_limb)1<<ns) - 1) << (DIG_SIZE-ns);
+
+        for (size_t i = 0; i < xx->sz; i++) {
+          x_temp.p[i] = ((xx->p[i] << ns) | cc) & DIG_MASK;
+          cc = (xx->p[i] & rm) >> (DIG_SIZE-ns);
+        }
+        x_temp.p[xx->sz] = cc;
+        x_temp.sz = xx->sz + (cc ? 1 : 0);
+
+        cc = 0;
+        for (size_t i = 0; i < yy->sz; i++) {
+          y_temp.p[i] = ((yy->p[i] << ns) | cc) & DIG_MASK;
+          cc = (yy->p[i] & rm) >> (DIG_SIZE-ns);
+        }
+        if (cc && yy->sz < y_temp.sz) {
+          y_temp.p[yy->sz] = cc;
+          y_temp.sz = yy->sz + 1;
+        }
+        else {
+          y_temp.sz = yy->sz;
+        }
+      }
+
+      size_t xd = digits(&x_temp);
+
+      /* Zero-initialize quotient */
+      for (size_t i = 0; i < q_temp.sz; i++) {
+        q_temp.p[i] = 0;
+      }
+
+      mp_dbl_limb z = y_temp.p[yd-1];
+      if (xd >= yd) {
+        for (size_t j = xd - yd;; j--) {
+          mp_dbl_limb qhat;
+          mp_dbl_limb rhat;
+          if (j + yd == xd) {
+            mp_dbl_limb dividend = (((mp_dbl_limb)0 << DIG_SIZE) + x_temp.p[j+yd-1]);
+            qhat = dividend / z;
+            rhat = dividend % z;
+          }
+          else {
+            mp_dbl_limb dividend = ((mp_dbl_limb)x_temp.p[j+yd] << DIG_SIZE) + x_temp.p[j+yd-1];
+            qhat = dividend / z;
+            rhat = dividend % z;
+
+            /* Three-limb pre-adjustment */
+            if (yd >= 2 && j+yd-2 < x_temp.sz && y_temp.p[yd-2] != 0) {
+              mp_dbl_limb y_second = y_temp.p[yd-2];
+              mp_dbl_limb x_third = x_temp.p[j+yd-2];
+
+              if (qhat > 0) {
+                mp_dbl_limb left = qhat * y_second;
+                mp_dbl_limb right = (rhat << DIG_SIZE) + x_third;
+
+                if (qhat >= ((mp_dbl_limb)1 << DIG_SIZE) || left > right) {
+                  qhat--;
+                  rhat += z;
+                }
+              }
+            }
+          }
+
+          /* Subtract qhat * divisor from dividend */
+          mp_dbl_limb_signed borrow = 0;
+          for (size_t i = 0; i < yd; i++) {
+            borrow += (mp_dbl_limb_signed)x_temp.p[i+j];
+            borrow -= (mp_dbl_limb_signed)(qhat * y_temp.p[i]);
+            x_temp.p[i+j] = LOW(borrow);
+            borrow = HIGH(borrow);
+          }
+
+          /* Handle potential oversubtraction */
+          if (borrow != 0 && j+yd < x_temp.sz) {
+            x_temp.p[j+yd] = (mp_limb)((mp_dbl_limb_signed)x_temp.p[j+yd] + borrow);
+            if (x_temp.p[j+yd] > DIG_MASK) {
+              qhat--;  /* Correct overestimate */
+              mp_dbl_limb carry = 0;
+              for (size_t i = 0; i < yd; i++) {
+                carry += (mp_dbl_limb)x_temp.p[i+j] + (mp_dbl_limb)y_temp.p[i];
+                x_temp.p[i+j] = LOW(carry);
+                carry = HIGH(carry);
+              }
+              if (j+yd < x_temp.sz && carry > 0) {
+                x_temp.p[j+yd] += (mp_limb)carry;
+              }
+            }
+          }
+          q_temp.p[j] = (mp_limb)qhat;
+          if (j == 0) break;
+        }
+      }
+
+      x_temp.sz = yy->sz;
+
+      /* Copy results from pool to heap-allocated outputs */
+      trim(&q_temp);
+      mpz_realloc(mrb, qq, q_temp.sz);
+      for (size_t i = 0; i < q_temp.sz; i++) {
+        qq->p[i] = q_temp.p[i];
+      }
+      qq->sz = q_temp.sz;
+      qq->sn = (qq->sz == 0) ? 0 : 1;
+
+      /* Manual right shift for remainder to avoid mpz_move issues */
+      if (ns == 0) {
+        /* No shift needed - direct copy to heap result */
+        mpz_realloc(mrb, rr, x_temp.sz);
+        for (size_t i = 0; i < x_temp.sz; i++) {
+          rr->p[i] = x_temp.p[i];
+        }
+        rr->sz = x_temp.sz;
+        rr->sn = (rr->sz == 0) ? 0 : 1;
+      }
+      else {
+        /* Manual right shift by ns bits */
+        mpz_realloc(mrb, rr, x_temp.sz);
+        mp_limb cc = 0;
+        mp_limb lm = ((mp_dbl_limb)1 << ns) - 1;
+
+        for (size_t i = x_temp.sz; i > 0; i--) {
+          size_t idx = i - 1;
+          rr->p[idx] = ((x_temp.p[idx] >> ns) | cc);
+          cc = (x_temp.p[idx] & lm) << (DIG_SIZE - ns);
+        }
+
+        /* Trim leading zeros */
+        size_t actual_size = x_temp.sz;
+        while (actual_size > 1 && rr->p[actual_size - 1] == 0) {
+          actual_size--;
+        }
+        rr->sz = actual_size;
+        rr->sn = (rr->sz == 0) ? 0 : 1;
+      }
+
+      pool_success = 1;
+    }
+
+    /* Pool cleanup is automatic */
+    if (q_temp.p) mpz_clear_pool(mrb, &q_temp, pool);
+    if (x_temp.p) mpz_clear_pool(mrb, &x_temp, pool);
+    if (y_temp.p) mpz_clear_pool(mrb, &y_temp, pool);
+    pool_storage.active = 0;
+
+    if (pool_success) {
+      return 1; /* Success - used pool memory for division! */
+    }
+    else {
+      return 0; /* Pool allocation failed, fallback */
+    }
+  } while(0);
+
+  return 0; /* Should not reach here */
 }
 
 static void
@@ -2235,6 +2856,12 @@ mpz_barrett_reduce(mrb_state *mrb, mpz_t *r, mpz_t *x, mpz_t *m, mpz_t *mu)
 static void
 mpz_sqrt(mrb_state *mrb, mpz_t *z, mpz_t *x)
 {
+  /* Try pool-based square root first for eligible operands */
+  if (mpz_sqrt_scoped(mrb, z, x)) {
+    return; /* Success with pool-based square root */
+  }
+
+  /* Fallback to traditional algorithm */
   mrb_assert(x->sn >= 0);
 
   if (x->sz == 0) {
@@ -2270,6 +2897,204 @@ mpz_sqrt(mrb_state *mrb, mpz_t *z, mpz_t *x)
 
   mpz_move(mrb, z, &s);
   mpz_clear(mrb, &t);
+}
+
+/* Pool-based square root using Newton-Raphson method with stack memory */
+static int
+mpz_sqrt_scoped(mrb_state *mrb, mpz_t *z, mpz_t *x)
+{
+  mrb_assert(x->sn >= 0);
+
+  if (x->sz == 0) {
+    // sqrt(0) = 0
+    z->sn = 0;
+    z->sz = 0;
+    return 1; /* Success - trivial case */
+  }
+
+  /* Only use pools for medium-sized operands that will benefit from stack allocation */
+  size_t x_limbs = x->sz;
+  if (x_limbs < 4 || x_limbs > 64) {
+    return 0; /* Use traditional square root */
+  }
+
+  /* Estimate space needed: s (~x_limbs/2 + 1), t (~x_limbs/2 + 1), quotient (~x_limbs), remainder (~x_limbs) */
+  size_t estimated_s_size = (x_limbs + 1) / 2 + 2;  /* sqrt result size + margin */
+  size_t temp_space = estimated_s_size * 3 + x_limbs * 2;  /* s, t, division temps */
+  if (temp_space > BIGINT_POOL_DEFAULT_SIZE / 2) {
+    return 0; /* Pool too small for all temporaries */
+  }
+
+  do {
+    mpz_scoped_pool_t pool_storage = {0};
+    pool_storage.capacity = BIGINT_POOL_DEFAULT_SIZE;
+    pool_storage.active = 1;
+    mpz_scoped_pool_t *pool = &pool_storage;
+
+    mpz_t s, t, quotient, remainder;
+    int pool_success = 0;
+
+    /* Initialize temporary variables in pool */
+    mpz_init_pool(mrb, &s, pool, estimated_s_size);
+    mpz_init_pool(mrb, &t, pool, estimated_s_size);
+    mpz_init_pool(mrb, &quotient, pool, x_limbs);
+    mpz_init_pool(mrb, &remainder, pool, x_limbs);
+
+    /* Verify all pool allocations succeeded */
+    if (is_pool_memory(&s, pool) && is_pool_memory(&t, pool) &&
+        is_pool_memory(&quotient, pool) && is_pool_memory(&remainder, pool)) {
+
+      /* Estimate initial value: 1 << (bit_length(x) / 2) */
+      size_t xbits = mpz_bits(x);
+      size_t sbit = (xbits + 1) / 2;
+
+      /* Initialize s = 1 << sbit using pool memory */
+      if (sbit == 0) {
+        s.p[0] = 1;
+        s.sz = 1;
+        s.sn = 1;
+      }
+      else {
+        size_t limb_shift = sbit / DIG_SIZE;
+        size_t bit_shift = sbit % DIG_SIZE;
+
+        /* Clear s array */
+        for (size_t i = 0; i < s.sz; i++) {
+          s.p[i] = 0;
+        }
+
+        if (limb_shift < s.sz) {
+          s.p[limb_shift] = ((mp_limb)1) << bit_shift;
+          s.sz = limb_shift + 1;
+          s.sn = 1;
+        }
+        else {
+          /* Fallback if shift too large */
+          s.p[0] = 1;
+          s.sz = 1;
+          s.sn = 1;
+        }
+      }
+
+      /* Newton-Raphson iteration: s = (s + x / s) / 2 */
+      int max_iterations = 100; /* Safety limit */
+      for (int iter = 0; iter < max_iterations; iter++) {
+        /* t = x / s using pool-based division */
+        if (udiv_scoped(mrb, &quotient, &remainder, x, &s)) {
+          /* Pool division succeeded - copy quotient to t */
+          for (size_t i = 0; i < quotient.sz && i < t.sz; i++) {
+            t.p[i] = quotient.p[i];
+          }
+          t.sz = (quotient.sz < t.sz) ? quotient.sz : t.sz;
+          t.sn = quotient.sn;
+        }
+        else {
+          /* Pool division failed - fallback to traditional */
+          pool_success = 0;
+          break;
+        }
+
+        /* t = t + s using pool-based addition */
+        mpz_t temp_sum;
+        mpz_init_pool(mrb, &temp_sum, pool, estimated_s_size + 1);
+        if (is_pool_memory(&temp_sum, pool) && mpz_add_scoped(mrb, &temp_sum, &t, &s)) {
+          /* Copy sum back to t */
+          for (size_t i = 0; i < temp_sum.sz && i < t.sz; i++) {
+            t.p[i] = temp_sum.p[i];
+          }
+          t.sz = (temp_sum.sz < t.sz) ? temp_sum.sz : t.sz;
+          t.sn = temp_sum.sn;
+          mpz_clear_pool(mrb, &temp_sum, pool);
+        }
+        else {
+          /* Pool addition failed - fallback to traditional */
+          if (temp_sum.p) mpz_clear_pool(mrb, &temp_sum, pool);
+          pool_success = 0;
+          break;
+        }
+
+        /* t = t / 2 (right shift by 1 bit) */
+        mp_limb carry = 0;
+        for (size_t i = t.sz; i > 0; i--) {
+          size_t idx = i - 1;
+          mp_limb current = t.p[idx];
+          t.p[idx] = (current >> 1) | carry;
+          carry = (current & 1) << (DIG_SIZE - 1);
+        }
+
+        /* Trim leading zeros */
+        while (t.sz > 1 && t.p[t.sz - 1] == 0) {
+          t.sz--;
+        }
+        if (t.sz == 0) {
+          t.sz = 1;
+          t.p[0] = 0;
+          t.sn = 0;
+        }
+
+        /* Check convergence: if t >= s, we're done */
+        int cmp_result = 0;
+        if (t.sz > s.sz) {
+          cmp_result = 1;
+        }
+        else if (t.sz < s.sz) {
+          cmp_result = -1;
+        }
+        else {
+          for (size_t i = t.sz; i > 0; i--) {
+            size_t idx = i - 1;
+            if (t.p[idx] > s.p[idx]) {
+              cmp_result = 1;
+              break;
+            }
+            else if (t.p[idx] < s.p[idx]) {
+              cmp_result = -1;
+              break;
+            }
+          }
+        }
+
+        if (cmp_result >= 0) {
+          /* Converged: t >= s */
+          pool_success = 1;
+          break;
+        }
+
+        /* s = t for next iteration */
+        for (size_t i = 0; i < t.sz && i < s.sz; i++) {
+          s.p[i] = t.p[i];
+        }
+        s.sz = (t.sz < s.sz) ? t.sz : s.sz;
+        s.sn = t.sn;
+      }
+
+      if (pool_success) {
+        /* Copy final result from pool to heap-allocated output */
+        mpz_realloc(mrb, z, s.sz);
+        for (size_t i = 0; i < s.sz; i++) {
+          z->p[i] = s.p[i];
+        }
+        z->sz = s.sz;
+        z->sn = s.sn;
+      }
+    }
+
+    /* Pool cleanup is automatic */
+    if (s.p) mpz_clear_pool(mrb, &s, pool);
+    if (t.p) mpz_clear_pool(mrb, &t, pool);
+    if (quotient.p) mpz_clear_pool(mrb, &quotient, pool);
+    if (remainder.p) mpz_clear_pool(mrb, &remainder, pool);
+    pool_storage.active = 0;
+
+    if (pool_success) {
+      return 1; /* Success - used pool memory for square root! */
+    }
+    else {
+      return 0; /* Pool allocation failed, fallback */
+    }
+  } while(0);
+
+  return 0; /* Should not reach here */
 }
 
 /* Barrett reduction for efficient modular arithmetic with repeated operations */
@@ -3213,3 +4038,39 @@ mrb_bint_abs(mrb_state *mrb, mrb_value x)
   mpz_clear(mrb, &result_mpz);
   return mrb_obj_value(result);
 }
+
+/* Debug functions for pool statistics - only available in debug builds */
+#ifdef MRB_DEBUG
+mrb_value
+mrb_bint_pool_stats(mrb_state *mrb, mrb_value self)
+{
+  mrb_value hash = mrb_hash_new(mrb);
+
+  mrb_hash_set(mrb, hash, mrb_str_new_cstr(mrb, "malloc_calls"),
+               mrb_int_value(mrb, g_alloc_stats.malloc_calls));
+  mrb_hash_set(mrb, hash, mrb_str_new_cstr(mrb, "free_calls"),
+               mrb_int_value(mrb, g_alloc_stats.free_calls));
+  mrb_hash_set(mrb, hash, mrb_str_new_cstr(mrb, "bytes_allocated"),
+               mrb_int_value(mrb, g_alloc_stats.bytes_allocated));
+  mrb_hash_set(mrb, hash, mrb_str_new_cstr(mrb, "pool_allocations"),
+               mrb_int_value(mrb, g_alloc_stats.pool_allocations));
+  mrb_hash_set(mrb, hash, mrb_str_new_cstr(mrb, "pool_hits"),
+               mrb_int_value(mrb, g_alloc_stats.pool_hits));
+  mrb_hash_set(mrb, hash, mrb_str_new_cstr(mrb, "pool_misses"),
+               mrb_int_value(mrb, g_alloc_stats.pool_misses));
+
+  return hash;
+}
+
+mrb_value
+mrb_bint_reset_pool_stats(mrb_state *mrb, mrb_value self)
+{
+  g_alloc_stats.malloc_calls = 0;
+  g_alloc_stats.free_calls = 0;
+  g_alloc_stats.bytes_allocated = 0;
+  g_alloc_stats.pool_allocations = 0;
+  g_alloc_stats.pool_hits = 0;
+  g_alloc_stats.pool_misses = 0;
+  return mrb_nil_value();
+}
+#endif
