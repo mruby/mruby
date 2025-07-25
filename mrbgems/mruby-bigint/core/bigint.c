@@ -337,6 +337,32 @@ trim(mpz_t *x)
 }
 
 
+/* Core addition algorithm - extracted from uadd/uadd_pool duplication */
+static void
+uadd_core(mpz_t *z, mpz_t *x, mpz_t *y)
+{
+  /* Core multi-limb addition with carry propagation */
+  mp_dbl_limb c = 0;
+  size_t i;
+
+  /* Add overlapping limbs from both operands */
+  for (i = 0; i < x->sz; i++) {
+    c += (mp_dbl_limb)y->p[i] + (mp_dbl_limb)x->p[i];
+    z->p[i] = LOW(c);
+    c >>= DIG_SIZE;
+  }
+
+  /* Add remaining limbs from larger operand */
+  for (; i < y->sz; i++) {
+    c += y->p[i];
+    z->p[i] = LOW(c);
+    c >>= DIG_SIZE;
+  }
+
+  /* Store final carry */
+  z->p[y->sz] = (mp_limb)c;
+}
+
 /* z = x + y, without regard for sign */
 static void
 uadd(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
@@ -349,19 +375,8 @@ uadd(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
   /* now y->sz >= x->sz */
   mpz_realloc(mrb, z, y->sz+1);
 
-  mp_dbl_limb c = 0;
-  size_t i;
-  for (i=0; i<x->sz; i++) {
-    c += (mp_dbl_limb)y->p[i] + (mp_dbl_limb)x->p[i];
-    z->p[i] = LOW(c);
-    c >>= DIG_SIZE;
-  }
-  for (;i<y->sz; i++) {
-    c += y->p[i];
-    z->p[i] = LOW(c);
-    c >>= DIG_SIZE;
-  }
-  z->p[y->sz] = (mp_limb)c;
+  /* Use core addition algorithm */
+  uadd_core(z, x, y);
 }
 
 /* Pool-based unsigned addition - uses stack memory for result */
@@ -384,20 +399,8 @@ uadd_pool(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y, mpz_pool_t *pool)
   /* Try to allocate in pool */
   MPZ_POOL_ALLOC(mrb, *z, pool, result_size);
 
-  /* Perform addition using pool memory */
-  mp_dbl_limb c = 0;
-  size_t i;
-  for (i=0; i<x->sz; i++) {
-    c += (mp_dbl_limb)y->p[i] + (mp_dbl_limb)x->p[i];
-    z->p[i] = LOW(c);
-    c >>= DIG_SIZE;
-  }
-  for (;i<y->sz; i++) {
-    c += y->p[i];
-    z->p[i] = LOW(c);
-    c >>= DIG_SIZE;
-  }
-  z->p[y->sz] = (mp_limb)c;
+  /* Use core addition algorithm */
+  uadd_core(z, x, y);
 
   return 1; /* Success - used pool memory */
 }
