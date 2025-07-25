@@ -741,104 +741,11 @@ multiply_window(mp_limb *result, size_t offset,
   }
 }
 
-/* Pool-based sliding window multiplication - uses pool memory for temporary result */
-static int
-mpz_mul_sliding_window_pool(mrb_state *mrb, mpz_t *result, mpz_t *first, mpz_t *second)
+/* Core sliding window multiplication algorithm - works with pre-allocated result */
+static void
+mpz_mul_sliding_window_core(mpz_t *result, mpz_t *first, mpz_t *second)
 {
-  // Only use sliding window for medium-sized operands where cache benefits matter
-  size_t max_limbs = (first->sz > second->sz) ? first->sz : second->sz;
-  if (max_limbs < 8 || max_limbs > 64) {
-    return 0; // Use classical multiplication
-  }
-
-  // Calculate required space for temporary result
-  size_t result_size = first->sz + second->sz + 1;
-
-  // Check if we have enough pool space
-  if (result_size > BIGINT_POOL_DEFAULT_SIZE) {
-    return 0; // Pool too small, fallback to traditional
-  }
-
-  do {
-    mpz_pool_t pool_storage = {0};
-    pool_storage.capacity = BIGINT_POOL_DEFAULT_SIZE;
-    pool_storage.active = 1;
-    mpz_pool_t *pool = &pool_storage;
-
-    // Allocate temporary result in pool
-    mpz_t temp_result;
-    mpz_init_pool(mrb, &temp_result, pool, result_size);
-    if (!MPZ_POOL_VERIFY(temp_result, pool)) {
-      // Pool allocation failed - cleanup and fallback
-      mpz_clear_pool(mrb, &temp_result, pool);
-      pool_storage.active = 0;
-      return 0; // Indicate failure, try next algorithm
-    }
-
-    // Zero-initialize the pool-allocated result
-    for (size_t i = 0; i < temp_result.sz; i++) {
-      temp_result.p[i] = 0;
-    }
-
-    // Perform sliding window multiplication using pool memory
-    // Process first operand in windows
-    for (size_t a_start = 0; a_start < first->sz; a_start += WINDOW_SIZE) {
-      size_t a_end = a_start + WINDOW_SIZE;
-      if (a_end > first->sz) a_end = first->sz;
-      size_t a_len = a_end - a_start;
-
-      // Process second operand in windows
-      for (size_t b_start = 0; b_start < second->sz; b_start += WINDOW_SIZE) {
-        size_t b_end = b_start + WINDOW_SIZE;
-        if (b_end > second->sz) b_end = second->sz;
-        size_t b_len = b_end - b_start;
-
-        // Multiply current windows and add to pool-allocated result
-        multiply_window(temp_result.p, a_start + b_start,
-                       first->p, a_start, a_len,
-                       second->p, b_start, b_len);
-      }
-    }
-
-    // Set sign and trim zeros
-    temp_result.sn = first->sn * second->sn;
-
-    // Find actual size (trim leading zeros)
-    size_t actual_size = temp_result.sz;
-    while (actual_size > 1 && temp_result.p[actual_size - 1] == 0) {
-      actual_size--;
-    }
-
-    // Copy result from pool to caller's mpz_t (this allocates heap memory)
-    mpz_realloc(mrb, result, actual_size);
-    for (size_t i = 0; i < actual_size; i++) {
-      result->p[i] = temp_result.p[i];
-    }
-    result->sz = actual_size;
-    result->sn = temp_result.sn;
-
-    // Pool cleanup is automatic when scope exits
-    MPZ_POOL_CLEANUP(mrb, temp_result, pool);
-    pool_storage.active = 0;
-
-    return 1; // Success - used pool memory for computation!
-  } while(0);
-}
-
-/* Original sliding window multiplication - processes operands in cache-friendly chunks */
-static int
-mpz_mul_sliding_window(mrb_state *mrb, mpz_t *result, mpz_t *first, mpz_t *second)
-{
-  // Only use sliding window for medium-sized operands where cache benefits matter
-  // Small operands (< 8 limbs): overhead not worth it
-  // Large operands (> 64 limbs): classical is fine, we're not targeting these
-  size_t max_limbs = (first->sz > second->sz) ? first->sz : second->sz;
-  if (max_limbs < 8 || max_limbs > 64) {
-    return 0; // Use classical multiplication
-  }
-
-  // Initialize result (reuses existing allocation)
-  mpz_realloc(mrb, result, first->sz + second->sz + 1);
+  // Initialize result
   zero(result);
 
   // Process first operand in windows
@@ -862,8 +769,36 @@ mpz_mul_sliding_window(mrb_state *mrb, mpz_t *result, mpz_t *first, mpz_t *secon
 
   result->sn = first->sn * second->sn;
   trim(result);
-  return 1; // Success
 }
+
+/* Unified sliding window multiplication - tries pool first, falls back to heap */
+static int
+mpz_mul_sliding_window(mrb_state *mrb, mpz_t *result, mpz_t *first, mpz_t *second)
+{
+  // Only use sliding window for medium-sized operands where cache benefits matter
+  size_t max_limbs = (first->sz > second->sz) ? first->sz : second->sz;
+  if (max_limbs < 8 || max_limbs > 64) {
+    return 0; // Use classical multiplication
+  }
+
+  size_t result_size = first->sz + second->sz + 1;
+
+  WITH_SCOPED_POOL(pool, {
+    mpz_t temp_result;
+    MPZ_POOL_ALLOC_GOTO(mrb, temp_result, pool, result_size, _pool_failed);
+    /* Pool allocation successful */
+    mpz_mul_sliding_window_core(&temp_result, first, second);
+    MPZ_COPY_FROM_POOL(mrb, result, temp_result, pool);
+    return 1;
+    _pool_failed: ;
+  });
+
+  /* Pool failed - use heap allocation */
+  mpz_realloc(mrb, result, result_size);
+  mpz_mul_sliding_window_core(result, first, second);
+  return 1;
+}
+
 
 /* Memory estimation for blocked multiplication */
 static size_t
@@ -1038,13 +973,7 @@ mpz_mul(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
     return;
   }
 
-  // Try pool version first for medium operands
-  if (mpz_mul_sliding_window_pool(mrb, &w, first, second)) {
-    mpz_move(mrb, ww, &w);
-    return;
-  }
-
-  // Fallback to traditional sliding window if pool version fails
+  // Try unified sliding window (pool first, then heap fallback)
   if (mpz_mul_sliding_window(mrb, &w, first, second)) {
     mpz_move(mrb, ww, &w);
     return;
@@ -2445,7 +2374,7 @@ mpz_powm_pool(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
         for (size_t j = 0; j < sizeof(mp_limb) * 8; j++) {
           if ((e & 1) == 1) {
             /* t = (t * b) % n using pool-based operations */
-            if (mpz_mul_sliding_window_pool(mrb, &temp, &t, &b)) {
+            if (mpz_mul_sliding_window(mrb, &temp, &t, &b)) {
               /* Pool multiplication succeeded - now reduce modulo n */
               mpz_t q_temp, r_temp;
               mpz_init_pool(mrb, &q_temp, pool, estimated_temp_size);
@@ -2481,7 +2410,7 @@ mpz_powm_pool(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
           e >>= 1;
 
           /* b = (b * b) % n using pool-based operations */
-          if (mpz_mul_sliding_window_pool(mrb, &temp, &b, &b)) {
+          if (mpz_mul_sliding_window(mrb, &temp, &b, &b)) {
             /* Pool multiplication succeeded - now reduce modulo n */
             mpz_t q_temp, r_temp;
             mpz_init_pool(mrb, &q_temp, pool, estimated_temp_size);
