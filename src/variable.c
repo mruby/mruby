@@ -47,7 +47,7 @@ iv_rehash(mrb_state *mrb, iv_tbl *t)
   mrb_value *old_ptr = t->ptr;
 
   /* allocate exactly the same total shape as before */
-  t->ptr   = (mrb_value*)mrb_calloc(mrb, sizeof(mrb_value)+sizeof(mrb_sym), new_alloc);
+  t->ptr   = (mrb_value*)mrb_calloc(mrb, new_alloc, sizeof(mrb_value)+sizeof(mrb_sym));
   /* size remains unchanged, alloc grows */
   t->alloc = new_alloc;
 
@@ -219,7 +219,7 @@ iv_copy(mrb_state *mrb, iv_tbl *t)
   t2->size  = t->size;
 
   /* allocate the same block shape */
-  t2->ptr = (mrb_value*)mrb_calloc(mrb, sizeof(mrb_value)+sizeof(mrb_sym), t2->alloc);
+  t2->ptr = (mrb_value*)mrb_calloc(mrb, t2->alloc, sizeof(mrb_value)+sizeof(mrb_sym));
 
   /* copy values[0...size] and keys[0...size] */
   memcpy(t2->ptr, t->ptr, sizeof(mrb_value)*t2->size);
