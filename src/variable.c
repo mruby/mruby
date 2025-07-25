@@ -88,7 +88,7 @@ bsearch_idx(mrb_sym *keys, int size, mrb_sym target) {
     n -= half;
   }
   /* Final adjustment: if the remaining element is still less than target, advance by one */
-  return (int)(p - keys) + (keys[0] < target);
+  return (int)(p - keys) + (p[0] < target);
 }
 
 /* Set (insert or update) the value for `sym` in the instance variable table using branch-free search. */
