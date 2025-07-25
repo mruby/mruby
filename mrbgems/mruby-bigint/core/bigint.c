@@ -336,6 +336,7 @@ trim(mpz_t *x)
   }
 }
 
+
 /* z = x + y, without regard for sign */
 static void
 uadd(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
@@ -1278,6 +1279,102 @@ mpz_div_limb(mrb_state *mrb, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
   q->sn = (q->sz == 0) ? 0 : 1;
 }
 
+/* Core Knuth Algorithm D division loop - extracted from udiv/udiv_pool duplication */
+static void
+udiv_core(mpz_t *quotient, mpz_t *dividend, mpz_t *divisor, size_t xd, size_t yd)
+{
+  mp_dbl_limb z = divisor->p[yd-1];
+
+  if (xd >= yd) {
+    for (size_t j = xd - yd;; j--) {
+      mp_dbl_limb qhat;
+      mp_dbl_limb rhat;
+
+      if (j + yd == xd) {
+        /* Only one high limb available */
+        mp_dbl_limb dividend_val = (((mp_dbl_limb)0 << DIG_SIZE) + dividend->p[j+yd-1]);
+        qhat = dividend_val / z;
+        rhat = dividend_val % z;
+      }
+      else {
+        /* Two limbs available - use enhanced estimation */
+        mp_dbl_limb dividend_val = ((mp_dbl_limb)dividend->p[j+yd] << DIG_SIZE) + dividend->p[j+yd-1];
+        qhat = dividend_val / z;
+        rhat = dividend_val % z;
+
+        /* Three-limb pre-adjustment when available */
+        if (yd >= 2 && j+yd-2 < dividend->sz && divisor->p[yd-2] != 0) {
+          mp_dbl_limb y_second = divisor->p[yd-2];
+          mp_dbl_limb x_third = dividend->p[j+yd-2];
+
+          if (qhat > 0) {
+            mp_dbl_limb left = qhat * y_second;
+            mp_dbl_limb right = (rhat << DIG_SIZE) + x_third;
+
+            if (qhat >= ((mp_dbl_limb)1 << DIG_SIZE) || left > right) {
+              qhat--;
+              rhat += z;
+            }
+          }
+        }
+      }
+
+      /* Enhanced qhat refinement step */
+      if (yd > 1) {
+        mp_dbl_limb y_second = divisor->p[yd-2];
+        mp_dbl_limb x_third = (j+yd-2 < dividend->sz) ? dividend->p[j+yd-2] : 0;
+        mp_dbl_limb left_side = qhat * y_second;
+        mp_dbl_limb right_side = (rhat << DIG_SIZE) + x_third;
+
+        while (qhat >= ((mp_dbl_limb)1 << DIG_SIZE) || (left_side > right_side)) {
+          qhat--;
+          rhat += z;
+          if (rhat >= ((mp_dbl_limb)1 << DIG_SIZE)) break;
+          left_side -= y_second;
+          right_side = (rhat << DIG_SIZE) + x_third;
+        }
+      }
+
+      if (qhat > 0) {
+        /* Subtract qhat * divisor from dividend */
+        mp_dbl_limb_signed borrow = 0;
+        size_t i;
+
+        for (i = 0; i < yd; i++) {
+          mp_dbl_limb product = qhat * divisor->p[i];
+          mp_dbl_limb_signed diff = (mp_dbl_limb_signed)dividend->p[i+j] - (mp_dbl_limb_signed)LOW(product) + borrow;
+          dividend->p[i+j] = LOW(diff);
+          borrow = HIGH(diff) - (mp_dbl_limb_signed)HIGH(product);
+        }
+
+        /* Handle final borrow propagation */
+        if (i+j < dividend->sz) {
+          borrow += (mp_dbl_limb_signed)dividend->p[i+j];
+          dividend->p[i+j] = LOW(borrow);
+          borrow = HIGH(borrow);
+        }
+
+        /* Correction: if borrow is negative, qhat was too large, add back */
+        if (borrow < 0) {
+          qhat--;
+          mp_dbl_limb carry = 0;
+          for (i = 0; i < yd; i++) {
+            carry += (mp_dbl_limb)dividend->p[i+j] + (mp_dbl_limb)divisor->p[i];
+            dividend->p[i+j] = LOW(carry);
+            carry = HIGH(carry);
+          }
+          if (i+j < dividend->sz && carry > 0) {
+            dividend->p[i+j] += (mp_limb)carry;
+          }
+        }
+      }
+
+      quotient->p[j] = (mp_limb)qhat;
+      if (j == 0) break;
+    }
+  }
+}
+
 /* internal routine to compute x/y and x%y ignoring signs */
 /* qq = xx/yy; rr = xx%yy */
 static void
@@ -1322,94 +1419,9 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
   ulshift(mrb, &y, yy, ns);
   size_t xd = digits(&x);
   mpz_realloc(mrb, &q, xd-yd+1);  // Quotient has xd-yd+1 digits maximum
-  mp_dbl_limb z = y.p[yd-1];
-  if (xd>=yd) {
-    for (size_t j=xd-yd;; j--) {
-      mp_dbl_limb qhat;
-      mp_dbl_limb rhat;
-      if (j+yd == xd) {
-        // Only one high limb available
-        mp_dbl_limb dividend = (((mp_dbl_limb)0 << DIG_SIZE) + x.p[j+yd-1]);
-        qhat = dividend / z;
-        rhat = dividend % z;
-      }
-      else {
-        // Two limbs available - use enhanced estimation for better accuracy
-        mp_dbl_limb dividend = ((mp_dbl_limb)x.p[j+yd] << DIG_SIZE) + x.p[j+yd-1];
-        qhat = dividend / z;
-        rhat = dividend % z;
 
-        // Three-limb pre-adjustment when available (reduces correction iterations)
-        if (yd >= 2 && j+yd-2 < x.sz && y.p[yd-2] != 0) {
-          mp_dbl_limb y_second = y.p[yd-2];
-          mp_dbl_limb x_third = x.p[j+yd-2];
-
-          // Pre-check: if qhat * y_second > rhat * base + x_third, reduce qhat
-          if (qhat > 0) {
-            mp_dbl_limb left = qhat * y_second;
-            mp_dbl_limb right = (rhat << DIG_SIZE) + x_third;
-
-            if (qhat >= ((mp_dbl_limb)1 << DIG_SIZE) || left > right) {
-              qhat--;
-              rhat += z;
-              // Note: This pre-adjustment reduces work in the refinement loop
-            }
-          }
-        }
-      }
-
-      // Enhanced qhat refinement step - reduced redundant calculations
-      if (yd > 1) {  // Apply refinement for all iterations, including j=0
-        mp_dbl_limb y_second = y.p[yd-2];
-        mp_dbl_limb x_third = (j+yd-2 < x.sz) ? x.p[j+yd-2] : 0;
-        mp_dbl_limb left_side = qhat * y_second;
-        mp_dbl_limb right_side = (rhat << DIG_SIZE) + x_third;
-
-        while (qhat >= ((mp_dbl_limb)1 << DIG_SIZE) || (left_side > right_side)) {
-          qhat--;
-          rhat += z;
-          if (rhat >= ((mp_dbl_limb)1 << DIG_SIZE)) break;
-          left_side -= y_second;  // Optimized: subtract instead of multiply
-          right_side = (rhat << DIG_SIZE) + x_third;
-        }
-      }
-      if (qhat > 0) {
-        // Optimized subtraction: x -= qhat * y
-        mp_dbl_limb_signed borrow = 0;
-        size_t i;
-
-        for (i = 0; i < yd; i++) {
-          mp_dbl_limb product = qhat * y.p[i];
-          mp_dbl_limb_signed diff = (mp_dbl_limb_signed)x.p[i+j] - (mp_dbl_limb_signed)LOW(product) + borrow;
-          x.p[i+j] = LOW(diff);
-          borrow = HIGH(diff) - (mp_dbl_limb_signed)HIGH(product);
-        }
-
-        // Handle final borrow propagation
-        if (i+j < x.sz) {
-          borrow += (mp_dbl_limb_signed)x.p[i+j];
-          x.p[i+j] = LOW(borrow);
-          borrow = HIGH(borrow);
-        }
-
-        // Correction: if borrow is negative, qhat was too large, add back
-        if (borrow < 0) {
-          qhat--;
-          mp_dbl_limb carry = 0;
-          for (i = 0; i < yd; i++) {
-            carry += (mp_dbl_limb)x.p[i+j] + (mp_dbl_limb)y.p[i];
-            x.p[i+j] = LOW(carry);
-            carry = HIGH(carry);
-          }
-          if (i+j < x.sz && carry > 0) {
-            x.p[i+j] += (mp_limb)carry;
-          }
-        }
-      }
-      q.p[j] = (mp_limb)qhat;
-      if (j == 0) break;
-    }
-  }
+  /* Use core division algorithm */
+  udiv_core(&q, &x, &y, xd, yd);
   x.sz = yy->sz;
   urshift(mrb, rr, &x, ns);
   trim(&q);
@@ -1524,67 +1536,8 @@ udiv_pool(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
         q_temp.p[i] = 0;
       }
 
-      mp_dbl_limb z = y_temp.p[yd-1];
-      if (xd >= yd) {
-        for (size_t j = xd - yd;; j--) {
-          mp_dbl_limb qhat;
-          mp_dbl_limb rhat;
-          if (j + yd == xd) {
-            mp_dbl_limb dividend = (((mp_dbl_limb)0 << DIG_SIZE) + x_temp.p[j+yd-1]);
-            qhat = dividend / z;
-            rhat = dividend % z;
-          }
-          else {
-            mp_dbl_limb dividend = ((mp_dbl_limb)x_temp.p[j+yd] << DIG_SIZE) + x_temp.p[j+yd-1];
-            qhat = dividend / z;
-            rhat = dividend % z;
-
-            /* Three-limb pre-adjustment */
-            if (yd >= 2 && j+yd-2 < x_temp.sz && y_temp.p[yd-2] != 0) {
-              mp_dbl_limb y_second = y_temp.p[yd-2];
-              mp_dbl_limb x_third = x_temp.p[j+yd-2];
-
-              if (qhat > 0) {
-                mp_dbl_limb left = qhat * y_second;
-                mp_dbl_limb right = (rhat << DIG_SIZE) + x_third;
-
-                if (qhat >= ((mp_dbl_limb)1 << DIG_SIZE) || left > right) {
-                  qhat--;
-                  rhat += z;
-                }
-              }
-            }
-          }
-
-          /* Subtract qhat * divisor from dividend */
-          mp_dbl_limb_signed borrow = 0;
-          for (size_t i = 0; i < yd; i++) {
-            borrow += (mp_dbl_limb_signed)x_temp.p[i+j];
-            borrow -= (mp_dbl_limb_signed)(qhat * y_temp.p[i]);
-            x_temp.p[i+j] = LOW(borrow);
-            borrow = HIGH(borrow);
-          }
-
-          /* Handle potential oversubtraction */
-          if (borrow != 0 && j+yd < x_temp.sz) {
-            x_temp.p[j+yd] = (mp_limb)((mp_dbl_limb_signed)x_temp.p[j+yd] + borrow);
-            if (x_temp.p[j+yd] > DIG_MASK) {
-              qhat--;  /* Correct overestimate */
-              mp_dbl_limb carry = 0;
-              for (size_t i = 0; i < yd; i++) {
-                carry += (mp_dbl_limb)x_temp.p[i+j] + (mp_dbl_limb)y_temp.p[i];
-                x_temp.p[i+j] = LOW(carry);
-                carry = HIGH(carry);
-              }
-              if (j+yd < x_temp.sz && carry > 0) {
-                x_temp.p[j+yd] += (mp_limb)carry;
-              }
-            }
-          }
-          q_temp.p[j] = (mp_limb)qhat;
-          if (j == 0) break;
-        }
-      }
+      /* Use core division algorithm */
+      udiv_core(&q_temp, &x_temp, &y_temp, xd, yd);
 
       x_temp.sz = yy->sz;
 
