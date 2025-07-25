@@ -38,7 +38,6 @@ typedef struct mpz_pool {
 static int mpz_mul_sliding_window(mrb_state *mrb, mpz_t *result, mpz_t *first, mpz_t *second);
 static int udiv_pool(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy);
 static int mpz_sqrt_pool(mrb_state *mrb, mpz_t *z, mpz_t *x);
-static int mpz_powm_pool(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n);
 
 /* Memory allocation tracking for benchmarking */
 typedef struct allocation_stats {
@@ -381,6 +380,7 @@ trim(mpz_t *x)
 }
 
 
+/* z = x + y, without regard for sign */
 /* Core addition algorithm - extracted from uadd/uadd_pool duplication */
 static void
 uadd_core(mpz_t *z, mpz_t *x, mpz_t *y)
@@ -407,48 +407,8 @@ uadd_core(mpz_t *z, mpz_t *x, mpz_t *y)
   z->p[y->sz] = (mp_limb)c;
 }
 
-/* z = x + y, without regard for sign */
-static void
-uadd(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
-{
-  if (y->sz < x->sz) {
-    mpz_t *t;                   /* swap x,y */
-    t=x; x=y; y=t;
-  }
-
-  /* now y->sz >= x->sz */
-  mpz_realloc(mrb, z, y->sz+1);
-
-  /* Use core addition algorithm */
-  uadd_core(z, x, y);
-}
-
-/* Pool-based unsigned addition - uses stack memory for result */
-static int
-uadd_pool(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y, mpz_pool_t *pool)
-{
-  if (y->sz < x->sz) {
-    mpz_t *t;                   /* swap x,y */
-    t=x; x=y; y=t;
-  }
-
-  /* now y->sz >= x->sz */
-  size_t result_size = y->sz + 1;
-
-  /* Check if result fits in pool */
-  if (result_size > BIGINT_POOL_DEFAULT_SIZE) {
-    return 0; /* Pool too small, fallback to traditional */
-  }
-
-  /* Try to allocate in pool */
-  MPZ_POOL_ALLOC(mrb, *z, pool, result_size);
-
-  /* Use core addition algorithm */
-  uadd_core(z, x, y);
-
-  return 1; /* Success - used pool memory */
-}
-
+/* z = y - x, ignoring sign */
+/* precondition: abs(y) >= abs(x) */
 /* Core subtraction algorithm - extracted from usub/usub_pool duplication */
 static void
 usub_core(mpz_t *z, mpz_t *y, mpz_t *x)
@@ -474,35 +434,6 @@ usub_core(mpz_t *z, mpz_t *y, mpz_t *x)
 
   /* Normalize result size */
   z->sz = digits(z);
-}
-
-/* z = y - x, ignoring sign */
-/* precondition: abs(y) >= abs(x) */
-static void
-usub(mrb_state *mrb, mpz_t *z, mpz_t *y, mpz_t *x)
-{
-  mpz_realloc(mrb, z, (size_t)(y->sz));
-
-  /* Use core subtraction algorithm */
-  usub_core(z, y, x);
-}
-
-/* Pool-based unsigned subtraction - uses stack memory for result */
-static int
-usub_pool(mrb_state *mrb, mpz_t *z, mpz_t *y, mpz_t *x, mpz_pool_t *pool)
-{
-  /* Check if result fits in pool */
-  if (y->sz > BIGINT_POOL_DEFAULT_SIZE) {
-    return 0; /* Pool too small, fallback to traditional */
-  }
-
-  /* Try to allocate in pool */
-  MPZ_POOL_ALLOC(mrb, *z, pool, y->sz);
-
-  /* Use core subtraction algorithm */
-  usub_core(z, y, x);
-
-  return 1; /* Success - used pool memory */
 }
 
 /* compare abs(x) and abs(y) */
@@ -2216,12 +2147,7 @@ mpz_pow(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int e)
 static void
 mpz_powm(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
 {
-  /* Try pool-based modular exponentiation first for eligible operands */
-  if (mpz_powm_pool(mrb, zz, x, ex, n)) {
-    return; /* Success with pool-based modular exponentiation */
-  }
-
-  /* Fallback to traditional algorithm */
+  /* Handle special cases */
   if (zero_p(ex) || uzero_p(ex)) {
     mpz_set_int(mrb, zz, 1);
     return;
@@ -2245,9 +2171,9 @@ mpz_powm(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
   }
 
   size_t len = digits(ex);
-  for (size_t i=0; i<len; i++) {
+  for (size_t i = 0; i < len; i++) {
     mp_limb e = ex->p[i];
-    for (size_t j=0; j<sizeof(mp_limb)*8; j++) {
+    for (size_t j = 0; j < sizeof(mp_limb) * 8; j++) {
       if ((e & 1) == 1) {
         mpz_mul(mrb, &temp, &t, &b);
         if (use_barrett) {
@@ -2276,203 +2202,6 @@ mpz_powm(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
   mpz_clear(mrb, &b);
 }
 
-/* Pool-based modular exponentiation - uses stack memory for temporary variables */
-static int
-mpz_powm_pool(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
-{
-  if (zero_p(ex) || uzero_p(ex)) {
-    mpz_set_int(mrb, zz, 1);
-    return 1; /* Success - trivial case */
-  }
-
-  if (ex->sn < 0) {
-    return 0; /* Not supported in pool version */
-  }
-
-  /* Only use pools for medium-sized operands that will benefit from stack allocation */
-  size_t max_limbs = (x->sz > n->sz) ? x->sz : n->sz;
-  max_limbs = (ex->sz > max_limbs) ? ex->sz : max_limbs;
-  if (max_limbs < 4 || max_limbs > 32) {
-    return 0; /* Use traditional modular exponentiation */
-  }
-
-  /* Estimate space needed: t, b, temp, mu (if Barrett), plus multiplication temporaries */
-  size_t estimated_temp_size = n->sz + 2;  /* Result size estimation */
-  size_t temp_space = estimated_temp_size * 5;  /* t, b, temp, mu, plus margins */
-  if (temp_space > BIGINT_POOL_DEFAULT_SIZE / 2) {
-    return 0; /* Pool too small for all temporaries */
-  }
-
-  do {
-    mpz_pool_t pool_storage = {0};
-    pool_storage.capacity = BIGINT_POOL_DEFAULT_SIZE;
-    pool_storage.active = 1;
-    mpz_pool_t *pool = &pool_storage;
-
-    mpz_t t, b, temp, mu;
-    int pool_success = 0;
-    int use_barrett = (n->sz >= 2 && n->sz <= 8);
-
-    /* Initialize temporary variables in pool */
-    mpz_init_pool(mrb, &t, pool, estimated_temp_size);
-    mpz_init_pool(mrb, &b, pool, estimated_temp_size);
-    mpz_init_pool(mrb, &temp, pool, estimated_temp_size * 2);  /* Larger for multiplication results */
-
-    /* Initialize Barrett reduction if needed */
-    if (use_barrett) {
-      mpz_init_pool(mrb, &mu, pool, estimated_temp_size);
-    }
-
-    /* Verify all pool allocations succeeded */
-    int all_pool_allocated = MPZ_POOL_VERIFY_3(t, b, temp, pool);
-    if (use_barrett) {
-      all_pool_allocated = all_pool_allocated && MPZ_POOL_VERIFY(mu, pool);
-    }
-
-    if (all_pool_allocated) {
-      /* Initialize t = 1 */
-      t.p[0] = 1;
-      t.sz = 1;
-      t.sn = 1;
-
-      /* Initialize b = x % n using pool-based operations */
-      mpz_t quotient, remainder;
-      mpz_init_pool(mrb, &quotient, pool, estimated_temp_size);
-      mpz_init_pool(mrb, &remainder, pool, estimated_temp_size);
-
-      if (MPZ_POOL_VERIFY_2(quotient, remainder, pool) &&
-          udiv_pool(mrb, &quotient, &remainder, x, n)) {
-        /* Copy remainder to b */
-        for (size_t i = 0; i < remainder.sz && i < b.sz; i++) {
-          b.p[i] = remainder.p[i];
-        }
-        b.sz = (remainder.sz < b.sz) ? remainder.sz : b.sz;
-        b.sn = remainder.sn;
-      }
-      else {
-        /* Pool division failed - fallback */
-        MPZ_POOL_CLEANUP(mrb, quotient, pool);
-        MPZ_POOL_CLEANUP(mrb, remainder, pool);
-        pool_success = 0;
-        goto cleanup;
-      }
-
-      mpz_clear_pool(mrb, &quotient, pool);
-      mpz_clear_pool(mrb, &remainder, pool);
-
-      /* Prepare Barrett reduction if enabled */
-      if (use_barrett) {
-        /* For now, skip Barrett in pool version to keep it simple */
-        use_barrett = 0;
-      }
-
-      /* Binary exponentiation loop */
-      size_t len = digits(ex);
-      for (size_t i = 0; i < len && pool_success != -1; i++) {
-        mp_limb e = ex->p[i];
-        for (size_t j = 0; j < sizeof(mp_limb) * 8; j++) {
-          if ((e & 1) == 1) {
-            /* t = (t * b) % n using pool-based operations */
-            if (mpz_mul_sliding_window(mrb, &temp, &t, &b)) {
-              /* Pool multiplication succeeded - now reduce modulo n */
-              mpz_t q_temp, r_temp;
-              mpz_init_pool(mrb, &q_temp, pool, estimated_temp_size);
-              mpz_init_pool(mrb, &r_temp, pool, estimated_temp_size);
-
-              if (MPZ_POOL_VERIFY_2(q_temp, r_temp, pool) &&
-                  udiv_pool(mrb, &q_temp, &r_temp, &temp, n)) {
-                /* Copy remainder to t */
-                for (size_t k = 0; k < r_temp.sz && k < t.sz; k++) {
-                  t.p[k] = r_temp.p[k];
-                }
-                t.sz = (r_temp.sz < t.sz) ? r_temp.sz : t.sz;
-                t.sn = r_temp.sn;
-              }
-              else {
-                /* Pool operations failed - exit loop */
-                mpz_clear_pool(mrb, &q_temp, pool);
-                mpz_clear_pool(mrb, &r_temp, pool);
-                pool_success = -1;
-                break;
-              }
-
-              MPZ_POOL_CLEANUP(mrb, q_temp, pool);
-              MPZ_POOL_CLEANUP(mrb, r_temp, pool);
-            }
-            else {
-              /* Pool multiplication failed - exit loop */
-              pool_success = -1;
-              break;
-            }
-          }
-
-          e >>= 1;
-
-          /* b = (b * b) % n using pool-based operations */
-          if (mpz_mul_sliding_window(mrb, &temp, &b, &b)) {
-            /* Pool multiplication succeeded - now reduce modulo n */
-            mpz_t q_temp, r_temp;
-            mpz_init_pool(mrb, &q_temp, pool, estimated_temp_size);
-            mpz_init_pool(mrb, &r_temp, pool, estimated_temp_size);
-
-            if (MPZ_POOL_VERIFY_2(q_temp, r_temp, pool) &&
-                udiv_pool(mrb, &q_temp, &r_temp, &temp, n)) {
-              /* Copy remainder to b */
-              for (size_t k = 0; k < r_temp.sz && k < b.sz; k++) {
-                b.p[k] = r_temp.p[k];
-              }
-              b.sz = (r_temp.sz < b.sz) ? r_temp.sz : b.sz;
-              b.sn = r_temp.sn;
-            }
-            else {
-              /* Pool operations failed - exit loop */
-              MPZ_POOL_CLEANUP(mrb, q_temp, pool);
-              MPZ_POOL_CLEANUP(mrb, r_temp, pool);
-              pool_success = -1;
-              break;
-            }
-
-            MPZ_POOL_CLEANUP(mrb, q_temp, pool);
-            MPZ_POOL_CLEANUP(mrb, r_temp, pool);
-          }
-          else {
-            /* Pool multiplication failed - exit loop */
-            pool_success = -1;
-            break;
-          }
-        }
-      }
-
-      if (pool_success != -1) {
-        /* Copy final result from pool to heap-allocated output */
-        mpz_realloc(mrb, zz, t.sz);
-        for (size_t i = 0; i < t.sz; i++) {
-          zz->p[i] = t.p[i];
-        }
-        zz->sz = t.sz;
-        zz->sn = t.sn;
-        pool_success = 1;
-      }
-    }
-
-cleanup:
-    /* Pool cleanup is automatic */
-    MPZ_POOL_CLEANUP(mrb, t, pool);
-    MPZ_POOL_CLEANUP(mrb, b, pool);
-    MPZ_POOL_CLEANUP(mrb, temp, pool);
-    if (use_barrett) MPZ_POOL_CLEANUP(mrb, mu, pool);
-    pool_storage.active = 0;
-
-    if (pool_success == 1) {
-      return 1; /* Success - used pool memory for modular exponentiation! */
-    }
-    else {
-      return 0; /* Pool allocation failed, fallback */
-    }
-  } while(0);
-
-  return 0; /* Should not reach here */
-}
 
 static void
 mpz_powm_i(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int ex, mpz_t *n)
@@ -2881,184 +2610,6 @@ mpz_set_pool(mrb_state *mrb, mpz_t *result, mpz_t *operand, mpz_pool_t *pool) {
 
   return 1;
 }
-
-static int
-mpz_div_2exp_pool(mrb_state *mrb, mpz_t *result, mpz_t *operand, size_t shift_bits, mpz_pool_t *pool) {
-  if (!operand || operand->sz == 0 || shift_bits == 0) {
-    return mpz_set_pool(mrb, result, operand, pool);
-  }
-
-  size_t limb_shift = shift_bits / DIG_SIZE;
-  size_t bit_shift = shift_bits % DIG_SIZE;
-
-  if (limb_shift >= operand->sz) {
-    result->sz = 0;
-    result->sn = 0;
-    return 1;
-  }
-
-  /* Manual limb and bit shifting */
-  size_t new_size = operand->sz - limb_shift;
-  if (bit_shift == 0) {
-    /* Simple limb shift */
-    for (size_t i = 0; i < new_size && i < result->sz; i++) {
-      result->p[i] = operand->p[i + limb_shift];
-    }
-    result->sz = (new_size < result->sz) ? new_size : result->sz;
-  }
-  else {
-    /* Bit shift within limbs */
-    for (size_t i = 0; i < new_size && i < result->sz; i++) {
-      result->p[i] = operand->p[i + limb_shift] >> bit_shift;
-      if (i + limb_shift + 1 < operand->sz) {
-        result->p[i] |= operand->p[i + limb_shift + 1] << (DIG_SIZE - bit_shift);
-      }
-    }
-    result->sz = (new_size < result->sz) ? new_size : result->sz;
-
-    /* Remove leading zeros */
-    while (result->sz > 0 && result->p[result->sz - 1] == 0) {
-      result->sz--;
-    }
-  }
-
-  result->sn = (result->sz == 0) ? 0 : operand->sn;
-  return 1;
-}
-
-static int
-mpz_mul_2exp_pool(mrb_state *mrb, mpz_t *result, mpz_t *operand, size_t shift_bits, mpz_pool_t *pool) {
-  if (!operand || operand->sz == 0) {
-    result->sz = 0;
-    result->sn = 0;
-    return 1;
-  }
-
-  if (shift_bits == 0) {
-    return mpz_set_pool(mrb, result, operand, pool);
-  }
-
-  size_t limb_shift = shift_bits / DIG_SIZE;
-  size_t bit_shift = shift_bits % DIG_SIZE;
-  size_t new_size = operand->sz + limb_shift + (bit_shift > 0 ? 1 : 0);
-
-  if (new_size > result->sz) {
-    return 0; /* Result buffer too small */
-  }
-
-  /* Clear result first */
-  for (size_t i = 0; i < new_size; i++) {
-    result->p[i] = 0;
-  }
-
-  if (bit_shift == 0) {
-    /* Simple limb shift */
-    for (size_t i = 0; i < operand->sz; i++) {
-      result->p[i + limb_shift] = operand->p[i];
-    }
-  }
-  else {
-    /* Bit shift within limbs */
-    mp_limb carry = 0;
-    for (size_t i = 0; i < operand->sz; i++) {
-      mp_limb curr = operand->p[i];
-      result->p[i + limb_shift] = (curr << bit_shift) | carry;
-      carry = curr >> (DIG_SIZE - bit_shift);
-    }
-    if (carry != 0) {
-      result->p[operand->sz + limb_shift] = carry;
-    }
-  }
-
-  /* Update size */
-  result->sz = new_size;
-  while (result->sz > 0 && result->p[result->sz - 1] == 0) {
-    result->sz--;
-  }
-
-  result->sn = (result->sz == 0) ? 0 : operand->sn;
-  return 1;
-}
-
-static int
-mpz_mul_int_pool(mrb_state *mrb, mpz_t *result, mp_limb multiplier, mpz_pool_t *pool) {
-  if (multiplier == 0) {
-    result->sz = 0;
-    result->sn = 0;
-    return 1;
-  }
-
-  if (multiplier == 1) {
-    return 1; /* No change needed */
-  }
-
-  /* Simple multiplication by single limb */
-  mp_limb carry = 0;
-  for (size_t i = 0; i < result->sz; i++) {
-    mp_dbl_limb product = (mp_dbl_limb)result->p[i] * multiplier + carry;
-    result->p[i] = (mp_limb)product;
-    carry = (mp_limb)(product >> DIG_SIZE);
-  }
-
-  /* Handle final carry - we don't expand buffers in pool operations */
-  if (carry != 0) {
-    /* This would overflow the result buffer */
-    return 0;
-  }
-
-  return 1;
-}
-
-static int
-mpz_sub_pool(mrb_state *mrb, mpz_t *result, mpz_t *a, mpz_t *b, mpz_pool_t *pool) {
-  /* Simple implementation to avoid modifying input */
-  if (!a || !b || a->sz == 0) {
-    if (b && b->sz > 0) {
-      /* result = -b */
-      for (size_t i = 0; i < b->sz && i < result->sz; i++) {
-        result->p[i] = b->p[i];
-      }
-      result->sz = (b->sz < result->sz) ? b->sz : result->sz;
-      result->sn = -b->sn;
-    }
-    else {
-      result->sz = 0;
-      result->sn = 0;
-    }
-    return 1;
-  }
-
-  if (b->sz == 0) {
-    /* result = a */
-    return mpz_set_pool(mrb, result, a, pool);
-  }
-
-  /* For now, use a simple fallback - create temporary copy of b with negated sign */
-  mpz_t b_neg;
-  mpz_init_pool(mrb, &b_neg, pool, b->sz);
-
-  if (!is_pool_memory(&b_neg, pool)) {
-    return 0; /* Pool allocation failed */
-  }
-
-  /* Copy b to b_neg with negated sign */
-  for (size_t i = 0; i < b->sz && i < b_neg.sz; i++) {
-    b_neg.p[i] = b->p[i];
-  }
-  b_neg.sz = (b->sz < b_neg.sz) ? b->sz : b_neg.sz;
-  b_neg.sn = -b->sn;
-
-  /* Use addition with negated b */
-  mpz_add(mrb, result, a, &b_neg);
-  int success = 1;
-
-  /* Clean up temporary */
-  MPZ_POOL_CLEANUP(mrb, b_neg, pool);
-
-  return success;
-}
-
-
 
 static size_t
 mpz_bits(const mpz_t *x)
