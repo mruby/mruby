@@ -1190,15 +1190,10 @@ str_del_suffix_bang(mrb_state *mrb, mrb_value self)
   struct RString *str = RSTRING(self);
 
   mrb_get_args(mrb, "s", &ptr, &plen);
+  mrb_check_frozen(mrb, str);
   mrb_int slen = RSTR_LEN(str);
   if (plen > slen) return mrb_nil_value();
   if (!str_suffix_p(mrb, self, ptr, plen)) return mrb_nil_value();
-  if (!mrb_frozen_p(str) && (RSTR_SHARED_P(str) || RSTR_FSHARED_P(str))) {
-    /* no need to modify string */
-  }
-  else {
-    mrb_str_modify(mrb, str);
-  }
   RSTR_SET_LEN(str, slen-plen);
   return self;
 }
