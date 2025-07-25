@@ -2592,23 +2592,6 @@ mpz_gcd(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
   mpz_clear(mrb, &a);
 }
 
-static int
-mpz_set_pool(mrb_state *mrb, mpz_t *result, mpz_t *operand, mpz_pool_t *pool) {
-  if (!operand || operand->sz == 0) {
-    result->sz = 0;
-    result->sn = 0;
-    return 1;
-  }
-
-  /* Copy limbs */
-  for (size_t i = 0; i < operand->sz && i < result->sz; i++) {
-    result->p[i] = operand->p[i];
-  }
-  result->sz = (operand->sz < result->sz) ? operand->sz : result->sz;
-  result->sn = operand->sn;
-
-  return 1;
-}
 
 static size_t
 mpz_bits(const mpz_t *x)
