@@ -382,7 +382,7 @@ trim(mpz_t *x)
 /* z = x + y, without regard for sign */
 /* Core addition algorithm - extracted from uadd/uadd_pool duplication */
 static void
-uadd_core(mpz_t *z, mpz_t *x, mpz_t *y)
+uadd(mpz_t *z, mpz_t *x, mpz_t *y)
 {
   /* Core multi-limb addition with carry propagation */
   mp_dbl_limb c = 0;
@@ -410,7 +410,7 @@ uadd_core(mpz_t *z, mpz_t *x, mpz_t *y)
 /* precondition: abs(y) >= abs(x) */
 /* Core subtraction algorithm - extracted from usub/usub_pool duplication */
 static void
-usub_core(mpz_t *z, mpz_t *y, mpz_t *x)
+usub(mpz_t *z, mpz_t *y, mpz_t *x)
 {
   /* Core multi-limb subtraction with borrow propagation */
   mp_dbl_limb_signed b = 0;
@@ -505,12 +505,12 @@ mpz_add_core(mpz_t *z, mpz_t *x, mpz_t *y)
 
   if (x->sn > 0 && y->sn > 0) {
     /* Both positive */
-    uadd_core(z, x, y);
+    uadd(z, x, y);
     z->sn = 1;
   }
   else if (x->sn < 0 && y->sn < 0) {
     /* Both negative */
-    uadd_core(z, x, y);
+    uadd(z, x, y);
     z->sn = -1;
   }
   else {
@@ -521,11 +521,11 @@ mpz_add_core(mpz_t *z, mpz_t *x, mpz_t *y)
       zero(z);
     }
     else if (mg > 0) {  /* abs(y) < abs(x) */
-      usub_core(z, x, y);
+      usub(z, x, y);
       z->sn = (x->sn > 0 && y->sn < 0) ? 1 : (-1);
     }
     else { /* abs(y) > abs(x) */
-      usub_core(z, y, x);
+      usub(z, y, x);
       z->sn = (x->sn < 0 && y->sn > 0) ? 1 : (-1);
     }
   }
