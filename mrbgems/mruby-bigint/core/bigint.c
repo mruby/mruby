@@ -101,6 +101,52 @@ static allocation_stats_t g_alloc_stats = {0};
    MPZ_POOL_VERIFY(var3, pool) && MPZ_POOL_VERIFY(var4, pool) && \
    MPZ_POOL_VERIFY(var5, pool) && MPZ_POOL_VERIFY(var6, pool))
 
+/* Unified pool+heap helper macros for eliminating function duplication */
+
+/* Copy result from pool to heap-allocated destination */
+#define MPZ_COPY_FROM_POOL(mrb, dest, src, pool) do { \
+  if (is_pool_memory(&(src), pool)) { \
+    trim(&(src)); \
+    mpz_realloc(mrb, dest, (src).sz); \
+    for (size_t i = 0; i < (src).sz; i++) { \
+      (dest)->p[i] = (src).p[i]; \
+    } \
+    (dest)->sz = (src).sz; \
+    (dest)->sn = (src).sn; \
+  } \
+} while(0)
+
+/* Unified operation using existing *_core functions */
+/* For binary operations: mpz_operation(result, op1, op2) */
+#define MPZ_UNIFIED_BINARY_OP(mrb, core_func, result, op1, op2, estimated_size) do { \
+  WITH_SCOPED_POOL(pool, { \
+    mpz_t temp_result; \
+    MPZ_POOL_ALLOC_GOTO(mrb, temp_result, pool, estimated_size, _pool_failed); \
+    /* Pool allocation successful */ \
+    core_func(&temp_result, op1, op2); \
+    MPZ_COPY_FROM_POOL(mrb, result, temp_result, pool); \
+    return; \
+    _pool_failed: ; \
+  }); \
+  /* Pool failed - use heap allocation */ \
+  core_func(result, op1, op2); \
+} while(0)
+
+/* For unary operations: mpz_operation(result, operand) */
+#define MPZ_UNIFIED_UNARY_OP(mrb, core_func, result, operand, estimated_size) do { \
+  WITH_SCOPED_POOL(pool, { \
+    mpz_t temp_result; \
+    MPZ_POOL_ALLOC_GOTO(mrb, temp_result, pool, estimated_size, _pool_failed); \
+    /* Pool allocation successful */ \
+    core_func(&temp_result, operand); \
+    MPZ_COPY_FROM_POOL(mrb, result, temp_result, pool); \
+    return; \
+    _pool_failed: ; \
+  }); \
+  /* Pool failed - use heap allocation */ \
+  core_func(result, operand); \
+} while(0)
+
 /* Pool allocation functions */
 static mp_limb*
 pool_alloc(mpz_pool_t *pool, size_t limbs)
