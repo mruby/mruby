@@ -1660,7 +1660,7 @@ mpz_mdiv(mrb_state *mrb, mpz_t *q, mpz_t *x, mpz_t *y)
   }
   mpz_init(mrb, &r);
   udiv(mrb, q, &r, x, y);
-  qsign = q->sn = sn1*sn2;
+  qsign = q->sn = sn1 * sn2;
   if (uzero_p(q))
     q->sn = 0;
   /* now if r != 0 and q < 0 we need to round q towards -inf */
@@ -1690,7 +1690,7 @@ mpz_mmod(mrb_state *mrb, mpz_t *r, mpz_t *x, mpz_t *y)
     r->sn = 0;
     return;
   }
-  sn3 = sn1*sn2;
+  sn3 = sn1 * sn2;
   if (sn3 > 0)
     r->sn = sn1;
   else if (sn1 < 0 && sn2 > 0) {
@@ -1714,7 +1714,7 @@ mpz_mdivmod(mrb_state *mrb, mpz_t *q, mpz_t *r, mpz_t *x, mpz_t *y)
     return;
   }
   udiv(mrb, q, r, x, y);
-  qsign = q->sn = sn1*sn2;
+  qsign = q->sn = sn1 * sn2;
   if (uzero_p(r)) {
     /* q != 0, since q=r=0 would mean x=0, which was tested above */
     r->sn = 0;
