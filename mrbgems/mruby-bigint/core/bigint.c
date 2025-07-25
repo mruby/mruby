@@ -2617,14 +2617,31 @@ mpz_powm_i(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int ex, mpz_t *n)
   mpz_clear(mrb, &b);
 }
 
+/* Helper functions for pool-based GCD operations */
+static int
+mpz_abs_copy(mrb_state *mrb, mpz_t *result, mpz_t *operand) {
+  if (!operand || operand->sz == 0) {
+    result->sz = 0;
+    result->sn = 0;
+    return 1;
+  }
+
+  /* Copy limbs */
+  for (size_t i = 0; i < operand->sz && i < result->sz; i++) {
+    result->p[i] = operand->p[i];
+  }
+  result->sz = (operand->sz < result->sz) ? operand->sz : result->sz;
+  result->sn = (operand->sn < 0) ? -operand->sn : operand->sn; /* Always positive */
+
+  return 1;
+}
+
 static void
 mpz_abs(mrb_state *mrb, mpz_t *x, mpz_t *y)
 {
-  mpz_init_set(mrb, x, y);
-  if (zero_p(y))
-    x->sn = 0;
-  else
-    x->sn = 1;
+  mpz_init(mrb, x);
+  mpz_realloc(mrb, x, y->sz);
+  mpz_abs_copy(mrb, x, y);
 }
 
 /* Fast GCD for single limbs using binary algorithm */
@@ -2941,24 +2958,6 @@ mpz_gcd(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
   mpz_clear(mrb, &a);
 }
 
-/* Helper functions for pool-based GCD operations */
-static int mpz_abs_pool(mrb_state *mrb, mpz_t *result, mpz_t *operand, mpz_pool_t *pool) {
-  if (!operand || operand->sz == 0) {
-    result->sz = 0;
-    result->sn = 0;
-    return 1;
-  }
-
-  /* Copy limbs */
-  for (size_t i = 0; i < operand->sz && i < result->sz; i++) {
-    result->p[i] = operand->p[i];
-  }
-  result->sz = (operand->sz < result->sz) ? operand->sz : result->sz;
-  result->sn = (operand->sn < 0) ? -operand->sn : operand->sn; /* Always positive */
-
-  return 1;
-}
-
 static int
 mpz_set_pool(mrb_state *mrb, mpz_t *result, mpz_t *operand, mpz_pool_t *pool) {
   if (!operand || operand->sz == 0) {
@@ -3248,7 +3247,7 @@ mpz_gcd_pool(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
     }
 
     /* Copy absolute values to working variables using pool-based operations */
-    if (mpz_abs_pool(mrb, &a, aa, pool) && mpz_abs_pool(mrb, &b, bb, pool)) {
+    if (mpz_abs_copy(mrb, &a, aa) && mpz_abs_copy(mrb, &b, bb)) {
       /* Find power of 2 that divides both a and b */
       size_t a_zeros = mpz_trailing_zeros(&a);
       size_t b_zeros = mpz_trailing_zeros(&b);
