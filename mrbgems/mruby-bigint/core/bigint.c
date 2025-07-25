@@ -3151,28 +3151,6 @@ mpz_sub_pool(mrb_state *mrb, mpz_t *result, mpz_t *a, mpz_t *b, mpz_pool_t *pool
   return success;
 }
 
-static int mpz_cmp_pool(mrb_state *mrb, mpz_t *a, mpz_t *b, mpz_pool_t *pool) {
-  /* Simple comparison - doesn't need pool operations */
-  if (a->sn != b->sn) {
-    return (a->sn > b->sn) ? 1 : -1;
-  }
-
-  if (a->sz != b->sz) {
-    int size_cmp = (a->sz > b->sz) ? 1 : -1;
-    return (a->sn >= 0) ? size_cmp : -size_cmp;
-  }
-
-  /* Compare limbs from most significant */
-  for (size_t i = a->sz; i > 0; i--) {
-    size_t idx = i - 1;
-    if (a->p[idx] != b->p[idx]) {
-      int limb_cmp = (a->p[idx] > b->p[idx]) ? 1 : -1;
-      return (a->sn >= 0) ? limb_cmp : -limb_cmp;
-    }
-  }
-
-  return 0; /* Equal */
-}
 
 /* Pool-based GCD using binary GCD algorithm with Lehmer acceleration */
 static int
@@ -3383,8 +3361,8 @@ mpz_gcd_pool(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
             goto cleanup_gcd;
           }
 
-          /* Ensure a >= b after transformation using pool-based comparison */
-          if (mpz_cmp_pool(mrb, &a, &b, pool) < 0) {
+          /* Ensure a >= b after transformation */
+          if (mpz_cmp(mrb, &a, &b) < 0) {
             /* In-place swap - just swap the mpz_t structures */
             mpz_t temp_holder = a;
             a = b;
@@ -3407,7 +3385,7 @@ mpz_gcd_pool(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
         }
 
         /* Now both a and b are odd. Ensure a >= b */
-        if (mpz_cmp_pool(mrb, &a, &b, pool) < 0) {
+        if (mpz_cmp(mrb, &a, &b) < 0) {
           /* In-place swap without temporary variable */
           mpz_t temp_holder = a;
           a = b;
