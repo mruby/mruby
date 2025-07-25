@@ -1099,6 +1099,14 @@ str_codepoints(mrb_state *mrb, mrb_value self)
 }
 #endif
 
+static mrb_bool
+str_prefix_p(mrb_state *mrb, mrb_value str, const char *prefix_ptr, mrb_int prefix_len)
+{
+  mrb_int str_len = RSTRING_LEN(str);
+  if (prefix_len > str_len) return FALSE;
+  return memcmp(RSTRING_PTR(str), prefix_ptr, prefix_len) == 0;
+}
+
 /*
  *  call-seq:
  *     str.delete_prefix!(prefix) -> self or nil
@@ -1120,7 +1128,7 @@ str_del_prefix_bang(mrb_state *mrb, mrb_value self)
   mrb_int slen = RSTR_LEN(str);
   if (plen > slen) return mrb_nil_value();
   char *s = RSTR_PTR(str);
-  if (memcmp(s, ptr, plen) != 0) return mrb_nil_value();
+  if (!str_prefix_p(mrb, self, ptr, plen)) return mrb_nil_value();
   if (!mrb_frozen_p(str) && (RSTR_SHARED_P(str) || RSTR_FSHARED_P(str))) {
     str->as.heap.ptr += plen;
   }
@@ -1151,9 +1159,17 @@ str_del_prefix(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "s", &ptr, &plen);
   mrb_int slen = RSTRING_LEN(self);
   if (plen > slen) return mrb_str_dup(mrb, self);
-  if (memcmp(RSTRING_PTR(self), ptr, plen) != 0)
+  if (!str_prefix_p(mrb, self, ptr, plen))
     return mrb_str_dup(mrb, self);
   return mrb_str_substr(mrb, self, plen, slen-plen);
+}
+
+static mrb_bool
+str_suffix_p(mrb_state *mrb, mrb_value str, const char *suffix_ptr, mrb_int suffix_len)
+{
+  mrb_int str_len = RSTRING_LEN(str);
+  if (suffix_len > str_len) return FALSE;
+  return memcmp(RSTRING_PTR(str) + (str_len - suffix_len), suffix_ptr, suffix_len) == 0;
 }
 
 /*
@@ -1176,8 +1192,7 @@ str_del_suffix_bang(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "s", &ptr, &plen);
   mrb_int slen = RSTR_LEN(str);
   if (plen > slen) return mrb_nil_value();
-  char *s = RSTR_PTR(str);
-  if (memcmp(s+slen-plen, ptr, plen) != 0) return mrb_nil_value();
+  if (!str_suffix_p(mrb, self, ptr, plen)) return mrb_nil_value();
   if (!mrb_frozen_p(str) && (RSTR_SHARED_P(str) || RSTR_FSHARED_P(str))) {
     /* no need to modify string */
   }
@@ -1206,7 +1221,7 @@ str_del_suffix(mrb_state *mrb, mrb_value self)
   mrb_get_args(mrb, "s", &ptr, &plen);
   mrb_int slen = RSTRING_LEN(self);
   if (plen > slen) return mrb_str_dup(mrb, self);
-  if (memcmp(RSTRING_PTR(self)+slen-plen, ptr, plen) != 0)
+  if (!str_suffix_p(mrb, self, ptr, plen))
     return mrb_str_dup(mrb, self);
   return mrb_str_substr(mrb, self, 0, slen-plen);
 }
