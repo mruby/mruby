@@ -405,26 +405,42 @@ uadd_pool(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y, mpz_pool_t *pool)
   return 1; /* Success - used pool memory */
 }
 
+/* Core subtraction algorithm - extracted from usub/usub_pool duplication */
+static void
+usub_core(mpz_t *z, mpz_t *y, mpz_t *x)
+{
+  /* Core multi-limb subtraction with borrow propagation */
+  mp_dbl_limb_signed b = 0;
+  size_t i;
+
+  /* Subtract overlapping limbs from both operands */
+  for (i = 0; i < x->sz; i++) {
+    b += (mp_dbl_limb_signed)y->p[i];
+    b -= (mp_dbl_limb_signed)x->p[i];
+    z->p[i] = LOW(b);
+    b = HIGH(b);
+  }
+
+  /* Process remaining limbs from minuend with borrow */
+  for (; i < y->sz; i++) {
+    b += y->p[i];
+    z->p[i] = LOW(b);
+    b = HIGH(b);
+  }
+
+  /* Normalize result size */
+  z->sz = digits(z);
+}
+
 /* z = y - x, ignoring sign */
 /* precondition: abs(y) >= abs(x) */
 static void
 usub(mrb_state *mrb, mpz_t *z, mpz_t *y, mpz_t *x)
 {
   mpz_realloc(mrb, z, (size_t)(y->sz));
-  mp_dbl_limb_signed b = 0;
-  size_t i;
-  for (i=0;i<x->sz;i++) {
-    b += (mp_dbl_limb_signed)y->p[i];
-    b -= (mp_dbl_limb_signed)x->p[i];
-    z->p[i] = LOW(b);
-    b = HIGH(b);
-  }
-  for (;i<y->sz; i++) {
-    b += y->p[i];
-    z->p[i] = LOW(b);
-    b = HIGH(b);
-  }
-  z->sz = digits(z);
+
+  /* Use core subtraction algorithm */
+  usub_core(z, y, x);
 }
 
 /* Pool-based unsigned subtraction - uses stack memory for result */
@@ -439,21 +455,8 @@ usub_pool(mrb_state *mrb, mpz_t *z, mpz_t *y, mpz_t *x, mpz_pool_t *pool)
   /* Try to allocate in pool */
   MPZ_POOL_ALLOC(mrb, *z, pool, y->sz);
 
-  /* Perform subtraction using pool memory */
-  mp_dbl_limb_signed b = 0;
-  size_t i;
-  for (i=0;i<x->sz;i++) {
-    b += (mp_dbl_limb_signed)y->p[i];
-    b -= (mp_dbl_limb_signed)x->p[i];
-    z->p[i] = LOW(b);
-    b = HIGH(b);
-  }
-  for (;i<y->sz; i++) {
-    b += y->p[i];
-    z->p[i] = LOW(b);
-    b = HIGH(b);
-  }
-  z->sz = digits(z);
+  /* Use core subtraction algorithm */
+  usub_core(z, y, x);
 
   return 1; /* Success - used pool memory */
 }
