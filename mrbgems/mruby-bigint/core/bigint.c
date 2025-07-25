@@ -36,7 +36,6 @@ typedef struct mpz_pool {
 
 /* Forward declarations */
 static int mpz_mul_sliding_window(mrb_state *mrb, mpz_t *result, mpz_t *first, mpz_t *second);
-static int mpz_add_pool(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y);
 static int udiv_pool(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy);
 static int mpz_sqrt_pool(mrb_state *mrb, mpz_t *z, mpz_t *x);
 static int mpz_powm_pool(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n);
@@ -552,143 +551,82 @@ zero(mpz_t *x)
   }
 }
 
+/* Core signed addition algorithm - handles sign logic and delegates to uadd_core/usub_core */
+static void
+mpz_add_core(mpz_t *z, mpz_t *x, mpz_t *y)
+{
+  if (zero_p(x)) {
+    /* Copy y to z - z must have enough space allocated */
+    for (size_t i = 0; i < y->sz && i < z->sz; i++) {
+      z->p[i] = y->p[i];
+    }
+    z->sz = (y->sz < z->sz) ? y->sz : z->sz;
+    z->sn = y->sn;
+    return;
+  }
+  if (zero_p(y)) {
+    /* Copy x to z - z must have enough space allocated */
+    for (size_t i = 0; i < x->sz && i < z->sz; i++) {
+      z->p[i] = x->p[i];
+    }
+    z->sz = (x->sz < z->sz) ? x->sz : z->sz;
+    z->sn = x->sn;
+    return;
+  }
+
+  if (x->sn > 0 && y->sn > 0) {
+    /* Both positive */
+    uadd_core(z, x, y);
+    z->sn = 1;
+  }
+  else if (x->sn < 0 && y->sn < 0) {
+    /* Both negative */
+    uadd_core(z, x, y);
+    z->sn = -1;
+  }
+  else {
+    /* Signs differ */
+    int mg = ucmp(x, y);
+
+    if (mg == 0) {
+      zero(z);
+    }
+    else if (mg > 0) {  /* abs(y) < abs(x) */
+      usub_core(z, x, y);
+      z->sn = (x->sn > 0 && y->sn < 0) ? 1 : (-1);
+    }
+    else { /* abs(y) > abs(x) */
+      usub_core(z, y, x);
+      z->sn = (x->sn < 0 && y->sn > 0) ? 1 : (-1);
+    }
+  }
+  trim(z);
+}
+
 /* z = x + y */
 static void
 mpz_add(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y)
 {
-  /* Try pool-based addition first for eligible operands */
-  if (mpz_add_pool(mrb, zz, x, y)) {
-    return; /* Success with pool-based addition */
-  }
+  size_t estimated_size = ((x->sz > y->sz) ? x->sz : y->sz) + 1;
 
-  /* Fallback to traditional algorithm */
-  if (zero_p(x)) {
-    mpz_set(mrb, zz, y);
+  WITH_SCOPED_POOL(pool, {
+    mpz_t temp_result;
+    MPZ_POOL_ALLOC_GOTO(mrb, temp_result, pool, estimated_size, _pool_failed);
+    /* Pool allocation successful */
+    mpz_add_core(&temp_result, x, y);
+    MPZ_COPY_FROM_POOL(mrb, zz, temp_result, pool);
     return;
-  }
-  if (zero_p(y)) {
-    mpz_set(mrb, zz, x);
-    return;
-  }
+    _pool_failed: ;
+  });
+
+  /* Pool failed - use heap allocation */
   mpz_t z;
   mpz_init(mrb, &z);
-
-  if (x->sn > 0 && y->sn > 0) {
-    uadd(mrb, &z, x, y);
-    z.sn = 1;
-  }
-  else if (x->sn < 0 && y->sn < 0) {
-    uadd(mrb, &z, x, y);
-    z.sn = -1;
-  }
-  else {
-    int mg;
-
-    /* signs differ */
-    if ((mg = ucmp(x,y)) == 0) {
-      zero(&z);
-    }
-    else if (mg > 0) {  /* abs(y) < abs(x) */
-      usub(mrb, &z, x, y);
-      z.sn = (x->sn > 0 && y->sn < 0) ? 1 : (-1);
-    }
-    else { /* abs(y) > abs(x) */
-      usub(mrb, &z, y, x);
-      z.sn = (x->sn < 0 && y->sn > 0) ? 1 : (-1);
-    }
-  }
-  trim(&z);
+  mpz_realloc(mrb, &z, estimated_size);
+  mpz_add_core(&z, x, y);
   mpz_move(mrb, zz, &z);
 }
 
-/* Pool-based signed addition - uses stack memory for intermediate results */
-static int
-mpz_add_pool(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y)
-{
-  if (zero_p(x)) {
-    mpz_set(mrb, zz, y);
-    return 1;
-  }
-  if (zero_p(y)) {
-    mpz_set(mrb, zz, x);
-    return 1;
-  }
-
-  /* Only use pools for medium-sized operands that can benefit from stack allocation */
-  size_t max_limbs = (x->sz > y->sz) ? x->sz : y->sz;
-  if (max_limbs < 4 || max_limbs > 128) {
-    return 0; /* Use traditional addition */
-  }
-
-  WITH_SCOPED_POOL(pool, {
-    mpz_t z_temp;
-    int pool_success = 0;
-
-    if (x->sn > 0 && y->sn > 0) {
-      /* Both positive - use pool-based addition */
-      if (uadd_pool(mrb, &z_temp, x, y, pool)) {
-        z_temp.sn = 1;
-        pool_success = 1;
-      }
-    }
-    else if (x->sn < 0 && y->sn < 0) {
-      /* Both negative - use pool-based addition */
-      if (uadd_pool(mrb, &z_temp, x, y, pool)) {
-        z_temp.sn = -1;
-        pool_success = 1;
-      }
-    }
-    else {
-      /* Signs differ - use pool-based subtraction */
-      int mg = ucmp(x, y);
-
-      if (mg == 0) {
-        /* Results in zero */
-        mpz_init_pool(mrb, &z_temp, pool, 1);
-        if (is_pool_memory(&z_temp, pool)) {
-          zero(&z_temp);
-          pool_success = 1;
-        }
-      }
-      else if (mg > 0) {  /* abs(y) < abs(x) */
-        if (usub_pool(mrb, &z_temp, x, y, pool)) {
-          z_temp.sn = (x->sn > 0 && y->sn < 0) ? 1 : (-1);
-          pool_success = 1;
-        }
-      }
-      else { /* abs(y) > abs(x) */
-        if (usub_pool(mrb, &z_temp, y, x, pool)) {
-          z_temp.sn = (x->sn < 0 && y->sn > 0) ? 1 : (-1);
-          pool_success = 1;
-        }
-      }
-    }
-
-    if (pool_success) {
-      /* Copy pool result to heap-allocated output */
-      trim(&z_temp);
-      mpz_realloc(mrb, zz, z_temp.sz);
-      for (size_t i = 0; i < z_temp.sz; i++) {
-        zz->p[i] = z_temp.p[i];
-      }
-      zz->sz = z_temp.sz;
-      zz->sn = z_temp.sn;
-
-      /* Pool cleanup is automatic */
-      MPZ_POOL_CLEANUP(mrb, z_temp, pool);
-      return 1; /* Success - used pool memory! */
-    }
-    else {
-      /* Pool allocation failed, cleanup and fallback */
-      if (z_temp.p) {
-        MPZ_POOL_CLEANUP(mrb, z_temp, pool);
-      }
-      return 0; /* Fallback to traditional */
-    }
-  });
-
-  return 0; /* Should not reach here */
-}
 
 /* x += n                                              */
 /*   ignores sign of x                                 */
@@ -3188,8 +3126,9 @@ mpz_sub_pool(mrb_state *mrb, mpz_t *result, mpz_t *a, mpz_t *b, mpz_pool_t *pool
   b_neg.sz = (b->sz < b_neg.sz) ? b->sz : b_neg.sz;
   b_neg.sn = -b->sn;
 
-  /* Use pool-based addition with negated b */
-  int success = mpz_add_pool(mrb, result, a, &b_neg);
+  /* Use addition with negated b */
+  mpz_add(mrb, result, a, &b_neg);
+  int success = 1;
 
   /* Clean up temporary */
   MPZ_POOL_CLEANUP(mrb, b_neg, pool);
@@ -3365,9 +3304,10 @@ mpz_gcd_pool(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
               if (mpz_mul_int_pool(mrb, &u0_a, u0, pool) && mpz_mul_int_pool(mrb, &v0_b, v0, pool) &&
                   mpz_mul_int_pool(mrb, &u1_a, u1, pool) && mpz_mul_int_pool(mrb, &v1_b, v1, pool)) {
 
-                /* temp_a = u0*a + v0*b using pool-based addition */
-                if (mpz_add_pool(mrb, &temp_a, &u0_a, &v0_b) &&
-                    mpz_add_pool(mrb, &temp_b, &u1_a, &v1_b)) {
+                /* temp_a = u0*a + v0*b using addition */
+                mpz_add(mrb, &temp_a, &u0_a, &v0_b);
+                mpz_add(mrb, &temp_b, &u1_a, &v1_b);
+                if (1) {
 
                   /* Update a and b using pool-based set operations */
                   if (mpz_set_pool(mrb, &a, &temp_a, pool) && mpz_set_pool(mrb, &b, &temp_b, pool)) {
@@ -3734,7 +3674,8 @@ mpz_sqrt_pool(mrb_state *mrb, mpz_t *z, mpz_t *x)
         /* t = t + s using pool-based addition */
         mpz_t temp_sum;
         mpz_init_pool(mrb, &temp_sum, pool, estimated_s_size + 1);
-        if (is_pool_memory(&temp_sum, pool) && mpz_add_pool(mrb, &temp_sum, &t, &s)) {
+        if (is_pool_memory(&temp_sum, pool)) {
+          mpz_add(mrb, &temp_sum, &t, &s);
           /* Copy sum back to t */
           for (size_t i = 0; i < temp_sum.sz && i < t.sz; i++) {
             t.p[i] = temp_sum.p[i];
