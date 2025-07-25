@@ -10,6 +10,9 @@
 #include <mruby/array.h>
 #include <mruby/string.h>
 #include <mruby/internal.h>
+#ifdef MRB_DEBUG
+#include <mruby/hash.h>
+#endif
 #include <string.h>
 #include "bigint.h"
 
