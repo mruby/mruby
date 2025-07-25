@@ -753,3 +753,11 @@ assert("Set operations with custom objects") do
   assert_equal(1, set_intersect_arr.size)
   assert_equal(obj2, set_intersect_arr.to_a[0])
 end
+
+assert("Set#hash") do
+  set1 = Set[1, 2, 3]
+  set2 = Set[1, 2, 3]
+
+  assert_kind_of Integer, set1.hash
+  assert_equal(set1.hash, set2.hash)
+end
