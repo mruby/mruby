@@ -34,8 +34,23 @@ typedef struct mpz_pool {
   int active;
 } mpz_pool_t;
 
+/* MPZ Context Architecture - unified parameter for mrb_state and optional pool */
+typedef struct mpz_context {
+  mrb_state *mrb;
+  mpz_pool_t *pool;  /* NULL for heap-only operations */
+} mpz_ctx_t;
+
 /* Forward declarations */
-static int mpz_mul_sliding_window(mrb_state *mrb, mpz_t *result, mpz_t *first, mpz_t *second);
+static int mpz_mul_sliding_window(mpz_ctx_t *ctx, mpz_t *result, mpz_t *first, mpz_t *second);
+
+/* Convenience macros for context creation */
+#define MPZ_CTX_HEAP(mrb_ptr) ((mpz_ctx_t){.mrb = (mrb_ptr), .pool = NULL})
+#define MPZ_CTX_POOL(mrb_ptr, pool_ptr) ((mpz_ctx_t){.mrb = (mrb_ptr), .pool = (pool_ptr)})
+
+/* Access macros for readability */
+#define MPZ_MRB(ctx) ((ctx)->mrb)
+#define MPZ_POOL(ctx) ((ctx)->pool)
+#define MPZ_HAS_POOL(ctx) ((ctx)->pool != NULL)
 
 
 #define WITH_SCOPED_POOL(pool_name, code) do { \
@@ -46,24 +61,24 @@ static int mpz_mul_sliding_window(mrb_state *mrb, mpz_t *result, mpz_t *first, m
 } while(0)
 
 /* Pool memory management helper macros */
-#define MPZ_POOL_ALLOC(mrb, var, pool, size) do { \
-  mpz_init_pool(mrb, &(var), pool, size); \
+#define MPZ_POOL_ALLOC(ctx, var, pool, size) do { \
+  mpz_init_pool(ctx, &(var), pool, size); \
   if (!is_pool_memory(&(var), pool)) { \
-    mpz_clear_pool(mrb, &(var), pool); \
+    mpz_clear_pool(ctx, &(var), pool); \
     return 0; /* Pool allocation failed, fallback */ \
   } \
 } while(0)
 
-#define MPZ_POOL_ALLOC_GOTO(mrb, var, pool, size, label) do { \
-  mpz_init_pool(mrb, &(var), pool, size); \
+#define MPZ_POOL_ALLOC_GOTO(ctx, var, pool, size, label) do { \
+  mpz_init_pool(ctx, &(var), pool, size); \
   if (!is_pool_memory(&(var), pool)) { \
-    mpz_clear_pool(mrb, &(var), pool); \
+    mpz_clear_pool(ctx, &(var), pool); \
     goto label; \
   } \
 } while(0)
 
-#define MPZ_POOL_CLEANUP(mrb, var, pool) do { \
-  if ((var).p) mpz_clear_pool(mrb, &(var), pool); \
+#define MPZ_POOL_CLEANUP(ctx, var, pool) do { \
+  if ((var).p) mpz_clear_pool(ctx, &(var), pool); \
 } while(0)
 
 #define MPZ_POOL_VERIFY(var, pool) is_pool_memory(&(var), pool)
@@ -86,10 +101,10 @@ static int mpz_mul_sliding_window(mrb_state *mrb, mpz_t *result, mpz_t *first, m
 /* Unified pool+heap helper macros for eliminating function duplication */
 
 /* Copy result from pool to heap-allocated destination */
-#define MPZ_COPY_FROM_POOL(mrb, dest, src, pool) do { \
+#define MPZ_COPY_FROM_POOL(ctx, dest, src, pool) do { \
   if (is_pool_memory(&(src), pool)) { \
     trim(&(src)); \
-    mpz_realloc(mrb, dest, (src).sz); \
+    mpz_realloc(ctx, dest, (src).sz); \
     for (size_t i = 0; i < (src).sz; i++) { \
       (dest)->p[i] = (src).p[i]; \
     } \
@@ -103,10 +118,10 @@ static int mpz_mul_sliding_window(mrb_state *mrb, mpz_t *result, mpz_t *first, m
 #define MPZ_UNIFIED_BINARY_OP(mrb, core_func, result, op1, op2, estimated_size) do { \
   WITH_SCOPED_POOL(pool, { \
     mpz_t temp_result; \
-    MPZ_POOL_ALLOC_GOTO(mrb, temp_result, pool, estimated_size, _pool_failed); \
+    MPZ_POOL_ALLOC_GOTO(ctx, temp_result, pool, estimated_size, _pool_failed); \
     /* Pool allocation successful */ \
     core_func(&temp_result, op1, op2); \
-    MPZ_COPY_FROM_POOL(mrb, result, temp_result, pool); \
+    MPZ_COPY_FROM_POOL(ctx, result, temp_result, pool); \
     return; \
     _pool_failed: ; \
   }); \
@@ -118,10 +133,10 @@ static int mpz_mul_sliding_window(mrb_state *mrb, mpz_t *result, mpz_t *first, m
 #define MPZ_UNIFIED_UNARY_OP(mrb, core_func, result, operand, estimated_size) do { \
   WITH_SCOPED_POOL(pool, { \
     mpz_t temp_result; \
-    MPZ_POOL_ALLOC_GOTO(mrb, temp_result, pool, estimated_size, _pool_failed); \
+    MPZ_POOL_ALLOC_GOTO(ctx, temp_result, pool, estimated_size, _pool_failed); \
     /* Pool allocation successful */ \
     core_func(&temp_result, operand); \
-    MPZ_COPY_FROM_POOL(mrb, result, temp_result, pool); \
+    MPZ_COPY_FROM_POOL(ctx, result, temp_result, pool); \
     return; \
     _pool_failed: ; \
   }); \
@@ -143,7 +158,7 @@ pool_alloc(mpz_pool_t *pool, size_t limbs)
 }
 
 static void
-mpz_init_pool(mrb_state *mrb, mpz_t *z, mpz_pool_t *pool, size_t hint)
+mpz_init_pool(mpz_ctx_t *ctx, mpz_t *z, mpz_pool_t *pool, size_t hint)
 {
   z->sn = 0;
 
@@ -154,13 +169,13 @@ mpz_init_pool(mrb_state *mrb, mpz_t *z, mpz_pool_t *pool, size_t hint)
   }
   else {
     /* Fallback to heap allocation */
-    z->p = mrb_malloc(mrb, hint * sizeof(mp_limb));
+    z->p = mrb_malloc(MPZ_MRB(ctx), hint * sizeof(mp_limb));
     z->sz = hint;
   }
 }
 
 static void
-mpz_init(mrb_state *mrb, mpz_t *s)
+mpz_init(mpz_ctx_t *ctx, mpz_t *s)
 {
   s->p = NULL;
   s->sn = 0;
@@ -168,25 +183,48 @@ mpz_init(mrb_state *mrb, mpz_t *s)
 }
 
 /* Helper macros for safer temporary variable management */
-#define MPZ_TMP_INIT(mrb, var) \
+#define MPZ_TMP_INIT(ctx, var) \
   mpz_t var; \
-  mpz_init(mrb, &var)
+  mpz_init(ctx, &var)
 
-#define MPZ_TMP_CLEAR(mrb, var) \
-  mpz_clear(mrb, &var)
+#define MPZ_TMP_CLEAR(ctx, var) \
+  mpz_clear(ctx, &var)
+
+/* Check if mpz_t uses pool memory */
+static int
+is_pool_memory(mpz_t *z, mpz_pool_t *pool)
+{
+  if (!pool || !z->p) return 0;
+  uintptr_t ptr_addr = (uintptr_t)z->p;
+  uintptr_t pool_start = (uintptr_t)pool->data;
+  uintptr_t pool_end = pool_start + sizeof(pool->data);
+  return ptr_addr >= pool_start && ptr_addr < pool_end;
+}
 
 static void
-mpz_realloc(mrb_state *mrb, mpz_t *x, size_t size)
+mpz_realloc(mpz_ctx_t *ctx, mpz_t *x, size_t size)
 {
   if (x->sz < size) {
     /* Check for overflow in size calculation */
     if (size > SIZE_MAX / sizeof(mp_limb)) {
+      mrb_state *mrb = MPZ_MRB(ctx);
       mrb_raise(mrb, E_RUNTIME_ERROR, "bigint size too large");
     }
 
     size_t old_sz = x->sz;
-    x->p = (mp_limb*)mrb_realloc(mrb, x->p, size * sizeof(mp_limb));
 
+    /* Pool memory cannot be reallocated - must use heap */
+    if (MPZ_HAS_POOL(ctx) && is_pool_memory(x, MPZ_POOL(ctx))) {
+      /* Allocate new heap memory and copy from pool */
+      mp_limb *new_p = (mp_limb*)mrb_malloc(MPZ_MRB(ctx), size * sizeof(mp_limb));
+      if (x->p) {
+        memcpy(new_p, x->p, old_sz * sizeof(mp_limb));
+      }
+      x->p = new_p;
+    } else {
+      /* Regular heap reallocation */
+      x->p = (mp_limb*)mrb_realloc(MPZ_MRB(ctx), x->p, size * sizeof(mp_limb));
+    }
 
     /* Zero-initialize new limbs */
     for (size_t i = old_sz; i < size; i++) {
@@ -197,11 +235,11 @@ mpz_realloc(mrb_state *mrb, mpz_t *x, size_t size)
 }
 
 static void
-mpz_set(mrb_state *mrb, mpz_t *y, mpz_t *x)
+mpz_set(mpz_ctx_t *ctx, mpz_t *y, mpz_t *x)
 {
   size_t i, k = x->sz;
 
-  mpz_realloc(mrb, y, k);
+  mpz_realloc(ctx, y, k);
   for (i=0;i < k; i++)
     y->p[i] = x->p[i];
 
@@ -209,15 +247,16 @@ mpz_set(mrb_state *mrb, mpz_t *y, mpz_t *x)
   y->sn = x->sn;
 }
 
+
 static void
-mpz_init_set(mrb_state *mrb, mpz_t *s, mpz_t *t)
+mpz_init_set(mpz_ctx_t *ctx, mpz_t *s, mpz_t *t)
 {
-  mpz_init(mrb, s);
-  mpz_set(mrb, s, t);
+  mpz_init(ctx, s);
+  mpz_set(ctx, s, t);
 }
 
 static void
-mpz_set_int(mrb_state *mrb, mpz_t *y, mrb_int v)
+mpz_set_int(mpz_ctx_t *ctx, mpz_t *y, mrb_int v)
 {
   mrb_uint u;
 
@@ -236,34 +275,36 @@ mpz_set_int(mrb_state *mrb, mpz_t *y, mrb_int v)
   }
 #if MRB_INT_BIT > DIG_SIZE
   if ((u & ~DIG_MASK) != 0) {
-    mpz_realloc(mrb, y, 2);
+    mpz_realloc(ctx, y, 2);
     y->p[1] = (mp_limb)HIGH(u);
     y->p[0] = (mp_limb)LOW(u);
     return;
   }
 #endif
-  mpz_realloc(mrb, y, 1);
+  mpz_realloc(ctx, y, 1);
   y->p[0] = (mp_limb)u;
 }
 
+
 static void
-mpz_set_uint64(mrb_state *mrb, mpz_t *y, uint64_t u)
+mpz_set_uint64(mpz_ctx_t *ctx, mpz_t *y, uint64_t u)
 {
   size_t len = 0;
 
   for (uint64_t u0=u; u0; u0>>=DIG_SIZE,len++)
     ;
   y->sn = (u != 0);
-  mpz_realloc(mrb, y, len);
+  mpz_realloc(ctx, y, len);
   for (size_t i=0; i<len; i++) {
     y->p[i] = (mp_limb)LOW(u);
     u >>= DIG_SIZE;
   }
 }
 
+
 #ifdef MRB_INT32
 static void
-mpz_set_int64(mrb_state *mrb, mpz_t *y, int64_t v)
+mpz_set_int64(mpz_ctx_t *ctx, mpz_t *y, int64_t v)
 {
   uint64_t u;
 
@@ -274,7 +315,7 @@ mpz_set_int64(mrb_state *mrb, mpz_t *y, int64_t v)
   else {
     u = v;
   }
-  mpz_set_uint64(mrb, y, u);
+  mpz_set_uint64(ctx, y, u);
   if (v < 0) {
     y->sn = -1;
   }
@@ -282,30 +323,20 @@ mpz_set_int64(mrb_state *mrb, mpz_t *y, int64_t v)
 #endif
 
 static void
-mpz_init_set_int(mrb_state *mrb, mpz_t *y, mrb_int v)
+mpz_init_set_int(mpz_ctx_t *ctx, mpz_t *y, mrb_int v)
 {
-  mpz_init(mrb, y);
-  mpz_set_int(mrb, y, v);
+  mpz_init(ctx, y);
+  mpz_set_int(ctx, y, v);
 }
 
-/* Check if mpz_t uses pool memory */
-static int
-is_pool_memory(mpz_t *z, mpz_pool_t *pool)
-{
-  if (!pool || !z->p) return 0;
-  uintptr_t ptr_addr = (uintptr_t)z->p;
-  uintptr_t pool_start = (uintptr_t)pool->data;
-  uintptr_t pool_end = pool_start + sizeof(pool->data);
-  return ptr_addr >= pool_start && ptr_addr < pool_end;
-}
 
 
 /* Clear pool-aware mpz_t */
 static void
-mpz_clear_pool(mrb_state *mrb, mpz_t *s, mpz_pool_t *pool)
+mpz_clear_pool(mpz_ctx_t *ctx, mpz_t *s, mpz_pool_t *pool)
 {
   if (s->p && !is_pool_memory(s, pool)) {
-    mrb_free(mrb, s->p);
+    mrb_free(MPZ_MRB(ctx), s->p);
   }
   s->p = NULL;
   s->sn = 0;
@@ -313,20 +344,24 @@ mpz_clear_pool(mrb_state *mrb, mpz_t *s, mpz_pool_t *pool)
 }
 
 static void
-mpz_clear(mrb_state *mrb, mpz_t *s)
+mpz_clear(mpz_ctx_t *ctx, mpz_t *s)
 {
   if (s->p) {
-    mrb_free(mrb, s->p);
-    s->p = NULL;  /* Prevent double-free */
+    if (MPZ_HAS_POOL(ctx) && is_pool_memory(s, MPZ_POOL(ctx))) {
+      /* Pool memory - don't free, just mark as unused */
+    } else {
+      mrb_free(MPZ_MRB(ctx), s->p);
+    }
+    s->p = NULL;
   }
   s->sn = 0;
   s->sz = 0;
 }
 
 static void
-mpz_move(mrb_state *mrb, mpz_t *y, mpz_t *x)
+mpz_move(mpz_ctx_t *ctx, mpz_t *y, mpz_t *x)
 {
-  mpz_clear(mrb, y);
+  mpz_clear(ctx, y);
   y->sn = x->sn;
   y->sz = x->sz;
   y->p = x->p;
@@ -334,6 +369,11 @@ mpz_move(mrb_state *mrb, mpz_t *y, mpz_t *x)
   x->sn = 0;
   x->sz = 0;
 }
+
+/* Forward declarations for context-aware functions */
+static void mpz_realloc(mpz_ctx_t *ctx, mpz_t *x, size_t size);
+static void mpz_clear(mpz_ctx_t *ctx, mpz_t *s);
+static void mpz_move(mpz_ctx_t *ctx, mpz_t *y, mpz_t *x);
 
 static size_t
 digits(mpz_t *x)
@@ -509,26 +549,26 @@ mpz_add_core(mpz_t *z, mpz_t *x, mpz_t *y)
 
 /* z = x + y */
 static void
-mpz_add(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y)
+mpz_add(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mpz_t *y)
 {
   size_t estimated_size = ((x->sz > y->sz) ? x->sz : y->sz) + 1;
 
   WITH_SCOPED_POOL(pool, {
     mpz_t temp_result;
-    MPZ_POOL_ALLOC_GOTO(mrb, temp_result, pool, estimated_size, _pool_failed);
+    MPZ_POOL_ALLOC_GOTO(ctx, temp_result, pool, estimated_size, _pool_failed);
     /* Pool allocation successful */
     mpz_add_core(&temp_result, x, y);
-    MPZ_COPY_FROM_POOL(mrb, zz, temp_result, pool);
+    MPZ_COPY_FROM_POOL(ctx, zz, temp_result, pool);
     return;
     _pool_failed: ;
   });
 
   /* Pool failed - use heap allocation */
   mpz_t z;
-  mpz_init(mrb, &z);
-  mpz_realloc(mrb, &z, estimated_size);
+  mpz_init(ctx, &z);
+  mpz_realloc(ctx, &z, estimated_size);
   mpz_add_core(&z, x, y);
-  mpz_move(mrb, zz, &z);
+  mpz_move(ctx, zz, &z);
 }
 
 
@@ -536,7 +576,7 @@ mpz_add(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *y)
 /*   ignores sign of x                                 */
 /*   assumes n is positive and small (fits in mp_limb) */
 static void
-mpz_add_int(mrb_state *mrb, mpz_t *x, mrb_int n)
+mpz_add_int(mpz_ctx_t *ctx, mpz_t *x, mrb_int n)
 {
   // If n is zero, no operation is needed
   if (n == 0) return;
@@ -550,7 +590,7 @@ mpz_add_int(mrb_state *mrb, mpz_t *x, mrb_int n)
   }
 
   if (carry != 0) {
-    mpz_realloc(mrb, x, x->sz + 1);
+    mpz_realloc(ctx, x, x->sz + 1);
     x->p[x->sz-1] = (mp_limb)carry;
     x->sn = 1;
   }
@@ -559,7 +599,7 @@ mpz_add_int(mrb_state *mrb, mpz_t *x, mrb_int n)
 
 /* z = x - y  -- just use mpz_add - I'm lazy */
 static void
-mpz_sub(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
+mpz_sub(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)
 {
   mpz_t u;
 
@@ -567,7 +607,7 @@ mpz_sub(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
   u.p = y->p;
   u.sz = y->sz;
   u.sn = -(y->sn);
-  mpz_add(mrb, z, x, &u);
+  mpz_add(ctx, z, x, &u);
   /* No mpz_clear needed since u.p points to y->p (no separate allocation) */
 }
 
@@ -575,14 +615,14 @@ mpz_sub(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
 /*   ignores sign of x                                 */
 /*   assumes n is positive and small (fits in mp_limb) */
 static void
-mpz_sub_int(mrb_state *mrb, mpz_t *x, mrb_int n)
+mpz_sub_int(mpz_ctx_t *ctx, mpz_t *x, mrb_int n)
 {
   // If n is zero, no operation is needed
   if (n == 0) return;
 
   // If x is zero, set x to n
   if (zero_p(x) || x->sz == 0) {
-    mpz_set_int(mrb, x, n);
+    mpz_set_int(ctx, x, n);
     return;
   }
 
@@ -677,7 +717,7 @@ mpz_mul_sliding_window_core(mpz_t *result, mpz_t *first, mpz_t *second)
 
 /* Unified sliding window multiplication - tries pool first, falls back to heap */
 static int
-mpz_mul_sliding_window(mrb_state *mrb, mpz_t *result, mpz_t *first, mpz_t *second)
+mpz_mul_sliding_window(mpz_ctx_t *ctx, mpz_t *result, mpz_t *first, mpz_t *second)
 {
   // Only use sliding window for medium-sized operands where cache benefits matter
   size_t max_limbs = (first->sz > second->sz) ? first->sz : second->sz;
@@ -689,16 +729,16 @@ mpz_mul_sliding_window(mrb_state *mrb, mpz_t *result, mpz_t *first, mpz_t *secon
 
   WITH_SCOPED_POOL(pool, {
     mpz_t temp_result;
-    MPZ_POOL_ALLOC_GOTO(mrb, temp_result, pool, result_size, _pool_failed);
+    MPZ_POOL_ALLOC_GOTO(ctx, temp_result, pool, result_size, _pool_failed);
     /* Pool allocation successful */
     mpz_mul_sliding_window_core(&temp_result, first, second);
-    MPZ_COPY_FROM_POOL(mrb, result, temp_result, pool);
+    MPZ_COPY_FROM_POOL(ctx, result, temp_result, pool);
     return 1;
     _pool_failed: ;
   });
 
   /* Pool failed - use heap allocation */
-  mpz_realloc(mrb, result, result_size);
+  mpz_realloc(ctx, result, result_size);
   mpz_mul_sliding_window_core(result, first, second);
   return 1;
 }
@@ -795,7 +835,7 @@ add_block_to_result(mpz_t *result, const mp_limb *block_result,
 
 /* Blocked multiplication - processes operands in constant-memory blocks */
 static int
-mpz_mul_blocked(mrb_state *mrb, mpz_t *result, mpz_t *first, mpz_t *second)
+mpz_mul_blocked(mpz_ctx_t *ctx, mpz_t *result, mpz_t *first, mpz_t *second)
 {
   // Algorithm selection check
   if (!should_use_blocked_multiplication(first->sz, second->sz)) {
@@ -803,7 +843,7 @@ mpz_mul_blocked(mrb_state *mrb, mpz_t *result, mpz_t *first, mpz_t *second)
   }
 
   // Initialize result
-  mpz_realloc(mrb, result, first->sz + second->sz + 1);
+  mpz_realloc(ctx, result, first->sz + second->sz + 1);
   zero(result);
 
   // Block buffer allocation (constant memory - key advantage)
@@ -846,7 +886,7 @@ mpz_mul_blocked(mrb_state *mrb, mpz_t *result, mpz_t *first, mpz_t *second)
 /* w = u * v */
 /* Memory-efficient multiplication with algorithm selection hierarchy */
 static void
-mpz_mul(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
+mpz_mul(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v)
 {
   if (zero_p(u) || zero_p(v)) {
     zero(ww);
@@ -870,21 +910,21 @@ mpz_mul(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
   // 3. Fallback to traditional sliding window if pool fails
   // 4. Fallback to classical multiplication
   mpz_t w;
-  mpz_init(mrb, &w);
+  mpz_init(ctx, &w);
 
-  if (mpz_mul_blocked(mrb, &w, first, second)) {
-    mpz_move(mrb, ww, &w);
+  if (mpz_mul_blocked(ctx, &w, first, second)) {
+    mpz_move(ctx, ww, &w);
     return;
   }
 
   // Try unified sliding window (pool first, then heap fallback)
-  if (mpz_mul_sliding_window(mrb, &w, first, second)) {
-    mpz_move(mrb, ww, &w);
+  if (mpz_mul_sliding_window(ctx, &w, first, second)) {
+    mpz_move(ctx, ww, &w);
     return;
   }
 
   // Fallback to classical multiplication for small/large operands
-  mpz_realloc(mrb, &w, first->sz + second->sz + 1);
+  mpz_realloc(ctx, &w, first->sz + second->sz + 1);
 
   // Standard multiplication algorithm with consistent operand order
   for (size_t j = 0; j < first->sz; j++) {
@@ -911,7 +951,7 @@ mpz_mul(mrb_state *mrb, mpz_t *ww, mpz_t *u, mpz_t *v)
 
   w.sn = u->sn * v->sn;
   trim(&w);
-  mpz_move(mrb, ww, &w);
+  mpz_move(ctx, ww, &w);
 }
 
 /* number of leading zero bits in digit */
@@ -936,12 +976,12 @@ lzb(mp_limb x)
 /* c1 = a>>n */
 /* n must be < DIG_SIZE */
 static void
-urshift(mrb_state *mrb, mpz_t *c1, mpz_t *a, size_t n)
+urshift(mpz_ctx_t *ctx, mpz_t *c1, mpz_t *a, size_t n)
 {
   mrb_assert(n < DIG_SIZE);
 
   if (n == 0)
-    mpz_set(mrb, c1, a);
+    mpz_set(ctx, c1, a);
   else if (uzero_p(a)) {
     zero(c1);
   }
@@ -950,26 +990,26 @@ urshift(mrb_state *mrb, mpz_t *c1, mpz_t *a, size_t n)
     mp_limb cc = 0;
     mp_dbl_limb rm = (((mp_dbl_limb)1<<n) - 1);
 
-    mpz_init(mrb, &c);
-    mpz_realloc(mrb, &c, a->sz);
+    mpz_init(ctx, &c);
+    mpz_realloc(ctx, &c, a->sz);
     for (size_t i=a->sz-1;; i--) {
       c.p[i] = ((a->p[i] >> n) | cc) & DIG_MASK;
       cc = (a->p[i] & rm) << (DIG_SIZE - n);
       if (i == 0) break;
     }
     trim(&c);
-    mpz_move(mrb, c1, &c);
+    mpz_move(ctx, c1, &c);
   }
 }
 
 /* c1 = a<<n */
 /* n must be < DIG_SIZE */
 static void
-ulshift(mrb_state *mrb, mpz_t *c1, mpz_t *a, size_t n)
+ulshift(mpz_ctx_t *ctx, mpz_t *c1, mpz_t *a, size_t n)
 {
   mrb_assert(n < DIG_SIZE);
   if (n == 0)
-    mpz_set(mrb, c1, a);
+    mpz_set(ctx, c1, a);
   else if (uzero_p(a)) {
     zero(c1);
   }
@@ -978,8 +1018,8 @@ ulshift(mrb_state *mrb, mpz_t *c1, mpz_t *a, size_t n)
     mpz_t c;
     mp_limb rm = (((mp_dbl_limb)1<<n) - 1) << (DIG_SIZE-n);
 
-    mpz_init(mrb, &c);
-    mpz_realloc(mrb, &c, a->sz+1);
+    mpz_init(ctx, &c);
+    mpz_realloc(ctx, &c, a->sz+1);
 
     size_t i;
     for (i=0; i<a->sz; i++) {
@@ -988,14 +1028,16 @@ ulshift(mrb_state *mrb, mpz_t *c1, mpz_t *a, size_t n)
     }
     c.p[i] = cc;
     trim(&c);
-    mpz_move(mrb, c1, &c);
+    mpz_move(ctx, c1, &c);
   }
 }
 
 /* Fast division by single limb */
 static void
-mpz_div_limb(mrb_state *mrb, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
+mpz_div_limb(mpz_ctx_t *ctx, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
 {
+  mrb_state *mrb = MPZ_MRB(ctx);
+
   if (zero_p(x)) {
     zero(q);
     zero(r);
@@ -1018,7 +1060,7 @@ mpz_div_limb(mrb_state *mrb, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
 
     /* Quotient = x >> shift */
     if (shift == 0) {
-      mpz_set(mrb, q, x);
+      mpz_set(ctx, q, x);
     }
     else {
       /* Manual right shift implementation */
@@ -1030,7 +1072,7 @@ mpz_div_limb(mrb_state *mrb, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
       }
       else {
         size_t new_size = x->sz - limb_shift;
-        mpz_realloc(mrb, q, new_size);
+        mpz_realloc(ctx, q, new_size);
 
         if (bit_shift == 0) {
           /* Simple limb copy */
@@ -1054,7 +1096,7 @@ mpz_div_limb(mrb_state *mrb, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
     }
 
     /* Remainder = x & (d - 1) */
-    mpz_realloc(mrb, r, 1);
+    mpz_realloc(ctx, r, 1);
     r->p[0] = x->p[0] & (d - 1);
     r->sz = (r->p[0] == 0) ? 0 : 1;
     r->sn = (r->sz == 0) ? 0 : 1;
@@ -1064,8 +1106,8 @@ mpz_div_limb(mrb_state *mrb, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
   /* General single-limb division */
   if (x->sz == 1) {
     /* Both dividend and divisor are single limb */
-    mpz_realloc(mrb, q, 1);
-    mpz_realloc(mrb, r, 1);
+    mpz_realloc(ctx, q, 1);
+    mpz_realloc(ctx, r, 1);
 
     q->p[0] = x->p[0] / d;
     r->p[0] = x->p[0] % d;
@@ -1080,7 +1122,7 @@ mpz_div_limb(mrb_state *mrb, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
 
   /* Multi-limb dividend, single-limb divisor */
   size_t n = x->sz;
-  mpz_realloc(mrb, q, n);
+  mpz_realloc(ctx, q, n);
 
   mp_dbl_limb remainder = 0;
 
@@ -1092,7 +1134,7 @@ mpz_div_limb(mrb_state *mrb, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
   }
 
   /* Set remainder */
-  mpz_realloc(mrb, r, 1);
+  mpz_realloc(ctx, r, 1);
   r->p[0] = (mp_limb)remainder;
   r->sz = (remainder == 0) ? 0 : 1;
   r->sn = (r->sz == 0) ? 0 : 1;
@@ -1201,24 +1243,24 @@ udiv_core(mpz_t *quotient, mpz_t *dividend, mpz_t *divisor, size_t xd, size_t yd
 /* internal routine to compute x/y and x%y ignoring signs */
 /* qq = xx/yy; rr = xx%yy */
 static void
-udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
+udiv(mpz_ctx_t *ctx, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
 {
   /* Handle simple cases */
   int cmp = ucmp(xx, yy);
   if (cmp == 0) {
-    mpz_set_int(mrb, qq, 1);
+    mpz_set_int(ctx, qq, 1);
     zero(rr);
     return;
   }
   else if (cmp < 0) {
     zero(qq);
-    mpz_set(mrb, rr, xx);
+    mpz_set(ctx, rr, xx);
     return;
   }
 
   /* Fast path for single-limb divisor */
   if (yy->sz == 1) {
-    mpz_div_limb(mrb, qq, rr, xx, yy->p[0]);
+    mpz_div_limb(ctx, qq, rr, xx, yy->p[0]);
     return;
   }
 
@@ -1239,9 +1281,9 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
       mpz_t q_temp, x_temp, y_temp;
 
       /* Initialize temporary variables in pool */
-      mpz_init_pool(mrb, &q_temp, pool, dividend_limbs - divisor_limbs + 1);
-      mpz_init_pool(mrb, &x_temp, pool, dividend_limbs + 1);
-      mpz_init_pool(mrb, &y_temp, pool, divisor_limbs);
+      mpz_init_pool(ctx, &q_temp, pool, dividend_limbs - divisor_limbs + 1);
+      mpz_init_pool(ctx, &x_temp, pool, dividend_limbs + 1);
+      mpz_init_pool(ctx, &y_temp, pool, divisor_limbs);
 
       if (is_pool_memory(&q_temp, pool) &&
           is_pool_memory(&x_temp, pool) &&
@@ -1304,7 +1346,7 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
 
         /* Copy results from pool to heap-allocated outputs */
         trim(&q_temp);
-        mpz_realloc(mrb, qq, q_temp.sz);
+        mpz_realloc(ctx, qq, q_temp.sz);
         for (size_t i = 0; i < q_temp.sz; i++) {
           qq->p[i] = q_temp.p[i];
         }
@@ -1314,7 +1356,7 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
         /* Manual right shift for remainder to avoid mpz_move issues */
         if (ns == 0) {
           /* No shift needed - direct copy to heap result */
-          mpz_realloc(mrb, rr, x_temp.sz);
+          mpz_realloc(ctx, rr, x_temp.sz);
           for (size_t i = 0; i < x_temp.sz; i++) {
             rr->p[i] = x_temp.p[i];
           }
@@ -1323,7 +1365,7 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
         }
         else {
           /* Manual right shift by ns bits */
-          mpz_realloc(mrb, rr, x_temp.sz);
+          mpz_realloc(ctx, rr, x_temp.sz);
           mp_limb cc = 0;
           mp_limb lm = ((mp_dbl_limb)1 << ns) - 1;
 
@@ -1345,66 +1387,66 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
 
   /* Heap fallback for large numbers or when pool allocation fails */
   mpz_t q, x, y;
-  mpz_init(mrb, &q);
-  mpz_init(mrb, &x);
-  mpz_init(mrb, &y);
-  mpz_realloc(mrb, &x, xx->sz+1);
+  mpz_init(ctx, &q);
+  mpz_init(ctx, &x);
+  mpz_init(ctx, &y);
+  mpz_realloc(ctx, &x, xx->sz+1);
   size_t yd = digits(yy);
   size_t ns = lzb(yy->p[yd-1]);
-  ulshift(mrb, &x, xx, ns);
-  ulshift(mrb, &y, yy, ns);
+  ulshift(ctx, &x, xx, ns);
+  ulshift(ctx, &y, yy, ns);
   size_t xd = digits(&x);
-  mpz_realloc(mrb, &q, xd-yd+1);  // Quotient has xd-yd+1 digits maximum
+  mpz_realloc(ctx, &q, xd-yd+1);  // Quotient has xd-yd+1 digits maximum
 
   /* Use core division algorithm */
   udiv_core(&q, &x, &y, xd, yd);
   x.sz = yy->sz;
-  urshift(mrb, rr, &x, ns);
+  urshift(ctx, rr, &x, ns);
   trim(&q);
-  mpz_move(mrb, qq, &q);
-  mpz_clear(mrb, &x);
-  mpz_clear(mrb, &y);
+  mpz_move(ctx, qq, &q);
+  mpz_clear(ctx, &x);
+  mpz_clear(ctx, &y);
 }
 
 
 static void
-mpz_mdiv(mrb_state *mrb, mpz_t *q, mpz_t *x, mpz_t *y)
+mpz_mdiv(mpz_ctx_t *ctx, mpz_t *q, mpz_t *x, mpz_t *y)
 {
   mpz_t r;
   short sn1 = x->sn, sn2 = y->sn, qsign;
 
   if (zero_p(x)) {
-    mpz_init_set_int(mrb, q, 0);
+    mpz_init_set_int(ctx, q, 0);
     return;
   }
-  mpz_init(mrb, &r);
-  udiv(mrb, q, &r, x, y);
+  mpz_init(ctx, &r);
+  udiv(ctx, q, &r, x, y);
   qsign = q->sn = sn1 * sn2;
   if (uzero_p(q))
     q->sn = 0;
   /* now if r != 0 and q < 0 we need to round q towards -inf */
   if (!uzero_p(&r) && qsign < 0) {
     /* add 1 to magnitude */
-    mpz_add_int(mrb, q, 1);
+    mpz_add_int(ctx, q, 1);
     /* force negative sign in case the value of q was zero before rounding */
     q->sn = -1;
   }
-  mpz_clear(mrb, &r);
+  mpz_clear(ctx, &r);
 }
 
 static void
-mpz_mmod(mrb_state *mrb, mpz_t *r, mpz_t *x, mpz_t *y)
+mpz_mmod(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *y)
 {
   mpz_t q;
   short sn1 = x->sn, sn2 = y->sn, sn3;
 
-  mpz_init(mrb, &q);
+  mpz_init(ctx, &q);
   if (sn1 == 0) {
     zero(r);
     return;
   }
-  udiv(mrb, &q, r, x, y);
-  mpz_clear(mrb, &q);
+  udiv(ctx, &q, r, x, y);
+  mpz_clear(ctx, &q);
   if (uzero_p(r)) {
     r->sn = 0;
     return;
@@ -1414,16 +1456,16 @@ mpz_mmod(mrb_state *mrb, mpz_t *r, mpz_t *x, mpz_t *y)
     r->sn = sn1;
   else if (sn1 < 0 && sn2 > 0) {
     r->sn = 1;
-    mpz_sub(mrb, r, y, r);
+    mpz_sub(ctx, r, y, r);
   }
   else {
     r->sn = 1;
-    mpz_add(mrb, r, y, r);
+    mpz_add(ctx, r, y, r);
   }
 }
 
 static void
-mpz_mdivmod(mrb_state *mrb, mpz_t *q, mpz_t *r, mpz_t *x, mpz_t *y)
+mpz_mdivmod(mpz_ctx_t *ctx, mpz_t *q, mpz_t *r, mpz_t *x, mpz_t *y)
 {
   short sn1 = x->sn, sn2 = y->sn, qsign;
 
@@ -1432,7 +1474,7 @@ mpz_mdivmod(mrb_state *mrb, mpz_t *q, mpz_t *r, mpz_t *x, mpz_t *y)
     zero(r);
     return;
   }
-  udiv(mrb, q, r, x, y);
+  udiv(ctx, q, r, x, y);
   qsign = q->sn = sn1 * sn2;
   if (uzero_p(r)) {
     /* q != 0, since q=r=0 would mean x=0, which was tested above */
@@ -1443,18 +1485,18 @@ mpz_mdivmod(mrb_state *mrb, mpz_t *q, mpz_t *r, mpz_t *x, mpz_t *y)
     r->sn = sn1;
   else if (sn1 < 0 && sn2 > 0) {
     r->sn = 1;
-    mpz_sub(mrb, r, y, r);
+    mpz_sub(ctx, r, y, r);
   }
   else {
     r->sn = 1;
-    mpz_add(mrb, r, y, r);
+    mpz_add(ctx, r, y, r);
   }
   if (uzero_p(q))
     q->sn = 0;
   /* now if r != 0 and q < 0 we need to round q towards -inf */
   if (!uzero_p(r) && qsign < 0) {
     /* add 1 to magnitude */
-    mpz_add_int(mrb, q, 1);
+    mpz_add_int(ctx, q, 1);
     /* force negative sign in case the value of q was zero before rounding */
     q->sn = -1;
   }
@@ -1462,7 +1504,7 @@ mpz_mdivmod(mrb_state *mrb, mpz_t *q, mpz_t *r, mpz_t *x, mpz_t *y)
 
 /* Fast modular reduction for single-limb modulus */
 static void
-mpz_mod_limb(mrb_state *mrb, mpz_t *r, mpz_t *x, mp_limb m)
+mpz_mod_limb(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mp_limb m)
 {
   if (zero_p(x)) {
     zero(r);
@@ -1472,7 +1514,7 @@ mpz_mod_limb(mrb_state *mrb, mpz_t *r, mpz_t *x, mp_limb m)
   if (x->sz == 1) {
     /* Single limb case - simple modulo */
     mp_limb result = x->p[0] % m;
-    mpz_set_int(mrb, r, result);
+    mpz_set_int(ctx, r, result);
     r->sn = x->sn;
     return;
   }
@@ -1484,18 +1526,18 @@ mpz_mod_limb(mrb_state *mrb, mpz_t *r, mpz_t *x, mp_limb m)
     remainder %= m;
   }
 
-  mpz_set_int(mrb, r, (mp_limb)remainder);
+  mpz_set_int(ctx, r, (mp_limb)remainder);
   r->sn = x->sn;
   if (remainder == 0)
     r->sn = 0;
 }
 
 /* Forward declarations for Barrett reduction functions */
-static void mpz_barrett_mu(mrb_state *mrb, mpz_t *mu, mpz_t *m);
-static void mpz_barrett_reduce(mrb_state *mrb, mpz_t *r, mpz_t *x, mpz_t *m, mpz_t *mu);
+static void mpz_barrett_mu(mpz_ctx_t *ctx, mpz_t *mu, mpz_t *m);
+static void mpz_barrett_reduce(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *m, mpz_t *mu);
 
 static void
-mpz_mod(mrb_state *mrb, mpz_t *r, mpz_t *x, mpz_t *y)
+mpz_mod(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *y)
 {
   mpz_t q;
   short sn = x->sn;
@@ -1507,7 +1549,7 @@ mpz_mod(mrb_state *mrb, mpz_t *r, mpz_t *x, mpz_t *y)
 
   /* Fast path for single-limb modulus */
   if (y->sz == 1) {
-    mpz_mod_limb(mrb, r, x, y->p[0]);
+    mpz_mod_limb(ctx, r, x, y->p[0]);
     if (y->sn < 0) r->sn = -r->sn;
     return;
   }
@@ -1515,27 +1557,27 @@ mpz_mod(mrb_state *mrb, mpz_t *r, mpz_t *x, mpz_t *y)
   /* Barrett reduction for moderate-sized moduli */
   if (y->sz >= 2 && y->sz <= 8 && x->sz >= y->sz + 2) {
     mpz_t mu;
-    mpz_init(mrb, &mu);
-    mpz_barrett_mu(mrb, &mu, y);
-    mpz_barrett_reduce(mrb, r, x, y, &mu);
+    mpz_init(ctx, &mu);
+    mpz_barrett_mu(ctx, &mu, y);
+    mpz_barrett_reduce(ctx, r, x, y, &mu);
     r->sn = sn;
     if (uzero_p(r))
       r->sn = 0;
-    mpz_clear(mrb, &mu);
+    mpz_clear(ctx, &mu);
     return;
   }
 
   /* General division fallback */
-  mpz_init(mrb, &q);
-  udiv(mrb, &q, r, x, y);
+  mpz_init(ctx, &q);
+  udiv(ctx, &q, r, x, y);
   r->sn = sn;
   if (uzero_p(r))
     r->sn = 0;
-  mpz_clear(mrb, &q);
+  mpz_clear(ctx, &q);
 }
 
 static mrb_int
-mpz_cmp(mrb_state *mrb, mpz_t *x, mpz_t *y)
+mpz_cmp(mpz_ctx_t *ctx, mpz_t *x, mpz_t *y)
 {
   if (x->sn < 0 && y->sn > 0)
     return (-1);
@@ -1566,7 +1608,7 @@ mpz_sizeinbase(mpz_t *x, mrb_int base)
 /*   assumes x and n are positive or zero        */
 /*   assumes n is small (fits in mp_limb)        */
 static void
-mpz_mul_int(mrb_state *mrb, mpz_t *x, mrb_int n)
+mpz_mul_int(mpz_ctx_t *ctx, mpz_t *x, mrb_int n)
 {
   if (n == 0 || zero_p(x)) {
     zero(x);
@@ -1577,7 +1619,7 @@ mpz_mul_int(mrb_state *mrb, mpz_t *x, mrb_int n)
   size_t new_sz = x_sz + 1; // Maximum possible size after multiplication
 
   // Reallocate x if necessary
-  mpz_realloc(mrb, x, new_sz);
+  mpz_realloc(ctx, x, new_sz);
 
   mp_dbl_limb cc = 0;
   mp_limb n_limb = (mp_limb)n;
@@ -1602,13 +1644,13 @@ mpz_mul_int(mrb_state *mrb, mpz_t *x, mrb_int n)
 }
 
 static int
-mpz_init_set_str(mrb_state *mrb, mpz_t *x, const char *s, mrb_int len, mrb_int base)
+mpz_init_set_str(mpz_ctx_t *ctx, mpz_t *x, const char *s, mrb_int len, mrb_int base)
 {
   int retval = 0;
   short sn;
   uint8_t k;
 
-  mpz_init(mrb, x);
+  mpz_init(ctx, x);
   if (*s == '-') {
     sn = -1; s++;
   }
@@ -1633,8 +1675,8 @@ mpz_init_set_str(mrb_state *mrb, mpz_t *x, const char *s, mrb_int len, mrb_int b
       retval = (-1);
       break;
     }
-    mpz_mul_int(mrb, x, base);
-    mpz_add_int(mrb, x, k);
+    mpz_mul_int(ctx, x, base);
+    mpz_add_int(ctx, x, k);
   }
   x->sn = x->sz == 0 ? 0 : sn;
   return retval;
@@ -1717,8 +1759,10 @@ static const mp_limb base_limit[34*2] = {
 };
 
 static char*
-mpz_get_str(mrb_state *mrb, char *s, mrb_int sz, mrb_int base, mpz_t *x)
+mpz_get_str(mpz_ctx_t *ctx, char *s, mrb_int sz, mrb_int base, mpz_t *x)
 {
+  mrb_state *mrb = MPZ_MRB(ctx);
+
   mrb_assert(2 <= base && base <= 36);
   if (zero_p(x)) {
     *s='0';
@@ -1849,52 +1893,52 @@ mpz_get_int(mpz_t *y, mrb_int *v)
 }
 
 static void
-mpz_mul_2exp(mrb_state *mrb, mpz_t *z, mpz_t *x, mrb_int e)
+mpz_mul_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
 {
   if (e==0)
-    mpz_set(mrb, z, x);
+    mpz_set(ctx, z, x);
   else {
     short sn = x->sn;
     size_t digs = e / DIG_SIZE;
     size_t bs = e % DIG_SIZE;
     mpz_t y;
 
-    mpz_init(mrb, &y);
-    mpz_realloc(mrb, &y, x->sz+digs);
+    mpz_init(ctx, &y);
+    mpz_realloc(ctx, &y, x->sz+digs);
     for (size_t i=0;i<x->sz;i++)
       y.p[i+digs] = x->p[i];
     if (bs) {
-      ulshift(mrb, z, &y, bs);
-      mpz_clear(mrb, &y);
+      ulshift(ctx, z, &y, bs);
+      mpz_clear(ctx, &y);
     }
     else {
-      mpz_move(mrb, z, &y);
+      mpz_move(ctx, z, &y);
     }
     z->sn = sn;
   }
 }
 
 static void
-mpz_div_2exp(mrb_state *mrb, mpz_t *z, mpz_t *x, mrb_int e)
+mpz_div_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
 {
   short sn = x->sn;
   if (e==0)
-    mpz_set(mrb, z, x);
+    mpz_set(ctx, z, x);
   else {
     size_t digs = e / DIG_SIZE;
     size_t bs = e % DIG_SIZE;
     mpz_t y;
 
-    mpz_init(mrb, &y);
-    mpz_realloc(mrb, &y, x->sz-digs);
+    mpz_init(ctx, &y);
+    mpz_realloc(ctx, &y, x->sz-digs);
     for (size_t i=0; i < x->sz-digs; i++)
       y.p[i] = x->p[i+digs];
     if (bs) {
-      urshift(mrb, z, &y, bs);
-      mpz_clear(mrb, &y);
+      urshift(ctx, z, &y, bs);
+      mpz_clear(ctx, &y);
     }
     else {
-      mpz_move(mrb, z, &y);
+      mpz_move(ctx, z, &y);
     }
     if (uzero_p(z))
       z->sn = 0;
@@ -1905,15 +1949,15 @@ mpz_div_2exp(mrb_state *mrb, mpz_t *z, mpz_t *x, mrb_int e)
 }
 
 static void
-mpz_neg(mrb_state *mrb, mpz_t *x, mpz_t *y)
+mpz_neg(mpz_ctx_t *ctx, mpz_t *x, mpz_t *y)
 {
-  mpz_set(mrb, x, y);
+  mpz_set(ctx, x, y);
   x->sn = -(y->sn);
 }
 
 /* Fast modular reduction by power of 2: z = x mod 2^e */
 static void
-mpz_mod_2exp(mrb_state *mrb, mpz_t *z, mpz_t *x, mrb_int e)
+mpz_mod_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
 {
   if (e <= 0) {
     zero(z);
@@ -1926,13 +1970,13 @@ mpz_mod_2exp(mrb_state *mrb, mpz_t *z, mpz_t *x, mrb_int e)
 
   if (eint >= sz) {
     /* x < 2^e, so x mod 2^e = x */
-    mpz_set(mrb, z, x);
+    mpz_set(ctx, z, x);
     return;
   }
 
   /* Need to mask off high bits */
   size_t result_sz = eint + (bs > 0 ? 1 : 0);
-  mpz_realloc(mrb, z, result_sz);
+  mpz_realloc(ctx, z, result_sz);
   z->sn = x->sn;
   z->sz = result_sz;
 
@@ -1953,7 +1997,7 @@ mpz_mod_2exp(mrb_state *mrb, mpz_t *z, mpz_t *x, mrb_int e)
 #define make_2comp(v,c) do { v=~(v)+(c); c=((v)==0 && (c));} while (0)
 
 static void
-mpz_and(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
+mpz_and(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)
 {
   if (zero_p(x) || zero_p(y)) {
     zero(z);
@@ -1962,7 +2006,7 @@ mpz_and(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
   mrb_assert(x->sz > 0 || y->sz > 0);
 
   size_t max_sz = (x->sz > y->sz) ? x->sz : y->sz;
-  mpz_realloc(mrb, z, max_sz);
+  mpz_realloc(ctx, z, max_sz);
   z->sn = (x->sn == y->sn) ? x->sn : 1;
 
   char c1 = 1, c2 = 1, c3 = 1;
@@ -1979,20 +2023,20 @@ mpz_and(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)
 }
 
 static void
-mpz_or(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient way to do this */
+mpz_or(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient way to do this */
 {
   if (zero_p(x)) {
-    mpz_set(mrb, z, y);
+    mpz_set(ctx, z, y);
     return;
   }
   if (zero_p(y)) {
-    mpz_set(mrb, z, x);
+    mpz_set(ctx, z, x);
     return;
   }
   mrb_assert(x->sz > 0 || y->sz > 0);
 
   size_t max_sz = (x->sz > y->sz) ? x->sz : y->sz;
-  mpz_realloc(mrb, z, max_sz);
+  mpz_realloc(ctx, z, max_sz);
   z->sn = (x->sn == y->sn) ? x->sn : -1;
 
   char c1 = 1, c2 = 1, c3 = 1;
@@ -2009,20 +2053,20 @@ mpz_or(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient 
 }
 
 static void
-mpz_xor(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient way to do this */
+mpz_xor(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient way to do this */
 {
   if (zero_p(x)) {
-    mpz_set(mrb, z, y);
+    mpz_set(ctx, z, y);
     return;
   }
   if (zero_p(y)) {
-    mpz_set(mrb, z, x);
+    mpz_set(ctx, z, x);
     return;
   }
   mrb_assert(x->sz > 0 || y->sz > 0);
 
   size_t max_sz = (x->sz > y->sz) ? x->sz : y->sz;
-  mpz_realloc(mrb, z, max_sz);
+  mpz_realloc(ctx, z, max_sz);
   z->sn = (x->sn == y->sn) ? 1 : -1;
 
   char c1 = 1, c2 = 1, c3 = 1;
@@ -2039,34 +2083,34 @@ mpz_xor(mrb_state *mrb, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient
 }
 
 static void
-mpz_pow(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int e)
+mpz_pow(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mrb_int e)
 {
   mpz_t t;
   mrb_uint mask = 1ULL<<(sizeof(mrb_int)*8-1);
 
   if (e==0) {
-    mpz_set_int(mrb, zz, 1L);
+    mpz_set_int(ctx, zz, 1L);
     return;
   }
 
-  mpz_init_set(mrb, &t, x);
+  mpz_init_set(ctx, &t, x);
   for (;!(mask &e); mask>>=1)
     ;
   mask>>=1;
   for (;mask!=0; mask>>=1) {
-    mpz_mul(mrb, &t, &t, &t);
+    mpz_mul(ctx, &t, &t, &t);
     if (e & mask)
-      mpz_mul(mrb, &t, &t, x);
+      mpz_mul(ctx, &t, &t, x);
   }
-  mpz_move(mrb, zz, &t);
+  mpz_move(ctx, zz, &t);
 }
 
 static void
-mpz_powm(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
+mpz_powm(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
 {
   /* Handle special cases */
   if (zero_p(ex) || uzero_p(ex)) {
-    mpz_set_int(mrb, zz, 1);
+    mpz_set_int(ctx, zz, 1);
     return;
   }
 
@@ -2075,16 +2119,16 @@ mpz_powm(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
   }
 
   mpz_t t, b;
-  mpz_init_set_int(mrb, &t, 1);
-  mpz_init_set(mrb, &b, x);
+  mpz_init_set_int(ctx, &t, 1);
+  mpz_init_set(ctx, &b, x);
 
   /* Optimize with Barrett reduction for moderate-sized moduli */
   mpz_t mu, temp;
   int use_barrett = (n->sz >= 2 && n->sz <= 8);
-  mpz_init(mrb, &temp);
+  mpz_init(ctx, &temp);
   if (use_barrett) {
-    mpz_init(mrb, &mu);
-    mpz_barrett_mu(mrb, &mu, n);
+    mpz_init(ctx, &mu);
+    mpz_barrett_mu(ctx, &mu, n);
   }
 
   size_t len = digits(ex);
@@ -2092,39 +2136,39 @@ mpz_powm(mrb_state *mrb, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
     mp_limb e = ex->p[i];
     for (size_t j = 0; j < sizeof(mp_limb) * 8; j++) {
       if ((e & 1) == 1) {
-        mpz_mul(mrb, &temp, &t, &b);
+        mpz_mul(ctx, &temp, &t, &b);
         if (use_barrett) {
-          mpz_barrett_reduce(mrb, &t, &temp, n, &mu);
+          mpz_barrett_reduce(ctx, &t, &temp, n, &mu);
         }
         else {
-          mpz_mod(mrb, &t, &temp, n);
+          mpz_mod(ctx, &t, &temp, n);
         }
       }
       e >>= 1;
-      mpz_mul(mrb, &temp, &b, &b);
+      mpz_mul(ctx, &temp, &b, &b);
       if (use_barrett) {
-        mpz_barrett_reduce(mrb, &b, &temp, n, &mu);
+        mpz_barrett_reduce(ctx, &b, &temp, n, &mu);
       }
       else {
-        mpz_mod(mrb, &b, &temp, n);
+        mpz_mod(ctx, &b, &temp, n);
       }
     }
   }
 
-  mpz_clear(mrb, &temp);
+  mpz_clear(ctx, &temp);
   if (use_barrett) {
-    mpz_clear(mrb, &mu);
+    mpz_clear(ctx, &mu);
   }
-  mpz_move(mrb, zz, &t);
-  mpz_clear(mrb, &b);
+  mpz_move(ctx, zz, &t);
+  mpz_clear(ctx, &b);
 }
 
 
 static void
-mpz_powm_i(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int ex, mpz_t *n)
+mpz_powm_i(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mrb_int ex, mpz_t *n)
 {
   if (ex == 0) {
-    mpz_set_int(mrb, zz, 1);
+    mpz_set_int(ctx, zz, 1);
     return;
   }
 
@@ -2133,51 +2177,51 @@ mpz_powm_i(mrb_state *mrb, mpz_t *zz, mpz_t *x, mrb_int ex, mpz_t *n)
   }
 
   mpz_t t, b;
-  mpz_init_set_int(mrb, &t, 1);
-  mpz_init_set(mrb, &b, x);
+  mpz_init_set_int(ctx, &t, 1);
+  mpz_init_set(ctx, &b, x);
 
   /* Optimize with Barrett reduction for moderate-sized moduli */
   mpz_t mu, temp;
   int use_barrett = (n->sz >= 2 && n->sz <= 8);
-  mpz_init(mrb, &temp);
+  mpz_init(ctx, &temp);
   if (use_barrett) {
-    mpz_init(mrb, &mu);
-    mpz_barrett_mu(mrb, &mu, n);
+    mpz_init(ctx, &mu);
+    mpz_barrett_mu(ctx, &mu, n);
   }
 
   while (ex > 0) {
     if ((ex & 1) == 1) {
-      mpz_mul(mrb, &temp, &t, &b);
+      mpz_mul(ctx, &temp, &t, &b);
       if (use_barrett) {
-        mpz_barrett_reduce(mrb, &t, &temp, n, &mu);
+        mpz_barrett_reduce(ctx, &t, &temp, n, &mu);
       }
       else {
-        mpz_mod(mrb, &t, &temp, n);
+        mpz_mod(ctx, &t, &temp, n);
       }
     }
     ex >>= 1;
     if (ex > 0) {  /* Skip final squaring when ex becomes 0 */
-      mpz_mul(mrb, &temp, &b, &b);
+      mpz_mul(ctx, &temp, &b, &b);
       if (use_barrett) {
-        mpz_barrett_reduce(mrb, &b, &temp, n, &mu);
+        mpz_barrett_reduce(ctx, &b, &temp, n, &mu);
       }
       else {
-        mpz_mod(mrb, &b, &temp, n);
+        mpz_mod(ctx, &b, &temp, n);
       }
     }
   }
 
-  mpz_clear(mrb, &temp);
+  mpz_clear(ctx, &temp);
   if (use_barrett) {
-    mpz_clear(mrb, &mu);
+    mpz_clear(ctx, &mu);
   }
-  mpz_move(mrb, zz, &t);
-  mpz_clear(mrb, &b);
+  mpz_move(ctx, zz, &t);
+  mpz_clear(ctx, &b);
 }
 
 /* Helper functions for pool-based GCD operations */
 static int
-mpz_abs_copy(mrb_state *mrb, mpz_t *result, mpz_t *operand) {
+mpz_abs_copy(mpz_ctx_t *ctx, mpz_t *result, mpz_t *operand) {
   if (!operand || operand->sz == 0) {
     result->sz = 0;
     result->sn = 0;
@@ -2195,11 +2239,11 @@ mpz_abs_copy(mrb_state *mrb, mpz_t *result, mpz_t *operand) {
 }
 
 static void
-mpz_abs(mrb_state *mrb, mpz_t *x, mpz_t *y)
+mpz_abs(mpz_ctx_t *ctx, mpz_t *x, mpz_t *y)
 {
-  mpz_init(mrb, x);
-  mpz_realloc(mrb, x, y->sz);
-  mpz_abs_copy(mrb, x, y);
+  mpz_init(ctx, x);
+  mpz_realloc(ctx, x, y->sz);
+  mpz_abs_copy(ctx, x, y);
 }
 
 /* Fast GCD for single limbs using binary algorithm */
@@ -2313,17 +2357,17 @@ mpz_power_of_2_p(mpz_t *x)
 
 /* Binary GCD algorithm (Stein's algorithm) - faster than Euclidean GCD */
 static void
-mpz_gcd(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
+mpz_gcd(mpz_ctx_t *ctx, mpz_t *gg, mpz_t *aa, mpz_t *bb)
 {
   mpz_t a, b;
 
   /* Handle special cases */
   if (zero_p(aa)) {
-    mpz_abs(mrb, gg, bb);
+    mpz_abs(ctx, gg, bb);
     return;
   }
   if (zero_p(bb)) {
-    mpz_abs(mrb, gg, aa);
+    mpz_abs(ctx, gg, aa);
     return;
   }
 
@@ -2333,13 +2377,13 @@ mpz_gcd(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
     mp_limb b_limb = (bb->sz == 0) ? 0 : bb->p[0];
     mp_limb result = limb_gcd(a_limb, b_limb);
 
-    mpz_init(mrb, gg);
+    mpz_init(ctx, gg);
     if (result == 0) {
       gg->sn = 0;
       gg->sz = 0;
     }
     else {
-      mpz_realloc(mrb, gg, 1);
+      mpz_realloc(ctx, gg, 1);
       gg->p[0] = result;
       gg->sn = 1;
     }
@@ -2352,8 +2396,8 @@ mpz_gcd(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
     size_t b_zeros = mpz_trailing_zeros(bb);
     size_t min_zeros = (a_zeros < b_zeros) ? a_zeros : b_zeros;
 
-    mpz_init_set_int(mrb, gg, 1);
-    mpz_mul_2exp(mrb, gg, gg, min_zeros);
+    mpz_init_set_int(ctx, gg, 1);
+    mpz_mul_2exp(ctx, gg, gg, min_zeros);
     return;
   }
   if (mpz_power_of_2_p(bb)) {
@@ -2361,13 +2405,13 @@ mpz_gcd(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
     size_t b_zeros = mpz_trailing_zeros(bb);
     size_t min_zeros = (a_zeros < b_zeros) ? a_zeros : b_zeros;
 
-    mpz_init_set_int(mrb, gg, 1);
-    mpz_mul_2exp(mrb, gg, gg, min_zeros);
+    mpz_init_set_int(ctx, gg, 1);
+    mpz_mul_2exp(ctx, gg, gg, min_zeros);
     return;
   }
 
-  mpz_abs(mrb, &a, aa);
-  mpz_abs(mrb, &b, bb);
+  mpz_abs(ctx, &a, aa);
+  mpz_abs(ctx, &b, bb);
 
   /* Find power of 2 that divides both a and b */
   size_t a_zeros = mpz_trailing_zeros(&a);
@@ -2376,18 +2420,18 @@ mpz_gcd(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
 
   /* Remove common factors of 2 */
   if (shift > 0) {
-    mpz_div_2exp(mrb, &a, &a, shift);
-    mpz_div_2exp(mrb, &b, &b, shift);
+    mpz_div_2exp(ctx, &a, &a, shift);
+    mpz_div_2exp(ctx, &b, &b, shift);
   }
 
   /* Remove remaining factors of 2 from a */
   if (a_zeros > shift) {
-    mpz_div_2exp(mrb, &a, &a, a_zeros - shift);
+    mpz_div_2exp(ctx, &a, &a, a_zeros - shift);
   }
 
   /* Remove remaining factors of 2 from b */
   if (b_zeros > shift) {
-    mpz_div_2exp(mrb, &b, &b, b_zeros - shift);
+    mpz_div_2exp(ctx, &b, &b, b_zeros - shift);
   }
 
   /* Use Lehmer's algorithm for large multi-limb numbers (> 3 limbs) */
@@ -2432,38 +2476,38 @@ mpz_gcd(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
     /* Apply the transformation if it's non-trivial */
     if (u1 != 0 || v1 != 0) {
       mpz_t temp_a, temp_b, u0_a, v0_b, u1_a, v1_b;
-      mpz_init(mrb, &temp_a);
-      mpz_init(mrb, &temp_b);
-      mpz_init_set(mrb, &u0_a, &a);
-      mpz_init_set(mrb, &v0_b, &b);
-      mpz_init_set(mrb, &u1_a, &a);
-      mpz_init_set(mrb, &v1_b, &b);
+      mpz_init(ctx, &temp_a);
+      mpz_init(ctx, &temp_b);
+      mpz_init_set(ctx, &u0_a, &a);
+      mpz_init_set(ctx, &v0_b, &b);
+      mpz_init_set(ctx, &u1_a, &a);
+      mpz_init_set(ctx, &v1_b, &b);
 
       /* Compute u0*a, v0*b, u1*a, v1*b */
-      mpz_mul_int(mrb, &u0_a, u0);
-      mpz_mul_int(mrb, &v0_b, v0);
-      mpz_mul_int(mrb, &u1_a, u1);
-      mpz_mul_int(mrb, &v1_b, v1);
+      mpz_mul_int(ctx, &u0_a, u0);
+      mpz_mul_int(ctx, &v0_b, v0);
+      mpz_mul_int(ctx, &u1_a, u1);
+      mpz_mul_int(ctx, &v1_b, v1);
 
       /* temp_a = u0*a + v0*b */
-      mpz_add(mrb, &temp_a, &u0_a, &v0_b);
+      mpz_add(ctx, &temp_a, &u0_a, &v0_b);
 
       /* temp_b = u1*a + v1*b */
-      mpz_add(mrb, &temp_b, &u1_a, &v1_b);
+      mpz_add(ctx, &temp_b, &u1_a, &v1_b);
 
       /* Update a and b */
-      mpz_set(mrb, &a, &temp_a);
-      mpz_set(mrb, &b, &temp_b);
+      mpz_set(ctx, &a, &temp_a);
+      mpz_set(ctx, &b, &temp_b);
 
-      mpz_clear(mrb, &temp_a);
-      mpz_clear(mrb, &temp_b);
-      mpz_clear(mrb, &u0_a);
-      mpz_clear(mrb, &v0_b);
-      mpz_clear(mrb, &u1_a);
-      mpz_clear(mrb, &v1_b);
+      mpz_clear(ctx, &temp_a);
+      mpz_clear(ctx, &temp_b);
+      mpz_clear(ctx, &u0_a);
+      mpz_clear(ctx, &v0_b);
+      mpz_clear(ctx, &u1_a);
+      mpz_clear(ctx, &v1_b);
 
       /* Ensure a >= b after transformation */
-      if (mpz_cmp(mrb, &a, &b) < 0) {
+      if (mpz_cmp(ctx, &a, &b) < 0) {
         mpz_t temp_holder = a;
         a = b;
         b = temp_holder;
@@ -2477,12 +2521,12 @@ mpz_gcd(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
     if ((b.p[0] & 1) == 0) {
       size_t b_trailing = mpz_trailing_zeros(&b);
       if (b_trailing > 0) {
-        mpz_div_2exp(mrb, &b, &b, b_trailing);
+        mpz_div_2exp(ctx, &b, &b, b_trailing);
       }
     }
 
     /* Now both a and b are odd. Ensure a >= b */
-    if (mpz_cmp(mrb, &a, &b) < 0) {
+    if (mpz_cmp(ctx, &a, &b) < 0) {
       /* In-place swap without temporary variable */
       mpz_t temp_holder = a;
       a = b;
@@ -2490,24 +2534,24 @@ mpz_gcd(mrb_state *mrb, mpz_t *gg, mpz_t *aa, mpz_t *bb)
     }
 
     /* Replace a with (a - b) */
-    mpz_sub(mrb, &a, &a, &b);
+    mpz_sub(ctx, &a, &a, &b);
 
     /* Remove factors of 2 from the result if it's even */
     if (a.sz > 0 && (a.p[0] & 1) == 0) {
       size_t a_trailing = mpz_trailing_zeros(&a);
       if (a_trailing > 0) {
-        mpz_div_2exp(mrb, &a, &a, a_trailing);
+        mpz_div_2exp(ctx, &a, &a, a_trailing);
       }
     }
 
   } while (!zero_p(&a));
 
   /* Restore common factors of 2 */
-  mpz_mul_2exp(mrb, &b, &b, shift);
+  mpz_mul_2exp(ctx, &b, &b, shift);
 
   trim(&b);
-  mpz_move(mrb, gg, &b);
-  mpz_clear(mrb, &a);
+  mpz_move(ctx, gg, &b);
+  mpz_clear(ctx, &a);
 }
 
 
@@ -2528,85 +2572,85 @@ mpz_bits(const mpz_t *x)
 
 /* Compute Barrett parameter μ = floor(2^(2k) / m) where k ≈ log₂(m) */
 static void
-mpz_barrett_mu(mrb_state *mrb, mpz_t *mu, mpz_t *m)
+mpz_barrett_mu(mpz_ctx_t *ctx, mpz_t *mu, mpz_t *m)
 {
   size_t k = mpz_bits(m);
   mpz_t temp;
 
-  mpz_init_set_int(mrb, &temp, 1);
-  mpz_mul_2exp(mrb, &temp, &temp, 2 * k);  /* temp = 2^(2k) */
-  mpz_mdiv(mrb, mu, &temp, m);             /* mu = floor(2^(2k) / m) */
-  mpz_clear(mrb, &temp);
+  mpz_init_set_int(ctx, &temp, 1);
+  mpz_mul_2exp(ctx, &temp, &temp, 2 * k);  /* temp = 2^(2k) */
+  mpz_mdiv(ctx, mu, &temp, m);             /* mu = floor(2^(2k) / m) */
+  mpz_clear(ctx, &temp);
 }
 
 /* Barrett reduction: r = x mod m using precomputed μ */
 static void
-mpz_barrett_reduce(mrb_state *mrb, mpz_t *r, mpz_t *x, mpz_t *m, mpz_t *mu)
+mpz_barrett_reduce(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *m, mpz_t *mu)
 {
   size_t k = mpz_bits(m);
 
   /* If x < m, then x mod m = x */
-  if (mpz_cmp(mrb, x, m) < 0) {
-    mpz_set(mrb, r, x);
+  if (mpz_cmp(ctx, x, m) < 0) {
+    mpz_set(ctx, r, x);
     return;
   }
 
   mpz_t q1, q2, q3, r1, r2;
-  mpz_init(mrb, &q1);
-  mpz_init(mrb, &q2);
-  mpz_init(mrb, &q3);
-  mpz_init(mrb, &r1);
-  mpz_init(mrb, &r2);
+  mpz_init(ctx, &q1);
+  mpz_init(ctx, &q2);
+  mpz_init(ctx, &q3);
+  mpz_init(ctx, &r1);
+  mpz_init(ctx, &r2);
 
   /* Step 1: q1 = floor(x / 2^(k-1)) */
   if (k > 1) {
-    mpz_div_2exp(mrb, &q1, x, k - 1);
+    mpz_div_2exp(ctx, &q1, x, k - 1);
   }
   else {
-    mpz_set(mrb, &q1, x);
+    mpz_set(ctx, &q1, x);
   }
 
   /* Step 2: q2 = q1 * μ */
-  mpz_mul(mrb, &q2, &q1, mu);
+  mpz_mul(ctx, &q2, &q1, mu);
 
   /* Step 3: q3 = floor(q2 / 2^(k+1)) */
-  mpz_div_2exp(mrb, &q3, &q2, k + 1);
+  mpz_div_2exp(ctx, &q3, &q2, k + 1);
 
   /* Step 4: r1 = x mod 2^(k+1) */
-  mpz_mod_2exp(mrb, &r1, x, k + 1);
+  mpz_mod_2exp(ctx, &r1, x, k + 1);
 
   /* Step 5: r2 = (q3 * m) mod 2^(k+1) */
-  mpz_mul(mrb, &r2, &q3, m);
-  mpz_mod_2exp(mrb, &r2, &r2, k + 1);
+  mpz_mul(ctx, &r2, &q3, m);
+  mpz_mod_2exp(ctx, &r2, &r2, k + 1);
 
   /* Step 6: r = r1 - r2 */
-  if (mpz_cmp(mrb, &r1, &r2) >= 0) {
-    mpz_sub(mrb, r, &r1, &r2);
+  if (mpz_cmp(ctx, &r1, &r2) >= 0) {
+    mpz_sub(ctx, r, &r1, &r2);
   }
   else {
     /* r1 < r2, so add 2^(k+1) to r1 */
     mpz_t power;
-    mpz_init_set_int(mrb, &power, 1);
-    mpz_mul_2exp(mrb, &power, &power, k + 1);
-    mpz_add(mrb, &r1, &r1, &power);
-    mpz_sub(mrb, r, &r1, &r2);
-    mpz_clear(mrb, &power);
+    mpz_init_set_int(ctx, &power, 1);
+    mpz_mul_2exp(ctx, &power, &power, k + 1);
+    mpz_add(ctx, &r1, &r1, &power);
+    mpz_sub(ctx, r, &r1, &r2);
+    mpz_clear(ctx, &power);
   }
 
   /* Step 7: Final correction - ensure 0 ≤ r < m */
-  while (mpz_cmp(mrb, r, m) >= 0) {
-    mpz_sub(mrb, r, r, m);
+  while (mpz_cmp(ctx, r, m) >= 0) {
+    mpz_sub(ctx, r, r, m);
   }
 
-  mpz_clear(mrb, &q1);
-  mpz_clear(mrb, &q2);
-  mpz_clear(mrb, &q3);
-  mpz_clear(mrb, &r1);
-  mpz_clear(mrb, &r2);
+  mpz_clear(ctx, &q1);
+  mpz_clear(ctx, &q2);
+  mpz_clear(ctx, &q3);
+  mpz_clear(ctx, &r1);
+  mpz_clear(ctx, &r2);
 }
 
 static void
-mpz_sqrt(mrb_state *mrb, mpz_t *z, mpz_t *x)
+mpz_sqrt(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x)
 {
   mrb_assert(x->sn >= 0);
 
@@ -2622,28 +2666,28 @@ mpz_sqrt(mrb_state *mrb, mpz_t *z, mpz_t *x)
   size_t xbits = mpz_bits(x);
   size_t sbit = (xbits + 1) / 2;
   mpz_t s, t;
-  mpz_init_set_int(mrb, &s, 1);
-  mpz_mul_2exp(mrb, &s, &s, sbit);
+  mpz_init_set_int(ctx, &s, 1);
+  mpz_mul_2exp(ctx, &s, &s, sbit);
 
-  mpz_init(mrb, &t);
+  mpz_init(ctx, &t);
 
   // Iteratively refine s using Newton-Raphson method:
   // s = (s + x / s) / 2
   for (;;) {
-    mpz_mdiv(mrb, &t, x, &s);     // t = x / s
-    mpz_add(mrb, &t, &t, &s);     // t = s + x/s
-    mpz_div_2exp(mrb, &t, &t, 1); // t = (s + x/s) / 2
+    mpz_mdiv(ctx, &t, x, &s);     // t = x / s
+    mpz_add(ctx, &t, &t, &s);     // t = s + x/s
+    mpz_div_2exp(ctx, &t, &t, 1); // t = (s + x/s) / 2
 
-    if (mpz_cmp(mrb, &t, &s) >= 0) {
+    if (mpz_cmp(ctx, &t, &s) >= 0) {
       // Converged: t >= s
       break;
     }
 
-    mpz_set(mrb, &s, &t);
+    mpz_set(ctx, &s, &t);
   }
 
-  mpz_move(mrb, z, &s);
-  mpz_clear(mrb, &t);
+  mpz_move(ctx, z, &s);
+  mpz_clear(ctx, &t);
 }
 
 
@@ -2662,12 +2706,13 @@ bint_as_mpz(struct RBigint *b, mpz_t *x)
 static struct RBigint*
 bint_new(mrb_state *mrb, mpz_t *x)
 {
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
   struct RBigint *b = MRB_OBJ_ALLOC(mrb, MRB_TT_BIGINT, mrb->integer_class);
   if (x->sz <= RBIGINT_EMBED_SIZE_MAX) {
     RBIGINT_SET_EMBED_SIZE(b, x->sz);
     RBIGINT_SET_EMBED_SIGN(b, x->sn);
     if (x->p) memcpy(RBIGINT_EMBED_ARY(b), x->p, x->sz*sizeof(mp_limb));
-    mpz_clear(mrb, x);
+    mpz_clear(&ctx, x);
   }
   else {
     RBIGINT_SET_HEAP(b);
@@ -2681,7 +2726,8 @@ bint_new_int(mrb_state *mrb, mrb_int n)
 {
   mpz_t x;
 
-  mpz_init_set_int(mrb, &x, n);
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_init_set_int(&ctx, &x, n);
   return bint_new(mrb, &x);
 }
 
@@ -2697,7 +2743,9 @@ mrb_value
 mrb_bint_new_int64(mrb_state *mrb, int64_t n)
 {
   mpz_t x;
-  mpz_set_int64(mrb, &x, n);
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+
+  mpz_set_int64(&ctx, &x, n);
   struct RBigint *b = bint_new(mrb, &x);
   return mrb_obj_value(b);
 }
@@ -2707,8 +2755,10 @@ mrb_value
 mrb_bint_new_uint64(mrb_state *mrb, uint64_t x)
 {
   mpz_t z;
-  mpz_init(mrb, &z);
-  mpz_set_uint64(mrb, &z, x);
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+
+  mpz_init(&ctx, &z);
+  mpz_set_uint64(&ctx, &z, x);
   struct RBigint *b = bint_new(mrb ,&z);
   return mrb_obj_value(b);
 }
@@ -2717,14 +2767,15 @@ mrb_value
 mrb_bint_new_str(mrb_state *mrb, const char *x, mrb_int len, mrb_int base)
 {
   mpz_t z;
-
   int sn = 1;
+
   if (base < 0) {
     base = -base;
     sn = -1;
   }
   mrb_assert(2 <= base && base <= 36);
-  mpz_init_set_str(mrb, &z, x, len, base);
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_init_set_str(&ctx, &z, x, len, base);
   if (sn < 0) {
     z.sn = sn;
   }
@@ -2749,8 +2800,9 @@ void
 mrb_gc_free_bint(mrb_state *mrb, struct RBasic *x)
 {
   struct RBigint *b = (struct RBigint*)x;
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
   if (!RBIGINT_EMBED_P(b)) {
-    mpz_clear(mrb, &b->as.heap);
+    mpz_clear(&ctx, &b->as.heap);
   }
 }
 
@@ -2776,9 +2828,10 @@ mrb_bint_new_float(mrb_state *mrb, mrb_float x)
   if (x < 1.0) {
     return mrb_fixnum_value(0);
   }
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
 
   mpz_t r;
-  mpz_init(mrb, &r);
+  mpz_init(&ctx, &r);
   r.sn = sn;
 
   mrb_float b = (double)DIG_BASE;
@@ -2788,7 +2841,7 @@ mrb_bint_new_float(mrb_state *mrb, mrb_float x)
   for (rn = 1; x >= b; rn++)
     x *= bi;
 
-  mpz_realloc(mrb, &r, rn);
+  mpz_realloc(&ctx, &r, rn);
   mp_limb *rp = r.p;
   for (size_t i=rn-1;;i--) {
     mp_limb f = LOW((mp_limb)x);
@@ -2909,15 +2962,16 @@ mrb_bint_add_n(mrb_state *mrb, mrb_value x, mrb_value y)
   mpz_t a, b, z;
 
   bint_as_mpz(RBIGINT(x), &a);
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
   if (mrb_integer_p(y)) {
     mrb_int n = mrb_integer(y);
     if (int_fit_limb_p(n)) {
-      mpz_init_set(mrb, &z, &a);
+      mpz_init_set(&ctx, &z, &a);
       if ((n > 0) ^ (z.sn > 0)) {
-        mpz_sub_int(mrb, &z, n<0 ? -n : n);
+        mpz_sub_int(&ctx, &z, n<0 ? -n : n);
       }
       else {
-        mpz_add_int(mrb, &z, n<0 ? -n : n);
+        mpz_add_int(&ctx, &z, n<0 ? -n : n);
       }
       struct RBigint *v = bint_new(mrb, &z);
       return mrb_obj_value(v);
@@ -2925,8 +2979,8 @@ mrb_bint_add_n(mrb_state *mrb, mrb_value x, mrb_value y)
   }
   y = mrb_as_bint(mrb, y);
   bint_as_mpz(RBIGINT(y), &b);
-  mpz_init(mrb, &z);
-  mpz_add(mrb, &z, &a, &b);
+  mpz_init(&ctx, &z);
+  mpz_add(&ctx, &z, &a, &b);
   struct RBigint *v = bint_new(mrb, &z);
   return mrb_obj_value(v);
 }
@@ -2950,17 +3004,18 @@ mrb_value
 mrb_bint_sub_n(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mpz_t a, b, z;
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
 
   bint_as_mpz(RBIGINT(x), &a);
   if (mrb_integer_p(y)) {
     mrb_int n = mrb_integer(y);
     if (int_fit_limb_p(n)) {
-      mpz_init_set(mrb, &z, &a);
+      mpz_init_set(&ctx, &z, &a);
       if ((n > 0) ^ (z.sn > 0)) {
-        mpz_add_int(mrb, &z, n<0 ? -n : n);
+        mpz_add_int(&ctx, &z, n<0 ? -n : n);
       }
       else {
-        mpz_sub_int(mrb, &z, n<0 ? -n : n);
+        mpz_sub_int(&ctx, &z, n<0 ? -n : n);
       }
       struct RBigint *v = bint_new(mrb, &z);
       return mrb_obj_value(v);
@@ -2968,8 +3023,8 @@ mrb_bint_sub_n(mrb_state *mrb, mrb_value x, mrb_value y)
   }
   y = mrb_as_bint(mrb, y);
   bint_as_mpz(RBIGINT(y), &b);
-  mpz_init(mrb, &z);
-  mpz_sub(mrb, &z, &a, &b);
+  mpz_init(&ctx, &z);
+  mpz_sub(&ctx, &z, &a, &b);
   struct RBigint *v = bint_new(mrb, &z);
   return mrb_obj_value(v);
 }
@@ -2996,8 +3051,10 @@ bint_mul(mrb_state *mrb, mrb_value x, mrb_value y)
   y = mrb_as_bint(mrb, y);
   bint_as_mpz(RBIGINT(x), &a);
   bint_as_mpz(RBIGINT(y), &b);
-  mpz_init(mrb, &z);
-  mpz_mul(mrb, &z, &a, &b);
+
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_init(&ctx, &z);
+  mpz_mul(&ctx, &z, &a, &b);
   return bint_new(mrb, &z);
 }
 
@@ -3047,8 +3104,10 @@ mrb_bint_div(mrb_state *mrb, mrb_value x, mrb_value y)
     mrb_int_zerodiv(mrb);
   }
   bint_as_mpz(RBIGINT(x), &a);
-  mpz_init(mrb, &z);
-  mpz_mdiv(mrb, &z, &a, &b);
+
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_init(&ctx, &z);
+  mpz_mdiv(&ctx, &z, &a, &b);
   return bint_norm(mrb, bint_new(mrb, &z));
 }
 
@@ -3056,13 +3115,14 @@ mrb_value
 mrb_bint_add_ii(mrb_state *mrb, mrb_int x, mrb_int y)
 {
   mpz_t a, b, z;
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
 
-  mpz_init_set_int(mrb, &a, x);
-  mpz_init_set_int(mrb, &b, y);
-  mpz_init(mrb, &z);
-  mpz_add(mrb, &z, &a, &b);
-  mpz_clear(mrb, &a);
-  mpz_clear(mrb, &b);
+  mpz_init_set_int(&ctx, &a, x);
+  mpz_init_set_int(&ctx, &b, y);
+  mpz_init(&ctx, &z);
+  mpz_add(&ctx, &z, &a, &b);
+  mpz_clear(&ctx, &a);
+  mpz_clear(&ctx, &b);
   return bint_norm(mrb, bint_new(mrb, &z));
 }
 
@@ -3070,13 +3130,14 @@ mrb_value
 mrb_bint_sub_ii(mrb_state *mrb, mrb_int x, mrb_int y)
 {
   mpz_t a, b, z;
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
 
-  mpz_init_set_int(mrb, &a, x);
-  mpz_init_set_int(mrb, &b, y);
-  mpz_init(mrb, &z);
-  mpz_sub(mrb, &z, &a, &b);
-  mpz_clear(mrb, &a);
-  mpz_clear(mrb, &b);
+  mpz_init_set_int(&ctx, &a, x);
+  mpz_init_set_int(&ctx, &b, y);
+  mpz_init(&ctx, &z);
+  mpz_sub(&ctx, &z, &a, &b);
+  mpz_clear(&ctx, &a);
+  mpz_clear(&ctx, &b);
   return bint_norm(mrb, bint_new(mrb, &z));
 }
 
@@ -3084,13 +3145,14 @@ mrb_value
 mrb_bint_mul_ii(mrb_state *mrb, mrb_int x, mrb_int y)
 {
   mpz_t a, b, z;
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
 
-  mpz_init_set_int(mrb, &a, x);
-  mpz_init_set_int(mrb, &b, y);
-  mpz_init(mrb, &z);
-  mpz_mul(mrb, &z, &a, &b);
-  mpz_clear(mrb, &a);
-  mpz_clear(mrb, &b);
+  mpz_init_set_int(&ctx, &a, x);
+  mpz_init_set_int(&ctx, &b, y);
+  mpz_init(&ctx, &z);
+  mpz_mul(&ctx, &z, &a, &b);
+  mpz_clear(&ctx, &a);
+  mpz_clear(&ctx, &b);
   return bint_norm(mrb, bint_new(mrb, &z));
 }
 
@@ -3114,8 +3176,10 @@ mrb_bint_mod(mrb_state *mrb, mrb_value x, mrb_value y)
     mrb_int_zerodiv(mrb);
   }
   bint_as_mpz(RBIGINT(x), &a);
-  mpz_init(mrb, &z);
-  mpz_mmod(mrb, &z, &a, &b);
+
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_init(&ctx, &z);
+  mpz_mmod(&ctx, &z, &a, &b);
   return bint_norm(mrb, bint_new(mrb, &z));
 }
 
@@ -3134,8 +3198,10 @@ mrb_bint_rem(mrb_state *mrb, mrb_value x, mrb_value y)
     mrb_int_zerodiv(mrb);
   }
   bint_as_mpz(RBIGINT(x), &a);
-  mpz_init(mrb, &z);
-  mpz_mod(mrb, &z, &a, &b);
+
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_init(&ctx, &z);
+  mpz_mod(&ctx, &z, &a, &b);
   return bint_norm(mrb, bint_new(mrb, &z));
 }
 
@@ -3154,9 +3220,11 @@ mrb_bint_divmod(mrb_state *mrb, mrb_value x, mrb_value y)
     mrb_int_zerodiv(mrb);
   }
   bint_as_mpz(RBIGINT(x), &a);
-  mpz_init(mrb, &c);
-  mpz_init(mrb, &d);
-  mpz_mdivmod(mrb, &c, &d, &a, &b);
+
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_init(&ctx, &c);
+  mpz_init(&ctx, &d);
+  mpz_mdivmod(&ctx, &c, &d, &a, &b);
   return mrb_assoc_new(mrb, bint_norm(mrb, bint_new(mrb, &c)), bint_norm(mrb, bint_new(mrb, &d)));
 }
 
@@ -3189,7 +3257,8 @@ mrb_bint_cmp(mrb_state *mrb, mrb_value x, mrb_value y)
   }
   mpz_t b;
   bint_as_mpz(RBIGINT(y), &b);
-  return mpz_cmp(mrb, &a, &b);
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  return mpz_cmp(&ctx, &a, &b);
 }
 
 mrb_value
@@ -3208,8 +3277,9 @@ mrb_bint_pow(mrb_state *mrb, mrb_value x, mrb_value y)
   }
 
   mpz_t z;
-  mpz_init(mrb, &z);
-  mpz_pow(mrb, &z, &a, mrb_integer(y));
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_init(&ctx, &z);
+  mpz_pow(&ctx, &z, &a, mrb_integer(y));
 
   struct RBigint *b = bint_new(mrb, &z);
   return mrb_obj_value(b);
@@ -3219,12 +3289,13 @@ mrb_value
 mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_value exp, mrb_value mod)
 {
   mpz_t a, b, c, z;
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
 
   bint_as_mpz(RBIGINT(x), &a);
   if (mrb_integer_p(mod)) {
     mrb_int m = mrb_integer(mod);
     if (m == 0) mrb_int_zerodiv(mrb);
-    mpz_init_set_int(mrb, &c, m);
+    mpz_init_set_int(&ctx, &c, m);
   }
   else {
     mod = mrb_as_bint(mrb, mod);
@@ -3233,22 +3304,22 @@ mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_value exp, mrb_value mod)
       mrb_int_zerodiv(mrb);
     }
   }
-  mpz_init(mrb, &z);
+  mpz_init(&ctx, &z);
   if (mrb_bigint_p(exp)) {
     bint_as_mpz(RBIGINT(exp), &b);
     if (b.sn < 0) goto raise;
-    mpz_powm(mrb, &z, &a, &b, &c);
+    mpz_powm(&ctx, &z, &a, &b, &c);
   }
   else {
     mrb_int e = mrb_integer(exp);
     if (e < 0) goto raise;
-    mpz_powm_i(mrb, &z, &a, e, &c);
+    mpz_powm_i(&ctx, &z, &a, e, &c);
   }
-  if (mrb_integer_p(mod)) mpz_clear(mrb, &c);
+  if (mrb_integer_p(mod)) mpz_clear(&ctx, &c);
   return bint_norm(mrb, bint_new(mrb, &z));
 
  raise:
-  if (mrb_integer_p(mod)) mpz_clear(mrb, &c);
+  if (mrb_integer_p(mod)) mpz_clear(&ctx, &c);
   mrb_raise(mrb, E_ARGUMENT_ERROR, "int.pow(n,m): n must be positive");
   /* not reached */
   return mrb_nil_value();
@@ -3268,7 +3339,8 @@ mrb_bint_to_s(mrb_state *mrb, mrb_value x, mrb_int base)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "too long string from Integer");
   }
   mrb_value str = mrb_str_new(mrb, NULL, len+2);
-  mpz_get_str(mrb, RSTRING_PTR(str), len, base, &a);
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_get_str(&ctx, RSTRING_PTR(str), len, base, &a);
   RSTR_SET_LEN(RSTRING(str), strlen(RSTRING_PTR(str)));
   return str;
 }
@@ -3292,8 +3364,10 @@ mrb_bint_and(mrb_state *mrb, mrb_value x, mrb_value y)
   y = mrb_as_bint(mrb, y);
   bint_as_mpz(RBIGINT(y), &b);
   if (zero_p(&a) || zero_p(&b)) return mrb_fixnum_value(0);
-  mpz_init(mrb, &c);
-  mpz_and(mrb, &c, &a, &b);
+
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_init(&ctx, &c);
+  mpz_and(&ctx, &c, &a, &b);
   return bint_norm(mrb, bint_new(mrb, &c));
 }
 
@@ -3309,12 +3383,13 @@ mrb_bint_or(mrb_state *mrb, mrb_value x, mrb_value y)
     if (z == -1) return y;
   }
 
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
   y = mrb_as_bint(mrb, y);
   bint_as_mpz(RBIGINT(y), &b);
   if (zero_p(&a)) return y;
   if (zero_p(&b)) return x;
-  mpz_init(mrb, &c);
-  mpz_or(mrb, &c, &b, &a);
+  mpz_init(&ctx, &c);
+  mpz_or(&ctx, &c, &b, &a);
   return bint_norm(mrb, bint_new(mrb, &c));
 }
 
@@ -3322,13 +3397,14 @@ mrb_value
 mrb_bint_xor(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mpz_t a, b, c;
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
 
   bint_as_mpz(RBIGINT(x), &a);
   if (mrb_integer_p(y) && a.sn > 0) {
     mrb_int z = mrb_integer(y);
     if (z == 0) return x;
     if (0 < z && (mp_dbl_limb)z < DIG_BASE) {
-      mpz_init_set(mrb, &c, &a);
+      mpz_init_set(&ctx, &c, &a);
       c.p[0] ^= z;
       return bint_norm(mrb, bint_new(mrb, &c));
     }
@@ -3337,8 +3413,8 @@ mrb_bint_xor(mrb_state *mrb, mrb_value x, mrb_value y)
   bint_as_mpz(RBIGINT(y), &b);
   if (zero_p(&a)) return y;
   if (zero_p(&b)) return x;
-  mpz_init(mrb, &c);
-  mpz_xor(mrb, &c, &a, &b);
+  mpz_init(&ctx, &c);
+  mpz_xor(&ctx, &c, &a, &b);
   return bint_norm(mrb, bint_new(mrb, &c));
 }
 
@@ -3346,10 +3422,11 @@ mrb_value
 mrb_bint_neg(mrb_state *mrb, mrb_value x)
 {
   mpz_t a, b;
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
 
   bint_as_mpz(RBIGINT(x), &a);
-  mpz_init(mrb, &b);
-  mpz_neg(mrb, &b, &a);
+  mpz_init(&ctx, &b);
+  mpz_neg(&ctx, &b, &a);
   struct RBigint *b2 = bint_new(mrb, &b);
   /* no normalization */
   return mrb_obj_value(b2);
@@ -3359,10 +3436,12 @@ mrb_value
 mrb_bint_rev(mrb_state *mrb, mrb_value x)
 {
   mpz_t a, b;
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+
   bint_as_mpz(RBIGINT(x), &a);
-  mpz_init(mrb, &b);
-  mpz_neg(mrb, &b, &a);
-  mpz_sub_int(mrb, &b, 1);
+  mpz_init(&ctx, &b);
+  mpz_neg(&ctx, &b, &a);
+  mpz_sub_int(&ctx, &b, 1);
   return bint_norm(mrb, bint_new(mrb, &b));
 }
 
@@ -3370,14 +3449,15 @@ mrb_value
 mrb_bint_lshift(mrb_state *mrb, mrb_value x, mrb_int width)
 {
   mpz_t a, z;
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
 
   bint_as_mpz(RBIGINT(x), &a);
-  mpz_init(mrb, &z);
+  mpz_init(&ctx, &z);
   if (width < 0) {
-    mpz_div_2exp(mrb, &z, &a, -width);
+    mpz_div_2exp(&ctx, &z, &a, -width);
   }
   else {
-    mpz_mul_2exp(mrb, &z, &a, width);
+    mpz_mul_2exp(&ctx, &z, &a, width);
   }
   return bint_norm(mrb, bint_new(mrb, &z));
 }
@@ -3386,14 +3466,15 @@ mrb_value
 mrb_bint_rshift(mrb_state *mrb, mrb_value x, mrb_int width)
 {
   mpz_t a, z;
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
 
   bint_as_mpz(RBIGINT(x), &a);
-  mpz_init(mrb, &z);
+  mpz_init(&ctx, &z);
   if (width < 0) {
-    mpz_mul_2exp(mrb, &z, &a, -width);
+    mpz_mul_2exp(&ctx, &z, &a, -width);
   }
   else {
-    mpz_div_2exp(mrb, &z, &a, width);
+    mpz_div_2exp(&ctx, &z, &a, width);
   }
   return bint_norm(mrb, bint_new(mrb, &z));
 }
@@ -3402,10 +3483,11 @@ void
 mrb_bint_copy(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mpz_t a, b;
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
 
   bint_as_mpz(RBIGINT(x), &a);
   bint_as_mpz(RBIGINT(y), &b);
-  mpz_init_set(mrb, &a, &b);
+  mpz_init_set(&ctx, &a, &b);
 }
 
 size_t
@@ -3426,10 +3508,11 @@ mrb_bint_sqrt(mrb_state *mrb, mrb_value x)
   if (a.sn < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "square root of negative number");
   }
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
 
   mpz_t z;
-  mpz_init(mrb, &z);
-  mpz_sqrt(mrb, &z, &a);
+  mpz_init(&ctx, &z);
+  mpz_sqrt(&ctx, &z, &a);
 
   return bint_norm(mrb, bint_new(mrb, &z));
 }
@@ -3452,9 +3535,11 @@ mrb_value
 mrb_bint_from_bytes(mrb_state *mrb, const uint8_t *bytes, mrb_int len)
 {
   mpz_t z;
-  mpz_init(mrb, &z);
   size_t limb_len = (len + sizeof(mp_limb) - 1) / sizeof(mp_limb);
-  mpz_realloc(mrb, &z, limb_len);
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+
+  mpz_init(&ctx, &z);
+  mpz_realloc(&ctx, &z, limb_len);
   memcpy(z.p, bytes, len);
   z.sn = (len > 0) ? 1 : 0;
   z.sz = limb_len;
@@ -3478,12 +3563,13 @@ mrb_value
 mrb_bint_2comp(mrb_state *mrb, mrb_value x)
 {
   mpz_t a, z;
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
 
   bint_as_mpz(RBIGINT(x), &a);
-  mpz_init(mrb, &z);
+  mpz_init(&ctx, &z);
   mrb_assert(a.sn < 0);
   size_t size = a.sz;
-  mpz_realloc(mrb, &z, size);
+  mpz_realloc(&ctx, &z, size);
   mp_limb *ds = a.p;
   mp_limb *dd = z.p;
   char carry = 1;
@@ -3503,18 +3589,20 @@ void
 mrb_bint_reduce(mrb_state *mrb, mrb_value *xp, mrb_value *yp)
 {
   mpz_t r, x, y, a, b;
-  mpz_init(mrb, &r);
-  mpz_init(mrb, &a); mpz_init(mrb, &b);
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+
+  mpz_init(&ctx, &r);
+  mpz_init(&ctx, &a); mpz_init(&ctx, &b);
 
   bint_as_mpz(RBIGINT(*xp), &x);
   bint_as_mpz(RBIGINT(*yp), &y);
 
-  mpz_gcd(mrb, &r, &x, &y);
+  mpz_gcd(&ctx, &r, &x, &y);
 
-  mpz_mdiv(mrb, &a, &x, &r);
-  mpz_mdiv(mrb, &b, &y, &r);
+  mpz_mdiv(&ctx, &a, &x, &r);
+  mpz_mdiv(&ctx, &b, &y, &r);
 
-  mpz_clear(mrb, &r);
+  mpz_clear(&ctx, &r);
 
   struct RBigint *b1 = bint_new(mrb, &a);
   struct RBigint *b2 = bint_new(mrb, &b);
@@ -3527,12 +3615,13 @@ mrb_value
 mrb_bint_gcd(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mpz_t r, a, b;
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
 
-  mpz_init(mrb, &r);
+  mpz_init(&ctx, &r);
   bint_as_mpz(RBIGINT(x), &a);
   bint_as_mpz(RBIGINT(y), &b);
 
-  mpz_gcd(mrb, &r, &a, &b);
+  mpz_gcd(&ctx, &r, &a, &b);
 
   struct RBigint *result = bint_new(mrb, &r);
   return bint_norm(mrb, result);
@@ -3548,29 +3637,30 @@ mrb_bint_lcm(mrb_state *mrb, mrb_value x, mrb_value y)
     return zero;
   }
 
-  mpz_init(mrb, &gcd_val);
-  mpz_init(mrb, &abs_x);
-  mpz_init(mrb, &abs_y);
-  mpz_init(mrb, &product);
-  mpz_init(mrb, &result_mpz);
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_init(&ctx, &gcd_val);
+  mpz_init(&ctx, &abs_x);
+  mpz_init(&ctx, &abs_y);
+  mpz_init(&ctx, &product);
+  mpz_init(&ctx, &result_mpz);
 
   bint_as_mpz(RBIGINT(x), &x_mpz);
   bint_as_mpz(RBIGINT(y), &y_mpz);
 
-  mpz_abs(mrb, &abs_x, &x_mpz);
-  mpz_abs(mrb, &abs_y, &y_mpz);
+  mpz_abs(&ctx, &abs_x, &x_mpz);
+  mpz_abs(&ctx, &abs_y, &y_mpz);
 
-  mpz_gcd(mrb, &gcd_val, &abs_x, &abs_y);
-  mpz_mul(mrb, &product, &abs_x, &abs_y);
-  mpz_mdiv(mrb, &result_mpz, &product, &gcd_val);
+  mpz_gcd(&ctx, &gcd_val, &abs_x, &abs_y);
+  mpz_mul(&ctx, &product, &abs_x, &abs_y);
+  mpz_mdiv(&ctx, &result_mpz, &product, &gcd_val);
 
-  mpz_clear(mrb, &gcd_val);
-  mpz_clear(mrb, &abs_x);
-  mpz_clear(mrb, &abs_y);
-  mpz_clear(mrb, &product);
+  mpz_clear(&ctx, &gcd_val);
+  mpz_clear(&ctx, &abs_x);
+  mpz_clear(&ctx, &abs_y);
+  mpz_clear(&ctx, &product);
 
   struct RBigint *result = bint_new(mrb, &result_mpz);
-  mpz_clear(mrb, &result_mpz);
+  mpz_clear(&ctx, &result_mpz);
   return mrb_obj_value(result);
 }
 
@@ -3578,12 +3668,13 @@ mrb_value
 mrb_bint_abs(mrb_state *mrb, mrb_value x)
 {
   mpz_t a, result_mpz;
+  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
 
-  mpz_init(mrb, &result_mpz);
+  mpz_init(&ctx, &result_mpz);
   bint_as_mpz(RBIGINT(x), &a);
-  mpz_abs(mrb, &result_mpz, &a);
+  mpz_abs(&ctx, &result_mpz, &a);
 
   struct RBigint *result = bint_new(mrb, &result_mpz);
-  mpz_clear(mrb, &result_mpz);
+  mpz_clear(&ctx, &result_mpz);
   return mrb_obj_value(result);
 }
