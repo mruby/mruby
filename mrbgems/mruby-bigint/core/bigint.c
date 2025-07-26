@@ -380,7 +380,7 @@ trim(mpz_t *x)
 
 
 /* z = x + y, without regard for sign */
-/* Core addition algorithm - extracted from uadd/uadd_pool duplication */
+/* Core addition algorithm for unsigned operands */
 static void
 uadd(mpz_t *z, mpz_t *x, mpz_t *y)
 {
@@ -408,7 +408,7 @@ uadd(mpz_t *z, mpz_t *x, mpz_t *y)
 
 /* z = y - x, ignoring sign */
 /* precondition: abs(y) >= abs(x) */
-/* Core subtraction algorithm - extracted from usub/usub_pool duplication */
+/* Core subtraction algorithm for unsigned operands */
 static void
 usub(mpz_t *z, mpz_t *y, mpz_t *x)
 {
@@ -1127,7 +1127,7 @@ mpz_div_limb(mrb_state *mrb, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
   q->sn = (q->sz == 0) ? 0 : 1;
 }
 
-/* Core Knuth Algorithm D division loop - extracted from udiv/udiv_pool duplication */
+/* Core Knuth Algorithm D division loop */
 static void
 udiv_core(mpz_t *quotient, mpz_t *dividend, mpz_t *divisor, size_t xd, size_t yd)
 {
