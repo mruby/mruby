@@ -755,9 +755,10 @@ assert("Set operations with custom objects") do
 end
 
 assert("Set#hash") do
-  set1 = Set[1, 2, 3]
-  set2 = Set[1, 2, 3]
-
-  assert_kind_of Integer, set1.hash
-  assert_equal(set1.hash, set2.hash)
+  set = Set[1, 2, 3]
+  assert_kind_of(Integer, set.hash)
+  hash = set.hash
+  assert_equal(hash, Set[3, 1, 2].hash)
+  assert_not_equal(hash, Set[1, 2, 4].hash)
+  assert_not_equal(hash, Set[].hash)
 end
