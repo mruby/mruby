@@ -53,9 +53,7 @@ typedef struct allocation_stats {
 static allocation_stats_t g_alloc_stats = {0};
 
 #define WITH_SCOPED_POOL(pool_name, code) do { \
-  mpz_pool_t pool_name##_storage = {0}; \
-  pool_name##_storage.capacity = BIGINT_POOL_DEFAULT_SIZE; \
-  pool_name##_storage.active = 1; \
+  mpz_pool_t pool_name##_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .active = 1}; \
   mpz_pool_t *pool_name = &pool_name##_storage; \
   code \
   pool_name##_storage.active = 0; \
@@ -1259,10 +1257,8 @@ udiv(mrb_state *mrb, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
     /* Estimate space needed for temporary variables */
     size_t temp_space = dividend_limbs + 1 + divisor_limbs + (dividend_limbs - divisor_limbs + 1);
     if (temp_space <= BIGINT_POOL_DEFAULT_SIZE / 3) {
-      /* Use manual pool management instead of macro */
-      mpz_pool_t pool_storage = {0};
-      pool_storage.capacity = BIGINT_POOL_DEFAULT_SIZE;
-      pool_storage.active = 1;
+      /* Use manual pool management with designated initializer */
+      mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .active = 1};
       mpz_pool_t *pool = &pool_storage;
 
       mpz_t q_temp, x_temp, y_temp;
