@@ -60,105 +60,6 @@ static int mpz_mul_sliding_window(mpz_ctx_t *ctx, mpz_t *result, mpz_t *first, m
   pool_name##_storage.active = 0; \
 } while(0)
 
-/* Pool memory management helper macros */
-#define MPZ_POOL_ALLOC(ctx, var, pool, size) do { \
-  mpz_init_pool(ctx, &(var), pool, size); \
-  if (!is_pool_memory(&(var), pool)) { \
-    mpz_clear_pool(ctx, &(var), pool); \
-    return 0; /* Pool allocation failed, fallback */ \
-  } \
-} while(0)
-
-#define MPZ_POOL_ALLOC_GOTO(ctx, var, pool, size, label) do { \
-  mpz_init_pool(ctx, &(var), pool, size); \
-  if (!is_pool_memory(&(var), pool)) { \
-    mpz_clear_pool(ctx, &(var), pool); \
-    goto label; \
-  } \
-} while(0)
-
-#define MPZ_POOL_CLEANUP(ctx, var, pool) do { \
-  if ((var).p) mpz_clear_pool(ctx, &(var), pool); \
-} while(0)
-
-#define MPZ_POOL_VERIFY(var, pool) is_pool_memory(&(var), pool)
-
-#define MPZ_POOL_VERIFY_2(var1, var2, pool) \
-  (MPZ_POOL_VERIFY(var1, pool) && MPZ_POOL_VERIFY(var2, pool))
-
-#define MPZ_POOL_VERIFY_3(var1, var2, var3, pool) \
-  (MPZ_POOL_VERIFY(var1, pool) && MPZ_POOL_VERIFY(var2, pool) && MPZ_POOL_VERIFY(var3, pool))
-
-#define MPZ_POOL_VERIFY_4(var1, var2, var3, var4, pool) \
-  (MPZ_POOL_VERIFY(var1, pool) && MPZ_POOL_VERIFY(var2, pool) && \
-   MPZ_POOL_VERIFY(var3, pool) && MPZ_POOL_VERIFY(var4, pool))
-
-#define MPZ_POOL_VERIFY_6(var1, var2, var3, var4, var5, var6, pool) \
-  (MPZ_POOL_VERIFY(var1, pool) && MPZ_POOL_VERIFY(var2, pool) && \
-   MPZ_POOL_VERIFY(var3, pool) && MPZ_POOL_VERIFY(var4, pool) && \
-   MPZ_POOL_VERIFY(var5, pool) && MPZ_POOL_VERIFY(var6, pool))
-
-/* Unified pool+heap helper macros for eliminating function duplication */
-
-/* Copy result from pool to heap-allocated destination */
-#define MPZ_COPY_FROM_POOL(ctx, dest, src, pool) do { \
-  if (is_pool_memory(&(src), pool)) { \
-    trim(&(src)); \
-    mpz_realloc(ctx, dest, (src).sz); \
-    for (size_t i = 0; i < (src).sz; i++) { \
-      (dest)->p[i] = (src).p[i]; \
-    } \
-    (dest)->sz = (src).sz; \
-    (dest)->sn = (src).sn; \
-  } \
-} while(0)
-
-/* Unified operation using existing *_core functions */
-/* For binary operations: mpz_operation(result, op1, op2) */
-#define MPZ_UNIFIED_BINARY_OP(ctx, core_func, result, op1, op2, estimated_size) do { \
-  WITH_SCOPED_POOL(pool, { \
-    mpz_t temp_result; \
-    MPZ_POOL_ALLOC_GOTO(ctx, temp_result, pool, estimated_size, _pool_failed); \
-    /* Pool allocation successful */ \
-    core_func(&temp_result, op1, op2); \
-    MPZ_COPY_FROM_POOL(ctx, result, temp_result, pool); \
-    return; \
-    _pool_failed: ; \
-  }); \
-  /* Pool failed - use heap allocation */ \
-  core_func(result, op1, op2); \
-} while(0)
-
-/* For unary operations: mpz_operation(result, operand) */
-#define MPZ_UNIFIED_UNARY_OP(ctx, core_func, result, operand, estimated_size) do { \
-  WITH_SCOPED_POOL(pool, { \
-    mpz_t temp_result; \
-    MPZ_POOL_ALLOC_GOTO(ctx, temp_result, pool, estimated_size, _pool_failed); \
-    /* Pool allocation successful */ \
-    core_func(&temp_result, operand); \
-    MPZ_COPY_FROM_POOL(ctx, result, temp_result, pool); \
-    return; \
-    _pool_failed: ; \
-  }); \
-  /* Pool failed - use heap allocation */ \
-  core_func(result, operand); \
-} while(0)
-
-/* For binary operations that return int: mpz_operation(result, op1, op2) -> int */
-#define MPZ_UNIFIED_BINARY_OP_INT(ctx, core_func, result, op1, op2, estimated_size, success_value) do { \
-  WITH_SCOPED_POOL(pool, { \
-    mpz_t temp_result; \
-    MPZ_POOL_ALLOC_GOTO(ctx, temp_result, pool, estimated_size, _pool_failed); \
-    /* Pool allocation successful */ \
-    core_func(&temp_result, op1, op2); \
-    MPZ_COPY_FROM_POOL(ctx, result, temp_result, pool); \
-    return success_value; \
-    _pool_failed: ; \
-  }); \
-  /* Pool failed - use heap allocation */ \
-  core_func(result, op1, op2); \
-  return success_value; \
-} while(0)
 
 /* Pool allocation functions */
 static mp_limb*
@@ -207,6 +108,10 @@ mpz_init_auto(mpz_ctx_t *ctx, mpz_t *s, size_t hint)
   s->sn = 0;
   if (hint > 0) {
     s->p = mrb_malloc(MPZ_MRB(ctx), hint * sizeof(mp_limb));
+    /* Zero-initialize the memory for predictable behavior */
+    for (size_t i = 0; i < hint; i++) {
+      s->p[i] = 0;
+    }
     s->sz = hint;
   }
   else {
@@ -217,7 +122,7 @@ mpz_init_auto(mpz_ctx_t *ctx, mpz_t *s, size_t hint)
 
 /* Pool-preferred allocation (future: mpz_init_temp) */
 static void
-mpz_init_temp_auto(mpz_ctx_t *ctx, mpz_t *s, size_t hint)
+mpz_init_temp(mpz_ctx_t *ctx, mpz_t *s, size_t hint)
 {
   s->sn = 0;
 
@@ -233,14 +138,6 @@ mpz_init_temp_auto(mpz_ctx_t *ctx, mpz_t *s, size_t hint)
   /* Fallback to heap allocation */
   mpz_init_auto(ctx, s, hint);
 }
-
-/* Helper macros for safer temporary variable management */
-#define MPZ_TMP_INIT(ctx, var) \
-  mpz_t var; \
-  mpz_init(ctx, &var)
-
-#define MPZ_TMP_CLEAR(ctx, var) \
-  mpz_clear(ctx, &var)
 
 /* Check if mpz_t uses pool memory */
 static int
@@ -380,20 +277,6 @@ mpz_init_set_int(mpz_ctx_t *ctx, mpz_t *y, mrb_int v)
 {
   mpz_init(ctx, y);
   mpz_set_int(ctx, y, v);
-}
-
-
-
-/* Clear pool-aware mpz_t */
-static void
-mpz_clear_pool(mpz_ctx_t *ctx, mpz_t *s, mpz_pool_t *pool)
-{
-  if (s->p && !is_pool_memory(s, pool)) {
-    mrb_free(MPZ_MRB(ctx), s->p);
-  }
-  s->p = NULL;
-  s->sn = 0;
-  s->sz = 0;
 }
 
 static void
@@ -554,58 +437,80 @@ zero(mpz_t *x)
 static void
 mpz_add(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mpz_t *y)
 {
-  size_t estimated_size = ((x->sz > y->sz) ? x->sz : y->sz) + 1;
+  /* Handle aliasing: if result parameter is same as input, copy input first */
+  mpz_t x_copy, y_copy;
+  mpz_t *x_ptr = x, *y_ptr = y;
+
+  if (zz == x) {
+    mpz_init_set(ctx, &x_copy, x);
+    x_ptr = &x_copy;
+  }
+  if (zz == y) {
+    mpz_init_set(ctx, &y_copy, y);
+    y_ptr = &y_copy;
+  }
+
+  size_t estimated_size = ((x_ptr->sz > y_ptr->sz) ? x_ptr->sz : y_ptr->sz) + 1;
 
   /* Use new simplified API - heap allocation for result */
   mpz_init_auto(ctx, zz, estimated_size);
 
   /* Inlined mpz_add_core logic */
-  if (zero_p(x)) {
+  if (zero_p(x_ptr)) {
     /* Copy y to zz */
-    for (size_t i = 0; i < y->sz && i < zz->sz; i++) {
-      zz->p[i] = y->p[i];
+    for (size_t i = 0; i < y_ptr->sz && i < zz->sz; i++) {
+      zz->p[i] = y_ptr->p[i];
     }
-    zz->sz = (y->sz < zz->sz) ? y->sz : zz->sz;
-    zz->sn = y->sn;
-    return;
+    zz->sz = (y_ptr->sz < zz->sz) ? y_ptr->sz : zz->sz;
+    zz->sn = y_ptr->sn;
+    goto cleanup;
   }
-  if (zero_p(y)) {
+  if (zero_p(y_ptr)) {
     /* Copy x to zz */
-    for (size_t i = 0; i < x->sz && i < zz->sz; i++) {
-      zz->p[i] = x->p[i];
+    for (size_t i = 0; i < x_ptr->sz && i < zz->sz; i++) {
+      zz->p[i] = x_ptr->p[i];
     }
-    zz->sz = (x->sz < zz->sz) ? x->sz : zz->sz;
-    zz->sn = x->sn;
-    return;
+    zz->sz = (x_ptr->sz < zz->sz) ? x_ptr->sz : zz->sz;
+    zz->sn = x_ptr->sn;
+    goto cleanup;
   }
 
-  if (x->sn > 0 && y->sn > 0) {
+  if (x_ptr->sn > 0 && y_ptr->sn > 0) {
     /* Both positive */
-    uadd(zz, x, y);
+    uadd(zz, x_ptr, y_ptr);
     zz->sn = 1;
   }
-  else if (x->sn < 0 && y->sn < 0) {
+  else if (x_ptr->sn < 0 && y_ptr->sn < 0) {
     /* Both negative */
-    uadd(zz, x, y);
+    uadd(zz, x_ptr, y_ptr);
     zz->sn = -1;
   }
   else {
     /* Signs differ */
-    int mg = ucmp(x, y);
+    int mg = ucmp(x_ptr, y_ptr);
 
     if (mg == 0) {
       zero(zz);
     }
     else if (mg > 0) {  /* abs(y) < abs(x) */
-      usub(zz, x, y);
-      zz->sn = (x->sn > 0 && y->sn < 0) ? 1 : (-1);
+      usub(zz, x_ptr, y_ptr);
+      zz->sn = (x_ptr->sn > 0 && y_ptr->sn < 0) ? 1 : (-1);
     }
     else { /* abs(y) > abs(x) */
-      usub(zz, y, x);
-      zz->sn = (x->sn < 0 && y->sn > 0) ? 1 : (-1);
+      usub(zz, y_ptr, x_ptr);
+      zz->sn = (x_ptr->sn < 0 && y_ptr->sn > 0) ? 1 : (-1);
     }
   }
   trim(zz);
+
+cleanup:
+  /* Clean up temporary copies if they were created */
+  if (zz == x) {
+    mpz_clear(ctx, &x_copy);
+  }
+  if (zz == y) {
+    mpz_clear(ctx, &y_copy);
+  }
 }
 
 /* x += n                                              */
@@ -721,12 +626,26 @@ multiply_window(mp_limb *result, size_t offset,
   }
 }
 
-/* Core sliding window multiplication algorithm - works with pre-allocated result */
-static void
-mpz_mul_sliding_window_core(mpz_t *result, mpz_t *first, mpz_t *second)
+
+/* Unified sliding window multiplication - tries pool first, falls back to heap */
+static int
+mpz_mul_sliding_window(mpz_ctx_t *ctx, mpz_t *result, mpz_t *first, mpz_t *second)
 {
+  // Only use sliding window for medium-sized operands where cache benefits matter
+  size_t max_limbs = (first->sz > second->sz) ? first->sz : second->sz;
+  if (max_limbs < 8 || max_limbs > 64) {
+    return 0; // Use classical multiplication
+  }
+
+  size_t result_size = first->sz + second->sz + 1;
+
+  /* Use temporary variable with pool-preferred allocation */
+  mpz_t temp_result;
+  mpz_init_temp(ctx, &temp_result, result_size);
+
+  /* Perform the sliding window multiplication inline */
   // Initialize result
-  zero(result);
+  zero(&temp_result);
 
   // Process first operand in windows
   for (size_t a_start = 0; a_start < first->sz; a_start += WINDOW_SIZE) {
@@ -741,32 +660,22 @@ mpz_mul_sliding_window_core(mpz_t *result, mpz_t *first, mpz_t *second)
       size_t b_len = b_end - b_start;
 
       // Multiply current windows and add to result
-      multiply_window(result->p, a_start + b_start,
+      multiply_window(temp_result.p, a_start + b_start,
                      first->p, a_start, a_len,
                      second->p, b_start, b_len);
     }
   }
 
-  result->sn = first->sn * second->sn;
-  trim(result);
-}
+  temp_result.sn = first->sn * second->sn;
+  trim(&temp_result);
 
-/* Unified sliding window multiplication - tries pool first, falls back to heap */
-static int
-mpz_mul_sliding_window(mpz_ctx_t *ctx, mpz_t *result, mpz_t *first, mpz_t *second)
-{
-  // Only use sliding window for medium-sized operands where cache benefits matter
-  size_t max_limbs = (first->sz > second->sz) ? first->sz : second->sz;
-  if (max_limbs < 8 || max_limbs > 64) {
-    return 0; // Use classical multiplication
-  }
+  /* Set result using heap allocation */
+  mpz_init_auto(ctx, result, temp_result.sz);
+  mpz_set(ctx, result, &temp_result);
 
-  size_t result_size = first->sz + second->sz + 1;
-
-  /* Ensure result is properly initialized and sized for heap fallback */
-  mpz_realloc(ctx, result, result_size);
-
-  MPZ_UNIFIED_BINARY_OP_INT(ctx, mpz_mul_sliding_window_core, result, first, second, result_size, 1);
+  /* Clean up temporary */
+  mpz_clear(ctx, &temp_result);
+  return 1;
 }
 
 
@@ -914,6 +823,11 @@ mpz_mul_blocked(mpz_ctx_t *ctx, mpz_t *result, mpz_t *first, mpz_t *second)
 static void
 mpz_mul(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v)
 {
+  size_t estimated_size = u->sz + v->sz + 1;
+
+  /* Use new simplified API - heap allocation for result */
+  mpz_init_auto(ctx, ww, estimated_size);
+
   if (zero_p(u) || zero_p(v)) {
     zero(ww);
     return;
@@ -935,22 +849,18 @@ mpz_mul(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v)
   // 2. Try pool sliding window for medium operands (8-64 limbs) - uses pool memory
   // 3. Fallback to traditional sliding window if pool fails
   // 4. Fallback to classical multiplication
-  mpz_t w;
-  mpz_init(ctx, &w);
 
-  if (mpz_mul_blocked(ctx, &w, first, second)) {
-    mpz_move(ctx, ww, &w);
+  if (mpz_mul_blocked(ctx, ww, first, second)) {
     return;
   }
 
   // Try unified sliding window (pool first, then heap fallback)
-  if (mpz_mul_sliding_window(ctx, &w, first, second)) {
-    mpz_move(ctx, ww, &w);
+  if (mpz_mul_sliding_window(ctx, ww, first, second)) {
     return;
   }
 
   // Fallback to classical multiplication for small/large operands
-  mpz_realloc(ctx, &w, first->sz + second->sz + 1);
+  mpz_realloc(ctx, ww, first->sz + second->sz + 1);
 
   // Standard multiplication algorithm with consistent operand order
   for (size_t j = 0; j < first->sz; j++) {
@@ -961,23 +871,22 @@ mpz_mul(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v)
     size_t i;
     for (i = 0; i < second->sz; i++) {
       mp_limb v0 = second->p[i];
-      cc += (mp_dbl_limb)w.p[i + j] + (mp_dbl_limb)u0 * (mp_dbl_limb)v0;
-      w.p[i + j] = LOW(cc);
+      cc += (mp_dbl_limb)ww->p[i + j] + (mp_dbl_limb)u0 * (mp_dbl_limb)v0;
+      ww->p[i + j] = LOW(cc);
       cc = HIGH(cc);
     }
 
     // Propagate carries
-    while (cc && (i + j) < w.sz) {
-      cc += (mp_dbl_limb)w.p[i + j];
-      w.p[i + j] = LOW(cc);
+    while (cc && (i + j) < ww->sz) {
+      cc += (mp_dbl_limb)ww->p[i + j];
+      ww->p[i + j] = LOW(cc);
       cc = HIGH(cc);
       i++;
     }
   }
 
-  w.sn = u->sn * v->sn;
-  trim(&w);
-  mpz_move(ctx, ww, &w);
+  ww->sn = u->sn * v->sn;
+  trim(ww);
 }
 
 /* number of leading zero bits in digit */
@@ -1086,6 +995,8 @@ mpz_div_limb(mpz_ctx_t *ctx, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
 
     /* Quotient = x >> shift */
     if (shift == 0) {
+      mpz_init_auto(ctx, q, x->sz);
+      mpz_init_auto(ctx, r, 1);
       mpz_set(ctx, q, x);
     }
     else {
@@ -1094,10 +1005,14 @@ mpz_div_limb(mpz_ctx_t *ctx, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
       size_t bit_shift = shift % DIG_SIZE;
 
       if (limb_shift >= x->sz) {
+        mpz_init_auto(ctx, q, 1);
+        mpz_init_auto(ctx, r, 1);
         zero(q);
       }
       else {
         size_t new_size = x->sz - limb_shift;
+        mpz_init_auto(ctx, q, new_size);
+        mpz_init_auto(ctx, r, 1);
         mpz_realloc(ctx, q, new_size);
 
         if (bit_shift == 0) {
@@ -1122,6 +1037,7 @@ mpz_div_limb(mpz_ctx_t *ctx, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
     }
 
     /* Remainder = x & (d - 1) */
+    /* r is already initialized in all code paths above */
     mpz_realloc(ctx, r, 1);
     r->p[0] = x->p[0] & (d - 1);
     r->sz = (r->p[0] == 0) ? 0 : 1;
@@ -1132,6 +1048,8 @@ mpz_div_limb(mpz_ctx_t *ctx, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
   /* General single-limb division */
   if (x->sz == 1) {
     /* Both dividend and divisor are single limb */
+    mpz_init_auto(ctx, q, 1);
+    mpz_init_auto(ctx, r, 1);
     mpz_realloc(ctx, q, 1);
     mpz_realloc(ctx, r, 1);
 
@@ -1148,6 +1066,8 @@ mpz_div_limb(mpz_ctx_t *ctx, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
 
   /* Multi-limb dividend, single-limb divisor */
   size_t n = x->sz;
+  mpz_init_auto(ctx, q, n);
+  mpz_init_auto(ctx, r, 1);
   mpz_realloc(ctx, q, n);
 
   mp_dbl_limb remainder = 0;
@@ -1565,10 +1485,10 @@ static void mpz_barrett_reduce(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *m, mpz
 static void
 mpz_mod(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *y)
 {
-  mpz_t q;
   short sn = x->sn;
 
   if (zero_p(x)) {
+    mpz_init_auto(ctx, r, 1);
     zero(r);
     return;
   }
@@ -1583,8 +1503,9 @@ mpz_mod(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *y)
   /* Barrett reduction for moderate-sized moduli */
   if (y->sz >= 2 && y->sz <= 8 && x->sz >= y->sz + 2) {
     mpz_t mu;
-    mpz_init(ctx, &mu);
+    mpz_init_temp(ctx, &mu, y->sz + 1);
     mpz_barrett_mu(ctx, &mu, y);
+    mpz_init_auto(ctx, r, y->sz);
     mpz_barrett_reduce(ctx, r, x, y, &mu);
     r->sn = sn;
     if (uzero_p(r))
@@ -1594,7 +1515,9 @@ mpz_mod(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *y)
   }
 
   /* General division fallback */
-  mpz_init(ctx, &q);
+  mpz_t q;
+  mpz_init_temp(ctx, &q, x->sz);
+  mpz_init_auto(ctx, r, y->sz);
   udiv(ctx, &q, r, x, y);
   r->sn = sn;
   if (uzero_p(r))
@@ -1948,18 +1871,22 @@ static void
 mpz_div_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
 {
   short sn = x->sn;
-  if (e==0)
+  if (e == 0) {
+    mpz_init_auto(ctx, z, x->sz);
     mpz_set(ctx, z, x);
+  }
   else {
     size_t digs = e / DIG_SIZE;
     size_t bs = e % DIG_SIZE;
     mpz_t y;
 
-    mpz_init(ctx, &y);
-    mpz_realloc(ctx, &y, x->sz-digs);
-    for (size_t i=0; i < x->sz-digs; i++)
-      y.p[i] = x->p[i+digs];
+    size_t new_size = (digs >= x->sz) ? 1 : x->sz - digs;
+    mpz_init_temp(ctx, &y, new_size);
+    mpz_realloc(ctx, &y, new_size);
+    for (size_t i = 0; i < x->sz - digs; i++)
+      y.p[i] = x->p[i + digs];
     if (bs) {
+      mpz_init_auto(ctx, z, new_size);
       urshift(ctx, z, &y, bs);
       mpz_clear(ctx, &y);
     }
@@ -1977,6 +1904,7 @@ mpz_div_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
 static void
 mpz_neg(mpz_ctx_t *ctx, mpz_t *x, mpz_t *y)
 {
+  mpz_init_auto(ctx, x, y->sz);
   mpz_set(ctx, x, y);
   x->sn = -(y->sn);
 }
@@ -1986,6 +1914,7 @@ static void
 mpz_mod_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
 {
   if (e <= 0) {
+    mpz_init_auto(ctx, z, 1);
     zero(z);
     return;
   }
@@ -1996,12 +1925,14 @@ mpz_mod_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
 
   if (eint >= sz) {
     /* x < 2^e, so x mod 2^e = x */
+    mpz_init_auto(ctx, z, x->sz);
     mpz_set(ctx, z, x);
     return;
   }
 
   /* Need to mask off high bits */
   size_t result_sz = eint + (bs > 0 ? 1 : 0);
+  mpz_init_auto(ctx, z, result_sz);
   mpz_realloc(ctx, z, result_sz);
   z->sn = x->sn;
   z->sz = result_sz;
@@ -2026,12 +1957,14 @@ static void
 mpz_and(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)
 {
   if (zero_p(x) || zero_p(y)) {
+    mpz_init_auto(ctx, z, 1);
     zero(z);
     return;
   }
   mrb_assert(x->sz > 0 || y->sz > 0);
 
   size_t max_sz = (x->sz > y->sz) ? x->sz : y->sz;
+  mpz_init_auto(ctx, z, max_sz);
   mpz_realloc(ctx, z, max_sz);
   z->sn = (x->sn == y->sn) ? x->sn : 1;
 
@@ -2052,16 +1985,19 @@ static void
 mpz_or(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient way to do this */
 {
   if (zero_p(x)) {
+    mpz_init_auto(ctx, z, y->sz);
     mpz_set(ctx, z, y);
     return;
   }
   if (zero_p(y)) {
+    mpz_init_auto(ctx, z, x->sz);
     mpz_set(ctx, z, x);
     return;
   }
   mrb_assert(x->sz > 0 || y->sz > 0);
 
   size_t max_sz = (x->sz > y->sz) ? x->sz : y->sz;
+  mpz_init_auto(ctx, z, max_sz);
   mpz_realloc(ctx, z, max_sz);
   z->sn = (x->sn == y->sn) ? x->sn : -1;
 
@@ -2082,16 +2018,19 @@ static void
 mpz_xor(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient way to do this */
 {
   if (zero_p(x)) {
+    mpz_init_auto(ctx, z, y->sz);
     mpz_set(ctx, z, y);
     return;
   }
   if (zero_p(y)) {
+    mpz_init_auto(ctx, z, x->sz);
     mpz_set(ctx, z, x);
     return;
   }
   mrb_assert(x->sz > 0 || y->sz > 0);
 
   size_t max_sz = (x->sz > y->sz) ? x->sz : y->sz;
+  mpz_init_auto(ctx, z, max_sz);
   mpz_realloc(ctx, z, max_sz);
   z->sn = (x->sn == y->sn) ? 1 : -1;
 
@@ -2111,24 +2050,35 @@ mpz_xor(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient
 static void
 mpz_pow(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mrb_int e)
 {
-  mpz_t t;
   mrb_uint mask = 1ULL<<(sizeof(mrb_int)*8-1);
+
+  /* Initialize result first for all cases */
+  size_t estimated_size = (e == 0) ? 1 : x->sz * e; /* Conservative estimate */
+  mpz_init_auto(ctx, zz, estimated_size);
 
   if (e==0) {
     mpz_set_int(ctx, zz, 1L);
     return;
   }
 
-  mpz_init_set(ctx, &t, x);
+  /* Set initial value to x for exponentiation */
+  mpz_set(ctx, zz, x);
+
   for (;!(mask &e); mask>>=1)
     ;
   mask>>=1;
   for (;mask!=0; mask>>=1) {
-    mpz_mul(ctx, &t, &t, &t);
-    if (e & mask)
-      mpz_mul(ctx, &t, &t, x);
+    mpz_t temp;
+    mpz_mul(ctx, &temp, zz, zz);  /* temp = zz^2 */
+    if (e & mask) {
+      mpz_t temp2;
+      mpz_mul(ctx, &temp2, &temp, x); /* temp2 = temp * x */
+      mpz_move(ctx, zz, &temp2);
+    }
+    else {
+      mpz_move(ctx, zz, &temp);
+    }
   }
-  mpz_move(ctx, zz, &t);
 }
 
 static void
@@ -2267,7 +2217,7 @@ mpz_abs_copy(mpz_ctx_t *ctx, mpz_t *result, mpz_t *operand) {
 static void
 mpz_abs(mpz_ctx_t *ctx, mpz_t *x, mpz_t *y)
 {
-  mpz_init(ctx, x);
+  mpz_init_auto(ctx, x, y->sz);
   mpz_realloc(ctx, x, y->sz);
   mpz_abs_copy(ctx, x, y);
 }
@@ -2682,9 +2632,9 @@ mpz_sqrt(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x)
 
   if (x->sz == 0) {
     // sqrt(0) = 0
+    mpz_init_auto(ctx, z, 1);
     z->sn = 0;
     z->sz = 0;
-    z->p = NULL;
     return;
   }
 
@@ -2695,7 +2645,7 @@ mpz_sqrt(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x)
   mpz_init_set_int(ctx, &s, 1);
   mpz_mul_2exp(ctx, &s, &s, sbit);
 
-  mpz_init(ctx, &t);
+  mpz_init_temp(ctx, &t, x->sz + 1);
 
   // Iteratively refine s using Newton-Raphson method:
   // s = (s + x / s) / 2
@@ -3077,7 +3027,6 @@ bint_mul(mrb_state *mrb, mrb_value x, mrb_value y)
   bint_as_mpz(RBIGINT(y), &b);
 
   mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
-  mpz_init(&ctx, &z);
   mpz_mul(&ctx, &z, &a, &b);
   return bint_new(mrb, &z);
 }
@@ -3171,7 +3120,6 @@ mrb_bint_mul_ii(mrb_state *mrb, mrb_int x, mrb_int y)
 
   mpz_init_set_int(&ctx, &a, x);
   mpz_init_set_int(&ctx, &b, y);
-  mpz_init(&ctx, &z);
   mpz_mul(&ctx, &z, &a, &b);
   mpz_clear(&ctx, &a);
   mpz_clear(&ctx, &b);
@@ -3300,7 +3248,6 @@ mrb_bint_pow(mrb_state *mrb, mrb_value x, mrb_value y)
 
   mpz_t z;
   mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
-  mpz_init(&ctx, &z);
   mpz_pow(&ctx, &z, &a, mrb_integer(y));
 
   struct RBigint *b = bint_new(mrb, &z);
