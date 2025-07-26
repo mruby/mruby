@@ -198,6 +198,42 @@ mpz_init(mpz_ctx_t *ctx, mpz_t *s)
   s->sz = 0;
 }
 
+/* New simplified API - temporary names during migration */
+
+/* Heap-preferred allocation (future: mpz_init) */
+static void
+mpz_init_auto(mpz_ctx_t *ctx, mpz_t *s, size_t hint)
+{
+  s->sn = 0;
+  if (hint > 0) {
+    s->p = mrb_malloc(MPZ_MRB(ctx), hint * sizeof(mp_limb));
+    s->sz = hint;
+  }
+  else {
+    s->p = NULL;  /* Lazy allocation via mpz_realloc later */
+    s->sz = 0;
+  }
+}
+
+/* Pool-preferred allocation (future: mpz_init_temp) */
+static void
+mpz_init_temp_auto(mpz_ctx_t *ctx, mpz_t *s, size_t hint)
+{
+  s->sn = 0;
+
+  if (hint > 0 && MPZ_HAS_POOL(ctx)) {
+    mp_limb *pool_ptr = pool_alloc(MPZ_POOL(ctx), hint);
+    if (pool_ptr) {
+      s->p = pool_ptr;
+      s->sz = hint;
+      return;
+    }
+  }
+
+  /* Fallback to heap allocation */
+  mpz_init_auto(ctx, s, hint);
+}
+
 /* Helper macros for safer temporary variable management */
 #define MPZ_TMP_INIT(ctx, var) \
   mpz_t var; \
@@ -237,7 +273,8 @@ mpz_realloc(mpz_ctx_t *ctx, mpz_t *x, size_t size)
         memcpy(new_p, x->p, old_sz * sizeof(mp_limb));
       }
       x->p = new_p;
-    } else {
+    }
+    else {
       /* Regular heap reallocation */
       x->p = (mp_limb*)mrb_realloc(MPZ_MRB(ctx), x->p, size * sizeof(mp_limb));
     }
@@ -365,7 +402,8 @@ mpz_clear(mpz_ctx_t *ctx, mpz_t *s)
   if (s->p) {
     if (MPZ_HAS_POOL(ctx) && is_pool_memory(s, MPZ_POOL(ctx))) {
       /* Pool memory - don't free, just mark as unused */
-    } else {
+    }
+    else {
       mrb_free(MPZ_MRB(ctx), s->p);
     }
     s->p = NULL;
@@ -511,57 +549,6 @@ zero(mpz_t *x)
   }
 }
 
-/* Core signed addition algorithm - handles sign logic and delegates to uadd_core/usub_core */
-static void
-mpz_add_core(mpz_t *z, mpz_t *x, mpz_t *y)
-{
-  if (zero_p(x)) {
-    /* Copy y to z - z must have enough space allocated */
-    for (size_t i = 0; i < y->sz && i < z->sz; i++) {
-      z->p[i] = y->p[i];
-    }
-    z->sz = (y->sz < z->sz) ? y->sz : z->sz;
-    z->sn = y->sn;
-    return;
-  }
-  if (zero_p(y)) {
-    /* Copy x to z - z must have enough space allocated */
-    for (size_t i = 0; i < x->sz && i < z->sz; i++) {
-      z->p[i] = x->p[i];
-    }
-    z->sz = (x->sz < z->sz) ? x->sz : z->sz;
-    z->sn = x->sn;
-    return;
-  }
-
-  if (x->sn > 0 && y->sn > 0) {
-    /* Both positive */
-    uadd(z, x, y);
-    z->sn = 1;
-  }
-  else if (x->sn < 0 && y->sn < 0) {
-    /* Both negative */
-    uadd(z, x, y);
-    z->sn = -1;
-  }
-  else {
-    /* Signs differ */
-    int mg = ucmp(x, y);
-
-    if (mg == 0) {
-      zero(z);
-    }
-    else if (mg > 0) {  /* abs(y) < abs(x) */
-      usub(z, x, y);
-      z->sn = (x->sn > 0 && y->sn < 0) ? 1 : (-1);
-    }
-    else { /* abs(y) > abs(x) */
-      usub(z, y, x);
-      z->sn = (x->sn < 0 && y->sn > 0) ? 1 : (-1);
-    }
-  }
-  trim(z);
-}
 
 /* z = x + y */
 static void
@@ -569,13 +556,57 @@ mpz_add(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mpz_t *y)
 {
   size_t estimated_size = ((x->sz > y->sz) ? x->sz : y->sz) + 1;
 
-  /* Ensure destination is properly initialized and sized for heap fallback */
-  mpz_init(ctx, zz);
-  mpz_realloc(ctx, zz, estimated_size);
+  /* Use new simplified API - heap allocation for result */
+  mpz_init_auto(ctx, zz, estimated_size);
 
-  MPZ_UNIFIED_BINARY_OP(ctx, mpz_add_core, zz, x, y, estimated_size);
+  /* Inlined mpz_add_core logic */
+  if (zero_p(x)) {
+    /* Copy y to zz */
+    for (size_t i = 0; i < y->sz && i < zz->sz; i++) {
+      zz->p[i] = y->p[i];
+    }
+    zz->sz = (y->sz < zz->sz) ? y->sz : zz->sz;
+    zz->sn = y->sn;
+    return;
+  }
+  if (zero_p(y)) {
+    /* Copy x to zz */
+    for (size_t i = 0; i < x->sz && i < zz->sz; i++) {
+      zz->p[i] = x->p[i];
+    }
+    zz->sz = (x->sz < zz->sz) ? x->sz : zz->sz;
+    zz->sn = x->sn;
+    return;
+  }
+
+  if (x->sn > 0 && y->sn > 0) {
+    /* Both positive */
+    uadd(zz, x, y);
+    zz->sn = 1;
+  }
+  else if (x->sn < 0 && y->sn < 0) {
+    /* Both negative */
+    uadd(zz, x, y);
+    zz->sn = -1;
+  }
+  else {
+    /* Signs differ */
+    int mg = ucmp(x, y);
+
+    if (mg == 0) {
+      zero(zz);
+    }
+    else if (mg > 0) {  /* abs(y) < abs(x) */
+      usub(zz, x, y);
+      zz->sn = (x->sn > 0 && y->sn < 0) ? 1 : (-1);
+    }
+    else { /* abs(y) > abs(x) */
+      usub(zz, y, x);
+      zz->sn = (x->sn < 0 && y->sn > 0) ? 1 : (-1);
+    }
+  }
+  trim(zz);
 }
-
 
 /* x += n                                              */
 /*   ignores sign of x                                 */
