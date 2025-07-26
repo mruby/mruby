@@ -10,9 +10,6 @@
 #include <mruby/array.h>
 #include <mruby/string.h>
 #include <mruby/internal.h>
-#ifdef MRB_DEBUG
-#include <mruby/hash.h>
-#endif
 #include <string.h>
 #include "bigint.h"
 
@@ -40,17 +37,6 @@ typedef struct mpz_pool {
 /* Forward declarations */
 static int mpz_mul_sliding_window(mrb_state *mrb, mpz_t *result, mpz_t *first, mpz_t *second);
 
-/* Memory allocation tracking for benchmarking */
-typedef struct allocation_stats {
-  size_t malloc_calls;
-  size_t free_calls;
-  size_t bytes_allocated;
-  size_t pool_allocations;
-  size_t pool_hits;
-  size_t pool_misses;
-} allocation_stats_t;
-
-static allocation_stats_t g_alloc_stats = {0};
 
 #define WITH_SCOPED_POOL(pool_name, code) do { \
   mpz_pool_t pool_name##_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .active = 1}; \
@@ -148,14 +134,11 @@ static mp_limb*
 pool_alloc(mpz_pool_t *pool, size_t limbs)
 {
   if (!pool || !pool->active || pool->used + limbs > pool->capacity) {
-    g_alloc_stats.pool_misses++;
     return NULL;  /* Force fallback to heap */
   }
 
   mp_limb *ptr = &pool->data[pool->used];
   pool->used += limbs;
-  g_alloc_stats.pool_hits++;
-  g_alloc_stats.pool_allocations++;
   return ptr;
 }
 
@@ -173,8 +156,6 @@ mpz_init_pool(mrb_state *mrb, mpz_t *z, mpz_pool_t *pool, size_t hint)
     /* Fallback to heap allocation */
     z->p = mrb_malloc(mrb, hint * sizeof(mp_limb));
     z->sz = hint;
-    g_alloc_stats.malloc_calls++;
-    g_alloc_stats.bytes_allocated += hint * sizeof(mp_limb);
   }
 }
 
@@ -206,11 +187,6 @@ mpz_realloc(mrb_state *mrb, mpz_t *x, size_t size)
     size_t old_sz = x->sz;
     x->p = (mp_limb*)mrb_realloc(mrb, x->p, size * sizeof(mp_limb));
 
-    /* Track allocation */
-    if (old_sz == 0) {
-      g_alloc_stats.malloc_calls++;
-    }
-    g_alloc_stats.bytes_allocated += (size - old_sz) * sizeof(mp_limb);
 
     /* Zero-initialize new limbs */
     for (size_t i = old_sz; i < size; i++) {
@@ -377,7 +353,6 @@ trim(mpz_t *x)
     x->sz--;
   }
 }
-
 
 /* z = x + y, without regard for sign */
 /* Core addition algorithm for unsigned operands */
@@ -2639,10 +2614,11 @@ mpz_sqrt(mrb_state *mrb, mpz_t *z, mpz_t *x)
     // sqrt(0) = 0
     z->sn = 0;
     z->sz = 0;
+    z->p = NULL;
     return;
   }
 
-  // Estimate initial value: 1 << (bit_length(x) / 2)
+  // Use heap-only implementation for now
   size_t xbits = mpz_bits(x);
   size_t sbit = (xbits + 1) / 2;
   mpz_t s, t;
@@ -3611,39 +3587,3 @@ mrb_bint_abs(mrb_state *mrb, mrb_value x)
   mpz_clear(mrb, &result_mpz);
   return mrb_obj_value(result);
 }
-
-/* Debug functions for pool statistics - only available in debug builds */
-#ifdef MRB_DEBUG
-mrb_value
-mrb_bint_pool_stats(mrb_state *mrb, mrb_value self)
-{
-  mrb_value hash = mrb_hash_new(mrb);
-
-  mrb_hash_set(mrb, hash, mrb_str_new_cstr(mrb, "malloc_calls"),
-               mrb_int_value(mrb, g_alloc_stats.malloc_calls));
-  mrb_hash_set(mrb, hash, mrb_str_new_cstr(mrb, "free_calls"),
-               mrb_int_value(mrb, g_alloc_stats.free_calls));
-  mrb_hash_set(mrb, hash, mrb_str_new_cstr(mrb, "bytes_allocated"),
-               mrb_int_value(mrb, g_alloc_stats.bytes_allocated));
-  mrb_hash_set(mrb, hash, mrb_str_new_cstr(mrb, "pool_allocations"),
-               mrb_int_value(mrb, g_alloc_stats.pool_allocations));
-  mrb_hash_set(mrb, hash, mrb_str_new_cstr(mrb, "pool_hits"),
-               mrb_int_value(mrb, g_alloc_stats.pool_hits));
-  mrb_hash_set(mrb, hash, mrb_str_new_cstr(mrb, "pool_misses"),
-               mrb_int_value(mrb, g_alloc_stats.pool_misses));
-
-  return hash;
-}
-
-mrb_value
-mrb_bint_reset_pool_stats(mrb_state *mrb, mrb_value self)
-{
-  g_alloc_stats.malloc_calls = 0;
-  g_alloc_stats.free_calls = 0;
-  g_alloc_stats.bytes_allocated = 0;
-  g_alloc_stats.pool_allocations = 0;
-  g_alloc_stats.pool_hits = 0;
-  g_alloc_stats.pool_misses = 0;
-  return mrb_nil_value();
-}
-#endif
