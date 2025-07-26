@@ -115,7 +115,7 @@ static int mpz_mul_sliding_window(mpz_ctx_t *ctx, mpz_t *result, mpz_t *first, m
 
 /* Unified operation using existing *_core functions */
 /* For binary operations: mpz_operation(result, op1, op2) */
-#define MPZ_UNIFIED_BINARY_OP(mrb, core_func, result, op1, op2, estimated_size) do { \
+#define MPZ_UNIFIED_BINARY_OP(ctx, core_func, result, op1, op2, estimated_size) do { \
   WITH_SCOPED_POOL(pool, { \
     mpz_t temp_result; \
     MPZ_POOL_ALLOC_GOTO(ctx, temp_result, pool, estimated_size, _pool_failed); \
@@ -130,7 +130,7 @@ static int mpz_mul_sliding_window(mpz_ctx_t *ctx, mpz_t *result, mpz_t *first, m
 } while(0)
 
 /* For unary operations: mpz_operation(result, operand) */
-#define MPZ_UNIFIED_UNARY_OP(mrb, core_func, result, operand, estimated_size) do { \
+#define MPZ_UNIFIED_UNARY_OP(ctx, core_func, result, operand, estimated_size) do { \
   WITH_SCOPED_POOL(pool, { \
     mpz_t temp_result; \
     MPZ_POOL_ALLOC_GOTO(ctx, temp_result, pool, estimated_size, _pool_failed); \
@@ -142,6 +142,22 @@ static int mpz_mul_sliding_window(mpz_ctx_t *ctx, mpz_t *result, mpz_t *first, m
   }); \
   /* Pool failed - use heap allocation */ \
   core_func(result, operand); \
+} while(0)
+
+/* For binary operations that return int: mpz_operation(result, op1, op2) -> int */
+#define MPZ_UNIFIED_BINARY_OP_INT(ctx, core_func, result, op1, op2, estimated_size, success_value) do { \
+  WITH_SCOPED_POOL(pool, { \
+    mpz_t temp_result; \
+    MPZ_POOL_ALLOC_GOTO(ctx, temp_result, pool, estimated_size, _pool_failed); \
+    /* Pool allocation successful */ \
+    core_func(&temp_result, op1, op2); \
+    MPZ_COPY_FROM_POOL(ctx, result, temp_result, pool); \
+    return success_value; \
+    _pool_failed: ; \
+  }); \
+  /* Pool failed - use heap allocation */ \
+  core_func(result, op1, op2); \
+  return success_value; \
 } while(0)
 
 /* Pool allocation functions */
@@ -553,22 +569,11 @@ mpz_add(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mpz_t *y)
 {
   size_t estimated_size = ((x->sz > y->sz) ? x->sz : y->sz) + 1;
 
-  WITH_SCOPED_POOL(pool, {
-    mpz_t temp_result;
-    MPZ_POOL_ALLOC_GOTO(ctx, temp_result, pool, estimated_size, _pool_failed);
-    /* Pool allocation successful */
-    mpz_add_core(&temp_result, x, y);
-    MPZ_COPY_FROM_POOL(ctx, zz, temp_result, pool);
-    return;
-    _pool_failed: ;
-  });
+  /* Ensure destination is properly initialized and sized for heap fallback */
+  mpz_init(ctx, zz);
+  mpz_realloc(ctx, zz, estimated_size);
 
-  /* Pool failed - use heap allocation */
-  mpz_t z;
-  mpz_init(ctx, &z);
-  mpz_realloc(ctx, &z, estimated_size);
-  mpz_add_core(&z, x, y);
-  mpz_move(ctx, zz, &z);
+  MPZ_UNIFIED_BINARY_OP(ctx, mpz_add_core, zz, x, y, estimated_size);
 }
 
 
@@ -727,20 +732,10 @@ mpz_mul_sliding_window(mpz_ctx_t *ctx, mpz_t *result, mpz_t *first, mpz_t *secon
 
   size_t result_size = first->sz + second->sz + 1;
 
-  WITH_SCOPED_POOL(pool, {
-    mpz_t temp_result;
-    MPZ_POOL_ALLOC_GOTO(ctx, temp_result, pool, result_size, _pool_failed);
-    /* Pool allocation successful */
-    mpz_mul_sliding_window_core(&temp_result, first, second);
-    MPZ_COPY_FROM_POOL(ctx, result, temp_result, pool);
-    return 1;
-    _pool_failed: ;
-  });
-
-  /* Pool failed - use heap allocation */
+  /* Ensure result is properly initialized and sized for heap fallback */
   mpz_realloc(ctx, result, result_size);
-  mpz_mul_sliding_window_core(result, first, second);
-  return 1;
+
+  MPZ_UNIFIED_BINARY_OP_INT(ctx, mpz_mul_sliding_window_core, result, first, second, result_size, 1);
 }
 
 
