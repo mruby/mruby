@@ -2538,7 +2538,9 @@ bint_as_mpz(struct RBigint *b, mpz_t *x)
 static struct RBigint*
 bint_new(mrb_state *mrb, mpz_t *x)
 {
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   struct RBigint *b = MRB_OBJ_ALLOC(mrb, MRB_TT_BIGINT, mrb->integer_class);
   if (x->sz <= RBIGINT_EMBED_SIZE_MAX) {
     RBIGINT_SET_EMBED_SIZE(b, x->sz);
@@ -2557,8 +2559,9 @@ static struct RBigint*
 bint_new_int(mrb_state *mrb, mrb_int n)
 {
   mpz_t x;
-
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   mpz_init_set_int(&ctx, &x, n);
   return bint_new(mrb, &x);
 }
@@ -2575,7 +2578,9 @@ mrb_value
 mrb_bint_new_int64(mrb_state *mrb, int64_t n)
 {
   mpz_t x;
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
   mpz_set_int64(&ctx, &x, n);
   struct RBigint *b = bint_new(mrb, &x);
@@ -2587,7 +2592,9 @@ mrb_value
 mrb_bint_new_uint64(mrb_state *mrb, uint64_t x)
 {
   mpz_t z;
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
   mpz_init(&ctx, &z);
   mpz_set_uint64(&ctx, &z, x);
@@ -2606,7 +2613,9 @@ mrb_bint_new_str(mrb_state *mrb, const char *x, mrb_int len, mrb_int base)
     sn = -1;
   }
   mrb_assert(2 <= base && base <= 36);
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   mpz_init_set_str(&ctx, &z, x, len, base);
   if (sn < 0) {
     z.sn = sn;
@@ -2632,7 +2641,9 @@ void
 mrb_gc_free_bint(mrb_state *mrb, struct RBasic *x)
 {
   struct RBigint *b = (struct RBigint*)x;
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   if (!RBIGINT_EMBED_P(b)) {
     mpz_clear(&ctx, &b->as.heap);
   }
@@ -2660,7 +2671,9 @@ mrb_bint_new_float(mrb_state *mrb, mrb_float x)
   if (x < 1.0) {
     return mrb_fixnum_value(0);
   }
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
   mpz_t r;
   mpz_init(&ctx, &r);
@@ -2794,7 +2807,9 @@ mrb_bint_add_n(mrb_state *mrb, mrb_value x, mrb_value y)
   mpz_t a, b, z;
 
   bint_as_mpz(RBIGINT(x), &a);
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   if (mrb_integer_p(y)) {
     mrb_int n = mrb_integer(y);
     if (int_fit_limb_p(n)) {
@@ -2835,7 +2850,9 @@ mrb_value
 mrb_bint_sub_n(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mpz_t a, b, z;
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
   bint_as_mpz(RBIGINT(x), &a);
   if (mrb_integer_p(y)) {
@@ -2882,7 +2899,9 @@ bint_mul(mrb_state *mrb, mrb_value x, mrb_value y)
   bint_as_mpz(RBIGINT(x), &a);
   bint_as_mpz(RBIGINT(y), &b);
 
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   mpz_mul(&ctx, &z, &a, &b);
   return bint_new(mrb, &z);
 }
@@ -2934,7 +2953,9 @@ mrb_bint_div(mrb_state *mrb, mrb_value x, mrb_value y)
   }
   bint_as_mpz(RBIGINT(x), &a);
 
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   mpz_init(&ctx, &z);
   mpz_mdiv(&ctx, &z, &a, &b);
   return bint_norm(mrb, bint_new(mrb, &z));
@@ -2944,7 +2965,9 @@ mrb_value
 mrb_bint_add_ii(mrb_state *mrb, mrb_int x, mrb_int y)
 {
   mpz_t a, b, z;
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
   mpz_init_set_int(&ctx, &a, x);
   mpz_init_set_int(&ctx, &b, y);
@@ -2958,7 +2981,9 @@ mrb_value
 mrb_bint_sub_ii(mrb_state *mrb, mrb_int x, mrb_int y)
 {
   mpz_t a, b, z;
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
   mpz_init_set_int(&ctx, &a, x);
   mpz_init_set_int(&ctx, &b, y);
@@ -2972,7 +2997,9 @@ mrb_value
 mrb_bint_mul_ii(mrb_state *mrb, mrb_int x, mrb_int y)
 {
   mpz_t a, b, z;
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
   mpz_init_set_int(&ctx, &a, x);
   mpz_init_set_int(&ctx, &b, y);
@@ -3003,7 +3030,9 @@ mrb_bint_mod(mrb_state *mrb, mrb_value x, mrb_value y)
   }
   bint_as_mpz(RBIGINT(x), &a);
 
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   mpz_init(&ctx, &z);
   mpz_mmod(&ctx, &z, &a, &b);
   return bint_norm(mrb, bint_new(mrb, &z));
@@ -3025,7 +3054,9 @@ mrb_bint_rem(mrb_state *mrb, mrb_value x, mrb_value y)
   }
   bint_as_mpz(RBIGINT(x), &a);
 
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   mpz_init(&ctx, &z);
   mpz_mod(&ctx, &z, &a, &b);
   return bint_norm(mrb, bint_new(mrb, &z));
@@ -3047,7 +3078,9 @@ mrb_bint_divmod(mrb_state *mrb, mrb_value x, mrb_value y)
   }
   bint_as_mpz(RBIGINT(x), &a);
 
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   mpz_init(&ctx, &c);
   mpz_init(&ctx, &d);
   mpz_mdivmod(&ctx, &c, &d, &a, &b);
@@ -3083,7 +3116,9 @@ mrb_bint_cmp(mrb_state *mrb, mrb_value x, mrb_value y)
   }
   mpz_t b;
   bint_as_mpz(RBIGINT(y), &b);
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   return mpz_cmp(&ctx, &a, &b);
 }
 
@@ -3103,7 +3138,9 @@ mrb_bint_pow(mrb_state *mrb, mrb_value x, mrb_value y)
   }
 
   mpz_t z;
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   mpz_pow(&ctx, &z, &a, mrb_integer(y));
 
   struct RBigint *b = bint_new(mrb, &z);
@@ -3114,7 +3151,9 @@ mrb_value
 mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_value exp, mrb_value mod)
 {
   mpz_t a, b, c, z;
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
   bint_as_mpz(RBIGINT(x), &a);
   if (mrb_integer_p(mod)) {
@@ -3164,7 +3203,9 @@ mrb_bint_to_s(mrb_state *mrb, mrb_value x, mrb_int base)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "too long string from Integer");
   }
   mrb_value str = mrb_str_new(mrb, NULL, len+2);
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   mpz_get_str(&ctx, RSTRING_PTR(str), len, base, &a);
   RSTR_SET_LEN(RSTRING(str), strlen(RSTRING_PTR(str)));
   return str;
@@ -3190,7 +3231,9 @@ mrb_bint_and(mrb_state *mrb, mrb_value x, mrb_value y)
   bint_as_mpz(RBIGINT(y), &b);
   if (zero_p(&a) || zero_p(&b)) return mrb_fixnum_value(0);
 
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   mpz_init(&ctx, &c);
   mpz_and(&ctx, &c, &a, &b);
   return bint_norm(mrb, bint_new(mrb, &c));
@@ -3208,7 +3251,9 @@ mrb_bint_or(mrb_state *mrb, mrb_value x, mrb_value y)
     if (z == -1) return y;
   }
 
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   y = mrb_as_bint(mrb, y);
   bint_as_mpz(RBIGINT(y), &b);
   if (zero_p(&a)) return y;
@@ -3222,7 +3267,9 @@ mrb_value
 mrb_bint_xor(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mpz_t a, b, c;
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
   bint_as_mpz(RBIGINT(x), &a);
   if (mrb_integer_p(y) && a.sn > 0) {
@@ -3247,7 +3294,9 @@ mrb_value
 mrb_bint_neg(mrb_state *mrb, mrb_value x)
 {
   mpz_t a, b;
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
   bint_as_mpz(RBIGINT(x), &a);
   mpz_init(&ctx, &b);
@@ -3261,7 +3310,9 @@ mrb_value
 mrb_bint_rev(mrb_state *mrb, mrb_value x)
 {
   mpz_t a, b;
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
   bint_as_mpz(RBIGINT(x), &a);
   mpz_init(&ctx, &b);
@@ -3274,7 +3325,9 @@ mrb_value
 mrb_bint_lshift(mrb_state *mrb, mrb_value x, mrb_int width)
 {
   mpz_t a, z;
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
   bint_as_mpz(RBIGINT(x), &a);
   mpz_init(&ctx, &z);
@@ -3291,7 +3344,9 @@ mrb_value
 mrb_bint_rshift(mrb_state *mrb, mrb_value x, mrb_int width)
 {
   mpz_t a, z;
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
   bint_as_mpz(RBIGINT(x), &a);
   mpz_init(&ctx, &z);
@@ -3308,7 +3363,9 @@ void
 mrb_bint_copy(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mpz_t a, b;
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
   bint_as_mpz(RBIGINT(x), &a);
   bint_as_mpz(RBIGINT(y), &b);
@@ -3333,7 +3390,9 @@ mrb_bint_sqrt(mrb_state *mrb, mrb_value x)
   if (a.sn < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "square root of negative number");
   }
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
   mpz_t z;
   mpz_init(&ctx, &z);
@@ -3361,7 +3420,9 @@ mrb_bint_from_bytes(mrb_state *mrb, const uint8_t *bytes, mrb_int len)
 {
   mpz_t z;
   size_t limb_len = (len + sizeof(mp_limb) - 1) / sizeof(mp_limb);
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
   mpz_init(&ctx, &z);
   mpz_realloc(&ctx, &z, limb_len);
@@ -3388,7 +3449,9 @@ mrb_value
 mrb_bint_2comp(mrb_state *mrb, mrb_value x)
 {
   mpz_t a, z;
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
   bint_as_mpz(RBIGINT(x), &a);
   mpz_init(&ctx, &z);
@@ -3414,7 +3477,9 @@ void
 mrb_bint_reduce(mrb_state *mrb, mrb_value *xp, mrb_value *yp)
 {
   mpz_t r, x, y, a, b;
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
   mpz_init(&ctx, &r);
   mpz_init(&ctx, &a); mpz_init(&ctx, &b);
@@ -3440,7 +3505,9 @@ mrb_value
 mrb_bint_gcd(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mpz_t r, a, b;
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
   mpz_init(&ctx, &r);
   bint_as_mpz(RBIGINT(x), &a);
@@ -3462,7 +3529,9 @@ mrb_bint_lcm(mrb_state *mrb, mrb_value x, mrb_value y)
     return zero;
   }
 
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   /* Get input operand sizes for size estimation */
   size_t x_size = RBIGINT_EMBED_P(RBIGINT(x)) ? RBIGINT_EMBED_SIZE(RBIGINT(x)) : RBIGINT(x)->as.heap.sz;
   size_t y_size = RBIGINT_EMBED_P(RBIGINT(y)) ? RBIGINT_EMBED_SIZE(RBIGINT(y)) : RBIGINT(y)->as.heap.sz;
@@ -3498,7 +3567,9 @@ mrb_value
 mrb_bint_abs(mrb_state *mrb, mrb_value x)
 {
   mpz_t a, result_mpz;
-  mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t *pool = &pool_storage;
+  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
   mpz_init(&ctx, &result_mpz);
   bint_as_mpz(RBIGINT(x), &a);
