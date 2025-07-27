@@ -2091,9 +2091,9 @@ mpz_powm(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
   /* Optimize with Barrett reduction for moderate-sized moduli */
   mpz_t mu, temp;
   int use_barrett = (n->sz >= 2 && n->sz <= 8);
-  mpz_init(ctx, &temp);
+  mpz_init_temp(ctx, &temp, n->sz * 2);  /* For intermediate calculations */
   if (use_barrett) {
-    mpz_init(ctx, &mu);
+    mpz_init_temp(ctx, &mu, n->sz + 1);  /* Barrett parameter */
     mpz_barrett_mu(ctx, &mu, n);
   }
 
@@ -2149,9 +2149,9 @@ mpz_powm_i(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mrb_int ex, mpz_t *n)
   /* Optimize with Barrett reduction for moderate-sized moduli */
   mpz_t mu, temp;
   int use_barrett = (n->sz >= 2 && n->sz <= 8);
-  mpz_init(ctx, &temp);
+  mpz_init_temp(ctx, &temp, n->sz * 2);  /* For intermediate calculations */
   if (use_barrett) {
-    mpz_init(ctx, &mu);
+    mpz_init_temp(ctx, &mu, n->sz + 1);  /* Barrett parameter */
     mpz_barrett_mu(ctx, &mu, n);
   }
 
@@ -2442,8 +2442,10 @@ mpz_gcd(mpz_ctx_t *ctx, mpz_t *gg, mpz_t *aa, mpz_t *bb)
     /* Apply the transformation if it's non-trivial */
     if (u1 != 0 || v1 != 0) {
       mpz_t temp_a, temp_b, u0_a, v0_b, u1_a, v1_b;
-      mpz_init(ctx, &temp_a);
-      mpz_init(ctx, &temp_b);
+      /* Size estimates: results of multiplication and addition operations */
+      size_t temp_size = (a.sz > b.sz ? a.sz : b.sz) + 1;
+      mpz_init_temp(ctx, &temp_a, temp_size);
+      mpz_init_temp(ctx, &temp_b, temp_size);
       mpz_init_set(ctx, &u0_a, &a);
       mpz_init_set(ctx, &v0_b, &b);
       mpz_init_set(ctx, &u1_a, &a);
@@ -2562,11 +2564,15 @@ mpz_barrett_reduce(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *m, mpz_t *mu)
   }
 
   mpz_t q1, q2, q3, r1, r2;
-  mpz_init(ctx, &q1);
-  mpz_init(ctx, &q2);
-  mpz_init(ctx, &q3);
-  mpz_init(ctx, &r1);
-  mpz_init(ctx, &r2);
+  /* Conservative size estimates for Barrett reduction temporaries */
+  size_t q_size = x->sz + mu->sz + 1;  /* For multiplication results */
+  size_t r_size = m->sz + 1;           /* For modular reduction results */
+
+  mpz_init_temp(ctx, &q1, x->sz + 1);
+  mpz_init_temp(ctx, &q2, q_size);
+  mpz_init_temp(ctx, &q3, q_size);
+  mpz_init_temp(ctx, &r1, r_size);
+  mpz_init_temp(ctx, &r2, r_size);
 
   /* Step 1: q1 = floor(x / 2^(k-1)) */
   if (k > 1) {
@@ -3597,11 +3603,16 @@ mrb_bint_lcm(mrb_state *mrb, mrb_value x, mrb_value y)
   }
 
   mpz_ctx_t ctx = MPZ_CTX_HEAP(mrb);
-  mpz_init(&ctx, &gcd_val);
-  mpz_init(&ctx, &abs_x);
-  mpz_init(&ctx, &abs_y);
-  mpz_init(&ctx, &product);
-  mpz_init(&ctx, &result_mpz);
+  /* Get input operand sizes for size estimation */
+  size_t x_size = RBIGINT_EMBED_P(RBIGINT(x)) ? RBIGINT_EMBED_SIZE(RBIGINT(x)) : RBIGINT(x)->as.heap.sz;
+  size_t y_size = RBIGINT_EMBED_P(RBIGINT(y)) ? RBIGINT_EMBED_SIZE(RBIGINT(y)) : RBIGINT(y)->as.heap.sz;
+  size_t max_size = (x_size > y_size) ? x_size : y_size;
+
+  mpz_init_temp(&ctx, &gcd_val, max_size);
+  mpz_init_temp(&ctx, &abs_x, x_size);
+  mpz_init_temp(&ctx, &abs_y, y_size);
+  mpz_init_temp(&ctx, &product, x_size + y_size + 1);
+  mpz_init_temp(&ctx, &result_mpz, x_size + y_size + 1);
 
   bint_as_mpz(RBIGINT(x), &x_mpz);
   bint_as_mpz(RBIGINT(y), &y_mpz);
