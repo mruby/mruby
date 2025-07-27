@@ -31,7 +31,6 @@ typedef struct mpz_pool {
   mp_limb data[BIGINT_POOL_DEFAULT_SIZE];
   size_t used;
   size_t capacity;
-  int active;
 } mpz_pool_t;
 
 /* MPZ Context Architecture - unified parameter for mrb_state and optional pool */
@@ -49,19 +48,11 @@ typedef struct mpz_context {
 #define MPZ_POOL(ctx) ((ctx)->pool)
 #define MPZ_HAS_POOL(ctx) ((ctx)->pool != NULL)
 
-
-#define WITH_SCOPED_POOL(pool_name, code) do { \
-  mpz_pool_t pool_name##_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .active = 1}; \
-  mpz_pool_t *pool_name = &pool_name##_storage; \
-  code \
-  pool_name##_storage.active = 0; \
-} while(0)
-
 /* Pool allocation functions */
 static mp_limb*
 pool_alloc(mpz_pool_t *pool, size_t limbs)
 {
-  if (!pool || !pool->active || pool->used + limbs > pool->capacity) {
+  if (!pool || pool->used + limbs > pool->capacity) {
     return NULL;  /* Force fallback to heap */
   }
 
@@ -69,7 +60,6 @@ pool_alloc(mpz_pool_t *pool, size_t limbs)
   pool->used += limbs;
   return ptr;
 }
-
 
 static void
 mpz_init(mpz_ctx_t *ctx, mpz_t *s)
@@ -230,7 +220,6 @@ mpz_set_uint64(mpz_ctx_t *ctx, mpz_t *y, uint64_t u)
   }
 }
 
-
 #ifdef MRB_INT32
 static void
 mpz_set_int64(mpz_ctx_t *ctx, mpz_t *y, int64_t v)
@@ -285,7 +274,6 @@ mpz_move(mpz_ctx_t *ctx, mpz_t *y, mpz_t *x)
   x->sn = 0;
   x->sz = 0;
 }
-
 
 static size_t
 digits(mpz_t *x)
@@ -429,7 +417,6 @@ mpz_add(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mpz_t *y)
   /* Use new simplified API - heap allocation for result */
   mpz_init_auto(ctx, zz, estimated_size);
 
-  /* Inlined mpz_add_core logic */
   if (zero_p(x_ptr)) {
     /* Copy y to zz */
     for (size_t i = 0; i < y_ptr->sz && i < zz->sz; i++) {
