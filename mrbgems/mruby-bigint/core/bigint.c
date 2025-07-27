@@ -1064,101 +1064,6 @@ mpz_div_limb(mpz_ctx_t *ctx, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
   q->sn = (q->sz == 0) ? 0 : 1;
 }
 
-/* Core Knuth Algorithm D division loop */
-static void
-udiv_core(mpz_t *quotient, mpz_t *dividend, mpz_t *divisor, size_t xd, size_t yd)
-{
-  mp_dbl_limb z = divisor->p[yd-1];
-
-  if (xd >= yd) {
-    for (size_t j = xd - yd;; j--) {
-      mp_dbl_limb qhat;
-      mp_dbl_limb rhat;
-
-      if (j + yd == xd) {
-        /* Only one high limb available */
-        mp_dbl_limb dividend_val = (((mp_dbl_limb)0 << DIG_SIZE) + dividend->p[j+yd-1]);
-        qhat = dividend_val / z;
-        rhat = dividend_val % z;
-      }
-      else {
-        /* Two limbs available - use enhanced estimation */
-        mp_dbl_limb dividend_val = ((mp_dbl_limb)dividend->p[j+yd] << DIG_SIZE) + dividend->p[j+yd-1];
-        qhat = dividend_val / z;
-        rhat = dividend_val % z;
-
-        /* Three-limb pre-adjustment when available */
-        if (yd >= 2 && j+yd-2 < dividend->sz && divisor->p[yd-2] != 0) {
-          mp_dbl_limb y_second = divisor->p[yd-2];
-          mp_dbl_limb x_third = dividend->p[j+yd-2];
-
-          if (qhat > 0) {
-            mp_dbl_limb left = qhat * y_second;
-            mp_dbl_limb right = (rhat << DIG_SIZE) + x_third;
-
-            if (qhat >= ((mp_dbl_limb)1 << DIG_SIZE) || left > right) {
-              qhat--;
-              rhat += z;
-            }
-          }
-        }
-      }
-
-      /* Enhanced qhat refinement step */
-      if (yd > 1) {
-        mp_dbl_limb y_second = divisor->p[yd-2];
-        mp_dbl_limb x_third = (j+yd-2 < dividend->sz) ? dividend->p[j+yd-2] : 0;
-        mp_dbl_limb left_side = qhat * y_second;
-        mp_dbl_limb right_side = (rhat << DIG_SIZE) + x_third;
-
-        while (qhat >= ((mp_dbl_limb)1 << DIG_SIZE) || (left_side > right_side)) {
-          qhat--;
-          rhat += z;
-          if (rhat >= ((mp_dbl_limb)1 << DIG_SIZE)) break;
-          left_side -= y_second;
-          right_side = (rhat << DIG_SIZE) + x_third;
-        }
-      }
-
-      if (qhat > 0) {
-        /* Subtract qhat * divisor from dividend */
-        mp_dbl_limb_signed borrow = 0;
-        size_t i;
-
-        for (i = 0; i < yd; i++) {
-          mp_dbl_limb product = qhat * divisor->p[i];
-          mp_dbl_limb_signed diff = (mp_dbl_limb_signed)dividend->p[i+j] - (mp_dbl_limb_signed)LOW(product) + borrow;
-          dividend->p[i+j] = LOW(diff);
-          borrow = HIGH(diff) - (mp_dbl_limb_signed)HIGH(product);
-        }
-
-        /* Handle final borrow propagation */
-        if (i+j < dividend->sz) {
-          borrow += (mp_dbl_limb_signed)dividend->p[i+j];
-          dividend->p[i+j] = LOW(borrow);
-          borrow = HIGH(borrow);
-        }
-
-        /* Correction: if borrow is negative, qhat was too large, add back */
-        if (borrow < 0) {
-          qhat--;
-          mp_dbl_limb carry = 0;
-          for (i = 0; i < yd; i++) {
-            carry += (mp_dbl_limb)dividend->p[i+j] + (mp_dbl_limb)divisor->p[i];
-            dividend->p[i+j] = LOW(carry);
-            carry = HIGH(carry);
-          }
-          if (i+j < dividend->sz && carry > 0) {
-            dividend->p[i+j] += (mp_limb)carry;
-          }
-        }
-      }
-
-      quotient->p[j] = (mp_limb)qhat;
-      if (j == 0) break;
-    }
-  }
-}
 
 /* internal routine to compute x/y and x%y ignoring signs */
 /* qq = xx/yy; rr = xx%yy */
@@ -1200,8 +1105,97 @@ udiv(mpz_ctx_t *ctx, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
   size_t xd = digits(&x);
   mpz_realloc(ctx, &q, xd-yd+1);  // Quotient has xd-yd+1 digits maximum
 
-  /* Use core division algorithm */
-  udiv_core(&q, &x, &y, xd, yd);
+  /* Core Knuth Algorithm D division loop */
+  mp_dbl_limb z = y.p[yd-1];
+
+  if (xd >= yd) {
+    for (size_t j = xd - yd;; j--) {
+      mp_dbl_limb qhat;
+      mp_dbl_limb rhat;
+
+      if (j + yd == xd) {
+        /* Only one high limb available */
+        mp_dbl_limb dividend_val = (((mp_dbl_limb)0 << DIG_SIZE) + x.p[j+yd-1]);
+        qhat = dividend_val / z;
+        rhat = dividend_val % z;
+      }
+      else {
+        /* Two limbs available - use enhanced estimation */
+        mp_dbl_limb dividend_val = ((mp_dbl_limb)x.p[j+yd] << DIG_SIZE) + x.p[j+yd-1];
+        qhat = dividend_val / z;
+        rhat = dividend_val % z;
+
+        /* Three-limb pre-adjustment when available */
+        if (yd >= 2 && j+yd-2 < x.sz && y.p[yd-2] != 0) {
+          mp_dbl_limb y_second = y.p[yd-2];
+          mp_dbl_limb x_third = x.p[j+yd-2];
+
+          if (qhat > 0) {
+            mp_dbl_limb left = qhat * y_second;
+            mp_dbl_limb right = (rhat << DIG_SIZE) + x_third;
+
+            if (qhat >= ((mp_dbl_limb)1 << DIG_SIZE) || left > right) {
+              qhat--;
+              rhat += z;
+            }
+          }
+        }
+      }
+
+      /* Enhanced qhat refinement step */
+      if (yd > 1) {
+        mp_dbl_limb y_second = y.p[yd-2];
+        mp_dbl_limb x_third = (j+yd-2 < x.sz) ? x.p[j+yd-2] : 0;
+        mp_dbl_limb left_side = qhat * y_second;
+        mp_dbl_limb right_side = (rhat << DIG_SIZE) + x_third;
+
+        while (qhat >= ((mp_dbl_limb)1 << DIG_SIZE) || (left_side > right_side)) {
+          qhat--;
+          rhat += z;
+          if (rhat >= ((mp_dbl_limb)1 << DIG_SIZE)) break;
+          left_side -= y_second;
+          right_side = (rhat << DIG_SIZE) + x_third;
+        }
+      }
+
+      if (qhat > 0) {
+        /* Subtract qhat * divisor from dividend */
+        mp_dbl_limb_signed borrow = 0;
+        size_t i;
+
+        for (i = 0; i < yd; i++) {
+          mp_dbl_limb product = qhat * y.p[i];
+          mp_dbl_limb_signed diff = (mp_dbl_limb_signed)x.p[i+j] - (mp_dbl_limb_signed)LOW(product) + borrow;
+          x.p[i+j] = LOW(diff);
+          borrow = HIGH(diff) - (mp_dbl_limb_signed)HIGH(product);
+        }
+
+        /* Handle final borrow propagation */
+        if (i+j < x.sz) {
+          borrow += (mp_dbl_limb_signed)x.p[i+j];
+          x.p[i+j] = LOW(borrow);
+          borrow = HIGH(borrow);
+        }
+
+        /* Correction: if borrow is negative, qhat was too large, add back */
+        if (borrow < 0) {
+          qhat--;
+          mp_dbl_limb carry = 0;
+          for (i = 0; i < yd; i++) {
+            carry += (mp_dbl_limb)x.p[i+j] + (mp_dbl_limb)y.p[i];
+            x.p[i+j] = LOW(carry);
+            carry = HIGH(carry);
+          }
+          if (i+j < x.sz && carry > 0) {
+            x.p[i+j] += (mp_limb)carry;
+          }
+        }
+      }
+
+      q.p[j] = (mp_limb)qhat;
+      if (j == 0) break;
+    }
+  }
   x.sz = yy->sz;
   urshift(ctx, rr, &x, ns);
   trim(&q);
