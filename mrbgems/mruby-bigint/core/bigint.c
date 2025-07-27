@@ -40,9 +40,6 @@ typedef struct mpz_context {
   mpz_pool_t *pool;  /* NULL for heap-only operations */
 } mpz_ctx_t;
 
-/* Forward declarations */
-static int mpz_mul_sliding_window(mpz_ctx_t *ctx, mpz_t *result, mpz_t *first, mpz_t *second);
-
 /* Convenience macros for context creation */
 #define MPZ_CTX_HEAP(mrb_ptr) ((mpz_ctx_t){.mrb = (mrb_ptr), .pool = NULL})
 #define MPZ_CTX_POOL(mrb_ptr, pool_ptr) ((mpz_ctx_t){.mrb = (mrb_ptr), .pool = (pool_ptr)})
@@ -59,7 +56,6 @@ static int mpz_mul_sliding_window(mpz_ctx_t *ctx, mpz_t *result, mpz_t *first, m
   code \
   pool_name##_storage.active = 0; \
 } while(0)
-
 
 /* Pool allocation functions */
 static mp_limb*
@@ -197,7 +193,6 @@ mpz_set(mpz_ctx_t *ctx, mpz_t *y, mpz_t *x)
   y->sn = x->sn;
 }
 
-
 static void
 mpz_init_set(mpz_ctx_t *ctx, mpz_t *s, mpz_t *t)
 {
@@ -307,10 +302,6 @@ mpz_move(mpz_ctx_t *ctx, mpz_t *y, mpz_t *x)
   x->sz = 0;
 }
 
-/* Forward declarations for context-aware functions */
-static void mpz_realloc(mpz_ctx_t *ctx, mpz_t *x, size_t size);
-static void mpz_clear(mpz_ctx_t *ctx, mpz_t *s);
-static void mpz_move(mpz_ctx_t *ctx, mpz_t *y, mpz_t *x);
 
 static size_t
 digits(mpz_t *x)
@@ -431,7 +422,6 @@ zero(mpz_t *x)
     x->sz=0;
   }
 }
-
 
 /* z = x + y */
 static void
