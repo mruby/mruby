@@ -70,22 +70,6 @@ pool_alloc(mpz_pool_t *pool, size_t limbs)
   return ptr;
 }
 
-static void
-mpz_init_pool(mpz_ctx_t *ctx, mpz_t *z, mpz_pool_t *pool, size_t hint)
-{
-  z->sn = 0;
-
-  mp_limb *pool_ptr = pool_alloc(pool, hint);
-  if (pool_ptr) {
-    z->p = pool_ptr;
-    z->sz = hint;
-  }
-  else {
-    /* Fallback to heap allocation */
-    z->p = mrb_malloc(MPZ_MRB(ctx), hint * sizeof(mp_limb));
-    z->sz = hint;
-  }
-}
 
 static void
 mpz_init(mpz_ctx_t *ctx, mpz_t *s)
@@ -1203,129 +1187,11 @@ udiv(mpz_ctx_t *ctx, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
   mrb_assert(yy->sn != 0);      /* divided by zero */
   mrb_assert(yy->sz > 0);       /* divided by zero */
 
-  /* Try pool allocation first for medium-sized operands */
-  size_t dividend_limbs = xx->sz;
-  size_t divisor_limbs = yy->sz;
-  if (dividend_limbs >= 4 && dividend_limbs <= 64 && divisor_limbs <= 32) {
-    /* Estimate space needed for temporary variables */
-    size_t temp_space = dividend_limbs + 1 + divisor_limbs + (dividend_limbs - divisor_limbs + 1);
-    if (temp_space <= BIGINT_POOL_DEFAULT_SIZE / 3) {
-      /* Use manual pool management with designated initializer */
-      mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .active = 1};
-      mpz_pool_t *pool = &pool_storage;
-
-      mpz_t q_temp, x_temp, y_temp;
-
-      /* Initialize temporary variables in pool */
-      mpz_init_pool(ctx, &q_temp, pool, dividend_limbs - divisor_limbs + 1);
-      mpz_init_pool(ctx, &x_temp, pool, dividend_limbs + 1);
-      mpz_init_pool(ctx, &y_temp, pool, divisor_limbs);
-
-      if (is_pool_memory(&q_temp, pool) &&
-          is_pool_memory(&x_temp, pool) &&
-          is_pool_memory(&y_temp, pool)) {
-
-        /* Perform division using pool-allocated temporaries */
-        size_t yd = digits(yy);
-        size_t ns = lzb(yy->p[yd-1]);
-
-        /* Manual shift instead of ulshift to avoid mpz_move issues with pool memory */
-        if (ns == 0) {
-          /* No shift needed - direct copy */
-          for (size_t i = 0; i < xx->sz; i++) {
-            x_temp.p[i] = xx->p[i];
-          }
-          x_temp.sz = xx->sz;
-
-          for (size_t i = 0; i < yy->sz; i++) {
-            y_temp.p[i] = yy->p[i];
-          }
-          y_temp.sz = yy->sz;
-        }
-        else {
-          /* Manual left shift by ns bits */
-          mp_limb cc = 0;
-          mp_limb rm = (((mp_dbl_limb)1<<ns) - 1) << (DIG_SIZE-ns);
-
-          for (size_t i = 0; i < xx->sz; i++) {
-            x_temp.p[i] = ((xx->p[i] << ns) | cc) & DIG_MASK;
-            cc = (xx->p[i] & rm) >> (DIG_SIZE-ns);
-          }
-          x_temp.p[xx->sz] = cc;
-          x_temp.sz = xx->sz + (cc ? 1 : 0);
-
-          cc = 0;
-          for (size_t i = 0; i < yy->sz; i++) {
-            y_temp.p[i] = ((yy->p[i] << ns) | cc) & DIG_MASK;
-            cc = (yy->p[i] & rm) >> (DIG_SIZE-ns);
-          }
-          if (cc && yy->sz < y_temp.sz) {
-            y_temp.p[yy->sz] = cc;
-            y_temp.sz = yy->sz + 1;
-          }
-          else {
-            y_temp.sz = yy->sz;
-          }
-        }
-
-        size_t xd = digits(&x_temp);
-
-        /* Zero-initialize quotient */
-        for (size_t i = 0; i < q_temp.sz; i++) {
-          q_temp.p[i] = 0;
-        }
-
-        /* Use core division algorithm */
-        udiv_core(&q_temp, &x_temp, &y_temp, xd, yd);
-
-        x_temp.sz = yy->sz;
-
-        /* Copy results from pool to heap-allocated outputs */
-        trim(&q_temp);
-        mpz_realloc(ctx, qq, q_temp.sz);
-        for (size_t i = 0; i < q_temp.sz; i++) {
-          qq->p[i] = q_temp.p[i];
-        }
-        qq->sz = q_temp.sz;
-        qq->sn = (qq->sz == 0) ? 0 : 1;
-
-        /* Manual right shift for remainder to avoid mpz_move issues */
-        if (ns == 0) {
-          /* No shift needed - direct copy to heap result */
-          mpz_realloc(ctx, rr, x_temp.sz);
-          for (size_t i = 0; i < x_temp.sz; i++) {
-            rr->p[i] = x_temp.p[i];
-          }
-          rr->sz = x_temp.sz;
-          rr->sn = (rr->sz == 0) ? 0 : 1;
-        }
-        else {
-          /* Manual right shift by ns bits */
-          mpz_realloc(ctx, rr, x_temp.sz);
-          mp_limb cc = 0;
-          mp_limb lm = ((mp_dbl_limb)1 << ns) - 1;
-
-          for (ssize_t i = (ssize_t)x_temp.sz - 1; i >= 0; i--) {
-            rr->p[i] = ((x_temp.p[i] >> ns) | cc) & DIG_MASK;
-            cc = (x_temp.p[i] & lm) << (DIG_SIZE - ns);
-          }
-          rr->sz = x_temp.sz;
-          trim(rr);
-          rr->sn = (rr->sz == 0) ? 0 : 1;
-        }
-
-        pool_storage.active = 0;
-        return; /* Success with pool-based division */
-      }
-      pool_storage.active = 0;
-    }
-  }
-
-  /* Heap fallback for large numbers or when pool allocation fails */
+  /* Use new context architecture with automatic pool/heap management */
   mpz_t q, x, y;
-  mpz_init(ctx, &q);
-  mpz_init(ctx, &x);
-  mpz_init(ctx, &y);
+  mpz_init_temp(ctx, &q, xx->sz - yy->sz + 1);  /* Quotient size estimate */
+  mpz_init_temp(ctx, &x, xx->sz + 1);           /* Dividend with potential carry */
+  mpz_init_temp(ctx, &y, yy->sz);               /* Divisor copy */
   mpz_realloc(ctx, &x, xx->sz+1);
   size_t yd = digits(yy);
   size_t ns = lzb(yy->p[yd-1]);
@@ -1340,10 +1206,10 @@ udiv(mpz_ctx_t *ctx, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
   urshift(ctx, rr, &x, ns);
   trim(&q);
   mpz_move(ctx, qq, &q);
+  mpz_clear(ctx, &q);
   mpz_clear(ctx, &x);
   mpz_clear(ctx, &y);
 }
-
 
 static void
 mpz_mdiv(mpz_ctx_t *ctx, mpz_t *q, mpz_t *x, mpz_t *y)
