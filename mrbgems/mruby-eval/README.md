@@ -23,4 +23,4 @@ Please make sure to update tests as appropriate.
 
 ## License
 
-mruby-eval is released under the MIT License. See the [LICENSE.txt](https://github.com/mruby/mruby/blob/master/LICENSE.txt) file in the main mruby repository for details.
+mruby-eval is released under the MIT License. See the [LICENSE](../../LICENSE) file in the main mruby repository for details.
