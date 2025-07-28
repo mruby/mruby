@@ -49,6 +49,20 @@ typedef struct mpz_context {
 #define MPZ_HAS_POOL(ctx) ((ctx)->pool != NULL)
 
 /* Pool allocation functions */
+static size_t
+pool_save(mpz_pool_t *pool)
+{
+  return pool ? pool->used : 0;
+}
+
+static void
+pool_restore(mpz_pool_t *pool, size_t state)
+{
+  if (pool) {
+    pool->used = state;
+  }
+}
+
 static mp_limb*
 pool_alloc(mpz_pool_t *pool, size_t limbs)
 {
@@ -856,6 +870,7 @@ udiv(mpz_ctx_t *ctx, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
   mrb_assert(yy->sz > 0);       /* divided by zero */
 
   /* Use new context architecture with automatic pool/heap management */
+  size_t pool_state = pool_save(MPZ_POOL(ctx));
   mpz_t q, x, y;
   mpz_init_temp(ctx, &q, xx->sz - yy->sz + 1);  /* Quotient size estimate */
   mpz_init_temp(ctx, &x, xx->sz + 1);           /* Dividend with potential carry */
@@ -966,6 +981,7 @@ udiv(mpz_ctx_t *ctx, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
   mpz_clear(ctx, &q);
   mpz_clear(ctx, &x);
   mpz_clear(ctx, &y);
+  pool_restore(MPZ_POOL(ctx), pool_state);
 }
 
 static void
