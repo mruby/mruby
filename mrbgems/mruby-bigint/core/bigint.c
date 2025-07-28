@@ -720,7 +720,7 @@ ulshift(mpz_ctx_t *ctx, mpz_t *c1, mpz_t *a, size_t n)
 
 /* Fast division by single limb */
 static void
-mpz_div_limb(mpz_ctx_t *ctx, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
+div_limb(mpz_ctx_t *ctx, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
 {
   mrb_state *mrb = MPZ_MRB(ctx);
 
@@ -862,7 +862,7 @@ udiv(mpz_ctx_t *ctx, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
 
   /* Fast path for single-limb divisor */
   if (yy->sz == 1) {
-    mpz_div_limb(ctx, qq, rr, xx, yy->p[0]);
+    div_limb(ctx, qq, rr, xx, yy->p[0]);
     return;
   }
 
