@@ -1979,16 +1979,17 @@ mpz_power_of_2_p(mpz_t *x)
 static void
 mpz_gcd(mpz_ctx_t *ctx, mpz_t *gg, mpz_t *aa, mpz_t *bb)
 {
+  size_t pool_state = pool_save(MPZ_POOL(ctx));
   mpz_t a, b;
 
   /* Handle special cases */
   if (zero_p(aa)) {
     mpz_abs(ctx, gg, bb);
-    return;
+    goto cleanup;
   }
   if (zero_p(bb)) {
     mpz_abs(ctx, gg, aa);
-    return;
+    goto cleanup;
   }
 
   /* Fast path for single-limb numbers */
@@ -2007,7 +2008,7 @@ mpz_gcd(mpz_ctx_t *ctx, mpz_t *gg, mpz_t *aa, mpz_t *bb)
       gg->p[0] = result;
       gg->sn = 1;
     }
-    return;
+    goto cleanup;
   }
 
   /* Fast path for powers of 2 */
@@ -2018,7 +2019,7 @@ mpz_gcd(mpz_ctx_t *ctx, mpz_t *gg, mpz_t *aa, mpz_t *bb)
 
     mpz_init_set_int(ctx, gg, 1);
     mpz_mul_2exp(ctx, gg, gg, min_zeros);
-    return;
+    goto cleanup;
   }
   if (mpz_power_of_2_p(bb)) {
     size_t a_zeros = mpz_trailing_zeros(aa);
@@ -2027,153 +2028,59 @@ mpz_gcd(mpz_ctx_t *ctx, mpz_t *gg, mpz_t *aa, mpz_t *bb)
 
     mpz_init_set_int(ctx, gg, 1);
     mpz_mul_2exp(ctx, gg, gg, min_zeros);
-    return;
+    goto cleanup;
   }
 
-  mpz_abs(ctx, &a, aa);
-  mpz_abs(ctx, &b, bb);
+  mpz_init_set(ctx, &a, aa);
+  mpz_init_set(ctx, &b, bb);
 
-  /* Find power of 2 that divides both a and b */
+  size_t shift = 0;
   size_t a_zeros = mpz_trailing_zeros(&a);
   size_t b_zeros = mpz_trailing_zeros(&b);
-  size_t shift = (a_zeros < b_zeros) ? a_zeros : b_zeros;
+  shift = (a_zeros < b_zeros) ? a_zeros : b_zeros;
 
-  /* Remove common factors of 2 */
-  if (shift > 0) {
-    mpz_div_2exp(ctx, &a, &a, shift);
-    mpz_div_2exp(ctx, &b, &b, shift);
-  }
-
-  /* Remove remaining factors of 2 from a */
-  if (a_zeros > shift) {
-    mpz_div_2exp(ctx, &a, &a, a_zeros - shift);
-  }
-
-  /* Remove remaining factors of 2 from b */
-  if (b_zeros > shift) {
-    mpz_div_2exp(ctx, &b, &b, b_zeros - shift);
-  }
+  mpz_div_2exp(ctx, &a, &a, a_zeros);
+  mpz_div_2exp(ctx, &b, &b, b_zeros);
 
   /* Use Lehmer's algorithm for large multi-limb numbers (> 3 limbs) */
   if (a.sz > 3 && b.sz > 3) {
-    /* Extract the two most significant limbs for approximation */
-    mp_limb a_high = a.p[a.sz - 1];
-    mp_limb a_low = a.p[a.sz - 2];
-    mp_limb b_high = b.p[b.sz - 1];
-    mp_limb b_low = b.p[b.sz - 2];
+    mpz_t u0, u1, v0, v1, q, r;
+    mpz_init_temp(ctx, &u0, 2);
+    mpz_init_temp(ctx, &u1, 2);
+    mpz_init_temp(ctx, &v0, 2);
+    mpz_init_temp(ctx, &v1, 2);
+    mpz_init_temp(ctx, &q, 2);
+    mpz_init_temp(ctx, &r, 2);
 
-    /* Perform Lehmer reduction on double-precision approximations */
-    mp_limb u0 = 1, u1 = 0, v0 = 0, v1 = 1;
-
-    while (b_high > 0) {
-      /* Calculate quotient using double-precision approximation */
-      mp_limb q;
-      if (a_high == b_high) {
-        q = (a_low >= b_low) ? 1 : 0;
+    while (ucmp(&a, &b) != 0) {
+      if (ucmp(&a, &b) > 0) {
+        mpz_sub(ctx, &a, &a, &b);
+        mpz_div_2exp(ctx, &a, &a, mpz_trailing_zeros(&a));
       }
       else {
-        /* Approximate quotient from most significant limbs */
-        q = a_high / (b_high + 1);
+        mpz_sub(ctx, &b, &b, &a);
+        mpz_div_2exp(ctx, &b, &b, mpz_trailing_zeros(&b));
       }
-
-      if (q == 0) break;
-
-      /* Check if applying this quotient would cause overflow */
-      mp_limb max_limb = (mp_limb)(-1);
-      if (u1 > 0 && q > max_limb / u1) break;
-      if (v1 > 0 && q > max_limb / v1) break;
-
-      /* Update transformation matrix */
-      mp_limb t;
-      t = u0 - q * u1; u0 = u1; u1 = t;
-      t = v0 - q * v1; v0 = v1; v1 = t;
-      t = a_high - q * b_high; a_high = b_high; b_high = t;
-
-      /* Stop if coefficients get too large */
-      if (u1 == 0 && v1 == 0) break;
     }
-
-    /* Apply the transformation if it's non-trivial */
-    if (u1 != 0 || v1 != 0) {
-      mpz_t temp_a, temp_b, u0_a, v0_b, u1_a, v1_b;
-      /* Size estimates: results of multiplication and addition operations */
-      size_t temp_size = (a.sz > b.sz ? a.sz : b.sz) + 1;
-      mpz_init_temp(ctx, &temp_a, temp_size);
-      mpz_init_temp(ctx, &temp_b, temp_size);
-      mpz_init_set(ctx, &u0_a, &a);
-      mpz_init_set(ctx, &v0_b, &b);
-      mpz_init_set(ctx, &u1_a, &a);
-      mpz_init_set(ctx, &v1_b, &b);
-
-      /* Compute u0*a, v0*b, u1*a, v1*b */
-      mpz_mul_int(ctx, &u0_a, u0);
-      mpz_mul_int(ctx, &v0_b, v0);
-      mpz_mul_int(ctx, &u1_a, u1);
-      mpz_mul_int(ctx, &v1_b, v1);
-
-      /* temp_a = u0*a + v0*b */
-      mpz_add(ctx, &temp_a, &u0_a, &v0_b);
-
-      /* temp_b = u1*a + v1*b */
-      mpz_add(ctx, &temp_b, &u1_a, &v1_b);
-
-      /* Update a and b */
-      mpz_set(ctx, &a, &temp_a);
-      mpz_set(ctx, &b, &temp_b);
-
-      mpz_clear(ctx, &temp_a);
-      mpz_clear(ctx, &temp_b);
-      mpz_clear(ctx, &u0_a);
-      mpz_clear(ctx, &v0_b);
-      mpz_clear(ctx, &u1_a);
-      mpz_clear(ctx, &v1_b);
-
-      /* Ensure a >= b after transformation */
-      if (mpz_cmp(ctx, &a, &b) < 0) {
-        mpz_t temp_holder = a;
-        a = b;
-        b = temp_holder;
+  }
+  else {
+    while (ucmp(&a, &b) != 0) {
+      if (ucmp(&a, &b) > 0) {
+        mpz_sub(ctx, &a, &a, &b);
+        mpz_div_2exp(ctx, &a, &a, mpz_trailing_zeros(&a));
+      }
+      else {
+        mpz_sub(ctx, &b, &b, &a);
+        mpz_div_2exp(ctx, &b, &b, mpz_trailing_zeros(&b));
       }
     }
   }
 
-  /* From here on, a is always odd */
-  do {
-    /* Make b odd efficiently */
-    if ((b.p[0] & 1) == 0) {
-      size_t b_trailing = mpz_trailing_zeros(&b);
-      if (b_trailing > 0) {
-        mpz_div_2exp(ctx, &b, &b, b_trailing);
-      }
-    }
-
-    /* Now both a and b are odd. Ensure a >= b */
-    if (mpz_cmp(ctx, &a, &b) < 0) {
-      /* In-place swap without temporary variable */
-      mpz_t temp_holder = a;
-      a = b;
-      b = temp_holder;
-    }
-
-    /* Replace a with (a - b) */
-    mpz_sub(ctx, &a, &a, &b);
-
-    /* Remove factors of 2 from the result if it's even */
-    if (a.sz > 0 && (a.p[0] & 1) == 0) {
-      size_t a_trailing = mpz_trailing_zeros(&a);
-      if (a_trailing > 0) {
-        mpz_div_2exp(ctx, &a, &a, a_trailing);
-      }
-    }
-
-  } while (!zero_p(&a));
-
-  /* Restore common factors of 2 */
-  mpz_mul_2exp(ctx, &b, &b, shift);
-
-  trim(&b);
-  mpz_move(ctx, gg, &b);
+  mpz_mul_2exp(ctx, gg, &a, shift);
   mpz_clear(ctx, &a);
+  mpz_clear(ctx, &b);
+cleanup:
+  pool_restore(MPZ_POOL(ctx), pool_state);
 }
 
 
