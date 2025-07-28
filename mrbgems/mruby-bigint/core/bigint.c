@@ -1663,46 +1663,44 @@ mpz_xor(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient
 static void
 mpz_pow(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mrb_int e)
 {
-  mrb_uint mask = 1ULL<<(sizeof(mrb_int)*8-1);
-
-  /* Initialize result with better size estimation for binary exponentiation */
-  size_t bits_in_e = 0;
-  mrb_int temp_e = e;
-  while (temp_e > 0) {
-    bits_in_e++;
-    temp_e >>= 1;
-  }
-  /* Each iteration can roughly double the result size, so estimate conservatively */
-  size_t estimated_size = x->sz * bits_in_e;
-  if (estimated_size < x->sz) estimated_size = x->sz;  /* Prevent underflow */
-  mpz_init_auto(ctx, zz, estimated_size);
-
-  if (e==0) {
-    mpz_set_int(ctx, zz, 1L);
+  if (e == 0) {
+    mpz_init_set_int(ctx, zz, 1L);
     return;
   }
 
-  /* Set initial value to x for exponentiation */
-  mpz_set(ctx, zz, x);
+  mrb_uint mask = 1ULL << (sizeof(mrb_int) * 8 - 1);
+  while (mask != 0 && !(mask & e)) {
+    mask >>= 1;
+  }
 
-  for (;!(mask &e); mask>>=1)
-    ;
-  mask>>=1;
-  for (;mask!=0; mask>>=1) {
-    mpz_t temp;
-    mpz_init(ctx, &temp);
-    mpz_mul(ctx, &temp, zz, zz);  /* temp = zz^2 */
+  /* Set initial value to x for exponentiation */
+  mpz_init_set(ctx, zz, x);
+
+  if (mask == 0) { /* e is 0 or 1 */
+    if (e == 0) mpz_set_int(ctx, zz, 1L);
+    return;
+  }
+
+  mask >>= 1;
+
+  /* Pre-allocate a single temporary variable */
+  mpz_t temp;
+  mpz_init(ctx, &temp);
+
+  for (; mask != 0; mask >>= 1) {
+    /* squaring: temp = zz * zz */
+    mpz_mul(ctx, &temp, zz, zz);
+
     if (e & mask) {
-      mpz_t temp2;
-      mpz_init(ctx, &temp2);
-      mpz_mul(ctx, &temp2, &temp, x); /* temp2 = temp * x */
-      mpz_move(ctx, zz, &temp2);
-      mpz_clear(ctx, &temp);  /* temp is not moved, so clear it */
+      /* multiplication: zz = temp * x */
+      mpz_mul(ctx, zz, &temp, x);
     }
     else {
-      mpz_move(ctx, zz, &temp);  /* temp is moved to zz, ownership transferred */
+      /* move result: zz = temp */
+      mpz_move(ctx, zz, &temp);
     }
   }
+  mpz_clear(ctx, &temp);
 }
 
 static void
