@@ -1732,6 +1732,7 @@ mpz_powm(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
     return;
   }
 
+  size_t pool_state = pool_save(MPZ_POOL(ctx));
   mpz_t t, b;
   mpz_init_set_int(ctx, &t, 1);
   mpz_init_set(ctx, &b, x);
@@ -1769,12 +1770,14 @@ mpz_powm(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
     }
   }
 
+  mpz_move(ctx, zz, &t);
+  mpz_clear(ctx, &t);
+  mpz_clear(ctx, &b);
   mpz_clear(ctx, &temp);
   if (use_barrett) {
     mpz_clear(ctx, &mu);
   }
-  mpz_move(ctx, zz, &t);
-  mpz_clear(ctx, &b);
+  pool_restore(MPZ_POOL(ctx), pool_state);
 }
 
 
@@ -1790,6 +1793,7 @@ mpz_powm_i(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mrb_int ex, mpz_t *n)
     return;
   }
 
+  size_t pool_state = pool_save(MPZ_POOL(ctx));
   mpz_t t, b;
   mpz_init_set_int(ctx, &t, 1);
   mpz_init_set(ctx, &b, x);
@@ -1825,12 +1829,14 @@ mpz_powm_i(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mrb_int ex, mpz_t *n)
     }
   }
 
+  mpz_move(ctx, zz, &t);
+  mpz_clear(ctx, &t);
+  mpz_clear(ctx, &b);
   mpz_clear(ctx, &temp);
   if (use_barrett) {
     mpz_clear(ctx, &mu);
   }
-  mpz_move(ctx, zz, &t);
-  mpz_clear(ctx, &b);
+  pool_restore(MPZ_POOL(ctx), pool_state);
 }
 
 /* Helper functions for pool-based GCD operations */
