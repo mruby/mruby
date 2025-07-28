@@ -548,306 +548,82 @@ mpz_sub_int(mpz_ctx_t *ctx, mpz_t *x, mrb_int n)
   trim(x);
 }
 
-/* Sliding window multiplication for improved cache performance */
-/* Window size optimized for L1 cache (4 limbs = 16 bytes) */
-#define WINDOW_SIZE 4
-
-/* Blocked multiplication for large operands with controlled memory overhead */
-/* Block size optimized for cache efficiency while minimizing overhead */
-#define BLOCK_SIZE 8  /* 8 limbs = 32 bytes per block */
-
-/* Multiply window: result[offset..] += a[a_start..a_end) * b[b_start..b_end) */
-static void
-multiply_window(mp_limb *result, size_t offset,
-                const mp_limb *a, size_t a_start, size_t a_len,
-                const mp_limb *b, size_t b_start, size_t b_len)
+/* Zero n limbs at p */
+static inline void
+limb_zero(mp_limb *p, size_t n)
 {
-  for (size_t i = 0; i < a_len; i++) {
-    mp_limb u0 = a[a_start + i];
-    if (u0 == 0) continue;
-
-    mp_dbl_limb cc = 0;
-    size_t j;
-    for (j = 0; j < b_len; j++) {
-      mp_limb v0 = b[b_start + j];
-      size_t pos = offset + i + j;
-      cc += (mp_dbl_limb)result[pos] + (mp_dbl_limb)u0 * (mp_dbl_limb)v0;
-      result[pos] = LOW(cc);
-      cc = HIGH(cc);
-    }
-
-    // Propagate carries beyond window
-    size_t carry_pos = offset + i + j;
-    while (cc) {
-      cc += (mp_dbl_limb)result[carry_pos];
-      result[carry_pos] = LOW(cc);
-      cc = HIGH(cc);
-      carry_pos++;
-    }
-  }
+  memset(p, 0, n * sizeof(mp_limb));
 }
 
-
-/* Unified sliding window multiplication - tries pool first, falls back to heap */
-static int
-mpz_mul_sliding_window(mpz_ctx_t *ctx, mpz_t *result, mpz_t *first, mpz_t *second)
+/* Multiply-and-add: rp[0..n-1] += s1p[0..n-1] * limb; return carry (high limb) */
+static inline mp_limb
+limb_addmul_1(mp_limb *restrict rp, const mp_limb *restrict s1p, size_t n, mp_limb limb)
 {
-  // Only use sliding window for medium-sized operands where cache benefits matter
-  size_t max_limbs = (first->sz > second->sz) ? first->sz : second->sz;
-  if (max_limbs < 8 || max_limbs > 64) {
-    return 0; // Use classical multiplication
+#if defined(__SIZEOF_INT128__) && (__SIZEOF_INT128__ == 16)
+  /* Use 128-bit arithmetic for maximum efficiency on 64-bit platforms */
+  unsigned __int128 acc = 0;
+  for (size_t i = 0; i < n; i++) {
+    acc += (unsigned __int128)rp[i]
+         + (unsigned __int128)s1p[i] * (unsigned __int128)limb;
+    rp[i] = (mp_limb)acc;        /* low */
+    acc >>= DIG_SIZE;            /* keep carry */
   }
-
-  size_t result_size = first->sz + second->sz + 1;
-
-  /* Use temporary variable with pool-preferred allocation */
-  mpz_t temp_result;
-  mpz_init_temp(ctx, &temp_result, result_size);
-
-  /* Perform the sliding window multiplication inline */
-  // Initialize result
-  zero(&temp_result);
-
-  // Process first operand in windows
-  for (size_t a_start = 0; a_start < first->sz; a_start += WINDOW_SIZE) {
-    size_t a_end = a_start + WINDOW_SIZE;
-    if (a_end > first->sz) a_end = first->sz;
-    size_t a_len = a_end - a_start;
-
-    // Process second operand in windows
-    for (size_t b_start = 0; b_start < second->sz; b_start += WINDOW_SIZE) {
-      size_t b_end = b_start + WINDOW_SIZE;
-      if (b_end > second->sz) b_end = second->sz;
-      size_t b_len = b_end - b_start;
-
-      // Multiply current windows and add to result
-      multiply_window(temp_result.p, a_start + b_start,
-                     first->p, a_start, a_len,
-                     second->p, b_start, b_len);
-    }
+  return (mp_limb)acc;
+#elif defined(_MSC_VER) && defined(MRB_64BIT)
+  /* 64-bit limbs on MSVC: use _umul128 (requires intrin.h at file level) */
+  unsigned long long carry = 0;
+  for (size_t i = 0; i < n; i++) {
+    unsigned long long hi;
+    unsigned long long lo = _umul128((unsigned long long)s1p[i],
+                                     (unsigned long long)limb, &hi);
+    unsigned long long sum = (unsigned long long)rp[i] + lo + carry;
+    rp[i] = (mp_limb)sum;
+    carry = hi + (sum < lo);
   }
-
-  temp_result.sn = first->sn * second->sn;
-  trim(&temp_result);
-
-  /* Set result using heap allocation */
-  mpz_init_auto(ctx, result, temp_result.sz);
-  mpz_set(ctx, result, &temp_result);
-
-  /* Clean up temporary */
-  mpz_clear(ctx, &temp_result);
-  return 1;
+  return (mp_limb)carry;
+#else
+  /* Portable double-limb path using mp_dbl_limb / HIGH/LOW macros */
+  mp_dbl_limb acc = 0;
+  for (size_t i = 0; i < n; i++) {
+    acc += (mp_dbl_limb)rp[i] + (mp_dbl_limb)s1p[i] * (mp_dbl_limb)limb;
+    rp[i] = LOW(acc);
+    acc = HIGH(acc);
+  }
+  return (mp_limb)acc;
+#endif
 }
 
-
-/* Memory estimation for blocked multiplication */
-static size_t
-estimate_blocked_memory(size_t a_limbs, size_t b_limbs)
-{
-  // Block buffer: BLOCK_SIZE * 2 limbs for intermediate results
-  size_t block_buffer = BLOCK_SIZE * 2 * sizeof(mp_limb);
-
-  // Result allocation (already required)
-  size_t result_size = (a_limbs + b_limbs + 1) * sizeof(mp_limb);
-
-  // Total memory requirement
-  return result_size + block_buffer;
-}
-
-/* Check if blocked multiplication should be used */
-static int
-should_use_blocked_multiplication(size_t a_limbs, size_t b_limbs)
-{
-  size_t max_limbs = (a_limbs > b_limbs) ? a_limbs : b_limbs;
-
-  // Only use for large operands where block benefits outweigh overhead
-  // Target range: 32-128 limbs (beyond sliding window, before classical fallback)
-  if (max_limbs < 32 || max_limbs > 128) {
-    return 0;
-  }
-
-  // Memory constraint check - stay within 2x limit
-  size_t classical_memory = (a_limbs + b_limbs + 1) * sizeof(mp_limb);
-  size_t blocked_memory = estimate_blocked_memory(a_limbs, b_limbs);
-
-  return (blocked_memory <= classical_memory * 2);
-}
-
-/* Multiply single block: result_block = a_block * b_block */
-static void
-multiply_block(mp_limb *result_block,
-               const mp_limb *a_block, size_t a_len,
-               const mp_limb *b_block, size_t b_len)
-{
-  // Initialize result block to zero
-  for (size_t i = 0; i < BLOCK_SIZE * 2; i++) {
-    result_block[i] = 0;
-  }
-
-  // Classical multiplication within block
-  for (size_t i = 0; i < a_len; i++) {
-    mp_limb u = a_block[i];
-    if (u == 0) continue;
-
-    mp_dbl_limb carry = 0;
-    for (size_t j = 0; j < b_len; j++) {
-      mp_limb v = b_block[j];
-      carry += (mp_dbl_limb)result_block[i + j] +
-               (mp_dbl_limb)u * (mp_dbl_limb)v;
-      result_block[i + j] = LOW(carry);
-      carry = HIGH(carry);
-    }
-
-    // Propagate final carry within block bounds
-    if (carry && (i + b_len < BLOCK_SIZE * 2)) {
-      result_block[i + b_len] = LOW(carry);
-    }
-  }
-}
-
-/* Add block result to main result at specified offset */
-static void
-add_block_to_result(mpz_t *result, const mp_limb *block_result,
-                   size_t offset, size_t block_len)
-{
-  mp_dbl_limb carry = 0;
-
-  // Add block result to main result with carry propagation
-  for (size_t i = 0; i < block_len && (offset + i) < result->sz; i++) {
-    carry += (mp_dbl_limb)result->p[offset + i] + (mp_dbl_limb)block_result[i];
-    result->p[offset + i] = LOW(carry);
-    carry = HIGH(carry);
-  }
-
-  // Propagate remaining carry beyond block boundary
-  size_t carry_pos = offset + block_len;
-  while (carry && carry_pos < result->sz) {
-    carry += (mp_dbl_limb)result->p[carry_pos];
-    result->p[carry_pos] = LOW(carry);
-    carry = HIGH(carry);
-    carry_pos++;
-  }
-}
-
-/* Blocked multiplication - processes operands in constant-memory blocks */
-static int
-mpz_mul_blocked(mpz_ctx_t *ctx, mpz_t *result, mpz_t *first, mpz_t *second)
-{
-  // Algorithm selection check
-  if (!should_use_blocked_multiplication(first->sz, second->sz)) {
-    return 0;
-  }
-
-  // Initialize result
-  mpz_realloc(ctx, result, first->sz + second->sz + 1);
-  zero(result);
-
-  // Block buffer allocation (constant memory - key advantage)
-  mp_limb block_result[BLOCK_SIZE * 2];
-
-  // Calculate block counts
-  size_t a_blocks = (first->sz + BLOCK_SIZE - 1) / BLOCK_SIZE;
-  size_t b_blocks = (second->sz + BLOCK_SIZE - 1) / BLOCK_SIZE;
-
-  // Process all block combinations
-  for (size_t i = 0; i < a_blocks; i++) {
-    for (size_t j = 0; j < b_blocks; j++) {
-
-      // Calculate block boundaries for operand A
-      size_t a_start = i * BLOCK_SIZE;
-      size_t a_len = (a_start + BLOCK_SIZE <= first->sz) ?
-                     BLOCK_SIZE : (first->sz - a_start);
-
-      // Calculate block boundaries for operand B
-      size_t b_start = j * BLOCK_SIZE;
-      size_t b_len = (b_start + BLOCK_SIZE <= second->sz) ?
-                     BLOCK_SIZE : (second->sz - b_start);
-
-      // Multiply current blocks
-      multiply_block(block_result,
-                    &first->p[a_start], a_len,
-                    &second->p[b_start], b_len);
-
-      // Add block result to main result at appropriate offset
-      size_t result_offset = (i + j) * BLOCK_SIZE;
-      add_block_to_result(result, block_result, result_offset, a_len + b_len);
-    }
-  }
-
-  result->sn = first->sn * second->sn;
-  trim(result);
-  return 1; // Success
-}
-
-/* w = u * v */
-/* Memory-efficient multiplication with algorithm selection hierarchy */
+/* w = u * v (optimized schoolbook using limb_addmul_1) */
 static void
 mpz_mul(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v)
 {
-  size_t estimated_size = u->sz + v->sz + 1;
-
-  /* Use new simplified API - heap allocation for result */
-  mpz_init_auto(ctx, ww, estimated_size);
-
   if (zero_p(u) || zero_p(v)) {
     zero(ww);
     return;
   }
 
-  // Ensure consistent operand ordering: smaller operand as second argument
-  mpz_t *first, *second;
-  if (u->sz <= v->sz) {
-    first = u;
-    second = v;
-  }
-  else {
-    first = v;
-    second = u;
+  /* Ensure outer loop iterates over the shorter operand for better cache use */
+  mpz_t *a = u, *b = v;
+  if (b->sz > a->sz) {
+    mpz_t *tmp = a; a = b; b = tmp;
   }
 
-  // Algorithm selection hierarchy:
-  // 1. Try blocked multiplication for large operands (32-128 limbs)
-  // 2. Try pool sliding window for medium operands (8-64 limbs) - uses pool memory
-  // 3. Fallback to traditional sliding window if pool fails
-  // 4. Fallback to classical multiplication
+  mpz_t w;
+  mpz_init(ctx, &w);
+  mpz_realloc(ctx, &w, a->sz + b->sz);
+  limb_zero(w.p, a->sz + b->sz);
 
-  if (mpz_mul_blocked(ctx, ww, first, second)) {
-    return;
+  for (size_t j = 0; j < a->sz; j++) {
+    mp_limb a_limb = a->p[j];
+    if (a_limb == 0) continue;
+
+    mp_limb carry = limb_addmul_1(w.p + j, b->p, b->sz, a_limb);
+    w.p[j + b->sz] += carry;
   }
 
-  // Try unified sliding window (pool first, then heap fallback)
-  if (mpz_mul_sliding_window(ctx, ww, first, second)) {
-    return;
-  }
-
-  // Fallback to classical multiplication for small/large operands
-  mpz_realloc(ctx, ww, first->sz + second->sz + 1);
-
-  // Standard multiplication algorithm with consistent operand order
-  for (size_t j = 0; j < first->sz; j++) {
-    mp_limb u0 = first->p[j];
-    if (u0 == 0) continue;
-
-    mp_dbl_limb cc = 0;
-    size_t i;
-    for (i = 0; i < second->sz; i++) {
-      mp_limb v0 = second->p[i];
-      cc += (mp_dbl_limb)ww->p[i + j] + (mp_dbl_limb)u0 * (mp_dbl_limb)v0;
-      ww->p[i + j] = LOW(cc);
-      cc = HIGH(cc);
-    }
-
-    // Propagate carries
-    while (cc && (i + j) < ww->sz) {
-      cc += (mp_dbl_limb)ww->p[i + j];
-      ww->p[i + j] = LOW(cc);
-      cc = HIGH(cc);
-      i++;
-    }
-  }
-
-  ww->sn = u->sn * v->sn;
-  trim(ww);
+  w.sn = a->sn * b->sn;
+  trim(&w);
+  mpz_move(ctx, ww, &w);
 }
 
 /* number of leading zero bits in digit */
@@ -1889,8 +1665,16 @@ mpz_pow(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mrb_int e)
 {
   mrb_uint mask = 1ULL<<(sizeof(mrb_int)*8-1);
 
-  /* Initialize result first for all cases */
-  size_t estimated_size = (e == 0) ? 1 : x->sz * e; /* Conservative estimate */
+  /* Initialize result with better size estimation for binary exponentiation */
+  size_t bits_in_e = 0;
+  mrb_int temp_e = e;
+  while (temp_e > 0) {
+    bits_in_e++;
+    temp_e >>= 1;
+  }
+  /* Each iteration can roughly double the result size, so estimate conservatively */
+  size_t estimated_size = x->sz * bits_in_e;
+  if (estimated_size < x->sz) estimated_size = x->sz;  /* Prevent underflow */
   mpz_init_auto(ctx, zz, estimated_size);
 
   if (e==0) {
@@ -1906,14 +1690,17 @@ mpz_pow(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mrb_int e)
   mask>>=1;
   for (;mask!=0; mask>>=1) {
     mpz_t temp;
+    mpz_init(ctx, &temp);
     mpz_mul(ctx, &temp, zz, zz);  /* temp = zz^2 */
     if (e & mask) {
       mpz_t temp2;
+      mpz_init(ctx, &temp2);
       mpz_mul(ctx, &temp2, &temp, x); /* temp2 = temp * x */
       mpz_move(ctx, zz, &temp2);
+      mpz_clear(ctx, &temp);  /* temp is not moved, so clear it */
     }
     else {
-      mpz_move(ctx, zz, &temp);
+      mpz_move(ctx, zz, &temp);  /* temp is moved to zz, ownership transferred */
     }
   }
 }
@@ -2525,7 +2312,7 @@ bint_as_mpz(struct RBigint *b, mpz_t *x)
 static struct RBigint*
 bint_new(mrb_state *mrb, mpz_t *x)
 {
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   struct RBigint *b = MRB_OBJ_ALLOC(mrb, MRB_TT_BIGINT, mrb->integer_class);
@@ -2546,7 +2333,7 @@ static struct RBigint*
 bint_new_int(mrb_state *mrb, mrb_int n)
 {
   mpz_t x;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   mpz_init_set_int(&ctx, &x, n);
@@ -2565,7 +2352,7 @@ mrb_value
 mrb_bint_new_int64(mrb_state *mrb, int64_t n)
 {
   mpz_t x;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
@@ -2579,7 +2366,7 @@ mrb_value
 mrb_bint_new_uint64(mrb_state *mrb, uint64_t x)
 {
   mpz_t z;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
@@ -2600,7 +2387,7 @@ mrb_bint_new_str(mrb_state *mrb, const char *x, mrb_int len, mrb_int base)
     sn = -1;
   }
   mrb_assert(2 <= base && base <= 36);
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   mpz_init_set_str(&ctx, &z, x, len, base);
@@ -2628,7 +2415,7 @@ void
 mrb_gc_free_bint(mrb_state *mrb, struct RBasic *x)
 {
   struct RBigint *b = (struct RBigint*)x;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   if (!RBIGINT_EMBED_P(b)) {
@@ -2658,7 +2445,7 @@ mrb_bint_new_float(mrb_state *mrb, mrb_float x)
   if (x < 1.0) {
     return mrb_fixnum_value(0);
   }
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
@@ -2794,7 +2581,7 @@ mrb_bint_add_n(mrb_state *mrb, mrb_value x, mrb_value y)
   mpz_t a, b, z;
 
   bint_as_mpz(RBIGINT(x), &a);
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   if (mrb_integer_p(y)) {
@@ -2837,7 +2624,7 @@ mrb_value
 mrb_bint_sub_n(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mpz_t a, b, z;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
@@ -2886,9 +2673,10 @@ bint_mul(mrb_state *mrb, mrb_value x, mrb_value y)
   bint_as_mpz(RBIGINT(x), &a);
   bint_as_mpz(RBIGINT(y), &b);
 
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  mpz_init(&ctx, &z);
   mpz_mul(&ctx, &z, &a, &b);
   return bint_new(mrb, &z);
 }
@@ -2940,7 +2728,7 @@ mrb_bint_div(mrb_state *mrb, mrb_value x, mrb_value y)
   }
   bint_as_mpz(RBIGINT(x), &a);
 
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   mpz_init(&ctx, &z);
@@ -2952,10 +2740,11 @@ mrb_value
 mrb_bint_add_ii(mrb_state *mrb, mrb_int x, mrb_int y)
 {
   mpz_t a, b, z;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
+  mpz_init(&ctx, &z);
   mpz_init_set_int(&ctx, &a, x);
   mpz_init_set_int(&ctx, &b, y);
   mpz_add(&ctx, &z, &a, &b);
@@ -2968,10 +2757,11 @@ mrb_value
 mrb_bint_sub_ii(mrb_state *mrb, mrb_int x, mrb_int y)
 {
   mpz_t a, b, z;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
+  mpz_init(&ctx, &z);
   mpz_init_set_int(&ctx, &a, x);
   mpz_init_set_int(&ctx, &b, y);
   mpz_sub(&ctx, &z, &a, &b);
@@ -2984,10 +2774,11 @@ mrb_value
 mrb_bint_mul_ii(mrb_state *mrb, mrb_int x, mrb_int y)
 {
   mpz_t a, b, z;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
+  mpz_init(&ctx, &z);
   mpz_init_set_int(&ctx, &a, x);
   mpz_init_set_int(&ctx, &b, y);
   mpz_mul(&ctx, &z, &a, &b);
@@ -3017,7 +2808,7 @@ mrb_bint_mod(mrb_state *mrb, mrb_value x, mrb_value y)
   }
   bint_as_mpz(RBIGINT(x), &a);
 
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   mpz_init(&ctx, &z);
@@ -3041,7 +2832,7 @@ mrb_bint_rem(mrb_state *mrb, mrb_value x, mrb_value y)
   }
   bint_as_mpz(RBIGINT(x), &a);
 
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   mpz_init(&ctx, &z);
@@ -3065,7 +2856,7 @@ mrb_bint_divmod(mrb_state *mrb, mrb_value x, mrb_value y)
   }
   bint_as_mpz(RBIGINT(x), &a);
 
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   mpz_init(&ctx, &c);
@@ -3103,7 +2894,7 @@ mrb_bint_cmp(mrb_state *mrb, mrb_value x, mrb_value y)
   }
   mpz_t b;
   bint_as_mpz(RBIGINT(y), &b);
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   return mpz_cmp(&ctx, &a, &b);
@@ -3125,7 +2916,7 @@ mrb_bint_pow(mrb_state *mrb, mrb_value x, mrb_value y)
   }
 
   mpz_t z;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   mpz_pow(&ctx, &z, &a, mrb_integer(y));
@@ -3138,7 +2929,7 @@ mrb_value
 mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_value exp, mrb_value mod)
 {
   mpz_t a, b, c, z;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
@@ -3190,7 +2981,7 @@ mrb_bint_to_s(mrb_state *mrb, mrb_value x, mrb_int base)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "too long string from Integer");
   }
   mrb_value str = mrb_str_new(mrb, NULL, len+2);
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   mpz_get_str(&ctx, RSTRING_PTR(str), len, base, &a);
@@ -3218,7 +3009,7 @@ mrb_bint_and(mrb_state *mrb, mrb_value x, mrb_value y)
   bint_as_mpz(RBIGINT(y), &b);
   if (zero_p(&a) || zero_p(&b)) return mrb_fixnum_value(0);
 
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   mpz_init(&ctx, &c);
@@ -3238,7 +3029,7 @@ mrb_bint_or(mrb_state *mrb, mrb_value x, mrb_value y)
     if (z == -1) return y;
   }
 
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   y = mrb_as_bint(mrb, y);
@@ -3254,7 +3045,7 @@ mrb_value
 mrb_bint_xor(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mpz_t a, b, c;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
@@ -3281,7 +3072,7 @@ mrb_value
 mrb_bint_neg(mrb_state *mrb, mrb_value x)
 {
   mpz_t a, b;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
@@ -3297,7 +3088,7 @@ mrb_value
 mrb_bint_rev(mrb_state *mrb, mrb_value x)
 {
   mpz_t a, b;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
@@ -3312,7 +3103,7 @@ mrb_value
 mrb_bint_lshift(mrb_state *mrb, mrb_value x, mrb_int width)
 {
   mpz_t a, z;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
@@ -3331,7 +3122,7 @@ mrb_value
 mrb_bint_rshift(mrb_state *mrb, mrb_value x, mrb_int width)
 {
   mpz_t a, z;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
@@ -3350,7 +3141,7 @@ void
 mrb_bint_copy(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mpz_t a, b;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
@@ -3377,7 +3168,7 @@ mrb_bint_sqrt(mrb_state *mrb, mrb_value x)
   if (a.sn < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "square root of negative number");
   }
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
@@ -3407,7 +3198,7 @@ mrb_bint_from_bytes(mrb_state *mrb, const uint8_t *bytes, mrb_int len)
 {
   mpz_t z;
   size_t limb_len = (len + sizeof(mp_limb) - 1) / sizeof(mp_limb);
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
@@ -3436,7 +3227,7 @@ mrb_value
 mrb_bint_2comp(mrb_state *mrb, mrb_value x)
 {
   mpz_t a, z;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
@@ -3464,7 +3255,7 @@ void
 mrb_bint_reduce(mrb_state *mrb, mrb_value *xp, mrb_value *yp)
 {
   mpz_t r, x, y, a, b;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
@@ -3492,7 +3283,7 @@ mrb_value
 mrb_bint_gcd(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mpz_t r, a, b;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
@@ -3516,7 +3307,7 @@ mrb_bint_lcm(mrb_state *mrb, mrb_value x, mrb_value y)
     return zero;
   }
 
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
   /* Get input operand sizes for size estimation */
@@ -3554,7 +3345,7 @@ mrb_value
 mrb_bint_abs(mrb_state *mrb, mrb_value x)
 {
   mpz_t a, result_mpz;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE};
+  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
   mpz_pool_t *pool = &pool_storage;
   mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
