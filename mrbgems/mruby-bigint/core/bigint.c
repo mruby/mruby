@@ -25,10 +25,10 @@
 #define dg(x,i) (((size_t)i < (x)->sz)?(x)->p[i]:0)
 
 /* Scoped Memory Pool Infrastructure */
-#define BIGINT_POOL_DEFAULT_SIZE 512  /* 2KB on 32-bit, 4KB on 64-bit */
+#define MRB_BIGINT_POOL_SIZE 512  /* 2KB on 32-bit, 4KB on 64-bit */
 
 typedef struct mpz_pool {
-  mp_limb data[BIGINT_POOL_DEFAULT_SIZE];
+  mp_limb data[MRB_BIGINT_POOL_SIZE];
   size_t used;
   size_t capacity;
 } mpz_pool_t;
@@ -41,7 +41,7 @@ typedef struct mpz_context {
 
 /* Convenience macros for context creation */
 #define MPZ_CTX_INIT(mrb_ptr, ctx, pool_ptr) \
-  mpz_pool_t pool ## _storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};\
+  mpz_pool_t pool ## _storage = {.capacity = MRB_BIGINT_POOL_SIZE, .used = 0};\
   mpz_pool_t *pool_ptr = &pool ## _storage;\
   mpz_ctx_t ctx = ((mpz_ctx_t){.mrb = (mrb_ptr), .pool = (pool_ptr)})
 
