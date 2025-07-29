@@ -91,7 +91,7 @@ mpz_init(mpz_ctx_t *ctx, mpz_t *s)
 
 /* Heap-preferred allocation (future: mpz_init) */
 static void
-mpz_init_auto(mpz_ctx_t *ctx, mpz_t *s, size_t hint)
+mpz_init_capa(mpz_ctx_t *ctx, mpz_t *s, size_t hint)
 {
   s->sn = 0;
   if (hint > 0) {
@@ -124,7 +124,7 @@ mpz_init_temp(mpz_ctx_t *ctx, mpz_t *s, size_t hint)
   }
 
   /* Fallback to heap allocation */
-  mpz_init_auto(ctx, s, hint);
+  mpz_init_capa(ctx, s, hint);
 }
 
 /* Check if mpz_t uses pool memory */
@@ -427,8 +427,7 @@ mpz_add(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mpz_t *y)
   }
   mpz_t z;
   size_t estimated_size = ((x->sz > y->sz) ? x->sz : y->sz) + 1;
-  mpz_init(ctx, &z);
-  mpz_realloc(ctx, &z, estimated_size);
+  mpz_init_capa(ctx, &z, estimated_size);
 
   if (x->sn > 0 && y->sn > 0) {
     uadd(&z, x, y);
@@ -593,8 +592,7 @@ mpz_mul(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v)
   }
 
   mpz_t w;
-  mpz_init(ctx, &w);
-  mpz_realloc(ctx, &w, a->sz + b->sz);
+  mpz_init_capa(ctx, &w, a->sz + b->sz);
   limb_zero(w.p, a->sz + b->sz);
 
   for (size_t j = 0; j < a->sz; j++) {
@@ -646,8 +644,7 @@ urshift(mpz_ctx_t *ctx, mpz_t *c1, mpz_t *a, size_t n)
     mp_limb cc = 0;
     mp_dbl_limb rm = (((mp_dbl_limb)1<<n) - 1);
 
-    mpz_init(ctx, &c);
-    mpz_realloc(ctx, &c, a->sz);
+    mpz_init_capa(ctx, &c, a->sz);
     for (size_t i=a->sz-1;; i--) {
       c.p[i] = ((a->p[i] >> n) | cc) & DIG_MASK;
       cc = (a->p[i] & rm) << (DIG_SIZE - n);
@@ -674,8 +671,7 @@ ulshift(mpz_ctx_t *ctx, mpz_t *c1, mpz_t *a, size_t n)
     mpz_t c;
     mp_limb rm = (((mp_dbl_limb)1<<n) - 1) << (DIG_SIZE-n);
 
-    mpz_init(ctx, &c);
-    mpz_realloc(ctx, &c, a->sz+1);
+    mpz_init_capa(ctx, &c, a->sz+1);
 
     size_t i;
     for (i=0; i<a->sz; i++) {
@@ -735,9 +731,8 @@ div_limb(mpz_ctx_t *ctx, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
       }
       else {
         size_t new_size = x->sz - limb_shift;
-        mpz_init(ctx, &temp_q);
+        mpz_init_capa(ctx, &temp_q, new_size);
         mpz_init(ctx, &temp_r);
-        mpz_realloc(ctx, &temp_q, new_size);
 
         if (bit_shift == 0) {
           /* Simple limb copy */
@@ -774,10 +769,8 @@ div_limb(mpz_ctx_t *ctx, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
   /* General single-limb division */
   if (x->sz == 1) {
     /* Both dividend and divisor are single limb */
-    mpz_init(ctx, &temp_q);
-    mpz_init(ctx, &temp_r);
-    mpz_realloc(ctx, &temp_q, 1);
-    mpz_realloc(ctx, &temp_r, 1);
+    mpz_init_capa(ctx, &temp_q, 1);
+    mpz_init_capa(ctx, &temp_r, 1);
 
     temp_q.p[0] = x->p[0] / d;
     temp_r.p[0] = x->p[0] % d;
@@ -794,8 +787,8 @@ div_limb(mpz_ctx_t *ctx, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
 
   /* Multi-limb dividend, single-limb divisor */
   size_t n = x->sz;
-  mpz_init_auto(ctx, &temp_q, n);
-  mpz_init_auto(ctx, &temp_r, 1);
+  mpz_init_capa(ctx, &temp_q, n);
+  mpz_init_capa(ctx, &temp_r, 1);
 
   mp_dbl_limb remainder = 0;
 
@@ -1099,7 +1092,7 @@ mpz_mod(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *y)
   short sn = x->sn;
 
   if (zero_p(x)) {
-    mpz_init_auto(ctx, r, 1);
+    mpz_init(ctx, r);
     zero(r);
     return;
   }
@@ -1116,7 +1109,7 @@ mpz_mod(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *y)
     mpz_t mu;
     mpz_init_temp(ctx, &mu, y->sz + 1);
     mpz_barrett_mu(ctx, &mu, y);
-    mpz_init_auto(ctx, r, y->sz);
+    mpz_init_capa(ctx, r, y->sz);
     mpz_barrett_reduce(ctx, r, x, y, &mu);
     r->sn = sn;
     if (uzero_p(r))
@@ -1128,7 +1121,7 @@ mpz_mod(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *y)
   /* General division fallback */
   mpz_t q;
   mpz_init_temp(ctx, &q, x->sz);
-  mpz_init_auto(ctx, r, y->sz);
+  mpz_init_capa(ctx, r, y->sz);
   udiv(ctx, &q, r, x, y);
   r->sn = sn;
   if (uzero_p(r))
@@ -1463,8 +1456,7 @@ mpz_mul_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
     size_t bs = e % DIG_SIZE;
     mpz_t y;
 
-    mpz_init(ctx, &y);
-    mpz_realloc(ctx, &y, x->sz+digs);
+    mpz_init_capa(ctx, &y, x->sz+digs);
     for (size_t i=0;i<x->sz;i++)
       y.p[i+digs] = x->p[i];
     if (bs) {
@@ -1483,7 +1475,7 @@ mpz_div_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
 {
   short sn = x->sn;
   if (e == 0) {
-    mpz_init_auto(ctx, z, x->sz);
+    mpz_init_capa(ctx, z, x->sz);
     mpz_set(ctx, z, x);
   }
   else {
@@ -1497,7 +1489,7 @@ mpz_div_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
     for (size_t i = 0; i < x->sz - digs; i++)
       y.p[i] = x->p[i + digs];
     if (bs) {
-      mpz_init_auto(ctx, z, new_size);
+      mpz_init_capa(ctx, z, new_size);
       urshift(ctx, z, &y, bs);
       mpz_clear(ctx, &y);
     }
@@ -1515,7 +1507,7 @@ mpz_div_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
 static void
 mpz_neg(mpz_ctx_t *ctx, mpz_t *x, mpz_t *y)
 {
-  mpz_init_auto(ctx, x, y->sz);
+  mpz_init_capa(ctx, x, y->sz);
   mpz_set(ctx, x, y);
   x->sn = -(y->sn);
 }
@@ -1525,7 +1517,7 @@ static void
 mpz_mod_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
 {
   if (e <= 0) {
-    mpz_init_auto(ctx, z, 1);
+    mpz_init(ctx, z);
     zero(z);
     return;
   }
@@ -1536,14 +1528,14 @@ mpz_mod_2exp(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mrb_int e)
 
   if (eint >= sz) {
     /* x < 2^e, so x mod 2^e = x */
-    mpz_init_auto(ctx, z, x->sz);
+    mpz_init_capa(ctx, z, x->sz);
     mpz_set(ctx, z, x);
     return;
   }
 
   /* Need to mask off high bits */
   size_t result_sz = eint + (bs > 0 ? 1 : 0);
-  mpz_init_auto(ctx, z, result_sz);
+  mpz_init_capa(ctx, z, result_sz);
   mpz_realloc(ctx, z, result_sz);
   z->sn = x->sn;
   z->sz = result_sz;
@@ -1568,14 +1560,14 @@ static void
 mpz_and(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)
 {
   if (zero_p(x) || zero_p(y)) {
-    mpz_init_auto(ctx, z, 1);
+    mpz_init(ctx, z);
     zero(z);
     return;
   }
   mrb_assert(x->sz > 0 || y->sz > 0);
 
   size_t max_sz = (x->sz > y->sz) ? x->sz : y->sz;
-  mpz_init_auto(ctx, z, max_sz);
+  mpz_init_capa(ctx, z, max_sz);
   mpz_realloc(ctx, z, max_sz);
   z->sn = (x->sn == y->sn) ? x->sn : 1;
 
@@ -1596,19 +1588,19 @@ static void
 mpz_or(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient way to do this */
 {
   if (zero_p(x)) {
-    mpz_init_auto(ctx, z, y->sz);
+    mpz_init_capa(ctx, z, y->sz);
     mpz_set(ctx, z, y);
     return;
   }
   if (zero_p(y)) {
-    mpz_init_auto(ctx, z, x->sz);
+    mpz_init_capa(ctx, z, x->sz);
     mpz_set(ctx, z, x);
     return;
   }
   mrb_assert(x->sz > 0 || y->sz > 0);
 
   size_t max_sz = (x->sz > y->sz) ? x->sz : y->sz;
-  mpz_init_auto(ctx, z, max_sz);
+  mpz_init_capa(ctx, z, max_sz);
   mpz_realloc(ctx, z, max_sz);
   z->sn = (x->sn == y->sn) ? x->sn : -1;
 
@@ -1629,19 +1621,19 @@ static void
 mpz_xor(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x, mpz_t *y)  /* not the most efficient way to do this */
 {
   if (zero_p(x)) {
-    mpz_init_auto(ctx, z, y->sz);
+    mpz_init_capa(ctx, z, y->sz);
     mpz_set(ctx, z, y);
     return;
   }
   if (zero_p(y)) {
-    mpz_init_auto(ctx, z, x->sz);
+    mpz_init_capa(ctx, z, x->sz);
     mpz_set(ctx, z, x);
     return;
   }
   mrb_assert(x->sz > 0 || y->sz > 0);
 
   size_t max_sz = (x->sz > y->sz) ? x->sz : y->sz;
-  mpz_init_auto(ctx, z, max_sz);
+  mpz_init_capa(ctx, z, max_sz);
   mpz_realloc(ctx, z, max_sz);
   z->sn = (x->sn == y->sn) ? 1 : -1;
 
@@ -1842,7 +1834,7 @@ mpz_abs_copy(mpz_ctx_t *ctx, mpz_t *result, mpz_t *operand) {
 static void
 mpz_abs(mpz_ctx_t *ctx, mpz_t *x, mpz_t *y)
 {
-  mpz_init_auto(ctx, x, y->sz);
+  mpz_init_capa(ctx, x, y->sz);
   mpz_realloc(ctx, x, y->sz);
   mpz_abs_copy(ctx, x, y);
 }
@@ -2170,7 +2162,7 @@ mpz_sqrt(mpz_ctx_t *ctx, mpz_t *z, mpz_t *x)
 
   if (x->sz == 0) {
     // sqrt(0) = 0
-    mpz_init_auto(ctx, z, 1);
+    mpz_init(ctx, z);
     z->sn = 0;
     z->sz = 0;
     return;
@@ -3053,8 +3045,7 @@ mrb_bint_from_bytes(mrb_state *mrb, const uint8_t *bytes, mrb_int len)
   size_t limb_len = (len + sizeof(mp_limb) - 1) / sizeof(mp_limb);
   MPZ_CTX_INIT(mrb, ctx, pool);
 
-  mpz_init(&ctx, &z);
-  mpz_realloc(&ctx, &z, limb_len);
+  mpz_init_capa(&ctx, &z, limb_len);
   memcpy(z.p, bytes, len);
   z.sn = (len > 0) ? 1 : 0;
   z.sz = limb_len;
