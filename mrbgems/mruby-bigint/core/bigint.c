@@ -40,8 +40,10 @@ typedef struct mpz_context {
 } mpz_ctx_t;
 
 /* Convenience macros for context creation */
-#define MPZ_CTX_HEAP(mrb_ptr) ((mpz_ctx_t){.mrb = (mrb_ptr), .pool = NULL})
-#define MPZ_CTX_POOL(mrb_ptr, pool_ptr) ((mpz_ctx_t){.mrb = (mrb_ptr), .pool = (pool_ptr)})
+#define MPZ_CTX_INIT(mrb_ptr, ctx, pool_ptr) \
+  mpz_pool_t pool ## _storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};\
+  mpz_pool_t *pool_ptr = &pool ## _storage;\
+  mpz_ctx_t ctx = ((mpz_ctx_t){.mrb = (mrb_ptr), .pool = (pool_ptr)})
 
 /* Access macros for readability */
 #define MPZ_MRB(ctx) ((ctx)->mrb)
@@ -692,10 +694,13 @@ div_limb(mpz_ctx_t *ctx, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
 {
   mrb_state *mrb = MPZ_MRB(ctx);
 
+  size_t pool_state = pool_save(ctx);
+  mpz_t temp_q, temp_r;
+
   if (zero_p(x)) {
     zero(q);
     zero(r);
-    return;
+    goto cleanup;
   }
 
   if (d == 0) {
@@ -714,9 +719,9 @@ div_limb(mpz_ctx_t *ctx, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
 
     /* Quotient = x >> shift */
     if (shift == 0) {
-      mpz_init_auto(ctx, q, x->sz);
-      mpz_init_auto(ctx, r, 1);
-      mpz_set(ctx, q, x);
+      mpz_init(ctx, &temp_q);
+      mpz_init(ctx, &temp_r);
+      mpz_set(ctx, &temp_q, x);
     }
     else {
       /* Manual right shift implementation */
@@ -724,20 +729,20 @@ div_limb(mpz_ctx_t *ctx, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
       size_t bit_shift = shift % DIG_SIZE;
 
       if (limb_shift >= x->sz) {
-        mpz_init_auto(ctx, q, 1);
-        mpz_init_auto(ctx, r, 1);
-        zero(q);
+        mpz_init(ctx, &temp_q);
+        mpz_init(ctx, &temp_r);
+        zero(&temp_q);
       }
       else {
         size_t new_size = x->sz - limb_shift;
-        mpz_init_auto(ctx, q, new_size);
-        mpz_init_auto(ctx, r, 1);
-        mpz_realloc(ctx, q, new_size);
+        mpz_init(ctx, &temp_q);
+        mpz_init(ctx, &temp_r);
+        mpz_realloc(ctx, &temp_q, new_size);
 
         if (bit_shift == 0) {
           /* Simple limb copy */
           for (size_t i = 0; i < new_size; i++) {
-            q->p[i] = x->p[i + limb_shift];
+            temp_q.p[i] = x->p[i + limb_shift];
           }
         }
         else {
@@ -745,68 +750,77 @@ div_limb(mpz_ctx_t *ctx, mpz_t *q, mpz_t *r, mpz_t *x, mp_limb d)
           mp_limb carry = 0;
           for (size_t i = new_size; i > 0; i--) {
             mp_limb current = x->p[i - 1 + limb_shift];
-            q->p[i - 1] = (current >> bit_shift) | carry;
+            temp_q.p[i - 1] = (current >> bit_shift) | carry;
             carry = (current << (DIG_SIZE - bit_shift)) & DIG_MASK;
           }
         }
-        q->sz = new_size;
-        trim(q);
-        q->sn = (q->sz == 0) ? 0 : 1;
+        temp_q.sz = new_size;
+        trim(&temp_q);
+        temp_q.sn = (temp_q.sz == 0) ? 0 : 1;
       }
     }
 
     /* Remainder = x & (d - 1) */
-    /* r is already initialized in all code paths above */
-    mpz_realloc(ctx, r, 1);
-    r->p[0] = x->p[0] & (d - 1);
-    r->sz = (r->p[0] == 0) ? 0 : 1;
-    r->sn = (r->sz == 0) ? 0 : 1;
-    return;
+    /* temp_r is already initialized in all code paths above */
+    mpz_realloc(ctx, &temp_r, 1);
+    temp_r.p[0] = x->p[0] & (d - 1);
+    temp_r.sz = (temp_r.p[0] == 0) ? 0 : 1;
+    temp_r.sn = (temp_r.sz == 0) ? 0 : 1;
+    mpz_move(ctx, q, &temp_q);
+    mpz_move(ctx, r, &temp_r);
+    goto cleanup;
   }
 
   /* General single-limb division */
   if (x->sz == 1) {
     /* Both dividend and divisor are single limb */
-    mpz_init_auto(ctx, q, 1);
-    mpz_init_auto(ctx, r, 1);
-    mpz_realloc(ctx, q, 1);
-    mpz_realloc(ctx, r, 1);
+    mpz_init(ctx, &temp_q);
+    mpz_init(ctx, &temp_r);
+    mpz_realloc(ctx, &temp_q, 1);
+    mpz_realloc(ctx, &temp_r, 1);
 
-    q->p[0] = x->p[0] / d;
-    r->p[0] = x->p[0] % d;
+    temp_q.p[0] = x->p[0] / d;
+    temp_r.p[0] = x->p[0] % d;
 
-    q->sz = (q->p[0] == 0) ? 0 : 1;
-    q->sn = (q->sz == 0) ? 0 : 1;
+    temp_q.sz = (temp_q.p[0] == 0) ? 0 : 1;
+    temp_q.sn = (temp_q.sz == 0) ? 0 : 1;
 
-    r->sz = (r->p[0] == 0) ? 0 : 1;
-    r->sn = (r->sz == 0) ? 0 : 1;
-    return;
+    temp_r.sz = (temp_r.p[0] == 0) ? 0 : 1;
+    temp_r.sn = (temp_r.sz == 0) ? 0 : 1;
+    mpz_move(ctx, q, &temp_q);
+    mpz_move(ctx, r, &temp_r);
+    goto cleanup;
   }
 
   /* Multi-limb dividend, single-limb divisor */
   size_t n = x->sz;
-  mpz_init_auto(ctx, q, n);
-  mpz_init_auto(ctx, r, 1);
-  mpz_realloc(ctx, q, n);
+  mpz_init_auto(ctx, &temp_q, n);
+  mpz_init_auto(ctx, &temp_r, 1);
 
   mp_dbl_limb remainder = 0;
 
   /* Process from most significant limb to least significant */
   for (size_t i = n; i > 0; i--) {
     remainder = (remainder << DIG_SIZE) + x->p[i-1];
-    q->p[i-1] = (mp_limb)(remainder / d);
+    temp_q.p[i-1] = (mp_limb)(remainder / d);
     remainder = remainder % d;
   }
 
   /* Set remainder */
-  mpz_realloc(ctx, r, 1);
-  r->p[0] = (mp_limb)remainder;
-  r->sz = (remainder == 0) ? 0 : 1;
-  r->sn = (r->sz == 0) ? 0 : 1;
+  temp_r.p[0] = (mp_limb)remainder;
+  temp_r.sz = (remainder == 0) ? 0 : 1;
+  temp_r.sn = (temp_r.sz == 0) ? 0 : 1;
 
   /* Trim leading zeros from quotient */
-  trim(q);
-  q->sn = (q->sz == 0) ? 0 : 1;
+  trim(&temp_q);
+  temp_q.sn = (temp_q.sz == 0) ? 0 : 1;
+
+  /* Copy results to avoid pool/heap mixing */
+  mpz_move(ctx, q, &temp_q);
+  mpz_move(ctx, r, &temp_r);
+
+cleanup:
+  pool_restore(ctx, pool_state);
 }
 
 
@@ -2204,40 +2218,35 @@ bint_as_mpz(struct RBigint *b, mpz_t *x)
 }
 
 static struct RBigint*
-bint_new(mrb_state *mrb, mpz_t *x)
+bint_new(mpz_ctx_t *ctx, mpz_t *x)
 {
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
-  struct RBigint *b = MRB_OBJ_ALLOC(mrb, MRB_TT_BIGINT, mrb->integer_class);
+  struct RBigint *b = MRB_OBJ_ALLOC(MPZ_MRB(ctx), MRB_TT_BIGINT, MPZ_MRB(ctx)->integer_class);
   if (x->sz <= RBIGINT_EMBED_SIZE_MAX) {
     RBIGINT_SET_EMBED_SIZE(b, x->sz);
     RBIGINT_SET_EMBED_SIGN(b, x->sn);
     if (x->p) memcpy(RBIGINT_EMBED_ARY(b), x->p, x->sz*sizeof(mp_limb));
-    mpz_clear(&ctx, x);
+    mpz_clear(ctx, x);
   }
   else {
     RBIGINT_SET_HEAP(b);
-    b->as.heap = *x;
+    mpz_move(ctx, &b->as.heap, x);
   }
   return b;
 }
 
 static struct RBigint*
-bint_new_int(mrb_state *mrb, mrb_int n)
+bint_new_int(mpz_ctx_t *ctx, mrb_int n)
 {
   mpz_t x;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
-  mpz_init_set_int(&ctx, &x, n);
-  return bint_new(mrb, &x);
+  mpz_init_set_int(ctx, &x, n);
+  return bint_new(ctx, &x);
 }
 
 mrb_value
 mrb_bint_new_int(mrb_state *mrb, mrb_int x)
 {
-  struct RBigint *b = bint_new_int(mrb, x);
+  MPZ_CTX_INIT(mrb, ctx, pool);
+  struct RBigint *b = bint_new_int(&ctx, x);
   return mrb_obj_value(b);
 }
 
@@ -2246,12 +2255,10 @@ mrb_value
 mrb_bint_new_int64(mrb_state *mrb, int64_t n)
 {
   mpz_t x;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
 
   mpz_set_int64(&ctx, &x, n);
-  struct RBigint *b = bint_new(mrb, &x);
+  struct RBigint *b = bint_new(&ctx, &x);
   return mrb_obj_value(b);
 }
 #endif
@@ -2260,13 +2267,11 @@ mrb_value
 mrb_bint_new_uint64(mrb_state *mrb, uint64_t x)
 {
   mpz_t z;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
 
   mpz_init(&ctx, &z);
   mpz_set_uint64(&ctx, &z, x);
-  struct RBigint *b = bint_new(mrb ,&z);
+  struct RBigint *b = bint_new(&ctx, &z);
   return mrb_obj_value(b);
 }
 
@@ -2281,14 +2286,13 @@ mrb_bint_new_str(mrb_state *mrb, const char *x, mrb_int len, mrb_int base)
     sn = -1;
   }
   mrb_assert(2 <= base && base <= 36);
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+
+  MPZ_CTX_INIT(mrb, ctx, pool);
   mpz_init_set_str(&ctx, &z, x, len, base);
   if (sn < 0) {
     z.sn = sn;
   }
-  struct RBigint *b = bint_new(mrb, &z);
+  struct RBigint *b = bint_new(&ctx, &z);
   return mrb_obj_value(b);
 }
 
@@ -2309,9 +2313,8 @@ void
 mrb_gc_free_bint(mrb_state *mrb, struct RBasic *x)
 {
   struct RBigint *b = (struct RBigint*)x;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
+
   if (!RBIGINT_EMBED_P(b)) {
     mpz_clear(&ctx, &b->as.heap);
   }
@@ -2339,10 +2342,8 @@ mrb_bint_new_float(mrb_state *mrb, mrb_float x)
   if (x < 1.0) {
     return mrb_fixnum_value(0);
   }
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
 
+  MPZ_CTX_INIT(mrb, ctx, pool);
   mpz_t r;
   mpz_init(&ctx, &r);
   r.sn = sn;
@@ -2363,7 +2364,7 @@ mrb_bint_new_float(mrb_state *mrb, mrb_float x)
     rp[i] = f;
     if (i == 0) break;
   }
-  return bint_norm(mrb, bint_new(mrb, &r));
+  return bint_norm(mrb, bint_new(&ctx, &r));
 }
 
 mrb_float
@@ -2475,9 +2476,9 @@ mrb_bint_add_n(mrb_state *mrb, mrb_value x, mrb_value y)
   mpz_t a, b, z;
 
   bint_as_mpz(RBIGINT(x), &a);
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+
+  MPZ_CTX_INIT(mrb, ctx, pool);
+
   if (mrb_integer_p(y)) {
     mrb_int n = mrb_integer(y);
     if (int_fit_limb_p(n)) {
@@ -2488,7 +2489,7 @@ mrb_bint_add_n(mrb_state *mrb, mrb_value x, mrb_value y)
       else {
         mpz_add_int(&ctx, &z, n<0 ? -n : n);
       }
-      struct RBigint *v = bint_new(mrb, &z);
+      struct RBigint *v = bint_new(&ctx, &z);
       return mrb_obj_value(v);
     }
   }
@@ -2496,7 +2497,7 @@ mrb_bint_add_n(mrb_state *mrb, mrb_value x, mrb_value y)
   bint_as_mpz(RBIGINT(y), &b);
   mpz_init(&ctx, &z);
   mpz_add(&ctx, &z, &a, &b);
-  struct RBigint *v = bint_new(mrb, &z);
+  struct RBigint *v = bint_new(&ctx, &z);
   return mrb_obj_value(v);
 }
 
@@ -2519,9 +2520,7 @@ mrb_value
 mrb_bint_sub_n(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mpz_t a, b, z;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
 
   bint_as_mpz(RBIGINT(x), &a);
   if (mrb_integer_p(y)) {
@@ -2534,7 +2533,7 @@ mrb_bint_sub_n(mrb_state *mrb, mrb_value x, mrb_value y)
       else {
         mpz_sub_int(&ctx, &z, n<0 ? -n : n);
       }
-      struct RBigint *v = bint_new(mrb, &z);
+      struct RBigint *v = bint_new(&ctx, &z);
       return mrb_obj_value(v);
     }
   }
@@ -2542,7 +2541,7 @@ mrb_bint_sub_n(mrb_state *mrb, mrb_value x, mrb_value y)
   bint_as_mpz(RBIGINT(y), &b);
   mpz_init(&ctx, &z);
   mpz_sub(&ctx, &z, &a, &b);
-  struct RBigint *v = bint_new(mrb, &z);
+  struct RBigint *v = bint_new(&ctx, &z);
   return mrb_obj_value(v);
 }
 
@@ -2569,12 +2568,10 @@ bint_mul(mrb_state *mrb, mrb_value x, mrb_value y)
   bint_as_mpz(RBIGINT(x), &a);
   bint_as_mpz(RBIGINT(y), &b);
 
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
   mpz_init(&ctx, &z);
   mpz_mul(&ctx, &z, &a, &b);
-  return bint_new(mrb, &z);
+  return bint_new(&ctx, &z);
 }
 
 mrb_value
@@ -2624,21 +2621,17 @@ mrb_bint_div(mrb_state *mrb, mrb_value x, mrb_value y)
   }
   bint_as_mpz(RBIGINT(x), &a);
 
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
   mpz_init(&ctx, &z);
   mpz_mdiv(&ctx, &z, &a, &b);
-  return bint_norm(mrb, bint_new(mrb, &z));
+  return bint_norm(mrb, bint_new(&ctx, &z));
 }
 
 mrb_value
 mrb_bint_add_ii(mrb_state *mrb, mrb_int x, mrb_int y)
 {
   mpz_t a, b, z;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
 
   mpz_init(&ctx, &z);
   mpz_init_set_int(&ctx, &a, x);
@@ -2646,16 +2639,14 @@ mrb_bint_add_ii(mrb_state *mrb, mrb_int x, mrb_int y)
   mpz_add(&ctx, &z, &a, &b);
   mpz_clear(&ctx, &a);
   mpz_clear(&ctx, &b);
-  return bint_norm(mrb, bint_new(mrb, &z));
+  return bint_norm(mrb, bint_new(&ctx, &z));
 }
 
 mrb_value
 mrb_bint_sub_ii(mrb_state *mrb, mrb_int x, mrb_int y)
 {
   mpz_t a, b, z;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
 
   mpz_init(&ctx, &z);
   mpz_init_set_int(&ctx, &a, x);
@@ -2663,16 +2654,14 @@ mrb_bint_sub_ii(mrb_state *mrb, mrb_int x, mrb_int y)
   mpz_sub(&ctx, &z, &a, &b);
   mpz_clear(&ctx, &a);
   mpz_clear(&ctx, &b);
-  return bint_norm(mrb, bint_new(mrb, &z));
+  return bint_norm(mrb, bint_new(&ctx, &z));
 }
 
 mrb_value
 mrb_bint_mul_ii(mrb_state *mrb, mrb_int x, mrb_int y)
 {
   mpz_t a, b, z;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
 
   mpz_init(&ctx, &z);
   mpz_init_set_int(&ctx, &a, x);
@@ -2680,7 +2669,7 @@ mrb_bint_mul_ii(mrb_state *mrb, mrb_int x, mrb_int y)
   mpz_mul(&ctx, &z, &a, &b);
   mpz_clear(&ctx, &a);
   mpz_clear(&ctx, &b);
-  return bint_norm(mrb, bint_new(mrb, &z));
+  return bint_norm(mrb, bint_new(&ctx, &z));
 }
 
 mrb_value
@@ -2704,12 +2693,10 @@ mrb_bint_mod(mrb_state *mrb, mrb_value x, mrb_value y)
   }
   bint_as_mpz(RBIGINT(x), &a);
 
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
   mpz_init(&ctx, &z);
   mpz_mmod(&ctx, &z, &a, &b);
-  return bint_norm(mrb, bint_new(mrb, &z));
+  return bint_norm(mrb, bint_new(&ctx, &z));
 }
 
 mrb_value
@@ -2728,12 +2715,10 @@ mrb_bint_rem(mrb_state *mrb, mrb_value x, mrb_value y)
   }
   bint_as_mpz(RBIGINT(x), &a);
 
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
   mpz_init(&ctx, &z);
   mpz_mod(&ctx, &z, &a, &b);
-  return bint_norm(mrb, bint_new(mrb, &z));
+  return bint_norm(mrb, bint_new(&ctx, &z));
 }
 
 mrb_value
@@ -2752,13 +2737,11 @@ mrb_bint_divmod(mrb_state *mrb, mrb_value x, mrb_value y)
   }
   bint_as_mpz(RBIGINT(x), &a);
 
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
   mpz_init(&ctx, &c);
   mpz_init(&ctx, &d);
   mpz_mdivmod(&ctx, &c, &d, &a, &b);
-  return mrb_assoc_new(mrb, bint_norm(mrb, bint_new(mrb, &c)), bint_norm(mrb, bint_new(mrb, &d)));
+  return mrb_assoc_new(mrb, bint_norm(mrb, bint_new(&ctx, &c)), bint_norm(mrb, bint_new(&ctx, &d)));
 }
 
 mrb_int
@@ -2790,9 +2773,7 @@ mrb_bint_cmp(mrb_state *mrb, mrb_value x, mrb_value y)
   }
   mpz_t b;
   bint_as_mpz(RBIGINT(y), &b);
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
   return mpz_cmp(&ctx, &a, &b);
 }
 
@@ -2812,12 +2793,10 @@ mrb_bint_pow(mrb_state *mrb, mrb_value x, mrb_value y)
   }
 
   mpz_t z;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
   mpz_pow(&ctx, &z, &a, mrb_integer(y));
 
-  struct RBigint *b = bint_new(mrb, &z);
+  struct RBigint *b = bint_new(&ctx, &z);
   return mrb_obj_value(b);
 }
 
@@ -2825,9 +2804,7 @@ mrb_value
 mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_value exp, mrb_value mod)
 {
   mpz_t a, b, c, z;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
 
   bint_as_mpz(RBIGINT(x), &a);
   if (mrb_integer_p(mod)) {
@@ -2854,7 +2831,7 @@ mrb_bint_powm(mrb_state *mrb, mrb_value x, mrb_value exp, mrb_value mod)
     mpz_powm_i(&ctx, &z, &a, e, &c);
   }
   if (mrb_integer_p(mod)) mpz_clear(&ctx, &c);
-  return bint_norm(mrb, bint_new(mrb, &z));
+  return bint_norm(mrb, bint_new(&ctx, &z));
 
  raise:
   if (mrb_integer_p(mod)) mpz_clear(&ctx, &c);
@@ -2877,9 +2854,7 @@ mrb_bint_to_s(mrb_state *mrb, mrb_value x, mrb_int base)
     mrb_raise(mrb, E_ARGUMENT_ERROR, "too long string from Integer");
   }
   mrb_value str = mrb_str_new(mrb, NULL, len+2);
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
   mpz_get_str(&ctx, RSTRING_PTR(str), len, base, &a);
   RSTR_SET_LEN(RSTRING(str), strlen(RSTRING_PTR(str)));
   return str;
@@ -2905,12 +2880,10 @@ mrb_bint_and(mrb_state *mrb, mrb_value x, mrb_value y)
   bint_as_mpz(RBIGINT(y), &b);
   if (zero_p(&a) || zero_p(&b)) return mrb_fixnum_value(0);
 
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
   mpz_init(&ctx, &c);
   mpz_and(&ctx, &c, &a, &b);
-  return bint_norm(mrb, bint_new(mrb, &c));
+  return bint_norm(mrb, bint_new(&ctx, &c));
 }
 
 mrb_value
@@ -2925,25 +2898,21 @@ mrb_bint_or(mrb_state *mrb, mrb_value x, mrb_value y)
     if (z == -1) return y;
   }
 
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
   y = mrb_as_bint(mrb, y);
   bint_as_mpz(RBIGINT(y), &b);
   if (zero_p(&a)) return y;
   if (zero_p(&b)) return x;
   mpz_init(&ctx, &c);
   mpz_or(&ctx, &c, &b, &a);
-  return bint_norm(mrb, bint_new(mrb, &c));
+  return bint_norm(mrb, bint_new(&ctx, &c));
 }
 
 mrb_value
 mrb_bint_xor(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mpz_t a, b, c;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
 
   bint_as_mpz(RBIGINT(x), &a);
   if (mrb_integer_p(y) && a.sn > 0) {
@@ -2952,7 +2921,7 @@ mrb_bint_xor(mrb_state *mrb, mrb_value x, mrb_value y)
     if (0 < z && (mp_dbl_limb)z < DIG_BASE) {
       mpz_init_set(&ctx, &c, &a);
       c.p[0] ^= z;
-      return bint_norm(mrb, bint_new(mrb, &c));
+      return bint_norm(mrb, bint_new(&ctx, &c));
     }
   }
   y = mrb_as_bint(mrb, y);
@@ -2961,21 +2930,19 @@ mrb_bint_xor(mrb_state *mrb, mrb_value x, mrb_value y)
   if (zero_p(&b)) return x;
   mpz_init(&ctx, &c);
   mpz_xor(&ctx, &c, &a, &b);
-  return bint_norm(mrb, bint_new(mrb, &c));
+  return bint_norm(mrb, bint_new(&ctx, &c));
 }
 
 mrb_value
 mrb_bint_neg(mrb_state *mrb, mrb_value x)
 {
   mpz_t a, b;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
 
   bint_as_mpz(RBIGINT(x), &a);
   mpz_init(&ctx, &b);
   mpz_neg(&ctx, &b, &a);
-  struct RBigint *b2 = bint_new(mrb, &b);
+  struct RBigint *b2 = bint_new(&ctx, &b);
   /* no normalization */
   return mrb_obj_value(b2);
 }
@@ -2984,24 +2951,20 @@ mrb_value
 mrb_bint_rev(mrb_state *mrb, mrb_value x)
 {
   mpz_t a, b;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
 
   bint_as_mpz(RBIGINT(x), &a);
   mpz_init(&ctx, &b);
   mpz_neg(&ctx, &b, &a);
   mpz_sub_int(&ctx, &b, 1);
-  return bint_norm(mrb, bint_new(mrb, &b));
+  return bint_norm(mrb, bint_new(&ctx, &b));
 }
 
 mrb_value
 mrb_bint_lshift(mrb_state *mrb, mrb_value x, mrb_int width)
 {
   mpz_t a, z;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
 
   bint_as_mpz(RBIGINT(x), &a);
   mpz_init(&ctx, &z);
@@ -3011,16 +2974,14 @@ mrb_bint_lshift(mrb_state *mrb, mrb_value x, mrb_int width)
   else {
     mpz_mul_2exp(&ctx, &z, &a, width);
   }
-  return bint_norm(mrb, bint_new(mrb, &z));
+  return bint_norm(mrb, bint_new(&ctx, &z));
 }
 
 mrb_value
 mrb_bint_rshift(mrb_state *mrb, mrb_value x, mrb_int width)
 {
   mpz_t a, z;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
 
   bint_as_mpz(RBIGINT(x), &a);
   mpz_init(&ctx, &z);
@@ -3030,16 +2991,14 @@ mrb_bint_rshift(mrb_state *mrb, mrb_value x, mrb_int width)
   else {
     mpz_div_2exp(&ctx, &z, &a, width);
   }
-  return bint_norm(mrb, bint_new(mrb, &z));
+  return bint_norm(mrb, bint_new(&ctx, &z));
 }
 
 void
 mrb_bint_copy(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mpz_t a, b;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
 
   bint_as_mpz(RBIGINT(x), &a);
   bint_as_mpz(RBIGINT(y), &b);
@@ -3064,15 +3023,13 @@ mrb_bint_sqrt(mrb_state *mrb, mrb_value x)
   if (a.sn < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "square root of negative number");
   }
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
 
   mpz_t z;
   mpz_init(&ctx, &z);
   mpz_sqrt(&ctx, &z, &a);
 
-  return bint_norm(mrb, bint_new(mrb, &z));
+  return bint_norm(mrb, bint_new(&ctx, &z));
 }
 
 mrb_int
@@ -3094,9 +3051,7 @@ mrb_bint_from_bytes(mrb_state *mrb, const uint8_t *bytes, mrb_int len)
 {
   mpz_t z;
   size_t limb_len = (len + sizeof(mp_limb) - 1) / sizeof(mp_limb);
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
 
   mpz_init(&ctx, &z);
   mpz_realloc(&ctx, &z, limb_len);
@@ -3104,7 +3059,7 @@ mrb_bint_from_bytes(mrb_state *mrb, const uint8_t *bytes, mrb_int len)
   z.sn = (len > 0) ? 1 : 0;
   z.sz = limb_len;
   trim(&z);
-  return bint_norm(mrb, bint_new(mrb, &z));
+  return bint_norm(mrb, bint_new(&ctx, &z));
 }
 
 mrb_value
@@ -3123,9 +3078,7 @@ mrb_value
 mrb_bint_2comp(mrb_state *mrb, mrb_value x)
 {
   mpz_t a, z;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
 
   bint_as_mpz(RBIGINT(x), &a);
   mpz_init(&ctx, &z);
@@ -3142,7 +3095,7 @@ mrb_bint_2comp(mrb_state *mrb, mrb_value x)
   }
   z.sn = 1;
 
-  struct RBigint *b2 = bint_new(mrb, &z);
+  struct RBigint *b2 = bint_new(&ctx, &z);
   return mrb_obj_value(b2);
 }
 
@@ -3151,9 +3104,7 @@ void
 mrb_bint_reduce(mrb_state *mrb, mrb_value *xp, mrb_value *yp)
 {
   mpz_t r, x, y, a, b;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
 
   mpz_init(&ctx, &r);
   mpz_init(&ctx, &a); mpz_init(&ctx, &b);
@@ -3168,8 +3119,8 @@ mrb_bint_reduce(mrb_state *mrb, mrb_value *xp, mrb_value *yp)
 
   mpz_clear(&ctx, &r);
 
-  struct RBigint *b1 = bint_new(mrb, &a);
-  struct RBigint *b2 = bint_new(mrb, &b);
+  struct RBigint *b1 = bint_new(&ctx, &a);
+  struct RBigint *b2 = bint_new(&ctx, &b);
   *xp = mrb_obj_value(b1);
   *yp = mrb_obj_value(b2);
 }
@@ -3179,9 +3130,7 @@ mrb_value
 mrb_bint_gcd(mrb_state *mrb, mrb_value x, mrb_value y)
 {
   mpz_t r, a, b;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
 
   mpz_init(&ctx, &r);
   bint_as_mpz(RBIGINT(x), &a);
@@ -3189,7 +3138,7 @@ mrb_bint_gcd(mrb_state *mrb, mrb_value x, mrb_value y)
 
   mpz_gcd(&ctx, &r, &a, &b);
 
-  struct RBigint *result = bint_new(mrb, &r);
+  struct RBigint *result = bint_new(&ctx, &r);
   return bint_norm(mrb, result);
 }
 
@@ -3203,9 +3152,7 @@ mrb_bint_lcm(mrb_state *mrb, mrb_value x, mrb_value y)
     return zero;
   }
 
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
   /* Get input operand sizes for size estimation */
   size_t x_size = RBIGINT_EMBED_P(RBIGINT(x)) ? RBIGINT_EMBED_SIZE(RBIGINT(x)) : RBIGINT(x)->as.heap.sz;
   size_t y_size = RBIGINT_EMBED_P(RBIGINT(y)) ? RBIGINT_EMBED_SIZE(RBIGINT(y)) : RBIGINT(y)->as.heap.sz;
@@ -3232,8 +3179,7 @@ mrb_bint_lcm(mrb_state *mrb, mrb_value x, mrb_value y)
   mpz_clear(&ctx, &abs_y);
   mpz_clear(&ctx, &product);
 
-  struct RBigint *result = bint_new(mrb, &result_mpz);
-  mpz_clear(&ctx, &result_mpz);
+  struct RBigint *result = bint_new(&ctx, &result_mpz);
   return mrb_obj_value(result);
 }
 
@@ -3241,15 +3187,12 @@ mrb_value
 mrb_bint_abs(mrb_state *mrb, mrb_value x)
 {
   mpz_t a, result_mpz;
-  mpz_pool_t pool_storage = {.capacity = BIGINT_POOL_DEFAULT_SIZE, .used = 0};
-  mpz_pool_t *pool = &pool_storage;
-  mpz_ctx_t ctx = MPZ_CTX_POOL(mrb, pool);
+  MPZ_CTX_INIT(mrb, ctx, pool);
 
   mpz_init(&ctx, &result_mpz);
   bint_as_mpz(RBIGINT(x), &a);
   mpz_abs(&ctx, &result_mpz, &a);
 
-  struct RBigint *result = bint_new(mrb, &result_mpz);
-  mpz_clear(&ctx, &result_mpz);
+  struct RBigint *result = bint_new(&ctx, &result_mpz);
   return mrb_obj_value(result);
 }
