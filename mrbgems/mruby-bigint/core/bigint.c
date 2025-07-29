@@ -567,35 +567,175 @@ static inline mp_limb
 limb_addmul_1(mp_limb *restrict rp, const mp_limb *restrict s1p, size_t n, mp_limb limb)
 {
 #if defined(__SIZEOF_INT128__) && (__SIZEOF_INT128__ == 16)
-  /* Use 128-bit arithmetic for maximum efficiency on 64-bit platforms */
+  /* Use 128-bit arithmetic with 8x unrolling for maximum efficiency */
   unsigned __int128 acc = 0;
-  for (size_t i = 0; i < n; i++) {
-    acc += (unsigned __int128)rp[i]
-         + (unsigned __int128)s1p[i] * (unsigned __int128)limb;
-    rp[i] = (mp_limb)acc;        /* low */
-    acc >>= DIG_SIZE;            /* keep carry */
+  size_t i;
+
+  /* 8x unrolled loop for large operands */
+  for (i = 0; i + 8 <= n; i += 8) {
+    acc += (unsigned __int128)rp[i] + (unsigned __int128)s1p[i] * (unsigned __int128)limb;
+    rp[i] = (mp_limb)acc;
+    acc >>= DIG_SIZE;
+
+    acc += (unsigned __int128)rp[i+1] + (unsigned __int128)s1p[i+1] * (unsigned __int128)limb;
+    rp[i+1] = (mp_limb)acc;
+    acc >>= DIG_SIZE;
+
+    acc += (unsigned __int128)rp[i+2] + (unsigned __int128)s1p[i+2] * (unsigned __int128)limb;
+    rp[i+2] = (mp_limb)acc;
+    acc >>= DIG_SIZE;
+
+    acc += (unsigned __int128)rp[i+3] + (unsigned __int128)s1p[i+3] * (unsigned __int128)limb;
+    rp[i+3] = (mp_limb)acc;
+    acc >>= DIG_SIZE;
+
+    acc += (unsigned __int128)rp[i+4] + (unsigned __int128)s1p[i+4] * (unsigned __int128)limb;
+    rp[i+4] = (mp_limb)acc;
+    acc >>= DIG_SIZE;
+
+    acc += (unsigned __int128)rp[i+5] + (unsigned __int128)s1p[i+5] * (unsigned __int128)limb;
+    rp[i+5] = (mp_limb)acc;
+    acc >>= DIG_SIZE;
+
+    acc += (unsigned __int128)rp[i+6] + (unsigned __int128)s1p[i+6] * (unsigned __int128)limb;
+    rp[i+6] = (mp_limb)acc;
+    acc >>= DIG_SIZE;
+
+    acc += (unsigned __int128)rp[i+7] + (unsigned __int128)s1p[i+7] * (unsigned __int128)limb;
+    rp[i+7] = (mp_limb)acc;
+    acc >>= DIG_SIZE;
   }
+
+  /* 4x unrolled loop for medium operands */
+  for (; i + 4 <= n; i += 4) {
+    acc += (unsigned __int128)rp[i] + (unsigned __int128)s1p[i] * (unsigned __int128)limb;
+    rp[i] = (mp_limb)acc;
+    acc >>= DIG_SIZE;
+
+    acc += (unsigned __int128)rp[i+1] + (unsigned __int128)s1p[i+1] * (unsigned __int128)limb;
+    rp[i+1] = (mp_limb)acc;
+    acc >>= DIG_SIZE;
+
+    acc += (unsigned __int128)rp[i+2] + (unsigned __int128)s1p[i+2] * (unsigned __int128)limb;
+    rp[i+2] = (mp_limb)acc;
+    acc >>= DIG_SIZE;
+
+    acc += (unsigned __int128)rp[i+3] + (unsigned __int128)s1p[i+3] * (unsigned __int128)limb;
+    rp[i+3] = (mp_limb)acc;
+    acc >>= DIG_SIZE;
+  }
+
+  /* Handle remaining elements */
+  for (; i < n; i++) {
+    acc += (unsigned __int128)rp[i] + (unsigned __int128)s1p[i] * (unsigned __int128)limb;
+    rp[i] = (mp_limb)acc;
+    acc >>= DIG_SIZE;
+  }
+
   return (mp_limb)acc;
+
 #elif defined(_MSC_VER) && defined(MRB_64BIT)
-  /* 64-bit limbs on MSVC: use _umul128 (requires intrin.h at file level) */
+  /* 64-bit limbs on MSVC with 6x unrolling: use _umul128 */
   unsigned long long carry = 0;
-  for (size_t i = 0; i < n; i++) {
-    unsigned long long hi;
-    unsigned long long lo = _umul128((unsigned long long)s1p[i],
-                                     (unsigned long long)limb, &hi);
+  size_t i;
+
+  /* 6x unrolled loop for large operands */
+  for (i = 0; i + 6 <= n; i += 6) {
+    unsigned long long hi, lo, sum;
+
+    lo = _umul128((unsigned long long)s1p[i], (unsigned long long)limb, &hi);
+    sum = (unsigned long long)rp[i] + lo + carry;
+    rp[i] = (mp_limb)sum;
+    carry = hi + (sum < lo);
+
+    lo = _umul128((unsigned long long)s1p[i+1], (unsigned long long)limb, &hi);
+    sum = (unsigned long long)rp[i+1] + lo + carry;
+    rp[i+1] = (mp_limb)sum;
+    carry = hi + (sum < lo);
+
+    lo = _umul128((unsigned long long)s1p[i+2], (unsigned long long)limb, &hi);
+    sum = (unsigned long long)rp[i+2] + lo + carry;
+    rp[i+2] = (mp_limb)sum;
+    carry = hi + (sum < lo);
+
+    lo = _umul128((unsigned long long)s1p[i+3], (unsigned long long)limb, &hi);
+    sum = (unsigned long long)rp[i+3] + lo + carry;
+    rp[i+3] = (mp_limb)sum;
+    carry = hi + (sum < lo);
+
+    lo = _umul128((unsigned long long)s1p[i+4], (unsigned long long)limb, &hi);
+    sum = (unsigned long long)rp[i+4] + lo + carry;
+    rp[i+4] = (mp_limb)sum;
+    carry = hi + (sum < lo);
+
+    lo = _umul128((unsigned long long)s1p[i+5], (unsigned long long)limb, &hi);
+    sum = (unsigned long long)rp[i+5] + lo + carry;
+    rp[i+5] = (mp_limb)sum;
+    carry = hi + (sum < lo);
+  }
+
+  /* 3x unrolled loop for medium operands */
+  for (; i + 3 <= n; i += 3) {
+    unsigned long long hi, lo, sum;
+
+    lo = _umul128((unsigned long long)s1p[i], (unsigned long long)limb, &hi);
+    sum = (unsigned long long)rp[i] + lo + carry;
+    rp[i] = (mp_limb)sum;
+    carry = hi + (sum < lo);
+
+    lo = _umul128((unsigned long long)s1p[i+1], (unsigned long long)limb, &hi);
+    sum = (unsigned long long)rp[i+1] + lo + carry;
+    rp[i+1] = (mp_limb)sum;
+    carry = hi + (sum < lo);
+
+    lo = _umul128((unsigned long long)s1p[i+2], (unsigned long long)limb, &hi);
+    sum = (unsigned long long)rp[i+2] + lo + carry;
+    rp[i+2] = (mp_limb)sum;
+    carry = hi + (sum < lo);
+  }
+
+  /* Handle remaining elements */
+  for (; i < n; i++) {
+    unsigned long long hi, lo;
+    lo = _umul128((unsigned long long)s1p[i], (unsigned long long)limb, &hi);
     unsigned long long sum = (unsigned long long)rp[i] + lo + carry;
     rp[i] = (mp_limb)sum;
     carry = hi + (sum < lo);
   }
+
   return (mp_limb)carry;
+
 #else
-  /* Portable double-limb path using mp_dbl_limb / HIGH/LOW macros */
+  /* Portable double-limb path with 4x unrolling */
   mp_dbl_limb acc = 0;
-  for (size_t i = 0; i < n; i++) {
+  size_t i;
+
+  /* 4x unrolled loop for better performance */
+  for (i = 0; i + 4 <= n; i += 4) {
+    acc += (mp_dbl_limb)rp[i] + (mp_dbl_limb)s1p[i] * (mp_dbl_limb)limb;
+    rp[i] = LOW(acc);
+    acc = HIGH(acc);
+
+    acc += (mp_dbl_limb)rp[i+1] + (mp_dbl_limb)s1p[i+1] * (mp_dbl_limb)limb;
+    rp[i+1] = LOW(acc);
+    acc = HIGH(acc);
+
+    acc += (mp_dbl_limb)rp[i+2] + (mp_dbl_limb)s1p[i+2] * (mp_dbl_limb)limb;
+    rp[i+2] = LOW(acc);
+    acc = HIGH(acc);
+
+    acc += (mp_dbl_limb)rp[i+3] + (mp_dbl_limb)s1p[i+3] * (mp_dbl_limb)limb;
+    rp[i+3] = LOW(acc);
+    acc = HIGH(acc);
+  }
+
+  /* Handle remaining elements */
+  for (; i < n; i++) {
     acc += (mp_dbl_limb)rp[i] + (mp_dbl_limb)s1p[i] * (mp_dbl_limb)limb;
     rp[i] = LOW(acc);
     acc = HIGH(acc);
   }
+
   return (mp_limb)acc;
 #endif
 }
