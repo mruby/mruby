@@ -413,79 +413,45 @@ zero(mpz_t *x)
 static void
 mpz_add(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mpz_t *y)
 {
-  /* Handle aliasing: if result parameter is same as input, copy input first */
-  mpz_t x_copy, y_copy;
-  mpz_t *x_ptr = x, *y_ptr = y;
-
-  if (zz == x) {
-    mpz_init_set(ctx, &x_copy, x);
-    x_ptr = &x_copy;
+  if (zero_p(x)) {
+    mpz_set(ctx, zz, y);
+    return;
   }
-  if (zz == y) {
-    mpz_init_set(ctx, &y_copy, y);
-    y_ptr = &y_copy;
+  if (zero_p(y)) {
+    mpz_set(ctx, zz, x);
+    return;
   }
+  mpz_t z;
+  size_t estimated_size = ((x->sz > y->sz) ? x->sz : y->sz) + 1;
+  mpz_init(ctx, &z);
+  mpz_realloc(ctx, &z, estimated_size);
 
-  size_t estimated_size = ((x_ptr->sz > y_ptr->sz) ? x_ptr->sz : y_ptr->sz) + 1;
-
-  /* Use new simplified API - heap allocation for result */
-  mpz_init_auto(ctx, zz, estimated_size);
-
-  if (zero_p(x_ptr)) {
-    /* Copy y to zz */
-    for (size_t i = 0; i < y_ptr->sz && i < zz->sz; i++) {
-      zz->p[i] = y_ptr->p[i];
-    }
-    zz->sz = (y_ptr->sz < zz->sz) ? y_ptr->sz : zz->sz;
-    zz->sn = y_ptr->sn;
-    goto cleanup;
+  if (x->sn > 0 && y->sn > 0) {
+    uadd(&z, x, y);
+    z.sn = 1;
   }
-  if (zero_p(y_ptr)) {
-    /* Copy x to zz */
-    for (size_t i = 0; i < x_ptr->sz && i < zz->sz; i++) {
-      zz->p[i] = x_ptr->p[i];
-    }
-    zz->sz = (x_ptr->sz < zz->sz) ? x_ptr->sz : zz->sz;
-    zz->sn = x_ptr->sn;
-    goto cleanup;
-  }
-
-  if (x_ptr->sn > 0 && y_ptr->sn > 0) {
-    /* Both positive */
-    uadd(zz, x_ptr, y_ptr);
-    zz->sn = 1;
-  }
-  else if (x_ptr->sn < 0 && y_ptr->sn < 0) {
-    /* Both negative */
-    uadd(zz, x_ptr, y_ptr);
-    zz->sn = -1;
+  else if (x->sn < 0 && y->sn < 0) {
+    uadd(&z, x, y);
+    z.sn = -1;
   }
   else {
-    /* Signs differ */
-    int mg = ucmp(x_ptr, y_ptr);
+    int mg;
 
-    if (mg == 0) {
-      zero(zz);
+    /* signs differ */
+    if ((mg = ucmp(x,y)) == 0) {
+      zero(&z);
     }
     else if (mg > 0) {  /* abs(y) < abs(x) */
-      usub(zz, x_ptr, y_ptr);
-      zz->sn = (x_ptr->sn > 0 && y_ptr->sn < 0) ? 1 : (-1);
+      usub(&z, x, y);
+      z.sn = (x->sn > 0 && y->sn < 0) ? 1 : (-1);
     }
     else { /* abs(y) > abs(x) */
-      usub(zz, y_ptr, x_ptr);
-      zz->sn = (x_ptr->sn < 0 && y_ptr->sn > 0) ? 1 : (-1);
+      usub(&z, y, x);
+      z.sn = (x->sn < 0 && y->sn > 0) ? 1 : (-1);
     }
   }
-  trim(zz);
-
-cleanup:
-  /* Clean up temporary copies if they were created */
-  if (zz == x) {
-    mpz_clear(ctx, &x_copy);
-  }
-  if (zz == y) {
-    mpz_clear(ctx, &y_copy);
-  }
+  trim(&z);
+  mpz_move(ctx, zz, &z);
 }
 
 /* x += n                                              */
@@ -2527,6 +2493,7 @@ mrb_bint_add_n(mrb_state *mrb, mrb_value x, mrb_value y)
   }
   y = mrb_as_bint(mrb, y);
   bint_as_mpz(RBIGINT(y), &b);
+  mpz_init(&ctx, &z);
   mpz_add(&ctx, &z, &a, &b);
   struct RBigint *v = bint_new(mrb, &z);
   return mrb_obj_value(v);
@@ -2572,6 +2539,7 @@ mrb_bint_sub_n(mrb_state *mrb, mrb_value x, mrb_value y)
   }
   y = mrb_as_bint(mrb, y);
   bint_as_mpz(RBIGINT(y), &b);
+  mpz_init(&ctx, &z);
   mpz_sub(&ctx, &z, &a, &b);
   struct RBigint *v = bint_new(mrb, &z);
   return mrb_obj_value(v);
