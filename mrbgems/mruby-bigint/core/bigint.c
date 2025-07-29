@@ -50,14 +50,16 @@ typedef struct mpz_context {
 
 /* Pool allocation functions */
 static size_t
-pool_save(mpz_pool_t *pool)
+pool_save(mpz_ctx_t *ctx)
 {
+  mpz_pool_t *pool = MPZ_POOL(ctx);
   return pool ? pool->used : 0;
 }
 
 static void
-pool_restore(mpz_pool_t *pool, size_t state)
+pool_restore(mpz_ctx_t *ctx, size_t state)
 {
+  mpz_pool_t *pool = MPZ_POOL(ctx);
   if (pool) {
     pool->used = state;
   }
@@ -836,7 +838,7 @@ udiv(mpz_ctx_t *ctx, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
   mrb_assert(yy->sz > 0);       /* divided by zero */
 
   /* Use new context architecture with automatic pool/heap management */
-  size_t pool_state = pool_save(MPZ_POOL(ctx));
+  size_t pool_state = pool_save(ctx);
   mpz_t q, x, y;
   mpz_init_temp(ctx, &q, xx->sz - yy->sz + 1);  /* Quotient size estimate */
   mpz_init_temp(ctx, &x, xx->sz + 1);           /* Dividend with potential carry */
@@ -947,7 +949,7 @@ udiv(mpz_ctx_t *ctx, mpz_t *qq, mpz_t *rr, mpz_t *xx, mpz_t *yy)
   mpz_clear(ctx, &q);
   mpz_clear(ctx, &x);
   mpz_clear(ctx, &y);
-  pool_restore(MPZ_POOL(ctx), pool_state);
+  pool_restore(ctx, pool_state);
 }
 
 static void
@@ -1698,7 +1700,7 @@ mpz_powm(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
     return;
   }
 
-  size_t pool_state = pool_save(MPZ_POOL(ctx));
+  size_t pool_state = pool_save(ctx);
   mpz_t t, b;
   mpz_init_set_int(ctx, &t, 1);
   mpz_init_set(ctx, &b, x);
@@ -1743,9 +1745,8 @@ mpz_powm(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mpz_t *ex, mpz_t *n)
   if (use_barrett) {
     mpz_clear(ctx, &mu);
   }
-  pool_restore(MPZ_POOL(ctx), pool_state);
+  pool_restore(ctx, pool_state);
 }
-
 
 static void
 mpz_powm_i(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mrb_int ex, mpz_t *n)
@@ -1759,7 +1760,7 @@ mpz_powm_i(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mrb_int ex, mpz_t *n)
     return;
   }
 
-  size_t pool_state = pool_save(MPZ_POOL(ctx));
+  size_t pool_state = pool_save(ctx);
   mpz_t t, b;
   mpz_init_set_int(ctx, &t, 1);
   mpz_init_set(ctx, &b, x);
@@ -1802,7 +1803,7 @@ mpz_powm_i(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mrb_int ex, mpz_t *n)
   if (use_barrett) {
     mpz_clear(ctx, &mu);
   }
-  pool_restore(MPZ_POOL(ctx), pool_state);
+  pool_restore(ctx, pool_state);
 }
 
 /* Helper functions for pool-based GCD operations */
@@ -1945,7 +1946,7 @@ mpz_power_of_2_p(mpz_t *x)
 static void
 mpz_gcd(mpz_ctx_t *ctx, mpz_t *gg, mpz_t *aa, mpz_t *bb)
 {
-  size_t pool_state = pool_save(MPZ_POOL(ctx));
+  size_t pool_state = pool_save(ctx);
   mpz_t a, b;
 
   /* Handle special cases */
@@ -2046,7 +2047,7 @@ mpz_gcd(mpz_ctx_t *ctx, mpz_t *gg, mpz_t *aa, mpz_t *bb)
   mpz_clear(ctx, &a);
   mpz_clear(ctx, &b);
 cleanup:
-  pool_restore(MPZ_POOL(ctx), pool_state);
+  pool_restore(ctx, pool_state);
 }
 
 
