@@ -25,7 +25,9 @@
 #define dg(x,i) (((size_t)i < (x)->sz)?(x)->p[i]:0)
 
 /* Scoped Memory Pool Infrastructure */
+#ifndef MRB_BIGINT_POOL_SIZE
 #define MRB_BIGINT_POOL_SIZE 512  /* 2KB on 32-bit, 4KB on 64-bit */
+#endif
 
 typedef struct mpz_pool {
   mp_limb data[MRB_BIGINT_POOL_SIZE];
