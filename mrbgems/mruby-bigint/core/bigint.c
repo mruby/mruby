@@ -30,7 +30,6 @@
 typedef struct mpz_pool {
   mp_limb data[MRB_BIGINT_POOL_SIZE];
   size_t used;
-  size_t capacity;
 } mpz_pool_t;
 
 /* MPZ Context Architecture - unified parameter for mrb_state and optional pool */
@@ -41,7 +40,7 @@ typedef struct mpz_context {
 
 /* Convenience macros for context creation */
 #define MPZ_CTX_INIT(mrb_ptr, ctx, pool_ptr) \
-  mpz_pool_t pool ## _storage = {.capacity = MRB_BIGINT_POOL_SIZE, .used = 0};\
+  mpz_pool_t pool ## _storage = {0};\
   mpz_pool_t *pool_ptr = &pool ## _storage;\
   mpz_ctx_t ctx = ((mpz_ctx_t){.mrb = (mrb_ptr), .pool = (pool_ptr)})
 
@@ -70,7 +69,7 @@ pool_restore(mpz_ctx_t *ctx, size_t state)
 static mp_limb*
 pool_alloc(mpz_pool_t *pool, size_t limbs)
 {
-  if (!pool || pool->used + limbs > pool->capacity) {
+  if (!pool || pool->used + limbs > MRB_BIGINT_POOL_SIZE) {
     return NULL;  /* Force fallback to heap */
   }
 
