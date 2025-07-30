@@ -19,6 +19,23 @@ repos:
         description: check hooks apply to the repository
   - repo: local
     hooks:
+      - id: generate-rake-docs
+        name: generate Rake task documentation
+        description: generates a Markdown report of the output when running 'rake -T'
+        # The command to execute. 'python generate_rake_docs.py' will run our script.
+        entry: python scripts/generate_rake_docs.py
+        # 'language: system' means pre-commit will execute the 'entry' command
+        # directly in your system's environment. Ensure Python is in your PATH.
+        language: system
+        # 'files: \.rake$' specifies that this hook should only run if any
+        # file ending with '.rake' (e.g., your Rakefiles) is staged for commit.
+        files: \.rake$
+        # 'pass_filenames: false' means the hook script does not receive
+        # the names of the staged files as arguments. Our script doesn't need them.
+        pass_filenames: false
+        # 'always_run: false' (default) means the hook only runs if files matching
+        # the 'files' regex are staged. This is desired behavior for this hook.
+        # If set to 'true', it would run on every commit regardless of file changes.
       - id: prettier
         name: run prettier
         description: format files with prettier
@@ -59,6 +76,7 @@ repos:
         args: [--allow-missing-credentials]
       - id: detect-private-key
       - id: end-of-file-fixer
+        exclude: \.sha256$
       - id: file-contents-sorter
         args: [--unique]
         files: ^\.github/linters/codespell\.txt$
