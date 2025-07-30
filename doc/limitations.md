@@ -217,3 +217,38 @@ Nothing printed (since `include` does not call `append_features` internally).
 ## No `#hash` call for small hashes
 
 For performance reasons, mruby avoids calling the `#hash` method on keys when a hash table is small. This means that custom `#hash` methods on key objects may not be executed.
+
+## Bare `super` calls
+
+Bare `super` calls do not pass along non-rest keyword arguments.
+
+```ruby
+class A
+  def f(a:)
+    puts a
+  end
+end
+
+class B < A
+  def f(a:)
+    super
+  end
+end
+
+B.new.f(a: 1)
+```
+
+### CRuby [ruby 3.3.0 (2023-12-25 revision 5124f9ac75)]
+
+```
+1
+```
+
+### mruby [mruby 3.3.0 (rev 204928120)]
+
+```
+trace (most recent call last):
+  [2] example.rb:13
+  [1] example.rb:9:in f
+example.rb:2:in f: missing keyword: a (ArgumentError)
+```
