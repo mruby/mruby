@@ -36,6 +36,7 @@
 #define MPZ_CTX_INIT(mrb_ptr, ctx, pool_ptr) mrb_state *ctx = (mrb_ptr);
 #define pool_save(ctx) 0
 #define pool_restore(ctx, state) (void)state
+#define pool_alloc(pool, limbs) NULL
 #else
 typedef struct mpz_pool {
   mp_limb data[MRB_BIGINT_POOL_SIZE];
@@ -812,9 +813,17 @@ limb_addmul_1(mp_limb *restrict rp, const mp_limb *restrict s1p, size_t n, mp_li
 #endif
 }
 
+#define KARATSUBA_THRESHOLD 8
+
+static inline mrb_bool
+should_use_karatsuba(size_t x_len, size_t y_len)
+{
+  return x_len >= KARATSUBA_THRESHOLD && y_len >= KARATSUBA_THRESHOLD;
+}
+
 /* w = u * v (optimized schoolbook using limb_addmul_1) */
 static void
-mpz_mul(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v)
+mpz_mul_basic(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v)
 {
   if (zero_p(u) || zero_p(v)) {
     zero(ww);
@@ -861,6 +870,247 @@ mpz_mul(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v)
   w.sn = a->sn * b->sn;
   trim(&w);
   mpz_move(ctx, ww, &w);
+}
+
+/* Allocation-free Karatsuba helper functions */
+
+/* Copy limbs: dest[0..n-1] = src[0..n-1] */
+static void
+limb_copy(mp_limb *dest, const mp_limb *src, size_t n)
+{
+  if (n > 0) {
+    memcpy(dest, src, n * sizeof(mp_limb));
+  }
+}
+
+/* Zero limbs: dest[0..n-1] = 0 */
+static void
+limb_zero_range(mp_limb *dest, size_t n)
+{
+  if (n > 0) {
+    memset(dest, 0, n * sizeof(mp_limb));
+  }
+}
+
+/* Add limbs at offset: dest[offset..offset+n-1] += src[0..n-1] */
+static void
+limb_add_at(mp_limb *dest, size_t dest_len, const mp_limb *src, size_t n, size_t offset)
+{
+  mp_limb carry = 0;
+  size_t i = 0;
+  for (i = 0; i < n; i++) {
+    mp_dbl_limb sum = (mp_dbl_limb)dest[offset + i] + (mp_dbl_limb)src[i] + carry;
+    dest[offset + i] = LOW(sum);
+    carry = HIGH(sum);
+  }
+  /* Propagate final carry */
+  i = offset + n;
+  while (carry && i < dest_len) {
+    mp_dbl_limb sum = (mp_dbl_limb)dest[i] + carry;
+    dest[i] = LOW(sum);
+    carry = HIGH(sum);
+    i++;
+  }
+}
+
+/* Subtract limbs: dest[0..n-1] -= src[0..n-1], returns borrow */
+static mp_limb
+limb_sub(mp_limb *dest, const mp_limb *src, size_t n)
+{
+  mp_dbl_limb_signed borrow = 0;
+  for (size_t i = 0; i < n; i++) {
+    borrow += (mp_dbl_limb_signed)dest[i] - (mp_dbl_limb_signed)src[i];
+    dest[i] = LOW(borrow);
+    borrow = HIGH(borrow);
+  }
+  return (mp_limb)(-borrow);
+}
+
+/* Basic multiplication for small operands */
+static void
+mpz_mul_basic_limbs(mp_limb *result, const mp_limb *x, size_t x_len,
+                    const mp_limb *y, size_t y_len)
+{
+  limb_zero_range(result, x_len + y_len);
+
+  for (size_t i = 0; i < x_len; i++) {
+    if (x[i] == 0) continue;
+    mp_limb carry = limb_addmul_1(result + i, y, y_len, x[i]);
+    if (i + y_len < x_len + y_len) {
+      result[i + y_len] += carry;
+    }
+  }
+}
+
+/* Calculate scratch space needed for Karatsuba */
+static size_t
+karatsuba_scratch_size(size_t x_len, size_t y_len)
+{
+  if (!should_use_karatsuba(x_len, y_len)) {
+    return 0;
+  }
+
+  if (x_len < y_len) {
+    size_t tmp = x_len; x_len = y_len; y_len = tmp;
+  }
+
+  size_t half = y_len / 2;
+  size_t x1_len = x_len - half;
+  size_t y1_len = y_len - half;
+
+  size_t sum_x_len = x1_len + 1;
+  size_t sum_y_len = y1_len + 1;
+
+  size_t z0_len = half + half;
+  size_t z2_len = x1_len + y1_len;
+  size_t z1_len = sum_x_len + sum_y_len;
+
+  size_t current_level_scratch = z0_len + z2_len + z1_len + sum_x_len + sum_y_len;
+
+  size_t sub_scratch = karatsuba_scratch_size(sum_x_len, sum_y_len);
+  size_t sub2 = karatsuba_scratch_size(x1_len, y1_len);
+  size_t sub3 = karatsuba_scratch_size(half, half);
+
+  if (sub2 > sub_scratch) sub_scratch = sub2;
+  if (sub3 > sub_scratch) sub_scratch = sub3;
+
+  return current_level_scratch + sub_scratch;
+}
+
+/* Pool-aware Karatsuba - zero intermediate allocations */
+static void
+mpz_mul_karatsuba(mpz_ctx_t *ctx, mp_limb *result,
+                  const mp_limb *x, size_t x_len,
+                  const mp_limb *y, size_t y_len,
+                  mp_limb *scratch)
+{
+  /* Base case - use basic multiplication */
+  if (!should_use_karatsuba(x_len, y_len)) {
+    mpz_mul_basic_limbs(result, x, x_len, y, y_len);
+    return;
+  }
+
+  /* Make x the larger operand for consistent partitioning */
+  if (x_len < y_len) {
+    const mp_limb *tmp_ptr = x; x = y; y = tmp_ptr;
+    size_t tmp_len = x_len; x_len = y_len; y_len = tmp_len;
+  }
+
+  /* Partition inputs */
+  size_t half = y_len / 2;
+
+  const mp_limb *x0 = x;
+  const mp_limb *x1 = x + half;
+  const mp_limb *y0 = y;
+  const mp_limb *y1 = y + half;
+
+  size_t x0_len = half;
+  size_t x1_len = x_len - half;
+  size_t y0_len = half;
+  size_t y1_len = y_len - half;
+
+  /* Partition scratch memory */
+  size_t offset = 0;
+  mp_limb *z0 = scratch + offset; offset += x0_len + y0_len;
+  mp_limb *z2 = scratch + offset; offset += x1_len + y1_len;
+  mp_limb *sum_x = scratch + offset; offset += x1_len + 1;
+  mp_limb *sum_y = scratch + offset; offset += y1_len + 1;
+  mp_limb *z1 = scratch + offset;
+  size_t z1_alloc_len = (x1_len + 1) + (y1_len + 1);
+  offset += z1_alloc_len;
+
+  /* Step 1: Compute sums x0+x1 and y0+y1 */
+  mp_limb carry_x = 0;
+  size_t i;
+  for (i = 0; i < x1_len; i++) {
+    mp_dbl_limb sum = (mp_dbl_limb)(i < x0_len ? x0[i] : 0) + (mp_dbl_limb)x1[i] + carry_x;
+    sum_x[i] = LOW(sum);
+    carry_x = HIGH(sum);
+  }
+  sum_x[i] = carry_x;
+  size_t sum_x_len = x1_len + (carry_x != 0);
+
+  mp_limb carry_y = 0;
+  for (i = 0; i < y1_len; i++) {
+    mp_dbl_limb sum = (mp_dbl_limb)(i < y0_len ? y0[i] : 0) + (mp_dbl_limb)y1[i] + carry_y;
+    sum_y[i] = LOW(sum);
+    carry_y = HIGH(sum);
+  }
+  sum_y[i] = carry_y;
+  size_t sum_y_len = y1_len + (carry_y != 0);
+
+  /* Step 2: Recursive multiplications */
+  mp_limb *recursive_scratch = scratch + offset;
+  mpz_mul_karatsuba(ctx, z0, x0, x0_len, y0, y0_len, recursive_scratch);
+  mpz_mul_karatsuba(ctx, z2, x1, x1_len, y1, y1_len, recursive_scratch);
+  mpz_mul_karatsuba(ctx, z1, sum_x, sum_x_len, sum_y, sum_y_len, recursive_scratch);
+
+  /* Step 3: Compute z1 = z1 - z0 - z2 */
+  size_t z0_len = x0_len + y0_len;
+  size_t z2_len = x1_len + y1_len;
+  size_t z1_len = sum_x_len + sum_y_len;
+
+  mp_limb borrow = limb_sub(z1, z0, z0_len);
+  for (i = z0_len; i < z1_len && borrow; i++) {
+    mp_dbl_limb_signed diff = (mp_dbl_limb_signed)z1[i] - borrow;
+    z1[i] = LOW(diff);
+    borrow = (diff < 0) ? 1 : 0;
+  }
+
+  borrow = limb_sub(z1, z2, z2_len);
+  for (i = z2_len; i < z1_len && borrow; i++) {
+    mp_dbl_limb_signed diff = (mp_dbl_limb_signed)z1[i] - borrow;
+    z1[i] = LOW(diff);
+    borrow = (diff < 0) ? 1 : 0;
+  }
+
+  /* Step 4: Final assembly: result = z0 + z1*B + z2*B^2 */
+  size_t result_len = x_len + y_len;
+  limb_zero_range(result, result_len);
+  limb_copy(result, z0, z0_len);
+  limb_add_at(result, result_len, z1, z1_len, half);
+  limb_add_at(result, result_len, z2, z2_len, 2 * half);
+}
+
+/* w = u * v */
+static void
+mpz_mul(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v)
+{
+  if (zero_p(u) || zero_p(v)) {
+    zero(ww);
+    return;
+  }
+
+  if (!should_use_karatsuba(u->sz, v->sz)) {
+    mpz_mul_basic(ctx, ww, u, v);
+    return;
+  }
+
+  size_t result_size = u->sz + v->sz;
+  mpz_realloc(ctx, ww, result_size);
+
+  size_t scratch_size = karatsuba_scratch_size(u->sz, v->sz);
+  size_t pool_state = pool_save(ctx);
+  mp_limb *scratch = NULL;
+
+  if (MPZ_HAS_POOL(ctx)) {
+    scratch = pool_alloc(MPZ_POOL(ctx), scratch_size);
+  }
+
+  if (scratch) {
+    mpz_mul_karatsuba(ctx, ww->p, u->p, u->sz, v->p, v->sz, scratch);
+    pool_restore(ctx, pool_state);
+  }
+  else {
+    /* Fallback to heap allocation for scratch space if pool fails */
+    scratch = (mp_limb*)mrb_malloc(MPZ_MRB(ctx), scratch_size * sizeof(mp_limb));
+    mpz_mul_karatsuba(ctx, ww->p, u->p, u->sz, v->p, v->sz, scratch);
+    mrb_free(MPZ_MRB(ctx), scratch);
+  }
+
+  ww->sz = result_size;
+  ww->sn = u->sn * v->sn;
+  trim(ww);
 }
 
 /* number of leading zero bits in digit */
