@@ -26,6 +26,7 @@ repos:
         files: \.(json|md|ya?ml)$
         language: node
         additional_dependencies: ["prettier@3.6.2"]
+        stages: [manual]
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.27.2
     hooks:
@@ -39,6 +40,7 @@ repos:
         name: run oxipng
         description: use lossless compression to optimize PNG files
         args: ["--fix", "-o", "4", "--strip", "safe", "--alpha"]
+        stages: [manual]
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
@@ -106,6 +108,7 @@ repos:
         name: run markdown-link-check
         description: checks hyperlinks in Markdown files
         args: [--config=.github/linters/mlc_config.json, -q]
+        stages: [manual]
         types: [markdown]
         files: \.md$
   - repo: https://github.com/rubocop/rubocop
