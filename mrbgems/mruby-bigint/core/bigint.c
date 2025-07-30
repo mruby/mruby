@@ -449,6 +449,78 @@ mpz_add(mpz_ctx_t *ctx, mpz_t *zz, mpz_t *x, mpz_t *y)
     mpz_set(ctx, zz, x);
     return;
   }
+
+  /* Fast path: single-limb + multi-limb */
+  if (y->sz == 1 && x->sz > 1) {
+    mp_limb y_limb = y->p[0];
+    mpz_t z;
+    mpz_init_capa(ctx, &z, x->sz + 1);
+
+    if ((x->sn > 0 && y->sn > 0) || (x->sn < 0 && y->sn < 0)) {
+      /* Same signs: addition */
+      mp_dbl_limb carry = y_limb;
+      carry += x->p[0];
+      z.p[0] = (mp_limb)carry;
+      carry >>= DIG_SIZE;
+
+      /* Propagate carry through remaining limbs */
+      for (size_t i = 1; i < x->sz; i++) {
+        carry += x->p[i];
+        z.p[i] = (mp_limb)carry;
+        carry >>= DIG_SIZE;
+      }
+      z.p[x->sz] = (mp_limb)carry;
+      z.sn = x->sn;
+    }
+    else {
+      /* Different signs: subtraction */
+      if (x->sz == 1 && y_limb == x->p[0]) {
+        /* Equal magnitude: result is zero */
+        zero(&z);
+      }
+      else if (x->sz == 1 && x->p[0] > y_limb) {
+        /* |x| > |y|: result has sign of x */
+        z.p[0] = x->p[0] - y_limb;
+        z.p[1] = 0;
+        z.sn = x->sn;
+      }
+      else {
+        /* |x| > |y|: subtract y from x */
+        mp_dbl_limb borrow = y_limb;
+        if (x->p[0] >= borrow) {
+          z.p[0] = x->p[0] - (mp_limb)borrow;
+          borrow = 0;
+        }
+        else {
+          z.p[0] = ((mp_dbl_limb)1 << DIG_SIZE) + x->p[0] - (mp_limb)borrow;
+          borrow = 1;
+        }
+
+        /* Propagate borrow through remaining limbs */
+        for (size_t i = 1; i < x->sz; i++) {
+          if (x->p[i] >= borrow) {
+            z.p[i] = x->p[i] - (mp_limb)borrow;
+            borrow = 0;
+          }
+          else {
+            z.p[i] = ((mp_dbl_limb)1 << DIG_SIZE) + x->p[i] - (mp_limb)borrow;
+            borrow = 1;
+          }
+        }
+        z.sn = x->sn;
+      }
+    }
+    trim(&z);
+    mpz_move(ctx, zz, &z);
+    return;
+  }
+
+  if (x->sz == 1 && y->sz > 1) {
+    /* Swap and use the same fast path */
+    mpz_add(ctx, zz, y, x);
+    return;
+  }
+
   mpz_t z;
   size_t estimated_size = ((x->sz > y->sz) ? x->sz : y->sz) + 1;
   mpz_init_capa(ctx, &z, estimated_size);
@@ -750,9 +822,28 @@ mpz_mul(mpz_ctx_t *ctx, mpz_t *ww, mpz_t *u, mpz_t *v)
   }
 
   /* Ensure outer loop iterates over the shorter operand for better cache use */
-  mpz_t *a = u, *b = v;
-  if (b->sz > a->sz) {
-    mpz_t *tmp = a; a = b; b = tmp;
+  mpz_t *a, *b;
+  if (v->sz > u->sz) {
+    a = v; b = u;
+  }
+  else {
+    a = u; b = v;
+  }
+
+  /* Fast path: single-limb × multi-limb */
+  if (b->sz == 1) {
+    mp_limb scalar = b->p[0];
+    mpz_t w;
+    mpz_init_capa(ctx, &w, a->sz + 1);
+    limb_zero(w.p, a->sz + 1);
+
+    mp_limb carry = limb_addmul_1(w.p, a->p, a->sz, scalar);
+    w.p[a->sz] = carry;
+
+    w.sn = a->sn * b->sn;
+    trim(&w);
+    mpz_move(ctx, ww, &w);
+    return;
   }
 
   mpz_t w;
@@ -2212,7 +2303,6 @@ mpz_gcd(mpz_ctx_t *ctx, mpz_t *gg, mpz_t *aa, mpz_t *bb)
       }
     }
   }
-
   mpz_mul_2exp(ctx, gg, &a, shift);
   mpz_clear(ctx, &a);
   mpz_clear(ctx, &b);
