@@ -6,6 +6,25 @@
 #include <mruby/hash.h>
 #include <mruby/internal.h>
 #include <mruby/presym.h>
+#include <mruby/khash.h>
+
+/* khash set for temporary array operations */
+static inline khint_t
+ary_set_hash_func(mrb_state *mrb, mrb_value key)
+{
+  return (khint_t)mrb_obj_hash_code(mrb, key);
+}
+
+static inline mrb_bool
+ary_set_equal_func(mrb_state *mrb, mrb_value a, mrb_value b)
+{
+  return mrb_eql(mrb, a, b);
+}
+
+KHASH_DECLARE(ary_set, mrb_value, char, 0)
+KHASH_DEFINE(ary_set, mrb_value, char, 0, ary_set_hash_func, ary_set_equal_func)
+
+typedef khash_t(ary_set) ary_set_t;
 
 /*
  *  call-seq:
@@ -352,13 +371,30 @@ ary_rotate_bang(mrb_state *mrb, mrb_value self)
 
 #define SET_OP_HASH_THRESHOLD 32
 
-static void
-ary_update_hash_set(mrb_state *mrb, mrb_value ary, mrb_value hash)
+/* Helper functions for temporary khash sets */
+static ary_set_t*
+ary_create_temp_set(mrb_state *mrb, mrb_int capacity)
 {
-  for (mrb_int i = 0; i < RARRAY_LEN(ary); i++) {
-    mrb_hash_set(mrb, hash, RARRAY_PTR(ary)[i], mrb_true_value());
+  return kh_init_size(ary_set, mrb, capacity > 0 ? capacity : 8);
+}
+
+static void
+ary_populate_temp_set(mrb_state *mrb, ary_set_t *set, mrb_value ary)
+{
+  mrb_int len = RARRAY_LEN(ary);
+  for (mrb_int i = 0; i < len; i++) {
+    kh_put(ary_set, mrb, set, RARRAY_PTR(ary)[i]);
   }
 }
+
+static void
+ary_destroy_temp_set(mrb_state *mrb, ary_set_t *set)
+{
+  if (set) {
+    kh_destroy(ary_set, mrb, set);
+  }
+}
+
 
 static mrb_int
 ary_get_array_args(mrb_state *mrb, mrb_int argc, const mrb_value **argv_ptr)
@@ -391,20 +427,22 @@ ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_va
   mrb_value result = mrb_ary_new(mrb);
 
   if (total_len > SET_OP_HASH_THRESHOLD) {
-    mrb_value hash = mrb_hash_new_capa(mrb, total_len);
+    ary_set_t *set = ary_create_temp_set(mrb, total_len);
 
     for (mrb_int i = 0; i < argc; i++) {
-      ary_update_hash_set(mrb, argv[i], hash);
+      ary_populate_temp_set(mrb, set, argv[i]);
     }
 
     mrb_int self_len = RARRAY_LEN(self);
     for (mrb_int i = 0; i < self_len; i++) {
       mrb_value p = RARRAY_PTR(self)[i];
-      mrb_value val = mrb_hash_get(mrb, hash, p);
-      if (mrb_nil_p(val)) {  /* key doesn't exist in any ary */
+      khiter_t k = kh_get(ary_set, mrb, set, p);
+      if (k == kh_end(set)) {  /* key doesn't exist in any ary */
         mrb_ary_push(mrb, result, p);
       }
     }
+
+    ary_destroy_temp_set(mrb, set);
   }
   else {
     mrb_int self_len = RARRAY_LEN(self);
@@ -467,18 +505,6 @@ ary_difference(mrb_state *mrb, mrb_value self)
   return ary_subtract_internal(mrb, self, argc, argv);
 }
 
-static void
-hash_update(mrb_state *mrb, mrb_value ary, mrb_value hash, mrb_value result)
-{
-  const mrb_int len = RARRAY_LEN(ary);
-  for (mrb_int i = 0; i < len; i++) {
-    mrb_value val = mrb_hash_fetch(mrb, hash, RARRAY_PTR(ary)[i], mrb_undef_value());
-    if (mrb_undef_p(val)) {  /* key doesn't exist */
-      mrb_hash_set(mrb, hash, RARRAY_PTR(ary)[i], mrb_true_value());
-      mrb_ary_push(mrb, result, RARRAY_PTR(ary)[i]);
-    }
-  }
-}
 
 static void
 add_uniq(mrb_state *mrb, mrb_value item, mrb_value result)
@@ -500,15 +526,34 @@ ary_union_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value
   mrb_value result = mrb_ary_new(mrb);
 
   if (total_len > SET_OP_HASH_THRESHOLD) {
-    mrb_value hash = mrb_hash_new_capa(mrb, total_len);
+    ary_set_t *set = ary_create_temp_set(mrb, total_len);
 
-    /* Add elements from self */
-    hash_update(mrb, self, hash, result);
-
-    /* Add elements from others */
-    for (mrb_int i = 0; i < argc; i++) {
-      hash_update(mrb, argv[i], hash, result);
+    /* Add unique elements from self */
+    mrb_int alen = RARRAY_LEN(self);
+    for (mrb_int i = 0; i < alen; i++) {
+      mrb_value elem = RARRAY_PTR(self)[i];
+      khiter_t k = kh_get(ary_set, mrb, set, elem);
+      if (k == kh_end(set)) {
+        kh_put(ary_set, mrb, set, elem);
+        mrb_ary_push(mrb, result, elem);
+      }
     }
+
+    /* Add unique elements from others */
+    for (mrb_int i = 0; i < argc; i++) {
+      mrb_value other = argv[i];
+      mrb_int olen = RARRAY_LEN(other);
+      for (mrb_int j = 0; j < olen; j++) {
+        mrb_value elem = RARRAY_PTR(other)[j];
+        khiter_t k = kh_get(ary_set, mrb, set, elem);
+        if (k == kh_end(set)) {
+          kh_put(ary_set, mrb, set, elem);
+          mrb_ary_push(mrb, result, elem);
+        }
+      }
+    }
+
+    ary_destroy_temp_set(mrb, set);
   }
   else {
     /* Use linear search for small arrays */
@@ -581,21 +626,23 @@ ary_intersection_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mr
   mrb_value result = mrb_ary_new(mrb);
 
   if (total_len > SET_OP_HASH_THRESHOLD) {
-    mrb_value hash = mrb_hash_new_capa(mrb, total_len);
+    ary_set_t *set = ary_create_temp_set(mrb, total_len);
 
     for (mrb_int i = 0; i < argc; i++) {
-      ary_update_hash_set(mrb, argv[i], hash);
+      ary_populate_temp_set(mrb, set, argv[i]);
     }
 
     mrb_int self_len = RARRAY_LEN(self);
     for (mrb_int i = 0; i < self_len; i++) {
       mrb_value p = RARRAY_PTR(self)[i];
-      mrb_value val = mrb_hash_get(mrb, hash, p);
-      if (!mrb_nil_p(val)) {
+      khiter_t k = kh_get(ary_set, mrb, set, p);
+      if (k != kh_end(set)) {
         mrb_ary_push(mrb, result, p);
-        mrb_hash_delete_key(mrb, hash, p);
+        kh_del(ary_set, mrb, set, k);
       }
     }
+
+    ary_destroy_temp_set(mrb, set);
   }
   else {
     mrb_int self_len = RARRAY_LEN(self);
@@ -674,13 +721,6 @@ ary_intersection_multi(mrb_state *mrb, mrb_value self)
 }
 
 
-static mrb_value
-ary_to_hash_set(mrb_state *mrb, mrb_value ary)
-{
-  mrb_value hash = mrb_hash_new_capa(mrb, RARRAY_LEN(ary));
-  ary_update_hash_set(mrb, ary, hash);
-  return hash;
-}
 
 /*
  *  call-seq:
@@ -717,14 +757,19 @@ ary_intersect_p(mrb_state *mrb, mrb_value self)
   }
 
   if (RARRAY_LEN(shorter_ary) > SET_OP_HASH_THRESHOLD) {
-    mrb_value hash = ary_to_hash_set(mrb, shorter_ary);
+    ary_set_t *set = ary_create_temp_set(mrb, RARRAY_LEN(shorter_ary));
+    ary_populate_temp_set(mrb, set, shorter_ary);
+
     mrb_int longer_len = RARRAY_LEN(longer_ary);
     for (mrb_int i = 0; i < longer_len; i++) {
-      mrb_value val = mrb_hash_get(mrb, hash, RARRAY_PTR(longer_ary)[i]);
-      if (!mrb_nil_p(val)) {
+      khiter_t k = kh_get(ary_set, mrb, set, RARRAY_PTR(longer_ary)[i]);
+      if (k != kh_end(set)) {
+        ary_destroy_temp_set(mrb, set);
         return mrb_true_value();
       }
     }
+
+    ary_destroy_temp_set(mrb, set);
   }
   else {
     mrb_int longer_len = RARRAY_LEN(longer_ary);
@@ -885,18 +930,22 @@ ary_uniq_bang(mrb_state *mrb, mrb_value self)
   mrb_int write_pos = 0;
 
   if (len > SET_OP_HASH_THRESHOLD) {
-    mrb_value hash = mrb_hash_new_capa(mrb, len);
-    ary_update_hash_set(mrb, self, hash);
+    ary_set_t *set = ary_create_temp_set(mrb, len);
+    ary_populate_temp_set(mrb, set, self);
+
     for (mrb_int read_pos = 0; read_pos < len; read_pos++) {
       mrb_value elem = RARRAY_PTR(self)[read_pos];
-      if (!mrb_nil_p(mrb_hash_get(mrb, hash, elem))) {
+      khiter_t k = kh_get(ary_set, mrb, set, elem);
+      if (k != kh_end(set)) {
         if (write_pos != read_pos) {
           RARRAY_PTR(self)[write_pos] = elem;
         }
         write_pos++;
-        mrb_hash_delete_key(mrb, hash, elem);
+        kh_del(ary_set, mrb, set, k);
       }
     }
+
+    ary_destroy_temp_set(mrb, set);
   }
   else {
     for (mrb_int read_pos = 0; read_pos < len; read_pos++) {
