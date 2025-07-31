@@ -146,7 +146,7 @@ method_entry_i(mrb_state *mrb, mrb_sym mid, mrb_method_t m, void *p)
 
   if (vicheck(m.flags, s->visibility) && kh_get(st, mrb, s->set, mid) == kh_end(s->set)) {
     khint_t k = kh_put(st, mrb, s->set, mid);
-    kh_val(s->set, k) = !MRB_METHOD_UNDEF_P(m);
+    kh_val(st, s->set, k) = !MRB_METHOD_UNDEF_P(m);
   }
   return 0;
 }
@@ -182,9 +182,9 @@ mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass *kl
   }
 
   ary = mrb_ary_new_capa(mrb, kh_size(set));
-  KHASH_FOREACH(mrb, set, k) {
-    if (kh_val(set, k)) {
-      mrb_ary_push(mrb, ary, mrb_symbol_value(kh_key(set, k)));
+  KHASH_FOREACH(st, mrb, set, k) {
+    if (kh_val(st, set, k)) {
+      mrb_ary_push(mrb, ary, mrb_symbol_value(kh_key(st, set, k)));
     }
   }
   kh_destroy(st, mrb, set);
@@ -295,8 +295,8 @@ mrb_obj_singleton_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj)
   }
 
   ary = mrb_ary_new(mrb);
-  KHASH_FOREACH(mrb, set, k) {
-    mrb_ary_push(mrb, ary, mrb_symbol_value(kh_key(set, k)));
+  KHASH_FOREACH(st, mrb, set, k) {
+    mrb_ary_push(mrb, ary, mrb_symbol_value(kh_key(st, set, k)));
   }
   kh_destroy(st, mrb, set);
 
