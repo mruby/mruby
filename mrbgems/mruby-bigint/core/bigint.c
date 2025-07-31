@@ -415,7 +415,31 @@ usub(mpz_t *z, mpz_t *y, mpz_t *x)
   size_t i;
 
   /* Subtract overlapping limbs from both operands */
-  for (i = 0; i < x->sz; i++) {
+  /* 4x unrolled loop for better performance */
+  for (i = 0; i + 4 <= x->sz; i += 4) {
+    b += (mp_dbl_limb_signed)y->p[i];
+    b -= (mp_dbl_limb_signed)x->p[i];
+    z->p[i] = LOW(b);
+    b = HIGH(b);
+
+    b += (mp_dbl_limb_signed)y->p[i+1];
+    b -= (mp_dbl_limb_signed)x->p[i+1];
+    z->p[i+1] = LOW(b);
+    b = HIGH(b);
+
+    b += (mp_dbl_limb_signed)y->p[i+2];
+    b -= (mp_dbl_limb_signed)x->p[i+2];
+    z->p[i+2] = LOW(b);
+    b = HIGH(b);
+
+    b += (mp_dbl_limb_signed)y->p[i+3];
+    b -= (mp_dbl_limb_signed)x->p[i+3];
+    z->p[i+3] = LOW(b);
+    b = HIGH(b);
+  }
+
+  /* Handle remaining elements */
+  for (; i < x->sz; i++) {
     b += (mp_dbl_limb_signed)y->p[i];
     b -= (mp_dbl_limb_signed)x->p[i];
     z->p[i] = LOW(b);
@@ -423,6 +447,26 @@ usub(mpz_t *z, mpz_t *y, mpz_t *x)
   }
 
   /* Process remaining limbs from minuend with borrow */
+  /* 4x unrolled loop for better performance */
+  for (; i + 4 <= y->sz; i += 4) {
+    b += y->p[i];
+    z->p[i] = LOW(b);
+    b = HIGH(b);
+
+    b += y->p[i+1];
+    z->p[i+1] = LOW(b);
+    b = HIGH(b);
+
+    b += y->p[i+2];
+    z->p[i+2] = LOW(b);
+    b = HIGH(b);
+
+    b += y->p[i+3];
+    z->p[i+3] = LOW(b);
+    b = HIGH(b);
+  }
+
+  /* Handle remaining elements */
   for (; i < y->sz; i++) {
     b += y->p[i];
     z->p[i] = LOW(b);
