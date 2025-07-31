@@ -90,6 +90,13 @@ pool_alloc(mpz_pool_t *pool, size_t limbs)
 }
 #endif
 
+/* Zero n limbs at p */
+static inline void
+limb_zero(mp_limb *p, size_t n)
+{
+  memset(p, 0, n * sizeof(mp_limb));
+}
+
 static void
 mpz_init(mpz_ctx_t *ctx, mpz_t *s)
 {
@@ -98,8 +105,6 @@ mpz_init(mpz_ctx_t *ctx, mpz_t *s)
   s->sz = 0;
 }
 
-/* New simplified API - temporary names during migration */
-
 /* Heap-preferred allocation */
 static void
 mpz_init_heap(mpz_ctx_t *ctx, mpz_t *s, size_t hint)
@@ -107,10 +112,7 @@ mpz_init_heap(mpz_ctx_t *ctx, mpz_t *s, size_t hint)
   s->sn = 0;
   if (hint > 0) {
     s->p = mrb_malloc(MPZ_MRB(ctx), hint * sizeof(mp_limb));
-    /* Zero-initialize the memory for predictable behavior */
-    for (size_t i = 0; i < hint; i++) {
-      s->p[i] = 0;
-    }
+    limb_zero(s->p, hint);
     s->sz = hint;
   }
   else {
@@ -186,9 +188,7 @@ mpz_realloc(mpz_ctx_t *ctx, mpz_t *x, size_t size)
 #endif
 
     /* Zero-initialize new limbs */
-    for (size_t i = old_sz; i < size; i++) {
-      x->p[i] = 0;
-    }
+    limb_zero(x->p + old_sz, size - old_sz);
     x->sz = size;
   }
 }
@@ -710,13 +710,6 @@ mpz_sub_int(mpz_ctx_t *ctx, mpz_t *x, mrb_int n)
 
   // Trim any unnecessary leading zeros
   trim(x);
-}
-
-/* Zero n limbs at p */
-static inline void
-limb_zero(mp_limb *p, size_t n)
-{
-  memset(p, 0, n * sizeof(mp_limb));
 }
 
 /* Multiply-and-add: rp[0..n-1] += s1p[0..n-1] * limb; return carry (high limb) */
