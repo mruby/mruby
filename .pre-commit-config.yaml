@@ -26,6 +26,14 @@ repos:
         files: \.(json|md|ya?ml)$
         language: node
         additional_dependencies: ["prettier@3.6.2"]
+      - id: check-zip-file-is-not-committed
+        name: disallow zip files
+        description: Zip files are not allowed in the repository
+        language: fail
+        entry: |
+          Zip files are not allowed in the repository as they are hard to
+          track and have security implications. Please remove the zip file from the repository.
+        files: \.zip$
   - repo: https://github.com/gitleaks/gitleaks
     rev: v8.27.2
     hooks:
