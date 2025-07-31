@@ -26,28 +26,28 @@ MRuby::CrossBuild.new("dreamcast") do |conf|
   if KOS_BASE.to_s.empty?
     raise "Error: KallistiOS is required; KOS_BASE need to be declared; Stop."
   end
-  
-  # Root directory for KallistiOS wrappers  
-  KOS_WRAPPERS = "#{KOS_BASE}/utils/build_wrappers"
 
-  # C compiler  
+  # Root directory for KallistiOS wrappers
+  KOS_WRAPPERS_BASE = "#{KOS_BASE}/utils/build_wrappers"
+
+  # C compiler
   conf.cc do |cc|
-    cc.command = "#{KOS_WRAPPERS}/kos-cc"
+    cc.command = "#{KOS_WRAPPERS_BASE}/kos-cc"
   end
 
   # C++ compiler
   conf.cxx do |cxx|
-    cxx.command = "#{KOS_WRAPPERS}/kos-c++"
+    cxx.command = "#{KOS_WRAPPERS_BASE}/kos-c++"
   end
 
   # Linker
   conf.linker do |linker|
-    linker.command = "#{KOS_WRAPPERS}/kos-ld"
+    linker.command = "#{KOS_WRAPPERS_BASE}/kos-ld"
   end
 
   # Archiver
   conf.archiver do |archiver|
-    archiver.command = "#{KOS_WRAPPERS}/kos-ar"
+    archiver.command = "#{KOS_WRAPPERS_BASE}/kos-ar"
   end
 
   # No executables needed for KallistiOS
