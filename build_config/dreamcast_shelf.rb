@@ -23,7 +23,7 @@ MRuby::CrossBuild.new("dreamcast") do |conf|
   KOS_BASE = ENV["KOS_BASE"]
 
   # Check environment variables
-  if (KOS_BASE.nil? || KOS_BASE.empty?)
+  if KOS_BASE.to_s.empty?
     raise "Error: KallistiOS is required; KOS_BASE need to be declared; Stop."
   end
   
