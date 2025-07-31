@@ -347,13 +347,53 @@ uadd(mpz_t *z, mpz_t *x, mpz_t *y)
   size_t i;
 
   /* Add overlapping limbs from both operands */
-  for (i = 0; i < x->sz; i++) {
+  /* 4x unrolled loop for better performance */
+  for (i = 0; i + 4 <= x->sz; i += 4) {
+    c += (mp_dbl_limb)y->p[i] + (mp_dbl_limb)x->p[i];
+    z->p[i] = LOW(c);
+    c >>= DIG_SIZE;
+
+    c += (mp_dbl_limb)y->p[i+1] + (mp_dbl_limb)x->p[i+1];
+    z->p[i+1] = LOW(c);
+    c >>= DIG_SIZE;
+
+    c += (mp_dbl_limb)y->p[i+2] + (mp_dbl_limb)x->p[i+2];
+    z->p[i+2] = LOW(c);
+    c >>= DIG_SIZE;
+
+    c += (mp_dbl_limb)y->p[i+3] + (mp_dbl_limb)x->p[i+3];
+    z->p[i+3] = LOW(c);
+    c >>= DIG_SIZE;
+  }
+
+  /* Handle remaining elements */
+  for (; i < x->sz; i++) {
     c += (mp_dbl_limb)y->p[i] + (mp_dbl_limb)x->p[i];
     z->p[i] = LOW(c);
     c >>= DIG_SIZE;
   }
 
   /* Add remaining limbs from larger operand */
+  /* 4x unrolled loop for better performance */
+  for (; i + 4 <= y->sz; i += 4) {
+    c += y->p[i];
+    z->p[i] = LOW(c);
+    c >>= DIG_SIZE;
+
+    c += y->p[i+1];
+    z->p[i+1] = LOW(c);
+    c >>= DIG_SIZE;
+
+    c += y->p[i+2];
+    z->p[i+2] = LOW(c);
+    c >>= DIG_SIZE;
+
+    c += y->p[i+3];
+    z->p[i+3] = LOW(c);
+    c >>= DIG_SIZE;
+  }
+
+  /* Handle remaining elements */
   for (; i < y->sz; i++) {
     c += y->p[i];
     z->p[i] = LOW(c);
