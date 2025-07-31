@@ -1694,7 +1694,7 @@ mpz_mod(mpz_ctx_t *ctx, mpz_t *r, mpz_t *x, mpz_t *y)
   }
 
   /* Barrett reduction for moderate-sized moduli */
-  if (y->sz >= 2 && y->sz <= 8 && x->sz >= y->sz + 2) {
+  if (y->sz >= 2 && y->sz <= 16 && x->sz >= y->sz + 2) {
     mpz_t mu;
     mpz_init_temp(ctx, &mu, y->sz + 1);
     mpz_barrett_mu(ctx, &mu, y);
