@@ -5,12 +5,16 @@
 # http://gamedev.allusion.net/softprj/kos/
 #
 # This configuration has been improved to be used as KallistiOS Port (kos-ports)
-# Updated: 2023-12-24
+# Updated: 2025-07-31
 #
 # Tested on GNU/Linux, macOS and Windows (MinGW-w64/MSYS2, Cygwin, DreamSDK)
 # DreamSDK is based on MinGW/MSYS: https://dreamsdk.org/
 #
 # Install mruby for Sega Dreamcast using the "mruby" kos-port.
+# See: https://github.com/kallistios/kallistios
+#
+# If you want to see examples, check the /examples/dreamcast/mruby directory
+# in the KallistiOS repository.
 #
 MRuby::CrossBuild.new("dreamcast") do |conf|
   toolchain :gcc
