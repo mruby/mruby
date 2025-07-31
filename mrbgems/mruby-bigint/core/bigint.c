@@ -967,15 +967,6 @@ limb_copy(mp_limb *dest, const mp_limb *src, size_t n)
   }
 }
 
-/* Zero limbs: dest[0..n-1] = 0 */
-static void
-limb_zero_range(mp_limb *dest, size_t n)
-{
-  if (n > 0) {
-    memset(dest, 0, n * sizeof(mp_limb));
-  }
-}
-
 /* Add limbs at offset: dest[offset..offset+n-1] += src[0..n-1] */
 static void
 limb_add_at(mp_limb *dest, size_t dest_len, const mp_limb *src, size_t n, size_t offset)
@@ -1015,7 +1006,7 @@ static void
 mpz_mul_basic_limbs(mp_limb *result, const mp_limb *x, size_t x_len,
                     const mp_limb *y, size_t y_len)
 {
-  limb_zero_range(result, x_len + y_len);
+  limb_zero(result, x_len + y_len);
 
   for (size_t i = 0; i < x_len; i++) {
     if (x[i] == 0) continue;
@@ -1150,7 +1141,7 @@ mpz_mul_karatsuba(mpz_ctx_t *ctx, mp_limb *result,
 
   /* Step 4: Final assembly: result = z0 + z1*B + z2*B^2 */
   size_t result_len = x_len + y_len;
-  limb_zero_range(result, result_len);
+  limb_zero(result, result_len);
   limb_copy(result, z0, z0_len);
   limb_add_at(result, result_len, z1, z1_len, half);
   limb_add_at(result, result_len, z2, z2_len, 2 * half);
