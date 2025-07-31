@@ -2633,38 +2633,14 @@ mpz_gcd(mpz_ctx_t *ctx, mpz_t *gg, mpz_t *aa, mpz_t *bb)
   mpz_div_2exp(ctx, &a, &a, a_zeros);
   mpz_div_2exp(ctx, &b, &b, b_zeros);
 
-  /* Use Lehmer's algorithm for large multi-limb numbers (> 3 limbs) */
-  if (a.sz > 3 && b.sz > 3) {
-    mpz_t u0, u1, v0, v1, q, r;
-    mpz_init_temp(ctx, &u0, 2);
-    mpz_init_temp(ctx, &u1, 2);
-    mpz_init_temp(ctx, &v0, 2);
-    mpz_init_temp(ctx, &v1, 2);
-    mpz_init_temp(ctx, &q, 2);
-    mpz_init_temp(ctx, &r, 2);
-
-    while (ucmp(&a, &b) != 0) {
-      if (ucmp(&a, &b) > 0) {
-        mpz_sub(ctx, &a, &a, &b);
-        mpz_div_2exp(ctx, &a, &a, mpz_trailing_zeros(&a));
-      }
-      else {
-        mpz_sub(ctx, &b, &b, &a);
-        mpz_div_2exp(ctx, &b, &b, mpz_trailing_zeros(&b));
-      }
-    }
-  }
-  else {
-    while (ucmp(&a, &b) != 0) {
-      if (ucmp(&a, &b) > 0) {
-        mpz_sub(ctx, &a, &a, &b);
-        mpz_div_2exp(ctx, &a, &a, mpz_trailing_zeros(&a));
-      }
-      else {
-        mpz_sub(ctx, &b, &b, &a);
-        mpz_div_2exp(ctx, &b, &b, mpz_trailing_zeros(&b));
-      }
-    }
+  /* Euclidean algorithm for multi-limb numbers */
+  while (!zero_p(&b)) {
+    mpz_t temp;
+    mpz_init_temp(ctx, &temp, a.sz);
+    mpz_mod(ctx, &temp, &a, &b);
+    mpz_move(ctx, &a, &b);
+    mpz_move(ctx, &b, &temp);
+    mpz_clear(ctx, &temp);
   }
   mpz_mul_2exp(ctx, gg, &a, shift);
   mpz_clear(ctx, &a);
