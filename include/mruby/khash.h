@@ -76,14 +76,6 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
   void kh_del_##name(mrb_state *mrb, kh_##name##_t *h, khint_t x);                \
   kh_##name##_t *kh_copy_##name(mrb_state *mrb, kh_##name##_t *h);
 
-static inline void
-kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
-{
-  while (len-- > 0) {
-    *p++ = c;
-  }
-}
-
 /* define kh_xxx_funcs
 
    name: hash name
@@ -105,7 +97,7 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
     h->keys = (khkey_t*)p;                                              \
     h->vals = kh_is_map ? (khval_t*)(p+sizeof(khkey_t)*sz) : NULL;      \
     h->ed_flags = p+len*sz;                                             \
-    kh_fill_flags(h->ed_flags, 0xaa, sz/4);                             \
+    memset(h->ed_flags, 0xaa, sz/4);                                    \
     return 0;                                                           \
   }                                                                     \
   void kh_alloc_##name(mrb_state *mrb, kh_##name##_t *h)                \
@@ -140,7 +132,7 @@ kh_fill_flags(uint8_t *p, uint8_t c, size_t len)
   {                                                                     \
     (void)mrb;                                                          \
     if (h && h->ed_flags) {                                             \
-      kh_fill_flags(h->ed_flags, 0xaa, h->n_buckets/4);                 \
+      memset(h->ed_flags, 0xaa, h->n_buckets/4);                        \
       h->size = 0;                                                      \
     }                                                                   \
   }                                                                     \
