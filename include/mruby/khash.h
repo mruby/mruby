@@ -162,30 +162,20 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     if (ret) *ret = 1;  /* New key */                                   \
     return h->size - 1;                                                 \
   }                                                                     \
-  static inline int kh_alloc_small_##name(mrb_state *mrb, kh_##name##_t *h) { \
+  static inline void kh_alloc_small_##name(mrb_state *mrb, kh_##name##_t *h) { \
     size_t key_size = sizeof(khkey_t) * KHASH_SMALL_THRESHOLD;          \
     size_t val_size = kh_is_map ? sizeof(khval_t) * KHASH_SMALL_THRESHOLD : 0; \
-    h->data = mrb_malloc_simple(mrb, key_size + val_size);              \
-    if (!h->data) return 1;                                             \
+    h->data = mrb_malloc(mrb, key_size + val_size);                     \
     h->size = 0;                                                        \
-    return 0;                                                           \
-  }                                                                     \
-  int kh_alloc_simple_##name(mrb_state *mrb, kh_##name##_t *h)          \
-  {                                                                     \
-    khint_t sz = h->n_buckets;                                          \
-    size_t len = sizeof(khkey_t) + (kh_is_map ? sizeof(khval_t) : 0);   \
-    uint8_t *p = (uint8_t*)mrb_malloc_simple(mrb, sizeof(uint8_t)*sz/4+len*sz); \
-    if (!p) { return 1; }                                               \
-    h->size = 0;                                                        \
-    h->data = p;  /* Single data pointer for optimized layout */        \
-    memset(kh_flags_##name(h), 0xaa, sz/4);                             \
-    return 0;                                                           \
   }                                                                     \
   void kh_alloc_##name(mrb_state *mrb, kh_##name##_t *h)                \
   {                                                                     \
-    if (kh_alloc_simple_##name(mrb, h)) {                               \
-      mrb_raise_nomemory(mrb);                                          \
-    }                                                                   \
+    khint_t sz = h->n_buckets;                                          \
+    size_t len = sizeof(khkey_t) + (kh_is_map ? sizeof(khval_t) : 0);   \
+    uint8_t *p = (uint8_t*)mrb_malloc(mrb, sizeof(uint8_t)*sz/4+len*sz); \
+    h->size = 0;                                                        \
+    h->data = p;  /* Single data pointer for optimized layout */        \
+    memset(kh_flags_##name(h), 0xaa, sz/4);                             \
   }                                                                     \
   kh_##name##_t *kh_init_##name##_size(mrb_state *mrb, khint_t size) {  \
     kh_##name##_t *h = (kh_##name##_t*)mrb_calloc(mrb, 1, sizeof(kh_##name##_t)); \
@@ -345,9 +335,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
         size = KHASH_MIN_SIZE;                                          \
       khash_power2(size);                                               \
       h->n_buckets = size;                                              \
-      if (kh_alloc_simple_##name(mrb, h)) {                             \
-        mrb_raise_nomemory(mrb);                                        \
-      }                                                                 \
+      kh_alloc_##name(mrb, h);                                          \
     }                                                                   \
   }                                                                     \
   void kh_destroy_data_##name(mrb_state *mrb, kh_##name##_t *h)         \
