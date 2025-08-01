@@ -50,27 +50,6 @@ typedef khint_t kset_iter_t;
 #define kset_put2(mrb, s, k, r) kh_put2(set_val, mrb, s, k, r)
 #define kset_get(mrb, s, k) kh_get(set_val, mrb, s, k)
 #define kset_del(mrb, s, k) kh_del(set_val, mrb, s, k)
-/* Copy all elements from src to dst (merge operation) */
-#define kset_copy_merge(mrb, dst, src) do { \
-  if (!kset_is_empty(src)) { \
-    int __ai = mrb_gc_arena_save(mrb); \
-    KSET_FOREACH(src, __k) { \
-      kset_put(mrb, dst, kset_key(src, __k)); \
-      mrb_gc_arena_restore(mrb, __ai); \
-    } \
-  } \
-} while(0)
-
-/* Replace dst with a copy of src */
-#define kset_copy_replace(mrb, dst, src) do { \
-  kset_t *__tmp = kh_copy(set_val, mrb, src); \
-  if (__tmp) { \
-    kset_destroy_data(mrb, dst); \
-    *(dst) = *__tmp; \
-    mrb_free(mrb, __tmp); \
-  } \
-} while(0)
-
 #define kset_exist(s, k) kh_exist(set_val, s, k)
 #define kset_key(s, k) kh_key(set_val, s, k)
 #define kset_size(s) kh_size(s)
@@ -81,6 +60,31 @@ typedef khint_t kset_iter_t;
 /* Helper macros for set state checking */
 #define kset_is_uninitialized(s) ((s)->data == NULL)
 #define kset_is_empty(s) (kset_is_uninitialized(s) || kset_size(s) == 0)
+
+/* Copy all elements from src to dst (merge operation) */
+static void
+kset_copy_merge(mrb_state *mrb, kset_t *dst, kset_t *src)
+{
+  if (!kset_is_empty(src)) {
+    int ai = mrb_gc_arena_save(mrb);
+    KSET_FOREACH(src, k) {
+      kset_put(mrb, dst, kset_key(src, k));
+      mrb_gc_arena_restore(mrb, ai);
+    }
+  }
+}
+
+/* Replace dst with a copy of src */
+static void
+kset_copy_replace(mrb_state *mrb, kset_t *dst, kset_t *src)
+{
+  kset_t *tmp = kh_copy(set_val, mrb, src);
+  if (tmp) {
+    kset_destroy_data(mrb, dst);
+    *dst = *tmp;
+    mrb_free(mrb, tmp);
+  }
+}
 
 /* Embedded set structure in RSet - exactly 3 pointers */
 struct RSet {
