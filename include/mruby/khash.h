@@ -25,7 +25,7 @@ typedef khint_t khiter_t;
 #endif
 #define KHASH_MIN_SIZE 8
 
-#define UPPER_BOUND(x) ((x)>>2|(x)>>1)
+#define KH_UPPER_BOUND(x) ((x) - ((x)>>3))   /* 87.5% load factor */
 
 /* extern uint8_t __m[]; */
 
@@ -48,7 +48,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
   v++;\
 } while (0)
 #define khash_mask(h) ((h)->n_buckets-1)
-#define khash_upper_bound(h) (UPPER_BOUND((h)->n_buckets))
+#define khash_upper_bound(h) (KH_UPPER_BOUND((h)->n_buckets))
 
 /* BREAKING CHANGE: khash structure optimized for 50% memory reduction
  *
