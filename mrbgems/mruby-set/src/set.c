@@ -14,8 +14,30 @@
 #include <mruby/data.h>
 #include <mruby/internal.h>
 #include <mruby/presym.h>
+#include <mruby/khash.h>
 
-/* Compact set implementation - memory optimized for struct RSet embedding */
+/* Use khash.h for set implementation - set mode (no values, only keys) */
+KHASH_DECLARE(set_val, mrb_value, char, FALSE)  /* FALSE = set mode */
+
+/* Hash and equality functions for mrb_value keys */
+static inline khint_t
+kset_hash_value(mrb_state *mrb, mrb_value key)
+{
+  return (khint_t)mrb_obj_hash_code(mrb, key);
+}
+
+static inline mrb_bool
+kset_equal_value(mrb_state *mrb, mrb_value a, mrb_value b)
+{
+  return mrb_eql(mrb, a, b);
+}
+
+KHASH_DEFINE(set_val, mrb_value, char, FALSE, kset_hash_value, kset_equal_value)
+
+/* Compatibility layer: map old kset API to new khash API */
+typedef kh_set_val_t kset_t;
+
+/* Legacy type definitions */
 typedef uint32_t kset_int_t;
 typedef kset_int_t kset_iter_t;
 
@@ -26,62 +48,57 @@ typedef kset_int_t kset_iter_t;
 
 #define KSET_UPPER_BOUND(x) ((x)>>2|(x)>>1)
 
-/* Flag masks for empty/deleted status - 2 bits per bucket */
+/* Flag masks for compatibility with remaining custom kset functions */
 static const uint8_t kset_empty_mask[]  = {0x02, 0x08, 0x20, 0x80};
 static const uint8_t kset_del_mask[]    = {0x01, 0x04, 0x10, 0x40};
 static const uint8_t kset_either_mask[] = {0x03, 0x0c, 0x30, 0xc0};
 
-#define KSET_IS_EMPTY(flags, i) (flags[(i)/4] & kset_empty_mask[(i)%4])
-#define KSET_IS_DEL(flags, i) (flags[(i)/4] & kset_del_mask[(i)%4])
-#define KSET_IS_EITHER(flags, i) (flags[(i)/4] & kset_either_mask[(i)%4])
-
+/* Utility macros for remaining custom kset functions */
+#define KSET_IS_EMPTY(flags, i) (flags[(i)/4]&kset_empty_mask[(i)%4])
+#define KSET_IS_DEL(flags, i) (flags[(i)/4]&kset_del_mask[(i)%4])
+#define KSET_IS_EITHER(flags, i) (flags[(i)/4]&kset_either_mask[(i)%4])
 #define kset_power2(v) do { \
-  v--; \
-  v |= v >> 1; \
-  v |= v >> 2; \
-  v |= v >> 4; \
-  v |= v >> 8; \
-  v |= v >> 16; \
-  v++; \
+  v--;\
+  v |= v >> 1;\
+  v |= v >> 2;\
+  v |= v >> 4;\
+  v |= v >> 8;\
+  v |= v >> 16;\
+  v++;\
 } while (0)
-
-#define kset_mask(s) ((s)->n_buckets - 1)
+#define kset_mask(s) ((s)->n_buckets-1)
 #define kset_upper_bound(s) (KSET_UPPER_BOUND((s)->n_buckets))
 #define kset_end(s) ((s)->n_buckets)
 
-/* Compact set structure - exactly 3 pointers in size */
-typedef struct kset {
-  void *data;           /* Combined keys + flags memory block */
-  kset_int_t n_buckets; /* Number of buckets (power of 2) */
-  kset_int_t size;      /* Number of elements */
-} kset_t;
-
-/* Memory layout: [keys...][flags...] */
-#define kset_keys(s) ((mrb_value*)(s)->data)
-#define kset_flags(s) ((uint8_t*)((s)->data) + sizeof(mrb_value) * (s)->n_buckets)
-
 /* Fill flags with pattern */
 static inline void
-kset_fill_flags(uint8_t *p, uint8_t c, size_t len)
+kset_fill_flags(uint8_t *flags, uint8_t pattern, size_t size)
 {
-  while (len-- > 0) {
-    *p++ = c;
-  }
+  memset(flags, pattern, size);
 }
 
-/* Hash function for mrb_value */
-static inline kset_int_t
-kset_hash_value(mrb_state *mrb, mrb_value key)
-{
-  return (kset_int_t)mrb_obj_hash_code(mrb, key);
-}
-
-/* Equality function for mrb_value */
+/* Check if set is uninitialized */
 static inline mrb_bool
-kset_equal_value(mrb_state *mrb, mrb_value a, mrb_value b)
+kset_is_uninitialized(const kset_t *s)
 {
-  return mrb_eql(mrb, a, b);
+  return s->data == NULL;
 }
+
+/* Check if set is empty */
+static inline mrb_bool
+kset_is_empty(const kset_t *s)
+{
+  return s->size == 0;
+}
+
+/* Iterator macros for remaining custom code */
+#define KSET_FOREACH(s, iter) \
+  for (kset_iter_t iter = 0; iter != kset_end(s); iter++) \
+    if (!KSET_IS_EITHER(kset_flags(s), iter))
+
+/* Compatibility macros for accessing khash data */
+#define kset_keys(s) kh_keys_set_val(s)
+#define kset_flags(s) kh_flags_set_val(s)
 
 /*
  * Inserts a key into the provided hash table arrays (keys and flags).
@@ -143,15 +160,6 @@ kset_raw_put(mrb_state *mrb, mrb_value key, mrb_value *keys_array, uint8_t *flag
     return k;
   }
 }
-
-/* Convenience macros for common operations */
-#define kset_is_uninitialized(s) (!(s)->data)
-#define kset_is_empty(s) (!(s)->data || (s)->size == 0)
-
-/* Macro for iterating over all elements in a kset */
-#define KSET_FOREACH(s, k) \
-  for (kset_iter_t k = 0; k != kset_end(s); k++) \
-    if (kset_exist(s, k))
 
 /* Initialize set with specific size */
 static kset_t*
