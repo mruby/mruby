@@ -24,6 +24,7 @@ typedef khint_t khiter_t;
 # define KHASH_DEFAULT_SIZE 8
 #endif
 #define KHASH_MIN_SIZE 8
+#define KHASH_SMALL_THRESHOLD 4
 
 #define KH_UPPER_BOUND(x) ((x) - ((x)>>3))   /* 87.5% load factor */
 
@@ -111,6 +112,62 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
 */
 #define KHASH_DEFINE(name, khkey_t, khval_t, kh_is_map, __hash_func, __hash_equal) \
   mrb_noreturn void mrb_raise_nomemory(mrb_state *mrb);                 \
+  /* Small table optimization functions */                              \
+  static inline int kh_is_small_##name(const kh_##name##_t *h) {        \
+    return h->n_buckets == 0;  /* Small table marker */                 \
+  }                                                                     \
+  static inline khint_t kh_get_small_##name(mrb_state *mrb, kh_##name##_t *h, khkey_t key) { \
+    khkey_t *keys = kh_keys_##name(h);                                  \
+    for (khint_t i = 0; i < h->size; i++) {                             \
+      if (__hash_equal(mrb, keys[i], key)) return i;                    \
+    }                                                                   \
+    return h->size;  /* Not found - return end position */              \
+  }                                                                     \
+  static inline khint_t kh_put_small_##name(mrb_state *mrb, kh_##name##_t *h, khkey_t key, int *ret) { \
+    /* First check if key exists */                                     \
+    khint_t pos = kh_get_small_##name(mrb, h, key);                     \
+    if (pos < h->size) {                                                \
+      if (ret) *ret = 0;  /* Key exists */                              \
+      return pos;                                                       \
+    }                                                                   \
+    /* Check if we need to convert to hash table */                     \
+    if (h->size >= KHASH_SMALL_THRESHOLD) {                             \
+      /* Convert from small table to hash table (inlined) */            \
+      khkey_t *old_keys = kh_keys_##name(h);                            \
+      khval_t *old_vals = kh_vals_##name(h);                            \
+      khint_t old_size = h->size;                                       \
+      void *old_data = h->data;                                         \
+      /* Allocate proper hash table */                                  \
+      h->n_buckets = KHASH_MIN_SIZE;                                    \
+      h->size = 0;                                                      \
+      kh_alloc_##name(mrb, h);                                          \
+      /* Rehash existing elements */                                    \
+      for (khint_t i = 0; i < old_size; i++) {                          \
+        khint_t k = kh_put_##name(mrb, h, old_keys[i], NULL);           \
+        if (kh_is_map) {                                                \
+          khval_t *new_vals = kh_vals_##name(h);                        \
+          new_vals[k] = old_vals[i];                                    \
+        }                                                               \
+      }                                                                 \
+      mrb_free(mrb, old_data);                                          \
+      /* Now add the new key using regular hash table */                \
+      return kh_put_##name(mrb, h, key, ret);                           \
+    }                                                                   \
+    /* Add new element to small table */                                \
+    khkey_t *keys = kh_keys_##name(h);                                  \
+    keys[h->size] = key;                                                \
+    h->size++;                                                          \
+    if (ret) *ret = 1;  /* New key */                                   \
+    return h->size - 1;                                                 \
+  }                                                                     \
+  static inline int kh_alloc_small_##name(mrb_state *mrb, kh_##name##_t *h) { \
+    size_t key_size = sizeof(khkey_t) * KHASH_SMALL_THRESHOLD;          \
+    size_t val_size = kh_is_map ? sizeof(khval_t) * KHASH_SMALL_THRESHOLD : 0; \
+    h->data = mrb_malloc_simple(mrb, key_size + val_size);              \
+    if (!h->data) return 1;                                             \
+    h->size = 0;                                                        \
+    return 0;                                                           \
+  }                                                                     \
   int kh_alloc_simple_##name(mrb_state *mrb, kh_##name##_t *h)          \
   {                                                                     \
     khint_t sz = h->n_buckets;                                          \
@@ -130,13 +187,23 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
   }                                                                     \
   kh_##name##_t *kh_init_##name##_size(mrb_state *mrb, khint_t size) {  \
     kh_##name##_t *h = (kh_##name##_t*)mrb_calloc(mrb, 1, sizeof(kh_##name##_t)); \
-    if (size < KHASH_MIN_SIZE)                                          \
-      size = KHASH_MIN_SIZE;                                            \
-    khash_power2(size);                                                 \
-    h->n_buckets = size;                                                \
-    if (kh_alloc_simple_##name(mrb, h)) {                               \
-      mrb_free(mrb, h);                                                 \
-      mrb_raise_nomemory(mrb);                                          \
+    if (size <= KHASH_SMALL_THRESHOLD) {                                \
+      /* Start as small table */                                        \
+      h->n_buckets = 0;  /* Small table marker */                       \
+      if (kh_alloc_small_##name(mrb, h)) {                              \
+        mrb_free(mrb, h);                                               \
+        mrb_raise_nomemory(mrb);                                        \
+      }                                                                 \
+    } else {                                                            \
+      /* Start as regular hash table */                                 \
+      if (size < KHASH_MIN_SIZE)                                        \
+        size = KHASH_MIN_SIZE;                                          \
+      khash_power2(size);                                               \
+      h->n_buckets = size;                                              \
+      if (kh_alloc_simple_##name(mrb, h)) {                             \
+        mrb_free(mrb, h);                                               \
+        mrb_raise_nomemory(mrb);                                        \
+      }                                                                 \
     }                                                                   \
     return h;                                                           \
   }                                                                     \
@@ -160,6 +227,9 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
   }                                                                     \
   khint_t kh_get_##name(mrb_state *mrb, kh_##name##_t *h, khkey_t key)  \
   {                                                                     \
+    if (kh_is_small_##name(h)) {                                        \
+      return kh_get_small_##name(mrb, h, key);                          \
+    }                                                                   \
     /* Cache calculated pointers for performance */                     \
     khkey_t *keys = kh_keys_##name(h);                                  \
     uint8_t *ed_flags = kh_flags_##name(h);                             \
@@ -206,6 +276,9 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
   }                                                                     \
   khint_t kh_put_##name(mrb_state *mrb, kh_##name##_t *h, khkey_t key, int *ret) \
   {                                                                     \
+    if (kh_is_small_##name(h)) {                                        \
+      return kh_put_small_##name(mrb, h, key, ret);                     \
+    }                                                                   \
     khint_t k, del_k, step = 0;                                         \
     if (h->size >= khash_upper_bound(h)) {                              \
       kh_resize_##name(mrb, h, h->n_buckets*2);                         \
@@ -304,7 +377,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
 #define kh_val(name, h, x) (kh_vals_##name(h)[x])
 #define kh_value(name, h, x) (kh_vals_##name(h)[x])
 #define kh_begin(h) (khint_t)(0)
-#define kh_end(h) ((h)->n_buckets)
+#define kh_end(h) ((h)->n_buckets == 0 ? (h)->size : (h)->n_buckets)
 #define kh_size(h) ((h)->size)
 #define kh_n_buckets(h) ((h)->n_buckets)
 
