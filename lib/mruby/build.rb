@@ -60,10 +60,10 @@ module MRuby
       def mruby_config_path
         path = ENV['MRUBY_CONFIG'] || ENV['CONFIG']
         if path.nil? || path.empty?
-          if Dir.pwd != MRUBY_ROOT && File.file?("./build_config.rb")
-            path = "./build_config.rb"
+          path = if Dir.pwd != MRUBY_ROOT && File.file?("./build_config.rb")
+            "./build_config.rb"
           else
-            path = "#{MRUBY_ROOT}/build_config/default.rb"
+            "#{MRUBY_ROOT}/build_config/default.rb"
           end
         elsif !File.file?(path) && !Pathname.new(path).absolute?
           f = "#{MRUBY_ROOT}/build_config/#{path}.rb"
