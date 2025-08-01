@@ -99,7 +99,9 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
   khint_t kh_put_##name(mrb_state *mrb, kh_##name##_t *h, khkey_t key, int *ret); \
   void kh_resize_##name(mrb_state *mrb, kh_##name##_t *h, khint_t new_n_buckets); \
   void kh_del_##name(mrb_state *mrb, kh_##name##_t *h, khint_t x);                \
-  kh_##name##_t *kh_copy_##name(mrb_state *mrb, kh_##name##_t *h);
+  kh_##name##_t *kh_copy_##name(mrb_state *mrb, kh_##name##_t *h);                \
+  void kh_init_data_##name(mrb_state *mrb, kh_##name##_t *h, khint_t size);       \
+  void kh_destroy_data_##name(mrb_state *mrb, kh_##name##_t *h);
 
 /* define kh_xxx_funcs
 
@@ -187,24 +189,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
   }                                                                     \
   kh_##name##_t *kh_init_##name##_size(mrb_state *mrb, khint_t size) {  \
     kh_##name##_t *h = (kh_##name##_t*)mrb_calloc(mrb, 1, sizeof(kh_##name##_t)); \
-    if (size <= KHASH_SMALL_THRESHOLD) {                                \
-      /* Start as small table */                                        \
-      h->n_buckets = 0;  /* Small table marker */                       \
-      if (kh_alloc_small_##name(mrb, h)) {                              \
-        mrb_free(mrb, h);                                               \
-        mrb_raise_nomemory(mrb);                                        \
-      }                                                                 \
-    } else {                                                            \
-      /* Start as regular hash table */                                 \
-      if (size < KHASH_MIN_SIZE)                                        \
-        size = KHASH_MIN_SIZE;                                          \
-      khash_power2(size);                                               \
-      h->n_buckets = size;                                              \
-      if (kh_alloc_simple_##name(mrb, h)) {                             \
-        mrb_free(mrb, h);                                               \
-        mrb_raise_nomemory(mrb);                                        \
-      }                                                                 \
-    }                                                                   \
+    kh_init_data_##name(mrb, h, size);                                  \
     return h;                                                           \
   }                                                                     \
   kh_##name##_t *kh_init_##name(mrb_state *mrb) {                       \
@@ -213,7 +198,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
   void kh_destroy_##name(mrb_state *mrb, kh_##name##_t *h)              \
   {                                                                     \
     if (h) {                                                            \
-      mrb_free(mrb, h->data);  /* Free single data allocation */       \
+      kh_destroy_data_##name(mrb, h);                                   \
       mrb_free(mrb, h);                                                 \
     }                                                                   \
   }                                                                     \
@@ -345,6 +330,32 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
       }                                                                 \
     }                                                                   \
     return h2;                                                          \
+  }                                                                     \
+  void kh_init_data_##name(mrb_state *mrb, kh_##name##_t *h, khint_t size) { \
+    if (size <= KHASH_SMALL_THRESHOLD) {                                \
+      /* Start as small table */                                        \
+      h->n_buckets = 0;  /* Small table marker */                       \
+      if (kh_alloc_small_##name(mrb, h)) {                              \
+        mrb_raise_nomemory(mrb);                                        \
+      }                                                                 \
+    }                                                                   \
+    else {                                                              \
+      /* Start as regular hash table */                                 \
+      if (size < KHASH_MIN_SIZE)                                        \
+        size = KHASH_MIN_SIZE;                                          \
+      khash_power2(size);                                               \
+      h->n_buckets = size;                                              \
+      if (kh_alloc_simple_##name(mrb, h)) {                             \
+        mrb_raise_nomemory(mrb);                                        \
+      }                                                                 \
+    }                                                                   \
+  }                                                                     \
+  void kh_destroy_data_##name(mrb_state *mrb, kh_##name##_t *h)         \
+  {                                                                     \
+    if (h && h->data) {                                                 \
+      mrb_free(mrb, h->data);  /* Free only the data allocation */      \
+      h->data = NULL;                                                   \
+    }                                                                   \
   }
 
 
@@ -360,6 +371,8 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
 #define kh_get(name, mrb, h, k) kh_get_##name(mrb, h, k)
 #define kh_del(name, mrb, h, k) kh_del_##name(mrb, h, k)
 #define kh_copy(name, mrb, h) kh_copy_##name(mrb, h)
+#define kh_init_data(name, mrb, h, size) kh_init_data_##name(mrb, h, size)
+#define kh_destroy_data(name, mrb, h) kh_destroy_data_##name(mrb, h)
 
 /* BREAKING CHANGE: Field access macros now require type name as first parameter
  * The macros keep their familiar names but now need the hash type name.
