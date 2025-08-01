@@ -182,7 +182,7 @@ mrb_class_instance_method_list(mrb_state *mrb, mrb_bool recur, struct RClass *kl
   }
 
   ary = mrb_ary_new_capa(mrb, kh_size(set));
-  KHASH_FOREACH(st, mrb, set, k) {
+  KHASH_FOREACH(st, set, k) {
     if (kh_val(st, set, k)) {
       mrb_ary_push(mrb, ary, mrb_symbol_value(kh_key(st, set, k)));
     }
@@ -295,7 +295,7 @@ mrb_obj_singleton_methods(mrb_state *mrb, mrb_bool recur, mrb_value obj)
   }
 
   ary = mrb_ary_new(mrb);
-  KHASH_FOREACH(st, mrb, set, k) {
+  KHASH_FOREACH(st, set, k) {
     mrb_ary_push(mrb, ary, mrb_symbol_value(kh_key(st, set, k)));
   }
   kh_destroy(st, mrb, set);

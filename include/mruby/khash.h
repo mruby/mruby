@@ -415,22 +415,22 @@ MRB_END_DECL
  * Macro for iterating over all elements in a khash.
  *
  * Usage:
- *   KHASH_FOREACH(mrb, kh, k) {
+ *   KHASH_FOREACH(typename, kh, k) {
  *     // k is the khiter_t iterator
- *     // Access the key with kh_key(kh, k)
- *     // Access the value with kh_val(kh, k) if applicable
+ *     // Access the key with kh_key(typename, kh, k)
+ *     // Access the value with kh_val(typename, kh, k) if applicable
  *     // Your code here
  *   }
  *
- * @param mrb The mrb_state
- * @param kh  The khash to iterate over
- * @param k   The name to use for the khiter_t iterator variable
+ * @param name The hash type name
+ * @param kh   The khash to iterate over
+ * @param k    The name to use for the khiter_t iterator variable
  */
 /* BREAKING CHANGE: KHASH_FOREACH now requires type name as first parameter
  * OLD: KHASH_FOREACH(mrb, kh, k)
- * NEW: KHASH_FOREACH(name, mrb, kh, k)
+ * NEW: KHASH_FOREACH(name, kh, k)
  */
-#define KHASH_FOREACH(name, mrb, kh, k) \
+#define KHASH_FOREACH(name, kh, k) \
   if (kh) \
     for (khiter_t k = kh_begin(kh); k != kh_end(kh); k++) \
       if (kh_exist(name, kh, k))
