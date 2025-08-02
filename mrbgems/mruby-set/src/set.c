@@ -1221,6 +1221,43 @@ set_flatten_recursive(mrb_state *mrb, kset_t *target, kset_t *source, int *seen_
 }
 
 /*
+ * Helper function: Check if a set has any nested sets
+ * Returns TRUE if nested sets found, FALSE otherwise
+ */
+static mrb_bool
+set_has_nested_sets(mrb_state *mrb, kset_t *set)
+{
+  if (kset_is_empty(set)) return FALSE;
+
+  int ai = mrb_gc_arena_save(mrb);
+  KSET_FOREACH(set, k) {
+    if (set_is_set(kset_key(set, k))) {
+      return TRUE;
+    }
+    mrb_gc_arena_restore(mrb, ai);
+  }
+  return FALSE;
+}
+
+/*
+ * Helper function: Perform the actual flattening operation
+ * Returns the flattened set (creates a new kset_t*)
+ */
+static kset_t*
+set_do_flatten(mrb_state *mrb, kset_t *source_set)
+{
+  kset_t *result_set = kset_init(mrb);
+  int seen_count = 0;
+
+  if (set_flatten_recursive(mrb, result_set, source_set, &seen_count) < 0) {
+    kh_destroy(set_val, mrb, result_set);
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "flatten recursion depth too deep");
+  }
+
+  return result_set;
+}
+
+/*
  * call-seq:
  *   set.flatten -> new_set
  *
@@ -1238,32 +1275,20 @@ set_flatten(mrb_state *mrb, mrb_value self)
   }
 
   /* Fast path: check if there are any nested sets */
-  mrb_bool has_nested_sets = FALSE;
-  int ai = mrb_gc_arena_save(mrb);
-  KSET_FOREACH(self_set, k) {
-    if (set_is_set(kset_key(self_set, k))) {
-      has_nested_sets = TRUE;
-      break;
-    }
-    mrb_gc_arena_restore(mrb, ai);
-  }
-
-  /* If no nested sets, just return a duplicate */
-  if (!has_nested_sets) {
+  if (!set_has_nested_sets(mrb, self_set)) {
     return mrb_obj_dup(mrb, self);
   }
 
-  /* Create a new set of the same class */
+  /* Create a new set and flatten into it */
   mrb_value result = mrb_obj_new(mrb, mrb_obj_class(mrb, self), 0, NULL);
   kset_t *result_set = set_get_kset(mrb, result);
 
-  /* Track recursion depth */
-  int seen_count = 0;
+  kset_t *flattened = set_do_flatten(mrb, self_set);
 
-  /* Flatten the set */
-  if (set_flatten_recursive(mrb, result_set, self_set, &seen_count) < 0) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "flatten recursion depth too deep");
-  }
+  /* Replace result_set's data with flattened data */
+  kset_destroy_data(mrb, result_set);
+  *result_set = *flattened;
+  mrb_free(mrb, flattened);
 
   return result;
 }
@@ -1285,41 +1310,17 @@ set_flatten_bang(mrb_state *mrb, mrb_value self)
     return mrb_nil_value(); /* No changes needed for empty set */
   }
 
-  /* First, check if there are any nested sets */
-  mrb_bool has_nested_sets = FALSE;
-  int ai = mrb_gc_arena_save(mrb);
-  KSET_FOREACH(self_set, k) {
-    mrb_value elem = kset_key(self_set, k);
-    if (set_is_set(elem)) {
-      has_nested_sets = TRUE;
-      break;
-    }
-    mrb_gc_arena_restore(mrb, ai);
-  }
-
-  if (!has_nested_sets) {
+  /* Check if there are any nested sets */
+  if (!set_has_nested_sets(mrb, self_set)) {
     return mrb_nil_value(); /* No nested sets, no changes needed */
   }
 
-  /* Create a temporary set for the flattened result */
-  kset_t *new_set = kset_init(mrb);
+  /* Flatten into a new set and replace self */
+  kset_t *flattened = set_do_flatten(mrb, self_set);
 
-  /* Track recursion depth */
-  int seen_count = 0;
-
-  /* Flatten the set into the new set */
-  if (set_flatten_recursive(mrb, new_set, self_set, &seen_count) < 0) {
-    /* Clean up the new set if an error occurred */
-    kh_destroy(set_val, mrb, new_set);
-
-    /* Raise appropriate exception */
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "flatten recursion depth too deep");
-  }
-
-  /* Replace the old data with the new one */
   kset_destroy_data(mrb, self_set);
-  *self_set = *new_set;
-  mrb_free(mrb, new_set);
+  *self_set = *flattened;
+  mrb_free(mrb, flattened);
 
   return self;
 }
