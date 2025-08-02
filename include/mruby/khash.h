@@ -127,6 +127,9 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     uint8_t *flags = kh_flags_##name(h);                                \
     flags[i/4] |= __m_del[i%4];      /* Set deleted bit */              \
   }                                                                     \
+  static inline khint_t kh_key_idx_##name(mrb_state *mrb, khkey_t key, kh_##name##_t *h) { \
+    return __hash_func(mrb, key) & khash_mask(h);                       \
+  }                                                                     \
   /* Small table optimization functions */                              \
   static inline int kh_is_small_##name(const kh_##name##_t *h) {        \
     return h->n_buckets == 0;  /* Small table marker */                 \
@@ -216,7 +219,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     /* Cache calculated pointers for performance */                     \
     khkey_t *keys = kh_keys_##name(h);                                  \
     uint8_t *ed_flags = kh_flags_##name(h);                             \
-    khint_t k = __hash_func(mrb,key) & khash_mask(h), step = 0;         \
+    khint_t k = kh_key_idx_##name(mrb, key, h), step = 0;               \
     (void)mrb;                                                          \
     while (!__ac_isempty(ed_flags, k)) {                                \
       if (!__ac_isdel(ed_flags, k)) {                                   \
@@ -269,7 +272,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     /* Cache calculated pointers for performance */                     \
     khkey_t *keys = kh_keys_##name(h);                                  \
     uint8_t *ed_flags = kh_flags_##name(h);                             \
-    k = __hash_func(mrb,key) & khash_mask(h);                           \
+    k = kh_key_idx_##name(mrb, key, h);                                 \
     del_k = kh_end(h);                                                  \
     while (!__ac_isempty(ed_flags, k)) {                                \
       if (!__ac_isdel(ed_flags, k)) {                                   \
