@@ -650,31 +650,28 @@ set_hash_m(mrb_state *mrb, mrb_value self)
 {
   kset_t *set = set_get_kset(mrb, self);
 
-  /* Use FNV-1a hash algorithm with better distribution properties */
-  uint64_t hash = 0xcbf29ce484222325ULL; /* FNV offset basis */
-  const uint64_t fnv_prime = 0x100000001b3ULL; /* FNV prime */
+  /* Use order-independent hash algorithm for sets */
+  uint64_t hash = 0; /* Start with zero for XOR accumulation */
 
   /* Include the size of the set in the hash */
   size_t size = kset_size(set);
-  hash ^= size;
-  hash *= fnv_prime;
+  hash ^= size * 0x9e3779b97f4a7c15ULL; /* Multiply by golden ratio prime */
 
   if (!kset_is_uninitialized(set) && size > 0) {
-    /* Process each element */
+    /* Process each element - order independent using XOR */
     int ai = mrb_gc_arena_save(mrb);
     KSET_FOREACH(set, k) {
       /* Get element's hash code */
       khint_t elem_hash = (khint_t)mrb_obj_hash_code(mrb, kset_key(set, k));
 
-      /* Mix using FNV-1a algorithm */
-      hash ^= elem_hash;
-      hash *= fnv_prime;
+      /* XOR is commutative, so order doesn't matter */
+      hash ^= elem_hash * 0x9e3779b97f4a7c15ULL; /* Mix with golden ratio */
 
       mrb_gc_arena_restore(mrb, ai);
     }
   }
 
-  /* Final mixing to improve avalanche effect */
+  /* Final mixing to improve distribution */
   hash ^= hash >> 32;
 
   return mrb_fixnum_value((mrb_int)hash);
