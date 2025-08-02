@@ -101,7 +101,8 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
   void kh_del_##name(mrb_state *mrb, kh_##name##_t *h, khint_t x);                \
   kh_##name##_t *kh_copy_##name(mrb_state *mrb, kh_##name##_t *h);                \
   void kh_init_data_##name(mrb_state *mrb, kh_##name##_t *h, khint_t size);       \
-  void kh_destroy_data_##name(mrb_state *mrb, kh_##name##_t *h);
+  void kh_destroy_data_##name(mrb_state *mrb, kh_##name##_t *h);                  \
+  void kh_replace_##name(mrb_state *mrb, kh_##name##_t *dst, const kh_##name##_t *src);
 
 /* define kh_xxx_funcs
 
@@ -314,22 +315,8 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
   }                                                                     \
   kh_##name##_t *kh_copy_##name(mrb_state *mrb, kh_##name##_t *h)       \
   {                                                                     \
-    kh_##name##_t *h2;                                                  \
-    khiter_t k, k2;                                                     \
-    /* Cache source hash addresses */                                   \
-    khkey_t *keys = kh_keys_##name(h);                                  \
-    khval_t *vals = kh_vals_##name(h);                                  \
-                                                                        \
-    h2 = kh_init_##name(mrb);                                           \
-    for (k = kh_begin(h); k != kh_end(h); k++) {                        \
-      if (kh_exist(name, h, k)) {                                       \
-        k2 = kh_put_##name(mrb, h2, keys[k], NULL);                     \
-        if (kh_is_map) {                                                \
-          khval_t *new_vals = kh_vals_##name(h2);                       \
-          new_vals[k2] = vals[k];                                       \
-        }                                                               \
-      }                                                                 \
-    }                                                                   \
+    kh_##name##_t *h2 = (kh_##name##_t*)mrb_calloc(mrb, 1, sizeof(kh_##name##_t)); \
+    kh_replace_##name(mrb, h2, h);                                      \
     return h2;                                                          \
   }                                                                     \
   void kh_init_data_##name(mrb_state *mrb, kh_##name##_t *h, khint_t size) { \
@@ -355,6 +342,38 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
       mrb_free(mrb, h->data);  /* Free only the data allocation */      \
       h->data = NULL;                                                   \
     }                                                                   \
+  }                                                                     \
+  void kh_replace_##name(mrb_state *mrb, kh_##name##_t *dst, const kh_##name##_t *src) \
+  {                                                                     \
+    if (!src || (src->n_buckets == 0 && src->size == 0)) {              \
+      /* Empty source */                                                \
+      kh_destroy_data_##name(mrb, dst);                                 \
+      dst->data = NULL;                                                 \
+      dst->n_buckets = 0;                                               \
+      dst->size = 0;                                                    \
+    }                                                                   \
+    else if (src->n_buckets == 0) {                                     \
+      /* Small table case */                                            \
+      size_t data_size = sizeof(khkey_t) * KHASH_SMALL_THRESHOLD +      \
+                         (kh_is_map ? sizeof(khval_t) * KHASH_SMALL_THRESHOLD : 0); \
+      dst->data = mrb_realloc(mrb, dst->data, data_size);               \
+      dst->size = src->size;                                            \
+      dst->n_buckets = 0;                                               \
+      /* Copy only the used portion of keys and values */               \
+      size_t copy_size = sizeof(khkey_t) * src->size +                  \
+                         (kh_is_map ? sizeof(khval_t) * src->size : 0); \
+      memcpy(dst->data, src->data, copy_size);                          \
+    }                                                                   \
+    else {                                                              \
+      /* Regular hash table case */                                     \
+      size_t data_size = (sizeof(khkey_t) + (kh_is_map ? sizeof(khval_t) : 0)) * src->n_buckets + \
+                         src->n_buckets / 4;                            \
+      dst->data = mrb_realloc(mrb, dst->data, data_size);               \
+      dst->size = src->size;                                            \
+      dst->n_buckets = src->n_buckets;                                  \
+      /* Copy the entire data block: [keys][vals][flags] */             \
+      memcpy(dst->data, src->data, data_size);                          \
+    }                                                                   \
   }
 
 
@@ -372,6 +391,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
 #define kh_copy(name, mrb, h) kh_copy_##name(mrb, h)
 #define kh_init_data(name, mrb, h, size) kh_init_data_##name(mrb, h, size)
 #define kh_destroy_data(name, mrb, h) kh_destroy_data_##name(mrb, h)
+#define kh_replace(name, mrb, dst, src) kh_replace_##name(mrb, dst, src)
 
 /* BREAKING CHANGE: Field access macros now require type name as first parameter
  * The macros keep their familiar names but now need the hash type name.

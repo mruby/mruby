@@ -74,17 +74,6 @@ kset_copy_merge(mrb_state *mrb, kset_t *dst, kset_t *src)
   }
 }
 
-/* Replace dst with a copy of src */
-static void
-kset_copy_replace(mrb_state *mrb, kset_t *dst, kset_t *src)
-{
-  kset_t *tmp = kh_copy(set_val, mrb, src);
-  if (tmp) {
-    kset_destroy_data(mrb, dst);
-    *dst = *tmp;
-    mrb_free(mrb, tmp);
-  }
-}
 
 /* Embedded set structure in RSet - exactly 3 pointers */
 struct RSet {
@@ -194,7 +183,7 @@ set_init_copy(mrb_state *mrb, mrb_value self)
 
   kset_t *self_set = set_get_kset(mrb, self);
   kset_init_data(mrb, self_set, kset_size(orig_set));
-  kset_copy_replace(mrb, self_set, orig_set);
+  kh_replace(set_val, mrb, self_set, orig_set);
 
   return self;
 }
@@ -553,7 +542,7 @@ set_core_xor(mrb_state *mrb, mrb_value self)
     return result;
   }
   if (kset_is_empty(other_set)) {
-    kset_copy_replace(mrb, result_set, self_set);
+    kh_replace(set_val, mrb, result_set, self_set);
     return result;
   }
 
