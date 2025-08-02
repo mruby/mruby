@@ -112,12 +112,15 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
 #define KHASH_DEFINE(name, khkey_t, khval_t, kh_is_map, __hash_func, __hash_equal) \
   mrb_noreturn void mrb_raise_nomemory(mrb_state *mrb);                 \
   /* Internal helper functions */                                       \
-  static inline size_t kh_data_size_##name(khint_t count) {             \
+  static inline size_t kh_kv_size_##name(khint_t count) {               \
     return sizeof(khkey_t) * count +                                    \
            (kh_is_map ? sizeof(khval_t) * count : 0);                   \
   }                                                                     \
+  static inline size_t kh_htable_size_##name(khint_t n_buckets) {       \
+    return kh_kv_size_##name(n_buckets) + n_buckets / 4;                \
+  }                                                                     \
   static inline uint8_t* kh_flags_##name(const kh_##name##_t *h) {      \
-    return (uint8_t*)(h)->data + kh_data_size_##name((h)->n_buckets);   \
+    return (uint8_t*)(h)->data + kh_kv_size_##name((h)->n_buckets);     \
   }                                                                     \
   static inline void kh_mark_occupied_##name(kh_##name##_t *h, khint_t i) { \
     uint8_t *flags = kh_flags_##name(h);                                \
@@ -179,13 +182,13 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     return h->size - 1;                                                 \
   }                                                                     \
   static inline void kh_alloc_small_##name(mrb_state *mrb, kh_##name##_t *h) { \
-    h->data = mrb_malloc(mrb, kh_data_size_##name(KHASH_SMALL_THRESHOLD));            \
+    h->data = mrb_malloc(mrb, kh_kv_size_##name(KHASH_SMALL_THRESHOLD));\
     h->size = 0;                                                        \
   }                                                                     \
   void kh_alloc_##name(mrb_state *mrb, kh_##name##_t *h)                \
   {                                                                     \
     khint_t sz = h->n_buckets;                                          \
-    uint8_t *p = (uint8_t*)mrb_malloc(mrb, kh_data_size_##name(sz) + sz / 4); \
+    uint8_t *p = (uint8_t*)mrb_malloc(mrb, kh_htable_size_##name(sz));  \
     h->size = 0;                                                        \
     h->data = p;  /* Single data pointer for optimized layout */        \
     memset(kh_flags_##name(h), 0xaa, sz/4);                             \
@@ -365,17 +368,17 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     }                                                                   \
     else if (src->n_buckets == 0) {                                     \
       /* Small table case */                                            \
-      size_t data_size = kh_data_size_##name(KHASH_SMALL_THRESHOLD);    \
+      size_t data_size = kh_kv_size_##name(KHASH_SMALL_THRESHOLD);      \
       dst->data = mrb_realloc(mrb, dst->data, data_size);               \
       dst->size = src->size;                                            \
       dst->n_buckets = 0;                                               \
       /* Copy only the used portion of keys and values */               \
-      size_t copy_size = kh_data_size_##name(src->size);                \
+      size_t copy_size = kh_kv_size_##name(src->size);                  \
       memcpy(dst->data, src->data, copy_size);                          \
     }                                                                   \
     else {                                                              \
       /* Regular hash table case */                                     \
-      size_t data_size = kh_data_size_##name(src->n_buckets) + src->n_buckets / 4; \
+      size_t data_size = kh_htable_size_##name(src->n_buckets);         \
       dst->data = mrb_realloc(mrb, dst->data, data_size);               \
       dst->size = src->size;                                            \
       dst->n_buckets = src->n_buckets;                                  \
