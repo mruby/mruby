@@ -78,6 +78,11 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     khint_t n_buckets;   /* Number of buckets (power of 2) */           \
     khint_t size;        /* Number of elements */                       \
   } kh_##name##_t;                                                      \
+  /* Size calculation helper */                                         \
+  static inline size_t kh_data_size_##name(khint_t count) {             \
+    return sizeof(khkey_t) * count +                                    \
+           (kh_is_map ? sizeof(khval_t) * count : 0);                   \
+  }                                                                     \
   /* Address calculation functions for optimized memory layout */       \
   static inline khkey_t* kh_keys_##name(const kh_##name##_t *h) {       \
     return (khkey_t*)(h)->data;                                         \
@@ -87,8 +92,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
       (khval_t*)((uint8_t*)(h)->data + sizeof(khkey_t) * (h)->n_buckets) : NULL; \
   }                                                                     \
   static inline uint8_t* kh_flags_##name(const kh_##name##_t *h) {      \
-    return (uint8_t*)(h)->data +                                        \
-      (sizeof(khkey_t) + (kh_is_map ? sizeof(khval_t) : 0)) * (h)->n_buckets; \
+    return (uint8_t*)(h)->data + kh_data_size_##name((h)->n_buckets); \
   }                                                                     \
   void kh_alloc_##name(mrb_state *mrb, kh_##name##_t *h);               \
   kh_##name##_t *kh_init_##name##_size(mrb_state *mrb, khint_t size);   \
@@ -164,16 +168,13 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     return h->size - 1;                                                 \
   }                                                                     \
   static inline void kh_alloc_small_##name(mrb_state *mrb, kh_##name##_t *h) { \
-    size_t key_size = sizeof(khkey_t) * KHASH_SMALL_THRESHOLD;          \
-    size_t val_size = kh_is_map ? sizeof(khval_t) * KHASH_SMALL_THRESHOLD : 0; \
-    h->data = mrb_malloc(mrb, key_size + val_size);                     \
+    h->data = mrb_malloc(mrb, kh_data_size_##name(KHASH_SMALL_THRESHOLD));            \
     h->size = 0;                                                        \
   }                                                                     \
   void kh_alloc_##name(mrb_state *mrb, kh_##name##_t *h)                \
   {                                                                     \
     khint_t sz = h->n_buckets;                                          \
-    size_t len = sizeof(khkey_t) + (kh_is_map ? sizeof(khval_t) : 0);   \
-    uint8_t *p = (uint8_t*)mrb_malloc(mrb, sizeof(uint8_t)*sz/4+len*sz); \
+    uint8_t *p = (uint8_t*)mrb_malloc(mrb, kh_data_size_##name(sz) + sz / 4); \
     h->size = 0;                                                        \
     h->data = p;  /* Single data pointer for optimized layout */        \
     memset(kh_flags_##name(h), 0xaa, sz/4);                             \
@@ -354,20 +355,17 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     }                                                                   \
     else if (src->n_buckets == 0) {                                     \
       /* Small table case */                                            \
-      size_t data_size = sizeof(khkey_t) * KHASH_SMALL_THRESHOLD +      \
-                         (kh_is_map ? sizeof(khval_t) * KHASH_SMALL_THRESHOLD : 0); \
+      size_t data_size = kh_data_size_##name(KHASH_SMALL_THRESHOLD);    \
       dst->data = mrb_realloc(mrb, dst->data, data_size);               \
       dst->size = src->size;                                            \
       dst->n_buckets = 0;                                               \
       /* Copy only the used portion of keys and values */               \
-      size_t copy_size = sizeof(khkey_t) * src->size +                  \
-                         (kh_is_map ? sizeof(khval_t) * src->size : 0); \
+      size_t copy_size = kh_data_size_##name(src->size);                \
       memcpy(dst->data, src->data, copy_size);                          \
     }                                                                   \
     else {                                                              \
       /* Regular hash table case */                                     \
-      size_t data_size = (sizeof(khkey_t) + (kh_is_map ? sizeof(khval_t) : 0)) * src->n_buckets + \
-                         src->n_buckets / 4;                            \
+      size_t data_size = kh_data_size_##name(src->n_buckets) + src->n_buckets / 4; \
       dst->data = mrb_realloc(mrb, dst->data, data_size);               \
       dst->size = src->size;                                            \
       dst->n_buckets = src->n_buckets;                                  \
