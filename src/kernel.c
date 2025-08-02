@@ -167,15 +167,6 @@ mrb_recursive_method_p(mrb_state *mrb, mrb_sym mid, mrb_value obj1, mrb_value ob
   return FALSE;
 }
 
-#define MRB_RECURSIVE_P(mrb, mid, obj1, obj2) \
-  mrb_recursive_method_p(mrb, mid, obj1, obj2)
-
-#define MRB_RECURSIVE_UNARY_P(mrb, mid, obj) \
-  mrb_recursive_method_p(mrb, mid, obj, mrb_nil_value())
-
-#define MRB_RECURSIVE_BINARY_P(mrb, mid, obj1, obj2) \
-  mrb_recursive_method_p(mrb, mid, obj1, obj2)
-
 static mrb_value
 mrb_obj_method_recursive_p(mrb_state *mrb, mrb_value obj)
 {
