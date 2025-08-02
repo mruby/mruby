@@ -34,7 +34,7 @@ kset_equal_value(mrb_state *mrb, mrb_value a, mrb_value b)
 
 KHASH_DEFINE(set_val, mrb_value, char, FALSE, kset_hash_value, kset_equal_value)
 
-#define KSET_DEFAULT_SIZE 8
+#define KSET_INITIAL_SIZE 8
 
 /* Compatibility layer and type definitions */
 typedef kh_set_val_t kset_t;
@@ -157,7 +157,7 @@ static mrb_value
 set_init(mrb_state *mrb, mrb_value self)
 {
   kset_t *set = set_get_kset(mrb, self);
-  kset_init_data(mrb, set, KSET_DEFAULT_SIZE);
+  kset_init_data(mrb, set, KSET_INITIAL_SIZE);
   return self;
 }
 
@@ -428,7 +428,7 @@ set_core_union(mrb_state *mrb, mrb_value self)
   kset_t *result_set = set_get_kset(mrb, result);
   if (kset_is_uninitialized(result_set)) {
     /* If self is empty, initialize the set */
-    kset_init_data(mrb, result_set, KSET_DEFAULT_SIZE);
+    kset_init_data(mrb, result_set, KSET_INITIAL_SIZE);
   }
 
   /* Add all elements from other set */
