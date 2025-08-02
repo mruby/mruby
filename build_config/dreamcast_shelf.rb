@@ -8,7 +8,7 @@
 # Updated: 2025-07-31
 #
 # Tested on GNU/Linux, macOS and Windows (MinGW-w64/MSYS2, Cygwin, DreamSDK)
-# DreamSDK is based on MinGW/MSYS: https://dreamsdk.org/
+# DreamSDK is based on both MinGW/MSYS and MinGW-w64/MSYS2: https://dreamsdk.org/
 #
 # Install mruby for Sega Dreamcast using the "mruby" kos-port.
 # See: https://github.com/kallistios/kallistios
@@ -21,6 +21,7 @@ MRuby::CrossBuild.new("dreamcast") do |conf|
 
   # Getting critical environment variables
   KOS_BASE = ENV["KOS_BASE"]
+  KOS_CC_BASE = ENV["KOS_CC_BASE"]
 
   # Check environment variables
   if KOS_BASE.to_s.empty?
@@ -28,7 +29,12 @@ MRuby::CrossBuild.new("dreamcast") do |conf|
   end
 
   # Root directory for KallistiOS wrappers
-  KOS_WRAPPERS_BASE = "#{KOS_BASE}/utils/build_wrappers"
+  # This will handle specific DreamSDK wrappers if needed
+  KOS_WRAPPERS_BASE = if ENV["ENVIRONMENT_NAME"] == "DreamSDK" && ENV["RAKE_AVAILABLE"] == "0"
+                      "#{KOS_CC_BASE}/bin"
+                    else
+                      "#{KOS_BASE}/utils/build_wrappers"
+                    end
 
   # C compiler
   conf.cc do |cc|
