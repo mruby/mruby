@@ -181,10 +181,6 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     if (ret) *ret = 1;  /* New key */                                   \
     return h->size - 1;                                                 \
   }                                                                     \
-  static inline void kh_alloc_small_##name(mrb_state *mrb, kh_##name##_t *h) { \
-    h->data = mrb_malloc(mrb, kh_kv_size_##name(KHASH_SMALL_THRESHOLD));\
-    h->size = 0;                                                        \
-  }                                                                     \
   void kh_alloc_##name(mrb_state *mrb, kh_##name##_t *h)                \
   {                                                                     \
     khint_t sz = h->n_buckets;                                          \
@@ -337,9 +333,8 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     if (size <= KHASH_SMALL_THRESHOLD) {                                \
       /* Start as small table */                                        \
       h->n_buckets = 0;  /* Small table marker */                       \
-      if (kh_alloc_small_##name(mrb, h)) {                              \
-        mrb_raise_nomemory(mrb);                                        \
-      }                                                                 \
+      h->data = mrb_malloc(mrb, kh_kv_size_##name(KHASH_SMALL_THRESHOLD)); \
+      h->size = 0;                                                      \
     }                                                                   \
     else {                                                              \
       /* Start as regular hash table */                                 \
