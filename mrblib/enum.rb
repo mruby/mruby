@@ -342,6 +342,11 @@ module Enumerable
 
   # redefine #hash 15.3.1.3.15
   def hash
+    if __method_recursive?(:hash)
+      # Recursion detected, return a fixed value to break the loop
+      return 0
+    end
+
     h = 12347
     i = 0
     self.each do |e|

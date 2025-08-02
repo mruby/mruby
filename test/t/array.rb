@@ -468,3 +468,11 @@ assert('Array#delete') do
   assert_equal nil, a.delete(nil) { "?" }
   assert_equal [], a
 end
+
+assert('Array#hash with self-referencing arrays') do
+  a = []
+  a << a
+  b = []
+  b << b
+  assert_equal a.hash, b.hash
+end
