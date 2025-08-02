@@ -78,11 +78,6 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     khint_t n_buckets;   /* Number of buckets (power of 2) */           \
     khint_t size;        /* Number of elements */                       \
   } kh_##name##_t;                                                      \
-  /* Size calculation helper */                                         \
-  static inline size_t kh_data_size_##name(khint_t count) {             \
-    return sizeof(khkey_t) * count +                                    \
-           (kh_is_map ? sizeof(khval_t) * count : 0);                   \
-  }                                                                     \
   /* Address calculation functions for optimized memory layout */       \
   static inline khkey_t* kh_keys_##name(const kh_##name##_t *h) {       \
     return (khkey_t*)(h)->data;                                         \
@@ -90,9 +85,6 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
   static inline khval_t* kh_vals_##name(const kh_##name##_t *h) {       \
     return kh_is_map ?                                                  \
       (khval_t*)((uint8_t*)(h)->data + sizeof(khkey_t) * (h)->n_buckets) : NULL; \
-  }                                                                     \
-  static inline uint8_t* kh_flags_##name(const kh_##name##_t *h) {      \
-    return (uint8_t*)(h)->data + kh_data_size_##name((h)->n_buckets); \
   }                                                                     \
   void kh_alloc_##name(mrb_state *mrb, kh_##name##_t *h);               \
   kh_##name##_t *kh_init_##name##_size(mrb_state *mrb, khint_t size);   \
@@ -119,6 +111,14 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
 */
 #define KHASH_DEFINE(name, khkey_t, khval_t, kh_is_map, __hash_func, __hash_equal) \
   mrb_noreturn void mrb_raise_nomemory(mrb_state *mrb);                 \
+  /* Internal helper functions */                                       \
+  static inline size_t kh_data_size_##name(khint_t count) {             \
+    return sizeof(khkey_t) * count +                                    \
+           (kh_is_map ? sizeof(khval_t) * count : 0);                   \
+  }                                                                     \
+  static inline uint8_t* kh_flags_##name(const kh_##name##_t *h) {      \
+    return (uint8_t*)(h)->data + kh_data_size_##name((h)->n_buckets);   \
+  }                                                                     \
   /* Small table optimization functions */                              \
   static inline int kh_is_small_##name(const kh_##name##_t *h) {        \
     return h->n_buckets == 0;  /* Small table marker */                 \
