@@ -1998,7 +1998,8 @@ mrb_prepend_module(mrb_state *mrb, struct RClass *c, struct RClass *m)
 {
   mrb_check_frozen(mrb, c);
   if (!(c->flags & MRB_FL_CLASS_IS_PREPENDED)) {
-    struct RClass *origin = MRB_OBJ_ALLOC(mrb, MRB_TT_ICLASS, c);
+    struct RClass *origin = MRB_OBJ_ALLOC(mrb, MRB_TT_ICLASS, NULL);
+    origin->c = c;
     origin->flags |= MRB_FL_CLASS_IS_ORIGIN | MRB_FL_CLASS_IS_INHERITED;
     origin->super = c->super;
     c->super = origin;
