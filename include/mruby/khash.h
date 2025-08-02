@@ -119,6 +119,14 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
   static inline uint8_t* kh_flags_##name(const kh_##name##_t *h) {      \
     return (uint8_t*)(h)->data + kh_data_size_##name((h)->n_buckets);   \
   }                                                                     \
+  static inline void kh_mark_occupied_##name(kh_##name##_t *h, khint_t i) { \
+    uint8_t *flags = kh_flags_##name(h);                                \
+    flags[i/4] &= ~__m_either[i%4];  /* Clear both empty and deleted bits */ \
+  }                                                                     \
+  static inline void kh_mark_deleted_##name(kh_##name##_t *h, khint_t i) { \
+    uint8_t *flags = kh_flags_##name(h);                                \
+    flags[i/4] |= __m_del[i%4];      /* Set deleted bit */              \
+  }                                                                     \
   /* Small table optimization functions */                              \
   static inline int kh_is_small_##name(const kh_##name##_t *h) {        \
     return h->n_buckets == 0;  /* Small table marker */                 \
@@ -278,7 +286,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     if (del_k != kh_end(h)) {                                           \
       /* put at del */                                                  \
       keys[del_k] = key;                                                \
-      ed_flags[del_k/4] &= ~__m_del[del_k%4];                           \
+      kh_mark_occupied_##name(h, del_k);                                \
       h->size++;                                                        \
       if (ret) *ret = 2;                                                \
       return del_k;                                                     \
@@ -286,7 +294,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     else {                                                              \
       /* put at empty */                                                \
       keys[k] = key;                                                    \
-      ed_flags[k/4] &= ~__m_empty[k%4];                                 \
+      kh_mark_occupied_##name(h, k);                                    \
       h->size++;                                                        \
       if (ret) *ret = 1;                                                \
       return k;                                                         \
@@ -308,9 +316,8 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     }                                                                   \
     else {                                                              \
       /* Regular hash table deletion */                                 \
-      uint8_t *ed_flags = kh_flags_##name(h);                           \
-      mrb_assert(x != h->n_buckets && !__ac_iseither(ed_flags, x));     \
-      ed_flags[x/4] |= __m_del[x%4];                                    \
+      mrb_assert(x != h->n_buckets && !__ac_iseither(kh_flags_##name(h), x)); \
+      kh_mark_deleted_##name(h, x);                                     \
       h->size--;                                                        \
     }                                                                   \
   }                                                                     \
