@@ -472,13 +472,7 @@ mrb_obj_alloc(mrb_state *mrb, enum mrb_vtype ttype, struct RClass *cls)
   if (cls) {
     enum mrb_vtype tt;
 
-    switch (cls->tt) {
-    case MRB_TT_CLASS:
-    case MRB_TT_SCLASS:
-    case MRB_TT_MODULE:
-    case MRB_TT_ENV:
-      break;
-    default:
+    if (cls->tt != MRB_TT_CLASS) {
       mrb_raise(mrb, E_TYPE_ERROR, "allocation failure");
     }
     tt = MRB_INSTANCE_TT(cls);
