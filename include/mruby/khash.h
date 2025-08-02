@@ -292,11 +292,25 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
   }                                                                     \
   void kh_del_##name(mrb_state *mrb, kh_##name##_t *h, khint_t x)       \
   {                                                                     \
-    uint8_t *ed_flags = kh_flags_##name(h);                             \
     (void)mrb;                                                          \
-    mrb_assert(x != h->n_buckets && !__ac_iseither(ed_flags, x));       \
-    ed_flags[x/4] |= __m_del[x%4];                                      \
-    h->size--;                                                          \
+    if (kh_is_small_##name(h)) {                                        \
+      /* Small table deletion: shift elements down */                   \
+      mrb_assert(x < h->size);                                          \
+      khkey_t *keys = kh_keys_##name(h);                                \
+      khval_t *vals = kh_vals_##name(h);                                \
+      for (khint_t i = x; i < h->size - 1; i++) {                       \
+        keys[i] = keys[i + 1];                                          \
+        if (kh_is_map) vals[i] = vals[i + 1];                           \
+      }                                                                 \
+      h->size--;                                                        \
+    }                                                                   \
+    else {                                                              \
+      /* Regular hash table deletion */                                 \
+      uint8_t *ed_flags = kh_flags_##name(h);                           \
+      mrb_assert(x != h->n_buckets && !__ac_iseither(ed_flags, x));     \
+      ed_flags[x/4] |= __m_del[x%4];                                    \
+      h->size--;                                                        \
+    }                                                                   \
   }                                                                     \
   kh_##name##_t *kh_copy_##name(mrb_state *mrb, kh_##name##_t *h)       \
   {                                                                     \
@@ -305,11 +319,10 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     /* Cache source hash addresses */                                   \
     khkey_t *keys = kh_keys_##name(h);                                  \
     khval_t *vals = kh_vals_##name(h);                                  \
-    uint8_t *ed_flags = kh_flags_##name(h);                             \
                                                                         \
     h2 = kh_init_##name(mrb);                                           \
     for (k = kh_begin(h); k != kh_end(h); k++) {                        \
-      if (!__ac_iseither(ed_flags, k)) {                                \
+      if (kh_exist(name, h, k)) {                                       \
         k2 = kh_put_##name(mrb, h2, keys[k], NULL);                     \
         if (kh_is_map) {                                                \
           khval_t *new_vals = kh_vals_##name(h2);                       \
@@ -371,7 +384,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
  */
 
 /* Type-aware access macros - same names, now with type parameter */
-#define kh_exist(name, h, x) (!__ac_iseither(kh_flags_##name(h), (x)))
+#define kh_exist(name, h, x) ((h)->n_buckets == 0 ? ((x) < (h)->size) : (!__ac_iseither(kh_flags_##name(h), (x))))
 #define kh_key(name, h, x) (kh_keys_##name(h)[x])
 #define kh_val(name, h, x) (kh_vals_##name(h)[x])
 #define kh_value(name, h, x) (kh_vals_##name(h)[x])
