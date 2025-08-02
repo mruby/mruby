@@ -34,7 +34,7 @@ kset_equal_value(mrb_state *mrb, mrb_value a, mrb_value b)
 
 KHASH_DEFINE(set_val, mrb_value, char, FALSE, kset_hash_value, kset_equal_value)
 
-#define KSET_INITIAL_SIZE 8
+#define KSET_INITIAL_SIZE 4
 
 /* Compatibility layer and type definitions */
 typedef kh_set_val_t kset_t;
