@@ -187,10 +187,8 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
   }                                                                     \
   void kh_destroy_##name(mrb_state *mrb, kh_##name##_t *h)              \
   {                                                                     \
-    if (h) {                                                            \
-      kh_destroy_data_##name(mrb, h);                                   \
-      mrb_free(mrb, h);                                                 \
-    }                                                                   \
+    kh_destroy_data_##name(mrb, h);                                     \
+    mrb_free(mrb, h);                                                   \
   }                                                                     \
   void kh_clear_##name(mrb_state *mrb, kh_##name##_t *h)                \
   {                                                                     \
