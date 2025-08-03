@@ -372,10 +372,10 @@ ary_rotate_bang(mrb_state *mrb, mrb_value self)
 #define SET_OP_HASH_THRESHOLD 32
 
 /* Helper functions for temporary khash sets */
-static ary_set_t*
-ary_create_temp_set(mrb_state *mrb, mrb_int capacity)
+static void
+ary_init_temp_set(mrb_state *mrb, ary_set_t *set, mrb_int capacity)
 {
-  return kh_init_size(ary_set, mrb, capacity > 0 ? capacity : 8);
+  kh_init_data(ary_set, mrb, set, capacity > 0 ? capacity : 8);
 }
 
 static void
@@ -391,7 +391,7 @@ static void
 ary_destroy_temp_set(mrb_state *mrb, ary_set_t *set)
 {
   if (set) {
-    kh_destroy(ary_set, mrb, set);
+    kh_destroy_data(ary_set, mrb, set);
   }
 }
 
@@ -427,7 +427,9 @@ ary_subtract_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_va
   mrb_value result = mrb_ary_new(mrb);
 
   if (total_len > SET_OP_HASH_THRESHOLD) {
-    ary_set_t *set = ary_create_temp_set(mrb, total_len);
+    ary_set_t set_struct;
+    ary_set_t *set = &set_struct;
+    ary_init_temp_set(mrb, set, total_len);
 
     for (mrb_int i = 0; i < argc; i++) {
       ary_populate_temp_set(mrb, set, argv[i]);
@@ -526,7 +528,9 @@ ary_union_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mrb_value
   mrb_value result = mrb_ary_new(mrb);
 
   if (total_len > SET_OP_HASH_THRESHOLD) {
-    ary_set_t *set = ary_create_temp_set(mrb, total_len);
+    ary_set_t set_struct;
+    ary_set_t *set = &set_struct;
+    ary_init_temp_set(mrb, set, total_len);
 
     /* Add unique elements from self */
     mrb_int alen = RARRAY_LEN(self);
@@ -626,7 +630,9 @@ ary_intersection_internal(mrb_state *mrb, mrb_value self, mrb_int argc, const mr
   mrb_value result = mrb_ary_new(mrb);
 
   if (total_len > SET_OP_HASH_THRESHOLD) {
-    ary_set_t *set = ary_create_temp_set(mrb, total_len);
+    ary_set_t set_struct;
+    ary_set_t *set = &set_struct;
+    ary_init_temp_set(mrb, set, total_len);
 
     for (mrb_int i = 0; i < argc; i++) {
       ary_populate_temp_set(mrb, set, argv[i]);
@@ -757,7 +763,9 @@ ary_intersect_p(mrb_state *mrb, mrb_value self)
   }
 
   if (RARRAY_LEN(shorter_ary) > SET_OP_HASH_THRESHOLD) {
-    ary_set_t *set = ary_create_temp_set(mrb, RARRAY_LEN(shorter_ary));
+    ary_set_t set_struct;
+    ary_set_t *set = &set_struct;
+    ary_init_temp_set(mrb, set, RARRAY_LEN(shorter_ary));
     ary_populate_temp_set(mrb, set, shorter_ary);
 
     mrb_int longer_len = RARRAY_LEN(longer_ary);
@@ -930,7 +938,9 @@ ary_uniq_bang(mrb_state *mrb, mrb_value self)
   mrb_int write_pos = 0;
 
   if (len > SET_OP_HASH_THRESHOLD) {
-    ary_set_t *set = ary_create_temp_set(mrb, len);
+    ary_set_t set_struct;
+    ary_set_t *set = &set_struct;
+    ary_init_temp_set(mrb, set, len);
     ary_populate_temp_set(mrb, set, self);
 
     for (mrb_int read_pos = 0; read_pos < len; read_pos++) {
