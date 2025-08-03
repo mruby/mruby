@@ -20,8 +20,8 @@ MRB_BEGIN_DECL
 typedef uint32_t khint_t;
 typedef khint_t khiter_t;
 
-#ifndef KHASH_DEFAULT_SIZE
-# define KHASH_DEFAULT_SIZE 8
+#ifndef KHASH_INITIAL_SIZE
+# define KHASH_INITIAL_SIZE 8
 #endif
 #define KHASH_MIN_SIZE 8
 #define KHASH_SMALL_THRESHOLD 4
@@ -216,7 +216,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     return h;                                                           \
   }                                                                     \
   kh_##name##_t *kh_init_##name(mrb_state *mrb) {                       \
-    return kh_init_##name##_size(mrb, KHASH_DEFAULT_SIZE);              \
+    return kh_init_##name##_size(mrb, KHASH_INITIAL_SIZE);              \
   }                                                                     \
   void kh_destroy_##name(mrb_state *mrb, kh_##name##_t *h)              \
   {                                                                     \
