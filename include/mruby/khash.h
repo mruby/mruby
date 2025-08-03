@@ -90,7 +90,6 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     return (uint8_t*)(h)->data + sizeof(khkey_t) * (h)->n_buckets +     \
            (kh_is_map ? sizeof(khval_t) * (h)->n_buckets : 0);          \
   }                                                                     \
-  void kh_alloc_##name(mrb_state *mrb, kh_##name##_t *h);               \
   kh_##name##_t *kh_init_##name##_size(mrb_state *mrb, khint_t size);   \
   kh_##name##_t *kh_init_##name(mrb_state *mrb);                        \
   void kh_destroy_##name(mrb_state *mrb, kh_##name##_t *h);             \
@@ -147,6 +146,13 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
   static inline void kh__clear_flags_##name(kh_##name##_t *h, khint_t n_buckets) { \
     memset(kh_flags_##name(h), 0xaa, n_buckets/4);                      \
   }                                                                     \
+  static inline void kh__alloc_##name(mrb_state *mrb, kh_##name##_t *h) { \
+    khint_t sz = h->n_buckets;                                          \
+    uint8_t *p = (uint8_t*)mrb_malloc(mrb, kh__htable_size_##name(sz)); \
+    h->size = 0;                                                        \
+    h->data = p;  /* Single data pointer for optimized layout */        \
+    kh__clear_flags_##name(h, sz);                                      \
+  }                                                                     \
   /* Small table optimization functions */                              \
   static inline int kh__is_small_##name(const kh_##name##_t *h) {       \
     return h->n_buckets == 0;  /* Small table marker */                 \
@@ -169,7 +175,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     /* Allocate new table */                                            \
     h->n_buckets = new_n_buckets;                                       \
     h->size = 0;                                                        \
-    kh_alloc_##name(mrb, h);                                            \
+    kh__alloc_##name(mrb, h);                                           \
     /* Rehash elements */                                               \
     khint_t limit = old_flags ? old_n_buckets : old_size;               \
     for (khint_t i = 0; i < limit; i++) {                               \
@@ -203,14 +209,6 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     h->size++;                                                          \
     if (ret) *ret = 1;  /* New key */                                   \
     return h->size - 1;                                                 \
-  }                                                                     \
-  void kh_alloc_##name(mrb_state *mrb, kh_##name##_t *h)                \
-  {                                                                     \
-    khint_t sz = h->n_buckets;                                          \
-    uint8_t *p = (uint8_t*)mrb_malloc(mrb, kh__htable_size_##name(sz)); \
-    h->size = 0;                                                        \
-    h->data = p;  /* Single data pointer for optimized layout */        \
-    kh__clear_flags_##name(h, sz);                                      \
   }                                                                     \
   kh_##name##_t *kh_init_##name##_size(mrb_state *mrb, khint_t size) {  \
     kh_##name##_t *h = (kh_##name##_t*)mrb_calloc(mrb, 1, sizeof(kh_##name##_t)); \
@@ -337,7 +335,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
         size = KHASH_MIN_SIZE;                                          \
       khash_power2(size);                                               \
       h->n_buckets = size;                                              \
-      kh_alloc_##name(mrb, h);                                          \
+      kh__alloc_##name(mrb, h);                                         \
     }                                                                   \
   }                                                                     \
   void kh_destroy_data_##name(mrb_state *mrb, kh_##name##_t *h)         \
