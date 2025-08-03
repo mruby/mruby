@@ -133,6 +133,9 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
   static inline khint_t kh_key_idx_##name(mrb_state *mrb, khkey_t key, kh_##name##_t *h) { \
     return __hash_func(mrb, key) & khash_mask(h);                       \
   }                                                                     \
+  static inline khint_t kh_next_probe_##name(khint_t k, khint_t *step, kh_##name##_t *h) { \
+    return (k+(++(*step))) & khash_mask(h);                             \
+  }                                                                     \
   /* Small table optimization functions */                              \
   static inline int kh_is_small_##name(const kh_##name##_t *h) {        \
     return h->n_buckets == 0;  /* Small table marker */                 \
@@ -233,7 +236,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
       if (!__ac_isdel(ed_flags, k)) {                                   \
         if (__hash_equal(mrb, keys[k], key)) return k;                  \
       }                                                                 \
-      k = (k+(++step)) & khash_mask(h);                                 \
+      k = kh_next_probe_##name(k, &step, h);                                 \
     }                                                                   \
     return kh_end(h);                                                   \
   }                                                                     \
@@ -268,7 +271,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
       else if (del_k == kh_end(h)) {                                    \
         del_k = k;                                                      \
       }                                                                 \
-      k = (k+(++step)) & khash_mask(h);                                 \
+      k = kh_next_probe_##name(k, &step, h);                                 \
     }                                                                   \
     if (del_k != kh_end(h)) {                                           \
       /* put at del */                                                  \
