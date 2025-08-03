@@ -86,6 +86,10 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     return kh_is_map ?                                                  \
       (khval_t*)((uint8_t*)(h)->data + sizeof(khkey_t) * (h)->n_buckets) : NULL; \
   }                                                                     \
+  static inline uint8_t* kh_flags_##name(const kh_##name##_t *h) {      \
+    return (uint8_t*)(h)->data + sizeof(khkey_t) * (h)->n_buckets +     \
+           (kh_is_map ? sizeof(khval_t) * (h)->n_buckets : 0);          \
+  }                                                                     \
   void kh_alloc_##name(mrb_state *mrb, kh_##name##_t *h);               \
   kh_##name##_t *kh_init_##name##_size(mrb_state *mrb, khint_t size);   \
   kh_##name##_t *kh_init_##name(mrb_state *mrb);                        \
@@ -112,57 +116,54 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
 #define KHASH_DEFINE(name, khkey_t, khval_t, kh_is_map, __hash_func, __hash_equal) \
   mrb_noreturn void mrb_raise_nomemory(mrb_state *mrb);                 \
   /* Internal helper functions */                                       \
-  static inline size_t kh_kv_size_##name(khint_t count) {               \
+  static inline size_t kh__kv_size_##name(khint_t count) {              \
     return sizeof(khkey_t) * count +                                    \
            (kh_is_map ? sizeof(khval_t) * count : 0);                   \
   }                                                                     \
-  static inline size_t kh_htable_size_##name(khint_t n_buckets) {       \
-    return kh_kv_size_##name(n_buckets) + n_buckets / 4;                \
+  static inline size_t kh__htable_size_##name(khint_t n_buckets) {      \
+    return kh__kv_size_##name(n_buckets) + n_buckets / 4;               \
   }                                                                     \
-  static inline uint8_t* kh_flags_##name(const kh_##name##_t *h) {      \
-    return (uint8_t*)(h)->data + kh_kv_size_##name((h)->n_buckets);     \
-  }                                                                     \
-  static inline void kh_mark_occupied_##name(kh_##name##_t *h, khint_t i) { \
+  static inline void kh__mark_occupied_##name(kh_##name##_t *h, khint_t i) { \
     uint8_t *flags = kh_flags_##name(h);                                \
     flags[i/4] &= ~__m_either[i%4];  /* Clear both empty and deleted bits */ \
   }                                                                     \
-  static inline void kh_mark_deleted_##name(kh_##name##_t *h, khint_t i) { \
+  static inline void kh__mark_deleted_##name(kh_##name##_t *h, khint_t i) {  \
     uint8_t *flags = kh_flags_##name(h);                                \
     flags[i/4] |= __m_del[i%4];      /* Set deleted bit */              \
   }                                                                     \
-  static inline khint_t kh_key_idx_##name(mrb_state *mrb, khkey_t key, kh_##name##_t *h) { \
+  static inline khint_t kh__key_idx_##name(mrb_state *mrb, khkey_t key, kh_##name##_t *h) { \
     return __hash_func(mrb, key) & khash_mask(h);                       \
   }                                                                     \
-  static inline khint_t kh_next_probe_##name(khint_t k, khint_t *step, kh_##name##_t *h) { \
+  static inline khint_t kh__next_probe_##name(khint_t k, khint_t *step, kh_##name##_t *h) { \
     return (k+(++(*step))) & khash_mask(h);                             \
   }                                                                     \
-  static inline khint_t kh_insert_key_##name(kh_##name##_t *h, khint_t index, khkey_t key) { \
+  static inline khint_t kh__insert_key_##name(kh_##name##_t *h, khint_t index, khkey_t key) { \
     khkey_t *keys = kh_keys_##name(h);                                  \
     keys[index] = key;                                                  \
-    kh_mark_occupied_##name(h, index);                                  \
+    kh__mark_occupied_##name(h, index);                                 \
     h->size++;                                                          \
     return index;                                                       \
   }                                                                     \
-  static inline void kh_clear_flags_##name(kh_##name##_t *h, khint_t n_buckets) { \
+  static inline void kh__clear_flags_##name(kh_##name##_t *h, khint_t n_buckets) { \
     memset(kh_flags_##name(h), 0xaa, n_buckets/4);                      \
   }                                                                     \
   /* Small table optimization functions */                              \
-  static inline int kh_is_small_##name(const kh_##name##_t *h) {        \
+  static inline int kh__is_small_##name(const kh_##name##_t *h) {       \
     return h->n_buckets == 0;  /* Small table marker */                 \
   }                                                                     \
-  static inline khint_t kh_get_small_##name(mrb_state *mrb, kh_##name##_t *h, khkey_t key) { \
+  static inline khint_t kh__get_small_##name(mrb_state *mrb, kh_##name##_t *h, khkey_t key) { \
     khkey_t *keys = kh_keys_##name(h);                                  \
     for (khint_t i = 0; i < h->size; i++) {                             \
       if (__hash_equal(mrb, keys[i], key)) return i;                    \
     }                                                                   \
     return h->size;  /* Not found - return end position */              \
   }                                                                     \
-  static inline void kh_rebuild_##name(mrb_state *mrb, kh_##name##_t *h, khint_t new_n_buckets) { \
+  static inline void kh__rebuild_##name(mrb_state *mrb, kh_##name##_t *h, khint_t new_n_buckets) { \
     /* Save old state */                                                \
     void *old_data = h->data;                                           \
     khkey_t *old_keys = kh_keys_##name(h);                              \
     khval_t *old_vals = kh_vals_##name(h);                              \
-    uint8_t *old_flags = kh_is_small_##name(h) ? NULL : kh_flags_##name(h); \
+    uint8_t *old_flags = kh__is_small_##name(h) ? NULL : kh_flags_##name(h); \
     khint_t old_n_buckets = h->n_buckets;                               \
     khint_t old_size = h->size;                                         \
     /* Allocate new table */                                            \
@@ -182,9 +183,9 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     /* Cleanup */                                                       \
     mrb_free(mrb, old_data);                                            \
   }                                                                     \
-  static inline khint_t kh_put_small_##name(mrb_state *mrb, kh_##name##_t *h, khkey_t key, int *ret) { \
+  static inline khint_t kh__put_small_##name(mrb_state *mrb, kh_##name##_t *h, khkey_t key, int *ret) { \
     /* First check if key exists */                                     \
-    khint_t pos = kh_get_small_##name(mrb, h, key);                     \
+    khint_t pos = kh__get_small_##name(mrb, h, key);                    \
     if (pos < h->size) {                                                \
       if (ret) *ret = 0;  /* Key exists */                              \
       return pos;                                                       \
@@ -192,7 +193,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     /* Check if we need to convert to hash table */                     \
     if (h->size >= KHASH_SMALL_THRESHOLD) {                             \
       /* Convert from small table to hash table */                      \
-      kh_rebuild_##name(mrb, h, KHASH_MIN_SIZE);                        \
+      kh__rebuild_##name(mrb, h, KHASH_MIN_SIZE);                       \
       /* Now add the new key using regular hash table */                \
       return kh_put_##name(mrb, h, key, ret);                           \
     }                                                                   \
@@ -206,10 +207,10 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
   void kh_alloc_##name(mrb_state *mrb, kh_##name##_t *h)                \
   {                                                                     \
     khint_t sz = h->n_buckets;                                          \
-    uint8_t *p = (uint8_t*)mrb_malloc(mrb, kh_htable_size_##name(sz));  \
+    uint8_t *p = (uint8_t*)mrb_malloc(mrb, kh__htable_size_##name(sz)); \
     h->size = 0;                                                        \
     h->data = p;  /* Single data pointer for optimized layout */        \
-    kh_clear_flags_##name(h, sz);                             \
+    kh__clear_flags_##name(h, sz);                                      \
   }                                                                     \
   kh_##name##_t *kh_init_##name##_size(mrb_state *mrb, khint_t size) {  \
     kh_##name##_t *h = (kh_##name##_t*)mrb_calloc(mrb, 1, sizeof(kh_##name##_t)); \
@@ -228,25 +229,25 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
   {                                                                     \
     (void)mrb;                                                          \
     if (h && h->data) {                                                 \
-      kh_clear_flags_##name(h, h->n_buckets);                          \
+      kh__clear_flags_##name(h, h->n_buckets);                          \
       h->size = 0;                                                      \
     }                                                                   \
   }                                                                     \
   khint_t kh_get_##name(mrb_state *mrb, kh_##name##_t *h, khkey_t key)  \
   {                                                                     \
-    if (kh_is_small_##name(h)) {                                        \
-      return kh_get_small_##name(mrb, h, key);                          \
+    if (kh__is_small_##name(h)) {                                       \
+      return kh__get_small_##name(mrb, h, key);                         \
     }                                                                   \
     /* Cache calculated pointers for performance */                     \
     khkey_t *keys = kh_keys_##name(h);                                  \
     uint8_t *ed_flags = kh_flags_##name(h);                             \
-    khint_t k = kh_key_idx_##name(mrb, key, h), step = 0;               \
+    khint_t k = kh__key_idx_##name(mrb, key, h), step = 0;              \
     (void)mrb;                                                          \
     while (!__ac_isempty(ed_flags, k)) {                                \
       if (!__ac_isdel(ed_flags, k)) {                                   \
         if (__hash_equal(mrb, keys[k], key)) return k;                  \
       }                                                                 \
-      k = kh_next_probe_##name(k, &step, h);                            \
+      k = kh__next_probe_##name(k, &step, h);                           \
     }                                                                   \
     return kh_end(h);                                                   \
   }                                                                     \
@@ -255,12 +256,12 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     if (new_n_buckets < KHASH_MIN_SIZE)                                 \
       new_n_buckets = KHASH_MIN_SIZE;                                   \
     khash_power2(new_n_buckets);                                        \
-    kh_rebuild_##name(mrb, h, new_n_buckets);                           \
+    kh__rebuild_##name(mrb, h, new_n_buckets);                          \
   }                                                                     \
   khint_t kh_put_##name(mrb_state *mrb, kh_##name##_t *h, khkey_t key, int *ret) \
   {                                                                     \
-    if (kh_is_small_##name(h)) {                                        \
-      return kh_put_small_##name(mrb, h, key, ret);                     \
+    if (kh__is_small_##name(h)) {                                       \
+      return kh__put_small_##name(mrb, h, key, ret);                    \
     }                                                                   \
     khint_t k, del_k, step = 0;                                         \
     if (h->size >= khash_upper_bound(h)) {                              \
@@ -269,7 +270,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     /* Cache calculated pointers for performance */                     \
     khkey_t *keys = kh_keys_##name(h);                                  \
     uint8_t *ed_flags = kh_flags_##name(h);                             \
-    k = kh_key_idx_##name(mrb, key, h);                                 \
+    k = kh__key_idx_##name(mrb, key, h);                                \
     del_k = kh_end(h);                                                  \
     while (!__ac_isempty(ed_flags, k)) {                                \
       if (!__ac_isdel(ed_flags, k)) {                                   \
@@ -281,17 +282,17 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
       else if (del_k == kh_end(h)) {                                    \
         del_k = k;                                                      \
       }                                                                 \
-      k = kh_next_probe_##name(k, &step, h);                            \
+      k = kh__next_probe_##name(k, &step, h);                           \
     }                                                                   \
     if (del_k != kh_end(h)) {                                           \
       /* put at del */                                                  \
-      kh_insert_key_##name(h, del_k, key);                             \
+      kh__insert_key_##name(h, del_k, key);                             \
       if (ret) *ret = 2;                                                \
       return del_k;                                                     \
     }                                                                   \
     else {                                                              \
       /* put at empty */                                                \
-      kh_insert_key_##name(h, k, key);                                 \
+      kh__insert_key_##name(h, k, key);                                 \
       if (ret) *ret = 1;                                                \
       return k;                                                         \
     }                                                                   \
@@ -299,7 +300,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
   void kh_del_##name(mrb_state *mrb, kh_##name##_t *h, khint_t x)       \
   {                                                                     \
     (void)mrb;                                                          \
-    if (kh_is_small_##name(h)) {                                        \
+    if (kh__is_small_##name(h)) {                                       \
       /* Small table deletion: shift elements down */                   \
       mrb_assert(x < h->size);                                          \
       khkey_t *keys = kh_keys_##name(h);                                \
@@ -313,7 +314,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     else {                                                              \
       /* Regular hash table deletion */                                 \
       mrb_assert(x != h->n_buckets && !__ac_iseither(kh_flags_##name(h), x)); \
-      kh_mark_deleted_##name(h, x);                                     \
+      kh__mark_deleted_##name(h, x);                                    \
       h->size--;                                                        \
     }                                                                   \
   }                                                                     \
@@ -327,7 +328,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     if (size <= KHASH_SMALL_THRESHOLD) {                                \
       /* Start as small table */                                        \
       h->n_buckets = 0;  /* Small table marker */                       \
-      h->data = mrb_malloc(mrb, kh_kv_size_##name(KHASH_SMALL_THRESHOLD)); \
+      h->data = mrb_malloc(mrb, kh__kv_size_##name(KHASH_SMALL_THRESHOLD)); \
       h->size = 0;                                                      \
     }                                                                   \
     else {                                                              \
@@ -357,17 +358,17 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     }                                                                   \
     else if (src->n_buckets == 0) {                                     \
       /* Small table case */                                            \
-      size_t data_size = kh_kv_size_##name(KHASH_SMALL_THRESHOLD);      \
+      size_t data_size = kh__kv_size_##name(KHASH_SMALL_THRESHOLD);     \
       dst->data = mrb_realloc(mrb, dst->data, data_size);               \
       dst->size = src->size;                                            \
       dst->n_buckets = 0;                                               \
       /* Copy only the used portion of keys and values */               \
-      size_t copy_size = kh_kv_size_##name(src->size);                  \
+      size_t copy_size = kh__kv_size_##name(src->size);                 \
       memcpy(dst->data, src->data, copy_size);                          \
     }                                                                   \
     else {                                                              \
       /* Regular hash table case */                                     \
-      size_t data_size = kh_htable_size_##name(src->n_buckets);         \
+      size_t data_size = kh__htable_size_##name(src->n_buckets);        \
       dst->data = mrb_realloc(mrb, dst->data, data_size);               \
       dst->size = src->size;                                            \
       dst->n_buckets = src->n_buckets;                                  \
