@@ -136,6 +136,16 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
   static inline khint_t kh_next_probe_##name(khint_t k, khint_t *step, kh_##name##_t *h) { \
     return (k+(++(*step))) & khash_mask(h);                             \
   }                                                                     \
+  static inline khint_t kh_insert_key_##name(kh_##name##_t *h, khint_t index, khkey_t key) { \
+    khkey_t *keys = kh_keys_##name(h);                                  \
+    keys[index] = key;                                                  \
+    kh_mark_occupied_##name(h, index);                                  \
+    h->size++;                                                          \
+    return index;                                                       \
+  }                                                                     \
+  static inline void kh_clear_flags_##name(kh_##name##_t *h, khint_t n_buckets) { \
+    memset(kh_flags_##name(h), 0xaa, n_buckets/4);                      \
+  }                                                                     \
   /* Small table optimization functions */                              \
   static inline int kh_is_small_##name(const kh_##name##_t *h) {        \
     return h->n_buckets == 0;  /* Small table marker */                 \
@@ -199,7 +209,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     uint8_t *p = (uint8_t*)mrb_malloc(mrb, kh_htable_size_##name(sz));  \
     h->size = 0;                                                        \
     h->data = p;  /* Single data pointer for optimized layout */        \
-    memset(kh_flags_##name(h), 0xaa, sz/4);                             \
+    kh_clear_flags_##name(h, sz);                             \
   }                                                                     \
   kh_##name##_t *kh_init_##name##_size(mrb_state *mrb, khint_t size) {  \
     kh_##name##_t *h = (kh_##name##_t*)mrb_calloc(mrb, 1, sizeof(kh_##name##_t)); \
@@ -218,7 +228,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
   {                                                                     \
     (void)mrb;                                                          \
     if (h && h->data) {                                                 \
-      memset(kh_flags_##name(h), 0xaa, h->n_buckets/4);                 \
+      kh_clear_flags_##name(h, h->n_buckets);                          \
       h->size = 0;                                                      \
     }                                                                   \
   }                                                                     \
@@ -236,7 +246,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
       if (!__ac_isdel(ed_flags, k)) {                                   \
         if (__hash_equal(mrb, keys[k], key)) return k;                  \
       }                                                                 \
-      k = kh_next_probe_##name(k, &step, h);                                 \
+      k = kh_next_probe_##name(k, &step, h);                            \
     }                                                                   \
     return kh_end(h);                                                   \
   }                                                                     \
@@ -271,21 +281,17 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
       else if (del_k == kh_end(h)) {                                    \
         del_k = k;                                                      \
       }                                                                 \
-      k = kh_next_probe_##name(k, &step, h);                                 \
+      k = kh_next_probe_##name(k, &step, h);                            \
     }                                                                   \
     if (del_k != kh_end(h)) {                                           \
       /* put at del */                                                  \
-      keys[del_k] = key;                                                \
-      kh_mark_occupied_##name(h, del_k);                                \
-      h->size++;                                                        \
+      kh_insert_key_##name(h, del_k, key);                             \
       if (ret) *ret = 2;                                                \
       return del_k;                                                     \
     }                                                                   \
     else {                                                              \
       /* put at empty */                                                \
-      keys[k] = key;                                                    \
-      kh_mark_occupied_##name(h, k);                                    \
-      h->size++;                                                        \
+      kh_insert_key_##name(h, k, key);                                 \
       if (ret) *ret = 1;                                                \
       return k;                                                         \
     }                                                                   \
