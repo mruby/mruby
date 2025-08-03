@@ -24,7 +24,7 @@ typedef khint_t khiter_t;
 # define KHASH_INITIAL_SIZE 8
 #endif
 #define KHASH_MIN_SIZE 8
-#define KHASH_SMALL_THRESHOLD 4
+#define KHASH_SMALL_LIMIT 4
 
 #define KH_UPPER_BOUND(x) ((x) - ((x)>>3))   /* 87.5% load factor */
 
@@ -197,7 +197,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
       return pos;                                                       \
     }                                                                   \
     /* Check if we need to convert to hash table */                     \
-    if (h->size >= KHASH_SMALL_THRESHOLD) {                             \
+    if (h->size >= KHASH_SMALL_LIMIT) {                                 \
       /* Convert from small table to hash table */                      \
       kh__rebuild_##name(mrb, h, KHASH_MIN_SIZE);                       \
       /* Now add the new key using regular hash table */                \
@@ -323,10 +323,10 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     return h2;                                                          \
   }                                                                     \
   void kh_init_data_##name(mrb_state *mrb, kh_##name##_t *h, khint_t size) { \
-    if (size <= KHASH_SMALL_THRESHOLD) {                                \
+    if (size <= KHASH_SMALL_LIMIT) {                                    \
       /* Start as small table */                                        \
       h->n_buckets = 0;  /* Small table marker */                       \
-      h->data = mrb_malloc(mrb, kh__kv_size_##name(KHASH_SMALL_THRESHOLD)); \
+      h->data = mrb_malloc(mrb, kh__kv_size_##name(KHASH_SMALL_LIMIT)); \
       h->size = 0;                                                      \
     }                                                                   \
     else {                                                              \
@@ -356,7 +356,7 @@ static const uint8_t __m_either[] = {0x03, 0x0c, 0x30, 0xc0};
     }                                                                   \
     else if (src->n_buckets == 0) {                                     \
       /* Small table case */                                            \
-      size_t data_size = kh__kv_size_##name(KHASH_SMALL_THRESHOLD);     \
+      size_t data_size = kh__kv_size_##name(KHASH_SMALL_LIMIT);         \
       dst->data = mrb_realloc(mrb, dst->data, data_size);               \
       dst->size = src->size;                                            \
       dst->n_buckets = 0;                                               \
