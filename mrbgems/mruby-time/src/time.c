@@ -978,7 +978,10 @@ time_zonename(mrb_state *mrb, struct mrb_time *tm, char *buf, size_t len)
   time_t utc_sec = timegm(&tm->datetime); /* Convert current datetime (interpreted as UTC) to time_t */
   /* Calculate offset in minutes: difference between this UTC time_t and the stored local time_t */
   int offset = abs((int)(utc_sec - tm->sec) / SECS_PER_MIN);
-  datetime.tm_year = 100; /* Arbitrary year for strftime, not relevant to offset display (e.g. Y2K bug-like) */
+  /* Copy actual date components for accurate timezone/DST calculation */
+  datetime.tm_year = tm->datetime.tm_year;
+  datetime.tm_mon = tm->datetime.tm_mon;
+  datetime.tm_mday = tm->datetime.tm_mday;
   datetime.tm_hour = offset / MINS_PER_HOUR; /* Convert offset to hours and minutes */
   datetime.tm_min = offset % MINS_PER_HOUR;
   buf[0] = utc_sec < tm->sec ? '-' : '+'; /* Determine sign of the offset */
@@ -1427,8 +1430,14 @@ time_to_s(mrb_state *mrb, mrb_value self)
     len = strftime(buf, sizeof(buf), TO_S_FMT "UTC", &tm->datetime);
   }
   else {
+#if defined(_MSC_VER) && _MSC_VER < 1900 || defined(__MINGW64__) || defined(__MINGW32__)
+    /* Use two-step approach on Windows platforms without reliable %z support */
     len = strftime(buf, sizeof(buf), TO_S_FMT, &tm->datetime);
     len += time_zonename(mrb, tm, buf+len, sizeof(buf)-len);
+#else
+    /* Use combined format string on platforms with %z support */
+    len = strftime(buf, sizeof(buf), TO_S_FMT "%z", &tm->datetime);
+#endif
   }
   mrb_value str = mrb_str_new(mrb, buf, len);
   RSTR_SET_ASCII_FLAG(mrb_str_ptr(str));
