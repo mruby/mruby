@@ -4125,14 +4125,14 @@ inspect_main(mrb_state *mrb, mrb_value mod)
 }
 
 static const mrb_code new_iseq[] = {
-  OP_ENTER, 0x0, 0x10, 0x3,  // OP_ENTER     0:0:1:0:0:1:1
-  OP_SSEND, 4, 0, 0,         // OP_SSEND     R4  :allocate  n=0
-  OP_MOVE, 0, 4,             // OP_MOVE      R0  R4
-  OP_MOVE, 4, 3,             // OP_MOVE      R4  R3 (&)
-  OP_MOVE, 3, 2,             // OP_MOVE      R3  R2 (**)
-  OP_MOVE, 2, 1,             // OP_MOVE      R2  R1 (*)
-  OP_SSENDB, 1, 1, 255,      // OP_SSENDB    R1  :initialize n=*|nk=*
-  OP_RETURN, 0               // OP_RETURN    R0
+  OP_ENTER, 0x0, 0x10, 0x3,  // 000 OP_ENTER     0:0:1:0:0:1:1
+  OP_SSEND, 4, 0, 0,         // 004 OP_SSEND     R4  :allocate  n=0
+  OP_MOVE, 0, 4,             // 008 OP_MOVE      R0  R4
+  OP_MOVE, 4, 3,             // 011 OP_MOVE      R4  R3         ; &
+  OP_MOVE, 3, 2,             // 014 OP_MOVE      R3  R2         ; **
+  OP_MOVE, 2, 1,             // 017 OP_MOVE      R2  R1         ; *
+  OP_SSENDB, 1, 1, 255,      // 020 OP_SSENDB    R1  :initialize n=*|nk=*
+  OP_RETURN, 0               // 024 OP_RETURN    R0
 };
 
 MRB_PRESYM_DEFINE_VAR_AND_INITER(new_syms, 2, MRB_SYM(allocate), MRB_SYM(initialize))
@@ -4160,13 +4160,13 @@ init_class_new(mrb_state *mrb, struct RClass *cls)
 }
 
 static const mrb_code neq_iseq[] = {
-  OP_ENTER, 0x4, 0, 0,       // OP_ENTER     1:0:0:0:0:0:0
-  OP_EQ, 0,                  // OP_EQ        R0  (R1)
-  OP_JMPNOT, 0, 0, 5,        // OP_JMPNOT    R3  016
-  OP_LOADF, 0,               // OP_LOADF     R0  (true)
-  OP_JMP, 0, 2,              // OP_JMP       R1  018
-  OP_LOADT, 0,               // OP_LOADT     R3  (true)
-  OP_RETURN, 0               // OP_RETURN    R0
+  OP_ENTER, 0x4, 0, 0,       // 000 OP_ENTER     1:0:0:0:0:0:0
+  OP_EQ, 0,                  // 004 OP_EQ        R0  (R1)
+  OP_JMPNOT, 0, 0, 5,        // 006 OP_JMPNOT    R0  015
+  OP_LOADF, 0,               // 010 OP_LOADF     R0  (false)
+  OP_JMP, 0, 2,              // 012 OP_JMP       017
+  OP_LOADT, 0,               // 015 OP_LOADT     R0  (true)
+  OP_RETURN, 0               // 017 OP_RETURN    R0
 };
 
 static const mrb_irep neq_irep = {
