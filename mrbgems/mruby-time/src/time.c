@@ -238,9 +238,9 @@ static const char wday_names[7][4] = { /* Consider defining DAYS_PER_WEEK = 7 if
 
 struct mrb_time {
   time_t              sec;      /* Seconds since the Epoch */
-  time_t              usec;     /* Microsecond fraction of the second */
+  time_t              nsec;     /* Nanosecond fraction of the second (0-999999999) */
   enum mrb_timezone   timezone; /* Timezone setting (MRB_TIMEZONE_UTC or MRB_TIMEZONE_LOCAL) */
-  struct tm           datetime; /* Cache for broken-down time based on sec, usec, and timezone. Updated by time_update_datetime. */
+  struct tm           datetime; /* Cache for broken-down time based on sec, nsec, and timezone. Updated by time_update_datetime. */
 };
 
 static const struct mrb_data_type time_type = { "Time", mrb_free }; /* mrb_free is the standard C free() */
@@ -444,30 +444,29 @@ time_wrap(mrb_state *mrb, struct RClass *tc, struct mrb_time *tm)
 
 /* Allocates a mrb_time object and initializes it. */
 static struct mrb_time*
-time_alloc_time(mrb_state *mrb, time_t sec, time_t usec, enum mrb_timezone timezone)
+time_alloc_time(mrb_state *mrb, time_t sec, time_t nsec, enum mrb_timezone timezone)
 {
   struct mrb_time *time_obj = (struct mrb_time*)mrb_malloc(mrb, sizeof(struct mrb_time));
   time_obj->sec  = sec;
-  time_obj->usec = usec;
+  time_obj->nsec = nsec;
 
-  /* Normalize seconds and microseconds. */
-  /* This is only necessary if time_t is signed and usec is negative. */
-  if (!MRB_TIME_T_UINT && time_obj->usec < 0) {
+  /* Normalize seconds and nanoseconds. */
+  /* This is only necessary if time_t is signed and nsec is negative. */
+  if (!MRB_TIME_T_UINT && time_obj->nsec < 0) {
     /*
-     * If usec is negative, adjust seconds downwards.
+     * If nsec is negative, adjust seconds downwards.
      * NDIV calculates division rounded towards negative infinity.
-     * For example, NDIV(-1, USECS_PER_SEC) is -1, so 1 second is subtracted.
-     * NDIV(-1000001, USECS_PER_SEC) is -2, so 2 seconds are subtracted.
+     * For example, NDIV(-1, 1000000000) is -1, so 1 second is subtracted.
      */
-    long sec_adjustment = (long)NDIV(time_obj->usec, USECS_PER_SEC);
-    time_obj->usec -= sec_adjustment * USECS_PER_SEC; /* Becomes positive or zero */
+    long sec_adjustment = (long)NDIV(time_obj->nsec, 1000000000L);
+    time_obj->nsec -= sec_adjustment * 1000000000L; /* Becomes positive or zero */
     time_obj->sec  += sec_adjustment;
   }
-  /* Handle positive microsecond overflow. */
-  else if (time_obj->usec >= USECS_PER_SEC) {
-    /* If usec is USECS_PER_SEC or more, adjust seconds upwards. */
-    long sec_adjustment = (long)(time_obj->usec / USECS_PER_SEC);
-    time_obj->usec -= sec_adjustment * USECS_PER_SEC; /* Reduce to < USECS_PER_SEC */
+  /* Handle positive nanosecond overflow. */
+  else if (time_obj->nsec >= 1000000000L) {
+    /* If nsec is 1000000000 or more, adjust seconds upwards. */
+    long sec_adjustment = (long)(time_obj->nsec / 1000000000L);
+    time_obj->nsec -= sec_adjustment * 1000000000L; /* Reduce to < 1000000000 */
     time_obj->sec  += sec_adjustment;
   }
   time_obj->timezone = timezone;
@@ -490,7 +489,7 @@ time_alloc(mrb_state *mrb, mrb_value sec, mrb_value usec, enum mrb_timezone time
   tsec = mrb_to_time_t(mrb, sec, &tusec);
   tusec += mrb_to_time_t(mrb, usec, NULL);
 
-  return time_alloc_time(mrb, tsec, tusec, timezone);
+  return time_alloc_time(mrb, tsec, tusec * NSECS_PER_USEC, timezone);
 }
 
 /*
@@ -526,21 +525,21 @@ static struct mrb_time*
 current_mrb_time(mrb_state *mrb)
 {
   struct mrb_time tmzero = {0}; /* Used to initialize the new mrb_time struct */
-  time_t sec, usec;
+  time_t sec, nsec;
 
 #if defined(TIME_UTC) && !defined(__ANDROID__)
   {
     struct timespec ts;
     timespec_get(&ts, TIME_UTC);
     sec = ts.tv_sec;
-    usec = ts.tv_nsec / NSECS_PER_USEC;
+    nsec = ts.tv_nsec;  /* Full nanosecond precision preserved */
   }
 #elif defined(USE_CLOCK_GETTIME)
   {
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
     sec = ts.tv_sec;
-    usec = ts.tv_nsec / NSECS_PER_USEC;
+    nsec = ts.tv_nsec;  /* Full nanosecond precision preserved */
   }
 #elif defined(NO_GETTIMEOFDAY)
   {
@@ -558,7 +557,7 @@ current_mrb_time(mrb_state *mrb)
        */
       last_usec += 1;
     }
-    usec = last_usec;
+    nsec = last_usec * NSECS_PER_USEC;  /* Convert fake microseconds to nanoseconds */
   }
 #else
   {
@@ -566,13 +565,13 @@ current_mrb_time(mrb_state *mrb)
 
     gettimeofday(&tv, NULL);
     sec = tv.tv_sec;
-    usec = tv.tv_usec;
+    nsec = tv.tv_usec * NSECS_PER_USEC;  /* Convert microseconds to nanoseconds */
   }
 #endif
 
   struct mrb_time *tm = (struct mrb_time*)mrb_malloc(mrb, sizeof(*tm));
   *tm = tmzero;
-  tm->sec = sec; tm->usec = usec;
+  tm->sec = sec; tm->nsec = nsec;
   tm->timezone = MRB_TIMEZONE_LOCAL;
   time_update_datetime(mrb, tm, TRUE);
 
@@ -597,7 +596,7 @@ time_now(mrb_state *mrb, mrb_value self)
 MRB_API mrb_value
 mrb_time_at(mrb_state *mrb, time_t sec, time_t usec, enum mrb_timezone zone)
 {
-  return time_make_time(mrb, mrb_class_get_id(mrb, MRB_SYM(Time)), sec, usec, zone);
+  return time_make_time(mrb, mrb_class_get_id(mrb, MRB_SYM(Time)), sec, usec * NSECS_PER_USEC, zone);
 }
 
 /*
@@ -691,7 +690,7 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
     /* Original time was valid epoch-1, keep nowsecs = -1 */
   }
 
-  return time_alloc_time(mrb, nowsecs, ausec, timezone);
+  return time_alloc_time(mrb, nowsecs, ausec * NSECS_PER_USEC, timezone);
 }
 
 /*
@@ -773,7 +772,7 @@ time_eq(mrb_state *mrb, mrb_value self)
   mrb_value other = mrb_get_arg1(mrb);
   struct mrb_time *tm1 = DATA_GET_PTR(mrb, self, &time_type, struct mrb_time);
   struct mrb_time *tm2 = DATA_CHECK_GET_PTR(mrb, other, &time_type, struct mrb_time);
-  mrb_bool eq_p = tm1 && tm2 && tm1->sec == tm2->sec && tm1->usec == tm2->usec;
+  mrb_bool eq_p = tm1 && tm2 && tm1->sec == tm2->sec && tm1->nsec == tm2->nsec;
 
   return mrb_bool_value(eq_p);
 }
@@ -807,10 +806,10 @@ time_cmp(mrb_state *mrb, mrb_value self)
     return mrb_fixnum_value(-1);
   }
   /* tm1->sec == tm2->sec */
-  if (tm1->usec > tm2->usec) {
+  if (tm1->nsec > tm2->nsec) {
     return mrb_fixnum_value(1);
   }
-  else if (tm1->usec < tm2->usec) {
+  else if (tm1->nsec < tm2->nsec) {
     return mrb_fixnum_value(-1);
   }
   return mrb_fixnum_value(0);
@@ -864,7 +863,7 @@ time_plus(mrb_state *mrb, mrb_value self)
   }
   sec = tm->sec + sec; /* Perform the addition */
 #endif
-  return time_make_time(mrb, mrb_obj_class(mrb, self), sec, tm->usec+usec, tm->timezone);
+  return time_make_time(mrb, mrb_obj_class(mrb, self), sec, tm->nsec + usec * NSECS_PER_USEC, tm->timezone);
 }
 
 /*
@@ -892,12 +891,12 @@ time_minus(mrb_state *mrb, mrb_value self)
 #ifndef MRB_NO_FLOAT
     mrb_float f;
     f = (mrb_float)(tm->sec - tm2->sec)
-      + (mrb_float)(tm->usec - tm2->usec) / USECS_PER_SEC_F;
+      + (mrb_float)(tm->nsec - tm2->nsec) / 1.0e9;
     return mrb_float_value(mrb, f);
 #else
     mrb_int f;
     f = tm->sec - tm2->sec;
-    if (tm->usec < tm2->usec) f--;
+    if (tm->nsec < tm2->nsec) f--;
     return mrb_int_value(mrb, f);
 #endif
   }
@@ -926,7 +925,7 @@ time_minus(mrb_state *mrb, mrb_value self)
       }
     sec = tm->sec - sec; /* Perform the subtraction */
 #endif
-    return time_make_time(mrb, mrb_obj_class(mrb, self), sec, tm->usec-usec, tm->timezone);
+    return time_make_time(mrb, mrb_obj_class(mrb, self), sec, tm->nsec - usec * NSECS_PER_USEC, tm->timezone);
   }
 }
 
@@ -1333,7 +1332,7 @@ static mrb_value
 time_to_f(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm = time_get_ptr(mrb, self);
-  return mrb_float_value(mrb, (mrb_float)tm->sec + (mrb_float)tm->usec/USECS_PER_SEC_F);
+  return mrb_float_value(mrb, (mrb_float)tm->sec + (mrb_float)tm->nsec/1.0e9);
 }
 #endif
 
@@ -1369,7 +1368,25 @@ static mrb_value
 time_usec(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm = time_get_ptr(mrb, self);
-  return mrb_fixnum_value((mrb_int)tm->usec);
+  return mrb_fixnum_value((mrb_int)(tm->nsec / NSECS_PER_USEC));
+}
+
+/*
+ * call-seq:
+ *   time.nsec    -> integer
+ *   time.tv_nsec -> integer
+ *
+ * Returns the nanosecond component (0-999999999) of the time.
+ *
+ *   Time.at(1000000000, 123456).nsec    #=> 123456000
+ *   Time.at(1000000000.123456789).nsec  #=> 123456789
+ *   Time.at(1000000000).nsec            #=> 0
+ */
+static mrb_value
+time_nsec(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_time *tm = time_get_ptr(mrb, self);
+  return mrb_fixnum_value((mrb_int)tm->nsec);
 }
 
 /*
@@ -1463,7 +1480,7 @@ time_hash(mrb_state *mrb, mrb_value self)
 {
   struct mrb_time *tm = time_get_ptr(mrb, self);
   uint32_t hash = mrb_byte_hash((uint8_t*)&tm->sec, sizeof(time_t));
-  hash = mrb_byte_hash_step((uint8_t*)&tm->usec, sizeof(time_t), hash);
+  hash = mrb_byte_hash_step((uint8_t*)&tm->nsec, sizeof(time_t), hash);
   hash = mrb_byte_hash_step((uint8_t*)&tm->timezone, sizeof(tm->timezone), hash);
   return mrb_int_value(mrb, hash);
 }
@@ -1671,6 +1688,8 @@ mrb_mruby_time_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, tc, MRB_SYM(to_f), time_to_f, MRB_ARGS_NONE());       /* 15.2.19.7.24 */
 #endif
   mrb_define_method_id(mrb, tc, MRB_SYM(usec), time_usec, MRB_ARGS_NONE());       /* 15.2.19.7.26 */
+  mrb_define_method_id(mrb, tc, MRB_SYM(nsec), time_nsec, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, tc, MRB_SYM(tv_nsec), time_nsec, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, tc, MRB_SYM(utc), time_utc, MRB_ARGS_NONE());        /* 15.2.19.7.27 */
   mrb_define_method_id(mrb, tc, MRB_SYM_Q(utc), time_utc_p,MRB_ARGS_NONE());       /* 15.2.19.7.28 */
   mrb_define_method_id(mrb, tc, MRB_SYM(wday), time_wday, MRB_ARGS_NONE());       /* 15.2.19.7.30 */

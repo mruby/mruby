@@ -238,6 +238,34 @@ assert('Time#utc_offset, #gmt_offset, #gmtoff', '15.2.19.7.12, 15.2.19.7.14, 15.
   assert_equal(local_time.utc_offset, local_time.gmtoff)
 end
 
+assert('Time#nsec, #tv_nsec') do
+  # Test nanosecond methods exist and return integers
+  t = Time.now
+  assert_kind_of(Integer, t.nsec)
+  assert_kind_of(Integer, t.tv_nsec)
+
+  # nsec and tv_nsec should be aliases
+  assert_equal(t.nsec, t.tv_nsec)
+
+  # Nanoseconds should be in valid range (0-999999999)
+  assert_operator(t.nsec, :>=, 0)
+  assert_operator(t.nsec, :<=, 999999999)
+
+  # Test with Time.at using microseconds
+  t1 = Time.at(1000000000, 123456)
+  assert_equal(123456000, t1.nsec)  # 123456 usec = 123456000 nsec
+  assert_equal(123456, t1.usec)     # usec should still work
+
+  # Test that usec == nsec/1000
+  assert_equal(t1.usec, t1.nsec / 1000)
+
+  # Test nanosecond precision in comparisons
+  t2 = Time.at(1000000000, 123457)
+  assert_equal(123457000, t2.nsec)
+  assert_not_equal(t1, t2)  # Different nanoseconds should not be equal
+  assert_operator(t1, :<, t2)  # t1 should be less than t2
+end
+
 assert('Time#wday', '15.2.19.7.30') do
   assert_equal(0, Time.gm(2012, 12, 23).wday)
 end
