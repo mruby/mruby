@@ -269,8 +269,15 @@ fixable_time_t_p(time_t v)
 static void
 time_out_of_range(mrb_state *mrb, mrb_value obj)
 {
-  mrb_raisef(mrb, E_ARGUMENT_ERROR, "%v out of Time range", obj);
+  mrb_raisef(mrb, E_RANGE_ERROR, "%v out of Time range", obj);
 }
+
+static mrb_noreturn void
+time_uninitialized(mrb_state *mrb)
+{
+  mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized Time");
+}
+
 
 #ifndef MRB_NO_FLOAT
 static time_t
@@ -383,7 +390,7 @@ time_value_from_time_t(mrb_state *mrb, time_t t)
 #elif !defined(MRB_NO_FLOAT)
     return mrb_float_value(mrb, (mrb_float)t);
 #else
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "Time too big");
+    mrb_raise(mrb, E_RANGE_ERROR, "Time out of range");
 #endif
   }
   return mrb_int_value(mrb, (mrb_int)t);
@@ -660,20 +667,22 @@ time_mktime(mrb_state *mrb, mrb_int ayear, mrb_int amonth, mrb_int aday,
 
   time_t nowsecs = (*mk)(&nowtime);
   /*
-   * Handle mktime/timegm failure:
-   * If mk() returns -1, it usually indicates an error or an out-of-range date.
-   * A special case is when the time is exactly one second before the epoch (Epoch-1).
-   * Some mktime implementations might return -1 for this valid time.
-   * The code tries to detect this by adding one second to tm_sec and calling mk() again.
-   * If the result is 0 (Epoch), then the original time was indeed Epoch-1.
+   * Handle mktime/timegm failure (returns -1):
+   * This could mean either:
+   * 1. Invalid date/time arguments, OR
+   * 2. Valid time exactly one second before Unix epoch (1969-12-31 23:59:59)
+   *
+   * To distinguish: increment seconds and test again.
+   * If result is 0 (epoch), original was valid epoch-1.
+   * Otherwise, original arguments were invalid.
    */
   if (nowsecs == (time_t)-1) {
-    nowtime.tm_sec += 1;        /* Check if it was Epoch-1 by trying Epoch */
-    nowsecs = (*mk)(&nowtime);  /* Call mktime/timegm again */
-    if (nowsecs != 0) {         /* If it's not Epoch, then the original time was invalid */
-      mrb_raise(mrb, E_ARGUMENT_ERROR, "Not a valid time");
+    struct tm test_tm = nowtime;
+    test_tm.tm_sec += 1;
+    if ((*mk)(&test_tm) != 0) {
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid time");
     }
-    nowsecs = (time_t)-1;       /* Reset to Epoch-1, which is a valid time_t */
+    /* Original time was valid epoch-1, keep nowsecs = -1 */
   }
 
   return time_alloc_time(mrb, nowsecs, ausec, timezone);
@@ -734,7 +743,7 @@ time_get_ptr(mrb_state *mrb, mrb_value time)
 {
   struct mrb_time *tm = DATA_GET_PTR(mrb, time, &time_type, struct mrb_time);
   if (!tm) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized time");
+    time_uninitialized(mrb);
   }
   return tm;
 }
@@ -804,7 +813,7 @@ time_cmp(mrb_state *mrb, mrb_value self)
 static mrb_noreturn void
 int_overflow(mrb_state *mrb, const char *reason)
 {
-  mrb_raisef(mrb, E_RANGE_ERROR, "time_t overflow in Time %s", reason);
+  mrb_raisef(mrb, E_RANGE_ERROR, "Time out of range in %s", reason);
 }
 
 /*
@@ -1218,7 +1227,7 @@ time_init_copy(mrb_state *mrb, mrb_value copy)
   struct mrb_time *t2 = (struct mrb_time*)DATA_PTR(src);
 
   if (!t2) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "uninitialized time");
+    time_uninitialized(mrb);
   }
   if (!t1) {
     t1 = (struct mrb_time*)mrb_malloc(mrb, sizeof(struct mrb_time));
