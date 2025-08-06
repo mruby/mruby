@@ -66,6 +66,11 @@ double round(double x) {
 
 /** Time class configuration */
 
+/* Platform detection for Windows variants */
+#if defined(_MSC_VER) && _MSC_VER < 1900 || defined(__MINGW64__) || defined(__MINGW32__)
+#define MRB_TIME_WINDOWS_NO_STRFTIME_Z
+#endif
+
 /* gettimeofday(2) */
 /* C99 does not have gettimeofday that is required to retrieve microseconds */
 /* uncomment following macro on platforms without gettimeofday(2) */
@@ -110,26 +115,26 @@ double round(double x) {
 # define USE_CLOCK_GETTIME
 #endif
 
-#if !defined(NO_GETTIMEOFDAY)
-# if defined(_WIN32) && !defined(USE_CLOCK_GETTIME)
-#  define WIN32_LEAN_AND_MEAN  /* don't include winsock.h */
-#  include <windows.h>
-#  define gettimeofday my_gettimeofday
+#if !defined(NO_GETTIMEOFDAY) && defined(_WIN32) && !defined(USE_CLOCK_GETTIME)
+/* Windows gettimeofday polyfill */
+#define WIN32_LEAN_AND_MEAN  /* don't include winsock.h */
+#include <windows.h>
+#define gettimeofday my_gettimeofday
 
-#  ifdef _MSC_VER
-#    define UI64(x) x##ui64
-#  else
-#    define UI64(x) x##ull
-#  endif
+#ifdef _MSC_VER
+#  define UI64(x) x##ui64
+#else
+#  define UI64(x) x##ull
+#endif
 
 typedef long suseconds_t;
 
-# if (!defined __MINGW64__) && (!defined __MINGW32__)
+#if (!defined __MINGW64__) && (!defined __MINGW32__)
 struct timeval {
   time_t tv_sec;
   suseconds_t tv_usec;
 };
-# endif
+#endif
 
 /*
  * Polyfill for gettimeofday on Windows platforms that may not have it (e.g., older MSVC).
@@ -156,9 +161,10 @@ gettimeofday(struct timeval *tv, void *tz)
   }
   return 0;
 }
-# else
-#  include <sys/time.h>
-# endif
+
+#elif !defined(NO_GETTIMEOFDAY)
+/* Non-Windows platforms use standard sys/time.h */
+#include <sys/time.h>
 #endif
 #ifdef NO_GMTIME_R
 #define gmtime_r(t,r) gmtime(t)
@@ -977,7 +983,7 @@ time_year(mrb_state *mrb, mrb_value self)
 static size_t
 time_zonename(mrb_state *mrb, struct mrb_time *tm, char *buf, size_t len)
 {
-#if defined(_MSC_VER) && _MSC_VER < 1900 || defined(__MINGW64__) || defined(__MINGW32__)
+#ifdef MRB_TIME_WINDOWS_NO_STRFTIME_Z
   /*
    * On some Windows versions (specifically with MSC_VER < 1900, i.e., pre-VS2015, or MinGW),
    * strftime's "%z" (timezone offset) specifier might not be available or reliable.
@@ -1427,7 +1433,7 @@ time_to_s(mrb_state *mrb, mrb_value self)
     len = strftime(buf, sizeof(buf), TO_S_FMT "UTC", &tm->datetime);
   }
   else {
-#if defined(_MSC_VER) && _MSC_VER < 1900 || defined(__MINGW64__) || defined(__MINGW32__)
+#ifdef MRB_TIME_WINDOWS_NO_STRFTIME_Z
     /* Use two-step approach on Windows platforms without reliable %z support */
     len = strftime(buf, sizeof(buf), TO_S_FMT, &tm->datetime);
     len += time_zonename(mrb, tm, buf+len, sizeof(buf)-len);
