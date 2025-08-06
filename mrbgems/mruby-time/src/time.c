@@ -1583,6 +1583,39 @@ time_saturday(mrb_state *mrb, mrb_value self)
   return time_wday_p(mrb, self, 6);
 }
 
+/*
+ * ISO 15.2.19.7.12
+ * ISO 15.2.19.7.14
+ * ISO 15.2.19.7.29
+ */
+/*
+ * call-seq:
+ *   time.gmt_offset  -> integer
+ *   time.utc_offset  -> integer
+ *   time.gmtoff      -> integer
+ *
+ * Returns the offset in seconds between the timezone of time and UTC.
+ *
+ *   Time.local(2000, 1, 1).gmt_offset   #=> 32400 (JST: UTC+9)
+ *   Time.utc(2000, 1, 1).utc_offset     #=> 0     (UTC)
+ *   Time.local(2000, 7, 1).gmtoff       #=> 32400 (or 28800 if DST)
+ */
+static mrb_value
+time_utc_offset(mrb_state *mrb, mrb_value self)
+{
+  struct mrb_time *tm = time_get_ptr(mrb, self);
+
+  if (tm->timezone == MRB_TIMEZONE_UTC) {
+    return mrb_fixnum_value(0);  /* UTC is always offset 0 */
+  }
+
+  /* For local times, calculate offset = local_time_t - utc_time_t */
+  time_t utc_time_t = timegm(&tm->datetime);  /* Convert datetime as UTC */
+  mrb_int offset_seconds = (mrb_int)(tm->sec - utc_time_t);
+
+  return mrb_fixnum_value(offset_seconds);
+}
+
 void
 mrb_mruby_time_gem_init(mrb_state* mrb)
 {
@@ -1656,12 +1689,9 @@ mrb_mruby_time_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, tc, MRB_SYM_Q(friday), time_friday, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, tc, MRB_SYM_Q(saturday), time_saturday, MRB_ARGS_NONE());
 
-  /*
-    methods not available:
-      gmt_offset(15.2.19.7.12)
-      gmtoff(15.2.19.7.14)
-      utc_offset(15.2.19.7.29)
-  */
+  mrb_define_method_id(mrb, tc, MRB_SYM(gmt_offset), time_utc_offset, MRB_ARGS_NONE()); /* 15.2.19.7.12 */
+  mrb_define_method_id(mrb, tc, MRB_SYM(gmtoff), time_utc_offset, MRB_ARGS_NONE());    /* 15.2.19.7.14 */
+  mrb_define_method_id(mrb, tc, MRB_SYM(utc_offset), time_utc_offset, MRB_ARGS_NONE()); /* 15.2.19.7.29 */
 }
 
 void

@@ -219,8 +219,24 @@ assert('Time#utc?', '15.2.19.7.28') do
   assert_predicate(Time.at(1300000000).utc, :utc?)
 end
 
-# ATM not implemented
-# assert('Time#utc_offset', '15.2.19.7.29') do
+assert('Time#utc_offset, #gmt_offset, #gmtoff', '15.2.19.7.12, 15.2.19.7.14, 15.2.19.7.29') do
+  # UTC times should have zero offset
+  utc_time = Time.utc(2000, 1, 1)
+  assert_equal(0, utc_time.utc_offset)
+
+  # Local times should return integer offsets in seconds
+  local_time = Time.local(2000, 1, 1)
+  assert_kind_of(Integer, local_time.utc_offset)
+
+  # Test that offset values make sense (should be multiple of 900 seconds = 15 minutes)
+  assert_equal(0, local_time.utc_offset % 900)
+
+  # All three methods should be aliases returning identical values
+  assert_equal(utc_time.utc_offset, utc_time.gmt_offset)
+  assert_equal(utc_time.utc_offset, utc_time.gmtoff)
+  assert_equal(local_time.utc_offset, local_time.gmt_offset)
+  assert_equal(local_time.utc_offset, local_time.gmtoff)
+end
 
 assert('Time#wday', '15.2.19.7.30') do
   assert_equal(0, Time.gm(2012, 12, 23).wday)
