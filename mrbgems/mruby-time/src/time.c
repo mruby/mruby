@@ -1107,8 +1107,10 @@ time_getutc(mrb_state *mrb, mrb_value self)
   struct mrb_time *tm = time_get_ptr(mrb, self);
   struct mrb_time *tm2 = (struct mrb_time*)mrb_malloc(mrb, sizeof(*tm));
   *tm2 = *tm;
-  tm2->timezone = MRB_TIMEZONE_UTC;
-  time_update_datetime(mrb, tm2, TRUE);
+  if (tm2->timezone != MRB_TIMEZONE_UTC) {
+    tm2->timezone = MRB_TIMEZONE_UTC;
+    time_update_datetime(mrb, tm2, TRUE);
+  }
   return time_wrap(mrb, mrb_obj_class(mrb, self), tm2);
 }
 
@@ -1129,8 +1131,10 @@ time_getlocal(mrb_state *mrb, mrb_value self)
   struct mrb_time *tm = time_get_ptr(mrb, self);
   struct mrb_time *tm2 = (struct mrb_time*)mrb_malloc(mrb, sizeof(*tm));
   *tm2 = *tm;
-  tm2->timezone = MRB_TIMEZONE_LOCAL;
-  time_update_datetime(mrb, tm2, TRUE);
+  if (tm2->timezone != MRB_TIMEZONE_LOCAL) {
+    tm2->timezone = MRB_TIMEZONE_LOCAL;
+    time_update_datetime(mrb, tm2, TRUE);
+  }
   return time_wrap(mrb, mrb_obj_class(mrb, self), tm2);
 }
 
