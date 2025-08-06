@@ -1248,22 +1248,6 @@ time_localtime(mrb_state *mrb, mrb_value self)
   return self;
 }
 
-/*
- * call-seq:
- *   time.mday -> integer
- *
- * Returns the day of the month (1-31) of the time.
- * This is an alias for time.day.
- *
- *   Time.local(2023, 12, 25).mday  #=> 25
- *   Time.local(2023, 1, 1).mday    #=> 1
- */
-static mrb_value
-time_mday(mrb_state *mrb, mrb_value self)
-{
-  struct mrb_time *tm = time_get_ptr(mrb, self);
-  return mrb_fixnum_value(tm->datetime.tm_mday);
-}
 
 /*
  * call-seq:
@@ -1470,6 +1454,16 @@ time_hash(mrb_state *mrb, mrb_value self)
 }
 
 /*
+ * Generic function for weekday checks. Used by all weekday methods.
+ */
+static mrb_value
+time_wday_p(mrb_state *mrb, mrb_value self, int target_wday)
+{
+  struct mrb_time *tm = time_get_ptr(mrb, self);
+  return mrb_bool_value(tm->datetime.tm_wday == target_wday);
+}
+
+/*
  * call-seq:
  *   time.sunday? -> true or false
  *
@@ -1481,8 +1475,7 @@ time_hash(mrb_state *mrb, mrb_value self)
 static mrb_value
 time_sunday(mrb_state *mrb, mrb_value self)
 {
-  struct mrb_time *tm = time_get_ptr(mrb, self);
-  return mrb_bool_value(tm->datetime.tm_wday == 0);
+  return time_wday_p(mrb, self, 0);
 }
 
 /*
@@ -1497,8 +1490,7 @@ time_sunday(mrb_state *mrb, mrb_value self)
 static mrb_value
 time_monday(mrb_state *mrb, mrb_value self)
 {
-  struct mrb_time *tm = time_get_ptr(mrb, self);
-  return mrb_bool_value(tm->datetime.tm_wday == 1);
+  return time_wday_p(mrb, self, 1);
 }
 
 /*
@@ -1513,8 +1505,7 @@ time_monday(mrb_state *mrb, mrb_value self)
 static mrb_value
 time_tuesday(mrb_state *mrb, mrb_value self)
 {
-  struct mrb_time *tm = time_get_ptr(mrb, self);
-  return mrb_bool_value(tm->datetime.tm_wday == 2);
+  return time_wday_p(mrb, self, 2);
 }
 
 /*
@@ -1529,8 +1520,7 @@ time_tuesday(mrb_state *mrb, mrb_value self)
 static mrb_value
 time_wednesday(mrb_state *mrb, mrb_value self)
 {
-  struct mrb_time *tm = time_get_ptr(mrb, self);
-  return mrb_bool_value(tm->datetime.tm_wday == 3);
+  return time_wday_p(mrb, self, 3);
 }
 
 /*
@@ -1545,8 +1535,7 @@ time_wednesday(mrb_state *mrb, mrb_value self)
 static mrb_value
 time_thursday(mrb_state *mrb, mrb_value self)
 {
-  struct mrb_time *tm = time_get_ptr(mrb, self);
-  return mrb_bool_value(tm->datetime.tm_wday == 4);
+  return time_wday_p(mrb, self, 4);
 }
 
 /*
@@ -1561,8 +1550,7 @@ time_thursday(mrb_state *mrb, mrb_value self)
 static mrb_value
 time_friday(mrb_state *mrb, mrb_value self)
 {
-  struct mrb_time *tm = time_get_ptr(mrb, self);
-  return mrb_bool_value(tm->datetime.tm_wday == 5);
+  return time_wday_p(mrb, self, 5);
 }
 
 /*
@@ -1577,8 +1565,7 @@ time_friday(mrb_state *mrb, mrb_value self)
 static mrb_value
 time_saturday(mrb_state *mrb, mrb_value self)
 {
-  struct mrb_time *tm = time_get_ptr(mrb, self);
-  return mrb_bool_value(tm->datetime.tm_wday == 6);
+  return time_wday_p(mrb, self, 6);
 }
 
 void
@@ -1624,7 +1611,7 @@ mrb_mruby_time_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, tc, MRB_SYM(gmtime), time_utc    , MRB_ARGS_NONE()); /* 15.2.19.7.13 */
   mrb_define_method_id(mrb, tc, MRB_SYM(hour), time_hour, MRB_ARGS_NONE());    /* 15.2.19.7.15 */
   mrb_define_method_id(mrb, tc, MRB_SYM(localtime), time_localtime, MRB_ARGS_NONE()); /* 15.2.19.7.18 */
-  mrb_define_method_id(mrb, tc, MRB_SYM(mday), time_mday, MRB_ARGS_NONE());    /* 15.2.19.7.19 */
+  mrb_define_method_id(mrb, tc, MRB_SYM(mday), time_day, MRB_ARGS_NONE());    /* 15.2.19.7.19 */
   mrb_define_method_id(mrb, tc, MRB_SYM(min), time_min, MRB_ARGS_NONE());     /* 15.2.19.7.20 */
 
   mrb_define_method_id(mrb, tc, MRB_SYM(mon), time_mon, MRB_ARGS_NONE());       /* 15.2.19.7.21 */
