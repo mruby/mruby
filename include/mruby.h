@@ -155,6 +155,7 @@ typedef uint8_t mrb_code;
 typedef uint32_t mrb_aspec;
 
 typedef struct mrb_irep mrb_irep;
+
 struct mrb_state;
 
 #ifndef MRB_FIXED_STATE_ATEXIT_STACK_SIZE
@@ -281,10 +282,8 @@ typedef struct mrb_state {
 
   mrb_sym symidx;
   const char **symtbl;
-  uint8_t *symlink;
-  uint8_t *symflags;
-  mrb_sym symhash[256];
   size_t symcapa;
+  struct mrb_sym_hash_table *symhash;
 #ifndef MRB_USE_ALL_SYMBOLS
   char symbuf[8];                         /* buffer for small symbol names */
 #endif

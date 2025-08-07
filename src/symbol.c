@@ -60,6 +60,13 @@ sym_validate_len(mrb_state *mrb, size_t len)
   }
 }
 
+/* Hash table for symbols (allocated on demand when symbols exceed threshold) */
+struct mrb_sym_hash_table {
+  uint8_t *symlink;         /* collision resolution chains */
+  uint8_t *symflags;        /* symbol literal flags */
+  mrb_sym buckets[256];     /* hash buckets */
+};
+
 #ifdef MRB_USE_ALL_SYMBOLS
 # define SYMBOL_INLINE_P(sym) FALSE
 # define sym_inline_pack(name, len) 0
@@ -109,9 +116,23 @@ sym_inline_unpack(mrb_sym sym, char *buf, mrb_int *lenp)
 }
 #endif
 
-#define sym_lit_p(mrb, i) (mrb->symflags[i>>3]&(1<<(i&7)))
-#define sym_lit_set(mrb, i) mrb->symflags[i>>3]|=(1<<(i&7))
-#define sym_flags_clear(mrb, i) mrb->symflags[i>>3]&=~(1<<(i&7))
+/* Check if using hash table mode */
+static inline mrb_bool
+using_hash_table(mrb_state *mrb)
+{
+  return mrb->symhash != NULL;
+}
+
+/* Adaptive symbol flag macros */
+#define sym_lit_p(mrb, i) (using_hash_table(mrb) ? \
+  (mrb->symhash->symflags[i>>3]&(1<<(i&7))) : \
+  (mrb_ro_data_p(mrb->symtbl[i]) && mrb->symtbl[i][0] != '\0' && strlen(mrb->symtbl[i]) > 0))
+#define sym_lit_set(mrb, i) do { \
+  if (using_hash_table(mrb)) mrb->symhash->symflags[i>>3]|=(1<<(i&7)); \
+} while(0)
+#define sym_flags_clear(mrb, i) do { \
+  if (using_hash_table(mrb)) mrb->symhash->symflags[i>>3]&=~(1<<(i&7)); \
+} while(0)
 
 static mrb_bool
 sym_check(mrb_state *mrb, const char *name, size_t len, mrb_sym i)
@@ -133,31 +154,35 @@ sym_check(mrb_state *mrb, const char *name, size_t len, mrb_sym i)
 }
 
 static mrb_sym
-find_symbol(mrb_state *mrb, const char *name, size_t len, uint8_t *hashp)
+find_symbol_linear(mrb_state *mrb, const char *name, size_t len)
+{
+  mrb_sym i;
+
+  for (i = 1; i <= mrb->symidx; i++) {
+    if (sym_check(mrb, name, len, i)) {
+      return (i + MRB_PRESYM_MAX);
+    }
+  }
+  return 0;
+}
+
+static mrb_sym
+find_symbol_hash(mrb_state *mrb, const char *name, size_t len, uint8_t *hashp)
 {
   mrb_sym i;
   uint8_t hash;
-
-#ifndef MRB_NO_PRESYM
-  /* presym */
-  i = presym_find(name, len);
-  if (i > 0) return i;
-#endif
-
-  /* inline symbol */
-  i = sym_inline_pack(name, len);
-  if (i > 0) return i;
+  struct mrb_sym_hash_table *ht = mrb->symhash;
 
   hash = mrb_byte_hash((const uint8_t*)name, len);
   if (hashp) *hashp = hash;
 
-  i = mrb->symhash[hash];
+  i = ht->buckets[hash];
   if (i == 0) return 0;
   for (;;) {
     if (sym_check(mrb, name, len, i)) {
       return (i+MRB_PRESYM_MAX);
     }
-    uint8_t diff = mrb->symlink[i];
+    uint8_t diff = ht->symlink[i];
     if (diff == 0xff) {
       i -= 0xff;
       while (i > 0) {
@@ -175,30 +200,110 @@ find_symbol(mrb_state *mrb, const char *name, size_t len, uint8_t *hashp)
 }
 
 static mrb_sym
-sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
+find_symbol(mrb_state *mrb, const char *name, size_t len, uint8_t *hashp)
+{
+  mrb_sym i;
+
+#ifndef MRB_NO_PRESYM
+  /* presym */
+  i = presym_find(name, len);
+  if (i > 0) return i;
+#endif
+
+  /* inline symbol */
+  i = sym_inline_pack(name, len);
+  if (i > 0) return i;
+
+  if (using_hash_table(mrb)) {
+    /* Hash table mode - O(1) average case */
+    return find_symbol_hash(mrb, name, len, hashp);
+  }
+  else {
+    /* Linear mode - O(n) but fast for small n */
+    if (hashp) *hashp = mrb_byte_hash((const uint8_t*)name, len);
+    return find_symbol_linear(mrb, name, len);
+  }
+}
+
+static void
+migrate_to_hash_table(mrb_state *mrb)
+{
+  struct mrb_sym_hash_table *ht;
+  mrb_sym i;
+
+  mrb_assert(mrb->symhash == NULL);
+  mrb_assert(mrb->symidx >= MRB_SYMBOL_LINEAR_THRESHOLD);
+
+  /* Allocate hash table structure */
+  ht = (struct mrb_sym_hash_table*)mrb_calloc(mrb, 1, sizeof(struct mrb_sym_hash_table));
+  ht->symlink = (uint8_t*)mrb_calloc(mrb, mrb->symcapa, sizeof(uint8_t));
+  ht->symflags = (uint8_t*)mrb_calloc(mrb, mrb->symcapa / 8 + 1, sizeof(uint8_t));
+
+  /* Copy existing symflags - temporary transition compatibility */
+  /* Note: in linear mode, symflags don't exist, so we need to detect literals differently */
+
+  /* Rebuild hash table from existing linear data */
+  for (i = 1; i <= mrb->symidx; i++) {
+    const char *name = mrb->symtbl[i];
+    size_t len;
+    mrb_bool is_lit;
+    uint8_t hash;
+
+    /* Determine if this is a literal symbol and get name/length */
+    if (mrb_ro_data_p(name) && name[0] != '\0') {
+      /* This looks like a literal string */
+      len = strlen(name);
+      is_lit = TRUE;
+    }
+    else if (name[0] > 0 && name[0] < 128) {
+      /* This is a packed length string */
+      const uint8_t *p = (const uint8_t*)name;
+      len = mrb_packed_int_decode(p, &p);
+      name = (const char*)p;
+      is_lit = FALSE;
+    }
+    else {
+      /* Fallback: assume literal */
+      len = strlen(name);
+      is_lit = TRUE;
+    }
+
+    if (is_lit) {
+      ht->symflags[i>>3] |= (1<<(i&7));
+    }
+
+    hash = mrb_byte_hash((const uint8_t*)name, len);
+
+    /* Build collision chain */
+    if (ht->buckets[hash] != 0) {
+      mrb_sym diff = i - ht->buckets[hash];
+      ht->symlink[i] = (diff > 0xff) ? 0xff : (uint8_t)diff;
+    }
+    else {
+      ht->symlink[i] = 0;
+    }
+    ht->buckets[hash] = i;
+  }
+
+  mrb->symhash = ht;
+}
+
+static mrb_sym
+sym_intern_linear_mode(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
 {
   mrb_sym sym;
-  uint8_t hash;
 
-  sym_validate_len(mrb, len);
-  sym = find_symbol(mrb, name, len, &hash);
-  if (sym > 0) return sym;
-
-  /* registering a new symbol */
+  /* Add new symbol in linear mode - no hash table operations needed */
   sym = mrb->symidx + 1;
   if (mrb->symcapa <= sym) {
     size_t symcapa = mrb->symcapa;
     if (symcapa == 0) symcapa = 100;
     else symcapa = (size_t)(symcapa * 6 / 5);
     mrb->symtbl = (const char**)mrb_realloc(mrb, (void*)mrb->symtbl, sizeof(char*)*symcapa);
-    mrb->symflags = (uint8_t*)mrb_realloc(mrb, mrb->symflags, symcapa/8+1);
-    memset(mrb->symflags+mrb->symcapa/8+1, 0, (symcapa-mrb->symcapa)/8);
-    mrb->symlink = (uint8_t*)mrb_realloc(mrb, mrb->symlink, symcapa);
     mrb->symcapa = symcapa;
   }
-  sym_flags_clear(mrb, sym);
+
   if ((lit || mrb_ro_data_p(name)) && name[len] == 0 && strlen(name) == len) {
-    sym_lit_set(mrb, sym);
     mrb->symtbl[sym] = name;
   }
   else {
@@ -210,19 +315,85 @@ sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
     p[ilen+len] = 0;
     mrb->symtbl[sym] = p;
   }
-  if (mrb->symhash[hash]) {
-    mrb_sym i = sym - mrb->symhash[hash];
-    if (i > 0xff)
-      mrb->symlink[sym] = 0xff;
-    else
-      mrb->symlink[sym] = i;
+
+  mrb->symidx = sym;
+  return (sym+MRB_PRESYM_MAX);
+}
+
+static mrb_sym
+sym_intern_hash_mode(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
+{
+  mrb_sym sym;
+  struct mrb_sym_hash_table *ht = mrb->symhash;
+  uint8_t hash;
+
+  /* Add new symbol in hash mode */
+  sym = mrb->symidx + 1;
+  if (mrb->symcapa <= sym) {
+    size_t symcapa = mrb->symcapa;
+    if (symcapa == 0) symcapa = 100;
+    else symcapa = (size_t)(symcapa * 6 / 5);
+    mrb->symtbl = (const char**)mrb_realloc(mrb, (void*)mrb->symtbl, sizeof(char*)*symcapa);
+    ht->symflags = (uint8_t*)mrb_realloc(mrb, ht->symflags, symcapa/8+1);
+    memset(ht->symflags+mrb->symcapa/8+1, 0, (symcapa-mrb->symcapa)/8);
+    ht->symlink = (uint8_t*)mrb_realloc(mrb, ht->symlink, symcapa);
+    mrb->symcapa = symcapa;
+  }
+
+  /* Clear symbol flags */
+  ht->symflags[sym>>3] &= ~(1<<(sym&7));
+
+  if ((lit || mrb_ro_data_p(name)) && name[len] == 0 && strlen(name) == len) {
+    ht->symflags[sym>>3] |= (1<<(sym&7));
+    mrb->symtbl[sym] = name;
   }
   else {
-    mrb->symlink[sym] = 0;
+    uint32_t ulen = (uint32_t)len;
+    size_t ilen = mrb_packed_int_len(ulen);
+    char *p = (char*)mrb_malloc(mrb, len+ilen+1);
+    mrb_packed_int_encode(ulen, (uint8_t*)p);
+    memcpy(p+ilen, name, len);
+    p[ilen+len] = 0;
+    mrb->symtbl[sym] = p;
   }
-  mrb->symhash[hash] = mrb->symidx = sym;
+
+  hash = mrb_byte_hash((const uint8_t*)name, len);
+  if (ht->buckets[hash]) {
+    mrb_sym i = sym - ht->buckets[hash];
+    if (i > 0xff)
+      ht->symlink[sym] = 0xff;
+    else
+      ht->symlink[sym] = i;
+  }
+  else {
+    ht->symlink[sym] = 0;
+  }
+  ht->buckets[hash] = mrb->symidx = sym;
 
   return (sym+MRB_PRESYM_MAX);
+}
+
+static mrb_sym
+sym_intern(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
+{
+  mrb_sym sym;
+
+  sym_validate_len(mrb, len);
+  sym = find_symbol(mrb, name, len, NULL);
+  if (sym > 0) return sym;
+
+  /* Check if we need to migrate to hash table */
+  if (!using_hash_table(mrb) && mrb->symidx >= MRB_SYMBOL_LINEAR_THRESHOLD) {
+    migrate_to_hash_table(mrb);
+  }
+
+  /* Add new symbol using current mode */
+  if (using_hash_table(mrb)) {
+    return sym_intern_hash_mode(mrb, name, len, lit);
+  }
+  else {
+    return sym_intern_linear_mode(mrb, name, len, lit);
+  }
 }
 
 /*
@@ -456,13 +627,21 @@ mrb_free_symtbl(mrb_state *mrb)
     }
   }
   mrb_free(mrb, (void*)mrb->symtbl);
-  mrb_free(mrb, (void*)mrb->symlink);
-  mrb_free(mrb, (void*)mrb->symflags);
+
+  /* Free hash table if allocated */
+  if (mrb->symhash) {
+    mrb_free(mrb, mrb->symhash->symlink);
+    mrb_free(mrb, mrb->symhash->symflags);
+    mrb_free(mrb, mrb->symhash);
+    mrb->symhash = NULL;
+  }
 }
 
 void
 mrb_init_symtbl(mrb_state *mrb)
 {
+  /* Initialize in linear mode - hash table allocated on demand */
+  mrb->symhash = NULL;
 }
 
 /**********************************************************************
