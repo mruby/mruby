@@ -123,16 +123,37 @@ using_hash_table(mrb_state *mrb)
   return mrb->symhash != NULL;
 }
 
-/* Adaptive symbol flag macros */
-#define sym_lit_p(mrb, i) (using_hash_table(mrb) ? \
-  (mrb->symhash->symflags[i>>3]&(1<<(i&7))) : \
-  (mrb_ro_data_p(mrb->symtbl[i]) && mrb->symtbl[i][0] != '\0' && strlen(mrb->symtbl[i]) > 0))
-#define sym_lit_set(mrb, i) do { \
-  if (using_hash_table(mrb)) mrb->symhash->symflags[i>>3]|=(1<<(i&7)); \
-} while(0)
-#define sym_flags_clear(mrb, i) do { \
-  if (using_hash_table(mrb)) mrb->symhash->symflags[i>>3]&=~(1<<(i&7)); \
-} while(0)
+/* Adaptive symbol flag functions */
+static inline mrb_bool
+sym_lit_p(mrb_state *mrb, mrb_sym i)
+{
+  if (using_hash_table(mrb)) {
+    return mrb->symhash->symflags[i>>3] & (1<<(i&7));
+  }
+  else {
+    /* In linear mode, detect literals by checking if it's read-only data */
+    const char *name = mrb->symtbl[i];
+    return mrb_ro_data_p(name) && name[0] != '\0' && strlen(name) > 0;
+  }
+}
+
+static inline void
+sym_lit_set(mrb_state *mrb, mrb_sym i)
+{
+  if (using_hash_table(mrb)) {
+    mrb->symhash->symflags[i>>3] |= (1<<(i&7));
+  }
+  /* In linear mode, no flag storage needed - literals detected dynamically */
+}
+
+static inline void
+sym_flags_clear(mrb_state *mrb, mrb_sym i)
+{
+  if (using_hash_table(mrb)) {
+    mrb->symhash->symflags[i>>3] &= ~(1<<(i&7));
+  }
+  /* In linear mode, no flag storage needed */
+}
 
 static mrb_bool
 sym_check(mrb_state *mrb, const char *name, size_t len, mrb_sym i)
