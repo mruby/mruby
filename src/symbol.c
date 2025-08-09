@@ -312,9 +312,8 @@ sym_intern_common(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
     mrb->symcapa = symcapa;
   }
 
-  /* Tag if explicitly marked literal OR detected as read-only (like original) */
-  mrb_bool is_ro = mrb_ro_data_p(name);
-  if ((lit || is_ro) && name[len] == 0 && strlen(name) == len) {
+  lit = lit || mrb_ro_data_p(name);
+  if (lit && name[len] == 0 && strlen(name) == len) {
     if (((uintptr_t)name & 1) != 0) {
       /* Fallback: unaligned literal, allocate heap copy */
       goto heap_allocation;
