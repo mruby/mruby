@@ -52,6 +52,32 @@ presym_sym2name(mrb_sym sym, mrb_int *lenp)
 #endif  /* MRB_NO_PRESYM */
 
 /* ------------------------------------------------------ */
+
+/* LSB pointer tagging for literal flags */
+#define SYMTBL_LITERAL_FLAG 1UL
+
+/* Extract clean pointer for memory operations */
+static inline const char*
+symtbl_get_ptr(const char *tagged_ptr)
+{
+  return (const char*)((uintptr_t)tagged_ptr & ~SYMTBL_LITERAL_FLAG);
+}
+
+/* Check if symbol is literal by testing LSB */
+static inline mrb_bool
+symtbl_is_literal(const char *tagged_ptr)
+{
+  return ((uintptr_t)tagged_ptr & SYMTBL_LITERAL_FLAG) != 0;
+}
+
+/* Create tagged pointer for literal string - with alignment verification */
+static inline const char*
+symtbl_tag_literal(const char *ptr)
+{
+  mrb_assert(((uintptr_t)ptr & 1) == 0);  /* Assert alignment */
+  return (const char*)((uintptr_t)ptr | SYMTBL_LITERAL_FLAG);
+}
+
 static void
 sym_validate_len(mrb_state *mrb, size_t len)
 {
@@ -63,7 +89,6 @@ sym_validate_len(mrb_state *mrb, size_t len)
 /* Hash table for symbols (allocated on demand when symbols exceed threshold) */
 struct mrb_sym_hash_table {
   uint8_t *symlink;         /* collision resolution chains */
-  uint8_t *symflags;        /* symbol literal flags */
   mrb_sym buckets[256];     /* hash buckets */
 };
 
@@ -123,45 +148,23 @@ using_hash_table(mrb_state *mrb)
   return mrb->symhash != NULL;
 }
 
-/* Adaptive symbol flag functions */
+/* Symbol literal flag check using LSB tagging */
 static inline mrb_bool
 sym_lit_p(mrb_state *mrb, mrb_sym i)
 {
-  if (using_hash_table(mrb)) {
-    return mrb->symhash->symflags[i>>3] & (1<<(i&7));
-  }
-  else {
-    /* In linear mode, detect literals by checking if it's read-only data */
-    const char *name = mrb->symtbl[i];
-    return mrb_ro_data_p(name) && name[0] != '\0' && strlen(name) > 0;
-  }
+  /* Works for both linear and hash modes - check LSB of tagged pointer */
+  return symtbl_is_literal(mrb->symtbl[i]);
 }
 
-static inline void
-sym_lit_set(mrb_state *mrb, mrb_sym i)
-{
-  if (using_hash_table(mrb)) {
-    mrb->symhash->symflags[i>>3] |= (1<<(i&7));
-  }
-  /* In linear mode, no flag storage needed - literals detected dynamically */
-}
-
-static inline void
-sym_flags_clear(mrb_state *mrb, mrb_sym i)
-{
-  if (using_hash_table(mrb)) {
-    mrb->symhash->symflags[i>>3] &= ~(1<<(i&7));
-  }
-  /* In linear mode, no flag storage needed */
-}
 
 static mrb_bool
 sym_check(mrb_state *mrb, const char *name, size_t len, mrb_sym i)
 {
-  const char *symname = mrb->symtbl[i];
+  const char *tagged_ptr = mrb->symtbl[i];
+  const char *symname = symtbl_get_ptr(tagged_ptr);  /* Untag for access */
   size_t symlen;
 
-  if (sym_lit_p(mrb, i)) {
+  if (symtbl_is_literal(tagged_ptr)) {
     symlen = strlen(symname);
   }
   else {
@@ -258,39 +261,21 @@ migrate_to_hash_table(mrb_state *mrb)
   /* Allocate hash table structure */
   ht = (struct mrb_sym_hash_table*)mrb_calloc(mrb, 1, sizeof(struct mrb_sym_hash_table));
   ht->symlink = (uint8_t*)mrb_calloc(mrb, mrb->symcapa, sizeof(uint8_t));
-  ht->symflags = (uint8_t*)mrb_calloc(mrb, mrb->symcapa / 8 + 1, sizeof(uint8_t));
-
-  /* Copy existing symflags - temporary transition compatibility */
-  /* Note: in linear mode, symflags don't exist, so we need to detect literals differently */
 
   /* Rebuild hash table from existing linear data */
   for (i = 1; i <= mrb->symidx; i++) {
-    const char *name = mrb->symtbl[i];
+    const char *tagged_ptr = mrb->symtbl[i];
+    const char *name = symtbl_get_ptr(tagged_ptr);
     size_t len;
-    mrb_bool is_lit;
     uint8_t hash;
 
-    /* Determine if this is a literal symbol and get name/length */
-    if (mrb_ro_data_p(name) && name[0] != '\0') {
-      /* This looks like a literal string */
+    /* Get name and length from tagged pointer */
+    if (symtbl_is_literal(tagged_ptr)) {
       len = strlen(name);
-      is_lit = TRUE;
-    }
-    else if (name[0] > 0 && name[0] < 128) {
-      /* This is a packed length string */
-      const uint8_t *p = (const uint8_t*)name;
-      len = mrb_packed_int_decode(p, &p);
-      name = (const char*)p;
-      is_lit = FALSE;
     }
     else {
-      /* Fallback: assume literal */
-      len = strlen(name);
-      is_lit = TRUE;
-    }
-
-    if (is_lit) {
-      ht->symflags[i>>3] |= (1<<(i&7));
+      /* This is a packed length string */
+      len = mrb_packed_int_decode((const uint8_t*)name, (const uint8_t**)&name);
     }
 
     hash = mrb_byte_hash((const uint8_t*)name, len);
@@ -324,17 +309,25 @@ sym_intern_linear_mode(mrb_state *mrb, const char *name, size_t len, mrb_bool li
     mrb->symcapa = symcapa;
   }
 
-  if ((lit || mrb_ro_data_p(name)) && name[len] == 0 && strlen(name) == len) {
-    mrb->symtbl[sym] = name;
+  /* Tag if explicitly marked literal OR detected as read-only (like original) */
+  mrb_bool is_ro = mrb_ro_data_p(name);
+  if ((lit || is_ro) && name[len] == 0 && strlen(name) == len) {
+    if (((uintptr_t)name & 1) != 0) {
+      /* Fallback: unaligned literal, allocate heap copy */
+      goto heap_allocation;
+    }
+    mrb->symtbl[sym] = symtbl_tag_literal(name);
   }
   else {
+  heap_allocation:
+    /* Always heap-allocate when not explicitly literal */
     uint32_t ulen = (uint32_t)len;
     size_t ilen = mrb_packed_int_len(ulen);
     char *p = (char*)mrb_malloc(mrb, len+ilen+1);
     mrb_packed_int_encode(ulen, (uint8_t*)p);
     memcpy(p+ilen, name, len);
     p[ilen+len] = 0;
-    mrb->symtbl[sym] = p;
+    mrb->symtbl[sym] = p;  /* Untagged = heap */
   }
 
   mrb->symidx = sym;
@@ -355,27 +348,29 @@ sym_intern_hash_mode(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
     if (symcapa == 0) symcapa = 100;
     else symcapa = (size_t)(symcapa * 6 / 5);
     mrb->symtbl = (const char**)mrb_realloc(mrb, (void*)mrb->symtbl, sizeof(char*)*symcapa);
-    ht->symflags = (uint8_t*)mrb_realloc(mrb, ht->symflags, symcapa/8+1);
-    memset(ht->symflags+mrb->symcapa/8+1, 0, (symcapa-mrb->symcapa)/8);
     ht->symlink = (uint8_t*)mrb_realloc(mrb, ht->symlink, symcapa);
     mrb->symcapa = symcapa;
   }
 
-  /* Clear symbol flags */
-  ht->symflags[sym>>3] &= ~(1<<(sym&7));
-
-  if ((lit || mrb_ro_data_p(name)) && name[len] == 0 && strlen(name) == len) {
-    ht->symflags[sym>>3] |= (1<<(sym&7));
-    mrb->symtbl[sym] = name;
+  /* Tag if explicitly marked literal OR detected as read-only (like original) */
+  mrb_bool is_ro = mrb_ro_data_p(name);
+  if ((lit || is_ro) && name[len] == 0 && strlen(name) == len) {
+    if (((uintptr_t)name & 1) != 0) {
+      /* Fallback: unaligned literal, allocate heap copy */
+      goto heap_allocation_hash;
+    }
+    mrb->symtbl[sym] = symtbl_tag_literal(name);
   }
   else {
+  heap_allocation_hash:
+    /* Always heap-allocate when not explicitly literal */
     uint32_t ulen = (uint32_t)len;
     size_t ilen = mrb_packed_int_len(ulen);
     char *p = (char*)mrb_malloc(mrb, len+ilen+1);
     mrb_packed_int_encode(ulen, (uint8_t*)p);
     memcpy(p+ilen, name, len);
     p[ilen+len] = 0;
-    mrb->symtbl[sym] = p;
+    mrb->symtbl[sym] = p;  /* Untagged = heap */
   }
 
   hash = mrb_byte_hash((const uint8_t*)name, len);
@@ -603,8 +598,10 @@ sym2name_len(mrb_state *mrb, mrb_sym sym, char *buf, mrb_int *lenp)
     return NULL;
   }
 
-  const char *symname = mrb->symtbl[sym];
-  if (!sym_lit_p(mrb, sym)) {
+  const char *tagged_ptr = mrb->symtbl[sym];
+  const char *symname = symtbl_get_ptr(tagged_ptr);  /* Untag for access */
+
+  if (!symtbl_is_literal(tagged_ptr)) {
     uint32_t len = mrb_packed_int_decode((const uint8_t*)symname, (const uint8_t**)&symname);
     if (lenp) *lenp = (mrb_int)len;
   }
@@ -643,8 +640,11 @@ mrb_free_symtbl(mrb_state *mrb)
   mrb_sym i, lim;
 
   for (i=1,lim=mrb->symidx+1; i<lim; i++) {
-    if (!sym_lit_p(mrb, i)) {
-      mrb_free(mrb, (char*)mrb->symtbl[i]);
+    const char *tagged_ptr = mrb->symtbl[i];
+    if (!symtbl_is_literal(tagged_ptr)) {
+      /* CRITICAL: Untag before mrb_free */
+      const char *clean_ptr = symtbl_get_ptr(tagged_ptr);
+      mrb_free(mrb, (char*)clean_ptr);
     }
   }
   mrb_free(mrb, (void*)mrb->symtbl);
@@ -652,7 +652,6 @@ mrb_free_symtbl(mrb_state *mrb)
   /* Free hash table if allocated */
   if (mrb->symhash) {
     mrb_free(mrb, mrb->symhash->symlink);
-    mrb_free(mrb, mrb->symhash->symflags);
     mrb_free(mrb, mrb->symhash);
     mrb->symhash = NULL;
   }
