@@ -295,17 +295,20 @@ migrate_to_hash_table(mrb_state *mrb)
 }
 
 static mrb_sym
-sym_intern_linear_mode(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
+sym_intern_common(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
 {
   mrb_sym sym;
 
-  /* Add new symbol in linear mode - no hash table operations needed */
   sym = mrb->symidx + 1;
   if (mrb->symcapa <= sym) {
     size_t symcapa = mrb->symcapa;
     if (symcapa == 0) symcapa = 100;
     else symcapa = (size_t)(symcapa * 6 / 5);
     mrb->symtbl = (const char**)mrb_realloc(mrb, (void*)mrb->symtbl, sizeof(char*)*symcapa);
+    if (using_hash_table(mrb)) {
+      struct mrb_sym_hash_table *ht = mrb->symhash;
+      ht->symlink = (uint8_t*)mrb_realloc(mrb, ht->symlink, symcapa);
+    }
     mrb->symcapa = symcapa;
   }
 
@@ -331,49 +334,23 @@ sym_intern_linear_mode(mrb_state *mrb, const char *name, size_t len, mrb_bool li
   }
 
   mrb->symidx = sym;
+  return sym;
+}
+
+static mrb_sym
+sym_intern_linear_mode(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
+{
+  mrb_sym sym = sym_intern_common(mrb, name, len, lit);
   return (sym+MRB_PRESYM_MAX);
 }
 
 static mrb_sym
 sym_intern_hash_mode(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
 {
-  mrb_sym sym;
+  mrb_sym sym = sym_intern_common(mrb, name, len, lit);
   struct mrb_sym_hash_table *ht = mrb->symhash;
-  uint8_t hash;
+  uint8_t hash = mrb_byte_hash((const uint8_t*)name, len);
 
-  /* Add new symbol in hash mode */
-  sym = mrb->symidx + 1;
-  if (mrb->symcapa <= sym) {
-    size_t symcapa = mrb->symcapa;
-    if (symcapa == 0) symcapa = 100;
-    else symcapa = (size_t)(symcapa * 6 / 5);
-    mrb->symtbl = (const char**)mrb_realloc(mrb, (void*)mrb->symtbl, sizeof(char*)*symcapa);
-    ht->symlink = (uint8_t*)mrb_realloc(mrb, ht->symlink, symcapa);
-    mrb->symcapa = symcapa;
-  }
-
-  /* Tag if explicitly marked literal OR detected as read-only (like original) */
-  mrb_bool is_ro = mrb_ro_data_p(name);
-  if ((lit || is_ro) && name[len] == 0 && strlen(name) == len) {
-    if (((uintptr_t)name & 1) != 0) {
-      /* Fallback: unaligned literal, allocate heap copy */
-      goto heap_allocation_hash;
-    }
-    mrb->symtbl[sym] = symtbl_tag_literal(name);
-  }
-  else {
-  heap_allocation_hash:
-    /* Always heap-allocate when not explicitly literal */
-    uint32_t ulen = (uint32_t)len;
-    size_t ilen = mrb_packed_int_len(ulen);
-    char *p = (char*)mrb_malloc(mrb, len+ilen+1);
-    mrb_packed_int_encode(ulen, (uint8_t*)p);
-    memcpy(p+ilen, name, len);
-    p[ilen+len] = 0;
-    mrb->symtbl[sym] = p;  /* Untagged = heap */
-  }
-
-  hash = mrb_byte_hash((const uint8_t*)name, len);
   if (ht->buckets[hash]) {
     mrb_sym i = sym - ht->buckets[hash];
     if (i > 0xff)
@@ -384,7 +361,7 @@ sym_intern_hash_mode(mrb_state *mrb, const char *name, size_t len, mrb_bool lit)
   else {
     ht->symlink[sym] = 0;
   }
-  ht->buckets[hash] = mrb->symidx = sym;
+  ht->buckets[hash] = sym;
 
   return (sym+MRB_PRESYM_MAX);
 }
