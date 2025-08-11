@@ -399,7 +399,7 @@ fiber_to_s(mrb_state *mrb, mrb_value self)
   const char *file;
   int32_t line;
   const struct RProc *p;
-  if (f->cxt->status != MRB_FIBER_TERMINATED &&
+  if (status != MRB_FIBER_TERMINATED &&
       !MRB_PROC_CFUNC_P(p = f->cxt->cibase->proc) && !MRB_PROC_ALIAS_P(p) &&
       mrb_debug_get_position(mrb, p->body.irep, 0, &line, &file)) {
     mrb_str_cat_lit(mrb, s, " ");
@@ -410,7 +410,7 @@ fiber_to_s(mrb_state *mrb, mrb_value self)
   }
 
   const char *st;
-  switch (fiber_ptr(self)->cxt->status) {
+  switch (status) {
   case MRB_FIBER_CREATED:       st = "created"; break;
   case MRB_FIBER_RUNNING:       st = "resumed"; break;
   case MRB_FIBER_RESUMED:       st = "suspended by resuming"; break;
