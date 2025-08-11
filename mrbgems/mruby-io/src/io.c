@@ -1074,11 +1074,15 @@ fd_write(mrb_state *mrb, int fd, mrb_value str)
   fssize_t len = (fssize_t)RSTRING_LEN(str);
   if (len == 0) return 0;
 
-  for (fssize_t sum=0; sum<len; sum+=n) {
-    n = write(fd, RSTRING_PTR(str), (fsize_t)len);
+  const char *ptr = RSTRING_PTR(str);
+  fssize_t sum = 0;
+  while (sum < len) {
+    n = write(fd, ptr + sum, len - sum);
     if (n == -1) {
+      if (errno == EINTR) continue;
       mrb_sys_fail(mrb, "syswrite");
     }
+    sum += n;
   }
   return len;
 }
