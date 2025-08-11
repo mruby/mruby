@@ -379,7 +379,13 @@ fiber_to_s(mrb_state *mrb, mrb_value self)
   fiber_check(mrb, self);
   const struct RFiber *f = fiber_ptr(self);
 
-  mrb_value s = mrb_str_new_lit(mrb, "#<");
+  /* Cache status to avoid redundant lookups */
+  enum mrb_fiber_state status = f->cxt->status;
+
+  /* Pre-allocate buffer - 150 bytes handles typical fiber strings */
+  mrb_value s = mrb_str_buf_new(mrb, 150);
+
+  mrb_str_cat_lit(mrb, s, "#<");
   mrb_value cname = mrb_class_path(mrb, mrb_class_real(mrb_class(mrb, self)));
   if (mrb_nil_p(cname)) {
     mrb_str_cat_lit(mrb, s, "Fiber:");
