@@ -10,8 +10,8 @@
 
 #define fiber_ptr(o) ((struct RFiber*)mrb_ptr(o))
 
-#define FIBER_STACK_INIT_SIZE 64
-#define FIBER_CI_INIT_SIZE 8
+#define FIBER_STACK_INIT_SIZE 16
+#define FIBER_CI_INIT_SIZE 4
 /* copied from vm.c */
 #define CINFO_RESUMED 3
 
