@@ -389,43 +389,48 @@ static int
 pack_BER(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
   mrb_int n = mrb_integer(o);
-  int i;
-  char *p;
 
   if (n < 0) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "can't compress negative numbers");
   }
-  for (i=1; i<(int)sizeof(mrb_int)+1; i++) {
-    mrb_int mask = ~((1L<<(7*i))-1);
+
+  int i;
+  for (i = 1; i < (int)sizeof(mrb_int) + 1; i++) {
+    mrb_int mask = ~((1L << (7 * i)) - 1);
     if ((n & mask) == 0) break;
   }
+
   str = str_len_ensure(mrb, str, sidx + i);
-  p = RSTRING_PTR(str)+sidx;
-  for (size_t j=i; j>0; p++,j--) {
-    mrb_int x = (n>>(7*(j-1)))&0x7f;
+  char *p = RSTRING_PTR(str) + sidx;
+
+  for (size_t j = i; j > 0; p++, j--) {
+    mrb_int x = (n >> (7 * (j - 1))) & 0x7f;
     *p = (char)x;
     if (j > 1) *p |= 0x80;
   }
+
   return i;
 }
 
 static int
 unpack_BER(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
 {
-  int i;
   mrb_int n = 0;
   const unsigned char *p = src;
   const unsigned char *e = p + srclen;
 
   if (srclen == 0) return 0;
-  for (i=1; p<e; p++,i++) {
-    if (n > (MRB_INT_MAX>>7)) {
+
+  int i;
+  for (i = 1; p < e; p++, i++) {
+    if (n > (MRB_INT_MAX >> 7)) {
       mrb_raise(mrb, E_RANGE_ERROR, "BER unpacking 'w' overflow");
     }
     n <<= 7;
     n |= *p & 0x7f;
     if ((*p & 0x80) == 0) break;
   }
+
   mrb_ary_push(mrb, ary, mrb_int_value(mrb, n));
   return i;
 }
