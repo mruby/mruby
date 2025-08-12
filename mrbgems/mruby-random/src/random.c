@@ -140,7 +140,15 @@ random_rand(mrb_state *mrb, rand_state *t, mrb_int max)
 static mrb_int
 rand_i(rand_state *t, mrb_int max)
 {
-  return rand_uint32(t) % max;
+  /* return uniform integer in [0, max) without modulo bias */
+  if (max <= 0) return 0;
+  uint32_t bound = (uint32_t)max;
+  uint32_t threshold = (uint32_t)(-bound) % bound; /* power-of-two fast path => 0 */
+  uint32_t r;
+  do {
+    r = rand_uint32(t);
+  } while (r < threshold);
+  return (mrb_int)(r % bound);
 }
 
 static mrb_value
@@ -341,11 +349,26 @@ random_m_bytes(mrb_state *mrb, mrb_value self)
 {
   rand_state *t = random_ptr(self);
   mrb_int i = mrb_as_int(mrb, mrb_get_arg1(mrb));
+  if (i < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "negative string size");
   mrb_value bytes = mrb_str_new(mrb, NULL, i);
   uint8_t *p = (uint8_t*)RSTRING_PTR(bytes);
 
-  for (; i > 0; i--, p++) {
-    *p = (uint8_t)rand_uint32(t);
+  /* write 4 bytes per PRNG call */
+  while (i >= 4) {
+    uint32_t x = rand_uint32(t);
+    p[0] = (uint8_t)(x);
+    p[1] = (uint8_t)(x >> 8);
+    p[2] = (uint8_t)(x >> 16);
+    p[3] = (uint8_t)(x >> 24);
+    p += 4;
+    i -= 4;
+  }
+  if (i > 0) {
+    uint32_t x = rand_uint32(t);
+    while (i-- > 0) {
+      *p++ = (uint8_t)x;
+      x >>= 8;
+    }
   }
 
   return bytes;
@@ -386,8 +409,9 @@ mrb_ary_shuffle_bang(mrb_state *mrb, mrb_value ary)
     mrb_get_args(mrb, ":", &kw);
     rand_state *random = check_random_arg(mrb, r);
     mrb_ary_modify(mrb, mrb_ary_ptr(ary));
-    for (mrb_int i = RARRAY_LEN(ary) - 1; i > 0; i--)  {
-      mrb_value *ptr = RARRAY_PTR(ary);
+    mrb_int len = RARRAY_LEN(ary);
+    mrb_value *ptr = RARRAY_PTR(ary);
+    for (mrb_int i = len - 1; i > 0; i--)  {
       mrb_int j = rand_i(random, i + 1);
       mrb_value tmp = ptr[i];
       ptr[i] = ptr[j];
@@ -454,28 +478,25 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
   else {
     if (n < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "negative sample number");
     if (n > len) n = len;
-    mrb_value result = mrb_ary_new_capa(mrb, n);
-    for (mrb_int i=0; i<n; i++) {
-      mrb_int idx;
-
+    /* collect unique indices without allocating Ruby Integers */
+    mrb_int *idx = (mrb_int*)mrb_malloc(mrb, sizeof(mrb_int) * (n > 0 ? n : 1));
+    for (mrb_int i = 0; i < n; i++) {
+      mrb_int v;
       for (;;) {
       retry:
-        idx = rand_i(random, len);
-
-        for (mrb_int j=0; j<i; j++) {
-          if (mrb_integer(RARRAY_PTR(result)[j]) == idx) {
-            goto retry;         /* retry if duplicate */
-          }
+        v = rand_i(random, len);
+        for (mrb_int j = 0; j < i; j++) {
+          if (idx[j] == v) goto retry; /* retry if duplicate */
         }
         break;
       }
-      mrb_ary_push(mrb, result, mrb_int_value(mrb, idx));
+      idx[i] = v;
     }
-    for (mrb_int i=0; i<n; i++) {
-      mrb_int idx = mrb_integer(RARRAY_PTR(result)[i]);
-      mrb_value elem = RARRAY_PTR(ary)[idx];
-      mrb_ary_set(mrb, result, i, elem);
+    mrb_value result = mrb_ary_new_capa(mrb, n);
+    for (mrb_int i = 0; i < n; i++) {
+      mrb_ary_push(mrb, result, RARRAY_PTR(ary)[idx[i]]);
     }
+    mrb_free(mrb, idx);
     return result;
   }
 }
