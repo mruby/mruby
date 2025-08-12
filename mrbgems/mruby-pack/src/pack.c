@@ -394,6 +394,23 @@ pack_BER(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int 
     mrb_raise(mrb, E_ARGUMENT_ERROR, "can't compress negative numbers");
   }
 
+  /* fast path for 1-byte values (0-127) */
+  if (n < 128) {
+    str = str_len_ensure(mrb, str, sidx + 1);
+    RSTRING_PTR(str)[sidx] = (char)n;
+    return 1;
+  }
+
+  /* fast path for 2-byte values (128-16383) */
+  if (n < 16384) {
+    str = str_len_ensure(mrb, str, sidx + 2);
+    char *p = RSTRING_PTR(str) + sidx;
+    *p++ = (char)((n >> 7) | 0x80);
+    *p = (char)(n & 0x7f);
+    return 2;
+  }
+
+  /* original algorithm for larger values */
   int i;
   for (i = 1; i < (int)sizeof(mrb_int) + 1; i++) {
     mrb_int mask = ~((1L << (7 * i)) - 1);
