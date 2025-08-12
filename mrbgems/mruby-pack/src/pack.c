@@ -1062,23 +1062,22 @@ unpack_base64(mrb_state *mrb, const void *src, int slen, mrb_value ary)
 {
   CHECK_UNPACK_LEN(mrb, slen, ary);
 
-  mrb_value dst;
-  int dlen;
-  unsigned long l;
-  int i, padding;
-  unsigned char c, ch[4];
-  const char *sptr, *sptr0;
-  char *dptr, *dptr0;
+  const char *sptr0 = (const char*)src;
+  const char *sptr = sptr0;
 
-  sptr0 = sptr = (const char*)src;
+  /* estimate buffer size - may be shorter due to padding/whitespace */
+  int dlen = slen / 4 * 3;
+  mrb_value dst = mrb_str_new(mrb, NULL, dlen);
+  char *dptr0 = RSTRING_PTR(dst);
+  char *dptr = dptr0;
 
-  dlen = slen / 4 * 3;  /* an estimated value - may be shorter */
-  dst = mrb_str_new(mrb, NULL, dlen);
-  dptr0 = dptr = RSTRING_PTR(dst);
-
-  padding = 0;
+  int padding = 0;
   while (slen >= 4) {
-    for (i = 0; i < 4; i++) {
+    unsigned char ch[4];
+
+    /* collect 4 valid base64 characters */
+    for (int i = 0; i < 4; i++) {
+      unsigned char c;
       do {
         if (slen-- == 0)
           goto done;
@@ -1093,7 +1092,8 @@ unpack_base64(mrb_state *mrb, const void *src, int slen, mrb_value ary)
       } while (c >= sizeof(base64_dec_tab) || ch[i] == PACK_BASE64_IGNORE);
     }
 
-    l = (ch[0] << 18) + (ch[1] << 12) + (ch[2] << 6) + ch[3];
+    /* decode 4 characters to 3 bytes */
+    unsigned long l = (ch[0] << 18) + (ch[1] << 12) + (ch[2] << 6) + ch[3];
 
     if (padding == 0) {
       *dptr++ = (l >> 16) & 0xff;
