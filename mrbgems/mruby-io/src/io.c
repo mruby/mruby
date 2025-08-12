@@ -348,6 +348,14 @@ io_alloc(mrb_state *mrb)
 #ifdef MRB_NO_IO_POPEN
 # define io_s_popen mrb_notimplement_m
 #else
+struct popen_params {
+  mrb_value klass;
+  const char *cmd;
+  int flags;
+  int doexec;
+  int opt_in, opt_out, opt_err;
+};
+
 static int
 option_to_fd(mrb_state *mrb, mrb_value v)
 {
@@ -366,10 +374,8 @@ option_to_fd(mrb_state *mrb, mrb_value v)
   return -1; /* never reached */
 }
 
-static mrb_value
-io_s_popen_args(mrb_state *mrb, mrb_value klass,
-                    const char **cmd, int *flags, int *doexec,
-                    int *opt_in, int *opt_out, int *opt_err)
+static void
+parse_popen_args(mrb_state *mrb, struct popen_params *p)
 {
   mrb_value mode = mrb_nil_value();
   struct { mrb_value opt_in, opt_out, opt_err; } kv;
@@ -381,27 +387,26 @@ io_s_popen_args(mrb_state *mrb, mrb_value klass,
     NULL,
   };
 
-  mrb_get_args(mrb, "zo:", cmd, &mode, &kw);
+  mrb_get_args(mrb, "zo:", &p->cmd, &mode, &kw);
 
-  *flags = io_mode_to_flags(mrb, mode);
-  *doexec = (strcmp("-", *cmd) != 0);
-  *opt_in = option_to_fd(mrb, kv.opt_in);
-  *opt_out = option_to_fd(mrb, kv.opt_out);
-  *opt_err = option_to_fd(mrb, kv.opt_err);
-
-  return mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(klass), NULL, &mrb_io_type));
+  p->flags = io_mode_to_flags(mrb, mode);
+  p->doexec = (strcmp("-", p->cmd) != 0);
+  p->opt_in = option_to_fd(mrb, kv.opt_in);
+  p->opt_out = option_to_fd(mrb, kv.opt_out);
+  p->opt_err = option_to_fd(mrb, kv.opt_err);
 }
 
-#ifdef _WIN32
+#if defined(_WIN32)
 static mrb_value
 io_s_popen(mrb_state *mrb, mrb_value klass)
 {
-  int doexec;
-  int opt_in, opt_out, opt_err;
-  const char *cmd;
+  struct popen_params p;
+  p.klass = klass;
+
+  parse_popen_args(mrb, &p);
 
   struct mrb_io *fptr;
-  int pid = 0, flags;
+  int pid = 0;
   STARTUPINFO si;
   PROCESS_INFORMATION pi;
 
@@ -414,50 +419,48 @@ io_s_popen(mrb_state *mrb, mrb_value klass)
   ofd[1] = INVALID_HANDLE_VALUE;
 
   mrb->c->ci->mid = 0;
-  mrb_value io = io_s_popen_args(mrb, klass, &cmd, &flags, &doexec,
-                                 &opt_in, &opt_out, &opt_err);
 
   SECURITY_ATTRIBUTES saAttr;
   saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
   saAttr.bInheritHandle = TRUE;
   saAttr.lpSecurityDescriptor = NULL;
 
-  if (OPEN_READABLE_P(flags)) {
+  if (OPEN_READABLE_P(p.flags)) {
     if (!CreatePipe(&ofd[0], &ofd[1], &saAttr, 0)
         || !SetHandleInformation(ofd[0], HANDLE_FLAG_INHERIT, 0)) {
       mrb_sys_fail(mrb, "pipe");
     }
   }
 
-  if (OPEN_WRITABLE_P(flags)) {
+  if (OPEN_WRITABLE_P(p.flags)) {
     if (!CreatePipe(&ifd[0], &ifd[1], &saAttr, 0)
         || !SetHandleInformation(ifd[1], HANDLE_FLAG_INHERIT, 0)) {
       mrb_sys_fail(mrb, "pipe");
     }
   }
 
-  if (doexec) {
+  if (p.doexec) {
     ZeroMemory(&pi, sizeof(pi));
     ZeroMemory(&si, sizeof(si));
     si.cb = sizeof(si);
     si.dwFlags |= STARTF_USESHOWWINDOW;
     si.wShowWindow = SW_HIDE;
     si.dwFlags |= STARTF_USESTDHANDLES;
-    if (OPEN_READABLE_P(flags)) {
+    if (OPEN_READABLE_P(p.flags)) {
       si.hStdOutput = ofd[1];
       si.hStdError = ofd[1];
     }
-    if (OPEN_WRITABLE_P(flags)) {
+    if (OPEN_WRITABLE_P(p.flags)) {
       si.hStdInput = ifd[0];
     }
     if (!CreateProcess(
-        NULL, (char*)cmd, NULL, NULL,
+        NULL, (char*)p.cmd, NULL, NULL,
         TRUE, CREATE_NEW_PROCESS_GROUP, NULL, NULL, &si, &pi)) {
       CloseHandle(ifd[0]);
       CloseHandle(ifd[1]);
       CloseHandle(ofd[0]);
       CloseHandle(ofd[1]);
-      mrb_raisef(mrb, E_IO_ERROR, "command not found: %s", cmd);
+      mrb_raisef(mrb, E_IO_ERROR, "command not found: %s", p.cmd);
     }
     CloseHandle(pi.hThread);
     CloseHandle(ifd[0]);
@@ -465,12 +468,13 @@ io_s_popen(mrb_state *mrb, mrb_value klass)
     pid = pi.dwProcessId;
   }
 
+  mrb_value io = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(p->klass), NULL, &mrb_io_type));
   fptr = io_alloc(mrb);
   fptr->fd = _open_osfhandle((intptr_t)ofd[0], 0);
   fptr->fd2 = _open_osfhandle((intptr_t)ifd[1], 0);
   fptr->pid = pid;
-  fptr->readable = OPEN_READABLE_P(flags);
-  fptr->writable = OPEN_WRITABLE_P(flags);
+  fptr->readable = OPEN_READABLE_P(p.flags);
+  fptr->writable = OPEN_WRITABLE_P(p.flags);
   io_init_buf(mrb, fptr);
 
   DATA_TYPE(io) = &mrb_io_type;
@@ -478,22 +482,93 @@ io_s_popen(mrb_state *mrb, mrb_value klass)
   return io;
 }
 #else
+
+static void
+popen_child_setup(mrb_state *mrb, int readable, int writable, int *pr, int *pw, struct popen_params *p)
+{
+  if (p->opt_in != -1) {
+    dup2(p->opt_in, 0);
+  }
+  if (p->opt_out != -1) {
+    dup2(p->opt_out, 1);
+  }
+  if (p->opt_err != -1) {
+    dup2(p->opt_err, 2);
+  }
+  if (readable) {
+    close(pr[0]);
+    if (pr[1] != 1) {
+      dup2(pr[1], 1);
+      close(pr[1]);
+    }
+  }
+  if (writable) {
+    close(pw[1]);
+    if (pw[0] != 0) {
+      dup2(pw[0], 0);
+      close(pw[0]);
+    }
+  }
+  if (p->doexec) {
+    for (int fd = 3; fd < NOFILE; fd++) {
+      close(fd);
+    }
+    io_process_exec(p->cmd);
+    mrb_raisef(mrb, E_IO_ERROR, "command not found: %s", p->cmd);
+    _exit(127);
+  }
+}
+
+static mrb_value
+popen_parent_setup(mrb_state *mrb, int readable, int writable, int *pr, int *pw, int pid, struct popen_params *p)
+{
+  int fd, write_fd = -1;
+
+  if (readable && writable) {
+    close(pr[1]);
+    fd = pr[0];
+    close(pw[0]);
+    write_fd = pw[1];
+  }
+  else if (readable) {
+    close(pr[1]);
+    fd = pr[0];
+  }
+  else {
+    close(pw[0]);
+    fd = pw[1];
+  }
+
+  mrb_value io = mrb_obj_value(mrb_data_object_alloc(mrb, mrb_class_ptr(p->klass), NULL, &mrb_io_type));
+  struct mrb_io *fptr = io_alloc(mrb);
+  fptr->fd = fd;
+  fptr->fd2 = write_fd;
+  fptr->pid = pid;
+  fptr->readable = readable;
+  fptr->writable = writable;
+  io_init_buf(mrb, fptr);
+
+  DATA_TYPE(io) = &mrb_io_type;
+  DATA_PTR(io)  = fptr;
+  return io;
+}
+
 static mrb_value
 io_s_popen(mrb_state *mrb, mrb_value klass)
 {
-  int doexec;
-  int opt_in, opt_out, opt_err;
-  const char *cmd;
-
-  int pid, flags, write_fd = -1;
+  struct popen_params p;
+  p.klass = klass;
+  int pid;
   int pr[2] = { -1, -1 };
   int pw[2] = { -1, -1 };
 
   mrb->c->ci->mid = 0;
-  mrb_value io = io_s_popen_args(mrb, klass, &cmd, &flags, &doexec,
-                                 &opt_in, &opt_out, &opt_err);
+  parse_popen_args(mrb, &p);
 
-  if (OPEN_READABLE_P(flags)) {
+  int readable = OPEN_READABLE_P(p.flags);
+  int writable = OPEN_WRITABLE_P(p.flags);
+
+  if (readable) {
     if (pipe(pr) == -1) {
       mrb_sys_fail(mrb, "pipe");
     }
@@ -501,7 +576,7 @@ io_s_popen(mrb_state *mrb, mrb_value klass)
     io_fd_cloexec(mrb, pr[1]);
   }
 
-  if (OPEN_WRITABLE_P(flags)) {
+  if (writable) {
     if (pipe(pw) == -1) {
       if (pr[0] != -1) close(pr[0]);
       if (pr[1] != -1) close(pr[1]);
@@ -511,89 +586,27 @@ io_s_popen(mrb_state *mrb, mrb_value klass)
     io_fd_cloexec(mrb, pw[1]);
   }
 
-  if (!doexec) {
+  if (!p.doexec) {
     fflush(stdout);
     fflush(stderr);
   }
 
-  mrb_value result = mrb_nil_value();
   switch (pid = fork()) {
     case 0: /* child */
-      if (opt_in != -1) {
-        dup2(opt_in, 0);
-      }
-      if (opt_out != -1) {
-        dup2(opt_out, 1);
-      }
-      if (opt_err != -1) {
-        dup2(opt_err, 2);
-      }
-      if (OPEN_READABLE_P(flags)) {
-        close(pr[0]);
-        if (pr[1] != 1) {
-          dup2(pr[1], 1);
-          close(pr[1]);
-        }
-      }
-      if (OPEN_WRITABLE_P(flags)) {
-        close(pw[1]);
-        if (pw[0] != 0) {
-          dup2(pw[0], 0);
-          close(pw[0]);
-        }
-      }
-      if (doexec) {
-        for (int fd = 3; fd < NOFILE; fd++) {
-          close(fd);
-        }
-        io_process_exec(cmd);
-        mrb_raisef(mrb, E_IO_ERROR, "command not found: %s", cmd);
-        _exit(127);
-      }
-      result = mrb_nil_value();
-      break;
+      popen_child_setup(mrb, readable, writable, pr, pw, &p);
+      return mrb_nil_value();
 
     default: /* parent */
-      {
-        int fd;
-
-        if (OPEN_RDWR_P(flags)) {
-          close(pr[1]);
-          fd = pr[0];
-          close(pw[0]);
-          write_fd = pw[1];
-        }
-        else if (OPEN_RDONLY_P(flags)) {
-          close(pr[1]);
-          fd = pr[0];
-        }
-        else {
-          close(pw[0]);
-          fd = pw[1];
-        }
-
-        struct mrb_io *fptr = io_alloc(mrb);
-        fptr->fd = fd;
-        fptr->fd2 = write_fd;
-        fptr->pid = pid;
-        fptr->readable = OPEN_READABLE_P(flags);
-        fptr->writable = OPEN_WRITABLE_P(flags);
-        io_init_buf(mrb, fptr);
-
-        DATA_TYPE(io) = &mrb_io_type;
-        DATA_PTR(io)  = fptr;
-        result = io;
-      }
-      break;
+      return popen_parent_setup(mrb, readable, writable, pr, pw, pid, &p);
 
     case -1: /* error */
       {
         int saved_errno = errno;
-        if (OPEN_READABLE_P(flags)) {
+        if (readable) {
           close(pr[0]);
           close(pr[1]);
         }
-        if (OPEN_WRITABLE_P(flags)) {
+        if (writable) {
         close(pw[0]);
         close(pw[1]);
         }
@@ -602,7 +615,7 @@ io_s_popen(mrb_state *mrb, mrb_value klass)
       }
       break;
   }
-  return result;
+  return mrb_nil_value(); /* not reached */
 }
 #endif /* _WIN32 */
 #endif /* TARGET_OS_IPHONE */
