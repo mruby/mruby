@@ -53,6 +53,13 @@ arr2 = binary_data2.unpack("C3") # Unpacks three 8-bit unsigned integers
 binary_data3 = "Hello\x00World"
 arr3 = binary_data3.unpack("Z*Z*") # Unpacks two null-terminated strings
 # arr3 will be ["Hello", "World"]
+
+# BER (Basic Encoding Rules) example
+arr4 = [127, 128, 16383]
+binary_data4 = arr4.pack("w*") # BER-encodes integers of varying sizes
+# binary_data4 will contain BER-compressed data
+arr4_unpacked = binary_data4.unpack("w*") # Decodes BER data back to integers
+# arr4_unpacked will be [127, 128, 16383]
 ```
 
 ## Supported Template Directives
@@ -93,6 +100,7 @@ Here is a list of supported template characters and their meanings:
 | `U`       | UTF-8 character                                                                                         |
 | `V`       | 32-bit unsigned integer, VAX (little-endian) byte order                                                 |
 | `v`       | 16-bit unsigned integer, VAX (little-endian) byte order                                                 |
+| `w`       | BER-compressed integer (variable length encoding)                                                       |
 | `x`       | Null byte (skip forward one byte)                                                                       |
 | `X`       | Back up one byte                                                                                        |
 | `Z`       | Null-terminated string (when unpacking, reads until NULL; when packing, appends a NULL if count is `*`) |
