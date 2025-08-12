@@ -479,7 +479,7 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
     if (n < 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "negative sample number");
     if (n > len) n = len;
     /* collect unique indices without allocating Ruby Integers */
-    mrb_int *idx = (mrb_int*)mrb_malloc(mrb, sizeof(mrb_int) * (n > 0 ? n : 1));
+    mrb_int *idx = (mrb_int*)mrb_alloca(mrb, sizeof(mrb_int) * (n > 0 ? n : 1));
     for (mrb_int i = 0; i < n; i++) {
       mrb_int v;
       for (;;) {
@@ -496,7 +496,7 @@ mrb_ary_sample(mrb_state *mrb, mrb_value ary)
     for (mrb_int i = 0; i < n; i++) {
       mrb_ary_push(mrb, result, RARRAY_PTR(ary)[idx[i]]);
     }
-    mrb_free(mrb, idx);
+
     return result;
   }
 }
