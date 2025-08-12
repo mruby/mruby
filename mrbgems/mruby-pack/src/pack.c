@@ -438,11 +438,16 @@ unpack_BER(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, 
 
   if (srclen == 0) return 0;
 
+  /* calculate maximum safe bytes before potential overflow */
+  const int max_safe_bytes = (sizeof(mrb_int) * 8 - 1) / 7;  /* conservative estimate */
+
   int i;
   for (i = 1; p < e; p++, i++) {
-    if (n > (MRB_INT_MAX >> 7)) {
+    /* check overflow before we might exceed safe limits */
+    if (i > max_safe_bytes || n > (MRB_INT_MAX >> 7)) {
       mrb_raise(mrb, E_RANGE_ERROR, "BER unpacking 'w' overflow");
     }
+
     n <<= 7;
     n |= *p & 0x7f;
     if ((*p & 0x80) == 0) break;
