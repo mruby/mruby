@@ -954,66 +954,104 @@ unpack_bstr(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count,
 static int
 pack_base64(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count)
 {
-  mrb_int dstlen;
-  unsigned long l;
-  mrb_int column, srclen;
-  char *srcptr, *dstptr, *dstptr0;
+  char *srcptr = RSTRING_PTR(src);
+  mrb_int srclen = RSTRING_LEN(src);
 
-  srcptr = RSTRING_PTR(src);
-  srclen = RSTRING_LEN(src);
-
-  if (srclen == 0)  /* easy case */
+  if (srclen == 0) {
     return 0;
+  }
 
-  if (count != 0 && count < 3) {  /* -1, 1 or 2 */
+  if (count != 0 && count < 3) {
     count = 45;
   }
   else if (count >= 3) {
     count -= count % 3;
   }
 
-  dstlen = (srclen+2) / 3 * 4;
+  /* precise memory allocation */
+  mrb_int dstlen = (srclen + 2) / 3 * 4;
   if (count > 0) {
     dstlen += (srclen / count) + ((srclen % count) == 0 ? 0 : 1);
   }
   dst = str_len_ensure(mrb, dst, didx + dstlen);
-  dstptr = RSTRING_PTR(dst) + didx;
+  char *dstptr = RSTRING_PTR(dst) + didx;
+  char *dstptr0 = dstptr;
 
-  dstptr0 = dstptr;
-  for (column = 3; srclen >= 3; srclen -= 3, column += 3) {
-    l = (unsigned char)*srcptr++ << 16;
-    l += (unsigned char)*srcptr++ << 8;
-    l += (unsigned char)*srcptr++;
+  if (count == 0) {
+    /* fast path: no line wrapping */
+    while (srclen >= 3) {
+      unsigned long l = (unsigned char)*srcptr++ << 16;
+      l += (unsigned char)*srcptr++ << 8;
+      l += (unsigned char)*srcptr++;
+      srclen -= 3;
 
-    *dstptr++ = base64chars[(l >> 18) & 0x3f];
-    *dstptr++ = base64chars[(l >> 12) & 0x3f];
-    *dstptr++ = base64chars[(l >>  6) & 0x3f];
-    *dstptr++ = base64chars[ l        & 0x3f];
-
-    if (column == count) {
-      *dstptr++ = '\n';
-      column = 0;
+      *dstptr++ = base64chars[(l >> 18) & 0x3f];
+      *dstptr++ = base64chars[(l >> 12) & 0x3f];
+      *dstptr++ = base64chars[(l >> 6) & 0x3f];
+      *dstptr++ = base64chars[l & 0x3f];
     }
   }
+  else {
+    /* line wrapping path */
+    mrb_int column = 3;
+    while (srclen >= 3) {
+      unsigned long l = (unsigned char)*srcptr++ << 16;
+      l += (unsigned char)*srcptr++ << 8;
+      l += (unsigned char)*srcptr++;
+      srclen -= 3;
+
+      *dstptr++ = base64chars[(l >> 18) & 0x3f];
+      *dstptr++ = base64chars[(l >> 12) & 0x3f];
+      *dstptr++ = base64chars[(l >> 6) & 0x3f];
+      *dstptr++ = base64chars[l & 0x3f];
+
+      if (column == count) {
+        *dstptr++ = '\n';
+        column = 0;
+      }
+      column += 3;
+    }
+
+    /* handle remaining 1-2 bytes */
+    if (srclen == 1) {
+      unsigned long l = (unsigned char)*srcptr << 16;
+      *dstptr++ = base64chars[(l >> 18) & 0x3f];
+      *dstptr++ = base64chars[(l >> 12) & 0x3f];
+      *dstptr++ = '=';
+      *dstptr++ = '=';
+      column += 3;
+    }
+    else if (srclen == 2) {
+      unsigned long l = (unsigned char)*srcptr++ << 16;
+      l += (unsigned char)*srcptr << 8;
+      *dstptr++ = base64chars[(l >> 18) & 0x3f];
+      *dstptr++ = base64chars[(l >> 12) & 0x3f];
+      *dstptr++ = base64chars[(l >> 6) & 0x3f];
+      *dstptr++ = '=';
+      column += 3;
+    }
+
+    if (column > 0) {
+      *dstptr++ = '\n';
+    }
+    return (int)(dstptr - dstptr0);
+  }
+
+  /* handle remaining 1-2 bytes for fast path */
   if (srclen == 1) {
-    l = (unsigned char)*srcptr++ << 16;
+    unsigned long l = (unsigned char)*srcptr << 16;
     *dstptr++ = base64chars[(l >> 18) & 0x3f];
     *dstptr++ = base64chars[(l >> 12) & 0x3f];
     *dstptr++ = '=';
     *dstptr++ = '=';
-    column += 3;
   }
   else if (srclen == 2) {
-    l = (unsigned char)*srcptr++ << 16;
-    l += (unsigned char)*srcptr++ << 8;
+    unsigned long l = (unsigned char)*srcptr++ << 16;
+    l += (unsigned char)*srcptr << 8;
     *dstptr++ = base64chars[(l >> 18) & 0x3f];
     *dstptr++ = base64chars[(l >> 12) & 0x3f];
-    *dstptr++ = base64chars[(l >>  6) & 0x3f];
+    *dstptr++ = base64chars[(l >> 6) & 0x3f];
     *dstptr++ = '=';
-    column += 3;
-  }
-  if (column > 0 && count > 0) {
-    *dstptr++ = '\n';
   }
 
   return (int)(dstptr - dstptr0);
