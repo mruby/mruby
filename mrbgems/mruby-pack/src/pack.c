@@ -108,6 +108,13 @@ static const signed char hex_lookup[256] = {
   /* 0xE0-0xEF */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
   /* 0xF0-0xFF */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
 };
+/* byte index arrays for endianness optimization */
+static const int be_idx16[2] = {1, 0};          /* big-endian 16-bit: MSB, LSB */
+static const int le_idx16[2] = {0, 1};          /* little-endian 16-bit: LSB, MSB */
+static const int be_idx32[4] = {3, 2, 1, 0};    /* big-endian 32-bit: MSB...LSB */
+static const int le_idx32[4] = {0, 1, 2, 3};    /* little-endian 32-bit: LSB...MSB */
+static const int be_idx64[8] = {7, 6, 5, 4, 3, 2, 1, 0};  /* big-endian 64-bit: MSB...LSB */
+static const int le_idx64[8] = {0, 1, 2, 3, 4, 5, 6, 7};  /* little-endian 64-bit: LSB...MSB */  /* little-endian 64-bit */
 
 static int
 hex2int(unsigned char ch)
@@ -155,29 +162,23 @@ pack_short(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned in
 {
   str = str_len_ensure(mrb, str, sidx + 2);
   uint16_t n = (uint16_t)mrb_integer(o);
+  char *dptr = RSTRING_PTR(str) + sidx;
 
-  if (flags & PACK_FLAG_LITTLEENDIAN) {
-    RSTRING_PTR(str)[sidx+0] = (char)(n & 0xff);
-    RSTRING_PTR(str)[sidx+1] = (char)(n >> 8);
-  }
-  else {
-    RSTRING_PTR(str)[sidx+0] = (char)(n >> 8);
-    RSTRING_PTR(str)[sidx+1] = (char)(n & 0xff);
-  }
+  /* use lookup tables to eliminate branching */
+  const int *idx = (flags & PACK_FLAG_LITTLEENDIAN) ? le_idx16 : be_idx16;
+  dptr[idx[0]] = (char)(n & 0xff);
+  dptr[idx[1]] = (char)(n >> 8);
+
   return 2;
 }
 
 static int
 unpack_short(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, unsigned int flags)
 {
-  int n;
+  /* use lookup tables to eliminate branching */
+  const int *idx = (flags & PACK_FLAG_LITTLEENDIAN) ? le_idx16 : be_idx16;
+  int n = (src[idx[1]] << 8) | src[idx[0]];
 
-  if (flags & PACK_FLAG_LITTLEENDIAN) {
-    n = (src[1] << 8) | src[0];
-  }
-  else {
-    n = (src[0] << 8) | src[1];
-  }
   if ((flags & PACK_FLAG_SIGNED) && (n >= 0x8000)) {
     n -= 0x10000;
   }
@@ -190,19 +191,15 @@ pack_long(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int
 {
   str = str_len_ensure(mrb, str, sidx + 4);
   uint32_t n = (uint32_t)mrb_integer(o);
+  char *dptr = RSTRING_PTR(str) + sidx;
 
-  if (flags & PACK_FLAG_LITTLEENDIAN) {
-    RSTRING_PTR(str)[sidx+0] = (char)(n & 0xff);
-    RSTRING_PTR(str)[sidx+1] = (char)(n >> 8);
-    RSTRING_PTR(str)[sidx+2] = (char)(n >> 16);
-    RSTRING_PTR(str)[sidx+3] = (char)(n >> 24);
-  }
-  else {
-    RSTRING_PTR(str)[sidx+0] = (char)(n >> 24);
-    RSTRING_PTR(str)[sidx+1] = (char)(n >> 16);
-    RSTRING_PTR(str)[sidx+2] = (char)(n >> 8);
-    RSTRING_PTR(str)[sidx+3] = (char)(n & 0xff);
-  }
+  /* use lookup tables to eliminate branching */
+  const int *idx = (flags & PACK_FLAG_LITTLEENDIAN) ? le_idx32 : be_idx32;
+  dptr[idx[0]] = (char)(n & 0xff);
+  dptr[idx[1]] = (char)(n >> 8);
+  dptr[idx[2]] = (char)(n >> 16);
+  dptr[idx[3]] = (char)(n >> 24);
+
   return 4;
 }
 
@@ -248,18 +245,13 @@ unpack_long(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary,
   uint32_t ul;
   mrb_int n;
 
-  if (flags & PACK_FLAG_LITTLEENDIAN) {
-    ul = ((uint32_t)src[3] << 24) |
-         ((uint32_t)src[2] << 16) |
-         ((uint32_t)src[1] << 8) |
-         (uint32_t)src[0];
-  }
-  else {
-    ul = ((uint32_t)src[0] << 24) |
-         ((uint32_t)src[1] << 16) |
-         ((uint32_t)src[2] << 8) |
-         (uint32_t)src[3];
-  }
+  /* use lookup tables to eliminate branching */
+  const int *idx = (flags & PACK_FLAG_LITTLEENDIAN) ? le_idx32 : be_idx32;
+  ul = ((uint32_t)src[idx[3]] << 24) |
+       ((uint32_t)src[idx[2]] << 16) |
+       ((uint32_t)src[idx[1]] << 8) |
+       (uint32_t)src[idx[0]];
+
   if (flags & PACK_FLAG_SIGNED) {
     n = (int32_t)ul;
   }
@@ -281,27 +273,19 @@ pack_quad(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int
 {
   str = str_len_ensure(mrb, str, sidx + 8);
   uint64_t n = (uint64_t)mrb_integer(o);
+  char *dptr = RSTRING_PTR(str) + sidx;
 
-  if (flags & PACK_FLAG_LITTLEENDIAN) {
-    RSTRING_PTR(str)[sidx+0] = (char)(n & 0xff);
-    RSTRING_PTR(str)[sidx+1] = (char)(n >> 8);
-    RSTRING_PTR(str)[sidx+2] = (char)(n >> 16);
-    RSTRING_PTR(str)[sidx+3] = (char)(n >> 24);
-    RSTRING_PTR(str)[sidx+4] = (char)(n >> 32);
-    RSTRING_PTR(str)[sidx+5] = (char)(n >> 40);
-    RSTRING_PTR(str)[sidx+6] = (char)(n >> 48);
-    RSTRING_PTR(str)[sidx+7] = (char)(n >> 56);
-  }
-  else {
-    RSTRING_PTR(str)[sidx+0] = (char)(n >> 56);
-    RSTRING_PTR(str)[sidx+1] = (char)(n >> 48);
-    RSTRING_PTR(str)[sidx+2] = (char)(n >> 40);
-    RSTRING_PTR(str)[sidx+3] = (char)(n >> 32);
-    RSTRING_PTR(str)[sidx+4] = (char)(n >> 24);
-    RSTRING_PTR(str)[sidx+5] = (char)(n >> 16);
-    RSTRING_PTR(str)[sidx+6] = (char)(n >> 8);
-    RSTRING_PTR(str)[sidx+7] = (char)(n & 0xff);
-  }
+  /* use lookup tables to eliminate branching */
+  const int *idx = (flags & PACK_FLAG_LITTLEENDIAN) ? le_idx64 : be_idx64;
+  dptr[idx[0]] = (char)(n & 0xff);
+  dptr[idx[1]] = (char)(n >> 8);
+  dptr[idx[2]] = (char)(n >> 16);
+  dptr[idx[3]] = (char)(n >> 24);
+  dptr[idx[4]] = (char)(n >> 32);
+  dptr[idx[5]] = (char)(n >> 40);
+  dptr[idx[6]] = (char)(n >> 48);
+  dptr[idx[7]] = (char)(n >> 56);
+
   return 8;
 }
 
@@ -360,26 +344,17 @@ unpack_quad(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary,
   uint64_t ull;
   mrb_int n;
 
-  if (flags & PACK_FLAG_LITTLEENDIAN) {
-    ull = ((uint64_t)src[7] << 56) |
-          ((uint64_t)src[6] << 48) |
-          ((uint64_t)src[5] << 40) |
-          ((uint64_t)src[4] << 32) |
-          ((uint64_t)src[3] << 24) |
-          ((uint64_t)src[2] << 16) |
-          ((uint64_t)src[1] << 8) |
-          (uint64_t)src[0];
-  }
-  else {
-    ull = ((uint64_t)src[0] << 56) |
-          ((uint64_t)src[1] << 48) |
-          ((uint64_t)src[2] << 40) |
-          ((uint64_t)src[3] << 32) |
-          ((uint64_t)src[4] << 24) |
-          ((uint64_t)src[5] << 16) |
-          ((uint64_t)src[6] << 8) |
-          (uint64_t)src[7];
-  }
+  /* use lookup tables to eliminate branching */
+  const int *idx = (flags & PACK_FLAG_LITTLEENDIAN) ? le_idx64 : be_idx64;
+  ull = ((uint64_t)src[idx[7]] << 56) |
+        ((uint64_t)src[idx[6]] << 48) |
+        ((uint64_t)src[idx[5]] << 40) |
+        ((uint64_t)src[idx[4]] << 32) |
+        ((uint64_t)src[idx[3]] << 24) |
+        ((uint64_t)src[idx[2]] << 16) |
+        ((uint64_t)src[idx[1]] << 8) |
+        (uint64_t)src[idx[0]];
+
   if (flags & PACK_FLAG_SIGNED) {
     int64_t sll = ull;
 #ifndef MRB_INT64
