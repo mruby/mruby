@@ -89,17 +89,30 @@ static const unsigned char base64_dec_tab[128] = {
    41,  42,  43,  44,  45,  46,  47,  48,  49,  50,  51, IGN, IGN, IGN, IGN, IGN,
 };
 
+/* lookup table for hex character to integer conversion */
+static const signed char hex_lookup[256] = {
+  /* 0x00-0x0F */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  /* 0x10-0x1F */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  /* 0x20-0x2F */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  /* 0x30-0x3F */  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, -1, -1, -1, -1, -1, -1,
+  /* 0x40-0x4F */ -1, 10, 11, 12, 13, 14, 15, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  /* 0x50-0x5F */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  /* 0x60-0x6F */ -1, 10, 11, 12, 13, 14, 15, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  /* 0x70-0x7F */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  /* 0x80-0x8F */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  /* 0x90-0x9F */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  /* 0xA0-0xAF */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  /* 0xB0-0xBF */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  /* 0xC0-0xCF */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  /* 0xD0-0xDF */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  /* 0xE0-0xEF */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  /* 0xF0-0xFF */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
+};
+
 static int
 hex2int(unsigned char ch)
 {
-  if (ch >= '0' && ch <= '9')
-    return ch - '0';
-  else if (ch >= 'A' && ch <= 'F')
-    return 10 + (ch - 'A');
-  else if (ch >= 'a' && ch <= 'f')
-    return 10 + (ch - 'a');
-  else
-    return -1;
+  return hex_lookup[ch];
 }
 
 static mrb_value
@@ -796,13 +809,10 @@ unpack_str(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, 
 static int
 pack_hex(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, unsigned int flags)
 {
+  char *sptr = RSTRING_PTR(src);
+  long slen = (long)RSTRING_LEN(src);
+
   unsigned int ashift, bshift;
-  long slen;
-  char *dptr, *dptr0, *sptr;
-
-  sptr = RSTRING_PTR(src);
-  slen = (long)RSTRING_LEN(src);
-
   if (flags & PACK_FLAG_LSB) {
     ashift = 0;
     bshift = 4;
@@ -819,24 +829,29 @@ pack_hex(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, 
     slen = count;
   }
 
-  dst = str_len_ensure(mrb, dst, didx + count);
-  dptr = RSTRING_PTR(dst) + didx;
+  /* calculate output buffer size needed - one byte per two hex chars */
+  int output_bytes = (count + 1) / 2;
+  dst = str_len_ensure(mrb, dst, didx + output_bytes);
+  char *dptr = RSTRING_PTR(dst) + didx;
+  char *dptr0 = dptr;
 
-  dptr0 = dptr;
-  for (; count > 0; count -= 2) {
-    int a = 0, b = 0;
+  /* process pairs of hex characters */
+  while (slen >= 2) {
+    int a = hex2int((unsigned char)*sptr++);
+    if (a < 0) break;
+    int b = hex2int((unsigned char)*sptr++);
+    if (b < 0) break;
 
-    if (slen > 0) {
-      a = hex2int(*sptr++);
-      if (a < 0) break;
-      slen--;
-    }
-    if (slen > 0) {
-      b = hex2int(*sptr++);
-      if (b < 0) break;
-      slen--;
-    }
     *dptr++ = (a << ashift) + (b << bshift);
+    slen -= 2;
+  }
+
+  /* handle odd remaining character */
+  if (slen > 0) {
+    int a = hex2int((unsigned char)*sptr);
+    if (a >= 0) {
+      *dptr++ = (a << ashift);
+    }
   }
 
   return (int)(dptr - dptr0);
@@ -847,12 +862,7 @@ unpack_hex(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, 
 {
   CHECK_UNPACK_LEN(mrb, slen, ary);
 
-  mrb_value dst;
-  int a, ashift, b, bshift;
-  const char *sptr, *sptr0;
-  char *dptr, *dptr0;
-  const char hexadecimal[] = "0123456789abcdef";
-
+  int ashift, bshift;
   if (flags & PACK_FLAG_LSB) {
     ashift = 0;
     bshift = 4;
@@ -862,29 +872,32 @@ unpack_hex(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, 
     bshift = 0;
   }
 
-  sptr = (const char*)src;
+  const char *sptr = (const char*)src;
+  const char *sptr0 = sptr;
 
   if (count == -1)
     count = slen * 2;
 
-  dst = mrb_str_new(mrb, NULL, count);
-  dptr = RSTRING_PTR(dst);
+  mrb_value dst = mrb_str_new(mrb, NULL, count);
+  char *dptr = RSTRING_PTR(dst);
+  char *dptr0 = dptr;
 
-  sptr0 = sptr;
-  dptr0 = dptr;
-  while (slen > 0 && count > 0) {
-    a = (*sptr >> ashift) & 0x0f;
-    b = (*sptr >> bshift) & 0x0f;
-    sptr++;
+  const char hexadecimal[] = "0123456789abcdef";
+
+  /* process full bytes when we need pairs of hex characters */
+  while (slen > 0 && count >= 2) {
+    unsigned char byte = *sptr++;
     slen--;
 
-    *dptr++ = hexadecimal[a];
-    count--;
+    *dptr++ = hexadecimal[(byte >> ashift) & 0x0f];
+    *dptr++ = hexadecimal[(byte >> bshift) & 0x0f];
+    count -= 2;
+  }
 
-    if (count > 0) {
-      *dptr++ = hexadecimal[b];
-      count--;
-    }
+  /* handle remaining single character if count is odd */
+  if (slen > 0 && count > 0) {
+    unsigned char byte = *sptr++;
+    *dptr++ = hexadecimal[(byte >> ashift) & 0x0f];
   }
 
   dst = mrb_str_resize(mrb, dst, (mrb_int)(dptr - dptr0));
