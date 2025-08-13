@@ -180,6 +180,23 @@ unpack_8_bits_lsb(uint8_t byte, char *dst)
   dst[7] = bit_to_char[(byte >> 7) & 1];
 }
 
+/* character classification for string format optimization */
+#define CHAR_NULL    0x01
+#define CHAR_SPACE   0x02
+
+static const uint8_t char_class[256] = {
+  [0] = CHAR_NULL,
+  [' '] = CHAR_SPACE,
+  ['\t'] = CHAR_SPACE,
+  ['\n'] = CHAR_SPACE,
+  ['\v'] = CHAR_SPACE,
+  ['\f'] = CHAR_SPACE,
+  ['\r'] = CHAR_SPACE
+};
+
+#define IS_PADDING_CHAR_A(c) (char_class[(unsigned char)(c)] & (CHAR_NULL | CHAR_SPACE))
+#define IS_PADDING_CHAR_Z(c) (char_class[(unsigned char)(c)] & CHAR_NULL)
+
 static int
 hex2int(unsigned char ch)
 {
@@ -727,12 +744,12 @@ unpack_utf8(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value ary
 static int
 pack_str(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, unsigned int flags)
 {
-  mrb_int copylen, slen, padlen;
-  char *dptr, *dptr0, pad, *sptr;
+  const char *sptr = RSTRING_PTR(src);
+  mrb_int slen = RSTRING_LEN(src);
+  mrb_int copylen, padlen;
+  char pad;
 
-  sptr = RSTRING_PTR(src);
-  slen = RSTRING_LEN(src);
-
+  /* determine padding character based on format */
   if ((flags & PACK_FLAG_a) || (flags & PACK_FLAG_Z))
     pad = '\0';
   else
@@ -754,12 +771,21 @@ pack_str(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count, 
     padlen = count - slen;
   }
 
+  /* pre-allocate exact buffer size */
   dst = str_len_ensure(mrb, dst, didx + copylen + padlen);
-  dptr0 = dptr = RSTRING_PTR(dst) + didx;
-  memcpy(dptr, sptr, copylen);
-  dptr += copylen;
-  while (padlen-- > 0) {
-    *dptr++ = pad;
+  char *dptr = RSTRING_PTR(dst) + didx;
+  char *dptr0 = dptr;
+
+  /* copy string data */
+  if (copylen > 0) {
+    memcpy(dptr, sptr, copylen);
+    dptr += copylen;
+  }
+
+  /* bulk padding using memset instead of loop */
+  if (padlen > 0) {
+    memset(dptr, pad, padlen);
+    dptr += padlen;
   }
 
   return (int)(dptr - dptr0);
@@ -777,34 +803,34 @@ unpack_str(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count, 
 {
   CHECK_UNPACK_LEN(mrb, slen, ary);
 
-  mrb_value dst;
-  const char *sptr;
+  const char *sptr = (const char*)src;
   int copylen;
 
-  sptr = (const char*)src;
-  if (count != -1 && count < slen)  {
+  if (count != -1 && count < slen) {
     slen = count;
   }
   copylen = slen;
 
-  if (slen >= 0 && flags & PACK_FLAG_Z) {  /* "Z" */
-    const char *cp;
-
-    if ((cp = (const char*)memchr(sptr, '\0', slen)) != NULL) {
+  if (slen >= 0 && flags & PACK_FLAG_Z) {  /* "Z" format */
+    const char *cp = (const char*)memchr(sptr, '\0', slen);
+    if (cp != NULL) {
       copylen = (int)(cp - sptr);
       if (count == -1) {
         slen = copylen + 1;
       }
     }
   }
-  else if (!(flags & PACK_FLAG_a)) {  /* "A" */
-    while (copylen > 0 && (sptr[copylen - 1] == '\0' || ISSPACE(sptr[copylen - 1]))) {
+  else if (!(flags & PACK_FLAG_a)) {  /* "A" format - trim spaces and nulls */
+    /* optimized reverse trimming using lookup table */
+    while (copylen > 0 && IS_PADDING_CHAR_A(sptr[copylen - 1])) {
       copylen--;
     }
   }
+  /* "a" format does no trimming */
 
   if (copylen < 0) copylen = 0;
-  dst = mrb_str_new(mrb, sptr, (mrb_int)copylen);
+
+  mrb_value dst = mrb_str_new(mrb, sptr, (mrb_int)copylen);
   mrb_ary_push(mrb, ary, dst);
   return slen;
 }
