@@ -115,6 +115,70 @@ static const int be_idx32[4] = {3, 2, 1, 0};    /* big-endian 32-bit: MSB...LSB 
 static const int le_idx32[4] = {0, 1, 2, 3};    /* little-endian 32-bit: LSB...MSB */
 static const int be_idx64[8] = {7, 6, 5, 4, 3, 2, 1, 0};  /* big-endian 64-bit: MSB...LSB */
 static const int le_idx64[8] = {0, 1, 2, 3, 4, 5, 6, 7};  /* little-endian 64-bit: LSB...MSB */  /* little-endian 64-bit */
+/* lookup tables for binary string optimization */
+static const uint8_t char_to_bit[256] = {
+  ['0'] = 0, ['1'] = 1
+  /* All other characters default to 0 */
+};
+
+static const char bit_to_char[2] = {'0', '1'};
+
+/* 8-bit batch processing functions for binary strings */
+static inline uint8_t
+pack_8_bits_msb(const char *src)
+{
+  uint8_t result = 0;
+  result |= char_to_bit[(uint8_t)src[0]] << 7;
+  result |= char_to_bit[(uint8_t)src[1]] << 6;
+  result |= char_to_bit[(uint8_t)src[2]] << 5;
+  result |= char_to_bit[(uint8_t)src[3]] << 4;
+  result |= char_to_bit[(uint8_t)src[4]] << 3;
+  result |= char_to_bit[(uint8_t)src[5]] << 2;
+  result |= char_to_bit[(uint8_t)src[6]] << 1;
+  result |= char_to_bit[(uint8_t)src[7]];
+  return result;
+}
+
+static inline uint8_t
+pack_8_bits_lsb(const char *src)
+{
+  uint8_t result = 0;
+  result |= char_to_bit[(uint8_t)src[0]];
+  result |= char_to_bit[(uint8_t)src[1]] << 1;
+  result |= char_to_bit[(uint8_t)src[2]] << 2;
+  result |= char_to_bit[(uint8_t)src[3]] << 3;
+  result |= char_to_bit[(uint8_t)src[4]] << 4;
+  result |= char_to_bit[(uint8_t)src[5]] << 5;
+  result |= char_to_bit[(uint8_t)src[6]] << 6;
+  result |= char_to_bit[(uint8_t)src[7]] << 7;
+  return result;
+}
+
+static inline void
+unpack_8_bits_msb(uint8_t byte, char *dst)
+{
+  dst[0] = bit_to_char[(byte >> 7) & 1];
+  dst[1] = bit_to_char[(byte >> 6) & 1];
+  dst[2] = bit_to_char[(byte >> 5) & 1];
+  dst[3] = bit_to_char[(byte >> 4) & 1];
+  dst[4] = bit_to_char[(byte >> 3) & 1];
+  dst[5] = bit_to_char[(byte >> 2) & 1];
+  dst[6] = bit_to_char[(byte >> 1) & 1];
+  dst[7] = bit_to_char[byte & 1];
+}
+
+static inline void
+unpack_8_bits_lsb(uint8_t byte, char *dst)
+{
+  dst[0] = bit_to_char[byte & 1];
+  dst[1] = bit_to_char[(byte >> 1) & 1];
+  dst[2] = bit_to_char[(byte >> 2) & 1];
+  dst[3] = bit_to_char[(byte >> 3) & 1];
+  dst[4] = bit_to_char[(byte >> 4) & 1];
+  dst[5] = bit_to_char[(byte >> 5) & 1];
+  dst[6] = bit_to_char[(byte >> 6) & 1];
+  dst[7] = bit_to_char[(byte >> 7) & 1];
+}
 
 static int
 hex2int(unsigned char ch)
@@ -858,44 +922,33 @@ pack_bstr(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count,
     slen = count;
   }
 
-  dst = str_len_ensure(mrb, dst, didx + count);
+  /* calculate exact output size: (slen + 7) / 8 */
+  int output_bytes = (slen + 7) / 8;
+  dst = str_len_ensure(mrb, dst, didx + output_bytes);
   char *dptr = RSTRING_PTR(dst) + didx;
   char *dptr0 = dptr;
 
-  unsigned int byte = 0;
-  for (int i=0; i++ < slen; sptr++) {
-    if (flags & PACK_FLAG_LSB) {
-      if (*sptr & 1)
-        byte |= 128;
-      if (i & 7)
-        byte >>= 1;
-      else {
-        char c = (char)(byte&0xff);
-        *dptr++ = c;
-        byte = 0;
-      }
-    }
-    else {
-      byte |= *sptr & 1;
-      if (i & 7)
-        byte <<= 1;
-      else {
-        char c = (char)(byte&0xff);
-        *dptr++ = c;
-        byte = 0;
-      }
-    }
+  /* select batch processing function based on bit order */
+  uint8_t (*pack_func)(const char *) = (flags & PACK_FLAG_LSB) ? pack_8_bits_lsb : pack_8_bits_msb;
+
+  /* process 8 characters at a time */
+  int full_bytes = slen / 8;
+  for (int i = 0; i < full_bytes; i++) {
+    *dptr++ = (char)pack_func(sptr);
+    sptr += 8;
   }
-  if (slen & 7) {
-    if (flags & PACK_FLAG_LSB) {
-      byte >>= 7 - (slen & 7);
+
+  /* handle remaining bits (partial byte) */
+  int remaining_bits = slen % 8;
+  if (remaining_bits > 0) {
+    char temp_chars[8] = {'0', '0', '0', '0', '0', '0', '0', '0'};
+    /* copy remaining characters, padding with '0' */
+    for (int i = 0; i < remaining_bits; i++) {
+      temp_chars[i] = sptr[i];
     }
-    else {
-      byte <<= 7 - (slen & 7);
-    }
-    char c = (char)(byte&0xff);
-    *dptr++ = c;
+    *dptr++ = (char)pack_func(temp_chars);
   }
+
   return (int)(dptr - dptr0);
 }
 
@@ -906,26 +959,37 @@ unpack_bstr(mrb_state *mrb, const void *src, int slen, mrb_value ary, int count,
 
   const char *sptr0 = (const char*)src;
   const char *sptr = sptr0;
+
   if (count == -1 || count > slen * 8)
     count = slen * 8;
 
+  /* pre-allocate exact output size */
   mrb_value dst = mrb_str_new(mrb, NULL, count);
   char *dptr = RSTRING_PTR(dst);
-  const char *dptr0 = dptr;
-  int bits = 0;
+  char *dptr0 = dptr;
 
-  for (int i=0; i<count; i++) {
-    if (flags & PACK_FLAG_LSB) {
-      if (i & 7) bits >>= 1;
-      else bits = (unsigned char)*sptr++;
-      *dptr++ = (bits & 1) ? '1' : '0';
-    }
-    else {
-      if (i & 7) bits <<= 1;
-      else bits = (unsigned char)*sptr++;
-      *dptr++ = (bits & 128) ? '1' : '0';
+  /* select batch processing function based on bit order */
+  void (*unpack_func)(uint8_t, char *) = (flags & PACK_FLAG_LSB) ? unpack_8_bits_lsb : unpack_8_bits_msb;
+
+  /* process 8 bits (1 byte) at a time */
+  int full_bytes = count / 8;
+  for (int i = 0; i < full_bytes; i++) {
+    unpack_func((uint8_t)*sptr++, dptr);
+    dptr += 8;
+  }
+
+  /* handle remaining bits (partial byte) */
+  int remaining_bits = count % 8;
+  if (remaining_bits > 0) {
+    char temp_chars[8];
+    unpack_func((uint8_t)*sptr++, temp_chars);
+    /* copy only the required number of characters */
+    for (int i = 0; i < remaining_bits; i++) {
+      *dptr++ = temp_chars[i];
     }
   }
+
+  /* ensure string is properly sized */
   dst = mrb_str_resize(mrb, dst, (mrb_int)(dptr - dptr0));
   mrb_ary_push(mrb, ary, dst);
   return (int)(sptr - sptr0);
