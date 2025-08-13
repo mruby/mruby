@@ -153,17 +153,16 @@ unpack_char(mrb_state *mrb, const void *src, int srclen, mrb_value ary, unsigned
 static int
 pack_short(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
-  uint16_t n;
-
   str = str_len_ensure(mrb, str, sidx + 2);
-  n = (uint16_t)mrb_integer(o);
+  uint16_t n = (uint16_t)mrb_integer(o);
+
   if (flags & PACK_FLAG_LITTLEENDIAN) {
-    RSTRING_PTR(str)[sidx+0] = n % 256;
-    RSTRING_PTR(str)[sidx+1] = n / 256;
+    RSTRING_PTR(str)[sidx+0] = (char)(n & 0xff);
+    RSTRING_PTR(str)[sidx+1] = (char)(n >> 8);
   }
   else {
-    RSTRING_PTR(str)[sidx+0] = n / 256;
-    RSTRING_PTR(str)[sidx+1] = n % 256;
+    RSTRING_PTR(str)[sidx+0] = (char)(n >> 8);
+    RSTRING_PTR(str)[sidx+1] = (char)(n & 0xff);
   }
   return 2;
 }
@@ -174,10 +173,10 @@ unpack_short(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary
   int n;
 
   if (flags & PACK_FLAG_LITTLEENDIAN) {
-    n = src[1] * 256 + src[0];
+    n = (src[1] << 8) | src[0];
   }
   else {
-    n = src[0] * 256 + src[1];
+    n = (src[0] << 8) | src[1];
   }
   if ((flags & PACK_FLAG_SIGNED) && (n >= 0x8000)) {
     n -= 0x10000;
@@ -189,10 +188,9 @@ unpack_short(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary
 static int
 pack_long(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
-  uint32_t n;
-
   str = str_len_ensure(mrb, str, sidx + 4);
-  n = (uint32_t)mrb_integer(o);
+  uint32_t n = (uint32_t)mrb_integer(o);
+
   if (flags & PACK_FLAG_LITTLEENDIAN) {
     RSTRING_PTR(str)[sidx+0] = (char)(n & 0xff);
     RSTRING_PTR(str)[sidx+1] = (char)(n >> 8);
@@ -251,16 +249,16 @@ unpack_long(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary,
   mrb_int n;
 
   if (flags & PACK_FLAG_LITTLEENDIAN) {
-    ul = (uint32_t)src[3] * 256*256*256;
-    ul += (uint32_t)src[2] *256*256;
-    ul += (uint32_t)src[1] *256;
-    ul += (uint32_t)src[0];
+    ul = ((uint32_t)src[3] << 24) |
+         ((uint32_t)src[2] << 16) |
+         ((uint32_t)src[1] << 8) |
+         (uint32_t)src[0];
   }
   else {
-    ul = (uint32_t)src[0] * 256*256*256;
-    ul += (uint32_t)src[1] *256*256;
-    ul += (uint32_t)src[2] *256;
-    ul += (uint32_t)src[3];
+    ul = ((uint32_t)src[0] << 24) |
+         ((uint32_t)src[1] << 16) |
+         ((uint32_t)src[2] << 8) |
+         (uint32_t)src[3];
   }
   if (flags & PACK_FLAG_SIGNED) {
     n = (int32_t)ul;
@@ -281,10 +279,9 @@ unpack_long(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary,
 static int
 pack_quad(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
-  uint64_t n;
-
   str = str_len_ensure(mrb, str, sidx + 8);
-  n = (uint64_t)mrb_integer(o);
+  uint64_t n = (uint64_t)mrb_integer(o);
+
   if (flags & PACK_FLAG_LITTLEENDIAN) {
     RSTRING_PTR(str)[sidx+0] = (char)(n & 0xff);
     RSTRING_PTR(str)[sidx+1] = (char)(n >> 8);
@@ -361,21 +358,27 @@ unpack_quad(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary,
 {
   char msg[60];
   uint64_t ull;
-  int i, pos, step;
   mrb_int n;
 
   if (flags & PACK_FLAG_LITTLEENDIAN) {
-    pos  = 7;
-    step = -1;
+    ull = ((uint64_t)src[7] << 56) |
+          ((uint64_t)src[6] << 48) |
+          ((uint64_t)src[5] << 40) |
+          ((uint64_t)src[4] << 32) |
+          ((uint64_t)src[3] << 24) |
+          ((uint64_t)src[2] << 16) |
+          ((uint64_t)src[1] << 8) |
+          (uint64_t)src[0];
   }
   else {
-    pos  = 0;
-    step = 1;
-  }
-  ull = 0;
-  for (i = 0; i < 8; i++) {
-    ull = ull * 256 + (uint64_t)src[pos];
-    pos += step;
+    ull = ((uint64_t)src[0] << 56) |
+          ((uint64_t)src[1] << 48) |
+          ((uint64_t)src[2] << 40) |
+          ((uint64_t)src[3] << 32) |
+          ((uint64_t)src[4] << 24) |
+          ((uint64_t)src[5] << 16) |
+          ((uint64_t)src[6] << 8) |
+          (uint64_t)src[7];
   }
   if (flags & PACK_FLAG_SIGNED) {
     int64_t sll = ull;
