@@ -452,32 +452,25 @@ unpack_BER(mrb_state *mrb, const unsigned char *src, int srclen, mrb_value ary, 
 static int
 pack_double(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
-  int i;
-  double d;
-  uint8_t *buffer = (uint8_t*)&d;
-  str = str_len_ensure(mrb, str, sidx + 8);
-  d = mrb_float(o);
+  union {
+    double d;
+    uint8_t bytes[8];
+  } converter;
 
-  if (flags & PACK_FLAG_LITTLEENDIAN) {
-    if (littleendian) {
-      memcpy(RSTRING_PTR(str) + sidx, buffer, 8);
-    }
-    else {
-      for (i = 0; i < 8; i++) {
-        RSTRING_PTR(str)[sidx + i] = buffer[8 - i - 1];
-      }
-    }
-  }
-  else {
-    if (littleendian) {
-      for (i = 0; i < 8; i++) {
-        RSTRING_PTR(str)[sidx + i] = buffer[8 - i - 1];
-      }
-    }
-    else {
-      memcpy(RSTRING_PTR(str) + sidx, buffer, 8);
-    }
-  }
+  str = str_len_ensure(mrb, str, sidx + 8);
+  converter.d = mrb_float(o);
+  char *dptr = RSTRING_PTR(str) + sidx;
+
+  /* use lookup tables to eliminate branching */
+  const int *idx = (flags & PACK_FLAG_LITTLEENDIAN) ? le_idx64 : be_idx64;
+  dptr[idx[0]] = converter.bytes[0];
+  dptr[idx[1]] = converter.bytes[1];
+  dptr[idx[2]] = converter.bytes[2];
+  dptr[idx[3]] = converter.bytes[3];
+  dptr[idx[4]] = converter.bytes[4];
+  dptr[idx[5]] = converter.bytes[5];
+  dptr[idx[6]] = converter.bytes[6];
+  dptr[idx[7]] = converter.bytes[7];
 
   return 8;
 }
@@ -485,31 +478,23 @@ pack_double(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned i
 static int
 unpack_double(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value ary, unsigned int flags)
 {
-  int i;
-  double d;
-  uint8_t *buffer = (uint8_t*)&d;
+  union {
+    double d;
+    uint8_t bytes[8];
+  } converter;
 
-  if (flags & PACK_FLAG_LITTLEENDIAN) {
-    if (littleendian) {
-      memcpy(buffer, src, 8);
-    }
-    else {
-      for (i = 0; i < 8; i++) {
-        buffer[8 - i - 1] = src[i];
-      }
-    }
-  }
-  else {
-    if (littleendian) {
-      for (i = 0; i < 8; i++) {
-        buffer[8 - i - 1] = src[i];
-      }
-    }
-    else {
-      memcpy(buffer, src, 8);
-    }
-  }
-  mrb_ary_push(mrb, ary, mrb_float_value(mrb, d));
+  /* use lookup tables to eliminate branching */
+  const int *idx = (flags & PACK_FLAG_LITTLEENDIAN) ? le_idx64 : be_idx64;
+  converter.bytes[0] = src[idx[0]];
+  converter.bytes[1] = src[idx[1]];
+  converter.bytes[2] = src[idx[2]];
+  converter.bytes[3] = src[idx[3]];
+  converter.bytes[4] = src[idx[4]];
+  converter.bytes[5] = src[idx[5]];
+  converter.bytes[6] = src[idx[6]];
+  converter.bytes[7] = src[idx[7]];
+
+  mrb_ary_push(mrb, ary, mrb_float_value(mrb, converter.d));
 
   return 8;
 }
@@ -517,32 +502,21 @@ unpack_double(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value a
 static int
 pack_float(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned int flags)
 {
-  int i;
-  float f;
-  uint8_t *buffer = (uint8_t*)&f;
-  str = str_len_ensure(mrb, str, sidx + 4);
-  f = (float)mrb_float(o);
+  union {
+    float f;
+    uint8_t bytes[4];
+  } converter;
 
-  if (flags & PACK_FLAG_LITTLEENDIAN) {
-    if (littleendian) {
-      memcpy(RSTRING_PTR(str) + sidx, buffer, 4);
-    }
-    else {
-      for (i = 0; i < 4; i++) {
-        RSTRING_PTR(str)[sidx + i] = buffer[4 - i - 1];
-      }
-    }
-  }
-  else {
-    if (littleendian) {
-      for (i = 0; i < 4; i++) {
-        RSTRING_PTR(str)[sidx + i] = buffer[4 - i - 1];
-      }
-    }
-    else {
-      memcpy(RSTRING_PTR(str) + sidx, buffer, 4);
-    }
-  }
+  str = str_len_ensure(mrb, str, sidx + 4);
+  converter.f = (float)mrb_float(o);
+  char *dptr = RSTRING_PTR(str) + sidx;
+
+  /* use lookup tables to eliminate branching */
+  const int *idx = (flags & PACK_FLAG_LITTLEENDIAN) ? le_idx32 : be_idx32;
+  dptr[idx[0]] = converter.bytes[0];
+  dptr[idx[1]] = converter.bytes[1];
+  dptr[idx[2]] = converter.bytes[2];
+  dptr[idx[3]] = converter.bytes[3];
 
   return 4;
 }
@@ -550,31 +524,19 @@ pack_float(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, unsigned in
 static int
 unpack_float(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value ary, unsigned int flags)
 {
-  int i;
-  float f;
-  uint8_t *buffer = (uint8_t*)&f;
+  union {
+    float f;
+    uint8_t bytes[4];
+  } converter;
 
-  if (flags & PACK_FLAG_LITTLEENDIAN) {
-    if (littleendian) {
-      memcpy(buffer, src, 4);
-    }
-    else {
-      for (i = 0; i < 4; i++) {
-        buffer[4 - i - 1] = src[i];
-      }
-    }
-  }
-  else {
-    if (littleendian) {
-      for (i = 0; i < 4; i++) {
-        buffer[4 - i - 1] = src[i];
-      }
-    }
-    else {
-      memcpy(buffer, src, 4);
-    }
-  }
-  mrb_ary_push(mrb, ary, mrb_float_value(mrb, f));
+  /* use lookup tables to eliminate branching */
+  const int *idx = (flags & PACK_FLAG_LITTLEENDIAN) ? le_idx32 : be_idx32;
+  converter.bytes[0] = src[idx[0]];
+  converter.bytes[1] = src[idx[1]];
+  converter.bytes[2] = src[idx[2]];
+  converter.bytes[3] = src[idx[3]];
+
+  mrb_ary_push(mrb, ary, mrb_float_value(mrb, converter.f));
 
   return 4;
 }
