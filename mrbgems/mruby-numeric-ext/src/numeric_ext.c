@@ -1,12 +1,47 @@
 #include <mruby.h>
 #include <mruby/numeric.h>
 #include <mruby/array.h>
+#include <mruby/string.h>
 #include <mruby/internal.h>
 #include <mruby/presym.h>
 
 #ifndef MRB_NO_FLOAT
 static mrb_value flo_remainder(mrb_state *mrb, mrb_value self);
 #endif
+
+/*
+ *  call-seq:
+ *     int.bit_length -> integer
+ *
+ *  Returns the number of bits of the absolute value of self in binary representation.
+ *  For zero, returns 0. For negative integers, behaves as (~self).bit_length
+ *  (e.g., (-1).bit_length => 0, (-2).bit_length => 1).
+ */
+static mrb_value
+int_bit_length(mrb_state *mrb, mrb_value self)
+{
+#ifdef MRB_USE_BIGINT
+  if (mrb_bigint_p(self)) {
+    mrb_int sign = mrb_bint_sign(mrb, self);
+    if (sign == 0) return mrb_fixnum_value(0);
+    mrb_value v = self;
+    if (sign < 0) v = mrb_bint_rev(mrb, self); /* ~self = -self-1 */
+    mrb_value s = mrb_bint_to_s(mrb, v, 2);
+    return mrb_int_value(mrb, (mrb_int)RSTRING_LEN(s));
+  }
+#endif
+  mrb_int x = mrb_integer(self);
+  if (x == 0) return mrb_fixnum_value(0);
+
+  /* for negative fixnums, use ~x */
+  mrb_uint ux = (mrb_uint)(x < 0 ? ~x : x);
+  mrb_int bits = 0;
+  while (ux) {
+    bits++;
+    ux >>= 1;
+  }
+  return mrb_int_value(mrb, bits);
+}
 
 /*
  *  call-seq:
@@ -435,6 +470,7 @@ mrb_mruby_numeric_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, ic, MRB_SYM(pow), int_powm, MRB_ARGS_ARG(1,1));
   mrb_define_method_id(mrb, ic, MRB_SYM(digits), int_digits, MRB_ARGS_OPT(1));
   mrb_define_method_id(mrb, ic, MRB_SYM(size), int_size, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, ic, MRB_SYM(bit_length), int_bit_length, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, ic, MRB_SYM_Q(odd), int_odd, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, ic, MRB_SYM_Q(even), int_even, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, ic, MRB_SYM(gcd), int_gcd, MRB_ARGS_REQ(1));

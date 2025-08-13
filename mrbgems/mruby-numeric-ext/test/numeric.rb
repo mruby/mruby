@@ -111,3 +111,27 @@ assert('Integer.sqrt') do
   assert_equal(10, Integer.sqrt(100))
   assert_equal(85, Integer.sqrt(7244))
 end
+
+assert('Integer#bit_length') do
+  # zero
+  assert_equal 0, 0.bit_length
+
+  # positives
+  assert_equal 1, 1.bit_length
+  assert_equal 2, 2.bit_length
+  assert_equal 2, 3.bit_length
+  assert_equal 3, 4.bit_length
+  assert_equal 3, 5.bit_length
+
+  # negatives (use ~n semantics)
+  assert_equal 0, (-1).bit_length
+  assert_equal 1, (-2).bit_length
+  assert_equal 2, (-3).bit_length
+  assert_equal 2, (-4).bit_length
+  assert_equal 3, (-5).bit_length
+
+  # bigint cases may be enabled depending on config
+  # assert_equal 100, (2**100 - 1).bit_length
+  # assert_equal 101, (2**100).bit_length
+  # assert_equal 0,  (-1).bit_length
+end

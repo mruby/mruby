@@ -21,6 +21,7 @@ This gem adds the following methods:
 - `allbits?(mask)`: Returns `true` if all bits of `self & mask` are 1.
 - `anybits?(mask)`: Returns `true` if any bits of `self & mask` are 1.
 - `nobits?(mask)`: Returns `true` if no bits of `self & mask` are 1.
+- `bit_length`: Returns the number of bits of the absolute value of `self` in binary. `0.bit_length #=> 0`; `(-1).bit_length #=> 0`; `2.bit_length #=> 2`.
 - `ceildiv(other)`: Returns the result of `self` divided by `other`, rounded up to the nearest integer.
 - `integer?`: Returns `true` (overrides `Numeric#integer?`).
 - `remainder(numeric)`: Returns the remainder of `self` divided by `numeric`. Equivalent to `x - y * (x / y).truncate`.
@@ -69,6 +70,7 @@ p 12345.digits    # => [5, 4, 3, 2, 1]
 p 12345.digits(16) # => [9, 3, 0, 3]
 
 p 42.size         # => (depends on machine, e.g., 4 or 8)
+p 5.bit_length    # => 3
 p 5.odd?          # => true
 p 4.even?         # => true
 p Integer.sqrt(16) # => 4
