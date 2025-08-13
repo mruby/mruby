@@ -193,6 +193,54 @@ static const uint8_t char_class[256] = {
   ['\f'] = CHAR_SPACE,
   ['\r'] = CHAR_SPACE
 };
+/* template parsing optimization structures */
+typedef struct {
+  enum pack_dir dir;
+  enum pack_type type;
+  int size;
+  unsigned int base_flags;
+} format_info_t;
+
+/* direct O(1) lookup table for format characters */
+static const format_info_t format_table[256] = {
+  ['A'] = {PACK_DIR_STR, PACK_TYPE_STRING, 0, PACK_FLAG_WIDTH | PACK_FLAG_COUNT2},
+  ['a'] = {PACK_DIR_STR, PACK_TYPE_STRING, 0, PACK_FLAG_WIDTH | PACK_FLAG_COUNT2 | PACK_FLAG_a},
+  ['B'] = {PACK_DIR_BSTR, PACK_TYPE_STRING, 0, PACK_FLAG_COUNT2},
+  ['b'] = {PACK_DIR_BSTR, PACK_TYPE_STRING, 0, PACK_FLAG_COUNT2 | PACK_FLAG_LSB},
+  ['C'] = {PACK_DIR_CHAR, PACK_TYPE_INTEGER, 1, 0},
+  ['c'] = {PACK_DIR_CHAR, PACK_TYPE_INTEGER, 1, PACK_FLAG_SIGNED},
+  ['D'] = {PACK_DIR_DOUBLE, PACK_TYPE_FLOAT, 8, PACK_FLAG_SIGNED},
+  ['d'] = {PACK_DIR_DOUBLE, PACK_TYPE_FLOAT, 8, PACK_FLAG_SIGNED},
+  ['E'] = {PACK_DIR_DOUBLE, PACK_TYPE_FLOAT, 8, PACK_FLAG_SIGNED | PACK_FLAG_LT},
+  ['e'] = {PACK_DIR_FLOAT, PACK_TYPE_FLOAT, 4, PACK_FLAG_SIGNED | PACK_FLAG_LT},
+  ['F'] = {PACK_DIR_FLOAT, PACK_TYPE_FLOAT, 4, PACK_FLAG_SIGNED},
+  ['f'] = {PACK_DIR_FLOAT, PACK_TYPE_FLOAT, 4, PACK_FLAG_SIGNED},
+  ['G'] = {PACK_DIR_DOUBLE, PACK_TYPE_FLOAT, 8, PACK_FLAG_SIGNED | PACK_FLAG_GT},
+  ['g'] = {PACK_DIR_FLOAT, PACK_TYPE_FLOAT, 4, PACK_FLAG_SIGNED | PACK_FLAG_GT},
+  ['H'] = {PACK_DIR_HEX, PACK_TYPE_STRING, 0, PACK_FLAG_COUNT2},
+  ['h'] = {PACK_DIR_HEX, PACK_TYPE_STRING, 0, PACK_FLAG_COUNT2 | PACK_FLAG_LSB},
+  /* I, i, J, j are handled specially based on sizeof() */
+  ['L'] = {PACK_DIR_LONG, PACK_TYPE_INTEGER, 4, 0},
+  ['l'] = {PACK_DIR_LONG, PACK_TYPE_INTEGER, 4, PACK_FLAG_SIGNED},
+  ['M'] = {PACK_DIR_QENC, PACK_TYPE_STRING, 0, PACK_FLAG_WIDTH | PACK_FLAG_COUNT2},
+  ['m'] = {PACK_DIR_BASE64, PACK_TYPE_STRING, 0, PACK_FLAG_WIDTH | PACK_FLAG_COUNT2},
+  ['N'] = {PACK_DIR_LONG, PACK_TYPE_INTEGER, 4, PACK_FLAG_GT},
+  ['n'] = {PACK_DIR_SHORT, PACK_TYPE_INTEGER, 2, PACK_FLAG_GT},
+  ['Q'] = {PACK_DIR_QUAD, PACK_TYPE_INTEGER, 8, 0},
+  ['q'] = {PACK_DIR_QUAD, PACK_TYPE_INTEGER, 8, PACK_FLAG_SIGNED},
+  ['S'] = {PACK_DIR_SHORT, PACK_TYPE_INTEGER, 2, 0},
+  ['s'] = {PACK_DIR_SHORT, PACK_TYPE_INTEGER, 2, PACK_FLAG_SIGNED},
+  ['U'] = {PACK_DIR_UTF8, PACK_TYPE_INTEGER, 0, 0},
+  ['V'] = {PACK_DIR_LONG, PACK_TYPE_INTEGER, 4, PACK_FLAG_LT},
+  ['v'] = {PACK_DIR_SHORT, PACK_TYPE_INTEGER, 2, PACK_FLAG_LT},
+  ['w'] = {PACK_DIR_BER, PACK_TYPE_INTEGER, 0, PACK_FLAG_SIGNED},
+  ['x'] = {PACK_DIR_NUL, PACK_TYPE_NONE, 0, 0},
+  ['X'] = {PACK_DIR_BACK, PACK_TYPE_NONE, 0, 0},
+  ['@'] = {PACK_DIR_ABS, PACK_TYPE_NONE, 0, 0},
+  ['Z'] = {PACK_DIR_STR, PACK_TYPE_STRING, 0, PACK_FLAG_WIDTH | PACK_FLAG_COUNT2 | PACK_FLAG_Z}
+  /* All other entries default to {0,0,0,0} indicating invalid format */
+};
+
 
 #define IS_PADDING_CHAR_A(c) (char_class[(unsigned char)(c)] & (CHAR_NULL | CHAR_SPACE))
 #define IS_PADDING_CHAR_Z(c) (char_class[(unsigned char)(c)] & CHAR_NULL)
@@ -1334,84 +1382,14 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_type *typep, mrb_int *siz
   if (tmpl->idx >= tlen) return PACK_DIR_NONE;
   t = tptr[tmpl->idx++];
  alias:
+
+  /* Handle whitespace - skip and restart */
+  if (ISSPACE((char)t)) {
+    goto restart;
+  }
+
+  /* Special handling for runtime-dependent formats and special characters */
   switch (t) {
-  case 'A':
-    dir = PACK_DIR_STR;
-    type = PACK_TYPE_STRING;
-    flags |= PACK_FLAG_WIDTH | PACK_FLAG_COUNT2;
-    break;
-  case 'a':
-    dir = PACK_DIR_STR;
-    type = PACK_TYPE_STRING;
-    flags |= PACK_FLAG_WIDTH | PACK_FLAG_COUNT2 | PACK_FLAG_a;
-    break;
-  case 'C':
-    dir = PACK_DIR_CHAR;
-    type = PACK_TYPE_INTEGER;
-    size = 1;
-    break;
-  case 'c':
-    dir = PACK_DIR_CHAR;
-    type = PACK_TYPE_INTEGER;
-    size = 1;
-    flags |= PACK_FLAG_SIGNED;
-    break;
-  case 'D': case 'd':
-    dir = PACK_DIR_DOUBLE;
-    type = PACK_TYPE_FLOAT;
-    size = 8;
-    flags |= PACK_FLAG_SIGNED;
-    break;
-  case 'F': case 'f':
-    dir = PACK_DIR_FLOAT;
-    type = PACK_TYPE_FLOAT;
-    size = 4;
-    flags |= PACK_FLAG_SIGNED;
-    break;
-  case 'E':
-    dir = PACK_DIR_DOUBLE;
-    type = PACK_TYPE_FLOAT;
-    size = 8;
-    flags |= PACK_FLAG_SIGNED | PACK_FLAG_LT;
-    break;
-  case 'e':
-    dir = PACK_DIR_FLOAT;
-    type = PACK_TYPE_FLOAT;
-    size = 4;
-    flags |= PACK_FLAG_SIGNED | PACK_FLAG_LT;
-    break;
-  case 'G':
-    dir = PACK_DIR_DOUBLE;
-    type = PACK_TYPE_FLOAT;
-    size = 8;
-    flags |= PACK_FLAG_SIGNED | PACK_FLAG_GT;
-    break;
-  case 'g':
-    dir = PACK_DIR_FLOAT;
-    type = PACK_TYPE_FLOAT;
-    size = 4;
-    flags |= PACK_FLAG_SIGNED | PACK_FLAG_GT;
-    break;
-  case 'H':
-    dir = PACK_DIR_HEX;
-    type = PACK_TYPE_STRING;
-    flags |= PACK_FLAG_COUNT2;
-    break;
-  case 'h':
-    dir = PACK_DIR_HEX;
-    type = PACK_TYPE_STRING;
-    flags |= PACK_FLAG_COUNT2 | PACK_FLAG_LSB;
-    break;
-  case 'B':
-    dir = PACK_DIR_BSTR;
-    type = PACK_TYPE_STRING;
-    flags |= PACK_FLAG_COUNT2;
-    break;
-  case 'b':
-    dir = PACK_DIR_BSTR;
-    type = PACK_TYPE_STRING;
-    flags |= PACK_FLAG_COUNT2 | PACK_FLAG_LSB;
-    break;
   case 'I':
     switch (sizeof(int)) {
       case 2: t = 'S'; goto alias;
@@ -1446,115 +1424,32 @@ read_tmpl(mrb_state *mrb, struct tmpl *tmpl, enum pack_type *typep, mrb_int *siz
         mrb_raisef(mrb, E_RUNTIME_ERROR, "mruby-pack does not support sizeof(intptr_t) == %d", (int)sizeof(intptr_t));
     }
     break;
-  case 'L':
-    dir = PACK_DIR_LONG;
-    type = PACK_TYPE_INTEGER;
-    size = 4;
-    break;
-  case 'l':
-    dir = PACK_DIR_LONG;
-    type = PACK_TYPE_INTEGER;
-    size = 4;
-    flags |= PACK_FLAG_SIGNED;
-    break;
-  case 'w':
-    dir = PACK_DIR_BER;
-    type = PACK_TYPE_INTEGER;
-    flags |= PACK_FLAG_SIGNED;
-    break;
-  case 'm':
-    dir = PACK_DIR_BASE64;
-    type = PACK_TYPE_STRING;
-    flags |= PACK_FLAG_WIDTH | PACK_FLAG_COUNT2;
-    break;
-  case 'M':
-    dir = PACK_DIR_QENC;
-    type = PACK_TYPE_STRING;
-    flags |= PACK_FLAG_WIDTH | PACK_FLAG_COUNT2;
-    break;
-  case 'N':  /* = "L>" */
-    dir = PACK_DIR_LONG;
-    type = PACK_TYPE_INTEGER;
-    size = 4;
-    flags |= PACK_FLAG_GT;
-    break;
-  case 'n':  /* = "S>" */
-    dir = PACK_DIR_SHORT;
-    type = PACK_TYPE_INTEGER;
-    size = 2;
-    flags |= PACK_FLAG_GT;
-    break;
-  case 'Q':
-    dir = PACK_DIR_QUAD;
-    type = PACK_TYPE_INTEGER;
-    size = 8;
-    break;
-  case 'q':
-    dir = PACK_DIR_QUAD;
-    type = PACK_TYPE_INTEGER;
-    size = 8;
-    flags |= PACK_FLAG_SIGNED;
-    break;
-  case 'S':
-    dir = PACK_DIR_SHORT;
-    type = PACK_TYPE_INTEGER;
-    size = 2;
-    break;
-  case 's':
-    dir = PACK_DIR_SHORT;
-    type = PACK_TYPE_INTEGER;
-    size = 2;
-    flags |= PACK_FLAG_SIGNED;
-    break;
-  case 'U':
-    dir = PACK_DIR_UTF8;
-    type = PACK_TYPE_INTEGER;
-    break;
-  case 'V':  /* = "L<" */
-    dir = PACK_DIR_LONG;
-    type = PACK_TYPE_INTEGER;
-    size = 4;
-    flags |= PACK_FLAG_LT;
-    break;
-  case 'v':  /* = "S<" */
-    dir = PACK_DIR_SHORT;
-    type = PACK_TYPE_INTEGER;
-    size = 2;
-    flags |= PACK_FLAG_LT;
-    break;
-  case 'x':
-    dir = PACK_DIR_NUL;
-    type = PACK_TYPE_NONE;
-    break;
-  case 'X':
-    dir = PACK_DIR_BACK;
-    type = PACK_TYPE_NONE;
-    break;
-  case '@':
-    dir = PACK_DIR_ABS;
-    type = PACK_TYPE_NONE;
-    break;
-  case 'Z':
-    dir = PACK_DIR_STR;
-    type = PACK_TYPE_STRING;
-    flags |= PACK_FLAG_WIDTH | PACK_FLAG_COUNT2 | PACK_FLAG_Z;
-    break;
   case '#':
     while (++tmpl->idx < tlen && tptr[tmpl->idx] != '\n')
       ;
     goto restart;
-
   case 'p': case 'P':
   case '%':
     mrb_raisef(mrb, E_ARGUMENT_ERROR, "%c is not supported", (char)t);
     break;
   default:
-    if (!ISSPACE((char)t)) {
-      char c = (char)t;
-      mrb_value s = mrb_str_new(mrb, &c, 1);
-      mrb_raisef(mrb, E_ARGUMENT_ERROR, "unknown unpack directive %!v", s);
+    /* Use O(1) lookup table for standard format characters */
+    if (t >= 0 && t < 256) {
+      const format_info_t *info = &format_table[t];
+      if (info->dir != PACK_DIR_NONE) {
+        /* Valid format character found in lookup table */
+        dir = info->dir;
+        type = info->type;
+        size = info->size;
+        flags = info->base_flags;
+        break;
+      }
     }
-    goto restart;
+
+    /* Handle invalid characters */
+    char c = (char)t;
+    mrb_value s = mrb_str_new(mrb, &c, 1);
+    mrb_raisef(mrb, E_ARGUMENT_ERROR, "unknown unpack directive %!v", s);
   }
 
   /* read suffix [0-9*_!<>] */
