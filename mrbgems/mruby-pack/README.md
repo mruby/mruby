@@ -97,6 +97,7 @@ Here is a list of supported template characters and their meanings:
 | `q`       | 64-bit signed integer, native endian (`int64_t`)                                                        |
 | `S`       | 16-bit unsigned integer, native endian (`uint16_t`) (Use `S>` for big-endian, `S<` for little-endian)   |
 | `s`       | 16-bit signed integer, native endian (`int16_t`) (Use `s>` for big-endian, `s<` for little-endian)      |
+| `u`       | UU-encoded string (Unix-to-Unix encoding)                                                               |
 | `U`       | UTF-8 character                                                                                         |
 | `V`       | 32-bit unsigned integer, VAX (little-endian) byte order                                                 |
 | `v`       | 16-bit unsigned integer, VAX (little-endian) byte order                                                 |

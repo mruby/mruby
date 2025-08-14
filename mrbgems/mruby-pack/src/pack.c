@@ -42,6 +42,7 @@ enum pack_dir {
   PACK_DIR_HEX,       /* h */
   PACK_DIR_BSTR,      /* b */
   PACK_DIR_BASE64,    /* m */
+  PACK_DIR_UU,        /* u */
   PACK_DIR_QENC,      /* M */
   PACK_DIR_NUL,       /* x */
   PACK_DIR_BACK,      /* X */
@@ -255,6 +256,30 @@ static const uint8_t qprint_encode_type[256] = {
   1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1
 };
 
+/* UU-encoding optimization lookup tables */
+/* UU-encoding uses 6-bit values mapped to ASCII 32-95, but space (32) -> backtick (96) */
+static const char uu_encode_table[64] = {
+  '`', '!', '"', '#', '$', '%', '&', '\'', '(', ')', '*', '+', ',', '-', '.', '/',
+  '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', ';', '<', '=', '>', '?',
+  '@', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O',
+  'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '[', '\\', ']', '^', '_'
+};
+
+/* UU-decoding lookup table for ASCII 32-127 */
+static const int8_t uu_decode_table[96] = {
+  /* ASCII 32-47: ` ! " # $ % & ' ( ) * + , - . / */
+  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15,
+  /* ASCII 48-63: 0 1 2 3 4 5 6 7 8 9 : ; < = > ? */
+  16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
+  /* ASCII 64-79: @ A B C D E F G H I J K L M N O */
+  32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47,
+  /* ASCII 80-95: P Q R S T U V W X Y Z [ \ ] ^ _ */
+  48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63,
+  /* ASCII 96-127: ` a b c... (invalid for UU, but ` = 0 for decoding) */
+  0, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+  -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1
+};
+
 /* template parsing optimization structures */
 typedef struct {
   enum pack_dir dir;
@@ -292,6 +317,7 @@ static const format_info_t format_table[256] = {
   ['q'] = {PACK_DIR_QUAD, PACK_TYPE_INTEGER, 8, PACK_FLAG_SIGNED},
   ['S'] = {PACK_DIR_SHORT, PACK_TYPE_INTEGER, 2, 0},
   ['s'] = {PACK_DIR_SHORT, PACK_TYPE_INTEGER, 2, PACK_FLAG_SIGNED},
+  ['u'] = {PACK_DIR_UU, PACK_TYPE_STRING, 0, PACK_FLAG_WIDTH | PACK_FLAG_COUNT2},
   ['U'] = {PACK_DIR_UTF8, PACK_TYPE_INTEGER, 0, 0},
   ['V'] = {PACK_DIR_LONG, PACK_TYPE_INTEGER, 4, PACK_FLAG_LT},
   ['v'] = {PACK_DIR_SHORT, PACK_TYPE_INTEGER, 2, PACK_FLAG_LT},
@@ -1434,6 +1460,139 @@ unpack_qenc(mrb_state *mrb, const void *src, int slen, mrb_value ary)
 }
 
 static int
+pack_uu(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count)
+{
+  char *s = RSTRING_PTR(src);
+  int slen = RSTRING_LEN(src);
+  int lines_written = 0;
+  int dlen = 0;
+
+  if (count <= 1) count = 45; /* default line length for UU-encoding */
+
+  str_len_ensure(mrb, dst, didx + ((slen * 4 + 2) / 3) + (slen / count + 1) * 2);
+  char *dptr = RSTRING_PTR(dst) + didx;
+
+  while (slen > 0) {
+    int line_len = (slen > count) ? count : slen;
+
+    /* Write line length character */
+    *dptr++ = uu_encode_table[line_len & 0x3F];
+    dlen++;
+
+    int processed = 0;
+    while (processed < line_len) {
+      /* Process groups of 3 bytes -> 4 characters */
+      uint32_t group = 0;
+      int bytes_in_group = 0;
+
+      /* Read up to 3 bytes */
+      for (int i = 0; i < 3 && processed < line_len; i++) {
+        group = (group << 8) | (unsigned char)s[processed++];
+        bytes_in_group++;
+      }
+
+      /* Pad incomplete group with zeros */
+      group <<= (3 - bytes_in_group) * 8;
+
+      /* Extract 4 groups of 6 bits and encode */
+      *dptr++ = uu_encode_table[(group >> 18) & 0x3F];
+      *dptr++ = uu_encode_table[(group >> 12) & 0x3F];
+      *dptr++ = uu_encode_table[(group >> 6) & 0x3F];
+      *dptr++ = uu_encode_table[group & 0x3F];
+      dlen += 4;
+    }
+
+    /* Add newline */
+    *dptr++ = '\n';
+    dlen++;
+
+    s += line_len;
+    slen -= line_len;
+    lines_written++;
+  }
+
+  /* Add terminating line if data was processed */
+  if (lines_written > 0) {
+    *dptr++ = uu_encode_table[0]; /* length 0 */
+    *dptr++ = '\n';
+    dlen += 2;
+  }
+
+  return dlen;
+}
+
+static int
+unpack_uu(mrb_state *mrb, const void *src, int slen, mrb_value ary)
+{
+  const char *s = (const char*)src;
+  const char *send = s + slen;
+  mrb_value result = mrb_str_new(mrb, 0, slen * 3 / 4); /* estimate result size */
+  char *dptr = RSTRING_PTR(result);
+  char *dptr_start = dptr;
+
+  while (s < send) {
+    /* Skip empty lines and whitespace */
+    while (s < send && (*s == '\n' || *s == '\r' || *s == ' ' || *s == '\t')) {
+      s++;
+    }
+    if (s >= send) break;
+
+    /* Read line length */
+    int line_len = 0;
+    if (*s >= 32 && *s < 128 && uu_decode_table[*s - 32] >= 0) {
+      line_len = uu_decode_table[*s - 32];
+      s++;
+    }
+    else {
+      break; /* Invalid length character */
+    }
+
+    /* Empty line indicates end */
+    if (line_len == 0) {
+      break;
+    }
+
+    /* Decode line data */
+    int bytes_decoded = 0;
+    while (bytes_decoded < line_len && s + 3 < send) {
+      /* Decode 4 characters to 3 bytes */
+      int c[4];
+      int valid = 1;
+
+      for (int i = 0; i < 4; i++) {
+        if (s >= send || *s < 32 || *s >= 128 || uu_decode_table[*s - 32] < 0) {
+          valid = 0;
+          break;
+        }
+        c[i] = uu_decode_table[*s++ - 32];
+      }
+
+      if (!valid) break;
+
+      /* Combine 4 x 6-bit values into 3 x 8-bit values */
+      uint32_t group = (c[0] << 18) | (c[1] << 12) | (c[2] << 6) | c[3];
+
+      /* Extract up to 3 bytes, don't exceed line length */
+      int bytes_to_extract = (line_len - bytes_decoded > 3) ? 3 : (line_len - bytes_decoded);
+
+      for (int i = 0; i < bytes_to_extract; i++) {
+        *dptr++ = (group >> (16 - i * 8)) & 0xFF;
+        bytes_decoded++;
+      }
+    }
+
+    /* Skip to end of line */
+    while (s < send && *s != '\n' && *s != '\r') {
+      s++;
+    }
+  }
+
+  result = mrb_str_resize(mrb, result, (mrb_int)(dptr - dptr_start));
+  mrb_ary_push(mrb, ary, result);
+  return slen;
+}
+
+static int
 pack_nul(mrb_state *mrb, mrb_value dst, mrb_int didx, int count)
 {
   long i;
@@ -1748,6 +1907,9 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
       case PACK_DIR_BASE64:
         ridx += pack_base64(mrb, o, result, ridx, count);
         break;
+      case PACK_DIR_UU:
+        ridx += pack_uu(mrb, o, result, ridx, count);
+        break;
       case PACK_DIR_QENC:
         ridx += pack_qenc(mrb, o, result, ridx, count);
         break;
@@ -1837,6 +1999,10 @@ pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
     /* String formats without flags - (mrb, sptr, len, result) */
     case PACK_DIR_BASE64:
       srcidx += unpack_base64(mrb, sptr, srclen - srcidx, result);
+      if (single) goto single_return;
+      continue;
+    case PACK_DIR_UU:
+      srcidx += unpack_uu(mrb, sptr, srclen - srcidx, result);
       if (single) goto single_return;
       continue;
     case PACK_DIR_QENC:
