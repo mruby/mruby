@@ -1513,10 +1513,12 @@ str_lstrip_bang(mrb_state *mrb, mrb_value self)
   if (start < len) {
     memmove(ptr, ptr + start, len - start);
     RSTR_SET_LEN(s, len - start);
+    ptr[len - start] = '\0';
   }
   else {
     /* All whitespace - make empty */
     RSTR_SET_LEN(s, 0);
+    ptr[0] = '\0';
   }
 
   return self;
@@ -1554,6 +1556,7 @@ str_rstrip_bang(mrb_state *mrb, mrb_value self)
 
   /* Truncate string */
   RSTR_SET_LEN(s, end);
+  ptr[end] = '\0';
 
   return self;
 }
@@ -1608,6 +1611,7 @@ str_strip_bang(mrb_state *mrb, mrb_value self)
 
   /* Set new length */
   RSTR_SET_LEN(s, end - start);
+  ptr[end - start] = '\0';
 
   return self;
 }
