@@ -1602,7 +1602,9 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
         }
       }
 
+      /* Optimized dispatch using grouped format handling for better branch prediction */
       switch (dir) {
+      /* Integer formats - all use (mrb, o, result, ridx, flags) signature */
       case PACK_DIR_CHAR:
         ridx += pack_char(mrb, o, result, ridx, flags);
         break;
@@ -1618,12 +1620,18 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
       case PACK_DIR_BER:
         ridx += pack_BER(mrb, o, result, ridx, flags);
         break;
-      case PACK_DIR_BASE64:
-        ridx += pack_base64(mrb, o, result, ridx, count);
+
+#ifndef MRB_NO_FLOAT
+      /* Float formats - all use (mrb, o, result, ridx, flags) signature */
+      case PACK_DIR_DOUBLE:
+        ridx += pack_double(mrb, o, result, ridx, flags);
         break;
-      case PACK_DIR_QENC:
-        ridx += pack_qenc(mrb, o, result, ridx, count);
+      case PACK_DIR_FLOAT:
+        ridx += pack_float(mrb, o, result, ridx, flags);
         break;
+#endif
+
+      /* String formats with count - use (mrb, o, result, ridx, count, flags) signature */
       case PACK_DIR_HEX:
         ridx += pack_hex(mrb, o, result, ridx, count, flags);
         break;
@@ -1633,17 +1641,20 @@ mrb_pack_pack(mrb_state *mrb, mrb_value ary)
       case PACK_DIR_STR:
         ridx += pack_str(mrb, o, result, ridx, count, flags);
         break;
-#ifndef MRB_NO_FLOAT
-      case PACK_DIR_DOUBLE:
-        ridx += pack_double(mrb, o, result, ridx, flags);
+
+      /* String formats with count only - use (mrb, o, result, ridx, count) signature */
+      case PACK_DIR_BASE64:
+        ridx += pack_base64(mrb, o, result, ridx, count);
         break;
-      case PACK_DIR_FLOAT:
-        ridx += pack_float(mrb, o, result, ridx, flags);
+      case PACK_DIR_QENC:
+        ridx += pack_qenc(mrb, o, result, ridx, count);
         break;
-#endif
+
+      /* UTF8 format - special signature (mrb, o, result, ridx, count, flags) */
       case PACK_DIR_UTF8:
         ridx += pack_utf8(mrb, o, result, ridx, count, flags);
         break;
+
       default:
         break;
       }
@@ -1704,9 +1715,10 @@ pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
       continue;
     }
 
-    /* PACK_FLAG_COUNT2 directions */
+    /* Optimized dispatch for PACK_FLAG_COUNT2 formats - grouped by signature */
     sptr = (const unsigned char*)RSTRING_PTR(str) + srcidx;
     switch (dir) {
+    /* String formats with count and flags - (mrb, sptr, len, result, count, flags) */
     case PACK_DIR_HEX:
       srcidx += unpack_hex(mrb, sptr, srclen - srcidx, result, count, flags);
       if (single) goto single_return;
@@ -1719,6 +1731,8 @@ pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
       srcidx += unpack_str(mrb, sptr, srclen - srcidx, result, count, flags);
       if (single) goto single_return;
       continue;
+
+    /* String formats without flags - (mrb, sptr, len, result) */
     case PACK_DIR_BASE64:
       srcidx += unpack_base64(mrb, sptr, srclen - srcidx, result);
       if (single) goto single_return;
@@ -1727,6 +1741,7 @@ pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
       srcidx += unpack_qenc(mrb, sptr, srclen - srcidx, result);
       if (single) goto single_return;
       continue;
+
     default:
       break;
     }
@@ -1740,7 +1755,9 @@ pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
       }
 
       sptr = (const unsigned char*)RSTRING_PTR(str) + srcidx;
+      /* Optimized dispatch for element-by-element formats - grouped by signature */
       switch (dir) {
+      /* Integer formats - all use (mrb, sptr, len, result, flags) signature */
       case PACK_DIR_CHAR:
         srcidx += unpack_char(mrb, sptr, srclen - srcidx, result, flags);
         break;
@@ -1756,7 +1773,9 @@ pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
       case PACK_DIR_BER:
         srcidx += unpack_BER(mrb, sptr, srclen - srcidx, result, flags);
         break;
+
 #ifndef MRB_NO_FLOAT
+      /* Float formats - all use (mrb, sptr, len, result, flags) signature */
       case PACK_DIR_FLOAT:
         srcidx += unpack_float(mrb, sptr, srclen - srcidx, result, flags);
         break;
@@ -1764,9 +1783,12 @@ pack_unpack(mrb_state *mrb, mrb_value str, mrb_bool single)
         srcidx += unpack_double(mrb, sptr, srclen - srcidx, result, flags);
         break;
 #endif
+
+      /* UTF8 format - uses (mrb, sptr, len, result, flags) signature */
       case PACK_DIR_UTF8:
         srcidx += unpack_utf8(mrb, sptr, srclen - srcidx, result, flags);
         break;
+
       default:
         mrb_raise(mrb, E_RUNTIME_ERROR, "mruby-pack's bug");
       }
