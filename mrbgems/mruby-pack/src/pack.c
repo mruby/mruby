@@ -229,6 +229,32 @@ static const uint8_t utf8_is_continuation[128] = {
 /* Helper macro for continuation byte validation */
 #define IS_UTF8_CONTINUATION(byte) \
   ((byte) >= 0x80 && utf8_is_continuation[(byte) - 0x80])
+
+/* Quoted-printable optimization lookup table */
+/* 0=literal, 1=encode, 2=special (newline) */
+static const uint8_t qprint_encode_type[256] = {
+  /* 0x00-0x1F: Control characters - encode */
+  1,1,1,1,1,1,1,1, 1,0,2,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
+  /*     \t \n                      */
+
+  /* 0x20-0x3F: Printable ASCII */
+  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,1,0,0,
+  /*                                                                 =   */
+
+  /* 0x40-0x5F: Printable ASCII */
+  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
+
+  /* 0x60-0x7F: Printable ASCII */
+  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,1,
+  /*                                                                    DEL*/
+
+  /* 0x80-0xFF: High-bit characters - encode */
+  1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1
+};
+
 /* template parsing optimization structures */
 typedef struct {
   enum pack_dir dir;
@@ -1286,36 +1312,57 @@ pack_qenc(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count)
   int dlen = 0;
 
   if (count <= 1) count = 72;
+
   while (s < send) {
-    if ((*s > 126) ||
-        (*s < 32 && *s != '\n' && *s != '\t') ||
-        (*s == '=')) {
+    unsigned char byte = (unsigned char)*s;
+    uint8_t encode_type = qprint_encode_type[byte];
+
+    /* ASCII printable fast path - most common case */
+    if (encode_type == 0) {
+      /* Handle space/tab at line end special case */
+      if ((byte == ' ' || byte == '\t') && s + 1 < send && *(s + 1) == '\n') {
+        /* Space/tab before newline needs encoding */
+        buff[i++] = '=';
+        buff[i++] = hex_table[(byte & 0xf0) >> 4];
+        buff[i++] = hex_table[byte & 0x0f];
+        n += 3;
+        prev = EOF;
+      }
+      else {
+        /* Regular printable character - direct copy */
+        buff[i++] = byte;
+        n++;
+        prev = byte;
+      }
+    }
+    /* Newline special handling */
+    else if (encode_type == 2) {
+      if (prev == ' ' || prev == '\t') {
+        buff[i++] = '=';
+        buff[i++] = byte;
+      }
+      buff[i++] = byte;
+      n = 0;
+      prev = byte;
+    }
+    /* Character needs encoding */
+    else {
       buff[i++] = '=';
-      buff[i++] = hex_table[(*s & 0xf0) >> 4];
-      buff[i++] = hex_table[*s & 0x0f];
+      buff[i++] = hex_table[(byte & 0xf0) >> 4];
+      buff[i++] = hex_table[byte & 0x0f];
       n += 3;
       prev = EOF;
     }
-    else if (*s == '\n') {
-      if (prev == ' ' || prev == '\t') {
-        buff[i++] = '=';
-        buff[i++] = *s;
-      }
-      buff[i++] = *s;
-      n = 0;
-      prev = *s;
-    }
-    else {
-      buff[i++] = *s;
-      n++;
-      prev = *s;
-    }
+
+    /* Check line length limit */
     if (n > count) {
       buff[i++] = '=';
       buff[i++] = '\n';
       n = 0;
       prev = '\n';
     }
+
+    /* Flush buffer if getting full */
     if (i > 1024 - 5) {
       str_len_ensure(mrb, dst, didx+dlen+i);
       memcpy(RSTRING_PTR(dst)+didx+dlen, buff, i);
@@ -1324,15 +1371,20 @@ pack_qenc(mrb_state *mrb, mrb_value src, mrb_value dst, mrb_int didx, int count)
     }
     s++;
   }
+
+  /* Add final soft line break if needed */
   if (n > 0) {
     buff[i++] = '=';
     buff[i++] = '\n';
   }
+
+  /* Flush remaining buffer */
   if (i > 0) {
     str_len_ensure(mrb, dst, didx+dlen+i);
     memcpy(RSTRING_PTR(dst)+didx+dlen, buff, i);
     dlen += i;
   }
+
   return dlen;
 }
 
@@ -1342,31 +1394,41 @@ unpack_qenc(mrb_state *mrb, const void *src, int slen, mrb_value ary)
   CHECK_UNPACK_LEN(mrb, slen, ary);
 
   mrb_value buf = mrb_str_new(mrb, 0, slen);
-  const char *s = (const char*)src, *ss = s;
+  const char *s = (const char*)src;
   const char *send = s + slen;
   char *ptr = RSTRING_PTR(buf);
   int c1, c2;
 
   while (s < send) {
-    if (*s == '=') {
-      if (++s == send) break;
-      if (s+1 < send && *s == '\r' && *(s+1) == '\n')
-        s++;
-      if (*s != '\n') {
-        if ((c1 = hex2int(*s)) == -1) break;
-        if (++s == send) break;
-        if ((c2 = hex2int(*s)) == -1) break;
-        *ptr++ = (char)(c1 << 4 | c2);
-      }
-    }
-    else {
+    /* Fast path for non-encoded characters - most common case */
+    if (*s != '=') {
       *ptr++ = *s;
+      s++;
+      continue;
     }
+
+    /* Handle =XX encoded sequences */
+    if (++s == send) break;
+
+    /* Handle soft line breaks: =\r\n or =\n */
+    if (s + 1 < send && *s == '\r' && *(s + 1) == '\n') {
+      s += 2;  /* Skip \r\n */
+      continue;
+    }
+    if (*s == '\n') {
+      s++;     /* Skip \n */
+      continue;
+    }
+
+    /* Decode =XX hex sequence */
+    if ((c1 = hex2int(*s)) == -1) break;
+    if (++s == send) break;
+    if ((c2 = hex2int(*s)) == -1) break;
+    *ptr++ = (char)(c1 << 4 | c2);
     s++;
-    ss = s;
   }
+
   buf = mrb_str_resize(mrb, buf, (mrb_int)(ptr - RSTRING_PTR(buf)));
-  mrb_str_cat(mrb, buf, ss, send-ss);
   mrb_ary_push(mrb, ary, buf);
   return slen;
 }
