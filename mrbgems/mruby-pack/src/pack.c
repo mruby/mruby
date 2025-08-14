@@ -193,6 +193,42 @@ static const uint8_t char_class[256] = {
   ['\f'] = CHAR_SPACE,
   ['\r'] = CHAR_SPACE
 };
+/* UTF-8 optimization lookup tables */
+/* UTF-8 sequence length lookup table for non-ASCII bytes (0x80-0xFF) */
+/* Index = byte_value - 0x80, so table[0] = info for byte 0x80 */
+static const uint8_t utf8_seq_len_high[128] = {
+  /* 0x80-0xBF: Invalid start bytes (continuation bytes) - return 0 for error */
+  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
+
+  /* 0xC0-0xDF: 2-byte sequences */
+  2,2,2,2,2,2,2,2, 2,2,2,2,2,2,2,2, 2,2,2,2,2,2,2,2, 2,2,2,2,2,2,2,2,
+
+  /* 0xE0-0xEF: 3-byte sequences */
+  3,3,3,3,3,3,3,3, 3,3,3,3,3,3,3,3,
+
+  /* 0xF0-0xF7: 4-byte sequences */
+  4,4,4,4,4,4,4,4,
+
+  /* 0xF8-0xFF: Invalid start bytes - return 0 for error */
+  0,0,0,0,0,0,0,0
+};
+
+/* Fast validation for UTF-8 continuation bytes (0x80-0xBF) */
+/* Index = byte_value - 0x80 */
+static const uint8_t utf8_is_continuation[128] = {
+  /* 0x80-0xBF: Valid continuation bytes */
+  1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
+  1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1, 1,1,1,1,1,1,1,1,
+
+  /* 0xC0-0xFF: Invalid continuation bytes */
+  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0,
+  0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0
+};
+
+/* Helper macro for continuation byte validation */
+#define IS_UTF8_CONTINUATION(byte) \
+  ((byte) >= 0x80 && utf8_is_continuation[(byte) - 0x80])
 /* template parsing optimization structures */
 typedef struct {
   enum pack_dir dir;
@@ -714,79 +750,83 @@ pack_utf8(mrb_state *mrb, mrb_value o, mrb_value str, mrb_int sidx, int count, u
   return len;
 }
 
-static const unsigned long utf8_limits[] = {
-  0x0,        /* 1 */
-  0x80,       /* 2 */
-  0x800,      /* 3 */
-  0x10000,    /* 4 */
-  0x200000,   /* 5 */
-  0x4000000,  /* 6 */
-  0x80000000, /* 7 */
-};
 
-static unsigned long
-utf8_to_uv(mrb_state *mrb, const char *p, long *lenp)
-{
-  int c = *p++ & 0xff;
-  unsigned long uv = c;
-  long n = 1;
-
-  if (!(uv & 0x80)) {
-    *lenp = 1;
-    return uv;
-  }
-  if (!(uv & 0x40)) {
-    *lenp = 1;
-  malformed:
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "malformed UTF-8 character");
-  }
-
-  if      (!(uv & 0x20)) { n = 2; uv &= 0x1f; }
-  else if (!(uv & 0x10)) { n = 3; uv &= 0x0f; }
-  else if (!(uv & 0x08)) { n = 4; uv &= 0x07; }
-  else if (!(uv & 0x04)) { n = 5; uv &= 0x03; }
-  else if (!(uv & 0x02)) { n = 6; uv &= 0x01; }
-  else {
-    *lenp = 1;
-    goto malformed;
-  }
-  if (n > *lenp) {
-    mrb_raisef(mrb, E_ARGUMENT_ERROR, "malformed UTF-8 character (expected %d bytes, given %d bytes)",
-               n, *lenp);
-  }
-  *lenp = n--;
-  if (n != 0) {
-    while (n--) {
-      c = *p++ & 0xff;
-      if ((c & 0xc0) != 0x80) {
-        *lenp -= n + 1;
-        goto malformed;
-      }
-      else {
-        c &= 0x3f;
-        uv = uv << 6 | c;
-      }
-    }
-  }
-  n = *lenp - 1;
-  if (uv < utf8_limits[n]) {
-    mrb_raise(mrb, E_ARGUMENT_ERROR, "redundant UTF-8 sequence");
-  }
-  return uv;
-}
 
 static int
 unpack_utf8(mrb_state *mrb, const unsigned char * src, int srclen, mrb_value ary, unsigned int flags)
 {
-  unsigned long uv;
-  long lenp = srclen;
-
   if (srclen == 0) {
     return 1;
   }
-  uv = utf8_to_uv(mrb, (const char*)src, &lenp);
-  mrb_ary_push(mrb, ary, mrb_fixnum_value((mrb_int)uv));
-  return (int)lenp;
+
+  const unsigned char *p = src;
+  uint8_t first_byte = *p;
+
+  /* ASCII fast path - most common case */
+  if (first_byte < 0x80) {
+    mrb_ary_push(mrb, ary, mrb_fixnum_value(first_byte));
+    return 1;
+  }
+
+  /* Multi-byte UTF-8 with optimized lookup table */
+  uint8_t seq_len = utf8_seq_len_high[first_byte - 0x80];
+  if (seq_len == 0 || seq_len > srclen) {
+    goto malformed;
+  }
+
+  /* Inline 2-byte sequence optimization - common case */
+  if (seq_len == 2) {
+    if (!IS_UTF8_CONTINUATION(p[1])) {
+      goto malformed;
+    }
+    uint32_t uv = ((first_byte & 0x1F) << 6) | (p[1] & 0x3F);
+    /* validate minimum value for 2-byte sequence */
+    if (uv >= 0x80) {
+      mrb_ary_push(mrb, ary, mrb_fixnum_value((mrb_int)uv));
+      return 2;
+    }
+    goto redundant;
+  }
+
+  /* Inline 3-byte sequence optimization */
+  if (seq_len == 3) {
+    if (!IS_UTF8_CONTINUATION(p[1]) || !IS_UTF8_CONTINUATION(p[2])) {
+      goto malformed;
+    }
+    uint32_t uv = ((first_byte & 0x0F) << 12) |
+                  ((p[1] & 0x3F) << 6) |
+                  (p[2] & 0x3F);
+    /* validate minimum value for 3-byte sequence */
+    if (uv >= 0x800) {
+      mrb_ary_push(mrb, ary, mrb_fixnum_value((mrb_int)uv));
+      return 3;
+    }
+    goto redundant;
+  }
+
+  /* 4-byte sequence - less common, use original implementation */
+  if (seq_len == 4) {
+    if (!IS_UTF8_CONTINUATION(p[1]) || !IS_UTF8_CONTINUATION(p[2]) || !IS_UTF8_CONTINUATION(p[3])) {
+      goto malformed;
+    }
+    uint32_t uv = ((first_byte & 0x07) << 18) |
+                  ((p[1] & 0x3F) << 12) |
+                  ((p[2] & 0x3F) << 6) |
+                  (p[3] & 0x3F);
+    /* validate minimum value and maximum valid Unicode */
+    if (uv >= 0x10000 && uv <= 0x10FFFF) {
+      mrb_ary_push(mrb, ary, mrb_fixnum_value((mrb_int)uv));
+      return 4;
+    }
+    if (uv < 0x10000) goto redundant;
+    goto malformed;
+  }
+
+malformed:
+  mrb_raise(mrb, E_ARGUMENT_ERROR, "malformed UTF-8 character");
+
+redundant:
+  mrb_raise(mrb, E_ARGUMENT_ERROR, "redundant UTF-8 sequence");
 }
 
 static int
