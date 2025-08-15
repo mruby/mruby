@@ -646,10 +646,23 @@ class Array
 
   ##
   # call-seq:
-  #   ary.repeated_combination(n) { |combination| ... }   ->   self
-  #   ary.repeated_combination(n)                         ->   enumerator
+  #   ary.repeated_combination(n) { |combination| ... } -> ary
+  #   ary.repeated_combination(n)                         -> Enumerator
   #
-  # A `combination` method that contains the same elements.
+  # When invoked with a block, yields all length `n` combinations of elements
+  # from the array, with replacement, and then returns the array itself.
+  #
+  # This means that, unlike `combination`, elements can be chosen more than once.
+  #
+  # The implementation makes no guarantees about the order in which the
+  # combinations are yielded.
+  #
+  # If no block is given, an Enumerator is returned instead.
+  #
+  # Examples:
+  #
+  #   a = [1, 2, 3]
+  #   a.repeated_combination(2).to_a #=> [[1,1],[1,2],[1,3],[2,2],[2,3],[3,3]]
   def repeated_combination(n, &block)
     raise TypeError, "no implicit conversion into Integer" unless 0 <=> n
     return to_enum(:repeated_combination, n) unless block
@@ -658,10 +671,23 @@ class Array
 
   ##
   # call-seq:
-  #   ary.repeated_permutation(n) { |permutation| ... }   ->   self
-  #   ary.repeated_permutation(n)                         ->   enumerator
+  #   ary.repeated_permutation(n) { |permutation| ... } -> ary
+  #   ary.repeated_permutation(n)                         -> Enumerator
   #
-  # A `permutation` method that contains the same elements.
+  # When invoked with a block, yields all length `n` permutations of elements
+  # from the array, with replacement, and then returns the array itself.
+  #
+  # This means that, unlike `permutation`, elements can be chosen more than once.
+  #
+  # The implementation makes no guarantees about the order in which the
+  # permutations are yielded.
+  #
+  # If no block is given, an Enumerator is returned instead.
+  #
+  # Examples:
+  #
+  #   a = [1, 2]
+  #   a.repeated_permutation(2).to_a #=> [[1,1],[1,2],[2,1],[2,2]]
   def repeated_permutation(n, &block)
     n = n.__to_int
     raise TypeError, "no implicit conversion into Integer" unless 0 <=> n
