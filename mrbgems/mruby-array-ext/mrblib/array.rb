@@ -625,22 +625,23 @@ class Array
     total *= arys[i -= 1].size while i > 0
 
     if block
-      result = self
-      list = ->(*, e) { block.call e }
-      class << list; alias []= call; end
+      i = 0
+      while i < total
+        group = self.__product_group(arys, i, size + 1)
+        block.call(group)
+        i += 1
+      end
+      return self
     else
       result = [nil] * total
-      list = result
+      i = 0
+      while i < total
+        group = self.__product_group(arys, i, size + 1)
+        result[i] = group
+        i += 1
+      end
+      return result
     end
-
-    i = 0
-    while i < total
-      group = self.__product_group(arys, i, size + 1)
-      list[i] = group
-      i += 1
-    end
-
-    result
   end
 
   ##
