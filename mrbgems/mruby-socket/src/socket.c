@@ -51,6 +51,12 @@ typedef struct {
   mrb_bool has_port;          /* TRUE if this family has a port field */
 } af_info_t;
 
+/* Protocol family lookup table for socket option inspection */
+typedef struct {
+  int family;                 /* PF_INET, PF_INET6, etc. */
+  const char *name;           /* "INET", "INET6", etc. */
+} pf_info_t;
+
 /* Compact address family lookup table (memory-efficient) */
 static const af_info_t af_table[] = {
   /* Internet Protocol families with port numbers */
@@ -84,6 +90,38 @@ static inline const af_info_t *get_af_info(int family) {
   for (size_t i = 0; i < AF_TABLE_SIZE; i++) {
     if (af_table[i].family == family) {
       return &af_table[i];
+    }
+  }
+  return NULL;
+}
+
+/* Compact protocol family lookup table (memory-efficient) */
+static const pf_info_t pf_table[] = {
+  {PF_INET,  "INET"},
+#ifdef PF_INET6
+  {PF_INET6, "INET6"},
+#endif
+#ifdef PF_IPX
+  {PF_IPX,   "IPX"},
+#endif
+#ifdef PF_AX25
+  {PF_AX25,  "AX25"},
+#endif
+#ifdef PF_APPLETALK
+  {PF_APPLETALK, "APPLETALK"},
+#endif
+#ifdef PF_UNIX
+  {PF_UNIX,  "UNIX"},
+#endif
+};
+
+#define PF_TABLE_SIZE (sizeof(pf_table) / sizeof(pf_table[0]))
+
+/* Get protocol family name for given family constant (compact linear search) */
+static inline const char *get_pf_name(int family) {
+  for (size_t i = 0; i < PF_TABLE_SIZE; i++) {
+    if (pf_table[i].family == family) {
+      return pf_table[i].name;
     }
   }
   return NULL;
@@ -612,32 +650,7 @@ socket_option_inspect(mrb_state *mrb, mrb_value self)
 
   if (mrb_integer_p(family)) {
     mrb_int fm = mrb_integer(family);
-    switch (fm) {
-    case PF_INET:
-      pf = "INET"; break;
-#ifdef PF_INET6
-    case PF_INET6:
-      pf = "INET6"; break;
-#endif
-#ifdef PF_IPX
-    case PF_IPX:
-      pf = "IPX"; break;
-#endif
-#ifdef PF_AX25
-    case PF_AX25:
-      pf = "AX25"; break;
-#endif
-#ifdef PF_APPLETALK
-    case PF_APPLETALK:
-      pf = "APPLETALK"; break;
-#endif
-#ifdef PF_UNIX
-    case PF_UNIX:
-      pf = "UNIX"; break;
-#endif
-    default:
-      break;
-    }
+    pf = get_pf_name((int)fm);
   }
 
   if (pf) {
