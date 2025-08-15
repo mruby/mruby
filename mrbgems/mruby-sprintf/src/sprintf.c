@@ -510,52 +510,55 @@ retry:
           break;
 
         case FMT_CHAR: {
-        mrb_value val = GETARG();
-        mrb_value tmp;
-        char *c;
+          /* CHARACTER FORMATTING (%c) */
+          mrb_value val = GETARG();
+          mrb_value tmp;
+          char *c;
 
-        tmp = mrb_check_string_type(mrb, val);
-        if (!mrb_nil_p(tmp)) {
-          if (RSTRING_LEN(tmp) != 1) {
-            mrb_raise(mrb, E_ARGUMENT_ERROR, "%c requires a character");
+          /* Convert argument to character string */
+          tmp = mrb_check_string_type(mrb, val);
+          if (!mrb_nil_p(tmp)) {
+            if (RSTRING_LEN(tmp) != 1) {
+              mrb_raise(mrb, E_ARGUMENT_ERROR, "%c requires a character");
+            }
           }
-        }
-        else if (mrb_integer_p(val)) {
-          mrb_int n = mrb_integer(val);
+          else if (mrb_integer_p(val)) {
+            mrb_int n = mrb_integer(val);
 #ifndef MRB_UTF8_STRING
-          char buf[1];
-
-          buf[0] = (char)n&0xff;
-          tmp = mrb_str_new(mrb, buf, 1);
-#else
-          if (n < 0x80) {
             char buf[1];
 
-            buf[0] = (char)n;
+            buf[0] = (char)n&0xff;
             tmp = mrb_str_new(mrb, buf, 1);
+#else
+            if (n < 0x80) {
+              char buf[1];
+
+              buf[0] = (char)n;
+              tmp = mrb_str_new(mrb, buf, 1);
+            }
+            else {
+              tmp = mrb_funcall_argv(mrb, val, MRB_SYM(chr), 0, NULL);
+              mrb_check_type(mrb, tmp, MRB_TT_STRING);
+            }
+#endif
           }
           else {
-            tmp = mrb_funcall_argv(mrb, val, MRB_SYM(chr), 0, NULL);
-            mrb_check_type(mrb, tmp, MRB_TT_STRING);
+            mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid character");
           }
-#endif
-        }
-        else {
-          mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid character");
-        }
-        c = RSTRING_PTR(tmp);
-        n = (int)RSTRING_LEN(tmp);
-        if (!(flags & FWIDTH)) {
-          PUSH(c, n);
-        }
-        else if ((flags & FMINUS)) {
-          PUSH(c, n);
-          if (width>0) FILL(' ', width-1);
-        }
-        else {
-          if (width>0) FILL(' ', width-1);
-          PUSH(c, n);
-        }
+          /* Format and output the character with width/alignment */
+          c = RSTRING_PTR(tmp);
+          n = (int)RSTRING_LEN(tmp);
+          if (!(flags & FWIDTH)) {
+            PUSH(c, n);
+          }
+          else if ((flags & FMINUS)) {
+            PUSH(c, n);
+            if (width>0) FILL(' ', width-1);
+          }
+          else {
+            if (width>0) FILL(' ', width-1);
+            PUSH(c, n);
+          }
           mrb_gc_arena_restore(mrb, ai);
         }
         break;
@@ -563,65 +566,74 @@ retry:
         case FMT_STRING:
   format_s:
         {
+          /* STRING FORMATTING (%s, %p) */
           mrb_value arg = GETARG();
-        mrb_int len;
-        mrb_int slen;
+          mrb_int len;
+          mrb_int slen;
 
+          /* Convert to string (with inspect for %p) */
           if (spec.subtype == 1) arg = mrb_inspect(mrb, arg); /* 'p' format */
-        str = mrb_obj_as_string(mrb, arg);
-        len = RSTRING_LEN(str);
-        if (RSTRING(result)->flags & MRB_STR_EMBED) {
-          mrb_int tmp_n = len;
-          RSTRING(result)->flags &= ~MRB_STR_EMBED_LEN_MASK;
-          RSTRING(result)->flags |= tmp_n << MRB_STR_EMBED_LEN_SHIFT;
-        }
-        else {
-          RSTRING(result)->as.heap.len = blen;
-        }
-        if (flags&(FPREC|FWIDTH)) {
-          slen = RSTRING_LEN(str);
-          if (slen < 0) {
-            mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid mbstring sequence");
+          str = mrb_obj_as_string(mrb, arg);
+          len = RSTRING_LEN(str);
+
+          /* Update result string length for embedded strings */
+          if (RSTRING(result)->flags & MRB_STR_EMBED) {
+            mrb_int tmp_n = len;
+            RSTRING(result)->flags &= ~MRB_STR_EMBED_LEN_MASK;
+            RSTRING(result)->flags |= tmp_n << MRB_STR_EMBED_LEN_SHIFT;
           }
-          if ((flags&FPREC) && (prec < slen)) {
-            char *p = RSTRING_PTR(str) + prec;
-            slen = prec;
-            len = (mrb_int)(p - RSTRING_PTR(str));
+          else {
+            RSTRING(result)->as.heap.len = blen;
           }
-          /* need to adjust multi-byte string pos */
-          if ((flags&FWIDTH) && (width > slen)) {
-            width -= (int)slen;
-            if (!(flags&FMINUS)) {
-              FILL(' ', width);
+
+          /* Handle precision and width formatting */
+          if (flags&(FPREC|FWIDTH)) {
+            slen = RSTRING_LEN(str);
+            if (slen < 0) {
+              mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid mbstring sequence");
             }
-            PUSH(RSTRING_PTR(str), len);
-            if (flags&FMINUS) {
-              FILL(' ', width);
+            if ((flags&FPREC) && (prec < slen)) {
+              char *p = RSTRING_PTR(str) + prec;
+              slen = prec;
+              len = (mrb_int)(p - RSTRING_PTR(str));
             }
-            break;
+            /* Apply width formatting with padding */
+            if ((flags&FWIDTH) && (width > slen)) {
+              width -= (int)slen;
+              if (!(flags&FMINUS)) {
+                FILL(' ', width);
+              }
+              PUSH(RSTRING_PTR(str), len);
+              if (flags&FMINUS) {
+                FILL(' ', width);
+              }
+              break;
+            }
           }
-        }
           PUSH(RSTRING_PTR(str), len);
           mrb_gc_arena_restore(mrb, ai);
         }
         break;
 
         case FMT_INTEGER: {
-        mrb_value val = GETARG();
-        char nbuf[69], *s;
-        const char *prefix = NULL;
-        int sign = 0, dots = 0;
-        char sc = 0;
-        char fc = 0;
-        mrb_int v = 0;
-        int base;
-        int len;
+          /* INTEGER FORMATTING (%d, %i, %o, %x, %X, %b, %B, %u) */
+          mrb_value val = GETARG();
+          char nbuf[69], *s;
+          const char *prefix = NULL;
+          int sign = 0, dots = 0;
+          char sc = 0;
+          char fc = 0;
+          mrb_int v = 0;
+          int base;
+          int len;
 
+          /* Determine base and signedness from lookup table */
           base = spec.base;
           if (spec.subtype == 1) { /* signed formats: d, i, u */
             sign = 1;
           }
 
+          /* Set prefix for alternative format (#) */
           if (flags & FSHARP) {
             switch (base) {
               case 8:  prefix = "0"; break;
@@ -631,8 +643,9 @@ retry:
             }
           }
 
+          /* Convert value to integer and format as string */
   bin_retry:
-        switch (mrb_type(val)) {
+          switch (mrb_type(val)) {
 #ifndef MRB_NO_FLOAT
           case MRB_TT_FLOAT:
             val = mrb_float_to_integer(mrb, val);
@@ -718,6 +731,7 @@ retry:
             s++; len--;
           }
         }
+          /* Convert to uppercase for X, B formats */
           if (spec.subtype == 1) { /* uppercase formats: X, B */
             char *pp = s;
             int c;
@@ -805,10 +819,11 @@ retry:
         break;
 
         case FMT_FLOAT: {
+          /* FLOAT FORMATTING (%f, %g, %G, %e, %E) */
 #ifdef MRB_NO_FLOAT
           mrb_raisef(mrb, E_ARGUMENT_ERROR, "%%%c not supported with MRB_NO_FLOAT defined", spec.subtype);
 #else
-        mrb_value val = GETARG();
+          mrb_value val = GETARG();
         double fval;
         mrb_int need = 6;
 
