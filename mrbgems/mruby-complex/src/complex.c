@@ -414,7 +414,15 @@ mrb_complex_div(mrb_state *mrb, mrb_value self, mrb_value rhs)
       mrb_int_zerodiv(mrb);
     }
     mrb_float f = mrb_as_float(mrb, rhs);
+    if (f == 0.0) {
+      mrb_int_zerodiv(mrb);
+    }
     return complex_new(mrb, mrb_div_float(a->real, f), mrb_div_float(a->imaginary, f));
+  }
+
+  b = complex_ptr(mrb, rhs);
+  if (b->real == 0 && b->imaginary == 0) {
+    mrb_int_zerodiv(mrb);
   }
 
   struct float_pair ar, ai, br, bi;
@@ -423,8 +431,6 @@ mrb_complex_div(mrb_state *mrb, mrb_value self, mrb_value rhs)
   struct float_pair ar_br, ai_bi;
   struct float_pair ai_br, ar_bi;
   struct float_pair zr, zi;
-
-  b = complex_ptr(mrb, rhs);
 
   /* Split floating-point components into significand and exponent */
   ar.s = F(frexp)(a->real, &ar.x);
