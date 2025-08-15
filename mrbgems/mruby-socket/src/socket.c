@@ -43,6 +43,52 @@
 
 #include <mruby/ext/io.h>
 
+/* Address family information for compact lookup table */
+typedef struct {
+  int family;                 /* AF_INET, AF_INET6, etc. */
+  const char *name;           /* "AF_INET", "AF_INET6", etc. */
+  int port_offset;            /* Offset to port field in sockaddr structure */
+  mrb_bool has_port;          /* TRUE if this family has a port field */
+} af_info_t;
+
+/* Compact address family lookup table (memory-efficient) */
+static const af_info_t af_table[] = {
+  /* Internet Protocol families with port numbers */
+  {AF_INET,  "AF_INET",  offsetof(struct sockaddr_in, sin_port),   TRUE},
+  {AF_INET6, "AF_INET6", offsetof(struct sockaddr_in6, sin6_port), TRUE},
+
+  /* Local/Unix domain sockets without port numbers */
+#ifdef AF_UNIX
+  {AF_UNIX,  "AF_UNIX",  -1,                                       FALSE},
+#endif
+#ifdef AF_LOCAL
+  {AF_LOCAL, "AF_LOCAL", -1,                                       FALSE},
+#endif
+
+  /* Additional protocol families (platform-dependent) */
+#ifdef AF_LINK
+  {AF_LINK,  "AF_LINK",  -1,                                       FALSE},
+#endif
+#ifdef AF_ROUTE
+  {AF_ROUTE, "AF_ROUTE", -1,                                       FALSE},
+#endif
+#ifdef AF_UNSPEC
+  {AF_UNSPEC, "AF_UNSPEC", -1,                                     FALSE},
+#endif
+};
+
+#define AF_TABLE_SIZE (sizeof(af_table) / sizeof(af_table[0]))
+
+/* Get address family info for given family constant (compact linear search) */
+static inline const af_info_t *get_af_info(int family) {
+  for (size_t i = 0; i < AF_TABLE_SIZE; i++) {
+    if (af_table[i].family == family) {
+      return &af_table[i];
+    }
+  }
+  return NULL;
+}
+
 #if !defined(HAVE_SA_LEN)
 #if (defined(BSD) && (BSD >= 199006))
 #define HAVE_SA_LEN  1
@@ -251,21 +297,17 @@ mrb_addrinfo_unix_path(mrb_state *mrb, mrb_value self)
 static mrb_value
 sa2addrlist(mrb_state *mrb, const struct sockaddr *sa, socklen_t salen)
 {
-  const char *afstr;
-  unsigned short port;
-
-  switch (sa->sa_family) {
-  case AF_INET:
-    afstr = "AF_INET";
-    port = ((struct sockaddr_in*)sa)->sin_port;
-    break;
-  case AF_INET6:
-    afstr = "AF_INET6";
-    port = ((struct sockaddr_in6*)sa)->sin6_port;
-    break;
-  default:
+  /* Use lookup table for O(1) address family dispatch */
+  const af_info_t *af_info = get_af_info(sa->sa_family);
+  if (!af_info) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "bad af");
     return mrb_nil_value();
+  }
+
+  /* Extract port using table-driven offset calculation */
+  unsigned short port = 0;
+  if (af_info->has_port) {
+    port = *(unsigned short*)((char*)sa + af_info->port_offset);
   }
   port = ntohs(port);
   mrb_value host = mrb_str_new_capa(mrb, NI_MAXHOST);
@@ -274,7 +316,7 @@ sa2addrlist(mrb_state *mrb, const struct sockaddr *sa, socklen_t salen)
   mrb_str_resize(mrb, host, strlen(RSTRING_PTR(host)));
 
   mrb_value ary = mrb_ary_new_capa(mrb, 4);
-  mrb_ary_push(mrb, ary, mrb_str_new_cstr(mrb, afstr));
+  mrb_ary_push(mrb, ary, mrb_str_new_cstr(mrb, af_info->name));
   mrb_ary_push(mrb, ary, mrb_fixnum_value(port));
   mrb_ary_push(mrb, ary, host);
   mrb_ary_push(mrb, ary, host);
