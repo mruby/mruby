@@ -85,6 +85,95 @@ mrb_uint_to_cstr(char *buf, size_t len, mrb_int num, int base)
 #define FPREC  64
 #define FPREC0 128
 
+/* Format specifier types for lookup table */
+#define FMT_INVALID   0
+#define FMT_FLAG      1  /* space, #, +, -, 0 */
+#define FMT_DIGIT     2  /* 1-9 for width */
+#define FMT_NAMED     3  /* < { for named args */
+#define FMT_WIDTH     4  /* * for width from arg */
+#define FMT_PREC      5  /* . for precision */
+#define FMT_LITERAL   6  /* % \n \0 */
+#define FMT_CHAR      7  /* c */
+#define FMT_STRING    8  /* s p */
+#define FMT_INTEGER   9  /* d i o x X b B u */
+#define FMT_FLOAT    10  /* f g G e E */
+
+/* Format specifier info structure */
+typedef struct {
+  int type;       /* FMT_* type */
+  int base;       /* number base for integers */
+  int subtype;    /* format-specific subtype */
+} fmt_spec_t;
+
+/* Format specifier lookup table */
+static const fmt_spec_t format_table[128] = {
+  /* Control characters and whitespace */
+  ['\0'] = {FMT_LITERAL, 0, 0},
+  ['\n'] = {FMT_LITERAL, 0, 0},
+
+  /* Flags */
+  [' ']  = {FMT_FLAG, 0, FSPACE},
+  ['#']  = {FMT_FLAG, 0, FSHARP},
+  ['+']  = {FMT_FLAG, 0, FPLUS},
+  ['-']  = {FMT_FLAG, 0, FMINUS},
+  ['0']  = {FMT_FLAG, 0, FZERO},
+
+  /* Width digits */
+  ['1']  = {FMT_DIGIT, 0, 1},
+  ['2']  = {FMT_DIGIT, 0, 2},
+  ['3']  = {FMT_DIGIT, 0, 3},
+  ['4']  = {FMT_DIGIT, 0, 4},
+  ['5']  = {FMT_DIGIT, 0, 5},
+  ['6']  = {FMT_DIGIT, 0, 6},
+  ['7']  = {FMT_DIGIT, 0, 7},
+  ['8']  = {FMT_DIGIT, 0, 8},
+  ['9']  = {FMT_DIGIT, 0, 9},
+
+  /* Width and precision */
+  ['*']  = {FMT_WIDTH, 0, 0},
+  ['.']  = {FMT_PREC, 0, 0},
+
+  /* Named arguments */
+  ['<']  = {FMT_NAMED, 0, '<'},
+  ['{']  = {FMT_NAMED, 0, '{'},
+
+  /* Literal percent */
+  ['%']  = {FMT_LITERAL, 0, '%'},
+
+  /* Character formatting */
+  ['c']  = {FMT_CHAR, 0, 0},
+
+  /* String formatting */
+  ['s']  = {FMT_STRING, 0, 0},
+  ['p']  = {FMT_STRING, 0, 1}, /* inspect format */
+
+  /* Integer formatting */
+  ['d']  = {FMT_INTEGER, 10, 1}, /* signed decimal */
+  ['i']  = {FMT_INTEGER, 10, 1}, /* signed decimal */
+  ['u']  = {FMT_INTEGER, 10, 1}, /* unsigned decimal (same as signed in mruby) */
+  ['o']  = {FMT_INTEGER, 8,  0}, /* octal */
+  ['x']  = {FMT_INTEGER, 16, 0}, /* hex lowercase */
+  ['X']  = {FMT_INTEGER, 16, 1}, /* hex uppercase */
+  ['b']  = {FMT_INTEGER, 2,  0}, /* binary lowercase */
+  ['B']  = {FMT_INTEGER, 2,  1}, /* binary uppercase */
+
+  /* Float formatting */
+  ['f']  = {FMT_FLOAT, 0, 'f'},
+  ['e']  = {FMT_FLOAT, 0, 'e'},
+  ['E']  = {FMT_FLOAT, 0, 'E'},
+  ['g']  = {FMT_FLOAT, 0, 'g'},
+  ['G']  = {FMT_FLOAT, 0, 'G'},
+};
+
+/* Get format specifier info for character c */
+static inline fmt_spec_t get_format_info(unsigned char c) {
+  if (c >= 128) {
+    static const fmt_spec_t invalid = {FMT_INVALID, 0, 0};
+    return invalid;
+  }
+  return format_table[c];
+}
+
 #ifndef MRB_NO_FLOAT
 static int
 fmt_float(char *buf, size_t buf_size, char fmt, int flags, int width, int prec, mrb_float f)
@@ -325,126 +414,102 @@ mrb_str_format(mrb_state *mrb, mrb_int argc, const mrb_value *argv, mrb_value fm
     nextvalue = mrb_undef_value();
 
 retry:
-    switch (*p) {
-      default:
-        mrb_raisef(mrb, E_ARGUMENT_ERROR, "malformed format string - %%%c", *p);
-        break;
+    {
+      fmt_spec_t spec = get_format_info(*p);
 
-      case ' ':
-        CHECK_FOR_FLAGS(flags);
-        flags |= FSPACE;
-        p++;
-        goto retry;
+      switch (spec.type) {
+        case FMT_INVALID:
+          mrb_raisef(mrb, E_ARGUMENT_ERROR, "malformed format string - %%%c", *p);
+          break;
 
-      case '#':
-        CHECK_FOR_FLAGS(flags);
-        flags |= FSHARP;
-        p++;
-        goto retry;
+        case FMT_FLAG:
+          CHECK_FOR_FLAGS(flags);
+          flags |= spec.subtype;
+          p++;
+          goto retry;
 
-      case '+':
-        CHECK_FOR_FLAGS(flags);
-        flags |= FPLUS;
-        p++;
-        goto retry;
-
-      case '-':
-        CHECK_FOR_FLAGS(flags);
-        flags |= FMINUS;
-        p++;
-        goto retry;
-
-      case '0':
-        CHECK_FOR_FLAGS(flags);
-        flags |= FZERO;
-        p++;
-        goto retry;
-
-      case '1': case '2': case '3': case '4':
-      case '5': case '6': case '7': case '8': case '9':
-        GETNUM(n, width);
-        if (*p == '$') {
-          if (!mrb_undef_p(nextvalue)) {
-            mrb_raisef(mrb, E_ARGUMENT_ERROR, "value given twice - %i$", n);
+        case FMT_DIGIT:
+          GETNUM(n, width);
+          if (*p == '$') {
+            if (!mrb_undef_p(nextvalue)) {
+              mrb_raisef(mrb, E_ARGUMENT_ERROR, "value given twice - %i$", n);
+            }
+            nextvalue = GETPOSARG(n);
+            p++;
+            goto retry;
           }
-          nextvalue = GETPOSARG(n);
+          CHECK_FOR_WIDTH(flags);
+          width = n;
+          flags |= FWIDTH;
+          goto retry;
+
+        case FMT_NAMED: {
+          const char *start = p;
+          char term = (spec.subtype == '<') ? '>' : '}';
+
+          for (; p < end && *p != term; )
+            p++;
+          if (id) {
+            mrb_raisef(mrb, E_ARGUMENT_ERROR, "name%l after <%n>",
+                       start, p - start + 1, id);
+          }
+          CHECKNAMEARG(start, p - start + 1);
+          get_hash(mrb, &hash, argc, argv);
+          id = mrb_intern_check(mrb, start + 1, p - start - 1);
+          if (id) {
+            nextvalue = mrb_hash_fetch(mrb, hash, mrb_symbol_value(id), mrb_undef_value());
+          }
+          if (!id || mrb_undef_p(nextvalue)) {
+            mrb_raisef(mrb, E_KEY_ERROR, "key%l not found", start, p - start + 1);
+          }
+          if (term == '}') goto format_s;
           p++;
           goto retry;
         }
-        CHECK_FOR_WIDTH(flags);
-        width = n;
-        flags |= FWIDTH;
-        goto retry;
 
-      case '<':
-      case '{': {
-        const char *start = p;
-        char term = (*p == '<') ? '>' : '}';
-
-        for (; p < end && *p != term; )
-          p++;
-        if (id) {
-          mrb_raisef(mrb, E_ARGUMENT_ERROR, "name%l after <%n>",
-                     start, p - start + 1, id);
-        }
-        CHECKNAMEARG(start, p - start + 1);
-        get_hash(mrb, &hash, argc, argv);
-        id = mrb_intern_check(mrb, start + 1, p - start - 1);
-        if (id) {
-          nextvalue = mrb_hash_fetch(mrb, hash, mrb_symbol_value(id), mrb_undef_value());
-        }
-        if (!id || mrb_undef_p(nextvalue)) {
-          mrb_raisef(mrb, E_KEY_ERROR, "key%l not found", start, p - start + 1);
-        }
-        if (term == '}') goto format_s;
-        p++;
-        goto retry;
-      }
-
-      case '*':
-        CHECK_FOR_WIDTH(flags);
-        flags |= FWIDTH;
-        GETASTER(width);
-        if (width > INT16_MAX || INT16_MIN > width) {
-          mrb_raise(mrb, E_ARGUMENT_ERROR, "width too big");
-        }
-        if (width < 0) {
-          flags |= FMINUS;
-          width = -width;
-        }
-        p++;
-        goto retry;
-
-      case '.':
-        if (flags & FPREC0) {
-          mrb_raise(mrb, E_ARGUMENT_ERROR, "precision given twice");
-        }
-        flags |= FPREC|FPREC0;
-
-        p++;
-        if (*p == '*') {
-          GETASTER(prec);
-          if (prec < 0) {  /* ignore negative precision */
-            flags &= ~FPREC;
+        case FMT_WIDTH:
+          CHECK_FOR_WIDTH(flags);
+          flags |= FWIDTH;
+          GETASTER(width);
+          if (width > INT16_MAX || INT16_MIN > width) {
+            mrb_raise(mrb, E_ARGUMENT_ERROR, "width too big");
+          }
+          if (width < 0) {
+            flags |= FMINUS;
+            width = -width;
           }
           p++;
           goto retry;
-        }
-        GETNUM(prec, precision);
-        goto retry;
 
-      case '\n':
-      case '\0':
-        p--;
-        /* fallthrough */
-      case '%':
-        if (flags != FNONE) {
-          mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid format character - %");
-        }
-        PUSH("%", 1);
-        break;
+        case FMT_PREC:
+          if (flags & FPREC0) {
+            mrb_raise(mrb, E_ARGUMENT_ERROR, "precision given twice");
+          }
+          flags |= FPREC|FPREC0;
 
-      case 'c': {
+          p++;
+          if (*p == '*') {
+            GETASTER(prec);
+            if (prec < 0) {  /* ignore negative precision */
+              flags &= ~FPREC;
+            }
+            p++;
+            goto retry;
+          }
+          GETNUM(prec, precision);
+          goto retry;
+
+        case FMT_LITERAL:
+          if (spec.subtype == 0) { /* \n or \0 */
+            p--;
+          }
+          if (flags != FNONE) {
+            mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid format character - %");
+          }
+          PUSH("%", 1);
+          break;
+
+        case FMT_CHAR: {
         mrb_value val = GETARG();
         mrb_value tmp;
         char *c;
@@ -491,19 +556,18 @@ retry:
           if (width>0) FILL(' ', width-1);
           PUSH(c, n);
         }
-        mrb_gc_arena_restore(mrb, ai);
-      }
-      break;
+          mrb_gc_arena_restore(mrb, ai);
+        }
+        break;
 
-      case 's':
-      case 'p':
+        case FMT_STRING:
   format_s:
-      {
-        mrb_value arg = GETARG();
+        {
+          mrb_value arg = GETARG();
         mrb_int len;
         mrb_int slen;
 
-        if (*p == 'p') arg = mrb_inspect(mrb, arg);
+          if (spec.subtype == 1) arg = mrb_inspect(mrb, arg); /* 'p' format */
         str = mrb_obj_as_string(mrb, arg);
         len = RSTRING_LEN(str);
         if (RSTRING(result)->flags & MRB_STR_EMBED) {
@@ -537,19 +601,12 @@ retry:
             break;
           }
         }
-        PUSH(RSTRING_PTR(str), len);
-        mrb_gc_arena_restore(mrb, ai);
-      }
-      break;
+          PUSH(RSTRING_PTR(str), len);
+          mrb_gc_arena_restore(mrb, ai);
+        }
+        break;
 
-      case 'd':
-      case 'i':
-      case 'o':
-      case 'x':
-      case 'X':
-      case 'b':
-      case 'B':
-      case 'u': {
+        case FMT_INTEGER: {
         mrb_value val = GETARG();
         char nbuf[69], *s;
         const char *prefix = NULL;
@@ -560,34 +617,19 @@ retry:
         int base;
         int len;
 
-        if (flags & FSHARP) {
-          switch (*p) {
-            case 'o': prefix = "0"; break;
-            case 'x': prefix = "0x"; break;
-            case 'X': prefix = "0X"; break;
-            case 'b': prefix = "0b"; break;
-            case 'B': prefix = "0B"; break;
-            default: break;
-          }
-        }
-
-        switch (*p) {
-          case 'o':
-            base = 8; break;
-          case 'x':
-          case 'X':
-            base = 16; break;
-          case 'b':
-          case 'B':
-            base = 2; break;
-          case 'u':
-          case 'd':
-          case 'i':
+          base = spec.base;
+          if (spec.subtype == 1) { /* signed formats: d, i, u */
             sign = 1;
-            /* fall through */
-          default:
-            base = 10; break;
-        }
+          }
+
+          if (flags & FSHARP) {
+            switch (base) {
+              case 8:  prefix = "0"; break;
+              case 16: prefix = (spec.subtype == 1) ? "0X" : "0x"; break;
+              case 2:  prefix = (spec.subtype == 1) ? "0B" : "0b"; break;
+              default: break;
+            }
+          }
 
   bin_retry:
         switch (mrb_type(val)) {
@@ -676,17 +718,17 @@ retry:
             s++; len--;
           }
         }
-        if (*p == 'X') {
-          char *pp = s;
-          int c;
-          while ((c = (int)(unsigned char)*pp) != 0) {
-            *pp = toupper(c);
-            pp++;
+          if (spec.subtype == 1) { /* uppercase formats: X, B */
+            char *pp = s;
+            int c;
+            while ((c = (int)(unsigned char)*pp) != 0) {
+              *pp = toupper(c);
+              pp++;
+            }
+            if (base == 16) {
+              fc = 'F';
+            }
           }
-          if (base == 16) {
-            fc = 'F';
-          }
-        }
 
         if (prefix && !prefix[1]) { /* octal */
           if (dots) {
@@ -755,20 +797,16 @@ retry:
             FILL(fc, prec - len);
           }
         }
-        PUSH(s, len);
-        if (width > 0) {
-          FILL(' ', width);
+          PUSH(s, len);
+          if (width > 0) {
+            FILL(' ', width);
+          }
         }
-      }
-      break;
+        break;
 
-      case 'f':
-      case 'g':
-      case 'G':
-      case 'e':
-      case 'E': {
+        case FMT_FLOAT: {
 #ifdef MRB_NO_FLOAT
-        mrb_raisef(mrb, E_ARGUMENT_ERROR, "%%%c not supported with MRB_NO_FLOAT defined", *p);
+          mrb_raisef(mrb, E_ARGUMENT_ERROR, "%%%c not supported with MRB_NO_FLOAT defined", spec.subtype);
 #else
         mrb_value val = GETARG();
         double fval;
@@ -834,14 +872,15 @@ retry:
         need += 20;
 
         CHECK(need);
-        n = fmt_float(&buf[blen], need, *p, flags, width, prec, fval);
+          n = fmt_float(&buf[blen], need, spec.subtype, flags, width, prec, fval);
         if (n < 0 || n >= need) {
           mrb_raise(mrb, E_RUNTIME_ERROR, "formatting error");
         }
-        blen += n;
+          blen += n;
 #endif
+        }
+        break;
       }
-      break;
     }
   }
 
