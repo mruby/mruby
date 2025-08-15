@@ -76,6 +76,8 @@ assert 'Complex#/' do
     one = 1e200
   end
   assert_complex Complex(ten, ten) / Complex(one, one), Complex(10.0, 0.0)
+  assert_raise(ZeroDivisionError) { Complex(1,1) / 0 }
+  assert_raise(ZeroDivisionError) { Complex(1,1) / Complex(0,0) }
 end
 
 assert 'Complex#==' do
