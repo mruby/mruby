@@ -1222,6 +1222,35 @@ ary_insert(mrb_state *mrb, mrb_value self)
 }
 
 /*
+ *  Internal helper for Array#product to construct a group array.
+ *  Takes the base array (self), the array of other arrays (arys),
+ *  the current iteration index (current_i), and the desired length
+ *  of the group array (group_len).
+ */
+static mrb_value
+ary_product_group(mrb_state *mrb, mrb_value self_ary)
+{
+  mrb_value arys_ary;
+  mrb_int current_i, group_len;
+  mrb_get_args(mrb, "Aii", &arys_ary, &current_i, &group_len);
+
+  mrb_value group = mrb_ary_new_capa(mrb, group_len);
+  mrb_int j = RARRAY_LEN(arys_ary); // Corresponds to 'size' in Ruby
+  mrb_int n = current_i;
+
+  while (j > 0) {
+    j -= 1;
+    mrb_value a = RARRAY_PTR(arys_ary)[j]; // arys[j]
+    mrb_int b = RARRAY_LEN(a);             // a.size
+    mrb_ary_set(mrb, group, j + 1, RARRAY_PTR(a)[n % b]);
+    n /= b;
+  }
+  mrb_ary_set(mrb, group, 0, RARRAY_PTR(self_ary)[n]);
+
+  return group;
+}
+
+/*
  *  call-seq:
  *     ary.deconstruct -> ary
  *
@@ -1277,6 +1306,7 @@ mrb_mruby_array_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, a, MRB_SYM(__fetch), ary_fetch, MRB_ARGS_REQ(3));
   mrb_define_method_id(mrb, a, MRB_SYM(insert), ary_insert, MRB_ARGS_ARG(1, -1));
   mrb_define_method_id(mrb, a, MRB_SYM(deconstruct), ary_deconstruct, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, a, MRB_SYM(__product_group), ary_product_group, MRB_ARGS_REQ(4));
 }
 
 void

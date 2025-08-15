@@ -635,17 +635,7 @@ class Array
 
     i = 0
     while i < total
-      group = [nil] * (size + 1)
-      j = size
-      n = i
-      while j > 0
-        j -= 1
-        a = arys[j]
-        b = a.size
-        group[j + 1] = a[n % b]
-        n /= b
-      end
-      group[0] = self[n]
+      group = self.__product_group(arys, i, size + 1)
       list[i] = group
       i += 1
     end
