@@ -246,24 +246,41 @@ complex_eq(mrb_state *mrb, mrb_value x)
   return mrb_bool_value(mrb_complex_eq(mrb, x, y));
 }
 
+static mrb_value
+complex_op(mrb_state *mrb, mrb_value x, mrb_value y, char op)
+{
+  struct mrb_complex *p1 = complex_ptr(mrb, x);
+  mrb_float r, i;
+
+  switch (mrb_type(y)) {
+  case MRB_TT_COMPLEX: {
+    struct mrb_complex *p2 = complex_ptr(mrb, y);
+    r = p2->real;
+    i = p2->imaginary;
+    break;
+  }
+  default: {
+    r = mrb_as_float(mrb, y);
+    i = 0;
+    break;
+  }
+  }
+
+  switch (op) {
+  case '+':
+    return mrb_complex_new(mrb, p1->real + r, p1->imaginary + i);
+  case '-':
+    return mrb_complex_new(mrb, p1->real - r, p1->imaginary - i);
+  case '*':
+    return mrb_complex_new(mrb, p1->real * r - p1->imaginary * i, p1->real * i + p1->imaginary * r);
+  }
+  return mrb_nil_value(); /* should not happen */
+}
+
 mrb_value
 mrb_complex_add(mrb_state *mrb, mrb_value x, mrb_value y)
 {
-  struct mrb_complex *p1 = complex_ptr(mrb, x);
-
-  switch (mrb_type(y)) {
-  case MRB_TT_COMPLEX:
-    {
-      struct mrb_complex *p2 = complex_ptr(mrb, y);
-      return mrb_complex_new(mrb, p1->real+p2->real, p1->imaginary+p2->imaginary);
-    }
-
-  default:
-    {
-      mrb_float z = mrb_as_float(mrb, y);
-      return mrb_complex_new(mrb, p1->real+z, p1->imaginary);
-    }
-  }
+  return complex_op(mrb, x, y, '+');
 }
 
 /*
@@ -287,21 +304,7 @@ complex_add(mrb_state *mrb, mrb_value x)
 mrb_value
 mrb_complex_sub(mrb_state *mrb, mrb_value x, mrb_value y)
 {
-  struct mrb_complex *p1 = complex_ptr(mrb, x);
-
-  switch (mrb_type(y)) {
-  case MRB_TT_COMPLEX:
-    {
-      struct mrb_complex *p2 = complex_ptr(mrb, y);
-      return mrb_complex_new(mrb, p1->real-p2->real, p1->imaginary-p2->imaginary);
-    }
-
-  default:
-    {
-      mrb_float z = mrb_as_float(mrb, y);
-      return mrb_complex_new(mrb, p1->real-z, p1->imaginary);
-    }
-  }
+  return complex_op(mrb, x, y, '-');
 }
 
 /*
@@ -325,22 +328,7 @@ complex_sub(mrb_state *mrb, mrb_value x)
 mrb_value
 mrb_complex_mul(mrb_state *mrb, mrb_value x, mrb_value y)
 {
-  struct mrb_complex *p1 = complex_ptr(mrb, x);
-
-  switch (mrb_type(y)) {
-  case MRB_TT_COMPLEX:
-    {
-      struct mrb_complex *p2 = complex_ptr(mrb, y);
-      return mrb_complex_new(mrb, p1->real*p2->real - p1->imaginary*p2->imaginary,
-                                  p1->real*p2->imaginary + p2->real*p1->imaginary);
-    }
-
-  default:
-    {
-      mrb_float z = mrb_as_float(mrb, y);
-      return mrb_complex_new(mrb, p1->real*z, p1->imaginary*z);
-    }
-  }
+  return complex_op(mrb, x, y, '*');
 }
 
 /*
