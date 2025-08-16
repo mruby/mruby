@@ -157,20 +157,6 @@ class IO
     self.__id__
   end
 
-  #
-  # call-seq:
-  #   ios << obj     -> ios
-  #
-  # String Output - Writes obj to ios. obj will be converted to a string using
-  # to_s.
-  #
-  #   $stdout << "Hello " << "world!\n"
-  #   Hello world!
-  #
-  def <<(str)
-    write(str)
-    self
-  end
 
   # Alias for eof?
   alias_method :eof, :eof?

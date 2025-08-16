@@ -1248,6 +1248,29 @@ io_print(mrb_state *mrb, mrb_value io)
   return mrb_nil_value();
 }
 
+/*
+ * call-seq:
+ *   ios << obj     -> ios
+ *
+ * String Output - Writes obj to ios. obj will be converted to a string using
+ * to_s.
+ */
+static mrb_value
+io_lshift(mrb_state *mrb, mrb_value io)
+{
+  struct mrb_io *fptr = io_get_write_fptr(mrb, io);
+  int fd = io_get_write_fd(fptr);
+
+  /* Prepare IO for writing (handle read buffer adjustment) */
+  io_prepare_write(mrb, fptr);
+
+  mrb_value str = mrb_get_arg1(mrb);
+  str = mrb_obj_as_string(mrb, str);
+  fd_write(mrb, fd, str);
+
+  return io;
+}
+
 static mrb_value
 io_close(mrb_state *mrb, mrb_value io)
 {
@@ -2257,6 +2280,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method_id(mrb, io, MRB_SYM(write),      io_write,      MRB_ARGS_ANY());    /* 15.2.20.5.20 */
   mrb_define_method_id(mrb, io, MRB_SYM(puts),       io_puts,       MRB_ARGS_ANY());
   mrb_define_method_id(mrb, io, MRB_SYM(print),      io_print,      MRB_ARGS_ANY());
+  mrb_define_method_id(mrb, io, MRB_OPSYM(lshift),   io_lshift,     MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, io, MRB_SYM(pread),      io_pread,      MRB_ARGS_ANY());    /* Ruby 2.5 feature */
   mrb_define_method_id(mrb, io, MRB_SYM(pwrite),     io_pwrite,     MRB_ARGS_ANY());    /* Ruby 2.5 feature */
   mrb_define_method_id(mrb, io, MRB_SYM(getbyte),    io_getbyte,    MRB_ARGS_NONE());
