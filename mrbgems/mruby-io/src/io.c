@@ -1100,13 +1100,12 @@ fd_write(mrb_state *mrb, int fd, mrb_value str)
   return len;
 }
 
-static mrb_value
-io_write(mrb_state *mrb, mrb_value io)
+/* Helper function to prepare IO object for writing by adjusting buffer state */
+static void
+io_prepare_write(mrb_state *mrb, struct mrb_io *fptr)
 {
-  struct mrb_io *fptr = io_get_write_fptr(mrb, io);
-  int fd = io_get_write_fd(fptr);
-
   if (fptr->buf && fptr->buf->len > 0) {
+    int fd = io_get_write_fd(fptr);
     off_t n;
 
     /* get current position */
@@ -1117,6 +1116,15 @@ io_write(mrb_state *mrb, mrb_value io)
     if (n == -1) mrb_sys_fail(mrb, "lseek(2)");
     fptr->buf->start = fptr->buf->len = 0;
   }
+}
+
+static mrb_value
+io_write(mrb_state *mrb, mrb_value io)
+{
+  struct mrb_io *fptr = io_get_write_fptr(mrb, io);
+  int fd = io_get_write_fd(fptr);
+
+  io_prepare_write(mrb, fptr);
 
   mrb_int len = 0;
   if (mrb_get_argc(mrb) == 1) {
