@@ -3,6 +3,7 @@
 #include <mruby/numeric.h>
 #include <mruby/internal.h>
 #include <mruby/presym.h>
+#include <float.h>
 
 #ifdef MRB_NO_FLOAT
 # error Complex conflicts with 'MRB_NO_FLOAT' configuration
@@ -395,6 +396,7 @@ mrb_value
 mrb_complex_div(mrb_state *mrb, mrb_value self, mrb_value rhs)
 {
   struct mrb_complex *a, *b;
+  mrb_float r, den;
 
   a = complex_ptr(mrb, self);
   if (mrb_type(rhs) != MRB_TT_COMPLEX) {
@@ -413,42 +415,52 @@ mrb_complex_div(mrb_state *mrb, mrb_value self, mrb_value rhs)
     mrb_int_zerodiv(mrb);
   }
 
-  struct float_pair ar, ai, br, bi;
-  struct float_pair br2, bi2;
-  struct float_pair div;
-  struct float_pair ar_br, ai_bi;
-  struct float_pair ai_br, ar_bi;
-  struct float_pair zr, zi;
+  mrb_float br = b->real;
+  mrb_float bi = b->imaginary;
 
-  /* Split floating-point components into significand and exponent */
-  ar.s = F(frexp)(a->real, &ar.x);
-  ai.s = F(frexp)(a->imaginary, &ai.x);
-  br.s = F(frexp)(b->real, &br.x);
-  bi.s = F(frexp)(b->imaginary, &bi.x);
+  if (F(fabs)(br) < DBL_MIN * F(fabs)(bi) && F(fabs)(bi) < DBL_MIN * F(fabs)(br)) {
+    /* Fallback to frexp/ldexp for extreme values */
+    struct float_pair ar_p, ai_p, br_p, bi_p;
+    struct float_pair br2_p, bi2_p;
+    struct float_pair div_p;
+    struct float_pair ar_br_p, ai_bi_p;
+    struct float_pair ai_br_p, ar_bi_p;
+    struct float_pair zr_p, zi_p;
 
-  /* Perform arithmetic on (significand, exponent) pairs to produce
-     the result: */
+    ar_p.s = F(frexp)(a->real, &ar_p.x);
+    ai_p.s = F(frexp)(a->imaginary, &ai_p.x);
+    br_p.s = F(frexp)(br, &br_p.x);
+    bi_p.s = F(frexp)(bi, &bi_p.x);
 
-  /* the divisor */
-  mul_pair(&br2, &br, &br);
-  mul_pair(&bi2, &bi, &bi);
-  add_pair(&div, &br2, &bi2);
+    mul_pair(&br2_p, &br_p, &br_p);
+    mul_pair(&bi2_p, &bi_p, &bi_p);
+    add_pair(&div_p, &br2_p, &bi2_p);
 
-  /* real component */
-  mul_pair(&ar_br, &ar, &br);
-  mul_pair(&ai_bi, &ai, &bi);
-  add_pair(&zr, &ar_br, &ai_bi);
-  div_pair(&zr, &zr, &div);
+    mul_pair(&ar_br_p, &ar_p, &br_p);
+    mul_pair(&ai_bi_p, &ai_p, &bi_p);
+    add_pair(&zr_p, &ar_br_p, &ai_bi_p);
+    div_pair(&zr_p, &zr_p, &div_p);
 
-  /* imaginary component */
-  mul_pair(&ai_br, &ai, &br);
-  mul_pair(&ar_bi, &ar, &bi);
-  ar_bi.s = -ar_bi.s;
-  add_pair(&zi, &ai_br, &ar_bi);
-  div_pair(&zi, &zi, &div);
+    mul_pair(&ai_br_p, &ai_p, &br_p);
+    mul_pair(&ar_bi_p, &ar_p, &bi_p);
+    ar_bi_p.s = -ar_bi_p.s;
+    add_pair(&zi_p, &ai_br_p, &ar_bi_p);
+    div_pair(&zi_p, &zi_p, &div_p);
 
-  /* assemble the result */
-  return complex_new(mrb, F(ldexp)(zr.s, zr.x), F(ldexp)(zi.s, zi.x));
+    return complex_new(mrb, F(ldexp)(zr_p.s, zr_p.x), F(ldexp)(zi_p.s, zi_p.x));
+  }
+  else {
+    if (F(fabs)(br) > F(fabs)(bi)) {
+      r = bi / br;
+      den = br + r * bi;
+      return complex_new(mrb, (a->real + a->imaginary * r) / den, (a->imaginary - a->real * r) / den);
+    }
+    else {
+      r = br / bi;
+      den = bi + r * br;
+      return complex_new(mrb, (a->real * r + a->imaginary) / den, (a->imaginary * r - a->real) / den);
+    }
+  }
 }
 
 /*
