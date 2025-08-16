@@ -1142,6 +1142,82 @@ io_write(mrb_state *mrb, mrb_value io)
   return mrb_int_value(mrb, len);
 }
 
+/* Helper function to write a string followed by newline if needed */
+static void
+io_puts_str(mrb_state *mrb, int fd, mrb_value str)
+{
+  str = mrb_obj_as_string(mrb, str);
+  const char *ptr = RSTRING_PTR(str);
+  mrb_int len = RSTRING_LEN(str);
+
+  /* Write the original string */
+  fd_write(mrb, fd, str);
+
+  /* Add newline if string doesn't end with one */
+  if (len == 0 || ptr[len-1] != '\n') {
+    mrb_value newline = mrb_str_new_lit(mrb, "\n");
+    fd_write(mrb, fd, newline);
+  }
+}
+
+/* Recursive helper for puts with arrays */
+static void
+io_puts_ary(mrb_state *mrb, int fd, mrb_value ary)
+{
+  mrb_int len = RARRAY_LEN(ary);
+
+  if (len == 0) {
+    /* Empty array - write a single newline */
+    mrb_value newline = mrb_str_new_lit(mrb, "\n");
+    fd_write(mrb, fd, newline);
+    return;
+  }
+
+  for (mrb_int i = 0; i < len; i++) {
+    mrb_value elem = RARRAY_PTR(ary)[i];
+    if (mrb_array_p(elem)) {
+      io_puts_ary(mrb, fd, elem);  /* Recursive call for nested arrays */
+    }
+    else {
+      io_puts_str(mrb, fd, elem);
+    }
+  }
+}
+
+static mrb_value
+io_puts(mrb_state *mrb, mrb_value io)
+{
+  struct mrb_io *fptr = io_get_write_fptr(mrb, io);
+  int fd = io_get_write_fd(fptr);
+
+  /* Prepare IO for writing (handle read buffer adjustment) */
+  io_prepare_write(mrb, fptr);
+
+  mrb_value *argv;
+  mrb_int argc;
+  mrb_get_args(mrb, "*", &argv, &argc);
+
+  if (argc == 0) {
+    /* No arguments - just write a newline */
+    mrb_value newline = mrb_str_new_lit(mrb, "\n");
+    fd_write(mrb, fd, newline);
+    return mrb_nil_value();
+  }
+
+  /* Process each argument */
+  for (mrb_int i = 0; i < argc; i++) {
+    mrb_value arg = argv[i];
+    if (mrb_array_p(arg)) {
+      io_puts_ary(mrb, fd, arg);
+    }
+    else {
+      io_puts_str(mrb, fd, arg);
+    }
+  }
+
+  return mrb_nil_value();
+}
+
 static mrb_value
 io_close(mrb_state *mrb, mrb_value io)
 {
@@ -2149,6 +2225,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method_id(mrb, io, MRB_SYM(pid),        io_pid,        MRB_ARGS_NONE());
   mrb_define_method_id(mrb, io, MRB_SYM(fileno),     io_fileno,     MRB_ARGS_NONE());
   mrb_define_method_id(mrb, io, MRB_SYM(write),      io_write,      MRB_ARGS_ANY());    /* 15.2.20.5.20 */
+  mrb_define_method_id(mrb, io, MRB_SYM(puts),       io_puts,       MRB_ARGS_ANY());
   mrb_define_method_id(mrb, io, MRB_SYM(pread),      io_pread,      MRB_ARGS_ANY());    /* Ruby 2.5 feature */
   mrb_define_method_id(mrb, io, MRB_SYM(pwrite),     io_pwrite,     MRB_ARGS_ANY());    /* Ruby 2.5 feature */
   mrb_define_method_id(mrb, io, MRB_SYM(getbyte),    io_getbyte,    MRB_ARGS_NONE());

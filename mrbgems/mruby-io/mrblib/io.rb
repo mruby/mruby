@@ -304,41 +304,6 @@ class IO
     self
   end
 
-  #
-  # call-seq:
-  #   ios.puts(obj, ...)    -> nil
-  #
-  # Writes the given objects to ios as strings, each followed by a newline
-  # character unless the string already ends with a newline. If called with
-  # an array argument, writes each element on a new line. If called without
-  # arguments, outputs a single newline.
-  #
-  #   $stdout.puts("this", "is", "a", "test")
-  #   this
-  #   is
-  #   a
-  #   test
-  #
-  def puts(*args)
-    i = 0
-    len = args.size
-    if len == 0
-      write "\n"
-      return
-    end
-    while i < len
-      s = args[i]
-      if s.kind_of?(Array)
-        puts(*s) if s.size > 0
-      else
-        s = s.to_s
-        write s
-        write "\n" if (s[-1] != "\n")
-      end
-      i += 1
-    end
-    nil
-  end
 
   #
   # call-seq:
