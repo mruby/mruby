@@ -194,32 +194,6 @@ class IO
     seek(0, SEEK_SET)
   end
 
-  #
-  # call-seq:
-  #   ios.ungetbyte(string)   -> nil
-  #   ios.ungetbyte(integer)  -> nil
-  #
-  # Pushes back bytes (passed as a parameter) onto ios, such that a subsequent
-  # buffered character read will return it. Only one byte may be pushed back
-  # before a subsequent read operation (that is, you will be able to read only
-  # the last of several bytes that have been pushed back). Has no effect with
-  # unbuffered reads (such as IO#sysread).
-  #
-  #   f = File.new("testfile")   #=> #<File:testfile>
-  #   b = f.getbyte              #=> 0x38
-  #   f.ungetbyte(b)             #=> nil
-  #   f.getbyte                  #=> 0x38
-  #
-  def ungetbyte(c)
-    if c.is_a? String
-      c = c.getbyte(0)
-    else
-      c &= 0xff
-    end
-    s = " "
-    s.setbyte(0,c)
-    ungetc s
-  end
 
   #
   # call-seq:

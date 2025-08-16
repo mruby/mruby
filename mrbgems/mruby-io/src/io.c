@@ -1828,15 +1828,12 @@ io_pwrite(mrb_state *mrb, mrb_value io)
  *   f.ungetc(c)                #=> nil
  *   f.getc                     #=> "H"
  */
-static mrb_value
-io_ungetc(mrb_state *mrb, mrb_value io)
+/* Helper function for ungetc operations with raw data */
+static void
+io_unget_data(mrb_state *mrb, struct mrb_io *fptr, const char *ptr, mrb_int len)
 {
-  struct mrb_io *fptr = io_get_read_fptr(mrb, io);
   struct mrb_io_buf *buf = fptr->buf;
-  mrb_value str;
 
-  mrb_get_args(mrb, "S", &str);
-  mrb_int len = RSTRING_LEN(str);
   if (len > SHRT_MAX) {
     mrb_raise(mrb, E_ARGUMENT_ERROR, "string too long to ungetc");
   }
@@ -1845,9 +1842,53 @@ io_ungetc(mrb_state *mrb, mrb_value io)
     buf = fptr->buf;
   }
   memmove(buf->mem+len, buf->mem+buf->start, buf->len);
-  memcpy(buf->mem, RSTRING_PTR(str), len);
+  memcpy(buf->mem, ptr, len);
   buf->start = 0;
   buf->len += (short)len;
+}
+
+static mrb_value
+io_ungetc(mrb_state *mrb, mrb_value io)
+{
+  struct mrb_io *fptr = io_get_read_fptr(mrb, io);
+  mrb_value str;
+
+  mrb_get_args(mrb, "S", &str);
+  io_unget_data(mrb, fptr, RSTRING_PTR(str), RSTRING_LEN(str));
+  return mrb_nil_value();
+}
+
+/*
+ * call-seq:
+ *   ios.ungetbyte(string)   -> nil
+ *   ios.ungetbyte(integer)  -> nil
+ *
+ * Pushes back bytes (passed as a parameter) onto ios, such that a subsequent
+ * buffered character read will return it. Only one byte may be pushed back
+ * before a subsequent read operation (that is, you will be able to read only
+ * the last of several bytes that have been pushed back). Has no effect with
+ * unbuffered reads (such as IO#sysread).
+ */
+static mrb_value
+io_ungetbyte(mrb_state *mrb, mrb_value io)
+{
+  struct mrb_io *fptr = io_get_read_fptr(mrb, io);
+  mrb_value c = mrb_get_arg1(mrb);
+  unsigned char byte_val;
+
+  if (mrb_string_p(c)) {
+    if (RSTRING_LEN(c) == 0) {
+      return mrb_nil_value(); /* Empty string, do nothing */
+    }
+    byte_val = (unsigned char)RSTRING_PTR(c)[0];
+  }
+  else {
+    mrb_int val = mrb_integer(c);
+    byte_val = (unsigned char)(val & 0xff);
+  }
+
+  /* Use helper function with single byte */
+  io_unget_data(mrb, fptr, (const char*)&byte_val, 1);
   return mrb_nil_value();
 }
 
@@ -2274,6 +2315,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method_id(mrb, io, MRB_SYM_Q(closed),   io_closed,     MRB_ARGS_NONE());   /* 15.2.20.5.2 */
   mrb_define_method_id(mrb, io, MRB_SYM(flush),      io_flush,      MRB_ARGS_NONE());   /* 15.2.20.5.7 */
   mrb_define_method_id(mrb, io, MRB_SYM(ungetc),     io_ungetc,     MRB_ARGS_REQ(1));
+  mrb_define_method_id(mrb, io, MRB_SYM(ungetbyte),  io_ungetbyte,  MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, io, MRB_SYM(pos),        io_pos,        MRB_ARGS_NONE());
   mrb_define_method_id(mrb, io, MRB_SYM(pid),        io_pid,        MRB_ARGS_NONE());
   mrb_define_method_id(mrb, io, MRB_SYM(fileno),     io_fileno,     MRB_ARGS_NONE());
