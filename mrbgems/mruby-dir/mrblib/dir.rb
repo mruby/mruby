@@ -44,25 +44,6 @@ class Dir
 
   class << self
 
-    #
-    # call-seq:
-    #   Dir.children(dirname) -> array
-    #
-    # Returns an array containing all of the filenames except for "." and ".."
-    # in the given directory. Will raise a SystemCallError if the named
-    # directory doesn't exist.
-    #
-    #   Dir.children("testdir")   #=> ["config.h", "main.rb"]
-    #
-    def children(path)
-      a = []
-      self.open(path) do |d|
-        while s = d.read
-          a << s unless s == "." || s == ".."
-        end
-      end
-      a
-    end
 
     #
     # call-seq:
