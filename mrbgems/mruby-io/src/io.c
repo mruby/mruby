@@ -1218,6 +1218,36 @@ io_puts(mrb_state *mrb, mrb_value io)
   return mrb_nil_value();
 }
 
+/*
+ * call-seq:
+ *   ios.print()             -> nil
+ *   ios.print(obj, ...)     -> nil
+ *
+ * Writes the given object(s) to ios. Objects that aren't strings will be
+ * converted by calling their to_s method.
+ */
+static mrb_value
+io_print(mrb_state *mrb, mrb_value io)
+{
+  struct mrb_io *fptr = io_get_write_fptr(mrb, io);
+  int fd = io_get_write_fd(fptr);
+
+  /* Prepare IO for writing (handle read buffer adjustment) */
+  io_prepare_write(mrb, fptr);
+
+  mrb_value *argv;
+  mrb_int argc;
+  mrb_get_args(mrb, "*", &argv, &argc);
+
+  /* Convert each argument to string and write it */
+  for (mrb_int i = 0; i < argc; i++) {
+    mrb_value str = mrb_obj_as_string(mrb, argv[i]);
+    fd_write(mrb, fd, str);
+  }
+
+  return mrb_nil_value();
+}
+
 static mrb_value
 io_close(mrb_state *mrb, mrb_value io)
 {
@@ -2226,6 +2256,7 @@ mrb_init_io(mrb_state *mrb)
   mrb_define_method_id(mrb, io, MRB_SYM(fileno),     io_fileno,     MRB_ARGS_NONE());
   mrb_define_method_id(mrb, io, MRB_SYM(write),      io_write,      MRB_ARGS_ANY());    /* 15.2.20.5.20 */
   mrb_define_method_id(mrb, io, MRB_SYM(puts),       io_puts,       MRB_ARGS_ANY());
+  mrb_define_method_id(mrb, io, MRB_SYM(print),      io_print,      MRB_ARGS_ANY());
   mrb_define_method_id(mrb, io, MRB_SYM(pread),      io_pread,      MRB_ARGS_ANY());    /* Ruby 2.5 feature */
   mrb_define_method_id(mrb, io, MRB_SYM(pwrite),     io_pwrite,     MRB_ARGS_ANY());    /* Ruby 2.5 feature */
   mrb_define_method_id(mrb, io, MRB_SYM(getbyte),    io_getbyte,    MRB_ARGS_NONE());

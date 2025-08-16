@@ -305,26 +305,6 @@ class IO
   end
 
 
-  #
-  # call-seq:
-  #   ios.print()             -> nil
-  #   ios.print(obj, ...)     -> nil
-  #
-  # Writes the given object(s) to ios. Objects that aren't strings will be
-  # converted by calling their to_s method. With no argument, prints the
-  # contents of the variable $_.
-  #
-  #   $stdout.print("This is ", 100, " percent.\n")
-  #   This is 100 percent.
-  #
-  def print(*args)
-    i = 0
-    len = args.size
-    while i < len
-      write args[i].to_s
-      i += 1
-    end
-  end
 
   #
   # call-seq:
