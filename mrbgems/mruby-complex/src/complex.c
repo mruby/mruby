@@ -513,6 +513,49 @@ nil_to_c(mrb_state *mrb, mrb_value self)
   return complex_new(mrb, 0, 0);
 }
 
+/*
+ * call-seq:
+ *   cmp ** numeric -> complex
+ *
+ * Returns the result of raising cmp to the power of numeric.
+ *
+ *   Complex(1, 2) ** 2            #=> (-3+4i)
+ *   Complex(1, 2) ** Complex(1, 0) #=> (1+2i)
+ */
+static mrb_value
+complex_pow(mrb_state *mrb, mrb_value self)
+{
+  mrb_value other = mrb_get_arg1(mrb);
+  struct mrb_complex *c_self = complex_ptr(mrb, self);
+  mrb_float self_real = c_self->real;
+  mrb_float self_imaginary = c_self->imaginary;
+
+  if (mrb_type(other) == MRB_TT_COMPLEX) {
+    struct mrb_complex *c_other = complex_ptr(mrb, other);
+    mrb_float x = c_other->real;
+    mrb_float y = c_other->imaginary;
+
+    mrb_float log_abs_self = F(log)(F(hypot)(self_real, self_imaginary));
+    mrb_float arg_self = F(atan2)(self_imaginary, self_real);
+
+    mrb_float a = x * log_abs_self - y * arg_self;
+    mrb_float b = x * arg_self + y * log_abs_self;
+
+    mrb_float exp_a = F(exp)(a);
+    return mrb_complex_new(mrb, exp_a * F(cos)(b), exp_a * F(sin)(b));
+  } else {
+    mrb_float other_float = mrb_as_float(mrb, other);
+
+    mrb_float abs_self = F(hypot)(self_real, self_imaginary);
+    mrb_float arg_self = F(atan2)(self_imaginary, self_real);
+
+    mrb_float pow_abs_self = F(pow)(abs_self, other_float);
+    mrb_float new_arg = arg_self * other_float;
+
+    return mrb_complex_new(mrb, pow_abs_self * F(cos)(new_arg), pow_abs_self * F(sin)(new_arg));
+  }
+}
+
 void mrb_mruby_complex_gem_init(mrb_state *mrb)
 {
   struct RClass *comp;
@@ -537,6 +580,7 @@ void mrb_mruby_complex_gem_init(mrb_state *mrb)
   mrb_define_method_id(mrb, comp, MRB_SYM(quo), complex_div, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, comp, MRB_OPSYM(eq), complex_eq, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, comp, MRB_SYM(hash), complex_hash, MRB_ARGS_NONE());
+  mrb_define_method_id(mrb, comp, MRB_OPSYM(pow), complex_pow, MRB_ARGS_REQ(1));
   mrb_define_method_id(mrb, mrb->nil_class, MRB_SYM(to_c), nil_to_c, MRB_ARGS_NONE());
 }
 
