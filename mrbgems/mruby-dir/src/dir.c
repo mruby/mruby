@@ -5,6 +5,7 @@
 */
 
 #include <mruby.h>
+#include <mruby/array.h>
 #include <mruby/class.h>
 #include <mruby/data.h>
 #include <mruby/error.h>
@@ -421,6 +422,37 @@ mrb_dir_tell(mrb_state *mrb, mrb_value self)
 #endif
 }
 
+/*
+ * call-seq:
+ *   Dir.entries(dirname) -> array
+ *
+ * Returns an array containing all of the filenames in the given directory.
+ * Will raise a SystemCallError if the named directory doesn't exist.
+ */
+static mrb_value
+mrb_dir_entries(mrb_state *mrb, mrb_value klass)
+{
+  const char *path;
+  DIR *dir;
+  struct dirent *dp;
+  mrb_value ary;
+
+  mrb_get_args(mrb, "z", &path);
+
+  dir = opendir(path);
+  if (dir == NULL) {
+    mrb_sys_fail(mrb, path);
+  }
+
+  ary = mrb_ary_new(mrb);
+  while ((dp = readdir(dir)) != NULL) {
+    mrb_ary_push(mrb, ary, mrb_str_new_cstr(mrb, dp->d_name));
+  }
+
+  closedir(dir);
+  return ary;
+}
+
 void
 mrb_mruby_dir_gem_init(mrb_state *mrb)
 {
@@ -435,6 +467,7 @@ mrb_mruby_dir_gem_init(mrb_state *mrb)
   mrb_define_class_method_id(mrb, d, MRB_SYM(_chdir),  mrb_dir_chdir,  MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, d, MRB_SYM(chroot),  mrb_dir_chroot, MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, d, MRB_SYM_Q(empty), mrb_dir_empty, MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, d, MRB_SYM(entries), mrb_dir_entries, MRB_ARGS_REQ(1));
 
   mrb_define_method_id(mrb, d, MRB_SYM(close),      mrb_dir_close,  MRB_ARGS_NONE());
   mrb_define_method_id(mrb, d, MRB_SYM(initialize), mrb_dir_init,   MRB_ARGS_REQ(1));

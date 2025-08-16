@@ -43,24 +43,6 @@ class Dir
   alias pos= seek
 
   class << self
-    #
-    # call-seq:
-    #   Dir.entries(dirname) -> array
-    #
-    # Returns an array containing all of the filenames in the given directory.
-    # Will raise a SystemCallError if the named directory doesn't exist.
-    #
-    #   Dir.entries("testdir")   #=> [".", "..", "config.h", "main.rb"]
-    #
-    def entries(path)
-      a = []
-      self.open(path) do |d|
-        while s = d.read
-          a << s
-        end
-      end
-      a
-    end
 
     #
     # call-seq:
