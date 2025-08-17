@@ -4,6 +4,7 @@
 #include <mruby/array.h>
 #include <mruby/range.h>
 #include <mruby/hash.h>
+#include <mruby/data.h>
 #include <mruby/internal.h>
 #include <mruby/presym.h>
 #include <mruby/khash.h>
@@ -25,6 +26,31 @@ KHASH_DECLARE(ary_set, mrb_value, char, 0)
 KHASH_DEFINE(ary_set, mrb_value, char, 0, ary_set_hash_func, ary_set_equal_func)
 
 typedef khash_t(ary_set) ary_set_t;
+
+/* Combination state structure for repeated_combination optimization */
+struct mrb_combination_state {
+  mrb_int *indices;
+  mrb_int n;
+  mrb_int array_size;
+  mrb_bool permutation;
+  mrb_bool finished;
+};
+
+static void
+mrb_combination_state_free(mrb_state *mrb, void *ptr)
+{
+  struct mrb_combination_state *state = (struct mrb_combination_state*)ptr;
+  if (state) {
+    if (state->indices) {
+      mrb_free(mrb, state->indices);
+    }
+    mrb_free(mrb, state);
+  }
+}
+
+static struct mrb_data_type mrb_combination_state_type = {
+  "CombinationState", mrb_combination_state_free
+};
 
 /*
  *  call-seq:
@@ -1275,6 +1301,110 @@ ary_deconstruct(mrb_state *mrb, mrb_value ary)
   return ary;
 }
 
+
+/*
+ *  Internal method to initialize combination state.
+ *  Returns opaque state object for use by __combination_next.
+ */
+static mrb_value
+ary_combination_init(mrb_state *mrb, mrb_value self)
+{
+  mrb_int n;
+  mrb_bool permutation;
+
+  mrb_get_args(mrb, "ib", &n, &permutation);
+
+  struct mrb_combination_state *state = (struct mrb_combination_state*)mrb_malloc(mrb, sizeof(*state));
+  state->n = n;
+  state->array_size = RARRAY_LEN(self);
+  state->permutation = permutation;
+  state->finished = (n <= 0 && n != 0);
+
+  if (n > 0) {
+    state->indices = (mrb_int*)mrb_malloc(mrb, sizeof(mrb_int) * n);
+    for (mrb_int i = 0; i < n; i++) {
+      state->indices[i] = 0;
+    }
+  }
+  else {
+    state->indices = NULL;
+  }
+
+  return mrb_obj_value(mrb_data_object_alloc(mrb, mrb->object_class, state, &mrb_combination_state_type));
+}
+
+/*
+ *  Internal method to get next combination as index array.
+ *  Returns array of indices or nil when iteration is complete.
+ */
+static mrb_value
+ary_combination_next(mrb_state *mrb, mrb_value self)
+{
+  mrb_value state_obj;
+  mrb_get_args(mrb, "o", &state_obj);
+
+  struct mrb_combination_state *state;
+
+  /* Validate state object type and get data */
+  state = (struct mrb_combination_state*)mrb_data_check_and_get(mrb, state_obj, &mrb_combination_state_type);
+  if (!state) {
+    mrb_raise(mrb, E_ARGUMENT_ERROR, "invalid combination state");
+  }
+
+  /* Check if iteration is complete */
+  if (state->finished) return mrb_nil_value();
+
+  /* Validate array hasn't been modified during iteration */
+  if (RARRAY_LEN(self) != state->array_size) {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "array modified during iteration");
+  }
+
+  /* Edge case: empty array */
+  if (state->array_size == 0) {
+    state->finished = TRUE;
+    return mrb_nil_value();
+  }
+
+  /* Validate current indices are still in bounds */
+  for (mrb_int i = 0; i < state->n; i++) {
+    if (state->indices[i] >= state->array_size) {
+      state->finished = TRUE;
+      return mrb_nil_value();
+    }
+  }
+
+  /* Build current combination indices */
+  mrb_value result = mrb_ary_new_capa(mrb, state->n);
+  for (mrb_int i = 0; i < state->n; i++) {
+    mrb_ary_push(mrb, result, mrb_fixnum_value(state->indices[i]));
+  }
+
+  mrb_int pos = state->n - 1;
+
+  while (pos >= 0) {
+    state->indices[pos]++;
+    if (state->indices[pos] < state->array_size) break;
+    pos--;
+  }
+
+  if (pos < 0) {
+    state->finished = TRUE;
+  }
+  else {
+    /* Reset dependent indices */
+    for (mrb_int i = pos + 1; i < state->n; i++) {
+      if (state->permutation) {
+        state->indices[i] = 0;
+      }
+      else {
+        state->indices[i] = state->indices[i - 1];
+      }
+    }
+  }
+
+  return result;
+}
+
 void
 mrb_mruby_array_ext_gem_init(mrb_state* mrb)
 {
@@ -1307,6 +1437,8 @@ mrb_mruby_array_ext_gem_init(mrb_state* mrb)
   mrb_define_method_id(mrb, a, MRB_SYM(insert), ary_insert, MRB_ARGS_ARG(1, -1));
   mrb_define_method_id(mrb, a, MRB_SYM(deconstruct), ary_deconstruct, MRB_ARGS_NONE());
   mrb_define_method_id(mrb, a, MRB_SYM(__product_group), ary_product_group, MRB_ARGS_REQ(4));
+  mrb_define_method_id(mrb, a, MRB_SYM(__combination_init), ary_combination_init, MRB_ARGS_REQ(2));
+  mrb_define_method_id(mrb, a, MRB_SYM(__combination_next), ary_combination_next, MRB_ARGS_REQ(1));
 }
 
 void

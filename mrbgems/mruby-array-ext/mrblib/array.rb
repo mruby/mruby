@@ -701,6 +701,7 @@ class Array
     when 0
       yield []
     when 1
+      # Keep fast Ruby path for n=1
       i = 0
       while i < self.size
         yield [self[i]]
@@ -708,36 +709,17 @@ class Array
       end
     else
       if n > 0
-        v = [0] * n
-        while true
+        # Use C iterator for complex cases
+        state = __combination_init(n, permutation)
+        while (indices = __combination_next(state))
+          # Convert indices to elements in Ruby
           tmp = [nil] * n
           i = 0
           while i < n
-            tmp[i] = self[v[i]]
+            tmp[i] = self[indices[i]]
             i += 1
           end
-
           yield tmp
-
-          tmp = self.size
-          i = n - 1
-          while i >= 0
-            v[i] += 1
-            break if v[i] < tmp
-            i -= 1
-          end
-          break unless v[0] < tmp
-          i = 1
-          while i < n
-            unless v[i] < tmp
-              if permutation
-                v[i] = 0
-              else
-                v[i] = v[i - 1]
-              end
-            end
-            i += 1
-          end
         end
       end
     end
