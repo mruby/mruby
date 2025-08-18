@@ -81,11 +81,13 @@ mrb_lstat(mrb_state *mrb, mrb_value obj, struct stat *st)
 /*
  * call-seq:
  *   File.directory?(file_name)   ->  true or false
+ *   FileTest.directory?(file_name)   ->  true or false
  *
  * Returns `true` if the named file is a directory, or a symlink that points at a directory, and `false`
  * otherwise.
  *
  *    File.directory?(".")   #=> true
+ *    FileTest.directory?(".")   #=> true
  */
 
 static mrb_value
@@ -109,10 +111,12 @@ mrb_filetest_s_directory_p(mrb_state *mrb, mrb_value klass)
 /*
  * call-seq:
  *   File.pipe?(file_name)   ->  true or false
+ *   FileTest.pipe?(file_name)   ->  true or false
  *
  * Returns `true` if the named file is a pipe.
  *
  *   File.pipe?("/dev/stdin")   #=> true
+ *   FileTest.pipe?("/dev/stdin")   #=> true
  */
 
 static mrb_value
@@ -142,10 +146,12 @@ mrb_filetest_s_pipe_p(mrb_state *mrb, mrb_value klass)
 /*
  * call-seq:
  *   File.symlink?(file_name)   ->  true or false
+ *   FileTest.symlink?(file_name)   ->  true or false
  *
  * Returns `true` if the named file is a symbolic link.
  *
  *   File.symlink?("link-to-test")   #=> true
+ *   FileTest.symlink?("link-to-test")   #=> true
  */
 
 static mrb_value
@@ -185,10 +191,12 @@ mrb_filetest_s_symlink_p(mrb_state *mrb, mrb_value klass)
 /*
  * call-seq:
  *   File.socket?(file_name)   ->  true or false
+ *   FileTest.socket?(file_name)   ->  true or false
  *
  * Returns `true` if the named file is a socket.
  *
  *   File.socket?("/tmp/.X11-unix/X0")   #=> true
+ *   FileTest.socket?("/tmp/.X11-unix/X0")   #=> true
  */
 
 static mrb_value
@@ -229,11 +237,15 @@ mrb_filetest_s_socket_p(mrb_state *mrb, mrb_value klass)
  * call-seq:
  *    File.exist?(file_name)    ->  true or false
  *    File.exists?(file_name)   ->  true or false
+ *    FileTest.exist?(file_name)    ->  true or false
+ *    FileTest.exists?(file_name)   ->  true or false
  *
  * Returns `true` if the named file exists.
  *
  *   File.exist?("config.h")      #=> true
  *   File.exist?("no_such_file")  #=> false
+ *   FileTest.exist?("config.h")      #=> true
+ *   FileTest.exist?("no_such_file")  #=> false
  */
 
 static mrb_value
@@ -251,10 +263,12 @@ mrb_filetest_s_exist_p(mrb_state *mrb, mrb_value klass)
 /*
  * call-seq:
  *    File.file?(file_name)   -> true or false
+ *    FileTest.file?(file_name)   -> true or false
  *
  * Returns `true` if the named file exists and is a regular file.
  *
  *   File.file?("testfile")   #=> true
+ *   FileTest.file?("testfile")   #=> true
  */
 
 static mrb_value
@@ -278,10 +292,12 @@ mrb_filetest_s_file_p(mrb_state *mrb, mrb_value klass)
 /*
  * call-seq:
  *    File.zero?(file_name)   -> true or false
+ *    FileTest.zero?(file_name)   -> true or false
  *
  * Returns `true` if the named file exists and has a zero size.
  *
  *   File.zero?("testfile")   #=> false
+ *   FileTest.zero?("testfile")   #=> false
  */
 
 static mrb_value
@@ -301,12 +317,14 @@ mrb_filetest_s_zero_p(mrb_state *mrb, mrb_value klass)
 /*
  * call-seq:
  *    File.size(file_name)   -> integer
+ *    FileTest.size(file_name)   -> integer
  *
  * Returns the size of `file_name`.
  *
  * `file_name` can be an IO object.
  *
  *   File.size("testfile")   #=> 66
+ *   FileTest.size("testfile")   #=> 66
  */
 
 static mrb_value
@@ -324,11 +342,13 @@ mrb_filetest_s_size(mrb_state *mrb, mrb_value klass)
 /*
  * call-seq:
  *    File.size?(file_name)   -> Integer or nil
+ *    FileTest.size?(file_name)   -> Integer or nil
  *
  * Returns `nil` if `file_name` doesn't exist or has zero size, the size of the
  * file otherwise.
  *
  *   File.size?("testfile")   #=> 66
+ *   FileTest.size?("testfile")   #=> 66
  */
 
 static mrb_value
@@ -362,4 +382,17 @@ mrb_init_file_test(mrb_state *mrb)
   mrb_define_class_method_id(mrb, f, MRB_SYM_Q(socket),    mrb_filetest_s_socket_p,    MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, f, MRB_SYM_Q(symlink),   mrb_filetest_s_symlink_p,   MRB_ARGS_REQ(1));
   mrb_define_class_method_id(mrb, f, MRB_SYM_Q(zero),      mrb_filetest_s_zero_p,      MRB_ARGS_REQ(1));
+
+  // Also register the same methods on File class
+  struct RClass *file = mrb_class_get_id(mrb, MRB_SYM(File));
+  mrb_define_class_method_id(mrb, file, MRB_SYM_Q(directory), mrb_filetest_s_directory_p, MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, file, MRB_SYM_Q(exist),     mrb_filetest_s_exist_p,     MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, file, MRB_SYM_Q(exists),    mrb_filetest_s_exist_p,     MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, file, MRB_SYM_Q(file),      mrb_filetest_s_file_p,      MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, file, MRB_SYM_Q(pipe),      mrb_filetest_s_pipe_p,      MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, file, MRB_SYM(size),        mrb_filetest_s_size,        MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, file, MRB_SYM_Q(size),      mrb_filetest_s_size_p,      MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, file, MRB_SYM_Q(socket),    mrb_filetest_s_socket_p,    MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, file, MRB_SYM_Q(symlink),   mrb_filetest_s_symlink_p,   MRB_ARGS_REQ(1));
+  mrb_define_class_method_id(mrb, file, MRB_SYM_Q(zero),      mrb_filetest_s_zero_p,      MRB_ARGS_REQ(1));
 }
